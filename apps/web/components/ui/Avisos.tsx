@@ -37,7 +37,8 @@ import { Hilo } from "@/components/ui/campos";
    ==================================================================== */
 
 export type TonoAviso = "exito" | "error" | "aviso" | "proceso";
-export type Aviso = { id: number; tono: TonoAviso; texto: string; detalle?: string };
+export type AccionAviso = { texto: string; onClick: () => void };
+export type Aviso = { id: number; tono: TonoAviso; texto: string; detalle?: string; accion?: AccionAviso; duracion?: number };
 
 const DURACION: Record<TonoAviso, number | null> = { exito: 4000, aviso: 6000, error: 8000, proceso: null };
 
@@ -70,10 +71,10 @@ function cerrar(id: number) {
   emitir();
 }
 
-function abrir(tono: TonoAviso, texto: string, opciones?: { detalle?: string; enfocar?: Enfocable }): number {
+function abrir(tono: TonoAviso, texto: string, opciones?: { detalle?: string; enfocar?: Enfocable; accion?: AccionAviso; duracion?: number }): number {
   const id = siguienteId++;
   // El mismo texto dos veces seguidas (doble clic en "Registrar") no se apila.
-  avisos = [...avisos.filter((a) => !(a.tono === tono && a.texto === texto)), { id, tono, texto, detalle: opciones?.detalle }];
+  avisos = [...avisos.filter((a) => !(a.tono === tono && a.texto === texto)), { id, tono, texto, detalle: opciones?.detalle, accion: opciones?.accion, duracion: opciones?.duracion }];
   emitir();
   if (opciones?.enfocar) enfocar(opciones.enfocar);
   return id;
@@ -97,7 +98,12 @@ export function enfocar(objetivo: Enfocable) {
 }
 
 export const avisar = {
-  exito: (texto: string, opciones?: { detalle?: string }) => abrir("exito", texto, opciones),
+  /**
+   * `accion`: un botón dentro del aviso (típico: «Deshacer»). Al pulsarlo el aviso se cierra y corre `onClick`.
+   * `duracion`: milisegundos, para un aviso que la persona necesita más tiempo para decidir (un «Deshacer»
+   * de 4 s es una trampa; con 7 s se alcanza a leer y a decidir).
+   */
+  exito: (texto: string, opciones?: { detalle?: string; accion?: AccionAviso; duracion?: number }) => abrir("exito", texto, opciones),
   error: (texto: string, opciones?: { detalle?: string; enfocar?: Enfocable }) => abrir("error", texto, opciones),
   aviso: (texto: string, opciones?: { detalle?: string; enfocar?: Enfocable }) => abrir("aviso", texto, opciones),
   /** Devuelve la función que lo cierra. */
@@ -149,7 +155,7 @@ function Tarjeta({ aviso }: { aviso: Aviso }) {
   }, [aviso.id]);
 
   const e = ESTILO[aviso.tono];
-  const ms = DURACION[aviso.tono];
+  const ms = aviso.duracion ?? DURACION[aviso.tono];
   return (
     <div
       role={aviso.tono === "error" ? "alert" : "status"}
@@ -180,6 +186,19 @@ function Tarjeta({ aviso }: { aviso: Aviso }) {
       <div className="min-w-0 flex-1">
         <p className={`text-sm leading-snug ${e.titulo}`}>{aviso.texto}</p>
         {aviso.detalle && <p className="mt-0.5 text-xs leading-snug text-tinta/65">{aviso.detalle}</p>}
+        {aviso.accion && (
+          <button
+            type="button"
+            onClick={() => {
+              const { onClick } = aviso.accion!;
+              quitar();
+              onClick();
+            }}
+            className="label-cayla mt-1.5 text-[11px] text-tinta underline underline-offset-2 hover:no-underline"
+          >
+            {aviso.accion.texto}
+          </button>
+        )}
         {aviso.tono === "proceso" && (
           <span className="relative mt-2 block h-[2px]">
             <Hilo activo={false} trabajando />

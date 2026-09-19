@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
+import { hoyLima } from "@/lib/fechas-lima";
+import { serie12Meses } from "@/lib/proveedores-reglas";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Alta, edición y archivo
 // pasan por las RPC directo desde el componente cliente (registrar_proveedor /
@@ -10,10 +12,19 @@ export type Proveedor = {
   nombre: string;
   ruc: string | null;
   contacto: string | null;
-  /** El WhatsApp por el que se pacta el fardo — y, en el modal de pago, el número al que se yapea/plinea. */
+  /** El WhatsApp por el que se pacta el fardo. Desde ADR-0129 ya NO es el Yape: ese es `celular_billetera`. */
   telefono: string | null;
   banco: string | null;
+  /** Número de cuenta del banco (texto libre). El interbancario vive en `cci` (ADR-0129). */
   cuenta_bancaria: string | null;
+  /** Código de Cuenta Interbancario: 20 dígitos, solo números (ADR-0129). */
+  cci: string | null;
+  /** El celular al que se yapea/plinea (9 dígitos, sin +51). NO es `telefono`, que es el WhatsApp. */
+  celular_billetera: string | null;
+  /** Qué app tiene ese celular: `yape`, `plin` o ambas. `null` si no hay billetera. */
+  billeteras: string[] | null;
+  /** El nombre que muestra el banco/Yape al pagar; quien paga lo compara antes de confirmar. */
+  titular_cuenta: string | null;
   activo: boolean;
   /**
    * Lo financiero (facturas, total_facturado, saldo, ultima_compra,
@@ -66,6 +77,31 @@ export async function getProveedores(): Promise<Proveedor[]> {
     entregas_por_recibir: num(p.entregas_por_recibir),
     saldo_favor: num(p.saldo_favor),
   }));
+}
+
+// Lo facturado por proveedor y mes, últimos 12 meses (fn_proveedores_serie_12m, ADR-0128): la forma
+// detrás de «Facturado 12 m». Devuelve, por id de proveedor, doce montos del mes más antiguo al actual;
+// un proveedor sin compras en la ventana no aparece (quien la pinta lo trata como doce ceros).
+//
+// Es un ADORNO de la lista, no un dato del que dependa nada: si la función todavía no existe en la base
+// (la migración 20260919150000 se pega en producción aparte del despliegue) o falla, devuelve `null` y
+// la lista se pinta igual, sin tendencias — principio 9: una lectura secundaria nunca tumba la pantalla.
+// A quien no es líder la base no le devuelve filas.
+export async function getProveedoresSerie(): Promise<Record<string, number[]> | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_proveedores_serie_12m");
+  if (error) {
+    console.error("[proveedores] no se pudo leer la serie mensual; la lista se muestra sin tendencias:", error.message);
+    return null;
+  }
+  const porProveedor = new Map<string, { mes: string; monto: number }[]>();
+  for (const f of data ?? []) {
+    const filas = porProveedor.get(f.proveedor_id) ?? [];
+    filas.push({ mes: f.mes, monto: Number(f.monto) });
+    porProveedor.set(f.proveedor_id, filas);
+  }
+  const hoy = hoyLima();
+  return Object.fromEntries([...porProveedor].map(([id, filas]) => [id, serie12Meses(filas, hoy)]));
 }
 
 // Las cifras de la cabecera de la lista (ADR-0111): activos, deuda total con proveedores,

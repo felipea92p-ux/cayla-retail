@@ -1,60 +1,91 @@
+import { Banknote, CalendarDays, RefreshCw } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getLineasVentaRecientes } from "@/lib/ventas-v2";
+import { getVentasRecientes } from "@/lib/ventas-v2";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
-import { getEstadisticasCambios } from "@/lib/cambios-estadisticas";
-import { CambiosLista } from "@/components/CambiosLista";
+import { getUbicaciones } from "@/lib/ubicaciones";
+import { getCajaAbierta } from "@/lib/caja";
+import { agruparStockPorSede } from "@/lib/stock-por-sede";
+import { getEstadisticasCambios, getTallasQueNoCalzan } from "@/lib/cambios-estadisticas";
+import { createClient } from "@/lib/supabase/server";
+import { exigir } from "@/lib/resultado";
+import { CambiosPanel } from "@/components/CambiosPanel";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { ResumenSede } from "@/components/ui/ResumenSede";
 
-// Prioridad 1 (2026-09-12): cambio de talla/color. Ver
-// supabase/migrations/0007_cambios.sql y CambioFormV2.tsx para el modelo.
-export default async function CambiosPage({ searchParams }: { searchParams: Promise<{ q?: string; todas?: string }> }) {
+// Cambio de talla/color (Prioridad 1, 2026-09-12; rediseño completo 2026-09-18). El
+// modelo vive en supabase/migrations/0007_cambios.sql y
+// 20260919000100_cambios_motivo_y_estado_de_prenda.sql; la pantalla, en CambiosPanel.
+export default async function CambiosPage({ searchParams }: { searchParams: Promise<{ q?: string; todas?: string; item?: string }> }) {
   const persona = await requirePersonaActualV2();
-  const { q, todas } = await searchParams;
-  const todasLasSedes = todas === "1";
-  // Mismo par de lecturas que Vender (vender/page.tsx): el catálogo entero más el piso
-  // de ESTA ubicación, para que el selector de "entregar en su lugar" no ofrezca una
-  // talla que `registrar_cambio` va a rechazar por falta de stock.
-  const [lineas, catalogo, stock, estadisticas] = await Promise.all([
-    getLineasVentaRecientes(persona.ubicacionId, { busqueda: q, todasLasSedes }),
+  // `item`: llegar desde Devoluciones con «Cambiar por otra prenda» (R-37) abre el flujo
+  // sobre esa prenda exacta.
+  const { q, todas, item } = await searchParams;
+  const esLider = persona.rol === "lider";
+  // Solo un líder ve otras sedes (RLS de ventas): a una integrante, "todas" no le
+  // traería nada y la pantalla mentiría diciendo "no encontramos".
+  const todasLasSedes = esLider && todas === "1";
+  const supabase = await createClient();
+  // Mismas lecturas de stock que Vender (vender/page.tsx): el piso de ESTA ubicación
+  // decide qué se puede entregar (`registrar_cambio` rechaza lo que no está), y
+  // `fn_stock_por_sede` dice dónde más hay cuando aquí no queda la talla.
+  const [lineas, catalogo, stock, resStockSedes, ubicaciones, estadisticas, tallasQueNoCalzan, caja] = await Promise.all([
+    getVentasRecientes(persona.ubicacionId, { busqueda: q, todasLasSedes, ventaItemId: item }),
     getCatalogo(),
     getStockPorUbicacion(persona.ubicacionId),
+    supabase.rpc("fn_stock_por_sede"),
+    getUbicaciones(),
     getEstadisticasCambios(persona.ubicacionId),
+    esLider ? getTallasQueNoCalzan() : Promise.resolve([]),
+    getCajaAbierta(persona.ubicacionId),
   ]);
   const stockAquiPorVariante = new Map(stock.map((f) => [f.varianteId, f.piso ?? f.total]));
+  const stockPorSede = agruparStockPorSede(exigir(resStockSedes, "el stock de las sedes"), ubicaciones, persona.ubicacionId);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">{persona.ubicacionEtiqueta}</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Cambios</h1>
-        <p className="mt-1 text-sm text-tinta/65">Elige la prenda vendida que la clienta quiere cambiar por otra talla o color.</p>
-      </div>
-
-      {lineas.length === 0 && !q ? (
-        <p className="card-cayla p-5 text-sm text-tinta/75">Todavía no hay ventas recientes en esta ubicación.</p>
-      ) : (
-        <CambiosLista
-          lineas={lineas}
-          ubicacionId={persona.ubicacionId}
-          busqueda={q ?? ""}
-          todasLasSedes={todasLasSedes}
-          estadisticas={estadisticas}
-          catalogo={catalogo
-            .filter((v) => v.activo)
-            .map((v) => ({
-              varianteId: v.varianteId,
-              productoId: v.productoId,
-              sku: v.sku,
-              codigo: v.codigo,
-              referencia: v.referencia,
-              talla: v.talla,
-              color: v.color,
-              colorHex: v.colorHex,
-              precio: v.precio,
-              stockAqui: stockAquiPorVariante.get(v.varianteId) ?? 0,
-            }))}
+    <div className="space-y-7">
+      <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Cambios" subtitulo="Gestiona cambios de prendas de manera rápida y segura.">
+        {/* Tres cifras chicas, no un tablero: acompañan al título sin competir con él. Son de
+            ESTA sede —lo dice la línea de arriba del título—, cada cifra centrada sobre su
+            etiqueta. */}
+        <ResumenSede
+          sede={persona.ubicacionEtiqueta}
+          cifras={[
+            { valor: estadisticas.cambiosHoy, etiqueta: "Cambios hoy", icono: RefreshCw },
+            { valor: estadisticas.cambiosMes, etiqueta: "Este mes", icono: CalendarDays },
+            { valor: estadisticas.valorMes, formato: "soles", etiqueta: "Valor cambiado", icono: Banknote },
+          ]}
         />
-      )}
+      </EncabezadoPagina>
+
+      <CambiosPanel
+        lineas={lineas}
+        busqueda={q?.trim() ?? ""}
+        todasLasSedes={todasLasSedes}
+        puedeVerTodas={esLider}
+        sede={persona.ubicacionEtiqueta}
+        ubicacionId={persona.ubicacionId}
+        colaboradora={persona.nombre}
+        cajaAbierta={caja !== null}
+        tallasQueNoCalzan={tallasQueNoCalzan}
+        abrirItemId={item}
+        catalogo={catalogo
+          .filter((v) => v.activo)
+          .map((v) => ({
+            varianteId: v.varianteId,
+            productoId: v.productoId,
+            sku: v.sku,
+            codigo: v.codigo,
+            referencia: v.referencia,
+            talla: v.talla,
+            color: v.color,
+            colorHex: v.colorHex,
+            fotoUrl: v.fotoUrl,
+            precio: v.precio,
+            stockAqui: stockAquiPorVariante.get(v.varianteId) ?? 0,
+            stockOtrasSedes: stockPorSede.get(v.varianteId)?.otrasSedes ?? [],
+          }))}
+      />
     </div>
   );
 }

@@ -1,25 +1,22 @@
 import { describe, it, expect } from "vitest";
-import { agruparPorDia, DIAS_PLAZO_CAMBIO, estadoPlazoCambio, etiquetaDia, opcionesDeCambio } from "./cambios-reglas";
-
-// El caso que rompía (2026-09-16): dos prendas del censo, ambas sin sku. Buscar "la
-// vendida" por sku calzaba con la primera sin sku del catálogo, no con la vendida.
-const catalogo = [
-  { varianteId: "v-blusa-s", sku: null, codigo: "BLU-0001-NEG-S", stockAqui: 3 },
-  { varianteId: "v-blusa-m", sku: null, codigo: "BLU-0001-NEG-M", stockAqui: 2 },
-  { varianteId: "v-vestido-m", sku: "VES-SOFI-NEG-M", codigo: "VES-0002-NEG-M", stockAqui: 0 },
-];
-
-describe("opcionesDeCambio", () => {
-  it("excluye la variante vendida aunque otras prendas tampoco tengan sku", () => {
-    const opciones = opcionesDeCambio(catalogo, "v-blusa-m").map((v) => v.varianteId);
-    expect(opciones).not.toContain("v-blusa-m");
-    expect(opciones).toContain("v-blusa-s");
-  });
-
-  it("no ofrece una variante sin stock en la sede", () => {
-    expect(opcionesDeCambio(catalogo, "v-blusa-s").map((v) => v.varianteId)).toEqual(["v-blusa-m"]);
-  });
-});
+import {
+  agruparPorCompra,
+  agruparPorDia,
+  clasificarBusqueda,
+  condicionForzada,
+  descripcionEntregada,
+  DIAS_PLAZO_CAMBIO,
+  estadoPlazoCambio,
+  estadoPrendaVendida,
+  etiquetaDia,
+  fechaLimiteCambio,
+  impactoCambio,
+  primerBloqueo,
+  tallasQueNoCalzan,
+  unidadesDisponibles,
+  validarCambio,
+  type CambioParaTallas,
+} from "./cambios-reglas";
 
 function lima(anio: number, mes: number, dia: number, hora = 12): Date {
   return new Date(Date.UTC(anio, mes - 1, dia, hora + 5));
@@ -47,7 +44,24 @@ describe("estadoPlazoCambio — R-38, 15 días", () => {
   });
 });
 
-describe("etiquetaDia / agruparPorDia", () => {
+describe("fechaLimiteCambio", () => {
+  it("es el día de la venta más 15, en hora de Lima", () => {
+    expect(fechaLimiteCambio(lima(2026, 9, 18, 11).toISOString())).toBe("3 de octubre");
+  });
+
+  it("una venta de las 11pm de Lima cuenta desde ESE día, no desde el día UTC siguiente", () => {
+    // 23:30 de Lima del 17 = 04:30 UTC del 18.
+    expect(fechaLimiteCambio(lima(2026, 9, 17, 23).toISOString())).toBe("2 de octubre");
+  });
+
+  it("coincide con el último día que estadoPlazoCambio todavía acepta", () => {
+    const vendida = lima(2026, 9, 18).toISOString();
+    expect(estadoPlazoCambio(vendida, lima(2026, 10, 3)).estado).not.toBe("fuera_de_plazo");
+    expect(estadoPlazoCambio(vendida, lima(2026, 10, 4)).estado).toBe("fuera_de_plazo");
+  });
+});
+
+describe("etiquetaDia / agruparPorDia / agruparPorCompra", () => {
   const ahora = lima(2026, 9, 18, 20);
 
   it("hoy y ayer se leen como texto, el resto como fecha", () => {
@@ -58,7 +72,7 @@ describe("etiquetaDia / agruparPorDia", () => {
     expect(etiquetaDia(lima(2026, 9, 15, 9).toISOString(), ahora)).toBe("15 de setiembre");
   });
 
-  it("agrupa conservando el orden de llegada (hoy antes que ayer)", () => {
+  it("agrupa por día conservando el orden de llegada (hoy antes que ayer)", () => {
     const lineas = [
       { id: "a", creadoEn: lima(2026, 9, 18, 10).toISOString() },
       { id: "b", creadoEn: lima(2026, 9, 17, 10).toISOString() },
@@ -68,5 +82,236 @@ describe("etiquetaDia / agruparPorDia", () => {
     expect(grupos.map((g) => g.etiqueta)).toEqual(["Hoy", "Ayer"]);
     expect(grupos[0]!.lineas.map((l) => l.id)).toEqual(["a", "c"]);
     expect(grupos[1]!.lineas.map((l) => l.id)).toEqual(["b"]);
+  });
+
+  it("las prendas de una misma boleta quedan juntas, en el orden en que llegaron", () => {
+    const lineas = [
+      { id: "blusa", ventaId: "v1" },
+      { id: "vestido", ventaId: "v1" },
+      { id: "falda", ventaId: "v2" },
+      { id: "pantalon", ventaId: "v1" },
+    ];
+    expect(agruparPorCompra(lineas).map((c) => [c.ventaId, c.lineas.map((l) => l.id)])).toEqual([
+      ["v1", ["blusa", "vestido", "pantalon"]],
+      ["v2", ["falda"]],
+    ]);
+  });
+});
+
+describe("condicionForzada — espejo de cambios_defecto_no_vuelve_al_piso", () => {
+  it("una prenda con defecto nunca vuelve al piso", () => {
+    expect(condicionForzada("defecto")).toBe("no_vendible");
+  });
+
+  it("con cualquier otro motivo (o sin motivo todavía) no hay nada forzado", () => {
+    expect(condicionForzada("talla_chica")).toBeNull();
+    expect(condicionForzada(null)).toBeNull();
+  });
+});
+
+describe("descripcionEntregada", () => {
+  const entregada = { productoId: "p-blusa", referencia: "Blusa Emma", talla: "L", color: "Negro" };
+
+  it("misma prenda: solo color y talla", () => {
+    expect(descripcionEntregada(entregada, "p-blusa")).toBe("Negro · Talla L");
+  });
+
+  it("otra prenda: con su nombre", () => {
+    expect(descripcionEntregada(entregada, "p-vestido")).toBe("Blusa Emma · Negro · Talla L");
+  });
+});
+
+describe("clasificarBusqueda", () => {
+  it("una boleta con serie", () => {
+    expect(clasificarBusqueda(" b001-10 ")).toEqual({ tipo: "comprobante", serie: "B001", numero: 10 });
+  });
+
+  it("solo dígitos: número de boleta Y documento, sin adivinar", () => {
+    expect(clasificarBusqueda("45879632")).toEqual({ tipo: "numero", texto: "45879632", numero: 45879632 });
+  });
+
+  it("un RUC no se compara contra comprobantes.numero (integer): revienta la consulta", () => {
+    expect(clasificarBusqueda("20601234567")).toEqual({ tipo: "numero", texto: "20601234567", numero: null });
+  });
+
+  it("una etiqueta o un nombre van como texto", () => {
+    expect(clasificarBusqueda("CMS-0001-NEG-M")).toEqual({ tipo: "texto", texto: "CMS-0001-NEG-M" });
+    expect(clasificarBusqueda("Ana Pérez")).toEqual({ tipo: "texto", texto: "Ana Pérez" });
+  });
+
+  it("vacío no es una búsqueda", () => {
+    expect(clasificarBusqueda("   ")).toBeNull();
+  });
+});
+
+describe("estadoPrendaVendida", () => {
+  const ahora = lima(2026, 9, 18);
+  const base = { cantidad: 1, yaCambiado: 0, yaDevuelto: 0, anulada: false, creadoEn: lima(2026, 9, 18).toISOString() };
+
+  it("recién vendida: dentro del plazo y se puede cambiar", () => {
+    expect(estadoPrendaVendida(base, ahora)).toMatchObject({ clave: "dentro_del_plazo", cambiable: true, tono: "verde" });
+  });
+
+  it("con devolución registrada (aunque solo esté pendiente de aprobar): no se cambia — volvería al stock dos veces", () => {
+    expect(estadoPrendaVendida({ ...base, yaDevuelto: 1 }, ahora)).toMatchObject({ clave: "devuelta", cambiable: false, texto: "Devolución registrada" });
+  });
+
+  it("2 unidades, 1 cambiada y 1 devuelta: no queda nada por cambiar", () => {
+    expect(estadoPrendaVendida({ ...base, cantidad: 2, yaCambiado: 1, yaDevuelto: 1 }, ahora).cambiable).toBe(false);
+  });
+
+  it("ya cambiada entera: completado, aunque además esté fuera de plazo", () => {
+    const vieja = { ...base, yaCambiado: 1, creadoEn: lima(2026, 8, 1).toISOString() };
+    expect(estadoPrendaVendida(vieja, ahora)).toMatchObject({ clave: "completado", cambiable: false, texto: "Cambio completado" });
+  });
+
+  it("cambiada a medias: todavía se puede cambiar lo que queda", () => {
+    expect(estadoPrendaVendida({ ...base, cantidad: 2, yaCambiado: 1 }, ahora).cambiable).toBe(true);
+  });
+
+  it("a punto de vencer: sigue VERDE (está dentro) y dice los días que quedan", () => {
+    expect(estadoPrendaVendida({ ...base, creadoEn: lima(2026, 9, 5).toISOString() }, ahora)).toMatchObject({
+      clave: "por_vencer",
+      texto: "Vence en 2 días",
+      tono: "verde",
+    });
+    expect(estadoPrendaVendida({ ...base, creadoEn: lima(2026, 9, 3).toISOString() }, ahora).texto).toBe("Último día para cambiar");
+  });
+
+  it("fuera de plazo o de una venta anulada: no se puede iniciar el cambio; el plazo vencido va en ROJO", () => {
+    expect(estadoPrendaVendida({ ...base, creadoEn: lima(2026, 9, 1).toISOString() }, ahora)).toMatchObject({
+      clave: "fuera_de_plazo",
+      cambiable: false,
+      tono: "rojo",
+      icono: "alerta",
+    });
+    expect(estadoPrendaVendida({ ...base, anulada: true }, ahora)).toMatchObject({ clave: "anulada", cambiable: false });
+  });
+});
+
+describe("unidadesDisponibles / aviso", () => {
+  it("descuenta lo cambiado y lo devuelto, y nunca baja de cero", () => {
+    expect(unidadesDisponibles({ cantidad: 3, yaCambiado: 1, yaDevuelto: 1 })).toBe(1);
+    expect(unidadesDisponibles({ cantidad: 1, yaCambiado: 1, yaDevuelto: 1 })).toBe(0);
+  });
+
+  it("un aviso no frena; una alerta o un pendiente sí, y el primero de ellos manda", () => {
+    const aviso = { clave: "plazo", estado: "aviso", titulo: "Fuera del plazo" } as const;
+    const pendiente = { clave: "motivo", estado: "pendiente", titulo: "Falta el motivo" } as const;
+    expect(primerBloqueo([aviso])).toBeNull();
+    expect(primerBloqueo([aviso, pendiente])).toBe(pendiente);
+  });
+});
+
+describe("validarCambio / primerBloqueo", () => {
+  const ahora = lima(2026, 9, 18);
+  const listo = {
+    venta: { comprobante: "Boleta B001-000010", creadoEn: lima(2026, 9, 18, 11).toISOString(), anulada: false },
+    ahora,
+    cantidadComprada: 1,
+    disponible: 1,
+    motivo: "talla_chica" as const,
+    eligioPrenda: true,
+    nueva: { descripcion: "L / Negro", stockAqui: 3, otrasSedes: null },
+    sede: "Tienda Lima",
+    diferencia: 0,
+    metodo: "efectivo" as const,
+    cajaAbierta: false,
+  };
+
+  it("todo en orden: todas en ✓ y nada frena (sin diferencia no se mira la caja)", () => {
+    const validaciones = validarCambio(listo);
+    expect(validaciones.map((v) => v.clave)).toEqual(["compra", "plazo", "prenda", "motivo", "stock"]);
+    expect(validaciones.every((v) => v.estado === "ok")).toBe(true);
+    expect(primerBloqueo(validaciones)).toBeNull();
+  });
+
+  it("lo primero que frena es lo primero del recorrido: el motivo antes que la talla", () => {
+    const bloqueo = primerBloqueo(validarCambio({ ...listo, motivo: null, eligioPrenda: false, nueva: null }));
+    expect(bloqueo).toMatchObject({ clave: "motivo", estado: "pendiente" });
+  });
+
+  it("fuera de plazo dice hace cuántos días fue la compra", () => {
+    const vieja = { ...listo, venta: { ...listo.venta, creadoEn: lima(2026, 8, 28).toISOString() } };
+    expect(primerBloqueo(validarCambio(vieja))).toMatchObject({
+      clave: "plazo",
+      estado: "alerta",
+      detalle: "La compra fue hace 21 días; el plazo es de 15.",
+    });
+  });
+
+  it("sin stock aquí dice dónde más hay", () => {
+    const sinStock = { ...listo, nueva: { descripcion: "L / Negro", stockAqui: 0, otrasSedes: "2 en Trujillo" } };
+    expect(primerBloqueo(validarCambio(sinStock))).toMatchObject({ titulo: "No queda L / Negro en Tienda Lima", detalle: "Hay 2 en Trujillo." });
+  });
+
+  it("diferencia en efectivo con la caja cerrada frena (registrar_cambio la rechazaría)", () => {
+    const conDiferencia = { ...listo, diferencia: 40 };
+    expect(primerBloqueo(validarCambio(conDiferencia))).toMatchObject({ clave: "caja", estado: "alerta" });
+    expect(primerBloqueo(validarCambio({ ...conDiferencia, cajaAbierta: true }))).toBeNull();
+    // Por Yape no pasa por el cajón: la caja ni se menciona.
+    expect(validarCambio({ ...conDiferencia, metodo: "yape" }).some((v) => v.clave === "caja")).toBe(false);
+  });
+});
+
+describe("impactoCambio", () => {
+  const base = {
+    devuelta: "Pantalón Carla Negro / 30",
+    entregada: "Pantalón Carla Negro / 32",
+    cantidad: 1,
+    condicion: "vendible" as const,
+    diferencia: 0,
+    metodo: "efectivo" as const,
+    sede: "Tienda Lima",
+  };
+
+  it("inventario: entra la devuelta al piso y sale la nueva del piso", () => {
+    expect(impactoCambio(base).inventario).toEqual([
+      { signo: "+", cantidad: 1, prenda: "Pantalón Carla Negro / 30", donde: "vuelve al piso de Tienda Lima" },
+      { signo: "−", cantidad: 1, prenda: "Pantalón Carla Negro / 32", donde: "sale del piso de Tienda Lima" },
+    ]);
+  });
+
+  it("una prenda no vendible entra a cuarentena, no al piso", () => {
+    expect(impactoCambio({ ...base, condicion: "no_vendible" }).inventario[0]!.donde).toBe("entra a cuarentena en Tienda Lima");
+  });
+
+  it("caja: sin diferencia no se mueve; en efectivo sí; con otro método no pasa por el cajón", () => {
+    expect(impactoCambio(base).caja.titulo).toBe("Sin diferencia de precio");
+    expect(impactoCambio({ ...base, diferencia: 40 }).caja).toEqual({
+      titulo: "+ S/ 40.00 por cobrar",
+      detalle: "En efectivo: entra al cajón y se suma al cierre de caja.",
+    });
+    expect(impactoCambio({ ...base, diferencia: -20, metodo: "yape" }).caja).toEqual({
+      titulo: "− S/ 20.00 a devolver",
+      detalle: "Por Yape: no pasa por el cajón.",
+    });
+  });
+});
+
+describe("tallasQueNoCalzan", () => {
+  const emma = (de: string, a: string, cantidad = 1): CambioParaTallas => ({
+    referencia: "Blusa Emma",
+    productoVendidoId: "p-emma",
+    productoEntregadoId: "p-emma",
+    tallaVendida: de,
+    tallaEntregada: a,
+    cantidad,
+  });
+
+  it("suma por dirección y solo muestra lo que llega al mínimo", () => {
+    const cambios = [emma("M", "L"), emma("M", "L", 2), emma("L", "M"), emma("S", "M")];
+    expect(tallasQueNoCalzan(cambios)).toEqual([{ referencia: "Blusa Emma", de: "M", a: "L", prendas: 3 }]);
+  });
+
+  it("un cambio a otra prenda, o a la misma talla (otro color / defecto), no habla de la horma", () => {
+    const otraPrenda = { ...emma("M", "L", 5), productoEntregadoId: "p-sofia" };
+    const mismaTalla = emma("M", "M", 5);
+    expect(tallasQueNoCalzan([otraPrenda, mismaTalla])).toEqual([]);
+  });
+
+  it("de más a menos, para leer primero lo más repetido", () => {
+    const cambios = [emma("M", "L", 3), { ...emma("28", "30", 4), referencia: "Pantalón Carla", productoVendidoId: "p-carla", productoEntregadoId: "p-carla" }];
+    expect(tallasQueNoCalzan(cambios).map((t) => t.referencia)).toEqual(["Pantalón Carla", "Blusa Emma"]);
   });
 });

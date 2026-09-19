@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 /* ====================================================================
    Tabla · listados con encabezado (2026-09-12, módulo de Compras)
@@ -26,6 +26,10 @@ export type Columna = {
   /** Solo desde lg: para una columna prescindible cuando la plantilla `sm:` no
    *  la incluye (la fila debe ocultar esa celda con `hidden lg:block` también). */
   desdeLg?: boolean;
+  /** Solo desde xl (1280): la columna que a menos ancho se apila dentro de otra celda (la fila
+   *  debe ocultar su celda propia con `hidden xl:block` y mostrar el contenido en la otra con
+   *  `xl:hidden`). */
+  desdeXl?: boolean;
 };
 
 const ALINEAR: Record<Alineacion, string> = { izq: "text-left", der: "text-right", centro: "text-center" };
@@ -36,8 +40,12 @@ const ALINEAR: Record<Alineacion, string> = { izq: "text-left", der: "text-right
 // en vez de desbordar. Con `overflow-x-auto` acá (una vez, para las tres
 // tablas que usan este componente) la fila se desborda hacia un scroll
 // horizontal de la tarjeta — nunca una columna que desaparece sin avisar.
-export function Tabla({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`card-cayla divide-y divide-tinta/10 overflow-x-auto ${className}`}>{children}</div>;
+export function Tabla({ children, className = "", style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
+  return (
+    <div className={`card-cayla divide-y divide-tinta/10 overflow-x-auto ${className}`} style={style}>
+      {children}
+    </div>
+  );
 }
 
 /** La fila de títulos. `plantilla` debe ser la misma que reciben las filas. */
@@ -45,7 +53,7 @@ export function Encabezado({ columnas, plantilla }: { columnas: Columna[]; plant
   return (
     <div className={`hidden gap-x-4 px-5 py-2 sm:grid ${plantilla}`} role="row">
       {columnas.map((c, i) => (
-        <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${ALINEAR[c.alinear ?? "izq"]} ${c.desdeLg ? "hidden lg:block" : ""}`} role="columnheader">
+        <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${ALINEAR[c.alinear ?? "izq"]} ${c.desdeLg ? "hidden lg:block" : ""} ${c.desdeXl ? "hidden xl:block" : ""}`} role="columnheader">
           {c.titulo}
         </span>
       ))}

@@ -1,16 +1,23 @@
 import { describe, expect, it } from "vitest";
 import type { CompraResumen, LineaCompra } from "./compras-reglas";
+import type { RecepcionDeCompra } from "./compras-indicadores";
 import {
+  agruparPorEnvio,
   armarPedidoEnvio,
   bloquesDelEnvio,
   comprobanteSinMontos,
+  comprobantesQueTraen,
   extraCompleto,
+  guiaConFormato,
   inicialesProveedor,
   kpisDeLaLista,
   lineaSinCosto,
   llegoLinea,
+  movimientosDelEnvio,
   proveedoresDelEnvio,
   resolverEscaneo,
+  restarUnidad,
+  resumenPorComprobante,
   sumarUnidad,
   totalesEnvio,
   trasladoContadoEntero,
@@ -271,5 +278,176 @@ describe("kpisDeLaLista: los indicadores de quien no ve dinero salen de su propi
   });
   it("no trae ninguna cifra de dinero", () => {
     expect(Object.keys(kpisDeLaLista([c({})], AHORA)).sort()).toEqual(["atrasadas", "diasMasAtrasada", "documentoMasAtrasada", "porRecibir", "proveedorMasAtrasado", "unidadesPendientes"]);
+  });
+});
+
+// «Recibidas» por envío: un envío de varios proveedores con una sola guía salía como filas sueltas. Lo que se rompe
+// fácil: que un envío cortado por el límite de la página diga MENOS de lo que llegó (unidades de solo una parte), que
+// se agrupe un envío de un solo proveedor (cabecera con un solo hijo) o que las recepciones anteriores a los envíos
+// desaparezcan.
+describe("agruparPorEnvio", () => {
+  const rec = (loteId: string, compraId: string, o: Partial<RecepcionDeCompra> = {}): RecepcionDeCompra => ({
+    loteId,
+    fechaRecepcion: "2026-09-18T15:00:00Z",
+    ubicacionNombre: "Tienda Trujillo",
+    proveedorId: `prov-${loteId}`,
+    proveedorNombre: `Proveedor ${loteId}`,
+    numeroGuia: "T001-004417",
+    recibidoPor: null,
+    compraId,
+    documento: `F001-${compraId}`,
+    unidadesLlegaron: 10,
+    unidadesFacturadas: 12,
+    faltante: 2,
+    diasDemora: 3,
+    ...o,
+  });
+  const envio = (envioId: string, lotes: number, proveedores: number, numeroGuia: string | null = "T001-004417") => ({ envioId, numeroGuia, lotes, proveedores });
+
+  it("un envío de dos proveedores es UN grupo con sus dos filas, y suma lo que llegó, lo facturado y lo que faltó", () => {
+    const a = rec("l1", "c1", { unidadesLlegaron: 10, unidadesFacturadas: 12, faltante: 2 });
+    const b = rec("l2", "c2", { unidadesLlegaron: 8, unidadesFacturadas: 8, faltante: 0 });
+    const g = agruparPorEnvio([a, b], { l1: envio("e1", 2, 2), l2: envio("e1", 2, 2) });
+    expect(g).toHaveLength(1);
+    expect(g[0]).toMatchObject({ tipo: "envio", envioId: "e1", numeroGuia: "T001-004417", proveedores: 2, unidadesLlegaron: 18, unidadesFacturadas: 20, faltante: 2, parcial: false });
+    expect(g[0].tipo === "envio" && g[0].filas.map((f) => f.loteId)).toEqual(["l1", "l2"]);
+  });
+
+  it("un envío de UN solo proveedor no hace cabecera: sigue siendo una fila normal", () => {
+    const g = agruparPorEnvio([rec("l1", "c1")], { l1: envio("e1", 1, 1) });
+    expect(g).toEqual([{ tipo: "suelta", fila: rec("l1", "c1") }]);
+  });
+
+  it("las recepciones de antes de los envíos (sin envío) quedan sueltas, en su lugar y en su orden", () => {
+    const viejaA = rec("v1", "cv1");
+    const a = rec("l1", "c1");
+    const b = rec("l2", "c2");
+    const viejaB = rec("v2", "cv2");
+    const g = agruparPorEnvio([viejaA, a, b, viejaB], { l1: envio("e1", 2, 2), l2: envio("e1", 2, 2) });
+    expect(g.map((x) => (x.tipo === "suelta" ? `suelta:${x.fila.loteId}` : `envio:${x.envioId}`))).toEqual(["suelta:v1", "envio:e1", "suelta:v2"]);
+  });
+
+  it("el grupo ocupa el lugar de su PRIMERA fila aunque las de otro envío se intercalen", () => {
+    const g = agruparPorEnvio(
+      [rec("l1", "c1"), rec("m1", "c3"), rec("l2", "c2"), rec("m2", "c4")],
+      { l1: envio("e1", 2, 2), l2: envio("e1", 2, 2), m1: envio("e2", 2, 2), m2: envio("e2", 2, 2) }
+    );
+    expect(g.map((x) => (x.tipo === "envio" ? x.envioId : "suelta"))).toEqual(["e1", "e2"]);
+    expect(g[0].tipo === "envio" && g[0].filas.map((f) => f.loteId)).toEqual(["l1", "l2"]);
+  });
+
+  it("un lote que cubre DOS comprobantes cuenta como un lote, no como dos", () => {
+    const g = agruparPorEnvio([rec("l1", "c1"), rec("l1", "c1b"), rec("l2", "c2")], { l1: envio("e1", 2, 2), l2: envio("e1", 2, 2) });
+    expect(g).toHaveLength(1);
+    expect(g[0]).toMatchObject({ tipo: "envio", parcial: false, unidadesLlegaron: 30 });
+  });
+
+  it("si la página no trae todos los lotes del envío, el grupo es PARCIAL (y la pantalla no pinta totales de una parte)", () => {
+    const g = agruparPorEnvio([rec("l1", "c1"), rec("l2", "c2")], { l1: envio("e1", 3, 3), l2: envio("e1", 3, 3) });
+    expect(g[0]).toMatchObject({ tipo: "envio", proveedores: 3, parcial: true });
+  });
+
+  it("con la lista llena hasta su tope, el grupo de la última fila es parcial (podría faltar la otra mitad de un lote); los demás no", () => {
+    const filas = [rec("l1", "c1"), rec("l2", "c2"), rec("m1", "c3"), rec("m2", "c4")];
+    const envios = { l1: envio("e1", 2, 2), l2: envio("e1", 2, 2), m1: envio("e2", 2, 2), m2: envio("e2", 2, 2) };
+    const llena = agruparPorEnvio(filas, envios, { llegoAlLimite: true });
+    expect(llena.map((x) => x.tipo === "envio" && x.parcial)).toEqual([false, true]);
+    const holgada = agruparPorEnvio(filas, envios, { llegoAlLimite: false });
+    expect(holgada.map((x) => x.tipo === "envio" && x.parcial)).toEqual([false, false]);
+  });
+
+  it("no toma un faltante negativo como crédito: la suma del grupo solo cuenta lo que faltó", () => {
+    const g = agruparPorEnvio([rec("l1", "c1", { faltante: 3 }), rec("l2", "c2", { faltante: -4 })], { l1: envio("e1", 2, 2), l2: envio("e1", 2, 2) });
+    expect(g[0]).toMatchObject({ faltante: 3 });
+  });
+
+  it("sin recepciones no hay grupos", () => {
+    expect(agruparPorEnvio([], {})).toEqual([]);
+  });
+});
+
+describe("guiaConFormato: una ayuda al teclear, no una exigencia", () => {
+  it("acepta una guía como T001-000123, en mayúsculas o minúsculas y con espacios alrededor", () => {
+    expect(guiaConFormato("T001-000123")).toBe(true);
+    expect(guiaConFormato(" t001-4417 ")).toBe(true);
+  });
+  it("rechaza lo que no tiene serie, guion o número", () => {
+    expect(guiaConFormato("")).toBe(false);
+    expect(guiaConFormato("T001")).toBe(false);
+    expect(guiaConFormato("001-000123")).toBe(false);
+    expect(guiaConFormato("T001-12")).toBe(false);
+  });
+});
+
+describe("restarUnidad: el «Deshacer» de la última lectura", () => {
+  const l1 = LINEAS[0];
+  it("resta 1 y deja la cuenta en lo que quedaba", () => {
+    const r = restarUnidad({ l1: { v1: 3 } }, l1, "v1");
+    expect(r.l1.v1).toBe(2);
+  });
+  it("al deshacer la única lectura, la línea vuelve a «sin contar» (no queda un 0 que diga «no llegó nada»)", () => {
+    const r = restarUnidad({ l1: { v1: 1 } }, l1, "v1");
+    expect(r.l1).toBeUndefined();
+    expect(llegoLinea(l1, r)).toBeNull();
+  });
+  it("es lo opuesto de sumarUnidad", () => {
+    const r = restarUnidad(sumarUnidad({}, l1, "v1"), l1, "v1");
+    expect(r).toEqual({});
+  });
+});
+
+describe("comprobantesQueTraen: si el envío no trae la prenda pero otro comprobante sí, se ofrece agregarlo", () => {
+  it("devuelve los comprobantes NO marcados que la traen, por variante", () => {
+    expect(comprobantesQueTraen("v1", "p1", COMPRAS, LINEAS, ["c2"]).map((c) => c.id)).toEqual(["c1", "c3"]);
+  });
+  it("no ofrece uno ya marcado", () => {
+    expect(comprobantesQueTraen("v1", "p1", COMPRAS, LINEAS, ["c1"]).map((c) => c.id)).toEqual(["c3"]);
+  });
+  it("una línea agrupada la trae por producto", () => {
+    expect(comprobantesQueTraen("cualquiera", "p9", COMPRAS, LINEAS, []).map((c) => c.id)).toEqual(["c2"]);
+  });
+  it("ignora lo que ya no tiene nada pendiente", () => {
+    expect(comprobantesQueTraen("v4", "p1", COMPRAS, LINEAS, [])).toEqual([]);
+  });
+});
+
+describe("resumenPorComprobante: lo que muestra el resumen previo a recibir", () => {
+  const bloques = bloquesDelEnvio(COMPRAS, ["c1", "c2"], LINEAS);
+  it("solo cuenta las líneas contadas: lo que llegó y lo que faltó de ellas", () => {
+    const f = resumenPorComprobante(bloques, { l1: { v1: 24 }, l2: { v2: 8 } });
+    expect(f).toEqual([{ compraId: "c1", proveedorNombre: "Textiles Andina SAC", documento: "F001-000198", llegan: 32, faltan: 4, lineasCortas: ["l2"] }]);
+  });
+  it("un comprobante sin nada contado no sale", () => {
+    expect(resumenPorComprobante(bloques, {})).toEqual([]);
+  });
+  it("una línea contada en 0 sí cuenta como faltante", () => {
+    const f = resumenPorComprobante(bloques, { l3: { v3: 0 } });
+    expect(f).toEqual([{ compraId: "c2", proveedorNombre: "Tejidos Rímac SAC", documento: "F001-000482", llegan: 0, faltan: 30, lineasCortas: ["l3"] }]);
+  });
+});
+
+describe("movimientosDelEnvio: lo que queda escrito en el stock", () => {
+  const bloques = bloquesDelEnvio(COMPRAS, ["c1", "c2"], LINEAS);
+  const dePrenda = (id: string) => ({ referencia: id === "v9" ? "Polo Alba" : "Blusa Emma", detalle: id === "v9" ? "M / Negro" : "S / Beige" });
+  it("primero los comprobantes, luego fuera de comprobante y por último otra sede; los ceros no son movimientos", () => {
+    const m = movimientosDelEnvio({
+      bloques,
+      reparto: { l1: { v1: 24 }, l2: { v2: 0 }, l4: { v9: 4 } },
+      extras: [{ productoId: "p1", varianteId: "v9", cantidad: 2, costoUnitario: "", proveedorId: "prov1", esRegalo: true }],
+      traslados: [{ numero: 15, lineas: [{ varianteId: "v1", referencia: "Blusa Emma", talla: "M", color: "Negro" }], conteo: { v1: 10 } }],
+      dePrenda,
+    });
+    expect(m.map((x) => [x.cantidad, x.origen])).toEqual([
+      [24, "F001-000198"],
+      [4, "F001-000482"],
+      [2, "fuera de comprobante"],
+      [10, "traslado 15"],
+    ]);
+    expect(m[1].referencia).toBe("Polo Alba"); // la línea agrupada usa la variante que se anotó
+    expect(m[2].detalle).toBe("M / Negro · regalo");
+  });
+  it("una prenda fuera de comprobante incompleta no se cuenta", () => {
+    const m = movimientosDelEnvio({ bloques, reparto: {}, extras: [{ productoId: "p1", varianteId: "v9", cantidad: 2, costoUnitario: "", proveedorId: "", esRegalo: false }], traslados: [], dePrenda });
+    expect(m).toEqual([]);
   });
 });

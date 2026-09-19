@@ -1,17 +1,21 @@
+import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { listarPorPagar, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, getCompra, soles, type ParamsCompras } from "@/lib/compras";
+import { listarPorPagar, getPagosDeCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, getCompra, type ParamsCompras } from "@/lib/compras";
 import { getDeudaPorVencimiento, getNotasPendientes, getPorPagarTramos, getResumenComprasExtra, getSalidasCaja30d } from "@/lib/compras-indicadores";
 import { getProveedores } from "@/lib/proveedores";
 import { diaMes, hoyLima, sumarDias } from "@/lib/fechas-lima";
 import { idsConFaltanteCerrado } from "@/lib/nota-pendiente-reglas";
+import { concentracionPorProveedor } from "@/lib/por-pagar-reglas";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
+import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { FiltrosCompras } from "@/components/FiltrosCompras";
 import { Paginacion, leerCursor } from "@/components/Paginacion";
 import { PagoDesdeUrl } from "@/components/CompraDetallePanel";
 import { DeudaPorVencimiento } from "@/components/DeudaPorVencimiento";
 import { SalidasDeCaja } from "@/components/SalidasDeCaja";
 import { PorPagarLista } from "@/components/PorPagarLista";
+import { PorPagarProvider } from "@/components/PorPagarContexto";
+import { BarraConcentracion, BotonSoloVencidas, SelectorAgrupar } from "@/components/PorPagarControles";
 import { SaldosAFavor } from "@/components/SaldosAFavor";
 import type { DatosPagoProveedor } from "@/components/PagoJuntosModal";
 
@@ -27,12 +31,17 @@ import type { DatosPagoProveedor } from "@/components/PagoJuntosModal";
 //      días: saber si la caja alcanza ANTES de la fecha.
 //   3. ¿A quién le pago primero y cómo? → la lista, con casillas para pagar varios comprobantes
 //      del mismo proveedor en una sola transferencia (D3).
-export default async function PorPagarPage({ searchParams }: { searchParams: Promise<ParamsCompras & { agrupar?: string }> }) {
+//
+// Por pagar responde (2026-09-19, spike `docs/maquetas/por-pagar-spike-2026-09/`, mismo modelo que ADR-0128):
+// la pantalla llega escalonada (cada pieza sube y se asienta, las cifras cuentan desde 0, las barras se llenan)
+// y sus piezas conversan — apuntar a un tramo, una semana de caja o un proveedor enciende las filas que le
+// corresponden (`PorPagarContexto`). Todo eso es presentación: las cifras y los filtros son los de siempre.
+export default async function PorPagarPage({ searchParams }: { searchParams: Promise<ParamsCompras & { agrupar?: string; marcar?: string }> }) {
   await requirePersonaActualV2();
-  // `pagar` es una orden de una sola vez («abre el modal de esta comprobante»), no un filtro: no
-  // debe viajar en los enlaces de paginación ni en los filtros. `agrupar` sí viaja, pero solo si
-  // se eligió (la vista por defecto no ensucia la URL).
-  const { pagar, agrupar: agruparParam, ...params } = await searchParams;
+  // `pagar` y `marcar` son órdenes de una sola vez («abre el modal de este comprobante» / «llega con los de este
+  // proveedor marcados»), no filtros: no deben viajar en los enlaces de paginación ni en los filtros. `agrupar` sí
+  // viaja, pero solo si se eligió (la vista por defecto no ensucia la URL).
+  const { pagar, agrupar: agruparParam, marcar, ...params } = await searchParams;
   const agrupar = agruparParam === "proveedor" ? "proveedor" : "urgencia";
   const filtros = filtrosDesdeParams(params);
   const cursor = leerCursor(params.cursor);
@@ -41,13 +50,18 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
   // Qué comprobantes esperan su nota de crédito por faltante (para no pagar de más lo que el proveedor va a
   // acreditar) depende de los ids de la página: se pide ENCADENADA a la lista, y solo si algún comprobante de
   // la página tiene algo cerrado, sin frenar las demás consultas.
-  const [{ pagina: { filas: compras, siguiente }, notas }, resumen, extra, vencimiento, salidas, tramos, directorio, proveedores, compraAPagar] = await Promise.all([
-    listarPorPagar(filtros, cursor).then(async (pagina) => ({ pagina, notas: await getNotasPendientes(idsConFaltanteCerrado(pagina.filas)) })),
+  const [{ pagina: { filas: compras, siguiente }, notas, pagos }, resumen, extra, vencimiento, salidas, tramos, directorio, proveedores, compraAPagar] = await Promise.all([
+    // Notas pendientes y pagos previos dependen de los ids de la página: se piden encadenados y solo de lo que hace falta (los pagos, solo de
+    // los comprobantes que ya recibieron alguno), sin frenar las demás consultas.
+    listarPorPagar(filtros, cursor).then(async (pagina) => {
+      const [notas, pagos] = await Promise.all([getNotasPendientes(idsConFaltanteCerrado(pagina.filas)), getPagosDeCompras(pagina.filas.filter((c) => c.pagado > 0).map((c) => c.id))]);
+      return { pagina, notas, pagos };
+    }),
     getResumenCompras(),
     getResumenComprasExtra(),
     getDeudaPorVencimiento(),
     getSalidasCaja30d(),
-    getPorPagarTramos({ proveedorId: filtros.proveedorId, condicion: filtros.condicion, soloVencidas: filtros.soloVencidas, busqueda: filtros.busqueda }),
+    getPorPagarTramos({ proveedorId: filtros.proveedorId, condicion: filtros.condicion, soloVencidas: filtros.soloVencidas, busqueda: filtros.busqueda, tipo: filtros.tipo, desde: filtros.desde, hasta: filtros.hasta }),
     getProveedoresActivos(),
     getProveedores(),
     pagar && /^[0-9a-f-]{36}$/i.test(pagar) ? getCompra(pagar) : null,
@@ -57,128 +71,182 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
   const abrirPago = compraAPagar && compraAPagar.estado === "vigente" && compraAPagar.saldo > 0 ? compraAPagar : null;
   const hayMasPaginas = !!siguiente || !!cursor;
 
+  // «Pagar con este saldo» (A favor con proveedores) llega con `prov` + `marcar=1`: los comprobantes de ese
+  // proveedor ya vienen marcados y la barra de «Pagar juntos» abierta, en vez de dejar la marcación a mano.
+  const seleccionInicial = marcar === "1" && filtros.proveedorId ? compras.filter((c) => c.proveedorId === filtros.proveedorId).map((c) => c.id) : [];
+
   // Datos para pagar (banco, cuenta, Yape, plazo) que el modal de pago juntos muestra sin obligar
   // a ir a la ficha del proveedor. Solo lo de los proveedores que aparecen en esta página.
+  const datosPago = (p: (typeof proveedores)[number]): DatosPagoProveedor => ({
+    proveedorId: p.id,
+    banco: p.banco,
+    cuentaBancaria: p.cuenta_bancaria,
+    cci: p.cci,
+    celularBilletera: p.celular_billetera,
+    billeteras: p.billeteras,
+    titular: p.titular_cuenta,
+    plazoCreditoDias: p.plazo_credito_dias,
+    formaPagoPreferida: p.forma_pago_preferida,
+    saldoFavor: p.saldo_favor ?? 0,
+  });
   const datosProveedores: Record<string, DatosPagoProveedor> = {};
   for (const c of compras) {
     const p = proveedores.find((x) => x.id === c.proveedorId);
-    if (p && !datosProveedores[p.id]) {
-      datosProveedores[p.id] = {
-        banco: p.banco,
-        cuentaBancaria: p.cuenta_bancaria,
-        telefono: p.telefono,
-        plazoCreditoDias: p.plazo_credito_dias,
-        formaPagoPreferida: p.forma_pago_preferida,
-        saldoFavor: p.saldo_favor ?? 0,
-      };
-    }
+    if (p && !datosProveedores[p.id]) datosProveedores[p.id] = datosPago(p);
   }
+  const proveedorAPagar = abrirPago ? proveedores.find((x) => x.id === abrirPago.proveedorId) : undefined;
 
-  // Enlaces del selector «Por urgencia | Por proveedor»: conservan los demás parámetros.
-  const hrefAgrupar = (vista: "urgencia" | "proveedor") => {
+  // Enlace que conserva los demás parámetros y cambia solo `prov` (o lo quita si ya era ese: un segundo clic apaga el filtro).
+  const hrefProveedor = (id: string) => {
     const q = new URLSearchParams();
-    for (const [k, v] of Object.entries(params)) if (v && k !== "cursor") q.set(k, String(v));
-    if (vista === "proveedor") q.set("agrupar", "proveedor");
+    for (const [k, v] of Object.entries(params)) if (v && k !== "cursor" && k !== "prov") q.set(k, String(v));
+    if (agrupar === "proveedor") q.set("agrupar", "proveedor");
+    if (filtros.proveedorId !== id) q.set("prov", id);
     const s = q.toString();
     return s ? `/compras/por-pagar?${s}` : "/compras/por-pagar";
   };
   // «Params» de la paginación: incluye `agrupar` para no perder la vista al pasar de página.
   const paramsPaginacion = agrupar === "proveedor" ? { ...params, agrupar } : params;
 
+  // La barra de concentración: los 3 proveedores a los que más se les debe y «Otros». Sale de los saldos por
+  // proveedor que ya trae `getProveedores` (no hay consulta nueva); el «62 %» grande sigue saliendo de la base.
+  const segmentos = concentracionPorProveedor(proveedores.map((p) => ({ id: p.id, nombre: p.nombre, saldo: p.saldo ?? 0 }))).map((s) => ({
+    ...s,
+    href: s.id ? hrefProveedor(s.id) : null,
+  }));
+
   const conDeuda = resumen.deuda > 0;
   const hastaSemana = diaMes(sumarDias(hoyLima(), 7));
   const cifra = (n: number, sing: string, plu: string) => `${n.toLocaleString("es-PE")} ${n === 1 ? sing : plu}`;
+  const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Por pagar</h1>
-        <p className="mt-1 text-sm text-tinta/65">
-          Lo que se debe a proveedores, de lo más urgente a lo que puede esperar. Se paga desde cada fila, o varios comprobantes del mismo proveedor juntos.
-        </p>
-      </div>
-
-      {/* Cuatro cifras, todas con acción. `grid-cols-2` también en celular: con las tarjetas
-          apiladas a ancho completo la lista —lo que se vino a ver— quedaba a ~830 px de scroll.
-          «Deuda total» ocupa las dos columnas por ser la cifra ancla. */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="col-span-2 sm:col-span-1">
-          <TarjetaCifra compacta punto="neutro" etiqueta="Deuda total" valor={soles(resumen.deuda)}>
-            {conDeuda ? cifra(resumen.conSaldo, "comprobante", "comprobantes") : "Todo pagado"}
-          </TarjetaCifra>
+    <PorPagarProvider agruparInicial={agrupar}>
+      <div className="space-y-6">
+        <div {...entra(0)}>
+          <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
+          <h1 className="font-display mt-1 text-2xl text-tinta">Por pagar</h1>
+          <p className="mt-1 text-sm text-tinta/65">
+            Lo que se debe a proveedores, de lo más urgente a lo que puede esperar. Se paga desde cada fila, o varios comprobantes del mismo proveedor juntos.
+          </p>
         </div>
-        <TarjetaCifra
-          compacta
-          acento={resumen.vencidas > 0}
-          punto="neutro"
-          tono={resumen.vencidas > 0 ? "text-rojo" : undefined}
-          etiqueta="Vencido"
-          valor={soles(resumen.vencido)}
-          href={resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : undefined}
-        >
-          {resumen.vencidas > 0 ? `${cifra(resumen.vencidas, "comprobante vencido", "comprobantes vencidos")} · pagar ya →` : "Nada vencido"}
-        </TarjetaCifra>
-        <TarjetaCifra
-          compacta
-          punto={resumen.porVencer > 0 ? "ambar" : "neutro"}
-          tono={resumen.porVencer > 0 ? "text-ambar-profundo" : undefined}
-          detalleTono={resumen.porVencer > 0 ? "text-ambar-profundo" : undefined}
-          etiqueta="Vence esta semana"
-          valor={soles(resumen.porVencerMonto)}
-          href={resumen.porVencer > 0 ? "#tramo-semana" : undefined}
-        >
-          {resumen.porVencer > 0 ? `${cifra(resumen.porVencer, "comprobante", "comprobantes")} · hasta el ${hastaSemana} →` : "Ninguno en los próximos 7 días"}
-        </TarjetaCifra>
-        {conDeuda && extra.topProveedorNombre ? (
-          <TarjetaCifra compacta punto="neutro" etiqueta="Concentración" valor={`${Math.round(extra.topProveedorPct)} %`} href={`/compras/por-pagar?prov=${extra.topProveedorId}`}>
-            {extra.topProveedorNombre} concentra la deuda
+
+        {/* Cuatro cifras, todas con acción. `grid-cols-2` también en celular: con las tarjetas
+            apiladas a ancho completo la lista —lo que se vino a ver— quedaba a ~830 px de scroll.
+            «Deuda total» ocupa las dos columnas por ser la cifra ancla. Las cifras cuentan desde 0 al llegar
+            y, cuando algo las mueve (un pago), cuentan hasta su valor nuevo. */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="col-span-2 sm:col-span-1 [&>*]:h-full">
+            <TarjetaCifra compacta punto="neutro" etiqueta="Deuda total" valor={<CifraQueCuenta valor={resumen.deuda} formato="soles" alMontar />} {...entra(1)}>
+              {conDeuda ? cifra(resumen.conSaldo, "comprobante", "comprobantes") : "Todo pagado"}
+            </TarjetaCifra>
+          </div>
+          <TarjetaCifra
+            compacta
+            acentoTrazo={resumen.vencidas > 0}
+            punto="neutro"
+            tono={resumen.vencidas > 0 ? "text-rojo max-sm:text-[26px] whitespace-nowrap" : undefined}
+            etiqueta="Vencido"
+            valor={<CifraQueCuenta valor={resumen.vencido} formato="soles" alMontar />}
+            href={resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : undefined}
+            {...entra(2)}
+          >
+            {resumen.vencidas > 0 ? `${cifra(resumen.vencidas, "comprobante vencido", "comprobantes vencidos")} · pagar ya →` : "Nada vencido"}
           </TarjetaCifra>
-        ) : (
-          <TarjetaCifra compacta vacia etiqueta="Concentración" valor="—">
-            Aparece cuando haya deuda
+          <TarjetaCifra
+            compacta
+            punto={resumen.porVencer > 0 ? "ambar" : "neutro"}
+            puntoPulsa={resumen.porVencer > 0}
+            tono={resumen.porVencer > 0 ? "text-ambar-profundo" : undefined}
+            detalleTono={resumen.porVencer > 0 ? "text-ambar-profundo" : undefined}
+            etiqueta="Vence esta semana"
+            valor={<CifraQueCuenta valor={resumen.porVencerMonto} formato="soles" alMontar />}
+            href={resumen.porVencer > 0 ? "#tramo-semana" : undefined}
+            {...entra(3)}
+          >
+            {resumen.porVencer > 0 ? `${cifra(resumen.porVencer, "comprobante", "comprobantes")} · hasta el ${hastaSemana} →` : "Ninguno en los próximos 7 días"}
           </TarjetaCifra>
-        )}
-      </div>
+          {conDeuda && extra.topProveedorNombre ? (
+            <TarjetaCifra compacta punto="neutro" etiqueta="Concentración" valor={<CifraQueCuenta valor={extra.topProveedorPct} formato="porcentaje" alMontar />} {...entra(4)} className="anim-entra col-span-2 sm:col-span-1">
+              {extra.topProveedorNombre} concentra la deuda
+              <BarraConcentracion segmentos={segmentos} proveedorActivo={filtros.proveedorId ?? null} />
+            </TarjetaCifra>
+          ) : (
+            <TarjetaCifra compacta vacia etiqueta="Concentración" valor="—" {...entra(4)} className="anim-entra col-span-2 sm:col-span-1">
+              Aparece cuando haya deuda
+            </TarjetaCifra>
+          )}
+        </div>
 
-      <SaldosAFavor
-        saldos={proveedores
-          .filter((p) => (p.saldo_favor ?? 0) > 0)
-          .map((p) => ({ proveedorId: p.id, nombre: p.nombre, saldoFavor: p.saldo_favor ?? 0, deuda: p.saldo ?? 0 }))
-          .sort((a, b) => b.saldoFavor - a.saldoFavor)}
-      />
+        <SaldosAFavor
+          indice={5}
+          saldos={proveedores
+            .filter((p) => (p.saldo_favor ?? 0) > 0)
+            .map((p) => ({ proveedorId: p.id, nombre: p.nombre, saldoFavor: p.saldo_favor ?? 0, deuda: p.saldo ?? 0 }))
+            .sort((a, b) => b.saldoFavor - a.saldoFavor)}
+        />
 
-      <div className="grid gap-3 lg:grid-cols-2">
-        <DeudaPorVencimiento tramos={vencimiento} />
-        <SalidasDeCaja salidas={salidas} />
-      </div>
+        {/* `grid-cols-1` = `minmax(0, 1fr)`: sin él, en celular la columna única crece hasta el contenido más ancho (las etiquetas de las barras) y la tarjeta se sale de la pantalla. */}
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <DeudaPorVencimiento tramos={vencimiento} indice={6} />
+          <SalidasDeCaja salidas={salidas} indice={7} />
+        </div>
 
-      <FiltrosCompras
-        proveedores={directorio}
-        visibles={["proveedor", "vencidas", "condicion"]}
-        accionesAntes={
-          <SegmentoEnlaces
-            etiquetaAccesible="Cómo agrupar la deuda"
-            activo={agrupar}
-            opciones={[
-              { valor: "urgencia", etiqueta: "Por urgencia", href: hrefAgrupar("urgencia") },
-              { valor: "proveedor", etiqueta: "Por proveedor", href: hrefAgrupar("proveedor") },
-            ]}
+        <div {...entra(8)}>
+          <FiltrosCompras
+            proveedores={directorio}
+            visibles={["proveedor", "vencidas", "condicion"]}
+            estiloSpike
+            accionesAntes={
+              <div className="flex items-start gap-3">
+                <BotonSoloVencidas cantidad={resumen.vencidas} />
+                <SelectorAgrupar />
+              </div>
+            }
           />
-        }
-      />
+        </div>
 
-      {compras.length === 0 && !cursor ? (
-        <p className="card-cayla p-5 text-sm text-tinta/75">
-          {hayFiltros ? "Ningún comprobante por pagar coincide con esos filtros." : "No hay comprobantes con saldo pendiente. Todo pagado."}
-        </p>
-      ) : (
-        <PorPagarLista compras={compras} totales={tramos} agrupar={agrupar} hayMasPaginas={hayMasPaginas} datosProveedores={datosProveedores} notas={notas} />
-      )}
+        {compras.length === 0 && !cursor ? (
+          conDeuda || hayFiltros ? (
+            <div className="card-cayla p-5 text-sm text-tinta/75">
+              Ningún comprobante por pagar coincide con esos filtros.
+              <Link href="/compras/por-pagar" className="label-cayla ml-3 text-[11px] text-rojo hover:underline">
+                Limpiar filtros
+              </Link>
+            </div>
+          ) : (
+            <TodoPagado />
+          )
+        ) : (
+          <PorPagarLista
+            compras={compras}
+            totales={tramos}
+            hayMasPaginas={hayMasPaginas}
+            datosProveedores={datosProveedores}
+            notas={notas}
+            pagos={pagos}
+            seleccionInicial={seleccionInicial}
+            indice={10}
+          />
+        )}
 
-      <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={paramsPaginacion} pathname="/compras/por-pagar" />
+        <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={paramsPaginacion} pathname="/compras/por-pagar" />
 
-      {abrirPago && <PagoDesdeUrl compra={abrirPago} saldoFavor={proveedores.find((p) => p.id === abrirPago.proveedorId)?.saldo_favor ?? 0} />}
+        {abrirPago && <PagoDesdeUrl compra={abrirPago} saldoFavor={proveedorAPagar?.saldo_favor ?? 0} datos={proveedorAPagar ? datosPago(proveedorAPagar) : undefined} />}
+      </div>
+    </PorPagarProvider>
+  );
+}
+
+/** «Todo pagado»: el círculo y el tilde se DIBUJAN (trazo). Es lo que se ve al pagar el último comprobante. */
+function TodoPagado() {
+  return (
+    <div className="card-cayla anim-revelar px-5 py-11 text-center">
+      <svg aria-hidden viewBox="0 0 54 54" className="mx-auto mb-2.5 h-[54px] w-[54px] fill-none stroke-verde" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+        <circle pathLength={1} cx="27" cy="27" r="24" className="trazo-linea anim-trazo" style={{ ["--i" as string]: 0 }} />
+        <path pathLength={1} d="M16 28l8 8 15-17" className="trazo-linea anim-trazo" style={{ ["--i" as string]: 12 }} />
+      </svg>
+      <p className="font-display text-[19px] italic text-tinta/65">Todo pagado. No queda nada por pagar.</p>
     </div>
   );
 }

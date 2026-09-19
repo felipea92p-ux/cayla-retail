@@ -49,6 +49,9 @@ export const AVIARIO = [
     tablas: [
       "movimientos", "stock", "lotes", "sububicaciones", "costo_historial", "prendas_danadas",
       "transferencias", "transferencia_items", "transferencia_recepciones",
+      // ADR-0113: el envío es el padre de los lotes (`lotes.envio_id`); sus extras son movimientos y sus
+      // traslados, transferencias — el mismo pájaro que las tablas que agrupa, no el de Compras.
+      "envios", "envio_extras", "envio_traslados",
     ] },
   { n: "06", pajaro: "Lechuza", modulo: "Conteo y censo físico",
     tablas: ["conteos", "conteo_items"] },

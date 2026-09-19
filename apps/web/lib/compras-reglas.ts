@@ -271,3 +271,74 @@ export function totalesCompra(
   const igv = a2((subtotal * igvPorcentaje) / 100);
   return { subtotal, igv, total: a2(subtotal + igv) };
 }
+
+// ---------- Lectura operativa: recibir SIN ver dinero (ADR-0126) ----------
+// Quien no es líder no lee `listar_compras` ni `compra_items_resumen` (traen montos, y las tablas de dinero
+// quedan cerradas para él): lee `listar_compras_operativo` y `lineas_compra_operativo`, que devuelven SOLO lo que
+// hace falta para recibir. Estas funciones puras llevan esas filas a las MISMAS formas que ya usa la pantalla
+// (`CompraResumen`) para que no haya dos pantallas: los montos van en 0 —igual que `comprobanteSinMontos`— y los
+// datos de pago en un valor neutro que ninguna pantalla de recibir muestra.
+
+/** Una fila de `listar_compras_operativo`: lo que un integrante necesita para recibir, sin un solo monto. */
+export type FilaOperativa = {
+  id: string;
+  proveedor_id: string;
+  proveedor_nombre: string;
+  proveedor_ruc: string | null;
+  tipo: string;
+  documento: string;
+  fecha_emision: string;
+  ubicacion_destino_id: string;
+  estado: string;
+  nota: string | null;
+  created_at: string;
+  facturado_cantidad: number;
+  recibido_cantidad: number;
+  estado_recepcion: string;
+  fecha_estimada_llegada: string | null;
+  recepcion_atrasada: boolean;
+  cerrado_cantidad: number;
+};
+
+export function comprobanteDeFilaOperativa(f: FilaOperativa): CompraResumen {
+  return {
+    id: f.id,
+    proveedorId: f.proveedor_id,
+    proveedorNombre: f.proveedor_nombre,
+    proveedorRuc: f.proveedor_ruc,
+    tipo: f.tipo as TipoDocumentoCompra,
+    documento: f.documento,
+    fechaEmision: f.fecha_emision,
+    ubicacionDestinoId: f.ubicacion_destino_id,
+    estado: f.estado as "vigente" | "anulada",
+    nota: f.nota,
+    creadoEn: f.created_at,
+    facturadoCantidad: f.facturado_cantidad,
+    recibidoCantidad: f.recibido_cantidad,
+    estadoRecepcion: f.estado_recepcion as EstadoRecepcion,
+    fechaEstimadaLlegada: f.fecha_estimada_llegada,
+    recepcionAtrasada: f.recepcion_atrasada,
+    cerradoCantidad: f.cerrado_cantidad,
+    // Sin dato: la función no los devuelve. Ninguna pantalla de recibir los muestra.
+    condicion: "contado",
+    fechaVencimiento: null,
+    estadoPago: "pendiente",
+    vencida: false,
+    subtotal: 0,
+    igv: 0,
+    total: 0,
+    pagado: 0,
+    saldo: 0,
+    notasCredito: 0,
+  };
+}
+
+/**
+ * ¿El error dice que la FUNCIÓN no existe en esa base? PostgREST responde `PGRST202` («no la encuentro en el
+ * schema cache») y Postgres `42883` (undefined_function). Sirve para que, si la app se despliega ANTES de pegar
+ * la migración que crea `listar_compras_operativo`/`lineas_compra_operativo`, Recibir siga con el camino de
+ * antes en vez de caerse (principio 9: todo puede fallar, el sistema se degrada con gracia).
+ */
+export function esFuncionAusente(error: { code?: string | null } | null | undefined): boolean {
+  return error?.code === "PGRST202" || error?.code === "42883";
+}
