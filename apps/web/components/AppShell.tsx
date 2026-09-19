@@ -9,6 +9,7 @@ import { Boton } from "@/components/ui/campos";
 import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 import { PerfilModal } from "@/components/PerfilModal";
+import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
 // escritorio = lateral con "+ Nuevo" global; celular = 4 pestañas + botón + central.
@@ -44,6 +45,15 @@ import { PerfilModal } from "@/components/PerfilModal";
 // (`gruposAbiertos`/`gruposTocados`). Comportamiento idéntico al de Venta,
 // ahora servido para cualquier cantidad de grupos.
 
+// v3.6 (2026-09-19, spike `docs/maquetas/menu-lateral-spike-2026-09/`): el lateral se
+// pliega a una columna de íconos (17rem → 4.75rem). Botón en la cabecera o tecla `[`;
+// la preferencia vive en una cookie que lee el layout (`lib/lateral-cookie.ts`). Plegado,
+// cada grupo abre un cajón flotante con sus hijas (`CajonGrupo`), los ítems sueltos muestran
+// su nombre al pasar el mouse y la insignia de «por atender» se posa sobre el ícono. Las hijas
+// de un grupo expandido se despliegan por `grid-template-rows` (`.lateral-hijos`, globals.css)
+// en vez de montarse con `anim-revelar`. El ancho lo comparten aside, cabecera, <main> y las
+// barras fijas por UN token: plegar solo cambia `--spacing-lateral` en `[data-lateral]`.
+//
 // V2 (Fase UI 1, 2026-09-11): `ubicaciones.nombre` ya es legible por sí solo
 // ("Tienda Lima") — a diferencia de V1, donde el código dejó de servir tras
 // la unificación con Dynamic y hacía falta `sedeEtiqueta` aparte. Por eso acá
@@ -68,6 +78,8 @@ type Props = {
   /** Traslados que esperan una acción de quien mira (`getTrasladosPorAtender`). `null` = no se pudo
    *  calcular: el menú sale igual, sin número. */
   trasladosPorAtender?: number | null;
+  /** Estado inicial del lateral, leído de la cookie en el servidor (sin parpadeo al cargar). */
+  lateralPlegado?: boolean;
   children: React.ReactNode;
 };
 
@@ -155,9 +167,15 @@ function esGrupo(f: FilaMenu): f is ItemGrupo {
    riel único para toda la columna habría que medir el alto real de
    los títulos de grupo en el DOM, y una medición que se hace tarde es
    un riel que salta al cargar la página.
+
+   v3.6 (2026-09-19): el lateral se pliega a una columna de íconos
+   (`compacto`). Ahí los grupos no se abren en línea — sus hijas viven en
+   el cajón flotante (`CajonGrupo`) — así que a efectos del riel cuentan
+   como cerrados: la cabecera representa a la ruta activa, igual que ya
+   hacía con el grupo cerrado.
    ------------------------------------------------------------------ */
 type FilaLateral =
-  | { tipo: "item"; item: Item; indentada: boolean; ordenEnGrupo: number; grupoId?: string }
+  | { tipo: "item"; item: Item }
   | { tipo: "grupo"; item: ItemGrupo };
 
 function GrupoLateral({
@@ -166,35 +184,42 @@ function GrupoLateral({
   pathname,
   activo,
   gruposAbiertos,
-  gruposTocados,
+  compacto,
+  cajonDe,
   onToggleGrupo,
+  onAbrirCajon,
+  onEntrarFila,
+  onSalirFila,
 }: {
   titulo: string | null;
   items: FilaMenu[];
   pathname: string;
   activo: (href: string) => boolean;
   gruposAbiertos: Record<string, boolean>;
-  /** Recién en `true` tras el primer toggle/auto-apertura de ESE grupo:
-   *  evita que sus hijas jueguen `anim-revelar` en la carga inicial, cuando
-   *  ya arrancan visibles (no es una revelación, es la foto de siempre). */
-  gruposTocados: Record<string, boolean>;
+  /** Lateral plegado a íconos: sin etiquetas, sin hijas en línea. */
+  compacto: boolean;
+  /** Id del grupo cuyo cajón está abierto (solo tiene sentido si `compacto`). */
+  cajonDe: string | null;
   onToggleGrupo: (id: string) => void;
+  onAbrirCajon: (id: string, el: HTMLElement, enfocar: boolean) => void;
+  /** Mouse/foco sobre una fila: el AppShell decide si muestra la etiqueta o abre el cajón. */
+  onEntrarFila: (el: HTMLElement, texto: string, grupoId?: string) => void;
+  onSalirFila: () => void;
 }) {
+  // Un grupo cuenta como abierto solo si el lateral está expandido Y su estado dice abierto.
+  const estaAbierto = (id: string) => !compacto && (gruposAbiertos[id] ?? false);
+
   // Aplana cabecera + hijas (solo si está abierta) en las filas que de
-  // verdad se van a pintar — el riel lee ESTE índice, nunca el del array
+  // verdad se van a ver — el riel lee ESTE índice, nunca el del array
   // original, así que nunca se desalinea aunque un grupo cambie cuántas
   // filas ocupa al abrirse o cerrarse.
   const filas: FilaLateral[] = [];
   items.forEach((it) => {
     if (esGrupo(it)) {
       filas.push({ tipo: "grupo", item: it });
-      if (gruposAbiertos[it.id]) {
-        it.hijos.forEach((h, idx) =>
-          filas.push({ tipo: "item", item: h, indentada: true, ordenEnGrupo: idx, grupoId: it.id })
-        );
-      }
+      if (estaAbierto(it.id)) it.hijos.forEach((h) => filas.push({ tipo: "item", item: h }));
     } else {
-      filas.push({ tipo: "item", item: it, indentada: false, ordenEnGrupo: 0 });
+      filas.push({ tipo: "item", item: it });
     }
   });
 
@@ -227,7 +252,7 @@ function GrupoLateral({
           ? activo(f.item.href)
             ? f.item.href.length
             : -1
-          : !gruposAbiertos[f.item.id]
+          : !estaAbierto(f.item.id)
             ? Math.max(-1, ...f.item.hijos.filter((h) => activo(h.href)).map((h) => h.href.length))
             : -1;
       if (largo > mejorLargo) {
@@ -236,6 +261,19 @@ function GrupoLateral({
       }
     });
   }
+  // La fila activa se identifica por clave (no por su posición en el JSX): las hijas siempre están
+  // montadas —cerradas miden 0 de alto— para poder animar su despliegue, así que el índice de
+  // `filas` (solo lo visible) y el orden del árbol ya no coinciden.
+  const filaActiva = indiceActivo >= 0 ? filas[indiceActivo] : null;
+  const claveActiva = filaActiva ? (filaActiva.tipo === "grupo" ? `g:${filaActiva.item.id}` : `i:${filaActiva.item.href}`) : null;
+
+  // Clases de una fila (cabecera o ítem). `overflow-hidden` + `nowrap`: al plegar, la etiqueta se
+  // apaga y el ancho la recorta, en vez de partirse en dos líneas a mitad de la animación.
+  const claseFila = (esActivo: boolean, indentada: boolean) =>
+    `group relative flex items-center gap-3.5 overflow-hidden whitespace-nowrap rounded-lg pr-3 text-sm transition-colors ${
+      indentada ? "pl-9" : "pl-4"
+    } ${esActivo ? "bg-sand/70 font-medium text-tinta" : "text-tinta/80 hover:bg-sand/40 hover:text-rojo"}`;
+  const claseEtiqueta = `min-w-0 flex-1 truncate transition-opacity duration-200 ease-cayla ${compacto ? "opacity-0" : ""}`;
 
   return (
     <div>
@@ -243,7 +281,9 @@ function GrupoLateral({
           menú, que es justo el ruido que se estaba sacando. Una Encargada ve
           las tres filas sin encabezado; el Líder ve los dos nombres. */}
       {titulo && <p className="label-cayla px-4 pb-3 text-[11px] text-tinta/65">{titulo}</p>}
-      <div className="relative flex flex-col" style={{ gap: AIRE_FILA }}>
+      {/* Sin `gap`: las hijas de un grupo cerrado miden 0 pero seguirían pagando su separación. El aire
+          (AIRE_FILA) se pone como margen de cada fila, así un grupo cerrado no deja huecos. */}
+      <div className="relative flex flex-col">
         <span
           aria-hidden
           className="pointer-events-none absolute left-0 w-[2px] rounded-full bg-rojo transition-[transform,opacity] duration-300 ease-cayla"
@@ -254,83 +294,131 @@ function GrupoLateral({
             opacity: indiceActivo >= 0 ? 1 : 0,
           }}
         />
-        {filas.map((f, n) => {
-          const esActivo = n === indiceActivo;
+        {items.map((it, n) => {
+          const margen = n > 0 ? { marginTop: AIRE_FILA } : undefined;
 
-          if (f.tipo === "grupo") {
-            const abierto = gruposAbiertos[f.item.id] ?? false;
-            const contieneActivo = f.item.hijos.some((h) => activo(h.href));
+          if (!esGrupo(it)) {
+            const esActivo = claveActiva === `i:${it.href}`;
             return (
+              <div key={it.href} style={margen}>
+                <Link
+                  href={it.href}
+                  aria-current={esActivo ? "page" : undefined}
+                  style={{ height: ALTO_FILA }}
+                  className={claseFila(esActivo, false)}
+                  onMouseEnter={(e) => onEntrarFila(e.currentTarget, it.etiqueta)}
+                  onFocus={(e) => onEntrarFila(e.currentTarget, it.etiqueta)}
+                  onMouseLeave={onSalirFila}
+                  onBlur={onSalirFila}
+                >
+                  <FantasmaRiel esActivo={esActivo} />
+                  <Icono
+                    d={it.icono}
+                    className={`h-5 w-5 shrink-0 transition-[transform,color] duration-300 ease-cayla ${
+                      esActivo ? "text-tinta" : "text-tinta/60 group-hover:translate-x-0.5 group-hover:text-rojo"
+                    }`}
+                  />
+                  <span className={claseEtiqueta}>{it.etiqueta}</span>
+                  <InsigniaFila n={it.contador ?? 0} compacto={compacto} />
+                </Link>
+              </div>
+            );
+          }
+
+          const abierto = estaAbierto(it.id);
+          const esActivo = claveActiva === `g:${it.id}`;
+          const contieneActivo = it.hijos.some((h) => activo(h.href));
+          const suma = it.hijos.reduce((acc, h) => acc + (h.contador ?? 0), 0);
+          return (
+            <div key={it.id} style={margen}>
               <button
-                key={f.item.id}
                 type="button"
-                onClick={() => onToggleGrupo(f.item.id)}
-                aria-expanded={abierto}
+                data-grupo-id={it.id}
+                onClick={(e) => (compacto ? onAbrirCajon(it.id, e.currentTarget, true) : onToggleGrupo(it.id))}
+                onMouseEnter={(e) => onEntrarFila(e.currentTarget, it.etiqueta, it.id)}
+                onMouseLeave={onSalirFila}
+                // Plegado el botón abre un menú (el cajón); expandido, despliega sus hijas en línea.
+                aria-haspopup={compacto ? "menu" : undefined}
+                aria-expanded={compacto ? cajonDe === it.id : abierto}
                 style={{ height: ALTO_FILA }}
-                className={`group relative flex items-center gap-3.5 rounded-lg pl-4 pr-3 text-sm transition-colors ${
-                  esActivo ? "bg-sand/70 font-medium text-tinta" : "text-tinta/80 hover:bg-sand/40 hover:text-rojo"
-                }`}
+                className={`w-full text-left ${claseFila(esActivo, false)}`}
               >
                 <Icono
-                  d={f.item.icono}
+                  d={it.icono}
                   className={`h-5 w-5 shrink-0 transition-colors duration-300 ease-cayla ${
                     esActivo || contieneActivo ? "text-tinta" : "text-tinta/60 group-hover:text-rojo"
                   }`}
                 />
-                <span className="flex-1 text-left">{f.item.etiqueta}</span>
-                {/* Cerrado, el grupo no muestra a sus hijas: el número sube a la cabecera para que se vea igual. */}
-                {!abierto && <Insignia n={f.item.hijos.reduce((n, h) => n + (h.contador ?? 0), 0)} etiqueta="por atender" />}
+                <span className={`${claseEtiqueta} text-left`}>{it.etiqueta}</span>
+                {/* Cerrado (o plegado), el grupo no muestra a sus hijas: el número sube a la cabecera para que se vea igual. */}
+                {!abierto && <InsigniaFila n={suma} compacto={compacto} />}
                 <Icono
                   d={IC.chevron}
-                  className={`h-3.5 w-3.5 shrink-0 text-tinta/50 transition-transform duration-300 ease-cayla ${
+                  className={`h-3.5 w-3.5 shrink-0 text-tinta/50 transition-[transform,opacity] duration-300 ease-cayla ${
                     abierto ? "rotate-90" : ""
-                  }`}
+                  } ${compacto ? "opacity-0" : ""}`}
                 />
               </button>
-            );
-          }
-
-          const tocado = f.indentada && f.grupoId ? (gruposTocados[f.grupoId] ?? false) : false;
-          return (
-            <Link
-              key={f.item.href}
-              href={f.item.href}
-              aria-current={esActivo ? "page" : undefined}
-              style={{
-                height: ALTO_FILA,
-                animationDelay: tocado ? `${f.ordenEnGrupo * 30}ms` : undefined,
-              }}
-              className={`group relative flex items-center gap-3.5 rounded-lg pr-3 text-sm transition-colors ${
-                f.indentada ? "pl-9" : "pl-4"
-              } ${esActivo ? "bg-sand/70 font-medium text-tinta" : "text-tinta/80 hover:bg-sand/40 hover:text-rojo"} ${
-                tocado ? "anim-revelar" : ""
-              }`}
-            >
-              {/* Marca fantasma: al pasar el mouse por una fila apagada aparece
-                  el riel en gris, en el mismo sitio exacto donde va a quedar el
-                  rojo si sueltas el clic. Se lee "estás acá / irías allá" — es
-                  el riel mostrando su próximo destino, no un efecto aparte. */}
-              {!esActivo && (
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute left-0 top-1/2 w-[2px] -translate-y-1/2 scale-y-0 rounded-full bg-tinta/30 transition-transform duration-200 ease-cayla group-hover:scale-y-100"
-                  style={{ height: ALTO_RIEL }}
-                />
-              )}
-              <Icono
-                d={f.item.icono}
-                className={`h-5 w-5 shrink-0 transition-[transform,color] duration-300 ease-cayla ${
-                  esActivo ? "text-tinta" : "text-tinta/60 group-hover:translate-x-0.5 group-hover:text-rojo"
-                }`}
-              />
-              <span className="flex-1">{f.item.etiqueta}</span>
-              <Insignia n={f.item.contador ?? 0} etiqueta="por atender" />
-            </Link>
+              {/* Las hijas se despliegan por `grid-template-rows: 0fr → 1fr`: se abren sin medir alturas
+                  (una medición tardía es un salto). `inert` cerrado: invisibles Y fuera del tabulador. */}
+              <div className="lateral-hijos" data-abierto={abierto} inert={!abierto}>
+                <div>
+                  {it.hijos.map((h, idx) => {
+                    const hijoActivo = claveActiva === `i:${h.href}`;
+                    return (
+                      <div key={h.href} className="lateral-hijo" style={{ marginTop: AIRE_FILA, "--i": idx } as React.CSSProperties}>
+                        <Link
+                          href={h.href}
+                          aria-current={hijoActivo ? "page" : undefined}
+                          style={{ height: ALTO_FILA }}
+                          className={claseFila(hijoActivo, true)}
+                        >
+                          {/* Marca fantasma: al pasar el mouse por una fila apagada aparece
+                              el riel en gris, en el mismo sitio exacto donde va a quedar el
+                              rojo si sueltas el clic. Se lee "estás acá / irías allá" — es
+                              el riel mostrando su próximo destino, no un efecto aparte. */}
+                          <FantasmaRiel esActivo={hijoActivo} />
+                          <Icono
+                            d={h.icono}
+                            className={`h-5 w-5 shrink-0 transition-[transform,color] duration-300 ease-cayla ${
+                              hijoActivo ? "text-tinta" : "text-tinta/60 group-hover:translate-x-0.5 group-hover:text-rojo"
+                            }`}
+                          />
+                          <span className="flex-1">{h.etiqueta}</span>
+                          <Insignia n={h.contador ?? 0} etiqueta="por atender" />
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           );
         })}
       </div>
     </div>
   );
+}
+
+function FantasmaRiel({ esActivo }: { esActivo: boolean }) {
+  if (esActivo) return null;
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute left-0 top-1/2 w-[2px] -translate-y-1/2 scale-y-0 rounded-full bg-tinta/30 transition-transform duration-200 ease-cayla group-hover:scale-y-100"
+      style={{ height: ALTO_RIEL }}
+    />
+  );
+}
+
+// El número «por atender» de una fila del lateral: en línea al final de la fila; plegado, no hay
+// sitio para una columna, así que se posa sobre la esquina del ícono (con un anillo del color del
+// fondo para que no se funda con el trazo).
+function InsigniaFila({ n, compacto }: { n: number; compacto: boolean }) {
+  if (compacto) {
+    return <Insignia n={n} etiqueta="por atender" tamano="compacta" className="absolute left-[27px] top-[5px] ring-2 ring-crema" />;
+  }
+  return <Insignia n={n} etiqueta="por atender" />;
 }
 
 /* ------------------------------------------------------------------
@@ -496,6 +584,127 @@ function MenuNuevo({ onClose, esLider }: { onClose: () => void; esLider: boolean
   );
 }
 
+/* ------------------------------------------------------------------
+   CajonGrupo — las hijas de un grupo cuando el lateral está plegado.
+
+   Con el lateral en 4.75rem no hay dónde desplegar «Inventario» en
+   línea, así que la cabecera abre este cajón a su derecha. Mismo
+   criterio que `MenuNuevo`: es un MENÚ, no un diálogo — no atrapa el
+   foco; Tab y Escape lo cierran y devuelven el foco a la cabecera que
+   lo abrió. Teclado calcado de ahí: flechas, Inicio/Fin, Espacio.
+
+   Se abre de dos maneras: clic/Enter (el foco entra a la primera hija)
+   o pasando el mouse 120 ms (el foco NO se mueve: es mirar, no elegir).
+   ------------------------------------------------------------------ */
+function CajonGrupo({
+  grupo,
+  top,
+  left,
+  activo,
+  enfocar,
+  onCerrar,
+  onEntrar,
+  onSalir,
+}: {
+  grupo: ItemGrupo;
+  top: number;
+  left: number;
+  activo: (href: string) => boolean;
+  enfocar: boolean;
+  onCerrar: (devolverFoco: boolean) => void;
+  onEntrar: () => void;
+  onSalir: () => void;
+}) {
+  const filas = useRef<(HTMLAnchorElement | null)[]>([]);
+
+  useEffect(() => {
+    if (enfocar) filas.current[0]?.focus();
+  }, [enfocar]);
+
+  // La hija activa es la de coincidencia más larga (misma regla que el riel: `/inventario` y
+  // `/inventario/traslados` calzan las dos en un traslado, gana la que de verdad lo contiene).
+  const mejor = grupo.hijos.reduce<Item | null>(
+    (m, h) => (activo(h.href) && (!m || h.href.length > m.href.length) ? h : m),
+    null,
+  );
+
+  function irA(i: number) {
+    const n = (i + grupo.hijos.length) % grupo.hijos.length;
+    filas.current[n]?.focus();
+  }
+  function alTeclado(e: React.KeyboardEvent) {
+    const i = filas.current.findIndex((f) => f === document.activeElement);
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        irA(i + 1);
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        irA(i - 1);
+        break;
+      case "Home":
+        e.preventDefault();
+        irA(0);
+        break;
+      case "End":
+        e.preventDefault();
+        irA(grupo.hijos.length - 1);
+        break;
+      case "Escape":
+      case "Tab":
+        e.preventDefault();
+        onCerrar(true);
+        break;
+      case " ":
+        // Enter ya navega solo (es un <a>); Espacio no activa un enlace.
+        e.preventDefault();
+        filas.current[i]?.click();
+        break;
+    }
+  }
+
+  return (
+    <div
+      role="menu"
+      aria-label={grupo.etiqueta}
+      onKeyDown={alTeclado}
+      onMouseEnter={onEntrar}
+      onMouseLeave={onSalir}
+      style={{ top, left }}
+      className="anim-flota card-cayla fixed z-[60] w-[15rem] p-2 shadow-lg"
+    >
+      <p aria-hidden className="label-cayla px-3 pb-1.5 pt-2 text-[11px] text-tinta/65">{grupo.etiqueta}</p>
+      {grupo.hijos.map((h, i) => {
+        const esActivo = mejor?.href === h.href;
+        return (
+          <Link
+            key={h.href}
+            href={h.href}
+            role="menuitem"
+            tabIndex={-1}
+            aria-current={esActivo ? "page" : undefined}
+            ref={(el) => {
+              filas.current[i] = el;
+            }}
+            onClick={() => onCerrar(false)}
+            // Escalonado de 30 ms por fila, el mismo de `MenuNuevo` y del desplegable de campos.tsx.
+            style={{ animationDelay: `${i * 30}ms` }}
+            className={`anim-revelar group relative flex h-11 items-center gap-3 rounded-lg px-3 text-sm outline-none transition-colors focus-visible:bg-sand/60 focus-visible:text-rojo ${
+              esActivo ? "bg-sand/70 font-medium text-tinta" : "text-tinta/80 hover:bg-sand/40 hover:text-rojo"
+            }`}
+          >
+            {esActivo && <span aria-hidden className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo" />}
+            <Icono d={h.icono} className={`h-[18px] w-[18px] shrink-0 transition-colors ${esActivo ? "text-tinta" : "text-tinta/60 group-hover:text-rojo"}`} />
+            <span className="flex-1">{h.etiqueta}</span>
+            <Insignia n={h.contador ?? 0} etiqueta="por atender" />
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 // Rutas (y todo lo que cuelga de ellas) que usan el ancho completo del <main>.
 // Inventario entró el 2026-09-16: la tabla de Existencias con «En tránsito» y
 // «En la red» (6 columnas) y la de Movimientos con origen → destino no caben
@@ -510,12 +719,87 @@ function MenuNuevo({ onClose, esLider }: { onClose: () => void; esLider: boolean
 // panel de validaciones ya había de sobra qué poner a los lados.
 const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/recibir", "/caja", "/cambios", "/devoluciones"];
 
-export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }: Props) {
+export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPlegado = false, children }: Props) {
   const pathname = usePathname();
   const [nuevoAbierto, setNuevoAbierto] = useState(false);
   const [perfilAbierto, setPerfilAbierto] = useState(false);
   const disparadorNuevo = useRef<HTMLButtonElement | null>(null);
   const esLider = persona.rol === "lider";
+
+  // ---- Lateral plegado (v3.6) ----
+  const [plegado, setPlegado] = useState(lateralPlegado);
+  const asideRef = useRef<HTMLElement | null>(null);
+  // Etiqueta flotante de una fila plegada y cajón de un grupo: uno a la vez, ambos siempre pegados
+  // al borde derecho del lateral.
+  const [etiqueta, setEtiqueta] = useState<{ texto: string; top: number; left: number } | null>(null);
+  const [cajon, setCajon] = useState<{ grupoId: string; top: number; left: number; enfocar: boolean } | null>(null);
+  const relojCajon = useRef(0); // espera de 120 ms antes de abrir por mouse
+  const relojCierre = useRef(0); // cierre con 260 ms de gracia: cruzar del lateral al cajón no lo cierra
+
+  const borde = () => (asideRef.current?.getBoundingClientRect().right ?? 76) + 8;
+  const cerrarCajon = (devolverFoco = false) => {
+    window.clearTimeout(relojCajon.current);
+    window.clearTimeout(relojCierre.current);
+    if (cajon && devolverFoco) document.querySelector<HTMLElement>(`[data-grupo-id="${cajon.grupoId}"]`)?.focus();
+    setCajon(null);
+  };
+  // Los dos gestos del cierre con gracia, para que el lateral y el cajón los compartan.
+  const mantenerCajon = () => window.clearTimeout(relojCierre.current);
+  const programarCierre = () => {
+    window.clearTimeout(relojCajon.current);
+    relojCierre.current = window.setTimeout(() => cerrarCajon(), 260);
+  };
+
+  const alternarLateral = () => {
+    const siguiente = !plegado;
+    setPlegado(siguiente);
+    cerrarCajon();
+    setEtiqueta(null);
+    guardarLateralPlegado(siguiente);
+  };
+
+  // Atajo `[`: como en tantas apps con lateral. No se dispara escribiendo en un campo, con un
+  // modificador, ni con un diálogo o el menú «Nuevo» abiertos.
+  useEffect(() => {
+    const alTeclado = (e: KeyboardEvent) => {
+      if (e.key !== "[" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable=''], [contenteditable='true'], [role='dialog']")) return;
+      if (nuevoAbierto || perfilAbierto) return;
+      e.preventDefault();
+      alternarLateral();
+    };
+    document.addEventListener("keydown", alTeclado);
+    return () => document.removeEventListener("keydown", alTeclado);
+  });
+
+  // Pasar el mouse por una fila plegada: los ítems sueltos muestran su nombre; un grupo abre su
+  // cajón tras 120 ms (intención, no roce). Expandido no hay nada que mostrar: la fila ya dice todo.
+  const entrarFila = (el: HTMLElement, texto: string, grupoId?: string) => {
+    if (!plegado) return;
+    mantenerCajon();
+    if (grupoId) {
+      setEtiqueta(null);
+      window.clearTimeout(relojCajon.current);
+      relojCajon.current = window.setTimeout(() => abrirCajon(grupoId, el, false), 120);
+    } else {
+      const r = el.getBoundingClientRect();
+      setEtiqueta({ texto, top: r.top + r.height / 2, left: borde() + 2 });
+    }
+  };
+  const salirFila = () => {
+    setEtiqueta(null);
+    programarCierre();
+  };
+  const abrirCajon = (grupoId: string, el: HTMLElement, enfocar: boolean) => {
+    mantenerCajon();
+    const g = grupos.flatMap((x) => x.items).find((f): f is ItemGrupo => esGrupo(f) && f.id === grupoId);
+    if (!g) return;
+    const r = el.getBoundingClientRect();
+    // Alto estimado (cabecera + filas de 44 px + aire): alcanza para que nunca se salga por abajo.
+    const alto = 16 + 34 + g.hijos.length * 44;
+    setEtiqueta(null);
+    setCajon({ grupoId, top: Math.max(64, Math.min(r.top - 8, window.innerHeight - alto - 12)), left: borde(), enfocar });
+  };
 
   const abrirNuevo = (e: React.MouseEvent<HTMLButtonElement>) => {
     disparadorNuevo.current = e.currentTarget;
@@ -553,11 +837,6 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
   const [gruposAbiertos, setGruposAbiertos] = useState<Record<string, boolean>>(() =>
     grupoActivo ? { [grupoActivo]: true } : {}
   );
-  // Recién en `true` tras el primer toggle/auto-apertura DE ESE grupo: sigue
-  // en `false` al montar aunque `grupoActivo` ya lo haya abierto arriba —
-  // esa apertura inicial es la foto de siempre, no una revelación que deba
-  // animarse.
-  const [gruposTocados, setGruposTocados] = useState<Record<string, boolean>>({});
 
   // Cambiar de sección DESPUÉS de montado (un link de "+ Nuevo", un
   // favorito, sin recargar la página) tampoco debe dejar la ruta nueva
@@ -573,7 +852,6 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
     setGrupoActivoAnterior(grupoActivo);
     if (grupoActivo) {
       setGruposAbiertos({ [grupoActivo]: true });
-      setGruposTocados((g) => ({ ...g, [grupoActivo]: true }));
     }
   }
 
@@ -692,6 +970,10 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
     },
   ].filter((g) => g.items.length > 0);
 
+  const grupoDelCajon = cajon
+    ? (grupos.flatMap((x) => x.items).find((f): f is ItemGrupo => esGrupo(f) && f.id === cajon.grupoId) ?? null)
+    : null;
+
   // Celular: 5 columnas fijas con el "+" al centro. Punto de Venta y Caja
   // son las de uso diario en el mostrador; Productos/Movimientos/
   // Colaboradores quedan a un toque del lateral (no entran en 5 columnas
@@ -710,10 +992,19 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
       .toUpperCase() || "·";
 
   return (
-    <div className="min-h-screen bg-crema">
+    // `data-lateral` cambia UN token (`--spacing-lateral`, globals.css): el aside, la cabecera, el <main> y las
+    // barras fijas de abajo lo leen, así que plegar no obliga a tocar ninguno de los cuatro.
+    <div className="min-h-screen bg-crema" data-lateral={plegado ? "plegado" : undefined}>
       {/* ==================== Lateral (escritorio) ==================== */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-lateral flex-col border-r border-tinta/10 bg-crema sm:flex">
-        <Link href="/" className="group flex items-center gap-3 px-7 pb-6 pt-7">
+      <aside
+        id="lateral"
+        ref={asideRef}
+        onMouseLeave={() => programarCierre()}
+        onMouseEnter={() => mantenerCajon()}
+        className="ease-cayla fixed inset-y-0 left-0 z-40 hidden w-lateral flex-col overflow-hidden border-r border-tinta/10 bg-crema transition-[width] duration-300 sm:flex"
+      >
+        {/* Plegado el isotipo queda centrado en la columna (76 px): el padding se anima con el ancho. */}
+        <Link href="/" className={`group flex items-center gap-3 overflow-hidden whitespace-nowrap pb-6 pt-7 transition-[padding] duration-300 ease-cayla ${plegado ? "pl-3.5" : "pl-7"}`}>
           <Image
             src="/cayla-isotipo.png"
             alt="CAYLA"
@@ -722,15 +1013,32 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
             priority
             className="h-8 w-auto transition-transform duration-500 ease-cayla group-hover:scale-105"
           />
-          <span className="label-cayla text-sm text-tinta transition-colors group-hover:text-rojo" style={{ letterSpacing: "0.26em" }}>
+          <span
+            className={`label-cayla text-sm text-tinta transition-[color,opacity] duration-200 group-hover:text-rojo ${plegado ? "opacity-0" : ""}`}
+            style={{ letterSpacing: "0.26em" }}
+          >
             CAYLA
           </span>
         </Link>
 
         <div className="px-3 pb-7">
-          <Boton peso="primario" onClick={abrirNuevo} className="w-full" aria-haspopup="menu" aria-expanded={nuevoAbierto}>
-            <span className="flex items-center justify-center gap-2">
-              <Icono d={IC.nuevo} className="h-3.5 w-3.5" /> Nuevo
+          {/* Plegado queda un cuadrado con el «+» (del mismo alto que una fila de 48 px, 52 de ancho:
+              columna de 76 − 12 de aire a cada lado). El botón ya anima `all`, así que el ancho viaja solo. */}
+          <Boton
+            peso="primario"
+            onClick={abrirNuevo}
+            onMouseEnter={(e) => entrarFila(e.currentTarget, "Nuevo")}
+            onMouseLeave={salirFila}
+            onFocus={(e) => entrarFila(e.currentTarget, "Nuevo")}
+            onBlur={salirFila}
+            className={plegado ? "w-[52px]" : "w-full"}
+            aria-label="Nuevo"
+            aria-haspopup="menu"
+            aria-expanded={nuevoAbierto}
+          >
+            <span className={`flex items-center justify-center ${plegado ? "gap-0" : "gap-2"} transition-[gap] duration-300 ease-cayla`}>
+              <Icono d={IC.nuevo} className="h-3.5 w-3.5 shrink-0" />
+              <span className={`inline-block overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-300 ease-cayla ${plegado ? "max-w-0 opacity-0" : "max-w-20"}`}>Nuevo</span>
             </span>
           </Boton>
         </div>
@@ -744,11 +1052,12 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
               pathname={pathname}
               activo={activo}
               gruposAbiertos={gruposAbiertos}
-              gruposTocados={gruposTocados}
-              onToggleGrupo={(id) => {
-                setGruposTocados((g) => ({ ...g, [id]: true }));
-                setGruposAbiertos((g) => ({ ...g, [id]: !g[id] }));
-              }}
+              compacto={plegado}
+              cajonDe={cajon?.grupoId ?? null}
+              onToggleGrupo={(id) => setGruposAbiertos((g) => ({ ...g, [id]: !g[id] }))}
+              onAbrirCajon={abrirCajon}
+              onEntrarFila={entrarFila}
+              onSalirFila={salirFila}
             />
           ))}
         </nav>
@@ -756,15 +1065,23 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
         {/* El lateral terminaba en un vacío de media pantalla. La firma de la
             marca le da un piso al bloque de abajo, en vez de dejar el aire
             colgando entre el último ítem y la persona. */}
-        <p className="font-display px-7 pb-5 pt-6 text-xs italic text-taupe-profundo">Donde el estilo transforma.</p>
+        <p aria-hidden={plegado} className={`font-display overflow-hidden whitespace-nowrap px-7 pb-5 pt-6 text-xs italic text-taupe-profundo transition-opacity duration-200 ${plegado ? "opacity-0" : ""}`}>
+          Donde el estilo transforma.
+        </p>
 
-        <div className="border-t border-tinta/10 px-7 py-5">
+        {/* Plegado el avatar queda centrado en la columna (px-5 + 36 de avatar = centro en 38 px). */}
+        <div className={`overflow-hidden border-t border-tinta/10 py-5 transition-[padding] duration-300 ease-cayla ${plegado ? "px-5" : "px-7"}`}>
           <div className="flex items-center gap-3">
             {/* Botón, no <div>: abre "Mi perfil". Salir queda AFUERA de este
                 botón, como hermano — un clic ahí nunca dispara el perfil. */}
             <button
               type="button"
               onClick={() => setPerfilAbierto(true)}
+              onMouseEnter={(e) => entrarFila(e.currentTarget, "Mi perfil")}
+              onMouseLeave={salirFila}
+              onFocus={(e) => entrarFila(e.currentTarget, "Mi perfil")}
+              onBlur={salirFila}
+              aria-label={plegado ? "Mi perfil" : undefined}
               className="group flex min-w-0 flex-1 items-center gap-3 text-left"
             >
               <span
@@ -773,26 +1090,71 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
               >
                 {iniciales}
               </span>
-              <div className="min-w-0 flex-1">
+              <div className={`min-w-0 flex-1 transition-opacity duration-200 ${plegado ? "opacity-0" : ""}`}>
                 <p className="truncate text-sm text-tinta transition-colors group-hover:text-rojo">{persona.nombre}</p>
                 <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">
                   {esLider ? "Líder" : "Colaborador"} · {persona.ubicacionEtiqueta}
                 </p>
               </div>
             </button>
-            <LogoutButton />
+            {/* Plegado «Salir» no cabe: se apaga y sale del tabulador (`inert`); el perfil sigue a un clic. */}
+            <span className={`transition-opacity duration-200 ${plegado ? "opacity-0" : ""}`} inert={plegado}>
+              <LogoutButton />
+            </span>
           </div>
         </div>
       </aside>
 
       {perfilAbierto && <PerfilModal onClose={() => setPerfilAbierto(false)} />}
 
+      {/* Etiqueta de una fila plegada. Fuera del <aside> a propósito: el aside recorta (`overflow-hidden`)
+          y una etiqueta que se corta a mitad de palabra es peor que ninguna. */}
+      {plegado && etiqueta && !cajon && (
+        <div
+          role="tooltip"
+          style={{ top: etiqueta.top, left: etiqueta.left }}
+          className="anim-revelar pointer-events-none fixed z-[60] -translate-y-1/2 whitespace-nowrap rounded-lg bg-tinta px-3 py-1.5 text-[13px] font-medium text-crema"
+        >
+          {etiqueta.texto}
+        </div>
+      )}
+      {plegado && cajon && grupoDelCajon && (
+        <CajonGrupo
+          key={grupoDelCajon.id}
+          grupo={grupoDelCajon}
+          top={cajon.top}
+          left={cajon.left}
+          activo={activo}
+          enfocar={cajon.enfocar}
+          onCerrar={(devolverFoco) => cerrarCajon(devolverFoco)}
+          onEntrar={() => mantenerCajon()}
+          onSalir={() => programarCierre()}
+        />
+      )}
+
       {/* ==================== Cabecera ==================== */}
       {/* Translúcida + desenfoque: el contenido pasa POR DEBAJO al hacer scroll.
           No es decoración, es la única forma de que se note que hay más página
           arriba en vez de que el texto se corte contra una banda opaca. */}
-      <header className="fixed inset-x-0 top-0 z-30 border-b border-tinta/10 bg-crema/85 backdrop-blur-md sm:left-lateral">
+      <header className="ease-cayla fixed inset-x-0 top-0 z-30 border-b border-tinta/10 bg-crema/85 backdrop-blur-md sm:left-lateral sm:transition-[left] sm:duration-300">
         <div className="flex items-center gap-3 px-4 py-2.5 sm:px-8 sm:py-3">
+          {/* Plegar/expandir el lateral. Solo escritorio: en celular no hay lateral (hay pestañas abajo). */}
+          <button
+            type="button"
+            onClick={alternarLateral}
+            aria-label={plegado ? "Expandir menú lateral" : "Contraer menú lateral"}
+            aria-expanded={!plegado}
+            aria-controls="lateral"
+            title={`${plegado ? "Expandir" : "Contraer"} el menú  ( [ )`}
+            className="-ml-2 hidden h-9 w-9 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:grid"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
+              <rect x="3" y="4" width="18" height="16" rx="2.5" />
+              <path d="M9 4v16" />
+              {/* La flecha se da vuelta al plegar: apunta hacia donde irá el lateral. */}
+              <path d="M15.5 9.5L13 12l2.5 2.5" className={`origin-center transition-transform duration-300 ease-cayla ${plegado ? "-scale-x-100" : ""}`} />
+            </svg>
+          </button>
           <Link href="/" className="flex items-center gap-2 sm:hidden">
             <Image src="/cayla-isotipo.png" alt="CAYLA" width={26} height={26} priority className="h-[26px] w-auto" />
           </Link>
@@ -817,7 +1179,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
           cifras— se apretaban en la columna de lectura (pedido de Felipe,
           2026-09-14). El resto de la app sigue centrado en la columna
           angosta de siempre. */}
-      <main className="px-4 pb-28 pt-20 sm:ml-lateral sm:px-10 sm:pb-12 sm:pt-24">
+      <main className="ease-cayla px-4 pb-28 pt-20 sm:ml-lateral sm:px-10 sm:pb-12 sm:pt-24 sm:transition-[margin-left] sm:duration-300">
         <div className={SIN_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`)) ? "" : "mx-auto max-w-5xl"}>{children}</div>
       </main>
 

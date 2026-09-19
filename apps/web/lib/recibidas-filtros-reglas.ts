@@ -117,6 +117,14 @@ export function textoProveedor(proveedorId: string | undefined, proveedores: rea
 
 export type FiltrosRecibidas = { busqueda?: string; proveedorId?: string; desde?: string; hasta?: string };
 
+/** Cómo llegó lo recibido: todas, solo las completas o solo las que llegaron con faltante. Se filtra en el navegador (la lista trae ≤ 30 filas). */
+export type ResultadoRecibidas = "todas" | "completas" | "faltante";
+
+/** Lo que dice `?res=` en la URL; cualquier otra cosa es «todas». */
+export function resultadoDesdeParam(v: string | undefined): ResultadoRecibidas {
+  return v === "completas" || v === "faltante" ? v : "todas";
+}
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** La fecha si es un día real `aaaa-mm-dd` (no 31/02, no texto suelto); si no, `undefined`. */

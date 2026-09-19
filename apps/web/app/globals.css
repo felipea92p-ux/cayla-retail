@@ -125,6 +125,15 @@
   --shadow-xl: 0 30px 64px -22px rgb(26 26 24 / 0.20);
 }
 
+/* Lateral plegado (2026-09-19). UNA sola fuente de verdad, la misma de `--spacing-lateral`: el
+   <aside>, la cabecera, el <main> y las barras fijas (`BarraFija`, el pie del Punto de Venta) leen
+   ese token, así que plegar el menú es redefinirlo aquí y ninguno se entera. 4.75rem = 76 px =
+   12 (aire) + 16 (relleno de fila) + 20 (ícono) + 16 + 12: el ícono queda EXACTO donde estaba, solo
+   se apagan las etiquetas. `AppShell` pone `data-lateral="plegado"` en su contenedor. */
+[data-lateral="plegado"] {
+  --spacing-lateral: 4.75rem;
+}
+
 /* ==================================================================
    Puente shadcn/ui · v1.0 (2026-09-11)
    shadcn no trae paleta propia — lee estos nombres semánticos y los
@@ -515,6 +524,12 @@ body {
   to { opacity: 1; transform: none; }
 }
 
+/* Cajón de un grupo del lateral plegado (2026-09-19): sale desde el lateral, no desde arriba. */
+@keyframes cayla-flota {
+  from { opacity: 0; transform: translate3d(-6px, 0, 0) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
 @keyframes cayla-revelar {
   from { opacity: 0; transform: translate3d(0, -3px, 0); }
   to { opacity: 1; transform: none; }
@@ -684,9 +699,29 @@ body {
 }
 
 @layer components {
+  /* Hijas de un grupo del lateral: se despliegan por `grid-template-rows: 0fr → 1fr` (sin medir
+     alturas — una medición tardía es un salto) y cada fila aparece con 30 ms de escalón, el mismo
+     de `MenuNuevo` y del desplegable de campos.tsx. Cerradas siguen montadas, con alto 0 y `inert`. */
+  .lateral-hijos {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 300ms var(--ease-cayla);
+  }
+  .lateral-hijos[data-abierto="true"] { grid-template-rows: 1fr; }
+  .lateral-hijos > div { min-height: 0; overflow: hidden; }
+  .lateral-hijo { opacity: 0; transition: opacity 200ms var(--ease-cayla); }
+  .lateral-hijos[data-abierto="true"] .lateral-hijo {
+    opacity: 1;
+    transition-delay: calc(var(--i, 0) * 30ms + 60ms);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lateral-hijos[data-abierto="true"] .lateral-hijo { transition-delay: 0ms; }
+  }
+
   .anim-velo { animation: cayla-velo 220ms var(--ease-cayla) both; }
   .anim-entrada { animation: cayla-hoja 380ms var(--ease-cayla) both; }
   .anim-revelar { animation: cayla-revelar 240ms var(--ease-cayla) both; }
+  .anim-flota { animation: cayla-flota 220ms var(--ease-cayla) both; }
   .anim-revelar-salida { animation: cayla-revelar-salida 160ms var(--ease-salida) both; }
   .anim-asentar { animation: cayla-asentar 320ms var(--ease-cayla) both; }
 
@@ -894,6 +929,14 @@ body {
   50.01%, 54% { transform: translate3d(90px, 0, 0) scaleX(-1); }
   96%, 100% { transform: translate3d(-90px, 0, 0) scaleX(-1); }
 }
+@keyframes cayla-sale {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate3d(0, 4px, 0) scale(0.97); }
+}
+@keyframes cayla-barra {
+  from { transform: translate3d(0, 110%, 0); }
+  to { transform: none; }
+}
 @keyframes cayla-cinta {
   from { transform: translate3d(-100%, 0, 0); opacity: 1; }
   to { transform: translate3d(400%, 0, 0); opacity: 0; }
@@ -910,6 +953,10 @@ body {
   /* punto «vivo»: late suave junto a lo que pide atención (Atrasadas). Adorno: se detiene con movimiento reducido. */
   .punto-vivo { position: relative; }
   .punto-vivo::after { content: ""; position: absolute; inset: 0; border-radius: 9999px; background: inherit; animation: cayla-pulso 2.2s var(--ease-cayla) infinite; }
+  /* la barra fija de totales sube desde el borde al aparecer el envío (420 ms) */
+  /* lo que se quita (un chip, una fila) se va en 200 ms antes de desmontarse; con movimiento reducido, al instante */
+  .anim-sale { animation: cayla-sale 200ms var(--ease-salida) both; }
+  .anim-barra { animation: cayla-barra 420ms var(--ease-cayla) backwards; }
   .anim-cinta { animation: cayla-cinta 620ms var(--ease-cayla) both; }
   .anim-destello-lectura { animation: cayla-destello-lectura 1500ms var(--ease-cayla) backwards; }
   .recibir-camino {
@@ -937,6 +984,7 @@ body {
     .anim-velo,
     .anim-entrada,
     .anim-revelar,
+    .anim-flota,
     .anim-revelar-salida,
     .anim-asentar,
     .anim-globo,
@@ -963,6 +1011,8 @@ body {
     .anim-vivo-fila,
     .anim-destello-lectura,
     .anim-cinta,
+    .anim-barra,
+    .anim-sale,
     .anim-sello path,
     .anim-onda,
     .recibir-hilo,
