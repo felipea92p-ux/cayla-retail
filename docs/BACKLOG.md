@@ -354,22 +354,21 @@ diferencia.
 ## 🎯 Crear producto como árbol de decisión (2026-09-18, ADR-0109)
 
 Diagnóstico y decisiones en el ADR. Estado: los 4 pasos, marca y proveedor, y la revisión adversarial del PR #164
-(ADR-0109, tercera parte) escritos y probados en un Postgres desechable; **nada aplicado en producción**.
+(ADR-0109, tercera parte) escritos y probados en un Postgres desechable. **Los 8 SQL están pegados en producción desde
+el 2026-09-19 y verificados; falta desplegar el código** (mergear el PR #164): hasta entonces, Nuevo producto y el alta al
+vuelo del censo fallan en la pantalla actual («Elige la marca del producto»).
 
-- [ ] **Felipe pega en producción, EN ORDEN, los 8 SQL** (ya traen el prefijo `retail.`, se pegan tal cual), **y recién
-      después se despliega el código**:
-      catálogo — `20260918230000_producto_nombre_una_sola_forma` → `230100_producto_arbol_curva_y_exigencias` →
-      `230200_categoria_atributos_mapa` → `230300_crear_producto_con_etiquetas`;
-      marca y proveedor — `231000_marcas_y_proveedor_en_productos` → `231100_alta_y_edicion_exigen_marca_y_proveedor` →
-      `231200_retira_catalogo_crear_producto` → `231300_productos_por_marca_y_proveedor`.
-      **Los cuatro de marca, seguidos y desplegando enseguida:** `231000` deja `marca_id` NOT NULL y hasta `231100` el
-      alta y el censo VIEJOS fallan. **NO desplegar antes del SQL:** `pnpm datos:comparar` marca rotas 4 pantallas
-      (`censo_crear_variante`, `crear_producto_con_variantes`, `crear_marca`, `buscar_productos_parecidos`). Viven en
-      `2309…` a propósito: Compras reclamó la banda `20260918200000`–`20260918219999` (ADR-0111). Después:
-      `pnpm datos:generar:produccion` y `pnpm datos:comparar` (deben desaparecer esas 4 alarmas; `emitir_comprobante
-      p_token` es de otra sesión). **El comparador no ve** `fn_productos`, `fn_productos_resumen` ni
-      `catalogo_actualizar_producto` (parámetros armados con `...` o en una variable): esas tres solo las cubre la
-      prueba de regresión, así que tras pegar el SQL abrir Productos (filtro por marca) y Editar un producto a mano.
+- [x] **Los 8 SQL pegados en producción, en orden, y verificados (2026-09-19).** `230000` → `230100` → `230200` (falló la
+      primera vez por tablas temporales entre sentencias; corregido a un solo bloque, ADR-0109 cuarta parte) → `230300` →
+      `231000` → `231100` (con la regla «no empeora» de Editar, quinta parte) → `231200` → `231300`. Comprobado en solo
+      lectura tras cada uno; al final: 0 productos con pareja marca-proveedor inválida, 0 nombres duplicados, RLS y
+      políticas de las tablas nuevas, `anon` sin `EXECUTE` en ninguna de las 17 funciones tocadas, Productos filtra y busca
+      por marca y proveedor (44 visibles = contador), «Top Lili» avisa contra «Top Lily». Volcado refrescado
+      (`pnpm datos:generar:produccion`: 67 tablas) y **`pnpm datos:comparar` sin alarmas**. El comparador sigue sin ver
+      `fn_productos`, `fn_productos_resumen` ni `catalogo_actualizar_producto` (parámetros armados con `...`): esas tres
+      las cubre la regresión y lo comprobado en producción.
+- [ ] **Desplegar el código (mergear el PR #164) — es lo que falta y es urgente:** desde el SQL 5, crear productos con la
+      pantalla actual falla. Después, abrir Productos (filtro por marca) y Editar un producto con una sesión de Líder real.
 - [ ] **Marca y proveedor — pendiente de verificar con sesión de Líder real** contra la base: alta, censo (crear pide
       marca; reutilizar no), edición (solo manda marca si cambió), Marcas, filtros y «A quién pedirle» de Productos.
       El piloto de CI (base nueva + `seed.sql` + scripts de venta y caja) ya pasó con las 8 migraciones: eso cubre
@@ -414,6 +413,11 @@ Diagnóstico y decisiones en el ADR. Estado: los 4 pasos, marca y proveedor, y l
       regresión de `fn_productos` contra la copia de producción) se escribieron y corrieron en un Postgres desechable con un
       esquema mínimo, y viven solo en la carpeta temporal de la sesión. Pasarlas a `scripts/pruebas/` contra el `seed.sql`
       real (como `etiquetar_variantes.sql`) para que el piloto de CI las corra siempre; hoy solo corre el encadenado y la venta.
+- [ ] **Endurecimiento opcional (avisos de Supabase, 2026-09-19):** 20 funciones de `retail` figuran con «search_path mutable»;
+      5 son de este cambio (`fn_clave_referencia`, `fn_titulo_referencia`, `fn_dentro_de_una_edicion`,
+      `fn_marcas_desactivar_candado`, `fn_productos_referencia_trigger`) y las otras 15 ya estaban. Todas usan nombres
+      calificados con `retail.`, así que no es un hueco; fijar `set search_path` en las 20 con una sola migración. Y 121
+      funciones `security definer` ejecutables por `authenticated` (el diseño: cada RPC revisa `fn_es_lider` adentro).
 - [ ] **Candado de «sentencias independientes» para las migraciones.** El mapa (`230200`) falló al pegarlo en producción
       por depender de tablas temporales entre sentencias (ADR-0109, cuarta parte). Un script de `scripts/migraciones/`
       que rechace `create temp table`, `set_config`, `set local` y `set session` fuera de un bloque `do`/función, y que

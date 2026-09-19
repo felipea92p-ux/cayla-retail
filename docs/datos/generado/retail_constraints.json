@@ -1150,6 +1150,31 @@
   "tabla": "retail.lotes"
  },
  {
+  "conname": "marca_proveedores_marca_id_fkey",
+  "definicion": "FOREIGN KEY (marca_id) REFERENCES retail.marcas(id)",
+  "tabla": "retail.marca_proveedores"
+ },
+ {
+  "conname": "marca_proveedores_pkey",
+  "definicion": "PRIMARY KEY (marca_id, proveedor_id)",
+  "tabla": "retail.marca_proveedores"
+ },
+ {
+  "conname": "marca_proveedores_proveedor_id_fkey",
+  "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)",
+  "tabla": "retail.marca_proveedores"
+ },
+ {
+  "conname": "marcas_nombre_check",
+  "definicion": "CHECK ((btrim(nombre) <> ''::text))",
+  "tabla": "retail.marcas"
+ },
+ {
+  "conname": "marcas_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.marcas"
+ },
+ {
   "conname": "movimientos_cambio_id_fkey",
   "definicion": "FOREIGN KEY (cambio_id) REFERENCES retail.cambios(id)",
   "tabla": "retail.movimientos"
@@ -1520,6 +1545,16 @@
   "tabla": "retail.productos"
  },
  {
+  "conname": "productos_marca_fk",
+  "definicion": "FOREIGN KEY (marca_id) REFERENCES retail.marcas(id)",
+  "tabla": "retail.productos"
+ },
+ {
+  "conname": "productos_marca_proveedor_fk",
+  "definicion": "FOREIGN KEY (marca_id, proveedor_id) REFERENCES retail.marca_proveedores(marca_id, proveedor_id)",
+  "tabla": "retail.productos"
+ },
+ {
   "conname": "productos_patron_id_fkey",
   "definicion": "FOREIGN KEY (patron_id) REFERENCES retail.patrones(id)",
   "tabla": "retail.productos"
@@ -1532,6 +1567,16 @@
  {
   "conname": "productos_propuesto_por_fkey",
   "definicion": "FOREIGN KEY (propuesto_por) REFERENCES personas(id)",
+  "tabla": "retail.productos"
+ },
+ {
+  "conname": "productos_proveedor_fk",
+  "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)",
+  "tabla": "retail.productos"
+ },
+ {
+  "conname": "productos_rechazado_descontinuado_check",
+  "definicion": "CHECK (((estado_alta <> 'rechazado'::text) OR (estado = 'descontinuado'::text)))",
   "tabla": "retail.productos"
  },
  {

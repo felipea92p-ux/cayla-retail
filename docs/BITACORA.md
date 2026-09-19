@@ -3,6 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Los 8 SQL de Crear producto ya están en producción — y `datos:comparar` quedó en verde)
+
+Se pegaron uno por uno, con una verificación de solo lectura antes y después de cada uno. Tres cosas salieron al pegar y no en las pruebas: el mapa de categorías falló por depender de tablas temporales entre sentencias (ahora es un solo bloque), la regla de Editar habría bloqueado 38 de los 39 productos activos (ahora «no empeora»), y una consulta mía con `\b` buscaba mal las funciones que insertan en `productos` (en Postgres `\b` es «retroceso»; el límite de palabra es `\y`). Al final: 0 productos con pareja inválida, 0 nombres duplicados, Productos filtra y busca por marca, y `pnpm datos:comparar` dice «ninguna pantalla llama a una función con parámetros que producción no acepte».
+
+Lo que Felipe se lleva: pegar en producción por partes, con una comprobación de solo lectura entre cada una, encontró en una tarde lo que el CI y las pruebas locales no podían ver porque no comparten conexión ni datos reales con el editor. Y el diccionario se refrescó sin retipear nada: las consultas oficiales de `COMO-REFRESCAR.md` guardan su resultado en un archivo y un script lo escribe con el formato exacto (el diff es solo lo que cambió).
+
+Pendiente: desplegar el código (mergear el PR #164) — hasta entonces Nuevo producto y el alta al vuelo del censo fallan en la pantalla actual — y probar con una sesión de Líder real.
+
 ## 2026-09-19 (Antes de pegar el SQL 6: 38 de los 39 productos activos no tienen tejido ni patrón, y la regla de Editar los habría bloqueado)
 
 Al pegar los SQL en producción, antes del 6 medí en solo lectura qué significaba su regla de edición con los datos reales: **38 de 39 productos activos son de Indumentaria y ninguno tiene tejido ni patrón**, porque hasta el SQL 3 ninguna categoría los tenía habilitados. La regla pedida («las mismas reglas que Nuevo producto») habría hecho que cambiar solo un precio exigiera elegir tejido y patrón, desde el momento de pegar, también en la pantalla actual. Felipe eligió la regla «no empeora»: al editar solo se exigen si el producto ya los tenía; Nuevo producto los exige siempre.
