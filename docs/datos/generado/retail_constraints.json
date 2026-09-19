@@ -165,8 +165,8 @@
   "tabla": "retail.categorias"
  },
  {
-  "conname": "categorias_familia_check",
-  "definicion": "CHECK ((familia = ANY (ARRAY['indumentaria'::text, 'calzado'::text, 'accesorios'::text, 'bisuteria'::text, 'belleza'::text, 'papeleria'::text])))",
+  "conname": "categorias_familia_fk",
+  "definicion": "FOREIGN KEY (familia) REFERENCES retail.familias(codigo)",
   "tabla": "retail.categorias"
  },
  {
@@ -360,6 +360,31 @@
   "tabla": "retail.compra_adjuntos"
  },
  {
+  "conname": "compra_item_cierres_cantidad_check",
+  "definicion": "CHECK ((cantidad > 0))",
+  "tabla": "retail.compra_item_cierres"
+ },
+ {
+  "conname": "compra_item_cierres_compra_item_id_fkey",
+  "definicion": "FOREIGN KEY (compra_item_id) REFERENCES retail.compra_items(id)",
+  "tabla": "retail.compra_item_cierres"
+ },
+ {
+  "conname": "compra_item_cierres_motivo_check",
+  "definicion": "CHECK ((motivo = ANY (ARRAY['no_llego'::text, 'danada'::text, 'error_proveedor'::text])))",
+  "tabla": "retail.compra_item_cierres"
+ },
+ {
+  "conname": "compra_item_cierres_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.compra_item_cierres"
+ },
+ {
+  "conname": "compra_item_cierres_usuario_id_fkey",
+  "definicion": "FOREIGN KEY (usuario_id) REFERENCES personas(id)",
+  "tabla": "retail.compra_item_cierres"
+ },
+ {
   "conname": "compra_items_cantidad_check",
   "definicion": "CHECK ((cantidad > 0))",
   "tabla": "retail.compra_items"
@@ -390,13 +415,73 @@
   "tabla": "retail.compra_items"
  },
  {
+  "conname": "compra_notas_credito_aplicado_valido",
+  "definicion": "CHECK (((aplicado >= (0)::numeric) AND (aplicado <= monto)))",
+  "tabla": "retail.compra_notas_credito"
+ },
+ {
+  "conname": "compra_notas_credito_cierre_id_fkey",
+  "definicion": "FOREIGN KEY (cierre_id) REFERENCES retail.compra_item_cierres(id)",
+  "tabla": "retail.compra_notas_credito"
+ },
+ {
+  "conname": "compra_notas_credito_compra_id_fkey",
+  "definicion": "FOREIGN KEY (compra_id) REFERENCES retail.compras(id)",
+  "tabla": "retail.compra_notas_credito"
+ },
+ {
+  "conname": "compra_notas_credito_compra_id_serie_numero_key",
+  "definicion": "UNIQUE (compra_id, serie_numero)",
+  "tabla": "retail.compra_notas_credito"
+ },
+ {
+  "conname": "compra_notas_credito_igv_check",
+  "definicion": "CHECK ((igv >= (0)::numeric))",
+  "tabla": "retail.compra_notas_credito"
+ },
+ {
+  "conname": "compra_notas_credito_monto_check",
+  "definicion": "CHECK ((monto > (0)::numeric))",
+  "tabla": "retail.compra_notas_credito"
+ },
+ {
+  "conname": "compra_notas_credito_monto_cuadra",
+  "definicion": "CHECK ((monto = (subtotal + igv)))",
+  "tabla": "retail.compra_notas_credito"
+ },
+ {
+  "conname": "compra_notas_credito_motivo_check",
+  "definicion": "CHECK ((motivo = ANY (ARRAY['faltante'::text, 'devolucion'::text, 'descuento'::text, 'otro'::text])))",
+  "tabla": "retail.compra_notas_credito"
+ },
+ {
+  "conname": "compra_notas_credito_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.compra_notas_credito"
+ },
+ {
+  "conname": "compra_notas_credito_serie_numero_check",
+  "definicion": "CHECK ((btrim(serie_numero) <> ''::text))",
+  "tabla": "retail.compra_notas_credito"
+ },
+ {
+  "conname": "compra_notas_credito_subtotal_check",
+  "definicion": "CHECK ((subtotal >= (0)::numeric))",
+  "tabla": "retail.compra_notas_credito"
+ },
+ {
+  "conname": "compra_notas_credito_usuario_id_fkey",
+  "definicion": "FOREIGN KEY (usuario_id) REFERENCES personas(id)",
+  "tabla": "retail.compra_notas_credito"
+ },
+ {
   "conname": "compra_pagos_compra_id_fkey",
   "definicion": "FOREIGN KEY (compra_id) REFERENCES retail.compras(id)",
   "tabla": "retail.compra_pagos"
  },
  {
   "conname": "compra_pagos_metodo_check",
-  "definicion": "CHECK ((metodo = ANY (ARRAY['transferencia'::text, 'yape'::text, 'plin'::text, 'efectivo'::text, 'deposito'::text, 'otro'::text])))",
+  "definicion": "CHECK ((metodo = ANY (ARRAY['transferencia'::text, 'yape'::text, 'plin'::text, 'efectivo'::text, 'deposito'::text, 'otro'::text, 'saldo_a_favor'::text])))",
   "tabla": "retail.compra_pagos"
  },
  {
@@ -413,6 +498,11 @@
   "conname": "compra_pagos_usuario_id_fkey",
   "definicion": "FOREIGN KEY (usuario_id) REFERENCES personas(id)",
   "tabla": "retail.compra_pagos"
+ },
+ {
+  "conname": "compras_cerrado_cantidad_check",
+  "definicion": "CHECK ((cerrado_cantidad >= 0))",
+  "tabla": "retail.compras"
  },
  {
   "conname": "compras_condicion_check",
@@ -442,6 +532,21 @@
  {
   "conname": "compras_igv_solo_factura",
   "definicion": "CHECK (((tipo = 'factura'::text) OR (igv = (0)::numeric)))",
+  "tabla": "retail.compras"
+ },
+ {
+  "conname": "compras_no_sobrepagada",
+  "definicion": "CHECK (((pagado + notas_credito) <= total))",
+  "tabla": "retail.compras"
+ },
+ {
+  "conname": "compras_no_sobrerecibida",
+  "definicion": "CHECK (((recibido_cantidad + cerrado_cantidad) <= facturado_cantidad))",
+  "tabla": "retail.compras"
+ },
+ {
+  "conname": "compras_notas_credito_check",
+  "definicion": "CHECK ((notas_credito >= (0)::numeric))",
   "tabla": "retail.compras"
  },
  {
@@ -562,6 +667,11 @@
  {
   "conname": "comprobantes_tipo_serie_numero_key",
   "definicion": "UNIQUE (tipo, serie, numero)",
+  "tabla": "retail.comprobantes"
+ },
+ {
+  "conname": "comprobantes_token_cliente_key",
+  "definicion": "UNIQUE (token_cliente)",
   "tabla": "retail.comprobantes"
  },
  {
@@ -790,6 +900,11 @@
   "tabla": "retail.devoluciones"
  },
  {
+  "conname": "devoluciones_nota_credito_id_fkey",
+  "definicion": "FOREIGN KEY (nota_credito_id) REFERENCES retail.comprobantes(id)",
+  "tabla": "retail.devoluciones"
+ },
+ {
   "conname": "devoluciones_pkey",
   "definicion": "PRIMARY KEY (id)",
   "tabla": "retail.devoluciones"
@@ -810,13 +925,93 @@
   "tabla": "retail.devoluciones"
  },
  {
+  "conname": "envio_extras_envio_id_fkey",
+  "definicion": "FOREIGN KEY (envio_id) REFERENCES retail.envios(id)",
+  "tabla": "retail.envio_extras"
+ },
+ {
+  "conname": "envio_extras_movimiento_id_fkey",
+  "definicion": "FOREIGN KEY (movimiento_id) REFERENCES retail.movimientos(id)",
+  "tabla": "retail.envio_extras"
+ },
+ {
+  "conname": "envio_extras_pkey",
+  "definicion": "PRIMARY KEY (movimiento_id)",
+  "tabla": "retail.envio_extras"
+ },
+ {
+  "conname": "envio_extras_proveedor_id_fkey",
+  "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)",
+  "tabla": "retail.envio_extras"
+ },
+ {
+  "conname": "envio_traslados_envio_id_fkey",
+  "definicion": "FOREIGN KEY (envio_id) REFERENCES retail.envios(id)",
+  "tabla": "retail.envio_traslados"
+ },
+ {
+  "conname": "envio_traslados_pkey",
+  "definicion": "PRIMARY KEY (envio_id, transferencia_id)",
+  "tabla": "retail.envio_traslados"
+ },
+ {
+  "conname": "envio_traslados_transferencia_id_fkey",
+  "definicion": "FOREIGN KEY (transferencia_id) REFERENCES retail.transferencias(id)",
+  "tabla": "retail.envio_traslados"
+ },
+ {
+  "conname": "envios_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.envios"
+ },
+ {
+  "conname": "envios_recibido_por_fkey",
+  "definicion": "FOREIGN KEY (recibido_por) REFERENCES personas(id)",
+  "tabla": "retail.envios"
+ },
+ {
+  "conname": "envios_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.envios"
+ },
+ {
+  "conname": "etiqueta_categorias_categoria_id_fkey",
+  "definicion": "FOREIGN KEY (categoria_id) REFERENCES retail.categorias(id) ON DELETE CASCADE",
+  "tabla": "retail.etiqueta_categorias"
+ },
+ {
+  "conname": "etiqueta_categorias_etiqueta_id_fkey",
+  "definicion": "FOREIGN KEY (etiqueta_id) REFERENCES retail.etiquetas(id)",
+  "tabla": "retail.etiqueta_categorias"
+ },
+ {
+  "conname": "etiqueta_categorias_pkey",
+  "definicion": "PRIMARY KEY (etiqueta_id, categoria_id)",
+  "tabla": "retail.etiqueta_categorias"
+ },
+ {
   "conname": "etiquetas_aprobado_por_fkey",
   "definicion": "FOREIGN KEY (aprobado_por) REFERENCES personas(id)",
   "tabla": "retail.etiquetas"
  },
  {
+  "conname": "etiquetas_descuento_rango",
+  "definicion": "CHECK (((descuento_pct IS NULL) OR ((descuento_pct > (0)::numeric) AND (descuento_pct <= (100)::numeric))))",
+  "tabla": "retail.etiquetas"
+ },
+ {
+  "conname": "etiquetas_descuento_solo_aprobada",
+  "definicion": "CHECK (((descuento_pct IS NULL) OR (estado = 'aprobado'::text)))",
+  "tabla": "retail.etiquetas"
+ },
+ {
   "conname": "etiquetas_estado_check",
   "definicion": "CHECK ((estado = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))",
+  "tabla": "retail.etiquetas"
+ },
+ {
+  "conname": "etiquetas_estilo_valido",
+  "definicion": "CHECK ((estilo = ANY (ARRAY['neutral'::text, 'urgencia'::text, 'positivo'::text, 'campana'::text])))",
   "tabla": "retail.etiquetas"
  },
  {
@@ -833,6 +1028,16 @@
   "conname": "etiquetas_rechazado_no_activo",
   "definicion": "CHECK (((estado <> 'rechazado'::text) OR (activo = false)))",
   "tabla": "retail.etiquetas"
+ },
+ {
+  "conname": "etiquetas_vigencia_coherente",
+  "definicion": "CHECK (((vigente_desde IS NULL) OR (vigente_hasta IS NULL) OR (vigente_desde <= vigente_hasta)))",
+  "tabla": "retail.etiquetas"
+ },
+ {
+  "conname": "familias_pkey",
+  "definicion": "PRIMARY KEY (codigo)",
+  "tabla": "retail.familias"
  },
  {
   "conname": "gastos_documento_tipo_check",
@@ -975,6 +1180,11 @@
   "tabla": "retail.insumos"
  },
  {
+  "conname": "lotes_envio_id_fkey",
+  "definicion": "FOREIGN KEY (envio_id) REFERENCES retail.envios(id)",
+  "tabla": "retail.lotes"
+ },
+ {
   "conname": "lotes_pkey",
   "definicion": "PRIMARY KEY (id)",
   "tabla": "retail.lotes"
@@ -993,6 +1203,31 @@
   "conname": "lotes_ubicacion_id_fkey",
   "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
   "tabla": "retail.lotes"
+ },
+ {
+  "conname": "marca_proveedores_marca_id_fkey",
+  "definicion": "FOREIGN KEY (marca_id) REFERENCES retail.marcas(id)",
+  "tabla": "retail.marca_proveedores"
+ },
+ {
+  "conname": "marca_proveedores_pkey",
+  "definicion": "PRIMARY KEY (marca_id, proveedor_id)",
+  "tabla": "retail.marca_proveedores"
+ },
+ {
+  "conname": "marca_proveedores_proveedor_id_fkey",
+  "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)",
+  "tabla": "retail.marca_proveedores"
+ },
+ {
+  "conname": "marcas_nombre_check",
+  "definicion": "CHECK ((btrim(nombre) <> ''::text))",
+  "tabla": "retail.marcas"
+ },
+ {
+  "conname": "marcas_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.marcas"
  },
  {
   "conname": "movimientos_cambio_id_fkey",
@@ -1191,7 +1426,7 @@
  },
  {
   "conname": "prendas_danadas_estado_check",
-  "definicion": "CHECK ((estado = ANY (ARRAY['en_cuarentena'::text, 'liquidada'::text, 'se_boto'::text, 'donada'::text])))",
+  "definicion": "CHECK ((estado = ANY (ARRAY['en_cuarentena'::text, 'liquidada'::text, 'se_boto'::text, 'donada'::text, 'devuelta_proveedor'::text])))",
   "tabla": "retail.prendas_danadas"
  },
  {
@@ -1207,6 +1442,16 @@
  {
   "conname": "prendas_danadas_pkey",
   "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.prendas_danadas"
+ },
+ {
+  "conname": "prendas_danadas_proveedor_coherente",
+  "definicion": "CHECK (((estado = 'devuelta_proveedor'::text) = (proveedor_id IS NOT NULL)))",
+  "tabla": "retail.prendas_danadas"
+ },
+ {
+  "conname": "prendas_danadas_proveedor_id_fkey",
+  "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)",
   "tabla": "retail.prendas_danadas"
  },
  {
@@ -1335,13 +1580,33 @@
   "tabla": "retail.producto_fotos"
  },
  {
+  "conname": "productos_aprobado_por_fkey",
+  "definicion": "FOREIGN KEY (aprobado_por) REFERENCES personas(id)",
+  "tabla": "retail.productos"
+ },
+ {
   "conname": "productos_categoria_id_fkey",
   "definicion": "FOREIGN KEY (categoria_id) REFERENCES retail.categorias(id)",
   "tabla": "retail.productos"
  },
  {
+  "conname": "productos_estado_alta_check",
+  "definicion": "CHECK ((estado_alta = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))",
+  "tabla": "retail.productos"
+ },
+ {
   "conname": "productos_estado_check",
   "definicion": "CHECK ((estado = ANY (ARRAY['activo'::text, 'descontinuado'::text])))",
+  "tabla": "retail.productos"
+ },
+ {
+  "conname": "productos_marca_fk",
+  "definicion": "FOREIGN KEY (marca_id) REFERENCES retail.marcas(id)",
+  "tabla": "retail.productos"
+ },
+ {
+  "conname": "productos_marca_proveedor_fk",
+  "definicion": "FOREIGN KEY (marca_id, proveedor_id) REFERENCES retail.marca_proveedores(marca_id, proveedor_id)",
   "tabla": "retail.productos"
  },
  {
@@ -1352,6 +1617,21 @@
  {
   "conname": "productos_pkey",
   "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.productos"
+ },
+ {
+  "conname": "productos_propuesto_por_fkey",
+  "definicion": "FOREIGN KEY (propuesto_por) REFERENCES personas(id)",
+  "tabla": "retail.productos"
+ },
+ {
+  "conname": "productos_proveedor_fk",
+  "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)",
+  "tabla": "retail.productos"
+ },
+ {
+  "conname": "productos_rechazado_descontinuado_check",
+  "definicion": "CHECK (((estado_alta <> 'rechazado'::text) OR (estado = 'descontinuado'::text)))",
   "tabla": "retail.productos"
  },
  {
@@ -1400,8 +1680,63 @@
   "tabla": "retail.proformas"
  },
  {
+  "conname": "proveedor_creditos_compra_id_fkey",
+  "definicion": "FOREIGN KEY (compra_id) REFERENCES retail.compras(id)",
+  "tabla": "retail.proveedor_creditos"
+ },
+ {
+  "conname": "proveedor_creditos_compra_pago_id_fkey",
+  "definicion": "FOREIGN KEY (compra_pago_id) REFERENCES retail.compra_pagos(id)",
+  "tabla": "retail.proveedor_creditos"
+ },
+ {
+  "conname": "proveedor_creditos_monto_check",
+  "definicion": "CHECK ((monto > (0)::numeric))",
+  "tabla": "retail.proveedor_creditos"
+ },
+ {
+  "conname": "proveedor_creditos_nota_credito_id_fkey",
+  "definicion": "FOREIGN KEY (nota_credito_id) REFERENCES retail.compra_notas_credito(id)",
+  "tabla": "retail.proveedor_creditos"
+ },
+ {
+  "conname": "proveedor_creditos_origen",
+  "definicion": "CHECK ((((tipo = 'nota_credito'::text) AND (nota_credito_id IS NOT NULL)) OR ((tipo = 'aplicacion'::text) AND (compra_pago_id IS NOT NULL)) OR ((tipo = 'reembolso'::text) AND (metodo IS NOT NULL))))",
+  "tabla": "retail.proveedor_creditos"
+ },
+ {
+  "conname": "proveedor_creditos_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.proveedor_creditos"
+ },
+ {
+  "conname": "proveedor_creditos_proveedor_id_fkey",
+  "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)",
+  "tabla": "retail.proveedor_creditos"
+ },
+ {
+  "conname": "proveedor_creditos_tipo_check",
+  "definicion": "CHECK ((tipo = ANY (ARRAY['nota_credito'::text, 'aplicacion'::text, 'reembolso'::text])))",
+  "tabla": "retail.proveedor_creditos"
+ },
+ {
+  "conname": "proveedor_creditos_usuario_id_fkey",
+  "definicion": "FOREIGN KEY (usuario_id) REFERENCES personas(id)",
+  "tabla": "retail.proveedor_creditos"
+ },
+ {
+  "conname": "proveedores_forma_pago_valida",
+  "definicion": "CHECK (((forma_pago_preferida IS NULL) OR (forma_pago_preferida = ANY (ARRAY['transferencia'::text, 'yape'::text, 'plin'::text, 'efectivo'::text, 'deposito'::text, 'otro'::text]))))",
+  "tabla": "retail.proveedores"
+ },
+ {
   "conname": "proveedores_pkey",
   "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.proveedores"
+ },
+ {
+  "conname": "proveedores_plazo_credito_positivo",
+  "definicion": "CHECK (((plazo_credito_dias IS NULL) OR (plazo_credito_dias > 0)))",
   "tabla": "retail.proveedores"
  },
  {
@@ -1650,6 +1985,11 @@
   "tabla": "retail.ubicacion_datos_fiscales"
  },
  {
+  "conname": "ubicaciones_meta_venta_diaria_positiva",
+  "definicion": "CHECK (((meta_venta_diaria IS NULL) OR (meta_venta_diaria > (0)::numeric)))",
+  "tabla": "retail.ubicaciones"
+ },
+ {
   "conname": "ubicaciones_nombre_key",
   "definicion": "UNIQUE (nombre)",
   "tabla": "retail.ubicaciones"
@@ -1750,6 +2090,11 @@
   "tabla": "retail.venta_anulacion_items"
  },
  {
+  "conname": "venta_items_campana_coherente",
+  "definicion": "CHECK ((COALESCE((motivo_descuento = 'campana'::text), false) = (descuento_etiqueta_id IS NOT NULL)))",
+  "tabla": "retail.venta_items"
+ },
+ {
   "conname": "venta_items_cantidad_check",
   "definicion": "CHECK ((cantidad > 0))",
   "tabla": "retail.venta_items"
@@ -1757,6 +2102,11 @@
  {
   "conname": "venta_items_costo_unitario_check",
   "definicion": "CHECK ((costo_unitario >= (0)::numeric))",
+  "tabla": "retail.venta_items"
+ },
+ {
+  "conname": "venta_items_descuento_etiqueta_id_fkey",
+  "definicion": "FOREIGN KEY (descuento_etiqueta_id) REFERENCES retail.etiquetas(id)",
   "tabla": "retail.venta_items"
  },
  {
@@ -1776,7 +2126,7 @@
  },
  {
   "conname": "venta_items_motivo_descuento_valido",
-  "definicion": "CHECK (((motivo_descuento IS NULL) OR (motivo_descuento = ANY (ARRAY['cumpleanos_clienta_top'::text, 'prenda_con_desperfecto'::text, 'liquidacion_temporada'::text, 'cerrar_venta'::text, 'otro'::text]))))",
+  "definicion": "CHECK (((motivo_descuento IS NULL) OR (motivo_descuento = ANY (ARRAY['cumpleanos_clienta_top'::text, 'prenda_con_desperfecto'::text, 'liquidacion_temporada'::text, 'cerrar_venta'::text, 'otro'::text, 'campana'::text]))))",
   "tabla": "retail.venta_items"
  },
  {

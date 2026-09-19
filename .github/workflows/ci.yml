@@ -94,6 +94,25 @@ jobs:
         if: ${{ always() }}
         run: node scripts/datos/aviario.mjs --verificar
 
+      # Versiones de migración únicas: Supabase usa el prefijo numérico como llave del
+      # historial, y dos archivos con el mismo prefijo rompen `supabase start` y `db reset`
+      # (2026-09-17 x2, 2026-09-18). Solo lee nombres de archivo; no necesita node_modules.
+      # Corre también en `pull_request`: el choque entre dos ramas se ve en la segunda.
+      - name: Versiones de migración
+        if: ${{ always() }}
+        run: node scripts/migraciones/versiones.mjs
+
+      # Números de ADR únicos: cada sesión numera su ADR como "el siguiente" de su `main` y,
+      # con ramas paralelas, dos eligen el mismo (0074 y 0105 siguen repetidos en
+      # `main`; el 2026-09-17 hubo seis choques). Solo lee nombres de archivo; no necesita
+      # node_modules. Corre también en `pull_request`: el choque entre dos ramas se ve en la
+      # segunda. Las pruebas del detector van primero, para que un candado roto no diga "todo bien".
+      - name: Números de ADR
+        if: ${{ always() }}
+        run: |
+          node --test scripts/adr/numeros.test.mjs
+          node scripts/adr/numeros.mjs
+
   pruebas-postgres:
     name: Pruebas de RPC contra Postgres (piloto, no bloquea)
     runs-on: ubuntu-latest
@@ -122,7 +141,7 @@ jobs:
         if: ${{ always() && steps.instalar.outcome == 'success' }}
         run: npx supabase start
 
-      # Los cuatro corren siempre que Postgres haya levantado, aunque uno falle — mismo
+      # Todos corren siempre que Postgres haya levantado, aunque uno falle — mismo
       # criterio que tipos/lint/pruebas arriba: un push malo trae el diagnóstico completo
       # en una vuelta, no uno por uno.
       - name: caja:verificar
@@ -140,3 +159,25 @@ jobs:
       - name: pruebas:registrar-venta
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-venta
+
+      # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
+      # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las
+      # tarjetas de arriba cuentan lo mismo. Cada caso termina en ROLLBACK.
+      - name: pruebas:fn-movimientos-referencias
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-movimientos-referencias
+
+      # Resumen de Inventario v2 (ADR-0121): días con stock reconstruidos del ledger,
+      # demanda por FK, costo verificado. Cada caso termina en ROLLBACK.
+      - name: pruebas:fn-resumen-variantes
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-resumen-variantes
+
+      # El dinero de Compras es solo del líder (ADR-0126): que un integrante no lea ni un monto —por
+      # función, por tabla ni por el bucket de escaneos—, que recibir siga funcionando y que ninguna
+      # migración le quite el candado a las cinco funciones de dinero (el riesgo residual del ADR).
+      # Corre sobre una base NUEVA con todas las migraciones aplicadas en orden, así que además prueba
+      # que las dos migraciones del cierre aplican limpias. Cada caso termina en ROLLBACK.
+      - name: pruebas:dinero-compras
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:dinero-compras

@@ -34,10 +34,6 @@ const FAMILIAS_COLOR = [
   "estampado",
 ] as const;
 
-// Naturaleza visual del color (20260915230000_colores_tipo_y_muestra.sql) —
-// ortogonal a FAMILIAS_COLOR (matiz): un mismo tipo cruza todas las familias.
-const TIPOS_COLOR = ["solido", "textura", "estampado"] as const;
-
 export async function POST(request: Request) {
   // Sin `requirePersonaActualV2()` guardando la puerta, esta ruta sería
   // alcanzable sin sesión — sigue siendo la puerta de entrada, solo dejó de
@@ -49,8 +45,6 @@ export async function POST(request: Request) {
   const codigo = typeof cuerpo?.codigo === "string" ? cuerpo.codigo.trim().toUpperCase() : "";
   const familiaColor = typeof cuerpo?.familiaColor === "string" ? cuerpo.familiaColor : "";
   const hex = typeof cuerpo?.hex === "string" && cuerpo.hex.trim() ? cuerpo.hex.trim() : null;
-  const tipo = typeof cuerpo?.tipo === "string" && cuerpo.tipo ? cuerpo.tipo : "solido";
-  const imagenMuestraUrl = typeof cuerpo?.imagenMuestraUrl === "string" && cuerpo.imagenMuestraUrl.trim() ? cuerpo.imagenMuestraUrl.trim() : null;
   const notas = typeof cuerpo?.notas === "string" && cuerpo.notas.trim() ? cuerpo.notas.trim() : null;
 
   if (!nombre) {
@@ -62,11 +56,10 @@ export async function POST(request: Request) {
   if (!FAMILIAS_COLOR.includes(familiaColor as (typeof FAMILIAS_COLOR)[number])) {
     return Response.json({ error: "Elige una familia de color de la lista." }, { status: 400 });
   }
-  if (hex && !/^#[0-9A-Fa-f]{6}$/.test(hex)) {
-    return Response.json({ error: "El color tiene que ser un hex válido (#RRGGBB)." }, { status: 400 });
-  }
-  if (!TIPOS_COLOR.includes(tipo as (typeof TIPOS_COLOR)[number])) {
-    return Response.json({ error: "Elige un tipo de color de la lista (sólido, textura o estampado)." }, { status: 400 });
+  // Un color nuevo sin hex se veía como el beige de relleno: obligarlo acá
+  // (y no solo en la pantalla) deja la puerta cerrada para cualquier otro cliente.
+  if (!hex || !/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+    return Response.json({ error: "Elige el color (hex válido, #RRGGBB)." }, { status: 400 });
   }
 
   const supabase = await createClient();
@@ -74,8 +67,8 @@ export async function POST(request: Request) {
   // desde esta pantalla entra después de todos ellos.
   const { data, error } = await supabase
     .from("colores")
-    .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 200, tipo, imagen_muestra_url: imagenMuestraUrl, notas })
-    .select("codigo, nombre, familia_color, hex, tipo, imagen_muestra_url, notas, estado")
+    .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 200, notas })
+    .select("codigo, nombre, familia_color, hex, notas, estado")
     .single();
 
   if (error) {
@@ -112,8 +105,6 @@ export async function PATCH(request: Request) {
     hex?: string | null;
     orden?: number;
     activo?: boolean;
-    tipo?: string;
-    imagen_muestra_url?: string | null;
     notas?: string | null;
     estado?: string;
   } = {};
@@ -161,17 +152,6 @@ export async function PATCH(request: Request) {
     patch.orden = orden;
   }
 
-  if ("tipo" in cuerpoObj) {
-    if (!TIPOS_COLOR.includes(cuerpoObj.tipo as (typeof TIPOS_COLOR)[number])) {
-      return Response.json({ error: "Elige un tipo de color de la lista (sólido, textura o estampado)." }, { status: 400 });
-    }
-    patch.tipo = cuerpoObj.tipo as string;
-  }
-
-  if ("imagenMuestraUrl" in cuerpoObj) {
-    patch.imagen_muestra_url = typeof cuerpoObj.imagenMuestraUrl === "string" && cuerpoObj.imagenMuestraUrl.trim() ? cuerpoObj.imagenMuestraUrl.trim() : null;
-  }
-
   if ("notas" in cuerpoObj) {
     patch.notas = typeof cuerpoObj.notas === "string" && cuerpoObj.notas.trim() ? cuerpoObj.notas.trim() : null;
   }
@@ -210,7 +190,7 @@ export async function PATCH(request: Request) {
     .from("colores")
     .update(patch)
     .eq("codigo", codigo)
-    .select("codigo, nombre, familia_color, hex, orden, activo, tipo, imagen_muestra_url, notas, estado")
+    .select("codigo, nombre, familia_color, hex, orden, activo, notas, estado")
     .single();
 
   if (error) {

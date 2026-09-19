@@ -8,6 +8,49 @@ import { traducirError } from "./error-escritura";
 // importante— lo que deja pasar tal cual.
 
 describe("traduce lo que escribe Postgres por su cuenta", () => {
+  it("renombrar una marca a un nombre existente se explica, no cita el índice", () => {
+    const salida = traducirError({ message: 'duplicate key value violates unique constraint "marcas_nombre_unico"', code: "23505" }, "renombrar la marca");
+    expect(salida).not.toContain("marcas_nombre_unico");
+    expect(salida).toContain("Ya existe una marca con ese nombre");
+  });
+
+  it("reactivar una prenda rechazada dice qué hacer, sin citar la restricción", () => {
+    const salida = traducirError({ message: 'new row for relation "productos" violates check constraint "productos_rechazado_descontinuado_check"', code: "23514" }, "guardar el producto");
+    expect(salida).not.toContain("productos_rechazado_descontinuado_check");
+    expect(salida).toContain("no se puede reactivar");
+    expect(salida).toContain("Nuevo producto");
+  });
+
+  it("una pareja marca-proveedor inválida dice cómo arreglarla", () => {
+    const salida = traducirError({ message: 'insert or update on table "productos" violates foreign key constraint "productos_marca_proveedor_fk"', code: "23503" }, "guardar el producto");
+    expect(salida).not.toContain("productos_marca_proveedor_fk");
+    expect(salida).toContain("no trae esa marca");
+  });
+
+  it("un nombre de producto repetido dice a dónde ir, sin nombrar el índice", () => {
+    const salida = traducirError(
+      {
+        message: 'duplicate key value violates unique constraint "productos_referencia_clave_unica"',
+        code: "23505",
+      },
+      "crear el producto"
+    );
+    expect(salida).not.toContain("productos_referencia_clave_unica");
+    expect(salida).toContain("Ya existe un producto con ese nombre");
+  });
+
+  it("una talla y color repetidos en un producto se explican, no se citan", () => {
+    const salida = traducirError(
+      {
+        message: 'duplicate key value violates unique constraint "variantes_producto_talla_color_unico"',
+        code: "23505",
+      },
+      "dar de alta esta prenda"
+    );
+    expect(salida).not.toContain("variantes_producto_talla_color_unico");
+    expect(salida).toContain("ya tiene esa talla y ese color");
+  });
+
   it("el check de stock negativo se vuelve una instrucción, no una restricción", () => {
     const salida = traducirError(
       {
@@ -197,6 +240,21 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
     );
     expect(salida).toContain("Blusa Emma (BLU-EMMA-BEI-S)");
     expect(salida).toContain("nadie");
+  });
+});
+
+describe("descuento de campaña (paso 3 de ADR-0107)", () => {
+  it.each([
+    ["venta_campana_omitida", "campaña vigente"],
+    ["venta_campana_no_vigente", "ya no está vigente"],
+    ["venta_campana_monto_no_coincide", "cambió"],
+    ["venta_campana_sin_etiqueta", "incompleto"],
+    ["venta_descuento_no_supera_campana", "igual o más descuento"],
+  ])("%s se lee como una frase con la prenda y sin el nombre técnico", (marca, pista) => {
+    const salida = traducirError({ message: marca, details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" }, "registrar la venta");
+    expect(salida).toContain("Blusa Emma (BLU-EMMA-BEI-S)");
+    expect(salida).toContain(pista);
+    expect(salida).not.toContain(marca);
   });
 });
 

@@ -38,7 +38,7 @@ export function TrasladosResumen({
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
       <TarjetaCifra
-        compacta
+        fila
         etiqueta="Por recibir hoy"
         valor={r.porRecibir}
         unidad={r.porRecibir === 1 ? "traslado" : "traslados"}
@@ -56,7 +56,7 @@ export function TrasladosResumen({
       </TarjetaCifra>
 
       <TarjetaCifra
-        compacta
+        fila
         etiqueta="Vienen en camino"
         valor={r.vienenEnCamino}
         unidad={r.vienenEnCamino === 1 ? "traslado" : "traslados"}
@@ -76,7 +76,7 @@ export function TrasladosResumen({
       </TarjetaCifra>
 
       <TarjetaCifra
-        compacta
+        fila
         etiqueta="Con diferencia"
         valor={r.conDiferencia}
         unidad={r.conDiferencia === 1 ? "caso" : "casos"}
@@ -97,7 +97,7 @@ export function TrasladosResumen({
       </TarjetaCifra>
 
       <TarjetaCifra
-        compacta
+        fila
         etiqueta="Prendas en tránsito"
         valor={r.unidadesEnTransito.toLocaleString("es-PE")}
         unidad={r.unidadesEnTransito === 1 ? "unidad" : "unidades"}

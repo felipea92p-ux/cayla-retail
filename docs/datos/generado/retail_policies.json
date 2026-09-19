@@ -227,7 +227,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_adjuntos_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_adjuntos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+  "qual": "retail.fn_puede_ver_dinero_de_compras()",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_adjuntos",
@@ -235,8 +235,17 @@
  },
  {
   "cmd": "SELECT",
+  "policyname": "compra_item_cierres_select",
+  "qual": "(EXISTS ( SELECT 1\n   FROM (retail.compra_items ci\n     JOIN retail.compras c ON ((c.id = ci.compra_id)))\n  WHERE ((ci.id = compra_item_cierres.compra_item_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "compra_item_cierres",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
   "policyname": "compra_items_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_items.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+  "qual": "retail.fn_puede_ver_dinero_de_compras()",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_items",
@@ -244,8 +253,17 @@
  },
  {
   "cmd": "SELECT",
+  "policyname": "compra_notas_credito_select",
+  "qual": "retail.fn_puede_ver_dinero_de_compras()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "compra_notas_credito",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
   "policyname": "compra_pagos_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_pagos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+  "qual": "retail.fn_puede_ver_dinero_de_compras()",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_pagos",
@@ -254,7 +272,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compras_select",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_destino_id)",
+  "qual": "retail.fn_puede_ver_dinero_de_compras()",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compras",
@@ -351,13 +369,58 @@
   "with_check": "retail.fn_puede_operar_ubicacion(ubicacion_id)"
  },
  {
+  "cmd": "SELECT",
+  "policyname": "envio_extras_select",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.envios e\n  WHERE ((e.id = envio_extras.envio_id) AND retail.fn_puede_operar_ubicacion(e.ubicacion_id))))",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "envio_extras",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "envio_traslados_select",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.envios e\n  WHERE ((e.id = envio_traslados.envio_id) AND retail.fn_puede_operar_ubicacion(e.ubicacion_id))))",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "envio_traslados",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "envios_select",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "envios",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "etiqueta_categorias_select",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "etiqueta_categorias",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "policyname": "etiqueta_categorias_write_lider",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "etiqueta_categorias",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
   "cmd": "INSERT",
   "policyname": "etiquetas_insert_autenticado",
   "qual": null,
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "etiquetas",
-  "with_check": "(auth.role() = 'authenticated'::text)"
+  "with_check": "((auth.role() = 'authenticated'::text) AND ((descuento_pct IS NULL) OR retail.fn_es_lider()))"
  },
  {
   "cmd": "SELECT",
@@ -375,6 +438,24 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "etiquetas",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "familias_select",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "familias",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "policyname": "familias_write_lider",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "familias",
   "with_check": "retail.fn_es_lider()"
  },
  {
@@ -439,6 +520,42 @@
   "schemaname": "retail",
   "tablename": "lotes",
   "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "marca_proveedores_select",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "marca_proveedores",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "policyname": "marca_proveedores_write_lider",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "marca_proveedores",
+  "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "marcas_select",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "marcas",
+  "with_check": null
+ },
+ {
+  "cmd": "ALL",
+  "policyname": "marcas_write_lider",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "marcas",
+  "with_check": "retail.fn_es_lider()"
  },
  {
   "cmd": "INSERT",
@@ -564,6 +681,15 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "proformas",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "proveedor_creditos_select",
+  "qual": "retail.fn_puede_registrar_compras()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "proveedor_creditos",
   "with_check": null
  },
  {

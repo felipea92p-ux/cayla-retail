@@ -16,14 +16,14 @@ import { iconoDeEtiqueta, type IconoEtiqueta } from "@/lib/etiqueta-visual";
  * con su color "natural". Sin gradientes ni sombras (brandbook v3.0).
  */
 
-type Estilo = "neutral" | "urgencia" | "positivo" | "campana";
+export type Estilo = "neutral" | "urgencia" | "positivo" | "campana";
 
 const TINTA = "#1A1A18";
 const CREMA = "#F5F0E8";
 
 // `fondo` = el tono del grupo diluido ~14% sobre crema. `acento` = el tono
 // pleno (ámbar / verde / taupe-profundo de globals.css).
-const TONOS: Record<Estilo, { fondo: string; acento: string }> = {
+export const TONOS: Record<Estilo, { fondo: string; acento: string }> = {
   urgencia: { fondo: "#E6DCCC", acento: "#8C631F" },
   positivo: { fondo: "#DFDED2", acento: "#556E49" },
   campana: { fondo: "#E5DBD2", acento: "#805C4C" },
@@ -248,7 +248,7 @@ const ICONOS: Record<IconoEtiqueta | "generico", (a: string) => ReactElement> = 
  * llevan el `transform` fijo de cada dibujo; el movimiento va en el interior
  * para que un CSS no pise al atributo SVG.
  */
-const MOV = "transition-transform duration-500 ease-cayla [transform-box:fill-box] origin-center";
+export const MOV = "transition-transform duration-500 ease-cayla [transform-box:fill-box] origin-center";
 
 export function MuestraEtiqueta({
   nombre,

@@ -9,9 +9,13 @@ const serif = EB_Garamond({ subsets: ["latin"], variable: "--font-eb-garamond", 
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "CAYLA",
+  // Raya larga con espacios, igual que «Dynamic — CAYLA»: las dos pestañas se leen como una familia.
+  title: "Retail — CAYLA",
   description: "Donde el estilo transforma.",
-  icons: { icon: "/cayla-isotipo.png" },
+  // Los íconos NO se declaran acá: Next los toma por convención de archivo
+  // (app/favicon.ico, app/icon.png, app/apple-icon.png). Un `icons` manual convivía
+  // con el favicon.ico de plantilla (el triángulo de Vercel) y el navegador elegía
+  // el equivocado.
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

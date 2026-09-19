@@ -23,8 +23,12 @@ import {
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
+  descuentoResultante,
   descuentoUnitarioPorMonto,
   descuentoUnitarioPorPorcentaje,
+  desgloseIgv,
+  esDescuentoDeCampana,
+  hayDescuentoManual,
   necesitaArgumentoEscrito,
   porcentajeDeLinea,
   RAZONES_DESCUENTO,
@@ -63,7 +67,7 @@ const MS_TRANSICION_MOMENTO = 160;
  *  Apagado no reacciona al hover: queda justo bajo el cursor al entrar a «cobrar», y un
  *  rojo a medias ahí se leía como "casi se puede". */
 const BOTON_PRINCIPAL =
-  "alza-cayla flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema transition-colors hover:bg-rojo disabled:opacity-50 disabled:hover:bg-tinta";
+  "alza-cayla flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo disabled:opacity-50 disabled:hover:bg-tinta";
 
 /** Botones de opción dentro de una pista `bg-sand/50` (métodos, boleta/factura, atajos). */
 const OPCION = "rounded-lg transition-colors";
@@ -116,17 +120,16 @@ const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
   transferencia: <Landmark className={ICONO} aria-hidden />,
 };
 
-/** Mismos colores categóricos que la dona de "Métodos de pago" de Caja
- *  (`globals.css`) — para que una colaboradora reconozca el mismo método con
- *  el mismo color en las dos pantallas. Yape y Plin comparten color: ahí
- *  también son una sola fila ("Yape / Plin"). Transferencia usa `taupe`
- *  (neutro): no es parte del trío categórico, es el método menos usado. */
+/** Un color por método, los mismos tokens que usa la dona de "Métodos de pago" de Caja
+ *  (`globals.css`) — para que una colaboradora reconozca el mismo método con el mismo
+ *  color en las dos pantallas. Decidido con Felipe el 2026-09-18: efectivo cobrizo,
+ *  tarjeta plomo, yape morado, plin verde, transferencia hazel. */
 const COLOR_METODO: Record<MetodoPago, string> = {
   efectivo: "var(--color-metodo-efectivo)",
   tarjeta: "var(--color-metodo-tarjeta)",
   yape: "var(--color-metodo-yape)",
-  plin: "var(--color-metodo-yape)",
-  transferencia: "var(--color-taupe)",
+  plin: "var(--color-metodo-plin)",
+  transferencia: "var(--color-metodo-transferencia)",
 };
 
 /** Marca de «elegida» en la lista del apartado de descuento. */
@@ -293,6 +296,7 @@ export function PuntoDeVentaTicket({
     total: t.carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - it.descuentoUnitario), 0),
   });
   const etiquetaPrendas = `${prendas} ${prendas === 1 ? "prenda" : "prendas"}`;
+  const desglose = desgloseIgv(total, TASA_IGV);
   const apagado = bloqueado || motivoBloqueo !== null;
 
   // Qué falta del pago, para el (!) de la leyenda: nada elegido, no cubre, o se pasa.
@@ -325,12 +329,14 @@ export function PuntoDeVentaTicket({
   const descuentoUnitarioAplicando = (it: ItemCarrito) =>
     !alcanza(it.claveLinea)
       ? it.descuentoUnitario
-      : porMonto
-        ? descuentoUnitarioPorMonto(it.precioUnitario, monto)
-        : descuentoUnitarioPorPorcentaje(it.precioUnitario, pct);
+      : descuentoResultante(
+          it,
+          porMonto ? descuentoUnitarioPorMonto(it.precioUnitario, monto) : descuentoUnitarioPorPorcentaje(it.precioUnitario, pct),
+        ).monto;
   // Adelanto del total con el valor puesto: lo que va a quedar si se aplica ahora.
   const totalConDescuento = carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - descuentoUnitarioAplicando(it)), 0);
-  const hayDescuentoEnAlcance = carrito.some((it) => alcanza(it.claveLinea) && it.descuentoUnitario > 0);
+  // «Quitar descuento» solo tiene sentido para lo puesto a mano: el de campaña no se quita.
+  const hayDescuentoEnAlcance = hayDescuentoManual(carrito.filter((it) => alcanza(it.claveLinea)));
   // El % más alto que va a terminar en alguna línea alcanzada — en S/ cada línea sale
   // distinto según su precio; en % es el mismo puesto. Decide si el apartado MUESTRA el
   // argumento (el candado real vive en `registrar_venta`, esto es progresividad).
@@ -730,7 +736,7 @@ export function PuntoDeVentaTicket({
                     {faltaPago !== null && (
                       <Ayuda tono="falta" titulo={faltaPago}>
                         {pagos.length === 0
-                          ? "Toca uno de los cinco. Acá se registra, no se cobra: Yape, Plin y tarjeta se cobran en su propio aparato y esto es la anotación de que entró por ahí. Sirve para el cuadre del cierre, donde solo se cuenta el efectivo."
+                          ? "Toca uno de los cinco, o pulsa F1 a F5. Acá se registra, no se cobra: Yape, Plin y tarjeta se cobran en su propio aparato y esto es la anotación de que entró por ahí. Sirve para el cuadre del cierre, donde solo se cuenta el efectivo."
                           : restante > 0
                             ? "Los medios puestos no llegan al total. Sube un monto o toca otro medio para el resto."
                             : "La suma de los medios pasa el total y la venta no cuadraría. Baja un monto o quita un medio."}
@@ -741,20 +747,30 @@ export function PuntoDeVentaTicket({
                   </span>
                 </legend>
                 <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1">
-                  {METODOS_PAGO.map((m) => {
-                    const puesto = pagos.some((p) => p.metodo === m);
+                  {METODOS_PAGO.map((m, iAtajo) => {
+                    // Interruptor: tocar uno elegido lo quita (su monto pasa al siguiente,
+                    // `quitarPagoTraspasando`). Antes quedaba deshabilitado y tocarlo de nuevo
+                    // no hacía nada — sin pista de que había que usar el basurero de abajo.
+                    const indicePuesto = pagos.findIndex((p) => p.metodo === m);
+                    const puesto = indicePuesto !== -1;
                     return (
                       <button
                         key={m}
                         type="button"
-                        onClick={() => onAgregarPago(m)}
-                        disabled={bloqueado || puesto}
+                        onClick={() => (puesto ? onQuitarPago(indicePuesto) : onAgregarPago(m))}
+                        disabled={bloqueado}
                         aria-pressed={puesto}
+                        title={puesto ? `Quitar ${m} (F${iAtajo + 1})` : `${m} (F${iAtajo + 1})`}
+                        aria-keyshortcuts={`F${iAtajo + 1}`}
                         style={puesto ? { backgroundColor: `color-mix(in srgb, ${COLOR_METODO[m]} 16%, var(--color-papel))`, color: COLOR_METODO[m] } : undefined}
-                        className={`${OPCION} flex h-14 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] leading-tight capitalize ${
+                        className={`${OPCION} relative flex h-14 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] leading-tight capitalize ${
                           puesto ? "shadow-sm" : OPCION_INACTIVA
                         }`}
                       >
+                        {/* La tecla del atajo, chiquita en la esquina: enseña F1–F5 sin ocupar sitio. */}
+                        <span aria-hidden className="absolute top-0.5 right-1 text-[8px] font-semibold tracking-wide opacity-45">
+                          F{iAtajo + 1}
+                        </span>
                         {ICONO_METODO[m]}
                         {m}
                       </button>
@@ -947,6 +963,9 @@ export function PuntoDeVentaTicket({
                         <div className="min-w-0">
                           <h3 className="truncate text-sm font-semibold text-tinta">{it.referencia}</h3>
                           <p className="font-mono text-xs text-tinta/60">{codigoPrenda(it)}</p>
+                          {esDescuentoDeCampana(it) && it.campana && (
+                            <p className="mt-0.5 text-[11px] text-tinta/60">Campaña · {it.campana.nombre}</p>
+                          )}
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
                           <button
@@ -1127,9 +1146,17 @@ export function PuntoDeVentaTicket({
           )}
 
           <div className="mb-4 flex items-end justify-between">
-            <div>
-              <p className="text-xs text-tinta/60">{etiquetaPrendas}</p>
-              <p className="text-xs text-tinta/60">Incluye IGV ({(TASA_IGV * 100).toFixed(0)}%)</p>
+            {/* Subtotal e IGV en la columna que ya existía, en el mismo tamaño de letra: el
+                bloque pasa de 2 a 3 líneas (~48 px) y sigue más bajo que el Total (~64 px),
+                así que el pie no crece. El precio ya trae el IGV: subtotal + IGV = total. */}
+            <div className="text-xs text-tinta/60">
+              <p>{etiquetaPrendas}</p>
+              <dl className="grid grid-cols-[auto_auto] justify-start gap-x-3 tabular-nums">
+                <dt>Subtotal</dt>
+                <dd className="text-right">{money(desglose.subtotal)}</dd>
+                <dt>IGV ({(TASA_IGV * 100).toFixed(0)}%)</dt>
+                <dd className="text-right">{money(desglose.igv)}</dd>
+              </dl>
             </div>
             <div className="text-right">
               <p className="label-cayla text-[11px] text-tinta/60">Total</p>

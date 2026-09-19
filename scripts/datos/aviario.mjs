@@ -35,10 +35,12 @@ export const AVIARIO = [
   { n: "02", pajaro: "Loro", modulo: "Catálogo y vocabulario",
     tablas: [
       "productos", "variantes", "categorias", "familias", "producto_fotos", "historial_producto_cambios",
+      // De quién es cada producto (ADR-0109): la marca y qué proveedores la traen. Sin proponer/aprobar, como familias.
+      "marcas", "marca_proveedores",
       "codigos_barras", "codigos_correlativos",
       // El vocabulario cerrado: los cinco usan el mismo proponer/aprobar/rechazar (ADR-0070, ADR-0095).
       "colores", "tallas", "categoria_tallas", "tejidos", "categoria_tejidos",
-      "patrones", "categoria_patrones", "etiquetas", "variante_etiquetas",
+      "patrones", "categoria_patrones", "etiquetas", "etiqueta_categorias", "variante_etiquetas",
     ] },
   // Tucán es la traducción al estándar de Shopify (ADR-0030); sus tablas no existen en V2.
   { n: "03", pajaro: "Tucán", modulo: "Taxonomía universal", tablas: [] },
@@ -47,6 +49,9 @@ export const AVIARIO = [
     tablas: [
       "movimientos", "stock", "lotes", "sububicaciones", "costo_historial", "prendas_danadas",
       "transferencias", "transferencia_items", "transferencia_recepciones",
+      // ADR-0113: el envío es el padre de los lotes (`lotes.envio_id`); sus extras son movimientos y sus
+      // traslados, transferencias — el mismo pájaro que las tablas que agrupa, no el de Compras.
+      "envios", "envio_extras", "envio_traslados",
     ] },
   { n: "06", pajaro: "Lechuza", modulo: "Conteo y censo físico",
     tablas: ["conteos", "conteo_items"] },
@@ -58,7 +63,10 @@ export const AVIARIO = [
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",
     tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales"] },
   { n: "09", pajaro: "Pelícano", modulo: "Compras y proveedores",
-    tablas: ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen"] },
+    tablas: ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen",
+      // ADR-0111 (Compras): cierres de línea por faltante, notas de crédito del proveedor y su saldo a favor.
+      // Nacen con dueño: aún no están en producción (sin pegar), por eso el aviario avisa que no las ve en el volcado.
+      "compra_item_cierres", "compra_notas_credito", "proveedor_creditos"] },
   { n: "10", pajaro: "Gallito", modulo: "Producción del Taller",
     tablas: ["producciones", "produccion_lineas", "insumos", "insumo_lotes", "movimientos_insumo", "v_insumo_saldos"] },
   { n: "11", pajaro: "Garza", modulo: "Finanzas operativas", tablas: ["gastos"] },

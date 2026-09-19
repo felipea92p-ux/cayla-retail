@@ -132,13 +132,20 @@ flowchart TB
   de paso al mover esto a la config (ver nota en `next.config.ts`).
 - `/inventario/movimientos` (V2, 2026-09-15, ADR-0050; mudada desde `/movimientos`
   el 2026-09-16, ADR-0071 — la ruta vieja es un `permanentRedirect` que conserva
-  los filtros) → `lib/movimientos-v2.ts` (`filtrosDesdeParams`,
-  `listarMovimientos`, `getResumenMovimientos`) → RPC `fn_movimientos` /
-  `fn_movimientos_resumen` (lectura pura, cursor, filtros en Postgres) →
-  `FiltrosMovimientos.tsx` (filtros en la URL) + `MovimientosLista.tsx` (agrupada
-  por día; columna «Origen → Destino» con `partesOrigenDestino`) +
-  `MovimientoDetalle.tsx` (modal por proceso, sin segunda consulta). Las reglas de
-  pantalla (categoría, signo, referencia por proceso) viven en
+  los filtros; simplificada el 2026-09-19, ADR-0127) → `lib/movimientos-v2.ts`
+  (`listarMovimientos`, `getResumenMovimientos`) → RPC `fn_movimientos` /
+  `fn_movimientos_resumen` (lectura pura, cursor, filtros en Postgres; la búsqueda
+  por prenda **y por proceso** —«Traslado 24», «B001-000184»— la resuelve
+  `fn_movimientos_busqueda`, una sola vez para la lista y las tarjetas) →
+  `FiltrosMovimientos.tsx` (buscador, Tipo, Sububicación y Período a la vista, el
+  proceso específico en «Más filtros»; todo en la URL) + `MovimientosLista.tsx`
+  (agrupada por día: Prenda · Hora y dónde · Movimiento · Origen → Destino · Cant. ·
+  Referencia; la referencia —`Traslado N`, `Conteo N`, `Boleta …`, `Factura …`—
+  enlaza a `/inventario/traslados/[id]` y `/inventario/conteo/[id]`, y Traslados
+  cuenta el proceso completo) + `MovimientoDetalle.tsx` (modal por proceso, sin
+  segunda consulta; ahí sigue la persona). Sin filtro por persona ni columna
+  «Responsable»: la autoría sigue en `movimientos.usuario_id`. Las reglas de pantalla
+  (categoría, signo, nombre del proceso, referencia por proceso, período) viven en
   `lib/movimientos-reglas.ts`, sin servidor. Sin escritura: el ledger es inmutable.
 
 **Inventario V2 — cuatro pantallas operativas + una de decisión (2026-09-16, ADR-0071;
@@ -170,18 +177,25 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `avanceConteo`) + `ConteosLista.tsx` (historial) → `/inventario/conteo/[id]`
   (`getConteoDetalle`, solo lectura). Exactitud con `exactitudConteos`
   (`lib/conteo-varianza.ts`).
-- `/inventario/resumen` (Resumen, solo líder, ADR-0101) → `lib/resumen-inventario.ts:getResumenInventario`
-  = RPC `fn_resumen_variantes(p_ubicacion_id, p_ventana_dias)` (agregados crudos por variante
-  para esa sede + jsonb `en_red` con las otras sedes) + `getConteosResumen`/`exactitudConteos`
-  (la MISMA exactitud que la pestaña Conteo) → reglas puras en `lib/resumen-reglas.ts`
-  (velocidad observable, cobertura actual/proyectada, riesgo, reponer tienda/piso, curva
-  incompleta, posible sobrestock, mejora en camino, sugerencia de traslado explicable;
-  reutiliza `calcularEstado`/`necesitaReponerPiso` y `curva-variantes.ts`) →
-  `ResumenInventarioPanel.tsx` (cuatro+cuatro tarjetas `ui/TarjetaCifra.tsx`, tabla de
-  decisiones con `ui/PrendaCelda.tsx`, productos a vigilar, cómo leer) →
-  `ResumenDetalleModal.tsx` (el "por qué" de cada estado; "Crear traslado" enlaza a
-  `/inventario/mover?origen=&destino=&variante=&cantidad=`, que prellena el formulario
-  existente — nunca mueve stock).
+- `/inventario/resumen` (Resumen, solo líder, ADR-0101 → rehecho en ADR-0121) →
+  `page.tsx` lee de la URL `ubicacion, preset, desde, hasta, comparar, q, cat, cob, st, est, orden, pag`
+  → `lib/resumen-inventario.ts:getResumenInventario` = RPC `fn_resumen_variantes(p_ubicacion_id,
+  p_ventana_dias, p_desde, p_hasta, p_cmp_desde, p_cmp_hasta)` paginada con `Range` de a 1000 (agregados
+  crudos por variante para esa sede — stock SIEMPRE actual, demanda de las dos ventanas, días con stock
+  reconstruidos del ledger, costo solo para líder — + jsonb `en_red` con las otras sedes) +
+  `getConteosResumen`/`exactitudConteos` (la MISMA exactitud que la pestaña Conteo) →
+  `lib/resumen-armado.ts:armarResumen` (puro: analiza TODA la sede, aplica alcance y vista, devuelve
+  agregados + UNA página de 15 filas) sobre `resumen-mapeo` (fila cruda → tipada), `resumen-periodo`
+  (períodos y comparación en fechas de Lima), `resumen-busqueda` (búsqueda por tokens),
+  `resumen-filtros` (alcance = categoría + búsqueda; vista = cobertura/sell-through/estado/orden),
+  `resumen-acciones` (paso del plan → enlace real) y `resumen-reglas` (velocidad, cobertura,
+  sell-through, reserva, curvas rotas, plan de reposición, capital; umbrales en `inventario-reglas.ts`) →
+  `ResumenInventarioPanel.tsx` (orquesta) con `ResumenBanner` (exactitud), `ResumenControles` (período,
+  comparación, búsqueda, filtros), `ResumenSenales` (5 × `ui/TarjetaSenal`), `ResumenPrioridades` (tabla),
+  `ResumenBloques` (barras, dona y curvas de `ui/Graficos`), `ResumenDetalleModal`, `ResumenCapitalModal`
+  y `ResumenAccion`. Las acciones nunca escriben: enlazan a `/inventario/mover?origen=&destino=&variante=&cantidad=`
+  (formulario de `iniciar_traslado`), al `ReponerPisoModal` de Existencias (`mover_interno`) o al traslado que
+  ya viene en camino.
 - `/inventario/recibir` (sin factura) y `/inventario/mover` (`MoverMercaderiaFormV2.tsx`
   → RPC `iniciar_traslado`; acepta prellenado por URL desde Resumen, validado en la
   página) siguen vivas como rutas, sin pestaña propia: se llega por
@@ -256,6 +270,32 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   ADR-0045). Modales del padre:
   `AbrirCajaFormV2` (RPC `abrir_caja`) y `CerrarCajaModalV2` (RPC `cerrar_caja`, con
   conteo ciego: el esperado sale de la respuesta del cierre, no antes).
+- **Cambios y Devoluciones comparten lector y piezas** (ADR-0125/0122): `lib/ventas-v2.ts:
+  getVentasRecientes` (actividad = ventas de la sede de los últimos 15 días; búsqueda por
+  boleta, DNI/RUC o nombre de la clienta —de `comprobantes`—, nombre o etiqueta de la prenda,
+  o `?item=` para una prenda exacta; trae también los cambios y devoluciones ya hechos por
+  línea, el descuento y si el comprobante está aceptado), `BuscadorVentas.tsx`,
+  `ComprasAgrupadas.tsx` (lista por día y compra) y `FlujoGuiado.tsx` (pasos, botones,
+  validaciones, foco/Escape). Reglas puras compartidas —plazo R-38, `unidadesDisponibles`
+  (descuenta lo cambiado y lo devuelto), validaciones— en `lib/cambios-reglas.ts`.
+- `/cambios` → `getVentasRecientes` + `getCatalogo` + stock del piso + `fn_stock_por_sede` +
+  `getCajaAbierta` + `lib/cambios-estadisticas.ts` (hoy / mes / valor cambiado; "tallas que no
+  calzan" solo para líderes) → `CambiosPanel.tsx` (bloques "Iniciar un cambio" y "Actividad
+  reciente", filas en `CambiosVentas.tsx`) → `CambiosFlujo.tsx` (Venta → Prenda → Reemplazo →
+  Confirmación, sin modal; paso 3 en `CambioReemplazo.tsx`, piezas de lectura en
+  `CambioResumen.tsx`) → RPC `registrar_cambio` (motivo + condición de la prenda que vuelve:
+  vendible al piso, no vendible a cuarentena con fila en `prendas_danadas.cambio_id`; rechaza
+  ventas anuladas; migración 20260919000100).
+- `/devoluciones` (ADR-0122) → `getVentasRecientes` + `lib/devoluciones.ts`
+  (`getDevolucionesPendientes`, `getEstadisticasDevoluciones`) + `getCajaAbierta` →
+  `DevolucionesPanel.tsx` (bloques "Iniciar una devolución", "Por aprobar" y "Actividad
+  reciente"; filas en `DevolucionesVentas.tsx`; "Anular venta" en el encabezado de cada compra,
+  solo líder) → `DevolucionesFlujo.tsx` (Venta → Prendas → Detalle → Confirmación: VARIAS
+  prendas en una sola devolución) → RPC `crear_devolucion` (queda `pendiente`; no mueve nada) →
+  `DevolucionesPendientes.tsx` (solo un líder) → RPCs `aprobar_devolucion` (mueve el stock, emite
+  la Nota de Crédito si el comprobante está aceptado —ADR-0100— y el reembolso opcional; lo
+  dañado entra a cuarentena) y `rechazar_devolucion`. Reglas puras en
+  `lib/devoluciones-reglas.ts`. `?item=` abre el flujo sobre una prenda (desde y hacia Cambios).
 
 **Compras (V2, ADR-0035 — la factura del proveedor es el eje)**
 - `/compras/proveedores` → `lib/proveedores.ts:getProveedores` (RPC
@@ -269,12 +309,36 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `activo=false`. Candados: `proveedores_ruc_unico` y
   `proveedores_nombre_clave_unica` (sobre `fn_clave_texto`, el mismo
   normalizador de `colores`/`categorias`).
+  ADR-0128: la lista abre una vista rápida (`ProveedorVistaRapida.tsx`), dibuja sus cifras en
+  `ProveedoresIndicadores.tsx` y lee la serie mensual de `lib/proveedores.ts:getProveedoresSerie` (RPC
+  `fn_proveedores_serie_12m`, `20260919150000_proveedores_serie_mensual.sql`; opcional: sin ella la lista
+  se pinta sin tendencias). Reglas puras (siguiente paso, reparto de deuda, serie de 12 meses, resaltado)
+  en `lib/proveedores-reglas.ts`; movimiento en `lib/useFlip.ts`, `lib/useContar.ts` y las clases
+  `anim-cajon*`/`anim-destello-fila`/`anim-crece-*`/`trazo-*` de `globals.css`.
 - `/compras` (Facturas), `/compras/nueva`, `/compras/factura/[compraId]`,
   `/compras/recibir`, `/compras/por-pagar` → `lib/compras.ts` →
   `CompraFormV2`, `CompraDetalle` + `CompraDetallePanel`, `RecepcionCompraFormV2` → RPCs
   `registrar_compra`, `recibir_compras`, `registrar_pagos_compra` (varios medios, todo o nada; `registrar_pago_compra` es el atajo de un medio),
   `anular_compra`, `listar_compras`, `resumen_compras`. Sub-navegación en
   `ComprasNav.tsx` (layout de `/compras`).
+- **Recibir mercadería por envío** (2026-09-18, ADR-0113): `/recibir` (NO bajo `/compras`, que es solo
+  líder; `/compras/recibir` redirige) → `lib/envio.ts` (traslados en tránsito hacia la sede) +
+  `lib/envio-reglas.ts` (reglas puras: bloques por comprobante, totales, escaneo, el pedido a la RPC) →
+  `RecepcionEnvio` + `KpisRecibir` (+ `ResumenPrevioEnvio`, `EnvioRecibido`, `RecepcionesCompraLista` con
+  `RecepcionVistaRapida`, y desde ADR-0129 el diseño por ancho del panel) → RPC atómica e idempotente `recibir_envio` (llama a `recibir_compras` una
+  vez por proveedor, `registrar_recepcion_traslado`/`confirmar_traslado`, `cerrar_linea_compra` y
+  `registrar_nota_credito_compra`). Tablas `envios` (una guía; agrupa un lote por proveedor vía
+  `lotes.envio_id`), `envio_extras` (fuera de comprobante: proveedor + regalo) y `envio_traslados`. Cuenta
+  cualquier colaborador de la sede. **Quien no es líder no recibe montos, y eso lo hace cumplir la base** (ADR-0126):
+  `lib/compras.ts` le pide los comprobantes y las líneas a `listar_compras_operativo` / `lineas_compra_operativo`
+  (`security definer`, candado de sede, lista de permitidos: ni una columna de dinero) y no a `listar_compras` ni a la
+  vista `compra_items_resumen`; las tablas `compras`, `compra_items`, `compra_pagos`, `compra_adjuntos` y
+  `compra_notas_credito`, y el bucket `retail-compras-adjuntos`, solo las lee `fn_puede_ver_dinero_de_compras()` (hoy: el
+  líder); las cinco funciones de dinero (`resumen_compras`, `resumen_compras_extra`, `deuda_por_vencimiento`,
+  `salidas_caja_30d`, `por_pagar_tramos`) abren con `fn_exige_dinero_de_compras` y fallan `42501` para un integrante.
+  `fn_aplicar_candado_de_dinero()` se los pone (o se los devuelve tras otra migración). La página además tacha los
+  montos en el servidor como segunda línea (`comprobanteSinMontos`). «Recibidas» (`?vista=recibidas`) agrupa las filas
+  de un envío de 2+ proveedores bajo una cabecera (`agruparPorEnvio`, `getEnviosDeLotes` lee `lotes.envio_id`).
 - Detalle de factura como modal (2026-09-14): el layout de `/compras` tiene
   un slot paralelo `@modal/` con la ruta interceptada
   `@modal/(.)factura/[compraId]`. Al hacer clic en una fila (Facturas, Por
@@ -399,8 +463,8 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `abrir_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `anular_produccion`, `revertir_produccion` | Ciclo de una corrida del Taller (ADR-0052): abrir solo en `tipo='taller'`; cerrar mete la entrada (`motivo='produccion'`) y pega el costo real a `variantes.costo`; revertir registra la salida (`reversion_produccion`) — nunca se borra un hecho que ya movió stock |
 | `bajar_a_piso` / `devolver_a_almacen` | Mueve entre `stock_almacen` y `stock` de la misma sede, atómico |
 | `fn_conteos_resumen` (2026-09-16) | Lista de conteos de una ubicación con líneas, sistema/contado/diferencia y soles ya sumados en Postgres; `security invoker` (RLS de conteos decide). Alimenta la pestaña Conteo. ADR-0071 |
-| `fn_resumen_variantes` (2026-09-17, solo local) | Agregados por variante para UNA ubicación: stock por sububicación (cuarentena excluida), primer ingreso y días observables (calendario Lima), demanda neta de la ventana clasificada por FK (venta completada + cambio salida − devolución vendible − cambio entrada, atribuida a la sede de la venta), entradas/mermas, en camino hacia esa sede (enviado, `en_transito`/`recibido_con_diferencia`, atrasado, próxima llegada) y jsonb `en_red` con lo mismo de las otras sedes activas. `security definer` con baranda `fn_puede_operar_ubicacion` (0 filas si no puede) y `revoke … from public`. NO decide nada: las reglas viven en `lib/resumen-reglas.ts`. ADR-0101 |
-| `fn_movimientos` / `fn_movimientos_resumen` (2026-09-15) | Lectura del ledger para la pantalla de Movimientos: una fila plana por movimiento con su proceso resuelto (comprobante, guía, factura, conteo, devolución, cambio), categoría y signo calculados en SQL, filtros y cursor server-side. `p_ubicacion_id` obligatorio; excluye la variante centinela «Cargo especial». ADR-0050 |
+| `fn_resumen_variantes` (2026-09-17 en producción; **v2 aplicada en producción el 2026-09-19**, firma `(p_ubicacion_id, p_ventana_dias, p_desde, p_hasta, p_cmp_desde, p_cmp_hasta)`, la `(uuid, integer)` se elimina) | Agregados por variante para UNA ubicación: stock por sububicación **siempre actual** (cuarentena excluida), primer ingreso, **días con stock del período** (reconstruidos del ledger: saldo(t) = stock hoy − Σ movimientos posteriores, con las reglas de `fn_aplicar_movimiento`; `ledger_consistente = false` si el saldo da negativo), stock al inicio, demanda neta del período **y del período comparado** clasificada por FK (venta completada + cambio salida − devolución vendible − cambio entrada, atribuida a la sede de la venta; las salidas `venta` sin `venta_item_id` también cuentan), entradas/mermas, en camino hacia esa sede (enviado, `en_transito`/`recibido_con_diferencia`, atrasado, próxima llegada y su traslado), origen de abastecimiento, códigos de barras, categoría, precio, y `costo` + `estado_costo` (`oficial`/`declarado`/`alterado`/`sin_costo`) **solo si `fn_es_lider()`**; jsonb `en_red` con lo mismo (utilizable, piso, días con stock) de las otras sedes activas. `security definer` con baranda `fn_puede_operar_ubicacion` (0 filas si no puede), `revoke … from public, anon` y `grant execute … to authenticated`. NO decide nada: las reglas viven en `lib/resumen-reglas.ts`. ADR-0101, ADR-0113 |
+| `fn_movimientos` / `fn_movimientos_resumen` (2026-09-15; **la búsqueda por proceso y los números de traslado/conteo, 2026-09-19, ADR-0127: en producción desde el 2026-09-19**) | Lectura del ledger para la pantalla de Movimientos: una fila plana por movimiento con su proceso resuelto (comprobante, guía, factura, conteo, devolución, cambio), categoría y signo calculados en SQL, filtros y cursor server-side. `p_ubicacion_id` obligatorio; excluye la variante centinela «Cargo especial». Desde ADR-0127 la fila trae además `transferencia_numero` y `conteo_numero` (las dos últimas columnas) y `p_busqueda` entiende «traslado 24», «conteo 12», «boleta 184», «B001-000184», guía y factura de compra (`fn_movimientos_busqueda` + `fn_movimientos_de_comprobante`; la lista y las tarjetas usan la misma). ADR-0050, ADR-0127 |
 
 ### 4.3 RLS sin `tenant_id`
 

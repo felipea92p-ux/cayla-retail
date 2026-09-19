@@ -29,7 +29,20 @@ import type { ComponentProps } from "react";
 
 type Tipo = "colores" | "tallas" | "tejidos" | "patrones" | "etiquetas";
 
+// EL ORDEN ES DE RELEVANCIA, no cronológico ni alfabético:
+//   1. Etiquetas — lo comercial: campañas, fechas y descuentos. Es lo único que
+//      cambia cada semana y lo que toca el precio.
+//   2. Colores y 3. Tallas — obligatorios: no existe una variante sin las dos, y
+//      un colaborador las necesita al recibir mercadería. Colores va primero
+//      porque es el que más se propone (35 vs 22).
+//   4. Tejidos y 5. Patrones — opcionales, atributos del producto que además
+//      dependen de la categoría. Patrones al final: es el vocabulario más chico.
+// La primera pestaña es también la que abre `/productos/atributos` sin `?tipo=`
+// (ver `page.tsx`); las rutas viejas `/productos/colores` etc. siguen entrando
+// directo a la suya.
 const TABS: { tipo: Tipo; etiqueta: string; icono: string }[] = [
+  // Cinta de marcapáginas — distinta del colgante de Categorías a propósito.
+  { tipo: "etiquetas", etiqueta: "Etiquetas", icono: "M6 3h12a1 1 0 011 1v16l-7-4-7 4V4a1 1 0 011-1z" },
   // Gota: el color de la tela.
   { tipo: "colores", etiqueta: "Colores", icono: "M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" },
   // Barras ascendentes: S, M, L — la progresión de una talla.
@@ -38,8 +51,6 @@ const TABS: { tipo: Tipo; etiqueta: string; icono: string }[] = [
   { tipo: "tejidos", etiqueta: "Tejidos", icono: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
   // Rombos en quincunce: un estampado/patrón repetido.
   { tipo: "patrones", etiqueta: "Patrones", icono: "M12 2l2 2-2 2-2-2zM4 10l2 2-2 2-2-2zM20 10l2 2-2 2-2-2zM12 18l2 2-2 2-2-2zM12 10l2 2-2 2-2-2z" },
-  // Cinta de marcapáginas — distinta del colgante de Categorías a propósito.
-  { tipo: "etiquetas", etiqueta: "Etiquetas", icono: "M6 3h12a1 1 0 011 1v16l-7-4-7 4V4a1 1 0 011-1z" },
 ];
 
 const AYUDA: Record<Tipo, string> = {
@@ -47,7 +58,7 @@ const AYUDA: Record<Tipo, string> = {
   tallas: "Vocabulario cerrado de talla. Aprobar exige un comentario: una talla mal aprobada ensucia la unicidad de variante y es más cara de deshacer con SKUs ya colgando.",
   tejidos: "Vocabulario cerrado de tejido — atributo del producto, no cambia entre tallas de la misma prenda.",
   patrones: "Vocabulario cerrado de patrón/estampado — igual que tejido, atributo del producto.",
-  etiquetas: "Vocabulario libre (folksonomy) por variante, distinto de la etiqueta física de código de barras. Aplica igual en las 4 sedes.",
+  etiquetas: "Marcas comerciales que se le ponen a una prenda (Nuevo, Black Friday, Para liquidar). No es la etiqueta física de código de barras.",
 };
 
 function IconoTab({ d, className = "h-4 w-4" }: { d: string; className?: string }) {
@@ -65,6 +76,9 @@ export function AtributosHub({
   tejidos,
   patrones,
   etiquetas,
+  categorias,
+  prendasConCosto,
+  variantesManuales,
   puedeEditar,
 }: {
   tipo: Tipo;
@@ -73,6 +87,9 @@ export function AtributosHub({
   tejidos: ComponentProps<typeof TejidosLista>["tejidosIniciales"];
   patrones: ComponentProps<typeof PatronesLista>["patronesIniciales"];
   etiquetas: ComponentProps<typeof EtiquetasLista>["etiquetasIniciales"];
+  categorias: ComponentProps<typeof EtiquetasLista>["categorias"];
+  prendasConCosto: ComponentProps<typeof EtiquetasLista>["prendasConCosto"];
+  variantesManuales: ComponentProps<typeof EtiquetasLista>["variantesManuales"];
   puedeEditar: boolean;
 }) {
   // La pestaña activa vive en la URL (`?tipo=`), no en estado de React —
@@ -107,7 +124,13 @@ export function AtributosHub({
       {tipo === "tallas" && <TallasLista tallasIniciales={tallas} puedeEditar={puedeEditar} />}
       {tipo === "tejidos" && <TejidosLista tejidosIniciales={tejidos} puedeEditar={puedeEditar} />}
       {tipo === "patrones" && <PatronesLista patronesIniciales={patrones} puedeEditar={puedeEditar} />}
-      {tipo === "etiquetas" && <EtiquetasLista etiquetasIniciales={etiquetas} puedeEditar={puedeEditar} />}
+      {tipo === "etiquetas" && <EtiquetasLista
+          etiquetasIniciales={etiquetas}
+          categorias={categorias}
+          prendasConCosto={prendasConCosto}
+          variantesManuales={variantesManuales}
+          puedeEditar={puedeEditar}
+        />}
     </div>
   );
 }

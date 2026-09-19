@@ -6,7 +6,7 @@
 >
 > **Origen:** `volcado de producción (retail_*.json)`
 > **Leído el:** volcado de producci
-> **Tablas y vistas encontradas:** 60
+> **Tablas y vistas encontradas:** 70
 >
 > El orden sigue los 14 pájaros de `scripts/datos/aviario.mjs`, la única lista de qué
 > pájaro es cada tabla (el índice está en `AVIARIO.md`). Para entender **por qué**
@@ -44,7 +44,7 @@
 
 ### `ubicaciones`
 
-*6 columnas · ~3 filas · permisos por fila **activos***
+*7 columnas · ~4 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -54,9 +54,11 @@
 | `activo` | boolean | **no** | `true` | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
 | `sede_dynamic_id` | uuid | sí | — | — |
+| `meta_venta_diaria` | numeric | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
+- `ubicaciones_meta_venta_diaria_positiva` — `CHECK (((meta_venta_diaria IS NULL) OR (meta_venta_diaria > (0)::numeric)))`
 - `ubicaciones_nombre_key` — `UNIQUE (nombre)`
 - `ubicaciones_tipo_check` — `CHECK ((tipo = ANY (ARRAY['tienda'::text, 'almacen'::text, 'taller'::text])))`
 
@@ -75,7 +77,7 @@
 
 ### `productos`
 
-*13 columnas · ~28 filas · permisos por fila **activos***
+*19 columnas · ~45 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -92,14 +94,23 @@
 | `permitir_venta_sin_stock` | boolean | **no** | `false` | — |
 | `tejido_id` | uuid | sí | — | — |
 | `patron_id` | uuid | sí | — | — |
+| `estado_alta` | text | **no** | `'aprobado'::text` | — |
+| `propuesto_por` | uuid | sí | — | — |
+| `aprobado_por` | uuid | sí | — | — |
+| `aprobado_en` | timestamp with time zone | sí | — | — |
+| `marca_id` | uuid | **no** | — | — |
+| `proveedor_id` | uuid | **no** | — | a qué proveedor se le compra habitualmente este modelo; quién trajo cada lote vive en lotes |
 
 **Candados** — lo que esta tabla hace imposible:
 
+- `productos_estado_alta_check` — `CHECK ((estado_alta = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))`
 - `productos_estado_check` — `CHECK ((estado = ANY (ARRAY['activo'::text, 'descontinuado'::text])))`
+- `productos_rechazado_descontinuado_check` — `CHECK (((estado_alta <> 'rechazado'::text) OR (estado = 'descontinuado'::text)))`
 - `productos_stock_minimo_no_negativo` — `CHECK (((stock_minimo IS NULL) OR (stock_minimo >= 0)))`
 - `productos_token_cliente_key` — `UNIQUE (token_cliente)`
+- `productos_referencia_clave_unica` *(único parcial)* — `retail.productos (retail.fn_clave_referencia(referencia)) WHERE (estado_alta <> 'rechazado'::text)`
 
-**De qué depende:** `(categoria_id) REFERENCES retail.categorias(id)` · `(patron_id) REFERENCES retail.patrones(id)` · `(tejido_id) REFERENCES retail.tejidos(id)`
+**De qué depende:** `(aprobado_por) REFERENCES personas(id)` · `(categoria_id) REFERENCES retail.categorias(id)` · `(marca_id) REFERENCES retail.marcas(id)` · `(marca_id, proveedor_id) REFERENCES retail.marca_proveedores(marca_id, proveedor_id)` · `(patron_id) REFERENCES retail.patrones(id)` · `(propuesto_por) REFERENCES personas(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(tejido_id) REFERENCES retail.tejidos(id)`
 
 **Quién puede qué** (políticas de fila):
 
@@ -111,7 +122,7 @@
 
 ### `variantes`
 
-*10 columnas · ~145 filas · permisos por fila **activos***
+*10 columnas · ~164 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -145,7 +156,7 @@
 
 ### `categorias`
 
-*7 columnas · ~38 filas · permisos por fila **activos***
+*7 columnas · ~45 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -159,11 +170,10 @@
 
 **Candados** — lo que esta tabla hace imposible:
 
-- `categorias_familia_check` — `CHECK ((familia = ANY (ARRAY['indumentaria'::text, 'calzado'::text, 'accesorios'::text, 'bisuteria'::text, 'belleza'::text, 'papeleria'::text])))`
 - `categorias_prefijo_formato` — `CHECK ((prefijo ~ '^[A-Z]{3}$'::text))`
 - `categorias_prefijo_unico` *(único parcial)* — `retail.categorias (prefijo) WHERE (prefijo IS NOT NULL)`
 
-**De qué depende:** `(categoria_padre_id) REFERENCES retail.categorias(id)`
+**De qué depende:** `(categoria_padre_id) REFERENCES retail.categorias(id)` · `(familia) REFERENCES retail.familias(codigo)`
 
 **Quién puede qué** (políticas de fila):
 
@@ -171,6 +181,27 @@
 |---|---|---|
 | `categorias_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
 | `categorias_write_lider` | ALL | `retail.fn_es_lider()` |
+
+
+### `familias`
+
+*6 columnas · ~6 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `codigo` | text | **no** | — | — |
+| `nombre` | text | **no** | — | — |
+| `activo` | boolean | **no** | `true` | — |
+| `orden` | integer | **no** | `100` | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `exige_tejido_patron` | boolean | **no** | `false` | — |
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `familias_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `familias_write_lider` | ALL | `retail.fn_es_lider()` |
 
 
 ### `producto_fotos`
@@ -203,7 +234,7 @@
 
 ### `historial_producto_cambios`
 
-*8 columnas · ~1 filas · ⚠️ **sin permisos por fila***
+*8 columnas · ~6 filas · ⚠️ **sin permisos por fila***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -223,9 +254,52 @@
 **De qué depende:** `(usuario_id) REFERENCES personas(id)`
 
 
+### `marcas`
+
+*4 columnas · ~1 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `nombre` | text | **no** | — | — |
+| `activo` | boolean | **no** | `true` | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `marcas_nombre_check` — `CHECK ((btrim(nombre) <> ''::text))`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `marcas_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `marcas_write_lider` | ALL | `retail.fn_es_lider()` |
+
+
+### `marca_proveedores`
+
+*3 columnas · ~1 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `marca_id` | uuid | **no** | — | — |
+| `proveedor_id` | uuid | **no** | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**De qué depende:** `(marca_id) REFERENCES retail.marcas(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `marca_proveedores_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `marca_proveedores_write_lider` | ALL | `retail.fn_es_lider()` |
+
+
 ### `codigos_barras`
 
-*5 columnas · ~110 filas · permisos por fila **activos***
+*5 columnas · ~148 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -273,7 +347,7 @@
 
 ### `colores`
 
-*13 columnas · ~31 filas · permisos por fila **activos***
+*13 columnas · ~35 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -344,13 +418,14 @@
 
 ### `categoria_tallas`
 
-*3 columnas · ~173 filas · permisos por fila **activos***
+*4 columnas · ~216 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
 | `categoria_id` | uuid | **no** | — | — |
 | `talla_id` | uuid | **no** | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `habitual` | boolean | **no** | `false` | — |
 
 **De qué depende:** `(categoria_id) REFERENCES retail.categorias(id) ON DELETE CASCADE` · `(talla_id) REFERENCES retail.tallas(id)`
 
@@ -364,7 +439,7 @@
 
 ### `tejidos`
 
-*9 columnas · ~0 filas · permisos por fila **activos***
+*10 columnas · ~17 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -377,6 +452,7 @@
 | `aprobado_en` | timestamp with time zone | sí | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
 | `notas` | text | sí | — | — |
+| `imagen_muestra_url` | text | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
@@ -396,7 +472,7 @@
 
 ### `categoria_tejidos`
 
-*3 columnas · ~0 filas · permisos por fila **activos***
+*3 columnas · ~139 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -416,7 +492,7 @@
 
 ### `patrones`
 
-*9 columnas · ~0 filas · permisos por fila **activos***
+*10 columnas · ~7 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -429,6 +505,7 @@
 | `aprobado_en` | timestamp with time zone | sí | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
 | `notas` | text | sí | — | — |
+| `imagen_muestra_url` | text | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
@@ -448,7 +525,7 @@
 
 ### `categoria_patrones`
 
-*3 columnas · ~0 filas · permisos por fila **activos***
+*3 columnas · ~133 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -468,7 +545,7 @@
 
 ### `etiquetas`
 
-*10 columnas · ~0 filas · permisos por fila **activos***
+*14 columnas · ~24 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -482,11 +559,19 @@
 | `aprobado_en` | timestamp with time zone | sí | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
 | `notas` | text | sí | — | — |
+| `vigente_desde` | date | sí | — | — |
+| `vigente_hasta` | date | sí | — | — |
+| `estilo` | text | **no** | `'neutral'::text` | — |
+| `descuento_pct` | numeric | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
+- `etiquetas_descuento_rango` — `CHECK (((descuento_pct IS NULL) OR ((descuento_pct > (0)::numeric) AND (descuento_pct <= (100)::numeric))))`
+- `etiquetas_descuento_solo_aprobada` — `CHECK (((descuento_pct IS NULL) OR (estado = 'aprobado'::text)))`
 - `etiquetas_estado_check` — `CHECK ((estado = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))`
+- `etiquetas_estilo_valido` — `CHECK ((estilo = ANY (ARRAY['neutral'::text, 'urgencia'::text, 'positivo'::text, 'campana'::text])))`
 - `etiquetas_rechazado_no_activo` — `CHECK (((estado <> 'rechazado'::text) OR (activo = false)))`
+- `etiquetas_vigencia_coherente` — `CHECK (((vigente_desde IS NULL) OR (vigente_hasta IS NULL) OR (vigente_desde <= vigente_hasta)))`
 
 **De qué depende:** `(aprobado_por) REFERENCES personas(id)` · `(propuesto_por) REFERENCES personas(id)`
 
@@ -494,9 +579,29 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `etiquetas_insert_autenticado` | INSERT | `(auth.role() = 'authenticated'::text)` |
+| `etiquetas_insert_autenticado` | INSERT | `((auth.role() = 'authenticated'::text) AND ((descuento_pct IS NULL) OR retail.fn_es_lider()))` |
 | `etiquetas_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
 | `etiquetas_update_lider` | UPDATE | `retail.fn_es_lider()` |
+
+
+### `etiqueta_categorias`
+
+*3 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `etiqueta_id` | uuid | **no** | — | — |
+| `categoria_id` | uuid | **no** | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**De qué depende:** `(categoria_id) REFERENCES retail.categorias(id) ON DELETE CASCADE` · `(etiqueta_id) REFERENCES retail.etiquetas(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `etiqueta_categorias_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `etiqueta_categorias_write_lider` | ALL | `retail.fn_es_lider()` |
 
 
 ### `variante_etiquetas`
@@ -524,7 +629,7 @@
 
 ### `movimientos`
 
-*21 columnas · ~451 filas · permisos por fila **activos***
+*21 columnas · ~464 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -568,7 +673,7 @@
 
 ### `stock`
 
-*5 columnas · ~137 filas · permisos por fila **activos***
+*5 columnas · ~138 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -594,7 +699,7 @@
 
 ### `lotes`
 
-*7 columnas · ~0 filas · permisos por fila **activos***
+*8 columnas · ~0 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -605,8 +710,9 @@
 | `fecha_recepcion` | timestamp with time zone | **no** | `now()` | qué día llegó la mercadería; recibir_lote nunca la manda, así que siempre queda el día del registro |
 | `recibido_por` | uuid | sí | — | qué integrante recibió y registró el fardo; queda vacío si esa cuenta no tiene ficha en personas |
 | `nota` | text | sí | — | observaciones de la descarga: 'faltaron 2 blusas', 'caja mojada' — texto libre que nadie procesa |
+| `envio_id` | uuid | sí | — | — |
 
-**De qué depende:** `(proveedor_id) REFERENCES retail.proveedores(id)` · `(recibido_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+**De qué depende:** `(envio_id) REFERENCES retail.envios(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(recibido_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
 
 **Quién puede qué** (políticas de fila):
 
@@ -618,7 +724,7 @@
 
 ### `sububicaciones`
 
-*5 columnas · ~6 filas · permisos por fila **activos***
+*5 columnas · ~9 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -683,7 +789,7 @@
 
 ### `prendas_danadas`
 
-*12 columnas · ~0 filas · permisos por fila **activos***
+*13 columnas · ~0 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -699,15 +805,17 @@
 | `resuelto_en` | timestamp with time zone | sí | — | — |
 | `nota` | text | sí | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `proveedor_id` | uuid | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `prendas_danadas_cantidad_check` — `CHECK ((cantidad > 0))`
 - `prendas_danadas_devolucion_item_id_key` — `UNIQUE (devolucion_item_id)`
-- `prendas_danadas_estado_check` — `CHECK ((estado = ANY (ARRAY['en_cuarentena'::text, 'liquidada'::text, 'se_boto'::text, 'donada'::text])))`
+- `prendas_danadas_estado_check` — `CHECK ((estado = ANY (ARRAY['en_cuarentena'::text, 'liquidada'::text, 'se_boto'::text, 'donada'::text, 'devuelta_proveedor'::text])))`
+- `prendas_danadas_proveedor_coherente` — `CHECK (((estado = 'devuelta_proveedor'::text) = (proveedor_id IS NOT NULL)))`
 - `prendas_danadas_resolucion_coherente` — `CHECK ((((estado = 'en_cuarentena'::text) AND (movimiento_salida_id IS NULL) AND (resuelto_en IS NULL)) OR ((estado <> 'en_cuarentena'::text) AND (movimiento_salida_id IS NOT NULL) AND (resuelto_en IS NOT NULL))))`
 
-**De qué depende:** `(devolucion_item_id) REFERENCES retail.devolucion_items(id)` · `(movimiento_entrada_id) REFERENCES retail.movimientos(id)` · `(movimiento_salida_id) REFERENCES retail.movimientos(id)` · `(resuelto_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(variante_id) REFERENCES retail.variantes(id)`
+**De qué depende:** `(devolucion_item_id) REFERENCES retail.devolucion_items(id)` · `(movimiento_entrada_id) REFERENCES retail.movimientos(id)` · `(movimiento_salida_id) REFERENCES retail.movimientos(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(resuelto_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(variante_id) REFERENCES retail.variantes(id)`
 
 **Quién puede qué** (políticas de fila):
 
@@ -809,6 +917,72 @@
 | `transferencia_recepciones_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.transferencias t   WHERE ((t.id = transferencia_recepciones.transferencia_id) AND (retail.fn_puede_operar_ubicacion(t.ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(t.ubicacion_destino_id)))))` |
 
 
+### `envios`
+
+*7 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `numero_guia` | text | sí | — | — |
+| `nota` | text | sí | — | — |
+| `recibido_por` | uuid | sí | — | — |
+| `fecha_recepcion` | timestamp with time zone | **no** | `now()` | — |
+| `token_cliente` | uuid | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `envios_token_cliente_key` *(único parcial)* — `retail.envios (token_cliente) WHERE (token_cliente IS NOT NULL)`
+
+**De qué depende:** `(recibido_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `envios_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_id)` |
+
+
+### `envio_extras`
+
+*5 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `movimiento_id` | uuid | **no** | — | — |
+| `envio_id` | uuid | **no** | — | — |
+| `proveedor_id` | uuid | **no** | — | — |
+| `es_regalo` | boolean | **no** | `false` | — |
+| `nota` | text | sí | — | — |
+
+**De qué depende:** `(envio_id) REFERENCES retail.envios(id)` · `(movimiento_id) REFERENCES retail.movimientos(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `envio_extras_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.envios e   WHERE ((e.id = envio_extras.envio_id) AND retail.fn_puede_operar_ubicacion(e.ubicacion_id))))` |
+
+
+### `envio_traslados`
+
+*2 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `envio_id` | uuid | **no** | — | — |
+| `transferencia_id` | uuid | **no** | — | — |
+
+**De qué depende:** `(envio_id) REFERENCES retail.envios(id)` · `(transferencia_id) REFERENCES retail.transferencias(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `envio_traslados_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.envios e   WHERE ((e.id = envio_traslados.envio_id) AND retail.fn_puede_operar_ubicacion(e.ubicacion_id))))` |
+
+
 
 ## 06 · Lechuza — Conteo y censo físico
 
@@ -881,7 +1055,7 @@
 
 ### `ventas`
 
-*12 columnas · ~5 filas · permisos por fila **activos***
+*12 columnas · ~9 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -917,7 +1091,7 @@
 
 ### `venta_items`
 
-*11 columnas · ~13 filas · permisos por fila **activos***
+*12 columnas · ~23 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -932,19 +1106,21 @@
 | `motivo_descuento` | text | sí | — | — |
 | `motivo_descuento_detalle` | text | sí | — | — |
 | `argumento_descuento` | text | sí | — | — |
+| `descuento_etiqueta_id` | uuid | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
+- `venta_items_campana_coherente` — `CHECK ((COALESCE((motivo_descuento = 'campana'::text), false) = (descuento_etiqueta_id IS NOT NULL)))`
 - `venta_items_cantidad_check` — `CHECK ((cantidad > 0))`
 - `venta_items_costo_unitario_check` — `CHECK ((costo_unitario >= (0)::numeric))`
 - `venta_items_descuento_no_supera_precio` — `CHECK ((descuento_unitario <= precio_unitario))`
 - `venta_items_descuento_unitario_check` — `CHECK ((descuento_unitario >= (0)::numeric))`
 - `venta_items_motivo_coherente_con_descuento` — `CHECK ((((descuento_unitario = (0)::numeric) AND (motivo_descuento IS NULL)) OR ((descuento_unitario > (0)::numeric) AND (motivo_descuento IS NOT NULL)))) NOT VALID`
-- `venta_items_motivo_descuento_valido` — `CHECK (((motivo_descuento IS NULL) OR (motivo_descuento = ANY (ARRAY['cumpleanos_clienta_top'::text, 'prenda_con_desperfecto'::text, 'liquidacion_temporada'::text, 'cerrar_venta'::text, 'otro'::text]))))`
+- `venta_items_motivo_descuento_valido` — `CHECK (((motivo_descuento IS NULL) OR (motivo_descuento = ANY (ARRAY['cumpleanos_clienta_top'::text, 'prenda_con_desperfecto'::text, 'liquidacion_temporada'::text, 'cerrar_venta'::text, 'otro'::text, 'campana'::text]))))`
 - `venta_items_otro_tiene_detalle` — `CHECK (((motivo_descuento IS DISTINCT FROM 'otro'::text) OR ((motivo_descuento_detalle IS NOT NULL) AND (btrim(motivo_descuento_detalle) <> ''::text)))) NOT VALID`
 - `venta_items_precio_unitario_check` — `CHECK ((precio_unitario >= (0)::numeric))`
 
-**De qué depende:** `(variante_id) REFERENCES retail.variantes(id)` · `(venta_id) REFERENCES retail.ventas(id)`
+**De qué depende:** `(descuento_etiqueta_id) REFERENCES retail.etiquetas(id)` · `(variante_id) REFERENCES retail.variantes(id)` · `(venta_id) REFERENCES retail.ventas(id)`
 
 **Quién puede qué** (políticas de fila):
 
@@ -956,7 +1132,7 @@
 
 ### `venta_pagos`
 
-*4 columnas · ~5 filas · permisos por fila **activos***
+*4 columnas · ~11 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1009,7 +1185,7 @@
 
 ### `cajas`
 
-*12 columnas · ~7 filas · permisos por fila **activos***
+*12 columnas · ~9 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1132,7 +1308,7 @@
 
 ### `cambios`
 
-*11 columnas · ~0 filas · permisos por fila **activos***
+*11 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1166,7 +1342,7 @@
 
 ### `devoluciones`
 
-*12 columnas · ~1 filas · permisos por fila **activos***
+*13 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1182,13 +1358,14 @@
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
 | `aprobado_en` | timestamp with time zone | sí | — | — |
 | `caja_id` | uuid | sí | — | — |
+| `nota_credito_id` | uuid | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `devoluciones_aprobacion_coherente` — `CHECK ((((estado = 'pendiente'::text) AND (aprobado_en IS NULL)) OR ((estado <> 'pendiente'::text) AND (aprobado_en IS NOT NULL))))`
 - `devoluciones_estado_check` — `CHECK ((estado = ANY (ARRAY['pendiente'::text, 'aprobada'::text, 'rechazada'::text])))`
 
-**De qué depende:** `(aprobado_por) REFERENCES personas(id)` · `(caja_id) REFERENCES retail.cajas(id)` · `(solicitado_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(venta_id) REFERENCES retail.ventas(id)`
+**De qué depende:** `(aprobado_por) REFERENCES personas(id)` · `(caja_id) REFERENCES retail.cajas(id)` · `(nota_credito_id) REFERENCES retail.comprobantes(id)` · `(solicitado_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(venta_id) REFERENCES retail.ventas(id)`
 
 **Quién puede qué** (políticas de fila):
 
@@ -1232,7 +1409,7 @@
 
 ### `comprobantes`
 
-*31 columnas · ~7 filas · permisos por fila **activos***
+*32 columnas · ~11 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1267,6 +1444,7 @@
 | `motivo_no_emitido` | text | sí | — | — |
 | `marcado_no_emitido_por` | uuid | sí | — | — |
 | `marcado_no_emitido_at` | timestamp with time zone | sí | — | — |
+| `token_cliente` | uuid | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
@@ -1279,6 +1457,7 @@
 - `comprobantes_nota_requiere_original` — `CHECK (((tipo <> ALL (ARRAY['nota_credito'::text, 'nota_debito'::text])) OR ((comprobante_original_id IS NOT NULL) AND (motivo IS NOT NULL))))`
 - `comprobantes_tipo_check` — `CHECK ((tipo = ANY (ARRAY['boleta'::text, 'factura'::text, 'nota_credito'::text, 'nota_debito'::text])))`
 - `comprobantes_tipo_serie_numero_key` — `UNIQUE (tipo, serie, numero)`
+- `comprobantes_token_cliente_key` — `UNIQUE (token_cliente)`
 - `comprobantes_total_check` — `CHECK ((total > (0)::numeric))`
 - `comprobantes_transmitido_tiene_entorno` — `CHECK (((estado = ANY (ARRAY['pendiente'::text, 'no_emitido'::text])) OR (entorno_transmision IS NOT NULL))) NOT VALID`
 
@@ -1320,7 +1499,7 @@
 
 ### `proformas`
 
-*13 columnas · ~0 filas · permisos por fila **activos***
+*13 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1408,7 +1587,7 @@
 
 ### `proveedores`
 
-*6 columnas · ~1 filas · permisos por fila **activos***
+*12 columnas · ~2 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1418,9 +1597,17 @@
 | `contacto` | text | sí | — | el nombre de la persona con quien se habla para pactar el fardo |
 | `activo` | boolean | **no** | `true` | si le seguimos comprando; desactivar archiva la ficha y nunca borra la fila |
 | `created_at` | timestamp with time zone | **no** | `now()` | cuándo entró al directorio único que reemplazó los tres Excel desincronizados de las tiendas |
+| `rubro` | text | sí | — | — |
+| `plazo_credito_dias` | integer | sí | — | — |
+| `forma_pago_preferida` | text | sí | — | — |
+| `telefono` | text | sí | — | el WhatsApp por el que se cierra la compra, que es como compra CAYLA |
+| `banco` | text | sí | — | en qué banco cobra ese proveedor; visible para cualquiera con cuenta, decisión consciente D-27 |
+| `cuenta_bancaria` | text | sí | — | el número de cuenta al que se le transfiere; dato de un tercero y visible para todos |
 
 **Candados** — lo que esta tabla hace imposible:
 
+- `proveedores_forma_pago_valida` — `CHECK (((forma_pago_preferida IS NULL) OR (forma_pago_preferida = ANY (ARRAY['transferencia'::text, 'yape'::text, 'plin'::text, 'efectivo'::text, 'deposito'::text, 'otro'::text]))))`
+- `proveedores_plazo_credito_positivo` — `CHECK (((plazo_credito_dias IS NULL) OR (plazo_credito_dias > 0)))`
 - `proveedores_ruc_check` — `CHECK (((ruc IS NULL) OR (ruc ~ '^[0-9]{11}$'::text)))`
 - `proveedores_ruc_unico` *(único parcial)* — `retail.proveedores (ruc) WHERE (ruc IS NOT NULL)`
 
@@ -1434,7 +1621,7 @@
 
 ### `compras`
 
-*25 columnas · ~0 filas · permisos por fila **activos***
+*28 columnas · ~0 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1459,19 +1646,26 @@
 | `facturado_cantidad` | integer | **no** | `0` | — |
 | `recibido_cantidad` | integer | **no** | `0` | — |
 | `documento` | text | sí | — | — |
+| `token_cliente` | uuid | sí | — | — |
+| `fecha_estimada_llegada` | date | sí | — | — |
+| `notas_credito` | numeric | **no** | `0` | — |
+| `cerrado_cantidad` | integer | **no** | `0` | — |
 | `saldo` | numeric | sí | — | — |
 | `estado_pago` | text | sí | — | — |
 | `estado_recepcion` | text | sí | — | — |
-| `token_cliente` | uuid | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
+- `compras_cerrado_cantidad_check` — `CHECK ((cerrado_cantidad >= 0))`
 - `compras_condicion_check` — `CHECK ((condicion = ANY (ARRAY['contado'::text, 'credito'::text])))`
 - `compras_credito_tiene_vencimiento` — `CHECK (((condicion = 'contado'::text) OR (fecha_vencimiento IS NOT NULL)))`
 - `compras_estado_check` — `CHECK ((estado = ANY (ARRAY['vigente'::text, 'anulada'::text])))`
 - `compras_facturado_cantidad_check` — `CHECK ((facturado_cantidad >= 0))`
 - `compras_igv_check` — `CHECK ((igv >= (0)::numeric))`
 - `compras_igv_solo_factura` — `CHECK (((tipo = 'factura'::text) OR (igv = (0)::numeric)))`
+- `compras_no_sobrepagada` — `CHECK (((pagado + notas_credito) <= total))`
+- `compras_no_sobrerecibida` — `CHECK (((recibido_cantidad + cerrado_cantidad) <= facturado_cantidad))`
+- `compras_notas_credito_check` — `CHECK ((notas_credito >= (0)::numeric))`
 - `compras_pagado_check` — `CHECK ((pagado >= (0)::numeric))`
 - `compras_proveedor_id_serie_numero_key` — `UNIQUE (proveedor_id, serie, numero)`
 - `compras_recibido_cantidad_check` — `CHECK ((recibido_cantidad >= 0))`
@@ -1486,7 +1680,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compras_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_destino_id)` |
+| `compras_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `compra_items`
@@ -1515,12 +1709,12 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_items_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_items.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
+| `compra_items_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `compra_pagos`
 
-*8 columnas · ~0 filas · permisos por fila **activos***
+*9 columnas · ~0 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1532,10 +1726,11 @@
 | `referencia` | text | sí | — | — |
 | `usuario_id` | uuid | sí | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `pago_grupo_id` | uuid | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
-- `compra_pagos_metodo_check` — `CHECK ((metodo = ANY (ARRAY['transferencia'::text, 'yape'::text, 'plin'::text, 'efectivo'::text, 'deposito'::text, 'otro'::text])))`
+- `compra_pagos_metodo_check` — `CHECK ((metodo = ANY (ARRAY['transferencia'::text, 'yape'::text, 'plin'::text, 'efectivo'::text, 'deposito'::text, 'otro'::text, 'saldo_a_favor'::text])))`
 - `compra_pagos_monto_check` — `CHECK ((monto > (0)::numeric))`
 
 **De qué depende:** `(compra_id) REFERENCES retail.compras(id)` · `(usuario_id) REFERENCES personas(id)`
@@ -1544,7 +1739,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_pagos_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_pagos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
+| `compra_pagos_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `compra_adjuntos`
@@ -1578,12 +1773,12 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_adjuntos_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_adjuntos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
+| `compra_adjuntos_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `compras_resumen`
 
-*25 columnas · ~0 filas · ⚠️ **sin permisos por fila***
+*32 columnas · ~0 filas · ⚠️ **sin permisos por fila***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1612,11 +1807,18 @@
 | `recibido_cantidad` | integer | sí | — | — |
 | `estado_recepcion` | text | sí | — | — |
 | `vencida` | boolean | sí | — | — |
+| `fecha_estimada_llegada` | date | sí | — | — |
+| `recepcion_atrasada` | boolean | sí | — | — |
+| `proveedor_telefono` | text | sí | — | — |
+| `proveedor_banco` | text | sí | — | — |
+| `proveedor_cuenta_bancaria` | text | sí | — | — |
+| `notas_credito` | numeric | sí | — | — |
+| `cerrado_cantidad` | integer | sí | — | — |
 
 
 ### `compra_items_resumen`
 
-*10 columnas · ~0 filas · ⚠️ **sin permisos por fila***
+*11 columnas · ~0 filas · ⚠️ **sin permisos por fila***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1630,6 +1832,111 @@
 | `subtotal` | numeric | sí | — | — |
 | `recibido` | bigint | sí | — | — |
 | `pendiente` | bigint | sí | — | — |
+| `cerrado` | bigint | sí | — | — |
+
+
+### `compra_item_cierres`
+
+*7 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `compra_item_id` | uuid | **no** | — | — |
+| `cantidad` | integer | **no** | — | — |
+| `motivo` | text | **no** | — | — |
+| `nota` | text | sí | — | — |
+| `usuario_id` | uuid | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `compra_item_cierres_cantidad_check` — `CHECK ((cantidad > 0))`
+- `compra_item_cierres_motivo_check` — `CHECK ((motivo = ANY (ARRAY['no_llego'::text, 'danada'::text, 'error_proveedor'::text])))`
+
+**De qué depende:** `(compra_item_id) REFERENCES retail.compra_items(id)` · `(usuario_id) REFERENCES personas(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `compra_item_cierres_select` | SELECT | `(EXISTS ( SELECT 1    FROM (retail.compra_items ci      JOIN retail.compras c ON ((c.id = ci.compra_id)))   WHERE ((ci.id = compra_item_cierres.compra_item_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
+
+
+### `compra_notas_credito`
+
+*13 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `compra_id` | uuid | **no** | — | — |
+| `cierre_id` | uuid | sí | — | — |
+| `serie_numero` | text | **no** | — | — |
+| `fecha` | date | **no** | — | — |
+| `subtotal` | numeric | **no** | — | — |
+| `igv` | numeric | **no** | — | — |
+| `monto` | numeric | **no** | — | — |
+| `motivo` | text | **no** | — | — |
+| `nota` | text | sí | — | — |
+| `usuario_id` | uuid | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `aplicado` | numeric | **no** | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `compra_notas_credito_aplicado_valido` — `CHECK (((aplicado >= (0)::numeric) AND (aplicado <= monto)))`
+- `compra_notas_credito_compra_id_serie_numero_key` — `UNIQUE (compra_id, serie_numero)`
+- `compra_notas_credito_igv_check` — `CHECK ((igv >= (0)::numeric))`
+- `compra_notas_credito_monto_check` — `CHECK ((monto > (0)::numeric))`
+- `compra_notas_credito_monto_cuadra` — `CHECK ((monto = (subtotal + igv)))`
+- `compra_notas_credito_motivo_check` — `CHECK ((motivo = ANY (ARRAY['faltante'::text, 'devolucion'::text, 'descuento'::text, 'otro'::text])))`
+- `compra_notas_credito_serie_numero_check` — `CHECK ((btrim(serie_numero) <> ''::text))`
+- `compra_notas_credito_subtotal_check` — `CHECK ((subtotal >= (0)::numeric))`
+- `compra_notas_credito_faltante_unica` *(único parcial)* — `retail.compra_notas_credito (compra_id) WHERE (motivo = 'faltante'::text)`
+
+**De qué depende:** `(cierre_id) REFERENCES retail.compra_item_cierres(id)` · `(compra_id) REFERENCES retail.compras(id)` · `(usuario_id) REFERENCES personas(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `compra_notas_credito_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
+
+
+### `proveedor_creditos`
+
+*13 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `proveedor_id` | uuid | **no** | — | — |
+| `tipo` | text | **no** | — | — |
+| `monto` | numeric | **no** | — | — |
+| `fecha` | date | **no** | — | — |
+| `compra_id` | uuid | sí | — | — |
+| `nota_credito_id` | uuid | sí | — | — |
+| `compra_pago_id` | uuid | sí | — | — |
+| `metodo` | text | sí | — | — |
+| `referencia` | text | sí | — | — |
+| `nota` | text | sí | — | — |
+| `usuario_id` | uuid | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `proveedor_creditos_monto_check` — `CHECK ((monto > (0)::numeric))`
+- `proveedor_creditos_origen` — `CHECK ((((tipo = 'nota_credito'::text) AND (nota_credito_id IS NOT NULL)) OR ((tipo = 'aplicacion'::text) AND (compra_pago_id IS NOT NULL)) OR ((tipo = 'reembolso'::text) AND (metodo IS NOT NULL))))`
+- `proveedor_creditos_tipo_check` — `CHECK ((tipo = ANY (ARRAY['nota_credito'::text, 'aplicacion'::text, 'reembolso'::text])))`
+
+**De qué depende:** `(compra_id) REFERENCES retail.compras(id)` · `(compra_pago_id) REFERENCES retail.compra_pagos(id)` · `(nota_credito_id) REFERENCES retail.compra_notas_credito(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(usuario_id) REFERENCES personas(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `proveedor_creditos_select` | SELECT | `retail.fn_puede_registrar_compras()` |
 
 
 
