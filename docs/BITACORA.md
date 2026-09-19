@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Candado: el CI ahora rechaza dos migraciones con la misma versión)
+
+Ya pasó tres veces en dos días (`20260917100000`, `20260917140000` y `20260918170000`) y siempre se descubrió cuando alguien no podía levantar su base local. Nada lo veía: `migraciones:verificar` compara lo que cada archivo promete contra la base, no los nombres entre sí, y producción no lo delata porque el SQL se pega a mano. Nuevo `scripts/migraciones/versiones.mjs` (`pnpm migraciones:versiones`) + paso «Versiones de migración» en el CI, que corre también en `pull_request`: solo lee nombres de archivo, sin base de datos ni `node_modules`. Probado contra `main` (verde), contra el duplicado original del PR #150 y contra `origin/claude/panel-comercial`, que aún lo trae (ambos rojos).
+
+Lo que Felipe se lleva: el choque entre dos ramas no se ve en ninguna de las dos por separado; se ve en la segunda cuando `main` ya tiene la primera. Por eso el candado importa en el PR, no en la rama. Límite: no ve ramas que aún no son PR, y no sabe cuál de las dos ya está en producción — eso sigue siendo decisión humana (renombrar solo la que no se pegó).
+
 ## 2026-09-18 (El acento rojo de las tarjetas no se veía: una clase fuera de capa le ganaba a Tailwind)
 
 Se cerró: `.card-cayla` y sus hermanas (`label-cayla`, `font-display`, `alza-cayla`, `scroll-cayla`,
