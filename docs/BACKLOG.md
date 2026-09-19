@@ -151,6 +151,24 @@ sobre una venta anulada — no hay nada que limpiar.
         `p_fecha_estimada_llegada` ni `compras.token_cliente` y se arreglan al regenerarlos.
         `pegar-en-produccion-compras-atraso-recepcion.sql` queda gastado (producción ya tiene
         su resultado); no se borra.
+        **Compras: producción tiene DOS `registrar_compra` (hallazgo 2026-09-18, al fusionar
+        `main`).** Alguien pegó allá las migraciones de Compras de ADR-0111 (existen
+        `proveedor_creditos` y `fn_consumir_saldo_favor`) sin registrarlas, y `20260918217000`
+        redefine `registrar_compra` con 14 parámetros y sin `p_token`, al lado de la de 15. Hoy hay
+        una de 14 (con saldo a favor, sin token) y una de 15 (con token, sin saldo a favor). Una
+        llamada sin `p_token` —la del front desplegado— coincide con las dos y falla por ambigua:
+        es muy probable que «Nueva compra» esté fallando en producción (no se comprobó llamando a
+        la API). Una llamada con `p_token` iría a la de 15 y perdería el saldo a favor. Arreglo:
+        `20260918219000_registrar_compra_una_sola_firma_con_token.sql`, una sola función de 15
+        parámetros con las dos cosas, y borra la de 14; su cuerpo difiere del de ADR-0111 solo en lo
+        del token. Probada en una transacción revertida sobre la sobrecarga que deja `217000`
+        (`pnpm pruebas:deriva-produccion` 13/13). **Falta pegarla en producción (necesita el ok de
+        Felipe); es lo que restablece «Nueva compra» allá.** En el Postgres local compartido NO se
+        aplicó a propósito: tiene que entrar después de `217000`; si entrara antes, `migration up` la
+        daría por aplicada y quedarían dos sobrecargas. Es la tercera vez en esta sesión que un
+        `create or replace` con otra lista de parámetros crea una función nueva en vez de
+        reemplazar (`registrar_movimiento`, `catalogo_actualizar_producto`, y esta): una prueba de CI
+        de «una sola firma por función» atraparía toda la clase.
       - **B. En el repo, pero producción va atrás (pendiente de pegar, necesita el ok de
         Felipe).** `20260917120000_reactivar_rechazado_retira_rechazo`: la
         `fn_tallas_estado_trigger` de producción es la versión vieja (solo aprueba desde

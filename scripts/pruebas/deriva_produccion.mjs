@@ -39,6 +39,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -234,6 +235,40 @@ select count(*) from retail.compras where proveedor_id = :'prov' and serie = upp
 rollback;
 `);
   esperar("sin p_token (como manda el front hoy) dos compras distintas se registran", sinToken.ok && sinToken.salida === "2", sinToken);
+
+  // ---- compras: una sola registrar_compra tras 20260918217000 (ADR-0111) ----
+  // Esa migración redefine `registrar_compra` con 14 parámetros (sin p_token) al lado de la de 15
+  // que dejó `20260918180000`: quedan DOS y cualquier llamada sin p_token es ambigua. Se imita lo
+  // que deja (solo la firma) y se aplica `20260918219000` en una transacción revertida: debe quedar
+  // una sola, con p_token, y el mismo token no debe duplicar la compra.
+  let migracionUnaFirma = null;
+  try {
+    migracionUnaFirma = readFileSync(new URL("../../supabase/migrations/20260918219000_registrar_compra_una_sola_firma_con_token.sql", import.meta.url), "utf8");
+  } catch {
+    // no existe todavía: el escenario falla con un mensaje claro
+  }
+  const firmasCompraSql = `(select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'registrar_compra')`;
+  const unaSolaFirmaTrasArreglo = migracionUnaFirma
+    ? correr(`${FIXTURE_COMPRA}
+create function retail.registrar_compra(p_proveedor_id uuid, p_serie text, p_numero text, p_condicion text, p_ubicacion_destino_id uuid, p_items jsonb, p_tipo text default 'factura', p_fecha_emision date default current_date, p_fecha_vencimiento date default null, p_igv_porcentaje numeric default 18, p_pago jsonb default null, p_nota text default null, p_total numeric default null, p_fecha_estimada_llegada date default null)
+  returns uuid language sql as $$ select null::uuid $$;
+select ${firmasCompraSql} as antes \\gset
+${migracionUnaFirma}
+select gen_random_uuid() as tok \\gset
+${llamada("1", "tok")} as c1 \\gset
+${llamada("1", "tok")} as c2 \\gset
+select :'antes' || '|' || ${firmasCompraSql}::text
+  || '|' || (select bool_and(pg_get_function_arguments(p.oid) like '%p_token uuid%') from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'registrar_compra')::text
+  || '|' || (:'c1' = :'c2')::text
+  || '|' || (select count(*) from retail.compras where token_cliente = :'tok'::uuid)::text;
+rollback;
+`)
+    : { ok: false, mensaje: "falta supabase/migrations/20260918219000_registrar_compra_una_sola_firma_con_token.sql" };
+  esperar(
+    "sobre las dos sobrecargas de 217000, la migración deja una sola registrar_compra, con p_token, y el mismo token no duplica",
+    unaSolaFirmaTrasArreglo.ok && unaSolaFirmaTrasArreglo.salida === "2|1|true|true|1",
+    unaSolaFirmaTrasArreglo
+  );
 
   console.log(`\n${total - fallos}/${total} pruebas en verde.`);
   process.exit(fallos > 0 ? 1 : 0);
