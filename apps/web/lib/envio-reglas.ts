@@ -1,5 +1,6 @@
 import { resolverCodigoV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 import type { CompraResumen, LineaCompra } from "./compras-reglas";
+import type { RecepcionDeCompra } from "./compras-indicadores";
 import { diasDeAtraso, estadoLinea, faltanteDeLinea } from "./recepciones-reglas";
 
 // Reglas puras del ENVÍO (ADR-0113): una llegada a la puerta que puede traer comprobantes de VARIOS
@@ -326,4 +327,93 @@ export function armarPedidoEnvio(p: {
 /** ¿Todas las líneas enviadas de un traslado tienen su conteo? La base lo exige (aunque sea 0). */
 export function trasladoContadoEntero(lineas: LineaEnTraslado[], conteo: ConteoTraslado): boolean {
   return lineas.length > 0 && lineas.every((l) => conteo[l.varianteId] !== undefined);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// «Recibidas» agrupadas por ENVÍO (ADR-0113: lo que quedó pendiente)
+//
+// `listar_recepciones_compras` devuelve una fila por (lote, comprobante): un envío de tres proveedores con una sola
+// guía salía como tres filas sueltas y quien las lee tenía que adivinar que eran la misma llegada. El agrupado no
+// necesita otra migración: cada lote sabe a qué envío pertenece (`lotes.envio_id`) y eso se pide aparte.
+// ---------------------------------------------------------------------------------------------------------------
+
+/** A qué envío pertenece un lote y cuántos lotes y proveedores trajo ese envío EN TOTAL (no solo los que caben en la página). */
+export type EnvioDeLote = { envioId: string; numeroGuia: string | null; lotes: number; proveedores: number };
+
+export type GrupoRecepcion =
+  | {
+      tipo: "envio";
+      envioId: string;
+      numeroGuia: string | null;
+      fechaRecepcion: string;
+      ubicacionNombre: string;
+      /** Proveedores que trajo el envío, contados en la base (no solo los que salen en la página). */
+      proveedores: number;
+      filas: RecepcionDeCompra[];
+      unidadesLlegaron: number;
+      unidadesFacturadas: number;
+      faltante: number;
+      /**
+       * La página no muestra TODO el envío (el límite de filas lo cortó): los totales de arriba serían de una parte y
+       * dirían menos de lo que llegó, así que la pantalla no los pinta.
+       */
+      parcial: boolean;
+    }
+  | { tipo: "suelta"; fila: RecepcionDeCompra };
+
+/**
+ * Agrupa las recepciones de un mismo envío bajo una cabecera. Solo forman grupo los envíos de DOS o más proveedores:
+ * uno con un solo proveedor ya es una fila normal (la guía ya sale en ella) y una cabecera con un solo hijo es ruido.
+ * Las recepciones anteriores al envío (sin `envio_id`) quedan sueltas, como siempre. El orden es el de la lista: cada
+ * grupo ocupa el lugar de su primera fila.
+ *
+ * `llegoAlLimite`: la lista se pidió con un tope de filas y se llenó. Entonces lo último de la página puede ser la mitad
+ * de un lote, así que el grupo que contiene la última fila también se marca parcial.
+ */
+export function agruparPorEnvio(recepciones: readonly RecepcionDeCompra[], envios: Record<string, EnvioDeLote>, opciones: { llegoAlLimite?: boolean } = {}): GrupoRecepcion[] {
+  const grupos: GrupoRecepcion[] = [];
+  const posicion = new Map<string, number>();
+  const ultima = recepciones[recepciones.length - 1];
+  const envioDeLaUltima = ultima ? envios[ultima.loteId] : undefined;
+
+  for (const r of recepciones) {
+    const e = envios[r.loteId];
+    if (!e || e.proveedores < 2) {
+      grupos.push({ tipo: "suelta", fila: r });
+      continue;
+    }
+    const donde = posicion.get(e.envioId);
+    if (donde === undefined) {
+      posicion.set(e.envioId, grupos.length);
+      grupos.push({
+        tipo: "envio",
+        envioId: e.envioId,
+        numeroGuia: e.numeroGuia,
+        fechaRecepcion: r.fechaRecepcion,
+        ubicacionNombre: r.ubicacionNombre,
+        proveedores: e.proveedores,
+        filas: [r],
+        unidadesLlegaron: r.unidadesLlegaron,
+        unidadesFacturadas: r.unidadesFacturadas,
+        faltante: Math.max(0, r.faltante),
+        parcial: false,
+      });
+    } else {
+      const g = grupos[donde];
+      if (g.tipo !== "envio") continue;
+      g.filas.push(r);
+      g.unidadesLlegaron += r.unidadesLlegaron;
+      g.unidadesFacturadas += r.unidadesFacturadas;
+      g.faltante += Math.max(0, r.faltante);
+    }
+  }
+
+  for (const g of grupos) {
+    if (g.tipo !== "envio") continue;
+    const lotesEnPagina = new Set(g.filas.map((f) => f.loteId)).size;
+    const lotesDelEnvio = envios[g.filas[0].loteId]?.lotes ?? lotesEnPagina;
+    const esLaUltima = !!opciones.llegoAlLimite && envioDeLaUltima?.envioId === g.envioId;
+    g.parcial = lotesEnPagina < lotesDelEnvio || esLaUltima;
+  }
+  return grupos;
 }

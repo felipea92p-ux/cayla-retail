@@ -925,6 +925,56 @@
   "tabla": "retail.devoluciones"
  },
  {
+  "conname": "envio_extras_envio_id_fkey",
+  "definicion": "FOREIGN KEY (envio_id) REFERENCES retail.envios(id)",
+  "tabla": "retail.envio_extras"
+ },
+ {
+  "conname": "envio_extras_movimiento_id_fkey",
+  "definicion": "FOREIGN KEY (movimiento_id) REFERENCES retail.movimientos(id)",
+  "tabla": "retail.envio_extras"
+ },
+ {
+  "conname": "envio_extras_pkey",
+  "definicion": "PRIMARY KEY (movimiento_id)",
+  "tabla": "retail.envio_extras"
+ },
+ {
+  "conname": "envio_extras_proveedor_id_fkey",
+  "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)",
+  "tabla": "retail.envio_extras"
+ },
+ {
+  "conname": "envio_traslados_envio_id_fkey",
+  "definicion": "FOREIGN KEY (envio_id) REFERENCES retail.envios(id)",
+  "tabla": "retail.envio_traslados"
+ },
+ {
+  "conname": "envio_traslados_pkey",
+  "definicion": "PRIMARY KEY (envio_id, transferencia_id)",
+  "tabla": "retail.envio_traslados"
+ },
+ {
+  "conname": "envio_traslados_transferencia_id_fkey",
+  "definicion": "FOREIGN KEY (transferencia_id) REFERENCES retail.transferencias(id)",
+  "tabla": "retail.envio_traslados"
+ },
+ {
+  "conname": "envios_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.envios"
+ },
+ {
+  "conname": "envios_recibido_por_fkey",
+  "definicion": "FOREIGN KEY (recibido_por) REFERENCES personas(id)",
+  "tabla": "retail.envios"
+ },
+ {
+  "conname": "envios_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.envios"
+ },
+ {
   "conname": "etiqueta_categorias_categoria_id_fkey",
   "definicion": "FOREIGN KEY (categoria_id) REFERENCES retail.categorias(id) ON DELETE CASCADE",
   "tabla": "retail.etiqueta_categorias"
@@ -1128,6 +1178,11 @@
   "conname": "insumos_unidad_medida_check",
   "definicion": "CHECK ((unidad_medida = ANY (ARRAY['metro'::text, 'unidad'::text, 'kilo'::text, 'cono'::text, 'par'::text, 'docena'::text])))",
   "tabla": "retail.insumos"
+ },
+ {
+  "conname": "lotes_envio_id_fkey",
+  "definicion": "FOREIGN KEY (envio_id) REFERENCES retail.envios(id)",
+  "tabla": "retail.lotes"
  },
  {
   "conname": "lotes_pkey",

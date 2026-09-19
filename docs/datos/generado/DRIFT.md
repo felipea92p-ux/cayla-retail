@@ -1,16 +1,21 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 99 llamadas de `apps/web` contra 167 funciones del schema `retail` en producción.
+> Comparadas 100 llamadas de `apps/web` contra 167 funciones del schema `retail` en producción.
 
 ---
 
-## Roto en producción — 0
+## Roto en producción — 1
 
 ## Sobrecargas — 0
 
 Ninguna. Cada función tiene una sola firma en producción.
-Nada. Todas las llamadas encajan con la firma real.
+### `lineas_compra_operativo` — no existe
+
+**Dónde:** `apps/web/lib/compras.ts:311`
+**Qué pasa:** la función `lineas_compra_operativo` no existe en producción
+**Consecuencia:** esa pantalla falla siempre en las tiendas. No es intermitente.
+
 ## Avisos — 15
 
 - `anular_comprobante` · `apps/web/app/api/lucode/consultar-anulacion/route.ts:72` — no manda `p_motivo` (normal si tienen valor por defecto)
@@ -29,7 +34,7 @@ Nada. Todas las llamadas encajan con la firma real.
 - `fn_proveedor_costo_evolucion` · `apps/web/lib/proveedores.ts:202` — no manda `p_limite` (normal si tienen valor por defecto)
 - `fn_resumen_variantes` · `apps/web/lib/resumen-inventario.ts:41` — no manda `p_ventana_dias` (normal si tienen valor por defecto)
 
-## No analizadas — 22
+## No analizadas — 23
 
 Estas llamadas arman sus parámetros fuera de la propia llamada, así que no se
 pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**
@@ -51,7 +56,8 @@ pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**
 - `por_pagar_tramos` · `apps/web/lib/compras-indicadores.ts:110` — el objeto se arma con «...», no se puede leer entero
 - `listar_recepciones_compras` · `apps/web/lib/compras-indicadores.ts:211` — el objeto se arma con «...», no se puede leer entero
 - `recepciones_sin_comprobante` · `apps/web/lib/compras-indicadores.ts:280` — el objeto se arma con «...», no se puede leer entero
-- `listar_compras` · `apps/web/lib/compras.ts:167` — el objeto se arma con «...», no se puede leer entero
+- `listar_compras_operativo` · `apps/web/lib/compras.ts:175` — el objeto se arma con «...», no se puede leer entero
+- `listar_compras` · `apps/web/lib/compras.ts:195` — el objeto se arma con «...», no se puede leer entero
 - `fn_prioridad_conteo` · `apps/web/lib/conteos.ts:189` — el objeto se arma con «...», no se puede leer entero
 - `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:222` — el objeto se arma con «...», no se puede leer entero
 - `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:252` — el objeto se arma con «...», no se puede leer entero

@@ -1448,6 +1448,44 @@ export type Database = {
           },
         ]
       }
+      envios: {
+        Row: {
+          fecha_recepcion: string
+          id: string
+          nota: string | null
+          numero_guia: string | null
+          recibido_por: string | null
+          token_cliente: string | null
+          ubicacion_id: string
+        }
+        Insert: {
+          fecha_recepcion?: string
+          id?: string
+          nota?: string | null
+          numero_guia?: string | null
+          recibido_por?: string | null
+          token_cliente?: string | null
+          ubicacion_id: string
+        }
+        Update: {
+          fecha_recepcion?: string
+          id?: string
+          nota?: string | null
+          numero_guia?: string | null
+          recibido_por?: string | null
+          token_cliente?: string | null
+          ubicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "envios_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       etiqueta_categorias: {
         Row: {
           categoria_id: string
@@ -1721,6 +1759,7 @@ export type Database = {
       }
       lotes: {
         Row: {
+          envio_id: string | null
           fecha_recepcion: string
           id: string
           nota: string | null
@@ -1730,6 +1769,7 @@ export type Database = {
           ubicacion_id: string
         }
         Insert: {
+          envio_id?: string | null
           fecha_recepcion?: string
           id?: string
           nota?: string | null
@@ -1739,6 +1779,7 @@ export type Database = {
           ubicacion_id: string
         }
         Update: {
+          envio_id?: string | null
           fecha_recepcion?: string
           id?: string
           nota?: string | null
@@ -1748,6 +1789,13 @@ export type Database = {
           ubicacion_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lotes_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lotes_proveedor_id_fkey"
             columns: ["proveedor_id"]
@@ -4521,6 +4569,22 @@ export type Database = {
         }
         Returns: string
       }
+      lineas_compra_operativo: {
+        Args: {
+          p_compra_ids: string[]
+        }
+        Returns: {
+          cantidad: number
+          cerrado: number
+          compra_id: string
+          descripcion: string | null
+          id: string
+          pendiente: number
+          producto_id: string | null
+          recibido: number
+          variante_id: string | null
+        }[]
+      }
       listar_compras: {
         Args: {
           p_busqueda?: string
@@ -4581,6 +4645,40 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      listar_compras_operativo: {
+        Args: {
+          p_busqueda?: string
+          p_cursor_creado_en?: string
+          p_cursor_fecha?: string
+          p_cursor_id?: string
+          p_desde?: string
+          p_estado_recepcion?: string
+          p_hasta?: string
+          p_limite?: number
+          p_por_recibir?: boolean
+          p_proveedor_id?: string
+          p_tipo?: string
+        }
+        Returns: {
+          cerrado_cantidad: number
+          created_at: string
+          documento: string
+          estado: string
+          estado_recepcion: string
+          facturado_cantidad: number
+          fecha_emision: string
+          fecha_estimada_llegada: string | null
+          id: string
+          nota: string | null
+          proveedor_id: string
+          proveedor_nombre: string
+          proveedor_ruc: string | null
+          recepcion_atrasada: boolean
+          recibido_cantidad: number
+          tipo: string
+          ubicacion_destino_id: string
+        }[]
       }
       listar_recepciones_compras: {
         Args: {

@@ -4,7 +4,7 @@
 > Para darle pájaro a una tabla se edita `scripts/datos/aviario.mjs`. Para apuntarte a un
 > pájaro, `docs/datos/07-GOBIERNO.md` §1: el pájaro es el puesto, quién lo lleva se dice allá.
 >
-> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 67 · **Sin pájaro:** 0
+> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 70 · **Sin pájaro:** 0
 
 ## Por pájaro
 
@@ -14,7 +14,7 @@
 | 02 | **Loro** | Catálogo y vocabulario | `categoria_patrones` · `categoria_tallas` · `categoria_tejidos` · `categorias` · `codigos_barras` · `codigos_correlativos` · `colores` · `etiqueta_categorias` · `etiquetas` · `familias` · `historial_producto_cambios` · `marca_proveedores` · `marcas` · `patrones` · `producto_fotos` · `productos` · `tallas` · `tejidos` · `variante_etiquetas` · `variantes` |
 | 03 | **Tucán** | Taxonomía universal | *sin tablas hoy* |
 | 04 | **Golondrina** | Importación de catálogo | *sin tablas hoy* |
-| 05 | **Halcón** | Inventario y movimientos | `costo_historial` · `lotes` · `movimientos` · `prendas_danadas` · `stock` · `sububicaciones` · `transferencia_items` · `transferencia_recepciones` · `transferencias` |
+| 05 | **Halcón** | Inventario y movimientos | `costo_historial` · `envio_extras` · `envio_traslados` · `envios` · `lotes` · `movimientos` · `prendas_danadas` · `stock` · `sububicaciones` · `transferencia_items` · `transferencia_recepciones` · `transferencias` |
 | 06 | **Lechuza** | Conteo y censo físico | `conteo_items` · `conteos` |
 | 07 | **Colibrí** | Ventas y caja | `caja_movimientos` · `cajas` · `cambios` · `clientes` · `codigos_descuento` · `devolucion_items` · `devoluciones` · `venta_anulacion_items` · `venta_items` · `venta_pagos` · `ventas` |
 | 08 | **Cuervo** | Facturación SUNAT | `comprobantes` · `configuracion_empresa` · `proformas` · `series_comprobantes` · `ubicacion_datos_fiscales` |
@@ -60,6 +60,9 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `costo_historial` | 05 · Halcón |
 | `devolucion_items` | 07 · Colibrí |
 | `devoluciones` | 07 · Colibrí |
+| `envio_extras` | 05 · Halcón |
+| `envio_traslados` | 05 · Halcón |
+| `envios` | 05 · Halcón |
 | `etiqueta_categorias` | 02 · Loro |
 | `etiquetas` | 02 · Loro |
 | `familias` | 02 · Loro |
