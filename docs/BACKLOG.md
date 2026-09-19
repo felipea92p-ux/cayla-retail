@@ -28,6 +28,58 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Endurecer el pago a proveedores (2026-09-19, ADR-0135) — migración lista en local, falta producción
+- [ ] Aplicar en producción, EN ESTE ORDEN: `20260919180000_pagos_compras_endurecimiento.sql` (pagos) y `20260919181000_registrar_compra_endurecimiento_por_parche.sql` (parche con guarda de `registrar_compra`; corre antes o después del reparto por tienda, ADR-0132). Verificar una sola firma de cada función. Al pegarlas: código de la web con `p_token` va DESPUÉS (o el pago del detalle falla).
+- [ ] Después: enviar `p_token` (uuid del formulario) desde `CompraDetallePanel.tsx` a `registrar_pagos_compra`; regenerar `types.ts` y el diccionario de producción. Antes de aplicar, NO: la función vieja no acepta el parámetro.
+- [ ] Decidir M6: por defecto del saldo a favor en el pago individual, en lote y al registrar el comprobante (hoy solo el lote lo destaca).
+- [ ] `registrar_pago_compra` (singular) tiene EXECUTE para PUBLIC: cerrar con `revoke … from public, anon` (exige líder por dentro; no explotable, pero conviene).
+- [ ] Deriva local: `por_pagar_tramos` sin candado ADR-0126 (falla `dinero_compras_solo_lider`); repegar `20260919160000` en el local.
+
+## 🎯 Comprobantes con movimiento y regla de modales (2026-09-19, ADR-0136)
+
+Hecho: regla de modales en `<Modal>` (los 49 la heredan); lista `/compras` con cifras que cuentan, barras de reparto, indicador deslizante,
+avance en la celda, filas que se reacomodan (FLIP) y atajos `/` `j` `k`; detalle con línea de tiempo, historial de pagos y **Registrar pago
+desde el detalle** (antes navegaba a Por pagar); registro con tramos, lista de pendientes y ayuda de costo; corregido el error de la factura
+(`estadoNotaFaltante` llamada desde el servidor).
+
+- [ ] **Recorrido visual por Felipe** de `/compras`, la factura (modal y página), Registrar pago, Pago juntos y `/compras/nueva`: el movimiento
+      solo está verificado por tipos, pruebas y compilación, no a ojo. Mirar sobre todo: el indicador de pestañas, el reacomodo de filas al
+      cambiar de vista, y que `LineasPago` (cambió de desplegable a fichas) se vea bien también dentro de `/compras/nueva`.
+- [ ] **Migrar a `<Modal>`** las piezas que dibujan su propio overlay: `ProveedorModal`, `ProveedorVistaRapida` (movimiento propio de ADR-0128),
+      `ConteoPanel`, `ProductosAgrupados`. Cambia su aspecto: pantalla por pantalla, con ok de Felipe.
+- [ ] **Recorrido de los 49 modales** por la nueva entrada (más larga y con cascada): Vender, Caja y Compras primero.
+- [ ] **«Costo actual» vs «último costo»** en el registro: hoy la ayuda usa el costo promedio ponderado de `variantes.costo`; el último costo real
+      pagado exige leer `costo_historial` (consulta nueva).
+- [ ] Una **prueba de arquitectura** que impida llamar desde un Server Component a una función exportada por un archivo `"use client"` (el error
+      que tumbó la factura no lo ve `tsc` ni `next build`: solo aparece al renderizar).
+
+## 🎯 Proveedores: CCI, Yape/Plin y titular para pagar sin equivocarse (2026-09-19, ADR-0134)
+
+Rama `claude/comprobantes-ui-ux-animations-ab153b`. **La base YA está en producción** (registrada como
+`20260919173940 proveedores_cci_y_billetera`; el archivo del repo es `20260919170000_…`, se renumera al aplicarla):
+4 columnas nuevas en `retail.proveedores` (`cci`, `celular_billetera`, `billeteras`, `titular_cuenta`) con 5 candados,
+la RPC `guardar_cuentas_proveedor` (solo líder) y `fn_proveedores()` con 28 columnas; una sola firma de cada una, nada en
+`public`, EXECUTE solo `authenticated`. Hay 2 proveedores y ninguna cuenta cargada (el backfill no copió nada). Pruebas:
+`pnpm pruebas:proveedores-cuentas` (28 casos) y `proveedores-reglas.test.ts`. **La web va en este PR** (tarjeta
+`CuentasProveedor`, «Cómo pagarle» en `ProveedorModal`, ficha, chip «Sin datos de pago», `PagoJuntosModal`, `LineasPago`,
+`CompraFormV2`). Regla: un proveedor con pago preferido EFECTIVO no se marca «sin datos de pago»; el N.° de operación sigue opcional.
+
+- [ ] **Visibilidad por rol de las 5 columnas de pago** (`banco`, `cuenta_bancaria`, `cci`, `celular_billetera`,
+      `titular_cuenta`): **decisión final del proyecto** (Felipe, 2026-09-19: «como parte final cuando esté casi todo el
+      proyecto hecho»). Se cierran juntas o ninguna. Ver el ítem «Decisión a reconsiderar» de la sección «Crear producto como árbol de decisión
+      (ADR-0109)» más abajo (`proveedores_select` a cualquier sesión) y ADR-0134 (D7). Cuidado: `compras_resumen`/`listar_compras` arrastran
+      `proveedor_banco/cuenta_bancaria` con el rol del usuario; esconder columnas sin más rompería el detalle de compras.
+- [ ] **Bitácora de cambios de cuenta** (riesgo residual, recomendado como siguiente paso **antes de que haya volumen de
+      pagos**): tabla append-only `proveedor_cuentas_historial` —quién, cuándo, valor anterior enmascarado— escrita por
+      `guardar_cuentas_proveedor` en la misma transacción. Hoy un líder o una sesión comprometida puede cambiar un CCI antes de
+      un pago sin dejar rastro. Es dato personal de un tercero (Ley 29733).
+- [ ] **Anular la copia duplicada de `cuenta_bancaria`** donde ya está el mismo número en `cci` (opcional, decisión de Felipe;
+      no se propone hacerlo ahora: no se borran datos con historial). La UI ya no la muestra repetida (`cuentaLocalVisible`).
+- [ ] **Refrescar el volcado de producción** para que el diccionario incluya las columnas y la función nuevas
+      (`pnpm datos:generar:produccion`; `docs/datos/generado/COMO-REFRESCAR.md`). No se editó `generado/` a mano.
+- [ ] **Cargar a mano el CCI/celular/titular de los 2 proveedores reales** cuando la web se fusione, y mirar en pantalla que
+      «Sin datos de pago» y los avisos de `CompraFormV2`/`LineasPago` salgan como se espera (las pantallas no tienen prueba automática).
+
 ## 🎯 Menú lateral plegable (2026-09-19, ADR-0130)
 
 Aplicado y verificado en el navegador como líder (escritorio). Falta:
@@ -720,6 +772,10 @@ vuelo del censo fallan en la pantalla actual («Elige la marca del producto»).
       abiertos»): `proveedores_select` deja a cualquier sesión autenticada leer `banco` y `cuenta_bancaria`.** Una cuenta
       bancaria es dato de pago. Si Felipe está de acuerdo: restringir esas dos columnas al rol que compra/paga, o moverlas
       a una tabla aparte. Este PR no lo toca.
+      **Nota 2026-09-19 (ADR-0134):** desde hoy son **cinco** las columnas de pago (`banco`, `cuenta_bancaria` + `cci`,
+      `celular_billetera`, `titular_cuenta`, todas legibles por cualquier sesión) y **se cierran juntas o ninguna**. Felipe
+      decidió dejar la restricción por rol para el final del proyecto; sigue abierta, ahora con más superficie. Ver la
+      entrada «Proveedores: CCI, Yape/Plin y titular» arriba de este archivo.
 - [x] **Editar categoría (`CategoriasLista.tsx`)**: chip de «habitual» en cada talla; manda `p_talla_habitual_ids`.
 - [x] **`catalogo_crear_producto`** retirado del uso (`231200`: sin permiso de ejecución; la función queda, no se borra).
 - [ ] **Limpieza de nombres existentes** (no urgente): BLU-001, CHO-001, FAL-001, PAN-001, POL-001, VES-001 son

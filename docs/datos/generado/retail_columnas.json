@@ -5107,6 +5107,42 @@
    "ordinal_position": 12,
    "table_name": "proveedores",
    "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cci",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 13,
+   "table_name": "proveedores",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "celular_billetera",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 14,
+   "table_name": "proveedores",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "billeteras",
+   "data_type": "ARRAY",
+   "is_nullable": "YES",
+   "ordinal_position": 15,
+   "table_name": "proveedores",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "titular_cuenta",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 16,
+   "table_name": "proveedores",
+   "table_schema": "retail"
   }
  ],
  "series_comprobantes": [

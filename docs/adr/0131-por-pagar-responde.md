@@ -99,7 +99,7 @@ dice y se enlaza a la ficha (en otra pestaña, para no perder el pago a medio ha
 del proveedor, calla en vez de afirmar que faltan. El **titular** es el control anti-error: quien paga lo compara con el
 nombre que muestra el banco o Yape antes de confirmar. La franja de arriba queda solo con «Paga por» y el crédito.
 **Datos:** usa `cci`, `celular_billetera`, `billeteras` y `titular_cuenta` de `proveedores`, que trae `fn_proveedores()`;
-los agregó la sesión de Proveedores (su ADR-0129, migración `20260919170000`, ya en producción) y se copiaron SUS tipos
+los agregó la sesión de Proveedores (su ADR-0134, migración `20260919170000`, ya en producción) y se copiaron SUS tipos
 (`lib/proveedores.ts`, `packages/database`) idénticos para que la fusión sea limpia. **Numeración:** este ADR era el 0129;
 pasó a 0131 porque el 0129 y el 0130 (regla de movimiento de modales) son de esa rama.
 

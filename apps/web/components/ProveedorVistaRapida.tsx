@@ -7,7 +7,7 @@ import { ChevronDown, ChevronUp, X } from "lucide-react";
 import type { Proveedor } from "@/lib/proveedores";
 import { soles } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
-import { estadoDeProveedor, haceCuanto, inicialesMeses, siguientePaso } from "@/lib/proveedores-reglas";
+import { estadoDeProveedor, haceCuanto, inicialesMeses, siguientePaso, sinDatosDePago } from "@/lib/proveedores-reglas";
 import { BarrasMensuales } from "@/components/ui/BarrasMensuales";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -82,6 +82,7 @@ export function ProveedorVistaRapida({
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                   {p.rubro && <Chip className="normal-case tracking-normal font-medium text-xs">{p.rubro}</Chip>}
                   {p.plazo_credito_dias != null && <Chip className="normal-case tracking-normal font-medium text-xs">Crédito a {p.plazo_credito_dias} días</Chip>}
+                  {p.activo && sinDatosDePago(p) && <Chip tono="ambar" className="normal-case tracking-normal font-medium text-xs">Sin datos de pago</Chip>}
                   {!p.activo && <Chip tono="rojo" className="normal-case tracking-normal font-medium text-xs">Desactivado</Chip>}
                 </div>
               </div>
