@@ -31,12 +31,15 @@ const BASE =
   "focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 " +
   "disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:h-[15px] [&>svg]:w-[15px] [&>svg]:shrink-0";
 
+// `enabled:hover:` y no `hover:`: `hover:` no excluye `:disabled`, así que un botón deshabilitado o
+// `cargando` seguiría levantándose o rellenándose bajo el puntero (y en `fila-alerta` el relleno rojo
+// taparía el hilo de carga, que también es rojo).
 const VARIANTE: Record<VarianteBotonCompacto, string> = {
-  primario: "h-9 rounded-[10px] bg-tinta px-3.5 text-[13px] text-crema hover:-translate-y-px hover:shadow",
-  vidrio: "vidrio-cayla h-9 rounded-[10px] px-3.5 text-[13px] text-tinta hover:-translate-y-px hover:shadow",
-  fila: "h-[30px] rounded-[8px] border border-tinta/28 px-3 text-[12.5px] text-tinta hover:bg-tinta hover:text-crema",
+  primario: "h-9 rounded-[10px] bg-tinta px-3.5 text-[13px] text-crema enabled:hover:-translate-y-px enabled:hover:shadow",
+  vidrio: "vidrio-cayla h-9 rounded-[10px] px-3.5 text-[13px] text-tinta enabled:hover:-translate-y-px enabled:hover:shadow",
+  fila: "h-[30px] rounded-[8px] border border-tinta/28 px-3 text-[12.5px] text-tinta enabled:hover:bg-tinta enabled:hover:text-crema",
   "fila-alerta":
-    "h-[30px] rounded-[8px] border border-rojo-profundo px-3 text-[12.5px] text-rojo-profundo hover:border-rojo hover:bg-rojo hover:text-crema",
+    "h-[30px] rounded-[8px] border border-rojo-profundo px-3 text-[12.5px] text-rojo-profundo enabled:hover:border-rojo enabled:hover:bg-rojo enabled:hover:text-crema",
 };
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
