@@ -18,7 +18,17 @@ import { Search, X } from "lucide-react";
  * Solo se manda a la URL (`&todas=1`) junto con una búsqueda real: no tiene sentido
  * sin `q`, y las páginas que llaman esto lo ignoran si no hay texto que buscar.
  */
-export function BuscarPorComprobante({ valorInicial, todasInicial = false }: { valorInicial: string; todasInicial?: boolean }) {
+export function BuscarPorComprobante({
+  valorInicial,
+  todasInicial = false,
+  marcador = "Buscar por N° de boleta o factura (ej. B001-10)",
+}: {
+  valorInicial: string;
+  todasInicial?: boolean;
+  /** Cambios también busca por la etiqueta de la prenda (2026-09-18); Devoluciones,
+   *  todavía solo por boleta — cada pantalla dice lo que de verdad entiende. */
+  marcador?: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [texto, setTexto] = useState(valorInicial);
@@ -50,8 +60,9 @@ export function BuscarPorComprobante({ valorInicial, todasInicial = false }: { v
             type="text"
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
-            placeholder="Buscar por N° de boleta o factura (ej. B001-10)"
-            className="min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/40"
+            placeholder={marcador}
+            aria-label={marcador}
+            className="min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/55"
           />
           {texto && (
             <button type="button" onClick={limpiar} aria-label="Limpiar búsqueda" className="shrink-0 text-tinta/50 hover:text-rojo">

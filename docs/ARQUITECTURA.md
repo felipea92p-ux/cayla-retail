@@ -263,6 +263,32 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   ADR-0045). Modales del padre:
   `AbrirCajaFormV2` (RPC `abrir_caja`) y `CerrarCajaModalV2` (RPC `cerrar_caja`, con
   conteo ciego: el esperado sale de la respuesta del cierre, no antes).
+- **Cambios y Devoluciones comparten lector y piezas** (ADR-0125/0122): `lib/ventas-v2.ts:
+  getVentasRecientes` (actividad = ventas de la sede de los últimos 15 días; búsqueda por
+  boleta, DNI/RUC o nombre de la clienta —de `comprobantes`—, nombre o etiqueta de la prenda,
+  o `?item=` para una prenda exacta; trae también los cambios y devoluciones ya hechos por
+  línea, el descuento y si el comprobante está aceptado), `BuscadorVentas.tsx`,
+  `ComprasAgrupadas.tsx` (lista por día y compra) y `FlujoGuiado.tsx` (pasos, botones,
+  validaciones, foco/Escape). Reglas puras compartidas —plazo R-38, `unidadesDisponibles`
+  (descuenta lo cambiado y lo devuelto), validaciones— en `lib/cambios-reglas.ts`.
+- `/cambios` → `getVentasRecientes` + `getCatalogo` + stock del piso + `fn_stock_por_sede` +
+  `getCajaAbierta` + `lib/cambios-estadisticas.ts` (hoy / mes / valor cambiado; "tallas que no
+  calzan" solo para líderes) → `CambiosPanel.tsx` (bloques "Iniciar un cambio" y "Actividad
+  reciente", filas en `CambiosVentas.tsx`) → `CambiosFlujo.tsx` (Venta → Prenda → Reemplazo →
+  Confirmación, sin modal; paso 3 en `CambioReemplazo.tsx`, piezas de lectura en
+  `CambioResumen.tsx`) → RPC `registrar_cambio` (motivo + condición de la prenda que vuelve:
+  vendible al piso, no vendible a cuarentena con fila en `prendas_danadas.cambio_id`; rechaza
+  ventas anuladas; migración 20260919000100).
+- `/devoluciones` (ADR-0122) → `getVentasRecientes` + `lib/devoluciones.ts`
+  (`getDevolucionesPendientes`, `getEstadisticasDevoluciones`) + `getCajaAbierta` →
+  `DevolucionesPanel.tsx` (bloques "Iniciar una devolución", "Por aprobar" y "Actividad
+  reciente"; filas en `DevolucionesVentas.tsx`; "Anular venta" en el encabezado de cada compra,
+  solo líder) → `DevolucionesFlujo.tsx` (Venta → Prendas → Detalle → Confirmación: VARIAS
+  prendas en una sola devolución) → RPC `crear_devolucion` (queda `pendiente`; no mueve nada) →
+  `DevolucionesPendientes.tsx` (solo un líder) → RPCs `aprobar_devolucion` (mueve el stock, emite
+  la Nota de Crédito si el comprobante está aceptado —ADR-0100— y el reembolso opcional; lo
+  dañado entra a cuarentena) y `rechazar_devolucion`. Reglas puras en
+  `lib/devoluciones-reglas.ts`. `?item=` abre el flujo sobre una prenda (desde y hacia Cambios).
 
 **Compras (V2, ADR-0035 — la factura del proveedor es el eje)**
 - `/compras/proveedores` → `lib/proveedores.ts:getProveedores` (RPC

@@ -3,6 +3,84 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Atelier: el diseño visual de Cambios y Devoluciones — ADR-0123)
+
+**Qué se cerró.** Felipe pidió ver el rediseño «más estético, con más animaciones» antes de
+decidir: se armaron tres maquetas interactivas (A Atelier, B Tablero, C Vitrina) y eligió la A. Se
+llevó a la app real: el hilo taupe como línea de tiempo, pasos y unión entre prendas; cabecera con
+la sede y la hora de Lima viva; cifras que suben; checks que se trazan; y el impacto en inventario
+y caja visible desde el paso 3. Afecta a Cambios y Devoluciones a la vez (piezas compartidas).
+
+**Qué se aprendió.** Mostrar tres direcciones con los mismos datos hizo la decisión en minutos y
+sin tocar el código. Y aterrizar una maqueta es ajustar su escala a la app (el título de 66 px
+desentonaba), no copiarla. Pendiente: probar con clic real y datos reales.
+
+## 2026-09-18 (Cabecera con nombre de sede y plazo en verde/rojo — ADR-0122)
+
+**Qué se cerró.** Las tres cifras de arriba a la derecha de Cambios y Devoluciones eran texto suelto
+alineado a la izquierda; ahora viven en un recuadro con el nombre de la sede (`ResumenSede`), cada
+cifra centrada sobre su etiqueta y con un ícono. Y el plazo se lee por color: verde dentro del plazo
+(incluido «Vence en N días»), rojo fuera, en la fila, en la validación y en «Por aprobar».
+
+Después, pedido de Felipe: las dos pantallas pasan a **todo el ancho** (`SIN_TOPE_DE_ANCHO` en
+`AppShell`), las compras se reparten en columnas de 34rem como mínimo en vez de una fila de 1500 px
+con un vacío entre el nombre y el botón, y el panel de validaciones sube a 21rem en pantallas
+anchas. El título sube (`items-start`), el resumen se compacta (el nombre de la sede es un rótulo
+sobre el borde, no una fila más), toma el `sand` del sistema en vez de la tarjeta clara y sus
+números suben hasta su valor (`CifraAnimada`, sin movimiento si el usuario lo pidió así). Todo lo
+de abajo sube con ellos: menos aire entre la cabecera y el buscador.
+
+**Qué se aprendió.** Un color que significa algo tiene que salir de una sola regla: el chip, la
+validación y la tarjeta de aprobación leen el mismo `EstadoVisual`, por eso cambiarlo fue tocar dos
+funciones y no doce pantallas. Pendiente: el rojo puede pasar el tope de 2 por pantalla si una
+búsqueda trae varias compras vencidas — decidir si se acepta.
+
+## 2026-09-18 (Devoluciones con el modelo de Cambios — ADR-0122)
+
+**Qué se cerró.** `/devoluciones` rehecha con el mismo flujo que Cambios, sin migración ni backend.
+Lo que cambia de fondo: una devolución tiene dos tiempos (la registra una colaboradora, la aprueba
+un líder), así que el impacto se dice «al aprobarla» y la caja se valida en la aprobación. Se elige
+más de una prenda por boleta en una sola devolución —la base ya lo aceptaba y la pantalla vieja
+creaba una por línea, con una nota de crédito parcial cada una—. Nuevo bloque «Por aprobar» con lo
+que necesita el líder: valor pagado, aviso de plazo y de caja cerrada. Lo compartido con Cambios se
+extrajo (`getVentasRecientes`, `FlujoGuiado`, `ComprasAgrupadas`, `BuscadorVentas`) en vez de copiarse.
+437 pruebas, build en verde; 9 consultas nuevas probadas contra datos reales.
+
+**Qué se aprendió.** Tres hallazgos de datos, no de pantalla. (1) Lo que la clienta pagó no es
+`precio_unitario`: hay líneas con `descuento_unitario` (149.90 con 15 de descuento) y la nota de
+crédito de `aprobar_devolucion` acredita el precio de lista —queda en BACKLOG, es plata—. (2) La base
+no cruza cambios con devoluciones: una línea cambiada se puede devolver y el stock se duplica; se
+cubrió en pantalla, el candado real sigue pendiente. (3) La sesión paralela cerró el hueco de venta
+anulada el mismo día, así que se dejó de tocar `crear_devolucion` a propósito: dos sesiones sobre la
+misma función habrían dejado sobrecargas duplicadas (el mismo bug de ADR-0125).
+
+**Pendiente.** El plazo de 15 días solo se avisa en Devoluciones (decisión mía por Felipe,
+reversible): falta que diga quién decide pasado el plazo. Y probar con clic real: el panel oculto no
+hidrata las páginas del menú.
+
+## 2026-09-18 (Cambios: de "no me convence" a flujo guiado — ADR-0125)
+
+**Qué se cerró.** Auditoría de `/cambios` y rediseño completo en dos vueltas. Flujo
+Venta → Prenda → Reemplazo → Confirmación con validaciones en vivo e impacto en inventario
+y caja; buscador único (boleta, DNI, clienta, prenda o etiqueta); actividad de los 15 días
+del plazo. Migración `20260919000100`: motivo del cambio, estado de la prenda que vuelve
+(con defecto va a la cuarentena de Devoluciones) y bloqueo de ventas anuladas. 18/18 en
+`pruebas:registrar-cambio`, 407 unitarias, build en verde. **No está en producción:** la
+migración va antes que el front.
+
+**Qué se aprendió.** Tres de los hallazgos no eran de pantalla sino del modelo. Un cambio
+por defecto devolvía la prenda fallada al piso: el stock mentía. Se podía cambiar una prenda
+de una venta anulada: el stock se duplicaba. Y el switch "todas las sedes" le respondía "no
+encontramos" a una integrante porque la RLS no la deja ver otras sedes. Del brief se
+descartó a propósito lo que no existe en CAYLA: estados "pendiente" o "requiere
+autorización", buscar por teléfono y el cambio de una venta nunca registrada. Mostrarlo
+habría sido lógica falsa.
+
+**Pendiente.** Probar con sesión real: el panel del navegador no tenía login y la vuelta se
+hizo con datos de ejemplo. Siguen en pausa, por decisión de Felipe, dos temas: la
+diferencia de precio ante SUNAT y el método que arranca en efectivo, y las excepciones al
+plazo.
+
 ## 2026-09-19 (Cuatro hallazgos de los indicadores de Compras quedan corregidos: la ficha, las devoluciones, los subtotales de Por pagar y la fecha de los pagos)
 
 Los indicadores se habían probado con 140 casos y dejaron cinco `[HALLAZGO]`: pruebas que afirman lo que la función DEBERÍA hacer y que salían con ⚠. Se corrigen cuatro en `20260918221000`: «% entregado completo» de la ficha ya cuenta como completo solo lo que llegó entero (una línea cerrada por faltante deja el comprobante en `recibida`, pero el proveedor no cumplió); «última devolución» es el día en que se devolvió (`resuelto_en`), no el de entrada a cuarentena; `por_pagar_tramos` acepta el tipo de documento y las fechas de emisión, así que los subtotales cuadran con las filas filtradas; y los pagos sin fecha usan la de Lima, no la de UTC. La quinta (H4, qué ve un integrante de los montos) se difiere por decisión de Felipe.

@@ -23,6 +23,24 @@ export function SinFoto({ tamano = "h-9 w-9" }: { tamano?: string }) {
   );
 }
 
+/** La miniatura sola: la foto de la prenda, o el marcador de perchero con un punto
+ *  del color vendido (con borde, para que un beige o un blanco no desaparezcan sobre
+ *  el papel). Cambios la usa en grande (2026-09-18): la colaboradora compara la foto
+ *  con la prenda que la clienta tiene en la mano. */
+export function MiniaturaPrenda({ fotoUrl, colorHex = null, tamano = "sm" }: { fotoUrl: string | null; colorHex?: string | null; tamano?: "sm" | "lg" }) {
+  const [clase, px] = tamano === "lg" ? ["h-12 w-12", 48] : ["h-9 w-9", 36];
+  if (fotoUrl) {
+    return <Image src={fotoUrl} alt="" width={px} height={px} unoptimized className={`${clase} shrink-0 rounded-md border border-tinta/10 object-cover`} />;
+  }
+  if (!colorHex) return <SinFoto tamano={clase} />;
+  return (
+    <span className="relative shrink-0">
+      <SinFoto tamano={clase} />
+      <span aria-hidden className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-papel ring-1 ring-tinta/25" style={{ background: colorHex }} />
+    </span>
+  );
+}
+
 export function PrendaCelda({
   referencia,
   sku,
@@ -39,11 +57,7 @@ export function PrendaCelda({
   /** Una sola línea ("Blusa Camila · Blanco L"): para listas cortas. */
   compacta?: boolean;
 }) {
-  const miniatura = fotoUrl ? (
-    <Image src={fotoUrl} alt="" width={36} height={36} unoptimized className="h-9 w-9 shrink-0 rounded-md border border-tinta/10 object-cover" />
-  ) : (
-    <SinFoto />
-  );
+  const miniatura = <MiniaturaPrenda fotoUrl={fotoUrl} />;
 
   if (compacta) {
     return (
