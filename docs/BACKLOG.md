@@ -31,19 +31,20 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 ## 🎯 Compras: indicadores para decidir, faltantes con nota de crédito y pago por lote (2026-09-18, ADR-0111)
 
 Rama `claude/pantallas-proveedores-comprobantes-a15ece`. **`main` ya está fusionada en esta rama (2026-09-18,
-local; sin push)**: tipos, tests, lint y las 99 pruebas SQL en verde, y las 135 migraciones del repo se
+local; sin push)**: tipos, tests, lint y las pruebas SQL en verde (99 entonces; 112 con las de «esperando nota»), y las 135 migraciones del repo se
 reprodujeron limpias desde cero en un Postgres nuevo. Falta el PR contra `main`. Las 11 pantallas de `docs/maquetas/compras-2026-09/` están
 implementadas en código (Por pagar, Recibir mercadería, Comprobantes, Registrar, Proveedores +
 ficha, Ingreso sin comprobante). D1 (cantidades arrancan en 0), D2 (cerrar línea con faltante +
 nota de crédito, libro append-only) y D3 (pagar varios comprobantes de un proveedor de una vez).
-El ADR es el **0111**: main ya usa 0104–0107 y hay ramas abiertas con 0108, 0109 y 0110. Las 15 migraciones
-van en la banda `20260918200000`–`20260918218000` (main trae su propia `20260918160000`, y otras dos ramas usan
+El ADR es el **0111**: main ya usa 0104–0107 y hay ramas abiertas con 0108, 0109 y 0110. Las 16 migraciones
+van en la banda `20260918200000`–`20260918220000` (main trae su propia `20260918160000`, y otras dos ramas usan
 `20260918170000`: una versión repetida rompe `supabase migration up`).
 
-- [ ] **Pegar en producción las 15 migraciones, en este orden** (Felipe, con su ok). Verificado
+- [ ] **Pegar en producción las 16 migraciones, en este orden** (Felipe, con su ok). Verificado
       2026-09-18 contra la base de producción (`vovjyyiafkxteijimpuy`): ninguna está aplicada; todo
-      lo anterior del repo, hasta `20260918150000`, sí. Las cuatro últimas (12–15) llegaron el mismo día,
-      tras la prueba de Felipe: nota de crédito estricta, saldo a favor del proveedor y recepción atómica. `compras` tiene 0 filas en producción, así
+      lo anterior del repo, hasta `20260918150000`, sí. Las cuatro siguientes (12–15) llegaron el mismo día,
+      tras la prueba de Felipe: nota de crédito estricta, saldo a favor del proveedor y recepción atómica; la 16 es
+      solo una función de lectura nueva (no toca datos ni cambia ninguna otra función). `compras` tiene 0 filas en producción, así
       que la reconstrucción de `saldo/estado_pago/estado_recepcion` no toca datos. Cada archivo ya
       trae su `set search_path = retail, public, extensions;` (no hace falta el prefijo `retail.`).
       1. `20260918200000_fn_hoy_lima` — `fn_hoy_lima()`; reemplaza `current_date` (Lima, no UTC). **Producción ya
@@ -76,6 +77,10 @@ van en la banda `20260918200000`–`20260918218000` (main trae su propia `202609
           pagos (`p_credito` en el lote) y `registrar_reembolso_proveedor`.
       15. `20260918218000_saldo_a_favor_lecturas` — `fn_proveedores`/`fn_proveedores_resumen` con saldo a favor,
           `fn_proveedor_creditos`.
+      16. `20260918220000_compras_nota_pendiente_para_listas` — `compras_nota_pendiente(uuid[])`: los
+          comprobantes con faltante cerrado y sin nota, para el chip «Esperando nota» de las listas. Solo líder;
+          función nueva (sin overload ni cambio de retorno de `listar_compras`). Si la rama se despliega sin
+          pegarla, las listas se dibujan igual, sin el chip (el error queda en el log del servidor).
       **Después de pegar:** desplegar la rama (las pantallas llaman a estas funciones — sin las
       migraciones, `datos:comparar` las marca rotas) y correr `pnpm datos:generar:produccion`.
 - [ ] **Verificación visual contra las maquetas** (escritorio y móvil): el navegador integrado pide
@@ -87,7 +92,12 @@ van en la banda `20260918200000`–`20260918218000` (main trae su propia `202609
       `compra_items`, no de `costo_historial`; (d) sin prueba SQL propia de los indicadores
       (`scripts/pruebas/compras_indicadores.mjs`); (e) `types.ts` ya se regeneró tras
       la fusión con main (hecho); (f) al pegar en producción: refrescar el volcado y correr
-      `pnpm datos:generar:produccion && pnpm datos:comparar` (el aviario ya conoce las 3 tablas nuevas).
+      `pnpm datos:generar:produccion && pnpm datos:comparar` (el aviario ya conoce las 3 tablas nuevas);
+      (g) «esperando nota» ya no es solo del detalle: las listas de Comprobantes y Por pagar muestran el chip
+      ámbar «Esperando nota S/ X» (con «Ya puedes registrarla» cuando el comprobante está resuelto; 13 pruebas SQL
+      y las de `nota-pendiente-reglas`). Pendiente de ver con sesión: el chip en la celda Pago de Comprobantes
+      (11 rem, más angosta que el chip) se apoya en el espacio libre de la columna Total; en Por pagar va bajo el
+      proveedor. Aún no sale en Proveedores ni en el Inicio.
 
 ---
 

@@ -1,8 +1,9 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { listarPorPagar, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, getCompra, soles, type ParamsCompras } from "@/lib/compras";
-import { getDeudaPorVencimiento, getPorPagarTramos, getResumenComprasExtra, getSalidasCaja30d } from "@/lib/compras-indicadores";
+import { getDeudaPorVencimiento, getNotasPendientes, getPorPagarTramos, getResumenComprasExtra, getSalidasCaja30d } from "@/lib/compras-indicadores";
 import { getProveedores } from "@/lib/proveedores";
 import { diaMes, hoyLima, sumarDias } from "@/lib/fechas-lima";
+import { idsConFaltanteCerrado } from "@/lib/nota-pendiente-reglas";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
 import { FiltrosCompras } from "@/components/FiltrosCompras";
@@ -37,8 +38,11 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
   const cursor = leerCursor(params.cursor);
   const hayFiltros = Object.values(filtros).some(Boolean);
 
-  const [{ filas: compras, siguiente }, resumen, extra, vencimiento, salidas, tramos, directorio, proveedores, compraAPagar] = await Promise.all([
-    listarPorPagar(filtros, cursor),
+  // Qué comprobantes esperan su nota de crédito por faltante (para no pagar de más lo que el proveedor va a
+  // acreditar) depende de los ids de la página: se pide ENCADENADA a la lista, y solo si algún comprobante de
+  // la página tiene algo cerrado, sin frenar las demás consultas.
+  const [{ pagina: { filas: compras, siguiente }, notas }, resumen, extra, vencimiento, salidas, tramos, directorio, proveedores, compraAPagar] = await Promise.all([
+    listarPorPagar(filtros, cursor).then(async (pagina) => ({ pagina, notas: await getNotasPendientes(idsConFaltanteCerrado(pagina.filas)) })),
     getResumenCompras(),
     getResumenComprasExtra(),
     getDeudaPorVencimiento(),
@@ -170,7 +174,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
           {hayFiltros ? "Ningún comprobante por pagar coincide con esos filtros." : "No hay comprobantes con saldo pendiente. Todo pagado."}
         </p>
       ) : (
-        <PorPagarLista compras={compras} totales={tramos} agrupar={agrupar} hayMasPaginas={hayMasPaginas} datosProveedores={datosProveedores} />
+        <PorPagarLista compras={compras} totales={tramos} agrupar={agrupar} hayMasPaginas={hayMasPaginas} datosProveedores={datosProveedores} notas={notas} />
       )}
 
       <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={paramsPaginacion} pathname="/compras/por-pagar" />
