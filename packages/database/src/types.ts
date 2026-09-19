@@ -3447,6 +3447,7 @@ export type Database = {
           p_categoria_id: string
           p_confirmo_distinto?: boolean
           p_descripcion?: string
+          p_etiqueta_ids?: string[]
           p_patron_id?: string
           p_referencia: string
           p_tejido_id?: string
