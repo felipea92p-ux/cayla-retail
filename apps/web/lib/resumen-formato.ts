@@ -1,4 +1,4 @@
-// Cómo se escriben los números del Resumen (2026-09-19, ADR-0113). Puro. Una
+// Cómo se escriben los números del Resumen (2026-09-19, ADR-0121). Puro. Una
 // sola casa para que la tabla, las tarjetas, los gráficos y el detalle digan
 // «1.7» y no «1.70» en un lado y «1.7333» en otro. Convención de Perú: punto
 // decimal y coma de miles («S/ 51,870», «4.1 uds/día»).

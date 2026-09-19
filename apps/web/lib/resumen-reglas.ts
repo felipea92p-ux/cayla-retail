@@ -24,7 +24,7 @@ import { detectarHuecosCurva } from "./curva-variantes";
 import { compararTallas } from "./tallas";
 import { formatoCoberturaConUnidad, formatoVelocidad, nombreCorto, pluralizar } from "./resumen-formato";
 
-// Reglas del Resumen de Inventario (ADR-0101; rehechas en ADR-0113). Puras, sin
+// Reglas del Resumen de Inventario (ADR-0101; rehechas en ADR-0121). Puras, sin
 // servidor: la RPC `fn_resumen_variantes` trae NÚMEROS crudos por variante y
 // sede, y acá se decide qué significan. Es el único lugar donde viven la
 // velocidad, la cobertura, el sell-through, las curvas rotas, la reserva y el

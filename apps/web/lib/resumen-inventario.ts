@@ -9,7 +9,7 @@ import type { Rango } from "@/lib/resumen-periodo";
 import { armarResumen, rangosDelResumen, type ParametrosResumen, type ResumenParaPantalla } from "@/lib/resumen-armado";
 import type { FilaResumen } from "@/lib/resumen-reglas";
 
-// Resumen de Inventario (ADR-0101, v2 en ADR-0113): la parte que LEE de Postgres.
+// Resumen de Inventario (ADR-0101, v2 en ADR-0121): la parte que LEE de Postgres.
 // Todo lo que decide qué significan los números vive en `resumen-reglas.ts` y el
 // armado de la pantalla en `resumen-armado.ts` (puros, sin base de datos). Fuentes:
 //   - `retail.fn_resumen_variantes(...)`: números crudos por variante para el

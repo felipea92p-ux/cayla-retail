@@ -1,7 +1,7 @@
 import { nombreCorto } from "./resumen-formato";
 import { textoDondeHay, textoLlegada, type AnalisisVariante, type PasoPlan, type Ubicacion } from "./resumen-reglas";
 
-// De una recomendación a lo que pasa al hacer clic (2026-09-19, ADR-0113).
+// De una recomendación a lo que pasa al hacer clic (2026-09-19, ADR-0121).
 // Regla de oro de Felipe: el Resumen SUGIERE, nunca mueve inventario. Toda acción
 // lleva o prellena el flujo real que ya existe, y la persona confirma allí:
 //   · trasladar / pedir al Taller → `/inventario/mover?origen&destino&variante&cantidad`

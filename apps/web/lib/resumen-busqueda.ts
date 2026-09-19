@@ -1,4 +1,4 @@
-// Búsqueda del Resumen (2026-09-19, ADR-0113). Determinista y sin IA: cada
+// Búsqueda del Resumen (2026-09-19, ADR-0121). Determinista y sin IA: cada
 // palabra que se escribe es una CONDICIÓN y todas tienen que cumplirse
 // («blusa blanco L» = blusa Y blanco Y talla L), en cualquier orden. Puro, sin
 // dependencias (vitest no resuelve `@/` — ver gotchas-local-tests-y-seed).

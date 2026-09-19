@@ -3,14 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
-## 2026-09-18 (Resumen de Inventario v2: de «qué pasó» a «qué conviene hacer» — ADR-0113, solo local)
+## 2026-09-18 (Resumen de Inventario v2: de «qué pasó» a «qué conviene hacer» — ADR-0121; migración ya en producción, frontend con el merge del PR #161)
 
 `/inventario/resumen` se rehízo entero contra la referencia visual: período 7/30/90/este mes/personalizado con
 comparación, búsqueda que entiende «blusa blanca L», cinco señales (agotadas con demanda, cobertura crítica,
 curvas rotas, posible sobrestock, capital), tabla «Prioridades» con una acción sugerida por prenda y tres bloques
 (velocidad, cobertura, curvas). Todo sale del ledger real; el navegador recibe una página de 15 filas, no la sede
 entera. La misma función `fn_resumen_variantes` cambió de firma (la vieja se eliminó); ninguna tabla ni RPC de
-escritura se tocó. **Nada se aplicó a producción**: la migración `20260919141804` (antes `20260919010000`, que usa `etiquetar_variantes`) la pega Felipe cuando decida.
+escritura se tocó. **La migración `20260919141804` (antes `20260919010000`, que usa `etiquetar_variantes`) se aplicó a producción el 2026-09-19** con la autorización de Felipe, después de un ensayo completo en una transacción revertida contra datos reales: en las 4 sedes dio exactamente las mismas cifras que la función anterior (filas, stock, ventas, devoluciones), y después de aplicarla el cuerpo quedó idéntico byte a byte al del repo.
 
 Lo que Felipe se lleva: (1) la velocidad correcta divide por los días en que la prenda **estuvo en el piso**, no
 por los días desde que llegó — una prenda que vendió 10 en los 5 días que tuvo stock vende 2 al día, no 0.33; se

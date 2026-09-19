@@ -1,4 +1,4 @@
-// Esqueleto de carga del Resumen (ADR-0101, rehecho en ADR-0113). Pisa el
+// Esqueleto de carga del Resumen (ADR-0101, rehecho en ADR-0121). Pisa el
 // "Cargando…" genérico de (app)/loading.tsx porque acá corre una RPC analítica
 // sobre el ledger y la silueta —título, franja de período y filtros, cinco
 // señales, tabla y tres bloques— evita el salto de "pantalla vacía → todo de

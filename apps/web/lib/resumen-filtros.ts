@@ -2,7 +2,7 @@ import { crearIndice, coincideConsulta } from "./resumen-busqueda";
 import { ETIQUETA_BANDA, BANDAS_COBERTURA, ETIQUETA_ESTADO, type AnalisisVariante, type BandaCobertura, type EstadoResumen } from "./resumen-reglas";
 import { SELL_THROUGH_ALTO_PCT, SELL_THROUGH_BAJO_PCT } from "./inventario-reglas";
 
-// Filtros del Resumen (2026-09-19, ADR-0113). Dos capas a propósito:
+// Filtros del Resumen (2026-09-19, ADR-0121). Dos capas a propósito:
 //
 //  · ALCANCE — sede (implícita), categoría y búsqueda. Definen «de qué estamos
 //    hablando» y mueven las tarjetas, los gráficos Y la tabla.

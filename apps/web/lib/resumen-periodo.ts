@@ -1,4 +1,4 @@
-// Período analizado del Resumen y su comparación (2026-09-19, ADR-0113).
+// Período analizado del Resumen y su comparación (2026-09-19, ADR-0121).
 // Puro y sin dependencias: trabaja con fechas «aaaa-mm-dd» del calendario de
 // Lima, nunca con `new Date("aaaa-mm-dd")` — ese parseo es UTC y en Lima
 // (UTC−5) corre la fecha un día para atrás. Todo el cálculo es con año/mes/día

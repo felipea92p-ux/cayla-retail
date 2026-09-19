@@ -90,7 +90,7 @@ export const ORDEN_ESTADO_STOCK: Record<EstadoStock, number> = {
 };
 
 // ============================================================================
-// Umbrales del Resumen (ADR-0101; rehechos en ADR-0113) — los usa
+// Umbrales del Resumen (ADR-0101; rehechos en ADR-0121) — los usa
 // `resumen-reglas.ts`. Viven acá, junto a los de piso/almacén, para que "cuánto
 // es poco" tenga una sola casa: ningún componente ni ninguna función de reglas
 // lleva un número suelto. Son el primer número razonable, NO ajustado todavía

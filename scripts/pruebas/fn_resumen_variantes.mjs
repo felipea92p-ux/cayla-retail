@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Prueba de integración de `retail.fn_resumen_variantes` (Resumen de Inventario v2,
- * ADR-0113, migración 20260919141804) contra el Postgres LOCAL.
+ * ADR-0121, migración 20260919141804) contra el Postgres LOCAL.
  *
  * Verifica lo que ninguna prueba de TypeScript puede: que la RPC reconstruye bien el
  * saldo sobre el ledger y clasifica la demanda por FK y estado real.

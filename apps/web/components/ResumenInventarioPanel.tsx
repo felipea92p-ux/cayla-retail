@@ -17,7 +17,7 @@ import type { ResumenParaPantalla } from "@/lib/resumen-armado";
 import { etiquetaRango, textoDemandaAnalizada, textoInstanteLima } from "@/lib/resumen-periodo";
 import type { AnalisisVariante } from "@/lib/resumen-reglas";
 
-// Resumen de Inventario v2 (ADR-0113): la capa analítica y de decisión del
+// Resumen de Inventario v2 (ADR-0121): la capa analítica y de decisión del
 // inventario. NO es otra Existencias (eso responde «qué hay ahora»): responde
 // «cómo se está comportando, qué significa y qué conviene hacer». Toda la sede se
 // analiza en el servidor; acá llega un resumen y UNA página de filas. El estado

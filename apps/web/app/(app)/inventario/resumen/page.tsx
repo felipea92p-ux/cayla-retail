@@ -6,7 +6,7 @@ import { SelectorUbicacion } from "@/components/SelectorUbicacion";
 import { ResumenBanner } from "@/components/ResumenBanner";
 import { ResumenInventarioPanel } from "@/components/ResumenInventarioPanel";
 
-// Resumen de Inventario v2 (2026-09-19, ADR-0113): la capa analítica y de
+// Resumen de Inventario v2 (2026-09-19, ADR-0121): la capa analítica y de
 // decisión del inventario de UNA sede. Existencias responde «¿qué tengo
 // físicamente ahora?»; esta pantalla responde «¿cómo se está comportando, qué
 // significa y qué conviene hacer?». Solo Líder (es la pregunta de quien decide

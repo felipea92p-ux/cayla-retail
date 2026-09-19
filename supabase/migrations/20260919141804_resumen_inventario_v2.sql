@@ -10,8 +10,13 @@
 -- `fn_resumen_variantes` seguía siendo `(uuid, integer)`). Regla del candado de
 -- versiones: se renombra la que aún no corrió. El contenido no cambió.
 --
--- NO SE APLICA A PRODUCCIÓN desde esta sesión: Felipe la pega (con prefijo
--- `retail.` ya escrito, este archivo ya lo lleva) cuando decida.
+-- APLICADA EN PRODUCCIÓN el 2026-09-19 (Supabase `apply_migration`; historial
+-- `20260919145415_resumen_inventario_v2`), con autorización de Felipe y tras un ensayo
+-- completo revertido contra datos reales. Verificado: una sola firma, `anon` sin EXECUTE
+-- y cuerpo idéntico a este archivo (md5 de `prosrc`). Este archivo ya lleva el prefijo
+-- `retail.`. NO editar el cuerpo de la función: lo que corre allá es exactamente esto.
+-- (El ADR de esta migración figura aquí y en el comentario de la función como ADR-0113;
+-- hoy es ADR-0121, renumerado porque 0113 lo tomó otra sesión.)
 --
 -- QUÉ CAMBIA RESPECTO A LA VERSIÓN ANTERIOR
 --   1. Ventana elegible: `p_desde`/`p_hasta` (fechas de Lima, ambas incluidas)

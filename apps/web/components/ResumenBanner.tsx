@@ -5,7 +5,7 @@ import { useState, useSyncExternalStore } from "react";
 import { TriangleAlert, X } from "lucide-react";
 import type { EstadoExactitud } from "@/lib/resumen-reglas";
 
-// Aviso de exactitud (ADR-0101 decisión 7, afinado en ADR-0113). Es una
+// Aviso de exactitud (ADR-0101 decisión 7, afinado en ADR-0121). Es una
 // advertencia sobre la CONFIANZA de las recomendaciones, no un error: con un
 // conteo cerrado reciente y exacto no aparece (queda solo la línea discreta de
 // «validado»). Es ámbar y no rojo a propósito: el rojo del Resumen es urgencia

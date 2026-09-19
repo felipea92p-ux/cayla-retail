@@ -793,20 +793,31 @@ tomó el 0097 primero y ya está en producción — ver ADR-0101 y la fila de ab
       propósito producto nuevo con poco historial, curva rota, mermas mezcladas con ventas,
       temporada con pico y caída.
 - ~~Preguntas abiertas (ADR-0101): ventana elegible; «días con stock» en vez de «días desde el
-  primer ingreso»~~ — resueltas en la v2 (abajo, ADR-0113). Sigue abierto: el mínimo por variante+sede.
+  primer ingreso»~~ — resueltas en la v2 (abajo, ADR-0121). Sigue abierto: el mínimo por variante+sede.
 
-**Resumen v2 (2026-09-18, ADR-0113) — construido y verificado en LOCAL; NO está en producción:**
+**Resumen v2 (2026-09-18, ADR-0121) — migración APLICADA en producción el 2026-09-19; el frontend sale con el merge del PR #161:**
 - [x] Período 7/30/90/este mes/personalizado + comparación (período anterior / mismo período del
       año anterior); el stock siempre es el actual. Velocidad = ventas netas ÷ días EN VENTA (piso),
       cobertura, sell-through, reserva de seguridad, motor de reposición (almacén → en camino → otra
       tienda → Taller → red sin stock → sobrestock), curvas rotas, búsqueda por tokens, filtros en
       la URL, detalle por variante, capital con verificación de costo. Definiciones exactas en el ADR.
-- [ ] **Pegar `20260919141804_resumen_inventario_v2.sql` en producción** (renombrada desde `20260919010000`, que usa `etiquetar_variantes`) (con `set search_path to
-      retail, public;` o prefijo `retail.`; el archivo del repo va SIN prefijo). Decisión y ok puntual
-      de Felipe. **Orden: primero la migración, después el despliegue** — con la migración puesta la
-      pantalla vieja sigue funcionando (los `default` resuelven su llamada vieja), pero la pantalla
-      nueva contra una base sin migrar llama a una RPC que no existe. Después:
-      `pnpm datos:generar:produccion` + `pnpm datos:comparar`.
+- [x] **Aplicada en producción (2026-09-19): `20260919141804_resumen_inventario_v2.sql`** (renombrada desde
+      `20260919010000`, que usa `etiquetar_variantes`). Con `apply_migration` (historial de Supabase
+      `20260919145415`), autorizada por Felipe, DESPUÉS de un ensayo completo en una transacción revertida
+      contra datos reales (mismas cifras que la función anterior en las 4 sedes; colaboradora sin costos ni
+      otras sedes; 40–55 ms por sede). Verificado al aplicar: una sola firma de 6 parámetros, `anon` sin
+      EXECUTE, cuerpo idéntico byte a byte al archivo (md5 de `prosrc`) y la llamada vieja
+      `(p_ubicacion_id, p_ventana_dias)` sigue sirviendo, así que la pantalla anterior no se enteró.
+      **Pendiente del ritual:** `pnpm datos:generar:produccion` + `pnpm datos:comparar` (el volcado de
+      `docs/datos/generado/` todavía trae la firma vieja: hasta que se refresque, `datos:comparar` marca
+      `resumen-inventario.ts` como pantalla rota, y es una alarma falsa).
+- [ ] **Lo que se va a ver el primer día en producción** (medido en el ensayo): las 141 filas variante×sede
+      que devuelve hoy la función (78 Taller, 17 AQP, 46 TRU) tienen costo `declarado` (ninguna `oficial`:
+      `costo_historial` sigue vacío), así que «Capital en inventario» SÍ se
+      muestra (ninguno es `alterado` ni `sin_costo`) pero es a costo declarado al dar de alta, no promedio
+      ponderado de compras. **Tienda AQP** tiene sus 76 unidades en el almacén y 0 en el piso: todas sus filas
+      saldrán «Sin piso / Bajar al piso». **Tienda LIM** no tiene stock ni movimientos (pantalla vacía honesta).
+      El ledger de producción cuadra en las 3 sedes con stock (0 filas con `ledger_consistente = false`).
 - [ ] **La garantía de costo (ADR-0067) está rota — decisión estructural de Felipe.** Hay dos caminos
       de escritura ajenos a `fn_recalcular_costo_variante`: `catalogo_actualizar_producto` pisa
       `variantes.costo` con lo que mande el formulario (o con 0) y la política `variantes_write_lider`

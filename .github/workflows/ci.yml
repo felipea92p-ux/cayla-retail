@@ -160,7 +160,7 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-venta
 
-      # Resumen de Inventario v2 (ADR-0113): días con stock reconstruidos del ledger,
+      # Resumen de Inventario v2 (ADR-0121): días con stock reconstruidos del ledger,
       # demanda por FK, costo verificado. Cada caso termina en ROLLBACK.
       - name: pruebas:fn-resumen-variantes
         if: ${{ always() && steps.supabase.outcome == 'success' }}
