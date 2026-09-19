@@ -370,9 +370,13 @@ van en la banda `20260918200000`–`20260918220000` (main trae su propia `202609
       (11 rem, más angosta que el chip) se apoya en el espacio libre de la columna Total; en Por pagar va bajo el
       proveedor. Aún no sale en Proveedores ni en el Inicio.
 - [ ] **Hallazgos de `compras_indicadores.mjs`: H1, H2, H3 y H5 corregidos en la migración
-      `20260918221000_compras_hallazgos_h1_h2_h3_h5.sql` (2026-09-19) — NO ESTÁ EN PRODUCCIÓN hasta que se pegue
-      `PEGAR-EN-PRODUCCION-hallazgos-h1-h2-h3-h5.sql`; al pegarla, refrescar el volcado y correr
-      `pnpm datos:generar:produccion && pnpm datos:comparar`.** Se reescribieron desde la definición REAL de
+      `20260918221000_compras_hallazgos_h1_h2_h3_h5.sql` (2026-09-19) — YA ESTÁ EN PRODUCCIÓN: Felipe la pegó el
+      2026-09-19 y se verificó contra la base (una sola firma por función, `por_pagar_tramos` con 7 parámetros, solo
+      `registrar_compra` conserva `current_date`, el default de la fecha de emisión). Se refrescó
+      `funciones-produccion.txt` (167 funciones, misma huella que producción) y `pnpm datos:comparar` quedó en verde;
+      **los seis `retail_*.json` del diccionario siguen atrasados** (producción tiene 70 tablas y vistas, 689 columnas,
+      451 restricciones y 109 políticas; el volcado, 67/671/434/106: son tablas de otras ramas ya pegadas) y hay que
+      refrescarlos con las consultas de `generado/COMO-REFRESCAR.md` en el SQL Editor.** Se reescribieron desde la definición REAL de
       producción (`pg_get_functiondef`, misma huella md5 que el local) y con la misma lista de parámetros, salvo
       `por_pagar_tramos` (suelta la firma vieja y estrena `p_tipo`, `p_desde`, `p_hasta`, todos con default: la
       pantalla actual sigue funcionando sea cual sea el orden en que se despliegue). **H1** la ficha calculaba
