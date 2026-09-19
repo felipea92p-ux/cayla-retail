@@ -141,7 +141,7 @@ jobs:
         if: ${{ always() && steps.instalar.outcome == 'success' }}
         run: npx supabase start
 
-      # Los cinco corren siempre que Postgres haya levantado, aunque uno falle — mismo
+      # Todos corren siempre que Postgres haya levantado, aunque uno falle — mismo
       # criterio que tipos/lint/pruebas arriba: un push malo trae el diagnóstico completo
       # en una vuelta, no uno por uno.
       - name: caja:verificar
@@ -165,3 +165,12 @@ jobs:
       - name: pruebas:fn-resumen-variantes
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-resumen-variantes
+
+      # El dinero de Compras es solo del líder (ADR-0126): que un integrante no lea ni un monto —por
+      # función, por tabla ni por el bucket de escaneos—, que recibir siga funcionando y que ninguna
+      # migración le quite el candado a las cinco funciones de dinero (el riesgo residual del ADR).
+      # Corre sobre una base NUEVA con todas las migraciones aplicadas en orden, así que además prueba
+      # que las dos migraciones del cierre aplican limpias. Cada caso termina en ROLLBACK.
+      - name: pruebas:dinero-compras
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:dinero-compras
