@@ -4609,8 +4609,11 @@ export type Database = {
         Args: {
           p_busqueda?: string
           p_condicion?: string
+          p_desde?: string
+          p_hasta?: string
           p_proveedor_id?: string
           p_solo_vencidas?: boolean
+          p_tipo?: string
         }
         Returns: {
           comprobantes: number

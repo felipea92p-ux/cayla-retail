@@ -359,9 +359,9 @@ van en la banda `20260918200000`–`20260918220000` (main trae su propia `202609
       comprobante) no está: falta una RPC para editarlo; (c) la evolución de costo sale de
       `compra_items`, no de `costo_historial`; (d) **prueba SQL de los indicadores: hecha**
       (2026-09-18) — `pnpm pruebas:compras-indicadores` (`scripts/pruebas/compras_indicadores.mjs`):
-      140 casos en verde contra el Postgres local, cada uno en su transacción con ROLLBACK y midiendo
-      una línea base antes de su escenario (el seed y otras sesiones cambian los números absolutos), más 5
-      hallazgos abiertos (siguiente ítem); (e) `types.ts` ya se regeneró tras
+      145 casos en verde contra el Postgres local, cada uno en su transacción con ROLLBACK y midiendo
+      una línea base antes de su escenario (el seed y otras sesiones cambian los números absolutos), más 1
+      hallazgo abierto, H4 (siguiente ítem; H1, H2, H3 y H5 ya están corregidos); (e) `types.ts` ya se regeneró tras
       la fusión con main (hecho); (f) al pegar en producción: refrescar el volcado y correr
       `pnpm datos:generar:produccion && pnpm datos:comparar` (el aviario ya conoce las 3 tablas nuevas);
       (g) «esperando nota» ya no es solo del detalle: las listas de Comprobantes y Por pagar muestran el chip
@@ -369,24 +369,28 @@ van en la banda `20260918200000`–`20260918220000` (main trae su propia `202609
       y las de `nota-pendiente-reglas`). Pendiente de ver con sesión: el chip en la celda Pago de Comprobantes
       (11 rem, más angosta que el chip) se apoya en el espacio libre de la columna Total; en Por pagar va bajo el
       proveedor. Aún no sale en Proveedores ni en el Inicio.
-- [ ] **Hallazgos de `compras_indicadores.mjs` (sin arreglar; cada uno es una prueba `[HALLAZGO Hn]` que
-      pasa sola cuando se corrige, y todos piden una migración nueva):** **H1** `fn_proveedor_metricas_compras`
-      calcula `entregado_completo_pct` con `estado_recepcion = 'recibida'`, así que un proveedor que
-      entregó 20 de 24 y cuyo faltante se cerró sale con 100 % (la ficha) y con 50 % en Recibir
-      mercadería (`resumen_recepciones` usa `recibido_cantidad >= facturado_cantidad`, que es lo que
-      dice su propia definición). **H2** `fn_proveedor_devoluciones.ultima` toma `created_at` (el día
-      que la prenda entró a cuarentena) en vez de `resuelto_en` (el día que se devolvió). **H3**
-      `por_pagar_tramos` no acepta `p_tipo` ni fechas de emisión aunque promete «los mismos filtros que
-      `listar_compras`» (baja gravedad: la pantalla no expone esos filtros, pero `?tipo=` en la URL
-      desalinea subtotal y filas). **H4 (decisión de Felipe)** los indicadores de dinero que solo tienen
-      candado de sede (`resumen_compras`, `resumen_compras_extra`, `deuda_por_vencimiento`,
-      `salidas_caja_30d`, `por_pagar_tramos`) le devuelven a un integrante los montos de los comprobantes
-      de SU sede (ADR-0075), mientras `fn_proveedores*` y las fichas sí son solo-líder; no hay fuga hacia
-      otras sedes (probado), pero choca con «lo financiero es solo de líder». **H5** `registrar_pago_compra`,
-      `registrar_pagos_compra` y el pago inicial de `registrar_compra` fechan con `current_date` (UTC)
-      cuando no reciben fecha: entre las 7 pm y medianoche de Lima el pago queda de «mañana» y
-      `dias_pago_real_promedio` cuenta un día de más (la app manda su fecha, así que hoy solo afecta a
-      quien llame sin ella).
+- [ ] **Hallazgos de `compras_indicadores.mjs`: H1, H2, H3 y H5 corregidos en la migración
+      `20260918221000_compras_hallazgos_h1_h2_h3_h5.sql` (2026-09-19) — NO ESTÁ EN PRODUCCIÓN hasta que se pegue
+      `PEGAR-EN-PRODUCCION-hallazgos-h1-h2-h3-h5.sql`; al pegarla, refrescar el volcado y correr
+      `pnpm datos:generar:produccion && pnpm datos:comparar`.** Se reescribieron desde la definición REAL de
+      producción (`pg_get_functiondef`, misma huella md5 que el local) y con la misma lista de parámetros, salvo
+      `por_pagar_tramos` (suelta la firma vieja y estrena `p_tipo`, `p_desde`, `p_hasta`, todos con default: la
+      pantalla actual sigue funcionando sea cual sea el orden en que se despliegue). **H1** la ficha calculaba
+      `entregado_completo_pct` con `estado_recepcion = 'recibida'` y ahora usa `recibido_cantidad >=
+      facturado_cantidad`, igual que `resumen_recepciones`. **H2** `fn_proveedor_devoluciones.ultima` toma
+      `resuelto_en` (el día que se devolvió), no `created_at`. **H3** `por_pagar_tramos` acepta los filtros de
+      tipo y de emisión, y `getPorPagarTramos` los manda. **H5** los pagos sin fecha explícita (`registrar_pago_compra`,
+      `registrar_pagos_compra`, el pago inicial de `registrar_compra`) usan `fn_hoy_lima()`. Pruebas: 145 en
+      verde en `compras_indicadores.mjs` (las 4 dejaron de ser `[HALLAZGO]`; se comprobó que fallaban antes de
+      aplicar la migración), 112 en `compras_faltantes_y_pago_por_lote.mjs`, 29 en `recibir_envio.mjs`.
+      **Sigue abierto, H4 — DECIDIDO DIFERIR (Felipe, 2026-09-19: «aún no hay restricciones por usuario, dejemos
+      eso para más adelante»):** los indicadores de dinero que solo tienen candado de sede (`resumen_compras`,
+      `resumen_compras_extra`, `deuda_por_vencimiento`, `salidas_caja_30d`, `por_pagar_tramos`) le devuelven a un
+      integrante los montos de los comprobantes de SU sede (ADR-0075). No hay fuga hacia otras sedes; choca con
+      «lo financiero es solo de líder». Se retoma cuando todo esté en producción, decidiendo si devuelven vacío o
+      se quedan como están. **Anotado de paso:** `registrar_compra` aún tiene `p_fecha_emision date DEFAULT
+      CURRENT_DATE` (UTC): el mismo defecto de reloj, pero la pantalla siempre manda la fecha del papel y cambiar el
+      default de una fecha de EMISIÓN es una decisión distinta a la de un pago; no se tocó.
 
 ---
 

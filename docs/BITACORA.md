@@ -3,6 +3,13 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Cuatro hallazgos de los indicadores de Compras quedan corregidos: la ficha, las devoluciones, los subtotales de Por pagar y la fecha de los pagos)
+
+Los indicadores se habían probado con 140 casos y dejaron cinco `[HALLAZGO]`: pruebas que afirman lo que la función DEBERÍA hacer y que salían con ⚠. Se corrigen cuatro en `20260918221000`: «% entregado completo» de la ficha ya cuenta como completo solo lo que llegó entero (una línea cerrada por faltante deja el comprobante en `recibida`, pero el proveedor no cumplió); «última devolución» es el día en que se devolvió (`resuelto_en`), no el de entrada a cuarentena; `por_pagar_tramos` acepta el tipo de documento y las fechas de emisión, así que los subtotales cuadran con las filas filtradas; y los pagos sin fecha usan la de Lima, no la de UTC. La quinta (H4, qué ve un integrante de los montos) se difiere por decisión de Felipe.
+
+Cada función se reescribió desde su definición REAL en producción (misma huella md5 que el local) con la misma lista de parámetros. La única firma que cambia es la de `por_pagar_tramos`: se suelta la vieja y la nueva estrena tres parámetros con default, para que la pantalla actual funcione antes y después de pegar la migración. Las cuatro pruebas se comprobaron fallando ANTES de aplicarla y en verde después (145 + 112 + 29). De paso quedó anotado que `registrar_compra` aún tiene `p_fecha_emision DEFAULT CURRENT_DATE`: el mismo defecto de reloj, pero de una fecha de emisión, y eso es otra decisión.
+
+Lo que Felipe se lleva: un candado que solo se enciende cuando alguien lo prueba — un `[HALLAZGO]` es una deuda con fecha y con su prueba ya escrita, no una nota que se pierde en el chat; y «hoy» en este sistema es la hora de Lima (`fn_hoy_lima()`), nunca la del servidor, porque entre las 7 pm y la medianoche los dos días no coinciden. **No está en producción hasta que se pegue `PEGAR-EN-PRODUCCION-hallazgos-h1-h2-h3-h5.sql`.**
 ## 2026-09-18 (Resumen de Inventario v2: de «qué pasó» a «qué conviene hacer» — ADR-0121; migración ya en producción, frontend con el merge del PR #161)
 
 `/inventario/resumen` se rehízo entero contra la referencia visual: período 7/30/90/este mes/personalizado con
@@ -31,6 +38,7 @@ La pestaña «Recibidas recientemente» escondía sus dos filtros detrás del bo
 Dos cosas salieron de mirar la base: «Fechas» filtra el día en que LLEGÓ la guía (`lotes.fecha_recepcion`), no el de emisión del comprobante como decía el chip de `FiltrosCompras`; y el buscador ya cubría la guía en SQL pero el texto de ayuda no lo decía. Además una fecha imposible en la URL (`?desde=2026-02-31`) hacía fallar la función SQL en vez de devolver una lista vacía: ahora se ignora.
 
 Lo que Felipe se lleva: la lógica de un filtro (qué es «este mes», cómo se rotula, qué se hace con una URL rota) no vive en el componente sino en un módulo puro que se prueba sin navegador; el componente solo dibuja. Pendiente: comparar a ojo contra `06-recibir-recibidas.png` en escritorio y celular (no se abrió el navegador en esta sesión).
+
 
 ## 2026-09-18 (Recibir por envío: un envío trae comprobantes de varios proveedores, y cuenta quien abre la caja)
 
