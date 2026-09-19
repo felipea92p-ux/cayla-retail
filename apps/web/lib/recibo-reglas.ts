@@ -11,7 +11,7 @@ import type { MetodoPago } from "@cayla-retail/shared";
 import { desgloseIgv, vueltoDe, type PagoAplicado } from "./vender-reglas";
 
 /** Solo lo que Vender emite hoy. Una nota de venta (sin valor tributario) no existe todavía
- *  como opción en la pantalla — ver ADR-0112. */
+ *  como opción en la pantalla — ver ADR-0114. */
 export type TipoReciboFiscal = "boleta" | "factura";
 export type TipoDocCliente = "dni" | "ruc" | "sin_documento";
 

@@ -2,7 +2,7 @@
 
 Para qué sirve: con esto, «Imprimir y nueva venta» (Enter) manda el ticket a la térmica **sin abrir el
 diálogo de impresión del navegador**. Es un ajuste del **equipo de caja**, no del sistema: se hace una
-vez por PC. Contexto y decisión: `docs/adr/0112-pos-comprobante-termico-y-ajustes-de-vender.md`.
+vez por PC. Contexto y decisión: `docs/adr/0114-pos-comprobante-termico-y-ajustes-de-vender.md`.
 
 ## Una vez por PC de caja (Windows + Chrome)
 

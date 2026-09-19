@@ -11,7 +11,7 @@ contra ESC/POS por WebUSB, un agente local y el PDF de Lucode: ganó el navegado
 con cualquier térmica de Windows) y el PDF de Lucode quedó descartado como camino principal porque solo
 existe *después* de transmitir a SUNAT, que hoy es manual y puede fallar. El recibo sale de la venta recién
 cobrada + serie/número/fecha de la base, con «SON: …», QR de SUNAT y hora de Lima; la lógica es pura y
-tiene 25 pruebas. Detalle y alternativas en ADR-0112.
+tiene 25 pruebas. Detalle y alternativas en ADR-0114.
 
 Dos cosas que Felipe debe saber: (1) el RUC, la razón social y la dirección de CAYLA **no estaban en ningún
 lado del repo ni de la base** — solo en la cuenta de Lucode — así que ahora se piden por variables

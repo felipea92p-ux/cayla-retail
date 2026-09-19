@@ -244,7 +244,7 @@ body {
 
 
 /* ==================================================================
-   Comprobante de venta en la térmica de 80 mm (ADR-0112).
+   Comprobante de venta en la térmica de 80 mm (ADR-0114).
    `#comprobante-print` lo monta el modal «Venta registrada» pegado a <body>; en pantalla no se
    ve. Al imprimir (botón o Ctrl+P con el modal abierto) desaparece TODO lo demás con
    `display:none` — no `visibility:hidden`: lo oculto seguiría ocupando alto y la térmica

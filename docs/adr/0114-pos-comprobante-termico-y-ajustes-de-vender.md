@@ -1,8 +1,9 @@
-# ADR-0112 — Vender: el comprobante se imprime en la térmica de 80 mm (y los ajustes de la sesión)
+# ADR-0114 — Vender: el comprobante se imprime en la térmica de 80 mm (y los ajustes de la sesión)
 
 **Fecha:** 2026-09-18
 **Estado:** Aplicado en la rama `claude/local-work-3a718a` (commit `49ea93f`, fusionada con `main` el
-2026-09-18; renumerado de ADR-0103, que `main` ya había dado a Familias). Solo pantalla y un archivo de
+2026-09-18; renumerado de ADR-0103, que `main` ya había dado a Familias, y luego de 0112 y 0113, que reclamaron otras
+sesiones). Solo pantalla y un archivo de
 configuración: **no hay migración, no se toca `registrar_venta`, ni el envío a SUNAT/Lucode.**
 **Afecta:** `components/PuntoDeVenta.tsx`, `PuntoDeVentaCatalogo.tsx`, `PuntoDeVentaTicket.tsx`,
 `ElegirTallaModal.tsx` (nuevo), `VentaRegistradaModal.tsx` (nuevo), `ReciboTermico.tsx` (nuevo),

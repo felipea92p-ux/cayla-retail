@@ -28,7 +28,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Vender: comprobante impreso en térmica + ajustes del POS (2026-09-18, ADR-0112)
+## 🎯 Vender: comprobante impreso en térmica + ajustes del POS (2026-09-18, ADR-0114)
 
 Worktree `buscar-entry-point-7aa994`, **sin commitear**. Sin migración. 414 pruebas, `tsc` y `eslint` en verde;
 verificado en navegador con datos de mentira (ruta temporal, borrada). **Falta la primera venta real.**
