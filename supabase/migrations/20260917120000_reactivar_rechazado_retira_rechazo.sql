@@ -1,3 +1,9 @@
+-- ⚠️ 2026-09-18 — NO PEGAR ESTE ARCHIVO ENTERO EN PRODUCCIÓN. Redefine cinco funciones y
+-- producción ya tiene la versión FINAL de cuatro (colores, tejidos, patrones, etiquetas). La de
+-- etiquetas de acá es anterior a `20260917230000_etiquetas_vigencia_y_comentario_obligatorio`:
+-- pegarla haría RETROCEDER etiquetas. Solo `fn_tallas_estado_trigger` está atrás en producción;
+-- ver `docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-18.sql`. En un `db reset` local no hay
+-- problema: las migraciones corren en orden y la posterior gana.
 -- ============================================================================
 -- 20260917120000 — Reactivar un rechazado también retira el rechazo
 --

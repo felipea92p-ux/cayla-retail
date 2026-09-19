@@ -24,6 +24,14 @@ pnpm migraciones:verificar scripts/migraciones/inventario-produccion.json
 Ese archivo **no se commitea**: es una foto de un momento, y una foto vieja miente con
 cara de dato. Se genera cuando se necesita.
 
+## Candado de versiones repetidas
+
+`pnpm migraciones:versiones` falla si dos archivos de `supabase/migrations/` comparten
+prefijo numérico: Supabase lo usa como llave del historial y `db reset` / `migration up`
+revientan con llave duplicada. No necesita base de datos y corre en CI (paso «Versiones
+de migración»). Si sale rojo, renombra la que **aún no corrió en producción** — nunca la
+que ya se pegó allá — y actualiza sus referencias con `git grep`.
+
 ## Qué significa cada resultado
 
 | Resultado | Qué puedes afirmar |
