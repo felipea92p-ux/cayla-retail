@@ -7,9 +7,10 @@ import { BarraFija } from "@/components/ui/BarraFija";
 import { Boton } from "@/components/ui/campos";
 import { Tabla, Encabezado } from "@/components/ui/Tabla";
 import { BotonPagar } from "@/components/CompraDetallePanel";
+import { ChipNotaPendiente } from "@/components/ChipNotaPendiente";
 import { PagoJuntosModal, type DatosPagoProveedor } from "@/components/PagoJuntosModal";
 import { soles, type CompraResumen } from "@/lib/compras-reglas";
-import type { TotalesTramosPorPagar } from "@/lib/compras-indicadores";
+import type { NotaPendiente, TotalesTramosPorPagar } from "@/lib/compras-indicadores";
 import { diaMes } from "@/lib/fechas-lima";
 import { detalleSeleccion, etiquetaVence, TITULO_TRAMO, tramoDe, type ClaveTramo } from "@/lib/por-pagar-reglas";
 
@@ -47,12 +48,15 @@ export function PorPagarLista({
   agrupar,
   hayMasPaginas,
   datosProveedores,
+  notas,
 }: {
   compras: CompraResumen[];
   totales: TotalesTramosPorPagar;
   agrupar: "urgencia" | "proveedor";
   hayMasPaginas: boolean;
   datosProveedores: Record<string, DatosPagoProveedor>;
+  /** Por id de comprobante: el faltante cerrado que todavía espera su nota de crédito (solo líder; vacío si ninguno). */
+  notas: Record<string, NotaPendiente>;
 }) {
   const [seleccion, setSeleccion] = useState<string[]>([]);
   const [pagando, setPagando] = useState(false);
@@ -125,6 +129,7 @@ export function PorPagarLista({
                 onAlternar={() => alternar(c)}
                 ahora={ahora}
                 saldoFavor={datosProveedores[c.proveedorId]?.saldoFavor ?? 0}
+                notaPendiente={notas[c.id]}
               />
             ))}
           </Fragment>
@@ -174,7 +179,7 @@ export function PorPagarLista({
   );
 }
 
-function FilaPorPagar({ c, marcada, atenuada, onAlternar, ahora, saldoFavor }: { c: CompraResumen; marcada: boolean; atenuada: boolean; onAlternar: () => void; ahora: Date; saldoFavor: number }) {
+function FilaPorPagar({ c, marcada, atenuada, onAlternar, ahora, saldoFavor, notaPendiente }: { c: CompraResumen; marcada: boolean; atenuada: boolean; onAlternar: () => void; ahora: Date; saldoFavor: number; notaPendiente?: NotaPendiente }) {
   const tramo = tramoDe(c, ahora);
   const colorVence = tramo === "vencidas" ? "text-rojo" : tramo === "semana" ? "text-ambar-profundo" : "text-tinta";
   const vence = c.fechaVencimiento ? etiquetaVence(c.fechaVencimiento, ahora) : "Sin fecha";
@@ -197,6 +202,15 @@ function FilaPorPagar({ c, marcada, atenuada, onAlternar, ahora, saldoFavor }: {
           <span className="block text-xs text-tinta/55">Emitida {diaMes(c.fechaEmision)}</span>
         </Link>
         <span className={`mt-1 block text-xs sm:hidden ${colorVence}`}>{vence}</span>
+        {/* Lo que el proveedor todavía debe acreditar por un faltante cerrado: parte de este saldo que no
+            hay que pagar. Va bajo el proveedor (la columna con sitio). Es su propio enlace al comprobante,
+            por encima (`z-10`) del enlace estirado de la fila, para que el tooltip con la explicación
+            funcione sin quitarle el clic: el detalle es donde se registra la nota. */}
+        {notaPendiente && (
+          <Link href={`/compras/factura/${c.id}`} className="relative z-10 mt-1.5 block">
+            <ChipNotaPendiente nota={notaPendiente} saldo={c.saldo} conAyuda />
+          </Link>
+        )}
       </div>
       <div className="hidden sm:block">
         <span className={`block text-sm ${colorVence}`}>{vence}</span>

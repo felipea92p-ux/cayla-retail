@@ -1,0 +1,334 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Recibir mercadería · envío con varios proveedores</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;
+--taupe:#a47865;--taupe-p:#805c4c;--verde:#556e49;--verde-p:#44583a;--ambar:#8c631f;--ambar-p:#734f15;
+--t75:rgba(26,26,24,.75);--t65:rgba(26,26,24,.65);--t55:rgba(26,26,24,.55);--t45:rgba(26,26,24,.45);
+--t25:rgba(26,26,24,.25);--t15:rgba(26,26,24,.15);--t10:rgba(26,26,24,.10);--t04:rgba(26,26,24,.04)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--crema)}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);-webkit-font-smoothing:antialiased;font-size:14px;width:1672px}
+.disp{font-family:'EB Garamond',Georgia,serif}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+.tab{font-variant-numeric:tabular-nums}
+.ic{flex:none;vertical-align:middle;display:inline-flex}
+.muted{color:var(--t65)}.m55{color:var(--t55)}.m45{color:var(--t45)}
+.xs{font-size:12px}.sm{font-size:13px}
+.c{text-align:center}.r{text-align:right}
+.lk{color:var(--rojo);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+
+/* ---------- shell ---------- */
+.app{position:relative;width:1672px;height:1330px;background:var(--crema);display:flex;overflow:hidden}
+.side{width:272px;flex:none;border-right:1px solid var(--t10);display:flex;flex-direction:column;background:var(--crema)}
+.logo{display:flex;align-items:center;gap:12px;padding:28px 28px 22px}
+.logo img{height:32px}.logo span{font-size:14px;letter-spacing:.26em;font-weight:600}
+.nuevo{margin:0 12px 26px}
+.nav{padding:0 12px;flex:1}
+.it{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:8px;color:var(--t75);font-size:14px;position:relative;margin-bottom:2px}
+.it .chev{margin-left:auto;color:var(--t45)}
+.it.ch{padding-left:40px}
+.it.on{background:rgba(232,224,208,.65);color:var(--tinta);font-weight:500}
+.it.on:before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:2px;border-radius:2px;background:var(--tinta)}
+.sig{font-family:'EB Garamond',serif;font-style:italic;font-size:12px;color:var(--taupe-p);padding:22px 28px 18px}
+.yo{border-top:1px solid var(--t10);padding:18px 28px;display:flex;gap:12px;align-items:center}
+.yo .av{width:36px;height:36px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:15px}
+.main{flex:1;min-width:0;position:relative}
+.top{height:56px;border-bottom:1px solid var(--t10);display:flex;align-items:center;justify-content:flex-end;padding:0 32px;background:rgba(245,240,232,.85)}
+.cont{padding:26px 36px 0}
+
+/* ---------- piezas ---------- */
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:8px;padding:12px 16px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;white-space:nowrap}
+.btn.pri{background:var(--tinta);color:var(--crema)}
+.btn.dis{border:1px solid rgba(26,26,24,.2);color:var(--t75)}
+.btn.sq{padding:11px 12px}
+.chip{display:inline-block;white-space:nowrap;border-radius:999px;border:1px solid;padding:2px 10px;font-size:10px;line-height:16px;text-transform:uppercase;letter-spacing:.13em;font-weight:600}
+.chip.neutro{border-color:var(--t15);background:var(--t04);color:var(--t75)}
+.chip.ambar{border-color:rgba(140,99,31,.3);background:rgba(140,99,31,.10);color:var(--ambar-p)}
+.chip.verde{border-color:rgba(85,110,73,.45);background:rgba(85,110,73,.10);color:var(--verde-p)}
+.prog{height:6px;border-radius:99px;background:var(--sand);overflow:hidden}
+.prog i{display:block;height:100%;border-radius:99px}
+.campo .l{color:var(--t65);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.campo .v{border-bottom:1px solid var(--t25);padding:6px 2px 5px;margin-top:3px;font-size:14px;min-height:30px;display:flex;align-items:center;gap:8px}
+.campo .v.mono{font-variant-numeric:tabular-nums;letter-spacing:.02em;font-size:16px}
+
+/* ---------- cabecera de la página ---------- */
+.cab{display:flex;justify-content:space-between;align-items:flex-start;gap:24px}
+h1.t{font-family:'EB Garamond',serif;font-size:28px;font-weight:500;margin-top:3px;line-height:1.15}
+p.bajada{color:var(--t65);margin-top:4px;font-size:14px}
+.acc{display:flex;align-items:center;gap:12px;padding-top:8px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--t10);margin-top:14px}
+.tabs .tb{padding:4px 14px 11px;color:var(--t65);margin-bottom:-1px;border-bottom:2px solid transparent}
+.tabs .tb.on{color:var(--tinta);border-bottom-color:var(--rojo)}
+.tabs .sv{margin-left:auto;align-self:center;padding-bottom:9px;display:flex;align-items:center;gap:6px;color:var(--verde-p)}
+.cols{display:grid;grid-template-columns:352px 1fr;gap:20px;margin-top:16px;align-items:start}
+
+/* ---------- columna izquierda: pendientes ---------- */
+.lista{padding:0;overflow:hidden}
+.lista .hd{padding:16px 18px 14px}
+.lista .ttl{display:flex;align-items:center;justify-content:space-between}
+.lista h2{font-family:'EB Garamond',serif;font-size:21px;font-weight:500}
+.find{display:flex;align-items:center;gap:9px;border:1px solid var(--t15);border-radius:10px;padding:9px 12px;color:var(--t45);margin-top:11px;font-size:13.5px}
+.ftabs{display:flex;gap:2px;padding:0 12px;border-bottom:1px solid var(--t10)}
+.ftabs .ft{padding:9px 9px 10px;font-size:13px;color:var(--t65);border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:7px}
+.ftabs .ft.on{color:var(--tinta);border-bottom-color:var(--rojo);font-weight:500}
+.ftabs .ft b{font-weight:600;font-size:11px;background:var(--t04);border:1px solid var(--t10);border-radius:6px;padding:0 6px;line-height:17px;color:var(--t65)}
+.ftabs .ft.on b{background:var(--sand);color:var(--tinta)}
+.ftabs .ft.at b{background:rgba(140,99,31,.12);border-color:rgba(140,99,31,.3);color:var(--ambar-p)}
+.hint{padding:9px 18px 8px;font-size:12px;color:var(--t55)}
+.ent{display:flex;align-items:center;gap:8px;padding:13px 14px 13px 16px;border-top:1px solid var(--t10);border-left:2px solid transparent}
+.ent.on{border-left-color:var(--rojo);background:rgba(184,65,45,.05)}
+.ent .p{font-weight:600;font-size:14.5px;line-height:1.25}
+.ent .n{font-size:13px;color:var(--t75);font-variant-numeric:tabular-nums;margin-top:1px}
+.ent .d{font-size:12px;color:var(--t65);margin-top:2px}
+.ent .rr{text-align:right;flex:none}
+.ent .mt{font-size:13px;font-variant-numeric:tabular-nums;margin-top:5px}
+.ent .mt small{display:block;font-size:11px;color:var(--t55);margin-top:1px}
+.ent .go{color:var(--t45);flex:none}
+
+/* ---------- columna derecha ---------- */
+.det{display:flex;flex-direction:column;gap:12px;min-width:0}
+.res{display:grid;grid-template-columns:1.32fr 1fr 1.02fr}
+.res>div{padding:16px 22px;border-left:1px solid var(--t10);display:flex;align-items:center;gap:14px}
+.res>div:first-child{border-left:0}
+.tile{width:46px;height:46px;border-radius:12px;background:rgba(232,224,208,.6);border:1px solid var(--sand);display:grid;place-items:center;flex:none;color:var(--t65)}
+.docs{padding:13px 20px;display:flex;align-items:center;gap:10px}
+.dch{white-space:nowrap;display:inline-flex;align-items:center;gap:9px;border:1px solid var(--sand);border-radius:10px;padding:7px 12px;background:var(--crema);font-size:13px}
+.dch .k{color:var(--t65)}.dch b{font-weight:600;font-variant-numeric:tabular-nums}.dch .x{color:var(--t45)}
+.dch.add{border-style:dashed;border-color:var(--t25);background:transparent;color:var(--t65)}
+.tbl{overflow:hidden}
+.tabs2{display:flex;align-items:center;gap:2px;padding:0 20px;border-bottom:1px solid var(--t10)}
+.tabs2 .tb{padding:15px 12px 13px;color:var(--t65);margin-bottom:-1px;border-bottom:2px solid transparent;display:flex;align-items:center;gap:8px;font-size:14px}
+.tabs2 .tb.on{color:var(--tinta);border-bottom-color:var(--rojo);font-weight:500}
+.tabs2 .tb b{font-weight:600;font-size:11px;background:var(--t04);border:1px solid var(--t10);border-radius:6px;padding:0 7px;line-height:18px;color:var(--t65)}
+.tabs2 .tb.on b{background:var(--sand);color:var(--tinta)}
+.scan{margin-left:auto;display:flex;align-items:center;gap:10px;border:1px solid var(--t15);border-radius:10px;padding:9px 12px;width:404px;color:var(--t45);font-size:13px;background:var(--crema);white-space:nowrap}
+.scan .cam{margin-left:auto;color:var(--t65)}
+.prg{padding:10px 20px;border-bottom:1px solid var(--t10);display:flex;align-items:center;gap:14px}
+.th,.tr{display:grid;grid-template-columns:1fr 132px 74px 96px 54px 178px 28px;column-gap:12px;padding:0 20px;align-items:center}
+.th{padding-top:9px;padding-bottom:9px;border-bottom:1px solid var(--t10)}
+.th span{white-space:nowrap;color:var(--t55);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.tr{border-top:1px solid var(--t10);min-height:60px;padding-top:8px;padding-bottom:8px}
+.th+.tr{border-top:0}
+.tr.ok{background:rgba(85,110,73,.045)}
+.tr.par{background:rgba(140,99,31,.05)}
+.pr{display:flex;align-items:center;gap:12px;min-width:0}
+.pr .a{font-size:14px;font-weight:500}.pr .b{font-size:12px;color:var(--t55);margin-top:1px}
+.sku{font-size:12.5px;color:var(--t65);letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.num{display:inline-block;width:70px;text-align:center;border-bottom:1px solid var(--t25);padding:6px 0;font-variant-numeric:tabular-nums;font-size:15px;border-radius:6px 6px 0 0}
+.num.ok{border-bottom:2px solid var(--verde);background:rgba(85,110,73,.09);color:var(--verde-p)}
+.num.par{border-bottom:2px solid var(--ambar);background:rgba(140,99,31,.10);color:var(--ambar-p)}
+.num.cero{color:var(--t45)}
+.dif{font-variant-numeric:tabular-nums;text-align:center;font-size:14px;color:var(--t55)}
+.dif.neg{color:var(--ambar-p);font-weight:600}
+.est .dec2{font-size:11px;color:var(--t65);margin-top:4px;line-height:1.3}
+.est .dec2 a{color:var(--rojo);letter-spacing:.13em;text-transform:uppercase;font-weight:600;font-size:10px;margin-left:4px}
+.mas{color:var(--t45);justify-self:center}
+
+/* miniatura de prenda */
+.im{width:42px;height:42px;border-radius:10px;display:grid;place-items:center;flex:none;border:1px solid rgba(26,26,24,.10);position:relative;overflow:hidden}
+.im:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 2px,transparent 2px 5px)}
+.im svg{position:relative;z-index:1}
+.im.beige{background:linear-gradient(140deg,#e7d9be,#cdb994);color:rgba(96,74,42,.62)}
+.im.negro{background:linear-gradient(140deg,#46433f,#22211f);color:rgba(245,240,232,.72)}
+.im.arena{background:linear-gradient(140deg,#ddcaa5,#c0a980);color:rgba(96,74,42,.62)}
+
+/* ---------- barra de totales ---------- */
+.sticky{position:absolute;left:0;right:0;bottom:0;border-top:1px solid var(--sand);background:rgba(245,240,232,.96);z-index:10;padding:14px 36px;display:flex;align-items:center;gap:26px}
+.sticky .lft{display:flex;align-items:center;gap:14px;min-width:350px}
+.sticky .box{width:46px;height:46px;border-radius:12px;background:rgba(232,224,208,.6);border:1px solid var(--sand);display:grid;place-items:center;color:var(--t65)}
+.tot{display:flex;align-items:center;flex:1}
+.tot .m{padding:2px 22px;border-left:1px solid var(--t10)}
+.tot .m:first-child{border-left:0;padding-left:0}
+.tot .m .n{font-family:'EB Garamond',serif;font-size:32px;line-height:1;font-variant-numeric:tabular-nums}
+.tot .m .l{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t55);margin-top:5px;white-space:nowrap}
+.tot .m.v .n{color:var(--verde-p)}.tot .m.a .n{color:var(--ambar-p)}.tot .m.q .n{color:var(--t45)}
+
+.chk{width:18px;height:18px;border:1.5px solid var(--t45);border-radius:5px;display:inline-grid;place-items:center;flex:none;background:var(--papel);color:var(--crema)}
+.chk.on{background:var(--tinta);border-color:var(--tinta)}
+.ini{width:30px;height:30px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-size:10.5px;font-weight:700;letter-spacing:.05em;color:var(--t75);flex:none}
+.ini.s{width:22px;height:22px;font-size:9px}
+.strip{display:flex;justify-content:space-between;align-items:center;padding:9px 18px 8px;font-size:12px;color:var(--t55)}
+.strip b{font-weight:600;color:var(--tinta)}
+.docs2{padding:14px 20px 16px}
+.docs2 .dh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.dchs{display:flex;flex-wrap:wrap;gap:10px}
+.dch .ini{margin-left:-4px}
+.gh{display:grid;grid-template-columns:20px 1fr auto;align-items:center;column-gap:12px;padding:12px 20px;border-top:1px solid var(--t10);background:rgba(232,224,208,.34)}
+.gh .gt{display:flex;align-items:center;gap:12px;min-width:0}
+.gh .gn{font-size:15px;font-weight:600;display:flex;align-items:center;gap:10px}
+.gh .gs{font-size:12px;color:var(--t65);margin-top:2px}
+.gh .gr{display:flex;align-items:center;gap:22px}
+.gh .gp{width:170px}
+.gh .gp .tx{font-size:12px;color:var(--t65);display:flex;justify-content:space-between;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.gh .gp .prog{height:4px}
+.gh .chv{color:var(--t55)}
+.gh.first{border-top:0}
+.btn.s{padding:8px 13px}
+</style></head><body>
+<div class="app">
+<aside class="side">
+<div class="logo"><img src="cayla-isotipo.png"><span class="lbl">CAYLA</span></div>
+<div class="nuevo"><span class="btn pri" style="width:100%;justify-content:center"><i class="ic" data-i="plus" data-s="14"></i>Nuevo</span></div>
+<nav class="nav">
+<div class="it"><i class="ic" data-i="home"></i><span>Inicio</span></div>
+<div class="it"><i class="ic" data-i="users"></i><span>Colaboradores</span></div>
+<div class="it"><i class="ic" data-i="tag"></i><span>Catálogo</span><span class="chev"><i class="ic" data-i="down" data-s="14"></i></span></div>
+<div class="it"><i class="ic" data-i="box"></i><span>Compras</span><span class="chev"><i class="ic" data-i="down" data-s="14"></i></span></div>
+<div class="it ch"><i class="ic" data-i="building"></i><span>Proveedores</span></div>
+<div class="it ch"><i class="ic" data-i="receipt"></i><span>Comprobantes</span></div>
+<div class="it on ch"><i class="ic" data-i="box"></i><span>Recibir mercadería</span></div>
+<div class="it ch"><i class="ic" data-i="cash"></i><span>Por pagar</span></div>
+<div class="it"><i class="ic" data-i="bag"></i><span>Ventas</span><span class="chev"><i class="ic" data-i="down" data-s="14"></i></span></div>
+<div class="it"><i class="ic" data-i="box"></i><span>Inventario</span><span class="chev"><i class="ic" data-i="down" data-s="14"></i></span></div>
+</nav>
+<div class="sig">Donde el estilo transforma.</div>
+<div class="yo"><div class="av">CM</div><div><div class="sm">Carla Mendoza</div><div class="lbl" style="font-size:10px;color:var(--t65);margin-top:2px">Líder · Arequipa</div></div></div>
+</aside>
+
+<div class="main">
+<div class="top"><span class="lbl" style="color:var(--t65)">Tienda · Arequipa</span><span style="margin-left:6px;color:var(--t45)"><i class="ic" data-i="down" data-s="14"></i></span></div>
+<div class="cont">
+  <div class="cab">
+    <div>
+      <div class="lbl muted">Compras · Tienda · Arequipa</div>
+      <h1 class="t">Recibir mercadería</h1>
+      <p class="bajada">Marca los comprobantes que vienen en el envío, cuenta lo que llegó y recibe. Cada prenda entra como movimiento — el stock no se edita a mano.</p>
+      <p class="xs m55" style="margin-top:3px">¿Llegó mercadería que todavía no tiene comprobante? <span style="text-decoration:underline;text-underline-offset:3px">Ingreso sin comprobante</span>.</p>
+    </div>
+    <div class="acc"><span class="btn dis">Guardar borrador</span><span class="btn dis sq"><i class="ic" data-i="more" data-s="16"></i></span></div>
+  </div>
+  <div class="tabs"><div class="tb lbl on">Pendientes</div><div class="tb lbl">Recibidas recientemente</div><span class="xs m55 sv"><i class="ic" data-i="check" data-s="13"></i>Borrador guardado en este equipo · 10:31</span></div>
+
+  <div class="cols">
+    <!-- ================= izquierda: lo que falta llegar ================= -->
+    <aside class="card lista">
+      <div class="hd">
+        <div class="ttl"><h2>Pendientes de llegar</h2><span class="muted"><i class="ic" data-i="filter" data-s="18"></i></span></div>
+        <div class="find"><i class="ic" data-i="search" data-s="16"></i>Documento o proveedor</div>
+      </div>
+      <div class="ftabs"><div class="ft on">Todas <b>6</b></div><div class="ft at">Atrasadas <b>3</b></div><div class="ft">Próximas <b>3</b></div></div>
+      <div class="strip"><span>Por urgencia: lo atrasado primero</span><span><b>3</b> en el envío</span></div>
+
+      <div class="ent on"><span class="chk on"><i class="ic" data-i="check" data-s="12"></i></span><div style="flex:1;min-width:0"><div class="p">Textiles Andina SAC</div><div class="n">F001-000198</div><div class="d">Esperada el 11/08 · 20 de 110 u.</div></div>
+        <div class="rr"><span class="chip ambar">Atrasada 38 d</span><div class="mt">S/ 3,878.98<small>por llegar</small></div></div></div>
+      <div class="ent on"><span class="chk on"><i class="ic" data-i="check" data-s="12"></i></span><div style="flex:1;min-width:0"><div class="p">Tejidos Rímac SAC</div><div class="n">F001-000482</div><div class="d">Esperada el 09/09 · 0 de 240 u.</div></div>
+        <div class="rr"><span class="chip ambar">Atrasada 9 d</span><div class="mt">S/ 5,923.60</div></div></div>
+      <div class="ent"><span class="chk"></span><div style="flex:1;min-width:0"><div class="p">Tejidos Rímac SAC</div><div class="n">F001-000455</div><div class="d">Esperada el 10/09 · 72 de 120 u.</div></div>
+        <div class="rr"><span class="chip ambar">Atrasada 8 d</span><div class="mt">S/ 1,274.40<small>por llegar</small></div></div></div>
+      <div class="ent on"><span class="chk on"><i class="ic" data-i="check" data-s="12"></i></span><div style="flex:1;min-width:0"><div class="p">Hilados del Norte</div><div class="n">F003-000802</div><div class="d">Llega el 20/09 · 0 de 60 u.</div></div>
+        <div class="rr"><span class="chip neutro">En 2 días</span><div class="mt">S/ 1,180.00</div></div></div>
+      <div class="ent"><span class="chk"></span><div style="flex:1;min-width:0"><div class="p">Avíos Gamarra</div><div class="n">F010-000331</div><div class="d">Llega el 23/09 · 0 de 300 u.</div></div>
+        <div class="rr"><span class="chip neutro">En 5 días</span><div class="mt">S/ 2,340.00</div></div></div>
+      <div class="ent"><span class="chk"></span><div style="flex:1;min-width:0"><div class="p">Confecciones del Sur EIRL</div><div class="n">F002-001045</div><div class="d">Llega el 25/09 · 255 de 510 u.</div></div>
+        <div class="rr"><span class="chip neutro">En 7 días</span><div class="mt">S/ 18,726.60<small>por llegar</small></div></div></div>
+      <div class="xs m55" style="padding:13px 18px 14px;border-top:1px solid var(--t10)">Un envío puede traer comprobantes de varios proveedores: marca los que vienen en él. Si quitas uno con cantidades ya anotadas, te pregunta antes de descartarlas.</div>
+    </aside>
+
+    <!-- ================= derecha: la guía en curso ================= -->
+    <section class="det">
+      <div class="card res">
+        <div><span class="tile"><i class="ic" data-i="truck" data-s="22"></i></span>
+          <div style="min-width:0"><div class="disp" style="font-size:22px;line-height:1.1">Envío de 3 proveedores</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:9px"><span class="ini s">TA</span><span class="ini s">TR</span><span class="ini s">HN</span><span class="xs muted" style="margin-left:5px">3 comprobantes · 390 u.</span></div></div></div>
+        <div style="display:block">
+          <div class="campo"><div class="l">Guía del envío</div><div class="v mono">T001-004417</div></div>
+          <div class="campo" style="margin-top:10px"><div class="l">Entra a</div><div class="v" style="font-size:14px;min-height:26px">Tienda · Arequipa <span class="xs m55" style="margin-left:6px">· al almacén</span><span style="margin-left:auto;color:var(--t45)"><i class="ic" data-i="down" data-s="14"></i></span></div></div></div>
+        <div>
+          <svg width="70" height="70" viewBox="0 0 70 70" style="flex:none"><circle cx="35" cy="35" r="28" fill="none" stroke="#e8e0d0" stroke-width="6"/><circle cx="35" cy="35" r="28" fill="none" stroke="#8c631f" stroke-width="6" stroke-linecap="round" stroke-dasharray="175.93" stroke-dashoffset="156.1" transform="rotate(-90 35 35)"/><text x="35" y="41" text-anchor="middle" font-family="EB Garamond, serif" font-size="19" fill="#1a1a18">11%</text></svg>
+          <div><div class="lbl m55" style="font-size:10.5px;white-space:nowrap">Estado de recepción</div><div class="disp" style="font-size:24px;line-height:1.15;margin-top:2px">En proceso</div><div class="xs muted" style="margin-top:2px">44 de 390 unidades contadas</div><div class="xs m55">Iniciada hoy, 10:24 a. m.</div></div></div>
+      </div>
+
+      <div class="card docs2">
+        <div class="dh" style="align-items:center"><span class="lbl m55" style="font-size:10.5px">Comprobantes de este envío</span><span class="dch add" style="padding:5px 11px;font-size:12.5px"><i class="ic" data-i="plus" data-s="14"></i>Agregar comprobante</span></div>
+        <div class="dchs">
+          <span class="dch"><span class="ini s">TA</span><span class="k">Textiles Andina</span><b>F001-000198</b><i class="ic x" data-i="x" data-s="14"></i></span>
+          <span class="dch"><span class="ini s">TR</span><span class="k">Tejidos Rímac</span><b>F001-000482</b><i class="ic x" data-i="x" data-s="14"></i></span>
+          <span class="dch"><span class="ini s">HN</span><span class="k">Hilados del Norte</span><b>F003-000802</b><i class="ic x" data-i="x" data-s="14"></i></span>
+        </div>
+      </div>
+
+      <div class="card tbl">
+        <div class="tabs2">
+          <div class="tb on">Prendas del envío <b>390</b></div>
+          <div class="tb">Fuera de comprobante <b>0</b></div>
+          <div class="tb">Notas <b>1</b></div>
+          <div class="scan"><i class="ic" data-i="scan" data-s="18"></i>Escanea la etiqueta o busca por SKU o nombre…<i class="ic cam" data-i="camera" data-s="18"></i></div>
+        </div>
+        <div class="prg"><span class="xs muted" style="white-space:nowrap">3 de 18 líneas contadas</span><div class="prog" style="width:130px"><i style="width:17%;background:var(--ambar)"></i></div><span class="xs m55" style="white-space:nowrap">15 sin contar: siguen pendientes</span>
+          <span class="xs" style="margin-left:auto;color:var(--verde-p);display:flex;align-items:center;gap:6px;white-space:nowrap"><i class="ic" data-i="check" data-s="13"></i>Última lectura: BLU-0042-NEG-S → Textiles Andina · +1</span></div>
+        <div class="th"><span>Prenda</span><span>SKU</span><span class="c">Pendiente</span><span class="c">Llegó</span><span class="c">Dif.</span><span>Estado</span><span></span></div>
+
+        <div class="gh first"><i class="ic chv" data-i="down" data-s="18"></i>
+          <div class="gt"><span class="ini">TA</span><div><div class="gn">Textiles Andina SAC <span class="chip ambar">Atrasada 38 d</span></div><div class="gs">Factura F001-000198 · esperada el 11/08</div></div></div>
+          <div class="gr"><div class="gp"><div class="tx"><span>44 de 90 u.</span><span>3 de 6 líneas</span></div><div class="prog"><i style="width:49%;background:var(--ambar)"></i></div></div>
+            <span class="lbl" style="font-size:10.5px">Todo llegó</span><span class="lbl" style="font-size:10.5px">Nada llegó</span><span class="lbl m55" style="font-size:10.5px">Vaciar</span></div></div>
+        <div class="tr ok"><div class="pr"><span class="im beige"><i class="ic" data-i="shirt" data-s="22"></i></span><div><div class="a">Blusa Emma</div><div class="b">Talla S · Beige</div></div></div>
+          <div class="sku">BLU-0042-BEI-S</div><div class="c tab muted">24</div><div class="c"><span class="num ok">24</span></div><div class="dif">0</div><div class="est"><span class="chip verde">Completa</span></div><i class="ic mas" data-i="more" data-s="18"></i></div>
+        <div class="tr ok"><div class="pr"><span class="im beige"><i class="ic" data-i="shirt" data-s="22"></i></span><div><div class="a">Blusa Emma</div><div class="b">Talla M · Beige</div></div></div>
+          <div class="sku">BLU-0042-BEI-M</div><div class="c tab muted">12</div><div class="c"><span class="num ok">12</span></div><div class="dif">0</div><div class="est"><span class="chip verde">Completa</span></div><i class="ic mas" data-i="more" data-s="18"></i></div>
+        <div class="tr"><div class="pr"><span class="im beige"><i class="ic" data-i="shirt" data-s="22"></i></span><div><div class="a">Blusa Emma</div><div class="b">Talla L · Beige</div></div></div>
+          <div class="sku">BLU-0042-BEI-L</div><div class="c tab muted">10</div><div class="c"><span class="num cero">—</span></div><div class="dif">—</div><div class="est"><span class="chip neutro">Sin contar</span></div><i class="ic mas" data-i="more" data-s="18"></i></div>
+        <div class="tr par"><div class="pr"><span class="im negro"><i class="ic" data-i="shirt" data-s="22"></i></span><div><div class="a">Blusa Emma</div><div class="b">Talla S · Negro</div></div></div>
+          <div class="sku">BLU-0042-NEG-S</div><div class="c tab muted">12</div><div class="c"><span class="num par">8</span></div><div class="dif neg">−4</div><div class="est"><span class="chip ambar">Faltan 4</span><div class="dec2">Lo espero: sigue pendiente <a>Editar</a></div></div><i class="ic mas" data-i="more" data-s="18"></i></div>
+        <div class="tr"><div class="pr"><span class="im arena"><i class="ic" data-i="pants" data-s="22"></i></span><div><div class="a">Pantalón Lino</div><div class="b">Talla 38 · Arena</div></div></div>
+          <div class="sku">PAN-0017-ARE-38</div><div class="c tab muted">16</div><div class="c"><span class="num cero">—</span></div><div class="dif">—</div><div class="est"><span class="chip neutro">Sin contar</span></div><i class="ic mas" data-i="more" data-s="18"></i></div>
+        <div class="tr"><div class="pr"><span class="im arena"><i class="ic" data-i="pants" data-s="22"></i></span><div><div class="a">Pantalón Lino</div><div class="b">Talla 40 · Arena</div></div></div>
+          <div class="sku">PAN-0017-ARE-40</div><div class="c tab muted">16</div><div class="c"><span class="num cero">—</span></div><div class="dif">—</div><div class="est"><span class="chip neutro">Sin contar</span></div><i class="ic mas" data-i="more" data-s="18"></i></div>
+      
+        <div class="gh"><i class="ic chv" data-i="right" data-s="18"></i>
+          <div class="gt"><span class="ini">TR</span><div><div class="gn">Tejidos Rímac SAC <span class="chip ambar">Atrasada 9 d</span></div><div class="gs">Factura F001-000482 · esperada el 09/09</div></div></div>
+          <div class="gr"><div class="gp"><div class="tx"><span>0 de 240 u.</span><span>0 de 8 líneas</span></div><div class="prog"><i style="width:0%"></i></div></div><span class="btn dis s">Contar</span></div></div>
+        <div class="gh"><i class="ic chv" data-i="right" data-s="18"></i>
+          <div class="gt"><span class="ini">HN</span><div><div class="gn">Hilados del Norte <span class="chip neutro">En 2 días</span></div><div class="gs">Factura F003-000802 · llega el 20/09</div></div></div>
+          <div class="gr"><div class="gp"><div class="tx"><span>0 de 60 u.</span><span>0 de 4 líneas</span></div><div class="prog"><i style="width:0%"></i></div></div><span class="btn dis s">Contar</span></div></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="sticky">
+  <div class="lft"><span class="box"><i class="ic" data-i="box" data-s="22"></i></span><div><div class="disp" style="font-size:19px;line-height:1.15">Totales del envío</div><div class="xs muted">Unidades · entran al almacén de <b style="font-weight:600;color:var(--tinta)">Tienda · Arequipa</b></div></div></div>
+  <div class="tot">
+    <div class="m"><div class="n">390</div><div class="l">Esperadas</div></div>
+    <div class="m v"><div class="n">44</div><div class="l">Contadas</div></div>
+    <div class="m q"><div class="n">342</div><div class="l">Sin contar</div></div>
+    <div class="m a"><div class="n">4</div><div class="l">Faltantes</div></div>
+    <div class="m q"><div class="n">0</div><div class="l">Fuera de comprobante</div></div>
+  </div>
+  <span class="btn pri" style="padding:14px 20px">Recibir 44 unidades</span>
+</div>
+</div>
+</div>
+
+<script>
+const P={
+plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
+down:'<path d="m6 9 6 6 6-6"/>',
+right:'<path d="m9 18 6-6-6-6"/>',
+search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+filter:'<line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/>',
+building:'<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>',
+file:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+truck:'<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+check:'<path d="M20 6 9 17l-5-5"/>',
+x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+scan:'<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 7v10"/><path d="M12 7v10"/><path d="M17 7v10"/>',
+camera:'<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
+more:'<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+shirt:'<path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>',
+pants:'<path d="M7 3h10l1.4 18h-4.8L12 9.5 10.4 21H5.6z"/><path d="M7 7h10"/>',
+phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+lock:'<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+home:'<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+tag:'<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
+box:'<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+receipt:'<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
+cash:'<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+bag:'<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>'
+};
+document.querySelectorAll('i[data-i]').forEach(e=>{const s=e.dataset.s||16;e.innerHTML='<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+P[e.dataset.i]+'</svg>'});
+</script>
+</body></html>

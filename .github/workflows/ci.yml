@@ -94,6 +94,25 @@ jobs:
         if: ${{ always() }}
         run: node scripts/datos/aviario.mjs --verificar
 
+      # Versiones de migración únicas: Supabase usa el prefijo numérico como llave del
+      # historial, y dos archivos con el mismo prefijo rompen `supabase start` y `db reset`
+      # (2026-09-17 x2, 2026-09-18). Solo lee nombres de archivo; no necesita node_modules.
+      # Corre también en `pull_request`: el choque entre dos ramas se ve en la segunda.
+      - name: Versiones de migración
+        if: ${{ always() }}
+        run: node scripts/migraciones/versiones.mjs
+
+      # Números de ADR únicos: cada sesión numera su ADR como "el siguiente" de su `main` y,
+      # con ramas paralelas, dos eligen el mismo (0074 y 0105 siguen repetidos en
+      # `main`; el 2026-09-17 hubo seis choques). Solo lee nombres de archivo; no necesita
+      # node_modules. Corre también en `pull_request`: el choque entre dos ramas se ve en la
+      # segunda. Las pruebas del detector van primero, para que un candado roto no diga "todo bien".
+      - name: Números de ADR
+        if: ${{ always() }}
+        run: |
+          node --test scripts/adr/numeros.test.mjs
+          node scripts/adr/numeros.mjs
+
   pruebas-postgres:
     name: Pruebas de RPC contra Postgres (piloto, no bloquea)
     runs-on: ubuntu-latest

@@ -1,5 +1,7 @@
 "use client";
 
+import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
+import type { CatalogoMarcas } from "@/lib/marcas-datos";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -39,6 +41,7 @@ export function ConteoPanel({
   prioridad,
   colores,
   tallasPorCategoria,
+  marcas,
 }: {
   ubicacionId: string;
   esLider: boolean;
@@ -54,6 +57,8 @@ export function ConteoPanel({
   colores: { codigo: string; nombre: string }[];
   /** ...y de tallas, filtradas por categoría (mismo shape que `EjesPorCategoria.tallas`). */
   tallasPorCategoria: Record<string, { id: string; texto: string }[]>;
+  /** Marcas, proveedores y parejas más usadas por categoría: el alta al vuelo las pide (ADR-0109). */
+  marcas: CatalogoMarcas;
 }) {
   const router = useRouter();
   const [abriendo, setAbriendo] = useState<string | "todo" | null>(null);
@@ -208,6 +213,7 @@ export function ConteoPanel({
       categorias={categorias}
       colores={colores}
       tallasPorCategoria={tallasPorCategoria}
+      marcas={marcas}
     />
   );
 }
@@ -220,6 +226,7 @@ function ConteoEnCurso({
   categorias,
   colores,
   tallasPorCategoria,
+  marcas,
 }: {
   conteo: ConteoAbierto;
   avance: AvanceConteo | null;
@@ -228,6 +235,7 @@ function ConteoEnCurso({
   categorias: { id: string; nombre: string }[];
   colores: { codigo: string; nombre: string }[];
   tallasPorCategoria: Record<string, { id: string; texto: string }[]>;
+  marcas: CatalogoMarcas;
 }) {
   const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
@@ -244,6 +252,13 @@ function ConteoEnCurso({
   // esperar al servidor.
   const [catalogoNuevo, setCatalogoNuevo] = useState<VarianteConteo[]>([]);
   const [altaAbierta, setAltaAbierta] = useState(false);
+  // La última marca y proveedor usados en un alta al vuelo de ESTE conteo: en un censo las prendas vienen por tandas de la
+  // misma marca, y volver a elegirla 300 veces es justo lo que frenaría el conteo (ADR-0109).
+  const [ultimaPareja, setUltimaPareja] = useState<{ marcaId: string; proveedorId: string } | null>(null);
+  // Copia local de marcas y proveedores: el alta al vuelo se monta de nuevo en CADA escaneo, y lo que se creó en el anterior
+  // (una marca nueva, un proveedor nuevo) tiene que seguir existiendo en pantalla — si no, `ultimaPareja` apuntaría a una
+  // marca que el selector ya no conoce y mostraría «Marca» a secas.
+  const [marcasLocal, setMarcasLocal] = useState(marcas);
   const catalogoCompleto = useMemo(() => [...catalogo, ...catalogoNuevo], [catalogo, catalogoNuevo]);
 
   async function cancelarConteo() {
@@ -415,8 +430,13 @@ function ConteoEnCurso({
                 categorias={categorias}
                 colores={colores}
                 tallasPorCategoria={tallasPorCategoria}
+                marcas={marcasLocal}
+                onListas={(l) => setMarcasLocal((prev) => ({ ...prev, ...l }))}
+                puedeCrearMarcas={esLider}
+                parejaInicial={ultimaPareja}
                 onCancelar={() => setAltaAbierta(false)}
-                onCreada={(variante) => {
+                onCreada={(variante, pareja) => {
+                  setUltimaPareja(pareja);
                   setCatalogoNuevo((prev) => [...prev, variante]);
                   setAltaAbierta(false);
                   setSeleccionada(variante);
@@ -631,6 +651,10 @@ function AltaAlVuelo({
   categorias,
   colores,
   tallasPorCategoria,
+  marcas,
+  onListas,
+  puedeCrearMarcas,
+  parejaInicial,
   onCancelar,
   onCreada,
 }: {
@@ -638,11 +662,17 @@ function AltaAlVuelo({
   categorias: { id: string; nombre: string }[];
   colores: { codigo: string; nombre: string }[];
   tallasPorCategoria: Record<string, { id: string; texto: string }[]>;
+  marcas: CatalogoMarcas;
+  onListas: (listas: Pick<CatalogoMarcas, "marcas" | "proveedores" | "vinculos">) => void;
+  puedeCrearMarcas: boolean;
+  parejaInicial: { marcaId: string; proveedorId: string } | null;
   onCancelar: () => void;
-  onCreada: (variante: VarianteConteo) => void;
+  onCreada: (variante: VarianteConteo, pareja: { marcaId: string; proveedorId: string }) => void;
 }) {
   const [referencia, setReferencia] = useState("");
   const [categoriaId, setCategoriaId] = useState("");
+  const [marcaId, setMarcaId] = useState(parejaInicial?.marcaId ?? "");
+  const [proveedorId, setProveedorId] = useState(parejaInicial?.proveedorId ?? "");
   const [tallaId, setTallaId] = useState("");
   const [colorCodigo, setColorCodigo] = useState("");
   const [costo, setCosto] = useState("");
@@ -658,6 +688,10 @@ function AltaAlVuelo({
       setError("Referencia y categoría son obligatorias.");
       return;
     }
+    if (!marcaId || !proveedorId) {
+      setError("Elige la marca y el proveedor de la prenda.");
+      return;
+    }
     setGuardando(true);
     setError(null);
     const { data, error } = await createClient().rpc("censo_crear_variante", {
@@ -668,6 +702,8 @@ function AltaAlVuelo({
       p_color_codigo: colorCodigo || undefined,
       p_costo: costo ? Number(costo) : 0,
       p_precio: precio ? Number(precio) : 0,
+      p_marca_id: marcaId,
+      p_proveedor_id: proveedorId,
     });
     setGuardando(false);
     const fila = data?.[0];
@@ -675,7 +711,15 @@ function AltaAlVuelo({
       setError(traducirError(error, "dar de alta esta prenda"));
       return;
     }
-    avisar.exito(`${fila.referencia} dada de alta`, { detalle: "Pendiente de que un Líder la revise — ya se puede contar." });
+    // Dos casos con consecuencias distintas y la colaboradora tiene que saber cuál fue:
+    //  · reutilizado: ya existía una prenda con ese nombre (aprobada); esto solo le SUMÓ una talla
+    //    o un color, con el precio y el costo de sus hermanas. No queda nada por revisar.
+    //  · nueva: nace 'pendiente' hasta que un Líder la revise, pero ya se puede contar.
+    if (fila.reutilizado) {
+      avisar.exito(`${fila.referencia}: talla o color sumado`, { detalle: "Ya existía esa prenda; se le agregó esta variante. Ya se puede contar." });
+    } else {
+      avisar.exito(`${fila.referencia} dada de alta`, { detalle: "Pendiente de que un Líder la revise — ya se puede contar." });
+    }
     onCreada({
       varianteId: fila.variante_id,
       sku: fila.sku ?? "",
@@ -684,7 +728,7 @@ function AltaAlVuelo({
       color: fila.color,
       costo: Number(fila.costo),
       codigosBarras: [fila.codigo_barras],
-    });
+    }, { marcaId, proveedorId });
   }
 
   return (
@@ -718,6 +762,30 @@ function AltaAlVuelo({
           ))}
         </CampoSelectNativo>
       </div>
+      {categoriaId && (
+        <div className="space-y-1.5">
+          <p className="label-cayla text-[11px] text-tinta/70">Marca y proveedor</p>
+          <ElegirMarcaProveedor
+            marcas={marcas.marcas}
+            proveedores={marcas.proveedores}
+            vinculos={marcas.vinculos}
+            usosCategoria={marcas.parejasPorCategoria[categoriaId] ?? []}
+            categoriaNombre={categorias.find((c) => c.id === categoriaId)?.nombre}
+            marcaId={marcaId}
+            proveedorId={proveedorId}
+            onElegir={(m, p) => {
+              setMarcaId(m);
+              setProveedorId(p);
+            }}
+            onLimpiar={() => {
+              setMarcaId("");
+              setProveedorId("");
+            }}
+            onListas={onListas}
+            puedeCrear={puedeCrearMarcas}
+          />
+        </div>
+      )}
       <CampoSelectNativo etiqueta="Color (si aplica)" value={colorCodigo} onChange={(e) => setColorCodigo(e.target.value)}>
         <option value="">Sin color</option>
         {colores.map((c) => (

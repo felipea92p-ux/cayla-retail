@@ -362,20 +362,14 @@ function GrupoLateral({
 // revienta contra un esquema que ya no existe. "Nueva venta" exige caja
 // abierta — si no hay, /vender lo explica y manda a /caja, no es un enlace roto.
 //
-// ADR-0111: UNA sola puerta para recibir según quién eres. Compras es solo de líder (su layout devuelve al
-// Inicio a cualquier colaborador), así que el líder ve «Recibir mercadería» contra el comprobante del
-// proveedor y el colaborador —que no puede entrar a Compras— conserva su camino: «Ingreso sin
-// comprobante». Antes este menú mostraba a todos las entradas de Compras y, al colaborador, cada una lo
-// devolvía al Inicio: un enlace que no lleva a ningún lado.
+// ADR-0111: UNA sola puerta para recibir. ADR-0113: la misma para todos — Recibir mercadería salió de
+// Compras (solo líder) a `/recibir`, porque cuenta cualquier colaborador de la sede. «Registrar comprobante»
+// sigue siendo del líder: es dinero. El «Ingreso sin comprobante» queda como excepción, dentro de esa pantalla.
 function MenuNuevo({ onClose, esLider }: { onClose: () => void; esLider: boolean }) {
   const acciones = [
     { href: "/vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta" },
-    ...(esLider
-      ? [
-          { href: "/compras/nueva", etiqueta: "Registrar comprobante", detalle: "Una compra a proveedor, con su pago si es al contado" },
-          { href: "/compras/recibir", etiqueta: "Recibir mercadería", detalle: "Contra el comprobante del proveedor" },
-        ]
-      : [{ href: "/inventario/recibir", etiqueta: "Ingreso sin comprobante", detalle: "Ingresar un lote a esta ubicación" }]),
+    ...(esLider ? [{ href: "/compras/nueva", etiqueta: "Registrar comprobante", detalle: "Una compra a proveedor, con su pago si es al contado" }] : []),
+    { href: "/recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó, contra sus comprobantes" },
     { href: "/inventario/mover", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones" },
     { href: "/cambios", etiqueta: "Registrar cambio", detalle: "La clienta cambia una prenda por otra talla o color" },
     { href: "/devoluciones", etiqueta: "Registrar devolución", detalle: "Una clienta devuelve algo que compró" },
@@ -506,7 +500,13 @@ function MenuNuevo({ onClose, esLider }: { onClose: () => void; esLider: boolean
 // Inventario entró el 2026-09-16: la tabla de Existencias con «En tránsito» y
 // «En la red» (6 columnas) y la de Movimientos con origen → destino no caben
 // en 64rem sin recortar la prenda.
-const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario"];
+// `/recibir` (ADR-0113) salió de `/compras` y trae su ancho: la lista de pendientes + el envío con la tabla de
+// conteo (prenda, SKU, pendiente, llegó, dif., estado) no caben en 64rem.
+// Caja entró el 2026-09-18 (pedido de Felipe): el tablero de la caja abierta —KPIs, dona,
+// ritmo del día, movimientos— tiene qué mostrar a lo ancho y en pantalla grande sobraba
+// margen. Lo que cuelga de /caja y NO es tablero (el formulario de abrir caja y el historial
+// de cierres) se topa por su cuenta con `max-w-5xl`: no fueron pensados para estirarse.
+const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/recibir", "/caja"];
 
 export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }: Props) {
   const pathname = usePathname();
@@ -541,9 +541,10 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
   // la función.
   const RUTAS_POR_GRUPO: Record<string, string[]> = {
     venta: ["/vender", "/caja", "/cambios", "/devoluciones", "/vender/facturacion"],
-    catalogo: ["/productos", "/productos/categorias", "/productos/atributos"],
-    compras: ["/compras", "/compras/proveedores", "/compras/recibir", "/compras/por-pagar"],
-    inventario: ["/inventario", "/inventario/movimientos", "/inventario/traslados", "/inventario/conteo", "/inventario/resumen"],
+    catalogo: ["/productos", "/productos/categorias", "/productos/atributos", "/productos/marcas"],
+    // «Recibir mercadería» (/recibir) vive en Compras para el líder y en Inventario para quien no lo es.
+    compras: ["/compras", "/compras/proveedores", "/compras/por-pagar", ...(esLider ? ["/recibir"] : [])],
+    inventario: ["/inventario", "/inventario/movimientos", "/inventario/traslados", "/inventario/conteo", "/inventario/resumen", ...(esLider ? [] : ["/recibir"])],
   };
   const grupoActivo = Object.entries(RUTAS_POR_GRUPO).find(([, rutas]) => rutas.some((h) => activo(h)))?.[0] ?? null;
 
@@ -605,7 +606,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
   // el grupo del lateral, igual que pasó con Productos/Categorías/Colores.
   const proveedores: Item = { href: "/compras/proveedores", etiqueta: "Proveedores", icono: IC.proveedores };
   const facturas: Item = { href: "/compras", etiqueta: "Comprobantes", icono: IC.facturas };
-  const recibirMercaderia: Item = { href: "/compras/recibir", etiqueta: "Recibir mercadería", icono: IC.recibir };
+  const recibirMercaderia: Item = { href: "/recibir", etiqueta: "Recibir mercadería", icono: IC.recibir };
   const porPagar: Item = { href: "/compras/por-pagar", etiqueta: "Por pagar", icono: IC.porPagar };
   const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };
   const produccion: Item = { href: "/produccion", etiqueta: "Producción", icono: IC.produccion };
@@ -668,7 +669,8 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
     id: "inventario",
     etiqueta: "Inventario",
     icono: IC.inventario,
-    hijos: [existencias, movimientos, traslados, conteo, ...(esLider ? [resumen] : [])],
+    // Quien no es líder no tiene el grupo Compras: su puerta a «Recibir mercadería» está acá, donde vive el stock.
+    hijos: [existencias, movimientos, traslados, conteo, ...(esLider ? [resumen] : [recibirMercaderia])],
   };
 
   const grupos = [

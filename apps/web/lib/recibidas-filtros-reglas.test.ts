@@ -156,20 +156,20 @@ describe("filtrosRecibidasDesdeParams", () => {
 
 describe("hrefConCambios", () => {
   it("conserva vista=recibidas y suma el proveedor", () => {
-    expect(hrefConCambios("/compras/recibir", "vista=recibidas", { prov: PROV })).toBe(`/compras/recibir?vista=recibidas&prov=${PROV}`);
+    expect(hrefConCambios("/recibir", "vista=recibidas", { prov: PROV })).toBe(`/recibir?vista=recibidas&prov=${PROV}`);
   });
   it("un valor vacío borra el parámetro; sin nada más, queda solo la vista", () => {
-    expect(hrefConCambios("/compras/recibir", `vista=recibidas&prov=${PROV}`, { prov: "" })).toBe("/compras/recibir?vista=recibidas");
+    expect(hrefConCambios("/recibir", `vista=recibidas&prov=${PROV}`, { prov: "" })).toBe("/recibir?vista=recibidas");
   });
   it("cambiar un filtro descarta el cursor de paginación", () => {
-    expect(hrefConCambios("/compras/recibir", "vista=recibidas&cursor=abc", { q: "gamarra" })).toBe("/compras/recibir?vista=recibidas&q=gamarra");
+    expect(hrefConCambios("/recibir", "vista=recibidas&cursor=abc", { q: "gamarra" })).toBe("/recibir?vista=recibidas&q=gamarra");
   });
   it("desde y hasta se cambian juntos, y se quitan juntos", () => {
-    const con = hrefConCambios("/compras/recibir", "vista=recibidas&q=x", { desde: "2026-09-01", hasta: "2026-09-30" });
-    expect(con).toBe("/compras/recibir?vista=recibidas&q=x&desde=2026-09-01&hasta=2026-09-30");
-    expect(hrefConCambios("/compras/recibir", con.split("?")[1], { desde: "", hasta: "" })).toBe("/compras/recibir?vista=recibidas&q=x");
+    const con = hrefConCambios("/recibir", "vista=recibidas&q=x", { desde: "2026-09-01", hasta: "2026-09-30" });
+    expect(con).toBe("/recibir?vista=recibidas&q=x&desde=2026-09-01&hasta=2026-09-30");
+    expect(hrefConCambios("/recibir", con.split("?")[1], { desde: "", hasta: "" })).toBe("/recibir?vista=recibidas&q=x");
   });
   it("sin parámetros y sin cambios es solo la ruta", () => {
-    expect(hrefConCambios("/compras/recibir", "", { q: "" })).toBe("/compras/recibir");
+    expect(hrefConCambios("/recibir", "", { q: "" })).toBe("/recibir");
   });
 });
