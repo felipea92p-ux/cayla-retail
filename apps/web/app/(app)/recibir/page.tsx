@@ -10,7 +10,9 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { filtrosRecibidasDesdeParams, hayFiltrosRecibidas, resultadoDesdeParam } from "@/lib/recibidas-filtros-reglas";
 import { getEnviosDeLotes, getTrasladosHaciaAca } from "@/lib/envio";
 import { comprobanteSinMontos, kpisDeLaLista, lineaSinCosto } from "@/lib/envio-reglas";
+import { valorPorRecibirDeMiTienda } from "@/lib/reparto-reglas";
 import { RecepcionEnvio } from "@/components/RecepcionEnvio";
+import { SelectorUbicacion } from "@/components/SelectorUbicacion";
 import { KpisRecibir } from "@/components/KpisRecibir";
 import { RecepcionesCompraLista } from "@/components/RecepcionesCompraLista";
 import { FiltrosRecibidas } from "@/components/FiltrosRecibidas";
@@ -36,7 +38,7 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 // `?vista=recibidas`: lo que ya se recibió contra comprobante, con su resultado y su demora. Sus filtros
 // (`?q=&prov=&desde=&hasta=`) son el buscador y las dos pastillas en línea de la maqueta 06
 // (`FiltrosRecibidas`); el servidor los limpia con `filtrosRecibidasDesdeParams` antes de llamar a la base.
-type ParamsRecibir = ParamsCompras & { compra?: string; vista?: string; nueva?: string; res?: string };
+type ParamsRecibir = ParamsCompras & { compra?: string; vista?: string; nueva?: string; res?: string; ubicacion?: string };
 
 export default async function RecibirPage({ searchParams }: { searchParams: Promise<ParamsRecibir> }) {
   const persona = await requirePersonaActualV2();
@@ -44,15 +46,28 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   const params = await searchParams;
   const vista = params.vista === "recibidas" ? "recibidas" : "pendientes";
 
+  // ADR-0132: Recibir es POR TIENDA. Una factura puede traer mercadería para varias tiendas y cada una recibe lo suyo:
+  // se mira desde la tienda donde estás parado, y un líder puede mirar otra con `?ubicacion=` (el selector «Recibiendo
+  // en»). Cada tienda ve lo que le toca de cada comprobante y solo eso; lo de las otras lo recibe cada una.
+  const ubicaciones = await getUbicaciones();
+  const ubicacionMirada = esLider && params.ubicacion && ubicaciones.some((u) => u.id === params.ubicacion) ? params.ubicacion : persona.ubicacionId;
+  const nombreMirada = ubicaciones.find((u) => u.id === ubicacionMirada)?.nombre ?? persona.ubicacionEtiqueta;
+
   const encabezado = (
     <div className="anim-entra">
-      <p className="label-cayla text-[11px] text-tinta/65">Recibir · {persona.ubicacionEtiqueta}</p>
+      <p className="label-cayla text-[11px] text-tinta/65">Recibir · {nombreMirada}</p>
       <h1 className="font-display mt-1 text-2xl text-tinta">Recibir mercadería</h1>
       <p className="mt-1 text-sm text-tinta/65">
         {vista === "pendientes"
-          ? "Marca los comprobantes que vienen en el envío, cuenta lo que llegó y recibe. Cada prenda entra como movimiento — el stock no se edita a mano."
+          ? `Marca los comprobantes que vienen en el envío, cuenta lo que llegó y recibe. Cada prenda entra como movimiento — el stock no se edita a mano. Aquí ves lo que le toca a ${nombreMirada} de cada comprobante; lo de las otras tiendas lo recibe cada una.`
           : "Lo que ya se recibió contra un comprobante, envío por envío."}
       </p>
+      {esLider && vista === "pendientes" && (
+        <div className="mt-2 flex items-center gap-2">
+          <span className="label-cayla text-[11px] text-tinta/65">Recibiendo en</span>
+          <SelectorUbicacion ubicaciones={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))} ubicacionActualId={ubicacionMirada} />
+        </div>
+      )}
       <p className="mt-1 text-xs text-tinta/55">
         ¿Llegó mercadería que todavía no tiene comprobante?{" "}
         <Link href="/inventario/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
@@ -165,11 +180,11 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   const cursor = leerCursor(params.cursor);
   const hayFiltros = Object.values(filtros).some(Boolean);
 
-  const [{ filas: comprasCompletas, siguiente }, ubicaciones, catalogo, proveedores] = await Promise.all([
+  const [{ filas: comprasCompletas, siguiente }, catalogo, proveedores] = await Promise.all([
     // ADR-0126: quien no es líder lee los comprobantes por `listar_compras_operativo`, que no trae un solo monto (las
     // tablas de dinero quedan cerradas para él en la base). El líder lee `listar_compras`, como siempre.
-    listarPorRecibir(filtros, cursor, { sinMontos: !esLider }),
-    getUbicaciones(),
+    // ADR-0132: solo los comprobantes que aún le faltan a ESTA tienda, con las cifras de ella.
+    listarPorRecibir(filtros, cursor, { sinMontos: !esLider, ubicacionId: ubicacionMirada }),
     getCatalogo(),
     getProveedoresActivos(),
   ]);
@@ -177,31 +192,24 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   // responden «Solo un líder puede ver …» (ADR-0126), así que para él ni se piden — se calculan de su propia lista,
   // solo cantidades y fechas.
   const [resumen, extra] = esLider ? await Promise.all([getResumenCompras(), getResumenComprasExtra()]) : [null, null];
-  const kpis =
-    resumen && extra
-      ? {
-          porRecibir: resumen.porRecibir,
-          unidadesPendientes: extra.unidadesPendientes,
-          atrasadas: resumen.porRecibirAtrasadas,
-          diasMasAtrasada: extra.diasMasAtrasada,
-          proveedorMasAtrasado: extra.proveedorMasAtrasado,
-          documentoMasAtrasada: extra.documentoMasAtrasada,
-          valorPorRecibir: extra.valorPorRecibir as number | null,
-        }
-      : { ...kpisDeLaLista(comprasCompletas), valorPorRecibir: null as number | null };
   // Quien cuenta pero no es líder no ve dinero: la base ya no se lo entrega (ADR-0126) y, por si esa lectura cayera al
   // camino de antes (la app desplegada antes que la migración), aquí se vuelve a tachar: los montos no salen del servidor.
   const compras = esLider ? comprasCompletas : comprasCompletas.map(comprobanteSinMontos);
-  const ubicacionesPermitidas = esLider ? ubicaciones : ubicaciones.filter((u) => u.id === persona.ubicacionId);
+  // ADR-0132: se recibe en la tienda desde la que se mira (un líder cambia de tienda con «Recibiendo en»): los topes y
+  // las cifras de cada línea son de ELLA, así que el formulario no ofrece recibir en otra.
+  const ubicacionesPermitidas = [{ id: ubicacionMirada, nombre: nombreMirada }];
 
   // Las líneas se traen solo para los comprobantes de ESTA página (≤ 50).
   const [lineasCompletas, comprasConNotaFaltante, saldoFavorPorProveedor, trasladosPorUbicacion] = await Promise.all([
-    getLineasCompra(compras.map((c) => c.id), { sinMontos: !esLider }),
+    getLineasCompra(compras.map((c) => c.id), { sinMontos: !esLider, ubicacionId: ubicacionMirada }),
     esLider ? getComprasConNotaFaltante(compras.map((c) => c.id)) : Promise.resolve([] as string[]),
     esLider ? getSaldosFavor(compras.map((c) => c.proveedorId)) : Promise.resolve({} as Record<string, number>),
     getTrasladosHaciaAca(ubicacionesPermitidas.map((u) => u.id)),
   ]);
   const lineas = esLider ? lineasCompletas : lineasCompletas.map(lineaSinCosto);
+  // Los indicadores de abajo son de ESTA tienda: salen de su lista (que ya trae sus cifras) y, para el líder, de lo
+  // que le falta a ella a su costo. Los de toda la empresa siguen en Compras.
+  const kpis = { ...kpisDeLaLista(comprasCompletas), valorPorRecibir: esLider ? valorPorRecibirDeMiTienda(comprasCompletas, lineasCompletas) : (null as number | null) };
 
   return (
     <div className="space-y-6">
@@ -241,7 +249,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             }))}
           proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))}
           ubicaciones={ubicacionesPermitidas.map((u) => ({ id: u.id, nombre: u.nombre }))}
-          ubicacionInicialId={persona.ubicacionId}
+          ubicacionInicialId={ubicacionMirada}
           compraInicialId={compra ?? null}
           esLider={esLider}
           igvMes={extra ? extra.igvMes : null}

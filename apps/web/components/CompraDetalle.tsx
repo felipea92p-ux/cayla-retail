@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { nombresDeDestinos } from "@/lib/reparto-reglas";
 import {
   getCompra,
   getLineasCompra,
@@ -79,7 +80,9 @@ export async function cargarDetalleCompra(compraId: string): Promise<DetalleComp
     adjuntos,
     notasCredito,
     cierres,
-    destino: ubicaciones.find((u) => u.id === compra.ubicacionDestinoId)?.nombre ?? "—",
+    // ADR-0132: una factura puede repartirse entre tiendas; se muestran todas (la sección «Reparto por tienda» del detalle
+    // dice cuánto le toca a cada una).
+    destino: nombresDeDestinos(compra.ubicacionesDestino, Object.fromEntries(ubicaciones.map((u) => [u.id, u.nombre]))) || "—",
   };
 }
 
