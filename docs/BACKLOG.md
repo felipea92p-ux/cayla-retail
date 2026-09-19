@@ -29,7 +29,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 ---
 
 ## 🎯 Endurecer el pago a proveedores (2026-09-19, ADR-0135) — migración lista en local, falta producción
-- [ ] Aplicar en producción, EN ESTE ORDEN: `20260919180000_pagos_compras_endurecimiento.sql` (pagos) y `20260919181000_registrar_compra_endurecimiento_por_parche.sql` (parche con guarda de `registrar_compra`; corre antes o después del reparto por tienda, ADR-0132). Verificar una sola firma de cada función. Al pegarlas: código de la web con `p_token` va DESPUÉS (o el pago del detalle falla).
+- [x] Migraciones `20260919180000` y `20260919181000` **pegadas en producción por Felipe (2026-09-19)**. Falta: verificar una sola firma de cada función y refrescar volcado + diccionario (`generado/COMO-REFRESCAR.md`).
 - [ ] Después: enviar `p_token` (uuid del formulario) desde `CompraDetallePanel.tsx` a `registrar_pagos_compra`; regenerar `types.ts` y el diccionario de producción. Antes de aplicar, NO: la función vieja no acepta el parámetro.
 - [ ] Decidir M6: por defecto del saldo a favor en el pago individual, en lote y al registrar el comprobante (hoy solo el lote lo destaca).
 - [ ] `registrar_pago_compra` (singular) tiene EXECUTE para PUBLIC: cerrar con `revoke … from public, anon` (exige líder por dentro; no explotable, pero conviene).

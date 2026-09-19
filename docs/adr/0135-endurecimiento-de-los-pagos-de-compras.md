@@ -1,7 +1,7 @@
 # ADR-0135 — Endurecimiento de los pagos de Compras (token, fechas, decimales y redondeo del IGV)
 
 - **Fecha:** 2026-09-19
-- **Estado:** Aceptado en el Postgres **local**; **PENDIENTE de aplicar en producción (requiere confirmación de Felipe)**.
+- **Estado:** Aceptado. Aplicado en el Postgres local y **pegado en producción por Felipe el 2026-09-19** (180000 y luego 181000). Sin verificar por Claude contra la base: falta correr la consulta de firmas y refrescar el volcado del diccionario.
   Toca tres funciones de dinero y cambia la firma de una: regla de CLAUDE.md, se detiene y se confirma antes.
 - **Migraciones (DOS, en este orden):**
   1. `supabase/migrations/20260919180000_pagos_compras_endurecimiento.sql` — `registrar_pagos_compra` (A2, M2, M3),
