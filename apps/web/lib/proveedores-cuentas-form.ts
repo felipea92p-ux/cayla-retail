@@ -1,6 +1,6 @@
 import { bancoDeCci, formatoCci, formatoCelular, normalizarCci, normalizarCelular, validarCci, validarCelular } from "./proveedores-reglas";
 
-// La parte «Cómo pagarle» del formulario de proveedor (ADR-0129): CCI, celular Yape/Plin, apps y titular.
+// La parte «Cómo pagarle» del formulario de proveedor (ADR-0134): CCI, celular Yape/Plin, apps y titular.
 //
 // Todo lo que decide algo vive acá, sin React ni red, para probarlo sin abrir la pantalla: qué se escribe
 // mientras se teclea, qué está mal, si algo cambió y con qué argumentos se llama a la RPC

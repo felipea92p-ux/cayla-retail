@@ -102,7 +102,7 @@ stateDiagram-v2
 | `created_at` | timestamptz | no | `now()` | Cuándo se dio de alta. |
 | `updated_at` | timestamptz | no | `now()` | Cuándo se tocó por última vez. Lo pone un trigger, no la pantalla. |
 
-> **Actualización 2026-09-19 (ADR-0129, `docs/adr/0129-proveedores-cci-yape-plin-y-titular.md`) — cuatro columnas nuevas,
+> **Actualización 2026-09-19 (ADR-0134, `docs/adr/0134-proveedores-cci-yape-plin-y-titular.md`) — cuatro columnas nuevas,
 > aplicadas en producción como `20260919173940`** (archivo del repo: `20260919170000_proveedores_cci_y_billetera.sql`).
 > Este módulo no se reescribe aquí; solo se agrega lo de este cambio.
 >

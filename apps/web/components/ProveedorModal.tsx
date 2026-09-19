@@ -50,7 +50,7 @@ import {
 // botón que barre mientras guarda y confirma con un ✓ antes de cerrar. Los campos reales que el spike no tenía
 // (consulta a SUNAT, teléfono, banco, cuenta) siguen: cambia cómo se ven, no qué se guarda.
 //
-// ADR-0129 (2026-09-19): el bloque «Cómo pagarle» — banco, N.° de cuenta, CCI, celular Yape/Plin (con sus apps) y
+// ADR-0134 (2026-09-19): el bloque «Cómo pagarle» — banco, N.° de cuenta, CCI, celular Yape/Plin (con sus apps) y
 // titular. Todo opcional. `guardar_cuentas_proveedor` es una RPC aparte de `registrar/actualizar_proveedor` (esas dos no
 // cambiaron de firma), así que guardar son DOS pasos: 1) el proveedor de siempre, 2) las cuentas, solo si algo de
 // ellas cambió. Si el paso 2 falla el proveedor YA existe: el modal se queda abierto con lo escrito, ya en modo
@@ -391,7 +391,7 @@ export function ProveedorModal({
                   </div>
                 </Campo>
 
-                {/* ADR-0129 · Cómo pagarle. Todo opcional: sin esto el proveedor se registra igual, y en el pago se avisa que falta. */}
+                {/* ADR-0134 · Cómo pagarle. Todo opcional: sin esto el proveedor se registra igual, y en el pago se avisa que falta. */}
                 <section aria-labelledby="proveedor-pago-titulo" className="mt-1 space-y-2 border-t border-tinta/10 pt-4">
                   <p id="proveedor-pago-titulo" className="label-cayla text-[11px] text-tinta/65">
                     Cómo pagarle

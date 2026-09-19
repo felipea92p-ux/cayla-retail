@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas de «CCI, Yape/Plin y titular por proveedor» (ADR-0129) contra el Postgres local — CAYLA V2.
+ * Pruebas de «CCI, Yape/Plin y titular por proveedor» (ADR-0134) contra el Postgres local — CAYLA V2.
  *
  * QUÉ PRUEBA. Que un proveedor pueda guardar dónde se le paga (CCI, celular de billetera con su app,
  * titular) SIN poder quedar en un estado imposible, y que solo un líder lo escriba:

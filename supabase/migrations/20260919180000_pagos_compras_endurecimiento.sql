@@ -1,5 +1,5 @@
 -- ============================================================================
--- ADR-0131 — Pagos de Compras: cinco huecos de la base que la auditoría CONFIRMÓ ejecutando en el local.
+-- ADR-0135 — Pagos de Compras: cinco huecos de la base que la auditoría CONFIRMÓ ejecutando en el local.
 --
 -- EL PROBLEMA. Una auditoría del flujo «pagar a un proveedor» probó, con SQL contra el Postgres local, que
 -- la base deja pasar cosas que la pantalla no puede corregir después (son funciones de dinero):
@@ -68,7 +68,7 @@
 -- la ve a medias. `registrar_pago_compra` (la de UN medio) llama a `registrar_pagos_compra` por nombre y con
 -- 3 argumentos: sigue resolviendo, ahora contra la de 4 con el token por defecto.
 -- Re-ejecutable: `create or replace` / `drop function if exists` / `comment on`. No borra ni modifica datos.
--- Cambios que necesita el cliente: ver ADR-0131 (el detalle debería mandar `p_token`; sin él, todo igual que hoy).
+-- Cambios que necesita el cliente: ver ADR-0135 (el detalle debería mandar `p_token`; sin él, todo igual que hoy).
 --
 -- ESTADO. Aceptada en el Postgres LOCAL. PENDIENTE de aplicar en producción (requiere confirmación de Felipe).
 -- Al pegarla en el SQL Editor de producción el `set search_path` inicial ya apunta a `retail`, pero los nombres
@@ -99,7 +99,7 @@ end;
 $$;
 
 comment on function retail.fn_validar_fecha_pago_compra(date, date, text) is
-  'ADR-0131: la fecha de un pago a proveedor no puede ser futura ni anterior a la emisión del comprobante (el piso nunca supera a hoy). Helper interno de las tres rutas de pago; sin EXECUTE para nadie.';
+  'ADR-0135: la fecha de un pago a proveedor no puede ser futura ni anterior a la emisión del comprobante (el piso nunca supera a hoy). Helper interno de las tres rutas de pago; sin EXECUTE para nadie.';
 
 revoke all on function retail.fn_validar_fecha_pago_compra(date, date, text) from public, anon, authenticated;
 

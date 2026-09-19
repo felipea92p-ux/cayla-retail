@@ -28,7 +28,7 @@ import type { DatosPagoProveedor } from "@/lib/proveedores-reglas";
    y un atajo «Usar S/ X» que lo pone como primera línea, con el resto en el
    medio de siempre. La base valida que no se use más de lo disponible.
 
-   Destino (ADR-0129): con `datosProveedor`, bajo cada línea se dice a dónde va la plata según el medio
+   Destino (ADR-0134): con `datosProveedor`, bajo cada línea se dice a dónde va la plata según el medio
    (banco + últimos dígitos del CCI, o el celular de Yape/Plin enmascarado) y se avisa —en ámbar— si ese
    medio no calza con lo que el proveedor tiene cargado. Solo avisos: no bloquean, y el N.° de operación
    sigue siendo opcional. Sin `datosProveedor` el componente se ve como siempre.

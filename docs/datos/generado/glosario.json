@@ -330,7 +330,7 @@
   "retail.proveedores.marca": "la línea que maneja ese proveedor: jeans, blusas de vestir, ropa de niño",
   "retail.proveedores.score": "nota de calidad heredada de SINATRA; se muestra en la lista y ninguna pantalla la escribe",
   "retail.proveedores.contacto": "el nombre de la persona con quien se habla para pactar el fardo",
-  "retail.proveedores.telefono": "el WhatsApp por el que se cierra la compra, que es como compra CAYLA; desde ADR-0129 ya NO es el destino del Yape",
+  "retail.proveedores.telefono": "el WhatsApp por el que se cierra la compra, que es como compra CAYLA; desde ADR-0134 ya NO es el destino del Yape",
   "retail.proveedores.banco": "en qué banco cobra ese proveedor; visible para cualquiera con cuenta, decisión consciente D-27",
   "retail.proveedores.cuenta_bancaria": "el número de cuenta del banco (depósito o mismo banco); el interbancario vive en `cci`. Dato de un tercero y visible para todos",
   "retail.proveedores.direccion": "dónde queda su local o almacén cuando hay que ir a recoger",

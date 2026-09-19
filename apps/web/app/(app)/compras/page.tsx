@@ -202,7 +202,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
 
       <div className="anim-entra" style={{ ["--i" as string]: 6 }}>
         <FiltrosCompras
-          atajoBusqueda
+          atajoBuscar
           proveedores={proveedores}
           visibles={["proveedor", "pago", "recepcion", "condicion", "tipo", "fechas", "vencidas"]}
           accionesDespues={

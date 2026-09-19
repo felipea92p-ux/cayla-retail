@@ -3,6 +3,7 @@ import { destinoDelMedio, faltaDatoDePago } from "./destino-de-pago";
 import type { DatosPagoProveedor } from "./proveedores-reglas";
 
 const base: DatosPagoProveedor = {
+  proveedorId: "prov-1",
   banco: null,
   cuentaBancaria: null,
   cci: null,

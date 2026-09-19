@@ -232,7 +232,7 @@ describe("proveedorConRuc", () => {
   });
 });
 
-describe("datos para pagar (ADR-0129)", () => {
+describe("datos para pagar (ADR-0134)", () => {
   it("el CCI y el celular se normalizan a solo dígitos, con o sin +51", () => {
     expect(normalizarCci("002-193-002145678045-58")).toBe("00219300214567804558");
     expect(normalizarCci(" 002 193 002145678045 58 ")).toBe("00219300214567804558");
@@ -312,13 +312,13 @@ describe("datos para pagar (ADR-0129)", () => {
 
   it("arma los datos de pago con los nombres de los modales, y el WhatsApp queda aparte del Yape", () => {
     const d = datosPagoDe(
-      { banco: "BCP", cuenta_bancaria: "193-2145678-0-45", cci: "00219300214567804558", celular_billetera: "987654321", billeteras: ["yape"], titular_cuenta: "Rosita SAC", telefono: "955000111", plazo_credito_dias: 30, forma_pago_preferida: "transferencia" },
+      { id: "prov-1", banco: "BCP", cuenta_bancaria: "193-2145678-0-45", cci: "00219300214567804558", celular_billetera: "987654321", billeteras: ["yape"], titular_cuenta: "Rosita SAC", telefono: "955000111", plazo_credito_dias: 30, forma_pago_preferida: "transferencia" },
       120
     );
     expect(d.celularBilletera).toBe("987654321");
     expect(d.telefono).toBe("955000111");
     expect(d.titular).toBe("Rosita SAC");
     expect(d.saldoFavor).toBe(120);
-    expect("saldoFavor" in datosPagoDe({ ...{ banco: null, cuenta_bancaria: null, cci: null, celular_billetera: null, billeteras: null, titular_cuenta: null, telefono: null, plazo_credito_dias: null, forma_pago_preferida: null } })).toBe(false);
+    expect("saldoFavor" in datosPagoDe({ ...{ id: "prov-1", banco: null, cuenta_bancaria: null, cci: null, celular_billetera: null, billeteras: null, titular_cuenta: null, telefono: null, plazo_credito_dias: null, forma_pago_preferida: null } })).toBe(false);
   });
 });

@@ -1,7 +1,7 @@
 # APLICADA — antes fue una propuesta (2026-09-19)
 
 > **Estado:** Felipe la confirmó el 2026-09-19 (incluido `titular_cuenta`; la visibilidad por rol queda para el final del proyecto) y se aplicó
-> en producción como `20260919173940 proveedores_cci_y_billetera`. La decisión vive ahora en `docs/adr/0129-proveedores-cci-yape-plin-y-titular.md`
+> en producción como `20260919173940 proveedores_cci_y_billetera`. La decisión vive ahora en `docs/adr/0134-proveedores-cci-yape-plin-y-titular.md`
 > y el SQL en `supabase/migrations/20260919170000_proveedores_cci_y_billetera.sql`. Este documento se conserva como el análisis previo
 > (lo que se encontró y por qué se decidió así); donde difiera de la migración, manda la migración.
 

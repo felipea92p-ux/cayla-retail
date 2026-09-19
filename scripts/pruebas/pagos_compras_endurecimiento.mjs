@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas del endurecimiento de los pagos de Compras (ADR-0131) contra el Postgres local — CAYLA V2.
+ * Pruebas del endurecimiento de los pagos de Compras (ADR-0135) contra el Postgres local — CAYLA V2.
  *
  * QUÉ PRUEBA. Los cinco huecos que una auditoría confirmó ejecutando SQL, cada uno con su caso de éxito tras el
  * arreglo Y con los negativos que tienen que seguir fallando (el candado se afloja lo justo, no se abre):
@@ -27,7 +27,7 @@
  *
  * NO PRUEBA la carrera de dos llamadas simultáneas con el mismo token (un solo psql no puede lanzar dos
  * transacciones concurrentes): esa garantía sale del `for update` sobre `compras` + el chequeo del token DESPUÉS
- * del candado, y está razonada en el ADR-0131, no ejecutada aquí.
+ * del candado, y está razonada en el ADR-0135, no ejecutada aquí.
  *
  * `--en-seco`: antes de cada escenario carga DENTRO de su transacción la migración, así se prueba SIN haberla
  * aplicado a la base compartida. Sin el flag asume que ya está aplicada (y si no lo está, los casos fallan: eso

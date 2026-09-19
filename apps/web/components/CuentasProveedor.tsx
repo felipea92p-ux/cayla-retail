@@ -14,7 +14,7 @@ import {
   type DatosPagoProveedor,
 } from "@/lib/proveedores-reglas";
 
-// «Cómo se le paga a este proveedor» (ADR-0129): cuenta, CCI, Yape/Plin y titular, cada uno con su «Copiar».
+// «Cómo se le paga a este proveedor» (ADR-0134): cuenta, CCI, Yape/Plin y titular, cada uno con su «Copiar».
 // UNA sola fuente para la ficha del proveedor y para los modales de pago (antes eran tres copias distintas,
 // y el «Yape / Plin» del pago mostraba el WhatsApp del contacto — plata mandada al celular equivocado).
 //

@@ -33,7 +33,7 @@ import { costoBase, costoParaTipear, ETIQUETA_METODO, fechaCorta, METODO_SALDO_A
 type Variante = { varianteId: string; sku: string; talla: string | null; color: string | null; productoId: string; referencia: string; costo: number };
 // Lo que se sabe de un proveedor al elegirlo (ADR-0111): su plazo y forma de pago preferidos, y lo que ya se le
 // debe. Con eso el vencimiento se sugiere solo y se decide la compra sabiendo la deuda que ya hay con él.
-// `datosPago` (ADR-0129): cómo se le paga (cuenta, CCI, Yape/Plin, titular); con él el pago muestra a dónde va la plata.
+// `datosPago` (ADR-0134): cómo se le paga (cuenta, CCI, Yape/Plin, titular); con él el pago muestra a dónde va la plata.
 type Proveedor = {
   id: string;
   nombre: string;

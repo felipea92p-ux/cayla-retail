@@ -31,6 +31,10 @@ import type { CSSProperties, ReactNode } from "react";
    - `vacia`: borde punteado y número apagado — «todavía no hay datos», con
      la razón en `children`. Un dato que aún no existe se dice, no se inventa.
 
+   `acentoTrazo` y `puntoPulsa` (2026-09-19, Por pagar): la misma tarjeta que «pide algo», pero el
+   filete rojo se DIBUJA al llegar (crece desde arriba, ya sin ocupar el borde) y el puntito emite dos
+   ondas y se queda quieto. Es la entrada de la pantalla, no un adorno: pasa una vez y no se repite.
+
    `fila` + `icono` (2026-09-18, Traslados): la misma tarjeta en una fila
    baja — ícono a la izquierda, cifra más chica, contexto en una línea y una
    flecha si se puede tocar. Para pantallas donde la fila de tarjetas es una
@@ -69,11 +73,14 @@ export function TarjetaCifra({
   unidad,
   tono,
   acento = false,
+  acentoTrazo = false,
+  puntoPulsa = false,
   activa = false,
   href,
   onClick,
   accion,
   punto,
+  vivo = false,
   detalleTono,
   icono,
   compacta = false,
@@ -92,12 +99,18 @@ export function TarjetaCifra({
   tono?: string;
   /** Borde izquierdo en rojo: la tarjeta que pide algo. */
   acento?: boolean;
+  /** Como `acento`, pero el filete se dibuja al llegar la tarjeta (crece desde arriba). Excluyente con `acento`. */
+  acentoTrazo?: boolean;
+  /** El puntito emite dos ondas al llegar la tarjeta. Solo con `punto`. */
+  puntoPulsa?: boolean;
   activa?: boolean;
   href?: string;
   onClick?: () => void;
   accion?: Accion;
   /** Puntito de color junto a la etiqueta. Sin esta prop no se dibuja. */
   punto?: PuntoCifra;
+  /** El puntito late (`punto-vivo`): lo que pide atención ahora. Solo con `punto`. */
+  vivo?: boolean;
   /** Clase de color de la línea de contexto (`text-rojo`, `text-ambar-profundo`, `text-verde-profundo`). */
   detalleTono?: string;
   /** Solo con `fila`: el ícono (ya con su disco y colores) a la izquierda. */
@@ -119,7 +132,7 @@ export function TarjetaCifra({
 }) {
   const esViva = viva && Boolean(onClick || href);
   // `viva` no usa `transition-colors`: como utilidad le ganaría a la transición de `.alza-cayla` y la tarjeta no se levantaría con suavidad.
-  const clase = `card-cayla block ${compacta || fila ? "p-4" : "p-5"} text-left ${esViva ? "alza-cayla cmp-viva" : "transition-colors"} ${acento ? "border-l-2 border-l-rojo" : ""} ${
+  const clase = `card-cayla block ${compacta || fila ? "p-4" : "p-5"} text-left ${esViva ? "alza-cayla cmp-viva" : "transition-colors"} ${acento ? "border-l-2 border-l-rojo" : ""} ${acentoTrazo ? "relative overflow-hidden" : ""} ${
     vacia ? "border-dashed bg-transparent" : ""
   } ${onClick || href ? "hover:bg-sand/30" : ""} ${activa ? "bg-sand/40" : ""} ${className}`;
 
@@ -138,15 +151,21 @@ export function TarjetaCifra({
     </span>
   ) : (
     <>
+      {acentoTrazo && <span aria-hidden className="anim-crece-y absolute bottom-3.5 left-0 top-3.5 w-0.5 origin-top rounded-sm bg-rojo" style={{ ["--i" as string]: 10 }} />}
       <p className="label-cayla flex items-center gap-[7px] text-[11px] text-tinta/65">
-        {punto && <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${PUNTO[punto]}`} />}
+        {punto && (
+          <span aria-hidden className={`relative h-1.5 w-1.5 shrink-0 rounded-full ${PUNTO[punto]} ${vivo ? "punto-vivo" : ""}`}>
+            {puntoPulsa && <span className={`anim-vivo-onda pointer-events-none absolute inset-0 rounded-full ${PUNTO[punto]}`} style={{ animationDelay: "1400ms" }} />}
+          </span>
+        )}
         {etiqueta}
       </p>
       <p className="mt-1 flex items-baseline gap-2">
         <span className={`font-display text-3xl tabular-nums ${vacia ? "text-tinta/45" : (tono ?? "text-tinta")}`}>{valor}</span>
         {unidad && <span className="text-sm text-tinta/55">{unidad}</span>}
       </p>
-      {children && <p className={`mt-1 text-xs ${detalleTono ?? "text-tinta/65"}`}>{children}</p>}
+      {/* `div` y no `p`: el contexto puede llevar una barra dentro (Concentración de Por pagar) y un bloque no cabe en un párrafo. */}
+      {children && <div className={`mt-1 text-xs ${detalleTono ?? "text-tinta/65"}`}>{children}</div>}
       {accion &&
         ("href" in accion ? (
           <Link href={accion.href} className="label-cayla mt-3 inline-block text-[11px] text-tinta underline underline-offset-2 hover:no-underline">

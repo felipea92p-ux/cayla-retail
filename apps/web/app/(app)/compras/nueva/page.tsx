@@ -16,7 +16,7 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
   const { prov } = await searchParams;
   const [directorio, ubicaciones, catalogo, resumen] = await Promise.all([getProveedores(), getUbicaciones(), getCatalogo(), getResumenCompras()]);
   // Solo los activos; con su plazo, forma de pago y saldo (lo financiero es de líder, y esta pantalla también) y con
-  // cómo se les paga (cuenta, CCI, Yape/Plin, titular: ADR-0129), que sale del mismo directorio, sin otra consulta.
+  // cómo se les paga (cuenta, CCI, Yape/Plin, titular: ADR-0134), que sale del mismo directorio, sin otra consulta.
   const proveedores = directorio
     .filter((p) => p.activo)
     .map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, plazoCreditoDias: p.plazo_credito_dias, formaPagoPreferida: p.forma_pago_preferida, saldo: p.saldo, saldoFavor: p.saldo_favor, datosPago: datosPagoDe(p, p.saldo_favor ?? 0) }));

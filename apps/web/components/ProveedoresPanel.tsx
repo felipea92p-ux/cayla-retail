@@ -60,7 +60,7 @@ const PLANTILLA_BASE = "sm:grid-cols-[1fr_8rem]";
 // buscador, tabla, filas: `anim-entra` con `--i`) y las cifras y trazos se arman una vez — regla de
 // movimiento revisada el 2026-09-19 (globals.css, ADR-0128). Lo demás responde a una acción.
 //
-// ADR-0129: un chip ámbar «Sin datos de pago» marca al proveedor activo al que todavía no se le puede pagar por
+// ADR-0134: un chip ámbar «Sin datos de pago» marca al proveedor activo al que todavía no se le puede pagar por
 // transferencia ni Yape/Plin (sin cuenta, sin CCI y sin celular de billetera; quien cobra en efectivo NO se marca:
 // no le falta nada), y un filtro con su conteo — solo si hay alguno — para ir a completarlos de una vez. Se resuelve en
 // el cliente como el rubro: el directorio entero ya está en la página. Los desactivados no se marcan: ya no se les paga.
@@ -412,7 +412,7 @@ function iniciales(nombre: string): string {
 
 // Nombre/contacto/rubro/plazo: para cualquiera. El resto de la fila (RUC en adelante) cambia de
 // contenido Y de significado entre líder y colaborador, no solo de estilo.
-function NombreCelda({ p, busqueda, marcarSinPago = false }: { p: Proveedor; busqueda: string; /** Solo líder: es quien puede completar los datos (ADR-0129). */ marcarSinPago?: boolean }) {
+function NombreCelda({ p, busqueda, marcarSinPago = false }: { p: Proveedor; busqueda: string; /** Solo líder: es quien puede completar los datos (ADR-0134). */ marcarSinPago?: boolean }) {
   return (
     <span className="flex min-w-0 items-center gap-3">
       <span aria-hidden className={MONOGRAMA}>

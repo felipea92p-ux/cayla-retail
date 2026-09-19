@@ -12,12 +12,12 @@ export type Proveedor = {
   nombre: string;
   ruc: string | null;
   contacto: string | null;
-  /** El WhatsApp por el que se pacta el fardo. Desde ADR-0129 ya NO es el Yape: ese es `celular_billetera`. */
+  /** El WhatsApp por el que se pacta el fardo. Desde ADR-0134 ya NO es el Yape: ese es `celular_billetera`. */
   telefono: string | null;
   banco: string | null;
-  /** Número de cuenta del banco (texto libre). El interbancario vive en `cci` (ADR-0129). */
+  /** Número de cuenta del banco (texto libre). El interbancario vive en `cci` (ADR-0134). */
   cuenta_bancaria: string | null;
-  /** Código de Cuenta Interbancario: 20 dígitos, solo números (ADR-0129). */
+  /** Código de Cuenta Interbancario: 20 dígitos, solo números (ADR-0134). */
   cci: string | null;
   /** El celular al que se yapea/plinea (9 dígitos, sin +51). NO es `telefono`, que es el WhatsApp. */
   celular_billetera: string | null;

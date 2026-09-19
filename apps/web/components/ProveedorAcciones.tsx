@@ -15,7 +15,7 @@ import type { ProveedorFicha } from "@/lib/proveedores";
 //
 // Cada acción aparece solo si hay con qué hacerla: sin teléfono (o con uno que no es un móvil) no hay
 // botón de WhatsApp — mejor sin botón que uno que abre un chat equivocado; sin CCI, no hay «Copiar CCI».
-// Desde ADR-0129 «Copiar CCI» copia `cci` (20 dígitos, solo números, listos para pegar en la app del banco);
+// Desde ADR-0134 «Copiar CCI» copia `cci` (20 dígitos, solo números, listos para pegar en la app del banco);
 // antes copiaba `cuenta_bancaria` rotulada como CCI, que es otro dato. La cuenta y el Yape/Plin se copian desde
 // la tarjeta «Datos para pagar», que tiene un «Copiar» por cada dato.
 

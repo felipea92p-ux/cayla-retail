@@ -85,7 +85,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
               {pactado != null && <Chip>Crédito a {pactado} días</Chip>}
               {proveedor.forma_pago_preferida && <Chip>Paga por {(ETIQUETA_METODO[proveedor.forma_pago_preferida] ?? proveedor.forma_pago_preferida).toLowerCase()}</Chip>}
               {/* Cuenta, CCI y Yape/Plin ya no van en chips: están en «Datos para pagar», enmascarados y con «Copiar». Antes
-                  un texto libre rotulado «CCI» (era la cuenta) y el WhatsApp pasaba por Yape (ADR-0129). */}
+                  un texto libre rotulado «CCI» (era la cuenta) y el WhatsApp pasaba por Yape (ADR-0134). */}
               {proveedor.banco && <Chip>{proveedor.banco}</Chip>}
               {proveedor.telefono && <Chip>WhatsApp {proveedor.telefono}</Chip>}
             </div>

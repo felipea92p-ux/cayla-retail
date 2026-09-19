@@ -227,7 +227,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_adjuntos_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_adjuntos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+  "qual": "retail.fn_puede_ver_dinero_de_compras()",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_adjuntos",
@@ -245,7 +245,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_items_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_items.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+  "qual": "retail.fn_puede_ver_dinero_de_compras()",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_items",
@@ -254,7 +254,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_notas_credito_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_notas_credito.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+  "qual": "retail.fn_puede_ver_dinero_de_compras()",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_notas_credito",
@@ -263,7 +263,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_pagos_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.compras c\n  WHERE ((c.id = compra_pagos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+  "qual": "retail.fn_puede_ver_dinero_de_compras()",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_pagos",
@@ -272,7 +272,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compras_select",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_destino_id)",
+  "qual": "retail.fn_puede_ver_dinero_de_compras()",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compras",

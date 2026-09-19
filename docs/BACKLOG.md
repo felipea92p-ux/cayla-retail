@@ -28,7 +28,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Endurecer el pago a proveedores (2026-09-19, ADR-0131) — migración lista en local, falta producción
+## 🎯 Endurecer el pago a proveedores (2026-09-19, ADR-0135) — migración lista en local, falta producción
 - [ ] Aplicar `20260919180000_pagos_compras_endurecimiento.sql` en producción (ensayo en transacción con rollback, `apply_migration`, verificar md5 de las 3 funciones y una sola firma de cada una). **Necesita confirmación de Felipe** (mueve dinero).
 - [ ] Después: enviar `p_token` (uuid del formulario) desde `CompraDetallePanel.tsx` a `registrar_pagos_compra`; regenerar `types.ts` y el diccionario de producción. Antes de aplicar, NO: la función vieja no acepta el parámetro.
 - [ ] Decidir M6: por defecto del saldo a favor en el pago individual, en lote y al registrar el comprobante (hoy solo el lote lo destaca).
@@ -53,7 +53,7 @@ desde el detalle** (antes navegaba a Por pagar); registro con tramos, lista de p
 - [ ] Una **prueba de arquitectura** que impida llamar desde un Server Component a una función exportada por un archivo `"use client"` (el error
       que tumbó la factura no lo ve `tsc` ni `next build`: solo aparece al renderizar).
 
-## 🎯 Proveedores: CCI, Yape/Plin y titular para pagar sin equivocarse (2026-09-19, ADR-0129)
+## 🎯 Proveedores: CCI, Yape/Plin y titular para pagar sin equivocarse (2026-09-19, ADR-0134)
 
 Rama `claude/comprobantes-ui-ux-animations-ab153b`. **La base YA está en producción** (registrada como
 `20260919173940 proveedores_cci_y_billetera`; el archivo del repo es `20260919170000_…`, se renumera al aplicarla):
@@ -67,7 +67,7 @@ la RPC `guardar_cuentas_proveedor` (solo líder) y `fn_proveedores()` con 28 col
 - [ ] **Visibilidad por rol de las 5 columnas de pago** (`banco`, `cuenta_bancaria`, `cci`, `celular_billetera`,
       `titular_cuenta`): **decisión final del proyecto** (Felipe, 2026-09-19: «como parte final cuando esté casi todo el
       proyecto hecho»). Se cierran juntas o ninguna. Ver el ítem «Decisión a reconsiderar» de la sección «Crear producto como árbol de decisión
-      (ADR-0109)» más abajo (`proveedores_select` a cualquier sesión) y ADR-0129 (D7). Cuidado: `compras_resumen`/`listar_compras` arrastran
+      (ADR-0109)» más abajo (`proveedores_select` a cualquier sesión) y ADR-0134 (D7). Cuidado: `compras_resumen`/`listar_compras` arrastran
       `proveedor_banco/cuenta_bancaria` con el rol del usuario; esconder columnas sin más rompería el detalle de compras.
 - [ ] **Bitácora de cambios de cuenta** (riesgo residual, recomendado como siguiente paso **antes de que haya volumen de
       pagos**): tabla append-only `proveedor_cuentas_historial` —quién, cuándo, valor anterior enmascarado— escrita por
@@ -102,27 +102,29 @@ y mirarlo en celular real** (ver abajo).
 
 ## 🎯 El dinero de Compras es solo del líder + «Recibidas» por envío (2026-09-19, ADR-0126)
 
-Rama `claude/recibir-cerrar-huecos`, sobre `main` (343e5b0). **Las dos migraciones NO están en producción: las pega
-Felipe** (el PR se fusiona primero; la app funciona con o sin ellas). Cierra los huecos que dejó Recibir por envío:
+PR #178, fusionado el 2026-09-19 (`cb35240`). **Las dos migraciones están aplicadas en producción** (las pegó Felipe ese
+día y se verificaron: ADR-0126, «Verificado en producción»). Cierra los huecos que dejó Recibir por envío:
 un integrante leía los montos de su sede por tres puertas —5 funciones, las tablas de Compras y el bucket de
 escaneos—; cerrar solo las funciones no habría servido. `pnpm pruebas:dinero-compras` (32 casos, también con
 `--en-seco`), `pruebas:compras-indicadores` (144/144), `pruebas:compras-faltantes` (112/112) y `pruebas:recibir-envio` (29/29) en
 verde; tipos, lint y 1062 pruebas unitarias en verde.
 
-**Migraciones a pegar en producción, EN ESTE ORDEN:**
+**Migraciones (aplicadas en producción, en este orden):**
 
 1. `20260919160000_dinero_de_compras_lectura_operativa.sql` (A) — aditiva: nada deja de funcionar al pegarla.
 2. `20260919161000_dinero_de_compras_tablas_solo_lider.sql` (B) — **después de A y de que Vercel haya desplegado**. Se
    niega a correr si la A no está («Pega primero …»). Es la que cierra las tablas y el bucket.
 
-- [ ] **Pegar A y luego B** en el SQL Editor de producción (traen `set search_path`: sin prefijo `retail.`). Al pegar A
-      imprime las cinco firmas a las que les puso el candado.
-- [ ] **Verificar tras pegar:** `select retail.fn_aplicar_candado_de_dinero();` → `{}` (todo con candado). Abrir
-      `/recibir` como colaborador (Micaela, Tienda Trujillo): lista y líneas sin ningún «S/», y `/inventario/recibir`
-      sin la columna de costo. Como líder, `/compras` y `/compras/por-pagar` iguales que antes.
-- [ ] **Refrescar el volcado y el diccionario** después de pegar (`docs/datos/generado/COMO-REFRESCAR.md`): hasta
-      entonces `pnpm datos:comparar` marca `lineas_compra_operativo` como «no existe en producción» (correcto; la
-      app lo cubre con el respaldo `esFuncionAusente`) y el diccionario no trae las 5 funciones nuevas ni las políticas.
+- [x] **Pegar A y luego B** en el SQL Editor de producción: hecho el 2026-09-19. El editor muestra solo el resultado
+      de la última instrucción: no esperes ver la lista de firmas al pegar A.
+- [x] **Verificar tras pegar (base de datos):** 5 de 5 funciones de dinero con candado, sin sobrecargas; las 5 políticas
+      y el bucket con la regla nueva; una colaboradora real recibe `42501` en las 5 funciones de dinero mientras las de
+      recibir le responden, y a la líder todo le responde.
+- [ ] **Verificar en pantalla (Felipe):** abrir `/recibir` como colaborador (Micaela, Tienda Trujillo): lista y líneas
+      sin ningún «S/», y `/inventario/recibir` sin la columna de costo. Como líder, `/compras` y `/compras/por-pagar`
+      iguales que antes. Producción aún no tiene facturas: la primera será la prueba real.
+- [x] **Refrescar el volcado y el diccionario:** hecho el 2026-09-19 (174 funciones, las 5 políticas y, de paso, 2
+      funciones de Movimientos que faltaban). `datos:comparar` ya no marca `lineas_compra_operativo`.
 - [ ] **Regla para la sesión de Compras:** después de pegar cualquier migración que recree `resumen_compras`,
       `resumen_compras_extra`, `deuda_por_vencimiento`, `salidas_caja_30d` o `por_pagar_tramos`, correr
       `select retail.fn_aplicar_candado_de_dinero();`. Una migración puede llevar, al final y sin depender del orden:
@@ -299,6 +301,11 @@ guía por envío; lo fuera de comprobante declara su origen (proveedor, y si es 
 traslado, no como prenda suelta); cualquier persona cuenta en la puerta; los cuatro indicadores viven bajo «¿Qué
 llegó?» y desaparecen al marcar.
 
+- [x] **Spike visual de Recibir aplicado (ADR-0129, 2026-09-19):** resumen previo a recibir, decisión de faltante en
+      un toque, escáner sin callejón + «Deshacer», «Marcar las atrasadas», gestos de movimiento y
+      cajón de vista rápida en «Recibidas». Verificado en el navegador como líder contra la base local (un envío real de
+      76 u.). **Falta:** verlo como colaborador (mismo punto de abajo) y las animaciones de salida (ver «Lo que no se portó»
+      del ADR). Sin migración: solo pantalla.
 - [ ] **Probar la pantalla como colaborador** (Micaela, integrante de Tienda Trujillo): no se pudo (el inicio de sesión
       pide contraseña y no se escribe). Qué mirar: ningún «S/» en la lista ni en los indicadores, «Entra al almacén de»
       fijo a su sede, sin editor de faltantes ni nota de crédito («Sigue pendiente»), y que `/compras` la devuelva al
@@ -755,7 +762,7 @@ vuelo del censo fallan en la pantalla actual («Elige la marca del producto»).
       abiertos»): `proveedores_select` deja a cualquier sesión autenticada leer `banco` y `cuenta_bancaria`.** Una cuenta
       bancaria es dato de pago. Si Felipe está de acuerdo: restringir esas dos columnas al rol que compra/paga, o moverlas
       a una tabla aparte. Este PR no lo toca.
-      **Nota 2026-09-19 (ADR-0129):** desde hoy son **cinco** las columnas de pago (`banco`, `cuenta_bancaria` + `cci`,
+      **Nota 2026-09-19 (ADR-0134):** desde hoy son **cinco** las columnas de pago (`banco`, `cuenta_bancaria` + `cci`,
       `celular_billetera`, `titular_cuenta`, todas legibles por cualquier sesión) y **se cierran juntas o ninguna**. Felipe
       decidió dejar la restricción por rol para el final del proyecto; sigue abierta, ahora con más superficie. Ver la
       entrada «Proveedores: CCI, Yape/Plin y titular» arriba de este archivo.

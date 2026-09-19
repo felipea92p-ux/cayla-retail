@@ -1600,7 +1600,7 @@
 | `rubro` | text | sí | — | — |
 | `plazo_credito_dias` | integer | sí | — | — |
 | `forma_pago_preferida` | text | sí | — | — |
-| `telefono` | text | sí | — | el WhatsApp por el que se cierra la compra, que es como compra CAYLA; desde ADR-0129 ya NO es el destino del Yape |
+| `telefono` | text | sí | — | el WhatsApp por el que se cierra la compra, que es como compra CAYLA; desde ADR-0134 ya NO es el destino del Yape |
 | `banco` | text | sí | — | en qué banco cobra ese proveedor; visible para cualquiera con cuenta, decisión consciente D-27 |
 | `cuenta_bancaria` | text | sí | — | el número de cuenta del banco (depósito o mismo banco); el interbancario vive en `cci`. Dato de un tercero y visible para todos |
 | `cci` | text | sí | — | el Código de Cuenta Interbancario (20 dígitos) para transferirle desde otro banco; se guarda solo con números |
@@ -1689,7 +1689,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compras_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_destino_id)` |
+| `compras_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `compra_items`
@@ -1718,7 +1718,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_items_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_items.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
+| `compra_items_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `compra_pagos`
@@ -1748,7 +1748,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_pagos_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_pagos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
+| `compra_pagos_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `compra_adjuntos`
@@ -1782,7 +1782,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_adjuntos_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_adjuntos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
+| `compra_adjuntos_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `compras_resumen`
@@ -1910,7 +1910,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_notas_credito_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_notas_credito.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
+| `compra_notas_credito_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `proveedor_creditos`

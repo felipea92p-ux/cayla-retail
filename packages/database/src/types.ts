@@ -4995,7 +4995,7 @@ export type Database = {
         Returns: string
       }
       registrar_pagos_compra: {
-        Args: { p_compra_id: string; p_fecha?: string; p_pagos: Json }
+        Args: { p_compra_id: string; p_fecha?: string; p_pagos: Json; p_token?: string }
         Returns: string[]
       }
       registrar_proveedor: {

@@ -122,7 +122,7 @@ legibles por cualquier cuenta autenticada está bien.
 
 ## 4. Inventario — proveedores (retail)
 
-`retail.proveedores`, 4 filas en producción hoy (la verificación del 2026-09-19 para ADR-0129 encontró 2).
+`retail.proveedores`, 4 filas en producción hoy (la verificación del 2026-09-19 para ADR-0134 encontró 2).
 
 | Dato | Columna | Quién lo ve hoy | Nota |
 |---|---|---|---|
@@ -131,9 +131,9 @@ legibles por cualquier cuenta autenticada está bien.
 | Persona de contacto | `contacto` | Cualquiera con cuenta | Nombre de una persona real de otra empresa |
 | Teléfono | `telefono` | Cualquiera con cuenta | Casi siempre el celular personal del contacto |
 | Banco y cuenta | `banco`, `cuenta_bancaria` | Cualquiera con cuenta | **Dato de un tercero, no de CAYLA** |
-| CCI (interbancario) | `cci` | Cualquiera con cuenta | Desde 2026-09-19 (ADR-0129). **Dato de un tercero**; 20 dígitos, solo números. En una persona natural identifica una cuenta a su nombre |
-| Celular de Yape/Plin y qué app | `celular_billetera`, `billeteras` | Cualquiera con cuenta | Desde 2026-09-19 (ADR-0129). Es un celular personal **distinto** del `telefono` (WhatsApp); 9 dígitos, sin +51 |
-| Titular de la cuenta | `titular_cuenta` | Cualquiera con cuenta | Desde 2026-09-19 (ADR-0129). El nombre que muestra el banco/Yape; en una persona natural es su nombre |
+| CCI (interbancario) | `cci` | Cualquiera con cuenta | Desde 2026-09-19 (ADR-0134). **Dato de un tercero**; 20 dígitos, solo números. En una persona natural identifica una cuenta a su nombre |
+| Celular de Yape/Plin y qué app | `celular_billetera`, `billeteras` | Cualquiera con cuenta | Desde 2026-09-19 (ADR-0134). Es un celular personal **distinto** del `telefono` (WhatsApp); 9 dígitos, sin +51 |
+| Titular de la cuenta | `titular_cuenta` | Cualquiera con cuenta | Desde 2026-09-19 (ADR-0134). El nombre que muestra el banco/Yape; en una persona natural es su nombre |
 | Dirección | `direccion` | Cualquiera con cuenta | |
 
 ```sql
@@ -147,7 +147,7 @@ el corazón de este capítulo: **la cuenta bancaria del proveedor es dato de un 
 no de CAYLA.** CAYLA la custodia; no es dueña de ella. Si mañana esa lista se filtra, el
 perjudicado es el proveedor, y el responsable ante la ley es CAYLA.
 
-**2026-09-19 (ADR-0129):** esa misma regla vale ahora para `cci`, `celular_billetera`, `billeteras` y `titular_cuenta`, que
+**2026-09-19 (ADR-0134):** esa misma regla vale ahora para `cci`, `celular_billetera`, `billeteras` y `titular_cuenta`, que
 nacieron con la misma lectura que `banco`/`cuenta_bancaria`. La tarjeta de la pantalla los muestra enmascarados y solo los
 destapa con «Ver completos», pero eso es interfaz: la API los devuelve completos a cualquier sesión. Felipe decidió que la
 restricción por rol de las cinco columnas de pago se resuelve **al final del proyecto**, todas juntas. Hoy hay 2 proveedores y

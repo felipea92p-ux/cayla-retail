@@ -1,5 +1,5 @@
 -- ============================================================================
--- ADR-0129 — Proveedores: CCI, Yape/Plin y titular de la cuenta.
+-- ADR-0134 — Proveedores: CCI, Yape/Plin y titular de la cuenta.
 --
 -- EL PROBLEMA. Pagar a un proveedor exige un destino inequívoco. Hoy solo hay `cuenta_bancaria`
 -- (texto libre que la pantalla rotula «CCI» aunque pueda ser una cuenta local) y `telefono` (el

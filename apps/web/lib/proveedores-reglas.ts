@@ -281,7 +281,7 @@ export function proveedorConRuc<T extends { id: string; ruc: string | null }>(ru
 }
 
 // ---------------------------------------------------------------------------
-// Datos para pagar: CCI, Yape/Plin y titular (ADR-0129)
+// Datos para pagar: CCI, Yape/Plin y titular (ADR-0134)
 //
 // La base guarda CCI y celular SOLO con dígitos y rechaza lo que no cumpla (candados de
 // `20260919170000_proveedores_cci_y_billetera.sql`); estas funciones son para escribirlo cómodo
@@ -378,6 +378,8 @@ export function billeterasTexto(b: string[] | null | undefined): string | null {
 
 /** Todo lo que hace falta para pagarle a un proveedor, ya con los nombres que usan los modales de pago. */
 export type DatosPagoProveedor = {
+  /** Para llevar a su ficha cuando falta un dato de pago. */
+  proveedorId: string;
   banco: string | null;
   /** Número de cuenta del banco (texto libre). */
   cuentaBancaria: string | null;
@@ -387,7 +389,7 @@ export type DatosPagoProveedor = {
   celularBilletera: string | null;
   billeteras: string[] | null;
   titular: string | null;
-  /** El WhatsApp del contacto. NO es el destino del Yape (desde ADR-0129). */
+  /** El WhatsApp del contacto. NO es el destino del Yape (desde ADR-0134). */
   telefono: string | null;
   plazoCreditoDias: number | null;
   formaPagoPreferida: string | null;
@@ -396,6 +398,7 @@ export type DatosPagoProveedor = {
 };
 
 type FilaProveedorPago = {
+  id: string;
   banco: string | null;
   cuenta_bancaria: string | null;
   cci: string | null;
@@ -409,6 +412,7 @@ type FilaProveedorPago = {
 
 export function datosPagoDe(p: FilaProveedorPago, saldoFavor?: number): DatosPagoProveedor {
   return {
+    proveedorId: p.id,
     banco: p.banco,
     cuentaBancaria: p.cuenta_bancaria,
     cci: p.cci,
@@ -433,7 +437,7 @@ export function sinDatosDePago(p: { forma_pago_preferida: string | null; cuenta_
 }
 
 /**
- * El backfill de ADR-0129 copia a `cci` una cuenta de 20 dígitos y deja la original: acá se evita mostrar
+ * El backfill de ADR-0134 copia a `cci` una cuenta de 20 dígitos y deja la original: acá se evita mostrar
  * el mismo número dos veces. `null` si no hay cuenta, o si es exactamente el CCI.
  */
 export function cuentaLocalVisible(cuenta: string | null, cci: string | null): string | null {

@@ -1,6 +1,6 @@
 import { billeterasTexto, cuentaLocalVisible, bancoDeCci, formatoCci, formatoCelular, type DatosPagoProveedor } from "./proveedores-reglas";
 
-// «¿A dónde va la plata de esta línea de pago?» (ADR-0129). Pura: sin I/O ni React; `DestinoDelMedio` solo la pinta.
+// «¿A dónde va la plata de esta línea de pago?» (ADR-0134). Pura: sin I/O ni React; `DestinoDelMedio` solo la pinta.
 //
 // Pagar por Yape al celular equivocado NO se revierte, así que al elegir el medio se dice EL DESTINO
 // (banco + últimos dígitos, o el celular enmascarado) y se avisa si ese medio no calza con lo que el proveedor

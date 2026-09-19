@@ -7,7 +7,7 @@ import { ProveedorModal, borradorDe } from "@/components/ProveedorModal";
 import { datosPagoDe } from "@/lib/proveedores-reglas";
 import type { ProveedorFicha } from "@/lib/proveedores";
 
-// «Datos para pagar» en la ficha del proveedor (ADR-0129). La página es un Server Component y no puede tener el
+// «Datos para pagar» en la ficha del proveedor (ADR-0134). La página es un Server Component y no puede tener el
 // estado del formulario de edición, así que esta pieza cliente lo guarda y reutiliza el MISMO `ProveedorModal` que
 // abren «Editar» (ProveedorAcciones) y la lista: un solo formulario, no una copia por pantalla.
 //

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Check, Copy } from "lucide-react";
 import type { DestinoDelMedio as Destino, FilaDestino } from "@/lib/destino-de-pago";
 
-// A dónde va la plata con el medio que se acaba de elegir (ADR-0129), en UNA línea y sin cajas: transferencia o
+// A dónde va la plata con el medio que se acaba de elegir (ADR-0134), en UNA línea y sin cajas: transferencia o
 // depósito → cuenta y CCI; Yape o Plin → ese celular; el resto, nada (lo decide `destinoDelMedio`, lógica pura).
 // Reemplaza al bloque grande «Paga por» dentro de las pantallas de pago: ahí solo estorbaba (mostraba también el
 // Yape cuando se pagaba por transferencia). El bloque completo sigue en la ficha del proveedor.

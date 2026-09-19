@@ -281,7 +281,7 @@ cinco `taxonomia_*`, `configuracion_empresa`, `sede_datos_fiscales`. Son catálo
 compartidos: para vender hay que ver todo lo que existe, no solo lo de tu tienda.
 **Acá vive la transparencia de la sección 9:** `variantes` (con `costo`), `productos`
 (con `costo_mano_obra`) y `proveedores` (con `ruc`, `banco`, `cuenta_bancaria` y, desde
-2026-09-19, `cci`, `celular_billetera`, `billeteras` y `titular_cuenta` — ADR-0129) están
+2026-09-19, `cci`, `celular_billetera`, `billeteras` y `titular_cuenta` — ADR-0134) están
 los tres en este grupo.
 
 **Patrón C — "libro contable, solo Admin".** `retail.es_lider()` para leer y
@@ -454,7 +454,7 @@ y lo repitieron como hecho.
 Es dato personal de otro, y su tratamiento está en
 [`06-DATOS-PERSONALES.md`](06-DATOS-PERSONALES.md).
 
-**Actualización 2026-09-19 (ADR-0129, `docs/adr/0129-proveedores-cci-yape-plin-y-titular.md`):** `proveedores` suma
+**Actualización 2026-09-19 (ADR-0134, `docs/adr/0134-proveedores-cci-yape-plin-y-titular.md`):** `proveedores` suma
 `cci`, `celular_billetera`, `billeteras` y `titular_cuenta`, **con la misma lectura que `banco` y `cuenta_bancaria`**
 (`proveedores_select` a cualquier sesión). La escritura de esas cuatro pasa por `guardar_cuentas_proveedor`, solo líder
 (`security definer`, sin EXECUTE para `anon`). Felipe decidió dejar la restricción por rol de datos de pago para el final del

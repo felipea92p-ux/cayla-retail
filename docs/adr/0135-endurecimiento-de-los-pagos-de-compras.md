@@ -1,4 +1,4 @@
-# ADR-0131 — Endurecimiento de los pagos de Compras (token, fechas, decimales y redondeo del IGV)
+# ADR-0135 — Endurecimiento de los pagos de Compras (token, fechas, decimales y redondeo del IGV)
 
 - **Fecha:** 2026-09-19
 - **Estado:** Aceptado en el Postgres **local**; **PENDIENTE de aplicar en producción (requiere confirmación de Felipe)**.

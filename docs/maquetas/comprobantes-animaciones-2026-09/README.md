@@ -46,7 +46,7 @@ para las fuentes de Google). Datos de ejemplo; «hoy» está fijo en 19/09/2026.
 - **Nuevo en el spike:** el bloque de cuenta también en el pago individual; historial de pagos con medio y N.° de
   operación en el detalle; ayudas en el registro (costo vs último costo, documento duplicado, checklist de pendientes);
   todo el movimiento.
-- **Datos:** las columnas de CCI, Yape/Plin y titular ya existen en producción (ADR-0129, aplicada el 2026-09-19) y la aplicación real las usa
+- **Datos:** las columnas de CCI, Yape/Plin y titular ya existen en producción (ADR-0134, aplicada el 2026-09-19) y la aplicación real las usa
   (pago, registro de comprobante, ficha y formulario de Proveedores). Este prototipo sigue siendo la referencia visual y de movimiento.
 
 ## Si se aprueba: costo de llevarlo a producción
@@ -67,4 +67,4 @@ empiezan con 9 y al menos una billetera (Yape/Plin) · cuenta = 8–20 dígitos 
 
 ## Archivos de esta carpeta
 
-`comprobantes-vivo.html` (el spike) · `cayla-isotipo.png` · `PROPUESTA-CUENTAS-PROVEEDOR.md` (el análisis previo del esquema; ya **aplicado** — ver ADR-0129).
+`comprobantes-vivo.html` (el spike) · `cayla-isotipo.png` · `PROPUESTA-CUENTAS-PROVEEDOR.md` (el análisis previo del esquema; ya **aplicado** — ver ADR-0134).
