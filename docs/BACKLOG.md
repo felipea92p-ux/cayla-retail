@@ -76,6 +76,12 @@ van en la banda `20260918200000`–`20260918218000` (main trae su propia `202609
           pagos (`p_credito` en el lote) y `registrar_reembolso_proveedor`.
       15. `20260918218000_saldo_a_favor_lecturas` — `fn_proveedores`/`fn_proveedores_resumen` con saldo a favor,
           `fn_proveedor_creditos`.
+      16. `20260918219000_registrar_compra_una_sola_firma_con_token_y_saldo_a_favor` — **CORRECCIÓN URGENTE**:
+          al pegar la 217000 en producción, `registrar_compra` quedó con DOS firmas (14 y 15 parámetros) y
+          Registrar comprobante falla con «function is not unique». Esta suelta la de 14 y deja UNA de 15
+          (la de producción, con `p_token`) más el medio «Saldo a favor». Verificado en producción el
+          2026-09-19 con `explain` (sin ejecutar nada). **YA APLICADA en producción (2026-09-19):** una firma de 15
+          parámetros, ninguna función sobrecargada, el `explain` de la llamada de la pantalla resuelve.
       **Después de pegar:** desplegar la rama (las pantallas llaman a estas funciones — sin las
       migraciones, `datos:comparar` las marca rotas) y correr `pnpm datos:generar:produccion`.
 - [ ] **Verificación visual contra las maquetas** (escritorio y móvil): el navegador integrado pide
