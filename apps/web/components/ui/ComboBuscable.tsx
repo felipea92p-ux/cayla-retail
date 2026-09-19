@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { clave } from "@/lib/buscar-prenda-v2";
 
 /* ====================================================================
@@ -23,7 +23,8 @@ import { clave } from "@/lib/buscar-prenda-v2";
    elegida — nunca queda un texto que no corresponde a nada.
    ==================================================================== */
 
-export type OpcionCombo<T extends string> = { valor: T; texto: string; detalle?: string };
+/** `icono`: algo visual opcional antes del texto (una muestra de patrón, un color…). Solo se pinta en la lista desplegable. */
+export type OpcionCombo<T extends string> = { valor: T; texto: string; detalle?: string; icono?: ReactNode };
 
 const MAX_VISIBLES = 40;
 
@@ -179,7 +180,8 @@ export function ComboBuscable<T extends string>({
                 }}
                 className={`cursor-pointer px-3 py-2 text-sm ${i === activo ? "bg-sand/60 text-tinta" : "text-tinta/85"} ${o.valor === valor ? "font-semibold" : ""}`}
               >
-                {o.texto}
+                {o.icono && <span className="mr-2.5 inline-block align-middle">{o.icono}</span>}
+                <span className="align-middle">{o.texto}</span>
                 {o.detalle && <span className="ml-2 text-xs text-tinta/55">{o.detalle}</span>}
               </li>
             ))

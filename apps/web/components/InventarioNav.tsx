@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Insignia } from "@/components/ui/Insignia";
 
 // Sub-navegación del mundo Inventario. Reescrita el 2026-09-15: la lista
 // original (Proveedores/Compras/Almacén/Etiquetas bajo /inventario/*) nunca se
@@ -28,33 +29,54 @@ import { usePathname } from "next/navigation";
 // propósito: no cambia qué muestra `/inventario` a secas (sigue siendo
 // Existencias), solo agrega una pantalla nueva al lado.
 const SECCIONES: { href: string; etiqueta: string; prefijos: string[] }[] = [
-  { href: "/inventario", etiqueta: "Existencias", prefijos: ["/inventario/recibir", "/inventario/mover"] },
+  { href: "/inventario", etiqueta: "Existencias", prefijos: ["/inventario/mover"] },
   { href: "/inventario/movimientos", etiqueta: "Movimientos", prefijos: ["/inventario/movimientos"] },
   { href: "/inventario/traslados", etiqueta: "Traslados", prefijos: ["/inventario/traslados"] },
   { href: "/inventario/conteo", etiqueta: "Conteo", prefijos: ["/inventario/conteo"] },
   { href: "/inventario/resumen", etiqueta: "Resumen", prefijos: ["/inventario/resumen"] },
 ];
 
-export function InventarioNav({ mostrarResumen = false }: { mostrarResumen?: boolean }) {
+// `contadores` (2026-09-18): cuántas cosas de cada pestaña piden acción a quien mira, por `href` —
+// hoy solo «Traslados». Genérico a propósito: la navegación no sabe qué es un traslado.
+export function InventarioNav({
+  mostrarResumen = false,
+  contadores = {},
+}: {
+  mostrarResumen?: boolean;
+  contadores?: Record<string, number | null | undefined>;
+}) {
   const pathname = usePathname();
   const secciones = mostrarResumen ? SECCIONES : SECCIONES.filter((s) => s.href !== "/inventario/resumen");
   return (
-    <div className="flex gap-1 overflow-x-auto border-b border-tinta/10">
+    <div className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-tinta/10">
       {secciones.map((s) => {
         const activo = pathname === s.href || s.prefijos.some((p) => pathname === p || pathname.startsWith(p + "/"));
+        const pendientes = contadores[s.href] ?? 0;
         return (
           <Link
             key={s.href}
             href={s.href}
             aria-current={activo ? "page" : undefined}
-            className={`label-cayla -mb-px shrink-0 border-b-2 px-3 pb-2.5 pt-1 text-[11px] transition-colors ${
+            className={`label-cayla -mb-px inline-flex shrink-0 items-center gap-1.5 border-b-2 px-3 pb-2.5 pt-1 text-[11px] transition-colors ${
               activo ? "border-rojo text-tinta" : "border-transparent text-tinta/65 hover:text-rojo"
             }`}
           >
             {s.etiqueta}
+            <Insignia n={pendientes} etiqueta="por atender" tamano="compacta" />
           </Link>
         );
       })}
+      {/* «Ingreso sin comprobante» (ADR-0111): la excepción de recibir — mercadería que llegó y todavía no tiene
+          su comprobante, muestras y obsequios. Vive en Inventario, no como par de Compras; a la derecha y
+          discreto para que no compita con las pestañas. */}
+      <Link
+        href="/inventario/recibir"
+        className={`label-cayla -mb-px ml-auto shrink-0 border-b-2 px-3 pb-2.5 pt-1 text-[11px] transition-colors ${
+          pathname === "/inventario/recibir" ? "border-rojo text-tinta" : "border-transparent text-tinta/55 hover:text-rojo"
+        }`}
+      >
+        Ingreso sin comprobante
+      </Link>
     </div>
   );
 }

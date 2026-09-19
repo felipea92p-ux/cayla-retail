@@ -2,16 +2,21 @@ import { describe, it, expect } from "vitest";
 import {
   aplicarDescuento,
   aplicarDescuentoMonto,
+  conCampanas,
   conCodigoDelCatalogo,
+  descuentoResultante,
   descuentoUnitarioPorMonto,
   descuentoUnitarioPorPorcentaje,
+  esDescuentoDeCampana,
   esperaAlCargar,
+  hayDescuentoManual,
   motivoBloqueoCobro,
   necesitaArgumentoEscrito,
   porcentajeDeLinea,
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
   vueltoDe,
+  type CampanaLinea,
   type DetalleDescuento,
 } from "./vender-reglas";
 
@@ -274,5 +279,118 @@ describe("necesitaArgumentoEscrito — la banda 20-35 % es solo del Líder", () 
   it("a una Colaboradora nunca — su tope es el código, no el escalonado", () => {
     expect(necesitaArgumentoEscrito(false, 30)).toBe(false);
     expect(necesitaArgumentoEscrito(false, 90)).toBe(false);
+  });
+});
+
+// ---- Descuento de campaña (ADR-0107, paso 3) ----------------------------------------
+// La regla de negocio: UN solo descuento por prenda, el MAYOR. La campaña se aplica
+// sola; un descuento manual solo la reemplaza si la supera. Estas pruebas replican lo
+// que `registrar_venta` (20260918170000) acepta y rechaza — si divergen, la caja
+// mandaría algo que la base rechaza en el mostrador.
+
+const blackFriday: CampanaLinea = { etiquetaId: "e-bf", nombre: "Black Friday", pct: 20 };
+const liquidacion: CampanaLinea = { etiquetaId: "e-liq", nombre: "Liquidación", pct: 40 };
+
+const lineaCampana = (clave: string, precio: number, campana: CampanaLinea | null = null) => ({
+  ...linea(clave, precio),
+  varianteId: clave,
+  campana,
+});
+
+describe("descuentoResultante — un solo descuento, el mayor", () => {
+  const conBF = lineaCampana("a", 100, blackFriday);
+
+  it("sin campaña, lo pedido tal cual", () => {
+    expect(descuentoResultante(lineaCampana("a", 100), 15)).toEqual({ monto: 15, prevaleceCampana: false });
+  });
+  it("un manual MENOR que la campaña no la baja: prevalece la campaña", () => {
+    expect(descuentoResultante(conBF, 15)).toEqual({ monto: 20, prevaleceCampana: true });
+  });
+  it("un manual IGUAL a la campaña tampoco cuenta como manual", () => {
+    expect(descuentoResultante(conBF, 20)).toEqual({ monto: 20, prevaleceCampana: true });
+  });
+  it("quitar el descuento (0) devuelve la campaña, no un precio sin descuento", () => {
+    expect(descuentoResultante(conBF, 0)).toEqual({ monto: 20, prevaleceCampana: true });
+  });
+  it("un manual MAYOR reemplaza a la campaña (no se suman)", () => {
+    expect(descuentoResultante(conBF, 30)).toEqual({ monto: 30, prevaleceCampana: false });
+  });
+  it("por un centavo de diferencia sigue siendo la campaña (redondeo del navegador)", () => {
+    expect(descuentoResultante(conBF, 20.01).prevaleceCampana).toBe(true);
+    expect(descuentoResultante(conBF, 20.02).prevaleceCampana).toBe(false);
+  });
+});
+
+describe("aplicarDescuento con campaña", () => {
+  const cumple: DetalleDescuento = { razon: "cumpleanos_clienta_top", razonOtro: "", argumento: "" };
+  const carrito = [lineaCampana("a", 100, blackFriday), lineaCampana("b", 100)];
+
+  it("un 10 % manual a todo el ticket deja la campaña (20 %) donde la hay y aplica 10 % donde no", () => {
+    const r = aplicarDescuento(carrito, 10, [], cumple);
+    expect(r.map((l) => l.descuentoUnitario)).toEqual([20, 10]);
+    expect(r.map((l) => l.razonDescuento)).toEqual(["campana", "cumpleanos_clienta_top"]);
+  });
+  it("un 30 % manual reemplaza a la campaña con su motivo", () => {
+    const r = aplicarDescuento(carrito, 30, ["a"], cumple);
+    expect(r[0]).toMatchObject({ descuentoUnitario: 30, razonDescuento: "cumpleanos_clienta_top" });
+  });
+  it("«Quitar descuento» (0 %) en una línea con campaña la devuelve a la campaña", () => {
+    const r = aplicarDescuento(aplicarDescuento(carrito, 30, ["a"], cumple), 0, ["a"], SIN_DETALLE_DESCUENTO);
+    expect(r[0]).toMatchObject({ descuentoUnitario: 20, razonDescuento: "campana" });
+  });
+});
+
+describe("conCampanas — un ticket en espera se pone al día", () => {
+  const rige = new Map<string, CampanaLinea>([["a", blackFriday]]);
+
+  it("una línea sin descuento recibe la campaña que ahora rige", () => {
+    const [l] = conCampanas([lineaCampana("a", 100)], rige);
+    expect(l).toMatchObject({ descuentoUnitario: 20, razonDescuento: "campana", campana: blackFriday });
+  });
+  it("si la campaña cambió de %, la línea se ajusta", () => {
+    const [l] = conCampanas([conCampanas([lineaCampana("a", 100)], rige)[0]], new Map([["a", liquidacion]]));
+    expect(l.descuentoUnitario).toBe(40);
+  });
+  it("si la campaña terminó, su descuento se va", () => {
+    const con = conCampanas([lineaCampana("a", 100)], rige);
+    const [l] = conCampanas(con, new Map());
+    expect(l).toMatchObject({ descuentoUnitario: 0, razonDescuento: "", campana: null });
+  });
+  it("un descuento manual mayor que la campaña se respeta", () => {
+    const manual = { ...lineaCampana("a", 100), descuentoUnitario: 35, razonDescuento: "cerrar_venta" };
+    expect(conCampanas([manual], rige)[0]).toMatchObject({ descuentoUnitario: 35, razonDescuento: "cerrar_venta" });
+  });
+  it("un descuento manual menor que la campaña cede ante ella", () => {
+    const manual = { ...lineaCampana("a", 100), descuentoUnitario: 10, razonDescuento: "cerrar_venta" };
+    expect(conCampanas([manual], rige)[0]).toMatchObject({ descuentoUnitario: 20, razonDescuento: "campana" });
+  });
+  it("si la campaña terminó, un descuento manual NO se toca", () => {
+    const manual = { ...lineaCampana("a", 100), descuentoUnitario: 10, razonDescuento: "cerrar_venta" };
+    expect(conCampanas([manual], new Map())[0]).toMatchObject({ descuentoUnitario: 10, razonDescuento: "cerrar_venta" });
+  });
+  it("no toca una línea sin campaña ni campaña disponible", () => {
+    const [l] = conCampanas([lineaCampana("z", 50)], rige);
+    expect(l).toMatchObject({ descuentoUnitario: 0, razonDescuento: "" });
+  });
+});
+
+describe("hayDescuentoManual — solo el manual pide código a una colaboradora", () => {
+  it("una campaña sola no cuenta", () => {
+    expect(hayDescuentoManual([{ descuentoUnitario: 20, razonDescuento: "campana" }])).toBe(false);
+  });
+  it("un descuento a mano sí, aunque haya campañas al lado", () => {
+    expect(
+      hayDescuentoManual([
+        { descuentoUnitario: 20, razonDescuento: "campana" },
+        { descuentoUnitario: 5, razonDescuento: "cerrar_venta" },
+      ]),
+    ).toBe(true);
+  });
+  it("sin descuento, no", () => {
+    expect(hayDescuentoManual([{ descuentoUnitario: 0, razonDescuento: "" }])).toBe(false);
+  });
+  it("esDescuentoDeCampana exige monto > 0 además del motivo", () => {
+    expect(esDescuentoDeCampana({ descuentoUnitario: 0, razonDescuento: "campana" })).toBe(false);
+    expect(esDescuentoDeCampana({ descuentoUnitario: 8, razonDescuento: "campana" })).toBe(true);
   });
 });

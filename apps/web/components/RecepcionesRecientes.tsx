@@ -3,10 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Modal } from "@/components/ui/Modal";
+import { Chip } from "@/components/ui/Chip";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { fechaCorta, type RecepcionReciente } from "@/lib/compras-reglas";
 
 const PLANTILLA = "sm:grid-cols-[6rem_1fr_7rem]";
+// Con la columna de costo (Ingreso sin comprobante, ADR-0111): fecha · proveedor/nota · unidades · costo.
+const PLANTILLA_CON_COSTO = "sm:grid-cols-[6rem_1fr_7rem_10rem]";
+
+/** Costo unitario promedio del lote y si falta: sin costo la prenda no cuenta en el promedio ponderado y distorsiona el margen. */
+export type CostoRecepcion = { costo: number | null; sinCosto: boolean };
 const PLANTILLA_DETALLE = "sm:grid-cols-[1fr_5rem]";
 
 /**
@@ -21,8 +27,9 @@ const PLANTILLA_DETALLE = "sm:grid-cols-[1fr_5rem]";
  * `getRecepcionesRecientes` (mismo query, sin round-trip al abrir) — con
  * ≤30 lotes por página no vale la pena pedirlo aparte.
  */
-export function RecepcionesRecientes({ recepciones, vacio }: { recepciones: RecepcionReciente[]; vacio: string }) {
+export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepciones: RecepcionReciente[]; vacio: string; costos?: Record<string, CostoRecepcion> }) {
   const [abierta, setAbierta] = useState<RecepcionReciente | null>(null);
+  const plantilla = costos ? PLANTILLA_CON_COSTO : PLANTILLA;
 
   if (recepciones.length === 0) {
     return <p className="card-cayla p-5 text-sm text-tinta/65">{vacio}</p>;
@@ -30,18 +37,18 @@ export function RecepcionesRecientes({ recepciones, vacio }: { recepciones: Rece
   return (
     <>
       <Tabla>
-        <Encabezado plantilla={PLANTILLA} columnas={[{ titulo: "Fecha" }, { titulo: "Proveedor · guía" }, { titulo: "Unidades", alinear: "der" }]} />
+        <Encabezado plantilla={plantilla} columnas={[{ titulo: "Fecha" }, { titulo: costos ? "Proveedor / nota · guía" : "Proveedor · guía" }, { titulo: "Unidades", alinear: "der" }, ...(costos ? [{ titulo: "Costo" }] : [])]} />
         {recepciones.map((r) => (
           <button
             key={r.loteId}
             type="button"
             onClick={() => setAbierta(r)}
-            className={`${fila(PLANTILLA)} w-full text-left transition-colors hover:bg-tinta/[0.03]`}
+            className={`${fila(plantilla)} w-full text-left transition-colors hover:bg-tinta/[0.03]`}
           >
             <span className={celda("izq", "text-xs tabular-nums text-tinta/65")}>{fechaCorta(r.fecha)}</span>
             <span className={celda("izq")}>
               <span className="text-sm font-medium text-tinta">
-                {r.proveedorNombre}
+                {r.proveedorNombre || r.nota || "Sin proveedor"}
                 {r.documento ? ` · ${r.documento}` : ""}
               </span>
               <span className="block truncate text-xs text-tinta/65">
@@ -55,6 +62,17 @@ export function RecepcionesRecientes({ recepciones, vacio }: { recepciones: Rece
                 {r.lineas} {r.lineas === 1 ? "línea" : "líneas"}
               </span>
             </span>
+            {costos && (
+              <span className={celda("izq", "overflow-visible")}>
+                {costos[r.loteId]?.sinCosto ? (
+                  <Chip tono="ambar">Sin costo</Chip>
+                ) : costos[r.loteId]?.costo != null ? (
+                  <Chip tono="verde">{`S/ ${costos[r.loteId].costo!.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} c/u`}</Chip>
+                ) : (
+                  <span className="text-xs text-tinta/45">—</span>
+                )}
+              </span>
+            )}
           </button>
         ))}
       </Tabla>

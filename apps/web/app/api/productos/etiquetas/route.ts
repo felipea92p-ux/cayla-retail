@@ -1,6 +1,7 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { traducirError } from "@/lib/error-escritura";
+import { objecionVigencia, parsearDescuento, parsearFecha } from "@/lib/etiqueta-campana";
 
 // POST/PATCH /api/productos/etiquetas → vocabulario cerrado de etiquetas
 // (ADR-0095). Mismo mecanismo que tejidos/patrones. Sin restricción por
@@ -39,6 +40,37 @@ export async function PATCH(request: Request) {
   }
 
   const cuerpoObj: Record<string, unknown> = cuerpo ?? {};
+
+  // Configurar la campaña (descuento + fechas + categorías) es una sola
+  // operación: el RPC las guarda juntas o no guarda nada (`actualizar_campana_etiqueta`).
+  // Se atiende aparte de los demás cambios para no dejar un PATCH a medias.
+  if ("campana" in cuerpoObj) {
+    const c = (cuerpoObj.campana ?? {}) as Record<string, unknown>;
+    const descuento = parsearDescuento(c.descuentoPct === null || c.descuentoPct === undefined ? "" : String(c.descuentoPct));
+    if (!descuento.ok) return Response.json({ error: descuento.error }, { status: 400 });
+    const desde = parsearFecha(typeof c.vigenteDesde === "string" ? c.vigenteDesde : "");
+    if (!desde.ok) return Response.json({ error: desde.error }, { status: 400 });
+    const hasta = parsearFecha(typeof c.vigenteHasta === "string" ? c.vigenteHasta : "");
+    if (!hasta.ok) return Response.json({ error: hasta.error }, { status: 400 });
+    const objecion = objecionVigencia(desde.valor, hasta.valor);
+    if (objecion) return Response.json({ error: objecion }, { status: 400 });
+    const categoriaIds = Array.isArray(c.categoriaIds) ? c.categoriaIds : [];
+    if (!categoriaIds.every((x) => typeof x === "string")) {
+      return Response.json({ error: "Las categorías elegidas no son válidas." }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+    const { error } = await supabase.rpc("actualizar_campana_etiqueta", {
+      p_etiqueta_id: id,
+      p_descuento_pct: descuento.valor as number,
+      p_vigente_desde: desde.valor as string,
+      p_vigente_hasta: hasta.valor as string,
+      p_categoria_ids: categoriaIds as string[],
+    });
+    if (error) return Response.json({ error: traducirError(error, "guardar la campaña") }, { status: 400 });
+    return Response.json({ ok: true });
+  }
+
   const patch: { nombre?: string; activo?: boolean; notas?: string | null; estado?: string } = {};
 
   if ("estado" in cuerpoObj) {

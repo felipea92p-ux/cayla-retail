@@ -1,5 +1,6 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { getTrasladosPorAtender } from "@/lib/traslados";
 import { AppShell } from "@/components/AppShell";
 
 // Fase UI 1 (2026-09-11): usa la persona V2 (`ubicacion_id`), no la V1
@@ -8,7 +9,13 @@ import { AppShell } from "@/components/AppShell";
 // (`puedeCambiarUbicacion`), para no pedirle nada extra a un integrante.
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const persona = await requirePersonaActualV2();
-  const ubicaciones = persona.puedeCambiarUbicacion ? await getUbicaciones() : [];
+  // El contador de «Traslados» del menú (2026-09-18): en paralelo con la lista de ubicaciones, y
+  // total (nunca lanza) — este layout no tiene `error.tsx` propio, así que una excepción acá
+  // dejaría sin pantalla a toda la app por un número.
+  const [ubicaciones, trasladosPorAtender] = await Promise.all([
+    persona.puedeCambiarUbicacion ? getUbicaciones() : Promise.resolve([]),
+    getTrasladosPorAtender(persona.ubicacionId, persona.rol === "lider"),
+  ]);
 
   return (
     <AppShell
@@ -21,6 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         puedeCambiarUbicacion: persona.puedeCambiarUbicacion,
       }}
       ubicaciones={ubicaciones}
+      trasladosPorAtender={trasladosPorAtender}
     >
       {children}
     </AppShell>
