@@ -23,7 +23,7 @@ export default async function ResumenPage() {
     getVentasDeHoy(),
     getComprobantesMes(hoy.desde, hoy.hasta),
     getResumenPorEnviar(),
-    getVentasDeReferencia(),
+    getVentasDeReferencia(ahora),
   ]);
 
   return (

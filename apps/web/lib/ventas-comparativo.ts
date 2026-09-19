@@ -14,8 +14,8 @@ import type { VentaEnHora } from "@/lib/facturacion-resumen-graficos";
 // uno inventado).
 export type VentasDeReferencia = { ventas: VentaEnHora[]; total: number };
 
-export async function getVentasDeReferencia(diasAtras = 7): Promise<VentasDeReferencia | null> {
-  const { desde, hasta } = ventanaHastaEstaHora(new Date(), diasAtras);
+export async function getVentasDeReferencia(ahora: Date, diasAtras = 7): Promise<VentasDeReferencia | null> {
+  const { desde, hasta } = ventanaHastaEstaHora(ahora, diasAtras);
   const supabase = await createClient();
   const res = await supabase
     .from("ventas")
