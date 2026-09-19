@@ -2072,26 +2072,26 @@ export default async function ResumenPage() {
 ```tsx
 import { exigirLider } from "@/lib/persona-actual";
 import { getProformasMes } from "@/lib/proformas";
-import { getUbicaciones } from "@/lib/ubicaciones";
 import { mesActualLima, mesLimaUTC } from "@/lib/fecha-lima";
-import { mesDeParametro, tiendasOperativas, ubicacionActualDe } from "@/lib/facturacion-reglas";
+import { mesDeParametro } from "@/lib/facturacion-reglas";
 import { ProformasPanel } from "@/components/ProformasPanel";
 import { SelectorMesFacturacion } from "@/components/SelectorMesFacturacion";
 
+// El modal de «Nueva proforma» ya no vive en el panel sino en el shell (que ya tiene las
+// tiendas): esta vista solo lee las proformas del mes.
 export default async function ProformasPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
-  const persona = await exigirLider();
+  await exigirLider();
   const { m } = await searchParams;
   const actual = mesActualLima();
   const mes = mesDeParametro(m, actual);
   const { desde, hasta } = mesLimaUTC(mes.anio, mes.mes);
 
-  const [proformas, ubicaciones] = await Promise.all([getProformasMes(desde, hasta), getUbicaciones()]);
-  const tiendas = tiendasOperativas(ubicaciones);
+  const proformas = await getProformasMes(desde, hasta);
 
   return (
     <div className="space-y-6">
       <SelectorMesFacturacion ruta="/vender/facturacion/proformas" mes={mes} actual={actual} />
-      <ProformasPanel proformas={proformas} ubicaciones={tiendas} ubicacionActualId={ubicacionActualDe(tiendas, persona.ubicacionId)} />
+      <ProformasPanel proformas={proformas} />
     </div>
   );
 }
@@ -2205,6 +2205,7 @@ En `apps/web/components/ProformasPanel.tsx`:
 3. Junto a `const router = useRouter();`, agrega `const { abrirProforma } = useFacturacionAcciones();`.
 4. Borra el elemento `<NuevaProformaModal … />` del JSX.
 5. En el botón «Nueva proforma»: `onClick={abrirProforma}` (antes `onClick={() => setModal("crear")}`).
+6. **Quita lo que el panel deja de usar.** Sin el modal, `ubicaciones` y `ubicacionActualId` ya no se usan en `ProformasPanel`: quítalas de la firma y del tipo de props (queda `{ proformas }: { proformas: Proforma[] }`) y borra el `type Ubicacion = { id: string; nombre: string };` que quedó sin uso. ESLint marca las tres cosas como variables sin uso, y la página de Proformas (Step 4) ya no se las pasa.
 
 - [ ] **Step 10: Tipos, lint y pruebas**
 
@@ -2256,7 +2257,7 @@ Felipe inicia sesión como **líder** en el panel del navegador integrado (`http
 | 1 | Las cuatro URLs cargan y el lateral marca «Facturación» | Abre cada una. En consola: `document.querySelector('nav[aria-label="Vistas de Facturación"] [aria-current="page"]')?.textContent` | La pestaña correcta en cada URL; en el lateral, «Facturación» resaltada en las cuatro |
 | 2 | Atrás y adelante entre pestañas | Navega Resumen → Proformas → Comprobantes; `history.back()` dos veces; `history.forward()` | La pestaña activa y la píldora siguen a la URL en cada paso |
 | 3 | `/vender/descuentos` redirige (307) | `curl.exe -sI http://localhost:3100/vender/descuentos` | `307` y `location: /vender/facturacion/descuentos` |
-| 4 | Los contadores coinciden con la base y se ocultan si su consulta falla | Compara el número de «Comprobantes» con `select count(*) from retail.comprobantes where estado in ('pendiente','rechazado')` en la base local, y el de «Proformas» con las vigentes que aún no vencieron (`estado='vigente' and (vence_at is null or vence_at > now())`). Para «se ocultan»: rompe a propósito el nombre de la tabla en `getResumenPorEnviar` (por ejemplo `"comprobantes_x"`), recarga y mira que la pestaña queda **sin** contador y sin error; **revierte** | Coinciden; sin contador cuando falla; la vista sigue cargando |
+| 4 | Los contadores coinciden con la base y se ocultan si su consulta falla | Compara el número de «Comprobantes» con `select count(*) from public.comprobantes where estado in ('pendiente','rechazado')` en la base local, y el de «Proformas» con las vigentes que aún no vencieron (`select count(*) from public.proformas where estado='vigente' and (vence_at is null or vence_at > now())`). **En la base local las tablas viven en `public`** (sin prefijo `retail.`, que solo existe en producción). Para «se ocultan»: rompe a propósito el nombre de la tabla en `getResumenPorEnviar` (por ejemplo `"comprobantes_x"`), recarga y mira que la pestaña queda **sin** contador y sin error; **revierte** | Coinciden; sin contador cuando falla; la vista sigue cargando |
 | 5 | Un error en una vista no tumba la cabecera | Pon `throw new Error("prueba de error de vista");` como primera línea del cuerpo de `proformas/page.tsx`, abre `/vender/facturacion/proformas`; después **revierte** con `git checkout -- "apps/web/app/(app)/vender/facturacion/proformas/page.tsx"` | Sale la tarjeta «Esta vista no está mostrando datos» con «Reintentar»; la cabecera y las pestañas siguen; la pestaña Resumen funciona |
 | 6 | «Emitir comprobante» y «Nueva proforma» abren su modal desde cualquier pestaña y la emisión conserva su token | Ábrelos desde la cabecera en las cuatro pestañas y desde el botón de Comprobantes/Proformas. **Token:** compara `EmitirComprobanteModal.tsx` con `ComprobantesPanel.tsx` tal como era antes de la Task 4 (`git log --oneline -- apps/web/components/ComprobantesPanel.tsx` te da el hash del commit de la Task 4; `git show <hash>~1:apps/web/components/ComprobantesPanel.tsx`): `tokenEmision` sigue siendo un `useRef` inicializado una vez y se renueva solo tras un Emitir exitoso. Con la base local arriba, emite una boleta de prueba (nunca «Transmitir» sin confirmar `LUCODE_ENTORNO=sandbox`) | Los dos modales abren desde todas; la boleta aparece en Comprobantes; sin diferencias de lógica |
 | 7 | El mes se conserva entre Proformas y Comprobantes | Abre `/vender/facturacion/proformas?m=2026-8`, pulsa la pestaña Comprobantes; luego Resumen; luego Comprobantes de nuevo | Comprobantes conserva `?m=2026-8`; Resumen y Códigos no llevan `m`; sin `m` se ve el mes actual |
