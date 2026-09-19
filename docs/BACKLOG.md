@@ -462,19 +462,20 @@ propuesta de piso de venta.
 
 ---
 
-## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0102)
+## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0116)
 
 Felipe pidió rediseñar Caja (visual/interactivo, a partir de una maqueta HTML) y
 extender el mismo lenguaje visual a Punto de Venta, sin tocar lógica de negocio. La
 maqueta traía modo oscuro y una paleta que no es la de CAYLA — protocolo de pregunta
 antes de tocar código, Felipe eligió traducirla a la paleta ya existente (detalle en
-ADR-0102).
+ADR-0116).
 
 - [x] **Caja: tablero completo con datos reales** — encabezado (avatar por iniciales,
       reloj en vivo, badge de sincronización), barra de meta diaria (si la ubicación
       tiene una configurada), 5 KPIs con sparkline, dona de métodos de pago (+ tabla
       accesible), barras de ventas por hora, timeline de movimientos+ventas, tendencia
-      de 7 cierres, barra de acciones fija. `CajaAbiertaPanel.tsx` reescrito,
+      de 7 cierres, barra de acciones fija (luego movida al encabezado: ver 2ª tanda,
+      abajo). `CajaAbiertaPanel.tsx` reescrito,
       `Graficos.tsx`/`useCountUp.ts` nuevos, `lib/caja.ts` gana `getSeriesVentasCaja()`
       y `MovimientoCaja.registradoPorNombre`. Verificado en navegador con la caja real
       de Tienda Lima (`felipe@cayla.local`).
@@ -493,6 +494,81 @@ ADR-0102).
       método de pago (`PuntoDeVentaTicket.tsx`) y el ícono de cada pago ya puesto
       se colorean con los mismos 3 categóricos de la dona de Caja. Verificado en
       navegador armando una venta real con pago mixto efectivo+tarjeta+yape.
+- [x] **Caja, 2ª tanda (2026-09-18, adenda de ADR-0116)** — "+ Ingreso / egreso" y "Cerrar
+      caja" pasan de la barra fija de abajo al encabezado (a la derecha; el chip de
+      sincronización queda junto al título); fuera el botón "Cambios" (sigue en el menú
+      lateral, Ventas → Cambios). Dona rehecha como `DonaMetodos.tsx` (SVG puro, sin
+      librería): degradado, resplandor, bisel de 100 marcas (1 % cada una), barrido al entrar a
+      la vista (se repite al volver a verla) y respuesta al mouse (arco que se adelanta,
+      marcas que se encienden, centro que cambia, leyenda sincronizada). Geometría en
+      `lib/dona-geometria.ts`, 7 pruebas. Excepción declarada —solo esta dona— a "sin
+      gradiente" y a "nada se anima solo al entrar". Verificada en navegador con datos de
+      mentira (2, 3 y 1 método; escritorio, tablet, móvil).
+- [ ] **Dona de Caja: falta verla con la caja real y en pantalla táctil** — no se probó con
+      datos de producción (para no cruzar la cookie de Supabase entre dos `next dev`) ni con un
+      dedo real: el toque alterna el método apuntado, pero está razonado, no ejercitado.
+- [x] **Caja, 3ª tanda (2026-09-18, adenda de ADR-0116)** — fuera el avatar del encabezado
+      (las iniciales no informaban; el nombre ya está al lado) y `iniciales()` de
+      `caja-panel-reglas.ts` con él. Lo que se conserva gana vida: `RelojDeCaja` (dígitos que
+      ruedan al cambiar, aguja de segundos alineada al segundo real, "Abierta desde… · lleva
+      2 h 08 min" con `duracionAbierta()`, 3 pruebas) y `EstadoSync` (onda suave detrás del
+      ícono, visto que se traza, re-asentado al cambiar de estado, `role="status"`). Dona
+      centrada en su tarjeta en las dos direcciones. Verificado en navegador con datos de
+      mentira, incluido el estado "N ventas sin sincronizar" y la paleta nueva del POS.
+- [x] **Ventas por hora → "Ritmo del día"** — el gráfico de barras no se entendía ("no lo
+      entiendo y no sé si sirve"): sin cifras, la barra mayor siempre llenaba la caja y la rayita
+      roja de la hora sin ventas parecía dato. Felipe eligió entre tres caminos (aclararlo /
+      cambiarlo / quitarlo) el segundo. `RitmoDelDia` (en `CajaAbiertaPanel.tsx`): ventas, ticket
+      promedio y "desde la última venta", y una línea de tiempo de la apertura a ahora con una
+      venta por punto (tamaño = monto, color = método, pago mixto = punto partido, las que caen
+      juntas se apilan). Sin consultas nuevas: sale de `ventasHoy`. Lógica pura y probada en
+      `caja-panel-reglas.ts` (`ritmoDelDia`, `metodosDe`, `formatoDuracion`; 26 pruebas del
+      módulo). `BarrasHorarias` sale de `Graficos.tsx`; `useEnVista` pasa a `lib/` porque ahora
+      lo comparten la dona y esta tarjeta. Las cifras se ajustan al ancho de la tarjeta (a 340 px
+      se pisaban). Si la caja quedó abierta de ayer, el eje dice "Desde medianoche".
+- [x] **Caja a todo el ancho (2026-09-18)** — pedido de Felipe: "hay mucho espacio a los lados
+      y no se aprovecha", como el Punto de Venta. `/caja` entra en `SIN_TOPE_DE_ANCHO`
+      (`AppShell.tsx`, la misma lista de Vender/Compras/Productos/Inventario): el tablero pasa de
+      ~1023 px a ~1526 px a 1878. Para *aprovecharlo* y no solo estirarlo: la fila de abajo
+      queda en dos columnas iguales alineadas con la de arriba (`2xl`), y la dona (y su texto y
+      leyenda) crece con el ancho de SU tarjeta (container queries, 176 → 224 px). Lo que cuelga
+      de `/caja` y no es tablero conserva `max-w-5xl` por su cuenta: el formulario de abrir
+      caja (un campo, sin tope propio) y el historial de cierres (una columna flexible que
+      separaría la sede de sus cifras). Verificado a 1878, 1366 y 1024 px con datos de mentira.
+- [x] **Caja: rediseño para usar bien el ancho + actualización en vivo (2026-09-18)** — pedido de
+      Felipe: "que se ocupe de manera óptima el espacio" y "que se actualice en tiempo real, con una
+      animación cuando hay una venta, para ver cómo va el ritmo".
+      *Disposición:* decide por el ancho del PROPIO tablero (`@container`), no de la ventana (la barra
+      lateral se come ~350 px). Encabezado en tres zonas con la hora del turno al centro (≥ 1400 px),
+      dos zonas (≥ 720) o apilado; KPI en 2/3/5 columnas; cuerpo en una columna, dos (≥ 900: dona y ritmo,
+      y debajo historial y movimientos a ancho completo, estos en dos columnas) o tres (≥ 1400:
+      "Movimientos" como riel alto a la derecha, cuyo alto natural coincide con las dos filas de la
+      izquierda). El historial muestra hasta 14 días con día y monto cuando cabe. Una fila de dos
+      columnas con una tarjeta mucho más alta que su vecina la estira y la deja medio vacía: por eso el
+      rango medio no es 2×2. Los modales quedan FUERA del contenedor (`container-type` aplica contención
+      de layout y ataría su `fixed` al tablero).
+      *En vivo:* `useCajaEnVivo` sondea cada 5 s con dos conteos (ventas y movimientos de la caja) y solo
+      si el número cambia hace `router.refresh()`; no sondea con la pestaña oculta ni sin red, y retrocede
+      hasta 1 min si falla. Al llegar datos nuevos: aviso "Nueva venta" (`avisar`), la tarjeta que subió
+      con velo de color e insignia "+S/…", la dona señala sola el método que creció (2,8 s, el ratón
+      manda), el punto nuevo del ritmo entra con una onda y se deslizan los demás al crecer el eje, y la
+      fila nueva de movimientos se resalta. Lo "nuevo" caduca a los 8 s; lo que ya estaba al abrir no
+      cuenta. Lógica pura y probada en `caja-en-vivo.ts` (7 pruebas).
+      *Verificado:* 7 anchos (1878 → 390 px) con datos de mentira y un simulador de ventas (venta,
+      venta mixta, egreso); las consultas de conteo contra el Postgres LOCAL, solo lectura, como el líder
+      del seed (cuenta = filas, RLS lo permite, sin sesión da 401); el overlay del modal cubre la ventana.
+- [ ] **Actualización en vivo con Supabase Realtime en vez de sondeo** — hoy llega en ~5–6 s. Realtime
+      la haría instantánea, pero exige `alter publication supabase_realtime add table …` en el proyecto
+      COMPARTIDO con Dynamic (hoy la publicación tiene 0 tablas, ADR-0018): parar y confirmar con Felipe
+      antes de correrlo. Cuando se autorice, `useCajaEnVivo` se cambia por una suscripción y nadie más se toca.
+- [ ] **Probar el en vivo de punta a punta con sesión real** — no se pudo (exige entrar): falta ver, con la
+      caja abierta en un navegador, una venta hecha desde otro dispositivo y cómo llega. Las piezas están
+      verificadas por separado (consultas reales, detección y animaciones con simulador), no el bucle completo.
+- [ ] **Tarjetas KPI de Caja vs `TarjetaEstadistica` de Cambios** — hoy son dos familias
+      (Caja: borde de color + sparkline; Cambios: ícono en cuadro rojo suave). Unificar cruza
+      más de un módulo: esperar a que se fusionen las ramas del POS (paleta de métodos + recibo
+      térmico, toca `globals.css`) y de Cambios/Devoluciones, y decidirlo en un cambio corto
+      aparte. Ninguna otra sesión toca `CajaAbiertaPanel.tsx` hoy.
 - [ ] **Banner de alerta de egresos por encima del promedio semanal** — pedido por la
       maqueta, NO construido: no existe ningún rollup histórico de egresos por día
       (`getHistorialCierres()` no los trae). Necesita una función/consulta nueva antes

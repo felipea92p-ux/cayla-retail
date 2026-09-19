@@ -506,7 +506,11 @@ function MenuNuevo({ onClose, esLider }: { onClose: () => void; esLider: boolean
 // Inventario entró el 2026-09-16: la tabla de Existencias con «En tránsito» y
 // «En la red» (6 columnas) y la de Movimientos con origen → destino no caben
 // en 64rem sin recortar la prenda.
-const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario"];
+// Caja entró el 2026-09-18 (pedido de Felipe): el tablero de la caja abierta —KPIs, dona,
+// ritmo del día, movimientos— tiene qué mostrar a lo ancho y en pantalla grande sobraba
+// margen. Lo que cuelga de /caja y NO es tablero (el formulario de abrir caja y el historial
+// de cierres) se topa por su cuenta con `max-w-5xl`: no fueron pensados para estirarse.
+const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/caja"];
 
 export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }: Props) {
   const pathname = usePathname();
