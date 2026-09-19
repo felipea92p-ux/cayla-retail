@@ -3,6 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Nace `/pantalla`: análisis por pantalla con 12 tareas — y su primera prueba cayó en una pantalla que `main` ya había rehecho)
+
+Se agregó el skill `/pantalla` (`.claude/skills/pantalla/`): con una captura y una ruta analiza estética, lógica, arquitectura, funciones, utilidad y conexión con el ERP, puntúa si la pantalla cumple su finalidad y su relevancia (gestión pesa el doble) y propone 12 tareas por importancia. Solo analiza, no toca código ni BACKLOG. Se probó en modo rápido sobre Nuevo producto; el modo completo (subagente, consulta SQL, referentes de ERP) no se probó de punta a punta.
+
+Lo que Felipe se lleva: el análisis de esa prueba quedó vencido en pocas horas — `main` rehízo el formulario (precio obligatorio, nombres parecidos, pantalla de éxito) — así que no se subió a `docs/`. Por eso todo análisis guarda el SHA analizado y un re-análisis primero comprueba si esos archivos cambiaron: un análisis sin versión es un doc viejo tomado por vigente.
+
+Pendiente: correr `/pantalla` completo sobre una pantalla de núcleo (Caja). Y una tarea raíz que salió de la prueba y sigue en `main`: `Number(x) || 0` convierte un monto vacío en 0 en 10 formularios, entre ellos `CerrarCajaModalV2.tsx:77` (`p_monto_real`) — sin verificar si hay una guarda previa ni si `cerrar_caja` rechaza 0.
+
 ## 2026-09-19 (Los 8 SQL de Crear producto ya están en producción — y `datos:comparar` quedó en verde)
 
 Se pegaron uno por uno, con una verificación de solo lectura antes y después de cada uno. Tres cosas salieron al pegar y no en las pruebas: el mapa de categorías falló por depender de tablas temporales entre sentencias (ahora es un solo bloque), la regla de Editar habría bloqueado 38 de los 39 productos activos (ahora «no empeora»), y una consulta mía con `\b` buscaba mal las funciones que insertan en `productos` (en Postgres `\b` es «retroceso»; el límite de palabra es `\y`). Al final: 0 productos con pareja inválida, 0 nombres duplicados, Productos filtra y busca por marca, y `pnpm datos:comparar` dice «ninguna pantalla llama a una función con parámetros que producción no acepte».
