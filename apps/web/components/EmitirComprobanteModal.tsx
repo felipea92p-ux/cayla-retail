@@ -73,9 +73,9 @@ export function EmitirComprobanteModal({
     e.preventDefault();
     setLoading(true);
     const supabase = createClient();
-    // IGV incluido en el total (19.83% del total = IGV, práctica estándar
-    // cuando el precio ya lo incluye) — la desagregación exacta por línea
-    // queda para cuando esto se conecte a `ventas` (ver nota al pie).
+    // IGV incluido en el total: el precio ya lo lleva, así que se desagrega dividiendo
+    // entre 1.18 (el IGV es el 18 % de la base = el 15,25 % del total). La desagregación
+    // exacta por línea queda para cuando esto se conecte a `ventas`.
     const igv = Math.round((total - total / 1.18) * 100) / 100;
     const subtotal = Math.round((total - igv) * 100) / 100;
     const { error } = await supabase.rpc("emitir_comprobante", {
