@@ -3831,6 +3831,32 @@ export type Database = {
           variante_id: string
         }[]
       }
+      fn_calidad: {
+        Args: { p_dia?: string; p_dias?: number; p_plazo_dias?: number }
+        Returns: {
+          clave: string
+          cohorte_desde: string
+          cohorte_hasta: string
+          devueltas_a_proveedor: number
+          devueltas_danadas: number
+          devueltas_vendibles: number
+          etiqueta: string
+          nivel: string
+          unidades_cambiadas: number
+          unidades_devueltas: number
+          unidades_vendidas: number
+        }[]
+      }
+      fn_calidad_danadas: {
+        Args: { p_dia?: string; p_meses?: number }
+        Returns: {
+          condicion: string
+          mes: string
+          origen: string
+          ubicacion_id: string
+          unidades: number
+        }[]
+      }
       fn_clave_texto: { Args: { p: string }; Returns: string }
       fn_colaboradores: {
         Args: never
@@ -3842,6 +3868,49 @@ export type Database = {
           rol: string
           sede: string
           ubicacion_asignada: string
+        }[]
+      }
+      fn_comercial_colaboradoras: {
+        Args: { p_dia?: string }
+        Returns: {
+          bruto_mes: number
+          descuento_mes: number
+          persona_id: string | null
+          tickets_hoy: number
+          tickets_mes: number
+          ubicacion_id: string
+          unidades_mes: number
+          ventas_hoy: number
+          ventas_mes: number
+        }[]
+      }
+      fn_comercial_horas: {
+        Args: { p_dia?: string }
+        Returns: {
+          hora: number
+          tickets: number
+          ubicacion_id: string
+          ventas: number
+        }[]
+      }
+      fn_comercial_sedes: {
+        Args: { p_dia?: string }
+        Returns: {
+          devuelto_hoy: number
+          devuelto_mes: number
+          devuelto_semana: number
+          meta_venta_diaria: number | null
+          nombre: string
+          tickets_hoy: number
+          tickets_mes: number
+          tickets_semana: number
+          ubicacion_id: string
+          unidades_hoy: number
+          unidades_mes: number
+          unidades_semana: number
+          ventas_hoy: number
+          ventas_mes: number
+          ventas_semana: number
         }[]
       }
       fn_consumir_saldo_favor: {

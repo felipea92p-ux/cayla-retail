@@ -253,6 +253,41 @@ sobre una venta anulada — no hay nada que limpiar.
       - De las ~25 migraciones «huérfanas por nombre» que salieron antes, casi todas son
         ruido; la deriva real son las de la clase A.
 
+## 🎯 Calidad de las ventas (2026-09-18, ADR-0113)
+
+- [x] **`/comercial/calidad` construido y verificado en lo que no depende de la base real:** 2 funciones SQL
+      (`20260918192000_panel_calidad.sql`), reglas puras con 26 pruebas, pantalla vista en escritorio y celular, prueba
+      aislada de 26 verificaciones con 5 mutaciones que la hacen fallar.
+- [ ] **Abrir `/comercial/calidad` como líder contra el stack local con Docker arriba** (y como colaboradora: debe
+      redirigir). Es lo que la prueba aislada no cubre: RLS, `fn_es_lider` verdadera, `getUbicaciones` real.
+- [ ] **Aplicar en producción `20260918192000_panel_calidad.sql`** (después del panel comercial). Depende de
+      `variantes.talla_id`, `compras.estado` y `producciones.es_muestra`. Solo lectura; se deshace con 2 `drop function`.
+- [ ] **La vista por proveedor no dirá nada hasta que haya compras reales:** hoy el catálogo casi no está cargado y
+      casi todo saldría como "Sin origen registrado". Es un dato, no un defecto.
+- [ ] **Cambios de una talla a otra** (M→L dice más sobre las medidas que un cambio suelto) y **motivo de devolución con
+      vocabulario cerrado** (`devoluciones.motivo` es texto libre). Umbrales 10 / 2× / 3 provisionales: calibrar con meses reales.
+
+---
+
+## 🎯 Panel comercial (2026-09-18, ADR-0110)
+
+- [x] **`/comercial` construido y verificado en lo que no depende de la base real:** 3 funciones SQL
+      (`20260918191000_panel_comercial.sql`), reglas puras con 30 pruebas, pantalla vista en escritorio y
+      celular, prueba aislada de 22 verificaciones con 3 mutaciones que la hacen fallar.
+- [ ] **Abrir `/comercial` como líder contra el stack local con Docker arriba** (y como colaboradora: debe
+      redirigir). Es lo único que la prueba aislada no cubre: RLS, la `fn_es_lider` verdadera, `fn_nombres_personas`.
+- [ ] **Aplicar en producción, en orden:** `20260916172645_anular_venta` (da `ventas.estado`) y
+      `20260918100000_meta_venta_diaria_por_ubicacion` si faltan — ninguna da error al crear la función, la
+      pantalla falla al abrir —, y después `20260918191000_panel_comercial`. Solo lectura; se deshace con 3 `drop function`.
+- [ ] **Sospecha, sin verificar en producción: las barras de "ventas por hora" de Caja están desplazadas 5 horas.**
+      `getSeriesVentasCaja` (`lib/caja.ts`) agrupa con `new Date(created_at).getHours()` = zona del servidor; Vercel
+      corre en UTC, Lima es UTC−5. En tu Mac (zona Lima) no se nota. Corrección: agrupar en SQL con
+      `at time zone 'America/Lima'` como hace `fn_comercial_horas`.
+- [ ] **Metas por día de la semana** (hoy es una cifra plana: un sábado vale como un martes) y comparativo contra
+      el mismo día de la semana anterior. Umbrales 85% / 100% provisionales: calibrar con Felipe con meses reales.
+- [ ] **Menú:** "Comercial" se agregó al final del menú de líder sin mover nada; el orden actual lo pidió Felipe
+      el 2026-09-16. Confirmar dónde lo quiere.
+
 ## 🎯 Compras: indicadores para decidir, faltantes con nota de crédito y pago por lote (2026-09-18, ADR-0111)
 
 Rama `claude/pantallas-proveedores-comprobantes-a15ece`. **`main` ya está fusionada en esta rama (2026-09-18,

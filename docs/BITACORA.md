@@ -116,6 +116,37 @@ Lo que Felipe se lleva: comparar por firmas y descargar solo la diferencia convi
 
 Lo que Felipe se lleva: la versión de una migración es su llave de orden, no un nombre bonito; al renombrar una, hay que comprobar que la nueva esté libre en *todo* `main`, no solo en la rama de uno. Comprobado: 0 versiones repetidas en `supabase/migrations/`.
 
+## 2026-09-18 (Calidad — una tasa con pocas ventas no es una tasa, y una fila no puede medirse contra sí misma)
+Tarea 15 del plan: `/comercial/calidad` (solo líder) responde "¿qué talla, qué proveedor o qué producto genera
+devoluciones?". Tres decisiones pesan más que el código. (1) La cohorte es madura: solo entran ventas que ya cumplieron
+su plazo de cambio de 15 días, porque una prenda vendida hace 3 días no tuvo tiempo de ser devuelta y contarla como "vendida
+y no devuelta" haría parecer que todo va mejor. (2) Una fila con menos de 10 ventas es "muestra chica" y va al final: una
+talla con 2 ventas y 1 devolución "tiene 50%" y no dice nada. (3) Cada fila se compara contra el RESTO y no contra el
+total; esto lo destapó la prueba visual, no el diseño: con el promedio general la talla L (17,5% frente a 9,2%) salía
+"dentro de lo normal" siendo el problema, porque ella misma subía la vara. Felipe decidió la atribución: al proveedor de
+la compra más reciente anterior a la venta, con el Taller como otro origen posible.
+
+En V2 el producto no guarda su proveedor (era del modelo V1) y `variantes.talla` ya no existe (vive en `tallas.valor`): un
+SQL escrito contra el esquema viejo habría fallado al ejecutarse. Probado sin Docker con un Postgres desechable: la prueba
+cazó un defecto real (un total con NULL en una ventana sin ventas) y cinco mutaciones del SQL la hacen fallar. También se
+descubrió que el compilador de JSX se come el espacio entre un número y su palabra ("15días"): se arregló con un espacio
+explícito y se verificó en el DOM. No se probó contra el esquema real. ADR-0113.
+
+## 2026-09-18 (Panel comercial — el semáforo no puede mirar lo vendido hoy)
+Tarea 11 del plan de finanzas y gestión comercial: `/comercial` (solo líder) con ventas de hoy, semana y mes por
+tienda, ticket promedio, unidades por ticket, ventas por hora y por colaboradora, contra la meta diaria de cada
+tienda. Tres funciones SQL de solo lectura hacen todas las sumas y la pantalla solo pinta, así dos pantallas no
+pueden decir cifras distintas de lo vendido. La decisión que más pesa: el semáforo compara el ritmo del mes hasta
+el CIERRE DE AYER, no lo de hoy — a las 11 am toda tienda lleva una fracción de su meta y una alerta que salta
+siempre se deja de mirar. Todo se mide en hora de Lima: una venta de las 7:30 pm es 00:30 UTC del día siguiente.
+
+Probado sin Docker (caído): un Postgres desechable con datos que cruzan medianoche, una semana que empieza en el mes
+anterior, una anulada, el Taller y una tienda inactiva — 22 verificaciones, y tres mutaciones del SQL (zona UTC,
+contar líneas como tickets, contar anuladas) hacen fallar la prueba, así que sabe detectar lo que dice detectar. No
+se probó contra el esquema real (RLS, `fn_es_lider` verdadera): hay que abrirla como líder contra el stack local. Al
+armar el panel salió a la luz que `getSeriesVentasCaja` agrupa por hora con `getHours()`, que en Vercel (UTC) daría las
+barras de Caja desplazadas cinco horas — sin verificar en producción. ADR-0110.
+
 ## 2026-09-18 (Botones: desaparece la esquina rosada que asomaba en todos, sin mouse)
 
 Todos los `Boton` del sistema mostraban una esquina rosada tenue en el borde inferior izquierdo, aun en reposo. Era el destello de "brillo al pasar el mouse": una barra inclinada (`skew-x-12`) que espera fuera del botón, pero una inclinación de 12° mete su esquina ~4-5px adentro (mitad del alto × tan 12°: medido 4.3px en botones de 41px y 5.3px en los de 43px). Ahora la barra es `opacity-0` en reposo y el keyframe `cayla-brillo` la enciende (`opacity: 1`) solo mientras dura el barrido; el efecto al pasar el mouse es el mismo de antes.
