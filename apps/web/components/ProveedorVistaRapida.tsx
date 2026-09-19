@@ -81,7 +81,7 @@ export function ProveedorVistaRapida({
                 </Dialog.Description>
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                   {p.rubro && <Chip className="normal-case tracking-normal font-medium text-xs">{p.rubro}</Chip>}
-                  <Chip className="normal-case tracking-normal font-medium text-xs">{p.plazo_credito_dias ? `Crédito a ${p.plazo_credito_dias} días` : "Contado"}</Chip>
+                  {p.plazo_credito_dias != null && <Chip className="normal-case tracking-normal font-medium text-xs">Crédito a {p.plazo_credito_dias} días</Chip>}
                   {!p.activo && <Chip tono="rojo" className="normal-case tracking-normal font-medium text-xs">Desactivado</Chip>}
                 </div>
               </div>

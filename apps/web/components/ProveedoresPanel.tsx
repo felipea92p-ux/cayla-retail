@@ -22,19 +22,22 @@ import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 
-// La tabla de líder gana columnas con el ancho, en vez de encogerlas o desbordar: el NOMBRE es la única
-// columna flexible y nunca se sacrifica; lo que se baja primero es lo que se puede leer en otro lado
+// La tabla de líder gana columnas según el ANCHO DE LA TABLA, no el de la ventana (container queries de
+// Tailwind: `@3xl`, `@5xl`, `@7xl` miden el contenedor `@container` de <Tabla>). Con el menú lateral abierto
+// y el margen de la página, la tabla es ~350 px más angosta que la ventana: una tabla que decide por la
+// ventana cree que le sobra sitio y aplasta el nombre hasta dejarlo en «C…». El NOMBRE es la única columna
+// flexible y nunca se sacrifica; lo que se baja primero es lo que se puede leer en otro lado
 // (RUC y «Última compra» están en la vista rápida y en la ficha; «A favor» y «Entregas» en la ficha).
-//   · móvil        : proveedor · saldo (y toda la fila abre la vista rápida)
-//   · sm  (≥ 640)  : proveedor · facturado 12 m · saldo · acción
-//   · lg  (≥ 1024) : + a favor · entregas
-//   · xl  (≥ 1280) : + RUC · última compra  (la maqueta 08 completa)
+//   · < 48 rem   : proveedor · saldo (y toda la fila abre la vista rápida)
+//   · ≥ 48 rem   : proveedor · facturado 12 m · saldo · acción
+//   · ≥ 64 rem   : + a favor · entregas
+//   · ≥ 80 rem   : + RUC · última compra  (la maqueta 08 completa)
 // Dos plantillas de fila (líder / colaborador), no una con columnas ocultas: lo financiero es solo de
 // líder — corrección de D-27, 2026-09-17 (ver 20260917240000_proveedores_lista_indicadores_y_candado_sede.sql).
 // Un colaborador ve el directorio puro (Proveedor · RUC); ni la base le manda esos números
 // (fn_proveedores() los devuelve NULL), así que ocultar la columna acá es la segunda capa, no la única.
 const COLUMNAS_LIDER =
-  "grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_9.75rem_7.5rem_9rem] lg:grid-cols-[minmax(0,1fr)_9.75rem_7.5rem_6.5rem_8rem_9.25rem] xl:grid-cols-[minmax(0,1fr)_6.75rem_9.75rem_7.5rem_6.5rem_8rem_6.5rem_9.25rem]";
+  "grid-cols-[minmax(0,1fr)_auto] @3xl:grid-cols-[minmax(0,1fr)_9.75rem_7.5rem_9rem] @5xl:grid-cols-[minmax(0,1fr)_9.75rem_7.5rem_6.5rem_8rem_9.25rem] @7xl:grid-cols-[minmax(0,1fr)_6.75rem_9.75rem_7.5rem_6.5rem_8rem_6.5rem_9.25rem]";
 const PLANTILLA_BASE = "sm:grid-cols-[1fr_8rem]";
 
 // Directorio de proveedores: a quién se le compra. Es la puerta de entrada del módulo — sin un
@@ -257,7 +260,7 @@ export function ProveedoresPanel({
       ) : activos.length === 0 ? null : (
         // `overflow-y-hidden`: mientras las filas se deslizan (FLIP) algunas pasan un instante fuera de la
         // tarjeta; sin esto, `overflow-x-auto` les da a las dos direcciones scroll y parpadea una barra vertical.
-        <Tabla className="overflow-y-hidden">
+        <Tabla className="@container overflow-y-hidden">
           {esLider ? <EncabezadoOrdenable orden={orden} onOrden={(c) => setOrden((o) => siguienteOrden(o, c))} /> : <Encabezado plantilla={PLANTILLA_BASE} columnas={[{ titulo: "Proveedor" }, { titulo: "RUC" }]} />}
           {activos.map((p) => (
             <Fila
@@ -435,8 +438,8 @@ function FilaLider({ p, busqueda, serie, maxSaldo, cambiando, reciente, enfoque,
       <button type="button" onClick={onAbrir} aria-label={`${p.nombre}: abrir vista rápida`} className="min-w-0 text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-rojo/60">
         <NombreCelda p={p} busqueda={busqueda} />
       </button>
-      <span className="hidden truncate font-mono text-xs tabular-nums text-tinta/75 xl:block">{p.ruc ? <Resaltado texto={p.ruc} busqueda={busqueda} /> : "Sin RUC"}</span>
-      <span className="hidden items-center justify-end gap-2.5 whitespace-nowrap text-sm tabular-nums sm:flex">
+      <span className="hidden truncate font-mono text-xs tabular-nums text-tinta/75 @7xl:block">{p.ruc ? <Resaltado texto={p.ruc} busqueda={busqueda} /> : "Sin RUC"}</span>
+      <span className="hidden items-center justify-end gap-2.5 whitespace-nowrap text-sm tabular-nums @3xl:flex">
         {serie && <Sparkline serie={serie} />}
         <span className={p.facturado_12m ? "text-tinta" : "text-tinta/45"}>{soles(p.facturado_12m ?? 0)}</span>
       </span>
@@ -462,7 +465,7 @@ function FilaLider({ p, busqueda, serie, maxSaldo, cambiando, reciente, enfoque,
         )}
       </span>
       {/* Saldo a favor: lo que el proveedor le debe a CAYLA (una nota de crédito que superó su deuda); se descuenta al pagar. */}
-      <span className="hidden text-right text-sm tabular-nums lg:block">
+      <span className="hidden text-right text-sm tabular-nums @5xl:block">
         {(p.saldo_favor ?? 0) > 0 ? (
           <Link href={`/compras/proveedores/${p.id}#saldo-a-favor`} className="relative whitespace-nowrap font-semibold text-verde-profundo underline-offset-4 hover:underline">
             {soles(p.saldo_favor ?? 0)}
@@ -471,15 +474,15 @@ function FilaLider({ p, busqueda, serie, maxSaldo, cambiando, reciente, enfoque,
           <span className="text-tinta/45">—</span>
         )}
       </span>
-      <span className="hidden justify-end overflow-visible text-xs lg:flex">{entregas ? <Chip tono={entregas.tono}>{entregas.texto}</Chip> : <span className="text-tinta/45">—</span>}</span>
-      <span className={`hidden whitespace-nowrap text-right text-sm xl:block ${dormido ? "text-ambar-profundo" : "text-tinta/65"}`} title={p.ultima_compra ?? undefined}>
+      <span className="hidden justify-end overflow-visible text-xs @5xl:flex">{entregas ? <Chip tono={entregas.tono}>{entregas.texto}</Chip> : <span className="text-tinta/45">—</span>}</span>
+      <span className={`hidden whitespace-nowrap text-right text-sm @7xl:block ${dormido ? "text-ambar-profundo" : "text-tinta/65"}`} title={p.ultima_compra ?? undefined}>
         {haceCuanto(dias)}
       </span>
-      <span className="hidden items-center justify-end gap-2 overflow-visible sm:flex">
+      <span className="hidden items-center justify-end gap-2 overflow-visible @3xl:flex">
         {p.activo ? (
           <Link
             href={`/compras/nueva?prov=${p.id}`}
-            className="label-cayla relative inline-block rounded-md border border-tinta/20 px-2.5 py-1.5 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
+            className="label-cayla relative inline-block whitespace-nowrap rounded-md border border-tinta/20 px-2.5 py-1.5 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
           >
             + Comprobante
           </Link>
@@ -499,11 +502,11 @@ function FilaLider({ p, busqueda, serie, maxSaldo, cambiando, reciente, enfoque,
 // Las columnas se muestran con los mismos cortes que las celdas de `FilaLider` (COLUMNAS_LIDER).
 function EncabezadoOrdenable({ orden, onOrden }: { orden: Orden; onOrden: (c: CampoOrden) => void }) {
   const col = (titulo: string, campo: CampoOrden | null, opts: { der?: boolean; desde?: "sm" | "lg" | "xl" } = {}) => {
-    const visible = opts.desde === "xl" ? "hidden xl:flex" : opts.desde === "lg" ? "hidden lg:flex" : opts.desde === "sm" ? "hidden sm:flex" : "flex";
+    const visible = opts.desde === "xl" ? "hidden @7xl:flex" : opts.desde === "lg" ? "hidden @5xl:flex" : opts.desde === "sm" ? "hidden @3xl:flex" : "flex";
     const alinear = opts.der ? "justify-end text-right" : "text-left";
     if (!campo) {
       return (
-        <span key={titulo || "accion"} className={`label-cayla ${visible} ${alinear} text-[11px] text-tinta/55`} role="columnheader">
+        <span key={titulo || "accion"} className={`label-cayla ${visible} ${alinear} whitespace-nowrap text-[11px] text-tinta/55`} role="columnheader">
           {titulo}
         </span>
       );
@@ -516,7 +519,7 @@ function EncabezadoOrdenable({ orden, onOrden }: { orden: Orden; onOrden: (c: Ca
         role="columnheader"
         aria-sort={activo ? (orden.dir === "desc" ? "descending" : "ascending") : "none"}
         onClick={() => onOrden(campo)}
-        className={`label-cayla ${visible} items-center gap-1 text-[11px] transition-colors hover:text-rojo ${alinear} ${activo ? "text-tinta" : "text-tinta/55"}`}
+        className={`label-cayla ${visible} items-center gap-1 whitespace-nowrap text-[11px] transition-colors hover:text-rojo ${alinear} ${activo ? "text-tinta" : "text-tinta/55"}`}
       >
         {titulo}
         <ArrowDown aria-hidden className={`h-3 w-3 shrink-0 transition-[opacity,transform] duration-300 ease-cayla ${activo ? "opacity-100" : "opacity-0"} ${activo && orden.dir === "asc" ? "rotate-180" : ""}`} />
@@ -524,12 +527,12 @@ function EncabezadoOrdenable({ orden, onOrden }: { orden: Orden; onOrden: (c: Ca
     );
   };
   return (
-    <div className={`hidden gap-x-4 px-5 py-2 sm:grid ${COLUMNAS_LIDER}`} role="row">
+    <div className={`hidden gap-x-4 px-5 py-2 @3xl:grid ${COLUMNAS_LIDER}`} role="row">
       {col("Proveedor", "nombre")}
       {col("RUC", null, { desde: "xl" })}
       {col("Facturado · 12 m", "facturado", { der: true, desde: "sm" })}
       {col("Saldo", "saldo", { der: true })}
-      {col("Saldo a favor", "favor", { der: true, desde: "lg" })}
+      {col("A favor", "favor", { der: true, desde: "lg" })}
       {col("Entregas", null, { der: true, desde: "lg" })}
       {col("Última compra", "ultima", { der: true, desde: "xl" })}
       {col("", null, { desde: "sm" })}
