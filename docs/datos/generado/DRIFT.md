@@ -7,15 +7,9 @@
 
 ## Roto en producción — 0
 
-## Sobrecargas — 1
+## Sobrecargas — 0
 
-### `registrar_compra` — 2 firmas
-
-Una llamada por nombre que no nombre todos los parámetros queda ambigua («function … is not unique») y falla siempre. Hay que soltar la firma sobrante (`drop function`).
-
-- `registrar_compra(p_proveedor_id uuid, p_serie text, p_numero text, p_condicion text, p_ubicacion_destino_id uuid, p_items jsonb, p_tipo text, p_fecha_emision date, p_fecha_vencimiento date, p_igv_porcentaje numeric, p_pago jsonb, p_nota text, p_total numeric, p_fecha_estimada_llegada date) -> uuid [definer]`
-- `registrar_compra(p_proveedor_id uuid, p_serie text, p_numero text, p_condicion text, p_ubicacion_destino_id uuid, p_items jsonb, p_tipo text, p_fecha_emision date, p_fecha_vencimiento date, p_igv_porcentaje numeric, p_pago jsonb, p_nota text, p_total numeric, p_token uuid, p_fecha_estimada_llegada date) -> uuid [definer]`
-
+Ninguna. Cada función tiene una sola firma en producción.
 Nada. Todas las llamadas encajan con la firma real.
 ## Avisos — 11
 
