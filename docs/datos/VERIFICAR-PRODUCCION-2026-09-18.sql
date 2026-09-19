@@ -76,7 +76,7 @@ r(bloque, objeto, existe, esperado, si_difiere) as (
          false, 'SOBRECARGA FANTASMA: hay más de una firma; PostgREST responde "not unique"'
 
   -- Mismo patrón que ADR-0004: un `create or replace` con parámetros distintos NO reemplaza,
-  -- deja las dos. Hallado en el rastreo de ADR-0108 (2 firmas, 10 y 12 parámetros, en local).
+  -- deja las dos. Hallado en el rastreo de ADR-0112 (2 firmas, 10 y 12 parámetros, en local).
   union all select 'a) Traslados/Conteo', 'catalogo_actualizar_producto: firmas vivas (debe ser 1)',
          (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
           where n.nspname='retail' and p.proname='catalogo_actualizar_producto') > 1,

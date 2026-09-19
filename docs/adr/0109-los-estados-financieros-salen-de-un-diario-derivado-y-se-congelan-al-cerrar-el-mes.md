@@ -32,7 +32,10 @@ consultar** sobre las tablas de ventas, compras y caja que ya existen?
 exige que **todas** las unidades activas del mes estén cerradas antes de poder cerrarse, y
 reabrir una unidad reabre también el global de ese mes.
 
-**Consecuencia de la respuesta 3 que hay que confirmar:** un Estado de Resultados por unidad
+**CONFIRMADO por Felipe (2026-09-18):** las dos suposiciones son correctas — unidad de negocio = cada tienda y el
+Taller, y el cierre consolidado exige que todas las unidades ya estén cerradas.
+
+**Consecuencia de la respuesta 3 (sigue sin confirmar):** un Estado de Resultados por unidad
 está completo (ventas, costo, mermas y gastos llevan la sede). Pero un **Balance por unidad
 solo puede ser parcial**: el banco (104), el IGV (4011), el capital (50) y la deuda a
 proveedores (421) pertenecen a la empresa, no a una tienda. Por eso el Balance completo vive
@@ -241,9 +244,8 @@ siete casos más que necesitan regla propia, porque V2 tiene flujos que V1 no te
    electrónico ya es obligatorio este año? Es lo único que puede cambiar la decisión.
 2. **Felipe:** ¿cuáles son los saldos de apertura (caja, banco, inventario, deuda) y de qué fecha
    se cortan? Sin eso el Balance no arranca.
-3. **Felipe:** confirmar las dos suposiciones de la decisión 3 (unidad = ubicación; el
-   consolidado exige todas las unidades cerradas) y la consecuencia (Balance completo solo en el
-   consolidado).
+3. **Felipe:** las dos suposiciones de la decisión 3 quedaron CONFIRMADAS (2026-09-18). Sigue pendiente confirmar la
+   consecuencia: el Balance completo solo existe en el consolidado.
 4. **Números reales:** correr `VERIFICAR-VOLUMEN-2026-09-18.sql` en producción para reemplazar
    los supuestos de arriba.
 
