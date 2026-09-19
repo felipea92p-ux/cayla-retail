@@ -35,7 +35,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] `registrar_pago_compra` (singular) tiene EXECUTE para PUBLIC: cerrar con `revoke … from public, anon` (exige líder por dentro; no explotable, pero conviene).
 - [ ] Deriva local: `por_pagar_tramos` sin candado ADR-0126 (falla `dinero_compras_solo_lider`); repegar `20260919160000` en el local.
 
-## 🎯 Comprobantes con movimiento y regla de modales (2026-09-19, ADR-0130)
+## 🎯 Comprobantes con movimiento y regla de modales (2026-09-19, ADR-0136)
 
 Hecho: regla de modales en `<Modal>` (los 49 la heredan); lista `/compras` con cifras que cuentan, barras de reparto, indicador deslizante,
 avance en la celda, filas que se reacomodan (FLIP) y atajos `/` `j` `k`; detalle con línea de tiempo, historial de pagos y **Registrar pago
@@ -79,6 +79,16 @@ la RPC `guardar_cuentas_proveedor` (solo líder) y `fn_proveedores()` con 28 col
       (`pnpm datos:generar:produccion`; `docs/datos/generado/COMO-REFRESCAR.md`). No se editó `generado/` a mano.
 - [ ] **Cargar a mano el CCI/celular/titular de los 2 proveedores reales** cuando la web se fusione, y mirar en pantalla que
       «Sin datos de pago» y los avisos de `CompraFormV2`/`LineasPago` salgan como se espera (las pantallas no tienen prueba automática).
+
+## 🎯 Menú lateral plegable (2026-09-19, ADR-0130)
+
+Aplicado y verificado en el navegador como líder (escritorio). Falta:
+
+- [ ] **Mirar con el menú plegado** las barras fijas que ahora siguen el token (`BarraFija` en Recibir y
+  «Pagar juntos», el pie del Punto de Venta con carrito) y una pantalla con contenedores por ancho de panel
+  (Recibir, Proveedores): deberían ganar aire, no romperse.
+- [ ] **Verlo como colaborador** (Micaela): menos filas, «Recibir mercadería» dentro de Inventario.
+- [ ] **Decidir «Asomar al pasar el mouse»** (spike): no se construyó. Si se quiere, ver «Lo que NO se portó» del ADR.
 
 ## 🎯 Proveedores: vista rápida, mini-tendencias y movimiento que responde (2026-09-19, ADR-0128)
 

@@ -1,4 +1,4 @@
-# ADR-0130 — Regla de movimiento de los modales del retail
+# ADR-0136 — Regla de movimiento de los modales del retail
 
 - **Fecha:** 2026-09-19
 - **Estado:** Aceptado (Felipe, 2026-09-19: «ese efecto del modal hay que colocarlo como regla para el retail, para que

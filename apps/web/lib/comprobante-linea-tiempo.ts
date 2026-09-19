@@ -1,7 +1,7 @@
 import type { CompraResumen } from "./compras-reglas";
 import { diaMes, diasEntreFechas } from "./fechas-lima";
 
-// Lo que dibuja el detalle de un comprobante como «línea de tiempo» (ADR-0130): Registrado → Mercadería → Pago,
+// Lo que dibuja el detalle de un comprobante como «línea de tiempo» (ADR-0136): Registrado → Mercadería → Pago,
 // con un nodo por hito y un conector entre cada par que se llena hasta el avance REAL. Todo sale de datos que
 // `CompraResumen` ya trae; acá no se lee nada ni se inventa un dato: solo se decide qué nodo va verde, cuál
 // ámbar y cuánto se llena cada barra.

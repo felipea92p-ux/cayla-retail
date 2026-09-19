@@ -23,7 +23,7 @@ import {
 // y sin billetera se dice, con un enlace para agregarlos, salvo que el proveedor cobre en efectivo: ahí no le
 // falta nada.
 //
-// Movimiento (ADR-0130): al copiar, el botón pasa a verde con transición de color y da un pequeño «pop»
+// Movimiento (ADR-0136): al copiar, el botón pasa a verde con transición de color y da un pequeño «pop»
 // (`anim-pop`, globals.css) — la confirmación se ve sin leer. Se apaga con movimiento reducido.
 
 type Fila = { clave: string; etiqueta: string; mostrar: string; visible: string; copiar: string };

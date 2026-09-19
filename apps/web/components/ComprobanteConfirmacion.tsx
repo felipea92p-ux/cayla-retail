@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { lanzarChispas, prefiereMovimientoReducido, type EstadoConfirmar } from "@/components/ComprobanteBotonConfirmar";
 
-// La secuencia de confirmar un pago (ADR-0130), compartida por `RegistrarPagoModal` (un comprobante, varios
+// La secuencia de confirmar un pago (ADR-0136), compartida por `RegistrarPagoModal` (un comprobante, varios
 // medios) y `PagoJuntosModal` (una transferencia para varios comprobantes):
 //
 //   apretar «Registrar» → `empezar()`: el botón pasa a «cargando» (giro)

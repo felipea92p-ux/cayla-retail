@@ -5,7 +5,7 @@ import { Banknote, Check, FileText, Package } from "lucide-react";
 import { RellenoAvance } from "@/components/ComprobanteAvance";
 import type { EstadoNodo, LineaTiempo, NodoLinea } from "@/lib/comprobante-linea-tiempo";
 
-// La línea de tiempo del detalle (ADR-0130): Registrado → Mercadería → Pago. Un nodo por hito —verde = hecho,
+// La línea de tiempo del detalle (ADR-0136): Registrado → Mercadería → Pago. Un nodo por hito —verde = hecho,
 // ámbar = a medias, vacío = pendiente— y un conector entre cada par que se llena hasta el avance real.
 // El QUÉ (estado de cada nodo, cuánto se llena cada conector, el texto de fechas) lo decide
 // `lib/comprobante-linea-tiempo.ts`; acá solo se dibuja. Recibe un objeto plano, así el Server Component del

@@ -112,7 +112,7 @@ archivo del repo, para no romper `npx supabase db reset` local.
   `fix(movimientos): corrige motivo estructurado en traslados`
   `refactor(catalogo): separa cálculo de stock del de inteligencia`
 
-## Movimiento y modales (regla — ADR-0130)
+## Movimiento y modales (regla — ADR-0136)
 
 **Todo modal nuevo se hace con `<Modal>` (`apps/web/components/ui/Modal.tsx`; por URL, `<ModalRuta>`) y hereda solo el
 efecto del sistema: velo con desenfoque → hoja que sube 18 px y crece → contenido en cascada (título, bajada y campos,
@@ -120,7 +120,7 @@ efecto del sistema: velo con desenfoque → hoja que sube 18 px y crece → cont
 (`fixed inset-0`): si una pieza no debe entrar en cascada, `data-sin-cascada`. Lo único que un modal agrega por su cuenta
 son respuestas a una acción dentro del contenido (barra que se llena, cifra que cuenta, «visto» que se dibuja) con
 `--ease-cayla`, 200–500 ms, **sin rebote, nunca decorativo, nunca en bucle** (únicas excepciones, ambas señales y no adorno: el punto que late en el chip «Vencida» y el giro del botón mientras la base responde), y todo se apaga con
-`prefers-reduced-motion`. Los números exactos y el porqué: `docs/adr/0130-regla-de-movimiento-de-modales.md` y la sección
+`prefers-reduced-motion`. Los números exactos y el porqué: `docs/adr/0136-regla-de-movimiento-de-modales.md` y la sección
 «REGLA DE MODALES» de `apps/web/app/globals.css`. Referencia visual: `docs/maquetas/comprobantes-animaciones-2026-09/`.
 
 **Server Components y archivos `"use client"`:** un Server Component solo puede *renderizar* componentes cliente o pasarles

@@ -3,7 +3,7 @@
 // tabla— y dibujarla mientras Postgres responde evita el salto de «pantalla vacía → todo de
 // golpe». Sin texto: la forma ya dice qué viene.
 //
-// 2026-09-19 (ADR-0130): las piezas brillan (`cmp-sk`: un destello suave que las cruza) en lugar del
+// 2026-09-19 (ADR-0136): las piezas brillan (`cmp-sk`: un destello suave que las cruza) en lugar del
 // `animate-pulse` de antes, y la silueta ahora es la de /compras — cuatro tarjetas, pestañas, buscador y
 // filas con las mismas siete columnas que la tabla real (`PLANTILLA` de compras/page.tsx), para que al
 // llegar los datos nada se corra de lugar. El destello es la única animación en bucle y dura mientras se

@@ -7,7 +7,7 @@ import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, getResumenC
 import { getResumenComprasExtra, getResumenRecepciones, listarRecepcionesCompras } from "@/lib/compras-indicadores";
 import { getComprasConNotaFaltante, getSaldosFavor } from "@/lib/saldo-favor";
 import { hoyLima } from "@/lib/fechas-lima";
-import { filtrosRecibidasDesdeParams, hayFiltrosRecibidas } from "@/lib/recibidas-filtros-reglas";
+import { filtrosRecibidasDesdeParams, hayFiltrosRecibidas, resultadoDesdeParam } from "@/lib/recibidas-filtros-reglas";
 import { getEnviosDeLotes, getTrasladosHaciaAca } from "@/lib/envio";
 import { comprobanteSinMontos, kpisDeLaLista, lineaSinCosto } from "@/lib/envio-reglas";
 import { RecepcionEnvio } from "@/components/RecepcionEnvio";
@@ -36,7 +36,7 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 // `?vista=recibidas`: lo que ya se recibió contra comprobante, con su resultado y su demora. Sus filtros
 // (`?q=&prov=&desde=&hasta=`) son el buscador y las dos pastillas en línea de la maqueta 06
 // (`FiltrosRecibidas`); el servidor los limpia con `filtrosRecibidasDesdeParams` antes de llamar a la base.
-type ParamsRecibir = ParamsCompras & { compra?: string; vista?: string; nueva?: string };
+type ParamsRecibir = ParamsCompras & { compra?: string; vista?: string; nueva?: string; res?: string };
 
 export default async function RecibirPage({ searchParams }: { searchParams: Promise<ParamsRecibir> }) {
   const persona = await requirePersonaActualV2();
@@ -142,7 +142,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
 
         {/* En la maqueta 06 los filtros van a 14 px de la tabla (más pegados que el ritmo de la página): son sus controles. */}
         <div className="space-y-3.5">
-          <FiltrosRecibidas proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))} filtros={filtrosRecibidas} hoy={hoyLima()} />
+          <FiltrosRecibidas proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))} filtros={filtrosRecibidas} hoy={hoyLima()} resultado={resultadoDesdeParam(params.res)} />
           <RecepcionesCompraLista
             recepciones={recepciones}
             detalles={detalles}
@@ -150,6 +150,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             envios={envios}
             limite={LIMITE_RECIBIDAS}
             destacarNueva={params.nueva === "1"}
+            resultado={resultadoDesdeParam(params.res)}
             enlaceAlComprobante={esLider}
             vacio={hayFiltros ? "Ninguna recepción coincide con esos filtros." : `Todavía no se recibió nada contra un comprobante en ${persona.ubicacionEtiqueta}.`}
           />
@@ -236,6 +237,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
               referencia: v.referencia,
               codigosBarras: v.codigosBarras,
               colorHex: v.colorHex,
+              fotoUrl: v.fotoUrl,
             }))}
           proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))}
           ubicaciones={ubicacionesPermitidas.map((u) => ({ id: u.id, nombre: u.nombre }))}

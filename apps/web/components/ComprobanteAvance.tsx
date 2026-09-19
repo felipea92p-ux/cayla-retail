@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { fraccion, type TonoAvance } from "@/lib/comprobante-linea-tiempo";
 
-// Barras de avance del detalle de un comprobante (ADR-0130): la de Recepción (recibido / facturado), la de
+// Barras de avance del detalle de un comprobante (ADR-0136): la de Recepción (recibido / facturado), la de
 // Pago (pagado / total), las miniaturas de cada línea y los conectores de la línea de tiempo. Todas se LLENAN:
 // al abrir parten de cero y crecen hasta el avance real; tras registrar un pago (`router.refresh()`) el
 // componente sigue montado, así que la barra continúa desde el ancho que tenía en vez de repetir la entrada.

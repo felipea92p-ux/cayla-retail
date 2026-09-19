@@ -15,7 +15,7 @@ import { IndicadorDeslizante } from "@/components/ui/IndicadorDeslizante";
    activa en tinta con letras crema. Alto 36 px (h-9) para alinearse con el
    buscador y el botón «Filtros» de `FiltrosCompras`.
 
-   `deslizante` (2026-09-19, ADR-0130, opt-in): el fondo oscuro de la opción elegida deja de saltar de
+   `deslizante` (2026-09-19, ADR-0136, opt-in): el fondo oscuro de la opción elegida deja de saltar de
    una a otra y pasa a ser una pastilla (`IndicadorDeslizante`) que se desliza hasta ella aunque la
    página se vuelva a pedir al servidor. Sin la prop se dibuja exactamente igual que antes.
    ==================================================================== */

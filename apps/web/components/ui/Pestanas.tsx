@@ -17,7 +17,7 @@ import { IndicadorDeslizante } from "@/components/ui/IndicadorDeslizante";
    (borde inferior, la activa con subrayado rojo), generalizada con el
    conteo. En celular se desplaza en horizontal en vez de partirse.
 
-   `deslizante` (2026-09-19, ADR-0130, opt-in): el subrayado rojo deja de ser el borde de la pestaña
+   `deslizante` (2026-09-19, ADR-0136, opt-in): el subrayado rojo deja de ser el borde de la pestaña
    activa y pasa a ser UNA pieza (`IndicadorDeslizante`) que viaja de la pestaña anterior a la nueva
    aunque la página se vuelva a pedir al servidor. Sin la prop no cambia nada de lo que ya dibujaba.
    `idIndicador` nombra la memoria del indicador (una por lista de pestañas de la pantalla).

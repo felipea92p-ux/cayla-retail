@@ -45,7 +45,7 @@ import { getSaldosFavor } from "@/lib/saldo-favor";
 // (enlace directo, recarga) y el modal que se abre encima de una lista
 // (`@modal/(.)factura/[compraId]`). Un solo cuerpo, dos marcos.
 //
-// Movimiento (ADR-0130, prototipo docs/maquetas/comprobantes-animaciones-2026-09): línea de tiempo
+// Movimiento (ADR-0136, prototipo docs/maquetas/comprobantes-animaciones-2026-09): línea de tiempo
 // Registrado → Mercadería → Pago, tarjetas con barras que se llenan y un historial de pagos donde el nuevo entra
 // con un destello. Este archivo es un Server Component: calcula con funciones puras de
 // `lib/comprobante-linea-tiempo.ts` y pasa DATOS PLANOS a los componentes cliente `Comprobante*.tsx`.

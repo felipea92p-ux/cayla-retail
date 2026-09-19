@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 
-// Cabecera del detalle de un comprobante (ADR-0130): «Total del comprobante» en grande y, a la derecha, los dos
+// Cabecera del detalle de un comprobante (ADR-0136): «Total del comprobante» en grande y, a la derecha, los dos
 // chips de estado (recepción y pago, como en el prototipo). Las acciones (registrar pago, ir a recibir…) ya no van
 // aquí: viven en el pie del detalle (`CompraAcciones`). Los chips cambian de color con suavidad y
 // dan un pequeño «pop» cuando su texto cambia —p. ej. de «Pago parcial» a «Pagada» tras registrar un pago—,

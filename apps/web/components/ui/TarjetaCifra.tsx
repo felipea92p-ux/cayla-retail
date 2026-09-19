@@ -44,7 +44,7 @@ import type { CSSProperties, ReactNode } from "react";
    renombró `fila`, porque `compacta` ya significaba «p-4» en las ~30
    tarjetas de Compras.)
 
-   `viva` + `reparto` (2026-09-19, ADR-0130, ambas opt-in; sin ellas la tarjeta se
+   `viva` + `reparto` (2026-09-19, ADR-0136, ambas opt-in; sin ellas la tarjeta se
    dibuja igual que antes): `viva` hace que una tarjeta CLICABLE se levante 2 px y
    la cruce un barrido de luz al pasar el mouse (`alza-cayla` + `cmp-viva`, ver
    app/estilos/comprobantes-lista.css), y que una flecha marcada con `.cmp-flecha`

@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 
 /* ====================================================================
    IndicadorDeslizante · el subrayado / la pastilla que VIAJA entre opciones
-   (2026-09-19, ADR-0130)
+   (2026-09-19, ADR-0136)
 
    Problema: `Pestanas` y `SegmentoEnlaces` son enlaces (cada opción es una URL, la vista vive en la URL) y
    se dibujan en el servidor. Al cambiar de opción el navegador pide la página nueva y el marcador de

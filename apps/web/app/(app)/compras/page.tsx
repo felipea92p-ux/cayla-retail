@@ -31,7 +31,7 @@ import { ComprobantesListaVacia } from "@/components/ComprobantesListaVacia";
 // facturas del mes — el crédito fiscal que se declara. Se fue «Registradas»: un conteo que no lleva
 // a ninguna acción.
 //
-// Movimiento (2026-09-19, ADR-0130; prototipo `docs/maquetas/comprobantes-animaciones-2026-09`): la
+// Movimiento (2026-09-19, ADR-0136; prototipo `docs/maquetas/comprobantes-animaciones-2026-09`): la
 // pantalla sigue siendo de servidor con su estado en la URL; lo que se mueve es CSS puro
 // (app/estilos/comprobantes-lista.css) más tres piezas cliente mínimas. Al llegar, cabecera, tarjetas,
 // pestañas, filtros y filas entran escalonadas (`anim-entra` con `--i`) y las cifras cuentan una vez

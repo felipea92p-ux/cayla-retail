@@ -1,4 +1,4 @@
-/* ---- Comprobantes · lista (ADR-0130) ----
+/* ---- Comprobantes · lista (ADR-0136) ----
    Estilos y keyframes propios de la lista de Comprobantes (/compras).
    Reglas de la casa: curva var(--ease-cayla) (entradas) y var(--ease-salida); duraciones 200–500 ms; sin
    rebote, nunca en bucle salvo lo que ya existe; `backwards` y no `both` cuando la pieza luego se

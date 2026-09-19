@@ -3,7 +3,7 @@ import Link from "next/link";
 
 /* ====================================================================
    ComprobantesListaVacia · cuando la lista de /compras no tiene filas
-   (2026-09-19, ADR-0130)
+   (2026-09-19, ADR-0136)
 
    Tres motivos distintos y cada uno dice lo suyo: no hay ningún comprobante todavía (lleva a
    registrar el primero), la búsqueda no encontró nada (nombra lo buscado), o los filtros/la vista

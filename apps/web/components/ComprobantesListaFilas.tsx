@@ -5,7 +5,7 @@ import { desplazamientos, indiceSiguiente } from "@/lib/comprobantes-lista-movim
 
 /* ====================================================================
    ComprobantesListaFilas · el envoltorio cliente de las filas de /compras
-   (2026-09-19, ADR-0130)
+   (2026-09-19, ADR-0136)
 
    La lista sigue siendo del servidor: `page.tsx` pide ≤ 50 filas a Postgres y las dibuja como
    `<Link>` (cada fila abre el detalle como modal interceptado). Este componente NO las dibuja:

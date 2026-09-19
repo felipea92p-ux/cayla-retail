@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { chispasDe } from "@/lib/comprobante-linea-tiempo";
 
-// El botón que confirma un pago (ADR-0130). Tres estados, una sola pieza:
+// El botón que confirma un pago (ADR-0136). Tres estados, una sola pieza:
 //   reposo   → «Registrar pago de S/ X», tinta;
 //   cargando → el texto sube y se desvanece y una rueda gira (mientras la base responde);
 //   hecho    → el botón se pone verde y un «visto» se dibuja (`check-trazo`, globals.css).

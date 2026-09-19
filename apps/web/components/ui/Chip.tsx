@@ -15,7 +15,7 @@ import type { ReactNode } from "react";
    texto en la variante "profunda" para que apruebe contraste). Vive en
    ui/ para que Facturación y Compras dibujen el mismo chip.
 
-   `vivo` (2026-09-19, ADR-0130, opt-in): un puntito rojo que late suave junto al texto —el
+   `vivo` (2026-09-19, ADR-0136, opt-in): un puntito rojo que late suave junto al texto —el
    chip «Vencida» de Comprobantes, lo único de la lista que pide actuar HOY—. Es la única
    animación en bucle permitida en la pantalla; con movimiento reducido el punto queda quieto.
    ==================================================================== */

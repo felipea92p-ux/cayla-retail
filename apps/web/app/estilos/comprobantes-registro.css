@@ -1,4 +1,4 @@
-/* ---- Comprobantes · registro (ADR-0130) ----
+/* ---- Comprobantes · registro (ADR-0136) ----
    Estilos y keyframes propios de el registro de un comprobante (/compras/nueva).
    Reglas de la casa: curva var(--ease-cayla) (entradas) y var(--ease-salida); duraciones 200–500 ms; sin
    rebote, nunca en bucle salvo lo que ya existe; `backwards` y no `both` cuando la pieza luego se

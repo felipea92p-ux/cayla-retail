@@ -47,7 +47,12 @@ export function ResumenPrevioEnvio({
   const estilo = () => ({ "--i": i++ + 3 }) as React.CSSProperties;
   return (
     <Modal
-      titulo="Confirma lo que entra"
+      titulo={
+        <>
+          <span className="label-cayla mb-1 block text-[10.5px] text-tinta/65">Antes de recibir</span>
+          Confirma lo que entra
+        </>
+      }
       subtitulo={
         <>
           Entra al almacén de <b className="font-semibold text-tinta">{ubicacionNombre}</b> · {numeroGuia.trim() ? `Guía ${numeroGuia.trim()}` : "Sin guía anotada"}

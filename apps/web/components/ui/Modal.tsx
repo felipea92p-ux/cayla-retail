@@ -26,7 +26,7 @@ type Props = {
   variante?: "papel";
 };
 
-// REGLA DE MOVIMIENTO (ADR-0130): todo modal nuevo se hace con este componente y hereda, sin definir nada, el
+// REGLA DE MOVIMIENTO (ADR-0136): todo modal nuevo se hace con este componente y hereda, sin definir nada, el
 // efecto del sistema — velo con desenfoque, hoja que sube y crece, contenido que entra en cascada, salida
 // corta (detalle y números en globals.css, «REGLA DE MODALES»). NO reimplementes el overlay ni pongas otra
 // animación de entrada en un modal: si una pieza necesita salirse de la cascada, `data-sin-cascada`.

@@ -5,7 +5,7 @@ import { Chip } from "@/components/ui/Chip";
 import { ETIQUETA_METODO_PAGO, METODO_SALDO_A_FAVOR, fechaCorta, soles } from "@/lib/compras-reglas";
 import { idsNuevos } from "@/lib/comprobante-linea-tiempo";
 
-// «Pagos registrados» del detalle (ADR-0130): filas a todo el ancho —ficha del medio, fecha, N.° de operación
+// «Pagos registrados» del detalle (ADR-0136): filas a todo el ancho —ficha del medio, fecha, N.° de operación
 // (si se anotó) y monto a la derecha—, del más reciente al más antiguo, sin caja alrededor (como el prototipo). Cuando `router.refresh()` trae un pago que no estaba, esa fila ENTRA: se desliza
 // desde la izquierda y su fondo destella en verde y se apaga (`cd-pago-nuevo`). Los que ya estaban al abrir no
 // se animan (el detalle ya entra en cascada); tampoco se repite el efecto en un refresco cualquiera: solo es

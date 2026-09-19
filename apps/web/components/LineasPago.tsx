@@ -33,7 +33,7 @@ import type { DatosPagoProveedor } from "@/lib/proveedores-reglas";
    medio no calza con lo que el proveedor tiene cargado. Solo avisos: no bloquean, y el N.° de operación
    sigue siendo opcional. Sin `datosProveedor` el componente se ve como siempre.
 
-   Movimiento (ADR-0130, prototipo comprobantes-vivo.html): el medio se elige con FICHAS (no con un desplegable):
+   Movimiento (ADR-0136, prototipo comprobantes-vivo.html): el medio se elige con FICHAS (no con un desplegable):
    cambian de color con suavidad, sin rebote, y marcan con un punto el medio preferido del proveedor. La línea
    nueva entra con un desliz corto y, al quitarla, se colapsa antes de desaparecer. La frase de abajo
    («Salda el comprobante» / «Quedarán S/ X por pagar») cambia de tono con una transición de color. Los estilos
