@@ -26,6 +26,16 @@ export const ETIQUETA_CATEGORIA: Record<CategoriaMovimiento, string> = {
   transferencia: "Transferencia",
 };
 
+/** Los filtros rápidos por tipo, en el orden en que se leen en la pantalla
+ *  («Todos» es no elegir ninguno). Plural: son grupos de movimientos. */
+export const FILTROS_TIPO: { valor: CategoriaMovimiento; etiqueta: string }[] = [
+  { valor: "entrada", etiqueta: "Entradas" },
+  { valor: "salida", etiqueta: "Salidas" },
+  { valor: "interno", etiqueta: "Internos" },
+  { valor: "transferencia", etiqueta: "Transferencias" },
+  { valor: "ajuste", etiqueta: "Ajustes" },
+];
+
 // Sobrio a propósito: verde = llegó mercadería, ámbar = se movió dentro de la
 // tienda (piso ↔ almacén), rojo = un ajuste que RESTA (hay que mirarlo), el
 // resto neutro. Un ajuste que suma no es alarma.
@@ -55,25 +65,29 @@ export function tonoCategoria(categoria: CategoriaMovimiento, delta: number): To
 export const ETIQUETA_PROCESO: Record<string, string> = {
   recepcion: "Recepción",
   venta: "Venta",
-  transferencia: "Transferencia (modelo anterior)",
-  traslado_salida: "Traslado — salida",
-  traslado_entrada: "Traslado — llegada",
+  // Modelo anterior (una sola fila que sale de una sede y entra a otra): la dirección la
+  // dice `etiquetaMovimiento`, que mira hacia dónde va el stock de la sede que se mira.
+  transferencia: "Transferencia",
+  traslado_salida: "Transferencia · salida",
+  traslado_entrada: "Transferencia · llegada",
   movimiento_interno: "Reposición interna",
   devolucion: "Devolución",
   cambio: "Cambio",
   anulacion_venta: "Anulación de venta",
-  produccion: "Producción del Taller",
-  conteo: "Ajuste por conteo",
-  reposicion: "Reposición",
-  merma: "Merma",
-  conteo_fisico: "Conteo físico (manual)",
-  otro: "Otro ajuste",
+  produccion: "Producción",
+  conteo: "Conteo",
+  // Los ajustes sueltos llevan «Ajuste ·» delante: «Reposición» a secas se confundía con
+  // «Reposición interna» (bajar del almacén al piso), que es otra cosa.
+  reposicion: "Ajuste · reposición",
+  merma: "Ajuste · merma",
+  conteo_fisico: "Ajuste · conteo físico",
+  otro: "Ajuste · otro",
   carga_inicial: "Carga inicial",
   activacion_piso_almacen: "Activación piso/almacén",
   siembra_cargo_especial: "Cargo especial",
-  cuarentena_liquidada: "Dañado — liquidada",
-  cuarentena_se_boto: "Dañado — se botó",
-  cuarentena_donada: "Dañado — donada",
+  cuarentena_liquidada: "Dañado · liquidada",
+  cuarentena_se_boto: "Dañado · se botó",
+  cuarentena_donada: "Dañado · donada",
 };
 
 /** Los procesos que ofrece el filtro, en el orden en que se leen. */
@@ -102,6 +116,15 @@ export const PROCESOS_FILTRO: { valor: string; etiqueta: string }[] = [
 export function etiquetaProceso(motivo: string | null): string {
   if (!motivo) return "Sin proceso";
   return ETIQUETA_PROCESO[motivo] ?? motivo.replace(/_/g, " ");
+}
+
+/** Lo que dice la columna «Movimiento»: el proceso en lenguaje claro. En una
+ *  transferencia la palabra que importa es hacia dónde va el stock DE LA SEDE QUE SE
+ *  MIRA («llegada» si suma, «salida» si resta): lo dice el signo, no el motivo — así
+ *  también se lee bien una fila del modelo anterior, que no distingue las dos piernas. */
+export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | "delta">): string {
+  if (m.categoria === "transferencia") return m.delta > 0 ? ETIQUETA_PROCESO.traslado_entrada : ETIQUETA_PROCESO.traslado_salida;
+  return etiquetaProceso(m.motivo);
 }
 
 export const ETIQUETA_ESTADO_DEVOLUCION: Record<string, string> = {
@@ -164,8 +187,10 @@ export type Movimiento = {
   venta: { id: string; nota: string | null; comprobante: { tipo: TipoComprobante; numero: string; estado: EstadoComprobante } | null } | null;
   lote: { id: string; guia: string | null; nota: string | null; proveedor: string | null } | null;
   compra: { id: string; documento: string | null } | null;
-  transferencia: { id: string; estado: string | null; nota: string | null } | null;
-  conteo: { id: string; sistema: number | null; contado: number | null } | null;
+  /** `numero`: el número corrido del traslado («Traslado 24»); null si la base que responde es anterior a
+   *  20260919155000 y todavía no lo devuelve. */
+  transferencia: { id: string; estado: string | null; nota: string | null; numero: number | null } | null;
+  conteo: { id: string; sistema: number | null; contado: number | null; numero: number | null } | null;
   devolucion: { id: string; motivo: string | null; estado: string | null } | null;
   cambio: { id: string; diferencia: number | null } | null;
 };
@@ -261,36 +286,54 @@ export function textoComprobante(c: NonNullable<Movimiento["venta"]>["comprobant
   return `${ETIQUETA_TIPO[c.tipo] ?? c.tipo} ${c.numero}`;
 }
 
-/** La referencia al proceso en una línea: el comprobante de la venta, la guía
- *  y el proveedor de la recepción, el sistema/contado del conteo… Null si el
- *  proceso no dejó referencia (una carga de sistema, un traslado sin nota). */
-export function textoReferencia(m: Movimiento): string | null {
+/** El proceso que originó el movimiento, para la columna «Referencia»: lo más corto que
+ *  lo identifica, y a dónde llevar a quien lo toque. `detalle` es una segunda línea
+ *  opcional (el proveedor de una recepción); `href` null = solo texto.
+ *
+ *  Solo se usa lo que la base YA guarda. Los traslados y los conteos tienen número
+ *  corrido («Traslado 24»); una venta, una devolución o un cambio se identifican por el
+ *  comprobante de la venta («Boleta B001-000184»); una recepción, por su factura o su guía.
+ *  No hay «Venta 184» ni «Devolución 7»: esas tablas no tienen número propio y acá no se
+ *  inventa uno. Null si el movimiento no salió de un proceso con referencia (una carga de
+ *  sistema, un ajuste suelto, una producción): la celda queda vacía, no dice «—» a la fuerza.
+ *
+ *  `enlaceCompras`: la factura de compra vive en Compras, que es solo de líder; a quien no
+ *  lo es se le muestra el texto sin un enlace que lo devolvería al inicio. */
+export type ReferenciaMovimiento = { texto: string; detalle: string | null; href: string | null };
+
+export function referenciaMovimiento(m: Movimiento, opciones: { enlaceCompras?: boolean } = {}): ReferenciaMovimiento | null {
+  if (m.transferencia) {
+    const n = m.transferencia.numero;
+    return { texto: n !== null ? `Traslado ${n}` : "Traslado", detalle: null, href: `/inventario/traslados/${m.transferencia.id}` };
+  }
+  if (m.conteo) {
+    const n = m.conteo.numero;
+    return { texto: n !== null ? `Conteo ${n}` : "Conteo", detalle: null, href: `/inventario/conteo/${m.conteo.id}` };
+  }
   switch (m.motivo) {
     case "venta":
-    case "cuarentena_liquidada":
-      return m.venta ? textoComprobante(m.venta.comprobante) : null;
-    case "recepcion": {
-      const partes: string[] = [];
-      if (m.lote?.guia) partes.push(`Guía ${m.lote.guia}`);
-      if (m.compra?.documento) partes.push(`Factura ${m.compra.documento}`);
-      if (m.lote?.proveedor) partes.push(m.lote.proveedor);
-      return partes.length > 0 ? partes.join(" · ") : null;
-    }
+    case "anulacion_venta":
     case "devolucion":
-      return m.devolucion
-        ? `${ETIQUETA_ESTADO_DEVOLUCION[m.devolucion.estado ?? ""] ?? m.devolucion.estado ?? ""} · ${m.venta ? textoComprobante(m.venta.comprobante) : "Sin comprobante"}`
-        : null;
     case "cambio":
-      return m.venta ? `Venta original: ${textoComprobante(m.venta.comprobante)}` : null;
-    case "conteo":
-      return m.conteo && m.conteo.sistema !== null && m.conteo.contado !== null
-        ? `Sistema ${m.conteo.sistema} → contado ${m.conteo.contado}`
-        : null;
-    case "transferencia":
-      return m.transferencia?.nota ?? null;
-    default:
-      return m.nota;
+    case "cuarentena_liquidada":
+      // La venta de origen: la de la línea vendida, la que se devolvió o la que se cambió.
+      return m.venta ? { texto: textoComprobante(m.venta.comprobante), detalle: null, href: null } : null;
+    case "recepcion": {
+      const factura = m.compra?.documento ?? null;
+      const guia = m.lote?.guia ?? null;
+      const proveedor = m.lote?.proveedor ?? null;
+      if (factura) {
+        return {
+          texto: `Factura ${factura}`,
+          detalle: [guia ? `Guía ${guia}` : null, proveedor].filter(Boolean).join(" · ") || null,
+          href: opciones.enlaceCompras && m.compra ? `/compras/factura/${m.compra.id}` : null,
+        };
+      }
+      if (guia) return { texto: `Guía ${guia}`, detalle: proveedor, href: null };
+      return proveedor ? { texto: proveedor, detalle: null, href: null } : null;
+    }
   }
+  return null;
 }
 
 /** «Hoy», «Ayer», o «lunes 15 de septiembre». `fecha` viene en día de Lima;
@@ -312,13 +355,6 @@ export function hoyEnLima(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 }
 
-/** `aaaa-mm-dd` de hace N días en Lima. */
-export function diasAtrasEnLima(dias: number): string {
-  const [a, m, d] = hoyEnLima().split("-").map(Number);
-  const fecha = new Date(Date.UTC(a, m - 1, d - dias));
-  return fecha.toISOString().slice(0, 10);
-}
-
 export function fechaCorta(iso: string): string {
   const [a, m, d] = iso.slice(0, 10).split("-");
   return `${d}/${m}/${a}`;
@@ -326,4 +362,136 @@ export function fechaCorta(iso: string): string {
 
 export function etiquetaEstadoComprobante(estado: EstadoComprobante): string {
   return ESTADO_ETIQUETA[estado] ?? estado;
+}
+
+// ---------------------------------------------------------------------------
+// Filtros de la pantalla, de la URL a lo que se le pide a Postgres. Viven acá (no
+// en `movimientos-v2.ts`) porque son reglas puras: los componentes cliente las
+// importan y tienen pruebas.
+//
+// Quedan a la vista cuatro controles: la búsqueda, el tipo (`cat`), la sububicación
+// (`sub`) y el período (`rango`, o `desde`/`hasta` cuando es personalizado). Todo lo
+// demás (el proceso específico, `proc`) va dentro de «Más filtros». Ya no se filtra
+// por persona: la autoría sigue guardada en `movimientos.usuario_id` y en el detalle
+// de cada movimiento, pero un `?usuario=` viejo se ignora sin romper nada.
+// ---------------------------------------------------------------------------
+
+/** Sin nada en la URL, la pantalla muestra los últimos 30 días — y lo dice. */
+export const DIAS_POR_DEFECTO = 30;
+
+/** Los períodos que se eligen con un toque. «Todo el historial» (`rango=todo`) sigue
+ *  existiendo, dentro de «Personalizado», para quien de verdad necesita ir más atrás. */
+export const PERIODOS_RAPIDOS = [7, 30, 90] as const;
+export type PeriodoMovimientos = "7" | "30" | "90" | "todo" | "personalizado";
+
+/** Las sububicaciones que se pueden filtrar, por su TIPO (una tienda tiene una de cada
+ *  una). En la URL viaja el nombre corto (`?sub=piso`), no un uuid: así el enlace sigue
+ *  valiendo si una Líder cambia de sede, y se lee. Un uuid viejo sigue entendiéndose. */
+export const FILTROS_SUBUBICACION: { token: "piso" | "almacen" | "cuarentena"; tipo: string; etiqueta: string }[] = [
+  { token: "piso", tipo: "piso_venta", etiqueta: "Piso" },
+  { token: "almacen", tipo: "almacen_tienda", etiqueta: "Almacén" },
+  { token: "cuarentena", tipo: "cuarentena", etiqueta: "Cuarentena" },
+];
+export type TokenSububicacion = (typeof FILTROS_SUBUBICACION)[number]["token"];
+
+export type FiltrosMovimientos = {
+  busqueda?: string;
+  /** `aaaa-mm-dd` inclusivos, en día de Lima. */
+  desde?: string;
+  hasta?: string;
+  categoria?: CategoriaMovimiento;
+  motivo?: string;
+  sububicacionId?: string;
+};
+
+/** Parámetros de URL de la pantalla. `mov` es el movimiento abierto en el detalle. */
+export type ParamsMovimientos = {
+  q?: string;
+  desde?: string;
+  hasta?: string;
+  rango?: string;
+  cat?: string;
+  proc?: string;
+  sub?: string;
+  cursor?: string;
+  ubicacion?: string;
+  mov?: string;
+};
+
+export type FiltrosResueltos = FiltrosMovimientos & {
+  periodo: PeriodoMovimientos;
+  /** Qué botón de sububicación queda apretado (null = «Todas»). */
+  sub: TokenSububicacion | null;
+};
+
+const esFecha = (v?: string) => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
+const esUuid = (v?: string) => !!v && /^[0-9a-f-]{36}$/i.test(v);
+// Un motivo es texto libre en la base, pero lo que llega por URL se acota a lo que un
+// motivo puede ser: minúsculas, dígitos y guion bajo.
+const esMotivo = (v?: string) => !!v && /^[a-z0-9_]{1,40}$/.test(v);
+
+/** `aaaa-mm-dd` de hace `dias` días respecto de `hoy`, sin pasar por la zona horaria del servidor. */
+export function restarDias(hoy: string, dias: number): string {
+  const [a, m, d] = hoy.split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d - dias)).toISOString().slice(0, 10);
+}
+
+/** El primer día de un período de N días que TERMINA hoy: 7 días es hoy y los 6 anteriores
+ *  (misma cuenta que el Resumen). */
+export function desdeDeUltimosDias(dias: number, hoy: string = hoyEnLima()): string {
+  return restarDias(hoy, dias - 1);
+}
+
+/** Traduce la URL a filtros, descartando cualquier valor que no sea válido.
+ *  `sububicaciones`: las de la ubicación que se mira (para pasar «piso» a su id). */
+export function filtrosDesdeParams(
+  p: ParamsMovimientos,
+  contexto: { hoy?: string; sububicaciones?: { id: string; tipo: string | null }[] } = {}
+): FiltrosResueltos {
+  const hoy = contexto.hoy ?? hoyEnLima();
+  const desdeUrl = esFecha(p.desde) ? p.desde : undefined;
+  const hastaUrl = esFecha(p.hasta) ? p.hasta : undefined;
+
+  let periodo: PeriodoMovimientos;
+  let desde: string | undefined;
+  let hasta: string | undefined;
+  if (desdeUrl || hastaUrl) {
+    periodo = "personalizado";
+    desde = desdeUrl;
+    hasta = hastaUrl;
+  } else if (p.rango === "todo") {
+    periodo = "todo";
+  } else {
+    const dias = PERIODOS_RAPIDOS.find((n) => String(n) === p.rango) ?? DIAS_POR_DEFECTO;
+    periodo = String(dias) as PeriodoMovimientos;
+    desde = desdeDeUltimosDias(dias, hoy);
+  }
+
+  // `?sub=piso` (o, de un enlace viejo, el uuid de la sububicación).
+  const lista = contexto.sububicaciones ?? [];
+  const porToken = FILTROS_SUBUBICACION.find((f) => f.token === p.sub);
+  const porId = !porToken && esUuid(p.sub) ? lista.find((s) => s.id === p.sub) : undefined;
+  const sububicacion = porToken ? lista.find((s) => s.tipo === porToken.tipo) : porId;
+  const sub = sububicacion ? (FILTROS_SUBUBICACION.find((f) => f.tipo === sububicacion.tipo)?.token ?? null) : null;
+
+  return {
+    busqueda: p.q?.trim() || undefined,
+    desde,
+    hasta,
+    categoria: CATEGORIAS.find((c) => c === p.cat),
+    motivo: esMotivo(p.proc) ? p.proc : undefined,
+    sububicacionId: sububicacion?.id,
+    periodo,
+    sub,
+  };
+}
+
+/** El período en palabras, para el título de la primera tarjeta. */
+export function textoPeriodo(periodo: PeriodoMovimientos, desde?: string, hasta?: string): string {
+  if (periodo === "7" || periodo === "30" || periodo === "90") return `Últimos ${periodo} días`;
+  if (periodo === "todo") return "Todo el historial";
+  if (desde && hasta) return `${fechaCorta(desde)} – ${fechaCorta(hasta)}`;
+  if (desde) return `Desde ${fechaCorta(desde)}`;
+  if (hasta) return `Hasta ${fechaCorta(hasta)}`;
+  return "Todo el historial";
 }

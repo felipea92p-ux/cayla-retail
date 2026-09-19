@@ -10,13 +10,15 @@ import {
   CircleMinus,
   CircleCheck,
   TriangleAlert,
-  ShoppingBag,
   History,
 } from "lucide-react";
 import { Boton } from "@/components/ui/campos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { avisar } from "@/components/ui/Avisos";
 import { MovimientoCajaModal } from "@/components/MovimientoCajaModal";
+import { FilaMovimientoCaja, type EventoCaja } from "@/components/FilaMovimientoCaja";
+import { MovimientosCajaModal } from "@/components/MovimientosCajaModal";
+import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { Sparkline, TendenciaCierres } from "@/components/ui/Graficos";
 import { DonaMetodos, type SegmentoDona } from "@/components/ui/DonaMetodos";
@@ -62,6 +64,9 @@ export type VentaDelDia = {
 const idVenta = (v: VentaDelDia) => v.ventaId;
 const idMovimiento = (m: MovimientoCaja) => m.id;
 
+/** Cuántos movimientos muestra la tarjeta del tablero; el resto se ve en «Ver todo». */
+const LIMITE_TARJETA = 8;
+
 export function CajaAbiertaPanel({
   ubicacionNombre,
   personaNombre,
@@ -85,7 +90,9 @@ export function CajaAbiertaPanel({
   metaVentaDiaria: number | null;
   cierresRecientes: CierreCaja[];
 }) {
-  const [modal, setModal] = useState<"movimiento" | "cerrar" | null>(null);
+  const [modal, setModal] = useState<"movimiento" | "cerrar" | "todos" | null>(null);
+  // La venta cuyo detalle está abierto. Aparte de `modal`: se apila sobre «Ver todo».
+  const [ventaAbiertaId, setVentaAbiertaId] = useState<string | null>(null);
   // Cola de ventas offline de ESTA sede (ADR-0092): ver nota original en este
   // archivo — no existe `localStorage` en el servidor, se lee tras montar.
   const [cola, setCola] = useState<VentaEncolada[]>([]);
@@ -126,17 +133,7 @@ export function CajaAbiertaPanel({
   if (yapePlin > 0) segmentosDona.push({ etiqueta: "Yape / Plin", valor: yapePlin, color: "var(--color-metodo-yape)" });
   const totalDona = segmentosDona.reduce((a, s) => a + s.valor, 0);
 
-  type EventoTimeline = {
-    id: string;
-    minutos: number;
-    horaTexto: string;
-    icono: "venta" | "ingreso" | "egreso";
-    titulo: string;
-    meta: string;
-    monto: number;
-    color: string;
-  };
-  const eventos: EventoTimeline[] = [
+  const todosLosEventos: EventoCaja[] = [
     ...ventasHoy.map((v) => ({
       id: v.ventaId,
       minutos: minutosDeHora(v.hora),
@@ -160,9 +157,9 @@ export function CajaAbiertaPanel({
         color: m.tipo === "egreso" ? "var(--color-rojo)" : "var(--color-verde)",
       };
     }),
-  ]
-    .sort((a, b) => b.minutos - a.minutos)
-    .slice(0, 8);
+  ].sort((a, b) => b.minutos - a.minutos);
+  // La tarjeta muestra las más recientes; «Ver todo» abre el resto sin alargar el tablero.
+  const eventos = todosLosEventos.slice(0, LIMITE_TARJETA);
 
   // Hasta 14: el gráfico solo muestra los 7 más viejos cuando su tarjeta es lo bastante ancha (TendenciaCierres).
   const cierresUbicacion = cierresRecientes
@@ -297,36 +294,27 @@ export function CajaAbiertaPanel({
             </Link>
           </div>
           <div className="card-cayla anim-sube @container flex flex-col p-5 @[900px]:col-span-2 @[1400px]:col-span-1 @[1400px]:col-start-3 @[1400px]:row-start-1 @[1400px]:row-span-2" style={{ "--i": 7 } as CSSProperties}>
-            <p className="text-sm font-bold text-tinta">Movimientos recientes</p>
-            <p className="mb-1.5 text-xs text-tinta/50">Últimos registros de esta caja</p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-tinta">Movimientos recientes</p>
+                <p className="mb-1.5 text-xs text-tinta/50">Últimos registros de esta caja</p>
+              </div>
+              {todosLosEventos.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setModal("todos")}
+                  className="label-cayla shrink-0 rounded-md px-2 py-1 text-[11px] text-taupe-profundo transition-colors hover:bg-sand/40 hover:text-tinta"
+                >
+                  Ver todo{todosLosEventos.length > LIMITE_TARJETA ? ` (${todosLosEventos.length})` : ""}
+                </button>
+              )}
+            </div>
             {eventos.length === 0 ? (
               <p className="py-6 text-center text-xs text-tinta/50">Todavía no hay movimientos.</p>
             ) : (
               <div className="divide-y divide-sand @[640px]:columns-2 @[640px]:gap-x-10">
                 {eventos.map((e) => (
-                  // `isolate` + el velo en `-z-10`: el resaltado de una fila nueva queda DETRÁS de su texto.
-                  <div key={e.id} className="anim-revelar relative isolate flex items-center gap-3 py-2.5 @[640px]:break-inside-avoid">
-                    {idsNuevos.has(e.id) && (
-                      <span aria-hidden className="anim-vivo-fila pointer-events-none absolute -inset-x-2 inset-y-0.5 -z-10 rounded-lg bg-verde/15" />
-                    )}
-                    <div
-                      aria-hidden
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-                      style={{ backgroundColor: `color-mix(in srgb, ${e.color} 14%, transparent)`, color: e.color }}
-                    >
-                      {e.icono === "venta" ? <ShoppingBag size={14} /> : e.icono === "ingreso" ? <CirclePlus size={14} /> : <CircleMinus size={14} />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13.5px] font-semibold text-tinta">{e.titulo}</p>
-                      <p className="text-[11.5px] text-tinta/50">
-                        {e.horaTexto} · {e.meta}
-                      </p>
-                    </div>
-                    <p key={e.monto} className={`anim-asentar shrink-0 text-sm font-bold tabular-nums ${e.monto < 0 ? "text-rojo" : "text-verde-profundo"}`}>
-                      {e.monto < 0 ? "−" : "+"}
-                      {money(Math.abs(e.monto))}
-                    </p>
-                  </div>
+                  <FilaMovimientoCaja key={e.id} e={e} nuevo={idsNuevos.has(e.id)} onAbrirVenta={setVentaAbiertaId} />
                 ))}
               </div>
             )}
@@ -337,6 +325,23 @@ export function CajaAbiertaPanel({
 
       {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} onClose={() => setModal(null)} />}
       {modal === "cerrar" && <CerrarCajaModalV2 cajaId={caja.id} cola={cola} onClose={() => setModal(null)} />}
+      {modal === "todos" && (
+        <MovimientosCajaModal
+          eventos={todosLosEventos}
+          idsNuevos={idsNuevos}
+          ubicacionNombre={ubicacionNombre}
+          onAbrirVenta={setVentaAbiertaId}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {ventaAbiertaId && (
+        <DetalleVentaModal
+          ventaId={ventaAbiertaId}
+          vendedor={ventasHoy.find((v) => v.ventaId === ventaAbiertaId)?.vendedor ?? null}
+          ubicacionNombre={ubicacionNombre}
+          onClose={() => setVentaAbiertaId(null)}
+        />
+      )}
     </div>
   );
 }

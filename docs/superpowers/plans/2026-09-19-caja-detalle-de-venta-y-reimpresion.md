@@ -28,7 +28,7 @@
 
 | Archivo | Acción | Responsabilidad |
 |---|---|---|
-| `supabase/migrations/20260919160000_venta_pagos_recibido.sql` | crear | Columna `venta_pagos.recibido` + candado + `registrar_venta` que la guarda. Pegable en producción tal cual. |
+| `supabase/migrations/20260919210000_venta_pagos_recibido.sql` | crear | Columna `venta_pagos.recibido` + candado + `registrar_venta` que la guarda. Pegable en producción tal cual. |
 | `packages/database/src/types.ts` | regenerar | Tipos con `recibido`. |
 | `apps/web/lib/vender-reglas.ts` (+ `.test.ts`) | modificar | `pagosParaRpc`: qué pagos viajan a la RPC y con qué `recibido`. |
 | `apps/web/lib/ventas-offline.ts` | modificar | Tipo del payload guardado en la cola. |
@@ -54,7 +54,7 @@ Las **vistas previas temporales** (`apps/web/app/login/vista-previa-*`) se crean
 ### Task 1: Migración `venta_pagos.recibido` y `registrar_venta`
 
 **Files:**
-- Create: `supabase/migrations/20260919160000_venta_pagos_recibido.sql`
+- Create: `supabase/migrations/20260919210000_venta_pagos_recibido.sql`
 - Modify: `packages/database/src/types.ts` (regenerado)
 
 **Interfaces:**
@@ -69,7 +69,7 @@ import pathlib
 
 RAIZ = pathlib.Path(".")
 origen = RAIZ / "supabase/migrations/20260918170000_venta_aplica_descuento_de_campana.sql"
-destino = RAIZ / "supabase/migrations/20260919160000_venta_pagos_recibido.sql"
+destino = RAIZ / "supabase/migrations/20260919210000_venta_pagos_recibido.sql"
 
 lineas = origen.read_text(encoding="utf-8").replace("\r\n", "\n").split("\n")
 cuerpo = "\n".join(lineas[136:394])  # líneas 137..394 (1-based)
@@ -91,7 +91,7 @@ assert cuerpo.count(viejo) == 1, "no encontré el insert de venta_pagos"
 cuerpo = cuerpo.replace(viejo, nuevo)
 
 cabecera = """-- ============================================================================
--- 20260919160000 — El vuelto se guarda: venta_pagos.recibido
+-- 20260919210000 — El vuelto se guarda: venta_pagos.recibido
 --
 -- QUÉ HACE
 --   Agrega `venta_pagos.recibido` (lo que la clienta entregó en efectivo) y hace que
@@ -135,17 +135,17 @@ print("escrito", destino, len((cabecera + cuerpo).split("\n")), "líneas")
 ```
 
 Run: `python "$SCRATCH/generar_migracion.py"` (desde la raíz del repo).
-Expected: `escrito supabase\migrations\20260919160000_venta_pagos_recibido.sql ... líneas` sin `AssertionError`.
+Expected: `escrito supabase\migrations\20260919210000_venta_pagos_recibido.sql ... líneas` sin `AssertionError`.
 
 - [ ] **Step 2: Comprobar que la migración quedó pegable en producción**
 
-Run: `grep -nE "^(alter table|create table|insert into|update|delete from)" supabase/migrations/20260919160000_venta_pagos_recibido.sql`
+Run: `grep -nE "^(alter table|create table|insert into|update|delete from)" supabase/migrations/20260919210000_venta_pagos_recibido.sql`
 Expected: las dos sentencias `alter table retail.venta_pagos ...` con prefijo. Dentro de la función, `venta_pagos`/`ventas` sin prefijo son correctos (la función lleva `set search_path = retail, ...`).
 
 - [ ] **Step 3: Aplicarla en la base local**
 
 Run (raíz del repo): `npx supabase migration up --local`
-Expected: `Applying migration 20260919160000_venta_pagos_recibido.sql...` y `Local database is up to date.`
+Expected: `Applying migration 20260919210000_venta_pagos_recibido.sql...` y `Local database is up to date.`
 (Si dice que falta el stub `0000`, copiarlo desde `C:\Users\danyj\cayla-retail\supabase\migrations\0000_local_stub_dynamic.sql`.)
 
 - [ ] **Step 4: Probar el candado con una prueba dentro de una transacción con `ROLLBACK`**
@@ -204,7 +204,7 @@ Run: `pnpm typecheck` — Expected: `3 successful`.
 
 ```bash
 git checkout -- graphify-out/cache/last_query_stamp 2>/dev/null
-git add supabase/migrations/20260919160000_venta_pagos_recibido.sql packages/database/src/types.ts
+git add supabase/migrations/20260919210000_venta_pagos_recibido.sql packages/database/src/types.ts
 # mensaje: feat(ventas): guarda el vuelto — venta_pagos.recibido y registrar_venta que lo lee
 git commit -F "$SCRATCH/msg.txt"
 ```
@@ -323,7 +323,7 @@ Expected: todo en verde.
 
 Mensaje: `feat(ventas): Vender manda el efectivo recibido para reimprimir el vuelto`.
 
-> **CHECKPOINT A — producción.** Antes de que el código de las Fases 2–3 llegue a `main`, Felipe pega `20260919160000_venta_pagos_recibido.sql` en el SQL Editor de cayla-dynamic y confirma. Hasta entonces la rama puede seguir creciendo, pero **no se mergea**.
+> **CHECKPOINT A — producción.** Antes de que el código de las Fases 2–3 llegue a `main`, Felipe pega `20260919210000_venta_pagos_recibido.sql` en el SQL Editor de cayla-dynamic y confirma. Hasta entonces la rama puede seguir creciendo, pero **no se mergea**.
 
 ---
 
@@ -1710,12 +1710,12 @@ BITACORA: qué se cerró / qué se aprendió / pendiente. BACKLOG: marcar hecho 
 
 - [ ] **Step 4: Verificaciones finales**
 
-Run: `pnpm typecheck`, `npx vitest run` (apps/web), `pnpm migraciones:verificar` (debe mostrar `20260919160000_venta_pagos_recibido.sql` como pendiente de producción, no como error). **No** correr `pnpm datos:generar` a secas (pisa los diccionarios con la foto local).
+Run: `pnpm typecheck`, `npx vitest run` (apps/web), `pnpm migraciones:verificar` (debe mostrar `20260919210000_venta_pagos_recibido.sql` como pendiente de producción, no como error). **No** correr `pnpm datos:generar` a secas (pisa los diccionarios con la foto local).
 
 - [ ] **Step 5: Commit y entrega**
 
 Commit: `docs(caja): cierre de detalle de venta y reimpresión — ADR, bitácora, backlog y arquitectura`. Entregar a Felipe la lista de lo que **él** debe hacer:
-1. Pegar `20260919160000_venta_pagos_recibido.sql` en el SQL Editor de cayla-dynamic **antes** de mergear.
+1. Pegar `20260919210000_venta_pagos_recibido.sql` en el SQL Editor de cayla-dynamic **antes** de mergear.
 2. Después de aplicarla, refrescar el volcado del diccionario (`docs/datos/generado/COMO-REFRESCAR.md`) y correr `pnpm datos:generar:produccion`.
 3. Probar con su impresora térmica y con una A4 real.
 

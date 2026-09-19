@@ -19,6 +19,8 @@ export type LineaRecibo = {
   cantidad: number;
   descripcion: string;
   codigo: string | null;
+  /** «M · Negro»: talla y color, solo para el A4 (el ticket no lo imprime). Ausente si no se sabe. */
+  detalle?: string;
   precioUnitario: number;
   descuentoUnitario: number;
   /** cantidad × (precio − descuento), a 2 decimales. */
@@ -69,7 +71,7 @@ export function armarRecibo(entrada: {
   comprobante: { tipo: TipoReciboFiscal; serie: string; numero: number; created_at: string };
   sede: string;
   cliente: ReciboVenta["cliente"];
-  lineas: { cantidad: number; referencia: string; codigo: string | null; precioUnitario: number; descuentoUnitario: number }[];
+  lineas: { cantidad: number; referencia: string; codigo: string | null; precioUnitario: number; descuentoUnitario: number; detalle?: string }[];
   pagos: readonly PagoAplicado[];
   tasaIgv: number;
 }): ReciboVenta {
@@ -77,6 +79,7 @@ export function armarRecibo(entrada: {
     cantidad: l.cantidad,
     descripcion: l.referencia,
     codigo: l.codigo,
+    ...(l.detalle ? { detalle: l.detalle } : {}),
     precioUnitario: l.precioUnitario,
     descuentoUnitario: l.descuentoUnitario,
     importe: redondear2(l.cantidad * (l.precioUnitario - l.descuentoUnitario)),

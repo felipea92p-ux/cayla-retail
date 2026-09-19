@@ -6,7 +6,7 @@
 >
 > **Origen:** `volcado de producción (retail_*.json)`
 > **Leído el:** volcado de producci
-> **Tablas y vistas encontradas:** 67
+> **Tablas y vistas encontradas:** 70
 >
 > El orden sigue los 14 pájaros de `scripts/datos/aviario.mjs`, la única lista de qué
 > pájaro es cada tabla (el índice está en `AVIARIO.md`). Para entender **por qué**
@@ -699,7 +699,7 @@
 
 ### `lotes`
 
-*7 columnas · ~0 filas · permisos por fila **activos***
+*8 columnas · ~0 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -710,8 +710,9 @@
 | `fecha_recepcion` | timestamp with time zone | **no** | `now()` | qué día llegó la mercadería; recibir_lote nunca la manda, así que siempre queda el día del registro |
 | `recibido_por` | uuid | sí | — | qué integrante recibió y registró el fardo; queda vacío si esa cuenta no tiene ficha en personas |
 | `nota` | text | sí | — | observaciones de la descarga: 'faltaron 2 blusas', 'caja mojada' — texto libre que nadie procesa |
+| `envio_id` | uuid | sí | — | — |
 
-**De qué depende:** `(proveedor_id) REFERENCES retail.proveedores(id)` · `(recibido_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+**De qué depende:** `(envio_id) REFERENCES retail.envios(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(recibido_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
 
 **Quién puede qué** (políticas de fila):
 
@@ -788,7 +789,7 @@
 
 ### `prendas_danadas`
 
-*13 columnas · ~0 filas · permisos por fila **activos***
+*14 columnas · ~0 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -796,7 +797,7 @@
 | `variante_id` | uuid | **no** | — | — |
 | `ubicacion_id` | uuid | **no** | — | — |
 | `cantidad` | integer | **no** | — | — |
-| `devolucion_item_id` | uuid | **no** | — | — |
+| `devolucion_item_id` | uuid | sí | — | — |
 | `movimiento_entrada_id` | uuid | **no** | — | — |
 | `estado` | text | **no** | `'en_cuarentena'::text` | — |
 | `movimiento_salida_id` | uuid | sí | — | — |
@@ -805,16 +806,19 @@
 | `nota` | text | sí | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
 | `proveedor_id` | uuid | sí | — | — |
+| `cambio_id` | uuid | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
+- `prendas_danadas_cambio_id_key` — `UNIQUE (cambio_id)`
 - `prendas_danadas_cantidad_check` — `CHECK ((cantidad > 0))`
 - `prendas_danadas_devolucion_item_id_key` — `UNIQUE (devolucion_item_id)`
 - `prendas_danadas_estado_check` — `CHECK ((estado = ANY (ARRAY['en_cuarentena'::text, 'liquidada'::text, 'se_boto'::text, 'donada'::text, 'devuelta_proveedor'::text])))`
 - `prendas_danadas_proveedor_coherente` — `CHECK (((estado = 'devuelta_proveedor'::text) = (proveedor_id IS NOT NULL)))`
 - `prendas_danadas_resolucion_coherente` — `CHECK ((((estado = 'en_cuarentena'::text) AND (movimiento_salida_id IS NULL) AND (resuelto_en IS NULL)) OR ((estado <> 'en_cuarentena'::text) AND (movimiento_salida_id IS NOT NULL) AND (resuelto_en IS NOT NULL))))`
+- `prendas_danadas_un_origen` — `CHECK ((num_nonnulls(devolucion_item_id, cambio_id) = 1))`
 
-**De qué depende:** `(devolucion_item_id) REFERENCES retail.devolucion_items(id)` · `(movimiento_entrada_id) REFERENCES retail.movimientos(id)` · `(movimiento_salida_id) REFERENCES retail.movimientos(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(resuelto_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(variante_id) REFERENCES retail.variantes(id)`
+**De qué depende:** `(cambio_id) REFERENCES retail.cambios(id)` · `(devolucion_item_id) REFERENCES retail.devolucion_items(id)` · `(movimiento_entrada_id) REFERENCES retail.movimientos(id)` · `(movimiento_salida_id) REFERENCES retail.movimientos(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(resuelto_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(variante_id) REFERENCES retail.variantes(id)`
 
 **Quién puede qué** (políticas de fila):
 
@@ -914,6 +918,72 @@
 | Política | Operación | Condición |
 |---|---|---|
 | `transferencia_recepciones_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.transferencias t   WHERE ((t.id = transferencia_recepciones.transferencia_id) AND (retail.fn_puede_operar_ubicacion(t.ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(t.ubicacion_destino_id)))))` |
+
+
+### `envios`
+
+*7 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `numero_guia` | text | sí | — | — |
+| `nota` | text | sí | — | — |
+| `recibido_por` | uuid | sí | — | — |
+| `fecha_recepcion` | timestamp with time zone | **no** | `now()` | — |
+| `token_cliente` | uuid | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `envios_token_cliente_key` *(único parcial)* — `retail.envios (token_cliente) WHERE (token_cliente IS NOT NULL)`
+
+**De qué depende:** `(recibido_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `envios_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_id)` |
+
+
+### `envio_extras`
+
+*5 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `movimiento_id` | uuid | **no** | — | — |
+| `envio_id` | uuid | **no** | — | — |
+| `proveedor_id` | uuid | **no** | — | — |
+| `es_regalo` | boolean | **no** | `false` | — |
+| `nota` | text | sí | — | — |
+
+**De qué depende:** `(envio_id) REFERENCES retail.envios(id)` · `(movimiento_id) REFERENCES retail.movimientos(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `envio_extras_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.envios e   WHERE ((e.id = envio_extras.envio_id) AND retail.fn_puede_operar_ubicacion(e.ubicacion_id))))` |
+
+
+### `envio_traslados`
+
+*2 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `envio_id` | uuid | **no** | — | — |
+| `transferencia_id` | uuid | **no** | — | — |
+
+**De qué depende:** `(envio_id) REFERENCES retail.envios(id)` · `(transferencia_id) REFERENCES retail.transferencias(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `envio_traslados_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.envios e   WHERE ((e.id = envio_traslados.envio_id) AND retail.fn_puede_operar_ubicacion(e.ubicacion_id))))` |
 
 
 
@@ -1241,7 +1311,7 @@
 
 ### `cambios`
 
-*11 columnas · ~1 filas · permisos por fila **activos***
+*13 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1256,12 +1326,17 @@
 | `token_cliente` | uuid | sí | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
 | `caja_id` | uuid | sí | — | — |
+| `motivo` | text | sí | — | — |
+| `condicion` | text | **no** | `'vendible'::text` | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `cambios_cantidad_check` — `CHECK ((cantidad > 0))`
+- `cambios_condicion_check` — `CHECK ((condicion = ANY (ARRAY['vendible'::text, 'no_vendible'::text])))`
+- `cambios_defecto_no_vuelve_al_piso` — `CHECK (((motivo IS DISTINCT FROM 'defecto'::text) OR (condicion = 'no_vendible'::text)))`
 - `cambios_diferencia_liquidada` — `CHECK (((diferencia = (0)::numeric) OR (metodo_pago_diferencia IS NOT NULL)))`
 - `cambios_metodo_pago_diferencia_check` — `CHECK ((metodo_pago_diferencia = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text])))`
+- `cambios_motivo_check` — `CHECK ((motivo = ANY (ARRAY['talla_chica'::text, 'talla_grande'::text, 'otro_color'::text, 'defecto'::text, 'otro'::text])))`
 - `cambios_token_cliente_key` *(único parcial)* — `retail.cambios (token_cliente) WHERE (token_cliente IS NOT NULL)`
 
 **De qué depende:** `(caja_id) REFERENCES retail.cajas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(usuario_id) REFERENCES personas(id)` · `(variante_nueva_id) REFERENCES retail.variantes(id)` · `(venta_item_id) REFERENCES retail.venta_items(id)`
@@ -1520,7 +1595,7 @@
 
 ### `proveedores`
 
-*12 columnas · ~2 filas · permisos por fila **activos***
+*16 columnas · ~2 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1533,15 +1608,24 @@
 | `rubro` | text | sí | — | — |
 | `plazo_credito_dias` | integer | sí | — | — |
 | `forma_pago_preferida` | text | sí | — | — |
-| `telefono` | text | sí | — | el WhatsApp por el que se cierra la compra, que es como compra CAYLA |
+| `telefono` | text | sí | — | el WhatsApp por el que se cierra la compra, que es como compra CAYLA; desde ADR-0134 ya NO es el destino del Yape |
 | `banco` | text | sí | — | en qué banco cobra ese proveedor; visible para cualquiera con cuenta, decisión consciente D-27 |
-| `cuenta_bancaria` | text | sí | — | el número de cuenta al que se le transfiere; dato de un tercero y visible para todos |
+| `cuenta_bancaria` | text | sí | — | el número de cuenta del banco (depósito o mismo banco); el interbancario vive en `cci`. Dato de un tercero y visible para todos |
+| `cci` | text | sí | — | el Código de Cuenta Interbancario (20 dígitos) para transferirle desde otro banco; se guarda solo con números |
+| `celular_billetera` | text | sí | — | el celular al que se yapea o se plinea (9 dígitos, sin +51); distinto del WhatsApp de contacto, porque mandar plata al celular equivocado no se revierte |
+| `billeteras` | ARRAY | sí | — | en qué app tiene ese celular: Yape, Plin o ambas; va de la mano con el celular (uno sin el otro no puede existir) |
+| `titular_cuenta` | text | sí | — | el nombre que muestra el banco o Yape antes de confirmar; quien paga lo compara con este para no equivocarse de destino |
 
 **Candados** — lo que esta tabla hace imposible:
 
+- `proveedores_billetera_coherente` — `CHECK (((celular_billetera IS NULL) = (billeteras IS NULL)))`
+- `proveedores_billeteras_validas` — `CHECK (((billeteras IS NULL) OR (((cardinality(billeteras) >= 1) AND (cardinality(billeteras) <= 2)) AND (billeteras <@ ARRAY['yape'::text, 'plin'::text]))))`
+- `proveedores_cci_formato` — `CHECK (((cci IS NULL) OR (cci ~ '^[0-9]{20}$'::text)))`
+- `proveedores_celular_billetera_formato` — `CHECK (((celular_billetera IS NULL) OR (celular_billetera ~ '^9[0-9]{8}$'::text)))`
 - `proveedores_forma_pago_valida` — `CHECK (((forma_pago_preferida IS NULL) OR (forma_pago_preferida = ANY (ARRAY['transferencia'::text, 'yape'::text, 'plin'::text, 'efectivo'::text, 'deposito'::text, 'otro'::text]))))`
 - `proveedores_plazo_credito_positivo` — `CHECK (((plazo_credito_dias IS NULL) OR (plazo_credito_dias > 0)))`
 - `proveedores_ruc_check` — `CHECK (((ruc IS NULL) OR (ruc ~ '^[0-9]{11}$'::text)))`
+- `proveedores_titular_largo` — `CHECK (((titular_cuenta IS NULL) OR ((char_length(titular_cuenta) >= 2) AND (char_length(titular_cuenta) <= 120))))`
 - `proveedores_ruc_unico` *(único parcial)* — `retail.proveedores (ruc) WHERE (ruc IS NOT NULL)`
 
 **Quién puede qué** (políticas de fila):
@@ -1613,7 +1697,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compras_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_destino_id)` |
+| `compras_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `compra_items`
@@ -1642,7 +1726,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_items_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_items.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
+| `compra_items_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `compra_pagos`
@@ -1672,7 +1756,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_pagos_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_pagos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
+| `compra_pagos_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `compra_adjuntos`
@@ -1706,7 +1790,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_adjuntos_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_adjuntos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
+| `compra_adjuntos_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `compras_resumen`
@@ -1834,7 +1918,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_notas_credito_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_notas_credito.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
+| `compra_notas_credito_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `proveedor_creditos`

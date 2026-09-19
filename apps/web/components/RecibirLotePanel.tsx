@@ -42,7 +42,8 @@ export function RecibirLotePanel({
   variantes: Variante[];
   proveedores: Proveedor[];
   recepciones: RecepcionReciente[];
-  costos: Record<string, CostoRecepcion>;
+  /** Costo promedio por lote. Solo para el líder (ADR-0126): sin esto la lista no muestra la columna de costo. */
+  costos?: Record<string, CostoRecepcion>;
   indicadores?: ReactNode;
   /** Si falta algo para poder recibir (sin proveedores o sin catálogo), el motivo — en lugar del botón. */
   aviso?: string;
