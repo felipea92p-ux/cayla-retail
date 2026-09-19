@@ -60,7 +60,10 @@ export const AVIARIO = [
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",
     tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales"] },
   { n: "09", pajaro: "Pelícano", modulo: "Compras y proveedores",
-    tablas: ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen"] },
+    tablas: ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen",
+      // ADR-0111 (Compras): cierres de línea por faltante, notas de crédito del proveedor y su saldo a favor.
+      // Nacen con dueño: aún no están en producción (sin pegar), por eso el aviario avisa que no las ve en el volcado.
+      "compra_item_cierres", "compra_notas_credito", "proveedor_creditos"] },
   { n: "10", pajaro: "Gallito", modulo: "Producción del Taller",
     tablas: ["producciones", "produccion_lineas", "insumos", "insumo_lotes", "movimientos_insumo", "v_insumo_saldos"] },
   { n: "11", pajaro: "Garza", modulo: "Finanzas operativas", tablas: ["gastos"] },

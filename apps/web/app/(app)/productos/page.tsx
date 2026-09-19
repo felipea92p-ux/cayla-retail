@@ -128,7 +128,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
             {pendientesAlta.map((p) => (
               <li key={p.id}>
-                <Link href={`/productos/${p.id}/editar`} className="text-rojo hover:underline">
+                <Link href={`/productos/${p.id}/editar`} className="text-tinta underline underline-offset-2 hover:no-underline">
                   {p.referencia}
                 </Link>
                 {p.categoria && <span className="text-tinta/55"> · {p.categoria}</span>}

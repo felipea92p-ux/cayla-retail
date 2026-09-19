@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 /* ====================================================================
    TarjetaCifra · una etiqueta, un número grande, una línea de contexto
-   (2026-09-17, ADR-0101)
+   (2026-09-17, ADR-0101; extendida 2026-09-18, ADR-0111)
 
    Es la tarjeta de resumen que Existencias, Traslados, Conteo y
    Movimientos dibujan cada uno con su copia local de `Tarjeta`
@@ -14,18 +14,45 @@ import type { ReactNode } from "react";
    otras cuatro puedan migrar sin cambiar de aspecto.
 
    `valor` acepta texto: un "—" o "98.4%" es tan válido como un número.
-   `accion` dibuja el enlace rojo al pie ("Ver detalle →") — el único
-   rojo permitido en una tarjeta que pide algo.
+   `accion` dibuja el enlace al pie ("Ver detalle →"), en tinta y subrayado.
+   Antes iba en rojo; con el borde `acento` ya visible (ADR-0105) Resumen mostraba
+   5 rojos y MAX_ROJO_POR_PANTALLA es 2. El rojo de la tarjeta es el borde: lo
+   que "pide algo" se ve por el borde, no por cuatro enlaces iguales.
 
-   `compacta` + `icono` (2026-09-18, Traslados): la misma tarjeta en una
-   fila baja — ícono a la izquierda, cifra más chica, contexto en una línea
-   y una flecha si se puede tocar. Para pantallas donde la fila de tarjetas
-   es una franja de estado y no puede comerse la altura que le toca a la
-   lista. Sin esas dos props la tarjeta se dibuja exactamente igual que
-   antes.
+   ADR-0111 (Compras): el módulo tenía CINCO copias de esta tarjeta
+   (`Indicador` en /compras, `Cifra` en /compras/por-pagar y en el detalle,
+   `TarjetaIndicador`, y esta). Migran a esta; para eso se le suman cuatro
+   cosas opcionales, ninguna cambia lo que ya dibujaba:
+   - `punto`: el puntito de color junto a la etiqueta que adelanta el estado
+     antes de leer la cifra (ámbar = a medias, verde = bien, rojo = actuar).
+   - `detalleTono`: el color de la línea de contexto por separado del número
+     (típico: número en tinta y «2 vencidas · S/ 6,670.00 →» en rojo).
+   - `compacta`: p-4 en lugar de p-5, para las franjas de 4 indicadores.
+   - `vacia`: borde punteado y número apagado — «todavía no hay datos», con
+     la razón en `children`. Un dato que aún no existe se dice, no se inventa.
+
+   `fila` + `icono` (2026-09-18, Traslados): la misma tarjeta en una fila
+   baja — ícono a la izquierda, cifra más chica, contexto en una línea y una
+   flecha si se puede tocar. Para pantallas donde la fila de tarjetas es una
+   franja de estado y no puede comerse la altura que le toca a la lista. Sin
+   `fila` la tarjeta se dibuja exactamente igual que antes.
+   (En Traslados esta variante se llamó `compacta`; al unir las dos ramas se
+   renombró `fila`, porque `compacta` ya significaba «p-4» en las ~30
+   tarjetas de Compras.)
    ==================================================================== */
 
 type Accion = { texto: string } & ({ href: string } | { onClick: () => void });
+
+export type PuntoCifra = "neutro" | "ambar" | "verde" | "rojo";
+
+// Mismo vocabulario semántico que `Chip`: verde = va bien, ámbar = a medias,
+// rojo = hay que actuar. Nunca un color nuevo.
+const PUNTO: Record<PuntoCifra, string> = {
+  neutro: "bg-tinta/25",
+  ambar: "bg-ambar",
+  verde: "bg-verde",
+  rojo: "bg-rojo",
+};
 
 export function TarjetaCifra({
   etiqueta,
@@ -37,8 +64,12 @@ export function TarjetaCifra({
   href,
   onClick,
   accion,
+  punto,
+  detalleTono,
   icono,
   compacta = false,
+  fila = false,
+  vacia = false,
   children,
 }: {
   etiqueta: string;
@@ -52,17 +83,25 @@ export function TarjetaCifra({
   href?: string;
   onClick?: () => void;
   accion?: Accion;
-  /** Solo con `compacta`: el ícono (ya con su disco y colores) a la izquierda. */
+  /** Puntito de color junto a la etiqueta. Sin esta prop no se dibuja. */
+  punto?: PuntoCifra;
+  /** Clase de color de la línea de contexto (`text-rojo`, `text-ambar-profundo`, `text-verde-profundo`). */
+  detalleTono?: string;
+  /** Solo con `fila`: el ícono (ya con su disco y colores) a la izquierda. */
   icono?: ReactNode;
-  /** Fila baja, con ícono y flecha (ver arriba). */
+  /** p-4 en lugar de p-5: las franjas de 4 indicadores de Compras. */
   compacta?: boolean;
+  /** Fila baja, con ícono y flecha (ver arriba). */
+  fila?: boolean;
+  /** Borde punteado y número apagado: «todavía no hay datos». */
+  vacia?: boolean;
   children?: ReactNode;
 }) {
-  const clase = `card-cayla block ${compacta ? "p-4" : "p-5"} text-left transition-colors ${acento ? "border-l-2 border-l-rojo" : ""} ${
-    onClick || href ? "hover:bg-sand/30" : ""
-  } ${activa ? "bg-sand/40" : ""}`;
+  const clase = `card-cayla block ${compacta || fila ? "p-4" : "p-5"} text-left transition-colors ${acento ? "border-l-2 border-l-rojo" : ""} ${
+    vacia ? "border-dashed bg-transparent" : ""
+  } ${onClick || href ? "hover:bg-sand/30" : ""} ${activa ? "bg-sand/40" : ""}`;
 
-  const contenido = compacta ? (
+  const contenido = fila ? (
     <span className="flex items-center gap-3">
       {icono}
       <span className="min-w-0 flex-1">
@@ -77,22 +116,25 @@ export function TarjetaCifra({
     </span>
   ) : (
     <>
-      <p className="label-cayla text-[11px] text-tinta/65">{etiqueta}</p>
+      <p className="label-cayla flex items-center gap-[7px] text-[11px] text-tinta/65">
+        {punto && <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${PUNTO[punto]}`} />}
+        {etiqueta}
+      </p>
       <p className="mt-1 flex items-baseline gap-2">
-        <span className={`font-display text-3xl tabular-nums ${tono ?? "text-tinta"}`}>{valor}</span>
+        <span className={`font-display text-3xl tabular-nums ${vacia ? "text-tinta/45" : (tono ?? "text-tinta")}`}>{valor}</span>
         {unidad && <span className="text-sm text-tinta/55">{unidad}</span>}
       </p>
-      {children && <p className="mt-1 text-xs text-tinta/65">{children}</p>}
+      {children && <p className={`mt-1 text-xs ${detalleTono ?? "text-tinta/65"}`}>{children}</p>}
       {accion &&
         ("href" in accion ? (
-          <Link href={accion.href} className="label-cayla mt-3 inline-block text-[11px] text-rojo underline-offset-2 hover:underline">
+          <Link href={accion.href} className="label-cayla mt-3 inline-block text-[11px] text-tinta underline underline-offset-2 hover:no-underline">
             {accion.texto} →
           </Link>
         ) : (
           <button
             type="button"
             onClick={accion.onClick}
-            className="label-cayla mt-3 inline-block text-[11px] text-rojo underline-offset-2 hover:underline"
+            className="label-cayla mt-3 inline-block text-[11px] text-tinta underline underline-offset-2 hover:no-underline"
           >
             {accion.texto} →
           </button>

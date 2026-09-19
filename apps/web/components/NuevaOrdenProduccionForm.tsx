@@ -146,11 +146,11 @@ export function NuevaOrdenProduccionForm({
                   <tr className="text-tinta/65">
                     <th className="pb-1.5 pr-3 text-left font-normal">Color</th>
                     {matriz.tallas.map((t) => (
-                      <th key={t} className="label-cayla pb-1.5 text-center text-[11px] font-normal">
+                      <th key={t} className="label-cayla pb-1.5 text-center text-[11px]">
                         {t}
                       </th>
                     ))}
-                    <th className="label-cayla pb-1.5 pl-3 text-right text-[11px] font-normal">Total</th>
+                    <th className="label-cayla pb-1.5 pl-3 text-right text-[11px]">Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-tinta/10">
