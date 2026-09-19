@@ -9,7 +9,7 @@ componentes `Devoluciones*`, `ComprasAgrupadas`, `FlujoGuiado`, `BuscadorVentas`
 
 ## Contexto
 
-Felipe aprobó el rediseño de Cambios (ADR-0121) —«me gusta, incluso el proceso de iniciar
+Felipe aprobó el rediseño de Cambios (ADR-0125) —«me gusta, incluso el proceso de iniciar
 cambio»— y pidió repetir la mayoría de sus funciones, flujo y diseño en Devoluciones. La
 pantalla de antes era una lista plana de líneas sueltas, un modal por prenda y un bloque de
 pendientes sin contexto.
@@ -103,7 +103,7 @@ validaciones en vivo llevan el foco al campo que falta.
 
 ## Consecuencias
 
-- Sin migración: se puede fusionar y desplegar sin el orden especial de ADR-0121.
+- Sin migración: se puede fusionar y desplegar sin el orden especial de ADR-0125.
 - Cambios cambia poco: usa el lector y las piezas compartidas, y una prenda con devolución
   registrada ya no ofrece «Iniciar cambio».
 - El texto del motivo de las devoluciones nuevas es uno de cinco fijos (+ detalle); las viejas

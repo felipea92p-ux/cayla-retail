@@ -1,4 +1,4 @@
-# ADR-0121 — Cambios: flujo guiado, motivo y estado de la prenda que vuelve
+# ADR-0125 — Cambios: flujo guiado, motivo y estado de la prenda que vuelve
 
 **Fecha:** 2026-09-18
 **Estado:** Aplicado en local (rama `claude/interface-recommendations-8ce365`).

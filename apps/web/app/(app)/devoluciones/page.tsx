@@ -7,7 +7,7 @@ import { DevolucionesPanel } from "@/components/DevolucionesPanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede } from "@/components/ui/ResumenSede";
 
-// Devoluciones (rediseño 2026-09-18, mismo modelo que Cambios, ADR-0121/0122). Una devolución
+// Devoluciones (rediseño 2026-09-18, mismo modelo que Cambios, ADR-0125/0122). Una devolución
 // tiene dos tiempos: una colaboradora la registra (`crear_devolucion`) y un líder la aprueba
 // (`aprobar_devolucion`); la pantalla, en DevolucionesPanel.
 export default async function DevolucionesPage({ searchParams }: { searchParams: Promise<{ q?: string; todas?: string; item?: string }> }) {

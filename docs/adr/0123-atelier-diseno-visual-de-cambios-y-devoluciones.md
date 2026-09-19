@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-09-19 · **Estado:** aceptado (elegido por Felipe entre tres maquetas) ·
 **Alcance:** solo presentación. Ninguna regla, RPC ni tabla cambia; los flujos de
-[ADR-0121](0121-cambios-flujo-guiado-motivo-y-estado-de-prenda.md) y
+[ADR-0125](0125-cambios-flujo-guiado-motivo-y-estado-de-prenda.md) y
 [ADR-0122](0122-devoluciones-mismo-modelo-que-cambios.md) siguen tal cual.
 
 ## Contexto
