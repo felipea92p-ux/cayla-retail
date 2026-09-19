@@ -723,12 +723,11 @@ body {
 
 /* ---- Encabezado de Caja: reloj del turno y estado de sincronización (2026-09-18, 3ª
         tanda) — ver CajaAbiertaPanel.tsx. Lo que se mueve aquí es hora real, no adorno:
-        el dígito rueda cuando cambia, la aguja da la vuelta cada 60 s y las ondas de
+        el dígito rueda cuando cambia y las ondas de
         "sincronizado" respiran. `caja-ping` parte de `opacity: 0` (base) para que sin
         animación —movimiento reducido— la onda no quede como un disco sólido detrás del
         ícono. ---- */
 @keyframes caja-rueda { from { opacity: 0; transform: translateY(0.35em); } }
-@keyframes caja-aguja { to { transform: rotate(360deg); } }
 @keyframes caja-ping {
   0% { transform: scale(0.9); opacity: 0.45; }
   70%, 100% { transform: scale(2.4); opacity: 0; }
@@ -737,7 +736,6 @@ body {
 
 @layer components {
   .anim-rueda { animation: caja-rueda 320ms var(--ease-cayla) both; }
-  .anim-caja-aguja { transform-origin: 10px 10px; animation: caja-aguja 60s linear infinite; }
   .anim-caja-ping { opacity: 0; animation: caja-ping 2.8s var(--ease-cayla) infinite; }
   .anim-caja-check path { stroke-dasharray: 14; animation: caja-trazo 520ms var(--ease-cayla) 120ms backwards; }
 }
@@ -809,7 +807,6 @@ body {
       animation-duration: 1ms;
       animation-delay: 0ms;
     }
-    .anim-caja-aguja,
     .anim-caja-ping { animation: none; }
     .alza-cayla:hover { transform: none; }
     .hilo-trabajando::after { animation: none; }

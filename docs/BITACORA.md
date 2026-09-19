@@ -3,6 +3,19 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Atelier llega a Caja: cabecera, entrada escalonada y reloj del turno — ADR-0123)
+
+**Qué se cerró.** Caja usa la cabecera de Cambios (`EncabezadoPagina`: sede y día con el hilo, título
+de 46 px) y entra con `anim-sube` escalonado en vez de un solo fundido. El reloj se rehízo tras ver
+tres maquetas (A anillo, B cinta, C cristal) y Felipe eligió la B: la hora con segundos y, debajo, el
+turno como un hilo que avanza desde la apertura. Nueva regla `escalaTurno` con prueba; la escala de
+8 h es solo visual, la caja no tiene hora de cierre prevista.
+
+**Qué se aprendió.** Una cabecera compartida con un `sinHora` y un `pie` sirvió a una pantalla con su
+propio reloj sin bifurcarla. Al verificar sin sesión, una ruta temporal bajo `/login` con datos de
+mentira mostró el panel completo. Pendiente: Punto de venta (`/vender`), que hoy solo dice «Cargando
+caja…», y probar con una caja real abierta.
+
 ## 2026-09-19 (Atelier: el diseño visual de Cambios y Devoluciones — ADR-0123)
 
 **Qué se cerró.** Felipe pidió ver el rediseño «más estético, con más animaciones» antes de
