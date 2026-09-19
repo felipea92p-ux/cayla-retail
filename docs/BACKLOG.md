@@ -28,6 +28,24 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Producción como módulo padre: decidir, abastecer, fabricar, medir (2026-09-19, ADR-0130 — propuesto)
+
+Plan completo en [`docs/PLAN-PRODUCCION.md`](PLAN-PRODUCCION.md); diseño de referencia en `docs/maquetas/produccion-modulo-2026-09/`.
+**Nada de esto está construido:** solo el spike y el plan (verificado en el navegador). Cada fase = un PR.
+
+- [ ] **F0 · Preparación:** fusionar `origin/main` (la rama va 2 commits atrás), reservar ADR-0130 y timestamps `≥ 20260919170000`, commitear spike y plan.
+- [ ] **Decisiones de Felipe (bloquean F1, F4, F7):** D-A menú (líder ve Producción desde cualquier ubicación; revierte la regla del 2026-09-17) ·
+      D-C `compra_items.insumo_id` · D-E `maquila_referencias` · D-F `gastos_taller` · D-G costos de insumos solo líder.
+- [ ] **F1 · Navegación** (`AppShell.tsx`, rutas `/produccion/*`; las URLs de Compras no cambian). Sin esquema.
+- [ ] **F2 · Órdenes:** tablero, panel, matriz talla×color, cierre por variante; el formulario deja de pedir tela y avíos. Sin esquema.
+- [ ] **F3 · Insumos:** pantalla, «Recibir insumo», consumo desde la orden (RPC ya en producción). Sin esquema.
+- [ ] **F4 · Compras ↔ Insumos (esquema, alto riesgo; ESPERA a ADR-0132 en `main` y se coordina con `modulos-por-tienda-ca0f59`):** 4a renglón de insumo · 4b recibir abre el lote · 4c candado del dinero de insumos.
+      Partir de `pg_get_functiondef` de producción; una sola firma; prueba SQL en CI; pega Felipe.
+- [ ] **F5 · Nueva orden con decisión** (curva desde `fn_resumen_variantes`, cobertura de tela, costo, margen, entrega).
+- [ ] **F6 · Resumen «¿qué necesita mi decisión hoy?»** (reglas puras con tests).
+- [ ] **F7 · Eficiencia del Taller** (D-31: `maquila_referencias` + `gastos_taller`; estados vacíos hasta tener datos).
+- [ ] **F8 · Cierre:** «llevarlas a las tiendas» (Traslados), referencia en Movimientos, refresco de `docs/datos/`, ARQUITECTURA.
+
 ## 🎯 Proveedores: vista rápida, mini-tendencias y movimiento que responde (2026-09-19, ADR-0128)
 
 Aplicado en código y verificado en el navegador con sesión de líder (escritorio); **falta lo de producción
