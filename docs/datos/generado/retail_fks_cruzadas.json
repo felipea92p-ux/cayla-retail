@@ -55,6 +55,16 @@
   "src_table": "compra_adjuntos"
  },
  {
+  "conname": "compra_item_cierres_usuario_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_item_cierres"
+ },
+ {
+  "conname": "compra_notas_credito_usuario_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_notas_credito"
+ },
+ {
   "conname": "compra_pagos_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "compra_pagos"
@@ -160,9 +170,24 @@
   "src_table": "producciones"
  },
  {
+  "conname": "productos_aprobado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "productos"
+ },
+ {
+  "conname": "productos_propuesto_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "productos"
+ },
+ {
   "conname": "proformas_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "proformas"
+ },
+ {
+  "conname": "proveedor_creditos_usuario_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "proveedor_creditos"
  },
  {
   "conname": "tallas_aprobado_por_fkey",
