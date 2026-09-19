@@ -28,6 +28,28 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Finanzas y candado de escritura (2026-09-18, ADR-0104 y ADR-0105)
+
+- [ ] **Aplicar en producción `20260918160000_ventas_devoluciones_solo_rpc.sql`** — escrita y
+      probada en local (16/16; **re-correr `pnpm pruebas:candado-ventas` tras la restauración del
+      2026-09-18, aún no se hizo**). Antes: correr
+      `docs/datos/VERIFICAR-ESCRITURA-DIRECTA-2026-09-18.sql` y `VERIFICAR-PRODUCCION-2026-09-18.sql`
+      en producción y dar el ok puntual. Deshacer: un `grant` de una línea (en el ADR-0104).
+- [ ] **Las otras 5 tablas expuestas** (`transferencias`, `transferencia_items`, `conteos`,
+      `lotes`, `clientes`): mismo patrón, sin rastrear quién escribe en ellas. Y cambiar
+      `alter default privileges` de `0005_grants.sql` para que toda tabla nueva nazca sin escritura.
+- [ ] **Finanzas (ADR-0105, APROBADO): construir tareas 4-10 del plan.** Pendiente de Felipe:
+      (a) respuesta del contador sobre régimen/UIT/libros obligatorios, (b) saldos de apertura y
+      su fecha de corte, (c) confirmar las suposiciones del cierre por unidad + consolidado,
+      (d) correr `docs/datos/VERIFICAR-VOLUMEN-2026-09-18.sql` en producción.
+- [ ] **Borrar `apps/web/lib/registro-contable.ts`** (+ su test): motor de V1 para una función
+      `registrar_asiento` que V2 no tiene. Antes mover `IGV_TASA` (hoy fija en 4 archivos del
+      cliente) a una tabla de parámetros.
+- Corrección a la auditoría del 17-sep: `comprobantes`/`series_comprobantes`/`proformas` NO
+  "solo tienen GRANT SELECT" — tienen escritura abierta y las protege solo RLS.
+
+---
+
 ## 🎯 Rediseño visual de Caja + Punto de Venta (2026-09-18, ADR-0102)
 
 Felipe pidió rediseñar Caja (visual/interactivo, a partir de una maqueta HTML) y

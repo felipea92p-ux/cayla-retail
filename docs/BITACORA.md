@@ -3,6 +3,43 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Modelo contable aprobado — ADR-0105: diario derivado que se congela al cerrar el mes)
+Tarea 3 del plan de finanzas: decidir si Estado de Resultados y Balance salen de un libro de
+asientos persistido o se calculan sobre las tablas existentes. Los números no deciden (≈ 300-350 mil
+líneas en 3 años, ≈ 1 asiento por minuto en hora pico: cabe en cualquier Postgres); deciden la
+corrección y la obligación legal. El estudio del 19-jul calcula que CAYLA está al 72% del umbral de
+300 UIT, donde SUNAT exige Libro Diario y Mayor electrónicos. Felipe aprobó la opción C: reglas de
+posteo en UNA función SQL que deriva el diario de ventas/compras/caja sin tocar ningún flujo de
+dinero, y un cierre mensual que lo materializa inmutable. Decisiones de negocio de Felipe: Yape y
+Plin llegan al banco al instante (solo la tarjeta queda en tránsito); el cierre es por unidad de
+negocio y además uno consolidado global — con la consecuencia, registrada en el ADR, de que un
+Balance completo solo existe en el consolidado (banco, IGV, capital y deuda a proveedores son de la
+empresa, no de una tienda). Dos hallazgos: el manual contable dice que sus 14 reglas "son todas" y
+V2 ya tiene al menos 7 casos más (anulación, devolución, cambio, dañadas, devolución a proveedor,
+insumos, depreciación); y el "Balance que cuadra siempre" del manual cuadraba por un tapón (capital
+residual) — la comprobación real son dos cálculos independientes. Sin código todavía.
+
+## 2026-09-18 (Candado de ventas y devoluciones — el hueco era de 10 tablas, no de 4)
+Felipe pidió cerrar el hueco que la auditoría del 17-sep marcó como el más serio: `ventas`,
+`venta_items`, `devoluciones` y `devolucion_items` aceptan escritura directa desde el navegador.
+Antes de tocar nada se rastreó quién escribe ahí: 6 funciones, todas `security definer` (confirmado
+en local y en producción por Felipe), y la app no escribe directo nunca — así que revocar el permiso
+no rompe ninguna pantalla. Lo que cambió el tamaño del problema: cruzar el permiso de tabla con la
+política de RLS mostró 10 tablas expuestas, no 4 (también `transferencias`, `conteos`, `lotes`,
+`clientes`, `venta_anulacion_items`), y que la auditoría se equivocó con `comprobantes`: `0010`
+otorga SELECT pero no revoca lo que `0005` ya había dado. Se escribió la migración solo para 5
+tablas (las rastreadas) con 16 pruebas en ROLLBACK, dos de ellas de control que demuestran que el
+ataque SÍ funcionaba sin la migración. ADR-0104. Pendiente: que Felipe corra el archivo de
+verificación en producción y dé el ok puntual antes de pegar; las otras 5 tablas y el cambio de
+`alter default privileges` quedan como trabajo aparte.
+
+## 2026-09-18 (Se perdió trabajo sin commit al recrearse el worktree — y cómo se recuperó)
+Al recrearse la carpeta de trabajo de esta sesión se perdió todo lo que no estaba en un commit:
+la auditoría del 17-sep (que existía solo en disco, en un worktree sin commit, y no estaba en
+ninguna rama de GitHub), la migración del candado, su prueba y los ADR. Se recuperó reescribiendo
+desde la propia conversación; la auditoría quedó marcada como restauración. Lección: un documento
+que solo existe sin commit en un worktree no existe. Se commitea el mismo día que se produce.
+
 ## 2026-09-18 (Rediseño visual de Caja — el badge de "cuadre" no podía copiar la maqueta tal cual)
 
 Felipe trajo dos maquetas HTML de referencia (paleta terracota/modo oscuro) para Caja y
