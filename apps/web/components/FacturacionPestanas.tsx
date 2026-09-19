@@ -46,6 +46,18 @@ export function FacturacionPestanas({ conteos }: { conteos: ConteosPestanas }) {
     return () => observador.disconnect();
   }, [activa, conteos]);
 
+  // En celular las cuatro pestañas no caben y el contenedor se desplaza: al abrir la página y
+  // al cambiar de vista se centra la activa, si no la píldora queda fuera de pantalla y no se
+  // ve dónde estás. Solo depende de `activa` (no de `conteos`): si la persona desliza la tira
+  // para mirar las otras, un contador que cambia no se la devuelve.
+  useLayoutEffect(() => {
+    const el = nav.current;
+    const activo = el?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!el || !activo || el.scrollWidth <= el.clientWidth) return;
+    const suave = el.dataset.listo !== undefined && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollTo({ left: activo.offsetLeft - (el.clientWidth - activo.offsetWidth) / 2, behavior: suave ? "smooth" : "auto" });
+  }, [activa]);
+
   // La transición se habilita recién después de la primera pintura: la píldora nace en su
   // lugar y solo se desliza cuando cambia la pestaña.
   useEffect(() => {
