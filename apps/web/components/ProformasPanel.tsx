@@ -9,13 +9,11 @@ import { tipoDocumentoDeCliente } from "@/lib/comprobantes-reglas";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Ayuda } from "@/components/Ayuda";
 import { TarjetaIndicador } from "@/components/TarjetaIndicador";
-import { NuevaProformaModal } from "@/components/NuevaProformaModal";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, Segmentado } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
+import { useFacturacionAcciones } from "@/lib/useFacturacionAcciones";
 import { avisar } from "@/components/ui/Avisos";
-
-type Ubicacion = { id: string; nombre: string };
 
 const ESTADO_ESTILO: Record<Proforma["estado"], string> = {
   vigente: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
@@ -50,17 +48,10 @@ function formatearFecha(iso: string) {
 // muestran arriba de las demás, no detrás de un filtro que haya que recordar
 // aplicar — es la clienta que puede volver hoy a comprar, la que más importa
 // ver primero.
-export function ProformasPanel({
-  proformas,
-  ubicaciones,
-  ubicacionActualId,
-}: {
-  proformas: Proforma[];
-  ubicaciones: Ubicacion[];
-  ubicacionActualId: string;
-}) {
+export function ProformasPanel({ proformas }: { proformas: Proforma[] }) {
   const router = useRouter();
-  const [modal, setModal] = useState<"crear" | { convertir: Proforma } | null>(null);
+  const { abrirProforma } = useFacturacionAcciones();
+  const [modal, setModal] = useState<{ convertir: Proforma } | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Formulario de conversión
@@ -134,7 +125,7 @@ export function ProformasPanel({
             </Ayuda>
           </h2>
           <button
-            onClick={() => setModal("crear")}
+            onClick={abrirProforma}
             className="label-cayla rounded-md border border-tinta/20 px-3 py-2 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
           >
             Nueva proforma
@@ -233,15 +224,8 @@ export function ProformasPanel({
         )}
       </div>
 
-      <NuevaProformaModal
-        abierto={modal === "crear"}
-        onCerrar={() => setModal(null)}
-        ubicaciones={ubicaciones}
-        ubicacionActualId={ubicacionActualId}
-      />
-
       {/* ==================== Modal: convertir a comprobante ==================== */}
-      {modal && typeof modal === "object" && (
+      {modal && (
         <Modal titulo="Convertir a comprobante" onClose={cerrarModal}>
           <form onSubmit={(e) => onConvertir(e, modal.convertir)} className="mt-5 space-y-2">
             <p className="text-xs text-tinta/75">

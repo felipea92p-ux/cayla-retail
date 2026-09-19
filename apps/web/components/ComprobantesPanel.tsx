@@ -6,10 +6,10 @@ import { createClient } from "@/lib/supabase/client";
 import type { Comprobante, SerieComprobante, TipoComprobante } from "@/lib/comprobantes-reglas";
 import { ESTADO_ESTILO, ESTADO_ETIQUETA, ETIQUETA_TIPO } from "@/lib/comprobantes-reglas";
 import { Ayuda } from "@/components/Ayuda";
-import { EmitirComprobanteModal } from "@/components/EmitirComprobanteModal";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
+import { useFacturacionAcciones } from "@/lib/useFacturacionAcciones";
 import { avisar } from "@/components/ui/Avisos";
 
 type Ubicacion = { id: string; nombre: string };
@@ -177,7 +177,8 @@ export function ComprobantesPanel({
   ubicacionActualId: string;
 }) {
   const router = useRouter();
-  const [modal, setModal] = useState<"emitir" | "serie" | "anular" | "liberar" | null>(null);
+  const { abrirEmitir } = useFacturacionAcciones();
+  const [modal, setModal] = useState<"serie" | "anular" | "liberar" | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Transmisión a Lucode (Fase 1, ADR-0009) — por fila, no un solo estado
@@ -251,7 +252,7 @@ export function ComprobantesPanel({
   // Liberar un "pendiente" que nunca se transmitió (ADR-0093). A diferencia de
   // anular, esto NUNCA habla con Lucode/SUNAT — el número no se reutiliza, solo
   // deja de contar como pendiente — así que es una RPC directa desde el cliente
-  // (mismo patrón que `onEmitir`/`onRegistrarSerie` en este mismo componente, no
+  // (mismo patrón que `onRegistrarSerie` en este mismo componente, no
   // el de `onAnular`, que sí necesita el servidor para orquestar la baja real).
   const [liberando, setLiberando] = useState<Comprobante | null>(null);
   const [motivoLiberacion, setMotivoLiberacion] = useState("");
@@ -451,7 +452,7 @@ export function ComprobantesPanel({
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="label-cayla text-[11px] text-tinta/65">Comprobantes</h2>
-          <Boton peso="primario" onClick={() => setModal("emitir")}>
+          <Boton peso="primario" onClick={abrirEmitir}>
             Emitir comprobante
           </Boton>
         </div>
@@ -568,14 +569,6 @@ export function ComprobantesPanel({
           </>
         )}
       </div>
-
-      <EmitirComprobanteModal
-        abierto={modal === "emitir"}
-        onCerrar={() => setModal(null)}
-        series={series}
-        ubicaciones={ubicaciones}
-        ubicacionActualId={ubicacionActualId}
-      />
 
       {/* ==================== Modal: registrar serie ==================== */}
       {modal === "serie" && (
