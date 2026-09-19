@@ -495,6 +495,15 @@
    "ordinal_position": 3,
    "table_name": "categoria_tallas",
    "table_schema": "retail"
+  },
+  {
+   "column_default": "false",
+   "column_name": "habitual",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "categoria_tallas",
+   "table_schema": "retail"
   }
  ],
  "categoria_tejidos": [
@@ -3067,6 +3076,15 @@
    "ordinal_position": 5,
    "table_name": "familias",
    "table_schema": "retail"
+  },
+  {
+   "column_default": "false",
+   "column_name": "exige_tejido_patron",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "familias",
+   "table_schema": "retail"
   }
  ],
  "gastos": [
@@ -3562,6 +3580,73 @@
    "is_nullable": "YES",
    "ordinal_position": 8,
    "table_name": "lotes",
+   "table_schema": "retail"
+  }
+ ],
+ "marca_proveedores": [
+  {
+   "column_default": null,
+   "column_name": "marca_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "marca_proveedores",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "proveedor_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "marca_proveedores",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "created_at",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "marca_proveedores",
+   "table_schema": "retail"
+  }
+ ],
+ "marcas": [
+  {
+   "column_default": "gen_random_uuid()",
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "marcas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nombre",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "marcas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "true",
+   "column_name": "activo",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "marcas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "created_at",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "marcas",
    "table_schema": "retail"
   }
  ],
@@ -4513,6 +4598,24 @@
    "data_type": "timestamp with time zone",
    "is_nullable": "YES",
    "ordinal_position": 17,
+   "table_name": "productos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "marca_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 18,
+   "table_name": "productos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "proveedor_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 19,
    "table_name": "productos",
    "table_schema": "retail"
   }
