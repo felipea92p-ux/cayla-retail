@@ -91,6 +91,18 @@ export function vueltoDe(pago: PagoAplicado): number {
   return Math.max(0, redondear2(pago.recibido - pago.monto));
 }
 
+/** Los pagos como viajan a `registrar_venta`. Solo montos > 0 (`venta_pagos` lo exige). El
+ *  `recibido` va únicamente en efectivo y solo si cubre lo que corresponde: la base lo
+ *  guarda para reimprimir el vuelto y su candado (`venta_pagos_recibido_coherente`) rechaza
+ *  TODA la venta si `recibido < monto`, así que una cifra a medio escribir no puede viajar. */
+export function pagosParaRpc(pagos: readonly PagoAplicado[]): { metodo: MetodoPago; monto: number; recibido?: number }[] {
+  return pagos
+    .filter((p) => p.monto > 0)
+    .map(({ metodo, monto, recibido }) =>
+      metodo === "efectivo" && recibido !== undefined && recibido >= monto ? { metodo, monto, recibido } : { metodo, monto }
+    );
+}
+
 /**
  * Por qué el botón principal del ticket está apagado — o `null` si se puede seguir.
  *

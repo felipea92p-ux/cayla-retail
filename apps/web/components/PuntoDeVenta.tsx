@@ -21,6 +21,7 @@ import {
   esperaAlCargar,
   metodoDeAtajo,
   motivoBloqueoCobro,
+  pagosParaRpc,
   quitarPagoTraspasando,
   RAZON_CAMPANA,
   restanteDePagos,
@@ -730,8 +731,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     return () => window.removeEventListener("keydown", alAtajo);
   });
 
-  // Lo que la clienta entregó en efectivo — solo para mostrar el vuelto; NUNCA viaja a
-  // la RPC (si viajara lo entregado en vez de lo que cubre, rechazaría por no cuadrar).
+  // Lo que la clienta entregó en efectivo. Viaja a la RPC en su propia clave (`recibido`,
+  // aparte de `monto`, que es lo que cubre) solo si alcanza — ver `pagosParaRpc` — para poder
+  // reimprimir el ticket con su vuelto.
   function cambiarRecibido(monto: number | null) {
     setPagos((actual) => actual.map((p) => (p.metodo === "efectivo" ? { ...p, recibido: monto ?? undefined } : p)));
   }
@@ -766,9 +768,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         // Solo el descuento de campaña dice de qué etiqueta vino; la base lo verifica.
         descuento_etiqueta_id: it.razonDescuento === RAZON_CAMPANA ? it.campana?.etiquetaId : undefined,
       })),
-      // Solo `{ metodo, monto }`: el `recibido` es de pantalla. Y solo montos > 0 —
-      // `venta_pagos` lo exige; una fila bajada a cero mientras se combinaba no viaja.
-      p_pagos: pagos.filter((p) => p.monto > 0).map(({ metodo, monto }) => ({ metodo, monto })),
+      // Solo montos > 0 (`venta_pagos` lo exige; una fila bajada a cero mientras se combinaba no
+      // viaja). El `recibido` del efectivo va aparte de `monto`, y solo si lo cubre.
+      p_pagos: pagosParaRpc(pagos),
       p_token: token.current,
       p_tipo_comprobante: tipoComprobante,
       p_cliente_tipo_doc: clienteTipoDoc,

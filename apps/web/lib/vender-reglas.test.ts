@@ -14,6 +14,7 @@ import {
   hayDescuentoManual,
   motivoBloqueoCobro,
   necesitaArgumentoEscrito,
+  pagosParaRpc,
   porcentajeDeLinea,
   quitarPagoTraspasando,
   restanteDePagos,
@@ -485,5 +486,39 @@ describe("hayDescuentoManual — solo el manual pide código a una colaboradora"
   it("esDescuentoDeCampana exige monto > 0 además del motivo", () => {
     expect(esDescuentoDeCampana({ descuentoUnitario: 0, razonDescuento: "campana" })).toBe(false);
     expect(esDescuentoDeCampana({ descuentoUnitario: 8, razonDescuento: "campana" })).toBe(true);
+  });
+});
+
+describe("pagosParaRpc — lo que viaja a registrar_venta", () => {
+  it("el efectivo con recibido suficiente lo manda (para reimprimir el vuelto)", () => {
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 100, recibido: 150 }])).toEqual([
+      { metodo: "efectivo", monto: 100, recibido: 150 },
+    ]);
+  });
+
+  it("sin recibido no inventa la clave", () => {
+    const [p] = pagosParaRpc([{ metodo: "efectivo", monto: 100 }]);
+    expect(p).toEqual({ metodo: "efectivo", monto: 100 });
+    expect(p).not.toHaveProperty("recibido");
+  });
+
+  it("un recibido menor que lo que cubre no viaja: el candado de la base rechazaría toda la venta", () => {
+    const [p] = pagosParaRpc([{ metodo: "efectivo", monto: 100, recibido: 80 }]);
+    expect(p).not.toHaveProperty("recibido");
+  });
+
+  it("un recibido exacto viaja (vuelto cero)", () => {
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 100, recibido: 100 }])[0]).toHaveProperty("recibido", 100);
+  });
+
+  it("solo el efectivo lleva recibido", () => {
+    const [p] = pagosParaRpc([{ metodo: "yape", monto: 50, recibido: 60 }]);
+    expect(p).not.toHaveProperty("recibido");
+  });
+
+  it("descarta los pagos en 0 (venta_pagos exige monto > 0)", () => {
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 0, recibido: 10 }, { metodo: "yape", monto: 30 }])).toEqual([
+      { metodo: "yape", monto: 30 },
+    ]);
   });
 });
