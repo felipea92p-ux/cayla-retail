@@ -3806,6 +3806,10 @@ export type Database = {
         }
         Returns: string
       }
+      etiquetar_variantes: {
+        Args: { p_cambios: Json }
+        Returns: Json
+      }
       fn_aplicar_movimiento: {
         Args: { p_movimiento_id: string }
         Returns: undefined
