@@ -2,11 +2,14 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
 import {
   ADJUNTOS_BUCKET,
+  comprobanteDeFilaOperativa,
+  esFuncionAusente,
   type AdjuntoCompra,
   type CompraResumen,
   type Condicion,
   type EstadoPago,
   type EstadoRecepcion,
+  type FilaOperativa,
   type LineaCompra,
   type PagoCompra,
   type RecepcionCompra,
@@ -158,36 +161,61 @@ export function filtrosDesdeParams(p: ParamsCompras): FiltrosCompras {
 
 export async function listarCompras(
   filtros: FiltrosCompras = {},
-  opciones: { orden?: OrdenCompras; cursor?: Cursor | null; limite?: number } = {}
+  opciones: { orden?: OrdenCompras; cursor?: Cursor | null; limite?: number; sinMontos?: boolean } = {}
 ): Promise<PaginaCompras> {
   const supabase = await createClient();
   const orden = opciones.orden ?? "emision";
   const limite = opciones.limite ?? TAMANO_PAGINA;
-  const filas = exigir(
-    await supabase.rpc("listar_compras", {
+
+  // ADR-0126: quien no es líder no lee `listar_compras` (trae montos, y las tablas de dinero quedan cerradas para
+  // él): lee `listar_compras_operativo`, que devuelve solo lo que hace falta para recibir. Solo tiene el orden por
+  // emisión y NINGÚN filtro de pago (filtrar por una columna de dinero es una forma de enterarse del dinero).
+  let operativas: FilaOperativa[] | null = null;
+  if (opciones.sinMontos) {
+    const res = await supabase.rpc("listar_compras_operativo", {
       p_limite: limite,
-      p_orden: orden,
       ...(opciones.cursor
         ? { p_cursor_fecha: opciones.cursor.fecha, p_cursor_creado_en: opciones.cursor.creadoEn, p_cursor_id: opciones.cursor.id }
         : {}),
       ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
       ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
-      ...(filtros.estadoPago ? { p_estado_pago: filtros.estadoPago } : {}),
       ...(filtros.estadoRecepcion ? { p_estado_recepcion: filtros.estadoRecepcion } : {}),
-      ...(filtros.condicion ? { p_condicion: filtros.condicion } : {}),
       ...(filtros.tipo ? { p_tipo: filtros.tipo } : {}),
-      ...(filtros.soloVigentes ? { p_solo_vigentes: true } : {}),
-      ...(filtros.conSaldo ? { p_con_saldo: true } : {}),
-      ...(filtros.soloVencidas ? { p_solo_vencidas: true } : {}),
       ...(filtros.porRecibir ? { p_por_recibir: true } : {}),
       ...(filtros.desde ? { p_desde: filtros.desde } : {}),
       ...(filtros.hasta ? { p_hasta: filtros.hasta } : {}),
-    }),
-    "las facturas de compra"
-  );
+    });
+    // Si la función todavía no existe en esa base (el despliegue llegó antes que la migración), se sigue por el
+    // camino de antes —la página ya tacha los montos— en vez de tumbar Recibir. Cualquier OTRO error sí se ve.
+    if (!esFuncionAusente(res.error)) operativas = exigir(res, "las facturas de compra");
+  }
+  const todas: CompraResumen[] = operativas
+    ? operativas.map(comprobanteDeFilaOperativa)
+    : exigir(
+        await supabase.rpc("listar_compras", {
+          p_limite: limite,
+          p_orden: orden,
+          ...(opciones.cursor
+            ? { p_cursor_fecha: opciones.cursor.fecha, p_cursor_creado_en: opciones.cursor.creadoEn, p_cursor_id: opciones.cursor.id }
+            : {}),
+          ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
+          ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
+          ...(filtros.estadoPago ? { p_estado_pago: filtros.estadoPago } : {}),
+          ...(filtros.estadoRecepcion ? { p_estado_recepcion: filtros.estadoRecepcion } : {}),
+          ...(filtros.condicion ? { p_condicion: filtros.condicion } : {}),
+          ...(filtros.tipo ? { p_tipo: filtros.tipo } : {}),
+          ...(filtros.soloVigentes ? { p_solo_vigentes: true } : {}),
+          ...(filtros.conSaldo ? { p_con_saldo: true } : {}),
+          ...(filtros.soloVencidas ? { p_solo_vencidas: true } : {}),
+          ...(filtros.porRecibir ? { p_por_recibir: true } : {}),
+          ...(filtros.desde ? { p_desde: filtros.desde } : {}),
+          ...(filtros.hasta ? { p_hasta: filtros.hasta } : {}),
+        }),
+        "las facturas de compra"
+      ).map(aResumen);
   // La función devuelve limite+1 filas a propósito: la de más solo dice "hay otra página".
-  const hayMas = filas.length > limite;
-  const pagina = (hayMas ? filas.slice(0, limite) : filas).map(aResumen);
+  const hayMas = todas.length > limite;
+  const pagina = hayMas ? todas.slice(0, limite) : todas;
   const ultima = pagina[pagina.length - 1];
   const siguiente =
     hayMas && ultima
@@ -202,8 +230,8 @@ export function listarPorPagar(filtros: FiltrosCompras = {}, cursor: Cursor | nu
 }
 
 /** Facturas vigentes con mercadería pendiente de recibir (índice parcial `compras_por_recibir_idx`). */
-export function listarPorRecibir(filtros: FiltrosCompras = {}, cursor: Cursor | null = null): Promise<PaginaCompras> {
-  return listarCompras({ ...filtros, porRecibir: true }, { cursor });
+export function listarPorRecibir(filtros: FiltrosCompras = {}, cursor: Cursor | null = null, opciones: { sinMontos?: boolean } = {}): Promise<PaginaCompras> {
+  return listarCompras({ ...filtros, porRecibir: true }, { cursor, sinMontos: opciones.sinMontos });
 }
 
 /** Cifras de cabecera (conteos y sumas), calculadas en Postgres en una sola llamada. */
@@ -256,17 +284,44 @@ export async function getCompra(compraId: string): Promise<CompraResumen | null>
   return { ...aResumen(resumen), motivoAnulacion: exigirOpcional(base, "la factura de compra")?.motivo_anulacion ?? null };
 }
 
-/** Líneas de una o varias facturas, con lo ya recibido por línea. */
-export async function getLineasCompra(compraIds: string[]): Promise<LineaCompra[]> {
+type FilaLinea = {
+  id: string | null;
+  compra_id: string | null;
+  producto_id: string | null;
+  variante_id: string | null;
+  descripcion: string | null;
+  cantidad: number | null;
+  costo_unitario: number | null;
+  subtotal: number | null;
+  recibido: number | null;
+  cerrado: number | null;
+  pendiente: number | null;
+};
+
+/**
+ * Líneas de una o varias facturas, con lo ya recibido por línea. `sinMontos` (quien no es líder, ADR-0126): las lee
+ * de `lineas_compra_operativo`, que no trae costo ni subtotal; el resto del armado es el mismo, así que en la
+ * pantalla esos dos campos quedan en 0. Si la función todavía no existe en esa base, sigue por la vista de antes.
+ */
+export async function getLineasCompra(compraIds: string[], opciones: { sinMontos?: boolean } = {}): Promise<LineaCompra[]> {
   if (compraIds.length === 0) return [];
   const supabase = await createClient();
-  const filas = exigir(
-    await supabase
-      .from("compra_items_resumen")
-      .select("id, compra_id, producto_id, variante_id, descripcion, cantidad, costo_unitario, subtotal, recibido, cerrado, pendiente")
-      .in("compra_id", compraIds),
-    "las líneas de la factura"
-  );
+  let filas: FilaLinea[] | null = null;
+  if (opciones.sinMontos) {
+    const res = await supabase.rpc("lineas_compra_operativo", { p_compra_ids: compraIds });
+    if (!esFuncionAusente(res.error)) {
+      filas = exigir(res, "las líneas de la factura").map((l) => ({ ...l, costo_unitario: null, subtotal: null }));
+    }
+  }
+  if (!filas) {
+    filas = exigir(
+      await supabase
+        .from("compra_items_resumen")
+        .select("id, compra_id, producto_id, variante_id, descripcion, cantidad, costo_unitario, subtotal, recibido, cerrado, pendiente")
+        .in("compra_id", compraIds),
+      "las líneas de la factura"
+    );
+  }
 
   // Referencia del producto y datos de la variante se resuelven aparte: la
   // vista no expone FKs a PostgREST, así que no se puede embeber.

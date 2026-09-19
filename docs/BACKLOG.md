@@ -28,42 +28,245 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Proveedores: vista rápida, mini-tendencias y movimiento que responde (2026-09-19, ADR-0128)
+
+Aplicado en código y verificado en el navegador con sesión de líder (escritorio); **falta lo de producción
+y mirarlo en celular real** (ver abajo).
+
+- [ ] **Pegar en producción `20260919150000_proveedores_serie_mensual.sql`** (una función de solo lectura, con
+  ok explícito de Felipe y con el prefijo `retail.`/`set search_path` que ya trae el archivo). Hasta entonces
+  la lista se ve sin mini-tendencias ni barras mensuales — a propósito, no es un error. Después: refrescar el
+  volcado (`pnpm datos:generar:produccion`) para que `funciones-produccion.txt` la incluya.
+- [ ] **Mirarlo en celular real** (390 px): el cajón a pantalla completa, las filas de 2 columnas y el
+  filtro de rubro con desplazamiento horizontal se verificaron solo por CSS, no en un dispositivo. Y con MÁS
+  datos: la base local tiene 2 proveedores activos, así que el deslizamiento de filas se midió pero no se
+  vio con una lista larga.
+- [ ] **Regla de movimiento cambiada (Felipe, 2026-09-19): la llegada a una pantalla también se anima.**
+  Aplicada solo en Proveedores. Si otra pantalla la quiere, usa `anim-entra` con `--i` (ver el encabezado de
+  «Capa de movimiento» en `globals.css`); no es obligatoria. Falta decidir cuáles siguen (Comprobantes, Por
+  pagar, Recibir) — cada una con su verificación en navegador.
+- [ ] **Deuda menor:** la barra de «Concentración» dejó de ser un enlace a Por pagar (sus tramos son botones).
+  Si se extraña, se agrega un «Ver por pagar →» al pie de la tarjeta.
+
+## 🎯 El dinero de Compras es solo del líder + «Recibidas» por envío (2026-09-19, ADR-0126)
+
+PR #178, fusionado el 2026-09-19 (`cb35240`). **Las dos migraciones están aplicadas en producción** (las pegó Felipe ese
+día y se verificaron: ADR-0126, «Verificado en producción»). Cierra los huecos que dejó Recibir por envío:
+un integrante leía los montos de su sede por tres puertas —5 funciones, las tablas de Compras y el bucket de
+escaneos—; cerrar solo las funciones no habría servido. `pnpm pruebas:dinero-compras` (32 casos, también con
+`--en-seco`), `pruebas:compras-indicadores` (144/144), `pruebas:compras-faltantes` (112/112) y `pruebas:recibir-envio` (29/29) en
+verde; tipos, lint y 1062 pruebas unitarias en verde.
+
+**Migraciones (aplicadas en producción, en este orden):**
+
+1. `20260919160000_dinero_de_compras_lectura_operativa.sql` (A) — aditiva: nada deja de funcionar al pegarla.
+2. `20260919161000_dinero_de_compras_tablas_solo_lider.sql` (B) — **después de A y de que Vercel haya desplegado**. Se
+   niega a correr si la A no está («Pega primero …»). Es la que cierra las tablas y el bucket.
+
+- [x] **Pegar A y luego B** en el SQL Editor de producción: hecho el 2026-09-19. El editor muestra solo el resultado
+      de la última instrucción: no esperes ver la lista de firmas al pegar A.
+- [x] **Verificar tras pegar (base de datos):** 5 de 5 funciones de dinero con candado, sin sobrecargas; las 5 políticas
+      y el bucket con la regla nueva; una colaboradora real recibe `42501` en las 5 funciones de dinero mientras las de
+      recibir le responden, y a la líder todo le responde.
+- [ ] **Verificar en pantalla (Felipe):** abrir `/recibir` como colaborador (Micaela, Tienda Trujillo): lista y líneas
+      sin ningún «S/», y `/inventario/recibir` sin la columna de costo. Como líder, `/compras` y `/compras/por-pagar`
+      iguales que antes. Producción aún no tiene facturas: la primera será la prueba real.
+- [x] **Refrescar el volcado y el diccionario:** hecho el 2026-09-19 (174 funciones, las 5 políticas y, de paso, 2
+      funciones de Movimientos que faltaban). `datos:comparar` ya no marca `lineas_compra_operativo`.
+- [ ] **Regla para la sesión de Compras:** después de pegar cualquier migración que recree `resumen_compras`,
+      `resumen_compras_extra`, `deuda_por_vencimiento`, `salidas_caja_30d` o `por_pagar_tramos`, correr
+      `select retail.fn_aplicar_candado_de_dinero();`. Una migración puede llevar, al final y sin depender del orden:
+      `do $$ begin if to_regprocedure('retail.fn_aplicar_candado_de_dinero()') is not null then perform retail.fn_aplicar_candado_de_dinero(); end if; end $$;`
+- [ ] **Decisiones que este ADR NO toma (para Felipe):** (1) `fn_productos` devuelve `costo` y `precio` a cualquier
+      usuario con sesión y el catálogo no lo esconde: hoy un integrante ve el costo unitario de cada prenda; (2)
+      `proveedores_select` deja a cualquier sesión leer RUC, teléfono, **banco y cuenta bancaria** de todos los
+      proveedores. Ambos tocan otros módulos (Inventario/Productos/Vender; Proveedores).
+- [x] **«Recibidas recientemente» agrupada por envío:** las filas de un envío de 2+ proveedores salen bajo una cabecera
+      «Envío de N proveedores · Guía …» con lo que llegó y lo que faltó (`agruparPorEnvio`, sin migración: lee
+      `lotes.envio_id`). Si el tope de filas corta un envío, no pinta totales de una parte.
+- [x] **Diccionario al día con Recibir por envío:** `envios`, `envio_extras`, `envio_traslados` y `lotes.envio_id`
+      entraron a `docs/datos/generado/` (refresco acotado a esas tablas contra producción, 2026-09-19). Producción
+      tiene 0 filas en `lotes` y en `envios`.
+
+## 🎯 Cambios: flujo guiado, motivo y estado de la prenda que vuelve (2026-09-18, ADR-0125)
+
+Felipe no quedó convencido con la pantalla del PR #128 y pidió primero una auditoría y
+después un rediseño profundo (brief detallado: flujo en 4 pasos, validaciones visibles,
+impacto en inventario/caja, estados, accesibilidad, responsive). Adaptado a lo que CAYLA
+tiene de verdad — detalle y descartes en ADR-0125.
+
+- [x] **Migración `20260919000100_cambios_motivo_y_estado_de_prenda.sql`** — `cambios.motivo`
+      (lista cerrada) y `cambios.condicion` (vendible → piso / no_vendible → cuarentena, R-39);
+      candado "un cambio por defecto no vuelve al piso"; `prendas_danadas.cambio_id` (la
+      cuarentena de Devoluciones recibe también lo de Cambios); `registrar_cambio` rechaza
+      ventas anuladas (antes duplicaba stock). Aplicada en local; `pruebas:registrar-cambio`
+      18/18 (13 viejas con la firma de antes + 5 nuevas).
+- [x] **Migración aplicada en producción el 2026-09-19 (pegada por Felipe; verificada: una sola
+      `registrar_cambio` de 8 parámetros, `{postgres, authenticated}`, columnas, candados e índice
+      único) — el front ya puede fusionarse.** Lo que sigue es lo que se hizo ANTES de fusionar el front: La firma nueva
+      acepta las llamadas viejas (defaults), la pantalla nueva no funciona contra la firma
+      vieja. Pegar el archivo tal cual (ya trae `retail.`), confirmar en `pg_proc` UNA
+      sola `registrar_cambio(uuid,uuid,uuid,integer,text,uuid,text,text)`, y recién
+      después fusionar. Necesita el ok de Felipe (cambio de esquema en producción).
+      **Prerrequisitos verificados contra producción el 2026-09-19 (solo catálogo, sin datos):**
+      una sola `registrar_cambio` de 6 parámetros con el candado de caja de `20260916180000`;
+      `cambios` sin `motivo`/`condicion`; `prendas_danadas` con `devolucion_item_id NOT NULL` y sin
+      `cambio_id`; `movimientos.cambio_id`, `ventas.estado` y las tres `fn_*` auxiliares existen;
+      cada tienda tiene su cuarentena; ninguno de los dos candados nuevos existe aún.
+- [x] **`/cambios` rehecha** — bloques "Iniciar un cambio" y "Actividad reciente" (últimos
+      15 días, filtros Todas / Con cambio / Sin comprobante); flujo guiado Venta → Prenda →
+      Reemplazo → Confirmación → éxito sin modal; validaciones en vivo con foco al campo
+      que falta; impacto en inventario y caja; buscador único (boleta, DNI/RUC, nombre de
+      clienta, nombre o etiqueta de la prenda); "Buscar en" solo para líderes (RLS);
+      "Tallas que no calzan" para líderes; `/devoluciones?item=` abre la prenda que viene
+      de Cambios. Componentes: `CambiosPanel`, `CambiosBuscador`, `CambiosVentas`,
+      `CambiosFlujo`, `CambioReemplazo`, `CambioResumen` (reemplazan a `CambiosLista` y
+      `CambioFormV2`). Reglas puras con 35 pruebas en `cambios-reglas.test.ts`.
+- [x] **De paso:** la lista de Cambios pedía todas las líneas de la sede sin orden
+      (PostgREST corta en 1000) — ahora elige las ventas en Postgres; `--color-papel` a
+      blanco cálido `#fbf6ec` en todo el sistema (pedido de Felipe).
+- [ ] **Verificar con sesión real** — la vuelta se probó con datos de ejemplo (el panel del
+      navegador no tenía login): falta buscar contra datos reales y registrar un cambio de
+      punta a punta hasta la pantalla de éxito.
+- [ ] **Decisiones de dinero/política que Felipe dejó en pausa (no tocadas):** (1) la
+      diferencia de precio de un cambio no emite boleta ni nota de crédito —el título "Cambios
+      no emitían NC — CERRADO" de más abajo solo es cierto para Devoluciones—, y el método
+      arranca en efectivo cuando R-37 dice que devolver plata es lo último; (2) excepciones al
+      plazo de 15 días / "cambio extendido" de R-33 (hoy el plazo solo lo controla la pantalla).
+- [ ] **Ideas que quedaron fuera a propósito:** buscar por teléfono (no existe el dato:
+      necesita la base de clientas de R-33); cambio de una venta que nunca se registró (R-15,
+      toca el núcleo); paleta de comandos Ctrl+K global (toca AppShell y todos los módulos);
+      endurecer `cambios.motivo` a obligatorio en la base cuando ya no haya pantallas viejas.
+- [x] **Devoluciones tenía el mismo hueco de venta anulada — CERRADO 2026-09-18** en la base
+      local por la otra sesión (`20260918163712_devolucion_rechaza_venta_anulada.sql`, rama
+      `claude/blissful-mccarthy-3b06e5`, **no está en producción**). Al fusionar, la pantalla
+      nueva de Devoluciones ya etiqueta la venta anulada y no deja elegir sus prendas.
+
+## 🎯 Movimientos: qué cambió en el stock y qué proceso lo originó (2026-09-19, ADR-0127)
+
+**Cerrado esta sesión (PR #179); migración APLICADA en producción el 2026-09-19** —
+`20260919155000_movimientos_referencias_y_busqueda.sql`
+(`fn_movimientos_busqueda`, `fn_movimientos_de_comprobante`, `fn_movimientos` con 2 columnas
+más, `fn_movimientos_resumen` con la misma búsqueda) + pantalla simplificada
+(`FiltrosMovimientos.tsx`, `MovimientosLista.tsx`, `MovimientoDetalle.tsx`,
+`lib/movimientos-reglas.ts`) + `coincideBusqueda` de Traslados. Ninguna tabla cambia;
+ninguna escritura cambia.
+
+**Hecho en producción (2026-09-19):**
+
+- [x] **`20260919155000_movimientos_referencias_y_busqueda.sql` aplicada ANTES de fusionar el front**,
+      con la autorización de Felipe: ensayo completo en una transacción revertida contra datos reales
+      (464 movimientos, 4 sedes; lo que no debía cambiar dio idéntico, Traslados 1–4 y seis boletas
+      reales dieron lo esperado, los permisos por sede se respetan), después `apply_migration` con el
+      texto exacto del archivo. Verificado: una sola firma por función, `anon` sin EXECUTE, permisos
+      idénticos a la versión anterior, `md5(prosrc)` de las cuatro funciones igual al del archivo.
+      Detalle en «Consecuencias» de ADR-0127.
+
+**Pendiente:**
+
+- [ ] **Refrescar el volcado de producción de `docs/datos/generado/`** (`generado/COMO-REFRESCAR.md` y
+      luego `pnpm datos:generar:produccion`): describe todavía `fn_movimientos` sin las dos columnas
+      nuevas y sin las dos funciones nuevas. Mientras no se refresque, `datos:comparar` no puede
+      confirmar esta firma (arma los parámetros con `...`, queda «no analizada»).
+- [ ] **Una vez desplegado el front, mirarlo con una sesión real de líder en producción**: «Traslado 1»
+      en el buscador de Tienda AQP o TRU y clic en la referencia. No se pudo hacer desde la sesión que
+      lo construyó (sin credenciales); la base ya está verificada, falta ver la pantalla.
+- [ ] **Decisión de negocio: ¿numeración corrida para ventas, devoluciones, cambios y recepciones?**
+      Hoy solo traslados y conteos tienen número; «Venta 184», «Recepción 31» o «Devolución 7» no
+      existen. La columna «Referencia» muestra lo que hay: comprobante (`Boleta B001-000184`),
+      factura de compra o guía. Numerar es una migración de cuatro tablas con backfill y preguntas
+      de negocio (¿el número de venta es el de la boleta?, ¿uno por sede o global?, ¿y una venta sin
+      comprobante?). Si en la operación se empieza a decir «la venta 184» en voz alta, conviene;
+      si no, el comprobante alcanza.
+
+**Deuda conocida (no bloquea):**
+
+- [ ] **Traslados busca solo entre los en curso y los 30 cerrados más recientes.** Escribir el
+      número de un traslado cerrado hace meses no lo encuentra en Traslados (desde Movimientos
+      sí se llega: el enlace abre el detalle por id). Hoy no se nota. Si molesta, la búsqueda
+      por número pasa al servidor.
+- [ ] **A ~800 px con el menú lateral abierto la tabla de Movimientos hace scroll horizontal
+      dentro de la tarjeta** (el mínimo de sus cinco columnas es ~500 px y la tarjeta mide ~430).
+      Es el contrato de `ui/Tabla.tsx`, compartido con Compras; se ve bien desde ~1000 px y en
+      celular (apilada). Si molesta, el breakpoint de la grilla sube de `sm` a `lg` para esta tabla.
+- [ ] **El nombre de proceso cambió también en el Historial de producto** («Reposición» →
+      «Ajuste · reposición», «Transferencia · llegada/salida»): mismo nombre en todas partes, pero
+      es un cambio visible fuera de esta pantalla.
+
+## 🎯 Devoluciones con el mismo modelo que Cambios (2026-09-18, ADR-0122)
+
+Felipe aprobó el flujo de Cambios y pidió repetirlo en Devoluciones. Sin migración ni backend:
+solo pantalla y lectura. Detalle, decisiones tomadas por él y descartes en ADR-0122.
+
+- [x] **`/devoluciones` rehecha** — «Iniciar una devolución» (buscador único, escanear, sin
+      comprobante), «Por aprobar» (para un líder: prendas, estado, lo que pagó la clienta,
+      aviso de plazo, reembolso opcional con aviso de caja cerrada) y «Actividad reciente»
+      (15 días, filtros). Flujo guiado Venta → Prendas → Detalle → Confirmación → registrada,
+      con **varias prendas en una sola devolución** (una nota de crédito en vez de varias
+      parciales). Piezas compartidas con Cambios: `getVentasRecientes`, `FlujoGuiado`,
+      `ComprasAgrupadas`, `BuscadorVentas`. 26 pruebas nuevas en `devoluciones-reglas.test.ts`.
+- [x] **Hueco cruzado cambio↔devolución cubierto en PANTALLA**: `unidadesDisponibles` descuenta lo
+      cambiado y lo devuelto en las dos pantallas; una prenda con devolución registrada ya no
+      ofrece «Iniciar cambio» y al revés.
+- [ ] **La BASE sigue sin ese candado — hueco real de otra clase que el de venta anulada.**
+      `crear_devolucion` cruza solo contra devoluciones y `registrar_cambio` solo contra
+      cambios: una línea cambiada se puede devolver por otra vía y la prenda vuelve al stock dos
+      veces (0 casos locales). Mismo arreglo que el de venta anulada, en su propia migración.
+      **Necesita tocar `crear_devolucion` y `registrar_cambio`: coordinar con la migración
+      `20260918163712` (otra sesión) para no dejar dos sobrecargas.**
+- [ ] **Plazo de 15 días en Devoluciones: hoy solo se AVISA, no bloquea** (decisión mía por Felipe,
+      reversible en `estadoPrendaDevolucion`). Falta que Felipe diga quién decide pasado el plazo
+      (¿solo un líder?, ¿con motivo escrito?), y si una prenda con defecto de fábrica debe poder
+      devolverse pasado el plazo (no está escrito en R-38; conviene revisarlo con quien lleve lo legal).
+- [ ] **`devoluciones.motivo_codigo` estructurado** (hoy el motivo es uno de cinco textos fijos +
+      detalle, sumables con `group by`): esperar a fusionar la migración de venta anulada para no
+      tocar `crear_devolucion` en paralelo.
+- [ ] **Token de idempotencia en `crear_devolucion`** (como `registrar_cambio`, ADR-0032): sin él,
+      una red que se corta después del commit deja un reintento que sale con «ya se devolvieron…».
+- [ ] **La nota de crédito usa `precio_unitario` sin restarle `descuento_unitario`**
+      (`aprobar_devolucion`, ADR-0100) y la diferencia de un cambio tampoco: en una línea con
+      descuento (149.90 con 15 de descuento) se acredita de más. La pantalla ya muestra lo que
+      pagó de verdad. Es plata: confirmar con Felipe/contador antes de tocarlo.
+- [ ] **Verificar con clic real** `/devoluciones` con datos reales: el panel oculto del navegador no
+      hidrata las páginas del menú. Falta registrar una devolución de punta a punta, aprobarla y ver
+      la nota de crédito en Facturación.
+- [x] **Números de ADR y de migración** (2026-09-19, al fusionar con `main`): los de Cambios,
+      Devoluciones y Atelier pasaron de 0104/0105/0106 a **0125/0122/0123** (main usaba esos
+      números; el 0121 lo tomó Resumen de inventario mientras tanto y el 0124 lo reservó Facturación) y la migración de `20260918150000` a `20260919000100` (esa hora la ocupa
+      `compras_filtro_tipo_documento`); ahora es re-ejecutable, porque en la base local ya estaba
+      aplicada con el nombre viejo.
+
+---
+
 ## 🎯 Recibir por envío: varios proveedores, una guía, cuenta cualquiera (2026-09-18, ADR-0113)
 
-Rama `claude/receiving-module-design-3f2904`, sobre `main` (804d030, con la rama de Compras ya fusionada, #149).
-**Solo local — NO está en producción.** Construido y verificado: tablas `envios` / `envio_extras` /
-`envio_traslados` + `lotes.envio_id`, la RPC atómica e idempotente `recibir_envio`, y la pantalla nueva
-`/recibir` (`RecepcionEnvio.tsx`, reglas puras en `lib/envio-reglas.ts`). 29 pruebas SQL
-(`pnpm pruebas:recibir-envio`), 24 unitarias, tipos y lint en verde, y un envío real de punta a punta desde la
-pantalla como líder (2 proveedores + un regalo + un traslado del Taller). Decisiones de Felipe: un envío puede
-traer comprobantes de varios proveedores; una sola guía por envío; lo fuera de comprobante declara su origen
-(proveedor, y si es regalo; lo de otra sede se confirma como traslado, no como prenda suelta); cualquier
-persona cuenta en la puerta; los cuatro indicadores viven bajo «¿Qué llegó?» y desaparecen al marcar.
+**En `main` y en producción** (PR #172, fusionado el 2026-09-19; las 2 migraciones las pegó Felipe ese día). Tablas
+`envios` / `envio_extras` / `envio_traslados` + `lotes.envio_id`, la RPC atómica e idempotente `recibir_envio`, y la
+pantalla `/recibir` (`RecepcionEnvio.tsx`, reglas puras en `lib/envio-reglas.ts`). 29 pruebas SQL
+(`pnpm pruebas:recibir-envio`), un envío real de punta a punta desde la pantalla como líder (2 proveedores + un regalo
++ un traslado del Taller). Decisiones de Felipe: un envío puede traer comprobantes de varios proveedores; una sola
+guía por envío; lo fuera de comprobante declara su origen (proveedor, y si es regalo; lo de otra sede se confirma como
+traslado, no como prenda suelta); cualquier persona cuenta en la puerta; los cuatro indicadores viven bajo «¿Qué
+llegó?» y desaparecen al marcar.
 
-- [ ] **Probar la pantalla como colaborador** (Micaela, integrante de Tienda Trujillo): no se pudo en esta
-      sesión (el inicio de sesión pide contraseña). Qué mirar: ningún «S/» en la lista ni en los indicadores,
-      «Entra al almacén de» fijo a su sede, sin editor de faltantes ni nota de crédito («Sigue pendiente»), y
-      que `/compras` la devuelva al Inicio. Hay dos comprobantes de prueba `TST-UI000003`/`UI000004` para
-      Tienda Trujillo. En la base local quedaron además `TST-UI000001`/`UI000002` (ya recibidos, envío
-      `T009-UI01`) y el traslado 15 (cerrado): datos de prueba, no se borran.
-- [x] **Las 2 migraciones ya están en producción** (`20260919120000_envios_recepcion_multiproveedor`,
-      `20260919121000_recibir_envio`): las pegó Felipe el 2026-09-19 y se verificó contra la base (3 tablas,
-      `lotes.envio_id`, `recibir_envio` de una sola firma y 3 políticas de RLS). Falta, opcional, registrarlas en
-      `supabase_migrations.schema_migrations`. **Probar con un comprobante real** necesita antes `20260918219000`
-      (de Compras): hasta que se pegue, `registrar_compra` tiene dos firmas en producción.
-- [ ] **«Recibidas recientemente» ahora vive en `/recibir?vista=recibidas`.** La sesión de Compras tiene sin
-      publicar `feat/recibidas-pastillas` (filtros como 2 pastillas; `FiltrosRecibidas.tsx` +
-      `lib/recibidas-filtros-reglas.ts`): su cambio de página se aplica en `/recibir/page.tsx` (la ruta vieja se
-      borró), sus componentes se reusan tal cual.
-- [ ] **Hueco de ADR-0075 (lo encontró Compras, PR #165):** `resumen_compras`, `resumen_compras_extra`,
-      `deuda_por_vencimiento`, `salidas_caja_30d` y `por_pagar_tramos` devuelven a un integrante los montos de
-      su sede (solo candado de sede). Recibir no las usa para colaboradores (`kpisDeLaLista`); decidir con
-      Felipe si eso está bien o se cierra.
+- [ ] **Probar la pantalla como colaborador** (Micaela, integrante de Tienda Trujillo): no se pudo (el inicio de sesión
+      pide contraseña y no se escribe). Qué mirar: ningún «S/» en la lista ni en los indicadores, «Entra al almacén de»
+      fijo a su sede, sin editor de faltantes ni nota de crédito («Sigue pendiente»), y que `/compras` la devuelva al
+      Inicio. En la base local hay comprobantes de prueba `TST-UI000003`/`UI000004` para Tienda Trujillo y
+      `TST-UI000001`/`UI000002` (ya recibidos, envío `T009-UI01`): datos de prueba, no se borran.
+- [x] **Las 2 migraciones están en producción** (`20260919120000_envios_recepcion_multiproveedor`,
+      `20260919121000_recibir_envio`), verificadas contra la base. No hace falta registrarlas en
+      `supabase_migrations.schema_migrations`: ahí solo constan las que aplica la herramienta de Supabase (las pegadas
+      a mano, incluidas las de Compras, no) y `scripts/migraciones/verificar.mjs` no lee esa tabla.
+- [x] **«Recibidas recientemente» vive en `/recibir?vista=recibidas`** con las pastillas de Compras (#174) y ahora
+      agrupada por envío (ADR-0126).
+- [x] **Hueco de ADR-0075** (montos legibles por un integrante): cerrado por ADR-0126.
 
-Siguiente, sin urgencia: agrupar «Recibidas recientemente» por envío (hoy una fila por comprobante, con la
-misma guía); borrador local del conteo; miniaturas de prenda; ni `recibir_compras` ni `recibir_lote` sueltos
-tienen token de idempotencia (solo `recibir_envio`). **Cruce:** ADR-0107 (`modulos-por-tienda`, un comprobante
+Siguiente, sin urgencia: borrador local del conteo; miniaturas de prenda; ni `recibir_compras` ni `recibir_lote`
+sueltos tienen token de idempotencia (solo `recibir_envio`). **Cruce:** ADR-0107 (`modulos-por-tienda`, un comprobante
 repartido entre tiendas) reescribe las mismas funciones; el tope por tienda va dentro de `recibir_compras`.
+
+
 
 ---
 
@@ -276,7 +479,7 @@ sobre una venta anulada — no hay nada que limpiar.
         `fn_tallas_estado_trigger` de producción es la versión vieja (solo aprueba desde
         `pendiente`; no reactiva una talla rechazada ni pone `activo = true`), así que
         reactivar una talla rechazada no funciona en producción. Y lo de la rama de Cambios
-        (`20260918150000_cambios_motivo_y_estado_de_prenda`, sin fusionar): `cambios.motivo`
+        (`20260919000100_cambios_motivo_y_estado_de_prenda`, antes `20260918150000`: se renumeró al fusionar con `main`; sin aplicar en producción): `cambios.motivo`
         y `condicion`, `prendas_danadas.cambio_id`, `registrar_cambio` de 8 parámetros.
         **Estado de B (2026-09-18) — APLICADA en
         producción, solo la de tallas.** Se pidió pegar `20260917120000`. Al compararla con lo que
@@ -374,14 +577,15 @@ van en la banda `20260918200000`–`20260918220000` (main trae su propia `202609
 - [ ] **Verificación visual contra las maquetas** (escritorio y móvil): el navegador integrado pide
       login y yo no ingreso contraseñas. Con sesión iniciada en `localhost:3000`, comparar cada
       pantalla con su PNG de `docs/maquetas/compras-2026-09/` y corregir desvíos.
-- [ ] **Desvíos y huecos conocidos:** (a) pestaña «Recibidas» usa el popover de `FiltrosCompras` en
-      vez de las dos pastillas en línea de la maqueta 06; (b) «Completar costo» (ingreso sin
+- [ ] **Desvíos y huecos conocidos:** (a) ~~pestaña «Recibidas» usa el popover de `FiltrosCompras`~~
+      **cerrado** (`FiltrosRecibidas` + `recibidas-filtros-reglas.ts`, rama `feat/recibidas-pastillas`;
+      falta solo la comparación visual con el PNG de la maqueta 06); (b) «Completar costo» (ingreso sin
       comprobante) no está: falta una RPC para editarlo; (c) la evolución de costo sale de
       `compra_items`, no de `costo_historial`; (d) **prueba SQL de los indicadores: hecha**
       (2026-09-18) — `pnpm pruebas:compras-indicadores` (`scripts/pruebas/compras_indicadores.mjs`):
-      140 casos en verde contra el Postgres local, cada uno en su transacción con ROLLBACK y midiendo
-      una línea base antes de su escenario (el seed y otras sesiones cambian los números absolutos), más 5
-      hallazgos abiertos (siguiente ítem); (e) `types.ts` ya se regeneró tras
+      145 casos en verde contra el Postgres local, cada uno en su transacción con ROLLBACK y midiendo
+      una línea base antes de su escenario (el seed y otras sesiones cambian los números absolutos), más 1
+      hallazgo abierto, H4 (siguiente ítem; H1, H2, H3 y H5 ya están corregidos); (e) `types.ts` ya se regeneró tras
       la fusión con main (hecho); (f) al pegar en producción: refrescar el volcado y correr
       `pnpm datos:generar:produccion && pnpm datos:comparar` (el aviario ya conoce las 3 tablas nuevas);
       (g) «esperando nota» ya no es solo del detalle: las listas de Comprobantes y Por pagar muestran el chip
@@ -389,24 +593,32 @@ van en la banda `20260918200000`–`20260918220000` (main trae su propia `202609
       y las de `nota-pendiente-reglas`). Pendiente de ver con sesión: el chip en la celda Pago de Comprobantes
       (11 rem, más angosta que el chip) se apoya en el espacio libre de la columna Total; en Por pagar va bajo el
       proveedor. Aún no sale en Proveedores ni en el Inicio.
-- [ ] **Hallazgos de `compras_indicadores.mjs` (sin arreglar; cada uno es una prueba `[HALLAZGO Hn]` que
-      pasa sola cuando se corrige, y todos piden una migración nueva):** **H1** `fn_proveedor_metricas_compras`
-      calcula `entregado_completo_pct` con `estado_recepcion = 'recibida'`, así que un proveedor que
-      entregó 20 de 24 y cuyo faltante se cerró sale con 100 % (la ficha) y con 50 % en Recibir
-      mercadería (`resumen_recepciones` usa `recibido_cantidad >= facturado_cantidad`, que es lo que
-      dice su propia definición). **H2** `fn_proveedor_devoluciones.ultima` toma `created_at` (el día
-      que la prenda entró a cuarentena) en vez de `resuelto_en` (el día que se devolvió). **H3**
-      `por_pagar_tramos` no acepta `p_tipo` ni fechas de emisión aunque promete «los mismos filtros que
-      `listar_compras`» (baja gravedad: la pantalla no expone esos filtros, pero `?tipo=` en la URL
-      desalinea subtotal y filas). **H4 (decisión de Felipe)** los indicadores de dinero que solo tienen
-      candado de sede (`resumen_compras`, `resumen_compras_extra`, `deuda_por_vencimiento`,
-      `salidas_caja_30d`, `por_pagar_tramos`) le devuelven a un integrante los montos de los comprobantes
-      de SU sede (ADR-0075), mientras `fn_proveedores*` y las fichas sí son solo-líder; no hay fuga hacia
-      otras sedes (probado), pero choca con «lo financiero es solo de líder». **H5** `registrar_pago_compra`,
-      `registrar_pagos_compra` y el pago inicial de `registrar_compra` fechan con `current_date` (UTC)
-      cuando no reciben fecha: entre las 7 pm y medianoche de Lima el pago queda de «mañana» y
-      `dias_pago_real_promedio` cuenta un día de más (la app manda su fecha, así que hoy solo afecta a
-      quien llame sin ella).
+- [ ] **Hallazgos de `compras_indicadores.mjs`: H1, H2, H3 y H5 corregidos en la migración
+      `20260918221000_compras_hallazgos_h1_h2_h3_h5.sql` (2026-09-19) — YA ESTÁ EN PRODUCCIÓN: Felipe la pegó el
+      2026-09-19 y se verificó contra la base (una sola firma por función, `por_pagar_tramos` con 7 parámetros, solo
+      `registrar_compra` conserva `current_date`, el default de la fecha de emisión). Se refrescó
+      `funciones-produccion.txt` (167 funciones, misma huella que producción) y `pnpm datos:comparar` quedó en verde;
+      **los seis `retail_*.json` del diccionario siguen atrasados** (producción tiene 70 tablas y vistas, 689 columnas,
+      451 restricciones y 109 políticas; el volcado, 67/671/434/106: son tablas de otras ramas ya pegadas) y hay que
+      refrescarlos con las consultas de `generado/COMO-REFRESCAR.md` en el SQL Editor.** Se reescribieron desde la definición REAL de
+      producción (`pg_get_functiondef`, misma huella md5 que el local) y con la misma lista de parámetros, salvo
+      `por_pagar_tramos` (suelta la firma vieja y estrena `p_tipo`, `p_desde`, `p_hasta`, todos con default: la
+      pantalla actual sigue funcionando sea cual sea el orden en que se despliegue). **H1** la ficha calculaba
+      `entregado_completo_pct` con `estado_recepcion = 'recibida'` y ahora usa `recibido_cantidad >=
+      facturado_cantidad`, igual que `resumen_recepciones`. **H2** `fn_proveedor_devoluciones.ultima` toma
+      `resuelto_en` (el día que se devolvió), no `created_at`. **H3** `por_pagar_tramos` acepta los filtros de
+      tipo y de emisión, y `getPorPagarTramos` los manda. **H5** los pagos sin fecha explícita (`registrar_pago_compra`,
+      `registrar_pagos_compra`, el pago inicial de `registrar_compra`) usan `fn_hoy_lima()`. Pruebas: 145 en
+      verde en `compras_indicadores.mjs` (las 4 dejaron de ser `[HALLAZGO]`; se comprobó que fallaban antes de
+      aplicar la migración), 112 en `compras_faltantes_y_pago_por_lote.mjs`, 29 en `recibir_envio.mjs`.
+      **Sigue abierto, H4 — DECIDIDO DIFERIR (Felipe, 2026-09-19: «aún no hay restricciones por usuario, dejemos
+      eso para más adelante»):** los indicadores de dinero que solo tienen candado de sede (`resumen_compras`,
+      `resumen_compras_extra`, `deuda_por_vencimiento`, `salidas_caja_30d`, `por_pagar_tramos`) le devuelven a un
+      integrante los montos de los comprobantes de SU sede (ADR-0075). No hay fuga hacia otras sedes; choca con
+      «lo financiero es solo de líder». Se retoma cuando todo esté en producción, decidiendo si devuelven vacío o
+      se quedan como están. **Anotado de paso:** `registrar_compra` aún tiene `p_fecha_emision date DEFAULT
+      CURRENT_DATE` (UTC): el mismo defecto de reloj, pero la pantalla siempre manda la fecha del papel y cambiar el
+      default de una fecha de EMISIÓN es una decisión distinta a la de un pago; no se tocó.
 
 ---
 
@@ -812,8 +1024,63 @@ tomó el 0097 primero y ya está en producción — ver ADR-0101 y la fila de ab
       sesión vive en el scratchpad y no se commitea; el generador real debe cubrir a
       propósito producto nuevo con poco historial, curva rota, mermas mezcladas con ventas,
       temporada con pico y caída.
-- Preguntas abiertas (ADR-0101): ventana elegible 7/14/30/60/90; mínimo por variante+sede;
-  ventana "días con stock" en vez de "días desde el primer ingreso".
+- ~~Preguntas abiertas (ADR-0101): ventana elegible; «días con stock» en vez de «días desde el
+  primer ingreso»~~ — resueltas en la v2 (abajo, ADR-0121). Sigue abierto: el mínimo por variante+sede.
+
+**Resumen v2 (2026-09-18, ADR-0121) — migración APLICADA en producción el 2026-09-19; el frontend sale con el merge del PR #161:**
+- [x] Período 7/30/90/este mes/personalizado + comparación (período anterior / mismo período del
+      año anterior); el stock siempre es el actual. Velocidad = ventas netas ÷ días EN VENTA (piso),
+      cobertura, sell-through, reserva de seguridad, motor de reposición (almacén → en camino → otra
+      tienda → Taller → red sin stock → sobrestock), curvas rotas, búsqueda por tokens, filtros en
+      la URL, detalle por variante, capital con verificación de costo. Definiciones exactas en el ADR.
+- [x] **Aplicada en producción (2026-09-19): `20260919141804_resumen_inventario_v2.sql`** (renombrada desde
+      `20260919010000`, que usa `etiquetar_variantes`). Con `apply_migration` (historial de Supabase
+      `20260919145415`), autorizada por Felipe, DESPUÉS de un ensayo completo en una transacción revertida
+      contra datos reales (mismas cifras que la función anterior en las 4 sedes; colaboradora sin costos ni
+      otras sedes; 40–55 ms por sede). Verificado al aplicar: una sola firma de 6 parámetros, `anon` sin
+      EXECUTE, cuerpo idéntico byte a byte al archivo (md5 de `prosrc`) y la llamada vieja
+      `(p_ubicacion_id, p_ventana_dias)` sigue sirviendo, así que la pantalla anterior no se enteró.
+      **Pendiente del ritual:** `pnpm datos:generar:produccion` + `pnpm datos:comparar` (el volcado de
+      `docs/datos/generado/` todavía trae la firma vieja: hasta que se refresque, `datos:comparar` marca
+      `resumen-inventario.ts` como pantalla rota, y es una alarma falsa).
+- [ ] **Lo que se va a ver el primer día en producción** (medido en el ensayo): las 141 filas variante×sede
+      que devuelve hoy la función (78 Taller, 17 AQP, 46 TRU) tienen costo `declarado` (ninguna `oficial`:
+      `costo_historial` sigue vacío), así que «Capital en inventario» SÍ se
+      muestra (ninguno es `alterado` ni `sin_costo`) pero es a costo declarado al dar de alta, no promedio
+      ponderado de compras. **Tienda AQP** tiene sus 76 unidades en el almacén y 0 en el piso: todas sus filas
+      saldrán «Sin piso / Bajar al piso». **Tienda LIM** no tiene stock ni movimientos (pantalla vacía honesta).
+      El ledger de producción cuadra en las 3 sedes con stock (0 filas con `ledger_consistente = false`).
+- [ ] **La garantía de costo (ADR-0067) está rota — decisión estructural de Felipe.** Hay dos caminos
+      de escritura ajenos a `fn_recalcular_costo_variante`: `catalogo_actualizar_producto` pisa
+      `variantes.costo` con lo que mande el formulario (o con 0) y la política `variantes_write_lider`
+      deja a cualquier líder escribirlo por la API. En producción `costo_historial` tiene 0 filas (ninguna
+      variante tiene el costo respaldado por el cálculo oficial). Hoy la tarjeta «Capital» mide en vez de
+      garantizar (`declarado`/`oficial`/`alterado`/`sin_costo`) y cae a «Unidades» si algo con stock queda
+      `alterado` o `sin_costo`. Cerrarlo de verdad: un flujo «ajustar costo» con auditoría, sacar el campo
+      editable de `ProductoForm`, y que `catalogo_actualizar_producto` deje de tocar el costo — esa función
+      tiene deriva repo↔producción, así que se parte de su definición viva.
+- [ ] **Cualquier usuario autenticado puede LEER `variantes.costo`** (SELECT abierto en RLS). La v2 solo
+      manda el costo a líderes desde la RPC, pero la tabla sigue legible por la API. Cerrar con una vista o
+      con columnas restringidas es decisión de modelo de datos.
+- [ ] **Confirmar los parámetros de negocio** (valores por defecto, uno por constante en
+      `lib/inventario-reglas.ts`): objetivo 14 días de cobertura, reserva de seguridad 3 días, piso de venta
+      7 días (alerta < 3), «alta cobertura» > 60 días, evidencia mínima 3/14 días, sell-through bajo < 20 % y
+      alto ≥ 60 %, alta demanda = el 20 % más rápido (≥ 0.5 uds/día), tendencia ±25 %, una tienda cede hasta
+      dejar 10 días de su propia venta. Son punto de partida, no verdad: Felipe los ajusta mirando su venta real.
+- [ ] **Reserva de seguridad como dato** (por variante y sede): hoy se deriva de la velocidad (`max(1, ceil(v×3))`)
+      y no se guarda. Si Felipe quiere fijarla a mano por prenda, es una columna o tabla nueva — decisión de modelo.
+- [ ] **«Revisar liquidación» y «Revisar reposición» solo abren el detalle**: no hay flujo de liquidación por
+      prenda ni de pedido de compra prellenado. «Revisar compra/producción» enlaza a `/compras` o `/produccion`
+      sin prellenar. Hacen falta flujos reales antes de convertirlos en botones que ejecuten.
+- [ ] **Vista matriz y Online (de la imagen de referencia) NO se construyeron**: no hay flujo ni datos detrás
+      (no hay canal online en el modelo). Se prefirió no dibujar botones muertos.
+- [ ] **Choque de versión de migración `20260918140000`**: `tejidos_seed` (ya en `main`) y
+      `patrones_muestra_visual` (PR #131, abierto) usan la misma versión; el que llegue segundo hace fallar
+      `migration up`. No es de esta sesión — hay que renombrar una antes de mezclar el PR #131.
+- [ ] **Datos locales de Resumen son ralos**: Trujillo tiene 55 ventas en 4 variantes y casi todo el stock
+      sembrado está en almacén (por eso la mayoría sale «SIN PISO»). La verificación de reglas está cubierta por
+      las 38 pruebas SQL con escenarios propios (con `ROLLBACK`), pero una revisión con volumen real solo se
+      hace con datos de producción.
 
 ---
 
@@ -3018,11 +3285,14 @@ la variante centinela «Cargo especial» fuera de Movimientos/Inventario/Inicio
       mercadería» entre sedes fallaría entera con «violates foreign key constraint».
       Hoy hay 0 transferencias en producción; nadie lo pisó todavía. Sin datos que
       tocar, sin cambios de pantalla.
-- [ ] **Buscar por referencia de operación (guía, serie-número) desde Movimientos** quedó
+- [x] **Buscar por referencia de operación (guía, serie-número) desde Movimientos** quedó
       fuera de esta fase: exige joins solo para el predicado, y Compras/Facturación ya
       buscan por eso. Si Felipe lo usa seguido, va como función hermana de
       `fn_movimientos_variantes` que resuelva `lote_id[]`/`venta_id[]` — no mezclada con
-      la búsqueda de prendas.
+      la búsqueda de prendas. **Hecho el 2026-09-19 (solo local, ADR-0127):**
+      `fn_movimientos_busqueda` resuelve traslado, conteo, boleta/factura de venta, factura de
+      compra y guía, y devuelve movimientos concretos (no `lote_id[]`/`venta_id[]`), para que la
+      lista y las tarjetas cuenten lo mismo.
 
 ## 🎯 Historial de Producto en V2 — movimientos por producto + precio/categoría (2026-09-15)
 

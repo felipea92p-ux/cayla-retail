@@ -103,6 +103,10 @@ insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
   select :'ubic', 'Almacén de tienda', 'almacen_tienda'
   where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'ubic' and tipo = 'almacen_tienda');
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
+  select :'ubic', 'Cuarentena', 'cuarentena'
+  where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'ubic' and tipo = 'cuarentena');
+select id as sub_cuarentena from retail.sububicaciones where ubicacion_id = :'ubic' and tipo = 'cuarentena' \\gset
 
 -- Caja limpia y propia: cierra cualquiera abierta con la RPC real (nunca un UPDATE
 -- crudo a estado) y abre una nueva — así ninguna aserción de caja de este archivo
@@ -347,6 +351,83 @@ select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, 'efectivo', 
 `
   ),
   "No hay una caja abierta en esta ubicación"
+);
+
+// ---------------------------------------------------------------------------
+// 14-18: 20260919000100 — motivo, estado de la prenda que vuelve (R-39) y venta
+// anulada. Los 13 de arriba siguen llamando con los 6 parámetros de antes: son la
+// prueba de que la pantalla vieja no se rompe contra la firma nueva.
+// ---------------------------------------------------------------------------
+
+exito(
+  "con motivo, la prenda vendible vuelve al piso y el motivo queda guardado",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0 })}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, null, gen_random_uuid(), 'talla_chica', 'vendible') as cambio_id \\gset
+select
+  c.motivo,
+  c.condicion,
+  (select m.sububicacion_id = :'sub_piso'::uuid from retail.movimientos m where m.cambio_id = c.id and m.tipo = 'entrada'),
+  (select count(*) from retail.prendas_danadas where cambio_id = c.id)
+from retail.cambios c where c.id = :'cambio_id';
+rollback;
+`
+  ),
+  ([motivo, condicion, entradaEnPiso, danadas]) =>
+    motivo === "talla_chica" && condicion === "vendible" && entradaEnPiso === "t" && Number(danadas) === 0
+);
+
+exito(
+  "por defecto: la fallada entra a cuarentena y sale una igual del piso",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0 })}
+select coalesce((select sum(cantidad) from retail.stock where variante_id = :'v_old' and sububicacion_id = :'sub_piso'),0) as piso_antes \\gset
+select coalesce((select sum(cantidad) from retail.stock where variante_id = :'v_old' and sububicacion_id = :'sub_cuarentena'),0) as cuarentena_antes \\gset
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_old', 1, null, gen_random_uuid(), 'defecto', 'no_vendible') as cambio_id \\gset
+select
+  (coalesce((select sum(cantidad) from retail.stock where variante_id = :'v_old' and sububicacion_id = :'sub_piso'),0) - :'piso_antes'),
+  (coalesce((select sum(cantidad) from retail.stock where variante_id = :'v_old' and sububicacion_id = :'sub_cuarentena'),0) - :'cuarentena_antes'),
+  (select count(*) from retail.prendas_danadas where cambio_id = :'cambio_id' and estado = 'en_cuarentena' and cantidad = 1);
+rollback;
+`
+  ),
+  ([deltaPiso, deltaCuarentena, danadas]) => Number(deltaPiso) === -1 && Number(deltaCuarentena) === 1 && Number(danadas) === 1
+);
+
+error(
+  "una prenda cambiada por defecto no puede volver al piso",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0 })}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_old', 1, null, gen_random_uuid(), 'defecto', 'vendible');
+`
+  ),
+  "no puede volver al piso"
+);
+
+error(
+  "una prenda de una venta anulada no se puede cambiar (la anulación ya la devolvió al stock)",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0 })}
+update retail.ventas set estado = 'anulada', anulado_en = now(), motivo_anulacion = 'prueba' where id = :'venta_id';
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, null, gen_random_uuid(), 'talla_chica', 'vendible');
+`
+  ),
+  "está anulada"
+);
+
+error(
+  "un motivo fuera de la lista se rechaza",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0 })}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, null, gen_random_uuid(), 'no_le_gusto', 'vendible');
+`
+  ),
+  "Motivo de cambio desconocido"
 );
 
 // ---------------------------------------------------------------------------

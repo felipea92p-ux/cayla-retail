@@ -97,8 +97,14 @@ export type ClaveTramoPorPagar = "vencidas" | "semana" | "despues";
 export type TotalTramoPorPagar = { comprobantes: number; saldo: number };
 export type TotalesTramosPorPagar = Record<ClaveTramoPorPagar, TotalTramoPorPagar>;
 
-/** Totales REALES por tramo (sobre toda la deuda que cumple los filtros, no sobre la página). */
-export async function getPorPagarTramos(filtros: { proveedorId?: string; condicion?: string; soloVencidas?: boolean; busqueda?: string } = {}): Promise<TotalesTramosPorPagar> {
+/**
+ * Totales REALES por tramo (sobre toda la deuda que cumple los filtros, no sobre la página). Acepta los
+ * mismos filtros que la lista (`listar_compras`), tipo de documento y rango de emisión incluidos: si un
+ * filtro llega a la lista y no acá, los subtotales dejan de cuadrar con las filas (H3, ADR-0111).
+ */
+export async function getPorPagarTramos(
+  filtros: { proveedorId?: string; condicion?: string; soloVencidas?: boolean; busqueda?: string; tipo?: string; desde?: string; hasta?: string } = {}
+): Promise<TotalesTramosPorPagar> {
   const supabase = await createClient();
   const filas = exigir(
     await supabase.rpc("por_pagar_tramos", {
@@ -106,6 +112,9 @@ export async function getPorPagarTramos(filtros: { proveedorId?: string; condici
       ...(filtros.condicion ? { p_condicion: filtros.condicion } : {}),
       ...(filtros.soloVencidas ? { p_solo_vencidas: true } : {}),
       ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
+      ...(filtros.tipo ? { p_tipo: filtros.tipo } : {}),
+      ...(filtros.desde ? { p_desde: filtros.desde } : {}),
+      ...(filtros.hasta ? { p_hasta: filtros.hasta } : {}),
     }),
     "los totales por tramo de la deuda"
   );

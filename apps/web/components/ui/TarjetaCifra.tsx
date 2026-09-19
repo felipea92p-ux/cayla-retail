@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 /* ====================================================================
    TarjetaCifra · una etiqueta, un número grande, una línea de contexto
@@ -70,6 +70,8 @@ export function TarjetaCifra({
   compacta = false,
   fila = false,
   vacia = false,
+  className = "",
+  style,
   children,
 }: {
   etiqueta: string;
@@ -95,11 +97,14 @@ export function TarjetaCifra({
   fila?: boolean;
   /** Borde punteado y número apagado: «todavía no hay datos». */
   vacia?: boolean;
+  /** Clases extra (típico: `anim-entra` de la entrada escalonada). */
+  className?: string;
+  style?: CSSProperties;
   children?: ReactNode;
 }) {
   const clase = `card-cayla block ${compacta || fila ? "p-4" : "p-5"} text-left transition-colors ${acento ? "border-l-2 border-l-rojo" : ""} ${
     vacia ? "border-dashed bg-transparent" : ""
-  } ${onClick || href ? "hover:bg-sand/30" : ""} ${activa ? "bg-sand/40" : ""}`;
+  } ${onClick || href ? "hover:bg-sand/30" : ""} ${activa ? "bg-sand/40" : ""} ${className}`;
 
   const contenido = fila ? (
     <span className="flex items-center gap-3">
@@ -144,17 +149,21 @@ export function TarjetaCifra({
 
   if (href) {
     return (
-      <Link href={href} className={clase}>
+      <Link href={href} className={clase} style={style}>
         {contenido}
       </Link>
     );
   }
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={`${clase} w-full`} aria-pressed={activa}>
+      <button type="button" onClick={onClick} className={`${clase} w-full`} aria-pressed={activa} style={style}>
         {contenido}
       </button>
     );
   }
-  return <div className={clase}>{contenido}</div>;
+  return (
+    <div className={clase} style={style}>
+      {contenido}
+    </div>
+  );
 }

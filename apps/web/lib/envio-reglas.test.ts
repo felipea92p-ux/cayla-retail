@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { CompraResumen, LineaCompra } from "./compras-reglas";
+import type { RecepcionDeCompra } from "./compras-indicadores";
 import {
+  agruparPorEnvio,
   armarPedidoEnvio,
   bloquesDelEnvio,
   comprobanteSinMontos,
@@ -271,5 +273,90 @@ describe("kpisDeLaLista: los indicadores de quien no ve dinero salen de su propi
   });
   it("no trae ninguna cifra de dinero", () => {
     expect(Object.keys(kpisDeLaLista([c({})], AHORA)).sort()).toEqual(["atrasadas", "diasMasAtrasada", "documentoMasAtrasada", "porRecibir", "proveedorMasAtrasado", "unidadesPendientes"]);
+  });
+});
+
+// «Recibidas» por envío: un envío de varios proveedores con una sola guía salía como filas sueltas. Lo que se rompe
+// fácil: que un envío cortado por el límite de la página diga MENOS de lo que llegó (unidades de solo una parte), que
+// se agrupe un envío de un solo proveedor (cabecera con un solo hijo) o que las recepciones anteriores a los envíos
+// desaparezcan.
+describe("agruparPorEnvio", () => {
+  const rec = (loteId: string, compraId: string, o: Partial<RecepcionDeCompra> = {}): RecepcionDeCompra => ({
+    loteId,
+    fechaRecepcion: "2026-09-18T15:00:00Z",
+    ubicacionNombre: "Tienda Trujillo",
+    proveedorId: `prov-${loteId}`,
+    proveedorNombre: `Proveedor ${loteId}`,
+    numeroGuia: "T001-004417",
+    recibidoPor: null,
+    compraId,
+    documento: `F001-${compraId}`,
+    unidadesLlegaron: 10,
+    unidadesFacturadas: 12,
+    faltante: 2,
+    diasDemora: 3,
+    ...o,
+  });
+  const envio = (envioId: string, lotes: number, proveedores: number, numeroGuia: string | null = "T001-004417") => ({ envioId, numeroGuia, lotes, proveedores });
+
+  it("un envío de dos proveedores es UN grupo con sus dos filas, y suma lo que llegó, lo facturado y lo que faltó", () => {
+    const a = rec("l1", "c1", { unidadesLlegaron: 10, unidadesFacturadas: 12, faltante: 2 });
+    const b = rec("l2", "c2", { unidadesLlegaron: 8, unidadesFacturadas: 8, faltante: 0 });
+    const g = agruparPorEnvio([a, b], { l1: envio("e1", 2, 2), l2: envio("e1", 2, 2) });
+    expect(g).toHaveLength(1);
+    expect(g[0]).toMatchObject({ tipo: "envio", envioId: "e1", numeroGuia: "T001-004417", proveedores: 2, unidadesLlegaron: 18, unidadesFacturadas: 20, faltante: 2, parcial: false });
+    expect(g[0].tipo === "envio" && g[0].filas.map((f) => f.loteId)).toEqual(["l1", "l2"]);
+  });
+
+  it("un envío de UN solo proveedor no hace cabecera: sigue siendo una fila normal", () => {
+    const g = agruparPorEnvio([rec("l1", "c1")], { l1: envio("e1", 1, 1) });
+    expect(g).toEqual([{ tipo: "suelta", fila: rec("l1", "c1") }]);
+  });
+
+  it("las recepciones de antes de los envíos (sin envío) quedan sueltas, en su lugar y en su orden", () => {
+    const viejaA = rec("v1", "cv1");
+    const a = rec("l1", "c1");
+    const b = rec("l2", "c2");
+    const viejaB = rec("v2", "cv2");
+    const g = agruparPorEnvio([viejaA, a, b, viejaB], { l1: envio("e1", 2, 2), l2: envio("e1", 2, 2) });
+    expect(g.map((x) => (x.tipo === "suelta" ? `suelta:${x.fila.loteId}` : `envio:${x.envioId}`))).toEqual(["suelta:v1", "envio:e1", "suelta:v2"]);
+  });
+
+  it("el grupo ocupa el lugar de su PRIMERA fila aunque las de otro envío se intercalen", () => {
+    const g = agruparPorEnvio(
+      [rec("l1", "c1"), rec("m1", "c3"), rec("l2", "c2"), rec("m2", "c4")],
+      { l1: envio("e1", 2, 2), l2: envio("e1", 2, 2), m1: envio("e2", 2, 2), m2: envio("e2", 2, 2) }
+    );
+    expect(g.map((x) => (x.tipo === "envio" ? x.envioId : "suelta"))).toEqual(["e1", "e2"]);
+    expect(g[0].tipo === "envio" && g[0].filas.map((f) => f.loteId)).toEqual(["l1", "l2"]);
+  });
+
+  it("un lote que cubre DOS comprobantes cuenta como un lote, no como dos", () => {
+    const g = agruparPorEnvio([rec("l1", "c1"), rec("l1", "c1b"), rec("l2", "c2")], { l1: envio("e1", 2, 2), l2: envio("e1", 2, 2) });
+    expect(g).toHaveLength(1);
+    expect(g[0]).toMatchObject({ tipo: "envio", parcial: false, unidadesLlegaron: 30 });
+  });
+
+  it("si la página no trae todos los lotes del envío, el grupo es PARCIAL (y la pantalla no pinta totales de una parte)", () => {
+    const g = agruparPorEnvio([rec("l1", "c1"), rec("l2", "c2")], { l1: envio("e1", 3, 3), l2: envio("e1", 3, 3) });
+    expect(g[0]).toMatchObject({ tipo: "envio", proveedores: 3, parcial: true });
+  });
+
+  it("con la lista llena hasta su tope, el grupo de la última fila es parcial (podría faltar la otra mitad de un lote); los demás no", () => {
+    const filas = [rec("l1", "c1"), rec("l2", "c2"), rec("m1", "c3"), rec("m2", "c4")];
+    const envios = { l1: envio("e1", 2, 2), l2: envio("e1", 2, 2), m1: envio("e2", 2, 2), m2: envio("e2", 2, 2) };
+    const llena = agruparPorEnvio(filas, envios, { llegoAlLimite: true });
+    expect(llena.map((x) => x.tipo === "envio" && x.parcial)).toEqual([false, true]);
+    const holgada = agruparPorEnvio(filas, envios, { llegoAlLimite: false });
+    expect(holgada.map((x) => x.tipo === "envio" && x.parcial)).toEqual([false, false]);
+  });
+
+  it("no toma un faltante negativo como crédito: la suma del grupo solo cuenta lo que faltó", () => {
+    const g = agruparPorEnvio([rec("l1", "c1", { faltante: 3 }), rec("l2", "c2", { faltante: -4 })], { l1: envio("e1", 2, 2), l2: envio("e1", 2, 2) });
+    expect(g[0]).toMatchObject({ faltante: 3 });
+  });
+
+  it("sin recepciones no hay grupos", () => {
+    expect(agruparPorEnvio([], {})).toEqual([]);
   });
 });

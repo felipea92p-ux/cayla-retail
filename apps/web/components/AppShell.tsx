@@ -508,7 +508,9 @@ function MenuNuevo({ onClose, esLider }: { onClose: () => void; esLider: boolean
 // ritmo del día, movimientos— tiene qué mostrar a lo ancho y en pantalla grande sobraba
 // margen. Lo que cuelga de /caja y NO es tablero (el formulario de abrir caja y el historial
 // de cierres) se topa por su cuenta con `max-w-5xl`: no fueron pensados para estirarse.
-const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/recibir", "/caja"];
+// Cambios y Devoluciones entraron el 2026-09-19 (pedido de Felipe): con el flujo guiado y el
+// panel de validaciones ya había de sobra qué poner a los lados.
+const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/recibir", "/caja", "/cambios", "/devoluciones"];
 
 export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }: Props) {
   const pathname = usePathname();

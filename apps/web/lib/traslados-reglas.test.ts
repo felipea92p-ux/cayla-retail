@@ -407,6 +407,32 @@ describe("coincideBusqueda", () => {
     expect(coincideBusqueda(doce, "traslado 12")).toBe(true);
   });
 
+  it("entiende el identificador como se escribe en Movimientos: «Traslado 12», «traslado#12», «n° 12», «nro. 12»", () => {
+    // Lo que una líder lee en la columna «Referencia» de Movimientos («Traslado 12») tiene que
+    // encontrar el mismo traslado acá, escrito como lo escriba.
+    for (const consulta of ["Traslado 12", "traslado#12", "traslado12", "TRASLADO Nº 12", "traslado n° 12", "nro. 12", "nro.12", "N°12", "numero 12", "#12"]) {
+      expect(coincideBusqueda(doce, consulta), consulta).toBe(true);
+      expect(coincideBusqueda(camila, consulta), consulta).toBe(false);
+    }
+    // El número sigue siendo exacto: «traslado 1» no trae el 12.
+    expect(coincideBusqueda(doce, "traslado 1")).toBe(false);
+    expect(coincideBusqueda(doce, "traslado#1")).toBe(false);
+  });
+
+  it("las palabras de relleno solas no filtran, y se combinan con el resto de la búsqueda", () => {
+    expect(coincideBusqueda(camila, "traslado")).toBe(true);
+    expect(coincideBusqueda(camila, "n°")).toBe(true);
+    expect(coincideBusqueda(camila, "traslado 2 taller")).toBe(true);
+    expect(coincideBusqueda(camila, "traslado 2 aqp")).toBe(false);
+  });
+
+  it("un código de prenda que empieza como una palabra de relleno no se parte: «num» sin número es texto", () => {
+    const conNum = { ...camila, skus: ["NUMERO-UNO"] };
+    // «numero-uno» no lleva un dígito pegado, así que no se toca; «numero» solo es relleno.
+    expect(coincideBusqueda(conNum, "numero-uno")).toBe(true);
+    expect(coincideBusqueda(camila, "numero-uno")).toBe(false);
+  });
+
   it("desde 3 cifras también busca dentro de los códigos de prenda", () => {
     expect(coincideBusqueda(camila, "001")).toBe(true);
     expect(coincideBusqueda(doce, "001")).toBe(false);

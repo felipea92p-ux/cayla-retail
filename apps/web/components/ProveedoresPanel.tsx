@@ -1,29 +1,43 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ChevronRight, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import type { Proveedor } from "@/lib/proveedores";
+import type { Proveedor, ResumenProveedores } from "@/lib/proveedores";
 import { ProveedorModal, BORRADOR_VACIO, type Borrador } from "@/components/ProveedorModal";
+import { ProveedorVistaRapida } from "@/components/ProveedorVistaRapida";
+import { ProveedoresIndicadores } from "@/components/ProveedoresIndicadores";
 import { soles } from "@/lib/compras-reglas";
 import { clave } from "@/lib/buscar-prenda-v2";
-import { diaMes, hoyLima } from "@/lib/fechas-lima";
-import { chipEntregas, ordenarProveedores, rubrosConConteo, claveRubro, siguienteOrden, type CampoOrden, type Orden } from "@/lib/proveedores-reglas";
+import { chipEntregas, haceCuanto, ordenarProveedores, repartoDeuda, rubrosConConteo, claveRubro, siguienteOrden, type CampoOrden, type Orden } from "@/lib/proveedores-reglas";
+import { useFlip } from "@/lib/useFlip";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
+import { Resaltado } from "@/components/ui/Resaltado";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { Sparkline } from "@/components/ui/Sparkline";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 
-// Dos plantillas, no una con columnas ocultas: lo financiero (facturado, saldo, entregas, última
-// compra) es solo de líder — corrección de D-27, 2026-09-17 (ver
-// 20260917240000_proveedores_lista_indicadores_y_candado_sede.sql). Un colaborador ve el directorio
-// puro (Proveedor · RUC); ni la base le manda esos números (fn_proveedores() los devuelve NULL), así
-// que ocultar la columna acá es la segunda capa, no la única.
-// Proveedor · RUC · Facturado 12 m · Saldo · Saldo a favor · Entregas · Última compra · acción
-const PLANTILLA_LIDER = "sm:grid-cols-[1fr_6.75rem_7.25rem_7.25rem_7.25rem_8rem_7.375rem_8.75rem]";
+// La tabla de líder gana columnas según el ANCHO DE LA TABLA, no el de la ventana (container queries de
+// Tailwind: `@3xl`, `@5xl`, `@7xl` miden el contenedor `@container` de <Tabla>). Con el menú lateral abierto
+// y el margen de la página, la tabla es ~350 px más angosta que la ventana: una tabla que decide por la
+// ventana cree que le sobra sitio y aplasta el nombre hasta dejarlo en «C…». El NOMBRE es la única columna
+// flexible y nunca se sacrifica; lo que se baja primero es lo que se puede leer en otro lado
+// (RUC y «Última compra» están en la vista rápida y en la ficha; «A favor» y «Entregas» en la ficha).
+//   · < 48 rem   : proveedor · saldo (y toda la fila abre la vista rápida)
+//   · ≥ 48 rem   : proveedor · facturado 12 m · saldo · acción
+//   · ≥ 64 rem   : + a favor · entregas
+//   · ≥ 80 rem   : + RUC · última compra  (la maqueta 08 completa)
+// Dos plantillas de fila (líder / colaborador), no una con columnas ocultas: lo financiero es solo de
+// líder — corrección de D-27, 2026-09-17 (ver 20260917240000_proveedores_lista_indicadores_y_candado_sede.sql).
+// Un colaborador ve el directorio puro (Proveedor · RUC); ni la base le manda esos números
+// (fn_proveedores() los devuelve NULL), así que ocultar la columna acá es la segunda capa, no la única.
+const COLUMNAS_LIDER =
+  "grid-cols-[minmax(0,1fr)_auto] @3xl:grid-cols-[minmax(0,1fr)_9.75rem_7.5rem_9rem] @5xl:grid-cols-[minmax(0,1fr)_9.75rem_7.5rem_6.5rem_8rem_9.25rem] @7xl:grid-cols-[minmax(0,1fr)_6.75rem_9.75rem_7.5rem_6.5rem_8rem_6.5rem_9.25rem]";
 const PLANTILLA_BASE = "sm:grid-cols-[1fr_8rem]";
 
 // Directorio de proveedores: a quién se le compra. Es la puerta de entrada del módulo — sin un
@@ -38,16 +52,41 @@ const PLANTILLA_BASE = "sm:grid-cols-[1fr_8rem]";
 // hay que reclamar), columnas ordenables (por defecto por saldo) y «+ Comprobante» en la fila.
 // Un filtro por rubro con conteo — el rubro ya se guardaba y se veía por fila, faltaba poder filtrar.
 //
-// `esLider` gobierna tres cosas a la vez, no solo «puede editar»: ver lo financiero, entrar al
-// detalle (clic en la fila), y editar/registrar/desactivar. Hoy las tres son la misma condición
+// ADR-0128 (spike visual 2026-09-19): la lista RESPONDE. Tocar una fila abre una vista rápida (cajón)
+// sin perder el orden ni el filtro; ordenar y filtrar deslizan las filas a su lugar (FLIP); el filtro
+// de rubro tiene un pulgar que viaja; la búsqueda marca dónde coincidió; la barra de concentración
+// enciende la fila del proveedor al que apuntas; y lo recién creado, reactivado o desactivado se marca
+// con un destello. Desactivar se puede deshacer (7 s). Al llegar, las piezas entran escalonadas (cifras,
+// buscador, tabla, filas: `anim-entra` con `--i`) y las cifras y trazos se arman una vez — regla de
+// movimiento revisada el 2026-09-19 (globals.css, ADR-0128). Lo demás responde a una acción.
+//
+// `esLider` gobierna tres cosas a la vez, no solo «puede editar»: ver lo financiero, abrir el detalle
+// (clic en la fila), y editar/registrar/desactivar. Hoy las tres son la misma condición
 // (rol líder) — un solo prop en vez de tres idénticos, hasta que alguna necesite separarse de verdad.
-export function ProveedoresPanel({ proveedores, esLider, indicadores }: { proveedores: Proveedor[]; esLider: boolean; indicadores?: ReactNode }) {
+export function ProveedoresPanel({
+  proveedores,
+  esLider,
+  resumen,
+  series,
+}: {
+  proveedores: Proveedor[];
+  esLider: boolean;
+  /** Las cifras de arriba; `null` para quien no es líder. */
+  resumen: ResumenProveedores | null;
+  /** Facturado por mes por proveedor (12 montos); `null` si no hay serie disponible → sin tendencias. */
+  series: Record<string, number[]> | null;
+}) {
   const router = useRouter();
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [cambiandoId, setCambiandoId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [rubro, setRubro] = useState<string | null>(null); // clave normalizada; null = todos
   const [orden, setOrden] = useState<Orden>({ campo: "saldo", dir: "desc" });
+  const [abiertoId, setAbiertoId] = useState<string | null>(null); // el proveedor de la vista rápida
+  const [foco, setFoco] = useState<string | null>(null); // el tramo de la barra de concentración al que se apunta
+  const [recientes, setRecientes] = useState<ReadonlySet<string>>(new Set());
+  const pendienteScroll = useRef<string | null>(null);
+  const buscador = useRef<HTMLInputElement>(null);
 
   // Búsqueda en memoria: el directorio entero ya está en la página (son decenas de proveedores, no
   // miles), así que filtrar acá es instantáneo y no cuesta una consulta por tecla. Busca por nombre,
@@ -63,8 +102,47 @@ export function ProveedoresPanel({ proveedores, esLider, indicadores }: { provee
   const totalActivos = proveedores.filter((p) => p.activo).length;
   const hayProveedores = totalActivos > 0;
   const filtrando = !!k || !!rubro;
+  const reparto = useMemo(() => repartoDeuda(proveedores.filter((p) => p.activo).map((p) => ({ id: p.id, nombre: p.nombre, saldo: p.saldo }))), [proveedores]);
+  const maxSaldo = Math.max(1, ...proveedores.filter((p) => p.activo).map((p) => p.saldo ?? 0));
+  const refFila = useFlip(activos.map((p) => p.id).join("|"));
 
-  async function onCambiarEstado(p: Proveedor) {
+  // Lo que se recorre con ↑ ↓ en la vista rápida: las filas que se ven, activos primero.
+  const navegables = [...activos, ...desactivados];
+  const abierto = abiertoId ? (proveedores.find((p) => p.id === abiertoId) ?? null) : null;
+  const indiceAbierto = abierto ? navegables.findIndex((p) => p.id === abierto.id) : -1;
+
+  const marcarReciente = useCallback((id: string) => {
+    setRecientes((r) => new Set(r).add(id));
+    // 4 s > los 2,6 s del destello: el reloj arranca al guardar, pero la fila nueva recién se pinta
+    // cuando termina `router.refresh()`; con 2,7 s el destello se cortaba a la mitad.
+    setTimeout(() => setRecientes((r) => new Set([...r].filter((x) => x !== id))), 4000);
+  }, []);
+
+  // Un proveedor recién registrado puede caer fuera de pantalla (por saldo queda al final): se lleva a la vista.
+  useEffect(() => {
+    const id = pendienteScroll.current;
+    if (!id) return;
+    const el = document.querySelector(`[data-proveedor-id="${id}"]`);
+    if (!el) return;
+    pendienteScroll.current = null;
+    el.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }, [proveedores]);
+
+  // «/» lleva el cursor al buscador, salvo que ya se esté escribiendo o haya un panel abierto.
+  useEffect(() => {
+    function tecla(e: KeyboardEvent) {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      e.preventDefault();
+      buscador.current?.focus();
+    }
+    document.addEventListener("keydown", tecla);
+    return () => document.removeEventListener("keydown", tecla);
+  }, []);
+
+  async function onCambiarEstado(p: Proveedor, esDeshacer = false) {
     setCambiandoId(p.id);
     const supabase = createClient();
     const { error } = await supabase.rpc(p.activo ? "desactivar_proveedor" : "reactivar_proveedor", { p_proveedor_id: p.id });
@@ -75,17 +153,28 @@ export function ProveedoresPanel({ proveedores, esLider, indicadores }: { provee
     }
     avisar.exito(p.activo ? `${p.nombre} desactivado` : `${p.nombre} reactivado`, {
       detalle: p.activo ? "Deja de aparecer al registrar comprobantes; su historial se conserva." : "Vuelve a aparecer al registrar comprobantes.",
+      // Deshacer = la operación contraria sobre el mismo proveedor. Nada se borra nunca (desactivar es un
+      // estado), así que deshacer es exacto; y no se ofrece deshacer de un deshacer, para no encadenar avisos.
+      accion: esDeshacer ? undefined : { texto: "Deshacer", onClick: () => void onCambiarEstado({ ...p, activo: !p.activo }, true) },
+      duracion: esDeshacer ? undefined : 7000,
     });
+    marcarReciente(p.id);
     router.refresh();
   }
 
-  const plantilla = esLider ? PLANTILLA_LIDER : PLANTILLA_BASE;
+  function vecino(delta: 1 | -1) {
+    if (navegables.length === 0 || indiceAbierto < 0) return;
+    const sig = navegables[(indiceAbierto + delta + navegables.length) % navegables.length];
+    setAbiertoId(sig.id);
+    document.querySelector(`[data-proveedor-id="${sig.id}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+
   const Fila = esLider ? FilaLider : FilaBase;
   const rubrosSugeridos = rubros.map((r) => r.etiqueta);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="anim-entra flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Proveedores</h1>
@@ -100,49 +189,60 @@ export function ProveedoresPanel({ proveedores, esLider, indicadores }: { provee
         )}
       </div>
 
-      {indicadores}
+      {esLider && resumen && <ProveedoresIndicadores resumen={resumen} reparto={reparto} foco={foco} onFoco={setFoco} onAbrir={setAbiertoId} />}
 
       {/* Buscador + filtro por rubro con conteo. Una sola línea: el buscador a la izquierda, los rubros
           a la derecha; en celular los rubros bajan y se desplazan en horizontal. */}
       {hayProveedores && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-          <div className="flex min-w-[14rem] flex-1 items-center gap-3 border-b border-tinta/25 px-0.5 py-1.5 focus-within:border-b-2 focus-within:border-rojo">
+        <div className="anim-entra flex flex-wrap items-center gap-x-4 gap-y-3" style={{ ["--i" as string]: 6 }}>
+          <div className="group/busca relative flex min-w-[14rem] flex-1 items-center gap-3 border-b border-tinta/25 px-0.5 py-1.5 after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:origin-left after:scale-x-0 after:bg-rojo after:transition-transform after:duration-300 after:ease-cayla focus-within:after:scale-x-100">
+            <Search aria-hidden className="h-4 w-4 shrink-0 text-tinta/45" />
             <label htmlFor="proveedores-buscar" className="sr-only">
               Buscar proveedor
             </label>
             <input
+              ref={buscador}
               id="proveedores-buscar"
               type="search"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape" && busqueda) setBusqueda("");
+              }}
               placeholder="Nombre, RUC o contacto"
               autoComplete="off"
-              className="h-7 min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45"
+              className="h-7 min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45 [&::-webkit-search-cancel-button]:hidden"
             />
             {filtrando && (
               <span className="shrink-0 text-xs tabular-nums text-tinta/65">
                 {activos.length + desactivados.length} de {proveedores.length}
               </span>
             )}
+            {busqueda ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setBusqueda("");
+                  buscador.current?.focus();
+                }}
+                aria-label="Limpiar búsqueda"
+                className="rounded-full p-0.5 text-tinta/55 transition-colors hover:text-rojo"
+              >
+                <X aria-hidden className="h-3.5 w-3.5" />
+              </button>
+            ) : (
+              <kbd aria-hidden className="hidden rounded-[5px] border border-tinta/15 px-1.5 text-[10.5px] font-semibold text-tinta/55 transition-opacity group-focus-within/busca:opacity-0 sm:block">
+                /
+              </kbd>
+            )}
           </div>
           {rubros.length > 0 && (
-            <div role="radiogroup" aria-label="Filtrar por rubro" className="inline-flex max-w-full overflow-x-auto rounded-lg border border-tinta/15">
-              {[{ clave: "", etiqueta: "Todos", conteo: totalActivos }, ...rubros].map((r) => {
-                const activo = (rubro ?? "") === r.clave;
-                return (
-                  <button
-                    key={r.clave || "todos"}
-                    type="button"
-                    role="radio"
-                    aria-checked={activo}
-                    onClick={() => setRubro(r.clave || null)}
-                    className={`label-cayla shrink-0 whitespace-nowrap px-3.5 py-2.5 text-[11px] transition-colors ${activo ? "bg-tinta text-crema" : "text-tinta/65 hover:text-rojo"}`}
-                  >
-                    {r.etiqueta} · {r.conteo}
-                  </button>
-                );
-              })}
-            </div>
+            <SegmentoDeslizante
+              etiqueta="Filtrar por rubro"
+              valor={rubro ?? ""}
+              onCambio={(c) => setRubro(c || null)}
+              opciones={[{ clave: "", etiqueta: "Todos", conteo: totalActivos }, ...rubros.map((r) => ({ clave: r.clave, etiqueta: r.etiqueta, conteo: r.conteo }))]}
+            />
           )}
         </div>
       )}
@@ -150,7 +250,7 @@ export function ProveedoresPanel({ proveedores, esLider, indicadores }: { provee
       {!hayProveedores ? (
         <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">Todavía no hay proveedores registrados.</p>
       ) : activos.length === 0 && desactivados.length === 0 ? (
-        <p className="card-cayla p-5 text-sm text-tinta/75">
+        <p className="anim-revelar card-cayla p-5 text-sm text-tinta/75">
           Ningún proveedor coincide{busqueda.trim() ? ` con «${busqueda.trim()}»` : " con ese rubro"}.{" "}
           {esLider && busqueda.trim() && (
             <button type="button" onClick={() => setBorrador({ ...BORRADOR_VACIO, nombre: busqueda.trim() })} className="text-rojo hover:underline">
@@ -159,32 +259,81 @@ export function ProveedoresPanel({ proveedores, esLider, indicadores }: { provee
           )}
         </p>
       ) : activos.length === 0 ? null : (
-        <Tabla>
-          {esLider ? <EncabezadoOrdenable plantilla={plantilla} orden={orden} onOrden={(c) => setOrden((o) => siguienteOrden(o, c))} /> : <Encabezado plantilla={plantilla} columnas={[{ titulo: "Proveedor" }, { titulo: "RUC" }]} />}
-          {activos.map((p) => (
-            <Fila key={p.id} p={p} plantilla={plantilla} cambiando={cambiandoId === p.id} onReactivar={() => onCambiarEstado(p)} />
+        // `overflow-y-hidden`: mientras las filas se deslizan (FLIP) algunas pasan un instante fuera de la
+        // tarjeta; sin esto, `overflow-x-auto` les da a las dos direcciones scroll y parpadea una barra vertical.
+        <Tabla className="@container anim-entra overflow-y-hidden" style={{ ["--i" as string]: 7 }}>
+          {esLider ? <EncabezadoOrdenable orden={orden} onOrden={(c) => setOrden((o) => siguienteOrden(o, c))} /> : <Encabezado plantilla={PLANTILLA_BASE} columnas={[{ titulo: "Proveedor" }, { titulo: "RUC" }]} />}
+          {activos.map((p, indice) => (
+            <Fila
+              key={p.id}
+              p={p}
+              indice={indice}
+              busqueda={busqueda}
+              serie={series?.[p.id] ?? null}
+              maxSaldo={maxSaldo}
+              cambiando={cambiandoId === p.id}
+              reciente={recientes.has(p.id)}
+              enfoque={foco === null ? "neutro" : foco === p.id ? "foco" : "tenue"}
+              refFila={refFila(p.id)}
+              onAbrir={() => setAbiertoId(p.id)}
+              onReactivar={() => onCambiarEstado(p)}
+            />
           ))}
         </Tabla>
       )}
 
       {desactivados.length > 0 && (
-        <section className="space-y-2">
+        <section className="anim-entra space-y-2" style={{ ["--i" as string]: 9 }}>
           <p className="label-cayla text-[11px] text-tinta/65">Desactivados — ya no aparecen al registrar un comprobante</p>
           <Tabla>
-            {desactivados.map((p) => (
-              <Fila key={p.id} p={p} plantilla={plantilla} cambiando={cambiandoId === p.id} onReactivar={() => onCambiarEstado(p)} />
+            {desactivados.map((p, indice) => (
+              <Fila
+                key={p.id}
+                p={p}
+                indice={indice}
+                busqueda={busqueda}
+                serie={series?.[p.id] ?? null}
+                maxSaldo={maxSaldo}
+                cambiando={cambiandoId === p.id}
+                reciente={recientes.has(p.id)}
+                enfoque="neutro"
+                refFila={undefined}
+                onAbrir={() => setAbiertoId(p.id)}
+                onReactivar={() => onCambiarEstado(p)}
+              />
             ))}
           </Tabla>
         </section>
+      )}
+
+      {esLider && abierto && (
+        <ProveedorVistaRapida
+          proveedor={abierto}
+          serie={series?.[abierto.id] ?? null}
+          posicion={{ indice: Math.max(0, indiceAbierto), total: navegables.length }}
+          cambiando={cambiandoId === abierto.id}
+          onCerrar={() => setAbiertoId(null)}
+          onNavegar={vecino}
+          onCambiarEstado={() => onCambiarEstado(abierto)}
+        />
       )}
 
       {borrador && (
         <ProveedorModal
           inicial={borrador}
           rubros={rubrosSugeridos}
+          existentes={proveedores}
           onClose={() => setBorrador(null)}
-          onGuardado={() => {
+          onGuardado={(id) => {
             setBorrador(null);
+            if (id) {
+              // El recién guardado tiene que verse: se limpia lo que pudiera esconderlo, se marca y, cuando
+              // llegue en la próxima lectura, se lleva a la vista.
+              setBusqueda("");
+              setRubro(null);
+              pendienteScroll.current = id;
+              marcarReciente(id);
+            }
             router.refresh();
           }}
           onDesactivar={
@@ -208,78 +357,141 @@ export function ProveedoresPanel({ proveedores, esLider, indicadores }: { provee
 // tecla del buscador creaba componentes nuevos y React desmontaba y volvía a montar TODAS las filas.
 // ---------------------------------------------------------------------------
 
+type PropsFila = {
+  p: Proveedor;
+  /** Posición en su lista: desfasa la entrada escalonada de la fila (se topa en 10). */
+  indice: number;
+  busqueda: string;
+  serie: number[] | null;
+  maxSaldo: number;
+  cambiando: boolean;
+  reciente: boolean;
+  /** «foco»: la fila del tramo de la barra al que se apunta; «tenue»: las demás mientras tanto. */
+  enfoque: "neutro" | "foco" | "tenue";
+  refFila: ((el: HTMLElement | null) => void) | undefined;
+  onAbrir: () => void;
+  onReactivar: () => void;
+};
+
+const MONOGRAMA = "font-display grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full bg-sand text-base text-tinta transition-colors duration-300 group-hover:bg-tinta group-hover:text-crema";
+
+function iniciales(nombre: string): string {
+  return nombre
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+}
+
 // Nombre/contacto/rubro/plazo: para cualquiera. El resto de la fila (RUC en adelante) cambia de
 // contenido Y de significado entre líder y colaborador, no solo de estilo.
-function NombreCelda({ p }: { p: Proveedor }) {
+function NombreCelda({ p, busqueda }: { p: Proveedor; busqueda: string }) {
   return (
-    <>
-      <span className="block truncate text-sm text-tinta">{p.nombre}</span>
-      <span className="block truncate text-xs text-tinta/65">
-        {p.contacto ?? "Sin contacto"}
-        {p.rubro && ` · ${p.rubro}`}
-        {p.plazo_credito_dias != null && ` · Crédito ${p.plazo_credito_dias} d`}
+    <span className="flex min-w-0 items-center gap-3">
+      <span aria-hidden className={MONOGRAMA}>
+        {iniciales(p.nombre)}
       </span>
-    </>
+      <span className="min-w-0">
+        <span className="block truncate text-sm text-tinta">
+          <Resaltado texto={p.nombre} busqueda={busqueda} />
+        </span>
+        <span className="block truncate text-xs text-tinta/65">
+          {p.contacto ? <Resaltado texto={p.contacto} busqueda={busqueda} /> : "Sin contacto"}
+          {p.rubro && ` · ${p.rubro}`}
+          {p.plazo_credito_dias != null && ` · Crédito ${p.plazo_credito_dias} d`}
+        </span>
+      </span>
+    </span>
   );
 }
 
 // Directorio puro para quien no es líder: sin clic (no hay detalle que mostrarle) y sin ninguna
 // columna financiera — `fn_proveedores()` ya le manda esos campos en NULL, esto es la segunda capa,
 // no la única (20260917240000_proveedores_lista_indicadores_y_candado_sede.sql).
-function FilaBase({ p, plantilla }: { p: Proveedor; plantilla: string }) {
+function FilaBase({ p, busqueda }: PropsFila) {
   return (
-    <div className={fila(plantilla, `${p.activo ? "" : "opacity-60"}`)}>
+    <div className={fila(PLANTILLA_BASE, `group ${p.activo ? "" : "opacity-60"}`)}>
       <span className={celda("izq", "min-w-0")}>
-        <NombreCelda p={p} />
+        <NombreCelda p={p} busqueda={busqueda} />
       </span>
-      <span className={celda("izq", "font-mono text-xs tabular-nums text-tinta/75")}>{p.ruc ?? "Sin RUC"}</span>
+      <span className={celda("izq", "font-mono text-xs tabular-nums text-tinta/75")}>{p.ruc ? <Resaltado texto={p.ruc} busqueda={busqueda} /> : "Sin RUC"}</span>
     </div>
   );
 }
 
-// La fila entera lleva a la ficha del proveedor (el enlace del nombre se estira con `after:`); el
-// saldo, cuando lo hay, lleva a Por pagar ya filtrado; los botones quedan por encima (`relative`)
-// para no disparar el enlace de fila.
-function FilaLider({ p, plantilla, cambiando, onReactivar }: { p: Proveedor; plantilla: string; cambiando: boolean; onReactivar: () => void }) {
+// La fila entera abre la vista rápida: el botón del nombre se estira con `after:` sobre toda la fila (un
+// solo elemento interactivo, con nombre accesible, en vez de un `div` clicable); el saldo, cuando lo hay,
+// lleva a Por pagar ya filtrado y los demás enlaces quedan por encima (`relative`) para no disparar la
+// vista rápida. Al pasar el mouse: un filo rojo crece a la izquierda, el monograma se llena y, si hay
+// serie, la mini-tendencia se redibuja.
+function FilaLider({ p, indice, busqueda, serie, maxSaldo, cambiando, reciente, enfoque, refFila, onAbrir, onReactivar }: PropsFila) {
   const entregas = chipEntregas(p);
   const saldo = p.saldo ?? 0;
   const vencido = (p.saldo_vencido ?? 0) > 0;
-  const ult = p.ultima_compra;
+  const dias = p.dias_desde_ultima_compra;
+  const dormido = p.activo && dias != null && dias > 90;
   return (
-    <div className={fila(plantilla, `relative transition-colors hover:bg-tinta/[0.03] ${p.activo ? "" : "opacity-60"}`)}>
-      <Link href={`/compras/proveedores/${p.id}`} className={celda("izq", "min-w-0 after:absolute after:inset-0 after:content-['']")}>
-        <NombreCelda p={p} />
-      </Link>
-      <span className={celda("izq", "font-mono text-xs tabular-nums text-tinta/75")}>{p.ruc ?? "Sin RUC"}</span>
-      <span className={celda("der", `text-sm ${p.facturado_12m ? "text-tinta" : "text-tinta/45"}`)}>{soles(p.facturado_12m ?? 0)}</span>
-      <span className={celda("der", "text-sm")}>
+    <div
+      ref={refFila}
+      data-proveedor-id={p.id}
+      style={{ ["--i" as string]: 8 + Math.min(indice, 10) }}
+      className={`anim-entra group relative grid ${COLUMNAS_LIDER} items-center gap-x-4 px-5 py-3 transition-[background-color,opacity] duration-200 before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:rounded-full before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.03] hover:before:scale-y-100 ${
+        enfoque === "foco" ? "bg-tinta/[0.04] before:scale-y-100" : "before:scale-y-0"
+      } ${enfoque === "tenue" ? "opacity-40" : p.activo ? "" : "opacity-60"}`}
+    >
+      {/* El destello vive en su propia capa: `animation` es una sola propiedad, y si se pusiera en la fila
+          pisaría a la entrada `anim-entra` (y al quitarlo, la entrada se repetiría). */}
+      {reciente && <span aria-hidden className="anim-destello-fila pointer-events-none absolute inset-0" />}
+      <button type="button" onClick={onAbrir} aria-label={`${p.nombre}: abrir vista rápida`} className="min-w-0 text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-rojo/60">
+        <NombreCelda p={p} busqueda={busqueda} />
+      </button>
+      <span className="hidden truncate font-mono text-xs tabular-nums text-tinta/75 @7xl:block">{p.ruc ? <Resaltado texto={p.ruc} busqueda={busqueda} /> : "Sin RUC"}</span>
+      <span className="hidden items-center justify-end gap-2.5 whitespace-nowrap text-sm tabular-nums @3xl:flex">
+        {serie && <Sparkline serie={serie} indice={indice} />}
+        <span className={p.facturado_12m ? "text-tinta" : "text-tinta/45"}>{soles(p.facturado_12m ?? 0)}</span>
+      </span>
+      <span className="text-right text-sm tabular-nums">
         {saldo > 0 ? (
-          <Link href={`/compras/por-pagar?prov=${p.id}`} className={`relative underline-offset-4 hover:underline ${vencido ? "text-rojo" : "text-tinta hover:text-rojo"}`}>
-            {soles(saldo)}
-          </Link>
+          <>
+            <Link
+              href={`/compras/por-pagar?prov=${p.id}`}
+              className={`relative whitespace-nowrap underline-offset-4 hover:underline ${vencido ? "text-rojo" : "text-tinta hover:text-rojo"}`}
+            >
+              {soles(saldo)}
+            </Link>
+            {/* La deuda a escala: el largo es la parte del mayor saldo de la lista y el rojo, lo ya vencido. */}
+            <span aria-hidden title={vencido ? `Vencido: ${soles(p.saldo_vencido ?? 0)}` : "Nada vencido"} className="mt-1 block h-[3px] overflow-hidden rounded-full bg-sand">
+              <span className="anim-crece-x flex h-full" style={{ width: `${Math.max(4, (saldo / maxSaldo) * 100)}%`, ["--i" as string]: 8 + Math.min(indice, 10) }}>
+                <span className="h-full bg-rojo" style={{ width: `${(Math.min(p.saldo_vencido ?? 0, saldo) / saldo) * 100}%` }} />
+                <span className="h-full flex-1 bg-tinta/45" />
+              </span>
+            </span>
+          </>
         ) : (
           <span className="text-tinta/45">{soles(saldo)}</span>
         )}
       </span>
       {/* Saldo a favor: lo que el proveedor le debe a CAYLA (una nota de crédito que superó su deuda); se descuenta al pagar. */}
-      <span className={celda("der", "text-sm")}>
+      <span className="hidden text-right text-sm tabular-nums @5xl:block">
         {(p.saldo_favor ?? 0) > 0 ? (
-          <Link href={`/compras/proveedores/${p.id}#saldo-a-favor`} className="relative font-semibold text-verde-profundo underline-offset-4 hover:underline">
+          <Link href={`/compras/proveedores/${p.id}#saldo-a-favor`} className="relative whitespace-nowrap font-semibold text-verde-profundo underline-offset-4 hover:underline">
             {soles(p.saldo_favor ?? 0)}
           </Link>
         ) : (
           <span className="text-tinta/45">—</span>
         )}
       </span>
-      <span className={celda("der", "overflow-visible text-xs")}>{entregas ? <Chip tono={entregas.tono}>{entregas.texto}</Chip> : <span className="text-tinta/45">—</span>}</span>
-      <span className={celda("der", "text-sm text-tinta/65")}>
-        {ult ? (ult.slice(0, 4) === hoyLima().slice(0, 4) ? diaMes(ult) : `${diaMes(ult)}/${ult.slice(2, 4)}`) : "Nunca"}
+      <span className="hidden justify-end overflow-visible text-xs @5xl:flex">{entregas ? <Chip tono={entregas.tono}>{entregas.texto}</Chip> : <span className="text-tinta/45">—</span>}</span>
+      <span className={`hidden whitespace-nowrap text-right text-sm @7xl:block ${dormido ? "text-ambar-profundo" : "text-tinta/65"}`} title={p.ultima_compra ?? undefined}>
+        {haceCuanto(dias)}
       </span>
-      <span className={celda("der", "overflow-visible")}>
+      <span className="hidden items-center justify-end gap-2 overflow-visible @3xl:flex">
         {p.activo ? (
           <Link
             href={`/compras/nueva?prov=${p.id}`}
-            className="label-cayla relative inline-block rounded-md border border-tinta/20 px-2.5 py-1.5 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
+            className="label-cayla relative inline-block whitespace-nowrap rounded-md border border-tinta/20 px-2.5 py-1.5 text-[11px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
           >
             + Comprobante
           </Link>
@@ -288,18 +500,27 @@ function FilaLider({ p, plantilla, cambiando, onReactivar }: { p: Proveedor; pla
             {cambiando ? "…" : "Reactivar"}
           </Boton>
         )}
+        <ChevronRight aria-hidden className="h-4 w-4 shrink-0 -translate-x-1.5 text-tinta/45 opacity-0 transition-[opacity,transform] duration-300 ease-cayla group-hover:translate-x-0 group-hover:opacity-100" />
       </span>
     </div>
   );
 }
 
 // Los encabezados de Facturado, Saldo y Última compra ordenan la tabla; el nombre también (clic en
-// «Proveedor»). La flecha dice hacia dónde. `aria-sort` para el lector de pantalla.
-function EncabezadoOrdenable({ plantilla, orden, onOrden }: { plantilla: string; orden: Orden; onOrden: (c: CampoOrden) => void }) {
-  const col = (titulo: string, campo: CampoOrden | null, der = false) => {
-    if (!campo) return <span key={titulo} className={`label-cayla text-[11px] text-tinta/55 ${der ? "text-right" : ""}`} role="columnheader">{titulo}</span>;
+// «Proveedor»). La flecha dice hacia dónde y GIRA al invertir el orden. `aria-sort` para el lector de pantalla.
+// Las columnas se muestran con los mismos cortes que las celdas de `FilaLider` (COLUMNAS_LIDER).
+function EncabezadoOrdenable({ orden, onOrden }: { orden: Orden; onOrden: (c: CampoOrden) => void }) {
+  const col = (titulo: string, campo: CampoOrden | null, opts: { der?: boolean; desde?: "sm" | "lg" | "xl" } = {}) => {
+    const visible = opts.desde === "xl" ? "hidden @7xl:flex" : opts.desde === "lg" ? "hidden @5xl:flex" : opts.desde === "sm" ? "hidden @3xl:flex" : "flex";
+    const alinear = opts.der ? "justify-end text-right" : "text-left";
+    if (!campo) {
+      return (
+        <span key={titulo || "accion"} className={`label-cayla ${visible} ${alinear} whitespace-nowrap text-[11px] text-tinta/55`} role="columnheader">
+          {titulo}
+        </span>
+      );
+    }
     const activo = orden.campo === campo;
-    const Flecha = orden.dir === "desc" ? ArrowDown : ArrowUp;
     return (
       <button
         key={titulo}
@@ -307,23 +528,23 @@ function EncabezadoOrdenable({ plantilla, orden, onOrden }: { plantilla: string;
         role="columnheader"
         aria-sort={activo ? (orden.dir === "desc" ? "descending" : "ascending") : "none"}
         onClick={() => onOrden(campo)}
-        className={`label-cayla inline-flex items-center gap-1 text-[11px] transition-colors hover:text-rojo ${der ? "justify-end text-right" : "text-left"} ${activo ? "text-tinta" : "text-tinta/55"}`}
+        className={`label-cayla ${visible} items-center gap-1 whitespace-nowrap text-[11px] transition-colors hover:text-rojo ${alinear} ${activo ? "text-tinta" : "text-tinta/55"}`}
       >
         {titulo}
-        {activo && <Flecha aria-hidden className="h-3 w-3 shrink-0" />}
+        <ArrowDown aria-hidden className={`h-3 w-3 shrink-0 transition-[opacity,transform] duration-300 ease-cayla ${activo ? "opacity-100" : "opacity-0"} ${activo && orden.dir === "asc" ? "rotate-180" : ""}`} />
       </button>
     );
   };
   return (
-    <div className={`hidden gap-x-4 px-5 py-2 sm:grid ${plantilla}`} role="row">
+    <div className={`hidden gap-x-4 px-5 py-2 @3xl:grid ${COLUMNAS_LIDER}`} role="row">
       {col("Proveedor", "nombre")}
-      {col("RUC", null)}
-      {col("Facturado · 12 m", "facturado", true)}
-      {col("Saldo", "saldo", true)}
-      {col("Saldo a favor", "favor", true)}
-      {col("Entregas", null, true)}
-      {col("Última compra", "ultima", true)}
-      {col("", null)}
+      {col("RUC", null, { desde: "xl" })}
+      {col("Facturado · 12 m", "facturado", { der: true, desde: "sm" })}
+      {col("Saldo", "saldo", { der: true })}
+      {col("A favor", "favor", { der: true, desde: "lg" })}
+      {col("Entregas", null, { der: true, desde: "lg" })}
+      {col("Última compra", "ultima", { der: true, desde: "xl" })}
+      {col("", null, { desde: "sm" })}
     </div>
   );
 }

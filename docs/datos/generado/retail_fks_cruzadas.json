@@ -115,6 +115,11 @@
   "src_table": "devoluciones"
  },
  {
+  "conname": "envios_recibido_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "envios"
+ },
+ {
   "conname": "etiquetas_aprobado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "etiquetas"
