@@ -26,6 +26,11 @@ type Props = {
   variante?: "papel";
 };
 
+// REGLA DE MOVIMIENTO (ADR-0136): todo modal nuevo se hace con este componente y hereda, sin definir nada, el
+// efecto del sistema — velo con desenfoque, hoja que sube y crece, contenido que entra en cascada, salida
+// corta (detalle y números en globals.css, «REGLA DE MODALES»). NO reimplementes el overlay ni pongas otra
+// animación de entrada en un modal: si una pieza necesita salirse de la cascada, `data-sin-cascada`.
+//
 // Cascarón único para todos los modales del sistema. Antes cada uno reimplementaba
 // a mano el overlay (`fixed inset-0 ...`) y ninguno atrapaba el foco ni cerraba con
 // Escape — Radix Dialog resuelve eso una sola vez; el look sigue siendo 100% CAYLA
@@ -67,8 +72,8 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             className={`scroll-cayla pointer-events-auto relative max-h-[90vh] w-full overflow-y-auto rounded-t-2xl border border-sand p-6 outline-none sm:rounded-2xl ${
               variante === "papel" ? "bg-papel" : "bg-crema shadow-xl"
             } ${
-              cerrando ? "anim-salida" : "anim-entrada"
-            } ${ancho}`}
+              cerrando ? "anim-modal-sale" : "anim-modal-entra"
+            } cascada-modal ${ancho}`}
             // Radix dispara esto al desmontar el diálogo; `preventDefault` evita que
             // su default (enfocar el trigger) pise el foco que se pone acá.
             onCloseAutoFocus={

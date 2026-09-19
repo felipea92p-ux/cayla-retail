@@ -145,6 +145,8 @@ export function PagoJuntosModal({
     if (excede) return void avisar.error("Un comprobante recibe más de lo que debe. Baja el monto marcado en rojo.");
     const lote = aplicaciones.filter((a) => a.monto > 0).map((a) => ({ compra_id: a.c.id, monto: a.monto }));
     if (lote.length === 0) return void avisar.error("El pago necesita al menos un comprobante con monto.");
+    if (fecha > hoyLima()) return void avisar.error("La fecha del pago no puede ser futura: es cuándo se pagó, no cuándo se pagará.");
+    if (aplicaciones.some((a) => a.monto > 0 && a.c.fechaEmision && fecha < a.c.fechaEmision)) return void avisar.error("La fecha del pago no puede ser anterior a la emisión de alguno de los comprobantes.");
     setLoading(true);
     const cerrarProceso = avisar.proceso("Registrando el pago…");
     const supabase = createClient();
@@ -160,7 +162,7 @@ export function PagoJuntosModal({
     cerrarProceso();
     setLoading(false);
     if (error) {
-      avisar.error(traducirError(error, "registrar el pago"));
+      avisar.error(traducirError(error, "registrar el pago", { confirmarAntesDeRepetir: true }));
       return;
     }
     token.current = crypto.randomUUID();

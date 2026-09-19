@@ -1,7 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  bancoDeCci,
+  billeterasTexto,
   chipEntregas,
   claveRubro,
+  cuentaLocalVisible,
+  datosPagoDe,
+  enmascararCci,
+  enmascararCelular,
+  enmascararCuenta,
+  formatoCci,
+  formatoCelular,
+  normalizarCci,
+  normalizarCelular,
   haceCuanto,
   inicialesMeses,
   ordenarProveedores,
@@ -12,8 +23,11 @@ import {
   serie12Meses,
   siguienteOrden,
   siguientePaso,
+  sinDatosDePago,
   subeEnCadaCompra,
   urlWhatsApp,
+  validarCci,
+  validarCelular,
   variacionCosto,
   type EstadoProveedor,
 } from "./proveedores-reglas";
@@ -215,5 +229,96 @@ describe("proveedorConRuc", () => {
   });
   it("un RUC incompleto no se compara todavía", () => {
     expect(proveedorConRuc("2051234", ps, null)).toBeNull();
+  });
+});
+
+describe("datos para pagar (ADR-0134)", () => {
+  it("el CCI y el celular se normalizan a solo dígitos, con o sin +51", () => {
+    expect(normalizarCci("002-193-002145678045-58")).toBe("00219300214567804558");
+    expect(normalizarCci(" 002 193 002145678045 58 ")).toBe("00219300214567804558");
+    expect(normalizarCelular("+51 987 654 321")).toBe("987654321");
+    expect(normalizarCelular("987-654-321")).toBe("987654321");
+    expect(normalizarCelular("51987654321")).toBe("987654321");
+    // Un 9 seguido de 10 dígitos que empieza con 51 NO es el prefijo: no se recorta a ciegas.
+    expect(normalizarCelular("5198765432")).toBe("5198765432");
+  });
+
+  it("se formatea mientras se escribe, sin pasarse de largo", () => {
+    expect(formatoCci("0021")).toBe("002-1");
+    expect(formatoCci("00219300214567804558")).toBe("002-193-002145678045-58");
+    expect(formatoCci("002193002145678045589999")).toBe("002-193-002145678045-58");
+    expect(formatoCelular("98765")).toBe("987 65");
+    expect(formatoCelular("+51987654321")).toBe("987 654 321");
+  });
+
+  it("enmascara sin dejar a la vista el dato completo", () => {
+    expect(enmascararCci("00219300214567804558")).toBe("002-193-••••••••••••-58");
+    expect(enmascararCci("123")).toBe("••••");
+    expect(enmascararCelular("987654321")).toBe("9•• ••• 321");
+    expect(enmascararCuenta("193-2145678-0-45")).toBe("193-•••••••-•-45");
+  });
+
+  it("valida el CCI: 20 dígitos exactos, vacío es válido (todo es opcional)", () => {
+    expect(validarCci("")).toBeNull();
+    expect(validarCci("   ")).toBeNull();
+    expect(validarCci("002-193-002145678045-58")).toBeNull();
+    expect(validarCci("0021930021456780455")).toMatch(/llevas 19/);
+    expect(validarCci("0021930021456780455A")).toMatch(/solo números/);
+  });
+
+  it("valida el celular: 9 dígitos y empieza con 9", () => {
+    expect(validarCelular("")).toBeNull();
+    expect(validarCelular("+51 987 654 321")).toBeNull();
+    expect(validarCelular("98765432")).toMatch(/llevas 8/);
+    expect(validarCelular("812345678")).toMatch(/empezar con 9/);
+    expect(validarCelular("98765432x")).toMatch(/solo números/);
+  });
+
+  it("deduce el banco de los 3 primeros dígitos del CCI, y no adivina el resto", () => {
+    expect(bancoDeCci("002-193-002145678045-58")).toBe("BCP");
+    expect(bancoDeCci("01117500020012345673")).toBe("BBVA");
+    expect(bancoDeCci("00")).toBeNull();
+    expect(bancoDeCci("999193002145678045")).toBeNull();
+  });
+
+  it("dice en qué app está la billetera", () => {
+    expect(billeterasTexto(["yape"])).toBe("Yape");
+    expect(billeterasTexto(["plin"])).toBe("Plin");
+    expect(billeterasTexto(["plin", "yape"])).toBe("Plin / Yape".split(" / ").sort().join(" / "));
+    expect(billeterasTexto(null)).toBeNull();
+    expect(billeterasTexto([])).toBeNull();
+  });
+
+  it("«sin datos de pago»: falta cuenta, CCI y billetera — salvo que cobre en efectivo", () => {
+    const vacio = { forma_pago_preferida: null, cuenta_bancaria: null, cci: null, celular_billetera: null };
+    expect(sinDatosDePago(vacio)).toBe(true);
+    expect(sinDatosDePago({ ...vacio, forma_pago_preferida: "transferencia" })).toBe(true);
+    expect(sinDatosDePago({ ...vacio, cuenta_bancaria: "  " })).toBe(true);
+    // Con cualquiera de los tres ya se le puede pagar.
+    expect(sinDatosDePago({ ...vacio, cuenta_bancaria: "193-2145678-0-45" })).toBe(false);
+    expect(sinDatosDePago({ ...vacio, cci: "00219300214567804558" })).toBe(false);
+    expect(sinDatosDePago({ ...vacio, celular_billetera: "987654321" })).toBe(false);
+    // Cobra en efectivo: no le falta nada, no los necesita.
+    expect(sinDatosDePago({ ...vacio, forma_pago_preferida: "efectivo" })).toBe(false);
+  });
+
+  it("no muestra dos veces el mismo número: la cuenta que es exactamente el CCI se oculta", () => {
+    expect(cuentaLocalVisible("002 193 002145678045 58", "00219300214567804558")).toBeNull();
+    expect(cuentaLocalVisible("193-2145678-0-45", "00219300214567804558")).toBe("193-2145678-0-45");
+    expect(cuentaLocalVisible("193-2145678-0-45", null)).toBe("193-2145678-0-45");
+    expect(cuentaLocalVisible("  ", null)).toBeNull();
+    expect(cuentaLocalVisible(null, "00219300214567804558")).toBeNull();
+  });
+
+  it("arma los datos de pago con los nombres de los modales, y el WhatsApp queda aparte del Yape", () => {
+    const d = datosPagoDe(
+      { id: "prov-1", banco: "BCP", cuenta_bancaria: "193-2145678-0-45", cci: "00219300214567804558", celular_billetera: "987654321", billeteras: ["yape"], titular_cuenta: "Rosita SAC", telefono: "955000111", plazo_credito_dias: 30, forma_pago_preferida: "transferencia" },
+      120
+    );
+    expect(d.celularBilletera).toBe("987654321");
+    expect(d.telefono).toBe("955000111");
+    expect(d.titular).toBe("Rosita SAC");
+    expect(d.saldoFavor).toBe(120);
+    expect("saldoFavor" in datosPagoDe({ ...{ id: "prov-1", banco: null, cuenta_bancaria: null, cci: null, celular_billetera: null, billeteras: null, titular_cuenta: null, telefono: null, plazo_credito_dias: null, forma_pago_preferida: null } })).toBe(false);
   });
 });

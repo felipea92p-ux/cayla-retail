@@ -131,6 +131,13 @@ describe("los bordes de red y el fallback", () => {
     expect(salida).toContain("No se guardó nada");
   });
 
+  it("con dinero de por medio no afirma que no se guardó: pide revisar antes de repetir", () => {
+    const salida = traducirError({ message: "TypeError: Failed to fetch" }, "registrar el pago", { confirmarAntesDeRepetir: true });
+    expect(salida).not.toContain("No se guardó nada");
+    expect(salida).toContain("no podemos confirmar");
+    expect(salida).toContain("registrar el pago");
+  });
+
   it("lo desconocido no se traga: cae con el texto crudo detrás de «Código:»", () => {
     const raro = 'relation "tabla_que_nadie_espera" does not exist';
     const salida = traducirError({ message: raro, code: "42P01" }, "registrar la venta");

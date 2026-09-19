@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { chipLlegada, cierresElegidos, diasDeAtraso, efectoCierre, estadoLinea, etiquetaConfirmar, faltanteDeLinea, fechaEsperada, disponibilidadNota, igvDeMonto, montoDeCierres, notaDelBloque, reparteNota, sinDecidir, textoReparteNota, montoNotaSugerido, ordenarPorUrgencia, resumenConteo, tasaIgv, textoEsperada, valorPorLlegar } from "./recepciones-reglas";
+import type { CompraResumen } from "./compras-reglas";
+import type { NotaCreditoCompra } from "./compras-faltantes";
+import { chipLlegada, cierresElegidos, diasDeAtraso, efectoCierre, estadoLinea, etiquetaConfirmar, estadoNotaFaltante, faltanteDeLinea, fechaEsperada, disponibilidadNota, igvDeMonto, montoDeCierres, notaDelBloque, reparteNota, sinDecidir, textoReparteNota, montoNotaSugerido, ordenarPorUrgencia, resumenConteo, tasaIgv, textoEsperada, valorPorLlegar } from "./recepciones-reglas";
 
 // Hoy en Lima = 2026-09-18 (a las 19:30 de Lima en UTC ya es 09-19).
 const AHORA = new Date("2026-09-19T00:30:00Z");
@@ -129,6 +131,25 @@ describe("disponibilidadNota: se anticipa lo que la base va a exigir", () => {
   });
   it("si ya tiene su nota por faltante, no hay otra", () => {
     expect(disponibilidadNota({ ...base, yaTieneNotaFaltante: true })).toEqual({ estado: "ya_registrada" });
+  });
+});
+
+describe("estadoNotaFaltante: vive en un módulo puro para que el detalle (servidor) pueda llamarla", () => {
+  // Solo importan las tres cantidades; el resto del comprobante no interviene.
+  const compra = (facturado: number, recibido: number, cerrado: number) => ({ facturadoCantidad: facturado, recibidoCantidad: recibido, cerradoCantidad: cerrado }) as CompraResumen;
+  const nota = (motivo: string) => ({ motivo }) as NotaCreditoCompra;
+  it("con unidades cerradas y todo lo demás recibido, la nota por faltante está disponible", () => {
+    expect(estadoNotaFaltante(compra(24, 20, 4), [])).toEqual({ estado: "disponible" });
+  });
+  it("sin nada cerrado no hay nota por faltante", () => {
+    expect(estadoNotaFaltante(compra(24, 24, 0), [])).toEqual({ estado: "sin_cierres" });
+  });
+  it("si aún quedan unidades sin recibir ni cerrar, dice cuántas", () => {
+    expect(estadoNotaFaltante(compra(24, 10, 4), [])).toEqual({ estado: "bloqueada", quedan: 10 });
+  });
+  it("una nota de otro motivo no cuenta como la del faltante; la del faltante, sí", () => {
+    expect(estadoNotaFaltante(compra(24, 20, 4), [nota("devolucion")])).toEqual({ estado: "disponible" });
+    expect(estadoNotaFaltante(compra(24, 20, 4), [nota("faltante")])).toEqual({ estado: "ya_registrada" });
   });
 });
 

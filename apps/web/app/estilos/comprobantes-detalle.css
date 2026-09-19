@@ -1,0 +1,281 @@
+/* ---- Comprobantes · detalle (ADR-0136) ----
+   Estilos y keyframes propios de el detalle de un comprobante y sus pagos (modal /compras/factura/[id]).
+   Reglas de la casa: curva var(--ease-cayla) (entradas) y var(--ease-salida); duraciones 200–500 ms; sin
+   rebote, nunca en bucle salvo lo que ya existe; `backwards` y no `both` cuando la pieza luego se
+   mueve con hover; y CADA clase animada se apaga con movimiento reducido (bloque al final de este archivo).
+   Los modales NO definen su propia entrada: heredan la de `<Modal>` (globals.css, «REGLA DE MODALES»).
+
+   Qué hay aquí (prototipo: docs/maquetas/comprobantes-animaciones-2026-09/comprobantes-vivo.html):
+     · `cd-equis`        la X de cierre arriba a la derecha del detalle (`ModalRuta cierre="equis"`): gira 90° al hover.
+     · `cd-titulo`/`cd-datos` la cabecera (tipo · serie-número, nombre del proveedor, línea gris): dejan sitio a la X.
+     · `cd-mas`          el bloque «lo que el prototipo no tiene» (líneas, recepciones, notas, adjuntos) bajo un separador.
+     · `cd-ic-abajo`     el ícono de «Ir a recibir» baja 2 px al pasar el mouse (como el prototipo).
+     · `cd-detalle`      la cascada de las piezas del detalle dentro del modal (encabezado, línea de tiempo,
+                         tarjetas…), que `<Modal>` no alcanza porque el detalle es UN solo hijo suyo.
+     · `cd-llena`        toda barra que se llena (conectores de la línea de tiempo, avance de Recepción y Pago).
+                         Las barras parten de 0 al abrir y, tras un pago, del ancho que tenían (transición).
+     · `cd-nodo`         los tres hitos de la línea de tiempo.
+     · `cd-pago-nuevo`   un pago recién registrado entra con un desliz y un destello verde que se apaga.
+     · `cd-btn-confirmar` el botón que confirma un pago: reposo → cargando (giro) → hecho (visto que se dibuja).
+     · `cd-chispa`       las partículas del destello de «comprobante saldado» (se crean desde JS, ver
+                         ComprobanteBotonConfirmar.tsx).
+     · `cd-ficha`        las fichas de medio de pago (transición de color, sin rebote).
+     · `cd-linea`        una línea de pago: entra con un desliz corto y, al quitarla, se colapsa.
+     · `cd-resumen`      la frase «Salda el comprobante» / «Quedarán S/ X»: cambia de tono con suavidad. ---- */
+
+@keyframes cd-pago-entra {
+  from { opacity: 0; transform: translate3d(-16px, 0, 0); }
+}
+/* El destello se apaga solo (sin fill: al terminar la fila vuelve a su fondo normal). */
+@keyframes cd-destello {
+  0%, 35% { background-color: color-mix(in srgb, var(--color-verde) 16%, transparent); }
+  100% { background-color: transparent; }
+}
+@keyframes cd-linea-entra {
+  from { opacity: 0; transform: translate3d(0, -6px, 0); }
+}
+
+@layer components {
+  /* ---------- La X de cierre ----------
+     `<Dialog.Content>` no es `position: relative`; solo cuando el modal lleva una X la volvemos referencia, así la
+     X queda pegada a la esquina de la hoja (y se va con el contenido si se hace scroll, como la cabecera del
+     prototipo). Entra con la cascada del modal (es hija directa) y NO define otra animación. */
+  .cascada-modal:has(> .cd-equis) { position: relative; }
+  .cd-equis {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+    outline: none;
+    transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla), transform 300ms var(--ease-cayla);
+  }
+  .cd-equis:hover {
+    background: color-mix(in srgb, var(--color-tinta) 10%, transparent);
+    color: var(--color-tinta);
+    transform: rotate(90deg);
+  }
+  .cd-equis:focus-visible { outline: 2px solid color-mix(in srgb, var(--color-rojo) 60%, transparent); outline-offset: 2px; }
+  /* El nombre y la línea gris no pasan por debajo de la X. */
+  .cascada-modal .cd-titulo,
+  .cascada-modal .cd-datos { padding-right: 2.25rem; }
+
+  /* El ícono de «Ir a recibir» baja un poco al pasar el mouse sobre el botón (`Boton` es `group`). */
+  .cd-ic-abajo { transition: transform 260ms var(--ease-cayla); }
+  .group:hover .cd-ic-abajo { transform: translateY(2px); }
+
+  /* ---------- Cascada del detalle dentro del modal ----------
+     `<Modal>` anima sus hijos directos; el detalle es un solo hijo (con `data-sin-cascada`), así que sus
+     piezas entran acá con la MISMA animación (`cayla-cascada`, globals.css) y el mismo ritmo de 55 ms,
+     arrancando después del título y la ficha (3 pasos). Son `backwards`: tras entrar, la pieza es normal.
+     Solo en el modal: en la página completa no hay hoja que entre y el detalle aparece de una. Un
+     `router.refresh()` tras un pago NO repite esto: los elementos siguen montados, solo cambian sus datos. */
+  .cascada-modal > .cd-detalle > * {
+    animation: cayla-cascada 500ms var(--ease-cayla) backwards;
+    animation-delay: calc((var(--cd-k, 0) + 3) * 55ms + 120ms);
+  }
+  .cascada-modal > .cd-detalle > :nth-child(1) { --cd-k: 0; }
+  .cascada-modal > .cd-detalle > :nth-child(2) { --cd-k: 1; }
+  .cascada-modal > .cd-detalle > :nth-child(3) { --cd-k: 2; }
+  .cascada-modal > .cd-detalle > :nth-child(4) { --cd-k: 3; }
+  .cascada-modal > .cd-detalle > :nth-child(5) { --cd-k: 4; }
+  .cascada-modal > .cd-detalle > :nth-child(6) { --cd-k: 5; }
+  .cascada-modal > .cd-detalle > :nth-child(n + 7) { --cd-k: 6; }
+
+  /* ---------- Barras que se llenan ----------
+     `--p` (0–1) lo pone el componente: parte de 0 y, a los dos cuadros, pasa al valor real, así el navegador
+     lo ve como un cambio y lo anima. La primera vez espera a que la pieza haya entrado (650 ms); después
+     (un pago nuevo) casi no espera: la barra sigue desde donde estaba. */
+  .cd-llena {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 9999px;
+    transform-origin: left;
+    transform: scaleX(var(--p, 0));
+    transition: transform 1000ms var(--ease-cayla) 150ms, background-color 500ms var(--ease-cayla);
+  }
+  .cd-llena[data-primera="true"] { transition-delay: 650ms, 0s; }
+  .cd-llena[data-tono="verde"] { background-color: var(--color-verde); }
+  .cd-llena[data-tono="ambar"] { background-color: var(--color-ambar); }
+  .cd-llena[data-tono="rojo"] { background-color: var(--color-rojo); }
+  .cd-llena[data-tono="neutro"] { background-color: color-mix(in srgb, var(--color-tinta) 40%, transparent); }
+
+  /* ---------- Línea de tiempo: Registrado → Mercadería → Pago ---------- */
+  .cd-linea-tiempo {
+    display: grid;
+    grid-template-columns: auto 1fr auto 1fr auto;
+    align-items: start;
+  }
+  .cd-nodo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    width: clamp(4.75rem, 22vw, 6.9rem);
+    text-align: center;
+  }
+  .cd-pt {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 9999px;
+    border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent);
+    background: var(--color-papel);
+    color: color-mix(in srgb, var(--color-tinta) 45%, transparent);
+    transition: background-color 500ms var(--ease-cayla), border-color 500ms var(--ease-cayla), color 500ms var(--ease-cayla);
+  }
+  .cd-nodo[data-estado="hecho"] .cd-pt {
+    background: var(--color-verde);
+    border-color: var(--color-verde);
+    color: var(--color-papel);
+  }
+  .cd-nodo[data-estado="parcial"] .cd-pt {
+    border-color: var(--color-ambar);
+    color: var(--color-ambar-profundo);
+    background: color-mix(in srgb, var(--color-ambar) 10%, transparent);
+  }
+  .cd-cnx {
+    height: 2px;
+    margin-top: 14px;
+    overflow: hidden;
+    border-radius: 2px;
+    background: var(--color-sand);
+  }
+
+  /* ---------- Un pago nuevo en el historial ---------- */
+  .cd-pago-nuevo {
+    animation: cd-pago-entra 600ms var(--ease-cayla) backwards, cd-destello 1800ms var(--ease-cayla);
+    animation-delay: calc(var(--i, 0) * 70ms), calc(var(--i, 0) * 70ms);
+  }
+
+  /* ---------- Botón que confirma un pago: reposo → cargando → hecho ---------- */
+  .cd-btn-confirmar {
+    position: relative;
+    overflow: hidden;
+    background: var(--color-tinta);
+    color: var(--color-crema);
+    transition: background-color 300ms var(--ease-cayla), opacity 200ms var(--ease-cayla);
+  }
+  .cd-btn-confirmar:hover:not(:disabled):not([data-estado="hecho"]) { background: var(--color-rojo); }
+  .cd-btn-confirmar:disabled { opacity: 0.5; cursor: not-allowed; }
+  .cd-btn-confirmar[data-estado="cargando"],
+  .cd-btn-confirmar[data-estado="hecho"] { pointer-events: none; }
+  .cd-btn-confirmar[data-estado="hecho"] { background: var(--color-verde); }
+  .cd-btn-txt {
+    display: block;
+    transition: opacity 200ms var(--ease-cayla), transform 300ms var(--ease-cayla);
+  }
+  .cd-btn-confirmar[data-estado="cargando"] .cd-btn-txt,
+  .cd-btn-confirmar[data-estado="hecho"] .cd-btn-txt {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  .cd-btn-giro,
+  .cd-btn-visto {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .cd-btn-confirmar[data-estado="cargando"] .cd-btn-giro,
+  .cd-btn-confirmar[data-estado="hecho"] .cd-btn-visto { display: flex; }
+  /* El único movimiento continuo de esta pieza, y solo mientras se espera la respuesta de la base
+     (un indicador de espera, no un adorno). Con movimiento reducido no gira: ver el bloque de abajo. */
+  .cd-btn-giro i {
+    width: 16px;
+    height: 16px;
+    border-radius: 9999px;
+    border: 2px solid color-mix(in srgb, var(--color-crema) 30%, transparent);
+    border-top-color: var(--color-crema);
+    animation: cayla-giro 700ms linear infinite;
+  }
+
+  /* Las partículas del destello de «saldado»: se crean y animan desde JS (WAAPI) y se borran solas. */
+  .cd-chispa {
+    position: fixed;
+    z-index: 70;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    pointer-events: none;
+  }
+
+  /* ---------- Fichas de medio de pago ----------
+     Color, borde y fondo cambian con suavidad; al presionar se hunden un poco (sin rebote al soltar).
+     El punto taupe marca el medio preferido de este proveedor mientras no sea el elegido. */
+  .cd-ficha {
+    position: relative;
+    border: 1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent);
+    background: color-mix(in srgb, var(--color-tinta) 4%, transparent);
+    color: color-mix(in srgb, var(--color-tinta) 75%, transparent);
+    transition:
+      background-color 300ms var(--ease-cayla),
+      color 300ms var(--ease-cayla),
+      border-color 300ms var(--ease-cayla),
+      transform 180ms var(--ease-cayla);
+  }
+  .cd-ficha:hover { border-color: var(--color-tinta); }
+  .cd-ficha:active { transform: scale(0.95); }
+  .cd-ficha[aria-checked="true"] {
+    background: var(--color-tinta);
+    border-color: var(--color-tinta);
+    color: var(--color-crema);
+  }
+  .cd-ficha[data-preferido="true"]:not([aria-checked="true"])::before {
+    content: "";
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    margin-right: 6px;
+    vertical-align: 1px;
+    border-radius: 9999px;
+    background: var(--color-taupe);
+  }
+
+  /* ---------- Una línea de pago: entra con un desliz corto; al quitarla, se colapsa ----------
+     El alto se anima con `grid-template-rows` (1fr → 0fr), la forma de animar «alto automático» sin medirlo. */
+  .cd-linea {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 240ms var(--ease-salida), opacity 200ms var(--ease-salida);
+  }
+  .cd-linea[data-entra] { animation: cd-linea-entra 300ms var(--ease-cayla) backwards; }
+  .cd-linea[data-quitando] { grid-template-rows: 0fr; opacity: 0; }
+  .cd-linea-in { min-height: 0; }
+  .cd-linea[data-quitando] .cd-linea-in { overflow: hidden; }
+
+  /* ---------- La frase que resume el pago ---------- */
+  .cd-resumen {
+    color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+    transition: color 300ms var(--ease-cayla);
+  }
+  .cd-resumen[data-tono="verde"] { color: var(--color-verde-profundo); }
+  .cd-resumen[data-tono="ambar"] { color: var(--color-ambar-profundo); }
+  .cd-resumen[data-tono="rojo"] { color: var(--color-rojo); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-equis,
+  .cd-ic-abajo { transition-duration: 1ms !important; }
+  .cd-equis:hover,
+  .group:hover .cd-ic-abajo { transform: none; }
+  .cascada-modal > .cd-detalle > *,
+  .cd-pago-nuevo,
+  .cd-linea[data-entra] { animation: none !important; }
+  .cd-llena { transition-duration: 1ms !important; transition-delay: 0s !important; }
+  .cd-linea,
+  .cd-ficha,
+  .cd-btn-txt { transition-duration: 1ms !important; }
+  /* Sin giro: la espera se dice con el texto («Registrando…») y no con una rueda que da vueltas. */
+  .cd-btn-giro { display: none !important; }
+  .cd-btn-confirmar[data-estado="cargando"] .cd-btn-txt { opacity: 0.7; transform: none; }
+  .cd-ficha:active { transform: none; }
+}

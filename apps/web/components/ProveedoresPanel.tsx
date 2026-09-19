@@ -11,7 +11,7 @@ import { ProveedorVistaRapida } from "@/components/ProveedorVistaRapida";
 import { ProveedoresIndicadores } from "@/components/ProveedoresIndicadores";
 import { soles } from "@/lib/compras-reglas";
 import { clave } from "@/lib/buscar-prenda-v2";
-import { chipEntregas, haceCuanto, ordenarProveedores, repartoDeuda, rubrosConConteo, claveRubro, siguienteOrden, type CampoOrden, type Orden } from "@/lib/proveedores-reglas";
+import { chipEntregas, haceCuanto, ordenarProveedores, repartoDeuda, rubrosConConteo, claveRubro, siguienteOrden, sinDatosDePago, type CampoOrden, type Orden } from "@/lib/proveedores-reglas";
 import { useFlip } from "@/lib/useFlip";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -60,6 +60,11 @@ const PLANTILLA_BASE = "sm:grid-cols-[1fr_8rem]";
 // buscador, tabla, filas: `anim-entra` con `--i`) y las cifras y trazos se arman una vez — regla de
 // movimiento revisada el 2026-09-19 (globals.css, ADR-0128). Lo demás responde a una acción.
 //
+// ADR-0134: un chip ámbar «Sin datos de pago» marca al proveedor activo al que todavía no se le puede pagar por
+// transferencia ni Yape/Plin (sin cuenta, sin CCI y sin celular de billetera; quien cobra en efectivo NO se marca:
+// no le falta nada), y un filtro con su conteo — solo si hay alguno — para ir a completarlos de una vez. Se resuelve en
+// el cliente como el rubro: el directorio entero ya está en la página. Los desactivados no se marcan: ya no se les paga.
+//
 // `esLider` gobierna tres cosas a la vez, no solo «puede editar»: ver lo financiero, abrir el detalle
 // (clic en la fila), y editar/registrar/desactivar. Hoy las tres son la misma condición
 // (rol líder) — un solo prop en vez de tres idénticos, hasta que alguna necesite separarse de verdad.
@@ -81,6 +86,7 @@ export function ProveedoresPanel({
   const [cambiandoId, setCambiandoId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [rubro, setRubro] = useState<string | null>(null); // clave normalizada; null = todos
+  const [soloSinPago, setSoloSinPago] = useState(false);
   const [orden, setOrden] = useState<Orden>({ campo: "saldo", dir: "desc" });
   const [abiertoId, setAbiertoId] = useState<string | null>(null); // el proveedor de la vista rápida
   const [foco, setFoco] = useState<string | null>(null); // el tramo de la barra de concentración al que se apunta
@@ -93,7 +99,13 @@ export function ProveedoresPanel({
   // RUC y contacto, sin tildes ni mayúsculas (misma `clave` que el buscador de Vender).
   const k = clave(busqueda);
   const rubros = useMemo(() => rubrosConConteo(proveedores.filter((p) => p.activo)), [proveedores]);
-  const coincide = (p: Proveedor) => (!k || clave(`${p.nombre} ${p.ruc ?? ""} ${p.contacto ?? ""}`).includes(k)) && (!rubro || claveRubro(p.rubro) === rubro);
+  // Solo líder: pagar es de líder, y el filtro (y su conteo) no le sirve a quien no puede completar los datos.
+  const faltaPago = (p: Proveedor) => esLider && p.activo && sinDatosDePago(p);
+  const nSinPago = proveedores.filter(faltaPago).length;
+  // Si al completar los datos ya no queda ninguno, el filtro deja de aplicar (y su botón desaparece): no se queda una lista vacía.
+  const filtrarSinPago = soloSinPago && nSinPago > 0;
+  const coincide = (p: Proveedor) =>
+    (!k || clave(`${p.nombre} ${p.ruc ?? ""} ${p.contacto ?? ""}`).includes(k)) && (!rubro || claveRubro(p.rubro) === rubro) && (!filtrarSinPago || faltaPago(p));
   const activos = ordenarProveedores(
     proveedores.filter((p) => p.activo && coincide(p)),
     orden,
@@ -101,7 +113,7 @@ export function ProveedoresPanel({
   const desactivados = proveedores.filter((p) => !p.activo && coincide(p));
   const totalActivos = proveedores.filter((p) => p.activo).length;
   const hayProveedores = totalActivos > 0;
-  const filtrando = !!k || !!rubro;
+  const filtrando = !!k || !!rubro || filtrarSinPago;
   const reparto = useMemo(() => repartoDeuda(proveedores.filter((p) => p.activo).map((p) => ({ id: p.id, nombre: p.nombre, saldo: p.saldo }))), [proveedores]);
   const maxSaldo = Math.max(1, ...proveedores.filter((p) => p.activo).map((p) => p.saldo ?? 0));
   const refFila = useFlip(activos.map((p) => p.id).join("|"));
@@ -244,6 +256,18 @@ export function ProveedoresPanel({
               opciones={[{ clave: "", etiqueta: "Todos", conteo: totalActivos }, ...rubros.map((r) => ({ clave: r.clave, etiqueta: r.etiqueta, conteo: r.conteo }))]}
             />
           )}
+          {nSinPago > 0 && (
+            <button
+              type="button"
+              aria-pressed={filtrarSinPago}
+              onClick={() => setSoloSinPago((v) => !v)}
+              className={`anim-revelar rounded-full border px-3 py-1 text-xs tabular-nums transition-colors duration-200 ${
+                filtrarSinPago ? "border-tinta bg-tinta text-crema" : "border-ambar/40 bg-ambar/10 text-ambar-profundo hover:border-ambar-profundo"
+              }`}
+            >
+              Sin datos de pago · {nSinPago}
+            </button>
+          )}
         </div>
       )}
 
@@ -251,7 +275,7 @@ export function ProveedoresPanel({
         <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">Todavía no hay proveedores registrados.</p>
       ) : activos.length === 0 && desactivados.length === 0 ? (
         <p className="anim-revelar card-cayla p-5 text-sm text-tinta/75">
-          Ningún proveedor coincide{busqueda.trim() ? ` con «${busqueda.trim()}»` : " con ese rubro"}.{" "}
+          Ningún proveedor coincide{busqueda.trim() ? ` con «${busqueda.trim()}»` : " con esos filtros"}.{" "}
           {esLider && busqueda.trim() && (
             <button type="button" onClick={() => setBorrador({ ...BORRADOR_VACIO, nombre: busqueda.trim() })} className="text-rojo hover:underline">
               Registrarlo →
@@ -331,6 +355,7 @@ export function ProveedoresPanel({
               // llegue en la próxima lectura, se lleva a la vista.
               setBusqueda("");
               setRubro(null);
+              setSoloSinPago(false);
               pendienteScroll.current = id;
               marcarReciente(id);
             }
@@ -387,7 +412,7 @@ function iniciales(nombre: string): string {
 
 // Nombre/contacto/rubro/plazo: para cualquiera. El resto de la fila (RUC en adelante) cambia de
 // contenido Y de significado entre líder y colaborador, no solo de estilo.
-function NombreCelda({ p, busqueda }: { p: Proveedor; busqueda: string }) {
+function NombreCelda({ p, busqueda, marcarSinPago = false }: { p: Proveedor; busqueda: string; /** Solo líder: es quien puede completar los datos (ADR-0134). */ marcarSinPago?: boolean }) {
   return (
     <span className="flex min-w-0 items-center gap-3">
       <span aria-hidden className={MONOGRAMA}>
@@ -402,6 +427,12 @@ function NombreCelda({ p, busqueda }: { p: Proveedor; busqueda: string }) {
           {p.rubro && ` · ${p.rubro}`}
           {p.plazo_credito_dias != null && ` · Crédito ${p.plazo_credito_dias} d`}
         </span>
+        {/* Debajo, no al lado: junto al nombre le quitaba ancho y lo cortaba («Confecciones d…»). */}
+        {marcarSinPago && p.activo && sinDatosDePago(p) && (
+          <Chip tono="ambar" versalitas={false} className="mt-1">
+            Sin datos de pago
+          </Chip>
+        )}
       </span>
     </span>
   );
@@ -445,7 +476,7 @@ function FilaLider({ p, indice, busqueda, serie, maxSaldo, cambiando, reciente, 
           pisaría a la entrada `anim-entra` (y al quitarlo, la entrada se repetiría). */}
       {reciente && <span aria-hidden className="anim-destello-fila pointer-events-none absolute inset-0" />}
       <button type="button" onClick={onAbrir} aria-label={`${p.nombre}: abrir vista rápida`} className="min-w-0 text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-rojo/60">
-        <NombreCelda p={p} busqueda={busqueda} />
+        <NombreCelda p={p} busqueda={busqueda} marcarSinPago />
       </button>
       <span className="hidden truncate font-mono text-xs tabular-nums text-tinta/75 @7xl:block">{p.ruc ? <Resaltado texto={p.ruc} busqueda={busqueda} /> : "Sin RUC"}</span>
       <span className="hidden items-center justify-end gap-2.5 whitespace-nowrap text-sm tabular-nums @3xl:flex">

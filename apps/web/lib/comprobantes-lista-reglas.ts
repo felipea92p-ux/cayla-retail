@@ -7,39 +7,50 @@ import { diasDeAtraso, textoEsperada } from "./recepciones-reglas";
 // sin I/O; las fechas son de Lima.
 
 export type TonoEstado = "neutro" | "ambar" | "verde" | "rojo" | "apagado";
-export type CeldaEstado = { tono: TonoEstado; texto: string; sub: string };
+/** `pct` (0–1) es el avance REAL bajo el subtexto —recibido/facturado, pagado/total— y solo existe cuando hay avance parcial;
+ *  con nada avanzado o todo hecho es `null` (la barra fina no se dibuja: el chip ya lo dice). */
+export type CeldaEstado = { tono: TonoEstado; texto: string; sub: string; pct: number | null };
 
 const unidades = (n: number) => `${n.toLocaleString("es-PE")} u.`;
+/** Fracción estricta 0 < p < 1, o `null`: una barra vacía o llena no aporta nada que el chip no diga. */
+export function avanceParcial(parte: number, total: number): number | null {
+  if (!(total > 0) || !(parte > 0)) return null;
+  const p = parte / total;
+  return p > 0 && p < 1 ? p : null;
+}
+
 const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /** Estado de la mercadería del comprobante, con su apoyo («Atrasada 9 días» + «Esperada el 09/09»). */
 export function celdaRecepcion(c: CompraResumen, ahora: Date = new Date()): CeldaEstado {
-  if (c.estado === "anulada") return { tono: "apagado", texto: "Anulada", sub: "—" };
+  if (c.estado === "anulada") return { tono: "apagado", texto: "Anulada", sub: "—", pct: null };
   const cubierto = c.recibidoCantidad + c.cerradoCantidad;
   if (c.estadoRecepcion === "recibida") {
-    return { tono: "verde", texto: "Recibida", sub: c.cerradoCantidad > 0 ? `${unidades(c.recibidoCantidad)} · ${unidades(c.cerradoCantidad)} cerradas` : `${unidades(c.recibidoCantidad)} recibidas` };
+    return { tono: "verde", texto: "Recibida", sub: c.cerradoCantidad > 0 ? `${unidades(c.recibidoCantidad)} · ${unidades(c.cerradoCantidad)} cerradas` : `${unidades(c.recibidoCantidad)} recibidas`, pct: null };
   }
   const atraso = diasDeAtraso(c, ahora);
   const parcial = c.estadoRecepcion === "parcial";
   const avance = `${c.recibidoCantidad} de ${c.facturadoCantidad} u. recibidas`;
+  const pct = avanceParcial(c.recibidoCantidad, c.facturadoCantidad);
   if (atraso > 0 || c.recepcionAtrasada) {
-    return { tono: "ambar", texto: `Atrasada ${Math.max(atraso, 1)} ${Math.max(atraso, 1) === 1 ? "día" : "días"}`, sub: parcial ? avance : textoEsperada(c, ahora) };
+    return { tono: "ambar", texto: `Atrasada ${Math.max(atraso, 1)} ${Math.max(atraso, 1) === 1 ? "día" : "días"}`, sub: parcial ? avance : textoEsperada(c, ahora), pct };
   }
-  if (parcial) return { tono: "ambar", texto: "Parcial", sub: cubierto > c.recibidoCantidad ? `${avance} · ${c.cerradoCantidad} cerradas` : avance };
-  return { tono: "neutro", texto: "Sin recibir", sub: textoEsperada(c, ahora) };
+  if (parcial) return { tono: "ambar", texto: "Parcial", sub: cubierto > c.recibidoCantidad ? `${avance} · ${c.cerradoCantidad} cerradas` : avance, pct };
+  return { tono: "neutro", texto: "Sin recibir", sub: textoEsperada(c, ahora), pct: null };
 }
 
 /** Estado del pago con lo que falta: vencida > vence pronto > parcial > pendiente. */
 export function celdaPago(c: CompraResumen, ahora: Date = new Date()): CeldaEstado {
-  if (c.estado === "anulada") return { tono: "apagado", texto: "Anulada", sub: "—" };
-  if (c.estadoPago === "pagada") return { tono: "verde", texto: "Pagada", sub: c.condicion === "contado" ? "Al contado" : "Saldada" };
+  if (c.estado === "anulada") return { tono: "apagado", texto: "Anulada", sub: "—", pct: null };
+  if (c.estadoPago === "pagada") return { tono: "verde", texto: "Pagada", sub: c.condicion === "contado" ? "Al contado" : "Saldada", pct: null };
   const falta = `Faltan ${soles(c.saldo)}`;
-  if (c.vencida) return { tono: "rojo", texto: "Vencida", sub: falta };
+  const pct = avanceParcial(c.pagado, c.total);
+  if (c.vencida) return { tono: "rojo", texto: "Vencida", sub: falta, pct };
   if (c.fechaVencimiento) {
     const d = diasHastaLima(c.fechaVencimiento, ahora);
-    if (d >= 0 && d <= 7) return { tono: "ambar", texto: d === 0 ? "Vence hoy" : d === 1 ? "Vence mañana" : `Vence en ${d} días`, sub: falta };
+    if (d >= 0 && d <= 7) return { tono: "ambar", texto: d === 0 ? "Vence hoy" : d === 1 ? "Vence mañana" : `Vence en ${d} días`, sub: falta, pct };
   }
-  return c.estadoPago === "parcial" ? { tono: "ambar", texto: "Parcial", sub: falta } : { tono: "neutro", texto: "Pendiente", sub: falta };
+  return c.estadoPago === "parcial" ? { tono: "ambar", texto: "Parcial", sub: falta, pct } : { tono: "neutro", texto: "Pendiente", sub: falta, pct };
 }
 
 /** Bajo la fecha de emisión: «Contado», «Vence 25/09» o «Venció 12/09». */
