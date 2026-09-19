@@ -35,6 +35,8 @@ export const AVIARIO = [
   { n: "02", pajaro: "Loro", modulo: "Catálogo y vocabulario",
     tablas: [
       "productos", "variantes", "categorias", "familias", "producto_fotos", "historial_producto_cambios",
+      // De quién es cada producto (ADR-0109): la marca y qué proveedores la traen. Sin proponer/aprobar, como familias.
+      "marcas", "marca_proveedores",
       "codigos_barras", "codigos_correlativos",
       // El vocabulario cerrado: los cinco usan el mismo proponer/aprobar/rechazar (ADR-0070, ADR-0095).
       "colores", "tallas", "categoria_tallas", "tejidos", "categoria_tejidos",

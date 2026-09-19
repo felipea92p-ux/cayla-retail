@@ -99,3 +99,5 @@ Puede ser SQL que todavía no se pegó allá, o un volcado viejo que todavía no
 
 - `etiqueta_categorias`
 - `familias`
+- `marca_proveedores`
+- `marcas`
