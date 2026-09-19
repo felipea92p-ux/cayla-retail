@@ -28,6 +28,30 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Compras: un comprobante se reparte entre tiendas y cada tienda recibe lo suyo (2026-09-18, ADR-0107) — EN ESPERA
+
+Felipe confirmó que una misma factura de proveedor puede traer mercadería para varias tiendas y que cada una hace su
+recepción. Hoy la factura tiene un solo destino y `recibir_compras` cuenta lo recibido sumando todas las ubicaciones:
+una tienda puede «comerse» la parte de otra. Diseño (con la UX) en ADR-0107: `compra_item_destinos` + tope por tienda
+al recibir + «Reasignar» solo-líder; **Recibir pasa a ser por tienda; Comprobantes y Por pagar no se parten** (la deuda
+es de la empresa, R-04/R-10/R-12) pero muestran y filtran por destino. **Sin código, sin migración, nada en producción.**
+Se espera a que `claude/pantallas-proveedores-comprobantes-a15ece` (ADR-0106, otra sesión, sin PR) llegue a `main`:
+reescribe las mismas funciones y pantallas, y sus 11 migraciones ya están aplicadas en el Postgres local compartido.
+
+- [ ] **Retomar cuando ADR-0106 esté en `main`:** merge de `main` → re-medir quién usa `compras.ubicacion_destino_id`
+      (grep en migraciones y `pg_proc.prosrc` en local y producción; en esa rama eran ~30 usos en 7 migraciones) →
+      implementar en pasos verificables: migración + `scripts/pruebas/compras_reparto.mjs`, y después Registrar,
+      Recibir, Detalle y listas. En el local, `migration up` (nunca `db reset`: la base es compartida).
+- [ ] **Maquetar los tres elementos nuevos y que Felipe los apruebe antes de construir** (mismo proceso que ADR-0106):
+      interruptor «Todo a una tienda / Repartir entre tiendas» con la fila de reparto por línea; «Recibiendo en <tienda>»
+      con «Te toca · Recibidas aquí · Faltan»; sección «Reparto por tienda» del detalle con «Reasignar».
+- [ ] **Avisar a la sesión de ADR-0106** (o dejar la nota antes de que fusione) de que `compra_item_cierres` necesita
+      `ubicacion_id` y que «Todo llegó» debe significar «todo lo de esta tienda»: es más barato antes de fusionar que
+      como migración aparte después.
+- [ ] **Al implementar:** pájaro para `compra_item_destinos` y `compra_reasignaciones` en `scripts/datos/aviario.mjs`
+      (ADR-0104, lo aprueba Felipe) o el CI falla. Decisión abierta con default: con reparto, un integrante ve el total de
+      la factura completa si tiene una parte (se acepta, ADR-0075 extendido; alternativa: lectura de Recibir sin montos).
+
 ## 🎯 Traslados: lectura operativa, franja «Atención hoy» y contador del menú (2026-09-18, ADR-0105)
 
 Rediseño de `/inventario/traslados` sobre la referencia que dio Felipe; una sola regla

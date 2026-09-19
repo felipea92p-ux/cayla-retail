@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Compras por tienda: qué se parte y qué no, y el diseño del reparto de un comprobante entre tiendas)
+
+Felipe preguntó si Comprobantes, Recibir mercadería y Por pagar deberían ser por tienda. Respuesta con evidencia: solo Recibir (es un acto físico en un lugar); Comprobantes y Por pagar son de la empresa (R-04, R-10, R-12) pero tienen que mostrar y filtrar por destino, que hoy no se ve en ninguna lista. Al confirmar Felipe que una factura puede repartirse entre tiendas, el destino dejó de poder vivir en la factura: `recibir_compras` cuenta lo recibido sumando todas las ubicaciones, así que una tienda podía gastarse la parte de otra. Diseño en ADR-0107; sin código ni migración porque otra sesión (ADR-0106, sin PR) reescribe las mismas funciones y su esquema ya corre en el Postgres local compartido.
+
+Lo que Felipe se lleva: «por tienda» son tres cosas distintas — perspectiva (qué muestra la pantalla), permiso (quién puede) y atribución (a qué tienda pertenece el registro) — y no se resuelven igual en cada módulo. Y antes de escribir migraciones sobre un módulo, mirar `git log origin/main..<rama>` de las sesiones vecinas: esta vez habría sido trabajo doble sobre las mismas cinco funciones.
+
 ## 2026-09-18 (Etiquetas se alinea con Colores, Tejidos y Patrones: mismo tamaño de tarjeta, misma grilla)
 
 Las ilustraciones de Etiquetas se veían más grandes y "fuera de línea" al saltar de una pestaña de Atributos a otra. La causa no era un dibujo mal puesto sino tres medidas distintas: 4 columnas en vez de 5, margen interno de 10 px en vez de 16 px, y una imagen 2:1 (alta) en vez de 3:1. Ahora las cuatro pestañas miden igual — verificado en el navegador: imagen de 229×76 px y tarjeta de 263 px en Etiquetas y en Patrones, 5 columnas en ambas. El chip de temporada (Vigente / En N días / Fuera de temporada) salió de encima del dibujo y va junto a las fechas, debajo del nombre: sobre una imagen más baja tapaba el ícono. Sin cambios de esquema.
