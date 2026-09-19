@@ -240,8 +240,9 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
 **Producción (Taller)**
 - `/produccion/ordenes` → `lib/produccion.ts` (`getTaller`, `getOrdenesProduccion`,
   `getModelosProducibles`; lectura con `exigir()`) + `lib/produccion-reglas.ts`
-  (puro: etapas, semáforo de margen, costo unitario) → `OrdenesProduccionV2.tsx`
-  (en proceso / terminadas / anuladas; RPC `set_etapa_produccion`,
+  (puro: etapas, semáforo de margen, costo unitario) → `OrdenesTablero.tsx`
+  (tablero por etapa + muestras + terminadas / anuladas; tarjeta `OrdenTarjeta`, panel `OrdenPanel`
+  con `MatrizOrden` y `OrdenCierre`; RPC `set_etapa_produccion`,
   `cerrar_produccion`, `anular_produccion`, `revertir_produccion`) y
   `NuevaOrdenProduccionForm.tsx` (RPC `abrir_produccion` con `p_token`). Entra el
   líder desde cualquier ubicación y el integrante cuyo `ubicacionTipo === "taller"`.

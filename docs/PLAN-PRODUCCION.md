@@ -85,6 +85,8 @@ que cuentan, barras que crecen, destello de «acaba de pasar» y avisos con «De
 | 5 | Gráfico de línea y «barras que crecen» | gramática de movimiento acotada (ADR-0128) | se **piden en el ADR-0133** como ampliación; sin aprobación, entran sin animar |
 | 6 | Drawer propio, `<aside>` propio, lateral propio | AppShell real + Radix | mismo aspecto, piezas reales |
 | 7 | Cálculos en el navegador con datos de ejemplo | principio 6 (lo esencial sobrevive al framework) | reglas puras en `lib/produccion-*.ts` con tests; la página lee y pinta |
+| 9 | Animaciones en bucle del spike: la barra de la etapa actual que barre, el anillo que late | `Chip` documenta que la **única** animación en bucle permitida por pantalla es su punto «vivo» | la etapa actual se distingue por color y por el trazo del check; nada parpadea (descubierto en F2) |
+| 10 | «Días de trabajo por etapa» (3 / 8 / 2) para estimar si una orden llega tarde | «nada inventado»: eran supuestos míos, no datos de CAYLA | el aviso de entrega usa solo hechos: fecha pasada, o a ≤ 2 días (`DIAS_ENTREGA_PRONTO`). Un estimado real llegará con plazos medidos (F7) |
 | 8 | Rótulos de sección en el lateral («Abastecer», «Fabricar») | el riel del AppShell se mueve por filas de **alto fijo** (`PASO_FILA`); una fila de otra altura lo desalinea (descubierto en F1) | sin rótulos; el **orden** de las filas cuenta el recorrido (proveedor → factura → recepción → pago → órdenes) |
 
 Regla de decisión sobre el diseño: **si el resultado real se ve distinto al spike, la diferencia debe estar en esta tabla.** Si no
@@ -115,13 +117,20 @@ Tamaño: **S** ≈ media sesión · **M** ≈ una sesión · **L** ≈ dos o má
   `lib/produccion-menu.ts` con pruebas para los tres perfiles.
 
 ### F2 · Órdenes: tablero, panel, matriz y cierre por talla (L) — sin esquema
-- `lib/produccion-reglas.ts` (puras, con tests): `riesgo(orden)` (días que faltan contra días de entrega), agrupación por
-  etapa, semáforo (ya existe), reparto de la matriz.
-- Componentes: tablero (`OrdenesTablero`), panel de la orden con matriz y cierre editable por variante, consumo con vista
-  previa. Sustituye `OrdenesProduccionV2.tsx` (507 líneas) por piezas chicas.
-- `NuevaOrdenProduccionForm.tsx` **deja de pedir tela y avíos** (manda `null`; el costo llega del consumo).
-- **Verificas:** abrir una orden real de prueba, marcar etapas, cerrar con 1 talla en 0 → el stock del Taller sube solo por
-  las buenas; la tarjeta viaja de columna; sin errores de consola; 1440 / 1024 / 390 px.
+- **Aplicada el 2026-09-19.** `lib/produccion-reglas.ts` (puras, 31 pruebas): `etapaActual`, `estadoEntrega`, `matrizDeLineas`,
+  `desgloseCosto`, `resumenTablero`. Componentes: `OrdenesTablero` (cifras + 4 columnas + muestras + terminadas/anuladas),
+  `OrdenTarjeta`, `OrdenPanel` (cajón: etapas, matriz talla×color, costo, cierre), `OrdenCierre`, `MatrizOrden`, `OrdenModales`
+  (Anular/Revertir, movidos sin cambios) y el hook `useFlipCajas` (las tarjetas viajan entre columnas). Retira `OrdenesProduccionV2.tsx`.
+- **Lo que se conservó a propósito** (el spike no lo tenía): muestras (con sus 3 etapas, en su franja), órdenes terminadas y anuladas,
+  «Revertir cierre», y los tres costos reales en el cierre.
+- **Cambió respecto al plan original:** `NuevaOrdenProduccionForm.tsx` **sigue pidiendo tela y avíos** hasta F3. Quitarlos antes
+  dejaría el costo de la orden en «solo maquila» sin que el consumo de insumos (F3) exista para reemplazarlos: un margen falso.
+  El cierre manda `null` (conservar) a quien no es líder.
+- **Verificado en el navegador** (líder, base local): abrir orden → marcar etapa (con «Deshacer») → la tarjeta pasa de columna → cerrar
+  por talla y color → terminada → revertir → anular; una muestra con sus etapas propias; 390 px sin desborde; sin errores de consola.
+- **Pendiente / a decidir:** (1) colaborador del Taller sin probar en navegador; (2) `producciones.costo_*` se leen con
+  `fn_puede_operar_ubicacion`: un colaborador ve costos **por la API** aunque la pantalla se los oculte — se suma a D-G (F4c);
+  (3) el menú del celular no tiene entrada a Producción (ya era así).
 
 ### F3 · Insumos: pantalla y consumo (M) — sin esquema (la lectura por el hueco D-G queda para F4c)
 - `lib/insumos.ts` (lectura por `fn_puede_operar_ubicacion`, como hoy) + pantalla: saldo contra mínimo, lotes con «1º»,

@@ -45,8 +45,10 @@ depende de un número que alguien escribe.
 9. **El diseño se porta del spike y solo cambia donde CAYLA lo exige** (tabla de la sección 5 del plan): tope de rojo por
    pantalla, piso de contraste, candado en la base y no solo en la pantalla, estados vacíos en vez de datos de ejemplo,
    piezas reales del repo en vez del CSS del spike.
-10. **Gestos de movimiento nuevos que se piden aprobar** (extienden la gramática de ADR-0128): barras que crecen en
-    cobertura y vencimientos, y trazo del gráfico de línea. Sin aprobación entran sin animar.
+10. **Gestos de movimiento.** Se reutiliza lo que ya existe (`anim-entra`, `anim-crece-x/y`, `anim-trazo`, `anim-cajon`, `useFlip`,
+    `useContar`, `Avisos` con «Deshacer»: ADR-0128). Lo único nuevo es `useFlipCajas` (la tarjeta viaja **entre columnas**; `useFlip` solo
+    mueve en vertical) y, en F7, el trazo del gráfico de línea. **Ninguna animación en bucle** (la única permitida es el punto «vivo»
+    del `Chip`).
 
 ## Lo que la base vuelve imposible (cuando esté construido)
 
