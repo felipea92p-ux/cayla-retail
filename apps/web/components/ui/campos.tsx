@@ -712,10 +712,16 @@ export function Boton({
       {/* Barrido de luz al pasar el mouse: cruza una vez y no deja nada
           pintado. Es el único gradiente del sistema, y existe solo como
           movimiento — un botón que solo cambia de color de golpe es
-          justamente el "seco" que había que sacar. */}
+          justamente el "seco" que había que sacar.
+          En reposo la barra es INVISIBLE (`opacity-0`), no solo "fuera de
+          cuadro": está inclinada y una inclinación de 12° mete su esquina
+          ~4-5px dentro del botón (mitad del alto × tan 12°), y eso se veía como
+          una esquina rosada en el borde inferior izquierdo de todos los botones
+          aun sin mouse. La animación la enciende (`cayla-brillo` fija
+          `opacity: 1`) y al terminar vuelve a apagarse. */}
       <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-md">
         <span
-          className={`absolute inset-y-0 left-0 w-1/3 -translate-x-full skew-x-12 group-hover:[animation:cayla-brillo_650ms_ease-out] motion-reduce:group-hover:[animation:none] ${
+          className={`absolute inset-y-0 left-0 w-1/3 -translate-x-full skew-x-12 opacity-0 group-hover:[animation:cayla-brillo_650ms_ease-out] motion-reduce:group-hover:[animation:none] ${
             peso === "primario" ? "bg-crema/20" : "bg-rojo/10"
           }`}
         />

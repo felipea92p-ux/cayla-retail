@@ -1,10 +1,11 @@
+import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { CategoriasLista } from "@/components/CategoriasLista";
 import { getEjesPorCategoria } from "@/lib/catalogo-v2";
-import { FAMILIAS, type Familia } from "@cayla-retail/shared";
+import type { Familia } from "@cayla-retail/shared";
 
 // Portado de `trix/catalogo-vocabulario` (V1) tras ADR-0095: familia+prefijo
 // ya viven en `retail.categorias`, esta es la pantalla que le faltaba.
@@ -17,12 +18,16 @@ export default async function CategoriasPage() {
   // ProveedoresPanel), pero tienen que llegar a la pantalla para poder
   // reactivarlas. Antes de esta pantalla de edición solo se leían las
   // activas porque no había forma de volver de un desactivado.
-  const [res, resTallas, resTejidos, resPatrones, ejesPorCategoria, resProductos] = await Promise.all([
+  const [res, resFamilias, resTallas, resTejidos, resPatrones, ejesPorCategoria, resProductos] = await Promise.all([
     supabase
       .from("categorias")
       .select("id, familia, nombre, prefijo, activo, categoria_padre_id, notas")
       .order("familia")
       .order("nombre"),
+    // Solo activas: una familia con categorías activas colgando no se puede
+    // desactivar (fn_familias_desactivar_candado), así que el selector de
+    // familia nunca necesita ofrecer una inactiva.
+    supabase.from("familias").select("codigo, nombre").eq("activo", true).order("orden"),
     supabase.from("tallas").select("id, valor").eq("activo", true).eq("estado", "aprobado").order("valor"),
     supabase.from("tejidos").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
     supabase.from("patrones").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
@@ -33,6 +38,7 @@ export default async function CategoriasPage() {
     supabase.from("productos").select("categoria_id, estado"),
   ]);
   const filas = exigir(res, "las categorías del catálogo");
+  const familias = exigir(resFamilias, "las familias del catálogo");
   const productosPorCategoria: Record<string, number> = {};
   for (const p of exigir(resProductos, "los productos del catálogo")) {
     if (p.categoria_id && p.estado === "activo") productosPorCategoria[p.categoria_id] = (productosPorCategoria[p.categoria_id] ?? 0) + 1;
@@ -61,8 +67,10 @@ export default async function CategoriasPage() {
     prefijo: c.prefijo,
     // Categorías creadas antes del vocabulario cerrado pueden no tener
     // familia asignada todavía (0014: familia se agregó con ALTER, sin
-    // backfill de lo que no calzaba con las 37 de CAYLA).
-    familia: c.familia && FAMILIAS.includes(c.familia as Familia) ? (c.familia as Familia) : null,
+    // backfill de lo que no calzaba con las 37 de CAYLA). Si tiene una, es
+    // válida por construcción: `categorias_familia_fk` (20260918010000) no
+    // deja guardar un código que no exista en retail.familias.
+    familia: (c.familia as Familia | null) ?? null,
     activo: c.activo,
     categoriaPadreId: c.categoria_padre_id,
     notas: c.notas,
@@ -75,8 +83,10 @@ export default async function CategoriasPage() {
         <h1 className="font-display mt-1 text-2xl text-tinta">
           Categorías
           <Ayuda titulo="Categorías">
-            Las 6 familias del negocio son fijas; dentro de cada una, las categorías (con su
-            prefijo de 3 letras, como BLU de Blusas) sí crecen. El prefijo es lo que hace que el
+            Las familias del negocio (Indumentaria, Calzado...) se administran en{" "}
+            <Link href="/productos/familias" className="underline">Productos · Familias</Link> y las marcas de cada producto en{" "}
+            <Link href="/productos/marcas" className="underline">Productos · Marcas</Link>; dentro de cada familia, las
+            categorías (con su prefijo de 3 letras, como BLU de Blusas) sí crecen. El prefijo es lo que hace que el
             código de una prenda se pueda leer de un vistazo. Una categoría puede, opcionalmente,
             tener subcategorías (un solo nivel, ej. &ldquo;Vestidos largos&rdquo; bajo &ldquo;Vestidos&rdquo;) — la mayoría
             no las necesita y se sigue viendo igual que siempre. Al editar una categoría también
@@ -93,6 +103,7 @@ export default async function CategoriasPage() {
       <CategoriasLista
         categoriasIniciales={categorias}
         puedeEditar={persona.rol === "lider"}
+        familias={familias}
         universo={universo}
         ejesPorCategoria={ejesPorCategoria}
         productosPorCategoria={productosPorCategoria}

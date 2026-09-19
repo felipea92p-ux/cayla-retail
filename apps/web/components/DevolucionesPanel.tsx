@@ -34,7 +34,7 @@ function ventasDelFiltro(lineas: LineaVentaReciente[], filtro: Filtro): Set<stri
 }
 
 /**
- * Devoluciones, rehecha el 2026-09-18 con el mismo modelo que Cambios (ADR-0104):
+ * Devoluciones, rehecha el 2026-09-18 con el mismo modelo que Cambios (ADR-0121):
  *   A. «Iniciar una devolución» — buscar o escanear; los resultados aparecen ahí mismo.
  *   B. «Por aprobar» — lo que registraron las colaboradoras y un líder todavía no resolvió.
  *   C. «Actividad reciente» — las compras de los últimos 15 días, con filtros.

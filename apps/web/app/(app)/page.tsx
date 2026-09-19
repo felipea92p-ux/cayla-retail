@@ -54,7 +54,8 @@ export default async function InicioPage() {
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12">
           {[
             { href: "/buscar", etiqueta: "Buscar", detalle: "Stock por SKU, referencia, talla o color" },
-            { href: "/inventario/recibir", etiqueta: "Recibir mercadería", detalle: "Ingresar un lote a esta ubicación" },
+            // ADR-0111 + ADR-0113: una sola puerta para recibir, la misma para todos: cuenta cualquier colaborador de la sede.
+            { href: "/recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó, contra sus comprobantes" },
             { href: "/inventario", etiqueta: "Inventario", detalle: "Stock por ubicación" },
             { href: "/productos", etiqueta: "Productos", detalle: "Catálogo completo" },
             { href: "/inventario/movimientos", etiqueta: "Movimientos", detalle: "Por qué cambió el stock" },

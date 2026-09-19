@@ -30,7 +30,9 @@ export default async function HistorialCierresPage() {
   const cierres = await getHistorialCierres();
 
   return (
-    <div className="space-y-6">
+    // `/caja` va a todo el ancho (AppShell), pero esta tabla tiene una columna flexible (la sede) que
+    // en pantalla grande separaría la sede de sus cifras: conserva la columna de lectura de siempre.
+    <div className="mx-auto max-w-5xl space-y-6">
       <div>
         <Link href="/caja" className="label-cayla text-[11px] text-tinta/60 hover:text-rojo">
           ← Caja
@@ -83,7 +85,7 @@ export default async function HistorialCierresPage() {
                   {money(c.montoCierreReal)}
                 </span>
                 <span className={celda("der", `font-semibold ${cuadra ? "text-tinta" : c.diferencia > 0 ? "text-verde-profundo" : "text-rojo-profundo"}`)}>
-                  <span className="label-cayla mr-1 font-normal text-tinta/40 sm:hidden">Diferencia</span>
+                  <span className="label-cayla mr-1 text-tinta/40 sm:hidden">Diferencia</span>
                   {c.diferencia >= 0 ? "+" : ""}
                   {money(c.diferencia)}
                 </span>

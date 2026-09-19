@@ -15,7 +15,7 @@ import { ResumenSede } from "@/components/ui/ResumenSede";
 
 // Cambio de talla/color (Prioridad 1, 2026-09-12; rediseño completo 2026-09-18). El
 // modelo vive en supabase/migrations/0007_cambios.sql y
-// 20260918150000_cambios_motivo_y_estado_de_prenda.sql; la pantalla, en CambiosPanel.
+// 20260919000100_cambios_motivo_y_estado_de_prenda.sql; la pantalla, en CambiosPanel.
 export default async function CambiosPage({ searchParams }: { searchParams: Promise<{ q?: string; todas?: string; item?: string }> }) {
   const persona = await requirePersonaActualV2();
   // `item`: llegar desde Devoluciones con «Cambiar por otra prenda» (R-37) abre el flujo

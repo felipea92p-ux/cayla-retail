@@ -152,10 +152,18 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `InventarioPanel.tsx` (tres tarjetas, filtros en memoria, semáforo de 4 estados con
   `calcularEstado` en `lib/inventario-reglas.ts`, leyenda) → `ReponerPisoModal.tsx` (RPC
   `mover_interno`) y `AjustarInventarioModal.tsx` (RPC `registrar_movimiento`).
-- `/inventario/traslados` → `lib/traslados.ts` (`getTrasladosEnCurso`, `getTrasladosCerrados`,
-  con `numero`) → `TrasladosLista.tsx` (vista rápida por chips, en memoria) →
+- `/inventario/traslados` → `lib/traslados.ts` (`getTrasladosDeLaSede`: en curso + últimos 30
+  cerrados + miniaturas con UNA consulta de fotos, tolerante a fallo; `numero`) →
+  `TrasladosPanel.tsx` (el único con estado: filtros, buscador, paginación, refresco cada minuto) →
+  `TrasladosAtencion` / `TrasladosResumen` / `TrasladosFiltros` / `TrasladosLista` +
+  `TrasladoEstado` / `TrasladoLlegada` / `TrasladoMiniaturas`. Todo lo que se decide (qué requiere
+  acción, qué viene en camino, cuántas prendas están en tránsito, el orden por espera) vive en
+  `lib/traslados-reglas.ts` (`situacionTraslado`, ADR-0105) y se comparte con el contador «por atender»
+  del menú: `getTrasladosPorAtender` (total, nunca lanza) → `(app)/layout.tsx` e `inventario/layout.tsx`
+  → `AppShell` / `InventarioNav` (`ui/Insignia`). Las fotos se eligen con `lib/producto-fotos-reglas.ts`
+  (color exacto o general, nunca de otro color) →
   `/inventario/traslados/[id]` → `TrasladoDetallePanel.tsx` (RPC `registrar_recepcion_traslado`,
-  `confirmar_traslado`, `cerrar_traslado_con_diferencia`). Reglas en `lib/traslados-reglas.ts`.
+  `confirmar_traslado`, `cerrar_traslado_con_diferencia`; dice el estado con `TrasladoEstado`).
 - `/inventario/conteo` → `lib/conteos.ts` (`getConteoAbierto`, `getConteosResumen` → RPC
   `fn_conteos_resumen`, `getPrevisualizacionCierre`, `getPrioridadConteo`) →
   `ConteoPanel.tsx` (RPC `abrir_conteo`, `conteo_contar`, `cerrar_conteo`; avance con
@@ -248,7 +256,7 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   ADR-0045). Modales del padre:
   `AbrirCajaFormV2` (RPC `abrir_caja`) y `CerrarCajaModalV2` (RPC `cerrar_caja`, con
   conteo ciego: el esperado sale de la respuesta del cierre, no antes).
-- **Cambios y Devoluciones comparten lector y piezas** (ADR-0104/0105): `lib/ventas-v2.ts:
+- **Cambios y Devoluciones comparten lector y piezas** (ADR-0121/0122): `lib/ventas-v2.ts:
   getVentasRecientes` (actividad = ventas de la sede de los últimos 15 días; búsqueda por
   boleta, DNI/RUC o nombre de la clienta —de `comprobantes`—, nombre o etiqueta de la prenda,
   o `?item=` para una prenda exacta; trae también los cambios y devoluciones ya hechos por
@@ -263,8 +271,8 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   Confirmación, sin modal; paso 3 en `CambioReemplazo.tsx`, piezas de lectura en
   `CambioResumen.tsx`) → RPC `registrar_cambio` (motivo + condición de la prenda que vuelve:
   vendible al piso, no vendible a cuarentena con fila en `prendas_danadas.cambio_id`; rechaza
-  ventas anuladas; migración 20260918150000).
-- `/devoluciones` (ADR-0105) → `getVentasRecientes` + `lib/devoluciones.ts`
+  ventas anuladas; migración 20260919000100).
+- `/devoluciones` (ADR-0122) → `getVentasRecientes` + `lib/devoluciones.ts`
   (`getDevolucionesPendientes`, `getEstadisticasDevoluciones`) + `getCajaAbierta` →
   `DevolucionesPanel.tsx` (bloques "Iniciar una devolución", "Por aprobar" y "Actividad
   reciente"; filas en `DevolucionesVentas.tsx`; "Anular venta" en el encabezado de cada compra,
@@ -293,6 +301,14 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `registrar_compra`, `recibir_compras`, `registrar_pagos_compra` (varios medios, todo o nada; `registrar_pago_compra` es el atajo de un medio),
   `anular_compra`, `listar_compras`, `resumen_compras`. Sub-navegación en
   `ComprasNav.tsx` (layout de `/compras`).
+- **Recibir mercadería por envío** (2026-09-18, ADR-0113): `/recibir` (NO bajo `/compras`, que es solo
+  líder; `/compras/recibir` redirige) → `lib/envio.ts` (traslados en tránsito hacia la sede) +
+  `lib/envio-reglas.ts` (reglas puras: bloques por comprobante, totales, escaneo, el pedido a la RPC) →
+  `RecepcionEnvio` + `KpisRecibir` → RPC atómica e idempotente `recibir_envio` (llama a `recibir_compras` una
+  vez por proveedor, `registrar_recepcion_traslado`/`confirmar_traslado`, `cerrar_linea_compra` y
+  `registrar_nota_credito_compra`). Tablas `envios` (una guía; agrupa un lote por proveedor vía
+  `lotes.envio_id`), `envio_extras` (fuera de comprobante: proveedor + regalo) y `envio_traslados`. Cuenta
+  cualquier colaborador de la sede; quien no es líder no recibe montos (el servidor los pone en cero).
 - Detalle de factura como modal (2026-09-14): el layout de `/compras` tiene
   un slot paralelo `@modal/` con la ruta interceptada
   `@modal/(.)factura/[compraId]`. Al hacer clic en una fila (Facturas, Por

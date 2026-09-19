@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/LogoutButton";
 import { Boton } from "@/components/ui/campos";
+import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 import { PerfilModal } from "@/components/PerfilModal";
 
@@ -25,6 +26,13 @@ import { PerfilModal } from "@/components/PerfilModal";
 // abierta). El riel sigue sin medir el DOM: camina sobre las filas
 // REALMENTE visibles (cabecera + hijas si está abierto), no sobre el array
 // de datos — ver `GrupoLateral`. Rutas sin cambios.
+//
+// v3.5 (2026-09-18, rediseño de Traslados): los ítems pueden llevar un
+// `contador` — hoy solo «Traslados», con cuántos esperan a quien mira. Se
+// pinta también en la cabecera «Inventario» cuando el grupo está cerrado
+// (arranca cerrado salvo que estés dentro: sin eso el número no se vería casi
+// nunca) y sobre la pestaña «Inventario» del celular, que no tiene lateral.
+// La insignia cabe dentro de los 48 px de la fila: no mueve el riel.
 //
 // v3.4 (2026-09-16, pedido de Felipe): "Catálogo" agrupa Productos/
 // Categorías/Colores — hasta hoy Categorías y Colores no vivían en el
@@ -57,6 +65,9 @@ type Props = {
   /** Solo se usa si `persona.puedeCambiarUbicacion` — un integrante nunca ve
    *  el selector, así que no hace falta traerle la lista completa. */
   ubicaciones: { id: string; nombre: string }[];
+  /** Traslados que esperan una acción de quien mira (`getTrasladosPorAtender`). `null` = no se pudo
+   *  calcular: el menú sale igual, sin número. */
+  trasladosPorAtender?: number | null;
   children: React.ReactNode;
 };
 
@@ -128,7 +139,7 @@ const AIRE_FILA = 8; // px entre filas
 const PASO_FILA = ALTO_FILA + AIRE_FILA;
 const ALTO_RIEL = 20; // px — la misma marca de canto del listbox de campos.tsx
 
-type Item = { href: string; etiqueta: string; icono: string };
+type Item = { href: string; etiqueta: string; icono: string; /** Cuántas cosas de este ítem piden acción a quien mira; 0 o ausente = sin insignia. */ contador?: number };
 // Cabecera colapsable: agrupa Items bajo un nombre común, no navega (sin
 // href propio). `id` identifica el grupo en los mapas de estado de abajo
 // (gruposAbiertos/gruposTocados) — con un solo grupo ("Venta", al nacer)
@@ -267,6 +278,8 @@ function GrupoLateral({
                   }`}
                 />
                 <span className="flex-1 text-left">{f.item.etiqueta}</span>
+                {/* Cerrado, el grupo no muestra a sus hijas: el número sube a la cabecera para que se vea igual. */}
+                {!abierto && <Insignia n={f.item.hijos.reduce((n, h) => n + (h.contador ?? 0), 0)} etiqueta="por atender" />}
                 <Icono
                   d={IC.chevron}
                   className={`h-3.5 w-3.5 shrink-0 text-tinta/50 transition-transform duration-300 ease-cayla ${
@@ -310,7 +323,8 @@ function GrupoLateral({
                   esActivo ? "text-tinta" : "text-tinta/60 group-hover:translate-x-0.5 group-hover:text-rojo"
                 }`}
               />
-              {f.item.etiqueta}
+              <span className="flex-1">{f.item.etiqueta}</span>
+              <Insignia n={f.item.contador ?? 0} etiqueta="por atender" />
             </Link>
           );
         })}
@@ -347,11 +361,15 @@ function GrupoLateral({
 // adapte (Fase 2/3/4) — ofrecerlas antes sería un enlace que compila y
 // revienta contra un esquema que ya no existe. "Nueva venta" exige caja
 // abierta — si no hay, /vender lo explica y manda a /caja, no es un enlace roto.
-function MenuNuevo({ onClose }: { onClose: () => void }) {
+//
+// ADR-0111: UNA sola puerta para recibir. ADR-0113: la misma para todos — Recibir mercadería salió de
+// Compras (solo líder) a `/recibir`, porque cuenta cualquier colaborador de la sede. «Registrar comprobante»
+// sigue siendo del líder: es dinero. El «Ingreso sin comprobante» queda como excepción, dentro de esa pantalla.
+function MenuNuevo({ onClose, esLider }: { onClose: () => void; esLider: boolean }) {
   const acciones = [
     { href: "/vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta" },
-    { href: "/compras/nueva", etiqueta: "Registrar comprobante", detalle: "Una compra a proveedor, con su pago si es al contado" },
-    { href: "/compras/recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó de una o varias facturas" },
+    ...(esLider ? [{ href: "/compras/nueva", etiqueta: "Registrar comprobante", detalle: "Una compra a proveedor, con su pago si es al contado" }] : []),
+    { href: "/recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó, contra sus comprobantes" },
     { href: "/inventario/mover", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones" },
     { href: "/cambios", etiqueta: "Registrar cambio", detalle: "La clienta cambia una prenda por otra talla o color" },
     { href: "/devoluciones", etiqueta: "Registrar devolución", detalle: "Una clienta devuelve algo que compró" },
@@ -481,12 +499,18 @@ function MenuNuevo({ onClose }: { onClose: () => void }) {
 // Rutas (y todo lo que cuelga de ellas) que usan el ancho completo del <main>.
 // Inventario entró el 2026-09-16: la tabla de Existencias con «En tránsito» y
 // «En la red» (6 columnas) y la de Movimientos con origen → destino no caben
-// en 64rem sin recortar la prenda. Cambios y Devoluciones entraron el 2026-09-18 (pedido
-// de Felipe): con el flujo guiado y el panel de validaciones ya había de sobra qué poner
-// a los lados.
-const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/cambios", "/devoluciones"];
+// en 64rem sin recortar la prenda.
+// `/recibir` (ADR-0113) salió de `/compras` y trae su ancho: la lista de pendientes + el envío con la tabla de
+// conteo (prenda, SKU, pendiente, llegó, dif., estado) no caben en 64rem.
+// Caja entró el 2026-09-18 (pedido de Felipe): el tablero de la caja abierta —KPIs, dona,
+// ritmo del día, movimientos— tiene qué mostrar a lo ancho y en pantalla grande sobraba
+// margen. Lo que cuelga de /caja y NO es tablero (el formulario de abrir caja y el historial
+// de cierres) se topa por su cuenta con `max-w-5xl`: no fueron pensados para estirarse.
+// Cambios y Devoluciones entraron el 2026-09-19 (pedido de Felipe): con el flujo guiado y el
+// panel de validaciones ya había de sobra qué poner a los lados.
+const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/recibir", "/caja", "/cambios", "/devoluciones"];
 
-export function AppShell({ persona, ubicaciones, children }: Props) {
+export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }: Props) {
   const pathname = usePathname();
   const [nuevoAbierto, setNuevoAbierto] = useState(false);
   const [perfilAbierto, setPerfilAbierto] = useState(false);
@@ -519,9 +543,10 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   // la función.
   const RUTAS_POR_GRUPO: Record<string, string[]> = {
     venta: ["/vender", "/caja", "/cambios", "/devoluciones", "/vender/facturacion"],
-    catalogo: ["/productos", "/productos/categorias", "/productos/atributos"],
-    compras: ["/compras", "/compras/proveedores", "/compras/recibir", "/compras/por-pagar"],
-    inventario: ["/inventario", "/inventario/movimientos", "/inventario/traslados", "/inventario/conteo", "/inventario/resumen"],
+    catalogo: ["/productos", "/productos/categorias", "/productos/atributos", "/productos/marcas"],
+    // «Recibir mercadería» (/recibir) vive en Compras para el líder y en Inventario para quien no lo es.
+    compras: ["/compras", "/compras/proveedores", "/compras/por-pagar", ...(esLider ? ["/recibir"] : [])],
+    inventario: ["/inventario", "/inventario/movimientos", "/inventario/traslados", "/inventario/conteo", "/inventario/resumen", ...(esLider ? [] : ["/recibir"])],
   };
   const grupoActivo = Object.entries(RUTAS_POR_GRUPO).find(([, rutas]) => rutas.some((h) => activo(h)))?.[0] ?? null;
 
@@ -563,13 +588,15 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   // (2026-09-17, pedido de Felipe: "con 3 está bien") — las 5 siguen vivas,
   // ahora como pestañas dentro de `/productos/atributos`.
   const atributos: Item = { href: "/productos/atributos", etiqueta: "Atributos", icono: IC.atributos };
-  const inventario: Item = { href: "/inventario", etiqueta: "Inventario", icono: IC.inventario };
+  // Lo que espera a quien mira: sin número (0/null) no hay insignia.
+  const nTraslados = trasladosPorAtender && trasladosPorAtender > 0 ? trasladosPorAtender : undefined;
+  const inventario: Item = { href: "/inventario", etiqueta: "Inventario", icono: IC.inventario, contador: nTraslados };
   // Los cuatro hijos de Inventario (Felipe, 2026-09-16, integrando sus
   // diseños): "Existencias" es la raíz del módulo; Movimientos se mudó de
   // `/movimientos` a `/inventario/movimientos` (la ruta vieja redirige).
   const existencias: Item = { href: "/inventario", etiqueta: "Existencias", icono: IC.inventario };
   const movimientos: Item = { href: "/inventario/movimientos", etiqueta: "Movimientos", icono: IC.movimientos };
-  const traslados: Item = { href: "/inventario/traslados", etiqueta: "Traslados", icono: IC.traslados };
+  const traslados: Item = { href: "/inventario/traslados", etiqueta: "Traslados", icono: IC.traslados, contador: nTraslados };
   const conteo: Item = { href: "/inventario/conteo", etiqueta: "Conteo", icono: IC.conteo };
   // Quinta pestaña de Inventario (ADR-0101): decisión a nivel sede, solo líder —
   // mismo criterio de visibilidad que Compras.
@@ -581,7 +608,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
   // el grupo del lateral, igual que pasó con Productos/Categorías/Colores.
   const proveedores: Item = { href: "/compras/proveedores", etiqueta: "Proveedores", icono: IC.proveedores };
   const facturas: Item = { href: "/compras", etiqueta: "Comprobantes", icono: IC.facturas };
-  const recibirMercaderia: Item = { href: "/compras/recibir", etiqueta: "Recibir mercadería", icono: IC.recibir };
+  const recibirMercaderia: Item = { href: "/recibir", etiqueta: "Recibir mercadería", icono: IC.recibir };
   const porPagar: Item = { href: "/compras/por-pagar", etiqueta: "Por pagar", icono: IC.porPagar };
   const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };
   const produccion: Item = { href: "/produccion", etiqueta: "Producción", icono: IC.produccion };
@@ -644,7 +671,8 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
     id: "inventario",
     etiqueta: "Inventario",
     icono: IC.inventario,
-    hijos: [existencias, movimientos, traslados, conteo, ...(esLider ? [resumen] : [])],
+    // Quien no es líder no tiene el grupo Compras: su puerta a «Recibir mercadería» está acá, donde vive el stock.
+    hijos: [existencias, movimientos, traslados, conteo, ...(esLider ? [resumen] : [recibirMercaderia])],
   };
 
   const grupos = [
@@ -825,7 +853,10 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
                 aria-current={n === indiceMovil ? "page" : undefined}
                 className={`flex flex-col items-center gap-1 py-3 transition-colors ${n === indiceMovil ? "text-rojo" : "text-tinta/70"}`}
               >
-                <Icono d={c.icono} className="h-[22px] w-[22px]" />
+                <span className="relative">
+                  <Icono d={c.icono} className="h-[22px] w-[22px]" />
+                  {c.contador ? <Insignia n={c.contador} etiqueta="por atender" tamano="compacta" className="absolute -right-3 -top-2" /> : null}
+                </span>
                 <span className="text-[11px]">{c.etiqueta}</span>
               </Link>
             ),
@@ -833,7 +864,7 @@ export function AppShell({ persona, ubicaciones, children }: Props) {
         </div>
       </nav>
 
-      {nuevoAbierto && <MenuNuevo onClose={cerrarNuevo} />}
+      {nuevoAbierto && <MenuNuevo onClose={cerrarNuevo} esLider={esLider} />}
     </div>
   );
 }

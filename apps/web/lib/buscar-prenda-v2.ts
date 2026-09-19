@@ -16,6 +16,8 @@ export type PrendaBuscableV2 = {
   talla: string | null;
   color: string | null;
   codigosBarras: string[];
+  /** Solo para BUSCAR: escribir «adidas» encuentra sus prendas (ADR-0109). No cambia qué se vende ni a qué precio. */
+  marca?: string | null;
 };
 
 // Acepta null/undefined porque variantes.sku ya no es NOT NULL (2026-09-15) —
@@ -42,6 +44,6 @@ export function filtrarPrendasV2<T extends PrendaBuscableV2>(texto: string, vari
   const k = clave(texto);
   if (!k) return [];
   return variantes
-    .filter((v) => clave(`${v.sku} ${v.referencia} ${v.talla ?? ""} ${v.color ?? ""} ${v.codigosBarras.join(" ")}`).includes(k))
+    .filter((v) => clave(`${v.sku} ${v.referencia} ${v.talla ?? ""} ${v.color ?? ""} ${v.marca ?? ""} ${v.codigosBarras.join(" ")}`).includes(k))
     .slice(0, max);
 }

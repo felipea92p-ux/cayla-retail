@@ -54,6 +54,36 @@ type Huella = { marca: string; frase: string | ((detalle: string) => string) };
 
 const HUELLAS: Huella[] = [
   {
+    // 20260918230000_producto_nombre_una_sola_forma.sql — «rechazado» es terminal. `catalogo_actualizar_producto` avisa
+    // antes con su propia frase; esto es la red si otro camino intenta reactivar una prenda rechazada.
+    marca: "productos_rechazado_descontinuado_check",
+    frase: "Esta prenda se rechazó al revisar un alta al vuelo y no se puede reactivar. Créala de nuevo con Nuevo producto.",
+  },
+  {
+    // 20260918231000_marcas_y_proveedor_en_productos.sql — dos marcas no pueden compartir nombre (ni con otra
+    // forma: «adidas» / «Adidas»). Aparece al RENOMBRAR una marca; al crear, `crear_marca` reutiliza la que ya existe.
+    marca: "marcas_nombre_unico",
+    frase: "Ya existe una marca con ese nombre (sin importar tildes o mayúsculas). Si es la misma, agrégale el proveedor en vez de crearla otra vez.",
+  },
+  {
+    // Misma migración — la llave compuesta: un producto solo puede citar una pareja marca↔proveedor registrada.
+    // Las RPC de alta y edición avisan antes con su propia frase; esto es la red si algún camino se salta el aviso.
+    marca: "productos_marca_proveedor_fk",
+    frase: "Ese proveedor no trae esa marca. Agrégalo a la marca en Catálogo → Marcas y vuelve a intentar.",
+  },
+  {
+    // 20260918230000_producto_nombre_una_sola_forma.sql — un nombre, un producto. Las RPC de alta
+    // avisan antes con su propia frase; esto es la red si alguna se salta el aviso.
+    marca: "productos_referencia_clave_unica",
+    frase: "Ya existe un producto con ese nombre (sin importar tildes, mayúsculas o puntos). Búscalo en Productos en vez de crearlo otra vez.",
+  },
+  {
+    // Índice único de variantes: una talla y un color van una sola vez por producto. En el censo
+    // aparece cuando el código de barras escaneado es nuevo pero la talla+color ya existía.
+    marca: "variantes_producto_talla_color_unico",
+    frase: "Ese producto ya tiene esa talla y ese color. Búscalo en el catálogo: el código que escaneaste puede ser un duplicado de la etiqueta.",
+  },
+  {
     // 20260914215059_candado_precio_venta.sql — `registrar_venta` compara cada precio con
     // `variantes.precio`: la caja ya no edita precios, y la base deja de confiar en el
     // navegador. El detalle es «referencia (sku)».
@@ -121,6 +151,36 @@ const HUELLAS: Huella[] = [
     // la base no puede distinguirlo de cualquier otra de las 9 personas registradas.
     marca: "venta_descuento_supera_autorizacion",
     frase: (prenda) => `El descuento en ${prenda} pasa el 35 % — nadie puede aplicarlo así. Bájalo.`,
+  },
+  {
+    // 20260918170000_venta_aplica_descuento_de_campana.sql — la prenda tiene una campaña
+    // vigente y la caja mandó menos descuento (ticket armado antes de que empezara, o
+    // campañas que no cargaron). Recargar trae las campañas de hoy. El detalle es
+    // «referencia (sku)».
+    marca: "venta_campana_omitida",
+    frase: (prenda) => `${prenda} tiene una campaña vigente y el ticket no la aplicó. Recarga la pantalla de Vender y vuelve a armar el ticket.`,
+  },
+  {
+    // Misma migración — la etiqueta de campaña ya no alcanza a la prenda (o terminó hace
+    // más de 3 días, o no está aprobada).
+    marca: "venta_campana_no_vigente",
+    frase: (prenda) => `La campaña de ${prenda} ya no está vigente. Recarga la pantalla de Vender y vuelve a armar el ticket.`,
+  },
+  {
+    // Misma migración — el monto no es el % de la etiqueta: la campaña cambió de % entre
+    // que se armó el ticket y se cobró.
+    marca: "venta_campana_monto_no_coincide",
+    frase: (prenda) => `El descuento de campaña de ${prenda} cambió. Recarga la pantalla de Vender y vuelve a armar el ticket.`,
+  },
+  {
+    marca: "venta_campana_sin_etiqueta",
+    frase: (prenda) => `El descuento de campaña de ${prenda} llegó incompleto. Recarga la pantalla de Vender y vuelve a armar el ticket.`,
+  },
+  {
+    // Misma migración — un descuento a mano menor o igual que la campaña no vale: un solo
+    // descuento por prenda, el mayor.
+    marca: "venta_descuento_no_supera_campana",
+    frase: (prenda) => `${prenda} ya tiene una campaña con igual o más descuento. Quita el descuento manual o aplica uno mayor.`,
   },
   {
     // 0010_stock_concurrencia.sql:14 — la red que impide dejar el stock en negativo.
@@ -196,6 +256,15 @@ const HUELLAS: Huella[] = [
       "No tienes permiso para hacer eso en esta ubicación. Si estás cubriendo otra tienda, pídeselo a un Líder.",
   },
   {
+    // 20260918010000_familias_tabla_propia.sql — antes de esta huella, un FK
+    // roto acá caía en el genérico de abajo ("recarga la pantalla"), que no
+    // dice qué elegir. Tiene que ir ANTES del genérico: el mensaje de
+    // Postgres para un FK siempre incluye también "violates foreign key
+    // constraint", y HUELLAS.find() se queda con la primera que calce.
+    marca: "categorias_familia_fk",
+    frase: "Esa familia ya no existe o fue desactivada. Recarga la lista y elige otra.",
+  },
+  {
     marca: "violates foreign key constraint",
     frase:
       "Falta un dato al que esto se engancha (una prenda, una ubicación o un proveedor que ya no existe). Recarga la pantalla y vuelve a intentar.",
@@ -245,6 +314,13 @@ const HUELLAS: Huella[] = [
     // compartir prefijo, o el código de la prenda dejaría de ser único.
     marca: "categorias_prefijo_unico",
     frase: "Ese prefijo ya lo usa otra categoría. Prueba con otras 3 letras.",
+  },
+  {
+    // 20260918010000_familias_tabla_propia.sql — mismo candado que
+    // colores_clave_unica: "Belleza" y "belleza " son la misma familia para
+    // fn_clave_texto, aunque el texto no calce byte a byte.
+    marca: "familias_nombre_unico",
+    frase: "Ya existe una familia muy parecida (mayúsculas, tildes o espacios de más no cuentan como distinto).",
   },
 ];
 

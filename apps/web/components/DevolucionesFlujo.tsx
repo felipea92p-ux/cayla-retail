@@ -67,7 +67,7 @@ function itemInicial(): ItemElegido {
 }
 
 /**
- * La devolución guiada (2026-09-18), con el mismo modelo que el cambio guiado (ADR-0104):
+ * La devolución guiada (2026-09-18), con el mismo modelo que el cambio guiado (ADR-0121):
  * Venta → Prendas → Detalle → Confirmación → registrada, en la misma página, sin modal.
  *
  * Lo propio de una devolución:

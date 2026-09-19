@@ -9,6 +9,7 @@ import {
   listarProductos,
   getResumenProductos,
   getProductosPendientesAlta,
+  getReposicionPorProveedor,
   type ParamsProductosListado,
   type ResumenProductos,
 } from "@/lib/catalogo-v2";
@@ -63,14 +64,20 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     return qs ? `/productos?${qs}` : "/productos";
   }
 
-  const [resultado, resumen, categorias, colores, sububicaciones, pendientesAlta] = await Promise.all([
+  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sububicaciones, pendientesAlta] = await Promise.all([
     listarProductos(filtros, pagina),
     getResumenProductos(filtros),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("colores").select("codigo, nombre, hex").eq("activo", true).order("nombre"),
+    // Marcas y proveedores activos, para los filtros (ADR-0109).
+    supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
+    supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
     getSububicaciones(persona.ubicacionId),
     persona.rol === "lider" ? getProductosPendientesAlta() : Promise.resolve([]),
   ]);
+
+  // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal).
+  const reposicion = resumen.reponerDeProveedor > 0 ? await getReposicionPorProveedor(filtros) : [];
 
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
   const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex }));
@@ -121,7 +128,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
             {pendientesAlta.map((p) => (
               <li key={p.id}>
-                <Link href={`/productos/${p.id}/editar`} className="text-rojo hover:underline">
+                <Link href={`/productos/${p.id}/editar`} className="text-tinta underline underline-offset-2 hover:no-underline">
                   {p.referencia}
                 </Link>
                 {p.categoria && <span className="text-tinta/55"> · {p.categoria}</span>}
@@ -133,7 +140,40 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
 
       {vista === "tabla" && <Resumen resumen={resumen} params={params} />}
 
-      <FiltrosProductos categorias={categoriasOpciones} colores={coloresOpciones} compacto={vista === "grilla"} />
+      {reposicion.length > 0 && (
+        <div className="card-cayla p-4">
+          <p className="label-cayla text-[11px] text-tinta/65">A quién pedirle</p>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {reposicion.map((r) => {
+              const activo = params.proveedor === r.proveedorId && params.stock === "reponer";
+              return (
+                <li key={r.proveedorId}>
+                  <Link
+                    href={`/productos?stock=reponer&proveedor=${r.proveedorId}`}
+                    aria-current={activo ? "true" : undefined}
+                    className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors ${
+                      activo ? "border-tinta bg-tinta/[0.07] text-tinta" : "border-tinta/15 text-tinta/80 hover:border-tinta/40"
+                    }`}
+                  >
+                    {r.proveedor}
+                    <span className="tabular-nums text-ambar-profundo">
+                      {r.productos} {r.productos === 1 ? "producto" : "productos"}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      <FiltrosProductos
+        categorias={categoriasOpciones}
+        colores={coloresOpciones}
+        marcas={exigir(resMarcas, "las marcas")}
+        proveedores={exigir(resProveedores, "los proveedores")}
+        compacto={vista === "grilla"}
+      />
 
       {vista === "grilla" ? (
         <ProductosGrilla

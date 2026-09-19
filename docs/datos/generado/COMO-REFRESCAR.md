@@ -137,12 +137,17 @@ order by 1;
 
 ```bash
 pnpm datos:generar:produccion   # reescribe el diccionario
-pnpm datos:comparar             # avisa si alguna pantalla quedó rota
+pnpm datos:comparar             # avisa si alguna pantalla quedó rota, o si una función quedó con dos firmas
+pnpm datos:aviario              # falla si una tabla de producción quedó sin pájaro
 ```
 
 Y mira el diff antes de commitear: si aparecen tablas o columnas que nadie recuerda
 haber creado, alguien pegó SQL en producción sin anotarlo — que es exactamente lo que
 `migraciones_aplicadas` y la decisión D-11 existen para evitar.
+
+Si `datos:aviario` falla, la tabla nueva necesita pájaro antes de commitear el volcado:
+se agrega a su lista en `scripts/datos/aviario.mjs` y se vuelve a correr. El CI corre
+la misma revisión en cada push, así que un volcado commiteado sin eso sale en rojo.
 
 ## Cuándo hace falta hacer todo esto
 

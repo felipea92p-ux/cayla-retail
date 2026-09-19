@@ -10,16 +10,24 @@ import { avisar } from "@/components/ui/Avisos";
 import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
 import { agruparCatalogo } from "@/lib/catalogo-grupos";
-import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type TipoComprobante } from "@/lib/comprobantes-reglas";
+import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type EstadoComprobante, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
   aplicarDescuento,
   aplicarDescuentoMonto,
+  conCampanas,
   conCodigoDelCatalogo,
+  descuentoResultante,
+  descuentoUnitarioPorPorcentaje,
   esperaAlCargar,
+  metodoDeAtajo,
   motivoBloqueoCobro,
+  quitarPagoTraspasando,
+  RAZON_CAMPANA,
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
   vueltoDe,
+  conDescuentoDeCampana,
+  type CampanaLinea,
   type DetalleDescuento,
   type MomentoTicket,
   type PagoAplicado,
@@ -31,10 +39,13 @@ import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { PuntoDeVentaCatalogo } from "@/components/PuntoDeVentaCatalogo";
+import { ElegirTallaModal } from "@/components/ElegirTallaModal";
 import { PuntoDeVentaTicket } from "@/components/PuntoDeVentaTicket";
 import { PuntoDeVentaColaOffline } from "@/components/PuntoDeVentaColaOffline";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { codigoPrenda } from "@/lib/prenda-reglas";
+import { armarRecibo, textoNumeroRecibo, type ReciboVenta } from "@/lib/recibo-reglas";
+import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
 
 /**
  * "Cargo especial" (migración `..._cargo_especial_pos.sql`): variante centinela para
@@ -55,6 +66,9 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
   codigo: string | null;
   categoria: string | null;
   precio: number;
+  /** La campaña de mayor % que rige HOY para esta prenda (`campanas_vigentes()`), o null.
+   *  La base la elige y la vuelve a verificar al cobrar; acá solo se muestra y se aplica. */
+  campana?: CampanaLinea | null;
   /** Foto de esta variante por su color (20260917190000) — null si ese color no
    *  tiene foto todavía; la tarjeta cae a las iniciales de la prenda. */
   fotoUrl: string | null;
@@ -89,6 +103,9 @@ export type ItemCarrito = {
   /** El argumento escrito que pide la banda 20-35 % de un Líder (R-45); "" fuera de
    *  esa banda o en el camino de una Colaboradora (su tope es el código, no esto). */
   argumentoDescuento: string;
+  /** La campaña que rige hoy para esta prenda, o null/ausente. Un ticket en espera
+   *  guardado antes de las campañas no lo trae — `retomar()` lo completa. */
+  campana?: CampanaLinea | null;
 };
 
 /** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el modo (% o S/
@@ -117,10 +134,13 @@ const TOPE_ESPERA = 5;
  *  ticket desde acá, como los otros tipos (ADR-0043). */
 export type { PagoAplicado } from "@/lib/vender-reglas";
 
-type VentaOk = {
+export type VentaOk = {
   total: number;
   prendas: number;
-  comprobante: { tipo: TipoComprobante; texto: string } | null;
+  /** El comprobante armado para mostrarlo e imprimirlo (`lib/recibo-reglas.ts`). `null` si la
+   *  venta se guardó sin red (no hay serie ni número hasta que suba) o si no se pudo leer. */
+  recibo: ReciboVenta | null;
+  estado: EstadoComprobante | null;
   /** Se cobró sin red y quedó guardada en este equipo — todavía no es una venta real en
    *  el servidor (ver `lib/ventas-offline.ts`). Sin comprobante posible hasta que suba. */
   offline: boolean;
@@ -151,10 +171,13 @@ type Props = {
   /** Incluye la variante centinela de "Monto manual", que este componente filtra antes
    *  de mostrar nada. */
   variantes: VarianteBusqueda[];
+  /** Las campañas de hoy no se pudieron leer: se vende igual, pero una prenda en campaña
+   *  se rechazaría al cobrar — hay que avisarlo antes, no descubrirlo con la clienta. */
+  campanasNoCargaron?: boolean;
   ventasHoyNode: ReactNode;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, variantes, ventasHoyNode }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, variantes, campanasNoCargaron = false, ventasHoyNode }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -170,10 +193,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
   const [q, setQ] = useState("");
   const [activo, setActivo] = useState(0);
   const [categoria, setCategoria] = useState("Todo");
-  /** Filtro «Solo con stock» de la grilla. Apagado por defecto: las prendas sin stock se
-   *  ven atenuadas, no desaparecen — así la encargada de sede sabe que existen y que no
-   *  hay en su tienda. Solo afecta a `catalogo`; el escáner sigue reconociéndolas. */
-  const [soloConStock, setSoloConStock] = useState(false);
+  /** Filtro «Solo con stock» de la grilla. Prendido cada vez que se entra a Vender (Felipe,
+   *  2026-09-18): quien vende busca lo que puede cobrar, y una tarjeta atenuada que no se
+   *  puede vender confundía. Apagarlo las muestra atenuadas — así se sabe que existen y que
+   *  no hay en la tienda; la fila del filtro dice cuántas esconde. Solo afecta a `catalogo`;
+   *  el escáner sigue reconociéndolas. No se recuerda entre visitas a propósito. */
+  const [soloConStock, setSoloConStock] = useState(true);
+  // Tarjeta de la grilla cuyo modal de talla está abierto (su `clave`). Se guarda la clave y
+  // no el grupo: el grupo se vuelve a buscar en `grupos` en cada render, así nunca muestra
+  // un stock viejo.
+  const [tarjetaElegida, setTarjetaElegida] = useState<string | null>(null);
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   // El ticket tiene dos momentos: «armar» (solo líneas y total) y «cobrar» (pago y
   // comprobante). Vive acá y no en el ticket porque `cobrar()` lo devuelve a «armar».
@@ -233,10 +262,20 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     () => (categoria === "Todo" ? variantesVisibles : variantesVisibles.filter((v) => v.categoria === categoria)),
     [variantesVisibles, categoria]
   );
-  const grupos = useMemo(() => {
+  const { grupos, ocultasSinStock } = useMemo(() => {
     const todos = agruparCatalogo(catalogo);
-    return soloConStock ? todos.filter((g) => g.stockTotal > 0) : todos;
+    const visibles = soloConStock ? todos.filter((g) => g.stockTotal > 0) : todos;
+    return { grupos: visibles, ocultasSinStock: todos.length - visibles.length };
   }, [catalogo, soloConStock]);
+  const grupoElegido = tarjetaElegida ? grupos.find((g) => g.clave === tarjetaElegida) : undefined;
+  // Tarjeta que se tiñe de rojo un momento cuando se pide más de lo que hay. `pulso` sube en
+  // cada intento para que el resaltado vuelva a sonar aunque sea la misma tarjeta. Si la
+  // prenda no está en la grilla (otra categoría), el aviso de arriba igual sale.
+  const [topeTarjeta, setTopeTarjeta] = useState<{ clave: string; pulso: number } | null>(null);
+  function resaltarTope(varianteId: string) {
+    const g = grupos.find((x) => x.tallas.some((t) => t.variante.varianteId === varianteId));
+    if (g) setTopeTarjeta((t) => ({ clave: g.clave, pulso: (t?.pulso ?? 0) + 1 }));
+  }
 
   const term = q.trim();
   const resultados = useMemo(() => filtrarPrendasV2(q, variantesVisibles, MAX_RESULTADOS), [variantesVisibles, q]);
@@ -257,6 +296,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
   useEffect(() => {
     if (!bloqueado && !hayModal) buscador.current?.focus();
   }, [bloqueado, hayModal]);
+
+  // Las campañas de hoy no cargaron: se avisa AL ABRIR, no al rechazar un cobro con la
+  // clienta delante (Werner: la dependencia ya está caída, dilo antes).
+  useEffect(() => {
+    if (campanasNoCargaron) {
+      avisar.aviso("No se pudieron cargar las campañas de hoy. Recarga Vender antes de cobrar: una prenda en campaña se rechazaría.");
+    }
+  }, [campanasNoCargaron]);
 
   // Bloque E: la pistola escribe donde esté el foco. Si quedó en un botón (un chip,
   // «Quitar», «Cobrar»), el código se perdería y el Enter final activaría ese botón.
@@ -404,8 +451,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
 
   function agregar(v: VarianteBusqueda) {
     if (bloqueado) return;
+    // Los avisos de stock salen como notificación (`avisar`, arriba a la derecha): la línea
+    // inline de debajo del escáner pasaba desapercibida. No toman el foco ni bloquean nada.
+    const nombreVariante = [v.referencia, v.talla].filter(Boolean).join(" · ");
     if (v.stockAqui <= 0) {
-      setAviso(`${v.referencia} no tiene stock en ${ubicacionEtiqueta}.`);
+      avisar.aviso(`${nombreVariante} está agotada`, { detalle: `No hay stock en ${ubicacionEtiqueta}.` });
+      setAviso(null);
       setQ("");
       setActivo(0);
       buscador.current?.focus();
@@ -420,9 +471,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
       setCarrito((actual) => {
         const ya = actual.find((it) => it.claveLinea === v.varianteId);
         if (!ya) {
+          // Una prenda con campaña vigente entra con su descuento ya aplicado.
           return [
             ...actual,
-            {
+            conDescuentoDeCampana({
               claveLinea: v.varianteId,
               varianteId: v.varianteId,
               referencia: v.referencia,
@@ -435,14 +487,21 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
               razonDescuento: "",
               razonDescuentoOtro: "",
               argumentoDescuento: "",
-            },
+              campana: v.campana ?? null,
+            }),
           ];
         }
         if (ya.cantidad >= v.stockAqui) return actual;
         return actual.map((it) => (it.claveLinea === v.varianteId ? { ...it, cantidad: it.cantidad + 1 } : it));
       });
     }
-    setAviso(tope ? `En ${ubicacionEtiqueta} quedan ${v.stockAqui} de ${v.referencia}. No puedes vender más.` : null);
+    if (tope) {
+      resaltarTope(v.varianteId);
+      avisar.aviso(`No hay más de ${nombreVariante}`, {
+        detalle: `En ${ubicacionEtiqueta} quedan ${v.stockAqui} y ya están todas en el ticket.`,
+      });
+    }
+    setAviso(null);
     setQ("");
     setActivo(0);
     buscador.current?.focus();
@@ -468,6 +527,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         razonDescuento: "",
         razonDescuentoOtro: "",
         argumentoDescuento: "",
+        campana: null,
       },
     ]);
     setMontoManual("");
@@ -486,7 +546,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     const item = carrito.find((it) => it.claveLinea === claveLinea);
     if (!item) return;
     const cantidad = Math.max(1, Math.min(valor || 1, item.stockAqui));
-    setAviso(valor > item.stockAqui ? `En ${ubicacionEtiqueta} quedan ${item.stockAqui} de ${item.referencia}.` : null);
+    if (valor > item.stockAqui) {
+      resaltarTope(item.varianteId);
+      avisar.aviso(`No hay más de ${item.referencia}`, {
+        detalle: `En ${ubicacionEtiqueta} quedan ${item.stockAqui}; la cantidad quedó en ${item.stockAqui}.`,
+      });
+    }
+    setAviso(null);
     setCarrito((actual) => actual.map((it) => (it.claveLinea === claveLinea ? { ...it, cantidad } : it)));
   }
 
@@ -501,6 +567,20 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
   function aplicarDescuentoAlTicket() {
     const claves = descuento.elegidas ?? [];
     const detalle: DetalleDescuento = { razon: descuento.razon, razonOtro: descuento.razonOtro, argumento: descuento.argumento };
+    // Un solo descuento por prenda, el mayor: si en alguna línea la campaña da igual o
+    // más que lo pedido, se queda la campaña — y se dice, para que no parezca que el
+    // descuento «no entró».
+    const pedido = descuento.modo === "monto" ? Number(descuento.monto) : null;
+    const cedieron = carrito.filter((it) => {
+      if (!it.campana || (claves.length > 0 && !claves.includes(it.claveLinea))) return false;
+      const monto = pedido ?? descuentoUnitarioPorPorcentaje(it.precioUnitario, Number(descuento.pct));
+      return Number(monto) > 0 && descuentoResultante(it, monto).prevaleceCampana;
+    });
+    if (cedieron.length > 0) {
+      avisar.aviso(
+        `${cedieron.map((it) => `${it.referencia} (${it.campana?.nombre})`).join(", ")} ya tiene${cedieron.length > 1 ? "n" : ""} una campaña con igual o más descuento: se mantiene la campaña.`,
+      );
+    }
     setCarrito((actual) =>
       descuento.modo === "monto"
         ? aplicarDescuentoMonto(actual, Number(descuento.monto), claves, detalle)
@@ -547,7 +627,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     persistirEspera(enEspera.map((t) => (t.id === id ? actual : t)).filter((t): t is TicketEnEspera => t !== null));
     // Un ticket guardado antes de que el carrito llevara `codigo` vuelve sin él: se
     // completa acá, la única puerta por la que algo del navegador vuelve al carrito.
-    const lineas = conCodigoDelCatalogo(ticket.carrito, variantesVisibles);
+    const lineas = conCampanas(
+      conCodigoDelCatalogo(ticket.carrito, variantesVisibles),
+      new Map(variantesVisibles.flatMap((v) => (v.campana ? [[v.varianteId, v.campana] as const] : []))),
+    );
     capturarFlip();
     setCarrito(lineas);
     setNota(ticket.nota);
@@ -613,9 +696,40 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     const limpio = Math.max(0, Math.round((monto || 0) * 100) / 100);
     setPagos((actual) => actual.map((p, i) => (i === indice ? { ...p, monto: limpio } : p)));
   }
+  // Quitar un medio (el basurero o tocarlo otra vez arriba) pasa su monto al siguiente: si no,
+  // quitar el que llevaba el total dejaba al resto en 0 y la cajera lo reescribía.
   function quitarPago(indice: number) {
-    setPagos((actual) => actual.filter((_, i) => i !== indice));
+    setPagos((actual) => quitarPagoTraspasando(actual, indice));
   }
+  // Atajos F1–F5 (ver `metodoDeAtajo`): la cajera no suelta el lector para pagar.
+  //  · En «cobrar» la tecla hace lo mismo que tocar el medio: lo agrega con lo que falta, y si ya
+  //    estaba lo quita (su monto pasa al siguiente).
+  //  · En «armar», con prendas en el ticket, paga TODO con ese medio y salta al cobro — la tecla
+  //    es una elección explícita de la cajera, no un default (ADR-0044). Sin prendas no se toca
+  //    la tecla: F5 sigue recargando la página.
+  // Solo con la caja abierta y ningún modal a la vista (el de talla también), como el escáner.
+  // Sin arreglo de dependencias a propósito: se vuelve a enganchar en cada render para leer los
+  // pagos y el total de ESTE cuadro, sin cerrar sobre valores viejos; enganchar un `keydown` es barato.
+  useEffect(() => {
+    if (bloqueado || hayModal || grupoElegido) return;
+    function alAtajo(e: KeyboardEvent) {
+      const metodo = metodoDeAtajo(e);
+      if (!metodo) return;
+      if (momento === "cobrar") {
+        e.preventDefault(); // F1 abriría la ayuda de Chrome; F5 recargaría y perdería el ticket
+        const i = pagos.findIndex((p) => p.metodo === metodo);
+        if (i === -1) agregarPago(metodo);
+        else quitarPago(i);
+      } else if (momento === "armar" && prendas > 0) {
+        e.preventDefault();
+        setPagos([{ metodo, monto: Math.max(0, total) }]);
+        setMomento("cobrar");
+      }
+    }
+    window.addEventListener("keydown", alAtajo);
+    return () => window.removeEventListener("keydown", alAtajo);
+  });
+
   // Lo que la clienta entregó en efectivo — solo para mostrar el vuelto; NUNCA viaja a
   // la RPC (si viajara lo entregado en vez de lo que cubre, rechazaría por no cuadrar).
   function cambiarRecibido(monto: number | null) {
@@ -649,6 +763,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         motivo_descuento: it.razonDescuento || undefined,
         motivo_descuento_detalle: it.razonDescuentoOtro || undefined,
         argumento_descuento: it.argumentoDescuento || undefined,
+        // Solo el descuento de campaña dice de qué etiqueta vino; la base lo verifica.
+        descuento_etiqueta_id: it.razonDescuento === RAZON_CAMPANA ? it.campana?.etiquetaId : undefined,
       })),
       // Solo `{ metodo, monto }`: el `recibido` es de pantalla. Y solo montos > 0 —
       // `venta_pagos` lo exige; una fila bajada a cero mientras se combinaba no viaja.
@@ -690,7 +806,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         setLoading(false);
         token.current = crypto.randomUUID();
         avisar.exito(`Venta de ${money(total)} guardada sin conexión`, { detalle: "Subirá sola cuando vuelva el internet." });
-        setOk({ total, prendas, comprobante: null, offline: true });
+        setOk({ total, prendas, recibo: null, estado: null, offline: true });
         setCarrito([]);
         limpiarComprobante();
         return;
@@ -718,16 +834,35 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     // El comprobante ya se emitió en la MISMA transacción que la venta
     // (0011_venta_con_comprobante.sql) — esta consulta es solo para mostrar su
     // serie-número; nunca puede "fallar en emitir" por separado.
-    let comprobante: VentaOk["comprobante"] = null;
+    let recibo: ReciboVenta | null = null;
+    let estado: EstadoComprobante | null = null;
     if (ventaId) {
-      const { data: comp } = await supabase.from("comprobantes").select("tipo, serie, numero").eq("venta_id", ventaId).maybeSingle();
-      if (comp) comprobante = { tipo: comp.tipo as TipoComprobante, texto: `${comp.serie}-${String(comp.numero).padStart(6, "0")}` };
+      const { data: comp } = await supabase.from("comprobantes").select("tipo, serie, numero, estado, created_at").eq("venta_id", ventaId).maybeSingle();
+      if (comp && (comp.tipo === "boleta" || comp.tipo === "factura")) {
+        estado = comp.estado as EstadoComprobante;
+        // Sale de lo que se acaba de cobrar (mismos ítems, descuentos y pagos que vio la
+        // cajera, con el vuelto) más lo que la base asignó: serie, número y fecha.
+        recibo = armarRecibo({
+          comprobante: { tipo: comp.tipo, serie: comp.serie, numero: comp.numero, created_at: comp.created_at },
+          sede: ubicacionEtiqueta,
+          cliente: { tipoDoc: clienteTipoDoc, numDoc: clienteNumDoc || null, nombre: clienteNombre.trim() || null },
+          lineas: carrito.map((it) => ({
+            cantidad: it.cantidad,
+            referencia: it.referencia,
+            codigo: codigoPrenda(it),
+            precioUnitario: it.precioUnitario,
+            descuentoUnitario: it.descuentoUnitario,
+          })),
+          pagos,
+          tasaIgv: 0.18,
+        });
+      }
     }
 
     setLoading(false);
     token.current = crypto.randomUUID();
-    avisar.exito(`Venta de ${money(total)} registrada`, { detalle: comprobante ? `${ETIQUETA_TIPO[comprobante.tipo]} ${comprobante.texto}` : `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${ubicacionEtiqueta}` });
-    setOk({ total, prendas, comprobante, offline: false });
+    avisar.exito(`Venta de ${money(total)} registrada`, { detalle: recibo ? `${ETIQUETA_TIPO[recibo.tipo]} ${textoNumeroRecibo(recibo)}` : `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${ubicacionEtiqueta}` });
+    setOk({ total, prendas, recibo, estado, offline: false });
     setCarrito([]);
     limpiarComprobante();
     router.refresh();
@@ -835,6 +970,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
             setSoloConStock(valor);
             buscador.current?.focus();
           }}
+          ocultasSinStock={ocultasSinStock}
+          topeTarjeta={topeTarjeta}
+          onElegirTalla={(clave) => {
+            // Con una sola talla vendible no hay nada que elegir: se agrega directo (Felipe,
+            // 2026-09-18). El modal es para elegir, y solo se abre con 2+ tallas con stock —
+            // o con ninguna, donde sirve para decir dónde sí hay. Si esa única talla ya está
+            // al tope en el ticket, `agregar()` avisa cuántas quedan.
+            const vendibles = grupos.find((g) => g.clave === clave)?.tallas.filter((t) => t.stockAqui > 0) ?? [];
+            if (vendibles.length === 1) agregar(vendibles[0].variante);
+            else setTarjetaElegida(clave);
+          }}
           grupos={grupos}
           carrito={carrito}
           mostrarVentasHoy={mostrarVentasHoy}
@@ -912,6 +1058,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         </button>
       )}
 
+      {grupoElegido && (
+        <ElegirTallaModal
+          grupo={grupoElegido}
+          ubicacionEtiqueta={ubicacionEtiqueta}
+          carrito={carrito}
+          onAgregar={agregar}
+          onClose={() => setTarjetaElegida(null)}
+          alCerrarEnfocar={buscador}
+        />
+      )}
+
       {manualAbierto && (
         <Modal
           titulo="Monto manual"
@@ -951,36 +1108,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         <CerrarCajaModalV2 cajaId={cajaId} cola={cola} onClose={() => setModalCaja(null)} />
       )}
 
-      {ok && (
-        <Modal titulo={ok.offline ? "Venta guardada sin conexión" : "Venta registrada"} subtitulo={ubicacionEtiqueta} onClose={cerrarVentaRegistrada} alCerrarEnfocar={buscador}>
-          {(cerrar) => (
-          <div className="space-y-5">
-            <div className={`card-cayla p-5 text-center ${ok.offline ? "border-ambar/30" : ""}`}>
-              <p className={`label-cayla text-[11px] ${ok.offline ? "text-ambar-profundo" : "text-verde-profundo"}`}>
-                {ok.offline ? "Guardada en este equipo" : "Listo"}
-              </p>
-              <p className="font-display mt-2 text-3xl text-tinta">{money(ok.total)}</p>
-              <p className="mt-1 text-sm text-tinta/70">
-                {ok.prendas} {ok.prendas === 1 ? "prenda" : "prendas"}
-              </p>
-            </div>
-            <p className="text-center text-xs text-tinta/65">
-              {ok.offline
-                ? "Sin internet: quedó guardada en este equipo y sube sola cuando vuelva la conexión. No se puede emitir comprobante todavía."
-                : `Ya está descontada del stock de ${ubicacionEtiqueta} y aparece abajo, en «Ventas de hoy».`}
-            </p>
-            {ok.comprobante && (
-              <p className="card-cayla text-center text-sm text-tinta">
-                {ETIQUETA_TIPO[ok.comprobante.tipo]} <span className="font-mono">{ok.comprobante.texto}</span> emitida
-              </p>
-            )}
-            <button type="button" autoFocus onClick={cerrar} className={`${botonPrimario} w-full`}>
-              Nueva venta
-            </button>
-          </div>
-          )}
-        </Modal>
-      )}
+      {ok && <VentaRegistradaModal ok={ok} ubicacionEtiqueta={ubicacionEtiqueta} onClose={cerrarVentaRegistrada} alCerrarEnfocar={buscador} />}
     </div>
   );
 }

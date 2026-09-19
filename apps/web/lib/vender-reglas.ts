@@ -3,7 +3,7 @@
 // componente cliente `PuntoDeVenta` necesita como VALOR vive en un archivo que
 // ningún fetcher server-only pueda arrastrar al navegador.
 
-import type { MetodoPago } from "@cayla-retail/shared";
+import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 
 /** Los momentos del ticket (ADR-0044). En «armar» solo se ven las líneas y el total;
  *  «descuento» es el apartado para decidir un descuento (vuelve a «armar»); «espera» es
@@ -47,6 +47,40 @@ const redondear2 = (n: number) => Math.round(n * 100) / 100;
  *  pasan — `registrar_venta` exige que sumen igual que los ítems al centavo. */
 export function restanteDePagos(total: number, pagos: readonly PagoAplicado[]): number {
   return redondear2(total - pagos.reduce((acc, p) => acc + p.monto, 0));
+}
+
+/** Atajos F1–F5 de la caja: cada tecla es un medio de pago, en el MISMO orden en que el selector
+ *  los muestra (F1 efectivo, F2 tarjeta, F3 yape, F4 plin, F5 transferencia). `null` si la tecla
+ *  no es un atajo. Con cualquier modificador (Ctrl+F5 = recarga forzada, Alt+F4 = cerrar…) o con la
+ *  tecla mantenida (`repeat`) NO cuenta: un atajo del navegador o del sistema no se le quita a
+ *  nadie, y mantener F2 no puede prender y apagar el medio veinte veces por segundo. */
+export function metodoDeAtajo(t: { key: string; ctrlKey: boolean; altKey: boolean; metaKey: boolean; shiftKey: boolean; repeat?: boolean }): MetodoPago | null {
+  if (t.ctrlKey || t.altKey || t.metaKey || t.shiftKey || t.repeat) return null;
+  const m = /^F([1-5])$/.exec(t.key);
+  return m ? METODOS_PAGO[Number(m[1]) - 1] : null;
+}
+
+/** Separa el IGV de un total que YA lo incluye (los precios de CAYLA son con IGV). Es la
+ *  misma cuenta que hace `ComprobantesPanel` al emitir — `igv = total − total/(1+tasa)` a
+ *  2 decimales y `subtotal = total − igv` —, así lo que la cajera ve en el ticket es lo que
+ *  saldrá en el comprobante, y `subtotal + igv = total` al centavo (la base lo exige). */
+export function desgloseIgv(total: number, tasa: number): { subtotal: number; igv: number } {
+  const igv = redondear2(total - total / (1 + tasa));
+  return { subtotal: redondear2(total - igv), igv };
+}
+
+/** Quita el pago `indice` y traspasa su monto al que queda en su lugar (el «siguiente»; si
+ *  era el último, al último que queda). Sin esto, quitar el medio que llevaba el total dejaba
+ *  el resto en 0 y la cajera tenía que volver a escribirlo (Felipe, 2026-09-18). El total
+ *  cubierto no cambia: solo cambia quién lo cubre. Si no queda ningún otro medio, o el
+ *  quitado estaba en 0, no hay nada que traspasar. */
+export function quitarPagoTraspasando(pagos: readonly PagoAplicado[], indice: number): PagoAplicado[] {
+  const quitado = pagos[indice];
+  if (!quitado) return [...pagos];
+  const resto = pagos.filter((_, i) => i !== indice);
+  if (resto.length === 0 || quitado.monto <= 0) return resto;
+  const destino = Math.min(indice, resto.length - 1);
+  return resto.map((p, i) => (i === destino ? { ...p, monto: redondear2(p.monto + quitado.monto) } : p));
 }
 
 /** El vuelto de un pago: lo recibido menos lo que cubre, solo en efectivo (Yape, Plin,
@@ -138,6 +172,19 @@ export type DetalleDescuento = { razon: string; razonOtro: string; argumento: st
 /** Lo que queda en una línea al quitarle el descuento: ni monto, ni motivo, ni argumento. */
 export const SIN_DETALLE_DESCUENTO: DetalleDescuento = { razon: "", razonOtro: "", argumento: "" };
 
+// ---- Descuento de campaña (paso 3 de ADR-0107, 2026-09-18) -------------------------
+// Una prenda con una campaña vigente (Black Friday 20 %) se cobra con ese descuento sola.
+// La regla completa —cuál campaña, qué fecha, qué se rechaza— vive en la base
+// (`fn_campanas_por_variante` y `registrar_venta`, 20260918170000); acá se aplica lo que
+// la base ya decidió (`campanas_vigentes()`) y se mantiene la regla «UN solo descuento por
+// prenda: el mayor». La base verifica todo de nuevo al cobrar.
+
+/** El motivo con que viaja el descuento de una campaña: uno más en `venta_items`. */
+export const RAZON_CAMPANA = "campana";
+
+/** La campaña que rige hoy para una prenda: la de mayor % (la elige la base). */
+export type CampanaLinea = { etiquetaId: string; nombre: string; pct: number };
+
 type LineaDescontable = {
   claveLinea: string;
   precioUnitario: number;
@@ -145,21 +192,78 @@ type LineaDescontable = {
   razonDescuento: string;
   razonDescuentoOtro: string;
   argumentoDescuento: string;
+  campana?: CampanaLinea | null;
 };
+
+/** ¿El descuento que lleva esta línea es el de su campaña (no uno puesto a mano)? */
+export function esDescuentoDeCampana(l: { descuentoUnitario: number; razonDescuento: string }): boolean {
+  return l.descuentoUnitario > 0 && l.razonDescuento === RAZON_CAMPANA;
+}
+
+/** ¿Hay algún descuento puesto A MANO? Solo ese pide código a una colaboradora. */
+export function hayDescuentoManual(carrito: readonly { descuentoUnitario: number; razonDescuento: string }[]): boolean {
+  return carrito.some((l) => l.descuentoUnitario > 0 && l.razonDescuento !== RAZON_CAMPANA);
+}
+
+/** Deja la línea con el descuento de su campaña (o tal cual, si no tiene). */
+export function conDescuentoDeCampana<L extends LineaDescontable>(l: L): L {
+  if (!l.campana) return l;
+  return {
+    ...l,
+    descuentoUnitario: descuentoUnitarioPorPorcentaje(l.precioUnitario, l.campana.pct),
+    razonDescuento: RAZON_CAMPANA,
+    razonDescuentoOtro: "",
+    argumentoDescuento: "",
+  };
+}
+
+/** Qué descuento por unidad queda en la línea si se le pide `montoNuevo`: el pedido, salvo
+ *  que su campaña dé igual o más — entonces prevalece la campaña (un solo descuento, el
+ *  mayor). El 0,01 es el redondeo: la base tampoco deja pasar un manual que no supere a la
+ *  campaña por más de un centavo. */
+export function descuentoResultante(l: LineaDescontable, montoNuevo: number): { monto: number; prevaleceCampana: boolean } {
+  if (l.campana) {
+    const deCampana = descuentoUnitarioPorPorcentaje(l.precioUnitario, l.campana.pct);
+    if (redondear2(montoNuevo - deCampana) <= 0.01) return { monto: deCampana, prevaleceCampana: true };
+  }
+  return { monto: montoNuevo, prevaleceCampana: false };
+}
+
+/** Re-evalúa las campañas de un carrito contra las que rigen ahora: un ticket dejado en
+ *  espera puede haber nacido antes (o después) de que una campaña empezara o terminara.
+ *  El descuento manual MAYOR que la campaña se respeta; el de campaña se ajusta o se va. */
+export function conCampanas<L extends LineaDescontable & { varianteId: string }>(carrito: L[], porVariante: ReadonlyMap<string, CampanaLinea>): L[] {
+  return carrito.map((l) => {
+    const campana = porVariante.get(l.varianteId) ?? null;
+    if (!campana) {
+      const limpia = { ...l, campana: null };
+      return esDescuentoDeCampana(l)
+        ? { ...limpia, descuentoUnitario: 0, razonDescuento: "", razonDescuentoOtro: "", argumentoDescuento: "" }
+        : limpia;
+    }
+    const conCampana = { ...l, campana };
+    const manualMayor =
+      l.descuentoUnitario > 0 &&
+      !esDescuentoDeCampana(l) &&
+      redondear2(l.descuentoUnitario - descuentoUnitarioPorPorcentaje(l.precioUnitario, campana.pct)) > 0.01;
+    return manualMayor ? conCampana : conDescuentoDeCampana(conCampana);
+  });
+}
 
 function aplicarConMonto<L extends LineaDescontable>(carrito: L[], claves: string[], detalle: DetalleDescuento, montoPara: (l: L) => number): L[] {
   const alcanza = (l: L) => claves.length === 0 || claves.includes(l.claveLinea);
-  return carrito.map((l) =>
-    alcanza(l)
-      ? {
-          ...l,
-          descuentoUnitario: montoPara(l),
-          razonDescuento: detalle.razon,
-          razonDescuentoOtro: detalle.razon === "otro" ? detalle.razonOtro : "",
-          argumentoDescuento: detalle.argumento,
-        }
-      : l,
-  );
+  return carrito.map((l) => {
+    if (!alcanza(l)) return l;
+    const { monto, prevaleceCampana } = descuentoResultante(l, montoPara(l));
+    if (prevaleceCampana) return conDescuentoDeCampana(l);
+    return {
+      ...l,
+      descuentoUnitario: monto,
+      razonDescuento: detalle.razon,
+      razonDescuentoOtro: detalle.razon === "otro" ? detalle.razonOtro : "",
+      argumentoDescuento: detalle.argumento,
+    };
+  });
 }
 
 /** Devuelve un carrito nuevo con el % aplicado a las líneas de `claves` — o a todas si

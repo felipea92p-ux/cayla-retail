@@ -188,7 +188,9 @@ haciendo: `git status --short` y los archivos tocados en las últimas horas. El
 2026-09-12 dos sesiones escribieron esta misma documentación en paralelo sin saberlo.
 Skills de este repo: `/backlog` (audita y reescribe el backlog), `/decide` (fuerza el
 protocolo de pregunta sobre un punto concreto), `/examen` (verifica qué entendió
-Felipe), `/explica` (desarrollo profundo de un concepto o decisión).
+Felipe), `/explica` (desarrollo profundo de un concepto o decisión), `/pantalla`
+(analiza una captura o un flujo y propone 12 tareas por importancia; guarda el
+resultado en `docs/pantallas/<slug>.md` con el SHA analizado — solo analiza, no toca código).
 
 ## graphify
 

@@ -7,14 +7,22 @@ import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { Boton, Campo, CampoSelect, CampoTexto, SelectorMultiple } from "@/components/ui/campos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
-import { FAMILIAS, type Familia } from "@cayla-retail/shared";
+import type { Familia } from "@cayla-retail/shared";
+import { IconoFamilia } from "@/components/IconoFamilia";
 
 /**
- * Las 6 familias fijas, cada una con sus categorías (BLU, POL, JEA…).
- * Portado de V1 (ADR-0095) — a diferencia de V1, en V2 `categorias.nombre`
- * es único GLOBAL (no por familia): dos familias no pueden tener una
- * categoría con el mismo nombre, a propósito, para no repetir el error que
- * V1 sí permitía.
+ * Las familias del negocio (Indumentaria, Calzado...), cada una con sus
+ * categorías (BLU, POL, JEA…). Portado de V1 (ADR-0095) — a diferencia de
+ * V1, en V2 `categorias.nombre` es único GLOBAL (no por familia): dos
+ * familias no pueden tener una categoría con el mismo nombre, a propósito,
+ * para no repetir el error que V1 sí permitía.
+ *
+ * FAMILIA YA NO ES UNA LISTA FIJA (2026-09-18, `retail.familias`). Antes
+ * eran 6 valores hardcodeados en `packages/shared` (CHECK constraint en la
+ * base); ahora es una tabla que un Líder edita desde `/productos/familias`
+ * — el prop `familias` de este componente es esa lista (solo activas). Sin
+ * proponer/aprobar como colores/tallas: agregar una familia es una decisión
+ * de marca, no operativa (ver 20260918010000_familias_tabla_propia.sql).
  *
  * ALTA, EDICIÓN Y DESACTIVAR/REACTIVAR (2026-09-15). El prefijo queda fijo
  * apenas hay un producto con esa categoría (es la letra del código corto de
@@ -56,113 +64,46 @@ type Categoria = {
   notas: string | null;
 };
 
-const ETIQUETA_FAMILIA: Record<Familia, string> = {
-  indumentaria: "Indumentaria",
-  calzado: "Calzado",
-  // Contenido validado con Felipe el 2026-09-17 contra Ralph Lauren/Zara
-  // (ambas usan "Accesorios y Complementos" fusionado) — el valor guardado
-  // sigue siendo 'accesorios', solo cambia lo que ve la persona.
-  accesorios: "Accesorios y Complementos",
-  bisuteria: "Bisutería",
-  belleza: "Belleza",
-  papeleria: "Papelería",
-};
+// El nombre visible de cada familia (ej. "Accesorios y Complementos") ya no
+// se hardcodea acá: viene de `retail.familias` (20260918010000) — un Líder
+// la edita desde /productos/familias sin tocar código. `familias` es el
+// prop con esa lista (solo activas: una familia no se puede desactivar con
+// categorías activas colgando, así que siempre hay una fila para todo `f`).
+type FamiliaOpcion = { codigo: string; nombre: string };
 
-const OPCIONES_FAMILIA = FAMILIAS.map((f) => ({ valor: f, texto: ETIQUETA_FAMILIA[f] }));
 const SIN_PADRE = "__ninguna__";
 
 type Borrador = { id: string | null; nombre: string; prefijo: string; familia: Familia; notas: string; categoriaPadreId: string | null };
-const VACIO: Borrador = { id: null, nombre: "", prefijo: "", familia: "indumentaria", notas: "", categoriaPadreId: null };
+const borradorVacio = (familias: FamiliaOpcion[]): Borrador => ({
+  id: null,
+  nombre: "",
+  prefijo: "",
+  familia: familias[0]?.codigo ?? "",
+  notas: "",
+  categoriaPadreId: null,
+});
 
-/**
- * Un solo trazo por familia, mismo lenguaje que `IconoPercha` en
- * `ProductosGrilla.tsx` (stroke, sin relleno, esquinas redondas) — nunca
- * color por familia: el brandbook reserva el color para estado (verde/ámbar/
- * rojo), no para categorizar, así que las 6 familias se distinguen por
- * forma, no por una paleta arcoíris.
- */
-function IconoFamilia({ familia, className = "h-6 w-6" }: { familia: Familia | null; className?: string }) {
-  const props = {
-    viewBox: "0 0 24 24",
-    fill: "none" as const,
-    stroke: "currentColor",
-    strokeWidth: 1.5,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    className,
-    "aria-hidden": true as const,
-  };
-  switch (familia) {
-    case "indumentaria":
-      return (
-        <svg {...props}>
-          <path d="M12 3.5a1.75 1.75 0 1 1 1.75 1.75" />
-          <path d="M12 5.25V7" />
-          <path d="M4 12.5 12 7l8 5.5" />
-          <path d="M4 12.5 2.5 18a1 1 0 0 0 1.3 1.25L7 18v2.5h10V18l3.2 1.25A1 1 0 0 0 21.5 18L20 12.5" />
-        </svg>
-      );
-    case "calzado":
-      return (
-        <svg {...props}>
-          <path d="M3 15.5c0-2 1.3-3 2.6-3.8C7.5 10.5 8.5 9 9 7c.3 1.4 1.3 2.3 2.6 2.7 2 .6 3.2 1.3 4.4 2.6.9 1 2.3 1.4 3.5 1.4.9 0 1.5.7 1.5 1.5v1.3c0 .8-.7 1.5-1.5 1.5H4.5C3.7 18 3 17.3 3 16.5z" />
-          <path d="M9 7c-.6 1.6-.4 3 .6 4" />
-        </svg>
-      );
-    case "accesorios":
-      return (
-        <svg {...props}>
-          <path d="M8 8V6.5a4 4 0 0 1 8 0V8" />
-          <path d="M5.5 8h13l.9 11a1.5 1.5 0 0 1-1.5 1.6H6.1A1.5 1.5 0 0 1 4.6 19z" />
-        </svg>
-      );
-    case "bisuteria":
-      return (
-        <svg {...props}>
-          <path d="M8.5 4h7L19 8l-7 12L5 8z" />
-          <path d="M5 8h14M8.5 4 7 8l5 12M15.5 4 17 8l-5 12" />
-        </svg>
-      );
-    case "belleza":
-      return (
-        <svg {...props}>
-          <path d="M12 3v3.2M12 17.8V21M3 12h3.2M17.8 12H21" />
-          <path d="M6.5 6.5l2.2 2.2M15.3 15.3l2.2 2.2M17.5 6.5l-2.2 2.2M8.7 15.3l-2.2 2.2" />
-        </svg>
-      );
-    case "papeleria":
-      return (
-        <svg {...props}>
-          <path d="M6 3.5h9l3 3V20a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 6 20z" />
-          <path d="M15 3.5V6a.5.5 0 0 0 .5.5H18" />
-          <path d="M9 12h6M9 15.5h6" />
-        </svg>
-      );
-    default:
-      return (
-        <svg {...props}>
-          <circle cx="12" cy="12" r="8.5" />
-        </svg>
-      );
-  }
-}
-
-type EjesDraft = { tallaIds: string[]; tejidoIds: string[]; patronIds: string[] };
-const EJES_VACIO: EjesDraft = { tallaIds: [], tejidoIds: [], patronIds: [] };
+/** `tallaHabitualIds`: la curva habitual (20260918230100) — las tallas que vienen MARCADAS al crear un producto. Siempre un subconjunto de `tallaIds`. */
+type EjesDraft = { tallaIds: string[]; tallaHabitualIds: string[]; tejidoIds: string[]; patronIds: string[] };
+const EJES_VACIO: EjesDraft = { tallaIds: [], tallaHabitualIds: [], tejidoIds: [], patronIds: [] };
 
 export function CategoriasLista({
   categoriasIniciales,
   puedeEditar,
   universo,
   ejesPorCategoria: ejesPorCategoriaInicial,
+  familias,
   productosPorCategoria,
 }: {
   categoriasIniciales: Categoria[];
   puedeEditar: boolean;
   universo: { tallas: ValorVocabulario[]; tejidos: ValorVocabulario[]; patrones: ValorVocabulario[] };
   ejesPorCategoria: EjesPorCategoria;
+  familias: FamiliaOpcion[];
   productosPorCategoria: Record<string, number>;
 }) {
+  const etiquetaFamilia = (codigo: Familia) => familias.find((f) => f.codigo === codigo)?.nombre ?? codigo;
+  const opcionesFamilia = familias.map((f) => ({ valor: f.codigo, texto: f.nombre }));
   const [categorias, setCategorias] = useState(categoriasIniciales);
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -194,6 +135,7 @@ export function CategoriasLista({
       b?.id
         ? {
             tallaIds: (ejesPorCategoria.tallas[b.id] ?? []).map((v) => v.id),
+            tallaHabitualIds: ejesPorCategoria.habituales[b.id] ?? [],
             tejidoIds: (ejesPorCategoria.tejidos[b.id] ?? []).map((v) => v.id),
             patronIds: (ejesPorCategoria.patrones[b.id] ?? []).map((v) => v.id),
           }
@@ -273,6 +215,8 @@ export function CategoriasLista({
         }
         setEjesPorCategoria((actual) => ({
           tallas: { ...actual.tallas, [guardada.id]: universo.tallas.filter((v) => ejesDraft.tallaIds.includes(v.id)) },
+          // La curva habitual que se acaba de guardar (actualizar_categoria_ejes).
+          habituales: { ...actual.habituales, [guardada.id]: ejesDraft.tallaHabitualIds },
           tejidos: { ...actual.tejidos, [guardada.id]: universo.tejidos.filter((v) => ejesDraft.tejidoIds.includes(v.id)) },
           patrones: { ...actual.patrones, [guardada.id]: universo.patrones.filter((v) => ejesDraft.patronIds.includes(v.id)) },
         }));
@@ -358,7 +302,7 @@ export function CategoriasLista({
         <div className="flex justify-end">
           <button
             type="button"
-            onClick={() => abrirBorrador(VACIO)}
+            onClick={() => abrirBorrador(borradorVacio(familias))}
             className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
           >
             + Agregar categoría
@@ -366,14 +310,14 @@ export function CategoriasLista({
         </div>
       )}
 
-      {FAMILIAS.map((f) => {
+      {familias.map(({ codigo: f }) => {
         const raicesDeLaFamilia = activas.filter((c) => c.familia === f && esRaizVisible(c));
         return (
           <section key={f} className="card-cayla p-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-tinta/70">
                 <IconoFamilia familia={f} className="h-[18px] w-[18px]" />
-                <p className="text-sm font-medium text-tinta">{ETIQUETA_FAMILIA[f]}</p>
+                <p className="text-sm font-medium text-tinta">{etiquetaFamilia(f)}</p>
               </div>
               <p className="text-[11px] text-tinta/65">
                 {raicesDeLaFamilia.length} {raicesDeLaFamilia.length === 1 ? "categoría" : "categorías"}
@@ -402,10 +346,12 @@ export function CategoriasLista({
         <VistaRapidaCategoria
           categoria={viendo}
           familia={viendo.familia}
+          nombreFamilia={viendo.familia ? etiquetaFamilia(viendo.familia) : null}
           productos={productosPorCategoria[viendo.id] ?? 0}
           hijas={hijasDe(viendo.id)}
           padre={viendo.categoriaPadreId ? categorias.find((c) => c.id === viendo.categoriaPadreId) ?? null : null}
           tallas={ejesPorCategoria.tallas[viendo.id] ?? []}
+          tallasHabituales={ejesPorCategoria.habituales[viendo.id] ?? []}
           tejidos={ejesPorCategoria.tejidos[viendo.id] ?? []}
           patrones={ejesPorCategoria.patrones[viendo.id] ?? []}
           puedeEditar={puedeEditar}
@@ -461,14 +407,14 @@ export function CategoriasLista({
               {borrador.categoriaPadreId ? (
                 <div>
                   <p className="label-cayla text-[11px] text-tinta/65">Familia</p>
-                  <p className="mt-1.5 flex h-9 items-center text-sm text-tinta/65">{ETIQUETA_FAMILIA[borrador.familia]} (heredada)</p>
+                  <p className="mt-1.5 flex h-9 items-center text-sm text-tinta/65">{etiquetaFamilia(borrador.familia)} (heredada)</p>
                 </div>
               ) : (
                 <CampoSelect
                   etiqueta="Familia"
                   valor={borrador.familia}
                   onValor={(v) => setBorrador({ ...borrador, familia: v })}
-                  opciones={OPCIONES_FAMILIA}
+                  opciones={opcionesFamilia}
                 />
               )}
               <CampoTexto
@@ -580,11 +526,25 @@ export function CategoriasLista({
                     <SelectorMultiple
                       opciones={universo.tallas.map((v) => ({ valor: v.id, texto: v.texto }))}
                       seleccionadas={ejesDraft.tallaIds}
-                      onCambio={(v) => setEjesDraft({ ...ejesDraft, tallaIds: v })}
+                      // Quitar una talla también la saca de la curva: la habitual es siempre un subconjunto de las que ofrece.
+                      onCambio={(v) => setEjesDraft({ ...ejesDraft, tallaIds: v, tallaHabitualIds: ejesDraft.tallaHabitualIds.filter((id) => v.includes(id)) })}
                     />
                   </div>
                 ) : (
                   <p className="mt-1.5 text-xs italic text-tinta/65">Todavía no hay tallas aprobadas.</p>
+                )}
+                {ejesDraft.tallaIds.length > 0 && (
+                  <div className="mt-3">
+                    <p className="label-cayla text-[11px] text-tinta/65">Curva habitual</p>
+                    <p className="mt-0.5 text-xs text-tinta/60">Las que vienen marcadas de antemano al crear un producto de esta categoría.</p>
+                    <div className="mt-1.5">
+                      <SelectorMultiple
+                        opciones={universo.tallas.filter((v) => ejesDraft.tallaIds.includes(v.id)).map((v) => ({ valor: v.id, texto: v.texto }))}
+                        seleccionadas={ejesDraft.tallaHabitualIds}
+                        onCambio={(v) => setEjesDraft({ ...ejesDraft, tallaHabitualIds: v })}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
               <div>
@@ -723,10 +683,12 @@ function TarjetaCategoria({
 function VistaRapidaCategoria({
   categoria,
   familia,
+  nombreFamilia,
   productos,
   hijas,
   padre,
   tallas,
+  tallasHabituales,
   tejidos,
   patrones,
   puedeEditar,
@@ -736,10 +698,13 @@ function VistaRapidaCategoria({
 }: {
   categoria: Categoria;
   familia: Familia | null;
+  /** Nombre visible de la familia, ya resuelto contra `retail.familias` por quien llama. */
+  nombreFamilia: string | null;
   productos: number;
   hijas: Categoria[];
   padre: Categoria | null;
   tallas: ValorVocabulario[];
+  tallasHabituales: string[];
   tejidos: ValorVocabulario[];
   patrones: ValorVocabulario[];
   puedeEditar: boolean;
@@ -748,7 +713,7 @@ function VistaRapidaCategoria({
   onEditar: () => void;
 }) {
   return (
-    <Modal titulo={categoria.nombre} subtitulo={familia ? ETIQUETA_FAMILIA[familia] : "Sin familia asignada"} onClose={onClose} ancho="max-w-lg">
+    <Modal titulo={categoria.nombre} subtitulo={familia ? (nombreFamilia ?? familia) : "Sin familia asignada"} onClose={onClose} ancho="max-w-lg">
       <div className="mt-1 grid gap-5 sm:grid-cols-[auto_1fr]">
         <div className="flex items-center gap-3 sm:flex-col sm:items-start sm:gap-2">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-sand/60 text-tinta/60">
@@ -793,7 +758,7 @@ function VistaRapidaCategoria({
             </div>
           )}
 
-          <GrupoEjes titulo="Tallas" valores={tallas} />
+          <GrupoEjes titulo="Tallas" valores={tallas} marcados={tallasHabituales} />
           <GrupoEjes titulo="Tejidos" valores={tejidos} />
           <GrupoEjes titulo="Patrones" valores={patrones} />
 
@@ -820,14 +785,16 @@ function VistaRapidaCategoria({
   );
 }
 
-function GrupoEjes({ titulo, valores }: { titulo: string; valores: ValorVocabulario[] }) {
+function GrupoEjes({ titulo, valores, marcados }: { titulo: string; valores: ValorVocabulario[]; /** Los que vienen marcados de antemano (la curva habitual). */ marcados?: string[] }) {
   if (valores.length === 0) return null;
+  const hayMarcados = !!marcados && marcados.length > 0;
   return (
     <div>
-      <p className="label-cayla text-[10.5px] text-tinta/55">{titulo}</p>
+      <p className="label-cayla text-[10.5px] text-tinta/55">{titulo}{hayMarcados && " · ✓ = curva habitual"}</p>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {valores.map((v) => (
           <Chip key={v.id} tono="neutro">
+            {marcados?.includes(v.id) && "✓ "}
             {v.texto}
           </Chip>
         ))}

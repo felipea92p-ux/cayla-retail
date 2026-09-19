@@ -1,5 +1,5 @@
 // Reglas puras de Devoluciones — sin `createClient`, cero dependencia de servidor, mismo
-// patrón que `cambios-reglas.ts` (ADR-0104) y `vender-reglas.ts`: los componentes de
+// patrón que `cambios-reglas.ts` (ADR-0121) y `vender-reglas.ts`: los componentes de
 // Devoluciones son cliente y necesitan esto como VALOR. Reusa de Cambios lo que es de los
 // dos: el plazo (R-38), el estado visual de una prenda, las validaciones y el impacto.
 //

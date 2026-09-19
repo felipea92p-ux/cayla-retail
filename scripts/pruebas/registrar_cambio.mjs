@@ -354,7 +354,7 @@ select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, 'efectivo', 
 );
 
 // ---------------------------------------------------------------------------
-// 14-18: 20260918150000 — motivo, estado de la prenda que vuelve (R-39) y venta
+// 14-18: 20260919000100 — motivo, estado de la prenda que vuelve (R-39) y venta
 // anulada. Los 13 de arriba siguen llamando con los 6 parámetros de antes: son la
 // prueba de que la pantalla vieja no se rompe contra la firma nueva.
 // ---------------------------------------------------------------------------

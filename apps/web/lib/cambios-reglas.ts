@@ -16,7 +16,7 @@ import { soles } from "./compras-reglas";
 
 // ============================================================================
 // Motivo del cambio y estado de la prenda que vuelve (2026-09-18,
-// 20260918150000_cambios_motivo_y_estado_de_prenda.sql). Los valores son los de los
+// 20260919000100_cambios_motivo_y_estado_de_prenda.sql). Los valores son los de los
 // `check` de `retail.cambios` — si se cambia uno, se cambia el otro.
 // ============================================================================
 
@@ -107,7 +107,7 @@ export type EstadoPrenda = EstadoVisual & { cambiable: boolean };
  *  comprado menos lo ya cambiado y lo ya devuelto (pendiente o aprobado). Cambios y
  *  Devoluciones se descuentan entre sí a propósito: la base solo cruza cada una contra
  *  sí misma, y una prenda cambiada que luego se devuelve —o al revés— vuelve al stock
- *  dos veces (BACKLOG, ADR-0105). */
+ *  dos veces (BACKLOG, ADR-0122). */
 export function unidadesDisponibles(l: { cantidad: number; yaCambiado: number; yaDevuelto: number }): number {
   return Math.max(0, l.cantidad - l.yaCambiado - l.yaDevuelto);
 }

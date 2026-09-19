@@ -52,7 +52,9 @@ export default async function InventarioPage({
   const enCamino = {
     traslados: haciaAca.length,
     proximaLlegada,
-    atrasados: haciaAca.filter((t) => t.fechaEstimadaLlegada && estaAtrasado(t.fechaEstimadaLlegada, t.estado)).length,
+    // Solo lo que sigue en camino y ya debió llegar: un traslado con diferencia ya llegó (lo que espera es la
+    // revisión de un líder) y no está «atrasado». Mismo criterio que la pantalla Traslados.
+    atrasados: haciaAca.filter((t) => t.estado === "en_transito" && t.fechaEstimadaLlegada && estaAtrasado(t.fechaEstimadaLlegada, t.estado)).length,
   };
 
   // La foto es del momento en que se cargó: la app no sincroniza en segundo

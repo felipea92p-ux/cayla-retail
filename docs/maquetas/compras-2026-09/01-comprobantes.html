@@ -1,0 +1,230 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Comprobantes de proveedores</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;
+--taupe:#a47865;--taupe-p:#805c4c;--verde:#556e49;--verde-p:#44583a;--ambar:#8c631f;--ambar-p:#734f15;
+--t75:rgba(26,26,24,.75);--t65:rgba(26,26,24,.65);--t55:rgba(26,26,24,.55);--t45:rgba(26,26,24,.45);
+--t25:rgba(26,26,24,.25);--t15:rgba(26,26,24,.15);--t10:rgba(26,26,24,.10);--t04:rgba(26,26,24,.04)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:#e6dfd0;-webkit-font-smoothing:antialiased;font-size:14px}
+.disp{font-family:'EB Garamond',Georgia,serif}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+.tab{font-variant-numeric:tabular-nums}
+.ic{flex:none;vertical-align:middle}
+.rel{position:relative}
+.muted{color:var(--t65)}.m55{color:var(--t55)}.m45{color:var(--t45)}
+.xs{font-size:12px}.sm{font-size:13px}
+.r{text-align:right}.c{text-align:center}
+.rojo{color:var(--rojo)}.ambar{color:var(--ambar-p)}.verde{color:var(--verde-p)}
+
+/* lienzo de la imagen (fuera de la app) */
+.lienzo{width:1520px;padding:28px 40px 40px;background:#e6dfd0}
+.rot{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.rot .n{width:34px;height:34px;border-radius:50%;background:var(--tinta);color:var(--crema);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:19px}
+.rot h1{font-family:'EB Garamond',serif;font-size:28px;font-weight:500}
+.rot .sub{color:var(--t65);font-size:14px}
+.rot .tag{margin-left:auto;border:1px dashed var(--t25);padding:5px 12px;border-radius:999px;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+
+/* la app */
+.app{position:relative;width:1440px;background:var(--crema);border-radius:14px;overflow:hidden;display:flex;
+box-shadow:0 18px 44px -14px rgba(26,26,24,.16);border:1px solid rgba(26,26,24,.12)}
+.side{width:272px;flex:none;border-right:1px solid var(--t10);display:flex;flex-direction:column;background:var(--crema);min-height:100%}
+.logo{display:flex;align-items:center;gap:12px;padding:28px 28px 22px}
+.logo img{height:32px}.logo span{font-size:14px;letter-spacing:.26em;font-weight:600}
+.nuevo{margin:0 12px 26px}
+.nav{padding:0 12px;flex:1}
+.it{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:8px;color:var(--t75);font-size:14px;position:relative;margin-bottom:2px}
+.it .chev{margin-left:auto;color:var(--t45)}
+.it.ch{padding-left:40px}
+.it.on{background:rgba(232,224,208,.65);color:var(--tinta);font-weight:500}
+.it.on:before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:2px;border-radius:2px;background:var(--tinta)}
+.sig{font-family:'EB Garamond',serif;font-style:italic;font-size:12px;color:var(--taupe-p);padding:22px 28px 18px}
+.yo{border-top:1px solid var(--t10);padding:18px 28px;display:flex;gap:12px;align-items:center}
+.yo .av{width:36px;height:36px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:15px}
+.main{flex:1;min-width:0;position:relative}
+.top{height:56px;border-bottom:1px solid var(--t10);display:flex;align-items:center;justify-content:flex-end;padding:0 32px;background:rgba(245,240,232,.85)}
+.cont{padding:30px 40px 56px}
+.eyebrow{color:var(--t65)}
+h1.t{font-family:'EB Garamond',serif;font-size:28px;font-weight:500;margin-top:4px;line-height:1.15}
+p.bajada{color:var(--t65);margin-top:5px;font-size:14px;max-width:760px}
+
+/* piezas */
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:8px;padding:12px 16px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;white-space:nowrap}
+.btn.pri{background:var(--tinta);color:var(--crema)}
+.btn.fan{border:1px solid var(--t25)}
+.btn.dis{border:1px solid rgba(26,26,24,.2);color:var(--t75)}
+.btn.s{padding:7px 11px}
+.btn.off{background:rgba(26,26,24,.3);color:var(--crema)}
+.chip{display:inline-block;white-space:nowrap;border-radius:999px;border:1px solid;padding:2px 10px;font-size:10px;line-height:16px;text-transform:uppercase;letter-spacing:.13em;font-weight:600}
+.chip.neutro{border-color:var(--t15);background:var(--t04);color:var(--t75)}
+.chip.ambar{border-color:rgba(140,99,31,.3);background:rgba(140,99,31,.10);color:var(--ambar-p)}
+.chip.verde{border-color:rgba(85,110,73,.45);background:rgba(85,110,73,.10);color:var(--verde-p)}
+.chip.rojo{border-color:rgba(184,65,45,.3);background:rgba(184,65,45,.10);color:var(--rojo-p)}
+.chip.apagado{border-color:var(--t10);color:var(--t45)}
+.grid{display:grid;gap:12px}
+.kpi{padding:16px;position:relative}
+.kpi .row{display:flex;align-items:center;gap:7px}
+.kpi .dot{width:6px;height:6px;border-radius:50%;background:var(--t25);flex:none}
+.kpi .dot.ambar{background:var(--ambar)}.kpi .dot.verde{background:var(--verde)}.kpi .dot.rojo{background:var(--rojo)}
+.kpi .lbl{color:var(--t65)}
+.kpi .n{font-family:'EB Garamond',serif;font-size:29px;line-height:1.15;margin-top:5px;font-variant-numeric:tabular-nums}
+.kpi .n small{font-size:15px;color:var(--t55);font-family:'DM Sans',sans-serif;margin-left:4px}
+.kpi .d{font-size:12px;margin-top:3px;color:var(--t65)}
+.kpi.rojo .n,.kpi.rojo .d{color:var(--rojo)}
+.kpi.ambar .n,.kpi.ambar .d{color:var(--ambar-p)}
+.kpi.verde .n{color:var(--verde-p)}
+.kpi .d.rojo{color:var(--rojo)}.kpi .d.ambar{color:var(--ambar-p)}.kpi .d.verde{color:var(--verde-p)}
+.kpi.acento{border-left:2px solid var(--rojo)}
+.kpi.vacio{border-style:dashed;background:transparent}
+.kpi.vacio .n{color:var(--t45)}
+/* tabla */
+.tbl{overflow:hidden}
+.th,.tr{display:grid;column-gap:16px;padding:12px 20px;align-items:center}
+.th{padding:9px 20px;border-bottom:1px solid var(--t10)}
+.th span{white-space:nowrap;color:var(--t55);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.tr{border-top:1px solid var(--t10)}
+.th+.tr,.tr:first-child{border-top:0}
+.tr .a{font-size:14px}.tr .b{font-size:12px;color:var(--t55);margin-top:1px}
+.tr .n{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.tr.dim{opacity:.4}
+.tr.sel{background:rgba(184,65,45,.045)}
+.band{display:flex;justify-content:space-between;align-items:baseline;padding:8px 20px;border-top:1px solid var(--t10)}
+.band.rojo{background:rgba(184,65,45,.06);color:var(--rojo)}
+.band.ambar{background:rgba(140,99,31,.08);color:var(--ambar-p)}
+.band.neutro{background:var(--t04);color:var(--t65)}
+.band b{font-weight:400;font-size:14px;font-variant-numeric:tabular-nums}
+/* pestañas / segmentado / campos */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--t10)}
+.tabs .tb{padding:4px 14px 11px;color:var(--t65);margin-bottom:-1px;border-bottom:2px solid transparent}
+.tabs .tb.on{color:var(--tinta);border-bottom-color:var(--rojo)}
+.tabs .tb i{font-style:normal;font-weight:500;color:var(--t45);margin-left:6px;letter-spacing:0}
+.seg{display:inline-flex;border:1px solid var(--t15);border-radius:8px;overflow:hidden}
+.seg span{padding:8px 13px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.seg span.on{background:var(--tinta);color:var(--crema)}
+.campo .l{color:var(--t65);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.campo .v{border-bottom:1px solid var(--t25);padding:7px 2px 6px;margin-top:4px;font-size:14px;min-height:31px;display:flex;align-items:center;gap:8px}
+.campo .v.mono{font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.campo .h{font-size:11.5px;color:var(--t55);margin-top:5px;line-height:1.35}
+.busca{display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--t25);padding:7px 2px;color:var(--t45);flex:1;min-width:0}
+.pill{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--t15);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t75)}
+.chk{width:17px;height:17px;border:1.5px solid var(--t45);border-radius:4px;display:inline-grid;place-items:center;flex:none;background:var(--papel)}
+.chk.on{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.prog{height:6px;border-radius:99px;background:var(--sand);overflow:hidden}
+.prog i{display:block;height:100%;border-radius:99px}
+/* marcadores y leyenda */
+.m{position:absolute;top:-14px;left:-14px;width:24px;height:24px;border-radius:50%;background:var(--tinta);color:var(--crema);
+display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:700;box-shadow:0 0 0 3px var(--crema);z-index:5;letter-spacing:0}
+.m.der{left:auto;right:-14px}.m.ab{top:auto;bottom:-14px}.m.izq{left:-36px;top:2px}.m.val{left:auto;right:-14px;top:26px}.m.arr{left:auto;right:4px;top:-24px}.m.st{position:static;display:inline-grid;margin:0 8px 0 0;box-shadow:none;width:20px;height:20px;font-size:11px;vertical-align:middle}.m.fin{left:auto;right:-36px;top:8px}
+.ley{margin-top:22px;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:22px 28px 14px}
+.ley h3{color:var(--t65);margin-bottom:10px}
+.ley .g{display:grid;grid-template-columns:1fr 1fr;column-gap:44px}
+.ley .li{display:flex;gap:12px;padding:9px 0;border-top:1px solid var(--t10)}
+.ley .li .m2{width:24px;height:24px;border-radius:50%;background:var(--tinta);color:var(--crema);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none;margin-top:1px}
+.ley .li b{font-weight:600;font-size:14px}
+.ley .li p{color:var(--t65);font-size:13px;line-height:1.45;margin-top:2px}
+.dec{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:99px;background:var(--sand);font-size:10px;letter-spacing:.13em;font-weight:700;color:var(--t75);vertical-align:1px}
+/* modal */
+.velo{position:absolute;inset:0;background:rgba(26,26,24,.28);backdrop-filter:blur(2.5px);display:flex;align-items:center;justify-content:center;z-index:20;padding:40px}
+.modal{background:var(--papel);border-radius:16px;box-shadow:0 30px 64px -22px rgba(26,26,24,.20);border:1px solid var(--sand);position:relative}
+.modal .hd{padding:22px 26px 16px}
+.modal .bd{padding:0 26px 22px}
+.modal .ft{padding:16px 26px;border-top:1px solid var(--t10);display:flex;gap:10px;align-items:center}
+.sticky{position:absolute;left:272px;right:0;bottom:0;border-top:1px solid var(--sand);background:rgba(245,240,232,.94);backdrop-filter:blur(8px);z-index:10;padding:12px 40px;display:flex;align-items:center;gap:24px;justify-content:space-between}
+/* celular */
+.phones{display:flex;gap:44px;justify-content:center;padding:6px 0 4px}
+.phone{width:398px;border:9px solid var(--tinta);border-radius:46px;background:var(--crema);position:relative;overflow:hidden}
+.phone .pt{height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--t10)}
+.phone .pt img{height:24px}
+.phone .pc{padding:16px 16px 150px}
+.phone .nav5{position:absolute;left:0;right:0;bottom:0;border-top:1px solid var(--t10);background:rgba(245,240,232,.95);display:grid;grid-template-columns:repeat(5,1fr);padding:9px 0 20px;text-align:center;font-size:10px;color:var(--t65)}
+.phone .nav5 div.on{color:var(--tinta);font-weight:700}
+.phone .bar{position:absolute;left:0;right:0;bottom:66px;border-top:1px solid var(--sand);background:rgba(245,240,232,.96);padding:10px 16px;z-index:5}
+.step{display:flex;align-items:center;border:1px solid var(--t25);border-radius:10px;overflow:hidden}
+.step b{width:40px;height:40px;display:grid;place-items:center;font-size:20px;font-weight:400;color:var(--t65)}
+.step span{width:46px;text-align:center;font-family:'EB Garamond',serif;font-size:22px;border-left:1px solid var(--t15);border-right:1px solid var(--t15);height:40px;line-height:40px}
+</style></head><body>
+<div class="lienzo" style="width:1520px"><div class="rot"><div class="n">1</div><div><h1>Comprobantes de proveedores</h1><div class="sub">Ruta /compras — lista con indicadores, vistas y exportación</div></div>
+<span class="tag">Maqueta propuesta · datos de ejemplo</span></div>
+<div class="app"><aside class="side">
+<div class="logo"><img src="cayla-isotipo.png"><span class="lbl">CAYLA</span></div>
+<div class="nuevo"><span class="btn pri w"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Nuevo</span></div>
+<nav class="nav">
+<div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Inicio</span></div><div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Colaboradores</span></div><div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg><span>Catálogo</span><span class="chev"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></div>
+<div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg><span>Compras</span><span class="chev"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></div>
+<div class="it ch"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg><span>Proveedores</span></div><div class="it on ch"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg><span>Comprobantes</span></div>
+<div class="it ch"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg><span>Recibir mercadería</span></div><div class="it ch"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg><span>Por pagar</span></div>
+<div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Ventas</span><span class="chev"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></div><div class="it"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg><span>Inventario</span><span class="chev"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></div>
+</nav>
+<div class="sig">Donde el estilo transforma.</div>
+<div class="yo"><div class="av">FA</div><div><div class="sm">Felipe Alvarez</div><div class="lbl" style="font-size:10px;color:var(--t65);margin-top:2px">Líder · Taller · Lima</div></div></div>
+</aside><div class="main">
+<div class="top"><span class="lbl" style="color:var(--t65)">Taller · Lima</span><span style="margin-left:6px;color:var(--t45)"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></div>
+<div class="cont"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px">
+<div><div class="lbl eyebrow">Compras</div><h1 class="t rel" style="display:inline-block">Comprobantes de proveedores<i class="m fin">7</i></h1>
+<p class="bajada">Cada comprobante registra lo que se compró; la recepción y el pago se anotan contra él.</p></div>
+<div style="display:flex;gap:10px"><span class="rel"><i class="m ">6</i><span class="btn fan "><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Exportar mes</span></span><span class="btn pri "><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Registrar comprobante</span></div></div><div class="grid" style="grid-template-columns:repeat(4,1fr);margin-top:22px">
+<div class="card kpi neutro "><i class="m ">1</i><div class="row"><span class="dot ambar"></span><span class="lbl">Por pagar</span></div><div class="n">S/ 19,207.60</div><div class="d rojo">2 vencidas · S/ 6,670.00 →</div></div>
+<div class="card kpi neutro "><div class="row"><span class="dot ambar"></span><span class="lbl">Por recibir</span></div><div class="n">4<small>comprobantes</small></div><div class="d ambar">2 atrasadas · S/ 10,266.00 por llegar →</div></div>
+<div class="card kpi neutro "><div class="row"><span class="lbl">Compras de septiembre</span></div><div class="n">S/ 9,611.60</div><div class="d ">Agosto completo: S/ 13,216.00</div></div>
+<div class="card kpi neutro "><div class="row"><span class="dot verde"></span><span class="lbl">IGV del mes</span></div><div class="n">S/ 1,466.18</div><div class="d ">Crédito fiscal · solo facturas</div></div>
+</div><div class="rel" style="margin-top:24px"><i class="m izq">2</i><div class="tabs">
+<div class="tb on lbl">Todos<i>8</i></div><div class="tb lbl">Por pagar<i>7</i></div><div class="tb lbl">Por recibir<i>4</i></div>
+<div class="tb lbl">Vencidos<i>2</i></div><div class="tb lbl">Pagados<i>1</i></div></div></div><div style="display:flex;gap:14px;align-items:center;margin-top:16px">
+<div class="busca"><svg class="ic " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span>Número de documento, proveedor o RUC</span></div>
+<span class="pill"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>Filtros</span>
+<span class="rel"><i class="m der">3</i><span class="seg"><span class="on">Emisión</span><span>Vencimiento</span></span></span></div><div class="card tbl" style="margin-top:16px"><div class="th" style="grid-template-columns:128px 1fr 118px 172px 176px 116px 14px">
+<span>Emisión</span><span>Proveedor</span><span>N.° documento</span><span>Recepción</span><span>Pago</span><span class="r">Total</span><span></span></div>
+<div class="tr" style="grid-template-columns:128px 1fr 118px 172px 176px 116px 14px">
+<div><div class="a tab sm">15/09</div><div class="b">Contado</div></div>
+<div><div class="a">Avíos Gamarra</div><div class="b tab">RUC 20•••••••31</div></div>
+<div><div class="a tab sm">F010-000320</div><div class="b">Factura</div></div>
+<div class="rel"><span class="chip verde">Recibida</span><div class="b">15/09 · 400 u.</div></div>
+<div class="rel"><span class="chip verde">Pagada</span><div class="b">Al contado</div></div>
+<div class="n a">620.00</div><div class="m45"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div></div><div class="tr" style="grid-template-columns:128px 1fr 118px 172px 176px 116px 14px">
+<div><div class="a tab sm">12/09</div><div class="b">Vence 27/10</div></div>
+<div><div class="a">Hilados del Norte</div><div class="b tab">RUC 20•••••••58</div></div>
+<div><div class="a tab sm">F003-000802</div><div class="b">Factura</div></div>
+<div class="rel"><span class="chip neutro">Sin recibir</span><div class="b">Llega 20/09</div></div>
+<div class="rel"><span class="chip neutro">Pendiente</span><div class="b">Faltan S/ 1,180.00</div></div>
+<div class="n a">1,180.00</div><div class="m45"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div></div><div class="tr" style="grid-template-columns:128px 1fr 118px 172px 176px 116px 14px">
+<div><div class="a tab sm">10/09</div><div class="b">Vence 25/09</div></div>
+<div><div class="a">Confecciones Sur Andino</div><div class="b tab">RUC 20•••••••14</div></div>
+<div><div class="a tab sm">F002-000093</div><div class="b">Factura</div></div>
+<div class="rel"><span class="chip neutro">Sin recibir</span><div class="b">Llega 22/09</div></div>
+<div class="rel"><span class="chip ambar">Vence en 7 días</span><div class="b">Faltan S/ 1,888.00</div></div>
+<div class="n a">1,888.00</div><div class="m45"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div></div><div class="tr" style="grid-template-columns:128px 1fr 118px 172px 176px 116px 14px">
+<div><div class="a tab sm">02/09</div><div class="b">Vence 02/10</div></div>
+<div><div class="a">Tejidos Rímac SAC</div><div class="b tab">RUC 20•••••••76</div></div>
+<div><div class="a tab sm">F001-000482</div><div class="b">Factura</div></div>
+<div class="rel"><i class="m izq">4</i><span class="chip ambar">Atrasada 9 días</span><div class="b">Esperada el 09/09</div></div>
+<div class="rel"><i class="m izq">5</i><span class="chip ambar">Parcial</span><div class="b">Faltan S/ 3,923.60</div></div>
+<div class="n a">5,923.60</div><div class="m45"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div></div><div class="tr" style="grid-template-columns:128px 1fr 118px 172px 176px 116px 14px">
+<div><div class="a tab sm">28/08</div><div class="b">Venció 12/09</div></div>
+<div><div class="a">Confecciones Sur Andino</div><div class="b tab">RUC 20•••••••14</div></div>
+<div><div class="a tab sm">B001-001208</div><div class="b">Boleta</div></div>
+<div class="rel"><span class="chip verde">Recibida</span><div class="b">05/09 · 96 u.</div></div>
+<div class="rel"><span class="chip rojo">Vencida</span><div class="b">Faltan S/ 1,950.00</div></div>
+<div class="n a">2,950.00</div><div class="m45"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div></div><div class="tr" style="grid-template-columns:128px 1fr 118px 172px 176px 116px 14px">
+<div><div class="a tab sm">25/08</div><div class="b">Vence 09/10</div></div>
+<div><div class="a">Hilados del Norte</div><div class="b tab">RUC 20•••••••58</div></div>
+<div><div class="a tab sm">F003-000771</div><div class="b">Factura</div></div>
+<div class="rel"><span class="chip verde">Recibida</span><div class="b">04/09 · 240 u.</div></div>
+<div class="rel"><span class="chip neutro">Pendiente</span><div class="b">Faltan S/ 2,360.00</div></div>
+<div class="n a">2,360.00</div><div class="m45"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div></div><div class="tr" style="grid-template-columns:128px 1fr 118px 172px 176px 116px 14px">
+<div><div class="a tab sm">20/08</div><div class="b">Vence 19/09</div></div>
+<div><div class="a">Tejidos Rímac SAC</div><div class="b tab">RUC 20•••••••76</div></div>
+<div><div class="a tab sm">F001-000455</div><div class="b">Factura</div></div>
+<div class="rel"><span class="chip ambar">Atrasada 8 días</span><div class="b">72 de 120 u. recibidas</div></div>
+<div class="rel"><span class="chip ambar">Vence mañana</span><div class="b">Faltan S/ 3,186.00</div></div>
+<div class="n a">3,186.00</div><div class="m45"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div></div><div class="tr" style="grid-template-columns:128px 1fr 118px 172px 176px 116px 14px">
+<div><div class="a tab sm">05/08</div><div class="b">Venció 04/09</div></div>
+<div><div class="a">Tejidos Rímac SAC</div><div class="b tab">RUC 20•••••••76</div></div>
+<div><div class="a tab sm">F001-000412</div><div class="b">Factura</div></div>
+<div class="rel"><span class="chip verde">Recibida</span><div class="b">16/08 · 180 u.</div></div>
+<div class="rel"><span class="chip rojo">Vencida</span><div class="b">Faltan S/ 4,720.00</div></div>
+<div class="n a">4,720.00</div><div class="m45"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div></div></div>
+<div class="xs muted" style="margin-top:12px;display:flex;justify-content:space-between"><span>Mostrando 8 de 8 comprobantes · más recientes primero</span><span>Al tocar una fila el detalle se abre encima de esta lista, sin perder filtros.</span></div></div></div></div>
+<div class="ley"><h3 class="lbl">Qué cambia en esta pantalla</h3><div class="g"><div><div class="li"><div class="m2">1</div><div><b>Franja de indicadores que decide</b><p>Sale «Registradas» (un conteo que no lleva a ninguna acción). Entran Por recibir con las atrasadas (la base ya las calcula), Compras del mes frente al mes anterior e IGV del mes (el crédito fiscal que D-46 dejó abierto). Cada tarjeta lleva a la lista ya filtrada.</p></div></div><div class="li"><div class="m2">2</div><div><b>Vistas en pestañas, con conteo</b><p>Todos · Por pagar · Por recibir · Vencidos · Pagados. Usan filtros que la consulta ya soporta (pago, recepción, vencidas y con saldo): un toque en lugar de abrir el panel de Filtros.</p></div></div><div class="li"><div class="m2">3</div><div><b>Orden por emisión o por vencimiento</b><p>La consulta ya lo soporta y la pantalla no lo exponía. Filtros y búsqueda siguen a un toque.</p></div></div><div class="li"><div class="m2">4</div><div><b>«Atrasada» a la vista</b><p>Usa la fecha estimada de llegada que ahora se captura al registrar (o emisión + 7 días si no hay). Se ve sin abrir el comprobante.</p></div></div></div><div><div class="li"><div class="m2">5</div><div><b>Chip + cuánto falta</b><p>«Parcial» no decía cuánto quedaba por pagar. Ahora el monto va debajo del estado, en cada fila.</p></div></div><div class="li"><div class="m2">6</div><div><b>Exportar mes (CSV)</b><p>El registro de compras que se le manda al contador: fecha, tipo, serie-número, RUC, base, IGV y total.</p></div></div><div class="li"><div class="m2">7</div><div><b>Un solo vocabulario</b><p>«Comprobante» en todo el módulo; «factura» solo cuando el tipo lo es. Una única tarjeta de cifra (TarjetaCifra) en lugar de cinco copias.</p></div></div></div></div></div>
+</div></body></html>
