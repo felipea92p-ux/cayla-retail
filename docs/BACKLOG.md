@@ -84,10 +84,14 @@ la RPC `guardar_cuentas_proveedor` (solo líder) y `fn_proveedores()` con 28 col
 
 Aplicado y verificado en el navegador como líder (escritorio). Falta:
 
-- [ ] **Mirar con el menú plegado** las barras fijas que ahora siguen el token (`BarraFija` en Recibir y
-  «Pagar juntos», el pie del Punto de Venta con carrito) y una pantalla con contenedores por ancho de panel
-  (Recibir, Proveedores): deberían ganar aire, no romperse.
-- [ ] **Verlo como colaborador** (Micaela): menos filas, «Recibir mercadería» dentro de Inventario.
+- [x] **Barras fijas con el menú plegado** (verificado 2026-09-19, escritorio 1440 px): «Pagar juntos» (Por pagar,
+  `BarraFija` animada, transición `left, transform`) y la barra de Recibir (transición `left`, 300 ms) arrancan
+  en el borde del lateral — 76 px plegado, 272 expandido — y acompañan el cambio; ninguna tapa el avatar. Falta
+  solo el pie del Punto de Venta con carrito (aparece bajo `lg`, ancho de tablet), que no se abrió.
+- [x] **Vista de colaborador** (verificado 2026-09-19 renderizando `AppShell` con una persona `integrante` de
+  prueba, sin iniciar sesión con otra cuenta): sin Colaboradores ni Compras; Inventario trae «Recibir
+  mercadería» y no «Resumen»; plegado, el cajón lista las cinco y la insignia («2 por atender») sube al ícono.
+  Falta verlo con la cuenta real de Micaela (permisos dentro de cada pantalla, no del menú).
 - [ ] **Decidir «Asomar al pasar el mouse»** (spike): no se construyó. Si se quiere, ver «Lo que NO se portó» del ADR.
 
 ## 🎯 Proveedores: vista rápida, mini-tendencias y movimiento que responde (2026-09-19, ADR-0128)
