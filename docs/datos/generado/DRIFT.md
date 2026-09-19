@@ -7,6 +7,9 @@
 
 ## Roto en producción — 0
 
+## Sobrecargas — 0
+
+Ninguna. Cada función tiene una sola firma en producción.
 Nada. Todas las llamadas encajan con la firma real.
 ## Avisos — 13
 

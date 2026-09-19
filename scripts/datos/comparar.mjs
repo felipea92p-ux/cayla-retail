@@ -57,6 +57,13 @@ const FIRMAS = join(GEN, "funciones-produccion.txt");
 
 // ── La verdad de producción ─────────────────────────────────────────────────
 
+// Nombres con MÁS DE UNA firma en producción (sobrecargas). `create or replace function` con una lista de
+// parámetros distinta NO reemplaza: crea una segunda función, y una llamada por nombre (como hace el front)
+// que no nombra todos los parámetros queda ambigua — «function … is not unique» — y falla siempre
+// (ADR-0009; le pasó a `registrar_compra` el 2026-09-19). El mapa de abajo, indexado por nombre, las
+// escondía: la segunda firma pisaba a la primera. Por eso se juntan aparte.
+const sobrecargas = new Map();
+
 function firmasDeProduccion() {
   if (!existsSync(FIRMAS)) {
     console.error(`\n  Falta ${relative(RAIZ, FIRMAS)}.`);
@@ -77,6 +84,10 @@ function firmasDeProduccion() {
       .filter(Boolean)
       .map(a => a.replace(/^(OUT|INOUT|VARIADIC)\s+/i, "").split(/\s+/)[0])
       .filter(p => /^p?_?[a-z]/i.test(p));
+    if (mapa.has(nombre)) {
+      const previas = sobrecargas.get(nombre) ?? [mapa.get(nombre).linea];
+      sobrecargas.set(nombre, [...previas, linea.trim()]);
+    }
     mapa.set(nombre, { parametros, definer: /\[definer\]/.test(linea), linea: linea.trim() });
   }
   return mapa;
@@ -210,6 +221,17 @@ const sinUsar = [...produccion.keys()].filter(n => !llamadasUnicas.has(n) && !n.
 
 console.log(`\n  Comparando ${encontradas.length} llamadas de apps/web contra ${produccion.size} funciones de producción\n`);
 
+if (sobrecargas.size) {
+  console.log(`  ✗ SOBRECARGAS EN PRODUCCIÓN — ${sobrecargas.size}  (la llamada por nombre queda ambigua y falla)\n`);
+  for (const [nombre, firmas] of sobrecargas) {
+    console.log(`    ${nombre} — ${firmas.length} firmas:`);
+    for (const f of firmas) console.log(`      ${f.length > 150 ? f.slice(0, 147) + "…" : f}`);
+    console.log("");
+  }
+} else {
+  console.log(`  ✓ Ninguna función tiene dos firmas en producción\n`);
+}
+
 if (rotas.length) {
   console.log(`  ✗ ROTO EN PRODUCCIÓN — ${rotas.length}\n`);
   for (const r of rotas) {
@@ -252,6 +274,17 @@ if (process.argv.includes("--md")) {
   L.push("");
   L.push(`## Roto en producción — ${rotas.length}`);
   L.push("");
+  L.push(`## Sobrecargas — ${sobrecargas.size}`);
+  L.push("");
+  if (!sobrecargas.size) L.push(`Ninguna. Cada función tiene una sola firma en producción.`);
+  for (const [nombre, firmas] of sobrecargas) {
+    L.push(`### \`${nombre}\` — ${firmas.length} firmas`);
+    L.push("");
+    L.push(`Una llamada por nombre que no nombre todos los parámetros queda ambigua («function … is not unique») y falla siempre. Hay que soltar la firma sobrante (\`drop function\`).`);
+    L.push("");
+    for (const f of firmas) L.push(`- \`${f}\``);
+    L.push("");
+  }
   if (!rotas.length) L.push(`Nada. Todas las llamadas encajan con la firma real.`);
   for (const r of rotas) {
     L.push(`### \`${r.nombre}\` — ${r.tipo}`);
