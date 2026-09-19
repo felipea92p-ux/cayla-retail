@@ -3,6 +3,16 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Etiquetar prendas más fácil — puerta 1: desde la etiqueta, con vista previa antes de tocar precios)
+
+Hoy 0 de 127 variantes activas tenían etiqueta: la única forma era «Editar producto», una variante a la vez, y esa función reemplaza el conjunto completo de etiquetas (dos Líderes a la vez se pisarían). Se construyó `etiquetar_variantes`, un RPC incremental (agrega o quita UNA etiqueta a muchas variantes sin tocar las demás, todo o nada, idempotente) y el botón «Prendas» en cada tarjeta de Etiquetas: lista de productos con casilla (una marca todas sus tallas), excepciones por talla, filtro por categoría y «Marcar visibles». Si la etiqueta lleva descuento, antes de guardar dice el efecto real: «Black Friday baja el precio 30 % a 3 prendas · empieza el 9 nov: hasta entonces no cambia ningún precio · 2 prendas quedarían bajo su costo».
+
+Verificado: 21 comprobaciones SQL en un Postgres efímero levantado con los binarios de Homebrew (Docker estaba caído; el script `scripts/pruebas/etiquetar_variantes.mjs` lo crea y lo destruye solo) — y rompiendo a propósito dos candados (Líder, etiqueta aprobada) para comprobar que las pruebas SÍ fallan; 28 pruebas de la lógica de pantalla; y la pantalla contra un servidor simulado de Supabase: el pedido salió como `agregar: [v7, v8, v9]` en una sola llamada y el contador de la tarjeta pasó de 3 a 6. Un hallazgo propio: el formato de fecha de Perú trae un punto final («30 nov.»), y la frase de la vista previa quedaba «nov.. En Vender».
+
+Decisión de fondo que salió del análisis: «Nuevo», «Últimas unidades» y «Top ventas» son datos que el sistema ya tiene (alta, stock, ventas), no decisiones; etiquetarlas a mano las deja viejas al primer movimiento de stock. Van como reglas automáticas en un paso aparte.
+
+Lo que Felipe se lleva: una etiqueta que cambia precios necesita que el sistema le diga a quien la aplica qué va a pasar, no solo pedirle confirmación; y `datos:comparar` marcando «rota en producción» una función que aún no se pegó no es un falso positivo: es el recordatorio de pegar el SQL antes de desplegar. Pendiente: la puerta 2 (etiquetar en lote desde `/productos`) y las etiquetas automáticas.
+
 ## 2026-09-18 (Vender imprime su comprobante — la boleta existía en la base, pero la clienta no se la podía llevar)
 
 El modal de «Venta registrada» solo decía el total. La boleta ya se emitía dentro de la misma transacción
