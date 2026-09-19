@@ -3,6 +3,27 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Resumen de Inventario v2: de «qué pasó» a «qué conviene hacer» — ADR-0113, solo local)
+
+`/inventario/resumen` se rehízo entero contra la referencia visual: período 7/30/90/este mes/personalizado con
+comparación, búsqueda que entiende «blusa blanca L», cinco señales (agotadas con demanda, cobertura crítica,
+curvas rotas, posible sobrestock, capital), tabla «Prioridades» con una acción sugerida por prenda y tres bloques
+(velocidad, cobertura, curvas). Todo sale del ledger real; el navegador recibe una página de 15 filas, no la sede
+entera. La misma función `fn_resumen_variantes` cambió de firma (la vieja se eliminó); ninguna tabla ni RPC de
+escritura se tocó. **Nada se aplicó a producción**: la migración `20260919010000` la pega Felipe cuando decida.
+
+Lo que Felipe se lleva: (1) la velocidad correcta divide por los días en que la prenda **estuvo en el piso**, no
+por los días desde que llegó — una prenda que vendió 10 en los 5 días que tuvo stock vende 2 al día, no 0.33; se
+verificó contra un oráculo independiente (107/107 pares, diferencia máxima 0.004 días). (2) El período mueve las
+ventas, nunca el stock: 8 combinaciones de período devolvieron el mismo stock y ventas distintas. (3) **La tarjeta
+de «Capital» sale sola del aire cuando el costo no es confiable**, y hoy podría no serlo: `catalogo_actualizar_producto`
+pisa `variantes.costo` desde el formulario y en producción `costo_historial` tiene 0 filas — ver BACKLOG.
+
+Bug heredado que destapó la prueba de integración: la rama «venta sin `venta_item_id` cuenta» de ADR-0101 nunca se
+ejecutaba (el `WHERE` la excluía), así que una importación histórica que solo cargara el ledger daba velocidad cero.
+Corregido dentro de la migración nueva. Verificado: 637 pruebas, 38 verificaciones SQL con `ROLLBACK`, lint, typecheck
+y build en verde; visto en el navegador a 1440 / 1280 / ~1024 / móvil.
+
 ## 2026-09-18 (Atributos → Etiquetas: la pantalla se puede recorrer, y "vigente" deja de mentir de noche)
 
 La grilla de 21 tarjetas iguales, con un botón "Desactivar" a todo ancho en cada una, pasó a leerse de un vistazo: la ilustración es la protagonista (2:1, y responde al mouse), la temporada es un chip sobre el dibujo (Vigente / En N días / Fuera de temporada), y "Desactivar" solo aparece al pasar el mouse o enfocar con teclado (en táctil se ve siempre). Arriba, filtros con conteo (Rotación 4 · Artesanal 3 · Campaña 13 · Vigentes hoy) y búsqueda que ignora tildes. Sin cambios de esquema ni de rutas; el comportamiento de aprobar/rechazar/desactivar es el mismo.

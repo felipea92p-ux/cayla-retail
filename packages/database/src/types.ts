@@ -3836,16 +3836,29 @@ export type Database = {
         }[]
       }
       fn_resumen_variantes: {
-        Args: { p_ubicacion_id: string; p_ventana_dias?: number }
+        Args: {
+          p_cmp_desde?: string
+          p_cmp_hasta?: string
+          p_desde?: string
+          p_hasta?: string
+          p_ubicacion_id: string
+          p_ventana_dias?: number
+        }
         Returns: {
           almacen: number
+          categoria_id: string
           categoria_nombre: string
           codigo: string
+          codigos_barras: string[]
           color_codigo: string
           color_hex: string
           color_nombre: string
+          costo: number
           cuarentena: number
+          devoluciones_cmp: number
           devoluciones_ventana: number
+          dias_con_stock: number
+          dias_con_stock_cmp: number
           dias_observables: number
           disponible: number
           en_camino: number
@@ -3853,21 +3866,30 @@ export type Database = {
           en_camino_atrasado: boolean
           en_red: Json
           entradas_ventana: number
+          estado_costo: string
           foto_url: string
+          ledger_consistente: boolean
           mermas_ventana: number
+          origen_abastecimiento: string
           piso: number
+          precio: number
           primer_ingreso: string
+          producto_codigo: string
+          producto_estado: string
           producto_id: string
           proxima_llegada: string
+          proximo_traslado_id: string
           referencia: string
           separa_piso_almacen: boolean
           sin_sububicacion: number
           sku: string
+          stock_inicial: number
           stock_minimo: number
           talla: string
           traslados_salida_ventana: number
           ultima_venta: string
           variante_id: string
+          ventas_cmp: number
           ventas_ventana: number
         }[]
       }

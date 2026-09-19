@@ -122,7 +122,7 @@ jobs:
         if: ${{ always() && steps.instalar.outcome == 'success' }}
         run: npx supabase start
 
-      # Los cuatro corren siempre que Postgres haya levantado, aunque uno falle — mismo
+      # Los cinco corren siempre que Postgres haya levantado, aunque uno falle — mismo
       # criterio que tipos/lint/pruebas arriba: un push malo trae el diagnóstico completo
       # en una vuelta, no uno por uno.
       - name: caja:verificar
@@ -140,3 +140,9 @@ jobs:
       - name: pruebas:registrar-venta
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-venta
+
+      # Resumen de Inventario v2 (ADR-0113): días con stock reconstruidos del ledger,
+      # demanda por FK, costo verificado. Cada caso termina en ROLLBACK.
+      - name: pruebas:fn-resumen-variantes
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-resumen-variantes

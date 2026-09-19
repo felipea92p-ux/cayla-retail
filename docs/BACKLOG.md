@@ -227,8 +227,52 @@ tomó el 0097 primero y ya está en producción — ver ADR-0101 y la fila de ab
       sesión vive en el scratchpad y no se commitea; el generador real debe cubrir a
       propósito producto nuevo con poco historial, curva rota, mermas mezcladas con ventas,
       temporada con pico y caída.
-- Preguntas abiertas (ADR-0101): ventana elegible 7/14/30/60/90; mínimo por variante+sede;
-  ventana "días con stock" en vez de "días desde el primer ingreso".
+- ~~Preguntas abiertas (ADR-0101): ventana elegible; «días con stock» en vez de «días desde el
+  primer ingreso»~~ — resueltas en la v2 (abajo, ADR-0113). Sigue abierto: el mínimo por variante+sede.
+
+**Resumen v2 (2026-09-18, ADR-0113) — construido y verificado en LOCAL; NO está en producción:**
+- [x] Período 7/30/90/este mes/personalizado + comparación (período anterior / mismo período del
+      año anterior); el stock siempre es el actual. Velocidad = ventas netas ÷ días EN VENTA (piso),
+      cobertura, sell-through, reserva de seguridad, motor de reposición (almacén → en camino → otra
+      tienda → Taller → red sin stock → sobrestock), curvas rotas, búsqueda por tokens, filtros en
+      la URL, detalle por variante, capital con verificación de costo. Definiciones exactas en el ADR.
+- [ ] **Pegar `20260919010000_resumen_inventario_v2.sql` en producción** (con `set search_path to
+      retail, public;` o prefijo `retail.`; el archivo del repo va SIN prefijo). Decisión y ok puntual
+      de Felipe. **Orden: primero la migración, después el despliegue** — con la migración puesta la
+      pantalla vieja sigue funcionando (los `default` resuelven su llamada vieja), pero la pantalla
+      nueva contra una base sin migrar llama a una RPC que no existe. Después:
+      `pnpm datos:generar:produccion` + `pnpm datos:comparar`.
+- [ ] **La garantía de costo (ADR-0067) está rota — decisión estructural de Felipe.** Hay dos caminos
+      de escritura ajenos a `fn_recalcular_costo_variante`: `catalogo_actualizar_producto` pisa
+      `variantes.costo` con lo que mande el formulario (o con 0) y la política `variantes_write_lider`
+      deja a cualquier líder escribirlo por la API. En producción `costo_historial` tiene 0 filas (ninguna
+      variante tiene el costo respaldado por el cálculo oficial). Hoy la tarjeta «Capital» mide en vez de
+      garantizar (`declarado`/`oficial`/`alterado`/`sin_costo`) y cae a «Unidades» si algo con stock queda
+      `alterado` o `sin_costo`. Cerrarlo de verdad: un flujo «ajustar costo» con auditoría, sacar el campo
+      editable de `ProductoForm`, y que `catalogo_actualizar_producto` deje de tocar el costo — esa función
+      tiene deriva repo↔producción, así que se parte de su definición viva.
+- [ ] **Cualquier usuario autenticado puede LEER `variantes.costo`** (SELECT abierto en RLS). La v2 solo
+      manda el costo a líderes desde la RPC, pero la tabla sigue legible por la API. Cerrar con una vista o
+      con columnas restringidas es decisión de modelo de datos.
+- [ ] **Confirmar los parámetros de negocio** (valores por defecto, uno por constante en
+      `lib/inventario-reglas.ts`): objetivo 14 días de cobertura, reserva de seguridad 3 días, piso de venta
+      7 días (alerta < 3), «alta cobertura» > 60 días, evidencia mínima 3/14 días, sell-through bajo < 20 % y
+      alto ≥ 60 %, alta demanda = el 20 % más rápido (≥ 0.5 uds/día), tendencia ±25 %, una tienda cede hasta
+      dejar 10 días de su propia venta. Son punto de partida, no verdad: Felipe los ajusta mirando su venta real.
+- [ ] **Reserva de seguridad como dato** (por variante y sede): hoy se deriva de la velocidad (`max(1, ceil(v×3))`)
+      y no se guarda. Si Felipe quiere fijarla a mano por prenda, es una columna o tabla nueva — decisión de modelo.
+- [ ] **«Revisar liquidación» y «Revisar reposición» solo abren el detalle**: no hay flujo de liquidación por
+      prenda ni de pedido de compra prellenado. «Revisar compra/producción» enlaza a `/compras` o `/produccion`
+      sin prellenar. Hacen falta flujos reales antes de convertirlos en botones que ejecuten.
+- [ ] **Vista matriz y Online (de la imagen de referencia) NO se construyeron**: no hay flujo ni datos detrás
+      (no hay canal online en el modelo). Se prefirió no dibujar botones muertos.
+- [ ] **Choque de versión de migración `20260918140000`**: `tejidos_seed` (ya en `main`) y
+      `patrones_muestra_visual` (PR #131, abierto) usan la misma versión; el que llegue segundo hace fallar
+      `migration up`. No es de esta sesión — hay que renombrar una antes de mezclar el PR #131.
+- [ ] **Datos locales de Resumen son ralos**: Trujillo tiene 55 ventas en 4 variantes y casi todo el stock
+      sembrado está en almacén (por eso la mayoría sale «SIN PISO»). La verificación de reglas está cubierta por
+      las 38 pruebas SQL con escenarios propios (con `ROLLBACK`), pero una revisión con volumen real solo se
+      hace con datos de producción.
 
 ---
 
