@@ -30,7 +30,9 @@ export default async function HistorialCierresPage() {
   const cierres = await getHistorialCierres();
 
   return (
-    <div className="space-y-6">
+    // `/caja` va a todo el ancho (AppShell), pero esta tabla tiene una columna flexible (la sede) que
+    // en pantalla grande separaría la sede de sus cifras: conserva la columna de lectura de siempre.
+    <div className="mx-auto max-w-5xl space-y-6">
       <div>
         <Link href="/caja" className="label-cayla text-[11px] text-tinta/60 hover:text-rojo">
           ← Caja

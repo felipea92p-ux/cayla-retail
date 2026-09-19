@@ -4,6 +4,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { getProducto, getEjesPorCategoria } from "@/lib/catalogo-v2";
+import { getCatalogoMarcas } from "@/lib/marcas-datos";
 import { ProductoForm } from "@/components/ProductoForm";
 import { RevisarAltaBanner } from "@/components/RevisarAltaBanner";
 
@@ -16,16 +17,20 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
   if (persona.rol !== "lider") redirect("/productos");
 
   const supabase = await createClient();
-  const [producto, categorias, colores, ejes, resEtiquetas] = await Promise.all([
+  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias] = await Promise.all([
     getProducto(id),
     exigir(
-      await supabase.from("categorias").select("id, nombre, prefijo").eq("activo", true).order("familia").order("nombre"),
+      await supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("familia").order("nombre"),
       "las categorías del catálogo"
     ),
     exigir(await supabase.from("colores").select("codigo, nombre, hex").eq("activo", true).order("orden").order("nombre"), "los colores del vocabulario"),
     getEjesPorCategoria(),
     supabase.from("etiquetas").select("id, nombre, vigente_desde, vigente_hasta").eq("activo", true).eq("estado", "aprobado").order("nombre"),
+    getCatalogoMarcas(),
+    supabase.from("familias").select("codigo, exige_tejido_patron"),
   ]);
+  // Qué familias exigen tejido y patrón (Indumentaria): la edición hereda la misma regla que el alta.
+  const exigen = new Set(exigir(familias, "las familias del catálogo").filter((f) => f.exige_tejido_patron).map((f) => f.codigo));
   // Vigencia se filtra acá, no en la consulta: la etiqueta de campaña
   // (Halloween, CyberWow...) deja de OFRECERSE fuera de su ventana, pero
   // nunca se retira sola de una variante que ya la tenía — eso sería
@@ -54,7 +59,14 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
 
       {producto.estadoAlta === "pendiente" && <RevisarAltaBanner productoId={producto.id} />}
 
-      <ProductoForm categorias={categorias} colores={colores} ejes={ejes} etiquetas={etiquetas} producto={producto} />
+      <ProductoForm
+        categorias={categorias.map((c) => ({ id: c.id, nombre: c.nombre, prefijo: c.prefijo, exigeTejidoPatron: c.familia !== null && exigen.has(c.familia) }))}
+        colores={colores}
+        ejes={ejes}
+        etiquetas={etiquetas}
+        marcas={marcas}
+        producto={producto}
+      />
 
       {/* TODO(Sesión A2): acá va "Ajustar inventario" — modal standalone que
           recibe productoId (y, para preseleccionar la fila, varianteId) y
