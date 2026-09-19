@@ -31,6 +31,14 @@ export type CompraResumen = {
   recibidoCantidad: number;
   estadoRecepcion: EstadoRecepcion;
   vencida: boolean;
+  /** Cuándo se espera el fardo (opcional al registrar). Sin ella, «atrasada» cuenta desde emisión + 7 días. */
+  fechaEstimadaLlegada: string | null;
+  /** La mercadería debía haber llegado y no llegó (lo calcula la vista, con fecha de Lima). */
+  recepcionAtrasada: boolean;
+  /** Suma de notas de crédito del proveedor registradas contra este comprobante (D2, ADR-0111). `saldo` ya la descuenta. */
+  notasCredito: number;
+  /** Unidades cerradas por faltante: no van a llegar. `estadoRecepcion` y lo pendiente ya las descuentan. */
+  cerradoCantidad: number;
   nota: string | null;
   creadoEn: string;
   /** Solo se llena en `getCompra` (detalle); la vista no lo expone. */
@@ -51,6 +59,8 @@ export type LineaCompra = {
   costoUnitario: number;
   subtotal: number;
   recibido: number;
+  /** Unidades cerradas por faltante (D2): no van a llegar. `pendiente` ya las descuenta. */
+  cerrado: number;
   pendiente: number;
 };
 
@@ -173,6 +183,27 @@ export const ETIQUETA_METODO: Record<string, string> = {
   plin: "Plin",
   efectivo: "Efectivo",
   deposito: "Depósito",
+  otro: "Otro",
+};
+
+/** Los medios con los que se puede PAGAR (`compra_pagos.metodo`): los de plata más el saldo a favor del proveedor (ADR-0111). */
+export const METODO_SALDO_A_FAVOR = "saldo_a_favor";
+export const ETIQUETA_METODO_PAGO: Record<string, string> = { ...ETIQUETA_METODO, [METODO_SALDO_A_FAVOR]: "Saldo a favor" };
+
+/** Por qué no va a llegar lo que faltó (D2, ADR-0111): lo que acepta `cerrar_linea_compra`. */
+export type MotivoCierre = "no_llego" | "danada" | "error_proveedor";
+
+export const ETIQUETA_MOTIVO_CIERRE: Record<MotivoCierre, string> = {
+  no_llego: "No llegaron",
+  danada: "Llegaron dañadas",
+  error_proveedor: "Error del proveedor",
+};
+
+/** Motivos de una nota de crédito del proveedor (D2, ADR-0111): lo que acepta `registrar_nota_credito_compra`. */
+export const ETIQUETA_MOTIVO_NOTA: Record<string, string> = {
+  faltante: "Faltante",
+  devolucion: "Devolución",
+  descuento: "Descuento",
   otro: "Otro",
 };
 
