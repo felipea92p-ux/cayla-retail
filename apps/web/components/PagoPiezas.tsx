@@ -396,7 +396,7 @@ export function MediosDePago({
           </p>
           <div className="card-cayla divide-y divide-tinta/10 overflow-hidden">
             {lineas.map((l, i) => (
-              <div key={i} className="anim-revelar grid items-start gap-x-4 gap-y-2 px-4 py-3 sm:grid-cols-[7.5rem_1fr_9.5rem_1.75rem]">
+              <div key={i} className="anim-revelar relative grid items-start gap-x-4 gap-y-2 px-4 py-3 sm:grid-cols-[7.5rem_1fr_9.5rem_1.75rem]">
                 <label className="block">
                   <span className="label-cayla mb-1 block text-[10px] text-tinta/55">{`Monto ${i + 1}`}</span>
                   <input
@@ -422,7 +422,8 @@ export function MediosDePago({
                   type="button"
                   onClick={() => onLineas(lineas.filter((_, n) => n !== i))}
                   aria-label={`Quitar el medio ${i + 1}`}
-                  className="mt-5 grid h-7 w-7 place-items-center rounded-full text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
+                  // En celular la ✕ va arriba a la derecha de la tarjeta (antes quedaba al pie, lejos de lo que quita); desde `sm`, en su columna.
+                  className="absolute right-2 top-1.5 grid h-7 w-7 place-items-center rounded-full text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo sm:static sm:mt-5"
                 >
                   <X aria-hidden className="h-3.5 w-3.5" />
                 </button>

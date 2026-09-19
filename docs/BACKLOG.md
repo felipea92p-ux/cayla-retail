@@ -50,6 +50,11 @@ Plan completo en [`docs/PLAN-PRODUCCION.md`](PLAN-PRODUCCION.md); diseño de ref
 - [ ] **F7 · Eficiencia del Taller** (D-31: `maquila_referencias` + `gastos_taller`; estados vacíos hasta tener datos).
 - [ ] **F8 · Cierre:** «llevarlas a las tiendas» (Traslados), referencia en Movimientos, refresco de `docs/datos/`, ARQUITECTURA.
 
+## 🎯 Por pagar responde + Pagar juntos con varios medios (2026-09-19, ADR-0131 y ADR-0132)
+- [x] Hecho y en producción: la pantalla (PR #183), `registrar_pago_compras_medios` con sus dos migraciones (`20260919190000` y `…200000`, **verificadas en la base**: una sola firma, fecha validada, token antes del saldo a favor) y el modal con varios medios (PR #187). Probado con 27 casos locales y con pagos reales en el navegador: 2 comprobantes × 2 medios (escritorio) y 3 × 3 (celular 375 px, sin desborde). Diccionario de producción refrescado (PR #192).
+- [ ] Sin probar en pantalla: dividir el pago con el saldo a favor encendido (la base sí lo cubre en pruebas), y «Solo lo vencido» después de dividir (los medios dejan de sumar y el botón se bloquea, sin mensaje que lo explique más allá de «faltan S/ X»).
+- [ ] `datos:comparar` no vigila `registrar_pago_compras` ni `registrar_pago_compras_medios` (objeto armado con `...`, «no analizadas»): armar los parámetros explícitos en `PagoJuntosModal.tsx` para que vuelvan a estar bajo la red.
+
 ## 🎯 Endurecer el pago a proveedores (2026-09-19, ADR-0135) — migración lista en local, falta producción
 - [x] Migraciones `20260919180000` y `20260919181000` **pegadas en producción por Felipe (2026-09-19)**. **Verificado en la base el 2026-09-19** (una sola firma de cada función, md5 igual al local, `anon` sin EXECUTE) y `funciones-produccion.txt` refrescado (178 funciones): `datos:comparar` ya no marca ninguna pantalla rota (`fn_proveedores_serie_12m` también estaba aplicada en producción y el volcado no la tenía). Tablas y columnas no cambiaron: el diccionario no necesita más.
 - [ ] Después: enviar `p_token` (uuid del formulario) desde `CompraDetallePanel.tsx` a `registrar_pagos_compra`; regenerar `types.ts` y el diccionario de producción. Antes de aplicar, NO: la función vieja no acepta el parámetro.
