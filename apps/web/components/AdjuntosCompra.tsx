@@ -76,7 +76,7 @@ export function SelectorAdjuntos({ archivos, onArchivos }: { archivos: File[]; o
       return !o;
     });
     const cupo = ADJUNTOS_MAX_POR_FACTURA - archivos.length;
-    if (buenos.length > cupo) malos.push(`Máximo ${ADJUNTOS_MAX_POR_FACTURA} adjuntos por factura.`);
+    if (buenos.length > cupo) malos.push(`Máximo ${ADJUNTOS_MAX_POR_FACTURA} adjuntos por comprobante.`);
     if (malos.length) avisar.aviso(malos.length === 1 ? "Un archivo no se puede adjuntar" : `${malos.length} archivos no se pueden adjuntar`, { detalle: malos.join(" · ") });
     if (buenos.length) onArchivos([...archivos, ...buenos.slice(0, Math.max(0, cupo))]);
   }
@@ -122,7 +122,7 @@ export function SelectorAdjuntos({ archivos, onArchivos }: { archivos: File[]; o
       >
         <BotonElegir
           onArchivos={agregar}
-          texto={archivos.length ? "+ Otro archivo" : "Adjuntar factura o documentos"}
+          texto={archivos.length ? "+ Otro archivo" : "Adjuntar el comprobante o documentos"}
           disabled={archivos.length >= ADJUNTOS_MAX_POR_FACTURA}
         />
         <p className="mt-2 text-xs text-tinta/45">Arrastra aquí, o PDF/foto hasta 10 MB. Se suben al registrar.</p>
@@ -160,7 +160,7 @@ export function AdjuntosDeFactura({
   async function agregar(nuevos: File[]) {
     if (!nuevos.length) return;
     if (adjuntos.length + nuevos.length > ADJUNTOS_MAX_POR_FACTURA) {
-      avisar.error(`Máximo ${ADJUNTOS_MAX_POR_FACTURA} adjuntos por factura.`);
+      avisar.error(`Máximo ${ADJUNTOS_MAX_POR_FACTURA} adjuntos por comprobante.`);
       return;
     }
     setSubiendo(true);

@@ -97,5 +97,8 @@ Tienes un nombre de tabla, quieres el pájaro.
 Puede ser SQL que todavía no se pegó allá, o un volcado viejo que todavía no la conoce (cómo refrescarlo:
 `COMO-REFRESCAR.md`). Si la tabla ya no existe, sobra en `scripts/datos/aviario.mjs`.
 
+- `compra_item_cierres`
+- `compra_notas_credito`
 - `etiqueta_categorias`
 - `familias`
+- `proveedor_creditos`

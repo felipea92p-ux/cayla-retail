@@ -13,7 +13,9 @@ import { LineasPago, lineaPagoVacia, lineasPagoParaRpc, sumaLineasPago, type Lin
 import { subirAdjuntosCompra } from "@/lib/adjuntos-compra";
 import { campoEtiqueta } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
-import { costoBase, costoParaTipear, soles, totalesCompra } from "@/lib/compras-reglas";
+import { Chip } from "@/components/ui/Chip";
+import { hoyLima, sumarDias } from "@/lib/fechas-lima";
+import { costoBase, costoParaTipear, ETIQUETA_METODO, fechaCorta, soles, totalesCompra } from "@/lib/compras-reglas";
 
 // Registrar una factura de proveedor (ADR-0035). Dos reglas de Felipe que
 // esta pantalla refleja pero NO decide — las decide la RPC `registrar_compra`:
@@ -24,7 +26,9 @@ import { costoBase, costoParaTipear, soles, totalesCompra } from "@/lib/compras-
 // la variante; si agrupa ("Blusa Lino x 24"), se deja "Sin desglose" y el
 // reparto por talla/color se hace al recibir.
 type Variante = { varianteId: string; sku: string; talla: string | null; color: string | null; productoId: string; referencia: string; costo: number };
-type Proveedor = { id: string; nombre: string; ruc: string | null };
+// Lo que se sabe de un proveedor al elegirlo (ADR-0111): su plazo y forma de pago preferidos, y lo que ya se le
+// debe. Con eso el vencimiento se sugiere solo y se decide la compra sabiendo la deuda que ya hay con él.
+type Proveedor = { id: string; nombre: string; ruc: string | null; plazoCreditoDias?: number | null; formaPagoPreferida?: string | null; saldo?: number | null; saldoFavor?: number | null };
 type Ubicacion = { id: string; nombre: string };
 
 type Linea = { productoId: string; varianteId: string; cantidad: number; costoUnitario: string; descripcion: string };
@@ -52,15 +56,9 @@ function discriminaIgv(tipo: (typeof TIPOS)[number]["valor"]): boolean {
   return tipo === "factura";
 }
 
-function hoyISO() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function sumarDias(iso: string, dias: number) {
-  const d = new Date(iso + "T00:00:00");
-  d.setDate(d.getDate() + dias);
-  return d.toISOString().slice(0, 10);
-}
+// «Hoy» y los cálculos de fecha son de Lima (`fechas-lima`): `new Date().toISOString()` da la fecha en UTC, y de 7 pm
+// a medianoche ya es «mañana» — el comprobante se registraba con la emisión de un día después.
+const hoyISO = hoyLima;
 
 // El número de paso: documento → líneas → pago, en ese orden, siempre. Solo
 // tinta (ningún color nuevo) y sin `label-cayla` heredado (mayúsculas y
@@ -73,7 +71,23 @@ function NumeroSeccion({ n }: { n: number }) {
   );
 }
 
-export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, variantes }: { proveedores: Proveedor[]; ubicaciones: Ubicacion[]; ubicacionInicialId: string; variantes: Variante[] }) {
+export function CompraFormV2({
+  proveedores,
+  ubicaciones,
+  ubicacionInicialId,
+  variantes,
+  proveedorInicialId = null,
+  deudaTotal = 0,
+}: {
+  proveedores: Proveedor[];
+  ubicaciones: Ubicacion[];
+  ubicacionInicialId: string;
+  variantes: Variante[];
+  /** `?prov=<uuid>`: llega desde «+ Comprobante» de la lista o la ficha de un proveedor. */
+  proveedorInicialId?: string | null;
+  /** Deuda total con todos los proveedores: para mostrar cómo cambia la concentración al registrar. */
+  deudaTotal?: number;
+}) {
   const router = useRouter();
 
   const productos = useMemo(() => {
@@ -105,13 +119,18 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
   // Sin proveedor preseleccionado: elegir al primero de la lista era una
   // trampa — una factura registrada sin mirar iba a parar al proveedor
   // equivocado. La validación ya pedía "Elige un proveedor".
-  const [proveedorId, setProveedorId] = useState("");
+  const [proveedorId, setProveedorId] = useState(proveedorInicialId && proveedores.some((p) => p.id === proveedorInicialId) ? proveedorInicialId : "");
   const [tipo, setTipo] = useState<(typeof TIPOS)[number]["valor"]>("factura");
   const [serie, setSerie] = useState("");
   const [numero, setNumero] = useState("");
   const [fechaEmision, setFechaEmision] = useState(hoyISO());
   const [condicion, setCondicion] = useState<"contado" | "credito">("contado");
-  const [fechaVencimiento, setFechaVencimiento] = useState(sumarDias(hoyISO(), 30));
+  // El vencimiento se SUGIERE con el plazo de crédito del proveedor (emisión + plazo, 30 días si no tiene) mientras la
+  // persona no lo haya escrito a mano: el plazo ya se guardaba en la ficha y nadie lo leía, y cada vencimiento tipeado
+  // a ojo es uno que puede quedar mal puesto. Si cambia la emisión o el proveedor y no se tocó, se recalcula.
+  const [vencimientoEditado, setVencimientoEditado] = useState<string | null>(null);
+  // Cuándo se espera el fardo (opcional). Vacío = la base considera atrasada a los 7 días de la emisión.
+  const [fechaLlegada, setFechaLlegada] = useState("");
   const [ubicacionId, setUbicacionId] = useState(ubicacionInicialId || ubicaciones[0]?.id || "");
   const [igvPorcentaje, setIgvPorcentaje] = useState(IGV_POR_DEFECTO);
   // Cómo vienen los precios en el papel. La base siempre guarda el costo sin
@@ -131,6 +150,10 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
   // "ya está registrada". Solo se renueva después de un éxito.
   const token = useRef<string>(crypto.randomUUID());
 
+  const proveedor = proveedores.find((p) => p.id === proveedorId);
+  const plazoDias = proveedor?.plazoCreditoDias ?? 30;
+  const vencimientoSugerido = sumarDias(fechaEmision, plazoDias);
+  const fechaVencimiento = vencimientoEditado ?? vencimientoSugerido;
   const igvEfectivo = discriminaIgv(tipo) ? Number(igvPorcentaje) || 0 : 0;
   // Solo hay algo que descontar en una factura con IGV; en boleta y nota de
   // venta el precio del papel ya es el costo y el selector no aparece.
@@ -188,8 +211,8 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
     const validas = lineas.filter((l) => l.productoId && l.cantidad > 0);
     // Cada validación avisa arriba a la derecha Y deja el cursor en el campo.
     if (!proveedorId) return void avisar.error("Elige un proveedor.", { enfocar: "compra-proveedor" });
-    if (!serie.trim()) return void avisar.error("La factura necesita serie y número, tal como figuran en el documento.", { enfocar: "compra-serie" });
-    if (!numero.trim()) return void avisar.error("La factura necesita serie y número, tal como figuran en el documento.", { enfocar: "compra-numero" });
+    if (!serie.trim()) return void avisar.error("El comprobante necesita serie y número, tal como figuran en el documento.", { enfocar: "compra-serie" });
+    if (!numero.trim()) return void avisar.error("El comprobante necesita serie y número, tal como figuran en el documento.", { enfocar: "compra-numero" });
     if (validas.length === 0) return void avisar.error("Agrega al menos una línea con producto y cantidad.", { enfocar: "compra-linea-0-producto" });
     const sinCosto = lineas.findIndex((l) => l.productoId && l.cantidad > 0 && (l.costoUnitario === "" || Number(l.costoUnitario) < 0));
     if (sinCosto >= 0) return void avisar.error(`Cada línea necesita su costo unitario (${conIgv ? "con" : "sin"} IGV).`, { enfocar: `compra-linea-${sinCosto}-costo` });
@@ -198,7 +221,7 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
     const pagoSinMonto = pagos.findIndex((l) => !(Number(l.monto) > 0));
     if (hayPago && !pagosRpc) return void avisar.error(condicion === "contado" ? "Cada medio de pago necesita su monto." : "Escribe el monto del pago o desmarca 'Registrar un pago ahora'.", { enfocar: `compra-pagos-monto-${Math.max(0, pagoSinMonto)}` });
     if (hayPago && condicion === "contado" && Math.abs(sumaPagos - total) > 0.005) return void avisar.error(`Al contado el pago debe sumar el total (${soles(total)}); los medios suman ${soles(sumaPagos)}.`, { enfocar: "compra-pagos-monto-0" });
-    if (hayPago && sumaPagos > total + 0.005) return void avisar.error(`El pago (${soles(sumaPagos)}) supera el total de la factura (${soles(total)}).`, { enfocar: "compra-pagos-monto-0" });
+    if (hayPago && sumaPagos > total + 0.005) return void avisar.error(`El pago (${soles(sumaPagos)}) supera el total del comprobante (${soles(total)}).`, { enfocar: "compra-pagos-monto-0" });
 
     setLoading(true);
     const cerrarProceso = avisar.proceso(`Registrando ${TIPOS.find((t) => t.valor === tipo)!.texto.toLowerCase()} ${serie.trim().toUpperCase()}-${numero.trim()}…`);
@@ -220,6 +243,7 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
       p_tipo: tipo,
       p_fecha_emision: fechaEmision,
       ...(condicion === "credito" ? { p_fecha_vencimiento: fechaVencimiento } : {}),
+      ...(fechaLlegada ? { p_fecha_estimada_llegada: fechaLlegada } : {}),
       p_igv_porcentaje: igvEfectivo,
       // Con precios con IGV, el total del papel manda y el IGV absorbe el
       // redondeo (20260914190000_compras_total_del_papel.sql).
@@ -235,7 +259,7 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
       // Serie-número repetidos para este proveedor (candado `unique` en
       // `compras`): el cursor vuelve a la serie, como en las demás validaciones.
       const duplicada = error.code === "P0001" && error.message.includes("ya está registrada");
-      avisar.error(traducirError(error, "registrar la factura"), duplicada ? { enfocar: "compra-serie" } : undefined);
+      avisar.error(traducirError(error, "registrar el comprobante"), duplicada ? { enfocar: "compra-serie" } : undefined);
       return;
     }
 
@@ -305,7 +329,15 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
               }
             >
               <div id="compra-proveedor">
-                <ComboBuscable etiquetaAccesible="Proveedor" valor={proveedorId} onValor={setProveedorId} opciones={opcionesProveedor} marcador="Busca por nombre o RUC…" />
+                <ComboBuscable etiquetaAccesible="Proveedor" valor={proveedorId} onValor={(id) => setProveedorId(id)} opciones={opcionesProveedor} marcador="Busca por nombre o RUC…" />
+                {proveedor && (proveedor.plazoCreditoDias != null || proveedor.formaPagoPreferida || (proveedor.saldo ?? 0) > 0 || (proveedor.saldoFavor ?? 0) > 0) && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {proveedor.plazoCreditoDias != null && <Chip>Crédito {proveedor.plazoCreditoDias} días</Chip>}
+                    {proveedor.formaPagoPreferida && <Chip>{ETIQUETA_METODO[proveedor.formaPagoPreferida] ?? proveedor.formaPagoPreferida}</Chip>}
+                    {(proveedor.saldo ?? 0) > 0 && <Chip tono="ambar">Ya le debes {soles(proveedor.saldo ?? 0)}</Chip>}
+                    {(proveedor.saldoFavor ?? 0) > 0 && <Chip tono="verde">Te debe {soles(proveedor.saldoFavor ?? 0)} a favor</Chip>}
+                  </div>
+                )}
               </div>
             </Campo>
             <CampoSelectNativo
@@ -346,7 +378,20 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
               ]}
               pie={condicion === "contado" ? "Se registra con su pago por el total." : "Queda en Por pagar hasta saldarse."}
             />
-            {condicion === "credito" ? <CampoFecha etiqueta="Vence el" id="compra-vence" valor={fechaVencimiento} onValor={setFechaVencimiento} required /> : <div />}
+            {condicion === "credito" ? (
+              <div>
+                <CampoFecha etiqueta="Vence el" id="compra-vence" valor={fechaVencimiento} onValor={setVencimientoEditado} required />
+                <p className="mt-1.5 text-xs leading-snug text-tinta/55">
+                  {vencimientoEditado === null ? `Sugerido: emisión + ${plazoDias} días${proveedor ? `, el plazo de ${proveedor.nombre}` : ""}. Puedes cambiarlo.` : "Lo escribiste a mano."}
+                </p>
+              </div>
+            ) : (
+              <div />
+            )}
+            <div>
+              <CampoFecha etiqueta="Fecha estimada de llegada" id="compra-llegada" valor={fechaLlegada} onValor={setFechaLlegada} />
+              <p className="mt-1.5 text-xs leading-snug text-tinta/55">Si la dejas vacía, se considera atrasada a los 7 días de la emisión ({fechaCorta(sumarDias(fechaEmision, 7)).slice(0, 5)}).</p>
+            </div>
             <CampoSelectNativo etiqueta="Mercadería destinada a" value={ubicacionId} onChange={(e) => setUbicacionId(e.target.value)}>
               {ubicaciones.map((u) => (
                 <option key={u.id} value={u.id}>
@@ -375,7 +420,7 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pb-1">
             <p className={`${campoEtiqueta} flex items-center gap-2`}>
               <NumeroSeccion n={2} />
-              Líneas de la factura
+              Líneas del comprobante
             </p>
             {igvEfectivo > 0 && <span aria-hidden className="hidden h-4 w-px bg-tinta/15 sm:block" />}
             {igvEfectivo > 0 ? (
@@ -474,9 +519,9 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
             )}
           </div>
           {hayPago ? (
-            <LineasPago id="compra-pagos" lineas={pagos} onLineas={setPagos} objetivo={total} exacto={condicion === "contado"} />
+            <LineasPago id="compra-pagos" lineas={pagos} onLineas={setPagos} objetivo={total} exacto={condicion === "contado"} saldoFavor={proveedor?.saldoFavor ?? 0} />
           ) : (
-            <p className="text-sm text-tinta/65">Sin pago por ahora: la factura aparecerá en Por pagar con vencimiento el {fechaVencimiento.split("-").reverse().join("/")}.</p>
+            <p className="text-sm text-tinta/65">Sin pago por ahora: el comprobante aparecerá en Por pagar con vencimiento el {fechaVencimiento.split("-").reverse().join("/")}.</p>
           )}
         </section>
 
@@ -509,6 +554,21 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
             <p className="mt-1 text-xs text-tinta/55">Queda en Por pagar hasta el {fechaVencimiento.split("-").reverse().join("/")}.</p>
           )}
         </div>
+        {/* Antes de guardar: dónde cae este comprobante y cómo cambian las cuentas con ese proveedor. */}
+        <div className="space-y-1.5 border-t border-sand pt-3 text-sm">
+          <p className={campoEtiqueta}>Dónde cae</p>
+          <div className="flex justify-between gap-3">
+            <span className="text-tinta/65">Por pagar</span>
+            <span className="tabular-nums text-tinta">{condicion === "credito" ? `vence ${fechaCorta(fechaVencimiento)}` : "al contado"}</span>
+          </div>
+          <div className="flex justify-between gap-3">
+            <span className="text-tinta/65">Por recibir</span>
+            <span className="tabular-nums text-tinta">esperada {fechaCorta(fechaLlegada || sumarDias(fechaEmision, 7))}</span>
+          </div>
+        </div>
+        {proveedor && proveedor.saldo != null && total > 0 && (
+          <CuentasConProveedor saldo={proveedor.saldo} deudaTotal={deudaTotal} nuevaDeuda={condicion === "credito" ? Math.max(0, total - (hayPago ? sumaPagos : 0)) : 0} />
+        )}
         <SelectorAdjuntos archivos={adjuntos} onArchivos={setAdjuntos} />
         {/* La nota va en el resumen y no al final de la columna larga, y
             DESPUÉS de los adjuntos: es lo último que se escribe antes de
@@ -526,5 +586,33 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
         </div>
       </aside>
     </form>
+  );
+}
+
+// «Tus cuentas con este proveedor»: saldo hoy, saldo después de este comprobante y cómo se mueve la concentración de la
+// deuda (qué parte de todo lo que se debe está en este proveedor). Lo que se paga al contado no suma deuda.
+function CuentasConProveedor({ saldo, deudaTotal, nuevaDeuda }: { saldo: number; deudaTotal: number; nuevaDeuda: number }) {
+  const antes = deudaTotal > 0 ? (saldo / deudaTotal) * 100 : 0;
+  const despues = deudaTotal + nuevaDeuda > 0 ? ((saldo + nuevaDeuda) / (deudaTotal + nuevaDeuda)) * 100 : 0;
+  return (
+    <div className="space-y-1.5 border-t border-sand pt-3 text-sm">
+      <p className={campoEtiqueta}>Tus cuentas con este proveedor</p>
+      <div className="flex justify-between gap-3">
+        <span className="text-tinta/65">Saldo hoy</span>
+        <span className="tabular-nums text-tinta">{soles(saldo)}</span>
+      </div>
+      <div className="flex justify-between gap-3">
+        <span className="text-tinta/65">Saldo después</span>
+        <span className="tabular-nums text-tinta">{soles(saldo + nuevaDeuda)}</span>
+      </div>
+      {nuevaDeuda > 0 && (
+        <div className="flex justify-between gap-3">
+          <span className="text-tinta/65">Concentración de la deuda</span>
+          <span className="tabular-nums text-tinta">
+            {Math.round(antes)} % → {Math.round(despues)} %
+          </span>
+        </div>
+      )}
+    </div>
   );
 }
