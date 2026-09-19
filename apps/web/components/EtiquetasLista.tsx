@@ -92,7 +92,10 @@ function ordenar(lista: Etiqueta[]) {
   return [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
-const GRILLA = "grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4";
+// Misma grilla y misma tarjeta (p-4, imagen 3:1) que Colores, Tejidos y Patrones:
+// las cinco pestañas de Atributos comparten medidas, así que al cambiar de una a
+// otra la ilustración no crece ni se corre.
+const GRILLA = "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5";
 
 function BotonFiltro({
   activo,
@@ -123,8 +126,8 @@ function BotonFiltro({
   );
 }
 
-/** Lo que dice la etiqueta sobre su temporada: un chip sobre la ilustración
- *  (se lee sin abrir nada) y el rango de fechas debajo del nombre. */
+/** Lo que dice la etiqueta sobre su temporada: un chip (se lee sin abrir nada)
+ *  y el rango de fechas, juntos debajo del nombre. */
 function chipDeVigencia(v: Vigencia | null) {
   if (!v) return null;
   if (v.estado === "vigente") return <Chip tono="verde">Vigente</Chip>;
@@ -146,15 +149,12 @@ function TarjetaEtiqueta({
   const rango = textoRango(e.vigenteDesde, e.vigenteHasta);
   return (
     <div
-      className={`group/etq card-cayla flex flex-col gap-3 p-2.5 transition-[transform,border-color] duration-260 ease-cayla hover:-translate-y-0.5 hover:border-tinta/25 ${
+      className={`group/etq card-cayla flex flex-col gap-2 p-4 transition-[transform,border-color] duration-260 ease-cayla hover:-translate-y-0.5 hover:border-tinta/25 ${
         apagada ? "opacity-60" : ""
       }`}
     >
-      <div className="relative">
-        <MuestraEtiqueta nombre={e.nombre} estilo={e.estilo} />
-        {vigencia && <span className="absolute right-2 top-2 rounded-full bg-papel">{chipDeVigencia(vigencia)}</span>}
-      </div>
-      <div className="flex flex-1 flex-col gap-1 px-1">
+      <MuestraEtiqueta nombre={e.nombre} estilo={e.estilo} />
+      <div className="flex flex-1 flex-col gap-1">
         <div className="flex items-start justify-between gap-2">
           <p className="text-[15px] font-medium leading-snug text-tinta">
             {e.nombre}
@@ -167,7 +167,12 @@ function TarjetaEtiqueta({
             <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Rechazada</span>
           )}
         </div>
-        {rango && <p className="text-[11px] tabular-nums text-tinta/60">{rango}</p>}
+        {(vigencia || rango) && (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            {chipDeVigencia(vigencia)}
+            {rango && <p className="text-[11px] tabular-nums text-tinta/60">{rango}</p>}
+          </div>
+        )}
         {e.descuentoPct !== null && (
           <p className="text-[11px] text-tinta/75">
             <span className="font-medium tabular-nums text-tinta">{textoPct(e.descuentoPct)} % de descuento</span>
@@ -462,7 +467,7 @@ export function EtiquetasLista({
                   <TarjetaEtiqueta key={e.id} e={e} vigencia={vigenciaEn(e)}>
                     {puedeEditar &&
                       (e.estado === "pendiente" ? (
-                        <div className="flex gap-2 px-1 pb-1">
+                        <div className="flex gap-2">
                           <Boton peso="primario" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={aprobandoId === e.id} onClick={() => aprobar(e)}>
                             Aprobar
                           </Boton>
@@ -482,7 +487,7 @@ export function EtiquetasLista({
                         // mouse o al enfocar con teclado, y en pantallas táctiles (sin
                         // hover) se ve siempre. Reserva su espacio para que la tarjeta
                         // no salte de alto.
-                        <div className="flex items-center justify-between px-1 pb-0.5">
+                        <div className="flex items-center justify-between">
                           <button
                             type="button"
                             onClick={() => setConfigurando(e)}
