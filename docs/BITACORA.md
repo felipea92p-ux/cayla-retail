@@ -3,6 +3,20 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Caja: «Ver todo» y detalle de venta con reimpresión del ticket)
+
+**Qué se cerró.** «Movimientos recientes» tiene un «Ver todo (N)» arriba a la derecha que abre todos los
+movimientos en un modal con scroll propio (la tarjeta sigue mostrando 8). Cada venta es un botón que abre su
+detalle: prendas con talla, color y código, pagos con lo recibido y el vuelto, IGV, comprobante y su estado.
+«Imprimir ticket» reutiliza `ReciboTermico`, ahora CON vuelto porque la venta lo guarda
+(`venta_pagos.recibido`); una venta anterior a esa columna sale sin línea de vuelto. Los modales se apilan
+(Esc cierra el de arriba) y el detalle tiene «No pudimos cargar esta venta» con «Reintentar».
+
+**Qué se aprendió.** Con sesión iniciada, una vista temporal bajo `/login/...` te manda a Inicio: para
+verificar hay que ponerla bajo una ruta de la app (p. ej. `/caja/vista-previa`). El caché `.next` se corrompe
+al cambiar de rama con el servidor corriendo («Cannot find module … turbopack_runtime»): parar, borrar `.next`
+y relevantar. Pendiente: la boleta A4 (Tarea 7–8) y aplicar la migración del vuelto en producción.
+
 ## 2026-09-19 (Atelier llega a Caja: cabecera, entrada escalonada y reloj del turno — ADR-0123)
 
 **Qué se cerró.** Caja usa la cabecera de Cambios (`EncabezadoPagina`: sede y día con el hilo, título
