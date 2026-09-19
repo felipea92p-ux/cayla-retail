@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Migraciones: dos con la misma versión — la de talla Única se mueve a 20260918175000)
+
+`talla_unica_en_femenino` ya había cambiado de número una vez (160000 → 170000) para no chocar con `etiquetas_descuento`, y ahí chocó con `venta_aplica_descuento_de_campana` (la de la caja). Dos migraciones con la misma versión rompen `supabase start` y un `db reset` local (llave duplicada en `schema_migrations`); producción no se ve afectada porque se pega a mano. Se mueve la de talla Única a `20260918175000`, y no la de la caja, porque esa ya está en producción y citada en el ADR-0108, el BACKLOG y el PR #145.
+
+Lo que Felipe se lleva: la versión de una migración es su llave de orden, no un nombre bonito; al renombrar una, hay que comprobar que la nueva esté libre en *todo* `main`, no solo en la rama de uno. Comprobado: 0 versiones repetidas en `supabase/migrations/`.
+
 ## 2026-09-18 (Botones: desaparece la esquina rosada que asomaba en todos, sin mouse)
 
 Todos los `Boton` del sistema mostraban una esquina rosada tenue en el borde inferior izquierdo, aun en reposo. Era el destello de "brillo al pasar el mouse": una barra inclinada (`skew-x-12`) que espera fuera del botón, pero una inclinación de 12° mete su esquina ~4-5px adentro (mitad del alto × tan 12°: medido 4.3px en botones de 41px y 5.3px en los de 43px). Ahora la barra es `opacity-0` en reposo y el keyframe `cayla-brillo` la enciende (`opacity: 1`) solo mientras dura el barrido; el efecto al pasar el mouse es el mismo de antes.
@@ -15,7 +21,7 @@ Tallas era la pestaña que se había quedado atrás: 8 columnas fijas de cajitas
 
 Lo que Felipe se lleva: el tipo de talla (letras / numeración / única / otras) sale de `tipoDeTalla` en `lib/tallas.ts`, que usa el mismo `rango` que ordena la curva, así que "en qué grupo está" y "en qué orden va" no pueden contradecirse; está fijado en `tallas.test.ts`. `BotonFiltro` salió de Etiquetas a `ui/` para que las dos pestañas filtren con el mismo gesto. Y un hallazgo: `Boton` trae `px-4` y un `px-2` pasado por `className` no lo pisa — hay que forzarlo con `px-2!`; el mismo síntoma puede estar en otras listas de Atributos.
 
-"Único" era un valor real del vocabulario (`retail.tallas.valor`), no un texto de pantalla, así que va como migración `20260918170000_talla_unica_en_femenino.sql`: "talla" es femenino. Es seguro porque las variantes y `categoria_tallas` apuntan por `talla_id` y el código impreso usa el token `U`, que ya trataba "unico" y "unica" igual. Felipe la pegó en producción el 2026-09-18 (SQL Editor, con el prefijo `retail.`); yo no pude releer la base para confirmarlo porque el acceso a producción estaba bloqueado por permisos, así que queda por reportar de él. Verificado en navegador a 375, 1024 y 1900 px: ningún botón cortado; `tsc` y `eslint` limpios.
+"Único" era un valor real del vocabulario (`retail.tallas.valor`), no un texto de pantalla, así que va como migración `20260918175000_talla_unica_en_femenino.sql`: "talla" es femenino. Es seguro porque las variantes y `categoria_tallas` apuntan por `talla_id` y el código impreso usa el token `U`, que ya trataba "unico" y "unica" igual. Felipe la pegó en producción el 2026-09-18 (SQL Editor, con el prefijo `retail.`); yo no pude releer la base para confirmarlo porque el acceso a producción estaba bloqueado por permisos, así que queda por reportar de él. Verificado en navegador a 375, 1024 y 1900 px: ningún botón cortado; `tsc` y `eslint` limpios.
 
 ## 2026-09-18 (Etiquetas se alinea con Colores, Tejidos y Patrones: mismo tamaño de tarjeta, misma grilla)
 
