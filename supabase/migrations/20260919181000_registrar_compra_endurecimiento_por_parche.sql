@@ -40,7 +40,7 @@
 --
 -- No borra ni modifica datos. En producción: pegar con `set search_path = retail, public, extensions` (ya va en la
 -- primera línea) — el cuerpo no necesita el prefijo `retail.` porque busca la función por schema en `pg_proc`.
--- ESTADO. Aceptada en el Postgres LOCAL. PENDIENTE de aplicar en producción (requiere confirmación de Felipe).
+-- ESTADO. Aceptada en el Postgres LOCAL y pegada en producción por Felipe el 2026-09-19 (pendiente de verificar y de refrescar el diccionario).
 -- ============================================================================
 set search_path = retail, public, extensions;
 

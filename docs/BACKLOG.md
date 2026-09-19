@@ -55,8 +55,13 @@ Plan completo en [`docs/PLAN-PRODUCCION.md`](PLAN-PRODUCCION.md); diseño de ref
 - [ ] **F7 · Eficiencia del Taller** (D-31: `maquila_referencias` + `gastos_taller`; estados vacíos hasta tener datos).
 - [ ] **F8 · Cierre:** «llevarlas a las tiendas» (Traslados), referencia en Movimientos, refresco de `docs/datos/`, ARQUITECTURA.
 
+## 🎯 Por pagar responde + Pagar juntos con varios medios (2026-09-19, ADR-0131 y ADR-0132)
+- [x] Hecho y en producción: la pantalla (PR #183), `registrar_pago_compras_medios` con sus dos migraciones (`20260919190000` y `…200000`, **verificadas en la base**: una sola firma, fecha validada, token antes del saldo a favor) y el modal con varios medios (PR #187). Probado con 27 casos locales y con pagos reales en el navegador: 2 comprobantes × 2 medios (escritorio) y 3 × 3 (celular 375 px, sin desborde). Diccionario de producción refrescado (PR #192).
+- [ ] Sin probar en pantalla: dividir el pago con el saldo a favor encendido (la base sí lo cubre en pruebas), y «Solo lo vencido» después de dividir (los medios dejan de sumar y el botón se bloquea, sin mensaje que lo explique más allá de «faltan S/ X»).
+- [ ] `datos:comparar` no vigila `registrar_pago_compras` ni `registrar_pago_compras_medios` (objeto armado con `...`, «no analizadas»): armar los parámetros explícitos en `PagoJuntosModal.tsx` para que vuelvan a estar bajo la red.
+
 ## 🎯 Endurecer el pago a proveedores (2026-09-19, ADR-0135) — migración lista en local, falta producción
-- [ ] Aplicar en producción, EN ESTE ORDEN: `20260919180000_pagos_compras_endurecimiento.sql` (pagos) y `20260919181000_registrar_compra_endurecimiento_por_parche.sql` (parche con guarda de `registrar_compra`; corre antes o después del reparto por tienda, ADR-0132). Verificar una sola firma de cada función. Al pegarlas: código de la web con `p_token` va DESPUÉS (o el pago del detalle falla).
+- [x] Migraciones `20260919180000` y `20260919181000` **pegadas en producción por Felipe (2026-09-19)**. **Verificado en la base el 2026-09-19** (una sola firma de cada función, md5 igual al local, `anon` sin EXECUTE) y `funciones-produccion.txt` refrescado (178 funciones): `datos:comparar` ya no marca ninguna pantalla rota (`fn_proveedores_serie_12m` también estaba aplicada en producción y el volcado no la tenía). Tablas y columnas no cambiaron: el diccionario no necesita más.
 - [ ] Después: enviar `p_token` (uuid del formulario) desde `CompraDetallePanel.tsx` a `registrar_pagos_compra`; regenerar `types.ts` y el diccionario de producción. Antes de aplicar, NO: la función vieja no acepta el parámetro.
 - [ ] Decidir M6: por defecto del saldo a favor en el pago individual, en lote y al registrar el comprobante (hoy solo el lote lo destaca).
 - [ ] `registrar_pago_compra` (singular) tiene EXECUTE para PUBLIC: cerrar con `revoke … from public, anon` (exige líder por dentro; no explotable, pero conviene).
@@ -111,10 +116,14 @@ la RPC `guardar_cuentas_proveedor` (solo líder) y `fn_proveedores()` con 28 col
 
 Aplicado y verificado en el navegador como líder (escritorio). Falta:
 
-- [ ] **Mirar con el menú plegado** las barras fijas que ahora siguen el token (`BarraFija` en Recibir y
-  «Pagar juntos», el pie del Punto de Venta con carrito) y una pantalla con contenedores por ancho de panel
-  (Recibir, Proveedores): deberían ganar aire, no romperse.
-- [ ] **Verlo como colaborador** (Micaela): menos filas, «Recibir mercadería» dentro de Inventario.
+- [x] **Barras fijas con el menú plegado** (verificado 2026-09-19, escritorio 1440 px): «Pagar juntos» (Por pagar,
+  `BarraFija` animada, transición `left, transform`) y la barra de Recibir (transición `left`, 300 ms) arrancan
+  en el borde del lateral — 76 px plegado, 272 expandido — y acompañan el cambio; ninguna tapa el avatar. Falta
+  solo el pie del Punto de Venta con carrito (aparece bajo `lg`, ancho de tablet), que no se abrió.
+- [x] **Vista de colaborador** (verificado 2026-09-19 renderizando `AppShell` con una persona `integrante` de
+  prueba, sin iniciar sesión con otra cuenta): sin Colaboradores ni Compras; Inventario trae «Recibir
+  mercadería» y no «Resumen»; plegado, el cajón lista las cinco y la insignia («2 por atender») sube al ícono.
+  Falta verlo con la cuenta real de Micaela (permisos dentro de cada pantalla, no del menú).
 - [ ] **Decidir «Asomar al pasar el mouse»** (spike): no se construyó. Si se quiere, ver «Lo que NO se portó» del ADR.
 
 ## 🎯 Proveedores: vista rápida, mini-tendencias y movimiento que responde (2026-09-19, ADR-0128)

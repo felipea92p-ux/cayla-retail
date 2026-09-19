@@ -3,14 +3,25 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Pagar juntos con varios medios: verificado en celular)
+Con 3 comprobantes y 3 medios en un celular de 375 px la cascada quedó correcta y sin desborde, pero salieron dos detalles de diseño que a escritorio no se veían: el segmentado «Si pagas menos» se cortaba y la ✕ de cada medio quedaba al pie de su tarjeta. Corregidos (`PagoJuntosModal.tsx`, `PagoPiezas.tsx`). Quedan sin probar en pantalla el saldo a favor encendido junto con varios medios y «Solo lo vencido» tras dividir (ver BACKLOG).
+
+## 2026-09-19 (Diccionario de producción al día tras Pagar juntos con varios medios)
+Se refrescó la foto de producción por diferencias (hash por tabla, solo se bajó lo que cambió): entran `registrar_pago_compras_medios`, `fn_validar_fecha_pago_compra`, `fn_proveedores_serie_12m` y la firma de 4 parámetros de `registrar_pagos_compra` (178 funciones); `cambios` gana `motivo`/`condicion` y `prendas_danadas` gana `cambio_id` (con su UNIQUE y 4 candados), 693 columnas. `datos:comparar` pasa de 1 «roto en producción» (`fn_proveedores_serie_12m`, aún no aplicada) a 0.
+Las llamadas a `registrar_pago_compras*` quedan «no analizadas» porque el objeto se arma con `...`; no es un fallo, pero el comparador no las vigila.
+
 ## 2026-09-19 (Pagar juntos con varios medios — ADR-0132)
 «Pagar juntos» aceptaba un solo medio: se agregó `registrar_pago_compras_medios` (función nueva, la vieja intacta) que reparte
 cada medio en cascada sobre los comprobantes con un mismo `pago_grupo_id`, y el modal ofrece «Dividir en otro medio». Probada
 con 27 casos locales y un pago real en el navegador. La `20260919190000` ya está en producción; **falta `20260919200000_pago_por_lote_medios_endurece.sql`** (token antes del saldo a favor y fecha validada, como ADR-0135).
 
+## 2026-09-19 (Saldo a favor: se sugiere, no se descuenta solo)
+Decisión de Felipe: en las tres formas de pagar (Pagar juntos, pago de un comprobante y Registrar comprobante) el saldo a favor de un proveedor se ofrece con «Usar S/ X» y lo decide quien paga. Pagar juntos era la excepción: lo traía activado; ahora viene apagado, con el mismo aviso.
+Felipe se lleva: el saldo a favor es un derecho de CAYLA que cambia lo que el proveedor le debe; consumirlo debe ser un acto consciente, igual en toda la pantalla.
+
 ## 2026-09-19 (Auditoría del pago a proveedores: destino por medio y endurecimiento — ADR-0135)
 Al elegir un medio de pago ahora se ve UNA línea con a dónde va la plata (transferencia/depósito: cuenta y CCI; Yape o Plin: solo ese celular; efectivo: nada), en vez del bloque grande «Paga por» que mostraba también el Yape al pagar por transferencia (`lib/destino-de-pago.ts`, `DestinoDelMedio.tsx`). La auditoría encontró huecos reales en la base: con «el precio incluye IGV» y 5 unidades o más `registrar_compra` rechazaba comprobantes correctos (el redondeo por unidad se multiplica por la cantidad), el pago desde el detalle no tenía token y un reintento lo duplicaba, el reintento de un lote con saldo a favor fallaba aunque ya se había pagado, las fechas de pago no se validaban y los montos con más de 2 decimales se redondeaban en silencio.
-Se cerraron en la migración `20260919180000` (ADR-0135), **aplicada solo en local, PENDIENTE de producción con confirmación de Felipe**; en pantalla ya no se acepta fecha de pago futura o anterior a la emisión, una línea «Saldo a favor» huérfana pasa a efectivo si se cambia de proveedor y, ante un corte de conexión, el mensaje ya no afirma «no se guardó nada» (puede haberse guardado). Falta enviar `p_token` desde el detalle: solo después de aplicar la migración, o el pago del detalle falla.
+Se cerraron en la migración `20260919180000` (ADR-0135), **pegada en producción por Felipe el 2026-09-19 junto con la `20260919181000` (parche de `registrar_compra`), verificada contra la base el mismo día**; en pantalla ya no se acepta fecha de pago futura o anterior a la emisión, una línea «Saldo a favor» huérfana pasa a efectivo si se cambia de proveedor y, ante un corte de conexión, el mensaje ya no afirma «no se guardó nada» (puede haberse guardado). Falta enviar `p_token` desde el detalle: solo después de aplicar la migración, o el pago del detalle falla.
 Felipe se lleva: un candado que rechaza por redondeo es tan dañino como uno que no existe; hay que probarlo con cantidades reales, no con 1 unidad. Sin resolver: qué hace por defecto el saldo a favor en las tres formas de pagar (M6), y en el Postgres local `por_pagar_tramos` está sin el candado de dinero del ADR-0126 (deriva local, no de esta migración).
 
 ## 2026-09-19 (Comprobantes con el movimiento del prototipo + regla de movimiento de los modales — ADR-0136)

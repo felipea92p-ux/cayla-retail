@@ -77,7 +77,7 @@
 -- Re-ejecutable: `create or replace` / `drop function if exists` / `comment on`. No borra ni modifica datos.
 -- Cambios que necesita el cliente: ver ADR-0135 (el detalle debería mandar `p_token`; sin él, todo igual que hoy).
 --
--- ESTADO. Aceptada en el Postgres LOCAL. PENDIENTE de aplicar en producción (requiere confirmación de Felipe).
+-- ESTADO. Aceptada en el Postgres LOCAL y pegada en producción por Felipe el 2026-09-19 (pendiente de verificar y de refrescar el diccionario).
 -- Al pegarla en el SQL Editor de producción el `set search_path` inicial ya apunta a `retail`, pero los nombres
 -- de arriba llevan `retail.` igual (regla de CLAUDE.md).
 -- ============================================================================

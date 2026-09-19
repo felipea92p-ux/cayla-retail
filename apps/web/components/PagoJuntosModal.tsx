@@ -40,8 +40,8 @@ import { etiquetaVence, parseMonto, repartirPago, tramoDe } from "@/lib/por-paga
 //
 // Saldo a favor (ADR-0111, corrección 2026-09-18): si el proveedor le debe algo a CAYLA (una nota de
 // crédito que superó lo que se le debía, típico de una factura al contado), acá se ofrece descontarlo del
-// pago. Viene activado —pagar de más al proveedor con plata que ya tenemos a favor es el error caro— pero
-// se ve, con el monto a transferir ya reducido, y se puede apagar. La base lo aplica en el mismo pago
+// pago. Se ofrece, apagado (2026-09-19, Felipe: en las tres formas de pagar el saldo a favor se sugiere y lo
+// decide quien paga, nunca se descuenta solo); al activarlo se ve el monto a transferir ya reducido. La base lo aplica en el mismo pago
 // (`p_credito`): las filas del historial de cada comprobante dicen «Saldo a favor» y descuentan del libro.
 
 export type { DatosPagoProveedor, ResultadoPago };
@@ -93,7 +93,9 @@ export function PagoJuntosModal({
   }, []);
   const resultado = useRef<ResultadoPago | null>(null);
   const saldoFavor = datos?.saldoFavor ?? 0;
-  const [usarFavor, setUsarFavor] = useState(saldoFavor > 0);
+  // Sugerido, NO marcado (decisión de Felipe, 2026-09-19): igual que en el pago de un comprobante y en Registrar comprobante,
+  // el saldo a favor se ofrece y lo decide quien paga; nunca se descuenta solo.
+  const [usarFavor, setUsarFavor] = useState(false);
   // Estable durante los reintentos: si la respuesta se corta después de que la base pagó,
   // reintentar con el mismo token no paga otra vez.
   const token = useRef<string>(crypto.randomUUID());
@@ -316,8 +318,9 @@ export function PagoJuntosModal({
                 valor={modo}
                 onCambio={(v) => alElegirModo(v as Modo)}
                 opciones={[
-                  { clave: "vencida", etiqueta: "Cubrir primero la más vencida" },
-                  { clave: "mano", etiqueta: "Repartir a mano" },
+                  // En celular la etiqueta larga no cabe y el segmentado se cortaba: versión corta bajo `sm`.
+                  { clave: "vencida", etiqueta: (<><span className="hidden sm:inline">Cubrir primero la más vencida</span><span className="sm:hidden">Más vencida primero</span></>) },
+                  { clave: "mano", etiqueta: (<><span className="hidden sm:inline">Repartir a mano</span><span className="sm:hidden">A mano</span></>) },
                 ]}
                 className="h-9 [&_button]:py-0"
               />
@@ -353,7 +356,7 @@ export function PagoJuntosModal({
                 <div>
                   <p className="text-sm font-semibold text-tinta">Tienes {soles(saldoFavor)} a favor con {proveedorNombre}</p>
                   <p className="text-xs text-tinta/65">
-                    Es plata que el proveedor te debe (una nota de crédito que superó lo que se le debía). {usarFavor ? "Se descuenta de este pago." : "Si lo apagas, no se toca y sigue a tu favor."}
+                    Es plata que el proveedor te debe (una nota de crédito que superó lo que se le debía). {usarFavor ? "Se descuenta de este pago." : "Actívalo para descontarlo de este pago; si no, sigue a tu favor."}
                   </p>
                 </div>
               </div>
