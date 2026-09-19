@@ -409,8 +409,10 @@ Diagnóstico y decisiones en el ADR. Estado: los 4 pasos, marca y proveedor, y l
       del censo (dos escaneos simultáneos del mismo nombre) está escrito pero **no se ejercitó con dos sesiones**;
       (c) volver a correr `230200` reinicia la curva habitual de tallas; (d) `desactivar_proveedor` no tiene el candado
       que sí tiene desactivar marca (un proveedor con productos activos se puede desactivar).
-- [ ] **Seguridad (ya existía, no lo introdujo este PR): `proveedores_select` deja a cualquier sesión autenticada leer
-      `banco` y `cuenta_bancaria`.** Restringir esas dos columnas al rol que compra/paga, o moverlas a una tabla aparte.
+- [ ] **Decisión a reconsiderar (ya existía; la tomó `20260918120000` a propósito: «ficha, no agregado — quedan
+      abiertos»): `proveedores_select` deja a cualquier sesión autenticada leer `banco` y `cuenta_bancaria`.** Una cuenta
+      bancaria es dato de pago. Si Felipe está de acuerdo: restringir esas dos columnas al rol que compra/paga, o moverlas
+      a una tabla aparte. Este PR no lo toca.
 - [x] **Editar categoría (`CategoriasLista.tsx`)**: chip de «habitual» en cada talla; manda `p_talla_habitual_ids`.
 - [x] **`catalogo_crear_producto`** retirado del uso (`231200`: sin permiso de ejecución; la función queda, no se borra).
 - [ ] **Limpieza de nombres existentes** (no urgente): BLU-001, CHO-001, FAL-001, PAN-001, POL-001, VES-001 son

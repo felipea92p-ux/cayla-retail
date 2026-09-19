@@ -370,6 +370,8 @@ estos son los que cambian lo que hay que saber. Cada uno se corrigió o se docum
 
 ## Fuera de este PR (ya existía)
 
-`proveedores_select` deja a cualquier sesión autenticada leer `banco` y `cuenta_bancaria` de los
-proveedores. Este PR no lo introduce ni lo empeora (solo suma `nombre` a la lista del selector), pero merece
-su propio arreglo: ver BACKLOG.
+`proveedores_select` (0004) deja a cualquier sesión autenticada leer `banco` y `cuenta_bancaria` de los
+proveedores. **No es un descuido: `20260918120000` lo decidió a propósito** («ficha, no agregado — quedan
+abiertos»). Este PR no lo introduce ni lo empeora (solo suma `nombre` a la lista del selector). Lo dejo
+señalado porque una cuenta bancaria es dato de pago, no de ficha, y conviene que Felipe reconsidere esa
+decisión: ver BACKLOG.

@@ -9,7 +9,7 @@ Antes de pedir revisión, agentes escépticos intentaron refutar el PR y sobrevi
 
 Lo que Felipe se lleva: escribí en el PR que **«la caja busca por marca»** y que **«`datos:comparar` detecta el aviso de parecidos»**, y las dos eran falsas cuando lo dije (la caja armaba las variantes sin el campo; el comparador no puede leer parámetros armados con `...`). Una afirmación de «esto cubre X» que nadie probó es un estado imposible en el papel: ahora la caja sí pasa la marca, el comparador vuelve a ver `buscar_productos_parecidos` (4 alarmas, no 3) y el ADR dice qué funciones el comparador NO ve. Y una consulta compartida por siete pantallas no debe depender de SQL que aún no está en producción: la marca del catálogo ahora se trae aparte y tolerante.
 
-Pendiente: pegar los 8 SQL y verificar con una sesión de Líder real; decidir si aprobar una prenda del censo debe poder saltarse «Indumentaria exige tejido y patrón»; y, aparte de este PR, `proveedores_select` deja a cualquier sesión leer el banco y la cuenta de los proveedores.
+Pendiente: pegar los 8 SQL y verificar con una sesión de Líder real; decidir si aprobar una prenda del censo debe poder saltarse «Indumentaria exige tejido y patrón»; y, aparte de este PR, una decisión de otra sesión (`20260918120000`) deja a cualquier colaborador leer el banco y la cuenta de los proveedores: fue deliberada, pero una cuenta bancaria es dato de pago y vale la pena reconsiderarla.
 
 ## 2026-09-18 (Marca y proveedor: un producto ahora dice de quién es y quién lo trae — y una marca puede llegar por dos proveedores)
 
