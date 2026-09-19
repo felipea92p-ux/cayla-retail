@@ -11,7 +11,8 @@ Queda: verlo como colaborador (Micaela) y las animaciones de SALIDA (chips y fil
 ## 2026-09-19 (Producción como módulo padre: dos spikes y un plan por fases — ADR-0130, propuesto)
 **Qué se cerró.** Se diseñó (sin tocar el ERP) un módulo Producción que agrupa Decidir/Abastecer/Fabricar/Medir, con el ciclo factura de tela → lote → orden → costo real → stock funcionando en un spike (`docs/maquetas/produccion-modulo-2026-09/`), y un plan de 8 fases con sus decisiones y su definición de terminado (`docs/PLAN-PRODUCCION.md`).
 **Qué se aprendió.** Revisar antes de diseñar cambió el plan: el destino Taller/Tiendas ya existía (`ubicacion_destino_id`), el motor de reposición ya existía (`fn_resumen_variantes`), Proveedores y Recibir ya tenían rediseño en `main`, y el spike incumplía el tope de rojo por pantalla y dejaba a la interfaz —no a la base— la tarea de ocultar costos al colaborador.
-**Pendiente.** El ok de Felipe en D-A, D-C, D-E, D-F y D-G; F1–F3 no necesitan esquema y pueden empezar.
+**Pendiente.** El ok de Felipe en D-C, D-E, D-F y D-G (D-A lo dio al pedir F1).
+**F0 y F1 hechas el mismo día:** el lateral ahora agrupa Compras y Órdenes bajo «Producción» (mismas URLs), y el líder la ve desde cualquier ubicación. Lo que no estaba en el spike y salió al implementar: el riel del menú mide por filas de alto fijo, así que los rótulos «Abastecer»/«Fabricar» no caben; el orden de las filas cuenta el recorrido.
 
 ## 2026-09-19 (Proveedores responde: vista rápida, mini-tendencias y una gramática de movimiento acotada — ADR-0128)
 Se aplicó al ERP el spike visual de Proveedores (`docs/maquetas/proveedores-spike-2026-09/`): tocar una fila abre una vista rápida (↑ ↓ entre proveedores) en vez de saltar a la ficha; ordenar y filtrar deslizan las filas (FLIP); el filtro de rubro tiene un pulgar que viaja; la barra de concentración enciende la fila del proveedor al que apuntas; desactivar se puede deshacer 7 s; el RUC repetido se avisa al escribir.

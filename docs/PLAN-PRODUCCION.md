@@ -85,6 +85,7 @@ que cuentan, barras que crecen, destello de «acaba de pasar» y avisos con «De
 | 5 | Gráfico de línea y «barras que crecen» | gramática de movimiento acotada (ADR-0128) | se **piden en el ADR-0130** como ampliación; sin aprobación, entran sin animar |
 | 6 | Drawer propio, `<aside>` propio, lateral propio | AppShell real + Radix | mismo aspecto, piezas reales |
 | 7 | Cálculos en el navegador con datos de ejemplo | principio 6 (lo esencial sobrevive al framework) | reglas puras en `lib/produccion-*.ts` con tests; la página lee y pinta |
+| 8 | Rótulos de sección en el lateral («Abastecer», «Fabricar») | el riel del AppShell se mueve por filas de **alto fijo** (`PASO_FILA`); una fila de otra altura lo desalinea (descubierto en F1) | sin rótulos; el **orden** de las filas cuenta el recorrido (proveedor → factura → recepción → pago → órdenes) |
 
 Regla de decisión sobre el diseño: **si el resultado real se ve distinto al spike, la diferencia debe estar en esta tabla.** Si no
 está aquí, es un bug de portado.
@@ -101,12 +102,17 @@ Tamaño: **S** ≈ media sesión · **M** ≈ una sesión · **L** ≈ dos o má
 ### F1 · Navegación: Producción es el padre (M) — sin esquema · requiere **D-A**
 - `AppShell.tsx`: grupo `produccion` con secciones Decidir/Abastecer/Fabricar/Medir; el grupo `compras` deja de existir;
   `RUTAS_POR_GRUPO` y `veProduccion` según D-A; `recibir` sigue en Inventario para quien no es líder.
-- Rutas nuevas (páginas delgadas): `/produccion` (Resumen, líder) · `/produccion/ordenes` · `/produccion/insumos` ·
-  `/produccion/eficiencia`. **Las URLs `/compras/*` y `/recibir` no cambian** (ADR-0128 y ADR-0129 dependen de ellas).
-  `/produccion` para un colaborador redirige a `/produccion/ordenes`.
-- Insignias del menú: Resumen (decisiones urgentes), Por pagar (vencidos), Recibir (pendientes), Órdenes (en riesgo), Insumos (bajo mínimo).
-- **Verificas (navegador):** líder desde Tienda Trujillo ve el grupo; colaborador del Taller ve 3 ítems; colaborador de tienda
-  no lo ve; los 4 enlaces viejos de Compras siguen abriendo; el ítem activo se resalta al entrar por URL directa.
+- Rutas: **`/produccion/ordenes`** (el contenido actual, movido) y `/produccion`, que redirige ahí hasta que exista el Resumen (F6;
+  el Resumen de Inventario ya enlaza a `/produccion`). `/produccion/insumos` y `/produccion/eficiencia` nacen en F3 y F7: **no se
+  crean páginas vacías ni ítems de menú muertos**. **Las URLs `/compras/*` y `/recibir` no cambian** (ADR-0128 y ADR-0129 dependen de ellas).
+- **Aplicada el 2026-09-19.** Diferido a propósito: las **insignias** del menú (Por pagar, Recibir, Órdenes, Insumos) piden una
+  consulta por carga de página en el layout; entran con F6, cuando el Resumen ya calcula esos números. Quien trabaja en el Taller
+  ve solo Órdenes (su «Recibir mercadería» sigue en Inventario para que una ruta no aparezca en dos grupos); un grupo de una fila
+  se muestra como fila suelta.
+- **Verificado:** líder parado en Tienda Lima ve el grupo y abre Órdenes; los 4 enlaces viejos de Compras abren y resaltan su ítem al entrar
+  por URL directa (el grupo se abre solo); `/produccion` redirige; sin errores de consola; tipos, lint y 1178 pruebas en verde. **Sin
+  verificar en navegador:** colaborador del Taller y de tienda (probarlos exige cerrar la sesión de Felipe); la regla está en
+  `lib/produccion-menu.ts` con pruebas para los tres perfiles.
 
 ### F2 · Órdenes: tablero, panel, matriz y cierre por talla (L) — sin esquema
 - `lib/produccion-reglas.ts` (puras, con tests): `riesgo(orden)` (días que faltan contra días de entrega), agrupación por

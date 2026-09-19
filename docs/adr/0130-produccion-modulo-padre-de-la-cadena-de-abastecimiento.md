@@ -1,7 +1,7 @@
 # ADR-0130 — Producción es el módulo padre de la cadena: decidir, abastecer, fabricar, medir
 
-- **Estado:** **Propuesto** (Felipe, 2026-09-19, pidió el plan). No se aplica nada hasta el ok en las decisiones D-A…D-G de
-  `docs/PLAN-PRODUCCION.md`. Las fases sin esquema (F1–F3) pueden empezar ya.
+- **Estado:** **Propuesto**; **F1 (menú, D-A) aplicada el 2026-09-19** a pedido de Felipe. Falta su ok en D-C, D-E, D-F y D-G
+  (`docs/PLAN-PRODUCCION.md`) antes de tocar esquema. F2–F3 no lo necesitan.
 - **Reemplaza, en un punto:** la regla del 2026-09-17 «Producción solo se ve parado en el Taller, líder incluido»
   (comentario en `AppShell.tsx`, ADR-0051). Ver Decisión 2.
 - **Depende de:** ADR-0132 (reparto de un comprobante entre tiendas, en curso en `claude/modulos-por-tienda-ca0f59`) para la
@@ -23,7 +23,8 @@ depende de un número que alguien escribe.
 1. **Producción es el módulo padre** y agrupa el recorrido real del trabajo: **Decidir** (Resumen), **Abastecer**
    (Proveedores, Comprobantes, Por pagar, Recibir), **Fabricar** (Órdenes, Insumos) y **Medir** (Eficiencia del Taller).
    El grupo «Compras» del lateral desaparece. **Las URLs no cambian** (`/compras/*`, `/recibir`); se agregan
-   `/produccion`, `/produccion/ordenes`, `/produccion/insumos`, `/produccion/eficiencia`.
+   `/produccion` (hoy redirige a Órdenes), `/produccion/ordenes`, y con sus fases `/produccion/insumos` y `/produccion/eficiencia`.
+   Sin rótulos de sección en el lateral: el riel se mueve por filas de alto fijo, así que el orden de las filas cuenta el recorrido.
 2. **El líder ve Producción desde cualquier ubicación** (la base ya lo permite: `fn_puede_operar_ubicacion` = líder o mi
    ubicación). El colaborador del Taller ve Recibir, Órdenes e Insumos. Reemplaza la regla del 2026-09-17.
 3. **La factura de proveedor trae también tela y avíos:** `compra_items.insumo_id` (nullable) con «exactamente uno de

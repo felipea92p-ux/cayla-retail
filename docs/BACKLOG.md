@@ -33,10 +33,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 Plan completo en [`docs/PLAN-PRODUCCION.md`](PLAN-PRODUCCION.md); diseño de referencia en `docs/maquetas/produccion-modulo-2026-09/`.
 **Nada de esto está construido:** solo el spike y el plan (verificado en el navegador). Cada fase = un PR.
 
-- [ ] **F0 · Preparación:** fusionar `origin/main` (la rama va 2 commits atrás), reservar ADR-0130 y timestamps `≥ 20260919170000`, commitear spike y plan.
-- [ ] **Decisiones de Felipe (bloquean F1, F4, F7):** D-A menú (líder ve Producción desde cualquier ubicación; revierte la regla del 2026-09-17) ·
+- [x] **F0 · Preparación (2026-09-19):** `origin/main` fusionada (rama al día), ADR-0130 reservado (0131 y 0132 los tienen otras ramas), spike y plan commiteados.
+- [x] **D-A (menú)** — ok de Felipe al pedir F1 (2026-09-19): el líder ve Producción desde cualquier ubicación; revierte la regla del 2026-09-17.
+- [ ] **Decisiones de Felipe que siguen abiertas (bloquean F4 y F7):**
       D-C `compra_items.insumo_id` · D-E `maquila_referencias` · D-F `gastos_taller` · D-G costos de insumos solo líder.
-- [ ] **F1 · Navegación** (`AppShell.tsx`, rutas `/produccion/*`; las URLs de Compras no cambian). Sin esquema.
+- [x] **F1 · Navegación (2026-09-19)** — `AppShell.tsx` (grupo «Producción» = Proveedores, Comprobantes, Recibir mercadería, Por pagar, Órdenes;
+      «Compras» ya no existe), `lib/produccion-menu.ts` (+ test), `/produccion/ordenes` (contenido movido) y `/produccion` → redirige.
+      Sin esquema. Verificado en navegador como líder desde Tienda Lima; tipos, lint y 1178 pruebas en verde.
+      **Pendiente de probar con sesión real:** colaborador del Taller y de tienda. **Diferido a F6:** insignias del menú.
 - [ ] **F2 · Órdenes:** tablero, panel, matriz talla×color, cierre por variante; el formulario deja de pedir tela y avíos. Sin esquema.
 - [ ] **F3 · Insumos:** pantalla, «Recibir insumo», consumo desde la orden (RPC ya en producción). Sin esquema.
 - [ ] **F4 · Compras ↔ Insumos (esquema, alto riesgo; ESPERA a ADR-0132 en `main` y se coordina con `modulos-por-tienda-ca0f59`):** 4a renglón de insumo · 4b recibir abre el lote · 4c candado del dinero de insumos.

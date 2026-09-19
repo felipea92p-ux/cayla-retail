@@ -8,6 +8,7 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { Boton } from "@/components/ui/campos";
 import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
+import { hijosMenuProduccion, type ClaveMenuProduccion } from "@/lib/produccion-menu";
 import { PerfilModal } from "@/components/PerfilModal";
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
@@ -544,8 +545,10 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
   const RUTAS_POR_GRUPO: Record<string, string[]> = {
     venta: ["/vender", "/caja", "/cambios", "/devoluciones", "/vender/facturacion"],
     catalogo: ["/productos", "/productos/categorias", "/productos/atributos", "/productos/marcas"],
-    // «Recibir mercadería» (/recibir) vive en Compras para el líder y en Inventario para quien no lo es.
-    compras: ["/compras", "/compras/proveedores", "/compras/por-pagar", ...(esLider ? ["/recibir"] : [])],
+    // Producción (ADR-0130) es el módulo padre: abastecer (las 4 pantallas de Compras, con sus URLs de
+    // siempre) y fabricar. «Recibir mercadería» (/recibir) vive acá para el líder y en Inventario para
+    // quien no lo es.
+    produccion: ["/produccion", "/compras", "/compras/proveedores", "/compras/por-pagar", ...(esLider ? ["/recibir"] : [])],
     inventario: ["/inventario", "/inventario/movimientos", "/inventario/traslados", "/inventario/conteo", "/inventario/resumen", ...(esLider ? [] : ["/recibir"])],
   };
   const grupoActivo = Object.entries(RUTAS_POR_GRUPO).find(([, rutas]) => rutas.some((h) => activo(h)))?.[0] ?? null;
@@ -611,15 +614,15 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
   const recibirMercaderia: Item = { href: "/recibir", etiqueta: "Recibir mercadería", icono: IC.recibir };
   const porPagar: Item = { href: "/compras/por-pagar", etiqueta: "Por pagar", icono: IC.porPagar };
   const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };
-  const produccion: Item = { href: "/produccion", etiqueta: "Producción", icono: IC.produccion };
-  // Producción (revertido 2026-09-17, pedido de Felipe): vuelve a verse SOLO
-  // parado en el Taller, líder incluido. La "restauración" del 15-sep dejaba
-  // Producción visible para el líder aunque estuviera parado en una tienda —
-  // justo la inconsistencia que se pidió corregir: el menú debe reflejar
-  // siempre dónde estás parado, igual que Vender/Inventario/Compras. Si el
-  // líder necesita decidir qué se fabrica, se para en el Taller con el
-  // selector de ubicación, como con cualquier otra pantalla operativa.
-  const veProduccion = persona.ubicacionTipo === "taller";
+  const ordenes: Item = { href: "/produccion/ordenes", etiqueta: "Órdenes", icono: IC.produccion };
+  // Producción (ADR-0130, D-A — reemplaza la regla del 2026-09-17 «solo parado
+  // en el Taller, líder incluido»): el líder la ve desde cualquier ubicación,
+  // porque decide el abastecimiento estando en una tienda y la base ya lo
+  // permite (`fn_puede_operar_ubicacion` = líder o mi ubicación); quien
+  // trabaja en el Taller ve sus órdenes. El candado real sigue siendo el de
+  // cada RPC; esto solo decide qué se le muestra a quién.
+  const clavesProduccion = hijosMenuProduccion({ esLider, ubicacionTipo: persona.ubicacionTipo });
+  const veProduccion = clavesProduccion.length > 0;
 
   // Integración con Dynamic (2026-09-12): "Colaboradores" salió del nav
   // porque Dynamic es dueño de la IDENTIDAD (alta, rol, sede, activar/
@@ -651,16 +654,26 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
     icono: IC.catalogo,
     hijos: [productos, categorias, atributos],
   };
-  // "Compras" agrupa las cuatro pantallas que antes vivían como pestañas de
-  // `ComprasNav.tsx` (pedido de Felipe, 2026-09-16, mismo criterio que
-  // Catálogo: "generalizado y ordenado"). Líder-only, como ya era la
-  // "Compras" plana que reemplaza — registra facturas y pagos a proveedor.
-  const grupoCompras: ItemGrupo = {
-    id: "compras",
-    etiqueta: "Compras",
-    icono: IC.compras,
-    hijos: [proveedores, facturas, recibirMercaderia, porPagar],
+  // "Producción" (ADR-0130) agrupa el recorrido del trabajo: abastecer (las
+  // cuatro pantallas que eran el grupo "Compras", pedido de Felipe 2026-09-16,
+  // mismas URLs y mismo orden) y fabricar (Órdenes). Sin rótulos de sección
+  // («Abastecer», «Fabricar») a propósito: el riel del lateral se mueve por
+  // filas de alto fijo (`PASO_FILA`) y una fila de otra altura lo desalinearía;
+  // el orden ya cuenta el recorrido. Las pantallas de Compras siguen siendo
+  // solo de líder (su layout redirige); quien trabaja en el Taller ve Órdenes
+  // (y su «Recibir mercadería» sigue en Inventario). Resumen, Insumos y
+  // Eficiencia se suman a este grupo cuando existan (fases F3, F6 y F7).
+  const itemsProduccion: Record<ClaveMenuProduccion, Item> = { proveedores, comprobantes: facturas, recibir: recibirMercaderia, porPagar, ordenes };
+  const hijosProduccion: Item[] = clavesProduccion.map((c) => itemsProduccion[c]);
+  const grupoProduccion: ItemGrupo = {
+    id: "produccion",
+    etiqueta: "Producción",
+    icono: IC.produccion,
+    hijos: hijosProduccion,
   };
+  // Un grupo de una sola fila no agrupa nada: se muestra como fila suelta.
+  const entradaProduccion: FilaMenu =
+    hijosProduccion.length > 1 ? grupoProduccion : { ...ordenes, etiqueta: "Producción" };
 
   // "Inventario" agrupa las cuatro pantallas del stock (Felipe, 2026-09-16,
   // integrando sus diseños; mismo criterio que Catálogo y Compras). Antes
@@ -679,13 +692,13 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
     {
       titulo: null,
       // Orden pedido por Felipe, 2026-09-16: Inicio, Colaboradores, Catálogo,
-      // Producción, Compras, Ventas, Inventario.
+      // Producción, Compras, Ventas, Inventario. Desde ADR-0130 Compras vive
+      // dentro de Producción.
       items: [
         inicio,
         ...(esLider ? [colaboradores] : []),
         grupoCatalogo,
-        ...(veProduccion ? [produccion] : []),
-        ...(esLider ? [grupoCompras] : []),
+        ...(veProduccion ? [entradaProduccion] : []),
         grupoVenta,
         grupoInventario,
       ],
