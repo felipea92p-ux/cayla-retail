@@ -761,6 +761,16 @@ body {
     scrollbar-width: none;
   }
 
+  /* Con pantalla ancha las cuatro pestañas caben siempre: sin recorte, la sombra de la
+     píldora (que se derrama bajo el contenedor, como en la maqueta aprobada) y el anillo de
+     foco de las pestañas de los extremos se ven completos. El desplazamiento horizontal solo
+     hace falta en celular, y ahí sí recorta. */
+  @media (min-width: 720px) {
+    .pestanas-vidrio {
+      overflow: visible;
+    }
+  }
+
   .pestanas-vidrio__pildora {
     position: absolute;
     top: 4px;
