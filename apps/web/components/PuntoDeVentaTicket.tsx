@@ -35,6 +35,7 @@ import {
   type MomentoTicket,
 } from "@/lib/vender-reglas";
 import { Ayuda } from "@/components/Ayuda";
+import { CampoMonto } from "@/components/ui/CampoMonto";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ID_CARGO_ESPECIAL, money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
@@ -791,16 +792,12 @@ export function PuntoDeVentaTicket({
                           <span className="min-w-0 flex-1 truncate text-sm capitalize text-tinta">{p.metodo}</span>
                           <label className="flex h-9 items-center gap-1 rounded-md border border-sand bg-papel px-2 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
                             <span className="text-xs text-tinta/60">S/</span>
-                            <input
+                            <CampoMonto
                               aria-label={`Monto en ${p.metodo}`}
-                              type="number"
-                              inputMode="decimal"
-                              min={0}
-                              step="0.01"
-                              value={p.monto}
-                              onChange={(e) => onMontoPago(i, Number(e.target.value))}
+                              valor={p.monto}
+                              onCambio={(monto) => onMontoPago(i, monto)}
                               disabled={bloqueado}
-                              className={`w-20 bg-transparent text-right text-sm font-semibold text-tinta outline-none ${SIN_FLECHAS}`}
+                              className={`w-20 bg-transparent text-right text-sm font-semibold text-tinta outline-none placeholder:text-tinta/30 ${SIN_FLECHAS}`}
                             />
                           </label>
                           <button

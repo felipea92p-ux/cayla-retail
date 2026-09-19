@@ -1,9 +1,11 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCajaAbierta, getResumenCaja, getMovimientosCaja, getSeriesVentasCaja, getHistorialCierres } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { createClient } from "@/lib/supabase/server";
 import { tolerar } from "@/lib/resultado";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
 import { CajaAbiertaPanel, type VentaDelDia } from "@/components/CajaAbiertaPanel";
 
@@ -18,26 +20,24 @@ export default async function CajaPage() {
     // `/caja` va a todo el ancho (AppShell), pero solo el tablero de la caja abierta: sin caja, lo que hay
     // es un formulario de un campo, que conserva la columna de lectura de siempre en vez de estirarse.
     <div className={caja ? "space-y-6" : "mx-auto max-w-5xl space-y-6"}>
+      {/* Sin caja: la misma cabecera de Cambios (`EncabezadoPagina`), con el historial de cierres donde Cambios
+          pone sus cifras. Con caja, la cabecera la trae el propio tablero (necesita el estado de sus modales). */}
       {!caja && (
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="label-cayla text-[11px] text-tinta/65">Caja · {persona.ubicacionEtiqueta}</p>
-            <h1 className="font-display mt-1 text-2xl text-tinta">Sin caja abierta</h1>
-          </div>
+        <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Caja" subtitulo="Abre la caja para empezar a vender.">
           <Link
             href="/caja/historial"
             className="label-cayla rounded-md px-2 py-1.5 text-[11px] text-tinta/60 transition-colors hover:bg-sand/40 hover:text-tinta"
           >
             Historial de cierres →
           </Link>
-        </div>
+        </EncabezadoPagina>
       )}
 
       {/* Abrir/cerrar caja cambia de componente entero (formulario ↔ panel), así que
-          React ya lo remonta solo — `anim-entrada` no necesita `key` para retriggerse,
+          React ya lo remonta solo — `anim-sube` no necesita `key` para retriggerse,
           entra de nuevo cada vez que este `router.refresh()` cambia de rama. */}
       {!caja ? (
-        <div className="anim-entrada">
+        <div className="anim-sube" style={{ "--i": 1 } as CSSProperties}>
           <AbrirCajaFormV2 ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} />
         </div>
       ) : (

@@ -3,6 +3,7 @@ import {
   comparativoSemanaAnterior,
   duracionAbierta,
   egresosElevados,
+  escalaTurno,
   formatoDuracion,
   metodosDe,
   rangoHorasCaja,
@@ -180,5 +181,19 @@ describe("senalCaja", () => {
   it("ámbar con cola pendiente, singular vs plural", () => {
     expect(senalCaja(1).texto).toBe("1 venta sin subir");
     expect(senalCaja(3).texto).toBe("3 ventas sin subir");
+  });
+});
+
+describe("escalaTurno", () => {
+  it("un turno corriente cabe en la jornada de 8 h", () => {
+    expect(escalaTurno(170)).toEqual({ horas: 8, fraccion: 170 / 480 });
+  });
+  it("un turno largo estira la cinta a la hora siguiente, sin salirse", () => {
+    expect(escalaTurno(600)).toEqual({ horas: 11, fraccion: 600 / 660 });
+    expect(escalaTurno(480).fraccion).toBeLessThan(1);
+  });
+  it("una apertura en el futuro o un dato roto no dan negativos ni NaN", () => {
+    expect(escalaTurno(-5)).toEqual({ horas: 8, fraccion: 0 });
+    expect(escalaTurno(Number.NaN)).toEqual({ horas: 8, fraccion: 0 });
   });
 });
