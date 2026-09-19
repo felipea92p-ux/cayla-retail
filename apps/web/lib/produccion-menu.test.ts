@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { hijosMenuProduccion } from "./produccion-menu";
+import { hijosMenuCompras, hijosMenuProduccion } from "./produccion-menu";
+
+const TIPOS = ["tienda", "almacen", "taller"] as const;
 
 describe("hijosMenuProduccion (ADR-0133, D-A)", () => {
-  it("el líder ve el recorrido completo desde cualquier ubicación", () => {
-    const esperado = ["proveedores", "comprobantes", "recibir", "porPagar", "ordenes"];
-    for (const ubicacionTipo of ["tienda", "almacen", "taller"] as const) {
-      expect(hijosMenuProduccion({ esLider: true, ubicacionTipo })).toEqual(esperado);
+  it("el líder ve Producción desde cualquier ubicación", () => {
+    for (const ubicacionTipo of TIPOS) {
+      expect(hijosMenuProduccion({ esLider: true, ubicacionTipo })).toEqual(["ordenes"]);
     }
   });
 
-  it("quien trabaja en el Taller ve solo las órdenes (su Recibir sigue en Inventario)", () => {
+  it("quien trabaja en el Taller ve las pantallas de fabricación", () => {
     expect(hijosMenuProduccion({ esLider: false, ubicacionTipo: "taller" })).toEqual(["ordenes"]);
   });
 
@@ -17,9 +18,26 @@ describe("hijosMenuProduccion (ADR-0133, D-A)", () => {
     expect(hijosMenuProduccion({ esLider: false, ubicacionTipo: "tienda" })).toEqual([]);
     expect(hijosMenuProduccion({ esLider: false, ubicacionTipo: "almacen" })).toEqual([]);
   });
+});
 
-  it("Recibir aparece a lo sumo una vez, para que la ruta no marque dos filas activas", () => {
-    const veces = hijosMenuProduccion({ esLider: true, ubicacionTipo: "tienda" }).filter((c) => c === "recibir").length;
-    expect(veces).toBe(1);
+describe("hijosMenuCompras", () => {
+  it("el líder ve las cuatro pantallas de Compras, en el orden proveedor → factura → recepción → pago", () => {
+    for (const ubicacionTipo of TIPOS) {
+      expect(hijosMenuCompras({ esLider: true, ubicacionTipo })).toEqual(["proveedores", "comprobantes", "recibir", "porPagar"]);
+    }
+  });
+
+  it("quien no es líder no ve Compras, ni siquiera trabajando en el Taller", () => {
+    for (const ubicacionTipo of TIPOS) {
+      expect(hijosMenuCompras({ esLider: false, ubicacionTipo })).toEqual([]);
+    }
+  });
+});
+
+describe("Producción y Compras son módulos distintos", () => {
+  it("ninguna pantalla aparece en los dos menús", () => {
+    const prod = hijosMenuProduccion({ esLider: true, ubicacionTipo: "tienda" }) as string[];
+    const comp = hijosMenuCompras({ esLider: true, ubicacionTipo: "tienda" }) as string[];
+    expect(prod.filter((c) => comp.includes(c))).toEqual([]);
   });
 });
