@@ -28,42 +28,72 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 El dinero de Compras es solo del líder + «Recibidas» por envío (2026-09-19, ADR-0126)
+
+Rama `claude/recibir-cerrar-huecos`, sobre `main` (343e5b0). **Las dos migraciones NO están en producción: las pega
+Felipe** (el PR se fusiona primero; la app funciona con o sin ellas). Cierra los huecos que dejó Recibir por envío:
+un integrante leía los montos de su sede por tres puertas —5 funciones, las tablas de Compras y el bucket de
+escaneos—; cerrar solo las funciones no habría servido. `pnpm pruebas:dinero-compras` (32 casos, también con
+`--en-seco`), `pruebas:compras-indicadores` (144/144), `pruebas:compras-faltantes` (112/112) y `pruebas:recibir-envio` (29/29) en
+verde; tipos, lint y 1062 pruebas unitarias en verde.
+
+**Migraciones a pegar en producción, EN ESTE ORDEN:**
+
+1. `20260919160000_dinero_de_compras_lectura_operativa.sql` (A) — aditiva: nada deja de funcionar al pegarla.
+2. `20260919161000_dinero_de_compras_tablas_solo_lider.sql` (B) — **después de A y de que Vercel haya desplegado**. Se
+   niega a correr si la A no está («Pega primero …»). Es la que cierra las tablas y el bucket.
+
+- [ ] **Pegar A y luego B** en el SQL Editor de producción (traen `set search_path`: sin prefijo `retail.`). Al pegar A
+      imprime las cinco firmas a las que les puso el candado.
+- [ ] **Verificar tras pegar:** `select retail.fn_aplicar_candado_de_dinero();` → `{}` (todo con candado). Abrir
+      `/recibir` como colaborador (Micaela, Tienda Trujillo): lista y líneas sin ningún «S/», y `/inventario/recibir`
+      sin la columna de costo. Como líder, `/compras` y `/compras/por-pagar` iguales que antes.
+- [ ] **Refrescar el volcado y el diccionario** después de pegar (`docs/datos/generado/COMO-REFRESCAR.md`): hasta
+      entonces `pnpm datos:comparar` marca `lineas_compra_operativo` como «no existe en producción» (correcto; la
+      app lo cubre con el respaldo `esFuncionAusente`) y el diccionario no trae las 5 funciones nuevas ni las políticas.
+- [ ] **Regla para la sesión de Compras:** después de pegar cualquier migración que recree `resumen_compras`,
+      `resumen_compras_extra`, `deuda_por_vencimiento`, `salidas_caja_30d` o `por_pagar_tramos`, correr
+      `select retail.fn_aplicar_candado_de_dinero();`. Una migración puede llevar, al final y sin depender del orden:
+      `do $$ begin if to_regprocedure('retail.fn_aplicar_candado_de_dinero()') is not null then perform retail.fn_aplicar_candado_de_dinero(); end if; end $$;`
+- [ ] **Decisiones que este ADR NO toma (para Felipe):** (1) `fn_productos` devuelve `costo` y `precio` a cualquier
+      usuario con sesión y el catálogo no lo esconde: hoy un integrante ve el costo unitario de cada prenda; (2)
+      `proveedores_select` deja a cualquier sesión leer RUC, teléfono, **banco y cuenta bancaria** de todos los
+      proveedores. Ambos tocan otros módulos (Inventario/Productos/Vender; Proveedores).
+- [x] **«Recibidas recientemente» agrupada por envío:** las filas de un envío de 2+ proveedores salen bajo una cabecera
+      «Envío de N proveedores · Guía …» con lo que llegó y lo que faltó (`agruparPorEnvio`, sin migración: lee
+      `lotes.envio_id`). Si el tope de filas corta un envío, no pinta totales de una parte.
+- [x] **Diccionario al día con Recibir por envío:** `envios`, `envio_extras`, `envio_traslados` y `lotes.envio_id`
+      entraron a `docs/datos/generado/` (refresco acotado a esas tablas contra producción, 2026-09-19). Producción
+      tiene 0 filas en `lotes` y en `envios`.
+
 ## 🎯 Recibir por envío: varios proveedores, una guía, cuenta cualquiera (2026-09-18, ADR-0113)
 
-Rama `claude/receiving-module-design-3f2904`, sobre `main` (804d030, con la rama de Compras ya fusionada, #149).
-**Solo local — NO está en producción.** Construido y verificado: tablas `envios` / `envio_extras` /
-`envio_traslados` + `lotes.envio_id`, la RPC atómica e idempotente `recibir_envio`, y la pantalla nueva
-`/recibir` (`RecepcionEnvio.tsx`, reglas puras en `lib/envio-reglas.ts`). 29 pruebas SQL
-(`pnpm pruebas:recibir-envio`), 24 unitarias, tipos y lint en verde, y un envío real de punta a punta desde la
-pantalla como líder (2 proveedores + un regalo + un traslado del Taller). Decisiones de Felipe: un envío puede
-traer comprobantes de varios proveedores; una sola guía por envío; lo fuera de comprobante declara su origen
-(proveedor, y si es regalo; lo de otra sede se confirma como traslado, no como prenda suelta); cualquier
-persona cuenta en la puerta; los cuatro indicadores viven bajo «¿Qué llegó?» y desaparecen al marcar.
+**En `main` y en producción** (PR #172, fusionado el 2026-09-19; las 2 migraciones las pegó Felipe ese día). Tablas
+`envios` / `envio_extras` / `envio_traslados` + `lotes.envio_id`, la RPC atómica e idempotente `recibir_envio`, y la
+pantalla `/recibir` (`RecepcionEnvio.tsx`, reglas puras en `lib/envio-reglas.ts`). 29 pruebas SQL
+(`pnpm pruebas:recibir-envio`), un envío real de punta a punta desde la pantalla como líder (2 proveedores + un regalo
++ un traslado del Taller). Decisiones de Felipe: un envío puede traer comprobantes de varios proveedores; una sola
+guía por envío; lo fuera de comprobante declara su origen (proveedor, y si es regalo; lo de otra sede se confirma como
+traslado, no como prenda suelta); cualquier persona cuenta en la puerta; los cuatro indicadores viven bajo «¿Qué
+llegó?» y desaparecen al marcar.
 
-- [ ] **Probar la pantalla como colaborador** (Micaela, integrante de Tienda Trujillo): no se pudo en esta
-      sesión (el inicio de sesión pide contraseña). Qué mirar: ningún «S/» en la lista ni en los indicadores,
-      «Entra al almacén de» fijo a su sede, sin editor de faltantes ni nota de crédito («Sigue pendiente»), y
-      que `/compras` la devuelva al Inicio. Hay dos comprobantes de prueba `TST-UI000003`/`UI000004` para
-      Tienda Trujillo. En la base local quedaron además `TST-UI000001`/`UI000002` (ya recibidos, envío
-      `T009-UI01`) y el traslado 15 (cerrado): datos de prueba, no se borran.
-- [x] **Las 2 migraciones ya están en producción** (`20260919120000_envios_recepcion_multiproveedor`,
-      `20260919121000_recibir_envio`): las pegó Felipe el 2026-09-19 y se verificó contra la base (3 tablas,
-      `lotes.envio_id`, `recibir_envio` de una sola firma y 3 políticas de RLS). Falta, opcional, registrarlas en
-      `supabase_migrations.schema_migrations`. **Probar con un comprobante real** necesita antes `20260918219000`
-      (de Compras): hasta que se pegue, `registrar_compra` tiene dos firmas en producción.
-- [ ] **«Recibidas recientemente» ahora vive en `/recibir?vista=recibidas`.** La sesión de Compras tiene sin
-      publicar `feat/recibidas-pastillas` (filtros como 2 pastillas; `FiltrosRecibidas.tsx` +
-      `lib/recibidas-filtros-reglas.ts`): su cambio de página se aplica en `/recibir/page.tsx` (la ruta vieja se
-      borró), sus componentes se reusan tal cual.
-- [ ] **Hueco de ADR-0075 (lo encontró Compras, PR #165):** `resumen_compras`, `resumen_compras_extra`,
-      `deuda_por_vencimiento`, `salidas_caja_30d` y `por_pagar_tramos` devuelven a un integrante los montos de
-      su sede (solo candado de sede). Recibir no las usa para colaboradores (`kpisDeLaLista`); decidir con
-      Felipe si eso está bien o se cierra.
+- [ ] **Probar la pantalla como colaborador** (Micaela, integrante de Tienda Trujillo): no se pudo (el inicio de sesión
+      pide contraseña y no se escribe). Qué mirar: ningún «S/» en la lista ni en los indicadores, «Entra al almacén de»
+      fijo a su sede, sin editor de faltantes ni nota de crédito («Sigue pendiente»), y que `/compras` la devuelva al
+      Inicio. En la base local hay comprobantes de prueba `TST-UI000003`/`UI000004` para Tienda Trujillo y
+      `TST-UI000001`/`UI000002` (ya recibidos, envío `T009-UI01`): datos de prueba, no se borran.
+- [x] **Las 2 migraciones están en producción** (`20260919120000_envios_recepcion_multiproveedor`,
+      `20260919121000_recibir_envio`), verificadas contra la base. No hace falta registrarlas en
+      `supabase_migrations.schema_migrations`: ahí solo constan las que aplica la herramienta de Supabase (las pegadas
+      a mano, incluidas las de Compras, no) y `scripts/migraciones/verificar.mjs` no lee esa tabla.
+- [x] **«Recibidas recientemente» vive en `/recibir?vista=recibidas`** con las pastillas de Compras (#174) y ahora
+      agrupada por envío (ADR-0126).
+- [x] **Hueco de ADR-0075** (montos legibles por un integrante): cerrado por ADR-0126.
 
-Siguiente, sin urgencia: agrupar «Recibidas recientemente» por envío (hoy una fila por comprobante, con la
-misma guía); borrador local del conteo; miniaturas de prenda; ni `recibir_compras` ni `recibir_lote` sueltos
-tienen token de idempotencia (solo `recibir_envio`). **Cruce:** ADR-0107 (`modulos-por-tienda`, un comprobante
+Siguiente, sin urgencia: borrador local del conteo; miniaturas de prenda; ni `recibir_compras` ni `recibir_lote`
+sueltos tienen token de idempotencia (solo `recibir_envio`). **Cruce:** ADR-0107 (`modulos-por-tienda`, un comprobante
 repartido entre tiendas) reescribe las mismas funciones; el tope por tienda va dentro de `recibir_compras`.
+
 ## 🎯 Vender: comprobante impreso en térmica + ajustes del POS (2026-09-18, ADR-0114)
 
 Worktree `buscar-entry-point-7aa994`, **sin commitear**. Sin migración. 414 pruebas, `tsc` y `eslint` en verde;

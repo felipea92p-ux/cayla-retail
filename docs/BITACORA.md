@@ -8113,3 +8113,15 @@ sale con 1 si dos archivos de `docs/adr/` comparten número. Los dos que siguen 
 (`LEGADO`) que no puede crecer —un tercer 0074 falla— y de la que se borra la línea al renumerar. Igual que el
 candado de migraciones, solo ve la rama que prueba: el choque entre dos ramas se ve en la segunda, en su PR. Antes
 de elegir un número hay que mirar también las ramas remotas y los otros worktrees (receta en el encabezado del script).
+
+## 2026-09-19 (El dinero de Compras es solo del líder — ADR-0126)
+Un integrante leía los montos de su sede por tres puertas aunque las pantallas se los taparan: cinco funciones con solo el
+candado de sede, las tablas de Compras y el bucket de escaneos (hallazgo H4 de las pruebas de Compras; cerrar solo las
+funciones no habría servido). Ahora `fn_puede_ver_dinero_de_compras()` es la regla única (hoy: el líder), el integrante
+recibe por `listar_compras_operativo`/`lineas_compra_operativo` (lista de permitidos, sin una columna de dinero) y las
+tablas y el bucket pasan a solo-líder en dos migraciones que pega Felipe (A, luego B). El candado se inyecta leyendo la
+definición vigente (`fn_aplicar_candado_de_dinero`) porque otra migración en vuelo recrea `por_pagar_tramos` con otra
+firma y en producción se pegan a mano en el orden que toque. De paso, «Recibidas» sale agrupada por envío y el
+diccionario incorpora `envios`, `envio_extras`, `envio_traslados` y `lotes.envio_id` (los 0 lotes de producción confirman
+que aún no hay nada que agrupar). El ADR quedó como 0126: el 0121 lo tomó el Resumen v2 mientras se trabajaba.
+

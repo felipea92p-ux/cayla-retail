@@ -370,6 +370,33 @@
  },
  {
   "cmd": "SELECT",
+  "policyname": "envio_extras_select",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.envios e\n  WHERE ((e.id = envio_extras.envio_id) AND retail.fn_puede_operar_ubicacion(e.ubicacion_id))))",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "envio_extras",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "envio_traslados_select",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.envios e\n  WHERE ((e.id = envio_traslados.envio_id) AND retail.fn_puede_operar_ubicacion(e.ubicacion_id))))",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "envio_traslados",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "envios_select",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "envios",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
   "policyname": "etiqueta_categorias_select",
   "qual": "(auth.role() = 'authenticated'::text)",
   "roles": "{public}",
