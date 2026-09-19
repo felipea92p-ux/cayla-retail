@@ -33,6 +33,14 @@ de la casa) y la única que no pide un segundo sistema de color. Lo que la defin
   revisiones van y el plazo (verde/rojo), y desde el paso 3 muestra el **impacto** en inventario
   y caja mientras se elige, no solo en la confirmación. Cada talla dice cuántas hay en el piso.
 
+- **Botones como «Cobrar» de Vender** (ajuste del mismo día, pedido de Felipe): las primeras
+  versiones eran píldoras (`rounded-full`) con texto normal y no se parecían a nada del resto del
+  sistema. Ahora `BotonPrincipal`, `BotonSecundario`, `BotonRojo`, «Iniciar cambio/devolución» y
+  «Buscar» usan la esquina apenas redondeada (`rounded-md`) y la etiqueta en mayúsculas chicas
+  (`label-cayla`, 11 px); si hay monto —«Confirmar cambio S/ 10.00»— va a la derecha en la serif.
+  Los atajos «Escanear prenda» y «Sin comprobante» siguen siendo píldoras, a pedido suyo; el campo
+  de búsqueda pasó de píldora a `rounded-xl` para que el botón cuadrado quepa bien dentro.
+
 ## Cómo está hecho
 
 - `globals.css`: `anim-sube`, `hilo-dibuja`, `hilo-vertical`, `hilo-corre`, `check-trazo`,

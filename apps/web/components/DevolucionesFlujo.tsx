@@ -477,7 +477,7 @@ export function DevolucionesFlujo({
               <BotonSecundario onClick={onCerrar} disabled={enviando}>
                 Cancelar
               </BotonSecundario>
-              <BotonRojo onClick={registrar} disabled={enviando}>
+              <BotonRojo onClick={registrar} disabled={enviando} monto={soles(valorTotal)}>
                 {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
                 {enviando ? "Registrando…" : "Registrar devolución"}
               </BotonRojo>

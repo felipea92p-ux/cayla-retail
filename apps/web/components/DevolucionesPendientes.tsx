@@ -183,13 +183,7 @@ function TarjetaPendiente({ devolucion: d, esLider, cajaAbierta, ahora }: { devo
               <p className="text-xs text-tinta/70">Al aprobarla, las prendas vuelven al piso o entran a cuarentena.</p>
               <div className="flex items-center gap-2">
                 <BotonSecundario onClick={() => setResolviendo("rechazar")}>Rechazar</BotonSecundario>
-                <button
-                  type="button"
-                  onClick={() => setResolviendo("aprobar")}
-                  className="alza-cayla inline-flex h-11 items-center gap-2 rounded-lg bg-tinta px-6 text-sm font-semibold text-crema transition-colors duration-200 hover:bg-tinta/85"
-                >
-                  Aprobar
-                </button>
+                <BotonPrincipal onClick={() => setResolviendo("aprobar")}>Aprobar</BotonPrincipal>
               </div>
             </>
           ) : (

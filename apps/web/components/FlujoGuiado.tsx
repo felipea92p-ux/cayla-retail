@@ -249,15 +249,28 @@ export function PieDelPaso({ aviso, children }: { aviso: string | null; children
   );
 }
 
-export function BotonPrincipal({ onClick, children, disabled = false }: { onClick: () => void; children: ReactNode; disabled?: boolean }) {
+// Los botones son los de «Cobrar» de Vender (PuntoDeVentaTicket): esquina apenas redondeada,
+// la etiqueta en mayúsculas chicas con aire entre las letras (`label-cayla`) y, si hay un
+// monto, a la derecha y en la serif de la casa — la etiqueta dice qué se hace; el monto,
+// cuánto. Sin monto, la etiqueta va centrada.
+function ContenidoBoton({ children, monto }: { children: ReactNode; monto?: string }) {
+  return (
+    <>
+      <span className="label-cayla flex items-center gap-2 text-[11px]">{children}</span>
+      {monto && <strong className="font-display text-lg">{monto}</strong>}
+    </>
+  );
+}
+
+export function BotonPrincipal({ onClick, children, disabled = false, monto }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="boton-brillo alza-cayla inline-flex h-12 items-center gap-2 rounded-full bg-tinta px-7 text-sm font-semibold text-crema transition-colors duration-200 hover:bg-tinta/90 disabled:opacity-60"
+      className={`boton-brillo alza-cayla flex h-12 items-center gap-8 rounded-md bg-tinta px-6 text-crema transition-colors duration-200 hover:bg-tinta/85 disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}
     >
-      {children}
+      <ContenidoBoton monto={monto}>{children}</ContenidoBoton>
     </button>
   );
 }
@@ -268,7 +281,7 @@ export function BotonSecundario({ onClick, children, disabled = false }: { onCli
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex h-12 items-center gap-2 rounded-full px-5 text-sm font-medium text-tinta ring-1 ring-tinta/15 transition-colors duration-200 hover:bg-papel hover:ring-tinta/30 disabled:opacity-50"
+      className="label-cayla inline-flex h-12 items-center gap-2 rounded-md px-5 text-[11px] text-tinta ring-1 ring-tinta/15 transition-colors duration-200 hover:bg-papel hover:ring-tinta/30 disabled:opacity-50"
     >
       {children}
     </button>
@@ -276,15 +289,15 @@ export function BotonSecundario({ onClick, children, disabled = false }: { onCli
 }
 
 /** El único rojo del flujo: la acción que mueve stock o plata de verdad. */
-export function BotonRojo({ onClick, children, disabled = false }: { onClick: () => void; children: ReactNode; disabled?: boolean }) {
+export function BotonRojo({ onClick, children, disabled = false, monto }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="boton-brillo alza-cayla inline-flex h-12 items-center gap-2 rounded-full bg-rojo px-7 text-sm font-semibold text-crema transition-colors duration-200 hover:bg-rojo-profundo disabled:opacity-70"
+      className={`boton-brillo alza-cayla flex h-12 items-center gap-8 rounded-md bg-rojo px-6 text-crema transition-colors duration-200 hover:bg-rojo-profundo disabled:opacity-70 ${monto ? "justify-between" : "justify-center"}`}
     >
-      {children}
+      <ContenidoBoton monto={monto}>{children}</ContenidoBoton>
     </button>
   );
 }

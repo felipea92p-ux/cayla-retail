@@ -83,7 +83,7 @@ export function BuscadorVentas({
       {/* Una sola píldora: la búsqueda y su botón. Al enfocarla se despega un poco y toma el
           hilo (taupe) como borde. */}
       <div
-        className={`flex h-16 items-center gap-3 rounded-full bg-papel pl-5 pr-2.5 shadow-[0_20px_42px_-28px_rgba(80,50,20,0.5)] ring-1 transition-[box-shadow,transform] duration-300 focus-within:-translate-y-px focus-within:shadow-[0_26px_52px_-26px_rgba(80,50,20,0.6)] focus-within:ring-2 focus-within:ring-taupe sm:pl-6 ${
+        className={`flex h-16 items-center gap-3 rounded-xl bg-papel pl-5 pr-2.5 shadow-[0_20px_42px_-28px_rgba(80,50,20,0.5)] ring-1 transition-[box-shadow,transform] duration-300 focus-within:-translate-y-px focus-within:shadow-[0_26px_52px_-26px_rgba(80,50,20,0.6)] focus-within:ring-2 focus-within:ring-taupe sm:pl-6 ${
           escaneando ? "ring-2 ring-taupe" : "ring-tinta/[0.09]"
         }`}
       >
@@ -130,7 +130,7 @@ export function BuscadorVentas({
         <button
           type="submit"
           disabled={buscando}
-          className="boton-brillo h-12 shrink-0 rounded-full bg-tinta px-5 text-sm font-semibold text-crema transition-[background-color,transform] duration-300 hover:bg-tinta/90 disabled:opacity-60 sm:px-7"
+          className="boton-brillo label-cayla h-12 shrink-0 rounded-md bg-tinta px-5 text-[11px] text-crema transition-colors duration-300 hover:bg-tinta/85 disabled:opacity-60 sm:px-7"
         >
           Buscar
         </button>

@@ -183,7 +183,7 @@ export function FilaPrendaVenta({
 
 /** El botón de la fila: "Iniciar cambio →", "Iniciar devolución →". */
 export const CLASE_BOTON_FILA =
-  "boton-brillo inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-full bg-tinta px-5 text-sm font-semibold text-crema transition-[transform,box-shadow] duration-300 hover:-translate-y-px hover:shadow-[0_10px_22px_-12px_rgba(26,26,24,0.7)]";
+  "boton-brillo label-cayla inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-md bg-tinta px-5 text-[11px] text-crema transition-[transform,box-shadow] duration-300 hover:-translate-y-px hover:shadow-[0_10px_22px_-12px_rgba(26,26,24,0.7)]";
 
 /** Los filtros de la actividad: pastillas con cuántas compras hay en cada una. */
 export function FiltrosActividad<T extends string>({
@@ -271,7 +271,7 @@ export function SinResultadosVentas({
         <button
           type="button"
           onClick={onBuscarEnTodas}
-          className="mt-4 inline-flex h-10 items-center rounded-lg px-4 text-sm font-semibold text-tinta ring-1 ring-tinta/20 transition-colors duration-200 hover:bg-tinta hover:text-crema"
+          className="label-cayla mt-4 inline-flex h-11 items-center rounded-md px-5 text-[11px] text-tinta ring-1 ring-tinta/20 transition-colors duration-200 hover:bg-tinta hover:text-crema"
         >
           Buscar en todas las tiendas
         </button>

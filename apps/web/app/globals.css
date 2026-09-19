@@ -424,8 +424,8 @@ body {
   transform: translate3d(-120%, 0, 0) skewX(-12deg);
 }
 .boton-brillo:hover:not(:disabled)::after { animation: cayla-brillo 800ms var(--ease-cayla); }
-.boton-brillo > svg:last-child { transition: transform 300ms var(--ease-cayla); }
-.boton-brillo:hover:not(:disabled) > svg:last-child { transform: translateX(4px); }
+.boton-brillo svg:last-child { transition: transform 300ms var(--ease-cayla); }
+.boton-brillo:hover:not(:disabled) svg:last-child { transform: translateX(4px); }
 
 @media (min-width: 640px) {
   .anim-entrada { animation-name: cayla-entrada; }

@@ -384,7 +384,9 @@ export function CambiosFlujo({
               <BotonSecundario onClick={onCerrar} disabled={enviando}>
                 Cancelar
               </BotonSecundario>
-              <BotonRojo onClick={confirmar} disabled={enviando}>
+              {/* Como «Cobrar» en Vender: qué se hace a la izquierda; cuánto, a la derecha. Solo si
+                  hay diferencia que mover: sin ella, el botón no promete plata. */}
+              <BotonRojo onClick={confirmar} disabled={enviando} monto={r.diferencia !== 0 ? soles(Math.abs(r.diferencia)) : undefined}>
                 {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
                 {enviando ? "Registrando…" : "Confirmar cambio"}
               </BotonRojo>
