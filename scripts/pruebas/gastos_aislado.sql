@@ -65,7 +65,7 @@ create table public.personas (id uuid primary key, auth_user_id uuid);
 create table retail.ubicaciones (
   id uuid primary key default gen_random_uuid(),
   nombre text not null unique,
-  tipo text not null check (tipo in ('tienda', 'almacen')),
+  tipo text not null check (tipo in ('tienda', 'almacen', 'taller')),
   activo boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -97,6 +97,10 @@ create function retail.fn_es_lider() returns boolean language sql stable
 as $$ select coalesce(nullif(current_setting('test.lider', true), '')::boolean, false) $$;
 create function retail.fn_puede_operar_ubicacion(p_ubicacion_id uuid) returns boolean language sql stable
 as $$ select retail.fn_es_lider() $$;
+
+-- «Hoy» en Lima: la definición real de 20260918170000.
+create function retail.fn_hoy_lima() returns date
+language sql stable as $$ select (now() at time zone 'America/Lima')::date $$;
 
 -- La firma VIEJA de 4 argumentos: la migración de caja la borra antes de crear la de 6.
 create function retail.registrar_movimiento_caja(p_caja_id uuid, p_tipo text, p_monto numeric, p_motivo text)
@@ -132,8 +136,10 @@ create function public.g(
   p_fecha date default null, p_cat text default 'suministros', p_desc text default 'prueba'
 ) returns uuid language sql as $$
   select retail.registrar_gasto(
-    p_ubic, p_cat, p_desc, coalesce(p_fecha, (now() at time zone 'America/Lima')::date), p_monto, p_igv,
-    p_tipo, p_num, null, p_medio, p_caja, p_mov, p_token)
+    p_ubicacion_id => p_ubic, p_categoria => p_cat, p_descripcion => p_desc,
+    p_fecha => coalesce(p_fecha, retail.fn_hoy_lima()), p_monto_total => p_monto,
+    p_comprobante_tipo => p_tipo, p_medio_pago => p_medio, p_igv => p_igv, p_comprobante_numero => p_num,
+    p_caja_id => p_caja, p_caja_movimiento_id => p_mov, p_token => p_token)
 $$;
 
 -- INSERT directo (sin RPC) para probar los candados de la tabla misma.
@@ -153,7 +159,7 @@ insert into public.personas values
 insert into retail.ubicaciones (id, nombre, tipo, activo) values
   (public.k_tru(), 'Tienda TRU', 'tienda', true),
   (public.k_aqp(), 'Tienda AQP', 'tienda', true),
-  (public.k_tal(), 'Taller', 'almacen', true),
+  (public.k_tal(), 'Taller', 'taller', true),
   (gen_random_uuid(), 'Tienda vieja cerrada', 'tienda', false);
 insert into retail.cajas (id, ubicacion_id, estado) values
   (public.k_c1(), public.k_tru(), 'abierta'),
@@ -253,6 +259,8 @@ select public.t_ok((select count(*) from retail.fn_egresos_sin_clasificar()) = 3
 -- (m2 500 depósito, m5 10 movilidad, m6 10 «Otro» de la caja cerrada de AQP)
 insert into ids select 'nog2', retail.marcar_egreso_no_gasto(public.k_m(2), 'Depósito al banco');
 select public.t_ok((select count(*) from retail.fn_egresos_sin_clasificar()) = 2, 'T8 el depósito marcado sale de «sin clasificar»');
+select public.t_ok((select count(*) = 1 and bool_and(id = (select v from ids where k = 'nog2') and monto = 500 and total = 1) from retail.fn_egresos_no_gasto_lista()),
+  'T8 la marca aparece en la lista de «no es gasto», con su id: se puede llegar a ella para revertirla');
 select public.t_falla($$select public.g(public.k_tru(), 'efectivo', 500, p_mov => public.k_m(2))$$, 'no es gasto');
 select public.t_falla($$select retail.marcar_egreso_no_gasto(public.k_m(1), 'x')$$, 'ya está clasificado como gasto');
 select public.t_falla($$select retail.marcar_egreso_no_gasto(public.k_m(3), 'x')$$, 'Solo un egreso');
@@ -260,6 +268,7 @@ select public.t_falla($$select retail.marcar_egreso_no_gasto(public.k_m(2), 'otr
 select public.t_falla($$select retail.marcar_egreso_no_gasto(public.k_m(5), '  ')$$, 'Di por qué');
 select retail.revertir_egreso_no_gasto((select v from ids where k = 'nog2'));
 select public.t_ok((select count(*) from retail.fn_egresos_sin_clasificar()) = 3, 'T8 revertir la marca devuelve el egreso a «sin clasificar»');
+select public.t_ok((select count(*) from retail.fn_egresos_no_gasto_lista()) = 0, 'T8 la marca revertida sale de la lista');
 select public.t_falla($$select retail.revertir_egreso_no_gasto((select v from ids where k = 'nog2'))$$, 'ya fue revertida');
 select retail.marcar_egreso_no_gasto(public.k_m(2), 'Depósito al banco, otra vez');   -- vuelve a marcarse tras revertir
 select public.t_ok((select count(*) from retail.fn_egresos_sin_clasificar()) = 2, 'T8 tras revertir se puede volver a marcar');
@@ -311,6 +320,7 @@ select public.t_falla($$select public.g(public.k_tru(), 'yape', 10)$$, 'Solo un 
 select public.t_falla($$select retail.fn_egresos_resumen(current_date, current_date)$$, 'Solo un líder');
 select public.t_falla($$select retail.fn_egresos_sin_clasificar()$$, 'Solo un líder');
 select public.t_falla($$select retail.fn_gastos_lista(current_date, current_date)$$, 'Solo un líder');
+select public.t_falla($$select retail.fn_egresos_no_gasto_lista()$$, 'Solo un líder');
 select public.t_falla($$select retail.anular_gasto((select v from ids where k = 'g1'), 'x')$$, 'Solo un líder');
 select public.t_falla($$select retail.marcar_egreso_no_gasto(public.k_m(5), 'x')$$, 'Solo un líder');
 select public.t_falla($$select retail.revertir_egreso_no_gasto(gen_random_uuid())$$, 'Solo un líder');

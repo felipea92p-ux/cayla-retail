@@ -288,17 +288,19 @@ create trigger egresos_no_gasto_validar
 -- vigente y su monto coincide (lo valida el trigger).
 -- Idempotente por `p_token`: un doble clic o un reintento de red devuelve el
 -- mismo gasto en vez de crear otro (mismo patrón que `registrar_venta`).
+-- `p_ubicacion_id` es OBLIGATORIO a propósito (null = «de la empresa»): si tuviera default, olvidarlo
+-- atribuiría el gasto a la empresa en silencio. Lo opcional va al final, con default.
 create function retail.registrar_gasto(
   p_ubicacion_id uuid,
   p_categoria text,
   p_descripcion text,
   p_fecha date,
   p_monto_total numeric,
-  p_igv numeric,
   p_comprobante_tipo text,
-  p_comprobante_numero text,
-  p_proveedor_id uuid,
   p_medio_pago text,
+  p_igv numeric default 0,
+  p_comprobante_numero text default null,
+  p_proveedor_id uuid default null,
   p_caja_id uuid default null,
   p_caja_movimiento_id uuid default null,
   p_token uuid default null
@@ -316,7 +318,7 @@ declare
   v_ubic_caja uuid;
   v_id uuid;
   v_cons text;
-  v_hoy date := (now() at time zone 'America/Lima')::date;
+  v_hoy date := retail.fn_hoy_lima();   -- la misma definición de «hoy» que usa todo el sistema
 begin
   if not retail.fn_es_lider() then
     raise exception 'Solo un líder de equipo puede registrar gastos';
@@ -554,6 +556,36 @@ begin
 end;
 $$;
 
+-- Los egresos marcados «no es gasto» que siguen vigentes. Sin esta lista la marca sería reversible
+-- solo en el papel: nadie podría llegar a ella para revertirla.
+create function retail.fn_egresos_no_gasto_lista(p_limite integer default 100)
+returns table (
+  id uuid, caja_movimiento_id uuid, ubicacion_nombre text, monto numeric, motivo_egreso text,
+  motivo text, revisado_por uuid, revisado_en timestamptz, total bigint
+)
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+#variable_conflict use_column
+begin
+  if not retail.fn_es_lider() then
+    raise exception 'Solo un líder de equipo puede ver los egresos de caja clasificados';
+  end if;
+  return query
+  select e.id, e.caja_movimiento_id, u.nombre, m.monto, m.motivo, e.motivo, e.revisado_por, e.revisado_en,
+         count(*) over ()
+    from retail.egresos_no_gasto e
+    join retail.caja_movimientos m on m.id = e.caja_movimiento_id
+    join retail.cajas c on c.id = m.caja_id
+    join retail.ubicaciones u on u.id = c.ubicacion_id
+   where e.revertido_en is null
+   order by e.revisado_en desc
+   limit greatest(p_limite, 1);
+end;
+$$;
+
 -- Lista de gastos del rango (vigentes y anulados, para poder auditar).
 create function retail.fn_gastos_lista(
   p_desde date, p_hasta date, p_ubicacion_id uuid default null, p_solo_empresa boolean default false,
@@ -595,24 +627,26 @@ $$;
 -- Las funciones nacen ejecutables por `public` (y 0005 da execute a authenticated
 -- por defecto). Las abrimos solo a `authenticated`; adentro cada una exige líder.
 -- Los dos triggers son internos: nadie los llama.
-revoke all on function retail.registrar_gasto(uuid, text, text, date, numeric, numeric, text, text, uuid, text, uuid, uuid, uuid) from public, anon;
+revoke all on function retail.registrar_gasto(uuid, text, text, date, numeric, text, text, numeric, text, uuid, uuid, uuid, uuid) from public, anon;
 revoke all on function retail.anular_gasto(uuid, text) from public, anon;
 revoke all on function retail.marcar_egreso_no_gasto(uuid, text) from public, anon;
 revoke all on function retail.revertir_egreso_no_gasto(uuid) from public, anon;
 revoke all on function retail.fn_egresos_resumen(date, date) from public, anon;
 revoke all on function retail.fn_egresos_sin_clasificar(integer) from public, anon;
 revoke all on function retail.fn_gastos_lista(date, date, uuid, boolean, integer) from public, anon;
+revoke all on function retail.fn_egresos_no_gasto_lista(integer) from public, anon;
 revoke all on function retail.fn_gastos_validar_egreso() from public, anon, authenticated;
 revoke all on function retail.fn_gastos_solo_anular() from public, anon, authenticated;
 revoke all on function retail.fn_egresos_no_gasto_validar() from public, anon, authenticated;
 
-grant execute on function retail.registrar_gasto(uuid, text, text, date, numeric, numeric, text, text, uuid, text, uuid, uuid, uuid) to authenticated;
+grant execute on function retail.registrar_gasto(uuid, text, text, date, numeric, text, text, numeric, text, uuid, uuid, uuid, uuid) to authenticated;
 grant execute on function retail.anular_gasto(uuid, text) to authenticated;
 grant execute on function retail.marcar_egreso_no_gasto(uuid, text) to authenticated;
 grant execute on function retail.revertir_egreso_no_gasto(uuid) to authenticated;
 grant execute on function retail.fn_egresos_resumen(date, date) to authenticated;
 grant execute on function retail.fn_egresos_sin_clasificar(integer) to authenticated;
 grant execute on function retail.fn_gastos_lista(date, date, uuid, boolean, integer) to authenticated;
+grant execute on function retail.fn_egresos_no_gasto_lista(integer) to authenticated;
 
 comment on table retail.gastos is
   'Única fuente de los gastos generales (ADR-0117). Un egreso de caja solo es gasto si un gasto vigente lo señala por caja_movimiento_id. Sin DELETE: se anula con motivo.';

@@ -95,6 +95,8 @@ const IC = {
   resumen: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
   facturacion: "M9 12h6m-6 4h6M9 8h1m3.5-5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 3z",
   compras: "M3 4h2l2.2 11.2a1 1 0 001 .8h9.6a1 1 0 001-.8L20 8H6.5M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2zM12 8v4m-2-2h4",
+  // Eje con una línea que sube: el ícono de Finanzas (Gastos hoy; Estado de Resultados y Balance después).
+  finanzas: "M3 3v18h18M7 15l4-4 3 3 5-6",
   colaboradores: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
   produccion: "M6 9a3 3 0 100-6 3 3 0 000 6zm0 12a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12",
   // Flechas verticales (no las horizontales de "movimientos", para no leerse
@@ -548,6 +550,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
     catalogo: ["/productos", "/productos/categorias", "/productos/atributos"],
     compras: ["/compras", "/compras/proveedores", "/compras/recibir", "/compras/por-pagar"],
     inventario: ["/inventario", "/inventario/movimientos", "/inventario/traslados", "/inventario/conteo", "/inventario/resumen"],
+    finanzas: ["/finanzas/egresos"],
   };
   const grupoActivo = Object.entries(RUTAS_POR_GRUPO).find(([, rutas]) => rutas.some((h) => activo(h)))?.[0] ?? null;
 
@@ -611,6 +614,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
   const facturas: Item = { href: "/compras", etiqueta: "Comprobantes", icono: IC.facturas };
   const recibirMercaderia: Item = { href: "/compras/recibir", etiqueta: "Recibir mercadería", icono: IC.recibir };
   const porPagar: Item = { href: "/compras/por-pagar", etiqueta: "Por pagar", icono: IC.porPagar };
+  const gastos: Item = { href: "/finanzas/egresos", etiqueta: "Gastos", icono: IC.facturacion };
   const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };
   const produccion: Item = { href: "/produccion", etiqueta: "Producción", icono: IC.produccion };
   // Producción (revertido 2026-09-17, pedido de Felipe): vuelve a verse SOLO
@@ -675,6 +679,11 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
     hijos: [existencias, movimientos, traslados, conteo, ...(esLider ? [resumen] : [])],
   };
 
+  // "Finanzas" (ADR-0117): líder-only, al final del menú (el orden de Felipe del 2026-09-16 no lo
+  // incluía; va último para no mover nada de lo que ya usa). Hoy lleva Gastos; el Estado de
+  // Resultados y el Balance se suman aquí cuando existan.
+  const grupoFinanzas: ItemGrupo = { id: "finanzas", etiqueta: "Finanzas", icono: IC.finanzas, hijos: [gastos] };
+
   const grupos = [
     {
       titulo: null,
@@ -688,6 +697,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
         ...(esLider ? [grupoCompras] : []),
         grupoVenta,
         grupoInventario,
+        ...(esLider ? [grupoFinanzas] : []),
       ],
     },
   ].filter((g) => g.items.length > 0);
