@@ -47,6 +47,67 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] **Menú:** "Comercial" se agregó al final del menú de líder sin mover nada; el orden actual lo pidió Felipe
       el 2026-09-16. Confirmar dónde lo quiere.
 
+## 🎯 Compras: indicadores para decidir, faltantes con nota de crédito y pago por lote (2026-09-18, ADR-0111)
+
+Rama `claude/pantallas-proveedores-comprobantes-a15ece`. **`main` ya está fusionada en esta rama (2026-09-18,
+local; sin push)**: tipos, tests, lint y las 99 pruebas SQL en verde, y las 135 migraciones del repo se
+reprodujeron limpias desde cero en un Postgres nuevo. Falta el PR contra `main`. Las 11 pantallas de `docs/maquetas/compras-2026-09/` están
+implementadas en código (Por pagar, Recibir mercadería, Comprobantes, Registrar, Proveedores +
+ficha, Ingreso sin comprobante). D1 (cantidades arrancan en 0), D2 (cerrar línea con faltante +
+nota de crédito, libro append-only) y D3 (pagar varios comprobantes de un proveedor de una vez).
+El ADR es el **0111**: main ya usa 0104–0107 y hay ramas abiertas con 0108, 0109 y 0110. Las 15 migraciones
+van en la banda `20260918200000`–`20260918218000` (main trae su propia `20260918160000`, y otras dos ramas usan
+`20260918170000`: una versión repetida rompe `supabase migration up`).
+
+- [ ] **Pegar en producción las 15 migraciones, en este orden** (Felipe, con su ok). Verificado
+      2026-09-18 contra la base de producción (`vovjyyiafkxteijimpuy`): ninguna está aplicada; todo
+      lo anterior del repo, hasta `20260918150000`, sí. Las cuatro últimas (12–15) llegaron el mismo día,
+      tras la prueba de Felipe: nota de crédito estricta, saldo a favor del proveedor y recepción atómica. `compras` tiene 0 filas en producción, así
+      que la reconstrucción de `saldo/estado_pago/estado_recepcion` no toca datos. Cada archivo ya
+      trae su `set search_path = retail, public, extensions;` (no hace falta el prefijo `retail.`).
+      1. `20260918200000_fn_hoy_lima` — `fn_hoy_lima()`; reemplaza `current_date` (Lima, no UTC). **Producción ya
+         tiene esta función** (la creó otra rama con el mismo cuerpo): este paso es `create or replace` y solo le
+         agrega sus permisos; no falla.
+      2. `20260918201000_compras_libro_cierres_y_notas_credito` — tablas `compra_item_cierres` y
+         `compra_notas_credito` (append-only) + `compra_pagos.pago_grupo_id` + columnas snapshot.
+      3. `20260918202000_compras_saldo_y_recepcion_con_cierres_y_notas` — `saldo = total − pagado −
+         notas` y `pendiente = cantidad − recibido − cerrado`; triggers de foto, candados
+         `compras_no_sobrepagada`/`compras_no_sobrerecibida` y vistas `compras_resumen`/`compra_items_resumen`.
+      4. `20260918203000_registrar_pago_compras_por_lote` — pago de varios comprobantes juntos.
+      5. `20260918204000_compras_cerrar_linea_y_nota_credito` — `cerrar_linea_compra`,
+         `registrar_nota_credito_compra`.
+      6. `20260918205000_compras_recibir_anular_y_listar_con_cierres` — `recibir_compras`,
+         `anular_compra`, `listar_compras` conscientes de cierres y notas.
+      7. `20260918210000_compras_resumen_hoy_lima_y_extra` — `resumen_compras`, `resumen_compras_extra`.
+      8. `20260918211000_compras_deuda_tramos_y_salidas_de_caja` — `deuda_por_vencimiento`,
+         `salidas_caja_30d`, `por_pagar_tramos`.
+      9. `20260918212000_compras_recepciones_indicadores` — `resumen_recepciones`,
+         `listar_recepciones_compras`.
+      10. `20260918213000_compras_sin_comprobante_indicadores` — `resumen_sin_comprobante`,
+          `recepciones_sin_comprobante`.
+      11. `20260918214000_proveedores_indicadores` — `fn_proveedores` (+4 columnas),
+          `fn_proveedores_resumen`, `fn_proveedor_metricas_compras` (+7), `fn_proveedor_costo_evolucion`,
+          `fn_proveedor_devoluciones`.
+      12. `20260918215000_compras_nota_credito_estricta_y_saldo_a_favor` — `compra_notas_credito.aplicado`,
+          libro `proveedor_creditos`, reglas de la nota por faltante, `cerrar_linea_compra` sin nota.
+      13. `20260918216000_recibir_y_cerrar_compras_atomico` — recibir + cerrar + nota en una transacción.
+      14. `20260918217000_saldo_a_favor_como_medio_de_pago_y_reembolso` — medio `saldo_a_favor` en los tres
+          pagos (`p_credito` en el lote) y `registrar_reembolso_proveedor`.
+      15. `20260918218000_saldo_a_favor_lecturas` — `fn_proveedores`/`fn_proveedores_resumen` con saldo a favor,
+          `fn_proveedor_creditos`.
+      **Después de pegar:** desplegar la rama (las pantallas llaman a estas funciones — sin las
+      migraciones, `datos:comparar` las marca rotas) y correr `pnpm datos:generar:produccion`.
+- [ ] **Verificación visual contra las maquetas** (escritorio y móvil): el navegador integrado pide
+      login y yo no ingreso contraseñas. Con sesión iniciada en `localhost:3000`, comparar cada
+      pantalla con su PNG de `docs/maquetas/compras-2026-09/` y corregir desvíos.
+- [ ] **Desvíos y huecos conocidos:** (a) pestaña «Recibidas» usa el popover de `FiltrosCompras` en
+      vez de las dos pastillas en línea de la maqueta 06; (b) «Completar costo» (ingreso sin
+      comprobante) no está: falta una RPC para editarlo; (c) la evolución de costo sale de
+      `compra_items`, no de `costo_historial`; (d) sin prueba SQL propia de los indicadores
+      (`scripts/pruebas/compras_indicadores.mjs`); (e) `types.ts` ya se regeneró tras
+      la fusión con main (hecho); (f) al pegar en producción: refrescar el volcado y correr
+      `pnpm datos:generar:produccion && pnpm datos:comparar` (el aviario ya conoce las 3 tablas nuevas).
+
 ---
 
 ## 🎯 Traslados: lectura operativa, franja «Atención hoy» y contador del menú (2026-09-18, ADR-0105)
@@ -384,19 +445,28 @@ verde.
 - [x] **Etiquetas de campaña — paso 2, modelo y pantalla (2026-09-18, ADR-0107).** Modal
       «Configurar campaña» (% de descuento, fechas, categorías opcionales) y tarjeta con el
       descuento. Guarda todo con un RPC atómico. **Sin efecto en caja.**
-- [ ] **⚠ Pegar en producción `supabase/migrations/20260918160000_etiquetas_descuento_y_categorias.sql`
-      ANTES de fusionar/desplegar.** Ya lleva `retail.`, es idempotente. Sin ella, la pestaña
+- [x] **Pegada en producción y verificada (2026-09-18, solo lectura): `supabase/migrations/20260918160000_etiquetas_descuento_y_categorias.sql`.** Ya lleva `retail.`, es idempotente. Sin ella, la pestaña
       Etiquetas de `/productos/atributos` cae en vivo (las otras cuatro no). Después:
       `pnpm datos:generar:produccion` con el volcado refrescado (entra `etiqueta_categorias`).
-- [ ] **Etiquetas de campaña — paso 3, la venta lo aplica (dinero real: confirmar antes).**
-      `registrar_venta` calcula el descuento en la base: UNO por prenda, el mayor entre sus
-      etiquetas vigentes y aprobadas (por etiqueta manual `variante_etiquetas` o por categoría
-      `etiqueta_categorias`); un descuento manual reemplaza al de campaña solo si es mayor; la
-      campaña no exige código. Vigencia en hora de Lima, NO `current_date` (UTC) — revisar de
-      paso si `codigos_descuento` y la restricción de sedes tienen el mismo defecto. Al
-      terminar: `DESCUENTO_YA_SE_APLICA = true` en `EtiquetasLista.tsx` y retirar los avisos
-      «Aún no se aplica en Vender». Decidir entonces si «Jeans» cubre a «Jeans niño» (hoy hay
-      0 subcategorías). Probar antes que nada el caso de dos etiquetas (20 % y 40 % → 40 %, no 60 %).
+- [x] **Etiquetas de campaña — paso 3, la venta lo aplica (2026-09-18, ADR-0108).** Construido y
+      probado (25 escenarios SQL en un Postgres de prueba; 579 pruebas; caja y modal verificados
+      en navegador). Un descuento por prenda: el mayor. Sin código para la campaña. Fecha en
+      hora de Lima. Aviso rojo «por debajo del costo» en el modal de campaña.
+- [ ] **⚠ Pegar en producción `supabase/migrations/20260918170000_venta_aplica_descuento_de_campana.sql`
+      — CAMBIA `registrar_venta` (dinero real).** Orden: 1) pegar el SQL, 2) desplegar la caja
+      nueva, 3) RECIÉN ENTONCES configurar una campaña. Ya lleva `retail.` y es idempotente.
+      Después: refrescar el volcado (`generado/COMO-REFRESCAR.md`) y `pnpm datos:generar:produccion`
+      (entran `campanas_vigentes`, `fn_campanas_por_variante`, `fn_hoy_lima` y
+      `venta_items.descuento_etiqueta_id`). Probar con UNA campaña real de una prenda y una
+      venta de prueba anulada.
+- [ ] **Campañas: lo que no cubre.** `registrar_cambio` y `liquidar_prenda_danada` no aplican
+      campañas. Un ticket armado ANTES de que empiece una campaña se rechaza al cobrar («recarga
+      Vender»): hoy no se re-evalúa solo en pantalla. La tolerancia de 3 días para la venta sin red
+      (`c_tolerancia_campana`) se puede cambiar por mandar la fecha de la venta (firma nueva).
+      Decidir si «Jeans» cubre a «Jeans niño» el día que existan subcategorías (hoy 0).
+- [ ] **Falso positivo de `datos:comparar` sobre `emitir_comprobante`/`p_token`:** producción ya
+      lo acepta (migración 20260918091500); el volcado de funciones está viejo. Se cierra solo al
+      refrescarlo.
 - [ ] **Extraer una `TarjetaAtributo` compartida (Colores/Tejidos/Patrones/Etiquetas).** Desde
       2026-09-18 las cuatro miden igual (5 columnas, margen 16 px, imagen 3:1) pero cada
       archivo repite esas clases a mano: el día que una cambie sin las otras, vuelve el desalineo.

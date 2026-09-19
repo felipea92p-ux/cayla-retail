@@ -29,7 +29,7 @@ import { Insignia } from "@/components/ui/Insignia";
 // propósito: no cambia qué muestra `/inventario` a secas (sigue siendo
 // Existencias), solo agrega una pantalla nueva al lado.
 const SECCIONES: { href: string; etiqueta: string; prefijos: string[] }[] = [
-  { href: "/inventario", etiqueta: "Existencias", prefijos: ["/inventario/recibir", "/inventario/mover"] },
+  { href: "/inventario", etiqueta: "Existencias", prefijos: ["/inventario/mover"] },
   { href: "/inventario/movimientos", etiqueta: "Movimientos", prefijos: ["/inventario/movimientos"] },
   { href: "/inventario/traslados", etiqueta: "Traslados", prefijos: ["/inventario/traslados"] },
   { href: "/inventario/conteo", etiqueta: "Conteo", prefijos: ["/inventario/conteo"] },
@@ -66,6 +66,17 @@ export function InventarioNav({
           </Link>
         );
       })}
+      {/* «Ingreso sin comprobante» (ADR-0111): la excepción de recibir — mercadería que llegó y todavía no tiene
+          su comprobante, muestras y obsequios. Vive en Inventario, no como par de Compras; a la derecha y
+          discreto para que no compita con las pestañas. */}
+      <Link
+        href="/inventario/recibir"
+        className={`label-cayla -mb-px ml-auto shrink-0 border-b-2 px-3 pb-2.5 pt-1 text-[11px] transition-colors ${
+          pathname === "/inventario/recibir" ? "border-rojo text-tinta" : "border-transparent text-tinta/55 hover:text-rojo"
+        }`}
+      >
+        Ingreso sin comprobante
+      </Link>
     </div>
   );
 }

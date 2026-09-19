@@ -358,8 +358,8 @@ body {
 /* ---- Barrido de luz: cruza un botón al pasar el mouse. Es el único
         gradiente del sistema y dura 600ms; no queda nada pintado. ---- */
 @keyframes cayla-brillo {
-  from { transform: translate3d(-120%, 0, 0) skewX(-12deg); }
-  to { transform: translate3d(320%, 0, 0) skewX(-12deg); }
+  from { opacity: 1; transform: translate3d(-120%, 0, 0) skewX(-12deg); }
+  to { opacity: 1; transform: translate3d(320%, 0, 0) skewX(-12deg); }
 }
 
 .anim-velo { animation: cayla-velo 220ms var(--ease-cayla) both; }

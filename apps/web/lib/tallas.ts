@@ -13,11 +13,23 @@ function rango(talla: string): [number, number | string] {
   if (letra >= 0) return [0, letra];
   const n = Number(t);
   if (Number.isFinite(n)) return [1, n];
-  // "Estándar"/"Único" son los valores reales del vocabulario cerrado
+  // "Estándar"/"Única" son los valores reales del vocabulario cerrado
   // (20260917100000_tallas_vocabulario_cerrado.sql); antes solo se
   // reconocían las grafías de V1 y caían en "desconocida".
   if (["ÚNICA", "UNICA", "ÚNICO", "UNICO", "STD", "U", "ESTÁNDAR", "ESTANDAR"].includes(t)) return [3, 0];
   return [2, t];
+}
+
+// Qué tipo de talla es — lo usa Atributos → Tallas para agrupar la pantalla.
+// Sale del mismo `rango` que ordena la curva, así que "qué grupo es" y "en qué
+// orden va" no pueden contradecirse: 0 letras, 1 numeración, 3 única/estándar,
+// 2 lo que no reconocemos (va al final, no se pierde).
+export type TipoTalla = "letras" | "numeracion" | "unica" | "otras";
+
+const TIPO_POR_GRUPO: Record<number, TipoTalla> = { 0: "letras", 1: "numeracion", 3: "unica", 2: "otras" };
+
+export function tipoDeTalla(talla: string): TipoTalla {
+  return TIPO_POR_GRUPO[rango(talla)[0]];
 }
 
 export function compararTallas(a: string, b: string): number {

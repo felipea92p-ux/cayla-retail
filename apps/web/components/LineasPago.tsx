@@ -1,7 +1,7 @@
 "use client";
 
 import { Boton, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
-import { ETIQUETA_METODO, soles } from "@/lib/compras-reglas";
+import { ETIQUETA_METODO, ETIQUETA_METODO_PAGO, METODO_SALDO_A_FAVOR, soles } from "@/lib/compras-reglas";
 
 /* ====================================================================
    LineasPago · un pago repartido en varios medios (2026-09-14)
@@ -16,6 +16,11 @@ import { ETIQUETA_METODO, soles } from "@/lib/compras-reglas";
    un pago posterior) y `exacto` dice si la suma tiene que ser igual (al
    contado) o solo no pasarse (crédito). El componente solo dibuja y
    avisa; la regla la aplica la base.
+
+   Saldo a favor (ADR-0111, corrección 2026-09-18): si el proveedor le debe
+   algo a CAYLA, `saldoFavor` > 0 ofrece «Saldo a favor» como un medio más
+   y un atajo «Usar S/ X» que lo pone como primera línea, con el resto en el
+   medio de siempre. La base valida que no se use más de lo disponible.
    ==================================================================== */
 
 export type LineaPago = { monto: string; metodo: string; referencia: string };
@@ -43,6 +48,7 @@ export function LineasPago({
   exacto,
   autoFocus = false,
   id = "lineas-pago",
+  saldoFavor = 0,
 }: {
   lineas: LineaPago[];
   onLineas: (l: LineaPago[]) => void;
@@ -51,7 +57,13 @@ export function LineasPago({
   autoFocus?: boolean;
   /** Prefijo de los ids (`<id>-monto-0`…), para enfocar desde un aviso. */
   id?: string;
+  /** Lo que el proveedor le debe a CAYLA; > 0 habilita el medio «Saldo a favor». */
+  saldoFavor?: number;
 }) {
+  const metodos = saldoFavor > 0 ? [...METODOS, METODO_SALDO_A_FAVOR] : METODOS;
+  const conFavor = lineas.some((l) => l.metodo === METODO_SALDO_A_FAVOR);
+  const favorUsado = sumaLineasPago(lineas.filter((l) => l.metodo === METODO_SALDO_A_FAVOR));
+  const favorExcedido = favorUsado > saldoFavor + 0.005;
   const suma = sumaLineasPago(lineas);
   const diferencia = Math.round((objetivo - suma) * 100) / 100;
   const excede = diferencia < 0;
@@ -64,6 +76,13 @@ export function LineasPago({
     onLineas([...lineas, lineaPagoVacia(diferencia > 0 ? diferencia.toFixed(2) : "")]);
   }
 
+  // «Usar S/ X»: primera línea con el saldo a favor (hasta lo que hay que pagar) y el resto en el medio de siempre.
+  function usarSaldoFavor() {
+    const usar = Math.round(Math.min(saldoFavor, objetivo) * 100) / 100;
+    const resto = Math.round((objetivo - usar) * 100) / 100;
+    onLineas([{ monto: usar.toFixed(2), metodo: METODO_SALDO_A_FAVOR, referencia: "" }, ...(resto > 0 ? [lineaPagoVacia(resto.toFixed(2))] : [])]);
+  }
+
   // La columna "Quitar" existe solo cuando hay más de una línea: con una
   // sola, un `auto` vacío igual cobraba su hueco + separación y apretaba
   // el medio y la referencia dentro de un modal.
@@ -71,6 +90,18 @@ export function LineasPago({
 
   return (
     <div id={id} className="space-y-3">
+      {saldoFavor > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-verde/40 bg-verde/[0.06] px-4 py-2.5">
+          <p className="text-sm text-tinta">
+            Tienes <b className="font-semibold">{soles(saldoFavor)}</b> a favor con este proveedor.
+          </p>
+          {!conFavor && (
+            <button type="button" onClick={usarSaldoFavor} className="label-cayla text-[11px] text-rojo hover:underline">
+              Usar {soles(Math.min(saldoFavor, objetivo))}
+            </button>
+          )}
+        </div>
+      )}
       {lineas.map((l, i) => (
         <div key={i} className={`grid gap-3 sm:items-end ${plantilla}`}>
           <CampoTexto
@@ -86,9 +117,9 @@ export function LineasPago({
             autoFocus={autoFocus && i === lineas.length - 1}
           />
           <CampoSelectNativo etiqueta="Medio" value={l.metodo} onChange={(e) => actualizar(i, { metodo: e.target.value })}>
-            {METODOS.map((m) => (
+            {metodos.map((m) => (
               <option key={m} value={m}>
-                {ETIQUETA_METODO[m]}
+                {ETIQUETA_METODO_PAGO[m]}
               </option>
             ))}
           </CampoSelectNativo>
@@ -110,6 +141,7 @@ export function LineasPago({
         <Boton type="button" peso="fantasma" onClick={agregar} className="px-3 py-1.5 text-[11px]">
           + Agregar otro medio de pago
         </Boton>
+        {favorExcedido && <p className="w-full text-xs text-rojo">Usas {soles(favorUsado)} de saldo a favor y solo tienes {soles(saldoFavor)}.</p>}
         {lineas.length > 1 || suma !== objetivo ? (
           <p className={`text-xs tabular-nums ${excede ? "text-rojo" : "text-tinta/65"}`}>
             {lineas.length > 1 && <>Suman {soles(suma)} · </>}

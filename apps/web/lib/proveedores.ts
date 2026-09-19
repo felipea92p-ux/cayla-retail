@@ -18,8 +18,9 @@ export type Proveedor = {
   /**
    * Lo financiero (facturas, total_facturado, saldo, ultima_compra,
    * facturas_vencidas, facturas_recibidas_completas,
-   * facturas_con_recepcion_pendiente, facturas_atrasadas) llega `null` si
-   * quien pregunta no es líder — corrección de D-27, 2026-09-17
+   * facturas_con_recepcion_pendiente, facturas_atrasadas, y desde ADR-0111
+   * facturado_12m, saldo_vencido, dias_desde_ultima_compra, entregas_por_recibir)
+   * llega `null` si quien pregunta no es líder — corrección de D-27, 2026-09-17
    * (20260917240000_proveedores_lista_indicadores_y_candado_sede.sql). No es
    * "todavía no se cargó": es que a esta persona no le corresponde verlo. El
    * directorio (nombre/ruc/contacto/telefono/banco/cuenta/rubro/plazo/forma
@@ -37,22 +38,75 @@ export type Proveedor = {
   rubro: string | null;
   plazo_credito_dias: number | null;
   forma_pago_preferida: string | null;
+  /** Facturado en los últimos 12 meses (la lista dejó de mostrar «desde siempre»). */
+  facturado_12m: number | null;
+  /** Lo que ya venció y sigue sin pagarse. */
+  saldo_vencido: number | null;
+  dias_desde_ultima_compra: number | null;
+  /** Comprobantes vigentes con mercadería aún por llegar. */
+  entregas_por_recibir: number | null;
+  /** Lo que el proveedor le debe a CAYLA (nota de crédito que superó su deuda); se descuenta al pagar. `null` si no es líder. */
+  saldo_favor: number | null;
 };
 
 export async function getProveedores(): Promise<Proveedor[]> {
   const supabase = await createClient();
-  const res = await supabase.rpc("fn_proveedores");
-  // `saldo`/`total_facturado` llegan como texto (numeric de Postgres viaja
-  // como string por JSON) — se normalizan acá, preservando `null` tal cual
-  // (Number(null) da 0, que acá significaría "sin deuda" en vez de "no te
-  // corresponde verlo": son cosas distintas, no se pueden confundir).
-  return (
-    exigir(res, "el directorio de proveedores") as unknown as Array<Omit<Proveedor, "saldo" | "total_facturado"> & { saldo: string | number | null; total_facturado: string | number | null }>
-  ).map((p) => ({
+  const filas = exigir(await supabase.rpc("fn_proveedores"), "el directorio de proveedores");
+  // Los `numeric` de Postgres viajan como texto por JSON — se normalizan acá, preservando `null` tal
+  // cual (Number(null) da 0, que acá significaría «sin deuda» en vez de «no te corresponde verlo»: son
+  // cosas distintas, no se pueden confundir).
+  const num = (v: number | string | null | undefined) => (v == null ? null : Number(v));
+  return filas.map((p) => ({
     ...p,
-    saldo: p.saldo == null ? null : Number(p.saldo),
-    total_facturado: p.total_facturado == null ? null : Number(p.total_facturado),
+    saldo: num(p.saldo),
+    total_facturado: num(p.total_facturado),
+    facturado_12m: num(p.facturado_12m),
+    saldo_vencido: num(p.saldo_vencido),
+    dias_desde_ultima_compra: num(p.dias_desde_ultima_compra),
+    entregas_por_recibir: num(p.entregas_por_recibir),
+    saldo_favor: num(p.saldo_favor),
   }));
+}
+
+// Las cifras de la cabecera de la lista (ADR-0111): activos, deuda total con proveedores,
+// concentración (qué parte de la deuda está en un solo proveedor) y quiénes llevan más de 90 días
+// sin comprar. Todo `null` para quien no es líder, salvo los conteos del directorio.
+export type ResumenProveedores = {
+  activos: number;
+  desactivados: number;
+  deudaTotal: number | null;
+  conSaldo: number | null;
+  conVencidas: number | null;
+  topProveedorId: string | null;
+  topProveedorNombre: string | null;
+  topPct: number | null;
+  top3Pct: number | null;
+  sinCompras90d: number | null;
+  /** Suma del saldo a favor de todos los proveedores y a cuántos les corresponde. */
+  saldoFavorTotal: number | null;
+  conSaldoFavor: number | null;
+};
+
+export async function getProveedoresResumen(): Promise<ResumenProveedores> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedores_resumen"), "el resumen de proveedores");
+  const r = filas[0];
+  if (!r) throw new Error("No se pudo leer el resumen de proveedores: la función no devolvió filas.");
+  const num = (v: number | string | null | undefined) => (v == null ? null : Number(v));
+  return {
+    activos: Number(r.activos ?? 0),
+    desactivados: Number(r.desactivados ?? 0),
+    deudaTotal: num(r.deuda_total),
+    conSaldo: num(r.con_saldo),
+    conVencidas: num(r.con_vencidas),
+    topProveedorId: r.top_proveedor_id,
+    topProveedorNombre: r.top_proveedor_nombre,
+    topPct: num(r.top_pct),
+    top3Pct: num(r.top3_pct),
+    sinCompras90d: num(r.sin_compras_90d),
+    saldoFavorTotal: num(r.saldo_favor_total),
+    conSaldoFavor: num(r.con_saldo_favor),
+  };
 }
 
 // Ficha de un proveedor (pantalla de detalle,
@@ -90,6 +144,9 @@ export async function getProveedor(id: string): Promise<ProveedorFicha | null> {
 // 20260917230000_proveedor_metricas_compras_e_insumos.sql). Nunca se suma con
 // MetricasInsumos en la pantalla — son negocios distintos aunque compartan
 // la misma ficha de proveedor (decisión de Felipe, ver la migración).
+//
+// Los promedios llegan CON su muestra (ADR-0111): «11 días» de una sola entrega no es una tendencia, y
+// la pantalla lo dice. `diasPagoRealPromedio` es `null` con menos de 2 comprobantes pagados por completo.
 export type MetricasCompras = {
   facturas_vigentes: number;
   total_facturado: number;
@@ -99,19 +156,61 @@ export type MetricasCompras = {
   facturas_recibidas_completas: number;
   facturas_con_recepcion_pendiente: number;
   facturas_atrasadas: number;
+  facturado_12m: number;
+  monto_vencido: number;
+  /** 0–100: de los comprobantes vigentes, cuántos llegaron completos. `null` sin comprobantes. */
+  entregado_completo_pct: number | null;
+  dias_entrega_promedio: number | null;
+  dias_entrega_muestra: number;
+  dias_pago_real_promedio: number | null;
+  dias_pago_muestra: number;
 };
 
 export async function getProveedorMetricasCompras(id: string): Promise<MetricasCompras> {
   const supabase = await createClient();
   const res = await supabase.rpc("fn_proveedor_metricas_compras", { p_proveedor_id: id });
-  // La función devuelve una sola fila (son agregados sin GROUP BY), pero
-  // PostgREST igual la entrega como lista de 1 — de ahí el `[0]`. Sus
-  // `numeric` viajan como texto, igual que `saldo` en fn_proveedores().
-  const fila = exigir(res, "las métricas de compras del proveedor")[0] as unknown as Omit<MetricasCompras, "total_facturado" | "saldo"> & {
-    total_facturado: string | number;
-    saldo: string | number;
+  // La función devuelve una sola fila (son agregados sin GROUP BY), pero PostgREST igual la entrega como
+  // lista de 1 — de ahí el `[0]`. Sus `numeric` viajan como texto, igual que `saldo` en fn_proveedores().
+  const f = exigir(res, "las métricas de compras del proveedor")[0];
+  const n = (v: number | string | null | undefined) => (v == null ? null : Number(v));
+  return {
+    facturas_vigentes: Number(f.facturas_vigentes),
+    total_facturado: Number(f.total_facturado),
+    saldo: Number(f.saldo),
+    ultima_compra: f.ultima_compra,
+    facturas_vencidas: Number(f.facturas_vencidas),
+    facturas_recibidas_completas: Number(f.facturas_recibidas_completas),
+    facturas_con_recepcion_pendiente: Number(f.facturas_con_recepcion_pendiente),
+    facturas_atrasadas: Number(f.facturas_atrasadas),
+    facturado_12m: Number(f.facturado_12m),
+    monto_vencido: Number(f.monto_vencido),
+    entregado_completo_pct: n(f.entregado_completo_pct),
+    dias_entrega_promedio: n(f.dias_entrega_promedio),
+    dias_entrega_muestra: Number(f.dias_entrega_muestra ?? 0),
+    dias_pago_real_promedio: n(f.dias_pago_real_promedio),
+    dias_pago_muestra: Number(f.dias_pago_muestra ?? 0),
   };
-  return { ...fila, total_facturado: Number(fila.total_facturado), saldo: Number(fila.saldo) };
+}
+
+// Lo que cobra ESTE proveedor por la prenda que más se le compra, compra a compra
+// (fn_proveedor_costo_evolucion). Sale de `compra_items`, no de `costo_historial`: ése mezcla
+// proveedores. `null` si nunca se le compró nada.
+export type EvolucionCosto = { referencia: string; puntos: { fecha: string; documento: string; costo: number }[] };
+
+export async function getProveedorCostoEvolucion(id: string): Promise<EvolucionCosto | null> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedor_costo_evolucion", { p_proveedor_id: id }), "la evolución del costo del proveedor");
+  if (filas.length === 0) return null;
+  return { referencia: filas[0].referencia, puntos: filas.map((f) => ({ fecha: f.fecha, documento: f.documento, costo: Number(f.costo_unitario) })) };
+}
+
+// Unidades devueltas a este proveedor desde cuarentena (ADR-0094).
+export type DevolucionesProveedor = { unidades: number; ultima: string | null };
+
+export async function getProveedorDevoluciones(id: string): Promise<DevolucionesProveedor> {
+  const supabase = await createClient();
+  const f = exigir(await supabase.rpc("fn_proveedor_devoluciones", { p_proveedor_id: id }), "las devoluciones al proveedor")[0];
+  return { unidades: Number(f?.unidades ?? 0), ultima: f?.ultima ?? null };
 }
 
 // Insumos del Taller (tela/avíos), vía `insumo_lotes`
