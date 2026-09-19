@@ -12,10 +12,12 @@
 --   * Curva habitual de ropa: S M L (XS, XL, XXL y Estándar disponibles).
 --   * Pantalón/Jeans: habitual 28-30-32, disponibles 26 y 34 (sin 36).
 --   * Calzado: habitual 35 a 40, disponibles 34, 41 y 42.
---   * "Estándar" para ropa, "Único" para todo lo demás. NO es un duplicado:
+--   * (2026-09-18, tras revisar producción) la talla se llama "Única", no "Único": la
+--     renombró 20260918170000_talla_unica_en_femenino. Este mapa la busca por su nombre nuevo.
+--   * "Estándar" para ropa, "Única" para todo lo demás. NO es un duplicado:
 --     se reparten por familia y nunca conviven en una misma categoría, que es
 --     como lo lee la clienta en la etiqueta (una blusa dice Estándar, una
---     gorra dice Único).
+--     gorra dice Única).
 --   * Tejidos según Gamarra y cómo Zara/H&M clasifican; solo Indumentaria,
 --     más Gorros y Pañuelos (son de tela). Patrones: los 7 en toda
 --     Indumentaria (Liso incluido: es la respuesta a "sin diseño") y en
@@ -50,10 +52,10 @@ from (values
    array['34','35','36','37','38','39','40','41','42'], array['35','36','37','38','39','40']),
   (array['Cinturones'], array['S','M','L','XL'], array['S','M','L']),
   (array['Anillos'], array['6','7','8','9'], array['6','7','8']),
-  -- Una sola medida: "Único" (accesorios, bisutería, belleza, papelería).
+  -- Una sola medida: "Única" (accesorios, bisutería, belleza, papelería).
   (array['Aretes','Collares','Pulseras','Gorros y Sombreros','Lentes de sol','Maquillaje','Colores','Lapiceros',
          'Bolsos y Carteras','Mochilas','Pañuelos y Pañoletas','Relojes','Riñoneras','Libretas/Cuadernos','Útiles de oficina'],
-   array['Único'], array['Único'])
+   array['Única'], array['Única'])
 ) as g(cats, tallas, hab),
   unnest(g.cats) as c,
   unnest(g.tallas) as t;

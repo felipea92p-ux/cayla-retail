@@ -43,7 +43,7 @@ ningún candado, solo `codigo`.
 | Código | Vista previa antes de guardar |
 | Quién / dónde | Solo Líder, desde el terminal de cada caja (PC/Mac mini; táctil también) |
 | Curvas | Ropa S-M-L; Pantalón/Jeans 28-30-32 (26 y 34 disponibles, sin 36); Calzado 35-40 |
-| Estándar / Único | Se quedan las dos: "Estándar" para ropa, "Único" para todo lo demás. Se reparten por familia y nunca conviven en una categoría |
+| Estándar / Única | Se quedan las dos: "Estándar" para ropa, "Única" (renombrada de "Único" por 20260918170000) para todo lo demás. Se reparten por familia y nunca conviven en una categoría |
 
 ## Por qué las reglas del nombre viven en la base
 
