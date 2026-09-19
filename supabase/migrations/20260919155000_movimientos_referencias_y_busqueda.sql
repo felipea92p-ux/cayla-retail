@@ -1,7 +1,7 @@
 -- ============================================================================
 -- 20260919155000 — Movimientos: la búsqueda encuentra el PROCESO («Traslado 24»,
 -- «Boleta 184», «B001-000184») y cada fila trae el número de su traslado / conteo.
--- ADR-0127. NO se aplica a producción desde esta sesión.
+-- ADR-0127.
 --
 -- POR QUÉ. La pantalla de Movimientos va a mostrar una columna «Referencia»
 -- («Traslado 24», «Conteo 12», «Boleta B001-000184», «Guía T001-000045») y quien la
@@ -46,7 +46,7 @@
 --
 -- SE ROMPE SI: `movimientos` pasa de ~1 millón de filas (las vías por
 -- `transferencia_item_id`, `conteo_item_id`, `devolucion_item_id` y `cambio_id` no
--- tienen índice propio: hoy son ~700 filas en producción y un barrido es
+-- tienen índice propio: hoy son ~460 filas en producción y un barrido es
 -- despreciable; con 3 sedes y ~300 movimientos al día tardaría años en importar), o
 -- si alguien agrega a `ventas` un número corrido propio: entonces «venta 184»
 -- debería buscarlo a él y no al del comprobante.

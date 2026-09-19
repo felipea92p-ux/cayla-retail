@@ -15,6 +15,26 @@ y caja visible desde el paso 3. Afecta a Cambios y Devoluciones a la vez (piezas
 sin tocar el código. Y aterrizar una maqueta es ajustar su escala a la app (el título de 66 px
 desentonaba), no copiarla. Pendiente: probar con clic real y datos reales.
 
+## 2026-09-19 (Movimientos: qué cambió en el stock y qué proceso lo originó — ADR-0127)
+
+**Qué se cerró.** `/inventario/movimientos` dice directo qué cambió en el stock de la sede y qué
+proceso lo originó: columna «Referencia» (`Traslado 26` y `Conteo 12` con enlace a su detalle,
+`Boleta B001-000184`, `Factura F001-000210`), el proceso en lenguaje claro («Transferencia ·
+llegada», «Reposición interna»), un buscador que entiende «Traslado 24» y «B001-000184», y a la
+vista solo Tipo, Sububicación y Período (el proceso específico va en «Más filtros»). Se quitaron el
+filtro Persona y la columna Responsable de esta pantalla; la autoría sigue guardada y en el detalle.
+Traslados entiende las mismas formas de escribir un número. La migración `20260919155000` se
+**aplicó en producción antes de fusionar el front** (PR #179): se ensayó entera en una transacción
+revertida contra datos reales, se aplicó con el texto exacto del archivo y se verificó (una sola firma,
+permisos idénticos, `md5` de los cuatro cuerpos igual al del archivo).
+
+**Qué se aprendió.** Tres de los cinco ejemplos del pedido (Venta 184, Recepción 31, Devolución 7)
+no existen como número: solo traslados y conteos tienen número corrido; lo demás se identifica por
+comprobante, factura o guía. Comprobarlo en producción antes de dibujar la columna evitó mostrar
+números inventados — y dejó una decisión de negocio para Felipe (¿numerar ventas y recepciones por
+sede?). Y una tabla que se ve bien a 1440 px puede cortar justo la palabra que importa a 1024
+(«Transferencia · lleg…»): se mira en los tres anchos, no en uno.
+
 ## 2026-09-18 (Cabecera con nombre de sede y plazo en verde/rojo — ADR-0122)
 
 **Qué se cerró.** Las tres cifras de arriba a la derecha de Cambios y Devoluciones eran texto suelto
