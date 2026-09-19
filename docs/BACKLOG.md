@@ -62,18 +62,23 @@ diferencia.
 Diagnóstico y decisiones en el ADR. Estado: pasos 1-2 escritos y probados en un Postgres desechable; **nada
 aplicado en producción**.
 
-- [ ] **Felipe pega en producción, EN ORDEN, los 3 SQL** (ya traen el prefijo `retail.`, se pegan tal cual):
+- [ ] **Felipe pega en producción, EN ORDEN, los 4 SQL** (ya traen el prefijo `retail.`, se pegan tal cual):
       `20260918200000_producto_nombre_una_sola_forma.sql` → `20260918200100_producto_arbol_curva_y_exigencias.sql`
-      → `20260918200200_categoria_atributos_mapa.sql`. Son compatibles hacia atrás con la pantalla actual, así que
-      pueden ir antes que el formulario nuevo. Después: `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
+      → `20260918200200_categoria_atributos_mapa.sql` → `20260918200300_crear_producto_con_etiquetas.sql`.
+      **NO desplegar el formulario nuevo antes:** `pnpm datos:comparar` lo marca roto (llama a una función que
+      producción no tiene). El SQL sí puede ir antes: la pantalla vieja sigue funcionando. Después:
+      `pnpm datos:generar:produccion` y `pnpm datos:comparar` (deben desaparecer `buscar_productos_parecidos` y
+      `crear_producto_con_variantes`; `emitir_comprobante p_token` es de otra sesión).
 - [ ] **Verificar con `db reset` local** cuando Docker vuelva (hoy se probó contra un Postgres 17 suelto con el
       esquema mínimo, sin RLS ni el resto de la historia de migraciones).
-- [ ] **Paso 3 — formulario nuevo** (`NuevoProductoForm.tsx`): página que se revela (familia en tarjetas + búsqueda →
-      categoría → atributos → colores agrupados con «más usados» → matriz → precio/costo con margen → etiquetas →
-      vista previa del código), aviso de parecidos en vivo con `buscar_productos_parecidos`, salida
-      `p_confirmo_distinto`, curva habitual marcada, «+ Nueva talla/color/tejido/patrón» y panel «configurar
-      categoría» (cada uno se guarda aparte, nunca dentro de la transacción del alta). Etiquetas al crear exigen
-      extender la RPC (todo-o-nada), hoy no las recibe.
+- [x] **Paso 3 — formulario nuevo** (`NuevoProductoForm.tsx` + `components/alta-producto/*`): árbol familia →
+      categoría con búsqueda, aviso de parecidos en vivo, curva habitual marcada, tejido/patrón obligatorios en
+      Indumentaria, configurar categoría y «+ Nueva talla/tejido/patrón» sin salir, colores con «más usados»,
+      margen, código previsto, etiquetas todo-o-nada y resumen que dice qué falta. Probado en el navegador con
+      datos y red simuladas; typecheck, lint y 540 pruebas en verde. **Falta verificarlo con sesión de Líder real
+      contra la base** una vez pegados los SQL (aviso de parecidos con `pg_trgm` real, guardado de verdad).
+- [ ] **«+ Nuevo color» dentro del formulario**: hoy se enlaza a Atributos en otra pestaña (un color pide código,
+      tono, familia de color y tipo). Si duele, hacerlo como modal con esos 4 campos.
 - [ ] **Paso 4 — pantalla de éxito**: Agregar fotos por color · Crear otro parecido · Ir a productos.
 - [ ] **Editar categoría (`CategoriasLista.tsx`)**: chip de «habitual» en cada talla y mandar
       `p_talla_habitual_ids` a `/api/productos/categorias/ejes`. Hasta entonces la curva se conserva, pero no se edita.

@@ -9,7 +9,9 @@
 
 Lo que pesó más que lo pedido: `productos.referencia` no tenía ningún candado y hay tres caminos que crean productos (Nuevo producto, catálogo y censo). El censo creaba un producto por escaneo, así que escanear "Blusa Aurora" en S y en M dejaba dos productos. La regla "un nombre, un producto" vive ahora en un trigger y un índice de la tabla, no en el formulario. Y `actualizar_categoria_ejes` borraba y reinsertaba las tallas en cada guardado: habría borrado la curva habitual en silencio.
 
-Estándar y Único no son duplicados: se reparten por familia (una blusa dice Estándar, una gorra dice Único). Pendiente: el formulario nuevo y la pantalla de éxito (BACKLOG); y que Felipe pegue los 3 SQL en producción, en orden.
+Estándar y Único no son duplicados: se reparten por familia (una blusa dice Estándar, una gorra dice Único). Se construyó el formulario nuevo (árbol familia → categoría → nombre → talla/tejido/patrón → colores → precio → etiquetas, con un resumen que dice qué falta). Probándolo salió un defecto que ninguna prueba unitaria habría visto: el paso 3 se abría mientras se comprobaba el nombre y se cerraba de golpe si resultaba duplicado, con la persona ya eligiendo tallas — ahora sigue cerrado hasta que la comprobación contesta. Y el comparador oficial (`datos:comparar`) confirmó lo que había que temer: el formulario llama a funciones que producción todavía no tiene, así que **el SQL va antes que el despliegue**, nunca al revés.
+
+Pendiente: la pantalla de éxito (BACKLOG); que Felipe pegue los 4 SQL en orden y recién ahí se despliegue; y verificarlo con sesión de Líder real contra la base.
 
 ## 2026-09-18 (Atributos → Etiquetas: la pantalla se puede recorrer, y "vigente" deja de mentir de noche)
 

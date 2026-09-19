@@ -1,15 +1,18 @@
 # ADR-0106 — Crear un producto es un árbol de decisión (familia → categoría → atributos), y sus reglas viven en la base
 
 **Fecha:** 2026-09-18
-**Estado:** Paso 1 (mapa de datos) y paso 2 (esquema) escritos y probados contra un
-Postgres 17 desechable con el esquema mínimo. **NO probados con `db reset`** (Docker
-caído ese día) y **NO aplicados en producción**: Felipe pega los 3 SQL. Pasos 3
-(formulario nuevo) y 4 (pantalla de éxito) siguen pendientes — ver BACKLOG.
+**Estado:** Pasos 1-3 construidos (mapa de datos, esquema, formulario nuevo). Las
+migraciones se probaron contra un Postgres 17 desechable con el esquema mínimo y el
+formulario en el navegador con datos y red simulados. **NO probados** con `db reset`
+(Docker caído ese día) ni contra la base real, y **NO aplicados en producción**: Felipe
+pega los 4 SQL. **El formulario no se puede desplegar antes que el SQL** (ver
+"Orden de despliegue"). Paso 4 (pantalla de éxito) pendiente.
 **Afecta:** `productos` (trigger + índice único nuevos), `categoria_tallas.habitual`,
 `familias.exige_tejido_patron`, `crear_producto_con_variantes`,
 `actualizar_categoria_ejes`, `censo_crear_variante`, función nueva
 `buscar_productos_parecidos`, `lib/error-escritura.ts`, tipos de `packages/database`.
-Migraciones `20260918200000`, `20260918200100`, `20260918200200`.
+Migraciones `20260918200000`, `200100`, `200200` y `200300`; `NuevoProductoForm.tsx`,
+`components/alta-producto/*`, `lib/alta-producto*.ts`, `/productos/nuevo`.
 
 ## El problema
 
@@ -86,7 +89,39 @@ Las dos RPC cambian de firma **solo agregando un parámetro opcional al final**
 (`p_confirmo_distinto`, `p_talla_habitual_ids`) y se borra la firma vieja para no dejar
 dos sobrecargas (ya rompieron producción dos veces en este repo). PostgREST resuelve
 las llamadas de 7 y 4 argumentos contra la firma nueva. La pantalla actual sigue
-funcionando entre que se pega el SQL y que se despliega el formulario nuevo.
+funcionando entre que se pega el SQL y que se despliega el formulario nuevo — con un
+cambio de comportamiento a propósito: en Indumentaria la base ya rechaza una prenda sin
+tejido o sin patrón (con frase clara), y un nombre repetido también; antes se guardaban.
+
+## Orden de despliegue (esto sí puede romper las tiendas)
+
+`pnpm datos:comparar` lo confirmó el 2026-09-18: contra producción, el formulario nuevo
+llama a `buscar_productos_parecidos` (no existe) y manda `p_confirmo_distinto` y
+`p_etiqueta_ids` a `crear_producto_con_variantes` (no los acepta). Si el código se
+despliega primero, "Nuevo producto" falla siempre. Por eso: **1) pegar los 4 SQL en orden
+(`200000` → `200100` → `200200` → `200300`), 2) recién ahí mergear/desplegar.** Al revés
+no pasa nada: la pantalla vieja sigue funcionando contra el SQL nuevo (parámetros
+opcionales al final). Al cerrar: `pnpm datos:generar:produccion` y `pnpm datos:comparar`
+deben terminar sin esas dos alarmas.
+
+## Decisiones del formulario que no estaban en la tabla de arriba
+
+- **Rojo casi nunca.** El brandbook (`globals.css`) reserva el rojo como acento, máx. 2
+  por pantalla. Lo elegido se marca con tinta y ✓; ámbar = avisa y deja seguir; rojo =
+  bloquea.
+- **Mientras se comprueba el nombre, el paso 3 sigue cerrado.** Descubierto probándolo:
+  la primera versión abría el paso 3 al escribir y lo cerraba de golpe si el nombre
+  resultaba duplicado, con la persona ya eligiendo tallas. Tope de 6 s: una red colgada no
+  deja el formulario esperando para siempre; si la comprobación falla, se dice y la base
+  vuelve a verificar al guardar.
+- **Colores NO se proponen dentro del formulario** (sí tallas, tejidos y patrones): un
+  color necesita código, tono, familia de color y tipo. Se enlaza a Atributos en otra
+  pestaña, con «actualizar los colores» sin perder lo llenado.
+- **«Más usados» y «último costo» son sugerencias** sobre las últimas 2.000 variantes
+  creadas, no un dato contable. El margen se calcula sobre el precio sin descontar IGV: es
+  una alerta, no contabilidad.
+- **El código previsto puede cambiar** si otra persona crea un producto de la misma
+  categoría a la vez (el correlativo lo asigna la base al guardar).
 
 ## Se rompe si
 
@@ -112,4 +147,12 @@ idempotencia del token, exigencias por familia, censo (mismo nombre → misma va
 colgada; otra categoría → error; variante repetida → error de índice), preservación y
 reemplazo de la curva, y el mapa (idempotente, dentro y fuera de una transacción, y
 aborta si un nombre no coincide). Con control negativo de los `assert`.
-**No verificado:** `db reset` completo, RLS reales, la pantalla en navegador.
+Formulario: en el navegador con `zz-harness` (andamio temporal, ya borrado) y `fetch`
+interceptado — árbol y búsqueda con tildes, aviso idéntico/una letra/parecido con su
+confirmación, paso 3 cerrado mientras se comprueba, curva marcada, configurar categoría
+sin tallas y sin tejidos, «+ Nueva talla», colores más usados, matriz 3×2, margen,
+payload exacto a la RPC, celular sin desborde horizontal.
+**No verificado:** `db reset` completo, RLS reales, la RPC de alta contra la base real
+(solo contra el esquema mínimo), aviso de parecidos con `pg_trgm` de producción,
+sesión de Líder real, y accesibilidad con lector de pantalla (solo `aria-pressed`,
+`role=alert` y `inert`, sin probar con uno).
