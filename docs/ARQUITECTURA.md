@@ -286,6 +286,11 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   cambiar de pestaña) son parte del mecanismo. El prefijo `factura/` es
   obligatorio: un `(.)[compraId]` directo bajo `/compras` interceptaba
   también `/compras/por-pagar`, `/compras/nueva`, etc.
+- `/finanzas/egresos` (2026-09-19, ADR-0117, **solo líder** en pantalla, RPC y RLS) → `lib/gastos.ts` (lectura) +
+  `lib/gastos-reglas.ts` (reglas puras) → `EgresosPanel`, `GastoModal` (los tres caminos: A sin caja, B efectivo desde
+  caja abierta, C clasificar un egreso ya registrado), `EgresosModales` (no es gasto / anular) → RPCs `registrar_gasto`,
+  `anular_gasto`, `marcar_egreso_no_gasto`, `revertir_egreso_no_gasto`; lecturas `fn_egresos_resumen`,
+  `fn_egresos_sin_clasificar`, `fn_egresos_no_gasto_lista`, `fn_gastos_lista`. Menú: grupo «Finanzas» (líder, al final).
 - Avisos globales (ADR-0047): `components/ui/Avisos.tsx`, montado en
   `app/layout.tsx`. Toda validación/error/éxito/proceso pasa por `avisar.*`
   (arriba a la derecha) y `enfocar` lleva el cursor al campo. Sin `useState`
@@ -376,6 +381,11 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
   evita doble conteo; `token_cliente` unique = idempotencia), `produccion_lineas`
   (plan y buenas por variante), `movimientos.produccion_id`. Sin policy de
   escritura: solo RPC.
+- **Gastos generales** (2026-09-19, ADR-0117): `categorias_gasto` (lista cerrada de 7, con su cuenta PCGE),
+  `gastos` (única fuente de los gastos; `ubicacion_id` nulo = «de la empresa»; sin DELETE: se anula con motivo) y
+  `egresos_no_gasto` (depósito, retiro, ajuste; reversible). **Un egreso de `caja_movimientos` solo es gasto si un
+  gasto vigente lo señala por `caja_movimiento_id`** (índice único parcial): así nunca se cuenta dos veces. Sin policy
+  de escritura: solo RPC, y `select` solo para líder. La línea de abajo describe el diseño anterior de `gastos`.
 - **Finanzas**: `gastos`, `depositos_bancarios`, `ajustes_efectivo`,
   `patrimonio_items`, `activos_fijos`, `ventas_historicas_mensuales`,
   `comprobantes` / `series_comprobantes` (facturación electrónica, parte 1 —
@@ -393,6 +403,9 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `registrar_venta` | Venta + N movimientos de salida |
 | `abrir_caja` / `cerrar_caja` | Apertura/cierre con conteo ciego |
 | `registrar_gasto`, `registrar_deposito`, `fijar_stock_minimo`, `recalcular_stock` | Operación de caja y stock; `recalcular_stock` reconstruye `stock` completo desde `movimientos` como red de seguridad |
+| `registrar_gasto` / `anular_gasto` (ADR-0117) | Único camino de escritura de gastos, solo líder. `registrar_gasto` decide el camino (A/B/C) por el medio de pago y por si llega una caja o un egreso; en B crea el egreso llamando a la MISMA `registrar_movimiento_caja` (las reglas de caja viven en un solo lugar), todo o nada; idempotente por `p_token`. `anular_gasto` no toca la caja. |
+| `marcar_egreso_no_gasto` / `revertir_egreso_no_gasto` (ADR-0117) | Marca un egreso de caja como «no es gasto» (depósito, retiro, ajuste); se revierte, no se borra |
+| `fn_egresos_resumen` / `fn_egresos_sin_clasificar` / `fn_egresos_no_gasto_lista` / `fn_gastos_lista` (ADR-0117) | Lecturas de la pantalla de gastos, solo líder; las sumas se hacen en Postgres. Una fila por sede activa aunque esté en cero, más «De la empresa» |
 | `registrar_asiento` | Único camino de escritura al libro diario; valida cuadre antes de insertar |
 | `emitir_comprobante` / `emitir_nota` / `registrar_serie_comprobante` | Reserva boleta/factura/nota con su correlativo oficial (`for update` por serie); factura sin RUC es imposible por constraint. No transmite a SUNAT: eso es `/api/lucode/emitir` — ADR-0005, ADR-0009 |
 | `actualizar_transmision_comprobante` | Único camino para escribir el resultado real de SUNAT (`enviado`/`aceptado`/`rechazado` + respuesta cruda); nunca se edita `estado` a mano |
@@ -427,6 +440,11 @@ Integrante solo su sede (o su almacén asociado).
 - `produccion_lineas`: `unique(produccion_id, variante_id)` +
   `producciones.inventariado_at` — idempotencia contra doble conteo de
   stock si alguien hace doble clic en "cerrar producción".
+- `gastos` (ADR-0117): índice único parcial sobre `caja_movimiento_id where estado='vigente'` — un egreso de caja no
+  respalda dos gastos; `check(efectivo ⇔ caja_movimiento_id is not null)`; IGV solo con factura y nunca mayor al total;
+  trigger que solo deja pasar `vigente → anulado` (un gasto no se edita ni se borra, ni siquiera para el dueño de la
+  fila); trigger que exige egreso real, mismo monto y misma sede, con candado por egreso contra la marca «no es gasto»
+  (dos líderes simultáneos no pueden dejar el mismo egreso gasto y «no es gasto» a la vez — probado con dos sesiones).
 - `comprobantes`: `check(tipo <> 'factura' or (cliente_tipo_doc = 'ruc' and
   cliente_num_doc is not null))` — una factura sin RUC no puede existir en la
   base, ni siquiera si alguien escribe directo saltándose la RPC. `unique(tipo,
