@@ -1,5 +1,7 @@
 import { diaMes, diasHastaLima, sumarDias } from "./fechas-lima";
 import { parseMonto } from "./por-pagar-reglas";
+import type { CompraResumen } from "./compras-reglas";
+import type { NotaCreditoCompra } from "./compras-faltantes";
 
 // Reglas puras de Recibir mercadería (D1 y D2 de ADR-0111). Sin I/O: se prueban sin base ni
 // navegador. Las fechas son de Lima (`fechas-lima`), nunca el reloj del servidor.
@@ -241,6 +243,24 @@ export function disponibilidadNota(p: { pendiente: number; llegando: number; cer
   if (p.cerradoAntes + p.cerrandoAhora <= 0) return { estado: "sin_cierres" };
   const quedan = p.pendiente - p.llegando - p.cerrandoAhora;
   return quedan > 0 ? { estado: "bloqueada", quedan } : { estado: "disponible" };
+}
+
+/**
+ * Lo que dice la base sobre una nota por faltante de este comprobante, para decidir qué ofrecer.
+ *
+ * Vive acá (módulo puro) y NO en `AccionesFaltantes.tsx`: ese archivo es `"use client"` y el detalle del
+ * comprobante (`NotasCreditoCompra`, componente de servidor) la llama en el servidor — Next lo prohíbe
+ * («Attempted to call estadoNotaFaltante() from the server but … is on the client») y la pantalla se caía
+ * al abrir cualquier factura.
+ */
+export function estadoNotaFaltante(compra: CompraResumen, notas: NotaCreditoCompra[]): DisponibilidadNota {
+  return disponibilidadNota({
+    pendiente: compra.facturadoCantidad - compra.recibidoCantidad - compra.cerradoCantidad,
+    llegando: 0,
+    cerrandoAhora: 0,
+    cerradoAntes: compra.cerradoCantidad,
+    yaTieneNotaFaltante: notas.some((n) => n.motivo === "faltante"),
+  });
 }
 
 // ---------------------------------------------------------------------------

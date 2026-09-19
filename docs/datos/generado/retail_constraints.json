@@ -1725,6 +1725,26 @@
   "tabla": "retail.proveedor_creditos"
  },
  {
+  "conname": "proveedores_billetera_coherente",
+  "definicion": "CHECK (((celular_billetera IS NULL) = (billeteras IS NULL)))",
+  "tabla": "retail.proveedores"
+ },
+ {
+  "conname": "proveedores_billeteras_validas",
+  "definicion": "CHECK (((billeteras IS NULL) OR (((cardinality(billeteras) >= 1) AND (cardinality(billeteras) <= 2)) AND (billeteras <@ ARRAY['yape'::text, 'plin'::text]))))",
+  "tabla": "retail.proveedores"
+ },
+ {
+  "conname": "proveedores_cci_formato",
+  "definicion": "CHECK (((cci IS NULL) OR (cci ~ '^[0-9]{20}$'::text)))",
+  "tabla": "retail.proveedores"
+ },
+ {
+  "conname": "proveedores_celular_billetera_formato",
+  "definicion": "CHECK (((celular_billetera IS NULL) OR (celular_billetera ~ '^9[0-9]{8}$'::text)))",
+  "tabla": "retail.proveedores"
+ },
+ {
   "conname": "proveedores_forma_pago_valida",
   "definicion": "CHECK (((forma_pago_preferida IS NULL) OR (forma_pago_preferida = ANY (ARRAY['transferencia'::text, 'yape'::text, 'plin'::text, 'efectivo'::text, 'deposito'::text, 'otro'::text]))))",
   "tabla": "retail.proveedores"
@@ -1742,6 +1762,11 @@
  {
   "conname": "proveedores_ruc_check",
   "definicion": "CHECK (((ruc IS NULL) OR (ruc ~ '^[0-9]{11}$'::text)))",
+  "tabla": "retail.proveedores"
+ },
+ {
+  "conname": "proveedores_titular_largo",
+  "definicion": "CHECK (((titular_cuenta IS NULL) OR ((char_length(titular_cuenta) >= 2) AND (char_length(titular_cuenta) <= 120))))",
   "tabla": "retail.proveedores"
  },
  {

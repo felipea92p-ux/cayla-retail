@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Banknote } from "lucide-react";
+import { Banknote, Check, Package } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -17,48 +17,75 @@ import { etiquetaVence, tramoDe } from "@/lib/por-pagar-reglas";
 
 // Acciones sobre una factura ya registrada (ADR-0035): registrar un pago
 // contra el saldo, o anularla. La página (server) dibuja el detalle; este
-// componente solo pone los botones. Las reglas —el pago no supera el saldo,
+// componente solo pone los botones (el pie del detalle: enlace «Anular» a la izquierda,
+// «Ir a recibir» y «Registrar pago» —el principal, negro— a la derecha). Las reglas —el pago no supera el saldo,
 // no se anula con pagos o mercadería recibida— las aplica la base; acá solo
 // se evita mostrar un botón que va a fallar.
 //
-// "Registrar pago" NO abre el modal acá: lleva a Por pagar con `?pagar=<id>`
-// y el modal se abre allá (`PagoDesdeUrl`). Pagar es una tarea de la
-// pantalla de deudas —al terminar se quiere ver qué más se debe, no volver
-// al detalle— y así el modal de pago tiene UN solo dueño en vez de abrirse
-// encima del modal del detalle.
-export function CompraAcciones({ compra, tieneRecepciones }: { compra: CompraResumen; tieneRecepciones: boolean }) {
+// "Registrar pago" abre el modal de pago ACÁ, encima del detalle (como en el prototipo aprobado): al confirmar,
+// la hoja de pago se cierra y el detalle que quedó detrás se actualiza en su sitio (`router.refresh()`): la
+// línea de tiempo avanza, las barras continúan desde donde estaban y el pago nuevo entra al historial. Antes
+// esto llevaba a Por pagar con `?pagar=<id>` y el detalle se perdía; ese camino (`PagoDesdeUrl`) sigue existiendo
+// para quien llega a Por pagar con el enlace. `datosPago` (cuenta, CCI, Yape/Plin, titular, saldo a favor) lo
+// carga `cargarDetalleCompra`; sin él el modal funciona igual, solo sin la tarjeta «Paga por».
+export function CompraAcciones({ compra, tieneRecepciones, datosPago }: { compra: CompraResumen; tieneRecepciones: boolean; datosPago?: DatosPagoProveedor }) {
   const router = useRouter();
   const [anulando, setAnulando] = useState(false);
-  const puedeRecibir = compra.estado === "vigente" && compra.estadoRecepcion !== "recibida";
-  const puedePagar = compra.estado === "vigente" && compra.saldo > 0;
-  const puedeAnular = compra.estado === "vigente" && compra.pagado === 0 && !tieneRecepciones;
+  const [pagando, setPagando] = useState(false);
+  const vigente = compra.estado === "vigente";
+  const puedeRecibir = vigente && compra.estadoRecepcion !== "recibida";
+  const puedePagar = vigente && compra.saldo > 0;
+  const puedeAnular = vigente && compra.pagado === 0 && !tieneRecepciones;
 
-  if (!puedeRecibir && !puedePagar && !puedeAnular) return null;
+  // Un comprobante anulado ya no tiene acciones. El modal de pago se sigue dibujando aunque el pago recién saldó el
+  // comprobante: si no, el refresco lo desmontaría en plena confirmación y se cortaría su animación de cierre.
+  if (!vigente && !pagando) return null;
 
+  // Pie del detalle (prototipo aprobado): a la izquierda las acciones discretas como enlaces de texto (anular);
+  // a la derecha «Ir a recibir» (secundario, solo si falta mercadería) y «Registrar pago» como botón PRINCIPAL negro
+  // (solo si hay saldo). Con el comprobante ya saldado, en su lugar un botón verde deshabilitado «Pagado».
   return (
     <>
-      <div className="flex flex-wrap gap-3">
-        {/* Atajo al pie, junto a Pagar/Anular — antes solo vivía como enlace
-            de texto dentro de la sección "Recepciones", más abajo en la
-            página: para una factura recién abierta (todo por recibir), esa
-            era la acción más probable y quedaba fuera de la vista. */}
-        {puedeRecibir && (
-          <Boton peso="fantasma" onClick={() => router.push(`/compras/recibir?compra=${compra.id}`)}>
-            Recibir mercadería
-          </Boton>
-        )}
-        {puedePagar && (
-          <Boton peso="primario" onClick={() => router.push(`/compras/por-pagar?pagar=${compra.id}`)}>
-            Registrar pago · saldo {soles(compra.saldo)}
-          </Boton>
-        )}
+      <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-3">
         {puedeAnular && (
-          <Boton peso="discreto" onClick={() => setAnulando(true)}>
+          <button
+            type="button"
+            onClick={() => setAnulando(true)}
+            className="text-xs text-tinta/60 underline-offset-2 transition-colors hover:text-rojo hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
+          >
             Anular comprobante
-          </Boton>
+          </button>
         )}
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
+          {/* Atajo al pie: para una factura recién abierta (todo por recibir) es la acción más probable y antes
+              solo vivía como enlace dentro de la sección «Recepciones», fuera de la vista. */}
+          {puedeRecibir && (
+            <Boton peso="fantasma" onClick={() => router.push(`/compras/recibir?compra=${compra.id}`)}>
+              <span className="inline-flex items-center gap-2">
+                <Package aria-hidden className="cd-ic-abajo h-4 w-4" />
+                Ir a recibir
+              </span>
+            </Boton>
+          )}
+          {puedePagar ? (
+            <Boton peso="primario" onClick={() => setPagando(true)}>
+              <span className="inline-flex items-center gap-2">
+                <Banknote aria-hidden className="h-4 w-4" />
+                Registrar pago
+              </span>
+            </Boton>
+          ) : (
+            vigente && (
+              <button type="button" disabled className="label-cayla inline-flex cursor-default items-center gap-2 rounded-md bg-verde px-4 py-3 text-[11px] text-crema transition-colors duration-500">
+                <Check aria-hidden className="h-4 w-4" />
+                Pagado
+              </button>
+            )
+          )}
+        </div>
       </div>
       {anulando && <AnularCompraModal compra={compra} onClose={() => setAnulando(false)} />}
+      {pagando && <RegistrarPagoModal compra={compra} saldoFavor={datosPago?.saldoFavor ?? 0} datos={datosPago} onClose={() => setPagando(false)} />}
     </>
   );
 }
@@ -160,6 +187,9 @@ export function RegistrarPagoModal({
   const [lineas, setLineas] = useState<LineaPago[]>(() => [{ ...lineaPagoVacia(compra.saldo.toFixed(2)), metodo: datos?.formaPagoPreferida && datos.formaPagoPreferida in ETIQUETA_METODO ? datos.formaPagoPreferida : "transferencia" }]);
   const [fecha, setFecha] = useState(hoyLima());
   const [loading, setLoading] = useState(false);
+  // Identifica ESTE intento de pago (ADR-0135): si la conexión se corta después de que la base guardó y la persona
+  // vuelve a intentar, la base reconoce el token y no duplica el pago. Se conserva mientras el intento falle.
+  const token = useRef(crypto.randomUUID());
   // Pago registrado: la confirmación reemplaza al formulario. El resultado va en una ref porque el cierre lo dispara `Modal`
   // (con su animación de salida) y ahí hay que saber si se cerró un pago o se canceló.
   const [hecho, setHecho] = useState<ResultadoPago | null>(null);
@@ -191,6 +221,8 @@ export function RegistrarPagoModal({
     const pagos = lineasPagoParaRpc(lineas);
     const sinMonto = Math.max(0, lineas.findIndex((l) => !(Number(l.monto) > 0)));
     if (!pagos) return void avisar.error("Cada medio de pago necesita su monto.", { enfocar: `pago-monto-${sinMonto}` });
+    if (fecha > hoyLima()) return void avisar.error("La fecha del pago no puede ser futura: es cuándo se pagó, no cuándo se pagará.");
+    if (compra.fechaEmision && fecha < compra.fechaEmision) return void avisar.error("La fecha del pago no puede ser anterior a la emisión del comprobante.");
     if (excede) return void avisar.error(`El pago supera el saldo pendiente (${soles(compra.saldo)}).`, { enfocar: "pago-monto-0" });
     if (favorExcedido) return void avisar.error(`Usas ${soles(favorUsado)} de saldo a favor y solo tienes ${soles(saldoFavor)}.`, { enfocar: "pago-monto-0" });
     setLoading(true);
@@ -199,10 +231,11 @@ export function RegistrarPagoModal({
       p_compra_id: compra.id,
       p_pagos: pagos,
       p_fecha: fecha,
+      p_token: token.current,
     });
     setLoading(false);
     if (error) {
-      avisar.error(traducirError(error, "registrar el pago"));
+      avisar.error(traducirError(error, "registrar el pago", { confirmarAntesDeRepetir: true }));
       return;
     }
     avisar.exito(`Pago de ${soles(suma)} registrado · ${compra.documento}`, {

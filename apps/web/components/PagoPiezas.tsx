@@ -21,7 +21,7 @@ export type DatosPagoProveedor = {
   banco: string | null;
   /** Número de cuenta del banco (texto libre). */
   cuentaBancaria: string | null;
-  /** Código de Cuenta Interbancario: 20 dígitos (ADR-0129 de Proveedores). */
+  /** Código de Cuenta Interbancario: 20 dígitos (ADR-0134 de Proveedores). */
   cci: string | null;
   /** El celular al que se yapea/plinea, 9 dígitos: NO es el WhatsApp del contacto. */
   celularBilletera: string | null;
@@ -316,6 +316,7 @@ export function MediosDePago({
   onFecha,
   datos,
   id = "pago",
+  exacto = false,
 }: {
   lineas: LineaPago[];
   onLineas: (l: LineaPago[]) => void;
@@ -328,14 +329,42 @@ export function MediosDePago({
   datos?: DatosPagoProveedor;
   /** Prefijo de los ids (`<id>-monto-0`…), para enfocar desde un aviso. */
   id?: string;
+  /**
+   * Los medios tienen que sumar EXACTAMENTE `objetivo` (Pagar juntos: una transferencia que ya se repartió entre comprobantes).
+   * Sin esto (un solo comprobante) se puede pagar de menos y el resto queda por pagar. En este modo no hay saldo a favor
+   * como medio —ese es un interruptor aparte— y, con dos medios, cambiar uno ajusta el otro para que sigan sumando.
+   */
+  exacto?: boolean;
 }) {
   const suma = sumaLineasPago(lineas);
   const falta = Math.round((objetivo - suma) * 100) / 100;
   const conFavor = lineas.some((l) => l.metodo === METODO_SALDO_A_FAVOR);
   const favorUsado = sumaLineasPago(lineas.filter((l) => l.metodo === METODO_SALDO_A_FAVOR));
   const varios = lineas.length > 1;
-  const cambiar = (i: number, cambio: Partial<LineaPago>) => onLineas(lineas.map((l, n) => (n === i ? { ...l, ...cambio } : l)));
-  const agregar = () => onLineas([...lineas, { monto: falta > 0 ? falta.toFixed(2) : "", metodo: "efectivo", referencia: "" }]);
+  const cambiar = (i: number, cambio: Partial<LineaPago>) => {
+    const nuevas = lineas.map((l, n) => (n === i ? { ...l, ...cambio } : l));
+    // Exacto con dos medios: lo que sube en uno baja en el otro, así siempre suman el pago.
+    if (exacto && cambio.monto !== undefined && nuevas.length === 2) {
+      const otro = 1 - i;
+      const n = Number(cambio.monto);
+      if (cambio.monto.trim() !== "" && Number.isFinite(n)) nuevas[otro] = { ...nuevas[otro], monto: Math.max(0, Math.round((objetivo - n) * 100) / 100).toFixed(2) };
+    }
+    onLineas(nuevas);
+  };
+  const agregar = () => {
+    if (exacto && lineas.length === 1) {
+      // Al dividir, el primero conserva todo y el nuevo arranca vacío: quien paga escribe cuánto va en el segundo.
+      onLineas([{ ...lineas[0], monto: objetivo.toFixed(2) }, { monto: "", metodo: lineas[0].metodo === "efectivo" ? "transferencia" : "efectivo", referencia: "" }]);
+      return;
+    }
+    onLineas([...lineas, { monto: falta > 0 ? falta.toFixed(2) : "", metodo: "efectivo", referencia: "" }]);
+  };
+  // «Completar con el último»: lo que falta o sobra para sumar el pago se lo lleva la última línea.
+  const completar = () => {
+    const ult = lineas.length - 1;
+    const otras = sumaLineasPago(lineas.slice(0, ult));
+    onLineas(lineas.map((l, n) => (n === ult ? { ...l, monto: Math.max(0, Math.round((objetivo - otras) * 100) / 100).toFixed(2) } : l)));
+  };
   // «Usar S/ X»: primera línea con el saldo a favor (hasta lo que hay que pagar) y el resto en el medio de siempre.
   const usarFavor = () => {
     const usar = Math.round(Math.min(saldoFavor, objetivo) * 100) / 100;
@@ -351,7 +380,7 @@ export function MediosDePago({
           <div>
             <p className="label-cayla text-[11px] text-tinta/65">Medio de pago</p>
             <div className="mt-2">
-              <PastillasMedio valor={lineas[0].metodo} onValor={(m) => cambiar(0, { metodo: m })} conFavor={saldoFavor > 0} />
+              <PastillasMedio valor={lineas[0].metodo} onValor={(m) => cambiar(0, { metodo: m })} conFavor={!exacto && saldoFavor > 0} />
             </div>
           </div>
           <CampoTexto etiqueta="Referencia" value={lineas[0].referencia} onChange={(e) => cambiar(0, { referencia: e.target.value })} placeholder="Op. 00871234" autoComplete="off" />
@@ -383,7 +412,7 @@ export function MediosDePago({
                 </label>
                 <div>
                   <span className="label-cayla mb-1 block text-[10px] text-tinta/55">Medio</span>
-                  <PastillasMedio valor={l.metodo} onValor={(m) => cambiar(i, { metodo: m })} conFavor={saldoFavor > 0} etiqueta={`Medio de pago ${i + 1}`} />
+                  <PastillasMedio valor={l.metodo} onValor={(m) => cambiar(i, { metodo: m })} conFavor={!exacto && saldoFavor > 0} etiqueta={`Medio de pago ${i + 1}`} />
                 </div>
                 <CampoTexto etiqueta="Referencia" value={l.referencia} onChange={(e) => cambiar(i, { referencia: e.target.value })} placeholder="Op. 00871234" autoComplete="off" />
                 <div className="sm:col-span-4 sm:row-start-2">
@@ -414,7 +443,7 @@ export function MediosDePago({
         <button type="button" onClick={agregar} className={`${PILDORA} border-dashed hover:border-solid`}>
           ＋ {varios ? "Agregar otro medio" : "Dividir en otro medio"}
         </button>
-        {saldoFavor > 0 && !conFavor && (
+        {!exacto && saldoFavor > 0 && !conFavor && (
           <button type="button" onClick={usarFavor} className={`${PILDORA} border-verde/40 text-verde-profundo hover:border-verde hover:text-verde-profundo`}>
             Usar {soles(Math.min(saldoFavor, objetivo))} a favor
           </button>
@@ -422,8 +451,23 @@ export function MediosDePago({
         {varios && (
           <p className={`text-xs tabular-nums ${falta < 0 ? "text-rojo" : "text-tinta/65"}`} aria-live="polite">
             Suman <b className="font-semibold text-tinta"><CifraQueCuenta valor={suma} formato="soles" /></b> ·{" "}
-            {falta < 0 ? `se pasan por ${soles(-falta)}` : falta === 0 ? "saldan el comprobante" : `quedarán ${soles(falta)} por pagar`}
+            {exacto
+              ? falta < 0
+                ? `se pasan por ${soles(-falta)}`
+                : falta === 0
+                  ? "cubren el pago"
+                  : `faltan ${soles(falta)} para cubrir el pago`
+              : falta < 0
+                ? `se pasan por ${soles(-falta)}`
+                : falta === 0
+                  ? "saldan el comprobante"
+                  : `quedarán ${soles(falta)} por pagar`}
           </p>
+        )}
+        {exacto && varios && Math.abs(falta) >= 0.005 && lineas.length > 2 && (
+          <button type="button" onClick={completar} className={PILDORA}>
+            Completar con el último medio
+          </button>
         )}
         {favorUsado > saldoFavor + 0.005 && <p className="w-full text-xs text-rojo">Usas {soles(favorUsado)} de saldo a favor y solo tienes {soles(saldoFavor)}.</p>}
       </div>

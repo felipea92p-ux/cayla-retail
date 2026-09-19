@@ -137,6 +137,9 @@ Tamaño: **S** ≈ media sesión · **M** ≈ una sesión · **L** ≈ dos o má
   `recibir_insumo` (lote con proveedor, documento y costo **sin IGV**); faltantes y nota de crédito funcionan igual.
 - **4c · Candado del dinero de insumos (D-G).** `insumo_lotes`/`movimientos_insumo` solo líder; función operativa sin costos;
   `v_insumo_saldos` con `security_invoker`. Reaplicar `fn_aplicar_candado_de_dinero()` si se recrea alguna de las 5 funciones de indicadores.
+- **Ojo, cambió desde que se escribió el plan:** `main` ya trae `20260919181000_registrar_compra_endurecimiento_por_parche.sql` (ADR-0135, guarda de
+  `registrar_compra` independiente del reparto por tienda) y las migraciones de pago por lote (`…190000`, `…200000`). F4 debe partir de
+  la definición **vigente** de esas funciones, no de las del plan. Timestamps libres: **≥ `20260919210000`**.
 - **Método (obligatorio, aprendido a la mala):** partir de `pg_get_functiondef` **de producción**, no del archivo del repo;
   una sola firma (verificar con `explain`, no `create or replace` con parámetros distintos); migración idempotente;
   prueba nueva `scripts/pruebas/compras_insumos.mjs` + paso en `ci.yml`; en producción con prefijo `retail.` (regla de CLAUDE.md).

@@ -1,8 +1,8 @@
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
-import { BotonRegistrarNota, estadoNotaFaltante } from "@/components/AccionesFaltantes";
+import { BotonRegistrarNota } from "@/components/AccionesFaltantes";
 import { ETIQUETA_MOTIVO_NOTA, fechaCorta, soles, type CompraResumen } from "@/lib/compras-reglas";
 import type { NotaCreditoCompra } from "@/lib/compras-faltantes";
-import { montoDeCierres, tasaIgv } from "@/lib/recepciones-reglas";
+import { estadoNotaFaltante, montoDeCierres, tasaIgv } from "@/lib/recepciones-reglas";
 
 // Sección «Notas de crédito» del detalle de un comprobante (D2, ADR-0111): lo que el proveedor
 // ya nos reconoció (faltantes, devoluciones, descuentos), con el enlace para registrar la que
