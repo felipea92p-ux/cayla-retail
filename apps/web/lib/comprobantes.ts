@@ -72,6 +72,8 @@ export async function getVentasDeHoy(ubicacionId?: string): Promise<VentaDelDia[
 export async function getResumenPorEnviar(): Promise<ResumenPorEnviar | null> {
   const supabase = await createClient();
   const res = await supabase.from("comprobantes").select("estado, created_at").in("estado", ["pendiente", "rechazado"]);
-  const { datos } = tolerar(res, "los comprobantes por enviar");
+  const { datos, fallo } = tolerar(res, "los comprobantes por enviar");
+  // `fallo` es el aviso para la persona; la causa real (Postgres) es para quien lea el log.
+  if (fallo) console.error("Facturación: no se pudo leer la cola «por enviar» (contador de la pestaña Comprobantes):", res.error?.message);
   return datos ? resumenPorEnviar(datos as { estado: EstadoComprobante; created_at: string }[]) : null;
 }

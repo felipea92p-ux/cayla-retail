@@ -48,6 +48,8 @@ export async function getProformasMes(desde: string, hasta: string) {
 export async function getResumenProformas(): Promise<ResumenProformas | null> {
   const supabase = await createClient();
   const res = await supabase.from("proformas").select(COLUMNAS_PROFORMA).eq("estado", "vigente");
-  const { datos } = tolerar(res, "las proformas vigentes");
+  const { datos, fallo } = tolerar(res, "las proformas vigentes");
+  // `fallo` es el aviso para la persona; la causa real (Postgres) es para quien lea el log.
+  if (fallo) console.error("Facturación: no se pudo leer las proformas vigentes (contador de la pestaña Proformas):", res.error?.message);
   return datos ? resumenProformas(datos as ProformaFila[]) : null;
 }
