@@ -43,6 +43,10 @@ const EN_SECO = process.argv.includes("--en-seco");
 const leer = (f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8");
 const SQL_A = leer("20260919160000_dinero_de_compras_lectura_operativa.sql");
 const SQL_B = leer("20260919161000_dinero_de_compras_tablas_solo_lider.sql");
+// A ENTERA ya no se puede re-pegar encima del reparto por tienda (ADR-0132): su sección 4 recrea las funciones
+// operativas de antes, que leían el destino de la factura, y ese destino ya no existe. Las secciones 1-3 (la
+// regla, el candado y el costo enmascarado) no dependen de él y siguen siendo re-pegables.
+const SQL_A_HASTA_LA_SECCION_3 = SQL_A.slice(0, SQL_A.indexOf("-- 4. Lo que un integrante necesita para RECIBIR"));
 const PRELUDIO = EN_SECO ? `${SQL_A}\n${SQL_B}` : "";
 
 function psql(sql) {
@@ -232,7 +236,7 @@ exito(
     `${ESCENA}${cambiaA(MICAELA)}select
   (select count(*) from retail.listar_compras_operativo(200) where id in (:'c1', :'c2', :'c3', :'c4')),
   (select count(*) from retail.listar_compras_operativo(200) where id in (:'c3', :'c4')),
-  (select bool_and(ubicacion_destino_id = :'trujillo') from retail.listar_compras_operativo(200));
+  (select bool_and(ubicaciones_destino = array[:'trujillo'::uuid]) from retail.listar_compras_operativo(200));
 rollback;
 `
   ),
@@ -250,7 +254,7 @@ exito(
   comoPersona(
     FELIPE,
     `${ESCENA}create temp table t_ref as
-  select id, row_number() over () as rn from retail.listar_compras(p_limite => 200, p_busqueda => 'TST-N') where ubicacion_destino_id = :'trujillo';
+  select id, row_number() over () as rn from retail.listar_compras(p_limite => 200, p_busqueda => 'TST-N') where :'trujillo'::uuid = any(ubicaciones_destino);
 ${cambiaA(MICAELA)}create temp table t_op as
   select id, row_number() over () as rn from retail.listar_compras_operativo(200, p_busqueda => 'TST-N');
 select (select count(*) from t_ref), (select count(*) from t_op), (select bool_and(o.id = r.id) from t_op o join t_ref r using (rn));
@@ -316,8 +320,8 @@ exito(
   comoPersona(
     FELIPE,
     `select
-  pg_get_function_result('retail.listar_compras_operativo(integer, date, timestamptz, uuid, text, uuid, text, boolean, date, date, text)'::regprocedure) !~* '(subtotal|igv|total|pagado|saldo|credito|banco|cuenta|costo|monto|precio)',
-  pg_get_function_result('retail.lineas_compra_operativo(uuid[])'::regprocedure) !~* '(subtotal|igv|total|pagado|saldo|credito|banco|cuenta|costo|monto|precio)';
+  pg_get_function_result('retail.listar_compras_operativo(integer, date, timestamptz, uuid, text, uuid, text, boolean, date, date, text, uuid)'::regprocedure) !~* '(subtotal|igv|total|pagado|saldo|credito|banco|cuenta|costo|monto|precio)',
+  pg_get_function_result('retail.lineas_compra_operativo(uuid[], uuid)'::regprocedure) !~* '(subtotal|igv|total|pagado|saldo|credito|banco|cuenta|costo|monto|precio)';
 rollback;
 `
   ),
@@ -442,7 +446,7 @@ rollback;
 error(
   "RECIBIR NO SE ROMPE (candado de sede): el integrante sigue sin poder recibir un comprobante de Taller",
   comoPersona(FELIPE, `${ESCENA}${COMO_AUTENTICADO}${cambiaA(MICAELA)}select retail.recibir_envio(:'trujillo', ${LISTA(ITEM("c3_item", 5))}, p_token => gen_random_uuid());\n`),
-  "comprobante"
+  "no tiene mercadería asignada a esta sede"
 );
 
 // ===========================================================================
@@ -574,7 +578,7 @@ exito(
   comoPersona(
     FELIPE,
     `${DOS_LOTES_SIN_COMPROBANTE}${QUITAR_ENMASCARADO}${cambiaA(MICAELA)}select costo_unitario_promedio::text as antes from retail.recepciones_sin_comprobante(:'trujillo') where lote_id = :'l1' \\gset
-${SQL_A}
+${SQL_A_HASTA_LA_SECCION_3}
 ${cambiaA(MICAELA)}select :'antes', (select costo_unitario_promedio is null from retail.recepciones_sin_comprobante(:'trujillo') where lote_id = :'l1');
 rollback;
 `
@@ -611,8 +615,20 @@ function main() {
 
   if (EN_SECO) console.log("Modo --en-seco: las dos migraciones se cargan dentro de cada escenario (no se aplican a la base).\n");
 
+  // Tras el reparto (ADR-0132), A y B son historia ya aplicada: no se re-pegan encima (A recrea funciones que el
+  // reparto reemplazó y B exige la firma vieja de `lineas_compra_operativo`). Sus pruebas de orden y de re-pegado
+  // solo tienen sentido en una base anterior al reparto.
+  const HAY_REPARTO = psql("select to_regclass('retail.compra_item_destinos') is not null;").trim() === "t";
+  const SOLO_ANTES_DEL_REPARTO = ["la parte B se niega a correr si la A no está", "las dos migraciones se pueden pegar DOS veces"];
+  let saltadas = 0;
+
   let fallos = 0;
   for (const caso of CASOS) {
+    if (HAY_REPARTO && SOLO_ANTES_DEL_REPARTO.some((p) => caso.nombre.startsWith(p))) {
+      saltadas++;
+      console.log(`↷ (se salta: A y B ya están aplicadas y el reparto reemplazó lo que recrean) ${caso.nombre}`);
+      continue;
+    }
     const resultado = correr(caso.sql);
     if (caso.tipo === "error") {
       if (resultado.ok) {
@@ -641,7 +657,8 @@ function main() {
     }
   }
 
-  console.log(`\n${CASOS.length - fallos}/${CASOS.length} pruebas en verde.`);
+  const corridas = CASOS.length - saltadas;
+  console.log(`\n${corridas - fallos}/${corridas} pruebas en verde${saltadas ? ` (${saltadas} se saltan: solo aplican antes del reparto).` : "."}`);
   process.exit(fallos > 0 ? 1 : 0);
 }
 
