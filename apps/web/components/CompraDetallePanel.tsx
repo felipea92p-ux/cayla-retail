@@ -1,17 +1,16 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { Confirmacion, DatosDelProveedor, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
+import { Confirmacion, DatosDelProveedor, MediosDePago, PILDORA, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
 import { Boton, CampoTexto } from "@/components/ui/campos";
-import { CampoFecha } from "@/components/ui/CampoFecha";
-import { LineasPago, lineaPagoVacia, lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
-import { METODO_SALDO_A_FAVOR, soles, type CompraResumen } from "@/lib/compras-reglas";
+import { lineaPagoVacia, lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
+import { ETIQUETA_METODO, METODO_SALDO_A_FAVOR, soles, type CompraResumen } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { etiquetaVence, tramoDe } from "@/lib/por-pagar-reglas";
 
@@ -119,10 +118,12 @@ export function BotonPagar({
   );
 }
 
-// Pago de UN comprobante (ADR-0035), con la misma cara que «Pagar juntos» (spike 2026-09-19, ADR-0129): cabecera con el proveedor,
-// dónde se le paga (copiable), la CASCADA (cuánto del saldo cubre este pago) y el resumen que cuenta; al registrar, el modal se
-// vuelve una confirmación y solo al cerrarla se avisa a quien lo abrió. Lo que NO cambia: un pago puede repartirse en varios medios
-// (`LineasPago`, RPC `registrar_pagos_compra`, todo o nada) y el saldo a favor se ofrece como un medio más.
+// Pago de UN comprobante (ADR-0035), con la misma cara y los mismos movimientos que «Pagar juntos» (spike 2026-09-19, ADR-0129).
+// Diferencia con el spike, a propósito: el spike solo permite UN medio de pago; aquí un pago puede repartirse en VARIOS medios
+// (`MediosDePago`: «＋ Dividir en otro medio»; RPC `registrar_pagos_compra`, todo o nada), como siempre lo ha permitido el ERP.
+// Con un solo medio se ve exactamente como el spike; «Se paga» y «Total» son campos (editan el monto de ese medio) y con varios
+// pasan a ser la suma de los medios. Al abrir, la cascada se llena y «Pagarás» cuenta desde 0; al registrar, el modal se vuelve
+// una confirmación y solo al cerrarla se avisa a quien lo abrió.
 const BTN_CANCELAR = "label-cayla rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo";
 
 export function RegistrarPagoModal({
@@ -140,9 +141,8 @@ export function RegistrarPagoModal({
   onPagado?: (r: ResultadoPago) => void;
 }) {
   const router = useRouter();
-  // Un pago puede repartirse en varios medios (20260914200000_compras_multipago):
-  // la RPC escribe todas las líneas o ninguna.
-  const [lineas, setLineas] = useState<LineaPago[]>([lineaPagoVacia(compra.saldo.toFixed(2))]);
+  // Un pago puede repartirse en varios medios (20260914200000_compras_multipago): la RPC escribe todas las líneas o ninguna.
+  const [lineas, setLineas] = useState<LineaPago[]>(() => [{ ...lineaPagoVacia(compra.saldo.toFixed(2)), metodo: datos?.formaPagoPreferida && datos.formaPagoPreferida in ETIQUETA_METODO ? datos.formaPagoPreferida : "transferencia" }]);
   const [fecha, setFecha] = useState(hoyLima());
   const [loading, setLoading] = useState(false);
   // Pago registrado: la confirmación reemplaza al formulario. El resultado va en una ref porque el cierre lo dispara `Modal`
@@ -150,15 +150,25 @@ export function RegistrarPagoModal({
   const [hecho, setHecho] = useState<ResultadoPago | null>(null);
   const resultado = useRef<ResultadoPago | null>(null);
   const ahora = useMemo(() => new Date(), []);
+  // La cascada arranca vacía y se llena al abrir (como en el spike): un fotograma después de montar.
+  const [armada, setArmada] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setArmada(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
+  const un = lineas.length === 1;
   const suma = sumaLineasPago(lineas);
   const excede = suma > compra.saldo + 0.005;
   const favorUsado = sumaLineasPago(lineas.filter((l) => l.metodo === METODO_SALDO_A_FAVOR));
   const favorExcedido = favorUsado > saldoFavor + 0.005;
   const resta = Math.round((compra.saldo - suma) * 100) / 100;
-  const llena = !excede && Math.abs(resta) < 0.005;
+  const llena = !excede && suma > 0 && Math.abs(resta) < 0.005;
   const tramo = tramoDe(compra, ahora);
   const colorVence = tramo === "vencidas" ? "text-rojo" : tramo === "semana" ? "text-ambar-profundo" : "text-tinta/75";
+  const enBanco = un && (lineas[0].metodo === "transferencia" || lineas[0].metodo === "deposito");
+  const editarMonto = (t: string) => setLineas((ls) => [{ ...ls[0], monto: t }]);
+  const CAMPO_MONTO = `w-full rounded-lg border bg-papel px-2.5 py-1.5 text-right text-sm tabular-nums outline-none transition-colors duration-200 focus:border-rojo ${excede ? "border-rojo text-rojo" : "border-tinta/25 text-tinta"}`;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -203,12 +213,13 @@ export function RegistrarPagoModal({
 
   return (
     <Modal
+      variante="papel"
       titulo={
         hecho ? (
           <span className="sr-only">Pago registrado</span>
         ) : (
           <>
-            <span className="label-cayla mb-0.5 block text-[11px] text-tinta/65">Pagar a proveedor</span>
+            <span className="label-cayla mb-0.5 block font-sans text-[11px] text-tinta/65">Pagar a proveedor</span>
             <span className="block text-[28px] leading-tight">{compra.proveedorNombre}</span>
           </>
         )
@@ -247,15 +258,28 @@ export function RegistrarPagoModal({
                     <span className="text-xs text-tinta/55 sm:hidden">Saldo </span>
                     {compra.saldo.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <span className={`text-sm tabular-nums sm:text-right ${excede ? "text-rojo" : "text-tinta"}`}>
-                    <span className="text-xs text-tinta/55 sm:hidden">Se paga </span>
-                    <CifraQueCuenta valor={suma} formato="monto" />
-                  </span>
-                  {/* La cascada: cuánto del saldo cubre este pago. Verde = queda en cero; rojo = se pasa del saldo. */}
+                  {un ? (
+                    <input
+                      id="pago-monto-0"
+                      inputMode="decimal"
+                      value={lineas[0].monto}
+                      onChange={(e) => editarMonto(e.target.value)}
+                      onFocus={(e) => e.target.select()}
+                      autoFocus
+                      aria-label={`Monto a pagar de ${compra.documento}`}
+                      aria-invalid={excede || undefined}
+                      className={CAMPO_MONTO}
+                    />
+                  ) : (
+                    <span className={`text-sm tabular-nums sm:text-right ${excede ? "text-rojo" : "text-tinta"}`}>
+                      <CifraQueCuenta valor={suma} formato="monto" />
+                    </span>
+                  )}
+                  {/* La cascada: cuánto del saldo cubre este pago. Se llena al abrir. Verde = queda en cero; rojo = se pasa del saldo. */}
                   <div aria-hidden className="mt-1.5 h-1 overflow-hidden rounded-full bg-sand sm:col-span-3">
                     <div
                       className={`h-full origin-left rounded-full transition-[transform,background-color] duration-500 ease-cayla ${excede ? "bg-rojo" : llena ? "bg-verde" : "bg-tinta"}`}
-                      style={{ transform: `scaleX(${compra.saldo > 0 ? Math.min(1, suma / compra.saldo) : 0})` }}
+                      style={{ transform: `scaleX(${armada && compra.saldo > 0 ? Math.min(1, suma / compra.saldo) : 0})` }}
                     />
                   </div>
                   <span className={`mt-1 flex min-h-[18px] items-center gap-1.5 text-xs sm:col-start-4 sm:justify-end ${excede ? "text-rojo" : llena ? "text-verde-profundo" : "text-tinta/55"}`} aria-live="polite">
@@ -274,31 +298,44 @@ export function RegistrarPagoModal({
                 </div>
                 <div className="grid items-center gap-x-4 bg-tinta/[0.04] px-5 py-3 sm:grid-cols-[1fr_auto]">
                   <span className="label-cayla text-[11px] text-tinta">Total del pago</span>
-                  <span className="font-display text-right text-[22px] tabular-nums text-tinta">
-                    <CifraQueCuenta valor={suma} formato="soles" />
-                  </span>
+                  {un ? (
+                    <label className="flex items-baseline justify-end gap-1">
+                      <span className="font-display text-[22px] text-tinta">S/</span>
+                      <input
+                        inputMode="decimal"
+                        value={lineas[0].monto}
+                        onChange={(e) => editarMonto(e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        aria-label="Total del pago"
+                        className="font-display w-36 border-b border-tinta/25 bg-transparent text-right text-[22px] tabular-nums text-tinta outline-none transition-colors duration-200 focus:border-b-2 focus:border-rojo"
+                      />
+                    </label>
+                  ) : (
+                    <span className="font-display text-right text-[22px] tabular-nums text-tinta">
+                      <CifraQueCuenta valor={suma} formato="soles" />
+                    </span>
+                  )}
                 </div>
               </div>
+              {un && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="label-cayla text-[10.5px] text-tinta/65">Atajos</span>
+                  <button type="button" onClick={() => editarMonto(compra.saldo.toFixed(2))} className={PILDORA}>
+                    Todo · {soles(compra.saldo)}
+                  </button>
+                </div>
+              )}
             </section>
 
-            {/* Primero cuándo, después con qué: la fecha es una sola para todo el pago; los medios pueden ser varios. */}
-            <div className="w-full sm:w-44">
-              <CampoFecha etiqueta="Fecha del pago" valor={fecha} onValor={setFecha} required />
-            </div>
-            <div className="space-y-3">
-              <p className="label-cayla text-[11px] text-tinta/65">
-                Medios de pago <span className="font-normal normal-case tracking-normal text-tinta/55">· uno o varios</span>
-              </p>
-              <LineasPago id="pago" lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} exacto={false} autoFocus saldoFavor={saldoFavor} />
-            </div>
+            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} />
 
             <div className="border-t border-tinta/10 pt-4">
               <p className="text-sm text-tinta">
-                Pagarás <span className="font-display text-xl tabular-nums"><CifraQueCuenta valor={suma} formato="soles" /></span>
+                Pagarás <span className="font-display text-xl tabular-nums"><CifraQueCuenta valor={suma} formato="soles" alMontar /></span>
                 {favorUsado > 0 && <span className="text-tinta/65"> (usando {soles(favorUsado)} de tu saldo a favor)</span>} ·{" "}
                 {llena ? (
                   <>
-                    quedará en cero <b className="font-semibold">1 comprobante</b>
+                    quedarán en cero <b className="font-semibold">1 comprobante</b>
                   </>
                 ) : (
                   <>
@@ -307,24 +344,29 @@ export function RegistrarPagoModal({
                 )}
               </p>
               <p className="mt-1 text-xs leading-relaxed text-tinta/65">
-                {lineas.length > 1 ? (
+                {!un ? (
                   <>
-                    Se registra como <b className="font-semibold">un solo pago repartido en {lineas.length} medios</b>: todos o ninguno.
+                    Se registra como <b className="font-semibold">un solo pago repartido en {lineas.length} medios</b>: en cada medio queda su línea (la del banco, la de caja…) y el comprobante conserva su propio historial de pagos.
+                  </>
+                ) : enBanco ? (
+                  <>
+                    Se registra como <b className="font-semibold">un solo pago</b>: en el estado de cuenta del banco verás una línea de {soles(suma)}. El comprobante conserva su propio historial de pagos.
                   </>
                 ) : (
                   <>
-                    Se registra como <b className="font-semibold">un solo pago</b>; el comprobante conserva su historial.
+                    Se registra como <b className="font-semibold">un solo pago</b>. El comprobante conserva su propio historial de pagos.
                   </>
                 )}
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-4">
-              <p className="min-w-0 flex-1 text-xs text-tinta/55">Todo o nada: si el comprobante ya no admite el monto, no se registra.</p>
+            {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. */}
+            <div className="-mx-6 -mb-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 px-6 py-4">
+              <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55">Todo o nada: si el comprobante ya no admite el monto, no se registra.</p>
               <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
                 Cancelar
               </button>
-              <Boton type="submit" peso="primario" cargando={loading} disabled={loading || excede || favorExcedido}>
+              <Boton type="submit" peso="primario" cargando={loading} disabled={loading || excede || favorExcedido || suma <= 0}>
                 {loading ? "Registrando…" : `Registrar pago de ${soles(suma)}`}
               </Boton>
             </div>

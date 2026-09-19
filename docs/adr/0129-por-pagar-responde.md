@@ -81,6 +81,19 @@ RPC `registrar_pagos_compra`, todo o nada) y el saldo a favor como un medio más
 (la fila y el cajón los pasan; el detalle no, y sigue pidiendo el refresh por su cuenta). Tope de tiempo al plegar las
 filas pagadas: si la pestaña está oculta `finished` no se resuelve y la fila quedaba a medio plegar sin pedir el dato fresco.
 
+**D10 — El modal de pago es el del spike, con una diferencia a propósito: varios medios de pago.** Tras la D9 Felipe
+volvió a ver el modal «que no era el diseño ni las animaciones» (y la D9 se había quedado corta: se comparó por el DOM,
+no por imágenes). Se comparó con capturas del spike y del modal real, lado a lado, y se corrigió: cáscara `papel` con
+borde fino, SIN sombra y con ✕ (`Modal` `variante="papel"`, aditiva); «Se paga» y «Total» son campos; píldoras de medio
+en minúscula, referencia sin monoespaciada, rótulo en sans, atajos siempre a la vista; pie a todo el ancho; y las
+animaciones de apertura (la cascada se llena desde 0 y «Pagarás» cuenta desde 0). **El spike solo permite UN medio de
+pago; el ERP siempre ha permitido varios** (`registrar_pagos_compra`, todo o nada), así que `MediosDePago`
+(`PagoPiezas.tsx`) diseña esa parte con el mismo lenguaje: con un medio es idéntico al spike y «＋ Dividir en otro medio»
+agrega líneas con su monto, sus píldoras y su referencia, con una barra del reparto. Verificado con un pago real de
+4,720 = 3,000 transferencia (con referencia) + 1,720 efectivo: la base guardó las dos líneas. **Pendiente:** «Pagar
+juntos» (varios comprobantes) sigue con UN medio: `registrar_pago_compras` recibe un solo `p_metodo`, y repartirlo en
+varias llamadas no sería todo-o-nada. Permitir varios medios ahí exige una función nueva en producción.
+
 ## Lo que NO cambia
 
 Cifras, columnas, tramos, textos y reglas de negocio. El pago individual de una fila (`RegistrarPagoModal`, que

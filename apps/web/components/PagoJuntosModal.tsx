@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
-import { Confirmacion, DatosDelProveedor, PILDORA, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
+import { Confirmacion, DatosDelProveedor, PILDORA, PastillasMedio, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { ETIQUETA_METODO, soles, type CompraResumen } from "@/lib/compras-reglas";
@@ -80,6 +80,12 @@ export function PagoJuntosModal({
   // Pago registrado: la confirmación reemplaza al formulario. El resultado se guarda en una ref porque el cierre
   // lo dispara `Modal` (con su animación de salida) y ahí hay que saber si se cerró un pago o se canceló.
   const [hecho, setHecho] = useState<ResultadoPago | null>(null);
+  // La cascada arranca vacía y se llena al abrir (como en el spike): un fotograma después de montar.
+  const [armada, setArmada] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setArmada(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
   const resultado = useRef<ResultadoPago | null>(null);
   const saldoFavor = datos?.saldoFavor ?? 0;
   const [usarFavor, setUsarFavor] = useState(saldoFavor > 0);
@@ -175,12 +181,13 @@ export function PagoJuntosModal({
 
   return (
     <Modal
+      variante="papel"
       titulo={
         hecho ? (
           <span className="sr-only">Pago registrado</span>
         ) : (
           <>
-            <span className="label-cayla mb-0.5 block text-[11px] text-tinta/65">Pagar a proveedor</span>
+            <span className="label-cayla mb-0.5 block font-sans text-[11px] text-tinta/65">Pagar a proveedor</span>
             <span className="block text-[28px] leading-tight">{proveedorNombre}</span>
           </>
         )
@@ -226,6 +233,7 @@ export function PagoJuntosModal({
                       value={montos[c.id] ?? ""}
                       onChange={(e) => alCambiarMonto(c.id, e.target.value)}
                       onFocus={(e) => e.target.select()}
+                      autoFocus={c.id === ordenados[0].id}
                       aria-label={`Monto a pagar de ${c.documento}`}
                       aria-invalid={pasa || invalido || undefined}
                       className={`w-full rounded-lg border bg-papel px-2.5 py-1.5 text-right text-sm tabular-nums text-tinta outline-none transition-colors duration-200 focus:border-rojo ${pasa || invalido ? "border-rojo text-rojo" : "border-tinta/25"}`}
@@ -234,7 +242,7 @@ export function PagoJuntosModal({
                     <div aria-hidden className="mt-1.5 h-1 overflow-hidden rounded-full bg-sand sm:col-span-3">
                       <div
                         className={`h-full origin-left rounded-full transition-[transform,background-color] duration-500 ease-cayla ${pasa ? "bg-rojo" : llena ? "bg-verde" : "bg-tinta"}`}
-                        style={{ transform: `scaleX(${c.saldo > 0 ? Math.min(1, aplicado / c.saldo) : 0})` }}
+                        style={{ transform: `scaleX(${armada && c.saldo > 0 ? Math.min(1, aplicado / c.saldo) : 0})` }}
                       />
                     </div>
                     <span className={`mt-1 flex min-h-[18px] items-center gap-1.5 text-xs sm:col-start-4 sm:justify-end ${pasa || invalido ? "text-rojo" : llena ? "text-verde-profundo" : "text-tinta/55"}`} aria-live="polite">
@@ -330,24 +338,11 @@ export function PagoJuntosModal({
           <div className={`grid gap-5 sm:grid-cols-[1.7fr_1fr_1fr] ${todoConFavor ? "opacity-50" : ""}`}>
             <div>
               <p className="label-cayla text-[11px] text-tinta/65">Medio de pago{todoConFavor ? " (no hace falta: cubre todo el saldo a favor)" : ""}</p>
-              <div className="mt-2 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Medio de pago">
-                {Object.entries(ETIQUETA_METODO).map(([v, t]) => (
-                  <button
-                    key={v}
-                    type="button"
-                    role="radio"
-                    aria-checked={metodo === v}
-                    onClick={() => setMetodo(v)}
-                    className={`label-cayla rounded-full border px-3 py-1 text-[10px] leading-4 transition-colors ${
-                      metodo === v ? "border-tinta bg-tinta text-crema" : "border-tinta/15 bg-tinta/[0.04] text-tinta/75 hover:border-rojo hover:text-rojo"
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
+              <div className="mt-2">
+                <PastillasMedio valor={metodo} onValor={setMetodo} />
               </div>
             </div>
-            <CampoTexto etiqueta="Referencia" mono value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Op. 00871234" autoComplete="off" />
+            <CampoTexto etiqueta="Referencia" value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Op. 00871234" autoComplete="off" />
             <CampoFecha etiqueta="Fecha del pago" valor={fecha} onValor={setFecha} required />
           </div>
 
@@ -355,11 +350,11 @@ export function PagoJuntosModal({
             <p className="text-sm text-tinta">
               {credito > 0 ? (
                 <>
-                  Transferirás <span className="font-display text-xl tabular-nums"><CifraQueCuenta valor={aTransferir} formato="soles" /></span> <span className="text-tinta/65">(pago de {soles(total)} usando {soles(credito)} a favor)</span>
+                  Transferirás <span className="font-display text-xl tabular-nums"><CifraQueCuenta valor={aTransferir} formato="soles" alMontar /></span> <span className="text-tinta/65">(pago de {soles(total)} usando {soles(credito)} a favor)</span>
                 </>
               ) : (
                 <>
-                  Pagarás <span className="font-display text-xl tabular-nums"><CifraQueCuenta valor={total} formato="soles" /></span>
+                  Pagarás <span className="font-display text-xl tabular-nums"><CifraQueCuenta valor={total} formato="soles" alMontar /></span>
                 </>
               )}{" "}
               · quedarán en cero <b className="font-semibold">{enCero === 1 ? "1 comprobante" : `${enCero} comprobantes`}</b>
@@ -375,8 +370,9 @@ export function PagoJuntosModal({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-4">
-            <p className="min-w-0 flex-1 text-xs text-tinta/55">Todo o nada: si un comprobante ya no admite el monto, no se registra ninguno.</p>
+          {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. */}
+          <div className="-mx-6 -mb-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 px-6 py-4">
+            <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55">Todo o nada: si un comprobante ya no admite el monto, no se registra ninguno.</p>
             <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
               Cancelar
             </button>
