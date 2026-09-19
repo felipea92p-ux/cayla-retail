@@ -42,7 +42,10 @@ Plan completo en [`docs/PLAN-PRODUCCION.md`](PLAN-PRODUCCION.md); diseño de ref
       «Compras» ya no existe), `lib/produccion-menu.ts` (+ test), `/produccion/ordenes` (contenido movido) y `/produccion` → redirige.
       Sin esquema. Verificado en navegador como líder desde Tienda Lima; tipos, lint y 1178 pruebas en verde.
       **Pendiente de probar con sesión real:** colaborador del Taller y de tienda. **Diferido a F6:** insignias del menú.
-- [ ] **F2 · Órdenes:** tablero, panel, matriz talla×color, cierre por variante; el formulario deja de pedir tela y avíos. Sin esquema.
+- [x] **F2 · Órdenes (2026-09-19):** tablero por etapa, panel (etapas, matriz talla×color, costo, cierre por variante), muestras, terminadas y
+      anuladas conservadas; `OrdenesProduccionV2.tsx` retirado. Sin esquema. **El formulario de nueva orden sigue pidiendo tela y avíos hasta
+      F3** (quitarlos antes deja el costo falso). Verificado en navegador como líder; 1344 pruebas. **Pendiente:** colaborador del Taller;
+      costos de `producciones` visibles al colaborador por la API (entra en D-G / F4e).
 - [ ] **F3 · Insumos:** pantalla, «Recibir insumo», consumo desde la orden (RPC ya en producción). Sin esquema.
 - [ ] **F4 · Abastecimiento propio de Producción (esquema, alto riesgo; ya NO espera a ADR-0132):** 4a proveedores de Producción (`proveedores_produccion`,
       repunta `insumos`/`insumo_lotes`) · 4b comprobantes · 4c por pagar (requiere D-I) · 4d recibir insumos → lote · 4e candado del dinero.
