@@ -11,37 +11,41 @@ import { describe, expect, it } from "vitest";
 // 2) Los dos modales viven en el shell, una vez cada uno y sin condicional sobre su apertura:
 //    el token de idempotencia de «Emitir» es un `useRef` del modal y tiene que vivir tanto como
 //    el shell. Un `{modal === "emitir" && <EmitirComprobanteModal … />}` —o una segunda instancia
-//    dentro de un panel— daría un token nuevo por apertura y quemaría un correlativo si se corta
-//    la red entre dos intentos.
+//    en cualquier otro componente, un panel o una vista nueva— daría un token nuevo por apertura
+//    y quemaría un correlativo si se corta la red entre dos intentos.
 
 const RAIZ = join(__dirname, "../app/(app)/vender/facturacion");
 const COMPONENTES = join(__dirname, "../components");
 
-/** Todos los `layout.tsx` y `page.tsx` bajo la ruta, a cualquier profundidad: una vista nueva
- *  entra sola al candado. */
-function archivosDeRuta(dir: string): string[] {
+function archivosBajo(dir: string, coincide: (nombre: string) => boolean): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     const ruta = join(dir, e.name);
-    if (e.isDirectory()) return archivosDeRuta(ruta);
-    return e.name === "page.tsx" || e.name === "layout.tsx" ? [ruta] : [];
+    if (e.isDirectory()) return archivosBajo(ruta, coincide);
+    return coincide(e.name) ? [ruta] : [];
   });
 }
 
-/** Lo primero que espera la función exportada por defecto (`await <esto>`), o null si no espera
- *  nada. Se toma cualquier expresión, no solo llamadas: `await searchParams` antes de la puerta
- *  también es leer antes de comprobar quién es. */
+/** Lo primero que espera la función exportada por defecto, sin contar comentarios: el nombre y, si
+ *  lo llama, «()» — `exigirLider()`. Se toma cualquier expresión, no solo llamadas: `await
+ *  searchParams` antes de la puerta también es leer antes de comprobar quién es, y `await
+ *  exigirLider;` (sin llamarla) no comprueba nada. `null` si no espera nada. */
 function primerAwait(fuente: string): string | null {
-  const inicio = fuente.indexOf("export default async function");
+  const sinComentarios = fuente.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  const inicio = sinComentarios.indexOf("export default async function");
   if (inicio < 0) return null;
-  return fuente.slice(inicio).match(/await\s+([\w.]+)/)?.[1] ?? null;
+  const encontrado = sinComentarios.slice(inicio).match(/await\s*\(?\s*([\w.]+)(\s*\()?/);
+  return encontrado ? `${encontrado[1]}${encontrado[2] ? "()" : ""}` : null;
 }
 
-function cuenta(fuente: string, patron: RegExp): number {
-  return fuente.match(patron)?.length ?? 0;
+/** ¿La etiqueta del modal va detrás de una condición sobre su estado (`modal … &&`, `abierto ? …`)?
+ *  Eso lo montaría y desmontaría en cada apertura. Se mira lo que hay ANTES de la etiqueta: el
+ *  `abierto={modal === "emitir"}` que la acompaña, ya dentro de la etiqueta, es lo correcto. */
+function condicionadoAlEstado(fuente: string, modal: string): boolean {
+  return new RegExp(`(\\bmodal\\b|\\babierto\\b)[^{}<]*?(&&|\\?)\\s*<${modal}\\b`).test(fuente);
 }
 
 describe("Facturación — puerta de líder", () => {
-  const rutas = archivosDeRuta(RAIZ);
+  const rutas = archivosBajo(RAIZ, (n) => n === "page.tsx" || n === "layout.tsx");
 
   it("encuentra el layout y las cuatro vistas (que el candado no mire el vacío)", () => {
     expect(rutas.length).toBeGreaterThanOrEqual(5);
@@ -50,36 +54,57 @@ describe("Facturación — puerta de líder", () => {
   for (const ruta of rutas) {
     const nombre = ruta.slice(RAIZ.length).replace(/\\/g, "/");
     it(`${nombre} espera exigirLider() antes que cualquier otra cosa`, () => {
-      expect(primerAwait(readFileSync(ruta, "utf8"))).toBe("exigirLider");
+      expect(primerAwait(readFileSync(ruta, "utf8"))).toBe("exigirLider()");
     });
   }
 
-  it("el detector sí distingue una página sin la puerta o con la puerta tarde", () => {
-    expect(primerAwait("export default async function P() { await exigirLider(); await leer(); }")).toBe("exigirLider");
-    expect(primerAwait("export default async function P() { const x = await leer(); await exigirLider(); }")).toBe("leer");
-    expect(primerAwait("export default async function P({ searchParams }) { const { m } = await searchParams; await exigirLider(); }")).toBe("searchParams");
+  it("el detector sí distingue una página sin la puerta, con la puerta tarde o sin llamarla", () => {
+    const pagina = (cuerpo: string) => `export default async function P({ searchParams }) { ${cuerpo} }`;
+    expect(primerAwait(pagina("await exigirLider(); await leer();"))).toBe("exigirLider()");
+    expect(primerAwait(pagina("const x = await leer(); await exigirLider();"))).toBe("leer()");
+    expect(primerAwait(pagina("const { m } = await searchParams; await exigirLider();"))).toBe("searchParams");
+    expect(primerAwait(pagina("await exigirLider; await leer();"))).toBe("exigirLider");
+    expect(primerAwait(pagina("await (leer()); await exigirLider();"))).toBe("leer()");
+    expect(primerAwait(pagina("// await exigirLider()\n const x = await leer(); await exigirLider();"))).toBe("leer()");
+    expect(primerAwait(pagina("/* await exigirLider() */ await exigirLider();"))).toBe("exigirLider()");
     expect(primerAwait("export default function P() { return null; }")).toBeNull();
   });
 });
 
-describe("Facturación — los modales viven una sola vez en el shell", () => {
-  const shell = readFileSync(join(COMPONENTES, "FacturacionShell.tsx"), "utf8");
-  const paneles = ["ComprobantesPanel.tsx", "ProformasPanel.tsx"].map((archivo) => ({ archivo, fuente: readFileSync(join(COMPONENTES, archivo), "utf8") }));
+describe("Facturación — los modales viven una sola vez, en el shell", () => {
+  const archivos = archivosBajo(COMPONENTES, (n) => n.endsWith(".tsx")).map((ruta) => ({
+    nombre: ruta.slice(COMPONENTES.length + 1).replace(/\\/g, "/"),
+    fuente: readFileSync(ruta, "utf8"),
+  }));
+  const shell = archivos.find((a) => a.nombre === "FacturacionShell.tsx")?.fuente ?? "";
+
+  it("encuentra el shell y los componentes (que el candado no mire el vacío)", () => {
+    expect(shell).not.toBe("");
+    expect(archivos.length).toBeGreaterThan(20);
+  });
 
   for (const modal of ["EmitirComprobanteModal", "NuevaProformaModal"]) {
-    it(`${modal}: una sola instancia, sin condicional sobre su apertura`, () => {
-      expect(cuenta(shell, new RegExp(`<${modal}\\b`, "g"))).toBe(1);
-      expect(shell).not.toMatch(new RegExp(`modal\\s*===\\s*"[a-z]+"\\s*(&&|\\?)\\s*<${modal}`));
+    it(`<${modal}> se dibuja en un solo lugar de toda la app: el shell, una vez`, () => {
+      const enQueArchivos = archivos.filter((a) => new RegExp(`<${modal}\\b`).test(a.fuente)).map((a) => a.nombre);
+      expect(enQueArchivos).toEqual(["FacturacionShell.tsx"]);
+      expect(shell.match(new RegExp(`<${modal}\\b`, "g"))).toHaveLength(1);
     });
 
-    it(`${modal}: ningún panel lo dibuja`, () => {
-      for (const { archivo, fuente } of paneles) expect(fuente, archivo).not.toContain(modal);
+    it(`<${modal}> no depende de una condición sobre su apertura`, () => {
+      expect(condicionadoAlEstado(shell, modal)).toBe(false);
     });
   }
 
-  it("el detector sí ve un modal condicionado a su apertura o repetido", () => {
-    const malo = `{modal === "emitir" && <EmitirComprobanteModal abierto />} {x ? <EmitirComprobanteModal /> : null}`;
-    expect(cuenta(malo, /<EmitirComprobanteModal\b/g)).toBe(2);
-    expect(malo).toMatch(/modal\s*===\s*"[a-z]+"\s*(&&|\?)\s*<EmitirComprobanteModal/);
+  it("el detector sí ve un modal condicionado a su apertura, en cualquiera de sus formas", () => {
+    const modal = "EmitirComprobanteModal";
+    for (const malo of [
+      `{modal === "emitir" && <${modal} />}`,
+      `{modal && <${modal} />}`,
+      `{modal !== null && <${modal} />}`,
+      `{abierto ? <${modal} /> : null}`,
+    ]) {
+      expect(condicionadoAlEstado(malo, modal)).toBe(true);
+    }
+    expect(condicionadoAlEstado(`{series && tiendas && <${modal} abierto={modal === "emitir"} />}`, modal)).toBe(false);
   });
 });
