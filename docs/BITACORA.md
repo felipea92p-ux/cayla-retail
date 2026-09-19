@@ -35,7 +35,7 @@ Lo que Felipe se lleva: el candado está en la base pero el formulario de «Nuev
 
 ## 2026-09-18 (Migración pequeña: columnas y un índice que solo existían en producción, y el registro de producción no guarda el SQL original)
 
-Se trajo `20260918170000_tejidos_patrones_imagen_muestra_e_indice_etiquetas` (`tejidos.imagen_muestra_url`, `patrones.imagen_muestra_url` e `variante_etiquetas_etiqueta_idx`), reconstruida desde `information_schema` y `pg_indexes`; las tres tablas quedan con la misma huella que en producción y `pnpm pruebas:deriva-produccion` pasa a 8/8. El front solo usa `imagen_muestra_url` de `colores`, así que esto no rompía nada: era deriva de esquema pura.
+Se trajo `20260918171000_tejidos_patrones_imagen_muestra_e_indice_etiquetas` (`tejidos.imagen_muestra_url`, `patrones.imagen_muestra_url` e `variante_etiquetas_etiqueta_idx`), reconstruida desde `information_schema` y `pg_indexes`; las tres tablas quedan con la misma huella que en producción y `pnpm pruebas:deriva-produccion` pasa a 8/8. El front solo usa `imagen_muestra_url` de `colores`, así que esto no rompía nada: era deriva de esquema pura.
 
 Lo que Felipe se lleva: el registro de migraciones de producción (`schema_migrations.statements`) solo conserva el SQL de lo que se aplicó por el CLI. Cuatro de las cinco migraciones reconstruidas hoy están registradas allá con `statements` vacío (se pegaron en el SQL Editor y se marcaron como aplicadas), así que el original no existe en ninguna parte y solo se puede reconstruir desde el estado vivo. De las 10 tablas que diferían, 4 ya son idénticas; las otras 6 esperan una decisión (`compras`, `gastos`) o dependen de la rama de Cambios y del local atrasado.
 

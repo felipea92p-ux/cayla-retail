@@ -23,7 +23,7 @@
  *    el mismo token devuelve la misma compra en vez de duplicarla. El repo no tenía nada de
  *    eso. `CompraFormV2.tsx` lo manda desde el 2026-09-18; el escenario de compatibilidad
  *    comprueba que quien NO lo mande (una pantalla vieja, un script) sigue funcionando.
- *  - `20260918170000_tejidos_patrones_imagen_muestra_e_indice_etiquetas`: producción tiene
+ *  - `20260918171000_tejidos_patrones_imagen_muestra_e_indice_etiquetas`: producción tiene
  *    `tejidos.imagen_muestra_url`, `patrones.imagen_muestra_url` y el índice
  *    `variante_etiquetas_etiqueta_idx`; el repo no. Hoy el front solo usa la de `colores`,
  *    así que no rompe nada: es deriva de esquema, y esto la deja registrada.

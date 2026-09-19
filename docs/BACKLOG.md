@@ -122,7 +122,7 @@ sobre una venta anulada — no hay nada que limpiar.
         local compartido (dos de ellas borran sobrecargas). No se corrió un `db reset`
         completo porque esa base la usan ~27 worktrees: el orden se verificó por análisis
         (ninguna migración posterior toca esas firmas). **8 y 9 también
-        traídas** (`20260918170000_tejidos_patrones_imagen_muestra_e_indice_etiquetas`,
+        traídas** (`20260918171000_tejidos_patrones_imagen_muestra_e_indice_etiquetas`,
         reconstruida desde el estado vivo porque no hay SQL original; el front solo usa
         `imagen_muestra_url` de `colores`, así que no rompía nada). `pnpm
         pruebas:deriva-produccion` pasa a 8/8. De las 10 tablas que diferían de producción,

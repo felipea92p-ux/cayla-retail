@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260918170000_tejidos_patrones_imagen_muestra_e_indice_etiquetas.sql — CAYLA V2
+-- 20260918171000_tejidos_patrones_imagen_muestra_e_indice_etiquetas.sql — CAYLA V2
 --
 -- RECONSTRUCCIÓN DESDE EL ESTADO VIVO DE PRODUCCIÓN. Estos objetos existen en producción
 -- (`cayla-dynamic`) y no en el repo. Se detectó el 2026-09-18 al comparar `retail` por huella
@@ -7,8 +7,10 @@
 -- registro de migraciones de producción no guarda ninguna sentencia que los cree, así que
 -- se reprodujeron desde `information_schema`, `pg_indexes` y `col_description`.
 --
--- VERSIÓN. No es la de producción (no hay una registrada para esto): lleva la fecha de hoy,
--- que ordena después de todo lo demás. Es independiente e idempotente, así que su posición
+-- VERSIÓN. No es la de producción (no hay una registrada para esto). Nació como 20260918170000, pero
+-- esa versión ya la usaban dos migraciones de `main` (`talla_unica_en_femenino` y
+-- `venta_aplica_descuento_de_campana`), y un timestamp repetido rompe `migration up`
+-- (`schema_migrations.version` es llave primaria): se movió a 20260918171000. Es independiente e idempotente, así que su posición
 -- no importa mientras `tejidos`, `patrones` y `variante_etiquetas` ya existan.
 --
 -- QUÉ HACE.
