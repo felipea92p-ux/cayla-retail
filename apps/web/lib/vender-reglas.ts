@@ -105,6 +105,27 @@ export function pagosTrasEditarMonto(pagos: readonly PagoAplicado[], indice: num
   return editados.map((p, i) => (i === otro ? { ...p, monto: Math.max(0, redondear2(total - limpio)) } : p));
 }
 
+/** Los pasos del cobro que la pantalla resalta: elegir el medio, anotar cuánto entregó la clienta
+ *  (solo si hay efectivo) y, cubierto todo, el comprobante y confirmar. */
+export type PasoCobro = "medio" | "recibido" | "comprobante";
+
+/** Cuál es el siguiente paso, derivado de lo que ya está puesto: mientras los medios no cubran
+ *  el total (o se pasen) falta el medio; con efectivo cubierto falta anotar lo recibido hasta que
+ *  alcance; después toca el comprobante, que es opcional. Solo GUÍA: no bloquea nada (lo que
+ *  impide cobrar sigue siendo `motivoBloqueoCobro`). */
+export function pasoDelCobro(pagos: readonly PagoAplicado[], total: number): PasoCobro {
+  if (pagos.length === 0 || restanteDePagos(total, pagos) !== 0) return "medio";
+  const efectivo = pagos.find((p) => p.metodo === "efectivo" && p.monto > 0);
+  if (efectivo && (efectivo.recibido === undefined || efectivo.recibido < efectivo.monto)) return "recibido";
+  return "comprobante";
+}
+
+export const TEXTO_PASO_COBRO: Record<PasoCobro, string> = {
+  medio: "Elige cómo pagó la clienta.",
+  recibido: "Toca los billetes que entregó, o «Exacto» si pagó justo.",
+  comprobante: "Listo. El documento es opcional: ya puedes confirmar el cobro.",
+};
+
 /** Los pagos como viajan a `registrar_venta`. Solo montos > 0 (`venta_pagos` lo exige). El
  *  `recibido` va únicamente en efectivo y solo si cubre lo que corresponde: la base lo
  *  guarda para reimprimir el vuelto y su candado (`venta_pagos_recibido_coherente`) rechaza

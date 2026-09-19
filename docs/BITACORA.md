@@ -3,6 +3,21 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Cobro guiado en Vender: qué toca ahora, ola de luz y billetes)
+
+**Qué se cerró.** Un colaborador que probó Vender no sabía dónde tocar. Ahora el cobro dice qué toca:
+barra de tres tramos (medio → recibido → comprobante) con una línea de texto, el paso actual con borde
+dorado y su pastilla «Siguiente paso»/«Opcional», y «Confirmar cobro» que respira cuando ya se puede.
+Mientras no hay medio, una ola de luz recorre los cinco (efectivo ~2.4 s, luego a la derecha y de vuelta,
+solo CSS) y se detiene al elegir. Los montos rápidos son billetes con su denominación. Efectivo pasa a
+dorado y transferencia a azul, globalmente (dona de Caja incluida). Además: el campo de monto se puede
+vaciar (`CampoMonto`) y con dos medios el otro toma el restante (`pagosTrasEditarMonto`).
+
+**Qué se aprendió.** Un dorado no llega a AA como texto: se usa de relleno y borde, y el texto sobre él
+lleva una tinta oscura (`--color-metodo-efectivo-tinta`). Animar un número registrado con `@property --l`
+(0..1) y calcular fondo, escala y halo desde él evita escribir cinco versiones del mismo efecto. El test
+`globals-capas` obliga a que hasta la regla de movimiento reducido viva dentro de `@layer`.
+
 ## 2026-09-19 (Atelier llega a Caja: cabecera, entrada escalonada y reloj del turno — ADR-0123)
 
 **Qué se cerró.** Caja usa la cabecera de Cambios (`EncabezadoPagina`: sede y día con el hilo, título

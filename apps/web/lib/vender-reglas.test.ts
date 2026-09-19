@@ -16,6 +16,7 @@ import {
   necesitaArgumentoEscrito,
   pagosParaRpc,
   pagosTrasEditarMonto,
+  pasoDelCobro,
   porcentajeDeLinea,
   quitarPagoTraspasando,
   restanteDePagos,
@@ -574,5 +575,35 @@ describe("pagosTrasEditarMonto — con dos medios, el otro toma lo que falta", (
 
   it("un índice que no existe no rompe nada", () => {
     expect(pagosTrasEditarMonto(plinYEfectivo, 5, 40, 80)).toEqual(plinYEfectivo);
+  });
+});
+
+describe("pasoDelCobro — cuál es el siguiente paso que la pantalla resalta", () => {
+  it("sin ningún medio, o sin cubrir el total, o pasándose: falta elegir el medio", () => {
+    expect(pasoDelCobro([], 80)).toBe("medio");
+    expect(pasoDelCobro([{ metodo: "yape", monto: 50 }], 80)).toBe("medio");
+    expect(pasoDelCobro([{ metodo: "yape", monto: 90 }], 80)).toBe("medio");
+  });
+
+  it("cubierto con un medio que no es efectivo: no hay 'recibido', sigue el comprobante", () => {
+    expect(pasoDelCobro([{ metodo: "yape", monto: 80 }], 80)).toBe("comprobante");
+  });
+
+  it("efectivo cubierto pero sin anotar lo recibido: toca el recibido", () => {
+    expect(pasoDelCobro([{ metodo: "efectivo", monto: 80 }], 80)).toBe("recibido");
+  });
+
+  it("recibido menor que lo que cubre sigue siendo el paso del recibido", () => {
+    expect(pasoDelCobro([{ metodo: "efectivo", monto: 80, recibido: 50 }], 80)).toBe("recibido");
+  });
+
+  it("recibido suficiente (o exacto): sigue el comprobante", () => {
+    expect(pasoDelCobro([{ metodo: "efectivo", monto: 80, recibido: 100 }], 80)).toBe("comprobante");
+    expect(pasoDelCobro([{ metodo: "efectivo", monto: 80, recibido: 80 }], 80)).toBe("comprobante");
+  });
+
+  it("con pago mixto el recibido se pide solo si el efectivo cubre algo", () => {
+    expect(pasoDelCobro([{ metodo: "plin", monto: 40 }, { metodo: "efectivo", monto: 40 }], 80)).toBe("recibido");
+    expect(pasoDelCobro([{ metodo: "plin", monto: 80 }, { metodo: "efectivo", monto: 0 }], 80)).toBe("comprobante");
   });
 });
