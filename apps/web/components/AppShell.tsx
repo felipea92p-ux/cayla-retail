@@ -550,7 +550,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
     catalogo: ["/productos", "/productos/categorias", "/productos/atributos", "/productos/marcas"],
     compras: ["/compras", "/compras/proveedores", "/compras/recibir", "/compras/por-pagar"],
     inventario: ["/inventario", "/inventario/movimientos", "/inventario/traslados", "/inventario/conteo", "/inventario/resumen"],
-    finanzas: ["/finanzas/egresos"],
+    finanzas: ["/finanzas/resultados", "/finanzas/egresos"],
   };
   const grupoActivo = Object.entries(RUTAS_POR_GRUPO).find(([, rutas]) => rutas.some((h) => activo(h)))?.[0] ?? null;
 
@@ -614,6 +614,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
   const facturas: Item = { href: "/compras", etiqueta: "Comprobantes", icono: IC.facturas };
   const recibirMercaderia: Item = { href: "/compras/recibir", etiqueta: "Recibir mercadería", icono: IC.recibir };
   const porPagar: Item = { href: "/compras/por-pagar", etiqueta: "Por pagar", icono: IC.porPagar };
+  const resultados: Item = { href: "/finanzas/resultados", etiqueta: "Resultados", icono: IC.finanzas };
   const gastos: Item = { href: "/finanzas/egresos", etiqueta: "Gastos", icono: IC.facturacion };
   const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };
   const produccion: Item = { href: "/produccion", etiqueta: "Producción", icono: IC.produccion };
@@ -680,9 +681,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
   };
 
   // "Finanzas" (ADR-0117): líder-only, al final del menú (el orden de Felipe del 2026-09-16 no lo
-  // incluía; va último para no mover nada de lo que ya usa). Hoy lleva Gastos; el Estado de
-  // Resultados y el Balance se suman aquí cuando existan.
-  const grupoFinanzas: ItemGrupo = { id: "finanzas", etiqueta: "Finanzas", icono: IC.finanzas, hijos: [gastos] };
+  // incluía; va último para no mover nada de lo que ya usa). Lleva Resultados (Estado de
+  // Resultados, ADR-0120) y Gastos; el Balance se suma aquí cuando exista.
+  const grupoFinanzas: ItemGrupo = { id: "finanzas", etiqueta: "Finanzas", icono: IC.finanzas, hijos: [resultados, gastos] };
 
   const grupos = [
     {

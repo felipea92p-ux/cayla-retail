@@ -291,6 +291,10 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   caja abierta, C clasificar un egreso ya registrado), `EgresosModales` (no es gasto / anular) → RPCs `registrar_gasto`,
   `anular_gasto`, `marcar_egreso_no_gasto`, `revertir_egreso_no_gasto`; lecturas `fn_egresos_resumen`,
   `fn_egresos_sin_clasificar`, `fn_egresos_no_gasto_lista`, `fn_gastos_lista`. Menú: grupo «Finanzas» (líder, al final).
+- `/finanzas/resultados` (2026-09-19, ADR-0120, **solo líder** en pantalla y RPC) → `lib/resultados.ts` (lectura) +
+  `lib/resultados-reglas.ts` (formato, avisos, textos de ayuda) + `lib/meses-lima.ts` (el mes de la URL, compartido con Gastos)
+  → `EstadoResultadosVista` → RPC `fn_estado_resultados(mes)` → `fn_asientos` (el diario derivado). Una tarjeta por sede,
+  «De la empresa» (solo gastos) y consolidado. Menú: grupo «Finanzas» (líder).
 - Avisos globales (ADR-0047): `components/ui/Avisos.tsx`, montado en
   `app/layout.tsx`. Toda validación/error/éxito/proceso pasa por `avisar.*`
   (arriba a la derecha) y `enfocar` lleva el cursor al campo. Sin `useState`
@@ -386,6 +390,10 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
   `egresos_no_gasto` (depósito, retiro, ajuste; reversible). **Un egreso de `caja_movimientos` solo es gasto si un
   gasto vigente lo señala por `caja_movimiento_id`** (índice único parcial): así nunca se cuenta dos veces. Sin policy
   de escritura: solo RPC, y `select` solo para líder. La línea de abajo describe el diseño anterior de `gastos`.
+- **Contabilidad derivada** (2026-09-19, ADR-0109/0120): `cuentas` (26, plan de cuentas; la sede es etiqueta del asiento, no de la
+  cuenta) y `parametros_tributarios` (tasa de IGV con vigencia, solo se agregan filas). **No hay tabla de asientos**: el diario
+  lo genera `fn_asientos` leyendo ventas, anulaciones, devoluciones, cambios, mermas y gastos; al cerrar el mes (tarea 8) se
+  materializará. La línea de abajo sobre `asientos` describe el diseño anterior (V1), que ya no existe.
 - **Finanzas**: `gastos`, `depositos_bancarios`, `ajustes_efectivo`,
   `patrimonio_items`, `activos_fijos`, `ventas_historicas_mensuales`,
   `comprobantes` / `series_comprobantes` (facturación electrónica, parte 1 —
@@ -406,6 +414,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `registrar_gasto` / `anular_gasto` (ADR-0117) | Único camino de escritura de gastos, solo líder. `registrar_gasto` decide el camino (A/B/C) por el medio de pago y por si llega una caja o un egreso; en B crea el egreso llamando a la MISMA `registrar_movimiento_caja` (las reglas de caja viven en un solo lugar), todo o nada; idempotente por `p_token`. `anular_gasto` no toca la caja. |
 | `marcar_egreso_no_gasto` / `revertir_egreso_no_gasto` (ADR-0117) | Marca un egreso de caja como «no es gasto» (depósito, retiro, ajuste); se revierte, no se borra |
 | `fn_egresos_resumen` / `fn_egresos_sin_clasificar` / `fn_egresos_no_gasto_lista` / `fn_gastos_lista` (ADR-0117) | Lecturas de la pantalla de gastos, solo líder; las sumas se hacen en Postgres. Una fila por sede activa aunque esté en cero, más «De la empresa» |
+| `fn_asientos` / `fn_asientos_descuadrados` / `fn_estado_resultados` / `fn_tasa_igv` (ADR-0120) | El diario derivado y el Estado de Resultados. Las reglas de posteo (venta, anulación, devolución, cambio, merma, gasto) viven SOLO en `fn_asientos`; el estado lee de ahí. Solo líder. No guardan nada. |
 | `registrar_asiento` | Único camino de escritura al libro diario; valida cuadre antes de insertar |
 | `emitir_comprobante` / `emitir_nota` / `registrar_serie_comprobante` | Reserva boleta/factura/nota con su correlativo oficial (`for update` por serie); factura sin RUC es imposible por constraint. No transmite a SUNAT: eso es `/api/lucode/emitir` — ADR-0005, ADR-0009 |
 | `actualizar_transmision_comprobante` | Único camino para escribir el resultado real de SUNAT (`enviado`/`aceptado`/`rechazado` + respuesta cruda); nunca se edita `estado` a mano |
@@ -440,6 +449,8 @@ Integrante solo su sede (o su almacén asociado).
 - `produccion_lineas`: `unique(produccion_id, variante_id)` +
   `producciones.inventariado_at` — idempotencia contra doble conteo de
   stock si alguien hace doble clic en "cerrar producción".
+- `cuentas` / `parametros_tributarios` (ADR-0120): una categoría de gasto no puede apuntar a una cuenta que no existe (FK); una tasa
+  de IGV no se edita ni se borra (trigger), así un mes pasado no cambia cuando cambia la tasa; nadie escribe desde la app (revoke).
 - `gastos` (ADR-0117): índice único parcial sobre `caja_movimiento_id where estado='vigente'` — un egreso de caja no
   respalda dos gastos; `check(efectivo ⇔ caja_movimiento_id is not null)`; IGV solo con factura y nunca mayor al total;
   trigger que solo deja pasar `vigente → anulado` (un gasto no se edita ni se borra, ni siquiera para el dueño de la
