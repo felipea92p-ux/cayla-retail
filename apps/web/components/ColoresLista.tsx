@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
@@ -88,28 +88,40 @@ function Muestra({ hex, className = "h-12 w-full" }: { hex: string | null; class
 // último lo que da una ficha de proveedor o un programa de diseño. En la base
 // solo se guarda el hex. Mientras se escribe, un texto a medias no pisa el
 // color vigente; al salir del campo, si no era válido, vuelve al último bueno.
-function SelectorColor({ hex, onHex }: { hex: string; onHex: (hex: string) => void }) {
-  const [texto, setTexto] = useState(hex);
+// La muestra es UN rectángulo relleno con el color. El <input type="color">
+// nativo va escondido detrás y se abre al tocar la muestra: pintado tal cual
+// dejaba un recuadro con otro más chico adentro, y un Crudo o un Blanco casi
+// no se distinguían del fondo crema.
+function MuestraColor({ hex, onHex, className = "" }: { hex: string | null; onHex?: (hex: string) => void; className?: string }) {
+  // Sin elegir: caja punteada, no un color de relleno. Un beige por defecto se
+  // guardaba sin que nadie lo notara (5 colores en producción llevan #c9b79c).
+  const caja = `relative block h-9 w-14 shrink-0 rounded-md shadow-inner ${
+    hex ? "border border-tinta/35" : "border border-dashed border-tinta/40"
+  } ${className}`;
+  if (!onHex) return <span className={caja} style={hex ? { backgroundColor: hex } : undefined} aria-hidden />;
+  return (
+    <label className={`${caja} cursor-pointer focus-within:ring-2 focus-within:ring-rojo/40`} style={hex ? { backgroundColor: hex } : undefined}>
+      <input type="color" aria-label="Elegir color con el selector" value={hex ?? "#c9b79c"} onChange={(e) => onHex(e.target.value)} className="sr-only" />
+    </label>
+  );
+}
+
+function SelectorColor({ hex, onHex }: { hex: string | null; onHex: (hex: string) => void }) {
+  const [texto, setTexto] = useState(hex ?? "");
   const [ultimoHex, setUltimoHex] = useState(hex);
   // El selector nativo también mueve el color: el campo de texto lo sigue.
   if (hex !== ultimoHex) {
     setUltimoHex(hex);
-    setTexto(hex);
+    setTexto(hex ?? "");
   }
   const invalido = texto.trim() !== "" && parsearColor(texto) === null;
 
   return (
     <div className="flex items-start gap-3">
-      <input
-        type="color"
-        aria-label="Elegir color con el selector"
-        value={hex}
-        onChange={(e) => onHex(e.target.value)}
-        className="mt-6 h-9 w-14 shrink-0 cursor-pointer rounded-md border border-tinta/20 bg-crema p-1"
-      />
+      <MuestraColor hex={hex} onHex={onHex} className="mt-6" />
       <div className="min-w-0 flex-1">
         <CampoTexto
-          etiqueta="Código HTML o RGB"
+          etiqueta="Color"
           mono
           value={texto}
           onChange={(e) => {
@@ -120,12 +132,14 @@ function SelectorColor({ hex, onHex }: { hex: string; onHex: (hex: string) => vo
               onHex(valido);
             }
           }}
-          onBlur={() => setTexto(hex)}
+          onBlur={() => setTexto(hex ?? "")}
           tono={invalido ? "error" : undefined}
           pie={
             invalido
               ? "No se entiende. Prueba #c9b79c o 201, 183, 156."
-              : `RGB ${rgbDeHex(hex)} — puedes pegar #c9b79c o 201, 183, 156`
+              : hex
+                ? `RGB ${rgbDeHex(hex)} · acepta #hex o R, G, B`
+                : "Toca el cuadro o escribe #hex o R, G, B"
           }
           placeholder="#c9b79c"
           autoComplete="off"
@@ -152,7 +166,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const [nombre, setNombre] = useState("");
   const [codigo, setCodigo] = useState("");
   const [familiaColor, setFamiliaColor] = useState<(typeof FAMILIAS_COLOR)[number]["valor"]>("neutro");
-  const [hex, setHex] = useState("#c9b79c");
+  const [hex, setHex] = useState<string | null>(null);
   const [notas, setNotas] = useState("");
 
   const activos = colores.filter((c) => c.activo);
@@ -164,7 +178,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     setNombre("");
     setCodigo("");
     setFamiliaColor("neutro");
-    setHex("#c9b79c");
+    setHex(null);
     setNotas("");
   }
 
@@ -209,8 +223,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   }
 
   // Aprobar es de un solo clic, sin modal — el color ya está en uso desde
-  // que se propuso, esto solo lo saca de la lista de pendientes. No existe
-  // "rechazar": un color pendiente que no sirve se desactiva (abajo).
+  // que se propuso, esto solo lo saca de la lista de pendientes. Si no sirve,
+  // se rechaza (`rechazar`, abajo) — la base lo bloquea si ya hay una prenda con él.
   async function aprobar(c: Color) {
     setAprobandoCodigo(c.codigo);
     try {
@@ -364,19 +378,22 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         >
           {(cerrar) => (
             <div className="mt-5 space-y-4">
-              <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
-                <CampoTexto etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Verde botella" />
-                <CampoTexto
-                  etiqueta="Código (3 letras)"
-                  mono
-                  value={codigo}
-                  maxLength={3}
-                  onChange={(e) => setCodigo(e.target.value.toUpperCase())}
-                  placeholder="VEB"
-                />
+              {/* Mismo agrupado que el modal de edición: cada campo ya reserva su línea de pie. */}
+              <div className="space-y-1">
+                <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+                  <CampoTexto etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Verde botella" />
+                  <CampoTexto
+                    etiqueta="Código (3 letras)"
+                    mono
+                    value={codigo}
+                    maxLength={3}
+                    onChange={(e) => setCodigo(e.target.value.toUpperCase())}
+                    placeholder="VEB"
+                  />
+                </div>
+                <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
+                <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
               </div>
-              <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
-              <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
               <SelectorColor hex={hex} onHex={setHex} />
 
               <div className="flex gap-2 pt-3">
@@ -389,7 +406,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   className="flex-1"
                   onClick={guardar}
                   cargando={guardando}
-                  disabled={!nombre.trim() || codigo.length !== 3}
+                  disabled={!nombre.trim() || codigo.length !== 3 || !hex}
                 >
                   Guardar color
                 </Boton>
@@ -502,6 +519,14 @@ function ColorEditarModal({
   const [notas, setNotas] = useState(color.notas ?? "");
   const [guardando, setGuardando] = useState(false);
   const [desactivando, setDesactivando] = useState(false);
+  // Desactivar pide un segundo clic: el primero arma el botón, y si nadie
+  // confirma en 4 s vuelve a su estado normal.
+  const [confirmandoDesactivar, setConfirmandoDesactivar] = useState(false);
+  useEffect(() => {
+    if (!confirmandoDesactivar) return;
+    const t = setTimeout(() => setConfirmandoDesactivar(false), 4000);
+    return () => clearTimeout(t);
+  }, [confirmandoDesactivar]);
 
   const ordenNumero = Number(orden);
   const ordenValido = Number.isInteger(ordenNumero) && ordenNumero >= 0;
@@ -539,6 +564,7 @@ function ColorEditarModal({
   }
 
   async function desactivar() {
+    setConfirmandoDesactivar(false);
     setDesactivando(true);
     try {
       const res = await fetch("/api/productos/colores", {
@@ -568,39 +594,41 @@ function ColorEditarModal({
     <Modal titulo={`Editar «${color.nombre}»`} ancho="max-w-md" onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
-          <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
-            <CampoTexto etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-            <CampoTexto
-              etiqueta="Orden"
-              mono
-              inputMode="numeric"
-              value={orden}
-              onChange={(e) => setOrden(e.target.value)}
-              tono={ordenValido ? undefined : "error"}
-              pie={ordenValido ? undefined : "Tiene que ser un número entero de 0 para arriba."}
-            />
+          {/* Cada campo ya reserva su línea de pie; con space-y-4 encima los huecos
+              quedaban el doble de grandes que los de Notas hacia abajo. */}
+          <div className="space-y-1">
+            <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+              <CampoTexto etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
+              <CampoTexto
+                etiqueta="Orden"
+                mono
+                inputMode="numeric"
+                value={orden}
+                onChange={(e) => setOrden(e.target.value)}
+                tono={ordenValido ? undefined : "error"}
+                pie={ordenValido ? undefined : "Tiene que ser un número entero de 0 para arriba."}
+              />
+            </div>
+            <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
+            <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
           </div>
-          <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
-          <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
 
           <div>
-            <p className="label-cayla text-[11px] text-tinta/65">Color</p>
             {hexAbierto ? (
-              <div className="mt-1.5">
-                <SelectorColor hex={hex} onHex={setHex} />
-              </div>
+              <SelectorColor hex={hex} onHex={setHex} />
             ) : (
-              <div className="mt-1.5 flex items-center gap-3">
-                <div className="h-9 w-14 rounded-md border border-tinta/20" style={{ backgroundColor: hex }} aria-hidden />
-                <span className="font-mono text-xs text-tinta/65">{hex}</span>
-                <button type="button" onClick={() => setHexAbierto(true)} className="text-xs text-rojo hover:underline">
-                  Cambiar color
-                </button>
+              <div>
+                <p className="label-cayla text-[11px] text-tinta/65">Color</p>
+                <div className="mt-1.5 flex items-center gap-3">
+                  <MuestraColor hex={hex} />
+                  <span className="font-mono text-xs uppercase text-tinta/65">{hex}</span>
+                  <button type="button" onClick={() => setHexAbierto(true)} className="text-xs text-rojo hover:underline">
+                    Cambiar color
+                  </button>
+                </div>
               </div>
             )}
-            <p className="mt-1 text-xs text-tinta/55">
-              Es solo el swatch de catálogo — cambia el color en todas las pantallas de inmediato, no reescribe ventas pasadas.
-            </p>
+            <p className="mt-1 text-xs text-tinta/55">Cambia el color en todas las pantallas al instante; no reescribe ventas pasadas.</p>
           </div>
 
           <div className="flex gap-2 pt-3">
@@ -621,8 +649,13 @@ function ColorEditarModal({
 
           <p className="border-t border-tinta/10 pt-3 text-xs text-tinta/55">
             ¿Ya no se usa este color?{" "}
-            <button type="button" onClick={desactivar} disabled={ocupado} className="text-rojo hover:underline">
-              {desactivando ? "Desactivando…" : "Desactivar color"}
+            <button
+              type="button"
+              onClick={() => (confirmandoDesactivar ? desactivar() : setConfirmandoDesactivar(true))}
+              disabled={ocupado}
+              className={confirmandoDesactivar ? "font-medium text-rojo underline" : "text-rojo hover:underline"}
+            >
+              {desactivando ? "Desactivando…" : confirmandoDesactivar ? "¿Seguro? Confirmar" : "Desactivar color"}
             </button>
             . Se bloquea si todavía hay una prenda activa con este color.
           </p>

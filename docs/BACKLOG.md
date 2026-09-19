@@ -385,6 +385,21 @@ verde.
 - [ ] **Falso positivo de `datos:comparar` sobre `emitir_comprobante`/`p_token`:** producción ya
       lo acepta (migración 20260918091500); el volcado de funciones está viejo. Se cierra solo al
       refrescarlo.
+- [x] **Colores: modal legible y color nuevo sin beige por defecto (2026-09-18).** Muestra única con
+      hex, confirmación al desactivar, el color nace sin elegir y la API lo exige.
+- [ ] **Colores: decidir si la familia «Estampado» sale de `FAMILIAS_COLOR`** (pantalla y API).
+      `EST`, `MUL` y `ANI` ya están desactivados en producción (verificado 2026-09-18, solo lectura:
+      `activo=false`, 0 variantes, 0 fotos), así que NO hace falta migración de datos. Lo que queda es
+      que el selector de familia todavía deja archivar un color nuevo ahí, aunque el estampado vive
+      en Patrones (ADR-0106).
+- [ ] **Colores: sugerir el código de 3 letras desde el nombre** y avisar en vivo si ya existe
+      (hoy se inventa a mano y el choque solo se ve al guardar).
+- [ ] **Colores: el campo «Orden» ya no significa nada claro** desde que la grilla agrupa por familia
+      (todo color nuevo entra con 200). Decidir: quitarlo (orden por nombre) o subir/bajar.
+- [ ] **Colores: cuántas prendas usa cada color** (12 de 31 activos no tienen ninguna) y quién
+      propuso un pendiente (`propuesto_por` existe, la pantalla no lo lee). Junto con `TarjetaAtributo`.
+- [ ] **Colores: sin pruebas** de la API (`/api/productos/colores`) ni de la pantalla; solo
+      `color-entrada.test.ts`.
 - [ ] **Extraer una `TarjetaAtributo` compartida (Colores/Tejidos/Patrones/Etiquetas).** Desde
       2026-09-18 las cuatro miden igual (5 columnas, margen 16 px, imagen 3:1) pero cada
       archivo repite esas clases a mano: el día que una cambie sin las otras, vuelve el desalineo.

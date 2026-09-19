@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Colores: el modal se lee, y un color nuevo ya no nace beige por descuido)
+
+El modal de editar y el de agregar color tenían una caja con otra más chica adentro (el `<input type="color">` nativo, con su relleno), y un Crudo o un Blanco casi no se distinguían del fondo crema. Ahora es un solo rectángulo relleno con el hex al lado, una sola etiqueta «Color», menos aire entre campos, y «Desactivar color» pide un segundo clic ("¿Seguro? Confirmar", vuelve solo a los 4 s). Un color nuevo arranca SIN elegir (caja punteada) y no se puede guardar hasta escogerlo; la API de POST también lo exige.
+
+Lo que Felipe se lleva: el beige `#c9b79c` era el valor por defecto del formulario, y un valor por defecto que parece una elección es un dato que nadie decidió. OJO con lo que se dijo en la sesión: se creyó que 5 colores de producción lo llevaban por descuido, pero al mirar `activo` resultó que 4 ya estaban retirados (`ARE`, `EST`, `MUL`, `ANI`) y el quinto, Arena, es de verdad ese color. O sea que el cambio es prevención, no la cura de un problema ya ocurrido. Moraleja: una consulta sin filtrar por `activo` cuenta también lo que ya se apagó. Se verificó en navegador con la ruta temporal de `/login` (Docker caído).
+
 ## 2026-09-18 (Botones: desaparece la esquina rosada que asomaba en todos, sin mouse)
 
 Todos los `Boton` del sistema mostraban una esquina rosada tenue en el borde inferior izquierdo, aun en reposo. Era el destello de "brillo al pasar el mouse": una barra inclinada (`skew-x-12`) que espera fuera del botón, pero una inclinación de 12° mete su esquina ~4-5px adentro (mitad del alto × tan 12°: medido 4.3px en botones de 41px y 5.3px en los de 43px). Ahora la barra es `opacity-0` en reposo y el keyframe `cayla-brillo` la enciende (`opacity: 1`) solo mientras dura el barrido; el efecto al pasar el mouse es el mismo de antes.
