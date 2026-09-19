@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Botones: desaparece la esquina rosada que asomaba en todos, sin mouse)
+
+Todos los `Boton` del sistema mostraban una esquina rosada tenue en el borde inferior izquierdo, aun en reposo. Era el destello de "brillo al pasar el mouse": una barra inclinada (`skew-x-12`) que espera fuera del botón, pero una inclinación de 12° mete su esquina ~4-5px adentro (mitad del alto × tan 12°: medido 4.3px en botones de 41px y 5.3px en los de 43px). Ahora la barra es `opacity-0` en reposo y el keyframe `cayla-brillo` la enciende (`opacity: 1`) solo mientras dura el barrido; el efecto al pasar el mouse es el mismo de antes.
+
+Lo que Felipe se lleva: "fuera de cuadro" no es "invisible" cuando el elemento está inclinado — un `translate` que lo deja justo afuera se rompe en cuanto se le agrega un `skew`, porque el skew mueve las esquinas alrededor del centro. La regla segura para un efecto que solo existe durante una animación es que su estado de reposo sea invisible, no solo desplazado. Además: el signo del skew en reposo (+12°) y en la animación (-12°) no coincidía; no se cambió porque, con la barra invisible en reposo, ya no importa.
+
 ## 2026-09-18 (Atributos → Tallas: mismo nivel que Etiquetas, Patrones y Tejidos, y "Único" pasa a "Única")
 
 Tallas era la pestaña que se había quedado atrás: 8 columnas fijas de cajitas con un botón "DESACTIVAR" a todo ancho que se cortaba. Ahora tiene el mismo lenguaje que Etiquetas: filtros con conteo (Letras 6 · Numeración 17 · Única y estándar 2), búsqueda que ignora tildes, secciones por tipo de talla, tarjeta con ilustración 3:1 (el valor en serif con ecos a los lados, `MuestraTalla`), "Desactivar" solo al pasar el mouse (siempre visible en táctil) y la misma grilla de 5 columnas que las otras cuatro pestañas. La talla se ordena como se lee (XS·S·M·L, 6·9·26·42), no alfabético: "26" iba antes que "9". Sin cambios de esquema ni de rutas; aprobar con comentario obligatorio, rechazar y reactivar funcionan igual.
