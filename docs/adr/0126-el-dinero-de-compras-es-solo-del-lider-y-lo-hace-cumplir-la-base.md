@@ -1,7 +1,7 @@
 # ADR-0126 — El dinero de Compras es solo del líder, y lo hace cumplir la base
 
-- **Estado:** Aceptado (Felipe, 2026-09-19). **Las dos migraciones están pendientes de pegar en producción** — orden y
-  verificación en «Cómo se despliega».
+- **Estado:** Aceptado (Felipe, 2026-09-19). **Las dos migraciones están aplicadas en producción** (las pegó Felipe el
+  2026-09-19; verificado esa misma tarde, ver «Verificado en producción»).
 - **Refina** ADR-0075 (la lectura de Compras acotada por sede): sigue acotada por sede, pero **ya no incluye montos**.
 - **Cierra** el hallazgo H4 de las pruebas SQL de Compras (PR #165) y el hueco que ADR-0113 (D5) solo *evitaba*.
 - **Migraciones:** `20260919160000_dinero_de_compras_lectura_operativa.sql` (A) y
@@ -95,10 +95,31 @@ se lo entrega NULL). La página sigue tachando los montos en el servidor como se
 El PR se fusiona primero: la app funciona con o sin las migraciones (D7). Después, en el SQL Editor de producción y **en
 este orden**:
 
-1. `20260919160000_dinero_de_compras_lectura_operativa.sql` (A) — aditiva, nada deja de funcionar al pegarla. Al final
-   imprime las cinco firmas a las que les puso el candado (en producción ninguna lo tenía todavía).
+1. `20260919160000_dinero_de_compras_lectura_operativa.sql` (A) — aditiva, nada deja de funcionar al pegarla. (El editor
+   de Supabase muestra solo el resultado de la ÚLTIMA instrucción, así que la lista de firmas que devuelve
+   `fn_aplicar_candado_de_dinero()` no se ve: se verifica con la consulta del paso 3.)
 2. `20260919161000_dinero_de_compras_tablas_solo_lider.sql` (B) — **después de A y de que Vercel haya desplegado**.
    Se niega a correr si la A no está («Pega primero …»).
-3. Verificar: `select retail.fn_aplicar_candado_de_dinero();` → `{}`; iniciar sesión como colaborador y abrir `/recibir`.
-4. Refrescar el volcado y el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`). Hasta entonces `pnpm datos:comparar`
-   marca `lineas_compra_operativo` como «no existe en producción»: es correcto, y la app lo cubre con el respaldo.
+3. Verificar: que las cinco funciones de dinero lleven `fn_exige_dinero_de_compras` en su definición (consulta sobre
+   `pg_proc` con `pg_get_functiondef`: 5 filas `true`) y que `select retail.fn_aplicar_candado_de_dinero();` dé `{}`;
+   iniciar sesión como colaborador y abrir `/recibir`.
+4. Refrescar el volcado y el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`). Hecho el 2026-09-19: mientras las
+   migraciones no estaban, `pnpm datos:comparar` marcaba `lineas_compra_operativo` como «no existe en producción» —
+   correcto, y la app lo cubría con el respaldo—; ya no.
+
+## Verificado en producción (2026-09-19)
+
+Solo lectura, contra la base real, la misma tarde en que Felipe pegó las dos migraciones:
+
+- **Estructura:** las 5 funciones nuevas existen; las 5 funciones de dinero llevan el candado y cada una tiene UNA sola
+  firma (sin sobrecargas); `recepciones_sin_comprobante` envuelve el costo promedio; las 5 políticas de las tablas y la
+  del bucket usan `fn_puede_ver_dinero_de_compras()`; `anon` no ejecuta ninguna de las nuevas y `authenticated` no puede
+  correr `fn_aplicar_candado_de_dinero()`.
+- **Comportamiento** (una persona líder y una colaboradora reales, en una transacción que no guarda nada): a la líder las
+  cinco funciones de dinero le responden; a la colaboradora las cinco le contestan `42501 «Solo un líder puede ver …»`
+  con el mensaje de cada una, y las funciones de recibir (`listar_compras_operativo`, `lineas_compra_operativo`,
+  `listar_recepciones_compras`) le responden.
+- **Lo que esta prueba NO puede decir:** producción no tiene ninguna fila en `compras`, `compra_items`, `compra_pagos`,
+  `compra_adjuntos` ni `compra_notas_credito`, así que el cierre de las TABLAS no se pudo ver «vaciando» filas reales: se
+  verificó por la política (arriba) y con datos en `pnpm pruebas:dinero-compras` (32 casos, también en el piloto de CI).
+  El cierre quedó puesto antes de la primera factura real.

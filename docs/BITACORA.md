@@ -8230,3 +8230,11 @@ firma y en producción se pegan a mano en el orden que toque. De paso, «Recibid
 diccionario incorpora `envios`, `envio_extras`, `envio_traslados` y `lotes.envio_id` (los 0 lotes de producción confirman
 que aún no hay nada que agrupar). El ADR quedó como 0126: el 0121 lo tomó el Resumen v2 mientras se trabajaba.
 
+## 2026-09-19 (Dinero de Compras: las dos migraciones ya están en producción — ADR-0126)
+Felipe pegó A y B y se verificó contra la base real (solo lectura): las 5 funciones de dinero con candado y sin
+sobrecargas, las 5 políticas y el bucket con la regla nueva, y —con una líder y una colaboradora reales en una
+transacción que no guarda nada— a la colaboradora las cinco le responden `42501` mientras las de recibir le responden.
+Producción no tiene ninguna factura registrada todavía, así que el cierre quedó puesto antes de la primera. Primer
+intento de pegar A falló por un `_` suelto al inicio del texto (error de pegado; no se ejecutó nada). El volcado y el
+diccionario quedan en 174 funciones. `datos:comparar` marca ahora `fn_proveedores_serie_12m`: es la migración
+`20260919150000_proveedores_serie_mensual.sql` de otra sesión, que está en `main` y aún no en producción.
