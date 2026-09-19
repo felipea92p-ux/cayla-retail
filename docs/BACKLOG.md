@@ -28,6 +28,188 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Anulación de ventas: el repo se pone al día con producción (2026-09-18)
+
+Se buscaba cerrar «devolver una venta ya anulada vuelve a meter la prenda al stock» (ítem
+«CONFIRMADO 2026-09-18» de la rama de Cambios, cuyo ADR provisional es el 0104 y ya choca con
+el del aviario de `main`: se renumera al fusionar), confirmado contra `pg_proc` del
+Postgres local. **En producción ese hueco no existe:** `20260916214500_anular_venta_sin_huecos`
+está aplicada allá desde el 2026-09-16 (triggers `devolucion_items_venta_no_anulada` y
+`cambios_venta_no_anulada`, `anular_venta` endurecida, `venta_anulacion_items_una_vez_por_linea`
+y un `cerrar_caja` que no cuenta el efectivo de ventas anuladas), pero **nunca se subió al
+repo**: no está en `main`, ni en ningún worktree, ni en el historial de git de ninguna rama.
+El repo y el local iban atrás; el hueco solo era real ahí. Verificado el 2026-09-18 contra
+`cayla-dynamic` (solo lectura): 0 ventas anuladas y 0 devoluciones, pendientes o aprobadas,
+sobre una venta anulada — no hay nada que limpiar.
+
+- [x] **`20260916214500_anular_venta_sin_huecos.sql`** — reconstruida desde `pg_proc` y
+      `pg_constraint` de producción. **No es el original**: si el archivo real tocaba algo que
+      no se ve desde afuera, no lo sé. El cuerpo de `anular_venta`, `cerrar_caja` y
+      `fn_linea_de_venta_no_anulada` coincide por huella md5 con el de producción; una sola
+      sobrecarga de cada una; permisos intactos. Idempotente: pegarla en producción no cambia
+      nada. Probada en local: `pnpm pruebas:aprobar-devolucion-caja` 5/5 (los 3 nuevos se
+      vieron en rojo antes: crear una devolución sobre una venta anulada prosperaba, y el
+      arqueo daba 179.90 en vez de 100 por el efectivo de la venta anulada), más
+      `registrar_cambio` 13/13, `fn_aplicar_movimiento` 11/11 y `registrar_venta` 22/22.
+      Una migración anterior de esta sesión (guards dentro de `crear_devolucion` y
+      `aprobar_devolucion`) se descartó: era redundante con el trigger.
+- [ ] **En producción no hay nada que pegar.** El archivo solo alinea el repo con lo que ya
+      corre. Otras sesiones con el Postgres local ya migrado necesitan
+      `npx supabase migration up --local --include-all` (su timestamp es anterior a otras
+      ya aplicadas).
+- [ ] **Hueco chico que sí queda:** `aprobar_devolucion` no mira `ventas.estado`. En
+      producción el estado no se alcanza (el trigger impide crear la devolución y
+      `anular_venta` se niega si hay una pendiente), así que no se le agregó guard: sería la
+      sexta redefinición de esa función por un caso inalcanzable.
+- [ ] **Al fusionar con la rama de Cambios (su ADR provisional 0104 choca con el del aviario;
+      hay que renumerarlo):** su ítem «Devoluciones tiene el mismo
+      hueco de venta anulada» no aplica a producción → cerrarlo apuntando a esta entrada. Su
+      guard «Esa venta está anulada» dentro de `registrar_cambio` queda redundante con el
+      trigger `cambios_venta_no_anulada` (inofensivo, el trigger es el candado real), y su
+      motivo («volvía a meter al stock una prenda que la anulación ya devolvió») es cierto
+      solo del repo.
+- [ ] **Comparación completa `retail`: producción vs Postgres local, por huella md5
+      (2026-09-18).** Se compararon funciones (cuerpo sin comentarios + firma + `security definer`
+      + volatilidad + `search_path`), triggers, restricciones, índices, políticas RLS, columnas,
+      tablas (con su RLS) y vistas. **Sin comparar:** los datos (filas, seeds), secuencias,
+      extensiones, buckets de Storage, el schema `public` (Dynamic), jobs y publicaciones
+      realtime. Resultado: 51 de 61 tablas y 119 de 128 funciones son idénticas; las vistas (3),
+      también. Las diferencias son de cuatro clases:
+      - **A. Solo en producción, sin archivo en el repo (deriva real, hay que reconstruirla).**
+        1. `anular_venta_sin_huecos` — ya traída al repo (primer commit de esta rama).
+        2. `registrar_movimiento_una_sola_firma`: producción tiene UNA `registrar_movimiento`
+           (7 parámetros con defaults); el repo y el local, DOS (la de `0003`, de 6, y la de
+           `20260914230000`, de 7: un `create or replace` con otra firma crea otra sobrecarga,
+           el hueco de ADR-0009/0004). La lógica de la de 7 es idéntica (md5 sin comentarios).
+           En el local, llamarla sin `p_sububicacion_id` da «is not unique» (probado), y
+           `AjustarInventarioModal` lo omite en ubicaciones sin piso/almacén: ajustar
+           inventario ahí falla en el local y anda en producción.
+        3. `catalogo_actualizar_producto`: mismo hueco. Producción tiene una sola firma (12
+           parámetros, con `p_tejido_id`/`p_patron_id`); el local conserva además la de 10.
+        4. `historial_producto_estado_restaurado`: `fn_registrar_cambio_producto` de
+           producción registra el cambio de `estado` del producto; la del repo no.
+           `20260915223000_historial_producto_estado` lo agrega y
+           `20260916090000_costo_promedio_ponderado` redefine la función sin ese bloque y lo
+           pisa. Efecto: descontinuar o reactivar un producto no deja fila en el historial en
+           el local ni tras un `db reset`.
+        5. `historial_candado_completo`: producción tiene `fn_historial_sin_truncate` y el
+           trigger `movimientos_sin_truncate` (`BEFORE TRUNCATE` sobre `movimientos`); el repo
+           no. En el local, `TRUNCATE ... CASCADE` sobre `movimientos` vaciaba el libro
+           append-only sin quejarse (principio 4); un `TRUNCATE` a secas ya lo frenaban las
+           llaves foráneas. El repo no usa `truncate` en ningún seed, script ni
+           migración: traerlo no rompe nada. `costo_historial` e `historial_producto_cambios`
+           tampoco están protegidas contra `TRUNCATE` en producción.
+        6. `compras.token_cliente`, índice `compras_token_cliente_key` y
+           `registrar_compra(..., p_token)`: candado de idempotencia sin archivo (ya lo dice la
+           cabecera de `pegar-en-produccion-compras-atraso-recepcion.sql`). El local no lo
+           tiene, y `20260918130000_compras_atraso_recepcion` (numerada) tampoco lo preserva.
+        7. `gastos` (tabla, índices, restricciones, política) y `registrar_gasto`: solo en
+           producción. En el repo hay únicamente archivos para pegar (`SQL-PENDIENTE-
+           PRODUCCION.sql`, `supabase/unificacion/05_operacion.sql`), ninguna migración
+           numerada.
+        8. `tejidos.imagen_muestra_url` y `patrones.imagen_muestra_url`: columnas solo en
+           producción (el repo la agrega solo a `colores`).
+        9. Índice `variante_etiquetas_etiqueta_idx`: solo en producción.
+        **Estado de la clase A (2026-09-18): 1 a 5 ya están en el repo.** Las cuatro nuevas
+        (2 a 5) son migraciones reconstruidas e idempotentes, con la versión con que quedaron
+        registradas en producción, salvo la del candado: `20260916200001`, porque
+        `20260916200000` ya es de `numeracion_traslados_conteos` y una versión repetida rompe
+        `migration up`. `pnpm pruebas:deriva-produccion` 6/6 (0/6 antes de las migraciones);
+        `registrar_venta` 22/22, `registrar_cambio` 13/13, `fn_aplicar_movimiento` 11/11 y
+        `aprobar_devolucion_caja` 5/5 sin regresión. Las huellas de
+        `fn_registrar_cambio_producto` y `fn_historial_sin_truncate` son idénticas a las de
+        producción. **En producción no hay nada que pegar.** Ya están aplicadas al Postgres
+        local compartido (dos de ellas borran sobrecargas). No se corrió un `db reset`
+        completo porque esa base la usan ~27 worktrees: el orden se verificó por análisis
+        (ninguna migración posterior toca esas firmas). **8 y 9 también
+        traídas** (`20260918171000_tejidos_patrones_imagen_muestra_e_indice_etiquetas`,
+        reconstruida desde el estado vivo porque no hay SQL original; el front solo usa
+        `imagen_muestra_url` de `colores`, así que no rompía nada). `pnpm
+        pruebas:deriva-produccion` pasa a 8/8. De las 10 tablas que diferían de producción,
+        4 quedan idénticas (`movimientos`, `patrones`, `tejidos`, `variante_etiquetas`); las 6
+        restantes son las de otras clases: `compras` (6) y `gastos` (7), `cambios` y
+        `prendas_danadas` (B, rama de Cambios), `categorias` y `familias` (C, atraso del
+        local). **Falta:** 7 (`gastos`), que necesita decisión de Felipe (el 6 ya está, ver abajo). **Ojo con los originales:**
+        de las 5 migraciones de producción reconstruidas, 4 están registradas allá SIN SQL
+        (`schema_migrations.statements` vacío: se pegaron a mano y se marcaron aplicadas), así
+        que no hay original que recuperar; solo la de `catalogo_actualizar_producto` guarda su
+        SQL, y es idéntica a la reconstruida.
+        **Compras (6), reconciliada:** `20260918180000_compras_token_cliente_idempotencia`
+        (columna `token_cliente`, índice único `compras_token_cliente_key` y `registrar_compra`
+        de 15 parámetros). Es una migración numerada nueva, posterior a
+        `20260918130000_compras_atraso_recepcion`, en vez de editar una ya aplicada: esa crea
+        la firma de 14 y la nueva la borra. Huellas de la tabla `compras` y de
+        `registrar_compra` idénticas a producción; `pnpm pruebas:deriva-produccion` 12/12. De
+        las 10 tablas que diferían quedan 5 idénticas; restan `gastos` (7), `cambios` y
+        `prendas_danadas` (B) y `categorias` y `familias` (C). **El front ahora manda `p_token`**
+        (`CompraFormV2.tsx`, 2026-09-18): antes el candado estaba dormido y un reintento
+        terminaba en «ya está registrada». Mismo patrón que Cambios y Ventas: el token se
+        genera una vez por formulario y se renueva solo tras un éxito. Verificado en el
+        navegador con la petición real (interceptada, sin escribir nada): sale con un UUID v4 y
+        un reintento manda el MISMO token. `tsc`, `eslint` y 391 tests en verde.
+        `packages/database/src/types.ts` ganó `p_token` a mano; los tipos siguen sin
+        `p_fecha_estimada_llegada` ni `compras.token_cliente` y se arreglan al regenerarlos.
+        `pegar-en-produccion-compras-atraso-recepcion.sql` queda gastado (producción ya tiene
+        su resultado); no se borra.
+        **Compras: producción tiene DOS `registrar_compra` (hallazgo 2026-09-18, al fusionar
+        `main`).** Alguien pegó allá las migraciones de Compras de ADR-0111 (existen
+        `proveedor_creditos` y `fn_consumir_saldo_favor`) sin registrarlas, y `20260918217000`
+        redefine `registrar_compra` con 14 parámetros y sin `p_token`, al lado de la de 15. Hoy hay
+        una de 14 (con saldo a favor, sin token) y una de 15 (con token, sin saldo a favor). Una
+        llamada sin `p_token` —la del front desplegado— coincide con las dos y falla por ambigua:
+        es muy probable que «Nueva compra» esté fallando en producción (no se comprobó llamando a
+        la API). Una llamada con `p_token` iría a la de 15 y perdería el saldo a favor. Arreglo:
+        `20260918219000_registrar_compra_una_sola_firma_con_token.sql`, una sola función de 15
+        parámetros con las dos cosas, y borra la de 14; su cuerpo difiere del de ADR-0111 solo en lo
+        del token. Probada en una transacción revertida sobre la sobrecarga que deja `217000`
+        (`pnpm pruebas:deriva-produccion` 13/13). **Ya está aplicada en producción**
+        (alguien la pegó sin registrarla en el historial de migraciones; verificado en solo lectura
+        después: una sola firma, la consulta del pie da `1 | true | true | true` y el md5 del cuerpo es
+        idéntico al de esta migración; no se escribió nada desde esta rama). En el Postgres local compartido NO se
+        aplicó a propósito: tiene que entrar después de `217000`; si entrara antes, `migration up` la
+        daría por aplicada y quedarían dos sobrecargas. Es la tercera vez en esta sesión que un
+        `create or replace` con otra lista de parámetros crea una función nueva en vez de
+        reemplazar (`registrar_movimiento`, `catalogo_actualizar_producto`, y esta): una prueba de CI
+        de «una sola firma por función» atraparía toda la clase.
+      - **B. En el repo, pero producción va atrás (pendiente de pegar, necesita el ok de
+        Felipe).** `20260917120000_reactivar_rechazado_retira_rechazo`: la
+        `fn_tallas_estado_trigger` de producción es la versión vieja (solo aprueba desde
+        `pendiente`; no reactiva una talla rechazada ni pone `activo = true`), así que
+        reactivar una talla rechazada no funciona en producción. Y lo de la rama de Cambios
+        (`20260918150000_cambios_motivo_y_estado_de_prenda`, sin fusionar): `cambios.motivo`
+        y `condicion`, `prendas_danadas.cambio_id`, `registrar_cambio` de 8 parámetros.
+        **Estado de B (2026-09-18) — APLICADA en
+        producción, solo la de tallas.** Se pidió pegar `20260917120000`. Al compararla con lo que
+        ya corre allá, **el archivo entero no se puede pegar**: redefine cinco funciones y
+        producción ya tenía la versión FINAL de cuatro (colores, tejidos, patrones y etiquetas
+        coinciden por huella con el repo final). La de etiquetas de ese archivo es anterior a
+        `20260917230000_etiquetas_vigencia_y_comentario_obligatorio`: pegarlo entero habría hecho
+        RETROCEDER etiquetas. Solo `fn_tallas_estado_trigger` estaba atrás, y se aplicó esa
+        función sola (`docs/datos/SQL-PENDIENTE-PRODUCCION-2026-09-18.sql`) con `apply_migration`,
+        registrada como `20260919003414_fn_tallas_estado_trigger_reactivar_rechazado` (UTC), con
+        su SQL guardado. Antes se probó en el local, revertido: con la función nueva una rechazada
+        se reactiva y la base exige el comentario; con la de producción fallaba («Solo se puede
+        aprobar una talla que todavía está pendiente»). Verificado en producción: mismo md5 de
+        cuerpo que el repo final (`994940f7…`), una sola firma, un solo trigger
+        (`tallas_estado_biut`), permisos intactos, las otras cuatro funciones con su huella de
+        antes, y las 25 tallas siguen `aprobado`: ninguna fila cambió, solo se habilita reactivar
+        una talla que se rechace en adelante. El primer intento lo denegó el clasificador de
+        permisos y no se rodeó; se reintentó con la autorización explícita de Felipe. La
+        migración vieja lleva una advertencia de «no pegar entera». **De B falta solo lo de la
+        rama de Cambios**, que va con su propio PR.
+      - **C. Atraso del local, no deriva** (el repo y producción coinciden, el local no las
+        aplicó): `familias_tabla_propia` (tabla `familias`, 2 funciones y
+        `categorias_familia_fk` en vez del CHECK) y `compras_filtro_tipo_documento`
+        (`listar_compras(p_tipo)`). Se arreglan con `migration up --local --include-all`.
+      - **D. Permisos.** En producción 0 de 128 funciones son ejecutables por `public` ni
+        `anon`; en el local, 96 de 126. Un `db reset` es más permisivo que producción y no
+        puede atrapar un error de permisos. No es un riesgo de producción, es una prueba
+        que no prueba.
+      - `fn_resumen_variantes`: la huella distinta de antes era solo de comentarios; sin
+        comentarios coincide.
+      - De las ~25 migraciones «huérfanas por nombre» que salieron antes, casi todas son
+        ruido; la deriva real son las de la clase A.
+
 ## 🎯 Compras: indicadores para decidir, faltantes con nota de crédito y pago por lote (2026-09-18, ADR-0111)
 
 Rama `claude/pantallas-proveedores-comprobantes-a15ece`. **`main` ya está fusionada en esta rama (2026-09-18,
