@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -125,6 +125,11 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
   const [nota, setNota] = useState("");
   const [adjuntos, setAdjuntos] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
+  // Un reintento (red que se corta después del commit y antes de la respuesta — ADR-0032)
+  // tiene que mandar el MISMO token para que `retail.compras.token_cliente` lo reconozca
+  // como el mismo envío y devuelva la factura que ya existe, en vez del error
+  // "ya está registrada". Solo se renueva después de un éxito.
+  const token = useRef<string>(crypto.randomUUID());
 
   const igvEfectivo = discriminaIgv(tipo) ? Number(igvPorcentaje) || 0 : 0;
   // Solo hay algo que descontar en una factura con IGV; en boleta y nota de
@@ -221,6 +226,7 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
       ...(conIgv ? { p_total: total } : {}),
       ...(pagosRpc ? { p_pago: pagosRpc } : {}),
       ...(nota.trim() ? { p_nota: nota.trim() } : {}),
+      p_token: token.current,
     });
 
     if (error) {
@@ -233,7 +239,10 @@ export function CompraFormV2({ proveedores, ubicaciones, ubicacionInicialId, var
       return;
     }
 
-    // La factura ya existe. Los adjuntos se suben recién ahora (la ruta lleva
+    // La factura ya existe: lo que se envíe desde aquí en adelante es otra intención.
+    token.current = crypto.randomUUID();
+
+    // Los adjuntos se suben recién ahora (la ruta lleva
     // su id) y si alguno falla NO se pierde nada: se va al detalle con el
     // aviso de cuáles quedaron por subir, y desde ahí se reintenta.
     let fallidos: string[] = [];

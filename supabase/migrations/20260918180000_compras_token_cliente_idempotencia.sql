@@ -14,11 +14,12 @@
 -- genera un token una vez por formulario; si el primer envío llegó pero la respuesta se cortó,
 -- el reintento con el MISMO token devuelve la compra que ya existe en vez de duplicarla.
 --
--- ESTADO REAL. El front actual (`CompraFormV2.tsx`) NO manda `p_token`, así que hoy este
--- candado está dormido: contra un doble clic, "Nueva compra" se apoya en la llave única
+-- ESTADO REAL. Hasta el 2026-09-18 el front (`CompraFormV2.tsx`) NO mandaba `p_token`, así que
+-- el candado estaba dormido: contra un reintento, "Nueva compra" se apoyaba en la llave única
 -- (proveedor, serie, número), que devuelve el error "ya está registrada" en vez de un éxito
--- idempotente. Que el front lo mande queda como mejora aparte (BACKLOG). Sin `p_token`, todo
--- funciona igual que antes: varias compras con `token_cliente` nulo caben en el índice único.
+-- idempotente. Desde ese día lo manda, con el mismo patrón que ventas y cambios. Sin
+-- `p_token` todo funciona igual que antes (una pantalla vieja, un script): varias compras con
+-- `token_cliente` nulo caben en el índice único.
 --
 -- POR QUÉ UNA MIGRACIÓN NUEVA y no editar `20260918130000_compras_atraso_recepcion`: esa ya
 -- está aplicada en el local y hay que dejar el historial quieto. Esta va DESPUÉS: `20260918130000`

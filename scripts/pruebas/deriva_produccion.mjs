@@ -21,8 +21,8 @@
  *  - `20260918180000_compras_token_cliente_idempotencia`: producción tiene
  *    `compras.token_cliente` (índice único) y `registrar_compra(..., p_token)`: un reintento con
  *    el mismo token devuelve la misma compra en vez de duplicarla. El repo no tenía nada de
- *    eso. El front actual NO manda `p_token`, así que el candado está dormido; el escenario de
- *    compatibilidad comprueba que seguir sin mandarlo funciona.
+ *    eso. `CompraFormV2.tsx` lo manda desde el 2026-09-18; el escenario de compatibilidad
+ *    comprueba que quien NO lo mande (una pantalla vieja, un script) sigue funcionando.
  *  - `20260918170000_tejidos_patrones_imagen_muestra_e_indice_etiquetas`: producción tiene
  *    `tejidos.imagen_muestra_url`, `patrones.imagen_muestra_url` y el índice
  *    `variante_etiquetas_etiqueta_idx`; el repo no. Hoy el front solo usa la de `colores`,

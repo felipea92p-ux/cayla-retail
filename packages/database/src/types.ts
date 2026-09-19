@@ -4180,6 +4180,7 @@ export type Database = {
           p_proveedor_id: string
           p_serie: string
           p_tipo?: string
+          p_token?: string
           p_total?: number
           p_ubicacion_destino_id: string
         }
