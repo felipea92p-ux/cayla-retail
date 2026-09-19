@@ -1,4 +1,4 @@
-# ADR-0104 — Ventas y devoluciones solo se escriben por RPC
+# ADR-0108 — Ventas y devoluciones solo se escriben por RPC
 
 **Fecha:** 2026-09-18
 **Estado:** Escrita y probada en local con ROLLBACK (16/16, `pnpm pruebas:candado-ventas`,
@@ -9,7 +9,7 @@ sesión). Correr `pnpm pruebas:candado-ventas` y ver 16/16 antes de pegar en pro
 `docs/datos/VERIFICAR-ESCRITURA-DIRECTA-2026-09-18.sql` allá y dé el ok puntual antes de pegar
 la migración.
 **Afecta:** `retail.ventas`, `venta_items`, `devoluciones`, `devolucion_items`,
-`venta_anulacion_items` en `supabase/migrations/20260918160000_ventas_devoluciones_solo_rpc.sql`.
+`venta_anulacion_items` en `supabase/migrations/20260918190000_ventas_devoluciones_solo_rpc.sql`.
 **Continúa:** ADR-0055 (mismo candado, ya aplicado a `movimientos`).
 
 ## Contexto

@@ -1,6 +1,6 @@
 -- VERIFICAR-VOLUMEN-2026-09-18.sql — SOLO LECTURA. No modifica nada.
 --
--- PARA QUÉ: ADR-0105 (cómo se arman los estados financieros) necesita el ORDEN DE MAGNITUD
+-- PARA QUÉ: ADR-0109 (cómo se arman los estados financieros) necesita el ORDEN DE MAGNITUD
 -- real: cuántas filas de dinero hay hoy y cuántas habrá en 3 años. Sin número no hay decisión
 -- de rendimiento, hay superstición. Hoy el ADR usa supuestos declarados (ticket de S/100, 1,8
 -- líneas por ticket); esta consulta los reemplaza por datos de producción.

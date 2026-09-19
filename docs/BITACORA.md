@@ -3,7 +3,7 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
-## 2026-09-18 (Modelo contable aprobado — ADR-0105: diario derivado que se congela al cerrar el mes)
+## 2026-09-18 (Modelo contable aprobado — ADR-0109: diario derivado que se congela al cerrar el mes)
 Tarea 3 del plan de finanzas: decidir si Estado de Resultados y Balance salen de un libro de
 asientos persistido o se calculan sobre las tablas existentes. Los números no deciden (≈ 300-350 mil
 líneas en 3 años, ≈ 1 asiento por minuto en hora pico: cabe en cualquier Postgres); deciden la
@@ -29,7 +29,7 @@ política de RLS mostró 10 tablas expuestas, no 4 (también `transferencias`, `
 `clientes`, `venta_anulacion_items`), y que la auditoría se equivocó con `comprobantes`: `0010`
 otorga SELECT pero no revoca lo que `0005` ya había dado. Se escribió la migración solo para 5
 tablas (las rastreadas) con 16 pruebas en ROLLBACK, dos de ellas de control que demuestran que el
-ataque SÍ funcionaba sin la migración. ADR-0104. Pendiente: que Felipe corra el archivo de
+ataque SÍ funcionaba sin la migración. ADR-0108. Pendiente: que Felipe corra el archivo de
 verificación en producción y dé el ok puntual antes de pegar; las otras 5 tablas y el cambio de
 `alter default privileges` quedan como trabajo aparte.
 

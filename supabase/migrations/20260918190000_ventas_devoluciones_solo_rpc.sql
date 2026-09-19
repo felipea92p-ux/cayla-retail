@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260918160000_ventas_devoluciones_solo_rpc.sql — CAYLA V2
+-- 20260918190000_ventas_devoluciones_solo_rpc.sql — CAYLA V2
 --
 -- ESTADO: escrita y probada en local con ROLLBACK (scripts/pruebas/
 --   candado_ventas_devoluciones.mjs). NO en producción — la pega Felipe en el SQL Editor,
@@ -63,7 +63,7 @@
 -- salta todo esto). También se rompería si en producción existiera una función que escriba
 -- aquí y NO sea security definer — la consulta del punto 1 dice que no.
 --
--- LO QUE ESTA MIGRACIÓN NO CIERRA (a propósito, ver ADR-0104): transferencias,
+-- LO QUE ESTA MIGRACIÓN NO CIERRA (a propósito, ver ADR-0108): transferencias,
 -- transferencia_items, conteos, lotes y clientes tienen el mismo patrón y NO se rastreó quién
 -- escribe en ellas. Y `0005_grants.sql` sigue dando escritura por defecto a toda tabla nueva.
 -- ============================================================================

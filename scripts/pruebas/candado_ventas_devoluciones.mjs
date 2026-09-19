@@ -2,9 +2,9 @@
 /**
  * Prueba del candado "solo por RPC" sobre ventas y devoluciones — CAYLA V2.
  *
- * EL PROBLEMA QUE PRUEBA. `supabase/migrations/20260918160000_ventas_devoluciones_solo_rpc.sql`
+ * EL PROBLEMA QUE PRUEBA. `supabase/migrations/20260918190000_ventas_devoluciones_solo_rpc.sql`
  * le quita a `authenticated` el permiso de escribir directo en ventas, venta_items,
- * devoluciones, devolucion_items y venta_anulacion_items (ADR-0104). Dos cosas tienen que ser
+ * devoluciones, devolucion_items y venta_anulacion_items (ADR-0108). Dos cosas tienen que ser
  * ciertas a la vez, y cada una sola no sirve:
  *
  *   1. El ataque deja de funcionar: una colaboradora con la consola del navegador abierta
@@ -43,7 +43,7 @@ import { fileURLToPath } from "node:url";
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const MIGRACION = readFileSync(
-  join(RAIZ, "supabase/migrations/20260918160000_ventas_devoluciones_solo_rpc.sql"),
+  join(RAIZ, "supabase/migrations/20260918190000_ventas_devoluciones_solo_rpc.sql"),
   "utf8"
 );
 

@@ -28,17 +28,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Finanzas y candado de escritura (2026-09-18, ADR-0104 y ADR-0105)
+## 🎯 Finanzas y candado de escritura (2026-09-18, ADR-0108 y ADR-0109)
 
-- [ ] **Aplicar en producción `20260918160000_ventas_devoluciones_solo_rpc.sql`** — escrita y
+- [ ] **Aplicar en producción `20260918190000_ventas_devoluciones_solo_rpc.sql`** — escrita y
       probada en local (16/16; **re-correr `pnpm pruebas:candado-ventas` tras la restauración del
       2026-09-18, aún no se hizo**). Antes: correr
       `docs/datos/VERIFICAR-ESCRITURA-DIRECTA-2026-09-18.sql` y `VERIFICAR-PRODUCCION-2026-09-18.sql`
-      en producción y dar el ok puntual. Deshacer: un `grant` de una línea (en el ADR-0104).
+      en producción y dar el ok puntual. Deshacer: un `grant` de una línea (en el ADR-0108).
 - [ ] **Las otras 5 tablas expuestas** (`transferencias`, `transferencia_items`, `conteos`,
       `lotes`, `clientes`): mismo patrón, sin rastrear quién escribe en ellas. Y cambiar
       `alter default privileges` de `0005_grants.sql` para que toda tabla nueva nazca sin escritura.
-- [ ] **Finanzas (ADR-0105, APROBADO): construir tareas 4-10 del plan.** Pendiente de Felipe:
+- [ ] **Finanzas (ADR-0109, APROBADO): construir tareas 4-10 del plan.** Pendiente de Felipe:
       (a) respuesta del contador sobre régimen/UIT/libros obligatorios, (b) saldos de apertura y
       su fecha de corte, (c) confirmar las suposiciones del cierre por unidad + consolidado,
       (d) correr `docs/datos/VERIFICAR-VOLUMEN-2026-09-18.sql` en producción.

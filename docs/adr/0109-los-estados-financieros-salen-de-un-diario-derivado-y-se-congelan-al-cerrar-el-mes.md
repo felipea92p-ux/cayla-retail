@@ -1,4 +1,4 @@
-# ADR-0105 — Los estados financieros salen de un diario derivado, y se congelan al cerrar el mes
+# ADR-0109 — Los estados financieros salen de un diario derivado, y se congelan al cerrar el mes
 
 **Fecha:** 2026-09-18
 **Estado:** **APROBADO por Felipe el 2026-09-18** (opción C), con tres decisiones de negocio

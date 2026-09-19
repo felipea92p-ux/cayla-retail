@@ -61,7 +61,7 @@
 
 **Venta y comprobante nacen en la misma transacción (principio 9)** — `registrar_venta` llama a `emitir_comprobante` dentro de su propia transacción; una venta jamás queda separada de su comprobante. (`supabase/migrations/20260916223000_venta_precio_cambiado_sku_nulo.sql:241-244`)
 
-**Cero camino de escritura que se salte las reglas de negocio** — `comprobantes`/`series_comprobantes`/`proformas` solo tienen GRANT SELECT; toda escritura pasa por RPC security definer. (`supabase/migrations/0010_facturacion.sql:394-425`) *(Corrección posterior, 2026-09-18, ver ADR-0104: esto es inexacto. `0010` otorga SELECT pero no revoca lo que `0005_grants.sql` ya había dado; hoy esas tablas están protegidas solo por RLS, no por permiso de tabla.)*
+**Cero camino de escritura que se salte las reglas de negocio** — `comprobantes`/`series_comprobantes`/`proformas` solo tienen GRANT SELECT; toda escritura pasa por RPC security definer. (`supabase/migrations/0010_facturacion.sql:394-425`) *(Corrección posterior, 2026-09-18, ver ADR-0108: esto es inexacto. `0010` otorga SELECT pero no revoca lo que `0005_grants.sql` ya había dado; hoy esas tablas están protegidas solo por RLS, no por permiso de tabla.)*
 
 **Proformas vigentes ya no dependen del mes visible (corregido 2026-09-16)** — `getProformasMes` trae las vigentes en consulta aparte, sin filtro de fecha, y las fusiona con el historial por id. (`apps/web/lib/proformas.ts:12-38`)
 
