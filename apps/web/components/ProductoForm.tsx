@@ -11,12 +11,18 @@ import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { compararTallas } from "@/lib/tallas";
 import type { EjesPorCategoria, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
 import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
+import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
+import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
+import { claveReferencia, leerErrorAlta, tituloReferencia } from "@/lib/alta-producto";
+import type { CatalogoMarcas } from "@/lib/marcas-datos";
+import { useParecidos } from "@/lib/use-parecidos";
 
 /* ====================================================================
    ProductoForm · edición de producto+variantes (V2, 2026-09-15)
 
    Usado solo por /productos/[id]/editar — el alta vive en
-   NuevoProductoForm.tsx, un componente propio desde que tallas/tejidos/
+   NuevoProductoForm.tsx (la rama de alta que quedaba acá era código muerto
+   y se retiró junto con `catalogo_crear_producto`, ADR-0109), un componente propio desde que tallas/tejidos/
    patrones pasaron a vocabulario cerrado (ADR-0095). Antes de esa fecha
    era un único componente para alta y edición; ese reparto es el que
    sigue explicando por qué la lógica de sugerir SKU vive acá con tanto
@@ -47,7 +53,7 @@ import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
    y se agrega una fila nueva.
    ==================================================================== */
 
-type Categoria = { id: string; nombre: string; prefijo: string | null };
+type Categoria = { id: string; nombre: string; prefijo: string | null; exigeTejidoPatron: boolean };
 type Color = { codigo: string; nombre: string; hex: string | null };
 
 type FilaVariante = {
@@ -131,6 +137,7 @@ export function ProductoForm({
   colores,
   ejes,
   etiquetas,
+  marcas,
   producto,
 }: {
   categorias: Categoria[];
@@ -139,6 +146,8 @@ export function ProductoForm({
   ejes: EjesPorCategoria;
   /** Vocabulario de etiquetas aprobado+activo, para aplicar a una variante. */
   etiquetas: ValorVocabulario[];
+  /** Marcas, proveedores y parejas registradas (ADR-0109). */
+  marcas: CatalogoMarcas;
   /** Presente = modo edición. */
   producto?: ProductoDetalle;
 }) {
@@ -154,6 +163,8 @@ export function ProductoForm({
   const [permitirVentaSinStock, setPermitirVentaSinStock] = useState(producto?.permitirVentaSinStock ?? false);
   const [tejidoId, setTejidoId] = useState(producto?.tejidoId ?? "");
   const [patronId, setPatronId] = useState(producto?.patronId ?? "");
+  const [marcaId, setMarcaId] = useState(producto?.marcaId ?? "");
+  const [proveedorId, setProveedorId] = useState(producto?.proveedorId ?? "");
   const [fotos, setFotos] = useState<FotoLocal[]>(
     () =>
       producto?.fotos.map((f) => ({
@@ -200,6 +211,15 @@ export function ProductoForm({
   // en cada guardado del producto (evitaría escribir sobre variantes cuyas
   // etiquetas nadie tocó, pisando su `created_at` sin motivo).
   const etiquetaIdsOriginales = useRef(new Map((producto?.variantes ?? []).map((v) => [v.id, v.etiquetaIds])));
+
+  // Renombrar: la misma comprobación que al crear, pero SOLO si el nombre cambia de verdad
+  // (otra clave): pasar de "blusa aurora" a "Blusa Aurora" no es un nombre nuevo.
+  const nombreNuevo = tituloReferencia(referencia);
+  const nombreCambio = !!producto && claveReferencia(nombreNuevo) !== claveReferencia(producto.referencia);
+  const parecidos = useParecidos({ nombre: nombreNuevo, activo: nombreCambio, excluirId: producto?.id });
+  const parejaCambio = !!producto && (marcaId !== producto.marcaId || proveedorId !== producto.proveedorId);
+  const categoriaActual = categorias.find((c) => c.id === categoriaId);
+  const exigeTejidoPatron = !!categoriaActual?.exigeTejidoPatron && estado === "activo";
 
   const opcionesCategoria = categorias.map((c) => ({ valor: c.id, texto: c.nombre, detalle: c.prefijo ?? undefined }));
   const opcionesColor = colores.map((c) => ({ valor: c.codigo, texto: c.nombre }));
@@ -264,9 +284,18 @@ export function ProductoForm({
     if (stockMinimo.trim() !== "" && (!/^\d+$/.test(stockMinimo.trim()) || Number(stockMinimo) < 0)) {
       return void avisar.error("El stock mínimo tiene que ser un número entero, 0 o mayor.", { enfocar: "producto-stock-minimo" });
     }
+    if (!producto) return void avisar.error("Esta pantalla solo edita productos. Para crear uno usa Nuevo producto.");
+    if (!marcaId || !proveedorId) return void avisar.error("Elige la marca y el proveedor del producto.", { enfocar: "producto-marca" });
+    if (nombreCambio && parecidos.comprobando) return void avisar.error("Espera un momento: se está comprobando que el nombre no exista todavía.", { enfocar: "producto-referencia" });
+    if (nombreCambio && parecidos.hayIdentico) return void avisar.error("Ya existe un producto con ese nombre.", { enfocar: "producto-referencia" });
+    if (nombreCambio && parecidos.hayUnaLetra && !parecidos.confirmo) {
+      return void avisar.error("Ese nombre se escribe casi igual que otro producto: confirma que es distinto, o déjalo como estaba.", { enfocar: "producto-referencia" });
+    }
+    if (exigeTejidoPatron && !tejidoId) return void avisar.error(`En ${categoriaActual?.nombre ?? "esta categoría"} el tejido es obligatorio.`);
+    if (exigeTejidoPatron && !patronId) return void avisar.error("El patrón es obligatorio (si no tiene diseño, elige Liso).");
 
     setLoading(true);
-    const cerrarProceso = avisar.proceso(editando ? `Guardando ${referencia.trim()}…` : `Creando ${referencia.trim()}…`);
+    const cerrarProceso = avisar.proceso(`Guardando ${referencia.trim()}…`);
 
     const payloadVariantes = variantes.map((v) => ({
       ...(v.id ? { id: v.id } : {}),
@@ -286,38 +315,35 @@ export function ProductoForm({
     }));
 
     const supabase = createClient();
-    const { error } = editando
-      ? await supabase.rpc("catalogo_actualizar_producto", {
-          p_producto_id: producto!.id,
-          p_referencia: referencia.trim(),
-          p_estado: estado,
-          p_variantes: payloadVariantes,
-          p_permitir_venta_sin_stock: permitirVentaSinStock,
-          p_fotos: payloadFotos,
-          ...(categoriaId ? { p_categoria_id: categoriaId } : {}),
-          ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
-          ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
-          ...(temporada.trim() ? { p_temporada: temporada.trim() } : {}),
-          ...(tejidoId ? { p_tejido_id: tejidoId } : {}),
-          ...(patronId ? { p_patron_id: patronId } : {}),
-        })
-      : await supabase.rpc("catalogo_crear_producto", {
-          p_referencia: referencia.trim(),
-          p_variantes: payloadVariantes,
-          p_permitir_venta_sin_stock: permitirVentaSinStock,
-          p_fotos: payloadFotos,
-          ...(categoriaId ? { p_categoria_id: categoriaId } : {}),
-          ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
-          ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
-          ...(temporada.trim() ? { p_temporada: temporada.trim() } : {}),
-          ...(tejidoId ? { p_tejido_id: tejidoId } : {}),
-          ...(patronId ? { p_patron_id: patronId } : {}),
-        });
+    const { error } = await supabase.rpc("catalogo_actualizar_producto", {
+      p_producto_id: producto.id,
+      p_referencia: referencia.trim(),
+      p_estado: estado,
+      p_variantes: payloadVariantes,
+      p_permitir_venta_sin_stock: permitirVentaSinStock,
+      p_fotos: payloadFotos,
+      ...(categoriaId ? { p_categoria_id: categoriaId } : {}),
+      ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
+      ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
+      ...(temporada.trim() ? { p_temporada: temporada.trim() } : {}),
+      ...(tejidoId ? { p_tejido_id: tejidoId } : {}),
+      ...(patronId ? { p_patron_id: patronId } : {}),
+      // Marca y proveedor solo si CAMBIARON: si no, un proveedor desactivado más tarde impediría guardar hasta un cambio de precio.
+      ...(parejaCambio ? { p_marca_id: marcaId, p_proveedor_id: proveedorId } : {}),
+      ...(parecidos.confirmo ? { p_confirmo_distinto: true } : {}),
+    });
 
     if (error) {
       cerrarProceso();
       setLoading(false);
-      avisar.error(traducirError(error, editando ? "guardar el producto" : "crear el producto"));
+      const lectura = leerErrorAlta(error);
+      if (lectura.tipo !== "otro") {
+        // Otra persona creó ese nombre mientras se editaba: se muestra en pantalla, no solo en un aviso.
+        parecidos.reintentar();
+        avisar.error(lectura.mensaje, { enfocar: "producto-referencia" });
+        return;
+      }
+      avisar.error(traducirError(error, "guardar el producto"));
       return;
     }
 
@@ -348,7 +374,7 @@ export function ProductoForm({
       setLoading(false);
     }
 
-    avisar.exito(editando ? `${referencia.trim()} guardado` : `${referencia.trim()} creado`, {
+    avisar.exito(`${referencia.trim()} guardado`, {
       detalle: `${variantes.length} ${variantes.length === 1 ? "variante" : "variantes"}`,
     });
     router.replace("/productos");
@@ -373,8 +399,41 @@ export function ProductoForm({
             <Campo etiqueta="Categoría">
               <ComboBuscable etiquetaAccesible="Categoría" valor={categoriaId} onValor={elegirCategoria} opciones={opcionesCategoria} marcador="Busca una categoría…" />
             </Campo>
+            {nombreCambio && (
+              <div className="sm:col-span-2">
+                {nombreNuevo && nombreNuevo !== referencia.trim() && (
+                  <p className="mb-2 text-xs text-tinta/60">
+                    Se guardará como <strong className="text-tinta">{nombreNuevo}</strong>
+                  </p>
+                )}
+                <AvisoParecidos parecidos={parecidos.items} confirmo={parecidos.confirmo} onConfirmo={parecidos.confirmar} noSePudoComprobar={parecidos.fallo} />
+              </div>
+            )}
+            <div className="sm:col-span-2" id="producto-marca">
+              <Campo etiqueta="Marca y proveedor">
+                <ElegirMarcaProveedor
+                  marcas={marcas.marcas}
+                  proveedores={marcas.proveedores}
+                  vinculos={marcas.vinculos}
+                  usosCategoria={marcas.parejasPorCategoria[categoriaId] ?? []}
+                  categoriaNombre={categoriaActual?.nombre}
+                  nombresIniciales={producto ? { marca: producto.marcaNombre, proveedor: producto.proveedorNombre } : undefined}
+                  marcaId={marcaId}
+                  proveedorId={proveedorId}
+                  onElegir={(m, p) => {
+                    setMarcaId(m);
+                    setProveedorId(p);
+                  }}
+                  onLimpiar={() => {
+                    setMarcaId("");
+                    setProveedorId("");
+                  }}
+                  puedeCrear
+                />
+              </Campo>
+            </div>
             <CampoTexto etiqueta="Descripción (opcional)" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Detalle interno, no se muestra a la clienta" className="sm:col-span-2" />
-            <Campo etiqueta="Tejido (opcional)">
+            <Campo etiqueta={exigeTejidoPatron ? "Tejido" : "Tejido (opcional)"}>
               <ComboBuscable
                 etiquetaAccesible="Tejido"
                 valor={tejidoId}
@@ -383,7 +442,7 @@ export function ProductoForm({
                 marcador={categoriaId ? "Sin tejido" : "Elige una categoría primero"}
               />
             </Campo>
-            <Campo etiqueta="Patrón (opcional)">
+            <Campo etiqueta={exigeTejidoPatron ? "Patrón" : "Patrón (opcional)"}>
               <ComboBuscable
                 etiquetaAccesible="Patrón"
                 valor={patronId}

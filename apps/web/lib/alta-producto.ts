@@ -27,6 +27,15 @@ export function tituloReferencia(texto: string): string {
     .join(" ");
 }
 
+/** Espejo de `retail.fn_clave_referencia`: dos nombres con la misma clave son «el mismo nombre» (sin tildes, mayúsculas, espacios ni puntuación). */
+export function claveReferencia(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
 /** Espejo de `retail.fn_token_talla`: el fragmento de talla dentro del código de variante. */
 export function tokenTalla(valor: string | null): string {
   if (!valor) return "U";

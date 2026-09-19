@@ -41,6 +41,8 @@ type Props = {
   /** Parejas usadas en productos recientes de la categoría elegida (para sugerir). */
   usosCategoria: ParejaUso[];
   categoriaNombre?: string;
+  /** Nombres de la pareja YA guardada (edición): se muestran aunque la marca o el proveedor estén hoy desactivados y no vengan en las listas activas. */
+  nombresIniciales?: { marca: string; proveedor: string };
   marcaId: string;
   proveedorId: string;
   /** Devuelve también los NOMBRES: lo recién creado acá adentro no está en las listas del padre. */
@@ -65,6 +67,7 @@ export function ElegirMarcaProveedor({
   vinculos: vinculosIni,
   usosCategoria,
   categoriaNombre,
+  nombresIniciales,
   marcaId,
   proveedorId,
   onElegir: onElegirProp,
@@ -178,9 +181,9 @@ export function ElegirMarcaProveedor({
     return (
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-tinta/20 bg-tinta/[0.03] px-3 py-2.5">
         <p className="text-sm text-tinta">
-          <span className="font-medium">{marcaPor(marcaId)?.nombre ?? "Marca"}</span>
+          <span className="font-medium">{marcaPor(marcaId)?.nombre ?? nombresIniciales?.marca ?? "Marca"}</span>
           <span className="text-tinta/45"> · </span>
-          <span className="text-tinta/80">{provPor(proveedorId)?.nombre ?? "Proveedor"}</span>
+          <span className="text-tinta/80">{provPor(proveedorId)?.nombre ?? nombresIniciales?.proveedor ?? "Proveedor"}</span>
         </p>
         <button type="button" onClick={onLimpiar} className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo">
           Cambiar

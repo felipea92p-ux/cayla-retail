@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   claveCelda,
+  claveReferencia,
   codigoBasePrevisto,
   codigoVariantePrevisto,
   construirCeldas,
@@ -49,6 +50,19 @@ describe("tituloReferencia — espejo del trigger de la base", () => {
   });
   it("vacío queda vacío", () => {
     expect(tituloReferencia("   ")).toBe("");
+  });
+});
+
+describe("claveReferencia — espejo de fn_clave_referencia", () => {
+  it("ignora tildes, mayúsculas, espacios y puntuación", () => {
+    expect(claveReferencia("Blusa Aurora.")).toBe(claveReferencia("blúsa  AURORA"));
+    expect(claveReferencia("Top Lily")).not.toBe(claveReferencia("Top Lili"));
+  });
+  it("renombrar solo el formato NO es un nombre nuevo", () => {
+    expect(claveReferencia(tituloReferencia("polo   natalia"))).toBe(claveReferencia("Polo Natalia"));
+  });
+  it("solo símbolos queda vacío", () => {
+    expect(claveReferencia("...")).toBe("");
   });
 });
 

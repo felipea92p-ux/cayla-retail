@@ -327,6 +327,11 @@ export type ProductoDetalle = {
   tejido: string | null;
   patronId: string | null;
   patron: string | null;
+  /** De quién es y quién lo trae (20260918210000): obligatorios, siempre una pareja registrada. */
+  marcaId: string;
+  marcaNombre: string;
+  proveedorId: string;
+  proveedorNombre: string;
   /** Ya en el orden de la galería (`orden` ascendente). */
   fotos: FotoProducto[];
   variantes: VarianteDetalle[];
@@ -339,8 +344,9 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
     .from("productos")
     .select(
       `id, categoria_id, referencia, descripcion, estado, estado_alta, codigo, stock_minimo, temporada, permitir_venta_sin_stock,
-       tejido_id, patron_id,
+       tejido_id, patron_id, marca_id, proveedor_id,
        tejido:tejidos ( nombre ), patron:patrones ( nombre ),
+       marca:marcas ( nombre ), proveedor:proveedores ( nombre ),
        variantes ( id, color_codigo, talla_id, sku, precio, costo, activo, codigo,
          color:colores ( nombre ),
          talla:tallas ( valor ),
@@ -369,6 +375,10 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
     tejido: data.tejido?.nombre ?? null,
     patronId: data.patron_id,
     patron: data.patron?.nombre ?? null,
+    marcaId: data.marca_id,
+    marcaNombre: data.marca?.nombre ?? "",
+    proveedorId: data.proveedor_id,
+    proveedorNombre: data.proveedor?.nombre ?? "",
     fotos: [...(data.producto_fotos ?? [])]
       .sort((a, b) => a.orden - b.orden)
       .map((f) => ({ id: f.id, url: f.url, esPrincipal: f.es_principal, colorCodigo: f.color_codigo })),
