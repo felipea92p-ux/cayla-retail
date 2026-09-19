@@ -4,10 +4,10 @@
  *
  * EL PROBLEMA QUE RESUELVE. Cada sesión (de IA o de persona) numera su ADR como "el
  * siguiente" del `main` que tiene delante, y varias trabajan en ramas paralelas: dos
- * eligen el mismo número sin que nadie haga nada mal. Ya pasó con 0074, 0102 y 0105 (los
- * tres siguen repetidos en `main`) y el 2026-09-17 hubo seis choques en un día. Git no lo
- * ve —son archivos con nombres distintos—, ningún hook lo impide, y cada "ADR-0102" del
- * repo deja de saber de cuál de los dos habla.
+ * eligen el mismo número sin que nadie haga nada mal. Ya pasó con 0074, 0102 y 0105 (el
+ * 0102 se resolvió al renumerar el ADR de Caja; 0074 y 0105 siguen repetidos en `main`) y el
+ * 2026-09-17 hubo seis choques en un día. Git no lo ve —son archivos con nombres distintos—,
+ * ningún hook lo impide, y cada "ADR-0102" del repo dejó de saber de cuál de los dos hablaba.
  *
  * QUÉ PROMETE. Sale con código 1 y nombra los archivos si dos o más de `docs/adr/`
  * comparten número de cuatro dígitos (`0102-algo.md`), salvo los duplicados que ya estaban
@@ -42,7 +42,7 @@ const PATRON = /^(\d{4})-.+\.md$/;
 
 // Números que YA estaban repetidos en `main` el 2026-09-18, con cuántos archivos se toleran.
 // No pueden crecer. Al renumerar uno, borra su línea (el script avisa de las que sobran).
-export const LEGADO = { "0074": 2, "0102": 2, "0105": 2 };
+export const LEGADO = { "0074": 2, "0105": 2 };
 
 function agrupar(nombres) {
   const porNumero = new Map();

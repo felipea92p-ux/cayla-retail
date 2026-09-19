@@ -7965,9 +7965,9 @@ Estado: la corrección `20260918219000` se pegó en producción el 2026-09-19 (l
 
 ## 2026-09-18 (Candado de CI: números de ADR únicos)
 Cada sesión numera su ADR como «el siguiente» de su `main` y, con ramas paralelas, dos eligen el mismo número sin
-que nadie haga nada mal: hoy `main` tiene 0074, 0102 y 0105 repetidos, y mientras se renumeraba el ADR de Caja el
-0113 llegó a tener tres reclamantes. `scripts/adr/numeros.mjs` (paso «Números de ADR» del CI, y `pnpm adr:numeros`)
-sale con 1 si dos archivos de `docs/adr/` comparten número. Los tres repetidos de hoy se toleran en una lista
+que nadie haga nada mal: `main` llegó a tener 0074, 0102 y 0105 repetidos (el 0102 se resolvió al renumerar el ADR de Caja, #162) y, en esa
+renumeración, el 0113 llegó a tener tres reclamantes. `scripts/adr/numeros.mjs` (paso «Números de ADR» del CI, y `pnpm adr:numeros`)
+sale con 1 si dos archivos de `docs/adr/` comparten número. Los dos que siguen repetidos (0074 y 0105) se toleran en una lista
 (`LEGADO`) que no puede crecer —un tercer 0074 falla— y de la que se borra la línea al renumerar. Igual que el
 candado de migraciones, solo ve la rama que prueba: el choque entre dos ramas se ve en la segunda, en su PR. Antes
 de elegir un número hay que mirar también las ramas remotas y los otros worktrees (receta en el encabezado del script).
