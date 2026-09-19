@@ -837,3 +837,37 @@ body {
     transition-duration: 1ms !important;
   }
 }
+
+/* ==================================================================
+   Boleta / factura A4. `#boleta-a4-print` lo monta el detalle de venta pegado a <body>
+   y en pantalla no se ve. Al imprimir desaparece TODO lo demás (`display:none`, no
+   `visibility`: lo oculto seguiría ocupando alto y sacaría hojas en blanco). Es una
+   raíz aparte de `#comprobante-print` (la térmica): nunca están montadas a la vez.
+   `@page a4` es una página NOMBRADA: el A4 lleva su tamaño y sus márgenes sin pisar la
+   regla de la térmica (`@page { margin: 0 }`).
+   ================================================================== */
+#boleta-a4-print {
+  display: none;
+}
+@page a4 {
+  size: A4;
+  margin: 12mm;
+}
+@media print {
+  body:has(#boleta-a4-print) > *:not(#boleta-a4-print) {
+    display: none !important;
+  }
+  html:has(#boleta-a4-print),
+  body:has(#boleta-a4-print) {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    margin: 0 !important;
+  }
+  #boleta-a4-print {
+    display: block;
+    page: a4;
+    color: #000;
+    background: #fff;
+  }
+}

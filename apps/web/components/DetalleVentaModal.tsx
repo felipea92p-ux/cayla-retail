@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Printer } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { BoletaA4 } from "@/components/BoletaA4";
 import { ReciboTermico } from "@/components/ReciboTermico";
 import { createClient } from "@/lib/supabase/client";
 import { leerVentaDetalle } from "@/lib/venta-detalle";
@@ -15,7 +16,7 @@ const money = (n: number) => "S/" + n.toFixed(2);
 
 type Carga = { fase: "cargando" } | { fase: "error" } | { fase: "lista"; detalle: VentaDetalle };
 /** Qué raíz de impresión está montada. Solo una a la vez: dos se pisarían. */
-type Impresion = "ticket" | null;
+type Impresion = "ticket" | "a4" | null;
 
 /**
  * El detalle de una venta ya cerrada: qué se llevó la clienta, cómo pagó (con el vuelto que se
@@ -72,7 +73,7 @@ export function DetalleVentaModal({
       setImprimiendo(null);
     };
     const cuadro = requestAnimationFrame(async () => {
-      const imagenes = [...document.querySelectorAll<HTMLImageElement>("#comprobante-print img")];
+      const imagenes = [...document.querySelectorAll<HTMLImageElement>("#comprobante-print img, #boleta-a4-print img")];
       await Promise.all(imagenes.map((i) => i.decode().catch(() => undefined)));
       window.addEventListener("afterprint", terminar);
       respaldo = window.setTimeout(terminar, 4000);
@@ -186,6 +187,14 @@ export function DetalleVentaModal({
                 >
                   <Printer size={14} aria-hidden /> Imprimir ticket
                 </button>
+                <button
+                  type="button"
+                  className={`${botonCancelar} inline-flex items-center justify-center gap-2`}
+                  disabled={!imprimible || imprimiendo !== null}
+                  onClick={() => setImprimiendo("a4")}
+                >
+                  <Printer size={14} aria-hidden /> Imprimir {d.recibo?.tipo === "factura" ? "factura" : "boleta"} A4
+                </button>
               </div>
               {!permiso.ok && <p className="text-xs text-tinta/65">{permiso.motivo}</p>}
               {permiso.ok && permiso.leyenda && <p className="text-xs text-ambar-profundo">{permiso.leyenda}</p>}
@@ -193,6 +202,14 @@ export function DetalleVentaModal({
 
             {/* Raíz de impresión: solo una a la vez, pegada a <body> (el CSS oculta el resto). */}
             {imprimiendo === "ticket" && d.recibo && createPortal(<ReciboTermico recibo={d.recibo} />, document.body)}
+            {imprimiendo === "a4" &&
+              d.recibo &&
+              createPortal(
+                <div id="boleta-a4-print">
+                  <BoletaA4 recibo={d.recibo} vendedor={vendedor} hash={d.comprobante?.hash ?? null} leyenda={permiso.ok ? permiso.leyenda : null} />
+                </div>,
+                document.body
+              )}
           </div>
         );
       }}

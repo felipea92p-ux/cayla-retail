@@ -39,9 +39,11 @@ export function BoletaA4({
   const nombreDoc = esFactura ? "factura" : "boleta de venta";
 
   return (
-    <div data-testid="boleta-a4" className="boleta-a4 relative mx-auto w-[186mm] bg-white font-sans text-[9pt] leading-snug text-black">
-      {/* Vertical, de abajo hacia arriba, dentro del margen de 12 mm de la hoja. */}
-      <p aria-hidden className="absolute top-1/2 -left-[8mm] rotate-180 -translate-y-1/2 whitespace-nowrap text-[6.5pt] text-black/40 [writing-mode:vertical-rl]">
+    <div data-testid="boleta-a4" className="boleta-a4 relative mx-auto w-[186mm] bg-white pl-[6mm] font-sans text-[9pt] leading-snug text-black">
+      {/* Vertical, de abajo hacia arriba, en un canal de 6 mm a la izquierda DENTRO del área imprimible:
+          el navegador no imprime nada que quede en el margen de la hoja (así se perdió la primera versión).
+          Al imprimir va `fixed`: se repite en cada hoja si el comprobante ocupa varias. */}
+      <p aria-hidden className="absolute top-1/2 left-0 rotate-180 -translate-y-1/2 whitespace-nowrap text-[6.5pt] text-black/40 [writing-mode:vertical-rl] print:fixed">
         {TEXTO_LATERAL}
       </p>
       {/* ---------- Cabecera ---------- */}
