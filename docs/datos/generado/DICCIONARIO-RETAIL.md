@@ -6,7 +6,7 @@
 >
 > **Origen:** `volcado de producción (retail_*.json)`
 > **Leído el:** volcado de producci
-> **Tablas y vistas encontradas:** 65
+> **Tablas y vistas encontradas:** 67
 >
 > El orden sigue los 14 pájaros de `scripts/datos/aviario.mjs`, la única lista de qué
 > pájaro es cada tabla (el índice está en `AVIARIO.md`). Para entender **por qué**
@@ -77,7 +77,7 @@
 
 ### `productos`
 
-*17 columnas · ~45 filas · permisos por fila **activos***
+*19 columnas · ~45 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -98,15 +98,19 @@
 | `propuesto_por` | uuid | sí | — | — |
 | `aprobado_por` | uuid | sí | — | — |
 | `aprobado_en` | timestamp with time zone | sí | — | — |
+| `marca_id` | uuid | **no** | — | — |
+| `proveedor_id` | uuid | **no** | — | a qué proveedor se le compra habitualmente este modelo; quién trajo cada lote vive en lotes |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `productos_estado_alta_check` — `CHECK ((estado_alta = ANY (ARRAY['pendiente'::text, 'aprobado'::text, 'rechazado'::text])))`
 - `productos_estado_check` — `CHECK ((estado = ANY (ARRAY['activo'::text, 'descontinuado'::text])))`
+- `productos_rechazado_descontinuado_check` — `CHECK (((estado_alta <> 'rechazado'::text) OR (estado = 'descontinuado'::text)))`
 - `productos_stock_minimo_no_negativo` — `CHECK (((stock_minimo IS NULL) OR (stock_minimo >= 0)))`
 - `productos_token_cliente_key` — `UNIQUE (token_cliente)`
+- `productos_referencia_clave_unica` *(único parcial)* — `retail.productos (retail.fn_clave_referencia(referencia)) WHERE (estado_alta <> 'rechazado'::text)`
 
-**De qué depende:** `(aprobado_por) REFERENCES personas(id)` · `(categoria_id) REFERENCES retail.categorias(id)` · `(patron_id) REFERENCES retail.patrones(id)` · `(propuesto_por) REFERENCES personas(id)` · `(tejido_id) REFERENCES retail.tejidos(id)`
+**De qué depende:** `(aprobado_por) REFERENCES personas(id)` · `(categoria_id) REFERENCES retail.categorias(id)` · `(marca_id) REFERENCES retail.marcas(id)` · `(marca_id, proveedor_id) REFERENCES retail.marca_proveedores(marca_id, proveedor_id)` · `(patron_id) REFERENCES retail.patrones(id)` · `(propuesto_por) REFERENCES personas(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(tejido_id) REFERENCES retail.tejidos(id)`
 
 **Quién puede qué** (políticas de fila):
 
@@ -181,7 +185,7 @@
 
 ### `familias`
 
-*5 columnas · ~6 filas · permisos por fila **activos***
+*6 columnas · ~6 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -190,6 +194,7 @@
 | `activo` | boolean | **no** | `true` | — |
 | `orden` | integer | **no** | `100` | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `exige_tejido_patron` | boolean | **no** | `false` | — |
 
 **Quién puede qué** (políticas de fila):
 
@@ -247,6 +252,49 @@
 - `historial_producto_cambios_entidad_check` — `CHECK ((entidad = ANY (ARRAY['producto'::text, 'variante'::text])))`
 
 **De qué depende:** `(usuario_id) REFERENCES personas(id)`
+
+
+### `marcas`
+
+*4 columnas · ~1 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `nombre` | text | **no** | — | — |
+| `activo` | boolean | **no** | `true` | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `marcas_nombre_check` — `CHECK ((btrim(nombre) <> ''::text))`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `marcas_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `marcas_write_lider` | ALL | `retail.fn_es_lider()` |
+
+
+### `marca_proveedores`
+
+*3 columnas · ~1 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `marca_id` | uuid | **no** | — | — |
+| `proveedor_id` | uuid | **no** | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**De qué depende:** `(marca_id) REFERENCES retail.marcas(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `marca_proveedores_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
+| `marca_proveedores_write_lider` | ALL | `retail.fn_es_lider()` |
 
 
 ### `codigos_barras`
@@ -370,13 +418,14 @@
 
 ### `categoria_tallas`
 
-*3 columnas · ~173 filas · permisos por fila **activos***
+*4 columnas · ~216 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
 | `categoria_id` | uuid | **no** | — | — |
 | `talla_id` | uuid | **no** | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `habitual` | boolean | **no** | `false` | — |
 
 **De qué depende:** `(categoria_id) REFERENCES retail.categorias(id) ON DELETE CASCADE` · `(talla_id) REFERENCES retail.tallas(id)`
 
@@ -423,7 +472,7 @@
 
 ### `categoria_tejidos`
 
-*3 columnas · ~0 filas · permisos por fila **activos***
+*3 columnas · ~139 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -476,7 +525,7 @@
 
 ### `categoria_patrones`
 
-*3 columnas · ~0 filas · permisos por fila **activos***
+*3 columnas · ~133 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -580,7 +629,7 @@
 
 ### `movimientos`
 
-*21 columnas · ~460 filas · permisos por fila **activos***
+*21 columnas · ~464 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -939,7 +988,7 @@
 
 ### `ventas`
 
-*12 columnas · ~8 filas · permisos por fila **activos***
+*12 columnas · ~9 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -975,7 +1024,7 @@
 
 ### `venta_items`
 
-*12 columnas · ~19 filas · permisos por fila **activos***
+*12 columnas · ~23 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1016,7 +1065,7 @@
 
 ### `venta_pagos`
 
-*4 columnas · ~8 filas · permisos por fila **activos***
+*4 columnas · ~11 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1293,7 +1342,7 @@
 
 ### `comprobantes`
 
-*32 columnas · ~10 filas · permisos por fila **activos***
+*32 columnas · ~11 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1471,7 +1520,7 @@
 
 ### `proveedores`
 
-*12 columnas · ~1 filas · permisos por fila **activos***
+*12 columnas · ~2 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|

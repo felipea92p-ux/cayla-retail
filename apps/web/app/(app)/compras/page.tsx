@@ -2,11 +2,13 @@ import Link from "next/link";
 import { Download } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { listarCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, ETIQUETA_TIPO_DOCUMENTO, soles, type ParamsCompras } from "@/lib/compras";
-import { getResumenComprasExtra } from "@/lib/compras-indicadores";
+import { getNotasPendientes, getResumenComprasExtra } from "@/lib/compras-indicadores";
 import { celdaPago, celdaRecepcion, nombreDelMes, subEmision, vistaActiva, type VistaComprobantes } from "@/lib/comprobantes-lista-reglas";
 import { diaMes, hoyLima, sumarDias } from "@/lib/fechas-lima";
+import { idsConFaltanteCerrado } from "@/lib/nota-pendiente-reglas";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
+import { ChipNotaPendiente } from "@/components/ChipNotaPendiente";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -40,8 +42,11 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
   const orden = params.orden === "vencimiento" ? "vencimiento" : "emision";
   const hayFiltros = Object.values(filtros).some(Boolean);
 
-  const [{ filas: compras, siguiente }, resumen, extra, proveedores] = await Promise.all([
-    listarCompras(filtros, { cursor, orden }),
+  // Qué comprobantes esperan su nota de crédito por faltante depende de los ids de la página, así que se
+  // pide ENCADENADA a la lista (y solo si algún comprobante de la página tiene algo cerrado): sigue corriendo
+  // en paralelo con las demás consultas de la pantalla.
+  const [{ pagina: { filas: compras, siguiente }, notas }, resumen, extra, proveedores] = await Promise.all([
+    listarCompras(filtros, { cursor, orden }).then(async (pagina) => ({ pagina, notas: await getNotasPendientes(idsConFaltanteCerrado(pagina.filas)) })),
     getResumenCompras(),
     getResumenComprasExtra(),
     getProveedoresActivos(),
@@ -208,6 +213,8 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                 <span className={celda("izq", "overflow-visible whitespace-normal")}>
                   <Chip tono={pago.tono}>{pago.texto}</Chip>
                   <span className="mt-0.5 block text-xs tabular-nums text-tinta/55">{pago.sub}</span>
+                  {/* Junto al saldo: lo que el proveedor todavía debe acreditar por un faltante cerrado. */}
+                  <ChipNotaPendiente nota={notas[c.id]} saldo={c.saldo} className="mt-1" />
                 </span>
                 <span className={celda("der", "text-sm tabular-nums text-tinta")}>{c.total.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 <span aria-hidden className="hidden text-right text-base leading-none text-tinta/30 transition-colors group-hover:text-rojo sm:block">

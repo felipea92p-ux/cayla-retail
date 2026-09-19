@@ -202,8 +202,9 @@ export function ProductosAgrupados({
                   <path d="M6 9l6 6 6-6" />
                 </svg>
               </button>
-              <span className="hidden truncate text-xs text-tinta/65 sm:block" title={p.categoria ?? undefined}>
+              <span className="hidden truncate text-xs text-tinta/65 sm:block" title={`${p.categoria ?? "—"} · ${p.marca} · ${p.proveedor}`}>
                 {p.categoria ?? "—"}
+                <span className="block truncate text-[10.5px] text-tinta/45">{p.marca}</span>
               </span>
               <span className="hidden text-right text-xs tabular-nums text-tinta/65 sm:block">{p.variantes.length}</span>
               <span className={`hidden text-right text-xs font-semibold tabular-nums sm:block ${tonoStock}`}>{p.stockTotal}</span>
@@ -218,6 +219,7 @@ export function ProductosAgrupados({
 
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-5 pb-3.5 sm:hidden">
               <span className="text-xs text-tinta/65">{p.categoria ?? "—"}</span>
+              <span className="text-xs text-tinta/55">{p.marca}</span>
               <span className="label-cayla text-[11px] text-tinta/55">
                 {p.variantes.length} {p.variantes.length === 1 ? "variante" : "variantes"}
               </span>
