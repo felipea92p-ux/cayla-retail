@@ -3,7 +3,7 @@
 // componente cliente `PuntoDeVenta` necesita como VALOR vive en un archivo que
 // ningún fetcher server-only pueda arrastrar al navegador.
 
-import type { MetodoPago } from "@cayla-retail/shared";
+import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 
 /** Los momentos del ticket (ADR-0044). En «armar» solo se ven las líneas y el total;
  *  «descuento» es el apartado para decidir un descuento (vuelve a «armar»); «espera» es
@@ -47,6 +47,40 @@ const redondear2 = (n: number) => Math.round(n * 100) / 100;
  *  pasan — `registrar_venta` exige que sumen igual que los ítems al centavo. */
 export function restanteDePagos(total: number, pagos: readonly PagoAplicado[]): number {
   return redondear2(total - pagos.reduce((acc, p) => acc + p.monto, 0));
+}
+
+/** Atajos F1–F5 de la caja: cada tecla es un medio de pago, en el MISMO orden en que el selector
+ *  los muestra (F1 efectivo, F2 tarjeta, F3 yape, F4 plin, F5 transferencia). `null` si la tecla
+ *  no es un atajo. Con cualquier modificador (Ctrl+F5 = recarga forzada, Alt+F4 = cerrar…) o con la
+ *  tecla mantenida (`repeat`) NO cuenta: un atajo del navegador o del sistema no se le quita a
+ *  nadie, y mantener F2 no puede prender y apagar el medio veinte veces por segundo. */
+export function metodoDeAtajo(t: { key: string; ctrlKey: boolean; altKey: boolean; metaKey: boolean; shiftKey: boolean; repeat?: boolean }): MetodoPago | null {
+  if (t.ctrlKey || t.altKey || t.metaKey || t.shiftKey || t.repeat) return null;
+  const m = /^F([1-5])$/.exec(t.key);
+  return m ? METODOS_PAGO[Number(m[1]) - 1] : null;
+}
+
+/** Separa el IGV de un total que YA lo incluye (los precios de CAYLA son con IGV). Es la
+ *  misma cuenta que hace `ComprobantesPanel` al emitir — `igv = total − total/(1+tasa)` a
+ *  2 decimales y `subtotal = total − igv` —, así lo que la cajera ve en el ticket es lo que
+ *  saldrá en el comprobante, y `subtotal + igv = total` al centavo (la base lo exige). */
+export function desgloseIgv(total: number, tasa: number): { subtotal: number; igv: number } {
+  const igv = redondear2(total - total / (1 + tasa));
+  return { subtotal: redondear2(total - igv), igv };
+}
+
+/** Quita el pago `indice` y traspasa su monto al que queda en su lugar (el «siguiente»; si
+ *  era el último, al último que queda). Sin esto, quitar el medio que llevaba el total dejaba
+ *  el resto en 0 y la cajera tenía que volver a escribirlo (Felipe, 2026-09-18). El total
+ *  cubierto no cambia: solo cambia quién lo cubre. Si no queda ningún otro medio, o el
+ *  quitado estaba en 0, no hay nada que traspasar. */
+export function quitarPagoTraspasando(pagos: readonly PagoAplicado[], indice: number): PagoAplicado[] {
+  const quitado = pagos[indice];
+  if (!quitado) return [...pagos];
+  const resto = pagos.filter((_, i) => i !== indice);
+  if (resto.length === 0 || quitado.monto <= 0) return resto;
+  const destino = Math.min(indice, resto.length - 1);
+  return resto.map((p, i) => (i === destino ? { ...p, monto: redondear2(p.monto + quitado.monto) } : p));
 }
 
 /** El vuelto de un pago: lo recibido menos lo que cubre, solo en efectivo (Yape, Plin,
