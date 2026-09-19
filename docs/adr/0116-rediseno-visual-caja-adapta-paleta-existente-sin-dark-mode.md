@@ -251,3 +251,15 @@ método apuntado; está razonado, no ejercitado).
   `label-cayla` / `font-display` no llevan utilidades de peso: se borraron 3 en el panel (`font-bold` del
   chip de sincronización y del enlace "Ver historial completo", `font-semibold` del valor de `TarjetaKpi`),
   como manda la tabla de ADR-0105. No se repitió la revisión visual tras la fusión.
+
+## Adenda 2026-09-18 (fusión con #159) — la paleta de método de pago cambió después
+
+Lo dicho arriba sobre los tres categóricos (`--color-metodo-efectivo` azul, `-tarjeta` ámbar, `-yape` verde
+compartido con plin) quedó superado: por decisión de Felipe, ya mergeada con el PR del comprobante térmico
+(#159, ADR-0114), son **cinco tokens, cada método con su color** (efectivo cobrizo, tarjeta plomo, yape morado,
+plin verde, transferencia hazel), medidos contra AA sobre papel y sobre su propio fondo de "elegido". Caja no
+cambia de criterio: la dona sigue agrupando "Yape / Plin" en un solo segmento con el token de yape. Lo único
+que hubo que alinear es **transferencia**, que en Caja usaba el taupe neutro y ahora usa
+`--color-metodo-transferencia` (`ETIQUETA_METODO` y `colorDeMetodo` en `CajaAbiertaPanel.tsx`), para que un
+mismo método se lea con el mismo color en Caja y en Vender. Los puntos del "Ritmo del día" y la leyenda de la
+dona heredan el cambio solos: leen de `ETIQUETA_METODO`, una sola fuente.
