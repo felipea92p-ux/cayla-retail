@@ -313,7 +313,7 @@ export function CambiosFlujo({
 
       {paso === 3 && linea && seleccion && r && (
         <div className="anim-revelar space-y-5">
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
             <div className="rounded-xl bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
               <CambioReemplazo
                 linea={linea}
@@ -346,7 +346,7 @@ export function CambiosFlujo({
 
       {paso === 4 && linea && seleccion && r && r.varianteNueva && impacto && (
         <div className="anim-revelar space-y-5">
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
             <div className="space-y-8 rounded-xl bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
               <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
                 <Dato titulo="Venta">

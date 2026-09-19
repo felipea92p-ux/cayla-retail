@@ -481,8 +481,10 @@ function MenuNuevo({ onClose }: { onClose: () => void }) {
 // Rutas (y todo lo que cuelga de ellas) que usan el ancho completo del <main>.
 // Inventario entró el 2026-09-16: la tabla de Existencias con «En tránsito» y
 // «En la red» (6 columnas) y la de Movimientos con origen → destino no caben
-// en 64rem sin recortar la prenda.
-const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario"];
+// en 64rem sin recortar la prenda. Cambios y Devoluciones entraron el 2026-09-18 (pedido
+// de Felipe): con el flujo guiado y el panel de validaciones ya había de sobra qué poner
+// a los lados.
+const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/cambios", "/devoluciones"];
 
 export function AppShell({ persona, ubicaciones, children }: Props) {
   const pathname = usePathname();

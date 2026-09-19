@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { CifraAnimada } from "@/components/ui/CifraAnimada";
 
 /* ====================================================================
    ResumenSede · tres cifras chicas de la sede, con nombre y contenedor
@@ -6,26 +7,37 @@ import type { LucideIcon } from "lucide-react";
 
    Antes eran tres cifras sueltas a la derecha del título, alineadas a la
    izquierda de su etiqueta y sin decir de qué eran: parecían flotar. Ahora
-   cada cifra va CENTRADA sobre su etiqueta, con un ícono que la ubica, y
-   las tres viven en un mismo recuadro con el nombre de la sede arriba: se
-   entiende que son de ESTA sede sin tener que adivinarlo.
+   cada cifra va CENTRADA sobre su etiqueta y las tres viven en un mismo
+   recuadro con el nombre de la sede arriba: se entiende que son de ESTA
+   sede sin tener que adivinarlo.
 
-   Es de servidor a propósito (sin estado): los íconos son SVG y las cifras
-   ya llegan calculadas desde la página.
+   Color: el `sand` del sistema (el de "recuadros neutrales"), un punto más
+   hondo que el crema del fondo, para que no se lea como una tarjeta blanca
+   más. Movimiento: entra el recuadro, entran las cifras una tras otra y los
+   números suben hasta su valor (`CifraAnimada`).
+
+   Es de servidor a propósito: el ícono es un componente y no puede cruzar a
+   un componente de cliente; solo el número lo es.
    ==================================================================== */
 
-export type CifraResumen = { valor: string; etiqueta: string; icono: LucideIcon };
+export type CifraResumen = { valor: number; formato?: "entero" | "soles"; etiqueta: string; icono: LucideIcon };
 
 export function ResumenSede({ sede, cifras }: { sede: string; cifras: readonly CifraResumen[] }) {
   return (
-    <section aria-label={`Resumen de ${sede}`} className="w-full rounded-xl bg-papel ring-1 ring-tinta/[0.07] sm:w-auto">
-      <p className="border-b border-tinta/[0.07] px-4 py-1.5 text-center text-xs font-medium text-tinta/70">Resumen de {sede}</p>
-      <ul className="grid grid-cols-3 divide-x divide-tinta/[0.07]">
-        {cifras.map(({ valor, etiqueta, icono: Icono }) => (
-          <li key={etiqueta} className="flex flex-col items-center gap-0.5 px-2 py-3 text-center sm:px-6">
-            <Icono className="h-4 w-4 text-tinta/50" aria-hidden />
-            <span className="text-lg font-semibold tabular-nums leading-tight text-tinta sm:text-xl">{valor}</span>
-            <span className="text-xs text-tinta/70">{etiqueta}</span>
+    <section aria-label={`Resumen de ${sede}`} className="anim-entrada relative mt-2.5 w-full rounded-xl bg-sand/45 ring-1 ring-tinta/[0.08] sm:w-auto">
+      {/* El nombre de la sede va como rótulo sobre el borde, no como una fila más: así el
+          recuadro no crece y queda de la altura del título. */}
+      <p className="absolute -top-2 left-4 bg-crema px-2 text-[10px] font-semibold uppercase leading-4 tracking-[0.12em] text-tinta/70">Resumen de {sede}</p>
+      <ul className="grid grid-cols-3 divide-x divide-tinta/[0.08]">
+        {cifras.map(({ valor, formato, etiqueta, icono: Icono }, i) => (
+          <li key={etiqueta} className="anim-asentar flex flex-col items-center px-2 pb-2.5 pt-4 text-center sm:px-6" style={{ animationDelay: `${120 + i * 90}ms` }}>
+            <span className="whitespace-nowrap text-lg font-semibold tabular-nums leading-tight text-tinta sm:text-[22px]">
+              <CifraAnimada valor={valor} formato={formato} />
+            </span>
+            <span className="mt-0.5 flex items-center gap-1.5 text-xs text-tinta/70">
+              <Icono className="hidden h-3.5 w-3.5 shrink-0 text-tinta/50 sm:block" aria-hidden />
+              {etiqueta}
+            </span>
           </li>
         ))}
       </ul>

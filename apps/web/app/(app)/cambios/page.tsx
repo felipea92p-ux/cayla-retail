@@ -7,7 +7,6 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { getCajaAbierta } from "@/lib/caja";
 import { agruparStockPorSede } from "@/lib/stock-por-sede";
 import { getEstadisticasCambios, getTallasQueNoCalzan } from "@/lib/cambios-estadisticas";
-import { soles } from "@/lib/compras-reglas";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { CambiosPanel } from "@/components/CambiosPanel";
@@ -43,8 +42,8 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
   const stockPorSede = agruparStockPorSede(exigir(resStockSedes, "el stock de las sedes"), ubicaciones, persona.ubicacionId);
 
   return (
-    <div className="space-y-10">
-      <header className="flex flex-wrap items-end justify-between gap-x-10 gap-y-6">
+    <div className="space-y-7">
+      <header className="flex flex-wrap items-start justify-between gap-x-10 gap-y-5">
         <div>
           <h1 className="font-display text-3xl text-tinta">Cambios</h1>
           <p className="mt-1.5 text-[15px] text-tinta/70">Gestiona cambios de prendas de manera rápida y segura.</p>
@@ -55,9 +54,9 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
         <ResumenSede
           sede={persona.ubicacionEtiqueta}
           cifras={[
-            { valor: String(estadisticas.cambiosHoy), etiqueta: "Cambios hoy", icono: RefreshCw },
-            { valor: String(estadisticas.cambiosMes), etiqueta: "Este mes", icono: CalendarDays },
-            { valor: soles(estadisticas.valorMes), etiqueta: "Valor cambiado", icono: Banknote },
+            { valor: estadisticas.cambiosHoy, etiqueta: "Cambios hoy", icono: RefreshCw },
+            { valor: estadisticas.cambiosMes, etiqueta: "Este mes", icono: CalendarDays },
+            { valor: estadisticas.valorMes, formato: "soles", etiqueta: "Valor cambiado", icono: Banknote },
           ]}
         />
       </header>

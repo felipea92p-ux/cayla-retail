@@ -10,6 +10,14 @@ alineado a la izquierda; ahora viven en un recuadro con el nombre de la sede (`R
 cifra centrada sobre su etiqueta y con un ícono. Y el plazo se lee por color: verde dentro del plazo
 (incluido «Vence en N días»), rojo fuera, en la fila, en la validación y en «Por aprobar».
 
+Después, pedido de Felipe: las dos pantallas pasan a **todo el ancho** (`SIN_TOPE_DE_ANCHO` en
+`AppShell`), las compras se reparten en columnas de 34rem como mínimo en vez de una fila de 1500 px
+con un vacío entre el nombre y el botón, y el panel de validaciones sube a 21rem en pantallas
+anchas. El título sube (`items-start`), el resumen se compacta (el nombre de la sede es un rótulo
+sobre el borde, no una fila más), toma el `sand` del sistema en vez de la tarjeta clara y sus
+números suben hasta su valor (`CifraAnimada`, sin movimiento si el usuario lo pidió así). Todo lo
+de abajo sube con ellos: menos aire entre la cabecera y el buscador.
+
 **Qué se aprendió.** Un color que significa algo tiene que salir de una sola regla: el chip, la
 validación y la tarjeta de aprobación leen el mismo `EstadoVisual`, por eso cambiarlo fue tocar dos
 funciones y no doce pantallas. Pendiente: el rojo puede pasar el tope de 2 por pantalla si una

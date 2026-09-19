@@ -100,14 +100,20 @@ export function ComprasAgrupadas({
       {agruparPorDia(lineas, ahora).map((dia) => (
         <section key={dia.etiqueta} aria-label={dia.etiqueta} className="space-y-3">
           <h3 className="text-sm font-semibold text-tinta/70">{dia.etiqueta}</h3>
-          {agruparPorCompra(dia.lineas).map((compra) => (
-            <article key={compra.ventaId} className="anim-revelar rounded-xl bg-papel ring-1 ring-tinta/[0.07]">
-              <header className="px-5 pb-1 pt-4">
-                <MetaCompra compra={compra.lineas[0]!} derecha={accionCompra?.(compra.lineas[0]!)} />
-              </header>
-              <ul className="px-2 pb-2">{compra.lineas.map((l) => renderFila(l))}</ul>
-            </article>
-          ))}
+          {/* Las compras en columnas de 34rem como mínimo: en una pantalla ancha se reparten a lo
+              ancho (una fila de prenda a 1500px dejaba un vacío enorme entre el nombre y el botón);
+              en una angosta o en el celular, una sola columna. `auto-fill` y no `auto-fit`: una
+              compra sola no se estira a todo el ancho. */}
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,34rem),1fr))] items-start gap-3">
+            {agruparPorCompra(dia.lineas).map((compra) => (
+              <article key={compra.ventaId} className="anim-revelar rounded-xl bg-papel ring-1 ring-tinta/[0.07]">
+                <header className="px-5 pb-1 pt-4">
+                  <MetaCompra compra={compra.lineas[0]!} derecha={accionCompra?.(compra.lineas[0]!)} />
+                </header>
+                <ul className="px-2 pb-2">{compra.lineas.map((l) => renderFila(l))}</ul>
+              </article>
+            ))}
+          </div>
         </section>
       ))}
     </div>

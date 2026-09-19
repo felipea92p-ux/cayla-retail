@@ -3,7 +3,6 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getVentasRecientes } from "@/lib/ventas-v2";
 import { getDevolucionesPendientes, getEstadisticasDevoluciones } from "@/lib/devoluciones";
 import { getCajaAbierta } from "@/lib/caja";
-import { soles } from "@/lib/compras-reglas";
 import { DevolucionesPanel } from "@/components/DevolucionesPanel";
 import { ResumenSede } from "@/components/ui/ResumenSede";
 
@@ -26,8 +25,8 @@ export default async function DevolucionesPage({ searchParams }: { searchParams:
   ]);
 
   return (
-    <div className="space-y-10">
-      <header className="flex flex-wrap items-end justify-between gap-x-10 gap-y-6">
+    <div className="space-y-7">
+      <header className="flex flex-wrap items-start justify-between gap-x-10 gap-y-5">
         <div>
           <h1 className="font-display text-3xl text-tinta">Devoluciones</h1>
           <p className="mt-1.5 text-[15px] text-tinta/70">Registra las devoluciones de la clienta y aprueba las que esperan.</p>
@@ -37,9 +36,9 @@ export default async function DevolucionesPage({ searchParams }: { searchParams:
         <ResumenSede
           sede={persona.ubicacionEtiqueta}
           cifras={[
-            { valor: String(estadisticas.devolucionesHoy), etiqueta: "Devoluciones hoy", icono: Undo2 },
-            { valor: String(estadisticas.devolucionesMes), etiqueta: "Este mes", icono: CalendarDays },
-            { valor: soles(estadisticas.valorMes), etiqueta: "Valor devuelto", icono: Banknote },
+            { valor: estadisticas.devolucionesHoy, etiqueta: "Devoluciones hoy", icono: Undo2 },
+            { valor: estadisticas.devolucionesMes, etiqueta: "Este mes", icono: CalendarDays },
+            { valor: estadisticas.valorMes, formato: "soles", etiqueta: "Valor devuelto", icono: Banknote },
           ]}
         />
       </header>
