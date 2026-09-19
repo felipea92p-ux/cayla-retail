@@ -41,7 +41,7 @@ export default function ErrorDeSeccion({
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
           <button
             onClick={reset}
-            className="label-cayla alza-cayla rounded-md bg-tinta px-5 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo"
+            className="label-cayla alza-cayla rounded-md bg-tinta px-5 py-2.5 text-[11px] text-crema hover:bg-rojo"
           >
             Reintentar
           </button>
