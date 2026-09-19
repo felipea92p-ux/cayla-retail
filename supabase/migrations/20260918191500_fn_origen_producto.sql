@@ -19,7 +19,7 @@
 --
 -- SEGURIDAD. NO se concede a nadie: solo la ejecutan las funciones `security definer` que la llaman (dueñas de la base).
 -- Explícito `revoke ... from authenticated`, porque `0005_grants.sql` concede EXECUTE por defecto a toda función nueva
--- (ADR-0112): sin el revoke, cualquier colaboradora podría preguntar de quién es cada prenda.
+-- (ADR-0119): sin el revoke, cualquier colaboradora podría preguntar de quién es cada prenda.
 --
 -- SE ROMPE SI: dos proveedores surten el mismo producto en fechas cercanas (se atribuye al último, sin avisar); o una prenda
 -- entra sin compra ni producción (carga manual, censo). Depende de `compras.estado`, `compra_items.producto_id` y
