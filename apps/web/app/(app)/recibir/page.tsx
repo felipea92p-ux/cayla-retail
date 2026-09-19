@@ -7,7 +7,7 @@ import { getResumenComprasExtra, getResumenRecepciones, listarRecepcionesCompras
 import { getComprasConNotaFaltante, getSaldosFavor } from "@/lib/saldo-favor";
 import { hoyLima } from "@/lib/fechas-lima";
 import { filtrosRecibidasDesdeParams, hayFiltrosRecibidas } from "@/lib/recibidas-filtros-reglas";
-import { getTrasladosHaciaAca } from "@/lib/envio";
+import { getEnviosDeLotes, getTrasladosHaciaAca } from "@/lib/envio";
 import { comprobanteSinMontos, kpisDeLaLista, lineaSinCosto } from "@/lib/envio-reglas";
 import { RecepcionEnvio } from "@/components/RecepcionEnvio";
 import { KpisRecibir } from "@/components/KpisRecibir";
@@ -74,12 +74,15 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   // ------------------------------------------------------------------ Recibidas
   if (vista === "recibidas") {
     const filtrosRecibidas = filtrosRecibidasDesdeParams(params);
+    const LIMITE_RECIBIDAS = 30;
     const [resumen, recepciones, recientes, proveedores] = await Promise.all([
       getResumenRecepciones(),
-      listarRecepcionesCompras({ busqueda: filtrosRecibidas.busqueda, proveedorId: filtrosRecibidas.proveedorId, desde: filtrosRecibidas.desde, hasta: filtrosRecibidas.hasta, limite: 30 }),
+      listarRecepcionesCompras({ busqueda: filtrosRecibidas.busqueda, proveedorId: filtrosRecibidas.proveedorId, desde: filtrosRecibidas.desde, hasta: filtrosRecibidas.hasta, limite: LIMITE_RECIBIDAS }),
       getRecepcionesRecientes({ conFactura: true, limite: 40 }),
       getProveedoresActivos(),
     ]);
+    // A qué envío pertenece cada guía: las filas de una misma llegada de varios proveedores salen bajo una cabecera.
+    const envios = await getEnviosDeLotes(recepciones.map((r) => r.loteId));
     // Detalle prenda por prenda y quién recibió, por guía (de la misma lectura que ya resuelve los nombres).
     const detalles = Object.fromEntries(recientes.map((r) => [r.loteId, r.detalle]));
     const nombres = Object.fromEntries(recientes.flatMap((r) => (r.recibidoPor ? [[r.loteId, r.recibidoPor] as const] : [])));
@@ -136,6 +139,8 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             recepciones={recepciones}
             detalles={detalles}
             nombres={nombres}
+            envios={envios}
+            limite={LIMITE_RECIBIDAS}
             enlaceAlComprobante={esLider}
             vacio={hayFiltros ? "Ninguna recepción coincide con esos filtros." : `Todavía no se recibió nada contra un comprobante en ${persona.ubicacionEtiqueta}.`}
           />

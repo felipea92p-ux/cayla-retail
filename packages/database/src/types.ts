@@ -1442,6 +1442,44 @@ export type Database = {
           },
         ]
       }
+      envios: {
+        Row: {
+          fecha_recepcion: string
+          id: string
+          nota: string | null
+          numero_guia: string | null
+          recibido_por: string | null
+          token_cliente: string | null
+          ubicacion_id: string
+        }
+        Insert: {
+          fecha_recepcion?: string
+          id?: string
+          nota?: string | null
+          numero_guia?: string | null
+          recibido_por?: string | null
+          token_cliente?: string | null
+          ubicacion_id: string
+        }
+        Update: {
+          fecha_recepcion?: string
+          id?: string
+          nota?: string | null
+          numero_guia?: string | null
+          recibido_por?: string | null
+          token_cliente?: string | null
+          ubicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "envios_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       etiqueta_categorias: {
         Row: {
           categoria_id: string
@@ -1715,6 +1753,7 @@ export type Database = {
       }
       lotes: {
         Row: {
+          envio_id: string | null
           fecha_recepcion: string
           id: string
           nota: string | null
@@ -1724,6 +1763,7 @@ export type Database = {
           ubicacion_id: string
         }
         Insert: {
+          envio_id?: string | null
           fecha_recepcion?: string
           id?: string
           nota?: string | null
@@ -1733,6 +1773,7 @@ export type Database = {
           ubicacion_id: string
         }
         Update: {
+          envio_id?: string | null
           fecha_recepcion?: string
           id?: string
           nota?: string | null
@@ -1742,6 +1783,13 @@ export type Database = {
           ubicacion_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lotes_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lotes_proveedor_id_fkey"
             columns: ["proveedor_id"]
