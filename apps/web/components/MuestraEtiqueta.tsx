@@ -16,22 +16,22 @@ import { iconoDeEtiqueta, type IconoEtiqueta } from "@/lib/etiqueta-visual";
  * con su color "natural". Sin gradientes ni sombras (brandbook v3.0).
  */
 
-type Estilo = "neutral" | "urgencia" | "positivo" | "campana";
+export type Estilo = "neutral" | "urgencia" | "positivo" | "campana";
 
 const TINTA = "#1A1A18";
 const CREMA = "#F5F0E8";
 
 // `fondo` = el tono del grupo diluido ~14% sobre crema. `acento` = el tono
 // pleno (ámbar / verde / taupe-profundo de globals.css).
-const TONOS: Record<Estilo, { fondo: string; acento: string }> = {
+export const TONOS: Record<Estilo, { fondo: string; acento: string }> = {
   urgencia: { fondo: "#E6DCCC", acento: "#8C631F" },
   positivo: { fondo: "#DFDED2", acento: "#556E49" },
   campana: { fondo: "#E5DBD2", acento: "#805C4C" },
   neutral: { fondo: "#EFE8DA", acento: TINTA },
 };
 
-const ANCHO = 120;
-const ALTO = 40;
+const ANCHO = 180; // 3:1, como las muestras de Patrones y Tejidos
+const ALTO = 60;
 
 // Cada ícono se dibuja centrado en (0,0) dentro de ±14 unidades. `a` es el
 // color de acento del grupo.
@@ -240,6 +240,16 @@ const ICONOS: Record<IconoEtiqueta | "generico", (a: string) => ReactElement> = 
   ),
 };
 
+/**
+ * `group/etq` lo pone la tarjeta que la contiene: al pasarle el mouse por
+ * encima el dibujo principal se asienta un poco y los ecos se abren hacia los
+ * lados. Es el mismo gesto de "acuse de recibo" del sistema (`alza-cayla`) y
+ * responde a una acción de la persona, nunca corre solo. Los grupos exteriores
+ * llevan el `transform` fijo de cada dibujo; el movimiento va en el interior
+ * para que un CSS no pise al atributo SVG.
+ */
+export const MOV = "transition-transform duration-500 ease-cayla [transform-box:fill-box] origin-center";
+
 export function MuestraEtiqueta({
   nombre,
   estilo,
@@ -254,16 +264,18 @@ export function MuestraEtiqueta({
   const dibujo = ICONOS[icono];
 
   return (
-    <div className={`${className} overflow-hidden rounded-lg border border-tinta/10`} style={{ backgroundColor: fondo }} role="img" aria-label={`Ilustración de la etiqueta ${nombre}`}>
+    <div className={`${className} overflow-hidden rounded-lg`} style={{ backgroundColor: fondo }} role="img" aria-label={`Ilustración de la etiqueta ${nombre}`}>
       <svg viewBox={`0 0 ${ANCHO} ${ALTO}`} preserveAspectRatio="xMidYMid slice" className="h-full w-full" aria-hidden>
         {/* Ecos tenues a los lados: llenan el ancho sin competir con el ícono. */}
-        <g transform="translate(19 21) rotate(-14) scale(0.55)" opacity={0.2}>
-          {dibujo(acento)}
+        <g transform="translate(34 38) rotate(-14) scale(0.85)" opacity={0.18}>
+          <g className={`${MOV} group-hover/etq:-translate-x-1.5`}>{dibujo(acento)}</g>
         </g>
-        <g transform="translate(101 19) rotate(12) scale(0.55)" opacity={0.2}>
-          {dibujo(acento)}
+        <g transform="translate(146 22) rotate(12) scale(0.85)" opacity={0.18}>
+          <g className={`${MOV} group-hover/etq:translate-x-1.5`}>{dibujo(acento)}</g>
         </g>
-        <g transform="translate(60 20) scale(1.1)">{dibujo(acento)}</g>
+        <g transform="translate(90 30) scale(1.6)">
+          <g className={`${MOV} group-hover/etq:-translate-y-0.5 group-hover/etq:scale-[1.06]`}>{dibujo(acento)}</g>
+        </g>
       </svg>
     </div>
   );

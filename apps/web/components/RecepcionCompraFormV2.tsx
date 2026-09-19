@@ -8,26 +8,60 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { Boton, CampoSelectNativo, CampoTexto, SelectNativo } from "@/components/ui/campos";
+import { BarraFija } from "@/components/ui/BarraFija";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { Modal } from "@/components/ui/Modal";
+import { DecidirTodas, EditorDecision, ResumenDecision, type Decision } from "@/components/DecisionFaltanteFila";
+import { NOTA_VACIA, NotaCreditoCierre, type BloqueNota } from "@/components/NotaCreditoCierre";
 import { compararTallas } from "@/lib/tallas";
-import { fechaCorta, type CompraResumen, type LineaCompra } from "@/lib/compras-reglas";
+import { diaMes, hoyLima } from "@/lib/fechas-lima";
+import {
+  chipLlegada,
+  cierresElegidos,
+  disponibilidadNota,
+  estadoLinea,
+  etiquetaConfirmar,
+  faltanteDeLinea,
+  notaDelBloque,
+  ordenarPorUrgencia,
+  sinDecidir,
+  resumenConteo,
+  tasaIgv,
+  textoEsperada,
+  valorPorLlegar,
+  type EstadoLinea,
+  type NotaBorrador,
+} from "@/lib/recepciones-reglas";
+import { soles, type CompraResumen, type LineaCompra } from "@/lib/compras-reglas";
 
-// Recibir mercadería contra facturas (ADR-0035). Una guía = una recepción,
-// que puede cubrir varias facturas del MISMO proveedor. Cada línea de
-// factura se precarga con lo que falta por recibir; si la factura vino
-// agrupada ("Blusa Lino x 24", sin talla/color), acá se reparte por
-// variante. La regla dura —nunca recibir más de lo facturado— la aplica la
-// RPC `recibir_compras`; el formulario solo la anticipa para no mandar algo
-// que va a fallar.
+// Recibir mercadería contra comprobantes (ADR-0035). Una guía = una recepción, que puede cubrir
+// varios comprobantes del MISMO proveedor. Si el comprobante vino agrupado («Blusa Lino x 24», sin
+// talla/color), acá se reparte por variante. La regla dura —nunca recibir más de lo facturado— la
+// aplica la RPC `recibir_compras`; el formulario solo la anticipa para no mandar algo que va a fallar.
 //
-// 2026-09-14, lista + panel (decisión de Felipe entre tres opciones): a la
-// izquierda las facturas pendientes, agrupadas por proveedor y con buscador;
-// a la derecha la guía que se está armando. Antes era una lista de casillas
-// y "todo aparecía abajo" al marcar — con dos facturas de veinte líneas la
-// pantalla se volvía un rollo. Ahora: tocar una factura la pone en la guía
-// (y reemplaza lo que hubiera); "+ Sumar" agrega otra del mismo proveedor;
-// las de otros proveedores quedan atenuadas mientras la guía tenga dueño.
+// 2026-09-14, lista + panel: a la izquierda los comprobantes pendientes, agrupados por proveedor y
+// con buscador; a la derecha la guía que se está armando. Tocar un comprobante la pone en la guía
+// (y reemplaza lo que hubiera); «+ Sumar» agrega otro del mismo proveedor; los de otros
+// proveedores quedan atenuados mientras la guía tenga dueño.
+//
+// 2026-09-18 (ADR-0111):
+// · D1 — las cantidades ARRANCAN EN 0. Antes se precargaba todo lo pendiente y bastaba apretar
+//   «Recibir» para que el stock subiera por prendas que quizá no llegaron. Ahora cada línea está
+//   «Sin contar» hasta que alguien la cuenta; «Todo llegó» llena un comprobante en un toque. Lo que
+//   no se cuenta no suma y sigue pendiente.
+// · La lista va por urgencia (lo atrasado primero) y cada ítem dice cuándo se esperaba.
+// · Cambiar de comprobante con cantidades ya anotadas pide confirmación (antes las descartaba sin avisar).
+// · D1, corregido tras probarlo — «sin contar» es la línea VACÍA, no la que dice 0. Un 0 anotado es un
+//   dato («no llegó nada») y esa línea sí ofrece qué hacer con lo que faltó; un campo vacío no sabe qué pasó.
+// · D2 — lo que llegó corto se decide EN LA MISMA FILA (`DecisionFaltanteFila`): al salir del campo con menos de
+//   lo pendiente se abre «¿qué pasó?» (lo espero, o el motivo por el que no va a llegar), «Guardar» deja la
+//   decisión a la vista en la columna Estado y el botón de confirmar no se habilita hasta que cada fila corta
+//   tenga la suya. Al final solo queda la nota de crédito (`NotaCreditoCierre`), una por comprobante y solo con
+//   el comprobante resuelto al 100 %. Todo se registra junto, en UNA transacción (`recibir_y_cerrar_compras`).
+//   Antes cada línea abría un modal que escribía al instante, y su «enviar» subía por el portal hasta el <form>
+//   de la guía y recibía TODO.
+// · En celular las cantidades se cambian con − y + grandes (recibir es de pie, con una mano).
 type Variante = {
   varianteId: string;
   sku: string;
@@ -38,17 +72,23 @@ type Variante = {
 };
 type Ubicacion = { id: string; nombre: string };
 
-// Por línea de factura: cuántas unidades de cada variante llegan.
+// Por línea de comprobante: cuántas unidades de cada variante llegan. AUSENTE = «sin contar»; un 0 escrito
+// es «se contó y no llegó nada». En una línea agrupada (sin variante), `{}` es esa misma afirmación
+// («nada llegó de esta línea») y solo la crea el botón «Nada llegó».
 type Reparto = Record<string /* lineaId */, Record<string /* varianteId */, number>>;
 
-// Fuera de factura (ADR-0076): una prenda que llegó en la misma guía pero
-// ninguna factura seleccionada la lista. Va en un array aparte, no en
-// `Reparto` — ese tipo está indexado por línea de factura, y esto no tiene
-// una.
+// Fuera de comprobante (ADR-0076): una prenda que llegó en la misma guía pero ningún comprobante
+// seleccionado la lista. Va en un array aparte, no en `Reparto` — ese tipo está indexado por
+// línea de comprobante, y esto no tiene una.
 type Extra = { productoId: string; varianteId: string; cantidad: number; costoUnitario: string };
 
 const NUMERO =
   "w-16 border-b bg-transparent px-1 py-1 text-center text-sm tabular-nums text-tinta outline-none [appearance:textfield] focus:border-b-2 focus:border-rojo [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+
+// Producto · Talla y color · Pendiente · Llegó · Estado
+const PLANTILLA_LINEA = "sm:grid-cols-[1fr_7.5rem_5rem_6rem_9.5rem]";
+
+const CHIP_ESTADO: Record<EstadoLinea, TonoChip> = { sin_contar: "neutro", completa: "verde", faltan: "ambar", excede: "rojo" };
 
 export function RecepcionCompraFormV2({
   compras,
@@ -57,6 +97,11 @@ export function RecepcionCompraFormV2({
   ubicaciones,
   ubicacionInicialId,
   compraInicialId,
+  esLider,
+  igvMes,
+  porRecibirAtrasadas,
+  comprasConNotaFaltante,
+  saldoFavorPorProveedor,
 }: {
   compras: CompraResumen[];
   lineas: LineaCompra[];
@@ -64,19 +109,39 @@ export function RecepcionCompraFormV2({
   ubicaciones: Ubicacion[];
   ubicacionInicialId: string;
   compraInicialId: string | null;
+  esLider: boolean;
+  /** Crédito fiscal del mes, para mostrar el efecto de una nota de crédito al cerrar un faltante. */
+  igvMes: number | null;
+  porRecibirAtrasadas: number | null;
+  /** Comprobantes que ya tienen su nota por faltante (es una sola por comprobante). */
+  comprasConNotaFaltante: string[];
+  /** Saldo a favor de cada proveedor, para mostrar cómo queda tras una nota. */
+  saldoFavorPorProveedor: Record<string, number>;
 }) {
   const router = useRouter();
   const panel = useRef<HTMLDivElement>(null);
   const inicial = compraInicialId && compras.some((c) => c.id === compraInicialId) ? [compraInicialId] : [];
+  const ahora = useMemo(() => new Date(), []);
   const [seleccionadas, setSeleccionadas] = useState<string[]>(inicial);
-  const [reparto, setReparto] = useState<Reparto>(() => precargar(inicial, lineas, {}));
+  // Las cantidades arrancan VACÍAS (D1): sin valor = sin contar.
+  const [reparto, setReparto] = useState<Reparto>({});
   const [extras, setExtras] = useState<Extra[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [numeroGuia, setNumeroGuia] = useState("");
   const [nota, setNota] = useState("");
   const [ubicacionId, setUbicacionId] = useState(ubicacionInicialId || ubicaciones[0]?.id || "");
   const [loading, setLoading] = useState(false);
-  const [ok, setOk] = useState<{ unidades: number; facturas: number; extras: number } | null>(null);
+  const [ok, setOk] = useState<{ unidades: number; facturas: number; extras: number; cerrados: number; notas: number } | null>(null);
+  const [cambioPendiente, setCambioPendiente] = useState<CompraResumen | null>(null);
+  // Qué se hace con lo que faltó, por línea: ausente = todavía sin decidir (bloquea el confirmar). Solo cuenta
+  // mientras la línea siga «faltan».
+  const [decisiones, setDecisiones] = useState<Record<string, Decision | undefined>>({});
+  // La fila cuya decisión se está corrigiendo, y la fila cuyo campo tiene el foco (el editor no se abre mientras
+  // se teclea: al escribir «10» pasaría por «1» y parpadearía).
+  const [editando, setEditando] = useState<string | null>(null);
+  const [enfocada, setEnfocada] = useState<string | null>(null);
+  const [notas, setNotas] = useState<Record<string, NotaBorrador | undefined>>({});
+  const hoy = useMemo(() => hoyLima(), []);
 
   const variantesPorProducto = useMemo(() => {
     const m = new Map<string, Variante[]>();
@@ -84,11 +149,9 @@ export function RecepcionCompraFormV2({
     return m;
   }, [variantes]);
 
-  // Catálogo completo, agrupado por producto — mismo patrón que
-  // `opcionesProducto` de CompraFormV2.tsx ("Registrar factura"). A
-  // diferencia de las líneas de la izquierda, esto no depende de qué
-  // factura esté seleccionada: cualquier prenda del catálogo puede llegar
-  // fuera de factura.
+  // Catálogo completo, agrupado por producto — mismo patrón que `opcionesProducto` de CompraFormV2.tsx
+  // («Registrar comprobante»). A diferencia de las líneas de la izquierda, esto no depende de qué
+  // comprobante esté seleccionado: cualquier prenda del catálogo puede llegar fuera de comprobante.
   const opcionesProducto = useMemo(
     () =>
       [...variantesPorProducto.entries()].map(([productoId, vs]) => ({
@@ -99,51 +162,68 @@ export function RecepcionCompraFormV2({
     [variantesPorProducto],
   );
 
-  const proveedorActivo = seleccionadas.length ? (compras.find((c) => c.id === seleccionadas[0])?.proveedorId ?? null) : null;
-  const proveedorNombre = seleccionadas.length ? (compras.find((c) => c.id === seleccionadas[0])?.proveedorNombre ?? "") : "";
+  const primera = seleccionadas.length ? compras.find((c) => c.id === seleccionadas[0]) : undefined;
+  const proveedorActivo = primera?.proveedorId ?? null;
+  const proveedorNombre = primera?.proveedorNombre ?? "";
   const lineasActivas = lineas.filter((l) => seleccionadas.includes(l.compraId) && l.pendiente > 0);
 
-  // Lista de la izquierda: buscador en memoria (la página ya trae ≤ 50
-  // facturas) y agrupada por proveedor, en el orden en que llegan.
+  // Lista de la izquierda: buscador en memoria (la página ya trae ≤ 50 comprobantes), ordenada por
+  // urgencia (lo atrasado primero) y agrupada por proveedor en el orden en que aparece cada uno.
   const k = clave(busqueda);
-  const visibles = compras.filter((c) => !k || clave(`${c.documento} ${c.proveedorNombre} ${c.proveedorRuc ?? ""}`).includes(k));
   const grupos = useMemo(() => {
+    const visibles = ordenarPorUrgencia(
+      compras.filter((c) => !k || clave(`${c.documento} ${c.proveedorNombre} ${c.proveedorRuc ?? ""}`).includes(k)),
+      ahora,
+    );
     const m = new Map<string, { nombre: string; facturas: CompraResumen[] }>();
     for (const c of visibles) {
-      const g = m.get(c.proveedorId) ?? {
-        nombre: c.proveedorNombre,
-        facturas: [],
-      };
+      const g = m.get(c.proveedorId) ?? { nombre: c.proveedorNombre, facturas: [] };
       g.facturas.push(c);
       m.set(c.proveedorId, g);
     }
     return [...m.entries()].map(([id, g]) => ({ id, ...g }));
-  }, [visibles]);
+  }, [compras, k, ahora]);
 
-  function cantidadLinea(l: LineaCompra): number {
-    return Object.values(reparto[l.id] ?? {}).reduce((a, n) => a + n, 0);
+  // null = sin contar. Una línea con variante está contada si tiene ESA variante anotada (aunque sea 0); una
+  // agrupada, si tiene el objeto (`{}` = «nada llegó»).
+  function llegoLinea(l: LineaCompra): number | null {
+    const anotado = reparto[l.id];
+    if (!anotado) return null;
+    if (l.varianteId) return anotado[l.varianteId] ?? null;
+    return Object.values(anotado).reduce((a, n) => a + n, 0);
   }
+  const cantidadLinea = (l: LineaCompra): number => llegoLinea(l) ?? 0;
+
+  const hayCantidades =
+    lineasActivas.some((l) => llegoLinea(l) !== null) || extras.some((e) => e.productoId || e.varianteId) || Object.values(decisiones).some(Boolean);
 
   function irAlPanel() {
-    // En celular la lista y el panel se apilan: al elegir, bajar al panel
-    // para que se vea que pasó algo. En escritorio están lado a lado.
+    // En celular la lista y el panel se apilan: al elegir, bajar al panel para que se vea que pasó
+    // algo. En escritorio están lado a lado.
     if (typeof window !== "undefined" && window.innerWidth < 1024) panel.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  // Tocar una factura arma una guía nueva con ella sola — incluido lo fuera
-  // de factura que se hubiera agregado a la guía anterior.
+  // Tocar un comprobante arma una guía nueva con él solo — incluido lo fuera de comprobante que se
+  // hubiera agregado a la guía anterior. Si ya hay cantidades anotadas, primero se pregunta: antes
+  // se descartaban sin avisar y un toque en falso perdía la cuenta de decenas de líneas.
   function elegir(c: CompraResumen) {
+    if (seleccionadas.length === 1 && seleccionadas[0] === c.id) return;
+    if (hayCantidades) return void setCambioPendiente(c);
+    aplicarEleccion(c);
+  }
+  function aplicarEleccion(c: CompraResumen) {
     setSeleccionadas([c.id]);
-    setReparto(precargar([c.id], lineas, {}));
+    setReparto({});
     setExtras([]);
+    setDecisiones({});
+    setNotas({});
+    setCambioPendiente(null);
     irAlPanel();
   }
 
-  // "+ Sumar": la agrega a la guía en curso (mismo proveedor, lo garantiza
-  // quien muestra el botón).
+  // «+ Sumar»: la agrega a la guía en curso (mismo proveedor, lo garantiza quien muestra el botón).
   function sumar(c: CompraResumen) {
     setSeleccionadas((s) => [...s, c.id]);
-    setReparto((r) => precargar([c.id], lineas, r));
   }
 
   function quitar(compraId: string) {
@@ -154,55 +234,115 @@ export function RecepcionCompraFormV2({
       lineas.filter((l) => l.compraId === compraId).forEach((l) => delete copia[l.id]);
       return copia;
     });
-    // Sin ninguna factura seleccionada no hay guía — lo fuera de factura
-    // tampoco tiene dónde vivir.
+    setDecisiones((m) => {
+      const copia = { ...m };
+      lineas.filter((l) => l.compraId === compraId).forEach((l) => delete copia[l.id]);
+      return copia;
+    });
+    // Sin ningún comprobante seleccionado no hay guía — lo fuera de comprobante tampoco tiene dónde vivir.
     if (resto.length === 0) setExtras([]);
   }
 
-  // Fuera de factura: mismo trío agregar/quitar/actualizar que ya usa
-  // RecepcionFormV2.tsx (recibir_lote) para sus líneas — acá el array
-  // empieza vacío porque, a diferencia de esa pantalla, esto es la
-  // excepción, no el motivo de estar en /compras/recibir.
+  // Fuera de comprobante: mismo trío agregar/quitar/actualizar que ya usa RecepcionFormV2.tsx
+  // (recibir_lote) para sus líneas — acá el array empieza vacío porque, a diferencia de esa pantalla,
+  // esto es la excepción, no el motivo de estar en /compras/recibir.
   function agregarExtra() {
     setExtras((actual) => [...actual, { productoId: "", varianteId: "", cantidad: 1, costoUnitario: "" }]);
   }
-
   function quitarExtra(i: number) {
     setExtras((actual) => actual.filter((_, n) => n !== i));
   }
-
   function actualizarExtra(i: number, cambio: Partial<Extra>) {
     setExtras((actual) => actual.map((e, n) => (n === i ? { ...e, ...cambio } : e)));
   }
-
-  // Cambiar de producto olvida la variante elegida — la talla/color de la
-  // prenda anterior casi nunca aplica a la nueva.
+  // Cambiar de producto olvida la variante elegida — la talla/color de la prenda anterior casi nunca aplica a la nueva.
   function elegirProductoExtra(i: number, productoId: string) {
     actualizarExtra(i, { productoId, varianteId: "" });
   }
 
-  function fijar(lineaId: string, varianteId: string, valor: number) {
-    setReparto((r) => ({
-      ...r,
-      [lineaId]: {
-        ...(r[lineaId] ?? {}),
-        [varianteId]: Math.max(0, Math.floor(valor) || 0),
-      },
-    }));
+  // `valor` null = borrar lo anotado (vuelve a «sin contar»). Una línea que queda sin ninguna anotación
+  // se quita del reparto, para que «sin contar» sea siempre la ausencia y no un objeto vacío.
+  function fijar(lineaId: string, varianteId: string, valor: number | null) {
+    setReparto((r) => {
+      const propias = { ...(r[lineaId] ?? {}) };
+      if (valor === null) delete propias[varianteId];
+      else propias[varianteId] = Math.max(0, Math.floor(valor) || 0);
+      const copia = { ...r };
+      if (Object.keys(propias).length === 0) delete copia[lineaId];
+      else copia[lineaId] = propias;
+      return copia;
+    });
   }
 
-  // "Todo llegó" / "Nada": solo las líneas con variante; las agrupadas no se
-  // pueden adivinar (hay que repartirlas a mano mirando la caja).
-  function marcarTodas(compraId: string, todo: boolean) {
+  // «Todo llegó» / «Nada llegó» / «Vaciar» sobre un comprobante. Las líneas agrupadas no se pueden
+  // adivinar (hay que repartirlas mirando la caja), salvo «Nada llegó», que es lo mismo para todas.
+  function marcarTodas(compraId: string, que: "todo" | "nada" | "vaciar") {
     setReparto((r) => {
       const copia = { ...r };
       for (const l of lineas.filter((x) => x.compraId === compraId && x.pendiente > 0)) {
-        if (l.varianteId) copia[l.id] = { [l.varianteId]: todo ? l.pendiente : 0 };
-        else if (!todo) copia[l.id] = {};
+        if (que === "vaciar") delete copia[l.id];
+        else if (l.varianteId) copia[l.id] = { [l.varianteId]: que === "todo" ? l.pendiente : 0 };
+        else if (que === "nada") copia[l.id] = {};
       }
       return copia;
     });
   }
+
+  function nadaLlegoDe(lineaId: string) {
+    setReparto((r) => ({ ...r, [lineaId]: {} }));
+  }
+
+  function guardarDecision(lineaId: string, d: Decision) {
+    setDecisiones((m) => ({ ...m, [lineaId]: d }));
+    setEditando(null);
+  }
+  // «Decidir todas»: la misma decisión para todas las filas cortas de UN comprobante.
+  function decidirTodas(compraId: string, d: Decision) {
+    setDecisiones((m) => ({ ...m, ...Object.fromEntries(faltantes.filter((f) => f.compraId === compraId).map((f) => [f.lineaId, d])) }));
+    setEditando(null);
+  }
+  // El editor de una fila corta se muestra si no tiene decisión (y no se está tecleando en ella) o si se pidió editarla.
+  const mostrarEditor = (lineaId: string) => editando === lineaId || (!decisiones[lineaId] && enfocada !== lineaId);
+  // El foco «dentro de la línea»: pasar de una celda a otra de la misma línea no cuenta como salir.
+  const alEnfocar = (lineaId: string) => () => setEnfocada(lineaId);
+  const alDesenfocar = (lineaId: string) => (e: React.FocusEvent<HTMLElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setEnfocada((actual) => (actual === lineaId ? null : actual));
+  };
+  function ajustarNota(compraId: string, cambio: Partial<NotaBorrador>) {
+    setNotas((n) => ({ ...n, [compraId]: { ...(n[compraId] ?? NOTA_VACIA(hoy)), ...cambio } }));
+  }
+
+  const ubicacionNombre = ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "";
+  const conteo = resumenConteo(lineasActivas.map((l) => ({ llego: llegoLinea(l), pendiente: l.pendiente })));
+  const unidadesFactura = conteo.unidades;
+  const unidadesExtra = extras.filter((ex) => ex.varianteId && ex.cantidad > 0).reduce((a, ex) => a + ex.cantidad, 0);
+  const unidadesRecibiendo = unidadesFactura + unidadesExtra;
+  const lineasExcedidas = conteo.excedidas;
+
+  // Lo que llegó corto: solo las líneas CONTADAS con menos de lo pendiente (una línea sin contar no sabe qué
+  // pasó). A cada una le toca una decisión en su fila; las que tienen motivo se cierran al confirmar.
+  const lineasCortas = lineasActivas.filter((l) => estadoLinea(llegoLinea(l), l.pendiente) === "faltan");
+  const faltantes = lineasCortas.map((l) => ({ lineaId: l.id, compraId: l.compraId, faltan: faltanteDeLinea(llegoLinea(l), l.pendiente), costoUnitario: l.costoUnitario }));
+  const cierres = cierresElegidos(faltantes, decisiones);
+  const porDecidir = sinDecidir(faltantes, decisiones);
+
+  // La nota de crédito de cada comprobante de la guía, con lo cerrado ahora y lo que ya estaba cerrado antes.
+  const bloquesNota: BloqueNota[] = seleccionadas.flatMap((compraId) => {
+    const compra = compras.find((x) => x.id === compraId);
+    if (!compra) return [];
+    const propias = lineasActivas.filter((l) => l.compraId === compraId);
+    return [
+      {
+        compra,
+        cierresAhora: cierres.filter((c) => c.compraId === compraId).map((c) => ({ faltan: c.faltan, costoUnitario: c.costoUnitario })),
+        cerradoAntes: lineas.filter((l) => l.compraId === compraId && l.cerrado > 0).map((l) => ({ faltan: l.cerrado, costoUnitario: l.costoUnitario })),
+        pendiente: propias.reduce((a, l) => a + l.pendiente, 0),
+        llegando: propias.reduce((a, l) => a + cantidadLinea(l), 0),
+        yaTieneNotaFaltante: comprasConNotaFaltante.includes(compraId),
+        saldoFavorAntes: saldoFavorPorProveedor[compra.proveedorId] ?? 0,
+      },
+    ];
+  });
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -215,9 +355,8 @@ export function RecepcionCompraFormV2({
           cantidad: n,
         })),
     );
-    // Fuera de factura (ADR-0076): mismo criterio de "línea completa" que
-    // RecepcionFormV2.tsx — sin producto o sin variante elegida, la fila
-    // todavía no cuenta, no es un error.
+    // Fuera de comprobante (ADR-0076): mismo criterio de «línea completa» que RecepcionFormV2.tsx —
+    // sin producto o sin variante elegida, la fila todavía no cuenta, no es un error.
     const itemsExtra = extras
       .filter((ex) => ex.varianteId && ex.cantidad > 0)
       .map((ex) => ({
@@ -227,59 +366,107 @@ export function RecepcionCompraFormV2({
         ...(ex.costoUnitario ? { costo_unitario: Number(ex.costoUnitario) } : {}),
       }));
 
-    if (seleccionadas.length === 0) return void avisar.error("Elige al menos una factura.", { enfocar: "recibir-buscar" });
-    if (itemsFactura.length === 0)
-      return void avisar.error("Indica cuánto llegó de la factura — al menos una línea con cantidad. Si nada llegó facturado, usa «Recibir sin factura».", {
-        enfocar: panel.current,
-      });
+    if (seleccionadas.length === 0) return void avisar.error("Elige al menos un comprobante.", { enfocar: "recibir-buscar" });
+    if (porDecidir.length > 0) {
+      const primera = lineas.find((l) => l.id === porDecidir[0].lineaId);
+      return void avisar.error(
+        `Falta decidir qué pasó con lo que faltó en ${porDecidir.length === 1 ? "1 fila" : `${porDecidir.length} filas`}: elige si lo esperas o por qué no llegó y da «Guardar».`,
+        { enfocar: primera ? `recibir-linea-${primera.id}` : undefined },
+      );
+    }
+    if (itemsFactura.length === 0 && cierres.length === 0)
+      return void avisar.error(
+        "Cuenta lo que llegó del comprobante: al menos una línea con cantidad. Si nada llegó y no va a llegar, anota 0 en esas líneas y ciérralas. Si llegó sin comprobante, usa «Ingreso sin comprobante».",
+        { enfocar: panel.current },
+      );
+    if (itemsFactura.length === 0 && itemsExtra.length > 0)
+      return void avisar.error("Lo que llegó fuera de comprobante necesita al menos una línea del comprobante recibida en esta guía.", { enfocar: panel.current });
     const excedida = lineasActivas.find((l) => cantidadLinea(l) > l.pendiente);
     if (excedida) return void avisar.error(`${excedida.referencia}: se intenta recibir ${cantidadLinea(excedida)} pero solo faltan ${excedida.pendiente}.`, { enfocar: `recibir-linea-${excedida.id}` });
-    if (!ubicacionId) return void avisar.error("Elige a qué ubicación entra la mercadería.", { enfocar: "recibir-ubicacion" });
+    if (itemsFactura.length > 0 && !ubicacionId) return void avisar.error("Elige a qué ubicación entra la mercadería.", { enfocar: "recibir-ubicacion" });
+
+    // Una nota de crédito por comprobante, con todo lo cerrado de él. Se valida ANTES de escribir nada.
+    const notasAEmitir = bloquesNota.flatMap((b) => {
+      const borrador = notas[b.compra.id] ?? NOTA_VACIA(hoy);
+      const disp = disponibilidadNota({
+        pendiente: b.pendiente,
+        llegando: b.llegando,
+        cerrandoAhora: b.cierresAhora.reduce((a, c) => a + c.faltan, 0),
+        cerradoAntes: b.cerradoAntes.reduce((a, c) => a + c.faltan, 0),
+        yaTieneNotaFaltante: b.yaTieneNotaFaltante,
+      });
+      if (disp.estado !== "disponible") return [];
+      const n = notaDelBloque({ tasa: tasaIgv(b.compra), cierres: [...b.cerradoAntes, ...b.cierresAhora], esLider, borrador });
+      return n.activa ? [{ compra: b.compra, n, borrador }] : [];
+    });
+    for (const { compra, n } of notasAEmitir) {
+      if (n.problema === "serie") return void avisar.error(`Escribe la serie y el número de la nota de crédito de ${compra.documento}.`, { enfocar: `nota-serie-${compra.id}` });
+      if (n.problema === "monto")
+        return void avisar.error(`El monto de la nota de ${compra.documento} tiene que ser mayor a cero y no pasar de lo cerrado a su costo con IGV (${soles(n.tope)}).`, { enfocar: `nota-monto-${compra.id}` });
+    }
 
     setLoading(true);
-    const cerrarProceso = avisar.proceso("Recibiendo mercadería…");
+    const cerrarProceso = avisar.proceso(itemsFactura.length > 0 ? "Recibiendo mercadería…" : "Cerrando faltantes…");
     const supabase = createClient();
-    const { error } = await supabase.rpc("recibir_compras", {
+    // UNA sola llamada, UNA transacción: la recepción, los cierres y las notas se registran juntos o no se
+    // registra nada. Si algo se rechaza (la línea cambió, la nota no cuadra), el conteo sigue acá para corregirlo.
+    const { error } = await supabase.rpc("recibir_y_cerrar_compras", {
       p_ubicacion_id: ubicacionId,
       p_items: [...itemsFactura, ...itemsExtra],
+      p_cierres: cierres.map((c) => ({ compra_item_id: c.lineaId, cantidad: c.faltan, motivo: c.motivo })),
+      p_notas_credito: notasAEmitir.map(({ compra, n, borrador }) => ({
+        compra_id: compra.id,
+        serie_numero: borrador.serie.trim().toUpperCase(),
+        fecha: borrador.fecha,
+        monto: n.monto,
+      })),
       ...(numeroGuia.trim() ? { p_numero_guia: numeroGuia.trim() } : {}),
       ...(nota.trim() ? { p_nota: nota.trim() } : {}),
     });
     cerrarProceso();
     setLoading(false);
     if (error) {
-      avisar.error(traducirError(error, "recibir la mercadería"));
+      avisar.error(traducirError(error, "registrar la recepción"), { detalle: "No se registró nada: tu conteo sigue aquí para corregirlo." });
       return;
     }
+
     const unidades = itemsFactura.reduce((a, i) => a + i.cantidad, 0) + itemsExtra.reduce((a, i) => a + i.cantidad, 0);
-    avisar.exito(`${unidades} unidades recibidas en ${ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "la ubicación"}`, {
-      detalle: [seleccionadas.length === 1 ? "Contra una factura." : `Contra ${seleccionadas.length} facturas.`, itemsExtra.length > 0 ? `+${itemsExtra.length} fuera de factura.` : null]
-        .filter(Boolean)
-        .join(" "),
-    });
-    setOk({
-      unidades,
-      facturas: seleccionadas.length,
-      extras: itemsExtra.length,
-    });
+    const cerrados = cierres.length;
+    const notasOk = notasAEmitir.length;
+    const detalle = [
+      itemsFactura.length === 0 ? null : seleccionadas.length === 1 ? "Contra un comprobante." : `Contra ${seleccionadas.length} comprobantes.`,
+      itemsExtra.length > 0 ? `+${itemsExtra.length} fuera de comprobante.` : null,
+      cerrados > 0 ? `${cerrados} ${cerrados === 1 ? "faltante cerrado" : "faltantes cerrados"}.` : null,
+      notasOk > 0 ? `${notasOk} ${notasOk === 1 ? "nota de crédito registrada" : "notas de crédito registradas"}.` : null,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    avisar.exito(unidades > 0 ? `${unidades} unidades recibidas en ${ubicacionNombre || "la ubicación"}` : `${cerrados} ${cerrados === 1 ? "faltante cerrado" : "faltantes cerrados"}`, { detalle });
+    setOk({ unidades, facturas: seleccionadas.length, extras: itemsExtra.length, cerrados, notas: notasOk });
     router.refresh();
   }
-
-  const ubicacionNombre = ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "";
-  const unidadesFactura = lineasActivas.reduce((a, l) => a + cantidadLinea(l), 0);
-  const unidadesExtra = extras.filter((ex) => ex.varianteId && ex.cantidad > 0).reduce((a, ex) => a + ex.cantidad, 0);
-  const unidadesRecibiendo = unidadesFactura + unidadesExtra;
-  const lineasExcedidas = lineasActivas.filter((l) => cantidadLinea(l) > l.pendiente).length;
 
   if (ok) {
     return (
       <div className="card-cayla space-y-3 p-5 text-center">
         <p className="label-cayla text-[11px] text-tinta/65">Mercadería recibida</p>
-        <p className="font-display text-3xl text-tinta">{ok.unidades} unidades</p>
-        <p className="text-sm text-tinta/70">
-          Ya suman al stock de {ubicacionNombre}, contra {ok.facturas === 1 ? "una factura" : `${ok.facturas} facturas`}
-          {ok.extras > 0 && ` (${ok.extras} fuera de factura)`}.
-        </p>
+        {ok.unidades > 0 ? (
+          <>
+            <p className="font-display text-3xl text-tinta">{ok.unidades} unidades</p>
+            <p className="text-sm text-tinta/70">
+              Ya suman al stock de {ubicacionNombre}, contra {ok.facturas === 1 ? "un comprobante" : `${ok.facturas} comprobantes`}
+              {ok.extras > 0 && ` (${ok.extras} fuera de comprobante)`}.
+            </p>
+          </>
+        ) : (
+          <p className="font-display text-3xl text-tinta">Nada que sumar al stock</p>
+        )}
+        {ok.cerrados > 0 && (
+          <p className="text-sm text-tinta/70">
+            {ok.cerrados} {ok.cerrados === 1 ? "faltante cerrado" : "faltantes cerrados"}
+            {ok.notas > 0 && ` · ${ok.notas} ${ok.notas === 1 ? "nota de crédito registrada" : "notas de crédito registradas"}`}. Quedan en el historial del comprobante.
+          </p>
+        )}
         <div className="flex justify-center gap-3 pt-2">
           <Boton
             peso="discreto"
@@ -288,6 +475,8 @@ export function RecepcionCompraFormV2({
               setSeleccionadas([]);
               setReparto({});
               setExtras([]);
+              setDecisiones({});
+              setNotas({});
               setNumeroGuia("");
               setNota("");
             }}
@@ -295,7 +484,7 @@ export function RecepcionCompraFormV2({
             Recibir otra guía
           </Boton>
           <Link href="/compras" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema hover:bg-rojo">
-            Ver facturas
+            Ver comprobantes
           </Link>
         </div>
       </div>
@@ -303,8 +492,9 @@ export function RecepcionCompraFormV2({
   }
 
   return (
+    <>
     <form onSubmit={onSubmit} className={`grid gap-6 lg:grid-cols-[minmax(18rem,22rem)_1fr] lg:items-start ${seleccionadas.length > 0 ? "pb-28 sm:pb-24" : ""}`}>
-      {/* ================= izquierda: facturas pendientes ================= */}
+      {/* ================= izquierda: comprobantes pendientes ================= */}
       <aside className="card-cayla divide-y divide-tinta/10 lg:sticky lg:top-24">
         <div className="flex items-center gap-3 px-4 py-2">
           <label htmlFor="recibir-buscar" className="label-cayla shrink-0 text-[11px] text-tinta/65">
@@ -320,6 +510,7 @@ export function RecepcionCompraFormV2({
             className="h-9 min-w-0 flex-1 border-b border-tinta/20 bg-transparent px-0.5 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-b-2 focus:border-rojo"
           />
         </div>
+        <p className="px-4 py-2 text-xs text-tinta/55">Ordenadas por urgencia: lo atrasado primero</p>
         {grupos.length === 0 && <p className="px-4 py-5 text-sm text-tinta/65">Nada coincide con «{busqueda.trim()}».</p>}
         {grupos.map((g) => {
           const ajeno = proveedorActivo !== null && g.id !== proveedorActivo;
@@ -328,7 +519,8 @@ export function RecepcionCompraFormV2({
               <p className="label-cayla px-4 pb-1 pt-3 text-[11px] text-tinta/65">{g.nombre}</p>
               {g.facturas.map((c) => {
                 const marcada = seleccionadas.includes(c.id);
-                const pendiente = c.facturadoCantidad - c.recibidoCantidad;
+                const llegada = chipLlegada(c, ahora);
+                const enMedio = c.recibidoCantidad > 0;
                 return (
                   <div
                     key={c.id}
@@ -339,31 +531,36 @@ export function RecepcionCompraFormV2({
                     <button type="button" onClick={() => elegir(c)} className="min-w-0 flex-1 text-left" aria-pressed={marcada}>
                       <span className="block text-sm tabular-nums text-tinta">{c.documento}</span>
                       <span className="block text-xs text-tinta/65">
-                        Emitida {fechaCorta(c.fechaEmision)} · {pendiente} de {c.facturadoCantidad} por recibir
+                        {textoEsperada(c, ahora)} · {c.recibidoCantidad} de {c.facturadoCantidad} u.
                       </span>
                     </button>
-                    {marcada ? (
-                      seleccionadas.length > 1 && (
-                        <button type="button" onClick={() => quitar(c.id)} className="label-cayla shrink-0 text-[10px] text-tinta/55 hover:text-rojo">
-                          Quitar
+                    <div className="shrink-0 text-right">
+                      {marcada ? (
+                        seleccionadas.length > 1 ? (
+                          <button type="button" onClick={() => quitar(c.id)} className="label-cayla text-[10px] text-tinta/55 hover:text-rojo">
+                            Quitar
+                          </button>
+                        ) : (
+                          <Chip tono={llegada.tono}>{llegada.texto}</Chip>
+                        )
+                      ) : proveedorActivo === g.id ? (
+                        <button type="button" onClick={() => sumar(c)} className="label-cayla text-[10px] text-rojo hover:underline">
+                          + Sumar
                         </button>
-                      )
-                    ) : proveedorActivo === g.id ? (
-                      <button type="button" onClick={() => sumar(c)} className="label-cayla shrink-0 text-[10px] text-rojo hover:underline">
-                        + Sumar
-                      </button>
-                    ) : (
-                      c.estadoRecepcion === "parcial" && <Chip tono="ambar">Parcial</Chip>
-                    )}
+                      ) : (
+                        <Chip tono={llegada.tono}>{llegada.texto}</Chip>
+                      )}
+                      <span className="mt-0.5 block text-xs tabular-nums text-tinta/55">{enMedio ? `${soles(valorPorLlegar(c))} por llegar` : soles(c.total)}</span>
+                    </div>
                   </div>
                 );
               })}
             </div>
           );
         })}
-        {proveedorActivo && grupos.some((g) => g.id !== proveedorActivo) && (
-          <p className="px-4 py-2.5 text-xs text-tinta/55">Una guía cubre facturas de un solo proveedor. Toca una de otro proveedor para empezar otra guía.</p>
-        )}
+        <p className="px-4 py-2.5 text-xs text-tinta/55">
+          Una guía cubre comprobantes de un solo proveedor. Si cambias de comprobante con cantidades ya anotadas, te pregunta antes de descartarlas.
+        </p>
       </aside>
 
       {/* ================= derecha: la guía ================= */}
@@ -372,7 +569,7 @@ export function RecepcionCompraFormV2({
           <div className="card-cayla flex min-h-[16rem] flex-col items-center justify-center gap-2 p-8 text-center">
             <p className="font-display text-xl text-tinta">¿Qué llegó?</p>
             <p className="max-w-sm text-sm text-tinta/65">
-              Elige a la izquierda la factura que cubre la guía. Si la guía trae mercadería de varias facturas del mismo proveedor, súmalas después.
+              Elige a la izquierda el comprobante que cubre la guía. Si la guía trae mercadería de varios comprobantes del mismo proveedor, súmalos después.
             </p>
           </div>
         ) : (
@@ -381,17 +578,10 @@ export function RecepcionCompraFormV2({
             <section className="card-cayla p-5">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="font-display text-xl text-tinta">Guía de {proveedorNombre}</p>
-                <p className="text-xs text-tinta/55">{seleccionadas.length === 1 ? "1 factura" : `${seleccionadas.length} facturas`}</p>
+                <p className="text-xs text-tinta/55">{seleccionadas.length === 1 ? "1 comprobante" : `${seleccionadas.length} comprobantes`}</p>
               </div>
               <div className="mt-3 grid gap-4 sm:grid-cols-3">
-                <CampoTexto
-                  etiqueta="Número de guía"
-                  mono
-                  value={numeroGuia}
-                  onChange={(e) => setNumeroGuia(e.target.value)}
-                  placeholder="T001-000123"
-                  autoComplete="off"
-                />
+                <CampoTexto etiqueta="Número de guía" mono value={numeroGuia} onChange={(e) => setNumeroGuia(e.target.value)} placeholder="T001-000123" autoComplete="off" />
                 {ubicaciones.length > 1 ? (
                   <CampoSelectNativo etiqueta="Entra a" id="recibir-ubicacion" value={ubicacionId} onChange={(e) => setUbicacionId(e.target.value)}>
                     {ubicaciones.map((u) => (
@@ -407,7 +597,7 @@ export function RecepcionCompraFormV2({
               </div>
             </section>
 
-            {/* una sección por factura */}
+            {/* una sección por comprobante */}
             {seleccionadas.map((compraId) => {
               const c = compras.find((x) => x.id === compraId);
               const propias = lineasActivas.filter((l) => l.compraId === compraId);
@@ -415,32 +605,35 @@ export function RecepcionCompraFormV2({
               const recibiendo = propias.reduce((a, l) => a + cantidadLinea(l), 0);
               const pendienteTotal = propias.reduce((a, l) => a + l.pendiente, 0);
               const hayDetalladas = propias.some((l) => l.varianteId);
-              // Primero las líneas con variante (tabla), después las agrupadas
-              // (curva de tallas): así el encabezado de columnas queda pegado a
-              // las filas que describe y no flotando sobre una cuadrícula.
+              const conteoC = resumenConteo(propias.map((l) => ({ llego: llegoLinea(l), pendiente: l.pendiente })));
+              const cortasC = propias.filter((l) => estadoLinea(llegoLinea(l), l.pendiente) === "faltan");
+              // Primero las líneas con variante (tabla), después las agrupadas (curva de tallas): así el
+              // encabezado de columnas queda pegado a las filas que describe y no flotando sobre una cuadrícula.
               const ordenadas = [...propias.filter((l) => l.varianteId), ...propias.filter((l) => !l.varianteId)];
               return (
                 <section key={compraId} className="card-cayla divide-y divide-tinta/10">
                   <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-3">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                       <p className="text-sm tabular-nums text-tinta">
-                        {c.documento} <span className="text-xs text-tinta/65">· emitida {fechaCorta(c.fechaEmision)}</span>
+                        {c.documento} <span className="text-xs text-tinta/65">· emitida {diaMes(c.fechaEmision)}</span>
                       </p>
-                      {/* El avance de la factura como chip, no como texto gris:
-                          con dos facturas en la guía hay que saber sin leer cuál
-                          ya está contada y cuál no. */}
+                      {/* El avance del comprobante como chip: con dos comprobantes en la guía hay que
+                          saber sin leer cuál ya está contado y cuál no. */}
                       <Chip tono={tonoAvance(recibiendo, pendienteTotal)}>
                         {recibiendo} de {pendienteTotal}
                       </Chip>
                     </div>
                     <div className="flex items-center gap-3">
                       {hayDetalladas && (
-                        <button type="button" onClick={() => marcarTodas(compraId, true)} className="label-cayla text-[10px] text-tinta/65 hover:text-rojo">
+                        <button type="button" onClick={() => marcarTodas(compraId, "todo")} className="label-cayla text-[10px] text-tinta hover:text-rojo">
                           Todo llegó
                         </button>
                       )}
-                      {recibiendo > 0 && (
-                        <button type="button" onClick={() => marcarTodas(compraId, false)} className="label-cayla text-[10px] text-tinta/65 hover:text-rojo">
+                      <button type="button" onClick={() => marcarTodas(compraId, "nada")} className="label-cayla text-[10px] text-tinta hover:text-rojo">
+                        Nada llegó
+                      </button>
+                      {conteoC.contadas > 0 && (
+                        <button type="button" onClick={() => marcarTodas(compraId, "vaciar")} className="label-cayla text-[10px] text-tinta/65 hover:text-rojo">
                           Vaciar
                         </button>
                       )}
@@ -452,11 +645,23 @@ export function RecepcionCompraFormV2({
                     </div>
                   </div>
 
+                  {/* El conteo: cuántas líneas ya se contaron. Lo que queda «sin contar» no suma al stock. */}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-2.5">
+                    <span className="whitespace-nowrap text-xs text-tinta/65">
+                      {conteoC.contadas} de {conteoC.total} {conteoC.total === 1 ? "línea contada" : "líneas contadas"}
+                    </span>
+                    <div className="h-1.5 min-w-24 flex-1 overflow-hidden rounded-full bg-sand" role="progressbar" aria-valuenow={conteoC.contadas} aria-valuemin={0} aria-valuemax={conteoC.total} aria-label="Líneas contadas">
+                      <div className={`h-full rounded-full transition-[width] ${conteoC.contadas === conteoC.total ? "bg-verde" : "bg-ambar"}`} style={{ width: `${conteoC.total ? (conteoC.contadas / conteoC.total) * 100 : 0}%` }} />
+                    </div>
+                    {conteoC.sinContar > 0 && <span className="text-xs text-tinta/55">{conteoC.sinContar} sin contar: quedan pendientes</span>}
+                    {cortasC.length >= 2 && <DecidirTodas cuantas={cortasC.length} onDecidir={(d) => decidirTodas(compraId, d)} />}
+                  </div>
+
                   {/* encabezado de columnas: solo si hay filas con variante */}
                   {hayDetalladas && (
-                    <div className="hidden gap-x-4 px-5 py-2 sm:grid sm:grid-cols-[1fr_9rem_6rem_6rem]">
-                      {["Producto", "Talla y color", "Pendiente", "Llegó"].map((t, i) => (
-                        <span key={t} className={`label-cayla text-[11px] text-tinta/55 ${i >= 2 ? "text-center" : ""}`}>
+                    <div className={`hidden gap-x-4 px-5 py-2 sm:grid ${PLANTILLA_LINEA}`}>
+                      {["Producto", "Talla y color", "Pendiente", "Llegó", "Estado"].map((t, i) => (
+                        <span key={t} className={`label-cayla text-[11px] text-tinta/55 ${i === 2 || i === 3 ? "text-center" : ""}`}>
                           {t}
                         </span>
                       ))}
@@ -465,52 +670,102 @@ export function RecepcionCompraFormV2({
 
                   {ordenadas.map((l) => {
                     const recibiendoLinea = cantidadLinea(l);
-                    const excede = recibiendoLinea > l.pendiente;
-                    const completa = recibiendoLinea === l.pendiente && l.pendiente > 0;
+                    const estado = estadoLinea(llegoLinea(l), l.pendiente);
+                    const completa = estado === "completa";
+                    const excede = estado === "excede";
+                    const nombre = `${l.referencia}${l.varianteId && (l.talla || l.color) ? ` · ${[l.talla, l.color].filter(Boolean).join(" / ")}` : ""}`;
                     if (l.varianteId) {
                       return (
                         <div
                           key={l.id}
                           id={`recibir-linea-${l.id}`}
-                          className={`grid gap-x-4 gap-y-1 px-5 py-2.5 sm:grid-cols-[1fr_9rem_6rem_6rem] sm:items-center ${completa ? "bg-verde/[0.04]" : ""}`}
+                          onFocus={alEnfocar(l.id)}
+                          onBlur={alDesenfocar(l.id)}
+                          className={`px-5 py-3 sm:py-2.5 ${completa ? "bg-verde/[0.045]" : ""}`}
                         >
-                          <span className="min-w-0 truncate text-sm text-tinta">
-                            {l.referencia}
-                            {l.descripcion && <span className="block truncate text-xs text-tinta/55">{l.descripcion}</span>}
-                          </span>
-                          <span className="text-sm text-tinta/75">{[l.talla, l.color].filter(Boolean).join(" / ") || l.sku}</span>
-                          <span className="text-sm tabular-nums text-tinta/65 sm:text-center">{l.pendiente}</span>
-                          <span className="sm:text-center">
-                            <input
-                              type="number"
-                              min={0}
-                              max={l.pendiente}
-                              aria-label={`Llegó de ${l.referencia} ${[l.talla, l.color].filter(Boolean).join(" ")}`}
-                              value={reparto[l.id]?.[l.varianteId] ?? 0}
-                              onChange={(e) => fijar(l.id, l.varianteId!, Number(e.target.value))}
-                              onFocus={(e) => e.target.select()}
-                              className={`${NUMERO} ${excede ? "border-rojo text-rojo" : "border-tinta/20"}`}
+                          {/* escritorio: fila de tabla */}
+                          <div className={`hidden gap-x-4 sm:grid ${PLANTILLA_LINEA} sm:items-center`}>
+                            <span className="min-w-0 truncate text-sm text-tinta">
+                              {l.referencia}
+                              {l.descripcion && <span className="block truncate text-xs text-tinta/55">{l.descripcion}</span>}
+                            </span>
+                            <span className="text-sm text-tinta/75">{[l.talla, l.color].filter(Boolean).join(" / ") || l.sku}</span>
+                            <span className="text-center text-sm tabular-nums text-tinta/65">{l.pendiente}</span>
+                            <span className="text-center">
+                              <input
+                                type="number"
+                                min={0}
+                                max={l.pendiente}
+                                aria-label={`Llegó de ${l.referencia} ${[l.talla, l.color].filter(Boolean).join(" ")}`}
+                                value={reparto[l.id]?.[l.varianteId] ?? ""}
+                                placeholder="—"
+                                onChange={(e) => fijar(l.id, l.varianteId!, e.target.value === "" ? null : Number(e.target.value))}
+                                onFocus={(e) => e.target.select()}
+                                className={`${NUMERO} ${excede ? "border-rojo text-rojo" : completa ? "border-verde bg-verde/[0.09] text-verde-profundo" : estado === "faltan" ? "border-ambar bg-ambar/10 text-ambar-profundo" : "border-tinta/20 text-tinta/45"}`}
+                              />
+                            </span>
+                            <EstadoDeLinea
+                              estado={estado}
+                              faltan={l.pendiente - recibiendoLinea}
+                              decision={estado === "faltan" && !mostrarEditor(l.id) ? decisiones[l.id] : undefined}
+                              onEditar={() => setEditando(l.id)}
                             />
-                          </span>
+                          </div>
+                          {/* celular: tarjeta con − y + de a dedo */}
+                          <div className="sm:hidden">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-tinta">{l.referencia}</p>
+                                <p className="text-xs text-tinta/65">
+                                  {[l.talla, l.color].filter(Boolean).join(" / ") || l.sku} · pendiente {l.pendiente}
+                                </p>
+                              </div>
+                              <Chip tono={CHIP_ESTADO[estado]}>{ETIQUETA_ESTADO[estado](l.pendiente - recibiendoLinea)}</Chip>
+                            </div>
+                            <div className="mt-2.5 flex items-center justify-between gap-3">
+                              <PasoCantidad valor={reparto[l.id]?.[l.varianteId] ?? null} onCambio={(n) => fijar(l.id, l.varianteId!, n)} etiqueta={`Llegó de ${nombre}`} tono={estado} />
+                              {estado === "faltan" && !mostrarEditor(l.id) && decisiones[l.id] && <ResumenDecision decision={decisiones[l.id]!} onEditar={() => setEditando(l.id)} />}
+                            </div>
+                          </div>
+                          {estado === "faltan" && mostrarEditor(l.id) && (
+                            <EditorDecision
+                              key={`${l.id}-${editando === l.id ? "edita" : "nueva"}`}
+                              nombre={nombre}
+                              faltan={l.pendiente - recibiendoLinea}
+                              inicial={decisiones[l.id]}
+                              onGuardar={(d) => guardarDecision(l.id, d)}
+                              onCancelar={decisiones[l.id] ? () => setEditando(null) : undefined}
+                            />
+                          )}
                         </div>
                       );
                     }
-                    // Línea agrupada: el proveedor facturó "Blusa Lino x 24" sin
-                    // talla ni color, y se reparte acá mirando lo que llegó.
+                    // Línea agrupada: el proveedor facturó «Blusa Lino x 24» sin talla ni color, y se
+                    // reparte acá mirando lo que llegó.
                     const opciones = variantesPorProducto.get(l.productoId) ?? [];
                     return (
-                      <div key={l.id} id={`recibir-linea-${l.id}`} className={`space-y-3 px-5 py-3 ${completa ? "bg-verde/[0.04]" : ""}`}>
+                      <div
+                        key={l.id}
+                        id={`recibir-linea-${l.id}`}
+                        onFocus={alEnfocar(l.id)}
+                        onBlur={alDesenfocar(l.id)}
+                        className={`space-y-3 px-5 py-3 ${completa ? "bg-verde/[0.045]" : ""}`}
+                      >
                         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
                           <span className="min-w-0 text-sm text-tinta">
                             {l.referencia}{" "}
-                            <span className="text-xs text-tinta/55">
-                              · la factura dice {l.pendiente} sin talla ni color — anota lo que llegó de cada una
-                            </span>
+                            <span className="text-xs text-tinta/55">· el comprobante dice {l.pendiente} sin talla ni color — anota lo que llegó de cada una</span>
                             {l.descripcion && <span className="block text-xs text-tinta/55">{l.descripcion}</span>}
                           </span>
-                          <Chip tono={tonoAvance(recibiendoLinea, l.pendiente)}>
-                            {recibiendoLinea} de {l.pendiente}
-                          </Chip>
+                          <span className="flex flex-col items-end gap-1">
+                            <Chip tono={CHIP_ESTADO[estado]}>{estado === "sin_contar" ? "Sin contar" : `${recibiendoLinea} de ${l.pendiente}`}</Chip>
+                            {estado === "sin_contar" && (
+                              <button type="button" onClick={() => nadaLlegoDe(l.id)} className="label-cayla text-[10px] text-tinta/65 hover:text-rojo">
+                                Nada llegó
+                              </button>
+                            )}
+                            {estado === "faltan" && !mostrarEditor(l.id) && decisiones[l.id] && <ResumenDecision decision={decisiones[l.id]!} onEditar={() => setEditando(l.id)} />}
+                          </span>
                         </div>
                         {opciones.length === 0 ? (
                           <p className="text-xs text-rojo">Este producto no tiene variantes activas en el catálogo — no se puede recibir hasta crearlas.</p>
@@ -523,6 +778,16 @@ export function RecepcionCompraFormV2({
                             onFijar={(varianteId, n) => fijar(l.id, varianteId, n)}
                           />
                         )}
+                        {estado === "faltan" && mostrarEditor(l.id) && (
+                          <EditorDecision
+                            key={`${l.id}-${editando === l.id ? "edita" : "nueva"}`}
+                            nombre={nombre}
+                            faltan={l.pendiente - recibiendoLinea}
+                            inicial={decisiones[l.id]}
+                            onGuardar={(d) => guardarDecision(l.id, d)}
+                            onCancelar={decisiones[l.id] ? () => setEditando(null) : undefined}
+                          />
+                        )}
                       </div>
                     );
                   })}
@@ -530,25 +795,27 @@ export function RecepcionCompraFormV2({
               );
             })}
 
-            {/* ================= fuera de factura (ADR-0076) ================= */}
+            {/* ================= al final, solo la nota de crédito (una por comprobante, con el comprobante al 100 %) ================= */}
+            <NotaCreditoCierre bloques={bloquesNota} notas={notas} onNota={ajustarNota} hoy={hoy} esLider={esLider} igvMes={igvMes} porRecibirAtrasadas={porRecibirAtrasadas} />
+
+            {/* ================= fuera de comprobante (ADR-0076) ================= */}
             <section className="card-cayla space-y-3 p-5">
               <div>
-                <p className="font-display text-lg text-tinta">¿Llegó algo que no está en la factura?</p>
+                <p className="font-display text-lg text-tinta">¿Llegó algo que no está en el comprobante?</p>
                 <p className="mt-1 text-xs text-tinta/65">
-                  A veces el proveedor manda una prenda de más, o la factura llega incompleta. Se recibe igual, en esta misma guía — no cuenta contra ninguna factura ni genera una deuda nueva.
+                  A veces el proveedor manda una prenda de más, o el comprobante llega incompleto. Se recibe igual, en esta misma guía — no cuenta contra ningún comprobante ni genera una deuda nueva.
                 </p>
               </div>
 
-              {/* `flex flex-wrap`, no grid: mismo patrón que RecepcionFormV2.tsx
-                  (recibir_lote) — con 5 controles por fila, un grid de
-                  columnas fijas se sale del ancho de la tarjeta en pantallas
+              {/* `flex flex-wrap`, no grid: mismo patrón que RecepcionFormV2.tsx (recibir_lote) — con 5
+                  controles por fila, un grid de columnas fijas se sale del ancho de la tarjeta en pantallas
                   angostas; flex-wrap los baja de línea en vez de desbordar. */}
               {extras.map((ex, i) => {
                 const variantesDelProducto = ex.productoId ? variantesPorProducto.get(ex.productoId) ?? [] : [];
                 return (
                   <div key={i} className="flex flex-wrap items-end gap-2 border-b border-tinta/10 pb-3 last:border-0">
                     <ComboBuscable
-                      etiquetaAccesible="Producto fuera de factura"
+                      etiquetaAccesible="Producto fuera de comprobante"
                       id={`recibir-extra-${i}-producto`}
                       valor={ex.productoId}
                       onValor={(id) => elegirProductoExtra(i, id)}
@@ -600,7 +867,7 @@ export function RecepcionCompraFormV2({
               })}
 
               <button type="button" onClick={agregarExtra} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
-                + Agregar producto fuera de factura
+                + Agregar producto fuera de comprobante
               </button>
             </section>
           </>
@@ -609,42 +876,95 @@ export function RecepcionCompraFormV2({
 
       {/* ================= barra fija: resumen + confirmar ================= */}
       {seleccionadas.length > 0 && (
-        <div className="fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 border-t border-sand bg-crema/95 backdrop-blur supports-[backdrop-filter]:bg-crema/80 sm:bottom-0 sm:left-lateral">
-          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3 sm:px-10">
-            <div className="text-sm text-tinta/75">
+        <BarraFija
+          resumen={
+            <>
               <span className="font-display text-2xl tabular-nums text-tinta">{unidadesRecibiendo.toLocaleString("es-PE")}</span>{" "}
-              {unidadesRecibiendo === 1 ? "unidad" : "unidades"}{" "}
-              {unidadesExtra > 0
-                ? `(${unidadesFactura} de ${seleccionadas.length === 1 ? "la factura" : `${seleccionadas.length} facturas`}, ${unidadesExtra} fuera de factura)`
-                : `de ${seleccionadas.length === 1 ? "una factura" : `${seleccionadas.length} facturas`}`}
+              {unidadesRecibiendo === 1 ? "unidad" : "unidades"}
+              {unidadesExtra > 0 ? ` (${unidadesFactura} del comprobante, ${unidadesExtra} fuera de comprobante)` : ` · ${conteo.contadas} de ${conteo.total} ${conteo.total === 1 ? "línea contada" : "líneas contadas"}`}
               {ubicacionNombre && (
                 <>
                   {" "}
-                  → <span className="text-tinta">{ubicacionNombre}</span>
+                  → <span className="font-semibold text-tinta">{ubicacionNombre}</span>
                 </>
               )}
-              {lineasExcedidas > 0 && (
-                <span className="ml-3 text-rojo">{lineasExcedidas === 1 ? "1 línea supera" : `${lineasExcedidas} líneas superan`} lo pendiente</span>
+              {lineasExcedidas > 0 && <span className="ml-3 text-rojo">{lineasExcedidas === 1 ? "1 línea supera" : `${lineasExcedidas} líneas superan`} lo pendiente</span>}
+              {porDecidir.length > 0 && lineasExcedidas === 0 && (
+                <span className="block text-xs text-ambar-profundo">
+                  {porDecidir.length === 1 ? "1 fila llegó con faltante y falta decidir qué pasó" : `${porDecidir.length} filas llegaron con faltante y falta decidir qué pasó`}: elige y da «Guardar».
+                </span>
               )}
-            </div>
-            <div className="flex flex-col items-end gap-1">
-              {/* El tope es `unidadesFactura`, no el total: una guía solo con
-                  ítems fuera de factura la rechaza la RPC (necesita al menos
-                  uno atado a una línea real). */}
-              <Boton type="submit" peso="primario" cargando={loading} disabled={unidadesFactura === 0 || lineasExcedidas > 0}>
-                Recibir en {ubicacionNombre}
-              </Boton>
-            </div>
-          </div>
-        </div>
+              {cierres.length > 0 && porDecidir.length === 0 && lineasExcedidas === 0 && (
+                <span className="block text-xs text-tinta/55">
+                  Se {cierres.length === 1 ? "cierra 1 faltante" : `cierran ${cierres.length} faltantes`} al confirmar ({cierres.reduce((a, c) => a + c.faltan, 0)} u.). Lo demás sigue pendiente.
+                </span>
+              )}
+              {conteo.sinContar > 0 && lineasExcedidas === 0 && cierres.length === 0 && porDecidir.length === 0 && (
+                <span className="block text-xs text-tinta/55">
+                  {conteo.sinContar === 1 ? "La línea sin contar no suma" : `Las ${conteo.sinContar} líneas sin contar no suman`} al stock; siguen pendientes en el comprobante.
+                </span>
+              )}
+            </>
+          }
+          acciones={
+            // El tope es `unidadesFactura`, no el total: una guía solo con ítems fuera de comprobante la
+            // rechaza la RPC (necesita al menos uno atado a una línea real). Sin nada que recibir, el botón
+            // sirve igual si hay faltantes que cerrar (la línea que llegó en 0 y no va a llegar).
+            <Boton type="submit" peso="primario" cargando={loading} disabled={(unidadesFactura === 0 && cierres.length === 0) || lineasExcedidas > 0 || porDecidir.length > 0}>
+              {etiquetaConfirmar({ unidades: unidadesRecibiendo, cierres: cierres.length, ubicacion: ubicacionNombre })}
+            </Boton>
+          }
+        />
       )}
+
     </form>
+
+      {cambioPendiente && (
+        <Modal titulo="¿Descartar lo que anotaste?" subtitulo={`Tienes cantidades anotadas en ${primera?.documento ?? "la guía"}.`} onClose={() => setCambioPendiente(null)}>
+          {(cerrar) => (
+            <div className="space-y-4">
+              <p className="text-sm text-tinta/75">
+                Si cambias a <b className="font-semibold">{cambioPendiente.documento}</b> se descartan las cantidades de la guía en curso. No se registró nada todavía.
+              </p>
+              <div className="flex gap-3">
+                <button type="button" onClick={cerrar} className="label-cayla flex-1 rounded-md border border-tinta/25 px-3 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo">
+                  Seguir aquí
+                </button>
+                <button type="button" onClick={() => aplicarEleccion(cambioPendiente)} className="label-cayla flex-1 rounded-md bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo">
+                  Descartar y cambiar
+                </button>
+              </div>
+            </div>
+          )}
+        </Modal>
+      )}
+    </>
   );
 }
 
-// Avance de una línea o factura, en el mismo código de color que el resto de
-// Compras: nada contado = neutro, a medias = ámbar, completo = verde, más de
-// lo facturado = rojo (la RPC lo va a rechazar; que se vea antes de enviar).
+// El estado de una línea, en el mismo código de color que el resto de Compras: nada contado =
+// neutro, a medias = ámbar, completo = verde, más de lo facturado = rojo (la RPC lo va a rechazar;
+// que se vea antes de enviar).
+const ETIQUETA_ESTADO: Record<EstadoLinea, (faltan: number) => string> = {
+  sin_contar: () => "Sin contar",
+  completa: () => "Completa",
+  faltan: (n) => `Faltan ${n}`,
+  excede: () => "Excede",
+};
+
+// El estado de la fila y, si llegó corta y ya se decidió qué pasó, esa decisión a la vista («Se cierra: No
+// llegaron» / «Lo espero»). Mientras no se decide, la fila muestra debajo su editor.
+function EstadoDeLinea({ estado, faltan, decision, onEditar }: { estado: EstadoLinea; faltan: number; decision?: Decision; onEditar: () => void }) {
+  return (
+    <span className="flex flex-col items-start gap-1">
+      <Chip tono={CHIP_ESTADO[estado]}>{ETIQUETA_ESTADO[estado](faltan)}</Chip>
+      {decision && <ResumenDecision decision={decision} onEditar={onEditar} />}
+    </span>
+  );
+}
+
+// Avance de un comprobante, como chip: nada contado = neutro, a medias = ámbar, completo = verde,
+// más de lo pendiente = rojo.
 function tonoAvance(recibiendo: number, pendiente: number): TonoChip {
   if (recibiendo > pendiente) return "rojo";
   if (recibiendo === 0) return "neutro";
@@ -652,10 +972,40 @@ function tonoAvance(recibiendo: number, pendiente: number): TonoChip {
   return "ambar";
 }
 
+// − y + de 40 px con el número grande: recibir es de pie y con una mano, y el teclado numérico del
+// celular es lo más lento. También se puede tipear.
+// `valor` null = sin contar: el campo se ve vacío, no en 0. «−» desde vacío anota 0 (nada llegó); vaciar el
+// campo a mano vuelve a «sin contar».
+function PasoCantidad({ valor, onCambio, etiqueta, tono }: { valor: number | null; onCambio: (n: number | null) => void; etiqueta: string; tono: EstadoLinea }) {
+  const color = tono === "completa" ? "text-verde-profundo" : tono === "faltan" ? "text-ambar-profundo" : tono === "excede" ? "text-rojo" : "text-tinta/45";
+  return (
+    <div role="group" aria-label={etiqueta} className="flex items-center overflow-hidden rounded-[10px] border border-tinta/25">
+      <button type="button" onClick={() => onCambio(Math.max(0, (valor ?? 0) - 1))} aria-label="Una unidad menos" className="grid h-10 w-10 place-items-center text-xl text-tinta/65 active:bg-tinta/5">
+        −
+      </button>
+      <input
+        inputMode="numeric"
+        value={valor ?? ""}
+        placeholder="—"
+        onChange={(e) => {
+          const digitos = e.target.value.replace(/\D/g, "");
+          onCambio(digitos === "" ? null : Number(digitos));
+        }}
+        onFocus={(e) => e.target.select()}
+        aria-label={etiqueta}
+        className={`font-display h-10 w-[46px] border-x border-tinta/15 bg-transparent text-center text-[22px] tabular-nums outline-none ${color}`}
+      />
+      <button type="button" onClick={() => onCambio((valor ?? 0) + 1)} aria-label="Una unidad más" className="grid h-10 w-10 place-items-center text-xl text-tinta/65 active:bg-tinta/5">
+        +
+      </button>
+    </div>
+  );
+}
+
 /* --------------------------------------------------------------------
    CurvaVariantes · repartir una línea agrupada por talla y color
 
-   Por qué existe: la factura dice "Blusa Emma x 24" y la caja trae 4 S,
+   Por qué existe: el comprobante dice "Blusa Emma x 24" y la caja trae 4 S,
    8 M, 12 L en dos colores. Antes esto era una hilera de chips
    "S / Beige [0]" que con 5 tallas × 3 colores se volvía una pared donde
    no se veía qué ya estaba contado. La curva de tallas es cómo el taller
@@ -680,7 +1030,7 @@ function CurvaVariantes({
   variantes: Variante[];
   valores: Record<string, number>;
   excede: boolean;
-  onFijar: (varianteId: string, n: number) => void;
+  onFijar: (varianteId: string, n: number | null) => void;
 }) {
   const tallas = [...new Set(variantes.map((v) => v.talla ?? SIN))].sort(compararTallas);
   const colores = [...new Set(variantes.map((v) => v.color ?? SIN))].sort((a, b) => a.localeCompare(b, "es"));
@@ -688,18 +1038,19 @@ function CurvaVariantes({
   const porCelda = new Map(variantes.map((v) => [`${v.color ?? SIN}|${v.talla ?? SIN}`, v]));
 
   const celda = (v: Variante, etiqueta: string, ancho = "w-14 sm:w-16") => {
-    const n = valores[v.varianteId] ?? 0;
+    const n = valores[v.varianteId];
     return (
       <input
         type="number"
         min={0}
         inputMode="numeric"
         aria-label={`${referencia} ${etiqueta}`}
-        value={n}
-        onChange={(e) => onFijar(v.varianteId, Number(e.target.value))}
+        value={n ?? ""}
+        placeholder="—"
+        onChange={(e) => onFijar(v.varianteId, e.target.value === "" ? null : Number(e.target.value))}
         onFocus={(e) => e.target.select()}
         className={`${CELDA} ${ancho} ${
-          n > 0 ? (excede ? "border-rojo bg-rojo/[0.06] text-rojo" : "border-tinta/60 bg-tinta/[0.05] text-tinta") : "border-tinta/15 text-tinta/45"
+          n === undefined ? "border-tinta/15 text-tinta/45" : n > 0 ? (excede ? "border-rojo bg-rojo/[0.06] text-rojo" : "border-tinta/60 bg-tinta/[0.05] text-tinta") : "border-ambar/60 bg-ambar/[0.06] text-ambar-profundo"
         }`}
       />
     );
@@ -718,8 +1069,7 @@ function CurvaVariantes({
     );
   }
 
-  // Solo un eje (todo "Única", o sin color): una fila basta, sin rótulo de
-  // color que no aporta.
+  // Solo un eje (todo "Única", o sin color): una fila basta, sin rótulo de color que no aporta.
   const unaFila = colores.length === 1 && colores[0] === SIN;
 
   return (
@@ -756,14 +1106,4 @@ function CurvaVariantes({
       </table>
     </div>
   );
-}
-
-// Precarga: lo que falta de cada línea. Las detalladas van a su variante;
-// las agrupadas quedan vacías para que quien recibe reparta lo que ve.
-function precargar(compraIds: string[], lineas: LineaCompra[], base: Reparto): Reparto {
-  const copia = { ...base };
-  for (const l of lineas.filter((x) => compraIds.includes(x.compraId) && x.pendiente > 0)) {
-    copia[l.id] = l.varianteId ? { [l.varianteId]: l.pendiente } : {};
-  }
-  return copia;
 }

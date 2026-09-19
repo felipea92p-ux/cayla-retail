@@ -123,6 +123,36 @@ const HUELLAS: Huella[] = [
     frase: (prenda) => `El descuento en ${prenda} pasa el 35 % — nadie puede aplicarlo así. Bájalo.`,
   },
   {
+    // 20260918170000_venta_aplica_descuento_de_campana.sql — la prenda tiene una campaña
+    // vigente y la caja mandó menos descuento (ticket armado antes de que empezara, o
+    // campañas que no cargaron). Recargar trae las campañas de hoy. El detalle es
+    // «referencia (sku)».
+    marca: "venta_campana_omitida",
+    frase: (prenda) => `${prenda} tiene una campaña vigente y el ticket no la aplicó. Recarga la pantalla de Vender y vuelve a armar el ticket.`,
+  },
+  {
+    // Misma migración — la etiqueta de campaña ya no alcanza a la prenda (o terminó hace
+    // más de 3 días, o no está aprobada).
+    marca: "venta_campana_no_vigente",
+    frase: (prenda) => `La campaña de ${prenda} ya no está vigente. Recarga la pantalla de Vender y vuelve a armar el ticket.`,
+  },
+  {
+    // Misma migración — el monto no es el % de la etiqueta: la campaña cambió de % entre
+    // que se armó el ticket y se cobró.
+    marca: "venta_campana_monto_no_coincide",
+    frase: (prenda) => `El descuento de campaña de ${prenda} cambió. Recarga la pantalla de Vender y vuelve a armar el ticket.`,
+  },
+  {
+    marca: "venta_campana_sin_etiqueta",
+    frase: (prenda) => `El descuento de campaña de ${prenda} llegó incompleto. Recarga la pantalla de Vender y vuelve a armar el ticket.`,
+  },
+  {
+    // Misma migración — un descuento a mano menor o igual que la campaña no vale: un solo
+    // descuento por prenda, el mayor.
+    marca: "venta_descuento_no_supera_campana",
+    frase: (prenda) => `${prenda} ya tiene una campaña con igual o más descuento. Quita el descuento manual o aplica uno mayor.`,
+  },
+  {
     // 0010_stock_concurrencia.sql:14 — la red que impide dejar el stock en negativo.
     marca: "stock_cantidad_no_negativa",
     frase:

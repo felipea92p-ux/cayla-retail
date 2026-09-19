@@ -1,125 +1,74 @@
 import Link from "next/link";
+import { Info } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getTrasladosCerrados, getTrasladosEnCurso } from "@/lib/traslados";
-import { estaAtrasado, llegaHoy, vistaTraslado } from "@/lib/traslados-reglas";
-import { hoyEnLima } from "@/lib/movimientos-reglas";
-import { TrasladosLista } from "@/components/TrasladosLista";
-
-function fechaHora(iso: string) {
-  return new Date(iso).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
-}
+import { getTrasladosDeLaSede, type TrasladoResumen } from "@/lib/traslados";
+import { horaLima } from "@/lib/traslados-reglas";
+import { TrasladosPanel } from "@/components/TrasladosPanel";
 
 // Traslados en dos fases (20260916150000): lo que antes era instantáneo
 // (transferir()) ahora tiene un tramo intermedio que alguien tiene que poder
-// ver — "qué está en camino, y qué me está esperando a mí para confirmar."
+// ver — «qué está en camino, y qué me está esperando a mí para confirmar».
 //
-// Rediseñada el 2026-09-16 sobre el diseño de Felipe: tres tarjetas (lo que
-// va, lo que me toca confirmar, lo que quedó con diferencia), una vista
-// rápida por chips y la tabla con número, ruta, prendas, estado y la acción
-// que corresponde. Lo que su diseño traía de otra empresa no entra: no hay
-// «Almacén Central», ni guía SUNAT, ni courier, ni «red logística
-// conectada» — cada envío es sede → sede y lo confirma quien recibe.
+// Rediseñada el 2026-09-16 sobre el diseño de Felipe y otra vez el 2026-09-18
+// (franja «Atención hoy», cuatro indicadores que filtran, buscador, columnas
+// de contenido/llegada/estado/acción). Lo que ese diseño traía de otra empresa
+// no entra: no hay «Almacén Central», ni guía SUNAT, ni courier, ni «red
+// logística conectada» — cada envío es sede → sede y lo confirma quien recibe.
+//
+// Esta página solo TRAE datos y el «ahora»; todo lo que se decide (qué
+// requiere acción, qué viene en camino, cuántas prendas están en tránsito) vive
+// en `lib/traslados-reglas.ts`, con pruebas, y se comparte con el contador del
+// menú. Ninguna regla de stock, recepción ni cierre cambia: eso sigue en las RPC.
+const LIMITE_CERRADOS = 30;
+
 export default async function TrasladosPage() {
   const persona = await requirePersonaActualV2();
-  const [enCurso, cerrados] = await Promise.all([getTrasladosEnCurso(persona.ubicacionId), getTrasladosCerrados(persona.ubicacionId)]);
-  const hoy = hoyEnLima();
-
-  const enCamino = enCurso.filter((t) => vistaTraslado(t, persona.ubicacionId) === "en_camino");
-  const porConfirmar = enCurso.filter((t) => vistaTraslado(t, persona.ubicacionId) === "por_confirmar");
-  const conDiferencia = enCurso.filter((t) => vistaTraslado(t, persona.ubicacionId) === "con_diferencia");
-
-  const unidades = (ts: typeof enCurso) => ts.reduce((acc, t) => acc + t.unidadesEnviadas, 0);
-  const llegandoHoy = enCamino.filter((t) => t.fechaEstimadaLlegada && llegaHoy(t.fechaEstimadaLlegada, hoy)).length;
-  const masAntiguo = porConfirmar[0] ?? null; // ya vienen ordenados por ETA
-  const porConfirmarAtrasados = porConfirmar.filter((t) => t.fechaEstimadaLlegada && estaAtrasado(t.fechaEstimadaLlegada, t.estado)).length;
+  const { enCurso, cerrados } = await getTrasladosDeLaSede(persona.ubicacionId, LIMITE_CERRADOS);
+  // Las dos lecturas corren en paralelo y son dos fotos de la base: un traslado que se cerró entre ellas
+  // podría salir en ambas. Gana la de «cerrados», que es la más nueva — y así nunca hay dos filas iguales.
+  const porId = new Map<string, TrasladoResumen>();
+  for (const t of [...enCurso, ...cerrados]) porId.set(t.id, t);
+  // Un solo «ahora» para toda la pantalla, fijado acá en el servidor: el navegador lo recibe y no vuelve a
+  // mirar el reloj, así lo que dice el HTML del servidor y lo que dice el navegador no puede diferir.
+  const ahoraIso = new Date().toISOString();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Inventario · Traslados · {persona.ubicacionEtiqueta}</p>
+          <p className="label-cayla text-[11px] text-tinta/65">Inventario</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Traslados entre sedes</h1>
-          <p className="mt-1 text-sm text-tinta/65">Lo que salió de acá o viene llegando, hasta que la sede que recibe lo confirma.</p>
+          <p className="mt-1 text-sm text-tinta/65">Seguimos los traslados de inventario entrantes y salientes hasta que se confirme su recepción.</p>
         </div>
         <Link href="/inventario/mover" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
           + Nuevo traslado
         </Link>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Tarjeta etiqueta="En camino desde acá" valor={enCamino.length} unidad={enCamino.length === 1 ? "envío" : "envíos"}>
-          {enCamino.length === 0
-            ? "Nada saliendo de esta sede ahora"
-            : `${unidades(enCamino).toLocaleString("es-PE")} unidades viajando${llegandoHoy > 0 ? ` · ${llegandoHoy} ${llegandoHoy === 1 ? "llega" : "llegan"} hoy` : ""}`}
-        </Tarjeta>
-        <Tarjeta
-          etiqueta="Por confirmar en mi sede"
-          valor={porConfirmar.length}
-          unidad={porConfirmar.length === 1 ? "traslado" : "traslados"}
-          tono={porConfirmar.length > 0 ? "text-ambar-profundo" : undefined}
-          acento={porConfirmar.length > 0}
-          accion={masAntiguo ? { href: `/inventario/traslados/${masAntiguo.id}`, texto: `Confirmar el ${masAntiguo.numero}` } : undefined}
-        >
-          {masAntiguo
-            ? `Traslado ${masAntiguo.numero} de ${masAntiguo.ubicacionOrigenNombre} · ${masAntiguo.unidadesEnviadas} unidades${
-                masAntiguo.fechaEstimadaLlegada ? ` · llega ${fechaHora(masAntiguo.fechaEstimadaLlegada)}` : ""
-              }${porConfirmarAtrasados > 0 ? ` · ${porConfirmarAtrasados} ${porConfirmarAtrasados === 1 ? "atrasado" : "atrasados"}` : ""}`
-            : "Nada esperando confirmación"}
-        </Tarjeta>
-        <Tarjeta
-          etiqueta="Con diferencia"
-          valor={conDiferencia.length}
-          unidad={conDiferencia.length === 1 ? "caso" : "casos"}
-          tono={conDiferencia.length > 0 ? "text-rojo-profundo" : undefined}
-          accion={conDiferencia[0] ? { href: `/inventario/traslados/${conDiferencia[0].id}`, texto: `Revisar el ${conDiferencia[0].numero}` } : undefined}
-        >
-          {conDiferencia.length === 0
-            ? "Todo lo recibido coincidió con lo enviado"
-            : `Lo recibido no coincide con lo enviado · espera a un líder de ${conDiferencia[0].ubicacionDestinoNombre}`}
-        </Tarjeta>
-      </div>
+      {/* `key` por sede: al cambiar de sede con el selector, los filtros y la búsqueda de la sede anterior no se
+          arrastran (una sede elegida en «Más filtros» ni siquiera existiría en la nueva). */}
+      <TrasladosPanel
+        key={persona.ubicacionId}
+        traslados={Array.from(porId.values())}
+        miUbicacionId={persona.ubicacionId}
+        esLider={persona.rol === "lider"}
+        ahoraIso={ahoraIso}
+        horaCarga={horaLima(ahoraIso)}
+        cerradosAcotados={cerrados.length >= LIMITE_CERRADOS}
+      />
 
-      <TrasladosLista enCurso={enCurso} cerrados={cerrados} miUbicacionId={persona.ubicacionId} hoyLima={hoy} />
-
-      <p className="card-cayla px-5 py-3 text-xs text-tinta/65">
-        <span className="text-tinta">Al recibir:</span> abre el traslado y registra lo que llegó, línea por línea (escaneando o a mano). Si coincide con lo
-        enviado, se cierra solo y el stock entra al almacén de tu tienda. Si no coincide, queda «con diferencia» hasta que un líder de tu sede lo revise
-        y cierre — nada entra al stock antes de eso.
-      </p>
-    </div>
-  );
-}
-
-function Tarjeta({
-  etiqueta,
-  valor,
-  unidad,
-  tono,
-  acento = false,
-  accion,
-  children,
-}: {
-  etiqueta: string;
-  valor: number;
-  unidad: string;
-  tono?: string;
-  acento?: boolean;
-  accion?: { href: string; texto: string };
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={`card-cayla p-5 ${acento ? "border-l-2 border-l-rojo" : ""}`}>
-      <p className="label-cayla text-[11px] text-tinta/65">{etiqueta}</p>
-      <p className="mt-1 flex items-baseline gap-2">
-        <span className={`font-display text-3xl tabular-nums ${tono ?? "text-tinta"}`}>{valor.toLocaleString("es-PE")}</span>
-        <span className="text-sm text-tinta/55">{unidad}</span>
-      </p>
-      <p className="mt-1 text-xs text-tinta/65">{children}</p>
-      {accion && (
-        <Link href={accion.href} className="label-cayla mt-3 inline-block text-[11px] text-tinta underline underline-offset-2 hover:no-underline">
-          {accion.texto} →
-        </Link>
-      )}
+      {/* Ayuda operativa, secundaria a propósito. Dice lo que de verdad pasa: con diferencia, NADA entra al
+          stock hasta que un líder cierra el traslado (`confirmar_traslado` / `cerrar_traslado_con_diferencia`). */}
+      <aside className="card-cayla flex items-start gap-3 px-5 py-3.5">
+        <Info aria-hidden strokeWidth={1.5} className="mt-0.5 h-4 w-4 shrink-0 text-tinta/50" />
+        <div className="text-xs text-tinta/65">
+          <p className="text-sm text-tinta">El stock solo ingresa a la tienda cuando confirmas la recepción.</p>
+          <p className="mt-0.5">
+            Al recibir, revisa que lo enviado coincida con lo que llegó. Si hay diferencia, regístrala: el traslado queda «con diferencia» y las prendas entran al stock cuando un
+            líder lo cierra.
+          </p>
+        </div>
+      </aside>
     </div>
   );
 }

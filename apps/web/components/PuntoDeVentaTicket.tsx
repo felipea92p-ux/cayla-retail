@@ -23,8 +23,11 @@ import {
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
+  descuentoResultante,
   descuentoUnitarioPorMonto,
   descuentoUnitarioPorPorcentaje,
+  esDescuentoDeCampana,
+  hayDescuentoManual,
   necesitaArgumentoEscrito,
   porcentajeDeLinea,
   RAZONES_DESCUENTO,
@@ -325,12 +328,14 @@ export function PuntoDeVentaTicket({
   const descuentoUnitarioAplicando = (it: ItemCarrito) =>
     !alcanza(it.claveLinea)
       ? it.descuentoUnitario
-      : porMonto
-        ? descuentoUnitarioPorMonto(it.precioUnitario, monto)
-        : descuentoUnitarioPorPorcentaje(it.precioUnitario, pct);
+      : descuentoResultante(
+          it,
+          porMonto ? descuentoUnitarioPorMonto(it.precioUnitario, monto) : descuentoUnitarioPorPorcentaje(it.precioUnitario, pct),
+        ).monto;
   // Adelanto del total con el valor puesto: lo que va a quedar si se aplica ahora.
   const totalConDescuento = carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - descuentoUnitarioAplicando(it)), 0);
-  const hayDescuentoEnAlcance = carrito.some((it) => alcanza(it.claveLinea) && it.descuentoUnitario > 0);
+  // «Quitar descuento» solo tiene sentido para lo puesto a mano: el de campaña no se quita.
+  const hayDescuentoEnAlcance = hayDescuentoManual(carrito.filter((it) => alcanza(it.claveLinea)));
   // El % más alto que va a terminar en alguna línea alcanzada — en S/ cada línea sale
   // distinto según su precio; en % es el mismo puesto. Decide si el apartado MUESTRA el
   // argumento (el candado real vive en `registrar_venta`, esto es progresividad).
@@ -947,6 +952,9 @@ export function PuntoDeVentaTicket({
                         <div className="min-w-0">
                           <h3 className="truncate text-sm font-semibold text-tinta">{it.referencia}</h3>
                           <p className="font-mono text-xs text-tinta/60">{codigoPrenda(it)}</p>
+                          {esDescuentoDeCampana(it) && it.campana && (
+                            <p className="mt-0.5 text-[11px] text-tinta/60">Campaña · {it.campana.nombre}</p>
+                          )}
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
                           <button

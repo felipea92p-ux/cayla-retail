@@ -4,6 +4,7 @@ import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
+import { MuestraTejido } from "@/components/MuestraTejido";
 
 /**
  * Vocabulario cerrado de tejidos (ADR-0095/0096) — mismo mecanismo que
@@ -179,6 +180,7 @@ export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosInicial
             key={t.id}
             className="card-cayla flex flex-col gap-2 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
           >
+            <MuestraTejido nombre={t.nombre} />
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-medium text-tinta">{t.nombre}</p>
               {t.estado === "pendiente" && (
@@ -261,6 +263,7 @@ export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosInicial
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {desactivados.map((t) => (
               <div key={t.id} className="card-cayla flex flex-col gap-2 p-4 opacity-60">
+                <MuestraTejido nombre={t.nombre} />
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium text-tinta">{t.nombre}</p>
                   {t.estado === "rechazado" && (

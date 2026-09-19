@@ -8,7 +8,7 @@ queda fuera de capa. No toca esquema ni RPC. **Lo que NO se pudo hacer:** verifi
 pantallas con datos reales — el Docker local estaba caído (500) y no se reinició para no
 tumbar los Supabase de otras sesiones. Ver "Cómo se verifica con datos reales".
 **Afecta:** `apps/web/app/globals.css` (bloque de clases de componente + movimiento reducido),
-21 `className` sueltos en 10 archivos (ver la tabla de la decisión), y los enlaces de acción de
+23 `className` sueltos en 12 archivos (ver la tabla de la decisión), y los enlaces de acción de
 `TarjetaCifra` y de las tarjetas locales de Conteo y Traslados.
 **A qué pájaro toca:** Gorrión (plataforma; el sistema visual no es de un módulo). De rebote,
 a cualquiera que escriba una tarjeta con `border-l-2 border-l-rojo`.
@@ -57,9 +57,10 @@ quedan y ahora aplican; las que contradecían el sistema se borran.**
 |---|---|---|
 | `border-l-2 border-l-rojo` (acento) | 6 tarjetas | **Queda** — es la señal de "pide algo" |
 | `bg-sand/40` (`activa`), `hover:bg-*`, `focus:border-rojo` | TarjetaCifra, Tarjeta de Existencias, `/compras`, `/compras/por-pagar`, `campoSelect` | **Queda** — estado seleccionado, hover y foco de teclado que faltaban |
-| `border-dashed` | 2 (placeholders en `productos/[id]/editar`) | **Queda** |
+| `border-dashed` (+ `bg-transparent`) | 2 placeholders en `productos/[id]/editar`; la variante `vacia` de `TarjetaCifra` y 2 tarjetas de `compras/proveedores/[id]` (que traían `!bg-transparent` como parche: se les quitó el `!`) | **Queda** |
+| `hover:border-tinta/25` | `EtiquetasLista`, `TallasLista` (llegaron de `main` durante esta sesión) | **Queda** — el borde que oscurece al pasar el mouse es lo que sus autores escribieron |
 | `border-rojo/30`, `border-ambar/30` | `vender/page.tsx` (error), `PuntoDeVenta.tsx` (venta guardada sin conexión) | **Queda** |
-| `font-normal` sobre `label-cayla` | 13 (etiquetas móviles de tabla, `<th>` de matrices de tallas) | **Se borra** — `label-cayla` es 600 a propósito (comentario del 2026-09-08: "la versalita necesita cuerpo para no desaparecer contra el crema"); 400 a 10px sobre `tinta/45` reprueba legibilidad, y estas pantallas se venían usando (y mirando) en 600 |
+| `font-normal` sobre `label-cayla` | 15 (etiquetas móviles de tabla, `<th>` de matrices de tallas) | **Se borra** — `label-cayla` es 600 a propósito (comentario del 2026-09-08: "la versalita necesita cuerpo para no desaparecer contra el crema"); 400 a 10px sobre `tinta/45` reprueba legibilidad, y estas pantallas se venían usando (y mirando) en 600 |
 | `font-bold` sobre `label-cayla` | 4 (`CajaAbiertaPanel`, `CambiosLista`) | **Se borra** — verificado en navegador a 600, no a 700 |
 | `font-semibold` sobre `font-display` | 1 (`CajaAbiertaPanel:360`) | **Se borra** — `font-display` es 400, "el alma del sistema"; el 600 nunca se vio |
 | `transition-colors` / `transition-shadow` sobre `alza-cayla` | 3 | **Se borra** — sobreescribirían la lista de transiciones de `alza-cayla` y el "levante" de 2px pasaría de animarse a saltar. Hoy el color no anima y el levante sí; se conserva así |
@@ -76,6 +77,16 @@ rompía apenas el borde se hizo visible: Resumen mostraba 5 rojos. También desc
 la regla a "2 por bloque": es tocar la marca para acomodar la pantalla, no al revés. Y descarté una
 solución a medias que probé primero (solo el enlace de la tarjeta con borde en tinta): dejaba a
 Resumen en 4 y hacía que dos tarjetas iguales se vieran distinto según tuvieran o no borde.
+
+## Fusión con `main` (2026-09-18)
+
+`main` avanzó 45 commits durante la sesión y trajo dos cosas que tocan esto: `TarjetaCifra` ganó
+las variantes de ADR-0111 (Compras y Traslados migraron a ella) y con eso Traslados dejó su copia
+local de la tarjeta; y aparecieron parches `!bg-transparent` (3) por el mismo defecto. Se
+resolvió tomando la versión de `main` y reaplicando encima la decisión A y el retiro de esos `!`.
+Se volvió a correr el escáner sobre el árbol fusionado: 2 `font-normal` nuevos (mismo trato que los
+otros 13) y 2 `hover:border-tinta/25` (se quedan). Los otros 4 `!` del repo (`EtiquetasLista`,
+`MovimientoCajaModal`) no son sobre clases de componente y no se tocaron.
 
 ## Cómo se verificó
 

@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { Chip } from "@/components/ui/Chip";
+import { TrasladoEstado } from "@/components/TrasladoEstado";
+import { TrasladoLlegada } from "@/components/TrasladoLlegada";
 import { botonPrimario } from "@/components/ui/Modal";
 import { resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
-import { ETIQUETA_ESTADO_TRASLADO, tonoEstadoTraslado } from "@/lib/movimientos-reglas";
+import { situacionTraslado } from "@/lib/traslados-reglas";
 import type { TrasladoDetalle } from "@/lib/traslados";
 
 type VarianteBusqueda = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null; codigosBarras: string[] };
@@ -22,11 +23,14 @@ type VarianteBusqueda = { varianteId: string; sku: string; referencia: string; t
 export function TrasladoDetallePanel({
   traslado: t,
   esDestino,
+  ahoraIso,
   esLider,
   catalogo,
 }: {
   traslado: TrasladoDetalle;
   esDestino: boolean;
+  /** El «ahora» fijado por el servidor (mismo criterio que la lista: el HTML del servidor y el del navegador no difieren). */
+  ahoraIso: string;
   esLider: boolean;
   catalogo: VarianteBusqueda[];
 }) {
@@ -41,6 +45,10 @@ export function TrasladoDetallePanel({
   const [notaCierre, setNotaCierre] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  // El estado se dice con las mismas palabras que la lista de Traslados («Requiere confirmación», «En camino»…):
+  // la misma cosa con dos nombres, según la pantalla, es lo que hace dudar. Quien mira es el destino o, si no,
+  // se lee desde el origen.
+  const situacion = situacionTraslado(t, { miUbicacionId: esDestino ? t.ubicacionDestinoId : t.ubicacionOrigenId, esLider, ahoraIso });
   const puedeEditar = esDestino && (t.estado === "en_transito" || t.estado === "recibido_con_diferencia");
   const yaEnLineas = new Set(t.lineas.map((l) => l.varianteId));
   const coincidencias = useMemo(() => {
@@ -106,13 +114,9 @@ export function TrasladoDetallePanel({
   return (
     <div className="space-y-5">
       <div className="card-cayla flex flex-wrap items-center justify-between gap-3 p-5">
-        <div className="flex items-center gap-2">
-          <Chip tono={tonoEstadoTraslado(t.estado)}>{ETIQUETA_ESTADO_TRASLADO[t.estado] ?? t.estado}</Chip>
-          {t.fechaEstimadaLlegada && (
-            <span className="text-xs text-tinta/65">
-              Llega ~{new Date(t.fechaEstimadaLlegada).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-            </span>
-          )}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <TrasladoEstado situacion={situacion} />
+          <TrasladoLlegada traslado={t} situacion={situacion} ahoraIso={ahoraIso} />
         </div>
         <p className="text-xs text-tinta/65">Envió {t.creadoPorNombre}</p>
       </div>
