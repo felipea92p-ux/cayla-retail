@@ -9,7 +9,7 @@ import { CifraAnimada } from "@/components/ui/CifraAnimada";
    izquierda de su etiqueta y sin decir de qué eran: parecían flotar. Ahora
    cada cifra va CENTRADA sobre su etiqueta y las tres viven en un mismo
    recuadro con el nombre de la sede arriba: se entiende que son de ESTA
-   sede sin tener que adivinarlo.
+   sede sin tener que adivinarlo (el nombre va centrado arriba del recuadro).
 
    Color: el `sand` del sistema (el de "recuadros neutrales"), un punto más
    hondo que el crema del fondo, para que no se lea como una tarjeta blanca
@@ -24,13 +24,13 @@ export type CifraResumen = { valor: number; formato?: "entero" | "soles"; etique
 
 export function ResumenSede({ sede, cifras }: { sede: string; cifras: readonly CifraResumen[] }) {
   return (
-    <section aria-label={`Resumen de ${sede}`} className="anim-entrada relative mt-2.5 w-full rounded-xl bg-sand/45 ring-1 ring-tinta/[0.08] sm:w-auto">
-      {/* El nombre de la sede va como rótulo sobre el borde, no como una fila más: así el
-          recuadro no crece y queda de la altura del título. */}
-      <p className="absolute -top-2 left-4 bg-crema px-2 text-[10px] font-semibold uppercase leading-4 tracking-[0.12em] text-tinta/70">Resumen de {sede}</p>
-      <ul className="grid grid-cols-3 divide-x divide-tinta/[0.08]">
+    <section aria-label={`Resumen de ${sede}`} className="anim-entrada w-full sm:w-auto">
+      {/* El nombre de la sede va centrado ARRIBA del recuadro, no encima de su borde: el
+          rótulo montado sobre la línea se leía como un corte en el recuadro. */}
+      <p className="mb-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-tinta/70">Resumen de {sede}</p>
+      <ul className="grid grid-cols-3 divide-x divide-tinta/[0.08] rounded-xl bg-sand/45 ring-1 ring-tinta/[0.08]">
         {cifras.map(({ valor, formato, etiqueta, icono: Icono }, i) => (
-          <li key={etiqueta} className="anim-asentar flex flex-col items-center px-2 pb-2.5 pt-4 text-center sm:px-6" style={{ animationDelay: `${120 + i * 90}ms` }}>
+          <li key={etiqueta} className="anim-asentar flex flex-col items-center px-2 py-2.5 text-center sm:px-6" style={{ animationDelay: `${120 + i * 90}ms` }}>
             <span className="whitespace-nowrap text-lg font-semibold tabular-nums leading-tight text-tinta sm:text-[22px]">
               <CifraAnimada valor={valor} formato={formato} />
             </span>
