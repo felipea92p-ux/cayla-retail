@@ -74,11 +74,11 @@ export function EditorDecision({
 }) {
   return (
     <div role="group" aria-label={`Qué pasó con lo que falta de ${nombre}`} className="anim-revelar mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-2 rounded-xl border border-ambar/40 bg-ambar/[0.06] px-4 py-2.5">
-      <span className="mr-1 text-sm text-tinta">
-        Faltan {faltan}: <b className="font-semibold">¿qué pasó?</b>
+      <span className="mr-1 text-[13px] text-tinta">
+        ¿Qué pasó con {faltan === 1 ? "la" : `las ${faltan}`} que {faltan === 1 ? "falta" : "faltan"}?
       </span>
       <Pildora elegida={inicial === "espero"} onClick={() => onGuardar("espero")}>
-        Los espero
+        Aún no llegan: los espero
       </Pildora>
       {(Object.keys(ETIQUETA_MOTIVO_CIERRE) as MotivoCierre[]).map((m) => (
         <Pildora key={m} elegida={inicial === m} onClick={() => onGuardar(m)}>

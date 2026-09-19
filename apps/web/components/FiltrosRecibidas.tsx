@@ -6,6 +6,7 @@ import { Calendar, ChevronDown, Search } from "lucide-react";
 import { Popover, Select } from "radix-ui";
 import { Hilo } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { ItemDesplegable, TODOS } from "@/components/ui/FiltrosPildora";
 import {
   PERIODOS_RECIBIDAS,
@@ -17,6 +18,8 @@ import {
   textoFechas,
   textoProveedor,
   type FiltrosRecibidas as Filtros,
+  type PeriodoRecibidas,
+  type ResultadoRecibidas,
 } from "@/lib/recibidas-filtros-reglas";
 
 // Filtros de «Recibidas recientemente» tal como los dibuja la maqueta 06: el buscador y, en la
@@ -49,12 +52,15 @@ export function FiltrosRecibidas({
   proveedores,
   filtros,
   hoy,
+  resultado,
 }: {
   proveedores: { id: string; nombre: string }[];
   /** Lo que el servidor ya filtró (limpio, ver `filtrosRecibidasDesdeParams`). */
   filtros: Filtros;
   /** aaaa-mm-dd de hoy en Lima, resuelto en el servidor con `hoyLima()`. */
   hoy: string;
+  /** `?res=` ya limpio: lo filtra `RecepcionesCompraLista` en el navegador; acá solo se elige. */
+  resultado: ResultadoRecibidas;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -86,10 +92,11 @@ export function FiltrosRecibidas({
   function limpiarTodo() {
     clearTimeout(temporizador.current);
     setBusqueda("");
-    aplicar({ q: "", prov: "", desde: "", hasta: "" });
+    aplicar({ q: "", prov: "", desde: "", hasta: "", res: "" });
   }
 
-  const hayActivos = hayFiltrosRecibidas(filtros) || busqueda.trim() !== "";
+  const hayActivos = hayFiltrosRecibidas(filtros) || busqueda.trim() !== "" || resultado !== "todas";
+  const periodoActivo = periodoDeRango(filtros.desde, filtros.hasta, hoy);
 
   return (
     <div role="search" aria-label="Filtrar las recepciones" className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
@@ -116,6 +123,32 @@ export function FiltrosRecibidas({
 
       <PastillaProveedor proveedores={proveedores} proveedorId={filtros.proveedorId} onElegir={(id) => aplicar({ prov: id })} />
       <PastillaFechas desde={filtros.desde ?? ""} hasta={filtros.hasta ?? ""} hoy={hoy} onCambiar={(desde, hasta) => aplicar({ desde, hasta })} />
+
+      {/* Los dos segmentados del spike: el periodo de un toque (tocar el activo lo quita) y cómo llegó lo recibido. */}
+      <SegmentoDeslizante
+        etiqueta="Periodo de llegada"
+        valor={periodoActivo ?? ""}
+        onCambio={(clave) => {
+          if (clave === periodoActivo) return aplicar({ desde: "", hasta: "" });
+          const r = rangoDePeriodo(clave as PeriodoRecibidas, hoy);
+          aplicar({ desde: r.desde, hasta: r.hasta });
+        }}
+        opciones={[
+          { clave: "este-mes", etiqueta: "Este mes" },
+          { clave: "30-dias", etiqueta: "30 días" },
+          { clave: "90-dias", etiqueta: "90 días" },
+        ]}
+      />
+      <SegmentoDeslizante
+        etiqueta="Filtrar por resultado"
+        valor={resultado}
+        onCambio={(v) => aplicar({ res: v === "todas" ? "" : v })}
+        opciones={[
+          { clave: "todas", etiqueta: "Todas" },
+          { clave: "completas", etiqueta: "Completas" },
+          { clave: "faltante", etiqueta: "Con faltante" },
+        ]}
+      />
 
       {hayActivos && (
         <button type="button" onClick={limpiarTodo} className="label-cayla px-1 text-[10px] text-tinta/55 transition-colors hover:text-rojo">
