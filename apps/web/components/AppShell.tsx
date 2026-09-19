@@ -547,7 +547,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, children }
   // la función.
   const RUTAS_POR_GRUPO: Record<string, string[]> = {
     venta: ["/vender", "/caja", "/cambios", "/devoluciones", "/vender/facturacion"],
-    catalogo: ["/productos", "/productos/categorias", "/productos/atributos"],
+    catalogo: ["/productos", "/productos/categorias", "/productos/atributos", "/productos/marcas"],
     compras: ["/compras", "/compras/proveedores", "/compras/recibir", "/compras/por-pagar"],
     inventario: ["/inventario", "/inventario/movimientos", "/inventario/traslados", "/inventario/conteo", "/inventario/resumen"],
     finanzas: ["/finanzas/egresos"],
