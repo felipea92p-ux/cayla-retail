@@ -353,8 +353,8 @@ diferencia.
 
 ## 🎯 Crear producto como árbol de decisión (2026-09-18, ADR-0109)
 
-Diagnóstico y decisiones en el ADR. Estado: pasos 1-2 escritos y probados en un Postgres desechable; **nada
-aplicado en producción**.
+Diagnóstico y decisiones en el ADR. Estado: los 4 pasos, marca y proveedor, y la revisión adversarial del PR #164
+(ADR-0109, tercera parte) escritos y probados en un Postgres desechable; **nada aplicado en producción**.
 
 - [ ] **Felipe pega en producción, EN ORDEN, los 8 SQL** (ya traen el prefijo `retail.`, se pegan tal cual), **y recién
       después se despliega el código**:
@@ -363,10 +363,13 @@ aplicado en producción**.
       marca y proveedor — `231000_marcas_y_proveedor_en_productos` → `231100_alta_y_edicion_exigen_marca_y_proveedor` →
       `231200_retira_catalogo_crear_producto` → `231300_productos_por_marca_y_proveedor`.
       **Los cuatro de marca, seguidos y desplegando enseguida:** `231000` deja `marca_id` NOT NULL y hasta `231100` el
-      alta y el censo VIEJOS fallan. **NO desplegar antes del SQL:** `pnpm datos:comparar` marca rotas las pantallas
-      que llaman a `buscar_productos_parecidos`, `crear_marca` y a las firmas nuevas. Viven en `2309…` a propósito:
-      Compras reclamó la banda `20260918200000`–`20260918219999` (ADR-0111). Después: `pnpm datos:generar:produccion`
-      y `pnpm datos:comparar` (deben desaparecer esas alarmas; `emitir_comprobante p_token` es de otra sesión).
+      alta y el censo VIEJOS fallan. **NO desplegar antes del SQL:** `pnpm datos:comparar` marca rotas 4 pantallas
+      (`censo_crear_variante`, `crear_producto_con_variantes`, `crear_marca`, `buscar_productos_parecidos`). Viven en
+      `2309…` a propósito: Compras reclamó la banda `20260918200000`–`20260918219999` (ADR-0111). Después:
+      `pnpm datos:generar:produccion` y `pnpm datos:comparar` (deben desaparecer esas 4 alarmas; `emitir_comprobante
+      p_token` es de otra sesión). **El comparador no ve** `fn_productos`, `fn_productos_resumen` ni
+      `catalogo_actualizar_producto` (parámetros armados con `...` o en una variable): esas tres solo las cubre la
+      prueba de regresión, así que tras pegar el SQL abrir Productos (filtro por marca) y Editar un producto a mano.
 - [ ] **Marca y proveedor — pendiente de verificar con sesión de Líder real** contra la base: alta, censo (crear pide
       marca; reutilizar no), edición (solo manda marca si cambió), Marcas, filtros y «A quién pedirle» de Productos.
       El piloto de CI (base nueva + `seed.sql` + scripts de venta y caja) ya pasó con las 8 migraciones: eso cubre
@@ -397,14 +400,19 @@ aplicado en producción**.
       etiquetas; limpia nombre, descripción y colores; token nuevo) · Ir a productos. Probado en navegador con red
       simulada, escritorio y celular. Las fotos NO se suben desde ahí (el archivo sube al elegirlo y quedaría huérfano);
       la galería de la edición ya asigna cada foto a su color.
-- [ ] **Etiquetas de campaña y el formulario nuevo**: desde #142 una etiqueta con categorías ya rige sola sobre todas
-      las prendas de esas categorías. El bloque 6 de Nuevo producto sigue ofreciendo todas las etiquetas vigentes:
-      para una prenda de una categoría que la campaña ya cubre, elegirla a mano es redundante. Decidir si el bloque
-      las marca como «ya aplica por campaña» o las oculta.
-- [ ] **Editar categoría (`CategoriasLista.tsx`)**: chip de «habitual» en cada talla y mandar
-      `p_talla_habitual_ids` a `/api/productos/categorias/ejes`. Hasta entonces la curva se conserva, pero no se edita.
-- [ ] **`catalogo_crear_producto`** no avisa de parecidos ni exige tejido/patrón (solo el trigger y el índice lo
-      cubren): decidir si sigue existiendo como camino de alta o se retira.
+- [x] **Etiquetas de campaña y el formulario nuevo**: las que ya rigen sobre la categoría se muestran «ya aplica por
+      campaña» y no se eligen a mano (ni se envían).
+- [ ] **Revisión adversarial del PR #164 — pendientes que quedaron a propósito** (detalle en ADR-0109, tercera parte):
+      (a) **Editar exige tejido y patrón en Indumentaria**: una prenda del censo (nace sin ellos) no se puede
+      guardar hasta llenarlos, y si su categoría no los tiene habilitados hay que habilitarlos antes; la pantalla lo dice,
+      pero decidir si aprobar una prenda del censo debería poder saltárselo; (b) el reintento por `unique_violation`
+      del censo (dos escaneos simultáneos del mismo nombre) está escrito pero **no se ejercitó con dos sesiones**;
+      (c) volver a correr `230200` reinicia la curva habitual de tallas; (d) `desactivar_proveedor` no tiene el candado
+      que sí tiene desactivar marca (un proveedor con productos activos se puede desactivar).
+- [ ] **Seguridad (ya existía, no lo introdujo este PR): `proveedores_select` deja a cualquier sesión autenticada leer
+      `banco` y `cuenta_bancaria`.** Restringir esas dos columnas al rol que compra/paga, o moverlas a una tabla aparte.
+- [x] **Editar categoría (`CategoriasLista.tsx`)**: chip de «habitual» en cada talla; manda `p_talla_habitual_ids`.
+- [x] **`catalogo_crear_producto`** retirado del uso (`231200`: sin permiso de ejecución; la función queda, no se borra).
 - [ ] **Limpieza de nombres existentes** (no urgente): BLU-001, CHO-001, FAL-001, PAN-001, POL-001, VES-001 son
       códigos puestos como nombre; «Cargo especial (sin código)» es un producto técnico.
 

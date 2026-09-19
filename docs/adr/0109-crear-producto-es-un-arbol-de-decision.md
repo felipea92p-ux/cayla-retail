@@ -54,7 +54,8 @@ escaneo**, sin buscar si ya existe (escanear "Blusa Aurora" en S y luego en M de
 dos productos, con el stock partido).
 
 - **Trigger** `productos_referencia_biu`: normaliza a tipo título. Solo actúa cuando
-  `referencia` cambia — los 44 nombres existentes no se tocan.
+  `referencia` cambia — los 44 nombres existentes no se tocan **mientras nadie los edite**:
+  el día que alguien renombra o re-guarda uno con otro texto, ese nombre pasa al formato único.
 - **Índice único parcial** sobre `fn_clave_referencia(referencia)` donde
   `estado_alta <> 'rechazado'`: idéntico imposible (ignora tildes, mayúsculas,
   espacios y puntuación). Un producto rechazado en el censo no bloquea recrearlo bien.
@@ -85,6 +86,11 @@ existente; si la manda, debe estar dentro de las tallas enviadas.
 
 ## Compatibilidad hacia atrás (por qué el SQL puede ir antes que el código)
 
+> **Vale para las cuatro primeras migraciones (`230000`–`230300`), no para las de marca.** Desde
+> `231000` (`marca_id` NOT NULL) hasta `231100` el alta y el censo *viejos* fallan: ver «Orden de
+> despliegue (ampliado)». Esta sección se escribió antes de la segunda parte y se dejó tal cual
+> por honestidad sobre el orden en que se decidió.
+
 Las dos RPC cambian de firma **solo agregando un parámetro opcional al final**
 (`p_confirmo_distinto`, `p_talla_habitual_ids`) y se borra la firma vieja para no dejar
 dos sobrecargas (ya rompieron producción dos veces en este repo). PostgREST resuelve
@@ -98,11 +104,19 @@ tejido o sin patrón (con frase clara), y un nombre repetido también; antes se 
 `pnpm datos:comparar` lo confirmó el 2026-09-18: contra producción, el formulario nuevo
 llama a `buscar_productos_parecidos` (no existe) y manda `p_confirmo_distinto` y
 `p_etiqueta_ids` a `crear_producto_con_variantes` (no los acepta). Si el código se
-despliega primero, "Nuevo producto" falla siempre. Por eso: **1) pegar los 4 SQL en orden
-(`230000` → `230100` → `230200` → `230300`, y los de marca: `231000` → `231100` → `231200` → `231300`), 2) recién ahí mergear/desplegar.** Al revés
-no pasa nada: la pantalla vieja sigue funcionando contra el SQL nuevo (parámetros
-opcionales al final). Al cerrar: `pnpm datos:generar:produccion` y `pnpm datos:comparar`
-deben terminar sin esas dos alarmas.
+despliega primero, "Nuevo producto" falla siempre. Por eso: **1) pegar los SQL en orden
+(`230000` → `230100` → `230200` → `230300`, y los de marca: `231000` → `231100` → `231200` → `231300`), 2) recién ahí mergear/desplegar.** Con las cuatro primeras, «al revés no pasa nada» (la
+pantalla vieja sigue funcionando contra el SQL nuevo: parámetros opcionales al final); con las de
+marca **sí pasa** (ver abajo). Al cerrar: `pnpm datos:generar:produccion` y `pnpm datos:comparar`
+deben terminar **sin las 4 alarmas** (`censo_crear_variante`, `crear_producto_con_variantes`,
+`crear_marca`, `buscar_productos_parecidos`).
+
+**Lo que el comparador NO ve** (lo aprendí revisando este mismo PR): solo lee llamadas con los
+parámetros escritos ahí mismo. `fn_productos` y `fn_productos_resumen` (los filtros de marca y
+proveedor van con un `...`) y `catalogo_actualizar_producto` (los parámetros van en una variable)
+no se pueden leer, así que el comparador no avisaría si esas tres se rompen. Las cubre la prueba
+de regresión contra la copia exacta de producción, no el comparador. Y el aviso de parecidos
+volvió a ser legible **a propósito**: `use-parecidos.ts` pasa los parámetros literales.
 
 ## Decisiones del formulario que no estaban en la tabla de arriba
 
@@ -239,7 +253,12 @@ marca existente y solo le suma el proveedor).
 - **Productos**: filtros de marca y proveedor, marca en la tarjeta y en la fila, y «A quién
   pedirle» (los productos por reponer agrupados por proveedor).
 - **Caja**: escribir la marca encuentra sus prendas. Solo suma un campo al texto buscable; no
-  toca precios, stock ni cobro.
+  toca precios, stock ni cobro. (La primera versión de este PR **decía** que la caja buscaba por
+  marca y no era cierto: `vender/page.tsx` armaba las variantes sin el campo. Ahora la pasa. La marca
+  llega por una consulta **aparte y tolerante** en `getCatalogo`, no anidada en la principal: esa
+  consulta la leen la caja, cambios, buscar, compras, recepción, conteo y traslados, y un embed que
+  la base todavía no conoce las habría tumbado a las siete. Sin el SQL de marcas la caja vende igual,
+  solo sin buscar por marca.)
 - **Categorías**: la curva habitual se marca y se ve.
 
 ## Lo que se decidió sin preguntar (objétalo si no te gusta)
@@ -292,3 +311,65 @@ si distingue «aún no hay datos» de «los datos están mal».
 **No verificado:** RLS reales, las funciones contra la base real de producción, sesión de Líder
 real, Productos con `fn_productos` real (solo contra el esquema mínimo y la copia exacta de
 producción), y lector de pantalla.
+
+# Tercera parte — Revisión adversarial del PR (2026-09-18)
+
+Antes de pedir revisión, un flujo de agentes escépticos intentó **refutar** el PR por dimensiones
+(SQL, seguridad, concurrencia, pantallas, despliegue, documentación). Sobrevivieron 23 hallazgos;
+estos son los que cambian lo que hay que saber. Cada uno se corrigió o se documenta aquí.
+
+## Corregido en la base (`230000`, `230100`, `230300`, `231000`, `231100`, `231300`)
+
+- **`rechazado` es terminal.** El índice único deja recrear el nombre de una prenda rechazada
+  (`estado_alta <> 'rechazado'`), pero nada impedía *reactivarla*: dos activas con el mismo nombre.
+  Ahora un CHECK (`productos_rechazado_descontinuado_check`) exige `estado = 'descontinuado'` si está
+  rechazada, y `catalogo_actualizar_producto` lo dice con palabras (`rechazado_no_reactivable`). Editar
+  ya no ofrece «Activo» para esas prendas.
+- **Reactivar valida marca y proveedor.** Volver a poner activo un producto saltaba el candado de
+  desactivar (la marca o el proveedor podían estar apagados). Ahora reactivar corre la misma validación.
+- **El censo ya no deja un precio en 0 ni un producto huérfano.** Al colgar una variante de un producto que
+  ya existe, quien no es Líder (o un 0) hereda precio y costo de una variante hermana; la respuesta trae
+  `reutilizado` para que la pantalla no diga «pendiente de revisión» cuando no lo está; una categoría
+  distinta o un producto sin categoría (el «cargo especial») se rechazan en vez de mezclarse; y dos
+  escaneos simultáneos del mismo nombre reintentan en vez de fallar (`unique_violation`; está
+  implementado, pero **no se ejercitó con dos sesiones reales**, solo por lectura del código).
+- **Un `UPDATE` que afecta 0 filas ya no «sale bien».** `catalogo_actualizar_producto` lo avisa (antes
+  la RLS podía dejar la edición en nada y la pantalla decía «guardado»).
+- **El historial audita marca y proveedor**, como ya hacía con categoría y estado.
+- **`fn_titulo_referencia` recorta también tab y NBSP** (espejo de la `.trim()` del formulario).
+- **Permisos.** `drop function` reinicia los permisos: cada función recreada vuelve a cerrarse a
+  `public` y `anon`.
+- **Regresión de listados repetida** contra la copia exacta de producción tras los cambios: 10
+  escenarios idénticos; permisos verificados.
+
+## Corregido en pantallas
+
+- Caja: pasa la marca (ver arriba). `getCatalogo`: marca en consulta aparte y tolerante.
+- «A quién pedirle» usa **los mismos filtros** que la tarjeta «Pedir a proveedor» (la suma coincide) y, si
+  falla, se omite en vez de tumbar Productos.
+- Los avisos de parecidos enlazaban a `/productos/{id}` (no existe → 404); ahora a `/productos/{id}/editar`.
+- Censo: mensaje verdadero cuando la variante se sumó a una prenda existente.
+- Marca y proveedor: reintentar tras crear el proveedor ya no lo registra dos veces; un proveedor sin
+  marcas ofrece «+ Primera marca de …» en vez de un callejón sin salida; lo recién creado sobrevive a que el
+  selector se desmonte (censo, «crear otro parecido»).
+- «+ Nueva talla/tejido/patrón» reconoce un valor que ya existe en el vocabulario y lo ofrece en la
+  categoría, en vez de rebotar con «ya existe».
+- El costo sugerido de la categoría anterior ya no se queda al cambiar de categoría; el precio por celda
+  acepta centavos (`step="any"`); **Enter dentro de un campo ya no crea el producto**.
+- `useParecidos` usa `AbortController` (no `AbortSignal.timeout`, ausente en Safari antiguo) y se degrada a
+  «no pude comprobar» en vez de dejar el bloque cerrado para siempre.
+- `claveReferencia` (TS) pliega solo `áéíóúüñ`, igual que la base.
+
+## Decisiones que se mantienen (con su costo dicho)
+
+- **Editar exige tejido y patrón en Indumentaria** (Felipe: «las mismas reglas»). Consecuencia real: una
+  prenda del censo, que nace sin tejido ni patrón, **no se puede editar ni aprobar-y-corregir** hasta llenarlos,
+  y si su categoría no los tiene habilitados hay que habilitarlos primero. Ahora la pantalla lo dice donde ocurre.
+- `fn_productos_buscar` busca por subcadena en marca y proveedor (como ya hacía con nombre y código).
+- Volver a correr el mapa de categorías (`230200`) reinicia la curva habitual de tallas a la de la migración.
+
+## Fuera de este PR (ya existía)
+
+`proveedores_select` deja a cualquier sesión autenticada leer `banco` y `cuenta_bancaria` de los
+proveedores. Este PR no lo introduce ni lo empeora (solo suma `nombre` a la lista del selector), pero merece
+su propio arreglo: ver BACKLOG.

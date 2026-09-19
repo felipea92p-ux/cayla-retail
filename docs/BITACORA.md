@@ -3,6 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Revisión adversarial del PR de Crear producto: 23 hallazgos, y dos afirmaciones mías eran falsas)
+
+Antes de pedir revisión, agentes escépticos intentaron refutar el PR y sobrevivieron 23 hallazgos; se corrigieron. Los que cambian lo que Felipe debe saber: una prenda **rechazada** en el censo se podía reactivar y dejaba dos activas con el mismo nombre (ahora `rechazado` es terminal, con un CHECK en la base); reactivar un producto saltaba la validación de marca y proveedor; el censo, al colgar una variante de una prenda existente, podía dejarla con precio 0 y decía «pendiente de revisión» cuando no lo estaba; y un `UPDATE` que la RLS dejaba en cero filas se mostraba como «guardado». Todo probado en un Postgres desechable (7 pruebas nuevas, más las anteriores) y la regresión de `fn_productos` repetida contra la copia exacta de producción.
+
+Lo que Felipe se lleva: escribí en el PR que **«la caja busca por marca»** y que **«`datos:comparar` detecta el aviso de parecidos»**, y las dos eran falsas cuando lo dije (la caja armaba las variantes sin el campo; el comparador no puede leer parámetros armados con `...`). Una afirmación de «esto cubre X» que nadie probó es un estado imposible en el papel: ahora la caja sí pasa la marca, el comparador vuelve a ver `buscar_productos_parecidos` (4 alarmas, no 3) y el ADR dice qué funciones el comparador NO ve. Y una consulta compartida por siete pantallas no debe depender de SQL que aún no está en producción: la marca del catálogo ahora se trae aparte y tolerante.
+
+Pendiente: pegar los 8 SQL y verificar con una sesión de Líder real; decidir si aprobar una prenda del censo debe poder saltarse «Indumentaria exige tejido y patrón»; y, aparte de este PR, `proveedores_select` deja a cualquier sesión leer el banco y la cuenta de los proveedores.
+
 ## 2026-09-18 (Marca y proveedor: un producto ahora dice de quién es y quién lo trae — y una marca puede llegar por dos proveedores)
 
 `productos` no tenía marca ni proveedor, así que no se podía filtrar por marca, buscar «adidas» en la caja, ni saber a quién pedirle lo que se acaba. Se agregó `marcas` + `marca_proveedores` y el producto guarda las dos cosas, atadas por una llave compuesta: la base no deja guardar un proveedor que no trae esa marca. Felipe dijo que una marca «rara vez pero sí» llega por dos proveedores (accesorios, chompas importadas), y eso decidió el modelo: la alternativa simple (un proveedor por marca, duplicando) habría convertido «cambiar de proveedor» en «cambiar de marca» y dejaba escribir «Adidass» sin que la base se enterara.
