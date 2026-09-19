@@ -1,6 +1,9 @@
 @import "tailwindcss";
 /* Entradas/salidas propias de los componentes shadcn/ui (ADR-0045, adenda). */
 @import "tw-animate-css";
+@import "./estilos/comprobantes-lista.css";
+@import "./estilos/comprobantes-detalle.css";
+@import "./estilos/comprobantes-registro.css";
 
 /* ==================================================================
    Sistema de identidad CAYLA · v3.0
@@ -699,6 +702,63 @@ body {
   }
 }
 
+/* ---- REGLA DE MODALES (ADR-0130) ------------------------------------------------------------
+   Todo modal del retail se dibuja con `<Modal>` (components/ui/Modal.tsx) y hereda ESTE movimiento
+   sin hacer nada; un modal nuevo NO define su propia animación. El efecto, en orden:
+     1. el velo aparece con desenfoque leve (`anim-velo`, 220 ms);
+     2. la hoja sube 18 px y crece de .965 a 1 (`anim-modal-entra`, 420 ms, --ease-cayla); en móvil es
+        una hoja que sube desde el borde (sin escala: escalarla se ve mal);
+     3. su CONTENIDO entra en cascada (`cascada-modal`): cada pieza sube 10 px y aparece, 55 ms de desfase
+        entre una y otra, empezando 120 ms después de la hoja. Cuenta como pieza el título, la bajada y los
+        hijos directos del modal; si el modal es un único <form>, cuentan los hijos del form.
+     4. al cerrar la hoja se va en 220 ms hacia abajo y el velo se apaga (`anim-modal-sale`).
+   Lo que un modal SÍ puede agregar por su cuenta (y nada más): una barra que se llena, una cifra que cuenta,
+   el «visto» que se dibuja al confirmar — respuestas a una acción, no adorno. Nunca en bucle, sin rebote.
+   `data-sin-cascada` en una pieza la saca de la cascada (p. ej. una lista larga que ya se anima sola).
+   Con movimiento reducido todo colapsa a un instante. Prototipo de referencia:
+   docs/maquetas/comprobantes-animaciones-2026-09/comprobantes-vivo.html (`.velo`, `.modal`, `.st`). ---- */
+@keyframes cayla-modal-entra {
+  from { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.965); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cayla-modal-sale {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate3d(0, 10px, 0) scale(0.98); }
+}
+@keyframes cayla-cascada {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+}
+@layer components {
+  /* Móvil: la hoja sube desde el borde (misma que siempre). Escritorio: sube 18 px y crece. */
+  .anim-modal-entra { animation: cayla-hoja 380ms var(--ease-cayla) both; }
+  .anim-modal-sale { animation: cayla-hoja-salida 220ms var(--ease-salida) both; }
+  @media (min-width: 640px) {
+    .anim-modal-entra { animation-name: cayla-modal-entra; animation-duration: 420ms; }
+    .anim-modal-sale { animation-name: cayla-modal-sale; }
+  }
+
+  /* La cascada del contenido. `backwards`, no `both`: terminada, la pieza vuelve a su estilo normal y su
+     hover/transición puede mover su `transform`. Un <form> hijo directo NO se anima entero (sus hijos sí):
+     animar el form y sus piezas a la vez multiplica la opacidad y se ve sucio. */
+  .cascada-modal > :not(form):not([data-sin-cascada]) {
+    animation: cayla-cascada 500ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--k, 0) * 55ms + 120ms);
+  }
+  /* Las piezas de un <form> empiezan después del título y la bajada (2 pasos más). */
+  .cascada-modal > form > :not([data-sin-cascada]) {
+    animation: cayla-cascada 500ms var(--ease-cayla) backwards;
+    animation-delay: calc((var(--k, 0) + 2) * 55ms + 120ms);
+  }
+  .cascada-modal > :nth-child(1), .cascada-modal > form > :nth-child(1) { --k: 0; }
+  .cascada-modal > :nth-child(2), .cascada-modal > form > :nth-child(2) { --k: 1; }
+  .cascada-modal > :nth-child(3), .cascada-modal > form > :nth-child(3) { --k: 2; }
+  .cascada-modal > :nth-child(4), .cascada-modal > form > :nth-child(4) { --k: 3; }
+  .cascada-modal > :nth-child(5), .cascada-modal > form > :nth-child(5) { --k: 4; }
+  .cascada-modal > :nth-child(6), .cascada-modal > form > :nth-child(6) { --k: 5; }
+  .cascada-modal > :nth-child(7), .cascada-modal > form > :nth-child(7) { --k: 6; }
+  .cascada-modal > :nth-child(n + 8), .cascada-modal > form > :nth-child(n + 8) { --k: 7; }
+}
+
 /* ---- Dona de métodos de pago (2026-09-18, segunda tanda) ----
         Excepción pedida a "nada se anima solo al entrar" — ver DonaMetodos.tsx.
         El barrido y la aguja llevan la MISMA curva y duración a propósito: la
@@ -861,6 +921,8 @@ body {
   @media (prefers-reduced-motion: reduce) {
     .anim-velo,
     .anim-entrada,
+    .anim-modal-entra,
+    .anim-modal-sale,
     .anim-revelar,
     .anim-revelar-salida,
     .anim-asentar,
@@ -924,5 +986,13 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     transition-duration: 1ms !important;
+  }
+}
+/* La cascada de contenido de los modales (ADR-0130): sin movimiento, las piezas ya están donde van.
+   Dentro de `@layer components` (ADR-0105): una regla de clase sin capa le gana a toda utilidad de Tailwind. */
+@layer components {
+  @media (prefers-reduced-motion: reduce) {
+    .cascada-modal > :not(form):not([data-sin-cascada]),
+    .cascada-modal > form > :not([data-sin-cascada]) { animation: none; }
   }
 }

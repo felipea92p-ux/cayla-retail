@@ -1,17 +1,23 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Copy } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { CampoTexto } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
+import { BotonConfirmar } from "@/components/ComprobanteBotonConfirmar";
+import { conEspera, useConfirmacionPago } from "@/components/ComprobanteConfirmacion";
+import { DestinoDelMedio } from "@/components/DestinoDelMedio";
 import { ETIQUETA_METODO, soles, type CompraResumen } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { etiquetaVence, parseMonto, repartirPago, tramoDe } from "@/lib/por-pagar-reglas";
+import { destinoDelMedio } from "@/lib/destino-de-pago";
+import type { DatosPagoProveedor } from "@/lib/proveedores-reglas";
+
+// El tipo vive en `proveedores-reglas` (lo comparten la ficha y los modales de pago); se re-exporta para no romper importadores.
+export type { DatosPagoProveedor };
 
 // Pago juntos (D3, ADR-0111): UNA transferencia que se aplica a varios comprobantes DEL MISMO
 // proveedor. En Gamarra se le paga al proveedor «lo que se le debe», no factura por factura;
@@ -29,21 +35,10 @@ import { etiquetaVence, parseMonto, repartirPago, tramoDe } from "@/lib/por-paga
 // se ve, con el monto a transferir ya reducido, y se puede apagar. La base lo aplica en el mismo pago
 // (`p_credito`): las filas del historial de cada comprobante dicen «Saldo a favor» y descuentan del libro.
 
-export type DatosPagoProveedor = {
-  banco: string | null;
-  cuentaBancaria: string | null;
-  telefono: string | null;
-  plazoCreditoDias: number | null;
-  formaPagoPreferida: string | null;
-  /** Lo que el proveedor le debe a CAYLA (saldo a favor), disponible para descontar de este pago. */
-  saldoFavor?: number;
-};
-
 type Modo = "vencida" | "mano";
 
 // Botones del pie sin `flex-1` (los de `Modal` se estiran; acá conviven con una nota a la izquierda).
 const BTN_CANCELAR = "label-cayla rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo";
-const BTN_PRIMARIO = "label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-50";
 
 export function PagoJuntosModal({
   proveedorId,
@@ -60,7 +55,11 @@ export function PagoJuntosModal({
   onClose: () => void;
   onPagado: () => void;
 }) {
-  const router = useRouter();
+  // Confirmar (ADR-0130): botón «cargando» → «visto», chispas si todo quedó saldado, la hoja se cierra y recién
+  // entonces `router.refresh()` actualiza la lista de atrás. `onPagado` (limpiar la selección) reemplaza a
+  // `onClose` cuando el pago se hizo: lo llama `alCerrar` al terminar la salida animada.
+  const confirmacion = useConfirmacionPago({ onClose, onPagado });
+  const { estado, empezar, fallar, confirmar } = confirmacion;
   // El orden del modal es el de la aplicación: primero lo más vencido.
   const ordenados = useMemo(
     () => [...comprobantes].sort((a, b) => (a.fechaVencimiento ?? "9999").localeCompare(b.fechaVencimiento ?? "9999") || a.fechaEmision.localeCompare(b.fechaEmision)),
@@ -75,7 +74,6 @@ export function PagoJuntosModal({
   const [metodo, setMetodo] = useState(formaInicial);
   const [referencia, setReferencia] = useState("");
   const [fecha, setFecha] = useState(hoyLima());
-  const [loading, setLoading] = useState(false);
   const saldoFavor = datos?.saldoFavor ?? 0;
   const [usarFavor, setUsarFavor] = useState(saldoFavor > 0);
   // Estable durante los reintentos: si la respuesta se corta después de que la base pagó,
@@ -87,7 +85,7 @@ export function PagoJuntosModal({
   const excede = aplicaciones.some((a) => !Number.isNaN(a.monto) && a.monto > a.c.saldo + 0.005);
   const total = hayInvalido ? 0 : Math.round(aplicaciones.reduce((s, a) => s + a.monto, 0) * 100) / 100;
   const enCero = aplicaciones.filter((a) => !Number.isNaN(a.monto) && Math.abs(a.monto - a.c.saldo) < 0.005).length;
-  const puedeRegistrar = total > 0 && !hayInvalido && !excede && !loading;
+  const puedeRegistrar = total > 0 && !hayInvalido && !excede;
   // Cuánto del pago se cubre con saldo a favor y cuánto sale de verdad (transferencia, efectivo…).
   const credito = usarFavor ? Math.round(Math.min(saldoFavor, total) * 100) / 100 : 0;
   const aTransferir = Math.round((total - credito) * 100) / 100;
@@ -117,50 +115,46 @@ export function PagoJuntosModal({
     }
   }
 
-  async function copiar(valor: string, que: string) {
-    try {
-      await navigator.clipboard.writeText(valor);
-      avisar.exito(`${que} copiado`);
-    } catch {
-      avisar.error(`No se pudo copiar ${que.toLowerCase()}`, { detalle: "Selecciónalo y cópialo a mano." });
-    }
-  }
-
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>, cerrar: () => void) {
     e.preventDefault();
     e.stopPropagation();
+    if (estado !== "reposo") return;
     if (hayInvalido) return void avisar.error("Revisa los montos: cada uno debe ser un número mayor o igual a cero.");
     if (excede) return void avisar.error("Un comprobante recibe más de lo que debe. Baja el monto marcado en rojo.");
     const lote = aplicaciones.filter((a) => a.monto > 0).map((a) => ({ compra_id: a.c.id, monto: a.monto }));
     if (lote.length === 0) return void avisar.error("El pago necesita al menos un comprobante con monto.");
-    setLoading(true);
-    const cerrarProceso = avisar.proceso("Registrando el pago…");
+    if (fecha > hoyLima()) return void avisar.error("La fecha del pago no puede ser futura: es cuándo se pagó, no cuándo se pagará.");
+    if (aplicaciones.some((a) => a.monto > 0 && a.c.fechaEmision && fecha < a.c.fechaEmision)) return void avisar.error("La fecha del pago no puede ser anterior a la emisión de alguno de los comprobantes.");
+    const formulario = e.currentTarget;
+    if (!empezar()) return;
     const supabase = createClient();
-    const { error } = await supabase.rpc("registrar_pago_compras", {
-      p_proveedor_id: proveedorId,
-      p_metodo: metodo,
-      p_aplicaciones: lote,
-      ...(referencia.trim() ? { p_referencia: referencia.trim() } : {}),
-      p_fecha: fecha,
-      p_token: token.current,
-      ...(credito > 0 ? { p_credito: credito } : {}),
-    });
-    cerrarProceso();
-    setLoading(false);
+    const { error } = await conEspera(
+      supabase.rpc("registrar_pago_compras", {
+        p_proveedor_id: proveedorId,
+        p_metodo: metodo,
+        p_aplicaciones: lote,
+        ...(referencia.trim() ? { p_referencia: referencia.trim() } : {}),
+        p_fecha: fecha,
+        p_token: token.current,
+        ...(credito > 0 ? { p_credito: credito } : {}),
+      }),
+    );
     if (error) {
-      avisar.error(traducirError(error, "registrar el pago"));
+      fallar();
+      avisar.error(traducirError(error, "registrar el pago", { confirmarAntesDeRepetir: true }));
       return;
     }
     token.current = crypto.randomUUID();
     avisar.exito(`Pago de ${soles(total)} registrado`, {
       detalle: `${lote.length === 1 ? "1 comprobante" : `${lote.length} comprobantes`} de ${proveedorNombre}, como un solo pago.${credito > 0 ? ` Se descontaron ${soles(credito)} de tu saldo a favor.` : ""}`,
     });
-    router.refresh();
-    onPagado();
+    // Las chispas solo si el pago dejó TODOS los comprobantes en cero.
+    confirmar(cerrar, { saldado: enCero === ordenados.length, origen: formulario.querySelector("[data-confirmar]") });
   }
 
-  const hayDatos = !!(datos && (datos.formaPagoPreferida || datos.banco || datos.cuentaBancaria || datos.telefono));
   const ahora = new Date();
+  // Solo aviso, nunca bloquea: a dónde va la plata con el medio elegido, o qué le falta al proveedor para ese medio.
+  const destino = todoConFavor ? null : destinoDelMedio(metodo, datos);
 
   return (
     <Modal
@@ -172,27 +166,10 @@ export function PagoJuntosModal({
       }
       subtitulo={`${ordenados.length === 1 ? "1 comprobante" : `${ordenados.length} comprobantes`} · una sola transferencia`}
       ancho="max-w-2xl"
-      onClose={onClose}
+      onClose={confirmacion.alCerrar}
     >
       {(cerrar) => (
-        <form onSubmit={onSubmit} className="space-y-5">
-          {hayDatos && (
-            <div className="grid gap-4 rounded-xl border border-sand bg-sand/40 p-4 sm:grid-cols-[1fr_1.5fr_1.2fr]">
-              <div>
-                <p className="label-cayla text-[10px] text-tinta/55">Paga por</p>
-                <p className="mt-1 text-sm text-tinta">
-                  {datos?.formaPagoPreferida ? (ETIQUETA_METODO[datos.formaPagoPreferida] ?? datos.formaPagoPreferida) : "Sin definir"}
-                  {datos?.banco ? ` · ${datos.banco}` : ""}
-                </p>
-                {datos?.plazoCreditoDias != null && <p className="text-xs text-tinta/55">Crédito a {datos.plazoCreditoDias} días</p>}
-              </div>
-              {datos?.cuentaBancaria && (
-                <DatoCopiable etiqueta="Cuenta o CCI" valor={datos.cuentaBancaria} onCopiar={() => copiar(datos.cuentaBancaria!, "Cuenta")} />
-              )}
-              {datos?.telefono && <DatoCopiable etiqueta="Yape / Plin" valor={datos.telefono} onCopiar={() => copiar(datos.telefono!, "Teléfono")} />}
-            </div>
-          )}
-
+        <form onSubmit={(e) => onSubmit(e, cerrar)} className="space-y-5">
           <section>
             <p className="label-cayla mb-2 text-[11px] text-tinta/65">Cómo se aplica el pago</p>
             <div className="card-cayla divide-y divide-tinta/10 overflow-hidden">
@@ -304,16 +281,15 @@ export function PagoJuntosModal({
                     role="radio"
                     aria-checked={metodo === v}
                     onClick={() => setMetodo(v)}
-                    className={`label-cayla rounded-full border px-3 py-1 text-[10px] leading-4 transition-colors ${
-                      metodo === v ? "border-tinta bg-tinta text-crema" : "border-tinta/15 bg-tinta/[0.04] text-tinta/75 hover:border-rojo hover:text-rojo"
-                    }`}
+                    className="cd-ficha label-cayla rounded-full px-3 py-1 text-[10px] leading-4 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
                   >
                     {t}
                   </button>
                 ))}
               </div>
+              <DestinoDelMedio key={metodo} className="mt-2" destino={destino} enlaceFicha={`/compras/proveedores/${proveedorId}`} />
             </div>
-            <CampoTexto etiqueta="Referencia" mono value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Op. 00871234" autoComplete="off" />
+            <CampoTexto etiqueta="N.° de operación" mono value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Opcional" autoComplete="off" />
             <CampoFecha etiqueta="Fecha del pago" valor={fecha} onValor={setFecha} required />
           </div>
 
@@ -343,29 +319,15 @@ export function PagoJuntosModal({
 
           <div className="flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-4">
             <p className="min-w-0 flex-1 text-xs text-tinta/55">Todo o nada: si un comprobante ya no admite el monto, no se registra ninguno.</p>
-            <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
+            <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={estado !== "reposo"}>
               Cancelar
             </button>
-            <button type="submit" className={BTN_PRIMARIO} disabled={!puedeRegistrar}>
-              {loading ? "Registrando…" : credito > 0 ? `Registrar pago de ${soles(total)} (${soles(credito)} a favor)` : `Registrar pago de ${soles(total)}`}
-            </button>
+            <BotonConfirmar estado={estado} disabled={!puedeRegistrar} className="px-4">
+              {credito > 0 ? `Registrar pago de ${soles(total)} (${soles(credito)} a favor)` : `Registrar pago de ${soles(total)}`}
+            </BotonConfirmar>
           </div>
         </form>
       )}
     </Modal>
-  );
-}
-
-function DatoCopiable({ etiqueta, valor, onCopiar }: { etiqueta: string; valor: string; onCopiar: () => void }) {
-  return (
-    <div className="min-w-0">
-      <p className="label-cayla text-[10px] text-tinta/55">{etiqueta}</p>
-      <p className="mt-1 flex items-center gap-2 text-sm tabular-nums text-tinta">
-        <span className="truncate">{valor}</span>
-        <button type="button" onClick={onCopiar} aria-label={`Copiar ${etiqueta.toLowerCase()}`} className="shrink-0 text-tinta/55 transition-colors hover:text-rojo">
-          <Copy aria-hidden className="h-3.5 w-3.5" />
-        </button>
-      </p>
-    </div>
   );
 }

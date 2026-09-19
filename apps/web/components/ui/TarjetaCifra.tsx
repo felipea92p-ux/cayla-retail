@@ -39,6 +39,15 @@ import type { CSSProperties, ReactNode } from "react";
    (En Traslados esta variante se llamó `compacta`; al unir las dos ramas se
    renombró `fila`, porque `compacta` ya significaba «p-4» en las ~30
    tarjetas de Compras.)
+
+   `viva` + `reparto` (2026-09-19, ADR-0130, ambas opt-in; sin ellas la tarjeta se
+   dibuja igual que antes): `viva` hace que una tarjeta CLICABLE se levante 2 px y
+   la cruce un barrido de luz al pasar el mouse (`alza-cayla` + `cmp-viva`, ver
+   app/estilos/comprobantes-lista.css), y que una flecha marcada con `.cmp-flecha`
+   se corra 4 px. `reparto` dibuja bajo el contexto una barra fina de 4 px que
+   se llena una vez: qué parte del total es lo urgente («2 de 5 comprobantes
+   vencidos» en rojo, «3 de 7 atrasadas» en ámbar). Es un adorno de lectura:
+   el número y el texto ya dicen lo mismo, por eso va `aria-hidden`.
    ==================================================================== */
 
 type Accion = { texto: string } & ({ href: string } | { onClick: () => void });
@@ -70,6 +79,8 @@ export function TarjetaCifra({
   compacta = false,
   fila = false,
   vacia = false,
+  viva = false,
+  reparto,
   className = "",
   style,
   children,
@@ -97,12 +108,18 @@ export function TarjetaCifra({
   fila?: boolean;
   /** Borde punteado y número apagado: «todavía no hay datos». */
   vacia?: boolean;
+  /** Tarjeta clicable que se levanta y recibe un barrido de luz al pasar el mouse. Sin `href`/`onClick` no hace nada. */
+  viva?: boolean;
+  /** Barra fina bajo el contexto: `fraccion` (0–1) es lo urgente del total; se llena una vez al aparecer. */
+  reparto?: { fraccion: number; tono: "rojo" | "ambar" };
   /** Clases extra (típico: `anim-entra` de la entrada escalonada). */
   className?: string;
   style?: CSSProperties;
   children?: ReactNode;
 }) {
-  const clase = `card-cayla block ${compacta || fila ? "p-4" : "p-5"} text-left transition-colors ${acento ? "border-l-2 border-l-rojo" : ""} ${
+  const esViva = viva && Boolean(onClick || href);
+  // `viva` no usa `transition-colors`: como utilidad le ganaría a la transición de `.alza-cayla` y la tarjeta no se levantaría con suavidad.
+  const clase = `card-cayla block ${compacta || fila ? "p-4" : "p-5"} text-left ${esViva ? "alza-cayla cmp-viva" : "transition-colors"} ${acento ? "border-l-2 border-l-rojo" : ""} ${
     vacia ? "border-dashed bg-transparent" : ""
   } ${onClick || href ? "hover:bg-sand/30" : ""} ${activa ? "bg-sand/40" : ""} ${className}`;
 
@@ -144,6 +161,11 @@ export function TarjetaCifra({
             {accion.texto} →
           </button>
         ))}
+      {reparto && (
+        <span aria-hidden className="cmp-reparto">
+          <i className={reparto.tono === "rojo" ? "cmp-reparto-rojo" : "cmp-reparto-ambar"} style={{ "--p": Math.min(1, Math.max(0, reparto.fraccion)) } as CSSProperties} />
+        </span>
+      )}
     </>
   );
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent as TecladoReact, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AlarmClock, Banknote, Building2, CalendarRange, HandCoins, PackageCheck, Receipt } from "lucide-react";
 import { Popover } from "radix-ui";
@@ -48,6 +48,10 @@ const PARAMS: Record<FiltroVisible, string[]> = {
   vencidas: ["vencidas"],
 };
 
+// `atajoBusqueda` (2026-09-19, ADR-0130, opt-in): «/» enfoca el buscador desde cualquier parte de la
+// pantalla (salvo dentro de un campo o con un modal abierto) y «Esc» dentro del buscador lo vacía, y si
+// ya está vacío lo suelta. Lo usa Comprobantes junto con `j`/`k` sobre las filas.
+//
 // `accionesAntes` / `accionesDespues` (ADR-0111): controles propios de cada pantalla que
 // van en la misma fila del buscador —«Orden: Emisión | Vencimiento» en Comprobantes,
 // «Por urgencia | Por proveedor» en Por pagar—, antes o después del botón «Filtros».
@@ -58,11 +62,13 @@ export function FiltrosCompras({
   visibles,
   accionesAntes,
   accionesDespues,
+  atajoBusqueda = false,
 }: {
   proveedores: Proveedor[];
   visibles: FiltroVisible[];
   accionesAntes?: ReactNode;
   accionesDespues?: ReactNode;
+  atajoBusqueda?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -70,6 +76,7 @@ export function FiltrosCompras({
   const [busqueda, setBusqueda] = useState(params.get("q") ?? "");
   const [panelAbierto, setPanelAbierto] = useState(false);
   const primera = useRef(true);
+  const raiz = useRef<HTMLDivElement>(null);
 
   function ver(f: FiltroVisible) {
     return visibles.includes(f);
@@ -85,6 +92,25 @@ export function FiltrosCompras({
     const qs = p.toString();
     router.push(qs ? `${pathname}?${qs}` : pathname);
   }
+
+  // «/» enfoca el buscador (convención de GitHub, Gmail…). No se dispara si quien teclea ya está en un campo,
+  // si hay un modal abierto o si lleva Ctrl/⌘/Alt: en esos casos «/» es texto o es otro atajo.
+  useEffect(() => {
+    if (!atajoBusqueda) return;
+    const alTeclear = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      if (document.querySelector('[role="dialog"], [aria-modal="true"]')) return;
+      const campo = raiz.current?.querySelector<HTMLInputElement>('input[type="search"]');
+      if (!campo) return;
+      e.preventDefault();
+      campo.focus();
+      campo.select();
+    };
+    document.addEventListener("keydown", alTeclear);
+    return () => document.removeEventListener("keydown", alTeclear);
+  }, [atajoBusqueda]);
 
   // La búsqueda se manda sola al dejar de tipear (350 ms): sin botón, pero
   // sin una consulta por tecla.
@@ -132,7 +158,7 @@ export function FiltrosCompras({
   }
 
   return (
-    <div className="space-y-2">
+    <div ref={raiz} className="space-y-2">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <CampoTexto
@@ -142,6 +168,17 @@ export function FiltrosCompras({
             placeholder="Número de documento o proveedor"
             autoComplete="off"
             type="search"
+            {...(atajoBusqueda
+              ? {
+                  "aria-keyshortcuts": "/",
+                  onKeyDown: (e: TecladoReact<HTMLInputElement>) => {
+                    if (e.key !== "Escape") return;
+                    e.preventDefault(); // el «×» nativo del type=search borraría sin avisar a nuestro estado
+                    if (busqueda) setBusqueda("");
+                    else e.currentTarget.blur();
+                  },
+                }
+              : {})}
           />
         </div>
         {/* Mismo ritmo vertical que `Campo` (etiqueta + mt-1.5 + control) para

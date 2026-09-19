@@ -12,10 +12,19 @@ export type Proveedor = {
   nombre: string;
   ruc: string | null;
   contacto: string | null;
-  /** El WhatsApp por el que se pacta el fardo — y, en el modal de pago, el número al que se yapea/plinea. */
+  /** El WhatsApp por el que se pacta el fardo. Desde ADR-0129 ya NO es el Yape: ese es `celular_billetera`. */
   telefono: string | null;
   banco: string | null;
+  /** Número de cuenta del banco (texto libre). El interbancario vive en `cci` (ADR-0129). */
   cuenta_bancaria: string | null;
+  /** Código de Cuenta Interbancario: 20 dígitos, solo números (ADR-0129). */
+  cci: string | null;
+  /** El celular al que se yapea/plinea (9 dígitos, sin +51). NO es `telefono`, que es el WhatsApp. */
+  celular_billetera: string | null;
+  /** Qué app tiene ese celular: `yape`, `plin` o ambas. `null` si no hay billetera. */
+  billeteras: string[] | null;
+  /** El nombre que muestra el banco/Yape al pagar; quien paga lo compara antes de confirmar. */
+  titular_cuenta: string | null;
   activo: boolean;
   /**
    * Lo financiero (facturas, total_facturado, saldo, ultima_compra,
@@ -149,6 +158,10 @@ export type ProveedorFicha = {
   telefono: string | null;
   banco: string | null;
   cuenta_bancaria: string | null;
+  cci: string | null;
+  celular_billetera: string | null;
+  billeteras: string[] | null;
+  titular_cuenta: string | null;
   activo: boolean;
   rubro: string | null;
   plazo_credito_dias: number | null;
@@ -160,7 +173,7 @@ export async function getProveedor(id: string): Promise<ProveedorFicha | null> {
   return exigirOpcional(
     await supabase
       .from("proveedores")
-      .select("id, nombre, ruc, contacto, telefono, banco, cuenta_bancaria, activo, rubro, plazo_credito_dias, forma_pago_preferida")
+      .select("id, nombre, ruc, contacto, telefono, banco, cuenta_bancaria, cci, celular_billetera, billeteras, titular_cuenta, activo, rubro, plazo_credito_dias, forma_pago_preferida")
       .eq("id", id)
       .maybeSingle(),
     "la ficha del proveedor"

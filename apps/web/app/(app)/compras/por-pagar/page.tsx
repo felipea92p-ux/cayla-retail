@@ -2,6 +2,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { listarPorPagar, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, getCompra, soles, type ParamsCompras } from "@/lib/compras";
 import { getDeudaPorVencimiento, getNotasPendientes, getPorPagarTramos, getResumenComprasExtra, getSalidasCaja30d } from "@/lib/compras-indicadores";
 import { getProveedores } from "@/lib/proveedores";
+import { datosPagoDe, type DatosPagoProveedor } from "@/lib/proveedores-reglas";
 import { diaMes, hoyLima, sumarDias } from "@/lib/fechas-lima";
 import { idsConFaltanteCerrado } from "@/lib/nota-pendiente-reglas";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -13,7 +14,6 @@ import { DeudaPorVencimiento } from "@/components/DeudaPorVencimiento";
 import { SalidasDeCaja } from "@/components/SalidasDeCaja";
 import { PorPagarLista } from "@/components/PorPagarLista";
 import { SaldosAFavor } from "@/components/SaldosAFavor";
-import type { DatosPagoProveedor } from "@/components/PagoJuntosModal";
 
 // Por pagar (ADR-0035, rediseño ADR-0111): los comprobantes vigentes con saldo, de lo más urgente
 // a lo que puede esperar. Sale del índice parcial `compras_por_pagar_idx`, que solo contiene lo
@@ -56,21 +56,17 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
   // anulado cae en la lista sin más.
   const abrirPago = compraAPagar && compraAPagar.estado === "vigente" && compraAPagar.saldo > 0 ? compraAPagar : null;
   const hayMasPaginas = !!siguiente || !!cursor;
+  // El pago abierto por URL (`?pagar=…`) puede ser de un proveedor que NO está en la página visible (otra página,
+  // o filtrada): sus datos salen del directorio completo que ya se leyó arriba, sin otra consulta.
+  const proveedorAPagar = abrirPago ? proveedores.find((p) => p.id === abrirPago.proveedorId) : undefined;
 
-  // Datos para pagar (banco, cuenta, Yape, plazo) que el modal de pago juntos muestra sin obligar
+  // Datos para pagar (banco, cuenta, CCI, Yape/Plin, titular, plazo) que los modales de pago muestran sin obligar
   // a ir a la ficha del proveedor. Solo lo de los proveedores que aparecen en esta página.
   const datosProveedores: Record<string, DatosPagoProveedor> = {};
   for (const c of compras) {
     const p = proveedores.find((x) => x.id === c.proveedorId);
     if (p && !datosProveedores[p.id]) {
-      datosProveedores[p.id] = {
-        banco: p.banco,
-        cuentaBancaria: p.cuenta_bancaria,
-        telefono: p.telefono,
-        plazoCreditoDias: p.plazo_credito_dias,
-        formaPagoPreferida: p.forma_pago_preferida,
-        saldoFavor: p.saldo_favor ?? 0,
-      };
+      datosProveedores[p.id] = datosPagoDe(p, p.saldo_favor ?? 0);
     }
   }
 
@@ -178,7 +174,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
 
       <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={paramsPaginacion} pathname="/compras/por-pagar" />
 
-      {abrirPago && <PagoDesdeUrl compra={abrirPago} saldoFavor={proveedores.find((p) => p.id === abrirPago.proveedorId)?.saldo_favor ?? 0} />}
+      {abrirPago && <PagoDesdeUrl compra={abrirPago} saldoFavor={proveedorAPagar?.saldo_favor ?? 0} datos={proveedorAPagar ? datosPagoDe(proveedorAPagar, proveedorAPagar.saldo_favor ?? 0) : undefined} />}
     </div>
   );
 }

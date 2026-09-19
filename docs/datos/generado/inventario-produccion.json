@@ -8465,9 +8465,65 @@
           "por_defecto": null,
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "cci",
+          "orden": 13,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "celular_billetera",
+          "orden": 14,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "billeteras",
+          "orden": 15,
+          "tipo": "ARRAY",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "titular_cuenta",
+          "orden": 16,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
+        {
+          "nombre": "proveedores_billetera_coherente",
+          "clase": "regla",
+          "definicion": "CHECK (((celular_billetera IS NULL) = (billeteras IS NULL)))"
+        },
+        {
+          "nombre": "proveedores_billeteras_validas",
+          "clase": "regla",
+          "definicion": "CHECK (((billeteras IS NULL) OR (((cardinality(billeteras) >= 1) AND (cardinality(billeteras) <= 2)) AND (billeteras <@ ARRAY['yape'::text, 'plin'::text]))))"
+        },
+        {
+          "nombre": "proveedores_cci_formato",
+          "clase": "regla",
+          "definicion": "CHECK (((cci IS NULL) OR (cci ~ '^[0-9]{20}$'::text)))"
+        },
+        {
+          "nombre": "proveedores_celular_billetera_formato",
+          "clase": "regla",
+          "definicion": "CHECK (((celular_billetera IS NULL) OR (celular_billetera ~ '^9[0-9]{8}$'::text)))"
+        },
         {
           "nombre": "proveedores_forma_pago_valida",
           "clase": "regla",
@@ -8487,6 +8543,11 @@
           "nombre": "proveedores_ruc_check",
           "clase": "regla",
           "definicion": "CHECK (((ruc IS NULL) OR (ruc ~ '^[0-9]{11}$'::text)))"
+        },
+        {
+          "nombre": "proveedores_titular_largo",
+          "clase": "regla",
+          "definicion": "CHECK (((titular_cuenta IS NULL) OR ((char_length(titular_cuenta) >= 2) AND (char_length(titular_cuenta) <= 120))))"
         }
       ],
       "indices": [

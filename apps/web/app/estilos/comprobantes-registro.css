@@ -1,0 +1,226 @@
+/* ---- Comprobantes · registro (ADR-0130) ----
+   Estilos y keyframes propios de el registro de un comprobante (/compras/nueva).
+   Reglas de la casa: curva var(--ease-cayla) (entradas) y var(--ease-salida); duraciones 200–500 ms; sin
+   rebote, nunca en bucle salvo lo que ya existe; `backwards` y no `both` cuando la pieza luego se
+   mueve con hover; y CADA clase animada se apaga con movimiento reducido (bloque al final de este archivo).
+   Los modales NO definen su propia entrada: heredan la de `<Modal>` (globals.css, «REGLA DE MODALES»). ----
+
+   Qué se mueve aquí y por qué (todo RESPONDE a algo que la persona hizo; nada anima un campo mientras se escribe):
+     · `cr-num`       el círculo numerado de cada tramo se vuelve un «visto» verde cuando el tramo queda completo.
+     · `cr-progreso`  la barra fina «Listo N de 4» se llena con suavidad al cumplirse un requisito.
+     · `cr-pt`        cada punto de la lista de pendientes hace un pop suave SOLO cuando ese requisito pasa a cumplido.
+     · `cr-linea-*`   la línea agregada entra con un desliz corto; al quitarla se colapsa en vez de desaparecer de golpe.
+     · `cr-revela`    el bloque de pago se revela al pasar de contado a crédito (o al marcar «registrar un pago ahora»).
+     · `cr-boton`     registrar: el texto cede a un giro mientras la RPC trabaja y luego a un visto que se dibuja.
+   Los colores son los tokens de la marca (verde = «hecho»); ningún color nuevo. */
+
+@layer components {
+  /* ---------- Círculo numerado del tramo → visto ---------- */
+  .cr-num {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 1.375rem;
+    height: 1.375rem;
+    border-radius: 9999px;
+    border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent);
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    transition:
+      background-color 400ms var(--ease-cayla),
+      border-color 400ms var(--ease-cayla),
+      color 400ms var(--ease-cayla);
+  }
+  .cr-num[data-listo="true"] {
+    background-color: var(--color-verde);
+    border-color: var(--color-verde);
+    color: var(--color-crema);
+    animation: cayla-pop 500ms var(--ease-cayla);
+  }
+  /* El tilde se dibuja: `pathLength="1"` en el <path>, así el dasharray vale 1 sin medir nada. En reposo la línea
+     está completa; el svg solo existe mientras el tramo está listo, así que el trazo corre al montarse. */
+  .cr-visto {
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .cr-visto path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+    animation: cr-trazo 420ms var(--ease-cayla) 60ms backwards;
+  }
+  @keyframes cr-trazo {
+    from { stroke-dashoffset: 1; }
+    to { stroke-dashoffset: 0; }
+  }
+
+  /* ---------- Barra «Listo N de 4» ---------- */
+  .cr-progreso {
+    height: 3px;
+    overflow: hidden;
+    border-radius: 9999px;
+    background-color: var(--color-sand);
+  }
+  .cr-progreso > i {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-verde);
+    transform-origin: left;
+    transform: scaleX(var(--p, 0));
+    transition: transform 500ms var(--ease-cayla);
+  }
+
+  /* ---------- Lista de pendientes junto al botón ---------- */
+  .cr-pt {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 1rem;
+    height: 1rem;
+    margin-top: 1px;
+    border-radius: 9999px;
+    border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent);
+    color: transparent;
+    transition:
+      background-color 300ms var(--ease-cayla),
+      border-color 300ms var(--ease-cayla);
+  }
+  .cr-pt[data-ok="true"] {
+    background-color: var(--color-verde);
+    border-color: var(--color-verde);
+    color: var(--color-crema);
+    animation: cayla-pop 500ms var(--ease-cayla);
+  }
+  .cr-pt svg {
+    width: 0.6rem;
+    height: 0.6rem;
+  }
+
+  /* ---------- Líneas del comprobante: entrar y colapsar ----------
+     Cada línea vive en un contenedor `cr-linea` (una grilla de una fila) para poder colapsarla de verdad: animar
+     `grid-template-rows` de 1fr a 0fr encoge el alto real sin medirlo con JS. El `overflow: hidden` de la fila
+     se aplica SOLO mientras sale — en reposo recortaría el desplegable del buscador de productos. */
+  .cr-linea {
+    display: grid;
+    grid-template-rows: 1fr;
+  }
+  .cr-linea > .cr-linea-fila {
+    min-width: 0;
+  }
+  .cr-linea-entra {
+    animation: cr-linea-entra 320ms var(--ease-cayla) backwards;
+  }
+  @keyframes cr-linea-entra {
+    from { opacity: 0; transform: translate3d(0, -8px, 0); }
+    to { opacity: 1; transform: none; }
+  }
+  .cr-linea-sale {
+    pointer-events: none;
+    animation: cr-linea-sale 240ms var(--ease-salida) both;
+  }
+  .cr-linea-sale > .cr-linea-fila {
+    min-height: 0;
+    overflow: hidden;
+    animation: cr-linea-fila-sale 240ms var(--ease-salida) both;
+  }
+  /* El espacio entre líneas (`space-y` del tramo) también se cierra, o al retirarse la línea habría un salto. */
+  @keyframes cr-linea-sale {
+    from { grid-template-rows: 1fr; opacity: 1; }
+    to { grid-template-rows: 0fr; opacity: 0; margin-block: 0; }
+  }
+  /* El relleno inferior y el filete de la fila cuentan como alto: se cierran junto con ella. */
+  @keyframes cr-linea-fila-sale {
+    from { padding-block-end: 0.75rem; border-bottom-width: 1px; }
+    to { padding-block-end: 0; border-bottom-width: 0; }
+  }
+
+  /* ---------- El bloque de pago aparece al cambiar de condición ----------
+     Como `anim-revelar` pero con `backwards` y no `both`: el bloque contiene desplegables (medios de pago) y un
+     `transform` que se queda «rellenado» al final crearía un contexto de apilamiento que los recortaría. */
+  .cr-revela {
+    animation: cayla-revelar 240ms var(--ease-cayla) backwards;
+  }
+
+  /* ---------- Botón «Registrar»: texto → giro → visto ----------
+     Los tres viven apilados dentro del mismo botón para que no cambie de tamaño entre estados. */
+  .cr-boton {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+  .cr-boton-txt {
+    transition:
+      opacity 200ms var(--ease-cayla),
+      transform 300ms var(--ease-cayla);
+  }
+  .cr-boton-capa {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .cr-boton[data-estado="cargando"] .cr-boton-txt {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0);
+  }
+  .cr-boton[data-estado="cargando"] .cr-boton-giro {
+    display: flex;
+  }
+  .cr-boton[data-estado="hecho"] .cr-boton-txt {
+    opacity: 0;
+  }
+  .cr-boton[data-estado="hecho"] .cr-boton-hecho {
+    display: flex;
+  }
+  /* El giro es la única animación en bucle de esta pantalla y existe solo mientras la base responde. */
+  .cr-giro {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 9999px;
+    border: 2px solid color-mix(in srgb, var(--color-crema) 30%, transparent);
+    border-top-color: var(--color-crema);
+    animation: cr-gira 700ms linear infinite;
+  }
+  @keyframes cr-gira {
+    to { transform: rotate(360deg); }
+  }
+  .cr-boton-hecho svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
+/* Accesibilidad: quien pidió menos movimiento ve el resultado, no el viaje (mismo criterio que globals.css:
+   no se elimina la animación, se colapsa a un instante). */
+@media (prefers-reduced-motion: reduce) {
+  .cr-num,
+  .cr-num[data-listo="true"],
+  .cr-pt,
+  .cr-pt[data-ok="true"],
+  .cr-visto path,
+  .cr-linea-entra,
+  .cr-linea-sale,
+  .cr-revela,
+  .cr-linea-sale > .cr-linea-fila {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+    transition-duration: 1ms;
+  }
+  .cr-progreso > i,
+  .cr-boton-txt {
+    transition-duration: 1ms;
+  }
+  /* Sin giro: el anillo queda quieto y el texto ya cedió su lugar, que es lo que dice «estoy trabajando». */
+  .cr-giro {
+    animation: none;
+  }
+}
