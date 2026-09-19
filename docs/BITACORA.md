@@ -3,6 +3,18 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Etiquetar prendas más fácil — puerta 1: desde la etiqueta, con vista previa antes de tocar precios)
+
+Hoy 0 de 127 variantes activas tenían etiqueta: la única forma era «Editar producto», una variante a la vez, y esa función reemplaza el conjunto completo de etiquetas (dos Líderes a la vez se pisarían). Se construyó `etiquetar_variantes`, un RPC incremental (agrega o quita UNA etiqueta a muchas variantes sin tocar las demás, todo o nada, idempotente) y el botón «Prendas» en cada tarjeta de Etiquetas: lista de productos con casilla (una marca todas sus tallas), excepciones por talla, filtro por categoría y «Marcar visibles». Si la etiqueta lleva descuento, antes de guardar dice el efecto real: «Black Friday baja el precio 30 % a 3 prendas · empieza el 9 nov: hasta entonces no cambia ningún precio · 2 prendas quedarían bajo su costo».
+
+Verificado: 21 comprobaciones SQL en un Postgres efímero levantado con los binarios de Homebrew (Docker estaba caído; el script `scripts/pruebas/etiquetar_variantes.mjs` lo crea y lo destruye solo) — y rompiendo a propósito dos candados (Líder, etiqueta aprobada) para comprobar que las pruebas SÍ fallan; 28 pruebas de la lógica de pantalla; y la pantalla contra un servidor simulado de Supabase: el pedido salió como `agregar: [v7, v8, v9]` en una sola llamada y el contador de la tarjeta pasó de 3 a 6. Un hallazgo propio: el formato de fecha de Perú trae un punto final («30 nov.»), y la frase de la vista previa quedaba «nov.. En Vender».
+
+Decisión de fondo que salió del análisis: «Nuevo», «Últimas unidades» y «Top ventas» son datos que el sistema ya tiene (alta, stock, ventas), no decisiones; etiquetarlas a mano las deja viejas al primer movimiento de stock. Van como reglas automáticas en un paso aparte.
+
+Lo que Felipe se lleva: una etiqueta que cambia precios necesita que el sistema le diga a quien la aplica qué va a pasar, no solo pedirle confirmación; y `datos:comparar` marcando «rota en producción» una función que aún no se pegó no es un falso positivo: es el recordatorio de pegar el SQL antes de desplegar. Pendiente: la puerta 2 (etiquetar en lote desde `/productos`) y las etiquetas automáticas.
+
+**Actualización (2026-09-19, noche): migración pegada y verificada.** Se comprobó en solo lectura que `etiquetar_variantes` existe con la firma correcta, es security definer, la ejecuta `authenticated` y no `anon`, y el código coincide con el del archivo; `variante_etiquetas` sigue en 0 filas y `registrar_venta` no cambió. De paso salió a la luz un desvío ajeno: producción ya tenía 7 funciones nuevas o cambiadas y 3 desaparecidas respecto al volcado (referencias de productos, `crear_producto_con_variantes`…), pegadas por otra sesión sin refrescar el diccionario. Aquí solo se agregó la firma propia; el resto queda en BACKLOG.
+
 ## 2026-09-18 (Primer SQL pegado en producción que falla: el mapa usaba tablas temporales, y el editor no guarda la conexión)
 
 Los SQL 1 y 2 entraron limpios. El 3 (el mapa de categorías) falló con `relation "_mapa_tallas" does not exist` y no dejó nada a medias. El archivo creaba tablas temporales y las usaba en sentencias siguientes; una tabla temporal solo vive en la conexión que la creó, y el SQL Editor de Supabase no promete la misma conexión entre sentencias. Ahora todo el mapa es un solo bloque `do`: una sentencia, una conexión, una transacción, y si algo aborta se deshace todo.
@@ -38,6 +50,7 @@ Estándar y Único no son duplicados: se reparten por familia (una blusa dice Es
 Paso 4: al guardar aparece una pantalla con tres salidas (fotos por color, crear otro parecido, ir a productos). «Otro parecido» conserva categoría, tallas, tejido, patrón, precio, costo y etiquetas, pero renueva el token de idempotencia: reutilizarlo habría hecho que la base devolviera el producto anterior en vez de crear el nuevo.
 
 Pendiente: que Felipe pegue los 4 SQL en orden y recién ahí se despliegue; y verificarlo con sesión de Líder real contra la base.
+
 
 ## 2026-09-18 (Vender imprime su comprobante — la boleta existía en la base, pero la clienta no se la podía llevar)
 

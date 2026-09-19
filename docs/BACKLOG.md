@@ -877,8 +877,28 @@ verde.
 - [ ] **Extraer una `TarjetaAtributo` compartida (Colores/Tejidos/Patrones/Etiquetas).** Desde
       2026-09-18 las cuatro miden igual (5 columnas, margen 16 px, imagen 3:1) pero cada
       archivo repite esas clases a mano: el día que una cambie sin las otras, vuelve el desalineo.
-- [ ] **Mostrar cuántas variantes usan cada etiqueta** (en la tarjeta y antes de desactivar).
-      Requiere contar `variante_etiquetas` por `etiqueta_id`; no hay dato en pantalla todavía.
+- [x] **Mostrar cuántas variantes usan cada etiqueta (2026-09-19).** La tarjeta dice «N prendas etiquetadas
+      a mano» (solo Líder). «Antes de desactivar» ya lo bloquea el servidor con el conteo exacto.
+- [x] **Etiquetar prendas más fácil — puerta 1: desde la etiqueta (2026-09-19, ADR-0112).** Botón «Prendas»
+      en cada tarjeta: lista de productos con casillas (una marca todas las tallas), excepciones por talla,
+      filtro por categoría, «Marcar/Soltar visibles», y **vista previa antes de aplicar** si la etiqueta
+      lleva descuento (cuántas prendas, cuánto baja, desde cuándo, cuáles quedan bajo su costo).
+- [x] **Pegada en producción y verificada (2026-09-19, solo lectura): `supabase/migrations/20260919010000_etiquetar_variantes.sql`.**
+      `retail.etiquetar_variantes(p_cambios jsonb) -> jsonb`: security definer, `search_path=retail, public`, ejecutable
+      por `authenticated` y NO por `anon`, con los candados del archivo (Líder, «aprobada y activa», `for share`,
+      `on conflict do nothing`, tope por etiqueta). `variante_etiquetas` sigue en 0 filas y `registrar_venta` intacta.
+      Su firma ya está en `funciones-produccion.txt` y `datos:comparar` no marca nada roto.
+- [ ] **Volcado de producción desactualizado por otras migraciones (hallado 2026-09-19).** Producción tiene 162 funciones
+      y el volcado 158: 7 funciones nuevas o con firma distinta (`buscar_productos_parecidos`, `crear_producto_con_variantes`,
+      `actualizar_categoria_ejes`, `fn_clave_referencia`, `fn_dentro_de_una_edicion`, `fn_productos_referencia_trigger`,
+      `fn_titulo_referencia`) y 3 que ya no existen. Falta refrescar el resto del volcado con el método por firma md5
+      (bitácora del 2026-09-18); en este PR solo se añadió la firma de `etiquetar_variantes`.
+- [ ] **Etiquetar prendas más fácil — puerta 2: en lote desde `/productos`.** Marcar filas → «Etiquetar…» con
+      el mismo RPC y la misma vista previa. Ya decidido con Felipe (2026-09-19): las dos puertas.
+- [ ] **Etiquetas de rotación automáticas (Nuevo / Últimas unidades / Top ventas).** Se calculan de alta, stock
+      y ventas en vez de etiquetarse a mano (decidido 2026-09-19). Fijar umbrales con Felipe: ¿«Nuevo» = 30 días?
+      ¿«Últimas» = 2 unidades en total o por sede? ¿«Top ventas» = las N más vendidas de los últimos 30 días?
+      Ojo: hoy las 164 variantes tienen <30 días, «Nuevo» marcaría todo.
 
 - [x] **Pegada en producción (2026-09-17, tarde-noche) — la mitad que faltaba, después
       de que #75 se fusionara a `main` sin su migración.** El "Production Deploy" del
