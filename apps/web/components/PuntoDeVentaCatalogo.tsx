@@ -7,7 +7,6 @@ import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { Badge } from "@/components/ui/badge";
-import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type Props = {
@@ -41,6 +40,13 @@ type Props = {
   /** Filtro «Solo con stock» de la grilla; apagado, las sin stock se ven atenuadas. */
   soloConStock: boolean;
   onSoloConStock: (valor: boolean) => void;
+  /** Cuántas tarjetas esconde el filtro ahora mismo (0 si está apagado). */
+  ocultasSinStock: number;
+  /** Tocar el cuerpo de una tarjeta: el padre abre el modal de talla. */
+  onElegirTalla: (clave: string) => void;
+  /** Tarjeta a la que se le acaba de pedir más de lo que hay. `pulso` sube en cada intento,
+   *  así el resaltado se re-monta y vuelve a sonar aunque sea la misma tarjeta. */
+  topeTarjeta: { clave: string; pulso: number } | null;
   /** Una tarjeta por prenda + color, con sus tallas adentro; ya viene filtrado por
    *  categoría y por `soloConStock` (`lib/catalogo-grupos.ts`, memo del padre). */
   grupos: GrupoCatalogo<VarianteBusqueda>[];
@@ -101,6 +107,9 @@ export function PuntoDeVentaCatalogo({
   onCategoria,
   soloConStock,
   onSoloConStock,
+  ocultasSinStock,
+  onElegirTalla,
+  topeTarjeta,
   grupos,
   carrito,
   mostrarVentasHoy,
@@ -220,27 +229,48 @@ export function PuntoDeVentaCatalogo({
         </div>
         {aviso && <p className="mt-2 text-sm text-ambar-profundo">{aviso}</p>}
 
-        {/* Catálogo, la ruta secundaria: chips a la izquierda y, al final, el filtro de
-            stock — un chip más, con el mismo aspecto prendido que una categoría. */}
-        <div className="mt-3 flex items-center gap-2 pb-3">
-          <div className="scroll-cayla flex min-w-0 flex-1 gap-2 overflow-x-auto pb-0.5">
-            {categorias.map((c) => (
-              <button key={c} type="button" onClick={() => onCategoria(c)} disabled={bloqueado} className={chip(categoria === c)}>
-                {c}
-              </button>
-            ))}
-          </div>
-          {/* Toggle de shadcn (Radix): mismo aspecto que un chip prendido, con `data-state`
-              y `aria-pressed` de fábrica. */}
-          <Toggle
-            pressed={soloConStock}
-            onPressedChange={onSoloConStock}
+        {/* «Solo con stock» es lo primero que decide qué ve la encargada, así que va en su
+            propia fila, con interruptor de verdad (se lee prendido/apagado de un vistazo, no
+            como un chip más entre las categorías donde se perdía al final de la fila) y con
+            cuántas tarjetas esconde: sin ese número, una prenda que no aparece parece que
+            no existe. */}
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={soloConStock}
+            onClick={() => onSoloConStock(!soloConStock)}
             disabled={bloqueado}
-            size="sm"
-            className="label-cayla h-8 shrink-0 rounded-md border border-sand bg-papel px-3 text-[11px] font-semibold text-tinta/65 hover:bg-sand/40 hover:text-tinta data-[state=on]:border-tinta data-[state=on]:bg-tinta data-[state=on]:text-crema"
+            className="group flex items-center gap-2.5 rounded-md py-1 outline-none focus-visible:ring-2 focus-visible:ring-rojo/30"
           >
-            Solo con stock
-          </Toggle>
+            <span
+              aria-hidden
+              className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors ${
+                soloConStock ? "border-tinta bg-tinta" : "border-sand bg-sand/60"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 h-3.5 w-3.5 rounded-full shadow-sm transition-transform ${
+                  soloConStock ? "translate-x-4 bg-crema" : "bg-tinta/45"
+                }`}
+              />
+            </span>
+            <span className="label-cayla text-[11px] font-semibold text-tinta">Solo con stock</span>
+          </button>
+          {soloConStock && ocultasSinStock > 0 && (
+            <span className="text-[11px] text-tinta/60">
+              {ocultasSinStock} {ocultasSinStock === 1 ? "prenda agotada oculta" : "prendas agotadas ocultas"}
+            </span>
+          )}
+        </div>
+
+        {/* Catálogo, la ruta secundaria: las categorías tienen ahora toda la fila. */}
+        <div className="scroll-cayla mt-2 flex gap-2 overflow-x-auto pb-3">
+          {categorias.map((c) => (
+            <button key={c} type="button" onClick={() => onCategoria(c)} disabled={bloqueado} className={chip(categoria === c)}>
+              {c}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -271,6 +301,19 @@ export function PuntoDeVentaCatalogo({
                     sinStock ? "border-rojo-profundo/40 bg-crema opacity-55" : "alza-cayla border-sand bg-papel"
                   }`}
                 >
+                  {/* Toda la tarjeta es tocable: abre el modal de talla. Antes solo lo eran
+                      los chips y tocar la prenda no hacía nada (`alza-cayla` incluso la
+                      levantaba al pasar, prometiendo un clic). Botón superpuesto y no
+                      `<article onClick>` para que sea alcanzable con teclado y lo lean los
+                      lectores de pantalla; los chips van por encima (`z-10`) y siguen siendo
+                      el atajo de un toque. */}
+                  <button
+                    type="button"
+                    onClick={() => onElegirTalla(g.clave)}
+                    disabled={bloqueado}
+                    aria-label={`Elegir talla de ${nombre}`}
+                    className="absolute inset-0 cursor-pointer rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-rojo/40 disabled:cursor-default"
+                  />
                   {/* Foto real por prenda+color (20260917190000) cuando existe; mientras un
                       color no tenga foto, las iniciales siguen de plan B — nunca un ícono
                       de "foto rota". */}
@@ -289,7 +332,7 @@ export function PuntoDeVentaCatalogo({
                   {/* Tallas: tocar una agrega ESA variante al ticket (el color ya lo fija la
                       tarjeta). Una talla agotada se queda a la vista, tachada: no es lo mismo
                       «no hay M» que «no existe M». */}
-                  <div className="mt-2 flex flex-wrap gap-1" aria-label="Tallas">
+                  <div className="relative z-10 mt-2 flex flex-wrap gap-1" aria-label="Tallas">
                     {g.tallas.map((t) =>
                       t.stockAqui > 0 ? (
                         <Tooltip key={t.variante.varianteId}>
@@ -346,10 +389,27 @@ export function PuntoDeVentaCatalogo({
                     </span>
                   </div>
 
+                  {/* Tope de stock: un velo rojo suave que respira dos veces con un barrido de
+                      luz, y se apaga solo (`anim-tope`). Decorativo — el aviso de arriba es el
+                      que se lee con lector de pantalla —, y sin `pointer-events` para no
+                      estorbar los chips. */}
+                  {topeTarjeta?.clave === g.clave && (
+                    <span
+                      key={topeTarjeta.pulso}
+                      aria-hidden
+                      className="anim-tope pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-xl bg-rojo/[0.06] shadow-lg shadow-rojo/25 ring-1 ring-inset ring-rojo/50"
+                    >
+                      <span className="anim-tope-barrido absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-rojo/15 to-transparent" />
+                      <span className="label-cayla absolute top-3 left-3 rounded-full bg-papel/90 px-2 py-0.5 text-[10px] text-rojo-profundo">
+                        Máximo alcanzado
+                      </span>
+                    </span>
+                  )}
+
                   {/* El globito se re-asienta cada vez que cambia la cantidad (`key`): el ojo
                       nota que cambió sin releerlo. */}
                   {enCarrito > 0 && (
-                    <Badge key={enCarrito} className="anim-asentar absolute top-2 right-2 h-6 min-w-6 rounded-full px-1.5 text-xs">
+                    <Badge key={enCarrito} className="anim-asentar pointer-events-none absolute top-2 right-2 h-6 min-w-6 rounded-full px-1.5 text-xs">
                       {enCarrito}
                     </Badge>
                   )}

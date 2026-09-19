@@ -7,12 +7,15 @@ import {
   descuentoResultante,
   descuentoUnitarioPorMonto,
   descuentoUnitarioPorPorcentaje,
+  desgloseIgv,
+  metodoDeAtajo,
   esDescuentoDeCampana,
   esperaAlCargar,
   hayDescuentoManual,
   motivoBloqueoCobro,
   necesitaArgumentoEscrito,
   porcentajeDeLinea,
+  quitarPagoTraspasando,
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
   vueltoDe,
@@ -211,6 +214,96 @@ describe("restanteDePagos — lo que falta cubrir, a 2 decimales", () => {
   });
   it("es negativo cuando los pagos se pasan", () => {
     expect(restanteDePagos(100, [{ metodo: "tarjeta", monto: 120 }])).toBe(-20);
+  });
+});
+
+describe("metodoDeAtajo — F1 a F5 son los cinco medios, en el orden del selector", () => {
+  const tecla = (key: string, extra: object = {}) => ({ key, ctrlKey: false, altKey: false, metaKey: false, shiftKey: false, ...extra });
+
+  it.each([
+    ["F1", "efectivo"],
+    ["F2", "tarjeta"],
+    ["F3", "yape"],
+    ["F4", "plin"],
+    ["F5", "transferencia"],
+  ])("%s → %s", (key, metodo) => {
+    expect(metodoDeAtajo(tecla(key))).toBe(metodo);
+  });
+
+  it("otras teclas no son atajo (F6, F12, letras, números)", () => {
+    for (const key of ["F6", "F12", "F0", "a", "1", "Enter", "Escape"]) expect(metodoDeAtajo(tecla(key))).toBeNull();
+  });
+
+  it("con modificador no se toca: Ctrl+F5 (recarga forzada), Alt+F4, Shift+F5, Meta", () => {
+    for (const extra of [{ ctrlKey: true }, { altKey: true }, { shiftKey: true }, { metaKey: true }]) {
+      expect(metodoDeAtajo(tecla("F5", extra))).toBeNull();
+    }
+  });
+
+  it("mantener la tecla (repeat) no repite el atajo", () => {
+    expect(metodoDeAtajo(tecla("F2", { repeat: true }))).toBeNull();
+  });
+});
+
+describe("desgloseIgv — subtotal + IGV = total, igual que el comprobante", () => {
+  it("los totales de la pantalla y de la captura", () => {
+    expect(desgloseIgv(239.81, 0.18)).toEqual({ subtotal: 203.23, igv: 36.58 });
+    expect(desgloseIgv(374.7, 0.18)).toEqual({ subtotal: 317.54, igv: 57.16 });
+    expect(desgloseIgv(118, 0.18)).toEqual({ subtotal: 100, igv: 18 });
+  });
+
+  it("ticket vacío: todo en cero", () => {
+    expect(desgloseIgv(0, 0.18)).toEqual({ subtotal: 0, igv: 0 });
+  });
+
+  it("nunca descuadra: para cada total de S/0.01 a S/500.00, subtotal + IGV = total al centavo", () => {
+    for (let c = 1; c <= 50_000; c++) {
+      const total = c / 100;
+      const { subtotal, igv } = desgloseIgv(total, 0.18);
+      expect(Math.round((subtotal + igv) * 100)).toBe(c);
+    }
+  });
+});
+
+describe("quitarPagoTraspasando — quitar un medio no pierde lo que cubría", () => {
+  it("el medio que llevaba el total pasa su monto al siguiente (el caso de la captura)", () => {
+    const pagos = [
+      { metodo: "efectivo", monto: 374.7 },
+      { metodo: "tarjeta", monto: 0 },
+      { metodo: "yape", monto: 0 },
+    ] as const;
+    const r = quitarPagoTraspasando(pagos, 0);
+    expect(r).toEqual([
+      { metodo: "tarjeta", monto: 374.7 },
+      { metodo: "yape", monto: 0 },
+    ]);
+    expect(restanteDePagos(374.7, r)).toBe(0);
+  });
+
+  it("si era el último, el monto va al último que queda", () => {
+    const r = quitarPagoTraspasando([{ metodo: "efectivo", monto: 100 }, { metodo: "yape", monto: 50 }], 1);
+    expect(r).toEqual([{ metodo: "efectivo", monto: 150 }]);
+  });
+
+  it("suma a 2 decimales sin arrastrar error de punto flotante", () => {
+    const r = quitarPagoTraspasando([{ metodo: "efectivo", monto: 0.1 }, { metodo: "yape", monto: 0.2 }], 0);
+    expect(r).toEqual([{ metodo: "yape", monto: 0.3 }]);
+  });
+
+  it("sin otro medio, o con el quitado en 0, solo se quita", () => {
+    expect(quitarPagoTraspasando([{ metodo: "efectivo", monto: 80 }], 0)).toEqual([]);
+    const r = quitarPagoTraspasando([{ metodo: "efectivo", monto: 80 }, { metodo: "yape", monto: 0 }], 1);
+    expect(r).toEqual([{ metodo: "efectivo", monto: 80 }]);
+  });
+
+  it("un índice que no existe no toca nada", () => {
+    const pagos = [{ metodo: "efectivo", monto: 80 }] as const;
+    expect(quitarPagoTraspasando(pagos, 5)).toEqual(pagos);
+  });
+
+  it("conserva lo recibido del que absorbe (el vuelto se recalcula solo)", () => {
+    const r = quitarPagoTraspasando([{ metodo: "yape", monto: 40 }, { metodo: "efectivo", monto: 60, recibido: 100 }], 0);
+    expect(r).toEqual([{ metodo: "efectivo", monto: 100, recibido: 100 }]);
   });
 });
 
