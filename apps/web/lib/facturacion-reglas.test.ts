@@ -182,6 +182,10 @@ describe("conteosDePestanas", () => {
     expect(conteosDePestanas(null, proformas(2)).proformas).toEqual({ valor: 2, tono: "neutro", texto: "vigentes" });
   });
 
+  it("con una sola proforma el texto va en singular (se lee «1 vigente», no «1 vigentes»)", () => {
+    expect(conteosDePestanas(null, proformas(1)).proformas).toEqual({ valor: 1, tono: "neutro", texto: "vigente" });
+  });
+
   it("cada contador falla por separado", () => {
     expect(conteosDePestanas(null, proformas(2))).not.toHaveProperty("comprobantes");
     expect(conteosDePestanas(cola(1, 0), null)).not.toHaveProperty("proformas");

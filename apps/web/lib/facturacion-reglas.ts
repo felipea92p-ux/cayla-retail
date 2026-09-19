@@ -126,7 +126,7 @@ export function conteosDePestanas(porEnviar: ResumenPorEnviar | null, proformas:
         : { valor: porEnviar.porEnviar, tono: "ambar", texto: "por enviar a SUNAT" };
   }
   if (proformas && proformas.vigentes > 0) {
-    conteos.proformas = { valor: proformas.vigentes, tono: "neutro", texto: "vigentes" };
+    conteos.proformas = { valor: proformas.vigentes, tono: "neutro", texto: proformas.vigentes === 1 ? "vigente" : "vigentes" };
   }
   return conteos;
 }
