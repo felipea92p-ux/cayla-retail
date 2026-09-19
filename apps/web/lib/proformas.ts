@@ -18,7 +18,7 @@ const COLUMNAS_PROFORMA = "id, ubicacion_id, cliente_nombre, cliente_num_doc, to
 // desaparecía de la pantalla el día 1 aunque siguiera pudiéndose convertir —
 // exactamente el filtro-que-hay-que-recordar-aplicar que este panel dice evitar
 // para "por vencer", pero que el límite de mes seguía colando por abajo.
-export async function getProformasMes(desde: string, hasta: string) {
+export async function getProformasMes(desde: string, hasta: string, ahora: number = Date.now()) {
   const supabase = await createClient();
   // Misma lógica que los comprobantes: una proforma que no se ve se vuelve a cotizar,
   // y la clienta recibe dos precios distintos por lo mismo.
@@ -39,7 +39,9 @@ export async function getProformasMes(desde: string, hasta: string) {
   const porId = new Map(delMes.map((p) => [p.id, p]));
   for (const p of vigentes) porId.set(p.id, p);
 
-  return marcarPorVencer([...porId.values()]);
+  // `ahora` es de quien llama: la página lo usa también para las tarjetas (`resumenProformas`), y así la
+  // lista y los números de arriba nunca cuentan con dos relojes.
+  return marcarPorVencer([...porId.values()], ahora);
 }
 
 /** Las proformas vigentes de hoy, sin filtro de mes (son una cola de trabajo, no un

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   antiguedad,
+  faltaPara,
   comparativoEnCantidad,
   comparativoEnPorcentaje,
   horaDeLima,
@@ -198,5 +199,22 @@ describe("progresoDeEnvio", () => {
 
   it("sin comprobantes hoy: 0 de 0 (la tarjeta lo dice con palabras, no con una barra vacía)", () => {
     expect(progresoDeEnvio([])).toEqual({ enviados: 0, total: 0 });
+  });
+});
+
+describe("faltaPara", () => {
+  const AHORA = new Date("2026-09-18T20:00:00Z");
+  const dentroDe = (segundos: number) => new Date(AHORA.getTime() + segundos * 1000).toISOString();
+
+  it("menos de un minuto (o ya pasado): «instantes», nunca un número negativo", () => {
+    expect(faltaPara(dentroDe(30), AHORA)).toBe("instantes");
+    expect(faltaPara(dentroDe(-3600), AHORA)).toBe("instantes");
+  });
+
+  it("minutos, horas con sus minutos y días: la misma forma que antiguedad", () => {
+    expect(faltaPara(dentroDe(45 * 60), AHORA)).toBe("45 min");
+    expect(faltaPara(dentroDe(5 * 3600 + 20 * 60), AHORA)).toBe("5 h 20 min");
+    expect(faltaPara(dentroDe(3 * 3600), AHORA)).toBe("3 h");
+    expect(faltaPara(dentroDe(2 * 24 * 3600 + 3600), AHORA)).toBe("2 d");
   });
 });

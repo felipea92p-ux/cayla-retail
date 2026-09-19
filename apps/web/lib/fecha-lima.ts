@@ -13,3 +13,12 @@ export function mesActualLima(): { anio: number; mes: number } {
   const lima = new Date(Date.now() - LIMA_OFFSET_MS);
   return { anio: lima.getUTCFullYear(), mes: lima.getUTCMonth() + 1 };
 }
+
+/** «19/09» y «16:34» de un instante, en hora de Lima (UTC−5, sin horario de verano). Lima nunca
+ *  cambia de hora, así que basta correr el instante cinco horas y leerlo en UTC: sin `Intl`, sin
+ *  diferencias entre servidor y navegador. */
+export function diaYHoraLima(iso: string): { dia: string; hora: string } {
+  const lima = new Date(Date.parse(iso) - LIMA_OFFSET_MS);
+  const dos = (n: number) => String(n).padStart(2, "0");
+  return { dia: `${dos(lima.getUTCDate())}/${dos(lima.getUTCMonth() + 1)}`, hora: `${dos(lima.getUTCHours())}:${dos(lima.getUTCMinutes())}` };
+}
