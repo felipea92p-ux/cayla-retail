@@ -9,7 +9,8 @@ const serif = EB_Garamond({ subsets: ["latin"], variable: "--font-eb-garamond", 
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Retail-CAYLA",
+  // Raya larga con espacios, igual que «Dynamic — CAYLA»: las dos pestañas se leen como una familia.
+  title: "Retail — CAYLA",
   description: "Donde el estilo transforma.",
   // Los íconos NO se declaran acá: Next los toma por convención de archivo
   // (app/favicon.ico, app/icon.png, app/apple-icon.png). Un `icons` manual convivía
