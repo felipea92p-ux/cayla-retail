@@ -28,7 +28,7 @@ import { costoBase, costoParaTipear, ETIQUETA_METODO, fechaCorta, soles, totales
 type Variante = { varianteId: string; sku: string; talla: string | null; color: string | null; productoId: string; referencia: string; costo: number };
 // Lo que se sabe de un proveedor al elegirlo (ADR-0106): su plazo y forma de pago preferidos, y lo que ya se le
 // debe. Con eso el vencimiento se sugiere solo y se decide la compra sabiendo la deuda que ya hay con él.
-type Proveedor = { id: string; nombre: string; ruc: string | null; plazoCreditoDias?: number | null; formaPagoPreferida?: string | null; saldo?: number | null };
+type Proveedor = { id: string; nombre: string; ruc: string | null; plazoCreditoDias?: number | null; formaPagoPreferida?: string | null; saldo?: number | null; saldoFavor?: number | null };
 type Ubicacion = { id: string; nombre: string };
 
 type Linea = { productoId: string; varianteId: string; cantidad: number; costoUnitario: string; descripcion: string };
@@ -321,11 +321,12 @@ export function CompraFormV2({
             >
               <div id="compra-proveedor">
                 <ComboBuscable etiquetaAccesible="Proveedor" valor={proveedorId} onValor={(id) => setProveedorId(id)} opciones={opcionesProveedor} marcador="Busca por nombre o RUC…" />
-                {proveedor && (proveedor.plazoCreditoDias != null || proveedor.formaPagoPreferida || (proveedor.saldo ?? 0) > 0) && (
+                {proveedor && (proveedor.plazoCreditoDias != null || proveedor.formaPagoPreferida || (proveedor.saldo ?? 0) > 0 || (proveedor.saldoFavor ?? 0) > 0) && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {proveedor.plazoCreditoDias != null && <Chip>Crédito {proveedor.plazoCreditoDias} días</Chip>}
                     {proveedor.formaPagoPreferida && <Chip>{ETIQUETA_METODO[proveedor.formaPagoPreferida] ?? proveedor.formaPagoPreferida}</Chip>}
                     {(proveedor.saldo ?? 0) > 0 && <Chip tono="ambar">Ya le debes {soles(proveedor.saldo ?? 0)}</Chip>}
+                    {(proveedor.saldoFavor ?? 0) > 0 && <Chip tono="verde">Te debe {soles(proveedor.saldoFavor ?? 0)} a favor</Chip>}
                   </div>
                 )}
               </div>
@@ -509,7 +510,7 @@ export function CompraFormV2({
             )}
           </div>
           {hayPago ? (
-            <LineasPago id="compra-pagos" lineas={pagos} onLineas={setPagos} objetivo={total} exacto={condicion === "contado"} />
+            <LineasPago id="compra-pagos" lineas={pagos} onLineas={setPagos} objetivo={total} exacto={condicion === "contado"} saldoFavor={proveedor?.saldoFavor ?? 0} />
           ) : (
             <p className="text-sm text-tinta/65">Sin pago por ahora: el comprobante aparecerá en Por pagar con vencimiento el {fechaVencimiento.split("-").reverse().join("/")}.</p>
           )}

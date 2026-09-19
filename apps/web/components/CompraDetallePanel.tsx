@@ -9,7 +9,8 @@ import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { LineasPago, lineaPagoVacia, lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
-import { soles, type CompraResumen } from "@/lib/compras-reglas";
+import { METODO_SALDO_A_FAVOR, soles, type CompraResumen } from "@/lib/compras-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 
 // Acciones sobre una factura ya registrada (ADR-0035): registrar un pago
 // contra el saldo, o anularla. La página (server) dibuja el detalle; este
@@ -63,7 +64,7 @@ export function CompraAcciones({ compra, tieneRecepciones }: { compra: CompraRes
 // La página ya verificó que la factura existe, está vigente y tiene saldo.
 // Al cerrar se quita solo `pagar` de la URL (con `replace`, para que "atrás"
 // no vuelva a abrirlo) y se conservan los filtros que hubiera.
-export function PagoDesdeUrl({ compra }: { compra: CompraResumen }) {
+export function PagoDesdeUrl({ compra, saldoFavor = 0 }: { compra: CompraResumen; saldoFavor?: number }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -72,7 +73,7 @@ export function PagoDesdeUrl({ compra }: { compra: CompraResumen }) {
     p.delete("pagar");
     router.replace(p.size ? `${pathname}?${p}` : pathname);
   }
-  return <RegistrarPagoModal compra={compra} onClose={cerrar} />;
+  return <RegistrarPagoModal compra={compra} saldoFavor={saldoFavor} onClose={cerrar} />;
 }
 
 // Desde "Por pagar" se paga sin entrar al detalle: el botón de la fila abre
@@ -81,7 +82,7 @@ export function PagoDesdeUrl({ compra }: { compra: CompraResumen }) {
 // celda de tabla: peso "fantasma" (borde y texto a tinta plena), no
 // "discreto" — es la única acción de esa pantalla y no puede ser lo que
 // menos se ve.
-export function BotonPagar({ compra, compacto = false }: { compra: CompraResumen; compacto?: boolean }) {
+export function BotonPagar({ compra, compacto = false, saldoFavor = 0 }: { compra: CompraResumen; compacto?: boolean; saldoFavor?: number }) {
   const [abierto, setAbierto] = useState(false);
   if (compra.estado !== "vigente" || compra.saldo <= 0) return null;
   return (
@@ -94,28 +95,32 @@ export function BotonPagar({ compra, compacto = false }: { compra: CompraResumen
       >
         {compacto ? "Pagar" : `Registrar pago · saldo ${soles(compra.saldo)}`}
       </Boton>
-      {abierto && <RegistrarPagoModal compra={compra} onClose={() => setAbierto(false)} />}
+      {abierto && <RegistrarPagoModal compra={compra} saldoFavor={saldoFavor} onClose={() => setAbierto(false)} />}
     </>
   );
 }
 
-export function RegistrarPagoModal({ compra, onClose }: { compra: CompraResumen; onClose: () => void }) {
+export function RegistrarPagoModal({ compra, saldoFavor = 0, onClose }: { compra: CompraResumen; saldoFavor?: number; onClose: () => void }) {
   const router = useRouter();
   // Un pago puede repartirse en varios medios (20260914200000_compras_multipago):
   // la RPC escribe todas las líneas o ninguna.
   const [lineas, setLineas] = useState<LineaPago[]>([lineaPagoVacia(compra.saldo.toFixed(2))]);
-  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
+  const [fecha, setFecha] = useState(hoyLima());
   const [loading, setLoading] = useState(false);
 
   const suma = sumaLineasPago(lineas);
   const excede = suma > compra.saldo + 0.005;
+  const favorUsado = sumaLineasPago(lineas.filter((l) => l.metodo === METODO_SALDO_A_FAVOR));
+  const favorExcedido = favorUsado > saldoFavor + 0.005;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    e.stopPropagation();
     const pagos = lineasPagoParaRpc(lineas);
     const sinMonto = Math.max(0, lineas.findIndex((l) => !(Number(l.monto) > 0)));
     if (!pagos) return void avisar.error("Cada medio de pago necesita su monto.", { enfocar: `pago-monto-${sinMonto}` });
     if (excede) return void avisar.error(`El pago supera el saldo pendiente (${soles(compra.saldo)}).`, { enfocar: "pago-monto-0" });
+    if (favorExcedido) return void avisar.error(`Usas ${soles(favorUsado)} de saldo a favor y solo tienes ${soles(saldoFavor)}.`, { enfocar: "pago-monto-0" });
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.rpc("registrar_pagos_compra", {
@@ -130,7 +135,7 @@ export function RegistrarPagoModal({ compra, onClose }: { compra: CompraResumen;
     }
     const resta = Math.round((compra.saldo - suma) * 100) / 100;
     avisar.exito(`Pago de ${soles(suma)} registrado · ${compra.documento}`, {
-      detalle: resta > 0 ? `Quedan ${soles(resta)} por pagar.` : "Comprobante saldado.",
+      detalle: `${resta > 0 ? `Quedan ${soles(resta)} por pagar.` : "Comprobante saldado."}${favorUsado > 0 ? ` Se descontaron ${soles(favorUsado)} de tu saldo a favor.` : ""}`,
     });
     router.refresh();
     onClose();
@@ -152,14 +157,14 @@ export function RegistrarPagoModal({ compra, onClose }: { compra: CompraResumen;
             <p className="label-cayla text-[11px] text-tinta/65">
               Medios de pago <span className="font-normal normal-case tracking-normal text-tinta/55">· uno o varios</span>
             </p>
-            <LineasPago id="pago" lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} exacto={false} autoFocus />
+            <LineasPago id="pago" lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} exacto={false} autoFocus saldoFavor={saldoFavor} />
           </div>
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={cerrar} className={botonCancelar} disabled={loading}>
               Cancelar
             </button>
-            <button type="submit" className={botonPrimario} disabled={loading || excede}>
+            <button type="submit" className={botonPrimario} disabled={loading || excede || favorExcedido}>
               {loading ? "Registrando…" : "Registrar pago"}
             </button>
           </div>

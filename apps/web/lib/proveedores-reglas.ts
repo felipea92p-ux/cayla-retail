@@ -38,13 +38,14 @@ export function rubrosConConteo(proveedores: { rubro: string | null }[]): RubroC
 // Orden de la tabla: por saldo (a quién le debo más) por defecto.
 // ---------------------------------------------------------------------------
 
-export type CampoOrden = "saldo" | "facturado" | "ultima" | "nombre";
+export type CampoOrden = "saldo" | "favor" | "facturado" | "ultima" | "nombre";
 export type Orden = { campo: CampoOrden; dir: "asc" | "desc" };
 
-type Ordenable = { nombre: string; saldo: number | null; facturado_12m: number | null; ultima_compra: string | null };
+type Ordenable = { nombre: string; saldo: number | null; facturado_12m: number | null; ultima_compra: string | null; saldo_favor?: number | null };
 
 const VALOR: Record<CampoOrden, (p: Ordenable) => number | string | null> = {
   saldo: (p) => p.saldo,
+  favor: (p) => p.saldo_favor ?? null,
   facturado: (p) => p.facturado_12m,
   ultima: (p) => p.ultima_compra,
   nombre: (p) => p.nombre,

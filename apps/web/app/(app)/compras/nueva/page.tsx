@@ -17,7 +17,7 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
   // Solo los activos; con su plazo, forma de pago y saldo (lo financiero es de líder, y esta pantalla también).
   const proveedores = directorio
     .filter((p) => p.activo)
-    .map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, plazoCreditoDias: p.plazo_credito_dias, formaPagoPreferida: p.forma_pago_preferida, saldo: p.saldo }));
+    .map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, plazoCreditoDias: p.plazo_credito_dias, formaPagoPreferida: p.forma_pago_preferida, saldo: p.saldo, saldoFavor: p.saldo_favor }));
 
   return (
     <div className="space-y-6">

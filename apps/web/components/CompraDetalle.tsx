@@ -7,7 +7,7 @@ import {
   getAdjuntosCompra,
   ETIQUETA_ESTADO_PAGO,
   ETIQUETA_ESTADO_RECEPCION,
-  ETIQUETA_METODO,
+  ETIQUETA_METODO_PAGO,
   ETIQUETA_TIPO_DOCUMENTO,
   TONO_ESTADO_PAGO,
   TONO_ESTADO_RECEPCION,
@@ -245,7 +245,7 @@ export function CompraDetalle({
                       pantalla la columna del medio es angosta y en una sola
                       línea se cortaban ("BCP-77…"). */}
                   <span className={celda("izq", "text-sm text-tinta")}>
-                    {ETIQUETA_METODO[p.metodo] ?? p.metodo}
+                    {ETIQUETA_METODO_PAGO[p.metodo] ?? p.metodo}
                     {p.referencia && <span className="block truncate text-xs tabular-nums text-tinta/65">{p.referencia}</span>}
                   </span>
                   <span className={celda("der", "text-sm tabular-nums text-tinta")}>{soles(p.monto)}</span>

@@ -20,9 +20,12 @@ export default async function ProveedoresPage() {
   const esLider = persona.rol === "lider";
   const [proveedores, resumen] = await Promise.all([getProveedores(), esLider ? getProveedoresResumen() : null]);
 
+  // La quinta cifra (saldo a favor) solo aparece cuando algún proveedor le debe algo a CAYLA: sin nada a favor
+  // no hay qué mostrar, y la banda queda como siempre.
+  const conFavor = (resumen?.saldoFavorTotal ?? 0) > 0;
   const indicadores =
     esLider && resumen ? (
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className={`grid grid-cols-2 gap-3 ${conFavor ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}>
         <TarjetaCifra compacta punto="neutro" etiqueta="Proveedores activos" valor={resumen.activos.toLocaleString("es-PE")}>
           {resumen.desactivados === 0 ? "Ninguno desactivado" : `${resumen.desactivados.toLocaleString("es-PE")} ${resumen.desactivados === 1 ? "desactivado" : "desactivados"}`}
         </TarjetaCifra>
@@ -57,6 +60,11 @@ export default async function ProveedoresPage() {
         >
           {(resumen.sinCompras90d ?? 0) > 0 ? "Revisa si siguen siendo proveedores" : "Nadie inactivo por revisar"}
         </TarjetaCifra>
+        {conFavor && (
+          <TarjetaCifra compacta punto="verde" tono="text-verde-profundo" detalleTono="text-verde-profundo" etiqueta="A favor con proveedores" valor={soles(resumen.saldoFavorTotal ?? 0)}>
+            {resumen.conSaldoFavor === 1 ? "1 proveedor te debe" : `${resumen.conSaldoFavor} proveedores te deben`} · se descuenta al pagar
+          </TarjetaCifra>
+        )}
       </div>
     ) : undefined;
 

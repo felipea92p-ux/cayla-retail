@@ -55,6 +55,33 @@ siendo un cálculo** (principio 4). Sirven también, más adelante, para devoluc
   propaga eventos por el árbol de componentes y no por el DOM, así que el «enviar» del modal disparaba también
   el `onSubmit` de la guía y registraba TODA la recepción al cerrar una sola línea.
 
+**D2, segunda corrección (2026-09-18) — la nota de crédito se ordena y lo que no baja una deuda queda
+como SALDO A FAVOR del proveedor.** Felipe probó la guía de recepción y de ahí salieron tres reglas:
+- *La decisión del faltante vive en la MISMA fila.* Una línea que llega corta abre «¿qué pasó?» (lo espero, o el
+  motivo por el que no va a llegar); «Guardar» la deja visible en la columna Estado; el confirmar no se habilita
+  hasta que cada fila corta tenga su decisión. Al final de la guía solo queda la nota de crédito. «Guardar» guarda
+  en la guía, no en la base: los cierres son irreversibles y todo se registra junto, en UNA transacción
+  (`recibir_y_cerrar_compras`, que orquesta `recibir_compras` + `cerrar_linea_compra` + `registrar_nota_credito_compra`).
+- *Nota por faltante: una por comprobante y solo con el comprobante resuelto al 100 %* (recibido + cerrado = facturado),
+  con al menos un cierre y sin pasar de lo cerrado a su costo + IGV (+ S/ 1 de margen). Las aplica
+  `fn_insertar_nota_credito_compra`, el único punto por donde pasan todas las notas (más un índice único parcial
+  `compra_notas_credito_faltante_unica`). Devolución, descuento y «otro» no las llevan (SUNAT permite varias notas
+  por factura; una regla de «una sola en total» bloquearía una devolución posterior legítima): solo se exige que
+  ninguna suma de notas pase del total del comprobante. `cerrar_linea_compra` ya no registra la nota.
+- *Lo que la nota no baja de la deuda queda a favor del proveedor.* Una factura AL CONTADO nace pagada (saldo 0), así
+  que antes la base rechazaba cualquier nota sobre ella. Ahora la nota primero baja la deuda de SU comprobante
+  (`compra_notas_credito.aplicado = min(monto, saldo)`) y el resto (`monto − aplicado`) entra al libro append-only
+  `proveedor_creditos` (tipos `nota_credito` +, `aplicacion` −, `reembolso` −). **El saldo a favor no se guarda: es la
+  suma del libro.** `compras.saldo` sigue siendo ≥ 0 y su significado no cambia (`compras.notas_credito` suma lo
+  APLICADO), así que Por pagar y Proveedores no se tocan. Se usa como medio de pago (`saldo_a_favor`) en los tres
+  lugares donde se paga —`registrar_pagos_compra`, `registrar_pago_compras` (nuevo `p_credito`) y `registrar_compra`—
+  con candado por proveedor: dos pagos simultáneos no gastan el mismo saldo. Un reembolso del proveedor es un registro
+  (`registrar_reembolso_proveedor`) que baja el saldo; no mueve caja. El saldo a favor no es plata que salga de caja.
+  Se ve en la lista de Proveedores (columna «Saldo a favor»), en su ficha (saldo + historial), en Por pagar y en el
+  modal de pago, donde viene ofrecido y activado. Migraciones: `20260918175000` a `20260918178000`.
+- *Límites declarados:* el saldo es por proveedor (no por factura) y en soles; el reembolso no integra caja; la
+  etiqueta «esperando nota de crédito» existe en el detalle del comprobante, no en las listas.
+
 **D3 — Pago por lote.** Un solo pago (una transferencia) que se aplica a varios comprobantes **del
 mismo proveedor**. Cada aplicación es una fila de `compra_pagos` (el historial por comprobante
 sigue intacto) y todas comparten `pago_grupo_id`: conciliar con el banco = comparar una línea con

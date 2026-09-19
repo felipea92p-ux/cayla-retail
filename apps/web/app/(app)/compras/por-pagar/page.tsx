@@ -11,6 +11,7 @@ import { PagoDesdeUrl } from "@/components/CompraDetallePanel";
 import { DeudaPorVencimiento } from "@/components/DeudaPorVencimiento";
 import { SalidasDeCaja } from "@/components/SalidasDeCaja";
 import { PorPagarLista } from "@/components/PorPagarLista";
+import { SaldosAFavor } from "@/components/SaldosAFavor";
 import type { DatosPagoProveedor } from "@/components/PagoJuntosModal";
 
 // Por pagar (ADR-0035, rediseño ADR-0106): los comprobantes vigentes con saldo, de lo más urgente
@@ -58,7 +59,14 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
   for (const c of compras) {
     const p = proveedores.find((x) => x.id === c.proveedorId);
     if (p && !datosProveedores[p.id]) {
-      datosProveedores[p.id] = { banco: p.banco, cuentaBancaria: p.cuenta_bancaria, telefono: p.telefono, plazoCreditoDias: p.plazo_credito_dias, formaPagoPreferida: p.forma_pago_preferida };
+      datosProveedores[p.id] = {
+        banco: p.banco,
+        cuentaBancaria: p.cuenta_bancaria,
+        telefono: p.telefono,
+        plazoCreditoDias: p.plazo_credito_dias,
+        formaPagoPreferida: p.forma_pago_preferida,
+        saldoFavor: p.saldo_favor ?? 0,
+      };
     }
   }
 
@@ -130,6 +138,13 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
         )}
       </div>
 
+      <SaldosAFavor
+        saldos={proveedores
+          .filter((p) => (p.saldo_favor ?? 0) > 0)
+          .map((p) => ({ proveedorId: p.id, nombre: p.nombre, saldoFavor: p.saldo_favor ?? 0, deuda: p.saldo ?? 0 }))
+          .sort((a, b) => b.saldoFavor - a.saldoFavor)}
+      />
+
       <div className="grid gap-3 lg:grid-cols-2">
         <DeudaPorVencimiento tramos={vencimiento} />
         <SalidasDeCaja salidas={salidas} />
@@ -160,7 +175,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
 
       <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={paramsPaginacion} pathname="/compras/por-pagar" />
 
-      {abrirPago && <PagoDesdeUrl compra={abrirPago} />}
+      {abrirPago && <PagoDesdeUrl compra={abrirPago} saldoFavor={proveedores.find((p) => p.id === abrirPago.proveedorId)?.saldo_favor ?? 0} />}
     </div>
   );
 }

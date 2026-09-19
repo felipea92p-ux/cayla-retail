@@ -6,10 +6,12 @@ import { listarCompras, ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras
 import { celdaPago, celdaRecepcion } from "@/lib/comprobantes-lista-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { rubrosConConteo } from "@/lib/proveedores-reglas";
+import { getCreditosProveedor } from "@/lib/saldo-favor";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Chip } from "@/components/ui/Chip";
 import { ProveedorAcciones } from "@/components/ProveedorAcciones";
 import { ProveedorCostoEvolucion } from "@/components/ProveedorCostoEvolucion";
+import { SaldoFavorProveedor } from "@/components/SaldoFavorProveedor";
 
 // Ficha de un proveedor (maqueta 09, ADR-0106): prenda terminada (vía Compras) e insumos del Taller
 // (vía insumo_lotes), en secciones separadas — nunca sumadas en un solo total, son negocios distintos
@@ -28,7 +30,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
   await requirePersonaActualV2();
   const { id } = await params;
 
-  const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio] = await Promise.all([
+  const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos] = await Promise.all([
     getProveedor(id),
     getProveedorMetricasCompras(id),
     getProveedorMetricasInsumos(id),
@@ -36,6 +38,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
     getProveedorDevoluciones(id),
     listarCompras({ proveedorId: id }, { limite: 3 }),
     getProveedores(),
+    getCreditosProveedor(id),
   ]);
   if (!proveedor) notFound();
 
@@ -137,6 +140,8 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
           </div>
         )}
       </section>
+
+      <SaldoFavorProveedor proveedorId={id} proveedorNombre={proveedor.nombre} saldo={creditos.saldo} movimientos={creditos.movimientos} tieneDeuda={m.saldo > 0} />
 
       {conCompras && (
         <div className="grid gap-3 lg:grid-cols-2">

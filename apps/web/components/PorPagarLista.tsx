@@ -124,6 +124,7 @@ export function PorPagarLista({
                 atenuada={proveedorActivo !== null && c.proveedorId !== proveedorActivo}
                 onAlternar={() => alternar(c)}
                 ahora={ahora}
+                saldoFavor={datosProveedores[c.proveedorId]?.saldoFavor ?? 0}
               />
             ))}
           </Fragment>
@@ -173,7 +174,7 @@ export function PorPagarLista({
   );
 }
 
-function FilaPorPagar({ c, marcada, atenuada, onAlternar, ahora }: { c: CompraResumen; marcada: boolean; atenuada: boolean; onAlternar: () => void; ahora: Date }) {
+function FilaPorPagar({ c, marcada, atenuada, onAlternar, ahora, saldoFavor }: { c: CompraResumen; marcada: boolean; atenuada: boolean; onAlternar: () => void; ahora: Date; saldoFavor: number }) {
   const tramo = tramoDe(c, ahora);
   const colorVence = tramo === "vencidas" ? "text-rojo" : tramo === "semana" ? "text-ambar-profundo" : "text-tinta";
   const vence = c.fechaVencimiento ? etiquetaVence(c.fechaVencimiento, ahora) : "Sin fecha";
@@ -208,11 +209,11 @@ function FilaPorPagar({ c, marcada, atenuada, onAlternar, ahora }: { c: CompraRe
       <div className="shrink-0 text-right">
         <span className="font-display block text-[18px] tabular-nums text-tinta">{soles(c.saldo)}</span>
         <span className="relative z-10 mt-1.5 inline-block sm:hidden">
-          <BotonPagar compra={c} compacto />
+          <BotonPagar compra={c} compacto saldoFavor={saldoFavor} />
         </span>
       </div>
       <div className="relative z-10 hidden text-right sm:block">
-        <BotonPagar compra={c} compacto />
+        <BotonPagar compra={c} compacto saldoFavor={saldoFavor} />
       </div>
     </div>
   );

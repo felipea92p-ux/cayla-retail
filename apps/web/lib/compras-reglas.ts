@@ -186,6 +186,10 @@ export const ETIQUETA_METODO: Record<string, string> = {
   otro: "Otro",
 };
 
+/** Los medios con los que se puede PAGAR (`compra_pagos.metodo`): los de plata más el saldo a favor del proveedor (ADR-0106). */
+export const METODO_SALDO_A_FAVOR = "saldo_a_favor";
+export const ETIQUETA_METODO_PAGO: Record<string, string> = { ...ETIQUETA_METODO, [METODO_SALDO_A_FAVOR]: "Saldo a favor" };
+
 /** Por qué no va a llegar lo que faltó (D2, ADR-0106): lo que acepta `cerrar_linea_compra`. */
 export type MotivoCierre = "no_llego" | "danada" | "error_proveedor";
 

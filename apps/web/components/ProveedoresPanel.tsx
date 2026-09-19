@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Proveedor } from "@/lib/proveedores";
-import { ProveedorModal, BORRADOR_VACIO, borradorDe, type Borrador } from "@/components/ProveedorModal";
+import { ProveedorModal, BORRADOR_VACIO, type Borrador } from "@/components/ProveedorModal";
 import { soles } from "@/lib/compras-reglas";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { diaMes, hoyLima } from "@/lib/fechas-lima";
@@ -22,8 +22,8 @@ import { avisar } from "@/components/ui/Avisos";
 // 20260917240000_proveedores_lista_indicadores_y_candado_sede.sql). Un colaborador ve el directorio
 // puro (Proveedor · RUC); ni la base le manda esos números (fn_proveedores() los devuelve NULL), así
 // que ocultar la columna acá es la segunda capa, no la única.
-// Proveedor · RUC · Facturado 12 m · Saldo · Entregas · Última compra · acción
-const PLANTILLA_LIDER = "sm:grid-cols-[1fr_6.75rem_7.25rem_7.25rem_8rem_7.375rem_8.75rem]";
+// Proveedor · RUC · Facturado 12 m · Saldo · Saldo a favor · Entregas · Última compra · acción
+const PLANTILLA_LIDER = "sm:grid-cols-[1fr_6.75rem_7.25rem_7.25rem_7.25rem_8rem_7.375rem_8.75rem]";
 const PLANTILLA_BASE = "sm:grid-cols-[1fr_8rem]";
 
 // Directorio de proveedores: a quién se le compra. Es la puerta de entrada del módulo — sin un
@@ -261,6 +261,16 @@ function FilaLider({ p, plantilla, cambiando, onReactivar }: { p: Proveedor; pla
           <span className="text-tinta/45">{soles(saldo)}</span>
         )}
       </span>
+      {/* Saldo a favor: lo que el proveedor le debe a CAYLA (una nota de crédito que superó su deuda); se descuenta al pagar. */}
+      <span className={celda("der", "text-sm")}>
+        {(p.saldo_favor ?? 0) > 0 ? (
+          <Link href={`/compras/proveedores/${p.id}#saldo-a-favor`} className="relative font-semibold text-verde-profundo underline-offset-4 hover:underline">
+            {soles(p.saldo_favor ?? 0)}
+          </Link>
+        ) : (
+          <span className="text-tinta/45">—</span>
+        )}
+      </span>
       <span className={celda("der", "overflow-visible text-xs")}>{entregas ? <Chip tono={entregas.tono}>{entregas.texto}</Chip> : <span className="text-tinta/45">—</span>}</span>
       <span className={celda("der", "text-sm text-tinta/65")}>
         {ult ? (ult.slice(0, 4) === hoyLima().slice(0, 4) ? diaMes(ult) : `${diaMes(ult)}/${ult.slice(2, 4)}`) : "Nunca"}
@@ -310,6 +320,7 @@ function EncabezadoOrdenable({ plantilla, orden, onOrden }: { plantilla: string;
       {col("RUC", null)}
       {col("Facturado · 12 m", "facturado", true)}
       {col("Saldo", "saldo", true)}
+      {col("Saldo a favor", "favor", true)}
       {col("Entregas", null, true)}
       {col("Última compra", "ultima", true)}
       {col("", null)}

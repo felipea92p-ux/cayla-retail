@@ -37,9 +37,10 @@ ficha, Ingreso sin comprobante). D1 (cantidades arrancan en 0), D2 (cerrar líne
 nota de crédito, libro append-only) y D3 (pagar varios comprobantes de un proveedor de una vez).
 El ADR se numeró 0106 porque main tiene otro 0104 y la rama `inventory-view-ux` ya tomó el 0105.
 
-- [ ] **Pegar en producción las 11 migraciones, en este orden** (Felipe, con su ok). Verificado
+- [ ] **Pegar en producción las 15 migraciones, en este orden** (Felipe, con su ok). Verificado
       2026-09-18 contra la base de producción (`vovjyyiafkxteijimpuy`): ninguna está aplicada; todo
-      lo anterior del repo, hasta `20260918150000`, sí. `compras` tiene 0 filas en producción, así
+      lo anterior del repo, hasta `20260918150000`, sí. Las cuatro últimas (12–15) llegaron el mismo día,
+      tras la prueba de Felipe: nota de crédito estricta, saldo a favor del proveedor y recepción atómica. `compras` tiene 0 filas en producción, así
       que la reconstrucción de `saldo/estado_pago/estado_recepcion` no toca datos. Cada archivo ya
       trae su `set search_path = retail, public, extensions;` (no hace falta el prefijo `retail.`).
       1. `20260918160000_fn_hoy_lima` — `fn_hoy_lima()`; reemplaza `current_date` (Lima, no UTC).
@@ -63,6 +64,13 @@ El ADR se numeró 0106 porque main tiene otro 0104 y la rama `inventory-view-ux`
       11. `20260918174000_proveedores_indicadores` — `fn_proveedores` (+4 columnas),
           `fn_proveedores_resumen`, `fn_proveedor_metricas_compras` (+7), `fn_proveedor_costo_evolucion`,
           `fn_proveedor_devoluciones`.
+      12. `20260918175000_compras_nota_credito_estricta_y_saldo_a_favor` — `compra_notas_credito.aplicado`,
+          libro `proveedor_creditos`, reglas de la nota por faltante, `cerrar_linea_compra` sin nota.
+      13. `20260918176000_recibir_y_cerrar_compras_atomico` — recibir + cerrar + nota en una transacción.
+      14. `20260918177000_saldo_a_favor_como_medio_de_pago_y_reembolso` — medio `saldo_a_favor` en los tres
+          pagos (`p_credito` en el lote) y `registrar_reembolso_proveedor`.
+      15. `20260918178000_saldo_a_favor_lecturas` — `fn_proveedores`/`fn_proveedores_resumen` con saldo a favor,
+          `fn_proveedor_creditos`.
       **Después de pegar:** desplegar la rama (las pantallas llaman a estas funciones — sin las
       migraciones, `datos:comparar` las marca rotas) y correr `pnpm datos:generar:produccion`.
 - [ ] **Verificación visual contra las maquetas** (escritorio y móvil): el navegador integrado pide
