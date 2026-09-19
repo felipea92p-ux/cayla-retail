@@ -6,7 +6,7 @@
   (`docs/PLAN-PRODUCCION.md`) antes de tocar esquema. F2–F3 no lo necesitan.
 - **Reemplaza, en un punto:** la regla del 2026-09-17 «Producción solo se ve parado en el Taller, líder incluido»
   (comentario en `AppShell.tsx`, ADR-0051). Ver Decisión 2.
-- **Depende de:** ADR-0138 (reparto de un comprobante entre tiendas, en curso en `claude/modulos-por-tienda-ca0f59`) para la
+- **Depende de:** ADR-0132 (reparto de un comprobante entre tiendas, en curso en `claude/modulos-por-tienda-ca0f59`) para la
   parte de esquema; coordina con ADR-0131 (Por pagar) solo en el menú.
 - **Refina:** ADR-0035 (la factura de compra es el eje) — ahora también trae tela y avíos; ADR-0090 (insumos del Taller) —
   ahora se conecta con Compras y con la orden; ADR-0126 (el dinero de Compras es del líder) — se extiende a los costos de insumos.
@@ -31,8 +31,8 @@ depende de un número que alguien escribe.
    ubicación). El colaborador del Taller ve Recibir, Órdenes e Insumos. Reemplaza la regla del 2026-09-17.
 3. **La factura de proveedor trae también tela y avíos:** `compra_items.insumo_id` (nullable) con «exactamente uno de
    `producto_id` / `insumo_id`». Recibir una línea de insumo **abre un lote** (proveedor, documento, costo sin IGV). El destino
-   Taller/Tiendas **no es columna nueva**: es el reparto por línea de ADR-0138 (`compra_item_destinos`), donde el Taller es
-   una ubicación más. **Esta decisión se implementa después de ADR-0138** (ambas reescriben `registrar_compra` y `recibir_compras`).
+   Taller/Tiendas **no es columna nueva**: es el reparto por línea de ADR-0132 (`compra_item_destinos`), donde el Taller es
+   una ubicación más. **Esta decisión se implementa después de ADR-0132** (ambas reescriben `registrar_compra` y `recibir_compras`).
 4. **El costo de tela y avíos de una orden sale del consumo real** (`registrar_consumo_insumo`), no de un campo tecleado.
    `cerrar_produccion` conserva su firma (acepta `null`).
 5. **El rendimiento se mide, no se declara:** consumo real ÷ prendas buenas de las órdenes cerradas. No se revive `bom_items`.
@@ -59,14 +59,14 @@ depende de un número que alguien escribe.
 
 - **Tabla paralela `compra_insumo_items`:** duplica pago, recepción, faltantes y notas de crédito, que ya cuelgan de
   `compra_items`. Dos caminos para lo mismo (principio 3).
-- **Columna `destino` en `compras`:** el reparto por línea (ADR-0138) ya dice adónde va cada cosa. Una columna más se desincroniza (principio 4).
+- **Columna `destino` en `compras`:** el reparto por línea (ADR-0132) ya dice adónde va cada cosa. Una columna más se desincroniza (principio 4).
 - **Receta de costo por modelo (`bom_items`):** murió con el corte V1→V2 y una receta manual envejece. Lo medido no miente.
 - **Esperar a que se reconstruya Finanzas para Eficiencia:** bloquea D-31 indefinidamente; `gastos_taller` es migrable después.
 - **Mover las URLs de Compras bajo `/produccion/…`:** rompe enlaces de ADR-0128/0129 y de `+ Nuevo`, sin ganancia para quien usa el menú.
 
 ## Consecuencias
 
-- **Costo:** F4 —que va después de ADR-0138— toca `registrar_compra`, `recibir_compras`, `recibir_envio` y dos vistas en producción (la función que ya
+- **Costo:** F4 —que va después de ADR-0132— toca `registrar_compra`, `recibir_compras`, `recibir_envio` y dos vistas en producción (la función que ya
   tuvo dos firmas). Va sola, con prueba SQL en CI y dry-run antes de pegarla.
 - **Ganancia:** el costo real de cada prenda queda conectado de la factura a la tienda, y el Resumen puede decir *qué decidir*
   con datos de Compras, Insumos, Producción e Inventario juntos.

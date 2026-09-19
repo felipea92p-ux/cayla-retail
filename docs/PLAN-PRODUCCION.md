@@ -1,7 +1,7 @@
 # Plan · Producción como módulo padre (2026-09-19)
 
 > **Estado:** propuesto, pendiente del ok de Felipe en las **decisiones D-A…D-G** (sección 3). Las fases 1–3 no
-> tocan esquema y pueden empezar de inmediato; **F4 espera a que ADR-0138 llegue a `main`** (ver sección 2). ADR asociado: `docs/adr/0133-produccion-modulo-padre-de-la-cadena-de-abastecimiento.md`.
+> tocan esquema y pueden empezar de inmediato; **F4 espera a que ADR-0132 llegue a `main`** (ver sección 2). ADR asociado: `docs/adr/0133-produccion-modulo-padre-de-la-cadena-de-abastecimiento.md`.
 > Diseño de referencia: `docs/maquetas/produccion-modulo-2026-09/` (README con el guion de prueba).
 
 ## 1. Objetivo
@@ -23,7 +23,7 @@ cierran en la base, no en la pantalla), **7** (cada paso se prueba en el navegad
 | Insumos: tablas y `recibir_insumo` en producción; `registrar_consumo_insumo` **pegada el 2026-09-17**; **0 filas y 0 pantallas** | ADR-0090; `grep` en `apps/web` sin llamadas | F3 solo es pantalla |
 | Compras es un grupo del lateral, solo líder; sus URLs (`/compras/*`, `/recibir`) tienen enlaces por todos lados | `AppShell.tsx:544-548, 640-660` | F1 cambia **el agrupamiento del menú, no las URLs** |
 | `registrar_compra` ya recibe `p_ubicacion_destino_id` y el formulario ya pregunta «Mercadería destinada a». **ADR-0132 (en curso, rama `modulos-por-tienda-ca0f59`) elimina `compras.ubicacion_destino_id` y lo reemplaza por `compra_item_destinos`** (destino por línea) | `20260918219000…sql`, `CompraFormV2.tsx:395`, ADR-0132 §2 | **El destino Taller/Tiendas no necesita columna nueva** en ningún caso (D-B); el Taller es una ubicación más de ese reparto |
-| **Dos ramas sin fusionar tocan Compras:** ADR-0131 «Por pagar responde» (`por-pagar-ui-animations-4ffe60`, 6 commits) y ADR-0138 (`modulos-por-tienda-ca0f59`: reescribe `registrar_compra`, `recibir_compras`, `compra_items` y sus políticas) | `git log origin/main..rama` | **F4 va después de ADR-0138** y se coordina con su sesión; F1 (menú) no toca sus archivos |
+| **Dos ramas sin fusionar tocan Compras:** ADR-0131 «Por pagar responde» (`por-pagar-ui-animations-4ffe60`, 6 commits) y ADR-0132 (`modulos-por-tienda-ca0f59`: reescribe `registrar_compra`, `recibir_compras`, `compra_items` y sus políticas) | `git log origin/main..rama` | **F4 va después de ADR-0132** y se coordina con su sesión; F1 (menú) no toca sus archivos |
 | `compra_items.producto_id` es **NOT NULL**: una factura de tela no cabe | `DICCIONARIO-RETAIL.md:1686` | F4 (único cambio de esquema grande) |
 | `fn_puede_operar_ubicacion` = líder **o** mi ubicación: **el líder ya puede operar el Taller desde cualquier sede** | `0006_colaboradores.sql:51` | La regla «Producción solo parado en el Taller» (2026-09-17) es de menú, no de base |
 | El motor de reposición ya existe: `fn_resumen_variantes` (ventas, disponible, en camino, días observables, `en_red`) | `20260919141804_resumen_inventario_v2.sql` | «¿Qué producir?» **lo reutiliza**, no recalcula ventas por su cuenta |
@@ -37,7 +37,7 @@ cierran en la base, no en la pantalla), **7** (cada paso se prueba en el navegad
 | # | Decisión | Recomiendo | Por qué | Gate |
 |---|---|---|---|---|
 | **D-A** | Menú: ¿quién ve el grupo Producción? | Líder **desde cualquier ubicación**; colaborador del Taller ve Recibir, Órdenes e Insumos; el grupo Compras desaparece | La base ya lo permite; el líder decide el abastecimiento estando en una tienda. **Revierte la regla del 2026-09-17** | ok de Felipe (F1) |
-| **D-B** | Destino Taller/Tiendas de un comprobante | **El reparto de ADR-0138** (`compra_item_destinos`): una línea de insumo se destina al Taller como a cualquier ubicación. Sin columna nueva y sin mirar `ubicacion_destino_id`, que ADR-0138 elimina | Una ubicación ya es un destino; una columna `destino` duplicaría el dato (principio 4) y chocaría con ADR-0138 | F4 espera a ADR-0138 |
+| **D-B** | Destino Taller/Tiendas de un comprobante | **El reparto de ADR-0132** (`compra_item_destinos`): una línea de insumo se destina al Taller como a cualquier ubicación. Sin columna nueva y sin mirar `ubicacion_destino_id`, que ADR-0132 elimina | Una ubicación ya es un destino; una columna `destino` duplicaría el dato (principio 4) y chocaría con ADR-0132 | F4 espera a ADR-0132 |
 | **D-C** | Cómo entra la tela a una factura | `compra_items.insumo_id` **nullable** + CHECK «exactamente uno de `producto_id` / `insumo_id`». `producto_id` deja de ser NOT NULL | Pago, recepción, faltantes y nota de crédito ya cuelgan de `compra_items`; una tabla paralela duplicaría todo (principio 3) | **cambio de esquema en producción: ok explícito** |
 | **D-D** | Rendimiento (m/prenda) | **Medido**: consumo real ÷ buenas de las órdenes cerradas del modelo. Sin receta ni tablas. Modelo sin historial: se escribe el rendimiento en la orden y solo alimenta la vista previa | `bom_items` murió; una receta manual envejece. Lo medido no miente | — |
 | **D-E** | Cotización de maquila externa (D-31) | Tabla `maquila_referencias` (append-only: modelo, precio por prenda, fecha, proveedor opcional). Solo líder | Es la mitad de D-31 sin dónde vivir (hueco 3) | esquema: ok |
@@ -129,8 +129,8 @@ Tamaño: **S** ≈ media sesión · **M** ≈ una sesión · **L** ≈ dos o má
 - **Verificas:** recibir 60 m → aparece el lote y el libro; consumir 10 m desde una orden → el costo de la orden cambia y el
   aviso ofrece «Deshacer» (devolución); pedir más que el lote → mensaje en español con el saldo exacto.
 
-### F4 · Compras ↔ Insumos: el ciclo cerrado (L, **alto riesgo**) — esquema · requiere **D-C, D-G** y **ADR-0138 fusionado**
-- **Antes de empezar:** confirmar con la sesión de `modulos-por-tienda-ca0f59` (dueña de `registrar_compra`/`recibir_compras`/`compra_item_destinos`) el orden y quién toca cada función. F4 se escribe **sobre** el resultado de ADR-0138: una línea de insumo lleva su destino (el Taller) en `compra_item_destinos`, y `recibir_compras` decide entre mover stock de variante o abrir lote según la línea. Dos migraciones distintas reescribiendo la misma función en paralelo es exactamente el choque que ya costó dos firmas de `registrar_compra`.
+### F4 · Compras ↔ Insumos: el ciclo cerrado (L, **alto riesgo**) — esquema · requiere **D-C, D-G** y **ADR-0132 fusionado**
+- **Antes de empezar:** confirmar con la sesión de `modulos-por-tienda-ca0f59` (dueña de `registrar_compra`/`recibir_compras`/`compra_item_destinos`) el orden y quién toca cada función. F4 se escribe **sobre** el resultado de ADR-0132: una línea de insumo lleva su destino (el Taller) en `compra_item_destinos`, y `recibir_compras` decide entre mover stock de variante o abrir lote según la línea. Dos migraciones distintas reescribiendo la misma función en paralelo es exactamente el choque que ya costó dos firmas de `registrar_compra`.
 - **4a · Comprobante con renglón de insumo.** Migración: `compra_items.insumo_id` + CHECK; `registrar_compra` (`p_items`
   acepta `insumo_id`); vistas `compras_resumen`/`compra_items_resumen` suman insumos en `facturado`/`recibido`.
 - **4b · Recibir abre el lote.** `recibir_compras` y `recibir_envio`: la línea de insumo llama a la lógica de
@@ -175,7 +175,7 @@ Tamaño: **S** ≈ media sesión · **M** ≈ una sesión · **L** ≈ dos o má
 ## 7. Orden, dependencias y paralelismo
 
 ```
-F0 ─ F1 ─ F2 ─ F3 ─┬─ F4 (esquema, gate; espera ADR-0138) ─┬─ F6
+F0 ─ F1 ─ F2 ─ F3 ─┬─ F4 (esquema, gate; espera ADR-0132) ─┬─ F6
                    └─ F5 ───────────────────────────────────┘
                               F7 (esquema, gate D-E/D-F) ─ F8
 ```
@@ -187,7 +187,7 @@ va solo, con su prueba SQL, y no se mezcla con pantallas. F5 y F6 pueden avanzar
 | Riesgo | Mitigación |
 |---|---|
 | F4 deja `registrar_compra` con **dos firmas** (ya pasó el 2026-09-18) | partir de `pg_get_functiondef` de producción; `explain` de verificación; prueba SQL en CI |
-| Choque con otras sesiones (ADR/timestamps/Compras). **Ya visible:** ADR-0131 y ADR-0132 están tomados por ramas sin fusionar | F0: fusionar `main`, reservar ADR-0133 y timestamps, fila en `SESIONES-ACTIVAS.md`; `git status` y ramas antes de cada fase; F4 solo tras ADR-0138 |
+| Choque con otras sesiones (ADR/timestamps/Compras). **Ya visible:** ADR-0131 y ADR-0132 están tomados por ramas sin fusionar | F0: fusionar `main`, reservar ADR-0133 y timestamps, fila en `SESIONES-ACTIVAS.md`; `git status` y ramas antes de cada fase; F4 solo tras ADR-0132 |
 | Rediseñar de más Compras y pisar ADR-0128/0129/0131 | «Abastecer» = navegación y conexión; ninguna fase restila Proveedores, Recibir, Comprobantes ni Por pagar |
 | Regla de menú del 2026-09-17 revertida sin querer | D-A explícita; el ADR-0133 la marca como **reemplazada** |
 | El colaborador ve costos por la API | F4c antes de exponer Insumos a colaboradores fuera del Taller; prueba `dinero_compras_solo_lider.mjs` extendida |
