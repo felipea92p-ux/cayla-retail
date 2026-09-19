@@ -747,6 +747,10 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   const mantenerCajon = () => window.clearTimeout(relojCierre.current);
   const programarCierre = () => {
     window.clearTimeout(relojCajon.current);
+    // Limpiar el cierre anterior ANTES de programar otro: al salir de una fila y del lateral a la vez
+    // se llama dos veces, y como el id del primero se pisaba en el ref, `mantenerCajon` (al entrar al
+    // cajón) solo cancelaba el segundo — el primero cerraba el cajón 260 ms después, con el mouse encima.
+    window.clearTimeout(relojCierre.current);
     relojCierre.current = window.setTimeout(() => cerrarCajon(), 260);
   };
 
