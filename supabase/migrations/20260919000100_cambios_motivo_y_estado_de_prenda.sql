@@ -210,4 +210,7 @@ begin
 end;
 $$;
 
+-- Igual que en producción (`{postgres, authenticated}`): al recrear la función Postgres le da
+-- EXECUTE a PUBLIC por defecto, y `anon` no debe poder llamarla.
+revoke all on function retail.registrar_cambio(uuid, uuid, uuid, integer, text, uuid, text, text) from public;
 grant execute on function retail.registrar_cambio(uuid, uuid, uuid, integer, text, uuid, text, text) to authenticated;

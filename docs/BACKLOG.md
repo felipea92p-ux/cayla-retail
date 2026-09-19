@@ -46,6 +46,11 @@ tiene de verdad — detalle y descartes en ADR-0121.
       vieja. Pegar el archivo tal cual (ya trae `retail.`), confirmar en `pg_proc` UNA
       sola `registrar_cambio(uuid,uuid,uuid,integer,text,uuid,text,text)`, y recién
       después fusionar. Necesita el ok de Felipe (cambio de esquema en producción).
+      **Prerrequisitos verificados contra producción el 2026-09-19 (solo catálogo, sin datos):**
+      una sola `registrar_cambio` de 6 parámetros con el candado de caja de `20260916180000`;
+      `cambios` sin `motivo`/`condicion`; `prendas_danadas` con `devolucion_item_id NOT NULL` y sin
+      `cambio_id`; `movimientos.cambio_id`, `ventas.estado` y las tres `fn_*` auxiliares existen;
+      cada tienda tiene su cuarentena; ninguno de los dos candados nuevos existe aún.
 - [x] **`/cambios` rehecha** — bloques "Iniciar un cambio" y "Actividad reciente" (últimos
       15 días, filtros Todas / Con cambio / Sin comprobante); flujo guiado Venta → Prenda →
       Reemplazo → Confirmación → éxito sin modal; validaciones en vivo con foco al campo
