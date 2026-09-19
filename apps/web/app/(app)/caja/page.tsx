@@ -15,7 +15,9 @@ export default async function CajaPage() {
   const caja = await getCajaAbierta(persona.ubicacionId);
 
   return (
-    <div className="space-y-6">
+    // `/caja` va a todo el ancho (AppShell), pero solo el tablero de la caja abierta: sin caja, lo que hay
+    // es un formulario de un campo, que conserva la columna de lectura de siempre en vez de estirarse.
+    <div className={caja ? "space-y-6" : "mx-auto max-w-5xl space-y-6"}>
       {!caja && (
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
