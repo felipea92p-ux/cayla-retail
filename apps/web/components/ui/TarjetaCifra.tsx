@@ -14,8 +14,10 @@ import type { ReactNode } from "react";
    otras cuatro puedan migrar sin cambiar de aspecto.
 
    `valor` acepta texto: un "—" o "98.4%" es tan válido como un número.
-   `accion` dibuja el enlace rojo al pie ("Ver detalle →") — el único
-   rojo permitido en una tarjeta que pide algo.
+   `accion` dibuja el enlace al pie ("Ver detalle →"), en tinta y subrayado.
+   Antes iba en rojo; con el borde `acento` ya visible (ADR-0105) Resumen mostraba
+   5 rojos y MAX_ROJO_POR_PANTALLA es 2. El rojo de la tarjeta es el borde: lo
+   que "pide algo" se ve por el borde, no por cuatro enlaces iguales.
 
    ADR-0111 (Compras): el módulo tenía CINCO copias de esta tarjeta
    (`Indicador` en /compras, `Cifra` en /compras/por-pagar y en el detalle,
@@ -96,7 +98,7 @@ export function TarjetaCifra({
   children?: ReactNode;
 }) {
   const clase = `card-cayla block ${compacta || fila ? "p-4" : "p-5"} text-left transition-colors ${acento ? "border-l-2 border-l-rojo" : ""} ${
-    vacia ? "border-dashed !bg-transparent" : ""
+    vacia ? "border-dashed bg-transparent" : ""
   } ${onClick || href ? "hover:bg-sand/30" : ""} ${activa ? "bg-sand/40" : ""}`;
 
   const contenido = fila ? (
@@ -125,14 +127,14 @@ export function TarjetaCifra({
       {children && <p className={`mt-1 text-xs ${detalleTono ?? "text-tinta/65"}`}>{children}</p>}
       {accion &&
         ("href" in accion ? (
-          <Link href={accion.href} className="label-cayla mt-3 inline-block text-[11px] text-rojo underline-offset-2 hover:underline">
+          <Link href={accion.href} className="label-cayla mt-3 inline-block text-[11px] text-tinta underline underline-offset-2 hover:no-underline">
             {accion.texto} →
           </Link>
         ) : (
           <button
             type="button"
             onClick={accion.onClick}
-            className="label-cayla mt-3 inline-block text-[11px] text-rojo underline-offset-2 hover:underline"
+            className="label-cayla mt-3 inline-block text-[11px] text-tinta underline underline-offset-2 hover:no-underline"
           >
             {accion.texto} →
           </button>
