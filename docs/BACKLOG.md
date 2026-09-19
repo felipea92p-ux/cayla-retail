@@ -50,27 +50,29 @@ y mirarlo en celular real** (ver abajo).
 
 ## 🎯 El dinero de Compras es solo del líder + «Recibidas» por envío (2026-09-19, ADR-0126)
 
-Rama `claude/recibir-cerrar-huecos`, sobre `main` (343e5b0). **Las dos migraciones NO están en producción: las pega
-Felipe** (el PR se fusiona primero; la app funciona con o sin ellas). Cierra los huecos que dejó Recibir por envío:
+PR #178, fusionado el 2026-09-19 (`cb35240`). **Las dos migraciones están aplicadas en producción** (las pegó Felipe ese
+día y se verificaron: ADR-0126, «Verificado en producción»). Cierra los huecos que dejó Recibir por envío:
 un integrante leía los montos de su sede por tres puertas —5 funciones, las tablas de Compras y el bucket de
 escaneos—; cerrar solo las funciones no habría servido. `pnpm pruebas:dinero-compras` (32 casos, también con
 `--en-seco`), `pruebas:compras-indicadores` (144/144), `pruebas:compras-faltantes` (112/112) y `pruebas:recibir-envio` (29/29) en
 verde; tipos, lint y 1062 pruebas unitarias en verde.
 
-**Migraciones a pegar en producción, EN ESTE ORDEN:**
+**Migraciones (aplicadas en producción, en este orden):**
 
 1. `20260919160000_dinero_de_compras_lectura_operativa.sql` (A) — aditiva: nada deja de funcionar al pegarla.
 2. `20260919161000_dinero_de_compras_tablas_solo_lider.sql` (B) — **después de A y de que Vercel haya desplegado**. Se
    niega a correr si la A no está («Pega primero …»). Es la que cierra las tablas y el bucket.
 
-- [ ] **Pegar A y luego B** en el SQL Editor de producción (traen `set search_path`: sin prefijo `retail.`). Al pegar A
-      imprime las cinco firmas a las que les puso el candado.
-- [ ] **Verificar tras pegar:** `select retail.fn_aplicar_candado_de_dinero();` → `{}` (todo con candado). Abrir
-      `/recibir` como colaborador (Micaela, Tienda Trujillo): lista y líneas sin ningún «S/», y `/inventario/recibir`
-      sin la columna de costo. Como líder, `/compras` y `/compras/por-pagar` iguales que antes.
-- [ ] **Refrescar el volcado y el diccionario** después de pegar (`docs/datos/generado/COMO-REFRESCAR.md`): hasta
-      entonces `pnpm datos:comparar` marca `lineas_compra_operativo` como «no existe en producción» (correcto; la
-      app lo cubre con el respaldo `esFuncionAusente`) y el diccionario no trae las 5 funciones nuevas ni las políticas.
+- [x] **Pegar A y luego B** en el SQL Editor de producción: hecho el 2026-09-19. El editor muestra solo el resultado
+      de la última instrucción: no esperes ver la lista de firmas al pegar A.
+- [x] **Verificar tras pegar (base de datos):** 5 de 5 funciones de dinero con candado, sin sobrecargas; las 5 políticas
+      y el bucket con la regla nueva; una colaboradora real recibe `42501` en las 5 funciones de dinero mientras las de
+      recibir le responden, y a la líder todo le responde.
+- [ ] **Verificar en pantalla (Felipe):** abrir `/recibir` como colaborador (Micaela, Tienda Trujillo): lista y líneas
+      sin ningún «S/», y `/inventario/recibir` sin la columna de costo. Como líder, `/compras` y `/compras/por-pagar`
+      iguales que antes. Producción aún no tiene facturas: la primera será la prueba real.
+- [x] **Refrescar el volcado y el diccionario:** hecho el 2026-09-19 (174 funciones, las 5 políticas y, de paso, 2
+      funciones de Movimientos que faltaban). `datos:comparar` ya no marca `lineas_compra_operativo`.
 - [ ] **Regla para la sesión de Compras:** después de pegar cualquier migración que recree `resumen_compras`,
       `resumen_compras_extra`, `deuda_por_vencimiento`, `salidas_caja_30d` o `por_pagar_tramos`, correr
       `select retail.fn_aplicar_candado_de_dinero();`. Una migración puede llevar, al final y sin depender del orden:

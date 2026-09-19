@@ -917,6 +917,72 @@
 | `transferencia_recepciones_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.transferencias t   WHERE ((t.id = transferencia_recepciones.transferencia_id) AND (retail.fn_puede_operar_ubicacion(t.ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(t.ubicacion_destino_id)))))` |
 
 
+### `envios`
+
+*7 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `numero_guia` | text | sí | — | — |
+| `nota` | text | sí | — | — |
+| `recibido_por` | uuid | sí | — | — |
+| `fecha_recepcion` | timestamp with time zone | **no** | `now()` | — |
+| `token_cliente` | uuid | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `envios_token_cliente_key` *(único parcial)* — `retail.envios (token_cliente) WHERE (token_cliente IS NOT NULL)`
+
+**De qué depende:** `(recibido_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `envios_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_id)` |
+
+
+### `envio_extras`
+
+*5 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `movimiento_id` | uuid | **no** | — | — |
+| `envio_id` | uuid | **no** | — | — |
+| `proveedor_id` | uuid | **no** | — | — |
+| `es_regalo` | boolean | **no** | `false` | — |
+| `nota` | text | sí | — | — |
+
+**De qué depende:** `(envio_id) REFERENCES retail.envios(id)` · `(movimiento_id) REFERENCES retail.movimientos(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `envio_extras_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.envios e   WHERE ((e.id = envio_extras.envio_id) AND retail.fn_puede_operar_ubicacion(e.ubicacion_id))))` |
+
+
+### `envio_traslados`
+
+*2 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `envio_id` | uuid | **no** | — | — |
+| `transferencia_id` | uuid | **no** | — | — |
+
+**De qué depende:** `(envio_id) REFERENCES retail.envios(id)` · `(transferencia_id) REFERENCES retail.transferencias(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `envio_traslados_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.envios e   WHERE ((e.id = envio_traslados.envio_id) AND retail.fn_puede_operar_ubicacion(e.ubicacion_id))))` |
+
+
 
 ## 06 · Lechuza — Conteo y censo físico
 
@@ -1614,7 +1680,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compras_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_destino_id)` |
+| `compras_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `compra_items`
@@ -1643,7 +1709,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_items_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_items.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
+| `compra_items_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `compra_pagos`
@@ -1673,7 +1739,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_pagos_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_pagos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
+| `compra_pagos_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `compra_adjuntos`
@@ -1707,7 +1773,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_adjuntos_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_adjuntos.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
+| `compra_adjuntos_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `compras_resumen`
@@ -1835,7 +1901,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_notas_credito_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.compras c   WHERE ((c.id = compra_notas_credito.compra_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
+| `compra_notas_credito_select` | SELECT | `retail.fn_puede_ver_dinero_de_compras()` |
 
 
 ### `proveedor_creditos`
@@ -2157,78 +2223,4 @@
 |---|---|---|
 | `activos_fijos_select` | SELECT | `(auth.role() = 'authenticated'::text)` |
 | `activos_fijos_write_lider` | ALL | `retail.fn_es_lider()` |
-
-
-
-## Sin módulo asignado
-
-> Estas tablas existen en la base y **no tienen pájaro** en `scripts/datos/aviario.mjs`,
-> y `pnpm datos:aviario` falla mientras sigan acá.
-> Eso siempre significa una de dos cosas: el mapa se quedó viejo, o alguien creó una
-> tabla sin decidir de quién es. Las dos hay que resolverlas, no ignorarlas.
-
-### `envio_extras`
-
-*5 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `movimiento_id` | uuid | **no** | — | — |
-| `envio_id` | uuid | **no** | — | — |
-| `proveedor_id` | uuid | **no** | — | — |
-| `es_regalo` | boolean | **no** | `false` | — |
-| `nota` | text | sí | — | — |
-
-**De qué depende:** `(envio_id) REFERENCES retail.envios(id)` · `(movimiento_id) REFERENCES retail.movimientos(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `envio_extras_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.envios e   WHERE ((e.id = envio_extras.envio_id) AND retail.fn_puede_operar_ubicacion(e.ubicacion_id))))` |
-
-
-### `envio_traslados`
-
-*2 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `envio_id` | uuid | **no** | — | — |
-| `transferencia_id` | uuid | **no** | — | — |
-
-**De qué depende:** `(envio_id) REFERENCES retail.envios(id)` · `(transferencia_id) REFERENCES retail.transferencias(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `envio_traslados_select` | SELECT | `(EXISTS ( SELECT 1    FROM retail.envios e   WHERE ((e.id = envio_traslados.envio_id) AND retail.fn_puede_operar_ubicacion(e.ubicacion_id))))` |
-
-
-### `envios`
-
-*7 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | — |
-| `ubicacion_id` | uuid | **no** | — | — |
-| `numero_guia` | text | sí | — | — |
-| `nota` | text | sí | — | — |
-| `recibido_por` | uuid | sí | — | — |
-| `fecha_recepcion` | timestamp with time zone | **no** | `now()` | — |
-| `token_cliente` | uuid | sí | — | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `envios_token_cliente_key` *(único parcial)* — `retail.envios (token_cliente) WHERE (token_cliente IS NOT NULL)`
-
-**De qué depende:** `(recibido_por) REFERENCES personas(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
-
-**Quién puede qué** (políticas de fila):
-
-| Política | Operación | Condición |
-|---|---|---|
-| `envios_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_id)` |
 
