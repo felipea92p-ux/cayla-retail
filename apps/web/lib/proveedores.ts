@@ -18,7 +18,7 @@ export type Proveedor = {
   /**
    * Lo financiero (facturas, total_facturado, saldo, ultima_compra,
    * facturas_vencidas, facturas_recibidas_completas,
-   * facturas_con_recepcion_pendiente, facturas_atrasadas, y desde ADR-0106
+   * facturas_con_recepcion_pendiente, facturas_atrasadas, y desde ADR-0111
    * facturado_12m, saldo_vencido, dias_desde_ultima_compra, entregas_por_recibir)
    * llega `null` si quien pregunta no es líder — corrección de D-27, 2026-09-17
    * (20260917240000_proveedores_lista_indicadores_y_candado_sede.sql). No es
@@ -68,7 +68,7 @@ export async function getProveedores(): Promise<Proveedor[]> {
   }));
 }
 
-// Las cifras de la cabecera de la lista (ADR-0106): activos, deuda total con proveedores,
+// Las cifras de la cabecera de la lista (ADR-0111): activos, deuda total con proveedores,
 // concentración (qué parte de la deuda está en un solo proveedor) y quiénes llevan más de 90 días
 // sin comprar. Todo `null` para quien no es líder, salvo los conteos del directorio.
 export type ResumenProveedores = {
@@ -145,7 +145,7 @@ export async function getProveedor(id: string): Promise<ProveedorFicha | null> {
 // MetricasInsumos en la pantalla — son negocios distintos aunque compartan
 // la misma ficha de proveedor (decisión de Felipe, ver la migración).
 //
-// Los promedios llegan CON su muestra (ADR-0106): «11 días» de una sola entrega no es una tendencia, y
+// Los promedios llegan CON su muestra (ADR-0111): «11 días» de una sola entrega no es una tendencia, y
 // la pantalla lo dice. `diasPagoRealPromedio` es `null` con menos de 2 comprobantes pagados por completo.
 export type MetricasCompras = {
   facturas_vigentes: number;

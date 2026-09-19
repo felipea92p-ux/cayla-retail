@@ -1,5 +1,5 @@
 -- ============================================================================
--- Compras (ADR-0106, D2 y D3): el libro de cierres de línea y notas de crédito
+-- Compras (ADR-0111, D2 y D3): el libro de cierres de línea y notas de crédito
 --
 -- EL PROBLEMA. Un comprobante de proveedor que llega corto ("facturó 24, llegaron
 -- 20") se quedaba `parcial` para siempre: no había forma de decir "estas 4 no van
@@ -72,7 +72,7 @@ create table compra_item_cierres (
 create index compra_item_cierres_item_idx on compra_item_cierres (compra_item_id);
 
 comment on table compra_item_cierres is
-  'Libro append-only: "estas N unidades de esta línea de comprobante no van a llegar" (ADR-0106 D2). pendiente = cantidad - recibido - cerrado. No cambia stock (no es un movimiento); solo cierra lo que faltaba.';
+  'Libro append-only: "estas N unidades de esta línea de comprobante no van a llegar" (ADR-0111 D2). pendiente = cantidad - recibido - cerrado. No cambia stock (no es un movimiento); solo cierra lo que faltaba.';
 
 -- ==================== 4. compra_notas_credito ====================
 create table compra_notas_credito (
@@ -99,7 +99,7 @@ create index compra_notas_credito_compra_idx on compra_notas_credito (compra_id)
 create index compra_notas_credito_cierre_idx on compra_notas_credito (cierre_id) where cierre_id is not null;
 
 comment on table compra_notas_credito is
-  'Libro append-only: notas de crédito del proveedor contra un comprobante (ADR-0106 D2). saldo = total - pagado - suma(monto). El IGV de la nota resta del crédito fiscal del mes en que se registra.';
+  'Libro append-only: notas de crédito del proveedor contra un comprobante (ADR-0111 D2). saldo = total - pagado - suma(monto). El IGV de la nota resta del crédito fiscal del mes en que se registra.';
 
 -- ==================== 5. RLS: lectura como compra_pagos, escritura ninguna ====================
 alter table compra_item_cierres enable row level security;

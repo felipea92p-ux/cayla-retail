@@ -12,7 +12,7 @@ import { ETIQUETA_METODO, soles } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { parseMonto } from "@/lib/por-pagar-reglas";
 
-// Reembolso de un proveedor (ADR-0106, corrección 2026-09-18): en vez de dejar el saldo a favor para descontarlo
+// Reembolso de un proveedor (ADR-0111, corrección 2026-09-18): en vez de dejar el saldo a favor para descontarlo
 // de un próximo pago, el proveedor devuelve el dinero. Es un REGISTRO —baja el saldo a favor—, no mueve caja: sin
 // él, un saldo a favor solo podría gastarse comprando. Solo líder; la base lo vuelve a exigir.
 

@@ -1,13 +1,13 @@
 -- ============================================================================
 -- Compras: "hoy" en Lima para las cifras de cabecera + las cifras que faltaban
--- (ADR-0106, sección «Lectura»)
+-- (ADR-0111, sección «Lectura»)
 --
 -- EL PROBLEMA. Dos cosas en las tarjetas que decide Felipe cada mañana:
 --
 --   1. `resumen_compras()` compara vencimientos contra `current_date`, que en
 --      Postgres es UTC: entre las 7 pm y la medianoche de Lima ya es "mañana",
 --      y una factura que vence HOY sale como vencida con la tienda abierta.
---      Se cambia por `fn_hoy_lima()` (20260918160000) — mismo `RETURNS`, mismo
+--      Se cambia por `fn_hoy_lima()` (20260918200000) — mismo `RETURNS`, mismo
 --      candado de sede, solo el reloj.
 --
 --   2. Faltan las cifras que las pantallas piden y que la base ya sabe
@@ -24,7 +24,7 @@
 --
 -- `igv_mes` = IGV de las facturas del mes − IGV de las notas de crédito del mes.
 -- La tabla `compra_notas_credito` nace en la migración de escritura de D2
--- (20260918161000). Esta función NO depende de que exista al momento de crearse
+-- (20260918201000). Esta función NO depende de que exista al momento de crearse
 -- ni de correr: si la tabla no está, resta cero (SQL dinámico detrás de
 -- `to_regclass`). Así el orden de aplicación no importa — ni acá ni al pegar en
 -- producción.
@@ -76,7 +76,7 @@ as $$
 $$;
 
 comment on function retail.resumen_compras() is
-  'Cifras de cabecera de Compras (10 columnas). "Hoy" = fn_hoy_lima(), no current_date (ADR-0106). Acotada por sede (ADR-0075).';
+  'Cifras de cabecera de Compras (10 columnas). "Hoy" = fn_hoy_lima(), no current_date (ADR-0111). Acotada por sede (ADR-0075).';
 
 revoke all on function retail.resumen_compras() from public, anon;
 grant execute on function retail.resumen_compras() to authenticated;
@@ -197,7 +197,7 @@ end;
 $$;
 
 comment on function retail.resumen_compras_extra() is
-  'Una fila: por recibir (unidades y valor con IGV), entrega más atrasada, compras del mes vs mes anterior, IGV del mes (facturas − notas de crédito) y proveedor que concentra la deuda. "Hoy" = fn_hoy_lima(). Acotada por sede (ADR-0075). ADR-0106.';
+  'Una fila: por recibir (unidades y valor con IGV), entrega más atrasada, compras del mes vs mes anterior, IGV del mes (facturas − notas de crédito) y proveedor que concentra la deuda. "Hoy" = fn_hoy_lima(). Acotada por sede (ADR-0075). ADR-0111.';
 
 revoke all on function retail.resumen_compras_extra() from public, anon;
 grant execute on function retail.resumen_compras_extra() to authenticated;

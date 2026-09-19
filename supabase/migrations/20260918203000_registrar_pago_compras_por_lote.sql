@@ -1,5 +1,5 @@
 -- ============================================================================
--- Compras (ADR-0106, D3): pago por lote — UNA transferencia, VARIOS comprobantes
+-- Compras (ADR-0111, D3): pago por lote — UNA transferencia, VARIOS comprobantes
 --
 -- EL PROBLEMA. Felipe le paga al proveedor una sola transferencia de S/ 7,906
 -- que cubre dos comprobantes. Hoy hay que registrar dos pagos sueltos: en el
@@ -148,7 +148,7 @@ end;
 $$;
 
 comment on function retail.registrar_pago_compras(uuid, text, jsonb, text, date, uuid) is
-  'Pago por lote (ADR-0106 D3): una transferencia aplicada a varios comprobantes del mismo proveedor, todo o nada, con candado por comprobante e idempotente por token (el token es el pago_grupo_id). Devuelve el pago_grupo_id. Solo quien puede registrar pagos (líder).';
+  'Pago por lote (ADR-0111 D3): una transferencia aplicada a varios comprobantes del mismo proveedor, todo o nada, con candado por comprobante e idempotente por token (el token es el pago_grupo_id). Devuelve el pago_grupo_id. Solo quien puede registrar pagos (líder).';
 
 revoke all on function retail.registrar_pago_compras(uuid, text, jsonb, text, date, uuid) from public, anon;
 grant execute on function retail.registrar_pago_compras(uuid, text, jsonb, text, date, uuid) to authenticated;

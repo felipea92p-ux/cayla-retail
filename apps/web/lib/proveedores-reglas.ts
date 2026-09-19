@@ -1,4 +1,4 @@
-// Reglas puras de Proveedores (maquetas 08 y 09, ADR-0106). Sin I/O: se prueban sin base.
+// Reglas puras de Proveedores (maquetas 08 y 09, ADR-0111). Sin I/O: se prueban sin base.
 
 // ---------------------------------------------------------------------------
 // Rubro: texto libre a propósito (ADR-0094) — sin vocabulario cerrado. Para que «Tela», «tela » y

@@ -17,7 +17,7 @@ import { ETIQUETA_METODO, ETIQUETA_METODO_PAGO, METODO_SALDO_A_FAVOR, soles } fr
    contado) o solo no pasarse (crédito). El componente solo dibuja y
    avisa; la regla la aplica la base.
 
-   Saldo a favor (ADR-0106, corrección 2026-09-18): si el proveedor le debe
+   Saldo a favor (ADR-0111, corrección 2026-09-18): si el proveedor le debe
    algo a CAYLA, `saldoFavor` > 0 ofrece «Saldo a favor» como un medio más
    y un atajo «Usar S/ X» que lo pone como primera línea, con el resto en el
    medio de siempre. La base valida que no se use más de lo disponible.

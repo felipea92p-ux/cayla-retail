@@ -1,5 +1,5 @@
 -- ============================================================================
--- Recibir mercadería: quién cumple y cuánto tarda (ADR-0106, sección «Lectura»)
+-- Recibir mercadería: quién cumple y cuánto tarda (ADR-0111, sección «Lectura»)
 --
 -- EL PROBLEMA. «Recibidas recientemente» es una lista fija de las últimas 15 sin
 -- cifra alguna: no responde la pregunta que Felipe se hace antes de pactar el
@@ -109,7 +109,7 @@ as $$
 $$;
 
 comment on function retail.listar_recepciones_compras(uuid, date, date, text, integer) is
-  'Recepciones contra comprobante: una fila por (lote, comprobante) con lo que llegó, lo facturado, lo que falta hoy y los días desde la emisión. Busca por documento, proveedor o guía. Más recientes primero, máx. 200. Acotada por sede. ADR-0106.';
+  'Recepciones contra comprobante: una fila por (lote, comprobante) con lo que llegó, lo facturado, lo que falta hoy y los días desde la emisión. Busca por documento, proveedor o guía. Más recientes primero, máx. 200. Acotada por sede. ADR-0111.';
 
 revoke all on function retail.listar_recepciones_compras(uuid, date, date, text, integer) from public, anon;
 grant execute on function retail.listar_recepciones_compras(uuid, date, date, text, integer) to authenticated;
@@ -164,7 +164,7 @@ as $$
 $$;
 
 comment on function retail.resumen_recepciones(date) is
-  'Una fila: unidades recibidas, guías (lotes), días de entrega promedio (emisión → llegada), comprobantes recibidos y cuántos llegaron completos, más el faltante abierto de hoy (recepción parcial). p_desde null = 90 días atrás. Acotada por sede. ADR-0106.';
+  'Una fila: unidades recibidas, guías (lotes), días de entrega promedio (emisión → llegada), comprobantes recibidos y cuántos llegaron completos, más el faltante abierto de hoy (recepción parcial). p_desde null = 90 días atrás. Acotada por sede. ADR-0111.';
 
 revoke all on function retail.resumen_recepciones(date) from public, anon;
 grant execute on function retail.resumen_recepciones(date) to authenticated;

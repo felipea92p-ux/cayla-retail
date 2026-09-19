@@ -55,7 +55,7 @@ export function InventarioNav({ mostrarResumen = false }: { mostrarResumen?: boo
           </Link>
         );
       })}
-      {/* «Ingreso sin comprobante» (ADR-0106): la excepción de recibir — mercadería que llegó y todavía no tiene
+      {/* «Ingreso sin comprobante» (ADR-0111): la excepción de recibir — mercadería que llegó y todavía no tiene
           su comprobante, muestras y obsequios. Vive en Inventario, no como par de Compras; a la derecha y
           discreto para que no compita con las pestañas. */}
       <Link

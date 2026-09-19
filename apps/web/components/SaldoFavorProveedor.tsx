@@ -3,7 +3,7 @@ import { BotonReembolso } from "@/components/SaldoFavorAcciones";
 import { ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras-reglas";
 import { ETIQUETA_MOVIMIENTO_CREDITO, type MovimientoCredito } from "@/lib/saldo-favor";
 
-// «Saldo a favor» en la ficha del proveedor (ADR-0106, corrección 2026-09-18): lo que el proveedor le debe a
+// «Saldo a favor» en la ficha del proveedor (ADR-0111, corrección 2026-09-18): lo que el proveedor le debe a
 // CAYLA porque una nota de crédito superó lo que se le debía de su comprobante (típico: un faltante en una factura
 // al contado, que ya estaba pagada). Se descuenta solo al pagar (Por pagar → Pagar) o se pide de vuelta
 // (reembolso). El historial dice de dónde vino cada sol y adónde fue: es el libro `proveedor_creditos`, que nunca

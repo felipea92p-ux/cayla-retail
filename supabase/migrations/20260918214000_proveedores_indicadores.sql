@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Proveedores: indicadores para decidir a quién se le compra y a quién se le debe
--- (ADR-0106, maquetas 08 y 09)
+-- (ADR-0111, maquetas 08 y 09)
 --
 -- EL PROBLEMA. La lista de proveedores decía cuánto se facturó «desde siempre» y, a los seis
 -- meses de datos, importa más lo reciente. No decía qué proveedores concentran la deuda ni
@@ -23,7 +23,7 @@
 -- sale con su muestra, y `dias_pago_real_promedio` es NULL con menos de 2 comprobantes pagados por
 -- completo — la pantalla dice «se calcula con 2 o más» en lugar de mostrar un número engañoso.
 --
--- «Hoy» es fn_hoy_lima() (20260918160000), nunca current_date. Lo financiero es solo de líder
+-- «Hoy» es fn_hoy_lima() (20260918200000), nunca current_date. Lo financiero es solo de líder
 -- (NULL si no lo es), igual que hoy; `saldo` ya descuenta notas de crédito (D2) porque sale del
 -- snapshot de `compras`.
 --

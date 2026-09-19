@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 
-// Saldo a favor de los proveedores (ADR-0106, corrección 2026-09-18): lo que un proveedor le debe a CAYLA
+// Saldo a favor de los proveedores (ADR-0111, corrección 2026-09-18): lo que un proveedor le debe a CAYLA
 // porque una nota de crédito superó lo que se le debía de su comprobante (típico: factura al contado, que
 // nace pagada) y todavía no se descontó de un pago ni se reembolsó. Vive en el libro `proveedor_creditos`
 // (append-only); el saldo es la SUMA del libro, nunca un dato guardado. Solo LEE: las escrituras pasan por

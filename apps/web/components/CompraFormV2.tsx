@@ -26,7 +26,7 @@ import { costoBase, costoParaTipear, ETIQUETA_METODO, fechaCorta, soles, totales
 // la variante; si agrupa ("Blusa Lino x 24"), se deja "Sin desglose" y el
 // reparto por talla/color se hace al recibir.
 type Variante = { varianteId: string; sku: string; talla: string | null; color: string | null; productoId: string; referencia: string; costo: number };
-// Lo que se sabe de un proveedor al elegirlo (ADR-0106): su plazo y forma de pago preferidos, y lo que ya se le
+// Lo que se sabe de un proveedor al elegirlo (ADR-0111): su plazo y forma de pago preferidos, y lo que ya se le
 // debe. Con eso el vencimiento se sugiere solo y se decide la compra sabiendo la deuda que ya hay con él.
 type Proveedor = { id: string; nombre: string; ruc: string | null; plazoCreditoDias?: number | null; formaPagoPreferida?: string | null; saldo?: number | null; saldoFavor?: number | null };
 type Ubicacion = { id: string; nombre: string };

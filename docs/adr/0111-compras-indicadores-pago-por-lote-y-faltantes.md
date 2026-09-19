@@ -1,4 +1,4 @@
-# ADR-0106 — Compras: indicadores para decidir, pago por lote y cierre de faltantes con nota de crédito
+# ADR-0111 — Compras: indicadores para decidir, pago por lote y cierre de faltantes con nota de crédito
 
 - **Fecha:** 2026-09-18
 - **Estado:** Aceptado. **Solo local**: nada de esto está en producción; las migraciones se pegan
@@ -78,7 +78,7 @@ como SALDO A FAVOR del proveedor.** Felipe probó la guía de recepción y de ah
   con candado por proveedor: dos pagos simultáneos no gastan el mismo saldo. Un reembolso del proveedor es un registro
   (`registrar_reembolso_proveedor`) que baja el saldo; no mueve caja. El saldo a favor no es plata que salga de caja.
   Se ve en la lista de Proveedores (columna «Saldo a favor»), en su ficha (saldo + historial), en Por pagar y en el
-  modal de pago, donde viene ofrecido y activado. Migraciones: `20260918175000` a `20260918178000`.
+  modal de pago, donde viene ofrecido y activado. Migraciones: `20260918215000` a `20260918218000`.
 - *Límites declarados:* el saldo es por proveedor (no por factura) y en soles; el reembolso no integra caja; la
   etiqueta «esperando nota de crédito» existe en el detalle del comprobante, no en las listas.
 
@@ -97,7 +97,7 @@ la producción propia NO entra por aquí (`cerrar_produccion`). Nunca se usó en
 
 **Vocabulario.** «Comprobante» en todo el módulo; «factura» solo cuando el tipo lo es.
 
-**Día de corte en Lima.** `fn_hoy_lima()` (migración `20260918160000`) reemplaza `current_date` en
+**Día de corte en Lima.** `fn_hoy_lima()` (migración `20260918200000`) reemplaza `current_date` en
 todo cálculo de vence/venció/atrasada. En TypeScript, `hoyLima` (`lib/traslados-reglas.ts`).
 
 **Una sola tarjeta de cifra.** `TarjetaCifra` (ADR-0101) se extiende; `Indicador`, `Cifra` y
@@ -111,7 +111,7 @@ funciones vecinas (`fn_puede_operar_ubicacion(...)`, y `fn_es_lider()`/equivalen
 de Proveedores). Migraciones con `set search_path = retail, public, extensions;` al inicio, sin
 prefijo `retail.` en los nombres de tabla (CLAUDE.md). Aplicar a la base local **sin** `db reset`.
 
-### Escritura y modelo (agente `db-escritura`, timestamps `20260918161000`–`20260918169999`)
+### Escritura y modelo (agente `db-escritura`, timestamps `20260918201000`–`20260918169999`)
 
 - `compra_pagos.pago_grupo_id uuid null` (índice parcial).
 - `registrar_pago_compras(p_proveedor_id uuid, p_metodo text, p_aplicaciones jsonb, p_referencia text default null, p_fecha date default null, p_token uuid default null) returns uuid`
@@ -131,7 +131,7 @@ prefijo `retail.` en los nombres de tabla (CLAUDE.md). Aplicar a la base local *
   `recibir_compras`: el tope por línea es `cantidad − recibido − cerrado`.
 - `compras_resumen.vencida` y los filtros por vencimiento de `listar_compras`: `current_date` → `fn_hoy_lima()`.
 
-### Lectura (agente `db-lectura`, timestamps `20260918170000`–`20260918179999`)
+### Lectura (agente `db-lectura`, timestamps `20260918210000`–`20260918219999`)
 
 Usan `fn_hoy_lima()` y las columnas del snapshot de `compras` (`saldo`, `pagado`, `estado`, `vencida`…) para
 seguir correctos cuando aterrice D2.
@@ -158,7 +158,7 @@ Ver `docs/maquetas/compras-2026-09/README.md` (correcciones que mandan sobre las
 
 ## Consecuencias / pendiente
 
-- **Producción:** las migraciones `20260918160000`–`20260918179999` se pegan con `retail.` y ok de Felipe;
+- **Producción:** las migraciones `20260918200000`–`20260918219999` se pegan con `retail.` y ok de Felipe;
   D2 toca el saldo (dinero): probar antes con datos reales de un comprobante de prueba.
 - Los indicadores dependientes de historial (días de pago, % entregado completo, tendencia de costo)
   aparecen con muestra mínima; con menos, la pantalla lo dice.

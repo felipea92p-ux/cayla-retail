@@ -1,8 +1,8 @@
-// «Hoy» según el reloj de Lima (ADR-0106). El servidor (Vercel) y la base corren
+// «Hoy» según el reloj de Lima (ADR-0111). El servidor (Vercel) y la base corren
 // en UTC: de 7 pm a medianoche de Lima ya es «mañana» para ellos. Todo cálculo de
 // «vence hoy / venció hace N días / llega en N días» usa estas funciones, nunca
 // `new Date()` a secas ni `current_date` — es la contraparte de `fn_hoy_lima()`
-// en Postgres (migración 20260918160000). Fechas como texto `aaaa-mm-dd`.
+// en Postgres (migración 20260918200000). Fechas como texto `aaaa-mm-dd`.
 
 /** `aaaa-mm-dd` de hoy en Lima. `ahora` existe para poder probar el corte de las 19:00. */
 export function hoyLima(ahora: Date = new Date()): string {

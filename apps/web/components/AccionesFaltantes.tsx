@@ -15,7 +15,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { parseMonto } from "@/lib/por-pagar-reglas";
 import { disponibilidadNota, MARGEN_NOTA, montoDeCierres, reparteNota, tasaIgv, textoReparteNota } from "@/lib/recepciones-reglas";
 
-// Acciones del libro de faltantes desde el DETALLE de un comprobante (D2, ADR-0106): cerrar con faltante una línea
+// Acciones del libro de faltantes desde el DETALLE de un comprobante (D2, ADR-0111): cerrar con faltante una línea
 // que ya tiene cantidades pendientes, y registrar la nota de crédito que el proveedor emite. El detalle es solo de
 // líder (el layout de Compras lo exige), así que estas acciones asumen líder; la base lo vuelve a exigir.
 

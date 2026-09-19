@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 
-// Lectura del libro de faltantes (D2, ADR-0106): las notas de crédito del proveedor y los cierres
+// Lectura del libro de faltantes (D2, ADR-0111): las notas de crédito del proveedor y los cierres
 // de línea de UN comprobante. Son tablas de solo lectura (RLS) y append-only: se agregan filas,
 // nunca se editan ni se borran. Las escrituras pasan por `cerrar_linea_compra` y
 // `registrar_nota_credito_compra` desde los componentes cliente.

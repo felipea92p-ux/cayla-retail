@@ -1,5 +1,5 @@
 -- ============================================================================
--- Compras (ADR-0106, D2): el saldo y la recepción cuentan cierres y notas de crédito
+-- Compras (ADR-0111, D2): el saldo y la recepción cuentan cierres y notas de crédito
 --
 -- LO QUE CAMBIA, en una frase: `saldo` deja de ser `total - pagado` y pasa a ser
 -- `total - pagado - notas_credito`; y un comprobante cuyas líneas están 100 %
@@ -40,7 +40,7 @@
 --
 -- «HOY» EN LIMA. `vencida` y `recepcion_atrasada` (la vista) comparaban contra
 -- `current_date` (UTC: cambia de día a las 7 pm de Lima). Pasan a `fn_hoy_lima()`
--- (20260918160000).
+-- (20260918200000).
 --
 -- CANDADOS DE ESQUEMA (principio 2): dos CHECK que hacen imposible el estado
 -- absurdo, no solo lo validan las RPC:

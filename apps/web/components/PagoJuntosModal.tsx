@@ -13,7 +13,7 @@ import { ETIQUETA_METODO, soles, type CompraResumen } from "@/lib/compras-reglas
 import { hoyLima } from "@/lib/fechas-lima";
 import { etiquetaVence, parseMonto, repartirPago, tramoDe } from "@/lib/por-pagar-reglas";
 
-// Pago juntos (D3, ADR-0106): UNA transferencia que se aplica a varios comprobantes DEL MISMO
+// Pago juntos (D3, ADR-0111): UNA transferencia que se aplica a varios comprobantes DEL MISMO
 // proveedor. En Gamarra se le paga al proveedor «lo que se le debe», no factura por factura;
 // obligar a registrar N pagos sueltos deja el estado de cuenta del banco (una línea) imposible
 // de conciliar con el sistema (N pagos). Cada comprobante conserva su propio historial: la base
@@ -23,7 +23,7 @@ import { etiquetaVence, parseMonto, repartirPago, tramoDe } from "@/lib/por-paga
 // apretar dos veces (o reintentar tras un corte) no pague dos veces. El pago individual de
 // siempre (`BotonPagar`) no cambia: este modal es el camino del lote.
 //
-// Saldo a favor (ADR-0106, corrección 2026-09-18): si el proveedor le debe algo a CAYLA (una nota de
+// Saldo a favor (ADR-0111, corrección 2026-09-18): si el proveedor le debe algo a CAYLA (una nota de
 // crédito que superó lo que se le debía, típico de una factura al contado), acá se ofrece descontarlo del
 // pago. Viene activado —pagar de más al proveedor con plata que ya tenemos a favor es el error caro— pero
 // se ve, con el monto a transferir ya reducido, y se puede apagar. La base lo aplica en el mismo pago

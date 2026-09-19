@@ -1,5 +1,5 @@
 -- ============================================================================
--- ADR-0106 (corrección 2026-09-18) — lecturas del saldo a favor de los proveedores.
+-- ADR-0111 (corrección 2026-09-18) — lecturas del saldo a favor de los proveedores.
 --
 --   · `fn_proveedores()`           +saldo_favor: una columna en la lista de Proveedores.
 --   · `fn_proveedores_resumen()`   +saldo_favor_total, +con_saldo_favor: la banda de arriba.
@@ -49,7 +49,7 @@ AS $function$
 $function$;
 
 comment on function retail.fn_proveedores() is
-  'Lista de proveedores con sus cifras de compras (solo líder ve el dinero) y su saldo a favor (ADR-0106).';
+  'Lista de proveedores con sus cifras de compras (solo líder ve el dinero) y su saldo a favor (ADR-0111).';
 
 revoke all on function retail.fn_proveedores() from public, anon;
 grant execute on function retail.fn_proveedores() to authenticated;
@@ -113,7 +113,7 @@ as $$
 $$;
 
 comment on function retail.fn_proveedor_creditos(uuid, integer) is
-  'Historial del saldo a favor de un proveedor (ADR-0106): notas que dejaron saldo, usos como medio de pago y reembolsos, del más reciente al más antiguo. Solo quien registra compras.';
+  'Historial del saldo a favor de un proveedor (ADR-0111): notas que dejaron saldo, usos como medio de pago y reembolsos, del más reciente al más antiguo. Solo quien registra compras.';
 
 revoke all on function retail.fn_proveedor_creditos(uuid, integer) from public, anon;
 grant execute on function retail.fn_proveedor_creditos(uuid, integer) to authenticated;

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Pruebas de Compras: pago por lote (D3) y faltantes con nota de crédito (D2) contra
- * el Postgres local — CAYLA V2, ADR-0106.
+ * el Postgres local — CAYLA V2, ADR-0111.
  *
  * QUÉ PRUEBA. Las RPC nuevas y lo que cambiaron en lo existente, con dinero de por
  * medio (por eso hay pruebas antes de que esto llegue a producción):
@@ -997,7 +997,7 @@ rollback;
 // ---------------------------------------------------------------------------
 
 // ===========================================================================
-// NOTA POR FALTANTE ESTRICTA + SALDO A FAVOR + RECIBIR Y CERRAR ATÓMICO (ADR-0106, corrección 2026-09-18)
+// NOTA POR FALTANTE ESTRICTA + SALDO A FAVOR + RECIBIR Y CERRAR ATÓMICO (ADR-0111, corrección 2026-09-18)
 // ===========================================================================
 
 /** Como `compra`, pero AL CONTADO y pagada por completo al registrarse (total 1,416.00 con los valores por defecto). */

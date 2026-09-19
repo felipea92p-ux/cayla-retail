@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 
-// Indicadores de Compras para decidir (ADR-0106). Solo LEE. Cada función es una llamada
-// a una función SQL del contrato de `docs/adr/0106-…md` (sección «Lectura»); las cifras
+// Indicadores de Compras para decidir (ADR-0111). Solo LEE. Cada función es una llamada
+// a una función SQL del contrato de `docs/adr/0111-…md` (sección «Lectura»); las cifras
 // se calculan en Postgres, nunca en la página (una página trae ≤ 50 filas, la deuda
 // puede ser más). Los `numeric` de Postgres viajan como texto por JSON: se normalizan
 // acá, una sola vez, para que las pantallas reciban `number`.

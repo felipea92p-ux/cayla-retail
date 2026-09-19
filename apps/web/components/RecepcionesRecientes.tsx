@@ -8,7 +8,7 @@ import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { fechaCorta, type RecepcionReciente } from "@/lib/compras-reglas";
 
 const PLANTILLA = "sm:grid-cols-[6rem_1fr_7rem]";
-// Con la columna de costo (Ingreso sin comprobante, ADR-0106): fecha · proveedor/nota · unidades · costo.
+// Con la columna de costo (Ingreso sin comprobante, ADR-0111): fecha · proveedor/nota · unidades · costo.
 const PLANTILLA_CON_COSTO = "sm:grid-cols-[6rem_1fr_7rem_10rem]";
 
 /** Costo unitario promedio del lote y si falta: sin costo la prenda no cuenta en el promedio ponderado y distorsiona el margen. */

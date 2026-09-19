@@ -15,7 +15,7 @@ import {
   type NotaBorrador,
 } from "@/lib/recepciones-reglas";
 
-// La nota de crédito, al FINAL de la guía (ADR-0106, corrección 2026-09-18). Lo que faltó ya se decidió
+// La nota de crédito, al FINAL de la guía (ADR-0111, corrección 2026-09-18). Lo que faltó ya se decidió
 // fila por fila; acá solo queda el documento del proveedor, y se ofrece únicamente cuando se puede:
 //   · una sola nota por faltante por comprobante, que cubre todo lo que no llegó;
 //   · solo con el comprobante resuelto al 100 % (todo recibido o cerrado), porque el monto depende de

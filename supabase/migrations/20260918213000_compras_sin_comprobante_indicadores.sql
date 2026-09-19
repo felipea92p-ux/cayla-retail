@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Ingreso sin comprobante: controlar lo que entra sin respaldo
--- (ADR-0106, sección «Lectura»)
+-- (ADR-0111, sección «Lectura»)
 --
 -- EL PROBLEMA. `recibir_lote` (mercadería que llega sin comprobante todavía, o
 -- muestras/obsequios) es el único camino por donde entra stock sin que quede
@@ -80,7 +80,7 @@ as $$
 $$;
 
 comment on function retail.resumen_sin_comprobante(uuid) is
-  'Una fila: unidades y recepciones sin comprobante del mes (Lima), unidades sin costo registrado, y la última recepción (no limitada al mes). Sin comprobante = lote sin ningún movimiento contra una línea de comprobante; sin costo = movimiento sin fila en costo_historial. Acotada por sede. ADR-0106.';
+  'Una fila: unidades y recepciones sin comprobante del mes (Lima), unidades sin costo registrado, y la última recepción (no limitada al mes). Sin comprobante = lote sin ningún movimiento contra una línea de comprobante; sin costo = movimiento sin fila en costo_historial. Acotada por sede. ADR-0111.';
 
 revoke all on function retail.resumen_sin_comprobante(uuid) from public, anon;
 grant execute on function retail.resumen_sin_comprobante(uuid) to authenticated;
@@ -135,7 +135,7 @@ as $$
 $$;
 
 comment on function retail.recepciones_sin_comprobante(uuid, integer) is
-  'Recepciones sin comprobante, una fila por lote, más recientes primero (máx. 200): unidades, costo unitario promedio ponderado de lo que tiene costo y sin_costo = algún movimiento sin costo registrado. Acotada por sede. ADR-0106.';
+  'Recepciones sin comprobante, una fila por lote, más recientes primero (máx. 200): unidades, costo unitario promedio ponderado de lo que tiene costo y sin_costo = algún movimiento sin costo registrado. Acotada por sede. ADR-0111.';
 
 revoke all on function retail.recepciones_sin_comprobante(uuid, integer) from public, anon;
 grant execute on function retail.recepciones_sin_comprobante(uuid, integer) to authenticated;

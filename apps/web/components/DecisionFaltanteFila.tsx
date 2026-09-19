@@ -5,7 +5,7 @@ import { SelectNativo } from "@/components/ui/campos";
 import { ETIQUETA_MOTIVO_CIERRE, type MotivoCierre } from "@/lib/compras-reglas";
 import type { DecisionFaltante } from "@/lib/recepciones-reglas";
 
-// Qué pasó con lo que faltó, EN LA MISMA FILA (ADR-0106, corrección 2026-09-18). Cuando una línea llega
+// Qué pasó con lo que faltó, EN LA MISMA FILA (ADR-0111, corrección 2026-09-18). Cuando una línea llega
 // con menos de lo pendiente, debajo de ella se abre este editor: se elige si se espera lo que falta o
 // por qué no va a llegar, se da «Guardar», y la decisión queda a la vista en la columna Estado de la tabla.
 //

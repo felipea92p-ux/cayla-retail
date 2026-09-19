@@ -1,5 +1,5 @@
 -- ============================================================================
--- Compras (ADR-0106, D2): lo que ya existía ahora respeta cierres y notas de crédito
+-- Compras (ADR-0111, D2): lo que ya existía ahora respeta cierres y notas de crédito
 --
 -- Tres funciones existentes que tenían que enterarse de las tablas nuevas:
 --
@@ -73,7 +73,7 @@ begin
     end if;
 
     select coalesce(sum(cantidad), 0) into v_recibido from movimientos where compra_item_id = v_linea.id;
-    -- Lo cerrado («no va a llegar», ADR-0106 D2) ya no se puede recibir.
+    -- Lo cerrado («no va a llegar», ADR-0111 D2) ya no se puede recibir.
     select coalesce(sum(cantidad), 0) into v_cerrado from compra_item_cierres where compra_item_id = v_linea.id;
     v_cantidad := (v_agregado ->> 'cantidad')::integer;
     if v_cantidad <= 0 then
@@ -162,7 +162,7 @@ end;
 $$;
 
 comment on function retail.recibir_compras(uuid, jsonb, text, text) is
-  'Recibe mercadería contra una o varias facturas del mismo proveedor (ADR-0035). Un ítem con compra_item_id = null es fuera de factura (ADR-0076): mismo lote, sin tope ni deuda, costo opcional. El tope por línea es cantidad - recibido - cerrado (ADR-0106 D2).';
+  'Recibe mercadería contra una o varias facturas del mismo proveedor (ADR-0035). Un ítem con compra_item_id = null es fuera de factura (ADR-0076): mismo lote, sin tope ni deuda, costo opcional. El tope por línea es cantidad - recibido - cerrado (ADR-0111 D2).';
 
 -- ==================== 2. anular_compra: tampoco con notas de crédito ni cierres ====================
 create or replace function retail.anular_compra(p_compra_id uuid, p_motivo text)
@@ -198,7 +198,7 @@ begin
   ) then
     raise exception 'La factura ya tiene mercadería recibida: no se puede anular';
   end if;
-  -- ADR-0106: una nota de crédito o un cierre de línea cuelgan del comprobante;
+  -- ADR-0111: una nota de crédito o un cierre de línea cuelgan del comprobante;
   -- anularlo los dejaría huérfanos (y el IGV de la nota seguiría restando del crédito fiscal).
   if exists (select 1 from compra_notas_credito where compra_id = p_compra_id) then
     raise exception 'La factura tiene notas de crédito registradas: no se puede anular';

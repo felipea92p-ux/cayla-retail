@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 /* ====================================================================
-   BarraFija · resumen + acción, pegada al borde inferior (2026-09-18, ADR-0106)
+   BarraFija · resumen + acción, pegada al borde inferior (2026-09-18, ADR-0111)
 
    La usaba `RecepcionCompraFormV2` (unidades que se van a recibir + botón
    «Recibir») y la necesitan «Pagar juntos» (total de lo seleccionado) y la

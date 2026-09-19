@@ -9,7 +9,7 @@ import { nombreDelMes } from "@/lib/comprobantes-lista-reglas";
 import { RecibirLotePanel } from "@/components/RecibirLotePanel";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 
-// Ingreso sin comprobante (ADR-0106, maqueta 07). Fase UI 1 (2026-09-11): rediseño completo — ver
+// Ingreso sin comprobante (ADR-0111, maqueta 07). Fase UI 1 (2026-09-11): rediseño completo — ver
 // `RecepcionFormV2.tsx` para el porqué no es una adaptación de la pantalla V1. 2026-09-17: lista de
 // recepciones recientes + el formulario detrás de «+ Nueva recepción» (`RecibirLotePanel`).
 //

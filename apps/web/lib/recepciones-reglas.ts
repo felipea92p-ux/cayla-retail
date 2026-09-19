@@ -1,7 +1,7 @@
 import { diaMes, diasHastaLima, sumarDias } from "./fechas-lima";
 import { parseMonto } from "./por-pagar-reglas";
 
-// Reglas puras de Recibir mercadería (D1 y D2 de ADR-0106). Sin I/O: se prueban sin base ni
+// Reglas puras de Recibir mercadería (D1 y D2 de ADR-0111). Sin I/O: se prueban sin base ni
 // navegador. Las fechas son de Lima (`fechas-lima`), nunca el reloj del servidor.
 
 // ---------------------------------------------------------------------------

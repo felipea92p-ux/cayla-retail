@@ -48,7 +48,7 @@ const PARAMS: Record<FiltroVisible, string[]> = {
   vencidas: ["vencidas"],
 };
 
-// `accionesAntes` / `accionesDespues` (ADR-0106): controles propios de cada pantalla que
+// `accionesAntes` / `accionesDespues` (ADR-0111): controles propios de cada pantalla que
 // van en la misma fila del buscador —«Orden: Emisión | Vencimiento» en Comprobantes,
 // «Por urgencia | Por proveedor» en Por pagar—, antes o después del botón «Filtros».
 // Cada uno lleva el mismo espaciador de etiqueta que el botón para quedar a la altura

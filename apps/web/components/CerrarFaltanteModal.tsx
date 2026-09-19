@@ -8,7 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { ETIQUETA_MOTIVO_CIERRE, type CompraResumen, type LineaCompra, type MotivoCierre } from "@/lib/compras-reglas";
 
-// Cerrar una línea con faltante DESDE EL DETALLE de un comprobante (D2, ADR-0106): la vía para cerrar solo una
+// Cerrar una línea con faltante DESDE EL DETALLE de un comprobante (D2, ADR-0111): la vía para cerrar solo una
 // PARTE de una línea, o para cerrar después lo que en la guía se dejó como «lo espero». Al recibir mercadería el
 // faltante se decide en la misma fila de la guía y se registra junto con la recepción; esto es el camino suelto.
 //

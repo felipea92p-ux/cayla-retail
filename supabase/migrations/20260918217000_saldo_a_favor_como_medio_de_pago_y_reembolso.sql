@@ -1,5 +1,5 @@
 -- ============================================================================
--- ADR-0106 (corrección 2026-09-18) — «Saldo a favor» como medio de pago, y reembolso.
+-- ADR-0111 (corrección 2026-09-18) — «Saldo a favor» como medio de pago, y reembolso.
 --
 -- El saldo a favor de un proveedor (libro `proveedor_creditos`, migración 175000) se usa
 -- como un medio de pago más: aparece en el historial de pagos del comprobante igual que
@@ -364,7 +364,7 @@ end;
 $function$;
 
 comment on function retail.registrar_pago_compras(uuid, text, jsonb, text, date, uuid, numeric) is
-  'Un pago (una transferencia) que se aplica a varios comprobantes del mismo proveedor (ADR-0106 D3). p_credito = cuánto del total se cubre con saldo a favor del proveedor (el resto va con p_metodo); se reparte en el orden de las aplicaciones. Todo o nada; idempotente por p_token.';
+  'Un pago (una transferencia) que se aplica a varios comprobantes del mismo proveedor (ADR-0111 D3). p_credito = cuánto del total se cubre con saldo a favor del proveedor (el resto va con p_metodo); se reparte en el orden de las aplicaciones. Todo o nada; idempotente por p_token.';
 
 revoke all on function retail.registrar_pago_compras(uuid, text, jsonb, text, date, uuid, numeric) from public, anon;
 grant execute on function retail.registrar_pago_compras(uuid, text, jsonb, text, date, uuid, numeric) to authenticated;
@@ -420,7 +420,7 @@ end;
 $$;
 
 comment on function retail.registrar_reembolso_proveedor(uuid, numeric, text, text, date, text) is
-  'El proveedor devolvió dinero en vez de dejar saldo a favor (ADR-0106): baja el saldo a favor. Solo líder. No mueve caja (es un registro).';
+  'El proveedor devolvió dinero en vez de dejar saldo a favor (ADR-0111): baja el saldo a favor. Solo líder. No mueve caja (es un registro).';
 
 revoke all on function retail.registrar_reembolso_proveedor(uuid, numeric, text, text, date, text) from public, anon;
 grant execute on function retail.registrar_reembolso_proveedor(uuid, numeric, text, text, date, text) to authenticated;

@@ -11,7 +11,7 @@ import type { RecepcionReciente } from "@/lib/compras-reglas";
 type Variante = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null };
 type Proveedor = { id: string; nombre: string };
 
-// Ingreso sin comprobante (ADR-0106, maqueta 07): la EXCEPCIÓN de recibir. Mercadería que llegó y
+// Ingreso sin comprobante (ADR-0111, maqueta 07): la EXCEPCIÓN de recibir. Mercadería que llegó y
 // todavía no tiene su comprobante (el proveedor lo manda después), muestras u obsequios. Es el único
 // camino que guarda proveedor + guía + costo cuando no hay papel: «Ajustar inventario» sube stock pero no
 // guarda ninguno de los tres. La producción propia NO entra por acá: el Taller la ingresa al cerrar la

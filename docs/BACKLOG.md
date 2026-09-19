@@ -28,7 +28,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Compras: indicadores para decidir, faltantes con nota de crédito y pago por lote (2026-09-18, ADR-0106)
+## 🎯 Compras: indicadores para decidir, faltantes con nota de crédito y pago por lote (2026-09-18, ADR-0111)
 
 Rama `claude/pantallas-proveedores-comprobantes-a15ece`, **solo local, sin merge a main todavía**
 (Felipe: «no realicemos merge aún»). Las 11 pantallas de `docs/maquetas/compras-2026-09/` están
@@ -43,33 +43,33 @@ El ADR se numeró 0106 porque main tiene otro 0104 y la rama `inventory-view-ux`
       tras la prueba de Felipe: nota de crédito estricta, saldo a favor del proveedor y recepción atómica. `compras` tiene 0 filas en producción, así
       que la reconstrucción de `saldo/estado_pago/estado_recepcion` no toca datos. Cada archivo ya
       trae su `set search_path = retail, public, extensions;` (no hace falta el prefijo `retail.`).
-      1. `20260918160000_fn_hoy_lima` — `fn_hoy_lima()`; reemplaza `current_date` (Lima, no UTC).
-      2. `20260918161000_compras_libro_cierres_y_notas_credito` — tablas `compra_item_cierres` y
+      1. `20260918200000_fn_hoy_lima` — `fn_hoy_lima()`; reemplaza `current_date` (Lima, no UTC).
+      2. `20260918201000_compras_libro_cierres_y_notas_credito` — tablas `compra_item_cierres` y
          `compra_notas_credito` (append-only) + `compra_pagos.pago_grupo_id` + columnas snapshot.
-      3. `20260918162000_compras_saldo_y_recepcion_con_cierres_y_notas` — `saldo = total − pagado −
+      3. `20260918202000_compras_saldo_y_recepcion_con_cierres_y_notas` — `saldo = total − pagado −
          notas` y `pendiente = cantidad − recibido − cerrado`; triggers de foto, candados
          `compras_no_sobrepagada`/`compras_no_sobrerecibida` y vistas `compras_resumen`/`compra_items_resumen`.
-      4. `20260918163000_registrar_pago_compras_por_lote` — pago de varios comprobantes juntos.
-      5. `20260918164000_compras_cerrar_linea_y_nota_credito` — `cerrar_linea_compra`,
+      4. `20260918203000_registrar_pago_compras_por_lote` — pago de varios comprobantes juntos.
+      5. `20260918204000_compras_cerrar_linea_y_nota_credito` — `cerrar_linea_compra`,
          `registrar_nota_credito_compra`.
-      6. `20260918165000_compras_recibir_anular_y_listar_con_cierres` — `recibir_compras`,
+      6. `20260918205000_compras_recibir_anular_y_listar_con_cierres` — `recibir_compras`,
          `anular_compra`, `listar_compras` conscientes de cierres y notas.
-      7. `20260918170000_compras_resumen_hoy_lima_y_extra` — `resumen_compras`, `resumen_compras_extra`.
-      8. `20260918171000_compras_deuda_tramos_y_salidas_de_caja` — `deuda_por_vencimiento`,
+      7. `20260918210000_compras_resumen_hoy_lima_y_extra` — `resumen_compras`, `resumen_compras_extra`.
+      8. `20260918211000_compras_deuda_tramos_y_salidas_de_caja` — `deuda_por_vencimiento`,
          `salidas_caja_30d`, `por_pagar_tramos`.
-      9. `20260918172000_compras_recepciones_indicadores` — `resumen_recepciones`,
+      9. `20260918212000_compras_recepciones_indicadores` — `resumen_recepciones`,
          `listar_recepciones_compras`.
-      10. `20260918173000_compras_sin_comprobante_indicadores` — `resumen_sin_comprobante`,
+      10. `20260918213000_compras_sin_comprobante_indicadores` — `resumen_sin_comprobante`,
           `recepciones_sin_comprobante`.
-      11. `20260918174000_proveedores_indicadores` — `fn_proveedores` (+4 columnas),
+      11. `20260918214000_proveedores_indicadores` — `fn_proveedores` (+4 columnas),
           `fn_proveedores_resumen`, `fn_proveedor_metricas_compras` (+7), `fn_proveedor_costo_evolucion`,
           `fn_proveedor_devoluciones`.
-      12. `20260918175000_compras_nota_credito_estricta_y_saldo_a_favor` — `compra_notas_credito.aplicado`,
+      12. `20260918215000_compras_nota_credito_estricta_y_saldo_a_favor` — `compra_notas_credito.aplicado`,
           libro `proveedor_creditos`, reglas de la nota por faltante, `cerrar_linea_compra` sin nota.
-      13. `20260918176000_recibir_y_cerrar_compras_atomico` — recibir + cerrar + nota en una transacción.
-      14. `20260918177000_saldo_a_favor_como_medio_de_pago_y_reembolso` — medio `saldo_a_favor` en los tres
+      13. `20260918216000_recibir_y_cerrar_compras_atomico` — recibir + cerrar + nota en una transacción.
+      14. `20260918217000_saldo_a_favor_como_medio_de_pago_y_reembolso` — medio `saldo_a_favor` en los tres
           pagos (`p_credito` en el lote) y `registrar_reembolso_proveedor`.
-      15. `20260918178000_saldo_a_favor_lecturas` — `fn_proveedores`/`fn_proveedores_resumen` con saldo a favor,
+      15. `20260918218000_saldo_a_favor_lecturas` — `fn_proveedores`/`fn_proveedores_resumen` con saldo a favor,
           `fn_proveedor_creditos`.
       **Después de pegar:** desplegar la rama (las pantallas llaman a estas funciones — sin las
       migraciones, `datos:comparar` las marca rotas) y correr `pnpm datos:generar:produccion`.

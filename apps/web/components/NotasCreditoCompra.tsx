@@ -4,7 +4,7 @@ import { ETIQUETA_MOTIVO_NOTA, fechaCorta, soles, type CompraResumen } from "@/l
 import type { NotaCreditoCompra } from "@/lib/compras-faltantes";
 import { montoDeCierres, tasaIgv } from "@/lib/recepciones-reglas";
 
-// Sección «Notas de crédito» del detalle de un comprobante (D2, ADR-0106): lo que el proveedor
+// Sección «Notas de crédito» del detalle de un comprobante (D2, ADR-0111): lo que el proveedor
 // ya nos reconoció (faltantes, devoluciones, descuentos), con el enlace para registrar la que
 // todavía no llega. Cada nota dice qué hizo: cuánto bajó lo que se debe de este comprobante y cuánto
 // quedó A FAVOR del proveedor (típico de una factura al contado, que ya estaba pagada). Y mientras haya

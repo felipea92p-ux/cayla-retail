@@ -14,7 +14,7 @@ import { PorPagarLista } from "@/components/PorPagarLista";
 import { SaldosAFavor } from "@/components/SaldosAFavor";
 import type { DatosPagoProveedor } from "@/components/PagoJuntosModal";
 
-// Por pagar (ADR-0035, rediseño ADR-0106): los comprobantes vigentes con saldo, de lo más urgente
+// Por pagar (ADR-0035, rediseño ADR-0111): los comprobantes vigentes con saldo, de lo más urgente
 // a lo que puede esperar. Sale del índice parcial `compras_por_pagar_idx`, que solo contiene lo
 // que se debe — chico aunque haya millones pagadas. Las cifras se suman en Postgres, nunca en la
 // página: una página trae ≤ 50 filas y la deuda puede ser más.

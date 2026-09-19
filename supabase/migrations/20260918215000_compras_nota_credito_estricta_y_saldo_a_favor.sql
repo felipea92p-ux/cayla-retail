@@ -1,5 +1,5 @@
 -- ============================================================================
--- ADR-0106 (corrección 2026-09-18) — la nota de crédito se ordena, y lo que no
+-- ADR-0111 (corrección 2026-09-18) — la nota de crédito se ordena, y lo que no
 -- baja una deuda queda como SALDO A FAVOR del proveedor.
 --
 -- LO QUE FALLABA. Hoy cualquiera de estas cosas pasaba:
@@ -116,7 +116,7 @@ create table proveedor_creditos (
 create index proveedor_creditos_proveedor_idx on proveedor_creditos (proveedor_id, created_at desc);
 
 comment on table proveedor_creditos is
-  'Libro append-only del saldo a favor de cada proveedor (ADR-0106, corrección 2026-09-18). nota_credito = lo que sobró de una nota tras bajar la deuda de su comprobante; aplicacion = usado como medio de pago; reembolso = el proveedor devolvió el dinero. Saldo = suma(nota_credito) − suma(aplicacion) − suma(reembolso): se calcula, no se guarda.';
+  'Libro append-only del saldo a favor de cada proveedor (ADR-0111, corrección 2026-09-18). nota_credito = lo que sobró de una nota tras bajar la deuda de su comprobante; aplicacion = usado como medio de pago; reembolso = el proveedor devolvió el dinero. Saldo = suma(nota_credito) − suma(aplicacion) − suma(reembolso): se calcula, no se guarda.';
 
 alter table proveedor_creditos enable row level security;
 
@@ -154,7 +154,7 @@ as $$
 $$;
 
 comment on function retail.fn_saldo_favor_proveedor(uuid) is
-  'Cuánto le debe el proveedor a CAYLA en saldo a favor (ADR-0106). Suma del libro proveedor_creditos; 0 para quien no puede registrar compras (RLS).';
+  'Cuánto le debe el proveedor a CAYLA en saldo a favor (ADR-0111). Suma del libro proveedor_creditos; 0 para quien no puede registrar compras (RLS).';
 
 revoke all on function retail.fn_saldo_favor_proveedor(uuid) from public, anon;
 grant execute on function retail.fn_saldo_favor_proveedor(uuid) to authenticated;
@@ -322,7 +322,7 @@ end;
 $$;
 
 comment on function retail.fn_insertar_nota_credito_compra(uuid, text, date, numeric, text, text, uuid, uuid) is
-  'Interna (ADR-0106): valida e inserta una nota de crédito. Reglas de la nota por faltante: una por comprobante, con el comprobante resuelto al 100 %, con cierres y sin pasar de lo cerrado a su costo + IGV. Lo que no baja la deuda del comprobante (monto − saldo) se anota en proveedor_creditos como saldo a favor. El llamador ya bloqueó el comprobante y validó el permiso.';
+  'Interna (ADR-0111): valida e inserta una nota de crédito. Reglas de la nota por faltante: una por comprobante, con el comprobante resuelto al 100 %, con cierres y sin pasar de lo cerrado a su costo + IGV. Lo que no baja la deuda del comprobante (monto − saldo) se anota en proveedor_creditos como saldo a favor. El llamador ya bloqueó el comprobante y validó el permiso.';
 
 -- ==================== 4. cerrar una línea: solo cierra ====================
 drop function retail.cerrar_linea_compra(uuid, integer, text, text, jsonb);
@@ -392,10 +392,10 @@ end;
 $$;
 
 comment on function retail.cerrar_linea_compra(uuid, integer, text, text) is
-  'Cierra unidades pendientes de una línea de comprobante: «no van a llegar» (ADR-0106 D2). p_cantidad <= pendiente (cantidad - recibido - cerrado). Solo cierra: la nota de crédito se registra aparte (registrar_nota_credito_compra) o junto con la recepción (recibir_y_cerrar_compras), porque es una por comprobante. No toca stock. Devuelve el id del cierre.';
+  'Cierra unidades pendientes de una línea de comprobante: «no van a llegar» (ADR-0111 D2). p_cantidad <= pendiente (cantidad - recibido - cerrado). Solo cierra: la nota de crédito se registra aparte (registrar_nota_credito_compra) o junto con la recepción (recibir_y_cerrar_compras), porque es una por comprobante. No toca stock. Devuelve el id del cierre.';
 
 revoke all on function retail.cerrar_linea_compra(uuid, integer, text, text) from public, anon;
 grant execute on function retail.cerrar_linea_compra(uuid, integer, text, text) to authenticated;
 
 comment on function retail.registrar_nota_credito_compra(uuid, text, date, numeric, text, text, uuid) is
-  'Registra una nota de crédito del proveedor contra un comprobante (ADR-0106 D2). Solo líder. La deuda del comprobante baja min(monto, saldo); lo que sobre queda como saldo a favor del proveedor. Nota por faltante: una por comprobante, con el comprobante resuelto al 100 %. motivo: faltante | devolucion | descuento | otro.';
+  'Registra una nota de crédito del proveedor contra un comprobante (ADR-0111 D2). Solo líder. La deuda del comprobante baja min(monto, saldo); lo que sobre queda como saldo a favor del proveedor. Nota por faltante: una por comprobante, con el comprobante resuelto al 100 %. motivo: faltante | devolucion | descuento | otro.';

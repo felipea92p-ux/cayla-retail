@@ -2,7 +2,7 @@ import Link from "next/link";
 
 /* ====================================================================
    SegmentoEnlaces · un control de dos o tres opciones que vive en la URL
-   (2026-09-18, ADR-0106)
+   (2026-09-18, ADR-0111)
 
    «Emisión | Vencimiento» en Comprobantes y «Por urgencia | Por proveedor»
    en Por pagar. Son enlaces, no botones con estado: la opción elegida es un

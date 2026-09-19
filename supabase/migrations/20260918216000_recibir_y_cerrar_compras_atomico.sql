@@ -1,5 +1,5 @@
 -- ============================================================================
--- ADR-0106 (corrección 2026-09-18) — recibir, cerrar faltantes y registrar la nota
+-- ADR-0111 (corrección 2026-09-18) — recibir, cerrar faltantes y registrar la nota
 -- de crédito en UNA sola transacción.
 --
 -- POR QUÉ. La pantalla de recepción encadenaba tres llamadas sueltas: `recibir_compras`,
@@ -92,7 +92,7 @@ end;
 $$;
 
 comment on function retail.recibir_y_cerrar_compras(uuid, jsonb, jsonb, jsonb, text, text) is
-  'Recibe mercadería (recibir_compras), cierra faltantes (cerrar_linea_compra) y registra la nota de crédito por faltante (registrar_nota_credito_compra) en UNA transacción: si algo falla, no queda nada (ADR-0106). Devuelve {lote_id, cierres, notas_credito}.';
+  'Recibe mercadería (recibir_compras), cierra faltantes (cerrar_linea_compra) y registra la nota de crédito por faltante (registrar_nota_credito_compra) en UNA transacción: si algo falla, no queda nada (ADR-0111). Devuelve {lote_id, cierres, notas_credito}.';
 
 revoke all on function retail.recibir_y_cerrar_compras(uuid, jsonb, jsonb, jsonb, text, text) from public, anon;
 grant execute on function retail.recibir_y_cerrar_compras(uuid, jsonb, jsonb, jsonb, text, text) to authenticated;

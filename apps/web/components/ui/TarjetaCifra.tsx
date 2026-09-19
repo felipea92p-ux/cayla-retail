@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 /* ====================================================================
    TarjetaCifra · una etiqueta, un número grande, una línea de contexto
-   (2026-09-17, ADR-0101; extendida 2026-09-18, ADR-0106)
+   (2026-09-17, ADR-0101; extendida 2026-09-18, ADR-0111)
 
    Es la tarjeta de resumen que Existencias, Traslados, Conteo y
    Movimientos dibujan cada uno con su copia local de `Tarjeta`
@@ -16,7 +16,7 @@ import type { ReactNode } from "react";
    `accion` dibuja el enlace rojo al pie ("Ver detalle →") — el único
    rojo permitido en una tarjeta que pide algo.
 
-   ADR-0106 (Compras): el módulo tenía CINCO copias de esta tarjeta
+   ADR-0111 (Compras): el módulo tenía CINCO copias de esta tarjeta
    (`Indicador` en /compras, `Cifra` en /compras/por-pagar y en el detalle,
    `TarjetaIndicador`, y esta). Migran a esta; para eso se le suman cuatro
    cosas opcionales, ninguna cambia lo que ya dibujaba:

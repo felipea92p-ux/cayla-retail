@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 /* ====================================================================
-   Pestañas · vistas de una lista, con conteo (2026-09-18, ADR-0106)
+   Pestañas · vistas de una lista, con conteo (2026-09-18, ADR-0111)
 
    Por qué existe: /compras escondía sus filtros detrás de un botón
    «Filtros» y las tarjetas de cabecera navegaban a OTRAS pantallas; para

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { soles } from "@/lib/compras-reglas";
 
-// «A favor con proveedores» en Por pagar (ADR-0106, corrección 2026-09-18): antes de pagar hay que saber a quién
+// «A favor con proveedores» en Por pagar (ADR-0111, corrección 2026-09-18): antes de pagar hay que saber a quién
 // le debemos y quién nos debe a nosotros. Una nota de crédito que superó lo que se le debía a un proveedor (típico:
 // faltante en una factura al contado) deja saldo a favor, y ese saldo se descuenta al pagarle. Por proveedor se ve
 // cuánto se le debe, cuánto tiene a favor y cuánto queda por transferir de verdad si se usa; el enlace lleva a
