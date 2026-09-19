@@ -17,7 +17,7 @@ import type { ReactNode } from "react";
 export function BarraFija({ resumen, acciones, medidor, className = "" }: { resumen: ReactNode; acciones: ReactNode; /** Una franja de 3 px pegada al borde superior (Recibir: contado · faltante · sin contar). */ medidor?: ReactNode; className?: string }) {
   return (
     <div
-      className={`fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 border-t border-sand bg-crema/95 backdrop-blur supports-[backdrop-filter]:bg-crema/80 sm:bottom-0 sm:left-lateral ${className}`}
+      className={`fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 border-t border-sand bg-crema/95 backdrop-blur supports-[backdrop-filter]:bg-crema/80 sm:bottom-0 sm:left-lateral sm:transition-[left] sm:duration-300 sm:ease-cayla ${className}`}
     >
       {medidor}
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3 sm:px-10">
