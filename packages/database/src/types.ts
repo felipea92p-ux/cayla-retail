@@ -1337,6 +1337,33 @@ export type Database = {
           },
         ]
       }
+      cuentas: {
+        Row: {
+          activo: boolean
+          codigo: string
+          nombre: string
+          orden: number
+          seccion_resultados: string | null
+          tipo: string
+        }
+        Insert: {
+          activo?: boolean
+          codigo: string
+          nombre: string
+          orden: number
+          seccion_resultados?: string | null
+          tipo: string
+        }
+        Update: {
+          activo?: boolean
+          codigo?: string
+          nombre?: string
+          orden?: number
+          seccion_resultados?: string | null
+          tipo?: string
+        }
+        Relationships: []
+      }
       devolucion_items: {
         Row: {
           cantidad: number
@@ -2167,6 +2194,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      parametros_tributarios: {
+        Row: {
+          created_at: string
+          nombre: string
+          nota: string | null
+          valor: number
+          vigente_desde: string
+        }
+        Insert: {
+          created_at?: string
+          nombre: string
+          nota?: string | null
+          valor: number
+          vigente_desde: string
+        }
+        Update: {
+          created_at?: string
+          nombre?: string
+          nota?: string | null
+          valor?: number
+          vigente_desde?: string
+        }
+        Relationships: []
       }
       patrones: {
         Row: {
@@ -3978,6 +4029,39 @@ export type Database = {
         Args: { p_movimiento_id: string }
         Returns: undefined
       }
+      fn_asientos: {
+        Args: {
+          p_desde: string
+          p_hasta: string
+          p_ubicacion_id?: string
+        }
+        Returns: {
+          asiento: string
+          cuenta: string
+          debe: number
+          fecha: string
+          glosa: string
+          haber: number
+          origen_id: string
+          origen_tabla: string
+          regla: string
+          ubicacion_id: string
+        }[]
+      }
+      fn_asientos_descuadrados: {
+        Args: {
+          p_desde: string
+          p_hasta: string
+          p_ubicacion_id?: string
+        }
+        Returns: {
+          asiento: string
+          debe: number
+          diferencia: number
+          haber: number
+          regla: string
+        }[]
+      }
       fn_asignar_codigo_producto: {
         Args: { p_producto_id: string }
         Returns: string
@@ -4120,6 +4204,30 @@ export type Database = {
         }[]
       }
       fn_es_lider: { Args: never; Returns: boolean }
+      fn_estado_resultados: {
+        Args: {
+          p_mes?: string
+        }
+        Returns: {
+          asientos_descuadrados: number
+          costo_ventas: number
+          detalle_gastos: Json
+          detalle_mermas: Json
+          es_consolidado: boolean
+          fletes: number
+          gastos_operacion: number
+          igv_ventas: number
+          margen_bruto: number
+          mermas: number
+          mermas_sin_costo: number
+          nombre: string
+          ubicacion_id: string
+          unidades_sin_costo: number
+          utilidad_operativa: number
+          ventas_brutas: number
+          ventas_netas: number
+        }[]
+      }
       fn_gastos_lista: {
         Args: {
           p_desde: string
@@ -4558,6 +4666,12 @@ export type Database = {
       fn_sububicacion_por_defecto: {
         Args: { p_ubicacion_id: string; p_uso: string }
         Returns: string
+      }
+      fn_tasa_igv: {
+        Args: {
+          p_fecha: string
+        }
+        Returns: number
       }
       fn_texto_o_null: { Args: { p: string }; Returns: string }
       fn_tiene_acceso_retail: { Args: never; Returns: boolean }
