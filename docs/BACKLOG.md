@@ -28,6 +28,49 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Vender: comprobante impreso en térmica + ajustes del POS (2026-09-18, ADR-0114)
+
+Worktree `buscar-entry-point-7aa994`, **sin commitear**. Sin migración. 414 pruebas, `tsc` y `eslint` en verde;
+verificado en navegador con datos de mentira (ruta temporal, borrada). **Falta la primera venta real.**
+
+- [x] **Comprobante impreso (80 mm) + modal «Venta registrada» útil**: vuelto a entregar, número y estado,
+      subtotal/IGV, pagos, cliente, líneas; botón «Imprimir comprobante» (no cierra el modal). Recibo con
+      «SON: …», QR de SUNAT, fecha de Lima. `VentaRegistradaModal.tsx`, `ReciboTermico.tsx`,
+      `lib/recibo-reglas.ts`, CSS de impresión en `globals.css`. También imprime con Ctrl+P.
+- [x] **Datos del emisor** en `lib/emisor.ts` (CAYLA S.A.C., RUC 20605964550, dirección, teléfono, correo,
+      web, régimen, lema — dados por Felipe): el ticket sale completo sin configurar nada. Override opcional
+      con `NEXT_PUBLIC_EMISOR_*`. Rediseño del ticket sobre el modelo de Alegra (logo en negro, TOTAL enmarcado).
+- [ ] **⚠️ Numeración al cambiar de PSE**: el último ticket de Alegra fue `B001-00005806`. Si la serie de
+      boletas de este sistema también es `B001` y arranca en 1, SUNAT rechaza duplicados: continuar el
+      correlativo o usar serie nueva ANTES de emitir en producción (`series_comprobantes`).
+- [ ] **Resolución de autorización del PSE** (`NEXT_PUBLIC_EMISOR_RESOLUCION`): el ticket de Alegra imprime la
+      de Alegra; la de Lucode la tiene Felipe. Vacía = no se imprime.
+- [x] **«Imprimir y nueva venta»** (Enter): un toque en vez de tres tras confirmar; «Solo imprimir» y «Sin
+      imprimir» como salidas raras. Falta activarlo en cada PC de caja con Chrome `--kiosk-printing`
+      (`docs/OPERACION-IMPRESORA-TERMICA.md`).
+- [x] **Atajos F1–F5** (#3 de la simulación): F1 efectivo, F2 tarjeta, F3 yape, F4 plin, F5 transferencia; en
+      «cobrar» agregan/quitan el medio, en «armar» con prendas pagan todo con ese medio y saltan al cobro.
+      Pista «F1»–«F5» en cada chip. Verificado con teclado real.
+- [ ] **Siguientes de la simulación de venta** (medida real: 8 toques, <0.5 s de sistema): elegir el método
+      desde «armar» (**probado el 2026-09-18 como fila «Cobrar con» sobre «Cobrar» y Felipe la descartó por
+      poco estética** — si se retoma, otro diseño); un atajo para CONFIRMAR el cobro (Enter no sirve: el foco vive en el escáner); «Pendiente de enviar» → texto
+      claro para la cajera; mostrar «Recibido» en el modal; reimprimir desde «Ventas de hoy».
+- [ ] **Probar con la térmica real**: papel «80 mm rollo», márgenes ninguno, escala 100 %; para cero diálogos
+      Chrome con `--kiosk-printing` en la PC de caja. Y **escanear el QR** con un lector.
+- [ ] **«Nota de venta»**: no existe como opción de Vender (`boleta | factura`). Es un documento sin valor
+      tributario (ADR-0007): decisión de negocio y de esquema de Felipe.
+- [ ] **Reimprimir desde «Ventas de hoy»**: hoy solo se imprime al cobrar. Reconstruir el recibo desde
+      `venta_items` + `venta_pagos` + `comprobantes` (el vuelto no se guarda).
+- [ ] **Dirección por tienda** (`ubicaciones` no la tiene; hoy se imprime el domicilio fiscal) y, a futuro,
+      «reimprimir el oficial» con el `pdf.ticket` de Lucode cuando la transmisión sea automática.
+- [x] Ajustes del POS pedidos en la sesión: «Solo con stock» como interruptor **activo por defecto** con
+      contador de agotadas; tarjeta tocable → modal de talla (**una sola talla vendible se agrega directo**);
+      avisos de tope por `avisar` + resaltado rojo de la tarjeta (`anim-tope`); un color por método de pago;
+      tocar de nuevo un método lo quita y **traspasa su monto al siguiente**; subtotal e IGV en el pie.
+- [ ] **Revisar `/caja`**: los tokens `--color-metodo-*` son compartidos con la dona de Caja y cambiaron
+      (efectivo azul→cobrizo, tarjeta ámbar→plomo, «Yape / Plin» verde→morado). Decidir si esa dona separa Yape y Plin.
+- [ ] **Sincronizar con `main` antes de pushear**: la sesión `ventas-visual-redesign-240e2b` también toca
+      `globals.css` (tokens) y dice que «Punto de Venta sigue» en su rama.
 ## 🎯 Anulación de ventas: el repo se pone al día con producción (2026-09-18)
 
 Se buscaba cerrar «devolver una venta ya anulada vuelve a meter la prenda al stock» (ítem
@@ -258,7 +301,7 @@ van en la banda `20260918200000`–`20260918218000` (main trae su propia `202609
           pagos (`p_credito` en el lote) y `registrar_reembolso_proveedor`.
       15. `20260918218000_saldo_a_favor_lecturas` — `fn_proveedores`/`fn_proveedores_resumen` con saldo a favor,
           `fn_proveedor_creditos`.
-      16. `20260918219000_registrar_compra_una_sola_firma_con_token_y_saldo_a_favor` — **CORRECCIÓN URGENTE**:
+      16. `20260918219100_registrar_compra_una_sola_firma_con_token_y_saldo_a_favor` — (renombrada desde `20260918219000` el 2026-09-19: chocaba de versión con `..._con_token`, de otra sesión; las dos son idempotentes, ya corrieron en producción y dejan la misma firma de 15 parámetros; esta va última porque además revoca a `anon`. La producción no lee nombres de archivo.) **CORRECCIÓN URGENTE**:
           al pegar la 217000 en producción, `registrar_compra` quedó con DOS firmas (14 y 15 parámetros) y
           Registrar comprobante falla con «function is not unique». Esta suelta la de 14 y deja UNA de 15
           (la de producción, con `p_token`) más el medio «Saldo a favor». Verificado en producción el

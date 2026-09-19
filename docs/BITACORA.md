@@ -3,6 +3,28 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Vender imprime su comprobante — la boleta existía en la base, pero la clienta no se la podía llevar)
+
+El modal de «Venta registrada» solo decía el total. La boleta ya se emitía dentro de la misma transacción
+que la venta; lo que faltaba era *verla e imprimirla*. Se comparó imprimir por el navegador (HTML de 80 mm)
+contra ESC/POS por WebUSB, un agente local y el PDF de Lucode: ganó el navegador (cero instalación, sirve
+con cualquier térmica de Windows) y el PDF de Lucode quedó descartado como camino principal porque solo
+existe *después* de transmitir a SUNAT, que hoy es manual y puede fallar. El recibo sale de la venta recién
+cobrada + serie/número/fecha de la base, con «SON: …», QR de SUNAT y hora de Lima; la lógica es pura y
+tiene 25 pruebas. Detalle y alternativas en ADR-0114.
+
+Dos cosas que Felipe debe saber: (1) el RUC, la razón social y la dirección de CAYLA **no estaban en ningún
+lado del repo ni de la base** — solo en la cuenta de Lucode — así que ahora se piden por variables
+`NEXT_PUBLIC_EMISOR_*` y, si faltan, el ticket sale sin QR y el modal lo avisa en vez de inventar un RUC;
+(2) **nada se probó con la impresora real ni con una venta real** (el panel del navegador no tenía sesión):
+se verificó el HTML en modo impresión (solo el recibo visible, 72 mm exactos) con una ruta temporal, ya borrada.
+
+En la misma sesión, a pedido: «Solo con stock» como interruptor activo por defecto, modal de talla (una sola
+talla vendible se agrega directo), avisos de tope con resaltado rojo de la tarjeta, un color por método de
+pago, tocar de nuevo un método lo quita y traspasa su monto, y subtotal/IGV en el pie. Aprendizaje: cambiar
+tokens de `globals.css` no llegó al navegador hasta borrar `apps/web/.next` (los chips salían grises, no con
+el color viejo), y esos tokens los comparte la dona de Caja — el cambio de color de un método es de las dos
+pantallas.
 ## 2026-09-18 (Al fusionar `main` apareció una segunda `registrar_compra` en producción: el token y el saldo a favor vivían en funciones distintas)
 
 GitHub marcó conflictos en BACKLOG y BITÁCORA (texto), pero la fusión de `main` traía algo más serio que no era un conflicto: la migración `20260918217000` (Compras, ADR-0111) redefine `registrar_compra` con 14 parámetros y sin `p_token`, y la mía (`180000`) la había dejado en 15 con token. Producción ya tiene las migraciones de esa otra sesión, así que hoy existen **las dos**: la de 14 con el saldo a favor y la de 15 con el token. Una llamada sin `p_token` (la del front desplegado) coincide con ambas y es ambigua. Se escribió `20260918219000_registrar_compra_una_sola_firma_con_token.sql`: una sola función con el cuerpo de la otra sesión más mi candado, y el `drop` de la de 14. Su cuerpo difiere del de ADR-0111 solo en lo del token (comprobado con un `diff`), y se probó en una transacción revertida sobre la sobrecarga que deja `217000`. Cuando fui a aplicarla con la autorización de Felipe, la lectura previa a escribir mostró que **ya estaba aplicada** en producción (alguien la pegó sin registrarla: una sola firma y el mismo md5 de cuerpo, la consulta de verificación da `1 | true | true | true`), así que no se escribió nada desde aquí.
