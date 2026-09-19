@@ -1,15 +1,16 @@
-# ADR-0113 — Rediseño visual de Caja: se adapta a la paleta ya decidida, sin modo oscuro
+# ADR-0116 — Rediseño visual de Caja: se adapta a la paleta ya decidida, sin modo oscuro
 
 **Fecha:** 2026-09-18
 **Estado:** Aplicado (Caja y Punto de Venta)
 **Nota de numeración:** escrito originalmente como ADR-0101; renumerado a 0102 al
 sincronizar con `main`, donde esa numeración ya la había tomado la sesión de "Resumen de
 Inventario" (`0101-resumen-inventario-quinta-pantalla.md`), fusionada mientras esta rama
-seguía sin pushear. Renumerado por segunda vez, a **0113**, el 2026-09-18: `main` ya tenía
+seguía sin pushear. Renumerado por segunda vez, a **0116**, el 2026-09-18: `main` ya tenía
 otro `0102-emitir-comprobante-idempotente-y-valida-igv.md` (dos ADR con el mismo número; el
-de comprobantes conserva el 0102). Se tomó 0113 y no 0112 porque el 0112 ya lo habían
-reclamado dos ramas en vuelo (`0112-ventas-y-devoluciones-solo-se-escriben-por-rpc` y
-`0112-pos-comprobante-termico-y-ajustes-de-vender`): con 0112 habría un tercer choque.
+de comprobantes conserva el 0102). Los números de al lado ya estaban tomados por ramas en
+vuelo: 0112 (`ventas-y-devoluciones-solo-se-escriben-por-rpc`), 0113 (tres ramas, entre ellas
+`panel-calidad` y `billing-design-analysis`) y 0114 (`pos-comprobante-termico-y-ajustes-de-vender`).
+Se tomó 0116 y se dejó el 0115 libre para quien tenga que moverse del 0113.
 
 ## Contexto
 

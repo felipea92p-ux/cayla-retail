@@ -506,7 +506,7 @@ function Metrica({ etiqueta, valor, asentar = false }: { etiqueta: string; valor
  * "Ritmo del día": cuántas ventas, ticket promedio y cuánto hace de la última, y debajo una línea
  * de tiempo de la apertura a ahora con una venta por punto (tamaño = monto, color = método). Sustituye
  * al gráfico de barras por hora, que con pocas ventas al día era una barra sin cifra ni comparación
- * (decisión del 2026-09-18, ADR-0113). Sale de `ventasHoy`, sin consultas nuevas.
+ * (decisión del 2026-09-18, ADR-0116). Sale de `ventasHoy`, sin consultas nuevas.
  */
 function RitmoDelDia({ ventas, abiertaEn, idsNuevos }: { ventas: VentaDelDia[]; abiertaEn: string; idsNuevos: ReadonlySet<string> }) {
   const ahora = useAhora(15_000);
