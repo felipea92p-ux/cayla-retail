@@ -1,6 +1,7 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
+import { X } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode, type RefObject } from "react";
 
 /** Debe coincidir con `.anim-salida` en globals.css. */
@@ -20,13 +21,16 @@ type Props = {
       trigger del diálogo — que estos modales controlados no tienen — y el foco cae al
       `body`. Vender lo usa para que el escáner vuelva a estar listo tras cada modal. */
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
+  /** «papel» (Por pagar, 2026-09-19, spike): el panel en `papel` con borde fino y SIN sombra —la profundidad viene del tiempo, no del
+      espacio (regla v3.1)— y una ✕ para cerrar arriba a la derecha. Sin esto, el panel de siempre (`crema` con sombra). */
+  variante?: "papel";
 };
 
 // Cascarón único para todos los modales del sistema. Antes cada uno reimplementaba
 // a mano el overlay (`fixed inset-0 ...`) y ninguno atrapaba el foco ni cerraba con
 // Escape — Radix Dialog resuelve eso una sola vez; el look sigue siendo 100% CAYLA
 // (Radix no trae estilo propio, solo comportamiento de accesibilidad).
-export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar }: Props) {
+export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, variante }: Props) {
   const [cerrando, setCerrando] = useState(false);
 
   // Cierre en dos tiempos: se anima la salida y recién ahí se le avisa al padre
@@ -60,7 +64,9 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             que el clic afuera siga llegando al velo para cerrar. */}
         <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
           <Dialog.Content
-            className={`scroll-cayla pointer-events-auto max-h-[90vh] w-full overflow-y-auto rounded-t-2xl border border-sand bg-crema p-6 shadow-xl outline-none sm:rounded-2xl ${
+            className={`scroll-cayla pointer-events-auto relative max-h-[90vh] w-full overflow-y-auto rounded-t-2xl border border-sand p-6 outline-none sm:rounded-2xl ${
+              variante === "papel" ? "bg-papel" : "bg-crema shadow-xl"
+            } ${
               cerrando ? "anim-salida" : "anim-entrada"
             } ${ancho}`}
             // Radix dispara esto al desmontar el diálogo; `preventDefault` evita que
@@ -74,8 +80,18 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
                 : undefined
             }
           >
+          {variante === "papel" && (
+            <button
+              type="button"
+              onClick={pedirCierre}
+              aria-label="Cerrar"
+              className="absolute right-4 top-4 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
+            >
+              <X aria-hidden className="h-4 w-4" />
+            </button>
+          )}
           <Dialog.Title asChild>
-            <h2 className="font-display text-lg text-tinta">{titulo}</h2>
+            <h2 className={`font-display text-lg text-tinta ${variante === "papel" ? "pr-8" : ""}`}>{titulo}</h2>
           </Dialog.Title>
           {subtitulo ? (
             <Dialog.Description asChild>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { hijosMenuProduccion } from "./produccion-menu";
 
-describe("hijosMenuProduccion (ADR-0130, D-A)", () => {
+describe("hijosMenuProduccion (ADR-0133, D-A)", () => {
   it("el líder ve el recorrido completo desde cualquier ubicación", () => {
     const esperado = ["proveedores", "comprobantes", "recibir", "porPagar", "ordenes"];
     for (const ubicacionTipo of ["tienda", "almacen", "taller"] as const) {

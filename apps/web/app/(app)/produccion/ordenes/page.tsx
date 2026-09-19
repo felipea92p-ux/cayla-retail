@@ -9,7 +9,7 @@ import { OrdenesProduccionV2 } from "@/components/OrdenesProduccionV2";
 // el costo real, que entra al stock del Taller (`cerrar_produccion` →
 // `movimientos`). Ver supabase/migrations/20260915130000_produccion_del_taller.sql.
 //
-// Vive en `/produccion/ordenes` desde ADR-0130 (F1): `/produccion` pasó a ser el
+// Vive en `/produccion/ordenes` desde ADR-0133 (F1): `/produccion` pasó a ser el
 // módulo padre y hoy redirige acá. Quién entra (D-A, reemplaza la regla del
 // 2026-09-17 «solo parado en el Taller, líder incluido»): el líder desde
 // cualquier ubicación —la base ya lo permite: `fn_puede_operar_ubicacion` es

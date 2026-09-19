@@ -1,4 +1,4 @@
-// Quién ve qué dentro del módulo padre Producción (ADR-0130, D-A). Puro, sin
+// Quién ve qué dentro del módulo padre Producción (ADR-0133, D-A). Puro, sin
 // Supabase ni React: lo usa el AppShell para armar el lateral y lo prueban los
 // tests, porque esta regla no se puede verificar en el navegador con solo la
 // sesión de un líder.

@@ -1,7 +1,7 @@
 # Plan · Producción como módulo padre (2026-09-19)
 
 > **Estado:** propuesto, pendiente del ok de Felipe en las **decisiones D-A…D-G** (sección 3). Las fases 1–3 no
-> tocan esquema y pueden empezar de inmediato; **F4 espera a que ADR-0132 llegue a `main`** (ver sección 2). ADR asociado: `docs/adr/0130-produccion-modulo-padre-de-la-cadena-de-abastecimiento.md`.
+> tocan esquema y pueden empezar de inmediato; **F4 espera a que ADR-0132 llegue a `main`** (ver sección 2). ADR asociado: `docs/adr/0133-produccion-modulo-padre-de-la-cadena-de-abastecimiento.md`.
 > Diseño de referencia: `docs/maquetas/produccion-modulo-2026-09/` (README con el guion de prueba).
 
 ## 1. Objetivo
@@ -17,7 +17,7 @@ cierran en la base, no en la pantalla), **7** (cada paso se prueba en el navegad
 
 | Hecho | Dónde | Consecuencia para el plan |
 |---|---|---|
-| La rama está **2 commits atrás** de `main`; `main` ya usa el **ADR-0129** (Recibir) | `git log HEAD..origin/main` | F0: fusionar `main`; el ADR de esto es el **0130** |
+| La rama está **2 commits atrás** de `main`; `main` ya usa el **ADR-0129** (Recibir) | `git log HEAD..origin/main` | F0: fusionar `main`. El ADR de esto nació como 0130 y se **renumeró a 0133** el 2026-09-19: el 0130 lo tomaron el menú plegable (ya en `main`) y otra rama, y el 0131/0132 también están ocupados |
 | Producción (órdenes) **ya existe y funciona**: `abrir/cerrar/anular/revertir_produccion`, `set_etapa_produccion` | `20260915130000_produccion_del_taller.sql`, `lib/produccion.ts`, `OrdenesProduccionV2.tsx` | F2 rediseña la pantalla; **no toca la base** |
 | `cerrar_produccion` recibe `p_buenas` **por variante** y acepta costos `null` (conserva los de la orden) | mismo archivo, líneas 267-345 | El cierre por talla×color es obligatorio; el costo puede venir del consumo |
 | Insumos: tablas y `recibir_insumo` en producción; `registrar_consumo_insumo` **pegada el 2026-09-17**; **0 filas y 0 pantallas** | ADR-0090; `grep` en `apps/web` sin llamadas | F3 solo es pantalla |
@@ -82,7 +82,7 @@ que cuentan, barras que crecen, destello de «acaba de pasar» y avisos con «De
 | 2 | Textos de ayuda a 45–55 % de tinta | piso de contraste (ADR-0012) | mínimo 65 % |
 | 3 | La vista de colaborador solo **oculta** los soles | ADR-0126: la base lo hace cumplir | el colaborador llama a funciones **operativas** sin costo; la pantalla no recibe el dato (F4c) |
 | 4 | Cifras de ejemplo (eficiencia 57 %, fijos S/ 3,800) | «nada inventado» (D-31) | estados vacíos diseñados; la cifra aparece solo con datos reales |
-| 5 | Gráfico de línea y «barras que crecen» | gramática de movimiento acotada (ADR-0128) | se **piden en el ADR-0130** como ampliación; sin aprobación, entran sin animar |
+| 5 | Gráfico de línea y «barras que crecen» | gramática de movimiento acotada (ADR-0128) | se **piden en el ADR-0133** como ampliación; sin aprobación, entran sin animar |
 | 6 | Drawer propio, `<aside>` propio, lateral propio | AppShell real + Radix | mismo aspecto, piezas reales |
 | 7 | Cálculos en el navegador con datos de ejemplo | principio 6 (lo esencial sobrevive al framework) | reglas puras en `lib/produccion-*.ts` con tests; la página lee y pinta |
 | 8 | Rótulos de sección en el lateral («Abastecer», «Fabricar») | el riel del AppShell se mueve por filas de **alto fijo** (`PASO_FILA`); una fila de otra altura lo desalinea (descubierto en F1) | sin rótulos; el **orden** de las filas cuenta el recorrido (proveedor → factura → recepción → pago → órdenes) |
@@ -95,7 +95,7 @@ está aquí, es un bug de portado.
 Tamaño: **S** ≈ media sesión · **M** ≈ una sesión · **L** ≈ dos o más.
 
 ### F0 · Preparación (S) — sin código de producto
-- `git merge origin/main` en la rama; reservar el **ADR-0130** y los timestamps de migración `≥ 20260919170000`; fila en
+- `git merge origin/main` en la rama; reservar el **ADR-0133** y los timestamps de migración `≥ 20260919170000`; fila en
   `SESIONES-ACTIVAS.md`; commitear el spike y este plan como `docs(produccion): …`.
 - **Verificas:** `git log --oneline HEAD..origin/main` vacío; `pnpm typecheck` en verde.
 
@@ -184,9 +184,9 @@ va solo, con su prueba SQL, y no se mezcla con pantallas. F5 y F6 pueden avanzar
 | Riesgo | Mitigación |
 |---|---|
 | F4 deja `registrar_compra` con **dos firmas** (ya pasó el 2026-09-18) | partir de `pg_get_functiondef` de producción; `explain` de verificación; prueba SQL en CI |
-| Choque con otras sesiones (ADR/timestamps/Compras). **Ya visible:** ADR-0131 y ADR-0132 están tomados por ramas sin fusionar | F0: fusionar `main`, reservar ADR-0130 y timestamps, fila en `SESIONES-ACTIVAS.md`; `git status` y ramas antes de cada fase; F4 solo tras ADR-0132 |
+| Choque con otras sesiones (ADR/timestamps/Compras). **Ya visible:** ADR-0131 y ADR-0132 están tomados por ramas sin fusionar | F0: fusionar `main`, reservar ADR-0133 y timestamps, fila en `SESIONES-ACTIVAS.md`; `git status` y ramas antes de cada fase; F4 solo tras ADR-0132 |
 | Rediseñar de más Compras y pisar ADR-0128/0129/0131 | «Abastecer» = navegación y conexión; ninguna fase restila Proveedores, Recibir, Comprobantes ni Por pagar |
-| Regla de menú del 2026-09-17 revertida sin querer | D-A explícita; el ADR-0130 la marca como **reemplazada** |
+| Regla de menú del 2026-09-17 revertida sin querer | D-A explícita; el ADR-0133 la marca como **reemplazada** |
 | El colaborador ve costos por la API | F4c antes de exponer Insumos a colaboradores fuera del Taller; prueba `dinero_compras_solo_lider.mjs` extendida |
 | Cifras de ejemplo que se cuelan a producción | regla 4 del contrato de diseño; revisión de cada PR contra el spike |
 | El spike se ve distinto en Tailwind real | criterio único: lo que difiera debe estar en la tabla de la sección 5 |

@@ -28,12 +28,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Producción como módulo padre: decidir, abastecer, fabricar, medir (2026-09-19, ADR-0130 — propuesto)
+## 🎯 Producción como módulo padre: decidir, abastecer, fabricar, medir (2026-09-19, ADR-0133 — propuesto)
 
 Plan completo en [`docs/PLAN-PRODUCCION.md`](PLAN-PRODUCCION.md); diseño de referencia en `docs/maquetas/produccion-modulo-2026-09/`.
 **Nada de esto está construido:** solo el spike y el plan (verificado en el navegador). Cada fase = un PR.
 
-- [x] **F0 · Preparación (2026-09-19):** `origin/main` fusionada (rama al día), ADR-0130 reservado (0131 y 0132 los tienen otras ramas), spike y plan commiteados.
+- [x] **F0 · Preparación (2026-09-19):** `origin/main` fusionada (rama al día), ADR-0133 reservado (el 0130 —renumerado tras chocar con el menú plegable en `main`—, 0131 y 0132 los tienen otras ramas), spike y plan commiteados.
 - [x] **D-A (menú)** — ok de Felipe al pedir F1 (2026-09-19): el líder ve Producción desde cualquier ubicación; revierte la regla del 2026-09-17.
 - [ ] **Decisiones de Felipe que siguen abiertas (bloquean F4 y F7):**
       D-C `compra_items.insumo_id` · D-E `maquila_referencias` · D-F `gastos_taller` · D-G costos de insumos solo líder.
@@ -49,6 +49,16 @@ Plan completo en [`docs/PLAN-PRODUCCION.md`](PLAN-PRODUCCION.md); diseño de ref
 - [ ] **F6 · Resumen «¿qué necesita mi decisión hoy?»** (reglas puras con tests).
 - [ ] **F7 · Eficiencia del Taller** (D-31: `maquila_referencias` + `gastos_taller`; estados vacíos hasta tener datos).
 - [ ] **F8 · Cierre:** «llevarlas a las tiendas» (Traslados), referencia en Movimientos, refresco de `docs/datos/`, ARQUITECTURA.
+
+## 🎯 Menú lateral plegable (2026-09-19, ADR-0130)
+
+Aplicado y verificado en el navegador como líder (escritorio). Falta:
+
+- [ ] **Mirar con el menú plegado** las barras fijas que ahora siguen el token (`BarraFija` en Recibir y
+  «Pagar juntos», el pie del Punto de Venta con carrito) y una pantalla con contenedores por ancho de panel
+  (Recibir, Proveedores): deberían ganar aire, no romperse.
+- [ ] **Verlo como colaborador** (Micaela): menos filas, «Recibir mercadería» dentro de Inventario.
+- [ ] **Decidir «Asomar al pasar el mouse»** (spike): no se construyó. Si se quiere, ver «Lo que NO se portó» del ADR.
 
 ## 🎯 Proveedores: vista rápida, mini-tendencias y movimiento que responde (2026-09-19, ADR-0128)
 

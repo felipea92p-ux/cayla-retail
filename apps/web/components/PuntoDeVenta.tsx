@@ -1044,7 +1044,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
         <button
           type="button"
           onClick={() => document.getElementById("ticket-pos")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-          className="anim-revelar fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 flex items-center justify-between gap-3 border-t border-sand bg-tinta px-5 py-3 text-crema shadow-lg sm:bottom-0 sm:left-lateral lg:hidden"
+          className="anim-revelar fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 flex items-center justify-between gap-3 border-t border-sand bg-tinta px-5 py-3 text-crema shadow-lg sm:bottom-0 sm:left-lateral sm:transition-[left] sm:duration-300 lg:hidden"
         >
           <span className="label-cayla text-[11px]">
             {prendas} {prendas === 1 ? "prenda" : "prendas"} · {money(total)}

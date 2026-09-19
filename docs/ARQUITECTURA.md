@@ -230,7 +230,7 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de
   arriba lo audita solo.
 
-**Producción (módulo padre, ADR-0130 — F1 aplicada 2026-09-19)**
+**Producción (módulo padre, ADR-0133 — F1 aplicada 2026-09-19)**
 - El lateral agrupa bajo «Producción» las 4 pantallas de Compras (`/compras/proveedores`,
   `/compras`, `/recibir`, `/compras/por-pagar`, **URLs sin cambio**) y `/produccion/ordenes`;
   el grupo «Compras» ya no existe. Qué ve cada perfil: `lib/produccion-menu.ts`

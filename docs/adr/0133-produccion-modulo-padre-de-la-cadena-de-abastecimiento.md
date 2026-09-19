@@ -1,5 +1,7 @@
-# ADR-0130 — Producción es el módulo padre de la cadena: decidir, abastecer, fabricar, medir
+# ADR-0133 — Producción es el módulo padre de la cadena: decidir, abastecer, fabricar, medir
 
+- **Numeración:** nació como ADR-0130 y se renumeró a 0133 al fusionar con `main`, donde el 0130 ya era «El menú lateral se pliega a íconos»
+  (`0130-menu-lateral-se-pliega-a-iconos.md`); el 0131 y el 0132 también están ocupados.
 - **Estado:** **Propuesto**; **F1 (menú, D-A) aplicada el 2026-09-19** a pedido de Felipe. Falta su ok en D-C, D-E, D-F y D-G
   (`docs/PLAN-PRODUCCION.md`) antes de tocar esquema. F2–F3 no lo necesitan.
 - **Reemplaza, en un punto:** la regla del 2026-09-17 «Producción solo se ve parado en el Taller, líder incluido»

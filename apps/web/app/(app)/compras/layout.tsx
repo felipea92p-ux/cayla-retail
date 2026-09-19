@@ -6,7 +6,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 // Proveedores/Facturas/Recibir mercadería/Por pagar) se retiró el
 // 2026-09-16: las mismas cuatro secciones viven ahora en el lateral
 // (`AppShell.tsx`) — tenerlas en los dos lados era la misma navegación
-// repetida. Desde ADR-0130 ese grupo se llama «Producción» y también trae las
+// repetida. Desde ADR-0133 ese grupo se llama «Producción» y también trae las
 // Órdenes; las URLs de acá no cambiaron. El layout de acá abajo solo
 // resuelve el candado de rol; cada página sigue resolviendo su propia
 // persona y datos.
