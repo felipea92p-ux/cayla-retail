@@ -178,7 +178,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
 
       {/* Dos negocios, nunca sumados: devoluciones/dañados e insumos del Taller van aparte de las prendas terminadas. */}
       <div className="grid gap-3 lg:grid-cols-2">
-        <div className={`card-cayla p-5 ${devoluciones.unidades === 0 ? "border-dashed !bg-transparent" : ""}`}>
+        <div className={`card-cayla p-5 ${devoluciones.unidades === 0 ? "border-dashed bg-transparent" : ""}`}>
           <p className="label-cayla text-[11px] text-tinta/65">Devoluciones y dañados a este proveedor</p>
           <p className={`font-display mt-1.5 text-[26px] leading-tight tabular-nums ${devoluciones.unidades === 0 ? "text-tinta/45" : "text-tinta"}`}>{plural(devoluciones.unidades, "unidad", "unidades")}</p>
           <p className="mt-1 text-xs text-tinta/65">
@@ -187,7 +187,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
               : `Devueltas desde cuarentena${devoluciones.ultima ? ` · la última el ${fechaCorta(devoluciones.ultima)}` : ""}.`}
           </p>
         </div>
-        <div className={`card-cayla p-5 ${insumos.lotes === 0 ? "border-dashed !bg-transparent" : ""}`}>
+        <div className={`card-cayla p-5 ${insumos.lotes === 0 ? "border-dashed bg-transparent" : ""}`}>
           <p className="label-cayla text-[11px] text-tinta/65">Insumos del Taller</p>
           {insumos.lotes === 0 ? (
             <>

@@ -166,7 +166,7 @@ export function PagoJuntosModal({
     <Modal
       titulo={
         <>
-          <span className="label-cayla mb-0.5 block text-[11px] font-normal text-tinta/65">Pagar a proveedor</span>
+          <span className="label-cayla mb-0.5 block text-[11px] text-tinta/65">Pagar a proveedor</span>
           <span className="block text-[28px] leading-tight">{proveedorNombre}</span>
         </>
       }

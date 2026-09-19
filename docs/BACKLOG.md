@@ -186,11 +186,57 @@ reales sin pájaro) y el generador del diccionario llevaba otra lista distinta.
 - [ ] **Cada pájaro: su archivo en `docs/datos/modulos/` describe V1**, igual que
       `00-MAPA.md` (45 tablas, `sede_meta`, `stock_almacen`). El índice ya es verdad;
       los documentos del porqué, todavía no.
-- [ ] **Refrescar el volcado de producción** (`generado/COMO-REFRESCAR.md`):
-      `retail.familias` ya existe allá desde el PR #129 y el volcado del 17-sep no la
-      tiene. Hasta refrescarlo, la alarma del aviario no ve las tablas nacidas después.
+- [x] **Volcado de producción refrescado (2026-09-18)** (`generado/COMO-REFRESCAR.md`):
+      `retail.familias` entró; el aviario ve 61 tablas y ninguna «no en el volcado».
+      Sale de aquí una alarma más fresca, no permanente: se vuelve a quedar vieja con
+      cada tanda de migraciones pegadas en producción.
+- [ ] **Producción va por delante de `main` en dos columnas:** `retail.patrones.imagen_muestra_url`
+      y `retail.tejidos.imagen_muestra_url` existen en producción, pero su SQL solo está en
+      ramas sin fusionar (PR #131, migración `20260918140000_patrones_muestra_visual.sql`, y
+      la rama `claude/muestra-foto-tejidos-patrones`, migración
+      `20260918160000_tejidos_patrones_imagen_muestra.sql`, sin PR). Ojo: `main` ya tiene un
+      `20260918140000_tejidos_seed.sql`; el PR #131 traería un segundo archivo con la misma
+      versión y `supabase db reset` local se quejaría. Renumerar antes de fusionar.
+- [ ] **Registro de migraciones incompleto en producción (refuerza el pendiente de Gorrión de
+      arriba):** con efecto vivo en producción (verificado por sus columnas/funciones) pero sin fila en
+      `supabase_migrations.schema_migrations` están, al menos siete: `devolver_proveedor_entra_a_cuarentena`,
+      las tres de Proveedores (`…071000`, `…073000`, `…120000`),
+      `compras_atraso_recepcion`, `etiquetas_estilo_visual`, `emitir_comprobante_idempotente_y_valida_igv`.
+      No hay SQL desconocido (cada columna nueva del volcado tiene su archivo en el repo, salvo lo
+      de arriba): lo que falta es el rastro.
 
 ---
+
+## 🎯 El acento rojo de las tarjetas por fin se ve: `.card-cayla` sale de la sombra (2026-09-18, ADR-0105)
+
+`.card-cayla` (y `.label-cayla`, `.font-display`, `.alza-cayla`, `.scroll-cayla`, `.anim-*`) estaban
+en `globals.css` fuera de toda `@layer`, y lo que no tiene capa le gana a toda utilidad de Tailwind:
+`card-cayla border-l-2 border-l-rojo` pintaba el borde sand de 1px. El acento de "esta tarjeta pide
+algo" no se veía en Resumen, Existencias, Conteo, Traslados, Productos ni en el banner de altas
+pendientes; tampoco existían el fondo de "filtro seleccionado" ni el foco de teclado de las tarjetas
+de `/compras`. Todo pasó a `@layer components` y hay un test (`lib/globals-capas.test.ts`) que falla
+si alguien vuelve a escribir una clase suelta. Detalle, tabla de utilidades muertas y qué se decidió
+con cada una: ADR-0105.
+
+- [x] **Hecho y verificado en navegador** con 752 `className` reales del código: mover la capa
+      cambia exactamente lo que el análisis predijo, y nada más. `tsc`, `eslint`, 419 tests en verde.
+      **No verificado con datos reales:** el Docker local estaba caído y no se reinició (tumbaría los
+      Supabase de otras sesiones). Falta que alguien con la base local arriba mire, como líder:
+      Inventario → Resumen (borde rojo en "Necesita reposición ahora"; el filtro elegido queda
+      sombreado), Traslados (borde en "Por confirmar en mi sede"), Conteo con un conteo abierto,
+      Productos con una prenda dada de alta en un conteo, y Compras con Tab (borde rojo al enfocar).
+- [x] **`MAX_ROJO_POR_PANTALLA` — decidido por Felipe el 2026-09-18 (opción A).** Los enlaces de
+      acción de las tarjetas ("Ver detalle →"…) y los del banner de altas pendientes de Productos
+      pasaron a tinta subrayado; el rojo de una tarjeta es su borde. Resumen bajó de 5 a 2 rojos
+      (medido en navegador); Traslados, Conteo y Productos quedan en ≤2. Verificar con datos reales
+      junto con lo de arriba.
+- [x] **`/compras/por-pagar`, tarjeta "Vencido": de 4 rojos a 2** (2026-09-18, aprobado por Felipe).
+      Tenía punto, cifra, línea de detalle y —desde ADR-0105— el borde `acento`. Quedan borde + cifra;
+      el punto pasa a neutro y el detalle a su color normal. La tarjeta "Vence esta semana" sigue en ámbar.
+- [ ] **`ComercialPanel.tsx`** (sesión `comercial-command-leaders-bb5771`, sin commitear, no está en
+      `main`): usa `border-l-2! border-l-rojo!` como parche. Con este cambio el `!` sobra y hay que
+      quitarlo. Aviso dejado en `SESIONES-ACTIVAS.md`. Ojo: su tarjeta destacada suma borde rojo +
+      el resto de la pantalla; medir contra `MAX_ROJO_POR_PANTALLA` antes de dar por bueno.
 
 ## 🎯 Colores: agrupados por familia + 4 tonos de investigación real (2026-09-18)
 
@@ -476,13 +522,14 @@ verde.
       probado (25 escenarios SQL en un Postgres de prueba; 579 pruebas; caja y modal verificados
       en navegador). Un descuento por prenda: el mayor. Sin código para la campaña. Fecha en
       hora de Lima. Aviso rojo «por debajo del costo» en el modal de campaña.
-- [ ] **⚠ Pegar en producción `supabase/migrations/20260918170000_venta_aplica_descuento_de_campana.sql`
-      — CAMBIA `registrar_venta` (dinero real).** Orden: 1) pegar el SQL, 2) desplegar la caja
-      nueva, 3) RECIÉN ENTONCES configurar una campaña. Ya lleva `retail.` y es idempotente.
-      Después: refrescar el volcado (`generado/COMO-REFRESCAR.md`) y `pnpm datos:generar:produccion`
-      (entran `campanas_vigentes`, `fn_campanas_por_variante`, `fn_hoy_lima` y
-      `venta_items.descuento_etiqueta_id`). Probar con UNA campaña real de una prenda y una
-      venta de prueba anulada.
+- [x] **Pegada en producción y verificada (2026-09-18, solo lectura): `supabase/migrations/20260918170000_venta_aplica_descuento_de_campana.sql`
+      — cambia `registrar_venta`.** `registrar_venta` ya lleva la lógica de campaña y existen
+      `campanas_vigentes()`, `fn_campanas_por_variante()` y `fn_hoy_lima()`; producción tiene 0
+      campañas configuradas. **Volcado refrescado el mismo día** (entran `venta_items.descuento_etiqueta_id`
+      y esas tres funciones).
+- [ ] **Probar UNA campaña real en caja** (aún no se ha hecho): etiqueta de prueba sin categorías,
+      una sola variante, venta de prueba anulada después. Casos: dos etiquetas (20 % y 40 % → 40 %,
+      no 60 %), manual que solo reemplaza si es mayor, y campaña que termina hoy después de las 7 pm.
 - [ ] **Campañas: lo que no cubre.** `registrar_cambio` y `liquidar_prenda_danada` no aplican
       campañas. Un ticket armado ANTES de que empiece una campaña se rechaza al cobrar («recarga
       Vender»): hoy no se re-evalúa solo en pantalla. La tolerancia de 3 días para la venta sin red
