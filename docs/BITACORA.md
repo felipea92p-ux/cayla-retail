@@ -3,6 +3,27 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Cobro guiado en Vender: qué toca ahora, ola de luz y billetes)
+
+**Qué se cerró.** Un colaborador que probó Vender no sabía dónde tocar. Ahora el cobro dice qué toca:
+barra de tres tramos (medio → recibido → comprobante; lo hecho en negro y lo que toca en terracota, el
+rojo del sistema) con una línea de texto y una pastilla «Siguiente paso»/«Opcional». El resalte es
+discreto: nada de contornos alrededor de bloques; se tiñe el borde del campo «Recibido» y las líneas de
+los campos de texto del comprobante (variable `--hilo` de `Hilo`). «Confirmar cobro» respira cuando ya
+se puede. Mientras no hay medio, una sola franja de luz recorre la fila de izquierda a derecha y vuelve (efectivo
+~1.2 s, luego el barrido): nunca se apaga ni tiene bordes, solo cambia de color según el medio que cruza
+(un degradado fijo con el color de cada medio y una ventana `mask` que se desliza con `--pos`; solo CSS),
+y se detiene al elegir. Los montos rápidos son billetes idénticos en verde salvia muy suave, distintos
+solo en la cifra. Efectivo pasa a
+dorado y transferencia a azul, globalmente (dona de Caja incluida). Además: el campo de monto se puede
+vaciar (`CampoMonto`) y con dos medios el otro toma el restante (`pagosTrasEditarMonto`).
+
+**Qué se aprendió.** Un dorado no llega a AA como texto: se usa de relleno y borde, y el texto sobre él
+lleva una tinta oscura (`--color-metodo-efectivo-tinta`). Animar UN número registrado (`@property --pos`) y deslizar una
+ventana `mask` sobre un degradado fijo da la luz continua sin cinco versiones del efecto. Un error mío: la
+primera versión encendía cada medio con su borde (lo que él NO pidió); lo que pedía era una sola luz. El test
+`globals-capas` obliga a que hasta la regla de movimiento reducido viva dentro de `@layer`.
+
 ## 2026-09-19 (Caja: «Ver todo» y detalle de venta con reimpresión del ticket)
 
 **Qué se cerró.** «Movimientos recientes» tiene un «Ver todo (N)» arriba a la derecha que abre todos los
