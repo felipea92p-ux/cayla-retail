@@ -21,6 +21,15 @@ export function duracionAbierta(abiertaEn: string, ahoraMs: number): string {
   return Number.isFinite(minutos) ? formatoDuracion(minutos) : "—";
 }
 
+/** La cinta del turno del encabezado: cuántas horas abarca y qué fracción lleva recorrida. Abarca una
+ *  jornada de 8 h; si el turno ya la pasó, hasta la hora entera siguiente, así el punto nunca se sale.
+ *  La escala es solo visual: la caja no tiene hora de cierre prevista. */
+export function escalaTurno(minutosAbierta: number): { horas: number; fraccion: number } {
+  const m = Number.isFinite(minutosAbierta) ? Math.max(0, minutosAbierta) : 0;
+  const horas = Math.max(8, Math.floor(m / 60) + 1);
+  return { horas, fraccion: m / (horas * 60) };
+}
+
 /** "13:09" → minutos desde la medianoche (789). La `hora` de `fn_ventas_del_dia` ya viene en hora de Lima. */
 export function minutosDeHora(hora: string): number {
   const [h, m] = hora.split(":").map(Number);

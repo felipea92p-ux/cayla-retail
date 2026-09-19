@@ -36,9 +36,9 @@ export function conCodigoDelCatalogo<T extends { varianteId: string; codigo?: st
 }
 
 /** Un medio con el que la clienta pagó parte (o todo) del ticket. `recibido` es solo
- *  para el efectivo y solo de pantalla: lo que entregó, para calcular el vuelto. A la
- *  RPC viaja únicamente `{ metodo, monto }` — si viajara lo entregado en vez de lo que
- *  cubre, `registrar_venta` lo rechazaría por no cuadrar con los ítems. */
+ *  para el efectivo: lo que entregó, para calcular el vuelto. `monto` es lo que el medio
+ *  CUBRE (lo que suma contra los ítems); `recibido` viaja aparte (ver `pagosParaRpc`) y
+ *  nunca sustituye a `monto`, o `registrar_venta` rechazaría la venta por no cuadrar. */
 export type PagoAplicado = { metodo: MetodoPago; monto: number; recibido?: number };
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
@@ -89,6 +89,53 @@ export function quitarPagoTraspasando(pagos: readonly PagoAplicado[], indice: nu
 export function vueltoDe(pago: PagoAplicado): number {
   if (pago.metodo !== "efectivo" || pago.recibido === undefined) return 0;
   return Math.max(0, redondear2(pago.recibido - pago.monto));
+}
+
+/** Cambia el monto de un medio y, con DOS medios, el otro toma lo que falta para llegar al total:
+ *  la cajera parte el cobro (Plin 40) y el efectivo se llena solo con los 40 restantes; después
+ *  puede editar cualquiera y el otro se reajusta. Con uno o con tres o más medios solo cambia el
+ *  editado: no hay un «otro» evidente a quién repartirle. Un campo vaciado o roto cuenta como 0.
+ *  Lo escrito por encima del total deja al otro en 0 y `motivoBloqueoCobro` avisa que se pasa. */
+export function pagosTrasEditarMonto(pagos: readonly PagoAplicado[], indice: number, monto: number, total: number): PagoAplicado[] {
+  if (!pagos[indice]) return [...pagos];
+  const limpio = Math.max(0, redondear2(monto || 0));
+  const editados = pagos.map((p, i) => (i === indice ? { ...p, monto: limpio } : p));
+  if (pagos.length !== 2) return editados;
+  const otro = indice === 0 ? 1 : 0;
+  return editados.map((p, i) => (i === otro ? { ...p, monto: Math.max(0, redondear2(total - limpio)) } : p));
+}
+
+/** Los pasos del cobro que la pantalla resalta: elegir el medio, anotar cuánto entregó la clienta
+ *  (solo si hay efectivo) y, cubierto todo, el comprobante y confirmar. */
+export type PasoCobro = "medio" | "recibido" | "comprobante";
+
+/** Cuál es el siguiente paso, derivado de lo que ya está puesto: mientras los medios no cubran
+ *  el total (o se pasen) falta el medio; con efectivo cubierto falta anotar lo recibido hasta que
+ *  alcance; después toca el comprobante, que es opcional. Solo GUÍA: no bloquea nada (lo que
+ *  impide cobrar sigue siendo `motivoBloqueoCobro`). */
+export function pasoDelCobro(pagos: readonly PagoAplicado[], total: number): PasoCobro {
+  if (pagos.length === 0 || restanteDePagos(total, pagos) !== 0) return "medio";
+  const efectivo = pagos.find((p) => p.metodo === "efectivo" && p.monto > 0);
+  if (efectivo && (efectivo.recibido === undefined || efectivo.recibido < efectivo.monto)) return "recibido";
+  return "comprobante";
+}
+
+export const TEXTO_PASO_COBRO: Record<PasoCobro, string> = {
+  medio: "Elige cómo pagó la clienta.",
+  recibido: "Toca los billetes que entregó, o «Exacto» si pagó justo.",
+  comprobante: "Listo. El documento es opcional: ya puedes confirmar el cobro.",
+};
+
+/** Los pagos como viajan a `registrar_venta`. Solo montos > 0 (`venta_pagos` lo exige). El
+ *  `recibido` va únicamente en efectivo y solo si cubre lo que corresponde: la base lo
+ *  guarda para reimprimir el vuelto y su candado (`venta_pagos_recibido_coherente`) rechaza
+ *  TODA la venta si `recibido < monto`, así que una cifra a medio escribir no puede viajar. */
+export function pagosParaRpc(pagos: readonly PagoAplicado[]): { metodo: MetodoPago; monto: number; recibido?: number }[] {
+  return pagos
+    .filter((p) => p.monto > 0)
+    .map(({ metodo, monto, recibido }) =>
+      metodo === "efectivo" && recibido !== undefined && recibido >= monto ? { metodo, monto, recibido } : { metodo, monto }
+    );
 }
 
 /**
