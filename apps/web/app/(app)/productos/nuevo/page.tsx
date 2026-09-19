@@ -4,7 +4,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { NuevoProductoForm } from "@/components/NuevoProductoForm";
 import { getContextoAlta } from "@/lib/alta-producto-datos";
 
-// Nuevo producto como árbol de decisión (ADR-0106): familia → categoría →
+// Nuevo producto como árbol de decisión (ADR-0108): familia → categoría →
 // nombre → talla/tejido/patrón → colores → precio → etiquetas, en una sola
 // transacción (`crear_producto_con_variantes`). Página propia y no modal: la
 // matriz puede crecer a 15-20 celdas — mismo criterio que `/compras/nueva`.

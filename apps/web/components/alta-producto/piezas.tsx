@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-// Piezas compartidas del formulario "Nuevo producto" (ADR-0106).
+// Piezas compartidas del formulario "Nuevo producto" (ADR-0108).
 //
 // Regla de marca (globals.css): el rojo es acento, máx. 2 por pantalla. El
 // formulario anterior pintaba de rojo cada chip elegido; acá "elegido" se

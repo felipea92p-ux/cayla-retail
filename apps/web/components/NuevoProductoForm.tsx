@@ -12,6 +12,7 @@ import { MuestraPatron } from "@/components/MuestraPatron";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
 import { AvisoParecidos, type Parecido } from "@/components/alta-producto/AvisoParecidos";
 import { ConfigurarCategoria } from "@/components/alta-producto/ConfigurarCategoria";
+import { ProductoCreado, type ResumenCreado } from "@/components/alta-producto/ProductoCreado";
 import { ProponerValor } from "@/components/alta-producto/ProponerValor";
 import { AvisoInline, Bloque, ChipOpcion } from "@/components/alta-producto/piezas";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
@@ -32,7 +33,7 @@ import {
 import type { ContextoAlta } from "@/lib/alta-producto-datos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 
-// "Nuevo producto" como ÁRBOL DE DECISIÓN (ADR-0106): una sola página donde
+// "Nuevo producto" como ÁRBOL DE DECISIÓN (ADR-0108): una sola página donde
 // cada bloque se abre al resolver el anterior — 1 Qué es (familia → categoría)
 // · 2 Nombre · 3 Talla, tejido y patrón · 4 Colores · 5 Precio y variantes ·
 // 6 Etiquetas — y un resumen fijo que dice, en frases, qué falta para guardar.
@@ -48,6 +49,12 @@ import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 // variantes y etiquetas entran juntos o no entra nada. Las fotos quedan
 // fuera a propósito — el archivo se sube al elegirlo y, si se cancela el
 // formulario, quedaría huérfano; se agregan por color desde el producto.
+//
+// Al guardar NO se vuelve a la lista: aparece una pantalla de éxito (paso 4) con
+// tres salidas — agregar fotos, crear otro parecido, ir a productos. «Otro
+// parecido» conserva categoría, tallas, tejido, patrón, precio, costo y
+// etiquetas y limpia nombre, descripción y colores: una colección son 10
+// prendas casi iguales y empezar de cero cada vez era el trabajo que sobraba.
 //
 // El token de idempotencia nace con el formulario (useRef): si la red falla a
 // mitad y se reintenta, la base devuelve el mismo producto y no crea un segundo.
@@ -81,6 +88,9 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   const [overridePrecio, setOverridePrecio] = useState<Record<string, string>>({});
   const [etiquetasElegidas, setEtiquetasElegidas] = useState<string[]>([]);
   const [cargando, setCargando] = useState(false);
+  const [creado, setCreado] = useState<ResumenCreado | null>(null);
+  /** Nombre del producto del que se copió al elegir «crear otro parecido»: se muestra hasta el próximo guardado. */
+  const [copiadoDe, setCopiadoDe] = useState<string | null>(null);
 
   const categoria = contexto.categorias.find((c) => c.id === categoriaId) ?? null;
   const familia = categoria ? (contexto.familias.find((f) => f.codigo === categoria.familia) ?? null) : null;
@@ -140,6 +150,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   }
 
   function cambiarCategoria() {
+    setCopiadoDe(null);
     setCategoriaId("");
     setTallasElegidas([]);
     setTejidoId("");
@@ -251,7 +262,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     }
 
     setCargando(true);
-    const { error } = await createClient().rpc("crear_producto_con_variantes", {
+    const { data: productoId, error } = await createClient().rpc("crear_producto_con_variantes", {
       p_referencia: nombreFinal,
       p_categoria_id: categoriaId,
       p_variantes: variantes,
@@ -264,7 +275,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     });
     setCargando(false);
 
-    if (error) {
+    if (error || !productoId) {
       const lectura = leerErrorAlta(error);
       if (lectura.tipo !== "otro") {
         // Otra persona creó el mismo nombre mientras esta llenaba el formulario: se muestra en el bloque 2, no solo en un aviso.
@@ -275,15 +286,53 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
       avisar.error(traducirError(error, "crear el producto"));
       return;
     }
-    avisar.exito(`${nombreFinal} creado`, { detalle: `${variantes.length} variante${variantes.length === 1 ? "" : "s"}` });
-    router.push("/productos");
+
+    setCopiadoDe(null);
+    setCreado({
+      id: productoId,
+      nombre: nombreFinal,
+      categoria: `${familia?.nombre ?? ""} › ${categoria?.nombre ?? ""}`,
+      variantes: variantes.length,
+      // Solo los colores que quedaron en alguna variante: uno desmarcado en la matriz no necesita foto.
+      colores: coloresElegidos
+        .filter((cod) => celdasIncluidas.some((c) => c.color === cod))
+        .map((cod) => colorPorCodigo(cod))
+        .filter((c): c is NonNullable<typeof c> => Boolean(c)),
+    });
+  }
+
+  // «Crear otro parecido»: conserva lo que casi seguro se repite y limpia lo que casi seguro cambia.
+  function otroParecido() {
+    if (!creado) return;
+    setCopiadoDe(creado.nombre);
+    setCreado(null);
+    setReferencia("");
+    setDescripcion("");
+    setResultado(SIN_RESULTADO);
+    setConfirmoPara("");
+    setColoresElegidos([]);
+    setExcluidas(new Set());
+    setOverridePrecio({});
+    setCostoTocado(true); // el costo ya es el de la prenda anterior: no volver a sugerir encima
+    token.current = crypto.randomUUID(); // un producto nuevo es una operación nueva, no un reintento
+    router.refresh(); // el correlativo del código previsto y los colores «más usados» ya cambiaron
+    setTimeout(() => document.getElementById("nombre-producto")?.focus(), 50);
   }
 
   const etiquetaNivel = { negativo: "con este precio pierdes dinero", bajo: "es poco: un descuento se lo come", normal: "" } as const;
 
+  if (creado) return <ProductoCreado creado={creado} onOtroParecido={otroParecido} />;
+
   return (
     <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
       <div className="space-y-4">
+        {copiadoDe && (
+          <AvisoInline tono="neutro">
+            Empiezas desde <strong>{copiadoDe}</strong>: mantuve la categoría, las tallas, el tejido, el patrón, el precio, el costo y las
+            etiquetas. Cambia lo que sea distinto.
+          </AvisoInline>
+        )}
+
         {/* 1 · QUÉ ES */}
         <Bloque numero={1} titulo="Qué producto es" listo={Boolean(categoria)} ayuda="Elige la familia y la categoría, o búscala por nombre.">
           <ArbolCategoria

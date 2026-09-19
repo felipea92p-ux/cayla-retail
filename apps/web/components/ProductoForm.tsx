@@ -427,7 +427,8 @@ export function ProductoForm({
         </section>
 
         {/* ---------- fotos ---------- */}
-        <section className="card-cayla p-5">
+        {/* id="fotos": la pantalla de éxito de Nuevo producto (ADR-0108) enlaza acá con #fotos. */}
+        <section id="fotos" className="card-cayla scroll-mt-6 p-5">
           <FotosProducto fotos={fotos} onFotos={setFotos} colores={colores} disabled={loading} />
         </section>
 

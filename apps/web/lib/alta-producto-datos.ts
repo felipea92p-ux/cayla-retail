@@ -4,7 +4,7 @@ import { getEjesPorCategoria, type EjesPorCategoria, type ValorVocabulario } fro
 import { hoyLima, vigenciaDe } from "@/lib/etiqueta-vigencia";
 import type { ColorAlta } from "@/lib/alta-producto";
 
-// Todo lo que "Nuevo producto" necesita leer, en una sola pasada (ADR-0106).
+// Todo lo que "Nuevo producto" necesita leer, en una sola pasada (ADR-0108).
 //
 // CONTRATO
 //   PROMETE: una foto de solo lectura del catálogo para armar el árbol
