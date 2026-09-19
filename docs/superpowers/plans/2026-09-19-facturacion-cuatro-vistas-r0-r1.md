@@ -1674,11 +1674,11 @@ export function FacturacionCabecera() {
         <h1 className="font-display mt-1 text-2xl text-tinta">Facturación</h1>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <BotonCompacto variante="vidrio" icono={<FileText aria-hidden strokeWidth={1.75} />} onClick={abrirProforma}>
-          Nueva proforma
-        </BotonCompacto>
-        <BotonCompacto variante="primario" icono={<Plus aria-hidden strokeWidth={1.75} />} onClick={abrirEmitir}>
+        <BotonCompacto variante="vidrio" icono={<FileText aria-hidden strokeWidth={1.75} />} onClick={abrirEmitir}>
           Emitir comprobante
+        </BotonCompacto>
+        <BotonCompacto variante="primario" icono={<Plus aria-hidden strokeWidth={1.75} />} onClick={abrirProforma}>
+          Nueva proforma
         </BotonCompacto>
       </div>
     </div>
