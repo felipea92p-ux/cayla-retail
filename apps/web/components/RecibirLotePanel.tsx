@@ -61,7 +61,7 @@ export function RecibirLotePanel({
           {esLider && (
             <p className="mt-1 text-xs text-tinta/55">
               ¿Tienes el comprobante?{" "}
-              <Link href="/compras/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+              <Link href="/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
                 Recibir contra comprobante
               </Link>
             </p>

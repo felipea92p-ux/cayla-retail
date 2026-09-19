@@ -24,6 +24,30 @@ ejecutaba (el `WHERE` la excluía), así que una importación histórica que sol
 Corregido dentro de la migración nueva. Verificado: 637 pruebas, 38 verificaciones SQL con `ROLLBACK`, lint, typecheck
 y build en verde; visto en el navegador a 1440 / 1280 / ~1024 / móvil.
 
+## 2026-09-18 (Recibir mercadería → Recibidas: los filtros pasan a las dos pastillas en línea de la maqueta 06)
+
+La pestaña «Recibidas recientemente» escondía sus dos filtros detrás del botón «Filtros» y su panel; la maqueta aprobada los pone a la vista: el buscador («Documento, proveedor o guía») y, en la misma línea, «Proveedor: Todos ⌄» y «Fechas». Nuevo `FiltrosRecibidas` (solo esa pestaña; Comprobantes y Por pagar siguen con `FiltrosCompras`) y las reglas en `lib/recibidas-filtros-reglas.ts` con 34 pruebas: períodos de un toque (este mes, mes pasado, últimos 30/90 días, contados desde el «hoy» de Lima y con la misma ventana que la cifra «Unidades recibidas»), el rótulo de cada pastilla y la limpieza de lo que llega por la URL. Los filtros siguen en `?q=&prov=&desde=&hasta=` y el servidor sigue siendo quien filtra.
+
+Dos cosas salieron de mirar la base: «Fechas» filtra el día en que LLEGÓ la guía (`lotes.fecha_recepcion`), no el de emisión del comprobante como decía el chip de `FiltrosCompras`; y el buscador ya cubría la guía en SQL pero el texto de ayuda no lo decía. Además una fecha imposible en la URL (`?desde=2026-02-31`) hacía fallar la función SQL en vez de devolver una lista vacía: ahora se ignora.
+
+Lo que Felipe se lleva: la lógica de un filtro (qué es «este mes», cómo se rotula, qué se hace con una URL rota) no vive en el componente sino en un módulo puro que se prueba sin navegador; el componente solo dibuja. Pendiente: comparar a ojo contra `06-recibir-recibidas.png` en escritorio y celular (no se abrió el navegador en esta sesión).
+
+## 2026-09-18 (Recibir por envío: un envío trae comprobantes de varios proveedores, y cuenta quien abre la caja)
+
+Hasta hoy una guía cubría comprobantes de UN proveedor y solo un líder podía recibir contra comprobante. Un envío real trae bultos de varios proveedores y quien abre la caja suele ser una integrante. Ahora existe `envios` (una guía, un lote por proveedor), la RPC atómica e idempotente `recibir_envio` y la pantalla `/recibir`, abierta a cualquier colaborador de la sede y sin dinero para quien no es líder. Lo fuera de comprobante declara su origen: de qué proveedor viene y si es regalo; lo de otra sede se confirma como traslado, no como prenda suelta. Los cuatro indicadores pasan a vivir bajo «¿Qué llegó?» y desaparecen al marcar un comprobante. ADR-0113.
+
+Errores propios que la verificación cazó: dos veces un nombre de ADR/migración que otra rama ya usaba (0112 estaba tomado; se usó 0113), un chequeo de «solo líder cierra» en la RPC más estricto que la base sin que nadie lo hubiera decidido (se quitó: la decisión vive en la pantalla y es reversible sin migración), y la pantalla nueva perdió el ancho completo al salir de `/compras` (`SIN_TOPE_DE_ANCHO`). También cerré la sesión del navegador de Felipe para probar como Micaela y no pude volver a entrar: iniciar sesión pide una contraseña que no me toca escribir.
+
+Lo que Felipe se lleva: un envío no es un proveedor — es una llegada a la puerta, y modelarlo como el padre que agrupa lotes (uno por proveedor) dejó intactas las métricas y el costo de cada proveedor; y «que cuente cualquiera» no obliga a abrir Compras: se abre solo la puerta de recibir y los montos ni siquiera salen del servidor. Las 2 migraciones ya están en producción (las pegó Felipe el 2026-09-19); falta probar la pantalla como colaborador.
+
+## 2026-09-19 (Nace `/pantalla`: análisis por pantalla con 12 tareas — y su primera prueba cayó en una pantalla que `main` ya había rehecho)
+
+Se agregó el skill `/pantalla` (`.claude/skills/pantalla/`): con una captura y una ruta analiza estética, lógica, arquitectura, funciones, utilidad y conexión con el ERP, puntúa si la pantalla cumple su finalidad y su relevancia (gestión pesa el doble) y propone 12 tareas por importancia. Solo analiza, no toca código ni BACKLOG. Se probó en modo rápido sobre Nuevo producto; el modo completo (subagente, consulta SQL, referentes de ERP) no se probó de punta a punta.
+
+Lo que Felipe se lleva: el análisis de esa prueba quedó vencido en pocas horas — `main` rehízo el formulario (precio obligatorio, nombres parecidos, pantalla de éxito) — así que no se subió a `docs/`. Por eso todo análisis guarda el SHA analizado y un re-análisis primero comprueba si esos archivos cambiaron: un análisis sin versión es un doc viejo tomado por vigente.
+
+Pendiente: correr `/pantalla` completo sobre una pantalla de núcleo (Caja). Y una tarea raíz que salió de la prueba y sigue en `main`: `Number(x) || 0` convierte un monto vacío en 0 en 10 formularios, entre ellos `CerrarCajaModalV2.tsx:77` (`p_monto_real`) — sin verificar si hay una guarda previa ni si `cerrar_caja` rechaza 0.
+
 ## 2026-09-19 (Los 8 SQL de Crear producto ya están en producción — y `datos:comparar` quedó en verde)
 
 Se pegaron uno por uno, con una verificación de solo lectura antes y después de cada uno. Tres cosas salieron al pegar y no en las pruebas: el mapa de categorías falló por depender de tablas temporales entre sentencias (ahora es un solo bloque), la regla de Editar habría bloqueado 38 de los 39 productos activos (ahora «no empeora»), y una consulta mía con `\b` buscaba mal las funciones que insertan en `productos` (en Postgres `\b` es «retroceso»; el límite de palabra es `\y`). Al final: 0 productos con pareja inválida, 0 nombres duplicados, Productos filtra y busca por marca, y `pnpm datos:comparar` dice «ninguna pantalla llama a una función con parámetros que producción no acepte».
@@ -218,6 +242,7 @@ Lo que Felipe se lleva: una prueba que espera «la deuda vencida es 0» se rompe
 Cuando se cierra un faltante, el proveedor le debe a CAYLA una nota de crédito por lo cerrado; el detalle ya lo decía, pero en Por pagar el líder veía el saldo completo y podía pagar de más. Ahora las dos listas muestran junto al saldo un chip ámbar «Esperando nota S/ X» (y «Ya puedes registrarla» cuando el comprobante ya está al 100 %). Lo calcula una función de lectura nueva, `compras_nota_pendiente(uuid[])` (migración `20260918220000`), que NO toca `listar_compras` ni `compras_resumen`: cambiar el retorno de una función viva es lo que ya rompió producción (ADR-0009), una función nueva no puede.
 La pantalla pregunta solo por los comprobantes de la página que tienen algo cerrado, y si la consulta falla dibuja la lista igual sin el chip (es un aviso, no un número). Pruebas SQL 112/112 (13 nuevas: monto exacto 236.00, resuelto sí/no, desaparece con la nota por faltante, no con otra nota, anulado, integrante vacío) y 10 de vitest sobre el texto y el tono. No hubo navegador (el integrado es compartido y pide login): falta ver el chip en la celda Pago de Comprobantes.
 Lo que Felipe se lleva: un aviso que depende de una migración se diseña para degradarse solo (sin la función en producción, la lista sigue viva, sin el chip) — así se puede desplegar antes de pegar el SQL sin romper la pantalla. Falta pegar la migración 16 en producción.
+
 
 ## 2026-09-18 (Migraciones: dos con la misma versión — la de talla Única se mueve a 20260918175000)
 

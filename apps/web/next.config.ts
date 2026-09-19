@@ -50,6 +50,8 @@ const nextConfig: NextConfig = {
     return [
       { source: "/almacen", destination: "/inventario", permanent: false },
       { source: "/almacen/recibir", destination: "/inventario/recibir", permanent: false },
+      // ADR-0113: Recibir mercadería salió de Compras (solo líder) para que cuente cualquier colaborador de la sede.
+      { source: "/compras/recibir", destination: "/recibir", permanent: false },
       // Consolidación de Catálogo (2026-09-17, pedido de Felipe): Colores/
       // Tallas/Tejidos/Patrones/Etiquetas eran 5 pantallas y 5 filas de menú
       // separadas para lo que en el fondo es un solo tipo de pantalla
