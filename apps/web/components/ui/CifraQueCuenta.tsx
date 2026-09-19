@@ -5,6 +5,8 @@ import { useContar } from "@/lib/useContar";
 
 const FORMATO = {
   soles: (v: number) => soles(v),
+  /** Un monto sin «S/», con 2 decimales: para columnas angostas (etiqueta de una barra). */
+  monto: (v: number) => v.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
   entero: (v: number) => Math.round(v).toLocaleString("es-PE"),
   porcentaje: (v: number) => `${Math.round(v)} %`,
   dias: (v: number) => `${Math.round(v)} ${Math.round(v) === 1 ? "día" : "días"}`,
