@@ -30,8 +30,11 @@ import {
 //   4. si falta algo, "+ Nueva marca" / "+ Nuevo proveedor" sin salir.
 //
 // Las listas viven acá (copia local) para que lo recién creado aparezca sin
-// recargar. Crear marcas/proveedores es de Líder: quien no lo es no ve los
-// atajos (`puedeCrear`) y la base lo rechazaría igual.
+// recargar, y se le AVISAN al padre (`onListas`): el padre puede desmontar este
+// selector (el censo lo monta de nuevo en cada escaneo, «crear otro parecido»
+// vuelve al formulario) y, si no guardara las listas, lo recién creado dejaría
+// de existir en pantalla aunque la base lo tenga. Crear marcas/proveedores es de
+// Líder: quien no lo es no ve los atajos (`puedeCrear`) y la base lo rechazaría igual.
 
 type Props = {
   marcas: MarcaOpcion[];
@@ -47,6 +50,8 @@ type Props = {
   /** Devuelve también los NOMBRES: lo recién creado acá adentro no está en las listas del padre. */
   onElegir: (marcaId: string, proveedorId: string, nombres: { marca: string; proveedor: string }) => void;
   onLimpiar: () => void;
+  /** Las listas ya con lo recién creado, para que el padre las conserve si desmonta este selector. */
+  onListas?: (listas: { marcas: MarcaOpcion[]; proveedores: ProveedorOpcion[]; vinculos: Vinculo[] }) => void;
   puedeCrear: boolean;
 };
 
@@ -61,6 +66,7 @@ export function ElegirMarcaProveedor({
   proveedorId,
   onElegir: onElegirProp,
   onLimpiar,
+  onListas,
   puedeCrear,
 }: Props) {
   const [marcas, setMarcas] = useState(marcasIni);
@@ -69,8 +75,8 @@ export function ElegirMarcaProveedor({
   const [consulta, setConsulta] = useState("");
   const [marcaTentativa, setMarcaTentativa] = useState<string | null>(null);
   const [provTentativo, setProvTentativo] = useState<string | null>(null);
-  // null = no se está creando nada; si no, con qué se abre el formulario (marca nueva, o solo otro proveedor para una marca).
-  const [creando, setCreando] = useState<{ nombre: string; marcaFija: boolean } | null>(null);
+  // null = no se está creando nada; si no, con qué se abre el formulario (marca nueva, solo otro proveedor para una marca, o la primera marca de un proveedor que no trae ninguna).
+  const [creando, setCreando] = useState<{ nombre: string; marcaFija: boolean; proveedorFijo?: ProveedorOpcion } | null>(null);
 
   const marcaPor = (id: string) => marcas.find((m) => m.id === id);
   const provPor = (id: string) => proveedores.find((p) => p.id === id);
@@ -112,9 +118,16 @@ export function ElegirMarcaProveedor({
   }
 
   function alGuardarNueva(r: MarcaGuardada) {
-    if (r.proveedorNuevo) setProveedores((prev) => [...prev, { id: r.proveedorId, nombre: r.proveedorNombre }]);
-    setMarcas((prev) => (prev.some((m) => m.id === r.marcaId) ? prev : [...prev, { id: r.marcaId, nombre: r.marcaNombre }]));
-    setVinculos((prev) => (prev.some((v) => v.marcaId === r.marcaId && v.proveedorId === r.proveedorId) ? prev : [...prev, { marcaId: r.marcaId, proveedorId: r.proveedorId }]));
+    const proveedoresNuevos =
+      r.proveedorNuevo && !proveedores.some((p) => p.id === r.proveedorId) ? [...proveedores, { id: r.proveedorId, nombre: r.proveedorNombre }] : proveedores;
+    const marcasNuevas = marcas.some((m) => m.id === r.marcaId) ? marcas : [...marcas, { id: r.marcaId, nombre: r.marcaNombre }];
+    const vinculosNuevos = vinculos.some((v) => v.marcaId === r.marcaId && v.proveedorId === r.proveedorId)
+      ? vinculos
+      : [...vinculos, { marcaId: r.marcaId, proveedorId: r.proveedorId }];
+    setProveedores(proveedoresNuevos);
+    setMarcas(marcasNuevas);
+    setVinculos(vinculosNuevos);
+    onListas?.({ marcas: marcasNuevas, proveedores: proveedoresNuevos, vinculos: vinculosNuevos });
     avisar.exito(`${r.marcaNombre} · ${r.proveedorNombre}`, { detalle: "Marca y proveedor guardados." });
     setCreando(null);
     limpiarTentativas();
@@ -144,6 +157,7 @@ export function ElegirMarcaProveedor({
         proveedores={proveedores}
         nombreInicial={creando.nombre}
         marcaFija={creando.marcaFija}
+        proveedorFijo={creando.proveedorFijo}
         nombreExistente={(n) => marcas.find((m) => sinTildes(m.nombre) === sinTildes(n))?.nombre}
         onGuardado={alGuardarNueva}
         onCancelar={() => setCreando(null)}
@@ -196,21 +210,46 @@ export function ElegirMarcaProveedor({
       .map((id) => marcaPor(id))
       .filter((x): x is MarcaOpcion => Boolean(x))
       .sort((a, b) => usosDe(b.id, provTentativo) - usosDe(a.id, provTentativo));
+    // Un proveedor recién registrado (o cuyas marcas se desactivaron) no trae ninguna marca todavía: sin una salida
+    // acá, la persona quedaba frente a una lista vacía y un solo botón, «Cambiar proveedor».
+    const sinMarcas = ms.length === 0;
     return (
       <div className="space-y-3">
         <p className="text-sm text-tinta">
-          <span className="font-medium">{p?.nombre}</span> trae varias marcas. ¿Cuál es?
+          {sinMarcas ? (
+            <>
+              <span className="font-medium">{p?.nombre}</span> todavía no trae ninguna marca.
+            </>
+          ) : (
+            <>
+              <span className="font-medium">{p?.nombre}</span> trae varias marcas. ¿Cuál es?
+            </>
+          )}
         </p>
-        <div className="flex flex-wrap gap-1.5">
-          {ms.map((m) => (
-            <ChipOpcion key={m.id} elegido={false} onClick={() => (limpiarTentativas(), onElegir(m.id, provTentativo))}>
-              {m.nombre}
-            </ChipOpcion>
-          ))}
+        {!sinMarcas && (
+          <div className="flex flex-wrap gap-1.5">
+            {ms.map((m) => (
+              <ChipOpcion key={m.id} elegido={false} onClick={() => (limpiarTentativas(), onElegir(m.id, provTentativo))}>
+                {m.nombre}
+              </ChipOpcion>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-4">
+          {puedeCrear && p && (
+            <button
+              type="button"
+              onClick={() => setCreando({ nombre: "", marcaFija: false, proveedorFijo: p })}
+              className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo"
+            >
+              {sinMarcas ? `+ Primera marca de ${p.nombre}` : `+ Otra marca de ${p.nombre}`}
+            </button>
+          )}
+          <button type="button" onClick={limpiarTentativas} className="label-cayla text-[11px] text-tinta/60 hover:text-tinta">
+            Cambiar proveedor
+          </button>
         </div>
-        <button type="button" onClick={limpiarTentativas} className="label-cayla text-[11px] text-tinta/60 hover:text-tinta">
-          Cambiar proveedor
-        </button>
+        {sinMarcas && !puedeCrear && <p className="text-xs text-tinta/55">Pídele a un Líder que le agregue la marca.</p>}
       </div>
     );
   }

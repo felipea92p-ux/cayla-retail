@@ -4,6 +4,7 @@ import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { guardarEjesCategoria, proponerValorVocabulario, type EjeIds, type TipoVocabulario } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
+import { sinTildes } from "@/lib/marcas";
 
 // "+ Nueva talla / tejido / patrón" dentro del bloque, sin salir del formulario
 // (decidido con Felipe, 2026-09-18: salir a Atributos hacía perder lo llenado).
@@ -12,8 +13,13 @@ import type { ValorVocabulario } from "@/lib/catalogo-v2";
 //   1. crear el valor en el vocabulario (queda aprobado si quien lo crea es Líder);
 //   2. ofrecerlo en ESTA categoría (categoria_tallas / _tejidos / _patrones).
 // Si la 2 falla, el valor existe pero no aparece aquí: se avisa con esas
-// palabras y reintentar es seguro (crear el mismo valor otra vez lo rechaza el
-// índice único del vocabulario, y "ofrecerlo" es idempotente).
+// palabras y reintentar es seguro: como el valor ya existe, el reintento lo
+// reconoce en el vocabulario (`universo`) y salta directo a la 2 en vez de
+// chocar con el índice único; y "ofrecerlo" es idempotente.
+//
+// Lo mismo cuando el valor YA existía en el vocabulario pero esta categoría no lo
+// ofrece («Liso» está en el catálogo, no en Blusas): escribirlo lo ofrece aquí,
+// no rebota con un «ya existe» que no le deja a la persona ninguna salida.
 //
 // NO va dentro de la transacción del alta: si guardar una talla nueva fallara
 // a mitad, la persona perdería el producto entero que estaba llenando.
@@ -32,12 +38,15 @@ export function ProponerValor({
   tipo,
   categoriaId,
   ejesActuales,
+  universo,
   onCreado,
 }: {
   tipo: TipoVocabulario;
   categoriaId: string;
   /** Lo que la categoría ofrece HOY en los tres ejes: la RPC reemplaza, así que hay que devolverlo entero + el valor nuevo. */
   ejesActuales: EjeIds;
+  /** Todo el vocabulario aprobado de este tipo (no solo lo que la categoría ofrece): para reconocer un valor que ya existe. */
+  universo: ValorVocabulario[];
   onCreado: (valor: ValorVocabulario) => void;
 }) {
   const [abierto, setAbierto] = useState(false);
@@ -52,7 +61,18 @@ export function ProponerValor({
     setTrabajando(true);
     setError(null);
 
-    const { valor, error: errCrear } = await proponerValorVocabulario(tipo, limpio);
+    const clave = (t: string) => sinTildes(t).replace(/\s+/g, " ");
+    const existente = universo.find((v) => clave(v.texto) === clave(limpio));
+    const idsDelEje = tipo === "tallas" ? ejesActuales.tallaIds : tipo === "tejidos" ? ejesActuales.tejidoIds : ejesActuales.patronIds;
+    if (existente && idsDelEje.includes(existente.id)) {
+      setError(`«${existente.texto}» ya está entre las opciones de arriba: tócala.`);
+      setTrabajando(false);
+      return;
+    }
+
+    const { valor, error: errCrear } = existente
+      ? { valor: { id: existente.id, texto: existente.texto, aprobado: true }, error: null }
+      : await proponerValorVocabulario(tipo, limpio);
     if (errCrear || !valor) {
       setError(errCrear);
       setTrabajando(false);
@@ -74,7 +94,7 @@ export function ProponerValor({
     const errOfrecer = await guardarEjesCategoria(categoriaId, nuevos);
     setTrabajando(false);
     if (errOfrecer) {
-      setError(`Se creó «${valor.texto}» en el catálogo, pero no se pudo ofrecer en esta categoría: ${errOfrecer} Reintenta agregándola de nuevo.`);
+      setError(`«${valor.texto}» ya está en el catálogo, pero no se pudo ofrecer en esta categoría: ${errOfrecer} Vuelve a tocar «Agregar»: no se crea otra vez.`);
       return;
     }
     avisar.exito(`${valor.texto} agregada a la categoría`);

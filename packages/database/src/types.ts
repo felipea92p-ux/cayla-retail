@@ -3735,6 +3735,7 @@ export type Database = {
           color: string
           costo: number
           referencia: string
+          reutilizado: boolean
           sku: string
           talla: string
           variante_id: string

@@ -64,6 +64,12 @@ describe("claveReferencia — espejo de fn_clave_referencia", () => {
   it("solo símbolos queda vacío", () => {
     expect(claveReferencia("...")).toBe("");
   });
+  it("pliega solo áéíóúüñ, igual que la base: ç, à y ö se descartan como puntuación", () => {
+    // fn_clave_referencia: translate('áéíóúüñ' → 'aeiouun') y luego se borra todo lo que no sea a-z0-9.
+    expect(claveReferencia("Ñandú Peña")).toBe("nandupena");
+    expect(claveReferencia("Açaí")).toBe("aai");
+    expect(claveReferencia("Blüsa Nöel")).toBe("blusanel");
+  });
 });
 
 describe("tokenTalla — espejo de fn_token_talla", () => {

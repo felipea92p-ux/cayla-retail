@@ -95,8 +95,9 @@ export function FiltrosProductos({
   if (q) chips.push({ texto: `«${q}»`, quitar: { q: "" } });
   if (orden) chips.push({ texto: orden === "precio_asc" ? "Precio: menor a mayor" : "Precio: mayor a menor", quitar: { orden: "" } });
   if (cat) chips.push({ texto: categorias.find((c) => c.id === cat)?.nombre ?? "Categoría", quitar: { cat: "" } });
-  if (marca) chips.push({ texto: marcas.find((m) => m.id === marca)?.nombre ?? "Marca", quitar: { marca: "" } });
-  if (proveedor) chips.push({ texto: proveedores.find((p) => p.id === proveedor)?.nombre ?? "Proveedor", quitar: { proveedor: "" } });
+  // Con prefijo: una marca y su proveedor pueden llamarse igual («Adidas» / «Adidas»), y dos botones que dicen lo mismo no se distinguen.
+  if (marca) chips.push({ texto: `Marca: ${marcas.find((m) => m.id === marca)?.nombre ?? "—"}`, quitar: { marca: "" } });
+  if (proveedor) chips.push({ texto: `Proveedor: ${proveedores.find((p) => p.id === proveedor)?.nombre ?? "—"}`, quitar: { proveedor: "" } });
   if (color) chips.push({ texto: colores.find((c) => c.id === color)?.nombre ?? "Color", quitar: { color: "" } });
   if (estado) chips.push({ texto: estado === "activo" ? "Activo" : "Descontinuado", quitar: { estado: "" } });
   if (stock) {
@@ -121,7 +122,7 @@ export function FiltrosProductos({
     <div className="flex flex-wrap items-center gap-2">
       {chips.map((c) => (
         <button
-          key={c.texto}
+          key={Object.keys(c.quitar).join("|")}
           type="button"
           onClick={() => {
             if ("q" in c.quitar) setBusqueda("");

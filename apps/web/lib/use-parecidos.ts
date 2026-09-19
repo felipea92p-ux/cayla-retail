@@ -30,19 +30,31 @@ export function useParecidos({ nombre, activo, excluirId }: { nombre: string; ac
     if (!activo || !nombre) return;
     const id = ++peticion.current;
     const espera = setTimeout(async () => {
-      const { data, error } = await createClient()
-        .rpc("buscar_productos_parecidos", { p_referencia: nombre, ...(excluirId ? { p_excluir_id: excluirId } : {}) })
-        .abortSignal(AbortSignal.timeout(6000));
-      if (id !== peticion.current) return; // llegó tarde: ya se escribió otra cosa
-      if (error || !data) {
-        setResultado({ clave: nombre, items: [], fallo: true });
-        return;
+      // AbortController + temporizador, no `AbortSignal.timeout`: éste no existe en Safari antiguo (los iPads de las
+      // tiendas) y lanzaría acá adentro, dejando `comprobando` en true para siempre — el bloque siguiente cerrado sin salida.
+      const control = new AbortController();
+      const corte = setTimeout(() => control.abort(), 6000);
+      let resultadoNuevo: Resultado;
+      try {
+        // Parámetros LITERALES (no un spread): `pnpm datos:comparar` los lee del código para avisar si la base no los acepta.
+        const { data, error } = await createClient()
+          .rpc("buscar_productos_parecidos", { p_referencia: nombre, p_excluir_id: excluirId })
+          .abortSignal(control.signal);
+        resultadoNuevo =
+          error || !data
+            ? { clave: nombre, items: [], fallo: true }
+            : {
+                clave: nombre,
+                fallo: false,
+                items: data.map((p) => ({ id: p.id, referencia: p.referencia, categoria: p.categoria, nivel: p.nivel as Parecido["nivel"] })),
+              };
+      } catch {
+        resultadoNuevo = { clave: nombre, items: [], fallo: true };
+      } finally {
+        clearTimeout(corte);
       }
-      setResultado({
-        clave: nombre,
-        fallo: false,
-        items: data.map((p) => ({ id: p.id, referencia: p.referencia, categoria: p.categoria, nivel: p.nivel as Parecido["nivel"] })),
-      });
+      if (id !== peticion.current) return; // llegó tarde: ya se escribió otra cosa
+      setResultado(resultadoNuevo);
     }, 350);
     return () => clearTimeout(espera);
   }, [nombre, activo, excluirId, reintento]);

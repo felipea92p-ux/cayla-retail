@@ -120,4 +120,8 @@ describe("A quién pedirle: productos por reponer, por proveedor", () => {
   it("sin nada por reponer, nada que mostrar", () => {
     expect(contarProductosPorProveedor([])).toEqual([]);
   });
+  it("una fila sin proveedor (la base aún sin el SQL de proveedores) no tiene a quién pedirle: se salta, no rompe", () => {
+    const sinProveedor = { producto_id: "p9" } as unknown as Parameters<typeof contarProductosPorProveedor>[0][number];
+    expect(contarProductosPorProveedor([sinProveedor, f("p1", "a", "Ámbar")])).toEqual([{ proveedorId: "a", proveedor: "Ámbar", productos: 1 }]);
+  });
 });

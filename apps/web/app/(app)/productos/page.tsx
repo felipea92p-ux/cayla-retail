@@ -77,7 +77,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   ]);
 
   // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal).
-  const reposicion = resumen.reponerDeProveedor > 0 ? await getReposicionPorProveedor() : [];
+  const reposicion = resumen.reponerDeProveedor > 0 ? await getReposicionPorProveedor(filtros) : [];
 
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
   const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex }));

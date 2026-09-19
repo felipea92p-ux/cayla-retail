@@ -14,6 +14,13 @@ describe("traduce lo que escribe Postgres por su cuenta", () => {
     expect(salida).toContain("Ya existe una marca con ese nombre");
   });
 
+  it("reactivar una prenda rechazada dice qué hacer, sin citar la restricción", () => {
+    const salida = traducirError({ message: 'new row for relation "productos" violates check constraint "productos_rechazado_descontinuado_check"', code: "23514" }, "guardar el producto");
+    expect(salida).not.toContain("productos_rechazado_descontinuado_check");
+    expect(salida).toContain("no se puede reactivar");
+    expect(salida).toContain("Nuevo producto");
+  });
+
   it("una pareja marca-proveedor inválida dice cómo arreglarla", () => {
     const salida = traducirError({ message: 'insert or update on table "productos" violates foreign key constraint "productos_marca_proveedor_fk"', code: "23503" }, "guardar el producto");
     expect(salida).not.toContain("productos_marca_proveedor_fk");

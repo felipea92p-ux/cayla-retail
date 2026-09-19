@@ -38,19 +38,29 @@ export type VarianteCatalogo = {
  *  Devoluciones/Buscar (todo lo que lista `getCatalogo()`). */
 export async function getCatalogo(): Promise<VarianteCatalogo[]> {
   const supabase = await createClient();
-  const filas = exigir(
-    await supabase
+  const [resVariantes, resMarcas] = await Promise.all([
+    supabase
       .from("variantes")
       .select(
         `id, sku, codigo, color_codigo, precio, costo, activo,
          talla:tallas ( valor ),
-         producto:productos ( id, referencia, categoria:categorias ( nombre ), marca:marcas ( nombre ), producto_fotos ( url, color_codigo ) ),
+         producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, color_codigo ) ),
          color:colores ( nombre, hex ),
          codigos_barras ( codigo )`
       )
       .order("sku"),
-    "el catálogo"
-  );
+    // La marca va en una consulta APARTE y tolerante, no anidada arriba: `getCatalogo()` lo
+    // leen la caja, cambios, buscar, compras, recepción, conteo y traslados. Un embed que la
+    // base todavía no conoce (el SQL de marcas, 20260918231000, aún sin pegar en producción)
+    // haría fallar TODA esa consulta y con ella siete pantallas. Sin la marca, la caja
+    // sigue vendiendo: solo deja de encontrar por «adidas» hasta que el SQL entre.
+    supabase.from("productos").select("id, marca:marcas ( nombre )"),
+  ]);
+  const filas = exigir(resVariantes, "el catálogo");
+  const marcaPorProducto = new Map<string, string>();
+  for (const p of resMarcas.error ? [] : (resMarcas.data ?? [])) {
+    if (p.marca?.nombre) marcaPorProducto.set(p.id, p.marca.nombre);
+  }
 
   return filas.map((v) => ({
     varianteId: v.id,
@@ -69,7 +79,7 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
     productoId: v.producto?.id ?? "",
     referencia: v.producto?.referencia ?? "(sin referencia)",
     categoria: v.producto?.categoria?.nombre ?? null,
-    marca: v.producto?.marca?.nombre ?? null,
+    marca: marcaPorProducto.get(v.producto?.id ?? "") ?? null,
     codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),
   }));
 }
@@ -274,17 +284,30 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
 /** "A quién pedirle" (ADR-0109): los productos que hoy cumplen la señal «Pedir a proveedor»,
  *  agrupados por proveedor, de más a menos. NO recalcula la señal: le pregunta a `fn_productos`
  *  con `stock = reponer` (demanda × tiempo de entrega + mínimo, 20260916100000), así hay UNA sola
- *  definición de "hay que reponer". Trae hasta 300 productos (3 páginas de 100): el catálogo activo
- *  es de decenas, no de miles; si algún día pasara de eso, los números serían un piso y no se
- *  pretende otra cosa. */
-export async function getReposicionPorProveedor(): Promise<ReposicionProveedor[]> {
+ *  definición de "hay que reponer".
+ *
+ *  Recibe LOS MISMOS filtros que la tarjeta «Pedir a proveedor» (`getResumenProductos`), para que
+ *  la suma de este bloque sea exactamente el número de esa tarjeta: dos cifras distintas para lo
+ *  mismo en una misma pantalla es lo que hace que nadie confíe en ninguna.
+ *
+ *  Es un complemento de la pantalla, no la pantalla: si la consulta falla (p. ej. el SQL de
+ *  proveedores todavía no está en producción y `fn_productos` no devuelve `proveedor_id`), el bloque
+ *  se omite en vez de tumbar Productos. Trae hasta 300 productos (3 páginas de 100): el catálogo
+ *  activo es de decenas, no de miles; si algún día pasara de eso, los números serían un piso. */
+export async function getReposicionPorProveedor(
+  filtros: Omit<FiltrosProductos, "stock" | "orden">
+): Promise<ReposicionProveedor[]> {
   const supabase = await createClient();
   const filas: FilaReposicion[] = [];
   for (let pagina = 1; pagina <= 3; pagina++) {
-    const pag = exigir(
-      await supabase.rpc("fn_productos", { p_stock: "reponer", p_estado: "activo", p_pagina: pagina, p_por_pagina: 100 }),
-      "los productos por reponer"
-    );
+    const { data, error } = await supabase.rpc("fn_productos", {
+      ...paramsFiltrosProductos(filtros),
+      p_stock: "reponer",
+      p_pagina: pagina,
+      p_por_pagina: 100,
+    });
+    if (error) return [];
+    const pag = data ?? [];
     if (pag.length === 0) break;
     filas.push(...pag);
     if (Number(pag[0].total_productos) <= pagina * 100) break;

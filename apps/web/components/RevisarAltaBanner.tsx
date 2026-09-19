@@ -37,7 +37,8 @@ export function RevisarAltaBanner({ productoId }: { productoId: string }) {
       <div>
         <p className="text-sm font-semibold text-tinta">Pendiente de revisar</p>
         <p className="text-xs text-tinta/65">
-          Se dio de alta al vuelo durante un conteo — revisa referencia, categoría y precio antes de aprobarla.
+          Se dio de alta al vuelo durante un conteo — revisa nombre, categoría, marca y proveedor, y el precio antes de aprobarla. Para guardar
+          cambios, Indumentaria también pide tejido y patrón.
         </p>
         {error && <p className="mt-1 text-xs text-rojo">{error}</p>}
       </div>

@@ -68,6 +68,9 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   // Copias locales: configurar una categoría o proponer un valor las modifica sin recargar la página.
   const [ejes, setEjes] = useState<EjesPorCategoria>(contexto.ejes);
   const [universo, setUniverso] = useState(contexto.universo);
+  // Marcas, proveedores y vínculos: el selector se desmonta al ver la pantalla de éxito y vuelve con «crear otro parecido»;
+  // lo creado aquí adentro (una marca nueva, un proveedor nuevo) tiene que sobrevivir a eso.
+  const [listasMarca, setListasMarca] = useState({ marcas: contexto.marcas, proveedores: contexto.proveedores, vinculos: contexto.vinculos });
 
   const [categoriaId, setCategoriaId] = useState("");
   const [marcaId, setMarcaId] = useState("");
@@ -120,8 +123,12 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     setPatronId("");
     setExcluidas(new Set());
     setOverridePrecio({});
-    const sugerido = contexto.costoSugerido[id];
-    if (sugerido && !costoTocado) setCostoBase(sugerido.costo.toFixed(2));
+    // Mientras la persona no haya escrito un costo, el que hay es el sugerido de la categoría ANTERIOR: al cambiar, se
+    // reemplaza por el de la nueva o se vacía. Dejarlo sería guardar el costo de una blusa como el de un bolso.
+    if (!costoTocado) {
+      const sugerido = contexto.costoSugerido[id];
+      setCostoBase(sugerido ? sugerido.costo.toFixed(2) : "");
+    }
   }
 
   function cambiarCategoria() {
@@ -231,7 +238,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!puedeGuardar) {
-      // No debería pasar (el botón está apagado), pero Enter en un campo puede llegar hasta acá.
+      // No debería pasar (el botón está apagado y Enter en un campo no envía), pero un envío programático llegaría hasta acá.
       avisar.error(problemas[0]?.texto ?? "Falta completar el formulario.");
       return;
     }
@@ -310,7 +317,15 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   if (creado) return <ProductoCreado creado={creado} onOtroParecido={otroParecido} />;
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+    <form
+      onSubmit={onSubmit}
+      // Crear un producto es un acto explícito: Enter dentro de un campo (corregir el nombre con todo ya lleno, cerrar un
+      // precio) NO lo envía. Sin esto, con el resto completo, un Enter de costumbre habría creado una prenda que no se borra.
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();
+      }}
+      className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start"
+    >
       <div className="space-y-4">
         {copiadoDe && (
           <AvisoInline tono="neutro">
@@ -340,9 +355,10 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
           ayuda="De quién es la prenda y quién la trae. Una marca puede llegar por más de un proveedor."
         >
           <ElegirMarcaProveedor
-            marcas={contexto.marcas}
-            proveedores={contexto.proveedores}
-            vinculos={contexto.vinculos}
+            marcas={listasMarca.marcas}
+            proveedores={listasMarca.proveedores}
+            vinculos={listasMarca.vinculos}
+            onListas={setListasMarca}
             usosCategoria={contexto.parejasPorCategoria[categoriaId] ?? []}
             categoriaNombre={categoria?.nombre}
             marcaId={marcaId}
@@ -444,6 +460,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
                     tipo="tallas"
                     categoriaId={categoriaId}
                     ejesActuales={{ tallaIds: tallasCategoria.map((t) => t.id), tejidoIds: tejidosCategoria.map((t) => t.id), patronIds: patronesCategoria.map((t) => t.id) }}
+                    universo={universo.tallas}
                     onCreado={(v) => agregarValor("tallas", v)}
                   />
                 </>
@@ -477,6 +494,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
                       tipo="tejidos"
                       categoriaId={categoriaId}
                       ejesActuales={{ tallaIds: tallasCategoria.map((t) => t.id), tejidoIds: tejidosCategoria.map((t) => t.id), patronIds: patronesCategoria.map((t) => t.id) }}
+                      universo={universo.tejidos}
                       onCreado={(v) => agregarValor("tejidos", v)}
                     />
                   </>
@@ -523,6 +541,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
                       tipo="patrones"
                       categoriaId={categoriaId}
                       ejesActuales={{ tallaIds: tallasCategoria.map((t) => t.id), tejidoIds: tejidosCategoria.map((t) => t.id), patronIds: patronesCategoria.map((t) => t.id) }}
+                      universo={universo.patrones}
                       onCreado={(v) => agregarValor("patrones", v)}
                     />
                   </>
@@ -652,7 +671,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
                         <input
                           type="number"
                           min={0}
-                          step="0.10"
+                          step="any"
                           inputMode="decimal"
                           aria-label={`Precio de ${etiqueta}`}
                           placeholder={precioBase || "0.00"}

@@ -42,7 +42,7 @@ export function AvisoParecidos({
           <p>
             Ya existe <strong>{identico.referencia}</strong> en {identico.categoria}. Un nombre identifica a un solo producto.
           </p>
-          <Link href={`/productos/${identico.id}`} className="mt-1 inline-block underline underline-offset-4">
+          <Link href={`/productos/${identico.id}/editar`} className="mt-1 inline-block underline underline-offset-4">
             Abrir {identico.referencia}
           </Link>
         </AvisoInline>
@@ -55,7 +55,7 @@ export function AvisoParecidos({
             {unaLetra.map((p, i) => (
               <span key={p.id}>
                 {i > 0 && ", "}
-                <Link href={`/productos/${p.id}`} className="font-semibold underline underline-offset-4">
+                <Link href={`/productos/${p.id}/editar`} className="font-semibold underline underline-offset-4">
                   {p.referencia}
                 </Link>
               </span>
@@ -75,7 +75,7 @@ export function AvisoParecidos({
           {parecidosSuaves.map((p, i) => (
             <span key={p.id}>
               {i > 0 && ", "}
-              <Link href={`/productos/${p.id}`} className="underline underline-offset-4">
+              <Link href={`/productos/${p.id}/editar`} className="underline underline-offset-4">
                 {p.referencia}
               </Link>
             </span>

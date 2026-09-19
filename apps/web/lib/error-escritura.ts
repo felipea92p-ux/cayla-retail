@@ -54,6 +54,12 @@ type Huella = { marca: string; frase: string | ((detalle: string) => string) };
 
 const HUELLAS: Huella[] = [
   {
+    // 20260918230000_producto_nombre_una_sola_forma.sql — «rechazado» es terminal. `catalogo_actualizar_producto` avisa
+    // antes con su propia frase; esto es la red si otro camino intenta reactivar una prenda rechazada.
+    marca: "productos_rechazado_descontinuado_check",
+    frase: "Esta prenda se rechazó al revisar un alta al vuelo y no se puede reactivar. Créala de nuevo con Nuevo producto.",
+  },
+  {
     // 20260918231000_marcas_y_proveedor_en_productos.sql — dos marcas no pueden compartir nombre (ni con otra
     // forma: «adidas» / «Adidas»). Aparece al RENOMBRAR una marca; al crear, `crear_marca` reutiliza la que ya existe.
     marca: "marcas_nombre_unico",

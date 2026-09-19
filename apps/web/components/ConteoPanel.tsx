@@ -255,6 +255,10 @@ function ConteoEnCurso({
   // La última marca y proveedor usados en un alta al vuelo de ESTE conteo: en un censo las prendas vienen por tandas de la
   // misma marca, y volver a elegirla 300 veces es justo lo que frenaría el conteo (ADR-0109).
   const [ultimaPareja, setUltimaPareja] = useState<{ marcaId: string; proveedorId: string } | null>(null);
+  // Copia local de marcas y proveedores: el alta al vuelo se monta de nuevo en CADA escaneo, y lo que se creó en el anterior
+  // (una marca nueva, un proveedor nuevo) tiene que seguir existiendo en pantalla — si no, `ultimaPareja` apuntaría a una
+  // marca que el selector ya no conoce y mostraría «Marca» a secas.
+  const [marcasLocal, setMarcasLocal] = useState(marcas);
   const catalogoCompleto = useMemo(() => [...catalogo, ...catalogoNuevo], [catalogo, catalogoNuevo]);
 
   async function cancelarConteo() {
@@ -426,7 +430,8 @@ function ConteoEnCurso({
                 categorias={categorias}
                 colores={colores}
                 tallasPorCategoria={tallasPorCategoria}
-                marcas={marcas}
+                marcas={marcasLocal}
+                onListas={(l) => setMarcasLocal((prev) => ({ ...prev, ...l }))}
                 puedeCrearMarcas={esLider}
                 parejaInicial={ultimaPareja}
                 onCancelar={() => setAltaAbierta(false)}
@@ -647,6 +652,7 @@ function AltaAlVuelo({
   colores,
   tallasPorCategoria,
   marcas,
+  onListas,
   puedeCrearMarcas,
   parejaInicial,
   onCancelar,
@@ -657,6 +663,7 @@ function AltaAlVuelo({
   colores: { codigo: string; nombre: string }[];
   tallasPorCategoria: Record<string, { id: string; texto: string }[]>;
   marcas: CatalogoMarcas;
+  onListas: (listas: Pick<CatalogoMarcas, "marcas" | "proveedores" | "vinculos">) => void;
   puedeCrearMarcas: boolean;
   parejaInicial: { marcaId: string; proveedorId: string } | null;
   onCancelar: () => void;
@@ -704,7 +711,15 @@ function AltaAlVuelo({
       setError(traducirError(error, "dar de alta esta prenda"));
       return;
     }
-    avisar.exito(`${fila.referencia} dada de alta`, { detalle: "Pendiente de que un Líder la revise — ya se puede contar." });
+    // Dos casos con consecuencias distintas y la colaboradora tiene que saber cuál fue:
+    //  · reutilizado: ya existía una prenda con ese nombre (aprobada); esto solo le SUMÓ una talla
+    //    o un color, con el precio y el costo de sus hermanas. No queda nada por revisar.
+    //  · nueva: nace 'pendiente' hasta que un Líder la revise, pero ya se puede contar.
+    if (fila.reutilizado) {
+      avisar.exito(`${fila.referencia}: talla o color sumado`, { detalle: "Ya existía esa prenda; se le agregó esta variante. Ya se puede contar." });
+    } else {
+      avisar.exito(`${fila.referencia} dada de alta`, { detalle: "Pendiente de que un Líder la revise — ya se puede contar." });
+    }
     onCreada({
       varianteId: fila.variante_id,
       sku: fila.sku ?? "",
@@ -766,6 +781,7 @@ function AltaAlVuelo({
               setMarcaId("");
               setProveedorId("");
             }}
+            onListas={onListas}
             puedeCrear={puedeCrearMarcas}
           />
         </div>

@@ -15,8 +15,9 @@ import type { ProveedorOpcion } from "@/lib/marcas";
 //      opcional. Contacto, banco y plazo se completan después en Compras;
 //   2. `crear_marca`: la marca con su proveedor, o —si la marca ya existe—
 //      solo se le suma el proveedor (la misma marca por otro distribuidor).
-// Si la 2 falla tras registrar el proveedor, el proveedor YA existe: se dice y
-// reintentar es seguro.
+// Si la 2 falla tras registrar el proveedor, el proveedor YA existe: el formulario
+// pasa solo a «un proveedor que ya tengo» con ese elegido, así reintentar NO lo
+// registra otra vez (registrar_proveedor no es idempotente: crearía un duplicado).
 
 export type MarcaGuardada = {
   marcaId: string;
@@ -31,6 +32,8 @@ export function NuevaMarcaForm({
   proveedores,
   nombreInicial = "",
   marcaFija = false,
+  /** Proveedor ya elegido que todavía no trae ninguna marca: la marca nueva se le cuelga a ese, sin volver a preguntar quién la trae. */
+  proveedorFijo,
   /** Cómo se llama la marca que ya existe con ese nombre (si la hay), para no mostrar la que escribió la persona sino la real. */
   nombreExistente,
   onGuardado,
@@ -40,13 +43,17 @@ export function NuevaMarcaForm({
   nombreInicial?: string;
   /** Marca ya existente a la que solo se le suma un proveedor: el nombre no se toca. */
   marcaFija?: boolean;
+  proveedorFijo?: ProveedorOpcion;
   nombreExistente?: (nombre: string) => string | undefined;
   onGuardado: (r: MarcaGuardada) => void;
   onCancelar: () => void;
 }) {
   const [nombreMarca, setNombreMarca] = useState(nombreInicial);
-  const [modo, setModo] = useState<"existente" | "nuevo">(proveedores.length > 0 ? "existente" : "nuevo");
-  const [proveedorId, setProveedorId] = useState("");
+  const [modo, setModo] = useState<"existente" | "nuevo">(proveedorFijo || proveedores.length > 0 ? "existente" : "nuevo");
+  const [proveedorId, setProveedorId] = useState(proveedorFijo?.id ?? "");
+  // El proveedor que ESTE formulario acaba de registrar: existe aunque la marca haya fallado, y tiene que estar en la lista para reintentar.
+  const [creado, setCreado] = useState<ProveedorOpcion | null>(null);
+  const lista = creado && !proveedores.some((p) => p.id === creado.id) ? [...proveedores, creado] : proveedores;
   const [provNombre, setProvNombre] = useState("");
   const [provRuc, setProvRuc] = useState("");
   const [guardando, setGuardando] = useState(false);
@@ -64,7 +71,8 @@ export function NuevaMarcaForm({
     const supabase = createClient();
 
     let provId = proveedorId;
-    if (modo === "nuevo") {
+    const eraNuevo = modo === "nuevo";
+    if (eraNuevo) {
       const { data, error: errProv } = await supabase.rpc("registrar_proveedor", {
         p_nombre: provNombre.trim(),
         p_ruc: provRuc.trim() || undefined,
@@ -74,14 +82,17 @@ export function NuevaMarcaForm({
         return setError(traducirError(errProv, "registrar el proveedor"));
       }
       provId = data;
+      setCreado({ id: data, nombre: provNombre.trim() });
+      setModo("existente");
+      setProveedorId(data);
     }
 
     const { data: marcaId, error: errMarca } = await supabase.rpc("crear_marca", { p_nombre: nombre, p_proveedor_id: provId });
     setGuardando(false);
     if (errMarca || !marcaId) {
       return setError(
-        modo === "nuevo"
-          ? `El proveedor se registró, pero la marca no se pudo guardar: ${traducirError(errMarca, "agregar la marca")} Reintenta: el proveedor ya está creado.`
+        eraNuevo
+          ? `El proveedor «${provNombre.trim()}» se registró, pero la marca no se pudo guardar: ${traducirError(errMarca, "agregar la marca")} Vuelve a tocar «Guardar y usar»: el proveedor ya no se registra otra vez.`
           : traducirError(errMarca, "agregar la marca")
       );
     }
@@ -90,8 +101,9 @@ export function NuevaMarcaForm({
       marcaId,
       marcaNombre: nombreExistente?.(nombre) ?? nombre,
       proveedorId: provId,
-      proveedorNombre: modo === "nuevo" ? provNombre.trim() : (proveedores.find((p) => p.id === provId)?.nombre ?? ""),
-      proveedorNuevo: modo === "nuevo",
+      proveedorNombre: eraNuevo ? provNombre.trim() : (lista.find((p) => p.id === provId)?.nombre ?? ""),
+      // «Nuevo» también si se registró en un intento anterior de este mismo formulario: el padre todavía no lo tiene en su lista.
+      proveedorNuevo: eraNuevo || creado?.id === provId,
     });
   }
 
@@ -104,7 +116,9 @@ export function NuevaMarcaForm({
 
   return (
     <div className="space-y-3 rounded-md border border-tinta/20 p-4">
-      <p className="label-cayla text-[11px] text-tinta/70">{marcaFija ? `Otro proveedor para ${nombreInicial}` : "Nueva marca"}</p>
+      <p className="label-cayla text-[11px] text-tinta/70">
+        {marcaFija ? `Otro proveedor para ${nombreInicial}` : proveedorFijo ? `Nueva marca de ${proveedorFijo.nombre}` : "Nueva marca"}
+      </p>
       {!marcaFija && (
         <div>
           <label htmlFor="nueva-marca" className="text-xs text-tinta/60">
@@ -121,21 +135,23 @@ export function NuevaMarcaForm({
         </div>
       )}
 
-      <div>
-        <p className="text-xs text-tinta/60">¿Quién la trae?</p>
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          <ChipOpcion elegido={modo === "existente"} onClick={() => setModo("existente")} disabled={proveedores.length === 0}>
-            Un proveedor que ya tengo
-          </ChipOpcion>
-          <ChipOpcion elegido={modo === "nuevo"} onClick={() => setModo("nuevo")}>
-            Un proveedor nuevo
-          </ChipOpcion>
+      {!proveedorFijo && (
+        <div>
+          <p className="text-xs text-tinta/60">¿Quién la trae?</p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <ChipOpcion elegido={modo === "existente"} onClick={() => setModo("existente")} disabled={lista.length === 0}>
+              Un proveedor que ya tengo
+            </ChipOpcion>
+            <ChipOpcion elegido={modo === "nuevo"} onClick={() => setModo("nuevo")}>
+              Un proveedor nuevo
+            </ChipOpcion>
+          </div>
         </div>
-      </div>
+      )}
 
-      {modo === "existente" ? (
+      {proveedorFijo ? null : modo === "existente" ? (
         <div className="flex flex-wrap gap-1.5">
-          {proveedores.map((p) => (
+          {lista.map((p) => (
             <ChipOpcion key={p.id} elegido={proveedorId === p.id} onClick={() => setProveedorId(p.id)}>
               {p.nombre}
             </ChipOpcion>

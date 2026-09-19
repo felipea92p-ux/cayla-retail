@@ -135,7 +135,8 @@ export function contarProductosPorProveedor(filas: FilaReposicion[]): Reposicion
   const vistos = new Set<string>();
   const porProveedor = new Map<string, ReposicionProveedor>();
   for (const f of filas) {
-    if (vistos.has(f.producto_id)) continue;
+    // Una fila sin proveedor (la base todavía sin el SQL de proveedores) no tiene a quién pedirle: se salta.
+    if (!f.proveedor_id || vistos.has(f.producto_id)) continue;
     vistos.add(f.producto_id);
     const actual = porProveedor.get(f.proveedor_id) ?? { proveedorId: f.proveedor_id, proveedor: f.proveedor_nombre, productos: 0 };
     actual.productos += 1;

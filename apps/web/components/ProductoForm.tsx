@@ -441,6 +441,11 @@ export function ProductoForm({
                 opciones={opcionesTejido}
                 marcador={categoriaId ? "Sin tejido" : "Elige una categoría primero"}
               />
+              {exigeTejidoPatron && opcionesTejido.length === 0 && (
+                <p className="mt-1 text-xs text-ambar-profundo">
+                  {categoriaActual?.nombre} exige tejido pero no tiene ninguno habilitado: habilítalos en Catálogo → Categorías para poder guardar.
+                </p>
+              )}
             </Campo>
             <Campo etiqueta={exigeTejidoPatron ? "Patrón" : "Patrón (opcional)"}>
               <ComboBuscable
@@ -450,11 +455,27 @@ export function ProductoForm({
                 opciones={opcionesPatron}
                 marcador={categoriaId ? "Sin patrón" : "Elige una categoría primero"}
               />
+              {exigeTejidoPatron && opcionesPatron.length === 0 && (
+                <p className="mt-1 text-xs text-ambar-profundo">
+                  {categoriaActual?.nombre} exige patrón pero no tiene ninguno habilitado: habilítalos en Catálogo → Categorías para poder guardar.
+                </p>
+              )}
               {patronId && <MuestraPatron nombre={opcionesPatron.find((o) => o.valor === patronId)?.texto ?? ""} className="mt-2 aspect-[3/1] w-[120px]" />}
             </Campo>
-            {editando && (
-              <Segmentado etiqueta="Estado" valor={estado} onValor={setEstado} opciones={ESTADOS} />
-            )}
+            {editando &&
+              (producto?.estadoAlta === "rechazado" ? (
+                // Una prenda rechazada en el censo es terminal (productos_rechazado_descontinuado_check): ofrecerle «Activo»
+                // sería un botón que la base siempre rechaza. Se dice por qué y qué hacer, en vez de dejar que falle al guardar.
+                <div className="space-y-1">
+                  <p className="label-cayla text-[11px] text-tinta/70">Estado</p>
+                  <p className="text-sm text-tinta">Descontinuado</p>
+                  <p className="text-xs text-tinta/60">
+                    Se rechazó al revisar un alta al vuelo y no se reactiva. Si fue un error, créala de nuevo con Nuevo producto.
+                  </p>
+                </div>
+              ) : (
+                <Segmentado etiqueta="Estado" valor={estado} onValor={setEstado} opciones={ESTADOS} />
+              ))}
             <CampoTexto
               etiqueta="Stock mínimo (opcional)"
               id="producto-stock-minimo"
