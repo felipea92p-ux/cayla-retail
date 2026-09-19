@@ -3,6 +3,13 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-18 (Recibir por envío: un envío trae comprobantes de varios proveedores, y cuenta quien abre la caja)
+
+Hasta hoy una guía cubría comprobantes de UN proveedor y solo un líder podía recibir contra comprobante. Un envío real trae bultos de varios proveedores y quien abre la caja suele ser una integrante. Ahora existe `envios` (una guía, un lote por proveedor), la RPC atómica e idempotente `recibir_envio` y la pantalla `/recibir`, abierta a cualquier colaborador de la sede y sin dinero para quien no es líder. Lo fuera de comprobante declara su origen: de qué proveedor viene y si es regalo; lo de otra sede se confirma como traslado, no como prenda suelta. Los cuatro indicadores pasan a vivir bajo «¿Qué llegó?» y desaparecen al marcar un comprobante. ADR-0113.
+
+Errores propios que la verificación cazó: dos veces un nombre de ADR/migración que otra rama ya usaba (0112 estaba tomado; se usó 0113), un chequeo de «solo líder cierra» en la RPC más estricto que la base sin que nadie lo hubiera decidido (se quitó: la decisión vive en la pantalla y es reversible sin migración), y la pantalla nueva perdió el ancho completo al salir de `/compras` (`SIN_TOPE_DE_ANCHO`). También cerré la sesión del navegador de Felipe para probar como Micaela y no pude volver a entrar: iniciar sesión pide una contraseña que no me toca escribir.
+
+Lo que Felipe se lleva: un envío no es un proveedor — es una llegada a la puerta, y modelarlo como el padre que agrupa lotes (uno por proveedor) dejó intactas las métricas y el costo de cada proveedor; y «que cuente cualquiera» no obliga a abrir Compras: se abre solo la puerta de recibir y los montos ni siquiera salen del servidor. Las 2 migraciones ya están en producción (las pegó Felipe el 2026-09-19); falta probar la pantalla como colaborador.
 ## 2026-09-19 (Los 8 SQL de Crear producto ya están en producción — y `datos:comparar` quedó en verde)
 
 Se pegaron uno por uno, con una verificación de solo lectura antes y después de cada uno. Tres cosas salieron al pegar y no en las pruebas: el mapa de categorías falló por depender de tablas temporales entre sentencias (ahora es un solo bloque), la regla de Editar habría bloqueado 38 de los 39 productos activos (ahora «no empeora»), y una consulta mía con `\b` buscaba mal las funciones que insertan en `productos` (en Postgres `\b` es «retroceso»; el límite de palabra es `\y`). Al final: 0 productos con pareja inválida, 0 nombres duplicados, Productos filtra y busca por marca, y `pnpm datos:comparar` dice «ninguna pantalla llama a una función con parámetros que producción no acepte».
@@ -196,6 +203,20 @@ Verificación final contra producción: 250 de 250 firmas coinciden, 0 funciones
 Un error propio que la revisión cazó: la primera regla para decidir qué firmas viejas sobraban era «mismo nombre de función» y habría borrado una sobrecarga de `registrar_compra` que sigue viva; la comprobación de conteo (156 ≠ 157) lo delató y se corrigió preguntándole a la base qué firmas locales ya no existían (eran solo dos).
 
 Lo que Felipe se lleva: comparar por firmas y descargar solo la diferencia convierte «refrescar el volcado» de una transcripción enorme y frágil en una tarea de minutos, y el conteo final contra producción es lo que garantiza que un parche a mano no dejó nada torcido. Pendiente: cuando se pegue más SQL en producción, repetir el mismo método (las consultas de firma están en el historial de esta sesión; conviene convertirlas en un script).
+
+## 2026-09-18 (Compras: pruebas SQL de los indicadores — 140 casos y 5 hallazgos)
+
+Los indicadores de Compras (deuda por vencimiento, salidas de caja, subtotales de Por pagar, recepciones, ingreso sin comprobante, ficha del proveedor, saldo a favor) solo se habían mirado con los datos de muestra. Ahora `pnpm pruebas:compras-indicadores` los prueba contra el Postgres local: cada caso corre en su transacción con ROLLBACK, mide una línea base antes de armar su escenario y verifica la diferencia. Incluye los bordes de día de Lima (reemplazando `fn_hoy_lima()` dentro de la transacción para simular «UTC ya es mañana») y lo que ve Micaela en cada función.
+
+Salieron 5 hallazgos que NO se arreglaron (cada uno queda como prueba `[HALLAZGO Hn]` y con detalle en el BACKLOG): el «% entregado completo» de la ficha ignora los faltantes cerrados, «última devolución» usa la fecha equivocada, `por_pagar_tramos` no acepta el filtro de tipo, los pagos sin fecha usan el reloj de UTC, y una decisión tuya: los indicadores de dinero le muestran a un integrante lo de su propia sede.
+
+Lo que Felipe se lleva: una prueba que espera «la deuda vencida es 0» se rompe apenas alguien registra una factura; la que mide antes y después sobrevive al seed, a otras sesiones y a la hora del día. Y para probar una regla de reloj hay que poder cambiar el reloj: sin eso, el borde de las 7 pm solo se ve de noche.
+
+## 2026-09-18 (Compras: «Esperando nota» sale en las listas de Comprobantes y Por pagar — ADR-0111)
+
+Cuando se cierra un faltante, el proveedor le debe a CAYLA una nota de crédito por lo cerrado; el detalle ya lo decía, pero en Por pagar el líder veía el saldo completo y podía pagar de más. Ahora las dos listas muestran junto al saldo un chip ámbar «Esperando nota S/ X» (y «Ya puedes registrarla» cuando el comprobante ya está al 100 %). Lo calcula una función de lectura nueva, `compras_nota_pendiente(uuid[])` (migración `20260918220000`), que NO toca `listar_compras` ni `compras_resumen`: cambiar el retorno de una función viva es lo que ya rompió producción (ADR-0009), una función nueva no puede.
+La pantalla pregunta solo por los comprobantes de la página que tienen algo cerrado, y si la consulta falla dibuja la lista igual sin el chip (es un aviso, no un número). Pruebas SQL 112/112 (13 nuevas: monto exacto 236.00, resuelto sí/no, desaparece con la nota por faltante, no con otra nota, anulado, integrante vacío) y 10 de vitest sobre el texto y el tono. No hubo navegador (el integrado es compartido y pide login): falta ver el chip en la celda Pago de Comprobantes.
+Lo que Felipe se lleva: un aviso que depende de una migración se diseña para degradarse solo (sin la función en producción, la lista sigue viva, sin el chip) — así se puede desplegar antes de pegar el SQL sin romper la pantalla. Falta pegar la migración 16 en producción.
 
 ## 2026-09-18 (Migraciones: dos con la misma versión — la de talla Única se mueve a 20260918175000)
 
@@ -8049,3 +8070,12 @@ Al refrescar el diccionario de datos apareció una función repetida en producci
 Lección: cuando producción tiene una versión de una función que el repo no conoce, una migración que la reescribe debe partir de la definición REAL de producción (o soltar la firma vieja explícitamente), nunca de la del repo. Corrección: `20260918219000` (suelta la de 14, deja una de 15 con `p_token` y `saldo_a_favor`; agrega `token_cliente` al repo para que una base nueva converja con producción). Probada dentro de una transacción con rollback: una sola firma, idempotente, sin token, con token y con saldo a favor.
 
 Estado: la corrección `20260918219000` se pegó en producción el 2026-09-19 (la primera versión falló con «relation already exists» porque `compras_token_cliente_key` es allá un índice único y no una restricción; no dejó nada aplicado). Verificado después: `registrar_compra` con una sola firma de 15 parámetros que acepta `saldo_a_favor`, 0 funciones sobrecargadas en `retail`, y el volcado de funciones coincide con producción (156 firmas, mismo checksum).
+
+## 2026-09-18 (Candado de CI: números de ADR únicos)
+Cada sesión numera su ADR como «el siguiente» de su `main` y, con ramas paralelas, dos eligen el mismo número sin
+que nadie haga nada mal: `main` llegó a tener 0074, 0102 y 0105 repetidos (el 0102 se resolvió al renumerar el ADR de Caja, #162) y, en esa
+renumeración, el 0113 llegó a tener tres reclamantes. `scripts/adr/numeros.mjs` (paso «Números de ADR» del CI, y `pnpm adr:numeros`)
+sale con 1 si dos archivos de `docs/adr/` comparten número. Los dos que siguen repetidos (0074 y 0105) se toleran en una lista
+(`LEGADO`) que no puede crecer —un tercer 0074 falla— y de la que se borra la línea al renumerar. Igual que el
+candado de migraciones, solo ve la rama que prueba: el choque entre dos ramas se ve en la segunda, en su PR. Antes
+de elegir un número hay que mirar también las ramas remotas y los otros worktrees (receta en el encabezado del script).

@@ -137,7 +137,7 @@ order by 1;
 
 ```bash
 pnpm datos:generar:produccion   # reescribe el diccionario
-pnpm datos:comparar             # avisa si alguna pantalla quedó rota
+pnpm datos:comparar             # avisa si alguna pantalla quedó rota, o si una función quedó con dos firmas
 pnpm datos:aviario              # falla si una tabla de producción quedó sin pájaro
 ```
 

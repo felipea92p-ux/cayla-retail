@@ -10,6 +10,8 @@
  *   · `cerrar_linea_compra`           — «estas N no van a llegar», con o sin nota de crédito.
  *   · `registrar_nota_credito_compra` — la nota suelta; baja el saldo exactamente su monto.
  *   · `recibir_compras`               — el tope por línea ahora descuenta lo cerrado.
+ *   · `compras_nota_pendiente`        — «esperando nota» en las listas: qué comprobantes tienen faltante
+ *                                       cerrado y su nota por faltante todavía sin registrar, y por cuánto.
  *   · la foto de `compras` (saldo, estado_pago, estado_recepcion, atrasada) y las vistas.
  *   · las tablas append-only (`compra_item_cierres`, `compra_notas_credito`) y su RLS.
  *   · el día de corte en Lima (`fn_hoy_lima()`) en `vencida` y `listar_compras`.
@@ -1441,6 +1443,208 @@ ${cambiaA(MICAELA)}select retail.recibir_y_cerrar_compras(:'trujillo',
 `
   ),
   "No tienes permiso para registrar notas de crédito de proveedores"
+);
+
+// ===========================================================================
+// D2 — «ESPERANDO NOTA» EN LAS LISTAS: `compras_nota_pendiente(uuid[])`
+// ===========================================================================
+// Una función de lectura para las listas de Comprobantes y Por pagar: de los ids que la página
+// tiene en pantalla, cuáles tienen faltante cerrado y todavía NO tienen su nota por faltante,
+// y por cuánto. Es lo que la lista muestra junto al saldo («Esperando nota S/ 236.00»).
+
+/** La función aplicada a uno o varios comprobantes (`ids` = expresiones SQL de uuid). */
+const pendientes = (...ids) => `retail.compras_nota_pendiente(array[${ids.join(", ")}]::uuid[])`;
+
+exito(
+  "esperando nota: un comprobante SIN cierres no aparece (aunque le falte mercadería)",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1")}
+${recibe("c1_item", 20)}
+select count(*) from ${pendientes(":'c1'")};
+rollback;
+`
+  ),
+  ["0"]
+);
+
+exito(
+  "esperando nota: con un cierre de 4 (24 u × S/ 50 + IGV 18 %) y sin nota, aparece con el monto EXACTO 236.00 y resuelto",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1")}
+${recibe("c1_item", 20)}
+select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego') as _k \\gset
+select p.compra_id = :'c1', p.unidades_cerradas, p.monto_esperado, p.resuelto from ${pendientes(":'c1'")} p;
+rollback;
+`
+  ),
+  ["t", "4", "236.00", "t"]
+);
+
+exito(
+  "esperando nota: resuelto es FALSO mientras queden unidades sin recibir ni cerrar (10 llegaron, 4 cerradas, 10 pendientes)",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1")}
+${recibe("c1_item", 10)}
+select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego') as _k \\gset
+select p.unidades_cerradas, p.monto_esperado, p.resuelto,
+  (select recibido_cantidad + cerrado_cantidad < facturado_cantidad from retail.compras where id = :'c1')
+from ${pendientes(":'c1'")} p;
+rollback;
+`
+  ),
+  ["4", "236.00", "f", "t"]
+);
+
+exito(
+  "esperando nota: resuelto pasa de falso a verdadero cuando llega lo que quedaba (sigue al comprobante)",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1")}
+${recibe("c1_item", 10)}
+select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego') as _k \\gset
+select resuelto as antes from ${pendientes(":'c1'")} \\gset
+${recibe("c1_item", 10)}
+select :'antes', p.resuelto, p.monto_esperado from ${pendientes(":'c1'")} p;
+rollback;
+`
+  ),
+  ["f", "t", "236.00"]
+);
+
+exito(
+  "esperando nota: suma todas las líneas cerradas y los cierres de varias veces de una misma línea (14 u × 50 + IGV = 826.00)",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1", { lineas: [24, 10] })}
+${recibe("c1_item", 20)}
+select retail.cerrar_linea_compra(:'c1_item', 3, 'no_llego') as _k1 \\gset
+select retail.cerrar_linea_compra(:'c1_item', 1, 'danada') as _k2 \\gset
+select retail.cerrar_linea_compra(:'c1_item2', 10, 'error_proveedor') as _k3 \\gset
+select p.unidades_cerradas, p.monto_esperado, p.resuelto from ${pendientes(":'c1'")} p;
+rollback;
+`
+  ),
+  ["14", "826.00", "t"]
+);
+
+exito(
+  "esperando nota: un comprobante sin IGV (boleta) espera solo lo cerrado a su costo (4 × 50 = 200.00)",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1", { tipo: "boleta", igv: 0 })}
+${recibe("c1_item", 20)}
+select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego') as _k \\gset
+select p.unidades_cerradas, p.monto_esperado from ${pendientes(":'c1'")} p;
+rollback;
+`
+  ),
+  ["4", "200.00"]
+);
+
+exito(
+  "esperando nota: tras registrar la nota por faltante DESAPARECE de la lista",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1")}
+${recibe("c1_item", 20)}
+select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego') as _k \\gset
+select count(*) as antes from ${pendientes(":'c1'")} \\gset
+select retail.registrar_nota_credito_compra(:'c1', 'FC01-901', retail.fn_hoy_lima(), 236.00, 'faltante') as _n \\gset
+select :'antes', count(*) from ${pendientes(":'c1'")};
+rollback;
+`
+  ),
+  ["1", "0"]
+);
+
+exito(
+  "esperando nota: solo la nota por FALTANTE la apaga — una nota por descuento del mismo comprobante no",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1")}
+${recibe("c1_item", 20)}
+select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego') as _k \\gset
+select retail.registrar_nota_credito_compra(:'c1', 'FC01-902', retail.fn_hoy_lima(), 100.00, 'descuento') as _n \\gset
+select p.unidades_cerradas, p.monto_esperado, p.resuelto from ${pendientes(":'c1'")} p;
+rollback;
+`
+  ),
+  ["4", "236.00", "t"]
+);
+
+exito(
+  "esperando nota: un comprobante anulado no aparece (aunque conserve sus cierres)",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1")}
+${recibe("c1_item", 20)}
+select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego') as _k \\gset
+select count(*) as antes from ${pendientes(":'c1'")} \\gset
+update retail.compras set estado = 'anulada', motivo_anulacion = 'prueba' where id = :'c1';
+select :'antes', count(*) from ${pendientes(":'c1'")};
+rollback;
+`
+  ),
+  ["1", "0"]
+);
+
+exito(
+  "esperando nota: con varios ids devuelve solo los que cumplen (uno con cierres, otro sin cierres y un id que no existe)",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1")}${compra("c2")}
+${recibe("c1_item", 20)}
+select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego') as _k \\gset
+select count(*), bool_and(compra_id = :'c1') from ${pendientes(":'c1'", ":'c2'", "gen_random_uuid()")};
+rollback;
+`
+  ),
+  ["1", "t"]
+);
+
+exito(
+  "esperando nota: sin ids (arreglo vacío o nulo) devuelve vacío, sin error",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1")}
+${recibe("c1_item", 20)}
+select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego') as _k \\gset
+select (select count(*) from retail.compras_nota_pendiente('{}'::uuid[])), (select count(*) from retail.compras_nota_pendiente(null));
+rollback;
+`
+  ),
+  ["0", "0"]
+);
+
+exito(
+  "esperando nota: Felipe (líder) la ve con el rol authenticated; Micaela (integrante) recibe vacío del MISMO comprobante",
+  comoPersona(
+    FELIPE,
+    `${BASE}${compra("c1")}
+${recibe("c1_item", 20)}
+select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego') as _k \\gset
+set local role authenticated;
+select count(*) as felipe from ${pendientes(":'c1'")} \\gset
+${cambiaA(MICAELA)}select :'felipe', (select count(*) from ${pendientes(":'c1'")});
+rollback;
+`
+  ),
+  ["1", "0"]
+);
+
+exito(
+  "esperando nota: la puerta está cerrada al público (anon no la ejecuta) y abierta a authenticated",
+  comoPersona(
+    FELIPE,
+    `select has_function_privilege('anon', 'retail.compras_nota_pendiente(uuid[])', 'execute'),
+  has_function_privilege('authenticated', 'retail.compras_nota_pendiente(uuid[])', 'execute');
+rollback;
+`
+  ),
+  ["f", "t"]
 );
 
 

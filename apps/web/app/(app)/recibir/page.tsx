@@ -2,44 +2,50 @@ import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, soles, type ParamsCompras } from "@/lib/compras";
+import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, type ParamsCompras } from "@/lib/compras";
 import { getResumenComprasExtra, getResumenRecepciones, listarRecepcionesCompras } from "@/lib/compras-indicadores";
 import { getComprasConNotaFaltante, getSaldosFavor } from "@/lib/saldo-favor";
-import { RecepcionCompraFormV2 } from "@/components/RecepcionCompraFormV2";
+import { getTrasladosHaciaAca } from "@/lib/envio";
+import { comprobanteSinMontos, kpisDeLaLista, lineaSinCosto } from "@/lib/envio-reglas";
+import { RecepcionEnvio } from "@/components/RecepcionEnvio";
+import { KpisRecibir } from "@/components/KpisRecibir";
 import { RecepcionesCompraLista } from "@/components/RecepcionesCompraLista";
 import { FiltrosCompras } from "@/components/FiltrosCompras";
 import { Paginacion, leerCursor } from "@/components/Paginacion";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 
-// Recibir mercadería contra comprobantes (ADR-0035). Es el camino principal para recibir: un
-// líder puede recibir en cualquier ubicación; una integrante solo en la suya (lo valida la RPC).
-// Lo que llegó SIN comprobante (todavía no llega el papel, muestras) vive en «Ingreso sin
-// comprobante» de Inventario: es una excepción, no un par de esta pantalla.
+// Recibir mercadería POR ENVÍO (ADR-0113). Es la puerta para todo lo que llega: un envío puede traer
+// comprobantes de varios proveedores, prendas fuera de comprobante (de un proveedor, con su regalo) y
+// hasta mercadería de otra sede. Lo que llegó SIN comprobante todavía (muestras, el papel que no llega)
+// vive en «Ingreso sin comprobante» de Inventario: es una excepción, no un par de esta pantalla.
 //
-// ADR-0111: la pantalla no tenía ni una cifra de cabecera, a diferencia de /compras y de
-// /compras/por-pagar. Ahora responde tres preguntas de quien decide: ¿cuánto falta llegar y
-// cuánto vale? (por recibir), ¿qué ya debió llegar? (atrasadas) y ¿cuál lleva más esperando?
+// Vive en `/recibir`, NO bajo `/compras`: el layout de Compras es solo de líder (montos, pagos, notas de
+// crédito) y aquí cuenta CUALQUIER colaborador de la sede (Felipe, 2026-09-18, como en Traslados). Quien
+// no es líder recibe la misma pantalla SIN dinero: los montos ni siquiera salen del servidor. `/compras/recibir`
+// redirige acá (next.config.ts) para que los enlaces y las maquetas de antes sigan funcionando.
 //
-// Los filtros de URL (`filtrosDesdeParams`) se siguen aceptando por si un enlace llega con
-// ?prov=…, pero el panel de filtros no se dibuja en Pendientes: el buscador vive dentro de la
-// lista de pendientes del componente, que filtra en memoria la página.
+// Los cuatro indicadores (ADR-0111) ya no van arriba: se dibujan DEBAJO de «¿Qué llegó?» —lo que se mira
+// mientras no hay nada marcado— y desaparecen apenas se marca un comprobante, para dejarle toda la pantalla
+// a quien cuenta. Se arman acá (servidor) y entran al formulario como un nodo.
 //
-// `?vista=recibidas`: una factura ya recibida por completo desaparecía sin dejar rastro. La
-// pestaña muestra lo recibido contra comprobante, con su resultado y su demora.
-export default async function RecibirComprasPage({ searchParams }: { searchParams: Promise<ParamsCompras & { compra?: string; vista?: string }> }) {
+// `?vista=recibidas`: lo que ya se recibió contra comprobante, con su resultado y su demora.
+type ParamsRecibir = ParamsCompras & { compra?: string; vista?: string };
+
+export default async function RecibirPage({ searchParams }: { searchParams: Promise<ParamsRecibir> }) {
   const persona = await requirePersonaActualV2();
+  const esLider = persona.rol === "lider";
   const params = await searchParams;
   const vista = params.vista === "recibidas" ? "recibidas" : "pendientes";
 
   const encabezado = (
     <div>
-      <p className="label-cayla text-[11px] text-tinta/65">Compras · {persona.ubicacionEtiqueta}</p>
+      <p className="label-cayla text-[11px] text-tinta/65">Recibir · {persona.ubicacionEtiqueta}</p>
       <h1 className="font-display mt-1 text-2xl text-tinta">Recibir mercadería</h1>
       <p className="mt-1 text-sm text-tinta/65">
         {vista === "pendientes"
-          ? "Toca el comprobante que cubre la guía, cuenta lo que llegó y recibe. Cada prenda entra como movimiento — el stock no se edita a mano."
-          : "Lo que ya se recibió contra un comprobante, guía por guía."}
+          ? "Marca los comprobantes que vienen en el envío, cuenta lo que llegó y recibe. Cada prenda entra como movimiento — el stock no se edita a mano."
+          : "Lo que ya se recibió contra un comprobante, envío por envío."}
       </p>
       <p className="mt-1 text-xs text-tinta/55">
         ¿Llegó mercadería que todavía no tiene comprobante?{" "}
@@ -55,8 +61,8 @@ export default async function RecibirComprasPage({ searchParams }: { searchParam
       etiquetaAccesible="Vistas de Recibir mercadería"
       activa={vista}
       items={[
-        { clave: "pendientes", etiqueta: "Pendientes", href: "/compras/recibir" },
-        { clave: "recibidas", etiqueta: "Recibidas recientemente", href: "/compras/recibir?vista=recibidas" },
+        { clave: "pendientes", etiqueta: "Pendientes", href: "/recibir" },
+        { clave: "recibidas", etiqueta: "Recibidas recientemente", href: "/recibir?vista=recibidas" },
       ]}
     />
   );
@@ -111,10 +117,11 @@ export default async function RecibirComprasPage({ searchParams }: { searchParam
             detalleTono={resumen.faltanteUnidades > 0 ? "text-ambar-profundo" : undefined}
             etiqueta="Faltante abierto"
             valor={`${resumen.faltanteUnidades.toLocaleString("es-PE")} ${resumen.faltanteUnidades === 1 ? "unidad" : "unidades"}`}
-            href={resumen.faltanteUnidades > 0 ? "/compras?recep=parcial" : undefined}
+            // La lista de comprobantes con faltante es de Compras (solo líder): a un colaborador no se le ofrece un enlace que lo devuelve al Inicio.
+            href={esLider && resumen.faltanteUnidades > 0 ? "/compras?recep=parcial" : undefined}
           >
             {resumen.faltanteUnidades > 0
-              ? `${resumen.faltanteComprobantes} ${resumen.faltanteComprobantes === 1 ? "comprobante" : "comprobantes"} · cerrar o reclamar →`
+              ? `${resumen.faltanteComprobantes} ${resumen.faltanteComprobantes === 1 ? "comprobante" : "comprobantes"} · ${esLider ? "cerrar o reclamar →" : "un líder decide qué hacer"}`
               : "Nada por reclamar"}
           </TarjetaCifra>
         </div>
@@ -125,6 +132,7 @@ export default async function RecibirComprasPage({ searchParams }: { searchParam
           recepciones={recepciones}
           detalles={detalles}
           nombres={nombres}
+          enlaceAlComprobante={esLider}
           vacio={hayFiltros ? "Ninguna recepción coincide con esos filtros." : `Todavía no se recibió nada contra un comprobante en ${persona.ubicacionEtiqueta}.`}
         />
       </div>
@@ -137,77 +145,62 @@ export default async function RecibirComprasPage({ searchParams }: { searchParam
   const cursor = leerCursor(params.cursor);
   const hayFiltros = Object.values(filtros).some(Boolean);
 
-  const [{ filas: compras, siguiente }, ubicaciones, catalogo, resumen, extra] = await Promise.all([
+  const [{ filas: comprasCompletas, siguiente }, ubicaciones, catalogo, proveedores] = await Promise.all([
     listarPorRecibir(filtros, cursor),
     getUbicaciones(),
     getCatalogo(),
-    getResumenCompras(),
-    getResumenComprasExtra(),
+    getProveedoresActivos(),
   ]);
+  // Los indicadores. El líder los lee de los resúmenes de Compras (con dinero). Un colaborador NO: `resumen_compras` y
+  // `resumen_compras_extra` devuelven a un integrante los montos de su sede (solo tienen el candado de sede,
+  // ADR-0075), así que para él ni se piden — se calculan de su propia lista, solo cantidades y fechas.
+  const [resumen, extra] = esLider ? await Promise.all([getResumenCompras(), getResumenComprasExtra()]) : [null, null];
+  const kpis =
+    resumen && extra
+      ? {
+          porRecibir: resumen.porRecibir,
+          unidadesPendientes: extra.unidadesPendientes,
+          atrasadas: resumen.porRecibirAtrasadas,
+          diasMasAtrasada: extra.diasMasAtrasada,
+          proveedorMasAtrasado: extra.proveedorMasAtrasado,
+          documentoMasAtrasada: extra.documentoMasAtrasada,
+          valorPorRecibir: extra.valorPorRecibir as number | null,
+        }
+      : { ...kpisDeLaLista(comprasCompletas), valorPorRecibir: null as number | null };
+  // Quien cuenta pero no es líder no ve dinero: los montos ni siquiera salen del servidor.
+  const compras = esLider ? comprasCompletas : comprasCompletas.map(comprobanteSinMontos);
+  const ubicacionesPermitidas = esLider ? ubicaciones : ubicaciones.filter((u) => u.id === persona.ubicacionId);
+
   // Las líneas se traen solo para los comprobantes de ESTA página (≤ 50).
-  const [lineas, comprasConNotaFaltante, saldoFavorPorProveedor] = await Promise.all([
+  const [lineasCompletas, comprasConNotaFaltante, saldoFavorPorProveedor, trasladosPorUbicacion] = await Promise.all([
     getLineasCompra(compras.map((c) => c.id)),
-    getComprasConNotaFaltante(compras.map((c) => c.id)),
-    getSaldosFavor(compras.map((c) => c.proveedorId)),
+    esLider ? getComprasConNotaFaltante(compras.map((c) => c.id)) : Promise.resolve([] as string[]),
+    esLider ? getSaldosFavor(compras.map((c) => c.proveedorId)) : Promise.resolve({} as Record<string, number>),
+    getTrasladosHaciaAca(ubicacionesPermitidas.map((u) => u.id)),
   ]);
-  const ubicacionesPermitidas = persona.rol === "lider" ? ubicaciones : ubicaciones.filter((u) => u.id === persona.ubicacionId);
-  const sinAtraso = resumen.porRecibirAtrasadas === 0;
+  const lineas = esLider ? lineasCompletas : lineasCompletas.map(lineaSinCosto);
 
   return (
     <div className="space-y-6">
       {encabezado}
       {pestanas}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <TarjetaCifra
-          compacta
-          punto={resumen.porRecibir > 0 ? "ambar" : "verde"}
-          etiqueta="Por recibir"
-          valor={resumen.porRecibir.toLocaleString("es-PE")}
-          unidad={resumen.porRecibir === 1 ? "comprobante" : "comprobantes"}
-        >
-          {resumen.porRecibir > 0 ? `${soles(extra.valorPorRecibir)} en mercadería por llegar` : "Nada por recibir"}
-        </TarjetaCifra>
-        <TarjetaCifra compacta punto="neutro" etiqueta="Unidades pendientes" valor={extra.unidadesPendientes.toLocaleString("es-PE")}>
-          {extra.unidadesPendientes > 0 ? "por llegar en estos comprobantes" : "Todo lo facturado ya llegó"}
-        </TarjetaCifra>
-        <TarjetaCifra
-          compacta
-          punto={sinAtraso ? "verde" : "ambar"}
-          tono={sinAtraso ? undefined : "text-ambar-profundo"}
-          detalleTono={sinAtraso ? undefined : "text-ambar-profundo"}
-          etiqueta="Atrasadas"
-          valor={resumen.porRecibirAtrasadas.toLocaleString("es-PE")}
-        >
-          {sinAtraso ? "Nada atrasado" : "Esperadas antes de hoy · recibir o reclamar"}
-        </TarjetaCifra>
-        {extra.diasMasAtrasada != null && extra.diasMasAtrasada > 0 ? (
-          <TarjetaCifra
-            compacta
-            punto="ambar"
-            tono="text-ambar-profundo"
-            detalleTono="text-ambar-profundo"
-            etiqueta="La más atrasada"
-            valor={`${extra.diasMasAtrasada} ${extra.diasMasAtrasada === 1 ? "día" : "días"}`}
-          >
-            {extra.proveedorMasAtrasado} · {extra.documentoMasAtrasada}
-          </TarjetaCifra>
-        ) : (
-          <TarjetaCifra compacta vacia etiqueta="La más atrasada" valor="—">
-            Nada atrasado
-          </TarjetaCifra>
-        )}
-      </div>
-
       {compras.length === 0 && !cursor ? (
-        <p className="card-cayla p-5 text-sm text-tinta/75">
-          {hayFiltros ? "Ningún comprobante pendiente de recibir coincide con esos filtros. " : "No hay comprobantes con mercadería pendiente de recibir. "}
-          <Link href="/compras/nueva" className="text-rojo hover:underline">
-            Registrar un comprobante →
-          </Link>
-        </p>
+        <div className="card-cayla space-y-2 p-5 text-sm text-tinta/75">
+          <p>
+            {hayFiltros ? "Ningún comprobante pendiente de recibir coincide con esos filtros. " : "No hay comprobantes con mercadería pendiente de recibir. "}
+            {esLider && (
+              <Link href="/compras/nueva" className="text-rojo hover:underline">
+                Registrar un comprobante →
+              </Link>
+            )}
+          </p>
+          <p className="text-xs text-tinta/55">
+            Si llegó mercadería sin comprobante, usa <Link href="/inventario/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">Ingreso sin comprobante</Link>.
+          </p>
+        </div>
       ) : (
-        <RecepcionCompraFormV2
+        <RecepcionEnvio
           compras={compras}
           lineas={lineas}
           variantes={catalogo
@@ -219,22 +212,23 @@ export default async function RecibirComprasPage({ searchParams }: { searchParam
               color: v.color,
               productoId: v.productoId,
               referencia: v.referencia,
+              codigosBarras: v.codigosBarras,
             }))}
-          ubicaciones={ubicacionesPermitidas.map((u) => ({
-            id: u.id,
-            nombre: u.nombre,
-          }))}
+          proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))}
+          ubicaciones={ubicacionesPermitidas.map((u) => ({ id: u.id, nombre: u.nombre }))}
           ubicacionInicialId={persona.ubicacionId}
           compraInicialId={compra ?? null}
-          esLider={persona.rol === "lider"}
-          igvMes={extra.igvMes}
-          porRecibirAtrasadas={resumen.porRecibirAtrasadas}
+          esLider={esLider}
+          igvMes={extra ? extra.igvMes : null}
+          porRecibirAtrasadas={resumen ? resumen.porRecibirAtrasadas : null}
           comprasConNotaFaltante={comprasConNotaFaltante}
           saldoFavorPorProveedor={saldoFavorPorProveedor}
+          trasladosPorUbicacion={trasladosPorUbicacion}
+          resumen={<KpisRecibir {...kpis} />}
         />
       )}
 
-      <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={params} pathname="/compras/recibir" />
+      <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={params} pathname="/recibir" />
     </div>
   );
 }

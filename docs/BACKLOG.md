@@ -28,6 +28,45 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Recibir por envío: varios proveedores, una guía, cuenta cualquiera (2026-09-18, ADR-0113)
+
+Rama `claude/receiving-module-design-3f2904`, sobre `main` (804d030, con la rama de Compras ya fusionada, #149).
+**Solo local — NO está en producción.** Construido y verificado: tablas `envios` / `envio_extras` /
+`envio_traslados` + `lotes.envio_id`, la RPC atómica e idempotente `recibir_envio`, y la pantalla nueva
+`/recibir` (`RecepcionEnvio.tsx`, reglas puras en `lib/envio-reglas.ts`). 29 pruebas SQL
+(`pnpm pruebas:recibir-envio`), 24 unitarias, tipos y lint en verde, y un envío real de punta a punta desde la
+pantalla como líder (2 proveedores + un regalo + un traslado del Taller). Decisiones de Felipe: un envío puede
+traer comprobantes de varios proveedores; una sola guía por envío; lo fuera de comprobante declara su origen
+(proveedor, y si es regalo; lo de otra sede se confirma como traslado, no como prenda suelta); cualquier
+persona cuenta en la puerta; los cuatro indicadores viven bajo «¿Qué llegó?» y desaparecen al marcar.
+
+- [ ] **Probar la pantalla como colaborador** (Micaela, integrante de Tienda Trujillo): no se pudo en esta
+      sesión (el inicio de sesión pide contraseña). Qué mirar: ningún «S/» en la lista ni en los indicadores,
+      «Entra al almacén de» fijo a su sede, sin editor de faltantes ni nota de crédito («Sigue pendiente»), y
+      que `/compras` la devuelva al Inicio. Hay dos comprobantes de prueba `TST-UI000003`/`UI000004` para
+      Tienda Trujillo. En la base local quedaron además `TST-UI000001`/`UI000002` (ya recibidos, envío
+      `T009-UI01`) y el traslado 15 (cerrado): datos de prueba, no se borran.
+- [x] **Las 2 migraciones ya están en producción** (`20260919120000_envios_recepcion_multiproveedor`,
+      `20260919121000_recibir_envio`): las pegó Felipe el 2026-09-19 y se verificó contra la base (3 tablas,
+      `lotes.envio_id`, `recibir_envio` de una sola firma y 3 políticas de RLS). Falta, opcional, registrarlas en
+      `supabase_migrations.schema_migrations`. **Probar con un comprobante real** necesita antes `20260918219000`
+      (de Compras): hasta que se pegue, `registrar_compra` tiene dos firmas en producción.
+- [ ] **«Recibidas recientemente» ahora vive en `/recibir?vista=recibidas`.** La sesión de Compras tiene sin
+      publicar `feat/recibidas-pastillas` (filtros como 2 pastillas; `FiltrosRecibidas.tsx` +
+      `lib/recibidas-filtros-reglas.ts`): su cambio de página se aplica en `/recibir/page.tsx` (la ruta vieja se
+      borró), sus componentes se reusan tal cual.
+- [ ] **Hueco de ADR-0075 (lo encontró Compras, PR #165):** `resumen_compras`, `resumen_compras_extra`,
+      `deuda_por_vencimiento`, `salidas_caja_30d` y `por_pagar_tramos` devuelven a un integrante los montos de
+      su sede (solo candado de sede). Recibir no las usa para colaboradores (`kpisDeLaLista`); decidir con
+      Felipe si eso está bien o se cierra.
+
+Siguiente, sin urgencia: agrupar «Recibidas recientemente» por envío (hoy una fila por comprobante, con la
+misma guía); borrador local del conteo; miniaturas de prenda; ni `recibir_compras` ni `recibir_lote` sueltos
+tienen token de idempotencia (solo `recibir_envio`). **Cruce:** ADR-0107 (`modulos-por-tienda`, un comprobante
+repartido entre tiendas) reescribe las mismas funciones; el tope por tienda va dentro de `recibir_compras`.
+
+---
+
 ## 🎯 Panel comercial (2026-09-18, ADR-0110)
 
 - [x] **`/comercial` construido y verificado en lo que no depende de la base real:** 3 funciones SQL
@@ -46,7 +85,6 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       el mismo día de la semana anterior. Umbrales 85% / 100% provisionales: calibrar con Felipe con meses reales.
 - [ ] **Menú:** "Comercial" se agregó al final del menú de líder sin mover nada; el orden actual lo pidió Felipe
       el 2026-09-16. Confirmar dónde lo quiere.
-
 ## 🎯 Vender: comprobante impreso en térmica + ajustes del POS (2026-09-18, ADR-0114)
 
 Worktree `buscar-entry-point-7aa994`, **sin commitear**. Sin migración. 414 pruebas, `tsc` y `eslint` en verde;
@@ -275,19 +313,20 @@ sobre una venta anulada — no hay nada que limpiar.
 ## 🎯 Compras: indicadores para decidir, faltantes con nota de crédito y pago por lote (2026-09-18, ADR-0111)
 
 Rama `claude/pantallas-proveedores-comprobantes-a15ece`. **`main` ya está fusionada en esta rama (2026-09-18,
-local; sin push)**: tipos, tests, lint y las 99 pruebas SQL en verde, y las 135 migraciones del repo se
+local; sin push)**: tipos, tests, lint y las pruebas SQL en verde (99 entonces; 112 con las de «esperando nota»), y las 135 migraciones del repo se
 reprodujeron limpias desde cero en un Postgres nuevo. Falta el PR contra `main`. Las 11 pantallas de `docs/maquetas/compras-2026-09/` están
 implementadas en código (Por pagar, Recibir mercadería, Comprobantes, Registrar, Proveedores +
 ficha, Ingreso sin comprobante). D1 (cantidades arrancan en 0), D2 (cerrar línea con faltante +
 nota de crédito, libro append-only) y D3 (pagar varios comprobantes de un proveedor de una vez).
-El ADR es el **0111**: main ya usa 0104–0107 y hay ramas abiertas con 0108, 0109 y 0110. Las 15 migraciones
-van en la banda `20260918200000`–`20260918218000` (main trae su propia `20260918160000`, y otras dos ramas usan
+El ADR es el **0111**: main ya usa 0104–0107 y hay ramas abiertas con 0108, 0109 y 0110. Las 16 migraciones
+van en la banda `20260918200000`–`20260918220000` (main trae su propia `20260918160000`, y otras dos ramas usan
 `20260918170000`: una versión repetida rompe `supabase migration up`).
 
-- [ ] **Pegar en producción las 15 migraciones, en este orden** (Felipe, con su ok). Verificado
+- [ ] **Pegar en producción las 16 migraciones, en este orden** (Felipe, con su ok). Verificado
       2026-09-18 contra la base de producción (`vovjyyiafkxteijimpuy`): ninguna está aplicada; todo
-      lo anterior del repo, hasta `20260918150000`, sí. Las cuatro últimas (12–15) llegaron el mismo día,
-      tras la prueba de Felipe: nota de crédito estricta, saldo a favor del proveedor y recepción atómica. `compras` tiene 0 filas en producción, así
+      lo anterior del repo, hasta `20260918150000`, sí. Las cuatro siguientes (12–15) llegaron el mismo día,
+      tras la prueba de Felipe: nota de crédito estricta, saldo a favor del proveedor y recepción atómica; la 16 es
+      solo una función de lectura nueva (no toca datos ni cambia ninguna otra función). `compras` tiene 0 filas en producción, así
       que la reconstrucción de `saldo/estado_pago/estado_recepcion` no toca datos. Cada archivo ya
       trae su `set search_path = retail, public, extensions;` (no hace falta el prefijo `retail.`).
       1. `20260918200000_fn_hoy_lima` — `fn_hoy_lima()`; reemplaza `current_date` (Lima, no UTC). **Producción ya
@@ -326,6 +365,10 @@ van en la banda `20260918200000`–`20260918218000` (main trae su propia `202609
           (la de producción, con `p_token`) más el medio «Saldo a favor». Verificado en producción el
           2026-09-19 con `explain` (sin ejecutar nada). **YA APLICADA en producción (2026-09-19):** una firma de 15
           parámetros, ninguna función sobrecargada, el `explain` de la llamada de la pantalla resuelve.
+      17. `20260918220000_compras_nota_pendiente_para_listas` — `compras_nota_pendiente(uuid[])`: los
+          comprobantes con faltante cerrado y sin nota, para el chip «Esperando nota» de las listas. Solo líder;
+          función nueva (sin overload ni cambio de retorno de `listar_compras`). Si la rama se despliega sin
+          pegarla, las listas se dibujan igual, sin el chip (el error queda en el log del servidor).
       **Después de pegar:** desplegar la rama (las pantallas llaman a estas funciones — sin las
       migraciones, `datos:comparar` las marca rotas) y correr `pnpm datos:generar:produccion`.
 - [ ] **Verificación visual contra las maquetas** (escritorio y móvil): el navegador integrado pide
@@ -334,10 +377,36 @@ van en la banda `20260918200000`–`20260918218000` (main trae su propia `202609
 - [ ] **Desvíos y huecos conocidos:** (a) pestaña «Recibidas» usa el popover de `FiltrosCompras` en
       vez de las dos pastillas en línea de la maqueta 06; (b) «Completar costo» (ingreso sin
       comprobante) no está: falta una RPC para editarlo; (c) la evolución de costo sale de
-      `compra_items`, no de `costo_historial`; (d) sin prueba SQL propia de los indicadores
-      (`scripts/pruebas/compras_indicadores.mjs`); (e) `types.ts` ya se regeneró tras
+      `compra_items`, no de `costo_historial`; (d) **prueba SQL de los indicadores: hecha**
+      (2026-09-18) — `pnpm pruebas:compras-indicadores` (`scripts/pruebas/compras_indicadores.mjs`):
+      140 casos en verde contra el Postgres local, cada uno en su transacción con ROLLBACK y midiendo
+      una línea base antes de su escenario (el seed y otras sesiones cambian los números absolutos), más 5
+      hallazgos abiertos (siguiente ítem); (e) `types.ts` ya se regeneró tras
       la fusión con main (hecho); (f) al pegar en producción: refrescar el volcado y correr
-      `pnpm datos:generar:produccion && pnpm datos:comparar` (el aviario ya conoce las 3 tablas nuevas).
+      `pnpm datos:generar:produccion && pnpm datos:comparar` (el aviario ya conoce las 3 tablas nuevas);
+      (g) «esperando nota» ya no es solo del detalle: las listas de Comprobantes y Por pagar muestran el chip
+      ámbar «Esperando nota S/ X» (con «Ya puedes registrarla» cuando el comprobante está resuelto; 13 pruebas SQL
+      y las de `nota-pendiente-reglas`). Pendiente de ver con sesión: el chip en la celda Pago de Comprobantes
+      (11 rem, más angosta que el chip) se apoya en el espacio libre de la columna Total; en Por pagar va bajo el
+      proveedor. Aún no sale en Proveedores ni en el Inicio.
+- [ ] **Hallazgos de `compras_indicadores.mjs` (sin arreglar; cada uno es una prueba `[HALLAZGO Hn]` que
+      pasa sola cuando se corrige, y todos piden una migración nueva):** **H1** `fn_proveedor_metricas_compras`
+      calcula `entregado_completo_pct` con `estado_recepcion = 'recibida'`, así que un proveedor que
+      entregó 20 de 24 y cuyo faltante se cerró sale con 100 % (la ficha) y con 50 % en Recibir
+      mercadería (`resumen_recepciones` usa `recibido_cantidad >= facturado_cantidad`, que es lo que
+      dice su propia definición). **H2** `fn_proveedor_devoluciones.ultima` toma `created_at` (el día
+      que la prenda entró a cuarentena) en vez de `resuelto_en` (el día que se devolvió). **H3**
+      `por_pagar_tramos` no acepta `p_tipo` ni fechas de emisión aunque promete «los mismos filtros que
+      `listar_compras`» (baja gravedad: la pantalla no expone esos filtros, pero `?tipo=` en la URL
+      desalinea subtotal y filas). **H4 (decisión de Felipe)** los indicadores de dinero que solo tienen
+      candado de sede (`resumen_compras`, `resumen_compras_extra`, `deuda_por_vencimiento`,
+      `salidas_caja_30d`, `por_pagar_tramos`) le devuelven a un integrante los montos de los comprobantes
+      de SU sede (ADR-0075), mientras `fn_proveedores*` y las fichas sí son solo-líder; no hay fuga hacia
+      otras sedes (probado), pero choca con «lo financiero es solo de líder». **H5** `registrar_pago_compra`,
+      `registrar_pagos_compra` y el pago inicial de `registrar_compra` fechan con `current_date` (UTC)
+      cuando no reciben fecha: entre las 7 pm y medianoche de Lima el pago queda de «mañana» y
+      `dias_pago_real_promedio` cuenta un día de más (la app manda su fecha, así que hoy solo afecta a
+      quien llame sin ella).
 
 ---
 
