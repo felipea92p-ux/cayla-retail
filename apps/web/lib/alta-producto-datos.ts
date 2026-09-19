@@ -22,7 +22,15 @@ import { getCatalogoMarcas, type CatalogoMarcas } from "@/lib/marcas-datos";
 
 export type FamiliaAlta = { codigo: string; nombre: string; exigeTejidoPatron: boolean };
 export type CategoriaAlta = { id: string; nombre: string; familia: string | null; prefijo: string | null; padreNombre: string | null };
-export type EtiquetaAlta = { id: string; nombre: string; estilo: string };
+export type EtiquetaAlta = {
+  id: string;
+  nombre: string;
+  estilo: string;
+  /** Descuento de campaña en % (20260918160000). Null = etiqueta informativa. */
+  descuentoPct: number | null;
+  /** Categorías donde la campaña rige SOLA sobre todas las prendas, sin etiquetarlas una por una. Vacío = solo las etiquetadas a mano. */
+  categoriaIds: string[];
+};
 
 export type ContextoAlta = CatalogoMarcas & {
   familias: FamiliaAlta[];
@@ -57,7 +65,7 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
       supabase.from("codigos_correlativos").select("prefijo, ultimo"),
       supabase
         .from("etiquetas")
-        .select("id, nombre, estilo, vigente_desde, vigente_hasta")
+        .select("id, nombre, estilo, vigente_desde, vigente_hasta, descuento_pct, etiqueta_categorias ( categoria_id )")
         .eq("activo", true)
         .eq("estado", "aprobado")
         .order("nombre"),
@@ -93,7 +101,13 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
   const etiquetas = exigir(resEtiquetas, "las etiquetas del catálogo")
     // Una campaña ya terminada no se ofrece para una prenda nueva.
     .filter((e) => vigenciaDe(e.vigente_desde, e.vigente_hasta, hoy)?.estado !== "terminada")
-    .map((e) => ({ id: e.id, nombre: e.nombre, estilo: e.estilo }));
+    .map((e) => ({
+      id: e.id,
+      nombre: e.nombre,
+      estilo: e.estilo,
+      descuentoPct: e.descuento_pct === null ? null : Number(e.descuento_pct),
+      categoriaIds: (e.etiqueta_categorias ?? []).map((c) => c.categoria_id),
+    }));
 
   return {
     ...catalogoMarcas,

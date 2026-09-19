@@ -83,8 +83,9 @@ const borradorVacio = (familias: FamiliaOpcion[]): Borrador => ({
   categoriaPadreId: null,
 });
 
-type EjesDraft = { tallaIds: string[]; tejidoIds: string[]; patronIds: string[] };
-const EJES_VACIO: EjesDraft = { tallaIds: [], tejidoIds: [], patronIds: [] };
+/** `tallaHabitualIds`: la curva habitual (20260918200100) — las tallas que vienen MARCADAS al crear un producto. Siempre un subconjunto de `tallaIds`. */
+type EjesDraft = { tallaIds: string[]; tallaHabitualIds: string[]; tejidoIds: string[]; patronIds: string[] };
+const EJES_VACIO: EjesDraft = { tallaIds: [], tallaHabitualIds: [], tejidoIds: [], patronIds: [] };
 
 export function CategoriasLista({
   categoriasIniciales,
@@ -134,6 +135,7 @@ export function CategoriasLista({
       b?.id
         ? {
             tallaIds: (ejesPorCategoria.tallas[b.id] ?? []).map((v) => v.id),
+            tallaHabitualIds: ejesPorCategoria.habituales[b.id] ?? [],
             tejidoIds: (ejesPorCategoria.tejidos[b.id] ?? []).map((v) => v.id),
             patronIds: (ejesPorCategoria.patrones[b.id] ?? []).map((v) => v.id),
           }
@@ -213,8 +215,8 @@ export function CategoriasLista({
         }
         setEjesPorCategoria((actual) => ({
           tallas: { ...actual.tallas, [guardada.id]: universo.tallas.filter((v) => ejesDraft.tallaIds.includes(v.id)) },
-          // La base conserva la curva habitual de las tallas que siguen ofrecidas (actualizar_categoria_ejes).
-          habituales: { ...actual.habituales, [guardada.id]: (actual.habituales[guardada.id] ?? []).filter((id) => ejesDraft.tallaIds.includes(id)) },
+          // La curva habitual que se acaba de guardar (actualizar_categoria_ejes).
+          habituales: { ...actual.habituales, [guardada.id]: ejesDraft.tallaHabitualIds },
           tejidos: { ...actual.tejidos, [guardada.id]: universo.tejidos.filter((v) => ejesDraft.tejidoIds.includes(v.id)) },
           patrones: { ...actual.patrones, [guardada.id]: universo.patrones.filter((v) => ejesDraft.patronIds.includes(v.id)) },
         }));
@@ -349,6 +351,7 @@ export function CategoriasLista({
           hijas={hijasDe(viendo.id)}
           padre={viendo.categoriaPadreId ? categorias.find((c) => c.id === viendo.categoriaPadreId) ?? null : null}
           tallas={ejesPorCategoria.tallas[viendo.id] ?? []}
+          tallasHabituales={ejesPorCategoria.habituales[viendo.id] ?? []}
           tejidos={ejesPorCategoria.tejidos[viendo.id] ?? []}
           patrones={ejesPorCategoria.patrones[viendo.id] ?? []}
           puedeEditar={puedeEditar}
@@ -523,11 +526,25 @@ export function CategoriasLista({
                     <SelectorMultiple
                       opciones={universo.tallas.map((v) => ({ valor: v.id, texto: v.texto }))}
                       seleccionadas={ejesDraft.tallaIds}
-                      onCambio={(v) => setEjesDraft({ ...ejesDraft, tallaIds: v })}
+                      // Quitar una talla también la saca de la curva: la habitual es siempre un subconjunto de las que ofrece.
+                      onCambio={(v) => setEjesDraft({ ...ejesDraft, tallaIds: v, tallaHabitualIds: ejesDraft.tallaHabitualIds.filter((id) => v.includes(id)) })}
                     />
                   </div>
                 ) : (
                   <p className="mt-1.5 text-xs italic text-tinta/65">Todavía no hay tallas aprobadas.</p>
+                )}
+                {ejesDraft.tallaIds.length > 0 && (
+                  <div className="mt-3">
+                    <p className="label-cayla text-[11px] text-tinta/65">Curva habitual</p>
+                    <p className="mt-0.5 text-xs text-tinta/60">Las que vienen marcadas de antemano al crear un producto de esta categoría.</p>
+                    <div className="mt-1.5">
+                      <SelectorMultiple
+                        opciones={universo.tallas.filter((v) => ejesDraft.tallaIds.includes(v.id)).map((v) => ({ valor: v.id, texto: v.texto }))}
+                        seleccionadas={ejesDraft.tallaHabitualIds}
+                        onCambio={(v) => setEjesDraft({ ...ejesDraft, tallaHabitualIds: v })}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
               <div>
@@ -671,6 +688,7 @@ function VistaRapidaCategoria({
   hijas,
   padre,
   tallas,
+  tallasHabituales,
   tejidos,
   patrones,
   puedeEditar,
@@ -686,6 +704,7 @@ function VistaRapidaCategoria({
   hijas: Categoria[];
   padre: Categoria | null;
   tallas: ValorVocabulario[];
+  tallasHabituales: string[];
   tejidos: ValorVocabulario[];
   patrones: ValorVocabulario[];
   puedeEditar: boolean;
@@ -739,7 +758,7 @@ function VistaRapidaCategoria({
             </div>
           )}
 
-          <GrupoEjes titulo="Tallas" valores={tallas} />
+          <GrupoEjes titulo="Tallas" valores={tallas} marcados={tallasHabituales} />
           <GrupoEjes titulo="Tejidos" valores={tejidos} />
           <GrupoEjes titulo="Patrones" valores={patrones} />
 
@@ -766,14 +785,16 @@ function VistaRapidaCategoria({
   );
 }
 
-function GrupoEjes({ titulo, valores }: { titulo: string; valores: ValorVocabulario[] }) {
+function GrupoEjes({ titulo, valores, marcados }: { titulo: string; valores: ValorVocabulario[]; /** Los que vienen marcados de antemano (la curva habitual). */ marcados?: string[] }) {
   if (valores.length === 0) return null;
+  const hayMarcados = !!marcados && marcados.length > 0;
   return (
     <div>
-      <p className="label-cayla text-[10.5px] text-tinta/55">{titulo}</p>
+      <p className="label-cayla text-[10.5px] text-tinta/55">{titulo}{hayMarcados && " · ✓ = curva habitual"}</p>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {valores.map((v) => (
           <Chip key={v.id} tono="neutro">
+            {marcados?.includes(v.id) && "✓ "}
             {v.texto}
           </Chip>
         ))}

@@ -219,6 +219,14 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     codigoVariantePrevisto(base, c.color, c.tallaId ? tallaTexto(c.tallaId) : null)
   );
 
+  // Las etiquetas de campaña que ya rigen sobre esta categoría se aplican solas: elegirlas a mano sería redundante y las
+  // dejaría duplicadas en cada variante. Si la persona eligió una y DESPUÉS cambió a una categoría que la cubre, no se manda.
+  const cubiertaPorCampana = (et: ContextoAlta["etiquetas"][number]) => Boolean(categoriaId) && et.categoriaIds.includes(categoriaId);
+  const etiquetasAManda = etiquetasElegidas.filter((id) => {
+    const et = contexto.etiquetas.find((x) => x.id === id);
+    return et ? !cubiertaPorCampana(et) : false;
+  });
+
   // ---------- guardar ----------
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -248,7 +256,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
       p_tejido_id: tejidoId || undefined,
       p_patron_id: patronId || undefined,
       p_confirmo_distinto: confirmo,
-      p_etiqueta_ids: etiquetasElegidas.length > 0 ? etiquetasElegidas : undefined,
+      p_etiqueta_ids: etiquetasAManda.length > 0 ? etiquetasAManda : undefined,
       p_marca_id: marcaId,
       p_proveedor_id: proveedorId,
     });
@@ -667,21 +675,36 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
           titulo="Etiquetas (opcional)"
           bloqueado={!abierto.precio}
           bloqueadoTexto="Resuelve primero la talla, el tejido y el patrón."
-          ayuda="Se aplican a todas las variantes. Las de campaña ya terminada no aparecen."
+          ayuda="Se aplican a todas las variantes. Las campañas que ya rigen sobre esta categoría se aplican solas; las terminadas no aparecen."
         >
           {contexto.etiquetas.length === 0 ? (
             <p className="text-sm text-tinta/60">Todavía no hay etiquetas aprobadas.</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
-              {contexto.etiquetas.map((et) => (
-                <ChipOpcion
-                  key={et.id}
-                  elegido={etiquetasElegidas.includes(et.id)}
-                  onClick={() => setEtiquetasElegidas((prev) => (prev.includes(et.id) ? prev.filter((x) => x !== et.id) : [...prev, et.id]))}
-                >
-                  {et.nombre}
-                </ChipOpcion>
-              ))}
+              {contexto.etiquetas.map((et) =>
+                cubiertaPorCampana(et) ? (
+                  <span
+                    key={et.id}
+                    title="Esta campaña ya rige sobre todas las prendas de esta categoría: se aplica sola, no hace falta elegirla."
+                    className="flex min-h-9 items-center gap-1.5 rounded-md border border-dashed border-tinta/30 bg-tinta/[0.03] px-2.5 py-1.5 text-sm text-tinta/70"
+                  >
+                    <span aria-hidden className="text-[11px]">
+                      ✓
+                    </span>
+                    {et.nombre}
+                    {et.descuentoPct !== null && <span className="tabular-nums">· {et.descuentoPct.toFixed(0)} % dto</span>}
+                    <span className="text-[11px] text-tinta/50">· ya aplica por campaña</span>
+                  </span>
+                ) : (
+                  <ChipOpcion
+                    key={et.id}
+                    elegido={etiquetasElegidas.includes(et.id)}
+                    onClick={() => setEtiquetasElegidas((prev) => (prev.includes(et.id) ? prev.filter((x) => x !== et.id) : [...prev, et.id]))}
+                  >
+                    {et.nombre}
+                  </ChipOpcion>
+                )
+              )}
             </div>
           )}
         </Bloque>
