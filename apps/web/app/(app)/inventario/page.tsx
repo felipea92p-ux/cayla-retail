@@ -5,6 +5,7 @@ import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from 
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
 import { getTrasladosEnCurso } from "@/lib/traslados";
 import { getCoberturaPorVariante } from "@/lib/resumen-inventario";
+import { getApartadosAbiertos } from "@/lib/apartados";
 import { estaAtrasado } from "@/lib/traslados-reglas";
 import { SelectorUbicacion } from "@/components/SelectorUbicacion";
 import { InventarioPanel } from "@/components/InventarioPanel";
@@ -38,12 +39,14 @@ export default async function InventarioPage({
 
   // La cobertura («cuánto dura este stock al ritmo reciente») solo tiene sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
-  const [stockBase, sububicaciones, traslados, danadosPendientes, cobertura] = await Promise.all([
+  const [stockBase, sububicaciones, traslados, danadosPendientes, cobertura, apartados] = await Promise.all([
     getExistencias(ubicacionActivaId, ubicaciones),
     getSububicaciones(ubicacionActivaId),
     getTrasladosEnCurso(ubicacionActivaId),
     getPrendasDanadasPendientes(ubicacionActivaId),
     vende ? getCoberturaPorVariante(ubicacionActivaId) : Promise.resolve(null),
+    // Reservas para clientas (ADR-0141): solo donde se vende. Taller no aparta.
+    vende ? getApartadosAbiertos(ubicacionActivaId) : Promise.resolve([]),
   ]);
   // Dato secundario: si su cálculo falló, cada fila queda en «N/D» y se avisa; el stock no se cae.
   const stock = cobertura?.datos ? stockBase.map((f) => ({ ...f, cobertura: cobertura.datos?.[f.varianteId] ?? null })) : stockBase;
@@ -97,6 +100,7 @@ export default async function InventarioPage({
         sububicacionPiso={sububicacionPiso}
         sububicacionAlmacen={sububicacionAlmacen}
         danadosPendientes={danadosPendientes}
+        apartados={apartados}
         esLider={persona.rol === "lider"}
         coberturaFallo={cobertura?.fallo ?? null}
       />

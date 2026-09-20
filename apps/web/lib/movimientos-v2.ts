@@ -3,6 +3,7 @@ import { exigir } from "@/lib/resultado";
 import {
   CATEGORIAS,
   leerCursorMovimientos,
+  type CategoriaFila,
   type CategoriaMovimiento,
   type CursorMovimientos,
   type FiltrosMovimientos,
@@ -103,7 +104,7 @@ function aMovimiento(f: FilaRpc): Movimiento {
     fecha: f.fecha_lima,
     hora: f.hora,
     tipo: f.tipo as TipoMovimiento,
-    categoria: f.categoria as CategoriaMovimiento,
+    categoria: f.categoria as CategoriaFila,
     motivo: f.motivo,
     cantidad: f.cantidad,
     delta: f.delta,

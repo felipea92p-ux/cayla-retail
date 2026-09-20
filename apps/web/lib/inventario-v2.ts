@@ -43,6 +43,15 @@ export type FilaStock = {
    *  (Liquidada/Se botó/Donada). `null` en ubicaciones que no separan piso
    *  de almacén (Taller) — mismo criterio que `piso`/`almacen`. */
   danado: number | null;
+  /** Unidades APARTADAS para clientas (`stock.cantidad_apartada`, ADR-0141). Siguen físicamente en
+   *  la tienda — por eso cuentan en `total`/`piso`/`almacen`, y el conteo físico no cambia — pero NO
+   *  se pueden vender ni mover: la base rechaza esas operaciones. */
+  apartado: number;
+  /** `total - apartado`: lo que de verdad se puede vender o mover ahora. */
+  disponible: number;
+  /** Lo mismo, por lugar (`piso - apartado del piso`). `null` donde no se separa piso/almacén. */
+  pisoDisponible: number | null;
+  almacenDisponible: number | null;
 };
 
 type FotoCruda = { url: string; orden: number; es_principal: boolean };
@@ -59,6 +68,9 @@ function fotoPrincipal(fotos: FotoCruda[] | null | undefined): string | null {
 
 export type ResumenInventario = {
   total: number;
+  /** Apartadas para clientas (incluidas en `total`) y lo que queda para vender: `total - apartado`. */
+  apartado: number;
+  disponible: number;
   piso: number | null;
   almacen: number | null;
   requierenReposicion: number;
@@ -71,7 +83,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
     await supabase
       .from("stock")
       .select(
-        `variante_id, cantidad,
+        `variante_id, cantidad, cantidad_apartada,
          sububicacion:sububicaciones ( tipo ),
          variante:variantes!inner (
            sku, talla:tallas ( valor ),
@@ -102,7 +114,14 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
   // cuenta como "separa" (para mostrar SIN STOCK, no para desaparecer).
   const separaPisoAlmacen = filas.some((f) => f.sububicacion?.tipo === "piso_venta" || f.sububicacion?.tipo === "almacen_tienda");
 
-  type Acumulado = Omit<FilaStock, "piso" | "almacen" | "estado" | "danado"> & { _piso: number; _almacen: number; _danado: number };
+  type Acumulado = Omit<FilaStock, "piso" | "almacen" | "estado" | "danado" | "apartado" | "disponible" | "pisoDisponible" | "almacenDisponible"> & {
+    _piso: number;
+    _almacen: number;
+    _danado: number;
+    _apartado: number;
+    _apartadoPiso: number;
+    _apartadoAlmacen: number;
+  };
   const porVariante = new Map<string, Acumulado>();
 
   for (const f of filas) {
@@ -123,6 +142,9 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
         _piso: 0,
         _almacen: 0,
         _danado: 0,
+        _apartado: 0,
+        _apartadoPiso: 0,
+        _apartadoAlmacen: 0,
       };
       porVariante.set(f.variante_id, fila);
     }
@@ -134,8 +156,14 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       continue;
     }
     fila.total += f.cantidad;
-    if (f.sububicacion?.tipo === "piso_venta") fila._piso += f.cantidad;
-    else if (f.sububicacion?.tipo === "almacen_tienda") fila._almacen += f.cantidad;
+    fila._apartado += f.cantidad_apartada;
+    if (f.sububicacion?.tipo === "piso_venta") {
+      fila._piso += f.cantidad;
+      fila._apartadoPiso += f.cantidad_apartada;
+    } else if (f.sububicacion?.tipo === "almacen_tienda") {
+      fila._almacen += f.cantidad;
+      fila._apartadoAlmacen += f.cantidad_apartada;
+    }
   }
 
   return Array.from(porVariante.values())
@@ -143,12 +171,18 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
     // stock); una tienda muestra también lo que llegó a 0 — es justo el
     // estado SIN STOCK que el pedido quiere ver, no un vacío silencioso.
     .filter((f) => separaPisoAlmacen || f.total > 0)
-    .map(({ _piso, _almacen, _danado, ...resto }) => ({
+    .map(({ _piso, _almacen, _danado, _apartado, _apartadoPiso, _apartadoAlmacen, ...resto }) => ({
       ...resto,
       danado: separaPisoAlmacen ? _danado : null,
       piso: separaPisoAlmacen ? _piso : null,
       almacen: separaPisoAlmacen ? _almacen : null,
-      estado: separaPisoAlmacen ? calcularEstado(_piso, _almacen) : null,
+      apartado: _apartado,
+      disponible: resto.total - _apartado,
+      pisoDisponible: separaPisoAlmacen ? _piso - _apartadoPiso : null,
+      almacenDisponible: separaPisoAlmacen ? _almacen - _apartadoAlmacen : null,
+      // El semáforo mira lo que se puede VENDER: una prenda con todo el piso apartado no tiene piso
+      // que ofrecer aunque físicamente esté ahí (el chip «Apartado» de la fila lo explica).
+      estado: separaPisoAlmacen ? calcularEstado(_piso - _apartadoPiso, _almacen - _apartadoAlmacen) : null,
     }))
     .sort((a, b) => a.referencia.localeCompare(b.referencia, "es") || (a.sku ?? "").localeCompare(b.sku ?? "", "es"));
 }
@@ -157,6 +191,8 @@ export function resumirInventario(filas: FilaStock[]): ResumenInventario {
   const separaPisoAlmacen = filas.some((f) => f.piso !== null);
   return {
     total: filas.reduce((acc, f) => acc + f.total, 0),
+    apartado: filas.reduce((acc, f) => acc + f.apartado, 0),
+    disponible: filas.reduce((acc, f) => acc + f.disponible, 0),
     piso: separaPisoAlmacen ? filas.reduce((acc, f) => acc + (f.piso ?? 0), 0) : null,
     almacen: separaPisoAlmacen ? filas.reduce((acc, f) => acc + (f.almacen ?? 0), 0) : null,
     requierenReposicion: filas.filter((f) => f.estado === "reponer_piso").length,
@@ -246,6 +282,10 @@ export async function getExistencias(ubicacionId: string, ubicaciones: { id: str
       piso: separa ? 0 : null,
       almacen: separa ? 0 : null,
       danado: separa ? 0 : null,
+      apartado: 0,
+      disponible: 0,
+      pisoDisponible: separa ? 0 : null,
+      almacenDisponible: separa ? 0 : null,
       estado: separa ? calcularEstado(0, 0) : null,
       enTransito: transito.get(item.variante_id) ?? 0,
       enRed: red.get(item.variante_id)?.otrasSedes ?? [],
