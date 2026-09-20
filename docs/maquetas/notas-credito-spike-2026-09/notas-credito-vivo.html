@@ -560,6 +560,73 @@ body.entra .pv .pista i{animation:nv-crece-x 800ms var(--ease) 500ms backwards}
   .pv .ar{padding:14px 16px}.pv .exp{padding:9px 16px}.pv .libro .in{padding:4px 16px 14px}
   .pv .sug-r{padding:0 16px 14px}
 }
+
+/* ---------- buscador de facturas + destino del dinero (ajustes de Felipe, 2026-09-19) ---------- */
+.colapsa{display:grid;grid-template-rows:0fr;transition:grid-template-rows 380ms var(--ease)}
+.colapsa.on{grid-template-rows:1fr}
+.colapsa>div{overflow:hidden;min-height:0}
+.colapsa:not(.on){visibility:hidden;transition:grid-template-rows 380ms var(--ease),visibility 0s linear 380ms}
+.rg-dep{transition:opacity 300ms var(--ease)}
+.rg-dep.tenue{opacity:.4}
+.fb-caja{display:flex;align-items:center;gap:10px;border:1px solid var(--t25);border-radius:10px;padding:8px 12px;background:var(--papel);color:var(--t45);position:relative;transition:border-color 220ms}
+.fb-caja:focus-within{border-color:var(--rojo)}
+.fb-caja input{flex:1;min-width:0;background:none;border:0;outline:none;font:inherit;font-size:14.5px;color:var(--tinta);height:24px}
+.fb-filtros{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.fb-lista{margin-top:10px;border:1px solid var(--sand);border-radius:12px;max-height:250px;overflow-y:auto;overscroll-behavior:contain}
+.fb-op{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 16px;padding:10px 14px;border-top:1px solid var(--t10);cursor:pointer;transition:background 160ms;position:relative}
+.fb-op:first-child{border-top:0}
+.fb-op[aria-selected=true]{background:var(--t04)}
+.fb-op[aria-selected=true]::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2px;border-radius:2px;background:var(--rojo)}
+.fb-a{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;min-width:0}
+.fb-doc{font-weight:600;font-size:14px}.fb-prov{font-size:13px;color:var(--t65)}
+.fb-b{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:12px;grid-column:1;margin-top:3px}
+.fb-n{grid-column:2;grid-row:1 / span 2;text-align:right;display:flex;flex-direction:column;justify-content:center;font-size:14px}
+.fb-n .m55{font-size:12px}
+.fb-vacio{padding:22px 14px;text-align:center}
+.fb-vacio p{font-family:'EB Garamond',serif;font-style:italic;font-size:18px;color:var(--t65)}
+.fb-vacio small{display:block;font-size:12.5px;color:var(--t55);margin-top:2px}
+.fb-vacio .lk{margin-top:8px;color:var(--rojo);font-size:13px}.fb-vacio .lk:hover{text-decoration:underline}
+.ficha{border:1px solid var(--sand);border-radius:12px;overflow:hidden;animation:cayla-revelar 260ms var(--ease) both}
+.ficha .fh{display:flex;align-items:center;gap:12px;padding:12px 14px;flex-wrap:wrap}
+.ficha .fh .tx{flex:1 1 240px;min-width:0}
+.ficha .fh .tx b{font-weight:600;margin-right:6px}
+.ficha .fh .tx>span:not(.chip){display:block;font-size:12px;color:var(--t65)}
+.ficha .fh .chip{margin-right:4px}
+.ficha .fn{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--t10);background:rgba(232,224,208,.25)}
+.ficha .fn span{padding:9px 14px;font-size:11px;letter-spacing:.11em;text-transform:uppercase;font-weight:600;color:var(--t55)}
+.ficha .fn span+span{border-left:1px solid var(--t10)}
+.ficha .fn b{display:block;font-family:'EB Garamond',serif;font-size:17px;color:var(--tinta);font-weight:400;letter-spacing:0;text-transform:none;font-variant-numeric:tabular-nums}
+.ficha .fl{display:grid;grid-template-columns:5.2rem 1fr;gap:0 10px;padding:7px 14px;border-top:1px solid var(--t10);font-size:12.5px;color:var(--t75)}
+.ficha .fl .k{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t55);padding-top:2px}
+.ficha .fl.ambar{background:rgba(140,99,31,.06);color:var(--tinta)}
+.tres{display:grid;grid-template-columns:repeat(3,1fr);gap:0 14px;border:1px solid var(--sand);border-radius:12px;padding:12px 14px;background:rgba(232,224,208,.3)}
+.tres .k{display:block;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t55)}
+.tres .v{display:block;font-family:'EB Garamond',serif;font-size:22px;line-height:1.2;font-variant-numeric:tabular-nums}
+.tres>div:nth-child(2) .v{color:var(--taupe-p)}.tres>div:nth-child(3) .v{color:var(--verde-p)}
+.tres .ef-barra{grid-column:1 / -1;margin-top:10px}
+.ef-barra i.dev{background:var(--taupe)}
+.opcs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.opc{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--t15);border-radius:12px;padding:12px 14px;text-align:left;transition:border-color 220ms,background 220ms,opacity 220ms}
+.opc:hover:not([aria-disabled=true]){border-color:var(--rojo)}
+.opc b{font-weight:600;display:block;font-size:14px}
+.opc span span{display:block;font-size:12px;color:var(--t65);margin-top:2px}
+.opc .rd{width:17px;height:17px;border-radius:50%;border:1.5px solid var(--t45);flex:none;margin-top:2px;position:relative;transition:border-color 220ms}
+.opc .rd::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--tinta);transform:scale(0);transition:transform 260ms var(--ease)}
+.opc[aria-checked=true]{border-color:var(--tinta);background:rgba(26,26,24,.035)}
+.opc[aria-checked=true] .rd{border-color:var(--tinta)}.opc[aria-checked=true] .rd::after{transform:scale(1)}
+.opc[aria-disabled=true]{opacity:.45;cursor:not-allowed;border-style:dashed}
+.reem{border:1px solid var(--sand);border-radius:12px;padding:14px 16px;margin-top:12px}
+.cuenta{margin-top:14px;padding-top:12px;border-top:1px solid var(--t10);display:flex;flex-wrap:wrap;gap:2px 12px;align-items:baseline}
+.cuenta .k{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t55)}
+.cuenta b{font-weight:600;font-size:13.5px}
+@media (max-width:900px){
+  .ficha .fn{grid-template-columns:repeat(2,1fr)}.ficha .fn span:nth-child(3){border-left:0}.ficha .fn span:nth-child(n+3){border-top:1px solid var(--t10)}
+  .ficha .fl{grid-template-columns:1fr}.ficha .fl .k{padding-top:0}
+  .tres{grid-template-columns:1fr;gap:8px}.tres .v{display:inline}.tres>div{display:flex;justify-content:space-between;align-items:baseline}
+  .opcs{grid-template-columns:1fr}
+  .fb-op{padding:10px 12px}
+  .reem .campos{grid-template-columns:1fr!important}
+}
 </style>
 </head>
 <body class="entra">
@@ -578,7 +645,7 @@ body.entra .pv .pista i{animation:nv-crece-x 800ms var(--ease) 500ms backwards}
   <button id="b-mig" type="button" aria-pressed="false">Mostrar lo que requiere migración</button>
   <button id="b-recep" type="button" aria-pressed="false">Ver Recepción (así queda)</button>
   <button id="b-aldia" type="button">Simular: nada por reclamar</button>
-  <p class="guion"><b>Recorrido sugerido:</b> toca la fila de <b>Confecciones Sur Andino</b> (la única con el punto que late) → <b>Registrar nota</b> desde la vista rápida y escribe un monto de más → mira el efecto y el error → registra y mira cómo reacciona la pantalla. Luego <b>Saldos a favor</b> → «De qué viene» → <b>Pedir reembolso</b>. Al final, <b>Ver Recepción</b>: la nota ya no está adentro. Atajos: <kbd>/</kbd> buscar · <kbd>j</kbd> <kbd>k</kbd> moverse · <kbd>N</kbd> nueva nota · <kbd>Esc</kbd> cerrar.</p>
+  <p class="guion"><b>Recorrido sugerido:</b> toca la fila de <b>Confecciones Sur Andino</b> (la única con el punto que late) → <b>Registrar nota</b> desde la vista rápida y escribe un monto de más → mira el efecto y el error → registra y mira cómo reacciona la pantalla. Prueba los tres destinos del dinero: la factura pendiente (F001-000482, solo baja la deuda), la pagada (F004-000129, todo sobra: devolver ahora o dejar a favor) y la mixta (F001-000401, baja S/ 1,128.00 y sobran S/ 52.00); con <kbd>N</kbd> empiezas por el buscador de facturas. Luego <b>Saldos a favor</b> → «De qué viene» → <b>Pedir reembolso</b>. Al final, <b>Ver Recepción</b>: la nota ya no está adentro. Atajos: <kbd>/</kbd> buscar · <kbd>j</kbd> <kbd>k</kbd> moverse · <kbd>N</kbd> nueva nota · <kbd>Esc</kbd> cerrar.</p>
 </div></div>
 
 <main class="cont" id="cont">
@@ -694,20 +761,20 @@ const PROV0={
 };
 /* comprobantes: saldo = total − pagado − Σ aplicado de sus notas (así lo calcula la base) */
 const COMP0={
-  f:{doc:'F003-000771',prov:'hil',emi:'2026-08-25',total:2360,pagado:0,dest:'Taller Lima',rec:'Recibida',quedan:0,vence:'2026-10-09'},
-  e:{doc:'F001-000482',prov:'rim',emi:'2026-09-02',total:5923.6,pagado:2000,dest:'Tienda Lima',rec:'Recibida',quedan:0,vence:'2026-10-02'},
-  k:{doc:'F002-000087',prov:'sur',emi:'2026-08-24',total:2596,pagado:0,dest:'Tienda Arequipa',rec:'Recibida',quedan:0,vence:'2026-09-23'},
-  h:{doc:'F004-000129',prov:'avi',emi:'2026-09-12',total:590,pagado:590,dest:'Taller Lima',rec:'Recibida',quedan:0,vence:'2026-09-12',contado:true},
-  c:{doc:'F001-000455',prov:'rim',emi:'2026-08-20',total:3186,pagado:0,dest:'Tienda Trujillo',rec:'Parcial',quedan:12,vence:'2026-09-19'},
-  g:{doc:'F003-000802',prov:'hil',emi:'2026-09-12',total:1180,pagado:0,dest:'Taller Lima',rec:'Sin recibir',quedan:0,vence:'2026-10-27'},
-  b:{doc:'B001-001208',prov:'sur',emi:'2026-08-28',total:2950,pagado:1000,dest:'Tienda Arequipa',rec:'Recibida',quedan:0,vence:'2026-09-12'},
-  d:{doc:'F002-000093',prov:'sur',emi:'2026-09-10',total:1888,pagado:0,dest:'Tienda Lima',rec:'Recibida',quedan:0,vence:'2026-09-25'},
-  x1:{doc:'F001-000377',prov:'rim',emi:'2026-07-30',total:2478,pagado:2124,dest:'Tienda Lima',rec:'Recibida',quedan:0,vence:'2026-08-29'},
-  x2:{doc:'F003-000640',prov:'hil',emi:'2026-08-10',total:1416,pagado:1298,dest:'Taller Lima',rec:'Recibida',quedan:0,vence:'2026-09-09'},
-  x3:{doc:'F002-000071',prov:'sur',emi:'2026-08-15',total:2242,pagado:2242,dest:'Tienda Arequipa',rec:'Recibida',quedan:0,vence:'2026-08-15',contado:true},
-  x4:{doc:'F004-000098',prov:'avi',emi:'2026-08-28',total:826,pagado:826,dest:'Taller Lima',rec:'Recibida',quedan:0,vence:'2026-08-28',contado:true},
-  x5:{doc:'F001-000401',prov:'rim',emi:'2026-08-18',total:3540,pagado:1940,dest:'Tienda Lima',rec:'Recibida',quedan:0,vence:'2026-09-17'},
-  x6:{doc:'F002-000080',prov:'sur',emi:'2026-08-19',total:1180,pagado:1180,dest:'Tienda Arequipa',rec:'Recibida',quedan:0,vence:'2026-09-18'},
+  f:{doc:'F003-000771',prov:'hil',emi:'2026-08-25',total:2360,pagado:0,dest:'Taller Lima',rec:'Recibida',quedan:0,vence:'2026-10-09',items:[['Hilado pima 30/1 · cono 1.5 kg',20,100]]},
+  e:{doc:'F001-000482',prov:'rim',emi:'2026-09-02',total:5923.6,pagado:2000,dest:'Tienda Lima',rec:'Recibida',quedan:0,vence:'2026-10-02',items:[['Jersey pima 30/1 · rollo',20,179],['Rib 1x1 crudo · rollo',8,180]],pagos:[['2026-09-10','transferencia',2000,'Op. 00845019']]},
+  k:{doc:'F002-000087',prov:'sur',emi:'2026-08-24',total:2596,pagado:0,dest:'Tienda Arequipa',rec:'Recibida',quedan:0,vence:'2026-09-23',items:[['Polera cuello redondo · talla M',50,28],['Polera cuello redondo · talla L',20,40]]},
+  h:{doc:'F004-000129',prov:'avi',emi:'2026-09-12',total:590,pagado:590,dest:'Taller Lima',rec:'Recibida',quedan:0,vence:'2026-09-12',contado:true,items:[['Botón nácar 18 mm · caja x144',10,32],['Cierre metálico 18 cm',18,10]]},
+  c:{doc:'F001-000455',prov:'rim',emi:'2026-08-20',total:3186,pagado:0,dest:'Tienda Trujillo',rec:'Parcial',quedan:12,vence:'2026-09-19',items:[['Popelina stretch · rollo',20,92],['Drill elástico · rollo',10,86]]},
+  g:{doc:'F003-000802',prov:'hil',emi:'2026-09-12',total:1180,pagado:0,dest:'Taller Lima',rec:'Sin recibir',quedan:0,vence:'2026-10-27',items:[['Hilado pima 30/1 · cono 1.5 kg',10,100]]},
+  b:{doc:'B001-001208',prov:'sur',emi:'2026-08-28',total:2950,pagado:1000,dest:'Tienda Arequipa',rec:'Recibida',quedan:0,vence:'2026-09-12',items:[['Chompa alpaca cuello alto',25,100]],pagos:[['2026-09-05','transferencia',1000,'Op. 00771122']]},
+  d:{doc:'F002-000093',prov:'sur',emi:'2026-09-10',total:1888,pagado:0,dest:'Tienda Lima',rec:'Recibida',quedan:0,vence:'2026-09-25',items:[['Polo básico algodón',40,40]]},
+  x1:{doc:'F001-000377',prov:'rim',emi:'2026-07-30',total:2478,pagado:2124,dest:'Tienda Lima',rec:'Recibida',quedan:0,vence:'2026-08-29',items:[['Jersey pima 30/1 · rollo',14,150]],pagos:[['2026-08-28','transferencia',2124,'Op. 00712204']]},
+  x2:{doc:'F003-000640',prov:'hil',emi:'2026-08-10',total:1416,pagado:1298,dest:'Taller Lima',rec:'Recibida',quedan:0,vence:'2026-09-09',items:[['Hilado pima 30/1 · cono 1.5 kg',12,100]],pagos:[['2026-09-02','transferencia',1298,'Op. 00790018']]},
+  x3:{doc:'F002-000071',prov:'sur',emi:'2026-08-15',total:2242,pagado:2242,dest:'Tienda Arequipa',rec:'Recibida',quedan:0,vence:'2026-08-15',contado:true,items:[['Polo básico algodón',38,50]]},
+  x4:{doc:'F004-000098',prov:'avi',emi:'2026-08-28',total:826,pagado:826,dest:'Taller Lima',rec:'Recibida',quedan:0,vence:'2026-08-28',contado:true,items:[['Cierre metálico 18 cm',35,20]]},
+  x5:{doc:'F001-000401',prov:'rim',emi:'2026-08-18',total:3540,pagado:1940,dest:'Tienda Lima',rec:'Recibida',quedan:0,vence:'2026-09-17',items:[['Rib 1x1 crudo · rollo',30,100]],pagos:[['2026-08-25','transferencia',1940,'Op. 00731177']]},
+  x6:{doc:'F002-000080',prov:'sur',emi:'2026-08-19',total:1180,pagado:1180,dest:'Tienda Arequipa',rec:'Recibida',quedan:0,vence:'2026-08-19',contado:true,items:[['Polo básico algodón',20,50]]},
 };
 /* «nota pendiente» = lo que devuelve compras_nota_pendiente(): cierres de faltante sin nota. Las líneas salen de compra_item_cierres × compra_items.costo_unitario. */
 const PEND0=[
@@ -716,21 +783,23 @@ const PEND0=[
   {id:'p3',comp:'k',fecha:'2026-08-30',por:'Lucía C. · Tienda Arequipa',reclamos:['2026-09-02','2026-09-12'],lineas:[{n:'Polera cuello redondo · talla M (llegó talla S)',cant:10,costo:28,motivo:'error_proveedor'}]},
   {id:'p4',comp:'h',fecha:'2026-09-15',por:'Marisol Q. · Taller Lima',reclamos:[],lineas:[{n:'Botón nácar 18 mm · caja x144',cant:5,costo:32,motivo:'no_llego'}]},
   {id:'p5',comp:'c',fecha:'2026-09-13',por:'Ana P. · Tienda Trujillo',reclamos:[],lineas:[{n:'Popelina stretch · rollo',cant:2,costo:92,motivo:'danada'}]},
+  {id:'p6',comp:'x5',fecha:'2026-09-09',por:'Diego R. · Tienda Lima',reclamos:[],lineas:[{n:'Rib 1x1 crudo · rollo',cant:10,costo:100,motivo:'no_llego'}]},
 ];
 /* notas ya registradas (compra_notas_credito) */
 const NOTAS0=[
   {id:'n1',serie:'FC01-000029',comp:'x1',motivo:'faltante',fecha:'2026-08-27',monto:354,aplicado:354,nota:'Faltante de 2 rollos de jersey pima',por:'Felipe A.',adj:'FC01-000029.pdf · 82 KB',reclamos:['2026-08-20'],origen:'2026-08-16',lineas:[{n:'Jersey pima 30/1 · rollo',cant:2,costo:150,motivo:'no_llego'}]},
   {id:'n2',serie:'FC03-000012',comp:'x2',motivo:'descuento',fecha:'2026-09-01',monto:118,aplicado:118,nota:'Ajuste de precio: cono a S/ 95 en vez de S/ 100',por:'Felipe A.',adj:'FC03-000012.pdf · 64 KB',reclamos:[],origen:'2026-08-29'},
-  {id:'n3',serie:'FC02-000006',comp:'x3',motivo:'devolucion',fecha:'2026-09-04',monto:590,aplicado:0,nota:'Devolución de 20 polos con costura abierta',por:'Felipe A.',adj:'FC02-000006.jpg · 1.2 MB',reclamos:[],origen:'2026-08-30'},
-  {id:'n4',serie:'FC04-000007',comp:'x4',motivo:'devolucion',fecha:'2026-09-09',monto:236,aplicado:0,nota:'Devolución de 8 cajas de cierres sin usar',por:'Felipe A.',adj:null,reclamos:[],origen:'2026-09-05'},
+  {id:'n3',serie:'FC02-000006',comp:'x3',motivo:'devolucion',fecha:'2026-09-04',monto:590,aplicado:0,nota:'Devolución de 10 polos con costura abierta',por:'Felipe A.',adj:'FC02-000006.jpg · 1.2 MB',reclamos:[],origen:'2026-08-30'},
+  {id:'n4',serie:'FC04-000007',comp:'x4',motivo:'devolucion',fecha:'2026-09-09',monto:236,aplicado:0,nota:'Devolución de 10 cierres sin usar',por:'Felipe A.',adj:null,reclamos:[],origen:'2026-09-05'},
+  {id:'n6',serie:'FC02-000009',comp:'x6',motivo:'devolucion',fecha:'2026-09-11',monto:354,aplicado:0,nota:'Devolución de 6 polos con manchas',por:'Felipe A.',adj:'FC02-000009.pdf · 77 KB',reclamos:[],origen:'2026-09-08',devuelto:{monto:354,fecha:'2026-09-11',metodo:'transferencia',ref:'Op. 00881230'}},
   {id:'n5',serie:'FC01-000036',comp:'x5',motivo:'devolucion',fecha:'2026-09-03',monto:472,aplicado:472,nota:'Devolución de 4 rollos con tono distinto',por:'Felipe A.',adj:'FC01-000036.pdf · 71 KB',reclamos:[],origen:'2026-08-31'},
 ];
 /* movimientos del libro que NO son notas: usar el saldo en un pago / reembolso (proveedor_creditos) */
-const MOVS0=[{id:'m1',tipo:'aplicacion',prov:'sur',monto:170,fecha:'2026-09-08',comp:'x6',ref:'Pago con saldo a favor',por:'Felipe A.'}];
+const MOVS0=[{id:'m0',tipo:'reembolso',prov:'sur',monto:354,fecha:'2026-09-11',metodo:'transferencia',ref:'Op. 00881230',nota:'n6',por:'Felipe A.'},{id:'m1',tipo:'aplicacion',prov:'sur',monto:170,fecha:'2026-09-08',comp:'x6',ref:'Pago con saldo a favor',por:'Felipe A.'}];
 const IGV_MES0=4286.4;
 
 let P,C,PEND,NOTAS,MOVS,SEQ;
-function cargarDatos(){P=JSON.parse(JSON.stringify(PROV0));C=JSON.parse(JSON.stringify(COMP0));PEND=JSON.parse(JSON.stringify(PEND0));NOTAS=JSON.parse(JSON.stringify(NOTAS0));MOVS=JSON.parse(JSON.stringify(MOVS0));SEQ={n:6,m:2,p:7}}
+function cargarDatos(){P=JSON.parse(JSON.stringify(PROV0));C=JSON.parse(JSON.stringify(COMP0));PEND=JSON.parse(JSON.stringify(PEND0));NOTAS=JSON.parse(JSON.stringify(NOTAS0));MOVS=JSON.parse(JSON.stringify(MOVS0));SEQ={n:7,m:2,p:7}}
 cargarDatos();
 const S={mod:'notas',tab:'por_reclamar',vista:'urgencia',q:'',banda:null,sel:null,cur:null,destello:null,vistaKeys:[],recep:{modo:'nueva',cant:7,dec:null,hecho:false,notaOn:false},aldia:false};
 
@@ -764,12 +833,22 @@ const saldoFavor=prov=>r2(libro(prov).reduce((a,l)=>a+(l.tipo==='nota_credito'?l
 function restosVivos(){
   const vivo={};
   Object.keys(P).forEach(pr=>{
-    let usado=r2(MOVS.filter(m=>m.prov===pr).reduce((a,m)=>a+m.monto,0));
-    NOTAS.filter(n=>C[n.comp].prov===pr&&n.monto-n.aplicado>0).sort((a,b)=>a.fecha.localeCompare(b.fecha)||a.id.localeCompare(b.id)).forEach(n=>{
-      const resto=r2(n.monto-n.aplicado),u=Math.min(resto,usado);vivo[n.id]=r2(resto-u);usado=r2(usado-u)});
+    const ns=NOTAS.filter(n=>C[n.comp].prov===pr&&n.monto-n.aplicado>0).sort((a,b)=>a.fecha.localeCompare(b.fecha)||a.id.localeCompare(b.id));
+    ns.forEach(n=>{vivo[n.id]=r2(n.monto-n.aplicado-(n.devuelto?n.devuelto.monto:0))});
+    let usado=r2(MOVS.filter(m=>m.prov===pr&&!m.nota).reduce((a,m)=>a+m.monto,0));
+    ns.forEach(n=>{const u=Math.min(vivo[n.id],usado);vivo[n.id]=r2(vivo[n.id]-u);usado=r2(usado-u)});
   });
   return vivo;
 }
+const estadoFactura=id=>{const c=C[id];return saldoDe(id)<=0.004?'pagada':c.vence<HOY_ISO?'vencida':'pendiente'};
+const totalFavor=()=>r2(Object.keys(P).reduce((a,pr)=>a+Math.max(0,saldoFavor(pr)),0));
+function aplicadoMes(){
+  const bajo=r2(NOTAS.filter(n=>esMes(n.fecha)).reduce((a,n)=>a+n.aplicado,0));
+  const usos=r2(MOVS.filter(m=>m.tipo==='aplicacion'&&esMes(m.fecha)).reduce((a,m)=>a+m.monto,0));
+  const dev=r2(MOVS.filter(m=>m.tipo==='reembolso'&&esMes(m.fecha)).reduce((a,m)=>a+m.monto,0));
+  return{bajo,usos,dev,total:r2(bajo+usos+dev)};
+}
+const ddmm=iso=>iso.slice(8,10)+'/'+iso.slice(5,7);
 const deudaProv=pr=>r2(Object.keys(C).filter(id=>C[id].prov===pr).reduce((a,id)=>a+Math.max(0,saldoDe(id)),0));
 const provsConSaldo=()=>Object.keys(P).filter(pr=>saldoFavor(pr)>0.004);
 
@@ -781,11 +860,15 @@ function mkRows(){
   PEND.forEach(p=>{const c=C[p.comp];rows.push({k:p.id,tipo:'pend',estado:'por_reclamar',prov:c.prov,comp:p.comp,doc:c.doc,monto:montoLineas(p.lineas),fecha:p.fecha,edad:edad(p.fecha),bloq:c.quedan>0,quedan:c.quedan,unid:unidades(p.lineas),p,urgente:!!urg&&urg.k===p.id,
     mot:[...new Set(p.lineas.map(l=>ETQ_CIERRE[l.motivo]))].join(' + '),det:`${plural(unidades(p.lineas),'unidad','unidades')} · ${p.lineas[0].n}${p.lineas.length>1?` +${p.lineas.length-1}`:''}`,hay:p.lineas.map(l=>l.n).join(' ')}) });
   NOTAS.forEach(n=>{const c=C[n.comp];const resto=r2(n.monto-n.aplicado),vivo=vivos[n.id]||0;
-    rows.push({k:n.id,tipo:'nota',estado:vivo>0?'emitida':'aplicada',prov:c.prov,comp:n.comp,doc:c.doc,serie:n.serie,monto:n.monto,aplicado:n.aplicado,resto,vivo,fecha:n.fecha,n,mot:ETQ_NOTA[n.motivo],det:`${n.serie} · ${n.nota||ETQ_NOTA[n.motivo]}`,hay:n.serie+' '+(n.nota||'')})});
+    rows.push({k:n.id,tipo:'nota',estado:vivo>0?'emitida':'aplicada',prov:c.prov,comp:n.comp,doc:c.doc,serie:n.serie,monto:n.monto,aplicado:n.aplicado,resto,vivo,dev:n.devuelto?n.devuelto.monto:0,fecha:n.fecha,n,mot:ETQ_NOTA[n.motivo],det:`${n.serie} · ${n.nota||ETQ_NOTA[n.motivo]}`,hay:n.serie+' '+(n.nota||'')})});
   return rows;
 }
 const rowPor=k=>mkRows().find(r=>r.k===k);
 const ESTADO_CHIP={por_reclamar:['ambar','Por reclamar'],emitida:['verde','Emitida'],aplicada:['neutro','Aplicada']};
+/* el estado que se ve: una nota cuyo sobrante se devolvió dice «Devuelta», no «Aplicada» */
+const chipEst=r=>r.estado==='por_reclamar'&&r.bloq?`<span class="chip neutro">Falta cerrar ${r.quedan} uds</span>`:r.estado==='aplicada'&&r.dev>0?`<span class="chip verde">Devuelta</span>`:`<span class="chip ${ESTADO_CHIP[r.estado][0]}">${ESTADO_CHIP[r.estado][1]}</span>`;
+const etqEst=r=>r.estado==='aplicada'&&r.dev>0?'Devuelta':ESTADO_CHIP[r.estado][1];
+const destinoTxt=r=>r.tipo==='pend'?'':r.estado==='emitida'?`A favor ${soles(r.vivo)}`:r.dev>0?`Devuelto el ${ddmm(r.n.devuelto.fecha)} · ${ETQ_METODO[r.n.devuelto.metodo].toLowerCase()}`:'bajó la deuda';
 
 /* ====================================================================
    Movimiento: utilidades (las mismas de Por pagar)
@@ -853,9 +936,9 @@ function pintarKpis(){
   bar.classList.toggle('hay',!!S.banda);
   bar.style.display=pend.length?'':'none';
 
-  const delMes=NOTAS.filter(n=>esMes(n.fecha)),emi=r2(delMes.reduce((a,n)=>a+n.monto,0)),bajo=r2(delMes.reduce((a,n)=>a+n.aplicado,0));
+  const delMes=NOTAS.filter(n=>esMes(n.fecha)),emi=r2(delMes.reduce((a,n)=>a+n.monto,0)),bajo=r2(delMes.reduce((a,n)=>a+n.aplicado,0)),devM=r2(delMes.reduce((a,n)=>a+(n.devuelto?n.devuelto.monto:0),0)),favM=r2(emi-bajo-devM);
   contar($('#k-emi-n'),emi);
-  $('#k-emi-d').textContent=delMes.length?`${plural(delMes.length,'nota','notas')} · ${soles(bajo)} bajaron deuda · ${soles(r2(emi-bajo))} a favor`:'Ninguna nota registrada este mes';
+  $('#k-emi-d').textContent=delMes.length?`${plural(delMes.length,'nota','notas')} · ${soles(bajo)} bajaron deuda${devM>0?` · ${soles(devM)} devueltos`:''} · ${soles(favM)} a favor`:'Ninguna nota registrada este mes';
 
   const favs=Object.keys(P).map(pr=>({pr,s:saldoFavor(pr)})).filter(x=>x.s>0.004),favT=r2(favs.reduce((a,x)=>a+x.s,0));
   contar($('#k-fav-n'),favT);
@@ -866,9 +949,9 @@ function pintarKpis(){
   fb.style.display=favs.length?'':'none';
   $('#sg-badge').textContent=favs.length?soles(favT):'';
 
-  const usos=r2(MOVS.filter(m=>m.tipo==='aplicacion'&&esMes(m.fecha)).reduce((a,m)=>a+m.monto,0)),apl=r2(bajo+usos);
-  contar($('#k-apl-n'),apl);
-  $('#k-apl-d').textContent=apl>0?`${soles(bajo)} bajaron deuda${usos>0?` · ${soles(usos)} usados en pagos`:''}`:'Todavía nada este mes';
+  const ap=aplicadoMes();
+  contar($('#k-apl-n'),ap.total);
+  $('#k-apl-d').textContent=ap.total>0?[`${soles(ap.bajo)} bajaron deuda`,ap.usos>0?`${soles(ap.usos)} usados en pagos`:'',ap.dev>0?`${soles(ap.dev)} devueltos`:''].filter(Boolean).join(' · '):'Todavía nada este mes';
   pulgar($('#seg-mod'));
 }
 
@@ -913,13 +996,13 @@ function chipEdad(r){
   return`<span class="chip ${cl}">${r.urgente?'<span class="dot rojo pulsa"></span>':''}${hace(r.edad)}</span>`;
 }
 function filaHTML(r){
-  const pr=P[r.prov],[cl,tx]=ESTADO_CHIP[r.estado];
-  const estChip=r.estado==='por_reclamar'&&r.bloq?`<span class="chip neutro">Falta cerrar ${r.quedan} uds</span>`:`<span class="chip ${cl}">${tx}</span>`;
-  const cuando=r.tipo==='pend'?`${chipEdad(r)}<span class="b" style="margin-top:3px">cerrado el ${dm(r.fecha)}</span>`:`<span class="a tab">${dm(r.fecha)}</span><span class="b">${r.estado==='aplicada'?'aplicada del todo':'registrada'}</span>`;
+  const pr=P[r.prov];
+  const estChip=chipEst(r);
+  const cuando=r.tipo==='pend'?`${chipEdad(r)}<span class="b" style="margin-top:3px">cerrado el ${dm(r.fecha)}</span>`:`<span class="a tab">${dm(r.fecha)}</span><span class="b">${r.estado==='aplicada'?(r.dev>0?'devuelta':'aplicada del todo'):'registrada'}</span>`;
   let monto=`<span class="monto">${soles(r.monto)}</span>`;
   if(r.tipo==='pend')monto+=`<span class="b">esperado</span>`;
-  else if(r.estado==='emitida')monto+=`<span class="b fav">quedan ${soles(r.vivo)} a favor</span><span class="pbar" style="--p:${r.aplicado/r.monto}"><i></i></span>`;
-  else monto+=`<span class="b">bajó la deuda</span>`;
+  else if(r.estado==='emitida')monto+=`<span class="b fav">${destinoTxt(r)}</span><span class="pbar" style="--p:${r.aplicado/r.monto}"><i></i></span>`;
+  else monto+=`<span class="b ${r.dev>0?'fav':''}" title="${r.dev>0&&r.aplicado>0?`Bajó la deuda ${soles(r.aplicado)} y se devolvieron ${soles(r.dev)}`:''}">${destinoTxt(r)}</span>`;
   let acc='';
   if(r.tipo==='pend')acc=r.bloq?`<button type="button" class="btn dis s" disabled title="Todavía quedan ${r.quedan} unidades sin recibir ni cerrar">Aún no</button>`:`<button type="button" class="btn dis s" data-act="reg" data-k="${r.k}">Registrar nota</button>`;
   else if(r.estado==='emitida')acc=`<button type="button" class="btn dis s" data-act="${deudaProv(r.prov)>0?'usar':'reem'}" data-prov="${r.prov}">${deudaProv(r.prov)>0?'Usar en un pago':'Pedir reembolso'}</button>`;
@@ -936,7 +1019,7 @@ function elFila(r,i){
   const el=elCache('f:'+r.k,'fila',e=>{e.setAttribute('role','button');e.tabIndex=0});
   const h=filaHTML(r)+'|'+S.q;
   if(el._h!==h){el.innerHTML=filaHTML(r);el._h=h}
-  el.style.setProperty('--i',i);el.setAttribute('aria-label',`${P[r.prov].nombre}, ${r.doc}, ${soles(r.monto)}, ${ESTADO_CHIP[r.estado][1]}`);
+  el.style.setProperty('--i',i);el.setAttribute('aria-label',`${P[r.prov].nombre}, ${r.doc}, ${soles(r.monto)}, ${etqEst(r)}`);
   return el;
 }
 function elBanda(g){
@@ -988,55 +1071,56 @@ function repintar(){pintarKpis();pintarTabs();pintarLista();if(S.mod==='saldos')
    ==================================================================== */
 function pasosDe(r){
   const pasos=[];
+  const MIGREC='Hoy no existe dónde guardar «reclamada»: hace falta la tabla compra_nota_reclamos (append-only)';
   if(r.tipo==='pend'){
     const p=r.p,rec=p.reclamos;
-    pasos.push({t:r.bloq?`Faltante detectado · quedan ${r.quedan} uds sin recibir ni cerrar`:`Faltante detectado · ${plural(r.unid,'unidad','unidades')}`,s:`${r.mot} · ${p.por}`,f:dm(p.fecha),e:r.bloq?'ahora':'hecho'});
-    pasos.push({t:rec.length?`Reclamada al proveedor${rec.length>1?` (${rec.length} veces)`:''}`:'Reclamada al proveedor',s:rec.length?`Último reclamo el ${dm(rec[rec.length-1])}`:'Todavía no la reclamaste',f:rec.length?dm(rec[rec.length-1]):'',e:rec.length?'hecho':(r.bloq?'pend':'ahora'),mig:'Hoy no existe dónde guardar «reclamada»: hace falta la tabla compra_nota_reclamos (append-only)'});
-    pasos.push({t:'Nota de crédito recibida',s:'Serie-número, fecha y monto de la nota',f:'',e:'pend'});
-    pasos.push({t:'Aplicada',s:'Baja la deuda o queda a tu favor',f:'',e:'pend'});
+    pasos.push({c:'Faltante',t:r.bloq?`Faltante detectado · quedan ${r.quedan} uds sin recibir ni cerrar`:`Faltante detectado · ${plural(r.unid,'unidad','unidades')}`,s:`${r.mot} · ${p.por}`,f:dm(p.fecha),e:r.bloq?'ahora':'hecho'});
+    pasos.push({c:'Reclamada',t:rec.length?`Reclamada al proveedor${rec.length>1?` (${rec.length} veces)`:''}`:'Reclamada al proveedor',s:rec.length?`Último reclamo el ${dm(rec[rec.length-1])}`:'Todavía no la reclamaste',f:rec.length?dm(rec[rec.length-1]):'',e:rec.length?'hecho':(r.bloq?'pend':'ahora'),mig:MIGREC});
+    pasos.push({c:'Nota recibida',t:'Nota de crédito recibida',s:'Serie-número, fecha y monto de la nota',f:'',e:'pend'});
+    pasos.push({c:'Aplicada',t:'Aplicada',s:'Baja la deuda; lo que sobre se devuelve o queda a tu favor',f:'',e:'pend'});
   }else{
     const n=r.n,fal=n.motivo==='faltante';
-    pasos.push({t:fal?`Faltante detectado`:n.motivo==='devolucion'?'Devolución al proveedor':n.motivo==='descuento'?'Descuento acordado':'Concepto acordado',s:fal&&n.lineas?`${plural(unidades(n.lineas),'unidad','unidades')} · ${ETQ_CIERRE[n.lineas[0].motivo]}`:(n.nota||''),f:dm(n.origen),e:'hecho'});
-    pasos.push({t:'Reclamada al proveedor',s:n.reclamos.length?`Reclamada el ${dm(n.reclamos[0])}`:'Sin reclamo registrado',f:n.reclamos.length?dm(n.reclamos[0]):'',e:n.reclamos.length?'hecho':'pend',mig:'Hoy no existe dónde guardar «reclamada»: hace falta la tabla compra_nota_reclamos (append-only)',omit:!n.reclamos.length});
-    pasos.push({t:`Nota ${n.serie} recibida`,s:`Registrada por ${n.por}`,f:dm(n.fecha),e:'hecho'});
-    pasos.push(r.vivo>0?{t:'Con saldo a favor sin usar',s:`Quedan ${soles(r.vivo)} de ${soles(r.resto)} que sobraron`,f:'',e:'ahora'}:{t:'Aplicada',s:r.resto>0?'Su saldo ya se usó o se reembolsó':`Bajó la deuda de ${r.doc} en ${soles(r.aplicado)}`,f:'',e:'hecho'});
+    pasos.push({c:fal?'Faltante':n.motivo==='devolucion'?'Devolución':n.motivo==='descuento'?'Descuento':'Acuerdo',t:fal?`Faltante detectado`:n.motivo==='devolucion'?'Devolución al proveedor':n.motivo==='descuento'?'Descuento acordado':'Concepto acordado',s:fal&&n.lineas?`${plural(unidades(n.lineas),'unidad','unidades')} · ${ETQ_CIERRE[n.lineas[0].motivo]}`:(n.nota||''),f:dm(n.origen),e:'hecho'});
+    if(n.reclamos.length)pasos.push({c:'Reclamada',t:'Reclamada al proveedor',s:`Reclamada el ${dm(n.reclamos[0])}`,f:dm(n.reclamos[0]),e:'hecho',mig:MIGREC});
+    pasos.push({c:'Nota recibida',t:`Nota ${n.serie} recibida`,s:`Registrada por ${n.por}`,f:dm(n.fecha),e:'hecho'});
+    if(r.aplicado>0)pasos.push({c:'Baja deuda',t:`Bajó la deuda de ${r.doc}`,s:`− ${soles(r.aplicado)} de lo que se debía`,f:dm(n.fecha),e:'hecho'});
+    if(r.dev>0)pasos.push({c:'Devuelto',t:'Dinero devuelto',s:`${soles(r.dev)} · ${ETQ_METODO[n.devuelto.metodo].toLowerCase()}${n.devuelto.ref?' · '+n.devuelto.ref:''}`,f:dm(n.devuelto.fecha),e:'hecho'});
+    if(r.vivo>0)pasos.push({c:'A favor',t:'Con saldo a favor sin usar',s:`Quedan ${soles(r.vivo)} de ${soles(r.resto)} que sobraron`,f:'',e:'ahora'});
+    else if(r.resto>0&&r.dev===0)pasos.push({c:'Aplicada',t:'Aplicada',s:'Su saldo ya se usó en pagos',f:'',e:'hecho'});
   }
-  const p=pasos.filter(x=>!x.omit);
-  p.forEach((x,i)=>{x.sigue=x.e==='hecho'&&!!p[i+1]&&p[i+1].e!=='pend'});
-  return p;
+  pasos.forEach((x,i)=>{x.sigue=x.e==='hecho'&&!!pasos[i+1]&&pasos[i+1].e!=='pend'});
+  return pasos;
 }
 function siguientePaso(r){
   if(r.tipo==='pend'){
     if(r.bloq)return['ne',`Primero recibe o cierra las <b>${r.quedan} unidades</b> que quedan en ${esc(r.doc)}. La nota por faltante es <b>una sola por comprobante</b> y se registra cuando el comprobante queda resuelto.`];
     const rec=r.p.reclamos;
-    if(!rec.length)return['am',`Todavía no la reclamaste. Copia el mensaje y envíaselo a <b>${esc(P[r.prov].contacto)}</b>; cuando llegue la nota, regístrala.`];
+    if(!rec.length)return['am',`Todavía no la reclamaste. Copia el mensaje y envíaselo a <b>${esc(P[r.prov].contacto)}</b>; cuando llegue la nota, regístrala y elige qué pasa con el dinero que sobre.`];
     const ult=edad(rec[rec.length-1]);
     if(r.edad>14)return['',`Van <b>${r.edad} días</b> y la reclamaste ${rec.length===1?'una vez':rec.length+' veces'}: conviene llamar a <b>${esc(P[r.prov].contacto)}</b> en vez de escribir otra vez.`];
     return['ne',`Reclamada hace ${ult} ${ult===1?'día':'días'}. Cuando ${esc(P[r.prov].contacto)} te envíe la nota, regístrala aquí.`];
   }
   if(r.estado==='emitida')return['ok',`Quedan <b>${soles(r.vivo)}</b> a tu favor con ${esc(P[r.prov].nombre)}. Se te ofrecerán al pagar: <b>tú decides</b> si los usas o pides el reembolso.`];
+  if(r.dev>0)return['ok',`${esc(P[r.prov].nombre)} devolvió <b>${soles(r.dev)}</b> el ${ddmm(r.n.devuelto.fecha)} (${esc(ETQ_METODO[r.n.devuelto.metodo].toLowerCase())}).${r.aplicado>0?` Además la nota bajó la deuda de ${esc(r.doc)} en ${soles(r.aplicado)}.`:''} No queda saldo a favor de esta nota.`];
   return['ok',`Nada pendiente: la nota bajó la deuda de ${esc(r.doc)} en <b>${soles(r.aplicado)}</b>.`];
 }
 function vidaSVG(pasos){
-  const xs=[46,150,250,354],y=14,hechos=pasos.filter(p=>p.e==='hecho').length;
-  const xx=pasos.length===3?[60,200,340]:xs;
-  const cortos=['Faltante','Reclamada','Nota recibida','Aplicada'],cortos3=['Faltante','Nota recibida','Aplicada'];
-  const lab=pasos.length===3?cortos3:cortos;
+  const n=pasos.length,x0=44,x1=356,xx=pasos.map((_,i)=>n===1?200:x0+(x1-x0)*i/(n-1)),y=14;
   const ult=Math.max(0,pasos.map(p=>p.e).lastIndexOf('hecho'));
-  return`<svg viewBox="0 0 400 56" role="img" aria-label="Recorrido de la nota: ${lab.map((l,i)=>l+' '+(pasos[i].e==='hecho'?'hecho':'pendiente')).join(', ')}">
-    <line class="pista" x1="${xx[0]}" y1="${y}" x2="${xx[xx.length-1]}" y2="${y}"/>
-    ${hechos>1?`<line class="avance" pathLength="1" x1="${xx[0]}" y1="${y}" x2="${xx[Math.min(ult,xx.length-1)]}" y2="${y}"/>`:''}
+  return`<svg viewBox="0 0 400 56" role="img" aria-label="Recorrido de la nota: ${pasos.map(p=>p.c+' '+(p.e==='hecho'?'hecho':'pendiente')).join(', ')}">
+    <line class="pista" x1="${xx[0]}" y1="${y}" x2="${xx[n-1]}" y2="${y}"/>
+    ${ult>0?`<line class="avance" pathLength="1" x1="${xx[0]}" y1="${y}" x2="${xx[ult]}" y2="${y}"/>`:''}
     ${pasos.map((p,i)=>`<circle class="pt ${p.e==='hecho'?'h':p.e==='ahora'?'n':''}" cx="${xx[i]}" cy="${y}" r="6" style="animation-delay:${200+i*120}ms"/>
-      <text class="lab ${p.e==='ahora'?'f':''}" x="${xx[i]}" y="36" style="animation-delay:${260+i*120}ms">${lab[i]}</text>
+      <text class="lab ${p.e==='ahora'?'f':''}" x="${xx[i]}" y="36" style="animation-delay:${260+i*120}ms">${p.c}</text>
       <text class="lab s" x="${xx[i]}" y="50" style="animation-delay:${300+i*120}ms">${esc(p.f||'')}</text>`).join('')}</svg>`;
 }
 function drawerHTML(r,idx,total){
-  const pr=P[r.prov],[cl,tx]=ESTADO_CHIP[r.estado],pasos=pasosDe(r),[tono,sug]=siguientePaso(r),c=C[r.comp];
-  const est=r.estado==='por_reclamar'&&r.bloq?`<span class="chip neutro">Falta cerrar ${r.quedan} uds</span>`:`<span class="chip ${cl}">${tx}</span>`;
+  const pr=P[r.prov],pasos=pasosDe(r),[tono,sug]=siguientePaso(r),c=C[r.comp];
+  const est=chipEst(r);
   const rp=r.tipo==='pend'?reparte(r.monto,saldoDe(r.comp)):null;
   const celdas=r.tipo==='pend'
     ?[['Comprobante',esc(r.doc),`debes ${soles(saldoDe(r.comp))}`,''],['Antigüedad',r.edad+' días',`cerrado el ${dm(r.fecha)}`,''],['Efecto',rp.aFavor>0&&rp.baja<=0?'A tu favor':`− ${soles(rp.baja)}`,rp.aFavor>0?`${soles(rp.aFavor)} quedan a favor`:'baja la deuda','verde']]
-    :[['Bajó la deuda',soles(r.aplicado),`de ${esc(r.doc)}`,''],['A favor',soles(r.resto),r.resto>0?'sobró de la nota':'nada sobró','verde'],['Sin usar',soles(r.vivo),r.vivo>0?'aún disponible':'ya no queda','']];
+    :[['Bajó la deuda',soles(r.aplicado),`de ${esc(r.doc)}`,''],['Devuelto',soles(r.dev),r.dev>0?`${ddmm(r.n.devuelto.fecha)} · ${esc(ETQ_METODO[r.n.devuelto.metodo].toLowerCase())}`:'nada devuelto',r.dev>0?'verde':''],['A favor',soles(r.vivo),r.vivo>0?'sin usar':'nada a favor','verde']];
   const lin=r.tipo==='pend'?r.p.lineas:(r.n.lineas||[]);
   return`<div class="asentar" style="display:flex;flex-direction:column;height:100%;min-height:0">
   <div class="hd"><span class="mono">${ini(pr.nombre)}</span>
@@ -1104,7 +1188,7 @@ function cerrarModal(forzar){
     if(focoModal&&document.contains(focoModal))focoModal.focus({preventScroll:true});cb&&cb(res)},reducir()?20:210);
 }
 const hdModal=(sup,titulo)=>`<div class="hd"><div style="min-width:0;flex:1">${sup?`<div class="sup">${sup}</div>`:''}<h2 id="m-titulo">${titulo}</h2></div><button type="button" class="cierra" data-act="cerrar-modal" aria-label="Cerrar">${ic('x')}</button></div>`;
-const chipEstado=r=>r.estado==='por_reclamar'&&r.bloq?`<span class="chip neutro">Falta cerrar ${r.quedan} uds</span>`:`<span class="chip ${ESTADO_CHIP[r.estado][0]}">${ESTADO_CHIP[r.estado][1]}</span>`;
+const chipEstado=chipEst;
 async function copiar(btn,texto){
   try{await navigator.clipboard.writeText(texto)}catch(e){const ta=document.createElement('textarea');ta.value=texto;ta.style.position='fixed';ta.style.opacity='0';document.body.append(ta);ta.select();try{document.execCommand('copy')}catch(_){}ta.remove()}
   const h=btn.innerHTML;btn.classList.add('hecho');btn.innerHTML=tilde()+' Copiado';setTimeout(()=>{btn.classList.remove('hecho');btn.innerHTML=h},2200);
@@ -1124,7 +1208,7 @@ function modalDetalle(k){
   const base=r2(r.monto/(1+TASA));
   const mini=r.tipo==='pend'
     ?[['Esperado',soles(r.monto),'con IGV',''],['Base',soles(base),'sin IGV',''],['IGV',soles(igvDe(r.monto)),'18 %','']]
-    :[['Monto',soles(r.monto),'con IGV',''],['Bajó la deuda',soles(r.aplicado),`de ${esc(r.doc)}`,''],['A favor',soles(r.resto),r.resto>0?`sin usar ${soles(r.vivo)}`:'nada sobró','verde']];
+    :[['Monto',soles(r.monto),'con IGV',''],['Bajó la deuda',soles(r.aplicado),`de ${esc(r.doc)}`,''],r.dev>0?['Devuelto',soles(r.dev),`${ddmm(r.n.devuelto.fecha)} · ${esc(ETQ_METODO[r.n.devuelto.metodo].toLowerCase())}`,'verde']:['A favor',soles(r.resto),r.resto>0?`sin usar ${soles(r.vivo)}`:'nada sobró','verde']];
   const rp=r.tipo==='pend'?reparte(r.monto,saldo):null;
   const timeline=pasos.map((x,i)=>`<div class="paso ${x.e==='hecho'?'hecho':x.e==='ahora'?'ahora':'pend'} ${x.sigue?'sigue':''}" style="--i:${i}" ${x.mig?migTag(x.mig):''}><span class="nodo"></span><span class="t"><b>${esc(x.t)}</b><span class="s">${esc(x.s)}</span></span><span class="f">${esc(x.f||'')}</span></div>`).join('');
   const subt=r2(lin.reduce((a,l)=>a+l.cant*l.costo,0));
@@ -1141,10 +1225,11 @@ function modalDetalle(k){
     ?`<div class="sc"><span class="lbl">Qué pasará con el dinero cuando llegue la nota</span><div class="dinero">
         ${saldo>0?`<div class="dn"><span class="r">Lo que se debe de ${esc(c.doc)}</span><span class="m tab">${soles(saldo)} → ${soles(rp.deudaDespues)}</span><div class="bar"><i class="t" style="width:${saldo>0?rp.deudaDespues/saldo*100:0}%"></i></div></div>`:`<div class="dn"><span class="r">${esc(c.doc)} ya está pagado: la nota no baja ninguna deuda</span><span class="m tab">${soles(0)}</span></div>`}
         ${rp.aFavor>0?`<div class="dn"><span class="r">Quedan a tu favor con ${esc(pr.nombre)}</span><span class="m tab verde">${soles(rp.aFavor)}</span><div class="bar"><i class="v" style="width:100%"></i></div></div>`:''}
-        <p class="nota-p" style="margin:0">Ese saldo, si queda, se te <b>sugiere</b> al pagar en Por pagar; nunca se descuenta solo.</p></div></div>`
+        <p class="nota-p" style="margin:0">Lo que sobre se devuelve o queda a favor: lo eliges al registrar la nota. Si queda a favor, se te <b>sugiere</b> al pagar; nunca se descuenta solo.</p></div></div>`
     :`<div class="sc"><span class="lbl">Qué pasó con el dinero</span><div class="dinero">
-        <div class="dn"><span class="r">Bajó la deuda de ${esc(c.doc)}</span><span class="m tab">− ${soles(r.aplicado)}</span><div class="bar"><i class="t" style="width:${r.aplicado/r.monto*100}%"></i></div></div>
-        ${r.resto>0?`<div class="dn"><span class="r">Pasó a saldo a favor con ${esc(pr.nombre)}${r.vivo<r.resto?` · ya se usaron ${soles(r2(r.resto-r.vivo))}`:''}</span><span class="m tab verde">${soles(r.resto)}</span><div class="bar"><i class="v" style="width:${r.vivo/r.resto*100}%"></i></div></div>`:''}</div></div>`;
+        ${(r.aplicado>0||(r.dev===0&&r.resto===0))?`<div class="dn"><span class="r">Bajó la deuda de ${esc(c.doc)}</span><span class="m tab">− ${soles(r.aplicado)}</span><div class="bar"><i class="t" style="width:${r.aplicado/r.monto*100}%"></i></div></div>`:''}
+        ${r.dev>0?`<div class="dn"><span class="r">Se devolvió a CAYLA el ${ddmm(r.n.devuelto.fecha)} · ${esc(ETQ_METODO[r.n.devuelto.metodo].toLowerCase())}${r.n.devuelto.ref?' · '+esc(r.n.devuelto.ref):''}</span><span class="m tab verde">${soles(r.dev)}</span><div class="bar"><i class="v" style="width:${r.dev/r.monto*100}%"></i></div></div>`:''}
+        ${r.resto-r.dev>0?`<div class="dn"><span class="r">Pasó a saldo a favor con ${esc(pr.nombre)}${r.vivo<r.resto-r.dev?` · ya se usaron ${soles(r2(r.resto-r.dev-r.vivo))}`:''}</span><span class="m tab verde">${soles(r2(r.resto-r.dev))}</span><div class="bar"><i class="v" style="width:${(r.resto-r.dev)>0?r.vivo/(r.resto-r.dev)*100:0}%"></i></div></div>`:''}</div></div>`;
   const adj=r.tipo==='pend'
     ?`<div class="sc"><span class="lbl">Adjunto</span><div class="drop" ${migTag('compra_adjuntos hoy solo cuelga de un comprobante: hace falta una columna nota_credito_id para saber a cuál nota pertenece')}><span class="ico">${ic('clip')}</span><div><b>Todavía no hay documento</b><span>Se adjunta el PDF o la foto de la nota al registrarla.</span></div></div></div>`
     :`<div class="sc"><span class="lbl">Adjunto</span>${r.n.adj?`<button type="button" class="drop hay" data-act="ver-adj" ${migTag('compra_adjuntos hoy solo cuelga de un comprobante: hace falta una columna nota_credito_id para saber a cuál nota pertenece')}><span class="ico">${ic('clip')}</span><div><b>${esc(r.n.adj.split(' · ')[0])}</b><span>${esc(r.n.adj.split(' · ')[1])} · toca para abrirlo</span></div></button>`:`<div class="drop" ${migTag('compra_adjuntos hoy solo cuelga de un comprobante: hace falta una columna nota_credito_id para saber a cuál nota pertenece')}><span class="ico">${ic('clip')}</span><div><b>Sin documento adjunto</b><span>Esta nota se registró sin adjuntar el PDF.</span></div></div>`}</div>`;
@@ -1153,7 +1238,8 @@ function modalDetalle(k){
   if(r.tipo==='pend'){H.push({f:r.p.fecha,t:'Cierre por faltante',s:`${r.mot} · ${r.p.por}`,m:plural(r.unid,'unidad','unidades')});r.p.reclamos.forEach(f=>H.push({f,t:'Reclamada al proveedor',s:`Por ${P[r.prov].contacto.split(' ')[0]} · mensaje`,m:'',mig:1}))}
   else{H.push({f:r.n.origen,t:r.n.motivo==='faltante'?'Cierre por faltante':'Motivo acordado',s:r.n.nota||'',m:''});r.n.reclamos.forEach(f=>H.push({f,t:'Reclamada al proveedor',s:'',m:'',mig:1}));
     H.push({f:r.n.fecha,t:`Nota ${r.n.serie} registrada`,s:`Por ${r.n.por}`,m:soles(r.n.monto)});
-    if(r.resto-r.vivo>0)MOVS.filter(m=>m.prov===r.prov).forEach(m=>H.push({f:m.fecha,t:m.tipo==='aplicacion'?'Saldo usado en un pago':`Reembolso · ${ETQ_METODO[m.metodo]||''}`,s:`${m.tipo==='aplicacion'?C[m.comp].doc+' · ':''}se asume del saldo más antiguo`,m:'− '+soles(m.monto),v:1}))}
+    if(r.dev>0)H.push({f:r.n.devuelto.fecha,t:`Reembolso registrado · ${ETQ_METODO[r.n.devuelto.metodo]}`,s:r.n.devuelto.ref||'sin referencia',m:'− '+soles(r.dev),v:1});
+    if(r.resto-r.dev-r.vivo>0)MOVS.filter(m=>m.prov===r.prov&&!m.nota).forEach(m=>H.push({f:m.fecha,t:m.tipo==='aplicacion'?'Saldo usado en un pago':`Reembolso · ${ETQ_METODO[m.metodo]||''}`,s:`${m.tipo==='aplicacion'?C[m.comp].doc+' · ':''}se asume del saldo más antiguo`,m:'− '+soles(m.monto),v:1}))}
   H.sort((a,b)=>a.f.localeCompare(b.f));
   const hist=`<div class="sc"><span class="lbl">Historial <span class="m45" style="text-transform:none;letter-spacing:0;font-weight:400">· no se edita ni se borra</span></span><div class="hist">${H.map(h=>`<div class="li" ${h.mig?migTag('Hoy no hay tabla de reclamos'):''}><span class="t">${dm(h.f)}</span><span>${esc(h.t)}${h.s?`<span class="s">${esc(h.s)}</span>`:''}</span><span class="m">${esc(h.m)}</span></div>`).join('')}</div></div>`;
   const acc=r.tipo==='pend'
@@ -1171,7 +1257,69 @@ function modalDetalle(k){
 /* ---------------------- REGISTRAR una nota ---------------------- */
 const compsDe=pr=>Object.keys(C).filter(id=>C[id].prov===pr).sort((a,b)=>C[b].emi.localeCompare(C[a].emi));
 function parseMonto(t){const l=String(t).trim().replace(',','.');if(l==='')return NaN;const n=Number(l);return(!Number.isFinite(n)||n<=0||Math.abs(n*100-Math.round(n*100))>1e-6)?NaN:r2(n)}
+const ETQ_FAC={pagada:['verde','Pagada'],pendiente:['neutro','Pendiente'],vencida:['rojo','Vencida']};
+const chipsFactura=id=>{const[c,t]=ETQ_FAC[estadoFactura(id)];return`<span class="chip ${c}">${t}</span>`+(NOTAS.some(n=>n.comp===id)?'<span class="chip neutro">Con nota</span>':'')};
+const MEDIOS_DEV=['transferencia','efectivo','yape','plin','otro'];
+/* dato de ejemplo: hoy la base NO guarda las cuentas propias de CAYLA (solo las del proveedor) */
+const CUENTAS_CAYLA={transferencia:'BCP · cuenta corriente 194-8830412-0-19 · CAYLA SAC',yape:'Yape de CAYLA · 987 000 111',plin:'Plin de CAYLA · 987 000 111',efectivo:'Entra a la caja de la sede que lo recibe',otro:'Se anota en la referencia de la operación'};
+const pagosDe=id=>{const c=C[id];return c.pagos||(c.pagado>0?[[c.emi,c.contado?'contado':'transferencia',c.pagado,'']]:[])};
+/* resalta la coincidencia aunque el que escribe omita guiones, comas o espacios: «2360» en «S/ 2,360.00», «f003771» en «F003-000771» */
+function hlFlex(t,q){
+  const qq=sin(q).replace(/[\s,\-]|s\//g,'');if(!qq)return esc(t);
+  const idx=[];let flat='';for(let i=0;i<t.length;i++){if(/[\s,\-]/.test(t[i])||(t[i]==='/'&&/S/i.test(t[i-1]||'')))continue;if(/S/i.test(t[i])&&t[i+1]==='/')continue;idx.push(i);flat+=sin(t[i])}
+  const j=flat.indexOf(qq);if(j<0)return esc(t);
+  const a=idx[j],b=idx[j+qq.length-1]+1;
+  return esc(t.slice(0,a))+'<mark>'+esc(t.slice(a,b))+'</mark>'+esc(t.slice(b));
+}
+function coincide(id,q){
+  if(!q.trim())return true;const c=C[id],qq=sin(q).replace(/[\s,\-]|s\//g,'');
+  const campos=[c.doc,P[c.prov].nombre,soles(c.total),soles(saldoDe(id)),String(c.total),String(saldoDe(id))];
+  return campos.some(x=>sin(x).replace(/[\s,\-]|s\//g,'').includes(qq));
+}
+function fbFiltradas(st){
+  return Object.keys(C).filter(id=>{
+    if(st.ff==='saldo'&&saldoDe(id)<=0.004)return false;
+    if(st.ff==='pagadas'&&saldoDe(id)>0.004)return false;
+    if(st.ff==='prov'&&C[id].prov!==st.prov)return false;
+    return coincide(id,st.fq);
+  }).sort((a,b)=>C[b].emi.localeCompare(C[a].emi)||C[a].doc.localeCompare(C[b].doc));
+}
+function fbPintar(an){
+  const st=MODAL.st,L=$('#fb-lista'),ids=fbFiltradas(st);st.fids=ids;
+  if(st.fa>=ids.length)st.fa=Math.max(0,ids.length-1);
+  if(!ids.length){
+    L.innerHTML=`<div class="fb-vacio"><p>No hay facturas que coincidan</p><small>Prueba con otra serie, otro proveedor o un monto.</small>${st.fq||st.ff!=='todas'?`<button type="button" class="lk" data-act="fb-todas">Ver todas las facturas</button>`:''}</div>`;
+    $('#fb-q').removeAttribute('aria-activedescendant');
+  }else{
+    L.innerHTML=ids.map((id,i)=>{const c=C[id],s=saldoDe(id);
+      return`<div class="fb-op" role="option" id="fb-o-${id}" data-id="${id}" aria-selected="${i===st.fa}"><div class="fb-a"><span class="fb-doc tab">${hlFlex(c.doc,st.fq)}</span><span class="fb-prov">${hlFlex(P[c.prov].nombre,st.fq)}</span></div>
+        <div class="fb-b">${chipsFactura(id)}<span class="m55">emitida ${dm(c.emi)}</span></div>
+        <div class="fb-n"><span class="tab">${hlFlex(soles(c.total),st.fq)}</span><span class="m55 tab">${s>0.004?'Saldo '+hlFlex(soles(s),st.fq):'Sin saldo'}</span></div></div>`}).join('');
+    $('#fb-q').setAttribute('aria-activedescendant','fb-o-'+ids[st.fa]);
+    const a=$('.fb-op[aria-selected=true]',L);a&&a.scrollIntoView({block:'nearest'});
+  }
+  $('#fb-q').setAttribute('aria-expanded',ids.length>0);
+  $('#fb-cuenta').textContent=ids.length?`${plural(ids.length,'factura','facturas')}`:'Sin resultados';
+  if(an)anuncia(ids.length?`${plural(ids.length,'factura','facturas')}`:'No hay facturas que coincidan');
+  $$('#rg-filtros [data-ff]').forEach(b=>{const on=b.dataset.ff===st.ff;b.setAttribute('aria-checked',on);b.classList.toggle('on',on);if(b.dataset.ff==='prov'){b.disabled=!st.prov;b.textContent=st.prov?`Del proveedor: ${P[st.prov].nombre}`:'Del proveedor elegido'}});
+}
+function fichaHTML(id){
+  const c=C[id],pr=P[c.prov],s=saldoDe(id),notas=NOTAS.filter(n=>n.comp===id),p=PEND.find(x=>x.comp===id),pg=pagosDe(id);
+  const its=c.items.map(([n,q])=>`${q} × ${n.split(' · ')[0]}`);
+  return`<div class="ficha"><div class="fh"><span class="mono s">${ini(pr.nombre)}</span><div class="tx"><b class="tab">${esc(c.doc)}</b> ${chipsFactura(id)}<span>${esc(pr.nombre)} · emitida ${dm(c.emi)} · vence ${dm(c.vence)} · llegó a ${esc(c.dest)}</span></div><button type="button" class="link" data-act="rg-cambiar">Cambiar</button></div>
+    <div class="fn"><span>Total<b>${soles(c.total)}</b></span><span>Pagado<b>${soles(c.pagado)}</b></span><span>Debes<b>${soles(s)}</b></span><span>Notas ya emitidas<b>${soles(acreditado(id))}</b></span></div>
+    <div class="fl"><span class="k">Líneas</span><span>${esc(its.join(' · '))}</span></div>
+    ${pg.length?`<div class="fl"><span class="k">Pagos</span><span>${pg.map(([f,m,mo,ref])=>`${soles(mo)} · ${dm(f)} · ${esc(ETQ_METODO[m]||'Contado')}${ref?' · '+esc(ref):''}`).join(' | ')}</span></div>`:`<div class="fl"><span class="k">Pagos</span><span class="m55">Todavía no se pagó nada</span></div>`}
+    ${notas.length?`<div class="fl"><span class="k">Notas</span><span>${notas.map(n=>`${esc(n.serie)} · ${soles(n.monto)} · ${ETQ_NOTA[n.motivo].toLowerCase()}`).join(' | ')}</span></div>`:''}
+    ${p?`<div class="fl ambar"><span class="k">Pendiente</span><span>${plural(unidades(p.lineas),'unidad','unidades')} sin llegar → nota esperada de <b>${soles(montoLineas(p.lineas))}</b>${C[id].quedan>0?' (todavía no se puede registrar por faltante)':''}</span></div>`:''}</div>`;
+}
+function textoDestino(r,dest,doc,prov,saldo,pasado){
+  if(r.aFavor<=0.004)return`La nota baja lo que se debe de ${doc} de ${soles(saldo)} a ${soles(r.deudaDespues)}. No sobra dinero.`;
+  const primero=r.baja>0?`La nota primero baja lo que se debe de ${doc} de ${soles(saldo)} a ${soles(0)}. `:`${doc} ya estaba pagado, así que todo el monto es dinero de más. `;
+  return primero+(dest==='ahora'?(pasado?`Los ${soles(r.aFavor)} que sobraban ya volvieron a CAYLA.`:`Los ${soles(r.aFavor)} que sobran te los devuelve ${prov} ahora: se registra el reembolso junto con la nota.`):(pasado?`Los ${soles(r.aFavor)} que sobraron quedaron a tu favor con ${prov}, para otra compra.`:`Los ${soles(r.aFavor)} que sobran quedan a tu favor con ${prov}, para otra compra.`));
+}
 function valida(st){
+  if(!st.comp)return{e:{comp:'Elige la factura de origen.'},c:null,monto:NaN,tope:0,sug:0,disp:{estado:'sin_cierres'},sugerirTope:null,r:null,dest:null};
   const c=C[st.comp],disp=dispFaltante(st.comp),sug=disp.estado==='disponible'?montoLineas(disp.p.lineas):0;
   const raw=st.montoTxt??(st.motivo==='faltante'&&sug?sug.toFixed(2):'');
   const monto=parseMonto(raw),fal=st.motivo==='faltante';
@@ -1193,42 +1341,72 @@ function valida(st){
     sugerirTope=fal?sug:tope;
   }
   if(fal&&disp.estado!=='disponible')e.motivo='La nota por faltante todavía no se puede registrar en este comprobante.';
-  return{e,monto,tope,sug,disp,c,sugerirTope,r:Number.isNaN(monto)?null:reparte(monto,saldoDe(st.comp))};
+  const r=(Number.isNaN(monto)||e.montoMal)?null:reparte(monto,saldoDe(st.comp));
+  const dest=r&&r.aFavor>0.004?st.dest:null;
+  if(dest==='ahora'&&(!st.fechaR||st.fechaR>HOY_ISO))e.fechaR='La fecha del reembolso no puede ser futura.';
+  return{e,monto,tope,sug,disp,c,sugerirTope,r,dest};
+}
+function autoMotivo(st){const d=st.comp?dispFaltante(st.comp):{estado:'sin_cierres'};st.montoTxt=null;st.tocoMonto=false;if(d.estado==='disponible')st.motivo='faltante';else if(st.motivo==='faltante')st.motivo='devolucion'}
+function elegirFactura(st,id){
+  st.comp=id;st.prov=C[id].prov;st.cambiando=false;st.fq='';autoMotivo(st);
+  $('#fb-q').value='';syncReg();
+  setTimeout(()=>{const s=$('#rg-serie');MODAL&&MODAL.tipo==='reg'&&s&&s.focus({preventScroll:true})},reducir()?30:380);
 }
 function modalRegistrar(o={}){
   const r0=o.pend?rowPor(o.pend):null;
-  const st={pre:!!r0,prov:r0?r0.prov:(o.prov||'hil'),comp:r0?r0.comp:(o.comp||null),motivo:'faltante',serie:'',fecha:HOY_ISO,montoTxt:null,adj:false,enviando:false,intento:false,tocoMonto:false,serieBlur:false,provOpts:''};
-  if(!st.comp)st.comp=compsDe(st.prov)[0];
-  st.motivo=dispFaltante(st.comp).estado==='disponible'?'faltante':'devolucion';
+  const st={pre:!!r0,prov:r0?r0.prov:null,comp:r0?r0.comp:null,cambiando:false,fq:'',ff:'todas',fa:0,fids:[],fichaId:null,motivo:'faltante',serie:'',fecha:HOY_ISO,montoTxt:null,adj:false,dest:'favor',medio:'transferencia',fechaR:HOY_ISO,op:'',enviando:false,intento:false,tocoMonto:false,serieBlur:false};
+  if(st.comp)autoMotivo(st);
   const M=abrirModal(`${hdModal('','Registrar nota de crédito')}
     <p class="baj" id="rg-baj"></p>
     <form id="rg-form" novalidate>
-      <div class="sc"><span class="lbl">De dónde viene</span>
-        <div class="precarga" id="rg-pre"><span class="mono s" id="rg-pre-m"></span><div class="tx"><b id="rg-pre-b"></b><span id="rg-pre-s"></span></div><button type="button" class="link" data-act="rg-manual">Cambiar</button></div>
-        <div class="campos" id="rg-man" style="grid-template-columns:1fr 1.4fr">
-          <label class="campo"><span class="lbl">Proveedor</span><span class="v sel"><select id="rg-prov"></select></span></label>
-          <label class="campo"><span class="lbl">Comprobante de origen</span><span class="v sel"><select id="rg-comp"></select></span></label>
-        </div></div>
-      <div class="sc"><span class="lbl">Motivo</span><div class="pills" role="radiogroup" aria-label="Motivo de la nota">${['faltante','devolucion','descuento','otro'].map(m=>`<button type="button" class="pill" role="radio" data-mo="${m}">${ETQ_NOTA[m]}</button>`).join('')}</div><p class="nota-p" id="rg-mo-nota"></p></div>
-      <div class="sc"><div class="campos">
+      <div class="sc" id="rg-origen"><span class="lbl">Factura de origen</span>
+        <div class="colapsa" id="rg-ficha-w"><div><div id="rg-ficha"></div></div></div>
+        <div class="colapsa" id="rg-pick-w"><div><div id="rg-pick">
+          <div class="fb-caja"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="fb-q" role="combobox" aria-expanded="true" aria-controls="fb-lista" aria-autocomplete="list" aria-label="Buscar factura por serie-número, proveedor o monto" placeholder="Serie-número, proveedor o monto" autocomplete="off" spellcheck="false">
+            <span class="m55" style="font-size:12px;white-space:nowrap" id="fb-cuenta"></span><kbd>↑↓</kbd></div>
+          <div class="fb-filtros" id="rg-filtros" role="radiogroup" aria-label="Filtrar facturas">
+            <button type="button" class="pill" role="radio" data-ff="todas">Todas</button><button type="button" class="pill" role="radio" data-ff="saldo">Con saldo</button><button type="button" class="pill" role="radio" data-ff="pagadas">Pagadas</button><button type="button" class="pill" role="radio" data-ff="prov">Del proveedor elegido</button></div>
+          <div class="fb-lista" id="fb-lista" role="listbox" aria-label="Facturas de compra"></div>
+        </div></div></div></div>
+      <div class="sc rg-dep"><span class="lbl">Motivo</span><div class="pills" role="radiogroup" aria-label="Motivo de la nota">${['faltante','devolucion','descuento','otro'].map(m=>`<button type="button" class="pill" role="radio" data-mo="${m}">${ETQ_NOTA[m]}</button>`).join('')}</div><p class="nota-p" id="rg-mo-nota"></p></div>
+      <div class="sc rg-dep"><div class="campos">
         <label class="campo num" id="c-serie"><span class="lbl">Serie-número</span><span class="v"><input id="rg-serie" autocomplete="off" placeholder="FC01-000018" style="text-transform:uppercase"></span><p class="err" id="e-serie" role="alert" hidden></p></label>
         <label class="campo num" id="c-fecha"><span class="lbl">Fecha de la nota</span><span class="v"><input id="rg-fecha" type="date"></span><p class="err" id="e-fecha" role="alert" hidden></p></label>
         <label class="campo num" id="c-monto"><span class="lbl">Monto (con IGV)</span><span class="v"><span class="pre">S/</span><input id="rg-monto" inputmode="decimal" autocomplete="off" placeholder="0.00"></span><p class="pie" id="rg-monto-pie"></p><p class="err" id="e-monto" role="alert" hidden></p></label>
       </div></div>
-      <div class="sc"><span class="lbl">Adjunto</span><button type="button" class="drop" id="rg-drop" ${migTag('compra_adjuntos hoy solo cuelga de un comprobante: hace falta una columna nota_credito_id para saber a cuál nota pertenece')}></button></div>
-      <div class="sc" id="rg-efecto"><span class="lbl">Qué pasa con tus cuentas</span>
+      <div class="sc rg-dep" id="rg-dest"><span class="lbl">Qué pasa con el dinero</span>
+        <p class="nota-p" style="margin:0 0 12px;font-size:13px">Lo primero que hace una nota es <b>bajar lo que aún le debes al proveedor</b> por esa factura. El dinero que sobra —o todo el monto, si la factura ya estaba pagada— es el que <b>se devuelve o queda a favor</b>.</p>
+        <div class="tres" id="rg-tres" aria-live="polite">
+          <div><span class="k">Baja la deuda</span><span class="v" id="tr-b">S/ 0.00</span></div>
+          <div><span class="k">Se devuelve ahora</span><span class="v" id="tr-d">S/ 0.00</span></div>
+          <div><span class="k">Queda a favor</span><span class="v" id="tr-f">S/ 0.00</span></div>
+          <div class="ef-barra" aria-hidden="true"><i class="baja" id="tb-b" style="width:0"></i><i class="dev" id="tb-d" style="width:0"></i><i class="fav" id="tb-f" style="width:0"></i></div></div>
+        <div class="opcs" id="rg-opcs" role="radiogroup" aria-label="Qué se hace con el dinero que sobra">
+          <button type="button" class="opc" role="radio" data-dest="ahora"><span class="rd" aria-hidden="true"></span><span><b>Nos lo devuelve ahora</b><span>El proveedor nos paga el sobrante en este momento (reembolso).</span></span></button>
+          <button type="button" class="opc" role="radio" data-dest="favor"><span class="rd" aria-hidden="true"></span><span><b>Queda a favor para otra compra</b><span>Es saldo a favor del proveedor. Se sugiere al pagar; nunca se descuenta solo.</span></span></button></div>
+        <p class="nota-p" id="rg-dest-nota" style="margin-top:10px"></p>
+        <div class="colapsa" id="rg-reem-w"><div><div class="reem" ${migTag('registrar_nota_credito_compra y registrar_reembolso_proveedor son RPC separadas: «devuelve ahora» necesita una RPC atómica nueva')}>
+          <div class="campo"><span class="lbl">Cómo lo devuelve</span><div class="pills" role="radiogroup" aria-label="Medio de devolución" style="margin-top:8px">${MEDIOS_DEV.map(m=>`<button type="button" class="pill" role="radio" data-medio="${m}">${ETQ_METODO[m]}</button>`).join('')}</div></div>
+          <div class="campos" style="grid-template-columns:1fr 1.4fr;margin-top:14px">
+            <label class="campo num" id="c-fechaR"><span class="lbl">Fecha en que lo devuelve</span><span class="v"><input id="rg-rfecha" type="date"></span><p class="err" id="e-fechaR" role="alert" hidden></p></label>
+            <label class="campo num"><span class="lbl">N.° de operación <span style="text-transform:none;letter-spacing:0;font-weight:400">(opcional)</span></span><span class="v"><input id="rg-op" autocomplete="off" placeholder="Op. 00881230"></span></label></div>
+          <div class="cuenta" ${migTag('La base no guarda las cuentas propias de CAYLA (solo las del proveedor): habría que definir dónde vive este dato')}><span class="k">Se lo depositan en</span><b id="rg-cuenta"></b></div>
+        </div></div></div></div>
+      <div class="sc rg-dep" id="rg-efecto"><span class="lbl">Cómo quedan tus cuentas</span>
         <div class="efecto" id="ef-ok" hidden>
           <p class="fr" id="ef-fr"></p>
-          <div class="ef-rep"><div class="ef-barra" aria-hidden="true"><i class="baja" id="ef-b1" style="width:0"></i><i class="fav" id="ef-b2" style="width:0"></i></div>
-            <div class="ef-leg"><span><i class="sq" style="background:var(--tinta)"></i>Baja la deuda <b id="ef-t1"></b></span><span><i class="sq" style="background:var(--verde)"></i>Queda a tu favor <b id="ef-t2"></b></span></div></div>
           <div class="ef-filas">
             <div class="ef-fila" id="ef-r-deuda"><span id="ef-l-deuda"></span><span class="a" id="ef-a-deuda"></span><span class="fl">→</span><span class="d" id="ef-d-deuda"></span></div>
             <div class="ef-fila" id="ef-r-fav"><span id="ef-l-fav"></span><span class="a" id="ef-a-fav"></span><span class="fl">→</span><span class="d" id="ef-d-fav"></span></div>
+            <div class="ef-fila" id="ef-r-ftot"><span>Saldo a favor total (todos los proveedores)</span><span class="a" id="ef-a-ftot"></span><span class="fl">→</span><span class="d" id="ef-d-ftot"></span></div>
+            <div class="ef-fila" id="ef-r-apl"><span>Aplicado este mes</span><span class="a" id="ef-a-apl"></span><span class="fl">→</span><span class="d" id="ef-d-apl"></span></div>
             <div class="ef-fila" id="ef-r-igv"><span>Crédito fiscal (IGV) del mes</span><span class="a" id="ef-a-igv"></span><span class="fl">→</span><span class="d" id="ef-d-igv"></span></div>
           </div></div>
         <div class="ef-mal" id="ef-mal" hidden role="alert"><b>Este monto no cuadra</b><span id="ef-mal-t"></span><br><button type="button" id="ef-mal-b" data-act="usar-tope"></button></div>
-        <div class="ef-nada" id="ef-nada" hidden>Escribe el monto y aquí verás qué le pasa a la deuda del comprobante y a tu saldo a favor.</div>
+        <div class="ef-nada" id="ef-nada" hidden></div>
       </div>
+      <div class="sc rg-dep"><span class="lbl">Adjunto</span><button type="button" class="drop" id="rg-drop" ${migTag('compra_adjuntos hoy solo cuelga de un comprobante: hace falta una columna nota_credito_id para saber a cuál nota pertenece')}></button></div>
       <div class="ft"><p>Queda como un registro nuevo: no se edita ni se borra. El IGV de la nota resta del crédito fiscal del mes.</p>
         <button type="button" class="btn dis" data-act="cerrar-modal">Cancelar</button>
         <button type="submit" class="btn pri" id="rg-ok"><span class="brillo"></span>Registrar nota</button></div>
@@ -1238,90 +1416,129 @@ function modalRegistrar(o={}){
   $('#rg-serie').addEventListener('blur',()=>{st.serieBlur=true;syncReg()});
   $('#rg-fecha').addEventListener('input',e=>{st.fecha=e.target.value;syncReg()});
   $('#rg-monto').addEventListener('input',e=>{st.montoTxt=e.target.value;st.tocoMonto=true;syncReg()});
-  $('#rg-prov').addEventListener('change',e=>{st.prov=e.target.value;st.comp=compsDe(st.prov)[0];autoMotivo(st);syncReg()});
-  $('#rg-comp').addEventListener('change',e=>{st.comp=e.target.value;autoMotivo(st);syncReg()});
+  $('#rg-rfecha').addEventListener('input',e=>{st.fechaR=e.target.value;syncReg()});
+  $('#rg-op').addEventListener('input',e=>{st.op=e.target.value});
   $$('[data-mo]',M).forEach(b=>b.addEventListener('click',()=>{if(b.disabled)return;st.motivo=b.dataset.mo;st.montoTxt=null;st.tocoMonto=false;syncReg()}));
+  $$('[data-medio]',M).forEach(b=>b.addEventListener('click',()=>{st.medio=b.dataset.medio;syncReg()}));
   $('#rg-drop').addEventListener('click',()=>{st.adj=!st.adj;syncReg()});
+  /* fichas de destino: radio accesible con flechas */
+  const opcs=$('#rg-opcs');
+  opcs.addEventListener('click',e=>{const b=e.target.closest('[data-dest]');if(!b||b.getAttribute('aria-disabled')==='true'||st.enviando)return;st.dest=b.dataset.dest;syncReg()});
+  opcs.addEventListener('keydown',e=>{
+    if(!['ArrowRight','ArrowDown','ArrowLeft','ArrowUp','Home','End'].includes(e.key))return;
+    const bs=$$('[data-dest]',opcs);if(bs[0].getAttribute('aria-disabled')==='true')return;
+    e.preventDefault();const i=bs.findIndex(b=>b.dataset.dest===st.dest);
+    const n=e.key==='Home'?0:e.key==='End'?bs.length-1:(i+(/Right|Down/.test(e.key)?1:-1)+bs.length)%bs.length;
+    st.dest=bs[n].dataset.dest;syncReg();bs[n].focus();
+  });
+  /* buscador de facturas: ↑ ↓ Enter Esc */
+  const fq=$('#fb-q');
+  fq.addEventListener('input',e=>{st.fq=e.target.value;st.fa=0;fbPintar(true)});
+  fq.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();e.stopPropagation();const n=st.fids.length;if(n){st.fa=(st.fa+(e.key==='ArrowDown'?1:-1)+n)%n;fbPintar()}}
+    else if(e.key==='Enter'){e.preventDefault();e.stopPropagation();const id=st.fids[st.fa];if(id)elegirFactura(st,id)}
+    else if(e.key==='Escape'){
+      if(st.fq){e.stopPropagation();e.preventDefault();st.fq='';fq.value='';st.fa=0;fbPintar()}
+      else if(st.comp&&st.cambiando){e.stopPropagation();e.preventDefault();st.cambiando=false;syncReg()}
+    }
+  });
+  $('#fb-lista').addEventListener('click',e=>{const o=e.target.closest('.fb-op');if(o)elegirFactura(st,o.dataset.id)});
+  $('#fb-lista').addEventListener('mousemove',e=>{const o=e.target.closest('.fb-op');if(!o)return;const i=st.fids.indexOf(o.dataset.id);if(i>=0&&i!==st.fa){st.fa=i;$$('.fb-op',$('#fb-lista')).forEach(x=>x.setAttribute('aria-selected',x===o));fq.setAttribute('aria-activedescendant',o.id)}});
+  $$('#rg-filtros [data-ff]').forEach(b=>b.addEventListener('click',()=>{if(b.disabled)return;st.ff=b.dataset.ff;st.fa=0;fbPintar(true);fq.focus()}));
   f.addEventListener('submit',e=>{e.preventDefault();enviarNota()});
   syncReg();
-  setTimeout(()=>{const s=$('#rg-serie');s&&MODAL&&MODAL.tipo==='reg'&&s.focus({preventScroll:true})},reducir()?30:420);
+  setTimeout(()=>{if(!MODAL||MODAL.tipo!=='reg')return;const x=st.comp?$('#rg-serie'):$('#fb-q');x&&x.focus({preventScroll:true})},reducir()?30:420);
 }
-function autoMotivo(st){const d=dispFaltante(st.comp);st.montoTxt=null;st.tocoMonto=false;if(st.motivo==='faltante'&&d.estado!=='disponible')st.motivo='devolucion';else if(d.estado==='disponible'&&st.pre)st.motivo='faltante'}
 function syncReg(){
   if(!MODAL||MODAL.tipo!=='reg')return;
-  const st=MODAL.st,v=valida(st),c=v.c,pr=P[c.prov],disp=v.disp,en=st.enviando;
-  $('#rg-baj').textContent=st.pre?'Viene de una nota pendiente: proveedor, comprobante y monto ya están puestos.':'Elige el comprobante contra el que el proveedor emitió la nota.';
-  $('#rg-pre').hidden=!st.pre;$('#rg-man').hidden=st.pre;
-  if(st.pre){const p=PEND.find(x=>x.comp===st.comp);$('#rg-pre-m').textContent=ini(pr.nombre);$('#rg-pre-b').textContent=`${pr.nombre} · ${c.doc}`;
-    $('#rg-pre-s').textContent=p?`Nota pendiente · ${plural(unidades(p.lineas),'unidad','unidades')} (${[...new Set(p.lineas.map(l=>ETQ_CIERRE[l.motivo].toLowerCase()))].join(' y ')}) · cerrado el ${dm(p.fecha)}`:'Sin nota pendiente'}
-  else{
-    const sp=$('#rg-prov'),opts=Object.keys(P).map(k=>`<option value="${k}">${esc(P[k].nombre)}</option>`).join('');
-    if(sp.dataset.h!==opts){sp.innerHTML=opts;sp.dataset.h=opts}sp.value=st.prov;
-    const sc=$('#rg-comp'),co=compsDe(st.prov).map(id=>`<option value="${id}">${esc(C[id].doc)} · ${dm(C[id].emi)} · debes ${soles(saldoDe(id))}</option>`).join('');
-    if(sc.dataset.h!==co){sc.innerHTML=co;sc.dataset.h=co}sc.value=st.comp;
-  }
-  $$('[data-mo]').forEach(b=>{const m=b.dataset.mo,off=m==='faltante'&&disp.estado!=='disponible';b.disabled=off||en;b.setAttribute('aria-checked',st.motivo===m);if(off)b.title='Todavía no disponible en este comprobante'});
-  $('#rg-mo-nota').innerHTML=st.motivo==='faltante'?(disp.estado==='disponible'?'Una sola por comprobante: cubre todo lo que no llegó.':''):disp.estado==='ya_registrada'?'«Faltante» no está disponible: este comprobante ya tiene su nota por faltante (es una sola por comprobante).':disp.estado==='sin_cierres'?'«Faltante» no está disponible: no hay unidades cerradas sin llegar en este comprobante.':disp.estado==='bloqueada'?`«Faltante» no está disponible todavía: quedan ${disp.quedan} unidades sin recibir ni cerrar. Se habilita cuando el comprobante quede resuelto al 100 %.`:'';
-  if(st.motivo!=='faltante'&&disp.estado==='disponible')$('#rg-mo-nota').textContent='Devolución, descuento y otro pueden ser varias por comprobante; ninguna suma pasa del total.';
+  const st=MODAL.st,v=valida(st),c=v.c,disp=v.disp,en=st.enviando,hay=!!c,pr=hay?P[c.prov]:null;
+  $('#rg-baj').textContent=st.pre&&hay&&!st.cambiando?'Viene de una nota pendiente: la factura, el motivo y el monto ya están puestos.':hay&&!st.cambiando?'Revisa la factura y completa la nota.':'Busca la factura contra la que el proveedor emitió la nota.';
+  const abreBusca=!hay||st.cambiando;
+  $('#rg-ficha-w').classList.toggle('on',hay&&!st.cambiando);$('#rg-pick-w').classList.toggle('on',abreBusca);
+  $$('.rg-dep').forEach(x=>{if(abreBusca||en){x.setAttribute('inert','')}else x.removeAttribute('inert');x.classList.toggle('tenue',abreBusca)});
+  if(hay&&st.fichaId!==st.comp){$('#rg-ficha').innerHTML=fichaHTML(st.comp);st.fichaId=st.comp}
+  if(abreBusca)fbPintar();
+  $$('[data-mo]').forEach(b=>{const m=b.dataset.mo,off=m==='faltante'&&disp.estado!=='disponible';b.disabled=off||en;b.setAttribute('aria-checked',st.motivo===m);b.title=off?'Todavía no disponible en este comprobante':''});
+  $('#rg-mo-nota').innerHTML=!hay?'':st.motivo==='faltante'?(disp.estado==='disponible'?'Una sola por comprobante: cubre todo lo que no llegó.':''):disp.estado==='ya_registrada'?'«Faltante» no está disponible: este comprobante ya tiene su nota por faltante (es una sola por comprobante).':disp.estado==='sin_cierres'?'«Faltante» no está disponible: no hay unidades cerradas sin llegar en este comprobante. Devolución, descuento y otro pueden ser varias por comprobante.':disp.estado==='bloqueada'?`«Faltante» no está disponible todavía: quedan ${disp.quedan} unidades sin recibir ni cerrar. Se habilita cuando el comprobante quede resuelto al 100 %.`:'';
+  if(hay&&st.motivo!=='faltante'&&disp.estado==='disponible')$('#rg-mo-nota').textContent='Devolución, descuento y otro pueden ser varias por comprobante; ninguna suma pasa del total.';
   const se=$('#rg-serie'),fe=$('#rg-fecha'),mo=$('#rg-monto');
   if(se.value!==st.serie)se.value=st.serie;
-  fe.min=c.emi;fe.max=HOY_ISO;if(fe.value!==st.fecha)fe.value=st.fecha;
+  if(hay){fe.min=c.emi;fe.max=HOY_ISO}if(fe.value!==st.fecha)fe.value=st.fecha;
   const raw=st.montoTxt??(st.motivo==='faltante'&&v.sug?v.sug.toFixed(2):'');
   if(st.montoTxt===null&&mo.value!==raw)mo.value=raw;
-  [se,fe,mo,$('#rg-prov'),$('#rg-comp')].forEach(x=>x&&(x.disabled=en));
-  $('#rg-monto-pie').textContent=st.motivo==='faltante'&&v.sug?`Lo cerrado a su costo + IGV 18 %. Puedes ajustarlo hasta ${soles(v.tope)}.`:`Hasta ${soles(v.tope)}: lo que aún queda por acreditar de ${c.doc}.`;
+  [se,fe,mo,$('#rg-rfecha'),$('#rg-op')].forEach(x=>x&&(x.disabled=en));
+  $('#rg-monto-pie').textContent=!hay?'':st.motivo==='faltante'&&v.sug?`Lo cerrado a su costo + IGV 18 %. Puedes ajustarlo hasta ${soles(v.tope)}.`:`Hasta ${soles(v.tope)}: lo que aún queda por acreditar de ${c.doc}.`;
   const showSerie=(st.intento||st.serieBlur)&&v.e.serie,showMonto=(st.tocoMonto||st.intento)&&v.e.monto;
-  const errs=[['serie',showSerie,v.e.serie],['fecha',!!v.e.fecha,v.e.fecha],['monto',showMonto,v.e.monto]];
-  errs.forEach(([k,on,t])=>{const p=$('#e-'+k),w=$('#c-'+k);if(on){if(p.hidden||p.textContent!==t){p.textContent=t;p.hidden=false}w.classList.add('mal')}else{p.hidden=true;w.classList.remove('mal')}});
-  /* el drop del adjunto */
+  [['serie',showSerie,v.e.serie],['fecha',!!(hay&&v.e.fecha),v.e.fecha],['monto',showMonto,v.e.monto],['fechaR',!!v.e.fechaR,v.e.fechaR]].forEach(([k,on,t])=>{const p=$('#e-'+k),w=$('#c-'+k);if(on){if(p.hidden||p.textContent!==t){p.textContent=t;p.hidden=false}w.classList.add('mal')}else{p.hidden=true;w.classList.remove('mal')}});
+  /* adjunto */
   const d=$('#rg-drop');d.classList.toggle('hay',st.adj);d.disabled=en;
   const nom=(st.serie.trim()||'nota').toUpperCase()+'.pdf';
   const dh=st.adj?`<span class="ico">${ic('clip')}</span><div><b>${esc(nom)}</b><span>84 KB · adjunto ${tilde()} · toca para quitarlo</span></div>`:`<span class="ico">${ic('clip')}</span><div><b>Adjunta la nota del proveedor</b><span>PDF o foto · hasta 10 MB · opcional</span></div>`;
   if(d.dataset.h!==dh){d.innerHTML=dh;d.dataset.h=dh}
-  /* el efecto */
+  /* DESTINO DEL DINERO: la elección aplica sobre el sobrante */
+  const r=v.r,sobra=r?r.aFavor:0,dest=v.dest,dev=dest==='ahora'?sobra:0,fav=r2(sobra-dev),baja=r?r.baja:0,tot=Math.max(hay&&r?v.monto:0,0.01);
+  contar($('#tr-b'),baja,soles,500);contar($('#tr-d'),dev,soles,500);contar($('#tr-f'),fav,soles,500);
+  $('#tb-b').style.width=(baja/tot*100)+'%';$('#tb-d').style.width=(dev/tot*100)+'%';$('#tb-f').style.width=(fav/tot*100)+'%';
+  const off=!(r&&sobra>0.004);
+  $$('[data-dest]').forEach(b=>{const on=!off&&st.dest===b.dataset.dest;b.setAttribute('aria-checked',on);b.setAttribute('aria-disabled',off);b.tabIndex=on?0:-1});
+  $('#rg-opcs').classList.toggle('off',off);
+  $('#rg-dest-nota').textContent=!hay?'Elige primero la factura.':!r?'Escribe el monto y verás cuánto baja la deuda y cuánto sobra.':off?'Esta nota solo baja la deuda: no hay dinero que devolver. Las fichas se activan cuando la nota es mayor que lo que aún debes (o la factura ya está pagada).':dest==='ahora'?'Se registra el reembolso junto con la nota, en un solo paso. El saldo a favor de este proveedor no cambia.':'Queda como saldo a favor del proveedor. Se te sugiere en «Pagar juntos»; lo decide quien paga, nunca se descuenta solo.';
+  const rw=$('#rg-reem-w');rw.classList.toggle('on',dest==='ahora');
+  $$('[data-medio]').forEach(b=>{b.setAttribute('aria-checked',b.dataset.medio===st.medio);b.disabled=en});
+  const rf=$('#rg-rfecha');rf.max=HOY_ISO;if(rf.value!==st.fechaR)rf.value=st.fechaR;
+  $('#rg-cuenta').textContent=CUENTAS_CAYLA[st.medio];
+  /* el efecto en las cuentas */
   const ok=$('#ef-ok'),mal=$('#ef-mal'),nada=$('#ef-nada'),malTxt=v.e.montoMal&&(st.tocoMonto||st.intento);
   ok.hidden=true;mal.hidden=true;nada.hidden=true;
-  if(malTxt){mal.hidden=false;$('#ef-mal-t').textContent=v.e.montoMal;const b=$('#ef-mal-b');if(v.sugerirTope){b.hidden=false;b.textContent=`Usar ${soles(v.sugerirTope)}`;b.dataset.v=v.sugerirTope}else b.hidden=true}
-  else if(v.r){
-    ok.hidden=false;const r=v.r,saldo=saldoDe(st.comp),favAntes=saldoFavor(c.prov),igvN=igvDe(v.monto);
-    $('#ef-fr').innerHTML=`<b>${esc(textoReparte(r,{doc:c.doc,prov:pr.nombre,saldo}))}</b>`;
-    const tot=Math.max(v.monto,0.01);$('#ef-b1').style.width=(r.baja/tot*100)+'%';$('#ef-b2').style.width=(r.aFavor/tot*100)+'%';
-    $('#ef-t1').textContent=soles(r.baja);$('#ef-t2').textContent=soles(r.aFavor);
-    $('#ef-l-deuda').textContent=`Lo que se debe de ${c.doc}`;$('#ef-a-deuda').textContent=soles(saldo);
-    contarDesde($('#ef-d-deuda'),saldo,r.deudaDespues);
-    $('#ef-r-fav').hidden=r.aFavor<=0;$('#ef-l-fav').textContent=`Saldo a favor con ${pr.nombre}`;$('#ef-a-fav').textContent=soles(favAntes);contarDesde($('#ef-d-fav'),favAntes,r2(favAntes+r.aFavor));
+  if(!hay){nada.hidden=false;nada.textContent='Elige primero la factura de origen.'}
+  else if(malTxt){mal.hidden=false;$('#ef-mal-t').textContent=v.e.montoMal;const b=$('#ef-mal-b');if(v.sugerirTope){b.hidden=false;b.textContent=`Usar ${soles(v.sugerirTope)}`;b.dataset.v=v.sugerirTope}else b.hidden=true}
+  else if(r){
+    ok.hidden=false;const saldo=saldoDe(st.comp),favAntes=saldoFavor(c.prov),igvN=igvDe(v.monto),ftA=totalFavor(),ap=aplicadoMes();
+    $('#ef-fr').innerHTML=`<b>${esc(textoDestino(r,dest,c.doc,pr.nombre,saldo))}</b>`;
+    $('#ef-r-deuda').hidden=saldo<=0.004;$('#ef-l-deuda').textContent=`Lo que se debe de ${c.doc}`;$('#ef-a-deuda').textContent=soles(saldo);contarDesde($('#ef-d-deuda'),saldo,r.deudaDespues);
+    $('#ef-r-fav').hidden=fav<=0;$('#ef-l-fav').textContent=`Saldo a favor con ${pr.nombre}`;$('#ef-a-fav').textContent=soles(favAntes);contarDesde($('#ef-d-fav'),favAntes,r2(favAntes+fav));
+    $('#ef-a-ftot').textContent=soles(ftA);contarDesde($('#ef-d-ftot'),ftA,r2(ftA+fav));
+    const sumaApl=(esMes(st.fecha)?baja:0)+(dest==='ahora'&&esMes(st.fechaR)?dev:0);
+    $('#ef-a-apl').textContent=soles(ap.total);contarDesde($('#ef-d-apl'),ap.total,r2(ap.total+sumaApl));
     $('#ef-a-igv').textContent=soles(IGV_MES);contarDesde($('#ef-d-igv'),IGV_MES,r2(IGV_MES-igvN));
-  }else nada.hidden=false;
+  }else{nada.hidden=false;nada.textContent='Escribe el monto y aquí verás qué le pasa a la deuda del comprobante y a tu saldo a favor.'}
   const ok2=$('#rg-ok');ok2.classList.toggle('trab',en);ok2.disabled=en;
-  ok2.lastChild.textContent=en?'Registrando…':'Registrar nota';
+  ok2.lastChild.textContent=en?'Registrando…':dev>0?'Registrar nota y reembolso':'Registrar nota';
 }
 function contarDesde(el,de,a){if(el._v===undefined)el._v=de;contar(el,a,soles,600)}
 function enviarNota(){
   const st=MODAL.st;if(st.enviando)return;st.intento=true;const v=valida(st);syncReg();
-  const orden=['serie','fecha','monto'],prim=orden.find(k=>v.e[k]&&!(k==='monto'&&false));
-  if(v.e.motivo||prim){const id=prim?'#rg-'+prim:'#rg-serie';const x=$(id);x&&x.focus();anuncia('Falta corregir: '+(v.e[prim]||v.e.motivo));return}
+  if(!st.comp){$('#fb-q').focus();anuncia('Elige la factura de origen');return}
+  const prim=['serie','fecha','monto','fechaR'].find(k=>v.e[k]);
+  if(v.e.motivo||prim){const x=$(prim==='fechaR'?'#rg-rfecha':'#rg-'+(prim||'serie'));x&&x.focus();anuncia('Falta corregir: '+(v.e[prim]||v.e.motivo));return}
   st.enviando=true;syncReg();$('#hilo').classList.add('trab');
   setTimeout(()=>{
     $('#hilo').classList.remove('trab');
-    const c=v.c,pr=P[c.prov],saldo=saldoDe(st.comp),r=reparte(v.monto,saldo),disp=v.disp;
-    const n={id:'n'+(SEQ.n++),serie:st.serie.trim().toUpperCase(),comp:st.comp,motivo:st.motivo,fecha:st.fecha,monto:v.monto,aplicado:r.baja,nota:st.motivo==='faltante'&&disp.p?`Faltante de ${plural(unidades(disp.p.lineas),'unidad','unidades')}`:'',por:'Felipe A.',adj:st.adj?`${st.serie.trim().toUpperCase()}.pdf · 84 KB`:null,reclamos:disp.p?disp.p.reclamos.slice():[],origen:disp.p?disp.p.fecha:st.fecha,lineas:st.motivo==='faltante'&&disp.p?JSON.parse(JSON.stringify(disp.p.lineas)):undefined};
+    const c=v.c,pr=P[c.prov],saldo=saldoDe(st.comp),r=reparte(v.monto,saldo),disp=v.disp,dev=v.dest==='ahora'?r.aFavor:0,fav=r2(r.aFavor-dev);
+    const ftAntes=totalFavor(),apAntes=aplicadoMes().total;
+    const n={id:'n'+(SEQ.n++),serie:st.serie.trim().toUpperCase(),comp:st.comp,motivo:st.motivo,fecha:st.fecha,monto:v.monto,aplicado:r.baja,nota:st.motivo==='faltante'&&disp.p?`Faltante de ${plural(unidades(disp.p.lineas),'unidad','unidades')}`:'',por:'Felipe A.',adj:st.adj?`${st.serie.trim().toUpperCase()}.pdf · 84 KB`:null,reclamos:disp.p?disp.p.reclamos.slice():[],origen:disp.p?disp.p.fecha:st.fecha,lineas:st.motivo==='faltante'&&disp.p?JSON.parse(JSON.stringify(disp.p.lineas)):undefined,devuelto:dev>0?{monto:dev,fecha:st.fechaR,metodo:st.medio,ref:st.op.trim()}:null};
     let quito=null;
     if(st.motivo==='faltante'&&disp.p){quito=disp.p.id;PEND=PEND.filter(x=>x!==disp.p)}
-    NOTAS.push(n);IGV_MES=r2(IGV_MES-igvDe(v.monto));
-    MODAL.res={id:n.id,quito,prov:c.prov,aFavor:r.aFavor};
-    const favD=saldoFavor(c.prov),favA=r2(favD-r.aFavor);
+    const favAntesP=saldoFavor(c.prov);
+    NOTAS.push(n);
+    if(dev>0)MOVS.push({id:'m'+(SEQ.m++),tipo:'reembolso',prov:c.prov,monto:dev,fecha:st.fechaR,metodo:st.medio,ref:st.op.trim(),nota:n.id,por:'Felipe A.'});
+    IGV_MES=r2(IGV_MES-igvDe(v.monto));
+    MODAL.res={id:n.id,quito,prov:c.prov,aFavor:r.aFavor,dev};
     const filas=[];
     filas.push(r.baja>0?[`Lo que se debe de ${c.doc}`,`${soles(saldo)} → ${soles(r.deudaDespues)}`]:[`${c.doc} ya estaba pagado`,'sin cambio']);
-    if(r.aFavor>0)filas.push([`Saldo a favor con ${pr.nombre}`,`${soles(favA)} → ${soles(favD)}`]);
-    filas.push(['Crédito fiscal (IGV) del mes',`${soles(r2(IGV_MES+igvDe(v.monto)))} → ${soles(IGV_MES)}`]);
+    if(dev>0)filas.push([`Reembolso registrado · ${ETQ_METODO[st.medio]}`,`${tilde('')}${soles(dev)}`]);
+    if(fav>0)filas.push([`Saldo a favor con ${pr.nombre}`,`${soles(favAntesP)} → ${soles(r2(favAntesP+fav))}`]);
+    filas.push(['Saldo a favor total',`${soles(ftAntes)} → ${soles(totalFavor())}`]);
+    filas.push(['Aplicado este mes',`${soles(apAntes)} → ${soles(aplicadoMes().total)}`]);
     st.enviando=false;
     $('#modal').className='modal cascada';
     $('#modal').innerHTML=`<div class="okv" data-sin-cascada><svg class="grande" viewBox="0 0 64 64" aria-hidden="true"><circle pathLength="1" cx="32" cy="32" r="29"/><path pathLength="1" d="M19 33l9 9 17-20"/></svg>
-      <h2 id="m-titulo">Nota ${esc(n.serie)} registrada</h2><p>${esc(textoReparte(r,{doc:c.doc,prov:pr.nombre,saldo}))}</p>
-      <ul>${filas.map(([a,b],i)=>`<li style="--i:${i}"><span>${esc(a)}</span><span class="cero">${b.includes('→')?tilde():''}${esc(b)}</span></li>`).join('')}</ul>
+      <h2 id="m-titulo">${dev>0?`Nota ${esc(n.serie)} y reembolso registrados`:`Nota ${esc(n.serie)} registrada`}</h2>
+      <p>${dev>0?`El reembolso de ${soles(dev)} por ${esc(ETQ_METODO[st.medio].toLowerCase())} quedó registrado junto con la nota. `:''}${esc(textoDestino(r,v.dest,c.doc,pr.nombre,saldo,true))}</p>
+      <ul>${filas.map(([a,b],i)=>`<li style="--i:${i}"><span>${esc(a)}</span><span class="cero">${b.includes('→')?tilde():''}${b.startsWith('<')?b:esc(b)}</span></li>`).join('')}</ul>
       <div class="acciones"><button type="button" class="btn pri" data-act="cerrar-modal" id="ok-listo"><span class="brillo"></span>Listo</button></div></div>`;
     setTimeout(()=>{const b=$('#ok-listo');b&&b.focus({preventScroll:true})},60);
-    avisar(`Nota ${n.serie} registrada`,r.aFavor>0?`Quedan ${soles(r.aFavor)} a favor con ${pr.nombre}.`:`Bajó lo que se debe de ${c.doc} en ${soles(r.baja)}.`);
+    avisar(dev>0?`Nota ${n.serie} y reembolso de ${soles(dev)} registrados`:`Nota ${n.serie} registrada`,dev>0?`${pr.nombre} devolvió ${soles(dev)} por ${ETQ_METODO[st.medio].toLowerCase()}.`:fav>0?`Quedan ${soles(fav)} a favor con ${pr.nombre}.`:`Bajó lo que se debe de ${c.doc} en ${soles(r.baja)}.`);
   },1150);
 }
 function aplicarRegistro(res){
@@ -1341,7 +1558,7 @@ function libroHTML(pr){
   return filas.map(l=>{
     const mas=l.tipo==='nota_credito';
     const t=mas?`Nota ${esc(l.nota.serie)} · sobre ${esc(C[l.comp].doc)}`:l.tipo==='aplicacion'?'Usado en un pago':`Reembolso · ${esc(ETQ_METODO[l.metodo]||'')}`;
-    const s=mas?`${ETQ_NOTA[l.nota.motivo]} · la nota fue de ${soles(l.nota.monto)}${l.nota.aplicado>0?` y ${soles(l.nota.aplicado)} bajaron la deuda`:' y no había deuda que bajar'}`:l.tipo==='aplicacion'?`${esc(C[l.comp].doc)} · ${esc(l.ref||'')}`:esc(l.ref||'sin referencia');
+    const s=mas?`${ETQ_NOTA[l.nota.motivo]} · la nota fue de ${soles(l.nota.monto)}${l.nota.aplicado>0?` y ${soles(l.nota.aplicado)} bajaron la deuda`:' y no había deuda que bajar'}${l.nota.devuelto?' · se devolvió al registrarla':''}`:l.tipo==='aplicacion'?`${esc(C[l.comp].doc)} · ${esc(l.ref||'')}`:`${esc(l.ref||'sin referencia')}${l.nota?` · de la nota ${esc((NOTAS.find(n=>n.id===l.nota)||{}).serie||'')}`:''}`;
     return`<div class="lb ${l.nuevo?'nuevo':''}" data-k="${l.id||l.nota.id}"><span class="t">${dm(l.fecha)}</span><span class="ic2 ${mas?'v':'r'}" aria-hidden="true">${mas?'+':'−'}</span><span>${t}<span class="s">${s}</span></span><span class="m ${mas?'v':'r'}">${mas?'+':'−'} ${soles(l.monto)}</span><span class="acum">saldo ${soles(l.acum)}</span></div>`}).join('');
 }
 function pintarSaldos(){
@@ -1568,7 +1785,8 @@ document.addEventListener('click',e=>{
       case'quitar-banda':S.banda=null;pintarKpis();pintarLista();break;
       case'limpiar-todo':S.banda=null;S.q='';$('#q').value='';pintarKpis();pintarLista();break;
       case'libro':{const s=a.dataset.pr,ab=!S.abiertos.has(s);ab?S.abiertos.add(s):S.abiertos.delete(s);a.setAttribute('aria-expanded',ab);a.nextElementSibling.classList.toggle('on',ab);break}
-      case'rg-manual':{const st=MODAL.st;st.pre=false;syncReg();break}
+      case'rg-cambiar':{const st=MODAL.st;st.cambiando=true;st.fq='';st.fa=0;syncReg();setTimeout(()=>{const q=$('#fb-q');q&&q.focus()},reducir()?30:200);break}
+      case'fb-todas':{const st=MODAL.st;st.fq='';st.ff='todas';$('#fb-q').value='';st.fa=0;fbPintar();$('#fb-q').focus();break}
       case'usar-tope':{const st=MODAL.st,v=+a.dataset.v;st.montoTxt=v.toFixed(2);$('#rg-monto').value=st.montoTxt;syncReg();$('#rg-monto').focus();break}
       case'copiar-msg':copiar(a,mensajeProv(rowPor(k)));break;
       case'ir-comp':avisar('En el ERP abre el comprobante',`${C[a.dataset.comp].doc} se abre en su modal de Comprobantes (/compras/factura/…).`,{ms:4500});break;
