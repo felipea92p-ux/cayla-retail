@@ -8,7 +8,7 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { Boton } from "@/components/ui/campos";
 import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
-import { hijosMenuProduccion, type ClaveMenuProduccion } from "@/lib/produccion-menu";
+import { hijosMenuCompras, hijosMenuProduccion, type ClaveMenuCompras, type ClaveMenuProduccion } from "@/lib/produccion-menu";
 import { PerfilModal } from "@/components/PerfilModal";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 
@@ -833,10 +833,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   const RUTAS_POR_GRUPO: Record<string, string[]> = {
     venta: ["/vender", "/caja", "/cambios", "/devoluciones", "/vender/facturacion"],
     catalogo: ["/productos", "/productos/categorias", "/productos/atributos", "/productos/marcas"],
-    // Producción (ADR-0133) es el módulo padre: abastecer (las 4 pantallas de Compras, con sus URLs de
-    // siempre) y fabricar. «Recibir mercadería» (/recibir) vive acá para el líder y en Inventario para
-    // quien no lo es.
-    produccion: ["/produccion", "/compras", "/compras/proveedores", "/compras/por-pagar", ...(esLider ? ["/recibir"] : [])],
+    produccion: ["/produccion"],
+    // «Recibir mercadería» (/recibir) vive en Compras para el líder y en Inventario para quien no lo es.
+    compras: ["/compras", "/compras/proveedores", "/compras/por-pagar", ...(esLider ? ["/recibir"] : [])],
     inventario: ["/inventario", "/inventario/movimientos", "/inventario/traslados", "/inventario/conteo", "/inventario/resumen", ...(esLider ? [] : ["/recibir"])],
   };
   const grupoActivo = Object.entries(RUTAS_POR_GRUPO).find(([, rutas]) => rutas.some((h) => activo(h)))?.[0] ?? null;
@@ -897,13 +896,15 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   const porPagar: Item = { href: "/compras/por-pagar", etiqueta: "Por pagar", icono: IC.porPagar };
   const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };
   const ordenes: Item = { href: "/produccion/ordenes", etiqueta: "Órdenes", icono: IC.produccion };
-  // Producción (ADR-0133, D-A — reemplaza la regla del 2026-09-17 «solo parado
-  // en el Taller, líder incluido»): el líder la ve desde cualquier ubicación,
-  // porque decide el abastecimiento estando en una tienda y la base ya lo
-  // permite (`fn_puede_operar_ubicacion` = líder o mi ubicación); quien
-  // trabaja en el Taller ve sus órdenes. El candado real sigue siendo el de
-  // cada RPC; esto solo decide qué se le muestra a quién.
-  const clavesProduccion = hijosMenuProduccion({ esLider, ubicacionTipo: persona.ubicacionTipo });
+  // Producción y Compras son dos módulos distintos (ADR-0133, decisión de Felipe
+  // 2026-09-19): cada uno con su grupo. Producción (D-A — reemplaza la regla del
+  // 2026-09-17 «solo parado en el Taller, líder incluido»): el líder la ve desde
+  // cualquier ubicación, porque la base ya lo permite (`fn_puede_operar_ubicacion`
+  // = líder o mi ubicación); quien trabaja en el Taller ve sus pantallas. El
+  // candado real sigue siendo el de cada RPC; esto solo decide qué se muestra.
+  const perfilMenu = { esLider, ubicacionTipo: persona.ubicacionTipo };
+  const clavesProduccion = hijosMenuProduccion(perfilMenu);
+  const clavesCompras = hijosMenuCompras(perfilMenu);
   const veProduccion = clavesProduccion.length > 0;
 
   // Integración con Dynamic (2026-09-12): "Colaboradores" salió del nav
@@ -936,16 +937,24 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
     icono: IC.catalogo,
     hijos: [productos, categorias, atributos],
   };
-  // "Producción" (ADR-0133) agrupa el recorrido del trabajo: abastecer (las
-  // cuatro pantallas que eran el grupo "Compras", pedido de Felipe 2026-09-16,
-  // mismas URLs y mismo orden) y fabricar (Órdenes). Sin rótulos de sección
-  // («Abastecer», «Fabricar») a propósito: el riel del lateral se mueve por
-  // filas de alto fijo (`PASO_FILA`) y una fila de otra altura lo desalinearía;
-  // el orden ya cuenta el recorrido. Las pantallas de Compras siguen siendo
-  // solo de líder (su layout redirige); quien trabaja en el Taller ve Órdenes
-  // (y su «Recibir mercadería» sigue en Inventario). Resumen, Insumos y
-  // Eficiencia se suman a este grupo cuando existan (fases F3, F6 y F7).
-  const itemsProduccion: Record<ClaveMenuProduccion, Item> = { proveedores, comprobantes: facturas, recibir: recibirMercaderia, porPagar, ordenes };
+  // "Compras" agrupa las cuatro pantallas que antes vivían como pestañas de
+  // `ComprasNav.tsx` (pedido de Felipe, 2026-09-16, mismo criterio que Catálogo:
+  // "generalizado y ordenado"). Líder-only: registra facturas y pagos a proveedor.
+  // Sigue siendo un módulo APARTE de Producción (2026-09-19): se conectan por los
+  // datos, no por el menú.
+  const itemsCompras: Record<ClaveMenuCompras, Item> = { proveedores, comprobantes: facturas, recibir: recibirMercaderia, porPagar };
+  const grupoCompras: ItemGrupo = {
+    id: "compras",
+    etiqueta: "Compras",
+    icono: IC.compras,
+    hijos: clavesCompras.map((c) => itemsCompras[c]),
+  };
+
+  // "Producción" (ADR-0133) es el módulo de fabricar: hoy solo Órdenes; Resumen,
+  // proveedores de producción, Insumos y Eficiencia se suman cuando existan
+  // (F3 a F7). Sin rótulos de sección a propósito: el riel del lateral se mueve
+  // por filas de alto fijo (`PASO_FILA`) y una fila de otra altura lo desalinearía.
+  const itemsProduccion: Record<ClaveMenuProduccion, Item> = { ordenes };
   const hijosProduccion: Item[] = clavesProduccion.map((c) => itemsProduccion[c]);
   const grupoProduccion: ItemGrupo = {
     id: "produccion",
@@ -974,13 +983,13 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
     {
       titulo: null,
       // Orden pedido por Felipe, 2026-09-16: Inicio, Colaboradores, Catálogo,
-      // Producción, Compras, Ventas, Inventario. Desde ADR-0133 Compras vive
-      // dentro de Producción.
+      // Producción, Compras, Ventas, Inventario.
       items: [
         inicio,
         ...(esLider ? [colaboradores] : []),
         grupoCatalogo,
         ...(veProduccion ? [entradaProduccion] : []),
+        ...(clavesCompras.length > 0 ? [grupoCompras] : []),
         grupoVenta,
         grupoInventario,
       ],
