@@ -149,10 +149,28 @@ Tamaño: **S** ≈ media sesión · **M** ≈ una sesión · **L** ≈ dos o má
   (3) el menú del celular no tiene entrada a Producción (ya era así).
 
 ### F3 · Insumos: pantalla y consumo (M) — sin esquema (el candado de montos queda para F4e)
-- `lib/insumos.ts` (lectura por `fn_puede_operar_ubicacion`, como hoy) + pantalla: saldo contra mínimo, lotes con «1º»,
-  libro de movimientos, «Recibir insumo» (`recibir_insumo`), consumo desde la orden (`registrar_consumo_insumo`).
-- **Verificas:** recibir 60 m → aparece el lote y el libro; consumir 10 m desde una orden → el costo de la orden cambia y el
-  aviso ofrece «Deshacer» (devolución); pedir más que el lote → mensaje en español con el saldo exacto.
+- **Aplicada el 2026-09-20.** `lib/insumos-reglas.ts` (24 pruebas): saldo como suma del ledger, lote más antiguo con saldo, previsión de consumo (misma regla de
+  `registrar_consumo_insumo`: no se parte entre lotes), cobertura medida, capital. `lib/insumos.ts`: lectura **desde el ledger, no desde `v_insumo_saldos`**
+  (esa vista se salta la RLS: hallazgo de ADR-0090), y **los costos se recortan en el servidor** para quien no es líder. Pantalla `/produccion/insumos`
+  (`InsumosPanel`: cifras, telas y avíos con riel de saldo y mínimo, lotes con «1º», libro de movimientos), `NuevoInsumoModal` (INSERT del líder: la política RLS
+  ya lo permite) e `IngresarInsumoModal` (`recibir_insumo`). En la orden: `OrdenInsumos` (lo descontado + formulario con vista previa que refleja lo que la
+  base hace: **el primer consumo de un tipo reemplaza el costo tecleado por lo real**).
+- **Decisiones al implementar:** (1) el ingreso de insumo **no pide proveedor**: hoy `insumo_lotes.proveedor_id` apunta a `retail.proveedores` y F4a lo repunta al
+  directorio propio de Producción; se agrega entonces. (2) `NuevaOrdenProduccionForm` **sigue pidiendo tela y avíos** hasta que el Taller cargue sus insumos: con
+  el catálogo en 0 filas, quitarlos dejaría el costo en «solo maquila». Se revisa cuando haya uso real.
+- **Hallazgo importante (cambia el plan):** **ninguna función devuelve insumos.** `anular_produccion` y `revertir_produccion` no tocan `movimientos_insumo`, y nadie
+  escribe movimientos `devolucion`. Consecuencias: un consumo **no se puede deshacer** y anular una orden **no devuelve** la tela a su lote. El spike mostraba un
+  «Deshacer» y decía que anular devolvía los lotes: **era falso**. La pantalla lo dice tal cual (aviso en «Anular» y nota bajo el botón de descontar) y se abre
+  la fase **F3b**.
+- **Verificado en el navegador** (líder, base local): crear insumo → ingresar dos lotes (120 m a S/ 18.50 y 80 m a S/ 19.80) → descontar 30 m desde una orden
+  (rechaza 130 m con el saldo exacto del lote; la vista previa coincide con lo que la base guardó: tela S/ 420 → S/ 555, costo por prenda 21.67 → 25.42) → el saldo
+  baja a 170 m y el libro lo registra; anular avisa; 390 px sin desborde; sin errores de consola. **Sin verificar:** colaborador del Taller.
+- **Conocido:** quien no es líder no ve montos en pantalla, pero `insumo_lotes.costo_unitario` sigue legible por la API (F4e).
+
+### F3b · Devolver insumos (S) — esquema (una función nueva) · **antes de que el Taller adopte Insumos en producción**
+- `devolver_consumo_insumo(p_movimiento_id)`: escribe el movimiento `devolucion` que la tabla ya admite (con su orden y su lote), recalcula `costo_tela`/`costo_avios` y
+  solo sirve sobre una orden en proceso. Y `anular_produccion` devuelve al lote lo que la orden consumió (reescribir desde su `pg_get_functiondef` de producción; una sola firma).
+- Con eso vuelven el «Deshacer» del descuento y una anulación que no pierde tela. Prueba SQL en CI; lo pega Felipe.
 
 ### F4 · Abastecimiento propio de Producción (L, **alto riesgo**) — esquema · requiere **D-H, D-G** (y **D-I** antes de F4c)
 Ya **no depende de ADR-0138** ni toca `compras`, `compra_items`, `registrar_compra` ni `recibir_compras`. Cinco PR, cada uno con su prueba SQL:

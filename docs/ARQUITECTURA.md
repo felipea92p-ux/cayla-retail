@@ -261,6 +261,9 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   hasta que exista el Resumen (F6). Plan por fases: `docs/PLAN-PRODUCCION.md`.
 
 **Producción (Taller)**
+- `/produccion/insumos` → `lib/insumos.ts:getInsumosDelTaller` (saldo derivado del ledger `movimientos_insumo`; costos recortados en el servidor si no es líder) +
+  `lib/insumos-reglas.ts` (puro) → `InsumosPanel.tsx`, `InsumoModales.tsx` (INSERT en `insumos`; RPC `recibir_insumo`). Desde la orden,
+  `OrdenInsumos.tsx` llama `registrar_consumo_insumo`. Sin devolución de insumos todavía (F3b).
 - `/produccion/ordenes` → `lib/produccion.ts` (`getTaller`, `getOrdenesProduccion`,
   `getModelosProducibles`; lectura con `exigir()`) + `lib/produccion-reglas.ts`
   (puro: etapas, semáforo de margen, costo unitario) → `OrdenesTablero.tsx`

@@ -109,6 +109,8 @@ const IC = {
   facturacion: "M9 12h6m-6 4h6M9 8h1m3.5-5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 3z",
   compras: "M3 4h2l2.2 11.2a1 1 0 001 .8h9.6a1 1 0 001-.8L20 8H6.5M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2zM12 8v4m-2-2h4",
   colaboradores: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
+  // Carrete de hilo: la materia prima del Taller (tela y avíos) — Insumos, hija de Producción.
+  insumos: "M7 4h10M7 20h10M8 4v16M16 4v16M8 9h8M8 12h8M8 15h8",
   produccion: "M6 9a3 3 0 100-6 3 3 0 000 6zm0 12a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12",
   // Flechas verticales (no las horizontales de "movimientos", para no leerse
   // como el mismo ícono con otro nombre): cambiar una talla por otra.
@@ -896,6 +898,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   const porPagar: Item = { href: "/compras/por-pagar", etiqueta: "Por pagar", icono: IC.porPagar };
   const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };
   const ordenes: Item = { href: "/produccion/ordenes", etiqueta: "Órdenes", icono: IC.produccion };
+  const insumos: Item = { href: "/produccion/insumos", etiqueta: "Insumos", icono: IC.insumos };
   // Producción y Compras son dos módulos distintos (ADR-0133, decisión de Felipe
   // 2026-09-19): cada uno con su grupo. Producción (D-A — reemplaza la regla del
   // 2026-09-17 «solo parado en el Taller, líder incluido»): el líder la ve desde
@@ -950,11 +953,11 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
     hijos: clavesCompras.map((c) => itemsCompras[c]),
   };
 
-  // "Producción" (ADR-0133) es el módulo de fabricar: hoy solo Órdenes; Resumen,
-  // proveedores de producción, Insumos y Eficiencia se suman cuando existan
-  // (F3 a F7). Sin rótulos de sección a propósito: el riel del lateral se mueve
+  // "Producción" (ADR-0133) es el módulo de fabricar: hoy Órdenes e Insumos;
+  // Resumen, proveedores de producción, comprobantes y Eficiencia se suman
+  // cuando existan (F4 a F7). Sin rótulos de sección a propósito: el riel del lateral se mueve
   // por filas de alto fijo (`PASO_FILA`) y una fila de otra altura lo desalinearía.
-  const itemsProduccion: Record<ClaveMenuProduccion, Item> = { ordenes };
+  const itemsProduccion: Record<ClaveMenuProduccion, Item> = { ordenes, insumos };
   const hijosProduccion: Item[] = clavesProduccion.map((c) => itemsProduccion[c]);
   const grupoProduccion: ItemGrupo = {
     id: "produccion",
