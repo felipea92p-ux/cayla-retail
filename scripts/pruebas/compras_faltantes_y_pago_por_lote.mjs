@@ -401,7 +401,7 @@ ${recibe("c1_item", 20)}
 select retail.cerrar_linea_compra(:'c1_item', 5, 'no_llego');
 `
   ),
-  "La línea tiene 4 unidades pendientes: no se pueden cerrar 5"
+  "le quedan 4 unidades pendientes de esta línea: no se pueden cerrar 5"
 );
 
 error(
@@ -425,7 +425,7 @@ select retail.cerrar_linea_compra(:'c1_item', 20, 'no_llego') as _r \\gset
 select retail.cerrar_linea_compra(:'c1_item', 5, 'no_llego');
 `
   ),
-  "La línea tiene 4 unidades pendientes: no se pueden cerrar 5"
+  "le quedan 4 unidades pendientes de esta línea: no se pueden cerrar 5"
 );
 
 error(
@@ -697,7 +697,7 @@ select retail.cerrar_linea_compra(:'c1_item', 4, 'no_llego') as _r \\gset
 select retail.recibir_compras(:'taller', jsonb_build_array(jsonb_build_object('compra_item_id', :'c1_item', 'variante_id', :'var', 'cantidad', 21)));
 `
   ),
-  "4 cerrados sin llegar"
+  "cerró 4"
 );
 
 exito(
@@ -723,7 +723,7 @@ ${recibe("c1_item", 24)}
 select retail.recibir_compras(:'taller', jsonb_build_array(jsonb_build_object('compra_item_id', :'c1_item', 'variante_id', :'var', 'cantidad', 1)));
 `
   ),
-  "la línea tiene 24 facturados, 24 ya recibidos y se intenta recibir 1 más"
+  "ya recibió 24 y cerró 0; se intenta recibir 1 más"
 );
 
 // ===========================================================================
@@ -1428,7 +1428,7 @@ select retail.recibir_y_cerrar_compras(:'taller',
   jsonb_build_array(jsonb_build_object('compra_item_id', :'c1_item', 'cantidad', 5, 'motivo', 'no_llego')));
 `
   ),
-  "La línea tiene 4 unidades pendientes: no se pueden cerrar 5"
+  "le quedan 4 unidades pendientes de esta línea: no se pueden cerrar 5"
 );
 
 error(

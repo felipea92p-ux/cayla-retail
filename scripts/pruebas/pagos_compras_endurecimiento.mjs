@@ -31,7 +31,7 @@
  *
  * DOS MIGRACIONES. La 20260919180000 endurece `registrar_pagos_compra` y `registrar_pago_compras` (y crea el
  * helper de fecha); la 20260919181000 PARCHA `registrar_compra` sobre su definición viva (A1, M2, M3), para no pisar la
- * de reparto por tienda (ADR-0132). Las pruebas de `registrar_compra` deben pasar con las dos, y hay casos propios del
+ * de reparto por tienda (ADR-0139). Las pruebas de `registrar_compra` deben pasar con las dos, y hay casos propios del
  * parche: aplicarlo dos veces no cambia el md5, aborta limpio si falta un ancla (una por una, las seis) o si la función
  * quedó a medias, y —si la migración de reparto está en el worktree hermano— sus anclas existen en la definición
  * que esa rama deja y el parche se aplica sobre ella.
@@ -80,6 +80,22 @@ const REGISTRAR_COMPRA_CRUDA = (() => {
 const ANCLAS = [...PARCHE.matchAll(/\$a\$([\s\S]*?)\$a\$/g)].map((m) => m[1]);
 /** El `DO` del parche como una sola sentencia (para ejecutarlo con `execute` dentro de un bloque con manejo de errores). */
 const DO_PARCHE = PARCHE.match(/do \$parche\$[\s\S]*?\$parche\$;/)[0].replace(/;$/, "");
+
+/**
+ * Tras el reparto por tienda (ADR-0139, migración 20260919173000) `compras` ya no tiene `ubicacion_destino_id`. La
+ * función CRUDA de producción de hoy (REGISTRAR_COMPRA_CRUDA) todavía la escribe: un escenario que la instala y LA LLAMA
+ * necesita la columna, así que se le devuelve DENTRO de su transacción (que termina en ROLLBACK), como estaba en
+ * producción antes del reparto. No toca la base compartida.
+ *
+ * `--en-seco` NO sirve en una base que ya tiene el reparto: la función cruda no escribe el reparto por tienda y
+ * `recibir_compras` (ya con el tope por tienda) lo exige. Con el reparto aplicado se corre el modo normal.
+ */
+const CABECERA_DE_ANTES = `do $c$ begin
+  if not exists (select 1 from information_schema.columns where table_schema = 'retail' and table_name = 'compras' and column_name = 'ubicacion_destino_id') then
+    alter table retail.compras add column ubicacion_destino_id uuid;
+  end if;
+end $c$;
+`;
 
 const PRELUDIO = EN_SECO ? `${REGISTRAR_COMPRA_CRUDA}${MIGRACION}\n${PARCHE}\n` : "";
 
@@ -591,7 +607,7 @@ const CUATRO = `('registrar_compra', 'registrar_pagos_compra', 'registrar_pago_c
 exito(
   "migraciones · pegar las dos (parte 1 y parche) dos veces deja UNA firma de cada función, sin perder nada, y siguen andando",
   `begin;
-${REGISTRAR_COMPRA_CRUDA}${AMBAS}${AMBAS}
+${CABECERA_DE_ANTES}${REGISTRAR_COMPRA_CRUDA}${AMBAS}${AMBAS}
 set local request.jwt.claim.sub = '${FELIPE}';
 ${BASE}${compra("c1")}select gen_random_uuid() as tok \\gset
 select ${pagar("c1", 100, { token: ":'tok'" })} as ids1 \\gset
@@ -713,7 +729,7 @@ select current_setting('t.ok'), (select count(*) from pg_proc where pronamespace
   ["true", "0"]
 );
 
-// --- Contra la definición que deja la migración de reparto por tienda (ADR-0132), si está en el worktree hermano.
+// --- Contra la definición que deja la migración de reparto por tienda (ADR-0139), si está en el worktree hermano.
 // No se puede EJECUTAR (necesita `compra_item_destinos` y sin `ubicacion_destino_id`, que esta base no tiene): se prueba
 // que las seis anclas existen ahí, que el parche se aplica, que conserva su reparto y que es re-ejecutable.
 const MIGRACION_REPARTO = process.env.CAYLA_REPARTO_MIGRACION

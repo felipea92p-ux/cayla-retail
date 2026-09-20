@@ -33,7 +33,7 @@ const SECCIONES: { href: string; etiqueta: string; prefijos: string[] }[] = [
   { href: "/inventario/movimientos", etiqueta: "Movimientos", prefijos: ["/inventario/movimientos"] },
   { href: "/inventario/traslados", etiqueta: "Traslados", prefijos: ["/inventario/traslados"] },
   { href: "/inventario/conteo", etiqueta: "Conteo", prefijos: ["/inventario/conteo"] },
-  { href: "/inventario/resumen", etiqueta: "Resumen", prefijos: ["/inventario/resumen"] },
+  { href: "/inventario/resumen", etiqueta: "Análisis", prefijos: ["/inventario/resumen"] },
 ];
 
 // `contadores` (2026-09-18): cuántas cosas de cada pestaña piden acción a quien mira, por `href` —
@@ -47,6 +47,9 @@ export function InventarioNav({
 }) {
   const pathname = usePathname();
   const secciones = mostrarResumen ? SECCIONES : SECCIONES.filter((s) => s.href !== "/inventario/resumen");
+  // Análisis es una pantalla de análisis, no de operación: allí no se ofrece registrar un ingreso.
+  // El acceso sigue vivo en el resto de Inventario y en `/inventario/recibir`.
+  const enResumen = pathname === "/inventario/resumen" || pathname.startsWith("/inventario/resumen/");
   return (
     <div className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-tinta/10">
       {secciones.map((s) => {
@@ -69,14 +72,16 @@ export function InventarioNav({
       {/* «Ingreso sin comprobante» (ADR-0111): la excepción de recibir — mercadería que llegó y todavía no tiene
           su comprobante, muestras y obsequios. Vive en Inventario, no como par de Compras; a la derecha y
           discreto para que no compita con las pestañas. */}
-      <Link
-        href="/inventario/recibir"
-        className={`label-cayla -mb-px ml-auto shrink-0 border-b-2 px-3 pb-2.5 pt-1 text-[11px] transition-colors ${
-          pathname === "/inventario/recibir" ? "border-rojo text-tinta" : "border-transparent text-tinta/55 hover:text-rojo"
-        }`}
-      >
-        Ingreso sin comprobante
-      </Link>
+      {!enResumen && (
+        <Link
+          href="/inventario/recibir"
+          className={`label-cayla -mb-px ml-auto shrink-0 border-b-2 px-3 pb-2.5 pt-1 text-[11px] transition-colors ${
+            pathname === "/inventario/recibir" ? "border-rojo text-tinta" : "border-transparent text-tinta/55 hover:text-rojo"
+          }`}
+        >
+          Ingreso sin comprobante
+        </Link>
+      )}
     </div>
   );
 }

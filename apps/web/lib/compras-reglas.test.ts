@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { comprobanteDeFilaOperativa, costoBase, costoParaTipear, esFuncionAusente, totalesCompra, type FilaOperativa } from "./compras-reglas";
+import { comprobanteDeFilaOperativa, costoBase, costoParaTipear, esFuncionAusente, totalesCompra, type FilaOperativa, esRelacionAusente } from "./compras-reglas";
 
 // El costo unitario que se guarda alimenta el costo de la variante y el
 // margen de cada venta. Si el descuento del IGV se hace mal, la mercadería
@@ -68,7 +68,7 @@ describe("comprobanteDeFilaOperativa", () => {
     tipo: "factura",
     documento: "F001-000123",
     fecha_emision: "2026-09-10",
-    ubicacion_destino_id: "u-trujillo",
+    ubicaciones_destino: ["u-trujillo"],
     estado: "vigente",
     nota: "Llega con la caja azul",
     created_at: "2026-09-10T15:00:00Z",
@@ -88,7 +88,7 @@ describe("comprobanteDeFilaOperativa", () => {
       proveedorNombre: "Textiles Andina SAC",
       documento: "F001-000123",
       tipo: "factura",
-      ubicacionDestinoId: "u-trujillo",
+      ubicacionesDestino: ["u-trujillo"],
       estado: "vigente",
       facturadoCantidad: 24,
       recibidoCantidad: 10,
@@ -143,5 +143,57 @@ describe("esFuncionAusente", () => {
   it("sin error no hay nada que reconocer", () => {
     expect(esFuncionAusente(null)).toBe(false);
     expect(esFuncionAusente(undefined)).toBe(false);
+  });
+});
+
+// ADR-0139: con una tienda de por medio, las cifras del comprobante pasan a ser las de ESA tienda — y el estado de
+// recepción se lee desde ella (el del comprobante entero mezcla a todas las tiendas).
+describe("comprobanteDeFilaOperativa · desde una tienda", () => {
+  const fila: FilaOperativa = {
+    id: "c-1", proveedor_id: "p-1", proveedor_nombre: "Textiles Andina SAC", proveedor_ruc: null, tipo: "factura", documento: "F001-000123",
+    fecha_emision: "2026-09-10", ubicaciones_destino: ["u-trujillo", "u-taller"], estado: "vigente", nota: null, created_at: "2026-09-10T15:00:00Z",
+    facturado_cantidad: 24, recibido_cantidad: 12, estado_recepcion: "parcial", fecha_estimada_llegada: null, recepcion_atrasada: false, cerrado_cantidad: 0,
+    asignado_aqui: 12, recibido_aqui: 12, cerrado_aqui: 0, pendiente_aqui: 0,
+  };
+
+  it("las cifras son las de la tienda: 12 de 12 aunque el comprobante entero vaya 12 de 24", () => {
+    const c = comprobanteDeFilaOperativa(fila);
+    expect(c).toMatchObject({ facturadoCantidad: 12, recibidoCantidad: 12, cerradoCantidad: 0, asignadoAqui: 12, recibidoAqui: 12, pendienteAqui: 0 });
+  });
+
+  it("el estado se lee desde la tienda: para Trujillo ya está recibida aunque al comprobante le falte lo del Taller", () => {
+    expect(comprobanteDeFilaOperativa(fila).estadoRecepcion).toBe("recibida");
+    expect(comprobanteDeFilaOperativa({ ...fila, recibido_aqui: 4, pendiente_aqui: 8 }).estadoRecepcion).toBe("parcial");
+    expect(comprobanteDeFilaOperativa({ ...fila, recibido_aqui: 0, pendiente_aqui: 12 }).estadoRecepcion).toBe("sin_recibir");
+  });
+
+  it("sin tienda de por medio (asignado_aqui null) sigue mostrando el comprobante entero", () => {
+    const c = comprobanteDeFilaOperativa({ ...fila, asignado_aqui: null, recibido_aqui: null, cerrado_aqui: null, pendiente_aqui: null });
+    expect(c).toMatchObject({ facturadoCantidad: 24, recibidoCantidad: 12, estadoRecepcion: "parcial" });
+    expect(c.asignadoAqui).toBeUndefined();
+  });
+
+  it("las tiendas del reparto llegan tal cual (y una lista vacía si la base no las trae)", () => {
+    expect(comprobanteDeFilaOperativa(fila).ubicacionesDestino).toEqual(["u-trujillo", "u-taller"]);
+    expect(comprobanteDeFilaOperativa({ ...fila, ubicaciones_destino: null }).ubicacionesDestino).toEqual([]);
+  });
+});
+
+describe("lo que la base todavía no tiene (el despliegue llega antes que la migración)", () => {
+  it("una función o parámetro que la base no conoce: PGRST202 / 42883", () => {
+    expect(esFuncionAusente({ code: "PGRST202" })).toBe(true);
+    expect(esFuncionAusente({ code: "42883" })).toBe(true);
+    expect(esFuncionAusente({ code: "42501" })).toBe(false);
+    expect(esFuncionAusente(null)).toBe(false);
+    expect(esFuncionAusente(undefined)).toBe(false);
+  });
+
+  it("una tabla o vista que la base todavía no tiene: PGRST205 / 42P01 (y no cualquier otro error)", () => {
+    expect(esRelacionAusente({ code: "PGRST205" })).toBe(true);
+    expect(esRelacionAusente({ code: "42P01" })).toBe(true);
+    // un permiso negado o una red caída NO son «no hay reparto»: esos sí se avisan
+    expect(esRelacionAusente({ code: "42501" })).toBe(false);
+    expect(esRelacionAusente({ code: "PGRST202" })).toBe(false);
+    expect(esRelacionAusente(null)).toBe(false);
   });
 });

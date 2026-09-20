@@ -11,17 +11,26 @@
 // espeja las que ya validaba la pantalla, en el mismo orden y con los mismos mensajes.
 
 import { soles } from "./compras-reglas";
+import { estadoDelReparto, textoDelReparto } from "./reparto-reglas";
 
 /** Un requisito por cada cosa que hace falta, en el orden en que se piden. */
 export type ClaveRequisito = "proveedor" | "documento" | "lineas" | "pago";
 
-export type LineaParaProgreso = { productoId: string; cantidad: number; costoUnitario: string };
+export type LineaParaProgreso = {
+  productoId: string;
+  cantidad: number;
+  costoUnitario: string;
+  /** Solo si el comprobante se reparte entre tiendas (ADR-0139): tienda → unidades. Debe sumar la cantidad de la línea. */
+  reparto?: Record<string, number>;
+};
 
 export type EntradaRequisitos = {
   proveedorId: string;
   serie: string;
   numero: string;
   lineas: readonly LineaParaProgreso[];
+  /** El comprobante se reparte entre tiendas: cada línea con producto tiene que dejar TODAS sus unidades en alguna tienda. */
+  repartir?: boolean;
   condicion: "contado" | "credito";
   pagarAhora: boolean;
   fechaVencimiento: string;
@@ -74,17 +83,26 @@ export function requisitosDeCompra(e: EntradaRequisitos): Requisito[] {
   // una con producto pero sin costo bloquea: «costo 0» es válido, «costo sin escribir» no.
   const validas = e.lineas.filter((l) => l.productoId && l.cantidad > 0);
   const sinCosto = e.lineas.findIndex((l) => l.productoId && l.cantidad > 0 && (l.costoUnitario === "" || Number(l.costoUnitario) < 0));
-  const lineasOk = validas.length > 0 && sinCosto < 0;
+  // Repartido entre tiendas (ADR-0139): la base exige que lo repartido de cada línea sume lo facturado (candado diferido
+  // en `compra_item_destinos`); acá se dice QUÉ línea y CUÁNTO falta o sobra antes de que la RPC lo rechace.
+  const sinReparto = e.repartir ? e.lineas.findIndex((l) => l.productoId && l.cantidad > 0 && !estadoDelReparto(l.cantidad, l.reparto ?? {}).cuadra) : -1;
+  const textoReparto = sinReparto >= 0 ? textoDelReparto(e.lineas[sinReparto].cantidad, e.lineas[sinReparto].reparto ?? {}).texto : "";
+  const lineasOk = validas.length > 0 && sinCosto < 0 && sinReparto < 0;
   const lineas: Requisito = {
     clave: "lineas",
     ok: lineasOk,
-    texto: "Al menos una línea con producto y costo",
-    falta: sinCosto >= 0 ? `Falta el costo de la línea ${sinCosto + 1}` : null,
+    texto: e.repartir ? "Líneas con producto, costo y su reparto entre tiendas" : "Al menos una línea con producto y costo",
+    falta: sinCosto >= 0 ? `Falta el costo de la línea ${sinCosto + 1}` : sinReparto >= 0 ? `Línea ${sinReparto + 1}: ${textoReparto.charAt(0).toLowerCase()}${textoReparto.slice(1)}` : null,
     error: lineasOk
       ? null
       : validas.length === 0
         ? { mensaje: "Agrega al menos una línea con producto y cantidad.", enfocar: "compra-linea-0-producto" }
-        : { mensaje: `Cada línea necesita su costo unitario (${e.conIgv ? "con" : "sin"} IGV).`, enfocar: `compra-linea-${sinCosto}-costo` },
+        : sinCosto >= 0
+          ? { mensaje: `Cada línea necesita su costo unitario (${e.conIgv ? "con" : "sin"} IGV).`, enfocar: `compra-linea-${sinCosto}-costo` }
+          : {
+              mensaje: `La línea ${sinReparto + 1} no está bien repartida: ${textoReparto.charAt(0).toLowerCase()}${textoReparto.slice(1)} (las unidades de cada tienda deben sumar ${e.lineas[sinReparto].cantidad}).`,
+              enfocar: `compra-linea-${sinReparto}-reparto`,
+            },
   };
 
   // 4 · Pago. Contado: obligatorio y por el total. Crédito: opcional (o «sin pago por ahora»), pero con vencimiento.

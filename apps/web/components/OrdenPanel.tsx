@@ -15,6 +15,7 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { MatrizOrdenTabla } from "@/components/MatrizOrden";
 import { ChipEntrega, semaforoDeOrden } from "@/components/OrdenTarjeta";
 import { OrdenCierre } from "@/components/OrdenCierre";
+import { OrdenInsumos } from "@/components/OrdenInsumos";
 import {
   desgloseCosto,
   estadoEntrega,
@@ -25,6 +26,7 @@ import {
   type EstadoEtapa,
 } from "@/lib/produccion-reglas";
 import type { OrdenProduccion } from "@/lib/produccion";
+import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
@@ -43,6 +45,8 @@ export function OrdenPanel({
   orden,
   esLider,
   hoy,
+  insumos,
+  consumos,
   onCerrar,
   onAnular,
   onRevertir,
@@ -50,6 +54,8 @@ export function OrdenPanel({
   orden: OrdenProduccion;
   esLider: boolean;
   hoy: string;
+  insumos: InsumoVista[];
+  consumos: ConsumoDeOrden[];
   onCerrar: () => void;
   onAnular: () => void;
   onRevertir: () => void;
@@ -321,6 +327,9 @@ export function OrdenPanel({
                 )}
               </section>
             )}
+
+            {/* -------- insumos descontados (F3) -------- */}
+            {!orden.esMuestra && <OrdenInsumos orden={orden} insumos={insumos} consumos={consumos} esLider={esLider} editable={abierta} />}
 
             {orden.nota && <p className="text-sm text-tinta/75">— {orden.nota}</p>}
 

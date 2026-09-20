@@ -6,12 +6,12 @@ const TIPOS = ["tienda", "almacen", "taller"] as const;
 describe("hijosMenuProduccion (ADR-0133, D-A)", () => {
   it("el líder ve Producción desde cualquier ubicación", () => {
     for (const ubicacionTipo of TIPOS) {
-      expect(hijosMenuProduccion({ esLider: true, ubicacionTipo })).toEqual(["ordenes"]);
+      expect(hijosMenuProduccion({ esLider: true, ubicacionTipo })).toEqual(["ordenes", "insumos"]);
     }
   });
 
   it("quien trabaja en el Taller ve las pantallas de fabricación", () => {
-    expect(hijosMenuProduccion({ esLider: false, ubicacionTipo: "taller" })).toEqual(["ordenes"]);
+    expect(hijosMenuProduccion({ esLider: false, ubicacionTipo: "taller" })).toEqual(["ordenes", "insumos"]);
   });
 
   it("quien trabaja en una tienda o un almacén no ve el módulo", () => {

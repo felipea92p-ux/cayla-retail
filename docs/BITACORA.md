@@ -3,6 +3,62 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Un comprobante se reparte entre tiendas y cada tienda recibe lo suyo — ADR-0139, hecho en local)
+Ahora se puede registrar una factura de proveedor «repartida»: en cada línea se dice cuántas unidades le tocan a cada tienda, con «Faltan 4 por repartir» en vivo y un atajo de partes iguales. Cada tienda recibe solo lo suyo desde `/recibir` (la base rechaza que una se coma la parte de otra), el detalle muestra cómo va cada tienda y un líder puede **reasignar** lo que aún no llegó o **cerrar un faltante** diciendo en qué tienda faltó. Verificado con 47 pruebas de SQL, 1367 de la web y en el navegador (una factura de 24 u. repartida 12+12 quedó así en la base; se recibió, reasignó y cerró); las dos migraciones (`172000`, `173000`) **no están en producción** y se pegan en orden con ok de Felipe, y solo después se despliega la web.
+Felipe se lleva: (1) el destino ya no vive en la factura sino en el reparto por línea, y por eso una factura de una sola tienda también «tiene reparto» (de una tienda): así no hay casos especiales al leer; (2) un colaborador no puede recibir en su tienda algo que el comprobante asignó a otra: primero un líder reasigna, y por eso el botón existe también en facturas de una sola tienda; (3) dos sesiones que reescriben la misma función se pisan según el orden en que se pegue el SQL: se resolvió parchando por anclas sobre la definición viva en vez de reemplazarla (ADR-0139 §2), y se probó el orden real de las migraciones dentro de una transacción con ROLLBACK, no se supuso.
+Sin resolver: el filtro y el chip «Destino» en Comprobantes y Por pagar (la lista es paginada en Postgres, un filtro en el navegador mentiría; pide un parámetro nuevo y coordinar con Por pagar); y tres pruebas de otras sesiones daban por existente la columna que se eliminó (se ajustaron; una además ya fallaba en `main` por una lista de columnas desactualizada).
+
+## 2026-09-19 (Análisis de inventario a producción: migración aplicada, rama fusionada — ADR-0138)
+Se cerró el ciclo: la rama (80 commits detrás de `main`) se fusionó — un solo conflicto real, en esta misma
+BITÁCORA por ser de acumulación, resuelto conservando las dos mitades; todo lo demás (código, `package.json`,
+`packages/database/src/types.ts`, `ARQUITECTURA.md`, `BACKLOG.md`, `.github/workflows/ci.yml`) lo fusionó git
+solo. El ADR colisionaba con uno ya fusionado en `main` (0129 lo tenía «Recibir mercadería»): se renumeró a
+**0138**, y la migración de `20260919183000` a `20260919220000` (quedaba en medio de seis migraciones de Compras
+ya aplicadas en producción; no rompía nada, pero mezclaba el orden).
+La migración `20260919220000_resumen_comparacion_periodos.sql` se aplicó a producción: ensayo revertido contra
+el esquema real primero (una llamada real a la función, dentro de una transacción que no se guardó), y ahí salió
+que el rol de líder en producción no es `retail.personas.rol = 'lider'` sino la identidad delegada de Dynamic
+(`public.personas`, otro vocabulario de roles) — no afectaba a la migración en sí, solo a mi propia verificación.
+`typecheck`/`test`/`lint`/`build` en verde a nivel monorepo (1539 pruebas) antes y después del merge.
+Queda: `pnpm datos:generar:produccion` (refrescar el diccionario) y decidir si el color real (hex) llega a
+Movimientos/Traslados/Conteo (ver BACKLOG).
+
+## 2026-09-19 (Comparar períodos: rediseño visual, y miniatura + color en las tablas de Inventario — ADR-0138)
+Se cerró el rediseño visual de Comparar períodos, pedido tras ver la tabla de Detalle «dispersa»: contexto de
+período compactado a una línea («A → B · Cambiar períodos», el configurador de siempre se despliega a pedido);
+la búsqueda se mudó a Detalle (Vista general no filtra productos, los explica); el KPI de Cobertura y su gráfico
+salieron de Comparar (son de Existencias); el bloque «Qué cambió» (señales de mejoró rotación/riesgo de
+quiebre/sobrestock) se reemplazó por «Evolución del ritmo» (dona Aceleró/Estable/Desaceleró, interactiva hacia
+Detalle) y el ranking de texto por barras horizontales A/B; nueva «Distribución de sell-through» (reusa el
+gráfico de columnas de Cobertura). La tabla de Detalle bajó a 6 columnas con línea secundaria por celda y UN
+«cambio relevante» por fila (el más importante, no una lista de chips) en vez de la columna Interpretación.
+Se agregó también la miniatura (percha) y la cápsula de color real (`MuestraColor`) al lado del nombre de
+producto en Desempeño y Comparar › Detalle, y la miniatura sola (sin color: el hex no llega a esas filas) en
+Movimientos, Traslados › detalle y Conteo › detalle — el mismo lenguaje que ya usaba Existencias. Mover y
+Recibir quedan sin ella: son `<select>` nativos y no admiten marcado dentro de un `<option>`.
+Animaciones de entrada (KPI, dona, barras) reusan `anim-entra`/`anim-crece-x`/`anim-crece-y`, ya existentes;
+se repiten al cambiar de período o de alcance (categoría/búsqueda), nunca al escribir en el buscador.
+
+## 2026-09-19 (Rotación: el total no se cae por una variante sin dato — ADR-0138, segunda corrección)
+La rotación de una variante sigue siendo estricta (sin costo o sin historial fiable es N/D), pero el total de la tienda o de la categoría ya no: se calcula como Σ COGS ÷ Σ inventario promedio de las variantes con datos válidos —las mismas en numerador y denominador— y la tarjeta dice «N de M variantes comparables» cuando quedó alguna fuera (con todas válidas no dice nada). Al comparar A contra B se usan solo las variantes válidas en los dos períodos, para no medir el cambio de universo en vez del del inventario.
+Lo que quedó escrito, junto a la lógica en `lib/rotacion.ts`: el COGS es histórico pero el inventario se valora al costo VIGENTE, así que un costo que cambió desalinea numerador y denominador; el objetivo es COGS histórico ÷ promedio temporal del valor histórico. No se construyó (BACKLOG). Sin migración.
+Efecto visible: en la base local el KPI pasó de N/D a 0.30x → 0.31x sobre 3 de 18 variantes comparables, con los motivos de las otras 15 en el tooltip.
+
+## 2026-09-19 (Rotación: una sola definición, la de COGS — ADR-0138, corrección)
+Se corrigió «Rotación»: filas, ranking, órdenes y KPI de Desempeño y Comparar mostraban unidades vendidas ÷ unidades promedio con el nombre de la métrica oficial. Ahora es COGS del período ÷ inventario promedio a costo, en `lib/rotacion.ts`, con el costo que cada venta guardó ese día (`venta_items.costo_unitario`); si falta el costo o el historial no cuadra, es N/D en vez de un número inventado.
+Lo que quedó escrito: sin serie diaria de inventario rige el promedio de dos puntos (valor al inicio + al cierre) ÷ 2 y una prenda que recibe stock a mitad del período sale con la rotación inflada; `inventarioPromedioTemporal` es el punto para reemplazarlo sin tocar las pantallas.
+Efecto visible: un total con una sola variante sin dato era N/D (lo corrige la entrada de arriba: ahora se calcula con las demás).
+
+## 2026-09-19 (Análisis de inventario: cada pantalla con una sola pregunta — ADR-0138, ampliación)
+Se cerró: «Resumen de inventario» pasó a «Análisis de inventario» con dos pestañas, Desempeño (cómo se comportó el inventario en el período: vendido, ritmo, sell-through, rotación y tendencia) y Comparar períodos; «Comparar con» solo queda en Comparar, y las tarjetas y la tabla de prioridades —que mezclaban el stock de hoy con el período— salieron. La cobertura se mudó a Existencias, donde sí responde «¿cuánto me dura lo que tengo?».
+Lo nuevo de fondo: Desempeño no tiene fórmulas propias; parte el período en dos mitades y le pide a la MISMA función de Comparar el período entero, el stock al inicio y al cierre y la tendencia (mitad 2 contra mitad 1). Una sola definición de ritmo, sell-through y rotación en las tres pantallas.
+Falta: aplicar la migración `20260919220000` en producción ANTES de desplegar (ahora la pantalla por defecto depende de ella) y decidir dónde viven las acciones de reposición que salieron (la lógica sigue en `lib/`).
+
+## 2026-09-19 (Resumen de Inventario: comparar dos períodos, A contra B — ADR-0138)
+Se cerró: el Resumen gana un modo «Comparar períodos» (vista general y detalle por producto) con ventas, rotación, cobertura y capital de A → B, tres señales, ranking de rotación y cobertura al cierre; y pierde el selector de sede duplicado y «Ingreso sin comprobante» (que sigue vivo en el resto de Inventario).
+Lo nuevo de fondo: el stock de cierre de un período se RECONSTRUYE del ledger (`fn_resumen_comparacion`), nunca se deduce de las ventas — «inicio 0 → cierre 14» con 4 vendidas es normal si llegó mercadería. La función es nueva y aditiva: no toca `fn_resumen_variantes`.
+Falta: aplicar la migración `20260919220000` en producción ANTES de desplegar el front (con ensayo revertido, como las anteriores) y refrescar el volcado `docs/datos/generado/`.
+
 ## 2026-09-19 (Cobro guiado en Vender: qué toca ahora, ola de luz y billetes)
 
 **Qué se cerró.** Un colaborador que probó Vender no sabía dónde tocar. Ahora el cobro dice qué toca:
@@ -109,6 +165,7 @@ Queda: verlo como colaborador (Micaela) y las animaciones de SALIDA (chips y fil
 ## 2026-09-19 (Producción como módulo propio: dos spikes y un plan por fases — ADR-0133, propuesto)
 **Qué se cerró.** Se diseñó (sin tocar el ERP) un módulo Producción que agrupa Decidir/Abastecer/Fabricar/Medir, con el ciclo factura de tela → lote → orden → costo real → stock funcionando en un spike (`docs/maquetas/produccion-modulo-2026-09/`), y un plan de 8 fases con sus decisiones y su definición de terminado (`docs/PLAN-PRODUCCION.md`).
 **Qué se aprendió.** Revisar antes de diseñar cambió el plan: el destino Taller/Tiendas ya existía (`ubicacion_destino_id`), el motor de reposición ya existía (`fn_resumen_variantes`), Proveedores y Recibir ya tenían rediseño en `main`, y el spike incumplía el tope de rojo por pantalla y dejaba a la interfaz —no a la base— la tarea de ocultar costos al colaborador.
+**F3 (Insumos) hecha el 2026-09-20:** pantalla de insumos con saldo, lotes y libro, y descuento de tela y avíos desde la orden. Lo más importante que salió al implementar: **ningún RPC devuelve insumos** (ni `anular_produccion` ni `revertir_produccion`), así que un consumo no se puede deshacer y anular una orden pierde la tela; mi spike mostraba lo contrario. Quedó dicho en la pantalla y abierto como F3b. Otra: el saldo se lee del ledger y no de `v_insumo_saldos`, que se salta la RLS.
 **Corrección de rumbo (Felipe, el mismo día).** La primera versión de F1 metió las 4 pantallas de Compras dentro del menú de Producción; se vio en pantalla que era **la misma pantalla con los mismos datos dos veces**, y Felipe pidió que sean **módulos distintos, cada uno con sus proveedores y sus pantallas**. Eligió además —contra mi recomendación— un directorio de proveedores propio y Comprobantes / Por pagar / Recibir propios para Producción (D-H). Lo que eso cuesta quedó escrito (ADR-0133): proveedores duplicados, deuda e IGV en dos sitios, lógica financiera copiada. A cambio, F4 ya no toca Compras ni espera a ADR-0138 (reparto entre tiendas).
 **Pendiente.** El ok de Felipe en D-E, D-F, D-G y D-I (D-A y D-H ya los dio).
 **Colisión de numeración:** el menú lateral plegable se fusionó a `main` con el mismo ADR-0130; el de Producción pasó al **0133**. Los dos menús convivieron sin conflicto de código (`AppShell.tsx` se fusionó solo) y se probó el cajón flotante del grupo con el menú plegado. Un `.next` viejo servía el CSS sin la regla del token y el menú se veía roto: no era un bug, era caché.
@@ -488,6 +545,13 @@ Tallas era la pestaña que se había quedado atrás: 8 columnas fijas de cajitas
 Lo que Felipe se lleva: el tipo de talla (letras / numeración / única / otras) sale de `tipoDeTalla` en `lib/tallas.ts`, que usa el mismo `rango` que ordena la curva, así que "en qué grupo está" y "en qué orden va" no pueden contradecirse; está fijado en `tallas.test.ts`. `BotonFiltro` salió de Etiquetas a `ui/` para que las dos pestañas filtren con el mismo gesto. Y un hallazgo: `Boton` trae `px-4` y un `px-2` pasado por `className` no lo pisa — hay que forzarlo con `px-2!`; el mismo síntoma puede estar en otras listas de Atributos.
 
 "Único" era un valor real del vocabulario (`retail.tallas.valor`), no un texto de pantalla, así que va como migración `20260918175000_talla_unica_en_femenino.sql`: "talla" es femenino. Es seguro porque las variantes y `categoria_tallas` apuntan por `talla_id` y el código impreso usa el token `U`, que ya trataba "unico" y "unica" igual. Felipe la pegó en producción el 2026-09-18 (SQL Editor, con el prefijo `retail.`); yo no pude releer la base para confirmarlo porque el acceso a producción estaba bloqueado por permisos, así que queda por reportar de él. Verificado en navegador a 375, 1024 y 1900 px: ningún botón cortado; `tsc` y `eslint` limpios.
+
+## 2026-09-18 (Compras por tienda: qué se parte y qué no, y el diseño del reparto de un comprobante entre tiendas)
+
+Felipe preguntó si Comprobantes, Recibir mercadería y Por pagar deberían ser por tienda. Respuesta con evidencia: solo Recibir (es un acto físico en un lugar); Comprobantes y Por pagar son de la empresa (R-04, R-10, R-12) pero tienen que mostrar y filtrar por destino, que hoy no se ve en ninguna lista. Al confirmar Felipe que una factura puede repartirse entre tiendas, el destino dejó de poder vivir en la factura: `recibir_compras` cuenta lo recibido sumando todas las ubicaciones, así que una tienda podía gastarse la parte de otra. Diseño en ADR-0139 (antes 0107, 0132 y 0138, renumerado); sin código ni migración porque otra sesión (ADR-0106, sin PR) reescribe las mismas funciones y su esquema ya corre en el Postgres local compartido.
+
+Lo que Felipe se lleva: «por tienda» son tres cosas distintas — perspectiva (qué muestra la pantalla), permiso (quién puede) y atribución (a qué tienda pertenece el registro) — y no se resuelven igual en cada módulo. Y antes de escribir migraciones sobre un módulo, mirar `git log origin/main..<rama>` de las sesiones vecinas: esta vez habría sido trabajo doble sobre las mismas cinco funciones.
+
 
 ## 2026-09-18 (Etiquetas se alinea con Colores, Tejidos y Patrones: mismo tamaño de tarjeta, misma grilla)
 
@@ -8350,3 +8414,10 @@ Producción no tiene ninguna factura registrada todavía, así que el cierre que
 intento de pegar A falló por un `_` suelto al inicio del texto (error de pegado; no se ejecutó nada). El volcado y el
 diccionario quedan en 174 funciones. `datos:comparar` marca ahora `fn_proveedores_serie_12m`: es la migración
 `20260919150000_proveedores_serie_mensual.sql` de otra sesión, que está en `main` y aún no en producción.
+
+## 2026-09-20 (Producción F3b: devolver insumos — ADR-0133)
+Un consumo de insumo ya se puede deshacer mientras la orden esté en proceso: `devolver_insumo_de_produccion` devuelve la cantidad al último
+lote del que salió y al mismo costo; `anular_produccion` devuelve todo lo descontado; y `registrar_consumo_insumo` ahora calcula el costo de
+tela/avíos neto de devoluciones (antes las ignoraba). Migración `20260920100000` solo en local; `pnpm pruebas:insumos-devolucion` 10/10 y
+1421 pruebas del web en verde. Falta pegarla en producción (Felipe) y verla en el navegador (el panel estaba oculto). Referencias al
+reparto entre tiendas renumeradas a ADR-0139.

@@ -204,6 +204,9 @@ describe("valorPorLlegar", () => {
     expect(valorPorLlegar({ total: 3186, facturadoCantidad: 120, recibidoCantidad: 72 })).toBe(1274.4);
     expect(valorPorLlegar({ total: 3186, facturadoCantidad: 120, recibidoCantidad: 72, cerradoCantidad: 48 })).toBe(0);
     expect(valorPorLlegar({ total: 100, facturadoCantidad: 0, recibidoCantidad: 0 })).toBe(0);
+    // ADR-0139: una tienda con 18 de las 36 unidades del comprobante NO debe ver el total entero como «por llegar».
+    expect(valorPorLlegar({ total: 2124, facturadoCantidad: 18, facturadoTotal: 36, recibidoCantidad: 0 })).toBe(1062);
+    expect(valorPorLlegar({ total: 2124, facturadoCantidad: 18, facturadoTotal: 36, recibidoCantidad: 6, cerradoCantidad: 2 })).toBe(590);
   });
 });
 
