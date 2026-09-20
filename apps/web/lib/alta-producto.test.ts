@@ -11,6 +11,7 @@ import {
   nivelMargen,
   ordenarColores,
   problemasAlta,
+  repartirFamilias,
   tituloReferencia,
   tokenTalla,
   type EstadoAlta,
@@ -220,5 +221,52 @@ describe("leerErrorAlta", () => {
   it("todo lo demás cae a 'otro' para que lo traduzca traducirError", () => {
     expect(leerErrorAlta({ message: "x", hint: "tejido_obligatorio" })).toEqual({ tipo: "otro" });
     expect(leerErrorAlta(null)).toEqual({ tipo: "otro" });
+  });
+});
+
+describe("repartirFamilias — qué familias se ven de entrada y cuáles van tras «Ver más»", () => {
+  // Las 6 reales, en el orden de `familias.orden` (Calzado está entre Indumentaria y Accesorios).
+  const seis = ["indumentaria", "calzado", "accesorios", "bisuteria", "belleza", "papeleria"].map((codigo) => ({ codigo }));
+  const codigos = (fs: { codigo: string }[]) => fs.map((f) => f.codigo);
+
+  it("con las 6 de hoy: Indumentaria, Accesorios y Bisutería a la vista; Calzado, Belleza y Papelería tras «Ver más»", () => {
+    const r = repartirFamilias(seis);
+    expect(codigos(r.aLaVista)).toEqual(["indumentaria", "accesorios", "bisuteria"]);
+    expect(codigos(r.masFamilias)).toEqual(["calzado", "belleza", "papeleria"]);
+  });
+
+  it("el orden lo manda la base, no este archivo: respeta el que trae la lista", () => {
+    const r = repartirFamilias([{ codigo: "bisuteria" }, { codigo: "papeleria" }, { codigo: "indumentaria" }]);
+    expect(codigos(r.aLaVista)).toEqual(["bisuteria", "indumentaria"]);
+  });
+
+  it("una familia nueva que este archivo no conoce cae tras «Ver más», no desaparece", () => {
+    const r = repartirFamilias([...seis, { codigo: "hogar" }]);
+    expect(codigos(r.masFamilias)).toContain("hogar");
+    expect(codigos(r.aLaVista)).not.toContain("hogar");
+  });
+
+  it("si solo hay familias de las de siempre no hay nada tras «Ver más» (no se pinta el botón para nada)", () => {
+    const r = repartirFamilias(seis.filter((f) => ["indumentaria", "accesorios", "bisuteria"].includes(f.codigo)));
+    expect(r.masFamilias).toEqual([]);
+  });
+
+  it("si ninguna de las de siempre existe (renombradas o desactivadas) se ven todas: nunca un panel con solo «Ver más»", () => {
+    const solo = [{ codigo: "calzado" }, { codigo: "belleza" }];
+    const r = repartirFamilias(solo);
+    expect(codigos(r.aLaVista)).toEqual(["calzado", "belleza"]);
+    expect(r.masFamilias).toEqual([]);
+  });
+
+  it("sin familias no revienta", () => {
+    expect(repartirFamilias([])).toEqual({ aLaVista: [], masFamilias: [] });
+  });
+
+  it("INVARIANTE: entre los dos grupos suman exactamente la entrada — ninguna familia se pierde ni se repite", () => {
+    const casos = [seis, [...seis, { codigo: "hogar" }], seis.slice(1), seis.slice(0, 3), [{ codigo: "calzado" }], []];
+    for (const entrada of casos) {
+      const r = repartirFamilias(entrada);
+      expect(codigos([...r.aLaVista, ...r.masFamilias]).sort()).toEqual(codigos(entrada).sort());
+    }
   });
 });

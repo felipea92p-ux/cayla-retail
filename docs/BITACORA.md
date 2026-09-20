@@ -8428,3 +8428,11 @@ Taller, líder incluido, decidido por el **tipo** de la ubicación activa (no po
 (`puedeVerProduccion`) que usan el menú y las páginas de Órdenes e Insumos; un líder que llega por URL desde otra ubicación ve un aviso, no un rebote mudo.
 Sin esquema ni migración; Compras no cambió. Verificado con el `AppShell` real en el navegador (6 combinaciones rol × tipo) y 10 pruebas de la regla;
 falta probarlo con sesión real de líder cambiando de Tienda a Taller con el selector.
+
+## 2026-09-20 (Nuevo producto: primer paso con tres familias a la vista)
+El primer paso mostraba las 6 familias parejas y, con el menú lateral abierto, las tarjetas se montaban unas sobre otras (a 1024 px el
+bloque medía 334 px y a cada una le tocaban 49). Ahora se ven Indumentaria, Accesorios y Complementos y Bisutería, más una tarjeta «Ver más»
+que nombra lo escondido (Calzado, Belleza y Papelería); la búsqueda las alcanza igual. Las columnas las decide el ancho del bloque
+(`@container`) y no el de la ventana, como ya hacen Recepciones y Por pagar. La regla vive en `repartirFamilias` (7 pruebas; la que importa:
+ninguna familia se pierde) y no en una columna de `familias`. Verificado en navegador a 375, 1024, 1280 y 1440 px con datos simulados
+(sin Docker): cero desbordes; 1628 pruebas y typecheck en verde. Falta verlo con sesión de Líder real contra la base.
