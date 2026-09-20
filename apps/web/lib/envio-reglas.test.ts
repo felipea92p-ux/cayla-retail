@@ -178,7 +178,7 @@ describe("sumarUnidad", () => {
 
 describe("armarPedidoEnvio: exactamente lo que espera recibir_envio", () => {
   const bloques = bloquesDelEnvio(COMPRAS, ["c1", "c2"], LINEAS);
-  const base = { ubicacionId: "u1", bloques, reparto: {} as Reparto, extras: [] as ExtraEnvio[], traslados: [], cierres: [], notas: [], numeroGuia: "", nota: "", token: "tok-1" };
+  const base = { ubicacionId: "u1", bloques, reparto: {} as Reparto, extras: [] as ExtraEnvio[], traslados: [], cierres: [], numeroGuia: "", nota: "", token: "tok-1" };
 
   it("solo viaja lo contado en positivo; el 0 y lo sin contar no suman al stock", () => {
     const p = armarPedidoEnvio({ ...base, reparto: { l1: { v1: 24 }, l2: { v2: 0 }, l3: { v3: 7 } } });
@@ -218,10 +218,12 @@ describe("armarPedidoEnvio: exactamente lo que espera recibir_envio", () => {
     });
     expect(p.p_traslados).toEqual([{ transferencia_id: "t1", lineas: [{ variante_id: "v1", cantidad: 5 }, { variante_id: "v2", cantidad: 0 }] }]);
   });
-  it("los cierres y notas viajan con el formato de la RPC (serie en mayúsculas y sin espacios)", () => {
-    const p = armarPedidoEnvio({ ...base, cierres: [{ lineaId: "l2", faltan: 4, motivo: "no_llego" }], notas: [{ compraId: "c1", serie: " fc01-93 ", fecha: "2026-09-18", monto: 236 }] });
+  // Recepción cuenta y cierra; la nota de crédito se reclama y se registra en `/compras/notas-credito`
+  // (2026-09-19). El parámetro sigue viajando porque la RPC lo sigue aceptando, pero SIEMPRE vacío.
+  it("los cierres viajan con el formato de la RPC; las notas de crédito ya no salen de esta pantalla", () => {
+    const p = armarPedidoEnvio({ ...base, cierres: [{ lineaId: "l2", faltan: 4, motivo: "no_llego" }] });
     expect(p.p_cierres).toEqual([{ compra_item_id: "l2", cantidad: 4, motivo: "no_llego" }]);
-    expect(p.p_notas_credito).toEqual([{ compra_id: "c1", serie_numero: "FC01-93", fecha: "2026-09-18", monto: 236 }]);
+    expect(p.p_notas_credito).toEqual([]);
   });
 });
 

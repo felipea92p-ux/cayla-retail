@@ -364,7 +364,6 @@ export function movimientosDelEnvio(p: {
 // ---------------------------------------------------------------------------
 
 export type CierreElegido = { lineaId: string; faltan: number; motivo: string };
-export type NotaAEmitir = { compraId: string; serie: string; fecha: string; monto: number };
 export type TrasladoAConfirmar = { transferenciaId: string; lineas: LineaEnTraslado[]; conteo: ConteoTraslado };
 
 export type PedidoEnvio = {
@@ -373,7 +372,9 @@ export type PedidoEnvio = {
   p_extras: { proveedor_id: string; variante_id: string; cantidad: number; es_regalo: boolean; costo_unitario?: number }[];
   p_traslados: { transferencia_id: string; lineas: { variante_id: string; cantidad: number }[] }[];
   p_cierres: { compra_item_id: string; cantidad: number; motivo: string }[];
-  p_notas_credito: { compra_id: string; serie_numero: string; fecha: string; monto: number }[];
+  /** Siempre vacío desde 2026-09-19: la nota de crédito se registra en `/compras/notas-credito`, no acá.
+   *  Viaja igual porque `recibir_envio` sigue aceptando el parámetro (la base no se tocó). */
+  p_notas_credito: never[];
   p_numero_guia?: string;
   p_nota?: string;
   p_token: string;
@@ -384,6 +385,10 @@ export type PedidoEnvio = {
  * o en 0 no suma al stock. Un regalo nunca lleva costo; el costo de una prenda comprada fuera de
  * comprobante es opcional. De un traslado viajan TODAS sus líneas enviadas (contadas o no, aunque sea 0):
  * la base exige que ninguna quede sin decir qué pasó.
+ *
+ * Notas de crédito: ya NO viajan (2026-09-19). Recepción cuenta y decide; el documento del proveedor se
+ * reclama y se registra en `/compras/notas-credito`. `p_notas_credito` sigue en el pedido, siempre vacío,
+ * porque `recibir_envio` lo sigue aceptando y la base no se tocó.
  */
 export function armarPedidoEnvio(p: {
   ubicacionId: string;
@@ -392,7 +397,6 @@ export function armarPedidoEnvio(p: {
   extras: ExtraEnvio[];
   traslados: TrasladoAConfirmar[];
   cierres: CierreElegido[];
-  notas: NotaAEmitir[];
   numeroGuia: string;
   nota: string;
   token: string;
@@ -421,7 +425,7 @@ export function armarPedidoEnvio(p: {
     p_extras,
     p_traslados,
     p_cierres: p.cierres.map((c) => ({ compra_item_id: c.lineaId, cantidad: c.faltan, motivo: c.motivo })),
-    p_notas_credito: p.notas.map((n) => ({ compra_id: n.compraId, serie_numero: n.serie.trim().toUpperCase(), fecha: n.fecha, monto: n.monto })),
+    p_notas_credito: [],
     ...(p.numeroGuia.trim() ? { p_numero_guia: p.numeroGuia.trim() } : {}),
     ...(p.nota.trim() ? { p_nota: p.nota.trim() } : {}),
     p_token: p.token,

@@ -3,9 +3,9 @@ import type { CSSProperties } from "react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, type ParamsCompras } from "@/lib/compras";
-import { getResumenComprasExtra, getResumenRecepciones, listarRecepcionesCompras } from "@/lib/compras-indicadores";
-import { getComprasConNotaFaltante, getSaldosFavor } from "@/lib/saldo-favor";
+import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, filtrosDesdeParams, getProveedoresActivos, type ParamsCompras } from "@/lib/compras";
+import { getResumenRecepciones, listarRecepcionesCompras } from "@/lib/compras-indicadores";
+import { getComprasConNotaFaltante } from "@/lib/saldo-favor";
 import { hoyLima } from "@/lib/fechas-lima";
 import { filtrosRecibidasDesdeParams, hayFiltrosRecibidas, resultadoDesdeParam } from "@/lib/recibidas-filtros-reglas";
 import { getEnviosDeLotes, getTrasladosHaciaAca } from "@/lib/envio";
@@ -188,10 +188,6 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     getCatalogo(),
     getProveedoresActivos(),
   ]);
-  // Los indicadores. El líder los lee de los resúmenes de Compras (con dinero). Un colaborador NO: esas funciones ya le
-  // responden «Solo un líder puede ver …» (ADR-0126), así que para él ni se piden — se calculan de su propia lista,
-  // solo cantidades y fechas.
-  const [resumen, extra] = esLider ? await Promise.all([getResumenCompras(), getResumenComprasExtra()]) : [null, null];
   // Quien cuenta pero no es líder no ve dinero: la base ya no se lo entrega (ADR-0126) y, por si esa lectura cayera al
   // camino de antes (la app desplegada antes que la migración), aquí se vuelve a tachar: los montos no salen del servidor.
   const compras = esLider ? comprasCompletas : comprasCompletas.map(comprobanteSinMontos);
@@ -200,10 +196,9 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   const ubicacionesPermitidas = [{ id: ubicacionMirada, nombre: nombreMirada }];
 
   // Las líneas se traen solo para los comprobantes de ESTA página (≤ 50).
-  const [lineasCompletas, comprasConNotaFaltante, saldoFavorPorProveedor, trasladosPorUbicacion] = await Promise.all([
+  const [lineasCompletas, comprasConNotaFaltante, trasladosPorUbicacion] = await Promise.all([
     getLineasCompra(compras.map((c) => c.id), { sinMontos: !esLider, ubicacionId: ubicacionMirada }),
     esLider ? getComprasConNotaFaltante(compras.map((c) => c.id)) : Promise.resolve([] as string[]),
-    esLider ? getSaldosFavor(compras.map((c) => c.proveedorId)) : Promise.resolve({} as Record<string, number>),
     getTrasladosHaciaAca(ubicacionesPermitidas.map((u) => u.id)),
   ]);
   const lineas = esLider ? lineasCompletas : lineasCompletas.map(lineaSinCosto);
@@ -252,10 +247,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           ubicacionInicialId={ubicacionMirada}
           compraInicialId={compra ?? null}
           esLider={esLider}
-          igvMes={extra ? extra.igvMes : null}
-          porRecibirAtrasadas={resumen ? resumen.porRecibirAtrasadas : null}
           comprasConNotaFaltante={comprasConNotaFaltante}
-          saldoFavorPorProveedor={saldoFavorPorProveedor}
           trasladosPorUbicacion={trasladosPorUbicacion}
           resumen={
             <KpisRecibir

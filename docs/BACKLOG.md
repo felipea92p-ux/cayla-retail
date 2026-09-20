@@ -28,10 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Módulo «Notas de crédito» aparte de Recepción (2026-09-19) — spike listo, sin implementar
-- [x] Spike visual: `docs/maquetas/notas-credito-spike-2026-09/notas-credito-vivo.html` (+ README con el mapa pantalla → datos/RPC reales, lo que requiere migración y 5 decisiones D1–D5 con Ganas/Pagas). Verificado abriéndolo en el navegador; el movimiento en curso lo debe juzgar Felipe a ojo.
-- [ ] Decisiones de Felipe D1–D5 (README del spike). Recomendaciones: registrar la nota solo en el módulo; «reclamada» en segunda fase; «Aplicada» deducida por FIFO; urgencia a 14 días; adjunto ligado a la nota.
-- [ ] Implementar: ruta `/compras/notas-credito` (solo líder, ADR-0126); función de lectura del tablero (migración); sacar `NotaCreditoCierre` de `RecepcionEnvio` dejando un enlace; aviso: `recibir_envio` puede seguir aceptando `p_notas_credito`.
+## 🎯 Notas de crédito: módulo propio (2026-09-19, ADR-0140) — hecho en local, falta producción
+- [x] Módulo `/compras/notas-credito` (solo líder) con el diseño y el movimiento del spike `docs/maquetas/notas-credito-spike-2026-09/`: tablero, registro con buscador de facturas (documento, proveedor y monto), destino del dinero (devolver ahora / queda a favor, en una sola transacción), detalle y saldos a favor.
+- [x] Notas de crédito FUERA de Recepción (`RecepcionEnvio`, `EnvioRecibido`, `recibir/page.tsx`, `envio-reglas`) y fuera del detalle (`AccionesFaltantes`): queda el chip «Se reclama en Notas de crédito ↗». `recibir_envio` sigue aceptando `p_notas_credito`; la pantalla lo manda vacío.
+- [ ] **Pegar en producción `supabase/migrations/20260919211000_notas_credito_modulo.sql`** (una sola pegada, re-ejecutable) y RECIÉN DESPUÉS fusionar el código: la pantalla manda `p_destino`, que la función vieja no acepta. Luego `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
+- [ ] Fase 2 (D2): «reclamada al proveedor» (tabla `compra_nota_reclamos`) y el recordatorio a los 14 días. Decidido: primero usar el tablero una semana.
+- [ ] Subir el adjunto de la nota desde el módulo: `compra_adjuntos.nota_credito_id` ya existe y `registrar_adjunto_compra` lo acepta; falta el flujo de archivos en la pantalla.
+- [ ] Decidir si se borran las piezas que quedaron huérfanas: `components/NotaCreditoCierre.tsx` (nadie lo importa) y en `lib/recepciones-reglas.ts` `notaDelBloque`, `disponibilidadNota`, `efectoCierre`, `igvDeMonto`, `montoNotaSugerido`.
+- [ ] «Aplicada» se deduce por FIFO (D3): si algún día se quiere exacta, hay que guardar de qué nota salió cada uso del saldo — toca funciones que mueven dinero, por eso no se hizo.
 
 ## 🎯 Caja: «Ver todo», detalle de venta y reimpresión — ticket y A4 (2026-09-19, ADR-0137)
 
