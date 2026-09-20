@@ -28,6 +28,11 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Módulo «Notas de crédito» aparte de Recepción (2026-09-19) — spike listo, sin implementar
+- [x] Spike visual: `docs/maquetas/notas-credito-spike-2026-09/notas-credito-vivo.html` (+ README con el mapa pantalla → datos/RPC reales, lo que requiere migración y 5 decisiones D1–D5 con Ganas/Pagas). Verificado abriéndolo en el navegador; el movimiento en curso lo debe juzgar Felipe a ojo.
+- [ ] Decisiones de Felipe D1–D5 (README del spike). Recomendaciones: registrar la nota solo en el módulo; «reclamada» en segunda fase; «Aplicada» deducida por FIFO; urgencia a 14 días; adjunto ligado a la nota.
+- [ ] Implementar: ruta `/compras/notas-credito` (solo líder, ADR-0126); función de lectura del tablero (migración); sacar `NotaCreditoCierre` de `RecepcionEnvio` dejando un enlace; aviso: `recibir_envio` puede seguir aceptando `p_notas_credito`.
+
 ## 🎯 Caja: «Ver todo», detalle de venta y reimpresión — ticket y A4 (2026-09-19, ADR-0137)
 
 Felipe pidió que en «Movimientos recientes» hubiera un «Ver todo» y que una venta abriera su detalle
@@ -69,7 +74,10 @@ Plan completo en [`docs/PLAN-PRODUCCION.md`](PLAN-PRODUCCION.md); diseño de ref
       anuladas conservadas; `OrdenesProduccionV2.tsx` retirado. Sin esquema. **El formulario de nueva orden sigue pidiendo tela y avíos hasta
       F3** (quitarlos antes deja el costo falso). Verificado en navegador como líder; 1344 pruebas. **Pendiente:** colaborador del Taller;
       costos de `producciones` visibles al colaborador por la API (entra en D-G / F4e).
-- [ ] **F3 · Insumos:** pantalla, «Recibir insumo», consumo desde la orden (RPC ya en producción). Sin esquema.
+- [x] **F3 · Insumos (2026-09-20):** pantalla `/produccion/insumos` (saldo desde el ledger, lotes, libro), nuevo insumo, ingreso de lote, y descuento desde la orden con
+      vista previa. Sin esquema. Verificado en navegador como líder; 1415 pruebas. **Sin verificar:** colaborador del Taller. El ingreso no pide proveedor (F4a).
+- [ ] **F3b · Devolver insumos (esquema, una función):** `devolver_consumo_insumo` + `anular_produccion` que devuelva lo consumido. **Hoy ninguna función devuelve
+      insumos:** un consumo no se puede deshacer y anular una orden no devuelve la tela. Bloquea que el Taller adopte Insumos en producción.
 - [ ] **F4 · Abastecimiento propio de Producción (esquema, alto riesgo; ya NO espera a ADR-0138, el reparto entre tiendas):** 4a proveedores de Producción (`proveedores_produccion`,
       repunta `insumos`/`insumo_lotes`) · 4b comprobantes · 4c por pagar (requiere D-I) · 4d recibir insumos → lote · 4e candado del dinero.
       Cada uno con su prueba SQL; Compras no se modifica. Timestamps ≥ `20260919210000`; pega Felipe.

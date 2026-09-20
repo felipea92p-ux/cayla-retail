@@ -1,0 +1,1881 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Notas de crédito · spike visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Notas de crédito de compra (2026-09-19)
+   Módulo nuevo del grupo Compras: hermano de Por pagar y Comprobantes.
+   Tokens = los reales de apps/web/app/globals.css (los mismos del spike
+   de Por pagar). Sin gradientes, sin rebote, sin color nuevo: la
+   profundidad viene del TIEMPO. Los keyframes que ya existen en
+   producción conservan su nombre (cayla-entrada, cayla-hoja, cayla-velo,
+   cayla-revelar, cayla-asentar, cayla-hilo-barrido, cayla-brillo,
+   cayla-modal-entra/sale, cayla-cascada = ADR-0136); los gestos NUEVOS
+   llevan prefijo `nv-` (los aprobó ADR-0131 en Por pagar).
+   Datos inventados. «Hoy» fijo en 18/09 para que cuadre con Por pagar.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf6ec;
+  --taupe:#a47865;--taupe-p:#805c4c;--verde:#556e49;--verde-p:#44583a;--ambar:#8c631f;--ambar-p:#734f15;
+  --t75:rgba(26,26,24,.75);--t65:rgba(26,26,24,.65);--t55:rgba(26,26,24,.55);--t45:rgba(26,26,24,.45);
+  --t25:rgba(26,26,24,.25);--t15:rgba(26,26,24,.15);--t10:rgba(26,26,24,.10);--t04:rgba(26,26,24,.04);
+  --ease:cubic-bezier(.32,.72,.24,1);      /* --ease-cayla */
+  --ease-out:cubic-bezier(.4,0,1,1);       /* --ease-salida */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:inherit}
+a{color:inherit;text-decoration:none}
+[hidden]{display:none!important}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:400;letter-spacing:-.005em}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+.tab{font-variant-numeric:tabular-nums}
+.muted{color:var(--t65)}.m55{color:var(--t55)}.m45{color:var(--t45)}
+.rojo{color:var(--rojo)}.ambar{color:var(--ambar-p)}.verde{color:var(--verde-p)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+
+/* ---------- gramática de movimiento (reales) ---------- */
+@keyframes cayla-entrada{from{opacity:0;transform:translate3d(0,8px,0) scale(.985)}to{opacity:1;transform:none}}
+@keyframes cayla-hoja{from{opacity:0;transform:translate3d(0,24px,0)}to{opacity:1;transform:none}}
+@keyframes cayla-hoja-salida{from{opacity:1;transform:none}to{opacity:0;transform:translate3d(0,24px,0)}}
+@keyframes cayla-revelar{from{opacity:0;transform:translate3d(0,-3px,0)}to{opacity:1;transform:none}}
+@keyframes cayla-asentar{from{opacity:.35;transform:translate3d(0,4px,0)}to{opacity:1;transform:none}}
+@keyframes cayla-velo{from{opacity:0}to{opacity:1}}
+@keyframes cayla-hilo-barrido{0%{transform:translate3d(-100%,0,0)}100%{transform:translate3d(300%,0,0)}}
+@keyframes cayla-brillo{from{opacity:1;transform:translate3d(-120%,0,0) skewX(-12deg)}to{opacity:1;transform:translate3d(320%,0,0) skewX(-12deg)}}
+/* REGLA DE MODALES (ADR-0136): velo → hoja que sube 18 px y crece → cascada → salida corta */
+@keyframes cayla-modal-entra{from{opacity:0;transform:translate3d(0,18px,0) scale(.965)}to{opacity:1;transform:none}}
+@keyframes cayla-modal-sale{from{opacity:1;transform:none}to{opacity:0;transform:translate3d(0,10px,0) scale(.98)}}
+@keyframes cayla-cascada{from{opacity:0;transform:translate3d(0,10px,0)}}
+/* gestos ya aprobados en Por pagar / Proveedores (ADR-0128, ADR-0131) */
+@keyframes nv-trazo{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes nv-crece-x{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes nv-crece-y{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes nv-destello{0%{background:rgba(85,110,73,.20)}100%{background:transparent}}
+@keyframes nv-pulso{0%{transform:scale(1);opacity:.5}100%{transform:scale(2.6);opacity:0}}
+@keyframes nv-progreso{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@keyframes nv-pop{40%{transform:scale(1.16)}}
+
+/* La entrada: todo lo que llega sube 8 px y se asienta (≤ 450 ms, ≤ 40 ms de desfase). Una sola vez. */
+.e{animation:none}
+body.entra .e{animation:cayla-entrada 420ms var(--ease) backwards;animation-delay:calc(var(--i,0)*38ms)}
+.aparece{animation:cayla-entrada 320ms var(--ease) backwards}
+.asentar{animation:cayla-asentar 320ms var(--ease) both}
+.revelar{animation:cayla-revelar 240ms var(--ease) both}
+.vista.entra-v{animation:cayla-entrada 360ms var(--ease) backwards}
+
+/* movimiento reducido: mismo estado final, sin viaje (igual que producción) */
+html.reducir *,html.reducir *::before,html.reducir *::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important;scroll-behavior:auto!important}
+}
+
+/* ---------- marco ---------- */
+.top{position:sticky;top:0;z-index:30;height:56px;display:flex;align-items:center;gap:14px;padding:0 32px;background:rgba(245,240,232,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--t10)}
+.top img{height:26px}.top .marca{font-size:13px;letter-spacing:.26em;font-weight:600}
+.top .mig{margin-left:18px;color:var(--t55);font-size:13px;display:flex;gap:8px;align-items:center}
+.top .mig b{font-weight:500;color:var(--tinta)}
+.hilo{position:absolute;left:0;right:0;bottom:-1px;height:1px;overflow:hidden;pointer-events:none}
+.hilo::after{content:"";position:absolute;inset:0 auto 0 0;width:34%;background:var(--rojo);opacity:0;transform:translateX(-100%)}
+.hilo.trab::after{opacity:1;animation:cayla-hilo-barrido 1.1s var(--ease) infinite}
+.spike{margin:14px auto 0;max-width:1360px;padding:0 40px}
+.spike>div{border:1px dashed var(--t25);border-radius:12px;padding:9px 14px;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;color:var(--t65);font-size:12px}
+.spike .lbl{font-size:10.5px;color:var(--t65);margin-right:4px}
+.spike button{border:1px solid var(--t25);border-radius:8px;padding:5px 11px;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t75);transition:border-color 200ms,color 200ms,background 200ms}
+.spike button:hover{border-color:var(--rojo);color:var(--rojo)}
+.spike button[aria-pressed=true]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.spike .guion{flex-basis:100%;color:var(--t55);font-size:12px}
+.spike .guion b{font-weight:600;color:var(--t75)}
+.cont{max-width:1360px;margin:0 auto;padding:26px 40px 130px}
+
+/* «Requiere migración»: lo que el diseño pide y la base todavía no tiene (se enciende desde la barra del spike) */
+body.ver-mig [data-mig]{outline:1.5px dashed var(--ambar);outline-offset:3px;border-radius:6px;position:relative}
+body.ver-mig [data-mig]::before{content:"Requiere migración";position:absolute;top:-9px;right:6px;z-index:6;background:var(--ambar-p);color:var(--crema);font:600 9px 'DM Sans';letter-spacing:.11em;text-transform:uppercase;padding:2px 7px;border-radius:99px;pointer-events:none;white-space:nowrap;animation:cayla-revelar 240ms var(--ease) both}
+
+body.ver-mig .btn[data-mig]{overflow:visible}
+/* ---------- piezas ---------- */
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:8px;padding:12px 16px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;white-space:nowrap;transition:background 220ms,border-color 220ms,color 220ms,transform 160ms var(--ease)}
+.btn:active{transform:translateY(1px)}
+.btn.pri{background:var(--tinta);color:var(--crema)}
+.btn.pri .brillo{position:absolute;top:0;bottom:0;left:0;width:34%;background:rgba(245,240,232,.22);opacity:0;pointer-events:none}
+.btn.pri:hover .brillo{animation:cayla-brillo 600ms var(--ease) both}
+.btn.dis{border:1px solid rgba(26,26,24,.2);color:var(--t75)}
+.btn.dis:hover{border-color:var(--rojo);color:var(--rojo)}
+.btn.s{padding:7px 12px}
+.btn[disabled]{background:rgba(26,26,24,.3);color:var(--crema);cursor:not-allowed;border-color:transparent}
+.btn.dis[disabled]{background:transparent;border:1px dashed var(--t25);color:var(--t45)}
+.btn.trab::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:34%;background:var(--crema);animation:cayla-hilo-barrido 900ms var(--ease) infinite}
+.chip{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;border-radius:999px;border:1px solid;padding:2px 10px;font-size:10px;line-height:16px;text-transform:uppercase;letter-spacing:.13em;font-weight:600}
+.chip.neutro{border-color:var(--t15);background:var(--t04);color:var(--t75)}
+.chip.ambar{border-color:rgba(140,99,31,.3);background:rgba(140,99,31,.10);color:var(--ambar-p)}
+.chip.verde{border-color:rgba(85,110,73,.45);background:rgba(85,110,73,.10);color:var(--verde-p)}
+.chip.rojo{border-color:rgba(184,65,45,.3);background:rgba(184,65,45,.10);color:var(--rojo-p)}
+.chip.enlace{cursor:pointer;transition:border-color 200ms,background 200ms}
+.chip.enlace:hover{border-color:var(--ambar);background:rgba(140,99,31,.16)}
+.mono{width:34px;height:34px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:16px;flex:none;color:var(--tinta)}
+.mono.s{width:26px;height:26px;font-size:13px}
+.dot{position:relative;width:6px;height:6px;border-radius:50%;background:var(--t25);flex:none;display:inline-block}
+.dot.ambar{background:var(--ambar)}.dot.verde{background:var(--verde)}.dot.rojo{background:var(--rojo)}
+/* el punto que late: SOLO en lo urgente (una excepción de la regla, ADR-0136) */
+.dot.pulsa::after{content:"";position:absolute;inset:0;border-radius:50%;background:inherit;animation:nv-pulso 2s var(--ease) 1.4s 2 backwards}
+.link{color:var(--rojo);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;white-space:nowrap}
+.link:hover{text-decoration:underline;text-underline-offset:4px}
+.link .fl{display:inline-block;transition:transform 260ms var(--ease)}
+.link:hover .fl{transform:translateX(4px)}
+kbd{font:600 10.5px 'DM Sans';border:1px solid var(--t15);border-radius:5px;padding:1px 6px;color:var(--t55)}
+
+/* ---------- cabecera + cifras ---------- */
+.cab{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px 24px}
+h1.t{font-family:'EB Garamond',serif;font-size:28px;font-weight:500;margin-top:4px;line-height:1.15}
+.bajada{color:var(--t65);margin-top:5px;max-width:680px}
+.modseg{margin-top:18px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:20px}
+.kpi{padding:16px;position:relative;overflow:hidden;transition:border-color 240ms var(--ease),transform 260ms var(--ease);display:block;width:100%;text-align:left}
+.kpi.clic{cursor:pointer}
+.kpi.clic:hover{border-color:var(--t25);transform:translateY(-2px)}
+.kpi .row{display:flex;align-items:center;gap:7px}
+.kpi .lbl{color:var(--t65)}
+.kpi .n{font-family:'EB Garamond',serif;font-size:29px;line-height:1.15;margin-top:5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpi .n.ambar{color:var(--ambar-p)}.kpi .n.verde{color:var(--verde-p)}
+.kpi .d{font-size:12px;margin-top:3px;color:var(--t65)}
+.kpi .d .fl{display:inline-block;transition:transform 260ms var(--ease)}
+.kpi.clic:hover .d .fl{transform:translateX(4px)}
+.kpi.acento::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:2px;background:var(--rojo);border-radius:2px;transform-origin:top;animation:nv-crece-y 700ms var(--ease) 500ms backwards}
+/* la barra ES el dato, y conversa con la lista */
+.conc{display:flex;gap:3px;height:8px;margin-top:11px}
+.conc button,.conc span{height:100%;border-radius:3px;transform-origin:left;transition:flex-grow 700ms var(--ease),opacity 200ms,transform 200ms var(--ease);min-width:4px;flex:1 1 0}
+body.entra .conc>*{animation:nv-crece-x 620ms var(--ease) backwards;animation-delay:calc(360ms + var(--i)*90ms)}
+.conc button:hover,.conc button:focus-visible{transform:scaleY(1.7)}
+.conc.hay>*:not(.on){opacity:.35}
+
+/* ---------- herramientas + filtros ---------- */
+.tools{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin-top:22px}
+.busca{position:relative;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--t25);padding:7px 2px;color:var(--t45);flex:1;min-width:15rem}
+.busca::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--rojo);transform:scaleX(0);transform-origin:left;transition:transform 320ms var(--ease)}
+.busca:focus-within::after{transform:scaleX(1)}
+.busca input{flex:1;min-width:0;background:none;border:0;outline:none;font:inherit;font-size:14px;color:var(--tinta);height:26px}
+.busca input::placeholder{color:var(--t45)}
+.busca kbd{transition:opacity 200ms}
+.busca:focus-within kbd,.busca.lleno kbd{opacity:0}
+.busca .x{display:none;padding:2px;border-radius:50%;color:var(--t55)}.busca.lleno .x{display:grid}
+.busca .x:hover{color:var(--rojo)}
+mark{background:rgba(184,65,45,.14);color:inherit;border-radius:3px;padding:0 1px;animation:cayla-revelar 200ms var(--ease) both}
+.seg{position:relative;display:inline-flex;max-width:100%;overflow-x:auto;border:1px solid var(--t15);border-radius:8px;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg .th{position:absolute;top:0;bottom:0;left:0;background:var(--tinta);border-radius:7px;transition:transform 340ms var(--ease),width 340ms var(--ease);z-index:0}
+.seg button{position:relative;z-index:1;flex:none;white-space:nowrap;padding:9px 14px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65);transition:color 260ms;display:inline-flex;align-items:center;gap:8px}
+.seg button:hover{color:var(--rojo)}
+.seg button.on,.seg button[aria-selected=true],.seg button[aria-checked=true]{color:var(--crema)}
+.seg button i{font-style:normal;font-weight:500;letter-spacing:0;opacity:.72;font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+.fchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--t25);border-radius:999px;padding:4px 6px 4px 12px;font-size:12.5px;animation:cayla-entrada 260ms var(--ease) backwards;transition:border-color 200ms}
+.fchip:hover{border-color:var(--rojo)}
+.fchip button{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;color:var(--t55);transition:background 200ms,color 200ms}
+.fchip button:hover{background:var(--tinta);color:var(--crema)}
+.fchip button svg{width:11px;height:11px}
+.chips .limpia{font-size:12px;color:var(--t65);text-decoration:underline;text-underline-offset:4px;margin-left:4px}
+.chips .limpia:hover{color:var(--rojo)}
+.resumen{margin-top:14px;font-size:12.5px;color:var(--t65);display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline}
+.resumen b{font-weight:600;color:var(--tinta);font-variant-numeric:tabular-nums}
+
+/* ---------- lista ---------- */
+.tbl{margin-top:8px;overflow:hidden;position:relative;--cols:minmax(0,1fr) 9.5rem 9.5rem 8.5rem 10rem 9.5rem}
+.th-row,.fila{display:grid;grid-template-columns:var(--cols);column-gap:16px;align-items:center;padding:0 20px}
+.th-row{padding-top:9px;padding-bottom:9px;border-bottom:1px solid var(--t10)}
+.th-row span{color:var(--t55);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;white-space:nowrap}
+.th-row .der{text-align:right}
+.band{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:8px 20px;font-size:14px}
+.band .lbl{font-size:11px;display:flex;align-items:center;gap:10px}
+.band .lbl i{font-style:normal;opacity:.7;font-weight:600}
+.band.rojo{background:rgba(184,65,45,.05);color:var(--rojo)}
+.band.ambar{background:rgba(140,99,31,.08);color:var(--ambar-p)}
+.band.verde{background:rgba(85,110,73,.07);color:var(--verde-p)}
+.band.neutro{background:rgba(26,26,24,.03);color:var(--t65)}
+.band .tot{font-variant-numeric:tabular-nums;white-space:nowrap}
+.fila{position:relative;padding-top:12px;padding-bottom:12px;border-top:1px solid var(--t10);cursor:pointer;transition:background 220ms,opacity 260ms}
+.band+.fila{border-top:0}
+.fila::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:2px;border-radius:2px;background:var(--rojo);transform:scaleY(0);transition:transform 280ms var(--ease)}
+.fila:hover,.fila.cur,.fila.sel{background:var(--t04)}
+.fila:hover::before,.fila.cur::before,.fila.sel::before,.fila:focus-visible::before{transform:scaleY(1)}
+.fila:focus-visible{outline:none;background:var(--t04)}
+.fila.nueva{animation:nv-destello 2400ms var(--ease) both}
+.fila .a{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fila .b{display:block;font-size:12px;color:var(--t55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fila .a .doc{margin-left:4px;font-size:12px;font-variant-numeric:tabular-nums;color:var(--t65)}
+.fila .der{text-align:right;font-variant-numeric:tabular-nums}
+.fila .prov{min-width:0}
+.fila .monto{display:block;font-family:'EB Garamond',serif;font-size:18px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fila .b.fav{color:var(--verde-p)}
+.fila .vm{display:none}
+.pbar{display:block;height:3px;border-radius:99px;background:var(--sand);margin-top:5px;overflow:hidden;width:5.5rem;margin-left:auto}
+.pbar i{display:block;height:100%;border-radius:99px;transform-origin:left;transform:scaleX(var(--p,0));background:var(--verde)}
+body.entra .pbar i{animation:nv-crece-x 700ms var(--ease) backwards;animation-delay:calc(420ms + var(--i,0)*38ms)}
+.acc{display:flex;justify-content:flex-end;align-items:center;gap:8px}
+.fila .ir{color:var(--t45);opacity:0;transform:translateX(-6px);transition:opacity 220ms,transform 280ms var(--ease)}
+.fila:hover .ir{opacity:1;transform:none}
+.vacio{padding:44px 20px;text-align:center}
+.vacio p{font-family:'EB Garamond',serif;font-style:italic;font-size:19px;color:var(--t65)}
+.vacio small{display:block;margin-top:4px;font-size:13px;color:var(--t55);max-width:460px;margin-inline:auto}
+.vacio button.lk{margin-top:10px;color:var(--rojo);font-size:13px}
+.vacio button.lk:hover{text-decoration:underline}
+.vacio .okc{width:54px;height:54px;margin:0 auto 10px;display:block}
+.vacio .okc circle,.vacio .okc path{fill:none;stroke:var(--verde);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;animation:nv-trazo 900ms var(--ease) both}
+.vacio .okc path{animation-delay:500ms;animation-duration:500ms}
+.atajos-txt{margin-top:12px;font-size:12px;color:var(--t55);display:flex;flex-wrap:wrap;gap:6px 16px}
+.atajos-txt span{display:inline-flex;align-items:center;gap:6px}
+
+/* ---------- vista rápida (cajón) ---------- */
+.velo{position:fixed;inset:0;background:rgba(26,26,24,.22);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity 220ms var(--ease-out);z-index:40}
+.velo.on{opacity:1;pointer-events:auto;transition-timing-function:var(--ease);transition-duration:300ms}
+.cajon{position:fixed;top:0;right:0;bottom:0;width:min(452px,100vw);background:var(--papel);border-left:1px solid var(--sand);z-index:50;transform:translateX(102%);transition:transform 240ms var(--ease-out);display:flex;flex-direction:column;visibility:hidden}
+.cajon.on{transform:none;transition-duration:380ms;transition-timing-function:var(--ease);visibility:visible}
+.cajon>.asentar{display:flex;flex-direction:column;height:100%;min-height:0}
+.cajon .hd{padding:20px 24px 16px;border-bottom:1px solid var(--t10);display:flex;gap:14px;align-items:flex-start}
+.cajon .hd h2{font-family:'EB Garamond',serif;font-size:23px;font-weight:500;line-height:1.15}
+.cierra{margin-left:auto;padding:6px;border-radius:50%;color:var(--t55);transition:color 200ms,background 200ms}
+.cierra:hover{color:var(--rojo);background:var(--t04)}
+.cajon .cu{flex:1;overflow-y:auto;padding:20px 24px 24px}
+.cajon .ft{padding:14px 24px;border-top:1px solid var(--t10);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.cajon .nav{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--t55);font-size:12px}
+.cajon .nav button{padding:5px;border:1px solid var(--t15);border-radius:7px;transition:border-color 200ms,color 200ms}
+.cajon .nav button:hover{border-color:var(--rojo);color:var(--rojo)}
+.big{font-family:'EB Garamond',serif;font-size:40px;line-height:1.1;font-variant-numeric:tabular-nums}
+.mini3{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--sand);border-radius:12px;overflow:hidden}
+.mini3>div{padding:12px 14px;min-width:0}.mini3>div+div{border-left:1px solid var(--sand)}
+.mini3 .n{font-family:'EB Garamond',serif;font-size:20px;line-height:1.2;margin-top:2px;font-variant-numeric:tabular-nums}
+.mini3 .n.verde{color:var(--verde-p)}
+.mini3 .k{font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t55)}
+.mini3 .s{font-size:11.5px;color:var(--t55)}
+.vida{margin-top:22px}
+.vida svg{width:100%;height:auto;display:block;overflow:visible}
+.vida .pista{stroke:var(--t15);stroke-width:2;stroke-linecap:round}
+.vida .avance{stroke:var(--tinta);stroke-width:2;stroke-linecap:round;stroke-dasharray:1;animation:nv-trazo 900ms var(--ease) 250ms backwards}
+.vida .pt{fill:var(--papel);stroke:var(--t45);stroke-width:1.8}
+.vida .pt.h{fill:var(--tinta);stroke:var(--tinta)}
+.vida .pt.n{stroke:var(--rojo)}
+.vida .pt,.vida .lab{animation:cayla-velo 300ms var(--ease) backwards}
+.vida text{font:500 10.5px 'DM Sans';fill:var(--t65);letter-spacing:.02em;text-anchor:middle}
+.vida text.f{fill:var(--tinta);font-weight:600}
+.vida text.s{fill:var(--t45);font-size:10px}
+.sug{margin-top:18px;border:1px solid var(--sand);border-left:2px solid var(--rojo);border-radius:12px;padding:12px 14px;font-size:13.5px;animation:cayla-revelar 260ms var(--ease) backwards}
+.sug.ok{border-left-color:var(--verde)}.sug.am{border-left-color:var(--ambar)}.sug.ne{border-left-color:var(--t45)}
+.sug b{font-weight:600}
+h3.sec{margin:22px 0 6px;color:var(--t65)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13.5px;margin-top:6px}
+.kv dt{color:var(--t55)}.kv dd{text-align:right;font-variant-numeric:tabular-nums}
+.lin-mini{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:8px 0;border-top:1px solid var(--t10);font-size:13px}
+.lin-mini .s{color:var(--t55);font-size:12px}
+
+/* ---------- MODAL (ADR-0136) ---------- */
+.mv{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(26,26,24,.35);backdrop-filter:blur(2px)}
+.mv.on{display:flex;animation:cayla-velo 220ms var(--ease) both}
+.mv.sal{animation:cayla-velo 200ms var(--ease-out) reverse both}
+.modal{width:min(720px,100%);max-height:calc(100dvh - 48px);overflow:auto;overscroll-behavior:contain;background:var(--papel);border:1px solid var(--sand);border-radius:16px;position:relative;animation:cayla-modal-entra 420ms var(--ease) both}
+.mv.sal .modal{animation:cayla-modal-sale 220ms var(--ease-out) both}
+.modal.ancho{width:min(820px,100%)}
+/* la cascada del contenido: cada pieza sube 10 px y aparece, 55 ms de desfase, 120 ms después de la hoja */
+.cascada>:not(form):not([data-sin-cascada]){animation:cayla-cascada 500ms var(--ease) backwards;animation-delay:calc(var(--k,0)*55ms + 120ms)}
+.cascada>form>:not([data-sin-cascada]){animation:cayla-cascada 500ms var(--ease) backwards;animation-delay:calc((var(--k,0) + 2)*55ms + 120ms)}
+.cascada>:nth-child(1),.cascada>form>:nth-child(1){--k:0}
+.cascada>:nth-child(2),.cascada>form>:nth-child(2){--k:1}
+.cascada>:nth-child(3),.cascada>form>:nth-child(3){--k:2}
+.cascada>:nth-child(4),.cascada>form>:nth-child(4){--k:3}
+.cascada>:nth-child(5),.cascada>form>:nth-child(5){--k:4}
+.cascada>:nth-child(6),.cascada>form>:nth-child(6){--k:5}
+.cascada>:nth-child(7),.cascada>form>:nth-child(7){--k:6}
+.cascada>:nth-child(n+8),.cascada>form>:nth-child(n+8){--k:7}
+.modal .hd{padding:22px 26px 4px;display:flex;align-items:flex-start;gap:14px}
+.modal .hd h2{font-family:'EB Garamond',serif;font-size:28px;font-weight:500;line-height:1.15}
+.modal .hd .sup{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:6px}
+.modal .baj{padding:0 26px 6px;color:var(--t65);font-size:14px}
+.modal .sc{padding:14px 26px 4px}
+.modal .sc>.lbl{color:var(--t65);display:block;margin-bottom:8px}
+.modal .ft{padding:14px 26px;border-top:1px solid var(--t10);display:flex;flex-wrap:wrap;gap:10px 12px;justify-content:flex-end;align-items:center;margin-top:12px;position:sticky;bottom:0;background:var(--papel)}
+.modal .ft p{flex:1 1 200px;font-size:12px;color:var(--t55)}
+/* campos */
+.campos{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:18px 20px}
+.campo .lbl{color:var(--t65);font-size:11px}
+.campo .v{position:relative;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--t25);margin-top:4px;padding:6px 2px}
+.campo .v::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--rojo);transform:scaleX(0);transform-origin:left;transition:transform 320ms var(--ease)}
+.campo .v:focus-within::after{transform:scaleX(1)}
+.campo.mal .v{border-bottom-color:var(--rojo)}
+.campo input,.campo select{flex:1;min-width:0;background:none;border:0;outline:none;font:inherit;font-size:14.5px;height:26px;color:var(--tinta);appearance:none;-webkit-appearance:none;border-radius:0}
+.campo select{cursor:pointer;padding-right:18px}
+.campo .v.sel::before{content:"";position:absolute;right:4px;top:50%;width:7px;height:7px;border-right:1.5px solid var(--t55);border-bottom:1.5px solid var(--t55);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.campo .pre{color:var(--t55);font-size:14px}
+.campo.num input{font-variant-numeric:tabular-nums}
+.campo .pie{font-size:12px;color:var(--t55);margin-top:5px;min-height:18px}
+.campo .err{font-size:12px;color:var(--rojo);margin-top:5px;animation:cayla-revelar 220ms var(--ease) both}
+.campo.c2{grid-column:span 2}.campo.c3{grid-column:1 / -1}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{border:1px solid var(--t15);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--t75);transition:border-color 200ms,color 200ms,background 200ms}
+.pill:hover:not([disabled]){border-color:var(--rojo);color:var(--rojo)}
+.pill.on,.pill[aria-checked=true]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.pill[disabled]{opacity:.4;cursor:not-allowed}
+.nota-p{font-size:12px;color:var(--t65);margin-top:8px;line-height:1.45}
+.precarga{display:flex;align-items:center;gap:12px;border:1px solid rgba(140,99,31,.35);background:rgba(140,99,31,.06);border-radius:12px;padding:11px 14px}
+.precarga .tx{min-width:0;flex:1}
+.precarga .tx b{font-weight:600;display:block}
+.precarga .tx span{font-size:12px;color:var(--t65)}
+.caja-pasos{display:grid;grid-template-columns:1fr 1fr;gap:18px 20px}
+/* adjunto */
+.drop{display:flex;align-items:center;gap:14px;border:1px dashed var(--t25);border-radius:12px;padding:12px 14px;color:var(--t65);transition:border-color 220ms,background 220ms;width:100%;text-align:left}
+.drop:hover{border-color:var(--rojo);background:var(--t04)}
+.drop .ico{width:38px;height:46px;border:1.5px solid var(--t25);border-radius:5px;display:grid;place-items:center;color:var(--t55);flex:none;background:var(--papel);position:relative}
+.drop .ico::after{content:"";position:absolute;top:-1.5px;right:-1.5px;width:9px;height:9px;background:var(--papel);border-left:1.5px solid var(--t25);border-bottom:1.5px solid var(--t25)}
+.drop.hay{border-style:solid;border-color:rgba(85,110,73,.5);background:rgba(85,110,73,.05);color:var(--tinta)}
+.drop.hay .ico{border-color:var(--verde);color:var(--verde-p)}
+.drop b{font-weight:600;display:block;font-size:13.5px}.drop span{font-size:12px;color:var(--t55)}
+.drop .tick path{stroke-dasharray:1;stroke-dashoffset:1}
+.drop.hay .tick path{animation:nv-trazo 320ms var(--ease) both}
+/* EFECTO: lo que la nota le hace a las cuentas */
+.efecto{border:1px solid var(--sand);background:rgba(232,224,208,.35);border-radius:12px;padding:14px 16px}
+.efecto .fr{font-size:14px;line-height:1.5}
+.efecto .fr b{font-weight:600}
+.ef-rep{margin-top:12px}
+.ef-barra{display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--sand)}
+.ef-barra i{display:block;height:100%;transition:width 600ms var(--ease)}
+.ef-barra i.baja{background:var(--tinta)}.ef-barra i.fav{background:var(--verde)}
+.ef-leg{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:7px;font-size:12px;color:var(--t65)}
+.ef-leg .sq{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.ef-leg b{font-weight:600;color:var(--tinta);font-variant-numeric:tabular-nums}
+.ef-filas{margin-top:12px;border-top:1px solid var(--t10)}
+.ef-fila{display:grid;grid-template-columns:1fr auto auto auto;gap:0 12px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--t10);font-size:13.5px}
+.ef-fila:last-child{border-bottom:0;padding-bottom:0}
+.ef-fila .a{color:var(--t55);font-variant-numeric:tabular-nums}
+.ef-fila .d{font-weight:600;font-variant-numeric:tabular-nums}
+.ef-fila .fl{color:var(--t45);align-self:center}
+.ef-fila.rv{animation:cayla-revelar 240ms var(--ease) both}
+.ef-mal{border:1px solid rgba(184,65,45,.4);background:rgba(184,65,45,.06);border-left:2px solid var(--rojo);border-radius:12px;padding:13px 16px;font-size:14px;animation:cayla-revelar 240ms var(--ease) both}
+.ef-mal b{font-weight:600;color:var(--rojo-p);display:block;margin-bottom:2px}
+.ef-mal button{margin-top:8px;color:var(--rojo);font-size:13px;text-decoration:underline;text-underline-offset:3px}
+.ef-nada{border:1px dashed var(--t25);border-radius:12px;padding:12px 16px;font-size:13px;color:var(--t55)}
+/* línea de tiempo vertical */
+.tl{display:grid}
+.paso{position:relative;display:grid;grid-template-columns:22px 1fr auto;gap:0 12px;padding-bottom:16px}
+.paso:last-child{padding-bottom:0}
+.paso .nodo{width:14px;height:14px;border-radius:50%;border:1.6px solid var(--t45);background:var(--papel);margin-top:3px;position:relative;z-index:1}
+.paso.hecho .nodo{background:var(--tinta);border-color:var(--tinta)}
+.paso.ahora .nodo{border-color:var(--rojo)}
+.paso:not(:last-child)::after{content:"";position:absolute;left:6.4px;top:19px;bottom:-3px;width:1.6px;background:var(--t15)}
+.paso.hecho.sigue::after{background:var(--tinta);transform-origin:top;animation:nv-crece-y 520ms var(--ease) backwards;animation-delay:calc(var(--i,0)*150ms + 300ms)}
+.paso .t{font-size:14px}.paso .t b{font-weight:600}
+.paso .s{display:block;font-size:12px;color:var(--t55)}
+.paso .f{font-size:12px;color:var(--t55);font-variant-numeric:tabular-nums;white-space:nowrap}
+.paso.pend .t{color:var(--t55)}
+/* tabla de líneas (prendas que originan la nota) */
+.lineas{border:1px solid var(--sand);border-radius:12px;overflow:hidden}
+.lineas .lh,.lineas .lf{display:grid;grid-template-columns:minmax(0,1fr) 3.4rem 6rem 6.5rem;gap:0 12px;padding:8px 14px;align-items:baseline}
+.lineas .lh{border-bottom:1px solid var(--t10);background:rgba(232,224,208,.3)}
+.lineas .lh span{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t55)}
+.lineas .lh .d,.lineas .li .d,.lineas .lf .d{text-align:right;font-variant-numeric:tabular-nums}
+.lineas .li{display:grid;grid-template-columns:minmax(0,1fr) 3.4rem 6rem 6.5rem;gap:0 12px;padding:9px 14px;border-top:1px solid var(--t10);align-items:baseline;font-size:13.5px}
+.lineas .lh+.li{border-top:0}
+.lineas .li .s{display:block;font-size:12px;color:var(--t55)}
+.lineas .lf{border-top:1px solid var(--t10);font-size:13px;color:var(--t65);padding-top:6px;padding-bottom:6px}
+.lineas .lf.tt{font-weight:600;color:var(--tinta);background:var(--t04)}
+.lineas .lf span:first-child{grid-column:1 / 4}
+/* comprobante de origen */
+.origen{display:flex;align-items:center;gap:14px;border:1px solid var(--sand);border-radius:12px;padding:12px 14px;flex-wrap:wrap}
+.origen .tx{flex:1 1 220px;min-width:0}
+.origen .tx b{font-weight:600;font-variant-numeric:tabular-nums}
+.origen .tx>span:not(.chip){display:block;font-size:12px;color:var(--t65)}
+.origen .nums{display:flex;gap:18px;font-size:12px;color:var(--t55)}
+.origen .nums b{display:block;font-family:'EB Garamond',serif;font-size:17px;color:var(--tinta);font-weight:400;font-variant-numeric:tabular-nums}
+/* qué pasó con el dinero */
+.dinero{display:grid;gap:12px}
+.dn{display:grid;grid-template-columns:1fr auto;gap:2px 14px;align-items:baseline}
+.dn .r{font-size:13.5px}.dn .m{font-variant-numeric:tabular-nums;font-weight:600}
+.dn .bar{grid-column:1 / -1;height:5px;border-radius:99px;background:var(--sand);overflow:hidden;margin-top:3px}
+.dn .bar i{display:block;height:100%;border-radius:99px;transform-origin:left;transition:width 700ms var(--ease);animation:nv-crece-x 800ms var(--ease) 500ms backwards}
+.dn .bar i.t{background:var(--tinta)}.dn .bar i.v{background:var(--verde)}
+.hist{border-top:1px solid var(--t10)}
+.hist .li{display:grid;grid-template-columns:4.4rem 1fr auto;gap:12px;padding:9px 0;border-bottom:1px solid var(--t10);font-size:13px;align-items:baseline}
+.hist .li .t{color:var(--t55);font-variant-numeric:tabular-nums}
+.hist .li .s{display:block;color:var(--t55);font-size:12px}
+.hist .li .m{font-variant-numeric:tabular-nums}
+.hist .li .m.v{color:var(--verde-p)}
+.msg-prov{border:1px dashed var(--t25);border-radius:12px;padding:11px 14px;font-size:13px;color:var(--t75);white-space:pre-line;line-height:1.5}
+.cp{position:relative;display:inline-flex;align-items:center;gap:6px;color:var(--t55);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;padding:4px 8px;border-radius:6px;transition:color 200ms,background 200ms}
+.cp:hover{color:var(--rojo)}
+.cp.hecho{color:var(--verde-p);background:rgba(85,110,73,.10)}
+.cp .tick path{stroke-dasharray:1;stroke-dashoffset:1}
+.cp.hecho .tick path{animation:nv-trazo 300ms var(--ease) both}
+/* switch */
+.sw{position:relative;width:40px;height:23px;border-radius:999px;background:var(--t25);flex:none;transition:background 260ms var(--ease)}
+.sw::after{content:"";position:absolute;left:3px;top:3px;width:17px;height:17px;border-radius:50%;background:var(--crema);transition:transform 300ms var(--ease)}
+.sw[aria-checked=true]{background:var(--tinta)}
+.sw[aria-checked=true]::after{transform:translateX(17px)}
+.swrow{display:flex;align-items:center;gap:14px}
+.swrow b{font-weight:600;display:block}.swrow span{font-size:12px;color:var(--t65)}
+/* éxito */
+.okv{padding:34px 26px 26px;text-align:center;animation:cayla-asentar 320ms var(--ease) both}
+.okv svg.grande{width:64px;height:64px;display:block;margin:0 auto 12px}
+.okv svg.grande circle,.okv svg.grande path{fill:none;stroke:var(--verde);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;animation:nv-trazo 800ms var(--ease) both}
+.okv svg.grande path{animation-delay:450ms;animation-duration:450ms}
+.okv h2{font-family:'EB Garamond',serif;font-size:28px;font-weight:500}
+.okv p{color:var(--t65);margin-top:4px}
+.okv ul{list-style:none;margin:18px auto 0;max-width:420px;text-align:left}
+.okv li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--t10);font-size:13.5px;animation:cayla-revelar 260ms var(--ease) backwards;animation-delay:calc(900ms + var(--i)*90ms)}
+.okv li .cero{display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums;font-weight:600}
+.okv .acciones{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+
+/* ---------- saldos a favor ---------- */
+.fav-res{padding:18px 20px;margin-top:20px}
+.fav-res .cifra{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px}
+.regla{display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:13px;color:var(--t65);border-top:1px solid var(--t10);padding-top:12px}
+.regla svg{margin-top:2px;color:var(--verde-p)}
+.provs{display:grid;gap:12px;margin-top:12px}
+.pv{padding:0;overflow:hidden;position:relative}
+.pv .ar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px;padding:16px 20px}
+.pv .who{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 300px}
+.pv .who .nm{font-size:15px}
+.pv .who .sb{font-size:12px;color:var(--t65)}
+.pv .pista{height:5px;border-radius:99px;background:var(--sand);margin-top:8px;max-width:340px;overflow:hidden}
+.pv .pista i{display:block;height:100%;background:var(--verde);border-radius:99px;transform-origin:left;transition:width 700ms var(--ease)}
+body.entra .pv .pista i{animation:nv-crece-x 800ms var(--ease) 500ms backwards}
+.pv .der{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.pv .sal{font-family:'EB Garamond',serif;font-size:26px;color:var(--verde-p);font-variant-numeric:tabular-nums}
+.pv .btns{display:flex;gap:8px;flex-wrap:wrap}
+.pv .sug-r{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--t65);padding:0 20px 14px;margin-top:-6px}
+.pv .exp{display:flex;align-items:center;gap:8px;width:100%;padding:9px 20px;border-top:1px solid var(--t10);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65);transition:color 200ms,background 200ms}
+.pv .exp:hover{color:var(--rojo);background:var(--t04)}
+.pv .exp svg{transition:transform 300ms var(--ease)}
+.pv .exp[aria-expanded=true] svg{transform:rotate(180deg)}
+.pv .libro{display:grid;grid-template-rows:0fr;transition:grid-template-rows 420ms var(--ease)}
+.pv .libro.on{grid-template-rows:1fr}
+.pv .libro>div{overflow:hidden;min-height:0}
+.pv .libro .in{padding:4px 20px 16px;border-top:1px solid var(--t10)}
+.lb{display:grid;grid-template-columns:4.4rem 1.6rem 1fr auto auto;gap:0 12px;padding:9px 0;border-bottom:1px solid var(--t10);align-items:baseline;font-size:13px}
+.lb:last-child{border-bottom:0}
+.lb .t{color:var(--t55);font-variant-numeric:tabular-nums}
+.lb .s{display:block;font-size:12px;color:var(--t55)}
+.lb .m{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.lb .m.v{color:var(--verde-p)}.lb .m.r{color:var(--t75)}
+.lb .acum{color:var(--t55);font-size:12px;font-variant-numeric:tabular-nums;min-width:6.5rem;text-align:right}
+.lb .ic2{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:13px;line-height:1}
+.lb .ic2.v{background:rgba(85,110,73,.14);color:var(--verde-p)}.lb .ic2.r{background:var(--t04);color:var(--t65)}
+.lb.nuevo{animation:nv-destello 2400ms var(--ease) both}
+.sin-saldo{margin-top:12px;font-size:13px;color:var(--t55);padding:0 4px}
+/* por pagar (destino) */
+.pp{border:1px solid var(--sand);border-radius:12px;overflow:hidden}
+.pp .r{display:grid;grid-template-columns:22px 1fr auto;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--t10);font-size:13.5px}
+.pp .r:first-child{border-top:0}
+.pp .chk{width:17px;height:17px;border:1.5px solid var(--tinta);background:var(--tinta);border-radius:4px;display:grid;place-items:center}
+.pp .chk svg{width:12px;height:12px;stroke:var(--crema);fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.pp .chk svg path{stroke-dasharray:1;animation:nv-trazo 320ms var(--ease) 500ms both}
+.pp .tot{display:grid;grid-template-columns:1fr auto;gap:2px 14px;padding:12px 14px;background:var(--t04);border-top:1px solid var(--t10);font-size:13.5px}
+.pp .tot .m{font-variant-numeric:tabular-nums;text-align:right}
+.pp .tot .g{font-family:'EB Garamond',serif;font-size:20px}
+
+/* ---------- Recepción (así queda) ---------- */
+.rc-card{margin-top:14px;overflow:hidden}
+.rc-hd{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px;padding:16px 20px;border-bottom:1px solid var(--t10)}
+.rc-hd .disp{font-size:21px}
+.rc-lin{display:grid;grid-template-columns:minmax(0,1fr) 6rem 8.5rem minmax(0,15rem);gap:0 16px;align-items:center;padding:12px 20px;border-top:1px solid var(--t10)}
+.rc-lin.h{border-top:0;padding-top:9px;padding-bottom:9px;border-bottom:1px solid var(--t10)}
+.rc-lin.h span{font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t55)}
+.rc-lin .n{font-size:14px}.rc-lin .n span{display:block;font-size:12px;color:var(--t55)}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--t25);border-radius:8px;overflow:hidden;width:max-content}
+.stepper input{width:3.2rem;text-align:center;border:0;background:none;font:inherit;font-variant-numeric:tabular-nums;outline:none;padding:6px 0;color:var(--tinta)}
+.stepper button{padding:6px 9px;color:var(--t65);transition:color 200ms,background 200ms}
+.stepper button:hover{color:var(--rojo);background:var(--t04)}
+.rc-dec{padding:0 20px 14px;animation:cayla-revelar 240ms var(--ease) both}
+.rc-dec .box{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;border:1px solid rgba(140,99,31,.4);background:rgba(140,99,31,.06);border-radius:12px;padding:10px 14px}
+.rc-dec .box>span{font-size:13px;margin-right:4px}
+.rc-res{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:12px}
+.rc-nc{margin:0 20px 16px;border:1px solid var(--sand);border-radius:12px;padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;animation:cayla-revelar 260ms var(--ease) both}
+.rc-nc.vieja{display:block;padding:0}
+.rc-nc.vieja>div{padding:14px 16px}
+.rc-nc.vieja>div+div{border-top:1px solid var(--t10)}
+.rc-conf{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 20px;padding:14px 20px;border-top:1px solid var(--t10);background:var(--t04)}
+.dosc{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.dosc>div{padding:14px 18px}
+.dosc ul{list-style:none;margin-top:6px;font-size:13px;color:var(--t75);display:grid;gap:4px}
+.dosc li::before{content:"·";margin-right:8px;color:var(--t45)}
+.dosc .s li::before{content:"−";color:var(--rojo)}
+.dosc .q li::before{content:"✓";color:var(--verde-p)}
+
+/* ---------- avisos ---------- */
+.avisos{position:fixed;left:24px;bottom:24px;z-index:80;display:grid;gap:10px;width:min(400px,calc(100vw - 32px))}
+.aviso{position:relative;overflow:hidden;background:var(--papel);border:1px solid var(--sand);border-left:2px solid var(--verde);border-radius:12px;padding:13px 16px 15px;display:flex;gap:12px;align-items:flex-start;animation:cayla-entrada 300ms var(--ease) both;cursor:pointer}
+.aviso.err{border-left-color:var(--rojo)}
+.aviso.sale{animation:cayla-entrada 200ms var(--ease-out) reverse both}
+.aviso b{font-weight:600;display:block;font-size:14px}.aviso p{color:var(--t65);font-size:12.5px;margin-top:1px}
+.aviso .ac{margin-top:6px;color:var(--rojo);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.aviso .ac:hover{text-decoration:underline;text-underline-offset:4px}
+.aviso .prog{position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--t25);transform-origin:left;animation:nv-progreso linear both}
+.aviso:hover .prog{animation-play-state:paused}
+
+/* ---------- ancho de pantalla ---------- */
+@media (max-width:1180px){
+  .tbl{--cols:minmax(0,1fr) 9.5rem 8.5rem 10rem 9rem}
+  .c-mot{display:none!important}
+  .th-row .c-mot{display:none}
+  .rc-lin{grid-template-columns:minmax(0,1fr) 5.5rem 8rem}
+  .rc-lin .c-est{grid-column:1 / -1}
+}
+@media (max-width:900px){
+  .cont{padding:20px 16px 90px}.spike{padding:0 16px}.top{padding:0 16px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpi{padding:14px}.kpi .n{font-size:24px}
+  .tbl{--cols:minmax(0,1fr) auto}
+  .c-cuando,.c-est,.c-acc,.c-mot,.th-row{display:none!important}
+  .fila{align-items:start;padding-top:14px;padding-bottom:14px;column-gap:12px}
+  .fila .vm{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;align-items:center}
+  .fila .a .doc{display:block;margin-left:0}
+  .fila .a .doc .pt{display:none}
+  .spike .guion{display:none}
+  .mini3 .n{font-size:16px;white-space:nowrap}.mini3>div{padding:10px}
+  .modal .ft p{display:none}.modal .ft .btn{flex:1}
+  .band{padding:8px 16px;font-size:13px}
+  .band .lbl{flex-wrap:wrap;gap:0 8px;min-width:0}
+  .campos{grid-template-columns:1fr}.campo.c2{grid-column:auto}
+  .caja-pasos{grid-template-columns:1fr}
+  .mv{align-items:flex-end;padding:0}
+  .modal{border-radius:16px 16px 0 0;max-height:92dvh;animation-name:cayla-hoja;animation-duration:380ms}
+  .mv.sal .modal{animation-name:cayla-hoja-salida;animation-duration:220ms}
+  .modal .hd,.modal .baj,.modal .sc,.modal .ft{padding-left:16px;padding-right:16px}
+  .modal .hd h2{font-size:24px}
+  .lineas .lh,.lineas .li,.lineas .lf{grid-template-columns:minmax(0,1fr) 2.6rem 5.4rem}
+  .lineas .lh .c-cu,.lineas .li .c-cu,.lineas .lf .c-cu{display:none}
+  .lineas .lf span:first-child{grid-column:1 / 3}
+  .ef-fila{grid-template-columns:1fr auto auto}.ef-fila .fl{display:none}
+  .ef-fila .a{grid-column:2}.ef-fila .d{grid-column:3}
+  .hist .li{grid-template-columns:3.6rem 1fr}.hist .li .m{grid-column:2}
+  .lb{grid-template-columns:3.6rem 1.6rem 1fr auto}.lb .acum{display:none}
+  .avisos{left:16px}
+  .rc-lin{padding:12px 16px}.rc-dec{padding:0 16px 14px}.rc-nc{margin:0 16px 16px}.rc-conf{padding:14px 16px}
+  .dosc{grid-template-columns:1fr}
+  .cajon{width:100vw}
+  .pv .ar{padding:14px 16px}.pv .exp{padding:9px 16px}.pv .libro .in{padding:4px 16px 14px}
+  .pv .sug-r{padding:0 16px 14px}
+}
+
+/* ---------- buscador de facturas + destino del dinero (ajustes de Felipe, 2026-09-19) ---------- */
+.colapsa{display:grid;grid-template-rows:0fr;transition:grid-template-rows 380ms var(--ease)}
+.colapsa.on{grid-template-rows:1fr}
+.colapsa>div{overflow:hidden;min-height:0}
+.colapsa:not(.on){visibility:hidden;transition:grid-template-rows 380ms var(--ease),visibility 0s linear 380ms}
+.rg-dep{transition:opacity 300ms var(--ease)}
+.rg-dep.tenue{opacity:.4}
+.fb-caja{display:flex;align-items:center;gap:10px;border:1px solid var(--t25);border-radius:10px;padding:8px 12px;background:var(--papel);color:var(--t45);position:relative;transition:border-color 220ms}
+.fb-caja:focus-within{border-color:var(--rojo)}
+.fb-caja input{flex:1;min-width:0;background:none;border:0;outline:none;font:inherit;font-size:14.5px;color:var(--tinta);height:24px}
+.fb-filtros{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.fb-lista{margin-top:10px;border:1px solid var(--sand);border-radius:12px;max-height:250px;overflow-y:auto;overscroll-behavior:contain}
+.fb-op{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 16px;padding:10px 14px;border-top:1px solid var(--t10);cursor:pointer;transition:background 160ms;position:relative}
+.fb-op:first-child{border-top:0}
+.fb-op[aria-selected=true]{background:var(--t04)}
+.fb-op[aria-selected=true]::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2px;border-radius:2px;background:var(--rojo)}
+.fb-a{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;min-width:0}
+.fb-doc{font-weight:600;font-size:14px}.fb-prov{font-size:13px;color:var(--t65)}
+.fb-b{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:12px;grid-column:1;margin-top:3px}
+.fb-n{grid-column:2;grid-row:1 / span 2;text-align:right;display:flex;flex-direction:column;justify-content:center;font-size:14px}
+.fb-n .m55{font-size:12px}
+.fb-vacio{padding:22px 14px;text-align:center}
+.fb-vacio p{font-family:'EB Garamond',serif;font-style:italic;font-size:18px;color:var(--t65)}
+.fb-vacio small{display:block;font-size:12.5px;color:var(--t55);margin-top:2px}
+.fb-vacio .lk{margin-top:8px;color:var(--rojo);font-size:13px}.fb-vacio .lk:hover{text-decoration:underline}
+.ficha{border:1px solid var(--sand);border-radius:12px;overflow:hidden;animation:cayla-revelar 260ms var(--ease) both}
+.ficha .fh{display:flex;align-items:center;gap:12px;padding:12px 14px;flex-wrap:wrap}
+.ficha .fh .tx{flex:1 1 240px;min-width:0}
+.ficha .fh .tx b{font-weight:600;margin-right:6px}
+.ficha .fh .tx>span:not(.chip){display:block;font-size:12px;color:var(--t65)}
+.ficha .fh .chip{margin-right:4px}
+.ficha .fn{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--t10);background:rgba(232,224,208,.25)}
+.ficha .fn span{padding:9px 14px;font-size:11px;letter-spacing:.11em;text-transform:uppercase;font-weight:600;color:var(--t55)}
+.ficha .fn span+span{border-left:1px solid var(--t10)}
+.ficha .fn b{display:block;font-family:'EB Garamond',serif;font-size:17px;color:var(--tinta);font-weight:400;letter-spacing:0;text-transform:none;font-variant-numeric:tabular-nums}
+.ficha .fl{display:grid;grid-template-columns:5.2rem 1fr;gap:0 10px;padding:7px 14px;border-top:1px solid var(--t10);font-size:12.5px;color:var(--t75)}
+.ficha .fl .k{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t55);padding-top:2px}
+.ficha .fl.ambar{background:rgba(140,99,31,.06);color:var(--tinta)}
+.tres{display:grid;grid-template-columns:repeat(3,1fr);gap:0 14px;border:1px solid var(--sand);border-radius:12px;padding:12px 14px;background:rgba(232,224,208,.3)}
+.tres .k{display:block;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t55)}
+.tres .v{display:block;font-family:'EB Garamond',serif;font-size:22px;line-height:1.2;font-variant-numeric:tabular-nums}
+.tres>div:nth-child(2) .v{color:var(--taupe-p)}.tres>div:nth-child(3) .v{color:var(--verde-p)}
+.tres .ef-barra{grid-column:1 / -1;margin-top:10px}
+.ef-barra i.dev{background:var(--taupe)}
+.opcs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.opc{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--t15);border-radius:12px;padding:12px 14px;text-align:left;transition:border-color 220ms,background 220ms,opacity 220ms}
+.opc:hover:not([aria-disabled=true]){border-color:var(--rojo)}
+.opc b{font-weight:600;display:block;font-size:14px}
+.opc span span{display:block;font-size:12px;color:var(--t65);margin-top:2px}
+.opc .rd{width:17px;height:17px;border-radius:50%;border:1.5px solid var(--t45);flex:none;margin-top:2px;position:relative;transition:border-color 220ms}
+.opc .rd::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--tinta);transform:scale(0);transition:transform 260ms var(--ease)}
+.opc[aria-checked=true]{border-color:var(--tinta);background:rgba(26,26,24,.035)}
+.opc[aria-checked=true] .rd{border-color:var(--tinta)}.opc[aria-checked=true] .rd::after{transform:scale(1)}
+.opc[aria-disabled=true]{opacity:.45;cursor:not-allowed;border-style:dashed}
+.reem{border:1px solid var(--sand);border-radius:12px;padding:14px 16px;margin-top:12px}
+.cuenta{margin-top:14px;padding-top:12px;border-top:1px solid var(--t10);display:flex;flex-wrap:wrap;gap:2px 12px;align-items:baseline}
+.cuenta .k{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t55)}
+.cuenta b{font-weight:600;font-size:13.5px}
+@media (max-width:900px){
+  .ficha .fn{grid-template-columns:repeat(2,1fr)}.ficha .fn span:nth-child(3){border-left:0}.ficha .fn span:nth-child(n+3){border-top:1px solid var(--t10)}
+  .ficha .fl{grid-template-columns:1fr}.ficha .fl .k{padding-top:0}
+  .tres{grid-template-columns:1fr;gap:8px}.tres .v{display:inline}.tres>div{display:flex;justify-content:space-between;align-items:baseline}
+  .opcs{grid-template-columns:1fr}
+  .fb-op{padding:10px 12px}
+  .reem .campos{grid-template-columns:1fr!important}
+}
+</style>
+</head>
+<body class="entra">
+
+<div class="top">
+  <img src="cayla-isotipo.png" alt="" onerror="this.remove()"><span class="marca">CAYLA</span>
+  <span class="mig">Compras <span class="m45">›</span> <b id="bc">Notas de crédito</b></span>
+  <div class="hilo" id="hilo"></div>
+</div>
+
+<div class="spike"><div>
+  <span class="lbl">Spike visual · datos inventados · «hoy» es 18/09</span>
+  <button id="b-repetir" type="button">Repetir la entrada</button>
+  <button id="b-reducir" type="button" aria-pressed="false">Movimiento reducido</button>
+  <button id="b-reset" type="button">Restablecer datos</button>
+  <button id="b-mig" type="button" aria-pressed="false">Mostrar lo que requiere migración</button>
+  <button id="b-recep" type="button" aria-pressed="false">Ver Recepción (así queda)</button>
+  <button id="b-aldia" type="button">Simular: nada por reclamar</button>
+  <p class="guion"><b>Recorrido sugerido:</b> toca la fila de <b>Confecciones Sur Andino</b> (la única con el punto que late) → <b>Registrar nota</b> desde la vista rápida y escribe un monto de más → mira el efecto y el error → registra y mira cómo reacciona la pantalla. Prueba los tres destinos del dinero: la factura pendiente (F001-000482, solo baja la deuda), la pagada (F004-000129, todo sobra: devolver ahora o dejar a favor) y la mixta (F001-000401, baja S/ 1,128.00 y sobran S/ 52.00); con <kbd>N</kbd> empiezas por el buscador de facturas. Luego <b>Saldos a favor</b> → «De qué viene» → <b>Pedir reembolso</b>. Al final, <b>Ver Recepción</b>: la nota ya no está adentro. Atajos: <kbd>/</kbd> buscar · <kbd>j</kbd> <kbd>k</kbd> moverse · <kbd>N</kbd> nueva nota · <kbd>Esc</kbd> cerrar.</p>
+</div></div>
+
+<main class="cont" id="cont">
+
+  <!-- ======= cabecera del módulo (Notas · Saldos a favor) ======= -->
+  <div id="modulo">
+    <div class="cab e" style="--i:0">
+      <div>
+        <div class="lbl" style="color:var(--t65)">Compras</div>
+        <h1 class="t">Notas de crédito</h1>
+        <p class="bajada">Lo que los proveedores le acreditan a CAYLA por faltantes, devoluciones o descuentos: qué falta reclamar, qué ya llegó y a dónde fue el dinero.</p>
+      </div>
+      <button type="button" class="btn pri" id="b-nueva"><span class="brillo"></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Registrar nota <kbd style="border-color:rgba(245,240,232,.35);color:rgba(245,240,232,.75)">N</kbd></button>
+    </div>
+    <div class="modseg e" style="--i:1">
+      <div class="seg" id="seg-mod" role="tablist" aria-label="Secciones del módulo"><span class="th"></span>
+        <button type="button" role="tab" aria-selected="true" data-m="notas">Notas</button>
+        <button type="button" role="tab" aria-selected="false" data-m="saldos">Saldos a favor <i id="sg-badge"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= TABLERO ======= -->
+  <div id="v-notas" class="vista">
+    <section class="kpis" aria-label="Resumen de notas de crédito">
+      <button type="button" class="card kpi clic acento e" id="k-rec" style="--i:2">
+        <div class="row"><span class="dot ambar" id="k-rec-dot"></span><span class="lbl">Por reclamar</span></div>
+        <div class="n" id="k-rec-n">S/ 0.00</div><div class="d" id="k-rec-d"></div>
+        <div class="conc" id="k-rec-bar" role="group" aria-label="Notas por reclamar según su antigüedad"></div>
+      </button>
+      <div class="card kpi e" id="k-emi" style="--i:3">
+        <div class="row"><span class="dot"></span><span class="lbl">Emitidas este mes</span></div>
+        <div class="n" id="k-emi-n">S/ 0.00</div><div class="d" id="k-emi-d"></div>
+      </div>
+      <button type="button" class="card kpi clic e" id="k-fav" style="--i:4">
+        <div class="row"><span class="dot verde"></span><span class="lbl">Saldo a favor total</span></div>
+        <div class="n verde" id="k-fav-n">S/ 0.00</div><div class="d" id="k-fav-d"></div>
+        <div class="conc" id="k-fav-bar" aria-hidden="true"></div>
+      </button>
+      <div class="card kpi e" id="k-apl" style="--i:5">
+        <div class="row"><span class="dot"></span><span class="lbl">Aplicado este mes</span></div>
+        <div class="n" id="k-apl-n">S/ 0.00</div><div class="d" id="k-apl-d"></div>
+      </div>
+    </section>
+
+    <div class="tools e" style="--i:6">
+      <label class="busca" id="busca"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="q" type="search" placeholder="Proveedor, comprobante o número de nota" aria-label="Buscar por proveedor, comprobante o número de nota" autocomplete="off">
+        <kbd>/</kbd><button type="button" class="x" id="q-x" aria-label="Borrar búsqueda"><svg class="ic" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></label>
+      <div class="seg" id="seg-tab" role="tablist" aria-label="Estado de la nota"><span class="th"></span></div>
+      <div class="seg" id="seg-vista" role="radiogroup" aria-label="Cómo agrupar"><span class="th"></span>
+        <button type="button" role="radio" aria-checked="true" data-v="urgencia">Por urgencia</button>
+        <button type="button" role="radio" aria-checked="false" data-v="proveedor">Por proveedor</button></div>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="resumen e" style="--i:7" id="resumen" aria-live="polite"></div>
+
+    <section class="card tbl e" style="--i:8" id="lista" aria-label="Notas de crédito">
+      <div class="th-row"><span>Proveedor · comprobante</span><span class="c-mot">Motivo</span><span class="c-cuando">Antigüedad</span><span class="der c-monto">Monto</span><span class="c-est">Estado</span><span class="der c-acc"></span></div>
+      <div id="lista-body"></div>
+    </section>
+    <div class="atajos-txt"><span><kbd>/</kbd> buscar</span><span><kbd>j</kbd><kbd>k</kbd> moverse</span><span><kbd>Enter</kbd> vista rápida</span><span><kbd>N</kbd> nueva nota</span><span><kbd>Esc</kbd> cerrar</span></div>
+  </div>
+
+  <!-- ======= SALDOS A FAVOR ======= -->
+  <div id="v-saldos" class="vista" hidden></div>
+
+  <!-- ======= Recepción (spike: cómo queda sin la nota adentro) ======= -->
+  <div id="v-recep" class="vista" hidden></div>
+</main>
+
+<div class="velo" id="velo"></div>
+<aside class="cajon" id="cajon" aria-label="Vista rápida de la nota" aria-hidden="true"><div id="cajon-in" style="display:flex;flex-direction:column;height:100%;min-height:0"></div></aside>
+<div class="mv" id="mv" aria-hidden="true"><div class="modal cascada" id="modal" role="dialog" aria-modal="true" aria-labelledby="m-titulo"></div></div>
+<div class="avisos" id="avisos" aria-live="polite"></div>
+<div class="sr" id="sr" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* ====================================================================
+   Datos inventados + reglas puras.
+   Las reglas —montoDeCierres, reparteNota, textoReparteNota, notas por
+   faltante (una por comprobante, solo con el comprobante resuelto, tope =
+   lo cerrado a su costo con IGV + S/ 1)— son las MISMAS de
+   apps/web/lib/recepciones-reglas.ts y de fn_insertar_nota_credito_compra,
+   reescritas aquí para que el HTML sea autocontenido.
+   ==================================================================== */
+const HOY=new Date(2026,8,18),HOY_ISO='2026-09-18';
+const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const r2=n=>Math.round((n+Number.EPSILON)*100)/100;
+const num=n=>n.toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
+const soles=n=>'S/ '+num(n);
+const D=iso=>{const[a,m,d]=iso.split('-').map(Number);return new Date(a,m-1,d)};
+const edad=iso=>Math.round((HOY-D(iso))/864e5);
+const dm=iso=>iso.slice(8,10)+' '+MES[+iso.slice(5,7)-1];
+const esMes=iso=>iso.slice(0,7)===HOY_ISO.slice(0,7);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sin=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const plural=(n,a,b)=>`${n.toLocaleString('es-PE')} ${n===1?a:b}`;
+const ini=n=>n.split(' ').filter(w=>w.length>2).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+const hace=n=>n<=0?'Hoy':n===1?'Ayer':`Hace ${n} días`;
+const TASA=0.18;
+const ETQ_CIERRE={no_llego:'No llegaron',danada:'Llegaron dañadas',error_proveedor:'Error del proveedor'};
+const ETQ_NOTA={faltante:'Faltante',devolucion:'Devolución',descuento:'Descuento (precio)',otro:'Otro'};
+const ETQ_METODO={transferencia:'Transferencia',yape:'Yape',plin:'Plin',efectivo:'Efectivo',deposito:'Depósito',otro:'Otro'};
+
+const PROV0={
+  rim:{id:'rim',nombre:'Tejidos Rímac SAC',contacto:'Rosa Palomino',tel:'987 654 321'},
+  sur:{id:'sur',nombre:'Confecciones Sur Andino',contacto:'Mario Huamán',tel:'941 220 887'},
+  hil:{id:'hil',nombre:'Hilados del Norte',contacto:'Gladys Ríos',tel:'ventas@hiladosdelnorte.pe'},
+  avi:{id:'avi',nombre:'Botones y Avíos Lima',contacto:'Jorge Cárdenas',tel:'955 310 224'},
+};
+/* comprobantes: saldo = total − pagado − Σ aplicado de sus notas (así lo calcula la base) */
+const COMP0={
+  f:{doc:'F003-000771',prov:'hil',emi:'2026-08-25',total:2360,pagado:0,dest:'Taller Lima',rec:'Recibida',quedan:0,vence:'2026-10-09',items:[['Hilado pima 30/1 · cono 1.5 kg',20,100]]},
+  e:{doc:'F001-000482',prov:'rim',emi:'2026-09-02',total:5923.6,pagado:2000,dest:'Tienda Lima',rec:'Recibida',quedan:0,vence:'2026-10-02',items:[['Jersey pima 30/1 · rollo',20,179],['Rib 1x1 crudo · rollo',8,180]],pagos:[['2026-09-10','transferencia',2000,'Op. 00845019']]},
+  k:{doc:'F002-000087',prov:'sur',emi:'2026-08-24',total:2596,pagado:0,dest:'Tienda Arequipa',rec:'Recibida',quedan:0,vence:'2026-09-23',items:[['Polera cuello redondo · talla M',50,28],['Polera cuello redondo · talla L',20,40]]},
+  h:{doc:'F004-000129',prov:'avi',emi:'2026-09-12',total:590,pagado:590,dest:'Taller Lima',rec:'Recibida',quedan:0,vence:'2026-09-12',contado:true,items:[['Botón nácar 18 mm · caja x144',10,32],['Cierre metálico 18 cm',18,10]]},
+  c:{doc:'F001-000455',prov:'rim',emi:'2026-08-20',total:3186,pagado:0,dest:'Tienda Trujillo',rec:'Parcial',quedan:12,vence:'2026-09-19',items:[['Popelina stretch · rollo',20,92],['Drill elástico · rollo',10,86]]},
+  g:{doc:'F003-000802',prov:'hil',emi:'2026-09-12',total:1180,pagado:0,dest:'Taller Lima',rec:'Sin recibir',quedan:0,vence:'2026-10-27',items:[['Hilado pima 30/1 · cono 1.5 kg',10,100]]},
+  b:{doc:'B001-001208',prov:'sur',emi:'2026-08-28',total:2950,pagado:1000,dest:'Tienda Arequipa',rec:'Recibida',quedan:0,vence:'2026-09-12',items:[['Chompa alpaca cuello alto',25,100]],pagos:[['2026-09-05','transferencia',1000,'Op. 00771122']]},
+  d:{doc:'F002-000093',prov:'sur',emi:'2026-09-10',total:1888,pagado:0,dest:'Tienda Lima',rec:'Recibida',quedan:0,vence:'2026-09-25',items:[['Polo básico algodón',40,40]]},
+  x1:{doc:'F001-000377',prov:'rim',emi:'2026-07-30',total:2478,pagado:2124,dest:'Tienda Lima',rec:'Recibida',quedan:0,vence:'2026-08-29',items:[['Jersey pima 30/1 · rollo',14,150]],pagos:[['2026-08-28','transferencia',2124,'Op. 00712204']]},
+  x2:{doc:'F003-000640',prov:'hil',emi:'2026-08-10',total:1416,pagado:1298,dest:'Taller Lima',rec:'Recibida',quedan:0,vence:'2026-09-09',items:[['Hilado pima 30/1 · cono 1.5 kg',12,100]],pagos:[['2026-09-02','transferencia',1298,'Op. 00790018']]},
+  x3:{doc:'F002-000071',prov:'sur',emi:'2026-08-15',total:2242,pagado:2242,dest:'Tienda Arequipa',rec:'Recibida',quedan:0,vence:'2026-08-15',contado:true,items:[['Polo básico algodón',38,50]]},
+  x4:{doc:'F004-000098',prov:'avi',emi:'2026-08-28',total:826,pagado:826,dest:'Taller Lima',rec:'Recibida',quedan:0,vence:'2026-08-28',contado:true,items:[['Cierre metálico 18 cm',35,20]]},
+  x5:{doc:'F001-000401',prov:'rim',emi:'2026-08-18',total:3540,pagado:1940,dest:'Tienda Lima',rec:'Recibida',quedan:0,vence:'2026-09-17',items:[['Rib 1x1 crudo · rollo',30,100]],pagos:[['2026-08-25','transferencia',1940,'Op. 00731177']]},
+  x6:{doc:'F002-000080',prov:'sur',emi:'2026-08-19',total:1180,pagado:1180,dest:'Tienda Arequipa',rec:'Recibida',quedan:0,vence:'2026-08-19',contado:true,items:[['Polo básico algodón',20,50]]},
+};
+/* «nota pendiente» = lo que devuelve compras_nota_pendiente(): cierres de faltante sin nota. Las líneas salen de compra_item_cierres × compra_items.costo_unitario. */
+const PEND0=[
+  {id:'p1',comp:'f',fecha:'2026-09-06',por:'Marisol Q. · Taller Lima',reclamos:['2026-09-08'],lineas:[{n:'Hilado pima 30/1 · cono 1.5 kg',cant:2,costo:100,motivo:'no_llego'}]},
+  {id:'p2',comp:'e',fecha:'2026-09-10',por:'Diego R. · Tienda Lima',reclamos:[],lineas:[{n:'Jersey pima 30/1 · rollo',cant:2,costo:179,motivo:'danada'},{n:'Rib 1x1 crudo · rollo',cant:2,costo:180,motivo:'danada'}]},
+  {id:'p3',comp:'k',fecha:'2026-08-30',por:'Lucía C. · Tienda Arequipa',reclamos:['2026-09-02','2026-09-12'],lineas:[{n:'Polera cuello redondo · talla M (llegó talla S)',cant:10,costo:28,motivo:'error_proveedor'}]},
+  {id:'p4',comp:'h',fecha:'2026-09-15',por:'Marisol Q. · Taller Lima',reclamos:[],lineas:[{n:'Botón nácar 18 mm · caja x144',cant:5,costo:32,motivo:'no_llego'}]},
+  {id:'p5',comp:'c',fecha:'2026-09-13',por:'Ana P. · Tienda Trujillo',reclamos:[],lineas:[{n:'Popelina stretch · rollo',cant:2,costo:92,motivo:'danada'}]},
+  {id:'p6',comp:'x5',fecha:'2026-09-09',por:'Diego R. · Tienda Lima',reclamos:[],lineas:[{n:'Rib 1x1 crudo · rollo',cant:10,costo:100,motivo:'no_llego'}]},
+];
+/* notas ya registradas (compra_notas_credito) */
+const NOTAS0=[
+  {id:'n1',serie:'FC01-000029',comp:'x1',motivo:'faltante',fecha:'2026-08-27',monto:354,aplicado:354,nota:'Faltante de 2 rollos de jersey pima',por:'Felipe A.',adj:'FC01-000029.pdf · 82 KB',reclamos:['2026-08-20'],origen:'2026-08-16',lineas:[{n:'Jersey pima 30/1 · rollo',cant:2,costo:150,motivo:'no_llego'}]},
+  {id:'n2',serie:'FC03-000012',comp:'x2',motivo:'descuento',fecha:'2026-09-01',monto:118,aplicado:118,nota:'Ajuste de precio: cono a S/ 95 en vez de S/ 100',por:'Felipe A.',adj:'FC03-000012.pdf · 64 KB',reclamos:[],origen:'2026-08-29'},
+  {id:'n3',serie:'FC02-000006',comp:'x3',motivo:'devolucion',fecha:'2026-09-04',monto:590,aplicado:0,nota:'Devolución de 10 polos con costura abierta',por:'Felipe A.',adj:'FC02-000006.jpg · 1.2 MB',reclamos:[],origen:'2026-08-30'},
+  {id:'n4',serie:'FC04-000007',comp:'x4',motivo:'devolucion',fecha:'2026-09-09',monto:236,aplicado:0,nota:'Devolución de 10 cierres sin usar',por:'Felipe A.',adj:null,reclamos:[],origen:'2026-09-05'},
+  {id:'n6',serie:'FC02-000009',comp:'x6',motivo:'devolucion',fecha:'2026-09-11',monto:354,aplicado:0,nota:'Devolución de 6 polos con manchas',por:'Felipe A.',adj:'FC02-000009.pdf · 77 KB',reclamos:[],origen:'2026-09-08',devuelto:{monto:354,fecha:'2026-09-11',metodo:'transferencia',ref:'Op. 00881230'}},
+  {id:'n5',serie:'FC01-000036',comp:'x5',motivo:'devolucion',fecha:'2026-09-03',monto:472,aplicado:472,nota:'Devolución de 4 rollos con tono distinto',por:'Felipe A.',adj:'FC01-000036.pdf · 71 KB',reclamos:[],origen:'2026-08-31'},
+];
+/* movimientos del libro que NO son notas: usar el saldo en un pago / reembolso (proveedor_creditos) */
+const MOVS0=[{id:'m0',tipo:'reembolso',prov:'sur',monto:354,fecha:'2026-09-11',metodo:'transferencia',ref:'Op. 00881230',nota:'n6',por:'Felipe A.'},{id:'m1',tipo:'aplicacion',prov:'sur',monto:170,fecha:'2026-09-08',comp:'x6',ref:'Pago con saldo a favor',por:'Felipe A.'}];
+const IGV_MES0=4286.4;
+
+let P,C,PEND,NOTAS,MOVS,SEQ;
+function cargarDatos(){P=JSON.parse(JSON.stringify(PROV0));C=JSON.parse(JSON.stringify(COMP0));PEND=JSON.parse(JSON.stringify(PEND0));NOTAS=JSON.parse(JSON.stringify(NOTAS0));MOVS=JSON.parse(JSON.stringify(MOVS0));SEQ={n:7,m:2,p:7}}
+cargarDatos();
+const S={mod:'notas',tab:'por_reclamar',vista:'urgencia',q:'',banda:null,sel:null,cur:null,destello:null,vistaKeys:[],recep:{modo:'nueva',cant:7,dec:null,hecho:false,notaOn:false},aldia:false};
+
+/* --- reglas --- */
+const montoLineas=ls=>r2(ls.reduce((a,l)=>a+l.cant*l.costo,0)*(1+TASA));
+const igvDe=m=>r2(m-m/(1+TASA));
+const unidades=ls=>ls.reduce((a,l)=>a+l.cant,0);
+const reparte=(monto,saldo)=>{const baja=r2(Math.min(monto,Math.max(saldo,0)));return{baja,aFavor:r2(monto-baja),deudaDespues:r2(Math.max(saldo,0)-baja)}};
+function textoReparte(r,{doc,prov,saldo}){
+  if(r.aFavor<=0)return`La nota baja lo que se debe de ${doc} de ${soles(saldo)} a ${soles(r.deudaDespues)}.`;
+  if(r.baja<=0)return`${doc} ya está pagado: los ${soles(r.aFavor)} de la nota quedan a tu favor con ${prov}. Podrás descontarlos de tu próximo pago.`;
+  return`La nota baja lo que se debe de ${doc} de ${soles(saldo)} a ${soles(0)}, y los ${soles(r.aFavor)} restantes quedan a tu favor con ${prov}.`;
+}
+const saldoDe=id=>{const c=C[id];return r2(c.total-c.pagado-NOTAS.filter(n=>n.comp===id).reduce((a,n)=>a+n.aplicado,0))};
+const acreditado=id=>r2(NOTAS.filter(n=>n.comp===id).reduce((a,n)=>a+n.monto,0));
+function dispFaltante(id){
+  if(NOTAS.some(n=>n.comp===id&&n.motivo==='faltante'))return{estado:'ya_registrada'};
+  const p=PEND.find(x=>x.comp===id);if(!p)return{estado:'sin_cierres'};
+  if(C[id].quedan>0)return{estado:'bloqueada',quedan:C[id].quedan};
+  return{estado:'disponible',p};
+}
+/* libro del saldo a favor: proveedor_creditos = lo que sobró de cada nota (+) y lo que se usó / reembolsó (−) */
+function libro(prov){
+  const L=[];
+  NOTAS.forEach(n=>{const r=r2(n.monto-n.aplicado);if(r>0&&C[n.comp].prov===prov)L.push({tipo:'nota_credito',monto:r,fecha:n.fecha,nota:n,comp:n.comp,o:0})});
+  MOVS.forEach((m,i)=>{if(m.prov===prov)L.push({...m,o:1+i})});
+  return L.sort((a,b)=>a.fecha.localeCompare(b.fecha)||a.o-b.o);
+}
+const saldoFavor=prov=>r2(libro(prov).reduce((a,l)=>a+(l.tipo==='nota_credito'?l.monto:-l.monto),0));
+/* cuánto de cada nota sigue sin usar: el libro no dice de cuál nota salió cada uso → se asume el orden de llegada (FIFO) */
+function restosVivos(){
+  const vivo={};
+  Object.keys(P).forEach(pr=>{
+    const ns=NOTAS.filter(n=>C[n.comp].prov===pr&&n.monto-n.aplicado>0).sort((a,b)=>a.fecha.localeCompare(b.fecha)||a.id.localeCompare(b.id));
+    ns.forEach(n=>{vivo[n.id]=r2(n.monto-n.aplicado-(n.devuelto?n.devuelto.monto:0))});
+    let usado=r2(MOVS.filter(m=>m.prov===pr&&!m.nota).reduce((a,m)=>a+m.monto,0));
+    ns.forEach(n=>{const u=Math.min(vivo[n.id],usado);vivo[n.id]=r2(vivo[n.id]-u);usado=r2(usado-u)});
+  });
+  return vivo;
+}
+const estadoFactura=id=>{const c=C[id];return saldoDe(id)<=0.004?'pagada':c.vence<HOY_ISO?'vencida':'pendiente'};
+const totalFavor=()=>r2(Object.keys(P).reduce((a,pr)=>a+Math.max(0,saldoFavor(pr)),0));
+function aplicadoMes(){
+  const bajo=r2(NOTAS.filter(n=>esMes(n.fecha)).reduce((a,n)=>a+n.aplicado,0));
+  const usos=r2(MOVS.filter(m=>m.tipo==='aplicacion'&&esMes(m.fecha)).reduce((a,m)=>a+m.monto,0));
+  const dev=r2(MOVS.filter(m=>m.tipo==='reembolso'&&esMes(m.fecha)).reduce((a,m)=>a+m.monto,0));
+  return{bajo,usos,dev,total:r2(bajo+usos+dev)};
+}
+const ddmm=iso=>iso.slice(8,10)+'/'+iso.slice(5,7);
+const deudaProv=pr=>r2(Object.keys(C).filter(id=>C[id].prov===pr).reduce((a,id)=>a+Math.max(0,saldoDe(id)),0));
+const provsConSaldo=()=>Object.keys(P).filter(pr=>saldoFavor(pr)>0.004);
+
+/* filas unificadas: lo que aún NO llegó (nota pendiente) y lo que ya está registrado */
+function mkRows(){
+  const rows=[],vivos=restosVivos();
+  let urg=null;
+  PEND.forEach(p=>{const c=C[p.comp];const e=edad(p.fecha);if(e>14&&(!urg||e>urg.e))urg={k:p.id,e}});
+  PEND.forEach(p=>{const c=C[p.comp];rows.push({k:p.id,tipo:'pend',estado:'por_reclamar',prov:c.prov,comp:p.comp,doc:c.doc,monto:montoLineas(p.lineas),fecha:p.fecha,edad:edad(p.fecha),bloq:c.quedan>0,quedan:c.quedan,unid:unidades(p.lineas),p,urgente:!!urg&&urg.k===p.id,
+    mot:[...new Set(p.lineas.map(l=>ETQ_CIERRE[l.motivo]))].join(' + '),det:`${plural(unidades(p.lineas),'unidad','unidades')} · ${p.lineas[0].n}${p.lineas.length>1?` +${p.lineas.length-1}`:''}`,hay:p.lineas.map(l=>l.n).join(' ')}) });
+  NOTAS.forEach(n=>{const c=C[n.comp];const resto=r2(n.monto-n.aplicado),vivo=vivos[n.id]||0;
+    rows.push({k:n.id,tipo:'nota',estado:vivo>0?'emitida':'aplicada',prov:c.prov,comp:n.comp,doc:c.doc,serie:n.serie,monto:n.monto,aplicado:n.aplicado,resto,vivo,dev:n.devuelto?n.devuelto.monto:0,fecha:n.fecha,n,mot:ETQ_NOTA[n.motivo],det:`${n.serie} · ${n.nota||ETQ_NOTA[n.motivo]}`,hay:n.serie+' '+(n.nota||'')})});
+  return rows;
+}
+const rowPor=k=>mkRows().find(r=>r.k===k);
+const ESTADO_CHIP={por_reclamar:['ambar','Por reclamar'],emitida:['verde','Emitida'],aplicada:['neutro','Aplicada']};
+/* el estado que se ve: una nota cuyo sobrante se devolvió dice «Devuelta», no «Aplicada» */
+const chipEst=r=>r.estado==='por_reclamar'&&r.bloq?`<span class="chip neutro">Falta cerrar ${r.quedan} uds</span>`:r.estado==='aplicada'&&r.dev>0?`<span class="chip verde">Devuelta</span>`:`<span class="chip ${ESTADO_CHIP[r.estado][0]}">${ESTADO_CHIP[r.estado][1]}</span>`;
+const etqEst=r=>r.estado==='aplicada'&&r.dev>0?'Devuelta':ESTADO_CHIP[r.estado][1];
+const destinoTxt=r=>r.tipo==='pend'?'':r.estado==='emitida'?`A favor ${soles(r.vivo)}`:r.dev>0?`Devuelto el ${ddmm(r.n.devuelto.fecha)} · ${ETQ_METODO[r.n.devuelto.metodo].toLowerCase()}`:'bajó la deuda';
+
+/* ====================================================================
+   Movimiento: utilidades (las mismas de Por pagar)
+   ==================================================================== */
+const reducir=()=>document.documentElement.classList.contains('reducir')||matchMedia('(prefers-reduced-motion:reduce)').matches;
+function contar(el,a,fmt=soles,dur=900){
+  if(!el)return;const de=el._v??0;el._v=a;cancelAnimationFrame(el._raf);
+  if(reducir()||de===a){el.textContent=fmt(a);return}
+  const t0=performance.now();
+  const paso=t=>{const p=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-p,3);el.textContent=fmt(de+(a-de)*e);if(p<1)el._raf=requestAnimationFrame(paso);else el.textContent=fmt(a)};
+  el._raf=requestAnimationFrame(paso);
+}
+function flip(cambio,sel){
+  const antes=new Map();$$(sel).forEach(e=>antes.set(e.dataset.k,e.getBoundingClientRect().top));
+  cambio();
+  if(reducir())return;
+  $$(sel).forEach(e=>{const t0=antes.get(e.dataset.k);if(t0==null)return;const dy=t0-e.getBoundingClientRect().top;if(Math.abs(dy)<1)return;
+    e.animate([{transform:`translateY(${dy}px)`},{transform:'none'}],{duration:440,easing:'cubic-bezier(.32,.72,.24,1)'})});
+}
+function pulgar(seg){const on=$('button.on,button[aria-selected=true],button[aria-checked=true]',seg),th=$('.th',seg);if(!on||!th)return;th.style.width=on.offsetWidth+'px';th.style.transform=`translateX(${on.offsetLeft}px)`}
+const ICON={
+  x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',chevR:'<path d="m9 18 6-6-6-6"/>',chevU:'<path d="m18 15-6-6-6 6"/>',chevD:'<path d="m6 9 6 6 6-6"/>',
+  copy:'<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  out:'<path d="M7 7h10v10"/><path d="M7 17 17 7"/>',plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
+  clip:'<path d="m21.4 11.6-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l8.5-8.5a3.7 3.7 0 0 1 5.2 5.2l-8.5 8.5a1.8 1.8 0 0 1-2.6-2.6l7.8-7.8"/>',
+  info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  shield:'<path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>'};
+const ic=(k,x='',st='')=>`<svg class="ic ${x}" viewBox="0 0 24 24" aria-hidden="true" ${st?`style="${st}"`:''}>${ICON[k]}</svg>`;
+const tilde=(cls='tick')=>`<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true" style="width:13px;height:13px;stroke-width:2.4"><path pathLength="1" d="M20 6 9 17l-5-5"/></svg>`;
+function avisar(titulo,detalle,o={}){
+  const ms=o.ms||6500,a=document.createElement('div');a.className='aviso'+(o.err?' err':'');
+  a.innerHTML=`<svg class="ic" viewBox="0 0 24 24" style="color:${o.err?'var(--rojo)':'var(--verde-p)'};margin-top:1px">${o.err?ICON.info:'<path d="M20 6 9 17l-5-5"/>'}</svg><div><b>${esc(titulo)}</b>${detalle?`<p>${esc(detalle)}</p>`:''}${o.accion?`<button type="button" class="ac">${esc(o.accion.txt)}</button>`:''}</div><div class="prog" style="animation-duration:${ms}ms"></div>`;
+  $('#avisos').append(a);
+  const quitar=()=>{a.classList.add('sale');setTimeout(()=>a.remove(),200)};
+  const t=setTimeout(quitar,ms);
+  a.addEventListener('click',e=>{if(e.target.closest('.ac')&&o.accion)o.accion.fn();clearTimeout(t);quitar()});
+}
+const anuncia=t=>{const s=$('#sr');s.textContent='';setTimeout(()=>s.textContent=t,30)};
+function hl(t){
+  const q=sin(S.q.trim());if(!q)return esc(t);
+  const i=sin(t).indexOf(q);if(i<0)return esc(t);
+  return esc(t.slice(0,i))+'<mark>'+esc(t.slice(i,i+q.length))+'</mark>'+esc(t.slice(i+q.length));
+}
+const migTag=(txt)=>`data-mig="${esc(txt)}"`;
+
+/* ====================================================================
+   TABLERO: cifras, pestañas, lista
+   ==================================================================== */
+const BANDAS_URG={
+  'b-rojo':{t:'Más de 14 días sin nota',cl:'rojo'},'b-ambar':{t:'De 8 a 14 días',cl:'ambar'},'b-neu':{t:'Reclamos recientes',cl:'neutro'},
+  'b-emi':{t:'Emitidas · con saldo a favor sin usar',cl:'verde'},'b-apl':{t:'Aplicadas',cl:'neutro'}};
+const bandaDe=r=>r.estado==='por_reclamar'?(r.edad>14?'b-rojo':r.edad>7?'b-ambar':'b-neu'):r.estado==='emitida'?'b-emi':'b-apl';
+
+function pintarKpis(){
+  const rows=mkRows(),pend=rows.filter(r=>r.estado==='por_reclamar');
+  const tot=r2(pend.reduce((a,r)=>a+r.monto,0)),vieja=pend.reduce((m,r)=>Math.max(m,r.edad),0);
+  contar($('#k-rec-n'),tot);
+  $('#k-rec-d').innerHTML=pend.length?`${plural(pend.length,'nota','notas')} · la más antigua ${hace(vieja).toLowerCase()}`:'Nada por reclamar';
+  const dot=$('#k-rec-dot');dot.className='dot '+(vieja>14?'rojo':'ambar')+(vieja>14?' pulsa':'');
+  const cnt={'b-rojo':0,'b-ambar':0,'b-neu':0};pend.forEach(r=>cnt[bandaDe(r)]++);
+  const cols={'b-rojo':'var(--rojo)','b-ambar':'var(--ambar)','b-neu':'var(--t25)'};
+  const bar=$('#k-rec-bar');
+  if(!bar.children.length){bar.innerHTML=['b-rojo','b-ambar','b-neu'].map((b,i)=>`<span role="button" tabindex="0" data-banda="${b}" style="--i:${i};background:${cols[b]};flex-grow:0" title="${BANDAS_URG[b].t}"></span>`).join('')}
+  $$('span',bar).forEach(s=>{const n=cnt[s.dataset.banda];s.style.flexGrow=n;s.style.display=n?'':'none';s.classList.toggle('on',S.banda===s.dataset.banda);s.setAttribute('aria-label',`${BANDAS_URG[s.dataset.banda].t}: ${n}`)});
+  bar.classList.toggle('hay',!!S.banda);
+  bar.style.display=pend.length?'':'none';
+
+  const delMes=NOTAS.filter(n=>esMes(n.fecha)),emi=r2(delMes.reduce((a,n)=>a+n.monto,0)),bajo=r2(delMes.reduce((a,n)=>a+n.aplicado,0)),devM=r2(delMes.reduce((a,n)=>a+(n.devuelto?n.devuelto.monto:0),0)),favM=r2(emi-bajo-devM);
+  contar($('#k-emi-n'),emi);
+  $('#k-emi-d').textContent=delMes.length?`${plural(delMes.length,'nota','notas')} · ${soles(bajo)} bajaron deuda${devM>0?` · ${soles(devM)} devueltos`:''} · ${soles(favM)} a favor`:'Ninguna nota registrada este mes';
+
+  const favs=Object.keys(P).map(pr=>({pr,s:saldoFavor(pr)})).filter(x=>x.s>0.004),favT=r2(favs.reduce((a,x)=>a+x.s,0));
+  contar($('#k-fav-n'),favT);
+  $('#k-fav-d').innerHTML=favs.length?`${plural(favs.length,'proveedor','proveedores')} te deben saldo <span class="fl">→</span>`:'Ningún proveedor te debe saldo';
+  const fb=$('#k-fav-bar');
+  const segs=favs.map((x,i)=>`<span style="--i:${i};background:${i%2?'var(--verde-p)':'var(--verde)'};flex-grow:${x.s}" title="${esc(P[x.pr].nombre)} ${soles(x.s)}"></span>`).join('');
+  if(fb.dataset.h!==segs){fb.innerHTML=segs;fb.dataset.h=segs}
+  fb.style.display=favs.length?'':'none';
+  $('#sg-badge').textContent=favs.length?soles(favT):'';
+
+  const ap=aplicadoMes();
+  contar($('#k-apl-n'),ap.total);
+  $('#k-apl-d').textContent=ap.total>0?[`${soles(ap.bajo)} bajaron deuda`,ap.usos>0?`${soles(ap.usos)} usados en pagos`:'',ap.dev>0?`${soles(ap.dev)} devueltos`:''].filter(Boolean).join(' · '):'Todavía nada este mes';
+  pulgar($('#seg-mod'));
+}
+
+const TABS=[['por_reclamar','Por reclamar'],['emitida','Emitidas'],['aplicada','Aplicadas'],['todas','Todas']];
+function pintarTabs(){
+  const rows=mkRows(),cnt={por_reclamar:0,emitida:0,aplicada:0,todas:rows.length};rows.forEach(r=>cnt[r.estado]++);
+  const seg=$('#seg-tab');
+  if(!$('button',seg))seg.insertAdjacentHTML('beforeend',TABS.map(([v,t])=>`<button type="button" role="tab" data-t="${v}">${t} <i></i></button>`).join(''));
+  $$('button',seg).forEach(b=>{const v=b.dataset.t;b.setAttribute('aria-selected',S.tab===v);b.classList.toggle('on',S.tab===v);$('i',b).textContent=cnt[v];b.tabIndex=S.tab===v?0:-1});
+  requestAnimationFrame(()=>pulgar(seg));
+}
+function filtradas(){
+  const q=sin(S.q.trim());
+  return mkRows().filter(r=>{
+    if(S.tab!=='todas'&&r.estado!==S.tab)return false;
+    if(S.banda&&!(r.estado==='por_reclamar'&&bandaDe(r)===S.banda))return false;
+    if(q&&!(sin(P[r.prov].nombre).includes(q)||sin(r.doc).includes(q)||sin(r.hay).includes(q)))return false;
+    return true;
+  });
+}
+const ORD_EST={por_reclamar:0,emitida:1,aplicada:2};
+const ordenFilas=(a,b)=>ORD_EST[a.estado]-ORD_EST[b.estado]||(a.estado==='por_reclamar'?b.edad-a.edad:b.fecha.localeCompare(a.fecha))||a.k.localeCompare(b.k);
+function grupos(rows){
+  if(S.vista==='proveedor'){
+    const m={};rows.forEach(r=>(m[r.prov]=m[r.prov]||[]).push(r));
+    return Object.keys(m).map(pr=>{const rs=m[pr].sort(ordenFilas);const pend=rs.filter(r=>r.estado==='por_reclamar');
+      return{k:'band:p-'+pr,t:P[pr].nombre,cl:'neutro',rows:rs,tot:pend.length?`${soles(r2(pend.reduce((a,r)=>a+r.monto,0)))} por reclamar · ${plural(rs.length,'nota','notas')}`:plural(rs.length,'nota','notas'),ord:-pend.reduce((a,r)=>a+r.monto,0)}})
+      .sort((a,b)=>a.ord-b.ord||a.t.localeCompare(b.t));
+  }
+  const m={};rows.forEach(r=>(m[bandaDe(r)]=m[bandaDe(r)]||[]).push(r));
+  return Object.keys(BANDAS_URG).filter(b=>m[b]).map(b=>{const rs=m[b].sort(ordenFilas);
+    return{k:'band:'+b,t:BANDAS_URG[b].t,cl:BANDAS_URG[b].cl,rows:rs,tot:`${plural(rs.length,'nota','notas')} · ${soles(r2(rs.reduce((a,r)=>a+r.monto,0)))}`}});
+}
+const CACHE=new Map();let primeraPintada=true;
+function elCache(key,cls,extra){
+  let el=CACHE.get(key);
+  if(!el){el=document.createElement('div');el.className=cls;el.dataset.k=key.slice(2);CACHE.set(key,el);if(extra)extra(el);if(!primeraPintada&&!reducir())el.classList.add('aparece')}
+  return el;
+}
+function chipEdad(r){
+  const cl=r.edad>14?'rojo':r.edad>7?'ambar':'neutro';
+  return`<span class="chip ${cl}">${r.urgente?'<span class="dot rojo pulsa"></span>':''}${hace(r.edad)}</span>`;
+}
+function filaHTML(r){
+  const pr=P[r.prov];
+  const estChip=chipEst(r);
+  const cuando=r.tipo==='pend'?`${chipEdad(r)}<span class="b" style="margin-top:3px">cerrado el ${dm(r.fecha)}</span>`:`<span class="a tab">${dm(r.fecha)}</span><span class="b">${r.estado==='aplicada'?(r.dev>0?'devuelta':'aplicada del todo'):'registrada'}</span>`;
+  let monto=`<span class="monto">${soles(r.monto)}</span>`;
+  if(r.tipo==='pend')monto+=`<span class="b">esperado</span>`;
+  else if(r.estado==='emitida')monto+=`<span class="b fav">${destinoTxt(r)}</span><span class="pbar" style="--p:${r.aplicado/r.monto}"><i></i></span>`;
+  else monto+=`<span class="b ${r.dev>0?'fav':''}" title="${r.dev>0&&r.aplicado>0?`Bajó la deuda ${soles(r.aplicado)} y se devolvieron ${soles(r.dev)}`:''}">${destinoTxt(r)}</span>`;
+  let acc='';
+  if(r.tipo==='pend')acc=r.bloq?`<button type="button" class="btn dis s" disabled title="Todavía quedan ${r.quedan} unidades sin recibir ni cerrar">Aún no</button>`:`<button type="button" class="btn dis s" data-act="reg" data-k="${r.k}">Registrar nota</button>`;
+  else if(r.estado==='emitida')acc=`<button type="button" class="btn dis s" data-act="${deudaProv(r.prov)>0?'usar':'reem'}" data-prov="${r.prov}">${deudaProv(r.prov)>0?'Usar en un pago':'Pedir reembolso'}</button>`;
+  return`<div class="prov"><span class="a">${hl(pr.nombre)}<span class="doc"><i class="pt" style="font-style:normal">· </i>${hl(r.doc)}</span></span><span class="b">${tipoDetalle(r)}</span>
+    <span class="vm">${estChip}${r.tipo==='pend'?chipEdad(r):`<span class="chip neutro">${esc(r.mot)}</span>`}</span></div>
+    <div class="c-mot"><span class="chip neutro">${esc(r.mot)}</span></div>
+    <div class="c-cuando">${cuando}</div>
+    <div class="der c-monto">${monto}</div>
+    <div class="c-est">${estChip}</div>
+    <div class="acc c-acc">${acc}${ic('chevR','ir')}</div>`;
+}
+const tipoDetalle=r=>r.tipo==='pend'?esc(r.det):`${hl(r.serie)} · ${esc(r.n.nota||ETQ_NOTA[r.n.motivo])}`;
+function elFila(r,i){
+  const el=elCache('f:'+r.k,'fila',e=>{e.setAttribute('role','button');e.tabIndex=0});
+  const h=filaHTML(r)+'|'+S.q;
+  if(el._h!==h){el.innerHTML=filaHTML(r);el._h=h}
+  el.style.setProperty('--i',i);el.setAttribute('aria-label',`${P[r.prov].nombre}, ${r.doc}, ${soles(r.monto)}, ${etqEst(r)}`);
+  return el;
+}
+function elBanda(g){
+  const el=elCache('b:'+g.k.slice(5),'band '+g.cl);
+  el.className='band '+g.cl+(el.classList.contains('aparece')?' aparece':'');el.dataset.k=g.k;
+  const h=g.t+g.tot;if(el._h!==h){el.innerHTML=`<span class="lbl">${esc(g.t)}</span><span class="tot">${esc(g.tot)}</span>`;el._h=h}
+  return el;
+}
+function vacioEl(){
+  const el=document.createElement('div');el.className='vacio aparece';el.dataset.vacio='1';
+  const q=S.q.trim();
+  if(q){el.innerHTML=`<p>Ninguna nota coincide con «${esc(q)}»</p><small>Se busca por proveedor, comprobante de origen o número de nota.</small><button type="button" class="lk" data-act="limpiar-q">Limpiar la búsqueda</button>`}
+  else if(S.tab==='por_reclamar'&&!S.banda){el.innerHTML=`<svg class="okc" viewBox="0 0 64 64" aria-hidden="true"><circle pathLength="1" cx="32" cy="32" r="29"/><path pathLength="1" d="M19 33l9 9 17-20"/></svg><p>Nada por reclamar</p><small>Todo lo que se cerró por faltante ya tiene su nota de crédito. Cuando cierres un faltante en Recibir, aparecerá aquí por sí solo.</small>`}
+  else if(S.banda){el.innerHTML=`<p>Ninguna nota pendiente en ese tramo</p><button type="button" class="lk" data-act="quitar-banda">Ver todas las que faltan</button>`}
+  else{el.innerHTML=`<p>No hay notas en esta pestaña</p><small>Aparecen cuando el proveedor emite una y la registras.</small>`}
+  return el;
+}
+function pintarLista(){
+  const rows=filtradas(),gs=grupos(rows),LB=$('#lista-body'),nodos=[];
+  if(!rows.length)nodos.push(vacioEl());
+  else{let i=0;gs.forEach(g=>{nodos.push(elBanda(g));g.rows.forEach(r=>nodos.push(elFila(r,i++)))})}
+  S.vistaKeys=gs.flatMap(g=>g.rows.map(r=>r.k));
+  flip(()=>LB.replaceChildren(...nodos),'#lista-body [data-k]');
+  const vivos=new Set(mkRows().map(r=>'f:'+r.k));[...CACHE.keys()].forEach(k=>{if(k.startsWith('f:')&&!vivos.has(k))CACHE.delete(k)});
+  primeraPintada=false;
+  if(S.destello){const el=CACHE.get('f:'+S.destello);if(el&&el.isConnected&&!reducir()){el.classList.remove('nueva');void el.offsetWidth;el.classList.add('nueva');setTimeout(()=>el.classList.remove('nueva'),2500)}S.destello=null}
+  marcarSel();pintarResumen(rows);pintarChips();
+}
+function marcarSel(){$$('#lista-body .fila').forEach(el=>{el.classList.toggle('sel',el.dataset.k===S.sel);el.classList.toggle('cur',el.dataset.k===S.cur&&el.dataset.k!==S.sel)})}
+function pintarResumen(rows){
+  const el=$('#resumen'),tot=r2(rows.reduce((a,r)=>a+r.monto,0));
+  let h;
+  if(!rows.length)h='';
+  else if(S.tab==='por_reclamar'){const v=rows.reduce((m,r)=>Math.max(m,r.edad),0);h=`<span><b>${rows.length}</b> ${rows.length===1?'nota por reclamar':'notas por reclamar'}</span><span><b>${soles(tot)}</b> esperados en total</span><span>la más antigua, <b>${hace(v).toLowerCase()}</b></span>`}
+  else h=`<span><b>${rows.length}</b> ${rows.length===1?'nota':'notas'}</span><span><b>${soles(tot)}</b> en total</span>`;
+  el.innerHTML=h;anuncia(rows.length?`${plural(rows.length,'nota','notas')}, ${soles(tot)}`:'Ninguna nota');
+}
+function pintarChips(){
+  const c=$('#chips'),items=[];
+  if(S.banda)items.push(`<span class="fchip">${esc(BANDAS_URG[S.banda].t)}<button type="button" data-act="quitar-banda" aria-label="Quitar filtro de antigüedad">${ic('x')}</button></span>`);
+  const h=items.join('')+(items.length?`<button type="button" class="limpia" data-act="limpiar-todo">Quitar filtros</button>`:'');
+  if(c.dataset.h!==h){c.innerHTML=h;c.dataset.h=h}
+  $('#busca').classList.toggle('lleno',!!S.q);
+}
+function repintar(){pintarKpis();pintarTabs();pintarLista();if(S.mod==='saldos')pintarSaldos()}
+
+/* ====================================================================
+   VISTA RÁPIDA (cajón)
+   ==================================================================== */
+function pasosDe(r){
+  const pasos=[];
+  const MIGREC='Hoy no existe dónde guardar «reclamada»: hace falta la tabla compra_nota_reclamos (append-only)';
+  if(r.tipo==='pend'){
+    const p=r.p,rec=p.reclamos;
+    pasos.push({c:'Faltante',t:r.bloq?`Faltante detectado · quedan ${r.quedan} uds sin recibir ni cerrar`:`Faltante detectado · ${plural(r.unid,'unidad','unidades')}`,s:`${r.mot} · ${p.por}`,f:dm(p.fecha),e:r.bloq?'ahora':'hecho'});
+    pasos.push({c:'Reclamada',t:rec.length?`Reclamada al proveedor${rec.length>1?` (${rec.length} veces)`:''}`:'Reclamada al proveedor',s:rec.length?`Último reclamo el ${dm(rec[rec.length-1])}`:'Todavía no la reclamaste',f:rec.length?dm(rec[rec.length-1]):'',e:rec.length?'hecho':(r.bloq?'pend':'ahora'),mig:MIGREC});
+    pasos.push({c:'Nota recibida',t:'Nota de crédito recibida',s:'Serie-número, fecha y monto de la nota',f:'',e:'pend'});
+    pasos.push({c:'Aplicada',t:'Aplicada',s:'Baja la deuda; lo que sobre se devuelve o queda a tu favor',f:'',e:'pend'});
+  }else{
+    const n=r.n,fal=n.motivo==='faltante';
+    pasos.push({c:fal?'Faltante':n.motivo==='devolucion'?'Devolución':n.motivo==='descuento'?'Descuento':'Acuerdo',t:fal?`Faltante detectado`:n.motivo==='devolucion'?'Devolución al proveedor':n.motivo==='descuento'?'Descuento acordado':'Concepto acordado',s:fal&&n.lineas?`${plural(unidades(n.lineas),'unidad','unidades')} · ${ETQ_CIERRE[n.lineas[0].motivo]}`:(n.nota||''),f:dm(n.origen),e:'hecho'});
+    if(n.reclamos.length)pasos.push({c:'Reclamada',t:'Reclamada al proveedor',s:`Reclamada el ${dm(n.reclamos[0])}`,f:dm(n.reclamos[0]),e:'hecho',mig:MIGREC});
+    pasos.push({c:'Nota recibida',t:`Nota ${n.serie} recibida`,s:`Registrada por ${n.por}`,f:dm(n.fecha),e:'hecho'});
+    if(r.aplicado>0)pasos.push({c:'Baja deuda',t:`Bajó la deuda de ${r.doc}`,s:`− ${soles(r.aplicado)} de lo que se debía`,f:dm(n.fecha),e:'hecho'});
+    if(r.dev>0)pasos.push({c:'Devuelto',t:'Dinero devuelto',s:`${soles(r.dev)} · ${ETQ_METODO[n.devuelto.metodo].toLowerCase()}${n.devuelto.ref?' · '+n.devuelto.ref:''}`,f:dm(n.devuelto.fecha),e:'hecho'});
+    if(r.vivo>0)pasos.push({c:'A favor',t:'Con saldo a favor sin usar',s:`Quedan ${soles(r.vivo)} de ${soles(r.resto)} que sobraron`,f:'',e:'ahora'});
+    else if(r.resto>0&&r.dev===0)pasos.push({c:'Aplicada',t:'Aplicada',s:'Su saldo ya se usó en pagos',f:'',e:'hecho'});
+  }
+  pasos.forEach((x,i)=>{x.sigue=x.e==='hecho'&&!!pasos[i+1]&&pasos[i+1].e!=='pend'});
+  return pasos;
+}
+function siguientePaso(r){
+  if(r.tipo==='pend'){
+    if(r.bloq)return['ne',`Primero recibe o cierra las <b>${r.quedan} unidades</b> que quedan en ${esc(r.doc)}. La nota por faltante es <b>una sola por comprobante</b> y se registra cuando el comprobante queda resuelto.`];
+    const rec=r.p.reclamos;
+    if(!rec.length)return['am',`Todavía no la reclamaste. Copia el mensaje y envíaselo a <b>${esc(P[r.prov].contacto)}</b>; cuando llegue la nota, regístrala y elige qué pasa con el dinero que sobre.`];
+    const ult=edad(rec[rec.length-1]);
+    if(r.edad>14)return['',`Van <b>${r.edad} días</b> y la reclamaste ${rec.length===1?'una vez':rec.length+' veces'}: conviene llamar a <b>${esc(P[r.prov].contacto)}</b> en vez de escribir otra vez.`];
+    return['ne',`Reclamada hace ${ult} ${ult===1?'día':'días'}. Cuando ${esc(P[r.prov].contacto)} te envíe la nota, regístrala aquí.`];
+  }
+  if(r.estado==='emitida')return['ok',`Quedan <b>${soles(r.vivo)}</b> a tu favor con ${esc(P[r.prov].nombre)}. Se te ofrecerán al pagar: <b>tú decides</b> si los usas o pides el reembolso.`];
+  if(r.dev>0)return['ok',`${esc(P[r.prov].nombre)} devolvió <b>${soles(r.dev)}</b> el ${ddmm(r.n.devuelto.fecha)} (${esc(ETQ_METODO[r.n.devuelto.metodo].toLowerCase())}).${r.aplicado>0?` Además la nota bajó la deuda de ${esc(r.doc)} en ${soles(r.aplicado)}.`:''} No queda saldo a favor de esta nota.`];
+  return['ok',`Nada pendiente: la nota bajó la deuda de ${esc(r.doc)} en <b>${soles(r.aplicado)}</b>.`];
+}
+function vidaSVG(pasos){
+  const n=pasos.length,x0=44,x1=356,xx=pasos.map((_,i)=>n===1?200:x0+(x1-x0)*i/(n-1)),y=14;
+  const ult=Math.max(0,pasos.map(p=>p.e).lastIndexOf('hecho'));
+  return`<svg viewBox="0 0 400 56" role="img" aria-label="Recorrido de la nota: ${pasos.map(p=>p.c+' '+(p.e==='hecho'?'hecho':'pendiente')).join(', ')}">
+    <line class="pista" x1="${xx[0]}" y1="${y}" x2="${xx[n-1]}" y2="${y}"/>
+    ${ult>0?`<line class="avance" pathLength="1" x1="${xx[0]}" y1="${y}" x2="${xx[ult]}" y2="${y}"/>`:''}
+    ${pasos.map((p,i)=>`<circle class="pt ${p.e==='hecho'?'h':p.e==='ahora'?'n':''}" cx="${xx[i]}" cy="${y}" r="6" style="animation-delay:${200+i*120}ms"/>
+      <text class="lab ${p.e==='ahora'?'f':''}" x="${xx[i]}" y="36" style="animation-delay:${260+i*120}ms">${p.c}</text>
+      <text class="lab s" x="${xx[i]}" y="50" style="animation-delay:${300+i*120}ms">${esc(p.f||'')}</text>`).join('')}</svg>`;
+}
+function drawerHTML(r,idx,total){
+  const pr=P[r.prov],pasos=pasosDe(r),[tono,sug]=siguientePaso(r),c=C[r.comp];
+  const est=chipEst(r);
+  const rp=r.tipo==='pend'?reparte(r.monto,saldoDe(r.comp)):null;
+  const celdas=r.tipo==='pend'
+    ?[['Comprobante',esc(r.doc),`debes ${soles(saldoDe(r.comp))}`,''],['Antigüedad',r.edad+' días',`cerrado el ${dm(r.fecha)}`,''],['Efecto',rp.aFavor>0&&rp.baja<=0?'A tu favor':`− ${soles(rp.baja)}`,rp.aFavor>0?`${soles(rp.aFavor)} quedan a favor`:'baja la deuda','verde']]
+    :[['Bajó la deuda',soles(r.aplicado),`de ${esc(r.doc)}`,''],['Devuelto',soles(r.dev),r.dev>0?`${ddmm(r.n.devuelto.fecha)} · ${esc(ETQ_METODO[r.n.devuelto.metodo].toLowerCase())}`:'nada devuelto',r.dev>0?'verde':''],['A favor',soles(r.vivo),r.vivo>0?'sin usar':'nada a favor','verde']];
+  const lin=r.tipo==='pend'?r.p.lineas:(r.n.lineas||[]);
+  return`<div class="asentar" style="display:flex;flex-direction:column;height:100%;min-height:0">
+  <div class="hd"><span class="mono">${ini(pr.nombre)}</span>
+    <div style="min-width:0"><div class="lbl" style="color:var(--t65)">${r.tipo==='pend'?'Nota por reclamar':'Nota '+esc(r.serie)}</div><h2 id="dr-t">${esc(pr.nombre)}</h2><div class="m55" style="font-size:13px">${esc(r.doc)} · ${esc(r.mot)}</div></div>
+    <button type="button" class="cierra" data-act="cerrar-cajon" aria-label="Cerrar vista rápida">${ic('x')}</button></div>
+  <div class="cu">
+    <div class="lbl" style="color:var(--t65)">${r.tipo==='pend'?'Esperado con IGV':'Monto de la nota'}</div>
+    <div class="big" id="dr-monto">${soles(r.monto)}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 18px">${est}${r.tipo==='pend'&&!r.bloq?chipEdad({...r,urgente:false}):''}${r.tipo==='pend'?`<span class="chip neutro">${plural(r.unid,'unidad','unidades')}</span>`:''}</div>
+    <div class="mini3">${celdas.map(([k,n,s,cls])=>`<div><div class="k">${k}</div><div class="n ${cls}">${n}</div><div class="s">${s}</div></div>`).join('')}</div>
+    <div class="vida">${vidaSVG(pasos)}</div>
+    <div class="sug ${tono}">${sug}</div>
+    ${lin.length?`<h3 class="sec lbl">${r.tipo==='pend'?'Lo que la originó':'Prendas de la nota'}</h3>${lin.map(l=>`<div class="lin-mini"><span>${esc(l.n)}<span class="s" style="display:block">${ETQ_CIERRE[l.motivo]} · ${soles(l.costo)} c/u</span></span><span class="tab" style="text-align:right">${l.cant} uds</span></div>`).join('')}`:''}
+  </div>
+  <div class="ft">
+    ${r.tipo==='pend'?(r.bloq?`<button type="button" class="btn pri" disabled>Aún no se puede</button>`:`<button type="button" class="btn pri s" data-act="reg" data-k="${r.k}"><span class="brillo"></span>Registrar nota</button>`)
+      :r.estado==='emitida'?`<button type="button" class="btn pri s" data-act="${deudaProv(r.prov)>0?'usar':'reem'}" data-prov="${r.prov}"><span class="brillo"></span>${deudaProv(r.prov)>0?'Usar en un pago':'Pedir reembolso'}</button>`:''}
+    <button type="button" class="btn dis s" data-act="detalle" data-k="${r.k}">Ver detalle</button>
+    <div class="nav"><button type="button" data-act="nav-cajon" data-d="-1" aria-label="Nota anterior">${ic('chevU')}</button><button type="button" data-act="nav-cajon" data-d="1" aria-label="Nota siguiente">${ic('chevD')}</button><span class="tab">${idx+1} de ${total}</span></div>
+  </div></div>`;
+}
+let ultimoFoco=null;
+function renderDrawer(){
+  const r=rowPor(S.sel);if(!r){cerrarDrawer();return}
+  const idx=Math.max(0,S.vistaKeys.indexOf(r.k)),tot=Math.max(1,S.vistaKeys.length);
+  $('#cajon-in').innerHTML=drawerHTML(r,idx,tot);
+  $('#cajon').setAttribute('aria-labelledby','dr-t');
+  const m=$('#dr-monto');if(m){m._v=r.monto*0.6;contar(m,r.monto,soles,600)}
+}
+function abrirDrawer(k){
+  ultimoFoco=document.activeElement;S.sel=k;S.cur=null;
+  renderDrawer();$('#cajon').classList.add('on');$('#cajon').setAttribute('aria-hidden','false');$('#velo').classList.add('on');
+  marcarSel();setTimeout(()=>{const b=$('.cierra',$('#cajon'));b&&b.focus({preventScroll:true})},60);
+}
+function cerrarDrawer(){
+  if(!$('#cajon').classList.contains('on'))return;
+  $('#cajon').classList.remove('on');$('#cajon').setAttribute('aria-hidden','true');$('#velo').classList.remove('on');
+  S.sel=null;marcarSel();if(ultimoFoco&&document.contains(ultimoFoco))ultimoFoco.focus({preventScroll:true});
+}
+function navDrawer(d){
+  const ks=S.vistaKeys;if(!ks.length)return;
+  const i=ks.indexOf(S.sel),n=(i+d+ks.length)%ks.length;S.sel=ks[n];renderDrawer();marcarSel();
+  const el=CACHE.get('f:'+S.sel);el&&el.scrollIntoView({block:'nearest'});
+}
+
+/* ====================================================================
+   MODALES (ADR-0136): velo → hoja que sube y crece → cascada → salida corta
+   ==================================================================== */
+let MODAL=null,focoModal=null,IGV_MES=IGV_MES0;
+const FOCUSABLES='button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[href],[tabindex]:not([tabindex="-1"])';
+function abrirModal(html,{ancho=false,tipo='',st={},alCerrar=null}={}){
+  const mv=$('#mv'),M=$('#modal');
+  focoModal=document.activeElement;
+  M.className='modal cascada'+(ancho?' ancho':'');M.innerHTML=html;M.scrollTop=0;
+  mv.classList.remove('sal');mv.classList.add('on');mv.setAttribute('aria-hidden','false');
+  MODAL={tipo,st,alCerrar,res:null};
+  return M;
+}
+function cerrarModal(forzar){
+  const mv=$('#mv');if(!MODAL||!mv.classList.contains('on'))return;
+  if(MODAL.st.enviando&&!forzar)return;
+  const cb=MODAL.alCerrar,res=MODAL.res;
+  mv.classList.add('sal');
+  setTimeout(()=>{mv.classList.remove('on','sal');mv.setAttribute('aria-hidden','true');MODAL=null;$('#modal').innerHTML='';
+    if(focoModal&&document.contains(focoModal))focoModal.focus({preventScroll:true});cb&&cb(res)},reducir()?20:210);
+}
+const hdModal=(sup,titulo)=>`<div class="hd"><div style="min-width:0;flex:1">${sup?`<div class="sup">${sup}</div>`:''}<h2 id="m-titulo">${titulo}</h2></div><button type="button" class="cierra" data-act="cerrar-modal" aria-label="Cerrar">${ic('x')}</button></div>`;
+const chipEstado=chipEst;
+async function copiar(btn,texto){
+  try{await navigator.clipboard.writeText(texto)}catch(e){const ta=document.createElement('textarea');ta.value=texto;ta.style.position='fixed';ta.style.opacity='0';document.body.append(ta);ta.select();try{document.execCommand('copy')}catch(_){}ta.remove()}
+  const h=btn.innerHTML;btn.classList.add('hecho');btn.innerHTML=tilde()+' Copiado';setTimeout(()=>{btn.classList.remove('hecho');btn.innerHTML=h},2200);
+}
+function mensajeProv(r){
+  const pr=P[r.prov],c=C[r.comp],p=r.p,base=r2(r.monto/(1+TASA));
+  return`Hola ${pr.contacto.split(' ')[0]}, buen día. En la recepción de ${c.doc} (${c.dest}) quedaron ${plural(unidades(p.lineas),'unidad','unidades')} sin llegar: ${p.lineas.map(l=>`${l.cant} × ${l.n.split(' · ')[0]} (${ETQ_CIERRE[l.motivo].toLowerCase()})`).join('; ')}.
+Corresponde una nota de crédito por ${soles(r.monto)} (base ${soles(base)} + IGV ${soles(igvDe(r.monto))}) contra ${c.doc}. ¿Nos la puedes emitir? Gracias. — CAYLA`;
+}
+
+/* ---------------------- DETALLE de una nota ---------------------- */
+function modalDetalle(k){
+  const r=rowPor(k);if(!r)return;
+  const pr=P[r.prov],c=C[r.comp],pasos=pasosDe(r),saldo=saldoDe(r.comp),lin=r.tipo==='pend'?r.p.lineas:(r.n.lineas||[]);
+  const sup=chipEstado(r)+(r.tipo==='pend'&&!r.bloq?chipEdad({...r,urgente:false}):'')+`<span class="chip neutro">${esc(r.mot)}</span>`;
+  const titulo=r.tipo==='pend'?`Nota por reclamar · ${esc(c.doc)}`:`Nota de crédito ${esc(r.serie)}`;
+  const base=r2(r.monto/(1+TASA));
+  const mini=r.tipo==='pend'
+    ?[['Esperado',soles(r.monto),'con IGV',''],['Base',soles(base),'sin IGV',''],['IGV',soles(igvDe(r.monto)),'18 %','']]
+    :[['Monto',soles(r.monto),'con IGV',''],['Bajó la deuda',soles(r.aplicado),`de ${esc(r.doc)}`,''],r.dev>0?['Devuelto',soles(r.dev),`${ddmm(r.n.devuelto.fecha)} · ${esc(ETQ_METODO[r.n.devuelto.metodo].toLowerCase())}`,'verde']:['A favor',soles(r.resto),r.resto>0?`sin usar ${soles(r.vivo)}`:'nada sobró','verde']];
+  const rp=r.tipo==='pend'?reparte(r.monto,saldo):null;
+  const timeline=pasos.map((x,i)=>`<div class="paso ${x.e==='hecho'?'hecho':x.e==='ahora'?'ahora':'pend'} ${x.sigue?'sigue':''}" style="--i:${i}" ${x.mig?migTag(x.mig):''}><span class="nodo"></span><span class="t"><b>${esc(x.t)}</b><span class="s">${esc(x.s)}</span></span><span class="f">${esc(x.f||'')}</span></div>`).join('');
+  const subt=r2(lin.reduce((a,l)=>a+l.cant*l.costo,0));
+  const lineas=lin.length?`<div class="sc"><span class="lbl">${r.tipo==='pend'?'Prendas que la originan':'Prendas de la nota'}</span><div class="lineas">
+    <div class="lh"><span>Prenda o material</span><span class="d">Cant.</span><span class="d c-cu">Costo</span><span class="d">Subtotal</span></div>
+    ${lin.map(l=>`<div class="li"><span>${esc(l.n)}<span class="s">${ETQ_CIERRE[l.motivo]}</span></span><span class="d">${l.cant}</span><span class="d c-cu">${soles(l.costo)}</span><span class="d">${soles(l.cant*l.costo)}</span></div>`).join('')}
+    <div class="lf"><span>Subtotal sin IGV</span><span class="d">${soles(subt)}</span></div><div class="lf"><span>IGV 18 %</span><span class="d">${soles(r2(subt*TASA))}</span></div>
+    <div class="lf tt"><span>Con IGV</span><span class="d">${soles(montoLineas(lin))}</span></div></div></div>`:'';
+  const origen=`<div class="sc"><span class="lbl">Comprobante de origen</span><div class="origen"><span class="mono s">${ini(pr.nombre)}</span>
+    <div class="tx"><b>${esc(c.doc)}</b> <span class="chip ${c.rec==='Recibida'?'verde':'ambar'}" style="margin-left:6px">${c.rec}</span><span>${esc(pr.nombre)} · emitido el ${dm(c.emi)} · llegó a ${esc(c.dest)}</span></div>
+    <div class="nums"><span>Total<b>${soles(c.total)}</b></span><span>Pagado<b>${soles(c.pagado)}</b></span><span>Debes<b>${soles(saldo)}</b></span></div>
+    <button type="button" class="link" data-act="ir-comp" data-comp="${r.comp}">Ver comprobante <span class="fl">↗</span></button></div></div>`;
+  const dinero=r.tipo==='pend'
+    ?`<div class="sc"><span class="lbl">Qué pasará con el dinero cuando llegue la nota</span><div class="dinero">
+        ${saldo>0?`<div class="dn"><span class="r">Lo que se debe de ${esc(c.doc)}</span><span class="m tab">${soles(saldo)} → ${soles(rp.deudaDespues)}</span><div class="bar"><i class="t" style="width:${saldo>0?rp.deudaDespues/saldo*100:0}%"></i></div></div>`:`<div class="dn"><span class="r">${esc(c.doc)} ya está pagado: la nota no baja ninguna deuda</span><span class="m tab">${soles(0)}</span></div>`}
+        ${rp.aFavor>0?`<div class="dn"><span class="r">Quedan a tu favor con ${esc(pr.nombre)}</span><span class="m tab verde">${soles(rp.aFavor)}</span><div class="bar"><i class="v" style="width:100%"></i></div></div>`:''}
+        <p class="nota-p" style="margin:0">Lo que sobre se devuelve o queda a favor: lo eliges al registrar la nota. Si queda a favor, se te <b>sugiere</b> al pagar; nunca se descuenta solo.</p></div></div>`
+    :`<div class="sc"><span class="lbl">Qué pasó con el dinero</span><div class="dinero">
+        ${(r.aplicado>0||(r.dev===0&&r.resto===0))?`<div class="dn"><span class="r">Bajó la deuda de ${esc(c.doc)}</span><span class="m tab">− ${soles(r.aplicado)}</span><div class="bar"><i class="t" style="width:${r.aplicado/r.monto*100}%"></i></div></div>`:''}
+        ${r.dev>0?`<div class="dn"><span class="r">Se devolvió a CAYLA el ${ddmm(r.n.devuelto.fecha)} · ${esc(ETQ_METODO[r.n.devuelto.metodo].toLowerCase())}${r.n.devuelto.ref?' · '+esc(r.n.devuelto.ref):''}</span><span class="m tab verde">${soles(r.dev)}</span><div class="bar"><i class="v" style="width:${r.dev/r.monto*100}%"></i></div></div>`:''}
+        ${r.resto-r.dev>0?`<div class="dn"><span class="r">Pasó a saldo a favor con ${esc(pr.nombre)}${r.vivo<r.resto-r.dev?` · ya se usaron ${soles(r2(r.resto-r.dev-r.vivo))}`:''}</span><span class="m tab verde">${soles(r2(r.resto-r.dev))}</span><div class="bar"><i class="v" style="width:${(r.resto-r.dev)>0?r.vivo/(r.resto-r.dev)*100:0}%"></i></div></div>`:''}</div></div>`;
+  const adj=r.tipo==='pend'
+    ?`<div class="sc"><span class="lbl">Adjunto</span><div class="drop" ${migTag('compra_adjuntos hoy solo cuelga de un comprobante: hace falta una columna nota_credito_id para saber a cuál nota pertenece')}><span class="ico">${ic('clip')}</span><div><b>Todavía no hay documento</b><span>Se adjunta el PDF o la foto de la nota al registrarla.</span></div></div></div>`
+    :`<div class="sc"><span class="lbl">Adjunto</span>${r.n.adj?`<button type="button" class="drop hay" data-act="ver-adj" ${migTag('compra_adjuntos hoy solo cuelga de un comprobante: hace falta una columna nota_credito_id para saber a cuál nota pertenece')}><span class="ico">${ic('clip')}</span><div><b>${esc(r.n.adj.split(' · ')[0])}</b><span>${esc(r.n.adj.split(' · ')[1])} · toca para abrirlo</span></div></button>`:`<div class="drop" ${migTag('compra_adjuntos hoy solo cuelga de un comprobante: hace falta una columna nota_credito_id para saber a cuál nota pertenece')}><span class="ico">${ic('clip')}</span><div><b>Sin documento adjunto</b><span>Esta nota se registró sin adjuntar el PDF.</span></div></div>`}</div>`;
+  const msg=r.tipo==='pend'&&!r.bloq?`<div class="sc"><span class="lbl">Mensaje para ${esc(pr.contacto)}</span><div class="msg-prov" id="dt-msg">${esc(mensajeProv(r))}</div><div style="margin-top:6px"><button type="button" class="cp" data-act="copiar-msg" data-k="${r.k}">${ic('copy','','width:13px;height:13px')} Copiar mensaje</button></div></div>`:'';
+  const H=[];
+  if(r.tipo==='pend'){H.push({f:r.p.fecha,t:'Cierre por faltante',s:`${r.mot} · ${r.p.por}`,m:plural(r.unid,'unidad','unidades')});r.p.reclamos.forEach(f=>H.push({f,t:'Reclamada al proveedor',s:`Por ${P[r.prov].contacto.split(' ')[0]} · mensaje`,m:'',mig:1}))}
+  else{H.push({f:r.n.origen,t:r.n.motivo==='faltante'?'Cierre por faltante':'Motivo acordado',s:r.n.nota||'',m:''});r.n.reclamos.forEach(f=>H.push({f,t:'Reclamada al proveedor',s:'',m:'',mig:1}));
+    H.push({f:r.n.fecha,t:`Nota ${r.n.serie} registrada`,s:`Por ${r.n.por}`,m:soles(r.n.monto)});
+    if(r.dev>0)H.push({f:r.n.devuelto.fecha,t:`Reembolso registrado · ${ETQ_METODO[r.n.devuelto.metodo]}`,s:r.n.devuelto.ref||'sin referencia',m:'− '+soles(r.dev),v:1});
+    if(r.resto-r.dev-r.vivo>0)MOVS.filter(m=>m.prov===r.prov&&!m.nota).forEach(m=>H.push({f:m.fecha,t:m.tipo==='aplicacion'?'Saldo usado en un pago':`Reembolso · ${ETQ_METODO[m.metodo]||''}`,s:`${m.tipo==='aplicacion'?C[m.comp].doc+' · ':''}se asume del saldo más antiguo`,m:'− '+soles(m.monto),v:1}))}
+  H.sort((a,b)=>a.f.localeCompare(b.f));
+  const hist=`<div class="sc"><span class="lbl">Historial <span class="m45" style="text-transform:none;letter-spacing:0;font-weight:400">· no se edita ni se borra</span></span><div class="hist">${H.map(h=>`<div class="li" ${h.mig?migTag('Hoy no hay tabla de reclamos'):''}><span class="t">${dm(h.f)}</span><span>${esc(h.t)}${h.s?`<span class="s">${esc(h.s)}</span>`:''}</span><span class="m">${esc(h.m)}</span></div>`).join('')}</div></div>`;
+  const acc=r.tipo==='pend'
+    ?(r.bloq?`<p>Quedan ${r.quedan} unidades sin recibir ni cerrar: la nota por faltante se registra cuando el comprobante quede resuelto.</p>`:`<button type="button" class="btn dis" data-act="marcar-reclamada" data-k="${r.k}" ${migTag('Guardar «reclamada» requiere la tabla compra_nota_reclamos')}>Marcar como reclamada</button><button type="button" class="btn pri" data-act="reg" data-k="${r.k}"><span class="brillo"></span>Registrar la nota</button>`)
+    :r.estado==='emitida'?`<button type="button" class="btn dis" data-act="reem" data-prov="${r.prov}">Pedir reembolso</button>${deudaProv(r.prov)>0?`<button type="button" class="btn pri" data-act="usar" data-prov="${r.prov}"><span class="brillo"></span>Usar en un pago</button>`:''}`
+    :`<button type="button" class="btn dis" data-act="cerrar-modal">Cerrar</button>`;
+  abrirModal(`${hdModal(sup,titulo)}
+    <p class="baj">${esc(pr.nombre)} · ${r.tipo==='pend'?`cerrado el ${dm(r.fecha)} en ${esc(c.dest)}`:`registrada el ${dm(r.fecha)} por ${esc(r.n.por)}`}</p>
+    <div class="sc"><div class="mini3">${mini.map(([kk,n,s,cls])=>`<div><div class="k">${kk}</div><div class="n ${cls}">${n}</div><div class="s">${s}</div></div>`).join('')}</div></div>
+    <div class="sc"><span class="lbl">Recorrido</span><div class="tl">${timeline}</div></div>
+    ${lineas}${origen}${dinero}${adj}${msg}${hist}
+    <div class="ft">${acc}</div>`,{ancho:true,tipo:'detalle',st:{}});
+}
+
+/* ---------------------- REGISTRAR una nota ---------------------- */
+const compsDe=pr=>Object.keys(C).filter(id=>C[id].prov===pr).sort((a,b)=>C[b].emi.localeCompare(C[a].emi));
+function parseMonto(t){const l=String(t).trim().replace(',','.');if(l==='')return NaN;const n=Number(l);return(!Number.isFinite(n)||n<=0||Math.abs(n*100-Math.round(n*100))>1e-6)?NaN:r2(n)}
+const ETQ_FAC={pagada:['verde','Pagada'],pendiente:['neutro','Pendiente'],vencida:['rojo','Vencida']};
+const chipsFactura=id=>{const[c,t]=ETQ_FAC[estadoFactura(id)];return`<span class="chip ${c}">${t}</span>`+(NOTAS.some(n=>n.comp===id)?'<span class="chip neutro">Con nota</span>':'')};
+const MEDIOS_DEV=['transferencia','efectivo','yape','plin','otro'];
+/* dato de ejemplo: hoy la base NO guarda las cuentas propias de CAYLA (solo las del proveedor) */
+const CUENTAS_CAYLA={transferencia:'BCP · cuenta corriente 194-8830412-0-19 · CAYLA SAC',yape:'Yape de CAYLA · 987 000 111',plin:'Plin de CAYLA · 987 000 111',efectivo:'Entra a la caja de la sede que lo recibe',otro:'Se anota en la referencia de la operación'};
+const pagosDe=id=>{const c=C[id];return c.pagos||(c.pagado>0?[[c.emi,c.contado?'contado':'transferencia',c.pagado,'']]:[])};
+/* resalta la coincidencia aunque el que escribe omita guiones, comas o espacios: «2360» en «S/ 2,360.00», «f003771» en «F003-000771» */
+function hlFlex(t,q){
+  const qq=sin(q).replace(/[\s,\-]|s\//g,'');if(!qq)return esc(t);
+  const idx=[];let flat='';for(let i=0;i<t.length;i++){if(/[\s,\-]/.test(t[i])||(t[i]==='/'&&/S/i.test(t[i-1]||'')))continue;if(/S/i.test(t[i])&&t[i+1]==='/')continue;idx.push(i);flat+=sin(t[i])}
+  const j=flat.indexOf(qq);if(j<0)return esc(t);
+  const a=idx[j],b=idx[j+qq.length-1]+1;
+  return esc(t.slice(0,a))+'<mark>'+esc(t.slice(a,b))+'</mark>'+esc(t.slice(b));
+}
+function coincide(id,q){
+  if(!q.trim())return true;const c=C[id],qq=sin(q).replace(/[\s,\-]|s\//g,'');
+  const campos=[c.doc,P[c.prov].nombre,soles(c.total),soles(saldoDe(id)),String(c.total),String(saldoDe(id))];
+  return campos.some(x=>sin(x).replace(/[\s,\-]|s\//g,'').includes(qq));
+}
+function fbFiltradas(st){
+  return Object.keys(C).filter(id=>{
+    if(st.ff==='saldo'&&saldoDe(id)<=0.004)return false;
+    if(st.ff==='pagadas'&&saldoDe(id)>0.004)return false;
+    if(st.ff==='prov'&&C[id].prov!==st.prov)return false;
+    return coincide(id,st.fq);
+  }).sort((a,b)=>C[b].emi.localeCompare(C[a].emi)||C[a].doc.localeCompare(C[b].doc));
+}
+function fbPintar(an){
+  const st=MODAL.st,L=$('#fb-lista'),ids=fbFiltradas(st);st.fids=ids;
+  if(st.fa>=ids.length)st.fa=Math.max(0,ids.length-1);
+  if(!ids.length){
+    L.innerHTML=`<div class="fb-vacio"><p>No hay facturas que coincidan</p><small>Prueba con otra serie, otro proveedor o un monto.</small>${st.fq||st.ff!=='todas'?`<button type="button" class="lk" data-act="fb-todas">Ver todas las facturas</button>`:''}</div>`;
+    $('#fb-q').removeAttribute('aria-activedescendant');
+  }else{
+    L.innerHTML=ids.map((id,i)=>{const c=C[id],s=saldoDe(id);
+      return`<div class="fb-op" role="option" id="fb-o-${id}" data-id="${id}" aria-selected="${i===st.fa}"><div class="fb-a"><span class="fb-doc tab">${hlFlex(c.doc,st.fq)}</span><span class="fb-prov">${hlFlex(P[c.prov].nombre,st.fq)}</span></div>
+        <div class="fb-b">${chipsFactura(id)}<span class="m55">emitida ${dm(c.emi)}</span></div>
+        <div class="fb-n"><span class="tab">${hlFlex(soles(c.total),st.fq)}</span><span class="m55 tab">${s>0.004?'Saldo '+hlFlex(soles(s),st.fq):'Sin saldo'}</span></div></div>`}).join('');
+    $('#fb-q').setAttribute('aria-activedescendant','fb-o-'+ids[st.fa]);
+    const a=$('.fb-op[aria-selected=true]',L);a&&a.scrollIntoView({block:'nearest'});
+  }
+  $('#fb-q').setAttribute('aria-expanded',ids.length>0);
+  $('#fb-cuenta').textContent=ids.length?`${plural(ids.length,'factura','facturas')}`:'Sin resultados';
+  if(an)anuncia(ids.length?`${plural(ids.length,'factura','facturas')}`:'No hay facturas que coincidan');
+  $$('#rg-filtros [data-ff]').forEach(b=>{const on=b.dataset.ff===st.ff;b.setAttribute('aria-checked',on);b.classList.toggle('on',on);if(b.dataset.ff==='prov'){b.disabled=!st.prov;b.textContent=st.prov?`Del proveedor: ${P[st.prov].nombre}`:'Del proveedor elegido'}});
+}
+function fichaHTML(id){
+  const c=C[id],pr=P[c.prov],s=saldoDe(id),notas=NOTAS.filter(n=>n.comp===id),p=PEND.find(x=>x.comp===id),pg=pagosDe(id);
+  const its=c.items.map(([n,q])=>`${q} × ${n.split(' · ')[0]}`);
+  return`<div class="ficha"><div class="fh"><span class="mono s">${ini(pr.nombre)}</span><div class="tx"><b class="tab">${esc(c.doc)}</b> ${chipsFactura(id)}<span>${esc(pr.nombre)} · emitida ${dm(c.emi)} · vence ${dm(c.vence)} · llegó a ${esc(c.dest)}</span></div><button type="button" class="link" data-act="rg-cambiar">Cambiar</button></div>
+    <div class="fn"><span>Total<b>${soles(c.total)}</b></span><span>Pagado<b>${soles(c.pagado)}</b></span><span>Debes<b>${soles(s)}</b></span><span>Notas ya emitidas<b>${soles(acreditado(id))}</b></span></div>
+    <div class="fl"><span class="k">Líneas</span><span>${esc(its.join(' · '))}</span></div>
+    ${pg.length?`<div class="fl"><span class="k">Pagos</span><span>${pg.map(([f,m,mo,ref])=>`${soles(mo)} · ${dm(f)} · ${esc(ETQ_METODO[m]||'Contado')}${ref?' · '+esc(ref):''}`).join(' | ')}</span></div>`:`<div class="fl"><span class="k">Pagos</span><span class="m55">Todavía no se pagó nada</span></div>`}
+    ${notas.length?`<div class="fl"><span class="k">Notas</span><span>${notas.map(n=>`${esc(n.serie)} · ${soles(n.monto)} · ${ETQ_NOTA[n.motivo].toLowerCase()}`).join(' | ')}</span></div>`:''}
+    ${p?`<div class="fl ambar"><span class="k">Pendiente</span><span>${plural(unidades(p.lineas),'unidad','unidades')} sin llegar → nota esperada de <b>${soles(montoLineas(p.lineas))}</b>${C[id].quedan>0?' (todavía no se puede registrar por faltante)':''}</span></div>`:''}</div>`;
+}
+function textoDestino(r,dest,doc,prov,saldo,pasado){
+  if(r.aFavor<=0.004)return`La nota baja lo que se debe de ${doc} de ${soles(saldo)} a ${soles(r.deudaDespues)}. No sobra dinero.`;
+  const primero=r.baja>0?`La nota primero baja lo que se debe de ${doc} de ${soles(saldo)} a ${soles(0)}. `:`${doc} ya estaba pagado, así que todo el monto es dinero de más. `;
+  return primero+(dest==='ahora'?(pasado?`Los ${soles(r.aFavor)} que sobraban ya volvieron a CAYLA.`:`Los ${soles(r.aFavor)} que sobran te los devuelve ${prov} ahora: se registra el reembolso junto con la nota.`):(pasado?`Los ${soles(r.aFavor)} que sobraron quedaron a tu favor con ${prov}, para otra compra.`:`Los ${soles(r.aFavor)} que sobran quedan a tu favor con ${prov}, para otra compra.`));
+}
+function valida(st){
+  if(!st.comp)return{e:{comp:'Elige la factura de origen.'},c:null,monto:NaN,tope:0,sug:0,disp:{estado:'sin_cierres'},sugerirTope:null,r:null,dest:null};
+  const c=C[st.comp],disp=dispFaltante(st.comp),sug=disp.estado==='disponible'?montoLineas(disp.p.lineas):0;
+  const raw=st.montoTxt??(st.motivo==='faltante'&&sug?sug.toFixed(2):'');
+  const monto=parseMonto(raw),fal=st.motivo==='faltante';
+  const tope=fal?r2(sug+1):r2(c.total-acreditado(st.comp));
+  const e={};
+  const serie=st.serie.trim().toUpperCase();
+  if(!serie)e.serie='Escribe la serie y el número de la nota, por ejemplo FC01-000018.';
+  else if(NOTAS.some(n=>n.comp===st.comp&&n.serie===serie))e.serie=`La nota ${serie} ya está registrada en ${c.doc}.`;
+  if(!st.fecha)e.fecha='Elige la fecha de la nota.';
+  else if(st.fecha<c.emi)e.fecha=`La nota no puede ser anterior al comprobante (emitido el ${dm(c.emi)}).`;
+  else if(st.fecha>HOY_ISO)e.fecha='La fecha de la nota no puede ser futura.';
+  let sugerirTope=null;
+  if(raw.trim()===''){e.monto='Escribe el monto de la nota.';e.montoVacio=true}
+  else if(Number.isNaN(monto)){e.monto='El monto tiene que ser mayor a cero y con hasta 2 decimales.';e.montoMal='El monto tiene que ser mayor a cero y con hasta dos decimales.'}
+  else if(monto>tope){
+    e.monto=fal?`No puede pasar de ${soles(tope)}.`:`Como máximo ${soles(tope)}.`;
+    e.montoMal=fal?`La nota por faltante no puede pasar de ${soles(sug)}: es lo que se cerró sin llegar, a su costo con IGV (se admite S/ 1 de margen por redondeo). Tú escribiste ${soles(monto)}.`
+      :`Las notas de ${c.doc} sumarían ${soles(r2(acreditado(st.comp)+monto))}, más que el comprobante (${soles(c.total)}). Como máximo ${soles(tope)}.`;
+    sugerirTope=fal?sug:tope;
+  }
+  if(fal&&disp.estado!=='disponible')e.motivo='La nota por faltante todavía no se puede registrar en este comprobante.';
+  const r=(Number.isNaN(monto)||e.montoMal)?null:reparte(monto,saldoDe(st.comp));
+  const dest=r&&r.aFavor>0.004?st.dest:null;
+  if(dest==='ahora'&&(!st.fechaR||st.fechaR>HOY_ISO))e.fechaR='La fecha del reembolso no puede ser futura.';
+  return{e,monto,tope,sug,disp,c,sugerirTope,r,dest};
+}
+function autoMotivo(st){const d=st.comp?dispFaltante(st.comp):{estado:'sin_cierres'};st.montoTxt=null;st.tocoMonto=false;if(d.estado==='disponible')st.motivo='faltante';else if(st.motivo==='faltante')st.motivo='devolucion'}
+function elegirFactura(st,id){
+  st.comp=id;st.prov=C[id].prov;st.cambiando=false;st.fq='';autoMotivo(st);
+  $('#fb-q').value='';syncReg();
+  setTimeout(()=>{const s=$('#rg-serie');MODAL&&MODAL.tipo==='reg'&&s&&s.focus({preventScroll:true})},reducir()?30:380);
+}
+function modalRegistrar(o={}){
+  const r0=o.pend?rowPor(o.pend):null;
+  const st={pre:!!r0,prov:r0?r0.prov:null,comp:r0?r0.comp:null,cambiando:false,fq:'',ff:'todas',fa:0,fids:[],fichaId:null,motivo:'faltante',serie:'',fecha:HOY_ISO,montoTxt:null,adj:false,dest:'favor',medio:'transferencia',fechaR:HOY_ISO,op:'',enviando:false,intento:false,tocoMonto:false,serieBlur:false};
+  if(st.comp)autoMotivo(st);
+  const M=abrirModal(`${hdModal('','Registrar nota de crédito')}
+    <p class="baj" id="rg-baj"></p>
+    <form id="rg-form" novalidate>
+      <div class="sc" id="rg-origen"><span class="lbl">Factura de origen</span>
+        <div class="colapsa" id="rg-ficha-w"><div><div id="rg-ficha"></div></div></div>
+        <div class="colapsa" id="rg-pick-w"><div><div id="rg-pick">
+          <div class="fb-caja"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="fb-q" role="combobox" aria-expanded="true" aria-controls="fb-lista" aria-autocomplete="list" aria-label="Buscar factura por serie-número, proveedor o monto" placeholder="Serie-número, proveedor o monto" autocomplete="off" spellcheck="false">
+            <span class="m55" style="font-size:12px;white-space:nowrap" id="fb-cuenta"></span><kbd>↑↓</kbd></div>
+          <div class="fb-filtros" id="rg-filtros" role="radiogroup" aria-label="Filtrar facturas">
+            <button type="button" class="pill" role="radio" data-ff="todas">Todas</button><button type="button" class="pill" role="radio" data-ff="saldo">Con saldo</button><button type="button" class="pill" role="radio" data-ff="pagadas">Pagadas</button><button type="button" class="pill" role="radio" data-ff="prov">Del proveedor elegido</button></div>
+          <div class="fb-lista" id="fb-lista" role="listbox" aria-label="Facturas de compra"></div>
+        </div></div></div></div>
+      <div class="sc rg-dep"><span class="lbl">Motivo</span><div class="pills" role="radiogroup" aria-label="Motivo de la nota">${['faltante','devolucion','descuento','otro'].map(m=>`<button type="button" class="pill" role="radio" data-mo="${m}">${ETQ_NOTA[m]}</button>`).join('')}</div><p class="nota-p" id="rg-mo-nota"></p></div>
+      <div class="sc rg-dep"><div class="campos">
+        <label class="campo num" id="c-serie"><span class="lbl">Serie-número</span><span class="v"><input id="rg-serie" autocomplete="off" placeholder="FC01-000018" style="text-transform:uppercase"></span><p class="err" id="e-serie" role="alert" hidden></p></label>
+        <label class="campo num" id="c-fecha"><span class="lbl">Fecha de la nota</span><span class="v"><input id="rg-fecha" type="date"></span><p class="err" id="e-fecha" role="alert" hidden></p></label>
+        <label class="campo num" id="c-monto"><span class="lbl">Monto (con IGV)</span><span class="v"><span class="pre">S/</span><input id="rg-monto" inputmode="decimal" autocomplete="off" placeholder="0.00"></span><p class="pie" id="rg-monto-pie"></p><p class="err" id="e-monto" role="alert" hidden></p></label>
+      </div></div>
+      <div class="sc rg-dep" id="rg-dest"><span class="lbl">Qué pasa con el dinero</span>
+        <p class="nota-p" style="margin:0 0 12px;font-size:13px">Lo primero que hace una nota es <b>bajar lo que aún le debes al proveedor</b> por esa factura. El dinero que sobra —o todo el monto, si la factura ya estaba pagada— es el que <b>se devuelve o queda a favor</b>.</p>
+        <div class="tres" id="rg-tres" aria-live="polite">
+          <div><span class="k">Baja la deuda</span><span class="v" id="tr-b">S/ 0.00</span></div>
+          <div><span class="k">Se devuelve ahora</span><span class="v" id="tr-d">S/ 0.00</span></div>
+          <div><span class="k">Queda a favor</span><span class="v" id="tr-f">S/ 0.00</span></div>
+          <div class="ef-barra" aria-hidden="true"><i class="baja" id="tb-b" style="width:0"></i><i class="dev" id="tb-d" style="width:0"></i><i class="fav" id="tb-f" style="width:0"></i></div></div>
+        <div class="opcs" id="rg-opcs" role="radiogroup" aria-label="Qué se hace con el dinero que sobra">
+          <button type="button" class="opc" role="radio" data-dest="ahora"><span class="rd" aria-hidden="true"></span><span><b>Nos lo devuelve ahora</b><span>El proveedor nos paga el sobrante en este momento (reembolso).</span></span></button>
+          <button type="button" class="opc" role="radio" data-dest="favor"><span class="rd" aria-hidden="true"></span><span><b>Queda a favor para otra compra</b><span>Es saldo a favor del proveedor. Se sugiere al pagar; nunca se descuenta solo.</span></span></button></div>
+        <p class="nota-p" id="rg-dest-nota" style="margin-top:10px"></p>
+        <div class="colapsa" id="rg-reem-w"><div><div class="reem" ${migTag('registrar_nota_credito_compra y registrar_reembolso_proveedor son RPC separadas: «devuelve ahora» necesita una RPC atómica nueva')}>
+          <div class="campo"><span class="lbl">Cómo lo devuelve</span><div class="pills" role="radiogroup" aria-label="Medio de devolución" style="margin-top:8px">${MEDIOS_DEV.map(m=>`<button type="button" class="pill" role="radio" data-medio="${m}">${ETQ_METODO[m]}</button>`).join('')}</div></div>
+          <div class="campos" style="grid-template-columns:1fr 1.4fr;margin-top:14px">
+            <label class="campo num" id="c-fechaR"><span class="lbl">Fecha en que lo devuelve</span><span class="v"><input id="rg-rfecha" type="date"></span><p class="err" id="e-fechaR" role="alert" hidden></p></label>
+            <label class="campo num"><span class="lbl">N.° de operación <span style="text-transform:none;letter-spacing:0;font-weight:400">(opcional)</span></span><span class="v"><input id="rg-op" autocomplete="off" placeholder="Op. 00881230"></span></label></div>
+          <div class="cuenta" ${migTag('La base no guarda las cuentas propias de CAYLA (solo las del proveedor): habría que definir dónde vive este dato')}><span class="k">Se lo depositan en</span><b id="rg-cuenta"></b></div>
+        </div></div></div></div>
+      <div class="sc rg-dep" id="rg-efecto"><span class="lbl">Cómo quedan tus cuentas</span>
+        <div class="efecto" id="ef-ok" hidden>
+          <p class="fr" id="ef-fr"></p>
+          <div class="ef-filas">
+            <div class="ef-fila" id="ef-r-deuda"><span id="ef-l-deuda"></span><span class="a" id="ef-a-deuda"></span><span class="fl">→</span><span class="d" id="ef-d-deuda"></span></div>
+            <div class="ef-fila" id="ef-r-fav"><span id="ef-l-fav"></span><span class="a" id="ef-a-fav"></span><span class="fl">→</span><span class="d" id="ef-d-fav"></span></div>
+            <div class="ef-fila" id="ef-r-ftot"><span>Saldo a favor total (todos los proveedores)</span><span class="a" id="ef-a-ftot"></span><span class="fl">→</span><span class="d" id="ef-d-ftot"></span></div>
+            <div class="ef-fila" id="ef-r-apl"><span>Aplicado este mes</span><span class="a" id="ef-a-apl"></span><span class="fl">→</span><span class="d" id="ef-d-apl"></span></div>
+            <div class="ef-fila" id="ef-r-igv"><span>Crédito fiscal (IGV) del mes</span><span class="a" id="ef-a-igv"></span><span class="fl">→</span><span class="d" id="ef-d-igv"></span></div>
+          </div></div>
+        <div class="ef-mal" id="ef-mal" hidden role="alert"><b>Este monto no cuadra</b><span id="ef-mal-t"></span><br><button type="button" id="ef-mal-b" data-act="usar-tope"></button></div>
+        <div class="ef-nada" id="ef-nada" hidden></div>
+      </div>
+      <div class="sc rg-dep"><span class="lbl">Adjunto</span><button type="button" class="drop" id="rg-drop" ${migTag('compra_adjuntos hoy solo cuelga de un comprobante: hace falta una columna nota_credito_id para saber a cuál nota pertenece')}></button></div>
+      <div class="ft"><p>Queda como un registro nuevo: no se edita ni se borra. El IGV de la nota resta del crédito fiscal del mes.</p>
+        <button type="button" class="btn dis" data-act="cerrar-modal">Cancelar</button>
+        <button type="submit" class="btn pri" id="rg-ok"><span class="brillo"></span>Registrar nota</button></div>
+    </form>`,{tipo:'reg',st,alCerrar:aplicarRegistro});
+  const f=$('#rg-form');
+  $('#rg-serie').addEventListener('input',e=>{st.serie=e.target.value.toUpperCase();syncReg()});
+  $('#rg-serie').addEventListener('blur',()=>{st.serieBlur=true;syncReg()});
+  $('#rg-fecha').addEventListener('input',e=>{st.fecha=e.target.value;syncReg()});
+  $('#rg-monto').addEventListener('input',e=>{st.montoTxt=e.target.value;st.tocoMonto=true;syncReg()});
+  $('#rg-rfecha').addEventListener('input',e=>{st.fechaR=e.target.value;syncReg()});
+  $('#rg-op').addEventListener('input',e=>{st.op=e.target.value});
+  $$('[data-mo]',M).forEach(b=>b.addEventListener('click',()=>{if(b.disabled)return;st.motivo=b.dataset.mo;st.montoTxt=null;st.tocoMonto=false;syncReg()}));
+  $$('[data-medio]',M).forEach(b=>b.addEventListener('click',()=>{st.medio=b.dataset.medio;syncReg()}));
+  $('#rg-drop').addEventListener('click',()=>{st.adj=!st.adj;syncReg()});
+  /* fichas de destino: radio accesible con flechas */
+  const opcs=$('#rg-opcs');
+  opcs.addEventListener('click',e=>{const b=e.target.closest('[data-dest]');if(!b||b.getAttribute('aria-disabled')==='true'||st.enviando)return;st.dest=b.dataset.dest;syncReg()});
+  opcs.addEventListener('keydown',e=>{
+    if(!['ArrowRight','ArrowDown','ArrowLeft','ArrowUp','Home','End'].includes(e.key))return;
+    const bs=$$('[data-dest]',opcs);if(bs[0].getAttribute('aria-disabled')==='true')return;
+    e.preventDefault();const i=bs.findIndex(b=>b.dataset.dest===st.dest);
+    const n=e.key==='Home'?0:e.key==='End'?bs.length-1:(i+(/Right|Down/.test(e.key)?1:-1)+bs.length)%bs.length;
+    st.dest=bs[n].dataset.dest;syncReg();bs[n].focus();
+  });
+  /* buscador de facturas: ↑ ↓ Enter Esc */
+  const fq=$('#fb-q');
+  fq.addEventListener('input',e=>{st.fq=e.target.value;st.fa=0;fbPintar(true)});
+  fq.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();e.stopPropagation();const n=st.fids.length;if(n){st.fa=(st.fa+(e.key==='ArrowDown'?1:-1)+n)%n;fbPintar()}}
+    else if(e.key==='Enter'){e.preventDefault();e.stopPropagation();const id=st.fids[st.fa];if(id)elegirFactura(st,id)}
+    else if(e.key==='Escape'){
+      if(st.fq){e.stopPropagation();e.preventDefault();st.fq='';fq.value='';st.fa=0;fbPintar()}
+      else if(st.comp&&st.cambiando){e.stopPropagation();e.preventDefault();st.cambiando=false;syncReg()}
+    }
+  });
+  $('#fb-lista').addEventListener('click',e=>{const o=e.target.closest('.fb-op');if(o)elegirFactura(st,o.dataset.id)});
+  $('#fb-lista').addEventListener('mousemove',e=>{const o=e.target.closest('.fb-op');if(!o)return;const i=st.fids.indexOf(o.dataset.id);if(i>=0&&i!==st.fa){st.fa=i;$$('.fb-op',$('#fb-lista')).forEach(x=>x.setAttribute('aria-selected',x===o));fq.setAttribute('aria-activedescendant',o.id)}});
+  $$('#rg-filtros [data-ff]').forEach(b=>b.addEventListener('click',()=>{if(b.disabled)return;st.ff=b.dataset.ff;st.fa=0;fbPintar(true);fq.focus()}));
+  f.addEventListener('submit',e=>{e.preventDefault();enviarNota()});
+  syncReg();
+  setTimeout(()=>{if(!MODAL||MODAL.tipo!=='reg')return;const x=st.comp?$('#rg-serie'):$('#fb-q');x&&x.focus({preventScroll:true})},reducir()?30:420);
+}
+function syncReg(){
+  if(!MODAL||MODAL.tipo!=='reg')return;
+  const st=MODAL.st,v=valida(st),c=v.c,disp=v.disp,en=st.enviando,hay=!!c,pr=hay?P[c.prov]:null;
+  $('#rg-baj').textContent=st.pre&&hay&&!st.cambiando?'Viene de una nota pendiente: la factura, el motivo y el monto ya están puestos.':hay&&!st.cambiando?'Revisa la factura y completa la nota.':'Busca la factura contra la que el proveedor emitió la nota.';
+  const abreBusca=!hay||st.cambiando;
+  $('#rg-ficha-w').classList.toggle('on',hay&&!st.cambiando);$('#rg-pick-w').classList.toggle('on',abreBusca);
+  $$('.rg-dep').forEach(x=>{if(abreBusca||en){x.setAttribute('inert','')}else x.removeAttribute('inert');x.classList.toggle('tenue',abreBusca)});
+  if(hay&&st.fichaId!==st.comp){$('#rg-ficha').innerHTML=fichaHTML(st.comp);st.fichaId=st.comp}
+  if(abreBusca)fbPintar();
+  $$('[data-mo]').forEach(b=>{const m=b.dataset.mo,off=m==='faltante'&&disp.estado!=='disponible';b.disabled=off||en;b.setAttribute('aria-checked',st.motivo===m);b.title=off?'Todavía no disponible en este comprobante':''});
+  $('#rg-mo-nota').innerHTML=!hay?'':st.motivo==='faltante'?(disp.estado==='disponible'?'Una sola por comprobante: cubre todo lo que no llegó.':''):disp.estado==='ya_registrada'?'«Faltante» no está disponible: este comprobante ya tiene su nota por faltante (es una sola por comprobante).':disp.estado==='sin_cierres'?'«Faltante» no está disponible: no hay unidades cerradas sin llegar en este comprobante. Devolución, descuento y otro pueden ser varias por comprobante.':disp.estado==='bloqueada'?`«Faltante» no está disponible todavía: quedan ${disp.quedan} unidades sin recibir ni cerrar. Se habilita cuando el comprobante quede resuelto al 100 %.`:'';
+  if(hay&&st.motivo!=='faltante'&&disp.estado==='disponible')$('#rg-mo-nota').textContent='Devolución, descuento y otro pueden ser varias por comprobante; ninguna suma pasa del total.';
+  const se=$('#rg-serie'),fe=$('#rg-fecha'),mo=$('#rg-monto');
+  if(se.value!==st.serie)se.value=st.serie;
+  if(hay){fe.min=c.emi;fe.max=HOY_ISO}if(fe.value!==st.fecha)fe.value=st.fecha;
+  const raw=st.montoTxt??(st.motivo==='faltante'&&v.sug?v.sug.toFixed(2):'');
+  if(st.montoTxt===null&&mo.value!==raw)mo.value=raw;
+  [se,fe,mo,$('#rg-rfecha'),$('#rg-op')].forEach(x=>x&&(x.disabled=en));
+  $('#rg-monto-pie').textContent=!hay?'':st.motivo==='faltante'&&v.sug?`Lo cerrado a su costo + IGV 18 %. Puedes ajustarlo hasta ${soles(v.tope)}.`:`Hasta ${soles(v.tope)}: lo que aún queda por acreditar de ${c.doc}.`;
+  const showSerie=(st.intento||st.serieBlur)&&v.e.serie,showMonto=(st.tocoMonto||st.intento)&&v.e.monto;
+  [['serie',showSerie,v.e.serie],['fecha',!!(hay&&v.e.fecha),v.e.fecha],['monto',showMonto,v.e.monto],['fechaR',!!v.e.fechaR,v.e.fechaR]].forEach(([k,on,t])=>{const p=$('#e-'+k),w=$('#c-'+k);if(on){if(p.hidden||p.textContent!==t){p.textContent=t;p.hidden=false}w.classList.add('mal')}else{p.hidden=true;w.classList.remove('mal')}});
+  /* adjunto */
+  const d=$('#rg-drop');d.classList.toggle('hay',st.adj);d.disabled=en;
+  const nom=(st.serie.trim()||'nota').toUpperCase()+'.pdf';
+  const dh=st.adj?`<span class="ico">${ic('clip')}</span><div><b>${esc(nom)}</b><span>84 KB · adjunto ${tilde()} · toca para quitarlo</span></div>`:`<span class="ico">${ic('clip')}</span><div><b>Adjunta la nota del proveedor</b><span>PDF o foto · hasta 10 MB · opcional</span></div>`;
+  if(d.dataset.h!==dh){d.innerHTML=dh;d.dataset.h=dh}
+  /* DESTINO DEL DINERO: la elección aplica sobre el sobrante */
+  const r=v.r,sobra=r?r.aFavor:0,dest=v.dest,dev=dest==='ahora'?sobra:0,fav=r2(sobra-dev),baja=r?r.baja:0,tot=Math.max(hay&&r?v.monto:0,0.01);
+  contar($('#tr-b'),baja,soles,500);contar($('#tr-d'),dev,soles,500);contar($('#tr-f'),fav,soles,500);
+  $('#tb-b').style.width=(baja/tot*100)+'%';$('#tb-d').style.width=(dev/tot*100)+'%';$('#tb-f').style.width=(fav/tot*100)+'%';
+  const off=!(r&&sobra>0.004);
+  $$('[data-dest]').forEach(b=>{const on=!off&&st.dest===b.dataset.dest;b.setAttribute('aria-checked',on);b.setAttribute('aria-disabled',off);b.tabIndex=on?0:-1});
+  $('#rg-opcs').classList.toggle('off',off);
+  $('#rg-dest-nota').textContent=!hay?'Elige primero la factura.':!r?'Escribe el monto y verás cuánto baja la deuda y cuánto sobra.':off?'Esta nota solo baja la deuda: no hay dinero que devolver. Las fichas se activan cuando la nota es mayor que lo que aún debes (o la factura ya está pagada).':dest==='ahora'?'Se registra el reembolso junto con la nota, en un solo paso. El saldo a favor de este proveedor no cambia.':'Queda como saldo a favor del proveedor. Se te sugiere en «Pagar juntos»; lo decide quien paga, nunca se descuenta solo.';
+  const rw=$('#rg-reem-w');rw.classList.toggle('on',dest==='ahora');
+  $$('[data-medio]').forEach(b=>{b.setAttribute('aria-checked',b.dataset.medio===st.medio);b.disabled=en});
+  const rf=$('#rg-rfecha');rf.max=HOY_ISO;if(rf.value!==st.fechaR)rf.value=st.fechaR;
+  $('#rg-cuenta').textContent=CUENTAS_CAYLA[st.medio];
+  /* el efecto en las cuentas */
+  const ok=$('#ef-ok'),mal=$('#ef-mal'),nada=$('#ef-nada'),malTxt=v.e.montoMal&&(st.tocoMonto||st.intento);
+  ok.hidden=true;mal.hidden=true;nada.hidden=true;
+  if(!hay){nada.hidden=false;nada.textContent='Elige primero la factura de origen.'}
+  else if(malTxt){mal.hidden=false;$('#ef-mal-t').textContent=v.e.montoMal;const b=$('#ef-mal-b');if(v.sugerirTope){b.hidden=false;b.textContent=`Usar ${soles(v.sugerirTope)}`;b.dataset.v=v.sugerirTope}else b.hidden=true}
+  else if(r){
+    ok.hidden=false;const saldo=saldoDe(st.comp),favAntes=saldoFavor(c.prov),igvN=igvDe(v.monto),ftA=totalFavor(),ap=aplicadoMes();
+    $('#ef-fr').innerHTML=`<b>${esc(textoDestino(r,dest,c.doc,pr.nombre,saldo))}</b>`;
+    $('#ef-r-deuda').hidden=saldo<=0.004;$('#ef-l-deuda').textContent=`Lo que se debe de ${c.doc}`;$('#ef-a-deuda').textContent=soles(saldo);contarDesde($('#ef-d-deuda'),saldo,r.deudaDespues);
+    $('#ef-r-fav').hidden=fav<=0;$('#ef-l-fav').textContent=`Saldo a favor con ${pr.nombre}`;$('#ef-a-fav').textContent=soles(favAntes);contarDesde($('#ef-d-fav'),favAntes,r2(favAntes+fav));
+    $('#ef-a-ftot').textContent=soles(ftA);contarDesde($('#ef-d-ftot'),ftA,r2(ftA+fav));
+    const sumaApl=(esMes(st.fecha)?baja:0)+(dest==='ahora'&&esMes(st.fechaR)?dev:0);
+    $('#ef-a-apl').textContent=soles(ap.total);contarDesde($('#ef-d-apl'),ap.total,r2(ap.total+sumaApl));
+    $('#ef-a-igv').textContent=soles(IGV_MES);contarDesde($('#ef-d-igv'),IGV_MES,r2(IGV_MES-igvN));
+  }else{nada.hidden=false;nada.textContent='Escribe el monto y aquí verás qué le pasa a la deuda del comprobante y a tu saldo a favor.'}
+  const ok2=$('#rg-ok');ok2.classList.toggle('trab',en);ok2.disabled=en;
+  ok2.lastChild.textContent=en?'Registrando…':dev>0?'Registrar nota y reembolso':'Registrar nota';
+}
+function contarDesde(el,de,a){if(el._v===undefined)el._v=de;contar(el,a,soles,600)}
+function enviarNota(){
+  const st=MODAL.st;if(st.enviando)return;st.intento=true;const v=valida(st);syncReg();
+  if(!st.comp){$('#fb-q').focus();anuncia('Elige la factura de origen');return}
+  const prim=['serie','fecha','monto','fechaR'].find(k=>v.e[k]);
+  if(v.e.motivo||prim){const x=$(prim==='fechaR'?'#rg-rfecha':'#rg-'+(prim||'serie'));x&&x.focus();anuncia('Falta corregir: '+(v.e[prim]||v.e.motivo));return}
+  st.enviando=true;syncReg();$('#hilo').classList.add('trab');
+  setTimeout(()=>{
+    $('#hilo').classList.remove('trab');
+    const c=v.c,pr=P[c.prov],saldo=saldoDe(st.comp),r=reparte(v.monto,saldo),disp=v.disp,dev=v.dest==='ahora'?r.aFavor:0,fav=r2(r.aFavor-dev);
+    const ftAntes=totalFavor(),apAntes=aplicadoMes().total;
+    const n={id:'n'+(SEQ.n++),serie:st.serie.trim().toUpperCase(),comp:st.comp,motivo:st.motivo,fecha:st.fecha,monto:v.monto,aplicado:r.baja,nota:st.motivo==='faltante'&&disp.p?`Faltante de ${plural(unidades(disp.p.lineas),'unidad','unidades')}`:'',por:'Felipe A.',adj:st.adj?`${st.serie.trim().toUpperCase()}.pdf · 84 KB`:null,reclamos:disp.p?disp.p.reclamos.slice():[],origen:disp.p?disp.p.fecha:st.fecha,lineas:st.motivo==='faltante'&&disp.p?JSON.parse(JSON.stringify(disp.p.lineas)):undefined,devuelto:dev>0?{monto:dev,fecha:st.fechaR,metodo:st.medio,ref:st.op.trim()}:null};
+    let quito=null;
+    if(st.motivo==='faltante'&&disp.p){quito=disp.p.id;PEND=PEND.filter(x=>x!==disp.p)}
+    const favAntesP=saldoFavor(c.prov);
+    NOTAS.push(n);
+    if(dev>0)MOVS.push({id:'m'+(SEQ.m++),tipo:'reembolso',prov:c.prov,monto:dev,fecha:st.fechaR,metodo:st.medio,ref:st.op.trim(),nota:n.id,por:'Felipe A.'});
+    IGV_MES=r2(IGV_MES-igvDe(v.monto));
+    MODAL.res={id:n.id,quito,prov:c.prov,aFavor:r.aFavor,dev};
+    const filas=[];
+    filas.push(r.baja>0?[`Lo que se debe de ${c.doc}`,`${soles(saldo)} → ${soles(r.deudaDespues)}`]:[`${c.doc} ya estaba pagado`,'sin cambio']);
+    if(dev>0)filas.push([`Reembolso registrado · ${ETQ_METODO[st.medio]}`,`${tilde('')}${soles(dev)}`]);
+    if(fav>0)filas.push([`Saldo a favor con ${pr.nombre}`,`${soles(favAntesP)} → ${soles(r2(favAntesP+fav))}`]);
+    filas.push(['Saldo a favor total',`${soles(ftAntes)} → ${soles(totalFavor())}`]);
+    filas.push(['Aplicado este mes',`${soles(apAntes)} → ${soles(aplicadoMes().total)}`]);
+    st.enviando=false;
+    $('#modal').className='modal cascada';
+    $('#modal').innerHTML=`<div class="okv" data-sin-cascada><svg class="grande" viewBox="0 0 64 64" aria-hidden="true"><circle pathLength="1" cx="32" cy="32" r="29"/><path pathLength="1" d="M19 33l9 9 17-20"/></svg>
+      <h2 id="m-titulo">${dev>0?`Nota ${esc(n.serie)} y reembolso registrados`:`Nota ${esc(n.serie)} registrada`}</h2>
+      <p>${dev>0?`El reembolso de ${soles(dev)} por ${esc(ETQ_METODO[st.medio].toLowerCase())} quedó registrado junto con la nota. `:''}${esc(textoDestino(r,v.dest,c.doc,pr.nombre,saldo,true))}</p>
+      <ul>${filas.map(([a,b],i)=>`<li style="--i:${i}"><span>${esc(a)}</span><span class="cero">${b.includes('→')?tilde():''}${b.startsWith('<')?b:esc(b)}</span></li>`).join('')}</ul>
+      <div class="acciones"><button type="button" class="btn pri" data-act="cerrar-modal" id="ok-listo"><span class="brillo"></span>Listo</button></div></div>`;
+    setTimeout(()=>{const b=$('#ok-listo');b&&b.focus({preventScroll:true})},60);
+    avisar(dev>0?`Nota ${n.serie} y reembolso de ${soles(dev)} registrados`:`Nota ${n.serie} registrada`,dev>0?`${pr.nombre} devolvió ${soles(dev)} por ${ETQ_METODO[st.medio].toLowerCase()}.`:fav>0?`Quedan ${soles(fav)} a favor con ${pr.nombre}.`:`Bajó lo que se debe de ${c.doc} en ${soles(r.baja)}.`);
+  },1150);
+}
+function aplicarRegistro(res){
+  if(!res)return;
+  S.destello=res.id;
+  if(res.quito&&S.sel===res.quito){S.sel=null;cerrarDrawer()}
+  repintar();
+  const r=rowPor(res.id);
+  if(r&&S.tab!=='todas'&&S.tab!==r.estado)avisar('La nota ya está en «'+ESTADO_CHIP[r.estado][1]+'s»','Salió de la lista que estabas viendo.',{accion:{txt:'Verla',fn:()=>{S.tab=r.estado;S.q='';$('#q').value='';S.destello=r.k;repintar()}}});
+}
+
+/* ---------------------- SALDOS A FAVOR ---------------------- */
+S.abiertos=new Set(['sur']);S.prevFav={};
+function libroHTML(pr){
+  const L=libro(pr);let acum=0;
+  const filas=L.map(l=>{acum=r2(acum+(l.tipo==='nota_credito'?l.monto:-l.monto));return{...l,acum}}).reverse();
+  return filas.map(l=>{
+    const mas=l.tipo==='nota_credito';
+    const t=mas?`Nota ${esc(l.nota.serie)} · sobre ${esc(C[l.comp].doc)}`:l.tipo==='aplicacion'?'Usado en un pago':`Reembolso · ${esc(ETQ_METODO[l.metodo]||'')}`;
+    const s=mas?`${ETQ_NOTA[l.nota.motivo]} · la nota fue de ${soles(l.nota.monto)}${l.nota.aplicado>0?` y ${soles(l.nota.aplicado)} bajaron la deuda`:' y no había deuda que bajar'}${l.nota.devuelto?' · se devolvió al registrarla':''}`:l.tipo==='aplicacion'?`${esc(C[l.comp].doc)} · ${esc(l.ref||'')}`:`${esc(l.ref||'sin referencia')}${l.nota?` · de la nota ${esc((NOTAS.find(n=>n.id===l.nota)||{}).serie||'')}`:''}`;
+    return`<div class="lb ${l.nuevo?'nuevo':''}" data-k="${l.id||l.nota.id}"><span class="t">${dm(l.fecha)}</span><span class="ic2 ${mas?'v':'r'}" aria-hidden="true">${mas?'+':'−'}</span><span>${t}<span class="s">${s}</span></span><span class="m ${mas?'v':'r'}">${mas?'+':'−'} ${soles(l.monto)}</span><span class="acum">saldo ${soles(l.acum)}</span></div>`}).join('');
+}
+function pintarSaldos(){
+  const V=$('#v-saldos'),provs=Object.keys(P).map(pr=>({pr,fav:saldoFavor(pr),deuda:deudaProv(pr)}));
+  const con=provs.filter(x=>x.fav>0.004).sort((a,b)=>b.fav-a.fav),sinS=provs.filter(x=>x.fav<=0.004);
+  const tot=r2(con.reduce((a,x)=>a+x.fav,0)),deudaCon=r2(con.reduce((a,x)=>a+x.deuda,0));
+  const nuevoK=V._nuevo;V._nuevo=null;
+  const prev=S.prevFav;
+  V.innerHTML=`
+    <div class="fav-res card e" style="--i:2"><div class="lbl" style="color:var(--t65);display:flex;align-items:center;gap:8px"><span class="dot verde"></span>A tu favor con proveedores</div>
+      <div class="cifra"><span class="big verde" id="sf-tot" style="color:var(--verde-p)">${soles(tot)}</span><span class="muted">${con.length?`${plural(con.length,'proveedor','proveedores')} te deben saldo · si lo usaras todo, dejarías de transferir hasta ${soles(r2(con.reduce((a,x)=>a+Math.min(x.fav,x.deuda),0)))}`:'Ningún proveedor te debe saldo por ahora'}</span></div>
+      ${con.length?`<div class="conc" aria-hidden="true">${con.map((x,i)=>`<span style="--i:${i};background:${i%2?'var(--verde-p)':'var(--verde)'};flex-grow:${x.fav}"></span>`).join('')}</div>`:''}
+      <div class="regla">${ic('shield')}<span><b>Se sugiere, no se descuenta solo.</b> El saldo a favor se te ofrece en «Pagar juntos» y lo decide quien paga. También puedes pedir que el proveedor te devuelva el dinero.</span></div></div>
+    ${con.length?`<div class="provs">${con.map((x,i)=>{
+      const pr=P[x.pr],cubre=Math.min(x.fav,x.deuda),ab=S.abiertos.has(x.pr);
+      return`<section class="card pv e" style="--i:${3+i}" data-pr="${x.pr}" aria-label="Saldo a favor de ${esc(pr.nombre)}">
+        <div class="ar"><div class="who"><span class="mono">${ini(pr.nombre)}</span><div style="min-width:0"><div class="nm">${esc(pr.nombre)}</div>
+          <div class="sb">${x.deuda>0?`Le debes ${soles(x.deuda)} · con tu saldo solo transferirías ${soles(r2(x.deuda-cubre))}`:'Sin deuda pendiente: queda a tu favor para su próxima compra, o pide el reembolso.'}</div>
+          ${x.deuda>0?`<div class="pista" aria-hidden="true"><i style="width:${Math.min(100,cubre/x.deuda*100)}%"></i></div>`:''}</div></div>
+          <div class="der"><span class="sal" data-sal="${x.pr}">${soles(x.fav)}</span><div class="btns">
+            ${x.deuda>0?`<button type="button" class="btn dis s" data-act="usar" data-prov="${x.pr}">Usar en un pago <span aria-hidden="true">→</span></button>`:''}
+            <button type="button" class="btn dis s" data-act="reem" data-prov="${x.pr}" ${migTag('registrar_reembolso_proveedor anota un reembolso que YA pasó; «pedirlo» y dejarlo pendiente necesita un estado nuevo')}>Pedir reembolso</button></div></div></div>
+        ${x.deuda>0?`<div class="sug-r">${ic('shield','','width:14px;height:14px;color:var(--verde-p)')}Al pagar se te ofrecen ${soles(cubre)} en «Pagar juntos»; tú decides si los usas.</div>`:''}
+        <button type="button" class="exp" data-act="libro" data-pr="${x.pr}" aria-expanded="${ab}">De qué viene · ${plural(libro(x.pr).length,'movimiento','movimientos')} ${ic('chevD')}</button>
+        <div class="libro ${ab?'on':''}"><div><div class="in">${libroHTML(x.pr)}</div></div></div>
+      </section>`}).join('')}</div>`
+      :`<div class="card vacio e" style="--i:3;margin-top:12px"><svg class="okc" viewBox="0 0 64 64" aria-hidden="true"><circle pathLength="1" cx="32" cy="32" r="29"/><path pathLength="1" d="M19 33l9 9 17-20"/></svg><p>Ningún proveedor te debe saldo</p><small>Cuando una nota de crédito supere lo que le debes a un proveedor (por ejemplo, en una factura al contado), lo que sobre aparecerá aquí.</small></div>`}
+    ${sinS.length?`<p class="sin-saldo">Sin saldo a favor: ${sinS.map(x=>esc(P[x.pr].nombre)).join(' · ')}</p>`:''}`;
+  const t=$('#sf-tot');if(t){t._v=prev.__tot??tot;contar(t,tot)}
+  $$('[data-sal]',V).forEach(el=>{const pr=el.dataset.sal;el._v=prev[pr]??saldoFavor(pr);contar(el,saldoFavor(pr))});
+  S.prevFav=Object.fromEntries([...provs.map(x=>[x.pr,x.fav]),['__tot',tot]]);
+  if(nuevoK){const l=$(`.lb[data-k="${nuevoK}"]`,V);if(l&&!reducir()){l.classList.remove('nuevo');void l.offsetWidth;l.classList.add('nuevo')}}
+  V.classList.remove('entra-v');
+}
+
+/* ---------------------- PEDIR REEMBOLSO ---------------------- */
+function modalReembolso(pr){
+  const p=P[pr],fav=saldoFavor(pr);if(fav<=0){avisar('Sin saldo a favor',`${p.nombre} no te debe saldo.`,{err:true});return}
+  const st={pr,montoTxt:fav.toFixed(2),metodo:'transferencia',ref:'',fecha:HOY_ISO,nota:'',enviando:false,intento:false,toco:false};
+  abrirModal(`${hdModal('<span class="chip verde">Saldo a favor</span>',`Reembolso · ${esc(p.nombre)}`)}
+    <p class="baj">Registra la plata que ${esc(p.nombre)} te devolvió. Baja el saldo a favor; no mueve caja y queda en el libro, nunca se borra.</p>
+    <div class="sc"><div class="mini3"><div><div class="k">Saldo a favor</div><div class="n verde">${soles(fav)}</div><div class="s">disponible hoy</div></div><div><div class="k">Le debes</div><div class="n">${soles(deudaProv(pr))}</div><div class="s">${deudaProv(pr)>0?'podrías usarlo en un pago':'sin deuda'}</div></div><div><div class="k">Movimientos</div><div class="n">${libro(pr).length}</div><div class="s">en el libro</div></div></div></div>
+    <form id="rb-form" novalidate>
+      <div class="sc"><div class="campos" style="grid-template-columns:1fr 1fr">
+        <label class="campo num" id="c-rbm"><span class="lbl">Monto devuelto</span><span class="v"><span class="pre">S/</span><input id="rb-monto" inputmode="decimal" autocomplete="off"></span><p class="pie" id="rb-pie"></p><p class="err" id="e-rbm" role="alert" hidden></p></label>
+        <label class="campo num"><span class="lbl">Fecha</span><span class="v"><input id="rb-fecha" type="date" max="${HOY_ISO}"></span><p class="pie"></p></label>
+        <div class="campo c3"><span class="lbl">Medio</span><div class="pills" role="radiogroup" aria-label="Medio de devolución" style="margin-top:8px">${Object.keys(ETQ_METODO).map(m=>`<button type="button" class="pill" role="radio" data-me="${m}">${ETQ_METODO[m]}</button>`).join('')}</div></div>
+        <label class="campo c2"><span class="lbl">Referencia</span><span class="v"><input id="rb-ref" autocomplete="off" placeholder="Nº de operación, si lo tienes"></span></label>
+      </div></div>
+      <div class="sc"><span class="lbl">Cómo queda</span><div class="efecto"><div class="ef-fila"><span>Saldo a favor con ${esc(p.nombre)}</span><span class="a" id="rb-a">${soles(fav)}</span><span class="fl">→</span><span class="d" id="rb-d"></span></div>
+        <div class="ef-rep"><div class="ef-barra" aria-hidden="true"><i class="fav" id="rb-bar" style="width:100%"></i></div></div></div></div>
+      <div class="ft"><p>El libro del saldo a favor no se edita: para corregir un error se registra un movimiento nuevo.</p><button type="button" class="btn dis" data-act="cerrar-modal">Cancelar</button><button type="submit" class="btn pri" id="rb-ok"><span class="brillo"></span>Registrar reembolso</button></div>
+    </form>`,{tipo:'reem',st,alCerrar:aplicarReembolso});
+  const sync=()=>{
+    const fav=saldoFavor(pr),m=parseMonto(st.montoTxt);let err='';
+    if(Number.isNaN(m))err='El reembolso necesita un monto mayor a cero con hasta 2 decimales.';else if(m>fav)err=`El saldo a favor con ${p.nombre} es ${soles(fav)} y el reembolso es de ${soles(m)}.`;
+    const inp=$('#rb-monto');if(document.activeElement!==inp&&inp.value!==st.montoTxt)inp.value=st.montoTxt;inp.disabled=st.enviando;
+    const e=$('#e-rbm');const show=err&&(st.toco||st.intento);e.hidden=!show;if(show)e.textContent=err;$('#c-rbm').classList.toggle('mal',!!show);
+    $('#rb-pie').innerHTML=`<button type="button" class="link" style="font-size:10.5px" data-rb-todo>Todo el saldo (${soles(fav)})</button>`;
+    $$('[data-me]').forEach(b=>{b.setAttribute('aria-checked',b.dataset.me===st.metodo);b.disabled=st.enviando});
+    const desp=err?fav:r2(fav-m);contarDesde($('#rb-d'),fav,desp);$('#rb-bar').style.width=(fav>0?desp/fav*100:0)+'%';
+    const ok=$('#rb-ok');ok.classList.toggle('trab',st.enviando);ok.disabled=st.enviando;ok.lastChild.textContent=st.enviando?'Registrando…':'Registrar reembolso';
+    return{err,m,fav};
+  };
+  $('#rb-fecha').value=st.fecha;
+  $('#rb-monto').addEventListener('input',e=>{st.montoTxt=e.target.value;st.toco=true;sync()});
+  $('#rb-fecha').addEventListener('input',e=>{st.fecha=e.target.value});$('#rb-ref').addEventListener('input',e=>{st.ref=e.target.value});
+  MODAL.el=$('#modal');$('#modal').addEventListener('click',e=>{const b=e.target.closest('[data-me]');if(b&&!b.disabled){st.metodo=b.dataset.me;sync()}if(e.target.closest('[data-rb-todo]')){st.montoTxt=saldoFavor(pr).toFixed(2);$('#rb-monto').value=st.montoTxt;st.toco=true;sync()}});
+  $('#rb-form').addEventListener('submit',e=>{
+    e.preventDefault();if(st.enviando)return;st.intento=true;const v=sync();if(v.err){$('#rb-monto').focus();anuncia(v.err);return}
+    st.enviando=true;sync();$('#hilo').classList.add('trab');
+    setTimeout(()=>{
+      $('#hilo').classList.remove('trab');
+      const id='m'+(SEQ.m++);MOVS.push({id,tipo:'reembolso',prov:pr,monto:v.m,fecha:st.fecha||HOY_ISO,metodo:st.metodo,ref:st.ref.trim(),por:'Felipe A.'});
+      MODAL.res={id,pr};st.enviando=false;const desp=r2(v.fav-v.m);
+      $('#modal').innerHTML=`<div class="okv" data-sin-cascada><svg class="grande" viewBox="0 0 64 64" aria-hidden="true"><circle pathLength="1" cx="32" cy="32" r="29"/><path pathLength="1" d="M19 33l9 9 17-20"/></svg>
+        <h2 id="m-titulo">Reembolso de ${soles(v.m)} registrado</h2><p>${esc(p.nombre)} te devolvió el dinero por ${esc(ETQ_METODO[st.metodo].toLowerCase())}. ${desp>0?`Te quedan ${soles(desp)} a favor.`:'Ya no queda saldo a favor con este proveedor.'}</p>
+        <ul><li style="--i:0"><span>Saldo a favor con ${esc(p.nombre)}</span><span class="cero">${tilde()}${soles(v.fav)} → ${soles(desp)}</span></li></ul>
+        <div class="acciones"><button type="button" class="btn pri" data-act="cerrar-modal" id="ok-listo"><span class="brillo"></span>Listo</button></div></div>`;
+      setTimeout(()=>{const b=$('#ok-listo');b&&b.focus({preventScroll:true})},60);
+      avisar(`Reembolso de ${soles(v.m)} registrado`,`Saldo a favor con ${p.nombre}: ${soles(desp)}.`);
+    },1100);
+  });
+  sync();setTimeout(()=>{const i=$('#rb-monto');i&&MODAL&&MODAL.tipo==='reem'&&(i.focus({preventScroll:true}),i.select())},reducir()?30:420);
+}
+function aplicarReembolso(res){
+  if(!res)return;$('#v-saldos')._nuevo=res.id;repintar();
+}
+
+/* ---------------------- USAR EN UN PAGO (lleva a Por pagar) ---------------------- */
+function modalUsar(pr){
+  const p=P[pr],fav=saldoFavor(pr),ids=Object.keys(C).filter(id=>C[id].prov===pr&&saldoDe(id)>0.004).sort((a,b)=>C[a].vence.localeCompare(C[b].vence));
+  const deuda=deudaProv(pr),cubre=r2(Math.min(fav,deuda)),st={usar:false};
+  const M=abrirModal(`${hdModal('<span class="chip verde">Saldo a favor</span>',`Usar el saldo de ${esc(p.nombre)}`)}
+    <p class="baj">Te lleva a <b>Por pagar</b> con los comprobantes de este proveedor ya marcados. El saldo se <b>sugiere</b> ahí; lo decides tú al pagar, nunca se descuenta solo.</p>
+    <div class="sc"><span class="lbl">Lo que verías en «Pagar juntos»</span><div class="pp">
+      ${ids.map(id=>`<div class="r"><span class="chk"><svg viewBox="0 0 24 24"><path pathLength="1" d="M20 6 9 17l-5-5"/></svg></span><span><b class="tab" style="font-weight:600">${esc(C[id].doc)}</b><span class="m55" style="font-size:12px;display:block">${etiquetaVence(C[id].vence)}</span></span><span class="tab">${soles(saldoDe(id))}</span></div>`).join('')}
+      <div class="tot"><span>Total de ${plural(ids.length,'comprobante','comprobantes')}</span><span class="m">${soles(deuda)}</span>
+        <span id="us-l1" class="m55">Transferirías</span><span class="m g disp" id="us-tr">${soles(deuda)}</span></div></div></div>
+    <div class="sc"><div class="swrow"><button type="button" class="sw" role="switch" aria-checked="false" id="us-sw" aria-label="Usar mi saldo a favor en este pago"></button><div><b>Usar ${soles(cubre)} de mi saldo a favor</b><span id="us-sp">Sugerido: viene apagado. Enciéndelo si quieres descontarlo de este pago.</span></div></div></div>
+    <div class="ft"><button type="button" class="btn dis" data-act="cerrar-modal">Cancelar</button><button type="button" class="btn pri" data-act="ir-pagar" data-prov="${pr}"><span class="brillo"></span>Ir a Por pagar <span aria-hidden="true">↗</span></button></div>`,{tipo:'usar',st});
+  $('#us-sw').addEventListener('click',()=>{
+    st.usar=!st.usar;const sw=$('#us-sw');sw.setAttribute('aria-checked',st.usar);
+    const t=st.usar?r2(deuda-cubre):deuda;$('#us-tr')._v=st.usar?deuda:r2(deuda-cubre);contar($('#us-tr'),t);
+    $('#us-l1').textContent=st.usar?`Transferirías (ya con ${soles(cubre)} de saldo)`:'Transferirías';
+    $('#us-sp').textContent=st.usar?`Se descontarían ${soles(cubre)}: quedan ${soles(r2(fav-cubre))} a tu favor.`:'Sugerido: viene apagado. Enciéndelo si quieres descontarlo de este pago.';
+  });
+}
+function etiquetaVence(iso){const d=Math.round((D(iso)-HOY)/864e5);if(d<0)return d===-1?'Venció ayer':`Venció hace ${-d} días`;return d===0?'Vence hoy':d===1?'Vence mañana':`Vence en ${d} días`}
+
+/* ====================================================================
+   RECEPCIÓN — cómo queda sin la nota de crédito adentro (solo spike)
+   ==================================================================== */
+const RC={cant0:10,costo:100,item:'Hilado pima 30/1 · cono 1.5 kg',comp:'g'};
+function armarRecepcion(){
+  const V=$('#v-recep'),R=S.recep;
+  V.innerHTML=`
+    <div class="cab e" style="--i:0"><div><div class="lbl" style="color:var(--t65)">Compras</div><h1 class="t">Recibir mercadería</h1>
+      <p class="bajada">Así queda la guía de recepción sin la nota de crédito adentro: ahí solo se decide <b>qué pasó con lo que faltó</b>. El documento del proveedor se reclama y se registra en Notas de crédito.</p></div>
+      <div class="seg" id="seg-rc" role="radiogroup" aria-label="Versión de la pantalla"><span class="th"></span>
+        <button type="button" role="radio" aria-checked="true" data-rm="nueva">Así queda</button>
+        <button type="button" role="radio" aria-checked="false" data-rm="hoy">Hoy (con la nota adentro)</button></div></div>
+    <div class="dosc e" style="--i:1"><div class="card s"><span class="lbl rojo">Sale de Recepción</span><ul><li>«Ya tengo la nota de crédito del proveedor» (interruptor)</li><li>Serie-número, fecha y monto de la nota</li><li>«Cómo quedan tus cuentas» (deuda, saldo a favor, IGV)</li></ul></div>
+      <div class="card q"><span class="lbl verde">Queda en Recepción</span><ul><li>Contar y decidir: «los espero» o «se cierra» (No llegaron · Dañadas · Error del proveedor)</li><li>Un chip que apunta al módulo: «Se reclama en Notas de crédito ↗»</li></ul></div></div>
+    <section class="card rc-card e" style="--i:2" aria-label="Guía de recepción de ejemplo">
+      <div class="rc-hd"><div><div class="lbl" style="color:var(--t65)">Recibiendo en Taller Lima</div><div class="disp">Hilados del Norte · <span class="tab">${esc(C.g.doc)}</span></div></div><span class="m55" style="font-size:13px">Guía 0918-02 · llegó hoy 18 sep</span></div>
+      <div class="rc-lin h"><span>Prenda o material</span><span>Facturado</span><span>Llegó</span><span>Estado</span></div>
+      <div class="rc-lin"><div class="n">${esc(RC.item)}<span>${soles(RC.costo)} c/u sin IGV</span></div><div class="tab">${RC.cant0}</div>
+        <div><div class="stepper"><button type="button" data-rc="-1" aria-label="Uno menos">−</button><input id="rc-cant" inputmode="numeric" aria-label="Unidades que llegaron" value="${R.cant}"><button type="button" data-rc="1" aria-label="Uno más">+</button></div></div>
+        <div class="c-est" id="rc-est"></div></div>
+      <div class="rc-dec" id="rc-dec" hidden></div>
+      <div id="rc-nc"></div>
+      <div class="rc-conf"><span class="m55" style="font-size:12.5px" id="rc-nota-conf">Todo se registra junto, en una sola transacción, al confirmar.</span><button type="button" class="btn pri" id="rc-ok"><span class="brillo"></span><span id="rc-ok-t">Recibir</span></button></div>
+    </section>`;
+  pulgar($('#seg-rc'));rcSync();
+}
+function rcSync(){
+  const R=S.recep,faltan=Math.max(0,RC.cant0-R.cant),cierra=R.dec&&R.dec!=='espero'&&faltan>0;
+  const monto=r2(faltan*RC.costo*(1+TASA));
+  $('#rc-est').innerHTML=R.cant===0&&$('#rc-cant').value===''?'':faltan===0?'<span class="chip verde">Completa</span>':`<span class="chip ambar">Faltan ${faltan}</span>`;
+  const dec=$('#rc-dec');
+  if(faltan>0&&!R.hecho){
+    const h=R.dec?`<div class="box" style="border-color:var(--t15);background:var(--t04)"><span><b>${R.dec==='espero'?'Aún no llegan: los espero':`Se cierra: ${ETQ_CIERRE[R.dec]}`}</b></span><button type="button" class="link" data-rc-editar>Editar</button></div>`
+      :`<div class="box" role="group" aria-label="Qué pasó con lo que falta"><span>¿Qué pasó con ${faltan===1?'la que falta':`las ${faltan} que faltan`}?</span><button type="button" class="pill" data-rc-dec="espero">Aún no llegan: los espero</button>${Object.keys(ETQ_CIERRE).map(m=>`<button type="button" class="pill" data-rc-dec="${m}">${ETQ_CIERRE[m]}</button>`).join('')}</div>`;
+    if(dec.dataset.h!==h){dec.innerHTML=h;dec.dataset.h=h}dec.hidden=false;
+  }else{dec.hidden=true;dec.dataset.h=''}
+  const nc=$('#rc-nc');let h='';
+  if(cierra||R.hecho){
+    if(S.recep.modo==='nueva'){
+      h=`<div class="rc-nc"><div><b style="font-weight:600">Nota de crédito por reclamar · ${soles(R.hecho?R.montoHecho:monto)}</b><div class="m55" style="font-size:12.5px">${R.hecho?'El proveedor la emite cuando la reclamas; se registra en el módulo.':'Al confirmar, queda anotada como «nota pendiente». No se registra acá.'}</div></div>
+        ${R.hecho?`<button type="button" class="chip ambar enlace" data-act="ver-nc-recep">${tilde()} Se reclama en Notas de crédito ↗</button>`:`<span class="chip ambar">Se reclamará en Notas de crédito</span>`}</div>`;
+    }else{
+      const m=R.hecho?R.montoHecho:monto,r=reparte(m,saldoDe('g'));
+      h=`<div class="rc-nc vieja"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px"><span class="disp" style="font-size:20px">Nota de crédito · ${esc(C.g.doc)}</span><span class="lbl verde">El comprobante queda resuelto al 100 %</span></div>
+        <div><div class="swrow"><button type="button" class="sw" role="switch" aria-checked="${R.notaOn}" id="rc-sw" aria-label="El proveedor emitió la nota de crédito"></button><div><b>Ya tengo la nota de crédito del proveedor</b><span>Una sola para todo lo que no llegó. Si aún no la tienes, déjalo apagado y regístrala después desde el comprobante.</span></div></div>
+        ${R.notaOn?`<div class="campos" style="margin-top:16px"><label class="campo num"><span class="lbl">Serie-número</span><span class="v"><input placeholder="FC01-000018"></span></label><label class="campo num"><span class="lbl">Fecha</span><span class="v"><input value="2026-09-18" type="date"></span></label><label class="campo num"><span class="lbl">Monto (con IGV)</span><span class="v"><span class="pre">S/</span><input value="${m.toFixed(2)}"></span></label></div>`:''}</div>
+        ${R.notaOn?`<div><div class="efecto"><p class="fr">${esc(textoReparte(r,{doc:C.g.doc,prov:P.hil.nombre,saldo:saldoDe('g')}))}</p>
+          <div class="ef-filas"><div class="ef-fila"><span>Lo que se debe de ${esc(C.g.doc)}</span><span class="a">${soles(saldoDe('g'))}</span><span class="fl">→</span><span class="d">${soles(r.deudaDespues)}</span></div>
+          <div class="ef-fila"><span>Crédito fiscal (IGV) del mes</span><span class="a">${soles(IGV_MES)}</span><span class="fl">→</span><span class="d">${soles(r2(IGV_MES-igvDe(m)))}</span></div></div></div></div>`:''}</div>`;
+    }
+  }
+  if(nc.dataset.h!==h){nc.innerHTML=h;nc.dataset.h=h;const sw=$('#rc-sw');sw&&sw.addEventListener('click',()=>{R.notaOn=!R.notaOn;nc.dataset.h='';rcSync()})}
+  const u=R.cant,cierres=cierra?1:0;
+  $('#rc-ok-t').textContent=R.hecho?'Recepción registrada':u>0&&cierres?`Recibir ${plural(u,'unidad','unidades')} y cerrar 1 faltante`:u>0?`Recibir ${plural(u,'unidad','unidades')} en Taller Lima`:cierres?'Cerrar 1 faltante':'Recibir en Taller Lima';
+  $('#rc-ok').disabled=faltan>0&&!R.dec&&!R.hecho||R.hecho;
+  $('#rc-nota-conf').textContent=faltan>0&&!R.dec&&!R.hecho?'Decide qué pasó con lo que faltó para poder confirmar.':'Todo se registra junto, en una sola transacción, al confirmar.';
+}
+function rcConfirmar(){
+  const R=S.recep,faltan=Math.max(0,RC.cant0-R.cant);if(R.hecho)return;
+  if(S.recep.modo==='hoy'){avisar('Así es hoy','La nota se registraría acá mismo, dentro de Recepción. Cambia a «Así queda» para ver la separación.',{ms:5000});return}
+  const cierra=R.dec&&R.dec!=='espero'&&faltan>0,btn=$('#rc-ok');
+  btn.classList.add('trab');btn.disabled=true;$('#hilo').classList.add('trab');
+  setTimeout(()=>{
+    $('#hilo').classList.remove('trab');btn.classList.remove('trab');R.hecho=true;R.montoHecho=r2(faltan*RC.costo*(1+TASA));
+    if(cierra){const id='p'+(SEQ.p++);PEND.push({id,comp:'g',fecha:HOY_ISO,por:'Marisol Q. · Taller Lima',reclamos:[],lineas:[{n:RC.item,cant:faltan,costo:RC.costo,motivo:R.dec}]});C.g.rec='Recibida';R.pendId=id;
+      avisar('Recepción registrada',`Se cerró ${plural(faltan,'unidad','unidades')}: la nota de ${soles(R.montoHecho)} quedó por reclamar.`,{accion:{txt:'Verla en Notas de crédito ↗',fn:()=>irMod('notas',{q:'',tab:'por_reclamar',destello:id})}});}
+    else avisar('Recepción registrada','Sin faltantes que cerrar.');
+    rcSync();repintar();
+  },1000);
+}
+
+/* ====================================================================
+   Vistas del módulo
+   ==================================================================== */
+const BC={notas:'Notas de crédito',saldos:'Notas de crédito <span class="m45">›</span> <b>Saldos a favor</b>',recep:'Recibir mercadería'};
+function irMod(m,o={}){
+  if(o.q!==undefined){S.q=o.q;$('#q').value=o.q}if(o.tab)S.tab=o.tab;if(o.destello)S.destello=o.destello;
+  const cambia=S.mod!==m;
+  if(cambia){
+    cerrarDrawer();S.mod=m;
+    ['notas','saldos','recep'].forEach(v=>{const el=$('#v-'+v);el.hidden=v!==m;if(v===m&&!reducir()){el.classList.remove('entra-v');void el.offsetWidth;el.classList.add('entra-v')}});
+    $('#modulo').hidden=m==='recep';
+    $$('#seg-mod button').forEach(b=>{b.setAttribute('aria-selected',b.dataset.m===m);b.classList.toggle('on',b.dataset.m===m)});
+    $('#bc').innerHTML=m==='notas'?'Notas de crédito':m==='saldos'?'Notas de crédito <span class="m45">›</span> Saldos a favor':'Recibir mercadería';
+    $('#b-recep').setAttribute('aria-pressed',m==='recep');
+    if(m==='saldos')pintarSaldos();
+    if(m==='recep')armarRecepcion();
+    window.scrollTo({top:0,behavior:reducir()?'auto':'smooth'});
+  }
+  if(m==='notas')repintar();
+  requestAnimationFrame(()=>{pulgar($('#seg-mod'));pulgar($('#seg-tab'));pulgar($('#seg-vista'));const r=$('#seg-rc');r&&pulgar(r)});
+}
+
+/* ====================================================================
+   Eventos
+   ==================================================================== */
+function limpiarQ(){S.q='';$('#q').value='';pintarLista()}
+document.addEventListener('click',e=>{
+  const t=e.target;
+  if(t.id==='mv'){cerrarModal();return}
+  if(t.id==='velo'){cerrarDrawer();return}
+  const a=t.closest('[data-act]');
+  if(a){
+    const k=a.dataset.k,pr=a.dataset.prov;
+    switch(a.dataset.act){
+      case'reg':modalRegistrar({pend:k});break;
+      case'detalle':modalDetalle(k);break;
+      case'usar':modalUsar(pr);break;
+      case'reem':modalReembolso(pr);break;
+      case'cerrar-modal':cerrarModal();break;
+      case'cerrar-cajon':cerrarDrawer();break;
+      case'nav-cajon':navDrawer(+a.dataset.d);break;
+      case'limpiar-q':limpiarQ();$('#q').focus();break;
+      case'quitar-banda':S.banda=null;pintarKpis();pintarLista();break;
+      case'limpiar-todo':S.banda=null;S.q='';$('#q').value='';pintarKpis();pintarLista();break;
+      case'libro':{const s=a.dataset.pr,ab=!S.abiertos.has(s);ab?S.abiertos.add(s):S.abiertos.delete(s);a.setAttribute('aria-expanded',ab);a.nextElementSibling.classList.toggle('on',ab);break}
+      case'rg-cambiar':{const st=MODAL.st;st.cambiando=true;st.fq='';st.fa=0;syncReg();setTimeout(()=>{const q=$('#fb-q');q&&q.focus()},reducir()?30:200);break}
+      case'fb-todas':{const st=MODAL.st;st.fq='';st.ff='todas';$('#fb-q').value='';st.fa=0;fbPintar();$('#fb-q').focus();break}
+      case'usar-tope':{const st=MODAL.st,v=+a.dataset.v;st.montoTxt=v.toFixed(2);$('#rg-monto').value=st.montoTxt;syncReg();$('#rg-monto').focus();break}
+      case'copiar-msg':copiar(a,mensajeProv(rowPor(k)));break;
+      case'ir-comp':avisar('En el ERP abre el comprobante',`${C[a.dataset.comp].doc} se abre en su modal de Comprobantes (/compras/factura/…).`,{ms:4500});break;
+      case'ir-pagar':avisar('En el ERP te lleva a Por pagar',`/compras/por-pagar?prov=${pr}&marcar=1 — «Pagar juntos» abre con los comprobantes marcados y el saldo sugerido, sin activar.`,{ms:7000});cerrarModal();break;
+      case'ver-adj':avisar('En el ERP se abre el adjunto','Se lee del almacén retail-compras-adjuntos con una URL firmada.',{ms:4500});break;
+      case'marcar-reclamada':{const r=rowPor(k);if(r&&r.tipo==='pend'){r.p.reclamos.push(HOY_ISO);avisar('Marcada como reclamada hoy','Cuando pasen 14 días sin respuesta te lo recordaremos aquí.');cerrarModal(true);setTimeout(()=>{repintar();},260)}break}
+      case'ver-nc-recep':irMod('notas',{q:C.g.doc,tab:'por_reclamar',destello:S.recep.pendId});break;
+    }
+    return;
+  }
+  const fila=t.closest('#lista-body .fila');if(fila){abrirDrawer(fila.dataset.k);return}
+  const ban=t.closest('[data-banda]');if(ban){S.banda=S.banda===ban.dataset.banda?null:ban.dataset.banda;S.tab='por_reclamar';pintarKpis();pintarTabs();pintarLista();e.stopPropagation();return}
+  if(t.closest('#k-rec')){S.tab='por_reclamar';S.banda=null;pintarKpis();pintarTabs();pintarLista();return}
+  if(t.closest('#k-fav')){irMod('saldos');return}
+  const tb=t.closest('#seg-tab button');if(tb){S.tab=tb.dataset.t;pintarTabs();pintarLista();return}
+  const vb=t.closest('#seg-vista button');if(vb){S.vista=vb.dataset.v;$$('#seg-vista button').forEach(b=>b.setAttribute('aria-checked',b===vb));pulgar($('#seg-vista'));pintarLista();return}
+  const mb=t.closest('#seg-mod button');if(mb){irMod(mb.dataset.m);return}
+  const rm=t.closest('[data-rm]');if(rm){S.recep.modo=rm.dataset.rm;$$('#seg-rc button').forEach(b=>b.setAttribute('aria-checked',b===rm));pulgar($('#seg-rc'));$('#rc-nc').dataset.h='';rcSync();return}
+  const rd=t.closest('[data-rc-dec]');if(rd){S.recep.dec=rd.dataset.rcDec;rcSync();return}
+  if(t.closest('[data-rc-editar]')){S.recep.dec=null;rcSync();return}
+  const rs=t.closest('[data-rc]');if(rs){const i=$('#rc-cant');S.recep.cant=Math.min(RC.cant0,Math.max(0,S.recep.cant+(+rs.dataset.rc)));i.value=S.recep.cant;if(RC.cant0-S.recep.cant<=0)S.recep.dec=null;rcSync();return}
+  if(t.closest('#rc-ok')){rcConfirmar();return}
+  if(t.closest('#q-x')){limpiarQ();$('#q').focus();return}
+  if(t.closest('#b-nueva')){modalRegistrar({});return}
+});
+document.addEventListener('input',e=>{
+  if(e.target.id==='q'){S.q=e.target.value;pintarLista()}
+  if(e.target.id==='rc-cant'){const v=e.target.value.replace(/\D/g,'');S.recep.cant=v===''?0:Math.min(RC.cant0,+v);if(RC.cant0-S.recep.cant<=0)S.recep.dec=null;rcSync()}
+});
+document.addEventListener('keydown',e=>{
+  const tg=e.target,enCampo=/^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName)||tg.isContentEditable;
+  if(e.key==='Escape'){
+    if(MODAL){cerrarModal();e.preventDefault();return}
+    if($('#cajon').classList.contains('on')){cerrarDrawer();e.preventDefault();return}
+    if(tg.id==='q'){if(S.q)limpiarQ();else tg.blur();return}
+    return;
+  }
+  if(MODAL){
+    if(e.key==='Tab'){const f=$$(FOCUSABLES,$('#modal')).filter(x=>x.offsetParent!==null);if(!f.length)return;const a=f[0],z=f[f.length-1];
+      if(e.shiftKey&&(document.activeElement===a||!$('#modal').contains(document.activeElement))){z.focus();e.preventDefault()}else if(!e.shiftKey&&document.activeElement===z){a.focus();e.preventDefault()}}
+    return;
+  }
+  if(tg.classList&&tg.classList.contains('fila')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();abrirDrawer(tg.dataset.k);return}
+  if(tg.dataset&&tg.dataset.banda&&(e.key==='Enter'||e.key===' ')){e.preventDefault();tg.click();return}
+  const tabs=tg.closest&&tg.closest('#seg-tab');
+  if(tabs&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){const bs=$$('button',tabs),i=bs.findIndex(b=>b.dataset.t===S.tab),n=bs[(i+(e.key==='ArrowRight'?1:-1)+bs.length)%bs.length];S.tab=n.dataset.t;pintarTabs();pintarLista();n.focus();e.preventDefault();return}
+  if(enCampo||e.metaKey||e.ctrlKey||e.altKey)return;
+  if(e.key==='/'&&S.mod==='notas'){e.preventDefault();$('#q').focus();return}
+  if((e.key==='n'||e.key==='N')&&S.mod!=='recep'){e.preventDefault();modalRegistrar({});return}
+  if(S.mod!=='notas')return;
+  const dir=(e.key==='j'||e.key==='ArrowDown')?1:(e.key==='k'||e.key==='ArrowUp')?-1:0;
+  if(dir){
+    e.preventDefault();
+    if($('#cajon').classList.contains('on')){navDrawer(dir);return}
+    const ks=S.vistaKeys;if(!ks.length)return;const i=ks.indexOf(S.cur);S.cur=ks[i<0?(dir>0?0:ks.length-1):Math.min(ks.length-1,Math.max(0,i+dir))];marcarSel();const el=CACHE.get('f:'+S.cur);el&&el.scrollIntoView({block:'nearest'});return;
+  }
+  if(e.key==='Enter'&&S.cur&&!$('#cajon').classList.contains('on')){e.preventDefault();abrirDrawer(S.cur)}
+});
+/* botones del spike */
+$('#b-repetir').addEventListener('click',()=>{
+  document.body.classList.remove('entra');void document.body.offsetWidth;
+  $$('.kpi .n').forEach(n=>n._v=0);
+  irMod('notas');S.tab='por_reclamar';S.banda=null;S.q='';$('#q').value='';
+  $('#k-rec-bar').innerHTML='';$('#k-fav-bar').dataset.h='';
+  CACHE.clear();primeraPintada=true;document.body.classList.add('entra');repintar();window.scrollTo(0,0);
+  setTimeout(()=>document.body.classList.remove('entra'),2600);
+});
+$('#b-reducir').addEventListener('click',e=>{const on=e.currentTarget.getAttribute('aria-pressed')!=='true';e.currentTarget.setAttribute('aria-pressed',on);document.documentElement.classList.toggle('reducir',on)});
+$('#b-mig').addEventListener('click',e=>{const on=e.currentTarget.getAttribute('aria-pressed')!=='true';e.currentTarget.setAttribute('aria-pressed',on);document.body.classList.toggle('ver-mig',on)});
+$('#b-recep').addEventListener('click',()=>irMod(S.mod==='recep'?'notas':'recep'));
+$('#b-reset').addEventListener('click',()=>{
+  cerrarModal(true);cerrarDrawer();cargarDatos();IGV_MES=IGV_MES0;
+  Object.assign(S,{tab:'por_reclamar',vista:'urgencia',q:'',banda:null,sel:null,cur:null,destello:null,aldia:false,abiertos:new Set(['sur']),prevFav:{},recep:{modo:'nueva',cant:7,dec:null,hecho:false,notaOn:false}});
+  $('#q').value='';$$('#seg-vista button').forEach(b=>b.setAttribute('aria-checked',b.dataset.v==='urgencia'));
+  CACHE.clear();if(S.mod==='recep')armarRecepcion();if(S.mod==='saldos')pintarSaldos();repintar();
+  requestAnimationFrame(()=>{pulgar($('#seg-vista'));pulgar($('#seg-tab'))});
+  avisar('Datos restablecidos','Volvieron las 5 notas por reclamar y los saldos de ejemplo.',{ms:3500});
+});
+$('#b-aldia').addEventListener('click',()=>{
+  cerrarModal(true);cerrarDrawer();PEND=[];S.tab='por_reclamar';S.banda=null;S.q='';$('#q').value='';irMod('notas');repintar();
+  avisar('Todo al día','Así se ve la pantalla cuando no queda nada por reclamar. «Restablecer datos» las trae de vuelta.',{ms:4500});
+});
+addEventListener('resize',()=>{['#seg-mod','#seg-tab','#seg-vista','#seg-rc'].forEach(s=>{const el=$(s);el&&pulgar(el)})});
+
+/* ---- arranque ---- */
+pintarKpis();pintarTabs();pintarLista();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>['#seg-mod','#seg-tab','#seg-vista'].forEach(s=>pulgar($(s))));
+requestAnimationFrame(()=>['#seg-mod','#seg-tab','#seg-vista'].forEach(s=>pulgar($(s))));
+setTimeout(()=>document.body.classList.remove('entra'),2600);
+</script>
+</body>
+</html>

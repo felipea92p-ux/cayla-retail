@@ -7,12 +7,14 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import type { OrdenProduccion } from "@/lib/produccion";
+import { cantidadTexto } from "@/lib/insumos-reglas";
+import type { ConsumoDeOrden } from "@/lib/insumos";
 
 // Anular y revertir una orden (ADR-0133, F2: se conservan tal cual estaban en `OrdenesProduccionV2.tsx`; solo
 // cambió de archivo). Cada una es una RPC; ninguna escribe en las tablas directo. Si la base dice que no, el aviso
 // lo dice con las palabras de la RPC (`traducirError` deja pasar los P0001 tal cual).
 
-export function AnularOrdenModal({ orden, onClose }: { orden: OrdenProduccion; onClose: () => void }) {
+export function AnularOrdenModal({ orden, consumos = [], onClose }: { orden: OrdenProduccion; consumos?: ConsumoDeOrden[]; onClose: () => void }) {
   const router = useRouter();
   const [motivo, setMotivo] = useState("");
   const [cargando, setCargando] = useState(false);
@@ -35,6 +37,13 @@ export function AnularOrdenModal({ orden, onClose }: { orden: OrdenProduccion; o
     <Modal titulo="Anular orden" subtitulo={`${orden.referencia} · ${orden.cantidadPlan} planeadas`} onClose={onClose}>
       <form onSubmit={onSubmit} className="space-y-4">
         <p className="text-sm text-tinta/75">La orden queda anulada y no toca el stock. Sigue visible abajo, para que no se pierda el registro.</p>
+        {consumos.length > 0 && (
+          <p className="rounded-lg border border-ambar/40 bg-ambar/[0.07] px-3 py-2.5 text-[13px] text-ambar-profundo">
+            <b className="font-semibold">Esta orden ya descontó insumos</b> ({consumos.map((c) => `${c.insumo} ${cantidadTexto(c.cantidad, c.unidad)}`).join(", ")}). Anularla{" "}
+            <b className="font-semibold">no los devuelve</b> al lote: todavía no hay cómo devolver un insumo desde el sistema. Esa cantidad queda como consumida
+            aunque la tela siga entera en el estante.
+          </p>
+        )}
         <div className="space-y-1.5">
           <label className={campoEtiqueta} htmlFor="anular-motivo">
             Motivo (opcional)

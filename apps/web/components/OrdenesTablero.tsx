@@ -13,6 +13,7 @@ import { OrdenTarjeta, semaforoDeOrden } from "@/components/OrdenTarjeta";
 import { useFlipCajas } from "@/lib/useFlipCajas";
 import { COLUMNAS_TABLERO, etapaActual, resumenTablero } from "@/lib/produccion-reglas";
 import type { ModeloProducible, OrdenProduccion } from "@/lib/produccion";
+import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
 
 // Órdenes de producción del Taller (ADR-0133, F2): un tablero por etapa en vez de una lista plana. La etapa donde
 // está la orden ES su columna; al marcarla hecha la tarjeta viaja a la siguiente. Las muestras (otras tres
@@ -25,12 +26,16 @@ export function OrdenesTablero({
   modelos,
   esLider,
   hoy,
+  insumos,
+  consumosPorOrden,
 }: {
   tallerId: string;
   ordenes: OrdenProduccion[];
   modelos: ModeloProducible[];
   esLider: boolean;
   hoy: string;
+  insumos: InsumoVista[];
+  consumosPorOrden: Record<string, ConsumoDeOrden[]>;
 }) {
   const [abiertaId, setAbiertaId] = useState<string | null>(null);
   const [nuevaAbierta, setNuevaAbierta] = useState(false);
@@ -210,13 +215,15 @@ export function OrdenesTablero({
           orden={abierta}
           esLider={esLider}
           hoy={hoy}
+          insumos={insumos}
+          consumos={consumosPorOrden[abierta.id] ?? []}
           onCerrar={() => setAbiertaId(null)}
           onAnular={() => setAnulando(abierta)}
           onRevertir={() => setRevirtiendo(abierta)}
         />
       )}
       {nuevaAbierta && <NuevaOrdenProduccionForm tallerId={tallerId} modelos={modelos} onClose={() => setNuevaAbierta(false)} />}
-      {anulando && <AnularOrdenModal orden={anulando} onClose={() => setAnulando(null)} />}
+      {anulando && <AnularOrdenModal orden={anulando} consumos={consumosPorOrden[anulando.id] ?? []} onClose={() => setAnulando(null)} />}
       {revirtiendo && <RevertirOrdenModal orden={revirtiendo} onClose={() => setRevirtiendo(null)} />}
     </div>
   );
