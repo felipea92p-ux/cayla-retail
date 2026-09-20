@@ -106,6 +106,22 @@ Los nombres de la columna "Nombre exacto" se buscan tal cual:
 > queda cerrada por omisión — **ADR-0126**. Lo que **no** cubre: el costo por prenda (`fn_productos.costo`) y los datos
 > bancarios de `proveedores` son legibles por cualquier sesión (ver §2).
 
+### Compras — el reparto entre tiendas (ADR-0139, verificado en producción el 2026-09-20)
+
+Una factura puede traer mercadería para varias tiendas y cada una recibe lo suyo (`compra_item_destinos`: línea × tienda ×
+cantidad). Esto es lo que la base hace cumplir:
+
+| Qué no puede pasar | Quién lo impide | Nombre exacto | Dónde | Qué pasaría sin esto |
+|---|---|---|---|---|
+| Que lo repartido a las tiendas de una línea no sume su cantidad (12 + 8 de 24) | *Constraint trigger* **diferido**: se valida al confirmar la transacción, así `registrar_compra` inserta la línea y su reparto juntos | `compra_items_reparto_cuadra` (en `compra_items`) y `compra_item_destinos_cuadra` (en `compra_item_destinos`), con `fn_compra_item_reparto_cuadra` — migración `20260919172000_reparto_compra_por_tienda.sql` | producción | Mercadería facturada que ninguna tienda podría recibir completa, o tiendas con más de lo facturado: el stock y la deuda dejarían de contar lo mismo |
+| Que una tienda reciba más de lo que le tocó de una línea (y se «coma» la parte de otra) | Guardia dentro de `recibir_compras` (con el `for update` sobre la línea); `recibir_envio` la llama | tope por tienda: «a … le tocan N de esta línea, ya recibió N y cerró N» | producción | Trujillo recibiría las 24 de una línea repartida 12/12 y el Taller se quedaría sin poder recibir nada, sin que nadie lo notara |
+| Que se reasigne mercadería que la tienda ya recibió o cerró como faltante | Guardia dentro de la función; solo líder (`fn_puede_registrar_compras`) | `reasignar_reparto_compra` — «solo se mueve lo que aún no recibió ni cerró» | producción | Unidades ya entradas al stock de una tienda quedarían asignadas a otra: recibido mayor que asignado |
+| Que alguien escriba directo el reparto o su bitácora saltándose la suma y el rastro | RLS activo **sin** políticas de escritura (solo SELECT) + la bitácora es inmutable | `compra_item_destinos`, `compra_reasignaciones` (`authenticated` sin INSERT/UPDATE/DELETE) y `compra_reasignaciones_inmutables` | producción | Un reparto sin pasar por la RPC no dejaría rastro y podría no sumar |
+
+> Lo que **no** cubre: quién es «líder» para reasignar sigue siendo una sola función (`fn_puede_registrar_compras`); y la suma se
+> valida **al confirmar**, no fila a fila (dentro de una transacción el reparto puede estar a medias, y eso es a propósito).
+> Un comprobante de **una** sola tienda también tiene reparto (de una tienda): no hay caso especial al leer.
+
 ### Proveedores — datos de pago (ADR-0134, 2026-09-19)
 
 | Qué no puede pasar | Quién lo impide | Nombre exacto | Dónde | Qué pasaría sin esto |

@@ -1,7 +1,7 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 102 llamadas de `apps/web` contra 178 funciones del schema `retail` en producción.
+> Comparadas 106 llamadas de `apps/web` contra 185 funciones del schema `retail` en producción.
 
 ---
 
@@ -11,39 +11,43 @@
 
 Ninguna. Cada función tiene una sola firma en producción.
 Nada. Todas las llamadas encajan con la firma real.
-## Avisos — 14
+## Avisos — 16
 
 - `anular_comprobante` · `apps/web/app/api/lucode/consultar-anulacion/route.ts:72` — no manda `p_motivo` (normal si tienen valor por defecto)
 - `actualizar_transmision_comprobante` · `apps/web/app/api/lucode/emitir/route.ts:159` — no manda `p_entorno`, `p_motivo_rechazo` (normal si tienen valor por defecto)
 - `actualizar_categoria_ejes` · `apps/web/app/api/productos/categorias/ejes/route.ts:23` — no manda `p_talla_habitual_ids` (normal si tienen valor por defecto)
 - `registrar_nota_credito_compra` · `apps/web/components/AccionesFaltantes.tsx:90` — no manda `p_nota`, `p_cierre_id` (normal si tienen valor por defecto)
-- `cerrar_linea_compra` · `apps/web/components/CerrarFaltanteModal.tsx:37` — no manda `p_nota` (normal si tienen valor por defecto)
 - `emitir_comprobante` · `apps/web/components/ComprobantesPanel.tsx:378` — no manda `p_venta_id`, `p_items` (normal si tienen valor por defecto)
 - `registrar_serie_comprobante` · `apps/web/components/ComprobantesPanel.tsx:405` — no manda `p_siguiente_numero` (normal si tienen valor por defecto)
+- `recibir_insumo` · `apps/web/components/InsumoModales.tsx:135` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
+- `registrar_consumo_insumo` · `apps/web/components/OrdenInsumos.tsx:112` — no manda `p_nota` (normal si tienen valor por defecto)
+- `devolver_insumo_de_produccion` · `apps/web/components/OrdenInsumos.tsx:134` — no manda `p_nota` (normal si tienen valor por defecto)
 - `crear_proforma` · `apps/web/components/ProformasPanel.tsx:106` — no manda `p_items`, `p_cliente_num_doc` (normal si tienen valor por defecto)
 - `convertir_proforma_a_comprobante` · `apps/web/components/ProformasPanel.tsx:136` — no manda `p_venta_id` (normal si tienen valor por defecto)
 - `mover_interno` · `apps/web/components/ReponerPisoModal.tsx:65` — no manda `p_nota` (normal si tienen valor por defecto)
 - `resolver_prenda_danada` · `apps/web/components/ResolverDanadosModal.tsx:59` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
 - `registrar_proveedor` · `apps/web/components/alta-producto/NuevaMarcaForm.tsx:76` — no manda `p_contacto`, `p_rubro`, `p_plazo_credito_dias`, `p_forma_pago_preferida`, `p_telefono`, `p_banco`, `p_cuenta_bancaria` (normal si tienen valor por defecto)
 - `fn_proveedor_costo_evolucion` · `apps/web/lib/proveedores.ts:242` — no manda `p_limite` (normal si tienen valor por defecto)
-- `fn_resumen_variantes` · `apps/web/lib/resumen-inventario.ts:41` — no manda `p_ventana_dias` (normal si tienen valor por defecto)
+- `fn_resumen_variantes` · `apps/web/lib/resumen-inventario.ts:42` — no manda `p_ventana_dias` (normal si tienen valor por defecto)
 
-## No analizadas — 25
+## No analizadas — 28
 
 Estas llamadas arman sus parámetros fuera de la propia llamada, así que no se
 pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**
 
 - `registrar_movimiento` · `apps/web/components/AjustarInventarioModal.tsx:185` — el objeto se arma con «...», no se puede leer entero
-- `registrar_compra` · `apps/web/components/CompraFormV2.tsx:304` — el objeto se arma con «...», no se puede leer entero
-- `registrar_pago_compras_medios` · `apps/web/components/PagoJuntosModal.tsx:168` — el objeto se arma con «...», no se puede leer entero
-- `registrar_pago_compras` · `apps/web/components/PagoJuntosModal.tsx:176` — el objeto se arma con «...», no se puede leer entero
+- `cerrar_linea_compra` · `apps/web/components/CerrarFaltanteModal.tsx:59` — el objeto se arma con «...», no se puede leer entero
+- `registrar_compra` · `apps/web/components/CompraFormV2.tsx:335` — el objeto se arma con «...», no se puede leer entero
+- `registrar_pago_compras_medios` · `apps/web/components/PagoJuntosModal.tsx:170` — el objeto se arma con «...», no se puede leer entero
+- `registrar_pago_compras` · `apps/web/components/PagoJuntosModal.tsx:178` — el objeto se arma con «...», no se puede leer entero
 - `catalogo_actualizar_producto` · `apps/web/components/ProductoForm.tsx:323` — el objeto se arma con «...», no se puede leer entero
 - `actualizar_proveedor` · `apps/web/components/ProveedorModal.tsx:261` — el objeto se arma con «...», no se puede leer entero
 - `registrar_proveedor` · `apps/web/components/ProveedorModal.tsx:265` — los parámetros no van escritos ahí mismo
 - `guardar_cuentas_proveedor` · `apps/web/components/ProveedorModal.tsx:276` — los parámetros no van escritos ahí mismo
-- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:360` — los parámetros no van escritos ahí mismo
-- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:782` — los parámetros no van escritos ahí mismo
-- `recibir_envio` · `apps/web/components/RecepcionEnvio.tsx:664` — los parámetros no van escritos ahí mismo
+- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:362` — los parámetros no van escritos ahí mismo
+- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:785` — los parámetros no van escritos ahí mismo
+- `reasignar_reparto_compra` · `apps/web/components/ReasignarReparto.tsx:140` — el objeto se arma con «...», no se puede leer entero
+- `recibir_envio` · `apps/web/components/RecepcionEnvio.tsx:665` — los parámetros no van escritos ahí mismo
 - `recibir_lote` · `apps/web/components/RecepcionFormV2.tsx:70` — el objeto se arma con «...», no se puede leer entero
 - `registrar_reembolso_proveedor` · `apps/web/components/SaldoFavorAcciones.tsx:49` — el objeto se arma con «...», no se puede leer entero
 - `fn_productos` · `apps/web/lib/catalogo-v2.ts:223` — el objeto se arma con «...», no se puede leer entero
@@ -52,14 +56,15 @@ pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**
 - `por_pagar_tramos` · `apps/web/lib/compras-indicadores.ts:110` — el objeto se arma con «...», no se puede leer entero
 - `listar_recepciones_compras` · `apps/web/lib/compras-indicadores.ts:211` — el objeto se arma con «...», no se puede leer entero
 - `recepciones_sin_comprobante` · `apps/web/lib/compras-indicadores.ts:280` — el objeto se arma con «...», no se puede leer entero
-- `listar_compras_operativo` · `apps/web/lib/compras.ts:175` — el objeto se arma con «...», no se puede leer entero
-- `listar_compras` · `apps/web/lib/compras.ts:195` — el objeto se arma con «...», no se puede leer entero
+- `listar_compras_operativo` · `apps/web/lib/compras.ts:181` — el objeto se arma con «...», no se puede leer entero
+- `listar_compras` · `apps/web/lib/compras.ts:207` — el objeto se arma con «...», no se puede leer entero
+- `lineas_compra_operativo` · `apps/web/lib/compras.ts:375` — el objeto se arma con «...», no se puede leer entero
 - `fn_prioridad_conteo` · `apps/web/lib/conteos.ts:189` — el objeto se arma con «...», no se puede leer entero
 - `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:177` — el objeto se arma con «...», no se puede leer entero
 - `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:207` — el objeto se arma con «...», no se puede leer entero
 - `fn_movimientos_resumen` · `apps/web/lib/movimientos-v2.ts:226` — los parámetros no van escritos ahí mismo
 
-## Funciones que nadie llama — 31
+## Funciones que nadie llama — 32
 
 Existen en producción y ninguna pantalla las usa. Cada una es una de dos cosas:
 una pantalla que falta construir, o una función que sobra y habría que retirar.
@@ -68,26 +73,27 @@ una pantalla que falta construir, o una función que sobra y habría que retirar
 - `ajustar_insumo_por_conteo`
 - `catalogo_actualizar_producto`
 - `catalogo_crear_producto`
+- `cerrar_linea_compra`
 - `desactivar_categoria`
 - `desactivar_proveedor`
 - `emitir_nota`
 - `guardar_cuentas_proveedor`
+- `lineas_compra_operativo`
 - `listar_compras`
 - `listar_compras_operativo`
 - `listar_recepciones_compras`
 - `por_pagar_tramos`
 - `reactivar_categoria`
 - `reactivar_proveedor`
+- `reasignar_reparto_compra`
 - `recalcular_compras`
 - `recalcular_stock`
 - `recepciones_sin_comprobante`
 - `recibir_compras`
 - `recibir_envio`
-- `recibir_insumo`
 - `recibir_lote`
 - `recibir_y_cerrar_compras`
 - `registrar_compra`
-- `registrar_consumo_insumo`
 - `registrar_gasto`
 - `registrar_movimiento`
 - `registrar_pago_compra`
