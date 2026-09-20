@@ -271,7 +271,8 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   con `MatrizOrden` y `OrdenCierre`; RPC `set_etapa_produccion`,
   `cerrar_produccion`, `anular_produccion`, `revertir_produccion`) y
   `NuevaOrdenProduccionForm.tsx` (RPC `abrir_produccion` con `p_token`). Entra el
-  líder desde cualquier ubicación y el integrante cuyo `ubicacionTipo === "taller"`.
+  cualquier persona —líder o integrante— parada en una ubicación con `ubicacionTipo === "taller"` (`puedeVerProduccion`, `lib/produccion-menu.ts`;
+  un líder que llega desde otra ubicación ve un aviso, ADR-0133 nota 2026-09-20).
 
 **Ventas / caja**
 - `/vender` → `lib/catalogo-v2.ts:getCatalogo` + `lib/caja.ts:getCajaAbierta` +

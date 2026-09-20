@@ -8421,3 +8421,10 @@ lote del que salió y al mismo costo; `anular_produccion` devuelve todo lo desco
 tela/avíos neto de devoluciones (antes las ignoraba). Migración `20260920100000` solo en local; `pnpm pruebas:insumos-devolucion` 10/10 y
 1421 pruebas del web en verde. Falta pegarla en producción (Felipe) y verla en el navegador (el panel estaba oculto). Referencias al
 reparto entre tiendas renumeradas a ADR-0139.
+
+## 2026-09-20 (Producción solo se ve en el Taller — revierte D-A de ADR-0133)
+Felipe vio «Producción» en el menú de una tienda y pidió que solo salga en el Taller. La regla vuelve a ser la del 2026-09-17: se ve parado en un
+Taller, líder incluido, decidido por el **tipo** de la ubicación activa (no por el nombre «LIM»). La regla quedó en una sola función
+(`puedeVerProduccion`) que usan el menú y las páginas de Órdenes e Insumos; un líder que llega por URL desde otra ubicación ve un aviso, no un rebote mudo.
+Sin esquema ni migración; Compras no cambió. Verificado con el `AppShell` real en el navegador (6 combinaciones rol × tipo) y 10 pruebas de la regla;
+falta probarlo con sesión real de líder cambiando de Tienda a Taller con el selector.
