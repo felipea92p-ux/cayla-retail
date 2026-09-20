@@ -838,6 +838,12 @@ vuelo del censo fallan en la pantalla actual («Elige la marca del producto»).
       margen, código previsto, etiquetas todo-o-nada y resumen que dice qué falta. Probado en el navegador con
       datos y red simuladas; typecheck, lint y 540 pruebas en verde. **Falta verificarlo con sesión de Líder real
       contra la base** una vez pegados los SQL (aviso de parecidos con `pg_trgm` real, guardado de verdad).
+- [x] **Primer paso menos caótico** (2026-09-20): de entrada solo Indumentaria, Accesorios y Complementos y Bisutería; el
+      resto (Calzado, Belleza, Papelería) tras «Ver más», y la búsqueda las alcanza igual. De paso se arregló el
+      encimado de las tarjetas con el menú lateral abierto (columnas por ancho del bloque, no de la ventana).
+      Cuáles van a la vista vive en `FAMILIAS_A_LA_VISTA` (`lib/alta-producto.ts`), no en la base. **Se revisa si**
+      Calzado empieza a darse de alta a diario (subirlo a la vista es una línea) o si otra pantalla necesita saber
+      qué familias son «principales» (ahí sí se sube a una columna de `familias`).
 - [ ] **«+ Nuevo color» dentro del formulario**: hoy se enlaza a Atributos en otra pestaña (un color pide código,
       tono, familia de color y tipo). Si duele, hacerlo como modal con esos 4 campos.
 - [x] **Paso 4 — pantalla de éxito** (`ProductoCreado.tsx`): Agregar fotos (lleva a `/productos/{id}/editar#fotos`,

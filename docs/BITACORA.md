@@ -8421,3 +8421,11 @@ lote del que salió y al mismo costo; `anular_produccion` devuelve todo lo desco
 tela/avíos neto de devoluciones (antes las ignoraba). Migración `20260920100000` solo en local; `pnpm pruebas:insumos-devolucion` 10/10 y
 1421 pruebas del web en verde. Falta pegarla en producción (Felipe) y verla en el navegador (el panel estaba oculto). Referencias al
 reparto entre tiendas renumeradas a ADR-0139.
+
+## 2026-09-20 (Nuevo producto: primer paso con tres familias a la vista)
+El primer paso mostraba las 6 familias parejas y, con el menú lateral abierto, las tarjetas se montaban unas sobre otras (a 1024 px el
+bloque medía 334 px y a cada una le tocaban 49). Ahora se ven Indumentaria, Accesorios y Complementos y Bisutería, más una tarjeta «Ver más»
+que nombra lo escondido (Calzado, Belleza y Papelería); la búsqueda las alcanza igual. Las columnas las decide el ancho del bloque
+(`@container`) y no el de la ventana, como ya hacen Recepciones y Por pagar. La regla vive en `repartirFamilias` (7 pruebas; la que importa:
+ninguna familia se pierde) y no en una columna de `familias`. Verificado en navegador a 375, 1024, 1280 y 1440 px con datos simulados
+(sin Docker): cero desbordes; 1628 pruebas y typecheck en verde. Falta verlo con sesión de Líder real contra la base.
