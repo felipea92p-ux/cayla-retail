@@ -23,6 +23,7 @@ import { useFlip } from "@/lib/useFlip";
 import { DecidirTodas, EditorDecision, etiquetaDecision, ResumenDecision, type Decision } from "@/components/DecisionFaltanteFila";
 import { NOTA_VACIA, NotaCreditoCierre, type BloqueNota } from "@/components/NotaCreditoCierre";
 import { compararTallas } from "@/lib/tallas";
+import { textoDeLaParte } from "@/lib/reparto-reglas";
 import { diaMes, hoyLima } from "@/lib/fechas-lima";
 import {
   chipLlegada,
@@ -739,6 +740,8 @@ export function RecepcionEnvio({
                   {[l.talla, l.color].filter(Boolean).join(" · ") || l.descripcion}
                   <span className="@[46rem]:hidden"> · pendiente {l.pendiente}</span>
                 </span>
+                {/* ADR-0139: una línea repartida entre tiendas dice cuánto le toca a ESTA (y, al líder, dónde más falta). */}
+                {textoDeLaParte(l) && <span className="block text-[11px] leading-snug text-ambar-profundo">{textoDeLaParte(l)}</span>}
               </span>
             </span>
             <span className="hidden truncate text-[12.5px] tabular-nums text-tinta/65 @[60rem]:block">{l.sku ?? "—"}</span>
@@ -822,7 +825,7 @@ export function RecepcionEnvio({
         {destello?.id === l.id && <span key={destello.n} aria-hidden className="anim-destello-lectura pointer-events-none absolute inset-0" />}
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
           <span className="min-w-0 text-sm text-tinta">
-            {l.referencia} <span className="text-xs text-tinta/55">· el comprobante dice {l.pendiente} sin talla ni color — anota lo que llegó de cada una</span>
+            {l.referencia} <span className="text-xs text-tinta/55">· {textoDeLaParte(l) ? `a esta tienda le tocan ${l.pendiente}` : `el comprobante dice ${l.pendiente}`} sin talla ni color — anota lo que llegó de cada una</span>
             {l.descripcion && <span className="block text-xs text-tinta/55">{l.descripcion}</span>}
           </span>
           <span className="flex flex-col items-end gap-1">
@@ -934,7 +937,9 @@ export function RecepcionEnvio({
           {visibles.map((c) => {
             const marcada = seleccionadas.includes(c.id);
             const llegada = chipLlegada(c, ahora);
-            const enMedio = c.recibidoCantidad > 0;
+            // ADR-0139: si el comprobante trae más para otras tiendas, el monto es el de la PARTE de esta (no el total entero).
+            const esParte = c.facturadoTotal != null && c.facturadoTotal > c.facturadoCantidad;
+            const enMedio = c.recibidoCantidad > 0 || esParte;
             return (
               <button
                 key={c.id}
@@ -957,7 +962,7 @@ export function RecepcionEnvio({
                     <Resaltado texto={c.documento} busqueda={busqueda} />
                   </span>
                   <span className="block text-xs text-tinta/65">
-                    {textoEsperada(c, ahora)} · {c.recibidoCantidad} de {c.facturadoCantidad} u.
+                    {textoEsperada(c, ahora)} · {c.recibidoCantidad} de {c.facturadoCantidad} u.{c.facturadoTotal != null && c.facturadoTotal > c.facturadoCantidad ? " · tu parte" : ""}
                   </span>
                   <span aria-hidden className="mt-1.5 block h-[3px] overflow-hidden rounded-full bg-sand">
                     <span className="anim-crece-x block h-full rounded-full bg-tinta/45" style={{ width: `${c.facturadoCantidad ? Math.min(100, (c.recibidoCantidad / c.facturadoCantidad) * 100) : 0}%` }} />

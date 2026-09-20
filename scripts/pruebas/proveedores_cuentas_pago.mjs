@@ -39,7 +39,20 @@ const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante
 
 const EN_SECO = process.argv.includes("--en-seco");
 const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260919170000_proveedores_cci_y_billetera.sql"), "utf8");
-const PRELUDIO = EN_SECO ? MIGRACION : "";
+/**
+ * Tras el reparto por tienda (ADR-0139, migración 20260919173000) `compras` ya no tiene `ubicacion_destino_id`. Estas
+ * pruebas re-pegan migraciones que corrieron ANTES de eso (y ya están en producción) y cuya definición todavía la usa:
+ * lo que se prueba es su re-pegado en ese estado, así que a cada escenario que lo necesita se le devuelve la columna
+ * DENTRO de su transacción (que termina en ROLLBACK). No toca la base compartida.
+ */
+const CABECERA_DE_ANTES = `do $c$ begin
+  if not exists (select 1 from information_schema.columns where table_schema = 'retail' and table_name = 'compras' and column_name = 'ubicacion_destino_id') then
+    alter table retail.compras add column ubicacion_destino_id uuid;
+  end if;
+end $c$;
+`;
+
+const PRELUDIO = EN_SECO ? `${CABECERA_DE_ANTES}${MIGRACION}` : "";
 
 function psql(sql) {
   return execFileSync(
@@ -185,7 +198,7 @@ exito(
 exito(
   "pegar la migración dos veces no falla ni pierde lo guardado",
   `begin;
-${MIGRACION}
+${CABECERA_DE_ANTES}${MIGRACION}
 insert into retail.proveedores (nombre) values ('Proveedor doble pegado ' || gen_random_uuid()) returning id as prov \\gset
 set local request.jwt.claim.sub = '${FELIPE}';
 ${guardar(`'00219300214567804558', '987654321', array['yape'], 'Rosita'`)}
@@ -201,7 +214,7 @@ exito(
 insert into retail.proveedores (nombre, cuenta_bancaria) values ('Backfill CCI ' || gen_random_uuid(), '002 193 002145678045 58') returning id as p20 \\gset
 insert into retail.proveedores (nombre, cuenta_bancaria) values ('Backfill local ' || gen_random_uuid(), '193-2145678-0-45') returning id as p10 \\gset
 insert into retail.proveedores (nombre, cuenta_bancaria) values ('Backfill basura ' || gen_random_uuid(), 'BCP cuenta corriente 00219300214567804558') returning id as pbasura \\gset
-${MIGRACION}
+${CABECERA_DE_ANTES}${MIGRACION}
 select (select cci from retail.proveedores where id = :'p20'),
        coalesce((select cci from retail.proveedores where id = :'p10'), '∅'),
        coalesce((select cci from retail.proveedores where id = :'pbasura'), '∅'),

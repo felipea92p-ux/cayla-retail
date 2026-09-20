@@ -658,6 +658,7 @@ export type Database = {
           id: string
           motivo: string
           nota: string | null
+          ubicacion_id: string
           usuario_id: string | null
         }
         Insert: {
@@ -667,6 +668,7 @@ export type Database = {
           id?: string
           motivo: string
           nota?: string | null
+          ubicacion_id: string
           usuario_id?: string | null
         }
         Update: {
@@ -676,6 +678,7 @@ export type Database = {
           id?: string
           motivo?: string
           nota?: string | null
+          ubicacion_id?: string
           usuario_id?: string | null
         }
         Relationships: [
@@ -691,6 +694,56 @@ export type Database = {
             columns: ["compra_item_id"]
             isOneToOne: false
             referencedRelation: "compra_items_resumen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_item_cierres_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compra_item_destinos: {
+        Row: {
+          cantidad: number
+          compra_item_id: string
+          created_at: string
+          ubicacion_id: string
+        }
+        Insert: {
+          cantidad: number
+          compra_item_id: string
+          created_at?: string
+          ubicacion_id: string
+        }
+        Update: {
+          cantidad?: number
+          compra_item_id?: string
+          created_at?: string
+          ubicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_item_destinos_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_item_destinos_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items_resumen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_item_destinos_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
         ]
@@ -878,6 +931,71 @@ export type Database = {
           },
         ]
       }
+      compra_reasignaciones: {
+        Row: {
+          cantidad: number
+          compra_item_id: string
+          created_at: string
+          desde_ubicacion_id: string
+          hacia_ubicacion_id: string
+          id: string
+          motivo: string
+          nota: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          cantidad: number
+          compra_item_id: string
+          created_at?: string
+          desde_ubicacion_id: string
+          hacia_ubicacion_id: string
+          id?: string
+          motivo: string
+          nota?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          cantidad?: number
+          compra_item_id?: string
+          created_at?: string
+          desde_ubicacion_id?: string
+          hacia_ubicacion_id?: string
+          id?: string
+          motivo?: string
+          nota?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_reasignaciones_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_reasignaciones_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items_resumen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_reasignaciones_desde_ubicacion_id_fkey"
+            columns: ["desde_ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_reasignaciones_hacia_ubicacion_id_fkey"
+            columns: ["hacia_ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compras: {
         Row: {
           cerrado_cantidad: number
@@ -906,7 +1024,6 @@ export type Database = {
           tipo: string
           token_cliente: string | null
           total: number
-          ubicacion_destino_id: string
           usuario_id: string | null
         }
         Insert: {
@@ -936,7 +1053,6 @@ export type Database = {
           tipo?: string
           token_cliente?: string | null
           total: number
-          ubicacion_destino_id: string
           usuario_id?: string | null
         }
         Update: {
@@ -966,7 +1082,6 @@ export type Database = {
           tipo?: string
           token_cliente?: string | null
           total?: number
-          ubicacion_destino_id?: string
           usuario_id?: string | null
         }
         Relationships: [
@@ -975,13 +1090,6 @@ export type Database = {
             columns: ["proveedor_id"]
             isOneToOne: false
             referencedRelation: "proveedores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "compras_ubicacion_destino_id_fkey"
-            columns: ["ubicacion_destino_id"]
-            isOneToOne: false
-            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
         ]
@@ -3543,6 +3651,54 @@ export type Database = {
       }
     }
     Views: {
+      compra_item_reparto_resumen: {
+        Row: {
+          asignado: number | null
+          cerrado: number | null
+          compra_id: string | null
+          compra_item_id: string | null
+          pendiente: number | null
+          recibido: number | null
+          ubicacion_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_item_destinos_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_item_destinos_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items_resumen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_item_destinos_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_items_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_items_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras_resumen"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compra_items_resumen: {
         Row: {
           cantidad: number | null
@@ -3646,7 +3802,7 @@ export type Database = {
           subtotal: number | null
           tipo: string | null
           total: number | null
-          ubicacion_destino_id: string | null
+          ubicaciones_destino: string[] | null
           vencida: boolean | null
         }
         Relationships: [
@@ -3655,13 +3811,6 @@ export type Database = {
             columns: ["proveedor_id"]
             isOneToOne: false
             referencedRelation: "proveedores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "compras_ubicacion_destino_id_fkey"
-            columns: ["ubicacion_destino_id"]
-            isOneToOne: false
-            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
         ]
@@ -3931,6 +4080,7 @@ export type Database = {
           p_compra_item_id: string
           p_motivo: string
           p_nota?: string
+          p_ubicacion_id?: string
         }
         Returns: string
       }
@@ -4556,6 +4706,7 @@ export type Database = {
         Returns: boolean
       }
       fn_puede_registrar_compras: { Args: never; Returns: boolean }
+      fn_puede_ver_compra: { Args: { p_compra_id: string }; Returns: boolean }
       fn_puede_ver_dinero_de_compras: { Args: never; Returns: boolean }
       fn_recalcular_costo_variante: {
         Args: {
@@ -4765,16 +4916,22 @@ export type Database = {
         Returns: string
       }
       lineas_compra_operativo: {
-        Args: { p_compra_ids: string[] }
+        Args: { p_compra_ids: string[]; p_ubicacion_id?: string }
         Returns: {
+          asignado_aqui: number
           cantidad: number
+          cantidad_facturada: number
           cerrado: number
+          cerrado_aqui: number
           compra_id: string
           descripcion: string
           id: string
+          otras_tiendas: Json
           pendiente: number
+          pendiente_aqui: number
           producto_id: string
           recibido: number
+          recibido_aqui: number
           variante_id: string
         }[]
       }
@@ -4838,7 +4995,7 @@ export type Database = {
           subtotal: number | null
           tipo: string | null
           total: number | null
-          ubicacion_destino_id: string | null
+          ubicaciones_destino: string[] | null
           vencida: boolean | null
         }[]
         SetofOptions: {
@@ -4861,8 +5018,11 @@ export type Database = {
           p_por_recibir?: boolean
           p_proveedor_id?: string
           p_tipo?: string
+          p_ubicacion_id?: string
         }
         Returns: {
+          asignado_aqui: number
+          cerrado_aqui: number
           cerrado_cantidad: number
           created_at: string
           documento: string
@@ -4873,13 +5033,15 @@ export type Database = {
           fecha_estimada_llegada: string
           id: string
           nota: string
+          pendiente_aqui: number
           proveedor_id: string
           proveedor_nombre: string
           proveedor_ruc: string
           recepcion_atrasada: boolean
+          recibido_aqui: number
           recibido_cantidad: number
           tipo: string
-          ubicacion_destino_id: string
+          ubicaciones_destino: string[]
         }[]
       }
       listar_recepciones_compras: {
@@ -4959,6 +5121,17 @@ export type Database = {
       reactivar_proveedor: {
         Args: { p_proveedor_id: string }
         Returns: undefined
+      }
+      reasignar_reparto_compra: {
+        Args: {
+          p_cantidad: number
+          p_compra_item_id: string
+          p_desde: string
+          p_hacia: string
+          p_motivo: string
+          p_nota?: string
+        }
+        Returns: string
       }
       recalcular_compras: { Args: never; Returns: undefined }
       recalcular_stock: { Args: never; Returns: undefined }

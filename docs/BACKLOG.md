@@ -397,7 +397,7 @@ llegó?» y desaparecen al marcar.
 - [x] **Hueco de ADR-0075** (montos legibles por un integrante): cerrado por ADR-0126.
 
 Siguiente, sin urgencia: borrador local del conteo; miniaturas de prenda; ni `recibir_compras` ni `recibir_lote`
-sueltos tienen token de idempotencia (solo `recibir_envio`). **Cruce:** ADR-0107 (`modulos-por-tienda`, un comprobante
+sueltos tienen token de idempotencia (solo `recibir_envio`). **Cruce:** ADR-0139 (antes 0107, 0132 y 0138; `modulos-por-tienda`, un comprobante
 repartido entre tiendas) reescribe las mismas funciones; el tope por tienda va dentro de `recibir_compras`.
 
 ## 🎯 Vender: comprobante impreso en térmica + ajustes del POS (2026-09-18, ADR-0114)
@@ -733,6 +733,40 @@ van en la banda `20260918200000`–`20260918220000` (main trae su propia `202609
       default de una fecha de EMISIÓN es una decisión distinta a la de un pago; no se tocó.
 
 ---
+
+## 🎯 Compras: un comprobante se reparte entre tiendas y cada tienda recibe lo suyo (2026-09-19, ADR-0139) — HECHO EN LOCAL, PENDIENTE DE PRODUCCIÓN
+
+Felipe confirmó que una misma factura de proveedor puede traer mercadería para varias tiendas y que cada una hace su
+recepción. Antes la factura tenía un solo destino y `recibir_compras` contaba lo recibido sumando todas las ubicaciones:
+una tienda podía «comerse» la parte de otra. Ahora la base guarda el reparto por línea y tienda y cada tienda recibe lo
+suyo. Diseño, decisiones y UX en ADR-0139. **Rama `claude/modulos-por-tienda-ca0f59`; verificado en local (SQL, pruebas web y
+navegador); las dos migraciones NO están en producción.**
+
+- [x] **Base** (`20260919172000` + `20260919173000`): `compra_item_destinos`, `compra_reasignaciones`,
+      `compra_item_reparto_resumen`, `fn_puede_ver_compra`, `reasignar_reparto_compra`; tope por tienda en `recibir_compras`;
+      `cerrar_linea_compra` con `ubicacion_id`; lecturas operativas por tienda; re-llave de las 10 funciones que usaban el
+      destino de la factura; `compras.ubicacion_destino_id` eliminada. `pnpm pruebas:compras-reparto` (47/47) y las suites
+      vecinas en verde.
+- [x] **Web:** Registrar (Una tienda | Repartir entre tiendas, con lo que falta en vivo), `/recibir` por tienda, detalle
+      («Reparto por tienda», Reasignar, Cerrar con faltante por tienda), «Repartida: …» en la lista. Probado en el navegador
+      a escritorio y a 375 px.
+- [x] **Aviario:** pájaro (Pelícano) para las 2 tablas nuevas y la vista (`scripts/datos/aviario.mjs`; lo aprueba Felipe).
+- [x] Privacidad: resuelta por ADR-0126 (un integrante lee por `listar_compras_operativo` / `lineas_compra_operativo`, sin dinero).
+- [ ] **Producción — pegar en este orden, cada una en su propia ejecución** (detalle en ADR-0139 «Cómo se pega en producción»): `172000`,
+      luego `173000` (sin prefijo `retail.`, llevan `set search_path`). Comprobado en solo lectura contra producción el 2026-09-19: no
+      existe ninguno de los objetos, los requisitos y las 12 anclas de los parches están, y **producción tiene 0 comprobantes** (no hay nada
+      que rellenar). La web tolera cualquiera de los dos órdenes (fusionar antes o después del SQL). Las 180000/181000 de Comprobantes ya
+      están aplicadas: da igual el orden respecto a ellas. **No re-pegar la 172000 después de la 173000.** Después: `pnpm datos:generar:produccion` (refresca el diccionario), `pnpm datos:comparar`, y
+      sumar los dos candados nuevos (suma del reparto = cantidad de la línea; tope por tienda) a `docs/datos/01-INVARIANTES.md`, que
+      solo lista lo verificado en producción (por eso no entran antes).
+- [ ] **Filtro y chip «Destino» en Comprobantes y Por pagar.** Pendiente a propósito: la lista es paginada en Postgres, así que
+      un filtro en el navegador mentiría; de verdad pide un parámetro nuevo en `listar_compras` (`drop function` + `create`) y
+      coordinar con la sesión de Por pagar, que tiene esa pantalla en vuelo. Hoy cada comprobante repartido dice a qué tiendas va.
+- [ ] **Datos de prueba en el Postgres local compartido:** `TST-REPARTO01` (tiene recepciones: no se puede anular) y
+      `TST-RUI0001` (repartido 12+12, con una reasignación y un cierre). Son de la serie `TST`; no molestan a nadie pero ensucian
+      los totales locales de «Por pagar»/«Por recibir».
+- [ ] **Anotado, no de este cambio:** el `--en-seco` de `pagos_compras_endurecimiento` ya no sirve con el reparto aplicado (la
+      función cruda no escribe reparto y `recibir_compras` lo exige); usar el modo normal.
 
 ## 🎯 Traslados: lectura operativa, franja «Atención hoy» y contador del menú (2026-09-18, ADR-0105)
 

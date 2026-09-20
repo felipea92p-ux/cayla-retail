@@ -78,11 +78,18 @@ export function ordenarPorUrgencia<T extends Esperable>(compras: T[], ahora: Dat
   return [...compras].sort((a, b) => diasDeAtraso(b, ahora) - diasDeAtraso(a, ahora));
 }
 
-/** Valor S/ de lo que falta llegar de un comprobante, proporcional a lo pendiente (el total incluye IGV). */
-export function valorPorLlegar(c: { total: number; facturadoCantidad: number; recibidoCantidad: number; cerradoCantidad?: number }): number {
-  if (c.facturadoCantidad <= 0) return 0;
+/**
+ * Valor S/ de lo que falta llegar de un comprobante, proporcional a lo pendiente (el total incluye IGV).
+ *
+ * ADR-0139 — vista desde una tienda, `facturadoCantidad` es lo que le TOCA a ella pero `total` es el de TODO el
+ * comprobante: el prorrateo se hace contra las unidades del comprobante entero (`facturadoTotal`), si no, a una tienda
+ * con 18 de 36 unidades le saldría el total completo como «por llegar».
+ */
+export function valorPorLlegar(c: { total: number; facturadoCantidad: number; recibidoCantidad: number; cerradoCantidad?: number; facturadoTotal?: number }): number {
+  const base = c.facturadoTotal ?? c.facturadoCantidad;
+  if (base <= 0) return 0;
   const pendiente = Math.max(0, c.facturadoCantidad - c.recibidoCantidad - (c.cerradoCantidad ?? 0));
-  return Math.round(((c.total * pendiente) / c.facturadoCantidad) * 100) / 100;
+  return Math.round(((c.total * pendiente) / base) * 100) / 100;
 }
 
 // ---------------------------------------------------------------------------

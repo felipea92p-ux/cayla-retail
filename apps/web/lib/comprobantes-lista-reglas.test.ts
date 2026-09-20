@@ -5,7 +5,7 @@ import type { CompraResumen } from "./compras-reglas";
 const AHORA = new Date("2026-09-19T00:30:00Z"); // 18/09 19:30 en Lima
 const base: CompraResumen = {
   id: "c", proveedorId: "p", proveedorNombre: "Tejidos Rímac SAC", proveedorRuc: null, tipo: "factura", documento: "F001-000482",
-  fechaEmision: "2026-09-02", condicion: "credito", fechaVencimiento: "2026-10-02", ubicacionDestinoId: "u",
+  fechaEmision: "2026-09-02", condicion: "credito", fechaVencimiento: "2026-10-02", ubicacionesDestino: ["u"],
   subtotal: 5020, igv: 903.6, total: 5923.6, pagado: 2000, saldo: 3923.6, estado: "vigente", estadoPago: "parcial",
   facturadoCantidad: 240, recibidoCantidad: 0, estadoRecepcion: "sin_recibir", vencida: false,
   fechaEstimadaLlegada: "2026-09-09", recepcionAtrasada: true, notasCredito: 0, cerradoCantidad: 0, nota: null, creadoEn: "",

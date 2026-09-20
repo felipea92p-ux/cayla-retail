@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Un comprobante se reparte entre tiendas y cada tienda recibe lo suyo — ADR-0139, hecho en local)
+Ahora se puede registrar una factura de proveedor «repartida»: en cada línea se dice cuántas unidades le tocan a cada tienda, con «Faltan 4 por repartir» en vivo y un atajo de partes iguales. Cada tienda recibe solo lo suyo desde `/recibir` (la base rechaza que una se coma la parte de otra), el detalle muestra cómo va cada tienda y un líder puede **reasignar** lo que aún no llegó o **cerrar un faltante** diciendo en qué tienda faltó. Verificado con 47 pruebas de SQL, 1367 de la web y en el navegador (una factura de 24 u. repartida 12+12 quedó así en la base; se recibió, reasignó y cerró); las dos migraciones (`172000`, `173000`) **no están en producción** y se pegan en orden con ok de Felipe, y solo después se despliega la web.
+Felipe se lleva: (1) el destino ya no vive en la factura sino en el reparto por línea, y por eso una factura de una sola tienda también «tiene reparto» (de una tienda): así no hay casos especiales al leer; (2) un colaborador no puede recibir en su tienda algo que el comprobante asignó a otra: primero un líder reasigna, y por eso el botón existe también en facturas de una sola tienda; (3) dos sesiones que reescriben la misma función se pisan según el orden en que se pegue el SQL: se resolvió parchando por anclas sobre la definición viva en vez de reemplazarla (ADR-0139 §2), y se probó el orden real de las migraciones dentro de una transacción con ROLLBACK, no se supuso.
+Sin resolver: el filtro y el chip «Destino» en Comprobantes y Por pagar (la lista es paginada en Postgres, un filtro en el navegador mentiría; pide un parámetro nuevo y coordinar con Por pagar); y tres pruebas de otras sesiones daban por existente la columna que se eliminó (se ajustaron; una además ya fallaba en `main` por una lista de columnas desactualizada).
+
 ## 2026-09-19 (Análisis de inventario a producción: migración aplicada, rama fusionada — ADR-0138)
 Se cerró el ciclo: la rama (80 commits detrás de `main`) se fusionó — un solo conflicto real, en esta misma
 BITÁCORA por ser de acumulación, resuelto conservando las dos mitades; todo lo demás (código, `package.json`,
@@ -540,6 +545,13 @@ Tallas era la pestaña que se había quedado atrás: 8 columnas fijas de cajitas
 Lo que Felipe se lleva: el tipo de talla (letras / numeración / única / otras) sale de `tipoDeTalla` en `lib/tallas.ts`, que usa el mismo `rango` que ordena la curva, así que "en qué grupo está" y "en qué orden va" no pueden contradecirse; está fijado en `tallas.test.ts`. `BotonFiltro` salió de Etiquetas a `ui/` para que las dos pestañas filtren con el mismo gesto. Y un hallazgo: `Boton` trae `px-4` y un `px-2` pasado por `className` no lo pisa — hay que forzarlo con `px-2!`; el mismo síntoma puede estar en otras listas de Atributos.
 
 "Único" era un valor real del vocabulario (`retail.tallas.valor`), no un texto de pantalla, así que va como migración `20260918175000_talla_unica_en_femenino.sql`: "talla" es femenino. Es seguro porque las variantes y `categoria_tallas` apuntan por `talla_id` y el código impreso usa el token `U`, que ya trataba "unico" y "unica" igual. Felipe la pegó en producción el 2026-09-18 (SQL Editor, con el prefijo `retail.`); yo no pude releer la base para confirmarlo porque el acceso a producción estaba bloqueado por permisos, así que queda por reportar de él. Verificado en navegador a 375, 1024 y 1900 px: ningún botón cortado; `tsc` y `eslint` limpios.
+
+## 2026-09-18 (Compras por tienda: qué se parte y qué no, y el diseño del reparto de un comprobante entre tiendas)
+
+Felipe preguntó si Comprobantes, Recibir mercadería y Por pagar deberían ser por tienda. Respuesta con evidencia: solo Recibir (es un acto físico en un lugar); Comprobantes y Por pagar son de la empresa (R-04, R-10, R-12) pero tienen que mostrar y filtrar por destino, que hoy no se ve en ninguna lista. Al confirmar Felipe que una factura puede repartirse entre tiendas, el destino dejó de poder vivir en la factura: `recibir_compras` cuenta lo recibido sumando todas las ubicaciones, así que una tienda podía gastarse la parte de otra. Diseño en ADR-0139 (antes 0107, 0132 y 0138, renumerado); sin código ni migración porque otra sesión (ADR-0106, sin PR) reescribe las mismas funciones y su esquema ya corre en el Postgres local compartido.
+
+Lo que Felipe se lleva: «por tienda» son tres cosas distintas — perspectiva (qué muestra la pantalla), permiso (quién puede) y atribución (a qué tienda pertenece el registro) — y no se resuelven igual en cada módulo. Y antes de escribir migraciones sobre un módulo, mirar `git log origin/main..<rama>` de las sesiones vecinas: esta vez habría sido trabajo doble sobre las mismas cinco funciones.
+
 
 ## 2026-09-18 (Etiquetas se alinea con Colores, Tejidos y Patrones: mismo tamaño de tarjeta, misma grilla)
 

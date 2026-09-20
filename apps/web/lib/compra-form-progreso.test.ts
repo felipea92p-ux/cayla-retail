@@ -17,6 +17,59 @@ const completa: EntradaRequisitos = {
 const con = (cambio: Partial<EntradaRequisitos>): EntradaRequisitos => ({ ...completa, ...cambio });
 const pendientes = (e: EntradaRequisitos) => requisitosDeCompra(e).filter((r) => !r.ok).map((r) => r.clave);
 
+describe("requisitosDeCompra · repartir entre tiendas (ADR-0139)", () => {
+  const T = "trujillo";
+  const TALLER = "taller";
+  const linea = (cantidad: number, reparto: Record<string, number>) => ({ productoId: "p1", cantidad, costoUnitario: "50", reparto });
+
+  it("sin repartir, el reparto que traiga la línea no se mira (el flujo de siempre no cambia)", () => {
+    const e = con({ lineas: [linea(24, { [T]: 3 })] });
+    expect(pendientes(e)).toEqual([]);
+    expect(requisitosDeCompra(e)[2].texto).toBe("Al menos una línea con producto y costo");
+  });
+
+  it("repartiendo, 12 + 12 de 24 cuadra y el paso de líneas queda listo", () => {
+    const e = con({ repartir: true, lineas: [linea(24, { [T]: 12, [TALLER]: 12 })] });
+    expect(pendientes(e)).toEqual([]);
+    expect(requisitosDeCompra(e)[2].texto).toBe("Líneas con producto, costo y su reparto entre tiendas");
+  });
+
+  it("dice QUÉ línea y CUÁNTO falta, y lleva el cursor al reparto de esa línea", () => {
+    const e = con({ repartir: true, lineas: [linea(10, { [T]: 10 }), linea(24, { [T]: 12, [TALLER]: 8 })] });
+    expect(pendientes(e)).toEqual(["lineas"]);
+    expect(requisitosDeCompra(e)[2]).toMatchObject({
+      ok: false,
+      falta: "Línea 2: faltan 4 por repartir",
+      error: { mensaje: "La línea 2 no está bien repartida: faltan 4 por repartir (las unidades de cada tienda deben sumar 24).", enfocar: "compra-linea-1-reparto" },
+    });
+  });
+
+  it("si se pasó, dice cuánto sobra", () => {
+    const e = con({ repartir: true, lineas: [linea(24, { [T]: 14, [TALLER]: 12 })] });
+    expect(requisitosDeCompra(e)[2]).toMatchObject({ ok: false, falta: "Línea 1: sobran 2" });
+  });
+
+  it("una línea sin repartir nada pide repartirla entera", () => {
+    const e = con({ repartir: true, lineas: [linea(5, {})] });
+    expect(requisitosDeCompra(e)[2]).toMatchObject({ ok: false, falta: "Línea 1: faltan 5 por repartir" });
+  });
+
+  it("el costo que falta se avisa antes que el reparto (es lo primero que se tipea)", () => {
+    const e = con({ repartir: true, lineas: [{ productoId: "p1", cantidad: 24, costoUnitario: "", reparto: {} }] });
+    expect(requisitosDeCompra(e)[2]).toMatchObject({ ok: false, falta: "Falta el costo de la línea 1", error: { enfocar: "compra-linea-0-costo" } });
+  });
+
+  it("un renglón sin producto es un renglón de más: no exige reparto", () => {
+    const e = con({ repartir: true, lineas: [linea(24, { [T]: 24 }), { productoId: "", cantidad: 1, costoUnitario: "", reparto: {} }] });
+    expect(pendientes(e)).toEqual([]);
+  });
+
+  it("el paso de pago no se marca hecho mientras el reparto no cuadre (depende de las líneas)", () => {
+    const e = con({ repartir: true, lineas: [linea(24, { [T]: 12 })] });
+    expect(progresoDeCompra(requisitosDeCompra(e)).tramos).toMatchObject({ lineas: false, pago: false });
+  });
+});
+
 describe("requisitosDeCompra", () => {
   it("una compra completa al contado no tiene pendientes y da 4 de 4", () => {
     const r = requisitosDeCompra(completa);

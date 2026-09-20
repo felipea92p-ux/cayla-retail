@@ -5,11 +5,12 @@ import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from "r
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { Boton, Campo, CampoSelectNativo, CampoTexto, Interruptor, SelectNativo } from "@/components/ui/campos";
+import { Boton, Campo, CampoTexto, Interruptor, SelectNativo } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { SelectorAdjuntos } from "@/components/AdjuntosCompra";
+import { DestinoDeLaMercaderia, RepartoDeLinea } from "@/components/RepartoEnRegistro";
 import { LineasPago, lineaPagoVacia, lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
 import { subirAdjuntosCompra } from "@/lib/adjuntos-compra";
 import { campoEtiqueta } from "@/components/ui/Modal";
@@ -21,6 +22,7 @@ import { AyudaCostoLinea, BarraProgreso, BotonRegistrar, CifraCompra, ListaPendi
 import type { DatosPagoProveedor } from "@/lib/proveedores-reglas";
 import { hoyLima, sumarDias } from "@/lib/fechas-lima";
 import { costoBase, costoParaTipear, ETIQUETA_METODO, fechaCorta, METODO_SALDO_A_FAVOR, soles, totalesCompra } from "@/lib/compras-reglas";
+import { destinosParaRpc, repartirEnPartesIguales, repartoSoloDe, unidadesPorTienda, type RepartoLinea } from "@/lib/reparto-reglas";
 
 // Registrar una factura de proveedor (ADR-0035). Dos reglas de Felipe que
 // esta pantalla refleja pero NO decide — las decide la RPC `registrar_compra`:
@@ -48,7 +50,8 @@ type Ubicacion = { id: string; nombre: string };
 
 // `id` es la identidad estable de la línea (no se muestra): con ella React sabe CUÁL línea entró o salió, y así se
 // anima esa y no otra. Antes la clave era la posición, y quitar la línea 1 «movía» los datos a la 0.
-type Linea = { id: string; productoId: string; varianteId: string; cantidad: number; costoUnitario: string; descripcion: string };
+// `reparto` (ADR-0139) solo se usa cuando el comprobante se reparte entre tiendas: tienda → unidades de ESTA línea.
+type Linea = { id: string; productoId: string; varianteId: string; cantidad: number; costoUnitario: string; descripcion: string; reparto: RepartoLinea };
 let secuenciaLineas = 0;
 
 // Producto · Talla y color · Cantidad · Costo unitario · Subtotal · Quitar.
@@ -92,6 +95,7 @@ export function CompraFormV2({
   proveedorInicialId = null,
   deudaTotal = 0,
   cabecera,
+  repartoDisponible = true,
 }: {
   proveedores: Proveedor[];
   ubicaciones: Ubicacion[];
@@ -103,6 +107,8 @@ export function CompraFormV2({
   deudaTotal?: number;
   /** Título de la pantalla (enlace «← Comprobantes», título y bajada): va a la izquierda y el avance «Listo N de 4» a la derecha, como en el diseño. */
   cabecera?: ReactNode;
+  /** ADR-0139: ¿esta base ya tiene el reparto por tienda? Si no, no se ofrece «Repartir entre tiendas». */
+  repartoDisponible?: boolean;
 }) {
   const router = useRouter();
 
@@ -126,6 +132,7 @@ export function CompraFormV2({
     cantidad: 1,
     costoUnitario: "",
     descripcion: "",
+    reparto: {},
   });
 
   const opcionesProducto = useMemo(() => productos.map((p) => ({ valor: p.id, texto: p.referencia, detalle: `${p.variantes.length} ${p.variantes.length === 1 ? "variante" : "variantes"}` })), [productos]);
@@ -150,6 +157,10 @@ export function CompraFormV2({
   // Llegada estimada: arranca en la sugerida (emisión + 7 días) y la acompaña si cambia la emisión; solo se «fija» si la persona la edita.
   const [llegadaEditada, setLlegadaEditada] = useState<string | null>(null);
   const [ubicacionId, setUbicacionId] = useState(ubicacionInicialId || ubicaciones[0]?.id || "");
+  // Repartir el comprobante entre tiendas (ADR-0139): cada una recibe lo suyo. Sin repartir, todo va a `ubicacionId` como
+  // siempre y la RPC no recibe `destinos`. Las tiendas que participan se marcan una vez y cada línea las reparte.
+  const [repartir, setRepartir] = useState(false);
+  const [tiendasReparto, setTiendasReparto] = useState<string[]>([]);
   const [igvPorcentaje, setIgvPorcentaje] = useState(IGV_POR_DEFECTO);
   // Cómo vienen los precios en el papel. La base siempre guarda el costo sin
   // IGV (`costoBase` en lib/compras-reglas.ts); esto solo dice cómo se tipea.
@@ -211,6 +222,7 @@ export function CompraFormV2({
     serie,
     numero,
     lineas,
+    repartir,
     condicion,
     pagarAhora,
     fechaVencimiento,
@@ -220,6 +232,9 @@ export function CompraFormV2({
     indicePagoSinMonto: pagos.findIndex((l) => !(Number(l.monto) > 0)),
   });
   const progreso = progresoDeCompra(requisitos);
+  // Para el resumen «Dónde cae»: cuántas unidades le tocan a cada tienda (solo cuando se reparte).
+  const unidadesTienda = unidadesPorTienda(lineas.filter((l) => l.productoId && l.cantidad > 0));
+  const porTienda = ubicaciones.filter((u) => (unidadesTienda[u.id] ?? 0) > 0).map((u) => ({ id: u.id, nombre: u.nombre, unidades: unidadesTienda[u.id] }));
   const documentoNormalizado = `${serie.trim().toUpperCase()}-${numero.trim()}`;
   const documentoRepetido = existentes[`${proveedorId}|${documentoNormalizado}`] === true;
   // Al contado con un solo medio, el monto ES el total: acompaña a las líneas
@@ -233,6 +248,22 @@ export function CompraFormV2({
 
   function actualizarLinea(i: number, cambio: Partial<Linea>) {
     setLineas((actual) => actual.map((l, n) => (n === i ? { ...l, ...cambio } : l)));
+  }
+
+  function alternarRepartir(activo: boolean) {
+    setRepartir(activo);
+    // Al activarlo arranca con la tienda que ya estaba elegida; las demás se marcan a mano.
+    if (activo && tiendasReparto.length === 0) setTiendasReparto([ubicacionId]);
+  }
+
+  function cambiarTiendasReparto(ids: string[]) {
+    setTiendasReparto(ids);
+    // La tienda que se desmarca deja de recibir en TODAS las líneas (y cada línea vuelve a decir cuánto falta).
+    setLineas((a) => a.map((l) => ({ ...l, reparto: repartoSoloDe(l.reparto, ids) })));
+  }
+
+  function partesIgualesEnTodas() {
+    setLineas((a) => a.map((l) => ({ ...l, reparto: repartirEnPartesIguales(l.cantidad, tiendasReparto) })));
   }
 
   function elegirProducto(i: number, productoId: string) {
@@ -306,13 +337,16 @@ export function CompraFormV2({
       p_serie: serie.trim(),
       p_numero: numero.trim(),
       p_condicion: condicion,
-      p_ubicacion_destino_id: ubicacionId,
+      // Repartido: cada línea trae sus `destinos` y este parámetro solo hace de valor por defecto (la firma no cambió).
+      p_ubicacion_destino_id: repartir ? (tiendasReparto[0] ?? ubicacionId) : ubicacionId,
       p_items: validas.map((l) => ({
         producto_id: l.productoId,
         ...(l.varianteId ? { variante_id: l.varianteId } : {}),
         ...(l.descripcion.trim() ? { descripcion: l.descripcion.trim() } : {}),
         cantidad: l.cantidad,
         costo_unitario: baseDeLinea(l),
+        // Cuántas unidades de ESTA línea le tocan a cada tienda: deben sumar `cantidad` (la base lo exige y rechaza si no).
+        ...(repartir ? { destinos: destinosParaRpc(l.reparto) } : {}),
       })),
       p_tipo: tipo,
       p_fecha_emision: fechaEmision,
@@ -353,7 +387,9 @@ export function CompraFormV2({
     setRegistrada(true);
     const documento = `${serie.trim().toUpperCase()}-${numero.trim()}`;
     avisar.exito(`${TIPOS.find((t) => t.valor === tipo)!.texto} ${documento} registrada`, {
-      detalle: condicion === "contado" ? `Pagada al contado · ${soles(total)}` : `Queda en Por pagar · ${soles(total - sumaPagos)}`,
+      // Lo que queda por pagar descuenta SOLO lo que de verdad se registró: sin «registrar un pago ahora» no se manda ningún
+      // pago (`hayPago`), aunque el medio escrito antes de pasar a crédito conserve su monto en pantalla.
+      detalle: condicion === "contado" ? `Pagada al contado · ${soles(total)}` : `Queda en Por pagar · ${soles(total - (hayPago ? sumaPagos : 0))}`,
     });
     if (fallidos.length) avisar.aviso(`${fallidos.length === 1 ? "1 adjunto no subió" : `${fallidos.length} adjuntos no subieron`}: ${fallidos.join(", ")}`, { detalle: "Puedes reintentarlo desde el detalle." });
     // Registrada → de vuelta a la lista: el aviso de éxito ya dice qué quedó
@@ -538,13 +574,16 @@ export function CompraFormV2({
                 </p>
               </div>
             </div>
-            <CampoSelectNativo etiqueta="Mercadería destinada a" value={ubicacionId} onChange={(e) => setUbicacionId(e.target.value)}>
-              {ubicaciones.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.nombre}
-                </option>
-              ))}
-            </CampoSelectNativo>
+            <DestinoDeLaMercaderia
+              ubicaciones={ubicaciones}
+              puedeRepartir={repartoDisponible}
+              repartir={repartir}
+              onRepartir={alternarRepartir}
+              ubicacionId={ubicacionId}
+              onUbicacionId={setUbicacionId}
+              tiendas={tiendasReparto}
+              onTiendas={cambiarTiendasReparto}
+            />
             <CampoTexto
               etiqueta="IGV %"
               mono
@@ -578,6 +617,11 @@ export function CompraFormV2({
               />
             ) : (
               <p className="text-xs text-tinta/55">Costo unitario tal como figura en el documento: ya es el costo.</p>
+            )}
+            {repartir && tiendasReparto.length > 1 && (
+              <button type="button" onClick={partesIgualesEnTodas} className="label-cayla ml-auto text-[10.5px] text-rojo hover:underline">
+                Repartir todas en partes iguales
+              </button>
             )}
           </div>
           <div className={`hidden gap-2 border-b border-tinta/10 pb-1 sm:grid ${PLANTILLA_LINEAS}`}>
@@ -647,6 +691,18 @@ export function CompraFormV2({
                       </button>
                     )}
                   </span>
+                  {/* Repartido entre tiendas (ADR-0139): bajo la línea, a todo su ancho. Dentro de `cr-linea-fila` a propósito:
+                      `.cr-linea` colapsa con UN solo hijo. Una línea sin producto todavía no se reparte. */}
+                  {repartir && l.productoId && (
+                    <RepartoDeLinea
+                      id={`compra-linea-${i}-reparto`}
+                      numeroLinea={i + 1}
+                      cantidad={l.cantidad}
+                      tiendas={ubicaciones.filter((u) => tiendasReparto.includes(u.id))}
+                      reparto={l.reparto}
+                      onReparto={(reparto) => actualizarLinea(i, { reparto })}
+                    />
+                  )}
                 </div>
               </div>
             );
@@ -745,6 +801,24 @@ export function CompraFormV2({
             <span className="text-tinta/65">Por recibir</span>
             <span className="tabular-nums text-tinta">
               <TextoQueSeAsienta valor={`esperada ${fechaCorta(fechaLlegada)}`} />
+            </span>
+          </div>
+          <div className="flex items-start justify-between gap-3">
+            <span className="text-tinta/65">Mercadería para</span>
+            <span className="text-right text-tinta">
+              {repartir ? (
+                porTienda.length > 0 ? (
+                  porTienda.map((t) => (
+                    <span key={t.id} className="block tabular-nums">
+                      {t.nombre} · {t.unidades.toLocaleString("es-PE")} u.
+                    </span>
+                  ))
+                ) : (
+                  "—"
+                )
+              ) : (
+                <TextoQueSeAsienta valor={ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "—"} />
+              )}
             </span>
           </div>
         </div>
