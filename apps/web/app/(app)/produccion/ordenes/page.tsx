@@ -3,6 +3,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTaller, getOrdenesProduccion, getModelosProducibles } from "@/lib/produccion";
 import { OrdenesTablero } from "@/components/OrdenesTablero";
 import { hoyLima } from "@/lib/fechas-lima";
+import { getInsumosDelTaller } from "@/lib/insumos";
 
 // Órdenes de producción del Taller (restaurada 2026-09-15 sobre V2). Una sola
 // forma de producir: la orden. Se abre con costo estimado y cantidades por
@@ -32,7 +33,13 @@ export default async function OrdenesProduccionPage() {
     );
   }
 
-  const [ordenes, modelos] = await Promise.all([getOrdenesProduccion(taller.id), getModelosProducibles()]);
+  const esLider = persona.rol === "lider";
+  const hoy = hoyLima();
+  const [ordenes, modelos, datosInsumos] = await Promise.all([
+    getOrdenesProduccion(taller.id),
+    getModelosProducibles(),
+    getInsumosDelTaller(taller.id, { conCostos: esLider, hoy }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -44,7 +51,7 @@ export default async function OrdenesProduccionPage() {
         </p>
       </div>
 
-      <OrdenesTablero tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={persona.rol === "lider"} hoy={hoyLima()} />
+      <OrdenesTablero tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} />
     </div>
   );
 }
