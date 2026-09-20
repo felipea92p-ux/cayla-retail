@@ -28,6 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Carga inicial de proveedores (2026-09-20, ADR-0140) — SQL LISTO Y ENSAYADO, FALTA PEGARLO
+- [x] Hoja depurada a 74 fichas / 75 marcas / 75 vínculos; revisión adversarial; ensayo contra producción con retroceso (2→76, 1→76, 1→76; base intacta).
+- [ ] **Pegar** `02-carga-proveedores.sql` en el SQL Editor de producción (archivo privado, fuera de git: `~/Developer/cayla-cargas-privadas/proveedores-2026-09/`; si un candado aborta, ejecutar `rollback;`) y verlo en `/proveedores` y `/productos/marcas`.
+- [ ] Verificar en SUNAT los RUC 10 de mayor gasto y los RUC 20 con aviso (lista en `03-pendientes-privados.md`); pedir el RUC vigente a los que entraron sin RUC.
+- [ ] **Proponer (requiere aprobación + ADR propio):** una sola migración con `proveedor_principal_id` (razones sociales relacionadas: cada RUC sigue siendo fila; cierra el choque de `unique (proveedor_id, serie, numero)`) y `direccion`. Hoy `compras` no guarda el RUC del emisor; hay 0 compras, así que hay que decidirlo antes de la primera factura de un RUC relacionado.
+- [ ] Proveedores: **mostrar y buscar por marca** (`fn_proveedores()` + buscador + combo de Compras); hoy 44 de 71 fichas con marca no se hallan por ella.
+- [ ] Higiene de git: commit local sin publicar `99059734` (rama `claude/sweet-gould-fe63b4`) con un volcado anterior de esta hoja. No subir esa rama; no borrar con `gc --prune=now` (destruiría otro commit sin publicar y el reflog de los demás worktrees).
+
 ## 🎯 Módulo «Notas de crédito» aparte de Recepción (2026-09-19) — spike listo, sin implementar
 - [x] Spike visual: `docs/maquetas/notas-credito-spike-2026-09/notas-credito-vivo.html` (+ README con el mapa pantalla → datos/RPC reales, lo que requiere migración y 5 decisiones D1–D5 con Ganas/Pagas). Verificado abriéndolo en el navegador; el movimiento en curso lo debe juzgar Felipe a ojo.
 - [ ] Decisiones de Felipe D1–D5 (README del spike). Recomendaciones: registrar la nota solo en el módulo; «reclamada» en segunda fase; «Aplicada» deducida por FIFO; urgencia a 14 días; adjunto ligado a la nota.

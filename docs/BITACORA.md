@@ -8436,3 +8436,15 @@ que nombra lo escondido (Calzado, Belleza y Papelería); la búsqueda las alcanz
 (`@container`) y no el de la ventana, como ya hacen Recepciones y Por pagar. La regla vive en `repartirFamilias` (7 pruebas; la que importa:
 ninguna familia se pierde) y no en una columna de `familias`. Verificado en navegador a 375, 1024, 1280 y 1440 px con datos simulados
 (sin Docker): cero desbordes; 1628 pruebas y typecheck en verde. Falta verlo con sesión de Líder real contra la base.
+
+## 2026-09-20 (Carga inicial de proveedores — ADR-0140)
+Se depuró la hoja de 1.558 proveedores (293 con RUC válido) hasta **74 fichas** (62 con RUC, 12 sin), **75 marcas** y **75 vínculos**
+marca↔proveedor, con un SQL todo-o-nada que **no está en git** (lleva nombres y celulares de personas naturales): vive en
+`~/Developer/cayla-cargas-privadas/proveedores-2026-09/`. Decisiones: una fila por empresa con el RUC oficial (RUC 20, o el de
+mayor gasto entre RUC 10) y el otro anotado aparte; RUC en baja de oficio o inválido ⇒ ficha sin RUC (se verificaron 30 RUC 20 en
+directorios públicos; los RUC 10 no, porque contienen el DNI); sin datos de pago ni dirección. Revisión adversarial (4 revisores +
+refutadores) y ensayo contra producción con retroceso: `proveedores 2→76, marcas 1→76, vínculos 1→76`, base intacta después. **Falta
+pegar el SQL real** (quien administra) y verlo en `/proveedores` y `/productos/marcas`. Hallazgo abierto: el buscador de Proveedores no
+mira las marcas (44 de 71 fichas con marca no se encuentran por ella) y existe un commit local sin publicar con un volcado anterior de
+esta hoja (`99059734`): no subir esa rama.
+
