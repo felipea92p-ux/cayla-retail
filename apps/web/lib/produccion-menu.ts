@@ -14,9 +14,9 @@ export type PerfilMenu = {
   ubicacionTipo: "tienda" | "almacen" | "taller";
 };
 
-/** Pantallas de Producción, en orden. Hoy solo Órdenes: Resumen, Proveedores de producción, Insumos y Eficiencia se
- *  suman acá cuando existan (fases F3 a F7). */
-export type ClaveMenuProduccion = "ordenes";
+/** Pantallas de Producción, en orden. Hoy Órdenes e Insumos: Resumen, Proveedores de producción, Comprobantes,
+ *  Por pagar, Recibir y Eficiencia se suman acá cuando existan (fases F4 a F7). */
+export type ClaveMenuProduccion = "ordenes" | "insumos";
 
 /**
  * - **Líder:** ve Producción desde cualquier ubicación (la base ya lo permite: `fn_puede_operar_ubicacion` = líder
@@ -25,7 +25,7 @@ export type ClaveMenuProduccion = "ordenes";
  * - **Quien trabaja en una tienda o un almacén:** no ve el módulo.
  */
 export function hijosMenuProduccion(perfil: PerfilMenu): ClaveMenuProduccion[] {
-  if (perfil.esLider || perfil.ubicacionTipo === "taller") return ["ordenes"];
+  if (perfil.esLider || perfil.ubicacionTipo === "taller") return ["ordenes", "insumos"];
   return [];
 }
 
