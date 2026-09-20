@@ -1232,9 +1232,12 @@ tomó el 0097 primero y ya está en producción — ver ADR-0101 y la fila de ab
 - [ ] **Decidir dónde viven las acciones de reposición** (bajar al piso, pedir al Taller, trasladar, curvas rotas,
       «Agotadas con demanda», capital): salieron del análisis y no tienen pantalla nueva. La lógica sigue en
       `lib/resumen-reglas.ts` y `resumen-acciones.ts`; candidata natural: Existencias.
-- [ ] **Aplicar `20260919220000_resumen_comparacion_periodos.sql` en producción** (ensayo revertido → `apply_migration`
-      → `md5(prosrc)` contra el archivo) **antes** de desplegar el front — ahora también la pantalla POR DEFECTO
-      (Desempeño) depende de ella —; después `pnpm datos:generar:produccion`.
+- [x] **`20260919220000_resumen_comparacion_periodos.sql` en producción** (2026-09-20): ensayo revertido contra el
+      esquema real → `apply_migration` → verificado por catálogo (firma, `security definer`, `search_path`,
+      `revoke`/`grant`) y por `md5` del cuerpo contra el archivo (coincide una vez descontadas las líneas de puro
+      comentario, que el transporte de la herramienta quita; el local, aplicado directo del archivo, lo confirma).
+      `get_advisors` no suma nada nuevo (el único aviso es el genérico de toda función `security definer` expuesta
+      por RPC, igual que las demás). Falta `pnpm datos:generar:produccion` (regenerar el diccionario).
 - [ ] Rotación con inventario promedio de dos puntos: para el promedio real hace falta la serie diaria del saldo.
 - [ ] Confirmar con Felipe: umbral de «Aceleró/Desaceleró» (±25 %, `TENDENCIA_UMBRAL_PCT`) y de «Mejoró rotación»
       (+25 %), y orden por defecto «Más vendidos en B». Son los umbrales de `inventario-reglas.ts`, no nuevos.

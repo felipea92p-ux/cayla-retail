@@ -3,6 +3,21 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Análisis de inventario a producción: migración aplicada, rama fusionada — ADR-0138)
+Se cerró el ciclo: la rama (80 commits detrás de `main`) se fusionó — un solo conflicto real, en esta misma
+BITÁCORA por ser de acumulación, resuelto conservando las dos mitades; todo lo demás (código, `package.json`,
+`packages/database/src/types.ts`, `ARQUITECTURA.md`, `BACKLOG.md`, `.github/workflows/ci.yml`) lo fusionó git
+solo. El ADR colisionaba con uno ya fusionado en `main` (0129 lo tenía «Recibir mercadería»): se renumeró a
+**0138**, y la migración de `20260919183000` a `20260919220000` (quedaba en medio de seis migraciones de Compras
+ya aplicadas en producción; no rompía nada, pero mezclaba el orden).
+La migración `20260919220000_resumen_comparacion_periodos.sql` se aplicó a producción: ensayo revertido contra
+el esquema real primero (una llamada real a la función, dentro de una transacción que no se guardó), y ahí salió
+que el rol de líder en producción no es `retail.personas.rol = 'lider'` sino la identidad delegada de Dynamic
+(`public.personas`, otro vocabulario de roles) — no afectaba a la migración en sí, solo a mi propia verificación.
+`typecheck`/`test`/`lint`/`build` en verde a nivel monorepo (1539 pruebas) antes y después del merge.
+Queda: `pnpm datos:generar:produccion` (refrescar el diccionario) y decidir si el color real (hex) llega a
+Movimientos/Traslados/Conteo (ver BACKLOG).
+
 ## 2026-09-19 (Comparar períodos: rediseño visual, y miniatura + color en las tablas de Inventario — ADR-0138)
 Se cerró el rediseño visual de Comparar períodos, pedido tras ver la tabla de Detalle «dispersa»: contexto de
 período compactado a una línea («A → B · Cambiar períodos», el configurador de siempre se despliega a pedido);
