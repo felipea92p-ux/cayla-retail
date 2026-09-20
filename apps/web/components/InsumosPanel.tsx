@@ -40,10 +40,15 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-tinta/65">
-          {insumos.length === 0 ? "Todavía no hay insumos en el catálogo." : `${insumos.length} ${insumos.length === 1 ? "insumo" : "insumos"} en el catálogo`}
-        </p>
+      {/* Cabecera del spike: el título a la izquierda y las acciones arriba a la derecha. */}
+      <div className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div>
+          <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
+          <h1 className="font-display mt-1 text-2xl text-tinta">Insumos</h1>
+          <p className="mt-1 max-w-xl text-sm text-tinta/65">
+            Tela y avíos del Taller: lo que hay por lote, cuánto dura y qué pedir. El saldo siempre es la suma de sus movimientos.
+          </p>
+        </div>
         {esLider && (
           <div className="flex flex-wrap gap-2">
             <Boton peso="fantasma" onClick={() => setNuevo(true)}>
@@ -69,22 +74,22 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
         >
           {bajos > 0 ? "hay que pedir o esperar lo que viene" : "todo sobre el mínimo"}
         </TarjetaCifra>
-        <TarjetaCifra compacta punto="verde" etiqueta="Insumos" className="anim-entra" style={{ ["--i" as string]: 1 }} valor={<CifraQueCuenta valor={insumos.length} alMontar />}>
-          {plural(insumos.filter((i) => i.tipo === "tela").length, "tela", "telas")} · {plural(insumos.filter((i) => i.tipo === "avio").length, "avío", "avíos")}
-        </TarjetaCifra>
         {esLider && (
           <TarjetaCifra
             compacta
             punto="verde"
             etiqueta="Capital en insumos"
             className="anim-entra"
-            style={{ ["--i" as string]: 2 }}
+            style={{ ["--i" as string]: 1 }}
             vacia={capital === null || insumos.length === 0}
             valor={capital === null || insumos.length === 0 ? "—" : <CifraQueCuenta valor={capital} formato="soles" alMontar />}
           >
             a costo de cada lote
           </TarjetaCifra>
         )}
+        <TarjetaCifra compacta punto="verde" etiqueta="Insumos" className="anim-entra" style={{ ["--i" as string]: 2 }} valor={<CifraQueCuenta valor={insumos.length} alMontar />}>
+          {plural(insumos.filter((i) => i.tipo === "tela").length, "tela", "telas")} · {plural(insumos.filter((i) => i.tipo === "avio").length, "avío", "avíos")}
+        </TarjetaCifra>
       </div>
 
       {insumos.length === 0 ? (
