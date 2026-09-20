@@ -66,7 +66,7 @@ export function OrdenTarjeta({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="font-display truncate text-lg leading-tight text-tinta">{orden.referencia}</h3>
+          <h3 className="font-display break-words text-lg leading-tight text-tinta">{orden.referencia}</h3>
           <p className="mt-0.5 text-xs text-tinta/65">
             {[orden.categoria, `${orden.cantidadPlan} prendas`].filter(Boolean).join(" · ")}
           </p>
@@ -95,6 +95,8 @@ export function OrdenTarjeta({
           <ChipEntrega entrega={entrega} />
           {conMaquila ? (
             <Chip tono="ambar">Maquila externa</Chip>
+          ) : esLider && orden.costoTela + orden.costoAvios === 0 ? (
+            <Chip tono="ambar">Sin insumos</Chip>
           ) : esLider && sem ? (
             <span className="inline-flex items-center gap-1.5 text-tinta/75">
               <span aria-hidden className={`h-2 w-2 rounded-full ${sem.clase}`} />

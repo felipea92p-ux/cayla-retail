@@ -43,14 +43,6 @@ export default async function OrdenesProduccionPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">{taller.nombre}</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Órdenes de producción</h1>
-        <p className="mt-1 text-sm text-tinta/65">
-          Abre una orden, márcala avanzar por etapas y ciérrala al inventario cuando esté lista.
-        </p>
-      </div>
-
       <OrdenesTablero tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} />
     </div>
   );

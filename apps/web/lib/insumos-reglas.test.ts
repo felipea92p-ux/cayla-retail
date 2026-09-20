@@ -7,6 +7,7 @@ import {
   estadoInsumo,
   loteMasAntiguoConSaldo,
   previsualizarConsumo,
+  previsualizarDevolucion,
   saldoDeInsumo,
   saldoDeLote,
   semanasDeCobertura,
@@ -121,11 +122,47 @@ describe("previsualizarConsumo (lo que hará registrar_consumo_insumo)", () => {
   });
 });
 
+describe("previsualizarDevolucion (lo que hará devolver_insumo_de_produccion)", () => {
+  const a = conSaldo(lote("A", "2026-09-02", 100), 0);
+  const b = conSaldo(lote("B", "2026-09-16", 50), 30);
+  const lotes = [b, a];
+  const descontado = [
+    { loteId: "A", cantidad: 100 },
+    { loteId: "B", cantidad: 20 },
+  ];
+  it("vuelve al ÚLTIMO lote del que salió la orden, no al primero", () => {
+    const p = previsualizarDevolucion(lotes, descontado, 5, "Lino", "metro");
+    expect(p.ok && p.lote.id).toBe("B");
+    expect(p.ok && p.saldoLoteDespues).toBe(35);
+    expect(p.ok && p.netoTotal).toBe(120);
+  });
+  it("lo ya devuelto no cuenta: si B quedó en 0 neto, vuelve a A", () => {
+    const p = previsualizarDevolucion(lotes, [...descontado, { loteId: "B", cantidad: -20 }], 10, "Lino", "metro");
+    expect(p.ok && p.lote.id).toBe("A");
+  });
+  it("no devuelve más de lo descontado", () => {
+    const p = previsualizarDevolucion(lotes, descontado, 121, "Lino", "metro");
+    expect(!p.ok && p.motivo).toContain("solo tiene descontado 120 m");
+  });
+  it("no parte la devolución entre lotes: dice cuánto cabe en el último", () => {
+    const p = previsualizarDevolucion(lotes, descontado, 50, "Lino", "metro");
+    expect(!p.ok && p.motivo).toContain("tiene 20 m de esta orden");
+  });
+  it("sin nada descontado o sin cantidad, lo dice", () => {
+    expect(previsualizarDevolucion(lotes, [], 5, "Lino", "metro").ok).toBe(false);
+    expect(previsualizarDevolucion(lotes, descontado, 0, "Lino", "metro").ok).toBe(false);
+  });
+});
+
 describe("cobertura medida", () => {
   const hoy = "2026-09-19";
   it("el consumo semanal sale de lo consumido en las últimas 4 semanas", () => {
     const movs = [mov("consumo", 40, "L", "2026-09-10T10:00:00Z"), mov("consumo", 30, "L", "2026-09-01T10:00:00Z"), mov("compra", 500, "L", "2026-09-11T10:00:00Z")];
     expect(consumoSemanal(movs, hoy)).toBeCloseTo(70 / 4, 5);
+  });
+  it("lo devuelto al estante resta del consumo medido", () => {
+    const movs = [mov("consumo", 40, "L", "2026-09-10T10:00:00Z"), mov("devolucion", 12, "L", "2026-09-11T10:00:00Z")];
+    expect(consumoSemanal(movs, hoy)).toBeCloseTo(28 / 4, 5);
   });
   it("lo anterior a la ventana no cuenta", () => {
     expect(consumoSemanal([mov("consumo", 99, "L", "2026-06-01T10:00:00Z")], hoy)).toBeNull();

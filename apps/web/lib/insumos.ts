@@ -64,6 +64,7 @@ export type ConsumoDeOrden = {
   unidad: UnidadInsumo;
   cantidad: number;
   lote: string | null;
+  loteId: string | null;
   /** `null` cuando quien mira no ve dinero. */
   costo: number | null;
   creadoEn: string;
@@ -181,6 +182,7 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
       unidad: v?.unidad ?? "unidad",
       cantidad: Number(m.cantidad) * (m.tipo === "devolucion" ? -1 : 1),
       lote: m.insumo_lote_id ? (codigoDeLote.get(m.insumo_lote_id) ?? null) : null,
+      loteId: m.insumo_lote_id,
       costo: opciones.conCostos ? Number(m.costo_unitario ?? 0) * Number(m.cantidad) * (m.tipo === "devolucion" ? -1 : 1) : null,
       creadoEn: m.created_at,
     });

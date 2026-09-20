@@ -33,15 +33,17 @@ export function AnularOrdenModal({ orden, consumos = [], onClose }: { orden: Ord
     onClose();
   }
 
+  // Lo que la base devuelve al anular: el neto (consumo − devolución) de cada insumo.
+  const porDevolver = [...consumos.reduce((m, c) => m.set(c.insumoId, { insumo: c.insumo, unidad: c.unidad, neto: (m.get(c.insumoId)?.neto ?? 0) + c.cantidad }), new Map<string, { insumo: string; unidad: ConsumoDeOrden["unidad"]; neto: number }>()).values()].filter((g) => g.neto > 0);
+
   return (
     <Modal titulo="Anular orden" subtitulo={`${orden.referencia} · ${orden.cantidadPlan} planeadas`} onClose={onClose}>
       <form onSubmit={onSubmit} className="space-y-4">
-        <p className="text-sm text-tinta/75">La orden queda anulada y no toca el stock. Sigue visible abajo, para que no se pierda el registro.</p>
-        {consumos.length > 0 && (
+        <p className="text-sm text-tinta/75">La orden queda anulada y no toca el stock de prendas. Sigue visible abajo, para que no se pierda el registro.</p>
+        {porDevolver.length > 0 && (
           <p className="rounded-lg border border-ambar/40 bg-ambar/[0.07] px-3 py-2.5 text-[13px] text-ambar-profundo">
-            <b className="font-semibold">Esta orden ya descontó insumos</b> ({consumos.map((c) => `${c.insumo} ${cantidadTexto(c.cantidad, c.unidad)}`).join(", ")}). Anularla{" "}
-            <b className="font-semibold">no los devuelve</b> al lote: todavía no hay cómo devolver un insumo desde el sistema. Esa cantidad queda como consumida
-            aunque la tela siga entera en el estante.
+            <b className="font-semibold">Los insumos descontados vuelven al estante</b> ({porDevolver.map((g) => `${g.insumo} ${cantidadTexto(g.neto, g.unidad)}`).join(", ")}), cada uno a su lote y a su costo. Queda
+            registrado como devolución.
           </p>
         )}
         <div className="space-y-1.5">

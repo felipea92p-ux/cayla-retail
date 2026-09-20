@@ -29,14 +29,6 @@ export default async function InsumosPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">{taller.nombre}</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Insumos</h1>
-        <p className="mt-1 text-sm text-tinta/65">
-          La tela y los avíos del Taller: lo que hay por lote, cuánto dura y qué falta. El saldo siempre es la suma de sus movimientos.
-        </p>
-      </div>
-
       <InsumosPanel datos={datos} tallerId={taller.id} esLider={esLider} />
     </div>
   );

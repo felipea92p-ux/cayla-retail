@@ -52,7 +52,7 @@ otra pregunta («¿alcanza para cortar?»).
   completo sin una vista consolidada de solo lectura (**D-I**, abierta; recomendada).
 - **Se duplica lógica financiera** ya resuelta en Compras (contado ⇒ pago en la misma transacción, vencimiento, faltantes, pagos). Se mitiga copiando las
   reglas de ADR-0035 y probándolas con los mismos casos.
-- **A favor:** Producción avanza sin depender de ADR-0138 ni de las funciones de Compras, y sin riesgo de romperlas. Como `insumos` e `insumo_lotes` tienen
+- **A favor:** Producción avanza sin depender de ADR-0139 ni de las funciones de Compras, y sin riesgo de romperlas. Como `insumos` e `insumo_lotes` tienen
   0 filas, repuntar sus llaves al nuevo directorio hoy es barato.
 
 ## Lo que la base vuelve imposible (cuando esté construido)
