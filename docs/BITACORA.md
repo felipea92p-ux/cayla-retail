@@ -8351,3 +8351,10 @@ Producción no tiene ninguna factura registrada todavía, así que el cierre que
 intento de pegar A falló por un `_` suelto al inicio del texto (error de pegado; no se ejecutó nada). El volcado y el
 diccionario quedan en 174 funciones. `datos:comparar` marca ahora `fn_proveedores_serie_12m`: es la migración
 `20260919150000_proveedores_serie_mensual.sql` de otra sesión, que está en `main` y aún no en producción.
+
+## 2026-09-20 (Producción F3b: devolver insumos — ADR-0133)
+Un consumo de insumo ya se puede deshacer mientras la orden esté en proceso: `devolver_insumo_de_produccion` devuelve la cantidad al último
+lote del que salió y al mismo costo; `anular_produccion` devuelve todo lo descontado; y `registrar_consumo_insumo` ahora calcula el costo de
+tela/avíos neto de devoluciones (antes las ignoraba). Migración `20260920100000` solo en local; `pnpm pruebas:insumos-devolucion` 10/10 y
+1421 pruebas del web en verde. Falta pegarla en producción (Felipe) y verla en el navegador (el panel estaba oculto). Referencias al
+reparto entre tiendas renumeradas a ADR-0139.

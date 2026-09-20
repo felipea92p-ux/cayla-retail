@@ -239,7 +239,7 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
 **Producción (Taller)**
 - `/produccion/insumos` → `lib/insumos.ts:getInsumosDelTaller` (saldo derivado del ledger `movimientos_insumo`; costos recortados en el servidor si no es líder) +
   `lib/insumos-reglas.ts` (puro) → `InsumosPanel.tsx`, `InsumoModales.tsx` (INSERT en `insumos`; RPC `recibir_insumo`). Desde la orden,
-  `OrdenInsumos.tsx` llama `registrar_consumo_insumo`. Sin devolución de insumos todavía (F3b).
+  `OrdenInsumos.tsx` llama `registrar_consumo_insumo`. Devolver: RPC `devolver_insumo_de_produccion` (vuelve al último lote del que salió la orden, F3b); `anular_produccion` devuelve lo descontado; el costo de tela/avíos de la orden es neto (`fn_recalcular_costo_insumos_produccion`).
 - `/produccion/ordenes` → `lib/produccion.ts` (`getTaller`, `getOrdenesProduccion`,
   `getModelosProducibles`; lectura con `exigir()`) + `lib/produccion-reglas.ts`
   (puro: etapas, semáforo de margen, costo unitario) → `OrdenesTablero.tsx`

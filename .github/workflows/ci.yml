@@ -160,6 +160,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-venta
 
+      # Devolver insumos (ADR-0133, F3b): lo devuelto vuelve al último lote del que salió la orden, el costo de
+      # tela/avíos de la orden queda neto, anular devuelve todo al estante y quien no opera el Taller no puede.
+      # Cada caso termina en ROLLBACK.
+      - name: pruebas:insumos-devolucion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:insumos-devolucion
+
       # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
       # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las
       # tarjetas de arriba cuentan lo mismo. Cada caso termina en ROLLBACK.

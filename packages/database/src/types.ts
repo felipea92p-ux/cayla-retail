@@ -4037,6 +4037,15 @@ export type Database = {
         Args: { p_proveedor_id: string }
         Returns: undefined
       }
+      devolver_insumo_de_produccion: {
+        Args: {
+          p_cantidad: number
+          p_insumo_id: string
+          p_nota?: string
+          p_produccion_id: string
+        }
+        Returns: string
+      }
       deuda_por_vencimiento: {
         Args: never
         Returns: {
