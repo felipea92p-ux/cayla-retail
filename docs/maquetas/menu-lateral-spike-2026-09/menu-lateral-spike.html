@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Menú lateral · spike visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Menú lateral colapsable (2026-09-19)
+   Tokens y geometría = los reales de AppShell.tsx / globals.css:
+   fila 48 px, aire 8 px, riel rojo de 2×20 que se desliza, ancho 17rem.
+   Lo NUEVO de este spike (prefijo `nv-` / comentado "NUEVO"): el estado
+   colapsado a columna de íconos, el cajón flotante de cada grupo, la
+   etiqueta al pasar el mouse y el «asomar» opcional.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf6ec;
+  --taupe-p:#805c4c;--verde-p:#44583a;--ambar-p:#734f15;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t60:rgba(26,26,24,.6);--t50:rgba(26,26,24,.5);
+  --t30:rgba(26,26,24,.3);--t25:rgba(26,26,24,.25);--t10:rgba(26,26,24,.10);--t04:rgba(26,26,24,.04);
+  --ease:cubic-bezier(.32,.72,.24,1);   /* --ease-cayla */
+  --ease-out:cubic-bezier(.4,0,1,1);    /* --ease-salida */
+  --ancho:17rem;                         /* --spacing-lateral */
+  --ancho-rail:76px;                     /* NUEVO: 12 + 16 + 20 + 16 + 12 → el ícono NO se mueve al colapsar */
+  --lat:var(--ancho);                    /* lo que empuja al contenido; el «asomar» no lo cambia */
+  --sh-lg:0 18px 44px -14px rgb(26 26 24/.16);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.55;min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:400}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+.tab{font-variant-numeric:tabular-nums}
+svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+@keyframes cayla-revelar{from{opacity:0;transform:translate3d(0,-3px,0)}to{opacity:1;transform:none}}
+@keyframes cayla-velo{from{opacity:0}to{opacity:1}}
+@keyframes nv-flota{from{opacity:0;transform:translate3d(-6px,0,0) scale(.98)}to{opacity:1;transform:none}}
+@keyframes cayla-entrada{from{opacity:0;transform:translate3d(0,8px,0) scale(.985)}to{opacity:1;transform:none}}
+
+/* ============================ LATERAL ============================ */
+.side{position:fixed;inset:0 auto 0 0;z-index:40;width:var(--lat);display:flex;flex-direction:column;background:var(--crema);border-right:1px solid var(--t10);
+  transition:width 300ms var(--ease),box-shadow 300ms var(--ease)}
+/* NUEVO · «asomar»: el lateral colapsado se abre ENCIMA del contenido, sin empujarlo */
+.side.peek{width:var(--ancho);box-shadow:var(--sh-lg)}
+
+.side .logo{display:flex;align-items:center;gap:12px;padding:28px 0 24px 22px;height:92px;overflow:hidden;white-space:nowrap}
+.side .logo img{height:32px;width:auto;flex:none;transition:transform 500ms var(--ease)}
+.side .logo:hover img{transform:scale(1.05)}
+.side .logo .marca{font-size:14px;letter-spacing:.26em;font-weight:600;transition:opacity 200ms var(--ease),color 200ms}
+.side .logo:hover .marca{color:var(--rojo)}
+
+.side .nuevo{padding:0 12px 28px}
+.btn-nuevo{position:relative;overflow:hidden;width:100%;height:44px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:8px;background:var(--tinta);color:var(--crema);
+  font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;white-space:nowrap;transition:background 220ms var(--ease)}
+.btn-nuevo:hover{background:var(--rojo)}
+.btn-nuevo svg{width:14px;height:14px}
+.btn-nuevo .tx{transition:opacity 180ms var(--ease),max-width 300ms var(--ease);max-width:80px;overflow:hidden}
+/* colapsado: queda un cuadrado con el «+», del mismo alto que una fila */
+.side.compact .btn-nuevo{width:52px}
+.side.compact .btn-nuevo .tx{opacity:0;max-width:0}
+.side.compact .btn-nuevo{gap:0}
+
+nav.nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 12px}
+nav.nav::-webkit-scrollbar{width:6px}nav.nav::-webkit-scrollbar-thumb{background:var(--sand)}
+
+.rows{position:relative;display:flex;flex-direction:column}
+.rows>*+*{margin-top:8px}
+.marca-riel{position:absolute;left:0;top:14px;width:2px;height:20px;border-radius:99px;background:var(--rojo);pointer-events:none;
+  transition:transform 300ms var(--ease),opacity 300ms var(--ease)}
+
+.fila{position:relative;display:flex;align-items:center;gap:14px;width:100%;height:48px;padding:0 12px 0 16px;border-radius:8px;text-align:left;white-space:nowrap;overflow:hidden;
+  color:var(--t80);transition:background 260ms var(--ease),color 260ms var(--ease)}
+.fila:hover{background:rgba(232,224,208,.4);color:var(--rojo)}
+.fila.act{background:rgba(232,224,208,.7);color:var(--tinta);font-weight:500}
+.fila.act:hover{color:var(--tinta)}
+.fila .ic{color:var(--t60);transition:color 260ms var(--ease),transform 300ms var(--ease)}
+.fila:hover .ic{color:var(--rojo)}
+.fila.act .ic,.fila.dentro .ic{color:var(--tinta)}
+.fila.hijo{padding-left:36px}
+.fila .et{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;transition:opacity 200ms var(--ease)}
+.fila .chev{width:14px;height:14px;color:var(--t50);transition:transform 300ms var(--ease),opacity 200ms var(--ease)}
+.grp.abierto>.fila .chev{transform:rotate(90deg)}
+.fila:hover .chev{color:var(--rojo)}
+/* marca fantasma al pasar el mouse por una fila apagada (igual que producción) */
+.fila.hijo:not(.act)::before,.fila.plana:not(.act)::before{content:"";position:absolute;left:0;top:50%;width:2px;height:20px;border-radius:99px;background:var(--t30);transform:translateY(-50%) scaleY(0);transition:transform 200ms var(--ease)}
+.fila.hijo:not(.act):hover::before,.fila.plana:not(.act):hover::before{transform:translateY(-50%) scaleY(1)}
+
+/* insignia «por atender» */
+.badge{min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--rojo);color:var(--crema);font-size:11px;font-weight:600;line-height:20px;text-align:center;flex:none;transition:all 260ms var(--ease)}
+
+/* hijos: se despliegan por grid-template-rows 0fr → 1fr (sin medir alturas) */
+.kids{display:grid;grid-template-rows:0fr;transition:grid-template-rows 300ms var(--ease)}
+.kids>div{overflow:hidden;min-height:0}
+.grp.abierto>.kids{grid-template-rows:1fr}
+.kids .fila{margin-top:8px}
+.kids .fila{opacity:0;transition:opacity 200ms var(--ease),background 260ms,color 260ms}
+.grp.abierto>.kids .fila{opacity:1;transition-delay:calc(var(--i)*30ms + 60ms),0s,0s}
+
+/* ---------------------- NUEVO · modo colapsado ---------------------- */
+.side.compact .et,.side.compact .chev{opacity:0;pointer-events:none}
+.side.compact .kids{display:none}
+.side.compact .logo .marca{opacity:0}
+.side.compact .fila .badge{position:absolute;left:31px;top:5px;min-width:16px;height:16px;padding:0 4px;line-height:16px;font-size:10px;outline:2px solid var(--crema)}
+.side.compact .fila.act .badge{outline-color:rgba(232,224,208,.95)}
+.side .firma{padding:24px 0 20px 28px;font-size:13px;font-style:italic;color:var(--taupe-p);white-space:nowrap;overflow:hidden;transition:opacity 200ms var(--ease);font-family:'EB Garamond',serif}
+.side.compact .firma{opacity:0}
+.side .yo{border-top:1px solid var(--t10);padding:18px 0 18px 20px;display:flex;align-items:center;gap:12px;white-space:nowrap;overflow:hidden}
+.side .yo .av{width:36px;height:36px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:16px;flex:none;transition:background 240ms var(--ease)}
+.side .yo:hover .av{background:rgba(184,65,45,.15)}
+.side .yo .qn{min-width:0;flex:1;transition:opacity 200ms var(--ease)}
+.side .yo .qn p:first-child{font-size:14px;overflow:hidden;text-overflow:ellipsis}
+.side .yo .qn{overflow:hidden}
+.side .yo .qn p:last-child{font-size:10.5px;color:var(--t65);margin-top:2px;overflow:hidden;text-overflow:ellipsis}
+.side .yo .salir{margin-right:16px;color:var(--t50);transition:opacity 200ms,color 200ms}
+.side .yo .salir:hover{color:var(--rojo)}
+.side.compact .yo .qn,.side.compact .yo .salir{opacity:0;pointer-events:none}
+
+/* ---- etiqueta flotante (una sola, se posiciona por JS: el nav recorta lo que sobresale) ---- */
+#tip{position:fixed;z-index:70;pointer-events:none;background:var(--tinta);color:var(--crema);font-size:13px;font-weight:500;padding:6px 11px;border-radius:8px;white-space:nowrap;
+  opacity:0;transform:translateX(-4px);transition:opacity 140ms var(--ease),transform 180ms var(--ease)}
+#tip.on{opacity:1;transform:none}
+#tip .n{margin-left:8px;background:var(--rojo);border-radius:99px;padding:1px 7px;font-size:11px}
+
+/* ---- cajón flotante de un grupo (colapsado) ---- */
+#cajon{position:fixed;z-index:60;min-width:224px;padding:8px;background:var(--papel);border:1px solid var(--sand);border-radius:16px;box-shadow:var(--sh-lg);animation:nv-flota 220ms var(--ease) both}
+#cajon[hidden]{display:none}
+#cajon .cab{padding:8px 12px 6px;color:var(--t65)}
+#cajon a{position:relative;display:flex;align-items:center;gap:12px;padding:0 12px;height:44px;border-radius:8px;font-size:15px;color:var(--t80);transition:background 200ms var(--ease),color 200ms var(--ease);
+  animation:cayla-revelar 240ms var(--ease) both;animation-delay:calc(var(--i)*30ms)}
+#cajon a .ic{width:18px;height:18px;color:var(--t60)}
+#cajon a:hover,#cajon a:focus-visible{background:rgba(232,224,208,.6);color:var(--rojo);outline:none}
+#cajon a:hover .ic{color:var(--rojo)}
+#cajon a.act{background:rgba(232,224,208,.7);color:var(--tinta);font-weight:500}
+#cajon a.act::before{content:"";position:absolute;left:0;top:50%;width:2px;height:16px;border-radius:99px;background:var(--rojo);transform:translateY(-50%)}
+#cajon a .badge{margin-left:auto}
+
+/* ============================ CABECERA + CONTENIDO ============================ */
+.top{position:fixed;top:0;right:0;left:var(--lat);z-index:30;height:56px;display:flex;align-items:center;gap:14px;padding:0 32px;
+  background:rgba(245,240,232,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--t10);transition:left 300ms var(--ease)}
+.top .mig{color:var(--t65);font-size:14px;display:flex;gap:8px;align-items:center}
+.top .mig b{font-weight:500;color:var(--tinta)}
+.top .ub{margin-left:auto}
+.ib{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;color:var(--t65);transition:background 220ms var(--ease),color 220ms var(--ease)}
+.ib:hover{background:rgba(232,224,208,.6);color:var(--rojo)}
+.ib svg{width:18px;height:18px}
+.ib .fl{transition:transform 300ms var(--ease);transform-origin:center}
+.rail .ib .fl{transform:scaleX(-1)}
+kbd{font:600 11px 'DM Sans';border:1px solid var(--t25);border-bottom-width:2px;border-radius:5px;padding:0 6px;color:var(--t65);background:var(--papel)}
+
+main{margin-left:var(--lat);padding:80px 40px 60px;transition:margin-left 300ms var(--ease)}
+.pag{max-width:1360px;margin:0 auto}
+
+.spike{border:1px dashed var(--t25);border-radius:12px;padding:10px 14px;display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;color:var(--t65);font-size:13px;margin-bottom:26px}
+.spike .lbl{font-size:10.5px}
+.spike .g{display:flex;align-items:center;gap:8px}
+.seg{display:inline-flex;border:1px solid var(--t25);border-radius:8px;overflow:hidden}
+.seg button{padding:5px 11px;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t80);transition:background 200ms,color 200ms}
+.seg button+button{border-left:1px solid var(--t25)}
+.seg button:hover{color:var(--rojo)}
+.seg button[aria-pressed=true]{background:var(--tinta);color:var(--crema)}
+.sw{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--t80)}
+.sw input{position:absolute;opacity:0}
+.sw i{width:30px;height:18px;border-radius:99px;background:var(--t25);position:relative;transition:background 220ms var(--ease);flex:none}
+.sw i::after{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:var(--crema);transition:transform 220ms var(--ease)}
+.sw input:checked+i{background:var(--tinta)}
+.sw input:checked+i::after{transform:translateX(12px)}
+.sw input:focus-visible+i{outline:2px solid var(--rojo);outline-offset:2px}
+.medida{margin-left:auto;font-variant-numeric:tabular-nums}
+.medida b{color:var(--tinta);font-weight:600}
+
+h1.t{font-family:'EB Garamond',serif;font-size:30px;font-weight:500;line-height:1.15;margin-top:4px}
+.bajada{color:var(--t65);margin-top:6px;max-width:620px}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:24px}
+.kpi{padding:16px}
+.kpi .v{font-family:'EB Garamond',serif;font-size:30px;line-height:1.1;margin-top:8px}
+.kpi .lbl{color:var(--t65)}
+.kpi small{color:var(--t65);font-size:13px}
+.tabla{margin-top:14px;overflow:hidden}
+.tabla table{width:100%;border-collapse:collapse}
+.tabla th{text-align:left;padding:12px 18px;color:var(--t65);border-bottom:1px solid var(--sand)}
+.tabla td{padding:13px 18px;border-bottom:1px solid var(--t10);white-space:nowrap}
+.tabla tr:last-child td{border-bottom:0}
+.tabla td.n,.tabla th.n{text-align:right}
+.chip{display:inline-block;border-radius:99px;border:1px solid;padding:2px 10px;font-size:10px;line-height:16px;text-transform:uppercase;letter-spacing:.13em;font-weight:600}
+.chip.v{border-color:rgba(85,110,73,.45);background:rgba(85,110,73,.10);color:var(--verde-p)}
+.chip.a{border-color:rgba(140,99,31,.3);background:rgba(140,99,31,.10);color:var(--ambar-p)}
+.chip.r{border-color:rgba(184,65,45,.3);background:rgba(184,65,45,.10);color:var(--rojo-p)}
+.pag>*{animation:cayla-entrada 420ms var(--ease) backwards}
+.pag>*:nth-child(2){animation-delay:40ms}.pag>*:nth-child(3){animation-delay:80ms}.pag>*:nth-child(4){animation-delay:120ms}
+
+/* movimiento reducido: mismo estado final, sin viaje (igual que producción) */
+html.reducir *,html.reducir *::before,html.reducir *::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important;transition-delay:0ms!important}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important;transition-delay:0ms!important}}
+
+/* celular: producción NO tiene lateral (pestañas de abajo) — el spike solo lo avisa */
+.movil{display:none}
+@media (max-width:639px){
+  .side,#cajon,#tip,.ib.tg{display:none!important}
+  .top{left:0}main{margin-left:0;padding:80px 16px 60px}
+  .movil{display:block;border:1px dashed var(--t25);border-radius:12px;padding:12px 14px;color:var(--t65);font-size:13px;margin-bottom:16px}
+}
+</style>
+</head>
+<body>
+
+<aside class="side" id="side" aria-label="Navegación principal">
+  <a href="#" class="logo" aria-label="Inicio">
+    <img src="cayla-isotipo.png" alt="CAYLA">
+    <span class="marca lbl">CAYLA</span>
+  </a>
+  <div class="nuevo">
+    <button class="btn-nuevo" aria-label="Nuevo" data-tip="Nuevo">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg><span class="tx">Nuevo</span>
+    </button>
+  </div>
+  <nav class="nav" id="nav"><div class="rows" id="rows"></div></nav>
+  <p class="firma">Donde el estilo transforma.</p>
+  <div class="yo">
+    <button class="av" style="border-radius:50%" aria-label="Mi perfil" data-tip="Mi perfil">CP</button>
+    <div class="qn"><p id="yoNombre">Claudia Pereyra</p><p class="lbl" id="yoRol">Líder · Tienda Lima</p></div>
+    <button class="salir ib" aria-label="Salir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4m7 14l5-5-5-5m5 5H9"/></svg></button>
+  </div>
+</aside>
+
+<div id="tip" role="tooltip"></div>
+<div id="cajon" role="menu" hidden></div>
+
+<header class="top">
+  <button class="ib tg" id="tg" aria-label="Contraer menú lateral" aria-expanded="true" aria-controls="side" title="Contraer o expandir  ( [ )">
+    <!-- panel con barra a la izquierda; la flecha gira al colapsar -->
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9 4v16"/><path class="fl" d="M15.5 9.5L13 12l2.5 2.5"/></svg>
+  </button>
+  <div class="mig" id="mig"><span>Inicio</span></div>
+  <div class="ub lbl" style="color:var(--t65)">Tienda Lima</div>
+</header>
+
+<main>
+  <div class="pag" id="pag">
+    <div class="spike" id="spike">
+      <span class="lbl">Spike</span>
+      <div class="g"><span class="lbl">Menú</span>
+        <div class="seg" role="group" aria-label="Estado del menú">
+          <button id="bExp" aria-pressed="true">Expandido</button><button id="bCol" aria-pressed="false">Colapsado</button>
+        </div>
+      </div>
+      <label class="sw"><input type="checkbox" id="swPeek" checked><i></i>Asomar al pasar el mouse</label>
+      <div class="g"><span class="lbl">Ver como</span>
+        <div class="seg" role="group" aria-label="Rol">
+          <button id="rLid" aria-pressed="true">Líder</button><button id="rCol" aria-pressed="false">Colaborador</button>
+        </div>
+      </div>
+      <label class="sw"><input type="checkbox" id="swRed"><i></i>Movimiento reducido</label>
+      <span class="medida">Panel: <b id="medida">—</b> px · atajo <kbd>[</kbd></span>
+    </div>
+    <div class="movil">En celular el ERP no tiene lateral: usa la barra de pestañas de abajo. Abre este spike en una ventana de escritorio.</div>
+
+    <div id="contenido"></div>
+  </div>
+</main>
+
+<script>
+/* ---------------- datos: el menú REAL de AppShell.tsx (sin Producción, que es solo del Taller) ---------------- */
+const IC={
+  inicio:"M3 11l9-8 9 8M5 9.5V21h5v-6h4v6h5V9.5",
+  vender:"M6 6h15l-1.5 9h-12L6 6zm0 0L5 3H2m7 18a1 1 0 100-2 1 1 0 000 2zm9 0a1 1 0 100-2 1 1 0 000 2z",
+  caja:"M12 3v18m4-15H10a2.5 2.5 0 000 5h4a2.5 2.5 0 010 5H8",
+  productos:"M20.5 7.3L12 12m0 0L3.5 7.3M12 12v9m8.5-13.7v9.4a1 1 0 01-.5.87l-7.5 4.3a1 1 0 01-1 0l-7.5-4.3a1 1 0 01-.5-.87V7.3a1 1 0 01.5-.87l7.5-4.3a1 1 0 011 0l7.5 4.3a1 1 0 01.5.87z",
+  inventario:"M4 7l8-4 8 4v10l-8 4-8-4V7zm8 4L4 7m8 4l8-4m-8 4v10",
+  movimientos:"M3 7h13m0 0l-4-4m4 4l-4 4M21 17H8m0 0l4 4m-4-4l4-4",
+  traslados:"M4 12h13M13 5l7 7-7 7",
+  conteo:"M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
+  resumen:"M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
+  facturacion:"M9 12h6m-6 4h6M9 8h1m3.5-5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 3z",
+  compras:"M3 4h2l2.2 11.2a1 1 0 001 .8h9.6a1 1 0 001-.8L20 8H6.5M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2zM12 8v4m-2-2h4",
+  colaboradores:"M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
+  cambios:"M7 3v14m0 0l-4-4m4 4l4-4M17 21V7m0 0l4 4m-4-4l-4 4",
+  devoluciones:"M9 14l-4-4 4-4M5 10h11a4 4 0 010 8h-4",
+  venta:"M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2",
+  catalogo:"M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z",
+  categorias:"M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3zM6 6h.008v.008H6V6z",
+  atributos:"M4 4h6v6H4zM14 4h6v6h-6zM9 14h6v6H9z",
+  proveedores:"M1 3h15v13H1zM16 8h4l3 3v5h-7V8z M5.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5z M18.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5z",
+  facturas:"M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8",
+  recibir:"M22 12h-6l-2 3h-4l-2-3H2 M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z",
+  porPagar:"M12 22a10 10 0 100-20 10 10 0 000 20z M12 6v6l4 2",
+  chevron:"M9 6l6 6-6 6"
+};
+const svg=(d,c='ic')=>`<svg class="${c}" viewBox="0 0 24 24"><path d="${d}"/></svg>`;
+const POR_ATENDER=3; // traslados que esperan a quien mira
+
+function menu(lider){
+  const it=(id,et,ic,extra={})=>({id,et,ic,...extra});
+  return [
+    it('inicio','Inicio',IC.inicio),
+    ...(lider?[it('colab','Colaboradores',IC.colaboradores)]:[]),
+    {id:'catalogo',et:'Catálogo',ic:IC.catalogo,hijos:[it('prod','Productos',IC.productos),it('cat','Categorías',IC.categorias),it('atr','Atributos',IC.atributos)]},
+    ...(lider?[{id:'compras',et:'Compras',ic:IC.compras,hijos:[it('prov','Proveedores',IC.proveedores),it('comp','Comprobantes',IC.facturas),it('rec','Recibir mercadería',IC.recibir),it('pp','Por pagar',IC.porPagar)]}]:[]),
+    {id:'ventas',et:'Ventas',ic:IC.venta,hijos:[it('pdv','Punto de Venta',IC.vender),it('caja','Caja',IC.caja),it('camb','Cambios',IC.cambios),it('dev','Devoluciones',IC.devoluciones),...(lider?[it('fact','Facturación',IC.facturacion)]:[])]},
+    {id:'inventario',et:'Inventario',ic:IC.inventario,hijos:[it('exi','Existencias',IC.inventario),it('mov','Movimientos',IC.movimientos),it('tra','Traslados',IC.traslados,{n:POR_ATENDER}),it('con','Conteo',IC.conteo),...(lider?[it('res','Resumen',IC.resumen)]:[it('rec','Recibir mercadería',IC.recibir)])]}
+  ];
+}
+
+/* ---------------- estado ---------------- */
+const $=s=>document.querySelector(s);
+const side=$('#side'),rowsEl=$('#rows'),cajon=$('#cajon'),tip=$('#tip'),root=document.documentElement;
+let lider=true, activo='exi', abierto='inventario';
+let rail=false, peek=false;                    // rail = colapsado fijo · peek = abierto encima, temporal
+let peekOn=true;                               // «asomar al pasar el mouse»
+const guardar=(k,v)=>{try{localStorage.setItem('cayla.spike.'+k,v)}catch(e){}};
+const leer=k=>{try{return localStorage.getItem('cayla.spike.'+k)}catch(e){return null}};
+
+const compact=()=>rail&&!peek;
+const M=()=>menu(lider);
+const grupoDe=id=>M().find(g=>g.hijos&&g.hijos.some(h=>h.id===id));
+const buscar=id=>{for(const g of M()){if(g.id===id)return g;if(g.hijos){const h=g.hijos.find(h=>h.id===id);if(h)return h}}};
+
+/* ---------------- render ---------------- */
+function render(){
+  const m=M();
+  if(!m.some(g=>g.id===activo||(g.hijos&&g.hijos.some(h=>h.id===activo)))) activo='inicio';
+  const gAct=grupoDe(activo);
+  side.classList.toggle('compact',compact());
+  side.classList.toggle('peek',rail&&peek);
+  root.classList.toggle('rail',rail);
+  root.style.setProperty('--lat',rail?'var(--ancho-rail)':'var(--ancho)');
+  $('#tg').setAttribute('aria-expanded',String(!rail));
+  $('#tg').setAttribute('aria-label',rail?'Expandir menú lateral':'Contraer menú lateral');
+  $('#bExp').setAttribute('aria-pressed',String(!rail));$('#bCol').setAttribute('aria-pressed',String(rail));
+
+  // filas VISIBLES → el riel camina sobre ellas, nunca sobre el array (misma regla que producción)
+  const vis=[];
+  let html='';
+  m.forEach(g=>{
+    if(!g.hijos){
+      vis.push(g.id);
+      html+=`<a href="#" class="fila plana ${g.id===activo?'act':''}" data-id="${g.id}" data-tip="${g.et}" ${g.id===activo?'aria-current="page"':''}>${svg(g.ic)}<span class="et">${g.et}</span></a>`;
+      return;
+    }
+    const abr=abierto===g.id&&!compact();
+    vis.push(g.id); if(abr) g.hijos.forEach(h=>vis.push(h.id));
+    const dentro=gAct&&gAct.id===g.id;
+    const suma=g.hijos.reduce((a,h)=>a+(h.n||0),0);
+    // con el grupo abierto el número vive en la hija; cerrado (o colapsado) sube a la cabecera
+    html+=`<div class="grp ${abr?'abierto':''}" data-g="${g.id}">
+      <button class="fila grupo ${dentro&&!abr?'act':''} ${dentro?'dentro':''}" data-g="${g.id}" aria-expanded="${abr}" aria-haspopup="${compact()?'menu':'false'}" data-tip="${g.et}" data-n="${suma}">
+        ${svg(g.ic)}<span class="et">${g.et}</span>${suma?`<span class="badge" ${abr?'style="opacity:0;transform:scale(.7)"':''}>${suma}</span>`:''}${svg(IC.chevron,'ic chev')}
+      </button>
+      <div class="kids"><div>${g.hijos.map((h,i)=>`<a href="#" class="fila hijo ${h.id===activo?'act':''}" style="--i:${i}" data-id="${h.id}" tabindex="${abr?0:-1}" ${h.id===activo?'aria-current="page"':''}>${svg(h.ic)}<span class="et">${h.et}</span>${h.n?`<span class="badge">${h.n}</span>`:''}</a>`).join('')}</div></div>
+    </div>`;
+  });
+  html+='<span class="marca-riel" id="riel"></span>';
+  rowsEl.innerHTML=html;
+
+  // riel: fila activa; con el grupo cerrado (o colapsado) lo representa su cabecera
+  let idx=vis.indexOf(activo);
+  if(idx<0&&gAct) idx=vis.indexOf(gAct.id);
+  const riel=$('#riel');
+  riel.style.transform=`translateY(${Math.max(idx,0)*56}px)`;
+  riel.style.opacity=idx>=0?1:0;
+
+  // migas y contenido
+  const nodo=buscar(activo);
+  $('#mig').innerHTML=gAct?`<span>${gAct.et}</span><span style="opacity:.4">/</span><b>${nodo.et}</b>`:`<b>${nodo.et}</b>`;
+  $('#yoRol').textContent=(lider?'Líder':'Colaborador')+' · Tienda Lima';
+  pintarContenido(nodo);
+}
+
+const DATOS=[['Vestido Aurora','V-0142','Lima',24,'v'],['Blusa Lino Crudo','B-0087','Lima',6,'a'],['Pantalón Sastre','P-0031','Arequipa',0,'r'],['Falda Plisada','F-0210','Trujillo',41,'v'],['Chaleco Alpaca','C-0019','Lima',9,'a'],['Vestido Sol','V-0188','Arequipa',18,'v']];
+function pintarContenido(n){
+  const kp=[['En tienda','1,284','unidades'],['En tránsito','86','entre 3 traslados'],['Por atender','3','traslados esperan'],['Sin stock','7','variantes']];
+  $('#contenido').innerHTML=`
+    <div><p class="lbl" style="color:var(--t65)">Inventario · Tienda Lima</p><h1 class="t">${n.et}</h1>
+    <p class="bajada">Contenido de ejemplo: sirve para ver cuánto ancho gana la pantalla al colapsar el menú. Cifras inventadas.</p></div>
+    <div class="kpis">${kp.map(k=>`<div class="card kpi"><p class="lbl">${k[0]}</p><p class="v tab">${k[1]}</p><small>${k[2]}</small></div>`).join('')}</div>
+    <div class="card tabla"><table><thead><tr><th class="lbl">Prenda</th><th class="lbl">SKU</th><th class="lbl">Ubicación</th><th class="lbl n">Stock</th><th class="lbl">Estado</th></tr></thead><tbody>
+    ${DATOS.map(r=>`<tr><td>${r[0]}</td><td class="tab" style="color:var(--t65)">${r[1]}</td><td>${r[2]}</td><td class="n tab">${r[3]}</td><td><span class="chip ${r[4]}">${r[4]==='v'?'Normal':r[4]==='a'?'Bajo':'Agotado'}</span></td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+/* ---------------- interacción ---------------- */
+function navegar(id){
+  activo=id;const g=grupoDe(id); if(g&&!compact()) abierto=g.id;
+  cerrarCajon();ocultarTip();render();
+}
+rowsEl.addEventListener('click',e=>{
+  const g=e.target.closest('button.grupo'), a=e.target.closest('a[data-id]');
+  if(a){e.preventDefault();navegar(a.dataset.id);return}
+  if(g){
+    if(compact()){abrirCajon(g.dataset.g,g,true);return}
+    abierto=abierto===g.dataset.g?null:g.dataset.g; render();
+  }
+});
+
+/* etiqueta flotante al pasar el mouse por una fila colapsada */
+function mostrarTip(el){
+  if(!compact()||el.classList.contains('grupo'))return;
+  const r=el.getBoundingClientRect();
+  tip.textContent=el.dataset.tip;
+  tip.style.left=(r.right+10)+'px';tip.style.top=(r.top+r.height/2-16)+'px';
+  tip.classList.add('on');
+}
+function ocultarTip(){tip.classList.remove('on')}
+document.addEventListener('mouseover',e=>{
+  const el=e.target.closest?.('[data-tip]');
+  if(el&&side.contains(el)){
+    mostrarTip(el);
+    if(compact()&&el.classList.contains('grupo')) esperar(()=>abrirCajon(el.dataset.g,el,false),120);
+  }
+});
+document.addEventListener('mouseout',e=>{
+  const el=e.target.closest?.('[data-tip]');
+  if(el&&side.contains(el)){ocultarTip();limpiarEspera()}
+});
+document.addEventListener('focusin',e=>{const el=e.target.closest?.('[data-tip]');if(el&&side.contains(el))mostrarTip(el)});
+document.addEventListener('focusout',ocultarTip);
+
+/* cajón flotante de un grupo (solo colapsado) */
+let esp=0;const esperar=(f,ms)=>{limpiarEspera();esp=setTimeout(f,ms)};const limpiarEspera=()=>clearTimeout(esp);
+let cajonDe=null,cierra=0;
+function abrirCajon(gid,ancla,foco){
+  clearTimeout(cierra);
+  const g=buscar(gid);cajonDe=gid;
+  cajon.innerHTML=`<p class="cab lbl">${g.et}</p>`+g.hijos.map((h,i)=>`<a href="#" role="menuitem" data-id="${h.id}" style="--i:${i}" class="${h.id===activo?'act':''}">${svg(h.ic)}<span>${h.et}</span>${h.n?`<span class="badge">${h.n}</span>`:''}</a>`).join('');
+  const r=ancla.getBoundingClientRect();
+  cajon.hidden=false;
+  // se alinea con la fila, pero nunca se sale por abajo de la ventana
+  const alto=cajon.offsetHeight;
+  cajon.style.left=(r.right+8)+'px';
+  cajon.style.top=Math.max(64,Math.min(r.top-8,innerHeight-alto-12))+'px';
+  ocultarTip();
+  if(foco)cajon.querySelector('a').focus();
+}
+function cerrarCajon(retorno){cajon.hidden=true;cajonDe=null;if(retorno){const b=rowsEl.querySelector('button.grupo[data-g="'+retorno+'"]');b&&b.focus()}}
+cajon.addEventListener('click',e=>{const a=e.target.closest('a[data-id]');if(a){e.preventDefault();navegar(a.dataset.id)}});
+cajon.addEventListener('mouseenter',()=>clearTimeout(cierra));
+cajon.addEventListener('mouseleave',()=>{cierra=setTimeout(()=>cerrarCajon(),260)});
+side.addEventListener('mouseleave',()=>{if(!cajon.hidden)cierra=setTimeout(()=>cerrarCajon(),260)});
+side.addEventListener('mouseenter',()=>clearTimeout(cierra));
+cajon.addEventListener('keydown',e=>{
+  const as=[...cajon.querySelectorAll('a')],i=as.indexOf(document.activeElement),d=cajonDe;
+  if(e.key==='ArrowDown'){e.preventDefault();as[(i+1)%as.length].focus()}
+  else if(e.key==='ArrowUp'){e.preventDefault();as[(i-1+as.length)%as.length].focus()}
+  else if(e.key==='Home'){e.preventDefault();as[0].focus()}
+  else if(e.key==='End'){e.preventDefault();as[as.length-1].focus()}
+  else if(e.key==='Escape'||e.key==='Tab'){e.preventDefault();cerrarCajon(d)}
+  else if(e.key===' '){e.preventDefault();document.activeElement.click()}
+});
+
+/* asomar: el lateral colapsado se abre encima del contenido tras 250 ms de mouse quieto */
+let tPeek=0;
+side.addEventListener('mouseenter',()=>{
+  if(!rail||!peekOn)return;
+  clearTimeout(tPeek);tPeek=setTimeout(()=>{peek=true;cerrarCajon();ocultarTip();render()},250);
+});
+side.addEventListener('mouseleave',()=>{
+  clearTimeout(tPeek);
+  if(peek){peek=false;render()}
+});
+
+/* contraer / expandir */
+function fijar(r){
+  rail=r;peek=false;cerrarCajon();ocultarTip();
+  if(!r){const g=grupoDe(activo);abierto=g?g.id:abierto}
+  guardar('rail',r?'1':'0');render();
+}
+$('#tg').addEventListener('click',()=>fijar(!rail));
+$('#bExp').addEventListener('click',()=>fijar(false));
+$('#bCol').addEventListener('click',()=>fijar(true));
+document.addEventListener('keydown',e=>{
+  if(e.key==='['&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)&&!e.metaKey&&!e.ctrlKey){e.preventDefault();fijar(!rail)}
+});
+$('#swPeek').addEventListener('change',e=>{peekOn=e.target.checked;guardar('peek',peekOn?'1':'0')});
+$('#swRed').addEventListener('change',e=>root.classList.toggle('reducir',e.target.checked));
+const rol=l=>{lider=l;$('#rLid').setAttribute('aria-pressed',String(l));$('#rCol').setAttribute('aria-pressed',String(!l));cerrarCajon();render()};
+$('#rLid').addEventListener('click',()=>rol(true));$('#rCol').addEventListener('click',()=>rol(false));
+
+/* medida real del panel (lo que importa para diseñar: ADR-0128/0129 deciden por el ancho del PANEL, no de la ventana) */
+const pag=$('#pag');
+new ResizeObserver(()=>{$('#medida').textContent=Math.round(pag.getBoundingClientRect().width)}).observe(pag);
+
+/* arranque: recuerda el estado (en producción sería una cookie, ver README) */
+if(leer('peek')==='0'){peekOn=false;$('#swPeek').checked=false}
+rail=leer('rail')==='1';
+render();
+</script>
+</body>
+</html>

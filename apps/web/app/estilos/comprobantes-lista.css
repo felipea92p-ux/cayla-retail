@@ -1,0 +1,207 @@
+/* ---- Comprobantes · lista (ADR-0136) ----
+   Estilos y keyframes propios de la lista de Comprobantes (/compras).
+   Reglas de la casa: curva var(--ease-cayla) (entradas) y var(--ease-salida); duraciones 200–500 ms; sin
+   rebote, nunca en bucle salvo lo que ya existe; `backwards` y no `both` cuando la pieza luego se
+   mueve con hover; y CADA clase animada se apaga con movimiento reducido (bloque al final de este archivo).
+   Los modales NO definen su propia entrada: heredan la de `<Modal>` (globals.css, «REGLA DE MODALES»).
+
+   Qué hay aquí (prototipo: docs/maquetas/comprobantes-animaciones-2026-09/comprobantes-vivo.html):
+     · .cmp-viva      tarjeta clicable: se levanta (con `.alza-cayla`) y la cruza un barrido de luz.
+     · .cmp-reparto   barra de 4 px bajo «Por pagar» (parte vencida) y «Por recibir» (parte atrasada).
+     · .cmp-ind       el indicador que VIAJA entre pestañas / entre Emisión y Vencimiento.
+     · .cmp-fila      fila de la tabla: entra escalonada, barrita de acento y flecha al pasar el mouse.
+     · .cmp-mini      barra de 3 px con el avance real de recepción / pago.
+     · .cmp-punto-vivo el punto que late en el chip «Vencida» (única animación en bucle de la lista).
+     · .cmp-flota     el isotipo del estado vacío, una sola vez.
+     · .cmp-sk        esqueleto brillante de la carga (loading.tsx).
+   `backwards` en todas las entradas: al terminar no retienen `transform`, que pisaría el reacomodo
+   (FLIP, Web Animations) y el hover. ---- */
+
+@keyframes cmp-llena {
+  from { transform: scaleX(0); }
+}
+@keyframes cmp-latido {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-rojo) 45%, transparent); }
+  70%, 100% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--color-rojo) 0%, transparent); }
+}
+/* Una sola vez: sube desde abajo, alcanza el punto alto, se asienta. Termina quieto y visible. */
+@keyframes cmp-flota {
+  0% { opacity: 0; transform: translate3d(0, 10px, 0) rotate(0deg); }
+  45% { opacity: 0.55; transform: translate3d(0, -7px, 0) rotate(-3deg); }
+  100% { opacity: 0.55; transform: none; }
+}
+@keyframes cmp-brilla {
+  to { background-position: -200% 0; }
+}
+
+@layer components {
+  /* ---------- Tarjetas clicables ---------- */
+  .alza-cayla.cmp-viva {
+    position: relative;
+    overflow: hidden;
+    /* `.alza-cayla` ya transiciona transform/sombra/borde; se le suma el fondo (el hover de la tarjeta). */
+    transition:
+      transform 260ms var(--ease-cayla),
+      box-shadow 260ms var(--ease-cayla),
+      border-color 260ms var(--ease-cayla),
+      background-color 260ms var(--ease-cayla);
+  }
+  /* Barrido de luz: mismo `cayla-brillo` del sistema; en reposo invisible (opacity 0), no queda nada pintado. */
+  .cmp-viva::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 36%;
+    opacity: 0;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent, rgb(255 255 255 / 0.55), transparent);
+    transform: translate3d(-120%, 0, 0) skewX(-12deg);
+  }
+  .cmp-viva:hover::after { animation: cayla-brillo 900ms var(--ease-cayla); }
+  .cmp-flecha {
+    display: inline-block;
+    transition: transform 260ms var(--ease-cayla);
+  }
+  .cmp-viva:hover .cmp-flecha { transform: translateX(4px); }
+
+  /* ---------- Barras: reparto (4 px) y avance (3 px) ---------- */
+  .cmp-reparto,
+  .cmp-mini {
+    display: block;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--color-sand);
+  }
+  .cmp-reparto { height: 4px; margin-top: 0.625rem; }
+  .cmp-mini { height: 3px; width: 88%; margin-top: 0.375rem; }
+  .cmp-reparto > i,
+  .cmp-mini > i {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    transform-origin: left;
+    transform: scaleX(var(--p, 0));
+    /* La transición mueve la barra si el dato cambia (un pago nuevo); la animación la llena al aparecer. */
+    transition: transform 560ms var(--ease-cayla);
+  }
+  .cmp-reparto > i { animation: cmp-llena 560ms var(--ease-cayla) 380ms backwards; }
+  .cmp-mini > i { background: var(--color-ambar); animation: cmp-llena 560ms var(--ease-cayla) 250ms backwards; }
+  .cmp-reparto-rojo { background: var(--color-rojo); }
+  .cmp-reparto-ambar { background: var(--color-ambar); }
+
+  /* ---------- Indicador que viaja (pestañas y orden) ----------
+     Lo posiciona `IndicadorDeslizante` con `width` y `transform` en línea; aquí solo la forma y el viaje.
+     Antes de hidratar (o sin JS) la opción activa lleva su propia marca estática; cuando el indicador se
+     coloca, el contenedor recibe `data-indicador` y esa marca se apaga. */
+  .cmp-ind {
+    position: absolute;
+    left: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform 500ms var(--ease-cayla),
+      width 500ms var(--ease-cayla);
+  }
+  .cmp-ind-linea { bottom: 0; height: 2px; border-radius: 2px; background: var(--color-rojo); }
+  .cmp-ind-pastilla { top: 0; bottom: 0; background: var(--color-tinta); transition-duration: 450ms; }
+  .cmp-tab-activa { border-bottom-color: var(--color-rojo); }
+  .cmp-seg-activa { background: var(--color-tinta); }
+  [data-indicador] > .cmp-tab-activa { border-bottom-color: transparent; }
+  [data-indicador] > .cmp-seg-activa { background: transparent; }
+
+  /* ---------- Filas ---------- */
+  /* Entrada escalonada: la de la regla de movimiento (`cayla-entrada`, 420 ms, ≤ 40 ms entre filas). El
+     `--base` espera a que entren cabecera y tarjetas la primera vez; `ComprobantesListaFilas` lo pone en
+     0 pasada esa entrada (`data-listo`), así las filas que llegan al cambiar de vista solo se desfasan
+     entre sí. Las que ya estaban NO se re-animan: React conserva su DOM y una animación CSS no se repite. */
+  .cmp-filas { --base: 300ms; }
+  .cmp-filas[data-listo] { --base: 0ms; }
+  .cmp-fila {
+    position: relative;
+    transition: background-color 260ms var(--ease-cayla);
+    animation: cayla-entrada 420ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--base, 0ms) + var(--k, 0) * 38ms);
+  }
+  /* La barrita de acento crece desde el centro en el borde izquierdo (mismo gesto que Proveedores). */
+  .cmp-fila::before {
+    content: "";
+    position: absolute;
+    top: 0.875rem;
+    bottom: 0.875rem;
+    left: 0;
+    width: 2px;
+    border-radius: 2px;
+    background: var(--color-rojo);
+    transform: scaleY(0);
+    pointer-events: none;
+    transition: transform 350ms var(--ease-cayla);
+  }
+  .cmp-fila:hover,
+  .cmp-fila:focus-visible { background-color: color-mix(in srgb, var(--color-tinta) 3%, transparent); }
+  .cmp-fila:hover::before,
+  .cmp-fila:focus-visible::before { transform: scaleY(1); }
+  /* El foco de teclado (j/k, Tab) se ve igual que el hover más un contorno: no depende solo de un tinte. */
+  .cmp-fila:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-tinta) 40%, transparent);
+    outline-offset: -2px;
+  }
+  .cmp-flecha-fila {
+    color: color-mix(in srgb, var(--color-tinta) 30%, transparent);
+    transition:
+      transform 260ms var(--ease-cayla),
+      color 260ms var(--ease-cayla);
+  }
+  .cmp-fila:hover .cmp-flecha-fila,
+  .cmp-fila:focus-visible .cmp-flecha-fila { transform: translateX(4px); color: var(--color-rojo); }
+  .cmp-total { transition: transform 260ms var(--ease-cayla); }
+  .cmp-fila:hover .cmp-total { transform: translateX(-2px); }
+
+  /* ---------- «Vencida»: el punto que late ---------- */
+  .cmp-punto-vivo {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-rojo);
+    animation: cmp-latido 2s var(--ease-cayla) infinite;
+  }
+
+  /* ---------- Estado vacío ---------- */
+  .cmp-flota { opacity: 0.55; animation: cmp-flota 2400ms var(--ease-cayla) backwards; }
+
+  /* ---------- Esqueleto de carga ---------- */
+  .cmp-sk {
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--color-sand) 25%, color-mix(in srgb, var(--color-sand) 45%, var(--color-papel)) 50%, var(--color-sand) 75%);
+    background-size: 200% 100%;
+    animation: cmp-brilla 1.3s linear infinite;
+  }
+}
+
+@layer components {
+  @media (prefers-reduced-motion: reduce) {
+    /* El resultado sin el viaje: entradas y llenados a un instante, lo que se repite se detiene. */
+    .cmp-fila,
+    .cmp-reparto > i,
+    .cmp-mini > i,
+    .cmp-flota {
+      animation-duration: 1ms;
+      animation-delay: 0ms;
+    }
+    .cmp-reparto > i,
+    .cmp-mini > i,
+    .cmp-ind,
+    .cmp-flecha,
+    .cmp-flecha-fila,
+    .cmp-total,
+    .cmp-fila,
+    .cmp-fila::before { transition-duration: 1ms; }
+    .cmp-viva::after { display: none; }
+    .cmp-viva:hover .cmp-flecha,
+    .cmp-fila:hover .cmp-total { transform: none; }
+    .cmp-punto-vivo,
+    .cmp-sk { animation: none; }
+  }
+}

@@ -13,7 +13,7 @@ import { ETIQUETA_MOTIVO_NOTA, soles, type CompraResumen, type LineaCompra } fro
 import type { NotaCreditoCompra } from "@/lib/compras-faltantes";
 import { hoyLima } from "@/lib/fechas-lima";
 import { parseMonto } from "@/lib/por-pagar-reglas";
-import { disponibilidadNota, MARGEN_NOTA, montoDeCierres, reparteNota, tasaIgv, textoReparteNota } from "@/lib/recepciones-reglas";
+import { estadoNotaFaltante, MARGEN_NOTA, montoDeCierres, reparteNota, tasaIgv, textoReparteNota } from "@/lib/recepciones-reglas";
 
 // Acciones del libro de faltantes desde el DETALLE de un comprobante (D2, ADR-0111): cerrar con faltante una línea
 // que ya tiene cantidades pendientes, y registrar la nota de crédito que el proveedor emite. El detalle es solo de
@@ -29,17 +29,6 @@ export function BotonCerrarFaltante({ compra, linea, producto }: { compra: Compr
       {abierto && <CerrarFaltanteModal compra={compra} linea={linea} producto={producto} onClose={() => setAbierto(false)} />}
     </>
   );
-}
-
-/** Lo que dice la base sobre una nota por faltante de este comprobante, para decidir qué ofrecer. */
-export function estadoNotaFaltante(compra: CompraResumen, notas: NotaCreditoCompra[]) {
-  return disponibilidadNota({
-    pendiente: compra.facturadoCantidad - compra.recibidoCantidad - compra.cerradoCantidad,
-    llegando: 0,
-    cerrandoAhora: 0,
-    cerradoAntes: compra.cerradoCantidad,
-    yaTieneNotaFaltante: notas.some((n) => n.motivo === "faltante"),
-  });
 }
 
 export function BotonRegistrarNota({ compra, notas, cerrados }: { compra: CompraResumen; notas: NotaCreditoCompra[]; cerrados: { faltan: number; costoUnitario: number }[] }) {

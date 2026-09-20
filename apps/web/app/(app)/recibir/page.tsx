@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -6,7 +7,7 @@ import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, getResumenC
 import { getResumenComprasExtra, getResumenRecepciones, listarRecepcionesCompras } from "@/lib/compras-indicadores";
 import { getComprasConNotaFaltante, getSaldosFavor } from "@/lib/saldo-favor";
 import { hoyLima } from "@/lib/fechas-lima";
-import { filtrosRecibidasDesdeParams, hayFiltrosRecibidas } from "@/lib/recibidas-filtros-reglas";
+import { filtrosRecibidasDesdeParams, hayFiltrosRecibidas, resultadoDesdeParam } from "@/lib/recibidas-filtros-reglas";
 import { getEnviosDeLotes, getTrasladosHaciaAca } from "@/lib/envio";
 import { comprobanteSinMontos, kpisDeLaLista, lineaSinCosto } from "@/lib/envio-reglas";
 import { RecepcionEnvio } from "@/components/RecepcionEnvio";
@@ -16,6 +17,7 @@ import { FiltrosRecibidas } from "@/components/FiltrosRecibidas";
 import { Paginacion, leerCursor } from "@/components/Paginacion";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 
 // Recibir mercadería POR ENVÍO (ADR-0113). Es la puerta para todo lo que llega: un envío puede traer
 // comprobantes de varios proveedores, prendas fuera de comprobante (de un proveedor, con su regalo) y
@@ -34,7 +36,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 // `?vista=recibidas`: lo que ya se recibió contra comprobante, con su resultado y su demora. Sus filtros
 // (`?q=&prov=&desde=&hasta=`) son el buscador y las dos pastillas en línea de la maqueta 06
 // (`FiltrosRecibidas`); el servidor los limpia con `filtrosRecibidasDesdeParams` antes de llamar a la base.
-type ParamsRecibir = ParamsCompras & { compra?: string; vista?: string };
+type ParamsRecibir = ParamsCompras & { compra?: string; vista?: string; nueva?: string; res?: string };
 
 export default async function RecibirPage({ searchParams }: { searchParams: Promise<ParamsRecibir> }) {
   const persona = await requirePersonaActualV2();
@@ -43,7 +45,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   const vista = params.vista === "recibidas" ? "recibidas" : "pendientes";
 
   const encabezado = (
-    <div>
+    <div className="anim-entra">
       <p className="label-cayla text-[11px] text-tinta/65">Recibir · {persona.ubicacionEtiqueta}</p>
       <h1 className="font-display mt-1 text-2xl text-tinta">Recibir mercadería</h1>
       <p className="mt-1 text-sm text-tinta/65">
@@ -61,6 +63,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     </div>
   );
   const pestanas = (
+    <div className="anim-entra" style={{ "--i": 2 } as CSSProperties}>
     <Pestanas
       etiquetaAccesible="Vistas de Recibir mercadería"
       activa={vista}
@@ -69,6 +72,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         { clave: "recibidas", etiqueta: "Recibidas recientemente", href: "/recibir?vista=recibidas" },
       ]}
     />
+    </div>
   );
 
   // ------------------------------------------------------------------ Recibidas
@@ -95,34 +99,38 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         {pestanas}
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <TarjetaCifra compacta punto="neutro" etiqueta="Unidades recibidas" valor={resumen.unidadesRecibidas.toLocaleString("es-PE")}>
+          <TarjetaCifra compacta className="anim-entra alza-cayla" style={{ "--i": 0 } as CSSProperties} punto="neutro" etiqueta="Unidades recibidas" valor={<CifraQueCuenta valor={resumen.unidadesRecibidas} alMontar />}>
             últimos 90 días · {resumen.recepciones.toLocaleString("es-PE")} {resumen.recepciones === 1 ? "recepción" : "recepciones"}
           </TarjetaCifra>
           {resumen.diasEntregaPromedio != null ? (
-            <TarjetaCifra compacta punto="neutro" etiqueta="Tiempo de entrega" valor={`${Math.round(resumen.diasEntregaPromedio)} ${Math.round(resumen.diasEntregaPromedio) === 1 ? "día" : "días"}`}>
+            <TarjetaCifra compacta className="anim-entra alza-cayla" style={{ "--i": 1 } as CSSProperties} punto="neutro" etiqueta="Tiempo de entrega" valor={<CifraQueCuenta valor={resumen.diasEntregaPromedio} formato="dias" alMontar />}>
               emisión → llegada · promedio de {resumen.comprobantesRecibidos}
             </TarjetaCifra>
           ) : (
-            <TarjetaCifra compacta vacia etiqueta="Tiempo de entrega" valor="—">
+            <TarjetaCifra compacta className="anim-entra" style={{ "--i": 1 } as CSSProperties} vacia etiqueta="Tiempo de entrega" valor="—">
               Aparece con la primera recepción
             </TarjetaCifra>
           )}
           {pctCompletas != null ? (
-            <TarjetaCifra compacta punto="verde" detalleTono="text-verde-profundo" etiqueta="Entregas completas" valor={`${pctCompletas} %`}>
+            <TarjetaCifra compacta className="anim-entra alza-cayla" style={{ "--i": 2 } as CSSProperties} punto="verde" detalleTono="text-verde-profundo" etiqueta="Entregas completas" valor={<CifraQueCuenta valor={pctCompletas} formato="porcentaje" alMontar />}>
               {resumen.entregasCompletas} de {resumen.comprobantesRecibidos} {resumen.comprobantesRecibidos === 1 ? "comprobante llegó completo" : "comprobantes llegaron completos"}
             </TarjetaCifra>
           ) : (
-            <TarjetaCifra compacta vacia etiqueta="Entregas completas" valor="—">
+            <TarjetaCifra compacta className="anim-entra" style={{ "--i": 2 } as CSSProperties} vacia etiqueta="Entregas completas" valor="—">
               Aparece con la primera recepción
             </TarjetaCifra>
           )}
           <TarjetaCifra
             compacta
+            className="anim-entra alza-cayla"
+            style={{ "--i": 3 } as CSSProperties}
             punto={resumen.faltanteUnidades > 0 ? "ambar" : "verde"}
+            vivo={resumen.faltanteUnidades > 0}
             tono={resumen.faltanteUnidades > 0 ? "text-ambar-profundo" : undefined}
             detalleTono={resumen.faltanteUnidades > 0 ? "text-ambar-profundo" : undefined}
             etiqueta="Faltante abierto"
-            valor={`${resumen.faltanteUnidades.toLocaleString("es-PE")} ${resumen.faltanteUnidades === 1 ? "unidad" : "unidades"}`}
+            valor={<CifraQueCuenta valor={resumen.faltanteUnidades} alMontar />}
+            unidad={resumen.faltanteUnidades === 1 ? "unidad" : "unidades"}
             // La lista de comprobantes con faltante es de Compras (solo líder): a un colaborador no se le ofrece un enlace que lo devuelve al Inicio.
             href={esLider && resumen.faltanteUnidades > 0 ? "/compras?recep=parcial" : undefined}
           >
@@ -134,13 +142,15 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
 
         {/* En la maqueta 06 los filtros van a 14 px de la tabla (más pegados que el ritmo de la página): son sus controles. */}
         <div className="space-y-3.5">
-          <FiltrosRecibidas proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))} filtros={filtrosRecibidas} hoy={hoyLima()} />
+          <FiltrosRecibidas proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))} filtros={filtrosRecibidas} hoy={hoyLima()} resultado={resultadoDesdeParam(params.res)} />
           <RecepcionesCompraLista
             recepciones={recepciones}
             detalles={detalles}
             nombres={nombres}
             envios={envios}
             limite={LIMITE_RECIBIDAS}
+            destacarNueva={params.nueva === "1"}
+            resultado={resultadoDesdeParam(params.res)}
             enlaceAlComprobante={esLider}
             vacio={hayFiltros ? "Ninguna recepción coincide con esos filtros." : `Todavía no se recibió nada contra un comprobante en ${persona.ubicacionEtiqueta}.`}
           />
@@ -226,6 +236,8 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
               productoId: v.productoId,
               referencia: v.referencia,
               codigosBarras: v.codigosBarras,
+              colorHex: v.colorHex,
+              fotoUrl: v.fotoUrl,
             }))}
           proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))}
           ubicaciones={ubicacionesPermitidas.map((u) => ({ id: u.id, nombre: u.nombre }))}
@@ -237,7 +249,12 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           comprasConNotaFaltante={comprasConNotaFaltante}
           saldoFavorPorProveedor={saldoFavorPorProveedor}
           trasladosPorUbicacion={trasladosPorUbicacion}
-          resumen={<KpisRecibir {...kpis} />}
+          resumen={
+            <KpisRecibir
+              {...kpis}
+              idMasAtrasada={comprasCompletas.find((c) => c.documento === kpis.documentoMasAtrasada && c.proveedorNombre === kpis.proveedorMasAtrasado)?.id ?? null}
+            />
+          }
         />
       )}
 

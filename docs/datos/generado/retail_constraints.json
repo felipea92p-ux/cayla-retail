@@ -80,6 +80,16 @@
   "tabla": "retail.cambios"
  },
  {
+  "conname": "cambios_condicion_check",
+  "definicion": "CHECK ((condicion = ANY (ARRAY['vendible'::text, 'no_vendible'::text])))",
+  "tabla": "retail.cambios"
+ },
+ {
+  "conname": "cambios_defecto_no_vuelve_al_piso",
+  "definicion": "CHECK (((motivo IS DISTINCT FROM 'defecto'::text) OR (condicion = 'no_vendible'::text)))",
+  "tabla": "retail.cambios"
+ },
+ {
   "conname": "cambios_diferencia_liquidada",
   "definicion": "CHECK (((diferencia = (0)::numeric) OR (metodo_pago_diferencia IS NOT NULL)))",
   "tabla": "retail.cambios"
@@ -87,6 +97,11 @@
  {
   "conname": "cambios_metodo_pago_diferencia_check",
   "definicion": "CHECK ((metodo_pago_diferencia = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text])))",
+  "tabla": "retail.cambios"
+ },
+ {
+  "conname": "cambios_motivo_check",
+  "definicion": "CHECK ((motivo = ANY (ARRAY['talla_chica'::text, 'talla_grande'::text, 'otro_color'::text, 'defecto'::text, 'otro'::text])))",
   "tabla": "retail.cambios"
  },
  {
@@ -1410,6 +1425,16 @@
   "tabla": "retail.patrones"
  },
  {
+  "conname": "prendas_danadas_cambio_id_fkey",
+  "definicion": "FOREIGN KEY (cambio_id) REFERENCES retail.cambios(id)",
+  "tabla": "retail.prendas_danadas"
+ },
+ {
+  "conname": "prendas_danadas_cambio_id_key",
+  "definicion": "UNIQUE (cambio_id)",
+  "tabla": "retail.prendas_danadas"
+ },
+ {
   "conname": "prendas_danadas_cantidad_check",
   "definicion": "CHECK ((cantidad > 0))",
   "tabla": "retail.prendas_danadas"
@@ -1467,6 +1492,11 @@
  {
   "conname": "prendas_danadas_ubicacion_id_fkey",
   "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.prendas_danadas"
+ },
+ {
+  "conname": "prendas_danadas_un_origen",
+  "definicion": "CHECK ((num_nonnulls(devolucion_item_id, cambio_id) = 1))",
   "tabla": "retail.prendas_danadas"
  },
  {
@@ -1725,6 +1755,26 @@
   "tabla": "retail.proveedor_creditos"
  },
  {
+  "conname": "proveedores_billetera_coherente",
+  "definicion": "CHECK (((celular_billetera IS NULL) = (billeteras IS NULL)))",
+  "tabla": "retail.proveedores"
+ },
+ {
+  "conname": "proveedores_billeteras_validas",
+  "definicion": "CHECK (((billeteras IS NULL) OR (((cardinality(billeteras) >= 1) AND (cardinality(billeteras) <= 2)) AND (billeteras <@ ARRAY['yape'::text, 'plin'::text]))))",
+  "tabla": "retail.proveedores"
+ },
+ {
+  "conname": "proveedores_cci_formato",
+  "definicion": "CHECK (((cci IS NULL) OR (cci ~ '^[0-9]{20}$'::text)))",
+  "tabla": "retail.proveedores"
+ },
+ {
+  "conname": "proveedores_celular_billetera_formato",
+  "definicion": "CHECK (((celular_billetera IS NULL) OR (celular_billetera ~ '^9[0-9]{8}$'::text)))",
+  "tabla": "retail.proveedores"
+ },
+ {
   "conname": "proveedores_forma_pago_valida",
   "definicion": "CHECK (((forma_pago_preferida IS NULL) OR (forma_pago_preferida = ANY (ARRAY['transferencia'::text, 'yape'::text, 'plin'::text, 'efectivo'::text, 'deposito'::text, 'otro'::text]))))",
   "tabla": "retail.proveedores"
@@ -1742,6 +1792,11 @@
  {
   "conname": "proveedores_ruc_check",
   "definicion": "CHECK (((ruc IS NULL) OR (ruc ~ '^[0-9]{11}$'::text)))",
+  "tabla": "retail.proveedores"
+ },
+ {
+  "conname": "proveedores_titular_largo",
+  "definicion": "CHECK (((titular_cuenta IS NULL) OR ((char_length(titular_cuenta) >= 2) AND (char_length(titular_cuenta) <= 120))))",
   "tabla": "retail.proveedores"
  },
  {

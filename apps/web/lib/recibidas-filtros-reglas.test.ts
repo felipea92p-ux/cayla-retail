@@ -9,6 +9,7 @@ import {
   hrefConCambios,
   periodoDeRango,
   rangoDePeriodo,
+  resultadoDesdeParam,
   textoFechas,
   textoProveedor,
 } from "./recibidas-filtros-reglas";
@@ -171,5 +172,18 @@ describe("hrefConCambios", () => {
   });
   it("sin parámetros y sin cambios es solo la ruta", () => {
     expect(hrefConCambios("/recibir", "", { q: "" })).toBe("/recibir");
+  });
+});
+
+describe("resultadoDesdeParam: ?res= de «Recibidas»", () => {
+  it("acepta solo «completas» y «faltante»; todo lo demás es «todas»", () => {
+    expect(resultadoDesdeParam("completas")).toBe("completas");
+    expect(resultadoDesdeParam("faltante")).toBe("faltante");
+    expect(resultadoDesdeParam("todas")).toBe("todas");
+    expect(resultadoDesdeParam(undefined)).toBe("todas");
+    expect(resultadoDesdeParam("cualquiera")).toBe("todas");
+  });
+  it("no cuenta como filtro de la consulta: se filtra en el navegador", () => {
+    expect(hayFiltrosRecibidas(filtrosRecibidasDesdeParams({}))).toBe(false);
   });
 });

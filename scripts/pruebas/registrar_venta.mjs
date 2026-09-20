@@ -152,6 +152,57 @@ rollback;
 );
 
 // ---------------------------------------------------------------------------
+// 1b: el efectivo recibido (`venta_pagos.recibido`, 20260919210000) — para reimprimir el vuelto
+// ---------------------------------------------------------------------------
+
+exito(
+  "el efectivo entregado se guarda en venta_pagos.recibido (el vuelto sale de recibido − monto)",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 0)),
+  jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', (:'v1_precio')::numeric, 'recibido', (:'v1_precio')::numeric + 20)),
+  null, gen_random_uuid()) as venta_id \\gset
+select recibido = (:'v1_precio')::numeric + 20 from retail.venta_pagos where venta_id = :'venta_id';
+rollback;
+`
+  ),
+  ([guardado]) => guardado === "t"
+);
+
+exito(
+  "un medio que no es efectivo no guarda recibido, aunque el navegador lo mande",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 0)),
+  jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', (:'v1_precio')::numeric, 'recibido', (:'v1_precio')::numeric + 20)),
+  null, gen_random_uuid()) as venta_id \\gset
+select recibido is null from retail.venta_pagos where venta_id = :'venta_id';
+rollback;
+`
+  ),
+  ([esNulo]) => esNulo === "t"
+);
+
+error(
+  "un efectivo recibido menor que lo que cubre se rechaza (candado venta_pagos_recibido_coherente)",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 0)),
+  jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', (:'v1_precio')::numeric, 'recibido', (:'v1_precio')::numeric - 1)),
+  null, gen_random_uuid());
+rollback;
+`
+  ),
+  "venta_pagos_recibido_coherente"
+);
+
+// ---------------------------------------------------------------------------
 // 2: el candado de sede — mismo mecanismo que ya prueba registrar_cambio.mjs
 // ---------------------------------------------------------------------------
 

@@ -187,3 +187,20 @@ jobs:
       - name: pruebas:dinero-compras
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:dinero-compras
+
+      # CCI, Yape/Plin y titular del proveedor (ADR-0134): normaliza («+51 987 654 321», CCI con guiones),
+      # rechaza lo inválido con mensaje claro, solo el líder escribe, los CHECK rechazan por su cuenta,
+      # fn_proveedores() trae las 4 columnas con UNA sola firma, y la migración se puede pegar dos veces
+      # sin perder nada. Cada caso termina en ROLLBACK.
+      - name: pruebas:proveedores-cuentas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:proveedores-cuentas
+
+      # Pagos de Compras endurecidos (ADR-0135): el total del papel con IGV incluido cuadra sin abrir el candado
+      # (5 u × 10.00 … 100 u × 1.00; un +S/ 5 sigue rechazado), el pago desde el detalle es idempotente por token, el
+      # reintento de un lote con saldo a favor devuelve el éxito original, las tres rutas rechazan fechas futuras o
+      # anteriores a la emisión y montos de más de 2 decimales, el integrante sigue sin poder pagar, UNA sola firma
+      # de cada función y la migración se puede pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:pagos-compras-endurecimiento
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:pagos-compras-endurecimiento
