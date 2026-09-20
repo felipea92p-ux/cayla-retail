@@ -230,18 +230,18 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de
   arriba lo audita solo.
 
-**Producción (módulo padre, ADR-0133 — F1 aplicada 2026-09-19)**
-- El lateral agrupa bajo «Producción» las 4 pantallas de Compras (`/compras/proveedores`,
-  `/compras`, `/recibir`, `/compras/por-pagar`, **URLs sin cambio**) y `/produccion/ordenes`;
-  el grupo «Compras» ya no existe. Qué ve cada perfil: `lib/produccion-menu.ts`
-  (`hijosMenuProduccion`, puro, con tests). `/produccion` redirige a `/produccion/ordenes`
+**Producción (módulo propio, ADR-0133 — F1 aplicada 2026-09-19)**
+- Producción y Compras son **dos módulos distintos** con su propio grupo en el lateral (Compras: sus 4
+  pantallas, sin cambios). Producción arranca con `/produccion/ordenes` y suma pantallas con sus fases.
+  Qué ve cada perfil: `lib/produccion-menu.ts` (`hijosMenuProduccion` / `hijosMenuCompras`, puros, con tests). `/produccion` redirige a `/produccion/ordenes`
   hasta que exista el Resumen (F6). Plan por fases: `docs/PLAN-PRODUCCION.md`.
 
 **Producción (Taller)**
 - `/produccion/ordenes` → `lib/produccion.ts` (`getTaller`, `getOrdenesProduccion`,
   `getModelosProducibles`; lectura con `exigir()`) + `lib/produccion-reglas.ts`
-  (puro: etapas, semáforo de margen, costo unitario) → `OrdenesProduccionV2.tsx`
-  (en proceso / terminadas / anuladas; RPC `set_etapa_produccion`,
+  (puro: etapas, semáforo de margen, costo unitario) → `OrdenesTablero.tsx`
+  (tablero por etapa + muestras + terminadas / anuladas; tarjeta `OrdenTarjeta`, panel `OrdenPanel`
+  con `MatrizOrden` y `OrdenCierre`; RPC `set_etapa_produccion`,
   `cerrar_produccion`, `anular_produccion`, `revertir_produccion`) y
   `NuevaOrdenProduccionForm.tsx` (RPC `abrir_produccion` con `p_token`). Entra el
   líder desde cualquier ubicación y el integrante cuyo `ubicacionTipo === "taller"`.

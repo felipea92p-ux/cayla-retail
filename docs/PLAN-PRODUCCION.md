@@ -1,8 +1,22 @@
-# Plan · Producción como módulo padre (2026-09-19)
+# Plan · Producción como módulo propio, conectado con Compras (2026-09-19)
 
-> **Estado:** propuesto, pendiente del ok de Felipe en las **decisiones D-A…D-G** (sección 3). Las fases 1–3 no
-> tocan esquema y pueden empezar de inmediato; **F4 espera a que ADR-0132 llegue a `main`** (ver sección 2). ADR asociado: `docs/adr/0133-produccion-modulo-padre-de-la-cadena-de-abastecimiento.md`.
+> **Estado:** F1 y F2 aplicadas; F3 en adelante propuesto. Pendiente del ok de Felipe en **D-E, D-F, D-G e D-I** (sección 3).
+> ADR asociado: `docs/adr/0133-produccion-modulo-propio-conectado-con-compras.md`.
 > Diseño de referencia: `docs/maquetas/produccion-modulo-2026-09/` (README con el guion de prueba).
+
+> ## Cambio de rumbo — 2026-09-19 (decisión de Felipe, mismo día)
+> **Producción y Compras son dos módulos distintos: no se fusionan.** Cada uno tiene su grupo en el menú, **sus propios proveedores** y
+> **sus propias pantallas** (Comprobantes, Por pagar, Recibir). Lo que el spike agrupaba en «Abastecer» pasa a ser el abastecimiento
+> **propio de Producción** (tela, avíos y maquila); Compras conserva lo suyo (prenda terminada para las tiendas) y no se toca.
+>
+> Felipe eligió esto **contra mi recomendación** (que era una sola lista de proveedores vista por rubro, y una sola factura registrada en
+> Compras). La decisión es suya y este plan la adopta. Lo que cuesta, para que no sorprenda después:
+> 1. **Un proveedor real que vende a los dos módulos existe dos veces** (RUC, cuenta, contacto): dos fichas que mantener.
+> 2. **La deuda con proveedores vive en dos lugares.** Nadie ve «lo que debe CAYLA» sumado sin una vista consolidada (**D-I**, abierta).
+> 3. **El IGV crédito fiscal sale de dos libros.** El registro de compras del contador tiene que unir los dos (**D-I**).
+> 4. Se duplica lógica financiera ya resuelta en Compras (contado ⇒ pago en la misma transacción, vencimiento, faltantes, pagos).
+> A favor: Producción avanza **sin depender de ADR-0138** (no toca `compras`, `compra_items` ni sus funciones) y sin riesgo de romper Compras.
+> Como `insumos`/`insumo_lotes` tienen **0 filas** en producción, repuntar sus llaves al nuevo directorio hoy es barato; con datos sería otra historia.
 
 ## 1. Objetivo
 
@@ -22,8 +36,8 @@ cierran en la base, no en la pantalla), **7** (cada paso se prueba en el navegad
 | `cerrar_produccion` recibe `p_buenas` **por variante** y acepta costos `null` (conserva los de la orden) | mismo archivo, líneas 267-345 | El cierre por talla×color es obligatorio; el costo puede venir del consumo |
 | Insumos: tablas y `recibir_insumo` en producción; `registrar_consumo_insumo` **pegada el 2026-09-17**; **0 filas y 0 pantallas** | ADR-0090; `grep` en `apps/web` sin llamadas | F3 solo es pantalla |
 | Compras es un grupo del lateral, solo líder; sus URLs (`/compras/*`, `/recibir`) tienen enlaces por todos lados | `AppShell.tsx:544-548, 640-660` | F1 cambia **el agrupamiento del menú, no las URLs** |
-| `registrar_compra` ya recibe `p_ubicacion_destino_id` y el formulario ya pregunta «Mercadería destinada a». **ADR-0132 (en curso, rama `modulos-por-tienda-ca0f59`) elimina `compras.ubicacion_destino_id` y lo reemplaza por `compra_item_destinos`** (destino por línea) | `20260918219000…sql`, `CompraFormV2.tsx:395`, ADR-0132 §2 | **El destino Taller/Tiendas no necesita columna nueva** en ningún caso (D-B); el Taller es una ubicación más de ese reparto |
-| **Dos ramas sin fusionar tocan Compras:** ADR-0131 «Por pagar responde» (`por-pagar-ui-animations-4ffe60`, 6 commits) y ADR-0132 (`modulos-por-tienda-ca0f59`: reescribe `registrar_compra`, `recibir_compras`, `compra_items` y sus políticas) | `git log origin/main..rama` | **F4 va después de ADR-0132** y se coordina con su sesión; F1 (menú) no toca sus archivos |
+| `registrar_compra` y el reparto por tienda (ADR-0138, en curso en otra rama) son de **Compras** | `CompraFormV2.tsx`, ADR-0138 | **No condicionan a Producción** (D-H): tiene su propio abastecimiento y no toca `compras` |
+| Otras ramas tocan Compras (ADR-0131 Por pagar, ADR-0138 reparto entre tiendas) | `git log origin/main..rama` | Ninguna fase de Producción modifica Compras; solo se coordina el orden de los ADR y de las migraciones |
 | `compra_items.producto_id` es **NOT NULL**: una factura de tela no cabe | `DICCIONARIO-RETAIL.md:1686` | F4 (único cambio de esquema grande) |
 | `fn_puede_operar_ubicacion` = líder **o** mi ubicación: **el líder ya puede operar el Taller desde cualquier sede** | `0006_colaboradores.sql:51` | La regla «Producción solo parado en el Taller» (2026-09-17) es de menú, no de base |
 | El motor de reposición ya existe: `fn_resumen_variantes` (ventas, disponible, en camino, días observables, `en_red`) | `20260919141804_resumen_inventario_v2.sql` | «¿Qué producir?» **lo reutiliza**, no recalcula ventas por su cuenta |
@@ -36,13 +50,15 @@ cierran en la base, no en la pantalla), **7** (cada paso se prueba en el navegad
 
 | # | Decisión | Recomiendo | Por qué | Gate |
 |---|---|---|---|---|
-| **D-A** | Menú: ¿quién ve el grupo Producción? | Líder **desde cualquier ubicación**; colaborador del Taller ve Recibir, Órdenes e Insumos; el grupo Compras desaparece | La base ya lo permite; el líder decide el abastecimiento estando en una tienda. **Revierte la regla del 2026-09-17** | ok de Felipe (F1) |
-| **D-B** | Destino Taller/Tiendas de un comprobante | **El reparto de ADR-0132** (`compra_item_destinos`): una línea de insumo se destina al Taller como a cualquier ubicación. Sin columna nueva y sin mirar `ubicacion_destino_id`, que ADR-0132 elimina | Una ubicación ya es un destino; una columna `destino` duplicaría el dato (principio 4) y chocaría con ADR-0132 | F4 espera a ADR-0132 |
-| **D-C** | Cómo entra la tela a una factura | `compra_items.insumo_id` **nullable** + CHECK «exactamente uno de `producto_id` / `insumo_id`». `producto_id` deja de ser NOT NULL | Pago, recepción, faltantes y nota de crédito ya cuelgan de `compra_items`; una tabla paralela duplicaría todo (principio 3) | **cambio de esquema en producción: ok explícito** |
+| **D-A** | Menú: ¿quién ve Producción? | ✅ **Decidida.** El líder la ve **desde cualquier ubicación**; quien trabaja en el Taller ve sus pantallas; **Compras sigue siendo un grupo aparte** | La base ya lo permite; **revierte la regla del 2026-09-17** | dada por Felipe (F1) |
+| **D-B** | Destino Taller/Tiendas de un comprobante | ⛔ **Sin objeto.** Producción registra **sus** comprobantes (D-H); ya no comparte `compras` ni el reparto de ADR-0138 | — | — |
+| **D-C** | Cómo entra la tela a una factura | ⛔ **Reemplazada por D-H.** Ya no se toca `compra_items` | — | — |
 | **D-D** | Rendimiento (m/prenda) | **Medido**: consumo real ÷ buenas de las órdenes cerradas del modelo. Sin receta ni tablas. Modelo sin historial: se escribe el rendimiento en la orden y solo alimenta la vista previa | `bom_items` murió; una receta manual envejece. Lo medido no miente | — |
 | **D-E** | Cotización de maquila externa (D-31) | Tabla `maquila_referencias` (append-only: modelo, precio por prenda, fecha, proveedor opcional). Solo líder | Es la mitad de D-31 sin dónde vivir (hueco 3) | esquema: ok |
 | **D-F** | Gastos del Taller (denominador de D-31) | Tabla mínima `gastos_taller` (mes, concepto, monto). Solo líder | Finanzas se borró en el corte V1→V2; esperar su reconstrucción bloquea Eficiencia. Se migra cuando exista | esquema: ok |
 | **D-G** | Costos de insumos | Cerrar `insumo_lotes`/`movimientos_insumo` a `fn_puede_ver_dinero_de_compras`; el colaborador lee cantidades por una función **operativa** (mismo patrón que ADR-0126) y `v_insumo_saldos` pasa a `security_invoker` | El colaborador no debe ver lo que cuesta la tela; hoy puede | esquema: ok |
+| **D-H** | Abastecimiento de Producción | ✅ **Decidida por Felipe (2026-09-19), contra mi recomendación.** Producción tiene **su propio directorio de proveedores** y **sus propios Comprobantes, Por pagar y Recibir**. Forma que propongo: tabla `proveedores_produccion` (mismas columnas útiles que `proveedores`), y `comprobantes_produccion` (+ `_items`, `_pagos`) con las reglas de ADR-0035 | Separa los módulos de raíz y desbloquea Producción sin tocar Compras. Cuesta duplicados y deuda en dos sitios (ver el recuadro de arriba) | esquema: ok al pegar |
+| **D-I** | Vista consolidada de deuda e IGV | **Abierta.** Recomiendo un consolidado de solo lectura (deuda por proveedor de los dos módulos + IGV crédito fiscal del mes) para el líder y el contador; puede vivir en el Resumen de Producción o en una pantalla propia | Sin él, «cuánto debe CAYLA» exige sumar a mano dos pantallas y el registro de compras de SUNAT queda partido | decidir antes de F4c |
 
 Mientras D-E y D-F no se decidan, **Eficiencia se construye con estados vacíos honestos** («Sin gastos registrados»), nunca con cifras de ejemplo.
 
@@ -50,15 +66,16 @@ Mientras D-E y D-F no se decidan, **Eficiencia se construye con estados vacíos 
 
 | Origen → destino | Qué viaja | Cómo se materializa | Fase |
 |---|---|---|---|
-| Comprobante (Compras) → Insumos | metros/unidades + costo + proveedor + documento | al recibir, cada línea de insumo abre **un lote** (`recibir_insumo` por dentro de `recibir_compras`/`recibir_envio`) | F4 |
+| Comprobante de **Producción** → Insumos | metros/unidades + costo + proveedor + documento | al recibir, cada línea abre **un lote** (`recibir_comprobante_produccion`, propio; no toca `recibir_compras`) | F4d |
 | Insumos → Orden | consumo real por lote (el más antiguo con saldo) | `registrar_consumo_insumo` → recalcula `costo_tela`/`costo_avios` | F3 |
 | Orden → Inventario | prendas buenas por variante + costo real | `cerrar_produccion` → `movimientos` (`produccion`) + costo promedio ponderado a `variantes.costo` | ya existe |
 | Inventario/Ventas → «¿Qué producir?» | ventas, disponible y en camino por variante | `fn_resumen_variantes` (ADR-0121) | F5, F6 |
-| Comprobantes → Resumen | vencido, por vencer, por recibir | `resumen_compras`, `deuda_por_vencimiento` (bajo el candado de ADR-0126) | F6 |
-| Insumos + Compras → Resumen | tela que falta, tela en camino | saldo por insumo + líneas de insumo sin recibir | F6 |
+| Comprobantes de Producción → Resumen | vencido, por vencer, por recibir | funciones propias de Producción (bajo el mismo candado que ADR-0126) | F6 |
+| Compras + Producción → consolidado | deuda por proveedor e IGV crédito fiscal, de los dos módulos | vista de solo lectura (**D-I**) | por decidir |
+| Insumos + comprobantes de Producción → Resumen | tela que falta, tela en camino | saldo por insumo + líneas sin recibir | F6 |
 | Orden cerrada → Traslados | «Siguiente paso: llevarlas a las tiendas» | enlace a `/inventario/mover` prellenado desde el Taller | F8 |
 | Orden → Movimientos | referencia «Orden N» | ADR-0127 ya muestra el proceso de origen | verificar en F8 |
-| Proveedores | gasto en insumos, puntualidad, precio por metro | `fn_proveedor_metricas_insumos` ya existe (hoy en ceros: se llena con F4) | F4 |
+| Proveedores de Producción | gasto en insumos, puntualidad, precio por metro | `fn_proveedor_metricas_insumos` (hoy sobre `retail.proveedores`, en ceros) se repunta al directorio propio | F4a |
 | Productos | el modelo y sus variantes **deben existir** antes de abrir una orden | «Nueva orden» enlaza a Productos cuando falta una talla/color | F5 |
 
 ## 5. Contrato de diseño: portar el spike, cambiar solo lo que CAYLA exige
@@ -85,6 +102,8 @@ que cuentan, barras que crecen, destello de «acaba de pasar» y avisos con «De
 | 5 | Gráfico de línea y «barras que crecen» | gramática de movimiento acotada (ADR-0128) | se **piden en el ADR-0133** como ampliación; sin aprobación, entran sin animar |
 | 6 | Drawer propio, `<aside>` propio, lateral propio | AppShell real + Radix | mismo aspecto, piezas reales |
 | 7 | Cálculos en el navegador con datos de ejemplo | principio 6 (lo esencial sobrevive al framework) | reglas puras en `lib/produccion-*.ts` con tests; la página lee y pinta |
+| 9 | Animaciones en bucle del spike: la barra de la etapa actual que barre, el anillo que late | `Chip` documenta que la **única** animación en bucle permitida por pantalla es su punto «vivo» | la etapa actual se distingue por color y por el trazo del check; nada parpadea (descubierto en F2) |
+| 10 | «Días de trabajo por etapa» (3 / 8 / 2) para estimar si una orden llega tarde | «nada inventado»: eran supuestos míos, no datos de CAYLA | el aviso de entrega usa solo hechos: fecha pasada, o a ≤ 2 días (`DIAS_ENTREGA_PRONTO`). Un estimado real llegará con plazos medidos (F7) |
 | 8 | Rótulos de sección en el lateral («Abastecer», «Fabricar») | el riel del AppShell se mueve por filas de **alto fijo** (`PASO_FILA`); una fila de otra altura lo desalinea (descubierto en F1) | sin rótulos; el **orden** de las filas cuenta el recorrido (proveedor → factura → recepción → pago → órdenes) |
 
 Regla de decisión sobre el diseño: **si el resultado real se ve distinto al spike, la diferencia debe estar en esta tabla.** Si no
@@ -99,54 +118,63 @@ Tamaño: **S** ≈ media sesión · **M** ≈ una sesión · **L** ≈ dos o má
   `SESIONES-ACTIVAS.md`; commitear el spike y este plan como `docs(produccion): …`.
 - **Verificas:** `git log --oneline HEAD..origin/main` vacío; `pnpm typecheck` en verde.
 
-### F1 · Navegación: Producción es el padre (M) — sin esquema · requiere **D-A**
-- `AppShell.tsx`: grupo `produccion` con secciones Decidir/Abastecer/Fabricar/Medir; el grupo `compras` deja de existir;
-  `RUTAS_POR_GRUPO` y `veProduccion` según D-A; `recibir` sigue en Inventario para quien no es líder.
-- Rutas: **`/produccion/ordenes`** (el contenido actual, movido) y `/produccion`, que redirige ahí hasta que exista el Resumen (F6;
-  el Resumen de Inventario ya enlaza a `/produccion`). `/produccion/insumos` y `/produccion/eficiencia` nacen en F3 y F7: **no se
-  crean páginas vacías ni ítems de menú muertos**. **Las URLs `/compras/*` y `/recibir` no cambian** (ADR-0128 y ADR-0129 dependen de ellas).
-- **Aplicada el 2026-09-19.** Diferido a propósito: las **insignias** del menú (Por pagar, Recibir, Órdenes, Insumos) piden una
-  consulta por carga de página en el layout; entran con F6, cuando el Resumen ya calcula esos números. Quien trabaja en el Taller
-  ve solo Órdenes (su «Recibir mercadería» sigue en Inventario para que una ruta no aparezca en dos grupos); un grupo de una fila
-  se muestra como fila suelta.
-- **Verificado:** líder parado en Tienda Lima ve el grupo y abre Órdenes; los 4 enlaces viejos de Compras abren y resaltan su ítem al entrar
-  por URL directa (el grupo se abre solo); `/produccion` redirige; sin errores de consola; tipos, lint y 1178 pruebas en verde. **Sin
-  verificar en navegador:** colaborador del Taller y de tienda (probarlos exige cerrar la sesión de Felipe); la regla está en
-  `lib/produccion-menu.ts` con pruebas para los tres perfiles.
+### F1 · Navegación: Producción como grupo propio (M) — sin esquema · D-A dada
+- `AppShell.tsx`: **dos grupos separados.** Producción (hoy una fila suelta hacia Órdenes; será grupo cuando tenga más de una pantalla) y
+  Compras (sus 4 pantallas, **intactas**), en el orden que pidió Felipe el 2026-09-16: Inicio, Colaboradores, Catálogo, Producción, Compras,
+  Ventas, Inventario. Regla en `lib/produccion-menu.ts` (`hijosMenuProduccion` / `hijosMenuCompras`, con pruebas).
+- Rutas: **`/produccion/ordenes`** (el contenido de la antigua `/produccion`, movido) y `/produccion`, que redirige ahí hasta que exista el
+  Resumen (F6; el Resumen de Inventario ya enlaza a `/produccion`). Las páginas nacen con su fase: **ni páginas vacías ni ítems de menú muertos**.
+  Las URLs `/compras/*` y `/recibir` **no cambian**.
+- **Historia:** la primera versión de F1 (2026-09-19) movió Compras adentro de Producción, como en el spike. Felipe lo corrigió ese mismo día:
+  son módulos distintos. Se deshizo antes de fusionar.
+- Diferido a propósito: las **insignias** del menú (piden una consulta por carga de página); entran con F6.
+- **Verificado** en navegador como líder parado en Tienda Lima: Producción aparece como fila propia, Compras como grupo con sus 4 pantallas;
+  `/produccion` redirige; sin errores de consola; tipos, lint y pruebas en verde. **Sin verificar en navegador:** colaborador del Taller y de
+  tienda (exige cerrar la sesión de Felipe); la regla está cubierta por pruebas para los tres perfiles.
 
 ### F2 · Órdenes: tablero, panel, matriz y cierre por talla (L) — sin esquema
-- `lib/produccion-reglas.ts` (puras, con tests): `riesgo(orden)` (días que faltan contra días de entrega), agrupación por
-  etapa, semáforo (ya existe), reparto de la matriz.
-- Componentes: tablero (`OrdenesTablero`), panel de la orden con matriz y cierre editable por variante, consumo con vista
-  previa. Sustituye `OrdenesProduccionV2.tsx` (507 líneas) por piezas chicas.
-- `NuevaOrdenProduccionForm.tsx` **deja de pedir tela y avíos** (manda `null`; el costo llega del consumo).
-- **Verificas:** abrir una orden real de prueba, marcar etapas, cerrar con 1 talla en 0 → el stock del Taller sube solo por
-  las buenas; la tarjeta viaja de columna; sin errores de consola; 1440 / 1024 / 390 px.
+- **Aplicada el 2026-09-19.** `lib/produccion-reglas.ts` (puras, 31 pruebas): `etapaActual`, `estadoEntrega`, `matrizDeLineas`,
+  `desgloseCosto`, `resumenTablero`. Componentes: `OrdenesTablero` (cifras + 4 columnas + muestras + terminadas/anuladas),
+  `OrdenTarjeta`, `OrdenPanel` (cajón: etapas, matriz talla×color, costo, cierre), `OrdenCierre`, `MatrizOrden`, `OrdenModales`
+  (Anular/Revertir, movidos sin cambios) y el hook `useFlipCajas` (las tarjetas viajan entre columnas). Retira `OrdenesProduccionV2.tsx`.
+- **Lo que se conservó a propósito** (el spike no lo tenía): muestras (con sus 3 etapas, en su franja), órdenes terminadas y anuladas,
+  «Revertir cierre», y los tres costos reales en el cierre.
+- **Cambió respecto al plan original:** `NuevaOrdenProduccionForm.tsx` **sigue pidiendo tela y avíos** hasta F3. Quitarlos antes
+  dejaría el costo de la orden en «solo maquila» sin que el consumo de insumos (F3) exista para reemplazarlos: un margen falso.
+  El cierre manda `null` (conservar) a quien no es líder.
+- **Verificado en el navegador** (líder, base local): abrir orden → marcar etapa (con «Deshacer») → la tarjeta pasa de columna → cerrar
+  por talla y color → terminada → revertir → anular; una muestra con sus etapas propias; 390 px sin desborde; sin errores de consola.
+- **Pendiente / a decidir:** (1) colaborador del Taller sin probar en navegador; (2) `producciones.costo_*` se leen con
+  `fn_puede_operar_ubicacion`: un colaborador ve costos **por la API** aunque la pantalla se los oculte — se suma a D-G (F4e);
+  (3) el menú del celular no tiene entrada a Producción (ya era así).
 
-### F3 · Insumos: pantalla y consumo (M) — sin esquema (la lectura por el hueco D-G queda para F4c)
+### F3 · Insumos: pantalla y consumo (M) — sin esquema (el candado de montos queda para F4e)
 - `lib/insumos.ts` (lectura por `fn_puede_operar_ubicacion`, como hoy) + pantalla: saldo contra mínimo, lotes con «1º»,
   libro de movimientos, «Recibir insumo» (`recibir_insumo`), consumo desde la orden (`registrar_consumo_insumo`).
 - **Verificas:** recibir 60 m → aparece el lote y el libro; consumir 10 m desde una orden → el costo de la orden cambia y el
   aviso ofrece «Deshacer» (devolución); pedir más que el lote → mensaje en español con el saldo exacto.
 
-### F4 · Compras ↔ Insumos: el ciclo cerrado (L, **alto riesgo**) — esquema · requiere **D-C, D-G** y **ADR-0132 fusionado**
-- **Antes de empezar:** confirmar con la sesión de `modulos-por-tienda-ca0f59` (dueña de `registrar_compra`/`recibir_compras`/`compra_item_destinos`) el orden y quién toca cada función. F4 se escribe **sobre** el resultado de ADR-0132: una línea de insumo lleva su destino (el Taller) en `compra_item_destinos`, y `recibir_compras` decide entre mover stock de variante o abrir lote según la línea. Dos migraciones distintas reescribiendo la misma función en paralelo es exactamente el choque que ya costó dos firmas de `registrar_compra`.
-- **4a · Comprobante con renglón de insumo.** Migración: `compra_items.insumo_id` + CHECK; `registrar_compra` (`p_items`
-  acepta `insumo_id`); vistas `compras_resumen`/`compra_items_resumen` suman insumos en `facturado`/`recibido`.
-- **4b · Recibir abre el lote.** `recibir_compras` y `recibir_envio`: la línea de insumo llama a la lógica de
-  `recibir_insumo` (lote con proveedor, documento y costo **sin IGV**); faltantes y nota de crédito funcionan igual.
-- **4c · Candado del dinero de insumos (D-G).** `insumo_lotes`/`movimientos_insumo` solo líder; función operativa sin costos;
-  `v_insumo_saldos` con `security_invoker`. Reaplicar `fn_aplicar_candado_de_dinero()` si se recrea alguna de las 5 funciones de indicadores.
-- **Ojo, cambió desde que se escribió el plan:** `main` ya trae `20260919181000_registrar_compra_endurecimiento_por_parche.sql` (ADR-0135, guarda de
-  `registrar_compra` independiente del reparto por tienda) y las migraciones de pago por lote (`…190000`, `…200000`). F4 debe partir de
-  la definición **vigente** de esas funciones, no de las del plan. Timestamps libres: **≥ `20260919210000`**.
-- **Método (obligatorio, aprendido a la mala):** partir de `pg_get_functiondef` **de producción**, no del archivo del repo;
-  una sola firma (verificar con `explain`, no `create or replace` con parámetros distintos); migración idempotente;
-  prueba nueva `scripts/pruebas/compras_insumos.mjs` + paso en `ci.yml`; en producción con prefijo `retail.` (regla de CLAUDE.md).
-- **Verificas:** registrar comprobante de 100 m a crédito → aparece en Por pagar y en Recibir; recibirlo → lote nuevo y saldo
-  sube; el comprobante muestra «de la factura a la prenda»; con sesión de colaborador **la API directa no devuelve costos**;
-  `pnpm datos:generar:produccion` y `pnpm datos:comparar` sin rotos.
-- **Gate:** el SQL lo pega **Felipe** en producción, con el ok explícito, después de un dry-run con rollback.
+### F4 · Abastecimiento propio de Producción (L, **alto riesgo**) — esquema · requiere **D-H, D-G** (y **D-I** antes de F4c)
+Ya **no depende de ADR-0138** ni toca `compras`, `compra_items`, `registrar_compra` ni `recibir_compras`. Cinco PR, cada uno con su prueba SQL:
+- **F4a · Proveedores de Producción.** Tabla `proveedores_produccion` (nombre, RUC, contacto, teléfono, banco, cuenta, CCI, billeteras, `rubro`
+  tela | avíos | maquila | otro, `plazo_credito_dias`, forma de pago, `activo`). `insumos.proveedor_id` e `insumo_lotes.proveedor_id` se
+  **repuntan** a esta tabla (hoy apuntan a `retail.proveedores`; están en **0 filas** en producción: verificar de nuevo antes de pegar).
+  `fn_proveedor_metricas_insumos` pasa al directorio propio. Pantalla: lista, ficha y vista rápida (el diseño ya aprobado de Proveedores, ADR-0128).
+- **F4b · Comprobantes de Producción.** `comprobantes_produccion` + `_items` (insumo, cantidad, costo unitario **sin IGV**) + `_pagos`;
+  RPC `registrar_comprobante_produccion` con las reglas de ADR-0035: **contado ⇒ pago obligatorio en la misma transacción**, crédito ⇒
+  vencimiento, escritura solo por RPC, anular (nunca borrar), idempotencia por token.
+- **F4c · Por pagar de Producción** (requiere **D-I**): saldo derivado (nunca guardado), vencidos, pago (uno o varios medios).
+- **F4d · Recibir insumos.** `recibir_comprobante_produccion` abre **un lote por línea** (proveedor, documento, costo sin IGV, `origen = 'compra'`),
+  idempotente; faltantes con su motivo. Quien trabaja en el Taller recibe **sin ver montos**.
+- **F4e · Candado del dinero (D-G).** Las tablas nuevas nacen solo-líder; `insumo_lotes`, `movimientos_insumo` y `producciones.costo_*` pasan al mismo
+  candado, con funciones **operativas** sin monto para el Taller; `v_insumo_saldos` con `security_invoker`.
+- **Método:** migraciones idempotentes; prueba `scripts/pruebas/produccion_abastecimiento.mjs` + paso en `ci.yml`; timestamps **≥ `20260919210000`**;
+  al pegar en producción, prefijo `retail.` (regla de CLAUDE.md). Solo se reescribe una función existente (`fn_proveedor_metricas_insumos`): partir de
+  su `pg_get_functiondef` de producción.
+- **Verificas:** registrar un comprobante de 100 m a crédito → aparece en Por pagar de Producción; recibirlo → lote nuevo y saldo sube; el
+  comprobante muestra «de la factura a la prenda»; con sesión de colaborador **la API directa no devuelve montos**; `datos:generar:produccion` y
+  `datos:comparar` sin rotos; **Compras sigue idéntico** (sus pruebas SQL pasan sin cambios).
+- **Gate:** el SQL lo pega **Felipe**, con dry-run con rollback antes.
 
 ### F5 · Nueva orden con decisión (M) — sin esquema · depende de F3 (cobertura) y del motor de reposición
 - Curva sugerida por talla desde `fn_resumen_variantes` (si no da la vista agregada de la red, una **función de solo lectura**
@@ -175,20 +203,22 @@ Tamaño: **S** ≈ media sesión · **M** ≈ una sesión · **L** ≈ dos o má
 ## 7. Orden, dependencias y paralelismo
 
 ```
-F0 ─ F1 ─ F2 ─ F3 ─┬─ F4 (esquema, gate; espera ADR-0132) ─┬─ F6
-                   └─ F5 ───────────────────────────────────┘
+F0 ─ F1 ─ F2 ─ F3 ─┬─ F4a ─ F4b ─ F4c ─ F4d ─ F4e ─┬─ F6
+                   └─ F5 ───────────────────────────┘
                               F7 (esquema, gate D-E/D-F) ─ F8
 ```
-F1–F3 dan valor visible sin tocar la base y se pueden fusionar uno por uno. F4 es el cuello de botella y el mayor riesgo:
-va solo, con su prueba SQL, y no se mezcla con pantallas. F5 y F6 pueden avanzar en paralelo una vez que F3 existe.
+F1–F3 dan valor visible sin tocar la base. F4 es el mayor riesgo (esquema nuevo con lógica financiera): cada sub-fase va sola. F4 **ya no espera**
+a ADR-0138: los dos módulos avanzan en paralelo sin tocar las mismas funciones. F5 y F6 pueden avanzar en paralelo una vez que existe F3.
 
 ## 8. Riesgos y cómo se acotan
 
 | Riesgo | Mitigación |
 |---|---|
-| F4 deja `registrar_compra` con **dos firmas** (ya pasó el 2026-09-18) | partir de `pg_get_functiondef` de producción; `explain` de verificación; prueba SQL en CI |
-| Choque con otras sesiones (ADR/timestamps/Compras). **Ya visible:** ADR-0131 y ADR-0132 están tomados por ramas sin fusionar | F0: fusionar `main`, reservar ADR-0133 y timestamps, fila en `SESIONES-ACTIVAS.md`; `git status` y ramas antes de cada fase; F4 solo tras ADR-0132 |
-| Rediseñar de más Compras y pisar ADR-0128/0129/0131 | «Abastecer» = navegación y conexión; ninguna fase restila Proveedores, Recibir, Comprobantes ni Por pagar |
+| Duplicar lógica financiera de Compras (contado, vencimiento, pagos) y que **diverja** | copiar las reglas de ADR-0035 tal cual y probarlas con los mismos casos; ningún módulo llama al otro |
+| **Deuda e IGV partidos** en dos módulos | **D-I** (consolidado de solo lectura) antes de F4c; hasta entonces cada módulo muestra solo lo suyo y lo dice |
+| Repuntar `insumo_lotes.proveedor_id` con datos ya cargados | hoy 0 filas; verificar de nuevo el día de pegar, y si hubiera filas, migrarlas antes de repuntar |
+| Choque con otras sesiones (ADR/timestamps). **Ya visible:** los ADR 0130-0132 estaban tomados por ramas sin fusionar | F0: fusionar `main`, reservar ADR-0133 y timestamps, fila en `SESIONES-ACTIVAS.md`; `git status` y ramas antes de cada fase; F4 solo tras ADR-0132 |
+| Tocar Compras por accidente | Compras **no se modifica** en ninguna fase; su prueba SQL corre en cada PR de F4 |
 | Regla de menú del 2026-09-17 revertida sin querer | D-A explícita; el ADR-0133 la marca como **reemplazada** |
 | El colaborador ve costos por la API | F4c antes de exponer Insumos a colaboradores fuera del Taller; prueba `dinero_compras_solo_lider.mjs` extendida |
 | Cifras de ejemplo que se cuelan a producción | regla 4 del contrato de diseño; revisión de cada PR contra el spike |
