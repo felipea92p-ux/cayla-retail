@@ -77,36 +77,65 @@ export type ResumenInventario = {
   separaPisoAlmacen: boolean;
 };
 
+// `42703` = undefined_column: PostgREST lo devuelve cuando el `select` nombra una columna que la base no tiene.
+const COLUMNA_INEXISTENTE = "42703";
+
 export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaStock[]> {
   const supabase = await createClient();
-  const filas = exigir(
-    await supabase
-      .from("stock")
-      .select(
-        `variante_id, cantidad, cantidad_apartada,
-         sububicacion:sububicaciones ( tipo ),
-         variante:variantes!inner (
-           sku, talla:tallas ( valor ),
-           color:colores ( nombre, hex ),
-           producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
-           codigos_barras ( codigo )
-         )`
-      )
-      .eq("ubicacion_id", ubicacionId)
-      // La variante centinela del «Monto manual» tiene 999.999 unidades por
-      // ubicación: sin esto, «Total tienda» mostraba 1.000.422 (visto en
-      // producción el 2026-09-15). Ver `lib/cargo-especial.ts`.
-      .neq("variante_id", ID_CARGO_ESPECIAL)
-      // Una variante descontinuada (`variantes.activo = false`, el mismo
-      // flag que ya la oculta de caja/catálogo/conteo) no debe reaparecer
-      // acá con stock: 6 productos de prueba archivados el 2026-09-16
-      // dejaron ~1.600 unidades fantasma en este reporte hasta que un
-      // ajuste manual las llevó a 0 (BACKLOG). `!inner` para que el filtro
-      // excluya la fila entera, no solo el embed de `variante`.
-      .eq("variante.activo", true)
-      .order("variante_id"),
-    "el inventario de esta ubicación"
-  );
+
+  // Pide también `cantidad_apartada` (ADR-0141). TEMPORAL — mientras `20260920160000_apartar_stock.sql` no esté
+  // pegada en producción: esta misma lectura alimenta la CAJA (Vender), Cambios y Traslados, y una web que sale
+  // antes que el SQL no puede tumbarlas («nunca perder una venta»). Sin la columna se reintenta sin ella y todo
+  // queda como antes (apartado = 0): la base seguiría rechazando lo no disponible. Mismo patrón que Vender con
+  // `campanas_vigentes`. Retirar el reintento cuando la migración esté aplicada (BACKLOG).
+  const conColumna = await supabase
+    .from("stock")
+    .select(
+      `variante_id, cantidad, cantidad_apartada,
+       sububicacion:sububicaciones ( tipo ),
+       variante:variantes!inner (
+         sku, talla:tallas ( valor ),
+         color:colores ( nombre, hex ),
+         producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
+         codigos_barras ( codigo )
+       )`
+    )
+    .eq("ubicacion_id", ubicacionId)
+    // La variante centinela del «Monto manual» tiene 999.999 unidades por
+    // ubicación: sin esto, «Total tienda» mostraba 1.000.422 (visto en
+    // producción el 2026-09-15). Ver `lib/cargo-especial.ts`.
+    .neq("variante_id", ID_CARGO_ESPECIAL)
+    // Una variante descontinuada (`variantes.activo = false`, el mismo
+    // flag que ya la oculta de caja/catálogo/conteo) no debe reaparecer
+    // acá con stock: 6 productos de prueba archivados el 2026-09-16
+    // dejaron ~1.600 unidades fantasma en este reporte hasta que un
+    // ajuste manual las llevó a 0 (BACKLOG). `!inner` para que el filtro
+    // excluya la fila entera, no solo el embed de `variante`.
+    .eq("variante.activo", true)
+    .order("variante_id");
+
+  const filas =
+    conColumna.error?.code === COLUMNA_INEXISTENTE
+      ? exigir(
+          await supabase
+            .from("stock")
+            .select(
+              `variante_id, cantidad,
+               sububicacion:sububicaciones ( tipo ),
+               variante:variantes!inner (
+                 sku, talla:tallas ( valor ),
+                 color:colores ( nombre, hex ),
+                 producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
+                 codigos_barras ( codigo )
+               )`
+            )
+            .eq("ubicacion_id", ubicacionId)
+            .neq("variante_id", ID_CARGO_ESPECIAL)
+            .eq("variante.activo", true)
+            .order("variante_id"),
+          "el inventario de esta ubicación"
+        ).map((f) => ({ ...f, cantidad_apartada: 0 }))
+      : exigir(conColumna, "el inventario de esta ubicación");
 
   // Una sola ubicación es piso/almacén o no lo es — nunca "depende de la
   // variante". Se decide una vez sobre todas las filas, no por fila: una

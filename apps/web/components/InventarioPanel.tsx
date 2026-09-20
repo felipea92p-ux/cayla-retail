@@ -386,7 +386,7 @@ export function InventarioPanel({
                 {separa && (
                   <span className={celda("centro", "text-sm tabular-nums")}>
                     <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Piso · Almacén</span>
-                    <span className={f.piso !== null && f.piso <= UMBRAL_REPOSICION_PISO ? "text-ambar-profundo" : "text-tinta"}>{f.piso}</span>
+                    <span className={(f.pisoDisponible ?? f.piso) !== null && (f.pisoDisponible ?? f.piso)! <= UMBRAL_REPOSICION_PISO ? "text-ambar-profundo" : "text-tinta"}>{f.piso}</span>
                     <span className="text-tinta/45"> · </span>
                     <span className="text-tinta">{f.almacen}</span>
                   </span>
@@ -419,10 +419,12 @@ export function InventarioPanel({
                           quede algo en el almacén (aunque el chip diga «Stock
                           bajo», reserva crítica) sigue teniendo sentido bajarlo al
                           piso ahora mismo, sin esperar el traslado. */}
-                      {puedeReponer && f.piso !== null && f.almacen !== null && necesitaReponerPiso(f.piso, f.almacen) && (
+                      {puedeReponer && f.pisoDisponible !== null && f.almacenDisponible !== null && necesitaReponerPiso(f.pisoDisponible, f.almacenDisponible) && (
                         <button
                           type="button"
-                          onClick={() => setReponiendo(f)}
+                          // Lo apartado para una clienta no se puede bajar del almacén (la base lo rechaza): el modal
+                          // ofrece y valida contra lo DISPONIBLE, no contra lo físico (ADR-0141).
+                          onClick={() => setReponiendo({ ...f, piso: f.pisoDisponible, almacen: f.almacenDisponible })}
                           className="label-cayla text-[10px] text-rojo underline underline-offset-2 hover:no-underline"
                         >
                           Reponer

@@ -55,6 +55,14 @@ decisiones, lo que se descartó y la verificación en [docs/adr/0141-apartar-sto
       (`stock_calidad`, como registro append-only — no como contador editable), historial de cambios del producto, y lead time / pedido mínimo del proveedor.
       **Campañas: descartada** — `main` la resolvió (ADR-0107/0108, la etiqueta de campaña lleva el %). Ojo: esas ramas traen ADR con número repetido
       (0094 y 0097) y `main` ya va en 0141.
+- [ ] **Retirar la lectura tolerante** de `getStockPorUbicacion` (`inventario-v2.ts`, reintento sin `cantidad_apartada` ante `42703`) y de `getApartadosAbiertos`
+      (`apartados.ts`, `[]` ante `PGRST202`) **cuando la migración esté verificada en producción**. Existen solo para que una web que sale antes que el SQL no
+      tumbe la caja; después son código muerto.
+- [ ] **Vender y Cambios dicen «agotada» / «Sin stock aquí»** de una prenda cuyo piso está todo apartado (se ve en el piso, pero es de una clienta): falta decir
+      «apartada para una clienta». `PuntoDeVenta.tsx` lo comparte con otra sesión, por eso no se tocó aquí.
+- [ ] **La reposición sugerida desde Resumen** (`ReponerPisoModal` con `cantidadInicial`) todavía parte del stock físico del almacén; en Existencias ya se corrigió.
+- [ ] **El mensaje del cierre de conteo** ya nombra el SKU, pero la vista previa (`previsualizar_cierre_conteo`) no avisa de los apartados: quien cuenta no ve
+      que hay prendas reservadas que también hay que contar.
 - [ ] 🩹 **`AjustarInventarioModal.tsx` selecciona `variantes.talla`, que ya no existe (es `talla_id`)** desde la taxonomía cerrada (ADR-0075): «Ajustar
       inventario» probablemente falla al cargar las variantes. No se tocó aquí; verificar con datos reales.
 

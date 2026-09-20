@@ -9,7 +9,11 @@ import type { Apartado } from "@/lib/apartados-reglas";
 // «solo quien apartó o una líder» no se repite en la app.
 export async function getApartadosAbiertos(ubicacionId: string): Promise<Apartado[]> {
   const supabase = await createClient();
-  const filas = exigir(await supabase.rpc("listar_apartados", { p_ubicacion_id: ubicacionId }), "los apartados");
+  const respuesta = await supabase.rpc("listar_apartados", { p_ubicacion_id: ubicacionId });
+  // PGRST202 = la función todavía no existe (la migración no está pegada en producción): sin apartados, y las
+  // demás pantallas siguen. TEMPORAL, mismo criterio que `getStockPorUbicacion` (ADR-0141).
+  if (respuesta.error?.code === "PGRST202") return [];
+  const filas = exigir(respuesta, "los apartados");
 
   return filas.map((f) => ({
     id: f.id,

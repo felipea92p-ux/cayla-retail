@@ -281,7 +281,7 @@ insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo
 select retail.fn_aplicar_movimiento(:'mov2');
 `
   ),
-  "apartadas para clientas"
+  "de BLU-EMMA-NEG-M en stock"
 );
 
 exito(
@@ -323,6 +323,40 @@ exito(
   exists (select 1 from pg_constraint where conrelid = 'retail.stock'::regclass and contype = 'c' and pg_get_constraintdef(oid) ~ 'cantidad_apartada <= cantidad');
 `,
   ([noNegativa, noExcede]) => noNegativa === "t" && noExcede === "t"
+);
+
+// --- los bordes exactos: lo que SÍ se puede hacer con lo disponible (un guard con `<` en vez de `<=` fallaría aquí) ---
+
+exito(
+  "un traslado de TODO lo disponible funciona, y lo apartado se queda en el origen",
+  comoPersona(
+    FELIPE,
+    `${RESOLVER}
+${colchon("sub_almacen", 10)}
+${apartar({ sub: "sub_almacen", cantidad: 2, nombre: "Borde traslado" })}
+select ${disponibleDe("sub_almacen")} as disp \\gset
+${movimiento({ sub: "sub_almacen", tipo: "traslado", cantidad: ":'disp'", motivo: "prueba apartar_stock: mover TODO lo disponible", destino: { ubic: "ubic", sub: "sub_piso" } })}
+select ${cantidadDe("sub_almacen")}, ${apartadaDe("sub_almacen")};
+rollback;
+`
+  ),
+  ([cantidad, apartada]) => Number(cantidad) === 2 && Number(apartada) === 2
+);
+
+exito(
+  "un ajuste que deja el stock EXACTAMENTE igual a lo apartado se acepta",
+  comoPersona(
+    FELIPE,
+    `${RESOLVER}
+${colchon("sub_almacen", 5)}
+${apartar({ sub: "sub_almacen", cantidad: 3, nombre: "Borde ajuste" })}
+select (${apartadaDe("sub_almacen")} - ${cantidadDe("sub_almacen")}) as delta \\gset
+${movimiento({ sub: "sub_almacen", tipo: "ajuste", cantidad: ":'delta'", motivo: "prueba apartar_stock: ajuste justo a lo apartado" })}
+select ${cantidadDe("sub_almacen")}, ${apartadaDe("sub_almacen")};
+rollback;
+`
+  ),
+  ([cantidad, apartada]) => Number(cantidad) === Number(apartada)
 );
 
 error(
@@ -653,6 +687,30 @@ ${colchon("sub_piso", 3)}
 error(
   "un usuario autenticado NO puede ejecutar el diagnóstico fn_verificar_apartados()",
   comoAuthenticated(FELIPE, "", `select count(*) from retail.fn_verificar_apartados();`),
+  "permission denied"
+);
+
+error(
+  "un usuario autenticado NO puede insertar directo en movimientos (la puerta lateral que dejaría un apartado sin dueño)",
+  comoAuthenticated(
+    FELIPE,
+    RESOLVER,
+    `insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'v', :'ubic', :'sub_piso', 'apartado', 1, 'puerta lateral');
+`
+  ),
+  "permission denied"
+);
+
+error(
+  "un usuario autenticado NO puede ejecutar recalcular_stock() (borra y reconstruye TODO el stock)",
+  comoAuthenticated(FELIPE, "", `select retail.recalcular_stock();`),
+  "permission denied"
+);
+
+error(
+  "un usuario anónimo NO puede ejecutar recalcular_stock()",
+  comoPersona(FELIPE, `set local role anon;\nselect retail.recalcular_stock();`),
   "permission denied"
 );
 

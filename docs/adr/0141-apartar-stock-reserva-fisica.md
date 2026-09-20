@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-09-20
 **Estado:** Aceptado e **implementado (Fase 1)** en la rama `claude/apartado-stock-reserva-fisica`. Verificado con SQL contra un Postgres 17
-real (41 pruebas nuevas, 54 de regresión del motor y de ventas, y carreras con COMMIT de hasta 120 conexiones), 1645 pruebas unitarias y el
+real (46 pruebas nuevas, 54 de regresión del motor y de ventas, y carreras con COMMIT de hasta 120 conexiones), 1645 pruebas unitarias y el
 navegador (los componentes reales con datos de ejemplo). **La migración NO está aplicada en producción**: se pega con ok de Felipe, en el orden
 de «Cómo se pega en producción».
 **Decide:** Felipe, en lo de negocio (24 preguntas del 2026-09-17 y 8 más el 2026-09-20). Arquitectura: este documento.
@@ -41,6 +41,8 @@ verdad del efecto en stock; `apartados` es a la reserva lo que `transferencias` 
 **DECIDÍ 3 — las dos RPC (`apartar_stock`, `liberar_apartado`) son la ÚNICA puerta al contador.** `registrar_movimiento` sigue aceptando solo
 entrada/salida/ajuste. `authenticated` ya no puede ejecutar `fn_aplicar_movimiento` ni insertar en `movimientos` (ADR-0078), así que no hay puerta lateral.
 **DESCARTÉ** ampliar `registrar_movimiento` con los dos tipos (la rama anterior): permitiría un `apartado` sin fila en `apartados` — un contador sin dueño.
+`recalcular_stock` —el otro escritor de `stock`— también se cierra a `anon`/`authenticated` en esta migración: en producción ya estaba cerrada, pero
+ningún archivo del repo lo decía, así que un Postgres construido desde el repo la dejaba abierta (la revisión adversarial lo encontró).
 **SE ROMPE SI** un día se le concede a un rol el `insert` directo en `movimientos`.
 
 **DECIDÍ 4 — `salida`, `traslado` y `ajuste` validan contra lo DISPONIBLE, con mensaje de negocio.** Los mensajes conservan el prefijo
@@ -87,12 +89,20 @@ entera); y se partió de la definición de producción, verificada por md5.
 
 ## Verificación
 
-- **SQL, Postgres 17 real** (`scripts/pruebas/apartar_stock.mjs`, 41 escenarios): el candado (venta, traslado y ajuste no se llevan lo apartado), las dos
-  RPC y sus permisos, RLS y privilegios (`authenticated`/`anon`), `listar_apartados`, y el invariante tras apartar, liberar y reconstruir el stock.
+- **SQL, Postgres 17 real** (`scripts/pruebas/apartar_stock.mjs`, 46 escenarios): el candado (venta, traslado y ajuste no se llevan lo apartado, y los bordes
+  exactos: trasladar TODO lo disponible, ajustar justo a lo apartado), las dos RPC y sus permisos, RLS y privilegios (`authenticated`/`anon`, incluida la
+  puerta lateral de `movimientos` y `recalcular_stock`), `listar_apartados`, y el invariante tras apartar, liberar y reconstruir el stock.
 - **Regresión:** `fn_aplicar_movimiento.mjs` 11/11, `registrar_venta.mjs` 25/25, `registrar_cambio.mjs` 18/18 sobre el motor reescrito. Una prueba de
   `fn_aplicar_movimiento` asumía que `stock` tenía un solo CHECK con «cantidad»; se hizo exacta (`cantidad >= 0`).
 - **Mutación:** se rompió el código a propósito de tres formas (validar contra el total, dejar liberar a cualquiera, abrir la RLS) y cada una hizo fallar
   justo la prueba que debía. Una prueba que no puede fallar no prueba nada.
+- **Revisión adversarial sobre el código real** (6 revisores independientes; cada hallazgo, refutado por 2 escépticos que lo reproducían en Postgres):
+  15 hallazgos de gravedad media o más → **5 confirmados, que son 3 problemas reales, ya corregidos**: (1) `Reponer` y el semáforo miraban el stock físico
+  del almacén cuando la base valida contra lo disponible — ahora usan lo disponible; (2) `recalcular_stock` abierta a usuarios normales en un entorno
+  construido desde el repo — cerrada; (3) el orden de despliegue: la caja (Vender), Cambios y Traslados comparten la lectura que ahora pide
+  `cantidad_apartada`, y el ADR solo decía que caía `/inventario` — ahora esa lectura es **tolerante** (ver «Cómo se pega»). Los otros 10 se refutaron
+  (huecos de cobertura o límites ya documentados); de ellos se adoptaron dos mejoras baratas: el mensaje del conteo nombra el SKU, y el aviso de una
+  `salida` ya no dice «vender» cuando en realidad es un traslado.
 - **Concurrencia real** (con COMMIT, sobre una base propia — nunca la compartida): 6 rondas de hasta 120 conexiones mezclando apartar y vender sobre la MISMA
   fila. En todas, apartadas + vendidas = exactamente las unidades disponibles; cero deadlocks; cero descuadres.
 - **Idempotencia:** la migración se aplicó dos veces seguidas sin error (`if exists`, `or replace`).
@@ -106,8 +116,11 @@ entera); y se partió de la definición de producción, verificada por md5.
    Es aditiva y re-ejecutable, no crea sobrecargas (las firmas de `fn_aplicar_movimiento(uuid)` y `recalcular_stock()` no cambian).
 2. Verificar (solo lectura): `select * from retail.fn_verificar_apartados();` → 0 filas; `select count(*) from retail.stock where cantidad_apartada <> 0;`
    → 0; y que existan `apartar_stock`, `liberar_apartado`, `listar_apartados` y `fn_verificar_apartados`.
-3. Desplegar la web. Va **después** porque `/inventario` lee `stock.cantidad_apartada` y llama `listar_apartados`: sin la migración, esa pantalla cae.
-   La web vieja sobre la base nueva funciona sin cambios (mientras `cantidad_apartada` sea 0 en todas las filas, `disponible = cantidad`).
+3. Desplegar la web. Va **después**. Las pantallas que leen `stock.cantidad_apartada` son cuatro —Vender (la caja), Cambios, Traslados y Existencias— porque
+   comparten `getStockPorUbicacion`; `/inventario` además llama `listar_apartados`. Como el deploy sale solo al fusionar y el SQL se pega a mano, ambas lecturas son
+   **tolerantes mientras tanto** (ver BACKLOG para retirar el reintento): sin la columna, se lee sin ella y todo queda como antes (apartado = 0); sin la función,
+   Existencias muestra cero apartados. Aun así, el orden correcto es SQL primero. La web vieja sobre la base nueva funciona sin cambios
+   (mientras `cantidad_apartada` sea 0 en todas las filas, `disponible = cantidad`).
 
 ## SE ROMPE SI
 

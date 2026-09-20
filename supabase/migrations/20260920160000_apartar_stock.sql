@@ -17,7 +17,8 @@
 --   3. `fn_aplicar_movimiento`: `salida`, `traslado` y `ajuste` validan contra lo
 --      DISPONIBLE, con mensaje de negocio (antes: error crudo de constraint). Sin
 --      esto el contador sería decorativo: una venta normal se llevaría lo apartado.
---   4. `recalcular_stock()` reproduce los apartados desde `movimientos` (principio 4).
+--   4. `recalcular_stock()` reproduce los apartados desde `movimientos` (principio 4), y se cierra a
+--      anon/authenticated (en producción ya lo estaba; el repo no lo decía).
 --   5. `apartados`: una fila por reserva — clienta, contacto, fecha límite, quién y
 --      cuándo. Ligada a los movimientos que la crearon y la cerraron.
 --   6. RPC `apartar_stock` y `liberar_apartado`: las ÚNICAS puertas al contador.
@@ -130,7 +131,7 @@ begin
     if v_actual is null or v_actual - v_apartada < m.cantidad then
       raise exception '%', format('Stock insuficiente: hay %s y se pide sacar %s', greatest(coalesce(v_actual, 0) - coalesce(v_apartada, 0), 0), m.cantidad)
         || case when coalesce(v_apartada, 0) > 0
-             then format(' (%s apartadas para clientas: no se pueden vender)', v_apartada) else '' end;
+             then format(' (%s apartadas para clientas: no están disponibles)', v_apartada) else '' end;
     end if;
     update stock set cantidad = cantidad - m.cantidad, updated_at = now()
       where variante_id = m.variante_id and ubicacion_id = m.ubicacion_id
@@ -150,7 +151,7 @@ begin
     -- Un conteo que encuentra menos prendas que las apartadas: no se cierra a ciegas.
     -- Primero hay que resolver la reserva (¿se perdió la prenda? ¿la clienta no vino?).
     if v_actual + m.cantidad < v_apartada then
-      raise exception '%', format('El ajuste dejaría %s prendas en stock pero hay %s apartadas para clientas — libera o resuelve esos apartados primero', v_actual + m.cantidad, v_apartada);
+      raise exception '%', format('El ajuste dejaría %s prendas de %s en stock pero hay %s apartadas para clientas — libera o resuelve esos apartados primero', v_actual + m.cantidad, (select sku from variantes where id = m.variante_id), v_apartada);
     end if;
     update stock set cantidad = cantidad + m.cantidad, updated_at = now()
       where variante_id = m.variante_id and ubicacion_id = m.ubicacion_id
@@ -258,6 +259,12 @@ begin
   having sum(delta) <> 0 or sum(delta_apartada) <> 0;
 end;
 $$;
+
+-- `recalcular_stock()` borra y reconstruye TODO `stock`: solo el SQL Editor / service_role. En producción ya estaba
+-- cerrada (verificado 2026-09-20: `proacl = {postgres=X/postgres}`), pero ninguna migración del repo lo decía, así que
+-- un Postgres construido desde el repo la dejaba ejecutable por anon/authenticated (`create or replace` conserva el ACL
+-- que ya tenía). Mismo patrón que ADR-0078. Nada de la app la llama; la prueba corre como postgres.
+revoke all on function retail.recalcular_stock() from public, anon, authenticated;
 
 -- ---------- 5. apartados: el documento de negocio ----------
 create table if not exists retail.apartados (
