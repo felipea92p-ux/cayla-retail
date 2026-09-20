@@ -67,7 +67,7 @@ cualquier chequeo.
 ## Por qué dos migraciones (y por qué `registrar_compra` se parcha en vez de recrearse)
 
 La primera versión de esta migración recreaba `registrar_compra` entera con `create or replace`, copiada de la definición de
-producción. Pero la rama de **reparto por tienda** (ADR-0138) también reescribe `registrar_compra`: guarda `destinos` por
+producción. Pero la rama de **reparto por tienda** (ADR-0139) también reescribe `registrar_compra`: guarda `destinos` por
 línea en `compra_item_destinos`, deja de escribir `compras.ubicacion_destino_id` y elimina esa columna. Como ninguna de las dos
 está aún en producción ni se sabe cuál se fusiona primero, un `create or replace` completo desde aquí, si corriera DESPUÉS,
 **pisaría la de reparto** y `registrar_compra` fallaría con «column ubicacion_destino_id does not exist» (y si corriera antes, la

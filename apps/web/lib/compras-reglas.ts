@@ -22,7 +22,7 @@ export type CompraResumen = {
   condicion: Condicion;
   fechaVencimiento: string | null;
   /**
-   * Tiendas a las que está repartido el comprobante (ADR-0138). Antes era UN destino (`ubicacionDestinoId`): una
+   * Tiendas a las que está repartido el comprobante (ADR-0139). Antes era UN destino (`ubicacionDestinoId`): una
    * factura puede traer mercadería para varias tiendas y cada una recibe lo suyo. Un colaborador solo ve la suya.
    */
   ubicacionesDestino: string[];
@@ -50,7 +50,7 @@ export type CompraResumen = {
   /** Solo se llena en `getCompra` (detalle); la vista no lo expone. */
   motivoAnulacion?: string | null;
   /**
-   * Lo que le toca a la tienda DESDE LA QUE SE MIRA (ADR-0138): solo viene cuando la lista se pide con una tienda
+   * Lo que le toca a la tienda DESDE LA QUE SE MIRA (ADR-0139): solo viene cuando la lista se pide con una tienda
    * (siempre para un colaborador). En ese caso `facturadoCantidad`, `recibidoCantidad` y `cerradoCantidad` ya son los
    * de esa tienda y `estadoRecepcion` se lee desde ella. Sin tienda de por medio, `undefined`.
    */
@@ -79,7 +79,7 @@ export type LineaCompra = {
   /** Unidades cerradas por faltante (D2): no van a llegar. `pendiente` ya las descuenta. */
   cerrado: number;
   pendiente: number;
-  // ---- Reparto por tienda (ADR-0138). Con una tienda de por medio, `cantidad`, `recibido`, `cerrado` y `pendiente`
+  // ---- Reparto por tienda (ADR-0139). Con una tienda de por medio, `cantidad`, `recibido`, `cerrado` y `pendiente`
   // ya son los de ESA tienda (así los topes y «Todo llegó» funcionan por tienda) y lo demás queda acá. Todos son
   // opcionales: en una base sin reparto (o sin tienda de por medio) no vienen y la pantalla no muestra nada extra.
   /** Lo facturado en la línea entera, todas las tiendas juntas («de 24 en el comprobante»). */
@@ -327,7 +327,7 @@ export type FilaOperativa = {
   tipo: string;
   documento: string;
   fecha_emision: string;
-  /** Las tiendas del reparto (ADR-0138); para un colaborador, solo la suya. */
+  /** Las tiendas del reparto (ADR-0139); para un colaborador, solo la suya. */
   ubicaciones_destino?: string[] | null;
   estado: string;
   nota: string | null;
@@ -346,7 +346,7 @@ export type FilaOperativa = {
 };
 
 export function comprobanteDeFilaOperativa(f: FilaOperativa): CompraResumen {
-  // Con una tienda de por medio, las cifras del comprobante pasan a ser las de ESA tienda (ADR-0138).
+  // Con una tienda de por medio, las cifras del comprobante pasan a ser las de ESA tienda (ADR-0139).
   const aqui =
     f.asignado_aqui == null
       ? null

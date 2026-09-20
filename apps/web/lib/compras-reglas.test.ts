@@ -146,7 +146,7 @@ describe("esFuncionAusente", () => {
   });
 });
 
-// ADR-0138: con una tienda de por medio, las cifras del comprobante pasan a ser las de ESA tienda — y el estado de
+// ADR-0139: con una tienda de por medio, las cifras del comprobante pasan a ser las de ESA tienda — y el estado de
 // recepción se lee desde ella (el del comprobante entero mezcla a todas las tiendas).
 describe("comprobanteDeFilaOperativa · desde una tienda", () => {
   const fila: FilaOperativa = {

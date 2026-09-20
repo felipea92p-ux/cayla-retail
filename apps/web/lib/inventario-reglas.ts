@@ -135,6 +135,14 @@ export const MIN_UNIDADES_SOBRESTOCK = 3;
 export const SELL_THROUGH_BAJO_PCT = 20;
 export const SELL_THROUGH_ALTO_PCT = 60;
 
+/** Distribución de sell-through de «Comparar períodos» (2026-09-19): límite SUPERIOR de cada rango, en %, sobre el
+ *  porcentaje redondeado al entero → 0–25 · 26–50 · 51–75 · 76–100. El gráfico y sus etiquetas salen de acá. */
+export const RANGOS_SELL_THROUGH_PCT = [25, 50, 75, 100] as const;
+
+/** Desde cuántos puntos porcentuales de diferencia de sell-through entre A y B se destaca como «cambio
+ *  relevante» de una variante (subió o bajó al menos esto). */
+export const SELL_THROUGH_CAMBIO_RELEVANTE_PP = 10;
+
 // --- Motor de reposición (por confirmar por Felipe) --------------------------
 
 /** Cuántos días de venta se busca cubrir al reponer. Era 14 en el ADR-0101. */
@@ -170,6 +178,15 @@ export const ALTA_DEMANDA_MIN_UDS_DIA = 0.5;
 /** Cambio de velocidad contra el período de comparación que se considera
  *  tendencia (en % — por debajo es «estable»). */
 export const TENDENCIA_UMBRAL_PCT = 25;
+
+/** Tendencia de un período (Desempeño, 2026-09-19): 2.ª mitad contra 1.ª. Con menos unidades netas
+ *  que esto en TODO el período no se afirma «aceleró»/«desaceleró»: 1 venta contra 2 es un +100% que
+ *  no dice nada. Es evidencia, no umbral de cambio (ese es `TENDENCIA_UMBRAL_PCT`). */
+export const TENDENCIA_MIN_UNIDADES = 4;
+
+/** «Ritmo reciente» de Existencias: los últimos N días de venta con que se mide cuánto dura el
+ *  stock de hoy (cobertura). Mismo período que el Resumen usa por defecto. */
+export const DIAS_RITMO_RECIENTE = 30;
 
 // --- Exactitud del inventario -------------------------------------------------
 

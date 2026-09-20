@@ -17,7 +17,7 @@ const completa: EntradaRequisitos = {
 const con = (cambio: Partial<EntradaRequisitos>): EntradaRequisitos => ({ ...completa, ...cambio });
 const pendientes = (e: EntradaRequisitos) => requisitosDeCompra(e).filter((r) => !r.ok).map((r) => r.clave);
 
-describe("requisitosDeCompra · repartir entre tiendas (ADR-0138)", () => {
+describe("requisitosDeCompra · repartir entre tiendas (ADR-0139)", () => {
   const T = "trujillo";
   const TALLER = "taller";
   const linea = (cantidad: number, reparto: Record<string, number>) => ({ productoId: "p1", cantidad, costoUnitario: "50", reparto });

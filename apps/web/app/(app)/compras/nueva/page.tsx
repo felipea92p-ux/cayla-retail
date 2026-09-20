@@ -55,7 +55,7 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
       proveedorInicialId={prov && /^[0-9a-f-]{36}$/i.test(prov) ? prov : null}
       deudaTotal={resumen.deuda}
       ubicaciones={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))}
-      // ADR-0138: solo se ofrece «Repartir entre tiendas» si esta base ya tiene el reparto (una base vieja ignoraría `destinos`).
+      // ADR-0139: solo se ofrece «Repartir entre tiendas» si esta base ya tiene el reparto (una base vieja ignoraría `destinos`).
       repartoDisponible={hayReparto}
       ubicacionInicialId={persona.ubicacionId}
       variantes={catalogo

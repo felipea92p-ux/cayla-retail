@@ -67,7 +67,7 @@ export const AVIARIO = [
       // ADR-0111 (Compras): cierres de línea por faltante, notas de crédito del proveedor y su saldo a favor.
       // Nacen con dueño: aún no están en producción (sin pegar), por eso el aviario avisa que no las ve en el volcado.
       "compra_item_cierres", "compra_notas_credito", "proveedor_creditos",
-      // ADR-0138 (Compras): el reparto de un comprobante entre tiendas (`compra_item_destinos`: línea × tienda × cantidad),
+      // ADR-0139 (Compras): el reparto de un comprobante entre tiendas (`compra_item_destinos`: línea × tienda × cantidad),
       // su bitácora de reasignaciones y la vista que cruza el plan con lo recibido y cerrado por tienda. Nacen con dueño;
       // aún no están en producción (172000/173000 sin pegar), por eso el aviario avisa que no las ve en el volcado.
       "compra_item_destinos", "compra_reasignaciones", "compra_item_reparto_resumen"] },

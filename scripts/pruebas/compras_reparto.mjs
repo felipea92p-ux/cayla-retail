@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas del REPARTO de un comprobante entre tiendas (ADR-0138) contra el Postgres local — CAYLA V2.
+ * Pruebas del REPARTO de un comprobante entre tiendas (ADR-0139) contra el Postgres local — CAYLA V2.
  *
  * QUÉ PRUEBA. Que una factura de proveedor se reparta entre tiendas y que cada tienda reciba lo suyo:
  *   · reparto 12/12 entre dos tiendas; una suma distinta de lo facturado se rechaza (por la RPC y por la

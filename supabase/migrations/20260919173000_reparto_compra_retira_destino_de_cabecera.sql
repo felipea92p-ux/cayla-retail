@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260919173000_reparto_compra_retira_destino_de_cabecera.sql — CAYLA V2 · ADR-0138 (parte 2 de 2)
+-- 20260919173000_reparto_compra_retira_destino_de_cabecera.sql — CAYLA V2 · ADR-0139 (parte 2 de 2)
 --
 -- Con el reparto por línea y por tienda (parte 1), `compras.ubicacion_destino_id` deja de ser la
 -- verdad de «a dónde va la mercadería»: tener dos verdades (el destino en la factura y el reparto
@@ -64,7 +64,7 @@ begin
     v_nuevo := regexp_replace(v_nuevo, '(retail\.)?fn_puede_operar_ubicacion\(\s*ubicacion_destino_id\s*\)', 'fn_puede_ver_compra(id)', 'g');
 
     if v_nuevo ilike '%ubicacion_destino_id%' then
-      raise exception 'No pude re-llavear %: quedan usos del destino de la factura que esta migración no sabe reemplazar (ADR-0138)', f.firma;
+      raise exception 'No pude re-llavear %: quedan usos del destino de la factura que esta migración no sabe reemplazar (ADR-0139)', f.firma;
     end if;
     execute v_nuevo;
   end loop;
@@ -83,10 +83,10 @@ begin
     raise exception 'Faltan resumen_recepciones o listar_recepciones_compras con la firma esperada';
   end if;
   if v_a ilike '%ubicacion_destino_id%' and (v_a not like '%with r as (%' or v_a not like '%faltante as (%') then
-    raise exception 'resumen_recepciones cambió desde que se escribió esta migración (ADR-0138): reescríbela sobre la definición viva';
+    raise exception 'resumen_recepciones cambió desde que se escribió esta migración (ADR-0139): reescríbela sobre la definición viva';
   end if;
   if v_b ilike '%ubicacion_destino_id%' and v_b not like '%group by l.id, l.fecha_recepcion%' then
-    raise exception 'listar_recepciones_compras cambió desde que se escribió esta migración (ADR-0138): reescríbela sobre la definición viva';
+    raise exception 'listar_recepciones_compras cambió desde que se escribió esta migración (ADR-0139): reescríbela sobre la definición viva';
   end if;
 end $$;
 
@@ -98,7 +98,7 @@ create or replace function resumen_recepciones(p_desde date default null)
 AS $function$
   with r as (
     -- Las mismas filas que lista `listar_recepciones_compras`, sin filtros extra.
-    -- ADR-0138: cada tienda ve lo que se recibió en SU tienda (el lote); un líder ve todas.
+    -- ADR-0139: cada tienda ve lo que se recibió en SU tienda (el lote); un líder ve todas.
     select l.id as lote, c.id as comprobante,
            sum(m.cantidad) as llegaron,
            greatest(0, (l.fecha_recepcion at time zone 'America/Lima')::date - c.fecha_emision) as dias,
@@ -150,7 +150,7 @@ AS $function$
     c.id,
     c.documento,
     sum(m.cantidad)::integer,
-    -- ADR-0138: lo asignado y lo que falta, de las tiendas que la persona opera (un líder, todas: el total).
+    -- ADR-0139: lo asignado y lo que falta, de las tiendas que la persona opera (un líder, todas: el total).
     (select coalesce(sum(rs.asignado), 0)::integer from compra_item_reparto_resumen rs
       where rs.compra_id = c.id and fn_puede_operar_ubicacion(rs.ubicacion_id)),
     (select coalesce(sum(greatest(rs.pendiente, 0)), 0)::integer from compra_item_reparto_resumen rs
@@ -272,13 +272,13 @@ begin
     )
     and p.prosrc ~* '\mcompras?\M|compra_item|compras_resumen';
   if v_restan is not null then
-    raise exception E'Todavía hay funciones que leen compras.ubicacion_destino_id (ADR-0138); revísalas y re-llavéalas a mano antes de soltar la columna:\n  %', v_restan;
+    raise exception E'Todavía hay funciones que leen compras.ubicacion_destino_id (ADR-0139); revísalas y re-llavéalas a mano antes de soltar la columna:\n  %', v_restan;
   end if;
 
   if exists (select 1 from pg_policies
               where schemaname = 'retail' and tablename like 'compra%'
                 and (coalesce(qual, '') || coalesce(with_check, '')) ilike '%ubicacion_destino_id%') then
-    raise exception 'Todavía hay políticas de Compras que leen ubicacion_destino_id (ADR-0138)';
+    raise exception 'Todavía hay políticas de Compras que leen ubicacion_destino_id (ADR-0139)';
   end if;
 end $$;
 

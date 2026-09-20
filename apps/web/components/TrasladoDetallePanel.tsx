@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { SinFoto } from "@/components/ui/PrendaCelda";
 import { TrasladoEstado } from "@/components/TrasladoEstado";
 import { TrasladoLlegada } from "@/components/TrasladoLlegada";
 import { botonPrimario } from "@/components/ui/Modal";
@@ -139,11 +140,16 @@ export function TrasladoDetallePanel({
               return (
                 <tr key={l.varianteId} className={nueva ? "bg-ambar/5" : ""}>
                   <td className="px-5 py-2.5">
-                    <p className="text-tinta">{l.referencia}</p>
-                    <p className="text-xs text-tinta/55">
-                      {l.sku} {[l.talla, l.color].filter(Boolean).join("/")}
-                      {nueva && " · no estaba en el envío"}
-                    </p>
+                    <span className="flex min-w-0 items-start gap-2.5">
+                      <SinFoto />
+                      <span className="min-w-0">
+                        <p className="text-tinta">{l.referencia}</p>
+                        <p className="text-xs text-tinta/55">
+                          {l.sku} {[l.talla, l.color].filter(Boolean).join("/")}
+                          {nueva && " · no estaba en el envío"}
+                        </p>
+                      </span>
+                    </span>
                   </td>
                   <td className="px-3 py-2.5 text-right tabular-nums text-tinta/75">{l.cantidadEnviada ?? "—"}</td>
                   <td className="px-3 py-2.5 text-right">

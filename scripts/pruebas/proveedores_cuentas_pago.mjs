@@ -40,7 +40,7 @@ const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante
 const EN_SECO = process.argv.includes("--en-seco");
 const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260919170000_proveedores_cci_y_billetera.sql"), "utf8");
 /**
- * Tras el reparto por tienda (ADR-0138, migración 20260919173000) `compras` ya no tiene `ubicacion_destino_id`. Estas
+ * Tras el reparto por tienda (ADR-0139, migración 20260919173000) `compras` ya no tiene `ubicacion_destino_id`. Estas
  * pruebas re-pegan migraciones que corrieron ANTES de eso (y ya están en producción) y cuya definición todavía la usa:
  * lo que se prueba es su re-pegado en ese estado, así que a cada escenario que lo necesita se le devuelve la columna
  * DENTRO de su transacción (que termina en ROLLBACK). No toca la base compartida.

@@ -4,6 +4,7 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
 import { getTrasladosEnCurso } from "@/lib/traslados";
+import { getCoberturaPorVariante } from "@/lib/resumen-inventario";
 import { estaAtrasado } from "@/lib/traslados-reglas";
 import { SelectorUbicacion } from "@/components/SelectorUbicacion";
 import { InventarioPanel } from "@/components/InventarioPanel";
@@ -35,12 +36,17 @@ export default async function InventarioPage({
       : persona.ubicacionId;
   const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
 
-  const [stock, sububicaciones, traslados, danadosPendientes] = await Promise.all([
+  // La cobertura («cuánto dura este stock al ritmo reciente») solo tiene sentido donde se vende: una tienda.
+  const vende = ubicacionActiva?.tipo === "tienda";
+  const [stockBase, sububicaciones, traslados, danadosPendientes, cobertura] = await Promise.all([
     getExistencias(ubicacionActivaId, ubicaciones),
     getSububicaciones(ubicacionActivaId),
     getTrasladosEnCurso(ubicacionActivaId),
     getPrendasDanadasPendientes(ubicacionActivaId),
+    vende ? getCoberturaPorVariante(ubicacionActivaId) : Promise.resolve(null),
   ]);
+  // Dato secundario: si su cálculo falló, cada fila queda en «N/D» y se avisa; el stock no se cae.
+  const stock = cobertura?.datos ? stockBase.map((f) => ({ ...f, cobertura: cobertura.datos?.[f.varianteId] ?? null })) : stockBase;
   const resumen = resumirExistencias(stock);
   const sububicacionPiso = encontrarPorTipo(sububicaciones, "piso_venta");
   const sububicacionAlmacen = encontrarPorTipo(sububicaciones, "almacen_tienda");
@@ -92,6 +98,7 @@ export default async function InventarioPage({
         sububicacionAlmacen={sububicacionAlmacen}
         danadosPendientes={danadosPendientes}
         esLider={persona.rol === "lider"}
+        coberturaFallo={cobertura?.fallo ?? null}
       />
     </div>
   );

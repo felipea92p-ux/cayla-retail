@@ -1,4 +1,4 @@
-import { crearIndice, coincideConsulta } from "./resumen-busqueda";
+import { crearIndice, coincideConsulta, type CamposBusqueda } from "./resumen-busqueda";
 import { ETIQUETA_BANDA, BANDAS_COBERTURA, ETIQUETA_ESTADO, type AnalisisVariante, type BandaCobertura, type EstadoResumen } from "./resumen-reglas";
 import { SELL_THROUGH_ALTO_PCT, SELL_THROUGH_BAJO_PCT } from "./inventario-reglas";
 
@@ -74,7 +74,9 @@ export function bandaSellThrough(pct: number | null): Exclude<FiltroSellThrough,
   return "medio";
 }
 
-export function aplicarAlcance(analisis: AnalisisVariante[], alcance: AlcanceResumen): AnalisisVariante[] {
+/** Recorta por categoría y búsqueda. Sirve a cualquier análisis que traiga la variante en `fila`
+ *  (el Resumen normal y la comparación de períodos comparten este mismo filtro). */
+export function aplicarAlcance<T extends { fila: CamposBusqueda & { categoriaId: string | null } }>(analisis: T[], alcance: AlcanceResumen): T[] {
   const consulta = alcance.q.trim();
   return analisis.filter((a) => {
     if (alcance.categoriaId && a.fila.categoriaId !== alcance.categoriaId) return false;

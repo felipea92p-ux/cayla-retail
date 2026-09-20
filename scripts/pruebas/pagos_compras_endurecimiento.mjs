@@ -31,7 +31,7 @@
  *
  * DOS MIGRACIONES. La 20260919180000 endurece `registrar_pagos_compra` y `registrar_pago_compras` (y crea el
  * helper de fecha); la 20260919181000 PARCHA `registrar_compra` sobre su definición viva (A1, M2, M3), para no pisar la
- * de reparto por tienda (ADR-0138). Las pruebas de `registrar_compra` deben pasar con las dos, y hay casos propios del
+ * de reparto por tienda (ADR-0139). Las pruebas de `registrar_compra` deben pasar con las dos, y hay casos propios del
  * parche: aplicarlo dos veces no cambia el md5, aborta limpio si falta un ancla (una por una, las seis) o si la función
  * quedó a medias, y —si la migración de reparto está en el worktree hermano— sus anclas existen en la definición
  * que esa rama deja y el parche se aplica sobre ella.
@@ -82,7 +82,7 @@ const ANCLAS = [...PARCHE.matchAll(/\$a\$([\s\S]*?)\$a\$/g)].map((m) => m[1]);
 const DO_PARCHE = PARCHE.match(/do \$parche\$[\s\S]*?\$parche\$;/)[0].replace(/;$/, "");
 
 /**
- * Tras el reparto por tienda (ADR-0138, migración 20260919173000) `compras` ya no tiene `ubicacion_destino_id`. La
+ * Tras el reparto por tienda (ADR-0139, migración 20260919173000) `compras` ya no tiene `ubicacion_destino_id`. La
  * función CRUDA de producción de hoy (REGISTRAR_COMPRA_CRUDA) todavía la escribe: un escenario que la instala y LA LLAMA
  * necesita la columna, así que se le devuelve DENTRO de su transacción (que termina en ROLLBACK), como estaba en
  * producción antes del reparto. No toca la base compartida.
@@ -729,7 +729,7 @@ select current_setting('t.ok'), (select count(*) from pg_proc where pronamespace
   ["true", "0"]
 );
 
-// --- Contra la definición que deja la migración de reparto por tienda (ADR-0138), si está en el worktree hermano.
+// --- Contra la definición que deja la migración de reparto por tienda (ADR-0139), si está en el worktree hermano.
 // No se puede EJECUTAR (necesita `compra_item_destinos` y sin `ubicacion_destino_id`, que esta base no tiene): se prueba
 // que las seis anclas existen ahí, que el parche se aplica, que conserva su reparto y que es re-ejecutable.
 const MIGRACION_REPARTO = process.env.CAYLA_REPARTO_MIGRACION

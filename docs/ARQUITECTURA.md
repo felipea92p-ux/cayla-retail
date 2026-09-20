@@ -177,25 +177,49 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `avanceConteo`) + `ConteosLista.tsx` (historial) → `/inventario/conteo/[id]`
   (`getConteoDetalle`, solo lectura). Exactitud con `exactitudConteos`
   (`lib/conteo-varianza.ts`).
-- `/inventario/resumen` (Resumen, solo líder, ADR-0101 → rehecho en ADR-0121) →
-  `page.tsx` lee de la URL `ubicacion, preset, desde, hasta, comparar, q, cat, cob, st, est, orden, pag`
-  → `lib/resumen-inventario.ts:getResumenInventario` = RPC `fn_resumen_variantes(p_ubicacion_id,
-  p_ventana_dias, p_desde, p_hasta, p_cmp_desde, p_cmp_hasta)` paginada con `Range` de a 1000 (agregados
-  crudos por variante para esa sede — stock SIEMPRE actual, demanda de las dos ventanas, días con stock
-  reconstruidos del ledger, costo solo para líder — + jsonb `en_red` con las otras sedes) +
-  `getConteosResumen`/`exactitudConteos` (la MISMA exactitud que la pestaña Conteo) →
-  `lib/resumen-armado.ts:armarResumen` (puro: analiza TODA la sede, aplica alcance y vista, devuelve
-  agregados + UNA página de 15 filas) sobre `resumen-mapeo` (fila cruda → tipada), `resumen-periodo`
-  (períodos y comparación en fechas de Lima), `resumen-busqueda` (búsqueda por tokens),
-  `resumen-filtros` (alcance = categoría + búsqueda; vista = cobertura/sell-through/estado/orden),
-  `resumen-acciones` (paso del plan → enlace real) y `resumen-reglas` (velocidad, cobertura,
-  sell-through, reserva, curvas rotas, plan de reposición, capital; umbrales en `inventario-reglas.ts`) →
-  `ResumenInventarioPanel.tsx` (orquesta) con `ResumenBanner` (exactitud), `ResumenControles` (período,
-  comparación, búsqueda, filtros), `ResumenSenales` (5 × `ui/TarjetaSenal`), `ResumenPrioridades` (tabla),
-  `ResumenBloques` (barras, dona y curvas de `ui/Graficos`), `ResumenDetalleModal`, `ResumenCapitalModal`
-  y `ResumenAccion`. Las acciones nunca escriben: enlazan a `/inventario/mover?origen=&destino=&variante=&cantidad=`
-  (formulario de `iniciar_traslado`), al `ReponerPisoModal` de Existencias (`mover_interno`) o al traslado que
-  ya viene en camino.
+- `/inventario/resumen` (**Análisis de inventario**, solo líder; nació como «Resumen» en ADR-0101/0121 y se
+  repartió y rediseñó en ADR-0138) → `page.tsx` lee de la URL `preset, desde, hasta, q, cat, st, orden, pag` (+
+  `modo=comparar`, `comparar`, `cdesde`, `chasta`, `vista`, `cambio`). La sede es SIEMPRE la del selector global.
+  Tres responsabilidades, una pantalla cada una: **Existencias** = qué hay AHORA (con su cobertura),
+  **Análisis › Desempeño** = cómo se comportó el inventario en el período, **Análisis › Comparar períodos** =
+  qué cambió entre dos períodos. El análisis NO mezcla el stock de hoy con métricas del período; Comparar
+  tampoco responde qué stock hay ahora ni cuánto dura (por eso no tiene cobertura: es de Existencias).
+  · **Desempeño** (por defecto) → `lib/resumen-inventario.ts:getDesempenoInventario` = RPC
+  `fn_resumen_comparacion` con el período partido en dos mitades (A = 1.ª, B = 2.ª; paginada de a 1000) +
+  `getConteosResumen`/`exactitudConteos` → `lib/resumen-desempeno.ts:armarDesempeno` (puro: suma las mitades,
+  toma el stock al inicio de A y al cierre de B, y calcula vendido, ritmo, sell-through, rotación y tendencia con
+  `metricasDePeriodo`, `calcularSellThrough` y `calcularTendencia`) → `ResumenDesempenoPanel` con
+  `ResumenControles` (una barra: período · categoría · sell-through, búsqueda debajo) y
+  `ResumenComportamiento` (tabla «Comportamiento del inventario», orden por defecto «Más vendidos», 15 filas).
+  · **Comparar períodos** (rediseño visual 2026-09-19) → `getComparacionInventario` = la misma RPC con A y B
+  elegidos → `lib/resumen-comparacion.ts:armarComparacion` → `ResumenComparacionPanel`: contexto compacto
+  «A → B · Cambiar períodos» (`ResumenControles`, el configurador completo se despliega a pedido; la búsqueda
+  vive solo en Detalle) + `…General` (4 KPI — Ventas, Rotación, Sell-through, Capital —, dona «Evolución del
+  ritmo» con `evolucionDelRitmo`/`evolucionRitmoTotal` sobre `calcularTendencia`, barras A/B «Top rotación» y
+  «Distribución de sell-through») + `…Detalle` (tabla de 6 columnas con `cambioMostrado`/`textoCambio`: UN
+  cambio relevante por fila, el más importante de `PRIORIDAD_CAMBIO`, no una lista de señales).
+  · **Rotación** = `lib/rotacion.ts` (COGS ÷ inventario promedio a costo; fallback de dos puntos, punto de
+  sustitución para un promedio diario): la ÚNICA fórmula de las filas, el ranking, los órdenes y los KPI de
+  Desempeño y Comparar. Una variante es estricta (sin dato = N/D); un total es `rotacionAgregada` (Σ COGS ÷ Σ
+  inventario promedio de las variantes válidas, con cuántas quedaron fuera y por qué) y A contra B es
+  `rotacionComparada` (solo las variantes válidas en los dos períodos). Límites documentados en su encabezado:
+  promedio de dos puntos e inventario valorado al costo vigente (el COGS es el histórico de cada venta).
+  · Comunes: `ResumenCabecera` (pestañas Desempeño | Comparar períodos), `ResumenActualizado` («Actualizado
+  hh:mm ⓘ»), `ResumenBanner` (exactitud), `ResumenBloques` (solo la tarjeta `Bloque`), `ui/BuscadorDebounced`
+  (el campo de búsqueda con espera de 350 ms, antes duplicado entre Desempeño y Comparar), `resumen-periodo`,
+  `resumen-filtros` (alcance + bandas de sell-through), `resumen-busqueda`.
+  · Sin UI desde ADR-0138 (dependían del stock de hoy y salieron del análisis): las 5 tarjetas de señales, la
+  tabla de prioridades con acciones, el detalle/capital en modal y los 3 bloques inferiores. Su LÓGICA sigue en
+  `lib/` (`resumen-reglas` motor de reposición, curvas rotas y capital; `resumen-acciones`; `armarResumen`),
+  con sus pruebas, para cuando esos flujos operativos tengan casa (Existencias).
+  · **Miniatura + color** (`ui/PrendaCelda.tsx:SinFoto`, `ui/MuestraColor.tsx`, el mismo lenguaje que Existencias)
+  en toda fila «Producto/variante» que sea una tabla real: Desempeño, Comparar (Detalle), Movimientos,
+  Traslados › detalle y Conteo › detalle. Sin miniatura ni cápsula en Mover/Recibir (son `<select>` nativos: un
+  `<option>` no admite marcado) ni donde el hex de color no viaja hasta la fila (Movimientos, Traslados › detalle,
+  Conteo › detalle muestran el color como texto; solo Desempeño y Comparar tienen `colorHex` en sus datos).
+  · **Existencias** (`/inventario`) gana la cobertura: `getCoberturaPorVariante` = `fn_resumen_variantes` con la
+  ventana de `DIAS_RITMO_RECIENTE` (30 días) + `calcularCobertura`; segunda línea bajo «Disponible», dato
+  secundario que degrada a «N/D» (nunca tumba la pantalla).
 - `/inventario/recibir` (sin factura) y `/inventario/mover` (`MoverMercaderiaFormV2.tsx`
   → RPC `iniciar_traslado`; acepta prellenado por URL desde Resumen, validado en la
   página) siguen vivas como rutas, sin pestaña propia: se llega por
@@ -371,7 +395,7 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `fn_aplicar_candado_de_dinero()` se los pone (o se los devuelve tras otra migración). La página además tacha los
   montos en el servidor como segunda línea (`comprobanteSinMontos`). «Recibidas» (`?vista=recibidas`) agrupa las filas
   de un envío de 2+ proveedores bajo una cabecera (`agruparPorEnvio`, `getEnviosDeLotes` lee `lotes.envio_id`).
-- **Un comprobante se reparte entre tiendas y cada tienda recibe lo suyo** (2026-09-19, ADR-0138; migraciones `20260919172000`
+- **Un comprobante se reparte entre tiendas y cada tienda recibe lo suyo** (2026-09-19, ADR-0139; migraciones `20260919172000`
   + `20260919173000`, **aún sin pegar en producción**). La factura ya no tiene un destino (`compras.ubicacion_destino_id` se
   elimina): tiene un **reparto por línea y tienda**, `compra_item_destinos` (siempre existe, aunque sea de una sola tienda; su
   suma por línea = la cantidad lo exige un constraint trigger diferido). Lo recibido por tienda no se guarda: sale de
@@ -502,7 +526,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `registrar_movimiento` → `fn_aplicar_movimiento` | Motor de stock: entrada/salida/ajuste/traslado, con `for update` (lock de fila) contra condición de carrera; valida sede |
 | `recibir_lote` | Recepción de mercadería: crea lote + producto/variante si faltan + N movimientos. Ver §6, es la función con historial de drift |
 | `registrar_venta` | Venta + N movimientos de salida; guarda `venta_pagos.recibido` (efectivo entregado) desde 2026-09-19 (ADR-0137, una sola firma de 11 parámetros) |
-| `reasignar_reparto_compra` / `cerrar_linea_compra` (con `p_ubicacion_id`) (2026-09-19, ADR-0138; **sin pegar en producción**) | Reparto de un comprobante entre tiendas: solo un líder mueve, de una tienda a otra, lo que ésta aún no recibió ni cerró (con motivo y rastro en `compra_reasignaciones`); el faltante de una línea repartida se cierra en una tienda concreta. Ambas con `for update` sobre la línea, el mismo orden de candados que `recibir_compras` |
+| `reasignar_reparto_compra` / `cerrar_linea_compra` (con `p_ubicacion_id`) (2026-09-19, ADR-0139; **sin pegar en producción**) | Reparto de un comprobante entre tiendas: solo un líder mueve, de una tienda a otra, lo que ésta aún no recibió ni cerró (con motivo y rastro en `compra_reasignaciones`); el faltante de una línea repartida se cierra en una tienda concreta. Ambas con `for update` sobre la línea, el mismo orden de candados que `recibir_compras` |
 | `abrir_caja` / `cerrar_caja` | Apertura/cierre con conteo ciego |
 | `registrar_gasto`, `registrar_deposito`, `fijar_stock_minimo`, `recalcular_stock` | Operación de caja y stock; `recalcular_stock` reconstruye `stock` completo desde `movimientos` como red de seguridad |
 | `registrar_asiento` | Único camino de escritura al libro diario; valida cuadre antes de insertar |
@@ -512,6 +536,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `bajar_a_piso` / `devolver_a_almacen` | Mueve entre `stock_almacen` y `stock` de la misma sede, atómico |
 | `fn_conteos_resumen` (2026-09-16) | Lista de conteos de una ubicación con líneas, sistema/contado/diferencia y soles ya sumados en Postgres; `security invoker` (RLS de conteos decide). Alimenta la pestaña Conteo. ADR-0071 |
 | `fn_resumen_variantes` (2026-09-17 en producción; **v2 aplicada en producción el 2026-09-19**, firma `(p_ubicacion_id, p_ventana_dias, p_desde, p_hasta, p_cmp_desde, p_cmp_hasta)`, la `(uuid, integer)` se elimina) | Agregados por variante para UNA ubicación: stock por sububicación **siempre actual** (cuarentena excluida), primer ingreso, **días con stock del período** (reconstruidos del ledger: saldo(t) = stock hoy − Σ movimientos posteriores, con las reglas de `fn_aplicar_movimiento`; `ledger_consistente = false` si el saldo da negativo), stock al inicio, demanda neta del período **y del período comparado** clasificada por FK (venta completada + cambio salida − devolución vendible − cambio entrada, atribuida a la sede de la venta; las salidas `venta` sin `venta_item_id` también cuentan), entradas/mermas, en camino hacia esa sede (enviado, `en_transito`/`recibido_con_diferencia`, atrasado, próxima llegada y su traslado), origen de abastecimiento, códigos de barras, categoría, precio, y `costo` + `estado_costo` (`oficial`/`declarado`/`alterado`/`sin_costo`) **solo si `fn_es_lider()`**; jsonb `en_red` con lo mismo (utilizable, piso, días con stock) de las otras sedes activas. `security definer` con baranda `fn_puede_operar_ubicacion` (0 filas si no puede), `revoke … from public, anon` y `grant execute … to authenticated`. NO decide nada: las reglas viven en `lib/resumen-reglas.ts`. ADR-0101, ADR-0113 |
+| `fn_resumen_comparacion(p_ubicacion_id, p_a_desde, p_a_hasta, p_b_desde, p_b_hasta)` (2026-09-19, **solo local: no aplicada en producción**; la usan Desempeño —con el período partido en dos mitades— y Comparar períodos) | Por variante de UNA sede y para cada período A/B: unidades vendidas y devueltas (misma clasificación por FK que `fn_resumen_variantes`), importe cobrado, costo de lo vendido y de lo devuelto EN COMPONENTES (COGS: `venta_items.costo_unitario`, el costo de ese día) y unidades sin costo, entradas (lo que llegó de afuera), stock utilizable al inicio y al cierre reconstruido del ledger (saldo(t) = saldo de hoy − Σ movimientos posteriores) y días con stock; `ledger_consistente`. Solo `fn_es_lider()` con `fn_puede_operar_ubicacion` (0 filas para un colaborador). `security definer`, `revoke … from public, anon`. NO decide nada: las reglas viven en `lib/resumen-comparacion.ts`. ADR-0138 |
 | `fn_movimientos` / `fn_movimientos_resumen` (2026-09-15; **la búsqueda por proceso y los números de traslado/conteo, 2026-09-19, ADR-0127: en producción desde el 2026-09-19**) | Lectura del ledger para la pantalla de Movimientos: una fila plana por movimiento con su proceso resuelto (comprobante, guía, factura, conteo, devolución, cambio), categoría y signo calculados en SQL, filtros y cursor server-side. `p_ubicacion_id` obligatorio; excluye la variante centinela «Cargo especial». Desde ADR-0127 la fila trae además `transferencia_numero` y `conteo_numero` (las dos últimas columnas) y `p_busqueda` entiende «traslado 24», «conteo 12», «boleta 184», «B001-000184», guía y factura de compra (`fn_movimientos_busqueda` + `fn_movimientos_de_comprobante`; la lista y las tarjetas usan la misma). ADR-0050, ADR-0127 |
 
 ### 4.3 RLS sin `tenant_id`
@@ -539,7 +564,7 @@ Integrante solo su sede (o su almacén asociado).
 - `produccion_lineas`: `unique(produccion_id, variante_id)` +
   `producciones.inventariado_at` — idempotencia contra doble conteo de
   stock si alguien hace doble clic en "cerrar producción".
-- `compra_item_destinos` (ADR-0138): la suma de lo repartido a las tiendas de una línea es igual a su cantidad — constraint
+- `compra_item_destinos` (ADR-0139): la suma de lo repartido a las tiendas de una línea es igual a su cantidad — constraint
   trigger *deferred* en la línea y en su reparto —; una tienda no recibe más de lo que le tocó (dentro de `recibir_compras`, con
   el `for update` sobre la línea) ni se le reasigna lo que ya recibió. Sin políticas de escritura: solo RPC.
 - `comprobantes`: `check(tipo <> 'factura' or (cliente_tipo_doc = 'ruc' and
