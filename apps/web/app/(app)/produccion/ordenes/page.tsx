@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTaller, getOrdenesProduccion, getModelosProducibles } from "@/lib/produccion";
-import { OrdenesProduccionV2 } from "@/components/OrdenesProduccionV2";
+import { OrdenesTablero } from "@/components/OrdenesTablero";
+import { hoyLima } from "@/lib/fechas-lima";
 
 // Órdenes de producción del Taller (restaurada 2026-09-15 sobre V2). Una sola
 // forma de producir: la orden. Se abre con costo estimado y cantidades por
@@ -43,7 +44,7 @@ export default async function OrdenesProduccionPage() {
         </p>
       </div>
 
-      <OrdenesProduccionV2 tallerId={taller.id} ordenes={ordenes} modelos={modelos} />
+      <OrdenesTablero tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={persona.rol === "lider"} hoy={hoyLima()} />
     </div>
   );
 }

@@ -1,4 +1,9 @@
-# Spike visual · Módulo padre «Producción» (2026-09-19)
+# Spike visual · Módulo «Producción» (2026-09-19)
+
+> **Corrección del mismo día (Felipe):** Producción y Compras son **módulos distintos**, no uno dentro del otro. Lo que este spike agrupa como
+> «Abastecer» (Proveedores, Comprobantes, Por pagar, Recibir) es el **abastecimiento propio de Producción** —tela, avíos y maquila—, con sus
+> propios proveedores y sus propios datos. **No es una copia de las pantallas de Compras** (esas conservan su diseño aprobado en
+> `../compras-2026-09/`). Ver `docs/adr/0133-produccion-modulo-propio-conectado-con-compras.md`.
 
 `produccion-modulo-spike.html` — autocontenido, ábrelo en el navegador. Datos de ejemplo, nada se guarda.
 Se arma desde `src/` con `python3 src/construir.py` (estilos, datos, y una vista por archivo).
