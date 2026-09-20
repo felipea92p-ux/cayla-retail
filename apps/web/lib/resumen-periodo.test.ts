@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   diasDelRango,
   etiquetaRango,
+  horaLima,
   hoyEnLima,
   mismoDiaAnioAnterior,
   parseIso,
   resolverComparacion,
   resolverPeriodo,
+  resolverRangoPersonalizado,
   sumarDias,
   textoDemandaAnalizada,
   textoInstanteLima,
@@ -163,5 +165,42 @@ describe("textos", () => {
     expect(textoDemandaAnalizada(resolverPeriodo({ preset: "mes" }, HOY))).toBe("Demanda analizada: este mes (1–18 sep.)");
     // 2026-09-18 23:24 UTC = 18:24 en Lima.
     expect(textoInstanteLima(new Date("2026-09-18T23:24:00Z"))).toBe("18 sep. 2026, 18:24");
+  });
+});
+
+describe("resolverRangoPersonalizado («Otro período…»)", () => {
+  it("un rango válido se respeta tal cual", () => {
+    expect(resolverRangoPersonalizado("2026-07-21", "2026-08-19", HOY)).toEqual({ desde: "2026-07-21", hasta: "2026-08-19" });
+  });
+
+  it("falta una fecha o no existe: no hay rango (quien llama cae en «anterior»)", () => {
+    expect(resolverRangoPersonalizado("2026-07-21", null, HOY)).toBeNull();
+    expect(resolverRangoPersonalizado("", "2026-08-19", HOY)).toBeNull();
+    expect(resolverRangoPersonalizado("2026-02-30", "2026-08-19", HOY)).toBeNull();
+  });
+
+  it("fechas al revés se ordenan; lo que pasa de hoy se recorta; empezar en el futuro no vale", () => {
+    expect(resolverRangoPersonalizado("2026-08-19", "2026-07-21", HOY)).toEqual({ desde: "2026-07-21", hasta: "2026-08-19" });
+    expect(resolverRangoPersonalizado("2026-09-10", "2026-10-30", HOY)).toEqual({ desde: "2026-09-10", hasta: HOY });
+    expect(resolverRangoPersonalizado("2026-09-19", "2026-10-30", HOY)).toBeNull();
+  });
+
+  it("un rango más largo que un año se acorta hacia atrás desde su fin", () => {
+    const r = resolverRangoPersonalizado("2024-01-01", "2026-09-01", HOY)!;
+    expect(r.hasta).toBe("2026-09-01");
+    expect(diasDelRango(r)).toBe(366);
+  });
+
+  it("comparar con «otro período» usa ese rango; sin él cae en el anterior", () => {
+    const b = { desde: "2026-08-20", hasta: "2026-09-18" };
+    expect(resolverComparacion(b, "personalizado", { desde: "2026-07-21", hasta: "2026-08-19" })).toEqual({ desde: "2026-07-21", hasta: "2026-08-19" });
+    expect(resolverComparacion(b, "personalizado", null)).toEqual(resolverComparacion(b, "anterior"));
+  });
+});
+
+describe("horaLima", () => {
+  it("escribe la hora de Lima (UTC−5) como HH:MM", () => {
+    expect(horaLima(new Date("2026-09-19T15:21:00Z"))).toBe("10:21");
+    expect(horaLima(new Date("2026-09-19T03:05:00Z"))).toBe("22:05");
   });
 });

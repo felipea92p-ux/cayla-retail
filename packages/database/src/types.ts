@@ -4574,6 +4574,54 @@ export type Database = {
           serie: string
         }[]
       }
+      fn_resumen_comparacion: {
+        Args: {
+          p_a_desde: string
+          p_a_hasta: string
+          p_b_desde: string
+          p_b_hasta: string
+          p_ubicacion_id: string
+        }
+        Returns: {
+          a_costo_devoluciones: number
+          a_costo_ventas: number
+          a_devoluciones: number
+          a_dias_con_stock: number
+          a_entradas: number
+          a_importe: number
+          a_stock_cierre: number
+          a_stock_inicio: number
+          a_uds_sin_costo: number
+          a_ventas: number
+          b_costo_devoluciones: number
+          b_costo_ventas: number
+          b_devoluciones: number
+          b_dias_con_stock: number
+          b_entradas: number
+          b_importe: number
+          b_stock_cierre: number
+          b_stock_inicio: number
+          b_uds_sin_costo: number
+          b_ventas: number
+          categoria_id: string
+          categoria_nombre: string
+          codigo: string
+          codigos_barras: string[]
+          color_codigo: string
+          color_hex: string
+          color_nombre: string
+          costo: number
+          estado_costo: string
+          ledger_consistente: boolean
+          producto_codigo: string
+          producto_estado: string
+          producto_id: string
+          referencia: string
+          sku: string
+          talla: string
+          variante_id: string
+        }[]
+      }
       fn_resumen_variantes: {
         Args: {
           p_cmp_desde?: string

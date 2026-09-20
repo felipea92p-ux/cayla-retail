@@ -1094,7 +1094,7 @@ function calcularCapital(analisis: AnalisisVariante[]): CapitalInfo {
 /** Las categorías de un conjunto de variantes, con cuántas tiene cada una. Se
  *  pide sobre la SEDE entera (no sobre lo filtrado) para que el selector no se
  *  encoja al elegir una. */
-export function listarCategorias(analisis: AnalisisVariante[]): { id: string; nombre: string; variantes: number }[] {
+export function listarCategorias(analisis: { fila: { categoriaId: string | null; categoria: string | null } }[]): { id: string; nombre: string; variantes: number }[] {
   const categorias = new Map<string, { id: string; nombre: string; variantes: number }>();
   for (const a of analisis) {
     if (!a.fila.categoriaId) continue;

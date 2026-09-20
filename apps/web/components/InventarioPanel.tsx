@@ -15,11 +15,14 @@ import { resumenRed } from "@/lib/stock-por-sede";
 import { descargarCsv } from "@/lib/exportar-csv";
 import {
   ACCION_ESTADO_STOCK,
+  DIAS_RITMO_RECIENTE,
   ETIQUETA_ESTADO_STOCK,
   necesitaReponerPiso,
   UMBRAL_REPOSICION_PISO,
   type EstadoStock,
 } from "@/lib/inventario-reglas";
+import { textoCobertura } from "@/lib/resumen-formato";
+import { bandaDeCobertura, type Cobertura } from "@/lib/resumen-reglas";
 import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/inventario-v2";
 import type { Sububicacion } from "@/lib/sububicaciones";
 
@@ -66,6 +69,35 @@ function fechaHora(iso: string) {
   return new Date(iso).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
 }
 
+/** La segunda línea de «Disponible»: cuánto dura este stock al ritmo de venta de los últimos días. Es la
+ *  MISMA cobertura del análisis (stock utilizable ÷ ritmo), aquí como dato secundario y compacto. Nunca
+ *  muestra NaN ni vacío: lo que no se puede calcular dice «N/D». Rojo/ámbar con los mismos cortes de siempre
+ *  (≤ 3 y ≤ 7 días); el resto, apagado, para no competir con el número del stock. */
+function LineaCobertura({ c }: { c: Cobertura | null | undefined }) {
+  const ayuda = `Con el ritmo de venta de los últimos ${DIAS_RITMO_RECIENTE} días`;
+  if (!c || c.tipo === "sin_historial") {
+    return (
+      <span className="block text-[10px] font-normal leading-3 text-tinta/40" title={`${ayuda}: todavía no hay historial para calcularlo`}>
+        Cobertura N/D
+      </span>
+    );
+  }
+  if (c.tipo === "sin_ventas") {
+    return (
+      <span className="block text-[10px] font-normal leading-3 text-tinta/50" title={`No se vendió nada en los últimos ${DIAS_RITMO_RECIENTE} días: no hay ritmo con que medir cuánto dura`}>
+        Sin ventas
+      </span>
+    );
+  }
+  const banda = bandaDeCobertura(c);
+  const tono = banda === "critica" ? "text-rojo-profundo" : banda === "atencion" ? "text-ambar-profundo" : banda === "agotado" ? "text-tinta/40" : "text-tinta/55";
+  return (
+    <span className={`block text-[10px] font-normal leading-3 ${tono}`} title={`${ayuda}, este stock dura aproximadamente ${textoCobertura(c)}`}>
+      Cubre {textoCobertura(c)}
+    </span>
+  );
+}
+
 // Piso de venta / almacén de tienda (Felipe, 2026-09-14): la pantalla no
 // asume que toda ubicación separa piso y almacén — se adapta según lo que
 // `getSububicaciones` encontró para ESA ubicación (`resumen.separaPisoAlmacen`),
@@ -87,6 +119,7 @@ export function InventarioPanel({
   sububicacionAlmacen,
   danadosPendientes,
   esLider,
+  coberturaFallo = null,
 }: {
   ubicacionId: string;
   stock: FilaExistencias[];
@@ -102,6 +135,8 @@ export function InventarioPanel({
   /** Solo un líder puede resolver una prenda dañada (`resolver_prenda_danada`) —
    *  una integrante puede ABRIR la cola y verla, no marcarla. */
   esLider: boolean;
+  /** Si la cobertura no se pudo calcular: el aviso (las filas quedan en «N/D»); null = todo bien. */
+  coberturaFallo?: string | null;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [categoria, setCategoria] = useState(TODAS);
@@ -252,6 +287,7 @@ export function InventarioPanel({
         </div>
       )}
 
+      {separa && coberturaFallo && stock.length > 0 && <p className="-mb-3 text-xs text-ambar-profundo">{coberturaFallo}</p>}
       {stock.length === 0 ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">Esta ubicación no tiene stock todavía.</p>
       ) : filtradas.length === 0 ? (
@@ -328,6 +364,8 @@ export function InventarioPanel({
                 <span className={celda("centro", "text-sm font-semibold tabular-nums text-tinta")}>
                   <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Disponible</span>
                   {f.total}
+                  {/* Sin stock no hay cuánto dure: el chip «Sin stock» ya lo dice. */}
+                  {separa && f.total > 0 && <LineaCobertura c={f.cobertura} />}
                 </span>
                 {separa && (
                   <span className={celda("centro", "overflow-visible")}>
