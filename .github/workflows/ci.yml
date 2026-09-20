@@ -180,6 +180,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-resumen-variantes
 
+      # Resumen: comparar dos períodos (ADR-0129): stock al inicio y al cierre reconstruido del ledger,
+      # importe y costo de lo vendido, solo líder. Cada caso termina en ROLLBACK.
+      - name: pruebas:fn-resumen-comparacion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-resumen-comparacion
+
       # El dinero de Compras es solo del líder (ADR-0126): que un integrante no lea ni un monto —por
       # función, por tabla ni por el bucket de escaneos—, que recibir siga funcionando y que ninguna
       # migración le quite el candado a las cinco funciones de dinero (el riesgo residual del ADR).

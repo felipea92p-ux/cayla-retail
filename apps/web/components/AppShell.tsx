@@ -886,7 +886,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   const conteo: Item = { href: "/inventario/conteo", etiqueta: "Conteo", icono: IC.conteo };
   // Quinta pestaña de Inventario (ADR-0101): decisión a nivel sede, solo líder —
   // mismo criterio de visibilidad que Compras.
-  const resumen: Item = { href: "/inventario/resumen", etiqueta: "Resumen", icono: IC.resumen };
+  const resumen: Item = { href: "/inventario/resumen", etiqueta: "Análisis", icono: IC.resumen };
   const facturacion: Item = { href: "/vender/facturacion", etiqueta: "Facturación", icono: IC.facturacion };
   // Mismas cuatro secciones y mismo orden que ya definía `ComprasNav.tsx`
   // (la factura del proveedor es el eje; "Recibir mercadería" y "Por pagar"
