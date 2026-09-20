@@ -744,10 +744,11 @@ navegador); las dos migraciones NO están en producción.**
       a escritorio y a 375 px.
 - [x] **Aviario:** pájaro (Pelícano) para las 2 tablas nuevas y la vista (`scripts/datos/aviario.mjs`; lo aprueba Felipe).
 - [x] Privacidad: resuelta por ADR-0126 (un integrante lee por `listar_compras_operativo` / `lineas_compra_operativo`, sin dinero).
-- [ ] **Producción — con ok de Felipe, en este orden** (detalle en ADR-0138 «Cómo se pega en producción»): `172000`, luego
-      `173000` (sin prefijo `retail.`, llevan `set search_path`), y **después** desplegar la web (la web nueva llama a las RPC con
-      `p_ubicacion_id`). Las 180000/181000 de Comprobantes ya están aplicadas: da igual el orden respecto a ellas. **No re-pegar la
-      172000 después de la 173000.** Después: `pnpm datos:generar:produccion` (refresca el diccionario), `pnpm datos:comparar`, y
+- [ ] **Producción — pegar en este orden, cada una en su propia ejecución** (detalle en ADR-0138 «Cómo se pega en producción»): `172000`,
+      luego `173000` (sin prefijo `retail.`, llevan `set search_path`). Comprobado en solo lectura contra producción el 2026-09-19: no
+      existe ninguno de los objetos, los requisitos y las 12 anclas de los parches están, y **producción tiene 0 comprobantes** (no hay nada
+      que rellenar). La web tolera cualquiera de los dos órdenes (fusionar antes o después del SQL). Las 180000/181000 de Comprobantes ya
+      están aplicadas: da igual el orden respecto a ellas. **No re-pegar la 172000 después de la 173000.** Después: `pnpm datos:generar:produccion` (refresca el diccionario), `pnpm datos:comparar`, y
       sumar los dos candados nuevos (suma del reparto = cantidad de la línea; tope por tienda) a `docs/datos/01-INVARIANTES.md`, que
       solo lista lo verificado en producción (por eso no entran antes).
 - [ ] **Filtro y chip «Destino» en Comprobantes y Por pagar.** Pendiente a propósito: la lista es paginada en Postgres, así que

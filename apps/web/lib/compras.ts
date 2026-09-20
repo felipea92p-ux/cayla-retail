@@ -177,20 +177,26 @@ export async function listarCompras(
   // los montos se le suman después, desde `compras_resumen`.
   let operativas: FilaOperativa[] | null = null;
   if (opciones.sinMontos || opciones.ubicacionId) {
-    const res = await supabase.rpc("listar_compras_operativo", {
-      p_limite: limite,
-      ...(opciones.ubicacionId ? { p_ubicacion_id: opciones.ubicacionId } : {}),
-      ...(opciones.cursor
-        ? { p_cursor_fecha: opciones.cursor.fecha, p_cursor_creado_en: opciones.cursor.creadoEn, p_cursor_id: opciones.cursor.id }
-        : {}),
-      ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
-      ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
-      ...(filtros.estadoRecepcion ? { p_estado_recepcion: filtros.estadoRecepcion } : {}),
-      ...(filtros.tipo ? { p_tipo: filtros.tipo } : {}),
-      ...(filtros.porRecibir ? { p_por_recibir: true } : {}),
-      ...(filtros.desde ? { p_desde: filtros.desde } : {}),
-      ...(filtros.hasta ? { p_hasta: filtros.hasta } : {}),
-    });
+    const pedir = (conTienda: boolean) =>
+      supabase.rpc("listar_compras_operativo", {
+        p_limite: limite,
+        ...(conTienda && opciones.ubicacionId ? { p_ubicacion_id: opciones.ubicacionId } : {}),
+        ...(opciones.cursor
+          ? { p_cursor_fecha: opciones.cursor.fecha, p_cursor_creado_en: opciones.cursor.creadoEn, p_cursor_id: opciones.cursor.id }
+          : {}),
+        ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
+        ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
+        ...(filtros.estadoRecepcion ? { p_estado_recepcion: filtros.estadoRecepcion } : {}),
+        ...(filtros.tipo ? { p_tipo: filtros.tipo } : {}),
+        ...(filtros.porRecibir ? { p_por_recibir: true } : {}),
+        ...(filtros.desde ? { p_desde: filtros.desde } : {}),
+        ...(filtros.hasta ? { p_hasta: filtros.hasta } : {}),
+      });
+    let res = await pedir(true);
+    // Base SIN el reparto todavía (el despliegue llegó antes que la migración 20260919172000): la firma de antes no tiene
+    // `p_ubicacion_id`. Se vuelve a pedir SIN la tienda —así Recibir sigue como hoy— antes de rendirse a `listar_compras`,
+    // que un colaborador no puede leer (candado de dinero, ADR-0126): sin este reintento su lista quedaría vacía.
+    if (opciones.ubicacionId && esFuncionAusente(res.error)) res = await pedir(false);
     // Si la función todavía no existe en esa base (el despliegue llegó antes que la migración), se sigue por el
     // camino de antes —la página ya tacha los montos— en vez de tumbar Recibir. Cualquier OTRO error sí se ve.
     if (!esFuncionAusente(res.error)) operativas = exigir(res, "las facturas de compra");
@@ -365,10 +371,15 @@ export async function getLineasCompra(compraIds: string[], opciones: { sinMontos
   const supabase = await createClient();
   let filas: FilaLinea[] | null = null;
   if (opciones.sinMontos || opciones.ubicacionId) {
-    const res = await supabase.rpc("lineas_compra_operativo", {
-      p_compra_ids: compraIds,
-      ...(opciones.ubicacionId ? { p_ubicacion_id: opciones.ubicacionId } : {}),
-    });
+    const pedir = (conTienda: boolean) =>
+      supabase.rpc("lineas_compra_operativo", {
+        p_compra_ids: compraIds,
+        ...(conTienda && opciones.ubicacionId ? { p_ubicacion_id: opciones.ubicacionId } : {}),
+      });
+    let res = await pedir(true);
+    // Igual que en `listarCompras`: una base sin el reparto todavía no tiene `p_ubicacion_id`; se pide la firma de antes
+    // (líneas de todo el comprobante, como hoy) antes de caer a la vista de líneas, que un colaborador no puede leer.
+    if (opciones.ubicacionId && esFuncionAusente(res.error)) res = await pedir(false);
     if (!esFuncionAusente(res.error)) {
       filas = exigir(res, "las líneas de la factura").map((l) => ({ ...l, costo_unitario: null, subtotal: null }));
       // Un líder con una tienda de por medio recibe TODAS las líneas del comprobante: las que no traen nada para

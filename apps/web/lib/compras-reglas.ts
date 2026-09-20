@@ -401,3 +401,8 @@ export function comprobanteDeFilaOperativa(f: FilaOperativa): CompraResumen {
 export function esFuncionAusente(error: { code?: string | null } | null | undefined): boolean {
   return error?.code === "PGRST202" || error?.code === "42883";
 }
+
+/** Lo mismo para una TABLA o VISTA que la base todavía no tiene (PostgREST `PGRST205`, Postgres `42P01`). */
+export function esRelacionAusente(error: { code?: string | null } | null | undefined): boolean {
+  return error?.code === "PGRST205" || error?.code === "42P01";
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { comprobanteDeFilaOperativa, costoBase, costoParaTipear, esFuncionAusente, totalesCompra, type FilaOperativa } from "./compras-reglas";
+import { comprobanteDeFilaOperativa, costoBase, costoParaTipear, esFuncionAusente, totalesCompra, type FilaOperativa, esRelacionAusente } from "./compras-reglas";
 
 // El costo unitario que se guarda alimenta el costo de la variante y el
 // margen de cada venta. Si el descuento del IGV se hace mal, la mercadería
@@ -176,5 +176,24 @@ describe("comprobanteDeFilaOperativa · desde una tienda", () => {
   it("las tiendas del reparto llegan tal cual (y una lista vacía si la base no las trae)", () => {
     expect(comprobanteDeFilaOperativa(fila).ubicacionesDestino).toEqual(["u-trujillo", "u-taller"]);
     expect(comprobanteDeFilaOperativa({ ...fila, ubicaciones_destino: null }).ubicacionesDestino).toEqual([]);
+  });
+});
+
+describe("lo que la base todavía no tiene (el despliegue llega antes que la migración)", () => {
+  it("una función o parámetro que la base no conoce: PGRST202 / 42883", () => {
+    expect(esFuncionAusente({ code: "PGRST202" })).toBe(true);
+    expect(esFuncionAusente({ code: "42883" })).toBe(true);
+    expect(esFuncionAusente({ code: "42501" })).toBe(false);
+    expect(esFuncionAusente(null)).toBe(false);
+    expect(esFuncionAusente(undefined)).toBe(false);
+  });
+
+  it("una tabla o vista que la base todavía no tiene: PGRST205 / 42P01 (y no cualquier otro error)", () => {
+    expect(esRelacionAusente({ code: "PGRST205" })).toBe(true);
+    expect(esRelacionAusente({ code: "42P01" })).toBe(true);
+    // un permiso negado o una red caída NO son «no hay reparto»: esos sí se avisan
+    expect(esRelacionAusente({ code: "42501" })).toBe(false);
+    expect(esRelacionAusente({ code: "PGRST202" })).toBe(false);
+    expect(esRelacionAusente(null)).toBe(false);
   });
 });

@@ -95,6 +95,7 @@ export function CompraFormV2({
   proveedorInicialId = null,
   deudaTotal = 0,
   cabecera,
+  repartoDisponible = true,
 }: {
   proveedores: Proveedor[];
   ubicaciones: Ubicacion[];
@@ -106,6 +107,8 @@ export function CompraFormV2({
   deudaTotal?: number;
   /** Título de la pantalla (enlace «← Comprobantes», título y bajada): va a la izquierda y el avance «Listo N de 4» a la derecha, como en el diseño. */
   cabecera?: ReactNode;
+  /** ADR-0138: ¿esta base ya tiene el reparto por tienda? Si no, no se ofrece «Repartir entre tiendas». */
+  repartoDisponible?: boolean;
 }) {
   const router = useRouter();
 
@@ -573,6 +576,7 @@ export function CompraFormV2({
             </div>
             <DestinoDeLaMercaderia
               ubicaciones={ubicaciones}
+              puedeRepartir={repartoDisponible}
               repartir={repartir}
               onRepartir={alternarRepartir}
               ubicacionId={ubicacionId}

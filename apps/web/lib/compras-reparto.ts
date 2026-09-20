@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { tolerar } from "@/lib/resultado";
+import { esRelacionAusente } from "@/lib/compras-reglas";
 import { motivoDeReasignacion, type FilaReparto, type ReasignacionCompra } from "@/lib/reparto-reglas";
 
 // Lectura del reparto de UN comprobante entre tiendas (ADR-0138) para el detalle: cuánto le tocó a cada tienda de cada
@@ -32,6 +33,9 @@ export async function getRepartoDeCompra(compraId: string): Promise<RepartoDeCom
 
   const r = tolerar(reparto, "el reparto del comprobante por tienda");
   const h = tolerar(historial, "el historial de reasignaciones");
+  // Una base que todavía no tiene el reparto (el despliegue llegó antes que la migración 20260919172000) no tiene nada que
+  // mostrar: decir «no se pudo cargar» en CADA comprobante sería ruido. Un fallo de lectura de verdad sí se avisa.
+  const sinReparto = esRelacionAusente(reparto.error);
 
   const filas: FilaReparto[] = (r.datos ?? []).flatMap((f) =>
     f.compra_item_id && f.ubicacion_id
@@ -69,5 +73,16 @@ export async function getRepartoDeCompra(compraId: string): Promise<RepartoDeCom
     creadoEn: x.created_at,
   }));
 
-  return { filas, reasignaciones, fallo: r.fallo };
+  return { filas, reasignaciones, fallo: sinReparto ? null : r.fallo };
+}
+
+/**
+ * ¿Esta base ya tiene el reparto por tienda (migración 20260919172000)? Si no, Registrar no ofrece «Repartir»: la
+ * `registrar_compra` de antes IGNORARÍA los `destinos` y mandaría todo a una tienda sin avisar. La tabla y la `registrar_compra`
+ * nueva nacen en la misma transacción, así que una implica la otra. Ante cualquier error se responde que no (lo seguro).
+ */
+export async function repartoDisponible(): Promise<boolean> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("compra_item_destinos").select("compra_item_id").limit(1);
+  return !error;
 }

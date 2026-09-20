@@ -4,6 +4,7 @@ import { getCatalogo } from "@/lib/catalogo-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getResumenCompras } from "@/lib/compras";
 import { getProveedores } from "@/lib/proveedores";
+import { repartoDisponible } from "@/lib/compras-reparto";
 import { datosPagoDe } from "@/lib/proveedores-reglas";
 import { CompraFormV2 } from "@/components/CompraFormV2";
 
@@ -14,7 +15,7 @@ import { CompraFormV2 } from "@/components/CompraFormV2";
 export default async function NuevaCompraPage({ searchParams }: { searchParams: Promise<{ prov?: string }> }) {
   const persona = await requirePersonaActualV2();
   const { prov } = await searchParams;
-  const [directorio, ubicaciones, catalogo, resumen] = await Promise.all([getProveedores(), getUbicaciones(), getCatalogo(), getResumenCompras()]);
+  const [directorio, ubicaciones, catalogo, resumen, hayReparto] = await Promise.all([getProveedores(), getUbicaciones(), getCatalogo(), getResumenCompras(), repartoDisponible()]);
   // Solo los activos; con su plazo, forma de pago y saldo (lo financiero es de líder, y esta pantalla también) y con
   // cómo se les paga (cuenta, CCI, Yape/Plin, titular: ADR-0134), que sale del mismo directorio, sin otra consulta.
   const proveedores = directorio
@@ -54,6 +55,8 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
       proveedorInicialId={prov && /^[0-9a-f-]{36}$/i.test(prov) ? prov : null}
       deudaTotal={resumen.deuda}
       ubicaciones={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))}
+      // ADR-0138: solo se ofrece «Repartir entre tiendas» si esta base ya tiene el reparto (una base vieja ignoraría `destinos`).
+      repartoDisponible={hayReparto}
       ubicacionInicialId={persona.ubicacionId}
       variantes={catalogo
         .filter((v) => v.activo)

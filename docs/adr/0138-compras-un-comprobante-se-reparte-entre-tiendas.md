@@ -167,14 +167,36 @@ el valor por defecto y no manda `destinos`.
 
 ## Cómo se pega en producción
 
-1. **Antes:** ya deben estar las migraciones de ADR-0111, 0113 y 0126 (las guardas de la 172000 lo verifican y abortan claro si falta
-   alguna). Las 180000/181000 de ADR-0135 ya están aplicadas (confirmado por la sesión de Comprobantes el 2026-09-19); da igual el orden.
-2. **`20260919172000_reparto_compra_por_tienda.sql`** (aditiva y compatible con la web de hoy: entre pegarla y desplegar todo sigue
-   funcionando). Se pega **sin prefijo `retail.`** (lleva `set search_path`).
-3. **`20260919173000_reparto_compra_retira_destino_de_cabecera.sql`**: re-llavea, verifica que nada lea la columna y la elimina.
+**Verificado contra producción el 2026-09-19, solo lectura (`SELECT` sobre `cayla-dynamic`; no se ejecutó DDL):**
+- Ninguno de los objetos de este ADR existe todavía; la cabecera `compras.ubicacion_destino_id` existe y es NOT NULL.
+- Los requisitos de la 172000 están: libro de cierres (ADR-0111), `recibir_envio` (ADR-0113), candado de dinero (ADR-0126);
+  `compras_resumen` tiene 32 columnas (la guarda acepta 32 o 33) y son, en orden, las 32 primeras de la vista que la 172000 vuelve a
+  declarar (solo se agrega `ubicaciones_destino` al final); existe el trigger `compra_item_cierres_inmutables` que el relleno apaga un instante.
+- Las 12 anclas de los parches (`registrar_compra` ×7, `recibir_compras` ×2, `recibir_envio` ×3) existen en las definiciones vivas, cada una
+  el número de veces que el parche exige, y ninguna función está ya parchada.
+- Las 15 funciones que aún leen la columna son exactamente las que las dos migraciones tratan (8 re-llaveadas + `resumen_recepciones` y
+  `listar_recepciones_compras` reescritas + `registrar_compra`, `recibir_envio`, `cerrar_linea_compra`, `lineas_compra_operativo`,
+  `listar_compras_operativo`); la única política que la cita (`compra_item_cierres_select`) la vuelve a crear la 172000; ninguna otra vista
+  depende de `compras_resumen`; las 8 funciones se re-llavean sin que quede ningún uso.
+- **Producción no tiene ni un comprobante** (0 en `compras`, `compra_items`, recepciones ligadas a comprobantes y `compra_item_cierres`): el
+  relleno no tiene nada que copiar y nadie está usando Compras que pueda salir afectado por el orden.
+
+**Orden y qué esperar**
+1. **Antes:** ya están las migraciones de ADR-0111, 0113 y 0126 (comprobado arriba; las guardas de la 172000 también lo verifican y abortan
+   claro si falta alguna). Las 180000/181000 de ADR-0135 ya están aplicadas: da igual el orden respecto a ellas.
+2. **`20260919172000_reparto_compra_por_tienda.sql`**, se pega **sin prefijo `retail.`** (lleva `set search_path`), **sola, en su propia
+   ejecución**. Aditiva: crea el reparto, parcha las funciones y deja la cabecera sin uso.
+3. **`20260919173000_reparto_compra_retira_destino_de_cabecera.sql`**, **en otra ejecución** (así se probaron, cada una en su propia
+   transacción; en una sola habría que poner antes `set constraints all immediate` si el relleno de la 172000 dejó reparto con eventos de
+   constraint diferidos pendientes — en producción no hay nada que rellenar). Re-llavea, verifica que nada lea la columna y la elimina.
 4. `select retail.fn_aplicar_candado_de_dinero();` (la 173000 ya lo llama; se repite como comprobación, es idempotente).
-5. **Después**, desplegar la web. La web nueva llama a `lineas_compra_operativo(p_ubicacion_id)`, `listar_compras_operativo(p_ubicacion_id)`
-   y `cerrar_linea_compra(p_ubicacion_id)`: contra la base vieja fallaría.
+5. Fusionar el PR (despliega la web). **Es seguro en cualquier orden respecto al SQL**, y por eso se endureció la web:
+   - *Web nueva, base vieja* (se fusionó antes de pegar): `listarCompras` y `getLineasCompra` reintentan SIN `p_ubicacion_id` si la base no
+     conoce la firma nueva (si no, un colaborador —que no puede leer `listar_compras`— vería Recibir vacío); el detalle no dibuja «Reparto por
+     tienda» (la tabla no existe: `esRelacionAusente`, sin el aviso de «no se pudo cargar»); y Registrar NO ofrece «Repartir entre tiendas»
+     (`repartoDisponible`): una `registrar_compra` de antes ignoraría `destinos` y mandaría todo a una tienda sin avisar.
+   - *Web vieja, base nueva* (se pegó antes de fusionar): verificado leyendo el código de `main`, nunca pide la columna por nombre; solo la usa
+     el «Destino» del detalle, que cae a «—» hasta el despliegue. Es lectura de código, no una ejecución.
 6. Refrescar el diccionario (`pnpm datos:generar:produccion`, `generado/COMO-REFRESCAR.md`) y correr `pnpm datos:comparar`; el pájaro de las
    dos tablas nuevas está en `scripts/datos/aviario.mjs` (la asignación la aprueba Felipe).
 

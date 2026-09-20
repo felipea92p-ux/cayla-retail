@@ -28,6 +28,7 @@ const TONO_DEL_REPARTO: Record<"ok" | "falta" | "sobra", TonoChip> = { ok: "verd
 /** «Mercadería destinada a»: una tienda (el flujo de siempre) o repartida entre varias, con cuáles participan. */
 export function DestinoDeLaMercaderia({
   ubicaciones,
+  puedeRepartir = true,
   repartir,
   onRepartir,
   ubicacionId,
@@ -36,6 +37,8 @@ export function DestinoDeLaMercaderia({
   onTiendas,
 }: {
   ubicaciones: Tienda[];
+  /** `false` cuando la base todavía no tiene el reparto: solo el selector de siempre, sin «Repartir entre tiendas». */
+  puedeRepartir?: boolean;
   repartir: boolean;
   onRepartir: (repartir: boolean) => void;
   /** El destino cuando va todo a una tienda. */
@@ -51,6 +54,19 @@ export function DestinoDeLaMercaderia({
     if (activa && tiendas.length === 1) return;
     const nuevas = activa ? tiendas.filter((t) => t !== id) : [...tiendas, id];
     onTiendas(ubicaciones.filter((u) => nuevas.includes(u.id)).map((u) => u.id));
+  }
+
+  // Sin reparto en la base: exactamente el selector de antes.
+  if (!puedeRepartir) {
+    return (
+      <CampoSelectNativo etiqueta="Mercadería destinada a" value={ubicacionId} onChange={(e) => onUbicacionId(e.target.value)}>
+        {ubicaciones.map((u) => (
+          <option key={u.id} value={u.id}>
+            {u.nombre}
+          </option>
+        ))}
+      </CampoSelectNativo>
+    );
   }
 
   return (
