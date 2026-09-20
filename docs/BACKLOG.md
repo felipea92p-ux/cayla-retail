@@ -62,7 +62,8 @@ Plan completo en [`docs/PLAN-PRODUCCION.md`](PLAN-PRODUCCION.md); diseño de ref
 **Nada de esto está construido:** solo el spike y el plan (verificado en el navegador). Cada fase = un PR.
 
 - [x] **F0 · Preparación (2026-09-19):** `origin/main` fusionada (rama al día), ADR-0133 reservado (el 0130 —renumerado tras chocar con el menú plegable en `main`—, 0131 y 0132 los tienen otras ramas), spike y plan commiteados.
-- [x] **D-A (menú)** — ok de Felipe al pedir F1 (2026-09-19): el líder ve Producción desde cualquier ubicación; revierte la regla del 2026-09-17.
+- [x] **D-A (menú) — REVERTIDA el 2026-09-20 por Felipe:** Producción se ve **solo parado en un Taller, líder incluido** (por el tipo de la ubicación activa). Rigió el 2026-09-19 lo contrario (el líder la veía desde cualquier ubicación). Solo menú y páginas, sin esquema; Compras no cambió. Ver nota en ADR-0133.
+- [ ] **Pendiente derivado de D-A (2026-09-20):** el enlace del Resumen de Inventario a `/produccion` (`lib/resumen-acciones.ts`, paso «revisar abastecimiento» de una prenda que se repone fabricando) ya no lleva a las Órdenes cuando el líder mira desde una tienda: aterriza en el aviso «cambia al Taller». Funciona, pero es un paso de más — decidir si el Resumen debería mandar a la orden con la ubicación ya cambiada, o si basta el aviso.
 - [x] **D-H (2026-09-19, decisión de Felipe contra mi recomendación):** Producción tiene su propio directorio de proveedores y sus propios Comprobantes / Por pagar / Recibir. Compras no se toca.
 - [ ] **Decisiones de Felipe que siguen abiertas (bloquean F4 y F7):** **D-I** (vista consolidada de deuda e IGV de los dos módulos) ·
       D-E `maquila_referencias` · D-F `gastos_taller` · D-G costos de insumos solo líder.

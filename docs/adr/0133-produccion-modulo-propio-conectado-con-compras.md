@@ -4,7 +4,9 @@
   «El menú lateral se pliega a íconos». El título y el rumbo cambiaron el mismo día (ver «Historia»).
 - **Estado:** **Propuesto.** F1 (menú) y F2 (Órdenes) **aplicadas** el 2026-09-19. Falta el ok de Felipe en D-E, D-F, D-G y D-I
   (`docs/PLAN-PRODUCCION.md`) antes de tocar esquema.
-- **Reemplaza, en un punto:** la regla del 2026-09-17 «Producción solo se ve parado en el Taller, líder incluido» (comentario en `AppShell.tsx`, ADR-0051).
+- **Reemplazó, en un punto, y luego se revirtió:** la regla del 2026-09-17 «Producción solo se ve parado en el Taller, líder incluido» (comentario
+  en `AppShell.tsx`, ADR-0051). El 2026-09-19 la Decisión 2 la cambió (el líder la veía desde cualquier ubicación); **el 2026-09-20 Felipe la
+  restituyó** — ver la nota bajo la Decisión 2. Hoy manda la del 2026-09-17.
 - **Refina:** ADR-0090 (insumos del Taller) — ahora se conecta con su propio abastecimiento y con la orden; ADR-0126 (el dinero es del líder) — se extiende
   a los costos de insumos. **Copia las reglas de** ADR-0035 (la factura es el eje) para los comprobantes de Producción, sin tocar las tablas de Compras.
 - **Diseño de referencia:** `docs/maquetas/produccion-modulo-2026-09/`.
@@ -28,8 +30,14 @@ otra pregunta («¿alcanza para cortar?»).
 
 1. **Producción y Compras son dos módulos distintos**, cada uno con su grupo en el menú. Se conectan por los datos (la factura de tela abre un lote, la
    orden lo consume), **no por el menú**. Compras **no se modifica**: sus pantallas, sus tablas y sus funciones quedan tal cual.
-2. **El líder ve Producción desde cualquier ubicación** (la base ya lo permite: `fn_puede_operar_ubicacion` = líder o mi ubicación); quien trabaja en el
-   Taller ve sus pantallas; el resto no la ve. Reemplaza la regla del 2026-09-17.
+2. ~~**El líder ve Producción desde cualquier ubicación**~~ **(revertida el 2026-09-20 — ver nota)**: quien trabaja en el Taller ve sus pantallas; el
+   resto no la ve.
+   > **Nota 2026-09-20 (Felipe, al ver «Producción» en el menú de una tienda):** Producción se ve **solo parado en un Taller, líder incluido**. La
+   > regla mira el **tipo** de la ubicación activa (`ubicaciones.tipo = 'taller'`), no un nombre: un segundo Taller entraría sin tocar código. Es una
+   > regla de **visibilidad** (menú y páginas), no de permiso: la base sigue permitiéndole al líder operar el Taller desde cualquier sede
+   > (`fn_puede_operar_ubicacion` = líder o mi ubicación), así que no hubo cambio de esquema. Un líder que llega a `/produccion/*` desde otra ubicación
+   > (por ejemplo, con el enlace del Resumen de Inventario) ve un aviso que le dice que cambie al Taller; quien no puede cambiar de ubicación vuelve al
+   > inicio. La regla vive en `puedeVerProduccion` (`lib/produccion-menu.ts`), que usan el menú y las dos páginas.
 3. **Producción tiene su propio abastecimiento (D-H, decidido por Felipe):** `proveedores_produccion` (tela, avíos, maquila), `comprobantes_produccion`
    (+ ítems y pagos), Por pagar y Recibir propios. Recibir un comprobante **abre un lote** por línea (proveedor, documento, costo sin IGV). Son pantallas
    **nuevas** sobre **datos distintos** de los de Compras: se parecen en el lenguaje visual, no en lo que muestran.
