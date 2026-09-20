@@ -14,18 +14,20 @@ export type PerfilMenu = {
   ubicacionTipo: "tienda" | "almacen" | "taller";
 };
 
-/** Pantallas de Producción, en orden. Hoy Órdenes e Insumos: Resumen, Proveedores de producción, Comprobantes,
- *  Por pagar, Recibir y Eficiencia se suman acá cuando existan (fases F4 a F7). */
-export type ClaveMenuProduccion = "ordenes" | "insumos";
+/** Pantallas de Producción, en orden. Hoy Órdenes, Insumos y Proveedores (solo líder): Resumen, Comprobantes,
+ *  Por pagar, Recibir y Eficiencia se suman acá cuando existan (fases F4b a F7). */
+export type ClaveMenuProduccion = "ordenes" | "insumos" | "proveedoresProduccion";
 
 /**
  * - **Líder:** ve Producción desde cualquier ubicación (la base ya lo permite: `fn_puede_operar_ubicacion` = líder
  *   o mi ubicación). Reemplaza la regla del 2026-09-17 «solo parado en el Taller, líder incluido».
- * - **Quien trabaja en el Taller:** ve las mismas pantallas de fabricación.
+ * - **Quien trabaja en el Taller:** ve las pantallas de fabricación (Órdenes e Insumos). **Proveedores es solo del
+ *   líder** (F4a): lleva datos bancarios de terceros y montos comprados (D-G).
  * - **Quien trabaja en una tienda o un almacén:** no ve el módulo.
  */
 export function hijosMenuProduccion(perfil: PerfilMenu): ClaveMenuProduccion[] {
-  if (perfil.esLider || perfil.ubicacionTipo === "taller") return ["ordenes", "insumos"];
+  if (perfil.esLider) return ["ordenes", "insumos", "proveedoresProduccion"];
+  if (perfil.ubicacionTipo === "taller") return ["ordenes", "insumos"];
   return [];
 }
 

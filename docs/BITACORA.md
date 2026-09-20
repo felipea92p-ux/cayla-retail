@@ -8421,3 +8421,9 @@ lote del que salió y al mismo costo; `anular_produccion` devuelve todo lo desco
 tela/avíos neto de devoluciones (antes las ignoraba). Migración `20260920100000` solo en local; `pnpm pruebas:insumos-devolucion` 10/10 y
 1421 pruebas del web en verde. Falta pegarla en producción (Felipe) y verla en el navegador (el panel estaba oculto). Referencias al
 reparto entre tiendas renumeradas a ADR-0139.
+
+## 2026-09-20 (Producción F3b aplicada y F4a: proveedores propios — ADR-0133)
+Felipe pegó la migración de F3b y se validó contra producción: una sola versión de cada función, helper cerrado, costo 800 → 500 → 0 y saldo del lote 75 → 100
+en un bloque que se revierte solo (0 filas de rastro). F4a construida en local: directorio `proveedores_produccion` aparte del de Compras, solo-líder, escritura
+solo por RPC, pantalla `/produccion/proveedores`. Migración `20260920110000` sin pegar; `insumos`/`insumo_lotes` se repuntan a la tabla nueva (0 filas hoy).
+`pruebas:proveedores-produccion` 15/15 y 1629 pruebas del web en verde. Compras no se tocó.

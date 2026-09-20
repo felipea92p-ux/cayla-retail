@@ -2927,6 +2927,63 @@ export type Database = {
         }
         Relationships: []
       }
+      proveedores_produccion: {
+        Row: {
+          activo: boolean
+          banco: string | null
+          billeteras: string[] | null
+          cci: string | null
+          celular_billetera: string | null
+          contacto: string | null
+          created_at: string
+          cuenta_bancaria: string | null
+          forma_pago_preferida: string | null
+          id: string
+          nombre: string
+          plazo_credito_dias: number | null
+          rubro: string
+          ruc: string | null
+          telefono: string | null
+          titular_cuenta: string | null
+        }
+        Insert: {
+          activo?: boolean
+          banco?: string | null
+          billeteras?: string[] | null
+          cci?: string | null
+          celular_billetera?: string | null
+          contacto?: string | null
+          created_at?: string
+          cuenta_bancaria?: string | null
+          forma_pago_preferida?: string | null
+          id?: string
+          nombre: string
+          plazo_credito_dias?: number | null
+          rubro: string
+          ruc?: string | null
+          telefono?: string | null
+          titular_cuenta?: string | null
+        }
+        Update: {
+          activo?: boolean
+          banco?: string | null
+          billeteras?: string[] | null
+          cci?: string | null
+          celular_billetera?: string | null
+          contacto?: string | null
+          created_at?: string
+          cuenta_bancaria?: string | null
+          forma_pago_preferida?: string | null
+          id?: string
+          nombre?: string
+          plazo_credito_dias?: number | null
+          rubro?: string
+          ruc?: string | null
+          telefono?: string | null
+          titular_cuenta?: string | null
+        }
+        Relationships: []
+      }
       series_comprobantes: {
         Row: {
           id: string
@@ -4179,6 +4236,10 @@ export type Database = {
         }
         Returns: string
       }
+      cambiar_estado_proveedor_produccion: {
+        Args: { p_activo: boolean; p_proveedor_id: string }
+        Returns: undefined
+      }
       desactivar_categoria: {
         Args: { p_categoria_id: string }
         Returns: undefined
@@ -4652,6 +4713,37 @@ export type Database = {
           ultima_entrega: string
         }[]
       }
+      fn_proveedor_produccion_metricas: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          lotes: number
+          total_comprado: number
+          ultima_entrega: string
+        }[]
+      }
+      fn_proveedores_produccion: {
+        Args: never
+        Returns: {
+          activo: boolean
+          banco: string
+          billeteras: string[]
+          cci: string
+          celular_billetera: string
+          contacto: string
+          cuenta_bancaria: string
+          forma_pago_preferida: string
+          id: string
+          lotes: number
+          nombre: string
+          plazo_credito_dias: number
+          rubro: string
+          ruc: string
+          telefono: string
+          titular_cuenta: string
+          total_comprado: number
+          ultima_entrega: string
+        }[]
+      }
       fn_proveedores: {
         Args: never
         Returns: {
@@ -4913,6 +5005,25 @@ export type Database = {
           p_titular_cuenta?: string
         }
         Returns: undefined
+      }
+      guardar_proveedor_produccion: {
+        Args: {
+          p_banco?: string
+          p_billeteras?: string[]
+          p_cci?: string
+          p_celular_billetera?: string
+          p_contacto?: string
+          p_cuenta_bancaria?: string
+          p_forma_pago_preferida?: string
+          p_nombre: string
+          p_plazo_credito_dias?: number
+          p_proveedor_id: string | null
+          p_rubro: string
+          p_ruc?: string
+          p_telefono?: string
+          p_titular_cuenta?: string
+        }
+        Returns: string
       }
       iniciar_traslado: {
         Args: {
