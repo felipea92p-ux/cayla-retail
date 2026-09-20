@@ -29,10 +29,12 @@ export function hijosMenuProduccion(perfil: PerfilMenu): ClaveMenuProduccion[] {
   return [];
 }
 
-export type ClaveMenuCompras = "proveedores" | "comprobantes" | "recibir" | "porPagar";
+export type ClaveMenuCompras = "proveedores" | "comprobantes" | "recibir" | "porPagar" | "notasCredito";
 
 /** Compras es solo de líder (su layout redirige al resto). Mismo orden que ya tenía: proveedor → factura →
- *  recepción → pago. El «Recibir mercadería» de quien no es líder vive en Inventario, donde está el stock. */
+ *  recepción → pago. El «Recibir mercadería» de quien no es líder vive en Inventario, donde está el stock.
+ *  «Notas de crédito» (2026-09-19) va JUNTO a «Por pagar» y al final: las dos son dinero del proveedor —una
+ *  lo que se le debe, otra lo que él debe— y se miran seguidas. */
 export function hijosMenuCompras(perfil: PerfilMenu): ClaveMenuCompras[] {
-  return perfil.esLider ? ["proveedores", "comprobantes", "recibir", "porPagar"] : [];
+  return perfil.esLider ? ["proveedores", "comprobantes", "recibir", "porPagar", "notasCredito"] : [];
 }

@@ -21,9 +21,9 @@ describe("hijosMenuProduccion (ADR-0133, D-A)", () => {
 });
 
 describe("hijosMenuCompras", () => {
-  it("el líder ve las cuatro pantallas de Compras, en el orden proveedor → factura → recepción → pago", () => {
+  it("el líder ve las cinco pantallas de Compras, en el orden proveedor → factura → recepción → pago → notas", () => {
     for (const ubicacionTipo of TIPOS) {
-      expect(hijosMenuCompras({ esLider: true, ubicacionTipo })).toEqual(["proveedores", "comprobantes", "recibir", "porPagar"]);
+      expect(hijosMenuCompras({ esLider: true, ubicacionTipo })).toEqual(["proveedores", "comprobantes", "recibir", "porPagar", "notasCredito"]);
     }
   });
 

@@ -4203,6 +4203,28 @@ export type Database = {
           variante_talla: string
         }[]
       }
+      fn_facturas_para_nota_credito: {
+        Args: {
+          p_filtro?: string
+          p_limite?: number
+          p_proveedor_id?: string
+          p_texto?: string
+        }
+        Returns: {
+          documento: string
+          estado: string
+          fecha_emision: string
+          fecha_vencimiento: string
+          id: string
+          notas_monto: number
+          pagado: number
+          proveedor_id: string
+          proveedor_nombre: string
+          saldo: number
+          tiene_nota: boolean
+          total: number
+        }[]
+      }
       fn_hoy_lima: { Args: never; Returns: string }
       fn_insertar_nota_credito_compra: {
         Args: {
@@ -4991,11 +5013,41 @@ export type Database = {
         }
         Returns: Json
       }
+      notas_credito_tablero: {
+        Args: never
+        Returns: {
+          a_favor: number
+          aplicado: number
+          cerrado_en: string
+          cierre_id: string
+          clase: string
+          compra_estado: string
+          compra_fecha_emision: string
+          compra_id: string
+          compra_saldo: number
+          compra_total: number
+          created_at: string
+          documento: string
+          fecha: string
+          id: string
+          igv: number
+          monto: number
+          monto_esperado: number
+          motivo: string
+          nota: string
+          proveedor_id: string
+          proveedor_nombre: string
+          resuelto: boolean
+          serie_numero: string
+          unidades_cerradas: number
+        }[]
+      }
       registrar_adjunto_compra: {
         Args: {
           p_bytes: number
           p_compra_id: string
           p_nombre: string
+          p_nota_credito_id?: string
           p_ruta: string
           p_tipo: string
         }
@@ -5070,10 +5122,14 @@ export type Database = {
         Args: {
           p_cierre_id?: string
           p_compra_id: string
+          p_destino?: string
           p_fecha: string
           p_monto: number
           p_motivo: string
           p_nota?: string
+          p_reembolso_fecha?: string
+          p_reembolso_metodo?: string
+          p_reembolso_referencia?: string
           p_serie_numero: string
         }
         Returns: string

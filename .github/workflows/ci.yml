@@ -198,3 +198,13 @@ jobs:
       - name: pruebas:pagos-compras-endurecimiento
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:pagos-compras-endurecimiento
+
+      # Módulo Notas de crédito: el tablero trae notas y pendientes con sus montos (incluido el
+      # monto_esperado del faltante cerrado y el a_favor de la nota que superó la deuda), registrar con
+      # destino «a_favor» deja el mismo estado que la RPC de antes, con «reembolso» nacen nota y
+      # devolución en UNA transacción (y si no sobra nada no nace ninguna de las dos), el buscador
+      # encuentra por documento, proveedor y monto, el integrante no ve ni escribe nada, una sola firma
+      # de cada función y la migración se puede pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:notas-credito
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:notas-credito

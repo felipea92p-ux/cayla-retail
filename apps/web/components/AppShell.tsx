@@ -138,6 +138,8 @@ const IC = {
   recibir: "M22 12h-6l-2 3h-4l-2-3H2 M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z",
   // Reloj: lo que todavía no se pagó, contra una fecha.
   porPagar: "M12 22a10 10 0 100-20 10 10 0 000 20z M12 6v6l4 2",
+  // Recibo con una flecha que vuelve: el documento por el que el proveedor devuelve dinero.
+  notasCredito: "M4 3h13a1 1 0 011 1v15.5a1.5 1.5 0 01-2.4 1.2L14 19l-2.2 1.7a1 1 0 01-1.2 0L8.4 19l-2.2 1.7A1.5 1.5 0 014 19.5V4a1 1 0 011-1z M8 8h6 M8 12h4",
   chevron: "M9 6l6 6-6 6",
 };
 
@@ -894,6 +896,12 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   const facturas: Item = { href: "/compras", etiqueta: "Comprobantes", icono: IC.facturas };
   const recibirMercaderia: Item = { href: "/recibir", etiqueta: "Recibir mercadería", icono: IC.recibir };
   const porPagar: Item = { href: "/compras/por-pagar", etiqueta: "Por pagar", icono: IC.porPagar };
+  // Notas de crédito (2026-09-19): lo que el proveedor le acredita a CAYLA. Va pegada a «Por pagar»
+  // porque las dos responden a la misma pregunta —cuánto dinero hay entre CAYLA y ese proveedor—, una
+  // de cada lado. Sin insignia: el contador de «por reclamar» saldría de `notas_credito_tablero()`, que
+  // recorre comprobantes, cierres y notas; pagarlo en CADA pantalla de la app por un número que ya se ve
+  // como primera cifra del módulo no vale la pena (principio 5).
+  const notasCredito: Item = { href: "/compras/notas-credito", etiqueta: "Notas de crédito", icono: IC.notasCredito };
   const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };
   const ordenes: Item = { href: "/produccion/ordenes", etiqueta: "Órdenes", icono: IC.produccion };
   // Producción y Compras son dos módulos distintos (ADR-0133, decisión de Felipe
@@ -942,7 +950,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   // "generalizado y ordenado"). Líder-only: registra facturas y pagos a proveedor.
   // Sigue siendo un módulo APARTE de Producción (2026-09-19): se conectan por los
   // datos, no por el menú.
-  const itemsCompras: Record<ClaveMenuCompras, Item> = { proveedores, comprobantes: facturas, recibir: recibirMercaderia, porPagar };
+  const itemsCompras: Record<ClaveMenuCompras, Item> = { proveedores, comprobantes: facturas, recibir: recibirMercaderia, porPagar, notasCredito };
   const grupoCompras: ItemGrupo = {
     id: "compras",
     etiqueta: "Compras",
