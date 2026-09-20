@@ -40,15 +40,15 @@ const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualquier ubicación
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — fija a Tienda Trujillo
 
-// Mensajes de Postgres siempre en inglés, sin importar el locale de quien corre esto:
-// las pruebas de permisos comparan "permission denied".
-const PREFIJO = "set lc_messages = 'C';\n";
+// Las pruebas de permisos comparan el texto en inglés de Postgres («permission denied for function …»): el
+// Postgres de Supabase (local y de CI) ya habla inglés. NO se fuerza `lc_messages`: en Supabase el rol
+// `postgres` no es superusuario y ese `set` falla — el primer CI de este archivo cayó justo por eso.
 
 function psql(sql) {
   return execFileSync(
     "docker",
     ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"],
-    { input: PREFIJO + sql, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }
+    { input: sql, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }
   );
 }
 
@@ -667,7 +667,7 @@ rollback;
 error(
   "un usuario anónimo NO puede ejecutar listar_apartados",
   comoPersona(FELIPE, `${RESOLVER}\nset local role anon;\nselect count(*) from retail.listar_apartados(:'ubic');`),
-  "permission denied"
+  "permission denied for function listar_apartados"
 );
 
 error(
@@ -681,13 +681,13 @@ ${colchon("sub_piso", 3)}
   select :'v', :'ubic', :'sub_piso', 1, 'Directo', '111', retail.fn_hoy_lima() + 1, id from retail.movimientos limit 1;
 `
   ),
-  "permission denied"
+  "permission denied for table apartados"
 );
 
 error(
   "un usuario autenticado NO puede ejecutar el diagnóstico fn_verificar_apartados()",
   comoAuthenticated(FELIPE, "", `select count(*) from retail.fn_verificar_apartados();`),
-  "permission denied"
+  "permission denied for function fn_verificar_apartados"
 );
 
 error(
@@ -699,25 +699,25 @@ error(
   values (:'v', :'ubic', :'sub_piso', 'apartado', 1, 'puerta lateral');
 `
   ),
-  "permission denied"
+  "permission denied for table movimientos"
 );
 
 error(
   "un usuario autenticado NO puede ejecutar recalcular_stock() (borra y reconstruye TODO el stock)",
   comoAuthenticated(FELIPE, "", `select retail.recalcular_stock();`),
-  "permission denied"
+  "permission denied for function recalcular_stock"
 );
 
 error(
   "un usuario anónimo NO puede ejecutar recalcular_stock()",
   comoPersona(FELIPE, `set local role anon;\nselect retail.recalcular_stock();`),
-  "permission denied"
+  "permission denied for function recalcular_stock"
 );
 
 error(
   "un usuario autenticado NO puede ejecutar el motor fn_aplicar_movimiento() directo",
   comoAuthenticated(FELIPE, "", `select retail.fn_aplicar_movimiento(gen_random_uuid());`),
-  "permission denied"
+  "permission denied for function fn_aplicar_movimiento"
 );
 
 // ===========================================================================
@@ -782,7 +782,7 @@ function psqlAsync(sql) {
       if (code === 0) resolve({ stdout, stderr, ms });
       else reject(Object.assign(new Error(`psql salió con código ${code}`), { stdout, stderr, ms }));
     });
-    p.stdin.write(PREFIJO + sql);
+    p.stdin.write(sql);
     p.stdin.end();
   });
 }
