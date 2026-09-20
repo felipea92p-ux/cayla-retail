@@ -207,11 +207,13 @@ exito(
   // una CHECK de no-negativo en retail.stock — la red de seguridad de fondo
   // detrás del guard amigable que ya prueba el caso de arriba (defensa en
   // profundidad: el guard de PL/pgSQL da el mensaje legible, el CHECK crudo es
-  // el que de verdad no puede saltarse aunque alguien rompa el guard).
+  // el que de verdad no puede saltarse aunque alguien rompa el guard). El patrón
+  // exige `cantidad >= 0` a secas: `stock` también tiene `cantidad_apartada >= 0`
+  // (20260920160000) y un `%cantidad%` suelto confundía a las dos.
   "el candado de no-negativo de retail.stock existe de verdad como CHECK (no asumido por nombre)",
   `select conname, pg_get_constraintdef(oid)
 from pg_constraint
-where conrelid = 'retail.stock'::regclass and contype = 'c' and pg_get_constraintdef(oid) ilike '%cantidad%>=%0%';
+where conrelid = 'retail.stock'::regclass and contype = 'c' and pg_get_constraintdef(oid) ~ '[( ]cantidad >= 0';
 `,
   ([conname, definicion]) => Boolean(conname) && /cantidad\s*>=\s*0/.test(definicion ?? "")
 );
