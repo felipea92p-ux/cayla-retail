@@ -7,6 +7,7 @@ import { agruparStockPorSede, type SedeConStock } from "@/lib/stock-por-sede";
 // Las páginas (server) importan todo desde acá; los componentes cliente
 // importan SOLO `inventario-reglas.ts`.
 export * from "@/lib/inventario-reglas";
+import type { Cobertura } from "@/lib/resumen-reglas";
 
 // Stock por ubicación para la pantalla de Inventario. `retail.stock` es un
 // snapshot derivado de `movimientos` (nunca se edita a mano) — acá solo se
@@ -179,6 +180,9 @@ export type FilaExistencias = FilaStock & {
   enTransito: number;
   /** Dónde más hay, de más a menos. Vacío si en ninguna otra sede. */
   enRed: SedeConStock[];
+  /** Cuánto dura el stock de hoy al ritmo de venta reciente (`getCoberturaPorVariante`). Solo tiendas;
+   *  ausente o null = «N/D» (no vende, no hay historial o el cálculo falló). */
+  cobertura?: Cobertura | null;
 };
 
 export async function getExistencias(ubicacionId: string, ubicaciones: { id: string; nombre: string }[]): Promise<FilaExistencias[]> {

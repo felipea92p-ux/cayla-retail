@@ -3,6 +3,42 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Comparar períodos: rediseño visual, y miniatura + color en las tablas de Inventario — ADR-0138)
+Se cerró el rediseño visual de Comparar períodos, pedido tras ver la tabla de Detalle «dispersa»: contexto de
+período compactado a una línea («A → B · Cambiar períodos», el configurador de siempre se despliega a pedido);
+la búsqueda se mudó a Detalle (Vista general no filtra productos, los explica); el KPI de Cobertura y su gráfico
+salieron de Comparar (son de Existencias); el bloque «Qué cambió» (señales de mejoró rotación/riesgo de
+quiebre/sobrestock) se reemplazó por «Evolución del ritmo» (dona Aceleró/Estable/Desaceleró, interactiva hacia
+Detalle) y el ranking de texto por barras horizontales A/B; nueva «Distribución de sell-through» (reusa el
+gráfico de columnas de Cobertura). La tabla de Detalle bajó a 6 columnas con línea secundaria por celda y UN
+«cambio relevante» por fila (el más importante, no una lista de chips) en vez de la columna Interpretación.
+Se agregó también la miniatura (percha) y la cápsula de color real (`MuestraColor`) al lado del nombre de
+producto en Desempeño y Comparar › Detalle, y la miniatura sola (sin color: el hex no llega a esas filas) en
+Movimientos, Traslados › detalle y Conteo › detalle — el mismo lenguaje que ya usaba Existencias. Mover y
+Recibir quedan sin ella: son `<select>` nativos y no admiten marcado dentro de un `<option>`.
+Animaciones de entrada (KPI, dona, barras) reusan `anim-entra`/`anim-crece-x`/`anim-crece-y`, ya existentes;
+se repiten al cambiar de período o de alcance (categoría/búsqueda), nunca al escribir en el buscador.
+
+## 2026-09-19 (Rotación: el total no se cae por una variante sin dato — ADR-0138, segunda corrección)
+La rotación de una variante sigue siendo estricta (sin costo o sin historial fiable es N/D), pero el total de la tienda o de la categoría ya no: se calcula como Σ COGS ÷ Σ inventario promedio de las variantes con datos válidos —las mismas en numerador y denominador— y la tarjeta dice «N de M variantes comparables» cuando quedó alguna fuera (con todas válidas no dice nada). Al comparar A contra B se usan solo las variantes válidas en los dos períodos, para no medir el cambio de universo en vez del del inventario.
+Lo que quedó escrito, junto a la lógica en `lib/rotacion.ts`: el COGS es histórico pero el inventario se valora al costo VIGENTE, así que un costo que cambió desalinea numerador y denominador; el objetivo es COGS histórico ÷ promedio temporal del valor histórico. No se construyó (BACKLOG). Sin migración.
+Efecto visible: en la base local el KPI pasó de N/D a 0.30x → 0.31x sobre 3 de 18 variantes comparables, con los motivos de las otras 15 en el tooltip.
+
+## 2026-09-19 (Rotación: una sola definición, la de COGS — ADR-0138, corrección)
+Se corrigió «Rotación»: filas, ranking, órdenes y KPI de Desempeño y Comparar mostraban unidades vendidas ÷ unidades promedio con el nombre de la métrica oficial. Ahora es COGS del período ÷ inventario promedio a costo, en `lib/rotacion.ts`, con el costo que cada venta guardó ese día (`venta_items.costo_unitario`); si falta el costo o el historial no cuadra, es N/D en vez de un número inventado.
+Lo que quedó escrito: sin serie diaria de inventario rige el promedio de dos puntos (valor al inicio + al cierre) ÷ 2 y una prenda que recibe stock a mitad del período sale con la rotación inflada; `inventarioPromedioTemporal` es el punto para reemplazarlo sin tocar las pantallas.
+Efecto visible: un total con una sola variante sin dato era N/D (lo corrige la entrada de arriba: ahora se calcula con las demás).
+
+## 2026-09-19 (Análisis de inventario: cada pantalla con una sola pregunta — ADR-0138, ampliación)
+Se cerró: «Resumen de inventario» pasó a «Análisis de inventario» con dos pestañas, Desempeño (cómo se comportó el inventario en el período: vendido, ritmo, sell-through, rotación y tendencia) y Comparar períodos; «Comparar con» solo queda en Comparar, y las tarjetas y la tabla de prioridades —que mezclaban el stock de hoy con el período— salieron. La cobertura se mudó a Existencias, donde sí responde «¿cuánto me dura lo que tengo?».
+Lo nuevo de fondo: Desempeño no tiene fórmulas propias; parte el período en dos mitades y le pide a la MISMA función de Comparar el período entero, el stock al inicio y al cierre y la tendencia (mitad 2 contra mitad 1). Una sola definición de ritmo, sell-through y rotación en las tres pantallas.
+Falta: aplicar la migración `20260919220000` en producción ANTES de desplegar (ahora la pantalla por defecto depende de ella) y decidir dónde viven las acciones de reposición que salieron (la lógica sigue en `lib/`).
+
+## 2026-09-19 (Resumen de Inventario: comparar dos períodos, A contra B — ADR-0138)
+Se cerró: el Resumen gana un modo «Comparar períodos» (vista general y detalle por producto) con ventas, rotación, cobertura y capital de A → B, tres señales, ranking de rotación y cobertura al cierre; y pierde el selector de sede duplicado y «Ingreso sin comprobante» (que sigue vivo en el resto de Inventario).
+Lo nuevo de fondo: el stock de cierre de un período se RECONSTRUYE del ledger (`fn_resumen_comparacion`), nunca se deduce de las ventas — «inicio 0 → cierre 14» con 4 vendidas es normal si llegó mercadería. La función es nueva y aditiva: no toca `fn_resumen_variantes`.
+Falta: aplicar la migración `20260919220000` en producción ANTES de desplegar el front (con ensayo revertido, como las anteriores) y refrescar el volcado `docs/datos/generado/`.
+
 ## 2026-09-19 (Proveedores responde: vista rápida, mini-tendencias y una gramática de movimiento acotada — ADR-0128)
 Se aplicó al ERP el spike visual de Proveedores (`docs/maquetas/proveedores-spike-2026-09/`): tocar una fila abre una vista rápida (↑ ↓ entre proveedores) en vez de saltar a la ficha; ordenar y filtrar deslizan las filas (FLIP); el filtro de rubro tiene un pulgar que viaja; la barra de concentración enciende la fila del proveedor al que apuntas; desactivar se puede deshacer 7 s; el RUC repetido se avisa al escribir.
 Decisión de Felipe: la primera versión respetó la regla «nada se anima solo al entrar» y quedó quieta al abrir; Felipe la vio, esperaba el spike y pidió cambiar la regla. Ahora la llegada a una pantalla con varias piezas también se anima (entrada escalonada, cifras y trazos que se arman una vez, siempre con límites: sin bucle, sin rebote, sin re-animar lo que ya se usa, movimiento reducido = instante). Regla reescrita en `globals.css` y ADR-0128; Proveedores es la primera pantalla, no es obligatoria en las demás.

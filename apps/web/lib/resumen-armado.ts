@@ -4,6 +4,7 @@ import {
   hoyEnLima,
   resolverComparacion,
   resolverPeriodo,
+  resolverRangoPersonalizado,
   type ModoComparacion,
   type PeriodoResuelto,
   type Rango,
@@ -32,6 +33,9 @@ export type ParametrosResumen = {
   desde?: string;
   hasta?: string;
   comparar?: string;
+  /** Rango elegido a mano cuando `comparar=personalizado` («Otro período…»). */
+  cdesde?: string;
+  chasta?: string;
 } & Record<string, string | string[] | undefined>;
 
 /** Todo lo que viaja al componente cliente: un resumen agregado y UNA página de filas. */
@@ -53,14 +57,19 @@ export type ResumenParaPantalla = {
   sububicaciones: { pisoId: string | null; almacenId: string | null };
 };
 
-/** Qué fechas hay que pedirle a la RPC según lo que dice la URL. */
+/** Qué fechas hay que pedirle a la RPC según lo que dice la URL. `modo` es el EFECTIVO: un
+ *  «Otro período…» sin fechas válidas cae en «anterior» y así se dice, para que el selector
+ *  no muestre una comparación que no se está haciendo. */
 export function rangosDelResumen(params: ParametrosResumen, ahora: Date): { periodo: PeriodoResuelto; modo: ModoComparacion; comparacion: Rango | null } {
+  const hoy = hoyEnLima(ahora);
   const periodo = resolverPeriodo(
     { preset: params.preset as string | undefined, desde: params.desde as string | undefined, hasta: params.hasta as string | undefined },
-    hoyEnLima(ahora),
+    hoy,
   );
-  const modo = esModoComparacion(params.comparar as string | undefined) ? (params.comparar as ModoComparacion) : COMPARACION_INICIAL;
-  return { periodo, modo, comparacion: resolverComparacion(periodo, modo) };
+  let modo = esModoComparacion(params.comparar as string | undefined) ? (params.comparar as ModoComparacion) : COMPARACION_INICIAL;
+  const personalizado = modo === "personalizado" ? resolverRangoPersonalizado(params.cdesde as string | undefined, params.chasta as string | undefined, hoy) : null;
+  if (modo === "personalizado" && !personalizado) modo = COMPARACION_INICIAL;
+  return { periodo, modo, comparacion: resolverComparacion(periodo, modo, personalizado) };
 }
 
 export function armarResumen(e: {

@@ -1062,6 +1062,60 @@ tomó el 0097 primero y ya está en producción — ver ADR-0101 y la fila de ab
 
 ---
 
+**Resumen — comparar dos períodos A vs B (2026-09-19, ADR-0138):**
+- [x] Modo `?modo=comparar` con «Vista general» (Ventas, Rotación, Cobertura y Capital A → B; «Qué cambió» con
+      tres señales que abren el detalle filtrado; top 5 de rotación; cobertura al cierre A/B) y «Detalle por
+      producto» (vendido y uds/día, Δ, stock al cierre con inicio → cierre, rotación, cobertura, interpretación,
+      orden y paginación). «Comparar con» gana «Otro período…». Sin selector de sede propio ni «Ingreso sin
+      comprobante»; «Actualizado hh:mm ⓘ» reemplaza el bloque técnico. **Superado por el rediseño visual de abajo**
+      (Cobertura/interpretación/señales de texto ya no están en Comparar).
+- [x] **Rediseño visual de Comparar períodos** (pedido de Felipe, tabla «dispersa»): contexto compacto «A → B ·
+      Cambiar períodos»; búsqueda solo en Detalle; KPI = Ventas, Rotación, **Sell-through** (no Cobertura) y
+      Capital; «Qué cambió» → dona **«Evolución del ritmo»** (Aceleró/Estable/Desaceleró, interactiva a Detalle);
+      ranking de texto → barras horizontales A/B; **«Distribución de sell-through»** en vez de Cobertura; Detalle a
+      6 columnas con **«Cambio relevante»** (uno solo, el más importante) en vez de Interpretación.
+- [x] **Miniatura + color real** (`ui/PrendaCelda.tsx:SinFoto`, `ui/MuestraColor.tsx`, como Existencias) en
+      Desempeño y Comparar › Detalle (ya tenían `colorHex`); solo miniatura (sin cápsula) en Movimientos,
+      Traslados › detalle y Conteo › detalle.
+- [x] **Reparto de responsabilidades (ampliación de ADR-0138):** «Resumen» → «Análisis de inventario» con
+      Desempeño | Comparar períodos; Desempeño = tabla «Comportamiento del inventario» (vendido, ritmo, sell-through,
+      rotación, tendencia), sin stock de hoy ni «Comparar con»; la cobertura pasó a Existencias («Cubre N d» bajo
+      «Disponible»). Salieron 5 tarjetas, la tabla de prioridades con acciones y 3 bloques (lógica intacta en `lib/`).
+- [x] **Rotación = COGS ÷ inventario promedio a costo, en un solo lugar (`lib/rotacion.ts`)** para filas, ranking, órdenes y
+      KPI de Desempeño y Comparar; COGS del `costo_unitario` de cada venta; N/D si falta costo o historial (ADR-0138).
+- [x] **Rotación total = Σ COGS ÷ Σ inventario promedio de las variantes válidas** (una variante sin dato ya no apaga la
+      cifra de la tienda) y **A contra B sobre las variantes válidas en los dos períodos** (`rotacionAgregada` /
+      `rotacionComparada`); debajo de la cifra «N de M variantes comparables» solo si hay exclusiones (ADR-0138, segunda
+      corrección). Sin migración.
+- [ ] **Cobertura mínima del KPI de rotación:** hoy, si hay al menos una variante válida se calcula (y se informa cuántas
+      quedaron fuera). Decidir con datos reales si hace falta un mínimo (p. ej. % de variantes o % del valor de inventario
+      cubierto); el universo ya viaja completo en `UniversoRotacion`.
+- [ ] **Rotación con promedio temporal del valor del inventario a costo** (objetivo definitivo: COGS histórico ÷ promedio
+      temporal del valor histórico, cada tramo con el costo que regía). Hoy: (valor al inicio + valor al cierre) ÷ 2, y una
+      prenda que recibe stock a mitad del período sale con la rotación inflada. Puntos de sustitución:
+      `BaseRotacion.inventarioPromedioTemporal` y `baseRotacionDeVariante` en `lib/rotacion.ts` (haría falta la serie diaria
+      del saldo × costo; la función ya arma los intervalos del piso, faltaría el de lo utilizable). Ojo: Desempeño junta dos
+      mitades en `periodoCompleto`; ahí habrá que ponderar por días el promedio de cada mitad.
+- [ ] **Valorar el inventario al costo de la fecha** (hoy el COGS es histórico —el de cada venta— pero el inventario del
+      inicio y del cierre se valora al costo VIGENTE: un costo que cambió infla o desinfla la rotación): `costo_historial` lo
+      permite. Límite documentado en el encabezado de `lib/rotacion.ts` y fijado por una prueba.
+- [ ] **Decidir dónde viven las acciones de reposición** (bajar al piso, pedir al Taller, trasladar, curvas rotas,
+      «Agotadas con demanda», capital): salieron del análisis y no tienen pantalla nueva. La lógica sigue en
+      `lib/resumen-reglas.ts` y `resumen-acciones.ts`; candidata natural: Existencias.
+- [ ] **Aplicar `20260919220000_resumen_comparacion_periodos.sql` en producción** (ensayo revertido → `apply_migration`
+      → `md5(prosrc)` contra el archivo) **antes** de desplegar el front — ahora también la pantalla POR DEFECTO
+      (Desempeño) depende de ella —; después `pnpm datos:generar:produccion`.
+- [ ] Rotación con inventario promedio de dos puntos: para el promedio real hace falta la serie diaria del saldo.
+- [ ] Confirmar con Felipe: umbral de «Aceleró/Desaceleró» (±25 %, `TENDENCIA_UMBRAL_PCT`) y de «Mejoró rotación»
+      (+25 %), y orden por defecto «Más vendidos en B». Son los umbrales de `inventario-reglas.ts`, no nuevos.
+- [ ] **Color real en Movimientos, Traslados › detalle y Conteo › detalle:** tienen la miniatura pero el color
+      sigue en texto — el hex no viaja hasta esas filas (en Mover/Recibir/Conteo `getCatalogo()` sí lo trae y se
+      descarta al mapear los datos de la pantalla; en Movimientos, Traslados › detalle y Conteo › detalle el tipo
+      de la fila no lo tiene en absoluto). Es un cambio de datos, no de diseño — sin migraciones.
+- [ ] Mover y Recibir no pueden tener miniatura ni color: el selector de prenda es un `<select>` nativo del
+      navegador (un `<option>` no admite marcado). Para tenerlo habría que cambiar el selector por un combobox
+      propio — un rediseño, no un ajuste.
+
 ## 🎯 Proveedores: ficha ampliada y métricas de compras/insumos (2026-09-17, ADR-0094)
 
 Felipe pidió más métricas de proveedor. Protocolo de pregunta completo primero (lo pidió
