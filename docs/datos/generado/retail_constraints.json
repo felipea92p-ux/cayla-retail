@@ -345,6 +345,11 @@
   "tabla": "retail.compra_adjuntos"
  },
  {
+  "conname": "compra_adjuntos_nota_de_su_compra",
+  "definicion": "FOREIGN KEY (nota_credito_id, compra_id) REFERENCES retail.compra_notas_credito(id, compra_id)",
+  "tabla": "retail.compra_adjuntos"
+ },
+ {
   "conname": "compra_adjuntos_pkey",
   "definicion": "PRIMARY KEY (id)",
   "tabla": "retail.compra_adjuntos"

@@ -1089,6 +1089,15 @@
    "ordinal_position": 10,
    "table_name": "compra_adjuntos",
    "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nota_credito_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 11,
+   "table_name": "compra_adjuntos",
+   "table_schema": "retail"
   }
  ],
  "compra_item_cierres": [
