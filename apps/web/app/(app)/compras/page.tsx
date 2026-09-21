@@ -209,7 +209,8 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
         <FiltrosCompras
           atajoBuscar
           proveedores={proveedores}
-          visibles={["proveedor", "pago", "recepcion", "condicion", "tipo", "fechas", "vencidas"]}
+          tiendas={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))}
+          visibles={["proveedor", "pago", "recepcion", "destino", "condicion", "tipo", "fechas", "vencidas"]}
           accionesDespues={
             <SegmentoEnlaces
               deslizante

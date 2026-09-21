@@ -118,10 +118,10 @@ el valor por defecto y no manda `destinos`.
 
 ### 5. Qué NO se hizo, y por qué
 
-- **Filtro y chip «Destino» en Comprobantes y Por pagar.** El borrador los pedía. La lista es paginada en Postgres (≤ 50 filas por
-  cursor): un filtro en el navegador solo miraría la página cargada y **mentiría** sobre el resto; uno de verdad exige un parámetro nuevo
-  en `listar_compras` (otro `drop function`) y coordinar con Por pagar, que tiene la pantalla en vuelo. Queda en el BACKLOG. Lo que sí
-  está: cada comprobante repartido dice a qué tiendas va.
+- **Filtro y chip «Destino» en Comprobantes y Por pagar.** *(Se hizo después, el 2026-09-21: ver el «Anexo» al final.)* El borrador los
+  pedía. La lista es paginada en Postgres (≤ 50 filas por cursor): un filtro en el navegador solo miraría la página cargada y **mentiría**
+  sobre el resto; uno de verdad exige un parámetro nuevo en `listar_compras` (otro `drop function`) y coordinar con Por pagar. En el
+  primer PR quedó fuera; lo que sí estaba: cada comprobante repartido dice a qué tiendas va.
 - **Maquetas previas.** El borrador pedía maquetar y aprobar tres piezas antes de construir. Se construyó directo sobre la piel ya
   aprobada de Comprobantes (mismos chips, tabla, modal y campos) y se verificó en el navegador; si Felipe quiere ajustar la forma, se
   ajusta sobre lo que ya existe.
@@ -222,3 +222,35 @@ pegables de ADR-0126 (A y B) que recrean las funciones de dinero dejan de ser re
   reparto aplicado.
 - Deuda anotada: el filtro «Destino» (ver «Qué NO se hizo»); y `docs/datos/generado/` no se regenera hasta que producción tenga las
   migraciones.
+
+## Anexo (2026-09-21) — el filtro «Destino» en Comprobantes y Por pagar
+
+**Problema.** Con un comprobante repartido entre tiendas, una líder que pregunta «¿qué facturas traen algo para Tienda Lima?» no tenía cómo:
+Comprobantes y Por pagar solo filtraban por proveedor, pago, recepción, condición, tipo y fechas.
+
+**Decisión.** Un filtro de verdad, hecho en Postgres (la lista se pagina ahí; uno en el navegador mentiría sobre lo que no está en la página):
+`p_ubicacion_id uuid default null` en las dos funciones que reciben los filtros de esa lista — `listar_compras` y `por_pagar_tramos`
+(ADR-0111 H3: un filtro que llega a la lista llega también a los subtotales, o dejan de cuadrar con las filas). Migración
+`20260921130000_compras_filtro_por_tienda_destino.sql`.
+
+- **Qué significa «Destino = Lima»:** el comprobante trae mercadería para Lima *aunque también traiga para otras tiendas y aunque ya haya
+  llegado*. Sale de `compras_resumen.ubicaciones_destino` (la lista) y de un `exists` sobre `compra_item_destinos` (los subtotales). Si se
+  reasigna toda la parte de una tienda a otra, esa fila desaparece y el comprobante deja de aparecer bajo la primera (probado).
+- **Qué NO hace:** no parte la deuda por tienda. El saldo del comprobante sigue entero (R-04/R-12: la deuda es de la empresa). Las cuatro
+  cifras de arriba de las dos pantallas siguen siendo las de todo, igual que con el filtro de proveedor; los subtotales por tramo de Por
+  pagar sí siguen el filtro.
+- **Por qué no se reutilizó `listar_compras_operativo`** (que ya sabe de tiendas): es la lectura de quien recibe, sin filtros de pago ni orden
+  por vencimiento (filtrar por una columna de dinero es una forma de enterarse del dinero); Por pagar vive de esos filtros.
+- **Qué se probó (SQL contra Postgres real):** 10 escenarios nuevos en `pnpm pruebas:compras-reparto` (57/57): trae solo lo de esa tienda, sin
+  tienda es la lista de siempre, una tienda sin comprobantes o inexistente no trae nada, se combina con proveedor / saldo / la otra rama de
+  orden, sigue al reparto, los subtotales de Por pagar suman lo esperado (Trujillo = c1 + c2, Taller = c1 + c3) y cuadran con la lista,
+  el candado de dinero sigue, y las dos funciones quedaron con UNA firma cerrada a `anon`. Las 7 suites vecinas de Compras siguen en verde
+  salvo dos que ya fallaban por un saldo a favor de 200 sobrante en el Postgres local compartido (no tienen relación con este cambio).
+- **Cómo se degrada:** la lista sin filtro no depende de la migración. Si se elige una tienda ANTES de pegar el SQL, la base no conoce el
+  parámetro (`PGRST202`) y la pantalla lo dice claro («El filtro por tienda todavía no está disponible…») en vez de listar todo bajo un
+  rótulo que no filtró.
+- **Estado: aplicada en producción el 2026-09-21** (una sola firma de cada función, cerradas a `anon`, candado de dinero intacto — verificado en solo lectura).
+- **Cómo se pegó en producción:** una sola migración, entera, en el SQL Editor de cayla-dynamic, **antes** de fusionar el PR; re-pegable (lo
+  ya migrado se salta solo). Se verificó contra producción, solo lectura, que las dos funciones tienen hoy la misma definición que el
+  local (md5 idéntico) y una sola firma; los parches por anclas abortan sin cambiar nada si la base cambió por debajo. Al terminar, refrescar
+  las dos líneas de `funciones-produccion.txt` (`generado/COMO-REFRESCAR.md`).

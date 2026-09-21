@@ -209,10 +209,24 @@ Ya **no depende de ADR-0139** ni toca `compras`, `compra_items`, `registrar_comp
   «Deuda total de CAYLA» con la barra Compras/Producción y el IGV del mes. **También:** el formulario de comprobantes al contado ahora admite varios medios (`MediosDePago`,
   reusable). **No hace:** pagar varios comprobantes de un golpe (el «pagar juntos» de ADR-0132) ni el registro de compras de SUNAT. Prueba `pnpm pruebas:por-pagar-produccion`
   (15 casos, en CI) + 12 de reglas. Sin ver con clics.
-- **F4d · Recibir insumos.** `recibir_comprobante_produccion` abre **un lote por línea** (proveedor, documento, costo sin IGV, `origen = 'compra'`),
-  idempotente; faltantes con su motivo. Quien trabaja en el Taller recibe **sin ver montos**.
-- **F4e · Candado del dinero (D-G).** Las tablas nuevas nacen solo-líder; `insumo_lotes`, `movimientos_insumo` y `producciones.costo_*` pasan al mismo
-  candado, con funciones **operativas** sin monto para el Taller; `v_insumo_saldos` con `security_invoker`.
+- **F4d · Recibir insumos — construida en local 2026-09-21; migración `20260921140000` SIN pegar en producción.**
+  Tablas `comprobantes_produccion_recepciones` (una entrega física; token de idempotencia) y `comprobantes_produccion_cierres` (lo que NO llegará, con motivo: faltante | devolución | otro),
+  ambas sin importes, sin escritura directa e inmutables; `insumo_lotes.comprobante_item_id` y `.recepcion_id` (el vínculo lote ↔ línea). `recibir_comprobante_produccion(comprobante,
+  ubicación, líneas, cierres, nota, token)`: **un lote por línea recibida** (proveedor, documento «serie-número», **costo unitario SIN IGV de la línea**, `origen='compra'`) + su movimiento
+  de compra en el ledger; lo llama **quien opera el Taller (líder o colaborador del Taller)**; lo recibido nunca supera lo facturado − recibido − cerrado; solo líneas con insumo (un flete no abre
+  lote); una línea no aparece dos veces; código de lote repetido rechazado (sin código: el documento, y «/2», «/3»…); idempotente por token; bloquea el comprobante. `fn_lineas_comprobantes_produccion`:
+  facturado / recibido / cerrado / pendiente **sin ningún importe** (lo que ve quien recibe). `anular_comprobante_produccion` ahora también se niega con mercadería recibida o líneas cerradas.
+  Pantalla `/produccion/recibir` (Taller + líder; menú «Recibir» entre Comprobantes y Por pagar): cifras, comprobantes con lo pendiente, modal por entrega (llegó / no llegará + motivo / código de lote /
+  nota). El detalle del comprobante (líder) muestra lo recibido por línea. Prueba `pnpm pruebas:recibir-comprobante-produccion` (24 casos, en CI) + 11 de reglas. Sin ver con clics.
+  **Pendiente para F4e:** `insumo_lotes` y `movimientos_insumo` aún dejan leer el costo por la API directa.
+- **F4e · Candado del dinero (D-G) — construida en local 2026-09-21; dos migraciones SIN pegar en producción (A luego B).**
+  Cierra EN LA BASE lo que hasta hoy solo se escondía en pantalla: `insumo_lotes.costo_unitario`, `movimientos_insumo.costo_unitario` y `producciones.costo_tela / costo_avios / costo_maquila / costo_unitario`
+  dejan de ser legibles por `authenticated` (**privilegio por columna**: conserva el SELECT de todas las demás, así el colaborador del Taller sigue leyendo cantidades, lotes, estados y líneas). La vista
+  `v_insumo_saldos` (trae `valor` y, sin `security_invoker`, mostraba todas las ubicaciones) queda cerrada a cualquier sesión. Las funciones `security definer` (recibir, descontar, devolver, abrir y cerrar
+  órdenes) siguen leyendo los costos por su dueño: el colaborador trabaja igual. El líder los lee por dos puertas solo-suyas: `fn_costos_insumos_taller(ubicación)` y `fn_costos_producciones(ubicación)`;
+  el costo de un movimiento es el de su lote. **Orden (patrón ADR-0126):** A `20260921150000` (crea las dos funciones) → desplegar la app (`lib/insumos.ts` y `lib/produccion.ts` ya no piden las columnas de dinero) →
+  B `20260921151000` (los revoke; se niega a correr sin A). **Cuidado futuro:** una columna nueva en esas tres tablas nace cerrada; la prueba `pnpm pruebas:candado-dinero-produccion` (20 casos, en CI) lo vigila.
+  **Fuera de alcance, para decidir:** `fn_costo_historial` (costo de PRENDAS, no de insumos) lo puede llamar cualquier colaborador.
 - **Método:** migraciones idempotentes; prueba `scripts/pruebas/produccion_abastecimiento.mjs` + paso en `ci.yml`; timestamps **≥ `20260919210000`**;
   al pegar en producción, prefijo `retail.` (regla de CLAUDE.md). Solo se reescribe una función existente (`fn_proveedor_metricas_insumos`): partir de
   su `pg_get_functiondef` de producción.
@@ -221,18 +235,32 @@ Ya **no depende de ADR-0139** ni toca `compras`, `compra_items`, `registrar_comp
   `datos:comparar` sin rotos; **Compras sigue idéntico** (sus pruebas SQL pasan sin cambios).
 - **Gate:** el SQL lo pega **Felipe**, con dry-run con rollback antes.
 
-### F5 · Nueva orden con decisión (M) — sin esquema · depende de F3 (cobertura) y del motor de reposición
-- Curva sugerida por talla desde `fn_resumen_variantes` (si no da la vista agregada de la red, una **función de solo lectura**
-  nueva, con el ok de Felipe para pegarla). Análisis previo: tela y avíos (alcanza / alcanza si llega / faltan), costo por
-  prenda, margen, entrega, capital inmovilizado. Rendimiento medido (D-D).
-- **Verificas:** «Short Kuntur»-equivalente (modelo casi agotado) sugiere cantidad y curva coherentes con `/inventario/resumen`;
-  abrir la orden crea las líneas por variante; un modelo sin talla en el catálogo enlaza a Productos.
+### F5 · Nueva orden con decisión (M) — sin esquema · **construida en local 2026-09-21 (sin migraciones)**
+Solo para el **líder** (ventas y stock de toda la red, costos de insumos); quien trabaja en el Taller ve el formulario de siempre. Todo sale de datos que ya existen, sin inventar plazos ni rendimientos:
+- **Curva sugerida por talla y color.** Suma el ritmo de venta de cada tienda (`fn_resumen_variantes` por sede, las mismas reglas de Inventario: `velocidadDeFila`, `calcularCobertura`) y resta lo que ya hay
+  (stock de la red + prendas terminadas en el Taller + en camino + órdenes de producción abiertas). Sugerido = ritmo × días a cubrir − disponible, redondeado hacia arriba. **Días a cubrir:** por defecto 30
+  (el techo de «saludable» de Inventario), ajustable a 15/30/45/60. Sin ritmo medido **no se sugiere nada** y se dice por qué («poco historial», «sin ventas»). Botón «Usar la sugerencia»; cada celda
+  muestra la sugerencia como marca de agua y el detalle («ver por qué») explica variante por variante.
+- **¿Alcanza la tela y los avíos?** (D-D) Rendimiento **medido**: consumo real ÷ prendas buenas de las órdenes CERRADAS del modelo, pesado por prendas; las devoluciones restan. Contra el saldo de Insumos y lo
+  facturado que aún no llega (F4d): «Alcanza» / «Alcanza si llega lo pedido» / «Faltan X», y «con lo que hay salen N prendas». Un modelo sin órdenes cerradas con consumo lo dice y deja el costo a mano.
+- **Costo y margen.** Materiales por prenda a costo del lote que se usaría (el más antiguo con saldo); «Usar como costo estimado» llena tela y avíos; el margen sale de precio y costo.
+- **Pruebas:** `lib/produccion-decision-reglas.test.ts` (16). **Verificas:** un modelo casi agotado sugiere cantidad y curva coherentes con `/inventario/resumen`; sin ritmo no sugiere; tras cerrar una orden con
+  insumos descontados aparece el rendimiento; abrir la orden crea las líneas por variante. **Pendiente:** verlo con clics y con datos reales (hoy producción no tiene ventas ni órdenes cerradas con insumos).
 
-### F6 · Resumen: «¿qué necesita mi decisión hoy?» (M) — sin esquema
-- `lib/produccion-decisiones.ts` (puras, con tests, mismas reglas del spike) + página. Cada tarjeta lleva evidencia y una acción
-  que abre la pantalla correcta con el contexto ya puesto. Solo líder; montos bajo el candado.
-- **Verificas:** con la factura de tela sin recibir, aparece «faltan X m… pero ya llegó F00x»; al recibirla la tarjeta
-  desaparece sin recargar; un colaborador que fuerza la URL recibe redirección y la base no le entrega montos.
+### F6 · Resumen: «¿qué necesita mi decisión hoy?» (M) — sin esquema · **construida en local 2026-09-21 (sin migraciones)**
+`/produccion` es ahora el Resumen (menú «Resumen», primero del grupo; solo líder; quien trabaja en el Taller va directo a Órdenes). Reglas puras en `lib/produccion-decisiones.ts` (15 pruebas); todo se calcula en el servidor.
+- **Para decidir** (hasta 7 tarjetas, por urgencia; cada una con su evidencia y una acción que abre la pantalla correcta con el contexto puesto; desaparecen solas cuando el dato cambia): entregas vencidas o por vencer
+  (**solo hechos**: la fecha ya pasó / falta ≤ 2 días, y en qué etapa está); tela o avíos que faltan para lo que las órdenes abiertas todavía necesitan (rendimiento medido × prendas − ya descontado), con la variante
+  **«pero ya está facturado» → Recibir mercadería** (F4d) cuando lo por llegar cubre lo que falta; plata vencida o por vencer en 7 días → Por pagar; modelos que se agotan sin orden abierta → **Abrir orden sugerida**
+  (`/produccion/ordenes?nueva=<modelo>`, con el modelo ya elegido); sobrestock (> 60 días) → no producir más; insumos bajo el mínimo sin pedido en camino.
+- **Cifras:** capital en insumos, valor en proceso (tela y avíos de órdenes abiertas), por pagar (con lo vencido), entregas por atender. El rojo lo lleva solo «Por pagar» cuando hay algo vencido.
+- **¿Qué producir?** por modelo: stock de las tiendas, ventas por semana, cobertura en días (marcas en 7 y 30, escala hasta 60: los umbrales de Inventario) y sugerencia (Producir ya / Ya hay orden abierta / Vigilar / Alcanza / Sobrestock / Sin ritmo medido).
+  **¿Alcanza la tela?** por tela: hay + facturado por recibir contra lo que piden las órdenes abiertas.
+- **Lo que NO se dibuja a propósito** (no hay base honesta): «llegará N días tarde», «faltan N días de trabajo», el tiempo de una corrida, la comparación producir vs maquilar y la eficiencia del Taller (F7). Un modelo sin ritmo de venta o
+  sin rendimiento medido no genera tarjeta.
+- Enlaces nuevos: `/produccion/ordenes?orden=<id>` abre esa orden; `?nueva=<modelo>` abre «Nueva orden» con el modelo elegido (`auto` = el primero).
+- **Verificas:** con la factura de tela sin recibir aparece «faltan X… pero ya está facturado»; al recibirla (o al pagar, o al cerrar una orden) la tarjeta desaparece al recargar; un colaborador que abre `/produccion` va a Órdenes.
+  **Pendiente:** verlo con clics y con datos reales (hoy producción no tiene ventas ni órdenes cerradas con insumos, así que se verá casi vacío).
 
 ### F7 · Eficiencia del Taller (L) — esquema · requiere **D-E, D-F**
 - `maquila_referencias` y `gastos_taller` (RPC de escritura, solo líder, historial que se agrega y no se edita). Pantalla:

@@ -1,5 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { comprobanteDeFilaOperativa, costoBase, costoParaTipear, esFuncionAusente, totalesCompra, type FilaOperativa, esRelacionAusente } from "./compras-reglas";
+import {
+  comprobanteDeFilaOperativa,
+  costoBase,
+  costoParaTipear,
+  destinoDesdeParam,
+  esFuncionAusente,
+  MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE,
+  textoChipDestino,
+  totalesCompra,
+  type FilaOperativa,
+  esRelacionAusente,
+} from "./compras-reglas";
 
 // El costo unitario que se guarda alimenta el costo de la variante y el
 // margen de cada venta. Si el descuento del IGV se hace mal, la mercadería
@@ -195,5 +206,34 @@ describe("lo que la base todavía no tiene (el despliegue llega antes que la mig
     expect(esRelacionAusente({ code: "42501" })).toBe(false);
     expect(esRelacionAusente({ code: "PGRST202" })).toBe(false);
     expect(esRelacionAusente(null)).toBe(false);
+  });
+});
+
+describe("filtro «Destino» (?dest=…)", () => {
+  const TRUJILLO = "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
+
+  it("acepta el id de una tienda (con espacios o en mayúsculas) y lo devuelve normalizado", () => {
+    expect(destinoDesdeParam(TRUJILLO)).toBe(TRUJILLO);
+    expect(destinoDesdeParam(`  ${TRUJILLO.toUpperCase()} `)).toBe(TRUJILLO);
+  });
+
+  it("descarta lo que no es un id de tienda: vacío, ausente, texto suelto o un intento de inyección", () => {
+    expect(destinoDesdeParam(undefined)).toBeUndefined();
+    expect(destinoDesdeParam(null)).toBeUndefined();
+    expect(destinoDesdeParam("")).toBeUndefined();
+    expect(destinoDesdeParam("Tienda Lima")).toBeUndefined();
+    expect(destinoDesdeParam(`${TRUJILLO}'; drop table compras;--`)).toBeUndefined();
+    expect(destinoDesdeParam("3f1c2d4e5a6b4c7d8e9f0a1b2c3d4e5f")).toBeUndefined();
+  });
+
+  it("la etiqueta dice el nombre de la tienda, y no inventa uno si ya no está entre las activas", () => {
+    const tiendas = [{ id: TRUJILLO, nombre: "Tienda Trujillo" }];
+    expect(textoChipDestino(TRUJILLO, tiendas)).toBe("Destino: Tienda Trujillo");
+    expect(textoChipDestino("8b8b8b8b-1111-4222-8333-444444444444", tiendas)).toBe("Destino: otra tienda");
+  });
+
+  it("el aviso de una base sin la migración le dice al usuario qué hacer, sin jerga", () => {
+    expect(MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE).toContain("Quita el filtro");
+    expect(MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE).not.toMatch(/PGRST|RPC|función/i);
   });
 });

@@ -8,11 +8,21 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { CampoMonto, CampoSelectNativo, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { Modal, campoEtiqueta, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Chip } from "@/components/ui/Chip";
 import type { ModeloProducible, VarianteDeModelo } from "@/lib/produccion";
+import type { DecisionProduccion } from "@/lib/decision-produccion";
+import type { Tolerado } from "@/lib/resultado";
 import { compararTallas } from "@/lib/tallas";
+import { cantidadTexto } from "@/lib/insumos-reglas";
+import { ETIQUETA_BANDA } from "@/lib/resumen-reglas";
+import { DIAS_OBJETIVO_PRODUCCION, OPCIONES_DIAS_OBJETIVO, analizarInsumos, costoMaterialesPorPrenda, sugerirCurva } from "@/lib/produccion-decision-reglas";
 
 // Abrir una orden (abrir_produccion). Lo que se decide acá: qué modelo, cuántas
 // por talla-color y el costo ESTIMADO. El costo real se corrige al cerrar.
+//
+// F5 (ADR-0133): para el líder, «Nueva orden» aconseja ANTES de abrir: la curva sugerida por talla y color (ritmo de venta y stock de TODA la red, con las
+// mismas reglas de Inventario), si alcanza la tela y los avíos (con el consumo real medido de las órdenes cerradas del modelo, D-D) y cuánto costará cada
+// prenda. Son consejos, no órdenes: las cantidades siguen siendo del líder. Sin datos, el formulario es el de siempre.
 //
 // El token de idempotencia nace con el formulario (useRef): si el Taller
 // pierde la red a mitad del clic y reintenta, la base devuelve la misma orden
@@ -31,16 +41,22 @@ function soles(n: number) {
 export function NuevaOrdenProduccionForm({
   tallerId,
   modelos,
+  decision,
+  productoInicialId = null,
   onClose,
 }: {
   tallerId: string;
   modelos: ModeloProducible[];
+  /** Solo el líder recibe la decisión; `null` = el formulario de siempre. */
+  decision: Tolerado<DecisionProduccion> | null;
+  /** Modelo que llega elegido desde el Resumen; si no existe, se usa el primero. */
+  productoInicialId?: string | null;
   onClose: () => void;
 }) {
   const router = useRouter();
   const token = useRef<string>(crypto.randomUUID());
   const [tipo, setTipo] = useState<Tipo>("produccion");
-  const [productoId, setProductoId] = useState(modelos[0]?.productoId ?? "");
+  const [productoId, setProductoId] = useState(modelos.find((m) => m.productoId === productoInicialId)?.productoId ?? modelos[0]?.productoId ?? "");
   const [cantidades, setCantidades] = useState<Record<string, string>>({});
   const [tela, setTela] = useState("");
   const [avios, setAvios] = useState("");
@@ -48,6 +64,7 @@ export function NuevaOrdenProduccionForm({
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
+  const [diasObjetivo, setDiasObjetivo] = useState<number>(DIAS_OBJETIVO_PRODUCCION);
 
   const modelo = useMemo(() => modelos.find((m) => m.productoId === productoId) ?? null, [modelos, productoId]);
 
@@ -77,6 +94,29 @@ export function NuevaOrdenProduccionForm({
   const costoTotal = (Number(tela) || 0) + (Number(avios) || 0) + (Number(maquila) || 0);
   const unitario = total > 0 ? costoTotal / total : 0;
   const precio = Math.max(0, ...(modelo?.variantes ?? []).map((v) => v.precio));
+
+  // ----- La decisión (solo líder) -----
+  const datos = decision?.datos ?? null;
+  const demandaPorVariante = useMemo(() => new Map((datos?.demanda ?? []).map((d) => [d.varianteId, d])), [datos]);
+  const enProduccion = useMemo(() => new Map(Object.entries(datos?.enProduccion ?? {})), [datos]);
+  const curva = useMemo(() => sugerirCurva(modelo?.variantes ?? [], demandaPorVariante, enProduccion, diasObjetivo), [modelo, demandaPorVariante, enProduccion, diasObjetivo]);
+  const rendimiento = datos && modelo ? (datos.rendimientoPorModelo[modelo.productoId] ?? []) : [];
+  const saldos = useMemo(() => new Map((datos?.insumos ?? []).map((i) => [i.insumoId, i])), [datos]);
+  const analisis = analizarInsumos(rendimiento, total, saldos);
+  const materialesPorPrenda = costoMaterialesPorPrenda(rendimiento, (id) => saldos.get(id)?.costoUnitario ?? null);
+  const materialesPorTipo = { tela: 0, avio: 0 };
+  for (const r of rendimiento) materialesPorTipo[r.tipo] += r.porPrenda * total * (saldos.get(r.insumoId)?.costoUnitario ?? 0);
+  const margen = precio > 0 && total > 0 && costoTotal > 0 ? (precio - unitario) / precio : null;
+
+  function usarCurva() {
+    const nuevas: Record<string, string> = {};
+    for (const [id, s] of curva.porVariante) if (s.sugerido > 0) nuevas[id] = String(s.sugerido);
+    setCantidades(nuevas);
+  }
+  function usarEstimadoDeMateriales() {
+    setTela(materialesPorTipo.tela > 0 ? materialesPorTipo.tela.toFixed(2) : "");
+    setAvios(materialesPorTipo.avio > 0 ? materialesPorTipo.avio.toFixed(2) : "");
+  }
 
   function cambiarModelo(id: string) {
     setProductoId(id);
@@ -182,9 +222,9 @@ export function NuevaOrdenProduccionForm({
                                 type="number"
                                 inputMode="numeric"
                                 min={0}
-                                placeholder="0"
+                                placeholder={String(curva.porVariante.get(v.varianteId)?.sugerido || 0)}
                                 aria-label={`${color} ${t}`}
-                                title={v.sku}
+                                title={`${v.sku}${curva.porVariante.get(v.varianteId) ? ` · ${curva.porVariante.get(v.varianteId)?.motivo}` : ""}`}
                                 value={valor}
                                 onChange={(e) => setCantidades((c) => ({ ...c, [v.varianteId]: e.target.value }))}
                                 className={`w-14 rounded-md border bg-transparent px-1.5 py-1 text-center text-sm tabular-nums text-tinta outline-none transition-colors placeholder:text-tinta/30 focus:border-rojo ${
@@ -211,6 +251,132 @@ export function NuevaOrdenProduccionForm({
           </div>
         )}
 
+        {decision?.fallo && <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">{decision.fallo}</p>}
+
+        {datos && modelo && (
+          <section aria-label="Lo que dice la red" className="space-y-3 rounded-2xl border border-sand bg-crema p-3.5">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className={campoEtiqueta}>Curva sugerida por la red</p>
+                <p className="mt-0.5 text-xs text-tinta/65">
+                  Ritmo de venta y stock de todas las tiendas, con lo que ya hay en el Taller, viene en camino o se está fabricando.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-1.5 text-xs text-tinta/70">
+                  Cubrir
+                  <select
+                    aria-label="Días de venta a cubrir"
+                    value={diasObjetivo}
+                    onChange={(e) => setDiasObjetivo(Number(e.target.value))}
+                    className="h-8 rounded-md border border-tinta/25 bg-papel px-1.5 text-sm text-tinta outline-none focus:border-rojo"
+                  >
+                    {OPCIONES_DIAS_OBJETIVO.map((d) => (
+                      <option key={d} value={d}>
+                        {d} días
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  onClick={usarCurva}
+                  disabled={curva.total === 0}
+                  className="h-8 rounded-md border border-tinta/25 px-3 text-[13px] text-tinta outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-tinta/25"
+                >
+                  {curva.total > 0 ? `Usar la sugerencia · ${curva.total} prendas` : "Nada que fabricar"}
+                </button>
+              </div>
+            </div>
+            {curva.porVariante.size === 0 ? (
+              <p className="text-xs text-tinta/65">La red todavía no tiene datos de venta de este modelo.</p>
+            ) : (
+              <details>
+                <summary className="cursor-pointer text-xs text-tinta/75">Ver por qué, variante por variante</summary>
+                <ul className="mt-2 divide-y divide-tinta/10">
+                  {(modelo.variantes ?? [])
+                    .filter((v) => curva.porVariante.has(v.varianteId))
+                    .sort((a, b) => (curva.porVariante.get(b.varianteId)?.sugerido ?? 0) - (curva.porVariante.get(a.varianteId)?.sugerido ?? 0))
+                    .map((v) => {
+                      const d = demandaPorVariante.get(v.varianteId);
+                      const sug = curva.porVariante.get(v.varianteId);
+                      return (
+                        <li key={v.varianteId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 py-1.5 text-[13px]">
+                          <span className="min-w-0">
+                            <span className="text-tinta">
+                              {v.color ?? "Sin color"} · {v.talla ?? "Única"}
+                            </span>
+                            {d && (
+                              <span className="ml-2 align-middle">
+                                <Chip tono={d.banda === "agotado" || d.banda === "critica" || d.banda === "atencion" ? "ambar" : "neutro"}>{ETIQUETA_BANDA[d.banda]}</Chip>
+                              </span>
+                            )}
+                            <small className="block text-xs text-tinta/65">
+                              {d ? `Red ${d.stockRed} · Taller ${d.stockTaller}${d.enCamino > 0 ? ` · en camino ${d.enCamino}` : ""}${enProduccion.get(v.varianteId) ? ` · fabricando ${enProduccion.get(v.varianteId)}` : ""}` : ""}
+                            </small>
+                          </span>
+                          <span className="text-right tabular-nums">
+                            <b className="font-semibold text-tinta">{sug?.sugerido ?? 0}</b>
+                            <small className="block max-w-[15rem] text-xs text-tinta/60">{sug?.motivo}</small>
+                          </span>
+                        </li>
+                      );
+                    })}
+                </ul>
+              </details>
+            )}
+          </section>
+        )}
+
+        {datos && modelo && (
+          <section aria-label="Tela y avíos de esta orden" className="space-y-2.5 rounded-2xl border border-sand bg-crema p-3.5">
+            <p className={campoEtiqueta}>¿Alcanza la tela y los avíos?</p>
+            {rendimiento.length === 0 ? (
+              <p className="text-xs text-tinta/65">
+                Todavía no hay órdenes cerradas de este modelo con insumos descontados: el rendimiento se mide desde la primera. Mientras tanto, escribe el costo a mano.
+              </p>
+            ) : total === 0 ? (
+              <p className="text-xs text-tinta/65">Indica cuántas prendas para ver si alcanza. Por prenda, según {rendimiento[0].ordenes === 1 ? "la última orden" : "las órdenes cerradas"}: {rendimiento.map((r) => `${r.insumo} ${cantidadTexto(r.porPrenda, r.unidad)}`).join(" · ")}.</p>
+            ) : (
+              <>
+                <ul className="divide-y divide-tinta/10">
+                  {analisis.map((a) => (
+                    <li key={a.insumoId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1.5 text-[13px]">
+                      <span className="min-w-0">
+                        <span className="text-tinta">{a.insumo}</span>
+                        <small className="block text-xs text-tinta/65">
+                          necesita {cantidadTexto(a.necesita, a.unidad)} · hay {cantidadTexto(a.saldo, a.unidad)}
+                          {a.porLlegar > 0 ? ` · por llegar ${cantidadTexto(a.porLlegar, a.unidad)}` : ""} · con lo que hay salen {a.prendasConElSaldo} prendas
+                        </small>
+                      </span>
+                      <Chip tono={a.estado === "alcanza" ? "verde" : "ambar"}>
+                        {a.estado === "alcanza" ? "Alcanza" : a.estado === "alcanza_si_llega" ? "Alcanza si llega lo pedido" : `Faltan ${cantidadTexto(a.faltan, a.unidad)}`}
+                      </Chip>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs text-tinta/60">
+                  Medido: consumo real de {rendimiento[0].ordenes === 1 ? "1 orden cerrada" : `${Math.max(...rendimiento.map((r) => r.ordenes))} órdenes cerradas`} de este modelo.
+                </p>
+                {materialesPorPrenda !== null && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-tinta/10 pt-2 text-[13px]">
+                    <span className="text-tinta/80">
+                      Materiales ≈ <b className="font-semibold tabular-nums text-tinta">{soles(materialesPorPrenda)}</b> por prenda, a costo del lote que se usaría
+                    </span>
+                    <button
+                      type="button"
+                      onClick={usarEstimadoDeMateriales}
+                      className="h-8 rounded-md border border-tinta/25 px-3 text-[13px] text-tinta outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60"
+                    >
+                      Usar como costo estimado
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+        )}
+
         <div className="grid gap-3 sm:grid-cols-3">
           <CampoMonto etiqueta="Tela" pie="De toda la corrida" inputMode="decimal" placeholder="0.00" value={tela} onChange={(e) => setTela(e.target.value)} />
           <CampoMonto etiqueta="Avíos" pie="Botones, cierres, etiquetas e hilo" inputMode="decimal" placeholder="0.00" value={avios} onChange={(e) => setAvios(e.target.value)} />
@@ -221,6 +387,7 @@ export function NuevaOrdenProduccionForm({
           <span className="text-tinta/70">
             {total} prendas · costo estimado {soles(costoTotal)}
             {precio > 0 && ` · se vende a ${soles(precio)}`}
+            {margen !== null && datos && ` · margen ${Math.round(margen * 100)} %`}
           </span>
           <span className="font-display text-lg text-tinta">{soles(unitario)} / prenda</span>
         </div>

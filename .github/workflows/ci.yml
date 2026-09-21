@@ -195,6 +195,20 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:por-pagar-produccion
 
+      # Recibir insumos contra un comprobante de Producción (ADR-0133, F4d): un lote por línea con el costo de la línea, nunca más de lo
+      # facturado, lo que no llegará se cierra con motivo, idempotente por token, lo recibe quien opera el Taller SIN ver montos, y con
+      # mercadería recibida el comprobante no se puede anular. Cada caso termina en ROLLBACK.
+      - name: pruebas:recibir-comprobante-produccion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:recibir-comprobante-produccion
+
+      # Candado del dinero de Producción (ADR-0133, F4e; D-G): un colaborador del Taller no lee los costos de lotes, movimientos ni órdenes por la
+      # API directa (privilegio por columna) pero sigue recibiendo, descontando y cerrando órdenes; el líder los lee solo por fn_costos_*; la vista
+      # v_insumo_saldos está cerrada; y una guardia avisa si una columna nueva queda sin SELECT. Cada caso termina en ROLLBACK.
+      - name: pruebas:candado-dinero-produccion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:candado-dinero-produccion
+
       # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
       # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las
       # tarjetas de arriba cuentan lo mismo. Cada caso termina en ROLLBACK.
@@ -240,6 +254,16 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:pagos-compras-endurecimiento
 
+      # El reparto de un comprobante entre tiendas (ADR-0139) y su filtro «Destino»: 24 unidades repartidas 12/12, una suma distinta
+      # de lo facturado se rechaza (por la RPC y por la base misma), una tienda no recibe más de lo suyo ni se «come» la de otra,
+      # reasignar solo lo pendiente y solo un líder, el faltante es de una tienda concreta, un integrante no ve la parte de otra
+      # tienda (RPC y RLS), el candado de dinero sigue en pie, `listar_compras` y `por_pagar_tramos` filtran por tienda de destino
+      # con los subtotales cuadrando contra la lista y UNA sola firma de cada función. Usa el mismo seed que `dinero-compras`
+      # (Felipe, Micaela, Textiles Andina, Tienda Lima/Trujillo, el Taller). Cada caso termina en ROLLBACK.
+      - name: pruebas:compras-reparto
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:compras-reparto
+
       # Módulo Notas de crédito: el tablero trae notas y pendientes con sus montos (incluido el
       # monto_esperado del faltante cerrado y el a_favor de la nota que superó la deuda), registrar con
       # destino «a_favor» deja el mismo estado que la RPC de antes, con «reembolso» nacen nota y
@@ -259,3 +283,13 @@ jobs:
       - name: pruebas:candado-lider
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:candado-lider
+
+      # Deriva de producción (las migraciones que producción tenía y el repo no): una sola firma de
+      # registrar_movimiento, catalogo_actualizar_producto y registrar_compra (con p_token, idempotente por
+      # token), el historial de «estado» no se pisa, el TRUNCATE del libro de movimientos se frena, y las
+      # columnas/índices de tejidos y patrones existen. Se agrega el 2026-09-21: llevaba semanas sin correr en
+      # ningún sitio y un caso quedó roto sin que nadie lo notara cuando el reparto (ADR-0139) retiró
+      # `compras.ubicacion_destino_id`. Cada caso termina en ROLLBACK.
+      - name: pruebas:deriva-produccion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:deriva-produccion

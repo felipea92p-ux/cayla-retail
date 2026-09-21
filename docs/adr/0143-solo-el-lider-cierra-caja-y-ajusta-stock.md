@@ -1,10 +1,10 @@
 # ADR-0143 — Solo el líder de equipo cierra la caja y ajusta stock fuera de una venta: el candado va en la base
 
 **Fecha:** 2026-09-21
-**Estado:** Aceptado e **implementado en local** en la rama `claude/cayla-menu-pajaros-aviario-1f2c50`. Verificado contra un Postgres 17 desechable
-(20 pruebas nuevas, 7 roturas a propósito detectadas, `caja:verificar` 15/15, 4 suites vecinas en verde), 1657 pruebas unitarias, `tsc` y `eslint`
-limpios, y en el navegador (el panel de Caja como colaborador y como líder). **La migración NO está aplicada en producción**: se pega con ok de Felipe,
-DESPUÉS de desplegar las pantallas (ver «Cómo se pega en producción»).
+**Estado:** Aceptado, **implementado, fusionado (PR #218) y APLICADO EN PRODUCCIÓN el 2026-09-21** (versión registrada `20260921152907`; archivo
+`20260921120000`). Verificado contra un Postgres 17 desechable (20 pruebas nuevas, 7 roturas a propósito detectadas, `caja:verificar` 15/15, 4 suites
+vecinas en verde), `tsc`, `eslint` y 1747 pruebas unitarias, en el navegador (el panel de Caja como colaborador y como líder) y, en producción, con un
+ensayo revertido y una verificación con un colaborador y un líder reales («Cómo se pegó», abajo).
 **Decide:** Felipe, el 2026-09-21, con la pregunta «¿qué vale para el mostrador?» → «Solo el líder, con candado en la base».
 **Afecta:** `retail.cerrar_caja` y `retail.registrar_movimiento` (recreadas con el mismo cuerpo de producción más el candado), cinco botones de la web
 (Caja, Punto de Venta, Existencias, y el menú y la vista rápida de Productos), `scripts/caja/verificar.sql` (escenario C2) y CI.
@@ -64,6 +64,21 @@ un rol «Solo lectura» o «Admin» y el candado sigue leyendo `fn_es_lider()` e
 3. Pegar la migración entera (ya trae `retail.` en los nombres y su `search_path`).
 4. **Verificar por catálogo:** `prosrc ilike '%fn_es_lider%'` en las dos, mismo ACL (`postgres` y `authenticated`), y una llamada de un colaborador
    real que responda 42501.
+
+## Cómo se pegó (2026-09-21, con ok explícito de Felipe)
+
+1. Las pantallas ya estaban desplegadas: PR #218 fusionado a las 15:17 UTC y despliegue de producción de Vercel en `success` a las 15:18.
+2. **Sonda sin escrituras:** `md5(prosrc)` de las dos funciones = `03e68706…` y `eeae9a03…` (sin candado), un solo ACL (`postgres` y `authenticated`) y una
+   firma cada una: nadie las había tocado desde la verificación del ADR.
+3. **Ensayo** en un lote que termina en una excepción a propósito (nada quedó confirmado): el cuerpo, quitando el candado, dio el mismo `md5` que
+   producción; un colaborador real recibió 42501 en las dos; un líder real pasó el candado sin escribir; y la base quedó intacta después.
+4. `apply_migration` con el texto exacto de `main`. Quedó registrada como `20260921152907_candado_de_lider_caja_y_ajuste`: la versión que guarda
+   producción es la hora de aplicación, no el nombre del archivo.
+5. **Verificación** por catálogo (`md5` nuevos `c829594e…` y `56eb6bc7…`, mismo ACL, una firma) y con el rol `authenticated` de la API: el colaborador
+   recibe los dos mensajes, el líder pasa el candado y `anon` recibe «permission denied». Movimientos (479) y cajas abiertas (3) sin cambio.
+
+La versión `20260921120000` del archivo fue la tercera que este candado necesitó ese día: los números de ADR y de migración «libres» se ocuparon en horas
+(ADR-0142 por Notas de crédito; `…100000` por comprobantes de Producción; `…110000` por Por pagar de Producción).
 
 ## Lo que queda abierto
 

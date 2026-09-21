@@ -1016,7 +1016,7 @@ exito(
   "por_pagar_tramos acepta el tipo de documento y el rango de emisión igual que listar_compras, y quedó UNA sola firma (sin sobrecarga)",
   comoPersona(
     FELIPE,
-    `${BASE}select pg_get_function_arguments('retail.por_pagar_tramos(uuid, text, boolean, text, text, date, date)'::regprocedure) ilike '%p_tipo%',
+    `${BASE}select (select pg_get_function_arguments(p.oid) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'por_pagar_tramos') ilike '%p_tipo%',  -- por nombre, no por firma: la tienda de destino (ADR-0139, 20260921130000) le sumó un parámetro
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'por_pagar_tramos');
 rollback;
 `

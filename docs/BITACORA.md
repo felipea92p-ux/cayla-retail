@@ -3,6 +3,21 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-21 (El candado de líder ya corre en producción — ADR-0143)
+Felipe fusionó el PR #218 y autorizó pegar la migración: las pantallas ya estaban desplegadas y `cerrar_caja` y `registrar_movimiento` ahora rechazan con 42501 a quien no es líder. Se comprobó dentro de la base con un colaborador real y un líder real y con los roles de la API: el colaborador recibe los dos mensajes, el líder pasa el candado y `anon` no puede ni ejecutarlas.
+Felipe se lleva: (1) **antes de pegar se ensayó en un lote que termina en una excepción a propósito** y el cuerpo, sin el candado, dio el mismo `md5` que producción: se cambió lo que se quería y nada más; (2) el ensayo usó un colaborador y un líder reales **sin escribir nada** —el candado responde antes que cualquier otra cosa—, y después la base seguía intacta (479 movimientos, 3 cajas abiertas); (3) producción registra la migración con la hora de aplicación (`20260921152907`), no con el nombre del archivo (`20260921120000`): tres números «libres» de ese día se ocuparon en horas, y hubo que renumerar dos veces.
+Sin resolver: quién cierra la caja cuando no hay un líder en la tienda (hay 3 abiertas, probablemente de prueba, que solo un líder podrá cerrar); y que el candado siga leyendo `fn_es_lider()` cuando nazcan Admin y Solo lectura (D-12).
+
+## 2026-09-21 (El filtro «Destino» en Comprobantes y Por pagar — anexo del ADR-0139)
+Con los comprobantes repartidos entre tiendas, una líder puede ahora pedir «lo que trae algo para Tienda Lima» desde Comprobantes y desde Por pagar: una píldora «Destino» y su etiqueta, y los subtotales por tramo de Por pagar siguen el filtro. No es un filtro del navegador —la lista se pagina en Postgres, así que uno de esos mentiría—: lleva una migración que le suma la tienda a `listar_compras` y a `por_pagar_tramos` (`20260921130000`, pegada por Felipe en producción el mismo día y verificada en solo lectura). Probado en Postgres real (10 escenarios nuevos) y en pantalla: Trujillo da 5 comprobantes y, en Por pagar, 4 por S/ 4,212.60, que es exactamente la suma de sus filas.
+Felipe se lleva: (1) «filtro» a veces es una función de la base con la firma cambiada, no una casilla: por eso se había dejado para después y por eso se pega el SQL antes de fusionar; (2) «Destino» no parte la deuda —el saldo del comprobante sigue entero—, solo dice qué facturas traen mercadería para esa tienda.
+Sin resolver: las cuatro cifras de arriba de Comprobantes y Por pagar siguen siendo las de todo (como con el filtro de proveedor).
+
+## 2026-09-21 (Refresco completo de la foto de producción en `docs/datos/generado/`)
+El diccionario y el detector de pantallas rotas leen una foto de la base que se saca a mano; el 2026-09-20 solo se había retocado lo del reparto. Hoy se comparó la foto entera contra producción (un hash por tabla y por grupo de funciones, en solo lectura) y se corrigió solo lo que difería: 4 tablas nuevas de Producción, `venta_pagos.recibido` de Caja, cambios en adjuntos y notas de crédito, 14 firmas de funciones y los conteos de filas. Al final los 7 archivos dan hash idéntico al de producción: 77 tablas y vistas, 196 funciones.
+Felipe se lleva: (1) refrescar «entero» no obliga a bajar toda la base: se le pide a producción una huella por tabla y solo se baja lo que cambió, y la huella final es la prueba de que se copió bien; (2) una tabla nueva sin pájaro en el Aviario hace caer el CI en el siguiente refresco, así que las 4 de Producción se asignaron al Gallito ahora y la sesión de Producción lo confirma.
+Sin resolver: `datos:comparar` sigue marcando 3 pantallas rotas a propósito (`apartar_stock`, `liberar_apartado`, `listar_apartados`): la migración de Apartar stock (`20260920160000`) está en `main` y no en producción.
+
 ## 2026-09-21 (Candado de líder: solo el líder cierra la caja y ajusta stock — ADR-0143, hecho en local)
 Hasta hoy, cualquier colaborador de una tienda podía cerrar la caja de su tienda y crear o quitar unidades de stock sin una venta: la base solo le preguntaba «¿esta ubicación es la tuya?». D-13 reserva las dos cosas al líder desde el 2026-09-12, pero el menú lo escondía y la base no. Ahora `cerrar_caja` y `registrar_movimiento` responden 42501 a quien no es líder, y las cinco pantallas que ofrecían el botón (Caja, Punto de Venta, Existencias, y Productos en lista y en grilla) ya no se lo muestran.
 Lo que Felipe se lleva: (1) **el candado va en la base y no en el botón**, porque la API es pública y cualquiera con sesión llama la función desde su consola; (2) antes de escribirlo se leyó el cuerpo real de producción y se comprobó **quién llama a cada función** —solo un modal y un botón—, así que no rompe nada por dentro; (3) se **probó rompiéndolo a propósito**: contra las funciones de producción, sin candado, la misma prueba da 9/20 y falla donde debe; con la migración, 20/20; y el cuerpo de las dos funciones, quitando el candado, es idéntico byte a byte al de producción.
@@ -333,7 +348,6 @@ Dos cosas salieron de mirar la base: «Fechas» filtra el día en que LLEGÓ la 
 
 Lo que Felipe se lleva: la lógica de un filtro (qué es «este mes», cómo se rotula, qué se hace con una URL rota) no vive en el componente sino en un módulo puro que se prueba sin navegador; el componente solo dibuja. Pendiente: comparar a ojo contra `06-recibir-recibidas.png` en escritorio y celular (no se abrió el navegador en esta sesión).
 
-
 ## 2026-09-18 (Recibir por envío: un envío trae comprobantes de varios proveedores, y cuenta quien abre la caja)
 
 Hasta hoy una guía cubría comprobantes de UN proveedor y solo un líder podía recibir contra comprobante. Un envío real trae bultos de varios proveedores y quien abre la caja suele ser una integrante. Ahora existe `envios` (una guía, un lote por proveedor), la RPC atómica e idempotente `recibir_envio` y la pantalla `/recibir`, abierta a cualquier colaborador de la sede y sin dinero para quien no es líder. Lo fuera de comprobante declara su origen: de qué proveedor viene y si es regalo; lo de otra sede se confirma como traslado, no como prenda suelta. Los cuatro indicadores pasan a vivir bajo «¿Qué llegó?» y desaparecen al marcar un comprobante. ADR-0113.
@@ -545,7 +559,6 @@ Cuando se cierra un faltante, el proveedor le debe a CAYLA una nota de crédito 
 La pantalla pregunta solo por los comprobantes de la página que tienen algo cerrado, y si la consulta falla dibuja la lista igual sin el chip (es un aviso, no un número). Pruebas SQL 112/112 (13 nuevas: monto exacto 236.00, resuelto sí/no, desaparece con la nota por faltante, no con otra nota, anulado, integrante vacío) y 10 de vitest sobre el texto y el tono. No hubo navegador (el integrado es compartido y pide login): falta ver el chip en la celda Pago de Comprobantes.
 Lo que Felipe se lleva: un aviso que depende de una migración se diseña para degradarse solo (sin la función en producción, la lista sigue viva, sin el chip) — así se puede desplegar antes de pegar el SQL sin romper la pantalla. Falta pegar la migración 16 en producción.
 
-
 ## 2026-09-18 (Migraciones: dos con la misma versión — la de talla Única se mueve a 20260918175000)
 
 `talla_unica_en_femenino` ya había cambiado de número una vez (160000 → 170000) para no chocar con `etiquetas_descuento`, y ahí chocó con `venta_aplica_descuento_de_campana` (la de la caja). Dos migraciones con la misma versión rompen `supabase start` y un `db reset` local (llave duplicada en `schema_migrations`); producción no se ve afectada porque se pega a mano. Se mueve la de talla Única a `20260918175000`, y no la de la caja, porque esa ya está en producción y citada en el ADR-0108, el BACKLOG y el PR #145.
@@ -571,7 +584,6 @@ Lo que Felipe se lleva: el tipo de talla (letras / numeración / única / otras)
 Felipe preguntó si Comprobantes, Recibir mercadería y Por pagar deberían ser por tienda. Respuesta con evidencia: solo Recibir (es un acto físico en un lugar); Comprobantes y Por pagar son de la empresa (R-04, R-10, R-12) pero tienen que mostrar y filtrar por destino, que hoy no se ve en ninguna lista. Al confirmar Felipe que una factura puede repartirse entre tiendas, el destino dejó de poder vivir en la factura: `recibir_compras` cuenta lo recibido sumando todas las ubicaciones, así que una tienda podía gastarse la parte de otra. Diseño en ADR-0139 (antes 0107, 0132 y 0138, renumerado); sin código ni migración porque otra sesión (ADR-0106, sin PR) reescribe las mismas funciones y su esquema ya corre en el Postgres local compartido.
 
 Lo que Felipe se lleva: «por tienda» son tres cosas distintas — perspectiva (qué muestra la pantalla), permiso (quién puede) y atribución (a qué tienda pertenece el registro) — y no se resuelven igual en cada módulo. Y antes de escribir migraciones sobre un módulo, mirar `git log origin/main..<rama>` de las sesiones vecinas: esta vez habría sido trabajo doble sobre las mismas cinco funciones.
-
 
 ## 2026-09-18 (Etiquetas se alinea con Colores, Tejidos y Patrones: mismo tamaño de tarjeta, misma grilla)
 
@@ -5263,7 +5275,6 @@ no una revisión visual. La lección no es "no automatizar": es que un cambio me
 sobre 17 archivos necesita una verificación mecánica detrás, y acá el compilador es
 esa red — build, lint, tsc y 77 pruebas antes de commitear, siempre en ese orden.
 
-
 ## 2026-09-09 (verificada la robustez, y con un fallo real en vez de un simulacro)
 Se montó un entorno aparte para probar las barreras sin tocar el trabajo de otras sesiones:
 worktree propio (porque Next no permite dos `dev` en el mismo directorio y había uno
@@ -5441,7 +5452,6 @@ correr dos veces. Probado corriéndolo dos veces: la segunda no cambia nada.
 
 Producción no se tocó: es DDL en el proyecto compartido con Dynamic.
 
-
 ## 2026-09-09 (organización del inventario, bloque 4 — el censo es el primer conteo)
 
 `0048_conteos.sql` + `unificacion/30` + ADR-0027. Dos tablas (`conteos`, `conteo_lineas`) y
@@ -5525,7 +5535,6 @@ migraciones duales que el BACKLOG ya tenía anotada.
 Y una lección de método: la afirmación "esto explica aquello" es una hipótesis hasta que
 alguien la mide. Estaba escrita en un ADR con tono de hecho. Medir costó diez segundos.
 
-
 ## 2026-09-09 (verificación post-despliegue de la robustez: 18 pantallas, ninguna rota)
 Felipe empujó los 10 commits pendientes. Verificado en producción con sesión iniciada: se
 recorrieron **las 18 pantallas de la app** buscando el texto de las barreras de error
@@ -5572,7 +5581,6 @@ sin `error` y separa los falsos positivos verificados uno por uno —los `auth.g
 que degradan a "sin sesión", y el `getPublicUrl`, que arma una URL en memoria—. Medir
 antes y después con la misma regla es lo que permite decir "de 52 a 1" en vez de "quedó
 mejor".
-
 
 ## 2026-09-09 (cacheComponents: archivado tras intentarlo, no aplazado otra vez)
 Felipe paró sus otras sesiones para dejar el árbol quieto y se intentó de verdad: flag
@@ -8491,7 +8499,6 @@ adversarial independiente encontró 2 defectos reales que ya estaban corregidos 
 RUC en el texto buscable (rompía pegar «razón social + RUC» de una factura) y el chip partía la palabra al resaltar a medias. No
 cubre los buscadores de Comprobantes y Recepciones (filtran el proveedor por nombre dentro de sus RPC: requiere migración).
 
-
 ## 2026-09-21 (Producción F4b: comprobantes propios — ADR-0133)
 Felipe fusionó F4a y pegó su migración (verificado contra producción). F4b construida en local: `comprobantes_produccion` (+ líneas y pagos), solo-líder, con las
 reglas de la factura de Compras (contado ⇒ pago exacto en la misma transacción, crédito ⇒ vencimiento, idempotente, anular con motivo y nunca con pagos) y saldo
@@ -8516,6 +8523,28 @@ Los dos selectores de sede —`UbicacionSwitcher` (cabecera, global, cookie) y `
 Al fusionar #218 quedaron en main dos migraciones con la versión `20260921110000` (`por_pagar_produccion`, ya pegada en producción, y `candado_de_lider_caja_y_ajuste`, aún NO pegada;
 verificado contra la base: `cerrar_caja` y `registrar_movimiento` no tienen el candado). Regla del repo: se renombra la que aún no corrió en producción. Renombrada a `20260921120000`
 con sus referencias (ADR-0143, prueba `candado_lider_caja_y_ajuste.mjs`, BACKLOG). El contenido no cambió. El CI de «Versiones de migración» estaba rojo en todos los PR por esto.
+
+## 2026-09-21 (Producción F4d: recibir insumos contra el comprobante — ADR-0133)
+Felipe fusionó el menú sin Compras en el Taller. Renumeré el candado de caja (#218) a `20260921120000` porque chocaba con Por pagar, que ya estaba en producción. F4d construida en local:
+`recibir_comprobante_produccion` abre un lote por línea con el costo de la línea, lo llama quien opera el Taller SIN ver montos, lo que no llegará se cierra con motivo, idempotente; la anulación
+se niega con mercadería recibida. Pantalla `/produccion/recibir`. Migración `20260921140000` sin pegar. `pruebas:recibir-comprobante-produccion` 24/24.
+
+## 2026-09-21 (Producción F4e: candado del dinero en la base — ADR-0133)
+Felipe pegó F4d (validada contra producción: lote de 60 m a S/ 20, tope de recepción, anular negada, la función de líneas sin columnas de dinero). F4e construida en local: los costos de lotes, movimientos y
+órdenes ya no se pueden leer por la API directa (privilegio por columna), la vista `v_insumo_saldos` queda cerrada, y el líder los lee por `fn_costos_insumos_taller` / `fn_costos_producciones`. Dos migraciones,
+patrón ADR-0126: A `20260921150000` → desplegar la app → B `20260921151000`. `pruebas:candado-dinero-produccion` 20/20. Observado y NO tocado: `fn_costo_historial` (costo de prendas) es legible por cualquier colaborador.
+
+## 2026-09-21 (Producción F5: Nueva orden con decisión — ADR-0133)
+Felipe fusionó F4e; la parte A (`20260921150000`) quedó pendiente de pegar en producción al cierre de esta sesión (urgente: la app desplegada ya pide `fn_costos_*`). F5 construida sin esquema: «Nueva orden» (solo líder)
+sugiere la curva por talla y color con el ritmo y el stock de toda la red, dice si alcanza la tela y los avíos con el rendimiento MEDIDO de las órdenes cerradas y estima costo y margen. Sin ritmo medido no sugiere.
+
+## 2026-09-21 (Prueba de deriva de producción: 13/13 y dentro del CI)
+`pnpm pruebas:deriva-produccion` fallaba 12/13: el caso de las dos sobrecargas de 217000 aplica la migración histórica `20260918219000`, cuyo cuerpo escribe `compras.ubicacion_destino_id`, columna que el reparto (ADR-0139) retiró. El caso repone esa columna dentro de su transacción revertida; la garantía (una sola `registrar_compra` con `p_token`, el mismo token no duplica) no cambió. Fusionado en #227, y la prueba entra al job `pruebas-postgres` del CI.
+Felipe se lleva: (1) una migración vieja se prueba contra el esquema de SU época, no contra el de hoy: si el esquema cambia, se reconstruye ese contexto en la prueba y no se edita la migración; (2) una prueba que no corre en el CI se rompe en silencio: esta llevaba semanas roja y nadie lo notó.
+
+## 2026-09-21 (Producción F6: Resumen — ADR-0133)
+Felipe pegó las partes A y B del candado del dinero (verificado contra producción: costos ilegibles por columna, funciones `fn_costos_*` presentes, vista cerrada) y fusionó F5. F6 construida sin esquema: `/produccion` pasa a ser el
+Resumen «¿qué necesita mi decisión hoy?» (solo líder) con tarjetas por urgencia y evidencia, cifras, ¿qué producir? y ¿alcanza la tela?. Solo hechos: no se dibujan plazos por etapa ni «días de trabajo» inventados.
 
 ## 2026-09-21 (Historial de ventas: Ventas ▸ Historial — ADR-0144, hecho en local)
 Ya hay dónde ver todas las ventas registradas: `/vender/historial`, en el grupo Ventas del lateral entre Caja y Cambios. Una fila por venta agrupada por día de Lima, con filtros de período, tienda y vendedor (solo el líder), estado, pago y con/sin boleta o factura; cifras del rango completo (vendido, ticket promedio, anuladas: una anulada se ve tachada y no suma); paginado por cursor; al tocar una fila se abre el detalle de siempre. **Sin migración:** lee `ventas`, `venta_items`, `venta_pagos` y `comprobantes`, que se compararon EN VIVO con producción (columnas, RLS, FK y funciones idénticas; producción tiene 16 ventas).

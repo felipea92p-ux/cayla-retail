@@ -2,16 +2,18 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { AlarmClock, Banknote, Building2, CalendarRange, HandCoins, PackageCheck, Receipt, Search, X } from "lucide-react";
+import { AlarmClock, Banknote, Building2, CalendarRange, HandCoins, PackageCheck, Receipt, Search, Store, X } from "lucide-react";
 import { Popover } from "radix-ui";
 import { CampoTexto, Hilo } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { BotonFiltros, DesplegablePildora, ItemDesplegable, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import {
+  destinoDesdeParam,
   ETIQUETA_ESTADO_PAGO,
   ETIQUETA_ESTADO_RECEPCION,
   ETIQUETA_TIPO_DOCUMENTO,
   fechaCorta,
+  textoChipDestino,
   type EstadoPago,
   type EstadoRecepcion,
   type TipoDocumentoCompra,
@@ -35,9 +37,10 @@ import {
 // Productos — lo que se comparte es el molde, no el vocabulario.
 const ID_BUSCADOR = "buscador-compras";
 
-export type FiltroVisible = "proveedor" | "pago" | "recepcion" | "condicion" | "tipo" | "fechas" | "vencidas";
+export type FiltroVisible = "proveedor" | "pago" | "recepcion" | "condicion" | "tipo" | "fechas" | "vencidas" | "destino";
 
 type Proveedor = { id: string; nombre: string };
+type Tienda = { id: string; nombre: string };
 
 // Qué parámetro(s) de la URL usa cada filtro. `fechas` usa dos.
 const PARAMS: Record<FiltroVisible, string[]> = {
@@ -48,6 +51,7 @@ const PARAMS: Record<FiltroVisible, string[]> = {
   tipo: ["tipo"],
   fechas: ["desde", "hasta"],
   vencidas: ["vencidas"],
+  destino: ["dest"],
 };
 
 // `accionesAntes` / `accionesDespues` (ADR-0111): controles propios de cada pantalla que
@@ -57,6 +61,7 @@ const PARAMS: Record<FiltroVisible, string[]> = {
 // del campo, no de toda la columna.
 export function FiltrosCompras({
   proveedores,
+  tiendas = [],
   visibles,
   accionesAntes,
   accionesDespues,
@@ -64,6 +69,8 @@ export function FiltrosCompras({
   estiloSpike = false,
 }: {
   proveedores: Proveedor[];
+  /** Las tiendas que se ofrecen en «Destino» (ADR-0139): las mismas que Registrar ofrece al repartir. Vacío = el filtro no aparece. */
+  tiendas?: Tienda[];
   visibles: FiltroVisible[];
   accionesAntes?: ReactNode;
   accionesDespues?: ReactNode;
@@ -130,8 +137,10 @@ export function FiltrosCompras({
   const vencidas = params.get("vencidas");
   const desde = params.get("desde");
   const hasta = params.get("hasta");
+  // Un `dest` que no es el id de una tienda no filtra (la página lo descarta): tampoco cuenta ni pinta etiqueta.
+  const dest = destinoDesdeParam(params.get("dest"));
 
-  const activo = (f: FiltroVisible) => PARAMS[f].some((k) => params.get(k));
+  const activo = (f: FiltroVisible) => (f === "destino" ? !!dest : PARAMS[f].some((k) => params.get(k)));
   const activos = visibles.filter(activo).length;
 
   // Los chips: un texto legible por cada filtro aplicado, con qué borrar al
@@ -145,6 +154,7 @@ export function FiltrosCompras({
   if (recep && ETIQUETA_ESTADO_RECEPCION[recep]) chips.push({ texto: `Recepción: ${ETIQUETA_ESTADO_RECEPCION[recep]}`, quitar: { recep: "" } });
   if (cond) chips.push({ texto: cond === "contado" ? "Al contado" : "Al crédito", quitar: { cond: "" } });
   if (tipo && ETIQUETA_TIPO_DOCUMENTO[tipo]) chips.push({ texto: ETIQUETA_TIPO_DOCUMENTO[tipo], quitar: { tipo: "" } });
+  if (dest) chips.push({ texto: textoChipDestino(dest, tiendas), quitar: { dest: "" } });
   if (vencidas) chips.push({ texto: "Solo vencidas", quitar: { vencidas: "" } });
   if (desde || hasta) {
     chips.push({
@@ -282,6 +292,17 @@ export function FiltrosCompras({
               {(["factura", "boleta", "nota_venta"] as const).map((v) => (
                 <ItemDesplegable key={v} value={v}>
                   {ETIQUETA_TIPO_DOCUMENTO[v]}
+                </ItemDesplegable>
+              ))}
+            </DesplegablePildora>
+          )}
+
+          {ver("destino") && tiendas.length > 0 && (
+            <DesplegablePildora icono={Store} etiqueta="Destino" valor={dest ?? TODOS} onValor={(v) => aplicar({ dest: v === TODOS ? "" : v })}>
+              <ItemDesplegable value={TODOS}>Todas las tiendas</ItemDesplegable>
+              {tiendas.map((u) => (
+                <ItemDesplegable key={u.id} value={u.id}>
+                  {u.nombre}
                 </ItemDesplegable>
               ))}
             </DesplegablePildora>

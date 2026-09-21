@@ -7,6 +7,8 @@ import { Boton } from "@/components/ui/campos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { NuevaOrdenProduccionForm } from "@/components/NuevaOrdenProduccionForm";
+import type { DecisionProduccion } from "@/lib/decision-produccion";
+import type { Tolerado } from "@/lib/resultado";
 import { OrdenPanel } from "@/components/OrdenPanel";
 import { AnularOrdenModal, RevertirOrdenModal } from "@/components/OrdenModales";
 import { OrdenTarjeta, semaforoDeOrden } from "@/components/OrdenTarjeta";
@@ -28,6 +30,9 @@ export function OrdenesTablero({
   hoy,
   insumos,
   consumosPorOrden,
+  decision,
+  ordenInicialId = null,
+  nuevaInicial = null,
 }: {
   tallerId: string;
   ordenes: OrdenProduccion[];
@@ -36,9 +41,14 @@ export function OrdenesTablero({
   hoy: string;
   insumos: InsumoVista[];
   consumosPorOrden: Record<string, ConsumoDeOrden[]>;
+  /** Solo el líder (F5): lo que aconseja la red al abrir una orden. */
+  decision: Tolerado<DecisionProduccion> | null;
+  /** Enlaces del Resumen (F6): `?orden=<id>` abre esa orden; `?nueva=<modelo>` abre «Nueva orden» con el modelo elegido (`auto` = el primero). */
+  ordenInicialId?: string | null;
+  nuevaInicial?: string | null;
 }) {
-  const [abiertaId, setAbiertaId] = useState<string | null>(null);
-  const [nuevaAbierta, setNuevaAbierta] = useState(false);
+  const [abiertaId, setAbiertaId] = useState<string | null>(ordenInicialId && ordenes.some((o) => o.id === ordenInicialId) ? ordenInicialId : null);
+  const [nuevaAbierta, setNuevaAbierta] = useState(nuevaInicial !== null);
   const [anulando, setAnulando] = useState<OrdenProduccion | null>(null);
   const [revirtiendo, setRevirtiendo] = useState<OrdenProduccion | null>(null);
   const [verTerminadas, setVerTerminadas] = useState(false);
@@ -224,7 +234,7 @@ export function OrdenesTablero({
           onRevertir={() => setRevirtiendo(abierta)}
         />
       )}
-      {nuevaAbierta && <NuevaOrdenProduccionForm tallerId={tallerId} modelos={modelos} onClose={() => setNuevaAbierta(false)} />}
+      {nuevaAbierta && <NuevaOrdenProduccionForm tallerId={tallerId} modelos={modelos} decision={decision} productoInicialId={nuevaInicial} onClose={() => setNuevaAbierta(false)} />}
       {anulando && <AnularOrdenModal orden={anulando} consumos={consumosPorOrden[anulando.id] ?? []} onClose={() => setAnulando(null)} />}
       {revirtiendo && <RevertirOrdenModal orden={revirtiendo} onClose={() => setRevirtiendo(null)} />}
     </div>
