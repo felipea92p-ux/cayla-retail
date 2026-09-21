@@ -307,6 +307,33 @@
  },
  {
   "cmd": "SELECT",
+  "policyname": "comprobantes_produccion_select_lider",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "comprobantes_produccion",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "comprobantes_produccion_items_select_lider",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "comprobantes_produccion_items",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "comprobantes_produccion_pagos_select_lider",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "comprobantes_produccion_pagos",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
   "policyname": "configuracion_empresa_select",
   "qual": "(auth.role() = 'authenticated'::text)",
   "roles": "{public}",
@@ -727,6 +754,15 @@
   "schemaname": "retail",
   "tablename": "proveedores",
   "with_check": "retail.fn_es_lider()"
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "proveedores_produccion_select_lider",
+  "qual": "retail.fn_es_lider()",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "proveedores_produccion",
+  "with_check": null
  },
  {
   "cmd": "SELECT",

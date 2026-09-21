@@ -140,6 +140,11 @@
   "tablename": "compra_notas_credito"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX compra_notas_credito_id_compra_key ON retail.compra_notas_credito USING btree (id, compra_id)",
+  "indexname": "compra_notas_credito_id_compra_key",
+  "tablename": "compra_notas_credito"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX compra_notas_credito_pkey ON retail.compra_notas_credito USING btree (id)",
   "indexname": "compra_notas_credito_pkey",
   "tablename": "compra_notas_credito"
@@ -183,6 +188,31 @@
   "indexdef": "CREATE UNIQUE INDEX comprobantes_token_cliente_key ON retail.comprobantes USING btree (token_cliente)",
   "indexname": "comprobantes_token_cliente_key",
   "tablename": "comprobantes"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX comprobantes_produccion_pkey ON retail.comprobantes_produccion USING btree (id)",
+  "indexname": "comprobantes_produccion_pkey",
+  "tablename": "comprobantes_produccion"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX comprobantes_produccion_serie_numero_unico ON retail.comprobantes_produccion USING btree (proveedor_id, serie, numero)",
+  "indexname": "comprobantes_produccion_serie_numero_unico",
+  "tablename": "comprobantes_produccion"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX comprobantes_produccion_token_cliente_key ON retail.comprobantes_produccion USING btree (token_cliente)",
+  "indexname": "comprobantes_produccion_token_cliente_key",
+  "tablename": "comprobantes_produccion"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX comprobantes_produccion_items_pkey ON retail.comprobantes_produccion_items USING btree (id)",
+  "indexname": "comprobantes_produccion_items_pkey",
+  "tablename": "comprobantes_produccion_items"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX comprobantes_produccion_pagos_pkey ON retail.comprobantes_produccion_pagos USING btree (id)",
+  "indexname": "comprobantes_produccion_pagos_pkey",
+  "tablename": "comprobantes_produccion_pagos"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX configuracion_empresa_pkey ON retail.configuracion_empresa USING btree (id)",
@@ -448,6 +478,21 @@
   "indexdef": "CREATE UNIQUE INDEX proveedores_ruc_unico ON retail.proveedores USING btree (ruc) WHERE (ruc IS NOT NULL)",
   "indexname": "proveedores_ruc_unico",
   "tablename": "proveedores"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX proveedores_produccion_nombre_clave_unica ON retail.proveedores_produccion USING btree (retail.fn_clave_texto(nombre))",
+  "indexname": "proveedores_produccion_nombre_clave_unica",
+  "tablename": "proveedores_produccion"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX proveedores_produccion_pkey ON retail.proveedores_produccion USING btree (id)",
+  "indexname": "proveedores_produccion_pkey",
+  "tablename": "proveedores_produccion"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX proveedores_produccion_ruc_unico ON retail.proveedores_produccion USING btree (ruc) WHERE (ruc IS NOT NULL)",
+  "indexname": "proveedores_produccion_ruc_unico",
+  "tablename": "proveedores_produccion"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX series_comprobantes_pkey ON retail.series_comprobantes USING btree (id)",

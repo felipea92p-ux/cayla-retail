@@ -1887,6 +1887,15 @@
           "por_defecto": null,
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "nota_credito_id",
+          "orden": 11,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
@@ -1904,6 +1913,11 @@
           "nombre": "compra_adjuntos_compra_id_fkey",
           "clase": "llave foránea",
           "definicion": "FOREIGN KEY (compra_id) REFERENCES retail.compras(id)"
+        },
+        {
+          "nombre": "compra_adjuntos_nota_de_su_compra",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (nota_credito_id, compra_id) REFERENCES retail.compra_notas_credito(id, compra_id)"
         },
         {
           "nombre": "compra_adjuntos_pkey",
@@ -2651,6 +2665,11 @@
           "definicion": "UNIQUE (compra_id, serie_numero)"
         },
         {
+          "nombre": "compra_notas_credito_id_compra_key",
+          "clase": "único",
+          "definicion": "UNIQUE (id, compra_id)"
+        },
+        {
           "nombre": "compra_notas_credito_igv_check",
           "clase": "regla",
           "definicion": "CHECK ((igv >= (0)::numeric))"
@@ -2699,6 +2718,10 @@
         {
           "nombre": "compra_notas_credito_faltante_unica",
           "definicion": "CREATE UNIQUE INDEX compra_notas_credito_faltante_unica ON retail.compra_notas_credito USING btree (compra_id) WHERE (motivo = 'faltante'::text)"
+        },
+        {
+          "nombre": "compra_notas_credito_id_compra_key",
+          "definicion": "CREATE UNIQUE INDEX compra_notas_credito_id_compra_key ON retail.compra_notas_credito USING btree (id, compra_id)"
         },
         {
           "nombre": "compra_notas_credito_pkey",
@@ -3685,7 +3708,7 @@
       "tabla": "comprobantes",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 11,
+      "filas_estimadas": 17,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -4094,6 +4117,526 @@
           "nombre": "comprobantes_select",
           "operacion": "SELECT",
           "condicion": "(retail.fn_es_lider() OR retail.fn_puede_operar_ubicacion(ubicacion_id))",
+          "condicion_escritura": null
+        }
+      ],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
+      "tabla": "comprobantes_produccion",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 0,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "id",
+          "orden": 1,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": "gen_random_uuid()",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "proveedor_id",
+          "orden": 2,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "tipo",
+          "orden": 3,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": "'factura'::text",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "serie",
+          "orden": 4,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "numero",
+          "orden": 5,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "fecha_emision",
+          "orden": 6,
+          "tipo": "date",
+          "acepta_vacio": false,
+          "por_defecto": "CURRENT_DATE",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "condicion",
+          "orden": 7,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "fecha_vencimiento",
+          "orden": 8,
+          "tipo": "date",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "subtotal",
+          "orden": 9,
+          "tipo": "numeric",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "igv",
+          "orden": 10,
+          "tipo": "numeric",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "total",
+          "orden": 11,
+          "tipo": "numeric",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "estado",
+          "orden": 12,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": "'vigente'::text",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "motivo_anulacion",
+          "orden": 13,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "nota",
+          "orden": 14,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "usuario_id",
+          "orden": 15,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "token_cliente",
+          "orden": 16,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "created_at",
+          "orden": 17,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": "now()",
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "comprobantes_produccion_anulada_con_motivo",
+          "clase": "regla",
+          "definicion": "CHECK (((estado = 'vigente'::text) OR ((motivo_anulacion IS NOT NULL) AND (char_length(btrim(motivo_anulacion)) > 0))))"
+        },
+        {
+          "nombre": "comprobantes_produccion_condicion_check",
+          "clase": "regla",
+          "definicion": "CHECK ((condicion = ANY (ARRAY['contado'::text, 'credito'::text])))"
+        },
+        {
+          "nombre": "comprobantes_produccion_credito_con_vencimiento",
+          "clase": "regla",
+          "definicion": "CHECK (((condicion = 'contado'::text) OR (fecha_vencimiento IS NOT NULL)))"
+        },
+        {
+          "nombre": "comprobantes_produccion_estado_check",
+          "clase": "regla",
+          "definicion": "CHECK ((estado = ANY (ARRAY['vigente'::text, 'anulada'::text])))"
+        },
+        {
+          "nombre": "comprobantes_produccion_igv_check",
+          "clase": "regla",
+          "definicion": "CHECK ((igv >= (0)::numeric))"
+        },
+        {
+          "nombre": "comprobantes_produccion_igv_solo_factura",
+          "clase": "regla",
+          "definicion": "CHECK (((tipo = 'factura'::text) OR (igv = (0)::numeric)))"
+        },
+        {
+          "nombre": "comprobantes_produccion_numero_check",
+          "clase": "regla",
+          "definicion": "CHECK ((char_length(btrim(numero)) > 0))"
+        },
+        {
+          "nombre": "comprobantes_produccion_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "nombre": "comprobantes_produccion_proveedor_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores_produccion(id)"
+        },
+        {
+          "nombre": "comprobantes_produccion_serie_check",
+          "clase": "regla",
+          "definicion": "CHECK ((char_length(btrim(serie)) > 0))"
+        },
+        {
+          "nombre": "comprobantes_produccion_serie_numero_unico",
+          "clase": "único",
+          "definicion": "UNIQUE (proveedor_id, serie, numero)"
+        },
+        {
+          "nombre": "comprobantes_produccion_subtotal_check",
+          "clase": "regla",
+          "definicion": "CHECK ((subtotal >= (0)::numeric))"
+        },
+        {
+          "nombre": "comprobantes_produccion_tipo_check",
+          "clase": "regla",
+          "definicion": "CHECK ((tipo = ANY (ARRAY['factura'::text, 'boleta'::text, 'nota_venta'::text])))"
+        },
+        {
+          "nombre": "comprobantes_produccion_token_cliente_key",
+          "clase": "único",
+          "definicion": "UNIQUE (token_cliente)"
+        },
+        {
+          "nombre": "comprobantes_produccion_total_check",
+          "clase": "regla",
+          "definicion": "CHECK ((total >= (0)::numeric))"
+        },
+        {
+          "nombre": "comprobantes_produccion_total_cuadra",
+          "clase": "regla",
+          "definicion": "CHECK ((total = (subtotal + igv)))"
+        },
+        {
+          "nombre": "comprobantes_produccion_usuario_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (usuario_id) REFERENCES personas(id)"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "comprobantes_produccion_pkey",
+          "definicion": "CREATE UNIQUE INDEX comprobantes_produccion_pkey ON retail.comprobantes_produccion USING btree (id)"
+        },
+        {
+          "nombre": "comprobantes_produccion_serie_numero_unico",
+          "definicion": "CREATE UNIQUE INDEX comprobantes_produccion_serie_numero_unico ON retail.comprobantes_produccion USING btree (proveedor_id, serie, numero)"
+        },
+        {
+          "nombre": "comprobantes_produccion_token_cliente_key",
+          "definicion": "CREATE UNIQUE INDEX comprobantes_produccion_token_cliente_key ON retail.comprobantes_produccion USING btree (token_cliente)"
+        }
+      ],
+      "politicas": [
+        {
+          "nombre": "comprobantes_produccion_select_lider",
+          "operacion": "SELECT",
+          "condicion": "retail.fn_es_lider()",
+          "condicion_escritura": null
+        }
+      ],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
+      "tabla": "comprobantes_produccion_items",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 0,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "id",
+          "orden": 1,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": "gen_random_uuid()",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "comprobante_id",
+          "orden": 2,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "insumo_id",
+          "orden": 3,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "descripcion",
+          "orden": 4,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "cantidad",
+          "orden": 5,
+          "tipo": "numeric",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "costo_unitario",
+          "orden": 6,
+          "tipo": "numeric",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "subtotal",
+          "orden": 7,
+          "tipo": "numeric",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "comprobantes_produccion_items_cantidad_check",
+          "clase": "regla",
+          "definicion": "CHECK ((cantidad > (0)::numeric))"
+        },
+        {
+          "nombre": "comprobantes_produccion_items_comprobante_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (comprobante_id) REFERENCES retail.comprobantes_produccion(id)"
+        },
+        {
+          "nombre": "comprobantes_produccion_items_costo_unitario_check",
+          "clase": "regla",
+          "definicion": "CHECK ((costo_unitario >= (0)::numeric))"
+        },
+        {
+          "nombre": "comprobantes_produccion_items_insumo_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (insumo_id) REFERENCES retail.insumos(id)"
+        },
+        {
+          "nombre": "comprobantes_produccion_items_insumo_o_concepto",
+          "clase": "regla",
+          "definicion": "CHECK (((insumo_id IS NOT NULL) OR ((descripcion IS NOT NULL) AND (char_length(btrim(descripcion)) > 0))))"
+        },
+        {
+          "nombre": "comprobantes_produccion_items_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (id)"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "comprobantes_produccion_items_pkey",
+          "definicion": "CREATE UNIQUE INDEX comprobantes_produccion_items_pkey ON retail.comprobantes_produccion_items USING btree (id)"
+        }
+      ],
+      "politicas": [
+        {
+          "nombre": "comprobantes_produccion_items_select_lider",
+          "operacion": "SELECT",
+          "condicion": "retail.fn_es_lider()",
+          "condicion_escritura": null
+        }
+      ],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
+      "tabla": "comprobantes_produccion_pagos",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 0,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "id",
+          "orden": 1,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": "gen_random_uuid()",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "comprobante_id",
+          "orden": 2,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "fecha",
+          "orden": 3,
+          "tipo": "date",
+          "acepta_vacio": false,
+          "por_defecto": "CURRENT_DATE",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "monto",
+          "orden": 4,
+          "tipo": "numeric",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "metodo",
+          "orden": 5,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "referencia",
+          "orden": 6,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "usuario_id",
+          "orden": 7,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "created_at",
+          "orden": 8,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": "now()",
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "comprobantes_produccion_pagos_comprobante_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (comprobante_id) REFERENCES retail.comprobantes_produccion(id)"
+        },
+        {
+          "nombre": "comprobantes_produccion_pagos_metodo_check",
+          "clase": "regla",
+          "definicion": "CHECK ((metodo = ANY (ARRAY['transferencia'::text, 'yape'::text, 'plin'::text, 'efectivo'::text, 'deposito'::text, 'otro'::text])))"
+        },
+        {
+          "nombre": "comprobantes_produccion_pagos_monto_check",
+          "clase": "regla",
+          "definicion": "CHECK ((monto > (0)::numeric))"
+        },
+        {
+          "nombre": "comprobantes_produccion_pagos_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "nombre": "comprobantes_produccion_pagos_usuario_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (usuario_id) REFERENCES personas(id)"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "comprobantes_produccion_pagos_pkey",
+          "definicion": "CREATE UNIQUE INDEX comprobantes_produccion_pagos_pkey ON retail.comprobantes_produccion_pagos USING btree (id)"
+        }
+      ],
+      "politicas": [
+        {
+          "nombre": "comprobantes_produccion_pagos_select_lider",
+          "operacion": "SELECT",
+          "condicion": "retail.fn_es_lider()",
           "condicion_escritura": null
         }
       ],
@@ -6172,7 +6715,7 @@
         {
           "nombre": "insumo_lotes_proveedor_id_fkey",
           "clase": "llave foránea",
-          "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)"
+          "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores_produccion(id)"
         },
         {
           "nombre": "insumo_lotes_ubicacion_id_fkey",
@@ -6337,7 +6880,7 @@
         {
           "nombre": "insumos_proveedor_id_fkey",
           "clase": "llave foránea",
-          "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)"
+          "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores_produccion(id)"
         },
         {
           "nombre": "insumos_stock_minimo_check",
@@ -6523,7 +7066,7 @@
       "tabla": "marca_proveedores",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 1,
+      "filas_estimadas": 76,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -6599,7 +7142,7 @@
       "tabla": "marcas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 1,
+      "filas_estimadas": 76,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -6683,7 +7226,7 @@
       "tabla": "movimientos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 464,
+      "filas_estimadas": 477,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -8736,7 +9279,7 @@
       "tabla": "proveedores",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 2,
+      "filas_estimadas": 76,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -8958,6 +9501,241 @@
           "operacion": "ALL",
           "condicion": "retail.fn_es_lider()",
           "condicion_escritura": "retail.fn_es_lider()"
+        }
+      ],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
+      "tabla": "proveedores_produccion",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 0,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "id",
+          "orden": 1,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": "gen_random_uuid()",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "nombre",
+          "orden": 2,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "rubro",
+          "orden": 3,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "ruc",
+          "orden": 4,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "contacto",
+          "orden": 5,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "telefono",
+          "orden": 6,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "plazo_credito_dias",
+          "orden": 7,
+          "tipo": "integer",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "forma_pago_preferida",
+          "orden": 8,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "banco",
+          "orden": 9,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "cuenta_bancaria",
+          "orden": 10,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "cci",
+          "orden": 11,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "celular_billetera",
+          "orden": 12,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "billeteras",
+          "orden": 13,
+          "tipo": "ARRAY",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "titular_cuenta",
+          "orden": 14,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "activo",
+          "orden": 15,
+          "tipo": "boolean",
+          "acepta_vacio": false,
+          "por_defecto": "true",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "created_at",
+          "orden": 16,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": "now()",
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "proveedores_produccion_billetera_coherente",
+          "clase": "regla",
+          "definicion": "CHECK (((celular_billetera IS NULL) = (billeteras IS NULL)))"
+        },
+        {
+          "nombre": "proveedores_produccion_billeteras_check",
+          "clase": "regla",
+          "definicion": "CHECK (((billeteras IS NULL) OR (((cardinality(billeteras) >= 1) AND (cardinality(billeteras) <= 2)) AND (billeteras <@ ARRAY['yape'::text, 'plin'::text]))))"
+        },
+        {
+          "nombre": "proveedores_produccion_cci_check",
+          "clase": "regla",
+          "definicion": "CHECK (((cci IS NULL) OR (cci ~ '^[0-9]{20}$'::text)))"
+        },
+        {
+          "nombre": "proveedores_produccion_celular_billetera_check",
+          "clase": "regla",
+          "definicion": "CHECK (((celular_billetera IS NULL) OR (celular_billetera ~ '^9[0-9]{8}$'::text)))"
+        },
+        {
+          "nombre": "proveedores_produccion_forma_pago_preferida_check",
+          "clase": "regla",
+          "definicion": "CHECK (((forma_pago_preferida IS NULL) OR (forma_pago_preferida = ANY (ARRAY['transferencia'::text, 'yape'::text, 'plin'::text, 'efectivo'::text, 'deposito'::text, 'otro'::text]))))"
+        },
+        {
+          "nombre": "proveedores_produccion_nombre_check",
+          "clase": "regla",
+          "definicion": "CHECK ((char_length(btrim(nombre)) > 0))"
+        },
+        {
+          "nombre": "proveedores_produccion_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "nombre": "proveedores_produccion_plazo_credito_dias_check",
+          "clase": "regla",
+          "definicion": "CHECK (((plazo_credito_dias IS NULL) OR (plazo_credito_dias > 0)))"
+        },
+        {
+          "nombre": "proveedores_produccion_rubro_check",
+          "clase": "regla",
+          "definicion": "CHECK ((rubro = ANY (ARRAY['tela'::text, 'avios'::text, 'maquila'::text, 'otro'::text])))"
+        },
+        {
+          "nombre": "proveedores_produccion_ruc_check",
+          "clase": "regla",
+          "definicion": "CHECK (((ruc IS NULL) OR (ruc ~ '^[0-9]{11}$'::text)))"
+        },
+        {
+          "nombre": "proveedores_produccion_titular_cuenta_check",
+          "clase": "regla",
+          "definicion": "CHECK (((titular_cuenta IS NULL) OR ((char_length(titular_cuenta) >= 2) AND (char_length(titular_cuenta) <= 120))))"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "proveedores_produccion_nombre_clave_unica",
+          "definicion": "CREATE UNIQUE INDEX proveedores_produccion_nombre_clave_unica ON retail.proveedores_produccion USING btree (retail.fn_clave_texto(nombre))"
+        },
+        {
+          "nombre": "proveedores_produccion_pkey",
+          "definicion": "CREATE UNIQUE INDEX proveedores_produccion_pkey ON retail.proveedores_produccion USING btree (id)"
+        },
+        {
+          "nombre": "proveedores_produccion_ruc_unico",
+          "definicion": "CREATE UNIQUE INDEX proveedores_produccion_ruc_unico ON retail.proveedores_produccion USING btree (ruc) WHERE (ruc IS NOT NULL)"
+        }
+      ],
+      "politicas": [
+        {
+          "nombre": "proveedores_produccion_select_lider",
+          "operacion": "SELECT",
+          "condicion": "retail.fn_es_lider()",
+          "condicion_escritura": null
         }
       ],
       "definicion_vista": null
@@ -9700,7 +10478,7 @@
       "tabla": "transferencia_recepciones",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 0,
+      "filas_estimadas": 1,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -10737,7 +11515,7 @@
       "tabla": "venta_items",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 23,
+      "filas_estimadas": 36,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -10944,7 +11722,7 @@
       "tabla": "venta_pagos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 11,
+      "filas_estimadas": 19,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -10983,6 +11761,15 @@
           "por_defecto": null,
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "recibido",
+          "orden": 5,
+          "tipo": "numeric",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
@@ -11000,6 +11787,11 @@
           "nombre": "venta_pagos_pkey",
           "clase": "llave primaria",
           "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "nombre": "venta_pagos_recibido_coherente",
+          "clase": "regla",
+          "definicion": "CHECK (((recibido IS NULL) OR ((metodo = 'efectivo'::text) AND (recibido >= monto))))"
         },
         {
           "nombre": "venta_pagos_venta_id_fkey",
@@ -11028,7 +11820,7 @@
       "tabla": "ventas",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 9,
+      "filas_estimadas": 15,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [

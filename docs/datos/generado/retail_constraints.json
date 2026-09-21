@@ -345,6 +345,11 @@
   "tabla": "retail.compra_adjuntos"
  },
  {
+  "conname": "compra_adjuntos_nota_de_su_compra",
+  "definicion": "FOREIGN KEY (nota_credito_id, compra_id) REFERENCES retail.compra_notas_credito(id, compra_id)",
+  "tabla": "retail.compra_adjuntos"
+ },
+ {
   "conname": "compra_adjuntos_pkey",
   "definicion": "PRIMARY KEY (id)",
   "tabla": "retail.compra_adjuntos"
@@ -482,6 +487,11 @@
  {
   "conname": "compra_notas_credito_compra_id_serie_numero_key",
   "definicion": "UNIQUE (compra_id, serie_numero)",
+  "tabla": "retail.compra_notas_credito"
+ },
+ {
+  "conname": "compra_notas_credito_id_compra_key",
+  "definicion": "UNIQUE (id, compra_id)",
   "tabla": "retail.compra_notas_credito"
  },
  {
@@ -783,6 +793,146 @@
   "conname": "comprobantes_venta_id_fkey",
   "definicion": "FOREIGN KEY (venta_id) REFERENCES retail.ventas(id)",
   "tabla": "retail.comprobantes"
+ },
+ {
+  "conname": "comprobantes_produccion_anulada_con_motivo",
+  "definicion": "CHECK (((estado = 'vigente'::text) OR ((motivo_anulacion IS NOT NULL) AND (char_length(btrim(motivo_anulacion)) > 0))))",
+  "tabla": "retail.comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_condicion_check",
+  "definicion": "CHECK ((condicion = ANY (ARRAY['contado'::text, 'credito'::text])))",
+  "tabla": "retail.comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_credito_con_vencimiento",
+  "definicion": "CHECK (((condicion = 'contado'::text) OR (fecha_vencimiento IS NOT NULL)))",
+  "tabla": "retail.comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_estado_check",
+  "definicion": "CHECK ((estado = ANY (ARRAY['vigente'::text, 'anulada'::text])))",
+  "tabla": "retail.comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_igv_check",
+  "definicion": "CHECK ((igv >= (0)::numeric))",
+  "tabla": "retail.comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_igv_solo_factura",
+  "definicion": "CHECK (((tipo = 'factura'::text) OR (igv = (0)::numeric)))",
+  "tabla": "retail.comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_numero_check",
+  "definicion": "CHECK ((char_length(btrim(numero)) > 0))",
+  "tabla": "retail.comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_proveedor_id_fkey",
+  "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores_produccion(id)",
+  "tabla": "retail.comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_serie_check",
+  "definicion": "CHECK ((char_length(btrim(serie)) > 0))",
+  "tabla": "retail.comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_serie_numero_unico",
+  "definicion": "UNIQUE (proveedor_id, serie, numero)",
+  "tabla": "retail.comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_subtotal_check",
+  "definicion": "CHECK ((subtotal >= (0)::numeric))",
+  "tabla": "retail.comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_tipo_check",
+  "definicion": "CHECK ((tipo = ANY (ARRAY['factura'::text, 'boleta'::text, 'nota_venta'::text])))",
+  "tabla": "retail.comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_token_cliente_key",
+  "definicion": "UNIQUE (token_cliente)",
+  "tabla": "retail.comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_total_check",
+  "definicion": "CHECK ((total >= (0)::numeric))",
+  "tabla": "retail.comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_total_cuadra",
+  "definicion": "CHECK ((total = (subtotal + igv)))",
+  "tabla": "retail.comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_usuario_id_fkey",
+  "definicion": "FOREIGN KEY (usuario_id) REFERENCES personas(id)",
+  "tabla": "retail.comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_items_cantidad_check",
+  "definicion": "CHECK ((cantidad > (0)::numeric))",
+  "tabla": "retail.comprobantes_produccion_items"
+ },
+ {
+  "conname": "comprobantes_produccion_items_comprobante_id_fkey",
+  "definicion": "FOREIGN KEY (comprobante_id) REFERENCES retail.comprobantes_produccion(id)",
+  "tabla": "retail.comprobantes_produccion_items"
+ },
+ {
+  "conname": "comprobantes_produccion_items_costo_unitario_check",
+  "definicion": "CHECK ((costo_unitario >= (0)::numeric))",
+  "tabla": "retail.comprobantes_produccion_items"
+ },
+ {
+  "conname": "comprobantes_produccion_items_insumo_id_fkey",
+  "definicion": "FOREIGN KEY (insumo_id) REFERENCES retail.insumos(id)",
+  "tabla": "retail.comprobantes_produccion_items"
+ },
+ {
+  "conname": "comprobantes_produccion_items_insumo_o_concepto",
+  "definicion": "CHECK (((insumo_id IS NOT NULL) OR ((descripcion IS NOT NULL) AND (char_length(btrim(descripcion)) > 0))))",
+  "tabla": "retail.comprobantes_produccion_items"
+ },
+ {
+  "conname": "comprobantes_produccion_items_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.comprobantes_produccion_items"
+ },
+ {
+  "conname": "comprobantes_produccion_pagos_comprobante_id_fkey",
+  "definicion": "FOREIGN KEY (comprobante_id) REFERENCES retail.comprobantes_produccion(id)",
+  "tabla": "retail.comprobantes_produccion_pagos"
+ },
+ {
+  "conname": "comprobantes_produccion_pagos_metodo_check",
+  "definicion": "CHECK ((metodo = ANY (ARRAY['transferencia'::text, 'yape'::text, 'plin'::text, 'efectivo'::text, 'deposito'::text, 'otro'::text])))",
+  "tabla": "retail.comprobantes_produccion_pagos"
+ },
+ {
+  "conname": "comprobantes_produccion_pagos_monto_check",
+  "definicion": "CHECK ((monto > (0)::numeric))",
+  "tabla": "retail.comprobantes_produccion_pagos"
+ },
+ {
+  "conname": "comprobantes_produccion_pagos_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.comprobantes_produccion_pagos"
+ },
+ {
+  "conname": "comprobantes_produccion_pagos_usuario_id_fkey",
+  "definicion": "FOREIGN KEY (usuario_id) REFERENCES personas(id)",
+  "tabla": "retail.comprobantes_produccion_pagos"
  },
  {
   "conname": "configuracion_empresa_id_check",
@@ -1221,7 +1371,7 @@
  },
  {
   "conname": "insumo_lotes_proveedor_id_fkey",
-  "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)",
+  "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores_produccion(id)",
   "tabla": "retail.insumo_lotes"
  },
  {
@@ -1246,7 +1396,7 @@
  },
  {
   "conname": "insumos_proveedor_id_fkey",
-  "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)",
+  "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores_produccion(id)",
   "tabla": "retail.insumos"
  },
  {
@@ -1870,6 +2020,61 @@
   "tabla": "retail.proveedores"
  },
  {
+  "conname": "proveedores_produccion_billetera_coherente",
+  "definicion": "CHECK (((celular_billetera IS NULL) = (billeteras IS NULL)))",
+  "tabla": "retail.proveedores_produccion"
+ },
+ {
+  "conname": "proveedores_produccion_billeteras_check",
+  "definicion": "CHECK (((billeteras IS NULL) OR (((cardinality(billeteras) >= 1) AND (cardinality(billeteras) <= 2)) AND (billeteras <@ ARRAY['yape'::text, 'plin'::text]))))",
+  "tabla": "retail.proveedores_produccion"
+ },
+ {
+  "conname": "proveedores_produccion_cci_check",
+  "definicion": "CHECK (((cci IS NULL) OR (cci ~ '^[0-9]{20}$'::text)))",
+  "tabla": "retail.proveedores_produccion"
+ },
+ {
+  "conname": "proveedores_produccion_celular_billetera_check",
+  "definicion": "CHECK (((celular_billetera IS NULL) OR (celular_billetera ~ '^9[0-9]{8}$'::text)))",
+  "tabla": "retail.proveedores_produccion"
+ },
+ {
+  "conname": "proveedores_produccion_forma_pago_preferida_check",
+  "definicion": "CHECK (((forma_pago_preferida IS NULL) OR (forma_pago_preferida = ANY (ARRAY['transferencia'::text, 'yape'::text, 'plin'::text, 'efectivo'::text, 'deposito'::text, 'otro'::text]))))",
+  "tabla": "retail.proveedores_produccion"
+ },
+ {
+  "conname": "proveedores_produccion_nombre_check",
+  "definicion": "CHECK ((char_length(btrim(nombre)) > 0))",
+  "tabla": "retail.proveedores_produccion"
+ },
+ {
+  "conname": "proveedores_produccion_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.proveedores_produccion"
+ },
+ {
+  "conname": "proveedores_produccion_plazo_credito_dias_check",
+  "definicion": "CHECK (((plazo_credito_dias IS NULL) OR (plazo_credito_dias > 0)))",
+  "tabla": "retail.proveedores_produccion"
+ },
+ {
+  "conname": "proveedores_produccion_rubro_check",
+  "definicion": "CHECK ((rubro = ANY (ARRAY['tela'::text, 'avios'::text, 'maquila'::text, 'otro'::text])))",
+  "tabla": "retail.proveedores_produccion"
+ },
+ {
+  "conname": "proveedores_produccion_ruc_check",
+  "definicion": "CHECK (((ruc IS NULL) OR (ruc ~ '^[0-9]{11}$'::text)))",
+  "tabla": "retail.proveedores_produccion"
+ },
+ {
+  "conname": "proveedores_produccion_titular_cuenta_check",
+  "definicion": "CHECK (((titular_cuenta IS NULL) OR ((char_length(titular_cuenta) >= 2) AND (char_length(titular_cuenta) <= 120))))",
+  "tabla": "retail.proveedores_produccion"
+ },
+ {
   "conname": "series_comprobantes_pkey",
   "definicion": "PRIMARY KEY (id)",
   "tabla": "retail.series_comprobantes"
@@ -2292,6 +2497,11 @@
  {
   "conname": "venta_pagos_pkey",
   "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.venta_pagos"
+ },
+ {
+  "conname": "venta_pagos_recibido_coherente",
+  "definicion": "CHECK (((recibido IS NULL) OR ((metodo = 'efectivo'::text) AND (recibido >= monto))))",
   "tabla": "retail.venta_pagos"
  },
  {
