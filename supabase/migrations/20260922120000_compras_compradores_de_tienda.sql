@@ -1,8 +1,8 @@
 -- ============================================================================
--- 20260922120000_compras_compradores_de_tienda.sql — CAYLA V2 · ADR-0150 (F1, paso 1: el permiso)
+-- 20260922120000_compras_compradores_de_tienda.sql — CAYLA V2 · ADR-0151 (F1, paso 1: el permiso)
 --
 -- PROBLEMA. Hoy el dinero de Compras es solo del líder (ADR-0126) y `fn_es_lider()` no mira la tienda: un líder
--- de Trujillo ve, registra y paga lo de Arequipa. El negocio dijo (ADR-0150) que cada tienda tiene su comprador,
+-- de Trujillo ve, registra y paga lo de Arequipa. El negocio dijo (ADR-0151) que cada tienda tiene su comprador,
 -- un integrante que ve y paga lo de SU tienda. Falta dónde escribir «esta persona compra para esta tienda».
 --
 -- QUÉ HACE (solo agrega; con la tabla vacía nada cambia para nadie):
@@ -30,7 +30,7 @@
 --
 -- PARA PEGAR EN PRODUCCIÓN: trae `set search_path` (retail, public); no hace falta el prefijo `retail.`. Re-pegable.
 -- La lista de quién compra en cada tienda NO va en esta migración: se carga con `agregar_comprador_de_tienda`
--- cuando Felipe la confirme (y después de reconciliar con la sesión de roles y permisos, ADR-0150 «Abierto»).
+-- cuando Felipe la confirme (y después de reconciliar con la sesión de roles y permisos, ADR-0151 «Abierto»).
 -- ============================================================================
 
 set search_path = retail, public, extensions;
@@ -45,7 +45,7 @@ create table if not exists retail.compradores_de_tienda (
 );
 
 comment on table retail.compradores_de_tienda is
-  'ADR-0150. Qué tiendas compra y paga cada persona (normalmente un integrante). El líder no necesita fila: ve todas. Se escribe solo por agregar_/quitar_comprador_de_tienda.';
+  'ADR-0151. Qué tiendas compra y paga cada persona (normalmente un integrante). El líder no necesita fila: ve todas. Se escribe solo por agregar_/quitar_comprador_de_tienda.';
 comment on column retail.compradores_de_tienda.persona_id is 'La persona que compra. Solo cuenta si además es colaborador y está activa.';
 comment on column retail.compradores_de_tienda.ubicacion_id is 'La tienda (o el Taller) cuyas compras puede ver y pagar.';
 comment on column retail.compradores_de_tienda.agregado_por is 'El líder que dio el permiso.';
@@ -93,7 +93,7 @@ as $$
 $$;
 
 comment on function retail.fn_compras_ubicaciones() is
-  'ADR-0150. Tiendas cuyas compras puede gestionar quien consulta: todas si es líder; las de compradores_de_tienda si es colaborador activo con fila; ninguna si no. Las lecturas y escrituras de dinero de Compras filtran por esto (el líder ve todas).';
+  'ADR-0151. Tiendas cuyas compras puede gestionar quien consulta: todas si es líder; las de compradores_de_tienda si es colaborador activo con fila; ninguna si no. Las lecturas y escrituras de dinero de Compras filtran por esto (el líder ve todas).';
 
 create or replace function retail.fn_puede_comprar_en(p_ubicacion_id uuid)
 returns boolean
@@ -106,7 +106,7 @@ as $$
 $$;
 
 comment on function retail.fn_puede_comprar_en(uuid) is
-  'ADR-0150. ¿Puede quien consulta gestionar las compras de esta tienda? Es fn_compras_ubicaciones() para una sola. NULL → false.';
+  'ADR-0151. ¿Puede quien consulta gestionar las compras de esta tienda? Es fn_compras_ubicaciones() para una sola. NULL → false.';
 
 -- ==================== 3. dar y quitar el permiso (solo el líder) ====================
 create or replace function retail.agregar_comprador_de_tienda(p_persona_id uuid, p_ubicacion_id uuid)
@@ -158,9 +158,9 @@ end;
 $$;
 
 comment on function retail.agregar_comprador_de_tienda(uuid, uuid) is
-  'ADR-0150. Solo líder. Da a un colaborador activo el permiso de comprar y pagar para una tienda. Falla si ya lo tenía.';
+  'ADR-0151. Solo líder. Da a un colaborador activo el permiso de comprar y pagar para una tienda. Falla si ya lo tenía.';
 comment on function retail.quitar_comprador_de_tienda(uuid, uuid) is
-  'ADR-0150. Solo líder. Quita ese permiso. Falla si no lo tenía. No borra historial: las compras ya hechas siguen siendo de la tienda.';
+  'ADR-0151. Solo líder. Quita ese permiso. Falla si no lo tenía. No borra historial: las compras ya hechas siguen siendo de la tienda.';
 
 -- ==================== 4. permisos de ejecución ====================
 revoke all on function retail.fn_compras_ubicaciones() from public, anon;

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas de la LECTURA por tienda del dinero de Compras (ADR-0150, F1 paso 2) contra el Postgres local — CAYLA V2.
+ * Pruebas de la LECTURA por tienda del dinero de Compras (ADR-0151, F1 paso 2) contra el Postgres local — CAYLA V2.
  *
  * QUÉ PRUEBA. Que un comprador de tienda lea el dinero de las facturas de SU tienda y de ninguna otra, y que
  * abrir esa puerta no deje escapar nada más:

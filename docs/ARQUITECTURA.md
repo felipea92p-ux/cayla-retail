@@ -443,7 +443,7 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `fn_aplicar_candado_de_dinero()` se los pone (o se los devuelve tras otra migración). La página además tacha los
   montos en el servidor como segunda línea (`comprobanteSinMontos`). «Recibidas» (`?vista=recibidas`) agrupa las filas
   de un envío de 2+ proveedores bajo una cabecera (`agruparPorEnvio`, `getEnviosDeLotes` lee `lotes.envio_id`).
-- **Comprador de tienda: leer el dinero de SU tienda** (2026-09-21, ADR-0150 F1; migraciones `20260922120000` y `20260922130000`,
+- **Comprador de tienda: leer el dinero de SU tienda** (2026-09-21, ADR-0151 F1; migraciones `20260922120000` y `20260922130000`,
   **solo en local, no en producción**). Tabla `compradores_de_tienda (persona_id, ubicacion_id)` —una fila por persona y tienda—
   que se escribe solo por `agregar_/quitar_comprador_de_tienda` (líder). `fn_compras_ubicaciones()` da todas las ubicaciones al
   líder y las suyas al comprador. `fn_puede_ver_dinero_de_compras()` (la puerta de LECTURA) pasa a «líder o comprador»;

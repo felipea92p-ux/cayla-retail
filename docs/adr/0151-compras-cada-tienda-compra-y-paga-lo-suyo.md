@@ -1,9 +1,9 @@
-# ADR-0150 — Compras: cada tienda compra, ve y paga lo suyo (compradores por tienda)
+# ADR-0151 — Compras: cada tienda compra, ve y paga lo suyo (compradores por tienda)
 
 **Fecha:** 2026-09-21
 **Estado:** **Aceptado el 2026-09-21** (cuarta ronda). Se construye por fases; F1 va primero. Nada de esto está en producción todavía.
 **Decide:** Felipe, el 2026-09-21 (respuestas en «Lo que dijo el negocio»). Arquitectura: este documento.
-**Numeración:** se escribió como 0145, pero `origin/main` ya tiene un 0145 (colaboradores) y llega hasta 0149; queda **0150**. Los commits `7b232583`, `db93cdab` y `0d908ea2` (rama `claude/aviso-cambio-de-sede`) lo nombran 0145. Renumerar de nuevo al subir si otro toma el 0150 (ver ADR-0139, «Historia del número»).
+**Numeración:** se escribió como 0145, pero `origin/main` ya tenía un 0145 (colaboradores). Se renumeró a 0150 y ese número también lo tomó `docs/adr/0150-roles-y-permisos-a-medida.md` en `main`; queda **0151**. Los commits `7b232583`, `db93cdab` y `0d908ea2` (rama `claude/aviso-cambio-de-sede`) lo nombran 0145. Renumerar de nuevo al subir si otro toma el 0150 (ver ADR-0139, «Historia del número»).
 **Refina** ADR-0075 (lectura por sede), ADR-0126 (el dinero de Compras es solo del líder) y ADR-0139 (un comprobante se reparte entre tiendas).
 **Cambia** dos reglas de `docs/datos/15-COMO-OPERA-CAYLA.md`: R-10 («una persona encargada de Compras») y la lectura de R-12 («los proveedores sirven a todas las tiendas»
 sigue en pie para el catálogo, pero la deuda deja de ser una sola).
@@ -39,6 +39,11 @@ sigue en pie para el catálogo, pero la deuda deja de ser una sola).
 13. **Los compradores de tienda son cuentas creadas para eso**, una por tienda, que hacen el registro. La lista exacta de quién es comprador de qué tienda se carga al aplicar F1, no al escribirla.
 14. **La persona encargada de Compras (R-10) no es líder** y puede comprar para una o varias tiendas. → `compradores_de_tienda` admite varias filas por persona. Su acceso lo resuelven los roles y permisos que trabaja otra sesión (`claude/roles-permisos-migration-6506e1`, hoy sin commits propios): **reconciliar con ese diseño antes de aplicar F1 en producción**, para no dejar dos sistemas de permisos que se pisen.
 15. **No hay pedido de fondos dentro del sistema ni paso «por aceptar»** en la factura repartida. Ninguno entra en este plan. Si hay disputas, «por aceptar» se agrega después como un estado más.
+
+**Reconciliación con otros planes (2026-09-21, hallazgos al revisar las sesiones «Estructura de cuentas por tienda» y «Roles y permisos»):**
+
+- **ADR-0150 (roles y permisos a medida, `main`, aprobado, nada aplicado):** decide *qué pantallas* ve un rol (`fn_tiene_permiso(clave)`); este ADR decide *de qué tiendas*. Son ejes distintos y se componen: la puerta de lectura del dinero de Compras pasaría a «tiene el permiso de dinero de Compras **y** la tienda de la factura está en `fn_compras_ubicaciones()`». Ese ADR deja «permisos por sede» fuera de V1 y su F5 (Compras) recrea las funciones de indicadores: **debe partir de `fn_aplicar_candado_de_dinero()` tal como quedó aquí** (ya filtra por `fn_compra_es_de_mis_tiendas`), no de la versión de ADR-0126, o borraría el filtro por tienda.
+- **Cuentas por tienda (sesión aparte):** propone dos perfiles por tienda (mostrador; inventario y compras). Este ADR no depende de si la cuenta es personal o compartida mientras exista **una `personas` y una fila en `colaboradores`** (lo que retail exige hoy: `fn_tiene_acceso_retail`, y 57 llaves foráneas de retail apuntan a `personas`). Una cuenta de *terminal* como las de Dynamic (`terminales`: sin persona, atada a una sede) no puede operar retail sin tocar esas 57 llaves.
 
 ## Contexto (verificado en el repo, no contra producción)
 

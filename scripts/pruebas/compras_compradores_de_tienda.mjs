@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas del permiso «comprador de tienda» (ADR-0150, F1 paso 1) contra el Postgres local — CAYLA V2.
+ * Pruebas del permiso «comprador de tienda» (ADR-0151, F1 paso 1) contra el Postgres local — CAYLA V2.
  *
  * QUÉ PRUEBA. Que `compradores_de_tienda` y sus funciones digan exactamente a qué tiendas llega cada quien, y que
  * agregar el permiso NO abra ninguna puerta todavía:

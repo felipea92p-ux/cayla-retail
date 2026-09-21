@@ -1,10 +1,10 @@
 -- ============================================================================
--- 20260922130000_compras_dinero_por_tienda_lectura.sql — CAYLA V2 · ADR-0150 (F1, paso 2: la LECTURA por tienda)
+-- 20260922130000_compras_dinero_por_tienda_lectura.sql — CAYLA V2 · ADR-0151 (F1, paso 2: la LECTURA por tienda)
 --
 -- PROBLEMA. El paso 1 (20260922120000) dejó lista la pieza que dice a qué tiendas llega cada persona
 -- (`fn_compras_ubicaciones()`), pero el dinero de Compras sigue cerrado a todo el que no es líder: la puerta
 -- de lectura `fn_puede_ver_dinero_de_compras()` respondía «¿es líder?» y nada más. Un comprador de tienda
--- (ADR-0150, D1) tiene que poder LEER el dinero de las facturas de SU tienda y de ninguna otra.
+-- (ADR-0151, D1) tiene que poder LEER el dinero de las facturas de SU tienda y de ninguna otra.
 --
 -- POR QUÉ ESTO VIAJA JUNTO. Abrir la puerta sin acotar cada lectura dejaría a un comprador leer el dinero de
 -- todas las tiendas: las políticas y las funciones `security definer` responden «¿es de Compras?», no «¿de qué
@@ -20,7 +20,7 @@
 --      `fn_puede_registrar_compras()` NO SE TOCA: escribir (registrar, pagar, anular, adjuntar, notas de
 --      crédito) sigue siendo solo del líder hasta F3/F4. Esas 12 funciones reciben un `compra_id` y no filtran
 --      por tienda; dejarlas al comprador sería dejarlo pagar la factura de otra.
---      DESVÍO DEL ADR-0150 (que decía «las dos puertas»): el ADR no separaba lectura de escritura; se separan
+--      DESVÍO DEL ADR-0151 (que decía «las dos puertas»): el ADR no separaba lectura de escritura; se separan
 --      porque F1 es la fase de lectura. Queda anotado allí.
 --   3. Las 5 políticas de SELECT de `compras`, `compra_items`, `compra_pagos`, `compra_adjuntos` y
 --      `compra_notas_credito` usan `fn_compra_es_de_mis_tiendas(compra_id)`; el bucket de escaneos, la carpeta
@@ -101,7 +101,7 @@ as $$
 $$;
 
 comment on function retail.fn_compra_es_de_mis_tiendas(uuid) is
-  'ADR-0150 (F1). ¿Puede quien consulta ver el DINERO de esta factura? Líder: siempre. Comprador de tienda: solo si toda la factura va a tiendas suyas (fn_compras_ubicaciones). NO es fn_puede_ver_compra (esa es por la SEDE en que está fijo el integrante y sirve para recibir, no para ver dinero). NULL → false.';
+  'ADR-0151 (F1). ¿Puede quien consulta ver el DINERO de esta factura? Líder: siempre. Comprador de tienda: solo si toda la factura va a tiendas suyas (fn_compras_ubicaciones). NO es fn_puede_ver_compra (esa es por la SEDE en que está fijo el integrante y sirve para recibir, no para ver dinero). NULL → false.';
 
 -- ==================== 2. la puerta de lectura ====================
 -- Antes: `select retail.fn_puede_registrar_compras();` (o sea, «es líder»). Ahora: líder o comprador de alguna tienda.
@@ -114,7 +114,7 @@ set search_path = retail, public, extensions
 as $$ select retail.fn_es_lider() or exists (select 1 from retail.fn_compras_ubicaciones()); $$;
 
 comment on function retail.fn_puede_ver_dinero_de_compras() is
-  'ADR-0126 + ADR-0150. ¿Pasa quien consulta la PUERTA de lectura del dinero de Compras? Líder, o comprador de alguna tienda (compradores_de_tienda). Pasar la puerta no da acceso a nada por sí sola: cada lectura se acota con fn_compra_es_de_mis_tiendas. Escribir sigue en fn_puede_registrar_compras (solo líder).';
+  'ADR-0126 + ADR-0151. ¿Pasa quien consulta la PUERTA de lectura del dinero de Compras? Líder, o comprador de alguna tienda (compradores_de_tienda). Pasar la puerta no da acceso a nada por sí sola: cada lectura se acota con fn_compra_es_de_mis_tiendas. Escribir sigue en fn_puede_registrar_compras (solo líder).';
 
 -- Lo que todavía no se puede acotar por tienda queda del líder con esta puerta estricta.
 create or replace function retail.fn_exige_solo_lider_de_compras(p_que text default 'los montos de Compras')
@@ -131,7 +131,7 @@ end;
 $$;
 
 comment on function retail.fn_exige_solo_lider_de_compras(text) is
-  'ADR-0150 (F1). Como fn_exige_dinero_de_compras pero SOLO para líder: para lo que aún no filtra por tienda (notas de crédito, hasta F6).';
+  'ADR-0151 (F1). Como fn_exige_dinero_de_compras pero SOLO para líder: para lo que aún no filtra por tienda (notas de crédito, hasta F6).';
 
 revoke all on function retail.fn_compra_es_de_mis_tiendas(uuid) from public, anon;
 revoke all on function retail.fn_exige_solo_lider_de_compras(text) from public, anon;
@@ -155,7 +155,7 @@ as $$
 $$;
 
 comment on function retail.fn_puede_ver_adjunto_de_compra(text) is
-  'ADR-0150 (F1). ¿Puede quien consulta ver este escaneo del bucket retail-compras-adjuntos? Según la factura de su carpeta; carpeta que no es un uuid → solo el líder.';
+  'ADR-0151 (F1). ¿Puede quien consulta ver este escaneo del bucket retail-compras-adjuntos? Según la factura de su carpeta; carpeta que no es un uuid → solo el líder.';
 
 revoke all on function retail.fn_puede_ver_adjunto_de_compra(text) from public, anon;
 grant execute on function retail.fn_puede_ver_adjunto_de_compra(text) to authenticated;
@@ -300,7 +300,7 @@ begin
       end if;
     end if;
 
-    -- 5.2 El filtro por tienda (ADR-0150): «de mi sede» → «de mis tiendas de compra». Token suelto: sirve con o sin `retail.`.
+    -- 5.2 El filtro por tienda (ADR-0151): «de mi sede» → «de mis tiendas de compra». Token suelto: sirve con o sin `retail.`.
     v_nuevo := replace(v_nuevo, 'fn_puede_ver_compra(', 'fn_compra_es_de_mis_tiendas(');
 
     if v_nuevo <> v_def then
@@ -314,7 +314,7 @@ end;
 $$;
 
 comment on function retail.fn_aplicar_candado_de_dinero() is
-  'ADR-0126 + ADR-0150. Deja las 5 funciones de indicadores de dinero de Compras (resumen_compras, resumen_compras_extra, deuda_por_vencimiento, salidas_caja_30d, por_pagar_tramos) con (1) el candado fn_exige_dinero_de_compras y (2) el filtro por tienda fn_compra_es_de_mis_tiendas en vez de fn_puede_ver_compra, sea cual sea su firma. Idempotente. Devuelve las firmas que arregló ({} = todo estaba bien). Correrla después de pegar cualquier migración que recree una de esas funciones.';
+  'ADR-0126 + ADR-0151. Deja las 5 funciones de indicadores de dinero de Compras (resumen_compras, resumen_compras_extra, deuda_por_vencimiento, salidas_caja_30d, por_pagar_tramos) con (1) el candado fn_exige_dinero_de_compras y (2) el filtro por tienda fn_compra_es_de_mis_tiendas en vez de fn_puede_ver_compra, sea cual sea su firma. Idempotente. Devuelve las firmas que arregló ({} = todo estaba bien). Correrla después de pegar cualquier migración que recree una de esas funciones.';
 
 revoke all on function retail.fn_aplicar_candado_de_dinero() from public, anon, authenticated;
 
