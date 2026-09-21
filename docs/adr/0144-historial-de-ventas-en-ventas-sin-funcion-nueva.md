@@ -106,9 +106,13 @@ lugar, los permisos ni el esquema; no se agregó ninguna clase de CSS (ADR-0105)
 
 - **Cabecera:** `EncabezadoPagina` con `ResumenSede` a la derecha —vendido y ventas—, como en Cambios y Devoluciones. El ticket promedio
   pasó a la tarjeta del trazo (con tres cifras el resumen no cabía junto al título a 1440 px).
-- **El trazo del período** (`HistorialVentasPulso`): lo vendido día por día dibujado como un **hilo** taupe que se traza una vez al llegar
-  (`anim-trazo`), con un nudo en el mejor día —el mismo nudo de la línea de tiempo— y debajo la mezcla de pagos (barra con los colores de
-  método, que son dato y no marca). SVG y CSS puros, sin librería de gráficos. Es lo único «audaz»; todo lo demás es quieto.
+- **Las ventas mandan (segundo ajuste, mismo día).** El primer gráfico ocupaba todo el ancho, se veía plano y le quitaba protagonismo a la
+  lista. Ahora las ventas van en la columna principal y el **pulso del período** (`HistorialVentasPulso`) las acompaña en un lateral
+  pegajoso de 19 rem desde 1280 px; más angosto, pasa DEBAJO de la lista, no encima.
+- **El pulso:** cada día es un **hilo vertical** —la urdimbre del textil— cruzado por una curva de tendencia —la trama: media móvil
+  centrada de 7, 3 o 1 días según cuántos hay—, con un nudo en el mejor día (el mismo de la línea de tiempo), una línea punteada para el
+  promedio y una **lectura al pasar el mouse** (el día se enciende y su cifra aparece arriba). Con más de 120 días los hilos son semanas.
+  Debajo: ticket promedio, promedio por día, prendas, anuladas y cómo se pagó. SVG y CSS puros, sin librería de gráficos.
 - **Lista:** línea de tiempo con el hilo taupe y un nudo por día (como `ComprasAgrupadas`); una hoja de papel por día; cada venta con un
   racimo de miniaturas, título serif con los nombres de las prendas, una línea chica (hora · tienda · clienta · vendedor), comprobante con
   su estado y total con la forma de pago. **El total de cada día es el del día completo** (sale de la serie de todo el rango), no el de las
@@ -120,8 +124,10 @@ lugar, los permisos ni el esquema; no se agregó ninguna clase de CSS (ADR-0105)
   Catálogo (tienda, vendedor, pago, estado, comprobante) y un chip por cada filtro aplicado.
 - **Datos:** la consulta de totales (misma, con el mismo tope de 1000) ahora también entrega `porDia` y `porMetodo`; pasado el tope no se
   dibujan y la tarjeta lo dice. La lista pide además `color_codigo`, `colores.hex` y `producto_fotos` (ya existen en producción).
-- **Anchos:** en celular (<640 px) racimo y texto arriba y, debajo, comprobante y total; de 640 a 1279 px el total arriba a la derecha y el
-  comprobante en una segunda línea; cuatro columnas solo desde 1280 px (a 1024 px el contenido útil mide ~650 y el título se quedaba en ~130).
+- **Anchos, medidos sobre la columna y no sobre la ventana** (consulta de contenedor): con el pulso en un lateral, la columna de ventas es
+  más angosta que la pantalla. Angosta (<30 rem), racimo y texto arriba y, debajo, comprobante y total; desde 30 rem el total arriba a la
+  derecha y el comprobante en una segunda línea; desde 54 rem cuatro columnas. (Con cuatro columnas fijas por ventana, a 1024 px el
+  título se quedaba en ~130 px.)
 
 ## Verificación
 
