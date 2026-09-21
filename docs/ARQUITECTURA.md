@@ -454,6 +454,9 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   recibir) y filtran por las tiendas donde COMPRA; `fn_aplicar_candado_de_dinero()` repone ese filtro. Notas de crédito
   (`notas_credito_tablero`, `fn_facturas_para_nota_credito`) siguen solo del líder (`fn_exige_solo_lider_de_compras`) hasta F6.
   `/compras` sigue redirigiendo a quien no es líder: la pantalla se abre en F5.
+  **F2 (migración `20260922140000`, solo en local):** la vista `compra_parte_por_tienda (compra_id, ubicacion_id, unidades, subtotal, igv, total)`
+  parte el dinero de una factura entre las tiendas de su reparto. Se calcula, no se guarda; reparte la CABECERA (no las líneas: con costos de
+  3 decimales suman distinto) por el método del mayor resto, y la suma de las partes es siempre `compras.total`. Es `security_invoker`.
 - **Un comprobante se reparte entre tiendas y cada tienda recibe lo suyo** (2026-09-19, ADR-0139; migraciones `20260919172000`
   + `20260919173000`, **en producción desde el 2026-09-20**). La factura ya no tiene un destino (`compras.ubicacion_destino_id` se
   elimina): tiene un **reparto por línea y tienda**, `compra_item_destinos` (siempre existe, aunque sea de una sola tienda; su

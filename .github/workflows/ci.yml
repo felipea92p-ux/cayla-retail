@@ -311,6 +311,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:compras-dinero-por-tienda
 
+      # El dinero de una factura partido por tienda (ADR-0151, F2): 24 unidades 12/12 = 708.00 y 708.00; costos de 3 decimales, 3 tiendas,
+      # IGV del papel, boletas y regalos de costo 0 suman la CABECERA al centavo (aunque las líneas sumen distinto); dos lecturas dan lo
+      # mismo; la vista respeta los permisos de quien la lee. Carga las tres migraciones DENTRO de cada caso, que termina en ROLLBACK.
+      - name: pruebas:compras-parte-por-tienda
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:compras-parte-por-tienda
+
       # Módulo Notas de crédito: el tablero trae notas y pendientes con sus montos (incluido el
       # monto_esperado del faltante cerrado y el a_favor de la nota que superó la deuda), registrar con
       # destino «a_favor» deja el mismo estado que la RPC de antes, con «reembolso» nacen nota y

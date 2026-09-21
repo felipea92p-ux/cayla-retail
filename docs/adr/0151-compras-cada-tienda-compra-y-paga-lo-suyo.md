@@ -40,6 +40,10 @@ sigue en pie para el catálogo, pero la deuda deja de ser una sola).
 14. **La persona encargada de Compras (R-10) no es líder** y puede comprar para una o varias tiendas. → `compradores_de_tienda` admite varias filas por persona. Su acceso lo resuelven los roles y permisos que trabaja otra sesión (`claude/roles-permisos-migration-6506e1`, hoy sin commits propios): **reconciliar con ese diseño antes de aplicar F1 en producción**, para no dejar dos sistemas de permisos que se pisen.
 15. **No hay pedido de fondos dentro del sistema ni paso «por aceptar»** en la factura repartida. Ninguno entra en este plan. Si hay disputas, «por aceptar» se agrega después como un estado más.
 
+**Ronda 5 (2026-09-21):**
+
+16. **Cada cuenta de comprador es una persona real** (opción A): una fila en `personas` y otra en `colaboradores`, no una cuenta de terminal como las de Dynamic (`terminales`) ni una persona ficticia compartida por tienda. Motivo: quien paga y ve CCI/Yape tiene que quedar registrado por nombre (R-10 ya advertía del riesgo de que quien crea un proveedor y además paga se lo invente), y 57 tablas de retail apuntan a `personas`. `compradores_de_tienda` no cambia.
+
 **Reconciliación con otros planes (2026-09-21, hallazgos al revisar las sesiones «Estructura de cuentas por tienda» y «Roles y permisos»):**
 
 - **ADR-0150 (roles y permisos a medida, `main`, aprobado, nada aplicado):** decide *qué pantallas* ve un rol (`fn_tiene_permiso(clave)`); este ADR decide *de qué tiendas*. Son ejes distintos y se componen: la puerta de lectura del dinero de Compras pasaría a «tiene el permiso de dinero de Compras **y** la tienda de la factura está en `fn_compras_ubicaciones()`». Ese ADR deja «permisos por sede» fuera de V1 y su F5 (Compras) recrea las funciones de indicadores: **debe partir de `fn_aplicar_candado_de_dinero()` tal como quedó aquí** (ya filtra por `fn_compra_es_de_mis_tiendas`), no de la versión de ADR-0126, o borraría el filtro por tienda.
@@ -100,9 +104,9 @@ otra verá el estado de recepción de esa otra según lo que su sede alcanza a v
 - **Reparto:** quien registra puede repartir hacia otras tiendas. El acuerdo con los otros encargados es humano (respuesta 12); el sistema no pide «aceptar». Para que no sea una sorpresa: la parte nueva aparece marcada
   «parte nueva» en el Por pagar y en Recibir del otro comprador, y el líder (que ve todo) puede reasignar (ya existe `compra_reasignaciones`, ADR-0139). Si esto genera disputas, el siguiente paso es un estado «por aceptar»
   (no se construye ahora; es la opción C de las tres que se evaluaron).
-- **Vista `compra_parte_por_tienda (compra_id, ubicacion_id, subtotal, igv, total)`**, calculada desde `compra_item_destinos × compra_items` (cantidad de la tienda × costo de la línea, más su IGV). **No se guarda**: el reparto
-  ya es la verdad, y una segunda tabla de montos permitiría un estado imposible (principio 2). El redondeo se resuelve dando el resto de centavos a la tienda con la parte mayor; **invariante verificable:** la suma de las partes
-  es igual a `compras.total`, siempre.
+- **Vista `compra_parte_por_tienda (compra_id, ubicacion_id, unidades, subtotal, igv, total)`** (F2, construida): se calcula desde `compra_items × compra_item_destinos × compras`. **No se guarda**: el reparto ya es la verdad, y una segunda tabla de montos permitiría un estado imposible (principio 2).
+  **Reparte la CABECERA, no las líneas.** Hallazgo al construirla: `compra_items.costo_unitario` guarda 2 decimales pero `registrar_compra` calcula el subtotal con el costo tal como llegó (33.333), así que con costos de 3 decimales la suma de las líneas puede diferir de la cabecera por centavos (líneas 1,336.23; cabecera 1,336.24). Lo que se debe es la cabecera; las líneas solo dicen en qué proporción. El subtotal se reparte según el peso de cada tienda en las líneas y el IGV (un monto guardado, que puede venir del papel) según el subtotal de cada tienda. Redondeo por **mayor resto** (cada centavo sobrante a quien tiene el mayor residuo; empate por `ubicacion_id`), no «el resto a la parte mayor»: es igual con 2 tiendas y más justo con 3 o más.
+  **Invariante verificable:** la suma de `subtotal`, `igv` y `total` de las partes es siempre la de `compras`, al centavo (`pnpm pruebas:compras-parte-por-tienda`, con costos de 3 decimales, 3 tiendas, IGV del papel, boletas y regalos de costo 0).
 - **Qué puede hacer cada uno sobre una factura:** el comprador de la tienda **gestora** la edita, anula, adjunta escaneos y registra sus notas de crédito. El comprador de **otra** tienda con parte en ella ve solo
   **sus líneas y su monto** y **paga su parte**; no la edita ni la anula.
 
