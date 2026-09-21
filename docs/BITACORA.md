@@ -8,6 +8,11 @@ El diccionario y el detector de pantallas rotas leen una foto de la base que se 
 Felipe se lleva: (1) refrescar «entero» no obliga a bajar toda la base: se le pide a producción una huella por tabla y solo se baja lo que cambió, y la huella final es la prueba de que se copió bien; (2) una tabla nueva sin pájaro en el Aviario hace caer el CI en el siguiente refresco, así que las 4 de Producción se asignaron al Gallito ahora y la sesión de Producción lo confirma.
 Sin resolver: `datos:comparar` sigue marcando 3 pantallas rotas a propósito (`apartar_stock`, `liberar_apartado`, `listar_apartados`): la migración de Apartar stock (`20260920160000`) está en `main` y no en producción.
 
+## 2026-09-21 (Candado de líder: solo el líder cierra la caja y ajusta stock — ADR-0143, hecho en local)
+Hasta hoy, cualquier colaborador de una tienda podía cerrar la caja de su tienda y crear o quitar unidades de stock sin una venta: la base solo le preguntaba «¿esta ubicación es la tuya?». D-13 reserva las dos cosas al líder desde el 2026-09-12, pero el menú lo escondía y la base no. Ahora `cerrar_caja` y `registrar_movimiento` responden 42501 a quien no es líder, y las cinco pantallas que ofrecían el botón (Caja, Punto de Venta, Existencias, y Productos en lista y en grilla) ya no se lo muestran.
+Lo que Felipe se lleva: (1) **el candado va en la base y no en el botón**, porque la API es pública y cualquiera con sesión llama la función desde su consola; (2) antes de escribirlo se leyó el cuerpo real de producción y se comprobó **quién llama a cada función** —solo un modal y un botón—, así que no rompe nada por dentro; (3) se **probó rompiéndolo a propósito**: contra las funciones de producción, sin candado, la misma prueba da 9/20 y falla donde debe; con la migración, 20/20; y el cuerpo de las dos funciones, quitando el candado, es idéntico byte a byte al de producción.
+Sin resolver: **pegar la migración en producción** con ok de Felipe y DESPUÉS de desplegar las pantallas; decidir quién cierra la caja cuando no hay un líder en la tienda (hoy 3 cajas abiertas, probablemente de prueba); y la decisión de fondo de D-12 (cuatro niveles) para que el candado no lea `fn_es_lider()` para siempre. Las pantallas se vieron en el navegador con datos de ejemplo, no con datos reales.
+
 ## 2026-09-20 (El reparto de un comprobante entre tiendas ya corre en producción — ADR-0139)
 Felipe fusionó el PR #203 y pegó en producción las dos migraciones (`20260919172000`, `20260919173000`); se comprobó en solo lectura que quedó todo: las 2 tablas y la vista nuevas, las funciones con su tope por tienda, `compras.ubicacion_destino_id` eliminada sin que ninguna función, política o vista la lea, el candado de dinero intacto y las tablas nuevas sin permiso de escritura directa. Producción no tenía ningún comprobante, así que no hubo nada que rellenar y ningún dato en riesgo. El diccionario de producción se refrescó (73 tablas, 185 funciones, ninguna pantalla rota) y los candados nuevos entraron a `01-INVARIANTES.md`.
 Felipe se lleva: (1) antes de pegar SQL en producción vale la pena pedirle a la base, en solo lectura, que confirme que cada pieza que el parche busca existe tal cual: la comprobación previa encontró las 12 anclas y descartó sorpresas en minutos; (2) una web que espera al SQL o un SQL que espera a la web es un riesgo evitable: se endureció para que cualquier orden sea seguro; (3) el volcado del diccionario se queda atrás cuando otras sesiones aplican cambios sin refrescarlo: por eso `datos:comparar` daba por «rotas» dos funciones que sí existen en producción.
@@ -8497,3 +8502,22 @@ Felipe fusionó F4a y pegó su migración (verificado contra producción). F4b c
 reglas de la factura de Compras (contado ⇒ pago exacto en la misma transacción, crédito ⇒ vencimiento, idempotente, anular con motivo y nunca con pagos) y saldo
 DERIVADO. Pantalla `/produccion/comprobantes`. Migración `20260921100000` sin pegar. `pruebas:comprobantes-produccion` 26/26 y 1691 pruebas del web en verde.
 No abre lotes (F4d). Compras no se tocó.
+
+## 2026-09-21 (Producción F4c: Por pagar y consolidado D-I — ADR-0133)
+Felipe fusionó F4b y pegó su migración (validada contra producción: crédito, contado con dos medios, anular con pagos rechazado, 0 filas de rastro). Aprobó D-I. F4c
+construida en local: pago posterior con uno o varios medios (sin pasarse del saldo, idempotente por token), pantalla `/produccion/por-pagar` y el consolidado «Deuda total de
+CAYLA» (Compras + Producción) con el IGV del mes, de solo lectura. El formulario de comprobantes al contado también admite varios medios. Migración `20260921110000` sin pegar.
+
+## 2026-09-21 (Compras no se muestra parado en el Taller)
+Felipe pidió que, con el Taller seleccionado, el menú oculte «Compras» (es de las tiendas), del mismo modo que Producción se oculta en una tienda. Nueva regla `puedeVerCompras`
+(`apps/web/lib/produccion-menu.ts`): solo líder y solo si la ubicación activa NO es un Taller. Revierte la prueba que guardaba lo contrario («Compras no depende de dónde está
+parado el líder»), que era una decisión previa distinta. Solo visibilidad del menú: las URLs de `/compras/*` siguen abriendo porque otras pantallas enlazan a ellas.
+En cada ubicación el líder ve UNO de los dos módulos (prueba nueva).
+
+## 2026-09-21 (Aviso central al cambiar de sede)
+Los dos selectores de sede —`UbicacionSwitcher` (cabecera, global, cookie) y `SelectorUbicacion` (por pantalla, `?ubicacion=`)— ahora muestran `AvisoCambioDeSede`: hoja central con «Tienda A → Tienda B» que dura lo que tarda la carga (`useTransition`, sin reloj) y sale con el movimiento de modales (ADR-0136). La pastilla dice el destino al instante. Sin cambios de base. Maqueta: `docs/maquetas/cambio-de-sede-spike-2026-09/`. Verificado en el navegador con ambos selectores; tipos y lint limpios.
+
+## 2026-09-21 (Versión de migración repetida: candado de caja → 20260921120000)
+Al fusionar #218 quedaron en main dos migraciones con la versión `20260921110000` (`por_pagar_produccion`, ya pegada en producción, y `candado_de_lider_caja_y_ajuste`, aún NO pegada;
+verificado contra la base: `cerrar_caja` y `registrar_movimiento` no tienen el candado). Regla del repo: se renombra la que aún no corrió en producción. Renombrada a `20260921120000`
+con sus referencias (ADR-0143, prueba `candado_lider_caja_y_ajuste.mjs`, BACKLOG). El contenido no cambió. El CI de «Versiones de migración» estaba rojo en todos los PR por esto.

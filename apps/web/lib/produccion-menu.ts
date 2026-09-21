@@ -14,9 +14,9 @@ export type PerfilMenu = {
   ubicacionTipo: "tienda" | "almacen" | "taller";
 };
 
-/** Pantallas de Producción, en orden. Hoy Órdenes, Insumos, Proveedores y Comprobantes (estas dos, solo líder): Resumen,
- *  Por pagar, Recibir y Eficiencia se suman acá cuando existan (fases F4c a F7). */
-export type ClaveMenuProduccion = "ordenes" | "insumos" | "proveedoresProduccion" | "comprobantesProduccion";
+/** Pantallas de Producción, en orden. Hoy Órdenes, Insumos, Proveedores, Comprobantes y Por pagar (las tres últimas, solo líder):
+ *  Resumen, Recibir y Eficiencia se suman acá cuando existan (fases F4d a F7). */
+export type ClaveMenuProduccion = "ordenes" | "insumos" | "proveedoresProduccion" | "comprobantesProduccion" | "porPagarProduccion";
 
 /**
  * Producción se ve **solo parado en un Taller, líder incluido** (decisión de Felipe, 2026-09-20: vuelve a la regla del
@@ -36,16 +36,23 @@ export function puedeVerProduccion(perfil: Pick<PerfilMenu, "ubicacionTipo">): b
 
 export function hijosMenuProduccion(perfil: PerfilMenu): ClaveMenuProduccion[] {
   if (!puedeVerProduccion(perfil)) return [];
-  // Proveedores y Comprobantes son solo del líder (F4a, F4b): lleva datos bancarios de terceros y montos comprados (D-G).
-  return perfil.esLider ? ["ordenes", "insumos", "proveedoresProduccion", "comprobantesProduccion"] : ["ordenes", "insumos"];
+  // Proveedores, Comprobantes y Por pagar son solo del líder (F4a a F4c): lleva datos bancarios de terceros y montos comprados (D-G).
+  return perfil.esLider ? ["ordenes", "insumos", "proveedoresProduccion", "comprobantesProduccion", "porPagarProduccion"] : ["ordenes", "insumos"];
 }
 
 export type ClaveMenuCompras = "proveedores" | "comprobantes" | "recibir" | "porPagar" | "notasCredito";
+
+/** Compras es el módulo de comprar para las TIENDAS: parado en el Taller no se muestra (decisión de Felipe, 2026-09-21), del mismo modo que
+ *  Producción no se muestra parado en una tienda. Se decide por el TIPO de la ubicación activa, no por su nombre. Es solo visibilidad del menú:
+ *  las URLs de Compras siguen abriendo (otras pantallas enlazan a ellas) y el candado real sigue siendo el de cada RPC. */
+export function puedeVerCompras(perfil: Pick<PerfilMenu, "esLider" | "ubicacionTipo">): boolean {
+  return perfil.esLider && perfil.ubicacionTipo !== "taller";
+}
 
 /** Compras es solo de líder (su layout redirige al resto). Mismo orden que ya tenía: proveedor → factura →
  *  recepción → pago. El «Recibir mercadería» de quien no es líder vive en Inventario, donde está el stock.
  *  «Notas de crédito» (2026-09-19) va JUNTO a «Por pagar» y al final: las dos son dinero del proveedor —una
  *  lo que se le debe, otra lo que él debe— y se miran seguidas. */
 export function hijosMenuCompras(perfil: PerfilMenu): ClaveMenuCompras[] {
-  return perfil.esLider ? ["proveedores", "comprobantes", "recibir", "porPagar", "notasCredito"] : [];
+  return puedeVerCompras(perfil) ? ["proveedores", "comprobantes", "recibir", "porPagar", "notasCredito"] : [];
 }

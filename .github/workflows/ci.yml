@@ -188,6 +188,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:comprobantes-produccion
 
+      # Por pagar de Producción y consolidado D-I (ADR-0133, F4c): un pago parcial o con varios medios baja el saldo, nunca lo supera ni
+      # se repite con el mismo token; solo el líder paga; la deuda consolidada suma Compras y Producción por proveedor y el IGV del mes
+      # suma los dos libros menos las notas de crédito. Cada caso termina en ROLLBACK.
+      - name: pruebas:por-pagar-produccion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:por-pagar-produccion
+
       # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
       # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las
       # tarjetas de arriba cuentan lo mismo. Cada caso termina en ROLLBACK.
@@ -242,3 +249,13 @@ jobs:
       - name: pruebas:notas-credito
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:notas-credito
+
+      # Solo el líder de equipo cierra la caja y ajusta stock fuera de una venta (D-13, decidido el 2026-09-21): que el
+      # candado esté en la base y no solo en el menú — una colaboradora no cierra ni la caja de su propia tienda ni
+      # registra una entrada, salida o ajuste suelto (42501, y el stock y la caja quedan intactos), sin sesión tampoco;
+      # el líder hace exactamente lo mismo que antes (mismo arqueo, mismo stock, mismos rechazos), UNA sola firma por
+      # función, permiso de ejecución de authenticated intacto y la migración se puede pegar dos veces.
+      # Cada caso termina en ROLLBACK.
+      - name: pruebas:candado-lider
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:candado-lider

@@ -2854,6 +2854,15 @@
    "ordinal_position": 8,
    "table_name": "comprobantes_produccion_pagos",
    "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "grupo_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 9,
+   "table_name": "comprobantes_produccion_pagos",
+   "table_schema": "retail"
   }
  ],
  "configuracion_empresa": [

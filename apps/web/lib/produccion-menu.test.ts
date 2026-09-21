@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { hijosMenuCompras, hijosMenuProduccion, puedeVerProduccion } from "./produccion-menu";
+import { hijosMenuCompras, hijosMenuProduccion, puedeVerCompras, puedeVerProduccion } from "./produccion-menu";
 
 const TIPOS = ["tienda", "almacen", "taller"] as const;
 
 describe("hijosMenuProduccion (ADR-0133, D-A revertida el 2026-09-20)", () => {
-  it("parado en el Taller, el líder ve además los Proveedores y los Comprobantes de Producción", () => {
-    expect(hijosMenuProduccion({ esLider: true, ubicacionTipo: "taller" })).toEqual(["ordenes", "insumos", "proveedoresProduccion", "comprobantesProduccion"]);
+  it("parado en el Taller, el líder ve además los Proveedores, Comprobantes y Por pagar de Producción", () => {
+    expect(hijosMenuProduccion({ esLider: true, ubicacionTipo: "taller" })).toEqual(["ordenes", "insumos", "proveedoresProduccion", "comprobantesProduccion", "porPagarProduccion"]);
   });
 
-  it("parado en el Taller, quien trabaja ahí ve las pantallas de fabricación pero no Proveedores ni Comprobantes (datos bancarios y montos)", () => {
+  it("parado en el Taller, quien trabaja ahí ve las pantallas de fabricación pero no Proveedores, Comprobantes ni Por pagar (datos bancarios y montos)", () => {
     expect(hijosMenuProduccion({ esLider: false, ubicacionTipo: "taller" })).toEqual(["ordenes", "insumos"]);
   });
 
@@ -38,35 +38,47 @@ describe("puedeVerProduccion", () => {
   });
 });
 
-describe("hijosMenuCompras", () => {
-  it("el líder ve las cinco pantallas de Compras, en el orden proveedor → factura → recepción → pago → notas", () => {
-    for (const ubicacionTipo of TIPOS) {
+describe("hijosMenuCompras (Compras es de las tiendas: parado en el Taller no se muestra — Felipe, 2026-09-21)", () => {
+  it("el líder ve las cinco pantallas de Compras desde una tienda o un almacén, en el orden proveedor → factura → recepción → pago → notas", () => {
+    for (const ubicacionTipo of ["tienda", "almacen"] as const) {
       expect(hijosMenuCompras({ esLider: true, ubicacionTipo })).toEqual(["proveedores", "comprobantes", "recibir", "porPagar", "notasCredito"]);
     }
   });
 
-  it("quien no es líder no ve Compras, ni siquiera trabajando en el Taller", () => {
+  it("parado en el Taller, el líder NO ve Compras: allí se trabaja Producción", () => {
+    expect(hijosMenuCompras({ esLider: true, ubicacionTipo: "taller" })).toEqual([]);
+  });
+
+  it("quien no es líder no ve Compras, esté donde esté", () => {
     for (const ubicacionTipo of TIPOS) {
       expect(hijosMenuCompras({ esLider: false, ubicacionTipo })).toEqual([]);
     }
   });
 
-  it("Compras no depende de dónde está parado el líder: Producción cambió de regla, Compras no", () => {
-    // Guardia contra un arreglo «por simetría»: la regla del Taller no se le aplica a Compras.
-    // Se compara contra otro tipo de ubicación en vez de contra un número fijo: así el día que Compras gane
-    // o pierda una pantalla (hoy son cinco, desde ADR-0142) la prueba sigue diciendo lo que quiere decir.
-    expect(hijosMenuCompras({ esLider: true, ubicacionTipo: "tienda" })).toEqual(hijosMenuCompras({ esLider: true, ubicacionTipo: "taller" }));
-    expect(hijosMenuCompras({ esLider: true, ubicacionTipo: "tienda" })).toHaveLength(5);
+  it("el menú y la regla no pueden discrepar", () => {
+    for (const esLider of [true, false]) {
+      for (const ubicacionTipo of TIPOS) {
+        expect(hijosMenuCompras({ esLider, ubicacionTipo }).length > 0).toBe(puedeVerCompras({ esLider, ubicacionTipo }));
+      }
+    }
+  });
+
+  it("en cada ubicación el líder ve UNO de los dos módulos: Producción en el Taller, Compras en las demás", () => {
+    for (const ubicacionTipo of TIPOS) {
+      const ve = [hijosMenuProduccion({ esLider: true, ubicacionTipo }).length > 0, hijosMenuCompras({ esLider: true, ubicacionTipo }).length > 0];
+      expect(ve.filter(Boolean)).toHaveLength(1);
+    }
   });
 });
 
 describe("Producción y Compras son módulos distintos", () => {
   it("ninguna pantalla aparece en los dos menús", () => {
-    // Se prueba parado en el Taller, el único lugar donde Producción muestra algo: en una tienda la lista sale vacía y
-    // la prueba pasaría siempre, aunque los dos menús se hubieran mezclado.
+    // Cada lista se pide donde su módulo SÍ muestra algo (Producción en el Taller, Compras en una tienda): pedida donde sale vacía,
+    // la prueba pasaría siempre aunque los dos menús se hubieran mezclado.
     const prod = hijosMenuProduccion({ esLider: true, ubicacionTipo: "taller" }) as string[];
-    const comp = hijosMenuCompras({ esLider: true, ubicacionTipo: "taller" }) as string[];
+    const comp = hijosMenuCompras({ esLider: true, ubicacionTipo: "tienda" }) as string[];
     expect(prod.length).toBeGreaterThan(0);
+    expect(comp.length).toBeGreaterThan(0);
     expect(prod.filter((c) => comp.includes(c))).toEqual([]);
   });
 });

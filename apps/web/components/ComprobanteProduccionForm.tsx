@@ -8,20 +8,20 @@ import { traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
+import { MediosDePago } from "@/components/MediosDePago";
 import { Modal } from "@/components/ui/Modal";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import {
-  METODOS_PAGO,
   TIPOS_COMPROBANTE,
   calcularTotales,
   primerErrorComprobante,
   redondear2,
   type CondicionComprobante,
   type LineaForm,
-  type MetodoPago,
   type TipoComprobante,
 } from "@/lib/comprobantes-produccion-reglas";
 import { UNIDADES_INSUMO } from "@/lib/insumos-reglas";
+import { medioNuevo, mediosParaRpc, repartoDeMedios, type MedioForm } from "@/lib/medios-pago-reglas";
 import type { InsumoParaComprobante } from "@/lib/comprobantes-produccion";
 import type { ProveedorProduccion } from "@/lib/proveedores-produccion-reglas";
 
@@ -30,7 +30,8 @@ import type { ProveedorProduccion } from "@/lib/proveedores-produccion-reglas";
 // exacto; crédito ⇒ vencimiento. Acá se muestran ANTES de guardar (vista previa de subtotal, IGV y total) con la misma cuenta.
 //
 // Esto NO recibe la mercadería: un comprobante dice qué se compró, no qué llegó. Recibir abre el lote (F4d).
-// Un solo medio de pago al contado; los pagos parciales o con varios medios se registran desde Por pagar (F4c).
+// Al contado el pago puede repartirse entre varios medios (transferencia + efectivo): son UN pago y tienen que sumar el total. Con un solo
+// medio y el monto en blanco se paga el total. Un pago parcial de un crédito se registra desde Por pagar (F4c).
 
 const LINEA_VACIA: LineaForm = { insumoId: null, descripcion: "", cantidad: "", costo: "" };
 const CONCEPTO_LIBRE = "__libre__";
@@ -67,16 +68,19 @@ export function ComprobanteProduccionForm({
   const [vencimientoTocado, setVencimientoTocado] = useState(false);
   const [lineas, setLineas] = useState<LineaForm[]>([{ ...LINEA_VACIA }]);
   const [totalPapel, setTotalPapel] = useState("");
-  const [metodoPago, setMetodoPago] = useState<MetodoPago>("transferencia");
-  const [referenciaPago, setReferenciaPago] = useState("");
+  const [medios, setMedios] = useState<MedioForm[]>([medioNuevo()]);
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
 
   const proveedor = proveedores.find((p) => p.id === proveedorId) ?? null;
   const totales = calcularTotales(lineas, tipo);
-  const form = { proveedorId, tipo, serie, numero, fechaEmision, condicion, fechaVencimiento, lineas, totalPapel, metodoPago, referenciaPago };
-  const error = primerErrorComprobante(form, hoy);
+  const form = { proveedorId, tipo, serie, numero, fechaEmision, condicion, fechaVencimiento, lineas, totalPapel };
   const totalFinal = totalPapel.trim() !== "" && Number(totalPapel.replace(",", ".")) >= 0 ? redondear2(Number(totalPapel.replace(",", "."))) : totales.total;
+  // Un solo medio con el monto en blanco = paga el total (lo más común, sin escribir nada).
+  const mediosEfectivos = medios.length === 1 && medios[0].monto.trim() === "" ? [{ ...medios[0], monto: totalFinal.toFixed(2) }] : medios;
+  const reparto = repartoDeMedios(mediosEfectivos, totalFinal, true);
+  const errorPago = condicion === "contado" && totalFinal > 0 ? reparto.error ?? (reparto.cuadra ? null : "Al contado, los medios de pago tienen que sumar el total.") : null;
+  const error = primerErrorComprobante(form, hoy) ?? errorPago;
 
   // El vencimiento se sugiere con el plazo del proveedor, mientras no se haya tocado a mano.
   function sugerirVencimiento(prov: ProveedorProduccion | null, emision: string) {
@@ -88,7 +92,7 @@ export function ComprobanteProduccionForm({
     const p = proveedores.find((x) => x.id === id) ?? null;
     // Si el proveedor no da crédito, lo normal es contado; si da, crédito. Se puede cambiar.
     if (p) setCondicion(p.plazoCreditoDias ? "credito" : "contado");
-    if (p?.formaPagoPreferida && METODOS_PAGO.some((m) => m.valor === p.formaPagoPreferida)) setMetodoPago(p.formaPagoPreferida as MetodoPago);
+    if (p?.formaPagoPreferida && medios.length === 1) setMedios([{ ...medios[0], metodo: (["transferencia", "yape", "plin", "efectivo", "deposito", "otro"] as const).find((m) => m === p.formaPagoPreferida) ?? medios[0].metodo }]);
     sugerirVencimiento(p, fechaEmision);
   }
 
@@ -116,7 +120,7 @@ export function ComprobanteProduccionForm({
         costo_unitario: Number(l.costo.replace(",", ".")),
       })),
       p_total: totalPapel.trim() !== "" ? Number(totalPapel.replace(",", ".")) : undefined,
-      p_pago: condicion === "contado" ? { metodo: metodoPago, monto: totalFinal, fecha: hoy, referencia: referenciaPago.trim() || undefined } : undefined,
+      p_pago: condicion === "contado" ? mediosParaRpc(mediosEfectivos, hoy) : undefined,
       p_nota: nota.trim() || undefined,
       p_token: token,
     });
@@ -196,16 +200,7 @@ export function ComprobanteProduccionForm({
               pie={proveedor?.plazoCreditoDias ? `${proveedor.nombre} da ${proveedor.plazoCreditoDias} días` : undefined}
             />
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <CampoSelectNativo etiqueta="Medio de pago" value={metodoPago} onChange={(e) => setMetodoPago(e.target.value as MetodoPago)}>
-                {METODOS_PAGO.map((m) => (
-                  <option key={m.valor} value={m.valor}>
-                    {m.etiqueta}
-                  </option>
-                ))}
-              </CampoSelectNativo>
-              <CampoTexto etiqueta="Referencia" mono placeholder="N.° de operación" value={referenciaPago} onChange={(e) => setReferenciaPago(e.target.value)} />
-            </div>
+            <p className="self-end pb-2 text-xs text-tinta/65">Se paga hoy: elige abajo con qué medio o medios.</p>
           )}
         </div>
 
@@ -294,6 +289,8 @@ export function ComprobanteProduccionForm({
             <dd className="font-display text-lg tabular-nums">{soles(totalFinal)}</dd>
           </div>
         </dl>
+
+        {condicion === "contado" && <MediosDePago medios={medios} onCambio={setMedios} esperado={totalFinal} exacto etiquetaEsperado="Total a pagar" />}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <CampoTexto

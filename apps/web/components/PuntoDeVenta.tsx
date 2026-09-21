@@ -912,17 +912,21 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
               </Link>
             ))}
           </nav>
-          <button
-            type="button"
-            onClick={() => setModalCaja(bloqueado ? "abrir" : "cerrar")}
-            className={
-              bloqueado
-                ? "label-cayla h-9 rounded-md bg-tinta px-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-                : "label-cayla h-9 rounded-md border border-tinta/25 px-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
-            }
-          >
-            {bloqueado ? "Abrir caja" : "Cerrar caja"}
-          </button>
+          {/* D-13: abrir la caja lo puede cualquiera; CERRARLA solo el líder (candado real en
+              `cerrar_caja`, 20260921110000). Con la caja abierta, un colaborador no ve el botón. */}
+          {(bloqueado || esLider) && (
+            <button
+              type="button"
+              onClick={() => setModalCaja(bloqueado ? "abrir" : "cerrar")}
+              className={
+                bloqueado
+                  ? "label-cayla h-9 rounded-md bg-tinta px-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+                  : "label-cayla h-9 rounded-md border border-tinta/25 px-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+              }
+            >
+              {bloqueado ? "Abrir caja" : "Cerrar caja"}
+            </button>
+          )}
         </div>
       </div>
 

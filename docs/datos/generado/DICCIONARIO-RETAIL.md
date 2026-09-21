@@ -2357,7 +2357,7 @@
 
 ### `comprobantes_produccion_pagos`
 
-*8 columnas · ~0 filas · permisos por fila **activos***
+*9 columnas · ~0 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2369,6 +2369,7 @@
 | `referencia` | text | sí | — | — |
 | `usuario_id` | uuid | sí | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `grupo_id` | uuid | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
