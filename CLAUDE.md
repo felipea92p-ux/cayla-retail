@@ -137,6 +137,11 @@ parchea `window.fetch` y `lib/espera-reglas.ts` (`clasificarPeticion`, lógica p
 `'guardado'`. **No construyas otro overlay de carga a pantalla completa ni dejes un «Cargando…» suelto**; un botón o una
 pantalla nueva no tiene que hacer nada para tenerlo. Los botones conservan su giro «Guardando…» (el loader se suma), y un
 `Suspense` de una sección dentro de una pantalla sigue siendo esqueleto parcial, no el loader global.
+**El aviso de éxito (`avisar.*`, esquina superior derecha) sale DESPUÉS del loader, nunca encima** (`lib/espera-estado.ts`): el
+loader dice «espera, se está procesando» y el aviso dice «listo, se guardó bien». Mientras haya una petición en curso o el
+loader esté a la vista, ningún aviso se pinta; al liberarse aparecen. Nadie tiene que coordinarlos: se llama
+`avisar.exito(...)` en el mismo instante en que responde la base y el aviso sale solo. Un guardado tan rápido que el loader ni
+llega a verse (< 200 ms) muestra su aviso apenas termina. Detalle en la «Actualización 2026-09-21» del ADR-0149.
 
 Para lo que no pasa por `fetch`: `useEsperando(activo, mensaje?)` (hook), `esperar(mensaje?) → fin()` (imperativo) y
 `<EsperaPantalla />` en cada `loading.tsx`. Una petición que no debe bloquear lleva el header `x-espera: no`. **Al agregar una

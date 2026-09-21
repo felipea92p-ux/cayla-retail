@@ -122,3 +122,38 @@ por streaming, y soltarla al recibir los headers apagaría el loader con la pant
 6. Activar «reducir movimiento»: el loader aparece sin giro ni barrido.
 7. Pruebas unitarias de `clasificarPeticion` (`lib/espera-reglas.ts`): cada fila de la tabla de clases, el opt-out y las
    RPC de lectura.
+
+## Actualización 2026-09-21 — el aviso de éxito espera al loader
+
+**Problema.** Al guardar, el código hace `avisar.exito(...)` en el instante en que responde la base, pero el loader sigue a la
+vista 400 ms mínimo + 150 ms de gracia + 220 ms de salida (y, si el guardado termina en `router.replace/refresh`, además lo que
+tarde esa pantalla). «Guardado» aparecía encima de «Cargando», y un aviso de proceso («Guardando X…») convivía con el velo.
+Cada uno vivía en su módulo y ninguno sabía del otro.
+
+**Decisión (Felipe).** El loader dice «espera, se está procesando»; el aviso dice «se guardó en la base y no hubo ningún
+problema». El segundo llega **después** del primero. El alcance del loader **no cambia**: cubre pantallas y guardados que
+demoran (los que responden en menos de 200 ms no lo muestran).
+
+**Cómo queda.** `lib/espera-estado.ts` publica «ocupada» = hay una ficha abierta (carga o guardado, aunque el loader aún no
+pase sus 200 ms) O el loader sigue a la vista, salida incluida. `Espera.tsx` lo alimenta y `Avisos.tsx` no pinta ninguna
+tarjeta —ni la que llega ni la que ya estaba— mientras esté ocupada; al liberarse montan con su entrada y su reloj desde cero.
+Los 69 archivos que llaman `avisar.*` no cambian. `enfocar` (cursor al campo con error) se difiere igual, porque con el loader a
+la vista el resto de la app está `inert` y `focus()` no hace nada. Un `avisar.proceso` deja de verse mientras el loader cubre la
+pantalla (el loader ya dice que se está trabajando); lo que se ve al terminar es su éxito o su error.
+
+**Considerado y descartado: quitar los guardados del loader** (que fuese solo de pantallas). Se implementó y se probó, y se
+revirtió el mismo día: un guardado que demora sin ninguna señal deja a la persona sin saber si su solicitud se procesó, que es
+justo el problema que motivó este ADR (y el doble clic que sigue). El conflicto entre aviso y loader se resuelve ordenándolos,
+no quitándole una espera al loader.
+
+**Costos asumidos.**
+- Un aviso que ya estaba a la vista desaparece un instante si arranca otra petición (aunque sea corta) y vuelve con su reloj
+  reiniciado. Se prefirió la regla simple («con algo en curso no hay avisos») a una que distinga cuál llegó primero.
+- El loader queda ~395 ms tras responder la base (150 ms de gracia + 220 ms de salida, ADR-0136) y, si la espera fue corta, al
+  menos 400 ms una vez visible. Es el anti-parpadeo del diseño original; no se tocó.
+
+**Cómo se verifica.** `pnpm --filter web test` (`lib/espera-estado.test.ts`). A mano, con un muestreador cada 15 ms en el
+navegador (2026-09-21), sin ninguna muestra con loader y aviso a la vez: (1) guardado de 1,2 s → el loader entra a los ~225 ms y
+«Guardado» sale recién cuando se va; (2) guardado de 40 ms → sin loader, el aviso sale enseguida; (3) guardar y navegar a una
+pantalla que tarda 1,2 s → un solo loader continuo (guardado + carga) y «Guardado» al final; (4) guardado que falla → el error sale
+tras el loader y el cursor llega al campo en ese momento.
