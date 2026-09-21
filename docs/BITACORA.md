@@ -8497,3 +8497,6 @@ No abre lotes (F4d). Compras no se tocó.
 Felipe fusionó F4b y pegó su migración (validada contra producción: crédito, contado con dos medios, anular con pagos rechazado, 0 filas de rastro). Aprobó D-I. F4c
 construida en local: pago posterior con uno o varios medios (sin pasarse del saldo, idempotente por token), pantalla `/produccion/por-pagar` y el consolidado «Deuda total de
 CAYLA» (Compras + Producción) con el IGV del mes, de solo lectura. El formulario de comprobantes al contado también admite varios medios. Migración `20260921110000` sin pegar.
+
+## 2026-09-21 (Aviso central al cambiar de sede)
+Los dos selectores de sede —`UbicacionSwitcher` (cabecera, global, cookie) y `SelectorUbicacion` (por pantalla, `?ubicacion=`)— ahora muestran `AvisoCambioDeSede`: hoja central con «Tienda A → Tienda B» que dura lo que tarda la carga (`useTransition`, sin reloj) y sale con el movimiento de modales (ADR-0136). La pastilla dice el destino al instante. Sin cambios de base. Maqueta: `docs/maquetas/cambio-de-sede-spike-2026-09/`. Verificado en el navegador con ambos selectores; tipos y lint limpios.
