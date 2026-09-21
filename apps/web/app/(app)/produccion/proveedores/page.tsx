@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puedeVerProduccion } from "@/lib/produccion-menu";
+import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
 import { getProveedoresProduccion } from "@/lib/proveedores-produccion";
 import { ProveedoresProduccionPanel } from "@/components/ProveedoresProduccionPanel";
 
@@ -8,6 +10,11 @@ import { ProveedoresProduccionPanel } from "@/components/ProveedoresProduccionPa
 // nombre del proveedor al recibir un pedido (F4d), no esta pantalla.
 export default async function ProveedoresProduccionPage() {
   const persona = await requirePersonaActualV2();
+  // Misma puerta que Órdenes e Insumos (`puedeVerProduccion`, 2026-09-20): solo parado en el Taller. Además, solo líder.
+  if (!puedeVerProduccion(persona)) {
+    if (!persona.puedeCambiarUbicacion) redirect("/");
+    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} />;
+  }
   if (persona.rol !== "lider") redirect("/produccion/ordenes");
 
   const proveedores = await getProveedoresProduccion();

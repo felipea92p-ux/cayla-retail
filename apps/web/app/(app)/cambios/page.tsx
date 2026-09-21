@@ -39,7 +39,9 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
     esLider ? getTallasQueNoCalzan() : Promise.resolve([]),
     getCajaAbierta(persona.ubicacionId),
   ]);
-  const stockAquiPorVariante = new Map(stock.map((f) => [f.varianteId, f.piso ?? f.total]));
+  // Lo que se entrega a cambio sale del piso y solo puede ser lo DISPONIBLE: lo apartado para otra
+  // clienta no se ofrece (ADR-0141).
+  const stockAquiPorVariante = new Map(stock.map((f) => [f.varianteId, f.pisoDisponible ?? f.disponible]));
   const stockPorSede = agruparStockPorSede(exigir(resStockSedes, "el stock de las sedes"), ubicaciones, persona.ubicacionId);
 
   return (

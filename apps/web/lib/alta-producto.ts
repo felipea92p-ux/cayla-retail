@@ -120,6 +120,28 @@ export function ordenarColores(
 }
 
 // ---------------------------------------------------------------------------
+// Qué familias se ven de entrada en el primer paso, y cuáles quedan tras «Ver más».
+// ---------------------------------------------------------------------------
+
+/** Las familias que "Nuevo producto" muestra de entrada (decidido con Felipe, 2026-09-20): son donde entra casi todo lo que se da de alta.
+ *  El resto (Calzado, Belleza, Papelería…) queda a un toque en «Ver más», y la caja de búsqueda las alcanza igual.
+ *  Vive en código y no en una columna de `familias`: son 6 filas, cambiarla es una línea, y una columna nueva sería un cambio de esquema
+ *  en producción para algo que ninguna otra pantalla lee. Si algún día otra pantalla necesita "familias principales", ahí sí se sube a la tabla. */
+export const FAMILIAS_A_LA_VISTA: readonly string[] = ["indumentaria", "accesorios", "bisuteria"];
+
+/** Parte `familias` en las que van a la vista y las que van tras «Ver más». Respeta el orden que ya traen (`familias.orden`), así que la base
+ *  sigue mandando en cómo se ordenan; el código solo decide en qué grupo cae cada una.
+ *
+ *  Una familia NUNCA se pierde: entre los dos grupos suman exactamente la entrada. Una familia nueva (que este archivo no conoce) cae tras
+ *  «Ver más» — el fallo seguro es "un toque más", nunca "no la encuentro". Y si ninguna de las de siempre existe (renombradas o
+ *  desactivadas) no se esconde nada: un panel largo es mejor que uno con un solo botón «Ver más». */
+export function repartirFamilias<T extends { codigo: string }>(familias: T[]): { aLaVista: T[]; masFamilias: T[] } {
+  const aLaVista = familias.filter((f) => FAMILIAS_A_LA_VISTA.includes(f.codigo));
+  if (aLaVista.length === 0) return { aLaVista: familias, masFamilias: [] };
+  return { aLaVista, masFamilias: familias.filter((f) => !FAMILIAS_A_LA_VISTA.includes(f.codigo)) };
+}
+
+// ---------------------------------------------------------------------------
 // Qué falta para guardar, y qué bloques están desbloqueados.
 // ---------------------------------------------------------------------------
 

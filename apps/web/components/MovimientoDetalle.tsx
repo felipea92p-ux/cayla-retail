@@ -47,7 +47,17 @@ export function MovimientoDetalle({ movimiento: m, onClose }: { movimiento: Movi
             <div className="shrink-0 text-right">
               <p className={`font-display text-3xl tabular-nums ${m.delta > 0 ? "text-verde-profundo" : "text-tinta"}`}>{textoDelta(m)}</p>
               <p className="label-cayla text-[10px] text-tinta/55">
-                {m.categoria === "interno" ? "unidades repuestas" : m.categoria === "ajuste" ? "ajuste" : m.delta > 0 ? "entran" : "salen"}
+                {m.categoria === "interno"
+                  ? "unidades repuestas"
+                  : m.categoria === "apartado"
+                    ? "apartadas para una clienta"
+                    : m.categoria === "liberacion_apartado"
+                      ? "vuelven a estar disponibles"
+                      : m.categoria === "ajuste"
+                        ? "ajuste"
+                        : m.delta > 0
+                          ? "entran"
+                          : "salen"}
               </p>
             </div>
           </div>

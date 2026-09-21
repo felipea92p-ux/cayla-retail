@@ -39,7 +39,7 @@ cierran en la base, no en la pantalla), **7** (cada paso se prueba en el navegad
 | `registrar_compra` y el reparto por tienda (ADR-0139, en curso en otra rama) son de **Compras** | `CompraFormV2.tsx`, ADR-0139 | **No condicionan a Producción** (D-H): tiene su propio abastecimiento y no toca `compras` |
 | Otras ramas tocan Compras (ADR-0131 Por pagar, ADR-0139 reparto entre tiendas) | `git log origin/main..rama` | Ninguna fase de Producción modifica Compras; solo se coordina el orden de los ADR y de las migraciones |
 | `compra_items.producto_id` es **NOT NULL**: una factura de tela no cabe | `DICCIONARIO-RETAIL.md:1686` | F4 (único cambio de esquema grande) |
-| `fn_puede_operar_ubicacion` = líder **o** mi ubicación: **el líder ya puede operar el Taller desde cualquier sede** | `0006_colaboradores.sql:51` | La regla «Producción solo parado en el Taller» (2026-09-17) es de menú, no de base |
+| `fn_puede_operar_ubicacion` = líder **o** mi ubicación: **el líder ya puede operar el Taller desde cualquier sede** | `0006_colaboradores.sql:51` | La regla «Producción solo parado en el Taller» (2026-09-17, vigente otra vez desde 2026-09-20) es de menú y de página, no de base |
 | El motor de reposición ya existe: `fn_resumen_variantes` (ventas, disponible, en camino, días observables, `en_red`) | `20260919141804_resumen_inventario_v2.sql` | «¿Qué producir?» **lo reutiliza**, no recalcula ventas por su cuenta |
 | El dinero de Compras es solo del líder y lo hace cumplir la base (`fn_puede_ver_dinero_de_compras`) | ADR-0126 | Todo monto nuevo nace bajo ese candado |
 | `insumo_lotes`/`movimientos_insumo` se leen con `fn_puede_operar_ubicacion`: **un colaborador del Taller ve costos** | `DICCIONARIO-RETAIL.md:2088` | F4c cierra ese hueco (D-G) |
@@ -50,7 +50,7 @@ cierran en la base, no en la pantalla), **7** (cada paso se prueba en el navegad
 
 | # | Decisión | Recomiendo | Por qué | Gate |
 |---|---|---|---|---|
-| **D-A** | Menú: ¿quién ve Producción? | ✅ **Decidida.** El líder la ve **desde cualquier ubicación**; quien trabaja en el Taller ve sus pantallas; **Compras sigue siendo un grupo aparte** | La base ya lo permite; **revierte la regla del 2026-09-17** | dada por Felipe (F1) |
+| **D-A** | Menú: ¿quién ve Producción? | ✅ **Decidida y REVERTIDA el 2026-09-20.** Hoy rige: Producción se ve **solo parado en un Taller, líder incluido** (por el tipo de la ubicación activa); **Compras sigue siendo un grupo aparte** y no cambió. Entre el 2026-09-19 y el 2026-09-20 rigió lo contrario (el líder la veía desde cualquier ubicación) | Es solo de menú y de página: la base sigue dejando al líder operar el Taller desde cualquier sede. Vuelve a la regla del 2026-09-17 | Felipe (2026-09-20, al verla en una tienda) |
 | **D-B** | Destino Taller/Tiendas de un comprobante | ⛔ **Sin objeto.** Producción registra **sus** comprobantes (D-H); ya no comparte `compras` ni el reparto de ADR-0139 | — | — |
 | **D-C** | Cómo entra la tela a una factura | ⛔ **Reemplazada por D-H.** Ya no se toca `compra_items` | — | — |
 | **D-D** | Rendimiento (m/prenda) | **Medido**: consumo real ÷ buenas de las órdenes cerradas del modelo. Sin receta ni tablas. Modelo sin historial: se escribe el rendimiento en la orden y solo alimenta la vista previa | `bom_items` murió; una receta manual envejece. Lo medido no miente | — |
@@ -248,7 +248,7 @@ a ADR-0139: los dos módulos avanzan en paralelo sin tocar las mismas funciones.
 | Repuntar `insumo_lotes.proveedor_id` con datos ya cargados | hoy 0 filas; verificar de nuevo el día de pegar, y si hubiera filas, migrarlas antes de repuntar |
 | Choque con otras sesiones (ADR/timestamps). **Ya visible:** los ADR 0130-0132 estaban tomados por ramas sin fusionar | F0: fusionar `main`, reservar ADR-0133 y timestamps, fila en `SESIONES-ACTIVAS.md`; `git status` y ramas antes de cada fase; F4 solo tras ADR-0132 |
 | Tocar Compras por accidente | Compras **no se modifica** en ninguna fase; su prueba SQL corre en cada PR de F4 |
-| Regla de menú del 2026-09-17 revertida sin querer | D-A explícita; el ADR-0133 la marca como **reemplazada** |
+| Regla de menú de Producción cambiada sin que nadie lo decida (pasó dos veces: 09-17 → 09-19 → 09-20) | La regla vive en **una sola función** (`puedeVerProduccion`, `lib/produccion-menu.ts`) que usan el menú y las páginas, con prueba de que no pueden discrepar; el cambio se anota en D-A y en el ADR-0133 |
 | El colaborador ve costos por la API | F4c antes de exponer Insumos a colaboradores fuera del Taller; prueba `dinero_compras_solo_lider.mjs` extendida |
 | Cifras de ejemplo que se cuelan a producción | regla 4 del contrato de diseño; revisión de cada PR contra el spike |
 | El spike se ve distinto en Tailwind real | criterio único: lo que difiera debe estar en la tabla de la sección 5 |

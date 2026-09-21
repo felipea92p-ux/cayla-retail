@@ -160,6 +160,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-venta
 
+      # Apartar stock (ADR-0141): una venta, un traslado o un ajuste no se llevan lo apartado; quién puede apartar y
+      # liberar; RLS y privilegios; y el contador de cada fila siempre cuadra con la suma de sus apartados abiertos.
+      # Cada caso termina en ROLLBACK.
+      - name: pruebas:apartar-stock
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:apartar-stock
+
       # Devolver insumos (ADR-0133, F3b): lo devuelto vuelve al último lote del que salió la orden, el costo de
       # tela/avíos de la orden queda neto, anular devuelve todo al estante y quien no opera el Taller no puede.
       # Cada caso termina en ROLLBACK.

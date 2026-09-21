@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-20 (Apartar stock, Fase 1 — ADR-0141: una prenda apartada ya no se puede vender)
+Una prenda que una clienta pidió por WhatsApp seguía contando como disponible, y cualquier otra caja podía vendérsela. Ahora se **aparta** (clienta, teléfono y fecha límite): sigue en la tienda —el conteo físico no cambia— pero la base rechaza venderla, trasladarla o ajustarla por debajo de lo apartado, con un mensaje que dice por qué. Existencias tiene la tarjeta «Apartados» (lo vencido en rojo; no se libera solo, porque la clienta pudo dejar adelanto), «Apartar» por fila y «Liberar» (quien apartó, o una líder).
+Lo que Felipe se lleva: (1) el diseño se **probó rompiéndolo a propósito** —se dañó el código de tres maneras y cada una hizo fallar justo su prueba— y con carreras reales de hasta 120 conexiones mezclando apartar y vender sobre la misma fila: cero sobreventa, cero deadlocks, cero descuadres; (2) una regla de permisos vive en UN lugar (la base la entrega calculada; la pantalla no la repite); (3) dos «alarmas» del diseño resultaron falsas al ponerles número —`movimientos` tenía 474 filas, no millones—, y una sí era real: la primera versión dejaba vender lo apartado, y la revisión adversarial lo cazó antes de escribir código.
+Sin resolver: el **adelanto ligado a Caja** (Fase 2, con `registrar_venta` consumiendo la reserva; antes, validar con el contador el tratamiento tributario de un anticipo); probarlo con datos reales en el navegador (esta sesión no tenía base de datos); y pegar la migración en producción antes de desplegar la web. Aparte: `AjustarInventarioModal` selecciona `variantes.talla`, que ya no existe — anotado en BACKLOG, no tocado.
+
 ## 2026-09-19 (Un comprobante se reparte entre tiendas y cada tienda recibe lo suyo — ADR-0139, hecho en local)
 Ahora se puede registrar una factura de proveedor «repartida»: en cada línea se dice cuántas unidades le tocan a cada tienda, con «Faltan 4 por repartir» en vivo y un atajo de partes iguales. Cada tienda recibe solo lo suyo desde `/recibir` (la base rechaza que una se coma la parte de otra), el detalle muestra cómo va cada tienda y un líder puede **reasignar** lo que aún no llegó o **cerrar un faltante** diciendo en qué tienda faltó. Verificado con 47 pruebas de SQL, 1367 de la web y en el navegador (una factura de 24 u. repartida 12+12 quedó así en la base; se recibió, reasignó y cerró); las dos migraciones (`172000`, `173000`) **no están en producción** y se pegan en orden con ok de Felipe, y solo después se despliega la web.
 Felipe se lleva: (1) el destino ya no vive en la factura sino en el reparto por línea, y por eso una factura de una sola tienda también «tiene reparto» (de una tienda): así no hay casos especiales al leer; (2) un colaborador no puede recibir en su tienda algo que el comprobante asignó a otra: primero un líder reasigna, y por eso el botón existe también en facturas de una sola tienda; (3) dos sesiones que reescriben la misma función se pisan según el orden en que se pegue el SQL: se resolvió parchando por anclas sobre la definición viva en vez de reemplazarla (ADR-0139 §2), y se probó el orden real de las migraciones dentro de una transacción con ROLLBACK, no se supuso.
@@ -8427,3 +8432,22 @@ Felipe pegó la migración de F3b y se validó contra producción: una sola vers
 en un bloque que se revierte solo (0 filas de rastro). F4a construida en local: directorio `proveedores_produccion` aparte del de Compras, solo-líder, escritura
 solo por RPC, pantalla `/produccion/proveedores`. Migración `20260920110000` sin pegar; `insumos`/`insumo_lotes` se repuntan a la tabla nueva (0 filas hoy).
 `pruebas:proveedores-produccion` 15/15 y 1629 pruebas del web en verde. Compras no se tocó.
+
+## 2026-09-20 (Producción solo se ve en el Taller — revierte D-A de ADR-0133)
+Felipe vio «Producción» en el menú de una tienda y pidió que solo salga en el Taller. La regla vuelve a ser la del 2026-09-17: se ve parado en un
+Taller, líder incluido, decidido por el **tipo** de la ubicación activa (no por el nombre «LIM»). La regla quedó en una sola función
+(`puedeVerProduccion`) que usan el menú y las páginas de Órdenes e Insumos; un líder que llega por URL desde otra ubicación ve un aviso, no un rebote mudo.
+Sin esquema ni migración; Compras no cambió. Verificado con el `AppShell` real en el navegador (6 combinaciones rol × tipo) y 10 pruebas de la regla;
+falta probarlo con sesión real de líder cambiando de Tienda a Taller con el selector.
+
+## 2026-09-20 (Nuevo producto: primer paso con tres familias a la vista)
+El primer paso mostraba las 6 familias parejas y, con el menú lateral abierto, las tarjetas se montaban unas sobre otras (a 1024 px el
+bloque medía 334 px y a cada una le tocaban 49). Ahora se ven Indumentaria, Accesorios y Complementos y Bisutería, más una tarjeta «Ver más»
+que nombra lo escondido (Calzado, Belleza y Papelería); la búsqueda las alcanza igual. Las columnas las decide el ancho del bloque
+(`@container`) y no el de la ventana, como ya hacen Recepciones y Por pagar. La regla vive en `repartirFamilias` (7 pruebas; la que importa:
+ninguna familia se pierde) y no en una columna de `familias`. Verificado en navegador a 375, 1024, 1280 y 1440 px con datos simulados
+(sin Docker): cero desbordes; 1628 pruebas y typecheck en verde. Falta verlo con sesión de Líder real contra la base.
+
+## 2026-09-20 («Ajustar inventario» se abría vacío)
+Desde la taxonomía cerrada de tallas (`variantes.talla` pasó a `talla_id`, migración `20260917100500`), el modal «Ajustar» —el de Existencias y Productos— pedía una columna que ya no existía: la base contestaba «column variantes.talla does not exist» y el modal quedaba vacío con el aviso «No se pudo cargar las variantes del producto». Nada lo detectó porque el resultado de la consulta pasaba por un `as unknown as`, que le apaga el chequeo al compilador. Ahora pide `talla:tallas ( valor )` sin cast —si reaparece una columna inexistente, `tsc` falla— y las tallas salen en orden de curva (XS · S · M · L, 28 · 30 · 32) en vez de alfabético.
+Reproducido contra un Postgres local con el esquema real (solo lectura): el select viejo falla, el nuevo devuelve las filas. Barrido de `apps/web`: ningún otro `.select` ni filtro pide `talla` a secas sobre `variantes`; los otros 4 casts de selects (`venta-detalle`, `colaboradores`, `comprobantes`, `envio`) solo angostan tipos, no esconden columnas rotas. 1644 pruebas, `tsc` y `eslint` en verde. Falta abrirlo en el navegador con datos reales (sin Docker no hay PostgREST local).

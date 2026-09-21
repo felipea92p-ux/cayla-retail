@@ -7,6 +7,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
+import { armarVariantesAjuste, type VarianteAjuste } from "@/lib/ajuste-reglas";
 import { descargarCsv } from "@/lib/exportar-csv";
 import type { Sububicacion } from "@/lib/sububicaciones";
 
@@ -26,25 +27,6 @@ const MOTIVOS_AJUSTE = [
 ] as const;
 
 type MotivoAjuste = (typeof MOTIVOS_AJUSTE)[number]["valor"];
-
-type VarianteAjuste = {
-  varianteId: string;
-  sku: string;
-  talla: string | null;
-  color: string | null;
-  stockPiso: number;
-  stockAlmacen: number;
-  stockSinDividir: number;
-};
-
-type FilaCargada = {
-  id: string;
-  sku: string;
-  talla: string | null;
-  color: { nombre: string | null } | null;
-  producto: { referencia: string } | null;
-  stock: { cantidad: number; sububicacion_id: string | null }[] | null;
-};
 
 export function AjustarInventarioModal({
   productoId,
@@ -74,17 +56,24 @@ export function AjustarInventarioModal({
 
   useEffect(() => {
     let vigente = true;
+    // La talla ya no es una columna de texto de `variantes`: es `talla_id` → `tallas.valor`
+    // (20260917100500, ADR-0095), igual que en `getCatalogo`. El resultado se pasa SIN castear
+    // a propósito: así `tsc` compara este select con `FilaAjuste` y avisa si vuelve a pedir
+    // una columna que no existe (antes un `as unknown as` lo tapaba y solo fallaba en vivo).
+    // El orden por talla se hace al armar las filas (S · M · L, no alfabético); el `order("sku")`
+    // solo fija el desempate para que la lista no baraje entre un refresco y otro.
     createClient()
       .from("variantes")
       .select(
-        `id, sku, talla,
+        `id, sku,
+         talla:tallas ( valor ),
          color:colores ( nombre ),
          producto:productos ( referencia ),
          stock ( cantidad, sububicacion_id )`
       )
       .eq("producto_id", productoId)
       .eq("stock.ubicacion_id", ubicacionId)
-      .order("talla")
+      .order("sku")
       .then(({ data, error: errCarga }) => {
         if (!vigente) return;
         if (errCarga) {
@@ -92,24 +81,9 @@ export function AjustarInventarioModal({
           setCargando(false);
           return;
         }
-        const filas = (data ?? []) as unknown as FilaCargada[];
+        const filas = data ?? [];
         setReferencia(filas[0]?.producto?.referencia ?? "");
-        setVariantes(
-          filas.map((v) => {
-            const porSub = v.stock ?? [];
-            const piso = porSub.find((s) => s.sububicacion_id === sububicacionPiso?.id)?.cantidad ?? 0;
-            const almacen = porSub.find((s) => s.sububicacion_id === sububicacionAlmacen?.id)?.cantidad ?? 0;
-            return {
-              varianteId: v.id,
-              sku: v.sku,
-              talla: v.talla,
-              color: v.color?.nombre ?? null,
-              stockPiso: piso,
-              stockAlmacen: almacen,
-              stockSinDividir: porSub.reduce((acc, s) => acc + s.cantidad, 0),
-            };
-          })
-        );
+        setVariantes(armarVariantesAjuste(filas, sububicacionPiso?.id, sububicacionAlmacen?.id));
         setCargando(false);
       });
     return () => {
