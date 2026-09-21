@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos } from "@/lib/proveedores";
+import { getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor } from "@/lib/proveedores";
 import { listarCompras, ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras";
 import { celdaPago, celdaRecepcion } from "@/lib/comprobantes-lista-reglas";
 import { ChevronRight } from "lucide-react";
@@ -15,6 +15,7 @@ import { PasoSugerido } from "@/components/ui/PasoSugerido";
 import { PistaPlazo } from "@/components/ui/PistaPlazo";
 import { ProveedorAcciones } from "@/components/ProveedorAcciones";
 import { ProveedorCostoEvolucion } from "@/components/ProveedorCostoEvolucion";
+import { ProveedorCuentasFicha } from "@/components/ProveedorCuentasFicha";
 import { SaldoFavorProveedor } from "@/components/SaldoFavorProveedor";
 
 // Ficha de un proveedor (maqueta 09, ADR-0111): prenda terminada (vía Compras) e insumos del Taller
@@ -34,7 +35,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
   await requirePersonaActualV2();
   const { id } = await params;
 
-  const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos] = await Promise.all([
+  const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa] = await Promise.all([
     getProveedor(id),
     getProveedorMetricasCompras(id),
     getProveedorMetricasInsumos(id),
@@ -43,8 +44,10 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
     listarCompras({ proveedorId: id }, { limite: 3 }),
     getProveedores(),
     getCreditosProveedor(id),
+    getMarcasPorProveedor(), // ADR-0140: opcional; si falla llega `null` y la ficha se pinta sin marcas
   ]);
   if (!proveedor) notFound();
+  const marcas = marcasMapa?.[id] ?? [];
 
   const ahora = new Date();
   const plural = (n: number, s: string, p: string) => `${n.toLocaleString("es-PE")} ${n === 1 ? s : p}`;
@@ -81,15 +84,17 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
               {!proveedor.activo && <> · Desactivado</>}
             </p>
             <div className="mt-2.5 flex flex-wrap gap-2">
+              {marcas.map((marca) => (
+                <Chip key={marca} versalitas={false}>
+                  {marca}
+                </Chip>
+              ))}
               {pactado != null && <Chip>Crédito a {pactado} días</Chip>}
               {proveedor.forma_pago_preferida && <Chip>Paga por {(ETIQUETA_METODO[proveedor.forma_pago_preferida] ?? proveedor.forma_pago_preferida).toLowerCase()}</Chip>}
-              {(proveedor.banco || proveedor.cuenta_bancaria) && (
-                <Chip>
-                  {proveedor.banco ?? "Banco sin definir"}
-                  {proveedor.cuenta_bancaria ? ` · CCI ${proveedor.cuenta_bancaria}` : ""}
-                </Chip>
-              )}
-              {proveedor.telefono && <Chip>{proveedor.telefono}</Chip>}
+              {/* Cuenta, CCI y Yape/Plin ya no van en chips: están en «Datos para pagar», enmascarados y con «Copiar». Antes
+                  un texto libre rotulado «CCI» (era la cuenta) y el WhatsApp pasaba por Yape (ADR-0134). */}
+              {proveedor.banco && <Chip>{proveedor.banco}</Chip>}
+              {proveedor.telefono && <Chip>WhatsApp {proveedor.telefono}</Chip>}
             </div>
             </div>
           </div>
@@ -98,6 +103,8 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       </div>
 
       <PasoSugerido paso={paso} proveedorId={id} indice={1} />
+
+      <ProveedorCuentasFicha proveedor={proveedor} rubros={rubrosConConteo(directorio.filter((p) => p.activo)).map((r) => r.etiqueta)} />
 
       <section className="space-y-3">
         <h2 className="label-cayla text-[11px] text-tinta/65">Prendas terminadas · últimos 12 meses</h2>

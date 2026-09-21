@@ -42,16 +42,7 @@ function textos(e: EstadoExactitud): { titulo: string; detalle: string } {
   }
 }
 
-export function ResumenBanner({
-  exactitud,
-  ubicacionId,
-  ubicacionBaseId,
-}: {
-  exactitud: EstadoExactitud;
-  ubicacionId: string;
-  /** La sede de la persona: Conteo no acepta `?ubicacion=`, solo cuenta la propia. */
-  ubicacionBaseId: string;
-}) {
+export function ResumenBanner({ exactitud, ubicacionId }: { exactitud: EstadoExactitud; ubicacionId: string }) {
   const clave = `resumen-exactitud-cerrada:${ubicacionId}:${exactitud.estado}`;
   const [cerradoAqui, setCerradoAqui] = useState(false);
   const cerradoGuardado = useSyncExternalStore(suscribir, () => estaCerrado(clave), () => false);
@@ -69,11 +60,9 @@ export function ResumenBanner({
         <span className="block text-sm font-medium text-tinta">{titulo}</span>
         <span className="block text-xs text-tinta/70">{detalle}</span>
       </span>
-      {ubicacionId === ubicacionBaseId && (
-        <Link href="/inventario/conteo" className="label-cayla shrink-0 rounded-md border border-tinta/25 bg-papel px-3 py-2 text-[11px] text-tinta transition-colors hover:border-tinta/50">
-          Ir a conteo
-        </Link>
-      )}
+      <Link href="/inventario/conteo" className="label-cayla shrink-0 rounded-md border border-tinta/25 bg-papel px-3 py-2 text-[11px] text-tinta transition-colors hover:border-tinta/50">
+        Ir a conteo
+      </Link>
       <button
         type="button"
         aria-label="Cerrar aviso"

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
 import { hoyLima } from "@/lib/fechas-lima";
-import { serie12Meses } from "@/lib/proveedores-reglas";
+import { marcasPorProveedor, serie12Meses, type MarcasDeProveedor } from "@/lib/proveedores-reglas";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Alta, edición y archivo
 // pasan por las RPC directo desde el componente cliente (registrar_proveedor /
@@ -12,12 +12,12 @@ export type Proveedor = {
   nombre: string;
   ruc: string | null;
   contacto: string | null;
-  /** El WhatsApp por el que se pacta el fardo. Desde ADR-0129 ya NO es el Yape: ese es `celular_billetera`. */
+  /** El WhatsApp por el que se pacta el fardo. Desde ADR-0134 ya NO es el Yape: ese es `celular_billetera`. */
   telefono: string | null;
   banco: string | null;
-  /** Número de cuenta del banco (texto libre). El interbancario vive en `cci` (ADR-0129). */
+  /** Número de cuenta del banco (texto libre). El interbancario vive en `cci` (ADR-0134). */
   cuenta_bancaria: string | null;
-  /** Código de Cuenta Interbancario: 20 dígitos, solo números (ADR-0129). */
+  /** Código de Cuenta Interbancario: 20 dígitos, solo números (ADR-0134). */
   cci: string | null;
   /** El celular al que se yapea/plinea (9 dígitos, sin +51). NO es `telefono`, que es el WhatsApp. */
   celular_billetera: string | null;
@@ -104,6 +104,31 @@ export async function getProveedoresSerie(): Promise<Record<string, number[]> | 
   return Object.fromEntries([...porProveedor].map(([id, filas]) => [id, serie12Meses(filas, hoy)]));
 }
 
+// Las marcas con que se conoce a cada proveedor (ADR-0140): el nombre es la razón social, pero el equipo busca
+// por «Kero», no por «Textil Ejemplo SAC». Devuelve, por id de proveedor, sus marcas activas. Lee las mismas dos
+// tablas que el catálogo (`marcas` y `marca_proveedores`, abiertas a cualquiera con cuenta), sin RPC ni migración.
+//
+// Es un ADORNO de la lista, no un dato del que dependa nada: si la lectura falla devuelve `null` y la pantalla se
+// pinta igual, sin marcas ni búsqueda por marca — principio 9: una lectura secundaria nunca tumba la pantalla.
+// El tope por defecto de PostgREST (`max_rows` en supabase/config.toml).
+const TOPE_FILAS = 1000;
+
+export async function getMarcasPorProveedor(): Promise<MarcasDeProveedor | null> {
+  const supabase = await createClient();
+  const [resMarcas, resVinculos] = await Promise.all([supabase.from("marcas").select("id, nombre, activo"), supabase.from("marca_proveedores").select("marca_id, proveedor_id")]);
+  if (resMarcas.error || resVinculos.error) {
+    console.error("[proveedores] no se pudieron leer las marcas; la lista se muestra sin ellas:", (resMarcas.error ?? resVinculos.error)?.message);
+    return null;
+  }
+  // PostgREST corta en silencio a TOPE_FILAS (200 OK, sin error): un mapa recortado se vería igual que uno completo y
+  // algunos proveedores aparecerían «sin marcas». Es preferible degradar a `null` (que se nota) que mostrar a medias.
+  if ((resMarcas.data?.length ?? 0) >= TOPE_FILAS || (resVinculos.data?.length ?? 0) >= TOPE_FILAS) {
+    console.error(`[proveedores] las marcas llegaron al tope de ${TOPE_FILAS} filas; se muestra la lista sin ellas hasta paginar la lectura.`);
+    return null;
+  }
+  return marcasPorProveedor(resMarcas.data ?? [], resVinculos.data ?? []);
+}
+
 // Las cifras de la cabecera de la lista (ADR-0111): activos, deuda total con proveedores,
 // concentración (qué parte de la deuda está en un solo proveedor) y quiénes llevan más de 90 días
 // sin comprar. Todo `null` para quien no es líder, salvo los conteos del directorio.
@@ -158,6 +183,10 @@ export type ProveedorFicha = {
   telefono: string | null;
   banco: string | null;
   cuenta_bancaria: string | null;
+  cci: string | null;
+  celular_billetera: string | null;
+  billeteras: string[] | null;
+  titular_cuenta: string | null;
   activo: boolean;
   rubro: string | null;
   plazo_credito_dias: number | null;
@@ -169,7 +198,7 @@ export async function getProveedor(id: string): Promise<ProveedorFicha | null> {
   return exigirOpcional(
     await supabase
       .from("proveedores")
-      .select("id, nombre, ruc, contacto, telefono, banco, cuenta_bancaria, activo, rubro, plazo_credito_dias, forma_pago_preferida")
+      .select("id, nombre, ruc, contacto, telefono, banco, cuenta_bancaria, cci, celular_billetera, billeteras, titular_cuenta, activo, rubro, plazo_credito_dias, forma_pago_preferida")
       .eq("id", id)
       .maybeSingle(),
     "la ficha del proveedor"

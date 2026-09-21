@@ -108,3 +108,23 @@ describe("montoEnLetras — «SON: …»", () => {
     expect(montoEnLetras(0.1 + 0.2)).toBe("CERO CON 30/100 SOLES");
   });
 });
+
+describe("armarRecibo — detalle opcional por línea (talla · color)", () => {
+  const base = {
+    comprobante,
+    sede: "Tienda Lima",
+    cliente: { tipoDoc: "sin_documento" as const, numDoc: null, nombre: null },
+    pagos: [{ metodo: "efectivo" as const, monto: 50 }],
+    tasaIgv: 0.18,
+  };
+
+  it("lo lleva a la línea cuando viene", () => {
+    const r = armarRecibo({ ...base, lineas: [{ cantidad: 1, referencia: "Polo Zoe", codigo: "POL-1", precioUnitario: 50, descuentoUnitario: 0, detalle: "M · Negro" }] });
+    expect(r.lineas[0]?.detalle).toBe("M · Negro");
+  });
+
+  it("no agrega la clave cuando no viene (el ticket y sus pruebas no cambian)", () => {
+    const r = armarRecibo({ ...base, lineas: [{ cantidad: 1, referencia: "Polo Zoe", codigo: "POL-1", precioUnitario: 50, descuentoUnitario: 0 }] });
+    expect(r.lineas[0]).not.toHaveProperty("detalle");
+  });
+});

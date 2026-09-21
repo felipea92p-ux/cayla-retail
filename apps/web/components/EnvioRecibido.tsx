@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { Boton } from "@/components/ui/campos";
+import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
+import { soles } from "@/lib/compras-reglas";
 import type { MovimientoDelEnvio } from "@/lib/envio-reglas";
 
 // «Envío recibido»: lo que queda después de confirmar (spike de Recibir, 2026-09-19). No es solo «61 unidades»:
@@ -19,7 +21,9 @@ export type ResultadoEnvio = {
   deOtraSede: number;
   traslados: { resultado: string }[];
   cierres: number;
-  notas: number;
+  /** Lo que el proveedor queda debiendo en notas de crédito, a su costo con IGV. 0 = nada que reclamar (o quien
+   *  recibió no es líder: el reclamo es dinero y vive en `/compras/notas-credito`). */
+  porReclamar: number;
   yaRegistrado: boolean;
   /** Lo que quedó escrito en el stock, prenda por prenda. */
   movimientos: MovimientoDelEnvio[];
@@ -63,8 +67,18 @@ export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: {
       )}
       {ok.cierres > 0 && (
         <p className="max-w-lg text-sm text-tinta/70">
-          {ok.cierres} {ok.cierres === 1 ? "faltante cerrado" : "faltantes cerrados"}
-          {ok.notas > 0 && ` · ${ok.notas} ${ok.notas === 1 ? "nota de crédito registrada" : "notas de crédito registradas"}`}. Quedan en el historial del comprobante.
+          {ok.cierres} {ok.cierres === 1 ? "faltante cerrado" : "faltantes cerrados"}. Quedan en el historial del comprobante.
+        </p>
+      )}
+      {/* El documento del proveedor no se registra acá: se reclama en su módulo (solo líder — `porReclamar` llega en 0 para el resto). */}
+      {ok.porReclamar > 0 && (
+        <p className="flex max-w-lg flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-tinta/70">
+          <span>
+            El proveedor te debe <b className="font-semibold tabular-nums text-ambar-profundo">{soles(ok.porReclamar)}</b> en notas de crédito.
+          </span>
+          <Link href="/compras/notas-credito" className="rounded-full transition-opacity hover:opacity-80">
+            <Chip tono="ambar">Se reclama en Notas de crédito ↗</Chip>
+          </Link>
         </p>
       )}
 

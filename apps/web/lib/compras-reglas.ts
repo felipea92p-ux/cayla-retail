@@ -4,6 +4,8 @@
 // lo importan, y si estuviera junto con las consultas arrastraría
 // `next/headers` al navegador — Next lo rechaza en tiempo de compilación.
 
+import { estadoDeMiTienda } from "./reparto-reglas";
+
 export type EstadoPago = "pendiente" | "parcial" | "pagada" | "anulada";
 export type EstadoRecepcion = "sin_recibir" | "parcial" | "recibida" | "anulada";
 export type Condicion = "contado" | "credito";
@@ -19,7 +21,11 @@ export type CompraResumen = {
   fechaEmision: string;
   condicion: Condicion;
   fechaVencimiento: string | null;
-  ubicacionDestinoId: string;
+  /**
+   * Tiendas a las que está repartido el comprobante (ADR-0139). Antes era UN destino (`ubicacionDestinoId`): una
+   * factura puede traer mercadería para varias tiendas y cada una recibe lo suyo. Un colaborador solo ve la suya.
+   */
+  ubicacionesDestino: string[];
   subtotal: number;
   igv: number;
   total: number;
@@ -43,6 +49,17 @@ export type CompraResumen = {
   creadoEn: string;
   /** Solo se llena en `getCompra` (detalle); la vista no lo expone. */
   motivoAnulacion?: string | null;
+  /**
+   * Lo que le toca a la tienda DESDE LA QUE SE MIRA (ADR-0139): solo viene cuando la lista se pide con una tienda
+   * (siempre para un colaborador). En ese caso `facturadoCantidad`, `recibidoCantidad` y `cerradoCantidad` ya son los
+   * de esa tienda y `estadoRecepcion` se lee desde ella. Sin tienda de por medio, `undefined`.
+   */
+  asignadoAqui?: number;
+  recibidoAqui?: number;
+  cerradoAqui?: number;
+  pendienteAqui?: number;
+  /** Con una tienda de por medio: las unidades del comprobante ENTERO (todas las tiendas). `facturadoCantidad` es lo de ella. */
+  facturadoTotal?: number;
 };
 
 export type LineaCompra = {
@@ -60,6 +77,28 @@ export type LineaCompra = {
   subtotal: number;
   recibido: number;
   /** Unidades cerradas por faltante (D2): no van a llegar. `pendiente` ya las descuenta. */
+  cerrado: number;
+  pendiente: number;
+  // ---- Reparto por tienda (ADR-0139). Con una tienda de por medio, `cantidad`, `recibido`, `cerrado` y `pendiente`
+  // ya son los de ESA tienda (así los topes y «Todo llegó» funcionan por tienda) y lo demás queda acá. Todos son
+  // opcionales: en una base sin reparto (o sin tienda de por medio) no vienen y la pantalla no muestra nada extra.
+  /** Lo facturado en la línea entera, todas las tiendas juntas («de 24 en el comprobante»). */
+  cantidadFacturada?: number;
+  /** Lo que le toca a la tienda desde la que se mira. */
+  asignadoAqui?: number;
+  recibidoAqui?: number;
+  cerradoAqui?: number;
+  pendienteAqui?: number;
+  /** Solo para un líder: cómo va el resto de las tiendas en esta línea. */
+  otrasTiendas?: TiendaEnLinea[];
+};
+
+/** Cómo va UNA tienda en una línea (lo que un líder ve de «las otras tiendas»). */
+export type TiendaEnLinea = {
+  ubicacionId: string;
+  nombre: string;
+  asignado: number;
+  recibido: number;
   cerrado: number;
   pendiente: number;
 };
@@ -288,7 +327,8 @@ export type FilaOperativa = {
   tipo: string;
   documento: string;
   fecha_emision: string;
-  ubicacion_destino_id: string;
+  /** Las tiendas del reparto (ADR-0139); para un colaborador, solo la suya. */
+  ubicaciones_destino?: string[] | null;
   estado: string;
   nota: string | null;
   created_at: string;
@@ -298,9 +338,19 @@ export type FilaOperativa = {
   fecha_estimada_llegada: string | null;
   recepcion_atrasada: boolean;
   cerrado_cantidad: number;
+  /** Lo que le toca a la tienda desde la que se mira (null si la lista se pidió sin tienda). */
+  asignado_aqui?: number | null;
+  recibido_aqui?: number | null;
+  cerrado_aqui?: number | null;
+  pendiente_aqui?: number | null;
 };
 
 export function comprobanteDeFilaOperativa(f: FilaOperativa): CompraResumen {
+  // Con una tienda de por medio, las cifras del comprobante pasan a ser las de ESA tienda (ADR-0139).
+  const aqui =
+    f.asignado_aqui == null
+      ? null
+      : { asignado: Number(f.asignado_aqui), recibido: Number(f.recibido_aqui ?? 0), cerrado: Number(f.cerrado_aqui ?? 0) };
   return {
     id: f.id,
     proveedorId: f.proveedor_id,
@@ -309,16 +359,25 @@ export function comprobanteDeFilaOperativa(f: FilaOperativa): CompraResumen {
     tipo: f.tipo as TipoDocumentoCompra,
     documento: f.documento,
     fechaEmision: f.fecha_emision,
-    ubicacionDestinoId: f.ubicacion_destino_id,
+    ubicacionesDestino: f.ubicaciones_destino ?? [],
     estado: f.estado as "vigente" | "anulada",
     nota: f.nota,
     creadoEn: f.created_at,
-    facturadoCantidad: f.facturado_cantidad,
-    recibidoCantidad: f.recibido_cantidad,
-    estadoRecepcion: f.estado_recepcion as EstadoRecepcion,
+    facturadoCantidad: aqui ? aqui.asignado : f.facturado_cantidad,
+    recibidoCantidad: aqui ? aqui.recibido : f.recibido_cantidad,
+    estadoRecepcion: aqui ? estadoDeMiTienda(aqui) : (f.estado_recepcion as EstadoRecepcion),
     fechaEstimadaLlegada: f.fecha_estimada_llegada,
     recepcionAtrasada: f.recepcion_atrasada,
-    cerradoCantidad: f.cerrado_cantidad,
+    cerradoCantidad: aqui ? aqui.cerrado : f.cerrado_cantidad,
+    ...(aqui
+      ? {
+          facturadoTotal: f.facturado_cantidad,
+          asignadoAqui: aqui.asignado,
+          recibidoAqui: aqui.recibido,
+          cerradoAqui: aqui.cerrado,
+          pendienteAqui: Number(f.pendiente_aqui ?? Math.max(0, aqui.asignado - aqui.recibido - aqui.cerrado)),
+        }
+      : {}),
     // Sin dato: la función no los devuelve. Ninguna pantalla de recibir los muestra.
     condicion: "contado",
     fechaVencimiento: null,
@@ -341,4 +400,32 @@ export function comprobanteDeFilaOperativa(f: FilaOperativa): CompraResumen {
  */
 export function esFuncionAusente(error: { code?: string | null } | null | undefined): boolean {
   return error?.code === "PGRST202" || error?.code === "42883";
+}
+
+// ---------- filtro «Destino» de Comprobantes y Por pagar (ADR-0139, migración 20260921130000) ----------
+
+/** Un id de tienda válido en la URL (`?dest=…`), o `undefined`: cualquier otra cosa se descarta en vez de llegar a la base. */
+export function destinoDesdeParam(valor: string | null | undefined): string | undefined {
+  const v = valor?.trim();
+  return v && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v) ? v.toLowerCase() : undefined;
+}
+
+/** El texto de la etiqueta que se muestra al aplicar el filtro; si la tienda ya no está entre las activas, no inventa un nombre. */
+export function textoChipDestino(tiendaId: string, tiendas: { id: string; nombre: string }[]): string {
+  const t = tiendas.find((x) => x.id === tiendaId);
+  return t ? `Destino: ${t.nombre}` : "Destino: otra tienda";
+}
+
+/**
+ * Lo que se le dice a quien elige una tienda en «Destino» si la base todavía no tiene la migración que agrega
+ * `p_ubicacion_id` a `listar_compras` / `por_pagar_tramos` (el despliegue llegó antes que el SQL). La lista SIN
+ * filtro sigue funcionando: solo se cae quien pide la tienda, y con un mensaje que dice por qué en vez de mostrar
+ * todo bajo un rótulo que mentiría.
+ */
+export const MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE =
+  "El filtro por tienda todavía no está disponible: falta aplicar una actualización de la base de datos. Quita el filtro «Destino» para ver los comprobantes.";
+
+/** Lo mismo para una TABLA o VISTA que la base todavía no tiene (PostgREST `PGRST205`, Postgres `42P01`). */
+export function esRelacionAusente(error: { code?: string | null } | null | undefined): boolean {
+  return error?.code === "PGRST205" || error?.code === "42P01";
 }

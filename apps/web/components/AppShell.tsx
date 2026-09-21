@@ -8,6 +8,8 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { Boton } from "@/components/ui/campos";
 import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
+// El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
+import { esGrupoMenu as esGrupo, menuPara, permisosDe, rutaActiva, type AccionNuevo, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item } from "@/lib/menu";
 import { PerfilModal } from "@/components/PerfilModal";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 
@@ -64,8 +66,9 @@ type Persona = {
   rol: "lider" | "integrante";
   ubicacionId: string;
   ubicacionEtiqueta: string;
-  /** Producción (2026-09-15): un integrante del Taller ve el módulo sin ser
-   *  líder. Solo el AppShell lo mira; el permiso real lo da la base. */
+  /** Producción (2026-09-15): decide si se ve el módulo del Taller — solo cuando
+   *  la ubicación activa es un Taller, sea quien sea la persona. Lo miran el
+   *  AppShell y las páginas de Producción; el permiso real lo da la base. */
   ubicacionTipo: "tienda" | "almacen" | "taller";
   puedeCambiarUbicacion: boolean;
 };
@@ -91,10 +94,12 @@ function Icono({ d, className }: { d: string; className?: string }) {
     </svg>
   );
 }
-const IC = {
+// Tipado contra `ClaveIcono` (lib/menu.ts): un nodo del árbol que nombre un ícono sin trazo acá no compila.
+const IC: Record<ClaveIcono | "nuevo" | "chevron", string> = {
   inicio: "M3 11l9-8 9 8M5 9.5V21h5v-6h4v6h5V9.5",
   vender: "M6 6h15l-1.5 9h-12L6 6zm0 0L5 3H2m7 18a1 1 0 100-2 1 1 0 000 2zm9 0a1 1 0 100-2 1 1 0 000 2z",
   caja: "M12 3v18m4-15H10a2.5 2.5 0 000 5h4a2.5 2.5 0 010 5H8",
+  historial: "M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8M3 3v5h5M12 7v5l4 2",
   productos: "M20.5 7.3L12 12m0 0L3.5 7.3M12 12v9m8.5-13.7v9.4a1 1 0 01-.5.87l-7.5 4.3a1 1 0 01-1 0l-7.5-4.3a1 1 0 01-.5-.87V7.3a1 1 0 01.5-.87l7.5-4.3a1 1 0 011 0l7.5 4.3a1 1 0 01.5.87z",
   inventario: "M4 7l8-4 8 4v10l-8 4-8-4V7zm8 4L4 7m8 4l8-4m-8 4v10",
   movimientos: "M3 7h13m0 0l-4-4m4 4l-4 4M21 17H8m0 0l4 4m-4-4l4-4",
@@ -108,6 +113,8 @@ const IC = {
   facturacion: "M9 12h6m-6 4h6M9 8h1m3.5-5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 3z",
   compras: "M3 4h2l2.2 11.2a1 1 0 001 .8h9.6a1 1 0 001-.8L20 8H6.5M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2zM12 8v4m-2-2h4",
   colaboradores: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
+  // Carrete de hilo: la materia prima del Taller (tela y avíos) — Insumos, hija de Producción.
+  insumos: "M7 4h10M7 20h10M8 4v16M16 4v16M8 9h8M8 12h8M8 15h8",
   produccion: "M6 9a3 3 0 100-6 3 3 0 000 6zm0 12a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12",
   // Flechas verticales (no las horizontales de "movimientos", para no leerse
   // como el mismo ícono con otro nombre): cambiar una talla por otra.
@@ -137,6 +144,8 @@ const IC = {
   recibir: "M22 12h-6l-2 3h-4l-2-3H2 M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z",
   // Reloj: lo que todavía no se pagó, contra una fecha.
   porPagar: "M12 22a10 10 0 100-20 10 10 0 000 20z M12 6v6l4 2",
+  // Recibo con una flecha que vuelve: el documento por el que el proveedor devuelve dinero.
+  notasCredito: "M4 3h13a1 1 0 011 1v15.5a1.5 1.5 0 01-2.4 1.2L14 19l-2.2 1.7a1 1 0 01-1.2 0L8.4 19l-2.2 1.7A1.5 1.5 0 014 19.5V4a1 1 0 011-1z M8 8h6 M8 12h4",
   chevron: "M9 6l6 6-6 6",
 };
 
@@ -151,16 +160,9 @@ const AIRE_FILA = 8; // px entre filas
 const PASO_FILA = ALTO_FILA + AIRE_FILA;
 const ALTO_RIEL = 20; // px — la misma marca de canto del listbox de campos.tsx
 
-type Item = { href: string; etiqueta: string; icono: string; /** Cuántas cosas de este ítem piden acción a quien mira; 0 o ausente = sin insignia. */ contador?: number };
-// Cabecera colapsable: agrupa Items bajo un nombre común, no navega (sin
-// href propio). `id` identifica el grupo en los mapas de estado de abajo
-// (gruposAbiertos/gruposTocados) — con un solo grupo ("Venta", al nacer)
-// alcanzaba una variable por nombre; con dos hace falta una clave.
-type ItemGrupo = { id: string; etiqueta: string; icono: string; hijos: Item[] };
-type FilaMenu = Item | ItemGrupo;
-function esGrupo(f: FilaMenu): f is ItemGrupo {
-  return "hijos" in f;
-}
+// `Item` (una pantalla) e `ItemGrupo` (una cabecera colapsable que no navega) llegan de `lib/menu.ts`. `id` identifica el
+// grupo en los mapas de estado de abajo (gruposAbiertos/gruposTocados) — con un solo grupo alcanzaba una variable por
+// nombre; con varios hace falta una clave. `icono` es una clave: el trazo sale de `IC[clave]`.
 
 /* ------------------------------------------------------------------
    Una sección del lateral. Cada grupo lleva su propio riel: con un
@@ -313,7 +315,7 @@ function GrupoLateral({
                 >
                   <FantasmaRiel esActivo={esActivo} />
                   <Icono
-                    d={it.icono}
+                    d={IC[it.icono]}
                     className={`h-5 w-5 shrink-0 transition-[transform,color] duration-300 ease-cayla ${
                       esActivo ? "text-tinta" : "text-tinta/60 group-hover:translate-x-0.5 group-hover:text-rojo"
                     }`}
@@ -344,7 +346,7 @@ function GrupoLateral({
                 className={`w-full text-left ${claseFila(esActivo, false)}`}
               >
                 <Icono
-                  d={it.icono}
+                  d={IC[it.icono]}
                   className={`h-5 w-5 shrink-0 transition-colors duration-300 ease-cayla ${
                     esActivo || contieneActivo ? "text-tinta" : "text-tinta/60 group-hover:text-rojo"
                   }`}
@@ -379,7 +381,7 @@ function GrupoLateral({
                               el riel mostrando su próximo destino, no un efecto aparte. */}
                           <FantasmaRiel esActivo={hijoActivo} />
                           <Icono
-                            d={h.icono}
+                            d={IC[h.icono]}
                             className={`h-5 w-5 shrink-0 transition-[transform,color] duration-300 ease-cayla ${
                               hijoActivo ? "text-tinta" : "text-tinta/60 group-hover:translate-x-0.5 group-hover:text-rojo"
                             }`}
@@ -443,26 +445,9 @@ function InsigniaFila({ n, compacto }: { n: number; compacto: boolean }) {
    arrastrar un buscador de "próximo elemento tabulable" para un menú
    de cinco opciones. Nunca deja el foco flotando, que era el problema.
    ------------------------------------------------------------------ */
-// Fase UI 1 (2026-09-11) + Prioridad 1 (2026-09-12): recortado a las
-// escrituras que V2 ya tiene resueltas de punta a punta (RPC + pantalla).
-// "Nuevo producto" y "Registrar gasto" vuelven cuando su propia pantalla se
-// adapte (Fase 2/3/4) — ofrecerlas antes sería un enlace que compila y
-// revienta contra un esquema que ya no existe. "Nueva venta" exige caja
-// abierta — si no hay, /vender lo explica y manda a /caja, no es un enlace roto.
-//
-// ADR-0111: UNA sola puerta para recibir. ADR-0113: la misma para todos — Recibir mercadería salió de
-// Compras (solo líder) a `/recibir`, porque cuenta cualquier colaborador de la sede. «Registrar comprobante»
-// sigue siendo del líder: es dinero. El «Ingreso sin comprobante» queda como excepción, dentro de esa pantalla.
-function MenuNuevo({ onClose, esLider }: { onClose: () => void; esLider: boolean }) {
-  const acciones = [
-    { href: "/vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta" },
-    ...(esLider ? [{ href: "/compras/nueva", etiqueta: "Registrar comprobante", detalle: "Una compra a proveedor, con su pago si es al contado" }] : []),
-    { href: "/recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó, contra sus comprobantes" },
-    { href: "/inventario/mover", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones" },
-    { href: "/cambios", etiqueta: "Registrar cambio", detalle: "La clienta cambia una prenda por otra talla o color" },
-    { href: "/devoluciones", etiqueta: "Registrar devolución", detalle: "Una clienta devuelve algo que compró" },
-  ];
-
+// Qué acciones ofrece y a quién (Fase UI 1, ADR-0111, ADR-0113) lo decide `ACCIONES_NUEVO` en `lib/menu.ts`;
+// acá llegan ya filtradas para quien mira (`menu.nuevo`).
+function MenuNuevo({ onClose, acciones }: { onClose: () => void; acciones: AccionNuevo[] }) {
   const [activo, setActivo] = useState(0);
   const filas = useRef<(HTMLAnchorElement | null)[]>([]);
   const tipeo = useRef({ texto: "", reloj: 0 });
@@ -695,7 +680,7 @@ function CajonGrupo({
             }`}
           >
             {esActivo && <span aria-hidden className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo" />}
-            <Icono d={h.icono} className={`h-[18px] w-[18px] shrink-0 transition-colors ${esActivo ? "text-tinta" : "text-tinta/60 group-hover:text-rojo"}`} />
+            <Icono d={IC[h.icono]} className={`h-[18px] w-[18px] shrink-0 transition-colors ${esActivo ? "text-tinta" : "text-tinta/60 group-hover:text-rojo"}`} />
             <span className="flex-1">{h.etiqueta}</span>
             <Insignia n={h.contador ?? 0} etiqueta="por atender" />
           </Link>
@@ -816,8 +801,14 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
     disparadorNuevo.current?.focus();
   }, []);
 
-  const activo = (href: string) =>
-    href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
+  const activo = (href: string) => rutaActiva(pathname, href);
+
+  // El menú de esta persona: filas, barra del celular, «+ Nuevo» y qué grupo contiene cada ruta. Todo sale de `lib/menu.ts`.
+  const menu = menuPara({
+    permisos: permisosDe(persona.rol),
+    ubicacionTipo: persona.ubicacionTipo,
+    contadores: { trasladosPorAtender },
+  });
 
   // Grupos colapsables: arrancan CERRADOS por defecto (pedido de Felipe,
   // 2026-09-16 — con "Catálogo" sumado a "Venta" se veía todo desplegado a
@@ -825,18 +816,10 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   // La única excepción es el grupo que CONTIENE la ruta en la que se
   // aterriza: cargar directo `/vender` o `/productos/colores` (recarga, link
   // externo, no un clic dentro de la app) tiene que abrir ESE grupo solo —
-  // si no, la fila activa quedaría escondida detrás de un grupo cerrado. La
-  // lista de rutas por grupo es la misma fuente que arma `hijos` más abajo,
-  // repetida a mano porque los grupos todavía no existen a esta altura de
-  // la función.
-  const RUTAS_POR_GRUPO: Record<string, string[]> = {
-    venta: ["/vender", "/caja", "/cambios", "/devoluciones", "/vender/facturacion"],
-    catalogo: ["/productos", "/productos/categorias", "/productos/atributos", "/productos/marcas"],
-    // «Recibir mercadería» (/recibir) vive en Compras para el líder y en Inventario para quien no lo es.
-    compras: ["/compras", "/compras/proveedores", "/compras/por-pagar", ...(esLider ? ["/recibir"] : [])],
-    inventario: ["/inventario", "/inventario/movimientos", "/inventario/traslados", "/inventario/conteo", "/inventario/resumen", ...(esLider ? [] : ["/recibir"])],
-  };
-  const grupoActivo = Object.entries(RUTAS_POR_GRUPO).find(([, rutas]) => rutas.some((h) => activo(h)))?.[0] ?? null;
+  // si no, la fila activa quedaría escondida detrás de un grupo cerrado. Qué
+  // grupo contiene cada ruta lo decide el árbol (`menu.grupoDe`), no una lista
+  // repetida a mano acá.
+  const grupoActivo = menu.grupoDe(pathname);
 
   const [gruposAbiertos, setGruposAbiertos] = useState<Record<string, boolean>>(() =>
     grupoActivo ? { [grupoActivo]: true } : {}
@@ -859,131 +842,17 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
     }
   }
 
-  const inicio: Item = { href: "/", etiqueta: "Inicio", icono: IC.inicio };
-  const puntoDeVenta: Item = { href: "/vender", etiqueta: "Punto de Venta", icono: IC.vender };
-  const caja: Item = { href: "/caja", etiqueta: "Caja", icono: IC.caja };
-  const cambios: Item = { href: "/cambios", etiqueta: "Cambios", icono: IC.cambios };
-  const devoluciones: Item = { href: "/devoluciones", etiqueta: "Devoluciones", icono: IC.devoluciones };
-  const productos: Item = { href: "/productos", etiqueta: "Productos", icono: IC.productos };
-  const categorias: Item = { href: "/productos/categorias", etiqueta: "Categorías", icono: IC.categorias };
-  // Reemplaza a Colores/Tallas/Tejidos/Patrones/Etiquetas como filas sueltas
-  // (2026-09-17, pedido de Felipe: "con 3 está bien") — las 5 siguen vivas,
-  // ahora como pestañas dentro de `/productos/atributos`.
-  const atributos: Item = { href: "/productos/atributos", etiqueta: "Atributos", icono: IC.atributos };
-  // Lo que espera a quien mira: sin número (0/null) no hay insignia.
-  const nTraslados = trasladosPorAtender && trasladosPorAtender > 0 ? trasladosPorAtender : undefined;
-  const inventario: Item = { href: "/inventario", etiqueta: "Inventario", icono: IC.inventario, contador: nTraslados };
-  // Los cuatro hijos de Inventario (Felipe, 2026-09-16, integrando sus
-  // diseños): "Existencias" es la raíz del módulo; Movimientos se mudó de
-  // `/movimientos` a `/inventario/movimientos` (la ruta vieja redirige).
-  const existencias: Item = { href: "/inventario", etiqueta: "Existencias", icono: IC.inventario };
-  const movimientos: Item = { href: "/inventario/movimientos", etiqueta: "Movimientos", icono: IC.movimientos };
-  const traslados: Item = { href: "/inventario/traslados", etiqueta: "Traslados", icono: IC.traslados, contador: nTraslados };
-  const conteo: Item = { href: "/inventario/conteo", etiqueta: "Conteo", icono: IC.conteo };
-  // Quinta pestaña de Inventario (ADR-0101): decisión a nivel sede, solo líder —
-  // mismo criterio de visibilidad que Compras.
-  const resumen: Item = { href: "/inventario/resumen", etiqueta: "Resumen", icono: IC.resumen };
-  const facturacion: Item = { href: "/vender/facturacion", etiqueta: "Facturación", icono: IC.facturacion };
-  // Mismas cuatro secciones y mismo orden que ya definía `ComprasNav.tsx`
-  // (la factura del proveedor es el eje; "Recibir mercadería" y "Por pagar"
-  // son lo que se hace CONTRA una factura) — esa nav queda redundante con
-  // el grupo del lateral, igual que pasó con Productos/Categorías/Colores.
-  const proveedores: Item = { href: "/compras/proveedores", etiqueta: "Proveedores", icono: IC.proveedores };
-  const facturas: Item = { href: "/compras", etiqueta: "Comprobantes", icono: IC.facturas };
-  const recibirMercaderia: Item = { href: "/recibir", etiqueta: "Recibir mercadería", icono: IC.recibir };
-  const porPagar: Item = { href: "/compras/por-pagar", etiqueta: "Por pagar", icono: IC.porPagar };
-  const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };
-  const produccion: Item = { href: "/produccion", etiqueta: "Producción", icono: IC.produccion };
-  // Producción (revertido 2026-09-17, pedido de Felipe): vuelve a verse SOLO
-  // parado en el Taller, líder incluido. La "restauración" del 15-sep dejaba
-  // Producción visible para el líder aunque estuviera parado en una tienda —
-  // justo la inconsistencia que se pidió corregir: el menú debe reflejar
-  // siempre dónde estás parado, igual que Vender/Inventario/Compras. Si el
-  // líder necesita decidir qué se fabrica, se para en el Taller con el
-  // selector de ubicación, como con cualquier otra pantalla operativa.
-  const veProduccion = persona.ubicacionTipo === "taller";
-
-  // Integración con Dynamic (2026-09-12): "Colaboradores" salió del nav
-  // porque Dynamic es dueño de la IDENTIDAD (alta, rol, sede, activar/
-  // desactivar) — eso sigue igual, retail no la administra ni la duplica.
-  // Vuelve el 2026-09-13 con un significado distinto y propio de retail:
-  // no "quién es esta persona" sino "a quién de Dynamic le doy entrada a
-  // retail" (0013_colaboradores_autorizados.sql — "control total temporal"
-  // de 0012 abrió la puerta a cualquiera; esto la vuelve a cerrar a una
-  // lista elegida). Comercial y Finanzas siguen sin pantalla V2, siguen
-  // fuera por esa otra razón. "Facturación" (0010_facturacion.sql) —
-  // líder-only, emite documentos legales ante SUNAT.
-  // "Venta" agrupa el mostrador + lo legal del cobro (rediseño 2026-09-15):
-  // Punto de Venta/Caja/Cambios/Devoluciones son de cualquier integrante;
-  // Facturación queda adentro pero sigue líder-only, igual que siempre.
-  const grupoVenta: ItemGrupo = {
-    id: "venta",
-    etiqueta: "Ventas",
-    icono: IC.venta,
-    hijos: [puntoDeVenta, caja, cambios, devoluciones, ...(esLider ? [facturacion] : [])],
-  };
-  // "Catálogo" agrupa qué ES una prenda (Productos) y el vocabulario del que
-  // cuelga (Categorías, Colores) — pedido de Felipe, 2026-09-16, de
-  // mantenerlos separados del resto del menú. Categorías/Colores solo vivían
-  // como pestañas de `ProductosNav.tsx` dentro de `/productos`; esa nav
-  // queda redundante con el grupo y se retira de las 4 pantallas que la usaban.
-  const grupoCatalogo: ItemGrupo = {
-    id: "catalogo",
-    etiqueta: "Catálogo",
-    icono: IC.catalogo,
-    hijos: [productos, categorias, atributos],
-  };
-  // "Compras" agrupa las cuatro pantallas que antes vivían como pestañas de
-  // `ComprasNav.tsx` (pedido de Felipe, 2026-09-16, mismo criterio que
-  // Catálogo: "generalizado y ordenado"). Líder-only, como ya era la
-  // "Compras" plana que reemplaza — registra facturas y pagos a proveedor.
-  const grupoCompras: ItemGrupo = {
-    id: "compras",
-    etiqueta: "Compras",
-    icono: IC.compras,
-    hijos: [proveedores, facturas, recibirMercaderia, porPagar],
-  };
-
-  // "Inventario" agrupa las cuatro pantallas del stock (Felipe, 2026-09-16,
-  // integrando sus diseños; mismo criterio que Catálogo y Compras). Antes
-  // eran tres filas sueltas (Movimientos, Inventario, Traslados) y Conteo
-  // solo se alcanzaba por pestaña. Lo ve cualquier integrante: opera stock,
-  // recibe y cuenta, con menos permisos dentro de cada pantalla.
-  const grupoInventario: ItemGrupo = {
-    id: "inventario",
-    etiqueta: "Inventario",
-    icono: IC.inventario,
-    // Quien no es líder no tiene el grupo Compras: su puerta a «Recibir mercadería» está acá, donde vive el stock.
-    hijos: [existencias, movimientos, traslados, conteo, ...(esLider ? [resumen] : [recibirMercaderia])],
-  };
-
-  const grupos = [
-    {
-      titulo: null,
-      // Orden pedido por Felipe, 2026-09-16: Inicio, Colaboradores, Catálogo,
-      // Producción, Compras, Ventas, Inventario.
-      items: [
-        inicio,
-        ...(esLider ? [colaboradores] : []),
-        grupoCatalogo,
-        ...(veProduccion ? [produccion] : []),
-        ...(esLider ? [grupoCompras] : []),
-        grupoVenta,
-        grupoInventario,
-      ],
-    },
-  ].filter((g) => g.items.length > 0);
+  // Sin rótulos de sección a propósito: el riel del lateral se mueve por filas de alto fijo (`PASO_FILA`) y una fila de
+  // otra altura lo desalinearía. Un solo bloque de filas, en el orden que dice el árbol.
+  const grupos = [{ titulo: null, items: menu.riel }].filter((g) => g.items.length > 0);
 
   const grupoDelCajon = cajon
     ? (grupos.flatMap((x) => x.items).find((f): f is ItemGrupo => esGrupo(f) && f.id === cajon.grupoId) ?? null)
     : null;
 
-  // Celular: 5 columnas fijas con el "+" al centro. Punto de Venta y Caja
-  // son las de uso diario en el mostrador; Productos/Movimientos/
-  // Colaboradores quedan a un toque del lateral (no entran en 5 columnas
-  // fijas). El lateral de escritorio (con el grupo "Venta") no existe en
-  // celular — esta barra es su propia estructura, sin cambios acá.
-  const columnas: (Item | null)[] = [inicio, puntoDeVenta, null, inventario, caja];
+  // Celular: 5 columnas fijas con el "+" al centro (`null`). Punto de Venta y Caja son las de uso diario en el
+  // mostrador; lo demás queda a un toque del lateral. Qué columnas son lo decide `COLUMNAS_MOVIL` (lib/menu.ts).
+  const columnas = menu.movil;
   const indiceMovil = columnas.findIndex((c) => c !== null && activo(c.href));
 
   const iniciales =
@@ -1220,7 +1089,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
                 className={`flex flex-col items-center gap-1 py-3 transition-colors ${n === indiceMovil ? "text-rojo" : "text-tinta/70"}`}
               >
                 <span className="relative">
-                  <Icono d={c.icono} className="h-[22px] w-[22px]" />
+                  <Icono d={IC[c.icono]} className="h-[22px] w-[22px]" />
                   {c.contador ? <Insignia n={c.contador} etiqueta="por atender" tamano="compacta" className="absolute -right-3 -top-2" /> : null}
                 </span>
                 <span className="text-[11px]">{c.etiqueta}</span>
@@ -1230,7 +1099,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         </div>
       </nav>
 
-      {nuevoAbierto && <MenuNuevo onClose={cerrarNuevo} esLider={esLider} />}
+      {nuevoAbierto && <MenuNuevo onClose={cerrarNuevo} acciones={menu.nuevo} />}
     </div>
   );
 }

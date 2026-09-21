@@ -70,6 +70,11 @@
   "src_table": "compra_pagos"
  },
  {
+  "conname": "compra_reasignaciones_usuario_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_reasignaciones"
+ },
+ {
   "conname": "compras_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "compras"
@@ -88,6 +93,16 @@
   "conname": "comprobantes_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "comprobantes"
+ },
+ {
+  "conname": "comprobantes_produccion_usuario_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "comprobantes_produccion"
+ },
+ {
+  "conname": "comprobantes_produccion_pagos_usuario_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "comprobantes_produccion_pagos"
  },
  {
   "conname": "conteos_abierto_por_fkey",

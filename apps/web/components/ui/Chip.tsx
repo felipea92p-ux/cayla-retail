@@ -14,6 +14,10 @@ import type { ReactNode } from "react";
    comprobantes-reglas.ts (misma receta: borde al 30%, fondo al 10%,
    texto en la variante "profunda" para que apruebe contraste). Vive en
    ui/ para que Facturación y Compras dibujen el mismo chip.
+
+   `vivo` (2026-09-19, ADR-0136, opt-in): un puntito rojo que late suave junto al texto —el
+   chip «Vencida» de Comprobantes, lo único de la lista que pide actuar HOY—. Es la única
+   animación en bucle permitida en la pantalla; con movimiento reducido el punto queda quieto.
    ==================================================================== */
 
 export type TonoChip = "neutro" | "ambar" | "verde" | "rojo" | "apagado";
@@ -30,6 +34,7 @@ const TONO: Record<TonoChip, string> = {
 export function Chip({
   tono = "neutro",
   versalitas = true,
+  vivo = false,
   children,
   className = "",
 }: {
@@ -38,11 +43,18 @@ export function Chip({
    *  estado que se lee como frase ("Vence en 2 días"). El default deja a Compras y
    *  Facturación exactamente como estaban. */
   versalitas?: boolean;
+  /** Punto que late suave antes del texto (solo con `versalitas`). Reservado a lo que pide actuar hoy. */
+  vivo?: boolean;
   children: ReactNode;
   className?: string;
 }) {
   const forma = versalitas
-    ? "label-cayla inline-block px-2.5 py-0.5 text-[10px] leading-4"
+    ? `label-cayla ${vivo ? "inline-flex items-center gap-1.5" : "inline-block"} px-2.5 py-0.5 text-[10px] leading-4`
     : "inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold leading-5";
-  return <span className={`${forma} whitespace-nowrap rounded-full border ${TONO[tono]} ${className}`}>{children}</span>;
+  return (
+    <span className={`${forma} whitespace-nowrap rounded-full border ${TONO[tono]} ${className}`}>
+      {vivo && versalitas && <span aria-hidden className="cmp-punto-vivo" />}
+      {children}
+    </span>
+  );
 }

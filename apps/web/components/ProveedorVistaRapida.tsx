@@ -7,7 +7,7 @@ import { ChevronDown, ChevronUp, X } from "lucide-react";
 import type { Proveedor } from "@/lib/proveedores";
 import { soles } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
-import { estadoDeProveedor, haceCuanto, inicialesMeses, siguientePaso } from "@/lib/proveedores-reglas";
+import { estadoDeProveedor, haceCuanto, inicialesMeses, siguientePaso, sinDatosDePago } from "@/lib/proveedores-reglas";
 import { BarrasMensuales } from "@/components/ui/BarrasMensuales";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -27,6 +27,7 @@ const MS_SALIDA = 240;
 // Cierre en dos tiempos, igual que `Modal`: primero se anima la salida y recién ahí se le avisa al padre.
 export function ProveedorVistaRapida({
   proveedor: p,
+  marcas,
   serie,
   posicion,
   cambiando,
@@ -35,6 +36,8 @@ export function ProveedorVistaRapida({
   onCambiarEstado,
 }: {
   proveedor: Proveedor;
+  /** Marcas con que se conoce al proveedor (ADR-0140). Vacío si no tiene o no se pudieron leer. */
+  marcas: readonly string[];
   /** Doce montos mensuales; `null` si la función de series no está disponible (se omite la sección). */
   serie: number[] | null;
   posicion: { indice: number; total: number };
@@ -81,7 +84,13 @@ export function ProveedorVistaRapida({
                 </Dialog.Description>
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                   {p.rubro && <Chip className="normal-case tracking-normal font-medium text-xs">{p.rubro}</Chip>}
+                  {marcas.map((m) => (
+                    <Chip key={m} className="normal-case tracking-normal font-medium text-xs">
+                      {m}
+                    </Chip>
+                  ))}
                   {p.plazo_credito_dias != null && <Chip className="normal-case tracking-normal font-medium text-xs">Crédito a {p.plazo_credito_dias} días</Chip>}
+                  {p.activo && sinDatosDePago(p) && <Chip tono="ambar" className="normal-case tracking-normal font-medium text-xs">Sin datos de pago</Chip>}
                   {!p.activo && <Chip tono="rojo" className="normal-case tracking-normal font-medium text-xs">Desactivado</Chip>}
                 </div>
               </div>

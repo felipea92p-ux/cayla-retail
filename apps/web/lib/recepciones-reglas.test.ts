@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { chipLlegada, cierresElegidos, diasDeAtraso, efectoCierre, estadoLinea, etiquetaConfirmar, faltanteDeLinea, fechaEsperada, disponibilidadNota, igvDeMonto, montoDeCierres, notaDelBloque, reparteNota, sinDecidir, textoReparteNota, montoNotaSugerido, ordenarPorUrgencia, resumenConteo, tasaIgv, textoEsperada, valorPorLlegar } from "./recepciones-reglas";
+import type { CompraResumen } from "./compras-reglas";
+import type { NotaCreditoCompra } from "./compras-faltantes";
+import { chipLlegada, cierresElegidos, diasDeAtraso, efectoCierre, estadoLinea, etiquetaConfirmar, estadoNotaFaltante, faltanteDeLinea, fechaEsperada, disponibilidadNota, igvDeMonto, montoDeCierres, notaDelBloque, notasPorReclamar, reparteNota, sinDecidir, textoReparteNota, montoNotaSugerido, ordenarPorUrgencia, resumenConteo, tasaIgv, textoEsperada, valorPorLlegar } from "./recepciones-reglas";
 
 // Hoy en Lima = 2026-09-18 (a las 19:30 de Lima en UTC ya es 09-19).
 const AHORA = new Date("2026-09-19T00:30:00Z");
@@ -132,6 +134,56 @@ describe("disponibilidadNota: se anticipa lo que la base va a exigir", () => {
   });
 });
 
+describe("notasPorReclamar: Recepción avisa lo que el proveedor va a deber, ya no lo registra", () => {
+  const compra = (id: string) => ({ id, documento: `F001-${id}`, proveedorNombre: "Textiles Andina SAC", igv: 18, subtotal: 100 });
+  const bloque = (id: string, extra: Partial<{ cierresAhora: { faltan: number; costoUnitario: number }[]; cerradoAntes: { faltan: number; costoUnitario: number }[]; yaTieneNotaFaltante: boolean }> = {}) => ({
+    compra: compra(id),
+    cierresAhora: [],
+    cerradoAntes: [],
+    yaTieneNotaFaltante: false,
+    ...extra,
+  });
+
+  it("lo que se cierra en esta guía se avisa a su costo con IGV", () => {
+    expect(notasPorReclamar([bloque("c1", { cierresAhora: [{ faltan: 4, costoUnitario: 50 }] })])).toEqual([
+      { compraId: "c1", documento: "F001-c1", proveedorNombre: "Textiles Andina SAC", unidades: 4, cerrandoAhora: 4, monto: 236 },
+    ]);
+  });
+  it("un faltante cerrado en una guía anterior sigue avisándose, con `cerrandoAhora` en 0", () => {
+    expect(notasPorReclamar([bloque("c1", { cerradoAntes: [{ faltan: 2, costoUnitario: 50 }] })])).toMatchObject([{ unidades: 2, cerrandoAhora: 0, monto: 118 }]);
+  });
+  it("lo de antes y lo de ahora suman en un solo reclamo: la nota es una sola por comprobante", () => {
+    expect(notasPorReclamar([bloque("c1", { cerradoAntes: [{ faltan: 2, costoUnitario: 50 }], cierresAhora: [{ faltan: 4, costoUnitario: 50 }] })])).toMatchObject([{ unidades: 6, cerrandoAhora: 4, monto: 354 }]);
+  });
+  it("sin nada cerrado, o con la nota ya registrada, no hay nada que reclamar", () => {
+    expect(notasPorReclamar([bloque("c1")])).toEqual([]);
+    expect(notasPorReclamar([bloque("c1", { cierresAhora: [{ faltan: 4, costoUnitario: 50 }], yaTieneNotaFaltante: true })])).toEqual([]);
+  });
+  it("un envío de varios comprobantes deja un reclamo por comprobante", () => {
+    const r = notasPorReclamar([bloque("c1", { cierresAhora: [{ faltan: 1, costoUnitario: 100 }] }), bloque("c2"), bloque("c3", { cerradoAntes: [{ faltan: 1, costoUnitario: 200 }] })]);
+    expect(r.map((x) => x.compraId)).toEqual(["c1", "c3"]);
+  });
+});
+
+describe("estadoNotaFaltante: vive en un módulo puro para que el detalle (servidor) pueda llamarla", () => {
+  // Solo importan las tres cantidades; el resto del comprobante no interviene.
+  const compra = (facturado: number, recibido: number, cerrado: number) => ({ facturadoCantidad: facturado, recibidoCantidad: recibido, cerradoCantidad: cerrado }) as CompraResumen;
+  const nota = (motivo: string) => ({ motivo }) as NotaCreditoCompra;
+  it("con unidades cerradas y todo lo demás recibido, la nota por faltante está disponible", () => {
+    expect(estadoNotaFaltante(compra(24, 20, 4), [])).toEqual({ estado: "disponible" });
+  });
+  it("sin nada cerrado no hay nota por faltante", () => {
+    expect(estadoNotaFaltante(compra(24, 24, 0), [])).toEqual({ estado: "sin_cierres" });
+  });
+  it("si aún quedan unidades sin recibir ni cerrar, dice cuántas", () => {
+    expect(estadoNotaFaltante(compra(24, 10, 4), [])).toEqual({ estado: "bloqueada", quedan: 10 });
+  });
+  it("una nota de otro motivo no cuenta como la del faltante; la del faltante, sí", () => {
+    expect(estadoNotaFaltante(compra(24, 20, 4), [nota("devolucion")])).toEqual({ estado: "disponible" });
+    expect(estadoNotaFaltante(compra(24, 20, 4), [nota("faltante")])).toEqual({ estado: "ya_registrada" });
+  });
+});
+
 describe("reparteNota: la nota baja la deuda y lo que sobra queda a favor", () => {
   const dinero = (n: number) => `S/ ${n.toFixed(2)}`;
   const p = { documento: "F001-000198", proveedor: "Textiles Andina", dinero };
@@ -183,6 +235,9 @@ describe("valorPorLlegar", () => {
     expect(valorPorLlegar({ total: 3186, facturadoCantidad: 120, recibidoCantidad: 72 })).toBe(1274.4);
     expect(valorPorLlegar({ total: 3186, facturadoCantidad: 120, recibidoCantidad: 72, cerradoCantidad: 48 })).toBe(0);
     expect(valorPorLlegar({ total: 100, facturadoCantidad: 0, recibidoCantidad: 0 })).toBe(0);
+    // ADR-0139: una tienda con 18 de las 36 unidades del comprobante NO debe ver el total entero como «por llegar».
+    expect(valorPorLlegar({ total: 2124, facturadoCantidad: 18, facturadoTotal: 36, recibidoCantidad: 0 })).toBe(1062);
+    expect(valorPorLlegar({ total: 2124, facturadoCantidad: 18, facturadoTotal: 36, recibidoCantidad: 6, cerradoCantidad: 2 })).toBe(590);
   });
 });
 

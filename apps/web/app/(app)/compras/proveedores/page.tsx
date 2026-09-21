@@ -1,5 +1,5 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getProveedores, getProveedoresResumen, getProveedoresSerie } from "@/lib/proveedores";
+import { getMarcasPorProveedor, getProveedores, getProveedoresResumen, getProveedoresSerie } from "@/lib/proveedores";
 import { ProveedoresPanel } from "@/components/ProveedoresPanel";
 
 // Directorio de proveedores (20260914150000_proveedores_administrables.sql).
@@ -18,10 +18,14 @@ import { ProveedoresPanel } from "@/components/ProveedoresPanel";
 // y la barra de concentración conversa con la tabla). La serie mensual (`fn_proveedores_serie_12m`) es
 // opcional: si la función no está en la base, `getProveedoresSerie()` devuelve `null` y la lista se pinta
 // sin tendencias.
+//
+// ADR-0140: el nombre es la razón social, pero se le conoce por su marca. `getMarcasPorProveedor()` trae las marcas
+// (tablas `marcas` y `marca_proveedores`, sin migración) para buscar por ellas y verlas en cada fila; es opcional
+// igual que la serie: si falla, la lista se pinta sin marcas.
 export default async function ProveedoresPage() {
   const persona = await requirePersonaActualV2();
   const esLider = persona.rol === "lider";
-  const [proveedores, resumen, series] = await Promise.all([getProveedores(), esLider ? getProveedoresResumen() : null, esLider ? getProveedoresSerie() : null]);
+  const [proveedores, resumen, series, marcas] = await Promise.all([getProveedores(), esLider ? getProveedoresResumen() : null, esLider ? getProveedoresSerie() : null, getMarcasPorProveedor()]);
 
-  return <ProveedoresPanel proveedores={proveedores} esLider={esLider} resumen={resumen} series={series} />;
+  return <ProveedoresPanel proveedores={proveedores} esLider={esLider} resumen={resumen} series={series} marcas={marcas} />;
 }

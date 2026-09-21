@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
+import { SinFoto } from "@/components/ui/PrendaCelda";
 import type { TonoChip } from "@/components/ui/Chip";
 import { MovimientoDetalle } from "@/components/MovimientoDetalle";
 import {
@@ -143,11 +144,14 @@ export function MovimientosLista({ movimientos, hoyLima, enlaceCompras }: { movi
                     className="absolute inset-0 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
                   />
 
-                  <span className="min-w-0">
-                    <span className="line-clamp-2 block break-words text-sm leading-snug text-tinta" title={m.referencia}>{m.referencia}</span>
-                    <span className="block truncate text-xs text-tinta/65" title={`${m.sku}${detallePrenda ? ` · ${detallePrenda}` : ""}`}>
-                      <span className="font-mono">{m.sku}</span>
-                      {detallePrenda && ` · ${detallePrenda}`}
+                  <span className="flex min-w-0 items-start gap-2.5">
+                    <SinFoto />
+                    <span className="min-w-0">
+                      <span className="line-clamp-2 block break-words text-sm leading-snug text-tinta" title={m.referencia}>{m.referencia}</span>
+                      <span className="block truncate text-xs text-tinta/65" title={`${m.sku}${detallePrenda ? ` · ${detallePrenda}` : ""}`}>
+                        <span className="font-mono">{m.sku}</span>
+                        {detallePrenda && ` · ${detallePrenda}`}
+                      </span>
                     </span>
                   </span>
 

@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Avisos · spike visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Avisos (toasts) — 2026-09-21
+   Punto de partida: apps/web/components/ui/Avisos.tsx. Tokens = los reales
+   de globals.css. Nada de esto toca el ERP: es para elegir dirección.
+
+   Qué duele del aviso de hoy (captura de «Confecciones del Sur EIRL actualizado»):
+   1. El tono lo lleva UNA barra de 3 px: se pierde, y verde/rojo solos no
+      sirven para quien no distingue colores.
+   2. El texto es una sola línea: sujeto + participio («X actualizado») no
+      dice QUÉ pasó ni sobre QUÉ. El nombre propio y el hecho compiten.
+   3. Dos relojes visuales (barra izquierda + barra inferior) sin explicación.
+   4. Un proceso que termina desaparece y aparece OTRO aviso: parpadea.
+   5. Sin tope: cuatro errores seguidos tapan la pantalla.
+
+   Reglas que respeta (ADR-0136): sin rebote, nada decorativo, nada en
+   bucle salvo la señal de «estoy trabajando»; se apaga con reduced-motion.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf6ec;--taupe:#a47865;
+  --verde:#556e49;--verde-p:#44583a;--ambar:#8c631f;--ambar-p:#734f15;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t45:rgba(26,26,24,.45);--t10:rgba(26,26,24,.10);--t07:rgba(26,26,24,.07);--t04:rgba(26,26,24,.04);
+  --ease:cubic-bezier(.32,.72,.24,1);   /* --ease-cayla */
+  --ease-out:cubic-bezier(.4,0,1,1);    /* --ease-salida */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5;min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:400}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+
+/* ---------- panel de control del spike (no es parte del ERP) ---------- */
+.ctl{max-width:1040px;margin:0 auto;padding:20px 24px 0;display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;font-size:13px;color:var(--t65)}
+.ctl b{font-weight:600;color:var(--tinta);margin-right:8px}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--t04);border-radius:8px;padding:3px;gap:2px}
+.seg button{padding:6px 12px;border-radius:6px;font-size:13px;color:var(--t65);transition:background .2s var(--ease),color .2s}
+.seg button[aria-pressed=true]{background:var(--papel);color:var(--tinta);box-shadow:0 0 0 1px var(--t07)}
+.seg button:hover{color:var(--tinta)}
+.nota{max-width:1040px;margin:12px auto 0;padding:0 24px;font-size:13px;color:var(--t65)}
+.nota strong{color:var(--tinta);font-weight:600}
+
+/* ---------- pantalla de fondo (Proveedores), para juzgar en contexto ---------- */
+.pantalla{max-width:1040px;margin:18px auto 24px;padding:0 24px}
+.cab{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px}
+.cab h1{font-size:42px;line-height:1.05;letter-spacing:-.01em}
+.cab .sub{margin-top:6px;color:var(--t65);font-size:14px}
+.btn-tinta{background:var(--tinta);color:var(--crema);border-radius:6px;padding:9px 14px;font-size:13px;font-weight:500;white-space:nowrap}
+.tabla{border:1px solid var(--sand);border-radius:10px;background:var(--papel);overflow:hidden}
+.tabla .f{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;padding:13px 18px;border-top:1px solid var(--sand);font-size:14px}
+.tabla .f:first-child{border-top:0}
+.tabla .h{color:var(--t65)}
+.tabla .n{font-weight:500}
+
+/* ---------- convención de texto ---------- */
+.texto{max-width:1040px;margin:0 auto 70px;padding:0 24px}
+.texto h2{font-size:26px;margin-bottom:10px}
+.cmp{border:1px solid var(--sand);border-radius:10px;background:var(--papel);overflow:hidden}
+.cmp .f{display:grid;grid-template-columns:1fr 1.25fr;gap:16px;padding:12px 18px;border-top:1px solid var(--sand);font-size:13.5px}
+.cmp .f:first-child{border-top:0;color:var(--t65)}
+.cmp .h{color:var(--t65)}
+.cmp .p b{font-weight:600}
+.cmp .p span{color:var(--t65)}
+
+/* ====================================================================
+   LA PILA DE AVISOS — una sola estructura DOM, tres pieles
+   ==================================================================== */
+#pila{position:fixed;z-index:100;display:flex;flex-direction:column;gap:8px;pointer-events:none;width:min(22rem,calc(100vw - 2rem))}
+#pila[data-v=hoy],#pila[data-v=ficha]{right:16px;top:16px}
+#pila[data-v=tinta]{left:50%;transform:translateX(-50%);bottom:20px;flex-direction:column-reverse;width:min(26rem,calc(100vw - 2rem))}
+
+.t{--c:var(--verde);--cp:var(--verde-p);--cl:#9bb98d;
+   position:relative;display:flex;align-items:flex-start;gap:12px;pointer-events:auto;overflow:hidden}
+.t[data-tono=error]{--c:var(--rojo);--cp:var(--rojo-p);--cl:#e58a77}
+.t[data-tono=aviso]{--c:var(--ambar);--cp:var(--ambar-p);--cl:#e0b463}
+.t[data-tono=proceso]{--c:var(--tinta);--cp:var(--tinta);--cl:#f5f0e8}
+.cuerpo{min-width:0;flex:1}
+.tit{font-size:14px;line-height:1.35}
+.det{font-size:13px;line-height:1.4;margin-top:1px}
+.acc{margin-top:6px;text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px;text-decoration:underline;text-underline-offset:3px}
+.acc:hover{text-decoration:none}
+.x{border-radius:6px;padding:4px;line-height:0}
+.x svg{width:14px;height:14px}
+.hoy-solo{display:none}
+
+/* ---- Hoy: réplica fiel de Avisos.tsx ---- */
+[data-v=hoy] .t{border:1px solid var(--sand);background:var(--papel);border-radius:8px;padding:12px 12px 12px 16px;box-shadow:0 4px 8px -2px rgba(26,26,24,.12),0 2px 4px -2px rgba(26,26,24,.08);animation:globo 240ms var(--ease) both;transform-origin:top left}
+[data-v=hoy] .ico,[data-v=hoy] .det-nuevo{display:none}
+[data-v=hoy] .hoy-solo{display:block}
+[data-v=hoy] .tit{color:var(--cp)}
+[data-v=hoy] .acc{color:var(--tinta)}
+[data-v=hoy] .x{color:var(--t45);margin:-4px -4px 0 0}
+[data-v=hoy] .barra{position:absolute;inset:0 auto 0 0;width:3px;background:var(--c)}
+[data-v=hoy] .t[data-tono=proceso] .barra{background:rgba(26,26,24,.3)}
+[data-v=hoy] .reloj{position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--c);opacity:.6;animation:reloj-barra var(--ms) linear forwards}
+[data-v=hoy] .t[data-tono=proceso] .reloj{display:none}
+[data-v=hoy] .hilo{display:block}
+
+/* ---- Ficha: icono con anillo-reloj, título = qué pasó, detalle = sobre qué ---- */
+[data-v=ficha] .t{border:1px solid var(--sand);background:var(--papel);border-radius:12px;padding:12px 10px 12px 12px;box-shadow:0 10px 24px -8px rgba(26,26,24,.18),0 2px 4px rgba(26,26,24,.06);animation:entra-der 260ms var(--ease) both}
+[data-v=ficha] .tit{font-weight:600;color:var(--tinta);padding-top:4px}
+[data-v=ficha] .det{color:var(--t65)}
+[data-v=ficha] .det b{color:var(--tinta);font-weight:500}
+[data-v=ficha] .acc{color:var(--cp)}
+[data-v=ficha] .x{color:var(--t45);opacity:0;transition:opacity .2s}
+[data-v=ficha] .t:hover .x,[data-v=ficha] .x:focus-visible{opacity:1}
+[data-v=ficha] .x:hover{color:var(--tinta);background:var(--t04)}
+[data-v=ficha] .ico{--fondo:color-mix(in srgb,var(--c) 11%,transparent)}
+[data-v=ficha] .t[data-tono=proceso] .ico{--fondo:var(--t07)}
+
+/* ---- Tinta: contraste máximo, abajo al centro, no tapa el encabezado ---- */
+[data-v=tinta] .t{background:var(--tinta);color:var(--crema);border-radius:14px;padding:12px 10px 12px 12px;box-shadow:0 14px 32px -8px rgba(26,26,24,.45);animation:entra-abajo 260ms var(--ease) both}
+[data-v=tinta] .tit{font-weight:600;padding-top:4px}
+[data-v=tinta] .det{color:rgba(245,240,232,.72)}
+[data-v=tinta] .det b{color:var(--crema);font-weight:500}
+[data-v=tinta] .acc{color:var(--crema)}
+[data-v=tinta] .x{color:rgba(245,240,232,.5)}
+[data-v=tinta] .x:hover{color:var(--crema);background:rgba(245,240,232,.1)}
+[data-v=tinta] .ico{--fondo:color-mix(in srgb,var(--cl) 16%,transparent);--c:var(--cl)}
+[data-v=tinta] .t[data-tono=proceso] .ico{--fondo:rgba(245,240,232,.12)}
+[data-v=tinta] .t[data-tono=proceso]{--c:var(--crema)}
+
+/* ---- Icono + anillo (Ficha y Tinta) ---- */
+.ico{position:relative;flex:none;width:32px;height:32px;border-radius:50%;background:var(--fondo);display:grid;place-items:center}
+.ico .anillo{position:absolute;inset:-2px;width:36px;height:36px;transform:rotate(-90deg)}
+.ico .anillo circle{fill:none;stroke-width:2;stroke-linecap:round}
+.ico .anillo .pista{stroke:var(--c);opacity:.16}
+.ico .anillo .reloj-a{stroke:var(--c);stroke-dasharray:106.8;stroke-dashoffset:0;animation:reloj-anillo var(--ms) linear forwards}
+.t[data-tono=proceso] .anillo{animation:giro 1s linear infinite}
+.t[data-tono=proceso] .anillo .pista{opacity:.12}
+.t[data-tono=proceso] .anillo .reloj-a{stroke-dasharray:26 81;animation:none}
+.t.espera .anillo .reloj-a,.t.espera .reloj{animation-play-state:paused}
+.glifo{width:16px;height:16px;fill:none;stroke:var(--c);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.glifo > *{display:none}
+.t[data-tono=exito] .g-exito,.t[data-tono=error] .g-error,.t[data-tono=aviso] .g-aviso{display:block}
+.t[data-tono=exito] .g-exito{stroke-dasharray:20;stroke-dashoffset:20;animation:traza 380ms 80ms var(--ease) forwards}
+.t[data-tono=error] .g-error,.t[data-tono=aviso] .g-aviso{animation:asienta 260ms var(--ease) both}
+[data-v=hoy] .ico{display:none}
+
+/* pausa: el mouse (o el foco) detiene el reloj para leer con calma */
+.t:hover .reloj-a,.t:hover .reloj,.t:focus-within .reloj-a,.t:focus-within .reloj{animation-play-state:paused}
+
+/* hilo de proceso de «hoy» */
+.hilo{display:none;position:relative;height:2px;margin-top:8px;background:var(--t10);border-radius:2px;overflow:hidden}
+.hilo i{position:absolute;inset:0 auto 0 0;width:33%;background:var(--tinta);opacity:.5;animation:barrido 1.1s linear infinite}
+.t:not([data-tono=proceso]) .hilo{display:none!important}
+
+/* salida y «cerrar todos» */
+.t.sale{animation:sale 180ms var(--ease-out) forwards!important;pointer-events:none}
+#cerrar-todos{pointer-events:auto;align-self:flex-end;font-size:11px;text-transform:uppercase;letter-spacing:.13em;font-weight:600;padding:5px 10px;border-radius:999px;background:var(--papel);border:1px solid var(--sand);color:var(--t65);display:none;animation:entra-der 200ms var(--ease) both}
+#cerrar-todos:hover{color:var(--tinta);border-color:var(--tinta)}
+#pila[data-v=tinta] #cerrar-todos{background:var(--tinta);border-color:transparent;color:rgba(245,240,232,.7);align-self:center}
+#pila[data-v=tinta] #cerrar-todos:hover{color:var(--crema)}
+.hay-varios #cerrar-todos{display:block}
+
+@keyframes globo{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+@keyframes entra-der{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+@keyframes entra-abajo{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes sale{to{opacity:0;transform:translateX(8px) scale(.98)}}
+@keyframes reloj-barra{from{width:100%}to{width:0}}
+@keyframes reloj-anillo{to{stroke-dashoffset:106.8}}
+@keyframes giro{from{transform:rotate(-90deg)}to{transform:rotate(270deg)}}
+@keyframes traza{to{stroke-dashoffset:0}}
+@keyframes asienta{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:none}}
+@keyframes barrido{from{transform:translateX(-100%)}to{transform:translateX(320%)}}
+
+@media (prefers-reduced-motion:reduce){
+  .t{animation-duration:1ms!important}
+  .glifo *{animation:none!important;stroke-dashoffset:0!important}
+}
+/* los controles del spike se acomodan a la izquierda, fuera de la columna de avisos */
+@media (min-width:700px){
+  .ctl,.nota{max-width:min(1040px,calc(100% - 25rem));margin-left:max(0px,calc((100% - 1040px)/2));margin-right:0}
+}
+@media (max-width:640px){
+  .cab h1{font-size:32px}
+  #pila[data-v=hoy],#pila[data-v=ficha]{right:16px;left:16px;width:auto}
+  .cmp .f{grid-template-columns:1fr}
+  .tabla .f{grid-template-columns:1.6fr 1fr}
+  .tabla .f span:nth-child(3){display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="ctl">
+  <span><b>Diseño</b>
+    <span class="seg" id="seg-v" role="group" aria-label="Diseño">
+      <button aria-pressed="false" data-v="hoy">Hoy</button>
+      <button aria-pressed="true" data-v="ficha">A · Ficha</button>
+      <button aria-pressed="false" data-v="tinta">B · Tinta</button>
+    </span>
+  </span>
+  <span><b>Dispara</b>
+    <span class="seg" id="seg-e" role="group" aria-label="Escenarios">
+      <button data-e="exito">Éxito</button>
+      <button data-e="error">Error</button>
+      <button data-e="aviso">Advertencia</button>
+      <button data-e="proceso">Proceso → éxito</button>
+      <button data-e="deshacer">Con «Deshacer»</button>
+      <button data-e="rafaga">Ráfaga ×4</button>
+    </span>
+  </span>
+</div>
+<p class="nota" id="nota"></p>
+
+<main class="pantalla">
+  <div class="cab">
+    <div>
+      <h1 class="disp">Proveedores</h1>
+      <p class="sub">Con quién compra CAYLA · 12 activos</p>
+    </div>
+    <button class="btn-tinta">Nuevo proveedor</button>
+  </div>
+  <div class="tabla" aria-hidden="true">
+    <div class="f h lbl"><span>Proveedor</span><span>RUC</span><span>Última compra</span></div>
+    <div class="f"><span class="n">Confecciones del Sur EIRL</span><span>20601234567</span><span>12 sep</span></div>
+    <div class="f"><span class="n">Textiles Andinos S.A.C.</span><span>20598765432</span><span>03 sep</span></div>
+    <div class="f"><span class="n">Botones y Avíos Lima</span><span>20512345678</span><span>28 ago</span></div>
+    <div class="f"><span class="n">Hilandería Arequipa</span><span>20487654321</span><span>19 ago</span></div>
+  </div>
+</main>
+
+<section class="texto">
+  <h2 class="disp">El texto también es parte del diseño</h2>
+  <p class="nota" style="padding:0;margin:0 0 12px">Hoy la mayoría de llamadas pasan <em>una</em> frase. Con dos campos —lo que pasó y sobre qué— el aviso se lee de un vistazo, y el código casi no cambia: <code>avisar.exito("Proveedor actualizado", { detalle: nombre })</code>.</p>
+  <div class="cmp">
+    <div class="f lbl"><span>Hoy</span><span>Propuesto (título · detalle)</span></div>
+    <div class="f"><span class="h">Confecciones del Sur EIRL actualizado</span><span class="p"><b>Proveedor actualizado</b> · <span>Confecciones del Sur EIRL</span></span></div>
+    <div class="f"><span class="h">Elige un proveedor</span><span class="p"><b>Falta el proveedor</b> · <span>Elígelo para poder registrar la factura</span></span></div>
+    <div class="f"><span class="h">2 adjuntos no subieron</span><span class="p"><b>2 adjuntos no subieron</b> · <span>La factura sí se guardó. Reintenta desde el detalle</span></span></div>
+    <div class="f"><span class="h">Guía movida</span><span class="p"><b>Guía movida a Lima</b> · <span>Deshacer disponible unos segundos</span></span></div>
+  </div>
+</section>
+
+<div id="pila" data-v="ficha" aria-live="polite" aria-relevant="additions"><button id="cerrar-todos" type="button">Cerrar todos</button></div>
+
+<script>
+const $pila = document.getElementById('pila');
+const $nota = document.getElementById('nota');
+const DUR = { exito: 4000, aviso: 6000, error: 8000, proceso: 0 };
+const MAX = 4;
+let variante = 'ficha';
+
+const NOTAS = {
+  hoy: '<strong>Hoy</strong> — réplica fiel de <code>Avisos.tsx</code>. Fíjate en cómo el tono depende de una barra de 3 px y en que el nombre y el hecho son una sola línea.',
+  ficha: '<strong>A · Ficha</strong> — mantiene la esquina superior derecha (decisión del 2026-09-14). Icono con forma propia por tono, <strong>el anillo alrededor del icono ES el reloj</strong> (una sola señal de tiempo), título = qué pasó, detalle = sobre qué, cerrar solo al pasar el mouse. Pasa el mouse por encima: el anillo se pausa.',
+  tinta: '<strong>B · Tinta</strong> — abajo al centro, fondo oscuro: contraste máximo y <strong>no tapa el botón «Nuevo proveedor»</strong> ni el encabezado. Cambia la decisión de «esquina superior derecha», así que necesita tu visto bueno; los colores claros de los iconos (#9bb98d, #e58a77, #e0b463) son variantes nuevas para fondo oscuro.'
+};
+
+const ESCENARIOS = {
+  exito:   { tono:'exito', hoy:'Confecciones del Sur EIRL actualizado', tit:'Proveedor actualizado', det:'<b>Confecciones del Sur EIRL</b>', acc:'Ver' },
+  error:   { tono:'error', hoy:'El RUC debe tener 11 dígitos', tit:'El RUC está incompleto', det:'Debe tener <b>11 dígitos</b>; vas por 9' },
+  aviso:   { tono:'aviso', hoy:'2 adjuntos no subieron', tit:'2 adjuntos no subieron', det:'La factura <b>sí se guardó</b>. Reintenta desde el detalle', acc:'Reintentar' },
+  deshacer:{ tono:'exito', hoy:'Guía G-0412 movida a Lima', tit:'Guía movida a Lima', det:'<b>G-0412</b> · 6 prendas', acc:'Deshacer', ms:7000 },
+};
+
+const GLIFOS = `
+  <svg class="glifo" viewBox="0 0 16 16" aria-hidden="true">
+    <path class="g-exito" d="M3.5 8.5l3 3 6-7"/>
+    <g class="g-error"><path d="M8 3.5v5.2"/><path d="M8 11.6v.1"/></g>
+    <g class="g-aviso"><path d="M8 2.6l5.8 10.2H2.2z"/><path d="M8 6.8v2.6"/><path d="M8 11.3v.1"/></g>
+  </svg>`;
+
+function html(sc){
+  const conAnillo = sc.tono !== 'proceso' ? '<circle class="reloj-a" cx="18" cy="18" r="17"/>' : '<circle class="reloj-a" cx="18" cy="18" r="17"/>';
+  return `
+    <span class="barra hoy-solo" aria-hidden="true"></span>
+    <span class="ico" aria-hidden="true">
+      <svg class="anillo" viewBox="0 0 36 36"><circle class="pista" cx="18" cy="18" r="17"/>${conAnillo}</svg>
+      ${GLIFOS}
+    </span>
+    <div class="cuerpo">
+      <p class="tit"></p>
+      <p class="det"></p>
+      <button class="acc" type="button" hidden></button>
+      <span class="hilo hoy-solo" aria-hidden="true"><i></i></span>
+    </div>
+    <button class="x" type="button" aria-label="Cerrar aviso"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    <span class="reloj hoy-solo" aria-hidden="true"></span>`;
+}
+
+function pintar(el, sc){
+  el.dataset.tono = sc.tono;
+  el.dataset.hoy = sc.hoy || '';
+  el.dataset.tit = sc.tit; el.dataset.det = sc.det || '';
+  const ms = sc.tono === 'proceso' ? 0 : (sc.ms ?? DUR[sc.tono]);
+  el.style.setProperty('--ms', ms + 'ms');
+  el.setAttribute('role', sc.tono === 'error' ? 'alert' : 'status');
+  const tit = el.querySelector('.tit'), det = el.querySelector('.det'), acc = el.querySelector('.acc');
+  // «Hoy» muestra UNA línea (el texto viejo); las propuestas, título + detalle.
+  if (variante === 'hoy'){ tit.textContent = sc.hoy; det.hidden = true; }
+  else { tit.textContent = sc.tit; det.innerHTML = sc.det || ''; det.hidden = !sc.det; }
+  // «Hoy» solo soporta acción en éxito (Deshacer); «Ver» y «Reintentar» son parte de la propuesta.
+  const conAcc = sc.acc && (variante !== 'hoy' || sc.acc === 'Deshacer');
+  acc.hidden = !conAcc; acc.textContent = conAcc ? sc.acc : '';
+  return ms;
+}
+
+function quitar(el){
+  if (!el.isConnected || el.classList.contains('sale')) return;
+  el.classList.add('sale');
+  setTimeout(() => { el.remove(); actualizar(); }, 180);
+}
+function actualizar(){
+  const n = $pila.querySelectorAll('.t:not(.sale)').length;
+  $pila.classList.toggle('hay-varios', n >= 3);
+}
+
+function abrir(sc){
+  const el = document.createElement('div');
+  el.className = 't';
+  el.innerHTML = html(sc);
+  const ms = pintar(el, sc);
+  el.querySelector('.x').onclick = () => quitar(el);
+  el.querySelector('.acc').onclick = () => quitar(el);
+  el.addEventListener('mouseenter', () => el.classList.add('espera'));
+  el.addEventListener('mouseleave', () => el.classList.remove('espera'));
+  // Una sola fuente de tiempo: el fin de la animación del reloj cierra el aviso.
+  el.addEventListener('animationend', e => { if (/^reloj-/.test(e.animationName)) quitar(el); });
+  $pila.appendChild(el);
+  // Tope: si pasan de MAX, se va el más viejo que ya no sea un error sin leer.
+  const vivos = [...$pila.querySelectorAll('.t:not(.sale)')];
+  if (vivos.length > MAX){ quitar(vivos.find(v => v.dataset.tono !== 'error') || vivos[0]); }
+  actualizar();
+  return el;
+}
+
+// El proceso se «transforma» en éxito: misma tarjeta, sin parpadeo.
+function resolver(el, sc){
+  if (!el.isConnected) return;
+  el.classList.remove('espera');
+  const ms = pintar(el, sc);
+  // reinicia el reloj y la traza del check
+  el.querySelectorAll('.reloj-a,.g-exito,.reloj').forEach(n => { n.style.animation = 'none'; void n.getBoundingClientRect(); n.style.animation = ''; });
+}
+
+function disparar(nombre){
+  if (nombre === 'rafaga'){
+    ['exito','aviso','error','exito'].forEach((k,i) => setTimeout(() => abrir(ESCENARIOS[k]), i*220));
+    return;
+  }
+  if (nombre === 'proceso'){
+    const el = abrir({ tono:'proceso', hoy:'Subiendo adjuntos…', tit:'Subiendo adjuntos…', det:'3 de 5 archivos' });
+    setTimeout(() => { const d = el.querySelector('.det'); if (variante !== 'hoy') d.innerHTML = '4 de 5 archivos'; }, 900);
+    setTimeout(() => resolver(el, { tono:'exito', hoy:'Adjuntos subidos', tit:'Adjuntos subidos', det:'<b>5 archivos</b> en F001-123' }), 1900);
+    return;
+  }
+  abrir(ESCENARIOS[nombre]);
+}
+
+document.getElementById('seg-e').addEventListener('click', e => { const b = e.target.closest('button'); if (b) disparar(b.dataset.e); });
+document.getElementById('cerrar-todos').onclick = () => $pila.querySelectorAll('.t').forEach(quitar);
+document.getElementById('seg-v').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  variante = b.dataset.v;
+  document.querySelectorAll('#seg-v button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  $pila.dataset.v = variante;
+  $pila.querySelectorAll('.t').forEach(t => t.remove());
+  $nota.innerHTML = NOTAS[variante];
+  actualizar();
+  disparar('exito');
+});
+$nota.innerHTML = NOTAS[variante];
+setTimeout(() => disparar('exito'), 350);
+</script>
+</body>
+</html>

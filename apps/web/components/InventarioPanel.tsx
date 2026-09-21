@@ -10,16 +10,22 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { ReponerPisoModal } from "@/components/ReponerPisoModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
+import { ApartarModal } from "@/components/ApartarModal";
+import { ApartadosModal } from "@/components/ApartadosModal";
+import { hoyLima, resumirApartados, type Apartado } from "@/lib/apartados-reglas";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { resumenRed } from "@/lib/stock-por-sede";
 import { descargarCsv } from "@/lib/exportar-csv";
 import {
   ACCION_ESTADO_STOCK,
+  DIAS_RITMO_RECIENTE,
   ETIQUETA_ESTADO_STOCK,
   necesitaReponerPiso,
   UMBRAL_REPOSICION_PISO,
   type EstadoStock,
 } from "@/lib/inventario-reglas";
+import { textoCobertura } from "@/lib/resumen-formato";
+import { bandaDeCobertura, type Cobertura } from "@/lib/resumen-reglas";
 import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/inventario-v2";
 import type { Sububicacion } from "@/lib/sububicaciones";
 
@@ -66,6 +72,35 @@ function fechaHora(iso: string) {
   return new Date(iso).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
 }
 
+/** La segunda línea de «Disponible»: cuánto dura este stock al ritmo de venta de los últimos días. Es la
+ *  MISMA cobertura del análisis (stock utilizable ÷ ritmo), aquí como dato secundario y compacto. Nunca
+ *  muestra NaN ni vacío: lo que no se puede calcular dice «N/D». Rojo/ámbar con los mismos cortes de siempre
+ *  (≤ 3 y ≤ 7 días); el resto, apagado, para no competir con el número del stock. */
+function LineaCobertura({ c }: { c: Cobertura | null | undefined }) {
+  const ayuda = `Con el ritmo de venta de los últimos ${DIAS_RITMO_RECIENTE} días`;
+  if (!c || c.tipo === "sin_historial") {
+    return (
+      <span className="block text-[10px] font-normal leading-3 text-tinta/40" title={`${ayuda}: todavía no hay historial para calcularlo`}>
+        Cobertura N/D
+      </span>
+    );
+  }
+  if (c.tipo === "sin_ventas") {
+    return (
+      <span className="block text-[10px] font-normal leading-3 text-tinta/50" title={`No se vendió nada en los últimos ${DIAS_RITMO_RECIENTE} días: no hay ritmo con que medir cuánto dura`}>
+        Sin ventas
+      </span>
+    );
+  }
+  const banda = bandaDeCobertura(c);
+  const tono = banda === "critica" ? "text-rojo-profundo" : banda === "atencion" ? "text-ambar-profundo" : banda === "agotado" ? "text-tinta/40" : "text-tinta/55";
+  return (
+    <span className={`block text-[10px] font-normal leading-3 ${tono}`} title={`${ayuda}, este stock dura aproximadamente ${textoCobertura(c)}`}>
+      Cubre {textoCobertura(c)}
+    </span>
+  );
+}
+
 // Piso de venta / almacén de tienda (Felipe, 2026-09-14): la pantalla no
 // asume que toda ubicación separa piso y almacén — se adapta según lo que
 // `getSububicaciones` encontró para ESA ubicación (`resumen.separaPisoAlmacen`),
@@ -86,7 +121,9 @@ export function InventarioPanel({
   sububicacionPiso,
   sububicacionAlmacen,
   danadosPendientes,
+  apartados,
   esLider,
+  coberturaFallo = null,
 }: {
   ubicacionId: string;
   stock: FilaExistencias[];
@@ -99,9 +136,13 @@ export function InventarioPanel({
    *  / Se botó / Donada. Vacía en Taller (no separa piso/almacén, nunca
    *  recibe devoluciones). */
   danadosPendientes: PrendaDanada[];
+  /** Apartados ABIERTOS de esta ubicación (ADR-0141), ya ordenados por fecha límite. Vacía en Taller. */
+  apartados: Apartado[];
   /** Solo un líder puede resolver una prenda dañada (`resolver_prenda_danada`) —
    *  una integrante puede ABRIR la cola y verla, no marcarla. */
   esLider: boolean;
+  /** Si la cobertura no se pudo calcular: el aviso (las filas quedan en «N/D»); null = todo bien. */
+  coberturaFallo?: string | null;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [categoria, setCategoria] = useState(TODAS);
@@ -111,6 +152,8 @@ export function InventarioPanel({
   const [reponiendo, setReponiendo] = useState<FilaExistencias | null>(null);
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
   const [viendoDanados, setViendoDanados] = useState(false);
+  const [apartando, setApartando] = useState<FilaExistencias | null>(null);
+  const [viendoApartados, setViendoApartados] = useState(false);
 
   const categorias = useMemo(
     () => Array.from(new Set(stock.map((f) => f.categoria).filter((c): c is string => !!c))).sort((a, b) => a.localeCompare(b, "es")),
@@ -138,6 +181,9 @@ export function InventarioPanel({
   }, [stock, k, categoria, talla, color, estado]);
 
   const puedeReponer = Boolean(resumen.separaPisoAlmacen && sububicacionPiso && sububicacionAlmacen);
+  // Apartar necesita saber DE DÓNDE (piso o almacén): solo donde la ubicación separa las dos.
+  const puedeApartar = puedeReponer;
+  const resumenApartados = useMemo(() => resumirApartados(apartados, hoyLima()), [apartados]);
   const separa = resumen.separaPisoAlmacen;
   const porcentajePiso = resumen.total > 0 && resumen.piso !== null ? Math.round((resumen.piso / resumen.total) * 100) : null;
 
@@ -151,14 +197,14 @@ export function InventarioPanel({
     const encabezados = ["Prenda", "SKU", "Talla", "Color", "Categoría"];
     if (separa) encabezados.push("Piso", "Almacén");
     encabezados.push("Disponible");
-    if (separa) encabezados.push("Estado");
+    if (separa) encabezados.push("Apartadas", "Estado");
     encabezados.push("En camino", "En la red");
 
     const filas = filtradas.map((f) => {
       const fila: (string | number)[] = [f.referencia, f.sku, f.talla ?? "—", f.color ?? "—", f.categoria ?? "—"];
       if (separa) fila.push(f.piso ?? "—", f.almacen ?? "—");
-      fila.push(f.total);
-      if (separa) fila.push(f.estado ? ETIQUETA_ESTADO_STOCK[f.estado] : "—");
+      fila.push(f.disponible);
+      if (separa) fila.push(f.apartado, f.estado ? ETIQUETA_ESTADO_STOCK[f.estado] : "—");
       fila.push(f.enTransito, resumenRed(f.enRed)?.detalle ?? "—");
       return fila;
     });
@@ -182,11 +228,12 @@ export function InventarioPanel({
       {/* Tres cifras, de la más tranquila a la que más pide (diseño de
           Felipe): cuánto hay, cuántas prendas dañadas esperan resolución,
           cuánto viene. La del medio abre la cola de resolución. */}
-      <div className={`grid gap-3 ${separa ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-        <Tarjeta etiqueta="Prendas disponibles" valor={resumen.total} unidad="unidades">
-          {separa && porcentajePiso !== null
+      <div className={`grid gap-3 ${separa ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2"}`}>
+        <Tarjeta etiqueta="Prendas disponibles" valor={resumen.disponible} unidad="unidades">
+          {(separa && porcentajePiso !== null
             ? `${porcentajePiso}% en el piso de venta · ${resumen.piso} piso · ${resumen.almacen} almacén`
-            : `${stock.length} ${stock.length === 1 ? "prenda distinta" : "prendas distintas"}`}
+            : `${stock.length} ${stock.length === 1 ? "prenda distinta" : "prendas distintas"}`) +
+            (resumen.apartado > 0 ? ` · ${resumen.apartado} ${resumen.apartado === 1 ? "apartada" : "apartadas"}` : "")}
         </Tarjeta>
         {separa && (
           <Tarjeta
@@ -201,6 +248,24 @@ export function InventarioPanel({
             {danadosPendientes.length === 0
               ? "Ninguna prenda dañada pendiente"
               : "En cuarentena — liquidar, botar o donar"}
+          </Tarjeta>
+        )}
+        {/* Reservas para clientas (ADR-0141): lo vencido no se libera solo — pide que alguien decida. */}
+        {separa && (
+          <Tarjeta
+            etiqueta="Apartados"
+            valor={resumenApartados.abiertos}
+            unidad={resumenApartados.abiertos === 1 ? "apartado" : "apartados"}
+            tono={resumenApartados.vencidos > 0 ? "text-rojo" : undefined}
+            acento={resumenApartados.vencidos > 0}
+            onClick={() => setViendoApartados(true)}
+            activa={viendoApartados}
+          >
+            {resumenApartados.abiertos === 0
+              ? "Ninguna prenda apartada"
+              : `${resumenApartados.unidades} ${resumenApartados.unidades === 1 ? "prenda" : "prendas"} para clientas${
+                  resumenApartados.vencidos > 0 ? ` · ${resumenApartados.vencidos} ${resumenApartados.vencidos === 1 ? "vencido" : "vencidos"}` : ""
+                }`}
           </Tarjeta>
         )}
         <Tarjeta etiqueta="En camino hacia acá" valor={resumen.enTransito} unidad="unidades" href="/inventario/traslados">
@@ -252,6 +317,7 @@ export function InventarioPanel({
         </div>
       )}
 
+      {separa && coberturaFallo && stock.length > 0 && <p className="-mb-3 text-xs text-ambar-profundo">{coberturaFallo}</p>}
       {stock.length === 0 ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">Esta ubicación no tiene stock todavía.</p>
       ) : filtradas.length === 0 ? (
@@ -320,14 +386,21 @@ export function InventarioPanel({
                 {separa && (
                   <span className={celda("centro", "text-sm tabular-nums")}>
                     <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Piso · Almacén</span>
-                    <span className={f.piso !== null && f.piso <= UMBRAL_REPOSICION_PISO ? "text-ambar-profundo" : "text-tinta"}>{f.piso}</span>
+                    <span className={(f.pisoDisponible ?? f.piso) !== null && (f.pisoDisponible ?? f.piso)! <= UMBRAL_REPOSICION_PISO ? "text-ambar-profundo" : "text-tinta"}>{f.piso}</span>
                     <span className="text-tinta/45"> · </span>
                     <span className="text-tinta">{f.almacen}</span>
                   </span>
                 )}
                 <span className={celda("centro", "text-sm font-semibold tabular-nums text-tinta")}>
                   <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Disponible</span>
-                  {f.total}
+                  {f.disponible}
+                  {f.apartado > 0 && (
+                    <span className="block text-[10px] font-normal leading-3 text-ambar-profundo" title="Siguen en la tienda, pero apartadas para clientas: no se pueden vender">
+                      {f.apartado} {f.apartado === 1 ? "apartada" : "apartadas"}
+                    </span>
+                  )}
+                  {/* Sin stock no hay cuánto dure: el chip «Sin stock» ya lo dice. */}
+                  {separa && f.disponible > 0 && <LineaCobertura c={f.cobertura} />}
                 </span>
                 {separa && (
                   <span className={celda("centro", "overflow-visible")}>
@@ -346,10 +419,12 @@ export function InventarioPanel({
                           quede algo en el almacén (aunque el chip diga «Stock
                           bajo», reserva crítica) sigue teniendo sentido bajarlo al
                           piso ahora mismo, sin esperar el traslado. */}
-                      {puedeReponer && f.piso !== null && f.almacen !== null && necesitaReponerPiso(f.piso, f.almacen) && (
+                      {puedeReponer && f.pisoDisponible !== null && f.almacenDisponible !== null && necesitaReponerPiso(f.pisoDisponible, f.almacenDisponible) && (
                         <button
                           type="button"
-                          onClick={() => setReponiendo(f)}
+                          // Lo apartado para una clienta no se puede bajar del almacén (la base lo rechaza): el modal
+                          // ofrece y valida contra lo DISPONIBLE, no contra lo físico (ADR-0141).
+                          onClick={() => setReponiendo({ ...f, piso: f.pisoDisponible, almacen: f.almacenDisponible })}
                           className="label-cayla text-[10px] text-rojo underline underline-offset-2 hover:no-underline"
                         >
                           Reponer
@@ -362,6 +437,12 @@ export function InventarioPanel({
                       {!!f.danado && (
                         <Chip tono="rojo">
                           <span title="En cuarentena, esperando Liquidada/Se botó/Donada">Dañado · {f.danado}</span>
+                        </Chip>
+                      )}
+                      {/* Otro eje independiente: apartada no es lo mismo que dañada ni que sin stock. */}
+                      {f.apartado > 0 && (
+                        <Chip tono="ambar">
+                          <span title="Apartadas para clientas: siguen aquí, pero no se pueden vender ni mover">Apartado · {f.apartado}</span>
                         </Chip>
                       )}
                     </span>
@@ -385,13 +466,27 @@ export function InventarioPanel({
                   )}
                 </span>
                 <span className={celda("centro")}>
-                  <button
-                    type="button"
-                    onClick={() => setAjustando(f)}
-                    className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline"
-                  >
-                    Ajustar
-                  </button>
+                  <span className="flex flex-col items-center gap-1">
+                    {puedeApartar && f.disponible > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setApartando(f)}
+                        className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline"
+                      >
+                        Apartar
+                      </button>
+                    )}
+                    {/* D-13: ajustar stock fuera de una venta es del líder (candado real en `registrar_movimiento`, 20260921110000). */}
+                    {esLider && (
+                      <button
+                        type="button"
+                        onClick={() => setAjustando(f)}
+                        className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline"
+                      >
+                        Ajustar
+                      </button>
+                    )}
+                  </span>
                 </span>
               </div>
             );
@@ -446,6 +541,18 @@ export function InventarioPanel({
       {viendoDanados && (
         <ResolverDanadosModal pendientes={danadosPendientes} esLider={esLider} onClose={() => setViendoDanados(false)} />
       )}
+
+      {apartando && sububicacionPiso && sububicacionAlmacen && (
+        <ApartarModal
+          fila={apartando}
+          ubicacionId={ubicacionId}
+          sububicacionPiso={sububicacionPiso}
+          sububicacionAlmacen={sububicacionAlmacen}
+          onClose={() => setApartando(null)}
+        />
+      )}
+
+      {viendoApartados && <ApartadosModal apartados={apartados} onClose={() => setViendoApartados(false)} />}
     </div>
   );
 }

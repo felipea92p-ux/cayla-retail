@@ -3,6 +3,7 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { Check, ChevronRight, Info, ScanBarcode, Shirt, Truck, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -21,25 +22,22 @@ import { Resaltado } from "@/components/ui/Resaltado";
 import { TabsSubrayado } from "@/components/ui/TabsSubrayado";
 import { useFlip } from "@/lib/useFlip";
 import { DecidirTodas, EditorDecision, etiquetaDecision, ResumenDecision, type Decision } from "@/components/DecisionFaltanteFila";
-import { NOTA_VACIA, NotaCreditoCierre, type BloqueNota } from "@/components/NotaCreditoCierre";
 import { compararTallas } from "@/lib/tallas";
-import { diaMes, hoyLima } from "@/lib/fechas-lima";
+import { textoDeLaParte } from "@/lib/reparto-reglas";
+import { diaMes } from "@/lib/fechas-lima";
 import {
   chipLlegada,
   cierresElegidos,
   diasDeAtraso,
-  disponibilidadNota,
   estadoLinea,
   etiquetaConfirmar,
   faltanteDeLinea,
-  notaDelBloque,
+  notasPorReclamar,
   ordenarPorUrgencia,
   sinDecidir,
-  tasaIgv,
   textoEsperada,
   valorPorLlegar,
   type EstadoLinea,
-  type NotaBorrador,
 } from "@/lib/recepciones-reglas";
 import { ETIQUETA_TIPO_DOCUMENTO, soles, type CompraResumen, type LineaCompra } from "@/lib/compras-reglas";
 import {
@@ -82,6 +80,13 @@ import {
 //   no crea stock de la nada: se cuenta y confirma como traslado en tránsito (ADR-0068).
 // · Cuenta CUALQUIER colaborador de la sede. Quien no es líder no ve dinero (llega en cero desde el
 //   servidor) y no decide qué pasa con lo que faltó: lo deja pendiente y un líder lo cierra después.
+//
+// La NOTA DE CRÉDITO ya no se registra acá (2026-09-19, módulo `/compras/notas-credito`): contar prendas y
+// mover dinero eran dos cosas en la misma pantalla, y una de ellas no es de dinero. Lo que queda es contar y
+// decidir qué pasó con lo que faltó; cuando un cierre deja al proveedor debiendo el documento, un aviso
+// discreto lo dice y apunta al módulo («Se reclama en Notas de crédito ↗», solo líder). El faltante se cierra
+// igual acá: eso es operación, no dinero. La RPC `recibir_envio` sigue aceptando `p_notas_credito` —la base
+// no se tocó—, pero esta pantalla lo manda siempre vacío.
 //
 // Se conserva de la versión anterior: D1 (una línea vacía es «sin contar»; un 0 es «no llegó nada»),
 // D2 (lo que faltó se decide en la misma fila y se registra junto al confirmar), la curva de tallas para
@@ -137,10 +142,7 @@ export function RecepcionEnvio({
   ubicacionInicialId,
   compraInicialId,
   esLider,
-  igvMes,
-  porRecibirAtrasadas,
   comprasConNotaFaltante,
-  saldoFavorPorProveedor,
   trasladosPorUbicacion,
   resumen,
 }: {
@@ -152,13 +154,8 @@ export function RecepcionEnvio({
   ubicacionInicialId: string;
   compraInicialId: string | null;
   esLider: boolean;
-  /** Crédito fiscal del mes, para mostrar el efecto de una nota de crédito al cerrar un faltante (solo líder). */
-  igvMes: number | null;
-  porRecibirAtrasadas: number | null;
-  /** Comprobantes que ya tienen su nota por faltante (es una sola por comprobante). */
+  /** Comprobantes que ya tienen su nota por faltante (es una sola por comprobante): esos no se avisan. */
   comprasConNotaFaltante: string[];
-  /** Saldo a favor de cada proveedor, para mostrar cómo queda tras una nota. */
-  saldoFavorPorProveedor: Record<string, number>;
   /** Traslados en tránsito que vienen hacia cada ubicación (el «envío interno»). */
   trasladosPorUbicacion: Record<string, TrasladoEnCamino[]>;
   /** Los indicadores: se dibujan bajo «¿Qué llegó?» mientras no haya nada marcado. */
@@ -168,7 +165,6 @@ export function RecepcionEnvio({
   const panel = useRef<HTMLDivElement>(null);
   const escaneoRef = useRef<HTMLInputElement>(null);
   const ahora = useMemo(() => new Date(), []);
-  const hoy = useMemo(() => hoyLima(), []);
   const comprasOrdenadas = useMemo(() => ordenarPorUrgencia(compras, ahora), [compras, ahora]);
 
   const inicial = compraInicialId && compras.some((c) => c.id === compraInicialId) ? [compraInicialId] : [];
@@ -219,7 +215,6 @@ export function RecepcionEnvio({
   // La fila cuya decisión se está corrigiendo, y la fila cuyo campo tiene el foco (el editor no se abre mientras se teclea).
   const [editando, setEditando] = useState<string | null>(null);
   const [enfocada, setEnfocada] = useState<string | null>(null);
-  const [notas, setNotas] = useState<Record<string, NotaBorrador | undefined>>({});
 
   const variantesPorProducto = useMemo(() => {
     const m = new Map<string, Variante[]>();
@@ -369,11 +364,6 @@ export function RecepcionEnvio({
     setDecisiones((m) => {
       const copia = { ...m };
       ids.forEach((id) => delete copia[id]);
-      return copia;
-    });
-    setNotas((n) => {
-      const copia = { ...n };
-      delete copia[compraId];
       return copia;
     });
     // Sin ningún comprobante no hay envío: lo fuera de comprobante y lo de otra sede tampoco tienen dónde vivir.
@@ -552,8 +542,6 @@ export function RecepcionEnvio({
   const alDesenfocar = (lineaId: string) => (e: React.FocusEvent<HTMLElement>) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setEnfocada((actual) => (actual === lineaId ? null : actual));
   };
-  const ajustarNota = (compraId: string, cambio: Partial<NotaBorrador>) => setNotas((n) => ({ ...n, [compraId]: { ...(n[compraId] ?? NOTA_VACIA(hoy)), ...cambio } }));
-
   // Lo que llegó corto: solo las líneas CONTADAS con menos de lo pendiente. Un colaborador no decide qué pasa
   // con lo que faltó (queda pendiente y un líder lo cierra), así que para él no hay decisiones ni cierres.
   const lineasCortas = lineasActivas.filter((l) => estadoLinea(llegoLinea(l, reparto), l.pendiente) === "faltan");
@@ -561,17 +549,18 @@ export function RecepcionEnvio({
   const cierres = esLider ? cierresElegidos(faltantes, decisiones) : [];
   const porDecidir = esLider ? sinDecidir(faltantes, decisiones) : [];
 
-  // La nota de crédito de cada comprobante del envío (solo líder), con lo cerrado ahora y lo que ya estaba cerrado antes.
-  const bloquesNota: BloqueNota[] = esLider
-    ? bloques.map(({ compra, lineas: propias }) => ({
-        compra,
-        cierresAhora: cierres.filter((c) => c.compraId === compra.id).map((c) => ({ faltan: c.faltan, costoUnitario: c.costoUnitario })),
-        cerradoAntes: lineas.filter((l) => l.compraId === compra.id && l.cerrado > 0).map((l) => ({ faltan: l.cerrado, costoUnitario: l.costoUnitario })),
-        pendiente: propias.reduce((a, l) => a + l.pendiente, 0),
-        llegando: propias.reduce((a, l) => a + cantidadLinea(l), 0),
-        yaTieneNotaFaltante: comprasConNotaFaltante.includes(compra.id),
-        saldoFavorAntes: saldoFavorPorProveedor[compra.proveedorId] ?? 0,
-      }))
+  // Qué le va a quedar debiendo el proveedor: lo cerrado en esta guía más lo que ya estaba cerrado, por
+  // comprobante. No se registra nada acá — es un aviso que apunta a `/compras/notas-credito` (solo líder,
+  // porque lleva monto y va a una pantalla de dinero que a un integrante le daría un error de permiso).
+  const reclamos = esLider
+    ? notasPorReclamar(
+        bloques.map(({ compra }) => ({
+          compra,
+          cierresAhora: cierres.filter((c) => c.compraId === compra.id).map((c) => ({ faltan: c.faltan, costoUnitario: c.costoUnitario })),
+          cerradoAntes: lineas.filter((l) => l.compraId === compra.id && l.cerrado > 0).map((l) => ({ faltan: l.cerrado, costoUnitario: l.costoUnitario })),
+          yaTieneNotaFaltante: comprasConNotaFaltante.includes(compra.id),
+        })),
+      )
     : [];
 
   const trasladosSinContar = trasladosMarcados.filter((t) => !trasladoContadoEntero(t.lineas, conteoTraslados[t.id] ?? {}));
@@ -605,26 +594,6 @@ export function RecepcionEnvio({
       return void avisar.error(`Cuenta cada prenda del traslado ${trasladosSinContar[0].numero} (aunque alguna sea 0) antes de recibir.`);
     }
 
-    // Una nota de crédito por comprobante, con todo lo cerrado de él. Se valida ANTES de escribir nada.
-    const notasAEmitir = bloquesNota.flatMap((b) => {
-      const borrador = notas[b.compra.id] ?? NOTA_VACIA(hoy);
-      const disp = disponibilidadNota({
-        pendiente: b.pendiente,
-        llegando: b.llegando,
-        cerrandoAhora: b.cierresAhora.reduce((a, c) => a + c.faltan, 0),
-        cerradoAntes: b.cerradoAntes.reduce((a, c) => a + c.faltan, 0),
-        yaTieneNotaFaltante: b.yaTieneNotaFaltante,
-      });
-      if (disp.estado !== "disponible") return [];
-      const n = notaDelBloque({ tasa: tasaIgv(b.compra), cierres: [...b.cerradoAntes, ...b.cierresAhora], esLider, borrador });
-      return n.activa ? [{ compra: b.compra, n, borrador }] : [];
-    });
-    for (const { compra, n } of notasAEmitir) {
-      if (n.problema === "serie") return void avisar.error(`Escribe la serie y el número de la nota de crédito de ${compra.documento}.`, { enfocar: `nota-serie-${compra.id}` });
-      if (n.problema === "monto")
-        return void avisar.error(`El monto de la nota de ${compra.documento} tiene que ser mayor a cero y no pasar de lo cerrado a su costo con IGV (${soles(n.tope)}).`, { enfocar: `nota-monto-${compra.id}` });
-    }
-
     const pedido = armarPedidoEnvio({
       ubicacionId,
       bloques,
@@ -632,7 +601,6 @@ export function RecepcionEnvio({
       extras,
       traslados: trasladosMarcados.map((t) => ({ transferenciaId: t.id, lineas: t.lineas, conteo: conteoTraslados[t.id] ?? {} })),
       cierres: cierres.map((c) => ({ lineaId: c.lineaId, faltan: c.faltan, motivo: c.motivo })),
-      notas: notasAEmitir.map(({ compra, n, borrador }) => ({ compraId: compra.id, serie: borrador.serie, fecha: borrador.fecha, monto: n.monto })),
       numeroGuia,
       nota,
       token,
@@ -659,8 +627,8 @@ export function RecepcionEnvio({
     setLoading(true);
     const cerrarProceso = avisar.proceso(unidadesRecibiendo > 0 ? "Recibiendo el envío…" : "Cerrando faltantes…");
     const supabase = createClient();
-    // UNA sola llamada, UNA transacción: todos los proveedores, lo fuera de comprobante, lo de otra sede, los
-    // cierres y las notas se registran juntos o no se registra nada. Con el mismo token, reintentar no duplica.
+    // UNA sola llamada, UNA transacción: todos los proveedores, lo fuera de comprobante, lo de otra sede y los
+    // cierres se registran juntos o no se registra nada. Con el mismo token, reintentar no duplica.
     const { data, error } = await supabase.rpc("recibir_envio", pedido);
     cerrarProceso();
     setLoading(false);
@@ -670,7 +638,7 @@ export function RecepcionEnvio({
       return;
     }
 
-    const r = (data ?? {}) as { ya_registrado?: boolean; lotes?: unknown[]; extras?: number; traslados?: { resultado: string }[]; cierres?: number; notas_credito?: number };
+    const r = (data ?? {}) as { ya_registrado?: boolean; lotes?: unknown[]; extras?: number; traslados?: { resultado: string }[]; cierres?: number };
     const resultado: Resultado = {
       unidades: unidadesRecibiendo,
       proveedores: r.lotes?.length ?? proveedoresEnvio.length,
@@ -678,7 +646,8 @@ export function RecepcionEnvio({
       deOtraSede: totales.deOtraSede,
       traslados: r.traslados ?? [],
       cierres: r.cierres ?? 0,
-      notas: r.notas_credito ?? 0,
+      // Lo que el proveedor queda debiendo en documentos: se reclama en el módulo, no acá (0 = nada, o no es líder).
+      porReclamar: reclamos.reduce((a, x) => a + x.monto, 0),
       yaRegistrado: r.ya_registrado === true,
       movimientos,
     };
@@ -700,7 +669,6 @@ export function RecepcionEnvio({
     setTrasladosElegidos([]);
     setConteoTraslados({});
     setDecisiones({});
-    setNotas({});
     setNumeroGuia("");
     setNota("");
     setEscaneo("");
@@ -739,6 +707,8 @@ export function RecepcionEnvio({
                   {[l.talla, l.color].filter(Boolean).join(" · ") || l.descripcion}
                   <span className="@[46rem]:hidden"> · pendiente {l.pendiente}</span>
                 </span>
+                {/* ADR-0139: una línea repartida entre tiendas dice cuánto le toca a ESTA (y, al líder, dónde más falta). */}
+                {textoDeLaParte(l) && <span className="block text-[11px] leading-snug text-ambar-profundo">{textoDeLaParte(l)}</span>}
               </span>
             </span>
             <span className="hidden truncate text-[12.5px] tabular-nums text-tinta/65 @[60rem]:block">{l.sku ?? "—"}</span>
@@ -822,7 +792,7 @@ export function RecepcionEnvio({
         {destello?.id === l.id && <span key={destello.n} aria-hidden className="anim-destello-lectura pointer-events-none absolute inset-0" />}
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
           <span className="min-w-0 text-sm text-tinta">
-            {l.referencia} <span className="text-xs text-tinta/55">· el comprobante dice {l.pendiente} sin talla ni color — anota lo que llegó de cada una</span>
+            {l.referencia} <span className="text-xs text-tinta/55">· {textoDeLaParte(l) ? `a esta tienda le tocan ${l.pendiente}` : `el comprobante dice ${l.pendiente}`} sin talla ni color — anota lo que llegó de cada una</span>
             {l.descripcion && <span className="block text-xs text-tinta/55">{l.descripcion}</span>}
           </span>
           <span className="flex flex-col items-end gap-1">
@@ -934,7 +904,9 @@ export function RecepcionEnvio({
           {visibles.map((c) => {
             const marcada = seleccionadas.includes(c.id);
             const llegada = chipLlegada(c, ahora);
-            const enMedio = c.recibidoCantidad > 0;
+            // ADR-0139: si el comprobante trae más para otras tiendas, el monto es el de la PARTE de esta (no el total entero).
+            const esParte = c.facturadoTotal != null && c.facturadoTotal > c.facturadoCantidad;
+            const enMedio = c.recibidoCantidad > 0 || esParte;
             return (
               <button
                 key={c.id}
@@ -957,7 +929,7 @@ export function RecepcionEnvio({
                     <Resaltado texto={c.documento} busqueda={busqueda} />
                   </span>
                   <span className="block text-xs text-tinta/65">
-                    {textoEsperada(c, ahora)} · {c.recibidoCantidad} de {c.facturadoCantidad} u.
+                    {textoEsperada(c, ahora)} · {c.recibidoCantidad} de {c.facturadoCantidad} u.{c.facturadoTotal != null && c.facturadoTotal > c.facturadoCantidad ? " · tu parte" : ""}
                   </span>
                   <span aria-hidden className="mt-1.5 block h-[3px] overflow-hidden rounded-full bg-sand">
                     <span className="anim-crece-x block h-full rounded-full bg-tinta/45" style={{ width: `${c.facturadoCantidad ? Math.min(100, (c.recibidoCantidad / c.facturadoCantidad) * 100) : 0}%` }} />
@@ -1310,10 +1282,27 @@ export function RecepcionEnvio({
                       );
                     })}
 
-                    {/* al final, la nota de crédito (una por comprobante, con el comprobante al 100 %) — solo líder */}
-                    {esLider && (
-                      <div className="space-y-4 p-5 pt-0">
-                        <NotaCreditoCierre bloques={bloquesNota} notas={notas} onNota={ajustarNota} hoy={hoy} esLider={esLider} igvMes={igvMes} porRecibirAtrasadas={porRecibirAtrasadas} />
+                    {/* al final, lo que el proveedor va a quedar debiendo — un aviso, no un formulario (solo líder) */}
+                    {reclamos.length > 0 && (
+                      <div className="space-y-2.5 p-5">
+                        {reclamos.map((r) => (
+                          <div key={r.compraId} className="anim-entra flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-sand px-4 py-3">
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-tinta">
+                                Nota de crédito por reclamar · <span className="tabular-nums">{soles(r.monto)}</span>
+                              </p>
+                              <p className="text-xs leading-relaxed text-tinta/65">
+                                {r.documento} · {r.proveedorNombre} ·{" "}
+                                {r.cerrandoAhora > 0
+                                  ? `al confirmar, ${r.cerrandoAhora === 1 ? "la unidad que cierras queda anotada" : `las ${r.cerrandoAhora} unidades que cierras quedan anotadas`} como nota pendiente. El documento del proveedor no se registra acá.`
+                                  : "ya tiene un faltante cerrado esperando el documento del proveedor."}
+                              </p>
+                            </div>
+                            <Link href="/compras/notas-credito" className="shrink-0 rounded-full transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo">
+                              <Chip tono="ambar">Se reclama en Notas de crédito ↗</Chip>
+                            </Link>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>

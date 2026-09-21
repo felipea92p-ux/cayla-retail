@@ -1,5 +1,7 @@
 import { diaMes, diasHastaLima, sumarDias } from "./fechas-lima";
 import { parseMonto } from "./por-pagar-reglas";
+import type { CompraResumen } from "./compras-reglas";
+import type { NotaCreditoCompra } from "./compras-faltantes";
 
 // Reglas puras de Recibir mercadería (D1 y D2 de ADR-0111). Sin I/O: se prueban sin base ni
 // navegador. Las fechas son de Lima (`fechas-lima`), nunca el reloj del servidor.
@@ -76,11 +78,18 @@ export function ordenarPorUrgencia<T extends Esperable>(compras: T[], ahora: Dat
   return [...compras].sort((a, b) => diasDeAtraso(b, ahora) - diasDeAtraso(a, ahora));
 }
 
-/** Valor S/ de lo que falta llegar de un comprobante, proporcional a lo pendiente (el total incluye IGV). */
-export function valorPorLlegar(c: { total: number; facturadoCantidad: number; recibidoCantidad: number; cerradoCantidad?: number }): number {
-  if (c.facturadoCantidad <= 0) return 0;
+/**
+ * Valor S/ de lo que falta llegar de un comprobante, proporcional a lo pendiente (el total incluye IGV).
+ *
+ * ADR-0139 — vista desde una tienda, `facturadoCantidad` es lo que le TOCA a ella pero `total` es el de TODO el
+ * comprobante: el prorrateo se hace contra las unidades del comprobante entero (`facturadoTotal`), si no, a una tienda
+ * con 18 de 36 unidades le saldría el total completo como «por llegar».
+ */
+export function valorPorLlegar(c: { total: number; facturadoCantidad: number; recibidoCantidad: number; cerradoCantidad?: number; facturadoTotal?: number }): number {
+  const base = c.facturadoTotal ?? c.facturadoCantidad;
+  if (base <= 0) return 0;
   const pendiente = Math.max(0, c.facturadoCantidad - c.recibidoCantidad - (c.cerradoCantidad ?? 0));
-  return Math.round(((c.total * pendiente) / c.facturadoCantidad) * 100) / 100;
+  return Math.round(((c.total * pendiente) / base) * 100) / 100;
 }
 
 // ---------------------------------------------------------------------------
@@ -192,6 +201,55 @@ export function etiquetaConfirmar(p: { unidades: number; cierres: number; ubicac
   return `Recibir en ${p.ubicacion}`;
 }
 
+// ---------------------------------------------------------------------------
+// Lo que hay que RECLAMARLE al proveedor (Recepción ya no registra la nota)
+// ---------------------------------------------------------------------------
+
+/** Un comprobante del envío que va a quedar esperando su nota de crédito por faltante. */
+export type ReclamoNota = {
+  compraId: string;
+  documento: string;
+  proveedorNombre: string;
+  /** Unidades cerradas por faltante: las de esta guía más las que ya estaban cerradas. */
+  unidades: number;
+  /** Las que se cierran en ESTA guía (0 = el faltante ya estaba cerrado de antes). */
+  cerrandoAhora: number;
+  /** Lo cerrado a su costo + IGV: lo que la nota debería acreditar. */
+  monto: number;
+};
+
+/**
+ * Qué notas de crédito va a dejar pendientes este envío. Desde 2026-09-19 Recepción NO registra la
+ * nota (eso vive en `/compras/notas-credito`): acá solo se avisa, con nombre y monto, que el
+ * proveedor queda debiendo el documento. Un comprobante que YA tiene su nota por faltante no
+ * aparece — es una sola por comprobante.
+ */
+export function notasPorReclamar(
+  bloques: {
+    compra: { id: string; documento: string; proveedorNombre: string; igv: number; subtotal: number };
+    cierresAhora: { faltan: number; costoUnitario: number }[];
+    cerradoAntes: { faltan: number; costoUnitario: number }[];
+    yaTieneNotaFaltante: boolean;
+  }[],
+): ReclamoNota[] {
+  const salida: ReclamoNota[] = [];
+  for (const b of bloques) {
+    if (b.yaTieneNotaFaltante) continue;
+    const todos = [...b.cerradoAntes, ...b.cierresAhora];
+    const unidades = todos.reduce((a, c) => a + c.faltan, 0);
+    if (unidades <= 0) continue;
+    salida.push({
+      compraId: b.compra.id,
+      documento: b.compra.documento,
+      proveedorNombre: b.compra.proveedorNombre,
+      unidades,
+      cerrandoAhora: b.cierresAhora.reduce((a, c) => a + c.faltan, 0),
+      monto: montoDeCierres(todos, tasaIgv(b.compra)),
+    });
+  }
+  return salida;
+}
+
 /** Lo que se va escribiendo de la nota de crédito de UN comprobante mientras se arma la guía. */
 export type NotaBorrador = { activa: boolean; serie: string; fecha: string; montoTxt: string | null /* null = sigue la sugerencia */ };
 
@@ -241,6 +299,24 @@ export function disponibilidadNota(p: { pendiente: number; llegando: number; cer
   if (p.cerradoAntes + p.cerrandoAhora <= 0) return { estado: "sin_cierres" };
   const quedan = p.pendiente - p.llegando - p.cerrandoAhora;
   return quedan > 0 ? { estado: "bloqueada", quedan } : { estado: "disponible" };
+}
+
+/**
+ * Lo que dice la base sobre una nota por faltante de este comprobante, para decidir qué ofrecer.
+ *
+ * Vive acá (módulo puro) y NO en `AccionesFaltantes.tsx`: ese archivo es `"use client"` y el detalle del
+ * comprobante (`NotasCreditoCompra`, componente de servidor) la llama en el servidor — Next lo prohíbe
+ * («Attempted to call estadoNotaFaltante() from the server but … is on the client») y la pantalla se caía
+ * al abrir cualquier factura.
+ */
+export function estadoNotaFaltante(compra: CompraResumen, notas: NotaCreditoCompra[]): DisponibilidadNota {
+  return disponibilidadNota({
+    pendiente: compra.facturadoCantidad - compra.recibidoCantidad - compra.cerradoCantidad,
+    llegando: 0,
+    cerrandoAhora: 0,
+    cerradoAntes: compra.cerradoCantidad,
+    yaTieneNotaFaltante: notas.some((n) => n.motivo === "faltante"),
+  });
 }
 
 // ---------------------------------------------------------------------------

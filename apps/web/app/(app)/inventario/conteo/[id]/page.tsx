@@ -4,6 +4,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getConteoDetalle } from "@/lib/conteos";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
+import { SinFoto } from "@/components/ui/PrendaCelda";
 
 const PLANTILLA = "sm:grid-cols-[minmax(12rem,1.4fr)_5rem_5rem_6rem]";
 
@@ -99,13 +100,16 @@ export default async function ConteoDetallePage({ params }: { params: Promise<{ 
           />
           {conteo.lineasDetalle.map((l) => (
             <div key={l.varianteId} className={fila(PLANTILLA)}>
-              <span className="min-w-0">
-                <span className="block truncate text-sm text-tinta" title={l.referencia}>
-                  {l.referencia}
-                </span>
-                <span className="block truncate text-xs text-tinta/65">
-                  <span className="font-mono">{l.sku}</span>
-                  {[l.talla, l.color].filter(Boolean).length > 0 && ` · ${[l.talla, l.color].filter(Boolean).join(" · ")}`}
+              <span className="flex min-w-0 items-start gap-2.5">
+                <SinFoto />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm text-tinta" title={l.referencia}>
+                    {l.referencia}
+                  </span>
+                  <span className="block truncate text-xs text-tinta/65">
+                    <span className="font-mono">{l.sku}</span>
+                    {[l.talla, l.color].filter(Boolean).length > 0 && ` · ${[l.talla, l.color].filter(Boolean).join(" · ")}`}
+                  </span>
                 </span>
               </span>
               <span className={celda("centro", "text-sm tabular-nums text-tinta/75")}>

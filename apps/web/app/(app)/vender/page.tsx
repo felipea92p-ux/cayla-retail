@@ -62,7 +62,9 @@ async function Caja() {
   );
   const filasStock = exigir(resStock, "el stock de las sedes");
   const stockPorVariante = agruparStockPorSede(filasStock, ubicaciones, persona.ubicacionId);
-  const pisoPorVariante = new Map(stockAqui.map((f) => [f.varianteId, f.piso ?? f.total]));
+  // Lo APARTADO para una clienta sigue en el piso pero no se puede cobrar: el tope es lo DISPONIBLE
+  // (ADR-0141). La base lo rechazaría igual (`fn_aplicar_movimiento`); esto evita ofrecerlo.
+  const pisoPorVariante = new Map(stockAqui.map((f) => [f.varianteId, f.pisoDisponible ?? f.disponible]));
 
   const variantesParaVenta = variantes
     .filter((v) => v.activo)

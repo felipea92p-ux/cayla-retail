@@ -4,7 +4,7 @@
 > Para darle pájaro a una tabla se edita `scripts/datos/aviario.mjs`. Para apuntarte a un
 > pájaro, `docs/datos/07-GOBIERNO.md` §1: el pájaro es el puesto, quién lo lleva se dice allá.
 >
-> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 70 · **Sin pájaro:** 0
+> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 77 · **Sin pájaro:** 0
 
 ## Por pájaro
 
@@ -18,8 +18,8 @@
 | 06 | **Lechuza** | Conteo y censo físico | `conteo_items` · `conteos` |
 | 07 | **Colibrí** | Ventas y caja | `caja_movimientos` · `cajas` · `cambios` · `clientes` · `codigos_descuento` · `devolucion_items` · `devoluciones` · `venta_anulacion_items` · `venta_items` · `venta_pagos` · `ventas` |
 | 08 | **Cuervo** | Facturación SUNAT | `comprobantes` · `configuracion_empresa` · `proformas` · `series_comprobantes` · `ubicacion_datos_fiscales` |
-| 09 | **Pelícano** | Compras y proveedores | `compra_adjuntos` · `compra_item_cierres` · `compra_items` · `compra_items_resumen` · `compra_notas_credito` · `compra_pagos` · `compras` · `compras_resumen` · `proveedor_creditos` · `proveedores` |
-| 10 | **Gallito** | Producción del Taller | `insumo_lotes` · `insumos` · `movimientos_insumo` · `produccion_lineas` · `producciones` · `v_insumo_saldos` |
+| 09 | **Pelícano** | Compras y proveedores | `compra_adjuntos` · `compra_item_cierres` · `compra_item_destinos` · `compra_item_reparto_resumen` · `compra_items` · `compra_items_resumen` · `compra_notas_credito` · `compra_pagos` · `compra_reasignaciones` · `compras` · `compras_resumen` · `proveedor_creditos` · `proveedores` |
+| 10 | **Gallito** | Producción del Taller | `comprobantes_produccion` · `comprobantes_produccion_items` · `comprobantes_produccion_pagos` · `insumo_lotes` · `insumos` · `movimientos_insumo` · `produccion_lineas` · `producciones` · `proveedores_produccion` · `v_insumo_saldos` |
 | 11 | **Garza** | Finanzas operativas | `gastos` |
 | 12 | **Urraca** | Contabilidad | `activos_fijos` |
 | 13 | **Águila** | Inteligencia y reportes | *sin tablas hoy* |
@@ -47,13 +47,19 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `colores` | 02 · Loro |
 | `compra_adjuntos` | 09 · Pelícano |
 | `compra_item_cierres` | 09 · Pelícano |
+| `compra_item_destinos` | 09 · Pelícano |
+| `compra_item_reparto_resumen` | 09 · Pelícano |
 | `compra_items` | 09 · Pelícano |
 | `compra_items_resumen` | 09 · Pelícano |
 | `compra_notas_credito` | 09 · Pelícano |
 | `compra_pagos` | 09 · Pelícano |
+| `compra_reasignaciones` | 09 · Pelícano |
 | `compras` | 09 · Pelícano |
 | `compras_resumen` | 09 · Pelícano |
 | `comprobantes` | 08 · Cuervo |
+| `comprobantes_produccion` | 10 · Gallito |
+| `comprobantes_produccion_items` | 10 · Gallito |
+| `comprobantes_produccion_pagos` | 10 · Gallito |
 | `configuracion_empresa` | 08 · Cuervo |
 | `conteo_items` | 06 · Lechuza |
 | `conteos` | 06 · Lechuza |
@@ -84,6 +90,7 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `proformas` | 08 · Cuervo |
 | `proveedor_creditos` | 09 · Pelícano |
 | `proveedores` | 09 · Pelícano |
+| `proveedores_produccion` | 10 · Gallito |
 | `series_comprobantes` | 08 · Cuervo |
 | `stock` | 05 · Halcón |
 | `sububicaciones` | 05 · Halcón |

@@ -667,7 +667,7 @@ function TarjetaCategoria({
       </div>
       <div>
         <p className="font-display text-[15px] leading-tight text-tinta">{c.nombre}</p>
-        <p className="label-cayla mt-1 text-[9px] text-tinta/50">
+        <p className="label-cayla mt-1 text-[11px] text-tinta/65">
           {subcategorias > 0 ? `${subcategorias} sub · ` : ""}
           {productos === 0 ? "sin productos" : `${productos} ${productos === 1 ? "producto" : "productos"}`}
         </p>

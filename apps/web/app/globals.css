@@ -1,6 +1,11 @@
 @import "tailwindcss";
 /* Entradas/salidas propias de los componentes shadcn/ui (ADR-0045, adenda). */
 @import "tw-animate-css";
+@import "./estilos/comprobantes-lista.css";
+@import "./estilos/comprobantes-detalle.css";
+@import "./estilos/comprobantes-registro.css";
+@import "./estilos/notas-credito.css";
+@import "./estilos/avisos.css";
 
 /* ==================================================================
    Sistema de identidad CAYLA · v3.0
@@ -55,18 +60,22 @@
      color de DATO, para que un mismo método se lea con el mismo color en la dona
      de Caja y en el selector de Vender. Elegidos para no pisar ningún tono ya
      usado (rojo/rojo-profundo = marca y "negativo"; verde/ámbar = semáforo de
-     estado) y medidos igual que el resto: los cinco pasan AA (≥4.5:1) como texto
-     plano sobre crema/papel Y sobre su propio fondo de "elegido" (16 % del color
-     sobre papel, el chip del selector de Vender) — el peor es plin, 4.76:1.
-     2026-09-18 (Felipe): cada método con su color — efectivo cobrizo, tarjeta
-     plomo, yape morado, plin verde, transferencia hazel (avellana). Antes eran
-     tres (efectivo azul, tarjeta ámbar, yape/plin verde compartido). La dona de
-     Caja agrupa "Yape / Plin" en un solo segmento y usa el token de yape. */
-  --color-metodo-efectivo: #8f4a1e;
+     estado) y medidos igual que el resto: tarjeta, yape, plin y transferencia pasan
+     AA (≥4.5:1) como texto plano sobre crema/papel Y sobre su propio fondo de
+     "elegido" — el peor es plin, 4.76:1.
+     2026-09-18 (Felipe): cada método con su color — tarjeta plomo, yape morado,
+     plin verde. La dona de Caja agrupa "Yape / Plin" en un solo segmento y usa el
+     token de yape.
+     2026-09-19 (Felipe): efectivo pasa a DORADO y transferencia a AZUL (el pardo
+     de transferencia se confundía con el dorado). El dorado es de RELLENO y borde
+     (selector, dona, KPI): como texto sobre crema no llega a AA, así que el texto
+     y el ícono sobre él usan `--color-metodo-efectivo-tinta`. */
+  --color-metodo-efectivo: #d19a12;
+  --color-metodo-efectivo-tinta: #6b4a00;
   --color-metodo-tarjeta: #525a64;
   --color-metodo-yape: #6d3fa3;
   --color-metodo-plin: #1c6b56;
-  --color-metodo-transferencia: #6b5a1a;
+  --color-metodo-transferencia: #2f6aa3;
 
   /* Escala tipográfica — se sube el PISO, no el techo (2026-09-08). La queja
      de Felipe era sobre el texto chico, no sobre los títulos: xs pasa de 12 a
@@ -734,6 +743,63 @@ body {
   }
 }
 
+/* ---- REGLA DE MODALES (ADR-0136) ------------------------------------------------------------
+   Todo modal del retail se dibuja con `<Modal>` (components/ui/Modal.tsx) y hereda ESTE movimiento
+   sin hacer nada; un modal nuevo NO define su propia animación. El efecto, en orden:
+     1. el velo aparece con desenfoque leve (`anim-velo`, 220 ms);
+     2. la hoja sube 18 px y crece de .965 a 1 (`anim-modal-entra`, 420 ms, --ease-cayla); en móvil es
+        una hoja que sube desde el borde (sin escala: escalarla se ve mal);
+     3. su CONTENIDO entra en cascada (`cascada-modal`): cada pieza sube 10 px y aparece, 55 ms de desfase
+        entre una y otra, empezando 120 ms después de la hoja. Cuenta como pieza el título, la bajada y los
+        hijos directos del modal; si el modal es un único <form>, cuentan los hijos del form.
+     4. al cerrar la hoja se va en 220 ms hacia abajo y el velo se apaga (`anim-modal-sale`).
+   Lo que un modal SÍ puede agregar por su cuenta (y nada más): una barra que se llena, una cifra que cuenta,
+   el «visto» que se dibuja al confirmar — respuestas a una acción, no adorno. Nunca en bucle, sin rebote.
+   `data-sin-cascada` en una pieza la saca de la cascada (p. ej. una lista larga que ya se anima sola).
+   Con movimiento reducido todo colapsa a un instante. Prototipo de referencia:
+   docs/maquetas/comprobantes-animaciones-2026-09/comprobantes-vivo.html (`.velo`, `.modal`, `.st`). ---- */
+@keyframes cayla-modal-entra {
+  from { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.965); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cayla-modal-sale {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate3d(0, 10px, 0) scale(0.98); }
+}
+@keyframes cayla-cascada {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+}
+@layer components {
+  /* Móvil: la hoja sube desde el borde (misma que siempre). Escritorio: sube 18 px y crece. */
+  .anim-modal-entra { animation: cayla-hoja 380ms var(--ease-cayla) both; }
+  .anim-modal-sale { animation: cayla-hoja-salida 220ms var(--ease-salida) both; }
+  @media (min-width: 640px) {
+    .anim-modal-entra { animation-name: cayla-modal-entra; animation-duration: 420ms; }
+    .anim-modal-sale { animation-name: cayla-modal-sale; }
+  }
+
+  /* La cascada del contenido. `backwards`, no `both`: terminada, la pieza vuelve a su estilo normal y su
+     hover/transición puede mover su `transform`. Un <form> hijo directo NO se anima entero (sus hijos sí):
+     animar el form y sus piezas a la vez multiplica la opacidad y se ve sucio. */
+  .cascada-modal > :not(form):not([data-sin-cascada]) {
+    animation: cayla-cascada 500ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--k, 0) * 55ms + 120ms);
+  }
+  /* Las piezas de un <form> empiezan después del título y la bajada (2 pasos más). */
+  .cascada-modal > form > :not([data-sin-cascada]) {
+    animation: cayla-cascada 500ms var(--ease-cayla) backwards;
+    animation-delay: calc((var(--k, 0) + 2) * 55ms + 120ms);
+  }
+  .cascada-modal > :nth-child(1), .cascada-modal > form > :nth-child(1) { --k: 0; }
+  .cascada-modal > :nth-child(2), .cascada-modal > form > :nth-child(2) { --k: 1; }
+  .cascada-modal > :nth-child(3), .cascada-modal > form > :nth-child(3) { --k: 2; }
+  .cascada-modal > :nth-child(4), .cascada-modal > form > :nth-child(4) { --k: 3; }
+  .cascada-modal > :nth-child(5), .cascada-modal > form > :nth-child(5) { --k: 4; }
+  .cascada-modal > :nth-child(6), .cascada-modal > form > :nth-child(6) { --k: 5; }
+  .cascada-modal > :nth-child(7), .cascada-modal > form > :nth-child(7) { --k: 6; }
+  .cascada-modal > :nth-child(n + 8), .cascada-modal > form > :nth-child(n + 8) { --k: 7; }
+}
+
 /* ---- Dona de métodos de pago (2026-09-18, segunda tanda) ----
         Excepción pedida a "nada se anima solo al entrar" — ver DonaMetodos.tsx.
         El barrido y la aguja llevan la MISMA curva y duración a propósito: la
@@ -767,12 +833,11 @@ body {
 
 /* ---- Encabezado de Caja: reloj del turno y estado de sincronización (2026-09-18, 3ª
         tanda) — ver CajaAbiertaPanel.tsx. Lo que se mueve aquí es hora real, no adorno:
-        el dígito rueda cuando cambia, la aguja da la vuelta cada 60 s y las ondas de
+        el dígito rueda cuando cambia y las ondas de
         "sincronizado" respiran. `caja-ping` parte de `opacity: 0` (base) para que sin
         animación —movimiento reducido— la onda no quede como un disco sólido detrás del
         ícono. ---- */
 @keyframes caja-rueda { from { opacity: 0; transform: translateY(0.35em); } }
-@keyframes caja-aguja { to { transform: rotate(360deg); } }
 @keyframes caja-ping {
   0% { transform: scale(0.9); opacity: 0.45; }
   70%, 100% { transform: scale(2.4); opacity: 0; }
@@ -781,7 +846,6 @@ body {
 
 @layer components {
   .anim-rueda { animation: caja-rueda 320ms var(--ease-cayla) both; }
-  .anim-caja-aguja { transform-origin: 10px 10px; animation: caja-aguja 60s linear infinite; }
   .anim-caja-ping { opacity: 0; animation: caja-ping 2.8s var(--ease-cayla) infinite; }
   .anim-caja-check path { stroke-dasharray: 14; animation: caja-trazo 520ms var(--ease-cayla) 120ms backwards; }
 }
@@ -1430,6 +1494,8 @@ body {
   @media (prefers-reduced-motion: reduce) {
     .anim-velo,
     .anim-entrada,
+    .anim-modal-entra,
+    .anim-modal-sale,
     .anim-revelar,
     .anim-flota,
     .anim-revelar-salida,
@@ -1473,7 +1539,6 @@ body {
       animation-duration: 1ms;
       animation-delay: 0ms;
     }
-    .anim-caja-aguja,
     .anim-caja-ping { animation: none; }
     .alza-cayla:hover { transform: none; }
     .hilo-trabajando::after { animation: none; }
@@ -1499,11 +1564,132 @@ body {
     .boton-brillo:hover:not(:disabled)::after { animation: none; }
   }
 }
+/* ==================================================================
+   Cobro guiado (2026-09-19, Felipe): qué toca ahora, y una luz que enseña dónde tocar.
+   La fila de medios es UNA franja: por debajo corre un degradado con el color de cada medio
+   en su lugar (efectivo, tarjeta, yape, plin, transferencia) y por encima una ventana suave de
+   luz (`mask`) que se desliza de izquierda a derecha y vuelve. La luz nunca se apaga ni tiene
+   bordes: lo único que cambia es su color, según el medio que va cruzando. `--pos` (0..4) es
+   dónde está la luz; el resto sale de ese solo número.
+   ================================================================== */
+@property --pos {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+@layer components {
+  /* Los tres colores de cada medio: fuerte (borde/halo), suave (fondo) y tinta (texto). */
+  .metodo-efectivo { --c: var(--color-metodo-efectivo); --cd: var(--color-metodo-efectivo-tinta); }
+  .metodo-tarjeta { --c: var(--color-metodo-tarjeta); --cd: var(--color-metodo-tarjeta); }
+  .metodo-yape { --c: var(--color-metodo-yape); --cd: var(--color-metodo-yape); }
+  .metodo-plin { --c: var(--color-metodo-plin); --cd: var(--color-metodo-plin); }
+  .metodo-transferencia { --c: var(--color-metodo-transferencia); --cd: var(--color-metodo-transferencia); }
+  [class*="metodo-"] { --ct: color-mix(in srgb, var(--c) 22%, var(--color-papel)); }
+
+  /* La luz: 4.6 s. Se queda en efectivo ~1.2 s, se desliza hasta transferencia (~1.6 s) y vuelve
+     igual de suave. Solo mientras no haya ningún medio elegido; se congela con el cursor encima. */
+  .ola-activa {
+    position: relative;
+    /* Dónde está la luz, en % del ancho: los cinco medios son cinco columnas iguales (centros en
+       10, 30, 50, 70 y 90 %). */
+    --x: calc(10% + var(--pos) * 20%);
+    animation: ola-pos 4.6s infinite;
+  }
+  .ola-activa:hover { animation-play-state: paused; }
+  .ola-activa::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    /* El color de cada medio en su columna; `oklab` evita que el paso de un color a otro se ensucie. */
+    background: linear-gradient(
+      in oklab 90deg,
+      color-mix(in srgb, var(--color-metodo-efectivo) 34%, var(--color-papel)) 10%,
+      color-mix(in srgb, var(--color-metodo-tarjeta) 28%, var(--color-papel)) 30%,
+      color-mix(in srgb, var(--color-metodo-yape) 28%, var(--color-papel)) 50%,
+      color-mix(in srgb, var(--color-metodo-plin) 28%, var(--color-papel)) 70%,
+      color-mix(in srgb, var(--color-metodo-transferencia) 28%, var(--color-papel)) 90%
+    );
+    /* La ventana de luz: opaca en el centro y desvanecida a los lados (un medio de ancho y medio). */
+    -webkit-mask-image: linear-gradient(90deg, transparent calc(var(--x) - 26%), #000 var(--x), transparent calc(var(--x) + 26%));
+    mask-image: linear-gradient(90deg, transparent calc(var(--x) - 26%), #000 var(--x), transparent calc(var(--x) + 26%));
+  }
+  /* «Confirmar cobro» cuando ya se puede: un respiro suave, en tinta. */
+  .cobrar-listo { animation: cobrar-listo 1.8s ease-in-out infinite; }
+
+  /* Movimiento reducido: sin luz ni respiro (adorno que se repite, no información). Va DENTRO de
+     la capa (ADR-0105) y DESPUÉS de las reglas de arriba. `--pos` lejos de la fila deja la luz
+     fuera, apagada. */
+  @media (prefers-reduced-motion: reduce) {
+    .ola-activa {
+      animation: none;
+      --pos: 20;
+    }
+    .cobrar-listo {
+      animation: none;
+    }
+  }
+}
+@keyframes ola-pos {
+  0%, 26% { --pos: 0; animation-timing-function: ease-in-out; }
+  60%, 64% { --pos: 4; animation-timing-function: ease-in-out; }
+  100% { --pos: 0; }
+}
+@keyframes cobrar-listo {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-tinta) 16%, transparent); }
+}
+
 /* Fuera de capa a propósito: el `!important` de movimiento reducido tiene que ganarle
    a toda utilidad (`duration-*`, `transition-*`), y esta regla no es una clase de
    componente sino una preferencia de la persona. */
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     transition-duration: 1ms !important;
+  }
+}
+
+/* ==================================================================
+   Boleta / factura A4. `#boleta-a4-print` lo monta el detalle de venta pegado a <body>
+   y en pantalla no se ve. Al imprimir desaparece TODO lo demás (`display:none`, no
+   `visibility`: lo oculto seguiría ocupando alto y sacaría hojas en blanco). Es una
+   raíz aparte de `#comprobante-print` (la térmica): nunca están montadas a la vez.
+   `@page a4` es una página NOMBRADA: el A4 lleva su tamaño y sus márgenes sin pisar la
+   regla de la térmica (`@page { margin: 0 }`).
+   ================================================================== */
+#boleta-a4-print {
+  display: none;
+}
+@page a4 {
+  size: A4;
+  margin: 12mm;
+}
+@media print {
+  body:has(#boleta-a4-print) > *:not(#boleta-a4-print) {
+    display: none !important;
+  }
+  html:has(#boleta-a4-print),
+  body:has(#boleta-a4-print) {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    margin: 0 !important;
+  }
+  #boleta-a4-print {
+    display: block;
+    page: a4;
+    color: #000;
+    background: #fff;
+  }
+}
+
+/* La cascada de contenido de los modales (ADR-0136): sin movimiento, las piezas ya están donde van.
+   Dentro de `@layer components` (ADR-0105): una regla de clase sin capa le gana a toda utilidad de Tailwind. */
+@layer components {
+  @media (prefers-reduced-motion: reduce) {
+    .cascada-modal > :not(form):not([data-sin-cascada]),
+    .cascada-modal > form > :not([data-sin-cascada]) { animation: none; }
   }
 }

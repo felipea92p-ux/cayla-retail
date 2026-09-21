@@ -43,14 +43,17 @@ export function chipNotaPendiente(n: NotaPendiente, saldo: number): ChipNota {
   const monto = soles(n.montoEsperado);
   const cerrado = `Cerraste ${unidades(n.unidadesCerradas)} que no llegaron: el proveedor te debe una nota de crédito por ${monto}.`;
   const destino = saldo > 0 ? "No pagues esa parte." : "Como ya está pagado, quedará a tu favor.";
+  // Dónde se registra: desde 2026-09-19 hay una sola puerta, el módulo `/compras/notas-credito`. Antes
+  // eran tres (la guía de recepción, el detalle del comprobante y el módulo) y la frase podía quedarse en
+  // «ya puedes registrarla» sin decir dónde.
   const cuando = n.resuelto
-    ? "El comprobante ya está resuelto: ya puedes registrarla."
+    ? "El comprobante ya está resuelto: ya puedes registrarla en Notas de crédito."
     : "Todavía quedan unidades sin recibir ni cerrar: la nota se registra cuando el comprobante quede al 100 %.";
   return {
     tono: "ambar",
     texto: `Esperando nota ${monto}`,
     pista: `${cerrado} ${cuando} ${destino}`,
-    ayuda: n.resuelto ? "Ya puedes registrarla" : null,
+    ayuda: n.resuelto ? "Regístrala en Notas de crédito" : null,
   };
 }
 
