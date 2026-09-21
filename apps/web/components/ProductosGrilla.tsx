@@ -8,6 +8,7 @@ import { Chip } from "@/components/ui/Chip";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import type { ProductoListado, VarianteCatalogo } from "@/lib/catalogo-v2";
+import { alertaDeStock, textoDeStock, EXPLICACION_STOCK_TOTAL } from "@/lib/productos-stock";
 
 /**
  * Catálogo en grilla (ADR-0077) — alternativa visual a `ProductosAgrupados`,
@@ -176,9 +177,10 @@ function TarjetaProducto({
   const activo = colores.find((c) => c.nombre === nombreActivo) ?? null;
   const tinte = activo ? mezclar(activo.hex, 0.16) : "#efe9dd";
 
-  const sinStock = producto.stockTotal === 0;
-  const stockBajo = !sinStock && producto.stockMinimo != null && producto.stockTotal < producto.stockMinimo;
-  const tonoStock = sinStock ? "text-rojo" : stockBajo ? "text-ambar" : "text-tinta/75";
+  // Una prenda descontinuada no dispara alertas y se ve como tal; «Agotado» no es rojo (lib/productos-stock.ts).
+  const descontinuado = producto.estado !== "activo";
+  const alerta = alertaDeStock(producto);
+  const tonoStock = alerta === "bajo" ? "text-ambar" : descontinuado ? "text-tinta/55" : "text-tinta/75";
 
   return (
     <div className="card-cayla flex flex-col overflow-hidden transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
@@ -201,6 +203,12 @@ function TarjetaProducto({
             </span>
           </>
         )}
+        {descontinuado && (
+          // Abajo a la izquierda: arriba a la derecha ya vive «Muestra — color» y en una tarjeta angosta chocarían.
+          <span className="absolute bottom-2.5 left-2.5">
+            <Chip tono="apagado">Descontinuado</Chip>
+          </span>
+        )}
       </button>
 
       <div className="flex flex-1 flex-col gap-2.5 px-4 py-4">
@@ -215,9 +223,18 @@ function TarjetaProducto({
           </p>
         </div>
         <div className="h-px bg-sand" />
-        <div className="flex items-baseline justify-between">
+        {/* «Stock total N» es más largo que el «Stock N» de antes: en la grilla de 2 columnas de un teléfono no cabe junto al precio y baja a la línea siguiente. */}
+        <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1.5">
           <span className="text-[15px] font-semibold tabular-nums text-tinta">{rangoPrecio(producto.variantes)}</span>
-          <span className={`text-[12.5px] font-semibold tabular-nums ${tonoStock}`}>Stock {producto.stockTotal}</span>
+          <span title={EXPLICACION_STOCK_TOTAL} className={`ml-auto whitespace-nowrap text-[12.5px] font-semibold tabular-nums ${tonoStock}`}>
+            {alerta === "agotado" ? (
+              <Chip tono="neutro" versalitas={false}>
+                Agotado
+              </Chip>
+            ) : (
+              textoDeStock(producto.stockTotal)
+            )}
+          </span>
         </div>
         <div className="flex items-center justify-between">
           <SwatchesColor colores={colores} activo={nombreActivo} onHover={setColorHover} onFijar={setColorFijo} />
