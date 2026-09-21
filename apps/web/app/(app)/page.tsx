@@ -77,6 +77,9 @@ export default async function InicioPage() {
         <p className="label-cayla mb-3 text-[11px] text-tinta/65">Acciones</p>
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12">
           {[
+            // Lo que más se hace en el mostrador va primero (BACKLOG · pantalla Inicio #4).
+            { href: "/vender", etiqueta: "Vender", detalle: "Punto de venta: cobrar y emitir el comprobante" },
+            { href: "/caja", etiqueta: "Caja", detalle: "Ingresos, egresos y cierre del día" },
             { href: "/buscar", etiqueta: "Buscar", detalle: "Stock por SKU, referencia, talla o color" },
             // ADR-0111 + ADR-0113: una sola puerta para recibir, la misma para todos: cuenta cualquier colaborador de la sede.
             { href: "/recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó, contra sus comprobantes" },

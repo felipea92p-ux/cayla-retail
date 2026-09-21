@@ -92,7 +92,7 @@ Relevancia = (2·4 + 2 + 9 + 3) / 5 = **4.4** → Comodidad. Con #5–#6 sube a 
 - **Cómo lo verificas tú:** corta temporalmente la lectura de actividad y comprueba que las tarjetas siguen y la actividad dice «no se pudo leer», nunca «0».
 - **Esfuerzo / dependencias:** S · ninguna.
 
-### #4 · [Mejorar] «Vender» y «Caja» como primeras acciones
+### #4 · [Mejorar] «Vender» y «Caja» como primeras acciones — ✅ HECHA 2026-09-21 (solo tarjetas en `page.tsx`; el menú no se tocó; sin ver en navegador)
 - **Dónde:** `page.tsx:56-62`; rutas `/vender`, `/caja`; menú `AppShell.tsx:938-944`.
 - **Por qué en este puesto:** es lo que la colaboradora más hace; el mostrador va primero (decisión de Felipe). Sin esto, cada venta empieza con una búsqueda en el menú.
 - **Cómo lo verificas tú:** entra como integrante en TRU y llega a «Punto de Venta» en un toque desde Inicio.
