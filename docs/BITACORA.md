@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-21 (El calendario ya no cambia de mes solo)
+Se corrigió `CampoFecha`: pasar el mouse por un día gris del mes vecino movía el cursor de la grilla, y como el cursor decide qué mes se dibuja, el calendario saltaba solo. Ahora el hover solo mueve el cursor si el día es del mes visible; los grises se siguen resaltando con CSS y al hacer clic sí cambian de mes.
+Felipe se lleva: (1) **un mismo estado no debe mandar sobre dos cosas** —el cursor era a la vez «dónde estoy» y «qué mes muestro»—, y por eso un gesto inocente (pasar el mouse) tenía un efecto grande; (2) la causa de otra rareza de la sesión, la lista de facturas amontonada en «Registrar nota», no era el código sino un servidor de desarrollo con el CSS viejo: al cambiar de rama o traer cambios que agregan un `@import`, se reinicia el servidor y se borra `.next`.
+Sin resolver: verificado llamando al manejador de cada celda, no con mouse real (el panel del navegador no lo mueve); conviene pasarle el mouse una vez a mano.
+
 ## 2026-09-21 (El candado de líder ya corre en producción — ADR-0143)
 Felipe fusionó el PR #218 y autorizó pegar la migración: las pantallas ya estaban desplegadas y `cerrar_caja` y `registrar_movimiento` ahora rechazan con 42501 a quien no es líder. Se comprobó dentro de la base con un colaborador real y un líder real y con los roles de la API: el colaborador recibe los dos mensajes, el líder pasa el candado y `anon` no puede ni ejecutarlas.
 Felipe se lleva: (1) **antes de pegar se ensayó en un lote que termina en una excepción a propósito** y el cuerpo, sin el candado, dio el mismo `md5` que producción: se cambió lo que se quería y nada más; (2) el ensayo usó un colaborador y un líder reales **sin escribir nada** —el candado responde antes que cualquier otra cosa—, y después la base seguía intacta (479 movimientos, 3 cajas abiertas); (3) producción registra la migración con la hora de aplicación (`20260921152907`), no con el nombre del archivo (`20260921120000`): tres números «libres» de ese día se ocuparon en horas, y hubo que renumerar dos veces.
