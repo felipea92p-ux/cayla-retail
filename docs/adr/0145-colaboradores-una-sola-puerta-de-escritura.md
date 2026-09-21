@@ -1,6 +1,6 @@
 # ADR-0145 — Colaboradores: una sola puerta de escritura y un alta sin valores puestos
 
-**Fecha:** 2026-09-22 · **Estado:** aplicado en local; migración `20260922100000_colaboradores_endurecimiento.sql` **sin pegar en producción** · **Origen:** auditoría de `/colaboradores` (`docs/pantallas/colaboradores.md`, tareas #1, #2, #4, #5, #7, #8, #9)
+**Fecha:** 2026-09-22 · **Estado:** migración `20260922100000_colaboradores_endurecimiento.sql` **aplicada en producción el 2026-09-22** (verificado: solo SELECT para `authenticated`, constraint presente) · **Origen:** auditoría de `/colaboradores` (`docs/pantallas/colaboradores.md`, tareas #1, #2, #4, #5, #7, #8, #9)
 
 ## Contexto
 
