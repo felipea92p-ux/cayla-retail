@@ -8540,3 +8540,7 @@ patrón ADR-0126: A `20260921150000` → desplegar la app → B `20260921151000`
 ## 2026-09-21 (Producción F5: Nueva orden con decisión — ADR-0133)
 Felipe fusionó F4e; la parte A (`20260921150000`) quedó pendiente de pegar en producción al cierre de esta sesión (urgente: la app desplegada ya pide `fn_costos_*`). F5 construida sin esquema: «Nueva orden» (solo líder)
 sugiere la curva por talla y color con el ritmo y el stock de toda la red, dice si alcanza la tela y los avíos con el rendimiento MEDIDO de las órdenes cerradas y estima costo y margen. Sin ritmo medido no sugiere.
+
+## 2026-09-21 (Prueba de deriva de producción: 13/13 y dentro del CI)
+`pnpm pruebas:deriva-produccion` fallaba 12/13: el caso de las dos sobrecargas de 217000 aplica la migración histórica `20260918219000`, cuyo cuerpo escribe `compras.ubicacion_destino_id`, columna que el reparto (ADR-0139) retiró. El caso repone esa columna dentro de su transacción revertida; la garantía (una sola `registrar_compra` con `p_token`, el mismo token no duplica) no cambió. Fusionado en #227, y la prueba entra al job `pruebas-postgres` del CI.
+Felipe se lleva: (1) una migración vieja se prueba contra el esquema de SU época, no contra el de hoy: si el esquema cambia, se reconstruye ese contexto en la prueba y no se edita la migración; (2) una prueba que no corre en el CI se rompe en silencio: esta llevaba semanas roja y nadie lo notó.
