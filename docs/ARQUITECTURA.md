@@ -159,8 +159,8 @@ flowchart TB
 
 **Inventario V2 — cuatro pantallas operativas + una de decisión (2026-09-16, ADR-0071;
 quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
-(`AppShell.tsx`, `grupoInventario`) y `inventario/layout.tsx` monta `InventarioNav.tsx`
-con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · Resumen (esta
+(`AppShell.tsx`, `grupoInventario`) —la única navegación entre ellas desde 2026-09-21:
+`inventario/layout.tsx` ya no monta franja de pestañas— con Existencias · Movimientos · Traslados · Conteo · Análisis (esta
 última solo líder). Todo `/inventario/*` va a ancho completo (`SIN_TOPE_DE_ANCHO`).
 - `/inventario` (Existencias) → `lib/inventario-v2.ts:getExistencias` = `getStockPorUbicacion`
   (tabla `stock` agregada por variante) + RPC `fn_stock_por_sede` (dónde más hay, la misma
@@ -177,8 +177,8 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `TrasladoEstado` / `TrasladoLlegada` / `TrasladoMiniaturas`. Todo lo que se decide (qué requiere
   acción, qué viene en camino, cuántas prendas están en tránsito, el orden por espera) vive en
   `lib/traslados-reglas.ts` (`situacionTraslado`, ADR-0105) y se comparte con el contador «por atender»
-  del menú: `getTrasladosPorAtender` (total, nunca lanza) → `(app)/layout.tsx` e `inventario/layout.tsx`
-  → `AppShell` / `InventarioNav` (`ui/Insignia`). Las fotos se eligen con `lib/producto-fotos-reglas.ts`
+  del menú: `getTrasladosPorAtender` (total, nunca lanza) → `(app)/layout.tsx`
+  → `AppShell` (`ui/Insignia`). Las fotos se eligen con `lib/producto-fotos-reglas.ts`
   (color exacto o general, nunca de otro color) →
   `/inventario/traslados/[id]` → `TrasladoDetallePanel.tsx` (RPC `registrar_recepcion_traslado`,
   `confirmar_traslado`, `cerrar_traslado_con_diferencia`; dice el estado con `TrasladoEstado`).

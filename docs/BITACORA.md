@@ -8730,3 +8730,8 @@ Felipe pidió que los roles de retail no dupliquen el trabajo de Dynamic. Decisi
 Se ajustó la maqueta `roles-spike-2026-09` (bloqueo «Solo líder por ahora», Archivar/Restaurar rol, historial que solo se agrega, «Dar acceso», modal y movimientos con ADR-0136) y se escribió el ADR-0150 con las 8 decisiones y las fases F1–F7. Sin migraciones ni código de la app.
 Sin resolver: cerrar F1 (cambio de esquema, requiere el OK de Felipe antes de pegar); qué ubicación propone el alta; coordinar con la rama `adr-0145-compras-permisos`.
 
+
+## 2026-09-21 (Inventario sin franja de pestañas)
+Felipe pidió quitar la navegación horizontal de Inventario (Existencias · Movimientos · Traslados · Conteo · Análisis e «Ingreso sin comprobante»): el lateral queda como única navegación entre las vistas. Se quitó del `inventario/layout.tsx` (que ya no consulta persona ni traslados: lo hace `(app)/layout.tsx`) y se borró `InventarioNav.tsx`; el contenido de cada pantalla sube sin hueco. Sin migraciones ni cambios de lógica.
+Felipe se lleva: **quitar una pantalla de la navegación no quita la ruta**: `/inventario/recibir` sigue viva y ahora solo se llega por el enlace dentro de Compras › Recibir mercadería (o por URL); si esa puerta debe estar más a la mano, hay que decidir dónde (ADR-0111 la había puesto en la franja).
+Sin resolver: comprobar a ≤ 360 px si el scroll horizontal de página de Inventario (BACKLOG) desaparece; los ADR-0071/0101/0111 siguen describiendo la franja.
