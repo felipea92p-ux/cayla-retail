@@ -34,7 +34,8 @@ export default async function MoverMercaderiaPage({
   // 20260914210000_inventario_piso_almacen.sql. El tope que ve el
   // formulario tiene que ser ese mismo número, o dejaría pasar cantidades
   // que el RPC va a rechazar. En una ubicación sin piso/almacén (Taller,
-  // `f.almacen === null`), el tope sigue siendo el total, como siempre.
+  // `f.almacen === null`), el tope sigue siendo el total, como siempre. En ambos casos solo cuenta
+  // lo DISPONIBLE: lo apartado para una clienta tampoco se puede mover (ADR-0141).
   const variantesMovibles = stockOrigen
     .map((f) => ({
       varianteId: f.varianteId,
@@ -42,7 +43,7 @@ export default async function MoverMercaderiaPage({
       referencia: f.referencia,
       talla: f.talla,
       color: f.color,
-      cantidad: f.almacen ?? f.total,
+      cantidad: f.almacenDisponible ?? f.disponible,
     }))
     .filter((v) => v.cantidad > 0);
 
