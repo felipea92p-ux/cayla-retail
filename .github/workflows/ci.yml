@@ -172,6 +172,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:anular-venta-comprobante
 
+      # Un comprobante no nace sobre una venta anulada (20260921160000): ni por `emitir_comprobante`, ni por
+      # un insert directo, ni convirtiendo una proforma. Cada caso termina en ROLLBACK.
+      - name: pruebas:comprobante-venta-anulada
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:comprobante-venta-anulada
+
       # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
       # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las
       # tarjetas de arriba cuentan lo mismo. Cada caso termina en ROLLBACK.
