@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Proforma } from "./proformas-reglas";
-import { camposDeBusquedaDeLaProforma, chipDeLaProforma, detalleDeLaProforma, estadoVisible, ordenarProformas } from "./facturacion-proformas-reglas";
+import { soles } from "./compras-reglas";
+import { camposDeBusquedaDeLaProforma, chipDeLaProforma, detalleDeLaProforma, estadoVisible, franjaDeProformas, ordenarProformas } from "./facturacion-proformas-reglas";
 
 const AHORA = new Date("2026-09-19T20:00:00Z");
 const enHoras = (h: number) => new Date(AHORA.getTime() + h * 3600 * 1000).toISOString();
@@ -119,5 +120,31 @@ describe("camposDeBusquedaDeLaProforma", () => {
     const texto = camposDeBusquedaDeLaProforma(proforma({ vencida: true })).join(" ");
     expect(texto).toContain("Vencida");
     expect(texto).not.toContain("Vigente");
+  });
+});
+
+describe("franjaDeProformas", () => {
+  it("dice cuántas siguen valiendo, por cuánto y cuántas vencen pronto", () => {
+    expect(franjaDeProformas({ vigentes: 1, monto: 88.5, porVencer: 0, vencidas: 0 })).toEqual({
+      hay: true,
+      vigentes: "1 vigente",
+      monto: "S/ 88.50",
+      porVencer: "0 por vencer",
+      urgente: false,
+    });
+  });
+
+  it("en plural, con el monto en soles, y las por vencer piden atención", () => {
+    expect(franjaDeProformas({ vigentes: 3, monto: 1234.5, porVencer: 2, vencidas: 0 })).toEqual({
+      hay: true,
+      vigentes: "3 vigentes",
+      monto: soles(1234.5),
+      porVencer: "2 por vencer",
+      urgente: true,
+    });
+  });
+
+  it("sin ninguna vigente es una sola línea, no tres ceros; las vencidas no la vuelven vigente", () => {
+    expect(franjaDeProformas({ vigentes: 0, monto: 0, porVencer: 0, vencidas: 4 })).toEqual({ hay: false, texto: "Sin proformas vigentes" });
   });
 });
