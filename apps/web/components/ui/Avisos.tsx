@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
 
 /* ====================================================================
    Avisos · una sola voz, arriba a la derecha (2026-09-14)
@@ -38,6 +39,17 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
    · La coreografía (anillo que se dibuja, check que se traza, texto que
      se revela) vive en app/estilos/avisos.css — ADR-0146. Prototipo:
      docs/maquetas/avisos-spike-2026-09/avisos-spike-v2-efectos.html
+   · Esperan al loader (ADR-0149): un aviso de éxito significa «se guardó en
+     la base y no hubo ningún problema», y eso se dice DESPUÉS de la espera,
+     no encima de ella. Mientras hay una petición en curso o el loader
+     general está a la vista, ningún aviso se pinta — ni el que llega ni el
+     que ya estaba —; cuando la pantalla queda libre aparecen, con su
+     coreografía y su reloj desde cero. Así «Guardado» no se ve encima de
+     «Cargando». Quien llama no hace nada: `avisar.*` se puede invocar en el
+     instante en que responde la base, el aviso queda en la cola y sale solo.
+     Un `proceso` («Guardando…») cierra el mismo ciclo: mientras el loader
+     cubre la pantalla no se ve (el loader ya dice que se está trabajando), y
+     lo que se ve al terminar es su éxito o su error.
    · Un módulo, no un contexto: el estado vive fuera de React
      (`useSyncExternalStore`), así sobrevive a la navegación —
      registras, `router.push` al detalle, y el aviso sigue ahí. Se monta
@@ -111,7 +123,7 @@ function abrir(tono: TonoAviso, texto: string, opciones?: Opciones): number {
     avisos = avisos.filter((a) => a.id !== descartable.id);
   }
   emitir();
-  if (opciones?.enfocar) enfocar(opciones.enfocar);
+  if (opciones?.enfocar) pedirEnfoque(opciones.enfocar);
   return id;
 }
 
@@ -138,7 +150,7 @@ function transformar(id: number, tono: TonoAviso, texto: string, opciones?: Opci
       : a,
   );
   emitir();
-  if (opciones?.enfocar) enfocar(opciones.enfocar);
+  if (opciones?.enfocar) pedirEnfoque(opciones.enfocar);
 }
 
 function conProgreso(id: number, fraccion: number, detalle?: string) {
@@ -161,6 +173,14 @@ export function enfocar(objetivo: Enfocable) {
     (control ?? el).focus({ preventScroll: true });
     (control ?? el).scrollIntoView({ block: "center", behavior: "smooth" });
   });
+}
+
+// Con el loader a la vista el resto de la app está `inert`: `focus()` no hace nada. Se guarda el último
+// pedido y se cumple cuando la pantalla queda libre (lo hace `Avisos`), justo cuando el aviso aparece.
+let enfoquePendiente: Enfocable = null;
+function pedirEnfoque(objetivo: Enfocable) {
+  if (esperaOcupada()) enfoquePendiente = objetivo;
+  else enfocar(objetivo);
 }
 
 /** Lo que devuelve `avisar.proceso`: se puede llamar para cerrarlo (como siempre) o usar para transformarlo. */
@@ -197,7 +217,18 @@ export const avisar = {
 const SALIDA_MS = 260;
 
 export function Avisos() {
-  const lista = useSyncExternalStore(suscribir, leer, leerEnServidor);
+  const guardados = useSyncExternalStore(suscribir, leer, leerEnServidor);
+  const ocupada = useSyncExternalStore(suscribirEspera, esperaOcupada, () => false);
+  // Ocupada (una carga o un guardado en curso, o el loader aún a la vista): no se pinta ninguna tarjeta (se desmontan,
+  // no se ocultan) y los avisos siguen en el estado. Al quedar libre se montan de nuevo: la entrada y el reloj arrancan
+  // ahí, no bajo el loader. El contenedor `aria-live` sigue montado para que el lector anuncie la tarjeta al aparecer.
+  const lista = ocupada ? SIN_AVISOS : guardados;
+  useEffect(() => {
+    if (ocupada || !enfoquePendiente) return;
+    const objetivo = enfoquePendiente;
+    enfoquePendiente = null;
+    enfocar(objetivo);
+  }, [ocupada]);
   // Con 3 o más se ofrece limpiar; un proceso en marcha no se cancela desde acá.
   const cerrables = lista.filter((a) => a.tono !== "proceso");
   return (
