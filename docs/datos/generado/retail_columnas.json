@@ -1154,6 +1154,118 @@
    "ordinal_position": 7,
    "table_name": "compra_item_cierres",
    "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 8,
+   "table_name": "compra_item_cierres",
+   "table_schema": "retail"
+  }
+ ],
+ "compra_item_destinos": [
+  {
+   "column_default": null,
+   "column_name": "compra_item_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "compra_item_destinos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "compra_item_destinos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cantidad",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "compra_item_destinos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "created_at",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "compra_item_destinos",
+   "table_schema": "retail"
+  }
+ ],
+ "compra_item_reparto_resumen": [
+  {
+   "column_default": null,
+   "column_name": "compra_item_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 1,
+   "table_name": "compra_item_reparto_resumen",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "compra_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 2,
+   "table_name": "compra_item_reparto_resumen",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 3,
+   "table_name": "compra_item_reparto_resumen",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "asignado",
+   "data_type": "integer",
+   "is_nullable": "YES",
+   "ordinal_position": 4,
+   "table_name": "compra_item_reparto_resumen",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "recibido",
+   "data_type": "bigint",
+   "is_nullable": "YES",
+   "ordinal_position": 5,
+   "table_name": "compra_item_reparto_resumen",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cerrado",
+   "data_type": "bigint",
+   "is_nullable": "YES",
+   "ordinal_position": 6,
+   "table_name": "compra_item_reparto_resumen",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "pendiente",
+   "data_type": "bigint",
+   "is_nullable": "YES",
+   "ordinal_position": 7,
+   "table_name": "compra_item_reparto_resumen",
+   "table_schema": "retail"
   }
  ],
  "compra_items": [
@@ -1533,6 +1645,89 @@
    "table_schema": "retail"
   }
  ],
+ "compra_reasignaciones": [
+  {
+   "column_default": "gen_random_uuid()",
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "compra_reasignaciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "compra_item_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "compra_reasignaciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "desde_ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "compra_reasignaciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "hacia_ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "compra_reasignaciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "cantidad",
+   "data_type": "integer",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "compra_reasignaciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "motivo",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "compra_reasignaciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nota",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 7,
+   "table_name": "compra_reasignaciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "usuario_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 8,
+   "table_name": "compra_reasignaciones",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "created_at",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 9,
+   "table_name": "compra_reasignaciones",
+   "table_schema": "retail"
+  }
+ ],
  "compras": [
   {
    "column_default": "gen_random_uuid()",
@@ -1603,15 +1798,6 @@
    "data_type": "date",
    "is_nullable": "YES",
    "ordinal_position": 8,
-   "table_name": "compras",
-   "table_schema": "retail"
-  },
-  {
-   "column_default": null,
-   "column_name": "ubicacion_destino_id",
-   "data_type": "uuid",
-   "is_nullable": "NO",
-   "ordinal_position": 9,
    "table_name": "compras",
    "table_schema": "retail"
   },
@@ -1889,19 +2075,10 @@
   },
   {
    "column_default": null,
-   "column_name": "ubicacion_destino_id",
-   "data_type": "uuid",
-   "is_nullable": "YES",
-   "ordinal_position": 12,
-   "table_name": "compras_resumen",
-   "table_schema": "retail"
-  },
-  {
-   "column_default": null,
    "column_name": "subtotal",
    "data_type": "numeric",
    "is_nullable": "YES",
-   "ordinal_position": 13,
+   "ordinal_position": 12,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -1910,7 +2087,7 @@
    "column_name": "igv",
    "data_type": "numeric",
    "is_nullable": "YES",
-   "ordinal_position": 14,
+   "ordinal_position": 13,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -1919,7 +2096,7 @@
    "column_name": "total",
    "data_type": "numeric",
    "is_nullable": "YES",
-   "ordinal_position": 15,
+   "ordinal_position": 14,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -1928,7 +2105,7 @@
    "column_name": "estado",
    "data_type": "text",
    "is_nullable": "YES",
-   "ordinal_position": 16,
+   "ordinal_position": 15,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -1937,7 +2114,7 @@
    "column_name": "nota",
    "data_type": "text",
    "is_nullable": "YES",
-   "ordinal_position": 17,
+   "ordinal_position": 16,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -1946,7 +2123,7 @@
    "column_name": "created_at",
    "data_type": "timestamp with time zone",
    "is_nullable": "YES",
-   "ordinal_position": 18,
+   "ordinal_position": 17,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -1955,7 +2132,7 @@
    "column_name": "pagado",
    "data_type": "numeric",
    "is_nullable": "YES",
-   "ordinal_position": 19,
+   "ordinal_position": 18,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -1964,7 +2141,7 @@
    "column_name": "saldo",
    "data_type": "numeric",
    "is_nullable": "YES",
-   "ordinal_position": 20,
+   "ordinal_position": 19,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -1973,7 +2150,7 @@
    "column_name": "estado_pago",
    "data_type": "text",
    "is_nullable": "YES",
-   "ordinal_position": 21,
+   "ordinal_position": 20,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -1982,7 +2159,7 @@
    "column_name": "facturado_cantidad",
    "data_type": "integer",
    "is_nullable": "YES",
-   "ordinal_position": 22,
+   "ordinal_position": 21,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -1991,7 +2168,7 @@
    "column_name": "recibido_cantidad",
    "data_type": "integer",
    "is_nullable": "YES",
-   "ordinal_position": 23,
+   "ordinal_position": 22,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -2000,7 +2177,7 @@
    "column_name": "estado_recepcion",
    "data_type": "text",
    "is_nullable": "YES",
-   "ordinal_position": 24,
+   "ordinal_position": 23,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -2009,7 +2186,7 @@
    "column_name": "vencida",
    "data_type": "boolean",
    "is_nullable": "YES",
-   "ordinal_position": 25,
+   "ordinal_position": 24,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -2018,7 +2195,7 @@
    "column_name": "fecha_estimada_llegada",
    "data_type": "date",
    "is_nullable": "YES",
-   "ordinal_position": 26,
+   "ordinal_position": 25,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -2027,7 +2204,7 @@
    "column_name": "recepcion_atrasada",
    "data_type": "boolean",
    "is_nullable": "YES",
-   "ordinal_position": 27,
+   "ordinal_position": 26,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -2036,7 +2213,7 @@
    "column_name": "proveedor_telefono",
    "data_type": "text",
    "is_nullable": "YES",
-   "ordinal_position": 28,
+   "ordinal_position": 27,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -2045,7 +2222,7 @@
    "column_name": "proveedor_banco",
    "data_type": "text",
    "is_nullable": "YES",
-   "ordinal_position": 29,
+   "ordinal_position": 28,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -2054,7 +2231,7 @@
    "column_name": "proveedor_cuenta_bancaria",
    "data_type": "text",
    "is_nullable": "YES",
-   "ordinal_position": 30,
+   "ordinal_position": 29,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -2063,7 +2240,7 @@
    "column_name": "notas_credito",
    "data_type": "numeric",
    "is_nullable": "YES",
-   "ordinal_position": 31,
+   "ordinal_position": 30,
    "table_name": "compras_resumen",
    "table_schema": "retail"
   },
@@ -2071,6 +2248,15 @@
    "column_default": null,
    "column_name": "cerrado_cantidad",
    "data_type": "integer",
+   "is_nullable": "YES",
+   "ordinal_position": 31,
+   "table_name": "compras_resumen",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicaciones_destino",
+   "data_type": "ARRAY",
    "is_nullable": "YES",
    "ordinal_position": 32,
    "table_name": "compras_resumen",

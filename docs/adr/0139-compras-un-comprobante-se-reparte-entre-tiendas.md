@@ -1,9 +1,12 @@
 # ADR-0139 — Compras: un comprobante se reparte entre tiendas y cada tienda recibe lo suyo
 
 **Fecha:** 2026-09-18 (diseño) · 2026-09-19 (implementación y verificación en local)
-**Estado:** Aceptado e **implementado** en la rama `claude/modulos-por-tienda-ca0f59`. Verificado con SQL contra Postgres real,
-pruebas de la web y el navegador (registrar, recibir, reasignar, cerrar faltante). **Las dos migraciones NO están aplicadas en
-producción**: se pegan con ok explícito de Felipe, en el orden de la sección «Cómo se pega en producción».
+**Estado:** Aceptado, **implementado y en producción** (2026-09-20). Fusionado en el PR #203 y aplicadas por Felipe las dos migraciones
+(172000 y 173000, en ese orden). Verificado con SQL contra Postgres real, pruebas de la web y el navegador (registrar, recibir,
+reasignar, cerrar faltante), y **en producción en solo lectura tras el pegado**: objetos presentes, cabecera eliminada, ninguna función,
+política ni vista que aún la lea, candado de dinero intacto, RLS sin permisos de escritura y triggers diferidos activos.
+Nota: lo que se pegó fue el primer archivo enviado, cuyos comentarios de base de datos dicen «ADR-0138» (el número que tenía entonces);
+el SQL funcional es idéntico al de `main`. Quedó anotado como opcional alinear esos 8 comentarios a 0139.
 **Decide:** Felipe, en lo de negocio (una factura de proveedor puede traer mercadería para varias tiendas y cada tienda hace su
 propia recepción). Arquitectura: este documento.
 **Afecta:** `compras` (pierde `ubicacion_destino_id`), `compra_items`, `compra_item_cierres` (gana `ubicacion_id`), dos tablas

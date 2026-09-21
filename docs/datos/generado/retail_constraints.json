@@ -395,9 +395,39 @@
   "tabla": "retail.compra_item_cierres"
  },
  {
+  "conname": "compra_item_cierres_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.compra_item_cierres"
+ },
+ {
   "conname": "compra_item_cierres_usuario_id_fkey",
   "definicion": "FOREIGN KEY (usuario_id) REFERENCES personas(id)",
   "tabla": "retail.compra_item_cierres"
+ },
+ {
+  "conname": "compra_item_destinos_cantidad_check",
+  "definicion": "CHECK ((cantidad > 0))",
+  "tabla": "retail.compra_item_destinos"
+ },
+ {
+  "conname": "compra_item_destinos_compra_item_id_fkey",
+  "definicion": "FOREIGN KEY (compra_item_id) REFERENCES retail.compra_items(id)",
+  "tabla": "retail.compra_item_destinos"
+ },
+ {
+  "conname": "compra_item_destinos_cuadra",
+  "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+  "tabla": "retail.compra_item_destinos"
+ },
+ {
+  "conname": "compra_item_destinos_pkey",
+  "definicion": "PRIMARY KEY (compra_item_id, ubicacion_id)",
+  "tabla": "retail.compra_item_destinos"
+ },
+ {
+  "conname": "compra_item_destinos_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.compra_item_destinos"
  },
  {
   "conname": "compra_items_cantidad_check",
@@ -422,6 +452,11 @@
  {
   "conname": "compra_items_producto_id_fkey",
   "definicion": "FOREIGN KEY (producto_id) REFERENCES retail.productos(id)",
+  "tabla": "retail.compra_items"
+ },
+ {
+  "conname": "compra_items_reparto_cuadra",
+  "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
   "tabla": "retail.compra_items"
  },
  {
@@ -513,6 +548,46 @@
   "conname": "compra_pagos_usuario_id_fkey",
   "definicion": "FOREIGN KEY (usuario_id) REFERENCES personas(id)",
   "tabla": "retail.compra_pagos"
+ },
+ {
+  "conname": "compra_reasignaciones_cantidad_check",
+  "definicion": "CHECK ((cantidad > 0))",
+  "tabla": "retail.compra_reasignaciones"
+ },
+ {
+  "conname": "compra_reasignaciones_compra_item_id_fkey",
+  "definicion": "FOREIGN KEY (compra_item_id) REFERENCES retail.compra_items(id)",
+  "tabla": "retail.compra_reasignaciones"
+ },
+ {
+  "conname": "compra_reasignaciones_desde_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (desde_ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.compra_reasignaciones"
+ },
+ {
+  "conname": "compra_reasignaciones_distintas_check",
+  "definicion": "CHECK ((desde_ubicacion_id <> hacia_ubicacion_id))",
+  "tabla": "retail.compra_reasignaciones"
+ },
+ {
+  "conname": "compra_reasignaciones_hacia_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (hacia_ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.compra_reasignaciones"
+ },
+ {
+  "conname": "compra_reasignaciones_motivo_check",
+  "definicion": "CHECK ((motivo = ANY (ARRAY['llego_de_mas'::text, 'error_de_tienda'::text, 'otro'::text])))",
+  "tabla": "retail.compra_reasignaciones"
+ },
+ {
+  "conname": "compra_reasignaciones_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.compra_reasignaciones"
+ },
+ {
+  "conname": "compra_reasignaciones_usuario_id_fkey",
+  "definicion": "FOREIGN KEY (usuario_id) REFERENCES personas(id)",
+  "tabla": "retail.compra_reasignaciones"
  },
  {
   "conname": "compras_cerrado_cantidad_check",
@@ -607,11 +682,6 @@
  {
   "conname": "compras_total_cuadra",
   "definicion": "CHECK ((total = (subtotal + igv)))",
-  "tabla": "retail.compras"
- },
- {
-  "conname": "compras_ubicacion_destino_id_fkey",
-  "definicion": "FOREIGN KEY (ubicacion_destino_id) REFERENCES retail.ubicaciones(id)",
   "tabla": "retail.compras"
  },
  {

@@ -120,6 +120,11 @@
   "tablename": "compra_item_cierres"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX compra_item_destinos_pkey ON retail.compra_item_destinos USING btree (compra_item_id, ubicacion_id)",
+  "indexname": "compra_item_destinos_pkey",
+  "tablename": "compra_item_destinos"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX compra_items_pkey ON retail.compra_items USING btree (id)",
   "indexname": "compra_items_pkey",
   "tablename": "compra_items"
@@ -143,6 +148,11 @@
   "indexdef": "CREATE UNIQUE INDEX compra_pagos_pkey ON retail.compra_pagos USING btree (id)",
   "indexname": "compra_pagos_pkey",
   "tablename": "compra_pagos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX compra_reasignaciones_pkey ON retail.compra_reasignaciones USING btree (id)",
+  "indexname": "compra_reasignaciones_pkey",
+  "tablename": "compra_reasignaciones"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX compras_pkey ON retail.compras USING btree (id)",

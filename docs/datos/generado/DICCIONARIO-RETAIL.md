@@ -6,7 +6,7 @@
 >
 > **Origen:** `volcado de producción (retail_*.json)`
 > **Leído el:** volcado de producci
-> **Tablas y vistas encontradas:** 70
+> **Tablas y vistas encontradas:** 73
 >
 > El orden sigue los 14 pájaros de `scripts/datos/aviario.mjs`, la única lista de qué
 > pájaro es cada tabla (el índice está en `AVIARIO.md`). Para entender **por qué**
@@ -1638,7 +1638,7 @@
 
 ### `compras`
 
-*28 columnas · ~0 filas · permisos por fila **activos***
+*27 columnas · ~0 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1650,7 +1650,6 @@
 | `fecha_emision` | date | **no** | `CURRENT_DATE` | — |
 | `condicion` | text | **no** | — | — |
 | `fecha_vencimiento` | date | sí | — | — |
-| `ubicacion_destino_id` | uuid | **no** | — | — |
 | `subtotal` | numeric | **no** | — | — |
 | `igv` | numeric | **no** | — | — |
 | `total` | numeric | **no** | — | — |
@@ -1691,7 +1690,7 @@
 - `compras_total_check` — `CHECK ((total >= (0)::numeric))`
 - `compras_total_cuadra` — `CHECK ((total = (subtotal + igv)))`
 
-**De qué depende:** `(proveedor_id) REFERENCES retail.proveedores(id)` · `(ubicacion_destino_id) REFERENCES retail.ubicaciones(id)` · `(usuario_id) REFERENCES personas(id)`
+**De qué depende:** `(proveedor_id) REFERENCES retail.proveedores(id)` · `(usuario_id) REFERENCES personas(id)`
 
 **Quién puede qué** (políticas de fila):
 
@@ -1810,7 +1809,6 @@
 | `fecha_emision` | date | sí | — | — |
 | `condicion` | text | sí | — | — |
 | `fecha_vencimiento` | date | sí | — | — |
-| `ubicacion_destino_id` | uuid | sí | — | — |
 | `subtotal` | numeric | sí | — | — |
 | `igv` | numeric | sí | — | — |
 | `total` | numeric | sí | — | — |
@@ -1831,6 +1829,7 @@
 | `proveedor_cuenta_bancaria` | text | sí | — | — |
 | `notas_credito` | numeric | sí | — | — |
 | `cerrado_cantidad` | integer | sí | — | — |
+| `ubicaciones_destino` | ARRAY | sí | — | — |
 
 
 ### `compra_items_resumen`
@@ -1854,7 +1853,7 @@
 
 ### `compra_item_cierres`
 
-*7 columnas · ~0 filas · permisos por fila **activos***
+*8 columnas · ~0 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1865,19 +1864,20 @@
 | `nota` | text | sí | — | — |
 | `usuario_id` | uuid | sí | — | — |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `ubicacion_id` | uuid | **no** | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `compra_item_cierres_cantidad_check` — `CHECK ((cantidad > 0))`
 - `compra_item_cierres_motivo_check` — `CHECK ((motivo = ANY (ARRAY['no_llego'::text, 'danada'::text, 'error_proveedor'::text])))`
 
-**De qué depende:** `(compra_item_id) REFERENCES retail.compra_items(id)` · `(usuario_id) REFERENCES personas(id)`
+**De qué depende:** `(compra_item_id) REFERENCES retail.compra_items(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(usuario_id) REFERENCES personas(id)`
 
 **Quién puede qué** (políticas de fila):
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_item_cierres_select` | SELECT | `(EXISTS ( SELECT 1    FROM (retail.compra_items ci      JOIN retail.compras c ON ((c.id = ci.compra_id)))   WHERE ((ci.id = compra_item_cierres.compra_item_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))` |
+| `compra_item_cierres_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_id)` |
 
 
 ### `compra_notas_credito`
@@ -1954,6 +1954,76 @@
 | Política | Operación | Condición |
 |---|---|---|
 | `proveedor_creditos_select` | SELECT | `retail.fn_puede_registrar_compras()` |
+
+
+### `compra_item_destinos`
+
+*4 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `compra_item_id` | uuid | **no** | — | — |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `cantidad` | integer | **no** | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `compra_item_destinos_cantidad_check` — `CHECK ((cantidad > 0))`
+
+**De qué depende:** `(compra_item_id) REFERENCES retail.compra_items(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `compra_item_destinos_select` | SELECT | `retail.fn_puede_operar_ubicacion(ubicacion_id)` |
+
+
+### `compra_reasignaciones`
+
+*9 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `compra_item_id` | uuid | **no** | — | — |
+| `desde_ubicacion_id` | uuid | **no** | — | — |
+| `hacia_ubicacion_id` | uuid | **no** | — | — |
+| `cantidad` | integer | **no** | — | — |
+| `motivo` | text | **no** | — | — |
+| `nota` | text | sí | — | — |
+| `usuario_id` | uuid | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `compra_reasignaciones_cantidad_check` — `CHECK ((cantidad > 0))`
+- `compra_reasignaciones_distintas_check` — `CHECK ((desde_ubicacion_id <> hacia_ubicacion_id))`
+- `compra_reasignaciones_motivo_check` — `CHECK ((motivo = ANY (ARRAY['llego_de_mas'::text, 'error_de_tienda'::text, 'otro'::text])))`
+
+**De qué depende:** `(compra_item_id) REFERENCES retail.compra_items(id)` · `(desde_ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(hacia_ubicacion_id) REFERENCES retail.ubicaciones(id)` · `(usuario_id) REFERENCES personas(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `compra_reasignaciones_select` | SELECT | `(retail.fn_puede_operar_ubicacion(desde_ubicacion_id) OR retail.fn_puede_operar_ubicacion(hacia_ubicacion_id))` |
+
+
+### `compra_item_reparto_resumen`
+
+*7 columnas · ~0 filas · ⚠️ **sin permisos por fila***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `compra_item_id` | uuid | sí | — | — |
+| `compra_id` | uuid | sí | — | — |
+| `ubicacion_id` | uuid | sí | — | — |
+| `asignado` | integer | sí | — | — |
+| `recibido` | bigint | sí | — | — |
+| `cerrado` | bigint | sí | — | — |
+| `pendiente` | bigint | sí | — | — |
 
 
 

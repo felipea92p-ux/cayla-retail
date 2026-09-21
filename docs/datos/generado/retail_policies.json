@@ -236,10 +236,19 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_item_cierres_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM (retail.compra_items ci\n     JOIN retail.compras c ON ((c.id = ci.compra_id)))\n  WHERE ((ci.id = compra_item_cierres.compra_item_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_destino_id))))",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_item_cierres",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "compra_item_destinos_select",
+  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "compra_item_destinos",
   "with_check": null
  },
  {
@@ -267,6 +276,15 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_pagos",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "compra_reasignaciones_select",
+  "qual": "(retail.fn_puede_operar_ubicacion(desde_ubicacion_id) OR retail.fn_puede_operar_ubicacion(hacia_ubicacion_id))",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "compra_reasignaciones",
   "with_check": null
  },
  {
