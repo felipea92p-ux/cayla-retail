@@ -1887,6 +1887,15 @@
           "por_defecto": null,
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "nota_credito_id",
+          "orden": 11,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
@@ -1904,6 +1913,11 @@
           "nombre": "compra_adjuntos_compra_id_fkey",
           "clase": "llave foránea",
           "definicion": "FOREIGN KEY (compra_id) REFERENCES retail.compras(id)"
+        },
+        {
+          "nombre": "compra_adjuntos_nota_de_su_compra",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (nota_credito_id, compra_id) REFERENCES retail.compra_notas_credito(id, compra_id)"
         },
         {
           "nombre": "compra_adjuntos_pkey",
