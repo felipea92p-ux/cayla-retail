@@ -119,6 +119,8 @@ export type VentaCruda = {
   estado: string;
   nota: string | null;
   usuario_id: string | null;
+  /** Quién atendió (`ventas.vendedora_id`); ausente/null en las ventas anteriores a la fila «Atendió». */
+  vendedora_id?: string | null;
   ubicacion: { id: string; nombre: string } | null;
   cliente: { nombre: string } | null;
   venta_items: ItemCrudo[];
@@ -222,6 +224,14 @@ const FORMATO_HORA = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima"
 /** El día de Lima de un instante, `aaaa-mm-dd`. */
 export const diaDeLima = (iso: string): string => FORMATO_DIA.format(new Date(iso));
 
+/** Quién vendió: quien atendió (`vendedora_id`) y, si no se eligió a nadie, la sesión que cobró (`usuario_id`). */
+export const quienVendio = (v: { vendedora_id?: string | null; usuario_id: string | null }): string | null => v.vendedora_id ?? v.usuario_id;
+
+function nombreDeQuienVendio(v: VentaCruda, nombres: ReadonlyMap<string, string>): string | null {
+  const id = quienVendio(v);
+  return id ? (nombres.get(id) ?? null) : null;
+}
+
 export function aFila(v: VentaCruda, nombres: ReadonlyMap<string, string>): FilaHistorial {
   const instante = new Date(v.created_at);
   return {
@@ -231,7 +241,7 @@ export function aFila(v: VentaCruda, nombres: ReadonlyMap<string, string>): Fila
     hora: FORMATO_HORA.format(instante),
     ubicacionId: v.ubicacion?.id ?? "",
     ubicacion: v.ubicacion?.nombre ?? "—",
-    vendedor: v.usuario_id ? (nombres.get(v.usuario_id) ?? null) : null,
+    vendedor: nombreDeQuienVendio(v, nombres),
     clienta: v.cliente?.nombre ?? null,
     prendas: textoPrendas(v.venta_items),
     piezas: piezasDeVenta(v.venta_items),

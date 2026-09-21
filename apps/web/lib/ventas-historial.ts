@@ -5,6 +5,7 @@ import {
   TAMANO_PAGINA,
   TOPE_TOTALES,
   aFila,
+  quienVendio,
   diaDeLima,
   limitesUTC,
   mezclaDePagos,
@@ -36,7 +37,7 @@ export * from "@/lib/ventas-historial-reglas";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
-const SELECT_LISTA = `id, created_at, estado, nota, usuario_id,
+const SELECT_LISTA = `id, created_at, estado, nota, usuario_id, vendedora_id,
   ubicacion:ubicaciones ( id, nombre ),
   cliente:clientes ( nombre ),
   venta_items ( cantidad, precio_unitario, descuento_unitario, subtotal,
@@ -70,7 +71,9 @@ function consulta(supabase: Supabase, select: string, f: FiltrosHistorial) {
   if (desdeISO) q = q.gte("created_at", desdeISO);
   if (hastaISO) q = q.lt("created_at", hastaISO);
   if (f.sedeId) q = q.eq("ubicacion_id", f.sedeId);
-  if (f.vendedorId) q = q.eq("usuario_id", f.vendedorId);
+  // «Vendedor X» = las que atendió X y, de las anteriores a la fila «Atendió» (sin vendedora), las que cobró su sesión.
+  // `vendedorId` ya pasó por `esUuid` en `filtrosDesdeParams`, así que no trae nada que rompa el filtro.
+  if (f.vendedorId) q = q.or(`vendedora_id.eq.${f.vendedorId},and(vendedora_id.is.null,usuario_id.eq.${f.vendedorId})`);
   if (f.estado !== "todas") q = q.eq("estado", f.estado);
   if (f.pago) q = q.eq("pago_filtro.metodo", f.pago);
   // Una nota de crédito corrige un comprobante, no ampara la venta: solo boleta y factura cuentan.
@@ -111,7 +114,7 @@ export async function listarVentasHistorial(
 
   const hayMas = crudas.length > limite;
   const pagina = hayMas ? crudas.slice(0, limite) : crudas;
-  const nombres = await nombresDe(supabase, pagina.map((v) => v.usuario_id));
+  const nombres = await nombresDe(supabase, pagina.map(quienVendio));
   const ultima = pagina[pagina.length - 1];
   return {
     filas: pagina.map((v) => aFila(v, nombres)),
