@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   diasDelRango,
   etiquetaRango,
+  etiquetaRangoLarga,
   horaLima,
   hoyEnLima,
   mismoDiaAnioAnterior,
@@ -12,6 +13,7 @@ import {
   sumarDias,
   textoDemandaAnalizada,
   textoInstanteLima,
+  textoPildoraPeriodo,
 } from "./resumen-periodo";
 
 // «Hoy» de las pruebas: viernes 18 de septiembre de 2026.
@@ -158,6 +160,34 @@ describe("textos", () => {
     expect(etiquetaRango({ desde: "2025-08-20", hasta: "2025-09-18" }, true)).toBe("20 ago. – 18 sep. 2025");
     expect(etiquetaRango({ desde: "2025-09-01", hasta: "2025-09-15" }, true)).toBe("1–15 sep. 2025");
     expect(etiquetaRango({ desde: "2025-09-18", hasta: "2025-09-18" }, true)).toBe("18 sep. 2025");
+  });
+
+  it("etiquetaRangoLarga dice «desde … hasta …» sin abreviar el mes compartido", () => {
+    expect(etiquetaRangoLarga({ desde: "2026-07-24", hasta: "2026-08-22" })).toBe("desde 24 jul. hasta 22 ago.");
+    // Donde etiquetaRango escribe «1–15 sep.», la versión hablada dice las dos fechas.
+    expect(etiquetaRangoLarga({ desde: "2026-09-01", hasta: "2026-09-15" })).toBe("desde 1 sep. hasta 15 sep.");
+    expect(etiquetaRangoLarga({ desde: "2026-09-18", hasta: "2026-09-18" })).toBe("el 18 sep.");
+  });
+
+  it("etiquetaRangoLarga lleva el año cuando el rango cruza de año o cuando se pide", () => {
+    expect(etiquetaRangoLarga({ desde: "2025-12-28", hasta: "2026-01-03" })).toBe("desde 28 dic. 2025 hasta 3 ene. 2026");
+    expect(etiquetaRangoLarga({ desde: "2025-08-20", hasta: "2025-09-18" }, true)).toBe("desde 20 ago. 2025 hasta 18 sep. 2025");
+    expect(etiquetaRangoLarga({ desde: "2025-09-18", hasta: "2025-09-18" }, true)).toBe("el 18 sep. 2025");
+    expect(etiquetaRangoLarga({ desde: "no es fecha", hasta: "2026-09-18" })).toBe("");
+  });
+
+  it("textoPildoraPeriodo: cada letra dice SU rango — A y B distintos nunca escriben el mismo texto", () => {
+    const a = { desde: "2026-07-24", hasta: "2026-08-22" };
+    const b = { desde: "2026-08-23", hasta: "2026-09-21" };
+    expect(textoPildoraPeriodo("A", a)).toBe("Período A: desde 24 jul. hasta 22 ago.");
+    expect(textoPildoraPeriodo("B", b)).toBe("Período B: desde 23 ago. hasta 21 sep.");
+    // El error del frame de Figma: la píldora B con el rango de A. Con rangos distintos, los textos difieren.
+    expect(textoPildoraPeriodo("A", a).replace("A:", "")).not.toBe(textoPildoraPeriodo("B", b).replace("B:", ""));
+  });
+
+  it("textoPildoraPeriodo sin rango no inventa una fecha", () => {
+    expect(textoPildoraPeriodo("A", null)).toBe("Período A: —");
+    expect(textoPildoraPeriodo("B", { desde: "basura", hasta: "basura" })).toBe("Período B: —");
   });
 
   it("«demanda analizada» y la marca de tiempo del stock (siempre el actual)", () => {
