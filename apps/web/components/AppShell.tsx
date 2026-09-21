@@ -906,6 +906,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   // como primera cifra del módulo no vale la pena (principio 5).
   const notasCredito: Item = { href: "/compras/notas-credito", etiqueta: "Notas de crédito", icono: IC.notasCredito };
   const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };
+  const resumenProduccion: Item = { href: "/produccion", etiqueta: "Resumen", icono: IC.resumen };
   const ordenes: Item = { href: "/produccion/ordenes", etiqueta: "Órdenes", icono: IC.produccion };
   const insumos: Item = { href: "/produccion/insumos", etiqueta: "Insumos", icono: IC.insumos };
   const proveedoresProduccion: Item = { href: "/produccion/proveedores", etiqueta: "Proveedores", icono: IC.proveedores };
@@ -970,7 +971,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   // Resumen, comprobantes, por pagar, recibir y Eficiencia se suman
   // cuando existan (F4b a F7). Sin rótulos de sección a propósito: el riel del lateral se mueve
   // por filas de alto fijo (`PASO_FILA`) y una fila de otra altura lo desalinearía.
-  const itemsProduccion: Record<ClaveMenuProduccion, Item> = { ordenes, insumos, proveedoresProduccion, comprobantesProduccion, recibirProduccion, porPagarProduccion };
+  const itemsProduccion: Record<ClaveMenuProduccion, Item> = { resumenProduccion, ordenes, insumos, proveedoresProduccion, comprobantesProduccion, recibirProduccion, porPagarProduccion };
   const hijosProduccion: Item[] = clavesProduccion.map((c) => itemsProduccion[c]);
   const grupoProduccion: ItemGrupo = {
     id: "produccion",

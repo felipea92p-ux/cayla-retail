@@ -42,18 +42,21 @@ export function NuevaOrdenProduccionForm({
   tallerId,
   modelos,
   decision,
+  productoInicialId = null,
   onClose,
 }: {
   tallerId: string;
   modelos: ModeloProducible[];
   /** Solo el líder recibe la decisión; `null` = el formulario de siempre. */
   decision: Tolerado<DecisionProduccion> | null;
+  /** Modelo que llega elegido desde el Resumen; si no existe, se usa el primero. */
+  productoInicialId?: string | null;
   onClose: () => void;
 }) {
   const router = useRouter();
   const token = useRef<string>(crypto.randomUUID());
   const [tipo, setTipo] = useState<Tipo>("produccion");
-  const [productoId, setProductoId] = useState(modelos[0]?.productoId ?? "");
+  const [productoId, setProductoId] = useState(modelos.find((m) => m.productoId === productoInicialId)?.productoId ?? modelos[0]?.productoId ?? "");
   const [cantidades, setCantidades] = useState<Record<string, string>>({});
   const [tela, setTela] = useState("");
   const [avios, setAvios] = useState("");
