@@ -23,9 +23,11 @@ const MS_TARDA = 4000;
  * desenfoque, hoja que sube 18 px, sin rebote. Lo único que se mueve en bucle es la señal de
  * «estoy trabajando» (el arco y el hilo), que es justo lo que se quiere ver.
  *
- * DÓNDE VA. En un portal a `body`, por debajo del lateral (z-40) y la cabecera (z-30): la
- * navegación y la pastilla quedan a la vista y el velo solo cubre el contenido. No es un
- * diálogo —no atrapa el foco ni se cierra solo— sino un estado: `role="status"`.
+ * DÓNDE VA. En un portal a `body`, POR ENCIMA de todo (lateral z-40, cabecera z-30): cubre la
+ * pantalla entera y el aviso queda centrado en ella. Mientras dura, el resto de la app va
+ * `inert`: sin eso el velo frenaba el ratón pero no el teclado, y una tecla (o un segundo clic
+ * en «Nuevo traslado») podía actuar sobre datos de la sede que se está dejando. No es un
+ * diálogo —no se cierra solo ni con Escape— sino un estado: `role="status"`.
  *
  * Maqueta: docs/maquetas/cambio-de-sede-spike-2026-09/cambio-de-sede-spike.html
  */
@@ -58,6 +60,14 @@ export function AvisoCambioDeSede({ activo, de, a }: { activo: boolean; de: stri
     };
   }, [activo]);
 
+  // Mientras el aviso está a la vista, todo lo demás de la página deja de recibir clics, foco y teclado.
+  useEffect(() => {
+    if (!montado) return;
+    const bloqueados = [...document.body.children].filter((el) => !el.hasAttribute("data-aviso-sede") && !el.hasAttribute("inert"));
+    bloqueados.forEach((el) => el.setAttribute("inert", ""));
+    return () => bloqueados.forEach((el) => el.removeAttribute("inert"));
+  }, [montado]);
+
   useEffect(() => {
     if (!saliendo) return;
     const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -76,8 +86,9 @@ export function AvisoCambioDeSede({ activo, de, a }: { activo: boolean; de: stri
   return createPortal(
     <div
       role="status"
+      data-aviso-sede
       aria-live="polite"
-      className={`fixed inset-0 z-20 flex items-start justify-center bg-crema/60 px-4 pt-[26vh] backdrop-blur-[3px] sm:pl-lateral ${
+      className={`fixed inset-0 z-[60] flex items-center justify-center bg-crema/60 px-4 backdrop-blur-[3px] ${
         saliendo ? "anim-velo-salida" : "anim-velo"
       }`}
     >
