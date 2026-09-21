@@ -33,6 +33,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
 - [ ] **Producción SUPERA el tope de 6: 7 hijas** (líder parado en el Taller) desde que #231 (Resumen, F6) entró sin regrupar; queda como deuda explícita con una prueba «DEUDA…» que la vigila. F7 Eficiencia obligará a regrupar (candidato: `produccion.abastecimiento`). **Quien agregue una fila al menú edita `lib/menu.ts`, no `AppShell.tsx`** (cómo, en el ADR-0144).
 
+## 🎯 Colaboradores: auditoría y primeros arreglos (2026-09-22, ADR-0145) — pantalla hecha, falta pegar la migración en producción
+Análisis completo en [docs/pantallas/colaboradores.md](pantallas/colaboradores.md) (6,5/10, Soporte, 12 tareas).
+- [x] Pantalla (#1, #7, #8, #9): alta sin persona ni ubicación puestas de antemano, un solo rojo, contraste y textos corregidos. Tipos, lint y pruebas de `error-escritura` en verde.
+- [x] **`20260922100000_colaboradores_endurecimiento.sql` APLICADA en producción por Felipe el 2026-09-22** (chequeo previo: 0 colaboradores sin ubicación; después: `authenticated` solo conserva SELECT y el constraint `colaboradores_colaborador_con_ubicacion` existe). Cubre #2, #4 y #5. **No pegar de nuevo.** Pendiente: refrescar el volcado de `docs/datos/generado/` y correr en local `pnpm pruebas:colaboradores-endurecimiento --en-seco` (escrita, **nunca corrida**: faltó Docker).
+- [ ] Verlo en el navegador con datos reales: abrir «Agregar colaborador» (campos vacíos, botón apagado hasta elegir) y quitar a una persona de prueba.
+- [ ] #3 historial de accesos (tabla que solo se agrega), #6 cambiar ubicación sin quitar y agregar, #10 «Último acceso», #11 aclarar «Sede en Dynamic», #12 decidir dónde vive el alta (retail o Dynamic).
+- [ ] **Decisión de Felipe:** quiénes de los 9 líderes deben seguir siéndolo (salieron de un backfill «todos líderes», `0016`); hoy la pantalla no permite bajar ni subir a nadie.
+
 ## 🎯 Historial de ventas — Ventas ▸ Historial (2026-09-21, ADR-0147) — publicado, SIN migración (nada que pegar en producción)
 - [x] `/vender/historial` (grupo Ventas, entre Caja y Cambios): todas las ventas de cualquier fecha y de todas las tiendas. Filtros en la URL (período, tienda y vendedor solo líder, estado, pago, con/sin boleta o factura), lista por día de Lima, detalle al tocar una fila (`DetalleVentaModal`), paginado por cursor, cifras del rango completo (una anulada se ve tachada y no suma). 45 pruebas de reglas + 8 de integración contra la base local (líder y colaboradora) + vista previa en 4 anchos.
 - [x] Comparado con producción EN VIVO el 2026-09-21 (solo lectura): columnas, RLS, FK y funciones que lee, idénticas. Producción tiene 16 ventas.

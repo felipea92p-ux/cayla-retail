@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (Colaboradores: primera auditoría con `/pantalla` y sus arreglos — ADR-0145)
+Se auditó `/colaboradores` (`docs/pantallas/colaboradores.md`, 6,5/10, Soporte) y se arreglaron 7 de sus 12 tareas: el alta ya no abre con una persona y una sede elegidas, «Quitar acceso» deja de ser rojo en las 25 filas, el texto tenue sube a contraste legible, y una migración cierra la escritura directa a la tabla, exige ubicación a todo colaborador y hace que agregar/quitar avisen cuando ya estaba hecho.
+Felipe se lleva: (1) **RLS sola es una capa, no dos** — `authenticated` tenía INSERT/UPDATE/DELETE sobre la tabla de acceso y solo la política de SELECT lo frenaba; (2) un `on conflict do nothing` que no avisa deja a dos líderes creyendo cosas distintas; (3) un valor por defecto útil en un formulario cualquiera es un riesgo en uno que da acceso.
+Sin resolver: la migración `20260922100000` ya está aplicada en producción (verificada el mismo día) y su prueba SQL (`pnpm pruebas:colaboradores-endurecimiento --en-seco`) no se pudo correr sin Docker; quedan las tareas #3 (historial de accesos), #6 (cambiar ubicación), #10–#12 y la decisión sobre cuáles de los 9 líderes deben serlo.
+
 ## 2026-09-21 (El menú es un árbol de datos — ADR-0144, paso 1, sin cambio visible)
 Las reglas de quién ve qué estaban repartidas en siete constantes de `AppShell.tsx`, una lista de rutas repetida a mano y `produccion-menu.ts`: solo hoy `main` cambió el menú cinco veces y seis PRs editaban la misma zona. Ahora el menú es un árbol de datos (`lib/menu.ts`) con una función pura por permisos; `AppShell.tsx` solo dibuja, y lo que ve cada perfil no cambió.
 Felipe se lleva: (1) **la prueba no es circular**: la fotografía del menú de hoy se capturó del `AppShell.tsx` real —no del árbol nuevo— y 1176 renders del original y del nuevo dan cero diferencias; (2) cada mutación (quitar una fila, cambiar un orden, quitar un permiso, romper un tope) hace fallar justo su prueba; (3) `main` se movió cinco veces mientras se hacía, por eso se aterriza ya: desde ahora una fila nueva se agrega en un solo archivo y el diff de la fotografía muestra qué perfil ve algo distinto.
@@ -8582,6 +8587,11 @@ Documentación al día: módulo 10 de datos (sección «ESTADO ACTUAL»), ADR-01
 ## 2026-09-22 (Versión de migración repetida: productos_por_categoria → 20260921170000)
 `20260921160000_planilla_por_sede.sql` (Producción F7) y `20260921160000_productos_por_categoria.sql` (Catálogo) compartían versión en main; las dos ya estaban pegadas en producción (verificado: la vista y `fn_productos_por_categoria`
 existen). Como ninguna corre por versión en producción, se renombró la que casi no tenía referencias: `productos_por_categoria` pasa a `20260921170000`. El contenido no cambió.
+
+## 2026-09-21 (Avisos con coreografía — ADR-0146)
+Felipe aprobó el spike de avisos y pidió efectos. `Avisos.tsx` pasa a la piel «Ficha»: icono con forma por tono (✓ ! ⚠), el anillo del icono es el único reloj, título = qué pasó / `detalle` = sobre qué, tope de 4 y «Cerrar todos».
+Coreografía del éxito (anillo que se dibuja, check que se traza, texto que se revela, una onda, y solo entonces la cuenta atrás) en `app/estilos/avisos.css`. `avisar.proceso()` devuelve ahora una función con `.progreso()`, `.exito()` y `.error()`: el mismo aviso se transforma sin parpadeo (los 8 llamados actuales siguen igual). Sin migraciones.
+Verificado en el navegador con una página temporal (ya retirada): los 3 tonos, el proceso con avance → éxito, el cierre solo al agotarse el anillo y Escape en errores. Bug propio hallado y corregido: en Chrome el trazo discontinuo no se escala con `pathLength` en un `<circle>` (queda punteado, parece lleno).
 
 ## 2026-09-21 (Historial de ventas: Ventas ▸ Historial — ADR-0147, hecho en local)
 Ya hay dónde ver todas las ventas registradas: `/vender/historial`, en el grupo Ventas del lateral entre Caja y Cambios. Una fila por venta agrupada por día de Lima, con filtros de período, tienda y vendedor (solo el líder), estado, pago y con/sin boleta o factura; cifras del rango completo (vendido, ticket promedio, anuladas: una anulada se ve tachada y no suma); paginado por cursor; al tocar una fila se abre el detalle de siempre. **Sin migración:** lee `ventas`, `venta_items`, `venta_pagos` y `comprobantes`, que se compararon EN VIVO con producción (columnas, RLS, FK y funciones idénticas; producción tiene 16 ventas).
