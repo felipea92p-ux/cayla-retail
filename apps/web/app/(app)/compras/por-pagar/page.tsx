@@ -3,6 +3,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { listarPorPagar, getPagosDeCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, getCompra, type ParamsCompras } from "@/lib/compras";
 import { getDeudaPorVencimiento, getNotasPendientes, getPorPagarTramos, getResumenComprasExtra, getSalidasCaja30d } from "@/lib/compras-indicadores";
 import { getProveedores } from "@/lib/proveedores";
+import { getUbicaciones } from "@/lib/ubicaciones";
 import { diaMes, hoyLima, sumarDias } from "@/lib/fechas-lima";
 import { idsConFaltanteCerrado } from "@/lib/nota-pendiente-reglas";
 import { concentracionPorProveedor } from "@/lib/por-pagar-reglas";
@@ -50,7 +51,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
   // Qué comprobantes esperan su nota de crédito por faltante (para no pagar de más lo que el proveedor va a
   // acreditar) depende de los ids de la página: se pide ENCADENADA a la lista, y solo si algún comprobante de
   // la página tiene algo cerrado, sin frenar las demás consultas.
-  const [{ pagina: { filas: compras, siguiente }, notas, pagos }, resumen, extra, vencimiento, salidas, tramos, directorio, proveedores, compraAPagar] = await Promise.all([
+  const [{ pagina: { filas: compras, siguiente }, notas, pagos }, resumen, extra, vencimiento, salidas, tramos, directorio, proveedores, compraAPagar, ubicaciones] = await Promise.all([
     // Notas pendientes y pagos previos dependen de los ids de la página: se piden encadenados y solo de lo que hace falta (los pagos, solo de
     // los comprobantes que ya recibieron alguno), sin frenar las demás consultas.
     listarPorPagar(filtros, cursor).then(async (pagina) => {
@@ -61,10 +62,11 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
     getResumenComprasExtra(),
     getDeudaPorVencimiento(),
     getSalidasCaja30d(),
-    getPorPagarTramos({ proveedorId: filtros.proveedorId, condicion: filtros.condicion, soloVencidas: filtros.soloVencidas, busqueda: filtros.busqueda, tipo: filtros.tipo, desde: filtros.desde, hasta: filtros.hasta }),
+    getPorPagarTramos({ proveedorId: filtros.proveedorId, condicion: filtros.condicion, soloVencidas: filtros.soloVencidas, busqueda: filtros.busqueda, tipo: filtros.tipo, desde: filtros.desde, hasta: filtros.hasta, destinoId: filtros.destinoId }),
     getProveedoresActivos(),
     getProveedores(),
     pagar && /^[0-9a-f-]{36}$/i.test(pagar) ? getCompra(pagar) : null,
+    getUbicaciones(),
   ]);
   // Solo se abre si de verdad hay algo que pagar; un enlace viejo a un comprobante ya saldado o
   // anulado cae en la lista sin más.
@@ -195,7 +197,8 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
         <div {...entra(8)}>
           <FiltrosCompras
             proveedores={directorio}
-            visibles={["proveedor", "vencidas", "condicion"]}
+            tiendas={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))}
+            visibles={["proveedor", "destino", "vencidas", "condicion"]}
             estiloSpike
             accionesAntes={
               <div className="flex items-start gap-3">

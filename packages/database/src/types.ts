@@ -5456,6 +5456,7 @@ export type Database = {
           p_solo_vencidas?: boolean
           p_solo_vigentes?: boolean
           p_tipo?: string
+          p_ubicacion_id?: string
         }
         Returns: {
           cerrado_cantidad: number | null
@@ -5585,6 +5586,7 @@ export type Database = {
           p_proveedor_id?: string
           p_solo_vencidas?: boolean
           p_tipo?: string
+          p_ubicacion_id?: string
         }
         Returns: {
           comprobantes: number
