@@ -295,6 +295,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:compras-reparto
 
+      # El permiso «comprador de tienda» (ADR-0150, F1): el líder llega a todas las ubicaciones sin fila, un integrante sin fila a ninguna,
+      # un comprador solo a las suyas (una o varias), una fila de alguien que ya no es colaborador o de una tienda inactiva no da nada,
+      # dar y quitar es solo del líder y dice la verdad, la tabla no se escribe directo, y las dos puertas del dinero (ADR-0126) siguen
+      # siendo solo del líder. Carga la migración DENTRO de cada caso, que termina en ROLLBACK. Mismo seed que `dinero-compras`.
+      - name: pruebas:compras-compradores
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:compras-compradores
+
       # Módulo Notas de crédito: el tablero trae notas y pendientes con sus montos (incluido el
       # monto_esperado del faltante cerrado y el a_favor de la nota que superó la deuda), registrar con
       # destino «a_favor» deja el mismo estado que la RPC de antes, con «reembolso» nacen nota y
