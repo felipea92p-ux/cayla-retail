@@ -1,4 +1,5 @@
-import { crearIndice, coincideConsulta, type CamposBusqueda } from "./resumen-busqueda";
+import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial } from "./filtro-busqueda-especial";
+import { camposBuscables, type CamposBusqueda } from "./resumen-busqueda";
 import { ETIQUETA_BANDA, BANDAS_COBERTURA, ETIQUETA_ESTADO, type AnalisisVariante, type BandaCobertura, type EstadoResumen } from "./resumen-reglas";
 import { SELL_THROUGH_ALTO_PCT, SELL_THROUGH_BAJO_PCT } from "./inventario-reglas";
 
@@ -75,14 +76,15 @@ export function bandaSellThrough(pct: number | null): Exclude<FiltroSellThrough,
 }
 
 /** Recorta por categoría y búsqueda. Sirve a cualquier análisis que traiga la variante en `fila`
- *  (el Resumen normal y la comparación de períodos comparten este mismo filtro). */
+ *  (el Resumen normal y la comparación de períodos comparten este mismo filtro).
+ *  La búsqueda es el Filtro de búsqueda especial; reconoce qué es talla y qué es color mirando TODAS las
+ *  filas de la sede, no solo las de la categoría elegida, para que «l» no cambie de significado al filtrar. */
 export function aplicarAlcance<T extends { fila: CamposBusqueda & { categoriaId: string | null } }>(analisis: T[], alcance: AlcanceResumen): T[] {
+  const enCategoria = (a: T) => !alcance.categoriaId || a.fila.categoriaId === alcance.categoriaId;
   const consulta = alcance.q.trim();
-  return analisis.filter((a) => {
-    if (alcance.categoriaId && a.fila.categoriaId !== alcance.categoriaId) return false;
-    if (consulta && !coincideConsulta(crearIndice(a.fila), consulta)) return false;
-    return true;
-  });
+  if (!consulta) return analisis.filter(enCategoria);
+  const indice = crearIndiceBusquedaEspecial(analisis, (a) => camposBuscables(a.fila));
+  return filtrarConBusquedaEspecial(indice, consulta, { otros: enCategoria }).filas;
 }
 
 const tieneAccion = (a: AnalisisVariante) => a.plan.principal !== null;

@@ -1,64 +1,64 @@
 import { createClient } from "@/lib/supabase/server";
-import { tolerar } from "@/lib/resultado";
-import { listarMovimientos, type Movimiento } from "@/lib/movimientos-v2";
-import { ID_CARGO_ESPECIAL, ID_PRODUCTO_CARGO_ESPECIAL } from "@/lib/cargo-especial";
-import { primerAviso, sumarUnidades } from "@/lib/inicio-reglas";
+import { getCajaAbierta, getVentasMismaHoraSemanaAnterior } from "@/lib/caja";
+import { getUbicaciones } from "@/lib/ubicaciones";
+import { nombreDiaLima } from "@/lib/inicio-reglas";
 
-/** Contrato: dada una sede, devuelve las tres cifras de catálogo y la actividad reciente.
- *  NUNCA lanza: cada bloque falla por su cuenta. Una cifra que no se pudo leer llega como
- *  `null` (no como 0) y `aviso` dice cuál falló; la actividad trae su propio `fallo`.
- *  Solo lectura: no hay transacción que definir. */
-export type ResumenInicio = {
-  productosActivos: number | null;
-  variantesActivas: number | null;
-  unidadesEnSede: number | null;
-  /** Aviso ya redactado para la Encargada, o null si las tres cifras llegaron. */
-  aviso: string | null;
-  actividad: { filas: Movimiento[]; fallo: string | null };
+// Lecturas del bloque «Hoy» del Inicio. Reutiliza las MISMAS fuentes que Caja (`fn_ventas_del_dia`,
+// `getVentasMismaHoraSemanaAnterior`, `ubicaciones.meta_venta_diaria`) para que las dos pantallas nunca
+// discrepen en qué es «hoy» (docs/datos/11-KPIS.md, «Qué lo rompe» a: dos fuentes que nada obliga a cuadrar).
+//
+// Cada pieza falla POR SEPARADO y devuelve null: «Hoy» es un dato secundario del que nadie decide plata
+// mirando un solo número, pero un cero mudo sí engañaría — por eso la pantalla distingue «0 ventas» de
+// «no se pudo leer». Sin `exigir`: si una pieza cae, las demás se muestran igual.
+
+export type HoyDeLaSede = {
+  /** null = no se pudo leer (no es lo mismo que «cerrada»). */
+  cajaAbierta: boolean | null;
+  /** El `total` de cada venta del día. Para una colaboradora la RPC devuelve solo las suyas. null = falló. */
+  totales: number[] | null;
+  /** Solo la líder ve el comparativo y la meta: son cifras de toda la sede. null = no aplica o falló. */
+  semanaAnterior: number | null;
+  metaVentaDiaria: number | null;
+  /** «viernes»: el día de hoy en Lima, para decir «vs. viernes pasado». Se calcula acá (no en el componente) porque
+   *  `Date.now()` es impuro y un componente no debe llamarlo. */
+  nombreDia: string;
 };
 
-export async function getResumenInicio(ubicacionId: string): Promise<ResumenInicio> {
-  const supabase = await createClient();
+async function tolerarLectura<T>(que: string, leer: () => Promise<T>): Promise<T | null> {
+  try {
+    return await leer();
+  } catch (e) {
+    console.error(`Inicio · no se pudo leer ${que}:`, e);
+    return null;
+  }
+}
 
-  const [productos, variantes, stock, actividad] = await Promise.all([
-    // Solo lo que hoy se vende: ni descontinuados, ni altas sin aprobar, ni la centinela
-    // «Cargo especial» (que vive en `productos` como si fuera una prenda).
-    supabase
-      .from("productos")
-      .select("id", { count: "exact", head: true })
-      .eq("estado", "activo")
-      .eq("estado_alta", "aprobado")
-      .neq("id", ID_PRODUCTO_CARGO_ESPECIAL),
-    supabase
-      .from("variantes")
-      .select("id", { count: "exact", head: true })
-      .eq("activo", true)
-      .neq("id", ID_CARGO_ESPECIAL),
-    supabase
-      .from("stock")
-      .select("cantidad")
-      .eq("ubicacion_id", ubicacionId)
-      // Sin la variante centinela del «Monto manual» (999.999 unidades ficticias).
-      .neq("variante_id", ID_CARGO_ESPECIAL),
-    // Los últimos 8 de todo el historial (sin el recorte de 30 días de Movimientos): en
-    // Inicio importa «lo último», no un período. `listarMovimientos` lanza si la base falla:
-    // se atrapa aquí para que la actividad se degrade sola y no se lleve las tarjetas.
-    listarMovimientos(ubicacionId, {}, { limite: 8 }).then(
-      (r) => ({ filas: r.filas, fallo: null as string | null }),
-      () => ({ filas: [] as Movimiento[], fallo: "No se pudo cargar la actividad reciente. Lo demás de esta pantalla sí está al día." })
+export async function getHoyDeLaSede(ubicacionId: string, esLider: boolean): Promise<HoyDeLaSede> {
+  const supabase = await createClient();
+  const [caja, totales, semanaAnterior, ubicaciones] = await Promise.all([
+    // `getCajaAbierta` devuelve null cuando NO hay caja abierta: no es un fallo. Un fallo real (lanza) se vuelve null
+    // acá, y por eso se separan: abierta = true, cerrada = false, no se pudo leer = null.
+    getCajaAbierta(ubicacionId).then(
+      (caja): boolean | null => caja !== null,
+      (e): boolean | null => {
+        console.error("Inicio · no se pudo leer la caja:", e);
+        return null;
+      }
     ),
+    tolerarLectura("las ventas de hoy", async () => {
+      const res = await supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: ubicacionId });
+      if (res.error) throw new Error(res.error.message);
+      return (res.data ?? []).map((v) => Number(v.total));
+    }),
+    esLider ? tolerarLectura("las ventas de la semana pasada", () => getVentasMismaHoraSemanaAnterior(ubicacionId)) : Promise.resolve(null),
+    esLider ? tolerarLectura("la meta de la sede", () => getUbicaciones()) : Promise.resolve(null),
   ]);
 
-  // Una consulta caída se ve como «—» con aviso, nunca como un 0 (BACKLOG, lección de `lib/pendientes`).
-  const totalProductos = tolerar({ data: productos.count, error: productos.error }, "el total de productos");
-  const totalVariantes = tolerar({ data: variantes.count, error: variantes.error }, "el total de variantes");
-  const filasStock = tolerar(stock, "el stock de tu ubicación");
-
   return {
-    productosActivos: totalProductos.datos,
-    variantesActivas: totalVariantes.datos,
-    unidadesEnSede: sumarUnidades(filasStock.datos),
-    aviso: primerAviso([totalProductos.fallo, totalVariantes.fallo, filasStock.fallo]),
-    actividad,
+    cajaAbierta: caja,
+    totales,
+    semanaAnterior,
+    metaVentaDiaria: ubicaciones?.find((u) => u.id === ubicacionId)?.metaVentaDiaria ?? null,
+    nombreDia: nombreDiaLima(Date.now()),
   };
 }

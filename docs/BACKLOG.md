@@ -69,6 +69,31 @@ Análisis completo en [docs/pantallas/colaboradores.md](pantallas/colaboradores.
 - [ ] Deuda ajena que apareció: `fn_ventas_del_dia` no lee `ventas.estado` — una anulada de hoy cuenta completa en «Vendido hoy» (ya en la lista de Facturación).
 
 ## 🎯 Candado de líder: solo el líder cierra la caja y ajusta stock (2026-09-21, ADR-0143) — APLICADO EN PRODUCCIÓN
+
+## 🎯 Filtro de búsqueda especial (2026-09-21, anexo del ADR-0071) — Existencias, Análisis y Movimientos
+- [x] `lib/filtro-busqueda-especial.ts` (`crearIndiceBusquedaEspecial`, `interpretarBusquedaEspecial`, `filtrarConBusquedaEspecial`) + su prueba (130, sobre `filtro-busqueda-especial.casos.json`): términos en cualquier orden sobre nombre/SKU/código/color/talla, todos deben cumplirse; una talla suelta que existe en los datos se compara solo con la talla, los colores con sus equivalentes (blanca/blanco…); plurales, códigos sin guiones y palabras que no filtran («talla», «de»…); el texto pisa el filtro visual de su dimensión y la pantalla avisa. Existencias lo usa en `InventarioPanel.tsx`.
+- [x] Análisis (Desempeño y Comparar › Detalle): `aplicarAlcance` usa el filtro; `resumen-busqueda.ts` quedó como adaptador (la categoría cuenta como nombre). Verificado en local con «blusa rosado m», «blusas rosadas», «camisas» (categoría), «blusa talla l», «vestido rosada s». Sin migraciones.
+- [x] Movimientos, en SQL: migración `20260921153700_movimientos_busqueda_especial.sql` (nuevo cuerpo de `fn_movimientos_variantes` + `fn_busqueda_singulares` + `fn_busqueda_formas_color`), aplicada en el Postgres local; `pnpm pruebas:fn-movimientos-busqueda-especial` (146) lee el mismo archivo de casos que TypeScript.
+- [ ] **Aplicar `20260921153700` en producción** (proyecto `cayla-dynamic`, schema `retail`; el archivo ya trae los nombres con `retail.` y su `set search_path`). Se intentó el 2026-09-21: el clasificador de permisos bloqueó incluso el ensayo revertible. Al aplicar: ensayo en transacción que se revierte, `apply_migration` con el texto exacto del archivo y verificar `md5(prosrc)` = `fn_busqueda_formas_color` 2fc226c03605dbc40c6fcf30b4a972ce · `fn_busqueda_singulares` dc36c2913cee31fe22d7440668c2f783 · `fn_movimientos_variantes` f991f653cfd38dca86d1f2dc165655bd (hoy `fn_movimientos_variantes` en producción es 3d0f876f8bc83ccd399106e1b6a67ffd, igual que en local antes del cambio). Es compatible hacia atrás: todo lo que la búsqueda anterior encontraba se sigue encontrando.
+- [ ] Al aplicarla, cambiar el texto guía de `FiltrosMovimientos.tsx` (hoy «Prenda, código, barras o referencia…») a «Prenda, color, talla, código… ej. blusa rosado m» y su `aria-label`. Se dejó fuera del merge a propósito: no prometer en pantalla lo que producción aún no hace.
+- [ ] Sumar `pruebas:fn-movimientos-busqueda-especial` al job `pruebas-postgres` de `.github/workflows/ci.yml`.
+- [ ] Aplicarlo a los demás buscadores —la misma función; cada pantalla dice cómo leer sus campos—: Traslados, Conteo (buscador y sugerencias) y Vender/Cambios/Devoluciones. En la caja hoy manda `filtrarPrendasV2`, que a propósito no separa palabras (su prueba lo fija): cambiarlo es una decisión aparte.
+- [ ] Decidir dos reglas: (a) los códigos de barras se buscan parcial (antes, exacto); (b) dos tallas o dos colores escritos a la vez se exigen los dos (no hay «M o L»).
+- [ ] La marca (ya se busca en la caja, ADR-0109) no entra en Existencias: `FilaStock` no la trae.
+
+## 🎯 Análisis: un solo selector de fechas (2026-09-21, anexo del ADR-0138) — hecho y verificado en local; en `main`
+- [x] Período A, Período B y «Personalizado» de Desempeño abren el mismo `PopoverRango` (`ResumenControles.tsx`): Desde/Hasta en dd/mm/aaaa ya cargados, foco en «Desde», Tab, Enter o «Aplicar», calendario de ayuda, errores en línea; los atajos de A y B (período anterior / año pasado; 7-30-90 días / este mes) van dentro. `CampoFecha` gana el modo opt-in `estricto` + `revelarError`. Verificado en local (A 09/07→09/08, B 09/05→09/06, Personalizado 01/08→01/09, fechas inválidas, presets, 320–430 px). Sin cambios de base ni de `lib/`.
+- [ ] Autoformato de `CampoFecha` con día o mes de un dígito: «9/7/2026» queda «97/20/26» (solo entiende dd/mm/aaaa con ceros). Completar con 0 al teclear «/» — toca todos los campos de fecha del ERP; decidir con Felipe.
+- [ ] Felipe dijo «UI siempre en DD/MM/YYYY»: el selector y sus avisos lo cumplen, las píldoras de Comparar conservan «desde 9 jul. hasta 9 ago.» del Figma. Decidir si pasan a dd/mm/aaaa (cambia `textoPildoraPeriodo`).
+- [ ] El selector no se cierra con Escape ni con clic afuera (solo «Cancelar»/«Aplicar») y al cerrar el foco no vuelve a la píldora o al chip que lo abrió.
+
+## 🎯 Producto / variante: una sola celda en Existencias y Conteo (2026-09-21, anexo del ADR-0071) — hecho y verificado en local; en `main`
+- [x] `ProductoVarianteCelda` (`ui/PrendaCelda.tsx`) en Existencias, «Conviene contar primero» y el detalle de un conteo; encabezado «Producto / variante» en Existencias y en ese detalle. `lib/apariencia-variantes.ts` trae foto principal + `colorHex` con la regla de Existencias (degrada sin tumbar la pantalla); `fotoPrincipal` pasó a `inventario-reglas.ts` (+4 pruebas); `LineaConteo` gana `colorHex` y `fotoUrl`. Sin cambios de base. Verificado en el navegador integrado (320–1920 px, fotos sembradas y retiradas, consulta rota a propósito).
+- [ ] Movimientos (`MovimientosLista.tsx`, «Prenda · variante»), Traslados › detalle y Desempeño/Comparar siguen con el encabezado viejo y/o la celda de texto de `PrendaCelda`; Felipe pidió solo Existencias y Conteo. Decidir si pasan a `ProductoVarianteCelda` (Movimientos y Traslados › detalle necesitan `colorHex` en su dato).
+- [ ] Conteo abierto (buscador, líneas ya contadas y modal «Revisar antes de cerrar») sigue en texto plano: es un flujo de escaneo donde la densidad importa y solo se ve con un conteo abierto (escribe en la base). Es la misma celda si se quiere. Para contar, la foto del COLOR (la prenda que se tiene en la mano) ayudaría más que la principal del producto; hoy Existencias usa la principal.
+- [ ] Las pestañas de Inventario tienen scroll horizontal de página a ≤ 360 px (7 px a 360, 47 a 320), también en Movimientos y Traslados: causa sin identificar, no viene de la celda.
+
+## 🎯 Candado de líder: solo el líder cierra la caja y ajusta stock (2026-09-21, ADR-0143) — hecho en local, falta pegar en producción
 - [x] Migración `20260921120000` (renumerada desde `20260921110000` el 2026-09-21 por chocar con Por pagar de Producción, que ya estaba en producción; `cerrar_caja` y `registrar_movimiento` exigen `fn_es_lider()`, 42501), prueba `pruebas:candado-lider` (20/20; 9/20 contra las funciones de producción sin candado), escenario C2 de `caja:verificar` ajustado, y cinco botones escondidos a quien no es líder (Caja, Punto de Venta, Existencias, Productos en lista y en grilla).
 - [x] **Aplicado en producción el 2026-09-21** con ok de Felipe: PR #218 fusionado y desplegado, sonda sin escrituras, ensayo revertido, `apply_migration` (registrada como `20260921152907`) y verificación por catálogo y con un colaborador, un líder y `anon` reales (pasos en el ADR-0143).
 - [ ] Decisión operativa de Felipe: quién cierra la caja cuando no hay un líder en la tienda (hoy 9 líderes con alcance global, ninguno fijo a una tienda; 3 cajas abiertas, probablemente de prueba).
@@ -1460,6 +1485,15 @@ tomó el 0097 primero y ya está en producción — ver ADR-0101 y la fila de ab
       Capital; «Qué cambió» → dona **«Evolución del ritmo»** (Aceleró/Estable/Desaceleró, interactiva a Detalle);
       ranking de texto → barras horizontales A/B; **«Distribución de sell-through»** en vez de Cobertura; Detalle a
       6 columnas con **«Cambio relevante»** (uno solo, el más importante) en vez de Interpretación.
+- [x] **Fila de períodos en dos píldoras** (frame de Figma de Felipe, 2026-09-21; `ResumenControles.tsx`,
+      `textoPildoraPeriodo`/`etiquetaRangoLarga` en `lib/resumen-periodo.ts`): «Período A: desde … hasta …» y
+      «Período B: …», de 36 px y alineadas con el selector de Categoría (el frame las dibujó de 32 y con el rango
+      de A también en la B); cada una abre el selector de fechas unificado (ver el ítem de 2026-09-21, más arriba). Probado en local:
+      1920/1024/390 px, presets, «año anterior», «otro período…», Detalle; sin errores de consola.
+- [ ] Diseñar en Figma los estados de las píldoras (abierta, hover, foco, móvil) y la píldora con un rango de un solo
+      día: hoy se resolvieron con los tokens existentes (abierta = borde tinta/60, hover = tinta/50).
+- [ ] La píldora en reposo usa el fondo y borde del estado «abierto» del botón anterior (tinta/4 % + tinta/30, como
+      lo dibuja el frame): junto a los demás controles (borde tinta/15) se lee como «seleccionada». Decidir con Felipe.
 - [x] **Miniatura + color real** (`ui/PrendaCelda.tsx:SinFoto`, `ui/MuestraColor.tsx`, como Existencias) en
       Desempeño y Comparar › Detalle (ya tenían `colorHex`); solo miniatura (sin cápsula) en Movimientos,
       Traslados › detalle y Conteo › detalle.
