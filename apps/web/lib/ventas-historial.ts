@@ -1,17 +1,23 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import { hoyEnLima } from "@/lib/movimientos-reglas";
 import {
   TAMANO_PAGINA,
   TOPE_TOTALES,
   aFila,
+  diaDeLima,
   limitesUTC,
+  mezclaDePagos,
   resumir,
+  serieDiaria,
   totalDeVenta,
   unidadesDeVenta,
   type CursorVentas,
+  type DiaResumen,
   type FilaHistorial,
   type FiltrosHistorial,
   type ItemCrudo,
+  type MetodoResumen,
   type ResumenHistorial,
   type VentaCruda,
 } from "@/lib/ventas-historial-reglas";
@@ -34,12 +40,15 @@ const SELECT_LISTA = `id, created_at, estado, nota, usuario_id,
   ubicacion:ubicaciones ( id, nombre ),
   cliente:clientes ( nombre ),
   venta_items ( cantidad, precio_unitario, descuento_unitario, subtotal,
-    variante:variantes ( talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) ) ),
+    variante:variantes ( color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex ),
+      producto:productos ( referencia, producto_fotos ( url, color_codigo ) ) ) ),
   venta_pagos ( metodo, monto ),
   comprobantes ( tipo, serie, numero, estado, created_at )`;
 
-// Para los totales del rango solo hacen falta los importes: sin prendas ni comprobantes.
-const SELECT_TOTALES = `id, estado, venta_items ( cantidad, precio_unitario, descuento_unitario, subtotal )`;
+// Para los totales del rango solo hacen falta los importes, el día y cómo se pagó: sin prendas ni comprobantes.
+const SELECT_TOTALES = `id, created_at, estado,
+  venta_items ( cantidad, precio_unitario, descuento_unitario, subtotal ),
+  venta_pagos ( metodo, monto )`;
 
 /** La consulta base con los filtros de la pantalla. La lista y los totales pasan por acá para
  *  que filtren EXACTAMENTE igual: un total que no coincide con la lista es peor que ninguno.
@@ -114,19 +123,39 @@ export type TotalesHistorial = {
   resumen: ResumenHistorial;
   /** Hay más ventas que `TOPE_TOTALES`: los números serían parciales, y la pantalla dice que no los muestra. */
   parcial: boolean;
+  /** Lo vendido por día de Lima en todo el rango (trazo del período y total de cada día). Vacío si `parcial`. */
+  porDia: DiaResumen[];
+  /** Cuánto se cobró por cada forma de pago en el rango. Vacío si `parcial`. */
+  porMetodo: MetodoResumen[];
 };
 
-/** Los totales de TODO el rango filtrado (no de la página): cuántas ventas, cuánto se vendió, ticket promedio. */
+/** Los totales de TODO el rango filtrado (no de la página): cuántas ventas, cuánto se vendió, ticket promedio,
+ *  más lo vendido por día y por forma de pago. Todo sale de la misma consulta, con el mismo tope. */
 export async function totalesVentasHistorial(f: FiltrosHistorial): Promise<TotalesHistorial> {
   const supabase = await createClient();
   const res = await consulta(supabase, SELECT_TOTALES, f)
     .order("created_at", { ascending: false })
     .limit(TOPE_TOTALES + 1);
-  const crudas = exigir(res, "los totales del historial de ventas") as unknown as { id: string; estado: string; venta_items: ItemCrudo[] }[];
+  const crudas = exigir(res, "los totales del historial de ventas") as unknown as {
+    id: string;
+    created_at: string;
+    estado: string;
+    venta_items: ItemCrudo[];
+    venta_pagos: VentaCruda["venta_pagos"];
+  }[];
   const parcial = crudas.length > TOPE_TOTALES;
-  const dentro = parcial ? crudas.slice(0, TOPE_TOTALES) : crudas;
+  const ventas = (parcial ? crudas.slice(0, TOPE_TOTALES) : crudas).map((v) => ({
+    anulada: v.estado === "anulada",
+    total: totalDeVenta(v.venta_items),
+    unidades: unidadesDeVenta(v.venta_items),
+    fecha: diaDeLima(v.created_at),
+    pagos: v.venta_pagos,
+  }));
   return {
     parcial,
-    resumen: resumir(dentro.map((v) => ({ anulada: v.estado === "anulada", total: totalDeVenta(v.venta_items), unidades: unidadesDeVenta(v.venta_items) }))),
+    resumen: resumir(ventas),
+    // Con el tope superado solo habría los días más recientes: un trazo así mentiría, y no se dibuja.
+    porDia: parcial ? [] : serieDiaria(ventas, { desde: f.desde, hasta: f.hasta, hoy: hoyEnLima() }),
+    porMetodo: parcial ? [] : mezclaDePagos(ventas),
   };
 }

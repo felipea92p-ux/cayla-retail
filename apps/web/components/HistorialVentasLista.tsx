@@ -1,30 +1,36 @@
 "use client";
 
-import { useState } from "react";
-import { Tabla, fila } from "@/components/ui/Tabla";
+import { useState, type CSSProperties } from "react";
+import Image from "next/image";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 import { ESTADO_ETIQUETA, ETIQUETA_TIPO, type EstadoComprobante } from "@/lib/comprobantes-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { etiquetaDia } from "@/lib/movimientos-reglas";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
-import { agruparPorDia, type FilaHistorial } from "@/lib/ventas-historial-reglas";
+import { agruparPorDia, subtituloDePrendas, titulosDePrendas, type FilaHistorial, type PrendaDeVenta } from "@/lib/ventas-historial-reglas";
 
-// La lista de Ventas ▸ Historial, agrupada por día de Lima (ADR-0144). Una fila por venta —no por
-// prenda— con lo que se viene a buscar: cuándo y dónde, qué se llevó (y a quién y quién lo vendió),
-// si tiene boleta o factura, y cuánto fue y cómo se pagó. Al tocarla se abre el detalle de siempre
-// (`DetalleVentaModal`: prendas, pagos, vuelto y reimpresión del comprobante), que se lee de la base
-// al abrir — la fila no carga más de lo que dibuja.
+// La lista de Ventas ▸ Historial (ADR-0144), con la misma línea que Cambios y Devoluciones (Atelier): un
+// hilo taupe baja por la izquierda, cada día es un nudo sobre él y sus ventas cuelgan a la derecha en una
+// hoja de papel. La unidad es la venta —no la prenda—: su título son los nombres de las prendas (serif, lo
+// más grande), y debajo van la talla y el color, y una sola línea chica con hora, tienda, quién compró y
+// quién vendió. A la derecha, el comprobante con su estado y el total con la forma de pago.
 //
-// La fila NO es un <button>: el botón que abre el detalle cubre la fila entera (`absolute inset-0`),
-// igual que en Movimientos. Una venta anulada se ve tachada y apagada: sigue en el libro (una venta
-// no se borra) pero no cuenta en los totales de la pantalla.
+// Cada venta lleva por delante un racimo de miniaturas: la foto de la prenda si la hay (hoy solo el 30 % de
+// lo vendido la tiene) y, si no, un mosaico del COLOR vendido — el color siempre existe. Se lee de un vistazo
+// de qué colores fue la venta. Al tocar la fila se abre el detalle de siempre (`DetalleVentaModal`), que se
+// lee de la base al abrir.
 //
-// Columnas desde `lg` (1024 px): con el lateral abierto el contenido útil mide ~650 px a esa
-// anchura, y seis columnas pedían 860 — la tabla se desbordaba con scroll lateral en tablet y en
-// laptops chicas. Son cuatro, con dos líneas cada una (quién compró/vendió bajo las prendas; la
-// forma de pago bajo el total). Por debajo de `lg` la fila se apila como una tarjeta: nada se oculta.
-const PLANTILLA = "lg:grid-cols-[5.5rem_minmax(11rem,1fr)_10.5rem_8rem]";
+// El total de cada día viene de la serie de TODO el rango, no de las filas de esta página: un día partido
+// entre dos páginas muestra el mismo total en las dos. Una venta anulada se ve apagada y tachada; sigue en
+// el libro (una venta no se borra) pero no cuenta en ninguna cifra.
+//
+// Tres anchos, cada uno determinista: en el celular (<640 px) el racimo y el texto arriba y, debajo, el comprobante y el total;
+// de 640 a 1279 px el total arriba a la derecha (como un precio) y el comprobante en una segunda línea bajo el texto; y desde
+// `xl` (1280 px) cuatro columnas. Con el lateral abierto, a 1024 px el contenido útil mide ~650: cuatro columnas dejaban al
+// título en ~130 px.
+//
+// La fila NO es un <button>: el botón que abre el detalle cubre la fila entera (`absolute inset-0`).
 
 const TONO_COMPROBANTE: Record<EstadoComprobante, TonoChip> = {
   aceptado: "verde",
@@ -35,43 +41,60 @@ const TONO_COMPROBANTE: Record<EstadoComprobante, TonoChip> = {
   no_emitido: "apagado",
 };
 
-const TITULO = "label-cayla text-[11px] text-tinta/55";
+const ventas = (n: number) => `${n.toLocaleString("es-PE")} ${n === 1 ? "venta" : "ventas"}`;
 
-export function HistorialVentasLista({ filas, hoyLima }: { filas: FilaHistorial[]; hoyLima: string }) {
+export function HistorialVentasLista({
+  filas,
+  hoyLima,
+  totalesPorDia,
+}: {
+  filas: FilaHistorial[];
+  hoyLima: string;
+  /** Lo vendido y cuántas ventas hubo en cada día del rango completo; vacío si no se pudo calcular. */
+  totalesPorDia: Record<string, { ventas: number; total: number }>;
+}) {
   const [abierta, setAbierta] = useState<FilaHistorial | null>(null);
   const dias = agruparPorDia(filas);
 
   return (
     <>
-      <Tabla>
-        <div className={`hidden gap-x-4 px-5 py-2 lg:grid ${PLANTILLA}`} role="row">
-          <span className={TITULO} role="columnheader">
-            Hora
-          </span>
-          <span className={TITULO} role="columnheader">
-            Prendas · clienta · vendedor
-          </span>
-          <span className={TITULO} role="columnheader">
-            Comprobante
-          </span>
-          <span className={`${TITULO} text-right`} role="columnheader">
-            Total · pago
-          </span>
+      <div className="relative pl-8 sm:pl-11">
+        <span aria-hidden className="hilo-vertical absolute bottom-0 left-[11px] top-1.5 w-[1.5px] bg-gradient-to-b from-taupe to-taupe/15" />
+        <div className="space-y-8">
+          {dias.map((dia, d) => {
+            const etiqueta = etiquetaDia(dia.fecha, hoyLima);
+            const delDia = totalesPorDia[dia.fecha];
+            return (
+              <section key={dia.fecha} aria-label={etiqueta} className="anim-sube space-y-3.5" style={{ "--i": Math.min(d + 3, 12) } as CSSProperties}>
+                <h3 className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5">
+                  <span className="relative text-[11.5px] font-semibold uppercase tracking-[0.16em] text-taupe-profundo">
+                    <span aria-hidden className="absolute -left-7 -top-px flex h-3.5 w-3.5 items-center justify-center rounded-full bg-crema ring-[1.5px] ring-taupe sm:-left-10">
+                      <span className="h-1.5 w-1.5 rounded-full bg-taupe" />
+                    </span>
+                    {etiqueta}
+                  </span>
+                  <span className="text-xs text-tinta/60">
+                    {delDia && delDia.total > 0 ? (
+                      <>
+                        <span className="font-display text-lg tabular-nums text-tinta">{soles(delDia.total)}</span> · {ventas(delDia.ventas)}
+                      </>
+                    ) : (
+                      ventas(dia.filas.length)
+                    )}
+                  </span>
+                </h3>
+                <div className="rounded-[20px] bg-papel ring-1 ring-tinta/[0.07]">
+                  <ul className="p-1.5">
+                    {dia.filas.map((v) => (
+                      <FilaVenta key={v.id} v={v} onAbrir={() => setAbierta(v)} />
+                    ))}
+                  </ul>
+                </div>
+              </section>
+            );
+          })}
         </div>
-        {dias.map((dia) => (
-          <div key={dia.fecha} className="divide-y divide-tinta/10">
-            <div className="flex items-baseline justify-between bg-tinta/[0.03] px-5 py-1.5">
-              <span className="label-cayla text-[11px] text-tinta">{etiquetaDia(dia.fecha, hoyLima)}</span>
-              <span className="text-xs text-tinta/55">
-                {dia.filas.length} {dia.filas.length === 1 ? "venta" : "ventas"}
-              </span>
-            </div>
-            {dia.filas.map((v) => (
-              <FilaVenta key={v.id} v={v} onAbrir={() => setAbierta(v)} />
-            ))}
-          </div>
-        ))}
-      </Tabla>
+      </div>
 
       {abierta && (
         <DetalleVentaModal ventaId={abierta.id} vendedor={abierta.vendedor} ubicacionNombre={abierta.ubicacion} onClose={() => setAbierta(null)} />
@@ -82,54 +105,79 @@ export function HistorialVentasLista({ filas, hoyLima }: { filas: FilaHistorial[
 
 function FilaVenta({ v, onAbrir }: { v: FilaHistorial; onAbrir: () => void }) {
   const apagado = v.anulada ? "text-tinta/50" : "text-tinta";
-  const quien = [v.clienta ?? "Cliente varios", v.vendedor].filter(Boolean).join(" · ");
+  const subtitulo = subtituloDePrendas(v.piezas, v.unidades);
+  const meta = [v.hora, nombreCortoSede(v.ubicacion), v.clienta ?? "Cliente varios", v.vendedor && `Vendido por ${v.vendedor}`].filter(Boolean).join(" · ");
   return (
-    <div className={fila(PLANTILLA, "relative transition-colors hover:bg-tinta/[0.03] focus-within:bg-tinta/[0.03] lg:items-start")}>
+    <li className="group relative rounded-2xl transition-colors duration-200 hover:bg-tinta/[0.025] focus-within:bg-tinta/[0.025] [&+&]:border-t [&+&]:border-dashed [&+&]:border-tinta/10">
       <button
         type="button"
         onClick={onAbrir}
         aria-label={`Ver el detalle de la venta de las ${v.hora} en ${v.ubicacion}, ${soles(v.total)}${v.anulada ? ", anulada" : ""}`}
-        className="absolute inset-0 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
+        className="absolute inset-0 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
       />
 
-      <span className="flex min-w-0 items-baseline gap-2 lg:block">
-        <span className={`font-display text-base tabular-nums ${apagado}`}>{v.hora}</span>
-        <span className="label-cayla block truncate text-[10px] text-tinta/55" title={v.ubicacion}>
-          {nombreCortoSede(v.ubicacion)}
-        </span>
-      </span>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3.5 sm:grid sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-start sm:gap-y-2 sm:px-5 xl:grid-cols-[auto_minmax(0,1fr)_11.5rem_8.5rem] xl:items-center">
+        <div className="sm:row-span-2 xl:row-span-1">
+          <Racimo piezas={v.piezas} anulada={v.anulada} />
+        </div>
 
-      <span className="min-w-0">
-        {/* Sin `block`: `line-clamp-2` ya fija su propio `display` y `block` lo pisaba (se veían 3 líneas). */}
-        <span className={`line-clamp-2 break-words text-sm leading-snug ${apagado}`} title={v.prendas}>
-          {v.prendas || "—"}
-        </span>
-        <span className="mt-0.5 block truncate text-xs text-tinta/55" title={quien}>
-          {quien}
-        </span>
-      </span>
+        <div className="min-w-0 flex-1 basis-56 sm:col-start-2 sm:row-start-1 sm:basis-auto">
+          <p className={`font-display line-clamp-1 text-[19px] leading-tight ${apagado}`} title={v.prendas}>
+            {titulosDePrendas(v.piezas)}
+          </p>
+          {subtitulo && <p className={`mt-0.5 text-sm ${v.anulada ? "text-tinta/40" : "text-tinta/70"}`}>{subtitulo}</p>}
+          <p className="mt-1 truncate text-xs text-tinta/55" title={meta}>
+            {meta}
+          </p>
+        </div>
 
-      <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-        {v.anulada && <Chip tono="rojo">Anulada</Chip>}
-        {v.comprobante ? (
-          <>
-            <span className={`text-xs font-medium ${apagado}`}>
-              {ETIQUETA_TIPO[v.comprobante.tipo]} {v.comprobante.numero}
-            </span>
-            {!v.anulada && <Chip tono={TONO_COMPROBANTE[v.comprobante.estado]}>{ESTADO_ETIQUETA[v.comprobante.estado]}</Chip>}
-          </>
-        ) : (
-          !v.anulada && <Chip tono="ambar">Sin comprobante</Chip>
-        )}
-      </span>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:col-span-2 sm:col-start-2 sm:row-start-2 xl:col-span-1 xl:col-start-3 xl:row-start-1 xl:flex-col xl:items-start xl:gap-1">
+          {v.anulada && <Chip tono="rojo">Anulada</Chip>}
+          {v.comprobante ? (
+            <>
+              <span className={`text-xs font-medium ${apagado}`}>
+                {ETIQUETA_TIPO[v.comprobante.tipo]} {v.comprobante.numero}
+              </span>
+              {!v.anulada && <Chip tono={TONO_COMPROBANTE[v.comprobante.estado]}>{ESTADO_ETIQUETA[v.comprobante.estado]}</Chip>}
+            </>
+          ) : (
+            !v.anulada && <Chip tono="ambar">Sin comprobante</Chip>
+          )}
+        </div>
 
-      {/* En pantalla ancha el pago va en la segunda línea, bajo el total; apilada, junto a él. */}
-      <span className="flex flex-wrap items-baseline gap-x-2 lg:block lg:text-right">
-        <span className={`whitespace-nowrap text-sm tabular-nums lg:block ${v.anulada ? "text-tinta/45 line-through" : "font-medium text-tinta"}`}>
-          {soles(v.total)}
-        </span>
-        {v.pagos && <span className="text-xs text-tinta/55 lg:block">{v.pagos}</span>}
-      </span>
-    </div>
+        <div className="ml-auto text-right sm:col-start-3 sm:row-start-1 sm:ml-0 xl:col-start-4">
+          <p className={`font-display text-[22px] leading-none tabular-nums ${v.anulada ? "text-tinta/45 line-through" : "text-tinta"}`}>{soles(v.total)}</p>
+          {v.pagos && <p className="mt-1 text-xs text-tinta/55">{v.pagos}</p>}
+        </div>
+      </div>
+    </li>
   );
+}
+
+/** Hasta tres miniaturas encimadas —la primera arriba— y un «+N» si hay más: una paleta de la venta. */
+function Racimo({ piezas, anulada }: { piezas: PrendaDeVenta[]; anulada: boolean }) {
+  const visibles = piezas.slice(0, 3);
+  const resto = piezas.length - visibles.length;
+  return (
+    <span
+      aria-hidden
+      className={`flex shrink-0 items-center transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-105 ${anulada ? "opacity-45 saturate-50" : ""}`}
+    >
+      {visibles.map((p, i) => (
+        <span key={i} className={`relative ${i > 0 ? "-ml-3.5" : ""}`} style={{ zIndex: visibles.length - i }}>
+          <Miniatura p={p} />
+        </span>
+      ))}
+      {resto > 0 && (
+        <span className="ml-1.5 flex h-10 w-10 items-center justify-center rounded-lg bg-sand text-xs font-semibold text-tinta/70 ring-2 ring-papel">+{resto}</span>
+      )}
+    </span>
+  );
+}
+
+/** La foto de la prenda o, sin ella, un mosaico de su color (con un filete interior para que un beige o un blanco no desaparezcan sobre el papel). */
+function Miniatura({ p }: { p: PrendaDeVenta }) {
+  const base = "block h-10 w-10 rounded-lg ring-2 ring-papel";
+  if (p.fotoUrl) return <Image src={p.fotoUrl} alt="" width={40} height={40} unoptimized className={`${base} object-cover`} />;
+  return <span className={`${base} shadow-[inset_0_0_0_1px_rgba(26,26,24,0.12)]`} style={{ background: p.colorHex ?? "var(--color-sand)" }} />;
 }

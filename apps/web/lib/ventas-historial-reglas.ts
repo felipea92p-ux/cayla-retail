@@ -106,9 +106,10 @@ export type ItemCrudo = {
   /** Columna generada: la base la calcula (precio − descuento) × cantidad. */
   subtotal: Numero | null;
   variante?: {
+    color_codigo?: string | null;
     talla: { valor: string } | null;
-    color: { nombre: string } | null;
-    producto: { referencia: string } | null;
+    color: { nombre: string; hex?: string | null } | null;
+    producto: { referencia: string; producto_fotos?: { url: string; color_codigo: string | null }[] | null } | null;
   } | null;
 };
 
@@ -135,6 +136,37 @@ export function subtotalDeItem(i: Pick<ItemCrudo, "cantidad" | "precio_unitario"
 
 export const totalDeVenta = (items: ItemCrudo[]): number => redondear2(items.reduce((s, i) => s + subtotalDeItem(i), 0));
 export const unidadesDeVenta = (items: ItemCrudo[]): number => items.reduce((s, i) => s + i.cantidad, 0);
+
+export type PrendaDeVenta = { referencia: string; detalle: string; cantidad: number; fotoUrl: string | null; colorHex: string | null };
+
+/** Cada línea de la venta con lo que hace falta para dibujarla: nombre, «talla · color», la foto del COLOR
+ *  vendido (mismo criterio que el catálogo y Cambios: `producto_fotos.color_codigo`) y el tono de ese color,
+ *  que siempre existe aunque la prenda no tenga foto todavía. */
+export function piezasDeVenta(items: ItemCrudo[]): PrendaDeVenta[] {
+  return items.map((i) => {
+    const v = i.variante;
+    return {
+      referencia: v?.producto?.referencia ?? "Prenda",
+      detalle: [v?.talla?.valor, v?.color?.nombre].filter(Boolean).join(" · "),
+      cantidad: i.cantidad,
+      fotoUrl: v?.color_codigo ? (v.producto?.producto_fotos?.find((f) => f.color_codigo === v.color_codigo)?.url ?? null) : null,
+      colorHex: v?.color?.hex ?? null,
+    };
+  });
+}
+
+/** El título de una venta: solo los nombres —«Blusa Emma, Pantalón Carla y 1 más»—. La talla y el color van debajo. */
+export function titulosDePrendas(piezas: PrendaDeVenta[], max = 2): string {
+  if (piezas.length === 0) return "—";
+  const nombres = piezas.map((p) => p.referencia);
+  return nombres.length <= max ? nombres.join(", ") : `${nombres.slice(0, max).join(", ")} y ${nombres.length - max} más`;
+}
+
+/** Lo que va bajo el título: con una sola línea, su «talla · color» (y ×N si son varias unidades); con más, cuántas prendas fueron. */
+export function subtituloDePrendas(piezas: PrendaDeVenta[], unidades: number): string {
+  if (piezas.length === 1) return `${piezas[0].detalle}${piezas[0].cantidad > 1 ? ` ×${piezas[0].cantidad}` : ""}`.trim();
+  return `${unidades} ${unidades === 1 ? "prenda" : "prendas"}`;
+}
 
 /** «Blusa Emma · M · Negro ×2, Pantalón Carla · 30 · Azul y 1 más» — lo justo para reconocer la venta en una fila. */
 export function textoPrendas(items: ItemCrudo[], max = 2): string {
@@ -175,6 +207,7 @@ export type FilaHistorial = {
   vendedor: string | null;
   clienta: string | null;
   prendas: string;
+  piezas: PrendaDeVenta[];
   unidades: number;
   total: number;
   pagos: string;
@@ -186,18 +219,22 @@ export type FilaHistorial = {
 const FORMATO_DIA = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" });
 const FORMATO_HORA = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
+/** El día de Lima de un instante, `aaaa-mm-dd`. */
+export const diaDeLima = (iso: string): string => FORMATO_DIA.format(new Date(iso));
+
 export function aFila(v: VentaCruda, nombres: ReadonlyMap<string, string>): FilaHistorial {
   const instante = new Date(v.created_at);
   return {
     id: v.id,
     creadoEn: v.created_at,
-    fecha: FORMATO_DIA.format(instante),
+    fecha: diaDeLima(v.created_at),
     hora: FORMATO_HORA.format(instante),
     ubicacionId: v.ubicacion?.id ?? "",
     ubicacion: v.ubicacion?.nombre ?? "—",
     vendedor: v.usuario_id ? (nombres.get(v.usuario_id) ?? null) : null,
     clienta: v.cliente?.nombre ?? null,
     prendas: textoPrendas(v.venta_items),
+    piezas: piezasDeVenta(v.venta_items),
     unidades: unidadesDeVenta(v.venta_items),
     total: totalDeVenta(v.venta_items),
     pagos: textoMetodos(v.venta_pagos),
@@ -229,6 +266,56 @@ export function resumir(ventas: { anulada: boolean; total: number; unidades: num
   return { ventas: completadas, anuladas, unidades, total, ticket: completadas ? redondear2(total / completadas) : 0 };
 }
 
+export type DiaResumen = { fecha: string; ventas: number; total: number };
+
+/** Hasta cuántos días se rellena la serie con ceros; pasado eso queda solo con los días que vendieron. */
+const MAX_DIAS_SERIE = 400;
+
+const aMilisegundos = (dia: string) => {
+  const [a, m, d] = dia.split("-").map(Number);
+  return Date.UTC(a, m - 1, d);
+};
+
+/** Lo vendido por día de Lima, del más viejo al más nuevo: alimenta el trazo del período y el total de
+ *  cada día en la lista. Cuentan solo las ventas completadas. Los días sin ventas entran con cero (un
+ *  trazo sin ellos mentiría sobre cuánto duró la calma). El rango va de `desde` (o la primera venta) a
+ *  `hasta` (o hoy). */
+export function serieDiaria(
+  ventas: { anulada: boolean; total: number; fecha: string }[],
+  rango: { desde?: string; hasta?: string; hoy: string }
+): DiaResumen[] {
+  const porFecha = new Map<string, DiaResumen>();
+  for (const v of ventas) {
+    if (v.anulada) continue;
+    const dia = porFecha.get(v.fecha) ?? { fecha: v.fecha, ventas: 0, total: 0 };
+    dia.ventas++;
+    dia.total = redondear2(dia.total + v.total);
+    porFecha.set(v.fecha, dia);
+  }
+  const conVentas = [...porFecha.keys()].sort();
+  const inicio = rango.desde ?? conVentas[0];
+  if (!inicio) return [];
+  const fin = rango.hasta ?? rango.hoy;
+  const dias = Math.round((aMilisegundos(fin) - aMilisegundos(inicio)) / 86_400_000) + 1;
+  if (dias < 1 || dias > MAX_DIAS_SERIE) return conVentas.map((f) => porFecha.get(f)!);
+  return Array.from({ length: dias }, (_, i) => {
+    const fecha = restarDias(inicio, -i);
+    return porFecha.get(fecha) ?? { fecha, ventas: 0, total: 0 };
+  });
+}
+
+export type MetodoResumen = { metodo: string; monto: number };
+
+/** Cuánto se cobró por cada forma de pago en las ventas completadas, de mayor a menor. */
+export function mezclaDePagos(ventas: { anulada: boolean; pagos: { metodo: string; monto: Numero }[] }[]): MetodoResumen[] {
+  const porMetodo = new Map<string, number>();
+  for (const v of ventas) {
+    if (v.anulada) continue;
+    for (const p of v.pagos) porMetodo.set(p.metodo, redondear2((porMetodo.get(p.metodo) ?? 0) + Number(p.monto)));
+  }
+  return [...porMetodo].filter(([, monto]) => monto > 0).map(([metodo, monto]) => ({ metodo, monto })).sort((a, b) => b.monto - a.monto);
+}
+
 export type DiaDeVentas = { fecha: string; filas: FilaHistorial[] };
 
 /** Agrupa por día de Lima. Las filas llegan ordenadas de más nueva a más vieja, así que cada día es un tramo continuo. */
@@ -240,4 +327,43 @@ export function agruparPorDia(filas: FilaHistorial[]): DiaDeVentas[] {
     else dias.push({ fecha: f.fecha, filas: [f] });
   }
   return dias;
+}
+
+export type Trazo = {
+  /** Trazo suave que une el total de cada día (curva de Bézier con tangentes horizontales: no se pasa de los puntos). */
+  linea: string;
+  /** La misma curva cerrada contra la base, para el degradado. */
+  area: string;
+  /** El día que más vendió (con su posición en el dibujo), o null si no hubo ventas. */
+  pico: { x: number; y: number; indice: number } | null;
+  ultimo: { x: number; y: number } | null;
+};
+
+const redondear1 = (n: number) => Math.round(n * 10) / 10;
+
+/** Convierte lo vendido por día en el dibujo del período. El eje Y va de 0 al mejor día; sin ventas la línea corre pegada a la base. */
+export function trazoDeVentas(
+  dias: DiaResumen[],
+  { ancho, alto, margen }: { ancho: number; alto: number; margen: { x: number; arriba: number; abajo: number } }
+): Trazo {
+  if (dias.length === 0) return { linea: "", area: "", pico: null, ultimo: null };
+  const max = Math.max(...dias.map((d) => d.total));
+  const base = alto - margen.abajo;
+  const util = alto - margen.arriba - margen.abajo;
+  const x = (i: number) => (dias.length === 1 ? ancho / 2 : margen.x + (i * (ancho - 2 * margen.x)) / (dias.length - 1));
+  const y = (v: number) => (max > 0 ? base - (v / max) * util : base);
+  const pts = dias.map((d, i) => ({ x: redondear1(x(i)), y: redondear1(y(d.total)) }));
+  let linea = `M${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    const medio = redondear1((pts[i - 1].x + pts[i].x) / 2);
+    linea += `C${medio} ${pts[i - 1].y} ${medio} ${pts[i].y} ${pts[i].x} ${pts[i].y}`;
+  }
+  const ultimo = pts[pts.length - 1];
+  const indice = max > 0 ? dias.findIndex((d) => d.total === max) : -1;
+  return {
+    linea,
+    area: `${linea}L${ultimo.x} ${base}L${pts[0].x} ${base}Z`,
+    pico: indice >= 0 ? { ...pts[indice], indice } : null,
+    ultimo,
+  };
 }

@@ -1,3 +1,4 @@
+import { ReceiptText, Wallet } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getColaboradores } from "@/lib/colaboradores";
@@ -11,9 +12,11 @@ import {
   type ParamsHistorial,
 } from "@/lib/ventas-historial";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { ResumenSede } from "@/components/ui/ResumenSede";
+import { EstadoVacio } from "@/components/ComprasAgrupadas";
 import { FiltrosHistorialVentas } from "@/components/FiltrosHistorialVentas";
 import { HistorialVentasLista } from "@/components/HistorialVentasLista";
-import { HistorialVentasTotales } from "@/components/HistorialVentasTotales";
+import { HistorialVentasPulso } from "@/components/HistorialVentasPulso";
 import { PaginacionCursor } from "@/components/Paginacion";
 
 // Historial de ventas (2026-09-21, ADR-0144): el libro de TODAS las ventas registradas, de cualquier
@@ -23,9 +26,14 @@ import { PaginacionCursor } from "@/components/Paginacion";
 //
 // Esta página solo traduce la URL a filtros y elige el layout; no calcula nada sobre las filas. Quién
 // ve qué lo decide la RLS de `ventas` (`fn_puede_operar_ubicacion`): el líder mira cualquier tienda
-// desde el selector (`?sede=`), cada colaboradora la suya. Es solo lectura — como `ventas` no tiene
+// desde el filtro (`?sede=`), cada colaboradora la suya. Es solo lectura — como `ventas` no tiene
 // política de UPDATE ni de DELETE, una venta se corrige con el proceso (anularla, un cambio, una
 // devolución), nunca tocando la fila.
+//
+// Aspecto (2026-09-21): la misma línea que Cambios, Devoluciones y Caja (Atelier) — cabecera con las cifras de
+// la tienda arriba a la derecha, hoja de papel para el trazo del período, hilo taupe con un nudo por día — y
+// los filtros como los de Catálogo. El elemento que se recuerda es el trazo: lo vendido día por día, dibujado
+// como un hilo.
 export default async function HistorialVentasPage({ searchParams }: { searchParams: Promise<ParamsHistorial> }) {
   const persona = await requirePersonaActualV2();
   const params = await searchParams;
@@ -46,16 +54,31 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
   const alcance = esLider ? (tiendas.find((t) => t.id === filtros.sedeId)?.nombre ?? "Todas las tiendas") : persona.ubicacionEtiqueta;
   const periodoEnPalabras = textoPeriodo(filtros.periodo, filtros.desde, filtros.hasta);
   const vendedores = colaboradores.map((c) => ({ id: c.persona_id, nombre: c.nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  const totalesPorDia = Object.fromEntries(totales.porDia.map((d) => [d.fecha, { ventas: d.ventas, total: d.total }]));
+  const { resumen } = totales;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <EncabezadoPagina
         sede={alcance}
         titulo="Historial"
-        subtitulo="Todas las ventas registradas: búscalas por fecha, tienda, pago o comprobante."
-      />
+        subtitulo="Todas las ventas registradas, de cualquier fecha."
+      >
+        {/* Las cifras del rango, como las de la tienda en Cambios y Devoluciones (el ticket promedio va con el
+            trazo, que es donde se interpreta). Pasado el tope de 1000 ventas serían parciales: el trazo de abajo
+            lo dice y acá no se muestran. */}
+        {!totales.parcial && (
+          <ResumenSede
+            sede={alcance}
+            cifras={[
+              { valor: resumen.total, formato: "soles", etiqueta: "vendido", icono: Wallet },
+              { valor: resumen.ventas, etiqueta: resumen.ventas === 1 ? "venta" : "ventas", icono: ReceiptText },
+            ]}
+          />
+        )}
+      </EncabezadoPagina>
 
-      <HistorialVentasTotales totales={totales} periodo={periodoEnPalabras} />
+      <HistorialVentasPulso totales={totales} periodo={periodoEnPalabras} />
 
       <FiltrosHistorialVentas
         tiendas={esLider ? tiendas.map((t) => ({ id: t.id, nombre: t.nombre })) : undefined}
@@ -71,9 +94,12 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
       />
 
       {filas.length === 0 && !cursor ? (
-        <p className="card-cayla p-5 text-sm text-tinta/75">Ninguna venta coincide con estos filtros ({periodoEnPalabras.toLowerCase()}).</p>
+        <EstadoVacio
+          titulo="Ninguna venta coincide"
+          detalle={`No hay ventas con estos filtros (${periodoEnPalabras.toLowerCase()}). Prueba con otro período o quita algún filtro.`}
+        />
       ) : (
-        <HistorialVentasLista filas={filas} hoyLima={hoyEnLima()} />
+        <HistorialVentasLista filas={filas} hoyLima={hoyEnLima()} totalesPorDia={totalesPorDia} />
       )}
 
       <PaginacionCursor
@@ -85,7 +111,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
         sustantivo={["venta", "ventas"]}
       />
 
-      <p className="card-cayla px-5 py-3 text-xs text-tinta/65">
+      <p className="max-w-2xl text-xs leading-relaxed text-tinta/60">
         <span className="text-tinta">Registro transparente:</span> una venta no se edita ni se borra. Si se anula, sigue en el historial —tachada— y deja de
         sumar a lo vendido; si la clienta cambia o devuelve una prenda, queda anotado en Cambios o Devoluciones.
       </p>

@@ -2,19 +2,20 @@
 
 import { useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CampoSelectNativo } from "@/components/ui/campos";
+import { CircleCheck, FileText, Store, UserRound, Wallet } from "lucide-react";
+import { BotonFiltros, DesplegablePildora, ItemDesplegable, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { DIAS_POR_DEFECTO, PERIODOS_RAPIDOS, type PeriodoMovimientos } from "@/lib/movimientos-reglas";
 import { NOMBRE_METODO } from "@/lib/recibo-reglas";
 import type { ComprobanteFiltro, EstadoFiltro } from "@/lib/ventas-historial-reglas";
 
-// Filtros de Ventas ▸ Historial (ADR-0144). Viven en la URL (?rango=…&estado=…&comp=…&pago=…&sede=…),
-// igual que en Movimientos y Compras: la página es un Server Component que filtra en Postgres, el
-// enlace se puede compartir y «atrás» vuelve al filtro anterior. Cambiar un filtro borra el cursor de
-// paginado. Los valores que llegan por props ya vienen resueltos por `filtrosDesdeParams` (un valor
-// inválido de la URL no queda «apretado» acá).
-//
-// Sin nada en la URL rigen los últimos 30 días, y el botón «30 días» aparece apretado: nadie se
+// Filtros de Ventas ▸ Historial (ADR-0144), con el mismo patrón que Catálogo y Compras: a la vista el período
+// (los atajos de siempre: 7, 30 y 90 días, o fechas propias) y un botón «Filtros · N» que despliega el panel
+// de píldoras —tienda, vendedor, pago, estado, comprobante—, con un chip por cada filtro aplicado que se quita
+// con un toque. Viven en la URL (?rango=…&estado=…&comp=…&pago=…&sede=…): la página es un Server Component
+// que filtra en Postgres, el enlace se puede compartir y «atrás» vuelve al filtro anterior. Cambiar un filtro
+// borra el cursor de paginado. Los valores llegan ya resueltos por `filtrosDesdeParams`: uno inválido de la URL
+// no queda «apretado» acá. Sin nada en la URL rigen los últimos 30 días y «30 días» aparece apretado: nadie se
 // pregunta por qué no ve la venta de hace dos meses. Tienda y vendedor solo los recibe un líder.
 
 const PASTILLA = "label-cayla inline-flex items-center rounded-full border px-3 py-1 text-[10px] transition-colors";
@@ -29,18 +30,8 @@ function Pastilla({ activa, onClick, children }: { activa: boolean; onClick: () 
   );
 }
 
-function Grupo({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
-  return (
-    <div role="group" aria-label={etiqueta} className="flex flex-wrap items-center gap-1.5">
-      <span aria-hidden className="label-cayla mr-0.5 text-[10px] text-tinta/50">
-        {etiqueta}
-      </span>
-      {children}
-    </div>
-  );
-}
-
 type Opcion = { id: string; nombre: string };
+type Chip = { texto: string; quitar: Record<string, string> };
 
 export function FiltrosHistorialVentas({
   tiendas,
@@ -71,6 +62,9 @@ export function FiltrosHistorialVentas({
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
+
+  const activos = [sede, vendedor, pago, estado !== "todas" ? estado : "", comprobante !== "todos" ? comprobante : ""].filter(Boolean).length;
+  const [panelAbierto, setPanelAbierto] = useState(activos > 0);
   // «Personalizado» se abre con un toque aunque todavía no haya fechas en la URL.
   const [personalizadoAbierto, setPersonalizadoAbierto] = useState(false);
   const mostrarFechas = periodo === "personalizado" || periodo === "todo" || personalizadoAbierto;
@@ -86,12 +80,20 @@ export function FiltrosHistorialVentas({
     router.push(qs ? `${pathname}?${qs}` : pathname);
   }
 
-  const hayFiltros = periodo !== String(DIAS_POR_DEFECTO) || estado !== "todas" || comprobante !== "todos" || !!pago || !!sede || !!vendedor;
+  const chips = (
+    [
+      sede && { texto: tiendas?.find((t) => t.id === sede)?.nombre ?? "Tienda", quitar: { sede: "" } },
+      vendedor && { texto: vendedores?.find((v) => v.id === vendedor)?.nombre ?? "Vendedor", quitar: { vendedor: "" } },
+      pago && { texto: (NOMBRE_METODO as Record<string, string>)[pago] ?? pago, quitar: { pago: "" } },
+      estado !== "todas" && { texto: estado === "anulada" ? "Anuladas" : "Completadas", quitar: { estado: "" } },
+      comprobante !== "todos" && { texto: comprobante === "con" ? "Con boleta o factura" : "Sin comprobante", quitar: { comp: "" } },
+    ] as (Chip | false | "")[]
+  ).filter((c): c is Chip => !!c);
 
   return (
-    <div className="card-cayla space-y-3 p-3.5 sm:p-4">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-        <Grupo etiqueta="Período">
+    <div className="space-y-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div role="group" aria-label="Período" className="flex flex-wrap items-center gap-1.5">
           {PERIODOS_RAPIDOS.map((dias) => (
             <Pastilla
               key={dias}
@@ -107,44 +109,11 @@ export function FiltrosHistorialVentas({
           <Pastilla activa={mostrarFechas} onClick={() => setPersonalizadoAbierto(true)}>
             Personalizado
           </Pastilla>
-        </Grupo>
-
-        <Grupo etiqueta="Estado">
-          <Pastilla activa={estado === "todas"} onClick={() => aplicar({ estado: "" })}>
-            Todas
-          </Pastilla>
-          <Pastilla activa={estado === "completada"} onClick={() => aplicar({ estado: "completada" })}>
-            Completadas
-          </Pastilla>
-          <Pastilla activa={estado === "anulada"} onClick={() => aplicar({ estado: "anulada" })}>
-            Anuladas
-          </Pastilla>
-        </Grupo>
-
-        <Grupo etiqueta="Comprobante">
-          <Pastilla activa={comprobante === "todos"} onClick={() => aplicar({ comp: "" })}>
-            Todos
-          </Pastilla>
-          <Pastilla activa={comprobante === "con"} onClick={() => aplicar({ comp: "con" })}>
-            Con boleta o factura
-          </Pastilla>
-          <Pastilla activa={comprobante === "sin"} onClick={() => aplicar({ comp: "sin" })}>
-            Sin comprobante
-          </Pastilla>
-        </Grupo>
-
-        {hayFiltros && (
-          <button
-            type="button"
-            onClick={() => {
-              setPersonalizadoAbierto(false);
-              router.push(pathname);
-            }}
-            className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline"
-          >
-            Limpiar filtros
-          </button>
-        )}
+        </div>
+        {/* `BotonFiltros` trae su `mt-1.5` para alinearse con un campo con etiqueta; acá no hay etiqueta. */}
+        <div className="-mt-1.5">
+          <BotonFiltros abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />
+        </div>
       </div>
 
       {mostrarFechas && (
@@ -168,42 +137,81 @@ export function FiltrosHistorialVentas({
         </div>
       )}
 
-      <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
-        {tiendas && (
-          <div className="w-48">
-            <CampoSelectNativo etiqueta="Tienda" value={sede} onChange={(e) => aplicar({ sede: e.target.value })}>
-              <option value="">Todas las tiendas</option>
+      {panelAbierto && (
+        <PanelPildoras>
+          {tiendas && (
+            <DesplegablePildora icono={Store} etiqueta="Tienda" valor={sede || TODOS} onValor={(v) => aplicar({ sede: v === TODOS ? "" : v })}>
+              <ItemDesplegable value={TODOS}>Todas las tiendas</ItemDesplegable>
               {tiendas.map((t) => (
-                <option key={t.id} value={t.id}>
+                <ItemDesplegable key={t.id} value={t.id}>
                   {t.nombre}
-                </option>
+                </ItemDesplegable>
               ))}
-            </CampoSelectNativo>
-          </div>
-        )}
-        {vendedores && vendedores.length > 0 && (
-          <div className="w-52">
-            <CampoSelectNativo etiqueta="Vendedor" value={vendedor} onChange={(e) => aplicar({ vendedor: e.target.value })}>
-              <option value="">Todos</option>
+            </DesplegablePildora>
+          )}
+
+          {vendedores && vendedores.length > 0 && (
+            <DesplegablePildora icono={UserRound} etiqueta="Vendedor" valor={vendedor || TODOS} onValor={(v) => aplicar({ vendedor: v === TODOS ? "" : v })}>
+              <ItemDesplegable value={TODOS}>Todos los vendedores</ItemDesplegable>
               {vendedores.map((v) => (
-                <option key={v.id} value={v.id}>
+                <ItemDesplegable key={v.id} value={v.id}>
                   {v.nombre}
-                </option>
+                </ItemDesplegable>
               ))}
-            </CampoSelectNativo>
-          </div>
-        )}
-        <div className="w-44">
-          <CampoSelectNativo etiqueta="Pago" value={pago} onChange={(e) => aplicar({ pago: e.target.value })}>
-            <option value="">Todos los pagos</option>
+            </DesplegablePildora>
+          )}
+
+          <DesplegablePildora icono={Wallet} etiqueta="Pago" valor={pago || TODOS} onValor={(v) => aplicar({ pago: v === TODOS ? "" : v })}>
+            <ItemDesplegable value={TODOS}>Todos los pagos</ItemDesplegable>
             {Object.entries(NOMBRE_METODO).map(([valor, etiqueta]) => (
-              <option key={valor} value={valor}>
+              <ItemDesplegable key={valor} value={valor}>
                 {etiqueta}
-              </option>
+              </ItemDesplegable>
             ))}
-          </CampoSelectNativo>
+          </DesplegablePildora>
+
+          <DesplegablePildora icono={CircleCheck} etiqueta="Estado" valor={estado === "todas" ? TODOS : estado} onValor={(v) => aplicar({ estado: v === TODOS ? "" : v })}>
+            <ItemDesplegable value={TODOS}>Todas las ventas</ItemDesplegable>
+            <ItemDesplegable value="completada">Completadas</ItemDesplegable>
+            <ItemDesplegable value="anulada">Anuladas</ItemDesplegable>
+          </DesplegablePildora>
+
+          <DesplegablePildora icono={FileText} etiqueta="Comprobante" valor={comprobante === "todos" ? TODOS : comprobante} onValor={(v) => aplicar({ comp: v === TODOS ? "" : v })}>
+            <ItemDesplegable value={TODOS}>Con o sin comprobante</ItemDesplegable>
+            <ItemDesplegable value="con">Con boleta o factura</ItemDesplegable>
+            <ItemDesplegable value="sin">Sin comprobante</ItemDesplegable>
+          </DesplegablePildora>
+        </PanelPildoras>
+      )}
+
+      {chips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {chips.map((c) => (
+            <button
+              key={Object.keys(c.quitar).join("|")}
+              type="button"
+              onClick={() => aplicar(c.quitar)}
+              aria-label={`Quitar filtro ${c.texto}`}
+              className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
+            >
+              {c.texto}
+              <span aria-hidden className="text-sm leading-none">
+                ×
+              </span>
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              setPersonalizadoAbierto(false);
+              router.push(pathname);
+            }}
+            className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo"
+          >
+            Limpiar todo
+          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }

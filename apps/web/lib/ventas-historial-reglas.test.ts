@@ -2,10 +2,17 @@ import { describe, it, expect } from "vitest";
 import {
   aFila,
   agruparPorDia,
+  diaDeLima,
   elegirComprobante,
   filtrosDesdeParams,
   limitesUTC,
+  mezclaDePagos,
+  piezasDeVenta,
   resumir,
+  serieDiaria,
+  subtituloDePrendas,
+  titulosDePrendas,
+  trazoDeVentas,
   subtotalDeItem,
   textoMetodos,
   textoPrendas,
@@ -249,5 +256,139 @@ describe("agruparPorDia", () => {
       ["2026-09-19", ["c"]],
     ]);
     expect(agruparPorDia([])).toEqual([]);
+  });
+});
+
+describe("serieDiaria — lo vendido por día de Lima", () => {
+  const v = (fecha: string, total: number, anulada = false) => ({ anulada, total, fecha });
+
+  it("rellena con ceros los días sin ventas, del más viejo al más nuevo", () => {
+    const s = serieDiaria([v("2026-09-19", 100), v("2026-09-19", 50.5), v("2026-09-21", 30)], { desde: "2026-09-18", hasta: "2026-09-21", hoy: HOY });
+    expect(s).toEqual([
+      { fecha: "2026-09-18", ventas: 0, total: 0 },
+      { fecha: "2026-09-19", ventas: 2, total: 150.5 },
+      { fecha: "2026-09-20", ventas: 0, total: 0 },
+      { fecha: "2026-09-21", ventas: 1, total: 30 },
+    ]);
+  });
+
+  it("una venta anulada no cuenta en ningún día", () => {
+    expect(serieDiaria([v("2026-09-19", 100, true)], { desde: "2026-09-19", hasta: "2026-09-19", hoy: HOY })).toEqual([
+      { fecha: "2026-09-19", ventas: 0, total: 0 },
+    ]);
+  });
+
+  it("sin `hasta` llega hasta hoy; sin `desde` arranca en la primera venta", () => {
+    const s = serieDiaria([v("2026-09-19", 10)], { hoy: HOY });
+    expect(s.map((d) => d.fecha)).toEqual(["2026-09-19", "2026-09-20", "2026-09-21"]);
+    expect(s[0].total).toBe(10);
+  });
+
+  it("sin ventas y sin `desde` no hay nada que trazar", () => {
+    expect(serieDiaria([], { hoy: HOY })).toEqual([]);
+  });
+
+  it("pasado el tope de días no rellena: devuelve solo los días que vendieron", () => {
+    expect(serieDiaria([v("2025-01-05", 10), v("2026-09-19", 20)], { hoy: HOY })).toEqual([
+      { fecha: "2025-01-05", ventas: 1, total: 10 },
+      { fecha: "2026-09-19", ventas: 1, total: 20 },
+    ]);
+  });
+});
+
+describe("mezclaDePagos", () => {
+  it("suma por método las ventas completadas, de mayor a menor, y deja fuera las anuladas", () => {
+    expect(
+      mezclaDePagos([
+        { anulada: false, pagos: [{ metodo: "efectivo", monto: "50.00" }, { metodo: "yape", monto: 30 }] },
+        { anulada: false, pagos: [{ metodo: "efectivo", monto: 25.5 }] },
+        { anulada: true, pagos: [{ metodo: "tarjeta", monto: 999 }] },
+      ])
+    ).toEqual([
+      { metodo: "efectivo", monto: 75.5 },
+      { metodo: "yape", monto: 30 },
+    ]);
+  });
+
+  it("sin ventas, nada", () => {
+    expect(mezclaDePagos([])).toEqual([]);
+  });
+});
+
+describe("diaDeLima", () => {
+  it("las 9:30 p. m. del 19 en Lima siguen siendo el 19 aunque en UTC ya sea el 20", () => {
+    expect(diaDeLima("2026-09-20T02:30:00+00:00")).toBe("2026-09-19");
+  });
+});
+
+describe("piezasDeVenta — lo que hace falta para dibujar cada prenda", () => {
+  const conFotos = (color_codigo: string) => ({
+    color_codigo,
+    talla: { valor: "M" },
+    color: { nombre: "Negro", hex: "#111111" },
+    producto: {
+      referencia: "Blusa Emma",
+      producto_fotos: [
+        { url: "https://x/blanco.jpg", color_codigo: "BLA" },
+        { url: "https://x/negro.jpg", color_codigo: "NEG" },
+      ],
+    },
+  });
+
+  it("toma la foto del COLOR vendido, no la de otro color del mismo producto", () => {
+    expect(piezasDeVenta([item({ variante: conFotos("NEG") })])).toEqual([
+      { referencia: "Blusa Emma", detalle: "M · Negro", cantidad: 1, fotoUrl: "https://x/negro.jpg", colorHex: "#111111" },
+    ]);
+  });
+
+  it("sin foto de ese color queda sin foto, pero conserva el tono del color", () => {
+    const [p] = piezasDeVenta([item({ variante: conFotos("ROJ") })]);
+    expect(p.fotoUrl).toBeNull();
+    expect(p.colorHex).toBe("#111111");
+  });
+
+  it("una línea sin variante no rompe", () => {
+    expect(piezasDeVenta([item({ variante: null })])).toEqual([{ referencia: "Prenda", detalle: "", cantidad: 1, fotoUrl: null, colorHex: null }]);
+  });
+});
+
+describe("títulos de una venta", () => {
+  const pz = (referencia: string, detalle = "M · Negro", cantidad = 1) => ({ referencia, detalle, cantidad, fotoUrl: null, colorHex: null });
+
+  it("el título son solo los nombres; más de dos se resumen", () => {
+    expect(titulosDePrendas([pz("Blusa Emma")])).toBe("Blusa Emma");
+    expect(titulosDePrendas([pz("Blusa Emma"), pz("Pantalón Carla")])).toBe("Blusa Emma, Pantalón Carla");
+    expect(titulosDePrendas([pz("A"), pz("B"), pz("C"), pz("D")])).toBe("A, B y 2 más");
+    expect(titulosDePrendas([])).toBe("—");
+  });
+
+  it("el subtítulo: talla y color de una sola línea, o cuántas prendas fueron", () => {
+    expect(subtituloDePrendas([pz("Blusa Emma")], 1)).toBe("M · Negro");
+    expect(subtituloDePrendas([pz("Blusa Emma", "M · Negro", 2)], 2)).toBe("M · Negro ×2");
+    expect(subtituloDePrendas([pz("A"), pz("B")], 3)).toBe("3 prendas");
+  });
+});
+
+describe("trazoDeVentas — la geometría del período", () => {
+  const medidas = { ancho: 100, alto: 50, margen: { x: 10, arriba: 10, abajo: 10 } };
+  const d = (total: number, i: number) => ({ fecha: `2026-09-${10 + i}`, ventas: total > 0 ? 1 : 0, total });
+
+  it("el mejor día toca el margen de arriba y un día sin ventas, la base", () => {
+    const t = trazoDeVentas([d(0, 0), d(100, 1), d(50, 2)], medidas);
+    expect(t.pico).toEqual({ x: 50, y: 10, indice: 1 });
+    expect(t.linea.startsWith("M10 40")).toBe(true);
+    expect(t.ultimo).toEqual({ x: 90, y: 25 });
+    expect(t.area.endsWith("L90 40L10 40Z")).toBe(true);
+  });
+
+  it("sin ventas no hay pico y la línea corre pegada a la base", () => {
+    const t = trazoDeVentas([d(0, 0), d(0, 1)], medidas);
+    expect(t.pico).toBeNull();
+    expect(t.linea).toBe("M10 40C50 40 50 40 90 40");
+  });
+
+  it("un solo día se dibuja en el centro; sin días, nada", () => {
+    expect(trazoDeVentas([d(30, 0)], medidas).ultimo).toEqual({ x: 50, y: 10 });
+    expect(trazoDeVentas([], medidas)).toEqual({ linea: "", area: "", pico: null, ultimo: null });
   });
 });
