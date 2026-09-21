@@ -109,10 +109,14 @@ con reimpresión de la boleta, en ticket y en A4 con el diseño de CAYLA. Spec y
       lectura, y solo se reimprime lo que tiene validez (`puedeImprimir`).
 - [x] **Boleta / factura A4** — desde nuestra fila `comprobantes`, con la estructura de la de Alegra y el
       diseño de CAYLA. Verificada con el PDF real del motor de Chrome (1 hoja A4; 3 hojas con 45 líneas).
-- [ ] **⚠️ Pegar `20260919210000_venta_pagos_recibido.sql` en producción ANTES de fusionar.** Felipe la
-      pega en el SQL Editor de cayla-dynamic (ya lleva `retail.`). Confirmar en `pg_proc` UNA sola
-      `registrar_venta`. Después refrescar el volcado de `docs/datos/generado/` y correr
-      `pnpm datos:generar:produccion` (nunca `pnpm datos:generar` a secas).
+- [x] **Migración `20260919210000_venta_pagos_recibido.sql` aplicada en producción** (la pegó Felipe antes de
+      fusionar #195/#196; verificada el 2026-09-19: columna y candado presentes, una sola `registrar_venta`
+      con el cuerpo idéntico al del repo, `EXECUTE` solo para `authenticated`/`postgres`). Para sus ventas
+      anteriores `recibido` queda vacío y el ticket sale sin línea de vuelto.
+- [ ] **Refrescar el volcado de producción** para que `docs/datos/generado/` incluya `venta_pagos.recibido`
+      (`generado/COMO-REFRESCAR.md`, luego `pnpm datos:generar:produccion`; nunca `pnpm datos:generar` a secas).
+- [ ] **Confirmar con la primera venta en efectivo**: que `venta_pagos.recibido` se guarde y el detalle de esa
+      venta muestre «Recibió … · Vuelto …» (al 2026-09-19 aún no había ninguna con `recibido`).
 - [ ] **Probar la impresión de verdad**: la térmica y una impresora A4, con el diálogo real. Solo se
       verificó el PDF del motor de Chrome, no el papel.
 - [ ] **Guardar la dirección de la clienta para la factura** — hoy el A4 imprime la línea «Dirección»
