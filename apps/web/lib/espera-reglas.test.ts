@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clasificarPeticion, esRpcDeLectura, mensajeDeCarga, seccionDeRuta, type PeticionEspera } from "./espera-reglas";
+import { clasificarPeticion, esRpcDeLectura, MENSAJE_ESPERA, type PeticionEspera } from "./espera-reglas";
 
 const ORIGEN = "https://retail.cayla.pe";
 const SUPA = "abc.supabase.co";
@@ -10,8 +10,8 @@ function pet(url: string, metodo = "GET", cabeceras: Record<string, string> = {}
 }
 
 describe("clasificarPeticion — carga", () => {
-  it("una navegación de Next es carga y dice a qué sección va", () => {
-    expect(clasificarPeticion(pet(`${ORIGEN}/inventario?_rsc=x`, "GET", { RSC: "1" }))).toEqual({ tipo: "carga", seccion: "Inventario" });
+  it("una navegación de Next es carga", () => {
+    expect(clasificarPeticion(pet(`${ORIGEN}/inventario?_rsc=x`, "GET", { RSC: "1" }))).toEqual({ tipo: "carga" });
   });
   it("el prefetch no muestra nada", () => {
     expect(clasificarPeticion(pet(`${ORIGEN}/compras`, "GET", { RSC: "1", "Next-Router-Prefetch": "1" }))).toBeNull();
@@ -19,9 +19,6 @@ describe("clasificarPeticion — carga", () => {
   });
   it("un GET normal (buscador, padrón) no es una espera", () => {
     expect(clasificarPeticion(pet(`${ORIGEN}/api/padron?tipo=ruc&numero=1`))).toBeNull();
-  });
-  it("una ruta sin nombre conocido queda sin sección", () => {
-    expect(clasificarPeticion(pet(`${ORIGEN}/algo-nuevo`, "GET", { RSC: "1" }))).toEqual({ tipo: "carga", seccion: null });
   });
 });
 
@@ -62,11 +59,9 @@ describe("clasificarPeticion — lo ajeno y la salida de emergencia", () => {
 });
 
 describe("piezas", () => {
-  it("nombres de sección", () => {
-    expect(seccionDeRuta("/")).toBe("Inicio");
-    expect(seccionDeRuta("/produccion/ordenes/3")).toBe("Producción");
-    expect(seccionDeRuta("/zzz")).toBeNull();
-    expect(mensajeDeCarga(null).titulo).toBe("Un momento");
+  it("el texto no nombra pantalla ni acción: vale para cargar, guardar y editar", () => {
+    expect(MENSAJE_ESPERA.titulo).toBe("Cargando");
+    expect(MENSAJE_ESPERA.detalle).not.toMatch(/pantalla|guard/i);
   });
   it("lectura por prefijo", () => {
     expect(esRpcDeLectura("fn_mi_perfil")).toBe(true);

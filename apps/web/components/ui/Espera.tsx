@@ -1,18 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import {
-  DETALLE_TARDA,
-  DETALLE_TARDA_GUARDANDO,
-  MENSAJE_GUARDANDO,
-  clasificarPeticion,
-  mensajeDeCarga,
-  seccionDeRuta,
-  type MensajeEspera,
-} from "@/lib/espera-reglas";
+import { DETALLE_TARDA, MENSAJE_ESPERA, clasificarPeticion, type MensajeEspera } from "@/lib/espera-reglas";
 
 /* ====================================================================
    El loader general (ADR-0149) — UNO solo, a pantalla completa.
@@ -86,15 +77,15 @@ function tomarFicha(prioridad: number, mensaje: MensajeEspera): () => void {
 
 /**
  * Para esperas que no son una petición de red (un cálculo largo, un `await` de varios pasos).
- * `const fin = esperar({ ... }); try { … } finally { fin(); }`. Sin mensaje dice «Guardando».
+ * `const fin = esperar({ ... }); try { … } finally { fin(); }`. Sin mensaje dice «Cargando».
  */
 export function esperar(mensaje?: MensajeEspera): () => void {
-  return tomarFicha(mensaje ? PRIORIDAD.explicito : PRIORIDAD.guardado, mensaje ?? MENSAJE_GUARDANDO);
+  return tomarFicha(mensaje ? PRIORIDAD.explicito : PRIORIDAD.guardado, mensaje ?? MENSAJE_ESPERA);
 }
 
 /**
  * Mientras `activo` sea true, el loader está a la vista. Es lo que usa el cambio de sede
- * (`activo` = el `pending` de su `useTransition`). Con `mensaje` manda su texto; sin él, «Guardando».
+ * (`activo` = el `pending` de su `useTransition`). Con `mensaje` manda su texto; sin él, el texto general.
  */
 export function useEsperando(activo: boolean, mensaje?: MensajeEspera) {
   const { etiqueta, titulo, resalte, detalle } = mensaje ?? {};
@@ -109,9 +100,7 @@ export function useEsperando(activo: boolean, mensaje?: MensajeEspera) {
  * está lista. Cubre lo que el interceptor de `fetch` no ve (la primera carga en frío, antes de hidratar).
  */
 export function EsperaPantalla() {
-  const seccion = seccionDeRuta(usePathname() ?? "/");
-  const { etiqueta, titulo, detalle } = mensajeDeCarga(seccion);
-  useEffect(() => tomarFicha(PRIORIDAD.carga, { etiqueta, titulo, detalle }), [etiqueta, titulo, detalle]);
+  useEffect(() => tomarFicha(PRIORIDAD.carga, MENSAJE_ESPERA), []);
   return null;
 }
 
@@ -162,10 +151,7 @@ function instalarInterceptor() {
     }
     if (!clasificacion) return original(input, init);
 
-    const soltar =
-      clasificacion.tipo === "guardado"
-        ? tomarFicha(PRIORIDAD.guardado, MENSAJE_GUARDANDO)
-        : tomarFicha(PRIORIDAD.carga, mensajeDeCarga(clasificacion.seccion));
+    const soltar = tomarFicha(clasificacion.tipo === "guardado" ? PRIORIDAD.guardado : PRIORIDAD.carga, MENSAJE_ESPERA);
     return original(input, init).then(
       (res) => {
         hastaElFinal(res).then(soltar, soltar);
@@ -188,7 +174,7 @@ export function EsperaGlobal() {
   const [visible, setVisible] = useState(false);
   const [saliendo, setSaliendo] = useState(false);
   const [tarda, setTarda] = useState(false);
-  const [mensaje, setMensaje] = useState<{ prioridad: number; mensaje: MensajeEspera }>({ prioridad: 0, mensaje: MENSAJE_GUARDANDO });
+  const [mensaje, setMensaje] = useState<{ prioridad: number; mensaje: MensajeEspera }>({ prioridad: 0, mensaje: MENSAJE_ESPERA });
 
   // Si llega otra espera mientras el loader se iba, la salida se cancela (ajuste durante el render, no en un efecto).
   const [habiaEspera, setHabiaEspera] = useState(hay);
@@ -203,7 +189,7 @@ export function EsperaGlobal() {
   const foco = useRef<HTMLElement | null>(null);
 
   // El texto que manda: el de mayor prioridad de la sesión (no baja mientras el loader sigue a la vista,
-  // así «Guardando» no se convierte en «Cargando» cuando el guardado encadena un refresco).
+  // así el texto de un cambio de sede no se pisa cuando encadena un refresco).
   useEffect(() => {
     if (!activas.length) return;
     const mejor = activas.reduce((a, b) => (b.prioridad >= a.prioridad ? b : a));
@@ -280,8 +266,7 @@ export function EsperaGlobal() {
   if (!visible) return null;
 
   const { etiqueta, titulo, resalte, detalle } = mensaje.mensaje;
-  const guardando = etiqueta === MENSAJE_GUARDANDO.etiqueta;
-  const linea = tarda ? (guardando ? DETALLE_TARDA_GUARDANDO : DETALLE_TARDA) : detalle;
+  const linea = tarda ? DETALLE_TARDA : detalle;
 
   return createPortal(
     <div

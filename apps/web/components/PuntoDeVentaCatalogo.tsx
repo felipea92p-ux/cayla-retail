@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode, RefObject } from "react";
+import type { CSSProperties, ReactNode, RefObject } from "react";
 import Image from "next/image";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
@@ -64,7 +64,7 @@ type Props = {
  *  (`campos.tsx`, `FORMA_DESPLEGABLE.pastilla`) — un chip de filtro es la misma
  *  familia de control que ese selector, no una tarjeta. */
 const chip = (prendido: boolean) =>
-  `label-cayla h-8 shrink-0 rounded-md border px-3 text-[11px] transition-colors ${
+  `label-cayla h-8 shrink-0 rounded-md border px-3 text-[11px] transition-[background-color,border-color,color,transform] duration-200 ease-[var(--ease-cayla)] active:translate-y-px ${
     prendido ? "border-tinta bg-tinta text-crema" : "border-sand bg-papel text-tinta/65 hover:bg-sand/40"
   }`;
 
@@ -124,7 +124,7 @@ export function PuntoDeVentaCatalogo({
       aria-label="Escanear o buscar prendas"
       className="flex min-w-0 flex-col border-b border-sand lg:min-h-0 lg:border-r lg:border-b-0"
     >
-      <div className="px-4 pt-3 sm:px-6 sm:pt-4">
+      <div className="anim-sube px-4 pt-3 sm:px-6 sm:pt-4">
         {/* Fila de captura: el campo manda (flex-1); «Monto manual» es la tercera vía de
             captura (sin etiqueta, prenda dañada), por eso vive al lado del campo y no
             entre los chips, donde le robaba ancho a las categorías. */}
@@ -177,17 +177,17 @@ export function PuntoDeVentaCatalogo({
                 id="venta-resultados"
                 role="listbox"
                 aria-label="Prendas encontradas"
-                className="card-cayla absolute top-16 right-0 left-0 divide-y divide-sand overflow-hidden !p-0 shadow-lg"
+                className="card-cayla anim-globo absolute top-16 right-0 left-0 divide-y divide-sand overflow-hidden !p-0 shadow-lg"
               >
                 {resultados.length ? (
                   resultados.map((v, i) => (
-                    <li key={v.varianteId} id={`venta-op-${i}`} role="option" aria-selected={i === activo}>
+                    <li key={v.varianteId} id={`venta-op-${i}`} role="option" aria-selected={i === activo} className="anim-entra" style={{ "--i": Math.min(i, 6) } as CSSProperties}>
                       <button
                         type="button"
                         onMouseEnter={() => onActivo(i)}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => onAgregar(v)}
-                        className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors ${
+                        className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors duration-200 ${
                           i === activo ? "bg-sand/60" : ""
                         } ${v.stockAqui <= 0 ? "opacity-55" : ""}`}
                       >
@@ -222,12 +222,16 @@ export function PuntoDeVentaCatalogo({
             type="button"
             onClick={() => onMontoManual()}
             disabled={bloqueado}
-            className="label-cayla shrink-0 rounded-xl border border-sand bg-papel px-3 text-[11px] text-tinta/75 transition-colors hover:bg-sand/40 hover:text-tinta"
+            className="label-cayla shrink-0 rounded-xl border border-sand bg-papel px-3 text-[11px] text-tinta/75 transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-sand/40 hover:text-tinta active:translate-y-px"
           >
             Monto manual
           </button>
         </div>
-        {aviso && <p className="mt-2 text-sm text-ambar-profundo">{aviso}</p>}
+        {aviso && (
+          <p key={aviso} className="anim-asentar mt-2 text-sm text-ambar-profundo">
+            {aviso}
+          </p>
+        )}
 
         {/* «Solo con stock» es lo primero que decide qué ve la encargada, así que va en su
             propia fila, con interruptor de verdad (se lee prendido/apagado de un vistazo, no
@@ -245,12 +249,12 @@ export function PuntoDeVentaCatalogo({
           >
             <span
               aria-hidden
-              className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors ${
+              className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors duration-300 ease-[var(--ease-cayla)] ${
                 soloConStock ? "border-tinta bg-tinta" : "border-sand bg-sand/60"
               }`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 h-3.5 w-3.5 rounded-full shadow-sm transition-transform ${
+                className={`absolute top-0.5 left-0.5 h-3.5 w-3.5 rounded-full shadow-sm transition-transform duration-300 ease-[var(--ease-cayla)] ${
                   soloConStock ? "translate-x-4 bg-crema" : "bg-tinta/45"
                 }`}
               />
@@ -258,7 +262,7 @@ export function PuntoDeVentaCatalogo({
             <span className="label-cayla text-[11px] font-semibold text-tinta">Solo con stock</span>
           </button>
           {soloConStock && ocultasSinStock > 0 && (
-            <span className="text-[11px] text-tinta/60">
+            <span className="anim-asentar text-[11px] text-tinta/60">
               {ocultasSinStock} {ocultasSinStock === 1 ? "prenda agotada oculta" : "prendas agotadas ocultas"}
             </span>
           )}
@@ -266,8 +270,15 @@ export function PuntoDeVentaCatalogo({
 
         {/* Catálogo, la ruta secundaria: las categorías tienen ahora toda la fila. */}
         <div className="scroll-cayla mt-2 flex gap-2 overflow-x-auto pb-3">
-          {categorias.map((c) => (
-            <button key={c} type="button" onClick={() => onCategoria(c)} disabled={bloqueado} className={chip(categoria === c)}>
+          {categorias.map((c, i) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => onCategoria(c)}
+              disabled={bloqueado}
+              className={`anim-entra ${chip(categoria === c)}`}
+              style={{ "--i": Math.min(i, 10) } as CSSProperties}
+            >
               {c}
             </button>
           ))}
@@ -283,7 +294,7 @@ export function PuntoDeVentaCatalogo({
                 {categoria === "Todo" ? "." : ` en ${categoria}.`}
               </p>
             )}
-            {grupos.map((g) => {
+            {grupos.map((g, i) => {
               const sinStock = g.stockTotal === 0;
               const enCarrito = g.tallas.reduce(
                 (acc, t) => acc + (carrito.find((it) => it.claveLinea === t.variante.varianteId)?.cantidad ?? 0),
@@ -297,7 +308,8 @@ export function PuntoDeVentaCatalogo({
                 <article
                   key={g.clave}
                   aria-label={nombre}
-                  className={`relative flex h-full flex-col rounded-xl border p-3 ${
+                  style={{ "--i": Math.min(i, 11) } as CSSProperties}
+                  className={`anim-entra group relative flex h-full flex-col rounded-xl border p-3 ${
                     sinStock ? "border-rojo-profundo/40 bg-crema opacity-55" : "alza-cayla border-sand bg-papel"
                   }`}
                 >
@@ -317,9 +329,11 @@ export function PuntoDeVentaCatalogo({
                   {/* Foto real por prenda+color (20260917190000) cuando existe; mientras un
                       color no tenga foto, las iniciales siguen de plan B — nunca un ícono
                       de "foto rota". */}
+                  {/* `pointer-events-none` en la foto: su div es `relative`, se pinta ENCIMA del botón superpuesto
+                      de la tarjeta y se comía el clic. */}
                   {g.fotoUrl ? (
-                    <div className="relative mb-3 aspect-[4/5] overflow-hidden rounded-lg bg-sand/40">
-                      <Image src={g.fotoUrl} alt={nombre} fill sizes="(min-width: 1280px) 20vw, 33vw" className="object-cover" unoptimized />
+                                        <div className="pointer-events-none relative mb-3 aspect-[4/5] overflow-hidden rounded-lg bg-sand/40">
+                      <Image src={g.fotoUrl} alt={nombre} fill sizes="(min-width: 1280px) 20vw, 33vw" className="object-cover transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-[1.04]" unoptimized />
                     </div>
                   ) : (
                     <div aria-hidden className="mb-3 flex aspect-[4/5] items-center justify-center rounded-lg bg-sand/40">
@@ -409,7 +423,7 @@ export function PuntoDeVentaCatalogo({
                   {/* El globito se re-asienta cada vez que cambia la cantidad (`key`): el ojo
                       nota que cambió sin releerlo. */}
                   {enCarrito > 0 && (
-                    <Badge key={enCarrito} className="anim-asentar pointer-events-none absolute top-2 right-2 h-6 min-w-6 rounded-full px-1.5 text-xs">
+                    <Badge key={enCarrito} className="anim-pop pointer-events-none absolute top-2 right-2 h-6 min-w-6 rounded-full px-1.5 text-xs">
                       {enCarrito}
                     </Badge>
                   )}
@@ -426,13 +440,13 @@ export function PuntoDeVentaCatalogo({
             className="label-cayla flex w-full items-center justify-between py-2 text-[11px] text-tinta"
           >
             <span>Ventas de hoy</span>
-            <span className={`inline-block transition-transform ${mostrarVentasHoy ? "rotate-180" : ""}`}>⌄</span>
+            <span className={`inline-block transition-transform duration-300 ease-[var(--ease-cayla)] ${mostrarVentasHoy ? "rotate-180" : ""}`}>⌄</span>
           </button>
           {/* Antes `hidden` (display:none): ni con CSS se puede animar un despliegue así
               — truco de `grid-template-rows` (0fr↔1fr) en su lugar. `ventasHoyNode` no
               trae ningún control enfocable (solo filas de texto), así que a diferencia
               del swap de MovimientoCajaModal no hace falta `disabled` acá adentro. */}
-          <div className={`grid overflow-hidden transition-[grid-template-rows] ${mostrarVentasHoy ? "mt-2 grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+          <div className={`grid overflow-hidden transition-[grid-template-rows,margin] duration-300 ease-[var(--ease-cayla)] ${mostrarVentasHoy ? "mt-2 grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
             <div className="min-h-0 overflow-hidden">{ventasHoyNode}</div>
           </div>
         </div>
