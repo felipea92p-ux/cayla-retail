@@ -72,8 +72,6 @@ export type FormComprobante = {
   lineas: LineaForm[];
   /** Total impreso en el papel; vacío = se toma el calculado. */
   totalPapel: string;
-  metodoPago: MetodoPago;
-  referenciaPago: string;
 };
 
 /** El primer problema que impide guardar, dicho como lo diría la base; `null` si está listo. */

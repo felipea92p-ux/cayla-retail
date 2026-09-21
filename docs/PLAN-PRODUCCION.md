@@ -58,7 +58,7 @@ cierran en la base, no en la pantalla), **7** (cada paso se prueba en el navegad
 | **D-F** | Gastos del Taller (denominador de D-31) | Tabla mínima `gastos_taller` (mes, concepto, monto). Solo líder | Finanzas se borró en el corte V1→V2; esperar su reconstrucción bloquea Eficiencia. Se migra cuando exista | esquema: ok |
 | **D-G** | Costos de insumos | Cerrar `insumo_lotes`/`movimientos_insumo` a `fn_puede_ver_dinero_de_compras`; el colaborador lee cantidades por una función **operativa** (mismo patrón que ADR-0126) y `v_insumo_saldos` pasa a `security_invoker` | El colaborador no debe ver lo que cuesta la tela; hoy puede | esquema: ok |
 | **D-H** | Abastecimiento de Producción | ✅ **Decidida por Felipe (2026-09-19), contra mi recomendación.** Producción tiene **su propio directorio de proveedores** y **sus propios Comprobantes, Por pagar y Recibir**. Forma que propongo: tabla `proveedores_produccion` (mismas columnas útiles que `proveedores`), y `comprobantes_produccion` (+ `_items`, `_pagos`) con las reglas de ADR-0035 | Separa los módulos de raíz y desbloquea Producción sin tocar Compras. Cuesta duplicados y deuda en dos sitios (ver el recuadro de arriba) | esquema: ok al pegar |
-| **D-I** | Vista consolidada de deuda e IGV | **Abierta.** Recomiendo un consolidado de solo lectura (deuda por proveedor de los dos módulos + IGV crédito fiscal del mes) para el líder y el contador; puede vivir en el Resumen de Producción o en una pantalla propia | Sin él, «cuánto debe CAYLA» exige sumar a mano dos pantallas y el registro de compras de SUNAT queda partido | decidir antes de F4c |
+| **D-I** | Vista consolidada de deuda e IGV | ✅ **Decidida por Felipe (2026-09-21): se procede con la recomendación.** Consolidado de **solo lectura** para el líder, dentro de «Por pagar» de Producción: deuda por proveedor de Compras y de Producción juntas (con lo vencido y el próximo vencimiento) y el IGV crédito fiscal del mes de los dos libros menos las notas de crédito de Compras. `fn_deuda_consolidada()` y `fn_igv_credito_fiscal(mes)` leen `compras` y `compra_notas_credito` sin modificarlas | Sin él, «cuánto debe CAYLA» exigía sumar a mano dos pantallas y el registro de compras de SUNAT quedaba partido | construido en F4c |
 
 Mientras D-E y D-F no se decidan, **Eficiencia se construye con estados vacíos honestos** («Sin gastos registrados»), nunca con cifras de ejemplo.
 
@@ -200,7 +200,15 @@ Ya **no depende de ADR-0139** ni toca `compras`, `compra_items`, `registrar_comp
   previa de subtotal-IGV-total, detalle con líneas, pagos y anulación. El rojo lo lleva solo la cifra «Vencido»; las filas vencidas van en ámbar con sus días.
   **No abre lotes** (eso es F4d). Prueba `pnpm pruebas:comprobantes-produccion` (26 casos, en CI) + 14 de reglas. Sin ver con clics (panel oculto).
   **F4d debe** agregar el vínculo lote↔línea y actualizar `anular_comprobante_produccion` para negar la anulación con mercadería recibida.
-- **F4c · Por pagar de Producción** (requiere **D-I**): saldo derivado (nunca guardado), vencidos, pago (uno o varios medios).
+- **F4c · Por pagar de Producción + consolidado D-I — construida en local 2026-09-21; migración `20260921110000` SIN pegar en producción.**
+  `registrar_pago_comprobante_produccion(comprobante, pagos, fecha, token)`: pago posterior con **uno o varios medios** (mismo `grupo_id` = un acto de pago), bloquea el comprobante,
+  **nunca supera el saldo**, no admite comprobante pagado ni anulado, valida fechas y montos como el pago al contado de F4b, e **idempotente por token**. Columna nueva
+  `comprobantes_produccion_pagos.grupo_id`. D-I: `fn_deuda_consolidada()` (por proveedor, de Compras y de Producción: saldo, vencido, próximo vencimiento) y
+  `fn_igv_credito_fiscal(mes)` (IGV vigente del mes de los dos libros − IGV de notas de crédito de Compras); ambas solo líder y **solo lectura** (no modifican Compras).
+  Pantalla `/produccion/por-pagar` (solo líder): cifras Por pagar / Vencido / Vence en 7 días, deuda por tramos (vencido, 7 días, 30 días, después) con «Pagar», y debajo la
+  «Deuda total de CAYLA» con la barra Compras/Producción y el IGV del mes. **También:** el formulario de comprobantes al contado ahora admite varios medios (`MediosDePago`,
+  reusable). **No hace:** pagar varios comprobantes de un golpe (el «pagar juntos» de ADR-0132) ni el registro de compras de SUNAT. Prueba `pnpm pruebas:por-pagar-produccion`
+  (15 casos, en CI) + 12 de reglas. Sin ver con clics.
 - **F4d · Recibir insumos.** `recibir_comprobante_produccion` abre **un lote por línea** (proveedor, documento, costo sin IGV, `origen = 'compra'`),
   idempotente; faltantes con su motivo. Quien trabaja en el Taller recibe **sin ver montos**.
 - **F4e · Candado del dinero (D-G).** Las tablas nuevas nacen solo-líder; `insumo_lotes`, `movimientos_insumo` y `producciones.costo_*` pasan al mismo
