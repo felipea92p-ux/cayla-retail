@@ -87,7 +87,7 @@ La regla para elegir es la del repo (`lib/resultado.ts`): `exigir` donde un núm
 | `CodigosDescuentoPanel` | Se reutiliza dentro de la pestaña; se quita el «← Facturación». |
 | `ComprobantesPanel`, `ProformasPanel` | Cambian: extracción de modales, tarjetas nuevas, chips y botones compactos, definiciones del §9. |
 | `TarjetaKpiVidrio`, `BotonCompacto`, `HiloComprobante` | Nuevos, en `components/ui/`. |
-| `FacturacionShell`, `FacturacionCabecera`, `FacturacionPestanas`, `SelectorMesFacturacion`, `ActividadDeHoy`, `ResumenProformas` | Nuevos, en `components/`. |
+| `FacturacionShell`, `FacturacionCabecera`, `FacturacionPestanas`, `SelectorMesFacturacion`, `ActividadDeHoy`, `FranjaProformas` (el spec la llamaba `ResumenProformas`, nombre que ya es el tipo de la cuenta en `facturacion-reglas.ts`) | Nuevos, en `components/`. |
 | `lib/facturacion-reglas.ts`, `lib/ventas-comparativo.ts`, `lib/useTransmitir.ts` | Nuevos. |
 | `lib/proformas-reglas.ts`, `lib/comprobantes.ts` | Cambian: `vencida`; conteos. |
 | `globals.css`, `next.config.ts` | Cambian: un bloque «isla de vidrio»; un redirect. |
