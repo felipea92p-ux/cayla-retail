@@ -853,10 +853,9 @@ dinero intacto, RLS sin permisos de escritura, triggers diferidos activos. Produ
       Compras-reparto ni con el filtro «Destino»): `pnpm pruebas:pago-por-lote-medios` (24/27) y `pnpm pruebas:notas-credito` (35/42); todas sus
       pruebas fallidas hablan de saldo a favor. Se resuelve anulando ese crédito en el local (no se borra: es un libro inmutable) o corriendo esas
       suites en una base limpia. `notas-credito` sí corre en CI (base limpia) y allí pasa; `pago-por-lote-medios` no está en el CI.
-- [ ] **Sumar `pnpm pruebas:compras-reparto` al CI (`.github/workflows/ci.yml`).** Hoy solo corre en local: sus 57 escenarios (el reparto 12/12, el tope
-      por tienda, reasignar solo lo pendiente, lo que ve un integrante, el candado de dinero, el filtro «Destino» y las dos firmas de
-      `listar_compras`/`por_pagar_tramos`) no vigilan nada en cada push. Usa el mismo seed que `dinero-compras` (ya en el CI); habría que ver que pase
-      sobre la base limpia del CI antes de dejarlo obligatorio.
+- [x] **`pnpm pruebas:compras-reparto` entra al CI (2026-09-21, PR «ci/suite-reparto»):** un paso más en `pruebas-postgres` (`.github/workflows/ci.yml`), junto a
+      `dinero-compras` y `pagos-compras-endurecimiento`, con el mismo seed. Recordatorio: ese job es «piloto, no bloquea» (`continue-on-error`): avisa, no
+      frena una fusión. Si en la primera corrida real algún escenario falla por depender de datos locales, se corrige la suite, no el CI.
 - [ ] **Decisión de diseño abierta (opcional): las cuatro cifras de arriba de Comprobantes y Por pagar (Por pagar, Por recibir, Compras del mes, IGV;
       Deuda, Vencido, Vence esta semana, Concentración) no siguen NINGÚN filtro**, tampoco el de proveedor ni ahora «Destino»; solo los
       subtotales por tramo de Por pagar lo siguen. Si Felipe quiere que sigan el filtro, cada una de esas funciones necesita su parámetro
