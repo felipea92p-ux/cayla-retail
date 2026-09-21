@@ -209,6 +209,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:candado-dinero-produccion
 
+      # Vista puente de la planilla de Dynamic (ADR-0133, F7; D-33): agrega la planilla YA PAGADA por sede y período (personas, pagado, provisiones, costo total),
+      # solo períodos pagados y sin el grupo «prueba», oculta grupos de menos de 3 personas, no expone a nadie identificable, es security_invoker (sin permiso en
+      # Dynamic sale vacía) y sin Dynamic en la base la migración no falla. Arma el stub de Dynamic dentro de cada transacción y hace ROLLBACK.
+      - name: pruebas:planilla-por-sede
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:planilla-por-sede
+
       # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
       # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las
       # tarjetas de arriba cuentan lo mismo. Cada caso termina en ROLLBACK.

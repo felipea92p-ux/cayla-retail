@@ -4028,6 +4028,20 @@ export type Database = {
       }
     }
     Views: {
+      planilla_por_sede: {
+        Row: {
+          costo_total: number | null
+          fecha_fin: string | null
+          fecha_ini: string | null
+          pagado: number | null
+          periodo_id: string | null
+          personas: number | null
+          provisiones: number | null
+          sede_codigo: string | null
+          sede_tipo: string | null
+        }
+        Relationships: []
+      }
       compra_item_reparto_resumen: {
         Row: {
           asignado: number | null

@@ -3,6 +3,21 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (Colaboradores: primera auditoría con `/pantalla` y sus arreglos — ADR-0145)
+Se auditó `/colaboradores` (`docs/pantallas/colaboradores.md`, 6,5/10, Soporte) y se arreglaron 7 de sus 12 tareas: el alta ya no abre con una persona y una sede elegidas, «Quitar acceso» deja de ser rojo en las 25 filas, el texto tenue sube a contraste legible, y una migración cierra la escritura directa a la tabla, exige ubicación a todo colaborador y hace que agregar/quitar avisen cuando ya estaba hecho.
+Felipe se lleva: (1) **RLS sola es una capa, no dos** — `authenticated` tenía INSERT/UPDATE/DELETE sobre la tabla de acceso y solo la política de SELECT lo frenaba; (2) un `on conflict do nothing` que no avisa deja a dos líderes creyendo cosas distintas; (3) un valor por defecto útil en un formulario cualquiera es un riesgo en uno que da acceso.
+Sin resolver: la migración `20260922100000` ya está aplicada en producción (verificada el mismo día) y su prueba SQL (`pnpm pruebas:colaboradores-endurecimiento --en-seco`) no se pudo correr sin Docker; quedan las tareas #3 (historial de accesos), #6 (cambiar ubicación), #10–#12 y la decisión sobre cuáles de los 9 líderes deben serlo.
+
+## 2026-09-21 (El menú es un árbol de datos — ADR-0144, paso 1, sin cambio visible)
+Las reglas de quién ve qué estaban repartidas en siete constantes de `AppShell.tsx`, una lista de rutas repetida a mano y `produccion-menu.ts`: solo hoy `main` cambió el menú cinco veces y seis PRs editaban la misma zona. Ahora el menú es un árbol de datos (`lib/menu.ts`) con una función pura por permisos; `AppShell.tsx` solo dibuja, y lo que ve cada perfil no cambió.
+Felipe se lleva: (1) **la prueba no es circular**: la fotografía del menú de hoy se capturó del `AppShell.tsx` real —no del árbol nuevo— y 1176 renders del original y del nuevo dan cero diferencias; (2) cada mutación (quitar una fila, cambiar un orden, quitar un permiso, romper un tope) hace fallar justo su prueba; (3) `main` se movió cinco veces mientras se hacía, por eso se aterriza ya: desde ahora una fila nueva se agrega en un solo archivo y el diff de la fotografía muestra qué perfil ve algo distinto.
+Sin resolver: Producción supera el tope de 6 (7 hijas desde #231, deuda explícita con una prueba que la vigila); los nombres repetidos entre Compras y Producción («… del Taller», ya elegido); el líder en el Taller sin «Recibir mercadería» en el lateral (queda en «+ Nuevo», así lo dejó Felipe); y probarlo con interacción real (teclado, hover, cajón plegado), que solo se comparó en estructura.
+
+## 2026-09-21 (El calendario ya no cambia de mes solo)
+Se corrigió `CampoFecha`: pasar el mouse por un día gris del mes vecino movía el cursor de la grilla, y como el cursor decide qué mes se dibuja, el calendario saltaba solo. Ahora el hover solo mueve el cursor si el día es del mes visible; los grises se siguen resaltando con CSS y al hacer clic sí cambian de mes.
+Felipe se lleva: (1) **un mismo estado no debe mandar sobre dos cosas** —el cursor era a la vez «dónde estoy» y «qué mes muestro»—, y por eso un gesto inocente (pasar el mouse) tenía un efecto grande; (2) la causa de otra rareza de la sesión, la lista de facturas amontonada en «Registrar nota», no era el código sino un servidor de desarrollo con el CSS viejo: al cambiar de rama o traer cambios que agregan un `@import`, se reinicia el servidor y se borra `.next`.
+Sin resolver: verificado llamando al manejador de cada celda, no con mouse real (el panel del navegador no lo mueve); conviene pasarle el mouse una vez a mano.
+
 ## 2026-09-21 (El candado de líder ya corre en producción — ADR-0143)
 Felipe fusionó el PR #218 y autorizó pegar la migración: las pantallas ya estaban desplegadas y `cerrar_caja` y `registrar_movimiento` ahora rechazan con 42501 a quien no es líder. Se comprobó dentro de la base con un colaborador real y un líder real y con los roles de la API: el colaborador recibe los dos mensajes, el líder pasa el candado y `anon` no puede ni ejecutarlas.
 Felipe se lleva: (1) **antes de pegar se ensayó en un lote que termina en una excepción a propósito** y el cuerpo, sin el candado, dio el mismo `md5` que producción: se cambió lo que se quería y nada más; (2) el ensayo usó un colaborador y un líder reales **sin escribir nada** —el candado responde antes que cualquier otra cosa—, y después la base seguía intacta (479 movimientos, 3 cajas abiertas); (3) producción registra la migración con la hora de aplicación (`20260921152907`), no con el nombre del archivo (`20260921120000`): tres números «libres» de ese día se ocuparon en horas, y hubo que renumerar dos veces.
@@ -8553,3 +8568,27 @@ Felipe se lleva: (1) una migración vieja se prueba contra el esquema de SU épo
 ## 2026-09-21 (Producción F6: Resumen — ADR-0133)
 Felipe pegó las partes A y B del candado del dinero (verificado contra producción: costos ilegibles por columna, funciones `fn_costos_*` presentes, vista cerrada) y fusionó F5. F6 construida sin esquema: `/produccion` pasa a ser el
 Resumen «¿qué necesita mi decisión hoy?» (solo líder) con tarjetas por urgencia y evidencia, cifras, ¿qué producir? y ¿alcanza la tela?. Solo hechos: no se dibujan plazos por etapa ni «días de trabajo» inventados.
+
+## 2026-09-22 (Producción F7: Eficiencia del Taller — ADR-0133)
+Felipe fusionó F6 y decidió sobre F7: la cotización de maquila externa NO se registra (D-E descartada, enmienda a D-31) y los sueldos se leen de Dynamic. Revisado contra producción: Dynamic ya congela la planilla
+(`planilla_pagada_detalle` / `v_planilla_pagada`, con `costo_total`; el Taller es la sede `LIM`, `tipo = 'taller'`) y `retail.gastos` ya existe para alquiler y servicios (modelo de Finanzas, ADR-0117, PR #170 sin fusionar).
+Por eso F7 NO crea `gastos_taller` ni cotizaciones: solo una vista puente `retail.planilla_por_sede` (D-33, agregada, sin personas, grupos < 3 ocultos, security_invoker) y la pantalla `/produccion/eficiencia`.
+Interpretación propia de D-31 documentada: el Taller se mide por lo que cuesta cada prenda terminada (materiales + conversión), período a período.
+
+## 2026-09-22 (F7: conflicto con el menú como árbol de datos — ADR-0144)
+Al fusionar main en el PR de F7 el menú había pasado a ser un árbol de datos (`lib/menu.ts`) con una prueba que frena una octava hija de Producción («regrupar antes de agregar Eficiencia»). No se subió la excepción ni se rompió
+la prueba: Eficiencia llega como **pestaña del Resumen** («Hoy | Eficiencia», `PestanasResumenProduccion`), no como fila del lateral. El nodo `produccion.eficiencia` sigue como «futura» con la nota actualizada.
+
+## 2026-09-22 (Producción F8: cierre — ADR-0133 implementado)
+Felipe fusionó F7 (migración de la planilla pegada; verificada en producción). F8 sin migraciones: «Llevarlas a las tiendas» desde el cierre y desde la orden terminada abre Mover con el Taller de origen y todas las líneas de la
+orden prellenadas (Mover acepta ahora `lineas`). Verificado que la referencia «Orden N» de Movimientos NO existe (la orden no tiene número y `fn_movimientos` no devuelve `produccion_id`): anotado en el BACKLOG con su propuesta.
+Documentación al día: módulo 10 de datos (sección «ESTADO ACTUAL»), ADR-0133 (Aceptado e implementado), ARQUITECTURA. Con esto quedan hechas F0 a F8.
+
+## 2026-09-22 (Versión de migración repetida: productos_por_categoria → 20260921170000)
+`20260921160000_planilla_por_sede.sql` (Producción F7) y `20260921160000_productos_por_categoria.sql` (Catálogo) compartían versión en main; las dos ya estaban pegadas en producción (verificado: la vista y `fn_productos_por_categoria`
+existen). Como ninguna corre por versión en producción, se renombró la que casi no tenía referencias: `productos_por_categoria` pasa a `20260921170000`. El contenido no cambió.
+
+## 2026-09-21 (Avisos con coreografía — ADR-0146)
+Felipe aprobó el spike de avisos y pidió efectos. `Avisos.tsx` pasa a la piel «Ficha»: icono con forma por tono (✓ ! ⚠), el anillo del icono es el único reloj, título = qué pasó / `detalle` = sobre qué, tope de 4 y «Cerrar todos».
+Coreografía del éxito (anillo que se dibuja, check que se traza, texto que se revela, una onda, y solo entonces la cuenta atrás) en `app/estilos/avisos.css`. `avisar.proceso()` devuelve ahora una función con `.progreso()`, `.exito()` y `.error()`: el mismo aviso se transforma sin parpadeo (los 8 llamados actuales siguen igual). Sin migraciones.
+Verificado en el navegador con una página temporal (ya retirada): los 3 tonos, el proceso con avance → éxito, el cierre solo al agotarse el anillo y Escape en errores. Bug propio hallado y corregido: en Chrome el trazo discontinuo no se escala con `pathLength` en un `<circle>` (queda punteado, parece lleno).

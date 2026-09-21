@@ -54,6 +54,12 @@ type Huella = { marca: string; frase: string | ((detalle: string) => string) };
 
 const HUELLAS: Huella[] = [
   {
+    // 20260922100000_colaboradores_endurecimiento.sql — un Colaborador siempre queda fijo a una ubicación.
+    // `agregar_colaborador` ya lo valida antes; esto es la red si otro camino inserta sin ubicación.
+    marca: "colaboradores_colaborador_con_ubicacion",
+    frase: "Un colaborador tiene que quedar fijo a una ubicación. Elige cuál y vuelve a intentar.",
+  },
+  {
     // 20260918230000_producto_nombre_una_sola_forma.sql — «rechazado» es terminal. `catalogo_actualizar_producto` avisa
     // antes con su propia frase; esto es la red si otro camino intenta reactivar una prenda rechazada.
     marca: "productos_rechazado_descontinuado_check",
