@@ -97,6 +97,7 @@ const IC = {
   inicio: "M3 11l9-8 9 8M5 9.5V21h5v-6h4v6h5V9.5",
   vender: "M6 6h15l-1.5 9h-12L6 6zm0 0L5 3H2m7 18a1 1 0 100-2 1 1 0 000 2zm9 0a1 1 0 100-2 1 1 0 000 2z",
   caja: "M12 3v18m4-15H10a2.5 2.5 0 000 5h4a2.5 2.5 0 010 5H8",
+  historial: "M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8M3 3v5h5M12 7v5l4 2",
   productos: "M20.5 7.3L12 12m0 0L3.5 7.3M12 12v9m8.5-13.7v9.4a1 1 0 01-.5.87l-7.5 4.3a1 1 0 01-1 0l-7.5-4.3a1 1 0 01-.5-.87V7.3a1 1 0 01.5-.87l7.5-4.3a1 1 0 011 0l7.5 4.3a1 1 0 01.5.87z",
   inventario: "M4 7l8-4 8 4v10l-8 4-8-4V7zm8 4L4 7m8 4l8-4m-8 4v10",
   movimientos: "M3 7h13m0 0l-4-4m4 4l-4 4M21 17H8m0 0l4 4m-4-4l4-4",
@@ -836,7 +837,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   // repetida a mano porque los grupos todavía no existen a esta altura de
   // la función.
   const RUTAS_POR_GRUPO: Record<string, string[]> = {
-    venta: ["/vender", "/caja", "/cambios", "/devoluciones", "/vender/facturacion"],
+    venta: ["/vender", "/caja", "/vender/historial", "/cambios", "/devoluciones", "/vender/facturacion"],
     catalogo: ["/productos", "/productos/categorias", "/productos/atributos", "/productos/marcas"],
     produccion: ["/produccion"],
     // «Recibir mercadería» (/recibir) vive en Compras para el líder y en Inventario para quien no lo es.
@@ -869,6 +870,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   const inicio: Item = { href: "/", etiqueta: "Inicio", icono: IC.inicio };
   const puntoDeVenta: Item = { href: "/vender", etiqueta: "Punto de Venta", icono: IC.vender };
   const caja: Item = { href: "/caja", etiqueta: "Caja", icono: IC.caja };
+  // El libro de todas las ventas (ADR-0144). Va entre Caja y Cambios: se lee después de cobrar y de
+  // cuadrar, y de ahí se pasa a corregir (Cambios/Devoluciones). Lo ven todos; la RLS acota por tienda.
+  const historialVentas: Item = { href: "/vender/historial", etiqueta: "Historial", icono: IC.historial };
   const cambios: Item = { href: "/cambios", etiqueta: "Cambios", icono: IC.cambios };
   const devoluciones: Item = { href: "/devoluciones", etiqueta: "Devoluciones", icono: IC.devoluciones };
   const productos: Item = { href: "/productos", etiqueta: "Productos", icono: IC.productos };
@@ -939,7 +943,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
     id: "venta",
     etiqueta: "Ventas",
     icono: IC.venta,
-    hijos: [puntoDeVenta, caja, cambios, devoluciones, ...(esLider ? [facturacion] : [])],
+    hijos: [puntoDeVenta, caja, historialVentas, cambios, devoluciones, ...(esLider ? [facturacion] : [])],
   };
   // "Catálogo" agrupa qué ES una prenda (Productos) y el vocabulario del que
   // cuelga (Categorías, Colores) — pedido de Felipe, 2026-09-16, de
