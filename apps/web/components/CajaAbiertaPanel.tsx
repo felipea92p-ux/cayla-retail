@@ -29,7 +29,8 @@ import { useAumento, useIdsNuevos } from "@/lib/useNovedades";
 import type { CajaAbierta, MovimientoCaja, ResumenCaja, SeriesVentasCaja, CierreCaja } from "@/lib/caja";
 import { claveLocal, leer } from "@/lib/almacen-local";
 import type { VentaEncolada } from "@/lib/ventas-offline";
-import { duracionAbierta, escalaTurno, formatoDuracion, metodosDe, minutosDeHora, ritmoDelDia, type MetodoRitmo } from "@/lib/caja-panel-reglas";
+import { duracionAbierta, escalaTurno, formatoDuracion, metodosDe, minutosDeHora, ritmoDelDia, turnoLargo, type MetodoRitmo } from "@/lib/caja-panel-reglas";
+import { diaYHoraLima } from "@/lib/fechas-lima";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -145,11 +146,12 @@ export function CajaAbiertaPanel({
       color: colorDeMetodo(v.metodosPago),
     })),
     ...movimientos.map((m) => {
-      const d = new Date(m.creadoEn);
+      // Hora de Lima, no la del navegador: las ventas de la misma lista ya llegan en hora de Lima.
+      const horaLima = diaYHoraLima(m.creadoEn).hora;
       return {
         id: m.id,
-        minutos: d.getHours() * 60 + d.getMinutes(),
-        horaTexto: d.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }),
+        minutos: minutosDeHora(horaLima),
+        horaTexto: horaLima,
         icono: m.tipo,
         titulo: m.motivo,
         meta: m.registradoPorNombre ?? "—",
@@ -215,6 +217,9 @@ export function CajaAbiertaPanel({
             </div>
           </EncabezadoPagina>
         </div>
+
+        {/* ---------- Turno largo: una caja que pasó la noche sin cerrarse (auditoría de /caja, #3) ---------- */}
+        <AvisoTurnoLargo abiertaEn={caja.abiertaEn} esLider={personaRol === "lider"} />
 
         {/* ---------- Meta del día (solo si la ubicación tiene una configurada) ---------- */}
         {metaVentaDiaria !== null && metaPct !== null && (
@@ -330,7 +335,7 @@ export function CajaAbiertaPanel({
         </div>
       </div>
 
-      {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} onClose={() => setModal(null)} />}
+      {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} esLider={personaRol === "lider"} onClose={() => setModal(null)} />}
       {modal === "cerrar" && <CerrarCajaModalV2 cajaId={caja.id} cola={cola} onClose={() => setModal(null)} />}
       {modal === "todos" && (
         <MovimientosCajaModal
@@ -383,6 +388,21 @@ function useAhora(cadaMs: number): Date | null {
     return () => clearInterval(id);
   }, [cadaMs]);
   return ahora;
+}
+
+/** Franja que avisa de una caja abierta de más de ~18 h: casi seguro se quedó sin cerrar y el arqueo de cada día
+ *  se está perdiendo. A quien no cierra le dice a quién avisar. */
+function AvisoTurnoLargo({ abiertaEn, esLider }: { abiertaEn: string; esLider: boolean }) {
+  const ahora = useAhora(60_000);
+  if (!ahora) return null;
+  const minutos = Math.floor((ahora.getTime() - new Date(abiertaEn).getTime()) / 60_000);
+  if (!turnoLargo(minutos)) return null;
+  return (
+    <div role="status" className="card-cayla border-l-2 border-l-rojo px-5 py-3 text-sm text-tinta">
+      Esta caja lleva <b className="font-medium">{formatoDuracion(minutos)}</b> abierta.{" "}
+      {esLider ? "Ciérrala para que el arqueo quede día por día." : "Avisa a un líder de equipo para que la cierre."}
+    </div>
+  );
 }
 
 /** Reloj del turno (Atelier): la hora que corre y, debajo, el turno como un hilo que se va cosiendo desde la

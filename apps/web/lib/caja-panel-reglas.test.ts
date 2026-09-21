@@ -4,12 +4,16 @@ import {
   duracionAbierta,
   egresosElevados,
   escalaTurno,
+  esMotivoDeAjuste,
   formatoDuracion,
   metodosDe,
+  motivosDeMovimiento,
+  referenciaObligatoria,
   rangoHorasCaja,
   ritmoDelDia,
   senalCaja,
   tendenciaCierres7Dias,
+  turnoLargo,
   ventasPorHora,
 } from "./caja-panel-reglas";
 
@@ -195,5 +199,38 @@ describe("escalaTurno", () => {
   it("una apertura en el futuro o un dato roto no dan negativos ni NaN", () => {
     expect(escalaTurno(-5)).toEqual({ horas: 8, fraccion: 0 });
     expect(escalaTurno(Number.NaN)).toEqual({ horas: 8, fraccion: 0 });
+  });
+});
+
+describe("turnoLargo", () => {
+  it("una jornada corriente no avisa; pasadas 18 h sí", () => {
+    expect(turnoLargo(170)).toBe(false);
+    expect(turnoLargo(17 * 60 + 59)).toBe(false);
+    expect(turnoLargo(18 * 60)).toBe(true);
+    expect(turnoLargo(73 * 60)).toBe(true);
+  });
+  it("un dato roto no dispara el aviso", () => {
+    expect(turnoLargo(Number.NaN)).toBe(false);
+  });
+});
+
+describe("motivosDeMovimiento", () => {
+  it("el líder ve el ajuste; quien no lo es, no", () => {
+    expect(motivosDeMovimiento("egreso", true)).toContain("Ajuste de caja (faltante)");
+    expect(motivosDeMovimiento("egreso", false)).not.toContain("Ajuste de caja (faltante)");
+    expect(motivosDeMovimiento("ingreso", false)).toEqual(["Otro"]);
+  });
+  it("todo motivo de ajuste se reconoce como tal", () => {
+    for (const m of motivosDeMovimiento("egreso", true).concat(motivosDeMovimiento("ingreso", true))) {
+      expect(esMotivoDeAjuste(m)).toBe(m.startsWith("Ajuste"));
+    }
+  });
+});
+
+describe("referenciaObligatoria", () => {
+  it("pide rastro en depósito y «Otro», no en un retiro", () => {
+    expect(referenciaObligatoria("Depósito bancario")).toBe(true);
+    expect(referenciaObligatoria("Otro")).toBe(true);
+    expect(referenciaObligatoria("Retiro de efectivo")).toBe(false);
   });
 });
