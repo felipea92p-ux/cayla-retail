@@ -86,6 +86,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
       <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_19rem] xl:items-start">
         <div className="min-w-0 space-y-7">
           <FiltrosHistorialVentas
+            hoy={hoyEnLima()}
             tiendas={esLider ? tiendas.map((t) => ({ id: t.id, nombre: t.nombre })) : undefined}
             vendedores={esLider ? vendedores : undefined}
             periodo={filtros.periodo}

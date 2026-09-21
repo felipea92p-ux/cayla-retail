@@ -8,7 +8,7 @@ import { ESTADO_ETIQUETA, ETIQUETA_TIPO, type EstadoComprobante } from "@/lib/co
 import { soles } from "@/lib/compras-reglas";
 import { etiquetaDia } from "@/lib/movimientos-reglas";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
-import { agruparPorDia, subtituloDePrendas, titulosDePrendas, type FilaHistorial, type PrendaDeVenta } from "@/lib/ventas-historial-reglas";
+import { agruparPorDia, subtituloDePrendas, textoPendiente, titulosDePrendas, type FilaHistorial, type PrendaDeVenta } from "@/lib/ventas-historial-reglas";
 
 // La lista de Ventas ▸ Historial (ADR-0147), con la misma línea que Cambios y Devoluciones (Atelier): un
 // hilo taupe baja por la izquierda, cada día es un nudo sobre él y sus ventas cuelgan a la derecha en una
@@ -86,7 +86,7 @@ export function HistorialVentasLista({
                 <div className="rounded-[20px] bg-papel ring-1 ring-tinta/[0.07]">
                   <ul className="p-1.5">
                     {dia.filas.map((v) => (
-                      <FilaVenta key={v.id} v={v} onAbrir={() => setAbierta(v)} />
+                      <FilaVenta key={v.id} v={v} hoyLima={hoyLima} onAbrir={() => setAbierta(v)} />
                     ))}
                   </ul>
                 </div>
@@ -103,7 +103,7 @@ export function HistorialVentasLista({
   );
 }
 
-function FilaVenta({ v, onAbrir }: { v: FilaHistorial; onAbrir: () => void }) {
+function FilaVenta({ v, hoyLima, onAbrir }: { v: FilaHistorial; hoyLima: string; onAbrir: () => void }) {
   const apagado = v.anulada ? "text-tinta/50" : "text-tinta";
   const subtitulo = subtituloDePrendas(v.piezas, v.unidades);
   const meta = [v.hora, nombreCortoSede(v.ubicacion), v.clienta ?? "Cliente varios", v.vendedor && `Vendido por ${v.vendedor}`].filter(Boolean).join(" · ");
@@ -138,7 +138,7 @@ function FilaVenta({ v, onAbrir }: { v: FilaHistorial; onAbrir: () => void }) {
               <span className={`text-xs font-medium ${apagado}`}>
                 {ETIQUETA_TIPO[v.comprobante.tipo]} {v.comprobante.numero}
               </span>
-              {!v.anulada && <Chip tono={TONO_COMPROBANTE[v.comprobante.estado]}>{ESTADO_ETIQUETA[v.comprobante.estado]}</Chip>}
+              {!v.anulada && <Chip tono={TONO_COMPROBANTE[v.comprobante.estado]}>{textoPendiente(v.comprobante, hoyLima) ?? ESTADO_ETIQUETA[v.comprobante.estado]}</Chip>}
             </>
           ) : (
             !v.anulada && <Chip tono="ambar">Sin comprobante</Chip>

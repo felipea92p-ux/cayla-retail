@@ -25,7 +25,7 @@ export const TAMANO_PAGINA = 20;
 export const TOPE_TOTALES = 1000;
 
 export type EstadoFiltro = "todas" | "completada" | "anulada";
-export type ComprobanteFiltro = "todos" | "con" | "sin";
+export type ComprobanteFiltro = "todos" | "con" | "sin" | "pendiente";
 
 /** Parámetros de la URL. `sede` y `vendedor` solo los honra un líder (una integrante ve su tienda: lo decide la RLS). */
 export type ParamsHistorial = {
@@ -49,7 +49,7 @@ export type FiltrosHistorial = {
   vendedorId?: string;
   estado: EstadoFiltro;
   pago?: MetodoPago;
-  /** «con» / «sin» boleta o factura. Una nota de crédito no cuenta como comprobante de la venta. */
+  /** «con» / «sin» boleta o factura, o «pendiente» (con boleta o factura que aún no se transmitió). Una nota de crédito no cuenta como comprobante de la venta. */
   comprobante: ComprobanteFiltro;
 };
 
@@ -77,7 +77,7 @@ export function filtrosDesdeParams(
     vendedorId: ctx.esLider && esUuid(p.vendedor) ? p.vendedor : undefined,
     estado: p.estado === "completada" || p.estado === "anulada" ? p.estado : "todas",
     pago: METODOS.find((m) => m === p.pago),
-    comprobante: p.comp === "con" || p.comp === "sin" ? p.comp : "todos",
+    comprobante: p.comp === "con" || p.comp === "sin" || p.comp === "pendiente" ? p.comp : "todos",
   };
 }
 
@@ -109,7 +109,7 @@ export type ItemCrudo = {
     color_codigo?: string | null;
     talla: { valor: string } | null;
     color: { nombre: string; hex?: string | null } | null;
-    producto: { referencia: string; producto_fotos?: { url: string; color_codigo: string | null }[] | null } | null;
+    producto: { referencia: string; descripcion?: string | null; producto_fotos?: { url: string; color_codigo: string | null }[] | null } | null;
   } | null;
 };
 
@@ -137,7 +137,13 @@ export function subtotalDeItem(i: Pick<ItemCrudo, "cantidad" | "precio_unitario"
 export const totalDeVenta = (items: ItemCrudo[]): number => redondear2(items.reduce((s, i) => s + subtotalDeItem(i), 0));
 export const unidadesDeVenta = (items: ItemCrudo[]): number => items.reduce((s, i) => s + i.cantidad, 0);
 
-export type PrendaDeVenta = { referencia: string; detalle: string; cantidad: number; fotoUrl: string | null; colorHex: string | null };
+export type PrendaDeVenta = { referencia: string; nombre: string; detalle: string; cantidad: number; fotoUrl: string | null; colorHex: string | null };
+
+/** El nombre con que se reconoce una prenda: su descripción («Casaca Emilia») y, si el producto aún no la tiene, su
+ *  referencia («CHO-001»). Hoy casi la mitad de lo vendido no tiene descripción: la referencia es el respaldo. */
+export function nombreDeProducto(p: { referencia?: string | null; descripcion?: string | null } | null | undefined): string {
+  return p?.descripcion?.trim() || p?.referencia?.trim() || "Prenda";
+}
 
 /** Cada línea de la venta con lo que hace falta para dibujarla: nombre, «talla · color», la foto del COLOR
  *  vendido (mismo criterio que el catálogo y Cambios: `producto_fotos.color_codigo`) y el tono de ese color,
@@ -147,6 +153,7 @@ export function piezasDeVenta(items: ItemCrudo[]): PrendaDeVenta[] {
     const v = i.variante;
     return {
       referencia: v?.producto?.referencia ?? "Prenda",
+      nombre: nombreDeProducto(v?.producto),
       detalle: [v?.talla?.valor, v?.color?.nombre].filter(Boolean).join(" · "),
       cantidad: i.cantidad,
       fotoUrl: v?.color_codigo ? (v.producto?.producto_fotos?.find((f) => f.color_codigo === v.color_codigo)?.url ?? null) : null,
@@ -158,7 +165,7 @@ export function piezasDeVenta(items: ItemCrudo[]): PrendaDeVenta[] {
 /** El título de una venta: solo los nombres —«Blusa Emma, Pantalón Carla y 1 más»—. La talla y el color van debajo. */
 export function titulosDePrendas(piezas: PrendaDeVenta[], max = 2): string {
   if (piezas.length === 0) return "—";
-  const nombres = piezas.map((p) => p.referencia);
+  const nombres = piezas.map((p) => p.nombre);
   return nombres.length <= max ? nombres.join(", ") : `${nombres.slice(0, max).join(", ")} y ${nombres.length - max} más`;
 }
 
@@ -171,7 +178,7 @@ export function subtituloDePrendas(piezas: PrendaDeVenta[], unidades: number): s
 /** «Blusa Emma · M · Negro ×2, Pantalón Carla · 30 · Azul y 1 más» — lo justo para reconocer la venta en una fila. */
 export function textoPrendas(items: ItemCrudo[], max = 2): string {
   const partes = items.map((i) => {
-    const nombre = i.variante?.producto?.referencia ?? "Prenda";
+    const nombre = nombreDeProducto(i.variante?.producto);
     const detalle = [i.variante?.talla?.valor, i.variante?.color?.nombre].filter(Boolean).join(" · ");
     return `${nombre}${detalle ? ` · ${detalle}` : ""}${i.cantidad > 1 ? ` ×${i.cantidad}` : ""}`;
   });
@@ -183,7 +190,24 @@ export function textoMetodos(pagos: { metodo: string }[]): string {
   return [...new Set(pagos.map((p) => p.metodo))].map((m) => NOMBRE_METODO[m as MetodoPago] ?? m).join(" + ");
 }
 
-export type ComprobanteVenta = { tipo: TipoComprobante; numero: string; estado: EstadoComprobante };
+export type ComprobanteVenta = { tipo: TipoComprobante; numero: string; estado: EstadoComprobante; creadoEn: string };
+
+/** Cuántos días pasaron entre dos días `aaaa-mm-dd` (0 si es el mismo día o si el segundo es anterior). */
+export function diasEntre(desde: string, hasta: string): number {
+  const ms = (d: string) => {
+    const [a, m, dia] = d.split("-").map(Number);
+    return Date.UTC(a, m - 1, dia);
+  };
+  return Math.max(0, Math.round((ms(hasta) - ms(desde)) / 86_400_000));
+}
+
+/** «Pendiente hace 7 días»: un comprobante emitido que sigue sin transmitirse se distingue del recién emitido.
+ *  Del mismo día queda el rótulo de siempre; solo `pendiente` lleva antigüedad, no `enviado`. */
+export function textoPendiente(c: Pick<ComprobanteVenta, "estado" | "creadoEn">, hoyLima: string): string | null {
+  if (c.estado !== "pendiente") return null;
+  const dias = diasEntre(diaDeLima(c.creadoEn), hoyLima);
+  return dias >= 1 ? `Pendiente hace ${dias} ${dias === 1 ? "día" : "días"}` : null;
+}
 
 const ESTADOS_MUERTOS = ["anulado", "rechazado", "no_emitido"];
 
@@ -192,7 +216,7 @@ const ESTADOS_MUERTOS = ["anulado", "rechazado", "no_emitido"];
 export function elegirComprobante(cs: VentaCruda["comprobantes"]): ComprobanteVenta | null {
   const propios = cs.filter((c) => c.tipo === "boleta" || c.tipo === "factura").sort((a, b) => b.created_at.localeCompare(a.created_at));
   const c = propios.find((x) => !ESTADOS_MUERTOS.includes(x.estado)) ?? propios[0];
-  return c ? { tipo: c.tipo as TipoComprobante, numero: textoNumeroRecibo(c), estado: c.estado as EstadoComprobante } : null;
+  return c ? { tipo: c.tipo as TipoComprobante, numero: textoNumeroRecibo(c), estado: c.estado as EstadoComprobante, creadoEn: c.created_at } : null;
 }
 
 export type FilaHistorial = {

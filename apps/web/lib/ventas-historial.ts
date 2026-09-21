@@ -41,7 +41,7 @@ const SELECT_LISTA = `id, created_at, estado, nota, usuario_id,
   cliente:clientes ( nombre ),
   venta_items ( cantidad, precio_unitario, descuento_unitario, subtotal,
     variante:variantes ( color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex ),
-      producto:productos ( referencia, producto_fotos ( url, color_codigo ) ) ) ),
+      producto:productos ( referencia, descripcion, producto_fotos ( url, color_codigo ) ) ) ),
   venta_pagos ( metodo, monto ),
   comprobantes ( tipo, serie, numero, estado, created_at )`;
 
@@ -61,7 +61,7 @@ const SELECT_TOTALES = `id, created_at, estado,
 function consulta(supabase: Supabase, select: string, f: FiltrosHistorial) {
   const extras = [
     f.pago ? "pago_filtro:venta_pagos!inner ( metodo )" : null,
-    f.comprobante === "con" ? "comp_filtro:comprobantes!inner ( tipo )" : null,
+    f.comprobante === "con" || f.comprobante === "pendiente" ? "comp_filtro:comprobantes!inner ( tipo, estado )" : null,
     f.comprobante === "sin" ? "comp_filtro:comprobantes!left ( tipo )" : null,
   ].filter((e): e is string => e !== null);
 
@@ -76,6 +76,8 @@ function consulta(supabase: Supabase, select: string, f: FiltrosHistorial) {
   // Una nota de crédito corrige un comprobante, no ampara la venta: solo boleta y factura cuentan.
   if (f.comprobante !== "todos") q = q.in("comp_filtro.tipo", ["boleta", "factura"]);
   if (f.comprobante === "sin") q = q.is("comp_filtro", null);
+  // «Pendiente»: la boleta o factura existe pero todavía no se transmitió (`estado = pendiente`).
+  if (f.comprobante === "pendiente") q = q.eq("comp_filtro.estado", "pendiente");
   return q;
 }
 

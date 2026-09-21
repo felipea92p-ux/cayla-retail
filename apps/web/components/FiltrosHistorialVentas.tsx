@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CircleCheck, FileText, Store, UserRound, Wallet } from "lucide-react";
 import { BotonFiltros, DesplegablePildora, ItemDesplegable, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { CampoFecha } from "@/components/ui/CampoFecha";
-import { DIAS_POR_DEFECTO, PERIODOS_RAPIDOS, type PeriodoMovimientos } from "@/lib/movimientos-reglas";
+import { DIAS_POR_DEFECTO, PERIODOS_RAPIDOS, restarDias, type PeriodoMovimientos } from "@/lib/movimientos-reglas";
 import { NOMBRE_METODO } from "@/lib/recibo-reglas";
 import type { ComprobanteFiltro, EstadoFiltro } from "@/lib/ventas-historial-reglas";
 
@@ -34,6 +34,7 @@ type Opcion = { id: string; nombre: string };
 type Chip = { texto: string; quitar: Record<string, string> };
 
 export function FiltrosHistorialVentas({
+  hoy,
   tiendas,
   vendedores,
   periodo,
@@ -45,6 +46,8 @@ export function FiltrosHistorialVentas({
   sede,
   vendedor,
 }: {
+  /** El día de hoy en Lima (`aaaa-mm-dd`), para los atajos «Hoy» y «Ayer». */
+  hoy: string;
   /** Solo para un líder: las tiendas entre las que puede elegir. Sin esta prop no hay selector. */
   tiendas?: Opcion[];
   /** Solo para un líder: quiénes registraron ventas. */
@@ -68,6 +71,9 @@ export function FiltrosHistorialVentas({
   // «Personalizado» se abre con un toque aunque todavía no haya fechas en la URL.
   const [personalizadoAbierto, setPersonalizadoAbierto] = useState(false);
   const mostrarFechas = periodo === "personalizado" || periodo === "todo" || personalizadoAbierto;
+  const ayer = restarDias(hoy, 1);
+  // Un atajo de día es el rango personalizado de ese solo día: se marca apretado si la URL lo describe exacto.
+  const esDia = (dia: string) => periodo === "personalizado" && desde === dia && hasta === dia;
 
   function aplicar(cambios: Record<string, string>) {
     const p = new URLSearchParams(params.toString());
@@ -86,7 +92,7 @@ export function FiltrosHistorialVentas({
       vendedor && { texto: vendedores?.find((v) => v.id === vendedor)?.nombre ?? "Vendedor", quitar: { vendedor: "" } },
       pago && { texto: (NOMBRE_METODO as Record<string, string>)[pago] ?? pago, quitar: { pago: "" } },
       estado !== "todas" && { texto: estado === "anulada" ? "Anuladas" : "Completadas", quitar: { estado: "" } },
-      comprobante !== "todos" && { texto: comprobante === "con" ? "Con boleta o factura" : "Sin comprobante", quitar: { comp: "" } },
+      comprobante !== "todos" && { texto: comprobante === "con" ? "Con boleta o factura" : comprobante === "pendiente" ? "Pendientes de comprobante" : "Sin comprobante", quitar: { comp: "" } },
     ] as (Chip | false | "")[]
   ).filter((c): c is Chip => !!c);
 
@@ -108,6 +114,28 @@ export function FiltrosHistorialVentas({
           ))}
           <Pastilla activa={mostrarFechas} onClick={() => setPersonalizadoAbierto(true)}>
             Personalizado
+          </Pastilla>
+          <span aria-hidden className="mx-1 h-4 w-px bg-tinta/15" />
+          <Pastilla
+            activa={esDia(hoy)}
+            onClick={() => {
+              setPersonalizadoAbierto(false);
+              aplicar({ rango: "", desde: hoy, hasta: hoy });
+            }}
+          >
+            Hoy
+          </Pastilla>
+          <Pastilla
+            activa={esDia(ayer)}
+            onClick={() => {
+              setPersonalizadoAbierto(false);
+              aplicar({ rango: "", desde: ayer, hasta: ayer });
+            }}
+          >
+            Ayer
+          </Pastilla>
+          <Pastilla activa={comprobante === "pendiente"} onClick={() => aplicar({ comp: comprobante === "pendiente" ? "" : "pendiente" })}>
+            Pendientes de comprobante
           </Pastilla>
         </div>
         {/* `BotonFiltros` trae su `mt-1.5` para alinearse con un campo con etiqueta; acá no hay etiqueta. */}
@@ -180,6 +208,7 @@ export function FiltrosHistorialVentas({
             <ItemDesplegable value={TODOS}>Con o sin comprobante</ItemDesplegable>
             <ItemDesplegable value="con">Con boleta o factura</ItemDesplegable>
             <ItemDesplegable value="sin">Sin comprobante</ItemDesplegable>
+            <ItemDesplegable value="pendiente">Pendientes de enviar</ItemDesplegable>
           </DesplegablePildora>
         </PanelPildoras>
       )}
