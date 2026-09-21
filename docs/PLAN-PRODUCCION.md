@@ -209,8 +209,16 @@ Ya **no depende de ADR-0139** ni toca `compras`, `compra_items`, `registrar_comp
   «Deuda total de CAYLA» con la barra Compras/Producción y el IGV del mes. **También:** el formulario de comprobantes al contado ahora admite varios medios (`MediosDePago`,
   reusable). **No hace:** pagar varios comprobantes de un golpe (el «pagar juntos» de ADR-0132) ni el registro de compras de SUNAT. Prueba `pnpm pruebas:por-pagar-produccion`
   (15 casos, en CI) + 12 de reglas. Sin ver con clics.
-- **F4d · Recibir insumos.** `recibir_comprobante_produccion` abre **un lote por línea** (proveedor, documento, costo sin IGV, `origen = 'compra'`),
-  idempotente; faltantes con su motivo. Quien trabaja en el Taller recibe **sin ver montos**.
+- **F4d · Recibir insumos — construida en local 2026-09-21; migración `20260921140000` SIN pegar en producción.**
+  Tablas `comprobantes_produccion_recepciones` (una entrega física; token de idempotencia) y `comprobantes_produccion_cierres` (lo que NO llegará, con motivo: faltante | devolución | otro),
+  ambas sin importes, sin escritura directa e inmutables; `insumo_lotes.comprobante_item_id` y `.recepcion_id` (el vínculo lote ↔ línea). `recibir_comprobante_produccion(comprobante,
+  ubicación, líneas, cierres, nota, token)`: **un lote por línea recibida** (proveedor, documento «serie-número», **costo unitario SIN IGV de la línea**, `origen='compra'`) + su movimiento
+  de compra en el ledger; lo llama **quien opera el Taller (líder o colaborador del Taller)**; lo recibido nunca supera lo facturado − recibido − cerrado; solo líneas con insumo (un flete no abre
+  lote); una línea no aparece dos veces; código de lote repetido rechazado (sin código: el documento, y «/2», «/3»…); idempotente por token; bloquea el comprobante. `fn_lineas_comprobantes_produccion`:
+  facturado / recibido / cerrado / pendiente **sin ningún importe** (lo que ve quien recibe). `anular_comprobante_produccion` ahora también se niega con mercadería recibida o líneas cerradas.
+  Pantalla `/produccion/recibir` (Taller + líder; menú «Recibir» entre Comprobantes y Por pagar): cifras, comprobantes con lo pendiente, modal por entrega (llegó / no llegará + motivo / código de lote /
+  nota). El detalle del comprobante (líder) muestra lo recibido por línea. Prueba `pnpm pruebas:recibir-comprobante-produccion` (24 casos, en CI) + 11 de reglas. Sin ver con clics.
+  **Pendiente para F4e:** `insumo_lotes` y `movimientos_insumo` aún dejan leer el costo por la API directa.
 - **F4e · Candado del dinero (D-G).** Las tablas nuevas nacen solo-líder; `insumo_lotes`, `movimientos_insumo` y `producciones.costo_*` pasan al mismo
   candado, con funciones **operativas** sin monto para el Taller; `v_insumo_saldos` con `security_invoker`.
 - **Método:** migraciones idempotentes; prueba `scripts/pruebas/produccion_abastecimiento.mjs` + paso en `ci.yml`; timestamps **≥ `20260919210000`**;

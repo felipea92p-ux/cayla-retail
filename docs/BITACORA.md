@@ -8526,3 +8526,8 @@ Los dos selectores de sede —`UbicacionSwitcher` (cabecera, global, cookie) y `
 Al fusionar #218 quedaron en main dos migraciones con la versión `20260921110000` (`por_pagar_produccion`, ya pegada en producción, y `candado_de_lider_caja_y_ajuste`, aún NO pegada;
 verificado contra la base: `cerrar_caja` y `registrar_movimiento` no tienen el candado). Regla del repo: se renombra la que aún no corrió en producción. Renombrada a `20260921120000`
 con sus referencias (ADR-0143, prueba `candado_lider_caja_y_ajuste.mjs`, BACKLOG). El contenido no cambió. El CI de «Versiones de migración» estaba rojo en todos los PR por esto.
+
+## 2026-09-21 (Producción F4d: recibir insumos contra el comprobante — ADR-0133)
+Felipe fusionó el menú sin Compras en el Taller. Renumeré el candado de caja (#218) a `20260921120000` porque chocaba con Por pagar, que ya estaba en producción. F4d construida en local:
+`recibir_comprobante_produccion` abre un lote por línea con el costo de la línea, lo llama quien opera el Taller SIN ver montos, lo que no llegará se cierra con motivo, idempotente; la anulación
+se niega con mercadería recibida. Pantalla `/produccion/recibir`. Migración `20260921140000` sin pegar. `pruebas:recibir-comprobante-produccion` 24/24.

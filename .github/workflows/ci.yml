@@ -195,6 +195,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:por-pagar-produccion
 
+      # Recibir insumos contra un comprobante de Producción (ADR-0133, F4d): un lote por línea con el costo de la línea, nunca más de lo
+      # facturado, lo que no llegará se cierra con motivo, idempotente por token, lo recibe quien opera el Taller SIN ver montos, y con
+      # mercadería recibida el comprobante no se puede anular. Cada caso termina en ROLLBACK.
+      - name: pruebas:recibir-comprobante-produccion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:recibir-comprobante-produccion
+
       # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
       # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las
       # tarjetas de arriba cuentan lo mismo. Cada caso termina en ROLLBACK.
