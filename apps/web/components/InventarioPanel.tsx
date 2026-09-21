@@ -476,13 +476,16 @@ export function InventarioPanel({
                         Apartar
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => setAjustando(f)}
-                      className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline"
-                    >
-                      Ajustar
-                    </button>
+                    {/* D-13: ajustar stock fuera de una venta es del líder (candado real en `registrar_movimiento`, 20260921110000). */}
+                    {esLider && (
+                      <button
+                        type="button"
+                        onClick={() => setAjustando(f)}
+                        className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline"
+                      >
+                        Ajustar
+                      </button>
+                    )}
                   </span>
                 </span>
               </div>

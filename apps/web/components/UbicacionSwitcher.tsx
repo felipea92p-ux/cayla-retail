@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cambiarUbicacionActiva } from "@/app/actions/ubicacion";
+import { AvisoCambioDeSede } from "@/components/AvisoCambioDeSede";
 import { Desplegable } from "@/components/ui/campos";
 
 // Selector de ubicación del líder (Fase 2 — pendiente desde
@@ -22,21 +23,27 @@ export function UbicacionSwitcher({
   const [pendiente, startTransition] = useTransition();
   const [valor, setValor] = useState(ubicacionActualId);
 
+  const nombre = (id: string) => ubicaciones.find((u) => u.id === id)?.nombre ?? "";
+
   return (
-    <Desplegable
-      forma="pastilla"
-      alineacion="derecha"
-      etiquetaAccesible="Cambiar de ubicación"
-      valor={valor}
-      opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))}
-      trabajando={pendiente}
-      onValor={(ubicacionId) => {
-        setValor(ubicacionId);
-        startTransition(async () => {
-          await cambiarUbicacionActiva(ubicacionId);
-          router.refresh();
-        });
-      }}
-    />
+    <>
+      <Desplegable
+        forma="pastilla"
+        alineacion="derecha"
+        etiquetaAccesible="Cambiar de ubicación"
+        valor={valor}
+        opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))}
+        trabajando={pendiente}
+        onValor={(ubicacionId) => {
+          setValor(ubicacionId);
+          startTransition(async () => {
+            await cambiarUbicacionActiva(ubicacionId);
+            router.refresh();
+          });
+        }}
+      />
+      {/* Cambiar de ubicación aquí repinta TODA la app: el aviso dura lo que tarda esa recarga. */}
+      <AvisoCambioDeSede activo={pendiente} de={nombre(ubicacionActualId)} a={nombre(valor)} />
+    </>
   );
 }
