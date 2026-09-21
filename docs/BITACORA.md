@@ -8611,3 +8611,8 @@ Sin resolver: verlo con clics reales y con una venta anulada de verdad; búsqued
 ## 2026-09-22 (Producción a todo el ancho)
 Felipe vio el Resumen de Producción angosto, con ~300 px de margen vacío a cada lado: `AppShell` centraba todo lo que no está en `SIN_TOPE_DE_ANCHO` en `max-w-5xl` (64 rem) y `/produccion` no estaba en la lista. Se agregó, como ya estaban Compras,
 Inventario, Productos, Recibir, Caja, Cambios y Devoluciones. Solo cambia el ancho; sin datos ni migraciones.
+
+## 2026-09-21 (Historial de ventas: publicado en main — PR #240, ADR-0147)
+Felipe pidió revisar `main`, hacer push y fusionar: el PR #240 entró a `main` (merge `4d7452cd`) con el CI en verde y el despliegue de producción en «success». Al traer `main` por última vez, Colaboradores (#237) había tomado el ADR 0145 y Avisos (#239) el 0146, así que el del Historial quedó en **0147** (solo se cambiaron las referencias propias, antes de fusionar). Sigue sin migración: no hay nada que pegar en producción.
+Felipe se lleva: (1) las «23 ventas · S/ 2,936.70» con que se verificó la pantalla son de la base LOCAL (el servidor de prueba apunta a `127.0.0.1`), no de producción, que tenía 16: «sesión real» no quiere decir «datos reales», y el ADR-0147 y el BACKLOG lo dicen desde este cambio; (2) mirar el host de `NEXT_PUBLIC_SUPABASE_URL` antes de llamar «reales» a unas cifras es un chequeo de diez segundos que evita afirmar de más en un ADR o en un PR.
+Sin resolver: ver la pantalla con datos de producción y con clics reales; una venta anulada de verdad; búsqueda por boleta/DNI/clienta/prenda; enlaces «Ver historial →» desde las listas «de hoy».
