@@ -44,6 +44,10 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
       avisar.error("Escribe el motivo.", { enfocar: "mov-motivo-libre" });
       return;
     }
+    if (pideReferencia && !nota.trim()) {
+      avisar.error("Anota el N.º de operación o una referencia.", { enfocar: "mov-nota" });
+      return;
+    }
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.rpc("registrar_movimiento_caja", {
@@ -94,16 +98,24 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
           <label className={campoEtiqueta} htmlFor="mov-monto">
             Monto
           </label>
-          <input
-            id="mov-monto"
-            type="number"
-            min={0.01}
-            step="0.01"
-            required
-            value={monto}
-            onChange={(e) => setMonto(e.target.value)}
-            className={campoTexto}
-          />
+          <div className="relative">
+            <span aria-hidden className="pointer-events-none absolute left-1 top-1/2 -translate-y-1/2 text-sm text-tinta/55">
+              S/
+            </span>
+            <input
+              id="mov-monto"
+              type="number"
+              inputMode="decimal"
+              min={0.01}
+              step="0.01"
+              required
+              autoFocus
+              placeholder="0.00"
+              value={monto}
+              onChange={(e) => setMonto(e.target.value)}
+              className={`${campoTexto} pl-7 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+            />
+          </div>
         </div>
 
         <div className="space-y-1.5">
@@ -114,8 +126,12 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
             id="mov-motivo-rapido"
             value={motivoRapido}
             onChange={(e) => setMotivoRapido(e.target.value)}
+            disabled={!tipo}
             className={campoSelect}
           >
+            <option value="" disabled>
+              {tipo ? "Elige un motivo" : "Primero elige el tipo"}
+            </option>
             {motivosRapidos.map((m) => (
               <option key={m} value={m}>
                 {m}
@@ -151,6 +167,7 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
           <input
             id="mov-nota"
             placeholder="N° de operación, voucher, u otra nota"
+            required={pideReferencia}
             value={nota}
             onChange={(e) => setNota(e.target.value)}
             className={campoTexto}
