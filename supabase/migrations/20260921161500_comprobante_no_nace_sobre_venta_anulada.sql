@@ -42,6 +42,9 @@
 -- REVERSIBLE: `drop trigger comprobantes_venta_no_anulada on retail.comprobantes;` y
 -- `drop function retail.fn_comprobante_de_venta_no_anulada();`.
 --
+-- HUELLA del cuerpo de la función (md5 de `pg_get_functiondef` sin espacios en blanco):
+-- f6eff0afceb9afcc26db6ada74be58ce. Es la que debe dar en producción tras pegarla.
+--
 -- PRODUCCIÓN. Se pega tal cual en el SQL Editor: ya trae el `set search_path` de abajo. Objetos nuevos
 -- (una función y un trigger): no hay firma que pueda quedar duplicada.
 -- ============================================================================

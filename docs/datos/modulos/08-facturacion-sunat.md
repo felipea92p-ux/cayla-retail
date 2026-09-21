@@ -561,8 +561,8 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
     se niega a transmitir el de una venta anulada (`lib/transmision-reglas.ts`). Lo que
     queda, decidido por Felipe el 2026-09-21 (opción a: dejarlo): un comprobante
     `rechazado` de una venta anulada no se toca —ya llegó a SUNAT— y queda en «Rechazados»
-    sin salida; si aparece uno, se resuelve a mano con el contador. Y `20260921161500` (probada
-    en local; falta pegarla en producción) pone un trigger en `comprobantes` que impide crear
+    sin salida; si aparece uno, se resuelve a mano con el contador. Y `20260921161500` (pegada
+    en producción el 2026-09-21) pone un trigger en `comprobantes` que impide crear
     uno nuevo sobre una venta anulada, por cualquier camino.
 
 16. **El cliente de un comprobante no está ligado a la tabla `clientes` — encontrado
