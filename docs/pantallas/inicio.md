@@ -140,7 +140,7 @@ Relevancia = (2·4 + 2 + 9 + 3) / 5 = **4.4** → Comodidad. Con #5–#6 sube a 
 - **Cómo lo verificas tú:** Inicio queda con Vender, Caja, Buscar y Recibir; nadie pierde una ruta (el menú las conserva).
 - **Esfuerzo / dependencias:** S · no antes de #4 ni de la decisión de #12.
 
-### #11 · [Conectar] Mover las lecturas a `lib/inicio.ts` con reglas probadas
+### #11 · [Conectar] Mover las lecturas a `lib/inicio.ts` con reglas probadas — ✅ HECHA 2026-09-21 (`lib/inicio.ts` + `lib/inicio-reglas.ts`, 7 pruebas; el comentario vencido de `page.tsx` ya no está; sin commitear)
 - **Dónde:** `page.tsx:20-37` → `apps/web/lib/inicio.ts` (+ `inicio.test.ts`); convención del repo (`lib/` para datos y reglas).
 - **Por qué en este puesto:** hoy la página consulta tablas directo y lleva un comentario vencido (l.8-15). Sin esto, #1, #2 y #5 quedan sin pruebas.
 - **Cómo lo verificas tú:** `pnpm test` incluye pruebas de los conteos (centinela excluida, apartado restado); el comentario obsoleto ya no está.
