@@ -4,6 +4,7 @@
 // ningún fetcher server-only pueda arrastrar al navegador.
 
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
+import { nombresCortos } from "./nombre-integrante";
 
 /** Los momentos del ticket (ADR-0044). En «armar» solo se ven las líneas y el total;
  *  «descuento» es el apartado para decidir un descuento (vuelve a «armar»); «espera» es
@@ -158,9 +159,12 @@ export function motivoBloqueoCobro(v: {
   total: number;
   pagos: readonly PagoAplicado[];
   facturaSinRuc: boolean;
+  /** Hay 2 o más marcadas en la sede y todavía no se eligió quién atendió (`vendedoraPendiente`). Ausente = no aplica. */
+  vendedoraFalta?: boolean;
 }): string | null {
   if (!v.cajaAbierta) return "Abre la caja para vender.";
   if (v.prendas === 0) return "Agrega una prenda para cobrar.";
+  if (v.vendedoraFalta) return "Elige quién atendió a la clienta.";
   if (v.momento !== "cobrar") return null;
   if (v.pagos.length === 0) return "Elige cómo pagó la clienta.";
   const restante = restanteDePagos(v.total, v.pagos);
@@ -340,3 +344,37 @@ export function necesitaArgumentoEscrito(esLider: boolean, porcentaje: number): 
   return esLider && porcentaje > 20;
 }
 
+// ---- «¿Quién atendió a la clienta?» (spec 2026-09-21-vendedora-en-el-ticket) -----------------
+// En una tienda con UN equipo de caja y varias colaboradoras, la sesión no dice quién vendió. Un líder
+// marca quiénes atienden en el mostrador (`colaboradores.atiende_en_caja`) y la caja lo pregunta con una
+// fila de chips. Estas reglas viven acá, sin React, para probarlas sin navegador.
+
+/** Una colaboradora que atiende en caja en la sede (una fila de `fn_vendedoras_de_sede`). */
+export type Vendedora = { personaId: string; nombre: string };
+
+/** Una colaboradora de la sede con su interruptor «atiende en caja» (fila de `fn_candidatas_vendedora_de_sede`). */
+export type CandidataVendedora = { personaId: string; nombre: string; atiende: boolean };
+
+/**
+ * A quién se le atribuye la venta. Con una sola marcada es ella, sin tocar nada; con varias, la que se
+ * eligió (si sigue en la fila: un líder pudo desmarcarla con el ticket armado); con ninguna marcada, nadie —
+ * la venta sale a nombre de la sesión, como antes de existir la fila. Nunca hay preselección con varias:
+ * el silencio no debe atribuir la venta a nadie.
+ */
+export function vendedoraDeLaVenta(vendedoras: readonly Vendedora[], elegidaId: string | null): string | null {
+  if (vendedoras.length === 0) return null;
+  if (vendedoras.length === 1) return vendedoras[0].personaId;
+  return vendedoras.some((v) => v.personaId === elegidaId) ? elegidaId : null;
+}
+
+/** Falta elegir: solo cuando hay dos o más marcadas y todavía no se tocó ninguna. */
+export function vendedoraPendiente(vendedoras: readonly Vendedora[], elegidaId: string | null): boolean {
+  return vendedoras.length >= 2 && vendedoraDeLaVenta(vendedoras, elegidaId) === null;
+}
+
+/** El nombre que sale en el papel: el primer nombre, y la inicial del apellido solo si otra de la fila comparte
+ *  primer nombre (`nombresCortos`, la misma regla de «Ventas de hoy»). `null` si no hay a quién nombrar. */
+export function atendioCorto(vendedoras: readonly Vendedora[], id: string | null): string | null {
+  const v = vendedoras.find((x) => x.personaId === id);
+  return v ? (nombresCortos(vendedoras.map((x) => x.nombre)).get(v.nombre) ?? null) : null;
+}

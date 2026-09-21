@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   aplicarDescuento,
   aplicarDescuentoMonto,
+  atendioCorto,
   conCampanas,
   conCodigoDelCatalogo,
   descuentoResultante,
@@ -22,9 +23,12 @@ import {
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
   vueltoDe,
+  vendedoraDeLaVenta,
+  vendedoraPendiente,
   type CampanaLinea,
   type DetalleDescuento,
   type PagoAplicado,
+  type Vendedora,
 } from "./vender-reglas";
 
 // Un solo motivo alimenta tres cosas en el ticket de Vender: el `disabled` del botón
@@ -605,5 +609,77 @@ describe("pasoDelCobro — cuál es el siguiente paso que la pantalla resalta", 
   it("con pago mixto el recibido se pide solo si el efectivo cubre algo", () => {
     expect(pasoDelCobro([{ metodo: "plin", monto: 40 }, { metodo: "efectivo", monto: 40 }], 80)).toBe("recibido");
     expect(pasoDelCobro([{ metodo: "plin", monto: 80 }, { metodo: "efectivo", monto: 0 }], 80)).toBe("comprobante");
+  });
+});
+
+// «¿Quién atendió a la clienta?» — la fila de chips del ticket. Con UN solo equipo de caja en la tienda, la
+// sesión no dice quién vendió; la fila lo pregunta, y estas reglas deciden a quién se atribuye la venta y
+// cuándo frenan el cobro. Con ninguna marcada en la sede NO se frena nada: si no, el día del despliegue
+// nadie podría cobrar hasta que un líder marque a las colaboradoras.
+
+const MARIA: Vendedora = { personaId: "p-maria", nombre: "María Pérez Soto" };
+const ROSA: Vendedora = { personaId: "p-rosa", nombre: "Rosa Díaz Luna" };
+const MARIA_L: Vendedora = { personaId: "p-maria-l", nombre: "María López Vera" };
+
+describe("quién atendió — a quién se le atribuye la venta", () => {
+  it("con ninguna marcada en la sede nadie se atribuye: sale a nombre de la sesión, como siempre", () => {
+    expect(vendedoraDeLaVenta([], null)).toBeNull();
+    expect(vendedoraPendiente([], null)).toBe(false);
+  });
+
+  it("con una sola marcada es ella, sin tocar nada", () => {
+    expect(vendedoraDeLaVenta([MARIA], null)).toBe("p-maria");
+    expect(vendedoraPendiente([MARIA], null)).toBe(false);
+  });
+
+  it("con varias y ninguna elegida falta elegir: el silencio no atribuye la venta a nadie", () => {
+    expect(vendedoraDeLaVenta([MARIA, ROSA], null)).toBeNull();
+    expect(vendedoraPendiente([MARIA, ROSA], null)).toBe(true);
+  });
+
+  it("con varias, la elegida es la que cuenta", () => {
+    expect(vendedoraDeLaVenta([MARIA, ROSA], "p-rosa")).toBe("p-rosa");
+    expect(vendedoraPendiente([MARIA, ROSA], "p-rosa")).toBe(false);
+  });
+
+  it("si la elegida ya no está en la fila (la desmarcaron con el ticket armado) vuelve a faltar elegir", () => {
+    expect(vendedoraDeLaVenta([MARIA, ROSA], "p-otra")).toBeNull();
+    expect(vendedoraPendiente([MARIA, ROSA], "p-otra")).toBe(true);
+  });
+});
+
+describe("atendioCorto — el nombre que sale en el papel", () => {
+  it("el primer nombre basta cuando no hay otra igual en la fila", () => {
+    expect(atendioCorto([MARIA, ROSA], "p-maria")).toBe("María");
+  });
+
+  it("dos «María» en la fila se distinguen con la inicial del apellido", () => {
+    expect(atendioCorto([MARIA, MARIA_L], "p-maria")).toBe("María P.");
+    expect(atendioCorto([MARIA, MARIA_L], "p-maria-l")).toBe("María L.");
+  });
+
+  it("sin elegida o con una que no está en la fila no se inventa nadie", () => {
+    expect(atendioCorto([MARIA, ROSA], null)).toBeNull();
+    expect(atendioCorto([MARIA, ROSA], "p-otra")).toBeNull();
+  });
+});
+
+describe("motivoBloqueoCobro — quién atendió", () => {
+  it("con varias marcadas y ninguna elegida frena ya al armar, con el mensaje exacto", () => {
+    expect(motivoBloqueoCobro({ ...listo, momento: "armar", pagos: [], vendedoraFalta: true })).toBe("Elige quién atendió a la clienta.");
+  });
+
+  it("se pide antes que el pago: primero quién atendió, después la plata", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: [], vendedoraFalta: true })).toBe("Elige quién atendió a la clienta.");
+  });
+
+  it("la caja cerrada y el ticket vacío mandan sobre ella", () => {
+    expect(motivoBloqueoCobro({ ...listo, cajaAbierta: false, vendedoraFalta: true })).toBe("Abre la caja para vender.");
+    expect(motivoBloqueoCobro({ ...listo, prendas: 0, vendedoraFalta: true })).toBe("Agrega una prenda para cobrar.");
+  });
+
+  it("con la vendedora elegida (o sin la regla) no bloquea", () => {
+    expect(motivoBloqueoCobro({ ...listo, vendedoraFalta: false })).toBeNull();
+    expect(motivoBloqueoCobro(listo)).toBeNull();
   });
 });
