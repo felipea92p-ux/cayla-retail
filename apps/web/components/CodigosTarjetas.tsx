@@ -15,7 +15,7 @@ export function CodigosTarjetas({ resumen }: { resumen: ResumenDeCodigos }) {
         etiqueta="Vigentes"
         tono="taupe"
         icono={<TicketCheck size={15} strokeWidth={1.75} />}
-        indice={0}
+        indice={2}
         valor={<CifraAnimada valor={resumen.vigentes} />}
         contexto={
           <>
@@ -29,7 +29,7 @@ export function CodigosTarjetas({ resumen }: { resumen: ResumenDeCodigos }) {
         etiqueta={`Por vencer (${DIAS_CODIGO_POR_VENCER} d)`}
         tono={resumen.porVencer > 0 ? "ambar" : "verde"}
         icono={<CalendarClock size={15} strokeWidth={1.75} />}
-        indice={1}
+        indice={3}
         colorearCifra
         valor={<CifraAnimada valor={resumen.porVencer} />}
         contexto={resumen.porVencer > 0 ? `Vencen en los próximos ${DIAS_CODIGO_POR_VENCER} días.` : "Ninguno vence esta semana."}
@@ -39,7 +39,7 @@ export function CodigosTarjetas({ resumen }: { resumen: ResumenDeCodigos }) {
         etiqueta="Vencidos"
         tono={resumen.vencidos > 0 ? "ambar" : "verde"}
         icono={<CalendarX size={15} strokeWidth={1.75} />}
-        indice={2}
+        indice={4}
         colorearCifra
         valor={<CifraAnimada valor={resumen.vencidos} />}
         contexto={resumen.vencidos > 0 ? "Su fecha ya pasó y siguen prendidos: apágalos para ordenar." : "Ninguno."}
@@ -49,7 +49,7 @@ export function CodigosTarjetas({ resumen }: { resumen: ResumenDeCodigos }) {
         etiqueta="Apagados"
         tono="taupe"
         icono={<PowerOff size={15} strokeWidth={1.75} />}
-        indice={3}
+        indice={5}
         valor={<CifraAnimada valor={resumen.apagados} />}
         contexto={resumen.apagados > 0 ? "Apagados a mano; un código usado nunca se borra." : "Ninguno apagado."}
       />

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useMemo, useState, type ReactNode } from "react";
+import { Suspense, useCallback, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import type { SerieComprobante } from "@/lib/comprobantes-reglas";
 import type { ConteosPestanas } from "@/lib/facturacion-reglas";
@@ -9,7 +9,7 @@ import { BusquedaFacturacionContext } from "@/lib/useFacturacionBusqueda";
 import { avisar } from "@/components/ui/Avisos";
 import { EmitirComprobanteModal } from "@/components/EmitirComprobanteModal";
 import { NuevaProformaModal } from "@/components/NuevaProformaModal";
-import { FacturacionCabecera } from "@/components/FacturacionCabecera";
+import { CajaDeBusqueda, FacturacionCabecera, type CifrasCabecera } from "@/components/FacturacionCabecera";
 import { FacturacionPestanas } from "@/components/FacturacionPestanas";
 
 type Tienda = { id: string; nombre: string };
@@ -30,12 +30,16 @@ type Tienda = { id: string; nombre: string };
 // un efecto que lo reponga.
 export function FacturacionShell({
   conteos,
+  cifras,
+  sede,
   series,
   tiendas,
   ubicacionActualId,
   children,
 }: {
   conteos: ConteosPestanas;
+  cifras: CifrasCabecera;
+  sede: string;
   series: SerieComprobante[] | null;
   tiendas: Tienda[] | null;
   ubicacionActualId: string;
@@ -71,13 +75,19 @@ export function FacturacionShell({
   return (
     <AccionesFacturacionContext.Provider value={acciones}>
       <BusquedaFacturacionContext.Provider value={buscar}>
-        <div className="tema-vidrio space-y-6">
-          <FacturacionCabecera />
-          {/* `useSearchParams` (en las pestañas) exige un <Suspense>. Como el layout es
-              dinámico nunca llega a mostrarse el respaldo; `null` basta. */}
-          <Suspense fallback={null}>
-            <FacturacionPestanas conteos={conteos} />
-          </Suspense>
+        {/* El mismo ritmo que Cambios, Devoluciones, Caja e Historial (`space-y-7`) y la misma entrada en
+            cascada: la cabecera y su resumen (0 y 1), la fila de las pestañas con la búsqueda (2) y, debajo, la
+            vista, que empieza en 2 y escalona sus tarjetas y paneles hacia abajo. */}
+        <div className="tema-vidrio space-y-7">
+          <FacturacionCabecera sede={sede} cifras={cifras} />
+          <div className="anim-sube flex flex-wrap items-center justify-between gap-x-4 gap-y-3" style={{ "--i": 2 } as CSSProperties}>
+            {/* `useSearchParams` (en las pestañas) exige un <Suspense>. Como el layout es
+                dinámico nunca llega a mostrarse el respaldo; `null` basta. */}
+            <Suspense fallback={null}>
+              <FacturacionPestanas conteos={conteos} />
+            </Suspense>
+            <CajaDeBusqueda />
+          </div>
           {children}
         </div>
       </BusquedaFacturacionContext.Provider>
