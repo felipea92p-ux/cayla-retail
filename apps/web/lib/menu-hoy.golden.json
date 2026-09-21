@@ -25,6 +25,7 @@
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
               { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
               { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
             ]
@@ -71,6 +72,7 @@
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
               { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
               { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
             ]
@@ -141,6 +143,7 @@
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
               { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
               { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" },
               { "etiqueta": "Facturación", "href": "/vender/facturacion", "icono": "facturacion" }
@@ -201,6 +204,7 @@
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
               { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
               { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" },
               { "etiqueta": "Facturación", "href": "/vender/facturacion", "icono": "facturacion" }
@@ -270,6 +274,7 @@
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
               { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
               { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
             ]
@@ -326,6 +331,7 @@
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
               { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
               { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
             ]
@@ -398,6 +404,7 @@
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
               { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
               { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" },
               { "etiqueta": "Facturación", "href": "/vender/facturacion", "icono": "facturacion" }
@@ -460,6 +467,7 @@
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
               { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
               { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" },
               { "etiqueta": "Facturación", "href": "/vender/facturacion", "icono": "facturacion" }
@@ -519,6 +527,7 @@
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
               { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
               { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
             ]
@@ -565,6 +574,7 @@
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
               { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
               { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
             ]
@@ -635,6 +645,7 @@
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
               { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
               { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" },
               { "etiqueta": "Facturación", "href": "/vender/facturacion", "icono": "facturacion" }
@@ -695,6 +706,7 @@
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
               { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
               { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" },
               { "etiqueta": "Facturación", "href": "/vender/facturacion", "icono": "facturacion" }

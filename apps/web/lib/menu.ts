@@ -58,7 +58,7 @@ export function permisosDe(rol: RolMenu): readonly Permiso[] {
 
 /** Claves de los íconos. Los trazos viven en `AppShell.tsx` (`IC`); acá solo se nombra cuál lleva cada nodo. */
 export type ClaveIcono =
-  | "inicio" | "vender" | "caja" | "productos" | "inventario" | "movimientos" | "traslados" | "conteo" | "resumen"
+  | "inicio" | "vender" | "caja" | "historial" | "productos" | "inventario" | "movimientos" | "traslados" | "conteo" | "resumen"
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "cambios" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito";
 
@@ -203,6 +203,8 @@ export const ARBOL: readonly Nodo[] = [
     hijos: [
       { id: "venta.puntoDeVenta", etiqueta: "Punto de Venta", estado: "viva", ruta: "/vender", icono: "vender", pajaro: "07 Colibrí" },
       { id: "venta.caja", etiqueta: "Caja", estado: "viva", ruta: "/caja", icono: "caja", pajaro: "07 Colibrí" },
+      // Historial de ventas (ADR-0147): el libro de todas las ventas; se lee tras cobrar y cuadrar y de ahí se pasa a corregir.
+      { id: "venta.historial", etiqueta: "Historial", estado: "viva", ruta: "/vender/historial", icono: "historial", pajaro: "07 Colibrí" },
       { id: "venta.cambios", etiqueta: "Cambios", estado: "viva", ruta: "/cambios", icono: "cambios", pajaro: "07 Colibrí" },
       { id: "venta.devoluciones", etiqueta: "Devoluciones", estado: "viva", ruta: "/devoluciones", icono: "devoluciones", pajaro: "07 Colibrí" },
       { id: "venta.facturacion", etiqueta: "Facturación", estado: "viva", ruta: "/vender/facturacion", icono: "facturacion", pajaro: "08 Cuervo", exige: "verDinero" },
