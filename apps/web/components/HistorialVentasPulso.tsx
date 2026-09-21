@@ -7,7 +7,7 @@ import { NOMBRE_METODO } from "@/lib/recibo-reglas";
 import { agruparEnSemanas, pulsoDeVentas } from "@/lib/ventas-historial-reglas";
 import type { TotalesHistorial } from "@/lib/ventas-historial";
 
-// El pulso del período (Ventas ▸ Historial, ADR-0144), en la columna lateral: lo importante son las ventas y esto las
+// El pulso del período (Ventas ▸ Historial, ADR-0145), en la columna lateral: lo importante son las ventas y esto las
 // acompaña, no las tapa. Cada día es un HILO vertical —la urdimbre del textil— y una curva de tendencia lo cruza —la
 // trama—; el mejor día lleva un nudo (el mismo de la línea de tiempo) y una línea punteada marca el promedio. Al pasar
 // el mouse por el dibujo, el día se enciende y su cifra aparece arriba. Debajo, los datos del período y cómo se pagó.

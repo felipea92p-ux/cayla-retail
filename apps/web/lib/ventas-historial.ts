@@ -25,7 +25,7 @@ import {
 // Las páginas (server) importan todo desde acá; los componentes cliente, SOLO `ventas-historial-reglas.ts`.
 export * from "@/lib/ventas-historial-reglas";
 
-// Historial de ventas (Ventas ▸ Historial, ADR-0144): solo LEE, con PostgREST sobre las tablas que
+// Historial de ventas (Ventas ▸ Historial, ADR-0145): solo LEE, con PostgREST sobre las tablas que
 // producción ya tiene idénticas a las locales (`ventas`, `venta_items`, `venta_pagos`,
 // `comprobantes`) — sin función nueva en la base, así que nada de esto espera una migración.
 // Quién ve qué lo decide la RLS (`fn_puede_operar_ubicacion`: el líder todas las tiendas, cada

@@ -10,7 +10,7 @@ import { etiquetaDia } from "@/lib/movimientos-reglas";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { agruparPorDia, subtituloDePrendas, titulosDePrendas, type FilaHistorial, type PrendaDeVenta } from "@/lib/ventas-historial-reglas";
 
-// La lista de Ventas ▸ Historial (ADR-0144), con la misma línea que Cambios y Devoluciones (Atelier): un
+// La lista de Ventas ▸ Historial (ADR-0145), con la misma línea que Cambios y Devoluciones (Atelier): un
 // hilo taupe baja por la izquierda, cada día es un nudo sobre él y sus ventas cuelgan a la derecha en una
 // hoja de papel. La unidad es la venta —no la prenda—: su título son los nombres de las prendas (serif, lo
 // más grande), y debajo van la talla y el color, y una sola línea chica con hora, tienda, quién compró y

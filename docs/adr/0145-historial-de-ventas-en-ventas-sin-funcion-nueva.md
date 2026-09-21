@@ -1,4 +1,4 @@
-# ADR-0144 — El historial de ventas vive en Ventas ▸ Historial y se lee sin función nueva en la base
+# ADR-0145 — El historial de ventas vive en Ventas ▸ Historial y se lee sin función nueva en la base
 
 **Fecha:** 2026-09-21
 **Estado:** Aceptado e **implementado en local** (rama `claude/sales-history-placement-5a443d`, sin publicar). Verificado con la base local real

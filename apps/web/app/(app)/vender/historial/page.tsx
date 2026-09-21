@@ -19,7 +19,7 @@ import { HistorialVentasLista } from "@/components/HistorialVentasLista";
 import { HistorialVentasPulso } from "@/components/HistorialVentasPulso";
 import { PaginacionCursor } from "@/components/Paginacion";
 
-// Historial de ventas (2026-09-21, ADR-0144): el libro de TODAS las ventas registradas, de cualquier
+// Historial de ventas (2026-09-21, ADR-0145): el libro de TODAS las ventas registradas, de cualquier
 // fecha y de todas las tiendas — la pantalla que `ventas-v2.ts` y el ADR-0052 dejaron diferida.
 // Vive en Ventas porque su unidad es la venta: Caja mira el turno, Facturación el comprobante,
 // Movimientos el stock, Cambios y Devoluciones eligen una prenda para actuar sobre ella.
