@@ -34,6 +34,9 @@ export default async function FacturacionLayout({ children }: { children: ReactN
   return (
     <FacturacionShell
       conteos={conteosDePestanas(porEnviar, proformas)}
+      sede={persona.ubicacionEtiqueta}
+      // Un `null` (la lectura falló) no dibuja la cifra en la cabecera: nunca un número inventado.
+      cifras={{ porEnviar: porEnviar?.porEnviar ?? null, proformasVigentes: proformas?.vigentes ?? null }}
       series={series}
       tiendas={tiendas ? tiendas.map(({ id, nombre }) => ({ id, nombre })) : null}
       ubicacionActualId={tiendas ? ubicacionActualDe(tiendas, persona.ubicacionId) : ""}

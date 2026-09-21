@@ -43,7 +43,7 @@ export function CodigosDescuentoPanel({ codigos, ubicaciones, hoy }: { codigos: 
 
   return (
     <div className="space-y-6">
-      <div className="card-cayla anim-sube @container overflow-hidden" style={{ "--i": 4 } as CSSProperties}>
+      <div className="card-cayla anim-sube @container overflow-hidden" style={{ "--i": 6 } as CSSProperties}>
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 px-5 pt-[18px] pb-3.5">
           <div className="min-w-0 flex-1 basis-80">
             <p className="label-cayla text-[11px] text-tinta/65">Códigos de descuento</p>

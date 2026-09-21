@@ -91,7 +91,7 @@ export function ProformasPanel({ proformas, periodo, ahora }: { proformas: Profo
     <div className="space-y-6">
       {/* `overflow-hidden` solo con filas (ver el mismo comentario en ComprobantesPanel): sin ellas la tarjeta es baja y
           recortaría el globo de ayuda del encabezado. */}
-      <div className={`card-cayla anim-sube @container ${proformasOrdenadas.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 4 } as CSSProperties}>
+      <div className={`card-cayla anim-sube @container ${proformasOrdenadas.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 6 } as CSSProperties}>
         <div className="px-5 pt-[18px] pb-3.5">
           <p className="label-cayla text-[11px] text-tinta/65">
             Proformas

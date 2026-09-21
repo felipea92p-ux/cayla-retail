@@ -13,7 +13,7 @@ export function FranjaProformas({ resumen }: { resumen: ResumenProformas | null 
   const franja = resumen ? franjaDeProformas(resumen) : null;
 
   return (
-    <section aria-label="Proformas" className="card-cayla anim-sube flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3" style={{ "--i": 4 } as CSSProperties}>
+    <section aria-label="Proformas" className="card-cayla anim-sube flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3" style={{ "--i": 6 } as CSSProperties}>
       <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
         <p className="label-cayla text-[11px] text-tinta/65">Proformas</p>
         {franja === null ? (
