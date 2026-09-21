@@ -1,7 +1,8 @@
 # ADR-0150 — Datos de demostración: 90 días de historia sintética, cargados con un generador SQL desechable
 
 - **Fecha:** 2026-09-21
-- **Estado:** En curso — Fases 1 (catálogo) y 2 (demanda) ensayadas con `ROLLBACK`; fases 3-7 pendientes. **Nada está escrito en producción.**
+- **Estado:** En curso — Fases 1 (catálogo), 2 (demanda) y 3 (inventario inicial y abastecimiento) ensayadas con `ROLLBACK` (la 3, en una
+  base local con datos de la forma de producción); fases 4-7 pendientes. **Nada está escrito en producción.**
   **Numeración provisional:** verificar en refs remotas antes de subir (los números de ADR chocan entre sesiones paralelas).
 - **Decide:** Felipe (volumen ×3, personas reales como autoras, carga desechable, isotipo como imagen, él pega el `COMMIT`).
   Arquitectura: este documento.
@@ -72,6 +73,82 @@ Diseño que las fases siguientes heredan:
 - **Salidas para la fase 3:** `tmp_lineas` (por ticket, variante y fecha), `tmp_tickets` (con `seq` por tienda, en orden de hora, para
   el correlativo de boleta) y `tmp_producto_vida` (desde/hasta de cada prenda).
 
+## Fase 3 — inventario inicial y abastecimiento (ensayada en local)
+
+**Demanda primero.** De las ventas de la Fase 2 se deriva todo lo que tuvo que llegar para poder venderlas, así el stock no queda
+negativo por construcción (principios 2 y 4). Resultado del ensayo (base local con la forma de producción, semilla fija): **157
+compras** (S/ 425 mil sin IGV; el plan decía 370-460 mil), **~13.200 movimientos** (recepción 3,4 mil, carga inicial 1,6 mil, salida y
+entrada de traslados 0,8 mil cada una, subidas al piso 6,4 mil; con las ~11 mil ventas de la Fase 4 suman ≈ 24 mil, el plan decía
+25 mil), **52 traslados**, 104 envíos y 313 lotes, 489 líneas de compra con 893 repartos por tienda. Sin factura 32 % (R-07 pide más de
+30), 82 % de los pagos por transferencia (R-02 pide más de 75), 2 pagos en efectivo de S/ 2.000 o más (R-09: como mucho 2).
+
+Cómo se decide qué llega y cuándo (`scripts/demo/sembrar-90-dias.sql`, secciones 3.1-3.7):
+
+- **Cubrir hasta la siguiente llegada.** Cada proveedor tiene su calendario de compras (1 + 0,2·productos + 0,2, espaciadas en la ventana;
+  llegan de 1 a 10 días después, nunca en domingo). Cada variante recibe, en cada llegada, la demanda que tendrá hasta la siguiente
+  (lo que llega el día X se sube al piso desde la mañana de X+1) más un colchón de 0-15 %; al final quedan 5-25 % de lo vendido, al
+  menos 1 unidad. La colección Primavera-Verano se compra y se recibe el día de alta (no puede llegar después de su primera venta).
+- **Simulación día a día** (`tmp_est`): sube del almacén al piso con la regla de la tienda (piso ≤ 7 → subir 7 días de venta, mínimo 6;
+  `inventario-reglas.ts`), descuenta las ventas y suma las llegadas. Si un día algo no alcanza, **se detiene con el detalle** (variante,
+  tienda, saldos): es un error del plan de compras, no algo que se tape. Esta simulación ya cazó un fallo real (una compra de la colección
+  nueva que caía en domingo se movía al lunes y llegaba después de su primera venta).
+- **Lima se surte desde el Taller**, como dice ADR-0071/0097: olas martes y viernes (y el día de alta de la colección nueva), que salen por
+  la mañana y llegan el mismo día (Taller y LIM están en Lima); cada ola cubre las ventas hasta la siguiente. El Taller arranca con
+  lo que después despacha más un colchón. LIM no lleva reparto de compras: es una decisión (la compra «real» de LIM en la práctica
+  llega por el Taller).
+- **Traslados a TRU y AQP** (10 y 10, de 2-5 líneas): no cubren demanda, solo suman stock; ~10 % llega con 1-2 unidades de menos y un
+  líder cierra la diferencia al día siguiente. Además, los estados que la pantalla debe mostrar: **A2** (uno en tránsito hace 9 días con
+  la fecha estimada vencida y dos en tránsito a tiempo) y **A3** (recibido con diferencia, sin cerrar y sin movimiento de entrada).
+- **Escenarios de Compras:** **A4** (cinco facturas a crédito con los vencimientos exactos: 1 vencida hace más de 30 días, 2 vencidas
+  hace 8-30, 2 por vencer en ≤ 7; una con pago parcial) y **A5** (una factura con recepción parcial, un faltante cerrado por dañado y su nota
+  de crédito). Cinco compras recientes quedan sin recibir (dos con la fecha estimada ya vencida) y una está anulada.
+- **Anomalías de stock:** A6 (8 pares de TRU con el piso en 0 y stock en el almacén), A7 (6 variantes de las más vendidas agotadas del todo
+  en las 3 tiendas), ~2,5 % de pares agotados con demanda, A8 (15 prendas viejas que dejaron de venderse: 6 hace 60+ días y 9 hace 30+) y
+  A14 (una prenda descontinuada con stock).
+
+Decisiones que tomé sin preguntar (con la razón):
+
+1. **Una línea de compra por producto**, no por variante, como la pantalla de Recibir; las recepciones sí son por variante y se ligan a su
+   línea. Ninguna pantalla lee `compra_items.variante_id`.
+2. **Envío = una guía por tienda y día; lote = un proveedor dentro del envío.** Los lotes sueltos («Ingreso sin comprobante») no se
+   siembran: son la excepción y nunca se han usado en producción.
+3. **Sin `costo_historial` y sin tocar `variantes.costo`.** El costo de cada línea es el costo declarado de la prenda, así el estado de costo
+   queda «declarado» y no hay ningún `UPDATE` de variantes (que escribiría en `historial_producto_cambios`, inmutable, con la fecha de hoy).
+   La cadena oficial de costos necesita el ledger completo y va, si Felipe la quiere, en la Fase 6.
+4. **Nota de crédito por `INSERT` directo** (la función `fn_insertar_nota_credito_compra` deja `created_at = now()` en una tabla inmutable) y
+   con motivo «devolución»: el motivo «faltante» exige una compra resuelta y la de A5 no lo está.
+5. **Quién firma:** compras, pagos y notas de crédito solo un líder; recepciones y subidas, un colaborador de esa tienda o un líder; LIM solo
+   líderes; y **nadie firma antes de haber ingresado** (`personas.fecha_ingreso`: al inicio de la ventana solo 3 de 9 líderes, 9 de 11 en TRU
+   y 2 de 3 en el Taller son elegibles). `carga_inicial` sin usuario, como las 219 reales.
+6. **Regla de subida al piso de la tienda**, no «justo antes de vender»: con lo segundo el piso estaría en 0 casi siempre y cobertura, rotación
+   y días con stock saldrían degenerados en Análisis.
+7. **Fase 1:** solo proveedores activos (16 de 220 productos habían quedado con el único proveedor inactivo), horas de alta explícitas en Lima
+   (no las de la sesión) y `random()` reemplazado por hashes. **La demanda de la Fase 2 cambió un poco** (la colección nueva vende siempre desde
+   el día siguiente a su alta): en el ensayo local sale ≈ S/ 949 mil (en producción el ensayo anterior dio S/ 962.230).
+8. **Determinista.** Mismo `cayla_seed.ahora` y misma semilla dan la misma huella en las 7 tablas principales (comprobado con UTC, UTC y
+   America/Lima). Sin fijar `ahora`, el último día (que llega hasta hace 15 minutos) cambia con la hora de la carga, y es a propósito.
+
+**Cómo se ensaya sin pegar 120 KB en cada llamada:** `scripts/demo/local/fixtures-produccion-simulada.sql` crea, dentro de la misma
+transacción, datos que imitan la forma de producción (ubicaciones, 9 líderes y 16 colaboradores con sus fechas de ingreso, 72 proveedores)
+sobre la base local de Docker, y el generador termina en `ROLLBACK`. La estructura de 34 de las 35 tablas que toca el generador es idéntica
+a la de producción (columnas, restricciones y triggers; la que difiere, `colaboradores`, trae en local una migración nueva que producción
+aún no tiene y el generador no usa) y 22 de las 23 funciones de las que depende también (la otra solo difiere en un comentario).
+**Falta el ensayo contra producción** con el archivo completo (114 KB; ver «Qué falta»).
+
+**No se siembra en la Fase 3:** lotes sueltos, `costo_historial`, `compra_reasignaciones`, saldo a favor de proveedores
+(`proveedor_creditos`), `pago_grupo_id`, `envio_extras`/regalos y adjuntos de compra (los archivos no existen en Storage).
+
+## Lo que enseñó la Fase 3
+
+- **Un `ROLLBACK` no ejercita los constraint triggers diferidos** (el reparto de una compra entre tiendas): el ensayo pasa y el `COMMIT` real
+  puede fallar. El generador fuerza `SET CONSTRAINTS ALL IMMEDIATE` justo después de insertar los repartos y de nuevo al final.
+- **`ceil(cobertura × 1,06)` duplica las cantidades chicas** (`ceil(1 × 1,06) = 2`): con eso el sobrante salía en 90 % en vez de 10-35 %.
+  Ahora la cobertura va exacta y solo el colchón se redondea.
+- **La huella de un ensayo tiene que excluir lo que el propio ensayo inventa.** Las dos corridas «iguales» diferían porque el archivo de
+  datos de prueba creaba ubicaciones con uuid al azar y los ids de lotes y movimientos se arman con ellos.
+- **El plan de compras debe estar hecho antes de la simulación, no después:** las llegadas de A5 se agregaron tarde y la simulación no las
+  veía. Se mueve el bloque, no se parcha el chequeo.
+
 ## Lo que enseñó la Fase 1 (para no repetirlo en las fases siguientes)
 
 - **Un subselect que no depende de la fila se evalúa una sola vez.** `cross join lateral (… order by random() limit 1)` dio la
@@ -84,12 +161,18 @@ Diseño que las fases siguientes heredan:
 - **`referencia` es el nombre del producto** en la pantalla actual (los datos viejos la usan como código); se sigue la convención de
   la pantalla.
 
-## Qué falta (fases 2-7) y lo que se decidirá con Felipe
+## Qué falta (fases 4-7) y lo que se decidirá con Felipe
 
-Demanda, inventario inicial y abastecimiento derivado, ventas/caja/comprobantes, postventa/taller, cierre y ensayo completo con
-prueba de reversibilidad. **Pendiente de Felipe:** el día en que termina la ventana (el del `COMMIT`; hoy el script usa
-`current_date`) y una ventana tranquila, porque hay pruebas en producción en vivo (última venta el 2026-09-21 15:42 UTC).
-Antes del `COMMIT`: confirmar en Supabase (Database → Backups) que hay una copia de ese día.
+Fase 4 ventas, caja y comprobantes (las ventas reales con sus pagos, las cajas por día y los comprobantes `aceptado` con series demo) ·
+fase 5 postventa, gastos y producción del Taller · fase 6 `stock` derivado y cierre · fase 7 ensayo completo y prueba de reversibilidad
+(`verificar-90-dias.sql`, `deshacer-90-dias.sql`, `docs/demo-90-dias/QUE-MIRAR.md`).
+
+**Decidido por Felipe (2026-09-21):** la cantidad (≈ S/ 962 mil) sirve, y la ventana termina el día en que se pegue el `COMMIT`, que
+será el mismo día en que se termine de armar (el script toma «hoy» de la base; se puede fijar con `cayla_seed.ahora`).
+**Pendiente antes del `COMMIT`:** una hora tranquila (hay pruebas en producción en vivo), confirmar en Supabase (Database → Backups) que hay
+una copia de ese día, y el **ensayo contra producción con el archivo completo**. El archivo pesa ya 114 KB y va a crecer; si el MCP no lo
+acepta, el ensayo lo pega Felipe en el SQL Editor con `ROLLBACK`, o se parte por fases con estado intermedio (ver el riesgo 5 del plan).
+Los ensayos de cada fase se hacen en local con el arnés (arriba) y se completan con el de producción.
 
 ## Consecuencias
 
