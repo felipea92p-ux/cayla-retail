@@ -283,7 +283,8 @@ export function ProveedorModal({
         return;
       }
     }
-    avisar.exito(editando ? `${nombre.trim()} actualizado` : `Proveedor ${nombre.trim()} registrado`);
+    // Título = qué pasó; detalle = sobre qué (el nombre propio no va en el título).
+    avisar.exito(editando ? "Proveedor actualizado" : "Proveedor registrado", { detalle: nombre.trim() });
     // El ✓ se ve un instante y recién ahí el modal se va: la confirmación es parte del gesto, no un aviso aparte.
     setFase("listo");
     const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;

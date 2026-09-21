@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Avisos con efectos · spike visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL v2 · Avisos con efectos — 2026-09-21
+   Sigue a avisos-spike.html (v1). Aquí la pregunta es: ¿cómo se SIENTE
+   el aviso? Cada efecto responde a algo que pasó — ADR-0136: sin rebote,
+   nunca decorativo, nunca en bucle (salvo «estoy trabajando»), 200–500 ms,
+   --ease-cayla, y todo se apaga con prefers-reduced-motion.
+
+   La coreografía del éxito (Expresivo, velocidad ×1), en ms:
+     0     la tarjeta entra desde la derecha (260)
+     60    el disco de color «se llena» desde el centro (300)
+     60    el anillo se DIBUJA en sentido horario (460)
+     200   el título se revela de izquierda a derecha (360)
+     255   el detalle se revela, 55 ms después — la cascada del ADR-0136
+     260   el check se TRAZA (360)
+     520   una sola onda sale del anillo y se desvanece (600)
+     520   recién ahí arranca la cuenta atrás del anillo (4 s)
+   Sutil = solo anillo + check, sin disco, onda ni revelado.
+
+   Efectos con significado, no adorno:
+   · el anillo de un proceso se llena con el avance REAL (3 de 5 → 60 %);
+     al llegar a 100 % ya está completo y sigue con el check: no hay corte
+   · una cifra de dinero CUENTA hasta su valor (regla: «cifra que cuenta»)
+   · «Deshacer» transforma el mismo aviso en «Deshecho», con su propio icono
+   · el error hace un gesto lateral de 3 px, una sola vez (a decidir: abajo)
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf6ec;--taupe:#a47865;--taupe-p:#805c4c;
+  --verde:#556e49;--verde-p:#44583a;--ambar:#8c631f;--ambar-p:#734f15;
+  --t65:rgba(26,26,24,.65);--t45:rgba(26,26,24,.45);--t10:rgba(26,26,24,.10);--t07:rgba(26,26,24,.07);--t04:rgba(26,26,24,.04);
+  --ease:cubic-bezier(.32,.72,.24,1);   /* --ease-cayla */
+  --ease-out:cubic-bezier(.4,0,1,1);    /* --ease-salida */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5;min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:400}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+.num{font-variant-numeric:tabular-nums lining-nums}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+
+/* ---------- panel de control del spike (no es parte del ERP) ---------- */
+.ctl{max-width:1040px;margin:0 auto;padding:20px 24px 0;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;font-size:13px;color:var(--t65)}
+.ctl b{font-weight:600;color:var(--tinta);margin-right:8px}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--t04);border-radius:8px;padding:3px;gap:2px}
+.seg button{padding:6px 12px;border-radius:6px;font-size:13px;color:var(--t65);transition:background .2s var(--ease),color .2s}
+.seg button[aria-pressed=true]{background:var(--papel);color:var(--tinta);box-shadow:0 0 0 1px var(--t07)}
+.seg button:hover{color:var(--tinta)}
+.seg.disparo button{color:var(--tinta)}
+.seg.disparo button:hover{background:var(--papel)}
+.nota{max-width:1040px;margin:12px auto 0;padding:0 24px;font-size:13px;color:var(--t65)}
+.nota strong{color:var(--tinta);font-weight:600}
+@media (min-width:700px){
+  .ctl,.nota{max-width:min(1040px,calc(100% - 25rem));margin-left:max(0px,calc((100% - 1040px)/2));margin-right:0}
+}
+
+/* ---------- pantalla de fondo ---------- */
+.pantalla{max-width:1040px;margin:18px auto 24px;padding:0 24px}
+.cab{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px}
+.cab h1{font-size:42px;line-height:1.05;letter-spacing:-.01em}
+.cab .sub{margin-top:6px;color:var(--t65);font-size:14px}
+.btn-tinta{background:var(--tinta);color:var(--crema);border-radius:6px;padding:9px 14px;font-size:13px;font-weight:500;white-space:nowrap}
+.tabla{border:1px solid var(--sand);border-radius:10px;background:var(--papel);overflow:hidden}
+.tabla .f{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;padding:13px 18px;border-top:1px solid var(--sand);font-size:14px}
+.tabla .f:first-child{border-top:0;color:var(--t65)}
+.tabla .n{font-weight:500}
+
+/* ---------- guion de la coreografía ---------- */
+.texto{max-width:1040px;margin:0 auto 70px;padding:0 24px}
+.texto h2{font-size:26px;margin-bottom:10px}
+.texto p.n{font-size:13px;color:var(--t65);margin-bottom:12px}
+.linea{border:1px solid var(--sand);border-radius:10px;background:var(--papel);padding:16px 18px 10px}
+.linea .fila{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:center;font-size:12.5px;padding:5px 0}
+.linea .fila span:first-child{color:var(--t65)}
+.linea .pista{position:relative;height:14px;background:var(--t04);border-radius:4px}
+.linea .pista i{position:absolute;top:2px;bottom:2px;border-radius:3px;background:var(--verde);opacity:.75}
+.linea .pista i.r{background:var(--rojo)}
+.linea .pista i.n{background:var(--tinta);opacity:.5}
+.linea .eje{display:grid;grid-template-columns:150px 1fr;gap:12px;font-size:11px;color:var(--t45);padding-top:4px}
+.linea .eje div{display:flex;justify-content:space-between}
+@media (max-width:640px){.linea .fila,.linea .eje{grid-template-columns:96px 1fr}}
+
+/* ====================================================================
+   LA PILA — dos pieles (Ficha, Tinta), dos intensidades, velocidad k
+   ==================================================================== */
+#pila{position:fixed;z-index:100;display:flex;flex-direction:column;gap:8px;pointer-events:none;width:min(22rem,calc(100vw - 2rem));
+  --k:1;
+  /* tiempos del éxito, ya escalados por --k (modo lento) */
+}
+#pila[data-k="3"]{--k:3}
+#pila[data-v=ficha]{right:16px;top:16px}
+#pila[data-v=tinta]{left:50%;transform:translateX(-50%);bottom:20px;flex-direction:column-reverse;width:min(26rem,calc(100vw - 2rem))}
+
+/* Sutil: anillo y check, nada más */
+#pila[data-i=sutil]{--disco-t:0ms;--anillo-d:0ms;--anillo-t:320ms;--chk-d:140ms;--chk-t:260ms;--cd:320ms}
+/* Expresivo: coreografía completa */
+#pila[data-i=expresivo]{--disco-t:300ms;--anillo-d:60ms;--anillo-t:460ms;--chk-d:260ms;--chk-t:360ms;--cd:520ms}
+
+.t{--c:var(--verde);--cp:var(--verde-p);--cl:#9bb98d;
+   position:relative;display:flex;align-items:flex-start;gap:12px;pointer-events:auto;overflow:hidden}
+.t[data-tono=error]{--c:var(--rojo);--cp:var(--rojo-p);--cl:#e58a77}
+.t[data-tono=aviso]{--c:var(--ambar);--cp:var(--ambar-p);--cl:#e0b463}
+.t[data-tono=proceso]{--c:var(--tinta);--cp:var(--tinta);--cl:#f5f0e8}
+.t[data-tono=deshecho]{--c:var(--taupe-p);--cp:var(--taupe-p);--cl:#d2ac99}
+.cuerpo{min-width:0;flex:1}
+.tit{font-size:14px;line-height:1.35;font-weight:600;padding-top:4px}
+.det{font-size:13px;line-height:1.4;margin-top:1px}
+.det b{font-weight:500}
+.acc{margin-top:6px;text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px;text-decoration:underline;text-underline-offset:3px}
+.acc:hover{text-decoration:none}
+.x{border-radius:6px;padding:4px;line-height:0}
+.x svg{width:14px;height:14px}
+
+[data-v=ficha] .t{border:1px solid var(--sand);background:var(--papel);border-radius:12px;padding:12px 10px 12px 12px;box-shadow:0 10px 24px -8px rgba(26,26,24,.18),0 2px 4px rgba(26,26,24,.06);animation:entra-der 260ms var(--ease) both}
+[data-v=ficha] .tit{color:var(--tinta)}
+[data-v=ficha] .det{color:var(--t65)}
+[data-v=ficha] .det b{color:var(--tinta)}
+[data-v=ficha] .acc{color:var(--cp)}
+[data-v=ficha] .x{color:var(--t45);opacity:0;transition:opacity .2s}
+[data-v=ficha] .t:hover .x,[data-v=ficha] .x:focus-visible{opacity:1}
+[data-v=ficha] .x:hover{color:var(--tinta);background:var(--t04)}
+[data-v=ficha] .disco{fill:color-mix(in srgb,var(--c) 11%,transparent)}
+[data-v=ficha] .t[data-tono=proceso] .disco{fill:var(--t07)}
+
+[data-v=tinta] .t{background:var(--tinta);color:var(--crema);border-radius:14px;padding:12px 10px 12px 12px;box-shadow:0 14px 32px -8px rgba(26,26,24,.45);animation:entra-abajo 260ms var(--ease) both;--c:var(--cl)}
+[data-v=tinta] .det{color:rgba(245,240,232,.72)}
+[data-v=tinta] .det b{color:var(--crema)}
+[data-v=tinta] .acc{color:var(--crema)}
+[data-v=tinta] .x{color:rgba(245,240,232,.5)}
+[data-v=tinta] .x:hover{color:var(--crema);background:rgba(245,240,232,.1)}
+[data-v=tinta] .disco{fill:color-mix(in srgb,var(--c) 16%,transparent)}
+[data-v=tinta] .t[data-tono=proceso]{--c:var(--crema)}
+[data-v=tinta] .t[data-tono=proceso] .disco{fill:rgba(245,240,232,.12)}
+
+/* ---------- el icono: disco + anillo + onda + glifo ---------- */
+.ico{position:relative;flex:none;width:32px;height:32px;display:grid;place-items:center}
+.anillo{position:absolute;inset:-2px;width:36px;height:36px;transform:rotate(-90deg);overflow:visible}
+.anillo circle{fill:none;stroke:var(--c);stroke-width:2;stroke-linecap:round;transform-box:fill-box;transform-origin:center}
+.anillo .disco{stroke:none;animation:disco var(--disco-t) var(--ease) 60ms both}
+.anillo .pista{opacity:.16}
+.anillo .reloj-a{stroke-dasharray:106.8;stroke-dashoffset:0;
+  animation:dibuja calc(var(--anillo-t)*var(--k)) var(--ease) calc(var(--anillo-d)*var(--k)) both,
+            reloj-anillo var(--ms) linear calc(var(--cd)*var(--k)) forwards}
+.anillo .onda{stroke-width:1.5;opacity:0;display:none}
+[data-i=expresivo] .anillo .onda{display:block;animation:onda calc(600ms*var(--k)) var(--ease) calc(var(--cd)*var(--k)) both}
+/* el proceso que termina NO redibuja el anillo: ya estaba completo */
+.t.continua .anillo .reloj-a{animation:reloj-anillo var(--ms) linear calc(var(--cd)*var(--k)) forwards}
+.t.continua .anillo .disco{animation:none}
+/* proceso: el anillo es un medidor real (--p de 0 a 1) o, sin cifra, un arco que gira */
+.t[data-tono=proceso] .anillo .reloj-a{animation:none;stroke-dashoffset:calc(106.8 * (1 - var(--p,.28)));transition:stroke-dashoffset 500ms var(--ease)}
+.t[data-tono=proceso] .anillo .disco{animation:none}
+.t[data-tono=proceso]:not([data-prog]) .anillo{animation:giro 1s linear infinite}
+.t[data-tono=proceso] .anillo .onda{display:none}
+
+.glifo{position:relative;width:16px;height:16px;fill:none;stroke:var(--c);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.glifo > *{display:none}
+.t[data-tono=exito] .g-exito,.t[data-tono=error] .g-error,.t[data-tono=aviso] .g-aviso,.t[data-tono=deshecho] .g-deshecho{display:block}
+/* trazo que se dibuja: pathLength="1" en cada path, así el mismo keyframe sirve para todos */
+.glifo path.d{stroke-dasharray:1;stroke-dashoffset:1;animation:traza calc(var(--chk-t)*var(--k)) var(--ease) calc(var(--chk-d)*var(--k)) forwards}
+.glifo path.d2{animation-delay:calc((var(--chk-d) + 140ms)*var(--k))}
+.glifo circle.pt{fill:var(--c);stroke:none;transform-box:fill-box;transform-origin:center;animation:pop calc(240ms*var(--k)) var(--ease) calc((var(--chk-d) + 300ms)*var(--k)) both}
+.t.continua .glifo path.d{animation-delay:calc(60ms*var(--k))}
+
+/* gesto de error: 3 px de lado, una sola vez. Solo Expresivo. */
+[data-i=expresivo] .t[data-tono=error] .ico,
+[data-i=expresivo] .t[data-tono=error] .cuerpo{animation:gesto calc(320ms*var(--k)) var(--ease) calc(280ms*var(--k))}
+
+/* texto: se revela de izquierda a derecha; el detalle, 55 ms después. Solo Expresivo. */
+[data-i=expresivo] .tit{animation:revela calc(360ms*var(--k)) var(--ease) calc(200ms*var(--k)) both}
+[data-i=expresivo] .det,[data-i=expresivo] .acc{animation:revela calc(360ms*var(--k)) var(--ease) calc(255ms*var(--k)) both}
+[data-i=expresivo] .t.continua .tit{animation-delay:calc(60ms*var(--k))}
+[data-i=expresivo] .t.continua .det,[data-i=expresivo] .t.continua .acc{animation-delay:calc(115ms*var(--k))}
+
+/* pausa: el mouse (o el foco) detiene el reloj para leer con calma */
+.t:hover .reloj-a,.t:focus-within .reloj-a{animation-play-state:paused,paused}
+.t.espera .reloj-a{animation-play-state:paused,paused}
+
+/* salida: se desvanece y luego colapsa su altura, así los de abajo suben sin salto */
+.t.sale{animation:sale 260ms var(--ease-out) forwards!important;pointer-events:none}
+#cerrar-todos{pointer-events:auto;align-self:flex-end;font-size:11px;text-transform:uppercase;letter-spacing:.13em;font-weight:600;padding:5px 10px;border-radius:999px;background:var(--papel);border:1px solid var(--sand);color:var(--t65);display:none;animation:entra-der 200ms var(--ease) both}
+#cerrar-todos:hover{color:var(--tinta);border-color:var(--tinta)}
+#pila[data-v=tinta] #cerrar-todos{background:var(--tinta);border-color:transparent;color:rgba(245,240,232,.7);align-self:center}
+#pila[data-v=tinta] #cerrar-todos:hover{color:var(--crema)}
+.hay-varios #cerrar-todos{display:block}
+
+@keyframes entra-der{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+@keyframes entra-abajo{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes sale{
+  0%{opacity:1;transform:none;max-height:var(--h);margin-bottom:0}
+  55%{opacity:0;transform:translateX(8px);max-height:var(--h);margin-bottom:0}
+  100%{opacity:0;transform:translateX(8px);max-height:0;padding-top:0;padding-bottom:0;margin-bottom:-8px;border-width:0}}
+@keyframes disco{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:none}}
+@keyframes dibuja{from{stroke-dashoffset:106.8}to{stroke-dashoffset:0}}
+@keyframes reloj-anillo{from{stroke-dashoffset:0}to{stroke-dashoffset:106.8}}
+@keyframes onda{0%{opacity:.4;transform:scale(1)}100%{opacity:0;transform:scale(1.55)}}
+@keyframes traza{to{stroke-dashoffset:0}}
+@keyframes pop{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
+@keyframes giro{from{transform:rotate(-90deg)}to{transform:rotate(270deg)}}
+@keyframes revela{from{clip-path:inset(0 100% 0 0);opacity:.2}to{clip-path:inset(0 0 0 0);opacity:1}}
+@keyframes gesto{0%{transform:none}25%{transform:translateX(-3px)}60%{transform:translateX(3px)}100%{transform:none}}
+
+/* reduced-motion: todo llega ya dibujado, MENOS el reloj — ese es función, no adorno */
+@media (prefers-reduced-motion:reduce){
+  .t,.t *{animation-duration:1ms!important;animation-delay:0ms!important}
+  .t .anillo .reloj-a{animation:reloj-anillo var(--ms) linear forwards!important}
+  .t[data-tono=proceso]:not([data-prog]) .anillo{animation:none!important}
+}
+@media (max-width:640px){
+  .cab h1{font-size:32px}
+  #pila[data-v=ficha]{right:16px;left:16px;width:auto}
+  .tabla .f{grid-template-columns:1.6fr 1fr}
+  .tabla .f span:nth-child(3){display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="ctl">
+  <span><b>Piel</b>
+    <span class="seg" id="seg-v" role="group" aria-label="Piel">
+      <button aria-pressed="true" data-v="ficha">A · Ficha</button>
+      <button aria-pressed="false" data-v="tinta">B · Tinta</button>
+    </span>
+  </span>
+  <span><b>Efectos</b>
+    <span class="seg" id="seg-i" role="group" aria-label="Intensidad">
+      <button aria-pressed="false" data-i="sutil">Sutil</button>
+      <button aria-pressed="true" data-i="expresivo">Expresivo</button>
+    </span>
+  </span>
+  <span><b>Velocidad</b>
+    <span class="seg" id="seg-k" role="group" aria-label="Velocidad">
+      <button aria-pressed="true" data-k="1">Normal</button>
+      <button aria-pressed="false" data-k="3">Lento ×3</button>
+    </span>
+  </span>
+  <span><b>Dispara</b>
+    <span class="seg disparo" id="seg-e" role="group" aria-label="Escenarios">
+      <button data-e="exito">Éxito</button>
+      <button data-e="error">Error</button>
+      <button data-e="aviso">Advertencia</button>
+      <button data-e="subida">Subida con avance</button>
+      <button data-e="pago">Cifra que cuenta</button>
+      <button data-e="deshacer">Deshacer</button>
+      <button data-e="rafaga">Ráfaga ×4</button>
+    </span>
+  </span>
+</div>
+<p class="nota" id="nota"></p>
+
+<main class="pantalla">
+  <div class="cab">
+    <div>
+      <h1 class="disp">Proveedores</h1>
+      <p class="sub">Con quién compra CAYLA · 12 activos</p>
+    </div>
+    <button class="btn-tinta">Nuevo proveedor</button>
+  </div>
+  <div class="tabla" aria-hidden="true">
+    <div class="f lbl"><span>Proveedor</span><span>RUC</span><span>Última compra</span></div>
+    <div class="f"><span class="n">Confecciones del Sur EIRL</span><span>20601234567</span><span>12 sep</span></div>
+    <div class="f"><span class="n">Textiles Andinos S.A.C.</span><span>20598765432</span><span>03 sep</span></div>
+    <div class="f"><span class="n">Botones y Avíos Lima</span><span>20512345678</span><span>28 ago</span></div>
+  </div>
+</main>
+
+<section class="texto">
+  <h2 class="disp">El guion de un éxito (Expresivo, ×1)</h2>
+  <p class="n">Cada barra es un efecto y cuándo ocurre, en milisegundos. Lo que llama la atención va primero (anillo y check); la cuenta atrás arranca cuando el efecto terminó, para que el reloj no compita con la animación.</p>
+  <div class="linea" aria-hidden="true">
+    <div class="fila"><span>Tarjeta entra</span><div class="pista"><i class="n" style="left:0;width:21.7%"></i></div></div>
+    <div class="fila"><span>Disco se llena</span><div class="pista"><i style="left:5%;width:25%"></i></div></div>
+    <div class="fila"><span>Anillo se dibuja</span><div class="pista"><i style="left:5%;width:38.3%"></i></div></div>
+    <div class="fila"><span>Título se revela</span><div class="pista"><i style="left:16.7%;width:30%"></i></div></div>
+    <div class="fila"><span>Detalle (+55 ms)</span><div class="pista"><i style="left:21.3%;width:30%"></i></div></div>
+    <div class="fila"><span>Check se traza</span><div class="pista"><i style="left:21.7%;width:30%"></i></div></div>
+    <div class="fila"><span>Onda (una vez)</span><div class="pista"><i style="left:43.3%;width:50%"></i></div></div>
+    <div class="fila"><span>Cuenta atrás</span><div class="pista"><i class="n" style="left:43.3%;width:56.7%"></i></div></div>
+    <div class="eje"><span></span><div><span>0</span><span>300</span><span>600</span><span>900</span><span>1200 ms →</span></div></div>
+  </div>
+</section>
+
+<div id="pila" data-v="ficha" data-i="expresivo" data-k="1" aria-live="polite" aria-relevant="additions"><button id="cerrar-todos" type="button">Cerrar todos</button></div>
+
+<script>
+const $pila = document.getElementById('pila');
+const $nota = document.getElementById('nota');
+const DUR = { exito: 4000, aviso: 6000, error: 8000, proceso: 0, deshecho: 4000 };
+const MAX = 4;
+const reducido = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+let skin = 'ficha';
+
+const NOTAS = {
+  ficha: '<strong>A · Ficha</strong> — esquina superior derecha. Prueba <strong>Lento ×3</strong> con «Éxito»: el disco se llena, el anillo se dibuja, el check se traza y solo entonces arranca la cuenta atrás.',
+  tinta: '<strong>B · Tinta</strong> — abajo al centro. Los colores claros de los iconos siguen siendo variantes nuevas para fondo oscuro.'
+};
+
+const fmt = n => 'S/ ' + n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const ESC = {
+  exito:   { tono:'exito', tit:'Proveedor actualizado', det:'<b>Confecciones del Sur EIRL</b>', acc:'Ver' },
+  error:   { tono:'error', tit:'El RUC está incompleto', det:'Debe tener <b>11 dígitos</b>; vas por 9' },
+  aviso:   { tono:'aviso', tit:'2 adjuntos no subieron', det:'La factura <b>sí se guardó</b>. Reintenta desde el detalle', acc:'Reintentar' },
+  pago:    { tono:'exito', tit:'Pago registrado', det:'<b class="num"><span class="cuenta" data-a="1250">S/ 0.00</span></b> a Textiles Andinos S.A.C.', acc:'Ver' },
+  deshacer:{ tono:'exito', tit:'Guía movida a Lima', det:'<b>G-0412</b> · 6 prendas', acc:'Deshacer', ms:7000, alDeshacer:true },
+};
+
+const GLIFOS = `
+  <svg class="glifo" viewBox="0 0 16 16" aria-hidden="true">
+    <g class="g-exito"><path class="d" pathLength="1" d="M3.5 8.5l3 3 6-7"/></g>
+    <g class="g-error"><path class="d" pathLength="1" d="M8 3.4v5.4"/><circle class="pt" cx="8" cy="11.7" r="1.05"/></g>
+    <g class="g-aviso"><path class="d" pathLength="1" d="M8 2.6l5.8 10.2H2.2z"/><path class="d d2" pathLength="1" d="M8 6.6v2.6"/><circle class="pt" cx="8" cy="11.1" r=".95"/></g>
+    <g class="g-deshecho"><path class="d" pathLength="1" d="M6.2 3.6L3.4 6.4l2.8 2.8"/><path class="d d2" pathLength="1" d="M3.6 6.4h5.2a3.4 3.4 0 0 1 0 6.8H6.4"/></g>
+  </svg>`;
+
+function html(){
+  return `
+    <span class="ico" aria-hidden="true">
+      <svg class="anillo" viewBox="0 0 36 36">
+        <circle class="disco" cx="18" cy="18" r="16"/>
+        <circle class="pista" cx="18" cy="18" r="17"/>
+        <circle class="onda" cx="18" cy="18" r="17"/>
+        <circle class="reloj-a" cx="18" cy="18" r="17"/>
+      </svg>
+      ${GLIFOS}
+    </span>
+    <div class="cuerpo">
+      <p class="tit"></p>
+      <p class="det"></p>
+      <button class="acc" type="button" hidden></button>
+    </div>
+    <button class="x" type="button" aria-label="Cerrar aviso"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>`;
+}
+
+/* Pinta (o repinta) el contenido. Reconstruir el interior reinicia todas las
+   animaciones; la tarjeta en sí conserva su lugar y su entrada. */
+function pintar(el, sc, { continua = false } = {}){
+  el.innerHTML = html();
+  el.classList.toggle('continua', continua);
+  el.dataset.tono = sc.tono;
+  const ms = sc.tono === 'proceso' ? 0 : (sc.ms ?? DUR[sc.tono]);
+  el.style.setProperty('--ms', ms + 'ms');
+  el.setAttribute('role', sc.tono === 'error' ? 'alert' : 'status');
+  el.querySelector('.tit').textContent = sc.tit;
+  const det = el.querySelector('.det'); det.innerHTML = sc.det || ''; det.hidden = !sc.det;
+  const acc = el.querySelector('.acc'); acc.hidden = !sc.acc; acc.textContent = sc.acc || '';
+  el.querySelector('.x').onclick = () => quitar(el);
+  acc.onclick = () => {
+    if (sc.alDeshacer){ resolver(el, { tono:'deshecho', tit:'Movimiento deshecho', det:'<b>G-0412</b> volvió a Trujillo' }); }
+    else quitar(el);
+  };
+  el.querySelectorAll('.cuenta').forEach(contar);
+}
+
+/* «Cifra que cuenta»: llega a su valor con la misma curva de frenado. */
+function contar(n){
+  const meta = parseFloat(n.dataset.a);
+  if (reducido()){ n.textContent = fmt(meta); return; }
+  const k = +$pila.dataset.k, dur = 700 * k, ini = 300 * k, t0 = performance.now();
+  const paso = t => {
+    const p = Math.min(1, Math.max(0, (t - t0 - ini) / dur));
+    const e = 1 - Math.pow(1 - p, 3);              // frena largo, como --ease-cayla
+    n.textContent = fmt(meta * e);
+    if (p < 1) requestAnimationFrame(paso);
+  };
+  requestAnimationFrame(paso);
+}
+
+function quitar(el){
+  if (!el.isConnected || el.classList.contains('sale')) return;
+  el.style.setProperty('--h', el.offsetHeight + 'px');
+  el.classList.add('sale');
+  setTimeout(() => { el.remove(); actualizar(); }, 260);
+}
+function actualizar(){
+  $pila.classList.toggle('hay-varios', $pila.querySelectorAll('.t:not(.sale)').length >= 3);
+}
+
+function abrir(sc){
+  const el = document.createElement('div');
+  el.className = 't';
+  pintar(el, sc);
+  el.addEventListener('mouseenter', () => el.classList.add('espera'));
+  el.addEventListener('mouseleave', () => el.classList.remove('espera'));
+  // Una sola fuente de tiempo: el fin de la cuenta atrás del anillo cierra el aviso.
+  el.addEventListener('animationend', e => { if (e.animationName === 'reloj-anillo') quitar(el); });
+  $pila.appendChild(el);
+  const vivos = [...$pila.querySelectorAll('.t:not(.sale)')];
+  if (vivos.length > MAX) quitar(vivos.find(v => v.dataset.tono !== 'error') || vivos[0]);
+  actualizar();
+  return el;
+}
+
+// Un proceso (o un éxito) se transforma en otro estado en la MISMA tarjeta.
+function resolver(el, sc){
+  if (!el.isConnected) return;
+  el.classList.remove('espera');
+  el.removeAttribute('data-prog');
+  el.style.removeProperty('--p');
+  pintar(el, sc, { continua: true });
+}
+
+function progreso(el, p, texto){
+  el.dataset.prog = '1';
+  el.style.setProperty('--p', p);
+  el.querySelector('.det').innerHTML = texto;
+}
+
+function disparar(nombre){
+  if (nombre === 'rafaga'){
+    ['exito','aviso','error','pago'].forEach((k,i) => setTimeout(() => abrir(ESC[k]), i*260));
+    return;
+  }
+  if (nombre === 'subida'){
+    const el = abrir({ tono:'proceso', tit:'Subiendo adjuntos…', det:'0 de 5 archivos' });
+    progreso(el, .04, '0 de 5 archivos');
+    [[700,.2,'1 de 5 archivos'],[1500,.6,'3 de 5 archivos'],[2300,1,'5 de 5 archivos']].forEach(([t,p,x]) => setTimeout(() => el.isConnected && progreso(el, p, x), t));
+    setTimeout(() => resolver(el, { tono:'exito', tit:'Adjuntos subidos', det:'<b>5 archivos</b> en F001-123' }), 3100);
+    return;
+  }
+  abrir(ESC[nombre]);
+}
+
+function marcar(idSeg, attr, valor){
+  document.querySelectorAll('#' + idSeg + ' button').forEach(b => b.setAttribute('aria-pressed', b.dataset[attr] === valor));
+}
+document.getElementById('seg-e').addEventListener('click', e => { const b = e.target.closest('button'); if (b) disparar(b.dataset.e); });
+document.getElementById('cerrar-todos').onclick = () => $pila.querySelectorAll('.t').forEach(quitar);
+document.getElementById('seg-v').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  skin = b.dataset.v; marcar('seg-v', 'v', skin);
+  $pila.dataset.v = skin; $nota.innerHTML = NOTAS[skin];
+  $pila.querySelectorAll('.t').forEach(t => t.remove()); actualizar(); disparar('exito');
+});
+document.getElementById('seg-i').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  marcar('seg-i', 'i', b.dataset.i); $pila.dataset.i = b.dataset.i;
+  $pila.querySelectorAll('.t').forEach(t => t.remove()); actualizar(); disparar('exito');
+});
+document.getElementById('seg-k').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  marcar('seg-k', 'k', b.dataset.k); $pila.dataset.k = b.dataset.k;
+  $pila.querySelectorAll('.t').forEach(t => t.remove()); actualizar(); disparar('exito');
+});
+$nota.innerHTML = NOTAS[skin];
+setTimeout(() => disparar('exito'), 350);
+</script>
+</body>
+</html>

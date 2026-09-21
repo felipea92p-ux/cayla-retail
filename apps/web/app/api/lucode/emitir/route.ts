@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { emitirDocumentoLucode, entornoLucode, type DatosComprobante, type ItemComprobante, type TipoDocumentoLucode } from "@/lib/lucode";
+import { motivoParaNoTransmitir } from "@/lib/transmision-reglas";
 
 // POST /api/lucode/emitir  { comprobante_id: string }
 //
@@ -34,6 +35,9 @@ type FilaComprobante = {
   comprobante_original_id: string | null;
   motivo: string | null;
   entorno_transmision: "sandbox" | "produccion" | null;
+  /** La venta de la que salió el comprobante y su estado: una venta anulada no se transmite (ver `motivoParaNoTransmitir`). */
+  venta_id: string | null;
+  venta: { estado: string } | null;
 };
 
 function itemsValidos(raw: unknown): ItemComprobante[] | null {
@@ -76,7 +80,7 @@ export async function POST(request: Request) {
   const { data: comprobante, error: errLectura } = await supabase
     .from("comprobantes")
     .select(
-      "id, tipo, serie, numero, moneda, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, items, comprobante_original_id, motivo, entorno_transmision"
+      "id, tipo, serie, numero, moneda, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, items, comprobante_original_id, motivo, entorno_transmision, venta_id, venta:ventas(estado)"
     )
     .eq("id", comprobanteId)
     .maybeSingle();
@@ -86,12 +90,10 @@ export async function POST(request: Request) {
   }
   const fila = comprobante as FilaComprobante;
 
-  if (fila.estado !== "pendiente" && fila.estado !== "rechazado") {
-    return Response.json(
-      { error: `Este comprobante ya está en estado "${fila.estado}" — no se vuelve a transmitir.` },
-      { status: 409 }
-    );
-  }
+  // Lo que llega a SUNAT no se deshace: todo lo que puede frenarlo se decide antes de llamar a Lucode
+  // (estado del comprobante y estado de su venta, ver `lib/transmision-reglas.ts`).
+  const noSePuede = motivoParaNoTransmitir(fila);
+  if (noSePuede) return Response.json({ error: noSePuede.error }, { status: noSePuede.status });
 
   const items = itemsValidos(fila.items);
   if (!items) {

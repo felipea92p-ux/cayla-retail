@@ -257,7 +257,7 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
 **Producción (módulo propio, ADR-0133 — F1 aplicada 2026-09-19)**
 - Producción y Compras son **dos módulos distintos** con su propio grupo en el lateral (Compras: sus 4
   pantallas, sin cambios). Producción arranca con `/produccion/ordenes` y suma pantallas con sus fases.
-  Qué ve cada perfil: `lib/produccion-menu.ts` (`hijosMenuProduccion` / `hijosMenuCompras`, puros, con tests). `/produccion` redirige a `/produccion/ordenes`
+  Qué ve cada perfil: el menú es un ÁRBOL DE DATOS en `lib/menu.ts` (`menuPara`, puro, con la fotografía `menu-hoy.golden.json`; ADR-0144); `lib/produccion-menu.ts` (`hijosMenuProduccion` / `hijosMenuCompras`) es ahora una vista fina sobre él. Para agregar una fila se edita `menu.ts`, no `AppShell.tsx`. `/produccion` redirige a `/produccion/ordenes`
   hasta que exista el Resumen (F6). Plan por fases: `docs/PLAN-PRODUCCION.md`.
 
 **Producción (Taller)**
@@ -267,6 +267,11 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
 - `/produccion/proveedores` (solo líder) → `lib/proveedores-produccion.ts:getProveedoresProduccion` (RPC `fn_proveedores_produccion`) + `lib/proveedores-produccion-reglas.ts` (puro) →
   `ProveedoresProduccionPanel.tsx`, `ProveedorProduccionModal.tsx` (RPC `guardar_proveedor_produccion`, `cambiar_estado_proveedor_produccion`). Tabla `proveedores_produccion`
   (RLS solo-líder, sin grants de escritura); `insumos.proveedor_id` e `insumo_lotes.proveedor_id` apuntan a ella, no a `proveedores` de Compras.
+- **Del Taller a las tiendas (F8):** `OrdenCierre.tsx` (aviso con botón) y `OrdenPanel.tsx` (orden terminada) → `lib/produccion-reglas.ts:urlLlevarATiendas` → `/inventario/mover?origen=<Taller>&lineas=…` →
+  `app/(app)/inventario/mover/page.tsx` (`parsearLineasPrellenadas`, valida contra el stock movible) → `MoverMercaderiaFormV2.tsx` (`lineasIniciales`). El traslado sigue siendo `iniciar_traslado`, en dos fases.
+- `/produccion/eficiencia` (solo líder; F7) → `app/(app)/produccion/eficiencia/page.tsx` junta órdenes cerradas (`getOrdenesProduccion`), la planilla del Taller (`lib/eficiencia.ts:getPlanillaDelTaller` → vista puente
+  `retail.planilla_por_sede`, security_invoker sobre `public.v_planilla_pagada` de Dynamic: solo importes agregados, D-33) y los gastos del Taller (`gastos`, Finanzas ADR-0117) y calcula con `lib/eficiencia-reglas.ts`
+  (puro: ventanas de período 29–28, costo por prenda, reparto del gasto) → `EficienciaTallerPanel.tsx`.
 - `/produccion` (Resumen, solo líder; F6) → `app/(app)/produccion/page.tsx` junta órdenes, insumos, lo por recibir, comprobantes y la decisión de la red (`getDecisionProduccion`) y calcula con `lib/produccion-decisiones.ts`
   (puro: tarjetas, demanda de insumos de las órdenes abiertas, filas por modelo y por tela, cifras) → `ResumenProduccionPanel.tsx` (componente de servidor: enlaces a `?orden=` / `?nueva=` de Órdenes).
 - **Nueva orden con decisión (F5, solo líder):** `app/(app)/produccion/ordenes/page.tsx` → `lib/decision-produccion.ts:getDecisionProduccion` (ritmo y stock de cada sede por `getFilasRecientesDeSede` →
@@ -291,7 +296,7 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   con `MatrizOrden` y `OrdenCierre`; RPC `set_etapa_produccion`,
   `cerrar_produccion`, `anular_produccion`, `revertir_produccion`) y
   `NuevaOrdenProduccionForm.tsx` (RPC `abrir_produccion` con `p_token`). Entra el
-  cualquier persona —líder o integrante— parada en una ubicación con `ubicacionTipo === "taller"` (`puedeVerProduccion`, `lib/produccion-menu.ts`;
+  cualquier persona —líder o integrante— parada en una ubicación con `ubicacionTipo === "taller"` (`puedeVerProduccion`, en `lib/menu.ts` y re-exportada por `lib/produccion-menu.ts`;
   un líder que llega desde otra ubicación ve un aviso, ADR-0133 nota 2026-09-20).
 
 **Ventas / caja**
@@ -490,7 +495,30 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   lectura + edición directa (`PatrimonioEditor`, `HistoricosEditor`).
 - `RegistrarGastoModal.tsx` (accesible desde varias pantallas) → RPC
   `registrar_gasto`.
-- `/vender/facturacion` → `lib/comprobantes.ts` → `ComprobantesPanel.tsx` →
+- `/vender/facturacion/**` (layout + cuatro vistas por ruta, ADR-0124): `layout.tsx` lee
+  series, tiendas y los contadores de las pestañas y los pasa a `FacturacionShell.tsx`, que
+  dibuja la cabecera (`FacturacionCabecera`: línea viva «actualizado hace…», caja de búsqueda y
+  las dos acciones), las pestañas y —una sola vez— los modales «Emitir comprobante» y «Nueva
+  proforma». El shell guarda además el texto del buscador (`useFacturacionBusqueda`, se borra al
+  cambiar de vista): cada lista lo lee y filtra sus filas con `coincide`
+  (`lib/facturacion-busqueda.ts`). Cada `page.tsx` pide `exigirLider()` primero (lo fija
+  `lib/facturacion-puerta.test.ts`) y monta `MarcaDeCarga`, que le dice a la cabecera cuándo llegó
+  la vista (reloj del navegador, `lib/ultima-carga-facturacion.ts`). Cada vista son cuatro
+  tarjetas de vidrio (`TarjetaKpiVidrio`) y una lista (columnas por ancho de la tarjeta, con
+  container queries `@min-[640px]` y `@min-[900px]`, no por ancho de ventana); lo que decide
+  estados, cuentas, orden y textos vive en `lib/facturacion-*-reglas.ts` (puras y probadas).
+  Vistas: Resumen (`page.tsx`) → `ResumenTarjetas` + `ActividadDeHoy` (el hilo del comprobante,
+  `HiloComprobante`, y *Transmitir* por fila con `useTransmitir`) ← `fn_ventas_del_dia`,
+  `getComprobantesMes`, `getResumenPorEnviar`, `ventas-comparativo.ts` (reglas
+  `facturacion-resumen-reglas`, `-graficos` y `facturacion-actividad`); `proformas/` →
+  `ProformasTarjetas` + `ProformasPanel` ← `getProformasMes` (reglas `facturacion-proformas-reglas`
+  y `resumenProformas`, la misma cuenta que el contador de la pestaña) → RPC
+  `convertir_proforma_a_comprobante`; `descuentos/` → `CodigosTarjetas` + `CodigosDescuentoPanel`
+  (antes `/vender/descuentos`, que redirige; escribe directo a `codigos_descuento`, la RLS exige
+  líder; reglas `facturacion-codigos-reglas`, con «hoy» de `hoyLima`, la misma fecha con la que
+  `registrar_venta` valida el código); `comprobantes/` → `lib/comprobantes.ts` →
+  `ComprobantesTarjetas` + `ComprobantesPanel` (franja de series que faltan por tienda, lista,
+  modales de serie, anular y liberar; reglas `facturacion-comprobantes-reglas`) →
   RPCs `emitir_comprobante` (reserva serie+correlativo, `for update`) y
   `registrar_serie_comprobante`. Emitir NO transmite: el envío a SUNAT es el
   botón "Transmitir" de cada fila → `POST /api/lucode/emitir` (ADR-0005,
@@ -499,6 +527,15 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `GET /api/padron?tipo=dni|ruc&numero=…` → `lib/padron.ts` → proveedor externo
   del padrón (RENIEC/SUNAT). Validación de formato y dígito verificador en
   `packages/shared/src/documento.ts` (pura, corre en los dos lados). ADR-0008.
+- `/vender/historial` → `lib/ventas-historial.ts` (lectura; reglas puras en
+  `ventas-historial-reglas.ts`) → `HistorialVentasLista.tsx`, `FiltrosHistorialVentas.tsx`
+  y `HistorialVentasPulso.tsx` (el trazo del período). Solo lectura, **sin RPC propia**: PostgREST sobre
+  `ventas` + `venta_items` + `venta_pagos` + `comprobantes`, con la RLS
+  `fn_puede_operar_ubicacion` acotando por tienda (líder: todas). El nombre de quien
+  vendió sale de `fn_nombres_personas`; el filtro por vendedor, de `fn_colaboradores`.
+  Filtros y cursor `(created_at, id)` viven en la URL. Al tocar una fila abre
+  `DetalleVentaModal` (`leerVentaDetalle`, en el navegador). No usa `fn_ventas_del_dia`
+  (fija a hoy y sin `ventas.estado`). ADR-0147.
 
 ### 3.x Rutas de API (`app/api/**/route.ts`)
 

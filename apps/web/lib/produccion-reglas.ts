@@ -202,3 +202,35 @@ export function resumenTablero(ordenes: OrdenParaResumen[], hoy: string): Resume
     margenPromedio: margenes.length ? margenes.reduce((a, b) => a + b, 0) / margenes.length : null,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Siguiente paso de una orden cerrada: llevarlas a las tiendas (ADR-0133, F8)
+// ---------------------------------------------------------------------------
+//
+// Al cerrar, las prendas buenas entran al stock del TALLER; para venderlas hay que trasladarlas a una tienda. Ese traslado ya existe (`/inventario/mover`, dos fases:
+// sale del Taller, la tienda confirma lo que llegó). Producción no lo reimplementa: solo lleva la mano hasta ahí, con el origen y las líneas ya puestas. El destino NO se
+// prellena (una corrida suele repartirse entre tiendas): lo elige quien traslada. Lo prellenado es una SUGERENCIA: la pantalla de destino valida todo (solo un líder respeta un
+// origen distinto del suyo; una variante sin stock movible se ignora).
+
+export type LineaParaTrasladar = { varianteId: string; cantidadBuenas: number | null };
+
+/** `/inventario/mover?origen=<Taller>&lineas=<variante>:<cantidad>,…`, o `null` si la orden no dejó ninguna prenda buena (no hay nada que llevar). */
+export function urlLlevarATiendas(tallerId: string, lineas: LineaParaTrasladar[]): string | null {
+  const buenas = lineas.filter((l) => (l.cantidadBuenas ?? 0) > 0);
+  if (buenas.length === 0) return null;
+  return `/inventario/mover?origen=${encodeURIComponent(tallerId)}&lineas=${buenas.map((l) => `${encodeURIComponent(l.varianteId)}:${l.cantidadBuenas}`).join(",")}`;
+}
+
+/** Lo inverso, para la pantalla de Mover: `variante:cantidad,variante:cantidad`. Descarta lo mal formado, las cantidades que no son enteros positivos y las variantes repetidas
+ *  (se suman). Nunca lanza: un parámetro roto se ignora y el formulario arranca como siempre. */
+export function parsearLineasPrellenadas(param: string | undefined): { varianteId: string; cantidad: number }[] {
+  if (!param) return [];
+  const acum = new Map<string, number>();
+  for (const trozo of param.split(",")) {
+    const [id, cant] = trozo.split(":");
+    const n = Number(cant);
+    if (!id || !Number.isInteger(n) || n <= 0) continue;
+    acum.set(id, (acum.get(id) ?? 0) + n);
+  }
+  return [...acum.entries()].map(([varianteId, cantidad]) => ({ varianteId, cantidad }));
+}

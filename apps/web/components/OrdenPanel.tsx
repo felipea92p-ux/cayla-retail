@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
@@ -23,6 +24,7 @@ import {
   etapasDe,
   matrizDeLineas,
   posicionEnMedidor,
+  urlLlevarATiendas,
   type EstadoEtapa,
 } from "@/lib/produccion-reglas";
 import type { OrdenProduccion } from "@/lib/produccion";
@@ -43,6 +45,7 @@ const COLOR_PARTE = {
 // salida y recién ahí se le avisa al padre.
 export function OrdenPanel({
   orden,
+  tallerId,
   esLider,
   hoy,
   insumos,
@@ -52,6 +55,7 @@ export function OrdenPanel({
   onRevertir,
 }: {
   orden: OrdenProduccion;
+  tallerId: string;
   esLider: boolean;
   hoy: string;
   insumos: InsumoVista[];
@@ -73,6 +77,8 @@ export function OrdenPanel({
   }, [saliendo, onCerrar]);
 
   const abierta = orden.estado === "en_proceso";
+  // F8: una orden de producción cerrada deja prendas en el stock del Taller; el enlace lleva al traslado con el origen y las líneas ya puestas.
+  const llevarUrl = orden.estado === "terminada" && !orden.esMuestra ? urlLlevarATiendas(tallerId, orden.lineas) : null;
   const etapas = etapasDe(orden.esMuestra);
   const actual = etapaActual(orden.etapas, orden.esMuestra);
   const entrega = estadoEntrega(orden.fechaEntrega, hoy);
@@ -334,9 +340,20 @@ export function OrdenPanel({
             {orden.nota && <p className="text-sm text-tinta/75">— {orden.nota}</p>}
 
             {/* -------- cierre por talla -------- */}
-            {abierta && cerrando && <OrdenCierre orden={orden} matriz={matriz} esLider={esLider} onHecho={pedirSalida} />}
+            {abierta && cerrando && <OrdenCierre orden={orden} tallerId={tallerId} matriz={matriz} esLider={esLider} onHecho={pedirSalida} />}
           </div>
 
+          {llevarUrl && (
+            <section aria-label="Siguiente paso" className="mx-5 mb-4 rounded-2xl border border-sand bg-crema p-3.5">
+              <p className="label-cayla text-[11px] text-tinta/65">Siguiente paso</p>
+              <p className="mt-1 text-[13px] text-tinta/80">
+                Las {orden.cantidadBuenas} prendas buenas están en el stock del Taller. Para venderlas hay que llevarlas a las tiendas: el traslado sale del Taller y cada tienda confirma lo que llegó.
+              </p>
+              <Link href={llevarUrl} className="label-cayla mt-2.5 inline-block rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo">
+                Llevarlas a las tiendas
+              </Link>
+            </section>
+          )}
           <footer className="flex gap-2 border-t border-sand px-6 py-4">
             {abierta && !cerrando && (
               <>

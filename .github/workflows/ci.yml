@@ -160,6 +160,24 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-venta
 
+      # La lista de lo vendido hoy (Caja, Vender, Facturación): una fila por venta aunque tenga dos
+      # comprobantes y sin las anuladas (20260921103000). Cada caso termina en ROLLBACK.
+      - name: pruebas:ventas-del-dia
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:ventas-del-dia
+
+      # Anular una venta libera su comprobante pendiente (20260921121500): no queda uno en la cola de
+      # SUNAT con su botón «Transmitir» de una venta que ya se devolvió. Cada caso termina en ROLLBACK.
+      - name: pruebas:anular-venta-comprobante
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:anular-venta-comprobante
+
+      # Un comprobante no nace sobre una venta anulada (20260921161500): ni por `emitir_comprobante`, ni por
+      # un insert directo, ni convirtiendo una proforma. Cada caso termina en ROLLBACK.
+      - name: pruebas:comprobante-venta-anulada
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:comprobante-venta-anulada
+
       # Apartar stock (ADR-0141): una venta, un traslado o un ajuste no se llevan lo apartado; quién puede apartar y
       # liberar; RLS y privilegios; y el contador de cada fila siempre cuadra con la suma de sus apartados abiertos.
       # Cada caso termina en ROLLBACK.
@@ -208,6 +226,13 @@ jobs:
       - name: pruebas:candado-dinero-produccion
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:candado-dinero-produccion
+
+      # Vista puente de la planilla de Dynamic (ADR-0133, F7; D-33): agrega la planilla YA PAGADA por sede y período (personas, pagado, provisiones, costo total),
+      # solo períodos pagados y sin el grupo «prueba», oculta grupos de menos de 3 personas, no expone a nadie identificable, es security_invoker (sin permiso en
+      # Dynamic sale vacía) y sin Dynamic en la base la migración no falla. Arma el stub de Dynamic dentro de cada transacción y hace ROLLBACK.
+      - name: pruebas:planilla-por-sede
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:planilla-por-sede
 
       # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
       # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las

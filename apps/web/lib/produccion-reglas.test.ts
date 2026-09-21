@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { costoUnitario, semaforoMargen, ETAPAS_MUESTRA, ETAPAS_PRODUCCION } from "./produccion-reglas";
+import { costoUnitario, parsearLineasPrellenadas, semaforoMargen, urlLlevarATiendas, ETAPAS_MUESTRA, ETAPAS_PRODUCCION } from "./produccion-reglas";
 
 describe("semaforoMargen", () => {
   it("gana con 60% o más de margen", () => {
@@ -181,5 +181,32 @@ describe("resumenTablero", () => {
   });
   it("sin nada con qué comparar, el margen es null", () => {
     expect(resumenTablero([], hoy).margenPromedio).toBeNull();
+  });
+});
+
+describe("llevar las prendas a las tiendas (F8)", () => {
+  it("arma el enlace a Mover con el Taller de origen y solo las líneas con prendas buenas", () => {
+    expect(
+      urlLlevarATiendas("taller-1", [
+        { varianteId: "v1", cantidadBuenas: 12 },
+        { varianteId: "v2", cantidadBuenas: 0 },
+        { varianteId: "v3", cantidadBuenas: null },
+        { varianteId: "v4", cantidadBuenas: 8 },
+      ])
+    ).toBe("/inventario/mover?origen=taller-1&lineas=v1:12,v4:8");
+  });
+  it("sin prendas buenas no hay nada que llevar", () => {
+    expect(urlLlevarATiendas("t", [{ varianteId: "v1", cantidadBuenas: 0 }])).toBeNull();
+    expect(urlLlevarATiendas("t", [])).toBeNull();
+  });
+  it("ida y vuelta: lo que se arma se lee igual", () => {
+    const url = urlLlevarATiendas("t", [{ varianteId: "a-1", cantidadBuenas: 5 }, { varianteId: "b-2", cantidadBuenas: 7 }])!;
+    expect(parsearLineasPrellenadas(new URL(url, "http://x").searchParams.get("lineas") ?? "")).toEqual([{ varianteId: "a-1", cantidad: 5 }, { varianteId: "b-2", cantidad: 7 }]);
+  });
+  it("un parámetro roto se ignora: sin cantidad, con decimales, negativa, vacío o repetido (se suma)", () => {
+    expect(parsearLineasPrellenadas(undefined)).toEqual([]);
+    expect(parsearLineasPrellenadas("")).toEqual([]);
+    expect(parsearLineasPrellenadas("v1,v2:0,v3:-4,v4:2.5,:9,v5:x")).toEqual([]);
+    expect(parsearLineasPrellenadas("v1:3,v1:4,v2:1")).toEqual([{ varianteId: "v1", cantidad: 7 }, { varianteId: "v2", cantidad: 1 }]);
   });
 });

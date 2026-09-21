@@ -225,6 +225,7 @@ export function OrdenesTablero({
         <OrdenPanel
           key={abierta.id}
           orden={abierta}
+          tallerId={tallerId}
           esLider={esLider}
           hoy={hoy}
           insumos={insumos}
