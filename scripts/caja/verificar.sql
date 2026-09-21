@@ -226,7 +226,9 @@ begin
   select monto_sistema into v_x from retail.cerrar_caja(current_setting('pruebas.caja_c')::uuid, 20);
   raise notice 'RESULTADO|%|%|%', 'C2 colaboradora sin acceso a Lima intenta cerrarla debe RECHAZAR', false, 'no debio permitir: ' || v_x;
 exception when others then
-  raise notice 'RESULTADO|%|%|%', 'C2 colaboradora sin acceso a Lima intenta cerrarla debe RECHAZAR', sqlerrm ilike '%permiso%', sqlerrm;
+  -- Desde 20260921110000 (D-13) el primer candado de cerrar_caja es el de LÍDER, no el de ubicación:
+  -- una colaboradora ya no llega a preguntarse si la caja es de su sede. El mensaje ahora nombra al líder.
+  raise notice 'RESULTADO|%|%|%', 'C2 colaboradora sin acceso a Lima intenta cerrarla debe RECHAZAR', sqlerrm ilike '%líder%', sqlerrm;
 end $$;
 
 select set_config('request.jwt.claim.sub', '22222222-2222-4222-8222-000000000001', true); -- Felipe
