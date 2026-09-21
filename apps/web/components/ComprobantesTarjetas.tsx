@@ -55,7 +55,7 @@ export function ComprobantesTarjetas({
         etiqueta="Emitidos"
         tono="taupe"
         icono={<FileText size={15} strokeWidth={1.75} />}
-        indice={0}
+        indice={2}
         valor={<CifraAnimada valor={m.emitidos} />}
         contexto={
           <>
@@ -74,7 +74,7 @@ export function ComprobantesTarjetas({
         etiqueta="Monto facturado"
         tono="taupe"
         icono={<Banknote size={15} strokeWidth={1.75} />}
-        indice={1}
+        indice={3}
         valor={<CifraAnimada valor={m.facturado} formato="soles" />}
         contexto={
           <>
@@ -88,7 +88,7 @@ export function ComprobantesTarjetas({
         etiqueta="Pendientes de enviar"
         tono={!porEnviar ? "taupe" : pendientes > 0 ? "ambar" : "verde"}
         icono={<Send size={15} strokeWidth={1.75} />}
-        indice={2}
+        indice={4}
         colorearCifra
         // Sin `CifraAnimada`, igual que «Por enviar» del Resumen: es una cola que sube y baja.
         valor={
@@ -124,7 +124,7 @@ export function ComprobantesTarjetas({
         etiqueta="Rechazados"
         tono={!porEnviar ? "taupe" : rechazados > 0 ? "rojo" : "verde"}
         icono={<OctagonAlert size={15} strokeWidth={1.75} />}
-        indice={3}
+        indice={5}
         colorearCifra
         valor={
           porEnviar ? (

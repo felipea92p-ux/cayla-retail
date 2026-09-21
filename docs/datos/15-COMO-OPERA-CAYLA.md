@@ -472,7 +472,7 @@ Y dos reglas que van encima del porcentaje:
 **R-48 · Cada líder ve solo su sede.** *Decidido.* Ni las ventas ni los números de las
 otras tiendas.
 
-> **Excepción vigente, todavía abierta (2026-09-15; rotulada el 2026-09-22, ADR-0150):** `/productos` muestra el
+> **Excepción vigente, todavía abierta (2026-09-15; rotulada el 2026-09-22, ADR-0151):** `/productos` muestra el
 > stock **total de la red** —todas las sedes y el Taller—, escrito «Stock total», no el de la sede activa. Nació de una
 > decisión de Felipe que solo vivía en un comentario de migración; qué número debe ver una tienda sigue sin decidirse
 > (opciones A/B/C en `docs/pantallas/productos.md`, sección 8).

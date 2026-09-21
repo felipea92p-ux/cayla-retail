@@ -16,7 +16,7 @@ export function ProformasTarjetas({ resumen }: { resumen: ResumenProformas }) {
         etiqueta="Vigentes"
         tono="taupe"
         icono={<FileText size={15} strokeWidth={1.75} />}
-        indice={0}
+        indice={2}
         valor={<CifraAnimada valor={resumen.vigentes} />}
         contexto={resumen.vigentes === 0 ? "Ninguna en pie." : "Siguen valiendo, de cualquier mes."}
       />
@@ -25,7 +25,7 @@ export function ProformasTarjetas({ resumen }: { resumen: ResumenProformas }) {
         etiqueta="Monto cotizado"
         tono="taupe"
         icono={<Banknote size={15} strokeWidth={1.75} />}
-        indice={1}
+        indice={3}
         valor={<CifraAnimada valor={resumen.monto} formato="soles" />}
         contexto={resumen.vigentes === 0 ? "Nada cotizado en pie." : "Lo que suman las vigentes, sin contar las vencidas."}
       />
@@ -34,7 +34,7 @@ export function ProformasTarjetas({ resumen }: { resumen: ResumenProformas }) {
         etiqueta={`Por vencer (${HORAS_PROFORMA_POR_VENCER} h)`}
         tono={resumen.porVencer > 0 ? "ambar" : "verde"}
         icono={<Hourglass size={15} strokeWidth={1.75} />}
-        indice={2}
+        indice={4}
         colorearCifra
         valor={<CifraAnimada valor={resumen.porVencer} />}
         contexto={resumen.porVencer > 0 ? "Son las clientas con más chance de volver hoy a comprar." : "Ninguna vence pronto."}
@@ -44,7 +44,7 @@ export function ProformasTarjetas({ resumen }: { resumen: ResumenProformas }) {
         etiqueta="Vencidas"
         tono={resumen.vencidas > 0 ? "ambar" : "verde"}
         icono={<CalendarX size={15} strokeWidth={1.75} />}
-        indice={3}
+        indice={5}
         colorearCifra
         valor={<CifraAnimada valor={resumen.vencidas} />}
         contexto={resumen.vencidas > 0 ? "Ya pasó su plazo: la clienta ya no tiene el precio que se le cotizó." : "Ninguna vencida."}

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { CalendarDays, ChevronDown } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { CalendarDays } from "lucide-react";
 import { BuscadorDebounced } from "@/components/ui/BuscadorDebounced";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { ALTO_CONTROL, SelectNativo } from "@/components/ui/campos";
 import type { CambiosUrl } from "@/components/useResumenUrl";
 import type { ModoResumen } from "@/lib/resumen-comparacion";
-import { etiquetaRango, MODOS_COMPARACION, PRESETS_PERIODO, type ModoComparacion, type PeriodoResuelto, type PresetPeriodo, type Rango } from "@/lib/resumen-periodo";
+import { MODOS_COMPARACION, PRESETS_PERIODO, textoPildoraPeriodo, type ModoComparacion, type PeriodoResuelto, type PresetPeriodo, type Rango } from "@/lib/resumen-periodo";
 import { OPCIONES_SELL_THROUGH, type AlcanceResumen, type FiltroSellThrough } from "@/lib/resumen-filtros";
 
 // La franja de mando del Análisis de inventario. Todo cambio va a la URL (`useResumenUrl`) y el
@@ -19,13 +19,19 @@ import { OPCIONES_SELL_THROUGH, type AlcanceResumen, type FiltroSellThrough } fr
 // estado: dependían del stock de hoy, y esta pantalla no lo mira.
 //
 // COMPARAR PERÍODOS (`modo = "comparar"`): CONTEXTO de la página, no otra card protagonista (2026-09-19).
-// Por defecto es una línea compacta «A · fecha → B · fecha» + un botón «Cambiar períodos» que despliega
-// el mismo configurador de siempre (los presets de B y «comparar con» de A); el período analizado sigue
-// siendo B y «Comparar con» A (anterior, mismo período del año pasado u «Otro período…» con fechas a mano;
-// «Sin comparación» no existe: sin A no hay qué comparar). La búsqueda NO vive aquí: se mudó al Detalle
-// (Vista general no filtra productos, los explica).
+// Desde el diseño de Figma del 2026-09-21 son dos píldoras, «Período A: desde … hasta …» y «Período B: desde …
+// hasta …», del alto de todo control (`ALTO_CONTROL`) y alineadas con la línea del selector de Categoría.
+// Tocar cualquiera abre EL MISMO selector de fechas (`PopoverRango`) que usa «Personalizado» en Desempeño:
+// Desde y Hasta escritos a mano y ya cargados con el período actual. Los atajos que A y B ya tenían —A: período
+// anterior o mismo período del año pasado; B: 7, 30, 90 días y este mes— viven dentro de ese mismo selector, para
+// que unificarlos no le quite a nadie una capacidad. «Sin comparación» no existe: sin A no hay qué comparar. La
+// búsqueda NO vive aquí: se mudó al Detalle (Vista general no filtra productos, los explica).
 
 const ETIQUETA = "label-cayla text-[10px] text-tinta/65";
+
+// Dónde cae el selector de fechas: bajo la tarjeta de Desempeño, o bajo la píldora que se tocó en Comparar.
+const POSICION_TARJETA = "absolute left-4 top-[calc(100%-0.25rem)] z-20 w-[min(22rem,calc(100%-2rem))]";
+const POSICION_PILDORA = "absolute left-0 top-full z-20 mt-2 w-[22rem] max-w-[calc(100vw-2rem)]";
 
 function Filtro({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
   return (
@@ -36,47 +42,129 @@ function Filtro({ etiqueta, children }: { etiqueta: string; children: React.Reac
   );
 }
 
-/** El popover de dos fechas («Período personalizado» de B, «Período A» de la comparación). */
+/** El selector de fechas de todo el Análisis (2026-09-21): el de «Personalizado» en Desempeño y el de las
+ *  píldoras A y B en Comparar son ESTE, no tres. Escribir es lo principal: abre con las dos fechas del período
+ *  que se está viendo ya cargadas y «Desde» listo para teclear (seleccionado: lo escrito reemplaza la fecha),
+ *  Tab pasa de una a otra y Enter aplica; el calendario de cada campo queda como ayuda, nunca obligatorio.
+ *  Los errores van en línea, jamás un alert: una fecha que no existe se marca en su campo y «Desde» posterior a
+ *  «Hasta» debajo de los dos. «Aplicar» no se apaga: al intentarlo con algo mal dice qué y lleva el foco al
+ *  campo que hay que arreglar (un botón apagado no explica nada). Los topes del período —no empezar en el
+ *  futuro, 366 días— siguen siendo del servidor, que avisa con su `advertencia`. */
 function PopoverRango({
+  id,
   titulo,
-  desde,
-  hasta,
-  onDesde,
-  onHasta,
+  inicial,
+  className,
+  atajos,
   onCancelar,
   onAplicar,
 }: {
+  id: string;
   titulo: string;
-  desde: string;
-  hasta: string;
-  onDesde: (v: string) => void;
-  onHasta: (v: string) => void;
+  /** Las fechas con que abre: las del período que se está viendo (null = todavía sin fechas). */
+  inicial: Rango | null;
+  /** Dónde se posiciona: lo decide quien lo usa. */
+  className: string;
+  /** Opcional: los atajos del período (chips) que se aplican de un clic. */
+  atajos?: ReactNode;
   onCancelar: () => void;
-  onAplicar: () => void;
+  onAplicar: (rango: Rango) => void;
 }) {
-  const rangoValido = desde !== "" && hasta !== "" && desde <= hasta;
+  const [desde, setDesde] = useState(inicial?.desde ?? "");
+  const [hasta, setHasta] = useState(inicial?.hasta ?? "");
+  // Aplicar se intentó con algo mal: desde ahí los avisos se ven y se corrigen en vivo.
+  const [intentado, setIntentado] = useState(false);
+  // «Desde» posterior a «Hasta» solo se avisa cuando ya se salió de «Hasta»: mientras se escribe «Desde»
+  // primero (y «Hasta» viene después) sería un aviso falso a mitad de camino.
+  const [hastaTocado, setHastaTocado] = useState(false);
+  const formulario = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    const primero = formulario.current?.querySelector("input");
+    primero?.focus();
+    primero?.select();
+  }, []);
+
+  const completo = desde !== "" && hasta !== "";
+  const alReves = completo && desde > hasta;
+
+  const aplicar = (e: FormEvent) => {
+    e.preventDefault();
+    if (completo && !alReves) return onAplicar({ desde, hasta });
+    setIntentado(true);
+    formulario.current?.querySelectorAll("input")[desde === "" ? 0 : 1]?.focus();
+  };
+
   return (
-    <div className="absolute left-4 top-[calc(100%-0.25rem)] z-20 w-[min(22rem,calc(100%-2rem))] rounded-lg border border-tinta/15 bg-papel p-4 shadow-lg">
-      <p className="label-cayla text-[11px] text-tinta">{titulo}</p>
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <CampoFecha etiqueta="Desde" valor={desde} onValor={onDesde} />
-        <CampoFecha etiqueta="Hasta" valor={hasta} onValor={onHasta} />
-      </div>
-      {!rangoValido && desde !== "" && hasta !== "" && <p className="mt-2 text-xs text-rojo-profundo">«Desde» no puede ser posterior a «Hasta».</p>}
-      <div className="mt-4 flex justify-end gap-3">
-        <button type="button" onClick={onCancelar} className="label-cayla text-[11px] text-tinta/65 hover:text-tinta">
-          Cancelar
-        </button>
-        <button
-          type="button"
-          disabled={!rangoValido}
-          onClick={onAplicar}
-          className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Aplicar
-        </button>
-      </div>
+    <div id={id} role="group" aria-label={titulo} className={`anim-revelar rounded-lg border border-tinta/15 bg-papel p-4 shadow-lg ${className}`}>
+      <form ref={formulario} noValidate onSubmit={aplicar}>
+        <p className="label-cayla text-[11px] text-tinta">{titulo}</p>
+        {atajos && <div className="mt-3 flex flex-wrap gap-1.5">{atajos}</div>}
+        {/* Lado a lado desde 380px: por debajo, cada campo queda de ~120px y «23/08/2026» (~127px con su
+            icono de calendario) se corta; apilados caben en cualquier pantalla. */}
+        <div className="mt-3 grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">
+          <div>
+            <CampoFecha etiqueta="Desde" valor={desde} onValor={setDesde} required estricto revelarError={intentado} />
+          </div>
+          <div onBlur={() => setHastaTocado(true)}>
+            <CampoFecha etiqueta="Hasta" valor={hasta} onValor={setHasta} required estricto revelarError={intentado} />
+          </div>
+        </div>
+        {alReves && (intentado || hastaTocado) && (
+          <p role="alert" className="mt-2 text-xs text-rojo-profundo">
+            «Desde» no puede ser posterior a «Hasta».
+          </p>
+        )}
+        <div className="mt-4 flex justify-end gap-3">
+          <button type="button" onClick={onCancelar} className="label-cayla text-[11px] text-tinta/65 hover:text-tinta">
+            Cancelar
+          </button>
+          <button type="submit" className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo">
+            Aplicar
+          </button>
+        </div>
+      </form>
     </div>
+  );
+}
+
+/** Un atajo dentro del selector de fechas: un clic y se aplica. El activo va en tinta, como los presets de
+ *  Desempeño; si el período es uno escrito a mano, ninguno lo está. */
+function Atajo({ activo, onClick, children }: { activo: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={activo}
+      className={`label-cayla inline-flex h-8 items-center rounded-md border px-2.5 text-[11px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo/60 ${
+        activo ? "border-tinta bg-tinta text-crema" : "border-tinta/15 bg-papel text-tinta/75 hover:border-tinta/40"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** La píldora de un período en «Comparar períodos» (Figma 2026-09-21): ícono de calendario de 14 px + texto de
+ *  13 px medium, fondo tinta/4 %, borde tinta/30, radio 8, padding lateral 12, 8 entre ícono y texto. Del alto de
+ *  todo control (`ALTO_CONTROL`, 36 px) —el frame la dibujó de 32 y con eso rompía la línea que comparten
+ *  pestañas, presets y selector— y abierta (su selector de fechas a la vista) oscurece el borde. Es un botón: en
+ *  una ventana angosta el texto se recorta con «…» antes que desbordar la fila. */
+function PildoraPeriodo({ texto, titulo, abierta, controla, onClick }: { texto: string; titulo: string; abierta: boolean; controla: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={abierta}
+      aria-controls={controla}
+      title={titulo}
+      className={`inline-flex ${ALTO_CONTROL} min-w-0 max-w-full items-center gap-2 rounded-md border bg-tinta/[0.04] px-3 text-xs font-medium text-tinta transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo/60 ${
+        abierta ? "border-tinta/60" : "border-tinta/30 hover:border-tinta/50"
+      }`}
+    >
+      <CalendarDays aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5 shrink-0" />
+      <span className="truncate">{texto}</span>
+    </button>
   );
 }
 
@@ -97,59 +185,33 @@ export function ResumenControles({
   actualizar: (cambios: CambiosUrl) => void;
   /** Solo Desempeño: la banda de sell-through elegida. */
   sellThrough?: FiltroSellThrough;
-  /** Solo Comparar: cómo se eligió A y el rango con que se compara hoy (precarga las fechas de «Otro período…»). */
+  /** Solo Comparar: cómo se eligió A y el rango con que se compara hoy (A es «Otro período…» cuando lo escribió a mano). */
   modoComparacion?: ModoComparacion;
   rangoComparacion?: Rango | null;
 }) {
   const comparando = modo === "comparar";
-  // Un solo popover de fechas abierto a la vez: el del período (B) o el de «Otro período…» (A).
+  // Un solo selector de fechas abierto a la vez: el del período que se analiza (B en Comparar,
+  // «Personalizado» en Desempeño) o el de A, el período contra el que se compara.
   const [abierto, setAbierto] = useState<"periodo" | "comparacion" | null>(null);
-  // Solo Comparar: el configurador completo arranca cerrado (el contexto es la línea compacta A → B).
-  const [config, setConfig] = useState(false);
-  const [desde, setDesde] = useState(periodo.desde);
-  const [hasta, setHasta] = useState(periodo.hasta);
-  const [desdeA, setDesdeA] = useState(rangoComparacion?.desde ?? "");
-  const [hastaA, setHastaA] = useState(rangoComparacion?.hasta ?? "");
+  const alternar = (cual: "periodo" | "comparacion") => setAbierto((a) => (a === cual ? null : cual));
 
   const elegirPreset = (p: PresetPeriodo) => {
-    if (p === "personalizado") {
-      setDesde(periodo.desde);
-      setHasta(periodo.hasta);
-      setAbierto((a) => (a === "periodo" ? null : "periodo"));
-      return;
-    }
+    if (p === "personalizado") return alternar("periodo");
     setAbierto(null);
     actualizar({ preset: p === "30d" ? null : p, desde: null, hasta: null });
   };
 
-  const abrirComparacion = () => {
-    setDesdeA(rangoComparacion?.desde ?? "");
-    setHastaA(rangoComparacion?.hasta ?? "");
-    setAbierto((a) => (a === "comparacion" ? null : "comparacion"));
-  };
-
-  const elegirComparacion = (valor: ModoComparacion) => {
-    if (valor === "personalizado") return abrirComparacion();
+  const elegirComparacion = (valor: "anterior" | "anio") => {
     setAbierto(null);
     actualizar({ comparar: valor === "anterior" ? null : valor, cdesde: null, chasta: null });
   };
 
-  const opcionesComparacion = MODOS_COMPARACION.filter((m) => m.valor !== "ninguna");
-
   // Las piezas se arman una vez y las usan las dos composiciones.
   const chipsPeriodo = (
     <div className="max-w-full">
-      <span className={ETIQUETA}>
-        {comparando ? (
-          <>
-            Período B <span className="normal-case tracking-normal text-tinta/50">(el que analizas)</span>
-          </>
-        ) : (
-          "Período analizado"
-        )}
-      </span>
+      <span className={ETIQUETA}>Período analizado</span>
       <div className="mt-1.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div role="radiogroup" aria-label={comparando ? "Período B" : "Período analizado"} className="inline-flex overflow-hidden rounded-md border border-tinta/15 bg-papel">
+        <div role="radiogroup" aria-label="Período analizado" className="inline-flex overflow-hidden rounded-md border border-tinta/15 bg-papel">
           {PRESETS_PERIODO.map((p) => {
             const activo = periodo.preset === p.valor && !(p.valor === "personalizado" && abierto !== "periodo" && periodo.preset !== "personalizado");
             return (
@@ -186,15 +248,24 @@ export function ResumenControles({
     </Filtro>
   );
 
+  // El selector del período que se analiza: B en Comparar (con sus atajos de 7/30/90 días y este mes) y
+  // «Personalizado» en Desempeño (sin atajos: esos ya son los chips de al lado).
   const popoverPeriodo = abierto === "periodo" && (
     <PopoverRango
-      titulo={comparando ? "Período B personalizado" : "Período personalizado"}
-      desde={desde}
-      hasta={hasta}
-      onDesde={setDesde}
-      onHasta={setHasta}
+      id="selector-periodo"
+      titulo={comparando ? "Período B · el que analizas" : "Período personalizado"}
+      inicial={{ desde: periodo.desde, hasta: periodo.hasta }}
+      className={comparando ? POSICION_PILDORA : POSICION_TARJETA}
+      atajos={
+        comparando &&
+        PRESETS_PERIODO.filter((p) => p.valor !== "personalizado").map((p) => (
+          <Atajo key={p.valor} activo={periodo.preset === p.valor} onClick={() => elegirPreset(p.valor)}>
+            {p.texto}
+          </Atajo>
+        ))
+      }
       onCancelar={() => setAbierto(null)}
-      onAplicar={() => {
+      onAplicar={({ desde, hasta }) => {
         setAbierto(null);
         actualizar({ preset: "personalizado", desde, hasta });
       }}
@@ -230,85 +301,54 @@ export function ResumenControles({
     );
   }
 
-  // COMPARAR PERÍODOS: contexto compacto «A → B» + «Cambiar períodos» (despliega el configurador de
-  // siempre) + la categoría, un único filtro relevante acá. La búsqueda vive en Detalle.
+  // COMPARAR PERÍODOS: dos píldoras —A y B, cada una con SU rango— + la categoría, el único filtro relevante
+  // acá. Las tres piezas son del alto de un control y comparten el borde de abajo: la píldora se alinea con la
+  // línea del selector (no con su etiqueta, que queda por encima). La búsqueda vive en Detalle. Cada píldora
+  // lleva pegado su selector de fechas, para que se abra justo debajo de la que se tocó.
   const anioDistinto = rangoComparacion ? rangoComparacion.desde.slice(0, 4) !== periodo.desde.slice(0, 4) || rangoComparacion.hasta.slice(0, 4) !== periodo.hasta.slice(0, 4) : false;
+
   return (
     <div className="relative min-w-0">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5">
-        <p className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 text-sm">
-          <span className="text-tinta/50">A ·</span>
-          <span className="font-medium text-tinta">{rangoComparacion ? etiquetaRango(rangoComparacion, anioDistinto) : "—"}</span>
-          <span aria-hidden className="text-tinta/35">
-            →
-          </span>
-          <span className="sr-only">contra</span>
-          <span className="text-tinta/50">B ·</span>
-          <span className="font-medium text-tinta">{periodo.etiqueta}</span>
-        </p>
-        <button
-          type="button"
-          onClick={() => setConfig((c) => !c)}
-          aria-expanded={config}
-          aria-controls="comparar-config"
-          className={`label-cayla inline-flex ${ALTO_CONTROL} items-center gap-1.5 whitespace-nowrap rounded-md border px-3 text-[11px] transition-colors ${
-            config ? "border-tinta/30 bg-tinta/[0.04] text-tinta" : "border-tinta/15 text-tinta/70 hover:border-tinta/30 hover:text-tinta"
-          }`}
-        >
-          <CalendarDays aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />
-          Cambiar períodos
-          <ChevronDown aria-hidden strokeWidth={1.5} className={`h-3.5 w-3.5 transition-transform ${config ? "rotate-180" : ""}`} />
-        </button>
-        <div className="ml-auto w-full min-w-0 sm:ml-auto sm:w-44">{selectorCategoria}</div>
-      </div>
-
-      {config && (
-        <div id="comparar-config" className="anim-revelar card-cayla relative mt-3 flex min-w-0 flex-wrap items-end gap-x-5 gap-y-3 p-4">
-          {chipsPeriodo}
-
-          <Filtro etiqueta="Período A · comparar con">
-            <div className="mt-1.5 w-[11.5rem]">
-              <SelectNativo value={modoComparacion} onChange={(e) => elegirComparacion(e.target.value as ModoComparacion)} aria-label="Período A: comparar con">
-                {opcionesComparacion.map((m) => (
-                  <option key={m.valor} value={m.valor}>
-                    {m.texto}
-                  </option>
-                ))}
-              </SelectNativo>
-            </div>
-          </Filtro>
-
-          {/* «Otro período…» ya elegido: las fechas a la vista, y un clic para cambiarlas (el desplegable
-              no avisa al volver a elegir la misma opción). */}
-          {modoComparacion === "personalizado" && rangoComparacion && (
-            <button
-              type="button"
-              onClick={abrirComparacion}
-              aria-label={`Cambiar las fechas de comparación: ${etiquetaRango(rangoComparacion, true)}`}
-              className={`label-cayla inline-flex ${ALTO_CONTROL} items-center gap-1.5 self-end whitespace-nowrap rounded-md border border-tinta/15 bg-papel px-3 text-[11px] text-tinta/80 transition-colors hover:border-tinta/40`}
-            >
-              <CalendarDays aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />
-              {etiquetaRango(rangoComparacion, anioDistinto)}
-            </button>
-          )}
-
-          {popoverPeriodo}
+      <div className="flex flex-wrap items-end gap-x-3 gap-y-2.5">
+        <div className="relative min-w-0 max-w-full">
+          <PildoraPeriodo
+            texto={textoPildoraPeriodo("A", rangoComparacion, anioDistinto)}
+            titulo="Período A: contra el que se compara"
+            abierta={abierto === "comparacion"}
+            controla="selector-comparacion"
+            onClick={() => alternar("comparacion")}
+          />
           {abierto === "comparacion" && (
             <PopoverRango
+              id="selector-comparacion"
               titulo="Período A · el que se compara"
-              desde={desdeA}
-              hasta={hastaA}
-              onDesde={setDesdeA}
-              onHasta={setHastaA}
+              inicial={rangoComparacion}
+              className={POSICION_PILDORA}
+              atajos={MODOS_COMPARACION.filter((m): m is { valor: "anterior" | "anio"; texto: string } => m.valor === "anterior" || m.valor === "anio").map((m) => (
+                <Atajo key={m.valor} activo={modoComparacion === m.valor} onClick={() => elegirComparacion(m.valor)}>
+                  {m.texto}
+                </Atajo>
+              ))}
               onCancelar={() => setAbierto(null)}
-              onAplicar={() => {
+              onAplicar={({ desde, hasta }) => {
                 setAbierto(null);
-                actualizar({ comparar: "personalizado", cdesde: desdeA, chasta: hastaA });
+                actualizar({ comparar: "personalizado", cdesde: desde, chasta: hasta });
               }}
             />
           )}
         </div>
-      )}
+        <div className="relative min-w-0 max-w-full">
+          <PildoraPeriodo
+            texto={textoPildoraPeriodo("B", { desde: periodo.desde, hasta: periodo.hasta }, anioDistinto)}
+            titulo="Período B: el que analizas"
+            abierta={abierto === "periodo"}
+            controla="selector-periodo"
+            onClick={() => alternar("periodo")}
+          />
+          {popoverPeriodo}
+        </div>
+        <div className="ml-auto w-full min-w-0 sm:ml-auto sm:w-44">{selectorCategoria}</div>
+      </div>
     </div>
   );
 }

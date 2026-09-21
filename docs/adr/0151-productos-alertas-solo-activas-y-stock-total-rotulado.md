@@ -1,4 +1,4 @@
-# ADR-0150 — Productos: las alertas de stock solo cuentan prendas activas, «Stock» se llama «Stock total» y los números de la cabecera dejan de mentir
+# ADR-0151 — Productos: las alertas de stock solo cuentan prendas activas, «Stock» se llama «Stock total» y los números de la cabecera dejan de mentir
 
 **Fecha:** 2026-09-22
 **Estado:** Aceptado e **implementado en local** (rama `claude/pantalla-ebc078`). Verificado con la base local real (25 verificaciones de

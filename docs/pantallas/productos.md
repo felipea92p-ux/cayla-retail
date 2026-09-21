@@ -3,7 +3,7 @@
 > Modo: completo · Fecha: 2026-09-21 (reescrito el mismo día con los cuerpos reales de producción y una verificación adversarial) · Rol/sede: líder, sede TRU · Datos: **casi completo** (A1–A3, C1, D2, D3, E3, E4c de Felipe; agregados de solo lectura que consultó un agente; pendientes al final)
 > SHA analizado: `518132fb` (origin/main). Comprobado contra `3966c1d0` (origin/main al cierre de esta reescritura): los archivos de esta pantalla (`page.tsx`, `ProductosGrilla.tsx`, `ProductosAgrupados.tsx`, `catalogo-v2.ts`, `fn_productos*`) no cambiaron; solo cambiaron `/productos/categorias` y la migración `20260921170000_productos_por_categoria.sql` (otra pantalla). Si cambian después, este análisis está vencido.
 > Archivos: `apps/web/app/(app)/productos/page.tsx` · `components/ProductosGrilla.tsx` · `components/FiltrosProductos.tsx` · `components/ProductosAgrupados.tsx` · `lib/catalogo-v2.ts` · RPC `fn_productos`, `fn_productos_resumen`, `fn_productos_buscar` (`20260918231300_productos_por_marca_y_proveedor.sql`) · tablas `productos`, `variantes`, `stock`, `producto_fotos`, `marcas`, `proveedores`, `categorias`, `codigos_barras`
-> **Ejecución (2026-09-22):** Felipe eligió la **opción A** y ordenó las tareas #1 a #4: hechas en la rama `claude/pantalla-ebc078` (ADR-0150), y pasaron una revisión adversarial de tres revisores cuyos hallazgos están corregidos. La migración (una sola, `20260922120000`) **no está en producción**. El resto del análisis (#5 a #12) sigue vigente y sin ejecutar.
+> **Ejecución (2026-09-22):** Felipe eligió la **opción A** y ordenó las tareas #1 a #4: hechas en la rama `claude/pantalla-ebc078` (ADR-0151), y pasaron una revisión adversarial de tres revisores cuyos hallazgos están corregidos. La migración (una sola, `20260922120000`) **no está en producción**. El resto del análisis (#5 a #12) sigue vigente y sin ejecutar.
 > Otra sesión tocándola: sí — `product-creation-decision-tree-0afe63` (ADR-0109: marca, proveedor y «A quién pedirle»); `AppShell.tsx` tiene 6 PRs abiertos.
 > Etiquetas: `[visto]` captura · `[código archivo:línea]` · `[producción]` cuerpo o consulta que pegó Felipe · `[producción-agente]` lectura de solo lectura hecha por un agente de verificación (Felipe debe confirmarla con las consultas del apéndice) · `[inferido]` · `[no verificable]`.
 
@@ -100,7 +100,7 @@ Tope de 5 en «cumple su finalidad»: **aplicado**. Motivo: `reponer_de_proveedo
 
 ## 7 · Las 12 tareas, por importancia
 
-### #1 · Corregir — Los descontinuados fuera de «sin stock», «para pedir» y «A quién pedirle», y marcados en la Grilla ✅ hecha en local (ADR-0150, migración `20260922120000`)
+### #1 · Corregir — Los descontinuados fuera de «sin stock», «para pedir» y «A quién pedirle», y marcados en la Grilla ✅ hecha en local (ADR-0151, migración `20260922120000`)
 - **Dónde:** `fn_productos` (`:150`) y `fn_productos_resumen` (`:298-299`): agregar `estado = 'activo'` a los tres contadores; `ProductosGrilla.tsx:207-218` (chip «Descontinuado» o tarjeta atenuada); `catalogo-v2.ts:297-316` (reposición sin `estado`).
 - **Por qué en este puesto:** es el único camino de esta pantalla hacia dinero (compra de un modelo que ya no se vende) y hace mentir a «23 sin stock». Sin esto, cada liquidación futura dispara una sugerencia falsa.
 - **Cómo lo verificas tú:** con la Q2 (apéndice), `sin_stock` para activos = 17 o 18 y `para_pedir` = 0 para descontinuados; en la Grilla, las 6 tarjetas descontinuadas se ven distintas; «A quién pedirle» desaparece hoy.
@@ -207,10 +207,10 @@ Lo que sigue viene de memoria, **no verificado**:
 **`fn_productos`, `fn_productos_resumen` y las lecturas directas de `productos` y `variantes` sirven costo y stock a cualquier sesión autenticada del proyecto, y ese proyecto es el de Dynamic.** Las tres funciones son `security definer` con `execute` a `authenticated` (`migración :306-309`) y no comprueban que quien llama sea colaborador de retail; `variantes_select` y `productos_select` dicen `auth.role() = 'authenticated'` `[código retail_policies.json]`. D-27 («costo visible, transparencia») se decidió pensando en cuentas de retail; desde la unificación con Dynamic, `auth.users` incluye cuentas que no lo son. `fn_stock_por_sede` sí lo comprueba (`20260914231015:233-238`): son dos criterios para el mismo dato. Cuántas cuentas hay hoy fuera de retail: **Q12** (solo conteos). Hasta tenerla, `[no verificable]`.
 
 ## 11 · Líneas propuestas para BACKLOG.md
-- [x] `[pantalla:productos]` #1 Descontinuados fuera de «sin stock», «para pedir» y «A quién pedirle», y marcados en la Grilla — M (decisión de Felipe) — hecha en local, ver ADR-0150
-- [x] `[pantalla:productos]` #2 Rótulo «Stock en toda la red» y decisión R-48 vs 2026-09-15 (opciones A/B/C) — S/M — opción A hecha; B/C abiertas, ver ADR-0150
-- [x] `[pantalla:productos]` #3 `count(distinct v.id)` en `fn_productos_resumen` («190 variantes») — S — hecha en local, ver ADR-0150
-- [x] `[pantalla:productos]` #4 Quitar el rojo de «Stock 0» por tarjeta (≤ 2 rojos) — S — hecha en local, ver ADR-0150
+- [x] `[pantalla:productos]` #1 Descontinuados fuera de «sin stock», «para pedir» y «A quién pedirle», y marcados en la Grilla — M (decisión de Felipe) — hecha en local, ver ADR-0151
+- [x] `[pantalla:productos]` #2 Rótulo «Stock en toda la red» y decisión R-48 vs 2026-09-15 (opciones A/B/C) — S/M — opción A hecha; B/C abiertas, ver ADR-0151
+- [x] `[pantalla:productos]` #3 `count(distinct v.id)` en `fn_productos_resumen` («190 variantes») — S — hecha en local, ver ADR-0151
+- [x] `[pantalla:productos]` #4 Quitar el rojo de «Stock 0» por tarjeta (≤ 2 rojos) — S — hecha en local, ver ADR-0151
 - [ ] `[pantalla:productos]` #5 Fotos: sin rótulo si no tiene ninguna, respaldo a foto general/principal, contador «sin foto» — M
 - [ ] `[pantalla:productos]` #6 Esconder «Editar» al integrante en Grilla y Tabla + prueba del rechazo — S
 - [ ] `[pantalla:productos]` #7 Demanda y plazo de entrega por producto en `fn_productos*` (medir primero) — M
@@ -298,4 +298,4 @@ where p.estado = 'activo' and (not m.activo or not pv.activo);
 |---|---|---|---|---|
 | 2026-09-21 | completo, primera versión (sin D3 ni E3) | 6.5 | 6.6 (Soporte) | primer análisis; reemplazada el mismo día |
 | 2026-09-21 | completo, con D3, E3, E4c y verificación adversarial (8 agentes) | 5.0 (tope) | 6.8 (Soporte) | no aplica: reescritura antes de ejecutar ninguna tarea. Caen: «candado de Editar» (era falso), `CHECK` de código (rompería las altas), «A quién pedirle falla en silencio» (omisión declarada) |
-| 2026-09-22 | ejecución (sin re-análisis) | 5.0 → se recalcula al re-analizar | 6.8 | #1, #2 (opción A), #3 y #4 hechas en local (ADR-0150); pendientes de producción las 2 migraciones |
+| 2026-09-22 | ejecución (sin re-análisis) | 5.0 → se recalcula al re-analizar | 6.8 | #1, #2 (opción A), #3 y #4 hechas en local (ADR-0151); pendientes de producción las 2 migraciones |

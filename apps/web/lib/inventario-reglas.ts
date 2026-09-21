@@ -196,3 +196,21 @@ export const DIAS_CONTEO_VIGENTE = 30;
 /** Por debajo de este % de líneas correctas el conteo no da confianza aunque
  *  sea reciente (misma escala de colores que `tonoExactitud`: < 95 = a mejorar). */
 export const EXACTITUD_ACEPTABLE_PCT = 95;
+
+// --- La miniatura de una prenda ------------------------------------------------
+// Vivía en `inventario-v2.ts` (solo servidor). Se mudó acá, sin cambiar su lógica,
+// cuando Conteo empezó a dibujar la prenda igual que Existencias: la regla de
+// cuál foto es LA foto de un producto tiene que ser una sola, y `inventario-v2`
+// no se puede importar desde un componente cliente.
+
+export type FotoCruda = { url: string; orden: number; es_principal: boolean };
+
+/** De las fotos de un producto (0 a N, en cualquier orden de llegada), la
+ *  que se muestra como miniatura: la marcada `es_principal`, o si ninguna
+ *  lo está, la de menor `orden` — mismo criterio que ya usan
+ *  `catalogo_crear_producto`/`catalogo_actualizar_producto` en SQL al
+ *  elegir cuál queda de `es_principal` por defecto. */
+export function fotoPrincipal(fotos: FotoCruda[] | null | undefined): string | null {
+  if (!fotos || fotos.length === 0) return null;
+  return (fotos.find((f) => f.es_principal) ?? [...fotos].sort((a, b) => a.orden - b.orden)[0]).url;
+}

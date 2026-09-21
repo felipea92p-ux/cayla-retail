@@ -1,6 +1,6 @@
 -- ============================================================================
 -- 20260922120000 — Productos: las alertas de stock solo cuentan prendas ACTIVAS y «N variantes» cuenta variantes
--- (pantalla:productos, tareas #1 y #3 — docs/pantallas/productos.md, objeciones 1 y 3; ADR-0150)
+-- (pantalla:productos, tareas #1 y #3 — docs/pantallas/productos.md, objeciones 1 y 3; ADR-0151)
 --
 -- PROBLEMA 1. `/productos` lista por defecto las prendas activas Y las descontinuadas, y los cuatro
 -- números de la cabecera («sin stock», «stock bajo», «para pedir» y el bloque «A quién pedirle»)

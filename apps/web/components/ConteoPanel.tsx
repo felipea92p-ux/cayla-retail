@@ -12,6 +12,8 @@ import { resumirVarianza, type FilaPrevisualizacion, type Varianza } from "@/lib
 import type { ConteoAbierto, PrioridadConteo } from "@/lib/conteos";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
+import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
+import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 import { CampoMonto, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
 
 type VarianteConteo = {
@@ -73,10 +75,18 @@ export function ConteoPanel({
   useEffect(() => {
     if (!categoriaId) return;
     let cancelado = false;
-    createClient()
+    const supabase = createClient();
+    supabase
       .rpc("fn_prioridad_conteo", { p_ubicacion_id: ubicacionId, p_alcance_categoria_id: categoriaId })
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (cancelado || error || !data) return;
+        // La función no devuelve la miniatura ni el color: se piden aparte, con la misma
+        // regla que Existencias (si falla, la fila sale sin foto y con el color en texto).
+        const apariencia = await getAparienciaVariantes(
+          supabase,
+          data.map((f) => f.variante_id)
+        );
+        if (cancelado) return;
         setSugerenciasPorCategoria(
           data.map((f) => ({
             varianteId: f.variante_id,
@@ -87,6 +97,7 @@ export function ConteoPanel({
             sububicacionId: f.sububicacion_id,
             diasSinContar: f.dias_sin_contar,
             valorEnRiesgo: Number(f.valor_en_riesgo),
+            apariencia: apariencia.get(f.variante_id),
           }))
         );
       });
@@ -184,14 +195,26 @@ export function ConteoPanel({
                 // etiqueta, las dos se ven idénticas salvo por el monto.
                 const sububicacion = sububicaciones.find((sub) => sub.id === s.sububicacionId);
                 return (
-                  <li key={`${s.varianteId}-${s.sububicacionId ?? "sin"}`} className="flex items-center justify-between gap-3 py-2 text-sm">
-                    <span className="min-w-0 truncate text-tinta">
-                      {s.referencia}
-                      {s.talla && ` · ${s.talla}`}
-                      {s.color && ` · ${s.color}`}
-                      {sububicacion && <span className="text-tinta/55"> · {sububicacion.nombre}</span>}
-                    </span>
-                    <span className="shrink-0 text-xs text-tinta/55">
+                  // La prenda a la izquierda y el dato de conteo a la derecha SOLO desde lg (1024px), no
+                  // desde sm: el menú lateral se come 272px, así que a 768px el contenido útil son ~360px
+                  // y el dato de la derecha (~290px) se le encimaba a la prenda (medido, 148px). Por
+                  // debajo, uno debajo del otro — misma razón por la que `Tabla` esconde columnas con lg/xl.
+                  <li
+                    key={`${s.varianteId}-${s.sububicacionId ?? "sin"}`}
+                    className="flex flex-col gap-1 py-2 text-sm lg:flex-row lg:items-center lg:justify-between lg:gap-3"
+                  >
+                    <ProductoVarianteCelda
+                      referencia={s.referencia}
+                      sku={s.sku}
+                      talla={s.talla}
+                      color={s.color}
+                      colorHex={s.apariencia?.colorHex}
+                      fotoUrl={s.apariencia?.fotoUrl ?? null}
+                    />
+                    {/* `pl-[2.875rem]` = la miniatura (36px) + su separación (10px): en celular la línea de
+                        abajo queda alineada con el texto de la prenda, no con la miniatura. */}
+                    <span className="pl-[2.875rem] text-xs text-tinta/55 lg:shrink-0 lg:pl-0">
+                      {sububicacion && `${sububicacion.nombre} · `}
                       {s.diasSinContar == null ? "nunca contada" : `hace ${s.diasSinContar}d`} · {money(s.valorEnRiesgo)}
                     </span>
                   </li>
