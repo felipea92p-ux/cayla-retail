@@ -8492,3 +8492,8 @@ Felipe fusionó F4a y pegó su migración (verificado contra producción). F4b c
 reglas de la factura de Compras (contado ⇒ pago exacto en la misma transacción, crédito ⇒ vencimiento, idempotente, anular con motivo y nunca con pagos) y saldo
 DERIVADO. Pantalla `/produccion/comprobantes`. Migración `20260921100000` sin pegar. `pruebas:comprobantes-produccion` 26/26 y 1691 pruebas del web en verde.
 No abre lotes (F4d). Compras no se tocó.
+
+## 2026-09-21 (Producción F4c: Por pagar y consolidado D-I — ADR-0133)
+Felipe fusionó F4b y pegó su migración (validada contra producción: crédito, contado con dos medios, anular con pagos rechazado, 0 filas de rastro). Aprobó D-I. F4c
+construida en local: pago posterior con uno o varios medios (sin pasarse del saldo, idempotente por token), pantalla `/produccion/por-pagar` y el consolidado «Deuda total de
+CAYLA» (Compras + Producción) con el IGV del mes, de solo lectura. El formulario de comprobantes al contado también admite varios medios. Migración `20260921110000` sin pegar.

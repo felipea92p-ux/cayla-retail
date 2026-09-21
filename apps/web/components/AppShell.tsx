@@ -910,6 +910,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   const insumos: Item = { href: "/produccion/insumos", etiqueta: "Insumos", icono: IC.insumos };
   const proveedoresProduccion: Item = { href: "/produccion/proveedores", etiqueta: "Proveedores", icono: IC.proveedores };
   const comprobantesProduccion: Item = { href: "/produccion/comprobantes", etiqueta: "Comprobantes", icono: IC.facturas };
+  const porPagarProduccion: Item = { href: "/produccion/por-pagar", etiqueta: "Por pagar", icono: IC.porPagar };
   // Producción y Compras son dos módulos distintos (ADR-0133, decisión de Felipe
   // 2026-09-19): cada uno con su grupo. Producción solo se ve parado en el Taller,
   // líder incluido (Felipe, 2026-09-20: vuelve a la regla del 2026-09-17 y deja sin
@@ -968,7 +969,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   // Resumen, comprobantes, por pagar, recibir y Eficiencia se suman
   // cuando existan (F4b a F7). Sin rótulos de sección a propósito: el riel del lateral se mueve
   // por filas de alto fijo (`PASO_FILA`) y una fila de otra altura lo desalinearía.
-  const itemsProduccion: Record<ClaveMenuProduccion, Item> = { ordenes, insumos, proveedoresProduccion, comprobantesProduccion };
+  const itemsProduccion: Record<ClaveMenuProduccion, Item> = { ordenes, insumos, proveedoresProduccion, comprobantesProduccion, porPagarProduccion };
   const hijosProduccion: Item[] = clavesProduccion.map((c) => itemsProduccion[c]);
   const grupoProduccion: ItemGrupo = {
     id: "produccion",

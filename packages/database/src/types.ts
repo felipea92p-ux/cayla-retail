@@ -3144,6 +3144,7 @@ export type Database = {
           comprobante_id: string
           created_at: string
           fecha: string
+          grupo_id: string | null
           id: string
           metodo: string
           monto: number
@@ -3154,6 +3155,7 @@ export type Database = {
           comprobante_id: string
           created_at?: string
           fecha?: string
+          grupo_id?: string | null
           id?: string
           metodo: string
           monto: number
@@ -3164,6 +3166,7 @@ export type Database = {
           comprobante_id?: string
           created_at?: string
           fecha?: string
+          grupo_id?: string | null
           id?: string
           metodo?: string
           monto?: number
@@ -5026,6 +5029,28 @@ export type Database = {
           vencido: boolean
         }[]
       }
+      fn_deuda_consolidada: {
+        Args: never
+        Returns: {
+          comprobantes: number
+          origen: string
+          proveedor: string
+          proveedor_id: string
+          proximo_vencimiento: string
+          saldo: number
+          vencido: number
+        }[]
+      }
+      fn_igv_credito_fiscal: {
+        Args: { p_mes?: string }
+        Returns: {
+          igv_compras: number
+          igv_neto: number
+          igv_notas_credito: number
+          igv_produccion: number
+          mes: string
+        }[]
+      }
       fn_proveedor_produccion_metricas: {
         Args: { p_proveedor_id: string }
         Returns: {
@@ -5771,6 +5796,10 @@ export type Database = {
           p_token?: string
           p_total?: number
         }
+        Returns: string
+      }
+      registrar_pago_comprobante_produccion: {
+        Args: { p_comprobante_id: string; p_fecha?: string; p_pagos: Json; p_token?: string }
         Returns: string
       }
       registrar_consumo_insumo: {
