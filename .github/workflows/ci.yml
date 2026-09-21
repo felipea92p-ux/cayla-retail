@@ -242,3 +242,13 @@ jobs:
       - name: pruebas:notas-credito
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:notas-credito
+
+      # Solo el líder de equipo cierra la caja y ajusta stock fuera de una venta (D-13, decidido el 2026-09-21): que el
+      # candado esté en la base y no solo en el menú — una colaboradora no cierra ni la caja de su propia tienda ni
+      # registra una entrada, salida o ajuste suelto (42501, y el stock y la caja quedan intactos), sin sesión tampoco;
+      # el líder hace exactamente lo mismo que antes (mismo arqueo, mismo stock, mismos rechazos), UNA sola firma por
+      # función, permiso de ejecución de authenticated intacto y la migración se puede pegar dos veces.
+      # Cada caso termina en ROLLBACK.
+      - name: pruebas:candado-lider
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:candado-lider
