@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260921160000_productos_por_categoria.sql — pantalla Categorías (pantalla:productos-categorias, tarea #2)
+-- 20260921170000_productos_por_categoria.sql — pantalla Categorías (pantalla:productos-categorias, tarea #2)
 --
 -- PROBLEMA. `/productos/categorias` traía TODAS las filas de `productos` al servidor solo para contar cuántas
 -- hay por categoría. Supabase corta las respuestas en ~1000 filas sin avisar: cuando el catálogo pase ese

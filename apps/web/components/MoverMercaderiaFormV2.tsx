@@ -52,6 +52,7 @@ export function MoverMercaderiaFormV2({
   variantes,
   destinoInicialId,
   lineaInicial,
+  lineasIniciales,
 }: {
   origenId: string;
   origenEtiqueta: string;
@@ -63,12 +64,17 @@ export function MoverMercaderiaFormV2({
    *  decidiendo todo antes de enviar. */
   destinoInicialId?: string;
   lineaInicial?: { varianteId: string; cantidad: number };
+  /** Varias líneas prellenadas (Producción, ADR-0133 F8): la página ya descartó lo que no tiene stock movible y topó cada cantidad. Si viene con datos, manda sobre `lineaInicial`. */
+  lineasIniciales?: { varianteId: string; cantidad: number }[];
 }) {
   const router = useRouter();
   const [destinoId, setDestinoId] = useState(destinoInicialId ?? destinos[0]?.id ?? "");
   const [nota, setNota] = useState("");
   const [etaLocal, setEtaLocal] = useState("");
-  const [lineas, setLineas] = useState<Linea[]>([
+  const [lineas, setLineas] = useState<Linea[]>(
+    lineasIniciales && lineasIniciales.length > 0
+      ? lineasIniciales.map((l) => ({ varianteId: l.varianteId, cantidad: String(Math.max(1, l.cantidad)) }))
+      : [
     lineaInicial
       ? { varianteId: lineaInicial.varianteId, cantidad: String(Math.max(1, Math.min(lineaInicial.cantidad, variantes.find((v) => v.varianteId === lineaInicial.varianteId)?.cantidad ?? 1))) }
       : { varianteId: variantes[0]?.varianteId ?? "", cantidad: "1" },
