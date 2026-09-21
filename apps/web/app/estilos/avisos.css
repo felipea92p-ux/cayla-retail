@@ -1,0 +1,245 @@
+/* ====================================================================
+   Avisos (toasts) — coreografía (2026-09-21, ADR-0146)
+   Spike de referencia: docs/maquetas/avisos-spike-2026-09/avisos-spike-v2-efectos.html
+   Componente: components/ui/Avisos.tsx
+
+   Cada efecto es la RESPUESTA a algo que pasó (ADR-0136): sin rebote, nada decorativo, nada en bucle salvo
+   la señal de «estoy trabajando»; 200–500 ms con --ease-cayla. El éxito, en ms desde que entra:
+     0    la tarjeta entra desde la derecha (260)
+     60   el disco de color se llena desde el centro (300)
+     60   el anillo se DIBUJA en sentido horario (460)
+     200  el título se revela de izquierda a derecha (360)
+     255  el detalle y la acción, 55 ms después — la misma cascada de los modales
+     260  el check se TRAZA (360)
+     520  una sola onda sale del anillo y se desvanece (600)
+     520  recién ahí arranca la cuenta atrás del anillo: el reloj no compite con el efecto
+   Un proceso con avance llena el anillo con el progreso real; al terminar, la MISMA tarjeta se
+   transforma en éxito sin redibujar el anillo (`data-continua`).
+   Los trazos del glifo usan pathLength="1" (un solo par de keyframes sirve para cualquier forma). El ANILLO no:
+   Chrome no escala el trazo discontinuo por pathLength en un <circle>, así que usa la circunferencia real
+   (2π·17 = 106.81) en --aviso-anillo.
+   ==================================================================== */
+
+@layer components {
+  .aviso-tarjeta {
+    --c: var(--color-verde);
+    --aviso-anillo: 106.81;
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    overflow: hidden;
+    pointer-events: auto;
+    border: 1px solid var(--color-sand);
+    border-radius: 0.75rem;
+    background: var(--color-papel);
+    padding: 0.75rem 0.625rem 0.75rem 0.75rem;
+    box-shadow: 0 10px 24px -8px rgb(26 26 24 / 0.18), 0 2px 4px rgb(26 26 24 / 0.06);
+    animation: cayla-aviso-entra 260ms var(--ease-cayla) both;
+  }
+  .aviso-tarjeta[data-tono="error"] { --c: var(--color-rojo); }
+  .aviso-tarjeta[data-tono="aviso"] { --c: var(--color-ambar); }
+  .aviso-tarjeta[data-tono="proceso"] { --c: var(--color-tinta); }
+  .aviso-tarjeta[data-saliendo] {
+    animation: cayla-aviso-sale 260ms var(--ease-salida) forwards;
+    pointer-events: none;
+  }
+
+  /* ---- Texto: el título dice QUÉ pasó; el detalle, sobre qué ---- */
+  .aviso-tit {
+    padding-top: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--color-tinta);
+    animation: cayla-aviso-revela 360ms var(--ease-cayla) 200ms both;
+  }
+  .aviso-tit:has(+ .aviso-det) { padding-top: 0.25rem; }
+  .aviso-det {
+    margin-top: 1px;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+    animation: cayla-aviso-revela 360ms var(--ease-cayla) 255ms both;
+  }
+  .aviso-acc {
+    margin-top: 0.375rem;
+    color: var(--color-tinta);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    animation: cayla-aviso-revela 360ms var(--ease-cayla) 255ms both;
+  }
+  .aviso-acc:hover { text-decoration: none; }
+  .aviso-x {
+    border-radius: 0.375rem;
+    padding: 0.25rem;
+    line-height: 0;
+    color: color-mix(in srgb, var(--color-tinta) 45%, transparent);
+    opacity: 0;
+    transition: opacity 200ms var(--ease-cayla), color 200ms;
+  }
+  /* Cerrar aparece al mirar el aviso: en reposo la tarjeta queda limpia. */
+  .aviso-tarjeta:hover .aviso-x,
+  .aviso-x:focus-visible { opacity: 1; }
+  .aviso-x:hover { color: var(--color-tinta); background: rgb(26 26 24 / 0.04); }
+
+  /* ---- Icono: disco + anillo (pista, onda, reloj) + glifo ---- */
+  .aviso-ico {
+    position: relative;
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+  }
+  .aviso-anillo {
+    position: absolute;
+    inset: -2px;
+    width: 36px;
+    height: 36px;
+    overflow: visible;
+    transform: rotate(-90deg);
+  }
+  /* :where() → especificidad cero: las reglas de cada círculo (disco, pista, onda, reloj) mandan sobre esta base. */
+  :where(.aviso-anillo circle) {
+    fill: none;
+    stroke: var(--c);
+    stroke-width: 2;
+    stroke-linecap: round;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .aviso-disco {
+    stroke: none;
+    fill: color-mix(in srgb, var(--c) 11%, transparent);
+    animation: cayla-aviso-disco 300ms var(--ease-cayla) 60ms both;
+  }
+  .aviso-pista { opacity: 0.16; }
+  .aviso-onda {
+    stroke-width: 1.5;
+    opacity: 0;
+    animation: cayla-aviso-onda 600ms var(--ease-cayla) 520ms both;
+  }
+  .aviso-reloj {
+    stroke-dasharray: var(--aviso-anillo);
+    stroke-dashoffset: 0;
+    animation:
+      cayla-aviso-dibuja 460ms var(--ease-cayla) 60ms both,
+      cayla-aviso-reloj var(--ms) linear 520ms forwards;
+  }
+  /* Con el mouse (o el foco) encima el reloj se detiene: un error se lee con calma. */
+  .aviso-tarjeta:hover .aviso-reloj,
+  .aviso-tarjeta:focus-within .aviso-reloj { animation-play-state: paused, paused; }
+
+  /* Proceso: el anillo es un medidor real (--p de 0 a 1) o, sin cifra, un arco que gira. */
+  .aviso-tarjeta[data-tono="proceso"] .aviso-disco { animation: none; fill: rgb(26 26 24 / 0.07); }
+  .aviso-tarjeta[data-tono="proceso"] .aviso-onda { display: none; }
+  .aviso-tarjeta[data-tono="proceso"] .aviso-reloj {
+    animation: none;
+    stroke-dashoffset: calc(var(--aviso-anillo) * (1 - var(--p, 0.28)));
+    transition: stroke-dashoffset 500ms var(--ease-cayla);
+  }
+  .aviso-tarjeta[data-tono="proceso"]:not([data-prog]) .aviso-anillo { animation: cayla-aviso-giro 1s linear infinite; }
+
+  /* El proceso que llegó al 100 % ya tiene el anillo completo: no se redibuja, sigue con el check. */
+  .aviso-tarjeta[data-continua] .aviso-disco { animation: none; }
+  .aviso-tarjeta[data-continua] .aviso-reloj { animation: cayla-aviso-reloj var(--ms) linear 520ms forwards; }
+  .aviso-tarjeta[data-continua] .aviso-tit { animation-delay: 60ms; }
+  .aviso-tarjeta[data-continua] .aviso-det,
+  .aviso-tarjeta[data-continua] .aviso-acc { animation-delay: 115ms; }
+  .aviso-tarjeta[data-continua] .aviso-trazo { animation-delay: 60ms; }
+
+  .aviso-glifo {
+    position: relative;
+    width: 1rem;
+    height: 1rem;
+    overflow: visible;
+    fill: none;
+    stroke: var(--c);
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .aviso-trazo {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: cayla-aviso-traza 360ms var(--ease-cayla) 260ms forwards;
+  }
+  .aviso-trazo-2 { animation-delay: 400ms; }
+  .aviso-punto {
+    fill: var(--c);
+    stroke: none;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: cayla-aviso-pop 240ms var(--ease-cayla) 560ms both;
+  }
+
+  /* «Cerrar todos»: aparece cuando la pila pasa de dos avisos. */
+  .aviso-cerrar-todos {
+    align-self: flex-end;
+    pointer-events: auto;
+    border: 1px solid var(--color-sand);
+    border-radius: 999px;
+    background: var(--color-papel);
+    padding: 0.3125rem 0.625rem;
+    color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+    transition: color 200ms, border-color 200ms;
+    animation: cayla-aviso-entra 200ms var(--ease-cayla) both;
+  }
+  .aviso-cerrar-todos:hover { color: var(--color-tinta); border-color: var(--color-tinta); }
+}
+
+@keyframes cayla-aviso-entra {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: none; }
+}
+/* Sale desvaneciéndose y luego colapsa su altura: los de abajo suben sin salto. */
+@keyframes cayla-aviso-sale {
+  0% { opacity: 1; transform: none; max-height: var(--h, 6rem); margin-bottom: 0; }
+  55% { opacity: 0; transform: translateX(8px); max-height: var(--h, 6rem); margin-bottom: 0; }
+  100% { opacity: 0; transform: translateX(8px); max-height: 0; padding-top: 0; padding-bottom: 0; margin-bottom: -0.5rem; border-width: 0; }
+}
+@keyframes cayla-aviso-disco {
+  from { opacity: 0; transform: scale(0.55); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cayla-aviso-dibuja {
+  from { stroke-dashoffset: 106.81; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes cayla-aviso-reloj {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 106.81; }
+}
+@keyframes cayla-aviso-onda {
+  0% { opacity: 0.4; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.55); }
+}
+@keyframes cayla-aviso-traza {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes cayla-aviso-pop {
+  from { opacity: 0; transform: scale(0.3); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cayla-aviso-giro {
+  from { transform: rotate(-90deg); }
+  to { transform: rotate(270deg); }
+}
+@keyframes cayla-aviso-revela {
+  from { opacity: 0.2; clip-path: inset(0 100% 0 0); }
+  to { opacity: 1; clip-path: inset(0 0 0 0); }
+}
+
+/* Movimiento reducido: todo llega ya dibujado, MENOS la cuenta atrás — ese reloj es función (cuándo se va
+   el aviso), no adorno. El arco que gira de «sin cifra» se queda quieto. */
+@media (prefers-reduced-motion: reduce) {
+  .aviso-tarjeta,
+  .aviso-tarjeta * {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+  .aviso-tarjeta .aviso-reloj { animation: cayla-aviso-reloj var(--ms) linear forwards !important; }
+  .aviso-tarjeta[data-tono="proceso"] .aviso-reloj { animation: none !important; }
+  .aviso-tarjeta[data-tono="proceso"]:not([data-prog]) .aviso-anillo { animation: none !important; }
+}
