@@ -3,7 +3,8 @@
 -- Historia sintética de 90 días para el ERP de CAYLA (ver plan y ADR-01NN
 -- en docs/adr/, y docs/demo-90-dias/QUE-MIRAR.md para verificar).
 --
--- Un generador determinista: misma semilla = mismos datos. Corre dentro de
+-- Un generador determinista: misma semilla (y mismo «ahora») = mismos datos. Nada se decide con random():
+-- todo sale de hashes de la semilla y del id de cada fila. Corre dentro de
 -- una sola transacción, con INSERT directo y fechas históricas explícitas.
 -- Se ensaya con ROLLBACK; el COMMIT final lo pega Felipe en el SQL Editor
 -- de producción con:
@@ -14,11 +15,12 @@
 -- Todo id sembrado empieza en 5eed (overlay de un md5 determinista) — así
 -- se puede filtrar y deshacer sin tocar los 45 productos / 16 ventas reales.
 --
--- FASE 1 de 7 — Catálogo: productos, variantes, fotos, campañas demo.
+-- Fases 1-3 de 7 — catálogo, demanda, inventario inicial y abastecimiento.
 -- (El SKU manual de las variantes queda vacío: el trigger igual les asigna
 -- código y código de barras, y ninguna pantalla ni RPC exige SKU.)
--- Fases 2-7 (demanda, inventario/compras, ventas/caja, postventa/taller,
--- cierre, ensayo completo) se agregan en pasos siguientes — no encadenar.
+-- Hecho: fase 1 (catálogo), 2 (demanda) y 3 (inventario inicial y abastecimiento).
+-- Pendiente: 4 (ventas, caja y comprobantes), 5 (postventa, gastos y Taller), 6 (stock
+-- derivado y cierre), 7 (ensayo completo y prueba de reversibilidad) — no encadenar.
 -- ============================================================================
 
 begin;
@@ -30,17 +32,20 @@ set local search_path to retail, public, extensions;
 -- ---------------------------------------------------------------------------
 do $$
 declare
-  pv_fin date := (now() at time zone 'America/Lima')::date;  -- último día de la ventana (día Lima, no UTC)
+  -- «ahora»: el reloj de la base, salvo que se fije `set cayla_seed.ahora = '2026-09-21 21:00:00+00';` antes del begin (sirve
+  -- para reproducir una carga exacta: el último día llega hasta hace 15 minutos, así que depende de la hora)
+  pv_ahora timestamptz := coalesce(nullif(current_setting('cayla_seed.ahora', true), '')::timestamptz, now());
+  pv_fin date := (pv_ahora at time zone 'America/Lima')::date;  -- último día de la ventana (día Lima, no UTC)
   pv_dias int := 90;
   pv_semilla double precision := 0.5726;     -- setseed(): misma semilla = mismos datos
   pv_escala numeric := 1;                    -- volumen de ventas: 1 = ~7.000 boletas; 0.05 para ensayos chicos
 begin
+  perform set_config('cayla_seed.ahora_efectiva', pv_ahora::text, true);
   perform set_config('cayla_seed.semilla', pv_semilla::text, true);
   perform set_config('cayla_seed.escala', pv_escala::text, true);
   perform set_config('cayla_seed.fin', pv_fin::text, true);
   perform set_config('cayla_seed.inicio', (pv_fin - (pv_dias - 1))::text, true);
   perform set_config('cayla_seed.carga_inicial', (pv_fin - pv_dias)::text, true);
-  perform setseed(pv_semilla);
 end $$;
 
 -- ---------------------------------------------------------------------------
@@ -157,7 +162,7 @@ create temp table tmp_productos_nuevos (
 
 with candidatos_numerados as (
   select cc.categoria_id, cc.categoria, cc.n, cand.referencia,
-         row_number() over (partition by cc.categoria order by random()) rn
+         row_number() over (partition by cc.categoria order by md5('nom:' || cand.referencia)) rn
   from tmp_nombres_candidatos cand
   join tmp_categoria_cuenta cc on cc.categoria = cand.categoria
   where not exists (
@@ -167,7 +172,7 @@ with candidatos_numerados as (
 ),
 elegidos as (
   select categoria_id, categoria, referencia,
-         row_number() over (order by random()) as orden_global
+         row_number() over (order by md5('orden:' || referencia)) as orden_global
   from candidatos_numerados
   where rn <= n
 ),
@@ -191,11 +196,17 @@ select
   f.referencia,
   mp.marca_id,
   mp.proveedor_id,
-  (select ct.tejido_id from retail.categoria_tejidos ct where ct.categoria_id = f.categoria_id order by random() limit 1),
-  (select cp.patron_id from retail.categoria_patrones cp where cp.categoria_id = f.categoria_id order by random() limit 1),
+  (select ct.tejido_id from retail.categoria_tejidos ct where ct.categoria_id = f.categoria_id order by md5(f.referencia || ct.tejido_id::text) limit 1),
+  (select cp.patron_id from retail.categoria_patrones cp where cp.categoria_id = f.categoria_id order by md5(f.referencia || cp.patron_id::text) limit 1),
   f.temporada,
   (3 + (f.orden_global % 5))::int,
-  (f.fecha_alta::timestamptz + (f.orden_global % 12) * interval '1 hour' + (f.orden_global % 60) * interval '1 minute'),
+  -- Hora de alta EXPLÍCITA en Lima (no la de la sesión): las 40 de Primavera-Verano nacen entre 07:00 y
+  -- 08:29 del día de alta (su primera compra llega ese mismo día y venden desde el siguiente); las 180
+  -- viejas entre 08:00 y 10:59 (la carga inicial entra a las 12:30 de su día, siempre después).
+  case when f.orden_global <= 40
+       then ((f.fecha_alta + time '07:00') at time zone 'America/Lima') + (f.orden_global % 90) * interval '1 minute'
+       else ((f.fecha_alta + time '08:00') at time zone 'America/Lima') + (f.orden_global % 3) * interval '1 hour' + (f.orden_global % 60) * interval '1 minute'
+  end,
   -- A14: una prenda de las viejas (la 41, fuera de las 40 nuevas) ya está descontinuada y conserva stock
   case when f.orden_global = 41 then 'descontinuado' else 'activo' end
 from fechas f
@@ -205,10 +216,12 @@ from fechas f
 cross join lateral (
   select t.marca_id, t.proveedor_id
   from (
-    select marca_id, proveedor_id,
-           row_number() over (order by marca_id) as rn,
+    select mp0.marca_id, mp0.proveedor_id,
+           row_number() over (order by mp0.marca_id) as rn,
            count(*) over () as total
-    from retail.marca_proveedores
+    from retail.marca_proveedores mp0
+    -- solo proveedores activos: las compras de la Fase 3 usan productos.proveedor_id y no se le compra a un proveedor dado de baja
+    join retail.proveedores pr0 on pr0.id = mp0.proveedor_id and pr0.activo
   ) t
   where t.rn = 1 + floor(power((('x' || substr(md5('marca:' || f.orden_global::text), 1, 6))::bit(24)::bigint)::numeric / 16777216, 2) * t.total)::int
 ) mp;
@@ -428,7 +441,7 @@ select current_setting('cayla_seed.inicio')::date as inicio,
        (current_setting('cayla_seed.fin')::date - current_setting('cayla_seed.inicio')::date + 1) as dias,
        round(7000 * current_setting('cayla_seed.escala')::numeric)::int as n_total,
        -- el último día es un turno cerrado: las ventas llegan solo hasta hace 15 min
-       (now() - interval '15 minutes') as corte;
+       (current_setting('cayla_seed.ahora_efectiva')::timestamptz - interval '15 minutes') as corte;
 
 -- reparto por tienda «como las ventas 2026»; LIM es tienda nueva y crece (rampa)
 create temp table tmp_tiendas on commit drop as
@@ -730,6 +743,959 @@ begin
   end if;
 
   raise notice '[check demanda] OK — % tickets, % líneas', v_n, (select count(*) from tmp_lineas);
+end $$;
+
+-- =============================================================================
+-- FASE 3 — INVENTARIO INICIAL Y ABASTECIMIENTO
+-- Demanda primero: de las ventas de la Fase 2 se DERIVA todo lo que tiene que haber
+-- llegado para poder venderlas —carga inicial, compras a proveedores, traslados del
+-- Taller a Lima y subidas del almacén al piso— de modo que ningún saldo pueda
+-- quedar negativo por construcción. Lo que llega se fija con la regla «cubrir la
+-- demanda hasta la siguiente llegada» y una simulación día a día lo comprueba.
+-- =============================================================================
+
+-- uuid determinista y marcado (5eed) por tabla y clave
+create function pg_temp.sid(t text, k text) returns uuid language sql immutable as
+$f$ select overlay(md5('seed:' || t || ':' || k) placing '5eed' from 1 for 4)::uuid $f$;
+
+-- ---- 3.0 Contexto: ventana, ubicaciones y quién puede firmar cada cosa ----
+create temp table tmp_v3 on commit drop as
+select inicio, fin, dias, corte, inicio - 1 as carga from tmp_ventana;
+
+-- tiendas con su almacén y su piso; el Taller no tiene sububicaciones
+create temp table tmp_ubic on commit drop as
+select t.codigo, t.ubicacion_id,
+       (select s.id from sububicaciones s where s.ubicacion_id = t.ubicacion_id and s.tipo = 'almacen_tienda') as sub_almacen,
+       (select s.id from sububicaciones s where s.ubicacion_id = t.ubicacion_id and s.tipo = 'piso_venta') as sub_piso
+from tmp_tiendas t
+union all
+select 'TAL', u.id, null::uuid, null::uuid from ubicaciones u where u.nombre = 'Taller';
+
+do $$
+begin
+  if (select count(*) from tmp_ubic) <> 4
+     or exists (select 1 from tmp_ubic where codigo <> 'TAL' and (sub_almacen is null or sub_piso is null)) then
+    raise exception '[fase 3] faltan ubicaciones o sububicaciones: se esperaban TRU, AQP, LIM (con almacén y piso) y Taller';
+  end if;
+end $$;
+
+-- Firmantes: un líder (retail.colaboradores.rol = 'lider') o un colaborador asignado a esa ubicación, y solo si ya
+-- había ingresado ese día (personas.fecha_ingreso). Compras, pagos y notas de crédito: solo líder. LIM no tiene
+-- colaboradores: ahí firman líderes. La elección depende de la fila (hash), no de random().
+create temp table tmp_firmantes on commit drop as
+select p.id as persona_id, c.rol, c.ubicacion_asignada_id as ubicacion_id, coalesce(p.fecha_ingreso, date '2000-01-01') as ingreso
+from colaboradores c join public.personas p on p.id = c.persona_id
+where p.estado = 'activo';
+
+create function pg_temp.firmante(p_ubic uuid, p_fecha date, p_solo_lider boolean, p_clave text) returns uuid
+language sql stable as
+$f$ select f.persona_id from tmp_firmantes f
+    where f.ingreso <= p_fecha and (f.rol = 'lider' or (not p_solo_lider and f.ubicacion_id = p_ubic))
+    order by md5(p_clave || f.persona_id::text) limit 1 $f$;
+
+do $$
+begin
+  if exists (select 1 from tmp_ubic u where pg_temp.firmante(u.ubicacion_id, (select carga from tmp_v3), false, 'pool') is null)
+     or pg_temp.firmante(null, (select carga from tmp_v3), true, 'pool') is null then
+    raise exception '[fase 3] no hay ningún firmante elegible (líder o colaborador) al inicio de la ventana en alguna ubicación';
+  end if;
+end $$;
+
+-- ---- 3.1 La demanda por día y los pares (variante, tienda) ----
+create temp table tmp_dem on commit drop as
+select variante_id, ubicacion_id, fecha, sum(cantidad)::int as cant from tmp_lineas group by 1, 2, 3;
+create unique index on tmp_dem (ubicacion_id, variante_id, fecha);
+
+create temp table tmp_par on commit drop as
+select v.id as variante_id, v.producto_id, tp.proveedor_id, tp.temporada, tp.estado as estado_prod,
+       (pv.vende_hasta < w.fin) as muerto, t.ubicacion_id, t.codigo as tienda,
+       coalesce(d.tot, 0)::int as total, d.primero, d.ultimo,
+       false as a6, false as a7, false as agot, 0 as sin_venta_stock, 0::numeric as vel
+from tmp_variantes_nuevas v
+join tmp_productos_nuevos tp on tp.id = v.producto_id
+join tmp_producto_vida pv on pv.producto_id = v.producto_id
+cross join tmp_tiendas t
+cross join tmp_v3 w
+left join (select variante_id, ubicacion_id, sum(cant)::int as tot, min(fecha) as primero, max(fecha) as ultimo
+           from tmp_dem group by 1, 2) d on d.variante_id = v.id and d.ubicacion_id = t.ubicacion_id;
+
+update tmp_par set vel = case when total > 0 then total::numeric / greatest(ultimo - primero + 1, 14) else 0 end;
+
+-- A7: 6 variantes de las 30 más vendidas en TRU quedan agotadas del todo (la oferta iguala a la demanda, sin colchón)
+update tmp_par set a7 = true
+where variante_id in (select variante_id from (select variante_id from tmp_par where tienda = 'TRU' and total > 0
+                                                order by total desc limit 30) top
+                      order by pg_temp.h('a7:' || variante_id) limit 6);
+
+-- agotadas con demanda: ~2,5 % de los pares con 3+ ventas terminan en 0 (sin colchón ni sobrante)
+update tmp_par set agot = true
+where total >= 3 and not muerto and not a7 and pg_temp.h('ag:' || variante_id || ':' || tienda) < 0.025;
+
+-- A6: 8 pares de TRU cuyo piso queda en 0 con stock en el almacén (solo suben del almacén lo que se vende ese día)
+update tmp_par set a6 = true
+where (variante_id, ubicacion_id) in (select variante_id, ubicacion_id from tmp_par, tmp_v3 w
+                                      where tienda = 'TRU' and total between 6 and 30 and ultimo <= w.fin - 5
+                                        and not muerto and not a7
+                                      order by pg_temp.h('a6:' || variante_id) limit 8);
+
+-- prendas con stock y sin ventas (colas de curva): TRU 50 %, AQP 20 %, LIM 5 % de sus variantes sin venta (1-3 unidades)
+update tmp_par set sin_venta_stock = 1 + floor(pg_temp.h('svq:' || variante_id || ':' || tienda) * 3)::int
+where total = 0
+  and pg_temp.h('sv:' || variante_id || ':' || tienda) < (case tienda when 'TRU' then 0.50 when 'AQP' then 0.20 else 0.05 end);
+
+-- ---- 3.2 Calendario de compras: una llegada tras otra por proveedor ----
+create temp table tmp_prov on commit drop as
+select tp.proveedor_id, count(*)::int as n_prods, (pr.ruc is not null) as tiene_ruc
+from tmp_productos_nuevos tp join proveedores pr on pr.id = tp.proveedor_id
+group by tp.proveedor_id, pr.ruc;
+
+create temp table tmp_evento (
+  evento_id uuid, proveedor_id uuid, tipo_evento text, k int, emision date, recepcion date,
+  creado_en timestamptz, credito boolean default false, plazo int, forzado text, dos_guias boolean default false
+) on commit drop;
+
+-- eventos regulares: cuantos más productos tiene el proveedor, más compras (1 + 0,2·productos + 0,2); espaciados en la
+-- ventana; se emiten en día laborable y llegan de 1 a 10 días después (nunca en domingo)
+insert into tmp_evento (evento_id, proveedor_id, tipo_evento, k, emision, recepcion, dos_guias)
+select pg_temp.sid('evento', b.proveedor_id || ':' || b.k), b.proveedor_id, 'regular', b.k, b.emision,
+       b.emision + b.lead + (case when extract(isodow from b.emision + b.lead) = 7 then 1 else 0 end),
+       pg_temp.h('dg:' || b.proveedor_id || ':' || b.k) < 0.12
+from (
+  select x.proveedor_id, x.k, x.em0 + (case when extract(isodow from x.em0) = 7 then 1 else 0 end) as emision,
+         (case when x.u < 0.50 then 1 + floor(x.u2 * 3) when x.u < 0.85 then 4 + floor(x.u2 * 4) else 8 + floor(x.u2 * 3) end)::int as lead
+  from (
+    select p.proveedor_id, g as k,
+           (w.inicio + 1 + floor(((g - 1 + 0.15 + 0.7 * pg_temp.h('ev:' || p.proveedor_id || ':' || g))
+                                  / (1 + round(0.2 * p.n_prods + 0.2)::int)) * (w.dias - 20))::int) as em0,
+           pg_temp.h('ld:' || p.proveedor_id || ':' || g) as u, pg_temp.h('ld2:' || p.proveedor_id || ':' || g) as u2
+    from tmp_prov p cross join tmp_v3 w
+    cross join lateral generate_series(1, 1 + round(0.2 * p.n_prods + 0.2)::int) g
+  ) x
+) b;
+
+-- eventos de la colección Primavera-Verano: la compra se emite y se recibe el día de alta de sus prendas
+insert into tmp_evento (evento_id, proveedor_id, tipo_evento, k, emision, recepcion)
+select pg_temp.sid('evento', 'pv:' || x.proveedor_id || ':' || x.alta), x.proveedor_id, 'pv', 0, x.alta, x.alta
+from (select proveedor_id, (creado_en at time zone 'America/Lima')::date as alta
+      from tmp_productos_nuevos where temporada = 'Primavera-Verano' group by 1, 2) x;
+
+-- A4: 5 facturas a crédito (1 vencida hace >30 días, 2 vencidas hace 8-30, 2 por vencer en ≤7); se mueven 5 llegadas
+-- regulares de proveedores con RUC y varias prendas a las fechas exactas que piden sus vencimientos.
+-- A5 (una compra con recepción parcial + cierre + nota de crédito) usa un sexto proveedor: se arma más abajo.
+create temp table tmp_a4 (n int, prov uuid, off_emision int, plazo int) on commit drop;
+insert into tmp_a4 (n, prov, off_emision, plazo)
+select o.n, s.proveedor_id, o.off_emision, o.plazo
+from (values (1, -72, 30), (2, -54, 30), (3, -41, 30), (4, -28, 30), (5, -40, 45), (6, -21, 30)) o(n, off_emision, plazo)
+join (select proveedor_id, row_number() over (order by (n_prods >= 4) desc, pg_temp.h('a4:' || proveedor_id)) as rn
+      from tmp_prov where tiene_ruc) s on s.rn = o.n;
+
+do $$
+begin
+  if (select count(*) from tmp_a4) <> 6 then
+    raise exception '[fase 3] no hay 6 proveedores con RUC para los escenarios A4/A5';
+  end if;
+end $$;
+
+update tmp_evento e
+set emision = w.fin + x.off_emision, recepcion = w.fin + x.off_emision + 1 + floor(pg_temp.h('a4l:' || e.evento_id) * 3)::int,
+    credito = true, plazo = x.plazo, forzado = 'A4-' || x.n, dos_guias = false
+from (select distinct on (a.n) a.n, ev.evento_id, a.off_emision, a.plazo
+      from tmp_a4 a join tmp_evento ev on ev.proveedor_id = a.prov and ev.tipo_evento = 'regular', tmp_v3 w
+      where a.n <= 5
+      order by a.n, abs(ev.emision - (w.fin + a.off_emision))) x,
+     tmp_v3 w
+where e.evento_id = x.evento_id;
+
+-- hora de creación de la compra: 09:00-17:00 del día de emisión (las de la colección nueva, 09:00-09:40)
+update tmp_evento set creado_en = ((emision + time '09:00') at time zone 'America/Lima')
+  + (case when tipo_evento = 'pv' then floor(pg_temp.h('cr:' || evento_id) * 40) else floor(pg_temp.h('cr:' || evento_id) * 480) end)::int * interval '1 minute';
+
+-- qué productos entran en cada llegada (y cuáles llegan en una segunda guía unos días después)
+create temp table tmp_evprod on commit drop as
+-- (la compra de la colección nueva llega el día de alta aunque sea domingo: si se corriera, llegaría después de su primera venta)
+select y.evento_id, y.producto_id, y.arribo0 + (case when y.tipo_evento = 'regular' and extract(isodow from y.arribo0) = 7 then 1 else 0 end) as arribo
+from (
+  select e.evento_id, e.tipo_evento, tp.id as producto_id,
+         (case when e.dos_guias and pg_temp.h('dg:' || e.evento_id || tp.id) < 0.5
+               then e.recepcion + 2 + floor(pg_temp.h('dg2:' || e.evento_id || tp.id) * 3)::int else e.recepcion end) as arribo0
+  from tmp_evento e
+  join tmp_productos_nuevos tp on tp.proveedor_id = e.proveedor_id
+  where (e.tipo_evento = 'regular'
+         and (tp.temporada = 'Otoño-Invierno' or e.emision > (tp.creado_en at time zone 'America/Lima')::date))
+     or (e.tipo_evento = 'pv' and tp.temporada = 'Primavera-Verano'
+         and (tp.creado_en at time zone 'America/Lima')::date = e.emision)
+) y;
+
+-- las llegadas de cada variante en orden: la primera (carga inicial de las viejas, compra del día de alta en las de
+-- temporada) y luego las compras regulares posteriores
+create temp table tmp_av on commit drop as
+with primeras as (
+  select v.id as variante_id, v.producto_id,
+         case when tp.temporada = 'Primavera-Verano' then pvx.arribo else w.carga end as fecha,
+         case when tp.temporada = 'Primavera-Verano' then pvx.evento_id end as evento_id,
+         case when tp.temporada = 'Primavera-Verano' then 'compra' else 'carga' end as kind
+  from tmp_variantes_nuevas v
+  join tmp_productos_nuevos tp on tp.id = v.producto_id
+  cross join tmp_v3 w
+  left join lateral (select ep.arribo, ep.evento_id from tmp_evprod ep join tmp_evento e on e.evento_id = ep.evento_id
+                     where e.tipo_evento = 'pv' and ep.producto_id = v.producto_id) pvx on true
+),
+todas as (
+  select variante_id, fecha, evento_id, kind from primeras
+  union all
+  select p.variante_id, ep.arribo, ep.evento_id, 'compra'
+  from primeras p
+  join tmp_evprod ep on ep.producto_id = p.producto_id
+  join tmp_evento e on e.evento_id = ep.evento_id and e.tipo_evento = 'regular'
+  where ep.arribo > p.fecha
+)
+select variante_id, fecha, evento_id, kind,
+       row_number() over (partition by variante_id order by fecha, evento_id nulls first) as seq,
+       lead(fecha) over (partition by variante_id order by fecha, evento_id nulls first) as sig_fecha,
+       (lead(fecha) over (partition by variante_id order by fecha, evento_id nulls first)) is null as es_ultima
+from todas;
+
+-- ---- 3.3 Cuánto tiene que llegar en TRU y AQP: la demanda hasta la siguiente llegada + un colchón ----
+-- (los días que quedan por vender entre una llegada y la siguiente; lo que llega el día X se puede subir al piso
+-- desde la mañana de X+1). Colchón de 0-15 % por tramo; al final de la ventana queda un sobrante de 5-25 % de lo
+-- vendido (al menos 1 unidad: sin eso casi toda la cola de poca venta quedaría agotada). Las prendas que dejaron de venderse (A8) y la descontinuada (A14) arrancan
+-- con 8+ unidades de sobra; A7 no lleva colchón ni sobrante; A6 lleva 3-7 unidades al final en el almacén.
+create temp table tmp_arribo on commit drop as
+with base as (
+  select av.variante_id, p.ubicacion_id, p.tienda, av.seq, av.fecha, av.evento_id, av.kind, av.es_ultima,
+         p.total, p.muerto, p.a6, (p.a7 or p.agot) as a7, p.sin_venta_stock, p.agot as agot,
+         (select coalesce(sum(d.cant), 0) from tmp_dem d
+           where d.variante_id = av.variante_id and d.ubicacion_id = p.ubicacion_id
+             and d.fecha > av.fecha and d.fecha <= coalesce(av.sig_fecha, w.fin))::int as cov
+  from tmp_av av
+  join tmp_par p on p.variante_id = av.variante_id and p.tienda in ('TRU', 'AQP')
+  cross join tmp_v3 w
+)
+select b.variante_id, b.ubicacion_id, b.tienda, b.seq, b.fecha, b.evento_id, b.kind, b.es_ultima, b.cov,
+       (b.cov + round(b.cov * case when b.a7 then 0 else 0.15 * pg_temp.h('slk:' || b.variante_id || ':' || b.tienda || ':' || b.seq) end)
+        + case when b.es_ultima and b.total > 0 and not b.muerto and not b.a7 and not b.a6
+               then greatest(1, round(b.total * (0.05 + 0.20 * pg_temp.h('efin:' || b.variante_id || ':' || b.tienda)))) else 0 end
+        + case when b.es_ultima and b.a6 then 3 + floor(pg_temp.h('e6:' || b.variante_id) * 5) else 0 end
+        + case when b.seq = 1 and b.muerto then (case when b.tienda = 'TRU' then 5 + round(0.2 * b.total) else 3 + round(0.1 * b.total) end) else 0 end
+        + case when b.seq = 1 and b.total = 0 then b.sin_venta_stock else 0 end)::int as q
+from base b;
+
+-- ---- 3.4 Lima se surte desde el Taller: olas martes y viernes (y el día de alta de la colección nueva) ----
+create temp table tmp_ola_dias on commit drop as
+select o.fecha, coalesce(lead(o.fecha) over (order by o.fecha), w.fin) as sig_fecha,
+       (lead(o.fecha) over (order by o.fecha)) is null as es_ultima
+from (select d.fecha from tmp_dias d, tmp_v3 w where d.dow in (2, 5) and d.fecha between w.inicio + 1 and w.fin - 1
+      union
+      select (tp.creado_en at time zone 'America/Lima')::date from tmp_productos_nuevos tp, tmp_v3 w
+       where tp.temporada = 'Primavera-Verano' and (tp.creado_en at time zone 'America/Lima')::date between w.inicio + 1 and w.fin - 1) o
+cross join tmp_v3 w;
+
+-- carga inicial de LIM: cubre las ventas hasta la primera ola (las de temporada nueva entran por su ola)
+create temp table tmp_carga_lim on commit drop as
+select p.variante_id, p.ubicacion_id,
+       (c.cov0 + round(c.cov0 * 0.15 * pg_temp.h('slk0:' || p.variante_id))
+        + case when p.muerto then 2 + round(0.1 * p.total) else 0 end
+        + case when p.total = 0 then p.sin_venta_stock else 0 end)::int as cant
+from tmp_par p
+cross join (select min(fecha) as w1 from tmp_ola_dias) o
+cross join lateral (select coalesce(sum(d.cant), 0) as cov0 from tmp_dem d
+                    where d.variante_id = p.variante_id and d.ubicacion_id = p.ubicacion_id and d.fecha <= o.w1) c
+where p.tienda = 'LIM' and p.temporada = 'Otoño-Invierno';
+
+-- inventario inicial de las tiendas (TRU, AQP y LIM)
+create temp table tmp_carga on commit drop as
+select variante_id, ubicacion_id, q as cant from tmp_arribo where kind = 'carga' and q > 0
+union all
+select variante_id, ubicacion_id, cant from tmp_carga_lim where cant > 0;
+
+-- llegadas por compra de TRU y AQP (a las que después se suman traslados y olas)
+create temp table tmp_llegadas (variante_id uuid, ubicacion_id uuid, fecha date, cant int, origen text, ref uuid) on commit drop;
+insert into tmp_llegadas (variante_id, ubicacion_id, fecha, cant, origen, ref)
+select variante_id, ubicacion_id, fecha, q, 'compra', evento_id from tmp_arribo where kind = 'compra' and q > 0;
+
+-- ---- 3.5 Traslados del Taller a las tiendas ----
+-- Un traslado entre ubicaciones son DOS movimientos (salida al crearlo, entrada al cerrarlo). Estados reales de
+-- retail.transferencias: en_transito, recibido_con_diferencia y cerrada (recibida completa o con la diferencia ya
+-- cerrada por un líder). Las olas de Lima se calculan en la simulación; aquí van los traslados «de reposición» a TRU y
+-- AQP (extras: no cubren demanda, solo suman stock) y los estados que la pantalla debe mostrar (A2 y A3).
+create temp table tmp_tras (
+  traslado_id uuid, tipo text, destino text, estado text, f_salida date, eta_dias int, f_entrada date,
+  dif boolean default false, created_ts timestamptz, eta_ts timestamptz, conf_ts timestamptz, cierre_ts timestamptz
+) on commit drop;
+create temp table tmp_tras_lin (traslado_id uuid, variante_id uuid, cant int, cant_recibida int) on commit drop;
+
+-- 10 a TRU y 10 a AQP repartidos por la ventana; ~10 % llega con 1-2 unidades de menos y un líder lo cierra al día siguiente
+insert into tmp_tras (traslado_id, tipo, destino, estado, f_salida, eta_dias, dif)
+select y.traslado_id, 'extra', y.cod, 'cerrada',
+       y.f0 + (case when extract(isodow from y.f0) = 7 then 1 else 0 end),
+       y.eta, pg_temp.h('dif:' || y.traslado_id) < 0.10
+from (
+  select pg_temp.sid('tras', 'extra:' || c.cod || ':' || g) as traslado_id, c.cod,
+         (w.inicio + 6 + floor(((g - 0.5) / 10) * (w.dias - 24))::int) as f0,
+         (case when c.cod = 'TRU' then 1 + floor(pg_temp.h('eta:' || c.cod || ':' || g) * 3) else 2 + floor(pg_temp.h('eta:' || c.cod || ':' || g) * 3) end)::int as eta
+  from (values ('TRU'), ('AQP')) c(cod) cross join tmp_v3 w cross join generate_series(1, 10) g
+) y;
+
+insert into tmp_tras_lin (traslado_id, variante_id, cant, cant_recibida)
+select t.traslado_id, s.variante_id, s.cant,
+       case when t.dif and s.rn = 1 then s.cant - (1 + floor(pg_temp.h('dl:' || t.traslado_id) * 2)::int) else s.cant end
+from tmp_tras t
+cross join lateral (
+  select p.variante_id, 4 + floor(pg_temp.h('tq:' || t.traslado_id || p.variante_id) * 5)::int as cant,
+         row_number() over (order by md5(t.traslado_id::text || p.variante_id::text)) as rn
+  from tmp_par p
+  where p.tienda = t.destino and p.total > 0 and p.temporada = 'Otoño-Invierno'
+  order by md5(t.traslado_id::text || p.variante_id::text)
+  limit (2 + floor(pg_temp.h('tn:' || t.traslado_id) * 4)::int)
+) s
+where t.tipo = 'extra';
+
+-- A2: uno en tránsito hace 9 días con la fecha estimada vencida, y dos en tránsito a tiempo
+insert into tmp_tras (traslado_id, tipo, destino, estado, f_salida, eta_dias)
+select pg_temp.sid('tras', 'A2:' || x.n), 'A2', x.cod, 'en_transito', w.fin - x.dias_atras, x.eta
+from tmp_v3 w, (values (1, 'AQP', 9, 2), (2, 'TRU', 1, 2), (3, 'AQP', 2, 3)) x(n, cod, dias_atras, eta);
+
+-- A3: recibido con diferencia y sin cerrar (contaron menos de lo que salió; ningún movimiento de entrada todavía)
+insert into tmp_tras (traslado_id, tipo, destino, estado, f_salida, eta_dias)
+select pg_temp.sid('tras', 'A3:1'), 'A3', 'TRU', 'recibido_con_diferencia', w.fin - 5, 2 from tmp_v3 w;
+
+insert into tmp_tras_lin (traslado_id, variante_id, cant, cant_recibida)
+select t.traslado_id, s.variante_id, s.cant,
+       case when t.tipo = 'A3' and s.rn = 1 then s.cant - 2 else s.cant end
+from tmp_tras t
+cross join lateral (
+  select p.variante_id, 8 + floor(pg_temp.h('tq:' || t.traslado_id || p.variante_id) * 5)::int as cant,
+         row_number() over (order by md5(t.traslado_id::text || p.variante_id::text)) as rn
+  from tmp_par p
+  where p.tienda = t.destino and p.total > 0 and p.temporada = 'Otoño-Invierno'
+  order by md5(t.traslado_id::text || p.variante_id::text)
+  limit (case when t.tipo = 'A3' then 3 else 4 end)
+) s
+where t.tipo in ('A2', 'A3');
+
+-- horas de cada traslado (salida 10:30-12:00 en el Taller; conteo 10:00-15:00 al llegar; cierre a los 3-40 min)
+update tmp_tras t set
+  created_ts = ((t.f_salida + time '10:30') at time zone 'America/Lima') + floor(pg_temp.h('ts1:' || t.traslado_id) * 90)::int * interval '1 minute',
+  f_entrada = case when t.tipo in ('extra') and t.dif then t.f_salida + t.eta_dias + 1
+                   when t.tipo in ('extra') then t.f_salida + t.eta_dias
+                   when t.tipo = 'A3' then t.f_salida + t.eta_dias end;
+update tmp_tras t set
+  eta_ts = t.created_ts + (t.eta_dias * 24) * interval '1 hour',
+  conf_ts = case when t.tipo in ('extra', 'A3')
+                 then (((t.f_salida + t.eta_dias) + time '10:00') at time zone 'America/Lima') + floor(pg_temp.h('ts2:' || t.traslado_id) * 300)::int * interval '1 minute' end;
+update tmp_tras t set
+  cierre_ts = case when t.tipo = 'extra' and not t.dif then t.conf_ts + (3 + floor(pg_temp.h('ts3:' || t.traslado_id) * 38)::int) * interval '1 minute'
+                   when t.tipo = 'extra' and t.dif then ((t.f_entrada + time '09:30') at time zone 'America/Lima') + floor(pg_temp.h('ts3:' || t.traslado_id) * 90)::int * interval '1 minute' end;
+
+-- las llegadas de esos traslados (lo recibido entra al almacén de la tienda el día del cierre)
+insert into tmp_llegadas (variante_id, ubicacion_id, fecha, cant, origen, ref)
+select l.variante_id, u.ubicacion_id, (t.cierre_ts at time zone 'America/Lima')::date, l.cant_recibida, 'traslado', t.traslado_id
+from tmp_tras t join tmp_tras_lin l on l.traslado_id = t.traslado_id
+join tmp_ubic u on u.codigo = t.destino
+where t.tipo = 'extra' and l.cant_recibida > 0;
+
+-- ---- 3.6 Compras que no vienen de la simulación: A5, las sin recibir y la anulada ----
+-- Se arman como «eventos» aparte con su propio reparto (no cubren demanda: suman stock o quedan en papel).
+-- A5: una factura a crédito con recepción parcial, un faltante cerrado y una nota de crédito, del sexto proveedor
+-- con RUC. Tres líneas de tres productos suyos: L1 60 u (TRU 40, AQP 20) llega completa; L2 40 u (TRU 30, AQP 10)
+-- llega completa a TRU y a AQP le llegan 4 y se cierran 6 (dañadas); L3 24 u (TRU) sigue sin llegar.
+create temp table tmp_extra_ev (
+  evento_id uuid, proveedor_id uuid, tipo_evento text, emision date, creado_en timestamptz,
+  credito boolean, plazo int, fecha_estimada date, forzado text
+) on commit drop;
+create temp table tmp_extra_lin (evento_id uuid, producto_id uuid, ubicacion_id uuid, asignado int, recibido int, cerrado int, f_recepcion date) on commit drop;
+
+insert into tmp_extra_ev (evento_id, proveedor_id, tipo_evento, emision, creado_en, credito, plazo, fecha_estimada, forzado)
+select pg_temp.sid('evento', 'A5'), a.prov, 'a5', w.fin - 21,
+       ((w.fin - 21 + time '10:00') at time zone 'America/Lima'), true, 30, w.fin - 14, 'A5'
+from tmp_a4 a, tmp_v3 w where a.n = 6;
+
+-- productos de ese proveedor (los que tienen más variantes primero) para las tres líneas
+create temp table tmp_a5_prod on commit drop as
+select tp.id as producto_id, row_number() over (order by (select count(*) from tmp_variantes_nuevas v where v.producto_id = tp.id) desc, tp.id) as ln
+from tmp_productos_nuevos tp
+where tp.proveedor_id = (select prov from tmp_a4 where n = 6) and tp.temporada = 'Otoño-Invierno';
+
+do $$
+begin
+  if (select count(*) from tmp_a5_prod) < 3 then
+    raise exception '[fase 3] el proveedor del escenario A5 tiene menos de 3 productos de Otoño-Invierno';
+  end if;
+end $$;
+
+insert into tmp_extra_lin (evento_id, producto_id, ubicacion_id, asignado, recibido, cerrado, f_recepcion)
+select pg_temp.sid('evento', 'A5'), pr.producto_id, u.ubicacion_id, x.asignado, x.recibido, x.cerrado, w.fin - x.dias_atras
+from (values (1, 'TRU', 40, 40, 0, 17), (1, 'AQP', 20, 20, 0, 16),
+             (2, 'TRU', 30, 30, 0, 17), (2, 'AQP', 10, 4, 6, 16),
+             (3, 'TRU', 24, 0, 0, 0)) x(ln, cod, asignado, recibido, cerrado, dias_atras)
+join tmp_a5_prod pr on pr.ln = x.ln
+join tmp_ubic u on u.codigo = x.cod
+cross join tmp_v3 w;
+
+-- recepciones de A5: se reparte lo recibido entre las variantes del producto (a partes iguales, sobrando a las primeras)
+create temp table tmp_a5_recep on commit drop as
+select l.evento_id, l.producto_id, vv.variante_id, l.ubicacion_id, l.f_recepcion as fecha,
+       (l.recibido / vv.nv + case when vv.rn <= l.recibido % vv.nv then 1 else 0 end)::int as cant
+from tmp_extra_lin l
+join (select v.id as variante_id, v.producto_id, row_number() over (partition by v.producto_id order by v.id) as rn,
+             count(*) over (partition by v.producto_id) as nv from tmp_variantes_nuevas v) vv on vv.producto_id = l.producto_id
+where l.evento_id = pg_temp.sid('evento', 'A5') and l.recibido > 0
+  and (l.recibido / vv.nv + case when vv.rn <= l.recibido % vv.nv then 1 else 0 end) > 0;
+
+-- lo de A5 también es stock que llega a esas tiendas (la simulación lo tiene que ver)
+insert into tmp_llegadas (variante_id, ubicacion_id, fecha, cant, origen, ref)
+select variante_id, ubicacion_id, fecha, cant, 'compra', evento_id from tmp_a5_recep;
+
+-- cinco compras recientes (últimos 3-9 días) que aún no llegaron; dos con la fecha estimada ya vencida
+insert into tmp_extra_ev (evento_id, proveedor_id, tipo_evento, emision, creado_en, credito, fecha_estimada, forzado)
+select pg_temp.sid('evento', 'SR:' || g), s.proveedor_id, 'sin_recibir', w.fin - (3 + (g * 1.4)::int),
+       ((w.fin - (3 + (g * 1.4)::int) + time '11:00') at time zone 'America/Lima') + (g * 7) * interval '1 minute',
+       false, case when g <= 2 then w.fin - (3 + (g * 1.4)::int) + 3 else w.fin - (3 + (g * 1.4)::int) + 8 end, 'SR'
+from generate_series(1, 5) g
+cross join tmp_v3 w
+join (select proveedor_id, row_number() over (order by pg_temp.h('sr:' || proveedor_id)) as rn from tmp_prov where n_prods >= 3) s on s.rn = g;
+
+-- una compra anulada por error de digitación (sin pagos, sin recepción)
+insert into tmp_extra_ev (evento_id, proveedor_id, tipo_evento, emision, creado_en, credito, forzado)
+select pg_temp.sid('evento', 'ANU'), s.proveedor_id, 'anulada', w.inicio + 40,
+       ((w.inicio + 40 + time '15:20') at time zone 'America/Lima'), false, 'ANU'
+from tmp_v3 w
+join (select proveedor_id, row_number() over (order by pg_temp.h('anu:' || proveedor_id)) as rn from tmp_prov where n_prods >= 2) s on s.rn = 1;
+
+-- líneas de las compras sin recibir y de la anulada: 2-3 productos del proveedor, 6-24 unidades repartidas TRU 70 % / AQP 30 %
+insert into tmp_extra_lin (evento_id, producto_id, ubicacion_id, asignado, recibido, cerrado, f_recepcion)
+select e.evento_id, p.producto_id, u.ubicacion_id,
+       case u.codigo when 'TRU' then 6 * (1 + floor(pg_temp.h('xq:' || e.evento_id || p.producto_id) * 3))::int
+                     else 6 * (1 + floor(pg_temp.h('xq2:' || e.evento_id || p.producto_id) * 2))::int end,
+       0, 0, null
+from tmp_extra_ev e
+cross join lateral (select tp.id as producto_id from tmp_productos_nuevos tp
+                    where tp.proveedor_id = e.proveedor_id and tp.temporada = 'Otoño-Invierno'
+                    order by md5(e.evento_id::text || tp.id::text) limit (2 + floor(pg_temp.h('xn:' || e.evento_id) * 2)::int)) p
+join tmp_ubic u on u.codigo in ('TRU', 'AQP')
+where e.tipo_evento in ('sin_recibir', 'anulada');
+
+-- ---- 3.7 Simulación día a día: subidas al piso, olas de Lima y saldos ----
+-- Regla de la tienda (inventario-reglas.ts): si el piso tiene 7 o menos y hay en el almacén, subir lo que cubra 7 días de
+-- venta (mínimo 6, tope lo que haya); la subida se hace antes de abrir. Lo que llega un día se puede subir desde la
+-- mañana siguiente. Si con eso el piso no alcanza para el día, la simulación se detiene con el detalle: es un error del
+-- plan de compras, no algo que se tape.
+create temp table tmp_est on commit drop as
+select p.variante_id, p.ubicacion_id, p.tienda, coalesce(c.cant, 0)::int as alm, 0 as piso, p.vel, p.a6
+from tmp_par p
+left join (select variante_id, ubicacion_id, sum(cant)::int as cant from tmp_carga group by 1, 2) c
+       on c.variante_id = p.variante_id and c.ubicacion_id = p.ubicacion_id
+where p.total > 0 or coalesce(c.cant, 0) > 0
+   or exists (select 1 from tmp_llegadas l where l.variante_id = p.variante_id and l.ubicacion_id = p.ubicacion_id);
+create unique index on tmp_est (variante_id, ubicacion_id);
+
+create temp table tmp_moves (variante_id uuid, ubicacion_id uuid, fecha date, cant int, ts timestamptz) on commit drop;
+create temp table tmp_dia (variante_id uuid, ubicacion_id uuid, q int, dem int, ts timestamptz) on commit drop;
+
+do $$
+declare
+  d date; v_ini date; v_fin date; v_corte timestamptz; r record; v_lim uuid; v_tras uuid;
+begin
+  select inicio, fin, corte into v_ini, v_fin, v_corte from tmp_v3;
+  select ubicacion_id into v_lim from tmp_ubic where codigo = 'LIM';
+
+  for d in select g::date from generate_series(v_ini::timestamp, v_fin::timestamp, interval '1 day') g loop
+
+    -- (a) ola de Lima: sale del Taller por la mañana y llega el mismo día; cubre las ventas hasta la siguiente ola
+    if exists (select 1 from tmp_ola_dias o where o.fecha = d) then
+      v_tras := pg_temp.sid('tras', 'ola:' || d);
+      insert into tmp_tras_lin (traslado_id, variante_id, cant, cant_recibida)
+      select v_tras, q.variante_id, q.cant, q.cant
+      from (
+        select e.variante_id,
+               (greatest(0, cov.s + round(cov.s * 0.15 * pg_temp.h('slw:' || e.variante_id || ':' || d)) - (e.alm + e.piso - coalesce(hoy.cant, 0)))
+                + case when o.es_ultima and p.total > 0 and not p.muerto and not p.a7 and not p.agot
+                       then greatest(1, round(p.total * (0.05 + 0.20 * pg_temp.h('efl:' || e.variante_id)))) else 0 end)::int as cant
+        from tmp_est e
+        join tmp_par p on p.variante_id = e.variante_id and p.ubicacion_id = e.ubicacion_id
+        join tmp_ola_dias o on o.fecha = d
+        left join tmp_dem hoy on hoy.variante_id = e.variante_id and hoy.ubicacion_id = e.ubicacion_id and hoy.fecha = d
+        cross join lateral (select coalesce(sum(dd.cant), 0) as s from tmp_dem dd
+                            where dd.variante_id = e.variante_id and dd.ubicacion_id = e.ubicacion_id
+                              and dd.fecha > d and dd.fecha <= o.sig_fecha) cov
+        where e.ubicacion_id = v_lim and p.total > 0
+      ) q
+      where q.cant > 0;
+
+      if exists (select 1 from tmp_tras_lin where traslado_id = v_tras) then
+        insert into tmp_tras (traslado_id, tipo, destino, estado, f_salida, eta_dias, f_entrada, created_ts, eta_ts, conf_ts, cierre_ts)
+        select v_tras, 'ola', 'LIM', 'cerrada', d, 0, d,
+               ((d + time '10:30') at time zone 'America/Lima') + floor(pg_temp.h('ts1:' || v_tras) * 90)::int * interval '1 minute',
+               ((d + time '17:00') at time zone 'America/Lima'),
+               ((d + time '14:00') at time zone 'America/Lima') + floor(pg_temp.h('ts2:' || v_tras) * 120)::int * interval '1 minute',
+               ((d + time '14:00') at time zone 'America/Lima') + (125 + floor(pg_temp.h('ts3:' || v_tras) * 30)::int) * interval '1 minute';
+        insert into tmp_llegadas (variante_id, ubicacion_id, fecha, cant, origen, ref)
+        select l.variante_id, v_lim, d, l.cant_recibida, 'traslado', v_tras from tmp_tras_lin l where l.traslado_id = v_tras;
+      end if;
+    end if;
+
+    -- (b) subidas del almacén al piso, antes de abrir
+    truncate tmp_dia;
+    insert into tmp_dia (variante_id, ubicacion_id, q, dem, ts)
+    select e.variante_id, e.ubicacion_id, x.q0 + greatest(0, coalesce(dd.cant, 0) - e.piso - x.q0), coalesce(dd.cant, 0),
+           ((d + time '08:30') at time zone 'America/Lima')
+             + floor(pg_temp.h('mm:' || e.variante_id || ':' || e.ubicacion_id || ':' || d) * 60)::int * interval '1 minute'
+    from tmp_est e
+    left join tmp_dem dd on dd.variante_id = e.variante_id and dd.ubicacion_id = e.ubicacion_id and dd.fecha = d
+    cross join lateral (select case when not e.a6 and e.alm > 0 and e.piso <= 7
+                                    then least(e.alm, greatest(ceil(e.vel * 7)::int - e.piso, 6)) else 0 end) x(q0);
+    update tmp_dia set q = 0 where ts > v_corte;
+
+    select t.variante_id, t.ubicacion_id, t.q, t.dem, e.alm, e.piso into r
+    from tmp_dia t join tmp_est e on e.variante_id = t.variante_id and e.ubicacion_id = t.ubicacion_id
+    where t.q > e.alm or e.piso + t.q < t.dem limit 1;
+    if found then
+      raise exception '[fase 3] día %: variante % en % sin stock para subir/vender (almacén %, piso %, sube %, vende %)',
+        d, r.variante_id, r.ubicacion_id, r.alm, r.piso, r.q, r.dem;
+    end if;
+
+    insert into tmp_moves (variante_id, ubicacion_id, fecha, cant, ts)
+    select variante_id, ubicacion_id, d, q, ts from tmp_dia where q > 0;
+
+    -- (c) las ventas del día bajan el piso; (d) lo que llegó hoy entra al almacén
+    update tmp_est e set alm = e.alm - t.q, piso = e.piso + t.q - t.dem
+    from tmp_dia t where t.variante_id = e.variante_id and t.ubicacion_id = e.ubicacion_id and (t.q <> 0 or t.dem <> 0);
+    update tmp_est e set alm = e.alm + l.s
+    from (select variante_id, ubicacion_id, sum(cant)::int as s from tmp_llegadas where fecha = d group by 1, 2) l
+    where l.variante_id = e.variante_id and l.ubicacion_id = e.ubicacion_id;
+  end loop;
+
+  if exists (select 1 from tmp_est where alm < 0 or piso < 0) then
+    raise exception '[fase 3] la simulación dejó un saldo negativo';
+  end if;
+  if exists (select 1 from tmp_llegadas l where not exists (select 1 from tmp_est e where e.variante_id = l.variante_id and e.ubicacion_id = l.ubicacion_id)) then
+    raise exception '[fase 3] hay llegadas a un par (variante, tienda) que la simulación no conoce';
+  end if;
+end $$;
+
+-- el Taller arranca con lo que después despacha (olas, reposición y traslados en curso) más un colchón de producto terminado
+create temp table tmp_taller_carga on commit drop as
+select l.variante_id,
+       sum(l.cant)::int + (case when pg_temp.h('tc:' || l.variante_id) < 0.7 then floor(pg_temp.h('tc2:' || l.variante_id) * 7)::int else 0 end) as cant
+from tmp_tras_lin l group by l.variante_id;
+
+-- ---- 3.8 Las compras: cabeceras, líneas y reparto por tienda ----
+-- Cada línea es un producto (como en la pantalla de Recibir); su cantidad es la suma de lo que llega de sus variantes en
+-- todas las tiendas y el costo es el costo declarado de la prenda (constante: no toca el costo ni deja historial).
+create temp table tmp_recep (
+  evento_id uuid, producto_id uuid, variante_id uuid, ubicacion_id uuid, fecha date, cant int
+) on commit drop;
+
+-- recepciones que salen de la simulación (TRU y AQP)
+insert into tmp_recep (evento_id, producto_id, variante_id, ubicacion_id, fecha, cant)
+select a.evento_id, v.producto_id, a.variante_id, a.ubicacion_id, a.fecha, a.q
+from tmp_arribo a join tmp_variantes_nuevas v on v.id = a.variante_id
+where a.kind = 'compra' and a.q > 0;
+
+-- recepciones de A5 (armadas en 3.7)
+insert into tmp_recep (evento_id, producto_id, variante_id, ubicacion_id, fecha, cant)
+select evento_id, producto_id, variante_id, ubicacion_id, fecha, cant from tmp_a5_recep;
+
+-- reparto asignado por (evento, producto, tienda)
+create temp table tmp_dest on commit drop as
+select r.evento_id, r.producto_id, r.ubicacion_id, sum(r.cant)::int as asignado
+from tmp_recep r where r.evento_id <> pg_temp.sid('evento', 'A5') group by 1, 2, 3
+union all
+select l.evento_id, l.producto_id, l.ubicacion_id, l.asignado from tmp_extra_lin l where l.asignado > 0;
+
+-- todos los eventos que tienen al menos una línea
+create temp table tmp_compra on commit drop as
+select e.evento_id, e.proveedor_id, e.tipo_evento, e.emision, e.creado_en, e.credito, e.plazo, e.forzado, null::date as fecha_estimada
+from tmp_evento e where exists (select 1 from tmp_dest d where d.evento_id = e.evento_id)
+union all
+select x.evento_id, x.proveedor_id, x.tipo_evento, x.emision, x.creado_en, x.credito, x.plazo, x.forzado, x.fecha_estimada from tmp_extra_ev x;
+
+create temp table tmp_item on commit drop as
+select pg_temp.sid('item', d.evento_id || ':' || d.producto_id) as item_id, d.evento_id, d.producto_id,
+       sum(d.asignado)::int as cantidad,
+       (select min(v.costo) from tmp_variantes_nuevas v where v.producto_id = d.producto_id) as costo,
+       (select tp.referencia from tmp_productos_nuevos tp where tp.id = d.producto_id) as referencia
+from tmp_dest d group by d.evento_id, d.producto_id;
+
+-- tipo de comprobante: proveedores sin RUC y los chicos (≤ 3 productos) entregan casi siempre nota de venta o boleta
+-- (R-07: más del 30 % de las compras llega sin factura); A4 y A5 son facturas con RUC
+create temp table tmp_cab on commit drop as
+select c.*, s.sub,
+       case when c.forzado in ('A4-1','A4-2','A4-3','A4-4','A4-5','A5') then 'factura'
+            when not pr.tiene_ruc or (pr.n_prods <= 3 and pg_temp.h('inf:' || c.evento_id) < 0.40) or pg_temp.h('inf2:' || c.evento_id) < 0.05
+                 then (case when pg_temp.h('nv:' || c.evento_id) < 0.6 then 'nota_venta' else 'boleta' end)
+            else 'factura' end as tipo
+from tmp_compra c
+join tmp_prov pr on pr.proveedor_id = c.proveedor_id
+join (select i.evento_id, sum(i.cantidad * i.costo) as sub from tmp_item i group by 1) s on s.evento_id = c.evento_id;
+
+-- serie y número: serie de demostración inconfundible (FD01 / BD01 / NV9) y correlativo por proveedor y serie en orden de fecha
+create temp table tmp_cab2 on commit drop as
+select c.*, (case c.tipo when 'factura' then 'FD01' when 'boleta' then 'BD01' else 'NV9' end) as serie,
+       lpad(row_number() over (partition by c.proveedor_id, c.tipo order by c.emision, c.evento_id)::text, 8, '0') as numero,
+       case when c.tipo = 'factura' then round(c.sub * 0.18, 2) else 0 end as igv
+from tmp_cab c;
+
+-- ---- 3.9 Inserción: compras, líneas, reparto ----
+insert into compras (id, proveedor_id, tipo, serie, numero, fecha_emision, condicion, fecha_vencimiento,
+                     subtotal, igv, total, estado, motivo_anulacion, nota, usuario_id, created_at, fecha_estimada_llegada)
+select c.evento_id, c.proveedor_id, c.tipo, c.serie, c.numero, c.emision,
+       case when c.credito then 'credito' else 'contado' end,
+       case when c.credito then c.emision + c.plazo end,
+       c.sub, c.igv, c.sub + c.igv,
+       case when c.tipo_evento = 'anulada' then 'anulada' else 'vigente' end,
+       case when c.tipo_evento = 'anulada' then 'Error de digitación: se emitió por equivocación' end,
+       null, pg_temp.firmante(null, c.emision, true, 'compra:' || c.evento_id), c.creado_en,
+       coalesce(c.fecha_estimada, c.emision + 4 + floor(pg_temp.h('fe:' || c.evento_id) * 7)::int)
+from tmp_cab2 c;
+
+insert into compra_items (id, compra_id, producto_id, variante_id, descripcion, cantidad, costo_unitario)
+select i.item_id, i.evento_id, i.producto_id, null, i.referencia, i.cantidad, i.costo from tmp_item i;
+
+insert into compra_item_destinos (compra_item_id, ubicacion_id, cantidad, created_at)
+select i.item_id, d.ubicacion_id, d.asignado, c.creado_en
+from tmp_dest d
+join tmp_item i on i.evento_id = d.evento_id and i.producto_id = d.producto_id
+join tmp_compra c on c.evento_id = d.evento_id;
+
+-- se comprueban ya los dos constraint triggers diferidos de reparto (en un ROLLBACK de ensayo nunca correrían)
+set constraints all immediate;
+set constraints all deferred;
+
+-- ---- 3.10 Llegadas: envío (una guía por tienda y día), lote (un proveedor por envío) y entradas al almacén ----
+-- Hora de llegada 10:00-17:00 de Lima: siempre después de las subidas de esa mañana (08:30-09:30) y en el mismo día UTC
+-- (así el lead time que calcula fn_productos, que corta por día UTC, sale bien).
+create temp table tmp_envio on commit drop as
+select pg_temp.sid('envio', r.ubicacion_id || '|' || r.fecha) as envio_id, r.ubicacion_id, r.fecha,
+       ((r.fecha + time '10:00') at time zone 'America/Lima')
+         + floor(pg_temp.h('rc:' || r.ubicacion_id || '|' || r.fecha) * 420)::int * interval '1 minute' as ts,
+       pg_temp.firmante(r.ubicacion_id, r.fecha, false, 'rcv:' || r.ubicacion_id || '|' || r.fecha) as recibido_por,
+       'T001-' || lpad((row_number() over (partition by r.ubicacion_id order by r.fecha))::text, 6, '0') as guia
+from (select distinct ubicacion_id, fecha from tmp_recep) r;
+
+insert into envios (id, ubicacion_id, numero_guia, nota, recibido_por, fecha_recepcion)
+select e.envio_id, e.ubicacion_id, e.guia, null, e.recibido_por, e.ts from tmp_envio e;
+
+create temp table tmp_lote on commit drop as
+select pg_temp.sid('lote', r.ubicacion_id || '|' || r.fecha || '|' || c.proveedor_id) as lote_id, e.envio_id, r.ubicacion_id, r.fecha, c.proveedor_id
+from (select distinct evento_id, ubicacion_id, fecha from tmp_recep) r
+join tmp_compra c on c.evento_id = r.evento_id
+join tmp_envio e on e.ubicacion_id = r.ubicacion_id and e.fecha = r.fecha
+group by 1, 2, 3, 4, 5;
+
+insert into lotes (id, ubicacion_id, proveedor_id, numero_guia, fecha_recepcion, recibido_por, nota, envio_id)
+select l.lote_id, l.ubicacion_id, l.proveedor_id, e.guia, e.ts, e.recibido_por, null, l.envio_id
+from tmp_lote l join tmp_envio e on e.envio_id = l.envio_id;
+
+insert into movimientos (id, variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, lote_id, compra_item_id, usuario_id, created_at)
+select pg_temp.sid('mov', 'rec:' || r.evento_id || ':' || r.variante_id || ':' || r.ubicacion_id || ':' || r.fecha),
+       r.variante_id, r.ubicacion_id, u.sub_almacen, 'entrada', r.cant, 'recepcion',
+       l.lote_id, i.item_id, e.recibido_por, e.ts
+from tmp_recep r
+join tmp_compra c on c.evento_id = r.evento_id
+join tmp_envio e on e.ubicacion_id = r.ubicacion_id and e.fecha = r.fecha
+join tmp_lote l on l.envio_id = e.envio_id and l.proveedor_id = c.proveedor_id
+join tmp_item i on i.evento_id = r.evento_id and i.producto_id = r.producto_id
+join tmp_ubic u on u.ubicacion_id = r.ubicacion_id;
+
+-- ---- 3.11 A5: el faltante cerrado y la nota de crédito ----
+insert into compra_item_cierres (id, compra_item_id, ubicacion_id, cantidad, motivo, nota, usuario_id, created_at)
+select pg_temp.sid('cierre', 'A5'), i.item_id, l.ubicacion_id, l.cerrado, 'danada', 'Llegaron dañadas; el proveedor no las repone',
+       pg_temp.firmante(l.ubicacion_id, w.fin - 12, false, 'cierreA5'),
+       ((w.fin - 12 + time '11:00') at time zone 'America/Lima')
+from tmp_extra_lin l
+join tmp_item i on i.evento_id = l.evento_id and i.producto_id = l.producto_id
+cross join tmp_v3 w
+where l.evento_id = pg_temp.sid('evento', 'A5') and l.cerrado > 0;
+
+-- nota de crédito por lo cerrado (motivo «devolucion»: la compra no está resuelta, así que «faltante» no aplica).
+-- Réplica de fn_insertar_nota_credito_compra con created_at histórico (la función deja now() en una tabla inmutable).
+insert into compra_notas_credito (id, compra_id, cierre_id, serie_numero, fecha, subtotal, igv, monto, motivo, nota, usuario_id, created_at, aplicado)
+select pg_temp.sid('nc', 'A5'), c.evento_id, pg_temp.sid('cierre', 'A5'), 'FC01-00000001', w.fin - 10,
+       n.monto - n.igv_nota, n.igv_nota, n.monto, 'devolucion', 'Nota de crédito por las 6 unidades dañadas', pg_temp.firmante(null, w.fin - 10, true, 'ncA5'),
+       ((w.fin - 10 + time '11:30') at time zone 'America/Lima'), n.monto
+from tmp_cab2 c
+cross join tmp_v3 w
+cross join lateral (
+  select round(l.cerrado * i.costo * 1.18, 2) as monto,
+         round(round(l.cerrado * i.costo * 1.18, 2) * c.igv / (c.sub + c.igv), 2) as igv_nota
+  from tmp_extra_lin l join tmp_item i on i.evento_id = l.evento_id and i.producto_id = l.producto_id
+  where l.evento_id = c.evento_id and l.cerrado > 0
+) n
+where c.evento_id = pg_temp.sid('evento', 'A5');
+
+-- ---- 3.12 Pagos ----
+-- Contado: se paga el día de la emisión (a contra entrega), casi todo por transferencia (R-02: > 75 %); el efectivo de
+-- S/ 2.000 o más pierde el crédito fiscal (ley 28194) y solo ocurre en 2 casos. Crédito: solo A4-3 tiene un pago parcial.
+create temp table tmp_pago on commit drop as
+with base as (
+  select c.evento_id, c.emision, c.creado_en, c.sub + c.igv as total, (c.tipo <> 'factura') as informal,
+         pg_temp.h('pg:' || c.evento_id) as u_medio, pg_temp.h('pg2:' || c.evento_id) as u_dos
+  from tmp_cab2 c where not c.credito and c.tipo_evento <> 'anulada'
+),
+partes as (
+  select b.*, p.n as parte,
+         case when b.u_dos < 0.08 then (case when p.n = 1 then round(b.total * 0.6, 2) else b.total - round(b.total * 0.6, 2) end) else b.total end as monto
+  from base b cross join lateral generate_series(1, case when b.u_dos < 0.08 then 2 else 1 end) p(n)
+),
+medio as (
+  select pa.*,
+         case when (pa.u_medio + 0.37 * (pa.parte - 1)) % 1 < (case when pa.informal then 0.55 else 0.92 end) then 'transferencia'
+              when (pa.u_medio + 0.37 * (pa.parte - 1)) % 1 < (case when pa.informal then 0.80 else 0.96 end) then 'efectivo'
+              when (pa.u_medio + 0.37 * (pa.parte - 1)) % 1 < (case when pa.informal then 0.92 else 0.98 end) then 'yape'
+              else 'plin' end as metodo0
+  from partes pa
+)
+select m.evento_id, m.parte, m.emision, m.creado_en, m.monto,
+       case when m.metodo0 = 'efectivo' and m.monto >= 2000
+                 and row_number() over (partition by (m.metodo0 = 'efectivo' and m.monto >= 2000) order by pg_temp.h('ef:' || m.evento_id || m.parte)) > 2
+            then 'transferencia' else m.metodo0 end as metodo
+from medio m;
+
+insert into compra_pagos (id, compra_id, fecha, monto, metodo, referencia, usuario_id, created_at)
+select pg_temp.sid('pago', p.evento_id || ':' || p.parte), p.evento_id, p.emision, p.monto, p.metodo,
+       case when p.metodo = 'transferencia' then 'OP-' || lpad((floor(pg_temp.h('op:' || p.evento_id || p.parte) * 99999999))::text, 8, '0') end,
+       pg_temp.firmante(null, p.emision, true, 'pago:' || p.evento_id),
+       p.creado_en + (5 + floor(pg_temp.h('pt:' || p.evento_id || p.parte) * 80)::int) * interval '1 minute'
+from tmp_pago p;
+
+-- A4-3 (vencida hace 11 días): se pagó el 40 % por transferencia diez días después de emitirla
+insert into compra_pagos (id, compra_id, fecha, monto, metodo, referencia, usuario_id, created_at)
+select pg_temp.sid('pago', c.evento_id || ':parcial'), c.evento_id, c.emision + 10, round((c.sub + c.igv) * 0.4, 2), 'transferencia',
+       'OP-' || lpad((floor(pg_temp.h('op:' || c.evento_id) * 99999999))::text, 8, '0'),
+       pg_temp.firmante(null, c.emision + 10, true, 'pagoA43'),
+       ((c.emision + 10 + time '12:00') at time zone 'America/Lima')
+from tmp_cab2 c where c.forzado = 'A4-3';
+
+-- ---- 3.13 Inventario inicial, traslados del Taller y subidas al piso ----
+-- carga_inicial: entrada al almacén de la tienda (al Taller, sin sububicación), sin usuario ni lote, como las 219 reales;
+-- a las 12:30 del día anterior a la ventana (después de dar de alta cada prenda, que es antes de las 11:00).
+insert into movimientos (id, variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, usuario_id, created_at)
+select pg_temp.sid('mov', 'carga:' || c.variante_id || ':' || c.ubicacion_id), c.variante_id, c.ubicacion_id, u.sub_almacen, 'entrada', c.cant, 'carga_inicial', null::uuid,
+       ((w.carga + time '12:30') at time zone 'America/Lima') + (case u.codigo when 'TRU' then 0 when 'AQP' then 6 else 12 end) * interval '1 minute'
+from tmp_carga c join tmp_ubic u on u.ubicacion_id = c.ubicacion_id cross join tmp_v3 w
+where c.cant > 0
+union all
+select pg_temp.sid('mov', 'carga:' || t.variante_id || ':taller'), t.variante_id, u.ubicacion_id, null::uuid, 'entrada', t.cant, 'carga_inicial', null::uuid,
+       -- las prendas de la colección nueva entran al Taller el día de su alta (09:35-09:55, después de darlas de alta y antes de la ola de las 10:30)
+       case when tp.temporada = 'Primavera-Verano'
+            then (((tp.creado_en at time zone 'America/Lima')::date + time '09:35') at time zone 'America/Lima') + floor(pg_temp.h('tal:' || t.variante_id) * 20)::int * interval '1 minute'
+            else ((w.carga + time '12:30') at time zone 'America/Lima') + interval '18 minutes' end
+from tmp_taller_carga t join tmp_ubic u on u.codigo = 'TAL' cross join tmp_v3 w
+join tmp_variantes_nuevas v on v.id = t.variante_id join tmp_productos_nuevos tp on tp.id = v.producto_id;
+
+-- traslados: transferencia -> ítems -> salida del Taller -> recepciones -> entrada al almacén de la tienda
+create temp table tmp_tras2 on commit drop as
+select t.*, tal.ubicacion_id as origen_id, d.ubicacion_id as destino_id,
+       row_number() over (order by t.created_ts, t.traslado_id) as rn,
+       pg_temp.firmante(tal.ubicacion_id, t.f_salida, false, 'tc:' || t.traslado_id) as creado_por,
+       case when t.estado <> 'en_transito' then pg_temp.firmante(d.ubicacion_id, (t.conf_ts at time zone 'America/Lima')::date, false, 'tf:' || t.traslado_id) end as confirmado_por,
+       case when t.dif and t.estado = 'cerrada' then pg_temp.firmante(d.ubicacion_id, (t.cierre_ts at time zone 'America/Lima')::date, true, 'tl:' || t.traslado_id) end as lider_cierra
+from tmp_tras t
+join tmp_ubic tal on tal.codigo = 'TAL'
+join tmp_ubic d on d.codigo = t.destino;
+
+-- número explícito y creciente con la fecha (la secuencia real va en 4: el setval se hace solo en la corrida definitiva)
+insert into transferencias (id, ubicacion_origen_id, ubicacion_destino_id, estado, creado_por, nota, created_at, fecha_estimada_llegada,
+                            confirmado_por, confirmado_en, cerrado_por, cerrado_en, nota_cierre, numero)
+select t.traslado_id, t.origen_id, t.destino_id, t.estado, t.creado_por,
+       case t.tipo when 'ola' then 'Reposición de Lima' when 'extra' then 'Reposición de la tienda' else null end,
+       t.created_ts, t.eta_ts,
+       t.confirmado_por, t.conf_ts,
+       case when t.estado = 'cerrada' then coalesce(t.lider_cierra, t.confirmado_por) end,
+       case when t.estado = 'cerrada' then t.cierre_ts end,
+       case when t.dif and t.estado = 'cerrada' then 'Se cerró la diferencia: lo que faltó no llegó' end,
+       (select coalesce(max(numero), 0) from transferencias where id::text not like '5eed%') + t.rn
+from tmp_tras2 t;
+
+insert into transferencia_items (id, transferencia_id, variante_id, cantidad)
+select pg_temp.sid('ti', l.traslado_id || ':' || l.variante_id), l.traslado_id, l.variante_id, l.cant from tmp_tras_lin l;
+
+insert into movimientos (id, variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, transferencia_item_id, usuario_id, created_at)
+select pg_temp.sid('mov', 'sal:' || l.traslado_id || ':' || l.variante_id), l.variante_id, t.origen_id, null, 'salida', l.cant, 'traslado_salida',
+       pg_temp.sid('ti', l.traslado_id || ':' || l.variante_id), t.creado_por, t.created_ts
+from tmp_tras_lin l join tmp_tras2 t on t.traslado_id = l.traslado_id;
+
+update transferencia_items ti set movimiento_id = pg_temp.sid('mov', 'sal:' || ti.transferencia_id || ':' || ti.variante_id)
+where ti.id::text like '5eed%';
+
+-- recepciones (contaron todo lo que llegó; en A3 y en las que cierran con diferencia, menos de lo que salió)
+insert into transferencia_recepciones (id, transferencia_id, variante_id, cantidad_recibida, registrado_por, created_at)
+select pg_temp.sid('tr', l.traslado_id || ':' || l.variante_id), l.traslado_id, l.variante_id, l.cant_recibida, t.confirmado_por,
+       t.conf_ts + (row_number() over (partition by l.traslado_id order by l.variante_id) - 1) * interval '3 seconds'
+from tmp_tras_lin l join tmp_tras2 t on t.traslado_id = l.traslado_id
+where t.estado in ('cerrada', 'recibido_con_diferencia');
+
+insert into movimientos (id, variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, transferencia_recepcion_id, usuario_id, created_at)
+select pg_temp.sid('mov', 'ent:' || l.traslado_id || ':' || l.variante_id), l.variante_id, t.destino_id, u.sub_almacen, 'entrada', l.cant_recibida, 'traslado_entrada',
+       pg_temp.sid('tr', l.traslado_id || ':' || l.variante_id), coalesce(t.lider_cierra, t.confirmado_por), t.cierre_ts
+from tmp_tras_lin l
+join tmp_tras2 t on t.traslado_id = l.traslado_id and t.estado = 'cerrada'
+join tmp_ubic u on u.ubicacion_id = t.destino_id
+where l.cant_recibida > 0;
+
+update transferencia_recepciones tr set movimiento_id = pg_temp.sid('mov', 'ent:' || tr.transferencia_id || ':' || tr.variante_id)
+where tr.id::text like '5eed%' and tr.cantidad_recibida > 0 and exists (select 1 from tmp_tras2 t where t.traslado_id = tr.transferencia_id and t.estado = 'cerrada');
+
+-- subidas del almacén al piso (lo que hace mover_interno: un solo movimiento tipo «traslado» dentro de la tienda)
+insert into movimientos (id, variante_id, ubicacion_id, ubicacion_destino_id, sububicacion_id, sububicacion_destino_id, tipo, cantidad, motivo, usuario_id, created_at)
+select pg_temp.sid('mov', 'int:' || m.variante_id || ':' || m.ubicacion_id || ':' || m.fecha), m.variante_id, m.ubicacion_id, m.ubicacion_id, u.sub_almacen, u.sub_piso,
+       'traslado', m.cant, 'movimiento_interno', pg_temp.firmante(m.ubicacion_id, m.fecha, false, 'int:' || m.variante_id || ':' || m.fecha), m.ts
+from tmp_moves m join tmp_ubic u on u.ubicacion_id = m.ubicacion_id
+where m.cant > 0;
+
+-- ahora sí: la suma de lo recibido más lo cerrado no puede pasar de lo asignado a cada tienda, ni de lo facturado
+set constraints all immediate;
+set constraints all deferred;
+
+-- =============================================================================
+-- Chequeos de la Fase 3: cualquier falla aborta la transacción entera
+-- =============================================================================
+-- El libro completo de la Fase 3 (todo lo sembrado en movimientos) más las ventas de la Fase 2 como salidas del piso, que
+-- la Fase 4 insertará de verdad: así se comprueba ya que ninguna venta queda sin stock.
+create temp table tmp_ev on commit drop as
+select m.variante_id, m.ubicacion_id, m.sububicacion_id as sub, m.created_at as ts, m.id as ref,
+       case m.tipo when 'entrada' then m.cantidad when 'ajuste' then m.cantidad else -m.cantidad end as d
+from movimientos m where m.id::text like '5eed%'
+union all
+select m.variante_id, m.ubicacion_destino_id, m.sububicacion_destino_id, m.created_at, m.id, m.cantidad
+from movimientos m where m.id::text like '5eed%' and m.tipo = 'traslado'
+union all
+select l.variante_id, l.ubicacion_id, u.sub_piso, t.ts, l.ticket_id, -l.cantidad
+from tmp_lineas l join tmp_tickets t on t.ticket_id = l.ticket_id join tmp_ubic u on u.ubicacion_id = l.ubicacion_id;
+
+do $$
+declare
+  v_n int; v_cnt int; v_max timestamptz; v_corte timestamptz; r record;
+begin
+  select corte into v_corte from tmp_v3;
+
+  -- (1) saldo corrido: ningún bucket (variante, ubicación, sububicación) baja de 0 en ningún instante
+  select count(*) into v_n from (
+    select variante_id, ubicacion_id, sub, min(saldo) as minimo from (
+      select variante_id, ubicacion_id, sub,
+             sum(d) over (partition by variante_id, ubicacion_id, sub order by ts, (d < 0)::int, ref rows unbounded preceding) as saldo
+      from tmp_ev) x
+    group by 1, 2, 3 having min(saldo) < 0) y;
+  if v_n > 0 then raise exception '[check abastecimiento] % buckets con saldo negativo en algún momento', v_n; end if;
+
+  -- (2) entrada y salida del mismo bucket en el mismo instante: el orden (created_at, id) las mezclaría al azar
+  select count(*) into v_n from (select 1 from tmp_ev group by variante_id, ubicacion_id, sub, ts having bool_or(d > 0) and bool_or(d < 0)) x;
+  if v_n > 0 then raise exception '[check abastecimiento] % buckets con una entrada y una salida en el mismo instante', v_n; end if;
+
+  -- (3) lo que dejó la simulación coincide con el libro sembrado (tiendas: almacén + piso por variante y tienda)
+  select count(*) into v_n from (
+    select e.variante_id, e.ubicacion_id from tmp_est e
+    left join (select variante_id, ubicacion_id, sum(d)::int as neto from tmp_ev group by 1, 2) b on b.variante_id = e.variante_id and b.ubicacion_id = e.ubicacion_id
+    where e.alm + e.piso <> coalesce(b.neto, 0)) z;
+  if v_n > 0 then raise exception '[check abastecimiento] % pares donde el libro sembrado no coincide con la simulación', v_n; end if;
+
+  -- (4) nada de lo sembrado está fechado después del corte (última jornada: hasta hace 15 minutos)
+  select greatest((select max(created_at) from movimientos where id::text like '5eed%'),
+                  (select max(created_at) from compras where id::text like '5eed%'),
+                  (select max(created_at) from compra_pagos where id::text like '5eed%'),
+                  (select max(fecha_recepcion) from envios where id::text like '5eed%'),
+                  (select max(created_at) from transferencias where id::text like '5eed%'),
+                  (select max(coalesce(cerrado_en, confirmado_en)) from transferencias where id::text like '5eed%'))
+    into v_max;
+  if v_max > v_corte then raise exception '[check abastecimiento] hay filas fechadas en el futuro (%, corte %)', v_max, v_corte; end if;
+
+  -- (5) firmantes: nadie firma antes de haber ingresado, y compras, pagos y notas de crédito son de líder
+  select count(*) into v_n from (
+    select m.id from movimientos m join public.personas p on p.id = m.usuario_id where m.id::text like '5eed%' and p.fecha_ingreso > (m.created_at at time zone 'America/Lima')::date
+    union all select e.id from envios e join public.personas p on p.id = e.recibido_por where e.id::text like '5eed%' and p.fecha_ingreso > (e.fecha_recepcion at time zone 'America/Lima')::date
+    union all select c.id from compras c join public.personas p on p.id = c.usuario_id where c.id::text like '5eed%' and p.fecha_ingreso > c.fecha_emision
+    union all select x.id from compra_pagos x join public.personas p on p.id = x.usuario_id where x.id::text like '5eed%' and p.fecha_ingreso > x.fecha
+    union all select t.id from transferencias t join public.personas p on p.id in (t.creado_por, t.confirmado_por, t.cerrado_por) where t.id::text like '5eed%'
+              and p.fecha_ingreso > (coalesce(t.cerrado_en, t.confirmado_en, t.created_at) at time zone 'America/Lima')::date) f;
+  if v_n > 0 then raise exception '[check abastecimiento] % firmas anteriores al ingreso de quien firma', v_n; end if;
+  select count(*) into v_n from (
+    select c.id from compras c where c.id::text like '5eed%' and not exists (select 1 from colaboradores k where k.persona_id = c.usuario_id and k.rol = 'lider')
+    union all select x.id from compra_pagos x where x.id::text like '5eed%' and not exists (select 1 from colaboradores k where k.persona_id = x.usuario_id and k.rol = 'lider')
+    union all select n.id from compra_notas_credito n where n.id::text like '5eed%' and not exists (select 1 from colaboradores k where k.persona_id = n.usuario_id and k.rol = 'lider')) f;
+  if v_n > 0 then raise exception '[check abastecimiento] % compras, pagos o notas de crédito firmados por alguien que no es líder', v_n; end if;
+
+  -- (6) compras: proveedor activo y el del producto de cada línea; creadas después de existir el producto; llegan de 0 a 14 días después
+  select count(*) into v_n from (
+    select c.id from compras c join retail.proveedores pr on pr.id = c.proveedor_id where c.id::text like '5eed%' and not pr.activo
+    union all select c.id from compras c join compra_items i on i.compra_id = c.id join productos p on p.id = i.producto_id
+               where c.id::text like '5eed%' and p.proveedor_id is distinct from c.proveedor_id
+    union all select c.id from compras c join compra_items i on i.compra_id = c.id join productos p on p.id = i.producto_id
+               where c.id::text like '5eed%' and c.created_at < p.created_at
+    union all select c.id from compras c join compra_items i on i.compra_id = c.id join movimientos m on m.compra_item_id = i.id join lotes l on l.id = m.lote_id
+               where c.id::text like '5eed%' and ((l.fecha_recepcion at time zone 'America/Lima')::date < c.fecha_emision
+                                                  or (l.fecha_recepcion at time zone 'America/Lima')::date - c.fecha_emision > 14
+                                                  or l.fecha_recepcion < c.created_at)) z;
+  if v_n > 0 then raise exception '[check abastecimiento] % compras con proveedor, fecha o plazo incoherente', v_n; end if;
+
+  -- (7) contadores que llevan los triggers y estados que salen solos
+  select count(*) into v_n from compras c where c.id::text like '5eed%'
+    and (c.facturado_cantidad <> (select coalesce(sum(i.cantidad), 0) from compra_items i where i.compra_id = c.id)
+      or c.recibido_cantidad <> (select coalesce(sum(m.cantidad), 0) from movimientos m join compra_items i on i.id = m.compra_item_id where i.compra_id = c.id)
+      or c.pagado <> (select coalesce(sum(p.monto), 0) from compra_pagos p where p.compra_id = c.id));
+  if v_n > 0 then raise exception '[check abastecimiento] % compras con contadores distintos de lo insertado', v_n; end if;
+  select count(*) into v_n from compras where id::text like '5eed%' and estado = 'vigente' and condicion = 'contado' and estado_pago <> 'pagada';
+  if v_n > 0 then raise exception '[check abastecimiento] % compras al contado sin pagar', v_n; end if;
+
+  -- (8) mezcla de las compras (R-01, R-02, R-07, R-09)
+  select count(*) into v_cnt from compras where id::text like '5eed%';
+  if v_cnt < 130 or v_cnt > 190 then raise exception '[check abastecimiento] % compras (se esperaban 130-190)', v_cnt; end if;
+  select round(100.0 * count(*) filter (where tipo <> 'factura') / count(*)) into v_n from compras where id::text like '5eed%';
+  if v_n < 26 or v_n > 40 then raise exception '[check abastecimiento] % %% de compras sin factura (R-07 pide 30-35 %%)', v_n; end if;
+  select round(100.0 * count(*) filter (where metodo = 'transferencia') / count(*)) into v_n from compra_pagos where id::text like '5eed%';
+  if v_n < 75 then raise exception '[check abastecimiento] solo % %% de pagos por transferencia (R-02 pide > 75 %%)', v_n; end if;
+  select count(*) into v_n from compra_pagos where id::text like '5eed%' and metodo = 'efectivo' and monto >= 2000;
+  if v_n > 2 then raise exception '[check abastecimiento] % pagos en efectivo de S/ 2.000 o más (R-09: como mucho 2)', v_n; end if;
+
+  -- (9) A4: 3 vencidas (1 hace más de 30 días, 2 hace 8-30) y 2 por vencer en ≤ 7 días; A5 parcial con su nota
+  select * into r from (
+    select count(*) filter (where c.fecha_vencimiento < w.fin - 30) as v30,
+           count(*) filter (where c.fecha_vencimiento between w.fin - 30 and w.fin - 8) as v8_30,
+           count(*) filter (where c.fecha_vencimiento between w.fin and w.fin + 7) as por_vencer
+    from compras c, tmp_v3 w where c.id::text like '5eed%' and c.condicion = 'credito' and c.saldo > 0 and c.estado = 'vigente') a4;
+  if r.v30 <> 1 or r.v8_30 <> 2 or r.por_vencer <> 2 then
+    raise exception '[check abastecimiento] A4: vencidas >30 d = %, vencidas 8-30 d = %, por vencer = % (se esperaban 1, 2 y 2)', r.v30, r.v8_30, r.por_vencer;
+  end if;
+  select count(*) into v_n from compras c where c.id = pg_temp.sid('evento', 'A5')
+    and c.estado_recepcion = 'parcial' and c.cerrado_cantidad = 6 and c.notas_credito > 0 and c.estado_pago = 'pendiente';
+  if v_n <> 1 then raise exception '[check abastecimiento] A5 no quedó como se diseñó (parcial, 6 cerradas, con nota de crédito)'; end if;
+  select count(*) into v_n from compras where id::text like '5eed%' and estado_recepcion = 'sin_recibir' and estado = 'vigente';
+  if v_n <> 5 then raise exception '[check abastecimiento] % compras sin recibir (se esperaban 5, dos con la fecha estimada vencida)', v_n; end if;
+
+  -- (10) traslados: coherencia de estados, de números y de lo recibido contra lo que salió
+  select count(*) into v_n from transferencias t where t.id::text like '5eed%'
+    and ((t.estado = 'cerrada' and (t.cerrado_por is null or t.cerrado_en is null or t.confirmado_en is null))
+      or (t.estado = 'en_transito' and (t.confirmado_en is not null or t.cerrado_en is not null))
+      or (t.estado = 'recibido_con_diferencia' and (t.confirmado_en is null or t.cerrado_en is not null))
+      or t.fecha_estimada_llegada <= t.created_at or t.confirmado_en < t.created_at or t.cerrado_en < t.confirmado_en);
+  if v_n > 0 then raise exception '[check abastecimiento] % traslados con estado o fechas incoherentes', v_n; end if;
+  select count(*) into v_n from transferencias t where t.id::text like '5eed%' and t.estado = 'cerrada'
+    and (select coalesce(sum(m.cantidad), 0) from movimientos m join transferencia_recepciones tr on tr.id = m.transferencia_recepcion_id where tr.transferencia_id = t.id)
+        <> (select coalesce(sum(tr.cantidad_recibida), 0) from transferencia_recepciones tr where tr.transferencia_id = t.id);
+  if v_n > 0 then raise exception '[check abastecimiento] % traslados cerrados cuya entrada no es lo recibido', v_n; end if;
+  select count(*) into v_n from (select numero from transferencias group by numero having count(*) > 1) z;
+  if v_n > 0 then raise exception '[check abastecimiento] números de traslado repetidos'; end if;
+  select count(*) into v_n from transferencia_items ti where ti.id::text like '5eed%' and ti.movimiento_id is null;
+  if v_n > 0 then raise exception '[check abastecimiento] % líneas de traslado sin su movimiento de salida', v_n; end if;
+
+  -- (11) forma de la carga inicial: entrada, sin usuario, lote ni compra; al almacén de la tienda o sin sububicación en el Taller
+  select count(*) into v_n from movimientos m join ubicaciones u on u.id = m.ubicacion_id left join sububicaciones s on s.id = m.sububicacion_id
+    join variantes v on v.id = m.variante_id
+    where m.id::text like '5eed%' and m.motivo = 'carga_inicial'
+      and (m.tipo <> 'entrada' or m.usuario_id is not null or m.lote_id is not null or m.compra_item_id is not null
+           or (u.tipo = 'tienda' and s.tipo is distinct from 'almacen_tienda') or (u.tipo = 'taller' and m.sububicacion_id is not null)
+           or m.created_at < v.created_at + interval '1 hour');
+  if v_n > 0 then raise exception '[check abastecimiento] % cargas iniciales mal formadas', v_n; end if;
+
+  -- (12) las subidas al piso siempre llevan persona, van dentro de la tienda y antes de abrir
+  select count(*) into v_n from movimientos m where m.id::text like '5eed%' and m.motivo = 'movimiento_interno'
+    and (m.usuario_id is null or m.ubicacion_destino_id <> m.ubicacion_id or m.sububicacion_id = m.sububicacion_destino_id
+         or (m.created_at at time zone 'America/Lima')::time >= time '10:00');
+  if v_n > 0 then raise exception '[check abastecimiento] % subidas al piso mal formadas', v_n; end if;
+
+  raise notice '[check abastecimiento] OK — % compras, % movimientos, % traslados',
+    (select count(*) from compras where id::text like '5eed%'), (select count(*) from movimientos where id::text like '5eed%'),
+    (select count(*) from transferencias where id::text like '5eed%');
 end $$;
 
 -- ---------------------------------------------------------------------------
