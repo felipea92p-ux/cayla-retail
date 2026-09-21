@@ -1,6 +1,6 @@
-# Pantalla — Historial de ventas (`/vender/historial`) — TRABAJO EN CURSO
+# Pantalla — Historial de ventas (`/vender/historial`)
 
-> Modo: completo (**incompleto: falta el SQL de producción, los puntajes y las 12 tareas**) · Fecha: 2026-09-21 · Rol/sede: líder, vista «Todas las tiendas» (el encabezado global mostraba «Tienda TRU») · Datos: capturas reales + código; **sin SQL de producción todavía**
+> Modo: completo con referentes externos · Fecha: 2026-09-21 · Rol/sede: líder, vista «Todas las tiendas» (el encabezado global mostraba «Tienda TRU») · Datos: capturas reales + código; SQL de producción corrido el 2026-09-21 (solo lectura, proyecto cayla-dynamic)
 > SHA analizado: `553c0ff7` (origin/main, 2026-09-21) — si `page.tsx`, `lib/ventas-historial*.ts` o los componentes `HistorialVentas*`/`FiltrosHistorialVentas` cambian después, este análisis está vencido
 > Archivos: `apps/web/app/(app)/vender/historial/page.tsx` · `components/FiltrosHistorialVentas.tsx` · `components/HistorialVentasLista.tsx` · `components/HistorialVentasPulso.tsx` · `components/Paginacion.tsx` (`PaginacionCursor`) · `components/DetalleVentaModal.tsx` · `lib/ventas-historial.ts` · `lib/ventas-historial-reglas.ts` · `lib/comprobantes-reglas.ts` · tablas `ventas`, `venta_items`, `venta_pagos`, `comprobantes`, `productos`, `variantes`, `producto_fotos` · RPC `fn_nombres_personas`
 > Otra sesión tocándola: no como tarea propia. La rama `claude/colaboradores-rediseno` toca una línea de `vender/historial/page.tsx` (el filtro de vendedor). Rediseños vecinos en vuelo: Caja, Facturación (ADR-0124).
@@ -180,10 +180,84 @@ Idea aún sin desarrollar, decide Felipe: en vez de un historial solo de lectura
 ## 7 · Fuera de esta pantalla (borrador)
 Si H2 resulta real, **hay comprobantes sin transmitir a SUNAT desde el 14 de setiembre**. Es un tema fiscal de Facturación, no de esta pantalla: el historial solo lo deja a la vista.
 
+## 9 · Resultado del SQL de producción (2026-09-21)
+
+| Consulta | Resultado | Veredicto |
+|---|---|---|
+| B1 volumen | 17 ventas (todas de los últimos 30 días; 14-sep → 21-sep), 19 comprobantes | Volumen mínimo: H9 aún no duele |
+| E2 comprobantes | 17 `pendiente` (14 con más de 1 día, el más viejo del 14-sep), 1 `aceptado`, 1 `anulado` | **H2 es hueco real**: casi nada se transmitió a SUNAT |
+| E3 | 0 sin comprobante, 0 sin vendedor, 0 anuladas | Está bien |
+| E4 | 0 ventas donde items ≠ pagos | **H8 está bien** hoy |
+| E5 | 39 líneas vendidas: 18 sin `descripcion` (46 %), 16 sin foto del color (41 %) | **H3 es hueco real** y en parte es dato de catálogo |
+| A3 índices | `ventas` solo tiene `pkey` y `token_cliente` | H9 confirmado, sin urgencia |
+| E1 | `authenticator` sin `max_rows`; `statement_timeout=8s` | **H1 sigue sin verificar**: `max_rows` es ajuste del API (dashboard, por defecto 1000) |
+
+## 10 · Referentes de la pantalla (3 productos)
+
+Se comparó contra tres historiales de ventas de referencia. Fuentes: ayuda oficial de cada producto.
+
+| | Shopify · Orders | Square · Transactions | Lightspeed Retail · Sales history |
+|---|---|---|---|
+| Búsqueda | Una sola barra: texto libre + filtros como chips + vistas guardadas | Búsqueda de transacciones por detalle | Por n.º de recibo, clienta, producto |
+| Filtros | Pago, envío, fecha, etiquetas, canal (chips en la misma barra) | Fecha, método de pago, tipo, estado, sede, fuente, miembro del equipo, tarjeta | Fecha, estado, tienda, caja, vendedor, tipo de pago, **monto**, **producto** |
+| Vistas guardadas | Sí (pestañas «Todos / Sin pagar / …», se actualizan solas) | No | No |
+| Exportar | Sí | CSV desde la propia lista | «Export List» a CSV |
+| Acciones desde la venta | Sí (cumplir, reembolsar, imprimir) | Reembolso desde la transacción | Devolución/ver recibo desde la venta |
+
+Fuentes: [Shopify: filtros y vistas](https://help.shopify.com/en/manual/shopify-admin/productivity-tools/searching-filtering-views) · [Shopify: filtrar pedidos](https://help.shopify.com/en/manual/fulfillment/managing-orders/viewing-orders/filtering-orders) · [Square: buscar transacciones](https://squareup.com/help/us/en/article/5145-transaction-search) · [Lightspeed X-Series: Sales history](https://x-series-support.lightspeedhq.com/hc/en-us/articles/25534095402907-Understanding-and-managing-the-Sales-history-page) · [Lightspeed: exportar](https://x-series-support.lightspeedhq.com/hc/en-us/articles/25534215415963-Exporting-your-Sales-Data-from-Retail-POS-X-Series). Lo de «acciones desde la venta» es lectura general de esos productos, no cita de un artículo concreto: `[inferido]`.
+
+**Lo que los tres hacen igual y CAYLA no:** (1) una sola barra de búsqueda encima de la lista; (2) filtros por monto y por producto; (3) exportar la lista filtrada; (4) el estado accionable (pendiente, sin pagar) es un filtro de un clic, no texto en la fila; (5) desde la venta se puede actuar.
+
+**Lo que CAYLA hace mejor y no se toca:** la línea de tiempo por día con total del día, las miniaturas de color cuando no hay foto, el aviso «registro transparente» y la anulada tachada. Ninguno de los tres muestra el total del día ni un pulso del período junto a la lista. No se debe copiar el aspecto de tabla plana: la hoja de papel por día ya es más legible que sus filas.
+
+## 11 · Puntajes (0–10)
+
+| Dimensión | Nota | Por qué |
+|---|---|---|
+| Estética | 7 | Coherente con Cambios/Devoluciones/Caja; pierde por títulos con código, cuadros de foto vacíos, textos de 10–11 px y sin pista de que la fila se abre. |
+| Lógica | 7 | Cursor estable, días de Lima, totales de todo el rango; pierde por «Por día» engañoso (H5) y el chip que no distingue antigüedad (H2). |
+| Arquitectura | 8 | Una consulta base, sin N+1, RLS correcta, solo lectura. Riesgo abierto: tope de 1000 (H1) y sin índices. |
+| Funciones | 5 | Sin búsqueda, sin filtro de monto/prenda, sin exportar, sin acciones. Es lo que más la separa de los tres referentes. |
+| Utilidad | 6 | Sirve para mirar; no para encontrar una venta concreta, que era su finalidad declarada. |
+| Conexión con el ERP | 5 | Muestra el estado del comprobante pero no lleva a Facturación, Cambios ni Devoluciones. |
+
+**Cumple su finalidad: 6/10.** El «libro» y el «pulso» funcionan; «donde se encuentra una venta concreta» y «se llega al detalle» solo se cumplen a medias.
+**Relevancia: 8/10.** Es el registro de dinero real y hoy es el único lugar donde se ve que 17 boletas no se transmitieron.
+
+## 12 · Las 12 tareas, por importancia
+
+Esfuerzo: S (horas) · M (1 día) · L (varios días).
+
+1. **Mostrar la antigüedad del comprobante pendiente y avisarlo** — *H2, dato real.* Dónde: `comprobantes-reglas.ts:99-106`, `HistorialVentasLista.tsx:37-38,141`. Por qué: 14 de 17 boletas llevan más de un día sin transmitirse y la fila las pinta igual que una recién emitida. Verifica: una boleta del 14-sep dice «pendiente hace 7 días» en tono distinto al de una de hoy. **Antes, Felipe: ¿por qué no se transmiten?** (tema de Facturación). S.
+2. **Barra de búsqueda única (boleta, clienta, prenda)** — *H7; los tres referentes la tienen.* Dónde: `FiltrosHistorialVentas.tsx`, reutilizar `buscarVentas` de `ventas-v2.ts`. Verifica: escribir un n.º de boleta o un nombre devuelve solo esas ventas y conserva el cursor. M.
+3. **Título con el nombre de la prenda y completar las descripciones que faltan** — *H3.* Dónde: `ventas-historial.ts:44`, `ventas-historial-reglas.ts:149`, `venta-detalle-reglas.ts:77`. Por qué: 18 de 39 líneas vendidas (46 %) no tienen `descripcion`. Verifica: ninguna fila muestra «BLU-001» si existe descripción; el resto usa la referencia de respaldo. Parte es carga de datos en catálogo. S + catálogo.
+4. **Hacer fiable el aviso del tope de 1000** — *H1.* Dónde: `ventas-historial.ts:138,146`. Verifica: mirar `max_rows` en Supabase (Settings ▸ API). Si es 1000, cambiar la detección o mover los totales a una RPC de agregados. Si toca esquema, confirma Felipe. M.
+5. **Replantear: de libro a punto de partida (acciones desde la venta)** — *H6; Square y Lightspeed permiten actuar sobre la venta.* Dónde: `DetalleVentaModal.tsx:157-172`. Manteniendo «una venta no se toca», el detalle ofrece «Devolver», «Cambiar», «Ver comprobante» que abren Cambios/Devoluciones/Facturación con la venta ya elegida. Decide Felipe (sección 6). Verifica: desde una venta de hace 8 días se llega a Devoluciones con las prendas precargadas. L.
+6. **Alinear el alcance con el selector global de tienda** — *H4.* Dónde: `page.tsx:47-51,57`. Verifica: con «Tienda TRU» en el encabezado, la página no dice «Todas las tiendas» sin explicarlo. S.
+7. **Corregir «Por día»** — *H5.* Dónde: `HistorialVentasPulso.tsx:145`. **Pendiente de decisión de Felipe:** dividir entre días del rango (hoy S/ 182.90) o entre días con venta (≈ S/ 686). Verifica: la cifra coincide con la elegida. S.
+8. **Exportar la lista filtrada a CSV** — *Square y Lightspeed lo traen; sube desde «bajo valor».* Dónde: nueva ruta de exportación con los mismos filtros. Verifica: el CSV tiene las mismas filas y total que la pantalla. M.
+9. **Atajos de vista de un clic** — *inspirado en las vistas guardadas de Shopify.* «Hoy», «Ayer», «Pendientes de comprobante», «Anuladas», «Sin comprobante», sobre los filtros existentes. Verifica: cada atajo produce la URL con los filtros esperados. S.
+10. **Legibilidad y accesibilidad** — objetivos táctiles de 44 px, texto mínimo 12 px en `tinta/60+`, chevron o hover que diga que la fila se abre, teclado en el gráfico, `<nav aria-label>` en la paginación. Dónde: `FiltrosHistorialVentas.tsx:21`, `HistorialVentasPulso.tsx:82`, `Paginacion.tsx`. Verifica: contraste medido y recorrido con teclado y en tablet. M.
+11. **Filtros por monto y por prenda** — *Lightspeed los tiene.* Dónde: `FiltrosHistorialVentas.tsx`, `ventas-historial.ts` (`consulta()`). Verifica: «más de S/ 300» y «Casaca Emilia» acotan la lista y las cifras de cabecera. M.
+12. **Índices de `ventas` y pruebas de integración/clics** — *H9, H10.* Dónde: nueva migración con `(created_at desc, id desc)` y `(ubicacion_id, created_at)`; prueba del tope y del cursor con datos; recorrido con líder e integrante y una anulada de verdad. Verifica: `explain` sin `Seq Scan` con volumen simulado; prueba en CI. La migración va a producción con prefijo `retail.` y confirma Felipe. M.
+
 ## 8 · Líneas propuestas para BACKLOG.md
-Pendientes de escribir cuando estén las 12 tareas finales. Formato: `- [ ] [pantalla:vender-historial] #n Título — esfuerzo`. Felipe aprueba antes de anexarlas.
+Felipe aprueba antes de anexar (**no editar `docs/BACKLOG.md` sin su OK**). Formato: `- [ ] [pantalla:vender-historial] #n Título — esfuerzo`.
+
+- [ ] [pantalla:vender-historial] #1 Antigüedad y aviso del comprobante pendiente — S
+- [ ] [pantalla:vender-historial] #2 Barra de búsqueda única (boleta, clienta, prenda) — M
+- [ ] [pantalla:vender-historial] #3 Título con nombre de la prenda y completar descripciones — S
+- [ ] [pantalla:vender-historial] #4 Aviso fiable del tope de 1000 — M
+- [ ] [pantalla:vender-historial] #5 Replantear: acciones desde la venta (devolver, cambiar, ver comprobante) — L
+- [ ] [pantalla:vender-historial] #6 Alcance alineado con el selector global de tienda — S
+- [ ] [pantalla:vender-historial] #7 «Por día» según decisión de Felipe — S
+- [ ] [pantalla:vender-historial] #8 Exportar a CSV — M
+- [ ] [pantalla:vender-historial] #9 Atajos de vista de un clic — S
+- [ ] [pantalla:vender-historial] #10 Legibilidad y accesibilidad — M
+- [ ] [pantalla:vender-historial] #11 Filtros por monto y por prenda — M
+- [ ] [pantalla:vender-historial] #12 Índices de `ventas` y pruebas — M
 
 ## Historial
 | Fecha | Modo | Cumplimiento | Relevancia | Tareas cerradas de las 12 anteriores |
 |---|---|---|---|---|
-| 2026-09-21 | completo (en curso, sin puntuar) | pendiente | pendiente | — (primer análisis) |
+| 2026-09-21 | completo + referentes (Shopify, Square, Lightspeed) | 6/10 | 8/10 | — (primer análisis) |
