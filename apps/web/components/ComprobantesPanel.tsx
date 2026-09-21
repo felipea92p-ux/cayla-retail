@@ -1,52 +1,34 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Comprobante, SerieComprobante, TipoComprobante } from "@/lib/comprobantes-reglas";
-import { ESTADO_ESTILO, ESTADO_ETIQUETA, ETIQUETA_TIPO, tipoDocumentoDeCliente } from "@/lib/comprobantes-reglas";
+import { ETIQUETA_TIPO } from "@/lib/comprobantes-reglas";
+import { soles } from "@/lib/compras-reglas";
+import { chipDelComprobante } from "@/lib/facturacion-actividad";
+import { accionesDelComprobante, camposDeBusquedaDelComprobante, motivoDelComprobante, errorDeSerie, seriesFaltantes, TIPOS_CON_SERIE, textoDeSeriesFaltantes } from "@/lib/facturacion-comprobantes-reglas";
+import { coincide } from "@/lib/facturacion-busqueda";
+import { diaYHoraLima } from "@/lib/fechas-lima";
+import { nombreCorto } from "@/lib/resumen-formato";
+import type { Ubicacion } from "@/lib/ubicaciones";
+import { useFacturacionBusqueda } from "@/lib/useFacturacionBusqueda";
 import { Ayuda } from "@/components/Ayuda";
-import { ConsultaDocumento } from "@/components/ConsultaDocumento";
+import { SinCoincidencias } from "@/components/SinCoincidencias";
+import { BotonCompacto } from "@/components/ui/BotonCompacto";
+import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, CampoMonto, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
+import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
+import { useTransmitir } from "@/lib/useTransmitir";
 import { avisar } from "@/components/ui/Avisos";
 
-type Ubicacion = { id: string; nombre: string };
-
-// Un comprobante transmitido contra el sandbox de Lucode queda "aceptado" con
-// su CDR y su PDF, exactamente igual que uno real — pero SUNAT nunca lo vio.
-// La pantalla lo dice con palabras y con borde punteado; el color no alcanza,
-// y el estado solo NO puede distinguirlos.
-const ESTILO_PRUEBA = "border-dashed border-tinta/30 bg-tinta/5 text-tinta/75";
-
-function esPrueba(c: Comprobante) {
-  return c.entorno_transmision === "sandbox";
-}
-// La baja se pidió pero SUNAT no la confirmó: el resumen diario de boletas se
-// procesa diferido. Decir "Anulado" acá sería adelantarse a SUNAT.
-function anulacionEnTramite(c: Comprobante) {
-  return c.estado === "aceptado" && c.anulacion_solicitada_at !== null;
-}
-function etiquetaEstado(c: Comprobante) {
-  const base = anulacionEnTramite(c) ? "Anulación en trámite" : ESTADO_ETIQUETA[c.estado];
-  return esPrueba(c) ? `${base} · prueba` : base;
-}
-function estiloEstado(c: Comprobante) {
-  if (esPrueba(c)) return ESTILO_PRUEBA;
-  if (anulacionEnTramite(c)) return "border-ambar/30 bg-ambar/10 text-ambar-profundo";
-  return ESTADO_ESTILO[c.estado];
-}
-
-function money(n: number) {
-  return "S/" + n.toFixed(2);
-}
-
-// Botón(es) de la columna "SUNAT" + su motivo, si hay uno — extraído porque
-// tabla (escritorio) y tarjeta (celular, ADR pendiente de numerar) pintan la
-// misma decisión en dos layouts distintos y no pueden desincronizarse. Los
-// handlers vienen por parámetro porque esta función vive fuera del
-// componente: no tiene closure sobre `onTransmitir` ni sobre los `useState`.
+// Los botones de la fila y el motivo que va bajo su estado. Qué botones le tocan a cada estado lo
+// decide `accionesDelComprobante` (con su prueba); esto solo los dibuja. Los handlers vienen por
+// parámetro porque esta función vive fuera del componente: no tiene closure sobre `onTransmitir` ni
+// sobre los `useState`. Cada botón dice sobre cuál comprobante actúa (`aria-label`): en una lista hay
+// muchos «Anular» iguales. El chip sale de `chipDelComprobante` (el mismo del Resumen).
 function accionComprobante(
   c: Comprobante,
   handlers: {
@@ -58,71 +40,42 @@ function accionComprobante(
     onLiberarClick: (c: Comprobante) => void;
   }
 ) {
-  const puedeTransmitir = c.estado === "pendiente" || c.estado === "rechazado";
-  const puedeAnular = c.estado === "aceptado" && !anulacionEnTramite(c);
-  // ADR-0093: solo "pendiente" — nunca se transmitió a SUNAT, así que liberar el
-  // correlativo no le avisa nada a nadie. Un "rechazado" SÍ llegó a SUNAT y tiene
-  // una respuesta real: su único camino sigue siendo reintentar "Transmitir" con
-  // el mismo número, no una segunda salida acá.
-  const puedeLiberar = c.estado === "pendiente";
-
-  // Un "pendiente" puede Transmitir O Liberar — las dos conviven en la misma fila
-  // (decisión de Felipe: "Liberar sin espera" se agrega JUNTO A Transmitir, no en
-  // su lugar), así que esto arma una lista en vez de elegir un solo botón.
-  const botones: React.ReactNode[] = [];
-  if (puedeTransmitir) {
-    botones.push(
-      <Boton
-        key="transmitir"
-        type="button"
-        peso="discreto"
-        onClick={() => handlers.onTransmitir(c.id)}
-        cargando={handlers.transmitiendoId === c.id}
-        className="border-rojo/30 px-2.5 py-1.5 text-[11px] text-rojo hover:bg-rojo/8"
-      >
-        {handlers.transmitiendoId === c.id ? "Transmitiendo…" : "Transmitir"}
-      </Boton>
-    );
-  }
-  if (puedeLiberar) {
-    botones.push(
-      <Boton key="liberar" type="button" peso="discreto" onClick={() => handlers.onLiberarClick(c)} className="px-2.5 py-1.5 text-[11px]">
-        Liberar sin espera
-      </Boton>
-    );
-  }
-  if (puedeAnular) {
-    botones.push(
-      <Boton key="anular" type="button" peso="discreto" onClick={() => handlers.onAnularClick(c)} className="px-2.5 py-1.5 text-[11px]">
-        Anular
-      </Boton>
-    );
-  }
-  if (anulacionEnTramite(c)) {
-    botones.push(
-      <Boton
-        key="consultar"
-        type="button"
-        peso="discreto"
-        onClick={() => handlers.onConsultarAnulacion(c.id)}
-        cargando={handlers.consultandoId === c.id}
-        className="px-2.5 py-1.5 text-[11px]"
-      >
-        {handlers.consultandoId === c.id ? "Consultando…" : "Consultar"}
-      </Boton>
-    );
-  }
-  const boton = botones.length > 0 ? <div className="flex flex-wrap gap-1.5">{botones}</div> : <span className="text-tinta/65">—</span>;
-
-  const motivo =
-    c.estado === "rechazado" && c.motivo_rechazo
-      ? c.motivo_rechazo
-      : c.estado === "no_emitido"
-        ? c.motivo_no_emitido
-        : c.motivo_anulacion;
-  const motivoEsRechazo = c.estado === "rechazado" && !!c.motivo_rechazo;
-
-  return { boton, motivo, motivoEsRechazo };
+  const numero = `${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${String(c.numero).padStart(6, "0")}`;
+  const botones = accionesDelComprobante(c).map((accion) => {
+    switch (accion) {
+      case "transmitir":
+      case "reintentar": {
+        const enVuelo = handlers.transmitiendoId === c.id;
+        const etiqueta = accion === "reintentar" ? "Reintentar" : "Transmitir";
+        return (
+          <BotonCompacto key={accion} variante={accion === "reintentar" ? "fila-alerta" : "fila"} cargando={enVuelo} aria-label={`${etiqueta} ${numero}`} onClick={() => handlers.onTransmitir(c.id)}>
+            {enVuelo ? "Transmitiendo…" : etiqueta}
+          </BotonCompacto>
+        );
+      }
+      case "liberar":
+        return (
+          <BotonCompacto key={accion} variante="fila" aria-label={`Liberar sin espera ${numero}`} onClick={() => handlers.onLiberarClick(c)}>
+            Liberar sin espera
+          </BotonCompacto>
+        );
+      case "anular":
+        return (
+          <BotonCompacto key={accion} variante="fila" aria-label={`Anular ${numero}`} onClick={() => handlers.onAnularClick(c)}>
+            Anular
+          </BotonCompacto>
+        );
+      case "consultar": {
+        const enVuelo = handlers.consultandoId === c.id;
+        return (
+          <BotonCompacto key={accion} variante="fila" cargando={enVuelo} aria-label={`Consultar la anulación de ${numero}`} onClick={() => handlers.onConsultarAnulacion(c.id)}>
+            {enVuelo ? "Consultando…" : "Consultar"}
+          </BotonCompacto>
+        );
+      }
+    }
+  });
+  return { botones: botones.length > 0 ? <div className="flex flex-wrap items-center gap-1.5">{botones}</div> : null, ...motivoDelComprobante(c) };
 }
 
 // PDF/XML/CDR (2026-09-18): Lucode los devuelve al transmitir y hasta hoy
@@ -133,19 +86,19 @@ function accionComprobante(
 function DocumentosSunat({ c }: { c: Comprobante }) {
   if (!c.pdfUrl && !c.xmlUrl && !c.cdrUrl) return null;
   return (
-    <div className="mt-1 flex flex-wrap gap-x-2 text-[11px] font-normal normal-case">
+    <div className="mt-0.5 flex flex-wrap gap-x-3 text-[12.5px]">
       {c.pdfUrl && (
-        <a href={c.pdfUrl} target="_blank" rel="noreferrer" className="text-rojo hover:underline">
+        <a href={c.pdfUrl} target="_blank" rel="noreferrer" className="font-medium text-rojo-profundo hover:underline">
           Ver PDF
         </a>
       )}
       {c.xmlUrl && (
-        <a href={c.xmlUrl} target="_blank" rel="noreferrer" className="text-tinta/50 hover:text-rojo hover:underline">
+        <a href={c.xmlUrl} target="_blank" rel="noreferrer" className="text-tinta/65 hover:text-rojo-profundo hover:underline">
           XML
         </a>
       )}
       {c.cdrUrl && (
-        <a href={c.cdrUrl} target="_blank" rel="noreferrer" className="text-tinta/50 hover:text-rojo hover:underline">
+        <a href={c.cdrUrl} target="_blank" rel="noreferrer" className="text-tinta/65 hover:text-rojo-profundo hover:underline">
           CDR
         </a>
       )}
@@ -153,66 +106,45 @@ function DocumentosSunat({ c }: { c: Comprobante }) {
   );
 }
 
-function formatearFecha(iso: string) {
-  return new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(
-    new Date(iso)
-  );
-}
+// Las columnas de la lista, en las dos versiones (con y sin «Cliente»), como `ActividadDeHoy` y por
+// el mismo motivo: según el ancho DE LA TARJETA (container queries) y no el de la ventana, porque con
+// el menú lateral desplegado una ventana de 768 px deja ~480 px de contenido. Desde 900 px de tarjeta
+// el cliente tiene su columna; entre 640 y 899 px pasa a la línea de abajo del número; por debajo
+// de 640 px cada fila se apila.
+const COLUMNAS = "@min-[640px]:grid @min-[640px]:grid-cols-[72px_minmax(0,1.1fr)_92px_minmax(0,1.4fr)] @min-[900px]:grid-cols-[72px_minmax(0,1.15fr)_minmax(0,1fr)_100px_minmax(0,1.7fr)]";
+
+const ORDEN_TIPO: TipoComprobante[] = ["boleta", "factura", "nota_credito", "nota_debito"];
 
 // Panel de Facturación electrónica: reserva el comprobante con su correlativo
 // oficial ya mismo (RPC en Postgres puro) y lo transmite a SUNAT por Lucode en
 // un paso aparte — el botón "Transmitir" de cada fila (ADR-0005, ADR-0009).
 // Reservar y transmitir siguen separados a propósito: emitir no puede depender
 // de que un proveedor externo esté arriba (principio 9).
-// Mismo patrón que EfectivoPanel: un componente, dos modales, una tabla.
+// Un componente: la franja de series, la lista del mes y los tres modales de esta vista (registrar
+// serie, anular y liberar). Las tarjetas de arriba las dibuja `ComprobantesTarjetas`; «Emitir
+// comprobante» vive en la cabecera de Facturación (`FacturacionCabecera`).
 export function ComprobantesPanel({
   comprobantes,
   series,
   ubicaciones,
   ubicacionActualId,
+  periodo,
 }: {
   comprobantes: Comprobante[];
   series: SerieComprobante[];
-  ubicaciones: Ubicacion[];
+  /** Las tiendas operativas (solo ellas emiten, así que solo a ellas les pueden faltar series). */
+  ubicaciones: Pick<Ubicacion, "id" | "nombre" | "tipo">[];
   ubicacionActualId: string;
+  /** «este mes» o «en agosto»: cómo se dice el mes que se mira (`periodoDelMes`). */
+  periodo: string;
 }) {
   const router = useRouter();
-  const [modal, setModal] = useState<"emitir" | "serie" | "anular" | "liberar" | null>(null);
+  const [modal, setModal] = useState<"serie" | "anular" | "liberar" | null>(null);
   const [loading, setLoading] = useState(false);
-  // Idempotencia (hueco 1, GRAVE): un mismo token sobrevive reintentos del
-  // formulario — si la respuesta se corta después de que el servidor ya
-  // reservó el correlativo, reintentar con el mismo token no quema un
-  // segundo número. Se renueva solo tras un Emitir exitoso (mismo patrón que
-  // PuntoDeVenta.tsx con registrar_venta).
-  const tokenEmision = useRef<string>(crypto.randomUUID());
 
-  // Transmisión a Lucode (Fase 1, ADR-0009) — por fila, no un solo estado
-  // global: transmitir la fila 3 no debe deshabilitar el botón de la fila 1.
-  const [transmitiendoId, setTransmitiendoId] = useState<string | null>(null);
-
-  async function onTransmitir(comprobanteId: string) {
-    setTransmitiendoId(comprobanteId);
-    const cerrarProceso = avisar.proceso("Transmitiendo a SUNAT…");
-    try {
-      const respuesta = await fetch("/api/lucode/emitir", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comprobante_id: comprobanteId }),
-      });
-      const datos = await respuesta.json();
-      if (!respuesta.ok) {
-        avisar.error("No se pudo transmitir el comprobante", { detalle: datos.error ?? undefined });
-        return;
-      }
-      avisar.exito("Comprobante transmitido", { detalle: "SUNAT lo tiene; el estado se actualiza en la lista." });
-      router.refresh();
-    } catch {
-      avisar.error("No se pudo transmitir el comprobante", { detalle: "No se pudo conectar con el servidor." });
-    } finally {
-      cerrarProceso();
-      setTransmitiendoId(null);
-    }
-  }
+  // Transmisión a Lucode (Fase 1, ADR-0009), por fila: la misma implementación que usa la
+  // fila de «Actividad de hoy» del Resumen (`lib/useTransmitir.ts`).
+  const { transmitiendoId, transmitir: onTransmitir } = useTransmitir();
 
   // Anulación (paso c, ADR-0016). Solo líder — la pantalla entera ya lo es,
   // pero `anular_comprobante` lo vuelve a exigir en la base.
@@ -257,7 +189,7 @@ export function ComprobantesPanel({
   // Liberar un "pendiente" que nunca se transmitió (ADR-0093). A diferencia de
   // anular, esto NUNCA habla con Lucode/SUNAT — el número no se reutiliza, solo
   // deja de contar como pendiente — así que es una RPC directa desde el cliente
-  // (mismo patrón que `onEmitir`/`onRegistrarSerie` en este mismo componente, no
+  // (mismo patrón que `onRegistrarSerie` en este mismo componente, no
   // el de `onAnular`, que sí necesita el servidor para orquestar la baja real).
   const [liberando, setLiberando] = useState<Comprobante | null>(null);
   const [motivoLiberacion, setMotivoLiberacion] = useState("");
@@ -328,18 +260,6 @@ export function ComprobantesPanel({
     }
   }
 
-  // Formulario de emisión
-  const [ubicacionId, setUbicacionId] = useState(ubicacionActualId);
-  const [tipo, setTipo] = useState<TipoComprobante>("boleta");
-  const [total, setTotal] = useState(0);
-  const [clienteNumDoc, setClienteNumDoc] = useState("");
-  const [clienteNombre, setClienteNombre] = useState("");
-  // Estado imposible eliminado por diseño: el tipo de documento NO es un estado
-  // aparte que pueda contradecir al tipo de comprobante — se deriva de él. Antes,
-  // tipear un DNI y luego cambiar a Factura dejaba "factura + dni", y la venta se
-  // caía recién al apretar Emitir, con la clienta esperando en el mostrador.
-  const clienteTipoDoc = tipoDocumentoDeCliente(tipo, clienteNumDoc);
-
   // Formulario de serie
   const [serieUbicacionId, setSerieUbicacionId] = useState(ubicacionActualId);
   const [serieTipo, setSerieTipo] = useState<TipoComprobante>("boleta");
@@ -348,64 +268,47 @@ export function ComprobantesPanel({
   // para continuar una serie que ya venía emitiéndose fuera de este sistema.
   const [serieNumero, setSerieNumero] = useState("");
 
-  const totalMes = comprobantes.reduce((acc, c) => acc + Number(c.total), 0);
-  const pendientes = comprobantes.filter((c) => c.estado === "pendiente" || c.estado === "enviado").length;
-  const rechazados = comprobantes.filter((c) => c.estado === "rechazado").length;
-  const pruebas = comprobantes.filter(esPrueba).length;
+  // Qué series le faltan a cada tienda (boleta, factura y nota de crédito). Sin la de nota de crédito
+  // una devolución de un comprobante aceptado no se puede aprobar (ADR-0100).
+  const faltantes = seriesFaltantes(series, ubicaciones);
+  const nombreDe = (id: string) => ubicaciones.find((u) => u.id === id)?.nombre ?? "—";
+  const seriesOrdenadas = [...series].sort(
+    (a, b) => nombreDe(a.ubicacion_id).localeCompare(nombreDe(b.ubicacion_id), "es") || ORDEN_TIPO.indexOf(a.tipo) - ORDEN_TIPO.indexOf(b.tipo)
+  );
 
-  // Serie que le toca a la combinación elegida en el modal de emisión. Es
-  // derivado puro de props + estado que ya existían: no consulta nada nuevo.
-  const serieDelComprobante = series.find((s) => s.ubicacion_id === ubicacionId && s.tipo === tipo);
+  // «Registrar serie» abre el formulario ya puesto en la primera que falta: lo normal es venir a
+  // completar exactamente eso.
+  function abrirSerie() {
+    const primera = faltantes[0];
+    if (primera) {
+      setSerieTipo(primera.tipo);
+      setSerieUbicacionId(primera.tiendas[0].id);
+    }
+    setModal("serie");
+  }
 
   function cerrarModal() {
     setModal(null);
-    setTotal(0);
-    setClienteNumDoc("");
-    setClienteNombre("");
     setSerieTexto("");
     setSerieNumero("");
   }
 
-  async function onEmitir(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    const supabase = createClient();
-    // IGV incluido en el total (19.83% del total = IGV, práctica estándar
-    // cuando el precio ya lo incluye) — la desagregación exacta por línea
-    // queda para cuando esto se conecte a `ventas` (ver nota al pie).
-    const igv = Math.round((total - total / 1.18) * 100) / 100;
-    const subtotal = Math.round((total - igv) * 100) / 100;
-    const { error } = await supabase.rpc("emitir_comprobante", {
-      p_ubicacion_id: ubicacionId,
-      p_tipo: tipo,
-      p_subtotal: subtotal,
-      p_igv: igv,
-      p_total: total,
-      p_cliente_tipo_doc: clienteTipoDoc,
-      p_cliente_num_doc: clienteNumDoc || undefined,
-      p_cliente_nombre: clienteNombre || undefined,
-      p_token: tokenEmision.current,
-    });
-    if (error) {
-      avisar.error(traducirError(error, "emitir el comprobante"));
-      setLoading(false);
-      return;
-    }
-    setLoading(false);
-    tokenEmision.current = crypto.randomUUID();
-    avisar.exito(`${ETIQUETA_TIPO[tipo]} emitida`, { detalle: "Aparece en la lista; transmítela a SUNAT desde la fila." });
-    cerrarModal();
-    router.refresh();
-  }
-
   async function onRegistrarSerie(e: React.FormEvent) {
     e.preventDefault();
+    // Una serie mal escrita queda guardada y todos sus comprobantes se rechazan (y cada intento quema un
+    // número): se comprueba el formato antes de guardar, no después.
+    const errorSerie = errorDeSerie(serieTipo, serieTexto);
+    if (errorSerie) {
+      avisar.error(errorSerie);
+      return;
+    }
+    const serie = serieTexto.trim().toUpperCase();
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.rpc("registrar_serie_comprobante", {
       p_ubicacion_id: serieUbicacionId,
       p_tipo: serieTipo,
-      p_serie: serieTexto,
+      p_serie: serie,
       // undefined se cae del JSON: sin número, la RPC no toca el correlativo.
       p_siguiente_numero: serieNumero ? Number(serieNumero) : undefined,
     });
@@ -415,313 +318,156 @@ export function ComprobantesPanel({
       return;
     }
     setLoading(false);
-    avisar.exito(`Serie ${serieTexto} registrada`);
+    avisar.exito(`Serie ${serie} registrada`);
     cerrarModal();
     router.refresh();
   }
 
+  const acciones = { transmitiendoId, consultandoId, onTransmitir, onAnularClick, onConsultarAnulacion, onLiberarClick };
+
+  const { texto: busqueda } = useFacturacionBusqueda();
+  const visibles = comprobantes.filter((c) => coincide(camposDeBusquedaDelComprobante(c), busqueda));
+
   return (
     <div className="space-y-6">
-      {/* Resumen del mes. Cuatro tiles, no tres: "Rechazados" tenía su propio
-          número escondido como sub-línea roja dentro de "Pendientes de enviar"
-          — dos urgencias distintas (una normal, una que exige acción) peleando
-          por el mismo espacio de una oración. Ahora cada una tiene su lugar. */}
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12 sm:grid-cols-4">
-        <div className="bg-crema p-4">
-          <p className="label-cayla text-[11px] text-tinta/65">Emitidos este mes</p>
-          <p className="font-display mt-1 text-2xl text-tinta">{comprobantes.length}</p>
-          {pruebas > 0 && (
-            <p className="mt-0.5 text-xs text-tinta/75">
-              {pruebas} de prueba
-              <Ayuda titulo="Comprobante de prueba">
-                Se transmitió a la plataforma de pruebas de Lucode, no a SUNAT. Tiene número y PDF,
-                pero no vale como comprobante de pago: no sustenta la venta ni el crédito fiscal de
-                la clienta. Sale de ahí cuando el sistema apunta al ambiente de producción.
+      {/* Series registradas: una franja que dice si falta alguna y, aparte, el detalle. */}
+      <section className="card-cayla anim-sube px-5 py-4" style={{ "--i": 4 } as CSSProperties} aria-labelledby="series-titulo">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <div className="min-w-0">
+            <h2 className="label-cayla text-[11px] text-tinta/65">
+              <span id="series-titulo">Series de comprobantes</span>
+              <Ayuda titulo="Series de comprobantes">
+                La serie identifica desde qué tienda salió el comprobante: una letra según el tipo (B para boleta, F para factura) más tres
+                caracteres. En facturación electrónica las defines tú, no SUNAT — no hay que pedir autorización. Lo normal es una serie por
+                tienda (B004 Trujillo, B005 Arequipa, B006 Lima) para saber de dónde vino cada venta. Regístrala una sola vez por ubicación y
+                tipo; el correlativo lo lleva el sistema. La de nota de crédito hace falta para aprobar devoluciones de ventas ya aceptadas por
+                SUNAT.
               </Ayuda>
+            </h2>
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] leading-snug text-tinta">
+              {series.length === 0 ? (
+                <>
+                  <Chip tono="rojo">Sin series</Chip>
+                  Ninguna tienda tiene serie registrada todavía. Sin esto, no se puede emitir nada.
+                </>
+              ) : faltantes.length > 0 ? (
+                <>
+                  <Chip tono="ambar">Incompleto</Chip>
+                  {textoDeSeriesFaltantes(faltantes)}
+                </>
+              ) : (
+                <>
+                  <Chip tono="verde">Al día</Chip>
+                  Cada tienda tiene su serie de boleta, factura y nota de crédito.
+                </>
+              )}
             </p>
-          )}
-        </div>
-        <div className="bg-crema p-4">
-          <p className="label-cayla text-[11px] text-tinta/65">Monto facturado</p>
-          <p className="font-display mt-1 text-2xl text-tinta">{money(totalMes)}</p>
-        </div>
-        <div className="bg-crema p-4">
-          <p className="label-cayla text-[11px] text-tinta/65">
-            Pendientes de enviar
-            <Ayuda titulo="Pendiente de enviar">
-              El comprobante ya tiene su número oficial reservado (nadie más puede usarlo), pero
-              todavía no se transmitió a SUNAT. Si SUNAT está caída, el número no se pierde: se
-              reintenta después.
-            </Ayuda>
-          </p>
-          <p className={`font-display mt-1 text-2xl ${pendientes > 0 ? "text-ambar" : "text-tinta"}`}>{pendientes}</p>
-        </div>
-        <div className="bg-crema p-4">
-          <p className="label-cayla text-[11px] text-tinta/65">Rechazados</p>
-          <p className={`font-display mt-1 text-2xl ${rechazados > 0 ? "text-rojo" : "text-tinta"}`}>{rechazados}</p>
-          {rechazados > 0 && (
-            <p className="mt-0.5 text-xs text-rojo">SUNAT no los aceptó — el motivo está en la fila.</p>
-          )}
-        </div>
-      </div>
-
-      {/* Series registradas */}
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="label-cayla text-[11px] text-tinta/65">
-            Series por ubicación
-            <Ayuda titulo="Series de comprobantes">
-              La serie identifica desde qué tienda salió el comprobante: una letra según el tipo
-              (B para boleta, F para factura) más tres dígitos. En facturación electrónica las
-              defines tú, no SUNAT — no hay que pedir autorización. Lo normal es una serie por
-              tienda (B004 Trujillo, B005 Arequipa, B006 Lima) para saber de dónde vino cada venta.
-              Regístrala una sola vez por ubicación y tipo; el correlativo lo lleva el sistema.
-            </Ayuda>
-          </h2>
-          <Boton peso="discreto" onClick={() => setModal("serie")}>
+          </div>
+          <BotonCompacto variante="fila" onClick={abrirSerie}>
             Registrar serie
-          </Boton>
+          </BotonCompacto>
         </div>
-        {series.length === 0 ? (
-          <p className="font-display card-cayla py-6 text-center text-base italic text-tinta/65">
-            Ninguna ubicación tiene serie registrada todavía. Sin esto, no se puede emitir nada.
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-tinta/12 bg-tinta/12 sm:grid-cols-3">
-            {series.map((s) => {
-              const ubicacion = ubicaciones.find((u) => u.id === s.ubicacion_id);
-              return (
-                <div key={s.id} className="bg-crema p-3">
-                  <p className="text-xs text-tinta/70">{ubicacion?.nombre ?? "—"} · {ETIQUETA_TIPO[s.tipo]}</p>
-                  <p className="font-display mt-0.5 text-lg text-tinta">
+
+        {series.length > 0 && (
+          <details className="group mt-3 border-t border-tinta/10 pt-3">
+            <summary className="label-cayla inline-flex cursor-pointer list-none items-center gap-1 rounded-md text-[11px] text-tinta/65 outline-none transition-colors duration-200 hover:text-tinta focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 [&::-webkit-details-marker]:hidden">
+              <ChevronRight aria-hidden size={13} strokeWidth={1.75} className="transition-transform duration-200 group-open:rotate-90" />
+              Ver {series.length === 1 ? "la serie registrada" : `las ${series.length} series registradas`}
+            </summary>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {seriesOrdenadas.map((s) => (
+                <div key={s.id} className="rounded-[10px] border border-tinta/10 bg-tinta/[0.025] p-3">
+                  <p className="text-xs text-tinta/70">
+                    {nombreCorto(nombreDe(s.ubicacion_id))} · {ETIQUETA_TIPO[s.tipo]}
+                  </p>
+                  <p className="font-display mt-0.5 text-lg tabular-nums text-tinta">
                     {s.serie}-{String(s.siguiente_numero).padStart(6, "0")}
                   </p>
                   <p className="mt-0.5 text-[11px] text-tinta/65">próximo número</p>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          </details>
         )}
-      </div>
+      </section>
 
-      {/* Comprobantes del mes */}
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="label-cayla text-[11px] text-tinta/65">Comprobantes</h2>
-          <Boton peso="primario" onClick={() => setModal("emitir")}>
-            Emitir comprobante
-          </Boton>
-        </div>
-        {comprobantes.length === 0 ? (
-          <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">
-            Sin comprobantes emitidos este mes.
+      {/* Comprobantes del mes: una sola fila para todos los anchos (ver `COLUMNAS`). */}
+      {/* `overflow-hidden` solo con filas: recorta el hover de la última fila contra las esquinas redondas. Sin filas
+          (mes vacío o búsqueda sin resultados) la tarjeta es baja y recortaría el globo de ayuda del encabezado. */}
+      <div className={`card-cayla anim-sube @container ${visibles.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 5 } as CSSProperties}>
+        <div className="px-5 pt-[18px] pb-3.5">
+          <p className="label-cayla text-[11px] text-tinta/65">
+            Comprobantes
+            <Ayuda titulo="Estados de un comprobante">
+              Pendiente de enviar: ya tiene su número oficial reservado (nadie más puede usarlo), pero todavía no se transmitió a SUNAT. Si SUNAT
+              está caída, el número no se pierde: se reintenta después. De prueba: se transmitió a la plataforma de pruebas de Lucode, no a SUNAT;
+              tiene número y PDF, pero no vale como comprobante de pago: no sustenta la venta ni el crédito fiscal de la clienta. Sale de ahí
+              cuando el sistema apunta al ambiente de producción.
+            </Ayuda>
           </p>
+          <h2 className="font-display mt-0.5 text-xl leading-tight text-tinta">Todos los comprobantes</h2>
+          <p className="mt-0.5 text-xs text-tinta/65">Los de {periodo}, con su estado ante SUNAT y lo que se puede hacer con cada uno.</p>
+        </div>
+
+        {comprobantes.length === 0 ? (
+          <p className="font-display border-t border-tinta/10 px-5 py-8 text-center text-base italic text-tinta/65">Sin comprobantes {periodo}.</p>
+        ) : visibles.length === 0 ? (
+          <SinCoincidencias />
         ) : (
           <>
-            {/* Tabla — 640px (`sm`) y más ancho. Por debajo, una tabla de 6
-                columnas no cabe sin scroll horizontal ni encogiendo el texto
-                hasta ilegible, así que esa franja usa las tarjetas de abajo
-                en su lugar (mismo dato, layout vertical). */}
-            <div className="scroll-cayla card-cayla hidden overflow-hidden sm:block">
-              <div className="scroll-cayla overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left text-xs">
-                <thead className="border-b border-tinta/10 text-tinta/65">
-                  <tr>
-                    <th className="label-cayla px-3 py-2 text-[11px]">Fecha</th>
-                    <th className="label-cayla px-3 py-2 text-[11px]">Comprobante</th>
-                    <th className="label-cayla px-3 py-2 text-[11px]">Cliente</th>
-                    <th className="label-cayla px-3 py-2 text-[11px]">Total</th>
-                    <th className="label-cayla px-3 py-2 text-[11px]">Estado</th>
-                    <th className="label-cayla px-3 py-2 text-[11px]">SUNAT</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-tinta/5">
-                  {comprobantes.map((c) => {
-                    const { boton, motivo, motivoEsRechazo } = accionComprobante(c, {
-                      transmitiendoId,
-                      consultandoId,
-                      onTransmitir,
-                      onAnularClick,
-                      onConsultarAnulacion,
-                      onLiberarClick,
-                    });
-                    return (
-                      <tr key={c.id} className="transition-colors duration-150 hover:bg-tinta/[0.025]">
-                        <td className="whitespace-nowrap px-3 py-3 text-tinta/75">{formatearFecha(c.created_at)}</td>
-                        <td className="whitespace-nowrap px-3 py-3 font-medium text-tinta">
-                          {ETIQUETA_TIPO[c.tipo]} {c.serie}-{String(c.numero).padStart(6, "0")}
-                          <DocumentosSunat c={c} />
-                        </td>
-                        <td className="px-3 py-3 text-tinta/75">{c.cliente_nombre ?? "Cliente varios"}</td>
-                        <td className="whitespace-nowrap px-3 py-3 font-medium tabular-nums text-tinta">{money(Number(c.total))}</td>
-                        <td className="px-3 py-3">
-                          <span className={`label-cayla inline-block whitespace-nowrap rounded-full border px-3 py-1 text-[11px] ${estiloEstado(c)}`}>
-                            {etiquetaEstado(c)}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3">
-                          {boton}
-                          {motivo && (
-                            <p
-                              className={`mt-1 max-w-[14rem] whitespace-normal text-[11px] leading-snug ${
-                                motivoEsRechazo ? "text-rojo-profundo" : "text-tinta/65"
-                              }`}
-                            >
-                              {motivo}
-                            </p>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              </div>
+            <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-[11px] text-tinta/65 ${COLUMNAS}`}>
+              <span>Fecha</span>
+              <span>Comprobante</span>
+              <span className="hidden @min-[900px]:inline">Cliente</span>
+              <span className="text-right">Total</span>
+              <span>Estado</span>
             </div>
 
-            {/* Tarjetas — por debajo de `sm`. Mismos datos que la tabla, sin
-                columnas: nada obliga a desplazar la pantalla hacia el costado
-                para leer el estado de un comprobante desde el teléfono. */}
-            <div className="space-y-2 sm:hidden">
-              {comprobantes.map((c) => {
-                const { boton, motivo, motivoEsRechazo } = accionComprobante(c, {
-                  transmitiendoId,
-                  consultandoId,
-                  onTransmitir,
-                  onAnularClick,
-                  onConsultarAnulacion,
-                  onLiberarClick,
-                });
-                return (
-                  <div key={c.id} className="card-cayla p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-display text-base text-tinta">
-                          {ETIQUETA_TIPO[c.tipo]} {c.serie}-{String(c.numero).padStart(6, "0")}
-                        </p>
-                        <p className="mt-0.5 truncate text-xs text-tinta/65">{c.cliente_nombre ?? "Cliente varios"}</p>
-                        <DocumentosSunat c={c} />
-                      </div>
-                      <p className="font-display shrink-0 text-base tabular-nums text-tinta">{money(Number(c.total))}</p>
-                    </div>
-                    <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
-                      <span className={`label-cayla inline-block whitespace-nowrap rounded-full border px-3 py-1 text-[11px] ${estiloEstado(c)}`}>
-                        {etiquetaEstado(c)}
-                      </span>
-                      <span className="text-[11px] text-tinta/55">{formatearFecha(c.created_at)}</span>
-                    </div>
-                    <div className="mt-2.5">
-                      {boton}
-                      {motivo && (
-                        <p className={`mt-1 whitespace-normal text-[11px] leading-snug ${motivoEsRechazo ? "text-rojo-profundo" : "text-tinta/65"}`}>
-                          {motivo}
-                        </p>
-                      )}
-                    </div>
+            {visibles.map((c) => {
+              const { botones, motivo, esRechazo } = accionComprobante(c, acciones);
+              const { dia, hora } = diaYHoraLima(c.created_at);
+              const chip = chipDelComprobante(c);
+              const cliente = c.cliente_nombre ?? "Cliente varios";
+              return (
+                <div
+                  key={c.id}
+                  className={`flex flex-col gap-2 border-t border-tinta/10 px-5 py-3 transition-colors duration-150 hover:bg-tinta/[0.025] @min-[640px]:items-center @min-[640px]:gap-x-4 @min-[640px]:gap-y-0 ${COLUMNAS}`}
+                >
+                  <div className="flex items-baseline gap-2 @min-[640px]:block">
+                    <p className="font-display text-lg leading-tight tabular-nums text-tinta">{dia}</p>
+                    <p className="label-cayla text-[10px] text-tinta/65 @min-[640px]:mt-0.5">{hora}</p>
                   </div>
-                );
-              })}
-            </div>
+
+                  <div className="min-w-0">
+                    <p className="text-[15px] leading-normal text-tinta">
+                      <span className="text-tinta/65">{ETIQUETA_TIPO[c.tipo]}</span>{" "}
+                      <b className="whitespace-nowrap font-semibold">
+                        {c.serie}-{String(c.numero).padStart(6, "0")}
+                      </b>
+                    </p>
+                    <p className="mt-0.5 truncate text-[13px] text-tinta/65 @min-[900px]:hidden">{cliente}</p>
+                    <DocumentosSunat c={c} />
+                  </div>
+
+                  <p className="hidden min-w-0 truncate text-[13px] text-tinta/75 @min-[900px]:block">{cliente}</p>
+
+                  <p className="font-display text-lg leading-tight tabular-nums text-tinta @min-[640px]:text-right">{soles(Number(c.total))}</p>
+
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                    <div className="min-w-0">
+                      <Chip tono={chip.tono} className={chip.punteado ? "border-dashed border-tinta/30" : ""}>
+                        {chip.texto}
+                      </Chip>
+                      {motivo && <p className={`mt-1.5 text-[13px] leading-snug ${esRechazo ? "text-rojo-profundo" : "text-tinta/65"}`}>{motivo}</p>}
+                    </div>
+                    {botones}
+                  </div>
+                </div>
+              );
+            })}
           </>
         )}
       </div>
-
-      {/* ==================== Modal: emitir comprobante ==================== */}
-      {modal === "emitir" && (
-        <Modal titulo="Emitir comprobante" ancho="max-w-md" onClose={cerrarModal}>
-          {(cerrar) => (
-          <form onSubmit={onEmitir} className="mt-5 space-y-2">
-            {/* Ubicación y tipo son las dos decisiones que determinan el correlativo,
-                así que van juntas y arriba de él: se leen como los dos diales
-                que mueven la cifra de abajo. */}
-            <div className="grid gap-x-5 sm:grid-cols-2">
-            <CampoSelect
-              etiqueta="Ubicación"
-              valor={ubicacionId}
-              onValor={setUbicacionId}
-              opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))}
-            />
-
-            <Segmentado
-              etiqueta="Tipo"
-              valor={tipo}
-              onValor={(t) => {
-                setTipo(t);
-                setClienteNumDoc("");
-                setClienteNombre("");
-              }}
-              opciones={[
-                { valor: "boleta", texto: ETIQUETA_TIPO.boleta },
-                { valor: "factura", texto: ETIQUETA_TIPO.factura },
-              ] as const}
-            />
-            </div>
-
-            {/* El número que se va a reservar, antes de reservarlo. Es lo más
-                importante del formulario: un correlativo es irreversible y hasta
-                ahora solo se veía DESPUÉS de emitir, en la tabla. El dato ya
-                llegaba en `series`; lo único que faltaba era mostrarlo.
-                La `key` fuerza el remontaje para que la cifra se re-asiente
-                cuando cambia la ubicación o el tipo — así el ojo nota que cambió. */}
-            <div className="rounded-xl border border-sand bg-papel px-5 py-4">
-              <p className="label-cayla text-[11px] text-tinta/65">Se va a reservar el número</p>
-              {serieDelComprobante ? (
-                <p
-                  key={`${serieDelComprobante.serie}-${serieDelComprobante.siguiente_numero}`}
-                  className="font-display anim-asentar mt-1.5 text-[1.75rem] leading-none tabular-nums text-tinta"
-                >
-                  {serieDelComprobante.serie}
-                  <span className="text-tinta/65">-</span>
-                  {String(serieDelComprobante.siguiente_numero).padStart(6, "0")}
-                </p>
-              ) : (
-                <p className="anim-asentar mt-1.5 text-xs leading-relaxed text-ambar">
-                  {ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "Esta ubicación"} todavía no tiene serie
-                  de {ETIQUETA_TIPO[tipo].toLowerCase()} registrada. Regístrala antes de emitir.
-                </p>
-              )}
-            </div>
-
-            <CampoMonto
-              etiqueta="Total (incluye IGV)"
-              type="number"
-              step="0.01"
-              min="0.01"
-              required
-              placeholder="0.00"
-              value={total || ""}
-              onChange={(e) => setTotal(Number(e.target.value))}
-            />
-
-            <ConsultaDocumento
-              tipo={tipo === "factura" ? "ruc" : "dni"}
-              obligatorio={tipo === "factura"}
-              numero={clienteNumDoc}
-              onNumero={setClienteNumDoc}
-              nombre={clienteNombre}
-              onNombre={setClienteNombre}
-            />
-
-            {/* La nota va acá abajo y no arriba: explica qué pasa DESPUÉS de
-                apretar Emitir, así que se lee junto al botón que lo provoca. */}
-            <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
-              Esto reserva el número oficial y guarda el comprobante — todavía no lo manda a
-              SUNAT. Queda &ldquo;Pendiente de enviar&rdquo; hasta que aprietes
-              &ldquo;Transmitir&rdquo; en la lista de abajo, que es lo que lo envía.
-            </p>
-
-            <div className="flex gap-2 pt-3">
-              <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
-                Cancelar
-              </Boton>
-              <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
-                {loading ? "Emitiendo…" : "Emitir"}
-              </Boton>
-            </div>
-          </form>
-          )}
-        </Modal>
-      )}
 
       {/* ==================== Modal: registrar serie ==================== */}
       {modal === "serie" && (
@@ -738,20 +484,21 @@ export function ComprobantesPanel({
               etiqueta="Tipo"
               valor={serieTipo}
               onValor={setSerieTipo}
-              opciones={[
-                { valor: "boleta", texto: ETIQUETA_TIPO.boleta },
-                { valor: "factura", texto: ETIQUETA_TIPO.factura },
-              ] as const}
+              opciones={TIPOS_CON_SERIE.map((t) => ({ valor: t, texto: ETIQUETA_TIPO[t] }))}
             />
             <CampoTexto
               etiqueta="Serie"
-              pie="Una letra según el tipo más tres dígitos."
+              pie={
+                serieTipo === "nota_credito"
+                  ? "Cuatro caracteres. Empieza con B si corrige boletas o con F si corrige facturas (por ejemplo BC01)."
+                  : "Una letra según el tipo más tres dígitos."
+              }
               mono
               required
               value={serieTexto}
               onChange={(e) => setSerieTexto(e.target.value.toUpperCase())}
               maxLength={4}
-              placeholder={serieTipo === "factura" ? "F001" : "B001"}
+              placeholder={serieTipo === "factura" ? "F001" : serieTipo === "nota_credito" ? "BC01" : "B001"}
               className="uppercase"
             />
             <CampoTexto
@@ -795,7 +542,7 @@ export function ComprobantesPanel({
                 {ETIQUETA_TIPO[anulando.tipo]} {anulando.serie}-{String(anulando.numero).padStart(6, "0")}
               </p>
               <p className="text-xs leading-relaxed text-tinta/75">
-                {anulando.cliente_nombre ?? "Cliente varios"} · {money(Number(anulando.total))}
+                {anulando.cliente_nombre ?? "Cliente varios"} · {soles(Number(anulando.total))}
               </p>
             </div>
 
@@ -847,7 +594,7 @@ export function ComprobantesPanel({
                 {ETIQUETA_TIPO[liberando.tipo]} {liberando.serie}-{String(liberando.numero).padStart(6, "0")}
               </p>
               <p className="text-xs leading-relaxed text-tinta/75">
-                {liberando.cliente_nombre ?? "Cliente varios"} · {money(Number(liberando.total))}
+                {liberando.cliente_nombre ?? "Cliente varios"} · {soles(Number(liberando.total))}
               </p>
             </div>
 

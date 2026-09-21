@@ -495,7 +495,30 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   lectura + edición directa (`PatrimonioEditor`, `HistoricosEditor`).
 - `RegistrarGastoModal.tsx` (accesible desde varias pantallas) → RPC
   `registrar_gasto`.
-- `/vender/facturacion` → `lib/comprobantes.ts` → `ComprobantesPanel.tsx` →
+- `/vender/facturacion/**` (layout + cuatro vistas por ruta, ADR-0124): `layout.tsx` lee
+  series, tiendas y los contadores de las pestañas y los pasa a `FacturacionShell.tsx`, que
+  dibuja la cabecera (`FacturacionCabecera`: línea viva «actualizado hace…», caja de búsqueda y
+  las dos acciones), las pestañas y —una sola vez— los modales «Emitir comprobante» y «Nueva
+  proforma». El shell guarda además el texto del buscador (`useFacturacionBusqueda`, se borra al
+  cambiar de vista): cada lista lo lee y filtra sus filas con `coincide`
+  (`lib/facturacion-busqueda.ts`). Cada `page.tsx` pide `exigirLider()` primero (lo fija
+  `lib/facturacion-puerta.test.ts`) y monta `MarcaDeCarga`, que le dice a la cabecera cuándo llegó
+  la vista (reloj del navegador, `lib/ultima-carga-facturacion.ts`). Cada vista son cuatro
+  tarjetas de vidrio (`TarjetaKpiVidrio`) y una lista (columnas por ancho de la tarjeta, con
+  container queries `@min-[640px]` y `@min-[900px]`, no por ancho de ventana); lo que decide
+  estados, cuentas, orden y textos vive en `lib/facturacion-*-reglas.ts` (puras y probadas).
+  Vistas: Resumen (`page.tsx`) → `ResumenTarjetas` + `ActividadDeHoy` (el hilo del comprobante,
+  `HiloComprobante`, y *Transmitir* por fila con `useTransmitir`) ← `fn_ventas_del_dia`,
+  `getComprobantesMes`, `getResumenPorEnviar`, `ventas-comparativo.ts` (reglas
+  `facturacion-resumen-reglas`, `-graficos` y `facturacion-actividad`); `proformas/` →
+  `ProformasTarjetas` + `ProformasPanel` ← `getProformasMes` (reglas `facturacion-proformas-reglas`
+  y `resumenProformas`, la misma cuenta que el contador de la pestaña) → RPC
+  `convertir_proforma_a_comprobante`; `descuentos/` → `CodigosTarjetas` + `CodigosDescuentoPanel`
+  (antes `/vender/descuentos`, que redirige; escribe directo a `codigos_descuento`, la RLS exige
+  líder; reglas `facturacion-codigos-reglas`, con «hoy» de `hoyLima`, la misma fecha con la que
+  `registrar_venta` valida el código); `comprobantes/` → `lib/comprobantes.ts` →
+  `ComprobantesTarjetas` + `ComprobantesPanel` (franja de series que faltan por tienda, lista,
+  modales de serie, anular y liberar; reglas `facturacion-comprobantes-reglas`) →
   RPCs `emitir_comprobante` (reserva serie+correlativo, `for update`) y
   `registrar_serie_comprobante`. Emitir NO transmite: el envío a SUNAT es el
   botón "Transmitir" de cada fila → `POST /api/lucode/emitir` (ADR-0005,

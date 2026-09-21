@@ -26,10 +26,16 @@ export type Proforma = {
    *  qué está por vencer, dos personas verían números distintos de la misma
    *  pantalla. */
   porVencer: boolean;
+  /** Derivado, como `porVencer`: sigue «vigente» en la base —nadie escribe `vencida`,
+   *  ni un cron ni un trigger— pero su `vence_at` ya pasó. Cuenta como vencida y NO
+   *  como vigente: esa clienta ya no tiene el precio que se le cotizó. Se calcula en
+   *  el servidor por la misma razón que `porVencer`: dos tablets con el reloj distinto
+   *  no pueden ver números distintos de la misma pantalla. */
+  vencida: boolean;
 };
 
 /** Fila tal como viene de la base, antes de calcularle nada. */
-export type ProformaFila = Omit<Proforma, "porVencer">;
+export type ProformaFila = Omit<Proforma, "porVencer" | "vencida">;
 
 /** Marca cuáles están por vencer.
  *
@@ -41,12 +47,15 @@ export function marcarPorVencer(filas: ProformaFila[], ahora: number = Date.now(
   const limite = ahora + HORAS_PROFORMA_POR_VENCER * 3600 * 1000;
   return filas.map((p) => {
     const vence = p.vence_at ? new Date(p.vence_at).getTime() : null;
+    // Solo una proforma vigente puede estar «por vencer» o «vencida»: una ya
+    // convertida o anulada no le sirve a nadie por más cerca (o lejos) que esté su
+    // fecha. Las dos mitades no se pisan: por vencer es `ahora < vence < limite`;
+    // vencida es `vence <= ahora`.
+    const vigente = p.estado === "vigente";
     return {
       ...p,
-      // Solo una proforma vigente puede estar "por vencer": una ya convertida o
-      // anulada no le sirve a nadie por más cerca que esté su fecha. Y una que YA
-      // venció tampoco es "por vencer" — esa venta ya se perdió.
-      porVencer: p.estado === "vigente" && vence != null && vence > ahora && vence < limite,
+      porVencer: vigente && vence != null && vence > ahora && vence < limite,
+      vencida: vigente && vence != null && vence <= ahora,
     };
   });
 }
