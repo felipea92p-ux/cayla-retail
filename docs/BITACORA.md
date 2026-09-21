@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-21 (El menú es un árbol de datos — ADR-0144, paso 1, sin cambio visible)
+Las reglas de quién ve qué estaban repartidas en siete constantes de `AppShell.tsx`, una lista de rutas repetida a mano y `produccion-menu.ts`: solo hoy `main` cambió el menú cinco veces y seis PRs editaban la misma zona. Ahora el menú es un árbol de datos (`lib/menu.ts`) con una función pura por permisos; `AppShell.tsx` solo dibuja, y lo que ve cada perfil no cambió.
+Felipe se lleva: (1) **la prueba no es circular**: la fotografía del menú de hoy se capturó del `AppShell.tsx` real —no del árbol nuevo— y 1176 renders del original y del nuevo dan cero diferencias; (2) cada mutación (quitar una fila, cambiar un orden, quitar un permiso, romper un tope) hace fallar justo su prueba; (3) `main` se movió cinco veces mientras se hacía, por eso se aterriza ya: desde ahora una fila nueva se agrega en un solo archivo y el diff de la fotografía muestra qué perfil ve algo distinto.
+Sin resolver: Producción supera el tope de 6 (7 hijas desde #231, deuda explícita con una prueba que la vigila); los nombres repetidos entre Compras y Producción («… del Taller», ya elegido); el líder en el Taller sin «Recibir mercadería» en el lateral (queda en «+ Nuevo», así lo dejó Felipe); y probarlo con interacción real (teclado, hover, cajón plegado), que solo se comparó en estructura.
+
 ## 2026-09-21 (El calendario ya no cambia de mes solo)
 Se corrigió `CampoFecha`: pasar el mouse por un día gris del mes vecino movía el cursor de la grilla, y como el cursor decide qué mes se dibuja, el calendario saltaba solo. Ahora el hover solo mueve el cursor si el día es del mes visible; los grises se siguen resaltando con CSS y al hacer clic sí cambian de mes.
 Felipe se lleva: (1) **un mismo estado no debe mandar sobre dos cosas** —el cursor era a la vez «dónde estoy» y «qué mes muestro»—, y por eso un gesto inocente (pasar el mouse) tenía un efecto grande; (2) la causa de otra rareza de la sesión, la lista de facturas amontonada en «Registrar nota», no era el código sino un servidor de desarrollo con el CSS viejo: al cambiar de rama o traer cambios que agregan un `@import`, se reinicia el servidor y se borra `.next`.
