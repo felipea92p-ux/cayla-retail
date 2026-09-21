@@ -41,7 +41,7 @@ export default async function OrdenesProduccionPage() {
   const esLider = persona.rol === "lider";
   const hoy = hoyLima();
   const [ordenes, modelos, datosInsumos] = await Promise.all([
-    getOrdenesProduccion(taller.id),
+    getOrdenesProduccion(taller.id, { conCostos: esLider }),
     getModelosProducibles(),
     getInsumosDelTaller(taller.id, { conCostos: esLider, hoy }),
   ]);

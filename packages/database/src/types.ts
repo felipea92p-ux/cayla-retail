@@ -5098,6 +5098,23 @@ export type Database = {
           vencido: boolean
         }[]
       }
+      fn_costos_insumos_taller: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          costo_unitario: number
+          lote_id: string
+        }[]
+      }
+      fn_costos_producciones: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          costo_avios: number
+          costo_maquila: number
+          costo_tela: number
+          costo_unitario: number
+          produccion_id: string
+        }[]
+      }
       fn_deuda_consolidada: {
         Args: never
         Returns: {
