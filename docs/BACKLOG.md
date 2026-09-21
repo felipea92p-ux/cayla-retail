@@ -28,6 +28,31 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Estado de Resultados (2026-09-19, ADR-0120 — CONSTRUIDO; falta aplicar en producción)
+
+- [x] **Tarea 4 construida:** `cuentas` (26), `parametros_tributarios` (IGV con vigencia), `fn_asientos` (las reglas de
+      posteo en un solo lugar: venta, anulación, devolución, cambio, merma, gasto), `fn_estado_resultados` y la pantalla
+      `/finanzas/resultados` (una tarjeta por sede, «De la empresa» y consolidado, con «(!)» en cada cifra). 53
+      verificaciones SQL con números calculados a mano + 15 mutantes detectados + 13 pruebas de pantalla + medición de volumen.
+- [ ] **PRIMERO, en producción y solo lectura:** correr `docs/datos/VERIFICAR-ESTADO-RESULTADOS-2026-09-19.sql`. Dice si
+      existe todo lo que lee el diario y cuántas ventas tienen un cobro que no suma sus líneas (saldrían en rojo).
+- [ ] **Aplicar las tres migraciones** `20260918195000`, `196000` y `197000`, en ese orden y **después de**
+      `20260918193000_gastos.sql`. Requiere el ok explícito de Felipe. Hasta entonces `pnpm datos:comparar` marcará estas
+      funciones como «rotas en producción».
+- [ ] **La verificación que pidió Felipe:** elegir un mes con ventas reales y cuadrar contra la suma de cierres de caja.
+      Ojo: `cerrar_caja` **excluye** las ventas anuladas y `getResumenCaja` (TypeScript) **las incluye**; el diario sigue a `cerrar_caja`.
+- [ ] **Cargar los costos que faltan** (`variantes.costo = 0`): mientras falten, el margen sale inflado y la pantalla lo avisa en ámbar.
+- [ ] **Decisiones por defecto a confirmar** (ADR-0120): gastos incluidos hasta utilidad operativa; faltantes de conteo como merma
+      (sobrantes no); devolver al proveedor no es merma; reversas en el mes del hecho; 26 cuentas (el manual dice 25 y lista 26).
+- [ ] **Hallazgos de datos sin resolver:** la nota de crédito de una devolución ignora el descuento de la línea; `cambios.diferencia`
+      ignora descuentos y campañas; `venta_pagos` puede no sumar las líneas; los faltantes de traslado no dejan baja; el
+      costo promedio mezcla boletas (con IGV) y facturas (sin IGV); `1.18` sigue escrito a mano en ~12 sitios.
+- [ ] **Abrir `/finanzas/resultados` como líder y como colaboradora con la base local levantada** (hoy solo se vio con datos
+      de ejemplo). Regenerar `packages/database/src/types.ts` y confirmar diff nulo.
+- [ ] **Lo que falta para el Balance:** compras y pagos a proveedor, depósitos, abonos de tarjeta, depreciación (tareas 5-7, 10).
+
+---
+
 ## 🎯 Gastos generales (2026-09-19, ADR-0117 — APROBADO y CONSTRUIDO; falta aplicar en producción)
 
 - [x] **Modelo aprobado por Felipe (2026-09-18) y construido (2026-09-19):** `gastos` como única fuente; un egreso de

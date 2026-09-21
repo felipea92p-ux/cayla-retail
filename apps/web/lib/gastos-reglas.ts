@@ -80,32 +80,10 @@ export function validarBorrador(b: BorradorGasto, hoy: string): { campo: string;
 }
 
 // ---------------------------------------------------------------- meses
-
-const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-
-export type MesGastos = { anio: number; mes: number };
-
-/** Lee `?mes=aaaa-mm`; si falta o es inválido, devuelve `actual`. */
-export function leerMes(param: string | undefined, actual: MesGastos): MesGastos {
-  const m = param && /^(\d{4})-(0[1-9]|1[0-2])$/.exec(param);
-  return m ? { anio: Number(m[1]), mes: Number(m[2]) } : actual;
-}
-
-export const claveMes = ({ anio, mes }: MesGastos): string => `${anio}-${String(mes).padStart(2, "0")}`;
-
-export function desplazarMes({ anio, mes }: MesGastos, delta: number): MesGastos {
-  const i = anio * 12 + (mes - 1) + delta;
-  return { anio: Math.floor(i / 12), mes: (i % 12) + 1 };
-}
-
-/** Primer y último día del mes como `aaaa-mm-dd` (el último día no depende de la zona horaria). */
-export function rangoDelMes({ anio, mes }: MesGastos): { desde: string; hasta: string } {
-  const ultimo = new Date(Date.UTC(anio, mes, 0)).getUTCDate();
-  const mm = String(mes).padStart(2, "0");
-  return { desde: `${anio}-${mm}-01`, hasta: `${anio}-${mm}-${String(ultimo).padStart(2, "0")}` };
-}
-
-export const tituloMes = ({ anio, mes }: MesGastos): string => `${MESES[mes - 1]} ${anio}`;
+// La lógica del mes vive en `meses-lima.ts` (la comparten Gastos y el Estado de Resultados). Se re-exporta
+// aquí para que quien ya importaba de este archivo no cambie.
+export { leerMes, claveMes, desplazarMes, rangoDelMes, tituloMes } from "./meses-lima";
+export type { MesLima as MesGastos } from "./meses-lima";
 
 // ---------------------------------------------------------------- egresos sin clasificar
 

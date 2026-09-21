@@ -3,6 +3,23 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-19 (Estado de Resultados — el bug que la prueba no podía ver porque mi Mac ya estaba en hora de Lima)
+Tarea 4: el diario derivado `fn_asientos` con las reglas de venta, anulación, devolución, cambio, merma y gasto en un solo lugar,
+y el Estado de Resultados por sede que lee solo de él, con `cuentas` y la tasa de IGV con vigencia. Tres decisiones que salieron
+de leer las fuentes reales: el IGV no se guarda en las ventas (hay que derivarlo con la misma regla que el comprobante), el
+reembolso de una devolución es un campo libre y puede estar vacío (se valora por las líneas), y `costo = 0` significa «sin costo
+cargado», no «costó cero» (no se resta y la pantalla avisa que el margen está inflado).
+
+Verificado con números calculados a mano *antes* de escribir el SQL: 53 comprobaciones y 15 mutantes. Dos mutantes sobrevivieron y
+enseñaron algo: la prueba de «los límites del mes son de hora de Lima» no probaba nada porque mi Mac ya estaba en hora de Lima
+(ahora la base de prueba se fija en UTC, como Supabase), y un chequeo de líder quedaba tapado por el que hace la función que
+llama por dentro. Medido con tres años simulados: un mes tarda 168 ms sin índices; no se agregó ninguno.
+
+Lo que Felipe se lleva: una prueba que pasa en tu máquina puede estar pasando por una coincidencia de tu máquina; y el número que
+importa para confiar en estas cifras no es el margen, es cuántas ventas tienen un cobro que no suma sus líneas —por eso la primera
+consulta en producción es de solo lectura—. Pendiente: correrla, aplicar las migraciones con su ok, y cuadrar un mes real contra
+los cierres de caja (que restan las anuladas; otra pantalla las cuenta).
+
 ## 2026-09-19 (Los 8 SQL de Crear producto ya están en producción — y `datos:comparar` quedó en verde)
 
 Se pegaron uno por uno, con una verificación de solo lectura antes y después de cada uno. Tres cosas salieron al pegar y no en las pruebas: el mapa de categorías falló por depender de tablas temporales entre sentencias (ahora es un solo bloque), la regla de Editar habría bloqueado 38 de los 39 productos activos (ahora «no empeora»), y una consulta mía con `\b` buscaba mal las funciones que insertan en `productos` (en Postgres `\b` es «retroceso»; el límite de palabra es `\y`). Al final: 0 productos con pareja inválida, 0 nombres duplicados, Productos filtra y busca por marca, y `pnpm datos:comparar` dice «ninguna pantalla llama a una función con parámetros que producción no acepte».
