@@ -829,9 +829,14 @@ dinero intacto, RLS sin permisos de escritura, triggers diferidos activos. Produ
       `reasignar_reparto_compra`, `lineas_compra_operativo`, `listar_compras_operativo`, `compra_item_destinos`, `compra_reasignaciones`,
       `compra_item_reparto_resumen` y la columna `compra_item_cierres.ubicacion_id`) dicen «ADR-0138», que hoy es el ADR de Comparar
       períodos (Inventario). Solo `COMMENT ON`; no toca datos ni estructura.
-- [ ] **Refresco COMPLETO del volcado pendiente (de otras sesiones):** `venta_pagos` en producción ya tiene `recibido` (Caja, ADR-0137) y el
-      volcado no; puede haber más cambios de columnas ajenos que este refresco dirigido no cubre. `pnpm datos:generar:produccion` completo
-      (los 7 archivos de `COMO-REFRESCAR.md`) lo resuelve cuando alguien lo haga.
+- [x] **Refresco COMPLETO del volcado (2026-09-21):** los 7 archivos de `generado/` comparados contra `cayla-dynamic` (solo lectura) con un
+      hash por tabla y por grupo de funciones, y parchados solo donde difería; al final los 7 dan hash idéntico al de producción. Entraron: las 4
+      tablas de Producción (`proveedores_produccion`, `comprobantes_produccion` y sus `_items`/`_pagos`; F4a/F4b), `venta_pagos.recibido` (Caja,
+      ADR-0137), `compra_adjuntos.nota_credito_id`/`archivado_*` y las restricciones de `compra_notas_credito`, 14 firmas de funciones (entre ellas
+      `fn_movimientos` con `p_producto_id`), los conteos de filas y 2 llaves hacia `public.personas`. 77 tablas y vistas, 196 funciones. Las 4 tablas de
+      Producción se asignaron al Gallito en `scripts/datos/aviario.mjs` (sin pájaro el CI cae al próximo refresco): **la sesión de Producción lo confirma**.
+      `datos:comparar` queda en 3 «rotas» a propósito: `apartar_stock`, `liberar_apartado` y `listar_apartados` (Apartar stock, ADR-0141, cuya migración
+      `20260920160000` sigue sin pegar en producción; no es de esta sesión).
 - [ ] **Filtro y chip «Destino» en Comprobantes y Por pagar.** Pendiente a propósito: la lista es paginada en Postgres, así que un filtro
       en el navegador mentiría; pide un parámetro nuevo en `listar_compras` (`drop function` + `create`) y coordinar con la sesión de Por
       pagar. Hoy cada comprobante repartido dice a qué tiendas va.
