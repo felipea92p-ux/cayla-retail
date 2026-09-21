@@ -26,7 +26,7 @@ export default async function InicioPage() {
   // casa es el mostrador. Es un aterrizaje, no un candado: la ruta sigue existiendo para quien sí la ve.
   if (persona.terminal === "ventas") redirect("/vender");
   const esLider = persona.rol === "lider";
-  const perfil = { rol: persona.rol, ubicacionTipo: persona.ubicacionTipo };
+  const perfil = { rol: persona.rol, ubicacionTipo: persona.ubicacionTipo, terminal: persona.terminal };
 
   const [hoy, trasladosPorAtender, actividad] = await Promise.all([
     mostrarHoy(perfil) ? getHoyDeLaSede(persona.ubicacionId, esLider) : Promise.resolve(null),
