@@ -55,6 +55,13 @@ async function getFilasVariantes(ubicacionId: string, periodo: Rango, comparacio
   return filas;
 }
 
+/** El ritmo de venta reciente (`DIAS_RITMO_RECIENTE` días) y el stock de HOY de todas las variantes de una sede, tal como las lee Existencias. Lo usa
+ *  también «Nueva orden» de Producción (ADR-0133, F5) para sumar la demanda de la red. */
+export async function getFilasRecientesDeSede(ubicacionId: string, ahora: Date = new Date()): Promise<FilaResumen[]> {
+  const hoy = hoyEnLima(ahora);
+  return getFilasVariantes(ubicacionId, { desde: sumarDias(hoy, -(DIAS_RITMO_RECIENTE - 1)), hasta: hoy }, null);
+}
+
 /**
  * Cobertura de Existencias: «con el ritmo de venta de los últimos `DIAS_RITMO_RECIENTE` días, ¿cuántos
  * días dura el stock de hoy?». Es la MISMA cuenta que ya hacía el Resumen (`velocidadDeFila` +

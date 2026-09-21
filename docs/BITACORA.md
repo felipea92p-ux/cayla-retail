@@ -8536,3 +8536,7 @@ se niega con mercadería recibida. Pantalla `/produccion/recibir`. Migración `2
 Felipe pegó F4d (validada contra producción: lote de 60 m a S/ 20, tope de recepción, anular negada, la función de líneas sin columnas de dinero). F4e construida en local: los costos de lotes, movimientos y
 órdenes ya no se pueden leer por la API directa (privilegio por columna), la vista `v_insumo_saldos` queda cerrada, y el líder los lee por `fn_costos_insumos_taller` / `fn_costos_producciones`. Dos migraciones,
 patrón ADR-0126: A `20260921150000` → desplegar la app → B `20260921151000`. `pruebas:candado-dinero-produccion` 20/20. Observado y NO tocado: `fn_costo_historial` (costo de prendas) es legible por cualquier colaborador.
+
+## 2026-09-21 (Producción F5: Nueva orden con decisión — ADR-0133)
+Felipe fusionó F4e; la parte A (`20260921150000`) quedó pendiente de pegar en producción al cierre de esta sesión (urgente: la app desplegada ya pide `fn_costos_*`). F5 construida sin esquema: «Nueva orden» (solo líder)
+sugiere la curva por talla y color con el ritmo y el stock de toda la red, dice si alcanza la tela y los avíos con el rendimiento MEDIDO de las órdenes cerradas y estima costo y margen. Sin ritmo medido no sugiere.

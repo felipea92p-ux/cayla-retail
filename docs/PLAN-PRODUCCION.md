@@ -235,12 +235,17 @@ Ya **no depende de ADR-0139** ni toca `compras`, `compra_items`, `registrar_comp
   `datos:comparar` sin rotos; **Compras sigue idéntico** (sus pruebas SQL pasan sin cambios).
 - **Gate:** el SQL lo pega **Felipe**, con dry-run con rollback antes.
 
-### F5 · Nueva orden con decisión (M) — sin esquema · depende de F3 (cobertura) y del motor de reposición
-- Curva sugerida por talla desde `fn_resumen_variantes` (si no da la vista agregada de la red, una **función de solo lectura**
-  nueva, con el ok de Felipe para pegarla). Análisis previo: tela y avíos (alcanza / alcanza si llega / faltan), costo por
-  prenda, margen, entrega, capital inmovilizado. Rendimiento medido (D-D).
-- **Verificas:** «Short Kuntur»-equivalente (modelo casi agotado) sugiere cantidad y curva coherentes con `/inventario/resumen`;
-  abrir la orden crea las líneas por variante; un modelo sin talla en el catálogo enlaza a Productos.
+### F5 · Nueva orden con decisión (M) — sin esquema · **construida en local 2026-09-21 (sin migraciones)**
+Solo para el **líder** (ventas y stock de toda la red, costos de insumos); quien trabaja en el Taller ve el formulario de siempre. Todo sale de datos que ya existen, sin inventar plazos ni rendimientos:
+- **Curva sugerida por talla y color.** Suma el ritmo de venta de cada tienda (`fn_resumen_variantes` por sede, las mismas reglas de Inventario: `velocidadDeFila`, `calcularCobertura`) y resta lo que ya hay
+  (stock de la red + prendas terminadas en el Taller + en camino + órdenes de producción abiertas). Sugerido = ritmo × días a cubrir − disponible, redondeado hacia arriba. **Días a cubrir:** por defecto 30
+  (el techo de «saludable» de Inventario), ajustable a 15/30/45/60. Sin ritmo medido **no se sugiere nada** y se dice por qué («poco historial», «sin ventas»). Botón «Usar la sugerencia»; cada celda
+  muestra la sugerencia como marca de agua y el detalle («ver por qué») explica variante por variante.
+- **¿Alcanza la tela y los avíos?** (D-D) Rendimiento **medido**: consumo real ÷ prendas buenas de las órdenes CERRADAS del modelo, pesado por prendas; las devoluciones restan. Contra el saldo de Insumos y lo
+  facturado que aún no llega (F4d): «Alcanza» / «Alcanza si llega lo pedido» / «Faltan X», y «con lo que hay salen N prendas». Un modelo sin órdenes cerradas con consumo lo dice y deja el costo a mano.
+- **Costo y margen.** Materiales por prenda a costo del lote que se usaría (el más antiguo con saldo); «Usar como costo estimado» llena tela y avíos; el margen sale de precio y costo.
+- **Pruebas:** `lib/produccion-decision-reglas.test.ts` (16). **Verificas:** un modelo casi agotado sugiere cantidad y curva coherentes con `/inventario/resumen`; sin ritmo no sugiere; tras cerrar una orden con
+  insumos descontados aparece el rendimiento; abrir la orden crea las líneas por variante. **Pendiente:** verlo con clics y con datos reales (hoy producción no tiene ventas ni órdenes cerradas con insumos).
 
 ### F6 · Resumen: «¿qué necesita mi decisión hoy?» (M) — sin esquema
 - `lib/produccion-decisiones.ts` (puras, con tests, mismas reglas del spike) + página. Cada tarjeta lleva evidencia y una acción
