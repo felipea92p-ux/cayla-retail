@@ -128,6 +128,22 @@ props serializables; NUNCA llames desde el servidor a una función exportada por
 «Attempted to call X() from the server but X is on the client» y la pantalla se cae). La lógica pura va en `lib/*.ts` y se
 importa desde ambos lados.
 
+## Carga y espera (regla — ADR-0149)
+
+**El ERP tiene UN solo loader a pantalla completa (`apps/web/components/ui/Espera.tsx`, `<EsperaGlobal />` montado una vez en
+`app/layout.tsx`): cubre incluso el lateral y la cabecera, hereda el movimiento de modales y dura solo lo que tarda la
+respuesta.** Se usa SIEMPRE al cargar una pantalla, al presionar un botón que guarda y al cambiar de sede — y se activa solo:
+parchea `window.fetch` y `lib/espera-reglas.ts` (`clasificarPeticion`, lógica pura y testeada) decide qué es `'carga'` o
+`'guardado'`. **No construyas otro overlay de carga a pantalla completa ni dejes un «Cargando…» suelto**; un botón o una
+pantalla nueva no tiene que hacer nada para tenerlo. Los botones conservan su giro «Guardando…» (el loader se suma), y un
+`Suspense` de una sección dentro de una pantalla sigue siendo esqueleto parcial, no el loader global.
+
+Para lo que no pasa por `fetch`: `useEsperando(activo, mensaje?)` (hook), `esperar(mensaje?) → fin()` (imperativo) y
+`<EsperaPantalla />` en cada `loading.tsx`. Una petición que no debe bloquear lleva el header `x-espera: no`. **Al agregar una
+RPC de solo lectura llamada desde el navegador, suma su prefijo o nombre a la lista de lectura de `espera-reglas.ts`** (hoy
+`fn_`, `previsualizar_`, `campanas_`, `resumen_`, `buscar_`, `get_`); si no, el loader bloqueará la pantalla mientras se busca
+o se escribe. Tiempos, alternativas y verificación: `docs/adr/0149-loader-general-a-pantalla-completa.md`.
+
 ## Vocabulario obligatorio
 
 Nunca "empleado/jefe/sucursal". Usa: "colaborador/integrante", "líder de equipo/
