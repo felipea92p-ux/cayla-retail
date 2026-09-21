@@ -257,7 +257,7 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
 **Producción (módulo propio, ADR-0133 — F1 aplicada 2026-09-19)**
 - Producción y Compras son **dos módulos distintos** con su propio grupo en el lateral (Compras: sus 4
   pantallas, sin cambios). Producción arranca con `/produccion/ordenes` y suma pantallas con sus fases.
-  Qué ve cada perfil: `lib/produccion-menu.ts` (`hijosMenuProduccion` / `hijosMenuCompras`, puros, con tests). `/produccion` redirige a `/produccion/ordenes`
+  Qué ve cada perfil: el menú es un ÁRBOL DE DATOS en `lib/menu.ts` (`menuPara`, puro, con la fotografía `menu-hoy.golden.json`; ADR-0144); `lib/produccion-menu.ts` (`hijosMenuProduccion` / `hijosMenuCompras`) es ahora una vista fina sobre él. Para agregar una fila se edita `menu.ts`, no `AppShell.tsx`. `/produccion` redirige a `/produccion/ordenes`
   hasta que exista el Resumen (F6). Plan por fases: `docs/PLAN-PRODUCCION.md`.
 
 **Producción (Taller)**
@@ -289,7 +289,7 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   con `MatrizOrden` y `OrdenCierre`; RPC `set_etapa_produccion`,
   `cerrar_produccion`, `anular_produccion`, `revertir_produccion`) y
   `NuevaOrdenProduccionForm.tsx` (RPC `abrir_produccion` con `p_token`). Entra el
-  cualquier persona —líder o integrante— parada en una ubicación con `ubicacionTipo === "taller"` (`puedeVerProduccion`, `lib/produccion-menu.ts`;
+  cualquier persona —líder o integrante— parada en una ubicación con `ubicacionTipo === "taller"` (`puedeVerProduccion`, en `lib/menu.ts` y re-exportada por `lib/produccion-menu.ts`;
   un líder que llega desde otra ubicación ve un aviso, ADR-0133 nota 2026-09-20).
 
 **Ventas / caja**
