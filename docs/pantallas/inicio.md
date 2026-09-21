@@ -74,7 +74,7 @@ Relevancia = (2·4 + 2 + 9 + 3) / 5 = **4.4** → Comodidad. Con #5–#6 sube a 
 
 ## 7 · Las 12 tareas, por importancia
 
-### #1 · [Corregir] Que «Productos activos» y «Variantes» cuenten lo que dicen
+### #1 · [Corregir] Que «Productos activos» y «Variantes» cuenten lo que dicen — ✅ HECHA 2026-09-21 (B1: 39 activos + 6 descontinuados, todos aprobados; la tarjeta mostraba 45; sin commitear)
 - **Dónde:** `page.tsx:21-22, 47-48`; `productos.estado`, `productos.estado_alta`, `variantes.activo`, `ID_CARGO_ESPECIAL`.
 - **Por qué en este puesto:** es lo primero que ve cada persona al entrar y hoy puede afirmar un total falso; costo mínimo. Si no se hace, todos aprenden a desconfiar del primer número.
 - **Cómo lo verificas tú:** corre B1/B2 del SQL; la tarjeta debe mostrar el mismo total que «estado activo, aprobado, sin la centinela».

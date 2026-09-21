@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { tolerar } from "@/lib/resultado";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { etiquetaActividad, fechaCorta, listarMovimientos, textoDelta } from "@/lib/movimientos-v2";
-import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
+import { ID_CARGO_ESPECIAL, ID_PRODUCTO_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 
 // Fase UI 1 (2026-09-11): rediseño completo, no una adaptación de
 // `app/(app)/page.tsx` (V1) — ese Inicio se arma sobre `inteligencia.ts`,
@@ -19,8 +19,19 @@ export default async function InicioPage() {
   const supabase = await createClient();
 
   const [productos, variantes, stock, actividad] = await Promise.all([
-    supabase.from("productos").select("id", { count: "exact", head: true }),
-    supabase.from("variantes").select("id", { count: "exact", head: true }),
+    // Solo lo que hoy se vende: ni descontinuados, ni altas sin aprobar, ni la centinela
+    // «Cargo especial» (que vive en `productos` como si fuera una prenda).
+    supabase
+      .from("productos")
+      .select("id", { count: "exact", head: true })
+      .eq("estado", "activo")
+      .eq("estado_alta", "aprobado")
+      .neq("id", ID_PRODUCTO_CARGO_ESPECIAL),
+    supabase
+      .from("variantes")
+      .select("id", { count: "exact", head: true })
+      .eq("activo", true)
+      .neq("id", ID_CARGO_ESPECIAL),
     supabase
       .from("stock")
       .select("cantidad")
