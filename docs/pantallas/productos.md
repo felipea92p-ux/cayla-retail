@@ -3,7 +3,7 @@
 > Modo: completo · Fecha: 2026-09-21 (reescrito el mismo día con los cuerpos reales de producción y una verificación adversarial) · Rol/sede: líder, sede TRU · Datos: **casi completo** (A1–A3, C1, D2, D3, E3, E4c de Felipe; agregados de solo lectura que consultó un agente; pendientes al final)
 > SHA analizado: `518132fb` (origin/main). Comprobado contra `3966c1d0` (origin/main al cierre de esta reescritura): los archivos de esta pantalla (`page.tsx`, `ProductosGrilla.tsx`, `ProductosAgrupados.tsx`, `catalogo-v2.ts`, `fn_productos*`) no cambiaron; solo cambiaron `/productos/categorias` y la migración `20260921170000_productos_por_categoria.sql` (otra pantalla). Si cambian después, este análisis está vencido.
 > Archivos: `apps/web/app/(app)/productos/page.tsx` · `components/ProductosGrilla.tsx` · `components/FiltrosProductos.tsx` · `components/ProductosAgrupados.tsx` · `lib/catalogo-v2.ts` · RPC `fn_productos`, `fn_productos_resumen`, `fn_productos_buscar` (`20260918231300_productos_por_marca_y_proveedor.sql`) · tablas `productos`, `variantes`, `stock`, `producto_fotos`, `marcas`, `proveedores`, `categorias`, `codigos_barras`
-> **Ejecución (2026-09-22):** Felipe eligió la **opción A** y ordenó las tareas #1 a #4: hechas en la rama `claude/pantalla-ebc078` (ADR-0150). Las dos migraciones **no están en producción**. El resto del análisis (#5 a #12) sigue vigente y sin ejecutar.
+> **Ejecución (2026-09-22):** Felipe eligió la **opción A** y ordenó las tareas #1 a #4: hechas en la rama `claude/pantalla-ebc078` (ADR-0150), y pasaron una revisión adversarial de tres revisores cuyos hallazgos están corregidos. La migración (una sola, `20260922120000`) **no está en producción**. El resto del análisis (#5 a #12) sigue vigente y sin ejecutar.
 > Otra sesión tocándola: sí — `product-creation-decision-tree-0afe63` (ADR-0109: marca, proveedor y «A quién pedirle»); `AppShell.tsx` tiene 6 PRs abiertos.
 > Etiquetas: `[visto]` captura · `[código archivo:línea]` · `[producción]` cuerpo o consulta que pegó Felipe · `[producción-agente]` lectura de solo lectura hecha por un agente de verificación (Felipe debe confirmarla con las consultas del apéndice) · `[inferido]` · `[no verificable]`.
 
@@ -115,7 +115,7 @@ Tope de 5 en «cumple su finalidad»: **aplicado**. Motivo: `reponer_de_proveedo
 - **DESCARTÉ:** quitar el total, porque el líder pierde la vista de reposición global de la que sale «para pedir».
 - **SE ROMPE SI:** una colaboradora de TRU ve «0 en mi sede» de una prenda que hay en Lima y le dice a la clienta que no hay, con la venta perdida por decisión de una regla que nadie eligió mirando esta pantalla.
 
-### #3 · Corregir — «190 variantes» → `count(distinct v.id)` ✅ hecha en local (migración `20260922121000`)
+### #3 · Corregir — «190 variantes» → `count(distinct v.id)` ✅ hecha en local (misma migración `20260922120000`)
 - **Dónde:** `fn_productos_resumen` (`migración :251`), mostrado en `page.tsx:227` y `:262-265`.
 - **Por qué en este puesto:** es un número falso en el encabezado, arreglable en una línea. Va en su propia migración (cambia un número visible), separada de la #7 (Beck: un cambio de resultado y un cambio de forma no se mezclan).
 - **Cómo lo verificas tú:** Q4a: `variantes_que_dice_la_pantalla` debe igualar `variantes_reales` (hoy 163 en producción, sin contar el producto especial).
@@ -124,7 +124,7 @@ Tope de 5 en «cumple su finalidad»: **aplicado**. Motivo: `reponer_de_proveedo
 ### #4 · Corregir — Quitar el rojo de «Stock 0» en cada tarjeta ✅ hecha en local (Grilla y Tabla)
 - **Dónde:** `ProductosGrilla.tsx:179-181` (`tonoStock`); `page.tsx:247`.
 - **Por qué en este puesto:** rompe la regla de ≤ 2 rojos y le quita fuerza al rojo cuando importa. Con 23 agotados, más de la mitad de la grilla en rojo.
-- **Cómo lo verificas tú:** abre `/productos`, cuenta los elementos en rojo con el inspector: máximo 2. «Agotado» sale en tinta con un punto o una etiqueta neutra.
+- **Cómo lo verificas tú:** abre `/productos`, cuenta los elementos en rojo con el inspector: máximo 2. «Sin stock» sale en un chip neutro (Grilla) o en tinta (Tabla).
 - **Esfuerzo / dependencias:** S. Misma línea que #2.
 
 ### #5 · Mejorar — Fotos: ocultar «MUESTRA» cuando el producto no tiene ninguna, dar respaldo y contar las faltantes
