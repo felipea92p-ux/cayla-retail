@@ -1,14 +1,14 @@
 -- ============================================================================
--- 20260921160000_comprobante_no_nace_sobre_venta_anulada.sql — CAYLA V2
+-- 20260921161500_comprobante_no_nace_sobre_venta_anulada.sql — CAYLA V2
 --
 -- QUÉ CAMBIA: un candado en la TABLA `comprobantes`: no se puede insertar un comprobante ligado a una
 -- venta ANULADA. Trigger `comprobantes_venta_no_anulada` (before insert) y su función
 -- `fn_comprobante_de_venta_no_anulada`.
 --
 -- POR QUÉ (hallado el 2026-09-21 al leer `emitir_comprobante` en producción, y confirmado por la revisión
--- independiente de `20260921120000`): `emitir_comprobante` acepta cualquier `p_venta_id`, también el de una
+-- independiente de `20260921121500`): `emitir_comprobante` acepta cualquier `p_venta_id`, también el de una
 -- venta anulada, y `convertir_proforma_a_comprobante` se lo pasa sin mirar. Deja un comprobante `pendiente`
--- sobre una venta que ya se le devolvió a la clienta: el mismo estado imposible que `20260921120000` cerró
+-- sobre una venta que ya se le devolvió a la clienta: el mismo estado imposible que `20260921121500` cerró
 -- del otro lado (anular libera el pendiente), sin nada que impidiera crearlo después. Hoy solo se llega
 -- llamando la RPC a mano, o por una carrera con la anulación: el `for update` de `anular_venta` sobre la
 -- venta hace esperar al `insert` (por el FK), y este entra apenas se anula. La pantalla no lo ofrece (la
@@ -25,7 +25,7 @@
 --   · Un comprobante sin venta (manual, o una nota de crédito) pasa sin mirar nada.
 --   · Con venta: toma `for share` sobre ella. `anular_venta` la toma `for update` primero, así que si
 --     corren a la vez una espera a la otra y la segunda ve el estado real: anulada primero → el insert se
---     rechaza; emitido primero → la anulación espera, ve el comprobante y lo libera (`20260921120000`). En
+--     rechaza; emitido primero → la anulación espera, ve el comprobante y lo libera (`20260921121500`). En
 --     ningún orden queda un pendiente sobre una venta anulada.
 --   · Una venta que no existe no se decide acá: lo dice el FK.
 --   · El rechazo aborta la transacción, y con ella la reserva del correlativo: no se quema un número.

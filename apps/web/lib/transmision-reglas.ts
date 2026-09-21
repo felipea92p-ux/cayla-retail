@@ -16,7 +16,7 @@ export type NoSePuedeTransmitir = { error: string; status: 409 | 503 };
  *  `pendiente` (nunca salieron) y los `rechazado` (su único camino es reintentar, ADR-0093). Y nunca el
  *  de una venta ANULADA: se le devolvió el dinero a la clienta y sus prendas volvieron al stock, así que
  *  declararla a SUNAT sería declarar una venta que no existe. `anular_venta` ya libera el pendiente de
- *  la venta que anula (`20260921120000`); esto cubre el que sigue vivo (un `rechazado`) y cualquier
+ *  la venta que anula (`20260921121500`); esto cubre el que sigue vivo (un `rechazado`) y cualquier
  *  base que aún no tenga esa migración. Si la venta existe pero no se pudo leer —o llegó sin `estado`:
  *  el `select` perdió el embebido, o PostgREST cambió su forma—, se niega y se pide reintentar: ante la
  *  duda no se declara nada (falla cerrada; `undefined` o un arreglo no pasan por «venta viva»). */

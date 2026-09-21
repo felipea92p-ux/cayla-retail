@@ -166,13 +166,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:ventas-del-dia
 
-      # Anular una venta libera su comprobante pendiente (20260921120000): no queda uno en la cola de
+      # Anular una venta libera su comprobante pendiente (20260921121500): no queda uno en la cola de
       # SUNAT con su botón «Transmitir» de una venta que ya se devolvió. Cada caso termina en ROLLBACK.
       - name: pruebas:anular-venta-comprobante
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:anular-venta-comprobante
 
-      # Un comprobante no nace sobre una venta anulada (20260921160000): ni por `emitir_comprobante`, ni por
+      # Un comprobante no nace sobre una venta anulada (20260921161500): ni por `emitir_comprobante`, ni por
       # un insert directo, ni convirtiendo una proforma. Cada caso termina en ROLLBACK.
       - name: pruebas:comprobante-venta-anulada
         if: ${{ always() && steps.supabase.outcome == 'success' }}

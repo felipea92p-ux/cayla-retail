@@ -555,13 +555,13 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
     **Cerrado — los dos caminos.** El de la mano: Felipe decidió que sí, un `pendiente` se
     suelta sin avisar a SUNAT, y el botón «Liberar sin espera»
     (`marcar_comprobante_no_emitido`, estado `no_emitido`, ADR-0093) está en producción
-    desde 2026-09-17. El estructural, 2026-09-21: `anular_venta` (`20260921120000`, pegada
+    desde 2026-09-17. El estructural, 2026-09-21: `anular_venta` (`20260921121500`, pegada
     en producción ese día) libera en la misma transacción el comprobante `pendiente` de
     la venta que anula (`no_emitido`, motivo «Venta anulada: …»), y `/api/lucode/emitir`
     se niega a transmitir el de una venta anulada (`lib/transmision-reglas.ts`). Lo que
     queda, decidido por Felipe el 2026-09-21 (opción a: dejarlo): un comprobante
     `rechazado` de una venta anulada no se toca —ya llegó a SUNAT— y queda en «Rechazados»
-    sin salida; si aparece uno, se resuelve a mano con el contador. Y `20260921160000` (probada
+    sin salida; si aparece uno, se resuelve a mano con el contador. Y `20260921161500` (probada
     en local; falta pegarla en producción) pone un trigger en `comprobantes` que impide crear
     uno nuevo sobre una venta anulada, por cualquier camino.
 
@@ -582,7 +582,7 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
 - **D-11** · Solo Felipe pega SQL en producción y queda anotado — aplica al arreglo de B004-000002 (hueco 13).
 - **D-12** · Cuatro niveles de permiso. **Incumplida hoy**: la base solo conoce dos (hueco 8).
 - **D-16** · Cada tabla marcada con en qué base existe. Las tres del módulo: local y producción.
-- **D-24** · Las promesas incumplidas se documentan con cita. Aquí van los huecos 4, 10, 14 y 15 (el 1 se cerró 2026-09-18, ADR-0102; el 15, 2026-09-21, ADR-0093 y `20260921120000`).
+- **D-24** · Las promesas incumplidas se documentan con cita. Aquí van los huecos 4, 10, 14 y 15 (el 1 se cerró 2026-09-18, ADR-0102; el 15, 2026-09-21, ADR-0093 y `20260921121500`).
 - **D-46** · Prioridad 1 es cuentas por pagar e IGV (CAYLA al 72% de las 300 UIT). El hueco 2 (IGV calculado en el navegador) pega directo ahí.
 - **ADR-0005** — Facturación electrónica se construye en dos partes separadas: reservar el número (nuestro) y transmitir (del PSE). Superado el 05-09: el proveedor es Lucode.
 - **ADR-0007** — Esquema legal completo: la proforma no es comprobante, la nota solo sobre un original aceptado, `nota_debito` como cuarto tipo.

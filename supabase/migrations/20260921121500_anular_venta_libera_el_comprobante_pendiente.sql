@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260921120000_anular_venta_libera_el_comprobante_pendiente.sql — CAYLA V2
+-- 20260921121500_anular_venta_libera_el_comprobante_pendiente.sql — CAYLA V2
 --
 -- QUÉ CAMBIA: `anular_venta` libera (`no_emitido`) el comprobante PENDIENTE de la venta que
 -- anula, en la misma transacción.

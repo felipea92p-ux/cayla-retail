@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Prueba de que `retail.anular_venta` libera el comprobante pendiente de la venta que anula —
- * CAYLA V2 (`20260921120000_anular_venta_libera_el_comprobante_pendiente.sql`).
+ * CAYLA V2 (`20260921121500_anular_venta_libera_el_comprobante_pendiente.sql`).
  *
  * EL HUECO. Anular una venta con boleta pendiente no tocaba esa boleta: seguía `pendiente`, contaba
  * en «Por enviar a SUNAT» y tenía su botón «Transmitir» — se podía declarar a SUNAT una venta que ya
@@ -40,7 +40,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
-const MIGRACION = "supabase/migrations/20260921120000_anular_venta_libera_el_comprobante_pendiente.sql";
+const MIGRACION = "supabase/migrations/20260921121500_anular_venta_libera_el_comprobante_pendiente.sql";
 
 // Mismas credenciales obvias que supabase/seed.sql y registrar_venta.mjs.
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder

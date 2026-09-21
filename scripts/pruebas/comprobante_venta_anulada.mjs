@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
  * Prueba de que un comprobante no puede nacer sobre una venta ANULADA — CAYLA V2
- * (`20260921160000_comprobante_no_nace_sobre_venta_anulada.sql`).
+ * (`20260921161500_comprobante_no_nace_sobre_venta_anulada.sql`).
  *
  * EL HUECO. `emitir_comprobante` aceptaba cualquier `p_venta_id`, también el de una venta anulada, y
  * `convertir_proforma_a_comprobante` se lo pasaba sin mirar. El resultado era un comprobante `pendiente`
- * sobre una venta que ya se le devolvió a la clienta: el mismo estado imposible que `20260921120000` cerró
+ * sobre una venta que ya se le devolvió a la clienta: el mismo estado imposible que `20260921121500` cerró
  * del otro lado (anular libera el pendiente), sin nada que impidiera crearlo después. Ahora hay un
  * candado en la TABLA `comprobantes` (trigger `before insert`), como el que ya tienen `cambios` y
  * `devolucion_items` para una venta anulada.
