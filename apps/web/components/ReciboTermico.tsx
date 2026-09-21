@@ -74,6 +74,12 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
             <dd>{cli.numDoc}</dd>
           </>
         )}
+        {recibo.atendio && (
+          <>
+            <dt>Atendió</dt>
+            <dd>{recibo.atendio}</dd>
+          </>
+        )}
       </dl>
 
       <div className="rt-tabla-cab">
