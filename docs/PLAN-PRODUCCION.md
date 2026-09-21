@@ -277,10 +277,16 @@ Decisiones de Felipe (2026-09-22): **no se registra la cotización de maquila ex
 - Pruebas: `pnpm pruebas:planilla-por-sede` (7 casos, en CI) + `lib/eficiencia-reglas.test.ts` (10).
 - **Pendiente:** pegar la migración; verlo con clics; hoy producción no tiene órdenes cerradas, así que las cifras por prenda saldrán vacías hasta el primer cierre (la planilla de Dynamic sí se verá: 2 períodos pagados con ~5 personas en el Taller).
 
-### F8 · Cierre y conexión con Inventario (S)
-- «Siguiente paso: llevarlas a las tiendas» (cierre → `/inventario/mover` prellenado); verificar la referencia «Orden N» en
-  Movimientos; refrescar `docs/datos/` (diccionario, RPCS, `modulos/10-produccion-del-taller.md`), `ARQUITECTURA.md`,
-  BACKLOG, BITACORA.
+### F8 · Cierre y conexión con Inventario (S) — sin esquema · **construida en local 2026-09-22 (sin migraciones)**
+- **«Siguiente paso: llevarlas a las tiendas»:** al cerrar una orden de producción el aviso trae el botón «Llevarlas a las tiendas», y el panel de una orden terminada lleva el mismo enlace
+  (`/inventario/mover?origen=<Taller>&lineas=<variante>:<cantidad>,…`). La pantalla Mover acepta ahora VARIAS líneas prellenadas (`lineas`), con las mismas reglas de siempre: solo se respeta lo que tiene stock
+  movible en el origen, cada cantidad se topa al stock, y el destino lo elige quien traslada (una corrida suele repartirse entre tiendas). Reglas puras probadas: `urlLlevarATiendas` y `parsearLineasPrellenadas`.
+- **Referencia «Orden N» en Movimientos — verificada: NO existe y no se puede sin tocar Inventario.** Los movimientos de cierre sí guardan `produccion_id`, pero la orden no tiene número (es un uuid) y `fn_movimientos` (la
+  función de lectura de Inventario) no devuelve ese dato: la lista muestra «Producción → Taller» sin referencia. Propuesta anotada en el BACKLOG: que `fn_movimientos` devuelva `produccion_id` y el modelo, y que
+  `referenciaMovimiento` muestre «Orden de <modelo>» con enlace a `/produccion/ordenes?orden=<id>`.
+- **Documentación:** `docs/datos/modulos/10-produccion-del-taller.md` (sección «ESTADO ACTUAL»), ADR-0133 (estado), ARQUITECTURA, BACKLOG, BITACORA y la memoria del proyecto al día. El diccionario generado
+  (`docs/datos/generado/`) se refresca con `pnpm datos:generar:produccion` cuando se actualice el volcado de producción (faltan las tablas y funciones de F4c a F7).
+- **Verificas:** cerrar una orden → «Llevarlas a las tiendas» abre Mover con el Taller de origen y las prendas de la orden; un colaborador del Taller entra con su propio origen.
 
 ## 7. Orden, dependencias y paralelismo
 
