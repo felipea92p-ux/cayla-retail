@@ -3049,6 +3049,129 @@ export type Database = {
         }
         Relationships: []
       }
+      comprobantes_produccion: {
+        Row: {
+          condicion: string
+          created_at: string
+          estado: string
+          fecha_emision: string
+          fecha_vencimiento: string | null
+          id: string
+          igv: number
+          motivo_anulacion: string | null
+          nota: string | null
+          numero: string
+          proveedor_id: string
+          serie: string
+          subtotal: number
+          tipo: string
+          token_cliente: string | null
+          total: number
+          usuario_id: string | null
+        }
+        Insert: {
+          condicion: string
+          created_at?: string
+          estado?: string
+          fecha_emision?: string
+          fecha_vencimiento?: string | null
+          id?: string
+          igv: number
+          motivo_anulacion?: string | null
+          nota?: string | null
+          numero: string
+          proveedor_id: string
+          serie: string
+          subtotal: number
+          tipo?: string
+          token_cliente?: string | null
+          total: number
+          usuario_id?: string | null
+        }
+        Update: {
+          condicion?: string
+          created_at?: string
+          estado?: string
+          fecha_emision?: string
+          fecha_vencimiento?: string | null
+          id?: string
+          igv?: number
+          motivo_anulacion?: string | null
+          nota?: string | null
+          numero?: string
+          proveedor_id?: string
+          serie?: string
+          subtotal?: number
+          tipo?: string
+          token_cliente?: string | null
+          total?: number
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
+      comprobantes_produccion_items: {
+        Row: {
+          cantidad: number
+          comprobante_id: string
+          costo_unitario: number
+          descripcion: string | null
+          id: string
+          insumo_id: string | null
+          subtotal: number | null
+        }
+        Insert: {
+          cantidad: number
+          comprobante_id: string
+          costo_unitario: number
+          descripcion?: string | null
+          id?: string
+          insumo_id?: string | null
+          subtotal?: never
+        }
+        Update: {
+          cantidad?: number
+          comprobante_id?: string
+          costo_unitario?: number
+          descripcion?: string | null
+          id?: string
+          insumo_id?: string | null
+          subtotal?: never
+        }
+        Relationships: []
+      }
+      comprobantes_produccion_pagos: {
+        Row: {
+          comprobante_id: string
+          created_at: string
+          fecha: string
+          id: string
+          metodo: string
+          monto: number
+          referencia: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          comprobante_id: string
+          created_at?: string
+          fecha?: string
+          id?: string
+          metodo: string
+          monto: number
+          referencia?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          comprobante_id?: string
+          created_at?: string
+          fecha?: string
+          id?: string
+          metodo?: string
+          monto?: number
+          referencia?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
       proveedores_produccion: {
         Row: {
           activo: boolean
@@ -4175,6 +4298,10 @@ export type Database = {
         Args: { p_adjunto_id: string }
         Returns: undefined
       }
+      anular_comprobante_produccion: {
+        Args: { p_comprobante_id: string; p_motivo: string }
+        Returns: undefined
+      }
       buscar_productos_parecidos: {
         Args: { p_excluir_id?: string; p_referencia: string }
         Returns: {
@@ -4849,6 +4976,32 @@ export type Database = {
           lotes: number
           total_comprado: number
           ultima_entrega: string
+        }[]
+      }
+      fn_comprobantes_produccion: {
+        Args: { p_limite?: number }
+        Returns: {
+          condicion: string
+          created_at: string
+          estado: string
+          estado_pago: string
+          fecha_emision: string
+          fecha_vencimiento: string
+          id: string
+          igv: number
+          lineas: number
+          motivo_anulacion: string
+          nota: string
+          numero: string
+          pagado: number
+          proveedor: string
+          proveedor_id: string
+          saldo: number
+          serie: string
+          subtotal: number
+          tipo: string
+          total: number
+          vencido: boolean
         }[]
       }
       fn_proveedor_produccion_metricas: {
@@ -5545,6 +5698,24 @@ export type Database = {
           p_token?: string
           p_total?: number
           p_ubicacion_destino_id: string
+        }
+        Returns: string
+      }
+      registrar_comprobante_produccion: {
+        Args: {
+          p_condicion: string
+          p_fecha_emision?: string
+          p_fecha_vencimiento?: string
+          p_igv_porcentaje?: number
+          p_items: Json
+          p_nota?: string
+          p_numero: string
+          p_pago?: Json
+          p_proveedor_id: string
+          p_serie: string
+          p_tipo?: string
+          p_token?: string
+          p_total?: number
         }
         Returns: string
       }

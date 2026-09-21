@@ -189,9 +189,17 @@ Ya **no depende de ADR-0139** ni toca `compras`, `compra_items`, `registrar_comp
   de Compras NO se reescribe (Compras idéntico; devolverá ceros, que es lo correcto) — se cierra con el candado de F4e. Pantalla `/produccion/proveedores`
   (solo líder, menú «Proveedores»): lista con filtro por rubro y búsqueda, cifras, alta/edición en `<Modal>`, archivar. Saldo y cumplimiento del spike
   **no se dibujan** hasta F4b–F4d (no hay de dónde calcularlos). Prueba `pnpm pruebas:proveedores-produccion` (15 casos, en CI) + 8 de reglas. Sin ver en navegador.
-- **F4b · Comprobantes de Producción.** `comprobantes_produccion` + `_items` (insumo, cantidad, costo unitario **sin IGV**) + `_pagos`;
-  RPC `registrar_comprobante_produccion` con las reglas de ADR-0035: **contado ⇒ pago obligatorio en la misma transacción**, crédito ⇒
-  vencimiento, escritura solo por RPC, anular (nunca borrar), idempotencia por token.
+- **F4b · Comprobantes de Producción — construida en local 2026-09-21; migración `20260921100000` SIN pegar en producción.**
+  Tablas `comprobantes_produccion` (serie-número único por proveedor, contado/crédito, subtotal + IGV = total por CHECK, IGV solo en facturas, anulada con motivo),
+  `comprobantes_produccion_items` (un insumo del catálogo **o** un concepto libre —maquila, flete—; costo unitario sin IGV; `subtotal` derivado) y
+  `comprobantes_produccion_pagos` (uno o varios medios). **Solo-líder por RLS**, sin grants de escritura, y líneas/pagos **inmutables** (trigger). RPC:
+  `registrar_comprobante_produccion` (mismas reglas de ADR-0035: contado ⇒ pago por el total exacto en la misma transacción; crédito ⇒ vencimiento; idempotente por token;
+  el total del papel se cuadra con tolerancia 0,01 por línea + 0,01; pago no futuro ni anterior a la emisión), `anular_comprobante_produccion` (motivo obligatorio y **nunca con
+  pagos**: dejaría dinero sin respaldo) y `fn_comprobantes_produccion` (lista con `pagado`, `saldo`, `estado_pago`, `vencido` **derivados**; la reusan F4c y F4d).
+  Pantalla `/produccion/comprobantes` (solo líder, menú «Comprobantes»): cifras Por pagar / Vencido / Comprado este mes, filtros por estado y proveedor, alta con vista
+  previa de subtotal-IGV-total, detalle con líneas, pagos y anulación. El rojo lo lleva solo la cifra «Vencido»; las filas vencidas van en ámbar con sus días.
+  **No abre lotes** (eso es F4d). Prueba `pnpm pruebas:comprobantes-produccion` (26 casos, en CI) + 14 de reglas. Sin ver con clics (panel oculto).
+  **F4d debe** agregar el vínculo lote↔línea y actualizar `anular_comprobante_produccion` para negar la anulación con mercadería recibida.
 - **F4c · Por pagar de Producción** (requiere **D-I**): saldo derivado (nunca guardado), vencidos, pago (uno o varios medios).
 - **F4d · Recibir insumos.** `recibir_comprobante_produccion` abre **un lote por línea** (proveedor, documento, costo sin IGV, `origen = 'compra'`),
   idempotente; faltantes con su motivo. Quien trabaja en el Taller recibe **sin ver montos**.

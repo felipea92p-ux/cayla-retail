@@ -22,6 +22,7 @@
     "pruebas:registrar-venta": "node scripts/pruebas/registrar_venta.mjs",
     "pruebas:insumos-devolucion": "node scripts/pruebas/insumos_devolucion.mjs",
     "pruebas:proveedores-produccion": "node scripts/pruebas/proveedores_produccion.mjs",
+    "pruebas:comprobantes-produccion": "node scripts/pruebas/comprobantes_produccion.mjs",
     "pruebas:recibir-envio": "node scripts/pruebas/recibir_envio.mjs",
     "pruebas:dinero-compras": "node scripts/pruebas/dinero_compras_solo_lider.mjs",
     "pruebas:proveedores-cuentas": "node scripts/pruebas/proveedores_cuentas_pago.mjs",

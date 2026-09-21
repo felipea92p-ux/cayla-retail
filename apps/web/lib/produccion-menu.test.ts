@@ -4,11 +4,11 @@ import { hijosMenuCompras, hijosMenuProduccion, puedeVerProduccion } from "./pro
 const TIPOS = ["tienda", "almacen", "taller"] as const;
 
 describe("hijosMenuProduccion (ADR-0133, D-A revertida el 2026-09-20)", () => {
-  it("parado en el Taller, el líder ve además los Proveedores de Producción", () => {
-    expect(hijosMenuProduccion({ esLider: true, ubicacionTipo: "taller" })).toEqual(["ordenes", "insumos", "proveedoresProduccion"]);
+  it("parado en el Taller, el líder ve además los Proveedores y los Comprobantes de Producción", () => {
+    expect(hijosMenuProduccion({ esLider: true, ubicacionTipo: "taller" })).toEqual(["ordenes", "insumos", "proveedoresProduccion", "comprobantesProduccion"]);
   });
 
-  it("parado en el Taller, quien trabaja ahí ve las pantallas de fabricación pero no los Proveedores (datos bancarios y montos)", () => {
+  it("parado en el Taller, quien trabaja ahí ve las pantallas de fabricación pero no Proveedores ni Comprobantes (datos bancarios y montos)", () => {
     expect(hijosMenuProduccion({ esLider: false, ubicacionTipo: "taller" })).toEqual(["ordenes", "insumos"]);
   });
 
