@@ -28,6 +28,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Compras: cada tienda compra, ve y paga lo suyo (2026-09-21, ADR-0150) — ACEPTADO, F1 en construcción local
+Cada tienda tiene su comprador (cuenta creada para eso); el **líder ve todo**; una factura tiene una tienda gestora y cada tienda paga su parte; se paga desde las cuentas de la empresa. **Fuera de alcance:** pedido de fondos y paso «por aceptar». Hoy `fn_es_lider()` es global (cualquier líder ve todo).
+- [ ] **F1:** tabla `compradores_de_tienda` (varias tiendas por persona) → `fn_compras_ubicaciones()` → reescribir `fn_aplicar_candado_de_dinero()` primero → políticas y `listar_*` filtran por tienda. Solo agrega permiso; volver atrás es vaciar la tabla.
+- [ ] **Antes de pegar F1 en producción:** cargar la lista de compradores por tienda y reconciliar con la sesión de roles y permisos (`claude/roles-permisos-migration-6506e1`), para que la persona de Compras (no es líder) no quede con dos sistemas de permisos.
+- [ ] **F2–F7:** dinero partido por tienda (vista, sin guardar) → registrar con tienda gestora → pagar por tienda → pantallas → notas de crédito → resultado por tienda.
+
 ## 🎯 Menú a datos: `lib/menu.ts` (2026-09-21, ADR-0144) — paso 1, sin cambio visible
 - [x] Árbol de datos + `menuPara` (permisos semánticos, no `esLider`) + fotografía del menú de hoy (`menu-hoy.golden.json`, capturada del `AppShell.tsx` real de `main`) + pruebas (equivalencia en 6 perfiles, invariantes, topes 8/6, rutas vivas existen). `AppShell.tsx` pierde las constantes de filas y `produccion-menu.ts` pasa a ser vista fina. `tsc`, `eslint` y 2023 pruebas en verde; 1176 renders del original y del nuevo, 0 diferencias.
 - [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
