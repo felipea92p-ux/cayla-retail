@@ -8568,3 +8568,13 @@ Felipe se lleva: (1) una migración vieja se prueba contra el esquema de SU épo
 ## 2026-09-21 (Producción F6: Resumen — ADR-0133)
 Felipe pegó las partes A y B del candado del dinero (verificado contra producción: costos ilegibles por columna, funciones `fn_costos_*` presentes, vista cerrada) y fusionó F5. F6 construida sin esquema: `/produccion` pasa a ser el
 Resumen «¿qué necesita mi decisión hoy?» (solo líder) con tarjetas por urgencia y evidencia, cifras, ¿qué producir? y ¿alcanza la tela?. Solo hechos: no se dibujan plazos por etapa ni «días de trabajo» inventados.
+
+## 2026-09-22 (Producción F7: Eficiencia del Taller — ADR-0133)
+Felipe fusionó F6 y decidió sobre F7: la cotización de maquila externa NO se registra (D-E descartada, enmienda a D-31) y los sueldos se leen de Dynamic. Revisado contra producción: Dynamic ya congela la planilla
+(`planilla_pagada_detalle` / `v_planilla_pagada`, con `costo_total`; el Taller es la sede `LIM`, `tipo = 'taller'`) y `retail.gastos` ya existe para alquiler y servicios (modelo de Finanzas, ADR-0117, PR #170 sin fusionar).
+Por eso F7 NO crea `gastos_taller` ni cotizaciones: solo una vista puente `retail.planilla_por_sede` (D-33, agregada, sin personas, grupos < 3 ocultos, security_invoker) y la pantalla `/produccion/eficiencia`.
+Interpretación propia de D-31 documentada: el Taller se mide por lo que cuesta cada prenda terminada (materiales + conversión), período a período.
+
+## 2026-09-22 (F7: conflicto con el menú como árbol de datos — ADR-0144)
+Al fusionar main en el PR de F7 el menú había pasado a ser un árbol de datos (`lib/menu.ts`) con una prueba que frena una octava hija de Producción («regrupar antes de agregar Eficiencia»). No se subió la excepción ni se rompió
+la prueba: Eficiencia llega como **pestaña del Resumen** («Hoy | Eficiencia», `PestanasResumenProduccion`), no como fila del lateral. El nodo `produccion.eficiencia` sigue como «futura» con la nota actualizada.
