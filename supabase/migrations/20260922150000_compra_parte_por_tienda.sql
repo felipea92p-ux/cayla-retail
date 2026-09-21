@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260922140000_compra_parte_por_tienda.sql — CAYLA V2 · ADR-0151 (F2: partir el dinero por tienda)
+-- 20260922150000_compra_parte_por_tienda.sql — CAYLA V2 · ADR-0151 (F2: partir el dinero por tienda)
 --
 -- PROBLEMA. Una factura puede traer mercadería para varias tiendas (ADR-0139: `compra_item_destinos`), pero el dinero
 -- de la factura es uno solo: `compras.subtotal / igv / total`. Para que cada tienda pueda ver y pagar SU parte (D2, D3)

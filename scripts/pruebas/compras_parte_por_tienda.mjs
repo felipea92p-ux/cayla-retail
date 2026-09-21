@@ -35,7 +35,7 @@ const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — fija a
 const leer = (f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8");
 const M1 = leer("20260922120000_compras_compradores_de_tienda.sql");
 const M2 = leer("20260922130000_compras_dinero_por_tienda_lectura.sql");
-const M3 = leer("20260922140000_compra_parte_por_tienda.sql");
+const M3 = leer("20260922150000_compra_parte_por_tienda.sql");
 const PRELUDIO = `${M1}\n${M2}\n${M3}`;
 
 function psql(sql) {

@@ -42,7 +42,16 @@ sigue en pie para el catálogo, pero la deuda deja de ser una sola).
 
 **Ronda 5 (2026-09-21):**
 
-16. **Cada cuenta de comprador es una persona real** (opción A): una fila en `personas` y otra en `colaboradores`, no una cuenta de terminal como las de Dynamic (`terminales`) ni una persona ficticia compartida por tienda. Motivo: quien paga y ve CCI/Yape tiene que quedar registrado por nombre (R-10 ya advertía del riesgo de que quien crea un proveedor y además paga se lo invente), y 57 tablas de retail apuntan a `personas`. `compradores_de_tienda` no cambia.
+16. **RETIRADA por Felipe el mismo día.** Se había registrado «cada cuenta de comprador es una persona real» (opción A) y Felipe pidió revisar antes el diseño de la sesión «Estructura de cuentas por tienda». Queda **sin decidir** hasta cerrar la sección siguiente.
+
+**Cuentas terminal por tienda (ADR-0152 provisional, sesión «Estructura de cuentas por tienda», rama `claude/terminales-cuentas-129fd4`, sin commitear al 2026-09-21):**
+
+- **Dos cuentas compartidas por tienda, seis en total** (no el Taller): una de **Ventas** y una **Administrativa**. Se guardan como `colaboradores.terminal` (`'ventas'` | `'administrativa'`, una de cada tipo por tienda; nunca un líder) y **cada terminal es una persona de Dynamic** (57 llaves foráneas de retail apuntan a `personas`, así que una cuenta sin persona no puede ni cobrar). La persona la crea quien administra Dynamic; retail solo le da entrada (`agregar_terminal`, solo líder).
+- **Capacidades por oficio**, cada una «líder O terminal de tal tipo»: `fn_puede_gestionar_caja` (ventas), `fn_puede_ajustar_inventario`, `fn_puede_editar_catalogo` y `fn_puede_editar_cuentas_proveedor` (administrativa). Las etiquetas con descuento, anular ventas, devoluciones y códigos de descuento siguen solo del líder.
+- **Compras queda para este ADR:** esa migración NO abre `fn_puede_registrar_compras()` (por la misma razón que F1: las funciones de pago reciben un `compra_id` sin filtrar por tienda). La **terminal administrativa es el «comprador de tienda»** de este ADR (respuesta 13).
+- **Cómo compone con lo construido aquí:** `compradores_de_tienda` funciona tal cual con esa persona (una fila por terminal administrativa). Alternativa más limpia una vez que ambas ramas estén fusionadas: que `fn_compras_ubicaciones()` incluya sola la tienda de la terminal administrativa (`colaboradores.terminal = 'administrativa'`), y dejar la tabla solo para quien compra en varias tiendas (la persona de R-10, que no es una terminal).
+- **Pendiente de Felipe — trazabilidad del dinero.** Una cuenta compartida que registra y paga firma cada pago con la persona de la terminal, no con quien estaba frente a la pantalla. Esa sesión habla de que «el dinero aparece según quién se identifique» (un colaborador ve Inventario y Recibir sin montos); no pude leer cómo funciona esa identificación ni si llega hasta `compra_pagos.usuario_id`. Sin ella, R-10 (quien registra y paga puede inventarse un proveedor) queda sin quién responda por nombre.
+- **Choque de numeración de migraciones (resuelto de mi lado):** ambas ramas usaban `20260922140000`; la de F2 pasó a `20260922150000`.
 
 **Reconciliación con otros planes (2026-09-21, hallazgos al revisar las sesiones «Estructura de cuentas por tienda» y «Roles y permisos»):**
 
