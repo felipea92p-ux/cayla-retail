@@ -1,7 +1,7 @@
 # ADR-0151 — Compras: cada tienda compra, ve y paga lo suyo (compradores por tienda)
 
 **Fecha:** 2026-09-21
-**Estado:** **Aceptado el 2026-09-21** (cuarta ronda). Se construye por fases; F1 va primero. Nada de esto está en producción todavía.
+**Estado:** **Aceptado el 2026-09-21** (seis rondas). Se construye por fases: F1 y F2 hechas en local, F3 en curso. Nada de esto está en producción todavía.
 **Decide:** Felipe, el 2026-09-21 (respuestas en «Lo que dijo el negocio»). Arquitectura: este documento.
 **Numeración:** se escribió como 0145, pero `origin/main` ya tenía un 0145 (colaboradores). Se renumeró a 0150 y ese número también lo tomó `docs/adr/0150-roles-y-permisos-a-medida.md` en `main`; queda **0151**. Los commits `7b232583`, `db93cdab` y `0d908ea2` (rama `claude/aviso-cambio-de-sede`) lo nombran 0145. Renumerar de nuevo al subir si otro toma el 0150 (ver ADR-0139, «Historia del número»).
 **Refina** ADR-0075 (lectura por sede), ADR-0126 (el dinero de Compras es solo del líder) y ADR-0139 (un comprobante se reparte entre tiendas).
@@ -42,7 +42,11 @@ sigue en pie para el catálogo, pero la deuda deja de ser una sola).
 
 **Ronda 5 (2026-09-21):**
 
-16. **RETIRADA por Felipe el mismo día.** Se había registrado «cada cuenta de comprador es una persona real» (opción A) y Felipe pidió revisar antes el diseño de la sesión «Estructura de cuentas por tienda». Queda **sin decidir** hasta cerrar la sección siguiente.
+16. **RETIRADA por Felipe el mismo día.** Se había registrado «cada cuenta de comprador es una persona real» (opción A) y Felipe pidió revisar antes el diseño de la sesión «Estructura de cuentas por tienda». Se cierra con la respuesta 17.
+
+**Ronda 6 (2026-09-21):**
+
+17. **Cada registro y cada pago de Compras queda hecho por la TERMINAL, no por un colaborador en particular: se acepta la cuenta compartida sin nombre.** El comprador de cada tienda es su **terminal administrativa** (una cuenta compartida por tienda, ver la sección siguiente). No se construye identificación por persona (PIN) para pagar. Consecuencia que Felipe acepta: `compras.usuario_id` y `compra_pagos.usuario_id` guardan la persona de la terminal; si alguien pregunta «¿quién pagó esto?», la respuesta es «la terminal de tal tienda». **Lo que contiene el riesgo de R-10** (que quien registra y paga se invente un proveedor): crear proveedores sigue siendo solo del líder (D4), así que la terminal solo puede pagar a proveedores que un líder ya dio de alta.
 
 **Cuentas terminal por tienda (ADR-0152 provisional, sesión «Estructura de cuentas por tienda», rama `claude/terminales-cuentas-129fd4`, sin commitear al 2026-09-21):**
 
@@ -50,7 +54,7 @@ sigue en pie para el catálogo, pero la deuda deja de ser una sola).
 - **Capacidades por oficio**, cada una «líder O terminal de tal tipo»: `fn_puede_gestionar_caja` (ventas), `fn_puede_ajustar_inventario`, `fn_puede_editar_catalogo` y `fn_puede_editar_cuentas_proveedor` (administrativa). Las etiquetas con descuento, anular ventas, devoluciones y códigos de descuento siguen solo del líder.
 - **Compras queda para este ADR:** esa migración NO abre `fn_puede_registrar_compras()` (por la misma razón que F1: las funciones de pago reciben un `compra_id` sin filtrar por tienda). La **terminal administrativa es el «comprador de tienda»** de este ADR (respuesta 13).
 - **Cómo compone con lo construido aquí:** `compradores_de_tienda` funciona tal cual con esa persona (una fila por terminal administrativa). Alternativa más limpia una vez que ambas ramas estén fusionadas: que `fn_compras_ubicaciones()` incluya sola la tienda de la terminal administrativa (`colaboradores.terminal = 'administrativa'`), y dejar la tabla solo para quien compra en varias tiendas (la persona de R-10, que no es una terminal).
-- **Pendiente de Felipe — trazabilidad del dinero.** Una cuenta compartida que registra y paga firma cada pago con la persona de la terminal, no con quien estaba frente a la pantalla. Esa sesión habla de que «el dinero aparece según quién se identifique» (un colaborador ve Inventario y Recibir sin montos); no pude leer cómo funciona esa identificación ni si llega hasta `compra_pagos.usuario_id`. Sin ella, R-10 (quien registra y paga puede inventarse un proveedor) queda sin quién responda por nombre.
+- **Trazabilidad del dinero: decidida (respuesta 17).** Una cuenta compartida que registra y paga firma con la persona de la terminal; Felipe lo acepta. Esa sesión habla de que «el dinero aparece según quién se identifique» (un colaborador ve Inventario y Recibir sin montos): eso decide qué VE cada quien en la pantalla y no cambia quién firma el pago.
 - **Choque de numeración de migraciones (resuelto de mi lado):** ambas ramas usaban `20260922140000`; la de F2 pasó a `20260922150000`.
 
 **Reconciliación con otros planes (2026-09-21, hallazgos al revisar las sesiones «Estructura de cuentas por tienda» y «Roles y permisos»):**
