@@ -6,24 +6,31 @@ import { ESTADO_ETIQUETA, ETIQUETA_TIPO, type EstadoComprobante, type TipoCompro
 // componentes cliente (lista, filtros, detalle). Las lecturas contra Postgres
 // viven en `movimientos-v2.ts` (mismo reparto que compras-reglas / compras).
 //
-// La idea central (ADR-0050): `retail.movimientos` tiene 4 `tipo`
-// (entrada/salida/ajuste/traslado) y eso NO cambia. La pantalla muestra 5
-// CATEGORÍAS porque «reposición interna» y «transferencia entre sedes» son las
-// dos cosas que una encargada de sede distingue de un vistazo — y las dos son
-// `traslado` en la base. `fn_movimientos` calcula la categoría una vez, en SQL;
-// acá solo se etiqueta y se colorea.
+// La idea central (ADR-0050): los 4 `tipo` que CAMBIAN el stock (entrada/salida/
+// ajuste/traslado) se muestran como 5 CATEGORÍAS, porque «reposición interna» y
+// «transferencia entre sedes» son las dos cosas que una encargada de sede
+// distingue de un vistazo — y las dos son `traslado` en la base. `fn_movimientos`
+// calcula la categoría una vez, en SQL; acá solo se etiqueta y se colorea.
+//
+// ADR-0141 sumó dos `tipo` que NO tocan `stock.cantidad` — `apartado` y
+// `liberacion_apartado`: aparecen como filas (quién apartó qué y cuándo), pero no
+// entran a los filtros ni al resumen, que cuentan lo que se movió.
 
-export type TipoMovimiento = "entrada" | "salida" | "ajuste" | "traslado";
+export type TipoMovimiento = "entrada" | "salida" | "ajuste" | "traslado" | "apartado" | "liberacion_apartado";
 export type CategoriaMovimiento = "entrada" | "salida" | "interno" | "ajuste" | "transferencia";
+/** La categoría de una FILA: las 5 de arriba, más los dos movimientos de apartar. */
+export type CategoriaFila = CategoriaMovimiento | "apartado" | "liberacion_apartado";
 
 export const CATEGORIAS: CategoriaMovimiento[] = ["entrada", "salida", "interno", "ajuste", "transferencia"];
 
-export const ETIQUETA_CATEGORIA: Record<CategoriaMovimiento, string> = {
+export const ETIQUETA_CATEGORIA: Record<CategoriaFila, string> = {
   entrada: "Entrada",
   salida: "Salida",
   interno: "Interno",
   ajuste: "Ajuste",
   transferencia: "Transferencia",
+  apartado: "Apartado",
+  liberacion_apartado: "Apartado liberado",
 };
 
 /** Los filtros rápidos por tipo, en el orden en que se leen en la pantalla
@@ -39,9 +46,9 @@ export const FILTROS_TIPO: { valor: CategoriaMovimiento; etiqueta: string }[] = 
 // Sobrio a propósito: verde = llegó mercadería, ámbar = se movió dentro de la
 // tienda (piso ↔ almacén), rojo = un ajuste que RESTA (hay que mirarlo), el
 // resto neutro. Un ajuste que suma no es alarma.
-export function tonoCategoria(categoria: CategoriaMovimiento, delta: number): TonoChip {
+export function tonoCategoria(categoria: CategoriaFila, delta: number): TonoChip {
   if (categoria === "entrada") return "verde";
-  if (categoria === "interno") return "ambar";
+  if (categoria === "interno" || categoria === "apartado" || categoria === "liberacion_apartado") return "ambar";
   if (categoria === "ajuste" && delta < 0) return "rojo";
   return "neutro";
 }
@@ -76,6 +83,8 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   anulacion_venta: "Anulación de venta",
   produccion: "Producción",
   conteo: "Conteo",
+  apartado: "Apartado",
+  liberacion_apartado: "Apartado liberado",
   // Los ajustes sueltos llevan «Ajuste ·» delante: «Reposición» a secas se confundía con
   // «Reposición interna» (bajar del almacén al piso), que es otra cosa.
   reposicion: "Ajuste · reposición",
@@ -163,7 +172,7 @@ export type Movimiento = {
   fecha: string;
   hora: string;
   tipo: TipoMovimiento;
-  categoria: CategoriaMovimiento;
+  categoria: CategoriaFila;
   motivo: string | null;
   cantidad: number;
   /** Efecto sobre la ubicación que se está mirando: + entra, − sale, 0 interno. */
@@ -219,7 +228,8 @@ export function leerCursorMovimientos(texto: string | undefined): CursorMovimien
 
 /** «+3», «−1», o «3» cuando es interno (no cambia el total de la tienda). */
 export function textoDelta(m: Pick<Movimiento, "categoria" | "cantidad" | "delta">): string {
-  if (m.categoria === "interno") return String(Math.abs(m.cantidad));
+  // Apartar no cambia el stock (`delta` llega null de la base): se muestra cuántas prendas fueron.
+  if (m.categoria === "interno" || m.categoria === "apartado" || m.categoria === "liberacion_apartado") return String(Math.abs(m.cantidad));
   if (m.delta > 0) return `+${m.delta}`;
   if (m.delta < 0) return `−${Math.abs(m.delta)}`;
   return "0";
