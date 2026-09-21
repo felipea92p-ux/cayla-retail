@@ -1,31 +1,50 @@
 -- ============================================================================
--- 20260922120000 — Productos: las alertas de stock solo cuentan prendas ACTIVAS
--- (pantalla:productos, tarea #1 — docs/pantallas/productos.md, objeción 1)
+-- 20260922120000 — Productos: las alertas de stock solo cuentan prendas ACTIVAS y «N variantes» cuenta variantes
+-- (pantalla:productos, tareas #1 y #3 — docs/pantallas/productos.md, objeciones 1 y 3; ADR-0150)
 --
--- PROBLEMA. `/productos` lista por defecto las prendas activas Y las descontinuadas, y los cuatro
+-- PROBLEMA 1. `/productos` lista por defecto las prendas activas Y las descontinuadas, y los cuatro
 -- números de la cabecera («sin stock», «stock bajo», «para pedir» y el bloque «A quién pedirle»)
 -- las contaban a todas. Una prenda que CAYLA ya no vende y que quedó en 0 aparecía como «sin
 -- stock»; peor, una prenda en liquidación —con ventas recientes y poco stock— salía como «para
 -- pedir» y «A quién pedirle» le sugería comprársela otra vez al proveedor. En producción, según
 -- una lectura del 2026-09-21 (por confirmar con la consulta Q2 de docs/pantallas/productos.md): 6
--- descontinuadas, todas de prueba; «23 sin stock» eran 17 de verdad, y los «3 para pedir» eran
--- prendas descontinuadas que todavía tenían ventas de los últimos 30 días.
+-- descontinuadas, todas de prueba; «23 sin stock» eran 17 o 18 de verdad, y los «3 para pedir»
+-- eran prendas descontinuadas que todavía tenían ventas de los últimos 30 días.
 --
--- DECISIÓN (Felipe, 2026-09-22, tarea #1 del análisis): una prenda descontinuada NO dispara
+-- PROBLEMA 2. El subtítulo decía «190 variantes» y la base tiene 163: `fn_productos_resumen` contaba
+-- `count(v.id)` DESPUÉS de unir con `stock`, y una variante con stock en dos sedes (o en el piso y
+-- en el almacén de la misma sede) se contaba dos veces. Se coló porque la prueba de regresión de
+-- 20260918231300 comparó contra la versión anterior, que ya tenía el mismo error: «igual que
+-- antes» no prueba «correcto».
+--
+-- PROBLEMA 3 (lo encontró la revisión adversarial). «Stock bajo» y «sin stock» se solapaban: una
+-- prenda activa con mínimo cargado y 0 unidades contaba en LOS DOS contadores y salía en las dos
+-- listas, pero la tarjeta (que ya era exclusiva) solo decía «sin stock». Un mismo problema contado dos
+-- veces, y un filtro «Stock bajo» que devolvía tarjetas que decían otra cosa.
+--
+-- DECISIÓN (Felipe, 2026-09-22, tareas #1 a #4 del análisis): una prenda descontinuada NO dispara
 -- alertas. Sigue apareciendo en la lista (se puede ver, buscar y reactivar: la Tabla tiene
 -- «Activar» en bloque), pero no cuenta como «sin stock», «stock bajo» ni «para pedir».
 --
 -- QUÉ CAMBIA.
 --   fn_productos          el filtro `p_stock` (sin_stock / bajo / reponer) solo devuelve prendas
---                         activas, y la columna `reponer_de_proveedor` es falsa si no lo está.
+--                         activas; «bajo» exige además tener unidades (0 unidades es «sin stock»);
+--                         y la columna `reponer_de_proveedor` es falsa si la prenda no está activa.
 --                         «A quién pedirle» sale de esta misma columna: se corrige sin tocar la app.
---   fn_productos_resumen  los tres contadores solo cuentan prendas activas.
+--   fn_productos_resumen  los tres contadores siguen las mismas reglas que el filtro, y
+--                         «total_variantes» cuenta `count(distinct v.id)`.
 --   El filtro y el contador cambian JUNTOS: lo que dice el número de arriba es lo que muestran las
---   tarjetas de abajo (lo comprueba scripts/pruebas/productos_alertas_de_stock.mjs).
+--   tarjetas de abajo, con o sin filtros de estado, color, precio, marca, proveedor o búsqueda
+--   (lo comprueba scripts/pruebas/productos_alertas_de_stock.mjs sobre 18 combinaciones).
 --
--- LO QUE NO CAMBIA. `total_productos` y `total_variantes` siguen contando todos los estados; firmas
--- y columnas de salida idénticas (CREATE OR REPLACE conserva permisos); la app funciona igual con
--- esta migración aplicada antes o después de desplegarse. Combinar `estado = descontinuado` con un
+-- UN SOLO ARCHIVO, A PROPÓSITO. Esta migración reemplaza las DOS funciones enteras. Se pega a mano en el
+-- SQL Editor: dos archivos que reemplazan la misma función dejan, si se pegan en otro orden, la
+-- versión vieja del contador de variantes o un resumen que ya no coincide con la lista.
+--
+-- LO QUE NO CAMBIA. `total_productos` y `total_variantes` siguen contando todos los estados (y las
+-- variantes activas e inactivas: que «variantes» signifique «vigentes» es la tarea #9 del análisis);
+-- firmas y columnas de salida idénticas (CREATE OR REPLACE conserva permisos); la app funciona igual
+-- con esta migración aplicada antes o después de desplegarse. Combinar `estado = descontinuado` con un
 -- filtro de stock no devuelve nada, a propósito: un descontinuado no es una alerta.
 --
 -- ESTADO: aplicada solo en el Postgres local. En producción se pega DESPUÉS de que Felipe la revise
@@ -132,7 +151,7 @@ begin
       and (
         p_stock is null
         or (p_stock = 'sin_stock' and con_reorden.estado = 'activo' and con_reorden.stock_total = 0)
-        or (p_stock = 'bajo' and con_reorden.estado = 'activo' and con_reorden.stock_minimo is not null and con_reorden.stock_total < con_reorden.stock_minimo)
+        or (p_stock = 'bajo' and con_reorden.estado = 'activo' and con_reorden.stock_total > 0 and con_reorden.stock_minimo is not null and con_reorden.stock_total < con_reorden.stock_minimo)
         or (p_stock = 'reponer' and con_reorden.estado = 'activo' and con_reorden.stock_total <= con_reorden.punto_reorden and con_reorden.demanda_diaria > 0)
       )
   ),
@@ -227,7 +246,7 @@ begin
       p.id,
       p.estado,
       p.stock_minimo,
-      count(v.id)::bigint as num_variantes,
+      count(distinct v.id)::bigint as num_variantes,
       coalesce(sum(s.cantidad), 0)::integer as stock_total,
       bool_or(p_color_codigo is null or v.color_codigo = p_color_codigo) as color_ok,
       bool_or(
@@ -273,7 +292,7 @@ begin
   select
     count(*)::bigint,
     coalesce(sum(num_variantes), 0)::bigint,
-    count(*) filter (where estado = 'activo' and stock_minimo is not null and stock_total < stock_minimo)::bigint,
+    count(*) filter (where estado = 'activo' and stock_total > 0 and stock_minimo is not null and stock_total < stock_minimo)::bigint,
     count(*) filter (where estado = 'activo' and stock_total = 0)::bigint,
     count(*) filter (where estado = 'activo' and stock_total <= punto_reorden and demanda_diaria > 0)::bigint
   from filtrado;
