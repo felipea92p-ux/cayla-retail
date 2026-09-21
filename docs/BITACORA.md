@@ -8443,8 +8443,10 @@ marca↔proveedor, con un SQL todo-o-nada que **no está en git** (lleva nombres
 `~/Developer/cayla-cargas-privadas/proveedores-2026-09/`. Decisiones: una fila por empresa con el RUC oficial (RUC 20, o el de
 mayor gasto entre RUC 10) y el otro anotado aparte; RUC en baja de oficio o inválido ⇒ ficha sin RUC (se verificaron 30 RUC 20 en
 directorios públicos; los RUC 10 no, porque contienen el DNI); sin datos de pago ni dirección. Revisión adversarial (4 revisores +
-refutadores) y ensayo contra producción con retroceso: `proveedores 2→76, marcas 1→76, vínculos 1→76`, base intacta después. **Falta
-pegar el SQL real** (quien administra) y verlo en `/proveedores` y `/productos/marcas`. Hallazgo abierto: el buscador de Proveedores no
+refutadores) y ensayo contra producción con retroceso: `proveedores 2→76, marcas 1→76, vínculos 1→76`, base intacta después. **Aplicada
+en producción el mismo día** (76/76/76; auditada desde afuera: 74/74 fichas y 75/75 vínculos idénticos). Al pegarla, el editor
+confirmó la transacción antes del paso 6 (`42P01 _antes`): las escrituras ya estaban hechas y solo falló la autocomprobación. Falta
+verla en `/proveedores` y `/productos/marcas`. Hallazgo abierto: el buscador de Proveedores no
 mira las marcas (44 de 71 fichas con marca no se encuentran por ella) y existe un commit local sin publicar con un volcado anterior de
 esta hoja (`99059734`): no subir esa rama.
 

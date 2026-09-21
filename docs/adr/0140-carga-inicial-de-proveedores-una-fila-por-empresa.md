@@ -1,7 +1,7 @@
 # ADR-0140 — Carga inicial de proveedores: una fila por empresa, marcas por la tabla puente y RUC caídos en blanco
 
 - **Fecha:** 2026-09-20
-- **Estado:** Decidido en la sesión del 2026-09-20. **SQL generado, revisado y ensayado contra producción con retroceso; falta pegarlo** (ver «Verificación»).
+- **Estado:** Decidido y **aplicada en producción el 2026-09-20** (pegada por quien administra; ver «Verificación»).
 - **Decide:** quien administra el ERP, respondiendo 25 preguntas una por una en la sesión. Arquitectura: este documento.
 - **Toca** ADR-0094 (ficha ampliada de proveedores), ADR-0134 (cuentas de pago) y `20260918231000` (marcas y proveedor en
   productos). **No cambia el esquema**: solo escribe datos en tablas que ya existen.
@@ -105,5 +105,14 @@ anti-duplicado es el nombre.
   duplicar**.
 - **Ensayo contra producción (2026-09-20), en una sola transacción que termina en una excepción a propósito:**
   `proveedores 2 → 76, marcas 1 → 76, vínculos 1 → 76`, y la base quedó en 2 / 1 / 1 (nada escrito).
-- **Falta:** que quien administra pegue el SQL real en el SQL Editor de producción y lo vea en `/proveedores` y
-  `/productos/marcas`. Hasta entonces, ninguna cifra de esta carga está en producción.
+- **Aplicada en producción (2026-09-20).** Al pegarla, el editor respondió `42P01 relation "_antes" does not exist` en el
+  **paso 6** (la comprobación final): las escrituras de los pasos 3-5 ya estaban confirmadas y las tres tablas temporales
+  `on commit drop` habían desaparecido, así que el editor **confirmó la transacción entre el paso 5 y el 6** (con el mismo
+  script, el conector MCP no lo reproduce). Auditoría posterior desde afuera, solo lectura: 74 de 74 fichas idénticas a lo
+  esperado campo por campo, 75 de 75 vínculos, totales 76 / 76 / 76, los 2 proveedores previos intactos, 0 con datos de pago,
+  0 inactivos. **No volver a pegar** el SQL (abortaría en el paso 2 sin escribir nada).
+- **Lección de diseño:** «todo-o-nada» con `begin … commit` y tablas temporales solo vale si el editor ejecuta el script como
+  una transacción; no está garantizado. Las guardas previas (paso 2) sí protegieron; la comprobación posterior no pudo
+  deshacer nada. La próxima carga debe ser **una sola sentencia `do $$`** (atómica por sí misma), sin depender de estado de
+  sesión entre sentencias.
+- **Falta:** verlo en `/proveedores` y `/productos/marcas` en el navegador (no hecho todavía).
