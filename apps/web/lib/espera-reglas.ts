@@ -18,7 +18,7 @@
 
 export type TipoEspera = "carga" | "guardado";
 
-export type Clasificacion = { tipo: TipoEspera; /** nombre de la sección a la que se navega, si se conoce */ seccion: string | null };
+export type Clasificacion = { tipo: TipoEspera };
 
 export type PeticionEspera = {
   url: URL;
@@ -43,28 +43,6 @@ export function esRpcDeLectura(nombre: string): boolean {
   return PREFIJOS_RPC_DE_LECTURA.some((p) => nombre.startsWith(p));
 }
 
-/** Nombre de la pantalla a la que se va, por el primer tramo de la ruta. */
-const SECCIONES: Record<string, string> = {
-  "": "Inicio",
-  vender: "Vender",
-  inventario: "Inventario",
-  productos: "Productos",
-  compras: "Compras",
-  recibir: "Recibir",
-  caja: "Caja",
-  cambios: "Cambios",
-  devoluciones: "Devoluciones",
-  movimientos: "Movimientos",
-  produccion: "Producción",
-  colaboradores: "Colaboradores",
-  buscar: "Buscar",
-};
-
-export function seccionDeRuta(pathname: string): string | null {
-  const primero = pathname.split("/").filter(Boolean)[0] ?? "";
-  return SECCIONES[primero] ?? null;
-}
-
 export type MensajeEspera = {
   /** Rótulo pequeño en mayúsculas sobre el título. */
   etiqueta: string;
@@ -74,19 +52,19 @@ export type MensajeEspera = {
   detalle?: string;
 };
 
-export const MENSAJE_GUARDANDO: MensajeEspera = {
-  etiqueta: "Guardando",
-  titulo: "Guardando cambios",
-  detalle: "No cierres ni recargues la página.",
+/**
+ * El texto de siempre, sin nombrar la pantalla ni la acción: el mismo loader sirve para abrir una pantalla,
+ * guardar y editar, así que lo que dice tiene que ser cierto en los tres casos. Solo el cambio de sede lleva
+ * un texto propio (`AvisoCambioDeSede`).
+ */
+export const MENSAJE_ESPERA: MensajeEspera = {
+  etiqueta: "Un momento",
+  titulo: "Cargando",
+  detalle: "Estamos procesando tu solicitud…",
 };
 
-export function mensajeDeCarga(seccion: string | null): MensajeEspera {
-  return { etiqueta: "Cargando", titulo: seccion ?? "Un momento", detalle: "Trayendo la pantalla…" };
-}
-
-/** Lo que dice el aviso cuando la espera pasa de lo normal. */
-export const DETALLE_TARDA = "Está tardando más de lo normal, un momento…";
-export const DETALLE_TARDA_GUARDANDO = "Sigue guardando. No cierres ni recargues la página.";
+/** Lo que dice el aviso cuando la espera pasa de lo normal (vale también si está guardando: no cerrar). */
+export const DETALLE_TARDA = "Está tardando más de lo normal. No cierres ni recargues la página.";
 
 /** Devuelve qué tipo de espera es esta petición, o `null` si no debe mostrar el loader. */
 export function clasificarPeticion(p: PeticionEspera): Clasificacion | null {
@@ -94,13 +72,13 @@ export function clasificarPeticion(p: PeticionEspera): Clasificacion | null {
   const metodo = p.metodo.toUpperCase();
 
   if (p.url.origin === p.origen) {
-    if (p.cabecera("next-action")) return { tipo: "guardado", seccion: null };
+    if (p.cabecera("next-action")) return { tipo: "guardado" };
     if (metodo === "GET") {
       const esPrefetch = p.cabecera("next-router-prefetch") !== null || p.cabecera("next-router-segment-prefetch") !== null;
-      if (p.cabecera("rsc") === "1" && !esPrefetch) return { tipo: "carga", seccion: seccionDeRuta(p.url.pathname) };
+      if (p.cabecera("rsc") === "1" && !esPrefetch) return { tipo: "carga" };
       return null;
     }
-    if (metodo !== "HEAD" && metodo !== "OPTIONS" && p.url.pathname.startsWith("/api/")) return { tipo: "guardado", seccion: null };
+    if (metodo !== "HEAD" && metodo !== "OPTIONS" && p.url.pathname.startsWith("/api/")) return { tipo: "guardado" };
     return null;
   }
 
@@ -110,7 +88,7 @@ export function clasificarPeticion(p: PeticionEspera): Clasificacion | null {
     if (ruta.startsWith("/auth/v1/token")) return null; // refresco de sesión en segundo plano
     const rpc = /\/rest\/v1\/rpc\/([^/?]+)/.exec(ruta);
     if (rpc && esRpcDeLectura(rpc[1])) return null;
-    return { tipo: "guardado", seccion: null };
+    return { tipo: "guardado" };
   }
 
   return null;
