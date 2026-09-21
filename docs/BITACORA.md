@@ -8695,3 +8695,9 @@ Felipe pidió un solo loader que cubra hasta el lateral, dure lo que tarda la re
 
 ## 2026-09-21 (Loader general: textos generales)
 El loader ya no nombra la pantalla («Compras», «Inventario»…) ni dice «Trayendo la pantalla»: como sirve también para guardar y editar, dice siempre «Un momento · Cargando · Estamos procesando tu solicitud…» y, pasados 4 s, «Está tardando más de lo normal. No cierres ni recargues la página.». Solo el cambio de sede conserva su texto propio. Se fue `seccionDeRuta` de `lib/espera-reglas.ts`; el interceptor ya no distingue mensaje por tipo.
+
+## 2026-09-22 (Roles y permisos a medida — ADR-0150, F0)
+Felipe pidió que los roles de retail no dupliquen el trabajo de Dynamic. Decisión: la identidad se crea una vez en Dynamic (misma cuenta) y los roles de retail son un catálogo aparte, sin derivar del `rol_usuario` de RRHH; el acceso a retail sigue siendo explícito y con ubicación (ADR-0145), así que no es automático — se corrigió lo dicho antes en la conversación.
+Se ajustó la maqueta `roles-spike-2026-09` (bloqueo «Solo líder por ahora», Archivar/Restaurar rol, historial que solo se agrega, «Dar acceso», modal y movimientos con ADR-0136) y se escribió el ADR-0150 con las 8 decisiones y las fases F1–F7. Sin migraciones ni código de la app.
+Sin resolver: cerrar F1 (cambio de esquema, requiere el OK de Felipe antes de pegar); qué ubicación propone el alta; coordinar con la rama `adr-0145-compras-permisos`.
+

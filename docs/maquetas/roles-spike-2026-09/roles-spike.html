@@ -1,0 +1,945 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Roles y accesos · spike visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Roles y accesos (2026-09-21)
+   Una sola pregunta: ¿cómo se ve que cada ROL decide qué módulos y
+   pantallas aparecen en el menú? Los módulos NO tienen contenido: al
+   entrar solo muestran su título. Lo único con contenido son las dos
+   pantallas de administración («Asignar rol» y «Roles y accesos»).
+   Tokens y geometría = los reales de AppShell.tsx / globals.css.
+   Datos inventados; nada de esto toca el ERP.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf6ec;
+  --taupe-p:#805c4c;--verde-p:#44583a;--ambar-p:#734f15;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t60:rgba(26,26,24,.6);--t50:rgba(26,26,24,.5);
+  --t30:rgba(26,26,24,.3);--t10:rgba(26,26,24,.10);--t04:rgba(26,26,24,.04);
+  --ease:cubic-bezier(.32,.72,.24,1);
+  --ancho:17rem;--bar:44px;--cab:56px;
+  --sh-lg:0 18px 44px -14px rgb(26 26 24/.16);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:auto}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.55;min-height:100vh}
+button,select,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:400}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+@keyframes cayla-revelar{from{opacity:0;transform:translate3d(0,-3px,0)}to{opacity:1;transform:none}}
+@keyframes cayla-entrada{from{opacity:0;transform:translate3d(0,8px,0)}to{opacity:1;transform:none}}
+@keyframes cayla-velo{from{opacity:0}to{opacity:1}}
+
+@keyframes cayla-subir{from{opacity:0;transform:translate3d(0,18px,0) scale(.985)}to{opacity:1;transform:none}}
+@keyframes cayla-bajar{to{opacity:0;transform:translate3d(0,10px,0) scale(.99)}}
+@keyframes cayla-velo-sale{to{opacity:0}}
+@keyframes cayla-visto{to{stroke-dashoffset:0}}
+@keyframes cayla-desvanece{to{opacity:0}}
+
+/* ============ barra del spike (no existe en el ERP) ============ */
+.spk{position:fixed;inset:0 0 auto 0;z-index:80;height:var(--bar);display:flex;align-items:center;gap:14px;padding:0 16px;background:var(--tinta);color:var(--crema);font-size:13px;overflow-x:auto;white-space:nowrap}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.spk label{display:flex;align-items:center;gap:8px;color:rgba(245,240,232,.7)}
+.spk select{height:30px;border-radius:8px;border:1px dashed rgba(245,240,232,.4);background:rgba(245,240,232,.06);color:var(--crema);padding:0 8px;font-size:13px;cursor:pointer}
+.spk select option,.spk select optgroup{color:var(--tinta);background:var(--crema)}
+.spk .sep{width:1px;height:18px;background:rgba(245,240,232,.2);flex:none}
+.spk button.rst{margin-left:auto;height:30px;padding:0 12px;border-radius:8px;border:1px dashed rgba(245,240,232,.4);color:rgba(245,240,232,.8);font-size:12.5px;transition:all 200ms var(--ease)}
+.spk button.rst:hover{background:rgba(245,240,232,.12);color:#fff}
+
+/* ============================ LATERAL ============================ */
+.side{position:fixed;inset:var(--bar) auto 0 0;z-index:40;width:var(--ancho);display:flex;flex-direction:column;background:var(--crema);border-right:1px solid var(--t10);transition:transform 300ms var(--ease)}
+.side .logo{display:flex;align-items:center;gap:12px;padding:28px 0 24px 28px;white-space:nowrap}
+.side .logo img{height:32px;width:auto}
+.side .logo .marca{font-size:14px;letter-spacing:.26em;font-weight:600}
+nav.nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 12px 16px}
+nav.nav::-webkit-scrollbar{width:6px}nav.nav::-webkit-scrollbar-thumb{background:var(--sand)}
+.rows{position:relative;display:flex;flex-direction:column}
+.rows>*+*{margin-top:8px}
+.rows>.marca-riel{position:absolute;margin:0;left:0;top:0;width:2px;height:20px;border-radius:99px;background:var(--rojo);pointer-events:none;
+  transition:transform 300ms var(--ease),opacity 300ms var(--ease);opacity:0}
+.fila{position:relative;display:flex;align-items:center;gap:14px;width:100%;height:48px;padding:0 12px 0 16px;border-radius:8px;text-align:left;white-space:nowrap;overflow:hidden;
+  color:var(--t80);transition:background 260ms var(--ease),color 260ms var(--ease)}
+.fila:hover{background:rgba(232,224,208,.4);color:var(--rojo)}
+.fila.act{background:rgba(232,224,208,.7);color:var(--tinta);font-weight:500}
+.fila.act:hover{color:var(--tinta)}
+.fila .ic{color:var(--t60);transition:color 260ms var(--ease)}
+.fila:hover .ic{color:var(--rojo)}
+.fila.act .ic{color:var(--tinta)}
+.fila.hijo{padding-left:36px}
+.fila .et{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.fila .chev{width:14px;height:14px;color:var(--t50);transition:transform 300ms var(--ease)}
+.grp.abierto>.fila .chev{transform:rotate(90deg)}
+.fila.hijo:not(.act)::before,.fila.plana:not(.act)::before{content:"";position:absolute;left:0;top:50%;width:2px;height:20px;border-radius:99px;background:var(--t30);transform:translateY(-50%) scaleY(0);transition:transform 200ms var(--ease)}
+.fila.hijo:not(.act):hover::before,.fila.plana:not(.act):hover::before{transform:translateY(-50%) scaleY(1)}
+.fila.nuevo{animation:cayla-revelar 320ms var(--ease) both}
+.kids{display:grid;grid-template-rows:0fr;transition:grid-template-rows 300ms var(--ease)}
+.kids>div{overflow:hidden;min-height:0}
+.grp.abierto>.kids{grid-template-rows:1fr}
+.kids .fila{margin-top:8px;opacity:0;transition:opacity 200ms var(--ease),background 260ms,color 260ms}
+.grp.abierto>.kids .fila{opacity:1;transition-delay:calc(var(--i)*30ms + 60ms),0s,0s}
+.side .yo{border-top:1px solid var(--t10);padding:16px 20px;display:flex;align-items:center;gap:12px;white-space:nowrap;overflow:hidden}
+.side .yo .av{width:36px;height:36px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:16px;flex:none}
+.side .yo .qn{min-width:0}
+.side .yo .qn p{overflow:hidden;text-overflow:ellipsis}
+.side .yo .qn p:first-child{font-size:14px}
+.side .yo .qn p:last-child{font-size:11px;letter-spacing:.06em;color:var(--taupe-p);margin-top:1px}
+
+/* ============================ CABECERA + CONTENIDO ============================ */
+.top{position:fixed;top:var(--bar);right:0;left:var(--ancho);z-index:30;height:var(--cab);display:flex;align-items:center;gap:14px;padding:0 32px;background:rgba(245,240,232,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--t10)}
+.top .mig{color:var(--t65);font-size:14px;display:flex;gap:8px;align-items:center;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .quien{flex:none}
+.top .mig b{font-weight:500;color:var(--tinta)}
+.top .quien{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--t65);white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:99px;background:var(--sand);color:var(--tinta);font-size:12px;font-weight:500;white-space:nowrap}
+.chip.lock{background:transparent;border:1px solid var(--t10);color:var(--t65)}
+.chip svg{width:12px;height:12px}
+.burger{display:none;width:36px;height:36px;border-radius:8px;place-items:center;margin-left:-8px}
+.burger:hover{background:rgba(232,224,208,.6)}
+.scrim{position:fixed;inset:var(--bar) 0 0 0;background:rgba(26,26,24,.35);z-index:35;display:none;animation:cayla-velo 200ms var(--ease)}
+
+.main{margin-left:var(--ancho);padding:calc(var(--bar) + var(--cab) + 44px) 32px 96px}
+.pagina{max-width:760px;animation:cayla-entrada 360ms var(--ease) both}
+.pagina.ancha{max-width:1180px}
+.pagina h1{font-family:'EB Garamond',Georgia,serif;font-weight:400;font-size:clamp(38px,5vw,56px);line-height:1.05;letter-spacing:-.01em;margin-top:10px}
+.pagina .lbl.eb{color:var(--taupe-p)}
+.pagina .sub{color:var(--t65);margin-top:14px;max-width:62ch}
+.acceso{display:flex;align-items:flex-start;gap:10px;margin-top:28px;padding:14px 16px;border:1px solid var(--sand);background:var(--papel);border-radius:12px;font-size:14px;color:var(--t80);max-width:60ch}
+.acceso i{width:8px;height:8px;border-radius:50%;background:var(--verde-p);margin-top:7px;flex:none}
+.pantallas{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.pantallas a{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1px solid var(--sand);border-radius:8px;background:var(--papel);font-size:14px;transition:all 220ms var(--ease)}
+.pantallas a:hover{color:var(--rojo);border-color:rgba(184,65,45,.4)}
+.pantallas a .ic{width:16px;height:16px;color:var(--t60)}
+.stats{display:flex;gap:32px;margin-top:32px}
+.stats .n{font-family:'EB Garamond',serif;font-size:44px;line-height:1}
+.stats .l{font-size:12px;color:var(--t65);margin-top:6px}
+.bloq{margin-top:40px}
+.bloq .cerr{width:44px;height:44px;border-radius:50%;border:1px solid var(--sand);display:grid;place-items:center;color:var(--t65);background:var(--papel)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border-radius:8px;background:var(--tinta);color:var(--crema);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;transition:background 220ms var(--ease)}
+.btn:hover{background:var(--rojo)}
+.btn.sec{background:transparent;color:var(--tinta);border:1px solid var(--t10)}
+.btn.sec:hover{background:rgba(232,224,208,.5);color:var(--rojo)}
+.btn.chico{height:36px;padding:0 14px}
+.btn[disabled]{opacity:.4;pointer-events:none}
+
+/* ---- segmentado ---- */
+.seg{display:inline-flex;padding:3px;border-radius:10px;background:var(--sand);margin-top:26px;gap:2px}
+.seg button{height:34px;padding:0 16px;border-radius:8px;font-size:13.5px;color:var(--t65);transition:all 220ms var(--ease)}
+.seg button[aria-pressed=true]{background:var(--papel);color:var(--tinta);font-weight:500;box-shadow:0 1px 2px rgb(26 26 24/.08)}
+
+/* ---- editor de roles ---- */
+.rgrid{display:grid;grid-template-columns:250px minmax(0,1fr) 250px;gap:24px;align-items:start;margin-top:28px}
+.lista{display:flex;flex-direction:column;gap:8px}
+.rol-item{position:relative;text-align:left;padding:12px 14px 12px 18px;border-radius:12px;border:1px solid transparent;transition:background 240ms var(--ease),border-color 240ms}
+.rol-item:hover{background:rgba(232,224,208,.4)}
+.rol-item[aria-current=true]{background:var(--papel);border-color:var(--sand)}
+.rol-item[aria-current=true]::before{content:"";position:absolute;left:0;top:50%;width:2px;height:22px;border-radius:99px;background:var(--rojo);transform:translateY(-50%)}
+.rol-item .nm{display:flex;align-items:center;gap:8px;font-weight:500;font-size:15px}
+.rol-item .nm svg{width:13px;height:13px;color:var(--t50)}
+.rol-item .meta{display:block;font-size:12.5px;color:var(--t65);margin-top:2px}
+.nuevo-rol{display:flex;gap:8px;margin-top:8px}
+.nuevo-rol input{flex:1;min-width:0;height:40px;padding:0 12px;border-radius:8px;border:1px dashed var(--t30);background:transparent}
+.nuevo-rol input:focus{outline:none;border-color:var(--rojo);border-style:solid}
+.nuevo-rol button{height:40px;width:40px;border-radius:8px;background:var(--tinta);color:var(--crema);display:grid;place-items:center;transition:background 200ms}
+.nuevo-rol button:hover{background:var(--rojo)}
+.nuevo-rol svg{width:16px;height:16px}
+
+.edit-cab{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.h-input{width:100%;background:transparent;border:0;border-bottom:1px solid transparent;font-family:'EB Garamond',serif;font-size:34px;line-height:1.15;padding:0}
+.h-input:hover:not([readonly]){border-bottom-color:var(--t10)}
+.h-input:focus{outline:none;border-bottom-color:var(--rojo)}
+.h-input[readonly]{cursor:default}
+.d-input{width:100%;background:transparent;border:0;color:var(--t65);font-size:14px;padding:2px 0}
+.d-input:focus{outline:none;color:var(--tinta)}
+.acciones{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.aviso-fijo{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--t80);background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:12px 14px;margin:12px 0}
+.aviso-fijo svg{width:16px;height:16px;margin-top:3px;color:var(--taupe-p)}
+.aviso-in{font-size:13px;color:var(--t65);margin:16px 0 12px}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.mcard{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:6px 6px 8px}
+.mcard header{display:flex;align-items:center;gap:12px;padding:10px 12px}
+.mcard header .ic{color:var(--t60)}
+.mcard header b{font-weight:500;flex:1}
+.mcard header .cnt{font-size:12px;color:var(--t65);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mcard ul{list-style:none;border-top:1px solid var(--t10);margin:0 8px;padding-top:4px}
+.mcard li{display:flex;align-items:center;gap:10px;height:40px;padding:0 4px;font-size:14px;color:var(--t80)}
+.mcard li span{flex:1}
+.mcard li.on{color:var(--tinta)}
+
+/* interruptor */
+.sw{position:relative;width:38px;height:22px;border-radius:99px;background:var(--sand);flex:none;transition:background 240ms var(--ease)}
+.sw i{position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:var(--papel);box-shadow:0 1px 2px rgb(26 26 24/.25);transition:transform 260ms var(--ease)}
+.sw[aria-checked=true]{background:var(--tinta)}
+.sw[aria-checked=true] i{transform:translateX(16px)}
+.sw[aria-checked=mixed]{background:var(--taupe-p)}
+.sw[aria-checked=mixed] i{transform:translateX(8px)}
+.sw[disabled]{opacity:.45;cursor:not-allowed}
+
+/* vista previa del menú de un rol */
+.prev{position:sticky;top:calc(var(--bar) + var(--cab) + 24px);background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:16px 16px 14px}
+.prev .lbl{color:var(--taupe-p)}
+.prev h3{font-family:'EB Garamond',serif;font-weight:400;font-size:22px;margin:4px 0 12px;line-height:1.2}
+.prev .m{display:flex;align-items:center;gap:10px;height:34px;font-size:14px}
+.prev .nuevo{animation:cayla-revelar 260ms var(--ease) both}
+.prev .m .ic{width:16px;height:16px;color:var(--t60)}
+.prev .h{display:flex;align-items:center;gap:8px;height:28px;padding-left:26px;font-size:13px;color:var(--t65);position:relative}
+.prev .h::before{content:"";position:absolute;left:7px;top:0;bottom:0;width:1px;background:var(--sand)}
+.prev .vacio{font-size:13px;color:var(--t65)}
+.prev .pie{margin-top:12px;padding-top:10px;border-top:1px solid var(--t10);font-size:12.5px;color:var(--t65)}
+
+/* «Solo líder por ahora» (candado de coherencia: la pantalla no se delega hasta que sus RPC usen fn_tiene_permiso) */
+.cand{font-style:normal;display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--t65);border:1px dashed var(--t30);border-radius:99px;padding:1px 9px;white-space:nowrap;animation:cayla-revelar 260ms var(--ease) both}
+.cand svg{width:10px;height:10px}
+.mcard li.bl>span:first-child{color:var(--t50)}
+.dot.bl{opacity:.3;cursor:not-allowed}
+.nuevo-badge{font-size:11px;letter-spacing:.06em;color:var(--verde-p)}
+.tabla .r.inactiva{opacity:.55}
+.tabla .r.inactiva .sel{pointer-events:none}
+.tabla .p small.dyn{color:var(--verde-p)}
+.okd{width:14px;height:14px;margin-left:6px;vertical-align:-2px;stroke:var(--verde-p);stroke-dasharray:24;stroke-dashoffset:24;animation:cayla-visto 320ms var(--ease) forwards,cayla-desvanece 300ms 1500ms var(--ease) forwards}
+
+/* archivar / restaurar */
+.rol-item{transition:background 240ms var(--ease),border-color 240ms,opacity 240ms var(--ease),transform 240ms var(--ease)}
+.rol-item.saliendo{opacity:0;transform:translateX(-8px);pointer-events:none}
+details.arch{margin-top:14px;font-size:13px;color:var(--t65)}
+details.arch summary{cursor:pointer;padding:6px 4px;list-style:none;display:flex;align-items:center;gap:6px}
+details.arch summary::-webkit-details-marker{display:none}
+details.arch summary::before{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);transition:transform 260ms var(--ease)}
+details.arch[open] summary::before{transform:rotate(45deg)}
+details.arch .ar{display:flex;align-items:center;gap:8px;padding:6px 4px;animation:cayla-revelar 260ms var(--ease) both}
+details.arch .ar span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.arch .ar button{font-size:12px;color:var(--rojo-p);padding:2px 6px;border-radius:6px}
+details.arch .ar button:hover{background:rgba(232,224,208,.5)}
+
+/* historial: solo se agrega */
+.hist{margin-top:26px;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:14px 18px}
+.hist h3{font-family:'EB Garamond',serif;font-weight:400;font-size:20px}
+.hist p.s{font-size:12.5px;color:var(--t65);margin-top:2px}
+.hist ol{list-style:none;margin-top:10px}
+.hist li{display:flex;gap:12px;font-size:13.5px;padding:7px 0;border-top:1px solid var(--t10);color:var(--t80)}
+.hist li time{color:var(--t65);font-variant-numeric:tabular-nums;flex:none;width:44px}
+.hist li.nuevo{animation:cayla-revelar 300ms var(--ease) both}
+.hist .vacio{font-size:13px;color:var(--t65);margin-top:10px}
+
+/* MODAL: mismo efecto que <Modal> del ERP (ADR-0136): velo con desenfoque → hoja que sube 18 px → cascada de 55 ms → salida corta */
+.mvelo{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:16px;background:rgba(26,26,24,.4);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:cayla-velo 220ms var(--ease) both}
+.mvelo.sale{animation:cayla-velo-sale 180ms var(--ease) both}
+.mhoja{width:min(440px,100%);background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:26px 26px 22px;box-shadow:var(--sh-lg);animation:cayla-subir 340ms var(--ease) both}
+.mvelo.sale .mhoja{animation:cayla-bajar 180ms var(--ease) both}
+.mhoja h2{font-family:'EB Garamond',serif;font-weight:400;font-size:28px;line-height:1.15}
+.mhoja p{color:var(--t65);font-size:14px;margin-top:10px}
+.mhoja .macc{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+.mhoja .mc{animation:cayla-entrada 320ms var(--ease) calc(110ms + var(--d,0)*55ms) both}
+
+/* matriz */
+.matriz-wrap{margin-top:28px;overflow-x:auto;border:1px solid var(--sand);border-radius:16px;background:var(--papel)}
+table.mx{border-collapse:collapse;width:100%;min-width:760px;font-size:14px}
+.mx th,.mx td{padding:0 12px;height:42px;text-align:center;border-bottom:1px solid var(--t10)}
+.mx thead th{height:60px;font-weight:500;font-size:12.5px;line-height:1.25;vertical-align:bottom;padding-bottom:10px}
+.mx tbody th{text-align:left;font-weight:400;padding-left:20px;min-width:220px;color:var(--t80)}
+.mx tr.mod th{font-weight:600;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--taupe-p);background:rgba(232,224,208,.35);height:34px}
+.mx tr.mod td{background:rgba(232,224,208,.35)}
+.mx tbody tr:last-child th,.mx tbody tr:last-child td{border-bottom:0}
+.dot{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--t30);display:inline-grid;place-items:center;transition:all 220ms var(--ease);vertical-align:middle}
+.dot svg{width:12px;height:12px;stroke:var(--crema);fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;opacity:0;transform:scale(.6);transition:all 220ms var(--ease)}
+.dot[aria-checked=true]{background:var(--tinta);border-color:var(--tinta)}
+.dot[aria-checked=true] svg{opacity:1;transform:none}
+.dot[disabled]{cursor:not-allowed;opacity:.55}
+.dot:not([disabled]):hover{border-color:var(--rojo)}
+
+/* asignar rol */
+.tabla{margin-top:28px;background:var(--papel);border:1px solid var(--sand);border-radius:16px;overflow:hidden}
+.tabla .r{display:grid;grid-template-columns:minmax(160px,1.4fr) 56px minmax(150px,1.2fr) 92px 104px;gap:12px;align-items:center;padding:12px 20px;border-bottom:1px solid var(--t10)}
+.tabla .r:last-child{border-bottom:0}
+.tabla .r.cab{padding:10px 20px;color:var(--t65)}
+.tabla .p{display:flex;align-items:center;gap:12px;min-width:0}
+.tabla .av{width:36px;height:36px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:16px;flex:none}
+.tabla .p b{font-weight:500;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabla .p small{color:var(--taupe-p);font-size:12px}
+.tabla .sede{font-size:13px;color:var(--t65)}
+.tabla .ve{font-size:13px;color:var(--t65);font-variant-numeric:tabular-nums}
+.sel{height:40px;border-radius:8px;border:1px solid var(--sand);background:var(--crema);padding:0 10px;width:100%;cursor:pointer;transition:border-color 200ms}
+.sel:hover{border-color:var(--t30)}
+.sel:focus{outline:none;border-color:var(--rojo)}
+.nota{font-size:13px;color:var(--t65);margin-top:14px;max-width:70ch}
+
+/* toast */
+#toast{position:fixed;left:50%;bottom:28px;z-index:90;transform:translate(-50%,14px);background:var(--tinta);color:var(--crema);padding:12px 18px;border-radius:12px;font-size:14px;box-shadow:var(--sh-lg);opacity:0;pointer-events:none;max-width:min(560px,calc(100vw - 32px));transition:opacity 220ms var(--ease),transform 260ms var(--ease)}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ============================ RESPONSIVE ============================ */
+@media (max-width:1180px){
+  .rgrid{grid-template-columns:250px minmax(0,1fr)}
+  .rgrid .prev{grid-column:1 / -1;position:static}
+}
+@media (max-width:860px){
+  .side{transform:translateX(-100%)}
+  .side.abierto{transform:none;box-shadow:var(--sh-lg)}
+  .scrim.on{display:block}
+  .top{left:0;padding:0 16px}
+  .burger{display:grid}
+  .main{margin-left:0;padding-left:16px;padding-right:16px}
+  .top .quien .txt{display:none}
+  .rgrid{grid-template-columns:1fr}
+  .tabla .r{grid-template-columns:1fr 1fr;row-gap:8px}
+  .tabla .r.cab{display:none}
+  .tabla .r .p{grid-column:1/-1}
+  .tabla .r .sede,.tabla .r .ve{display:none}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="spk" id="spk"></div>
+<div class="scrim" id="scrim"></div>
+<aside class="side" id="side" aria-label="Menú principal"></aside>
+<header class="top" id="top"></header>
+<main class="main" id="main" tabindex="-1"></main>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ------------------------------------------------------------------
+   Íconos: los mismos trazos de AppShell.tsx (IC).
+   ------------------------------------------------------------------ */
+const IC={
+  inicio:"M3 11l9-8 9 8M5 9.5V21h5v-6h4v6h5V9.5",
+  vender:"M6 6h15l-1.5 9h-12L6 6zm0 0L5 3H2m7 18a1 1 0 100-2 1 1 0 000 2zm9 0a1 1 0 100-2 1 1 0 000 2z",
+  caja:"M12 3v18m4-15H10a2.5 2.5 0 000 5h4a2.5 2.5 0 010 5H8",
+  productos:"M20.5 7.3L12 12m0 0L3.5 7.3M12 12v9m8.5-13.7v9.4a1 1 0 01-.5.87l-7.5 4.3a1 1 0 01-1 0l-7.5-4.3a1 1 0 01-.5-.87V7.3a1 1 0 01.5-.87l7.5-4.3a1 1 0 011 0l7.5 4.3a1 1 0 01.5.87z",
+  inventario:"M4 7l8-4 8 4v10l-8 4-8-4V7zm8 4L4 7m8 4l8-4m-8 4v10",
+  movimientos:"M3 7h13m0 0l-4-4m4 4l-4 4M21 17H8m0 0l4 4m-4-4l4-4",
+  traslados:"M4 12h13M13 5l7 7-7 7",
+  conteo:"M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
+  resumen:"M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
+  facturacion:"M9 12h6m-6 4h6M9 8h1m3.5-5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 3z",
+  compras:"M3 4h2l2.2 11.2a1 1 0 001 .8h9.6a1 1 0 001-.8L20 8H6.5M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2zM12 8v4m-2-2h4",
+  colaboradores:"M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
+  insumos:"M7 4h10M7 20h10M8 4v16M16 4v16M8 9h8M8 12h8M8 15h8",
+  produccion:"M6 9a3 3 0 100-6 3 3 0 000 6zm0 12a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12",
+  cambios:"M7 3v14m0 0l-4-4m4 4l4-4M17 21V7m0 0l4 4m-4-4l-4 4",
+  devoluciones:"M9 14l-4-4 4-4M5 10h11a4 4 0 010 8h-4",
+  nuevo:"M12 5v14m-7-7h14",
+  venta:"M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2",
+  catalogo:"M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z",
+  categorias:"M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3zM6 6h.008v.008H6V6z",
+  atributos:"M4 4h6v6H4zM14 4h6v6h-6zM9 14h6v6H9z",
+  proveedores:"M1 3h15v13H1zM16 8h4l3 3v5h-7V8z M5.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5z M18.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5z",
+  facturas:"M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8",
+  recibir:"M22 12h-6l-2 3h-4l-2-3H2 M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z",
+  porPagar:"M12 22a10 10 0 100-20 10 10 0 000 20z M12 6v6l4 2",
+  notasCredito:"M4 3h13a1 1 0 011 1v15.5a1.5 1.5 0 01-2.4 1.2L14 19l-2.2 1.7a1 1 0 01-1.2 0L8.4 19l-2.2 1.7A1.5 1.5 0 014 19.5V4a1 1 0 011-1z M8 8h6 M8 12h4",
+  chevron:"M9 6l6 6-6 6",
+  /* nuevos de este spike */
+  llave:"M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.78 7.78 5.5 5.5 0 017.78-7.78zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4",
+  candado:"M7 11V7a5 5 0 0110 0v4M5 11h14v10H5z",
+  visto:"M5 12l5 5L20 7",
+  menu:"M4 7h16M4 12h16M4 17h16",
+  copiar:"M9 9h11v11H9zM5 15V5a1 1 0 011-1h10"
+};
+const svg=(k,c="ic")=>`<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[k]}"/></svg>`;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ------------------------------------------------------------------
+   Módulos y pantallas: mismo orden y nombres que el menú real.
+   Clave de permiso = «módulo.pantalla» (Inicio no tiene hijas).
+   ------------------------------------------------------------------ */
+const MODS=[
+  {id:"inicio",et:"Inicio",ic:"inicio"},
+  {id:"colab",et:"Colaboradores",ic:"colaboradores",hijos:[
+    {id:"asignar",et:"Asignar rol",ic:"colaboradores"},
+    {id:"roles",et:"Roles y accesos",ic:"llave"}]},
+  {id:"catalogo",et:"Catálogo",ic:"catalogo",hijos:[
+    {id:"productos",et:"Productos",ic:"productos"},
+    {id:"categorias",et:"Categorías",ic:"categorias"},
+    {id:"atributos",et:"Atributos",ic:"atributos"}]},
+  {id:"produccion",et:"Producción",ic:"produccion",hijos:[
+    {id:"resumen",et:"Resumen",ic:"resumen"},
+    {id:"ordenes",et:"Órdenes",ic:"produccion"},
+    {id:"insumos",et:"Insumos",ic:"insumos"},
+    {id:"proveedores",et:"Proveedores",ic:"proveedores"}]},
+  {id:"compras",et:"Compras",ic:"compras",hijos:[
+    {id:"proveedores",et:"Proveedores",ic:"proveedores"},
+    {id:"comprobantes",et:"Comprobantes",ic:"facturas"},
+    {id:"recibir",et:"Recibir mercadería",ic:"recibir"},
+    {id:"porpagar",et:"Por pagar",ic:"porPagar"},
+    {id:"notas",et:"Notas de crédito",ic:"notasCredito"}]},
+  {id:"ventas",et:"Ventas",ic:"venta",hijos:[
+    {id:"pos",et:"Punto de Venta",ic:"vender"},
+    {id:"caja",et:"Caja",ic:"caja"},
+    {id:"cambios",et:"Cambios",ic:"cambios"},
+    {id:"devoluciones",et:"Devoluciones",ic:"devoluciones"},
+    {id:"facturacion",et:"Facturación",ic:"facturacion"}]},
+  {id:"inventario",et:"Inventario",ic:"inventario",hijos:[
+    {id:"existencias",et:"Existencias",ic:"inventario"},
+    {id:"movimientos",et:"Movimientos",ic:"movimientos"},
+    {id:"traslados",et:"Traslados",ic:"traslados"},
+    {id:"conteo",et:"Conteo",ic:"conteo"},
+    {id:"analisis",et:"Análisis",ic:"resumen"}]}
+];
+const MOD=id=>MODS.find(m=>m.id===id);
+const hojas=m=>m.hijos?m.hijos.map(h=>m.id+"."+h.id):[m.id];
+const TODAS=MODS.flatMap(hojas);
+const nombreDe=k=>{const [m,p]=k.split(".");const mod=MOD(m);return p?mod.hijos.find(h=>h.id===p).et:mod.et};
+
+/* ------------------------------------------------------------------
+   Datos de ejemplo
+   ------------------------------------------------------------------ */
+/* Etapa en que cada pantalla pasa a ser DELEGABLE (sus RPC ya usan fn_tiene_permiso). Ilustrativo.
+   Sin entrada = ya abierta hoy a un colaborador. 99 = solo líder, siempre (V1). */
+const ETAPA={
+  "colab.asignar":99,"colab.roles":99,"ventas.facturacion":99,
+  "inventario.movimientos":3,"inventario.traslados":3,"inventario.conteo":3,"inventario.analisis":3,
+  "catalogo.productos":4,"catalogo.categorias":4,"catalogo.atributos":4,
+  "compras.proveedores":5,"compras.comprobantes":5,"compras.porpagar":5,"compras.notas":5,
+  "produccion.resumen":6,"produccion.ordenes":6,"produccion.insumos":6,"produccion.proveedores":6
+};
+const seed=()=>({
+  yo:"p1",etapa:3,hist:[],
+  roles:[
+    {id:"lider",nombre:"Líder de equipo",desc:"Ve todo y decide quién ve qué.",fijo:true,perms:[]},
+    {id:"encargado",nombre:"Encargado de sede",desc:"Opera la tienda completa, sin dinero de proveedores.",perms:["catalogo.productos","catalogo.categorias","ventas.pos","ventas.caja","ventas.cambios","ventas.devoluciones","inventario.existencias","inventario.movimientos","inventario.traslados","inventario.conteo","compras.recibir"]},
+    {id:"integrante",nombre:"Integrante de tienda",desc:"Atiende el mostrador: vende, cambia y devuelve.",perms:["ventas.pos","ventas.caja","ventas.cambios","ventas.devoluciones","inventario.existencias"]},
+    {id:"almacen",nombre:"Almacén",desc:"Recibe, mueve y cuenta la mercadería.",perms:["inventario.existencias","inventario.movimientos","inventario.traslados","inventario.conteo","compras.recibir"]},
+    {id:"taller",nombre:"Taller",desc:"Fabrica: órdenes, insumos y su stock.",perms:["produccion.resumen","produccion.ordenes","produccion.insumos","inventario.existencias"]},
+    {id:"finanzas",nombre:"Finanzas",desc:"Compras, pagos y facturación. No toca el mostrador.",perms:["compras.proveedores","compras.comprobantes","compras.recibir","compras.porpagar","compras.notas","ventas.facturacion","inventario.analisis"]}
+  ],
+  personas:[
+    {id:"p1",nombre:"Felipe Alvarez",sede:"LIM",rol:"lider"},
+    {id:"p2",nombre:"Camila Rojas",sede:"TRU",rol:"encargado"},
+    {id:"p3",nombre:"Lucía Quispe",sede:"AQP",rol:"integrante"},
+    {id:"p4",nombre:"Julián Vera",sede:"TRU",rol:"integrante"},
+    {id:"p5",nombre:"Diego Paredes",sede:"LIM",rol:"almacen"},
+    {id:"p6",nombre:"Rosa Huamán",sede:"Taller",rol:"taller"},
+    {id:"p7",nombre:"Marta Salas",sede:"LIM",rol:"finanzas"},
+    {id:"p8",nombre:"Valeria Mendoza",sede:"AQP",rol:null,sinAcceso:true},
+    {id:"p9",nombre:"Ana Torres",sede:"TRU",rol:"integrante",inactiva:true}
+  ]
+});
+const KEY="cayla-roles-spike-v2";
+const cargar=()=>{try{const j=localStorage.getItem(KEY);return j?JSON.parse(j):null}catch(e){return null}};
+const guardar=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+let S=cargar()||seed();
+if(!S.hist)S.hist=[];if(!S.etapa)S.etapa=3;
+let vista="rol",rolSel="encargado";
+let abiertos=new Set();
+let ruta={m:"colab",p:"roles"};
+let prevKeys=new Set();
+
+/* ------------------------------------------------------------------
+   Reglas de permiso (una sola función: menú, ruta y editor la usan)
+   ------------------------------------------------------------------ */
+const rol=id=>S.roles.find(r=>r.id===id);
+const rolDe=p=>rol(p.rol||"integrante");           /* sin fila en retail.colaboradores → «Integrante» por defecto */
+const delegable=k=>!(k in ETAPA)||ETAPA[k]<=S.etapa;  /* candado de coherencia */
+const soloLider=k=>ETAPA[k]===99;
+const deleg=(r,k)=>r.fijo||delegable(k);
+const activos=()=>S.roles.filter(r=>!r.archivado);
+const persona=id=>S.personas.find(p=>p.id===id);
+const yo=()=>persona(S.yo);
+const rolYo=()=>rolDe(yo());
+const ok=(r,k)=>r.fijo||k==="inicio"||(delegable(k)&&r.perms.includes(k));
+const moduloVisible=(r,m)=>hojas(m).some(k=>ok(r,k));
+const nPant=r=>TODAS.filter(k=>ok(r,k)).length;
+const nMods=r=>MODS.filter(m=>moduloVisible(r,m)).length;
+const conAcceso=p=>!p.inactiva&&!p.sinAcceso;
+const gente=id=>S.personas.filter(p=>conAcceso(p)&&rolDe(p).id===id).length;
+const genteTotal=id=>S.personas.filter(p=>!p.sinAcceso&&rolDe(p).id===id).length;
+const plural=(n,a,b)=>n===1?a:b;
+const iniciales=n=>n.trim().split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase();
+function estadoMod(r,m){const h=hojas(m).filter(k=>deleg(r,k));const n=h.filter(k=>ok(r,k)).length;return !h.length||n===0?"false":n===h.length?"true":"mixed"}
+function rutaPermitida(r,ru){
+  const m=MOD(ru.m);if(!m)return true;
+  if(!m.hijos)return ok(r,m.id);
+  if(ru.p)return ok(r,m.id+"."+ru.p);
+  return moduloVisible(r,m);
+}
+const rutaKey=ru=>ru.p?ru.m+"."+ru.p:ru.m;
+const hashDe=ru=>"#/"+ru.m+(ru.p?"/"+ru.p:"");
+function leerHash(){
+  const [,m,p]=(location.hash||"").split("/");
+  const mod=MOD(m);
+  if(!mod)return null;
+  if(mod.hijos&&p&&!mod.hijos.some(h=>h.id===p))return null;
+  return {m,p:p||null};
+}
+
+/* historial: solo se agrega (roles_historial) */
+const hhmm=t=>new Date(t).toLocaleTimeString("es-PE",{hour:"2-digit",minute:"2-digit",hour12:false});
+function nota(txt){S.hist.unshift({t:Date.now(),txt});S.hist=S.hist.slice(0,40);guardar();histNuevo=true}
+let histNuevo=false;
+function pintarHist(){
+  const el=document.getElementById("hist");if(!el)return;
+  el.innerHTML=`<h3>Historial de cambios</h3><p class="s">Solo se agrega: nadie puede borrar ni editar una línea. Quién cambió qué y cuándo.</p>`+
+    (S.hist.length?`<ol>${S.hist.map((h,i)=>`<li class="${i===0&&histNuevo?"nuevo":""}"><time>${hhmm(h.t)}</time><span>${esc(h.txt)}</span></li>`).join("")}</ol>`:`<p class="vacio">Todavía no hay cambios en esta sesión.</p>`);
+  histNuevo=false;
+}
+/* cifra que cuenta: 320 ms, sin rebote; se apaga con prefers-reduced-motion */
+function contar(el,a,b,ms=320){
+  if(!el)return;
+  if(a===b||matchMedia("(prefers-reduced-motion:reduce)").matches){el.textContent=b;return}
+  const t0=performance.now();
+  (function f(t){const q=Math.min(1,(t-t0)/ms),e=1-Math.pow(1-q,3);el.textContent=Math.round(a+(b-a)*e);if(q<1)requestAnimationFrame(f)})(t0);
+}
+/* modal: velo → hoja que sube → cascada (55 ms) → salida corta (mismo efecto que <Modal>, ADR-0136) */
+let mFoco=null;
+function abrirModal(html){
+  cerrarModal(true);
+  mFoco=document.activeElement;
+  const v=document.createElement("div");v.className="mvelo";v.id="mvelo";
+  v.innerHTML=`<div class="mhoja" role="dialog" aria-modal="true" aria-labelledby="mt">${html}</div>`;
+  document.body.appendChild(v);
+  const b=v.querySelector("[data-mfoco]");if(b)b.focus();
+}
+function cerrarModal(ya){
+  const v=document.getElementById("mvelo");if(!v)return;
+  if(ya){v.remove();return}
+  v.classList.add("sale");setTimeout(()=>{v.remove();if(mFoco&&mFoco.focus)mFoco.focus()},190);
+}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")cerrarModal()});
+document.addEventListener("click",e=>{if(e.target.id==="mvelo")cerrarModal()});
+
+/* ------------------------------------------------------------------
+   Toast
+   ------------------------------------------------------------------ */
+let tt;
+function aviso(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("on"),3600)}
+
+/* ------------------------------------------------------------------
+   Barra del spike
+   ------------------------------------------------------------------ */
+function pintarBarra(){
+  const opts=S.personas.map(p=>`<option value="${p.id}" ${p.id===S.yo?"selected":""} ${conAcceso(p)?"":"disabled"}>${esc(p.nombre)} — ${p.inactiva?"inactiva en Dynamic":p.sinAcceso?"sin acceso a retail":esc(rolDe(p).nombre)}</option>`).join("");
+  const etapas=[[3,"F3 · Inventario/Almacén"],[4,"F4 · + Catálogo"],[5,"F5 · + Compras"],[6,"F6 · + Producción"]].map(([n,t])=>`<option value="${n}" ${n===S.etapa?"selected":""}>${t}</option>`).join("");
+  const dir=MODS.map(m=>m.hijos
+    ?`<optgroup label="${esc(m.et)}">${m.hijos.map(h=>`<option value="#/${m.id}/${h.id}">${esc(h.et)}</option>`).join("")}</optgroup>`
+    :`<option value="#/${m.id}">${esc(m.et)}</option>`).join("");
+  document.getElementById("spk").innerHTML=`
+    <span class="tag">Spike · roles</span>
+    <span class="sep"></span>
+    <label>Ver como <select id="verComo" aria-label="Ver el sistema como">${opts}</select></label>
+    <label>Etapa de la migración <select id="etapa" aria-label="Etapa de la migración a fn_tiene_permiso">${etapas}</select></label>
+    <label>Ir directo a <select id="irDirecto" aria-label="Escribir la dirección a mano"><option value="">— escribir la URL a mano —</option>${dir}</select></label>
+    <button class="rst" data-a="reset">Restablecer datos</button>`;
+}
+
+/* ------------------------------------------------------------------
+   Lateral
+   ------------------------------------------------------------------ */
+function pintarLateral(){
+  const r=rolYo(),p=yo();
+  const claves=new Set();
+  const nuevoCls=k=>{claves.add(k);return prevKeys.size&&!prevKeys.has(k)?" nuevo":""};
+  let html="";
+  for(const m of MODS){
+    if(!moduloVisible(r,m))continue;
+    if(!m.hijos){
+      html+=`<a class="fila plana${nuevoCls(m.id)}" href="${hashDe({m:m.id})}" data-k="${m.id}">${svg(m.ic)}<span class="et">${esc(m.et)}</span></a>`;
+      continue;
+    }
+    const vis=m.hijos.filter(h=>ok(r,m.id+"."+h.id));
+    if(vis.length===1){ // un grupo de una sola fila no agrupa nada: fila suelta (igual que Producción hoy)
+      const k=m.id+"."+vis[0].id;
+      html+=`<a class="fila plana${nuevoCls(k)}" href="${hashDe({m:m.id,p:vis[0].id})}" data-k="${k}">${svg(m.ic)}<span class="et">${esc(m.et)}</span></a>`;
+      continue;
+    }
+    html+=`<div class="grp${abiertos.has(m.id)?" abierto":""}" data-g="${m.id}">
+      <a class="fila cab${nuevoCls(m.id)}" href="${hashDe({m:m.id})}" data-k="${m.id}" data-cab="${m.id}">${svg(m.ic)}<span class="et">${esc(m.et)}</span>${svg("chevron","chev ic")}</a>
+      <div class="kids"><div>${vis.map((h,i)=>{const k=m.id+"."+h.id;return `<a class="fila hijo${nuevoCls(k)}" style="--i:${i}" href="${hashDe({m:m.id,p:h.id})}" data-k="${k}">${svg(h.ic)}<span class="et">${esc(h.et)}</span></a>`}).join("")}</div></div>
+    </div>`;
+  }
+  prevKeys=claves;
+  document.getElementById("side").innerHTML=`
+    <a class="logo" href="#/inicio"><img src="cayla-isotipo.png" alt="CAYLA"><span class="marca">CAYLA</span></a>
+    <nav class="nav"><div class="rows" id="rows"><span class="marca-riel" id="riel"></span>${html}</div></nav>
+    <div class="yo"><span class="av">${esc(iniciales(p.nombre))}</span><div class="qn"><p>${esc(p.nombre)}</p><p class="lbl">${esc(r.nombre)}</p></div></div>`;
+  marcarActivo();
+}
+function marcarActivo(){
+  const rows=document.getElementById("rows");if(!rows)return;
+  const k=rutaKey(ruta);
+  rows.querySelectorAll(".fila.act").forEach(e=>e.classList.remove("act"));
+  const el=rows.querySelector(`.fila[data-k="${k}"]`);
+  if(el)el.classList.add("act");
+  moverRiel();
+  const t0=performance.now();(function f(){moverRiel();if(performance.now()-t0<420)requestAnimationFrame(f)})();
+}
+function moverRiel(){
+  const rows=document.getElementById("rows"),riel=document.getElementById("riel");if(!rows||!riel)return;
+  let el=rows.querySelector(".fila.act");
+  if(el&&el.classList.contains("hijo")){ // hija de un grupo cerrado: el riel se queda en la cabecera
+    const g=el.closest(".grp");if(g&&!g.classList.contains("abierto"))el=g.querySelector(".cab");
+  }
+  if(!el){riel.style.opacity="0";return}
+  riel.style.opacity="1";
+  riel.style.transform=`translateY(${el.offsetTop+14}px)`;
+}
+
+/* ------------------------------------------------------------------
+   Cabecera
+   ------------------------------------------------------------------ */
+function pintarCabecera(){
+  const r=rolYo();
+  const m=MOD(ruta.m);
+  const mig=ruta.p?`${esc(m.et)} <span>›</span> <b>${esc(nombreDe(rutaKey(ruta)))}</b>`:`<b>${esc(m.et)}</b>`;
+  document.getElementById("top").innerHTML=`
+    <button class="burger" data-a="menu" aria-label="Abrir menú">${svg("menu")}</button>
+    <div class="mig">${mig}</div>
+    <div class="quien"><span class="txt">${esc(yo().nombre)}</span><span class="chip">${esc(r.nombre)}</span></div>`;
+}
+
+/* ------------------------------------------------------------------
+   Contenido
+   ------------------------------------------------------------------ */
+function pintarMain(){
+  const r=rolYo(),m=MOD(ruta.m);
+  const main=document.getElementById("main");
+  let h="";
+  if(!rutaPermitida(r,ruta)) h=vistaSinAcceso(r);
+  else if(ruta.m==="colab"&&ruta.p==="roles") h=vistaRoles();
+  else if(ruta.m==="colab"&&ruta.p==="asignar") h=vistaAsignar();
+  else if(ruta.m==="inicio") h=vistaInicio(r);
+  else h=vistaTitulo(r,m);
+  main.innerHTML=h;
+  if(ruta.m==="colab"&&ruta.p==="roles"&&rutaPermitida(r,ruta))syncEditor();
+  window.scrollTo(0,0);
+}
+function vistaInicio(r){
+  const p=yo();
+  return `<div class="pagina">
+    <p class="lbl eb">CAYLA</p>
+    <h1>Hola, ${esc(p.nombre.split(" ")[0])}</h1>
+    <p class="sub">Esta es la puerta de entrada. Lo que ves a la izquierda es exactamente lo que tu rol permite: ni una pantalla más.</p>
+    <div class="stats">
+      <div><div class="n">${nPant(r)}</div><div class="l">${plural(nPant(r),"pantalla","pantallas")} de ${TODAS.length}</div></div>
+      <div><div class="n">${nMods(r)}</div><div class="l">${plural(nMods(r),"módulo","módulos")} de ${MODS.length}</div></div>
+    </div>
+    <div class="acceso"><i></i><div>Entras como <b>${esc(r.nombre)}</b> en la sede <b>${esc(p.sede)}</b>. ${esc(r.desc)}</div></div>
+  </div>`;
+}
+function vistaTitulo(r,m){
+  if(!ruta.p&&m.hijos){ // página del módulo: título + las pantallas que el rol sí ve
+    const vis=m.hijos.filter(h=>ok(r,m.id+"."+h.id));
+    return `<div class="pagina">
+      <p class="lbl eb">Módulo</p>
+      <h1>${esc(m.et)}</h1>
+      <p class="sub">Aquí vivirá el módulo «${esc(m.et)}». En este spike solo importa qué partes de él deja ver tu rol.</p>
+      <div class="pantallas">${vis.map(h=>`<a href="${hashDe({m:m.id,p:h.id})}">${svg(h.ic)}${esc(h.et)}</a>`).join("")}</div>
+      <div class="acceso"><i></i><div>Tu rol <b>${esc(r.nombre)}</b> ve ${vis.length} de ${m.hijos.length} pantallas de este módulo.</div></div>
+    </div>`;
+  }
+  const et=nombreDe(rutaKey(ruta));
+  return `<div class="pagina">
+    <p class="lbl eb">${esc(m.et)}</p>
+    <h1>${esc(et)}</h1>
+    <p class="sub">Pantalla de demostración: en el ERP real aquí vive «${esc(et)}». No tiene contenido a propósito.</p>
+    <div class="acceso"><i></i><div>Entras porque el rol <b>${esc(r.nombre)}</b> incluye esta pantalla.</div></div>
+  </div>`;
+}
+function vistaSinAcceso(r){
+  const et=ruta.p?nombreDe(rutaKey(ruta)):MOD(ruta.m).et;
+  return `<div class="pagina">
+    <div class="cerr" style="width:44px;height:44px;border-radius:50%;border:1px solid var(--sand);display:grid;place-items:center;color:var(--t65);background:var(--papel)">${svg("candado")}</div>
+    <h1>Sin acceso</h1>
+    <p class="sub">«${esc(et)}» no está en el rol <b>${esc(r.nombre)}</b>. El menú no la muestra y, como ves, escribir la dirección a mano tampoco abre la puerta.</p>
+    <p class="nota">En el sistema real el candado definitivo lo pone la base de datos (RLS y funciones), no el menú: esconder una fila es comodidad, no seguridad.</p>
+    <div style="margin-top:28px"><a class="btn" href="#/inicio">Volver al inicio</a></div>
+  </div>`;
+}
+
+/* ---------------------- Roles y accesos ---------------------- */
+function vistaRoles(){
+  return `<div class="pagina ancha">
+    <p class="lbl eb">Colaboradores</p>
+    <h1>Roles y accesos</h1>
+    <p class="sub">Un rol es una lista de pantallas. Cada colaborador tiene un solo rol, y su menú muestra únicamente lo que ese rol incluye.</p>
+    <div class="seg" role="group" aria-label="Vista">
+      <button data-a="vista" data-v="rol" aria-pressed="${vista==="rol"}">Por rol</button>
+      <button data-a="vista" data-v="matriz" aria-pressed="${vista==="matriz"}">Matriz</button>
+    </div>
+    ${vista==="rol"?editorHTML():matrizHTML()}
+  </div>`;
+}
+function switchHTML(rid,k,lock,label){
+  return `<button class="sw" role="switch" aria-checked="false" aria-label="${esc(label)}" data-rk="${rid}|${k}" ${lock?"disabled":""}><i></i></button>`;
+}
+const pildora=k=>`<em class="cand">${svg("candado")}${soloLider(k)?"Solo líder":"Solo líder por ahora"}</em>`;
+function editorHTML(){
+  const r=rol(rolSel);
+  const lista=activos().map(x=>`<button class="rol-item" data-a="sel" data-r="${x.id}" aria-current="${x.id===rolSel}">
+      <span class="nm">${esc(x.nombre)}${x.fijo?svg("candado"):""}</span><span class="meta" data-meta="${x.id}"></span></button>`).join("");
+  const cards=MODS.filter(m=>m.hijos).map(m=>`<section class="mcard">
+      <header>${svg(m.ic)}<b>${esc(m.et)}</b><span class="cnt" data-cnt="${r.id}|${m.id}"></span>
+        <button class="sw" role="switch" aria-checked="false" aria-label="Todo ${esc(m.et)}" data-master="${r.id}|${m.id}" ${r.fijo||!hojas(m).some(k=>delegable(k))?"disabled":""}><i></i></button></header>
+      <ul>${m.hijos.map(h=>{const k=m.id+"."+h.id;const b=!deleg(r,k);return `<li class="${b?"bl":""}" data-li="${r.id}|${k}"><span>${esc(h.et)}</span>${b?pildora(k):""}${switchHTML(r.id,k,r.fijo||b,h.et)}</li>`}).join("")}</ul>
+    </section>`).join("");
+  const puedeVer=S.personas.find(p=>conAcceso(p)&&rolDe(p).id===r.id);
+  const arch=S.roles.filter(x=>x.archivado);
+  return `<div class="rgrid">
+    <div>
+      <p class="lbl" style="color:var(--t65);margin:0 0 10px 4px">Roles</p>
+      <div class="lista">${lista}</div>
+      <form class="nuevo-rol" data-f="nuevo" autocomplete="off"><input name="n" placeholder="Nuevo rol…" aria-label="Nombre del nuevo rol" maxlength="40"><button aria-label="Crear rol">${svg("nuevo")}</button></form>
+      ${arch.length?`<details class="arch"><summary>Archivados (${arch.length})</summary>${arch.map(x=>`<div class="ar"><span>${esc(x.nombre)}</span><button data-a="rest" data-r="${x.id}">Restaurar</button></div>`).join("")}</details>`:""}
+    </div>
+    <div>
+      <div class="edit-cab">
+        <input class="h-input" data-in="nombre" value="${esc(r.nombre)}" ${r.fijo?"readonly":""} aria-label="Nombre del rol">
+        <input class="d-input" data-in="desc" value="${esc(r.desc)}" ${r.fijo?"readonly":""} aria-label="Descripción del rol">
+      </div>
+      <div class="acciones">
+        <button class="btn sec chico" data-a="probar" ${puedeVer?"":"disabled"} title="${puedeVer?"":"Nadie tiene este rol todavía"}">${svg("colaboradores").replace('class="ic"','class="ic" style="width:16px;height:16px"')}Ver el sistema como ${puedeVer?esc(puedeVer.nombre.split(" ")[0]):"…"}</button>
+        <button class="btn sec chico" data-a="dup">${svg("copiar").replace('class="ic"','class="ic" style="width:16px;height:16px"')}Duplicar rol</button>
+        ${r.fijo?"":`<button class="btn sec chico" data-a="arch">${svg("candado").replace('class="ic"','class="ic" style="width:16px;height:16px"')}Archivar rol</button>`}
+      </div>
+      ${r.fijo?`<div class="aviso-fijo">${svg("candado")}<div>Este rol siempre ve todo y no se edita: así nunca puede quedar el sistema sin nadie que administre los accesos.</div></div>`:""}
+      <p class="aviso-in">Inicio lo ven todos los roles. Lo que dice «Solo líder» no se delega: hoy la base de datos solo lo deja pasar al líder, y el menú nunca debe mostrar algo que la base rechaza. «Roles y accesos» y «Facturación» nunca se delegan.</p>
+      <div class="mgrid">${cards}</div>
+    </div>
+    <aside class="prev" id="prev"></aside>
+  </div>
+  <section class="hist" id="hist"></section>
+  <p class="nota" style="margin-top:22px">Prueba: activa o quita pantallas al rol, luego usa «Ver como» arriba con alguien que tenga ese rol y mira cómo cambia su menú.</p>`;
+}
+function matrizHTML(){
+  const cols=activos();
+  const cab=`<tr><th style="text-align:left;padding-left:20px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65)">Pantalla</th>${cols.map(c=>`<th>${esc(c.nombre)}${c.fijo?`<div style="opacity:.5;margin-top:2px">${svg("candado").replace('class="ic"','class="ic" style="width:12px;height:12px"')}</div>`:""}</th>`).join("")}</tr>`;
+  let body="";
+  body+=`<tr><th>Inicio</th>${cols.map(c=>`<td><button class="dot" role="switch" aria-checked="true" disabled aria-label="Inicio, ${esc(c.nombre)}">${svg("visto")}</button></td>`).join("")}</tr>`;
+  for(const m of MODS.filter(x=>x.hijos)){
+    body+=`<tr class="mod"><th>${esc(m.et)}</th>${cols.map(()=>"<td></td>").join("")}</tr>`;
+    for(const h of m.hijos){
+      const k=m.id+"."+h.id;
+      body+=`<tr><th>${esc(h.et)}</th>${cols.map(c=>`<td><button class="dot${deleg(c,k)?"":" bl"}" role="switch" aria-checked="false" data-rk="${c.id}|${k}" ${c.fijo||!deleg(c,k)?"disabled":""} ${deleg(c,k)?"":'title="Solo líder por ahora"'} aria-label="${esc(h.et)}, ${esc(c.nombre)}">${svg("visto")}</button></td>`).join("")}</tr>`;
+    }
+  }
+  return `<div class="matriz-wrap"><table class="mx"><thead>${cab}</thead><tbody>${body}</tbody></table></div>
+    <p class="nota">Cada columna es un rol; cada punto lleno es una pantalla que ese rol ve. También puedes editar desde aquí.</p>`;
+}
+function syncEditor(){
+  document.querySelectorAll("[data-rk]").forEach(el=>{
+    const [rid,k]=el.dataset.rk.split("|");const r=rol(rid);if(!r)return;
+    el.setAttribute("aria-checked",String(ok(r,k)));
+    const li=el.closest("li");if(li)li.classList.toggle("on",ok(r,k));
+  });
+  document.querySelectorAll("[data-master]").forEach(el=>{
+    const [rid,mid]=el.dataset.master.split("|");el.setAttribute("aria-checked",estadoMod(rol(rid),MOD(mid)));
+  });
+  document.querySelectorAll("[data-cnt]").forEach(el=>{
+    const [rid,mid]=el.dataset.cnt.split("|");const m=MOD(mid);const r=rol(rid);
+    el.textContent=`${hojas(m).filter(k=>ok(r,k)).length} de ${m.hijos.length}`;
+  });
+  document.querySelectorAll("[data-meta]").forEach(el=>{
+    const r=rol(el.dataset.meta);const g=gente(r.id);
+    el.textContent=`${g} ${plural(g,"colaborador","colaboradores")} · ${nPant(r)} pantallas`;
+  });
+  const pv=document.getElementById("prev");
+  if(pv){
+    const r=rol(rolSel);
+    const mismo=prevPrev.rid===r.id;
+    const vistas=new Set();let idx=0;
+    const anim=k=>{vistas.add(k);if(!mismo)return ` nuevo" style="animation-delay:${(idx++)*25}ms`;return prevPrev.keys.has(k)?"":' nuevo'};
+    const items=MODS.filter(m=>moduloVisible(r,m)).map(m=>{
+      const sub=m.hijos?m.hijos.filter(h=>ok(r,m.id+"."+h.id)):[];
+      return `<div class="m${anim(m.id)}">${svg(m.ic)}<span>${esc(m.et)}</span></div>`+
+        sub.map(h=>`<div class="h${anim(m.id+"."+h.id)}">${esc(h.et)}</div>`).join("");
+    }).join("");
+    const np=nPant(r),nm=nMods(r);
+    pv.innerHTML=`<p class="lbl">Vista previa</p><h3>Así ve su menú</h3>${items}<div class="pie"><span data-cn="m">${nm}</span> ${plural(nm,"módulo","módulos")} · <span data-cn="p">${np}</span> pantallas</div>`;
+    if(mismo){contar(pv.querySelector('[data-cn="m"]'),prevPrev.m,nm);contar(pv.querySelector('[data-cn="p"]'),prevPrev.p,np)}
+    prevPrev={rid:r.id,keys:vistas,m:nm,p:np};
+  }
+  pintarHist();
+}
+let prevPrev={rid:"",keys:new Set(),m:0,p:0};
+function alternar(rid,k){
+  const r=rol(rid);if(!r||r.fijo||k==="inicio"||!delegable(k))return;
+  const i=r.perms.indexOf(k);
+  if(i>=0)r.perms.splice(i,1);else r.perms.push(k);
+  nota(`Felipe ${i>=0?"quitó":"activó"} «${nombreDe(k)}» ${i>=0?"a":"en"} ${r.nombre}`);
+  trasCambio(rid);
+}
+function alternarModulo(rid,mid){
+  const r=rol(rid);if(!r||r.fijo)return;
+  const h=hojas(MOD(mid)).filter(delegable);if(!h.length)return;
+  const todo=h.every(k=>ok(r,k));
+  if(todo)r.perms=r.perms.filter(k=>!h.includes(k));
+  else h.forEach(k=>{if(!r.perms.includes(k))r.perms.push(k)});
+  nota(`Felipe ${todo?"quitó":"activó"} todo ${MOD(mid).et} ${todo?"a":"en"} ${r.nombre}`);
+  trasCambio(rid);
+}
+function trasCambio(rid){
+  guardar();syncEditor();pintarBarra();
+  if(rolYo().id===rid){pintarLateral();revisarRuta()}
+}
+function revisarRuta(){
+  if(rutaPermitida(rolYo(),ruta))return true;
+  const et=ruta.p?nombreDe(rutaKey(ruta)):MOD(ruta.m).et;
+  aviso(`«${et}» no está en el rol ${rolYo().nombre}; te llevé a Inicio.`);
+  location.hash="#/inicio";
+  return false;
+}
+
+/* ---------------------- Asignar rol ---------------------- */
+function vistaAsignar(){
+  const filas=S.personas.map(p=>{
+    const r=rolDe(p);
+    const peq=p.inactiva?`<small>Inactiva en Dynamic · sin acceso a retail</small>`
+      :p.sinAcceso?`<small class="dyn">Dada de alta en Dynamic · aún sin acceso a retail</small>`
+      :`<small>${p.id===S.yo?"Viendo como esta persona":"Colaborador"}</small>`;
+    return `<div class="r${p.inactiva?" inactiva":""}" data-p="${p.id}">
+      <div class="p"><span class="av">${esc(iniciales(p.nombre))}</span><div style="min-width:0"><b>${esc(p.nombre)}</b>${peq}</div></div>
+      <div class="sede">${esc(p.sede)}</div>
+      <select class="sel" data-sel="${p.id}" aria-label="Rol de ${esc(p.nombre)}" ${conAcceso(p)?"":"disabled"}>${p.sinAcceso?`<option>—</option>`:activos().map(x=>`<option value="${x.id}" ${x.id===r.id?"selected":""}>${esc(x.nombre)}</option>`).join("")}</select>
+      <div class="ve" data-ve="${p.id}">${!conAcceso(p)?"—":`<span class="cn">${nPant(r)}</span> pantallas`}</div>
+      <div>${p.sinAcceso?`<button class="btn chico" data-a="dar" data-p="${p.id}">Dar acceso</button>`:`<button class="btn sec chico" data-a="ver" data-p="${p.id}" ${p.id===S.yo||p.inactiva?"disabled":""}>Ver como</button>`}</div>
+    </div>`}).join("");
+  return `<div class="pagina ancha">
+    <p class="lbl eb">Colaboradores</p>
+    <h1>Asignar rol</h1>
+    <p class="sub">La persona se da de alta una sola vez, en Dynamic, con la misma cuenta para los dos sistemas. Para que entre a retail se le da acceso aquí (con su ubicación): entra como Integrante y tú decides si necesita más.</p>
+    <div class="tabla">
+      <div class="r cab lbl"><span>Colaborador</span><span>Sede</span><span>Rol</span><span>Ve</span><span></span></div>
+      ${filas}
+    </div>
+    <p class="nota">Debe quedar siempre al menos un Líder de equipo. Un colaborador tiene un solo rol a la vez. Si Dynamic la da de baja, pierde el acceso aquí sin que hagas nada. Esta pantalla solo la administra el líder.</p>
+  </div>`;
+}
+
+/* ------------------------------------------------------------------
+   Eventos
+   ------------------------------------------------------------------ */
+document.addEventListener("click",e=>{
+  const sw=e.target.closest("[data-rk]");
+  if(sw&&!sw.disabled){const [rid,k]=sw.dataset.rk.split("|");alternar(rid,k);return}
+  const ms=e.target.closest("[data-master]");
+  if(ms&&!ms.disabled){const [rid,mid]=ms.dataset.master.split("|");alternarModulo(rid,mid);return}
+  const cab=e.target.closest("[data-cab]");
+  if(cab){ // cabecera de grupo: abre/cierra y muestra el título del módulo
+    const id=cab.dataset.cab;
+    const yaAqui=ruta.m===id&&!ruta.p;
+    if(yaAqui||!abiertos.has(id)){ if(abiertos.has(id))abiertos.delete(id);else abiertos.add(id) }
+    const g=cab.closest(".grp");g.classList.toggle("abierto",abiertos.has(id));
+    if(yaAqui){e.preventDefault();marcarActivo()}
+    return;
+  }
+  const a=e.target.closest("[data-a]");
+  if(!a)return;
+  const act=a.dataset.a;
+  if(act==="sel"){rolSel=a.dataset.r;pintarMain()}
+  else if(act==="vista"){vista=a.dataset.v;pintarMain()}
+  else if(act==="menu"){document.getElementById("side").classList.toggle("abierto");document.getElementById("scrim").classList.toggle("on")}
+  else if(act==="reset"){S=seed();vista="rol";rolSel="encargado";abiertos=new Set();prevKeys=new Set();guardar();pintarBarra();pintarLateral();location.hash="#/colab/roles";pintarMain();pintarCabecera();aviso("Datos de ejemplo restablecidos.")}
+  else if(act==="probar"){const p=S.personas.find(x=>conAcceso(x)&&rolDe(x).id===rolSel);if(p)verComo(p.id)}
+  else if(act==="ver"){verComo(a.dataset.p)}
+  else if(act==="dar"){
+    const q=persona(a.dataset.p);q.sinAcceso=false;q.rol="integrante";
+    nota(`Felipe dio acceso a ${q.nombre} como Integrante en ${q.sede}`);guardar();pintarBarra();pintarMain();
+    aviso(`${q.nombre.split(" ")[0]} ya puede entrar a retail como Integrante. Cambia su rol aquí si necesita más.`);
+  }
+  else if(act==="arch"){
+    const r=rol(rolSel);if(!r||r.fijo)return;
+    const g=genteTotal(r.id);
+    if(g>0){aviso(`«${r.nombre}» todavía ${plural(g,"lo tiene 1 persona","lo tienen "+g+" personas")}. Reasígnalas en «Asignar rol» y vuelve a intentarlo.`);return}
+    abrirModal(`<h2 class="mc" style="--d:0" id="mt">Archivar «${esc(r.nombre)}»</h2>
+      <p class="mc" style="--d:1">Deja de aparecer en la lista y en «Asignar rol». No se borra: el historial conserva quién lo tuvo y qué podía ver, y puedes restaurarlo cuando quieras.</p>
+      <div class="macc mc" style="--d:2"><button class="btn sec" data-a="mno" data-mfoco>Cancelar</button><button class="btn" data-a="msi" data-r="${r.id}">Archivar rol</button></div>`);
+  }
+  else if(act==="mno"){cerrarModal()}
+  else if(act==="msi"){
+    const r=rol(a.dataset.r);cerrarModal();
+    const it=document.querySelector(`.rol-item[data-r="${r.id}"]`);if(it)it.classList.add("saliendo");
+    setTimeout(()=>{r.archivado=true;nota(`Felipe archivó el rol ${r.nombre}`);rolSel=activos()[0].id;guardar();pintarBarra();pintarMain();aviso(`Rol «${r.nombre}» archivado. Lo encuentras en «Archivados».`)},it?240:0);
+  }
+  else if(act==="rest"){
+    const r=rol(a.dataset.r);r.archivado=false;rolSel=r.id;nota(`Felipe restauró el rol ${r.nombre}`);guardar();pintarBarra();pintarMain();aviso(`Rol «${r.nombre}» restaurado.`);
+  }
+  else if(act==="dup"){
+    const o=rol(rolSel);const n={id:"r"+Date.now(),nombre:"Copia de "+o.nombre,desc:o.desc,perms:o.fijo?TODAS.filter(k=>k!=="inicio"&&!soloLider(k)):o.perms.slice()};
+    S.roles.push(n);rolSel=n.id;nota(`Felipe duplicó ${o.nombre}`);guardar();pintarBarra();pintarMain();aviso("Rol duplicado. Cámbiale el nombre y ajusta sus pantallas.");
+  }
+});
+document.getElementById("scrim").addEventListener("click",()=>{document.getElementById("side").classList.remove("abierto");document.getElementById("scrim").classList.remove("on")});
+document.addEventListener("submit",e=>{
+  if(e.target.dataset.f!=="nuevo")return;
+  e.preventDefault();
+  const n=e.target.n.value.trim();
+  if(!n)return;
+  if(S.roles.some(r=>r.nombre.toLowerCase()===n.toLowerCase())){aviso("Ya existe un rol con ese nombre.");return}
+  const r={id:"r"+Date.now(),nombre:n,desc:"Rol nuevo: solo ve Inicio hasta que le actives pantallas.",perms:[]};
+  S.roles.push(r);rolSel=r.id;nota(`Felipe creó el rol ${n}`);guardar();pintarBarra();pintarMain();aviso(`Rol «${n}» creado. Actívale pantallas.`);
+});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.id==="verComo"){verComo(t.value);return}
+  if(t.id==="etapa"){
+    S.etapa=+t.value;guardar();pintarLateral();pintarCabecera();
+    if(revisarRuta())pintarMain();
+    aviso(`Etapa ${t.value}: ahora se pueden delegar ${TODAS.filter(k=>k in ETAPA&&!soloLider(k)&&delegable(k)).length} pantallas que antes eran solo del líder.`);return}
+  if(t.id==="irDirecto"){if(t.value)location.hash=t.value;t.value="";return}
+  if(t.dataset.in){
+    const r=rol(rolSel);if(!r||r.fijo)return;
+    if(t.dataset.in==="nombre"){
+      const v=t.value.trim();
+      if(!v||S.roles.some(x=>x.id!==r.id&&x.nombre.toLowerCase()===v.toLowerCase())){t.value=r.nombre;aviso("Ese nombre está vacío o ya existe.");return}
+      r.nombre=v;
+    }else r.desc=t.value.trim();
+    guardar();pintarBarra();pintarLateral();pintarCabecera();
+    document.querySelectorAll(".rol-item").forEach(b=>{if(b.dataset.r===r.id)b.querySelector(".nm").firstChild.textContent=r.nombre});
+    return;
+  }
+  if(t.dataset.sel){
+    const p=persona(t.dataset.sel),nuevo=t.value;
+    if(p.rol==="lider"&&nuevo!=="lider"&&gente("lider")===1){t.value="lider";aviso("Debe quedar al menos un Líder de equipo.");return}
+    const antes=nPant(rolDe(p));
+    p.rol=nuevo;nota(`Felipe cambió el rol de ${p.nombre} a ${rol(nuevo).nombre}`);guardar();pintarBarra();
+    const r=rol(nuevo);
+    const ve=t.closest(".r").querySelector("[data-ve]");
+    ve.innerHTML=`<span class="cn">${antes}</span> pantallas<svg class="ic okd" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC.visto}"/></svg>`;
+    contar(ve.querySelector(".cn"),antes,nPant(r));
+    const nb=t.closest(".r").querySelector(".dyn");if(nb){nb.className="";nb.textContent="Colaborador"}
+    aviso(`${p.nombre.split(" ")[0]} ahora es ${r.nombre} · ve ${nPant(r)} pantallas.`);
+    if(p.id===S.yo){pintarLateral();pintarCabecera();revisarRuta()}
+  }
+});
+function verComo(id){
+  S.yo=id;guardar();
+  pintarBarra();pintarLateral();
+  const p=yo();
+  if(!rutaPermitida(rolYo(),ruta)){
+    const et=ruta.p?nombreDe(rutaKey(ruta)):MOD(ruta.m).et;
+    aviso(`Ahora ves como ${p.nombre.split(" ")[0]} (${rolYo().nombre}). «${et}» no es de su rol: te llevé a Inicio.`);
+    location.hash="#/inicio";
+    if(!location.hash||location.hash==="#/inicio")pintarMain();
+  }else{
+    aviso(`Ahora ves como ${p.nombre.split(" ")[0]} · ${rolYo().nombre}.`);
+    pintarCabecera();pintarMain();
+  }
+}
+function alHash(){
+  const r=leerHash();
+  ruta=r||{m:"inicio",p:null};
+  if(ruta.p)abiertos.add(ruta.m);
+  if(!ruta.p&&MOD(ruta.m)&&MOD(ruta.m).hijos)abiertos.add(ruta.m);
+  document.getElementById("side").classList.remove("abierto");document.getElementById("scrim").classList.remove("on");
+  document.querySelectorAll(".grp").forEach(g=>g.classList.toggle("abierto",abiertos.has(g.dataset.g)));
+  marcarActivo();pintarCabecera();pintarMain();
+}
+window.addEventListener("hashchange",alHash);
+
+/* arranque */
+if(!rol(rolSel))rolSel="encargado";
+if(!persona(S.yo))S.yo="p1";
+if(!leerHash())history.replaceState(null,"","#/colab/roles");
+pintarBarra();pintarLateral();alHash();
+</script>
+</body>
+</html>

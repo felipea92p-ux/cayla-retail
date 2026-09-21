@@ -28,6 +28,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Roles y permisos a medida (2026-09-22, ADR-0150) — F0 hecha (decisiones + ADR + maqueta); nada aplicado
+- [x] **F0:** 8 decisiones cerradas por Felipe (roles en tabla; ve/no ve por pantalla; solo el líder administra roles; Facturación no se delega; un rol por persona; piloto Inventario/Almacén; catálogos de Dynamic y retail separados; acceso a retail explícito con ubicación). Maqueta ajustada en `docs/maquetas/roles-spike-2026-09/` (bloqueo «Solo líder por ahora», Archivar rol, historial, Dar acceso, movimiento ADR-0136).
+- [ ] **F1** migración (`roles`, `permisos`, `rol_permisos`, `roles_historial`, `rol_id` en `colaboradores` **y** `colaboradores_suspendidos`, `fn_tiene_permiso`, `fn_mis_permisos`) — comportamiento idéntico al de hoy. **Cambio de esquema en producción: confirmar con Felipe antes de pegar.**
+- [ ] **F2** `permisosDe` de `lib/menu.ts` lee de la base; la fotografía `menu-hoy.golden.json` no debe cambiar · **F3** piloto Inventario/Almacén + pantallas «Asignar rol» y «Roles y accesos» · **F4** Catálogo · **F5** Compras (reaplicar `fn_aplicar_candado_de_dinero()`) · **F6** Producción y ubicación · **F7** limpieza de `esLider`, ARQUITECTURA y diccionario.
+- [ ] Pregunta abierta para F1: ¿el alta en «Agregar colaboradores» debe proponer la ubicación desde la sede base de Dynamic? Hoy se elige a mano.
+- [ ] Coordinar con el PR `claude/adr-0145-compras-permisos` antes de F5 (mismo terreno: permisos de Compras).
+
 ## 🎯 Menú a datos: `lib/menu.ts` (2026-09-21, ADR-0144) — paso 1, sin cambio visible
 - [x] Árbol de datos + `menuPara` (permisos semánticos, no `esLider`) + fotografía del menú de hoy (`menu-hoy.golden.json`, capturada del `AppShell.tsx` real de `main`) + pruebas (equivalencia en 6 perfiles, invariantes, topes 8/6, rutas vivas existen). `AppShell.tsx` pierde las constantes de filas y `produccion-menu.ts` pasa a ser vista fina. `tsc`, `eslint` y 2023 pruebas en verde; 1176 renders del original y del nuevo, 0 diferencias.
 - [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
