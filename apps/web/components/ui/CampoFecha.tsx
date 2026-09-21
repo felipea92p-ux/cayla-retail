@@ -306,7 +306,9 @@ export function CampoFecha({
                     tabIndex={-1}
                     aria-selected={esElegido}
                     aria-label={`${dia.d} de ${MESES[dia.m].toLowerCase()} de ${dia.a}`}
-                    onMouseEnter={() => setCursor(dia)}
+                    // El cursor también decide qué mes se dibuja: moverlo a un día gris del mes vecino
+                    // cambiaba de mes solo al pasar el mouse. Fuera del mes, el hover queda en CSS.
+                    onMouseEnter={() => delMes && setCursor(dia)}
                     onClick={() => elegir(dia)}
                     className={`relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-sm tabular-nums transition-colors ${
                       esElegido
