@@ -512,7 +512,7 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   vendió sale de `fn_nombres_personas`; el filtro por vendedor, de `fn_colaboradores`.
   Filtros y cursor `(created_at, id)` viven en la URL. Al tocar una fila abre
   `DetalleVentaModal` (`leerVentaDetalle`, en el navegador). No usa `fn_ventas_del_dia`
-  (fija a hoy y sin `ventas.estado`). ADR-0145.
+  (fija a hoy y sin `ventas.estado`). ADR-0147.
 
 ### 3.x Rutas de API (`app/api/**/route.ts`)
 

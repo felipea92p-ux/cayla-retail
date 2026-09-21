@@ -9,7 +9,7 @@ import { DIAS_POR_DEFECTO, PERIODOS_RAPIDOS, type PeriodoMovimientos } from "@/l
 import { NOMBRE_METODO } from "@/lib/recibo-reglas";
 import type { ComprobanteFiltro, EstadoFiltro } from "@/lib/ventas-historial-reglas";
 
-// Filtros de Ventas ▸ Historial (ADR-0145), con el mismo patrón que Catálogo y Compras: a la vista el período
+// Filtros de Ventas ▸ Historial (ADR-0147), con el mismo patrón que Catálogo y Compras: a la vista el período
 // (los atajos de siempre: 7, 30 y 90 días, o fechas propias) y un botón «Filtros · N» que despliega el panel
 // de píldoras —tienda, vendedor, pago, estado, comprobante—, con un chip por cada filtro aplicado que se quita
 // con un toque. Viven en la URL (?rango=…&estado=…&comp=…&pago=…&sede=…): la página es un Server Component

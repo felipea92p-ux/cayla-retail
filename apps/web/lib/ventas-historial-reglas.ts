@@ -10,7 +10,7 @@ import {
 } from "./movimientos-reglas";
 import { NOMBRE_METODO, textoNumeroRecibo } from "./recibo-reglas";
 
-// Historial de ventas (Ventas ▸ Historial, ADR-0145): reglas puras — lo que decide qué se
+// Historial de ventas (Ventas ▸ Historial, ADR-0147): reglas puras — lo que decide qué se
 // pide, qué se muestra y qué se suma. Sin Supabase ni React: las importan la página, los
 // componentes cliente y las pruebas. La lectura vive en `ventas-historial.ts`.
 //
