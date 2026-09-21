@@ -1,4 +1,4 @@
-import { exigirLider } from "@/lib/persona-actual";
+import { exigirPermiso } from "@/lib/persona-actual";
 import { opcional } from "@/lib/resultado";
 import { getComprobantesMes, getResumenPorEnviar, getVentasDeHoy } from "@/lib/comprobantes";
 import { getResumenProformas } from "@/lib/proformas";
@@ -13,7 +13,7 @@ import { MarcaDeCarga } from "@/components/MarcaDeCarga";
 // Resumen = hoy: las cuatro tarjetas de vidrio, la franja de proformas (cuántas cotizaciones siguen
 // valiendo) y, debajo, la actividad del día con el camino de cada comprobante hasta SUNAT.
 export default async function ResumenPage() {
-  await exigirLider();
+  await exigirPermiso("facturar");
   const ahora = new Date();
   const hoy = ventanaDelDiaLima(ahora);
 

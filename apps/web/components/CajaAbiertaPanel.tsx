@@ -71,6 +71,7 @@ export function CajaAbiertaPanel({
   ubicacionNombre,
   personaNombre,
   personaRol,
+  puedeCerrar,
   caja,
   resumen,
   movimientos,
@@ -82,6 +83,8 @@ export function CajaAbiertaPanel({
   ubicacionNombre: string;
   personaNombre: string;
   personaRol: "lider" | "integrante";
+  /** ¿Puede cerrar la caja? Un líder o la terminal de ventas (ADR-0152); el candado real está en `cerrar_caja`. */
+  puedeCerrar: boolean;
   caja: CajaAbierta;
   resumen: ResumenCaja;
   movimientos: MovimientoCaja[];
@@ -196,12 +199,12 @@ export function CajaAbiertaPanel({
                 {/* D-13: solo el líder cierra la caja. El candado real está en `cerrar_caja`
                     (20260921110000); acá solo se decide qué se muestra. A quien no es líder no se le
                     deja un hueco mudo: se le dice quién la cierra. */}
-                {personaRol === "lider" ? (
+                {puedeCerrar ? (
                   <Boton peso="primario" onClick={() => setModal("cerrar")}>
                     Cerrar caja
                   </Boton>
                 ) : (
-                  <p className="text-xs text-tinta/60">La caja la cierra un líder de equipo.</p>
+                  <p className="text-xs text-tinta/60">La caja la cierra un líder de equipo o la terminal de ventas.</p>
                 )}
               </>
             }

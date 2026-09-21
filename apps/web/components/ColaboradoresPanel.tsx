@@ -18,13 +18,14 @@ import { Boton } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TabsSubrayado } from "@/components/ui/TabsSubrayado";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { AgregarColaboradoresModal, CambiarUbicacionModal, QuitarAccesoModal, SuspenderModal } from "@/components/ColaboradoresModales";
+import { AgregarColaboradoresModal, AgregarTerminalModal, CambiarUbicacionModal, QuitarAccesoModal, SuspenderModal } from "@/components/ColaboradoresModales";
 import { ListaActividad, TablaActivos, TablaInactivas, TablaSuspendidos } from "@/components/ColaboradoresTablas";
 
 type Pestana = "activos" | "suspendidos" | "inactivas" | "actividad";
 
 type Modal =
   | { tipo: "agregar" }
+  | { tipo: "terminal" }
   | { tipo: "suspender"; persona: Colaborador }
   | { tipo: "ubicacion"; persona: Colaborador }
   | { tipo: "quitar"; persona: { persona_id: string; nombre: string }; suspendida: boolean };
@@ -103,9 +104,14 @@ export function ColaboradoresPanel({
           </p>
         </div>
         <div className="text-right">
-          <Boton peso="primario" onClick={() => setModal({ tipo: "agregar" })} disabled={disponibles.length === 0}>
-            + Agregar colaboradores
-          </Boton>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Boton peso="fantasma" onClick={() => setModal({ tipo: "terminal" })} disabled={disponibles.length === 0}>
+              + Agregar terminal
+            </Boton>
+            <Boton peso="primario" onClick={() => setModal({ tipo: "agregar" })} disabled={disponibles.length === 0}>
+              + Agregar colaboradores
+            </Boton>
+          </div>
           {disponibles.length === 0 && <p className="mt-1 text-xs text-tinta/65">Todas las cuentas activas de Dynamic ya tienen acceso.</p>}
         </div>
       </div>
@@ -236,6 +242,17 @@ export function ColaboradoresPanel({
           onClose={() => setModal(null)}
           onConfirmar={(personas, ubicacionId) =>
             ejecutar(null, "agregar a los colaboradores", () => acciones.agregar(personas, ubicacionId), `${plural(personas.length, "persona ya tiene", "personas ya tienen")} acceso`)
+          }
+        />
+      )}
+      {modal?.tipo === "terminal" && (
+        <AgregarTerminalModal
+          disponibles={disponibles}
+          tiendas={ubicaciones.filter((u) => u.tipo === "tienda" && u.activo)}
+          ocupadas={new Set(colaboradores.filter((c) => c.terminal && c.ubicacion_id).map((c) => `${c.ubicacion_id}|${c.terminal}`))}
+          onClose={() => setModal(null)}
+          onConfirmar={(personaId, ubicacionId, tipo) =>
+            ejecutar(null, "agregar la terminal", () => acciones.agregarTerminal(personaId, ubicacionId, tipo), "Terminal agregada", `Ya puede entrar a retail como ${tipo === "ventas" ? "terminal de ventas" : "terminal administrativa"}.`)
           }
         />
       )}

@@ -1,5 +1,5 @@
 import { InventarioNav } from "@/components/InventarioNav";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTrasladosPorAtender } from "@/lib/traslados";
 
 // Mismo patrón que `compras/layout.tsx`: el layout solo pone la
@@ -14,7 +14,7 @@ import { getTrasladosPorAtender } from "@/lib/traslados";
 export default async function InventarioLayout({ children }: { children: React.ReactNode }) {
   const persona = await requirePersonaActualV2();
   // Mismo número que el del lateral (una sola función, cacheada por request: no se consulta dos veces).
-  const trasladosPorAtender = await getTrasladosPorAtender(persona.ubicacionId, persona.rol === "lider");
+  const trasladosPorAtender = await getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario"));
   return (
     <div className="space-y-6">
       <InventarioNav mostrarResumen={persona.rol === "lider"} contadores={{ "/inventario/traslados": trasladosPorAtender }} />

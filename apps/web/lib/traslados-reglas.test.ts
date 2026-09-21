@@ -60,8 +60,8 @@ const AHORA = "2026-09-18T18:28:00.000Z";
 const TRU = "tru";
 const AQP = "aqp";
 const TALLER = "taller";
-const comoEncargadoTru: ContextoTraslados = { miUbicacionId: TRU, esLider: true, ahoraIso: AHORA };
-const comoColaboradorTru: ContextoTraslados = { miUbicacionId: TRU, esLider: false, ahoraIso: AHORA };
+const comoEncargadoTru: ContextoTraslados = { miUbicacionId: TRU, puedeCerrarDiferencia: true, ahoraIso: AHORA };
+const comoColaboradorTru: ContextoTraslados = { miUbicacionId: TRU, puedeCerrarDiferencia: false, ahoraIso: AHORA };
 
 function traslado(sobre: Partial<Record<string, unknown>> = {}) {
   return {

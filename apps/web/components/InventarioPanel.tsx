@@ -109,6 +109,7 @@ export function InventarioPanel({
   danadosPendientes,
   apartados,
   esLider,
+  puedeAjustar,
   coberturaFallo = null,
 }: {
   ubicacionId: string;
@@ -126,7 +127,10 @@ export function InventarioPanel({
   apartados: Apartado[];
   /** Solo un líder puede resolver una prenda dañada (`resolver_prenda_danada`) —
    *  una integrante puede ABRIR la cola y verla, no marcarla. */
+  /** Sigue siendo del líder: resolver y liquidar prendas dañadas. */
   esLider: boolean;
+  /** ¿Puede ajustar stock fuera de una venta? Un líder o la terminal administrativa (ADR-0152). */
+  puedeAjustar: boolean;
   /** Si la cobertura no se pudo calcular: el aviso (las filas quedan en «N/D»); null = todo bien. */
   coberturaFallo?: string | null;
 }) {
@@ -443,8 +447,8 @@ export function InventarioPanel({
                         Apartar
                       </button>
                     )}
-                    {/* D-13: ajustar stock fuera de una venta es del líder (candado real en `registrar_movimiento`, 20260921110000). */}
-                    {esLider && (
+                    {/* D-13: ajustar stock fuera de una venta es del líder o de la terminal administrativa (candado real en `registrar_movimiento`). */}
+                    {puedeAjustar && (
                       <button
                         type="button"
                         onClick={() => setAjustando(f)}

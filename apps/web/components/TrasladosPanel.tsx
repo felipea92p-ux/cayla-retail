@@ -35,14 +35,14 @@ const POR_PAGINA = 20;
 export function TrasladosPanel({
   traslados,
   miUbicacionId,
-  esLider,
+  puedeCerrarDiferencia,
   ahoraIso,
   horaCarga,
   cerradosAcotados,
 }: {
   traslados: TrasladoResumen[];
   miUbicacionId: string;
-  esLider: boolean;
+  puedeCerrarDiferencia: boolean;
   ahoraIso: string;
   horaCarga: string;
   cerradosAcotados: boolean;
@@ -56,7 +56,7 @@ export function TrasladosPanel({
   const [sede, setSede] = useState("");
   const [limite, setLimite] = useState(POR_PAGINA);
 
-  const ctx = useMemo<ContextoTraslados>(() => ({ miUbicacionId, esLider, ahoraIso }), [miUbicacionId, esLider, ahoraIso]);
+  const ctx = useMemo<ContextoTraslados>(() => ({ miUbicacionId, puedeCerrarDiferencia, ahoraIso }), [miUbicacionId, puedeCerrarDiferencia, ahoraIso]);
   const filas = useMemo(() => ordenarTraslados(traslados, ctx).map((t) => ({ t, s: situacionTraslado(t, ctx) })), [traslados, ctx]);
   const resumen = useMemo(() => resumirTraslados(traslados, ctx), [traslados, ctx]);
   const urgente = useMemo(() => masUrgente(traslados, ctx), [traslados, ctx]);

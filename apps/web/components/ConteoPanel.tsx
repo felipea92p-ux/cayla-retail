@@ -34,7 +34,8 @@ export type AvanceConteo = { contadas: number; total: number; porcentaje: number
 
 export function ConteoPanel({
   ubicacionId,
-  esLider,
+  puedeCerrar,
+  puedeCrearMarcas,
   conteoAbierto,
   avance,
   catalogo,
@@ -46,7 +47,10 @@ export function ConteoPanel({
   marcas,
 }: {
   ubicacionId: string;
-  esLider: boolean;
+  /** Cerrar el conteo aplica lo contado al stock: un líder o la terminal administrativa (ADR-0152). */
+  puedeCerrar: boolean;
+  /** Crear una marca al dar de alta al vuelo es del Catálogo: un líder o la terminal administrativa. */
+  puedeCrearMarcas: boolean;
   conteoAbierto: ConteoAbierto | null;
   /** Cuántas prendas con stock ya se contaron (lo calcula la página con
    *  `previsualizar_cierre_conteo`); null sin conteo abierto. */
@@ -232,7 +236,8 @@ export function ConteoPanel({
       conteo={conteoAbierto}
       avance={avance}
       catalogo={catalogo}
-      esLider={esLider}
+      puedeCerrar={puedeCerrar}
+      puedeCrearMarcas={puedeCrearMarcas}
       categorias={categorias}
       colores={colores}
       tallasPorCategoria={tallasPorCategoria}
@@ -245,7 +250,8 @@ function ConteoEnCurso({
   conteo,
   avance,
   catalogo,
-  esLider,
+  puedeCerrar,
+  puedeCrearMarcas,
   categorias,
   colores,
   tallasPorCategoria,
@@ -254,7 +260,8 @@ function ConteoEnCurso({
   conteo: ConteoAbierto;
   avance: AvanceConteo | null;
   catalogo: VarianteConteo[];
-  esLider: boolean;
+  puedeCerrar: boolean;
+  puedeCrearMarcas: boolean;
   categorias: { id: string; nombre: string }[];
   colores: { codigo: string; nombre: string }[];
   tallasPorCategoria: Record<string, { id: string; texto: string }[]>;
@@ -455,7 +462,7 @@ function ConteoEnCurso({
                 tallasPorCategoria={tallasPorCategoria}
                 marcas={marcasLocal}
                 onListas={(l) => setMarcasLocal((prev) => ({ ...prev, ...l }))}
-                puedeCrearMarcas={esLider}
+                puedeCrearMarcas={puedeCrearMarcas}
                 parejaInicial={ultimaPareja}
                 onCancelar={() => setAltaAbierta(false)}
                 onCreada={(variante, pareja) => {
@@ -530,7 +537,7 @@ function ConteoEnCurso({
       </button>
 
       {revisando && (
-        <RevisarCierre conteoId={conteo.id} catalogo={catalogo} esLider={esLider} onClose={() => setRevisando(false)} />
+        <RevisarCierre conteoId={conteo.id} catalogo={catalogo} puedeCerrar={puedeCerrar} onClose={() => setRevisando(false)} />
       )}
     </div>
   );
@@ -539,12 +546,12 @@ function ConteoEnCurso({
 function RevisarCierre({
   conteoId,
   catalogo,
-  esLider,
+  puedeCerrar,
   onClose,
 }: {
   conteoId: string;
   catalogo: VarianteConteo[];
-  esLider: boolean;
+  puedeCerrar: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -642,14 +649,14 @@ function RevisarCierre({
               </p>
             )}
 
-            {!esLider && <p className="text-xs text-rojo">Solo un líder puede cerrar el conteo.</p>}
+            {!puedeCerrar && <p className="text-xs text-rojo">Solo un líder o la terminal administrativa puede cerrar el conteo.</p>}
             {error && <p className="text-sm text-rojo">{error}</p>}
 
             <div className="flex gap-2 pt-1">
               <button type="button" onClick={onClose} className={botonCancelar}>
                 Seguir contando
               </button>
-              <button type="button" onClick={cerrar} disabled={cerrando || !esLider} className={botonPrimario}>
+              <button type="button" onClick={cerrar} disabled={cerrando || !puedeCerrar} className={botonPrimario}>
                 {cerrando ? "Cerrando…" : "Cerrar conteo"}
               </button>
             </div>

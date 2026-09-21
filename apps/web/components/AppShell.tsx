@@ -9,7 +9,7 @@ import { Boton } from "@/components/ui/campos";
 import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
-import { esGrupoMenu as esGrupo, menuPara, permisosDe, rutaActiva, type AccionNuevo, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item } from "@/lib/menu";
+import { esGrupoMenu as esGrupo, menuPara, permisosDe, rutaActiva, type AccionNuevo, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type TipoTerminal } from "@/lib/menu";
 import { PerfilModal } from "@/components/PerfilModal";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 
@@ -71,6 +71,9 @@ type Persona = {
    *  AppShell y las páginas de Producción; el permiso real lo da la base. */
   ubicacionTipo: "tienda" | "almacen" | "taller";
   puedeCambiarUbicacion: boolean;
+  /** Si esta cuenta es una TERMINAL de su tienda (ADR-0152). Opcional: quien arma el AppShell sin persona real (las
+   *  rutas de prueba) no tiene que saber de terminales; ausente = una persona. */
+  terminal?: TipoTerminal | null;
 };
 
 type Props = {
@@ -807,8 +810,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
 
   // El menú de esta persona: filas, barra del celular, «+ Nuevo» y qué grupo contiene cada ruta. Todo sale de `lib/menu.ts`.
   const menu = menuPara({
-    permisos: permisosDe(persona.rol),
+    permisos: permisosDe(persona.rol, persona.terminal ?? null),
     ubicacionTipo: persona.ubicacionTipo,
+    terminal: persona.terminal ?? null,
     contadores: { trasladosPorAtender },
   });
 
@@ -1060,13 +1064,14 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
 
       {/* ==================== Pestañas (celular) ==================== */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-tinta/10 bg-crema/90 backdrop-blur-md pb-[env(safe-area-inset-bottom)] sm:hidden">
-        <div className="relative grid grid-cols-5">
+        {/* Las columnas salen del menú de esta cuenta: 5 para una persona, menos para una terminal (la de ventas no tiene Inicio ni Inventario). */}
+        <div className="relative grid" style={{ gridTemplateColumns: `repeat(${columnas.length}, minmax(0, 1fr))` }}>
           {/* El mismo riel del lateral, acostado: una sola marca que se desliza
               entre pestañas en vez de cinco que se prenden y se apagan. */}
           <span
             aria-hidden
-            className="pointer-events-none absolute top-0 h-[2px] w-1/5 rounded-full bg-rojo transition-[transform,opacity] duration-300 ease-cayla"
-            style={{ transform: `translateX(${Math.max(indiceMovil, 0) * 100}%)`, opacity: indiceMovil >= 0 ? 1 : 0 }}
+            className="pointer-events-none absolute top-0 h-[2px] rounded-full bg-rojo transition-[transform,opacity] duration-300 ease-cayla"
+            style={{ width: `${100 / Math.max(columnas.length, 1)}%`, transform: `translateX(${Math.max(indiceMovil, 0) * 100}%)`, opacity: indiceMovil >= 0 ? 1 : 0 }}
           />
           {columnas.map((c, n) =>
             c === null ? (

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { NuevoProductoForm } from "@/components/NuevoProductoForm";
 import { getContextoAlta } from "@/lib/alta-producto-datos";
 
@@ -12,7 +12,7 @@ import { getContextoAlta } from "@/lib/alta-producto-datos";
 // capa de UI.
 export default async function NuevoProductoPage() {
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") redirect("/productos");
+  if (!puede(persona, "editarCatalogo")) redirect("/productos");
 
   const contexto = await getContextoAlta();
 

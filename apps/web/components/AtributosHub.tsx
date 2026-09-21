@@ -80,6 +80,7 @@ export function AtributosHub({
   prendasConCosto,
   variantesManuales,
   puedeEditar,
+  puedeEditarEtiquetas,
 }: {
   tipo: Tipo;
   colores: ComponentProps<typeof ColoresLista>["coloresIniciales"];
@@ -90,7 +91,10 @@ export function AtributosHub({
   categorias: ComponentProps<typeof EtiquetasLista>["categorias"];
   prendasConCosto: ComponentProps<typeof EtiquetasLista>["prendasConCosto"];
   variantesManuales: ComponentProps<typeof EtiquetasLista>["variantesManuales"];
+  /** Colores, tallas, tejidos y patrones: el líder o la terminal administrativa (ADR-0152). */
   puedeEditar: boolean;
+  /** Etiquetas: SOLO el líder — pueden llevar descuento, que es poder de precios. */
+  puedeEditarEtiquetas: boolean;
 }) {
   // La pestaña activa vive en la URL (`?tipo=`), no en estado de React —
   // mismo patrón que Grilla/Tabla en `/productos`. Con estado local
@@ -129,7 +133,7 @@ export function AtributosHub({
           categorias={categorias}
           prendasConCosto={prendasConCosto}
           variantesManuales={variantesManuales}
-          puedeEditar={puedeEditar}
+          puedeEditar={puedeEditarEtiquetas}
         />}
     </div>
   );

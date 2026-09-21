@@ -1,4 +1,4 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { traducirError } from "@/lib/error-escritura";
 
@@ -15,7 +15,7 @@ import { traducirError } from "@/lib/error-escritura";
 //   ya lo exige, esto solo da un mensaje de error legible antes de llegar ahí.
 export async function POST(request: Request) {
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") {
+  if (!puede(persona, "editarCatalogo")) {
     return Response.json({ error: "Solo un Líder puede agregar una familia." }, { status: 403 });
   }
 
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
 // PUT /api/productos/familias → edita el nombre visible (el código nunca cambia).
 export async function PUT(request: Request) {
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") {
+  if (!puede(persona, "editarCatalogo")) {
     return Response.json({ error: "Solo un Líder puede editar una familia." }, { status: 403 });
   }
 
@@ -84,7 +84,7 @@ export async function PUT(request: Request) {
 // error, mismo criterio que `desactivar_categoria`.
 export async function PATCH(request: Request) {
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") {
+  if (!puede(persona, "editarCatalogo")) {
     return Response.json({ error: "Solo un Líder puede desactivar o reactivar una familia." }, { status: 403 });
   }
 

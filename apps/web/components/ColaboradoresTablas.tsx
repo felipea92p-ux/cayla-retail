@@ -1,15 +1,8 @@
 "use client";
 
 import type { Colaborador, ColaboradorInactivo, ColaboradorSuspendido, EventoAcceso, RolColaborador } from "@/lib/colaboradores";
-import {
-  accionesDeFila,
-  ETIQUETA_ROL,
-  fechaLima,
-  fraseEvento,
-  plural,
-  ultimoAccesoTexto,
-  type AccionFila,
-} from "@/lib/colaboradores-reglas";
+import { accionesDeFila, ETIQUETA_ROL, fechaLima, fraseEvento, plural, ultimoAccesoTexto, type AccionFila, ETIQUETA_TERMINAL } from "@/lib/colaboradores-reglas";
+import type { TipoTerminal } from "@/lib/menu";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { Chip } from "@/components/ui/Chip";
 import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
@@ -31,7 +24,8 @@ function Caja({ minimo, children }: { minimo: string; children: React.ReactNode 
   );
 }
 
-function ChipRol({ rol }: { rol: RolColaborador }) {
+function ChipRol({ rol, terminal }: { rol: RolColaborador; terminal?: TipoTerminal | null }) {
+  if (terminal) return <Chip tono="verde">{ETIQUETA_TERMINAL[terminal]}</Chip>;
   return <Chip tono="neutro">{ETIQUETA_ROL[rol]}</Chip>;
 }
 
@@ -91,7 +85,7 @@ export function TablaActivos({
                 <Persona nombre={c.nombre} correo={c.correo} tu={c.es_yo} />
               </td>
               <td className={CELDA}>
-                <ChipRol rol={c.rol} />
+                <ChipRol rol={c.rol} terminal={c.terminal} />
               </td>
               <td className={`${CELDA} whitespace-nowrap text-tinta/85`}>{c.rol === "lider" ? cualquiera : (c.ubicacion_asignada ?? "—")}</td>
               <td className={`${CELDA} whitespace-nowrap text-tinta/75`}>{c.sede ?? "—"}</td>

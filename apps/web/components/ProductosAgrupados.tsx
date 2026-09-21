@@ -55,12 +55,14 @@ export function ProductosAgrupados({
   productos,
   ubicacionId,
   sububicaciones,
-  esLider,
+  puedeEditar,
+  puedeAjustar,
 }: {
   productos: ProductoListado[];
   ubicacionId: string;
   sububicaciones: Sububicacion[];
-  esLider: boolean;
+  puedeEditar: boolean;
+  puedeAjustar: boolean;
 }) {
   const router = useRouter();
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
@@ -124,7 +126,7 @@ export function ProductosAgrupados({
         {seleccionados.size > 0 ? (
           <>
             {seleccionados.size} seleccionado{seleccionados.size === 1 ? "" : "s"}
-            {esLider && (
+            {puedeEditar && (
               <>
                 <button
                   type="button"
@@ -213,7 +215,7 @@ export function ProductosAgrupados({
                 <Chip tono={p.estado === "activo" ? "verde" : "apagado"}>{p.estado === "activo" ? "Activo" : "Descontinuado"}</Chip>
               </span>
               <span className="justify-self-end">
-                <MenuFila productoId={p.productoId} ubicacionId={ubicacionId} sububicaciones={sububicaciones} esLider={esLider} />
+                <MenuFila productoId={p.productoId} ubicacionId={ubicacionId} sububicaciones={sububicaciones} puedeAjustar={puedeAjustar} />
               </span>
             </div>
 
@@ -289,12 +291,12 @@ function MenuFila({
   productoId,
   ubicacionId,
   sububicaciones,
-  esLider,
+  puedeAjustar,
 }: {
   productoId: string;
   ubicacionId: string;
   sububicaciones: Sububicacion[];
-  esLider: boolean;
+  puedeAjustar: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [ajustando, setAjustando] = useState(false);
@@ -357,8 +359,8 @@ function MenuFila({
               Editar
             </Link>
           </li>
-          {/* D-13: ajustar stock fuera de una venta es del líder (candado real en `registrar_movimiento`, 20260921110000). */}
-          {esLider && (
+          {/* D-13: ajustar stock fuera de una venta es del líder o de la terminal administrativa (candado real en `registrar_movimiento`). */}
+          {puedeAjustar && (
             <li role="none">
               <button
                 role="menuitem"

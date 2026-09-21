@@ -6,8 +6,10 @@ import { describe, expect, it } from "vitest";
 // de código, y que la próxima página o el próximo retoque rompen sin ningún error a la vista
 // (mismo espíritu que `globals-capas.test.ts`: leer los fuentes y fallar si dejan de cumplirse).
 //
-// 1) Puerta de líder. Un layout no se vuelve a ejecutar cuando se navega entre sus hijas, así
-//    que cada `page.tsx` repite `exigirLider()` como LO PRIMERO que espera (antes de leer nada).
+// 1) Puerta. Un layout no se vuelve a ejecutar cuando se navega entre sus hijas, así que cada
+//    `page.tsx` repite su puerta como LO PRIMERO que espera (antes de leer nada). Desde ADR-0152 son
+//    dos puertas: las cuatro vistas y el layout las abre el permiso `facturar` (`exigirPermiso("facturar")`:
+//    el líder y la terminal de ventas) y «Códigos de descuento» sigue siendo SOLO del líder (`exigirLider()`).
 // 2) Los dos modales viven en el shell, una vez cada uno y sin condicional sobre su apertura:
 //    el token de idempotencia de «Emitir» es un `useRef` del modal y tiene que vivir tanto como
 //    el shell. Un `{modal === "emitir" && <EmitirComprobanteModal … />}` —o una segunda instancia
@@ -44,7 +46,10 @@ function condicionadoAlEstado(fuente: string, modal: string): boolean {
   return new RegExp(`(\\bmodal\\b|\\babierto\\b)[^{}<]*?(&&|\\?)\\s*<${modal}\\b`).test(fuente);
 }
 
-describe("Facturación — puerta de líder", () => {
+// Lo único que sigue siendo solo del líder dentro de Facturación. Todo lo demás abre con `facturar`.
+const SOLO_LIDER = ["/descuentos/page.tsx"];
+
+describe("Facturación — puerta (líder o terminal de ventas)", () => {
   const rutas = archivosBajo(RAIZ, (n) => n === "page.tsx" || n === "layout.tsx");
 
   it("encuentra el layout y las cuatro vistas (que el candado no mire el vacío)", () => {
@@ -53,14 +58,22 @@ describe("Facturación — puerta de líder", () => {
 
   for (const ruta of rutas) {
     const nombre = ruta.slice(RAIZ.length).replace(/\\/g, "/");
-    it(`${nombre} espera exigirLider() antes que cualquier otra cosa`, () => {
-      expect(primerAwait(readFileSync(ruta, "utf8"))).toBe("exigirLider()");
+    it(`${nombre} espera su puerta antes que cualquier otra cosa`, () => {
+      const fuente = readFileSync(ruta, "utf8");
+      if (SOLO_LIDER.includes(nombre)) {
+        expect(primerAwait(fuente)).toBe("exigirLider()");
+      } else {
+        expect(primerAwait(fuente)).toBe("exigirPermiso()");
+        // Exactamente `facturar`: un permiso más débil abriría Facturación a quien no debe.
+        expect(fuente).toMatch(/exigirPermiso\(\s*"facturar"\s*\)/);
+      }
     });
   }
 
   it("el detector sí distingue una página sin la puerta, con la puerta tarde o sin llamarla", () => {
     const pagina = (cuerpo: string) => `export default async function P({ searchParams }) { ${cuerpo} }`;
     expect(primerAwait(pagina("await exigirLider(); await leer();"))).toBe("exigirLider()");
+    expect(primerAwait(pagina('await exigirPermiso("facturar"); await leer();'))).toBe("exigirPermiso()");
     expect(primerAwait(pagina("const x = await leer(); await exigirLider();"))).toBe("leer()");
     expect(primerAwait(pagina("const { m } = await searchParams; await exigirLider();"))).toBe("searchParams");
     expect(primerAwait(pagina("await exigirLider; await leer();"))).toBe("exigirLider");
