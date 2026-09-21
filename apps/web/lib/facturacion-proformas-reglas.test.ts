@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Proforma } from "./proformas-reglas";
 import { soles } from "./compras-reglas";
-import { camposDeBusquedaDeLaProforma, chipDeLaProforma, detalleDeLaProforma, estadoVisible, franjaDeProformas, ordenarProformas } from "./facturacion-proformas-reglas";
+import { camposDeBusquedaDeLaProforma, chipDeLaProforma, confirmacionDeConversion, detalleDeLaProforma, estadoVisible, franjaDeProformas, ordenarProformas } from "./facturacion-proformas-reglas";
 
 const AHORA = new Date("2026-09-19T20:00:00Z");
 const enHoras = (h: number) => new Date(AHORA.getTime() + h * 3600 * 1000).toISOString();
@@ -146,5 +146,25 @@ describe("franjaDeProformas", () => {
 
   it("sin ninguna vigente es una sola línea, no tres ceros; las vencidas no la vuelven vigente", () => {
     expect(franjaDeProformas({ vigentes: 0, monto: 0, porVencer: 0, vencidas: 4 })).toEqual({ hay: false, texto: "Sin proformas vigentes" });
+  });
+});
+
+describe("confirmacionDeConversion", () => {
+  it("una proforma que sigue valiendo, o que vence pronto, no pide confirmación", () => {
+    expect(confirmacionDeConversion(proforma(), AHORA)).toBeNull();
+    expect(confirmacionDeConversion(proforma({ porVencer: true, vence_at: enHoras(10) }), AHORA)).toBeNull();
+  });
+
+  it("una vencida avisa hace cuánto venció y con qué precio saldría el comprobante", () => {
+    expect(confirmacionDeConversion(proforma({ vencida: true, vence_at: enHoras(-72), total: 88.5 }), AHORA)).toEqual({
+      titulo: "Esta proforma venció hace 3 d.",
+      detalle: "El comprobante saldrá con el precio de la cotización (S/ 88.50), no con el de hoy. Si ya cambió, cotiza de nuevo.",
+      casilla: "Sí, emitirlo al precio de entonces",
+    });
+  });
+
+  it("dice «hace 12 min» si venció hace poco, y sin plazo no hay nada que confirmar", () => {
+    expect(confirmacionDeConversion(proforma({ vencida: true, vence_at: enHoras(-0.2) }), AHORA)?.titulo).toBe("Esta proforma venció hace 12 min.");
+    expect(confirmacionDeConversion(proforma({ vencida: true, vence_at: null }), AHORA)).toBeNull();
   });
 });

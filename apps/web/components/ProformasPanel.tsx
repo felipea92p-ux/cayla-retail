@@ -9,7 +9,7 @@ import { tipoDocumentoDeCliente } from "@/lib/comprobantes-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { coincide } from "@/lib/facturacion-busqueda";
-import { camposDeBusquedaDeLaProforma, chipDeLaProforma, detalleDeLaProforma, ordenarProformas } from "@/lib/facturacion-proformas-reglas";
+import { camposDeBusquedaDeLaProforma, chipDeLaProforma, confirmacionDeConversion, detalleDeLaProforma, ordenarProformas } from "@/lib/facturacion-proformas-reglas";
 import { useFacturacionBusqueda } from "@/lib/useFacturacionBusqueda";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Ayuda } from "@/components/Ayuda";
@@ -47,6 +47,12 @@ export function ProformasPanel({ proformas, periodo, ahora }: { proformas: Profo
   const [convertirNombre, setConvertirNombre] = useState("");
   const clienteTipoDoc = tipoDocumentoDeCliente(tipo, clienteNumDoc);
 
+  // Una proforma VENCIDA todavía se puede convertir (la base no lo impide), pero sale con el precio de la
+  // cotización: antes de emitir hay que decir que sí, de forma consciente (decisión de Felipe, 2026-09-21).
+  const [confirmoVencida, setConfirmoVencida] = useState(false);
+  const confirmacion = modal ? confirmacionDeConversion(modal.convertir, ahora) : null;
+  const faltaConfirmar = confirmacion !== null && !confirmoVencida;
+
   const { texto: busqueda } = useFacturacionBusqueda();
   const proformasOrdenadas = ordenarProformas(proformas).filter((p) => coincide(camposDeBusquedaDeLaProforma(p), busqueda));
 
@@ -55,10 +61,12 @@ export function ProformasPanel({ proformas, periodo, ahora }: { proformas: Profo
     setClienteNumDoc("");
     setConvertirNombre("");
     setTipo("boleta");
+    setConfirmoVencida(false);
   }
 
   async function onConvertir(e: React.FormEvent, proforma: Proforma) {
     e.preventDefault();
+    if (faltaConfirmar) return;
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.rpc("convertir_proforma_a_comprobante", {
@@ -158,6 +166,17 @@ export function ProformasPanel({ proformas, periodo, ahora }: { proformas: Profo
               {modal.convertir.cliente_nombre ?? "Cliente varios"} · {soles(Number(modal.convertir.total))}
             </p>
 
+            {confirmacion && (
+              <div role={confirmoVencida ? "status" : "alert"} className="rounded-md border border-ambar/30 bg-ambar/10 px-3 py-2.5 text-sm text-ambar-profundo">
+                <p className="font-semibold">{confirmacion.titulo}</p>
+                <p className="mt-0.5">{confirmacion.detalle}</p>
+                <label className="mt-2 flex cursor-pointer items-start gap-2 text-tinta">
+                  <input type="checkbox" checked={confirmoVencida} onChange={(e) => setConfirmoVencida(e.target.checked)} className="mt-0.5 accent-tinta" />
+                  <span>{confirmacion.casilla}</span>
+                </label>
+              </div>
+            )}
+
             <Segmentado
               etiqueta="Tipo"
               valor={tipo}
@@ -185,7 +204,7 @@ export function ProformasPanel({ proformas, periodo, ahora }: { proformas: Profo
               <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrarModal}>
                 Cancelar
               </Boton>
-              <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
+              <Boton type="submit" peso="primario" className="flex-1" cargando={loading} disabled={faltaConfirmar}>
                 {loading ? "Emitiendo…" : "Emitir comprobante"}
               </Boton>
             </div>

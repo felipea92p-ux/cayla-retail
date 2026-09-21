@@ -97,3 +97,18 @@ export function franjaDeProformas(r: ResumenProformas): FranjaDeProformas {
     urgente: r.porVencer > 0,
   };
 }
+
+/** Lo que se le dice a la persona antes de emitir un comprobante desde una proforma VENCIDA. La base no lo
+ *  impide y el comprobante sale con el precio de la cotización, no con el de hoy; Felipe eligió (2026-09-21,
+ *  opción B) no prohibirlo ni dejarlo pasar sin fricción, sino pedir una confirmación consciente en la
+ *  pantalla. `null` si la proforma sigue valiendo o no tiene plazo: ahí no hay nada que confirmar. */
+export type ConfirmacionDeConversion = { titulo: string; detalle: string; casilla: string };
+
+export function confirmacionDeConversion(p: Proforma, ahora: Date): ConfirmacionDeConversion | null {
+  if (estadoVisible(p) !== "vencida" || !p.vence_at) return null;
+  return {
+    titulo: `Esta proforma venció ${antiguedad(p.vence_at, ahora)}.`,
+    detalle: `El comprobante saldrá con el precio de la cotización (${soles(Number(p.total))}), no con el de hoy. Si ya cambió, cotiza de nuevo.`,
+    casilla: "Sí, emitirlo al precio de entonces",
+  };
+}
