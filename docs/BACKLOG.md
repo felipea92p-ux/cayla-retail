@@ -28,6 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Datos de demostración: 90 días de historia sintética en producción (2026-09-21, ADR-0150) — Fase 1 ensayada, NADA escrito en producción
+- [x] Preflight (solo lectura): producción, roles (`colaboradores.rol`), sedes de los colaboradores, categorías/tallas/marcas, series, triggers de alta.
+- [x] **Fase 1 — catálogo** (`scripts/demo/sembrar-90-dias.sql`): 220 productos, 1.261 variantes, 441 fotos, 3 campañas demo; ensayada con `ROLLBACK` contra producción y verificada intacta después.
+- [ ] Fase 2 demanda · Fase 3 inventario inicial + abastecimiento (compras, traslados) · Fase 4 ventas + caja + comprobantes · Fase 5 postventa + gastos + Taller · Fase 6 cierre (`stock` de las variantes nuevas) · Fase 7 ensayo completo + prueba de reversibilidad. **Una fase por turno; Felipe da el OK entre cada una.**
+- [ ] Archivos que faltan: `scripts/demo/verificar-90-dias.sql`, `scripts/demo/deshacer-90-dias.sql` (no se corre sin OK), `docs/demo-90-dias/QUE-MIRAR.md`.
+- [ ] **Decisión de Felipe:** el día en que termina la ventana (el del `COMMIT`) y una ventana tranquila: hay pruebas en producción en vivo. Antes del `COMMIT`, confirmar en Supabase (Database → Backups) una copia de ese día.
+- [ ] Reglas que no se negocian: nunca `DELETE`/`UPDATE` sobre `movimientos` ni apagar sus triggers en la carga; jamás un comprobante `pendiente`/`rechazado`; no tocar `series_comprobantes`; no llamar `recalcular_stock()` global (borraría las 138 filas reales de stock); el `COMMIT` lo pega Felipe.
+
 ## 🎯 Menú a datos: `lib/menu.ts` (2026-09-21, ADR-0144) — paso 1, sin cambio visible
 - [x] Árbol de datos + `menuPara` (permisos semánticos, no `esLider`) + fotografía del menú de hoy (`menu-hoy.golden.json`, capturada del `AppShell.tsx` real de `main`) + pruebas (equivalencia en 6 perfiles, invariantes, topes 8/6, rutas vivas existen). `AppShell.tsx` pierde las constantes de filas y `produccion-menu.ts` pasa a ser vista fina. `tsc`, `eslint` y 2023 pruebas en verde; 1176 renders del original y del nuevo, 0 diferencias.
 - [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.

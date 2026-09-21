@@ -8695,3 +8695,6 @@ Felipe pidió un solo loader que cubra hasta el lateral, dure lo que tarda la re
 
 ## 2026-09-21 (Loader general: textos generales)
 El loader ya no nombra la pantalla («Compras», «Inventario»…) ni dice «Trayendo la pantalla»: como sirve también para guardar y editar, dice siempre «Un momento · Cargando · Estamos procesando tu solicitud…» y, pasados 4 s, «Está tardando más de lo normal. No cierres ni recargues la página.». Solo el cambio de sede conserva su texto propio. Se fue `seccionDeRuta` de `lib/espera-reglas.ts`; el interceptor ya no distingue mensaje por tipo.
+
+## 2026-09-21 (Datos de demostración de 90 días — Fase 1, catálogo — ADR-0150)
+Felipe quiere ver el ERP con tres meses de operación cargados en producción. Se eligió un generador SQL determinista (`scripts/demo/sembrar-90-dias.sql`), dentro de una transacción, con ids `5eed…` y sin tocar lo real; Felipe pega el `COMMIT`. Fase 1 ensayada con `ROLLBACK` contra producción (220 productos, 1.261 variantes, 441 fotos, 3 campañas demo; producción quedó idéntica: 45 productos, 164 variantes). El ensayo destapó que un subselect sin correlación se evalúa una sola vez (todas las prendas de una marca y dos colores): ahora hay chequeo de variedad. Falta: fases 2-7 y decidir el día del `COMMIT`.
