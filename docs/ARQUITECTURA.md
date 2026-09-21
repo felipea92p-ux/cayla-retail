@@ -108,6 +108,11 @@ flowchart TB
   `reactivar_colaborador`, `cambiar_ubicacion_colaborador`, `quitar_colaborador`. Reglas puras en `colaboradores-reglas.ts`.
   **Suspender mueve la fila** de `colaboradores` a `colaboradores_suspendidos`; el historial vive en
   `colaboradores_historial` (solo se agrega). `/vender/historial` también lee estas listas para el filtro «vendedor».
+  **Cuentas terminal (ADR-0152):** `colaboradores.terminal` (`ventas` | `administrativa`, una de cada tipo por tienda) se da de alta con
+  la RPC `agregar_terminal` («+ Agregar terminal») y se lee aparte de `fn_colaboradores`. Sus poderes son cinco capacidades
+  (`fn_puede_gestionar_caja`, `fn_puede_ajustar_inventario`, `fn_puede_editar_catalogo`, `fn_puede_editar_cuentas_proveedor` y, solo del
+  líder, `fn_puede_dar_descuento_por_etiqueta`); la web pregunta por permiso (`puede`/`exigirPermiso` en `lib/persona-actual.ts`,
+  `permisosDe(rol, terminal)` y `terminales` por nodo en `lib/menu.ts`).
 
 **Catálogo / inventario**
 - `/inventario` → `lib/inteligencia.ts` (`getCatalogoInteligente`, reusa
