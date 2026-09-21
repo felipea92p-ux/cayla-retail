@@ -14,9 +14,9 @@ export type PerfilMenu = {
   ubicacionTipo: "tienda" | "almacen" | "taller";
 };
 
-/** Pantallas de Producción, en orden. Hoy Órdenes e Insumos: Resumen, Proveedores de producción, Comprobantes,
- *  Por pagar, Recibir y Eficiencia se suman acá cuando existan (fases F4 a F7). */
-export type ClaveMenuProduccion = "ordenes" | "insumos";
+/** Pantallas de Producción, en orden. Hoy Órdenes, Insumos y Proveedores (solo líder): Resumen, Comprobantes,
+ *  Por pagar, Recibir y Eficiencia se suman acá cuando existan (fases F4b a F7). */
+export type ClaveMenuProduccion = "ordenes" | "insumos" | "proveedoresProduccion";
 
 /**
  * Producción se ve **solo parado en un Taller, líder incluido** (decisión de Felipe, 2026-09-20: vuelve a la regla del
@@ -35,7 +35,9 @@ export function puedeVerProduccion(perfil: Pick<PerfilMenu, "ubicacionTipo">): b
 }
 
 export function hijosMenuProduccion(perfil: PerfilMenu): ClaveMenuProduccion[] {
-  return puedeVerProduccion(perfil) ? ["ordenes", "insumos"] : [];
+  if (!puedeVerProduccion(perfil)) return [];
+  // Proveedores es solo del líder (F4a): lleva datos bancarios de terceros y montos comprados (D-G).
+  return perfil.esLider ? ["ordenes", "insumos", "proveedoresProduccion"] : ["ordenes", "insumos"];
 }
 
 export type ClaveMenuCompras = "proveedores" | "comprobantes" | "recibir" | "porPagar";

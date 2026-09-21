@@ -131,9 +131,10 @@ Plan completo en [`docs/PLAN-PRODUCCION.md`](PLAN-PRODUCCION.md); diseño de ref
       costos de `producciones` visibles al colaborador por la API (entra en D-G / F4e).
 - [x] **F3 · Insumos (2026-09-20):** pantalla `/produccion/insumos` (saldo desde el ledger, lotes, libro), nuevo insumo, ingreso de lote, y descuento desde la orden con
       vista previa. Sin esquema. Verificado en navegador como líder; 1415 pruebas. **Sin verificar:** colaborador del Taller. El ingreso no pide proveedor (F4a).
-- [x] **F3b · Devolver insumos** (2026-09-20, local): `devolver_insumo_de_produccion` + costo neto en `registrar_consumo_insumo` + `anular_produccion` que devuelve lo descontado (migración `20260920100000`, **sin pegar en producción**, prueba `pnpm pruebas:insumos-devolucion`). Falta: que Felipe la pegue (con `retail.`, dry-run primero) y verla en el navegador con el panel abierto.
+- [x] **F3b · Devolver insumos** (2026-09-20, local): `devolver_insumo_de_produccion` + costo neto en `registrar_consumo_insumo` + `anular_produccion` que devuelve lo descontado (migración `20260920100000`, **sin pegar en producción**, prueba `pnpm pruebas:insumos-devolucion`). **Aplicada en producción y validada el 2026-09-20.** Falta verla en el navegador con el panel abierto.
       insumos:** un consumo no se puede deshacer y anular una orden no devuelve la tela. Bloquea que el Taller adopte Insumos en producción.
 - [ ] **F4 · Abastecimiento propio de Producción (esquema, alto riesgo; ya NO espera a ADR-0139, el reparto entre tiendas):** 4a proveedores de Producción (`proveedores_produccion`,
+  - [x] **F4a · Proveedores de Producción** (2026-09-20, local): `proveedores_produccion` solo-líder + `guardar_proveedor_produccion`/`cambiar_estado_proveedor_produccion`/`fn_proveedores_produccion` + pantalla `/produccion/proveedores` (migración `20260920110000`, **sin pegar en producción**, prueba `pnpm pruebas:proveedores-produccion`). Falta pegarla y verla en el navegador.
       repunta `insumos`/`insumo_lotes`) · 4b comprobantes · 4c por pagar (requiere D-I) · 4d recibir insumos → lote · 4e candado del dinero.
       Cada uno con su prueba SQL; Compras no se modifica. Timestamps ≥ `20260919210000`; pega Felipe.
 - [ ] **F5 · Nueva orden con decisión** (curva desde `fn_resumen_variantes`, cobertura de tela, costo, margen, entrega).

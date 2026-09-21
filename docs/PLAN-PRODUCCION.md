@@ -166,7 +166,7 @@ Tamaño: **S** ≈ media sesión · **M** ≈ una sesión · **L** ≈ dos o má
   baja a 170 m y el libro lo registra; anular avisa; 390 px sin desborde; sin errores de consola. **Sin verificar:** colaborador del Taller.
 - **Conocido:** quien no es líder no ve montos en pantalla, pero `insumo_lotes.costo_unitario` sigue legible por la API (F4e).
 
-### F3b · Devolver insumos (S) — esquema · **construida en local 2026-09-20; migración SIN pegar en producción**
+### F3b · Devolver insumos (S) — esquema · **✅ aplicada en producción y validada (2026-09-20)**
 Migración `20260920100000_devolver_insumos_de_produccion.sql` (todo sobre tablas que ya existen; producción tiene 0 insumos y 0 órdenes, así que no hay datos que migrar):
 - `devolver_insumo_de_produccion(p_produccion_id, p_insumo_id, p_cantidad, p_nota)`: escribe el movimiento `devolucion` que la tabla ya admitía. La cantidad vuelve al
   **último lote del que esa orden sacó ese insumo** (PEPS al revés) y al costo con que salió; no parte entre lotes; nunca más de lo descontado (neto); solo con la orden en proceso.
@@ -176,14 +176,19 @@ Migración `20260920100000_devolver_insumos_de_produccion.sql` (todo sobre tabla
 - UI: en el panel de la orden cada insumo descontado muestra su neto y «Devolver al estante» con vista previa (a qué lote vuelve, cómo queda el costo por prenda); el modal
   «Anular» avisa qué vuelve al estante. El ritmo de consumo (`consumoSemanal`) resta lo devuelto para no inflar la cobertura.
 - Prueba: `scripts/pruebas/insumos_devolucion.mjs` (10 casos, `pnpm pruebas:insumos-devolucion`, paso en CI) + 6 pruebas nuevas de `insumos-reglas`.
-- **Sin verificar en el navegador** (el panel estaba oculto y no hidrata); sí verificado el camino completo de la base con SQL real.
+- **Validado en producción (2026-09-20, solo lectura + bloque con rollback):** una sola versión de cada función, el helper cerrado a `authenticated`, y costo 800 → 500 → 0 con el saldo del lote volviendo a 75 y 100; 0 filas de rastro. **Sin verificar en el navegador** (panel oculto).
 
 ### F4 · Abastecimiento propio de Producción (L, **alto riesgo**) — esquema · requiere **D-H, D-G** (y **D-I** antes de F4c)
 Ya **no depende de ADR-0139** ni toca `compras`, `compra_items`, `registrar_compra` ni `recibir_compras`. Cinco PR, cada uno con su prueba SQL:
-- **F4a · Proveedores de Producción.** Tabla `proveedores_produccion` (nombre, RUC, contacto, teléfono, banco, cuenta, CCI, billeteras, `rubro`
-  tela | avíos | maquila | otro, `plazo_credito_dias`, forma de pago, `activo`). `insumos.proveedor_id` e `insumo_lotes.proveedor_id` se
-  **repuntan** a esta tabla (hoy apuntan a `retail.proveedores`; están en **0 filas** en producción: verificar de nuevo antes de pegar).
-  `fn_proveedor_metricas_insumos` pasa al directorio propio. Pantalla: lista, ficha y vista rápida (el diseño ya aprobado de Proveedores, ADR-0128).
+- **F4a · Proveedores de Producción — construida en local 2026-09-20; migración `20260920110000` SIN pegar en producción.**
+  Tabla `proveedores_produccion` (mismo molde y CHECK que `proveedores`; `rubro` obligatorio: tela | avios | maquila | otro), **solo-líder por RLS**
+  (datos bancarios de terceros = dinero, D-G) y sin grants de escritura: se escribe por `guardar_proveedor_produccion` (id nulo = crear; normaliza y valida
+  RUC/CCI/celular/billeteras con los mensajes de Compras) y `cambiar_estado_proveedor_produccion` (archivar/reactivar, nunca borrar). Lectura:
+  `fn_proveedores_produccion()` y `fn_proveedor_produccion_metricas(uuid)` (lotes, total comprado, última entrega; cero filas para quien no es líder).
+  `insumos.proveedor_id` e `insumo_lotes.proveedor_id` se **repuntan** (la migración se detiene si hay filas; hoy 0). **Decisión:** `fn_proveedor_metricas_insumos`
+  de Compras NO se reescribe (Compras idéntico; devolverá ceros, que es lo correcto) — se cierra con el candado de F4e. Pantalla `/produccion/proveedores`
+  (solo líder, menú «Proveedores»): lista con filtro por rubro y búsqueda, cifras, alta/edición en `<Modal>`, archivar. Saldo y cumplimiento del spike
+  **no se dibujan** hasta F4b–F4d (no hay de dónde calcularlos). Prueba `pnpm pruebas:proveedores-produccion` (15 casos, en CI) + 8 de reglas. Sin ver en navegador.
 - **F4b · Comprobantes de Producción.** `comprobantes_produccion` + `_items` (insumo, cantidad, costo unitario **sin IGV**) + `_pagos`;
   RPC `registrar_comprobante_produccion` con las reglas de ADR-0035: **contado ⇒ pago obligatorio en la misma transacción**, crédito ⇒
   vencimiento, escritura solo por RPC, anular (nunca borrar), idempotencia por token.
