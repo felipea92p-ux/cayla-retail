@@ -234,6 +234,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:planilla-por-sede
 
+      # Recorrido de PUNTA A PUNTA de Producción por el ERP (ADR-0133): proveedor → comprobante (Por pagar, Deuda consolidada, IGV) → recepción por un colaborador del Taller sin ver montos →
+      # pago → orden con insumos → cierre (stock, movimientos, costo de la variante) → traslado a la tienda → lo que ven Inventario y el líder. Una transacción con ROLLBACK; corta en el primer paso que falle.
+      - name: pruebas:produccion-punta-a-punta
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:produccion-punta-a-punta
+
       # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
       # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las
       # tarjetas de arriba cuentan lo mismo. Cada caso termina en ROLLBACK.
