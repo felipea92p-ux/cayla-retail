@@ -65,14 +65,18 @@ export const AVIARIO = [
   { n: "09", pajaro: "Pelícano", modulo: "Compras y proveedores",
     tablas: ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen",
       // ADR-0111 (Compras): cierres de línea por faltante, notas de crédito del proveedor y su saldo a favor.
-      // Nacen con dueño: aún no están en producción (sin pegar), por eso el aviario avisa que no las ve en el volcado.
+      // Ya están en producción (ADR-0111, comprobado en el refresco completo del volcado del 2026-09-21).
       "compra_item_cierres", "compra_notas_credito", "proveedor_creditos",
       // ADR-0139 (Compras): el reparto de un comprobante entre tiendas (`compra_item_destinos`: línea × tienda × cantidad),
-      // su bitácora de reasignaciones y la vista que cruza el plan con lo recibido y cerrado por tienda. Nacen con dueño;
-      // aún no están en producción (172000/173000 sin pegar), por eso el aviario avisa que no las ve en el volcado.
+      // su bitácora de reasignaciones y la vista que cruza el plan con lo recibido y cerrado por tienda. Ya están en
+      // producción (172000/173000 pegadas el 2026-09-20).
       "compra_item_destinos", "compra_reasignaciones", "compra_item_reparto_resumen"] },
   { n: "10", pajaro: "Gallito", modulo: "Producción del Taller",
-    tablas: ["producciones", "produccion_lineas", "insumos", "insumo_lotes", "movimientos_insumo", "v_insumo_saldos"] },
+    tablas: ["producciones", "produccion_lineas", "insumos", "insumo_lotes", "movimientos_insumo", "v_insumo_saldos",
+      // ADR-0133 (Producción, D-H): su propio directorio de proveedores y sus comprobantes de tela/avíos/maquila, aparte de los de
+      // Compras. Ya están en producción (F4a/F4b); las asignó a Gallito el refresco completo del volcado del 2026-09-21 porque
+      // sin pájaro el CI cae en rojo. La sesión de Producción confirma la asignación en el PR de ese refresco.
+      "proveedores_produccion", "comprobantes_produccion", "comprobantes_produccion_items", "comprobantes_produccion_pagos"] },
   { n: "11", pajaro: "Garza", modulo: "Finanzas operativas", tablas: ["gastos"] },
   { n: "12", pajaro: "Urraca", modulo: "Contabilidad", tablas: ["activos_fijos"] },
   // Águila lee lo de los demás; el día que escriba sus propios resúmenes, nacen acá.

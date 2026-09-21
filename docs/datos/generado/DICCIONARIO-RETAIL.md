@@ -6,7 +6,7 @@
 >
 > **Origen:** `volcado de producción (retail_*.json)`
 > **Leído el:** volcado de producci
-> **Tablas y vistas encontradas:** 73
+> **Tablas y vistas encontradas:** 77
 >
 > El orden sigue los 14 pájaros de `scripts/datos/aviario.mjs`, la única lista de qué
 > pájaro es cada tabla (el índice está en `AVIARIO.md`). Para entender **por qué**
@@ -256,7 +256,7 @@
 
 ### `marcas`
 
-*4 columnas · ~1 filas · permisos por fila **activos***
+*4 columnas · ~76 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -279,7 +279,7 @@
 
 ### `marca_proveedores`
 
-*3 columnas · ~1 filas · permisos por fila **activos***
+*3 columnas · ~76 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -629,7 +629,7 @@
 
 ### `movimientos`
 
-*21 columnas · ~464 filas · permisos por fila **activos***
+*21 columnas · ~477 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -894,7 +894,7 @@
 
 ### `transferencia_recepciones`
 
-*7 columnas · ~0 filas · permisos por fila **activos***
+*7 columnas · ~1 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1058,7 +1058,7 @@
 
 ### `ventas`
 
-*12 columnas · ~9 filas · permisos por fila **activos***
+*12 columnas · ~15 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1094,7 +1094,7 @@
 
 ### `venta_items`
 
-*12 columnas · ~23 filas · permisos por fila **activos***
+*12 columnas · ~36 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1135,7 +1135,7 @@
 
 ### `venta_pagos`
 
-*4 columnas · ~11 filas · permisos por fila **activos***
+*5 columnas · ~19 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1143,11 +1143,13 @@
 | `venta_id` | uuid | **no** | — | — |
 | `metodo` | text | **no** | — | — |
 | `monto` | numeric | **no** | — | — |
+| `recibido` | numeric | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `venta_pagos_metodo_check` — `CHECK ((metodo = ANY (ARRAY['efectivo'::text, 'tarjeta'::text, 'yape'::text, 'plin'::text, 'transferencia'::text])))`
 - `venta_pagos_monto_check` — `CHECK ((monto > (0)::numeric))`
+- `venta_pagos_recibido_coherente` — `CHECK (((recibido IS NULL) OR ((metodo = 'efectivo'::text) AND (recibido >= monto))))`
 
 **De qué depende:** `(venta_id) REFERENCES retail.ventas(id)`
 
@@ -1417,7 +1419,7 @@
 
 ### `comprobantes`
 
-*32 columnas · ~11 filas · permisos por fila **activos***
+*32 columnas · ~17 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1595,7 +1597,7 @@
 
 ### `proveedores`
 
-*16 columnas · ~2 filas · permisos por fila **activos***
+*16 columnas · ~76 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1905,6 +1907,7 @@
 
 - `compra_notas_credito_aplicado_valido` — `CHECK (((aplicado >= (0)::numeric) AND (aplicado <= monto)))`
 - `compra_notas_credito_compra_id_serie_numero_key` — `UNIQUE (compra_id, serie_numero)`
+- `compra_notas_credito_id_compra_key` — `UNIQUE (id, compra_id)`
 - `compra_notas_credito_igv_check` — `CHECK ((igv >= (0)::numeric))`
 - `compra_notas_credito_monto_check` — `CHECK ((monto > (0)::numeric))`
 - `compra_notas_credito_monto_cuadra` — `CHECK ((monto = (subtotal + igv)))`
@@ -2130,7 +2133,7 @@
 - `insumos_tipo_check` — `CHECK ((tipo = ANY (ARRAY['tela'::text, 'avio'::text])))`
 - `insumos_unidad_medida_check` — `CHECK ((unidad_medida = ANY (ARRAY['metro'::text, 'unidad'::text, 'kilo'::text, 'cono'::text, 'par'::text, 'docena'::text])))`
 
-**De qué depende:** `(proveedor_id) REFERENCES retail.proveedores(id)`
+**De qué depende:** `(proveedor_id) REFERENCES retail.proveedores_produccion(id)`
 
 **Quién puede qué** (políticas de fila):
 
@@ -2167,7 +2170,7 @@
 - `insumo_lotes_origen_check` — `CHECK ((origen = ANY (ARRAY['compra'::text, 'saldo_inicial'::text])))`
 - `insumo_lotes_codigo_unico` *(único parcial)* — `retail.insumo_lotes (insumo_id, codigo_lote) WHERE (codigo_lote IS NOT NULL)`
 
-**De qué depende:** `(insumo_id) REFERENCES retail.insumos(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+**De qué depende:** `(insumo_id) REFERENCES retail.insumos(id)` · `(proveedor_id) REFERENCES retail.proveedores_produccion(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
 
 **Quién puede qué** (políticas de fila):
 
@@ -2227,6 +2230,159 @@
 | `ubicacion_id` | uuid | sí | — | — |
 | `fisico` | numeric | sí | — | — |
 | `valor` | numeric | sí | — | — |
+
+
+### `proveedores_produccion`
+
+*16 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `nombre` | text | **no** | — | — |
+| `rubro` | text | **no** | — | — |
+| `ruc` | text | sí | — | — |
+| `contacto` | text | sí | — | — |
+| `telefono` | text | sí | — | — |
+| `plazo_credito_dias` | integer | sí | — | — |
+| `forma_pago_preferida` | text | sí | — | — |
+| `banco` | text | sí | — | — |
+| `cuenta_bancaria` | text | sí | — | — |
+| `cci` | text | sí | — | — |
+| `celular_billetera` | text | sí | — | — |
+| `billeteras` | ARRAY | sí | — | — |
+| `titular_cuenta` | text | sí | — | — |
+| `activo` | boolean | **no** | `true` | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `proveedores_produccion_billetera_coherente` — `CHECK (((celular_billetera IS NULL) = (billeteras IS NULL)))`
+- `proveedores_produccion_billeteras_check` — `CHECK (((billeteras IS NULL) OR (((cardinality(billeteras) >= 1) AND (cardinality(billeteras) <= 2)) AND (billeteras <@ ARRAY['yape'::text, 'plin'::text]))))`
+- `proveedores_produccion_cci_check` — `CHECK (((cci IS NULL) OR (cci ~ '^[0-9]{20}$'::text)))`
+- `proveedores_produccion_celular_billetera_check` — `CHECK (((celular_billetera IS NULL) OR (celular_billetera ~ '^9[0-9]{8}$'::text)))`
+- `proveedores_produccion_forma_pago_preferida_check` — `CHECK (((forma_pago_preferida IS NULL) OR (forma_pago_preferida = ANY (ARRAY['transferencia'::text, 'yape'::text, 'plin'::text, 'efectivo'::text, 'deposito'::text, 'otro'::text]))))`
+- `proveedores_produccion_nombre_check` — `CHECK ((char_length(btrim(nombre)) > 0))`
+- `proveedores_produccion_plazo_credito_dias_check` — `CHECK (((plazo_credito_dias IS NULL) OR (plazo_credito_dias > 0)))`
+- `proveedores_produccion_rubro_check` — `CHECK ((rubro = ANY (ARRAY['tela'::text, 'avios'::text, 'maquila'::text, 'otro'::text])))`
+- `proveedores_produccion_ruc_check` — `CHECK (((ruc IS NULL) OR (ruc ~ '^[0-9]{11}$'::text)))`
+- `proveedores_produccion_titular_cuenta_check` — `CHECK (((titular_cuenta IS NULL) OR ((char_length(titular_cuenta) >= 2) AND (char_length(titular_cuenta) <= 120))))`
+- `proveedores_produccion_ruc_unico` *(único parcial)* — `retail.proveedores_produccion (ruc) WHERE (ruc IS NOT NULL)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `proveedores_produccion_select_lider` | SELECT | `retail.fn_es_lider()` |
+
+
+### `comprobantes_produccion`
+
+*17 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `proveedor_id` | uuid | **no** | — | — |
+| `tipo` | text | **no** | `'factura'::text` | — |
+| `serie` | text | **no** | — | — |
+| `numero` | text | **no** | — | — |
+| `fecha_emision` | date | **no** | `CURRENT_DATE` | — |
+| `condicion` | text | **no** | — | — |
+| `fecha_vencimiento` | date | sí | — | — |
+| `subtotal` | numeric | **no** | — | — |
+| `igv` | numeric | **no** | — | — |
+| `total` | numeric | **no** | — | — |
+| `estado` | text | **no** | `'vigente'::text` | — |
+| `motivo_anulacion` | text | sí | — | — |
+| `nota` | text | sí | — | — |
+| `usuario_id` | uuid | sí | — | — |
+| `token_cliente` | uuid | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `comprobantes_produccion_anulada_con_motivo` — `CHECK (((estado = 'vigente'::text) OR ((motivo_anulacion IS NOT NULL) AND (char_length(btrim(motivo_anulacion)) > 0))))`
+- `comprobantes_produccion_condicion_check` — `CHECK ((condicion = ANY (ARRAY['contado'::text, 'credito'::text])))`
+- `comprobantes_produccion_credito_con_vencimiento` — `CHECK (((condicion = 'contado'::text) OR (fecha_vencimiento IS NOT NULL)))`
+- `comprobantes_produccion_estado_check` — `CHECK ((estado = ANY (ARRAY['vigente'::text, 'anulada'::text])))`
+- `comprobantes_produccion_igv_check` — `CHECK ((igv >= (0)::numeric))`
+- `comprobantes_produccion_igv_solo_factura` — `CHECK (((tipo = 'factura'::text) OR (igv = (0)::numeric)))`
+- `comprobantes_produccion_numero_check` — `CHECK ((char_length(btrim(numero)) > 0))`
+- `comprobantes_produccion_serie_check` — `CHECK ((char_length(btrim(serie)) > 0))`
+- `comprobantes_produccion_serie_numero_unico` — `UNIQUE (proveedor_id, serie, numero)`
+- `comprobantes_produccion_subtotal_check` — `CHECK ((subtotal >= (0)::numeric))`
+- `comprobantes_produccion_tipo_check` — `CHECK ((tipo = ANY (ARRAY['factura'::text, 'boleta'::text, 'nota_venta'::text])))`
+- `comprobantes_produccion_token_cliente_key` — `UNIQUE (token_cliente)`
+- `comprobantes_produccion_total_check` — `CHECK ((total >= (0)::numeric))`
+- `comprobantes_produccion_total_cuadra` — `CHECK ((total = (subtotal + igv)))`
+
+**De qué depende:** `(proveedor_id) REFERENCES retail.proveedores_produccion(id)` · `(usuario_id) REFERENCES personas(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `comprobantes_produccion_select_lider` | SELECT | `retail.fn_es_lider()` |
+
+
+### `comprobantes_produccion_items`
+
+*7 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `comprobante_id` | uuid | **no** | — | — |
+| `insumo_id` | uuid | sí | — | — |
+| `descripcion` | text | sí | — | — |
+| `cantidad` | numeric | **no** | — | — |
+| `costo_unitario` | numeric | **no** | — | — |
+| `subtotal` | numeric | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `comprobantes_produccion_items_cantidad_check` — `CHECK ((cantidad > (0)::numeric))`
+- `comprobantes_produccion_items_costo_unitario_check` — `CHECK ((costo_unitario >= (0)::numeric))`
+- `comprobantes_produccion_items_insumo_o_concepto` — `CHECK (((insumo_id IS NOT NULL) OR ((descripcion IS NOT NULL) AND (char_length(btrim(descripcion)) > 0))))`
+
+**De qué depende:** `(comprobante_id) REFERENCES retail.comprobantes_produccion(id)` · `(insumo_id) REFERENCES retail.insumos(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `comprobantes_produccion_items_select_lider` | SELECT | `retail.fn_es_lider()` |
+
+
+### `comprobantes_produccion_pagos`
+
+*9 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `id` | uuid | **no** | `gen_random_uuid()` | — |
+| `comprobante_id` | uuid | **no** | — | — |
+| `fecha` | date | **no** | `CURRENT_DATE` | — |
+| `monto` | numeric | **no** | — | — |
+| `metodo` | text | **no** | — | — |
+| `referencia` | text | sí | — | — |
+| `usuario_id` | uuid | sí | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+| `grupo_id` | uuid | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `comprobantes_produccion_pagos_metodo_check` — `CHECK ((metodo = ANY (ARRAY['transferencia'::text, 'yape'::text, 'plin'::text, 'efectivo'::text, 'deposito'::text, 'otro'::text])))`
+- `comprobantes_produccion_pagos_monto_check` — `CHECK ((monto > (0)::numeric))`
+
+**De qué depende:** `(comprobante_id) REFERENCES retail.comprobantes_produccion(id)` · `(usuario_id) REFERENCES personas(id)`
+
+**Quién puede qué** (políticas de fila):
+
+| Política | Operación | Condición |
+|---|---|---|
+| `comprobantes_produccion_pagos_select_lider` | SELECT | `retail.fn_es_lider()` |
 
 
 

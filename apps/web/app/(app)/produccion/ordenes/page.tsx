@@ -6,6 +6,8 @@ import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
 import { puedeVerProduccion } from "@/lib/produccion-menu";
 import { hoyLima } from "@/lib/fechas-lima";
 import { getInsumosDelTaller } from "@/lib/insumos";
+import { getDecisionProduccion } from "@/lib/decision-produccion";
+import { getLineasPorRecibir } from "@/lib/recibir-produccion";
 
 // Órdenes de producción del Taller (restaurada 2026-09-15 sobre V2). Una sola
 // forma de producir: la orden. Se abre con costo estimado y cantidades por
@@ -41,14 +43,19 @@ export default async function OrdenesProduccionPage() {
   const esLider = persona.rol === "lider";
   const hoy = hoyLima();
   const [ordenes, modelos, datosInsumos] = await Promise.all([
-    getOrdenesProduccion(taller.id),
+    getOrdenesProduccion(taller.id, { conCostos: esLider }),
     getModelosProducibles(),
     getInsumosDelTaller(taller.id, { conCostos: esLider, hoy }),
   ]);
 
+  // F5: solo el líder recibe el consejo de la red (ventas y stock de todas las tiendas, costos de insumos). Es secundario: si falla, la orden se abre igual.
+  const decision = esLider
+    ? await getDecisionProduccion({ modelos, ordenes, insumos: datosInsumos.insumos, consumosPorOrden: datosInsumos.consumosPorOrden, lineasPorRecibir: await getLineasPorRecibir(taller.id) })
+    : null;
+
   return (
     <div className="space-y-6">
-      <OrdenesTablero tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} />
+      <OrdenesTablero tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} decision={decision} />
     </div>
   );
 }

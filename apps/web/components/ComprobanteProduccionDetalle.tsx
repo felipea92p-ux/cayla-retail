@@ -16,13 +16,15 @@ import { cantidadTexto, type UnidadInsumo } from "@/lib/insumos-reglas";
 // Detalle de un comprobante de Producción (ADR-0133, F4b): sus líneas, sus pagos y su saldo. Lo leído aquí es del líder por RLS. Anular
 // pide un motivo y solo se puede si no hay pagos (anular dejaría dinero sin respaldo); nunca se borra.
 
-type Linea = { id: string; descripcion: string | null; cantidad: number; costo_unitario: number; subtotal: number | null; insumo: { nombre: string; unidad_medida: string } | null };
+type Linea = { id: string; insumo_id?: string | null; descripcion: string | null; cantidad: number; costo_unitario: number; subtotal: number | null; insumo: { nombre: string; unidad_medida: string } | null };
 type Pago = { id: string; fecha: string; monto: number; metodo: string; referencia: string | null };
 
-export function ComprobanteProduccionDetalle({ comprobante: c, hoy, onClose }: { comprobante: ComprobanteProduccion; hoy: string; onClose: () => void }) {
+export function ComprobanteProduccionDetalle({ comprobante: c, hoy, tallerId, onClose }: { comprobante: ComprobanteProduccion; hoy: string; tallerId: string | null; onClose: () => void }) {
   const router = useRouter();
   const [lineas, setLineas] = useState<Linea[] | null>(null);
   const [pagos, setPagos] = useState<Pago[] | null>(null);
+  // Lo recibido de cada línea (F4d): cantidades por línea, sin importes.
+  const [recepcion, setRecepcion] = useState<Record<string, { recibido: number; cerrado: number; pendiente: number }>>({});
   const [fallo, setFallo] = useState(false);
   const [anulando, setAnulando] = useState(false);
   const [motivo, setMotivo] = useState("");
@@ -32,22 +34,25 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, onClose }: {
     let vivo = true;
     const supabase = createClient();
     (async () => {
-      const [l, p] = await Promise.all([
-        supabase.from("comprobantes_produccion_items").select("id, descripcion, cantidad, costo_unitario, subtotal, insumo:insumos ( nombre, unidad_medida )").eq("comprobante_id", c.id).order("id"),
+      const [l, p, r] = await Promise.all([
+        supabase.from("comprobantes_produccion_items").select("id, insumo_id, descripcion, cantidad, costo_unitario, subtotal, insumo:insumos ( nombre, unidad_medida )").eq("comprobante_id", c.id).order("id"),
         supabase.from("comprobantes_produccion_pagos").select("id, fecha, monto, metodo, referencia").eq("comprobante_id", c.id).order("fecha"),
+        tallerId ? supabase.rpc("fn_lineas_comprobantes_produccion", { p_ubicacion_id: tallerId, p_comprobante_id: c.id }) : Promise.resolve({ data: [], error: null }),
       ]);
       if (!vivo) return;
       if (l.error || p.error) return setFallo(true);
       setLineas(l.data as unknown as Linea[]);
       setPagos(p.data as Pago[]);
+      setRecepcion(Object.fromEntries((r.data ?? []).map((x) => [x.item_id, { recibido: Number(x.recibido), cerrado: Number(x.cerrado), pendiente: Number(x.pendiente) }])));
     })();
     return () => {
       vivo = false;
     };
-  }, [c.id]);
+  }, [c.id, tallerId]);
 
   const estado = estadoVisible(c, hoy);
-  const puedeAnular = c.estado === "vigente" && pagos !== null && pagos.length === 0;
+  const hayRecepcion = Object.values(recepcion).some((x) => x.recibido > 0 || x.cerrado > 0);
+  const puedeAnular = c.estado === "vigente" && pagos !== null && pagos.length === 0 && !hayRecepcion;
 
   async function anular() {
     if (!motivo.trim()) return avisar.error("Anular un comprobante necesita un motivo.");
@@ -87,6 +92,17 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, onClose }: {
                     <p className="text-xs text-tinta/65">
                       {l.insumo ? cantidadTexto(Number(l.cantidad), l.insumo.unidad_medida as UnidadInsumo) : `${Number(l.cantidad)} u.`} × {soles(Number(l.costo_unitario))}
                     </p>
+                    {l.insumo && recepcion[l.id] && (
+                      <p className="text-xs text-tinta/65">
+                        {recepcion[l.id].pendiente <= 0
+                          ? recepcion[l.id].cerrado > 0
+                            ? `Recibido ${cantidadTexto(recepcion[l.id].recibido, l.insumo.unidad_medida as UnidadInsumo)} · ${cantidadTexto(recepcion[l.id].cerrado, l.insumo.unidad_medida as UnidadInsumo)} cerrados`
+                            : "Recibido completo"
+                          : recepcion[l.id].recibido > 0
+                            ? `Recibido ${cantidadTexto(recepcion[l.id].recibido, l.insumo.unidad_medida as UnidadInsumo)} · faltan ${cantidadTexto(recepcion[l.id].pendiente, l.insumo.unidad_medida as UnidadInsumo)}`
+                            : "Sin recibir todavía"}
+                      </p>
+                    )}
                   </div>
                   <p className="tabular-nums text-tinta">{soles(Number(l.subtotal ?? 0))}</p>
                 </li>
@@ -159,6 +175,7 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, onClose }: {
             </button>
           ))}
         {c.estado === "vigente" && pagos && pagos.length > 0 && <p className="text-xs text-tinta/65">Con pagos registrados no se puede anular: dejaría dinero sin respaldo.</p>}
+        {c.estado === "vigente" && hayRecepcion && <p className="text-xs text-tinta/65">Con mercadería recibida no se puede anular: dejaría stock sin respaldo.</p>}
       </div>
     </Modal>
   );

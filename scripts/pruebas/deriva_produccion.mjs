@@ -241,6 +241,13 @@ rollback;
   // que dejó `20260918180000`: quedan DOS y cualquier llamada sin p_token es ambigua. Se imita lo
   // que deja (solo la firma) y se aplica `20260918219000` en una transacción revertida: debe quedar
   // una sola, con p_token, y el mismo token no debe duplicar la compra.
+  //
+  // `20260918219000` es histórica: su cuerpo escribe `compras.ubicacion_destino_id`, columna que
+  // el reparto de un comprobante entre tiendas retiró (ADR-0139, `20260919173000`; hoy el destino
+  // vive en `compra_item_destinos`). Aplicarla tal cual sobre el esquema de hoy falla con
+  // «column ... does not exist». Por eso el escenario repone esa columna DENTRO de la transacción
+  // revertida —imita el esquema de la época en que la migración corrió—; la garantía que se
+  // prueba (una sola firma, con p_token, e idempotencia por token) no depende del destino.
   let migracionUnaFirma = null;
   try {
     migracionUnaFirma = readFileSync(new URL("../../supabase/migrations/20260918219000_registrar_compra_una_sola_firma_con_token.sql", import.meta.url), "utf8");
@@ -250,6 +257,7 @@ rollback;
   const firmasCompraSql = `(select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'registrar_compra')`;
   const unaSolaFirmaTrasArreglo = migracionUnaFirma
     ? correr(`${FIXTURE_COMPRA}
+alter table retail.compras add column ubicacion_destino_id uuid;
 create function retail.registrar_compra(p_proveedor_id uuid, p_serie text, p_numero text, p_condicion text, p_ubicacion_destino_id uuid, p_items jsonb, p_tipo text default 'factura', p_fecha_emision date default current_date, p_fecha_vencimiento date default null, p_igv_porcentaje numeric default 18, p_pago jsonb default null, p_nota text default null, p_total numeric default null, p_fecha_estimada_llegada date default null)
   returns uuid language sql as $$ select null::uuid $$;
 select ${firmasCompraSql} as antes \\gset

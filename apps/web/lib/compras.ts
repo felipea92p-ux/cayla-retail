@@ -3,7 +3,9 @@ import { exigir, exigirOpcional } from "@/lib/resultado";
 import {
   ADJUNTOS_BUCKET,
   comprobanteDeFilaOperativa,
+  destinoDesdeParam,
   esFuncionAusente,
+  MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE,
   type AdjuntoCompra,
   type CompraResumen,
   type Condicion,
@@ -121,6 +123,8 @@ export type FiltrosCompras = {
   porRecibir?: boolean;
   desde?: string;
   hasta?: string;
+  /** Solo los comprobantes que traen mercadería para esta tienda (ADR-0139, «Destino»). No parte la deuda: el saldo sigue entero. */
+  destinoId?: string;
 };
 
 export type Cursor = { fecha: string; creadoEn: string; id: string };
@@ -135,7 +139,7 @@ export const TAMANO_PAGINA = 50;
 
 /** Parámetros de URL de las pantallas de Compras (ver `FiltrosCompras.tsx`). */
 /** `pagar`: id de la factura cuyo modal de pago se abre al llegar a Por pagar (viene del botón "Registrar pago" del detalle). */
-export type ParamsCompras = { q?: string; prov?: string; pago?: string; recep?: string; cond?: string; tipo?: string; desde?: string; hasta?: string; vencidas?: string; cursor?: string; pagar?: string; saldo?: string; porrecibir?: string; orden?: string };
+export type ParamsCompras = { q?: string; prov?: string; pago?: string; recep?: string; cond?: string; tipo?: string; desde?: string; hasta?: string; vencidas?: string; cursor?: string; pagar?: string; saldo?: string; porrecibir?: string; orden?: string; dest?: string };
 
 const ESTADOS_PAGO: EstadoPago[] = ["pendiente", "parcial", "pagada", "anulada"];
 const ESTADOS_RECEPCION: EstadoRecepcion[] = ["sin_recibir", "parcial", "recibida", "anulada"];
@@ -157,6 +161,7 @@ export function filtrosDesdeParams(p: ParamsCompras): FiltrosCompras {
     porRecibir: p.porrecibir === "1" || undefined,
     desde: esFecha(p.desde) ? p.desde : undefined,
     hasta: esFecha(p.hasta) ? p.hasta : undefined,
+    destinoId: destinoDesdeParam(p.dest),
   };
 }
 
@@ -201,30 +206,35 @@ export async function listarCompras(
     // camino de antes —la página ya tacha los montos— en vez de tumbar Recibir. Cualquier OTRO error sí se ve.
     if (!esFuncionAusente(res.error)) operativas = exigir(res, "las facturas de compra");
   }
-  let todas: CompraResumen[] = operativas
-    ? operativas.map(comprobanteDeFilaOperativa)
-    : exigir(
-        await supabase.rpc("listar_compras", {
-          p_limite: limite,
-          p_orden: orden,
-          ...(opciones.cursor
-            ? { p_cursor_fecha: opciones.cursor.fecha, p_cursor_creado_en: opciones.cursor.creadoEn, p_cursor_id: opciones.cursor.id }
-            : {}),
-          ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
-          ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
-          ...(filtros.estadoPago ? { p_estado_pago: filtros.estadoPago } : {}),
-          ...(filtros.estadoRecepcion ? { p_estado_recepcion: filtros.estadoRecepcion } : {}),
-          ...(filtros.condicion ? { p_condicion: filtros.condicion } : {}),
-          ...(filtros.tipo ? { p_tipo: filtros.tipo } : {}),
-          ...(filtros.soloVigentes ? { p_solo_vigentes: true } : {}),
-          ...(filtros.conSaldo ? { p_con_saldo: true } : {}),
-          ...(filtros.soloVencidas ? { p_solo_vencidas: true } : {}),
-          ...(filtros.porRecibir ? { p_por_recibir: true } : {}),
-          ...(filtros.desde ? { p_desde: filtros.desde } : {}),
-          ...(filtros.hasta ? { p_hasta: filtros.hasta } : {}),
-        }),
-        "las facturas de compra"
-      ).map(aResumen);
+  let todas: CompraResumen[];
+  if (operativas) {
+    todas = operativas.map(comprobanteDeFilaOperativa);
+  } else {
+    const res = await supabase.rpc("listar_compras", {
+      p_limite: limite,
+      p_orden: orden,
+      ...(opciones.cursor
+        ? { p_cursor_fecha: opciones.cursor.fecha, p_cursor_creado_en: opciones.cursor.creadoEn, p_cursor_id: opciones.cursor.id }
+        : {}),
+      ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
+      ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
+      ...(filtros.estadoPago ? { p_estado_pago: filtros.estadoPago } : {}),
+      ...(filtros.estadoRecepcion ? { p_estado_recepcion: filtros.estadoRecepcion } : {}),
+      ...(filtros.condicion ? { p_condicion: filtros.condicion } : {}),
+      ...(filtros.tipo ? { p_tipo: filtros.tipo } : {}),
+      ...(filtros.soloVigentes ? { p_solo_vigentes: true } : {}),
+      ...(filtros.conSaldo ? { p_con_saldo: true } : {}),
+      ...(filtros.soloVencidas ? { p_solo_vencidas: true } : {}),
+      ...(filtros.porRecibir ? { p_por_recibir: true } : {}),
+      ...(filtros.desde ? { p_desde: filtros.desde } : {}),
+      ...(filtros.hasta ? { p_hasta: filtros.hasta } : {}),
+      ...(filtros.destinoId ? { p_ubicacion_id: filtros.destinoId } : {}),
+    });
+    // «Destino» (ADR-0139) necesita la migración que le agrega `p_ubicacion_id` a `listar_compras`. Sin ella la base no conoce el
+    // parámetro: se dice CLARO en vez de listar todo bajo un filtro que no filtró. Sin ese filtro la lista no depende de la migración.
+    if (filtros.destinoId && esFuncionAusente(res.error)) throw new Error(MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE);
+    todas = exigir(res, "las facturas de compra").map(aResumen);
+  }
   if (operativas && !opciones.sinMontos) todas = await conMontos(todas);
   // La función devuelve limite+1 filas a propósito: la de más solo dice "hay otra página".
   const hayMas = todas.length > limite;

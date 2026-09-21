@@ -402,6 +402,29 @@ export function esFuncionAusente(error: { code?: string | null } | null | undefi
   return error?.code === "PGRST202" || error?.code === "42883";
 }
 
+// ---------- filtro «Destino» de Comprobantes y Por pagar (ADR-0139, migración 20260921130000) ----------
+
+/** Un id de tienda válido en la URL (`?dest=…`), o `undefined`: cualquier otra cosa se descarta en vez de llegar a la base. */
+export function destinoDesdeParam(valor: string | null | undefined): string | undefined {
+  const v = valor?.trim();
+  return v && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v) ? v.toLowerCase() : undefined;
+}
+
+/** El texto de la etiqueta que se muestra al aplicar el filtro; si la tienda ya no está entre las activas, no inventa un nombre. */
+export function textoChipDestino(tiendaId: string, tiendas: { id: string; nombre: string }[]): string {
+  const t = tiendas.find((x) => x.id === tiendaId);
+  return t ? `Destino: ${t.nombre}` : "Destino: otra tienda";
+}
+
+/**
+ * Lo que se le dice a quien elige una tienda en «Destino» si la base todavía no tiene la migración que agrega
+ * `p_ubicacion_id` a `listar_compras` / `por_pagar_tramos` (el despliegue llegó antes que el SQL). La lista SIN
+ * filtro sigue funcionando: solo se cae quien pide la tienda, y con un mensaje que dice por qué en vez de mostrar
+ * todo bajo un rótulo que mentiría.
+ */
+export const MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE =
+  "El filtro por tienda todavía no está disponible: falta aplicar una actualización de la base de datos. Quita el filtro «Destino» para ver los comprobantes.";
+
 /** Lo mismo para una TABLA o VISTA que la base todavía no tiene (PostgREST `PGRST205`, Postgres `42P01`). */
 export function esRelacionAusente(error: { code?: string | null } | null | undefined): boolean {
   return error?.code === "PGRST205" || error?.code === "42P01";

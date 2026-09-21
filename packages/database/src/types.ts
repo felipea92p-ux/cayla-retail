@@ -1939,6 +1939,7 @@ export type Database = {
       insumo_lotes: {
         Row: {
           cantidad_ingresada: number
+          comprobante_item_id: string | null
           codigo_lote: string | null
           costo_unitario: number
           created_at: string
@@ -1949,10 +1950,12 @@ export type Database = {
           nota: string | null
           origen: string
           proveedor_id: string | null
+          recepcion_id: string | null
           ubicacion_id: string
         }
         Insert: {
           cantidad_ingresada: number
+          comprobante_item_id?: string | null
           codigo_lote?: string | null
           costo_unitario: number
           created_at?: string
@@ -1963,10 +1966,12 @@ export type Database = {
           nota?: string | null
           origen?: string
           proveedor_id?: string | null
+          recepcion_id?: string | null
           ubicacion_id: string
         }
         Update: {
           cantidad_ingresada?: number
+          comprobante_item_id?: string | null
           codigo_lote?: string | null
           costo_unitario?: number
           created_at?: string
@@ -1977,6 +1982,7 @@ export type Database = {
           nota?: string | null
           origen?: string
           proveedor_id?: string | null
+          recepcion_id?: string | null
           ubicacion_id?: string
         }
         Relationships: [
@@ -3136,6 +3142,69 @@ export type Database = {
           id?: string
           insumo_id?: string | null
           subtotal?: never
+        }
+        Relationships: []
+      }
+      comprobantes_produccion_recepciones: {
+        Row: {
+          comprobante_id: string
+          created_at: string
+          id: string
+          nota: string | null
+          token_cliente: string | null
+          ubicacion_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          comprobante_id: string
+          created_at?: string
+          id?: string
+          nota?: string | null
+          token_cliente?: string | null
+          ubicacion_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          comprobante_id?: string
+          created_at?: string
+          id?: string
+          nota?: string | null
+          token_cliente?: string | null
+          ubicacion_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
+      comprobantes_produccion_cierres: {
+        Row: {
+          cantidad: number
+          created_at: string
+          id: string
+          item_id: string
+          motivo: string
+          nota: string | null
+          recepcion_id: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          cantidad: number
+          created_at?: string
+          id?: string
+          item_id: string
+          motivo: string
+          nota?: string | null
+          recepcion_id?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          id?: string
+          item_id?: string
+          motivo?: string
+          nota?: string | null
+          recepcion_id?: string | null
+          usuario_id?: string | null
         }
         Relationships: []
       }
@@ -5029,6 +5098,23 @@ export type Database = {
           vencido: boolean
         }[]
       }
+      fn_costos_insumos_taller: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          costo_unitario: number
+          lote_id: string
+        }[]
+      }
+      fn_costos_producciones: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          costo_avios: number
+          costo_maquila: number
+          costo_tela: number
+          costo_unitario: number
+          produccion_id: string
+        }[]
+      }
       fn_deuda_consolidada: {
         Args: never
         Returns: {
@@ -5049,6 +5135,25 @@ export type Database = {
           igv_notas_credito: number
           igv_produccion: number
           mes: string
+        }[]
+      }
+      fn_lineas_comprobantes_produccion: {
+        Args: { p_comprobante_id?: string; p_ubicacion_id: string }
+        Returns: {
+          cerrado: number
+          comprobante_id: string
+          facturado: number
+          fecha_emision: string
+          insumo: string
+          insumo_id: string
+          item_id: string
+          numero: string
+          pendiente: number
+          proveedor: string
+          recibido: number
+          serie: string
+          tipo: string
+          unidad: string
         }[]
       }
       fn_proveedor_produccion_metricas: {
@@ -5456,6 +5561,7 @@ export type Database = {
           p_solo_vencidas?: boolean
           p_solo_vigentes?: boolean
           p_tipo?: string
+          p_ubicacion_id?: string
         }
         Returns: {
           cerrado_cantidad: number | null
@@ -5585,6 +5691,7 @@ export type Database = {
           p_proveedor_id?: string
           p_solo_vencidas?: boolean
           p_tipo?: string
+          p_ubicacion_id?: string
         }
         Returns: {
           comprobantes: number
@@ -5669,6 +5776,10 @@ export type Database = {
           p_ubicacion_id: string
         }
         Returns: Json
+      }
+      recibir_comprobante_produccion: {
+        Args: { p_cierres?: Json; p_comprobante_id: string; p_lineas?: Json; p_nota?: string; p_token?: string; p_ubicacion_id: string }
+        Returns: string
       }
       recibir_insumo: {
         Args: {

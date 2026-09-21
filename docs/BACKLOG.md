@@ -152,6 +152,9 @@ Plan completo en [`docs/PLAN-PRODUCCION.md`](PLAN-PRODUCCION.md); diseño de ref
 - [x] **F3b · Devolver insumos** (2026-09-20, local): `devolver_insumo_de_produccion` + costo neto en `registrar_consumo_insumo` + `anular_produccion` que devuelve lo descontado (migración `20260920100000`, **sin pegar en producción**, prueba `pnpm pruebas:insumos-devolucion`). **Aplicada en producción y validada el 2026-09-20.** Falta verla en el navegador con el panel abierto.
       insumos:** un consumo no se puede deshacer y anular una orden no devuelve la tela. Bloquea que el Taller adopte Insumos en producción.
 - [ ] **F4 · Abastecimiento propio de Producción (esquema, alto riesgo; ya NO espera a ADR-0139, el reparto entre tiendas):** 4a proveedores de Producción (`proveedores_produccion`,
+  - [x] **F5 · Nueva orden con decisión** (2026-09-21, local, sin migraciones): curva sugerida por talla y color desde el ritmo y stock de toda la red, ¿alcanza la tela y los avíos? con rendimiento medido de las órdenes cerradas, costo y margen; solo líder (`lib/produccion-decision-reglas.ts`, `lib/decision-produccion.ts`, `NuevaOrdenProduccionForm.tsx`). Falta verlo con clics y con datos reales. Siguen F6 (Resumen), F7 (Eficiencia; D-E, D-F) y F8.
+  - [x] **F4e · Candado del dinero de Producción** (2026-09-21, local): privilegio por columna sobre `insumo_lotes`/`movimientos_insumo`/`producciones` + `fn_costos_insumos_taller` + `fn_costos_producciones` + `v_insumo_saldos` cerrada (migraciones `20260921150000` A y `20260921151000` B, **sin pegar en producción; orden: A → desplegar la app → B**, prueba `pnpm pruebas:candado-dinero-produccion`). Falta pegarlas y verlas con una sesión de colaborador. **Por decidir:** `fn_costo_historial` (costo de prendas) es legible por cualquier colaborador.
+  - [x] **F4d · Recibir insumos** (2026-09-21, local): `recibir_comprobante_produccion` (un lote por línea, quien opera el Taller, sin montos, idempotente) + `fn_lineas_comprobantes_produccion` + cierres con motivo + `anular_comprobante_produccion` negada con mercadería recibida + pantalla `/produccion/recibir` (migración `20260921140000`, **sin pegar en producción**, prueba `pnpm pruebas:recibir-comprobante-produccion`). Falta pegarla, verla con clics y probarla con un colaborador del Taller. Sigue F4e (candado del dinero).
   - [x] **F4c · Por pagar de Producción + consolidado D-I** (2026-09-21, local): `registrar_pago_comprobante_produccion` (varios medios, sin pasarse del saldo, idempotente) + `fn_deuda_consolidada` + `fn_igv_credito_fiscal` + pantalla `/produccion/por-pagar` (migración `20260921110000`, **pegada en producción**, prueba `pnpm pruebas:por-pagar-produccion`). Falta verla con clics. Siguen F4d (Recibir; debe actualizar `anular_comprobante_produccion`) y F4e (candado del dinero).
   - [x] **F4b · Comprobantes de Producción** (2026-09-21, local): `comprobantes_produccion` (+ `_items`, `_pagos`) solo-líder + `registrar_/anular_comprobante_produccion` + `fn_comprobantes_produccion` + pantalla `/produccion/comprobantes` (migración `20260921100000`, **sin pegar en producción**, prueba `pnpm pruebas:comprobantes-produccion`). Falta pegarla y verla con clics. Siguen F4c (Por pagar; requiere D-I), F4d, F4e.
   - [x] **F4a · Proveedores de Producción** (2026-09-20, local): `proveedores_produccion` solo-líder + `guardar_proveedor_produccion`/`cambiar_estado_proveedor_produccion`/`fn_proveedores_produccion` + pantalla `/produccion/proveedores` (migración `20260920110000`, **sin pegar en producción**, prueba `pnpm pruebas:proveedores-produccion`). Falta pegarla y verla en el navegador.
@@ -825,19 +828,41 @@ dinero intacto, RLS sin permisos de escritura, triggers diferidos activos. Produ
       las firmas de 3 funciones de otras sesiones ya aplicadas en producción (`fn_resumen_comparacion`, `devolver_insumo_de_produccion`,
       `fn_recalcular_costo_insumos_produccion`) que hacían que `datos:comparar` las diera por «rotas».
 - [x] **Candados nuevos en `docs/datos/01-INVARIANTES.md`** (suma del reparto, tope por tienda, reasignar solo lo pendiente, escritura solo por RPC).
-- [ ] **Alinear los comentarios de base de datos de producción a «ADR-0139» (opcional, cosmético).** Los 8 objetos (`fn_puede_ver_compra`,
-      `reasignar_reparto_compra`, `lineas_compra_operativo`, `listar_compras_operativo`, `compra_item_destinos`, `compra_reasignaciones`,
-      `compra_item_reparto_resumen` y la columna `compra_item_cierres.ubicacion_id`) dicen «ADR-0138», que hoy es el ADR de Comparar
-      períodos (Inventario). Solo `COMMENT ON`; no toca datos ni estructura.
-- [ ] **Refresco COMPLETO del volcado pendiente (de otras sesiones):** `venta_pagos` en producción ya tiene `recibido` (Caja, ADR-0137) y el
-      volcado no; puede haber más cambios de columnas ajenos que este refresco dirigido no cubre. `pnpm datos:generar:produccion` completo
-      (los 7 archivos de `COMO-REFRESCAR.md`) lo resuelve cuando alguien lo haga.
-- [ ] **Filtro y chip «Destino» en Comprobantes y Por pagar.** Pendiente a propósito: la lista es paginada en Postgres, así que un filtro
-      en el navegador mentiría; pide un parámetro nuevo en `listar_compras` (`drop function` + `create`) y coordinar con la sesión de Por
-      pagar. Hoy cada comprobante repartido dice a qué tiendas va.
-- [ ] **Datos de prueba en el Postgres LOCAL compartido:** `TST-REPARTO01` (tiene recepciones: no se puede anular) y `TST-RUI0001`
-      (repartido 10+14, con una reasignación y un cierre). Solo local; ensucian los totales locales de «Por pagar»/«Por recibir».
+- [x] **Comentarios de base de datos de producción alineados a «ADR-0139» (2026-09-21):** Felipe corrió el `COMMENT ON` y se comprobó en solo
+      lectura que los 8 objetos (`fn_puede_ver_compra`, `reasignar_reparto_compra`, `lineas_compra_operativo`, `listar_compras_operativo`,
+      `compra_item_destinos`, `compra_reasignaciones`, `compra_item_reparto_resumen` y `compra_item_cierres.ubicacion_id`) dicen «ADR-0139» y
+      ninguno dice «ADR-0138» (número que hoy es del ADR de Comparar períodos, Inventario).
+- [x] **Refresco COMPLETO del volcado (2026-09-21):** los 7 archivos de `generado/` comparados contra `cayla-dynamic` (solo lectura) con un
+      hash por tabla y por grupo de funciones, y parchados solo donde difería; al final los 7 dan hash idéntico al de producción. Entraron: las 4
+      tablas de Producción (`proveedores_produccion`, `comprobantes_produccion` y sus `_items`/`_pagos`; F4a/F4b), `venta_pagos.recibido` (Caja,
+      ADR-0137), `compra_adjuntos.nota_credito_id`/`archivado_*` y las restricciones de `compra_notas_credito`, 14 firmas de funciones (entre ellas
+      `fn_movimientos` con `p_producto_id`), los conteos de filas y 2 llaves hacia `public.personas`. 77 tablas y vistas, 196 funciones. Las 4 tablas de
+      Producción se asignaron al Gallito en `scripts/datos/aviario.mjs` (sin pájaro el CI cae al próximo refresco): **la sesión de Producción lo confirma**.
+      `datos:comparar` queda en 3 «rotas» a propósito: `apartar_stock`, `liberar_apartado` y `listar_apartados` (Apartar stock, ADR-0141, cuya migración
+      `20260920160000` sigue sin pegar en producción; no es de esta sesión).
+- [x] **Filtro y chip «Destino» en Comprobantes y Por pagar (2026-09-21, anexo del ADR-0139):** hecho y verificado en local (SQL 57/57, navegador:
+      Trujillo = 5 comprobantes en Comprobantes y 4 con S/ 4,212.60 en Por pagar, cuadrando con los subtotales). Migración
+      `20260921130000_compras_filtro_por_tienda_destino.sql`.
+- [x] **`20260921130000_compras_filtro_por_tienda_destino.sql` pegada en producción por Felipe (2026-09-21) y verificada en solo lectura:** una sola
+      firma de cada función (`listar_compras` con 18 parámetros, `por_pagar_tramos` con 8), cerradas a `anon`, con el candado de dinero puesto en
+      `por_pagar_tramos`. El volcado (`funciones-produccion.txt`) ya trae las dos firmas nuevas (refresco completo del mismo día).
+- [x] **Datos de prueba en el Postgres LOCAL compartido:** `TST-REPARTO01` (tiene recepciones: no se puede anular) y `TST-RUI0001`
+      (repartido 10+14, con una reasignación y un cierre). Solo local, **producción tiene 0** (verificado 2026-09-21); Felipe: no es problema,
+      se dejan. Lo único que hacen es ensuciar los totales locales de «Por pagar»/«Por recibir».
 - [ ] **Anotado, no de este cambio:** el `--en-seco` de `pagos_compras_endurecimiento` ya no sirve con el reparto aplicado.
+- [ ] **Postgres local compartido: un saldo a favor de S/ 200 de Textiles Andina, sobrante de otra sesión, rompe 2 suites** (no tiene relación con
+      Compras-reparto ni con el filtro «Destino»): `pnpm pruebas:pago-por-lote-medios` (24/27) y `pnpm pruebas:notas-credito` (35/42); todas sus
+      pruebas fallidas hablan de saldo a favor. Se resuelve anulando ese crédito en el local (no se borra: es un libro inmutable) o corriendo esas
+      suites en una base limpia. `notas-credito` sí corre en CI (base limpia) y allí pasa; `pago-por-lote-medios` no está en el CI.
+- [ ] **Sumar `pnpm pruebas:compras-reparto` al CI (`.github/workflows/ci.yml`).** Hoy solo corre en local: sus 57 escenarios (el reparto 12/12, el tope
+      por tienda, reasignar solo lo pendiente, lo que ve un integrante, el candado de dinero, el filtro «Destino» y las dos firmas de
+      `listar_compras`/`por_pagar_tramos`) no vigilan nada en cada push. Usa el mismo seed que `dinero-compras` (ya en el CI); habría que ver que pase
+      sobre la base limpia del CI antes de dejarlo obligatorio.
+      (`pnpm pruebas:deriva-produccion` ya entró al CI el 2026-09-21, #227; su primer resultado en la base limpia de CI está por mirar.)
+- [ ] **Decisión de diseño abierta (opcional): las cuatro cifras de arriba de Comprobantes y Por pagar (Por pagar, Por recibir, Compras del mes, IGV;
+      Deuda, Vencido, Vence esta semana, Concentración) no siguen NINGÚN filtro**, tampoco el de proveedor ni ahora «Destino»; solo los
+      subtotales por tramo de Por pagar lo siguen. Si Felipe quiere que sigan el filtro, cada una de esas funciones necesita su parámetro
+      (candado de dinero incluido) — hoy se dejó así a propósito para no cambiar cinco funciones de dinero.
 
 ## 🎯 Traslados: lectura operativa, franja «Atención hoy» y contador del menú (2026-09-18, ADR-0105)
 
