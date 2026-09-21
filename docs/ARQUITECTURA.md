@@ -491,7 +491,7 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `packages/shared/src/documento.ts` (pura, corre en los dos lados). ADR-0008.
 - `/vender/historial` → `lib/ventas-historial.ts` (lectura; reglas puras en
   `ventas-historial-reglas.ts`) → `HistorialVentasLista.tsx`, `FiltrosHistorialVentas.tsx`
-  y `HistorialVentasTotales.tsx`. Solo lectura, **sin RPC propia**: PostgREST sobre
+  y `HistorialVentasPulso.tsx` (el trazo del período). Solo lectura, **sin RPC propia**: PostgREST sobre
   `ventas` + `venta_items` + `venta_pagos` + `comprobantes`, con la RLS
   `fn_puede_operar_ubicacion` acotando por tienda (líder: todas). El nombre de quien
   vendió sale de `fn_nombres_personas`; el filtro por vendedor, de `fn_colaboradores`.

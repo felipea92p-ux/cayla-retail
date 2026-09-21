@@ -5,7 +5,7 @@
 (8 pruebas de integración, como líder y como colaboradora) y con una vista previa de datos inventados en cuatro anchos. **No hay migración:
 no hay nada que pegar en producción.**
 **Decide:** el análisis de ubicación es de este documento; quien pidió el trabajo lo aprobó el 2026-09-21 («me parece bien, construye eso»).
-Lo que es decisión de negocio y sigue abierto está en «Lo que queda por decidir».
+Las dos decisiones de negocio las confirmó el mismo día (ver «Decisiones de negocio»).
 **Afecta:** ruta nueva `/vender/historial`; el lateral (grupo Ventas: una entrada más); `lib/ventas-historial.ts` y
 `lib/ventas-historial-reglas.ts`; tres componentes. **Ningún cambio de esquema, de función ni de política.**
 
@@ -88,12 +88,40 @@ Historial es para las ventas lo que Movimientos es para el stock: el libro donde
 - **Local vs producción:** idénticos en todo lo que esta pantalla lee. La base local **no** tiene aún 8 migraciones recientes de `main`
   (caja, producción, notas de crédito); ninguna toca estas tablas.
 
-## Lo que queda por decidir (de negocio)
+## Decisiones de negocio (confirmadas el 2026-09-21)
 
-1. **¿Lo ve todo el equipo o solo el líder?** Se asumió que todos, cada quien su tienda —igual que «Ventas de hoy»—. Cambiarlo es una
-   condición en el lateral y un `redirect` en la página.
-2. **¿«Históricas» incluye ventas de antes del ERP?** Se asumió que no: las ya registradas aquí. Cargar ventas de otro sistema no cambia el
-   lugar de la pantalla, pero sí el diseño: habría que cargarlas sin tocar stock ni cajas, o se descuadra el inventario de hoy.
+1. **Cada quien ve su tienda; el líder ve todas.** («Sí, cada quien en su tienda».) Es lo que ya hace la pantalla: la RLS acota a la
+   tienda de la persona y solo el líder tiene los selectores de tienda y de vendedor.
+2. **El historial no incluye ventas de antes del ERP.** («No incluye ventas de antes».) Es lo registrado aquí. Si algún día se cargaran
+   ventas de otro sistema, sería otro trabajo con su propio ADR: habría que cargarlas sin tocar stock ni cajas, o se descuadra el
+   inventario de hoy.
+
+## Addendum 2026-09-21 — el look
+
+A pedido de quien encargó la pantalla («guiándote de las demás vistas de ventas y de catálogo, más futurista y sofisticado, manteniendo la
+línea de las pantallas de ventas»), el aspecto se rehízo con la línea Atelier de Cambios, Devoluciones y Caja (ADR-0123) y los filtros de
+Catálogo. Facturación no fue referencia (está en rediseño aparte). **Reemplaza la descripción de las tres tarjetas de arriba.** No cambia el
+lugar, los permisos ni el esquema; no se agregó ninguna clase de CSS (ADR-0105): solo las que ya existen, con su apagado por
+`prefers-reduced-motion`.
+
+- **Cabecera:** `EncabezadoPagina` con `ResumenSede` a la derecha —vendido y ventas—, como en Cambios y Devoluciones. El ticket promedio
+  pasó a la tarjeta del trazo (con tres cifras el resumen no cabía junto al título a 1440 px).
+- **El trazo del período** (`HistorialVentasPulso`): lo vendido día por día dibujado como un **hilo** taupe que se traza una vez al llegar
+  (`anim-trazo`), con un nudo en el mejor día —el mismo nudo de la línea de tiempo— y debajo la mezcla de pagos (barra con los colores de
+  método, que son dato y no marca). SVG y CSS puros, sin librería de gráficos. Es lo único «audaz»; todo lo demás es quieto.
+- **Lista:** línea de tiempo con el hilo taupe y un nudo por día (como `ComprasAgrupadas`); una hoja de papel por día; cada venta con un
+  racimo de miniaturas, título serif con los nombres de las prendas, una línea chica (hora · tienda · clienta · vendedor), comprobante con
+  su estado y total con la forma de pago. **El total de cada día es el del día completo** (sale de la serie de todo el rango), no el de las
+  filas de la página: un día partido entre dos páginas muestra lo mismo en las dos.
+- **Miniaturas:** la foto del color vendido si existe (mismo criterio que el catálogo) y, si no, un mosaico de ese color. En producción
+  solo 5 de las 17 prendas vendidas tienen foto de su color (en local, ninguna), pero los 35 colores tienen su tono: el color es la
+  identidad segura.
+- **Filtros:** los atajos de período (7/30/90 días o fechas propias) a la vista y un botón «Filtros · N» con el panel de píldoras de
+  Catálogo (tienda, vendedor, pago, estado, comprobante) y un chip por cada filtro aplicado.
+- **Datos:** la consulta de totales (misma, con el mismo tope de 1000) ahora también entrega `porDia` y `porMetodo`; pasado el tope no se
+  dibujan y la tarjeta lo dice. La lista pide además `color_codigo`, `colores.hex` y `producto_fotos` (ya existen en producción).
+- **Anchos:** en celular (<640 px) racimo y texto arriba y, debajo, comprobante y total; de 640 a 1279 px el total arriba a la derecha y el
+  comprobante en una segunda línea; cuatro columnas solo desde 1280 px (a 1024 px el contenido útil mide ~650 y el título se quedaba en ~130).
 
 ## Verificación
 
