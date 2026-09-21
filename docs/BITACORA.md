@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-21 (Nota de crédito probada en el sandbox y formulario de series que valida el formato)
+Felipe pidió probar la nota de crédito en el sandbox de Lucode antes de registrar las series. Se mandó una sola, con el conector real y sin tocar ninguna base: corrige la boleta de prueba B001-21 por su total, y SUNAT la aceptó a la primera con una serie (`BC01`) que nunca se dio de alta en ningún panel; el aviso de `lucode.ts` que decía que su forma nunca se había confirmado quedó resuelto para el crédito (la nota de débito sigue sin probarse). Además, el formulario «Registrar serie» ahora valida el formato antes de guardar: cuatro caracteres y la letra que corresponde (B para boleta, F para factura, B o F para nota de crédito), porque una serie mal escrita queda guardada y todos sus comprobantes se rechazan.
+Lo que Felipe se lleva: una integración no se da por buena leyendo su documentación sino mandándole un documento de verdad al sandbox; y un dato fiscal se valida al entrar, porque después ya no se corrige sin quemar números.
+
 ## 2026-09-21 (Serie de nota de crédito: Felipe eligió A)
 Felipe eligió la opción A: una serie de nota de crédito con B por tienda ahora, y la de factura cuando se emita la primera factura (SUNAT exige F si la nota corrige una factura y B si corrige una boleta; hoy en producción solo hay boletas). Decidir no es ejecutar, y al ejecutarlo aparecieron tres dependencias: la pantalla de producción todavía no ofrece «nota de crédito» en «Registrar serie» (está en la rama sin subir), la forma del documento de nota de crédito hacia Lucode nunca se probó en el sandbox, y Tienda LIM no tiene ninguna serie. Quedó todo anotado en el BACKLOG.
 Lo que Felipe se lleva: una decisión de negocio se cierra en el chat, pero se vuelve real cuando cada pieza que la sostiene (pantalla, proveedor, datos) está lista; conviene mirar esas piezas antes de decir «ya está».

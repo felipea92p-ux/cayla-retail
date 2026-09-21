@@ -584,6 +584,8 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
     ahora, y la de factura cuando se emita la primera factura (eso son dos series por tienda: una
     migración de `series_comprobantes`, `fn_reservar_numero_serie`, `emitir_nota` y «Registrar
     serie»). Hasta entonces, una nota de crédito de una factura con serie B la rechazaría SUNAT.
+    El 2026-09-21 se probó en el sandbox una nota de crédito de boleta (`BC01-1` sobre B001-21):
+    aceptada; y el formulario «Registrar serie» valida desde entonces la letra y la longitud.
 
 ## Decisiones que lo gobiernan
 
