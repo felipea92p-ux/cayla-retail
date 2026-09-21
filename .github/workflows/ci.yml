@@ -188,6 +188,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:comprobantes-produccion
 
+      # Por pagar de Producción y consolidado D-I (ADR-0133, F4c): un pago parcial o con varios medios baja el saldo, nunca lo supera ni
+      # se repite con el mismo token; solo el líder paga; la deuda consolidada suma Compras y Producción por proveedor y el IGV del mes
+      # suma los dos libros menos las notas de crédito. Cada caso termina en ROLLBACK.
+      - name: pruebas:por-pagar-produccion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:por-pagar-produccion
+
       # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
       # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las
       # tarjetas de arriba cuentan lo mismo. Cada caso termina en ROLLBACK.

@@ -44,8 +44,6 @@ const form = (extra: Partial<FormComprobante> = {}): FormComprobante => ({
   fechaVencimiento: "2026-10-10",
   lineas: [linea("100", "20")],
   totalPapel: "",
-  metodoPago: "transferencia",
-  referenciaPago: "",
   ...extra,
 });
 
