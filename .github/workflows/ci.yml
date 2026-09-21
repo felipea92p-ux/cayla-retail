@@ -166,6 +166,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:ventas-del-dia
 
+      # Anular una venta libera su comprobante pendiente (20260921120000): no queda uno en la cola de
+      # SUNAT con su botón «Transmitir» de una venta que ya se devolvió. Cada caso termina en ROLLBACK.
+      - name: pruebas:anular-venta-comprobante
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:anular-venta-comprobante
+
       # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
       # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las
       # tarjetas de arriba cuentan lo mismo. Cada caso termina en ROLLBACK.

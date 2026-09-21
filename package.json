@@ -19,6 +19,7 @@
     "pruebas:deriva-produccion": "node scripts/pruebas/deriva_produccion.mjs",
     "pruebas:registrar-venta": "node scripts/pruebas/registrar_venta.mjs",
     "pruebas:ventas-del-dia": "node scripts/pruebas/ventas_del_dia.mjs",
+    "pruebas:anular-venta-comprobante": "node scripts/pruebas/anular_venta_comprobante.mjs",
     "pruebas:recibir-envio": "node scripts/pruebas/recibir_envio.mjs",
     "pruebas:dinero-compras": "node scripts/pruebas/dinero_compras_solo_lider.mjs",
     "pruebas:compras-indicadores": "node scripts/pruebas/compras_indicadores.mjs",
