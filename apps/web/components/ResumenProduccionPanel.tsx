@@ -4,6 +4,7 @@ import { cantidadTexto } from "@/lib/insumos-reglas";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { PestanasResumenProduccion } from "@/components/PestanasResumenProduccion";
 import { ETIQUETA_ESTADO_MODELO, type CifrasResumen, type Decision, type EstadoModelo, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
 
 // Resumen de Producción (ADR-0133, F6): «¿qué necesita mi decisión hoy?». Cada tarjeta nace de datos que ya existen y lleva su evidencia; desaparece sola
@@ -31,6 +32,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
 
   return (
     <div className="space-y-6">
+      <PestanasResumenProduccion activa="hoy" />
       <div className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Producción</p>

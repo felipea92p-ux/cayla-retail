@@ -3,6 +3,16 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-21 (El menú es un árbol de datos — ADR-0144, paso 1, sin cambio visible)
+Las reglas de quién ve qué estaban repartidas en siete constantes de `AppShell.tsx`, una lista de rutas repetida a mano y `produccion-menu.ts`: solo hoy `main` cambió el menú cinco veces y seis PRs editaban la misma zona. Ahora el menú es un árbol de datos (`lib/menu.ts`) con una función pura por permisos; `AppShell.tsx` solo dibuja, y lo que ve cada perfil no cambió.
+Felipe se lleva: (1) **la prueba no es circular**: la fotografía del menú de hoy se capturó del `AppShell.tsx` real —no del árbol nuevo— y 1176 renders del original y del nuevo dan cero diferencias; (2) cada mutación (quitar una fila, cambiar un orden, quitar un permiso, romper un tope) hace fallar justo su prueba; (3) `main` se movió cinco veces mientras se hacía, por eso se aterriza ya: desde ahora una fila nueva se agrega en un solo archivo y el diff de la fotografía muestra qué perfil ve algo distinto.
+Sin resolver: Producción supera el tope de 6 (7 hijas desde #231, deuda explícita con una prueba que la vigila); los nombres repetidos entre Compras y Producción («… del Taller», ya elegido); el líder en el Taller sin «Recibir mercadería» en el lateral (queda en «+ Nuevo», así lo dejó Felipe); y probarlo con interacción real (teclado, hover, cajón plegado), que solo se comparó en estructura.
+
+## 2026-09-21 (El calendario ya no cambia de mes solo)
+Se corrigió `CampoFecha`: pasar el mouse por un día gris del mes vecino movía el cursor de la grilla, y como el cursor decide qué mes se dibuja, el calendario saltaba solo. Ahora el hover solo mueve el cursor si el día es del mes visible; los grises se siguen resaltando con CSS y al hacer clic sí cambian de mes.
+Felipe se lleva: (1) **un mismo estado no debe mandar sobre dos cosas** —el cursor era a la vez «dónde estoy» y «qué mes muestro»—, y por eso un gesto inocente (pasar el mouse) tenía un efecto grande; (2) la causa de otra rareza de la sesión, la lista de facturas amontonada en «Registrar nota», no era el código sino un servidor de desarrollo con el CSS viejo: al cambiar de rama o traer cambios que agregan un `@import`, se reinicia el servidor y se borra `.next`.
+Sin resolver: verificado llamando al manejador de cada celda, no con mouse real (el panel del navegador no lo mueve); conviene pasarle el mouse una vez a mano.
+
 ## 2026-09-21 (El candado de líder ya corre en producción — ADR-0143)
 Felipe fusionó el PR #218 y autorizó pegar la migración: las pantallas ya estaban desplegadas y `cerrar_caja` y `registrar_movimiento` ahora rechazan con 42501 a quien no es líder. Se comprobó dentro de la base con un colaborador real y un líder real y con los roles de la API: el colaborador recibe los dos mensajes, el líder pasa el candado y `anon` no puede ni ejecutarlas.
 Felipe se lleva: (1) **antes de pegar se ensayó en un lote que termina en una excepción a propósito** y el cuerpo, sin el candado, dio el mismo `md5` que producción: se cambió lo que se quería y nada más; (2) el ensayo usó un colaborador y un líder reales **sin escribir nada** —el candado responde antes que cualquier otra cosa—, y después la base seguía intacta (479 movimientos, 3 cajas abiertas); (3) producción registra la migración con la hora de aplicación (`20260921152907`), no con el nombre del archivo (`20260921120000`): tres números «libres» de ese día se ocuparon en horas, y hubo que renumerar dos veces.
@@ -8559,3 +8569,7 @@ Felipe fusionó F6 y decidió sobre F7: la cotización de maquila externa NO se 
 (`planilla_pagada_detalle` / `v_planilla_pagada`, con `costo_total`; el Taller es la sede `LIM`, `tipo = 'taller'`) y `retail.gastos` ya existe para alquiler y servicios (modelo de Finanzas, ADR-0117, PR #170 sin fusionar).
 Por eso F7 NO crea `gastos_taller` ni cotizaciones: solo una vista puente `retail.planilla_por_sede` (D-33, agregada, sin personas, grupos < 3 ocultos, security_invoker) y la pantalla `/produccion/eficiencia`.
 Interpretación propia de D-31 documentada: el Taller se mide por lo que cuesta cada prenda terminada (materiales + conversión), período a período.
+
+## 2026-09-22 (F7: conflicto con el menú como árbol de datos — ADR-0144)
+Al fusionar main en el PR de F7 el menú había pasado a ser un árbol de datos (`lib/menu.ts`) con una prueba que frena una octava hija de Producción («regrupar antes de agregar Eficiencia»). No se subió la excepción ni se rompió
+la prueba: Eficiencia llega como **pestaña del Resumen** («Hoy | Eficiencia», `PestanasResumenProduccion`), no como fila del lateral. El nodo `produccion.eficiencia` sigue como «futura» con la nota actualizada.

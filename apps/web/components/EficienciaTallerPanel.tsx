@@ -7,6 +7,7 @@ import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { PestanasResumenProduccion } from "@/components/PestanasResumenProduccion";
 import { repartoDelGasto, variacion, type EficienciaPeriodo, type PartePlata } from "@/lib/eficiencia-reglas";
 import type { EstadoPlanilla } from "@/lib/eficiencia";
 
@@ -35,6 +36,7 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
 
   return (
     <div className="space-y-6">
+      <PestanasResumenProduccion activa="eficiencia" />
       <div className="anim-entra">
         <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
         <h1 className="font-display mt-1 text-2xl text-tinta">Eficiencia del Taller</h1>

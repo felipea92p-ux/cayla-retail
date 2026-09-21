@@ -272,7 +272,7 @@ Decisiones de Felipe (2026-09-22): **no se registra la cotización de maquila ex
   `sedes.tipo = 'taller'` (no por el código `LIM`). En bases locales sin Dynamic la migración no crea la vista ni falla; la app tolera que falte.
 - **Alquiler y servicios:** de `gastos` con la ubicación Taller (Finanzas, ADR-0117); fecha = la del registro. **Dependencia:** el PR del modelo de gastos (#170) aún no está fusionado; `gastos` existe en producción (0 filas) y se lee
   con un tipo mínimo local. Cuando ADR-0117 agregue el estado «anulado», habrá que filtrar solo los vigentes en `lib/eficiencia.ts`.
-- Pantalla `/produccion/eficiencia` (solo líder; menú «Eficiencia», último del grupo): prendas buenas, costo por prenda, materiales por prenda y conversión por prenda con su variación contra el período anterior;
+- Pantalla `/produccion/eficiencia` (solo líder; **pestaña «Hoy | Eficiencia» del Resumen, no fila del lateral**: el menú de Producción está en su tope de 7 hijas —ver «DEUDA» en `lib/menu.test.ts`— y una octava exige regrupar antes): prendas buenas, costo por prenda, materiales por prenda y conversión por prenda con su variación contra el período anterior;
   «¿en qué se fue la plata del Taller?» (planilla, materiales, maquila, gastos); entregas a tiempo/tarde; tabla período a período. **Sin rojo.**
 - Pruebas: `pnpm pruebas:planilla-por-sede` (7 casos, en CI) + `lib/eficiencia-reglas.test.ts` (10).
 - **Pendiente:** pegar la migración; verlo con clics; hoy producción no tiene órdenes cerradas, así que las cifras por prenda saldrán vacías hasta el primer cierre (la planilla de Dynamic sí se verá: 2 períodos pagados con ~5 personas en el Taller).
