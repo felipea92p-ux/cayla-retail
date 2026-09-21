@@ -1,5 +1,5 @@
 # 10 · Producción del Taller
-> **Pájaro:** GALLITO · **Lo lleva:** _(libre — apúntate en `07-GOBIERNO.md`)_ · **Última revisión:** 2026-09-17
+> **Pájaro:** GALLITO · **Lo lleva:** _(libre — apúntate en `07-GOBIERNO.md`)_ · **Última revisión:** 2026-09-22 (sección «ESTADO ACTUAL»; el resto es histórico)
 
 > **Nota 2026-09-17, sobre el resto de este documento (no sobre la sección de insumos
 > del final, que sí está al día):** las tablas `producciones`/`produccion_lineas`/
@@ -11,6 +11,50 @@
 > estados `en_proceso`/`terminada`/`anulada`), verificado directo contra el Postgres
 > local al escribir ADR-0090. Este documento no se reescribió entero bajo esa tarea
 > (alcance: solo la sección de insumos) — queda pendiente un refresco completo.
+## ESTADO ACTUAL (2026-09-22) — léelo primero
+
+> Lo que sigue a esta sección es el documento histórico (reconstrucción del 2026-09-15 e insumos del 2026-09-17). **Esta sección manda.** Lo escribió el cierre de ADR-0133
+> (F0 a F8, `docs/PLAN-PRODUCCION.md`); las tablas y firmas se verificaron contra producción el 2026-09-21. El diccionario campo por campo vive en `generado/` y se regenera con
+> `pnpm datos:generar:produccion` (las tablas de F4c en adelante entran cuando se refresque el volcado).
+
+**Producción es un módulo propio, aparte de Compras** (ADR-0133, decisión de Felipe): su menú, sus proveedores, sus comprobantes, su por pagar y su recepción. Se conecta con Compras solo por
+los datos: la tela que llega abre un lote, la orden lo consume. Visible **solo parado en el Taller**, líder incluido (2026-09-20).
+
+**Tablas (schema `retail`)**
+| Grupo | Tablas | Quién las lee |
+|---|---|---|
+| Órdenes | `producciones`, `produccion_lineas` (por variante) | quien opera el Taller; **los 4 costos de `producciones` solo el líder** (por `fn_costos_producciones`) |
+| Insumos | `insumos` (catálogo), `insumo_lotes`, `movimientos_insumo` (ledger; el saldo se deriva) | cantidades: quien opera el Taller; **`costo_unitario` solo el líder** (`fn_costos_insumos_taller`) |
+| Proveedores de Producción | `proveedores_produccion` (directorio aparte del de Compras, D-H) | solo líder |
+| Comprobantes | `comprobantes_produccion`, `_items`, `_pagos` (inmutables) | solo líder |
+| Recepción | `comprobantes_produccion_recepciones`, `_cierres` (sin importes, inmutables) | recepciones: quien opera el Taller; cierres: líder |
+| Planilla (Dynamic) | vista `retail.planilla_por_sede` (`security_invoker`, agregada, grupos < 3 ocultos; D-33) | quien en Dynamic es admin o líder |
+
+**RPC (las únicas puertas de escritura)**: `abrir_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `anular_produccion` (devuelve al lote lo descontado), `revertir_produccion`;
+`recibir_insumo`, `registrar_consumo_insumo`, `devolver_insumo_de_produccion`, `ajustar_insumo_por_conteo`; `guardar_proveedor_produccion`, `cambiar_estado_proveedor_produccion`;
+`registrar_comprobante_produccion`, `anular_comprobante_produccion`, `registrar_pago_comprobante_produccion`, `recibir_comprobante_produccion`.
+**Lecturas con regla de negocio**: `fn_proveedores_produccion`, `fn_proveedor_produccion_metricas`, `fn_comprobantes_produccion` (pagado, saldo, vencido **derivados**), `fn_lineas_comprobantes_produccion`
+(**sin importes**), `fn_deuda_consolidada` y `fn_igv_credito_fiscal` (D-I, solo lectura sobre Compras + Producción), `fn_costos_insumos_taller`, `fn_costos_producciones`.
+
+**Reglas que la base hace cumplir** (probadas en `scripts/pruebas/`, todas en CI): contado ⇒ pago exacto en la misma transacción; crédito ⇒ vencimiento; nunca se paga más que el saldo; nunca se recibe más
+de lo facturado − recibido − cerrado; un pago o una recepción repetidos con el mismo token no se duplican; anular exige motivo y no se puede con pagos ni con mercadería recibida; el saldo de un lote es la suma del ledger
+(nunca se guarda); el costo de tela y avíos de la orden es lo consumido **menos** lo devuelto.
+
+**Pantallas** (`/produccion/…`): Resumen (`/produccion`, solo líder: «¿qué necesita mi decisión hoy?»), Órdenes (tablero + panel + cierre por talla; «Nueva orden» aconseja al líder), Insumos, Proveedores, Comprobantes,
+Recibir (también para quien trabaja en el Taller, sin montos), Por pagar (con «Deuda total de CAYLA») y Eficiencia (pestaña del Resumen: costo por prenda = materiales + conversión).
+
+**Quién ve qué (D-G).** Colaborador del Taller: órdenes, insumos (cantidades) y recibir; **ningún monto** —la base no se los da, ni por la API directa—. Líder: todo, y los costos por las dos funciones `fn_costos_*`.
+
+**Del Taller a las tiendas (F8).** Al cerrar una orden las prendas buenas entran al stock del Taller (`movimientos` con `motivo = 'produccion'` y `produccion_id`). «Siguiente paso: llevarlas a las tiendas» enlaza a
+`/inventario/mover?origen=<Taller>&lineas=<variante>:<cantidad>,…` (traslado en dos fases; el destino lo elige quien traslada).
+**Hueco conocido:** la lista de Movimientos muestra esos movimientos como «Producción → Taller» pero **sin referencia de la orden** (la orden no tiene número y `fn_movimientos` no devuelve `produccion_id`); mostrar
+«Orden de <modelo>» exige agregar ese dato a `fn_movimientos` (función de Inventario). Anotado en `docs/BACKLOG.md`.
+
+**Decisiones que gobiernan esta versión:** D-31 (costo absorbido; la mitad «contra una cotización de maquila» se descartó el 2026-09-22), D-33 (sueldos se leen de Dynamic), D-45 (costo por lote), D-47 (insumos), ADR-0126 (dinero solo del líder),
+ADR-0133 (Producción propia) y las de `docs/PLAN-PRODUCCION.md` (D-A a D-I).
+
+---
+
 ## Para qué existe
 
 El Taller de Lima fabrica prendas en continuo y las manda a TRU, AQP y LIM. Sin este

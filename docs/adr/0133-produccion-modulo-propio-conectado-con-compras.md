@@ -2,8 +2,9 @@
 
 - **Numeración:** nació como ADR-0130 («Producción es el módulo padre») y se renumeró a 0133 al fusionar con `main`, donde el 0130 ya era
   «El menú lateral se pliega a íconos». El título y el rumbo cambiaron el mismo día (ver «Historia»).
-- **Estado:** **Propuesto.** F1 (menú) y F2 (Órdenes) **aplicadas** el 2026-09-19. Falta el ok de Felipe en D-E, D-F, D-G y D-I
-  (`docs/PLAN-PRODUCCION.md`) antes de tocar esquema.
+- **Estado:** **Aceptado e implementado (F0 a F8, 2026-09-19 a 2026-09-22).** Las decisiones abiertas se resolvieron con Felipe: D-H (Producción con su propio abastecimiento) el 2026-09-19; D-G (dinero solo del líder)
+  y D-I (deuda consolidada e IGV) el 2026-09-21; **D-E (cotización de maquila externa) descartada** y **D-F (gastos del Taller) resuelta sin tabla propia** —sueldos de Dynamic, alquiler y servicios de Finanzas— el 2026-09-22.
+  Qué se construyó y qué migraciones lleva cada fase: `docs/PLAN-PRODUCCION.md`. Estado de la base: todas las migraciones de Producción están pegadas en producción.
 - **Reemplazó, en un punto, y luego se revirtió:** la regla del 2026-09-17 «Producción solo se ve parado en el Taller, líder incluido» (comentario
   en `AppShell.tsx`, ADR-0051). El 2026-09-19 la Decisión 2 la cambió (el líder la veía desde cualquier ubicación); **el 2026-09-20 Felipe la
   restituyó** — ver la nota bajo la Decisión 2. Hoy manda la del 2026-09-17.

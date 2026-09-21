@@ -8,7 +8,7 @@ import { soles } from "@/lib/compras-reglas";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoMonto } from "@/components/ui/campos";
 import { MatrizOrdenTabla } from "@/components/MatrizOrden";
-import { costoUnitario, segundas, totalBuenas, type MatrizOrden } from "@/lib/produccion-reglas";
+import { costoUnitario, segundas, totalBuenas, urlLlevarATiendas, type MatrizOrden } from "@/lib/produccion-reglas";
 import type { OrdenProduccion } from "@/lib/produccion";
 
 // Cerrar una orden (ADR-0133, F2): cuántas salieron buenas POR TALLA Y COLOR —así las espera `cerrar_produccion`— y
@@ -25,12 +25,14 @@ import type { OrdenProduccion } from "@/lib/produccion";
 const CONSERVAR = null as unknown as number;
 
 export function OrdenCierre({
+  tallerId,
   orden,
   matriz,
   esLider,
   onHecho,
 }: {
   orden: OrdenProduccion;
+  tallerId: string;
   matriz: MatrizOrden;
   esLider: boolean;
   onHecho: () => void;
@@ -65,9 +67,12 @@ export function OrdenCierre({
       avisar.error(traducirError(error, "cerrar la orden"));
       return;
     }
+    // F8: «Siguiente paso: llevarlas a las tiendas». El aviso trae el botón directo al traslado con el origen y las líneas ya puestas (solo para producción, no muestras).
+    const llevar = orden.esMuestra ? null : urlLlevarATiendas(tallerId, orden.lineas.map((l) => ({ varianteId: l.varianteId, cantidadBuenas: Math.max(0, Math.floor(Number(buenas[l.varianteId]) || 0)) })));
     avisar.exito(orden.esMuestra ? `Muestra ${orden.referencia} terminada` : `${total} prendas de ${orden.referencia} entraron al stock del Taller`, {
-      detalle: esLider ? `Costo real ${soles(unitario)} por prenda` : undefined,
-      duracion: 6000,
+      detalle: esLider ? `Costo real ${soles(unitario)} por prenda` : "Siguiente paso: llevarlas a las tiendas",
+      duracion: 9000,
+      ...(llevar ? { accion: { texto: "Llevarlas a las tiendas", onClick: () => router.push(llevar) } } : {}),
     });
     router.refresh();
     onHecho();

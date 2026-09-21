@@ -2,6 +2,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { MoverMercaderiaFormV2 } from "@/components/MoverMercaderiaFormV2";
+import { parsearLineasPrellenadas } from "@/lib/produccion-reglas";
 
 // Fase UI 1.1 (2026-09-12): pantalla nueva sobre `transferir` (V2). Ver
 // `MoverMercaderiaFormV2.tsx` para el porqué el origen no es un campo del
@@ -14,10 +15,14 @@ import { MoverMercaderiaFormV2 } from "@/components/MoverMercaderiaFormV2";
 // desde la suya. Todo lo que no calce (destino inexistente, variante sin
 // stock movible en el origen) se ignora en silencio y el formulario arranca
 // como siempre.
+//
+// Prellenado desde Producción (2026-09-22, ADR-0133 F8): `?origen=<Taller>&lineas=<variante>:<cantidad>,…` — «Siguiente paso: llevarlas a las tiendas» de una orden
+// cerrada. Varias líneas en vez de una; mismas reglas (solo se respeta lo que tiene stock movible en el origen, cada cantidad se topa al stock, y el destino
+// lo elige quien traslada). `variante`/`cantidad` (una sola línea) siguen funcionando como antes.
 export default async function MoverMercaderiaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ origen?: string; destino?: string; variante?: string; cantidad?: string }>;
+  searchParams: Promise<{ origen?: string; destino?: string; variante?: string; cantidad?: string; lineas?: string }>;
 }) {
   const [persona, params, ubicaciones] = await Promise.all([requirePersonaActualV2(), searchParams, getUbicaciones()]);
 
@@ -58,6 +63,11 @@ export default async function MoverMercaderiaPage({
     prellenar && params.variante && variantesMovibles.some((v) => v.varianteId === params.variante)
       ? { varianteId: params.variante, cantidad: Number.isInteger(cantidadPedida) && cantidadPedida > 0 ? cantidadPedida : 1 }
       : undefined;
+  const lineasIniciales = prellenar
+    ? parsearLineasPrellenadas(params.lineas)
+        .filter((l) => variantesMovibles.some((v) => v.varianteId === l.varianteId))
+        .map((l) => ({ varianteId: l.varianteId, cantidad: Math.min(l.cantidad, variantesMovibles.find((v) => v.varianteId === l.varianteId)?.cantidad ?? l.cantidad) }))
+    : [];
 
   return (
     <div className="space-y-6">
@@ -81,6 +91,7 @@ export default async function MoverMercaderiaPage({
           variantes={variantesMovibles}
           destinoInicialId={destinoInicialId}
           lineaInicial={lineaInicial}
+          lineasIniciales={lineasIniciales}
         />
       )}
     </div>

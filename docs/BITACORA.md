@@ -8573,3 +8573,8 @@ Interpretación propia de D-31 documentada: el Taller se mide por lo que cuesta 
 ## 2026-09-22 (F7: conflicto con el menú como árbol de datos — ADR-0144)
 Al fusionar main en el PR de F7 el menú había pasado a ser un árbol de datos (`lib/menu.ts`) con una prueba que frena una octava hija de Producción («regrupar antes de agregar Eficiencia»). No se subió la excepción ni se rompió
 la prueba: Eficiencia llega como **pestaña del Resumen** («Hoy | Eficiencia», `PestanasResumenProduccion`), no como fila del lateral. El nodo `produccion.eficiencia` sigue como «futura» con la nota actualizada.
+
+## 2026-09-22 (Producción F8: cierre — ADR-0133 implementado)
+Felipe fusionó F7 (migración de la planilla pegada; verificada en producción). F8 sin migraciones: «Llevarlas a las tiendas» desde el cierre y desde la orden terminada abre Mover con el Taller de origen y todas las líneas de la
+orden prellenadas (Mover acepta ahora `lineas`). Verificado que la referencia «Orden N» de Movimientos NO existe (la orden no tiene número y `fn_movimientos` no devuelve `produccion_id`): anotado en el BACKLOG con su propuesta.
+Documentación al día: módulo 10 de datos (sección «ESTADO ACTUAL»), ADR-0133 (Aceptado e implementado), ARQUITECTURA. Con esto quedan hechas F0 a F8.
