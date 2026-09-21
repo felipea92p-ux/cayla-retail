@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Historial de ventas · CAYLA Retail</title>
+<!-- Google Fonts: EB Garamond y DM Sans / Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&amp;family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            crema: '#fef9f1',
+            'crema-sidebar': '#f8f3e9',
+            papel: '#fbf6ec',
+            sand: '#e3dacb',
+            'sand-light': '#f3ede1',
+            tinta: '#1f1b18',
+            'tinta-muted': '#605d57',
+            'tinta-faint': '#989389',
+            cayla: '#b8412d',
+            taupe: '#a47865',
+          },
+          fontFamily: {
+            serif: ['"EB Garamond"', 'Georgia', 'serif'],
+            sans: ['"DM Sans"', '"Inter"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      background-color: #fef9f1;
+      color: #1f1b18;
+      font-family: 'DM Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .font-serif-title {
+      font-family: 'EB Garamond', Georgia, serif;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+    .touch-target {
+      min-height: 38px;
+    }
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex antialiased bg-[#fef9f1] text-[#1f1b18]">
+<!-- BARRA LATERAL IZQUIERDA (250px en crema claro #f8f3e9) -->
+<aside class="w-[250px] flex-shrink-0 bg-[#f8f3e9] border-r border-[#e6ded0] flex flex-col justify-between select-none min-h-screen">
+<div class="flex flex-col">
+<!-- Logotipo CAYLA con tipografía serif EB Garamond -->
+<div class="px-6 pt-7 pb-6 border-b border-[#e6ded0]/80">
+<span class="text-xs uppercase tracking-[0.25em] text-[#605d57] font-medium block">Retail</span>
+<span class="font-serif-title text-2xl font-normal text-[#1f1b18] tracking-tight block mt-0.5">CAYLA</span>
+</div>
+<!-- Grupos de navegación -->
+<nav aria-label="Menú principal" class="px-3 py-5 flex flex-col gap-6 text-sm">
+<!-- Grupo VENDER (expandido/activo) -->
+<div>
+<div class="px-3 flex items-center justify-between text-[11px] font-semibold tracking-wider text-[#605d57] uppercase mb-2">
+<span>Vender</span>
+<svg class="w-3.5 h-3.5 text-[#989389]" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<div class="flex flex-col gap-0.5">
+<a class="px-3 py-2 rounded-lg text-sm font-medium text-[#605d57] hover:text-[#1f1b18] hover:bg-[#e6ded0]/30 transition-colors flex items-center gap-2.5" href="#vender">
+<span>Vender</span>
+</a>
+<!-- Ítem Historial Activo -->
+<a class="px-3 py-2 rounded-lg text-sm font-semibold text-[#1f1b18] bg-[#e6ded0]/80 flex items-center justify-between" href="#historial">
+<span>Historial</span>
+<span class="w-1.5 h-1.5 rounded-full bg-[#1f1b18]"></span>
+</a>
+<a class="px-3 py-2 rounded-lg text-sm font-medium text-[#605d57] hover:text-[#1f1b18] hover:bg-[#e6ded0]/30 transition-colors flex items-center gap-2.5" href="#cambios">
+<span>Cambios</span>
+</a>
+<a class="px-3 py-2 rounded-lg text-sm font-medium text-[#605d57] hover:text-[#1f1b18] hover:bg-[#e6ded0]/30 transition-colors flex items-center gap-2.5" href="#devoluciones">
+<span>Devoluciones</span>
+</a>
+</div>
+</div>
+<!-- Grupo INVENTARIO -->
+<div>
+<button class="w-full px-3 flex items-center justify-between text-[11px] font-semibold tracking-wider text-[#605d57] uppercase hover:text-[#1f1b18] transition-colors">
+<span>Inventario</span>
+<svg class="w-3.5 h-3.5 text-[#989389]" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+<!-- Grupo COMPRAS -->
+<div>
+<button class="w-full px-3 flex items-center justify-between text-[11px] font-semibold tracking-wider text-[#605d57] uppercase hover:text-[#1f1b18] transition-colors">
+<span>Compras</span>
+<svg class="w-3.5 h-3.5 text-[#989389]" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+<!-- Grupo CAJA -->
+<div>
+<button class="w-full px-3 flex items-center justify-between text-[11px] font-semibold tracking-wider text-[#605d57] uppercase hover:text-[#1f1b18] transition-colors">
+<span>Caja</span>
+<svg class="w-3.5 h-3.5 text-[#989389]" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+</nav>
+</div>
+<!-- Pie lateral: Botón Colapsar -->
+<div class="p-4 border-t border-[#e6ded0]/80">
+<button class="w-full px-3 py-2 rounded-lg text-xs font-medium text-[#605d57] hover:text-[#1f1b18] hover:bg-[#e6ded0]/40 flex items-center gap-2.5 transition-colors">
+<svg class="w-4 h-4 text-[#989389]" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M11 19l-7-7 7-7m8 14l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Colapsar</span>
+</button>
+</div>
+</aside>
+<!-- CONTENEDOR DERECHO: BARRA SUPERIOR + ÁREA PRINCIPAL -->
+<div class="flex-1 flex flex-col min-w-0">
+<!-- BARRA SUPERIOR DELGADA Y ELEGANTE -->
+<header class="h-14 bg-[#fef9f1] border-b border-[#e6ded0] px-6 lg:px-8 flex items-center justify-between flex-shrink-0 z-10">
+<div class="flex items-center gap-4">
+<!-- Selector de tienda -->
+<button class="text-xs font-medium text-[#1f1b18] hover:text-black flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#e6ded0] bg-[#f8f3e9]/60 hover:bg-[#e6ded0]/40 transition-colors">
+<span>Todas las tiendas</span>
+<svg class="w-3.5 h-3.5 text-[#605d57]" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- Botón/campo rápido de búsqueda -->
+<div class="relative hidden sm:block">
+<button class="flex items-center gap-3 px-3 py-1.5 text-xs text-[#605d57] bg-[#f8f3e9] hover:bg-[#e6ded0]/40 border border-[#e6ded0] rounded-lg transition-colors">
+<span class="flex items-center gap-1.5">
+<svg class="w-3.5 h-3.5 text-[#989389]" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<circle cx="11" cy="11" r="7"></circle>
+<path d="M21 21l-4.35-4.35" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Buscar</span>
+</span>
+<kbd class="px-1.5 py-0.5 text-[10px] font-mono text-[#989389] bg-[#fef9f1] border border-[#e6ded0] rounded">⌘K</kbd>
+</button>
+</div>
+</div>
+<!-- Usuario y Cerrar sesión -->
+<div class="flex items-center gap-4 text-xs">
+<div class="flex items-center gap-2 text-[#1f1b18]">
+<span class="w-7 h-7 rounded-full bg-[#e6ded0] text-[#1f1b18] flex items-center justify-center font-semibold text-xs border border-[#d8cfbe]">
+          FA
+        </span>
+<span class="font-medium text-[#1f1b18]">Felipe Alvarez</span>
+</div>
+<span class="text-[#e6ded0]">|</span>
+<button class="text-[#605d57] hover:text-[#1f1b18] transition-colors font-medium">
+        Cerrar sesión
+      </button>
+</div>
+</header>
+<!-- ÁREA DE CONTENIDO PRINCIPAL -->
+<main class="flex-1 overflow-y-auto px-6 lg:px-8 py-7 max-w-7xl w-full mx-auto">
+<!-- 1. CABECERA DE PÁGINA -->
+<div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6">
+<div>
+<h1 class="font-serif-title text-[32px] leading-tight font-normal text-[#1f1b18] tracking-tight">
+          Historial
+        </h1>
+<p class="text-xs sm:text-[13px] text-[#605d57] mt-1 max-w-2xl">
+          Libro de todas las ventas. Solo lectura: una venta se corrige con anulación, cambio o devolución.
+        </p>
+</div>
+<a class="text-xs font-medium text-[#605d57] hover:text-[#1f1b18] flex items-center gap-1.5 self-start sm:self-auto pt-1 hover:underline transition-colors" href="#como-se-calcula">
+<span>Cómo se calcula</span>
+<span class="text-xs">ⓘ</span>
+</a>
+</div>
+<!-- 2. FRANJA CONTINUA DE 4 KPI EN TARJETA PAPEL (Único rojo permitido: cifra '17') -->
+<section class="bg-white border border-[#e6ded0] rounded-xl overflow-hidden shadow-none mb-6">
+<div class="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-[#e6ded0]">
+<!-- KPI 1 -->
+<div class="p-5 flex flex-col justify-center">
+<span class="font-serif-title text-[36px] leading-none font-normal text-[#1f1b18] tabular-nums">
+            S/ 5,487.10
+          </span>
+<span class="text-xs text-[#605d57] mt-2 font-normal">ventas del período</span>
+</div>
+<!-- KPI 2 -->
+<div class="p-5 flex flex-col justify-center">
+<span class="font-serif-title text-[36px] leading-none font-normal text-[#1f1b18] tabular-nums">
+            17
+          </span>
+<span class="text-xs text-[#605d57] mt-2 font-normal">ventas</span>
+</div>
+<!-- KPI 3 -->
+<div class="p-5 flex flex-col justify-center">
+<span class="font-serif-title text-[36px] leading-none font-normal text-[#1f1b18] tabular-nums">
+            S/ 686
+          </span>
+<span class="text-xs text-[#605d57] mt-2 font-normal">por día vendido</span>
+</div>
+<!-- KPI 4: Único acento rojo permitido #b8412d en la cifra -->
+<div class="p-5 flex flex-col justify-center">
+<span class="font-serif-title text-[36px] leading-none font-normal text-[#b8412d] tabular-nums">
+            17
+          </span>
+<span class="text-xs text-[#605d57] mt-2 font-normal">pendientes de comprobante</span>
+</div>
+</div>
+</section>
+<!-- 3. UNA SOLA BARRA DE BÚSQUEDA DE ANCHO COMPLETO -->
+<section class="mb-4">
+<div class="relative w-full">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#989389]">
+<svg class="w-5 h-5 text-[#605d57]" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<circle cx="11" cy="11" r="7"></circle>
+<path d="M21 21l-4.35-4.35" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<input class="w-full h-12 pl-12 pr-4 bg-[#f8f3e9] hover:bg-[#f3ede1] focus:bg-white text-sm text-[#1f1b18] placeholder-[#989389] border border-[#e6ded0] rounded-xl focus:outline-none focus:ring-1 focus:ring-[#1f1b18] transition-colors" placeholder="Busca por boleta, clienta o prenda…" type="search"/>
+</div>
+</section>
+<!-- 4. FILA DE ATAJOS Y SELECTOR DE PERÍODO (Sin rojo en 'Pendientes de comprobante') -->
+<section class="mb-4 flex flex-wrap items-center justify-between gap-3">
+<!-- Izquierda: Atajos -->
+<div class="flex flex-wrap items-center gap-2 text-xs">
+<span class="text-[#605d57] font-medium mr-1">Atajos:</span>
+<button class="touch-target px-4 py-2 rounded-full border border-[#e6ded0] bg-white hover:bg-[#f8f3e9] text-[#1f1b18] font-medium transition-colors">
+          Hoy
+        </button>
+<button class="touch-target px-4 py-2 rounded-full border border-[#e6ded0] bg-white hover:bg-[#f8f3e9] text-[#1f1b18] font-medium transition-colors">
+          Ayer
+        </button>
+<!-- Atajo corregido: contorno sand #dcd3c0, texto tinta #2b2623, sin rojo -->
+<button class="touch-target px-4 py-2 rounded-full border border-[#dcd3c0] bg-transparent hover:bg-[#f3ede1] text-[#2b2623] font-medium transition-colors">
+          Pendientes de comprobante · 17
+        </button>
+</div>
+<!-- Derecha: Selector de período -->
+<div class="flex items-center gap-1 p-1 bg-[#f3ede1] border border-[#e6ded0] rounded-full text-xs">
+<button class="px-3.5 py-1.5 rounded-full text-[#605d57] hover:text-[#1f1b18] transition-colors font-medium">
+          7 días
+        </button>
+<button class="px-3.5 py-1.5 rounded-full bg-[#1f1b18] text-[#fef9f1] font-medium shadow-none">
+          30 días
+        </button>
+<button class="px-3.5 py-1.5 rounded-full text-[#605d57] hover:text-[#1f1b18] transition-colors font-medium">
+          90 días
+        </button>
+<button class="px-3.5 py-1.5 rounded-full text-[#605d57] hover:text-[#1f1b18] transition-colors font-medium">
+          Personalizado
+        </button>
+</div>
+</section>
+<!-- 5. FILA DE FILTROS DESPLEGABLES -->
+<section class="mb-7 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+<div class="flex flex-wrap items-center gap-2">
+<button class="touch-target px-3.5 py-2 rounded-lg bg-[#f8f3e9] hover:bg-[#f3ede1] border border-[#e6ded0] text-[#1f1b18] font-medium inline-flex items-center gap-2 transition-colors">
+<span>Todas las tiendas</span>
+<span class="text-[#989389] text-[10px]">▾</span>
+</button>
+<button class="touch-target px-3.5 py-2 rounded-lg bg-[#f8f3e9] hover:bg-[#f3ede1] border border-[#e6ded0] text-[#1f1b18] font-medium inline-flex items-center gap-2 transition-colors">
+<span>Todos los vendedores</span>
+<span class="text-[#989389] text-[10px]">▾</span>
+</button>
+<button class="touch-target px-3.5 py-2 rounded-lg bg-[#f8f3e9] hover:bg-[#f3ede1] border border-[#e6ded0] text-[#1f1b18] font-medium inline-flex items-center gap-2 transition-colors">
+<span>Todos los pagos</span>
+<span class="text-[#989389] text-[10px]">▾</span>
+</button>
+<button class="touch-target px-3.5 py-2 rounded-lg bg-[#f8f3e9] hover:bg-[#f3ede1] border border-[#e6ded0] text-[#1f1b18] font-medium inline-flex items-center gap-2 transition-colors">
+<span>Todas las ventas</span>
+<span class="text-[#989389] text-[10px]">▾</span>
+</button>
+<button class="touch-target px-3.5 py-2 rounded-lg bg-[#f8f3e9] hover:bg-[#f3ede1] border border-[#e6ded0] text-[#1f1b18] font-medium inline-flex items-center gap-2 transition-colors">
+<span>Con o sin comprobante</span>
+<span class="text-[#989389] text-[10px]">▾</span>
+</button>
+</div>
+<button class="text-xs font-medium text-[#605d57] hover:text-[#1f1b18] transition-colors py-2 px-1">
+        Limpiar filtros
+      </button>
+</section>
+<!-- 6. DISTRIBUCIÓN EN 2 COLUMNAS (LÍNEA DE TIEMPO ~68% / PANEL DERECHO ~32%) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
+<!-- COLUMNA PRINCIPAL CON LÍNEA DE TIEMPO -->
+<div class="lg:col-span-8 flex flex-col">
+<!-- LÍNEA DE TIEMPO CONTENEDOR VERTICAL -->
+<div class="relative pl-7 border-l-2 border-[#a47865] flex flex-col gap-9 ml-2">
+<!-- ==================== GRUPO 1: HOY ==================== -->
+<div class="relative">
+<!-- Nodo en la línea de tiempo -->
+<div class="absolute -left-[35px] top-1 w-[14px] h-[14px] rounded-full border-2 border-[#a47865] bg-[#fef9f1] flex items-center justify-center">
+<span class="w-[6px] h-[6px] rounded-full bg-[#a47865] block"></span>
+</div>
+<!-- Encabezado del día: HOY con total en serif a la derecha -->
+<div class="flex items-baseline justify-between mb-3">
+<span class="text-[11px] font-semibold tracking-wider text-[#605d57] uppercase">
+                HOY · LUNES 21 DE SETIEMBRE
+              </span>
+<span class="font-serif-title text-base sm:text-lg text-[#1f1b18] tabular-nums font-normal">
+                S/ 812.00 · 3 ventas
+              </span>
+</div>
+<!-- Tarjeta Contenedor Papel (#fbf6ec, borde #e3dacb, rounded-[16px]) -->
+<div class="bg-[#fbf6ec] border border-[#e3dacb] rounded-[16px] overflow-hidden shadow-none">
+<!-- Fila 1: Casaca Emilia -->
+<div class="p-4 sm:p-5 border-b border-dashed border-[#e0d6c3] hover:bg-[#f6efe1]/70 transition-colors cursor-pointer group flex items-center justify-between gap-4">
+<div class="flex items-center gap-3.5 sm:gap-4 min-w-0">
+<!-- Miniaturas apiladas -->
+<div class="flex items-center flex-shrink-0">
+<img alt="Chaqueta blanca" class="w-11 h-11 rounded-lg object-cover border-2 border-white shadow-sm flex-shrink-0 z-20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKC1F56fQhnUCioNTsYAAbTLeEsZfJroHxvJy2O5R6dapERnAZjnqtz7u8k_bCN9b3zwKGrIOYpeIGxFRDlF0XtVy4H93BfyHwMko7a1dO6rGQDkz22A-GA2oB0ExVPfV5aAPa0fI8216v6tuccbSaH81lUk-AV9NiIaaQTTZc9GJkwUOcjMUnxOkN3PijGzkYNOL1QQZTPufjlY6Ir22bG7PK8ZHbMrKlcykMG6qbe2Gtpb2NiC9HpVqeBoUMaUF3uaP7YCbgVwI"/>
+<img alt="Chaqueta verde oliva" class="w-11 h-11 rounded-lg object-cover border-2 border-white shadow-sm flex-shrink-0 -ml-3 z-10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdKk06nmt-glhcohbMklViBEr_YdkC5DsRKGtTvJLSpxum_SFL-qDrK0T4YfKVX1ugNRVwGjspV0lY_BgQUZXvSas76P0fYfS9TW6zBEFBz3BPvvyqkql52iZHvhmhtnhIiDbpUdXVL5EhY8CbEdPVHMWyucg1-QJw7dz7fYXMNKrjsJaLFYyElgPUyX0CCJ2RgMsEOqtQxnSVYW_TpirXhy1lwKHPHGihXkIv_v9L630PdK2j_i494zZPjt6leNIAl1Uinx3qTyg"/>
+<img alt="Pantalón terracota" class="w-11 h-11 rounded-lg object-cover border-2 border-white shadow-sm flex-shrink-0 -ml-3 z-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEtex10GsZPH8Z9udgMlrrZ46ZO1RiVIa4rX0JgKUagfsHTIemuoS2_6Wn5fqQchTR4NZWNE9zpu634-46oCMEU0XYkK_CY_npD7pP-_k4u6hdPzD9gsr6d2LENj2hqEjUEykpSLtydyoh9H9-8Mc_q0STJfulSBD8A53ZBqiOqmlYu6IQW0wPwBRcKP7za2quG9YzElVFacXZ0XkMHh0Mw6kIZ9LWDTTW1qx1S6EW0o-Zt1Nbutb3N6dfCDL7JLmZSqeNAqCKGeY"/>
+<span class="w-8 h-8 rounded-md bg-[#eee7d7] text-[#605d57] border border-[#ded4c1] text-xs font-semibold flex items-center justify-center -ml-2 z-30">
+                      +13
+                    </span>
+</div>
+<!-- Textos de venta -->
+<div class="min-w-0">
+<h3 class="font-serif-title text-[18px] text-[#1f1b18] leading-snug truncate">
+                      Casaca Emilia, Blusa Ximena y 14 más
+                    </h3>
+<div class="text-xs text-[#605d57] mt-0.5">
+                      16 prendas
+                    </div>
+<div class="text-xs text-[#7e786e] mt-0.5 truncate">
+                      14:32 · Tienda Lima · Vendido por Camila R.
+                    </div>
+</div>
+</div>
+<!-- Bloque centro-derecha y total -->
+<div class="flex items-center gap-4 sm:gap-6 flex-shrink-0 text-right">
+<!-- Estado y Boleta -->
+<div class="hidden sm:flex flex-col items-end gap-1">
+<span class="text-xs font-mono text-[#605d57]">Boleta B001-0142</span>
+<!-- Chip ENVIADO: sobrio verde musgo grisáceo -->
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] tracking-widest uppercase font-semibold bg-[#dfe6d8] text-[#44583a] border border-[#cbd6c4]">
+                      ENVIADO
+                    </span>
+</div>
+<!-- Monto y Método de pago -->
+<div class="flex flex-col items-end min-w-[95px]">
+<span class="font-serif-title text-[20px] text-[#1f1b18] leading-none tabular-nums">
+                      S/ 368.00
+                    </span>
+<span class="text-xs text-[#7e786e] mt-1">
+                      Yape
+                    </span>
+</div>
+<!-- Chevron tenue -->
+<svg class="w-4 h-4 text-[#a89f91] group-hover:text-[#1f1b18] transition-colors flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+</div>
+<!-- Fila 2: Blusa Emma -->
+<div class="p-4 sm:p-5 border-b border-dashed border-[#e0d6c3] hover:bg-[#f6efe1]/70 transition-colors cursor-pointer group flex items-center justify-between gap-4">
+<div class="flex items-center gap-3.5 sm:gap-4 min-w-0">
+<!-- Miniaturas apiladas -->
+<div class="flex items-center flex-shrink-0">
+<img alt="Chaqueta verde oliva" class="w-11 h-11 rounded-lg object-cover border-2 border-white shadow-sm flex-shrink-0 z-10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdKk06nmt-glhcohbMklViBEr_YdkC5DsRKGtTvJLSpxum_SFL-qDrK0T4YfKVX1ugNRVwGjspV0lY_BgQUZXvSas76P0fYfS9TW6zBEFBz3BPvvyqkql52iZHvhmhtnhIiDbpUdXVL5EhY8CbEdPVHMWyucg1-QJw7dz7fYXMNKrjsJaLFYyElgPUyX0CCJ2RgMsEOqtQxnSVYW_TpirXhy1lwKHPHGihXkIv_v9L630PdK2j_i494zZPjt6leNIAl1Uinx3qTyg"/>
+<img alt="Pantalón terracota" class="w-11 h-11 rounded-lg object-cover border-2 border-white shadow-sm flex-shrink-0 -ml-3 z-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEtex10GsZPH8Z9udgMlrrZ46ZO1RiVIa4rX0JgKUagfsHTIemuoS2_6Wn5fqQchTR4NZWNE9zpu634-46oCMEU0XYkK_CY_npD7pP-_k4u6hdPzD9gsr6d2LENj2hqEjUEykpSLtydyoh9H9-8Mc_q0STJfulSBD8A53ZBqiOqmlYu6IQW0wPwBRcKP7za2quG9YzElVFacXZ0XkMHh0Mw6kIZ9LWDTTW1qx1S6EW0o-Zt1Nbutb3N6dfCDL7JLmZSqeNAqCKGeY"/>
+<span class="w-8 h-8 rounded-md bg-[#eee7d7] text-[#605d57] border border-[#ded4c1] text-xs font-semibold flex items-center justify-center -ml-2 z-20">
+                      +2
+                    </span>
+</div>
+<!-- Textos de venta -->
+<div class="min-w-0">
+<h3 class="font-serif-title text-[18px] text-[#1f1b18] leading-snug truncate">
+                      Blusa Emma
+                    </h3>
+<div class="text-xs text-[#605d57] mt-0.5">
+                      3 prendas
+                    </div>
+<div class="text-xs text-[#7e786e] mt-0.5 truncate">
+                      12:15 · Tienda Lima · Vendido por Luciana M.
+                    </div>
+</div>
+</div>
+<!-- Bloque centro-derecha y total -->
+<div class="flex items-center gap-4 sm:gap-6 flex-shrink-0 text-right">
+<!-- Estado y Boleta -->
+<div class="hidden sm:flex flex-col items-end gap-1">
+<span class="text-xs font-mono text-[#605d57]">Boleta B004-000021</span>
+<!-- Chip PENDIENTE DE ENVIAR: dorado muy pálido, ámbar profundo -->
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] tracking-widest uppercase font-semibold bg-[#efe3c8] text-[#734f15] border border-[#d9c79a]">
+                      PENDIENTE DE ENVIAR
+                    </span>
+</div>
+<!-- Monto y Método de pago -->
+<div class="flex flex-col items-end min-w-[95px]">
+<span class="font-serif-title text-[20px] text-[#1f1b18] leading-none tabular-nums">
+                      S/ 189.00
+                    </span>
+<span class="text-xs text-[#7e786e] mt-1">
+                      Plin
+                    </span>
+</div>
+<!-- Chevron tenue -->
+<svg class="w-4 h-4 text-[#a89f91] group-hover:text-[#1f1b18] transition-colors flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+</div>
+<!-- Fila 3: Chompa Alpaca Cuello Alto -->
+<div class="p-4 sm:p-5 hover:bg-[#f6efe1]/70 transition-colors cursor-pointer group flex items-center justify-between gap-4">
+<div class="flex items-center gap-3.5 sm:gap-4 min-w-0">
+<!-- Miniatura individual -->
+<div class="flex items-center flex-shrink-0">
+<img alt="Abrigo negro" class="w-11 h-11 rounded-lg object-cover border-2 border-white shadow-sm flex-shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4RHdnDqZQiAnOPk9uXXi0ATfKWcrrr91mQ11LTiY2VdB2lqH2ZviT9tEgq_UyHDE54UPXGAo23wsWeAMgbGLeji1nqMZ4XC_zC-3XA2E2mT2E4VN00QtFG8qBIZVf217jXG4w5o9p13ak2kT7d42sozdC2tdwdhs4qIRGKGSZSA7Qb2zXiv-pv6t71repSJ2jNaso1_e1fzNSS2-h9XyEaTXICiewggRACTm1J6Z-0fbV-OhuJePibfQj7dvDfH0jIXlVnjXgCj4"/>
+</div>
+<!-- Textos de venta -->
+<div class="min-w-0">
+<h3 class="font-serif-title text-[18px] text-[#1f1b18] leading-snug truncate">
+                      Chompa Alpaca Cuello Alto
+                    </h3>
+<div class="text-xs text-[#605d57] mt-0.5">
+                      1 prenda
+                    </div>
+<div class="text-xs text-[#7e786e] mt-0.5 truncate">
+                      10:48 · Tienda Lima · Vendido por Camila R.
+                    </div>
+</div>
+</div>
+<!-- Bloque centro-derecha y total -->
+<div class="flex items-center gap-4 sm:gap-6 flex-shrink-0 text-right">
+<!-- Estado y Boleta -->
+<div class="hidden sm:flex flex-col items-end gap-1">
+<span class="text-xs font-mono text-[#605d57]">Boleta B001-0141</span>
+<!-- Chip ENVIADO -->
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] tracking-widest uppercase font-semibold bg-[#dfe6d8] text-[#44583a] border border-[#cbd6c4]">
+                      ENVIADO
+                    </span>
+</div>
+<!-- Monto y Método de pago -->
+<div class="flex flex-col items-end min-w-[95px]">
+<span class="font-serif-title text-[20px] text-[#1f1b18] leading-none tabular-nums">
+                      S/ 255.00
+                    </span>
+<span class="text-xs text-[#7e786e] mt-1">
+                      Tarjeta
+                    </span>
+</div>
+<!-- Chevron tenue -->
+<svg class="w-4 h-4 text-[#a89f91] group-hover:text-[#1f1b18] transition-colors flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+</div>
+</div>
+</div>
+<!-- ==================== GRUPO 2: AYER ==================== -->
+<div class="relative">
+<!-- Nodo en la línea de tiempo -->
+<div class="absolute -left-[35px] top-1 w-[14px] h-[14px] rounded-full border-2 border-[#a47865] bg-[#fef9f1] flex items-center justify-center">
+<span class="w-[6px] h-[6px] rounded-full bg-[#a47865] block"></span>
+</div>
+<!-- Encabezado del día: AYER con total en serif a la derecha -->
+<div class="flex items-baseline justify-between mb-3">
+<span class="text-[11px] font-semibold tracking-wider text-[#605d57] uppercase">
+                AYER · DOMINGO 20 DE SETIEMBRE
+              </span>
+<span class="font-serif-title text-base sm:text-lg text-[#1f1b18] tabular-nums font-normal">
+                S/ 1,420.50 · 4 ventas (1 anulada)
+              </span>
+</div>
+<!-- Tarjeta Contenedor Papel (#fbf6ec, borde #e3dacb, rounded-[16px]) -->
+<div class="bg-[#fbf6ec] border border-[#e3dacb] rounded-[16px] overflow-hidden shadow-none">
+<!-- Fila 1: Vestido Solsticio -->
+<div class="p-4 sm:p-5 border-b border-dashed border-[#e0d6c3] hover:bg-[#f6efe1]/70 transition-colors cursor-pointer group flex items-center justify-between gap-4">
+<div class="flex items-center gap-3.5 sm:gap-4 min-w-0">
+<div class="flex items-center flex-shrink-0">
+<img alt="Vestido Solsticio" class="w-11 h-11 rounded-lg object-cover border-2 border-white shadow-sm flex-shrink-0 z-10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKC1F56fQhnUCioNTsYAAbTLeEsZfJroHxvJy2O5R6dapERnAZjnqtz7u8k_bCN9b3zwKGrIOYpeIGxFRDlF0XtVy4H93BfyHwMko7a1dO6rGQDkz22A-GA2oB0ExVPfV5aAPa0fI8216v6tuccbSaH81lUk-AV9NiIaaQTTZc9GJkwUOcjMUnxOkN3PijGzkYNOL1QQZTPufjlY6Ir22bG7PK8ZHbMrKlcykMG6qbe2Gtpb2NiC9HpVqeBoUMaUF3uaP7YCbgVwI"/>
+<img alt="Complemento" class="w-11 h-11 rounded-lg object-cover border-2 border-white shadow-sm flex-shrink-0 -ml-3 z-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEtex10GsZPH8Z9udgMlrrZ46ZO1RiVIa4rX0JgKUagfsHTIemuoS2_6Wn5fqQchTR4NZWNE9zpu634-46oCMEU0XYkK_CY_npD7pP-_k4u6hdPzD9gsr6d2LENj2hqEjUEykpSLtydyoh9H9-8Mc_q0STJfulSBD8A53ZBqiOqmlYu6IQW0wPwBRcKP7za2quG9YzElVFacXZ0XkMHh0Mw6kIZ9LWDTTW1qx1S6EW0o-Zt1Nbutb3N6dfCDL7JLmZSqeNAqCKGeY"/>
+</div>
+<div class="min-w-0">
+<h3 class="font-serif-title text-[18px] text-[#1f1b18] leading-snug truncate">
+                      Vestido Solsticio y Blusa Seda
+                    </h3>
+<div class="text-xs text-[#605d57] mt-0.5">
+                      2 prendas
+                    </div>
+<div class="text-xs text-[#7e786e] mt-0.5 truncate">
+                      19:40 · Tienda Lima · Vendido por Sofía T.
+                    </div>
+</div>
+</div>
+<div class="flex items-center gap-4 sm:gap-6 flex-shrink-0 text-right">
+<div class="hidden sm:flex flex-col items-end gap-1">
+<span class="text-xs font-mono text-[#605d57]">Boleta B001-0140</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] tracking-widest uppercase font-semibold bg-[#dfe6d8] text-[#44583a] border border-[#cbd6c4]">
+                      ENVIADO
+                    </span>
+</div>
+<div class="flex flex-col items-end min-w-[95px]">
+<span class="font-serif-title text-[20px] text-[#1f1b18] leading-none tabular-nums">
+                      S/ 485.00
+                    </span>
+<span class="text-xs text-[#7e786e] mt-1">
+                      Efectivo
+                    </span>
+</div>
+<svg class="w-4 h-4 text-[#a89f91] group-hover:text-[#1f1b18] transition-colors flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+</div>
+<!-- Fila 2: Pantalón Culotte Siena -->
+<div class="p-4 sm:p-5 border-b border-dashed border-[#e0d6c3] hover:bg-[#f6efe1]/70 transition-colors cursor-pointer group flex items-center justify-between gap-4">
+<div class="flex items-center gap-3.5 sm:gap-4 min-w-0">
+<div class="flex items-center flex-shrink-0">
+<img alt="Pantalón Culotte Siena" class="w-11 h-11 rounded-lg object-cover border-2 border-white shadow-sm flex-shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEtex10GsZPH8Z9udgMlrrZ46ZO1RiVIa4rX0JgKUagfsHTIemuoS2_6Wn5fqQchTR4NZWNE9zpu634-46oCMEU0XYkK_CY_npD7pP-_k4u6hdPzD9gsr6d2LENj2hqEjUEykpSLtydyoh9H9-8Mc_q0STJfulSBD8A53ZBqiOqmlYu6IQW0wPwBRcKP7za2quG9YzElVFacXZ0XkMHh0Mw6kIZ9LWDTTW1qx1S6EW0o-Zt1Nbutb3N6dfCDL7JLmZSqeNAqCKGeY"/>
+</div>
+<div class="min-w-0">
+<h3 class="font-serif-title text-[18px] text-[#1f1b18] leading-snug truncate">
+                      Pantalón Culotte Siena
+                    </h3>
+<div class="text-xs text-[#605d57] mt-0.5">
+                      1 prenda
+                    </div>
+<div class="text-xs text-[#7e786e] mt-0.5 truncate">
+                      17:10 · Tienda Lima · Vendido por Camila R.
+                    </div>
+</div>
+</div>
+<div class="flex items-center gap-4 sm:gap-6 flex-shrink-0 text-right">
+<div class="hidden sm:flex flex-col items-end gap-1">
+<span class="text-xs font-mono text-[#605d57]">—</span>
+<!-- Chip SIN COMPROBANTE -->
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] tracking-widest uppercase font-semibold bg-[#eee7d7] text-[#5b544c] border border-[#ded4c1]">
+                      SIN COMPROBANTE
+                    </span>
+</div>
+<div class="flex flex-col items-end min-w-[95px]">
+<span class="font-serif-title text-[20px] text-[#1f1b18] leading-none tabular-nums">
+                      S/ 235.00
+                    </span>
+<span class="text-xs text-[#7e786e] mt-1">
+                      Yape
+                    </span>
+</div>
+<svg class="w-4 h-4 text-[#a89f91] group-hover:text-[#1f1b18] transition-colors flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+</div>
+<!-- Fila 3: Capa Andina Paracas (ANULADA) -->
+<div class="p-4 sm:p-5 border-b border-dashed border-[#e0d6c3] opacity-60 hover:opacity-80 transition-opacity cursor-pointer group flex items-center justify-between gap-4 bg-[#f6eee0]/40">
+<div class="flex items-center gap-3.5 sm:gap-4 min-w-0">
+<div class="flex items-center flex-shrink-0 grayscale">
+<img alt="Capa Andina Paracas" class="w-11 h-11 rounded-lg object-cover border-2 border-white shadow-sm flex-shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4RHdnDqZQiAnOPk9uXXi0ATfKWcrrr91mQ11LTiY2VdB2lqH2ZviT9tEgq_UyHDE54UPXGAo23wsWeAMgbGLeji1nqMZ4XC_zC-3XA2E2mT2E4VN00QtFG8qBIZVf217jXG4w5o9p13ak2kT7d42sozdC2tdwdhs4qIRGKGSZSA7Qb2zXiv-pv6t71repSJ2jNaso1_e1fzNSS2-h9XyEaTXICiewggRACTm1J6Z-0fbV-OhuJePibfQj7dvDfH0jIXlVnjXgCj4"/>
+</div>
+<div class="min-w-0">
+<h3 class="font-serif-title text-[18px] text-[#78716a] leading-snug truncate line-through">
+                      Capa Andina Paracas
+                    </h3>
+<div class="text-xs text-[#8c857e] mt-0.5 line-through">
+                      1 prenda
+                    </div>
+<div class="text-xs text-[#8c857e] mt-0.5 truncate">
+                      15:20 · Tienda Lima · Vendido por Luciana M. (Error en talla digitada)
+                    </div>
+</div>
+</div>
+<div class="flex items-center gap-4 sm:gap-6 flex-shrink-0 text-right">
+<div class="hidden sm:flex flex-col items-end gap-1">
+<span class="text-xs font-mono text-[#8c857e]">—</span>
+<!-- Chip ANULADA -->
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] tracking-widest uppercase font-semibold bg-[#eeebe5] text-[#78716a] border border-[#dedad4]">
+                      ANULADA
+                    </span>
+</div>
+<div class="flex flex-col items-end min-w-[95px]">
+<span class="font-serif-title text-[20px] text-[#78716a] leading-none tabular-nums line-through">
+                      S/ 700.00
+                    </span>
+<span class="text-xs text-[#8c857e] mt-1">
+                      Tarjeta
+                    </span>
+</div>
+<svg class="w-4 h-4 text-[#a89f91] group-hover:text-[#1f1b18] transition-colors flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+</div>
+<!-- Fila 4: Kimono Selva Botánica -->
+<div class="p-4 sm:p-5 hover:bg-[#f6efe1]/70 transition-colors cursor-pointer group flex items-center justify-between gap-4">
+<div class="flex items-center gap-3.5 sm:gap-4 min-w-0">
+<div class="flex items-center flex-shrink-0">
+<img alt="Kimono Selva Botánica" class="w-11 h-11 rounded-lg object-cover border-2 border-white shadow-sm flex-shrink-0 z-10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdKk06nmt-glhcohbMklViBEr_YdkC5DsRKGtTvJLSpxum_SFL-qDrK0T4YfKVX1ugNRVwGjspV0lY_BgQUZXvSas76P0fYfS9TW6zBEFBz3BPvvyqkql52iZHvhmhtnhIiDbpUdXVL5EhY8CbEdPVHMWyucg1-QJw7dz7fYXMNKrjsJaLFYyElgPUyX0CCJ2RgMsEOqtQxnSVYW_TpirXhy1lwKHPHGihXkIv_v9L630PdK2j_i494zZPjt6leNIAl1Uinx3qTyg"/>
+<img alt="Chaqueta blanca" class="w-11 h-11 rounded-lg object-cover border-2 border-white shadow-sm flex-shrink-0 -ml-3 z-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKC1F56fQhnUCioNTsYAAbTLeEsZfJroHxvJy2O5R6dapERnAZjnqtz7u8k_bCN9b3zwKGrIOYpeIGxFRDlF0XtVy4H93BfyHwMko7a1dO6rGQDkz22A-GA2oB0ExVPfV5aAPa0fI8216v6tuccbSaH81lUk-AV9NiIaaQTTZc9GJkwUOcjMUnxOkN3PijGzkYNOL1QQZTPufjlY6Ir22bG7PK8ZHbMrKlcykMG6qbe2Gtpb2NiC9HpVqeBoUMaUF3uaP7YCbgVwI"/>
+</div>
+<div class="min-w-0">
+<h3 class="font-serif-title text-[18px] text-[#1f1b18] leading-snug truncate">
+                      Kimono Selva Botánica + Top Lino
+                    </h3>
+<div class="text-xs text-[#605d57] mt-0.5">
+                      2 prendas
+                    </div>
+<div class="text-xs text-[#7e786e] mt-0.5 truncate">
+                      11:05 · Tienda Lima · Vendido por Sofía T.
+                    </div>
+</div>
+</div>
+<div class="flex items-center gap-4 sm:gap-6 flex-shrink-0 text-right">
+<div class="hidden sm:flex flex-col items-end gap-1">
+<span class="text-xs font-mono text-[#605d57]">Boleta B001-0139</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] tracking-widest uppercase font-semibold bg-[#dfe6d8] text-[#44583a] border border-[#cbd6c4]">
+                      ENVIADO
+                    </span>
+</div>
+<div class="flex flex-col items-end min-w-[95px]">
+<span class="font-serif-title text-[20px] text-[#1f1b18] leading-none tabular-nums">
+                      S/ 310.00
+                    </span>
+<span class="text-xs text-[#7e786e] mt-1">
+                      Transferencia + Tarjeta + Efectivo
+                    </span>
+</div>
+<svg class="w-4 h-4 text-[#a89f91] group-hover:text-[#1f1b18] transition-colors flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- PIE DE LA LÍNEA DE TIEMPO: Cargar más ventas + Nota discreta -->
+<div class="pt-8 pb-12 flex flex-col items-center gap-3">
+<button class="touch-target px-6 py-2.5 rounded-xl border border-[#e3dacb] bg-[#fbf6ec] hover:bg-[#f5ecdc] text-xs font-semibold text-[#1f1b18] transition-colors flex items-center gap-2">
+<span>Cargar más ventas</span>
+<svg class="w-3.5 h-3.5 text-[#605d57]" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<span class="text-xs text-[#7e786e] italic">
+            Una venta no se borra: se anula.
+          </span>
+</div>
+</div>
+<!-- COLUMNA DERECHA (~32%): TARJETA FIJA DE VENTAS POR DÍA -->
+<aside class="lg:col-span-4 sticky top-6">
+<!-- Tarjeta plana sin cajas blancas anidadas (#fbf6ec, borde sand, rounded 16px) -->
+<div class="bg-[#fbf6ec] border border-[#e3dacb] rounded-[16px] p-6">
+<!-- Encabezado con selector sutil -->
+<div class="flex items-baseline justify-between mb-4">
+<h2 class="font-serif-title text-[22px] font-normal text-[#1f1b18]">
+              Ventas por día
+            </h2>
+<span class="text-xs text-[#7e786e] cursor-pointer hover:text-[#1f1b18]">Últimos 30 días ▾</span>
+</div>
+<!-- Fila destacada: MEJOR DÍA -->
+<div class="mb-5 pb-4 border-b border-[#e3dacb]">
+<span class="text-[10px] font-semibold tracking-wider uppercase text-[#7e786e] block mb-1">
+              MEJOR DÍA · LUN, 21 SET
+            </span>
+<div class="flex items-baseline gap-2.5">
+<span class="font-serif-title text-[30px] font-normal text-[#1f1b18] tabular-nums leading-none">
+                S/ 1,520.00
+              </span>
+<span class="text-xs text-[#7e786e] font-medium">· 4 ventas</span>
+</div>
+</div>
+<!-- Gráfico de barras finas verticales -->
+<div class="mb-6">
+<div class="relative h-36 w-full select-none flex flex-col justify-end">
+<!-- Barras -->
+<div class="flex items-end justify-between gap-1 h-28 px-1 pb-1 border-b border-[#e3dacb]">
+<!-- D1 -->
+<div class="flex-1 flex flex-col items-center justify-end h-full" title="23 Ago">
+<div class="w-[5px] bg-[#3d3531] rounded-t-sm" style="height: 28%;"></div>
+</div>
+<!-- D2 -->
+<div class="flex-1 flex flex-col items-center justify-end h-full" title="25 Ago">
+<div class="w-[5px] bg-[#3d3531] rounded-t-sm" style="height: 42%;"></div>
+</div>
+<!-- D3 -->
+<div class="flex-1 flex flex-col items-center justify-end h-full" title="28 Ago">
+<div class="w-[5px] bg-[#3d3531] rounded-t-sm" style="height: 35%;"></div>
+</div>
+<!-- D4 -->
+<div class="flex-1 flex flex-col items-center justify-end h-full" title="31 Ago">
+<div class="w-[5px] bg-[#3d3531] rounded-t-sm" style="height: 58%;"></div>
+</div>
+<!-- D5 -->
+<div class="flex-1 flex flex-col items-center justify-end h-full" title="03 Set">
+<div class="w-[5px] bg-[#3d3531] rounded-t-sm" style="height: 70%;"></div>
+</div>
+<!-- D6 -->
+<div class="flex-1 flex flex-col items-center justify-end h-full" title="06 Set">
+<div class="w-[5px] bg-[#3d3531] rounded-t-sm" style="height: 48%;"></div>
+</div>
+<!-- D7 -->
+<div class="flex-1 flex flex-col items-center justify-end h-full" title="09 Set">
+<div class="w-[5px] bg-[#3d3531] rounded-t-sm" style="height: 64%;"></div>
+</div>
+<!-- D8 -->
+<div class="flex-1 flex flex-col items-center justify-end h-full" title="12 Set">
+<div class="w-[5px] bg-[#3d3531] rounded-t-sm" style="height: 78%;"></div>
+</div>
+<!-- D9 -->
+<div class="flex-1 flex flex-col items-center justify-end h-full" title="15 Set">
+<div class="w-[5px] bg-[#3d3531] rounded-t-sm" style="height: 82%;"></div>
+</div>
+<!-- D10 -->
+<div class="flex-1 flex flex-col items-center justify-end h-full" title="18 Set">
+<div class="w-[5px] bg-[#3d3531] rounded-t-sm" style="height: 60%;"></div>
+</div>
+<!-- D11 -->
+<div class="flex-1 flex flex-col items-center justify-end h-full" title="20 Set">
+<div class="w-[5px] bg-[#3d3531] rounded-t-sm" style="height: 88%;"></div>
+</div>
+<!-- D12: MEJOR DÍA (destacado en taupe con punto indicador) -->
+<div class="flex-1 flex flex-col items-center justify-end h-full relative" title="21 Set (Mejor día): S/ 1,520">
+<span class="w-1.5 h-1.5 rounded-full bg-[#a47865] mb-1 block"></span>
+<div class="w-[6px] bg-[#a47865] rounded-t-sm" style="height: 98%;"></div>
+</div>
+</div>
+<!-- Eje inferior -->
+<div class="flex justify-between items-center text-[10px] text-[#989389] px-1 pt-1.5 font-medium">
+<span>23 ago</span>
+<span>21 set</span>
+</div>
+</div>
+</div>
+<!-- Rejilla 2x2 de métricas -->
+<div class="grid grid-cols-2 gap-3 pb-5 border-b border-[#e3dacb]">
+<div class="p-2.5 rounded-lg bg-[#f3ede1]/60">
+<span class="text-[11px] text-[#7e786e] block">Ticket promedio</span>
+<span class="font-serif-title text-base text-[#1f1b18] font-normal tabular-nums mt-0.5 block">
+                S/ 322.76
+              </span>
+</div>
+<div class="p-2.5 rounded-lg bg-[#f3ede1]/60">
+<span class="text-[11px] text-[#7e786e] block">Por día vendido</span>
+<span class="font-serif-title text-base text-[#1f1b18] font-normal tabular-nums mt-0.5 block">
+                S/ 686.00
+              </span>
+</div>
+<div class="p-2.5 rounded-lg bg-[#f3ede1]/60">
+<span class="text-[11px] text-[#7e786e] block">Prendas vendidas</span>
+<span class="font-serif-title text-base text-[#1f1b18] font-normal tabular-nums mt-0.5 block">
+                68
+              </span>
+</div>
+<div class="p-2.5 rounded-lg bg-[#f3ede1]/60">
+<span class="text-[11px] text-[#7e786e] block">Anuladas</span>
+<span class="font-serif-title text-base text-[#1f1b18] font-normal tabular-nums mt-0.5 block">
+                1 <span class="text-xs text-[#7e786e]">(S/ 700)</span>
+</span>
+</div>
+</div>
+<!-- Sección: Cómo se pagó -->
+<div class="pt-5">
+<span class="text-[10px] uppercase font-semibold text-[#7e786e] tracking-wider block mb-3">
+              Cómo se pagó
+            </span>
+<!-- Barra horizontal segmentada sobria con tonos naturales -->
+<div class="w-full h-3 rounded-full overflow-hidden flex mb-4 border border-[#ded5c5]">
+<!-- Yape (40%) dorado suave #d4be8d -->
+<div class="h-full bg-[#d4be8d]" style="width: 40%;" title="Yape: 40%"></div>
+<!-- Tarjeta (30%) azul apagado #688096 -->
+<div class="h-full bg-[#688096]" style="width: 30%;" title="Tarjeta: 30%"></div>
+<!-- Plin (15%) ciruela sobrio #8b6f82 -->
+<div class="h-full bg-[#8b6f82]" style="width: 15%;" title="Plin: 15%"></div>
+<!-- Efectivo (9%) plomo cálido #82827d -->
+<div class="h-full bg-[#82827d]" style="width: 9%;" title="Efectivo: 9%"></div>
+<!-- Transferencia (6%) verde oliva apagado #768369 -->
+<div class="h-full bg-[#768369]" style="width: 6%;" title="Transferencia: 6%"></div>
+</div>
+<!-- Lista de métodos limpia y sobria -->
+<div class="flex flex-col gap-2.5 text-xs">
+<!-- Yape -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-[#d4be8d]"></span>
+<span class="text-[#1f1b18] font-medium">Yape <span class="text-[#7e786e] font-normal">40%</span></span>
+</div>
+<span class="tabular-nums text-[#1f1b18] font-medium">S/ 2,180.00</span>
+</div>
+<!-- Tarjeta -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-[#688096]"></span>
+<span class="text-[#1f1b18] font-medium">Tarjeta <span class="text-[#7e786e] font-normal">30%</span></span>
+</div>
+<span class="tabular-nums text-[#1f1b18] font-medium">S/ 1,640.10</span>
+</div>
+<!-- Plin -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-[#8b6f82]"></span>
+<span class="text-[#1f1b18] font-medium">Plin <span class="text-[#7e786e] font-normal">15%</span></span>
+</div>
+<span class="tabular-nums text-[#1f1b18] font-medium">S/ 820.00</span>
+</div>
+<!-- Efectivo -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-[#82827d]"></span>
+<span class="text-[#1f1b18] font-medium">Efectivo <span class="text-[#7e786e] font-normal">9%</span></span>
+</div>
+<span class="tabular-nums text-[#1f1b18] font-medium">S/ 512.00</span>
+</div>
+<!-- Transferencia -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-[#768369]"></span>
+<span class="text-[#1f1b18] font-medium">Transferencia <span class="text-[#7e786e] font-normal">6%</span></span>
+</div>
+<span class="tabular-nums text-[#1f1b18] font-medium">S/ 335.00</span>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</main>
+</div>
+</body></html>
