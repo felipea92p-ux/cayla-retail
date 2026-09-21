@@ -36,20 +36,19 @@ export function ColaboradoresPanel({
 }) {
   const router = useRouter();
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [seleccionado, setSeleccionado] = useState(disponibles[0]?.persona_id ?? "");
-  const [ubicacionElegida, setUbicacionElegida] = useState(ubicaciones[0]?.id ?? "");
+  const [seleccionado, setSeleccionado] = useState("");
+  const [ubicacionElegida, setUbicacionElegida] = useState("");
   const [loading, setLoading] = useState(false);
   const [quitandoId, setQuitandoId] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState<Colaborador | null>(null);
 
   function abrirModalAgregar() {
-    // Se resetea al abrir, no una sola vez en el useState inicial: si ya se
-    // agregó a alguien en esta misma sesión, `disponibles` cambió (viene de
-    // `router.refresh()`) pero el estado viejo seguía apuntando a la persona
-    // que ya no está en la lista — el combo la mostraba vacía pero "Agregar"
-    // seguía habilitado y disparaba la RPC con un id que ya no correspondía.
-    setSeleccionado(disponibles[0]?.persona_id ?? "");
-    setUbicacionElegida(ubicaciones[0]?.id ?? "");
+    // Se vacía al abrir, no una sola vez en el useState inicial: si ya se agregó
+    // a alguien en esta misma sesión, el estado viejo apuntaba a una persona que
+    // ya no está en `disponibles`. Y arranca SIN elegir a nadie a propósito: dar
+    // acceso no admite un "primero de la lista" que un Enter apurado confirme.
+    setSeleccionado("");
+    setUbicacionElegida("");
     setModalAbierto(true);
   }
 
@@ -105,7 +104,7 @@ export function ColaboradoresPanel({
             Agregar colaborador
           </Boton>
           {disponibles.length === 0 && (
-            <p className="mt-1 text-[11px] text-tinta/55">Todas las cuentas activas de Dynamic ya tienen acceso.</p>
+            <p className="mt-1 text-xs text-tinta/65">Todas las cuentas activas de Dynamic ya tienen acceso.</p>
           )}
         </div>
       </div>
@@ -136,7 +135,7 @@ export function ColaboradoresPanel({
                     <td className="px-3 py-3 text-tinta/75">{c.correo}</td>
                     <td className="whitespace-nowrap px-3 py-3 text-tinta/75">{ETIQUETA_ROL[c.rol]}</td>
                     <td className="whitespace-nowrap px-3 py-3 text-tinta/75">
-                      {c.rol === "lider" ? <span className="text-tinta/45">cualquiera</span> : (c.ubicacion_asignada ?? "—")}
+                      {c.rol === "lider" ? <span className="text-tinta/65">cualquiera</span> : (c.ubicacion_asignada ?? "—")}
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-tinta/75">{c.sede ?? "—"}</td>
                     <td className="whitespace-nowrap px-3 py-3 text-tinta/65">{formatearFecha(c.agregado_en)}</td>
@@ -146,7 +145,7 @@ export function ColaboradoresPanel({
                         peso="discreto"
                         cargando={quitandoId === c.persona_id}
                         onClick={() => setConfirmando(c)}
-                        className="border-rojo/30 px-2.5 py-1.5 text-[11px] text-rojo hover:bg-rojo/8"
+                        className="px-2.5 py-1.5 text-[11px]"
                       >
                         {quitandoId === c.persona_id ? "Quitando…" : "Quitar acceso"}
                       </Boton>
@@ -185,9 +184,10 @@ export function ColaboradoresPanel({
                   valor={ubicacionElegida}
                   onValor={setUbicacionElegida}
                   opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))}
+                  marcador="Elige una ubicación"
                 />
-                <p className="text-[11px] leading-relaxed text-tinta/55">
-                  Entra como Colaborador, fijo a esta sede — no va a poder cambiarla él mismo.
+                <p className="text-xs leading-relaxed text-tinta/65">
+                  Entra como Colaborador, fijo a esta sede — la persona no podrá cambiarla por su cuenta.
                 </p>
               </div>
 
@@ -210,7 +210,7 @@ export function ColaboradoresPanel({
             <div className="mt-5 space-y-4">
               <p className="text-sm leading-relaxed text-tinta/85">
                 <strong className="font-semibold text-tinta">{confirmando.nombre}</strong> ya no va a poder entrar
-                al sistema de retail. Puede volver a agregarse después desde Dynamic.
+                al sistema de retail. Puedes volver a darle acceso después desde «Agregar colaborador».
               </p>
               <div className="flex gap-2">
                 <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
