@@ -181,6 +181,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:proveedores-produccion
 
+      # Comprobantes de Producción (ADR-0133, F4b; D-H): las reglas de la factura de Compras (ADR-0035) sobre su propio libro —
+      # contado exige pago por el total exacto, crédito exige vencimiento, idempotente por token, el total impreso se cuadra
+      # con tolerancia, anular exige motivo y no se puede con pagos; solo el líder lee y escribe; líneas y pagos son inmutables.
+      - name: pruebas:comprobantes-produccion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:comprobantes-produccion
+
       # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
       # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las
       # tarjetas de arriba cuentan lo mismo. Cada caso termina en ROLLBACK.

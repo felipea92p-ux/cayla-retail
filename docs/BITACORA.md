@@ -8486,3 +8486,9 @@ adversarial independiente encontró 2 defectos reales que ya estaban corregidos 
 RUC en el texto buscable (rompía pegar «razón social + RUC» de una factura) y el chip partía la palabra al resaltar a medias. No
 cubre los buscadores de Comprobantes y Recepciones (filtran el proveedor por nombre dentro de sus RPC: requiere migración).
 
+
+## 2026-09-21 (Producción F4b: comprobantes propios — ADR-0133)
+Felipe fusionó F4a y pegó su migración (verificado contra producción). F4b construida en local: `comprobantes_produccion` (+ líneas y pagos), solo-líder, con las
+reglas de la factura de Compras (contado ⇒ pago exacto en la misma transacción, crédito ⇒ vencimiento, idempotente, anular con motivo y nunca con pagos) y saldo
+DERIVADO. Pantalla `/produccion/comprobantes`. Migración `20260921100000` sin pegar. `pruebas:comprobantes-produccion` 26/26 y 1691 pruebas del web en verde.
+No abre lotes (F4d). Compras no se tocó.
