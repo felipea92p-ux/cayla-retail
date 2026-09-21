@@ -890,7 +890,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
     // `<main>` (9rem). En celular/tablet (apilado) se mantiene el scroll de página:
     // dos scrolls internos uno debajo del otro serían peores que uno solo.
     <div className="flex flex-col overflow-hidden rounded-2xl border border-sand bg-crema text-tinta lg:h-[calc(100dvh-9rem)]">
-      <div className="flex min-h-16 flex-wrap items-center gap-3 border-b border-sand bg-papel px-4 py-2 sm:px-6">
+      <div className="anim-revelar flex min-h-16 flex-wrap items-center gap-3 border-b border-sand bg-papel px-4 py-2 sm:px-6">
         <p className="label-cayla mr-auto text-[11px] text-taupe-profundo">Venta en tienda · {ubicacionEtiqueta}</p>
         {/* Lo que ya existe en otras pantallas y desde la caja no se alcanzaba: ingreso/
             egreso y arqueo, cambio de talla, devoluciones. Enlaces discretos, no menú;
@@ -906,7 +906,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
               <Link
                 key={a.href}
                 href={a.href}
-                className="label-cayla rounded-md px-2 py-1.5 text-[11px] text-tinta/60 transition-colors hover:bg-sand/40 hover:text-tinta"
+                className="label-cayla rounded-md px-2 py-1.5 text-[11px] text-tinta/60 transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-sand/40 hover:text-tinta active:translate-y-px"
               >
                 {a.texto}
               </Link>
