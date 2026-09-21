@@ -8554,3 +8554,7 @@ sugiere la curva por talla y color con el ritmo y el stock de toda la red, dice 
 ## 2026-09-21 (Prueba de deriva de producción: 13/13 y dentro del CI)
 `pnpm pruebas:deriva-produccion` fallaba 12/13: el caso de las dos sobrecargas de 217000 aplica la migración histórica `20260918219000`, cuyo cuerpo escribe `compras.ubicacion_destino_id`, columna que el reparto (ADR-0139) retiró. El caso repone esa columna dentro de su transacción revertida; la garantía (una sola `registrar_compra` con `p_token`, el mismo token no duplica) no cambió. Fusionado en #227, y la prueba entra al job `pruebas-postgres` del CI.
 Felipe se lleva: (1) una migración vieja se prueba contra el esquema de SU época, no contra el de hoy: si el esquema cambia, se reconstruye ese contexto en la prueba y no se edita la migración; (2) una prueba que no corre en el CI se rompe en silencio: esta llevaba semanas roja y nadie lo notó.
+
+## 2026-09-21 (Producción F6: Resumen — ADR-0133)
+Felipe pegó las partes A y B del candado del dinero (verificado contra producción: costos ilegibles por columna, funciones `fn_costos_*` presentes, vista cerrada) y fusionó F5. F6 construida sin esquema: `/produccion` pasa a ser el
+Resumen «¿qué necesita mi decisión hoy?» (solo líder) con tarjetas por urgencia y evidencia, cifras, ¿qué producir? y ¿alcanza la tela?. Solo hechos: no se dibujan plazos por etapa ni «días de trabajo» inventados.

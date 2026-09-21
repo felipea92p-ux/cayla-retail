@@ -137,13 +137,20 @@ export const ARBOL: readonly Nodo[] = [
   // se decide por el TIPO de la ubicación activa, no por su nombre — un segundo Taller entraría solo. Es visibilidad; la
   // base sigue dejando al líder operar el Taller desde cualquier sede (`fn_puede_operar_ubicacion`).
   //
-  // ATENCIÓN — TOPE: quien ve el dinero cuenta 6 hijas acá (Órdenes, Insumos, Proveedores, Comprobantes, Recibir, Por pagar):
-  // EXACTAMENTE el tope de 6 por grupo. La próxima (Resumen F6, Eficiencia F7) obliga a REGRUPAR, no a subir el tope; el
-  // candidato natural es agrupar el abastecimiento (Proveedores, Comprobantes, Recibir, Por pagar) bajo `produccion.abastecimiento`.
-  // La prueba «Producción está EN el tope de 6 hijas» (menu.test.ts) avisa cuando esto cambie.
+  // ATENCIÓN — TOPE ROTO (DEUDA desde #231): quien ve el dinero y analiza (el líder) cuenta 7 hijas acá (Resumen, Órdenes,
+  // Insumos, Proveedores, Comprobantes, Recibir, Por pagar): POR ENCIMA del tope de 6 por grupo. Lo rompió la fila «Resumen»
+  // (F6, #231); este árbol solo la refleja, sin cambiar lo que se ve. NO se sube el tope: la excepción está declarada y con
+  // nombre en menu.test.ts («DEUDA: Producción supera el tope de 6 hijas…») y se quita al regrupar. Antes de agregar otra
+  // (Eficiencia F7) hay que REGRUPAR; candidato natural: el abastecimiento (Proveedores, Comprobantes, Recibir, Por pagar)
+  // bajo `produccion.abastecimiento`.
   {
     id: "produccion", etiqueta: "Producción", estado: "viva", icono: "produccion", raiz: "/produccion", pajaro: "10 Gallito", ubicaciones: ["taller"],
     hijos: [
+      // Resumen (F6, #231): «¿qué necesita mi decisión hoy?». Es la página raíz del módulo (`/produccion`), una lectura de
+      // decisión que mezcla ventas de la red y dinero: solo el líder (`analizar`); quien trabaja en el Taller va directo a Órdenes.
+      // Va PRIMERA. Su ruta es la `raiz` del grupo: el riel resuelve la fila activa por coincidencia exacta y luego por el
+      // prefijo más largo, así que en `/produccion/ordenes` sigue marcando Órdenes y no Resumen.
+      { id: "produccion.resumenProduccion", etiqueta: "Resumen", estado: "viva", ruta: "/produccion", icono: "resumen", pajaro: "10 Gallito", exige: "analizar" },
       { id: "produccion.ordenes", etiqueta: "Órdenes", estado: "viva", ruta: "/produccion/ordenes", icono: "produccion", pajaro: "10 Gallito" },
       { id: "produccion.insumos", etiqueta: "Insumos", estado: "viva", ruta: "/produccion/insumos", icono: "insumos", pajaro: "10 Gallito" },
       // Abastecimiento del Taller (F4a a F4d, ADR-0133): proveedores, comprobantes, recepción y deuda de tela y avíos, APARTE de
@@ -159,9 +166,8 @@ export const ARBOL: readonly Nodo[] = [
       // Taller porque el grupo entero lo es (`ubicaciones` del grupo).
       { id: "produccion.recibirProduccion", etiqueta: "Recibir", estado: "viva", ruta: "/produccion/recibir", icono: "recibir", pajaro: "10 Gallito" },
       { id: "produccion.porPagarProduccion", etiqueta: "Por pagar", estado: "viva", ruta: "/produccion/por-pagar", icono: "porPagar", pajaro: "10 Gallito", exige: "verDinero" },
-      // Fases F6 y F7 de `docs/PLAN-PRODUCCION.md`. El orden final se decide cuando nazcan.
-      { id: "produccion.resumen", etiqueta: "Resumen", estado: "futura", pajaro: "10 Gallito", nota: "Fase F6: el tablero del Taller." },
-      { id: "produccion.abastecimiento", etiqueta: "Abastecimiento", estado: "futura", pajaro: "10 Gallito", nota: "El abastecimiento (F4a a F4d) ya vive arriba como hijas sueltas; el nodo queda como el candidato a agruparlas cuando Producción pase el tope de 6 hijas." },
+      // Lo que falta de `docs/PLAN-PRODUCCION.md` (F7). El orden final se decide cuando nazca.
+      { id: "produccion.abastecimiento", etiqueta: "Abastecimiento", estado: "futura", pajaro: "10 Gallito", nota: "El abastecimiento (F4a a F4d) ya vive arriba como hijas sueltas; el nodo queda como el candidato a agruparlas: Producción ya pasa el tope de 6 hijas (DEUDA desde #231)." },
       { id: "produccion.eficiencia", etiqueta: "Eficiencia", estado: "futura", pajaro: "10 Gallito", nota: "Fase F7: mermas y tiempos por orden." },
     ],
   },

@@ -21,7 +21,8 @@ import { getLineasPorRecibir } from "@/lib/recibir-produccion";
 // Taller, líder incluido. Un líder que llega desde otra ubicación ve un aviso
 // que le dice qué cambiar; el resto vuelve al inicio. Es visibilidad: el
 // candado real sigue siendo el de cada RPC.
-export default async function OrdenesProduccionPage() {
+export default async function OrdenesProduccionPage({ searchParams }: { searchParams: Promise<{ orden?: string; nueva?: string }> }) {
+  const sp = await searchParams;
   const persona = await requirePersonaActualV2();
   if (!puedeVerProduccion(persona)) {
     if (!persona.puedeCambiarUbicacion) redirect("/");
@@ -55,7 +56,7 @@ export default async function OrdenesProduccionPage() {
 
   return (
     <div className="space-y-6">
-      <OrdenesTablero tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} decision={decision} />
+      <OrdenesTablero tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} decision={decision} ordenInicialId={sp.orden ?? null} nuevaInicial={sp.nueva ?? null} />
     </div>
   );
 }

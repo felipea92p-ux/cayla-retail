@@ -31,6 +31,8 @@ export function OrdenesTablero({
   insumos,
   consumosPorOrden,
   decision,
+  ordenInicialId = null,
+  nuevaInicial = null,
 }: {
   tallerId: string;
   ordenes: OrdenProduccion[];
@@ -41,9 +43,12 @@ export function OrdenesTablero({
   consumosPorOrden: Record<string, ConsumoDeOrden[]>;
   /** Solo el líder (F5): lo que aconseja la red al abrir una orden. */
   decision: Tolerado<DecisionProduccion> | null;
+  /** Enlaces del Resumen (F6): `?orden=<id>` abre esa orden; `?nueva=<modelo>` abre «Nueva orden» con el modelo elegido (`auto` = el primero). */
+  ordenInicialId?: string | null;
+  nuevaInicial?: string | null;
 }) {
-  const [abiertaId, setAbiertaId] = useState<string | null>(null);
-  const [nuevaAbierta, setNuevaAbierta] = useState(false);
+  const [abiertaId, setAbiertaId] = useState<string | null>(ordenInicialId && ordenes.some((o) => o.id === ordenInicialId) ? ordenInicialId : null);
+  const [nuevaAbierta, setNuevaAbierta] = useState(nuevaInicial !== null);
   const [anulando, setAnulando] = useState<OrdenProduccion | null>(null);
   const [revirtiendo, setRevirtiendo] = useState<OrdenProduccion | null>(null);
   const [verTerminadas, setVerTerminadas] = useState(false);
@@ -229,7 +234,7 @@ export function OrdenesTablero({
           onRevertir={() => setRevirtiendo(abierta)}
         />
       )}
-      {nuevaAbierta && <NuevaOrdenProduccionForm tallerId={tallerId} modelos={modelos} decision={decision} onClose={() => setNuevaAbierta(false)} />}
+      {nuevaAbierta && <NuevaOrdenProduccionForm tallerId={tallerId} modelos={modelos} decision={decision} productoInicialId={nuevaInicial} onClose={() => setNuevaAbierta(false)} />}
       {anulando && <AnularOrdenModal orden={anulando} consumos={consumosPorOrden[anulando.id] ?? []} onClose={() => setAnulando(null)} />}
       {revirtiendo && <RevertirOrdenModal orden={revirtiendo} onClose={() => setRevirtiendo(null)} />}
     </div>

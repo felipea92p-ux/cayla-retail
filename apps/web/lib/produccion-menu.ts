@@ -1,11 +1,11 @@
 // Quién ve qué en el menú de Producción y de Compras (ADR-0133, D-A).
 //
 // LA REGLA YA NO VIVE ACÁ (2026-09-21, paso 1 de «menú a datos»): está declarada en el árbol de `lib/menu.ts` —Producción
-// con `ubicaciones: ["taller"]` y sus tres puertas de dinero con `exige: "verDinero"`; Compras con `ubicaciones: ["tienda",
-// "almacen"]` y sus cinco puertas con `exige: "verDinero"`— y se calcula con `menuPara`. Este archivo queda como vista de
-// compatibilidad para lo que todavía lo importa: las dos páginas de Producción (`puedeVerProduccion`) y su prueba, que sigue
-// corriendo SIN cambios y por eso demuestra que la regla absorbida es la misma. Cuando esas páginas importen de
-// `lib/menu.ts`, este archivo se borra.
+// con `ubicaciones: ["taller"]`, sus tres puertas de dinero con `exige: "verDinero"` y el Resumen con `exige: "analizar"`;
+// Compras con `ubicaciones: ["tienda", "almacen"]` y sus cinco puertas con `exige: "verDinero"`— y se calcula con
+// `menuPara`. Este archivo queda como vista de compatibilidad para lo que todavía lo importa: las dos páginas de Producción
+// (`puedeVerProduccion`) y su prueba, que sigue corriendo SIN cambios y por eso demuestra que la regla absorbida es la misma.
+// Cuando esas páginas importen de `lib/menu.ts`, este archivo se borra.
 //
 // Son DOS módulos distintos (decisión de Felipe, 2026-09-19): Producción (fabricar) y Compras (comprar). Se conectan por
 // los datos —la factura de tela abre un lote, la orden lo consume—, no por el menú.
@@ -22,11 +22,11 @@ export type PerfilMenu = {
   ubicacionTipo: TipoUbicacion;
 };
 
-/** Pantallas de Producción, en orden. Hoy Órdenes, Insumos, Proveedores, Comprobantes, Recibir y Por pagar (Proveedores,
- *  Comprobantes y Por pagar son solo de quien ve el dinero; Recibir lo usa también quien trabaja en el Taller): Resumen y
- *  Eficiencia se suman en `lib/menu.ts` cuando existan (fases F6 y F7). La clave es lo que sigue al punto del id del nodo
- *  (`produccion.ordenes`, `produccion.recibirProduccion`…). */
-export type ClaveMenuProduccion = "ordenes" | "insumos" | "proveedoresProduccion" | "comprobantesProduccion" | "recibirProduccion" | "porPagarProduccion";
+/** Pantallas de Producción, en orden. Hoy Resumen, Órdenes, Insumos, Proveedores, Comprobantes, Recibir y Por pagar (Resumen,
+ *  Proveedores, Comprobantes y Por pagar son solo de quien ve el dinero; Recibir lo usa también quien trabaja en el Taller):
+ *  Eficiencia se suma en `lib/menu.ts` cuando exista (fase F7). La clave es lo que sigue al punto del id del nodo
+ *  (`produccion.ordenes`, `produccion.resumenProduccion`…). */
+export type ClaveMenuProduccion = "resumenProduccion" | "ordenes" | "insumos" | "proveedoresProduccion" | "comprobantesProduccion" | "recibirProduccion" | "porPagarProduccion";
 
 export type ClaveMenuCompras = "proveedores" | "comprobantes" | "recibir" | "porPagar" | "notasCredito";
 
