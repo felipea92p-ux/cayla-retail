@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
-import { calcularEstado, type EstadoStock } from "@/lib/inventario-reglas";
+import { calcularEstado, fotoPrincipal, type EstadoStock } from "@/lib/inventario-reglas";
 import { agruparStockPorSede, type SedeConStock } from "@/lib/stock-por-sede";
 
 // Las páginas (server) importan todo desde acá; los componentes cliente
@@ -53,18 +53,6 @@ export type FilaStock = {
   pisoDisponible: number | null;
   almacenDisponible: number | null;
 };
-
-type FotoCruda = { url: string; orden: number; es_principal: boolean };
-
-/** De las fotos de un producto (0 a N, en cualquier orden de llegada), la
- *  que se muestra como miniatura: la marcada `es_principal`, o si ninguna
- *  lo está, la de menor `orden` — mismo criterio que ya usan
- *  `catalogo_crear_producto`/`catalogo_actualizar_producto` en SQL al
- *  elegir cuál queda de `es_principal` por defecto. */
-function fotoPrincipal(fotos: FotoCruda[] | null | undefined): string | null {
-  if (!fotos || fotos.length === 0) return null;
-  return (fotos.find((f) => f.es_principal) ?? [...fotos].sort((a, b) => a.orden - b.orden)[0]).url;
-}
 
 export type ResumenInventario = {
   total: number;

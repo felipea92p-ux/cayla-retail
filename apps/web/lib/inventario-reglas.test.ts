@@ -1,5 +1,43 @@
 import { describe, it, expect } from "vitest";
-import { calcularEstado, necesitaReponerPiso, UMBRAL_REPOSICION_PISO, UMBRAL_STOCK_BAJO_ALMACEN } from "./inventario-reglas";
+import { calcularEstado, fotoPrincipal, necesitaReponerPiso, UMBRAL_REPOSICION_PISO, UMBRAL_STOCK_BAJO_ALMACEN } from "./inventario-reglas";
+
+// La miniatura de una prenda: Existencias y Conteo tienen que elegir LA MISMA foto
+// para la misma prenda, así que la regla vive en un solo lugar y se prueba acá.
+describe("fotoPrincipal", () => {
+  it("sin fotos no hay miniatura (la fila dibuja el perchero, nunca un roto)", () => {
+    expect(fotoPrincipal(undefined)).toBeNull();
+    expect(fotoPrincipal(null)).toBeNull();
+    expect(fotoPrincipal([])).toBeNull();
+  });
+
+  it("gana la marcada como principal, aunque no sea la primera ni la de menor orden", () => {
+    expect(
+      fotoPrincipal([
+        { url: "a.jpg", orden: 0, es_principal: false },
+        { url: "b.jpg", orden: 5, es_principal: true },
+      ])
+    ).toBe("b.jpg");
+  });
+
+  it("si ninguna está marcada, gana la de menor orden — sin importar cómo llegaron", () => {
+    expect(
+      fotoPrincipal([
+        { url: "tercera.jpg", orden: 3, es_principal: false },
+        { url: "primera.jpg", orden: 1, es_principal: false },
+        { url: "segunda.jpg", orden: 2, es_principal: false },
+      ])
+    ).toBe("primera.jpg");
+  });
+
+  it("no reordena el arreglo que recibe", () => {
+    const fotos = [
+      { url: "b.jpg", orden: 2, es_principal: false },
+      { url: "a.jpg", orden: 1, es_principal: false },
+    ];
+    fotoPrincipal(fotos);
+    expect(fotos.map((f) => f.url)).toEqual(["b.jpg", "a.jpg"]);
+  });
+});
 
 // Umbrales de Felipe: «Reponer piso» con 7 o menos en el piso; «Stock bajo»
 // con 10 o menos en el ALMACÉN (no el total — mira solo la reserva). Bajó de
