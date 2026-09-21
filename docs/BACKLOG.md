@@ -28,6 +28,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Productos: las alertas de stock solo cuentan activas, «Stock total» y números que no mienten (2026-09-22, ADR-0150) — hecho en local, FALTA PEGAR 2 MIGRACIONES EN PRODUCCIÓN
+Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió la opción A y ordenó la #1 a la #4).
+- [x] **#1 Descontinuados fuera de «sin stock», «stock bajo», «para pedir» y «A quién pedirle»**, y marcados con un chip en la Grilla. Migración `20260922120000` (mismas firmas; el filtro y el contador cambian juntos).
+- [x] **#2 «Stock total»** (opción A): la tarjeta, la Tabla y una línea bajo los contadores dicen que el número es la suma de todas las sedes y el Taller. `components/NotaStockTotal.tsx`, `lib/productos-stock.ts`.
+- [x] **#3 «N variantes»** cuenta variantes, no filas de stock (`count(distinct v.id)`), migración aparte `20260922121000`.
+- [x] **#4 «Agotado» ya no es rojo** (chip neutro en la Grilla, tinta en la Tabla): queda un solo rojo, el de «N sin stock» del subtítulo.
+- [ ] **Pegar en producción, en orden, las dos migraciones** (`20260922120000`, luego `20260922121000`; ya traen `set search_path`) y verificar con las consultas del ADR-0150. El orden con el despliegue del código no importa. Hasta entonces «no está en producción».
+- [ ] **Decisión de Felipe — qué número ve una tienda (opciones B/C):** R-48 («cada líder ve solo su sede») choca con su propia decisión del 2026-09-15 («Productos suma toda la red»). Opciones y recomendación: sección 8 de `docs/pantallas/productos.md`. Bloquea la #10 y la #12 del análisis.
+- [ ] Pendientes del análisis (#5–#12, sin orden de ejecución dado): fotos y rótulo «MUESTRA» (34 de 39 activos sin foto), esconder «Editar» al integrante, demanda y plazo de entrega por producto (medir antes), `p_stock_minimo` en el alta, un solo universo de variantes vigentes, «Activar» en bloque sin revalidar marca y proveedor, táctil y contraste. Y fuera de la pantalla: `fn_productos*` y las lecturas de `productos`/`variantes` sirven costo y stock a cualquier cuenta autenticada del proyecto de Dynamic (consulta Q12).
+- [ ] Confirmar con Q2 y Q4a del análisis las cifras de producción que salieron de una lectura de solo lectura hecha por un agente (17 sin stock activas, 0 para pedir sin descontinuadas, 163 variantes reales).
+
 ## 🎯 Menú a datos: `lib/menu.ts` (2026-09-21, ADR-0144) — paso 1, sin cambio visible
 - [x] Árbol de datos + `menuPara` (permisos semánticos, no `esLider`) + fotografía del menú de hoy (`menu-hoy.golden.json`, capturada del `AppShell.tsx` real de `main`) + pruebas (equivalencia en 6 perfiles, invariantes, topes 8/6, rutas vivas existen). `AppShell.tsx` pierde las constantes de filas y `produccion-menu.ts` pasa a ser vista fina. `tsc`, `eslint` y 2023 pruebas en verde; 1176 renders del original y del nuevo, 0 diferencias.
 - [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
