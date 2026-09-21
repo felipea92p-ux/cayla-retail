@@ -168,7 +168,9 @@ export const ARBOL: readonly Nodo[] = [
       { id: "produccion.porPagarProduccion", etiqueta: "Por pagar", estado: "viva", ruta: "/produccion/por-pagar", icono: "porPagar", pajaro: "10 Gallito", exige: "verDinero" },
       // Lo que falta de `docs/PLAN-PRODUCCION.md` (F7). El orden final se decide cuando nazca.
       { id: "produccion.abastecimiento", etiqueta: "Abastecimiento", estado: "futura", pajaro: "10 Gallito", nota: "El abastecimiento (F4a a F4d) ya vive arriba como hijas sueltas; el nodo queda como el candidato a agruparlas: Producción ya pasa el tope de 6 hijas (DEUDA desde #231)." },
-      { id: "produccion.eficiencia", etiqueta: "Eficiencia", estado: "futura", pajaro: "10 Gallito", nota: "Fase F7: mermas y tiempos por orden." },
+      // F7 (2026-09-22) ya existe: `/produccion/eficiencia`. NO es una fila del lateral a propósito: Producción ya está en su tope de 7 hijas (ver
+      // «DEUDA» en `menu.test.ts`) y agregar una octava exige regrupar antes. Vive como PESTAÑA del Resumen («Hoy | Eficiencia»), que es su puerta.
+      { id: "produccion.eficiencia", etiqueta: "Eficiencia", estado: "futura", pajaro: "10 Gallito", nota: "Existe como pestaña del Resumen: /produccion/eficiencia (F7). No es fila del lateral: Producción está en su tope de 7 hijas." },
     ],
   },
 

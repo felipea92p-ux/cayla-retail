@@ -358,6 +358,7 @@ Dos cosas salieron de mirar la base: «Fechas» filtra el día en que LLEGÓ la 
 
 Lo que Felipe se lleva: la lógica de un filtro (qué es «este mes», cómo se rotula, qué se hace con una URL rota) no vive en el componente sino en un módulo puro que se prueba sin navegador; el componente solo dibuja. Pendiente: comparar a ojo contra `06-recibir-recibidas.png` en escritorio y celular (no se abrió el navegador en esta sesión).
 
+
 ## 2026-09-18 (Recibir por envío: un envío trae comprobantes de varios proveedores, y cuenta quien abre la caja)
 
 Hasta hoy una guía cubría comprobantes de UN proveedor y solo un líder podía recibir contra comprobante. Un envío real trae bultos de varios proveedores y quien abre la caja suele ser una integrante. Ahora existe `envios` (una guía, un lote por proveedor), la RPC atómica e idempotente `recibir_envio` y la pantalla `/recibir`, abierta a cualquier colaborador de la sede y sin dinero para quien no es líder. Lo fuera de comprobante declara su origen: de qué proveedor viene y si es regalo; lo de otra sede se confirma como traslado, no como prenda suelta. Los cuatro indicadores pasan a vivir bajo «¿Qué llegó?» y desaparecen al marcar un comprobante. ADR-0113.
@@ -569,6 +570,7 @@ Cuando se cierra un faltante, el proveedor le debe a CAYLA una nota de crédito 
 La pantalla pregunta solo por los comprobantes de la página que tienen algo cerrado, y si la consulta falla dibuja la lista igual sin el chip (es un aviso, no un número). Pruebas SQL 112/112 (13 nuevas: monto exacto 236.00, resuelto sí/no, desaparece con la nota por faltante, no con otra nota, anulado, integrante vacío) y 10 de vitest sobre el texto y el tono. No hubo navegador (el integrado es compartido y pide login): falta ver el chip en la celda Pago de Comprobantes.
 Lo que Felipe se lleva: un aviso que depende de una migración se diseña para degradarse solo (sin la función en producción, la lista sigue viva, sin el chip) — así se puede desplegar antes de pegar el SQL sin romper la pantalla. Falta pegar la migración 16 en producción.
 
+
 ## 2026-09-18 (Migraciones: dos con la misma versión — la de talla Única se mueve a 20260918175000)
 
 `talla_unica_en_femenino` ya había cambiado de número una vez (160000 → 170000) para no chocar con `etiquetas_descuento`, y ahí chocó con `venta_aplica_descuento_de_campana` (la de la caja). Dos migraciones con la misma versión rompen `supabase start` y un `db reset` local (llave duplicada en `schema_migrations`); producción no se ve afectada porque se pega a mano. Se mueve la de talla Única a `20260918175000`, y no la de la caja, porque esa ya está en producción y citada en el ADR-0108, el BACKLOG y el PR #145.
@@ -594,6 +596,7 @@ Lo que Felipe se lleva: el tipo de talla (letras / numeración / única / otras)
 Felipe preguntó si Comprobantes, Recibir mercadería y Por pagar deberían ser por tienda. Respuesta con evidencia: solo Recibir (es un acto físico en un lugar); Comprobantes y Por pagar son de la empresa (R-04, R-10, R-12) pero tienen que mostrar y filtrar por destino, que hoy no se ve en ninguna lista. Al confirmar Felipe que una factura puede repartirse entre tiendas, el destino dejó de poder vivir en la factura: `recibir_compras` cuenta lo recibido sumando todas las ubicaciones, así que una tienda podía gastarse la parte de otra. Diseño en ADR-0139 (antes 0107, 0132 y 0138, renumerado); sin código ni migración porque otra sesión (ADR-0106, sin PR) reescribe las mismas funciones y su esquema ya corre en el Postgres local compartido.
 
 Lo que Felipe se lleva: «por tienda» son tres cosas distintas — perspectiva (qué muestra la pantalla), permiso (quién puede) y atribución (a qué tienda pertenece el registro) — y no se resuelven igual en cada módulo. Y antes de escribir migraciones sobre un módulo, mirar `git log origin/main..<rama>` de las sesiones vecinas: esta vez habría sido trabajo doble sobre las mismas cinco funciones.
+
 
 ## 2026-09-18 (Etiquetas se alinea con Colores, Tejidos y Patrones: mismo tamaño de tarjeta, misma grilla)
 
@@ -5285,6 +5288,7 @@ no una revisión visual. La lección no es "no automatizar": es que un cambio me
 sobre 17 archivos necesita una verificación mecánica detrás, y acá el compilador es
 esa red — build, lint, tsc y 77 pruebas antes de commitear, siempre en ese orden.
 
+
 ## 2026-09-09 (verificada la robustez, y con un fallo real en vez de un simulacro)
 Se montó un entorno aparte para probar las barreras sin tocar el trabajo de otras sesiones:
 worktree propio (porque Next no permite dos `dev` en el mismo directorio y había uno
@@ -5462,6 +5466,7 @@ correr dos veces. Probado corriéndolo dos veces: la segunda no cambia nada.
 
 Producción no se tocó: es DDL en el proyecto compartido con Dynamic.
 
+
 ## 2026-09-09 (organización del inventario, bloque 4 — el censo es el primer conteo)
 
 `0048_conteos.sql` + `unificacion/30` + ADR-0027. Dos tablas (`conteos`, `conteo_lineas`) y
@@ -5545,6 +5550,7 @@ migraciones duales que el BACKLOG ya tenía anotada.
 Y una lección de método: la afirmación "esto explica aquello" es una hipótesis hasta que
 alguien la mide. Estaba escrita en un ADR con tono de hecho. Medir costó diez segundos.
 
+
 ## 2026-09-09 (verificación post-despliegue de la robustez: 18 pantallas, ninguna rota)
 Felipe empujó los 10 commits pendientes. Verificado en producción con sesión iniciada: se
 recorrieron **las 18 pantallas de la app** buscando el texto de las barreras de error
@@ -5591,6 +5597,7 @@ sin `error` y separa los falsos positivos verificados uno por uno —los `auth.g
 que degradan a "sin sesión", y el `getPublicUrl`, que arma una URL en memoria—. Medir
 antes y después con la misma regla es lo que permite decir "de 52 a 1" en vez de "quedó
 mejor".
+
 
 ## 2026-09-09 (cacheComponents: archivado tras intentarlo, no aplazado otra vez)
 Felipe paró sus otras sesiones para dejar el árbol quieto y se intentó de verdad: flag
@@ -8509,6 +8516,7 @@ adversarial independiente encontró 2 defectos reales que ya estaban corregidos 
 RUC en el texto buscable (rompía pegar «razón social + RUC» de una factura) y el chip partía la palabra al resaltar a medias. No
 cubre los buscadores de Comprobantes y Recepciones (filtran el proveedor por nombre dentro de sus RPC: requiere migración).
 
+
 ## 2026-09-21 (Producción F4b: comprobantes propios — ADR-0133)
 Felipe fusionó F4a y pegó su migración (verificado contra producción). F4b construida en local: `comprobantes_produccion` (+ líneas y pagos), solo-líder, con las
 reglas de la factura de Compras (contado ⇒ pago exacto en la misma transacción, crédito ⇒ vencimiento, idempotente, anular con motivo y nunca con pagos) y saldo
@@ -8555,6 +8563,16 @@ Felipe se lleva: (1) una migración vieja se prueba contra el esquema de SU épo
 ## 2026-09-21 (Producción F6: Resumen — ADR-0133)
 Felipe pegó las partes A y B del candado del dinero (verificado contra producción: costos ilegibles por columna, funciones `fn_costos_*` presentes, vista cerrada) y fusionó F5. F6 construida sin esquema: `/produccion` pasa a ser el
 Resumen «¿qué necesita mi decisión hoy?» (solo líder) con tarjetas por urgencia y evidencia, cifras, ¿qué producir? y ¿alcanza la tela?. Solo hechos: no se dibujan plazos por etapa ni «días de trabajo» inventados.
+
+## 2026-09-22 (Producción F7: Eficiencia del Taller — ADR-0133)
+Felipe fusionó F6 y decidió sobre F7: la cotización de maquila externa NO se registra (D-E descartada, enmienda a D-31) y los sueldos se leen de Dynamic. Revisado contra producción: Dynamic ya congela la planilla
+(`planilla_pagada_detalle` / `v_planilla_pagada`, con `costo_total`; el Taller es la sede `LIM`, `tipo = 'taller'`) y `retail.gastos` ya existe para alquiler y servicios (modelo de Finanzas, ADR-0117, PR #170 sin fusionar).
+Por eso F7 NO crea `gastos_taller` ni cotizaciones: solo una vista puente `retail.planilla_por_sede` (D-33, agregada, sin personas, grupos < 3 ocultos, security_invoker) y la pantalla `/produccion/eficiencia`.
+Interpretación propia de D-31 documentada: el Taller se mide por lo que cuesta cada prenda terminada (materiales + conversión), período a período.
+
+## 2026-09-22 (F7: conflicto con el menú como árbol de datos — ADR-0144)
+Al fusionar main en el PR de F7 el menú había pasado a ser un árbol de datos (`lib/menu.ts`) con una prueba que frena una octava hija de Producción («regrupar antes de agregar Eficiencia»). No se subió la excepción ni se rompió
+la prueba: Eficiencia llega como **pestaña del Resumen** («Hoy | Eficiencia», `PestanasResumenProduccion`), no como fila del lateral. El nodo `produccion.eficiencia` sigue como «futura» con la nota actualizada.
 
 ## 2026-09-21 (Historial de ventas: Ventas ▸ Historial — ADR-0145, hecho en local)
 Ya hay dónde ver todas las ventas registradas: `/vender/historial`, en el grupo Ventas del lateral entre Caja y Cambios. Una fila por venta agrupada por día de Lima, con filtros de período, tienda y vendedor (solo el líder), estado, pago y con/sin boleta o factura; cifras del rango completo (vendido, ticket promedio, anuladas: una anulada se ve tachada y no suma); paginado por cursor; al tocar una fila se abre el detalle de siempre. **Sin migración:** lee `ventas`, `venta_items`, `venta_pagos` y `comprobantes`, que se compararon EN VIVO con producción (columnas, RLS, FK y funciones idénticas; producción tiene 16 ventas).
