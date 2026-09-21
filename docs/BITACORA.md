@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (Colaboradores rediseñado: Suspender, Cambiar ubicación y Actividad — ADR-0148)
+Sobre la maqueta de Felipe, `/colaboradores` ganó tarjetas con números reales, cuatro pestañas (Activos, Suspendidos, Inactivas en Dynamic, Actividad), buscador, «Tú», menú «⋯» y alta de varias personas. Detrás hay una migración que mueve la fila al suspender y un historial que solo se agrega.
+Felipe se lleva: (1) **suspender mueve la fila** en vez de marcarla: así ninguna de las ocho funciones que deciden el acceso cambia y un suspendido no puede colarse por ninguna; (2) un historial que ni el dueño puede editar responde «quién le dio o quitó el acceso» aunque alguien lo haya quitado de la base; (3) una migración se prueba de verdad aunque no haya Docker — PGlite corrió 67 comprobaciones —, pero no reemplaza la prueba contra el Postgres local.
+Sin resolver: la migración `20260922110000` no está en producción y hay que pegarla ANTES de fusionar la web; queda ver con clics (y con la cuenta de una persona suspendida) que de verdad no entra.
+
 ## 2026-09-22 (Colaboradores: primera auditoría con `/pantalla` y sus arreglos — ADR-0145)
 Se auditó `/colaboradores` (`docs/pantallas/colaboradores.md`, 6,5/10, Soporte) y se arreglaron 7 de sus 12 tareas: el alta ya no abre con una persona y una sede elegidas, «Quitar acceso» deja de ser rojo en las 25 filas, el texto tenue sube a contraste legible, y una migración cierra la escritura directa a la tabla, exige ubicación a todo colaborador y hace que agregar/quitar avisen cuando ya estaba hecho.
 Felipe se lleva: (1) **RLS sola es una capa, no dos** — `authenticated` tenía INSERT/UPDATE/DELETE sobre la tabla de acceso y solo la política de SELECT lo frenaba; (2) un `on conflict do nothing` que no avisa deja a dos líderes creyendo cosas distintas; (3) un valor por defecto útil en un formulario cualquiera es un riesgo en uno que da acceso.
