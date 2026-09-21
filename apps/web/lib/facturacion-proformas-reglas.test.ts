@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Proforma } from "./proformas-reglas";
-import { chipDeLaProforma, detalleDeLaProforma, estadoVisible, ordenarProformas } from "./facturacion-proformas-reglas";
+import { camposDeBusquedaDeLaProforma, chipDeLaProforma, detalleDeLaProforma, estadoVisible, ordenarProformas } from "./facturacion-proformas-reglas";
 
 const AHORA = new Date("2026-09-19T20:00:00Z");
 const enHoras = (h: number) => new Date(AHORA.getTime() + h * 3600 * 1000).toISOString();
@@ -106,5 +106,18 @@ describe("detalleDeLaProforma", () => {
     expect(detalleDeLaProforma(proforma({ vence_at: null }), AHORA)).toBeNull();
     expect(detalleDeLaProforma(proforma({ estado: "convertida" }), AHORA)).toBeNull();
     expect(detalleDeLaProforma(proforma({ estado: "anulada" }), AHORA)).toBeNull();
+  });
+});
+
+describe("camposDeBusquedaDeLaProforma", () => {
+  it("se encuentra por clienta, documento, estado y total", () => {
+    const texto = camposDeBusquedaDeLaProforma(proforma({ cliente_nombre: "Lucía Paredes", cliente_num_doc: "45678912", porVencer: true, total: 320 })).join(" ");
+    for (const esperado of ["Lucía Paredes", "45678912", "Por vencer", "320.00"]) expect(texto).toContain(esperado);
+  });
+
+  it("una vigente cuyo plazo pasó se encuentra escribiendo «vencida», no «vigente»", () => {
+    const texto = camposDeBusquedaDeLaProforma(proforma({ vencida: true })).join(" ");
+    expect(texto).toContain("Vencida");
+    expect(texto).not.toContain("Vigente");
   });
 });

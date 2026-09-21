@@ -8,7 +8,10 @@ import { HiloComprobante } from "@/components/ui/HiloComprobante";
 import { soles } from "@/lib/compras-reglas";
 import { ETIQUETA_TIPO } from "@/lib/comprobantes-reglas";
 import type { VentaDelDia } from "@/lib/comprobantes-reglas";
-import { accionDeLaFila, chipDeLaFila, detalleDeLaFila, estadoDeLaFila, type FilaDeActividad } from "@/lib/facturacion-actividad";
+import { accionDeLaFila, camposDeBusquedaDeLaFila, chipDeLaFila, detalleDeLaFila, estadoDeLaFila, type FilaDeActividad } from "@/lib/facturacion-actividad";
+import { coincide } from "@/lib/facturacion-busqueda";
+import { SinCoincidencias } from "@/components/SinCoincidencias";
+import { useFacturacionBusqueda } from "@/lib/useFacturacionBusqueda";
 import { useTransmitir } from "@/lib/useTransmitir";
 
 // «Actividad de hoy» (ADR-0124, spec §7): todo lo que se vendió hoy, con el camino de su
@@ -53,6 +56,8 @@ const COLUMNAS = "@min-[640px]:grid @min-[640px]:grid-cols-[62px_minmax(0,1fr)_8
 
 export function ActividadDeHoy({ filas, ahora }: { filas: FilaDeActividad[]; ahora: Date }) {
   const { transmitiendoId, transmitir } = useTransmitir();
+  const { texto: busqueda } = useFacturacionBusqueda();
+  const visibles = filas.filter((f) => coincide(camposDeBusquedaDeLaFila(f), busqueda));
 
   return (
     <div className="card-cayla anim-sube @container overflow-hidden" style={{ "--i": 4 } as CSSProperties}>
@@ -72,9 +77,11 @@ export function ActividadDeHoy({ filas, ahora }: { filas: FilaDeActividad[]; aho
 
       {filas.length === 0 ? (
         <p className="font-display border-t border-tinta/10 px-5 py-8 text-center text-base italic text-tinta/65">Sin ventas registradas hoy todavía.</p>
+      ) : visibles.length === 0 ? (
+        <SinCoincidencias />
       ) : (
         <>
-          <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-[11px] text-tinta/55 ${COLUMNAS}`}>
+          <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-[11px] text-tinta/65 ${COLUMNAS}`}>
             <span>Hora</span>
             <span>Productos</span>
             <span className="hidden @min-[900px]:inline">Pago</span>
@@ -82,7 +89,7 @@ export function ActividadDeHoy({ filas, ahora }: { filas: FilaDeActividad[]; aho
             <span>Comprobante</span>
           </div>
 
-          {filas.map((fila) => {
+          {visibles.map((fila) => {
             const { venta, comprobante } = fila;
             const estado = estadoDeLaFila(fila);
             const chip = chipDeLaFila(venta, comprobante);
@@ -97,7 +104,7 @@ export function ActividadDeHoy({ filas, ahora }: { filas: FilaDeActividad[]; aho
               >
                 <div className="flex items-baseline gap-2 @min-[640px]:block">
                   <p className="font-display text-lg leading-tight tabular-nums text-tinta">{venta.hora}</p>
-                  <p className="label-cayla text-[10px] text-tinta/55 @min-[640px]:mt-0.5">{venta.ubicacion_nombre}</p>
+                  <p className="label-cayla text-[10px] text-tinta/65 @min-[640px]:mt-0.5">{venta.ubicacion_nombre}</p>
                 </div>
 
                 <div className="min-w-0">

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CodigoDescuento } from "./codigos-descuento";
-import { chipDelCodigo, detalleDelCodigo, DIAS_CODIGO_POR_VENCER, estadoDelCodigo, ordenarCodigos, resumenDeCodigos, textoDeVigencia } from "./facturacion-codigos-reglas";
+import { camposDeBusquedaDelCodigo, chipDelCodigo, detalleDelCodigo, DIAS_CODIGO_POR_VENCER, estadoDelCodigo, ordenarCodigos, resumenDeCodigos, textoDeVigencia } from "./facturacion-codigos-reglas";
 
 const HOY = "2026-09-19";
 
@@ -133,5 +133,16 @@ describe("textoDeVigencia", () => {
     expect(textoDeVigencia(codigo({ vigenteHasta: "2026-12-31" }))).toBe("Hasta 31/12/2026");
     expect(textoDeVigencia(codigo({ vigenteDesde: "2026-10-01" }))).toBe("Desde 01/10/2026");
     expect(textoDeVigencia(codigo({ vigenteDesde: "2026-10-01", vigenteHasta: "2026-12-31" }))).toBe("01/10/2026 — 31/12/2026");
+  });
+});
+
+describe("camposDeBusquedaDelCodigo", () => {
+  it("se encuentra por código, porcentaje, sede, estado y vigencia", () => {
+    const texto = camposDeBusquedaDelCodigo(codigo({ codigo: "TRUJILLO15", porcentaje: 15, ubicacionNombre: "Tienda Trujillo", vigenteHasta: "2026-12-31" }), HOY).join(" ");
+    for (const esperado of ["TRUJILLO15", "15%", "Tienda Trujillo", "Vigente", "31/12/2026"]) expect(texto).toContain(esperado);
+  });
+
+  it("sin sede se encuentra escribiendo «todas»", () => {
+    expect(camposDeBusquedaDelCodigo(codigo(), HOY).join(" ")).toContain("Todas las sedes");
   });
 });

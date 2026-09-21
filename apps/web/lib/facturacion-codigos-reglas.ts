@@ -108,3 +108,9 @@ export function textoDeVigencia(c: Pick<CodigoDescuento, "vigenteDesde" | "vigen
   if (c.vigenteDesde && c.vigenteHasta) return `${fechaCorta(c.vigenteDesde)} — ${fechaCorta(c.vigenteHasta)}`;
   return c.vigenteHasta ? `Hasta ${fechaCorta(c.vigenteHasta)}` : `Desde ${fechaCorta(c.vigenteDesde)}`;
 }
+
+/** Lo que se puede escribir en el buscador para encontrar este código: el código, el porcentaje, la
+ *  sede, el estado y la vigencia. Lo consume `coincide`. */
+export function camposDeBusquedaDelCodigo(c: CodigoDescuento, hoy: string): string[] {
+  return [c.codigo, `${c.porcentaje}%`, c.ubicacionNombre ?? "Todas las sedes", chipDelCodigo(c, hoy).texto, textoDeVigencia(c)];
+}

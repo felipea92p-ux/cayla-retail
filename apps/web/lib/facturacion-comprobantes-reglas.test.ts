@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Comprobante } from "./comprobantes-reglas";
-import { montosDelMes, motivoDelComprobante, nombreCorto, seriesFaltantes, textoDeSeriesFaltantes } from "./facturacion-comprobantes-reglas";
+import { accionesDelComprobante, camposDeBusquedaDelComprobante, montosDelMes, motivoDelComprobante, seriesFaltantes, textoDeSeriesFaltantes } from "./facturacion-comprobantes-reglas";
 
 const TRU = { id: "u-tru", nombre: "Tienda Trujillo", tipo: "tienda" as const };
 const AQP = { id: "u-aqp", nombre: "Tienda Arequipa", tipo: "tienda" as const };
@@ -32,13 +32,6 @@ function c(extra: Partial<Comprobante>): Comprobante {
     ...extra,
   } as Comprobante;
 }
-
-describe("nombreCorto", () => {
-  it("quita el «Tienda » del nombre: «Tienda Lima» es «Lima»", () => {
-    expect(nombreCorto("Tienda Lima")).toBe("Lima");
-    expect(nombreCorto("Taller")).toBe("Taller");
-  });
-});
 
 describe("seriesFaltantes (spec §9: tiendas × boleta, factura y nota de crédito)", () => {
   const todas = (ub: { id: string }, tipos: ("boleta" | "factura" | "nota_credito")[]) => tipos.map((tipo) => ({ ubicacion_id: ub.id, tipo }));
@@ -123,8 +116,9 @@ describe("montosDelMes (spec §9: «Monto facturado» solo suma aceptados de pro
       c({ total: 40, estado: "enviado", entorno_transmision: "produccion" }),
     ]);
     expect(m.facturado).toBe(0);
-    expect(m.deprueba).toBe(100);
+    expect(m.dePrueba).toBe(100);
     expect(m.sinEnviar).toBe(50);
+    expect(m.porConfirmar).toBe(40);
   });
 
   it("cuenta cuántos comprobantes son de prueba, en el estado que estén", () => {
@@ -156,13 +150,39 @@ describe("montosDelMes (spec §9: «Monto facturado» solo suma aceptados de pro
     expect(m.notasDeCredito).toBe(0);
   });
 
+  it("una nota de crédito resta en TODOS los cubos, no solo en lo facturado (una devolución pendiente no es plata por enviar)", () => {
+    const m = montosDelMes([
+      c({ total: 100, tipo: "boleta", estado: "pendiente", entorno_transmision: null }),
+      c({ total: 100, tipo: "nota_credito", estado: "pendiente", entorno_transmision: null }),
+      c({ total: 60, tipo: "boleta", estado: "aceptado", entorno_transmision: "sandbox" }),
+      c({ total: 20, tipo: "nota_credito", estado: "aceptado", entorno_transmision: "sandbox" }),
+    ]);
+    expect(m.sinEnviar).toBe(0);
+    expect(m.dePrueba).toBe(40);
+  });
+
+  it("lo que no se puede dar por facturado ni por de prueba va a «por confirmar»: enviado, baja en trámite y aceptado sin entorno (boleta anterior a la columna)", () => {
+    const m = montosDelMes([
+      c({ total: 40, estado: "enviado", entorno_transmision: "produccion" }),
+      c({ total: 30, estado: "aceptado", entorno_transmision: "produccion", anulacion_solicitada_at: "2026-09-18T16:00:00Z" }),
+      c({ total: 20, estado: "aceptado", entorno_transmision: null }),
+    ]);
+    expect(m.facturado).toBe(0);
+    expect(m.porConfirmar).toBe(90);
+  });
+
+  it("anulado y no emitido no cuentan en ningún cubo", () => {
+    const m = montosDelMes([c({ total: 999, estado: "anulado" }), c({ total: 999, estado: "no_emitido", entorno_transmision: null })]);
+    expect(m).toMatchObject({ facturado: 0, dePrueba: 0, sinEnviar: 0, porConfirmar: 0 });
+  });
+
   it("«emitidos» no cuenta lo que se liberó antes de transmitirse", () => {
     const m = montosDelMes([c({ estado: "aceptado" }), c({ estado: "pendiente", entorno_transmision: null }), c({ estado: "no_emitido", entorno_transmision: null }), c({ estado: "anulado" })]);
     expect(m.emitidos).toBe(3);
   });
 
   it("sin comprobantes todo es cero", () => {
-    expect(montosDelMes([])).toEqual({ emitidos: 0, facturado: 0, notasDeCredito: 0, deprueba: 0, sinEnviar: 0, cuantosDePrueba: 0 });
+    expect(montosDelMes([])).toEqual({ emitidos: 0, facturado: 0, notasDeCredito: 0, dePrueba: 0, sinEnviar: 0, porConfirmar: 0, cuantosDePrueba: 0 });
   });
 });
 
@@ -183,5 +203,47 @@ describe("motivoDelComprobante", () => {
   it("aceptado, pendiente y enviado: sin motivo", () => {
     expect(motivoDelComprobante(c({ estado: "aceptado" }))).toEqual({ motivo: null, esRechazo: false });
     expect(motivoDelComprobante(c({ estado: "pendiente" }))).toEqual({ motivo: null, esRechazo: false });
+  });
+});
+
+describe("camposDeBusquedaDelComprobante", () => {
+  it("se encuentra por tipo, número, clienta, documento, estado y total", () => {
+    const texto = camposDeBusquedaDelComprobante(
+      c({ tipo: "factura", serie: "F001", numero: 4, cliente_nombre: "CAYLA S.A.C.", cliente_num_doc: "20601234567", estado: "rechazado", motivo_rechazo: "RUC no habido", total: 479.4 })
+    ).join(" ");
+    for (const esperado of ["Factura", "F001-000004", "CAYLA S.A.C.", "20601234567", "Rechazado", "RUC no habido", "479.40"]) {
+      expect(texto).toContain(esperado);
+    }
+  });
+
+  it("un comprobante de prueba se encuentra escribiendo «prueba»", () => {
+    expect(camposDeBusquedaDelComprobante(c({ estado: "aceptado", entorno_transmision: "sandbox" })).join(" ")).toContain("prueba");
+  });
+
+  it("sin nombre de clienta dice «Cliente varios», como la fila", () => {
+    expect(camposDeBusquedaDelComprobante(c({ cliente_nombre: null })).join(" ")).toContain("Cliente varios");
+  });
+});
+
+describe("accionesDelComprobante (qué botones le tocan a cada estado)", () => {
+  it("pendiente: transmitir y liberar sin espera, las dos juntas (ADR-0093)", () => {
+    expect(accionesDelComprobante(c({ estado: "pendiente", entorno_transmision: null }))).toEqual(["transmitir", "liberar"]);
+  });
+
+  it("rechazado: solo reintentar — un rechazado SÍ llegó a SUNAT, nunca se libera", () => {
+    expect(accionesDelComprobante(c({ estado: "rechazado" }))).toEqual(["reintentar"]);
+  });
+
+  it("aceptado se anula, sea de producción o de prueba", () => {
+    expect(accionesDelComprobante(c({ estado: "aceptado", entorno_transmision: "produccion" }))).toEqual(["anular"]);
+    expect(accionesDelComprobante(c({ estado: "aceptado", entorno_transmision: "sandbox" }))).toEqual(["anular"]);
+  });
+
+  it("aceptado con la baja ya en trámite: solo consultar (no se puede anular dos veces)", () => {
+    expect(accionesDelComprobante(c({ estado: "aceptado", anulacion_solicitada_at: "2026-09-18T16:00:00Z" }))).toEqual(["consultar"]);
+  });
+
+  it("enviado, anulado y no emitido: sin botones", () => {
+    for (const estado of ["enviado", "anulado", "no_emitido"] as const) expect(accionesDelComprobante(c({ estado }))).toEqual([]);
   });
 });

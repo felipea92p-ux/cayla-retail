@@ -6,6 +6,7 @@ import { mesActualLima, mesLimaUTC } from "@/lib/fecha-lima";
 import { mesDeParametro, periodoDelMes, tiendasOperativas, ubicacionActualDe } from "@/lib/facturacion-reglas";
 import { ComprobantesPanel } from "@/components/ComprobantesPanel";
 import { ComprobantesTarjetas } from "@/components/ComprobantesTarjetas";
+import { MarcaDeCarga } from "@/components/MarcaDeCarga";
 import { SelectorMesFacturacion } from "@/components/SelectorMesFacturacion";
 
 export default async function ComprobantesPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
@@ -32,6 +33,7 @@ export default async function ComprobantesPage({ searchParams }: { searchParams:
 
   return (
     <div className="space-y-6">
+      <MarcaDeCarga en={ahora.getTime()} />
       <SelectorMesFacturacion ruta="/vender/facturacion/comprobantes" mes={mes} actual={actual} />
       <ComprobantesTarjetas comprobantes={comprobantes} porEnviar={porEnviar} periodo={periodo} ahora={ahora} />
       <ComprobantesPanel

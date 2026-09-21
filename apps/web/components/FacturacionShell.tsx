@@ -1,9 +1,11 @@
 "use client";
 
 import { Suspense, useCallback, useMemo, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import type { SerieComprobante } from "@/lib/comprobantes-reglas";
 import type { ConteosPestanas } from "@/lib/facturacion-reglas";
 import { AccionesFacturacionContext } from "@/lib/useFacturacionAcciones";
+import { BusquedaFacturacionContext } from "@/lib/useFacturacionBusqueda";
 import { avisar } from "@/components/ui/Avisos";
 import { EmitirComprobanteModal } from "@/components/EmitirComprobanteModal";
 import { NuevaProformaModal } from "@/components/NuevaProformaModal";
@@ -21,6 +23,11 @@ type Tienda = { id: string; nombre: string };
 // `series` y `tiendas` llegan `null` cuando el layout no pudo leerlas (son datos del marco,
 // `tolerar`: si fallan, el marco sigue vivo). Sin ellas no hay número que reservar ni tienda
 // que elegir, así que el modal no se abre y se avisa en vez de dejar un formulario roto.
+//
+// También guarda el texto de la caja de búsqueda de la cabecera (cada lista lo lee con
+// `useFacturacionBusqueda` y filtra sus filas). El texto es de UNA vista: se guarda junto a la ruta
+// en que se escribió y, si la ruta cambia, ya no cuenta — así se borra solo al cambiar de vista, sin
+// un efecto que lo reponga.
 export function FacturacionShell({
   conteos,
   series,
@@ -55,17 +62,25 @@ export function FacturacionShell({
 
   const acciones = useMemo(() => ({ abrirEmitir, abrirProforma }), [abrirEmitir, abrirProforma]);
 
+  const ruta = usePathname();
+  const [busqueda, setBusqueda] = useState({ ruta, texto: "" });
+  const texto = busqueda.ruta === ruta ? busqueda.texto : "";
+  const setTexto = useCallback((nuevo: string) => setBusqueda({ ruta, texto: nuevo }), [ruta]);
+  const buscar = useMemo(() => ({ texto, setTexto }), [texto, setTexto]);
+
   return (
     <AccionesFacturacionContext.Provider value={acciones}>
-      <div className="tema-vidrio space-y-6">
-        <FacturacionCabecera />
-        {/* `useSearchParams` (en las pestañas) exige un <Suspense>. Como el layout es
-            dinámico nunca llega a mostrarse el respaldo; `null` basta. */}
-        <Suspense fallback={null}>
-          <FacturacionPestanas conteos={conteos} />
-        </Suspense>
-        {children}
-      </div>
+      <BusquedaFacturacionContext.Provider value={buscar}>
+        <div className="tema-vidrio space-y-6">
+          <FacturacionCabecera />
+          {/* `useSearchParams` (en las pestañas) exige un <Suspense>. Como el layout es
+              dinámico nunca llega a mostrarse el respaldo; `null` basta. */}
+          <Suspense fallback={null}>
+            <FacturacionPestanas conteos={conteos} />
+          </Suspense>
+          {children}
+        </div>
+      </BusquedaFacturacionContext.Provider>
 
       {series && tiendas && (
         <EmitirComprobanteModal abierto={modal === "emitir"} onCerrar={cerrar} series={series} ubicaciones={tiendas} ubicacionActualId={ubicacionActualId} />

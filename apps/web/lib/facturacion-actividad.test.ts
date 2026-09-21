@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Comprobante, VentaDelDia } from "./comprobantes-reglas";
-import { accionDeLaFila, chipDeLaFila, chipDelComprobante, detalleDeLaFila, enlazarVentasConComprobantes, estadoDeLaFila, etapasDelHilo, textoDelNumero } from "./facturacion-actividad";
+import { accionDeLaFila, camposDeBusquedaDeLaFila, chipDeLaFila, chipDelComprobante, detalleDeLaFila, enlazarVentasConComprobantes, estadoDeLaFila, etapasDelHilo, textoDelNumero } from "./facturacion-actividad";
 
 const AHORA = new Date("2026-09-18T20:00:00Z");
 
@@ -223,5 +223,23 @@ describe("accionDeLaFila", () => {
     expect(accionDeLaFila(comprobante({ estado: "anulado" }))).toBeNull();
     expect(accionDeLaFila(comprobante({ estado: "no_emitido" }))).toBeNull();
     expect(accionDeLaFila(null)).toBeNull();
+  });
+});
+
+describe("camposDeBusquedaDeLaFila", () => {
+  it("junta lo que una persona escribiría para encontrar la venta: hora, tienda, vendedor, clienta, prendas, pago, número y estado", () => {
+    const fila = {
+      venta: venta({ items: [{ referencia: "Blusa Emma", talla: "M", color: "Beige", cantidad: 1, precio_unitario: 79.9 }] }),
+      comprobante: comprobante({ estado: "pendiente" }),
+    };
+    const texto = camposDeBusquedaDeLaFila(fila).join(" ");
+    for (const esperado of ["13:09", "Tienda TRU", "Felipe Alvarez", "Cliente varios", "Blusa Emma", "Beige", "yape", "Boleta", "B004-000011", "Pendiente de enviar", "537.00"]) {
+      expect(texto).toContain(esperado);
+    }
+  });
+
+  it("una venta sin comprobante se encuentra escribiendo «sin comprobante»", () => {
+    const fila = { venta: venta({ comprobante_texto: null, comprobante_tipo: null, comprobante_estado: null }), comprobante: null };
+    expect(camposDeBusquedaDeLaFila(fila).join(" ")).toContain("Sin comprobante");
   });
 });

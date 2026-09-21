@@ -2,6 +2,7 @@
 // probarlas sin levantar nada — mismo criterio que `proformas-reglas.ts`. El reloj
 // entra por parámetro; nada lee `Date.now()` escondido adentro.
 import type { EstadoComprobante } from "./comprobantes-reglas";
+import { duracionCorta } from "./facturacion-resumen-reglas";
 import { marcarPorVencer, type ProformaFila } from "./proformas-reglas";
 
 /* ------------------------------ El mes ------------------------------ */
@@ -138,6 +139,21 @@ export function conteosDePestanas(porEnviar: ResumenPorEnviar | null, proformas:
     conteos.proformas = { valor: proformas.vigentes, tono: "neutro", texto: proformas.vigentes === 1 ? "vigente" : "vigentes" };
   }
   return conteos;
+}
+
+/* ------------------------- Cuándo llegó lo que se ve ------------------------- */
+
+/** Pasados estos segundos sin recargar, lo que se ve ya no es «vivo» (punto ámbar y quieto). */
+export const SEGUNDOS_VISTA_FRESCA = 600;
+
+/** «actualizado ahora», «actualizado hace 16 s», «actualizado hace 3 min», «actualizado hace 2 h 5 min».
+ *  La cabecera lo dice porque una pantalla que se deja abierta todo el día no se actualiza sola: una
+ *  edad a la vista avisa cuándo conviene recargar. */
+export function textoDeFrescura(segundos: number): string {
+  const s = Math.max(0, Math.floor(segundos));
+  if (s < 5) return "actualizado ahora";
+  if (s < 60) return `actualizado hace ${s} s`;
+  return `actualizado hace ${duracionCorta(s)}`;
 }
 
 /* ------------------------------- Las tiendas ------------------------------- */

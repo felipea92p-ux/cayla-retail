@@ -3,7 +3,8 @@
 import { useRef, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import type { TonoKpi } from "@/lib/facturacion-resumen-reglas";
 
-// Tono de la cifra cuando la tarjeta la colorea (solo «Por enviar»: el número es la alerta).
+// Tono de la cifra cuando la tarjeta la colorea (las de la cola de SUNAT: «Por enviar», «Pendientes»,
+// «Rechazados», y las de vencimientos: el número es la alerta).
 const COLOR_DE_LA_CIFRA: Record<TonoKpi, string> = {
   verde: "text-verde-profundo",
   ambar: "text-ambar-profundo",

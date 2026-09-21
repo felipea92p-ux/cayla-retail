@@ -8,9 +8,12 @@ import type { TipoComprobante } from "@/lib/comprobantes-reglas";
 import { tipoDocumentoDeCliente } from "@/lib/comprobantes-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
-import { chipDeLaProforma, detalleDeLaProforma, ordenarProformas } from "@/lib/facturacion-proformas-reglas";
+import { coincide } from "@/lib/facturacion-busqueda";
+import { camposDeBusquedaDeLaProforma, chipDeLaProforma, detalleDeLaProforma, ordenarProformas } from "@/lib/facturacion-proformas-reglas";
+import { useFacturacionBusqueda } from "@/lib/useFacturacionBusqueda";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Ayuda } from "@/components/Ayuda";
+import { SinCoincidencias } from "@/components/SinCoincidencias";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
@@ -44,7 +47,8 @@ export function ProformasPanel({ proformas, periodo, ahora }: { proformas: Profo
   const [convertirNombre, setConvertirNombre] = useState("");
   const clienteTipoDoc = tipoDocumentoDeCliente(tipo, clienteNumDoc);
 
-  const proformasOrdenadas = ordenarProformas(proformas);
+  const { texto: busqueda } = useFacturacionBusqueda();
+  const proformasOrdenadas = ordenarProformas(proformas).filter((p) => coincide(camposDeBusquedaDeLaProforma(p), busqueda));
 
   function cerrarModal() {
     setModal(null);
@@ -77,7 +81,9 @@ export function ProformasPanel({ proformas, periodo, ahora }: { proformas: Profo
 
   return (
     <div className="space-y-6">
-      <div className="card-cayla anim-sube @container overflow-hidden" style={{ "--i": 4 } as CSSProperties}>
+      {/* `overflow-hidden` solo con filas (ver el mismo comentario en ComprobantesPanel): sin ellas la tarjeta es baja y
+          recortaría el globo de ayuda del encabezado. */}
+      <div className={`card-cayla anim-sube @container ${proformasOrdenadas.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 4 } as CSSProperties}>
         <div className="px-5 pt-[18px] pb-3.5">
           <p className="label-cayla text-[11px] text-tinta/65">
             Proformas
@@ -95,9 +101,11 @@ export function ProformasPanel({ proformas, periodo, ahora }: { proformas: Profo
 
         {proformas.length === 0 ? (
           <p className="font-display border-t border-tinta/10 px-5 py-8 text-center text-base italic text-tinta/65">Sin proformas {periodo}.</p>
+        ) : proformasOrdenadas.length === 0 ? (
+          <SinCoincidencias />
         ) : (
           <>
-            <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-[11px] text-tinta/55 ${COLUMNAS}`}>
+            <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-[11px] text-tinta/65 ${COLUMNAS}`}>
               <span>Fecha</span>
               <span>Cliente</span>
               <span className="text-right">Total</span>
@@ -115,7 +123,7 @@ export function ProformasPanel({ proformas, periodo, ahora }: { proformas: Profo
                 >
                   <div className="flex items-baseline gap-2 @min-[640px]:block">
                     <p className="font-display text-lg leading-tight tabular-nums text-tinta">{dia}</p>
-                    <p className="label-cayla text-[10px] text-tinta/55 @min-[640px]:mt-0.5">{hora}</p>
+                    <p className="label-cayla text-[10px] text-tinta/65 @min-[640px]:mt-0.5">{hora}</p>
                   </div>
 
                   <p className="min-w-0 truncate text-[15px] leading-normal text-tinta">{p.cliente_nombre ?? "Cliente varios"}</p>

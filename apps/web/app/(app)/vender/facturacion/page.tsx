@@ -6,6 +6,7 @@ import { ventanaDelDiaLima } from "@/lib/facturacion-resumen-reglas";
 import { enlazarVentasConComprobantes } from "@/lib/facturacion-actividad";
 import { ResumenTarjetas } from "@/components/ResumenTarjetas";
 import { ActividadDeHoy } from "@/components/ActividadDeHoy";
+import { MarcaDeCarga } from "@/components/MarcaDeCarga";
 
 // Resumen = hoy: las cuatro tarjetas de vidrio y, debajo, la actividad del día con el camino de
 // cada comprobante hasta SUNAT.
@@ -30,6 +31,7 @@ export default async function ResumenPage() {
 
   return (
     <div className="space-y-6">
+      <MarcaDeCarga en={ahora.getTime()} />
       <ResumenTarjetas ventas={ventasHoy} porEnviar={porEnviar} comprobantesDeHoy={comprobantesHoy} referencia={referencia} ahora={ahora} />
       <ActividadDeHoy filas={enlazarVentasConComprobantes(ventasHoy, comprobantesHoy)} ahora={ahora} />
     </div>

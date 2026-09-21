@@ -7,10 +7,15 @@ import { createClient } from "@/lib/supabase/client";
 import type { Comprobante, SerieComprobante, TipoComprobante } from "@/lib/comprobantes-reglas";
 import { ETIQUETA_TIPO } from "@/lib/comprobantes-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { accionDeLaFila, chipDelComprobante } from "@/lib/facturacion-actividad";
-import { motivoDelComprobante, nombreCorto, seriesFaltantes, TIPOS_CON_SERIE, textoDeSeriesFaltantes } from "@/lib/facturacion-comprobantes-reglas";
+import { chipDelComprobante } from "@/lib/facturacion-actividad";
+import { accionesDelComprobante, camposDeBusquedaDelComprobante, motivoDelComprobante, seriesFaltantes, TIPOS_CON_SERIE, textoDeSeriesFaltantes } from "@/lib/facturacion-comprobantes-reglas";
+import { coincide } from "@/lib/facturacion-busqueda";
+import { diaYHoraLima } from "@/lib/fechas-lima";
+import { nombreCorto } from "@/lib/resumen-formato";
 import type { Ubicacion } from "@/lib/ubicaciones";
+import { useFacturacionBusqueda } from "@/lib/useFacturacionBusqueda";
 import { Ayuda } from "@/components/Ayuda";
+import { SinCoincidencias } from "@/components/SinCoincidencias";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
@@ -19,16 +24,11 @@ import { traducirError } from "@/lib/error-escritura";
 import { useTransmitir } from "@/lib/useTransmitir";
 import { avisar } from "@/components/ui/Avisos";
 
-// La baja se pidió pero SUNAT no la confirmó: el resumen diario de boletas se
-// procesa diferido. Decir "Anulado" acá sería adelantarse a SUNAT.
-function anulacionEnTramite(c: Comprobante) {
-  return c.estado === "aceptado" && c.anulacion_solicitada_at !== null;
-}
-
-// Los botones de la fila y el motivo que va bajo su estado — extraído porque la fila los pinta
-// con la misma decisión en todos los anchos y no pueden desincronizarse. Los handlers vienen por
-// parámetro porque esta función vive fuera del componente: no tiene closure sobre `onTransmitir`
-// ni sobre los `useState`. El chip sale de `chipDelComprobante` (el mismo del Resumen).
+// Los botones de la fila y el motivo que va bajo su estado. Qué botones le tocan a cada estado lo
+// decide `accionesDelComprobante` (con su prueba); esto solo los dibuja. Los handlers vienen por
+// parámetro porque esta función vive fuera del componente: no tiene closure sobre `onTransmitir` ni
+// sobre los `useState`. Cada botón dice sobre cuál comprobante actúa (`aria-label`): en una lista hay
+// muchos «Anular» iguales. El chip sale de `chipDelComprobante` (el mismo del Resumen).
 function accionComprobante(
   c: Comprobante,
   handlers: {
@@ -40,48 +40,41 @@ function accionComprobante(
     onLiberarClick: (c: Comprobante) => void;
   }
 ) {
-  const transmitir = accionDeLaFila(c);
-  const puedeAnular = c.estado === "aceptado" && !anulacionEnTramite(c);
-  // ADR-0093: solo "pendiente" — nunca se transmitió a SUNAT, así que liberar el
-  // correlativo no le avisa nada a nadie. Un "rechazado" SÍ llegó a SUNAT y tiene
-  // una respuesta real: su único camino sigue siendo reintentar "Transmitir" con
-  // el mismo número, no una segunda salida acá.
-  const puedeLiberar = c.estado === "pendiente";
-
-  // Un "pendiente" puede Transmitir O Liberar — las dos conviven en la misma fila
-  // (decisión de Felipe: "Liberar sin espera" se agrega JUNTO A Transmitir, no en
-  // su lugar), así que esto arma una lista en vez de elegir un solo botón.
-  const botones: React.ReactNode[] = [];
-  if (transmitir?.tipo === "transmitir") {
-    const enVuelo = handlers.transmitiendoId === c.id;
-    botones.push(
-      <BotonCompacto key="transmitir" variante={transmitir.alerta ? "fila-alerta" : "fila"} cargando={enVuelo} onClick={() => handlers.onTransmitir(c.id)}>
-        {enVuelo ? "Transmitiendo…" : transmitir.etiqueta}
-      </BotonCompacto>
-    );
-  }
-  if (puedeLiberar) {
-    botones.push(
-      <BotonCompacto key="liberar" variante="fila" onClick={() => handlers.onLiberarClick(c)}>
-        Liberar sin espera
-      </BotonCompacto>
-    );
-  }
-  if (puedeAnular) {
-    botones.push(
-      <BotonCompacto key="anular" variante="fila" onClick={() => handlers.onAnularClick(c)}>
-        Anular
-      </BotonCompacto>
-    );
-  }
-  if (anulacionEnTramite(c)) {
-    const enVuelo = handlers.consultandoId === c.id;
-    botones.push(
-      <BotonCompacto key="consultar" variante="fila" cargando={enVuelo} onClick={() => handlers.onConsultarAnulacion(c.id)}>
-        {enVuelo ? "Consultando…" : "Consultar"}
-      </BotonCompacto>
-    );
-  }
+  const numero = `${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${String(c.numero).padStart(6, "0")}`;
+  const botones = accionesDelComprobante(c).map((accion) => {
+    switch (accion) {
+      case "transmitir":
+      case "reintentar": {
+        const enVuelo = handlers.transmitiendoId === c.id;
+        const etiqueta = accion === "reintentar" ? "Reintentar" : "Transmitir";
+        return (
+          <BotonCompacto key={accion} variante={accion === "reintentar" ? "fila-alerta" : "fila"} cargando={enVuelo} aria-label={`${etiqueta} ${numero}`} onClick={() => handlers.onTransmitir(c.id)}>
+            {enVuelo ? "Transmitiendo…" : etiqueta}
+          </BotonCompacto>
+        );
+      }
+      case "liberar":
+        return (
+          <BotonCompacto key={accion} variante="fila" aria-label={`Liberar sin espera ${numero}`} onClick={() => handlers.onLiberarClick(c)}>
+            Liberar sin espera
+          </BotonCompacto>
+        );
+      case "anular":
+        return (
+          <BotonCompacto key={accion} variante="fila" aria-label={`Anular ${numero}`} onClick={() => handlers.onAnularClick(c)}>
+            Anular
+          </BotonCompacto>
+        );
+      case "consultar": {
+        const enVuelo = handlers.consultandoId === c.id;
+        return (
+          <BotonCompacto key={accion} variante="fila" cargando={enVuelo} aria-label={`Consultar la anulación de ${numero}`} onClick={() => handlers.onConsultarAnulacion(c.id)}>
+            {enVuelo ? "Consultando…" : "Consultar"}
+          </BotonCompacto>
+        );
+      }
+    }
+  });
   return { botones: botones.length > 0 ? <div className="flex flex-wrap items-center gap-1.5">{botones}</div> : null, ...motivoDelComprobante(c) };
 }
 
@@ -100,27 +93,18 @@ function DocumentosSunat({ c }: { c: Comprobante }) {
         </a>
       )}
       {c.xmlUrl && (
-        <a href={c.xmlUrl} target="_blank" rel="noreferrer" className="text-tinta/55 hover:text-rojo-profundo hover:underline">
+        <a href={c.xmlUrl} target="_blank" rel="noreferrer" className="text-tinta/65 hover:text-rojo-profundo hover:underline">
           XML
         </a>
       )}
       {c.cdrUrl && (
-        <a href={c.cdrUrl} target="_blank" rel="noreferrer" className="text-tinta/55 hover:text-rojo-profundo hover:underline">
+        <a href={c.cdrUrl} target="_blank" rel="noreferrer" className="text-tinta/65 hover:text-rojo-profundo hover:underline">
           CDR
         </a>
       )}
     </div>
   );
 }
-
-// Fecha y hora por separado (la fila las pone una sobre otra), siempre en hora de Lima.
-const PARTES_DIA_LIMA = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit" });
-/** «19/09»: `es-PE` no rellena el mes con cero, y una columna de fechas se lee mejor alineada. */
-function diaLima(iso: string) {
-  const partes = Object.fromEntries(PARTES_DIA_LIMA.formatToParts(new Date(iso)).map((p) => [p.type, p.value]));
-  return `${partes.day.padStart(2, "0")}/${partes.month.padStart(2, "0")}`;
-}
-const HORA_LIMA = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hour12: false });
 
 // Las columnas de la lista, en las dos versiones (con y sin «Cliente»), como `ActividadDeHoy` y por
 // el mismo motivo: según el ancho DE LA TARJETA (container queries) y no el de la ventana, porque con
@@ -333,14 +317,17 @@ export function ComprobantesPanel({
 
   const acciones = { transmitiendoId, consultandoId, onTransmitir, onAnularClick, onConsultarAnulacion, onLiberarClick };
 
+  const { texto: busqueda } = useFacturacionBusqueda();
+  const visibles = comprobantes.filter((c) => coincide(camposDeBusquedaDelComprobante(c), busqueda));
+
   return (
     <div className="space-y-6">
       {/* Series registradas: una franja que dice si falta alguna y, aparte, el detalle. */}
       <section className="card-cayla anim-sube px-5 py-4" style={{ "--i": 4 } as CSSProperties} aria-labelledby="series-titulo">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <div className="min-w-0">
-            <h2 id="series-titulo" className="label-cayla text-[11px] text-tinta/65">
-              Series de comprobantes
+            <h2 className="label-cayla text-[11px] text-tinta/65">
+              <span id="series-titulo">Series de comprobantes</span>
               <Ayuda titulo="Series de comprobantes">
                 La serie identifica desde qué tienda salió el comprobante: una letra según el tipo (B para boleta, F para factura) más tres
                 caracteres. En facturación electrónica las defines tú, no SUNAT — no hay que pedir autorización. Lo normal es una serie por
@@ -375,7 +362,7 @@ export function ComprobantesPanel({
 
         {series.length > 0 && (
           <details className="group mt-3 border-t border-tinta/10 pt-3">
-            <summary className="label-cayla inline-flex cursor-pointer list-none items-center gap-1 rounded-md text-[11px] text-tinta/60 outline-none transition-colors duration-200 hover:text-tinta focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 [&::-webkit-details-marker]:hidden">
+            <summary className="label-cayla inline-flex cursor-pointer list-none items-center gap-1 rounded-md text-[11px] text-tinta/65 outline-none transition-colors duration-200 hover:text-tinta focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 [&::-webkit-details-marker]:hidden">
               <ChevronRight aria-hidden size={13} strokeWidth={1.75} className="transition-transform duration-200 group-open:rotate-90" />
               Ver {series.length === 1 ? "la serie registrada" : `las ${series.length} series registradas`}
             </summary>
@@ -397,18 +384,30 @@ export function ComprobantesPanel({
       </section>
 
       {/* Comprobantes del mes: una sola fila para todos los anchos (ver `COLUMNAS`). */}
-      <div className="card-cayla anim-sube @container overflow-hidden" style={{ "--i": 5 } as CSSProperties}>
+      {/* `overflow-hidden` solo con filas: recorta el hover de la última fila contra las esquinas redondas. Sin filas
+          (mes vacío o búsqueda sin resultados) la tarjeta es baja y recortaría el globo de ayuda del encabezado. */}
+      <div className={`card-cayla anim-sube @container ${visibles.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 5 } as CSSProperties}>
         <div className="px-5 pt-[18px] pb-3.5">
-          <p className="label-cayla text-[11px] text-tinta/65">Comprobantes</p>
-          <h2 className="font-display mt-0.5 text-xl leading-tight text-tinta">Emitidos {periodo}</h2>
-          <p className="mt-0.5 text-xs text-tinta/65">Con su estado ante SUNAT y lo que se puede hacer con cada uno</p>
+          <p className="label-cayla text-[11px] text-tinta/65">
+            Comprobantes
+            <Ayuda titulo="Estados de un comprobante">
+              Pendiente de enviar: ya tiene su número oficial reservado (nadie más puede usarlo), pero todavía no se transmitió a SUNAT. Si SUNAT
+              está caída, el número no se pierde: se reintenta después. De prueba: se transmitió a la plataforma de pruebas de Lucode, no a SUNAT;
+              tiene número y PDF, pero no vale como comprobante de pago: no sustenta la venta ni el crédito fiscal de la clienta. Sale de ahí
+              cuando el sistema apunta al ambiente de producción.
+            </Ayuda>
+          </p>
+          <h2 className="font-display mt-0.5 text-xl leading-tight text-tinta">Todos los comprobantes</h2>
+          <p className="mt-0.5 text-xs text-tinta/65">Los de {periodo}, con su estado ante SUNAT y lo que se puede hacer con cada uno.</p>
         </div>
 
         {comprobantes.length === 0 ? (
-          <p className="font-display border-t border-tinta/10 px-5 py-8 text-center text-base italic text-tinta/65">Sin comprobantes emitidos {periodo}.</p>
+          <p className="font-display border-t border-tinta/10 px-5 py-8 text-center text-base italic text-tinta/65">Sin comprobantes {periodo}.</p>
+        ) : visibles.length === 0 ? (
+          <SinCoincidencias />
         ) : (
           <>
-            <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-[11px] text-tinta/55 ${COLUMNAS}`}>
+            <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-[11px] text-tinta/65 ${COLUMNAS}`}>
               <span>Fecha</span>
               <span>Comprobante</span>
               <span className="hidden @min-[900px]:inline">Cliente</span>
@@ -416,8 +415,9 @@ export function ComprobantesPanel({
               <span>Estado</span>
             </div>
 
-            {comprobantes.map((c) => {
+            {visibles.map((c) => {
               const { botones, motivo, esRechazo } = accionComprobante(c, acciones);
+              const { dia, hora } = diaYHoraLima(c.created_at);
               const chip = chipDelComprobante(c);
               const cliente = c.cliente_nombre ?? "Cliente varios";
               return (
@@ -426,14 +426,14 @@ export function ComprobantesPanel({
                   className={`flex flex-col gap-2 border-t border-tinta/10 px-5 py-3 transition-colors duration-150 hover:bg-tinta/[0.025] @min-[640px]:items-center @min-[640px]:gap-x-4 @min-[640px]:gap-y-0 ${COLUMNAS}`}
                 >
                   <div className="flex items-baseline gap-2 @min-[640px]:block">
-                    <p className="font-display text-lg leading-tight tabular-nums text-tinta">{diaLima(c.created_at)}</p>
-                    <p className="label-cayla text-[10px] text-tinta/55 @min-[640px]:mt-0.5">{HORA_LIMA.format(new Date(c.created_at))}</p>
+                    <p className="font-display text-lg leading-tight tabular-nums text-tinta">{dia}</p>
+                    <p className="label-cayla text-[10px] text-tinta/65 @min-[640px]:mt-0.5">{hora}</p>
                   </div>
 
                   <div className="min-w-0">
                     <p className="text-[15px] leading-normal text-tinta">
                       <span className="text-tinta/65">{ETIQUETA_TIPO[c.tipo]}</span>{" "}
-                      <b className="font-semibold">
+                      <b className="whitespace-nowrap font-semibold">
                         {c.serie}-{String(c.numero).padStart(6, "0")}
                       </b>
                     </p>

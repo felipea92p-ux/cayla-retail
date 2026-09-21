@@ -14,6 +14,7 @@ import {
   resumenPorEnviar,
   resumenProformas,
   tiendasOperativas,
+  textoDeFrescura,
   ubicacionActualDe,
 } from "./facturacion-reglas";
 import type { EstadoComprobante } from "./comprobantes-reglas";
@@ -216,5 +217,22 @@ describe("tiendas", () => {
     expect(ubicacionActualDe(tiendas, "t2")).toBe("t2");
     expect(ubicacionActualDe(tiendas, "a1")).toBe("t1");
     expect(ubicacionActualDe([], "t2")).toBe("");
+  });
+});
+
+describe("textoDeFrescura", () => {
+  it("menos de cinco segundos es «ahora»; después, segundos, minutos, horas con sus minutos y días", () => {
+    expect(textoDeFrescura(0)).toBe("actualizado ahora");
+    expect(textoDeFrescura(4)).toBe("actualizado ahora");
+    expect(textoDeFrescura(16)).toBe("actualizado hace 16 s");
+    expect(textoDeFrescura(59)).toBe("actualizado hace 59 s");
+    expect(textoDeFrescura(60)).toBe("actualizado hace 1 min");
+    expect(textoDeFrescura(3 * 60 + 30)).toBe("actualizado hace 3 min");
+    expect(textoDeFrescura(2 * 3600 + 5 * 60)).toBe("actualizado hace 2 h 5 min");
+    expect(textoDeFrescura(26 * 3600)).toBe("actualizado hace 1 d");
+  });
+
+  it("un reloj que va hacia atrás no da una edad negativa", () => {
+    expect(textoDeFrescura(-30)).toBe("actualizado ahora");
   });
 });

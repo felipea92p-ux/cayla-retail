@@ -1,5 +1,5 @@
 import type { Comprobante, EntornoTransmision, EstadoComprobante, VentaDelDia } from "./comprobantes-reglas";
-import { ESTADO_ETIQUETA } from "./comprobantes-reglas";
+import { ESTADO_ETIQUETA, ETIQUETA_TIPO } from "./comprobantes-reglas";
 import { antiguedad } from "./facturacion-resumen-reglas";
 
 // Reglas de «Actividad de hoy» del Resumen (spec §6 y §9, ADR-0124): cruzar cada venta del día
@@ -73,6 +73,12 @@ export function etapasDelHilo(estado: EstadoDeFila, entorno: EntornoTransmision)
 
 /* ------------------------------ Lo que dice y hace cada fila ------------------------------ */
 
+/** La baja se pidió pero SUNAT no la confirmó: el resumen diario de boletas se procesa diferido. Decir
+ *  «anulado» antes de que confirme sería adelantarse a SUNAT. */
+export function anulacionEnTramite(c: Pick<Comprobante, "estado" | "anulacion_solicitada_at">): boolean {
+  return c.estado === "aceptado" && c.anulacion_solicitada_at !== null;
+}
+
 export type ChipDeFila = { tono: "neutro" | "ambar" | "verde" | "rojo" | "apagado"; texto: string; punteado: boolean };
 
 const TONO_DEL_ESTADO: Record<EstadoComprobante, ChipDeFila["tono"]> = {
@@ -90,7 +96,7 @@ const TONO_DEL_ESTADO: Record<EstadoComprobante, ChipDeFila["tono"]> = {
  *  por SUNAT es «Anulación en trámite» en ámbar. Las etiquetas son las de siempre
  *  (`ESTADO_ETIQUETA`). */
 export function chipDelComprobante(c: Comprobante): ChipDeFila {
-  const enTramite = c.estado === "aceptado" && c.anulacion_solicitada_at !== null;
+  const enTramite = anulacionEnTramite(c);
   const texto = enTramite ? "Anulación en trámite" : ESTADO_ETIQUETA[c.estado];
   if (c.entorno_transmision === "sandbox") return { tono: "neutro", texto: `${texto} · prueba`, punteado: true };
   return { tono: enTramite ? "ambar" : TONO_DEL_ESTADO[c.estado], texto, punteado: false };
@@ -103,6 +109,25 @@ export function chipDeLaFila(venta: VentaDelDia, comprobante: Comprobante | null
   const estado: EstadoDeFila = venta.comprobante_estado ?? "sin_comprobante";
   if (estado === "sin_comprobante") return { tono: "ambar", texto: "Sin comprobante", punteado: false };
   return { tono: TONO_DEL_ESTADO[estado], texto: ESTADO_ETIQUETA[estado], punteado: false };
+}
+
+/** Lo que se puede escribir en el buscador para encontrar esta fila del Resumen: la hora, la tienda,
+ *  quién vendió, la clienta, las prendas (referencia, talla y color), cómo pagó, el tipo y el número del
+ *  comprobante y su estado. Lo consume `coincide` (`lib/facturacion-busqueda.ts`). */
+export function camposDeBusquedaDeLaFila(fila: FilaDeActividad): (string | null)[] {
+  const { venta, comprobante } = fila;
+  return [
+    venta.hora,
+    venta.ubicacion_nombre,
+    venta.vendedor,
+    venta.cliente_nombre,
+    ...venta.items.flatMap((i) => [i.referencia, i.talla, i.color]),
+    venta.metodos_pago,
+    venta.comprobante_tipo ? ETIQUETA_TIPO[venta.comprobante_tipo] : null,
+    venta.comprobante_texto,
+    chipDeLaFila(venta, comprobante).texto,
+    Number(venta.total).toFixed(2),
+  ];
 }
 
 /** La línea de abajo del chip: hace cuánto se reservó un pendiente, «Esperando respuesta» de un

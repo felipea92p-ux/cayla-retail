@@ -7,12 +7,15 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
+import { SinCoincidencias } from "@/components/SinCoincidencias";
 import { Chip } from "@/components/ui/Chip";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { CampoTexto, CampoSelect } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import type { CodigoDescuento } from "@/lib/codigos-descuento";
-import { chipDelCodigo, detalleDelCodigo, ordenarCodigos, textoDeVigencia } from "@/lib/facturacion-codigos-reglas";
+import { coincide } from "@/lib/facturacion-busqueda";
+import { camposDeBusquedaDelCodigo, chipDelCodigo, detalleDelCodigo, ordenarCodigos, textoDeVigencia } from "@/lib/facturacion-codigos-reglas";
+import { useFacturacionBusqueda } from "@/lib/useFacturacionBusqueda";
 import type { Ubicacion } from "@/lib/ubicaciones";
 
 // Sin RPC a propósito, a diferencia del resto del sistema (que escribe todo por
@@ -35,6 +38,8 @@ const COLUMNAS =
 // cuentan con la misma, y es la misma con la que `registrar_venta` valida el código al cobrar.
 export function CodigosDescuentoPanel({ codigos, ubicaciones, hoy }: { codigos: CodigoDescuento[]; ubicaciones: Ubicacion[]; hoy: string }) {
   const [creando, setCreando] = useState(false);
+  const { texto: busqueda } = useFacturacionBusqueda();
+  const visibles = ordenarCodigos(codigos, hoy).filter((c) => coincide(camposDeBusquedaDelCodigo(c, hoy), busqueda));
 
   return (
     <div className="space-y-6">
@@ -55,16 +60,18 @@ export function CodigosDescuentoPanel({ codigos, ubicaciones, hoy }: { codigos: 
 
         {codigos.length === 0 ? (
           <p className="font-display border-t border-tinta/10 px-5 py-8 text-center text-base italic text-tinta/65">Todavía no hay ningún código de descuento.</p>
+        ) : visibles.length === 0 ? (
+          <SinCoincidencias />
         ) : (
           <>
-            <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-[11px] text-tinta/55 ${COLUMNAS}`}>
+            <div className={`label-cayla hidden gap-x-4 border-t border-tinta/10 px-5 py-2 text-[11px] text-tinta/65 ${COLUMNAS}`}>
               <span>Código</span>
               <span className="text-right">%</span>
               <span>Vigencia</span>
               <span className="hidden @min-[900px]:inline">Sede</span>
               <span>Estado</span>
             </div>
-            {ordenarCodigos(codigos, hoy).map((c) => (
+            {visibles.map((c) => (
               <FilaCodigo key={c.codigo} codigo={c} hoy={hoy} />
             ))}
           </>

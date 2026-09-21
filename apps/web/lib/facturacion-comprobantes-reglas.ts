@@ -1,13 +1,11 @@
 import type { Comprobante, SerieComprobante, TipoComprobante } from "./comprobantes-reglas";
 import { ETIQUETA_TIPO } from "./comprobantes-reglas";
+import { anulacionEnTramite, chipDelComprobante, textoDelNumero } from "./facturacion-actividad";
+import { tiendasOperativas } from "./facturacion-reglas";
+import { nombreCorto } from "./resumen-formato";
 
 // Reglas de la vista Comprobantes (spec §6 y §9, ADR-0124): qué series le faltan a cada tienda,
 // cuánto se facturó de verdad este mes y por qué una fila dice lo que dice. Puras y sin servidor.
-
-/** «Tienda Lima» → «Lima»: como la gente nombra la tienda cuando habla de sus series. */
-export function nombreCorto(nombre: string): string {
-  return nombre.replace(/^tienda\s+/i, "");
-}
 
 /** Los tipos que cada TIENDA debe tener registrados: boleta y factura para vender, y nota de crédito
  *  para las devoluciones (ADR-0100: aprobar una devolución de un comprobante aceptado emite una nota
@@ -23,7 +21,7 @@ export function seriesFaltantes(
   series: Pick<SerieComprobante, "ubicacion_id" | "tipo">[],
   ubicaciones: { id: string; nombre: string; tipo: "tienda" | "almacen" | "taller" }[]
 ): GrupoSeriesFaltantes[] {
-  const tiendas = ubicaciones.filter((u) => u.tipo === "tienda");
+  const tiendas = tiendasOperativas(ubicaciones);
   const registradas = new Set(series.map((s) => `${s.ubicacion_id}|${s.tipo}`));
   return TIPOS_CON_SERIE.map((tipo) => ({
     tipo,
@@ -54,38 +52,69 @@ export type MontosDelMes = {
   facturado: number;
   /** Lo que las notas de crédito aceptadas le quitaron a `facturado`. */
   notasDeCredito: number;
-  deprueba: number;
+  /** Lo aceptado en el entorno de pruebas (neto: una nota de crédito resta). */
+  dePrueba: number;
+  /** Lo que falta transmitir o volver a transmitir: `pendiente` y `rechazado` (neto). */
   sinEnviar: number;
+  /** Lo que no se puede dar por facturado ni por de prueba: `enviado` (SUNAT todavía no respondió), una
+   *  baja en trámite (SUNAT no confirmó) y un `aceptado` sin entorno registrado (una boleta anterior a
+   *  la columna `entorno_transmision`, cuyo entorno la migración no adivina). Neto. */
+  porConfirmar: number;
   cuantosDePrueba: number;
 };
 
-/** Cuánto vale de verdad lo emitido en el mes. «Monto facturado» solo suma lo aceptado por SUNAT
- *  en producción y sin baja en trámite: un comprobante de prueba tiene número y PDF pero no vale
- *  como comprobante de pago, y uno por enviar todavía no es de nadie. Esos dos se cuentan aparte
- *  para decirlos en la tarjeta. Una nota de crédito guarda su total en positivo (es el monto que
- *  devuelve) pero le RESTA a lo facturado: SUNAT la toma como IGV que ya no se debe.
- *  `cuantosDePrueba` cuenta los transmitidos al sandbox, en el estado que estén. */
+/** Cuánto vale de verdad lo emitido en el mes, dicho en cubos que no se pisan. «Monto facturado» solo
+ *  suma lo aceptado por SUNAT en producción y sin baja en trámite: un comprobante de prueba tiene número
+ *  y PDF pero no vale como comprobante de pago, y uno por enviar todavía no es de nadie. Una nota de
+ *  crédito guarda su total en positivo (es el monto que devuelve) pero RESTA en todos los cubos: SUNAT la
+ *  toma como IGV que ya no se debe. `cuantosDePrueba` cuenta los transmitidos al sandbox, en el estado
+ *  que estén. Anulados y no emitidos no cuentan en ningún cubo. */
 export function montosDelMes(comprobantes: Comprobante[]): MontosDelMes {
   let facturado = 0;
   let notasDeCredito = 0;
-  let deprueba = 0;
+  let dePrueba = 0;
   let sinEnviar = 0;
+  let porConfirmar = 0;
   let cuantosDePrueba = 0;
   let emitidos = 0;
   for (const c of comprobantes) {
     const total = Number(c.total);
+    const firmado = c.tipo === "nota_credito" ? -total : total;
     if (c.estado !== "no_emitido") emitidos += 1;
     if (c.entorno_transmision === "sandbox") cuantosDePrueba += 1;
-    if (c.estado === "aceptado" && c.entorno_transmision === "produccion" && c.anulacion_solicitada_at === null) {
-      if (c.tipo === "nota_credito") {
-        facturado -= total;
-        notasDeCredito += total;
-      } else facturado += total;
-    }
-    if (c.estado === "aceptado" && c.entorno_transmision === "sandbox") deprueba += total;
-    if (c.estado === "pendiente" || c.estado === "rechazado") sinEnviar += total;
+    if (c.estado === "aceptado") {
+      if (c.entorno_transmision === "sandbox") dePrueba += firmado;
+      else if (c.entorno_transmision === "produccion" && !anulacionEnTramite(c)) {
+        facturado += firmado;
+        if (c.tipo === "nota_credito") notasDeCredito += total;
+      } else porConfirmar += firmado;
+    } else if (c.estado === "pendiente" || c.estado === "rechazado") sinEnviar += firmado;
+    else if (c.estado === "enviado") porConfirmar += firmado;
   }
-  return { emitidos, facturado: aCentimos(facturado), notasDeCredito: aCentimos(notasDeCredito), deprueba: aCentimos(deprueba), sinEnviar: aCentimos(sinEnviar), cuantosDePrueba };
+  return {
+    emitidos,
+    facturado: aCentimos(facturado),
+    notasDeCredito: aCentimos(notasDeCredito),
+    dePrueba: aCentimos(dePrueba),
+    sinEnviar: aCentimos(sinEnviar),
+    porConfirmar: aCentimos(porConfirmar),
+    cuantosDePrueba,
+  };
+}
+
+export type AccionDelComprobante = "transmitir" | "reintentar" | "liberar" | "anular" | "consultar";
+
+/** Los botones que le tocan a un comprobante, en el orden en que se dibujan. ADR-0093: «liberar» solo
+ *  para un `pendiente` —nunca se transmitió, así que soltar el correlativo no le avisa nada a SUNAT—; un
+ *  `rechazado` SÍ llegó a SUNAT y tiene una respuesta real: su único camino es reintentar con el mismo
+ *  número. Un `pendiente` puede transmitir Y liberar (decisión de Felipe: «Liberar sin espera» se agrega
+ *  JUNTO a Transmitir). Un aceptado se anula; si su baja ya está en trámite, se consulta. `enviado`,
+ *  `anulado` y `no_emitido` no tienen botón: no hay nada que hacer con ellos desde acá. */
+export function accionesDelComprobante(c: Comprobante): AccionDelComprobante[] {
+  if (c.estado === "pendiente") return ["transmitir", "liberar"];
+  if (c.estado === "rechazado") return ["reintentar"];
+  if (c.estado === "aceptado") return [anulacionEnTramite(c) ? "consultar" : "anular"];
+  return [];
 }
 
 /** La línea que va bajo el estado de una fila: por qué se rechazó, por qué se liberó o por qué se
@@ -93,4 +122,18 @@ export function montosDelMes(comprobantes: Comprobante[]): MontosDelMes {
 export function motivoDelComprobante(c: Comprobante): { motivo: string | null; esRechazo: boolean } {
   const motivo = c.estado === "rechazado" && c.motivo_rechazo ? c.motivo_rechazo : c.estado === "no_emitido" ? c.motivo_no_emitido : c.motivo_anulacion;
   return { motivo, esRechazo: c.estado === "rechazado" && !!c.motivo_rechazo };
+}
+
+/** Lo que se puede escribir en el buscador para encontrar este comprobante: el tipo, el número, la
+ *  clienta y su documento, el estado, el motivo y el total. Lo consume `coincide`. */
+export function camposDeBusquedaDelComprobante(c: Comprobante): (string | null)[] {
+  return [
+    ETIQUETA_TIPO[c.tipo],
+    textoDelNumero(c),
+    c.cliente_nombre ?? "Cliente varios",
+    c.cliente_num_doc,
+    chipDelComprobante(c).texto,
+    motivoDelComprobante(c).motivo,
+    Number(c.total).toFixed(2),
+  ];
 }

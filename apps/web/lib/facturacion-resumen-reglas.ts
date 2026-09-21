@@ -86,7 +86,7 @@ export function comparativoEnCantidad(hoy: number, referencia: number | null): C
 
 /** Una duración en pocas palabras: «12 min», «6 h 42 min», «3 d». `null` si es menos de un minuto
  *  (cada quien decide cómo decir «instantes»). */
-function duracionCorta(segundos: number): string | null {
+export function duracionCorta(segundos: number): string | null {
   if (segundos < 60) return null;
   const minutos = Math.floor(segundos / 60);
   if (minutos < 60) return `${minutos} min`;

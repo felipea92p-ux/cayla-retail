@@ -70,3 +70,9 @@ export function detalleDeLaProforma(p: Proforma, ahora: Date): { texto: string; 
       return null;
   }
 }
+
+/** Lo que se puede escribir en el buscador para encontrar esta proforma: la clienta, su documento, el
+ *  estado y el total. Lo consume `coincide`. */
+export function camposDeBusquedaDeLaProforma(p: Proforma): (string | null)[] {
+  return [p.cliente_nombre ?? "Cliente varios", p.cliente_num_doc, chipDeLaProforma(p).texto, Number(p.total).toFixed(2)];
+}

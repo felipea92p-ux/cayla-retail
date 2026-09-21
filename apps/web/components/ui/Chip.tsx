@@ -23,7 +23,8 @@ const TONO: Record<TonoChip, string> = {
   ambar: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
   verde: "border-verde/45 bg-verde/10 text-verde-profundo",
   rojo: "border-rojo/30 bg-rojo/10 text-rojo-profundo",
-  apagado: "border-tinta/10 bg-transparent text-tinta/45 line-through",
+  // /65 y no /45: a 10 px y tachado, el 45 % no llegaba a 3:1 y «Anulado» / «No emitido» son la única palabra que dice el estado.
+  apagado: "border-tinta/10 bg-transparent text-tinta/65 line-through",
 };
 
 export function Chip({
