@@ -34,12 +34,14 @@ import {
   porcentajeDeLinea,
   RAZONES_DESCUENTO,
   type MomentoTicket,
+  type Vendedora,
 } from "@/lib/vender-reglas";
 import { Ayuda } from "@/components/Ayuda";
 import { CampoMonto } from "@/components/ui/CampoMonto";
 import { BilleteRapido } from "@/components/BilleteRapido";
 import { PasosCobro } from "@/components/PasosCobro";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
+import { VendedorasFila } from "@/components/VendedorasFila";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ID_CARGO_ESPECIAL, money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
 
@@ -184,6 +186,11 @@ type Props = {
   /** Derivado en el padre, una sola vez: por qué el botón principal está apagado
    *  (o null). Apaga el botón y se muestra debajo de él, tal cual. */
   motivoBloqueo: string | null;
+  // Quién atendió a la clienta — la fila de chips arriba (`VendedorasFila`); las reglas viven en `vender-reglas`
+  vendedoras: Vendedora[];
+  vendedoraId: string | null;
+  onVendedora: (personaId: string) => void;
+  vendedorasNoCargaron: boolean;
   // Pago mixto — una fila por medio; `restante` y `vuelto` ya derivados en el padre
   pagos: PagoAplicado[];
   restante: number;
@@ -249,6 +256,10 @@ export function PuntoDeVentaTicket({
   onIrACobrar,
   onVolverATicket,
   motivoBloqueo,
+  vendedoras,
+  vendedoraId,
+  onVendedora,
+  vendedorasNoCargaron,
   pagos,
   restante,
   vuelto,
@@ -434,6 +445,18 @@ export function PuntoDeVentaTicket({
           </>
         )}
       </div>
+
+      {/* Quién atendió: visible al armar y al cobrar (la elección la puede hacer en cualquiera de los dos),
+          nunca dentro del formulario — son botones sueltos y no deben enviarlo. */}
+      {(momentoMostrado === "armar" || cobrando) && (
+        <VendedorasFila
+          vendedoras={vendedoras}
+          elegidaId={vendedoraId}
+          onElegir={onVendedora}
+          noCargaron={vendedorasNoCargaron}
+          deshabilitada={bloqueado}
+        />
+      )}
 
       <form
         id={id}

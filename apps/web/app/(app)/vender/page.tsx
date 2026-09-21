@@ -8,6 +8,7 @@ import { nombresCortos } from "@/lib/nombre-integrante";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
+import { getVendedorasDeSede } from "@/lib/vendedoras";
 import { PuntoDeVenta } from "@/components/PuntoDeVenta";
 import type { CampanaLinea } from "@/lib/vender-reglas";
 
@@ -44,7 +45,7 @@ async function Caja() {
   //   acceso a retail, sin ampliar esa policy. Sumadas por sede (piso + almacén: para un
   //   traslado importa lo que la otra tienda tiene, no lo que exhibe — decisión de Felipe,
   //   2026-09-14). Ver `lib/stock-por-sede.ts`.
-  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas] = await Promise.all([
+  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, { vendedoras, noCargaron: vendedorasNoCargaron }] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
     supabase.rpc("fn_stock_por_sede"),
@@ -55,6 +56,8 @@ async function Caja() {
     // ella y se AVISA (abajo), en vez de tumbar la caja. Mientras la función no exista en
     // producción (PGRST202) no hay campañas que aplicar: sin aviso.
     supabase.rpc("campanas_vigentes"),
+    // Quiénes atienden en caja en esta sede. Dato secundario: si falla, se vende igual y se avisa.
+    getVendedorasDeSede(persona.ubicacionId),
   ]);
   const campanasNoCargaron = resCampanas.error !== null && resCampanas.error.code !== "PGRST202";
   const campanaPorVariante = new Map<string, CampanaLinea>(
@@ -95,6 +98,8 @@ async function Caja() {
       cajaId={caja?.id ?? null}
       variantes={variantesParaVenta}
       campanasNoCargaron={campanasNoCargaron}
+      vendedoras={vendedoras}
+      vendedorasNoCargaron={vendedorasNoCargaron}
       ventasHoyNode={
         <Suspense fallback={<p className="px-1 py-4 text-center text-xs text-tinta/50">Cargando ventas de hoy…</p>}>
           <VentasDeHoy ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} />
