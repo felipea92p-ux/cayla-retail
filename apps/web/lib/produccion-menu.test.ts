@@ -39,9 +39,9 @@ describe("puedeVerProduccion", () => {
 });
 
 describe("hijosMenuCompras", () => {
-  it("el líder ve las cuatro pantallas de Compras, en el orden proveedor → factura → recepción → pago", () => {
+  it("el líder ve las cinco pantallas de Compras, en el orden proveedor → factura → recepción → pago → notas", () => {
     for (const ubicacionTipo of TIPOS) {
-      expect(hijosMenuCompras({ esLider: true, ubicacionTipo })).toEqual(["proveedores", "comprobantes", "recibir", "porPagar"]);
+      expect(hijosMenuCompras({ esLider: true, ubicacionTipo })).toEqual(["proveedores", "comprobantes", "recibir", "porPagar", "notasCredito"]);
     }
   });
 
@@ -53,7 +53,10 @@ describe("hijosMenuCompras", () => {
 
   it("Compras no depende de dónde está parado el líder: Producción cambió de regla, Compras no", () => {
     // Guardia contra un arreglo «por simetría»: la regla del Taller no se le aplica a Compras.
-    expect(hijosMenuCompras({ esLider: true, ubicacionTipo: "tienda" })).toHaveLength(4);
+    // Se compara contra otro tipo de ubicación en vez de contra un número fijo: así el día que Compras gane
+    // o pierda una pantalla (hoy son cinco, desde ADR-0142) la prueba sigue diciendo lo que quiere decir.
+    expect(hijosMenuCompras({ esLider: true, ubicacionTipo: "tienda" })).toEqual(hijosMenuCompras({ esLider: true, ubicacionTipo: "taller" }));
+    expect(hijosMenuCompras({ esLider: true, ubicacionTipo: "tienda" })).toHaveLength(5);
   });
 });
 

@@ -201,6 +201,55 @@ export function etiquetaConfirmar(p: { unidades: number; cierres: number; ubicac
   return `Recibir en ${p.ubicacion}`;
 }
 
+// ---------------------------------------------------------------------------
+// Lo que hay que RECLAMARLE al proveedor (Recepción ya no registra la nota)
+// ---------------------------------------------------------------------------
+
+/** Un comprobante del envío que va a quedar esperando su nota de crédito por faltante. */
+export type ReclamoNota = {
+  compraId: string;
+  documento: string;
+  proveedorNombre: string;
+  /** Unidades cerradas por faltante: las de esta guía más las que ya estaban cerradas. */
+  unidades: number;
+  /** Las que se cierran en ESTA guía (0 = el faltante ya estaba cerrado de antes). */
+  cerrandoAhora: number;
+  /** Lo cerrado a su costo + IGV: lo que la nota debería acreditar. */
+  monto: number;
+};
+
+/**
+ * Qué notas de crédito va a dejar pendientes este envío. Desde 2026-09-19 Recepción NO registra la
+ * nota (eso vive en `/compras/notas-credito`): acá solo se avisa, con nombre y monto, que el
+ * proveedor queda debiendo el documento. Un comprobante que YA tiene su nota por faltante no
+ * aparece — es una sola por comprobante.
+ */
+export function notasPorReclamar(
+  bloques: {
+    compra: { id: string; documento: string; proveedorNombre: string; igv: number; subtotal: number };
+    cierresAhora: { faltan: number; costoUnitario: number }[];
+    cerradoAntes: { faltan: number; costoUnitario: number }[];
+    yaTieneNotaFaltante: boolean;
+  }[],
+): ReclamoNota[] {
+  const salida: ReclamoNota[] = [];
+  for (const b of bloques) {
+    if (b.yaTieneNotaFaltante) continue;
+    const todos = [...b.cerradoAntes, ...b.cierresAhora];
+    const unidades = todos.reduce((a, c) => a + c.faltan, 0);
+    if (unidades <= 0) continue;
+    salida.push({
+      compraId: b.compra.id,
+      documento: b.compra.documento,
+      proveedorNombre: b.compra.proveedorNombre,
+      unidades,
+      cerrandoAhora: b.cierresAhora.reduce((a, c) => a + c.faltan, 0),
+      monto: montoDeCierres(todos, tasaIgv(b.compra)),
+    });
+  }
+  return salida;
+}
+
 /** Lo que se va escribiendo de la nota de crédito de UN comprobante mientras se arma la guía. */
 export type NotaBorrador = { activa: boolean; serie: string; fecha: string; montoTxt: string | null /* null = sigue la sugerencia */ };
 

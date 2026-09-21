@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CompraResumen } from "./compras-reglas";
 import type { NotaCreditoCompra } from "./compras-faltantes";
-import { chipLlegada, cierresElegidos, diasDeAtraso, efectoCierre, estadoLinea, etiquetaConfirmar, estadoNotaFaltante, faltanteDeLinea, fechaEsperada, disponibilidadNota, igvDeMonto, montoDeCierres, notaDelBloque, reparteNota, sinDecidir, textoReparteNota, montoNotaSugerido, ordenarPorUrgencia, resumenConteo, tasaIgv, textoEsperada, valorPorLlegar } from "./recepciones-reglas";
+import { chipLlegada, cierresElegidos, diasDeAtraso, efectoCierre, estadoLinea, etiquetaConfirmar, estadoNotaFaltante, faltanteDeLinea, fechaEsperada, disponibilidadNota, igvDeMonto, montoDeCierres, notaDelBloque, notasPorReclamar, reparteNota, sinDecidir, textoReparteNota, montoNotaSugerido, ordenarPorUrgencia, resumenConteo, tasaIgv, textoEsperada, valorPorLlegar } from "./recepciones-reglas";
 
 // Hoy en Lima = 2026-09-18 (a las 19:30 de Lima en UTC ya es 09-19).
 const AHORA = new Date("2026-09-19T00:30:00Z");
@@ -131,6 +131,37 @@ describe("disponibilidadNota: se anticipa lo que la base va a exigir", () => {
   });
   it("si ya tiene su nota por faltante, no hay otra", () => {
     expect(disponibilidadNota({ ...base, yaTieneNotaFaltante: true })).toEqual({ estado: "ya_registrada" });
+  });
+});
+
+describe("notasPorReclamar: Recepción avisa lo que el proveedor va a deber, ya no lo registra", () => {
+  const compra = (id: string) => ({ id, documento: `F001-${id}`, proveedorNombre: "Textiles Andina SAC", igv: 18, subtotal: 100 });
+  const bloque = (id: string, extra: Partial<{ cierresAhora: { faltan: number; costoUnitario: number }[]; cerradoAntes: { faltan: number; costoUnitario: number }[]; yaTieneNotaFaltante: boolean }> = {}) => ({
+    compra: compra(id),
+    cierresAhora: [],
+    cerradoAntes: [],
+    yaTieneNotaFaltante: false,
+    ...extra,
+  });
+
+  it("lo que se cierra en esta guía se avisa a su costo con IGV", () => {
+    expect(notasPorReclamar([bloque("c1", { cierresAhora: [{ faltan: 4, costoUnitario: 50 }] })])).toEqual([
+      { compraId: "c1", documento: "F001-c1", proveedorNombre: "Textiles Andina SAC", unidades: 4, cerrandoAhora: 4, monto: 236 },
+    ]);
+  });
+  it("un faltante cerrado en una guía anterior sigue avisándose, con `cerrandoAhora` en 0", () => {
+    expect(notasPorReclamar([bloque("c1", { cerradoAntes: [{ faltan: 2, costoUnitario: 50 }] })])).toMatchObject([{ unidades: 2, cerrandoAhora: 0, monto: 118 }]);
+  });
+  it("lo de antes y lo de ahora suman en un solo reclamo: la nota es una sola por comprobante", () => {
+    expect(notasPorReclamar([bloque("c1", { cerradoAntes: [{ faltan: 2, costoUnitario: 50 }], cierresAhora: [{ faltan: 4, costoUnitario: 50 }] })])).toMatchObject([{ unidades: 6, cerrandoAhora: 4, monto: 354 }]);
+  });
+  it("sin nada cerrado, o con la nota ya registrada, no hay nada que reclamar", () => {
+    expect(notasPorReclamar([bloque("c1")])).toEqual([]);
+    expect(notasPorReclamar([bloque("c1", { cierresAhora: [{ faltan: 4, costoUnitario: 50 }], yaTieneNotaFaltante: true })])).toEqual([]);
+  });
+  it("un envío de varios comprobantes deja un reclamo por comprobante", () => {
+    const r = notasPorReclamar([bloque("c1", { cierresAhora: [{ faltan: 1, costoUnitario: 100 }] }), bloque("c2"), bloque("c3", { cerradoAntes: [{ faltan: 1, costoUnitario: 200 }] })]);
+    expect(r.map((x) => x.compraId)).toEqual(["c1", "c3"]);
   });
 });
 
