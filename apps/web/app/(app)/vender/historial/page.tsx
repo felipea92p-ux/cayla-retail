@@ -1,7 +1,7 @@
 import { ReceiptText, Wallet } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { getColaboradores } from "@/lib/colaboradores";
+import { getColaboradores, getColaboradoresInactivos, getColaboradoresSuspendidos } from "@/lib/colaboradores";
 import { hoyEnLima, textoPeriodo } from "@/lib/movimientos-reglas";
 import {
   filtrosDesdeParams,
@@ -39,10 +39,13 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
   const params = await searchParams;
   const esLider = persona.rol === "lider";
 
-  const [ubicaciones, colaboradores] = await Promise.all([
+  const [ubicaciones, colaboradores, suspendidos, inactivos] = await Promise.all([
     getUbicaciones(),
     // Si la lista de colaboradores falla, solo desaparece el filtro por vendedor: el historial sigue.
     esLider ? getColaboradores().catch(() => []) : Promise.resolve([]),
+    // Quien está suspendido o ya no está activo en Dynamic igual vendió: sus ventas tienen que poder filtrarse por su nombre.
+    esLider ? getColaboradoresSuspendidos().catch(() => []) : Promise.resolve([]),
+    esLider ? getColaboradoresInactivos().catch(() => []) : Promise.resolve([]),
   ]);
   // Solo las tiendas venden: ni el Taller ni un almacén tienen mostrador.
   const tiendas = ubicaciones.filter((u) => u.tipo === "tienda");
@@ -53,7 +56,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
 
   const alcance = esLider ? (tiendas.find((t) => t.id === filtros.sedeId)?.nombre ?? "Todas las tiendas") : persona.ubicacionEtiqueta;
   const periodoEnPalabras = textoPeriodo(filtros.periodo, filtros.desde, filtros.hasta);
-  const vendedores = colaboradores.map((c) => ({ id: c.persona_id, nombre: c.nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  const vendedores = [...colaboradores, ...suspendidos, ...inactivos].map((c) => ({ id: c.persona_id, nombre: c.nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   const totalesPorDia = Object.fromEntries(totales.porDia.map((d) => [d.fecha, { ventas: d.ventas, total: d.total }]));
   const { resumen } = totales;
 

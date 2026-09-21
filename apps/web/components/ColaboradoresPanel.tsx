@@ -1,90 +1,94 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import type { Colaborador, DynamicDisponible } from "@/lib/colaboradores";
+import type {
+  Colaborador,
+  ColaboradorInactivo,
+  ColaboradorSuspendido,
+  DynamicDisponible,
+  EventoAcceso,
+} from "@/lib/colaboradores";
+import { accionesSupabase, type AccionesColaboradores, type ResultadoAccion } from "@/lib/colaboradores-acciones";
+import { filtrarColaboradores, plural, resumirAccesos, type AccionFila, type FiltroRol } from "@/lib/colaboradores-reglas";
 import type { Ubicacion } from "@/lib/ubicaciones";
-import { Modal } from "@/components/ui/Modal";
-import { Boton, Campo, CampoSelect } from "@/components/ui/campos";
-import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { Boton } from "@/components/ui/campos";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { TabsSubrayado } from "@/components/ui/TabsSubrayado";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { AgregarColaboradoresModal, CambiarUbicacionModal, QuitarAccesoModal, SuspenderModal } from "@/components/ColaboradoresModales";
+import { ListaActividad, TablaActivos, TablaInactivas, TablaSuspendidos } from "@/components/ColaboradoresTablas";
 
-const ETIQUETA_ROL: Record<Colaborador["rol"], string> = { lider: "Líder", colaborador: "Colaborador" };
+type Pestana = "activos" | "suspendidos" | "inactivas" | "actividad";
 
-function formatearFecha(iso: string) {
-  return new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", year: "numeric" }).format(
-    new Date(iso)
-  );
+type Modal =
+  | { tipo: "agregar" }
+  | { tipo: "suspender"; persona: Colaborador }
+  | { tipo: "ubicacion"; persona: Colaborador }
+  | { tipo: "quitar"; persona: { persona_id: string; nombre: string }; suspendida: boolean };
+
+const entrada =
+  "card-cayla w-full px-3 py-2 text-sm text-tinta outline-none placeholder:text-tinta/55 focus:border-rojo sm:w-80";
+
+function Vacio({ children }: { children: React.ReactNode }) {
+  return <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">{children}</p>;
 }
 
-// Colaboradores: quién puede entrar a retail hoy. Retail nunca crea gente
-// nueva acá — Dynamic ya es dueño de esa identidad (0009_integracion_
-// dynamic.sql) — solo decide a cuáles cuentas YA existentes en Dynamic les
-// da acceso (0013_colaboradores_autorizados.sql). "Agregar" elige de una
-// lista de cuentas activas de Dynamic que todavía no tienen acceso; nunca
-// un formulario para escribir una persona a mano.
+// Colaboradores: quién puede entrar a retail hoy. Retail nunca crea gente nueva acá — Dynamic ya es dueño de esa
+// identidad (0009_integracion_dynamic.sql) — solo decide a cuáles cuentas YA existentes en Dynamic les da acceso
+// (0013_colaboradores_autorizados.sql). Suspender la saca de la puerta sin borrarla; Quitar es la baja definitiva
+// (20260922110000_colaboradores_suspender_y_actividad.sql, ADR-0148).
+// `acciones` y `alActualizar` existen para poder mostrar la pantalla con datos de ejemplo: por defecto escriben en
+// la base y recargan los datos del servidor.
 export function ColaboradoresPanel({
   colaboradores,
+  suspendidos,
+  inactivos,
+  actividad,
   disponibles,
   ubicaciones,
+  acciones = accionesSupabase,
+  alActualizar,
 }: {
   colaboradores: Colaborador[];
+  suspendidos: ColaboradorSuspendido[];
+  inactivos: ColaboradorInactivo[];
+  actividad: EventoAcceso[];
   disponibles: DynamicDisponible[];
   ubicaciones: Ubicacion[];
+  acciones?: AccionesColaboradores;
+  alActualizar?: () => void;
 }) {
   const router = useRouter();
-  const [modalAbierto, setModalAbierto] = useState(false);
-  const [seleccionado, setSeleccionado] = useState("");
-  const [ubicacionElegida, setUbicacionElegida] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [quitandoId, setQuitandoId] = useState<string | null>(null);
-  const [confirmando, setConfirmando] = useState<Colaborador | null>(null);
+  const [pestana, setPestana] = useState<Pestana>("activos");
+  const [busqueda, setBusqueda] = useState("");
+  const [rol, setRol] = useState<FiltroRol>("todos");
+  const [modal, setModal] = useState<Modal | null>(null);
+  const [ocupadoId, setOcupadoId] = useState<string | null>(null);
 
-  function abrirModalAgregar() {
-    // Se vacía al abrir, no una sola vez en el useState inicial: si ya se agregó
-    // a alguien en esta misma sesión, el estado viejo apuntaba a una persona que
-    // ya no está en `disponibles`. Y arranca SIN elegir a nadie a propósito: dar
-    // acceso no admite un "primero de la lista" que un Enter apurado confirme.
-    setSeleccionado("");
-    setUbicacionElegida("");
-    setModalAbierto(true);
+  const resumen = useMemo(() => resumirAccesos(colaboradores, suspendidos, disponibles), [colaboradores, suspendidos, disponibles]);
+  const filas = useMemo(() => filtrarColaboradores(colaboradores, busqueda, rol), [colaboradores, busqueda, rol]);
+  const totalActividad = actividad[0]?.total ?? 0;
+
+  async function ejecutar(idOcupado: string | null, verbo: string, llamada: () => Promise<ResultadoAccion>, exito: string, detalle?: string) {
+    setOcupadoId(idOcupado);
+    const { error } = await llamada();
+    setOcupadoId(null);
+    if (error) {
+      avisar.error(traducirError(error, verbo));
+      return false;
+    }
+    avisar.exito(exito, detalle ? { detalle } : undefined);
+    (alActualizar ?? (() => router.refresh()))();
+    return true;
   }
 
-  async function onAgregar(e: React.FormEvent) {
-    e.preventDefault();
-    if (!seleccionado || !ubicacionElegida) return;
-    setLoading(true);
-    const supabase = createClient();
-    // Todo colaborador nuevo entra con rol Colaborador, fijo a esta sede —
-    // Líder es un nivel que hoy no se asigna desde acá (0016_roles_colaborador.sql).
-    const { error } = await supabase.rpc("agregar_colaborador", {
-      p_persona_id: seleccionado,
-      p_ubicacion_id: ubicacionElegida,
-    });
-    setLoading(false);
-    if (error) {
-      avisar.error(traducirError(error, "agregar el colaborador"));
-      return;
-    }
-    avisar.exito(`${disponibles.find((d) => d.persona_id === seleccionado)?.nombre ?? "Colaborador"} ya tiene acceso`);
-    setModalAbierto(false);
-    router.refresh();
-  }
-
-  async function onQuitar(persona_id: string) {
-    setConfirmando(null);
-    setQuitandoId(persona_id);
-    const supabase = createClient();
-    const { error } = await supabase.rpc("quitar_colaborador", { p_persona_id: persona_id });
-    setQuitandoId(null);
-    if (error) {
-      avisar.error(traducirError(error, "quitar el acceso"));
-      return;
-    }
-    avisar.exito("Acceso quitado", { detalle: "La persona ya no puede entrar al sistema de retail." });
-    router.refresh();
+  function alElegirAccion(c: Colaborador, accion: AccionFila) {
+    if (accion === "cambiar_ubicacion") setModal({ tipo: "ubicacion", persona: c });
+    else if (accion === "suspender") setModal({ tipo: "suspender", persona: c });
+    else setModal({ tipo: "quitar", persona: c, suspendida: false });
   }
 
   return (
@@ -92,142 +96,178 @@ export function ColaboradoresPanel({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Retail</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Colaboradores</h1>
-          <p className="mt-1 text-xs leading-relaxed text-tinta/65">
-            Quién puede entrar a retail hoy. Las personas se dan de alta en Dynamic —
-            acá solo se decide a quién de Dynamic se le abre la puerta de retail, y a
-            qué sede queda fijo si entra como Colaborador.
+          <h1 className="font-display mt-1 text-3xl text-tinta">Colaboradores</h1>
+          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-tinta/70">
+            Quién puede entrar a retail hoy. Las personas se dan de alta en Dynamic — acá solo se decide a quién de Dynamic se le abre la puerta de retail, y a
+            qué ubicación queda fijo si entra como Colaborador.
           </p>
         </div>
         <div className="text-right">
-          <Boton peso="primario" onClick={abrirModalAgregar} disabled={disponibles.length === 0}>
-            Agregar colaborador
+          <Boton peso="primario" onClick={() => setModal({ tipo: "agregar" })} disabled={disponibles.length === 0}>
+            + Agregar colaboradores
           </Boton>
-          {disponibles.length === 0 && (
-            <p className="mt-1 text-xs text-tinta/65">Todas las cuentas activas de Dynamic ya tienen acceso.</p>
-          )}
+          {disponibles.length === 0 && <p className="mt-1 text-xs text-tinta/65">Todas las cuentas activas de Dynamic ya tienen acceso.</p>}
         </div>
       </div>
 
-      {colaboradores.length === 0 ? (
-        <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">
-          Nadie tiene acceso a retail todavía.
-        </p>
-      ) : (
-        <div className="scroll-cayla card-cayla overflow-hidden">
-          <div className="scroll-cayla overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-xs">
-              <thead className="border-b border-tinta/10 text-tinta/65">
-                <tr>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Nombre</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Correo</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Rol</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Ubicación asignada</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Sede en Dynamic</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]">Desde</th>
-                  <th className="label-cayla px-3 py-2 text-[11px]" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-tinta/5">
-                {colaboradores.map((c) => (
-                  <tr key={c.persona_id} className="transition-colors duration-150 hover:bg-tinta/[0.025]">
-                    <td className="whitespace-nowrap px-3 py-3 font-medium text-tinta">{c.nombre}</td>
-                    <td className="px-3 py-3 text-tinta/75">{c.correo}</td>
-                    <td className="whitespace-nowrap px-3 py-3 text-tinta/75">{ETIQUETA_ROL[c.rol]}</td>
-                    <td className="whitespace-nowrap px-3 py-3 text-tinta/75">
-                      {c.rol === "lider" ? <span className="text-tinta/65">cualquiera</span> : (c.ubicacion_asignada ?? "—")}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-tinta/75">{c.sede ?? "—"}</td>
-                    <td className="whitespace-nowrap px-3 py-3 text-tinta/65">{formatearFecha(c.agregado_en)}</td>
-                    <td className="px-3 py-3 text-right">
-                      <Boton
-                        type="button"
-                        peso="discreto"
-                        cargando={quitandoId === c.persona_id}
-                        onClick={() => setConfirmando(c)}
-                        className="px-2.5 py-1.5 text-[11px]"
-                      >
-                        {quitandoId === c.persona_id ? "Quitando…" : "Quitar acceso"}
-                      </Boton>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <TarjetaCifra compacta punto="verde" etiqueta="Con acceso" valor={resumen.conAcceso} className="anim-entra" style={{ ["--i" as string]: 0 }}>
+          de {plural(resumen.cuentasDynamic, "cuenta activa", "cuentas activas")} en Dynamic
+        </TarjetaCifra>
+        <TarjetaCifra compacta punto="neutro" etiqueta="Líderes" valor={resumen.lideres} className="anim-entra" style={{ ["--i" as string]: 1 }}>
+          operan en cualquier ubicación
+        </TarjetaCifra>
+        <TarjetaCifra compacta punto="neutro" etiqueta="Colaboradores" valor={resumen.colaboradores} className="anim-entra" style={{ ["--i" as string]: 2 }}>
+          fijos a una ubicación
+        </TarjetaCifra>
+        <TarjetaCifra
+          compacta
+          punto={resumen.suspendidos > 0 ? "ambar" : "verde"}
+          etiqueta="Suspendidos"
+          valor={resumen.suspendidos}
+          className="anim-entra"
+          style={{ ["--i" as string]: 3 }}
+        >
+          {resumen.suspendidos > 0 ? "sin acceso hasta reactivarlos" : "nadie suspendido"}
+        </TarjetaCifra>
+      </div>
+
+      <TabsSubrayado
+        etiqueta="Secciones de colaboradores"
+        valor={pestana}
+        onCambio={(k) => setPestana(k as Pestana)}
+        className="border-b border-tinta/10"
+        clasePestana="px-1 py-3 text-sm"
+        items={[
+          { clave: "activos", etiqueta: "Activos", conteo: colaboradores.length },
+          { clave: "suspendidos", etiqueta: "Suspendidos", conteo: suspendidos.length, tono: suspendidos.length > 0 ? "ambar" : undefined },
+          { clave: "inactivas", etiqueta: "Inactivas en Dynamic", conteo: inactivos.length },
+          { clave: "actividad", etiqueta: "Actividad", conteo: totalActividad },
+        ]}
+      />
+
+      {pestana === "activos" && (
+        <section aria-label="Colaboradores activos" className="space-y-4">
+          {colaboradores.length === 0 ? (
+            <Vacio>Nadie tiene acceso a retail todavía.</Vacio>
+          ) : (
+            <>
+              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                <input
+                  type="search"
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  placeholder="Buscar por nombre o correo…"
+                  aria-label="Buscar colaborador por nombre o correo"
+                  className={entrada}
+                  autoComplete="off"
+                />
+                <SegmentoDeslizante
+                  etiqueta="Filtrar por rol"
+                  valor={rol}
+                  onCambio={(k) => setRol(k as FiltroRol)}
+                  opciones={[
+                    { clave: "todos", etiqueta: "Todos", conteo: colaboradores.length },
+                    { clave: "lider", etiqueta: "Líderes", conteo: resumen.lideres },
+                    { clave: "colaborador", etiqueta: "Colaboradores", conteo: resumen.colaboradores },
+                  ]}
+                />
+              </div>
+              {filas.length === 0 ? (
+                <Vacio>Nadie coincide con lo que buscas.</Vacio>
+              ) : (
+                <TablaActivos filas={filas} ocupadoId={ocupadoId} onAccion={alElegirAccion} />
+              )}
+              <p className="text-xs text-tinta/65" role="status">
+                {filas.length === colaboradores.length
+                  ? plural(filas.length, "persona con acceso", "personas con acceso")
+                  : `${filas.length} de ${plural(colaboradores.length, "persona", "personas")}`}
+              </p>
+            </>
+          )}
+        </section>
       )}
 
-      {modalAbierto && (
-        <Modal titulo="Agregar colaborador" ancho="max-w-md" onClose={() => setModalAbierto(false)}>
-          {(cerrar) => (
-            <form onSubmit={onAgregar} className="mt-5 space-y-4">
-              <p className="text-xs leading-relaxed text-tinta/75">
-                Elige entre las cuentas de Dynamic que todavía no tienen acceso a retail. Si la
-                persona que buscas no aparece, primero debe existir y estar activa en Dynamic.
-              </p>
-
-              <Campo etiqueta="Persona" htmlFor="colaborador-persona">
-                <ComboBuscable
-                  id="colaborador-persona"
-                  etiquetaAccesible="Persona"
-                  marcador="Busca por nombre o correo…"
-                  valor={seleccionado}
-                  onValor={setSeleccionado}
-                  opciones={disponibles.map((d) => ({ valor: d.persona_id, texto: d.nombre, detalle: d.correo }))}
-                />
-              </Campo>
-
-              <div className="space-y-1.5">
-                <CampoSelect
-                  etiqueta="Ubicación asignada"
-                  valor={ubicacionElegida}
-                  onValor={setUbicacionElegida}
-                  opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))}
-                  marcador="Elige una ubicación"
-                />
-                <p className="text-xs leading-relaxed text-tinta/65">
-                  Entra como Colaborador, fijo a esta sede — la persona no podrá cambiarla por su cuenta.
-                </p>
-              </div>
-
-              <div className="flex gap-2 pt-3">
-                <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
-                  Cancelar
-                </Boton>
-                <Boton type="submit" peso="primario" className="flex-1" cargando={loading} disabled={!seleccionado || !ubicacionElegida}>
-                  {loading ? "Agregando…" : "Agregar"}
-                </Boton>
-              </div>
-            </form>
+      {pestana === "suspendidos" && (
+        <section aria-label="Colaboradores suspendidos" className="space-y-3">
+          {suspendidos.length === 0 ? (
+            <Vacio>Nadie está suspendido.</Vacio>
+          ) : (
+            <>
+              <p className="text-sm text-tinta/70">No pueden entrar a retail ni operar ventas o caja hasta que las reactives. Conservan su ubicación y su historial.</p>
+              <TablaSuspendidos
+                filas={suspendidos}
+                ocupadoId={ocupadoId}
+                onReactivar={(c) =>
+                  ejecutar(c.persona_id, "reactivar el acceso", () => acciones.reactivar(c.persona_id), `${c.nombre} ya tiene acceso otra vez`)
+                }
+                onQuitar={(c) => setModal({ tipo: "quitar", persona: c, suspendida: true })}
+              />
+            </>
           )}
-        </Modal>
+        </section>
       )}
 
-      {confirmando && (
-        <Modal titulo="Quitar acceso" ancho="max-w-sm" onClose={() => setConfirmando(null)}>
-          {(cerrar) => (
-            <div className="mt-5 space-y-4">
-              <p className="text-sm leading-relaxed text-tinta/85">
-                <strong className="font-semibold text-tinta">{confirmando.nombre}</strong> ya no va a poder entrar
-                al sistema de retail. Puedes volver a darle acceso después desde «Agregar colaborador».
+      {pestana === "inactivas" && (
+        <section aria-label="Cuentas inactivas en Dynamic" className="space-y-3">
+          {inactivos.length === 0 ? (
+            <Vacio>Ninguna cuenta con acceso está inactiva en Dynamic.</Vacio>
+          ) : (
+            <>
+              <p className="text-sm text-tinta/70">
+                Personas que tenían acceso y Dynamic dio de baja: ya no pueden entrar. Solo lectura — si vuelven a estar activas en Dynamic, recuperan su acceso solas.
               </p>
-              <div className="flex gap-2">
-                <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
-                  Cancelar
-                </Boton>
-                <Boton
-                  type="button"
-                  peso="primario"
-                  className="flex-1 bg-rojo hover:bg-rojo/90"
-                  onClick={() => onQuitar(confirmando.persona_id)}
-                >
-                  Sí, quitar acceso
-                </Boton>
-              </div>
-            </div>
+              <TablaInactivas filas={inactivos} />
+            </>
           )}
-        </Modal>
+        </section>
+      )}
+
+      {pestana === "actividad" && (
+        <section aria-label="Actividad de accesos">
+          {actividad.length === 0 ? <Vacio>Todavía no hay movimientos de acceso.</Vacio> : <ListaActividad eventos={actividad} />}
+        </section>
+      )}
+
+      {modal?.tipo === "agregar" && (
+        <AgregarColaboradoresModal
+          disponibles={disponibles}
+          ubicaciones={ubicaciones}
+          onClose={() => setModal(null)}
+          onConfirmar={(personas, ubicacionId) =>
+            ejecutar(null, "agregar a los colaboradores", () => acciones.agregar(personas, ubicacionId), `${plural(personas.length, "persona ya tiene", "personas ya tienen")} acceso`)
+          }
+        />
+      )}
+      {modal?.tipo === "suspender" && (
+        <SuspenderModal
+          nombre={modal.persona.nombre}
+          onClose={() => setModal(null)}
+          onConfirmar={(motivo) =>
+            ejecutar(modal.persona.persona_id, "suspender el acceso", () => acciones.suspender(modal.persona.persona_id, motivo), "Acceso suspendido", `${modal.persona.nombre} pasó a Suspendidos.`)
+          }
+        />
+      )}
+      {modal?.tipo === "ubicacion" && (
+        <CambiarUbicacionModal
+          nombre={modal.persona.nombre}
+          ubicacionActualId={modal.persona.ubicacion_id}
+          ubicaciones={ubicaciones}
+          onClose={() => setModal(null)}
+          onConfirmar={(ubicacionId) =>
+            ejecutar(modal.persona.persona_id, "cambiar la ubicación", () => acciones.cambiarUbicacion(modal.persona.persona_id, ubicacionId), "Ubicación actualizada", `${modal.persona.nombre} quedó en ${ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "la nueva ubicación"}.`)
+          }
+        />
+      )}
+      {modal?.tipo === "quitar" && (
+        <QuitarAccesoModal
+          nombre={modal.persona.nombre}
+          suspendida={modal.suspendida}
+          onClose={() => setModal(null)}
+          onConfirmar={() =>
+            ejecutar(modal.persona.persona_id, "quitar el acceso", () => acciones.quitar(modal.persona.persona_id), "Acceso quitado", "La persona ya no puede entrar al sistema de retail.")
+          }
+        />
       )}
     </div>
   );
