@@ -28,6 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Historial de ventas — Ventas ▸ Historial (2026-09-21, ADR-0144) — hecho en local, SIN migración (nada que pegar en producción)
+- [x] `/vender/historial` (grupo Ventas, entre Caja y Cambios): todas las ventas de cualquier fecha y de todas las tiendas. Filtros en la URL (período, tienda y vendedor solo líder, estado, pago, con/sin boleta o factura), lista por día de Lima, detalle al tocar una fila (`DetalleVentaModal`), paginado por cursor, cifras del rango completo (una anulada se ve tachada y no suma). 25 pruebas de reglas + 8 de integración contra la base local (líder y colaboradora) + vista previa en 4 anchos.
+- [x] Comparado con producción EN VIVO el 2026-09-21 (solo lectura): columnas, RLS, FK y funciones que lee, idénticas. Producción tiene 16 ventas.
+- [ ] **Verlo en el navegador con sesión real** (líder e integrante): abrir `/vender/historial`, cambiar filtros, paginar, tocar una fila. Lo verificado hasta acá fue la lectura real y la interfaz por separado; falta recorrerlas juntas.
+- [ ] Búsqueda por boleta / DNI / clienta / prenda (la lógica existe en `ventas-v2.ts`: `buscarVentas`, hoy interna). Y enlaces «Ver historial →» desde «Ventas de hoy» (Caja, Punto de Venta, Facturación) y desde el detalle de un cierre (`?caja=`) — esperar a que salgan los rediseños en curso de esas pantallas.
+- [ ] Solo si un rango supera 1,000 ventas (hoy no): RPC de agregados + migración (requiere OK). **Decisiones de negocio abiertas** (ADR-0144): ¿lo ve todo el equipo o solo el líder? (se asumió todos); ¿«históricas» incluye ventas de antes del ERP? (se asumió que no).
+- [ ] Deuda ajena que apareció: `fn_ventas_del_dia` no lee `ventas.estado` — una anulada de hoy cuenta completa en «Vendido hoy» (ya en la lista de Facturación).
+
 ## 🎯 Candado de líder: solo el líder cierra la caja y ajusta stock (2026-09-21, ADR-0143) — hecho en local, falta pegar en producción
 - [x] Migración `20260921120000` (renumerada desde `20260921110000` el 2026-09-21 por chocar con Por pagar de Producción, que ya estaba en producción; `cerrar_caja` y `registrar_movimiento` exigen `fn_es_lider()`, 42501), prueba `pruebas:candado-lider` (20/20; 9/20 contra las funciones de producción sin candado), escenario C2 de `caja:verificar` ajustado, y cinco botones escondidos a quien no es líder (Caja, Punto de Venta, Existencias, Productos en lista y en grilla).
 - [ ] **Fusionar y desplegar las pantallas ANTES; después pegar la migración en producción** con ok de Felipe (ensayo revertido → pegar → verificar por catálogo y llamada real de un colaborador; pasos en el ADR-0143).

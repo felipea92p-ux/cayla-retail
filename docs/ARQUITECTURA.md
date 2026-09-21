@@ -489,6 +489,15 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `GET /api/padron?tipo=dni|ruc&numero=…` → `lib/padron.ts` → proveedor externo
   del padrón (RENIEC/SUNAT). Validación de formato y dígito verificador en
   `packages/shared/src/documento.ts` (pura, corre en los dos lados). ADR-0008.
+- `/vender/historial` → `lib/ventas-historial.ts` (lectura; reglas puras en
+  `ventas-historial-reglas.ts`) → `HistorialVentasLista.tsx`, `FiltrosHistorialVentas.tsx`
+  y `HistorialVentasTotales.tsx`. Solo lectura, **sin RPC propia**: PostgREST sobre
+  `ventas` + `venta_items` + `venta_pagos` + `comprobantes`, con la RLS
+  `fn_puede_operar_ubicacion` acotando por tienda (líder: todas). El nombre de quien
+  vendió sale de `fn_nombres_personas`; el filtro por vendedor, de `fn_colaboradores`.
+  Filtros y cursor `(created_at, id)` viven en la URL. Al tocar una fila abre
+  `DetalleVentaModal` (`leerVentaDetalle`, en el navegador). No usa `fn_ventas_del_dia`
+  (fija a hoy y sin `ventas.estado`). ADR-0144.
 
 ### 3.x Rutas de API (`app/api/**/route.ts`)
 
