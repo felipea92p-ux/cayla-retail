@@ -840,9 +840,9 @@ dinero intacto, RLS sin permisos de escritura, triggers diferidos activos. Produ
 - [x] **Filtro y chip «Destino» en Comprobantes y Por pagar (2026-09-21, anexo del ADR-0139):** hecho y verificado en local (SQL 57/57, navegador:
       Trujillo = 5 comprobantes en Comprobantes y 4 con S/ 4,212.60 en Por pagar, cuadrando con los subtotales). Migración
       `20260921130000_compras_filtro_por_tienda_destino.sql`.
-- [ ] **Pegar `20260921130000_compras_filtro_por_tienda_destino.sql` en producción, ANTES de fusionar el PR del filtro** (entera; re-pegable). Después
-      refrescar en `funciones-produccion.txt` las líneas de `listar_compras` (18 parámetros) y `por_pagar_tramos` (8). Sin esa migración la lista
-      sigue igual; solo elegir una tienda en «Destino» avisa que falta actualizar la base.
+- [x] **`20260921130000_compras_filtro_por_tienda_destino.sql` pegada en producción por Felipe (2026-09-21) y verificada en solo lectura:** una sola
+      firma de cada función (`listar_compras` con 18 parámetros, `por_pagar_tramos` con 8), cerradas a `anon`, con el candado de dinero puesto en
+      `por_pagar_tramos`. El volcado (`funciones-produccion.txt`) ya trae las dos firmas nuevas (refresco completo del mismo día).
 - [x] **Datos de prueba en el Postgres LOCAL compartido:** `TST-REPARTO01` (tiene recepciones: no se puede anular) y `TST-RUI0001`
       (repartido 10+14, con una reasignación y un cierre). Solo local, **producción tiene 0** (verificado 2026-09-21); Felipe: no es problema,
       se dejan. Lo único que hacen es ensuciar los totales locales de «Por pagar»/«Por recibir».

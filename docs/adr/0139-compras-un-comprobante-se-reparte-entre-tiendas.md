@@ -249,7 +249,8 @@ Comprobantes y Por pagar solo filtraban por proveedor, pago, recepción, condici
 - **Cómo se degrada:** la lista sin filtro no depende de la migración. Si se elige una tienda ANTES de pegar el SQL, la base no conoce el
   parámetro (`PGRST202`) y la pantalla lo dice claro («El filtro por tienda todavía no está disponible…») en vez de listar todo bajo un
   rótulo que no filtró.
-- **Cómo se pega en producción:** una sola migración, entera, en el SQL Editor de cayla-dynamic, **antes** de fusionar el PR; re-pegable (lo
+- **Estado: aplicada en producción el 2026-09-21** (una sola firma de cada función, cerradas a `anon`, candado de dinero intacto — verificado en solo lectura).
+- **Cómo se pegó en producción:** una sola migración, entera, en el SQL Editor de cayla-dynamic, **antes** de fusionar el PR; re-pegable (lo
   ya migrado se salta solo). Se verificó contra producción, solo lectura, que las dos funciones tienen hoy la misma definición que el
   local (md5 idéntico) y una sola firma; los parches por anclas abortan sin cambiar nada si la base cambió por debajo. Al terminar, refrescar
   las dos líneas de `funciones-produccion.txt` (`generado/COMO-REFRESCAR.md`).
