@@ -271,6 +271,60 @@ export function resaltarCoincidencia(texto: string, busqueda: string): TramoText
 }
 
 // ---------------------------------------------------------------------------
+// Marcas de un proveedor (ADR-0140).
+//
+// El nombre de un proveedor es su razón social («Textil Ejemplo SAC»), pero el equipo lo conoce por la marca con
+// que vende («Kero»). Las marcas viven aparte —`marca_proveedores`: un proveedor trae varias y una marca puede
+// llegar por varios— y la lista no las miraba: quien escribía la marca no encontraba nada. Estas funciones las
+// pliegan a «proveedor → sus marcas» para buscar y mostrar. Puras: sin I/O.
+// ---------------------------------------------------------------------------
+
+/** proveedorId → nombres de sus marcas. Un proveedor sin marcas no aparece. */
+export type MarcasDeProveedor = Record<string, string[]>;
+
+/**
+ * Pliega las tablas `marcas` y `marca_proveedores` a «proveedor → marcas», en orden alfabético sin tildes.
+ * Una marca desactivada no cuenta (ya no se cataloga con ella) y un vínculo a una marca que no llegó se ignora
+ * en vez de tumbar la lista.
+ */
+export function marcasPorProveedor(marcas: { id: string; nombre: string; activo: boolean }[], vinculos: { marca_id: string; proveedor_id: string }[]): MarcasDeProveedor {
+  const activas = new Map(marcas.filter((m) => m.activo).map((m) => [m.id, m.nombre]));
+  const porProveedor: MarcasDeProveedor = {};
+  for (const v of vinculos) {
+    const nombre = activas.get(v.marca_id);
+    if (nombre === undefined) continue;
+    (porProveedor[v.proveedor_id] ??= []).push(nombre);
+  }
+  for (const lista of Object.values(porProveedor)) lista.sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  return porProveedor;
+}
+
+/**
+ * Todo lo que el buscador de Proveedores mira de uno: nombre, RUC, contacto y —al FINAL— las marcas. El orden
+ * importa: la búsqueda es una subcadena contigua, y quien pega «Textil Ejemplo SAC 20111111111» desde una factura
+ * necesita que nombre y RUC sigan vecinos. Con las marcas en medio esa búsqueda, que ya funcionaba, dejaba de hallar.
+ */
+export function textoBuscableProveedor(p: { nombre: string; ruc: string | null; contacto: string | null }, marcas: readonly string[] = []): string {
+  return [p.nombre, p.ruc, p.contacto, ...marcas].filter(Boolean).join(" ");
+}
+
+/** El «detalle» de cada opción del combo de nueva compra: RUC y marcas, para encontrarlo por cualquiera de los dos. */
+export function detalleProveedorCombo(ruc: string | null, marcas: readonly string[] = []): string | undefined {
+  return [ruc, ...marcas].filter(Boolean).join(" · ") || undefined;
+}
+
+/**
+ * Las etiquetas de marca que caben en una fila. Con una búsqueda activa, las que coinciden van primero: si no,
+ * la marca que se buscó podría quedar escondida detrás de «+2» y no se vería por qué apareció esa fila.
+ */
+export function marcasParaMostrar(marcas: readonly string[], busqueda: string, max: number): { visibles: string[]; ocultas: number } {
+  const q = base(busqueda.trim());
+  const coinciden = q ? marcas.filter((m) => base(m).includes(q)) : [];
+  const orden = [...coinciden, ...marcas.filter((m) => !coinciden.includes(m))];
+  return { visibles: orden.slice(0, max), ocultas: Math.max(0, orden.length - max) };
+}
+
+// ---------------------------------------------------------------------------
 // RUC duplicado: decirlo al escribir, con el nombre de con quién choca.
 // ---------------------------------------------------------------------------
 
