@@ -213,7 +213,7 @@ export function ProductosAgrupados({
                 <Chip tono={p.estado === "activo" ? "verde" : "apagado"}>{p.estado === "activo" ? "Activo" : "Descontinuado"}</Chip>
               </span>
               <span className="justify-self-end">
-                <MenuFila productoId={p.productoId} ubicacionId={ubicacionId} sububicaciones={sububicaciones} />
+                <MenuFila productoId={p.productoId} ubicacionId={ubicacionId} sububicaciones={sububicaciones} esLider={esLider} />
               </span>
             </div>
 
@@ -289,10 +289,12 @@ function MenuFila({
   productoId,
   ubicacionId,
   sububicaciones,
+  esLider,
 }: {
   productoId: string;
   ubicacionId: string;
   sububicaciones: Sububicacion[];
+  esLider: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [ajustando, setAjustando] = useState(false);
@@ -355,18 +357,21 @@ function MenuFila({
               Editar
             </Link>
           </li>
-          <li role="none">
-            <button
-              role="menuitem"
-              onClick={() => {
-                setAbierto(false);
-                setAjustando(true);
-              }}
-              className="block w-full px-3 py-2 text-left text-sm text-tinta/75 hover:bg-rojo/10"
-            >
-              Ajustar inventario
-            </button>
-          </li>
+          {/* D-13: ajustar stock fuera de una venta es del líder (candado real en `registrar_movimiento`, 20260921110000). */}
+          {esLider && (
+            <li role="none">
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setAbierto(false);
+                  setAjustando(true);
+                }}
+                className="block w-full px-3 py-2 text-left text-sm text-tinta/75 hover:bg-rojo/10"
+              >
+                Ajustar inventario
+              </button>
+            </li>
+          )}
           <li role="none">
             <Link
               role="menuitem"
