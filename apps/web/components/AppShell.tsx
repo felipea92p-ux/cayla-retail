@@ -913,6 +913,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   const comprobantesProduccion: Item = { href: "/produccion/comprobantes", etiqueta: "Comprobantes", icono: IC.facturas };
   const recibirProduccion: Item = { href: "/produccion/recibir", etiqueta: "Recibir", icono: IC.recibir };
   const porPagarProduccion: Item = { href: "/produccion/por-pagar", etiqueta: "Por pagar", icono: IC.porPagar };
+  const eficienciaProduccion: Item = { href: "/produccion/eficiencia", etiqueta: "Eficiencia", icono: "M3 17l6-6 4 4 8-8M15 7h6v6" };
   // Producción y Compras son dos módulos distintos (ADR-0133, decisión de Felipe
   // 2026-09-19): cada uno con su grupo. Producción solo se ve parado en el Taller,
   // líder incluido (Felipe, 2026-09-20: vuelve a la regla del 2026-09-17 y deja sin
@@ -971,7 +972,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   // Resumen, comprobantes, por pagar, recibir y Eficiencia se suman
   // cuando existan (F4b a F7). Sin rótulos de sección a propósito: el riel del lateral se mueve
   // por filas de alto fijo (`PASO_FILA`) y una fila de otra altura lo desalinearía.
-  const itemsProduccion: Record<ClaveMenuProduccion, Item> = { resumenProduccion, ordenes, insumos, proveedoresProduccion, comprobantesProduccion, recibirProduccion, porPagarProduccion };
+  const itemsProduccion: Record<ClaveMenuProduccion, Item> = { resumenProduccion, ordenes, insumos, proveedoresProduccion, comprobantesProduccion, recibirProduccion, porPagarProduccion, eficienciaProduccion };
   const hijosProduccion: Item[] = clavesProduccion.map((c) => itemsProduccion[c]);
   const grupoProduccion: ItemGrupo = {
     id: "produccion",
