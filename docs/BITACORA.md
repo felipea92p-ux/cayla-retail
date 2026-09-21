@@ -8536,3 +8536,7 @@ se niega con mercadería recibida. Pantalla `/produccion/recibir`. Migración `2
 Felipe pegó F4d (validada contra producción: lote de 60 m a S/ 20, tope de recepción, anular negada, la función de líneas sin columnas de dinero). F4e construida en local: los costos de lotes, movimientos y
 órdenes ya no se pueden leer por la API directa (privilegio por columna), la vista `v_insumo_saldos` queda cerrada, y el líder los lee por `fn_costos_insumos_taller` / `fn_costos_producciones`. Dos migraciones,
 patrón ADR-0126: A `20260921150000` → desplegar la app → B `20260921151000`. `pruebas:candado-dinero-produccion` 20/20. Observado y NO tocado: `fn_costo_historial` (costo de prendas) es legible por cualquier colaborador.
+
+## 2026-09-21 (Prueba de deriva de producción: 13/13 y dentro del CI)
+`pnpm pruebas:deriva-produccion` fallaba 12/13: el caso de las dos sobrecargas de 217000 aplica la migración histórica `20260918219000`, cuyo cuerpo escribe `compras.ubicacion_destino_id`, columna que el reparto (ADR-0139) retiró. El caso repone esa columna dentro de su transacción revertida; la garantía (una sola `registrar_compra` con `p_token`, el mismo token no duplica) no cambió. Fusionado en #227, y la prueba entra al job `pruebas-postgres` del CI.
+Felipe se lleva: (1) una migración vieja se prueba contra el esquema de SU época, no contra el de hoy: si el esquema cambia, se reconstruye ese contexto en la prueba y no se edita la migración; (2) una prueba que no corre en el CI se rompe en silencio: esta llevaba semanas roja y nadie lo notó.

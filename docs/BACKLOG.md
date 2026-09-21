@@ -857,6 +857,7 @@ dinero intacto, RLS sin permisos de escritura, triggers diferidos activos. Produ
       por tienda, reasignar solo lo pendiente, lo que ve un integrante, el candado de dinero, el filtro «Destino» y las dos firmas de
       `listar_compras`/`por_pagar_tramos`) no vigilan nada en cada push. Usa el mismo seed que `dinero-compras` (ya en el CI); habría que ver que pase
       sobre la base limpia del CI antes de dejarlo obligatorio.
+      (`pnpm pruebas:deriva-produccion` ya entró al CI el 2026-09-21, #227; su primer resultado en la base limpia de CI está por mirar.)
 - [ ] **Decisión de diseño abierta (opcional): las cuatro cifras de arriba de Comprobantes y Por pagar (Por pagar, Por recibir, Compras del mes, IGV;
       Deuda, Vencido, Vence esta semana, Concentración) no siguen NINGÚN filtro**, tampoco el de proveedor ni ahora «Destino»; solo los
       subtotales por tramo de Por pagar lo siguen. Si Felipe quiere que sigan el filtro, cada una de esas funciones necesita su parámetro
