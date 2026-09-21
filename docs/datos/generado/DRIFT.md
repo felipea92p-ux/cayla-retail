@@ -1,16 +1,33 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 106 llamadas de `apps/web` contra 185 funciones del schema `retail` en producción.
+> Comparadas 109 llamadas de `apps/web` contra 185 funciones del schema `retail` en producción.
 
 ---
 
-## Roto en producción — 0
+## Roto en producción — 3
 
 ## Sobrecargas — 0
 
 Ninguna. Cada función tiene una sola firma en producción.
-Nada. Todas las llamadas encajan con la firma real.
+### `liberar_apartado` — no existe
+
+**Dónde:** `apps/web/components/ApartadosModal.tsx:41`
+**Qué pasa:** la función `liberar_apartado` no existe en producción
+**Consecuencia:** esa pantalla falla siempre en las tiendas. No es intermitente.
+
+### `apartar_stock` — no existe
+
+**Dónde:** `apps/web/components/ApartarModal.tsx:57`
+**Qué pasa:** la función `apartar_stock` no existe en producción
+**Consecuencia:** esa pantalla falla siempre en las tiendas. No es intermitente.
+
+### `listar_apartados` — no existe
+
+**Dónde:** `apps/web/lib/apartados.ts:12`
+**Qué pasa:** la función `listar_apartados` no existe en producción
+**Consecuencia:** esa pantalla falla siempre en las tiendas. No es intermitente.
+
 ## Avisos — 16
 
 - `anular_comprobante` · `apps/web/app/api/lucode/consultar-anulacion/route.ts:72` — no manda `p_motivo` (normal si tienen valor por defecto)
@@ -35,7 +52,7 @@ Nada. Todas las llamadas encajan con la firma real.
 Estas llamadas arman sus parámetros fuera de la propia llamada, así que no se
 pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**
 
-- `registrar_movimiento` · `apps/web/components/AjustarInventarioModal.tsx:185` — el objeto se arma con «...», no se puede leer entero
+- `registrar_movimiento` · `apps/web/components/AjustarInventarioModal.tsx:159` — el objeto se arma con «...», no se puede leer entero
 - `cerrar_linea_compra` · `apps/web/components/CerrarFaltanteModal.tsx:59` — el objeto se arma con «...», no se puede leer entero
 - `registrar_compra` · `apps/web/components/CompraFormV2.tsx:335` — el objeto se arma con «...», no se puede leer entero
 - `registrar_pago_compras_medios` · `apps/web/components/PagoJuntosModal.tsx:170` — el objeto se arma con «...», no se puede leer entero
@@ -60,9 +77,9 @@ pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**
 - `listar_compras` · `apps/web/lib/compras.ts:207` — el objeto se arma con «...», no se puede leer entero
 - `lineas_compra_operativo` · `apps/web/lib/compras.ts:375` — el objeto se arma con «...», no se puede leer entero
 - `fn_prioridad_conteo` · `apps/web/lib/conteos.ts:189` — el objeto se arma con «...», no se puede leer entero
-- `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:177` — el objeto se arma con «...», no se puede leer entero
-- `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:207` — el objeto se arma con «...», no se puede leer entero
-- `fn_movimientos_resumen` · `apps/web/lib/movimientos-v2.ts:226` — los parámetros no van escritos ahí mismo
+- `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:178` — el objeto se arma con «...», no se puede leer entero
+- `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:208` — el objeto se arma con «...», no se puede leer entero
+- `fn_movimientos_resumen` · `apps/web/lib/movimientos-v2.ts:227` — los parámetros no van escritos ahí mismo
 
 ## Funciones que nadie llama — 32
 

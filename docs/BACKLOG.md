@@ -28,6 +28,50 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 «Ajustar inventario» se abría vacío: seguía pidiendo `variantes.talla` (2026-09-20)
+- [x] `AjustarInventarioModal.tsx` pedía la columna `variantes.talla`, que la taxonomía cerrada eliminó (ADR-0095, `20260917100500`); la base respondía «column variantes.talla does not exist» y el modal quedaba vacío desde «Ajustar» en Existencias y Productos. Ahora usa `talla:tallas ( valor )` sin cast (si vuelve a pedir una columna inexistente, `tsc` falla — comprobado con una mutación) y arma las filas en `lib/ajuste-reglas.ts` (12 pruebas), con las tallas en orden de curva. Reproducido a nivel de Postgres (esquema real, solo lectura); barrido de `apps/web`: ningún otro select ni filtro pide `talla` a secas sobre `variantes`, y los otros 4 `as unknown as` de selects solo angostan tipos.
+- [ ] Verlo en navegador con datos reales (sin Docker no hay PostgREST local): abrir «Ajustar» en un producto con varias tallas y ver que salgan ordenadas y con su stock. En producción la columna ya estaba borrada desde el 2026-09-17 (ver 🎯 Taxonomía de variante), así que el modal llevaba roto desde entonces — según este BACKLOG, no consultado en vivo.
+
+## 🎯 Apartar stock — Fase 1: reserva física con clienta y fecha límite (2026-09-20, ADR-0141) — hecho en local, falta pegar en producción
+
+Una prenda apartada para una clienta ya **no se puede vender**: sigue contando en el conteo físico, pero deja de estar *disponible*. Existencias tiene la
+tarjeta «Apartados» (lo vencido en rojo; **no se libera solo**), la acción «Apartar» por fila y «Liberar» (solo quien apartó, o una líder). Detalle,
+decisiones, lo que se descartó y la verificación en [docs/adr/0141-apartar-stock-reserva-fisica.md](adr/0141-apartar-stock-reserva-fisica.md).
+
+- [x] **Motor, tabla y RPC** (`20260920160000_apartar_stock.sql`): `stock.cantidad_apartada`, `apartados`, `apartar_stock`, `liberar_apartado`,
+      `listar_apartados`, `fn_verificar_apartados`; `fn_aplicar_movimiento` (venta, traslado y ajuste miran lo disponible) y `recalcular_stock`.
+      Verificado con 41 pruebas SQL + 54 de regresión + carreras con COMMIT (hasta 120 conexiones) + prueba de mutación.
+- [ ] **Pegar `20260920160000_apartar_stock.sql` en producción, ANTES de desplegar la web** (Existencias lee la columna nueva). Entera, en el SQL Editor de
+      cayla-dynamic; es re-ejecutable. Pasos y verificación en el ADR («Cómo se pega en producción»).
+- [ ] **Probarlo en el navegador con datos reales, como colaboradora y como líder.** Esta sesión no tenía base de datos: se vieron los componentes reales
+      con datos de ejemplo (formulario, errores, vencidos, caída de red), pero no el ciclo completo apartar → ver → liberar contra Postgres.
+- [ ] **Fase 2 — el adelanto ligado a Caja.** Decidido con Felipe: ingreso de caja «adelanto de apartado»; si se cancela o vence, se devuelve (egreso); sin
+      comprobante hasta la venta final por el total. Incluye que **`registrar_venta` consuma la reserva en una sola transacción** (hoy: liberar con motivo
+      «entregada» y cobrar en Vender; entre un paso y otro hay una ventana de segundos). Es lo más delicado: toca la RPC más sensible del sistema.
+      **Antes de usarlo con clientas reales, el contador debe validar el tratamiento tributario de un anticipo de mercadería.**
+- [ ] **Lecturas que todavía muestran stock físico** (el motor igual rechaza lo no disponible): `fn_stock_por_sede` («dónde más hay»), el listado de Productos
+      (`fn_productos`) y los resúmenes de Inventario.
+- [ ] **Conteo con apartados:** si un conteo encuentra menos prendas que las apartadas, el cierre falla con un mensaje claro; falta el flujo «resolver el
+      apartado desde el conteo».
+- [ ] **Anatomía del Producto — lo que sigue pendiente (verificado 2026-09-20; ninguna pieza está en producción).** Construidas y sin PR: estado de
+      publicación (`claude/producto-estado-publicacion-e3c13e`, pusheada), país de origen/fabricante/material (`claude/producto-etiquetado-legal-16434c`,
+      pusheada), ciclo de vida por categoría (`claude/categoria-ciclo-vida-daa78e`, **solo en un disco local**). Nunca construidas: calidad de la prenda
+      (`stock_calidad`, como registro append-only — no como contador editable), historial de cambios del producto, y lead time / pedido mínimo del proveedor.
+      **Campañas: descartada** — `main` la resolvió (ADR-0107/0108, la etiqueta de campaña lleva el %). Ojo: esas ramas traen ADR con número repetido
+      (0094 y 0097) y `main` ya va en 0141.
+- [ ] **Retirar la lectura tolerante** de `getStockPorUbicacion` (`inventario-v2.ts`, reintento sin `cantidad_apartada` ante `42703`) y de `getApartadosAbiertos`
+      (`apartados.ts`, `[]` ante `PGRST202`) **cuando la migración esté verificada en producción**. Existen solo para que una web que sale antes que el SQL no
+      tumbe la caja; después son código muerto.
+- [ ] **Vender y Cambios dicen «agotada» / «Sin stock aquí»** de una prenda cuyo piso está todo apartado (se ve en el piso, pero es de una clienta): falta decir
+      «apartada para una clienta». `PuntoDeVenta.tsx` lo comparte con otra sesión, por eso no se tocó aquí.
+- [ ] **La reposición sugerida desde Resumen** (`ReponerPisoModal` con `cantidadInicial`) todavía parte del stock físico del almacén; en Existencias ya se corrigió.
+- [ ] **El mensaje del cierre de conteo** ya nombra el SKU, pero la vista previa (`previsualizar_cierre_conteo`) no avisa de los apartados: quien cuenta no ve
+      que hay prendas reservadas que también hay que contar.
+- [x] 🩹 **CORREGIDO en el PR #210 (2026-09-20; ver la sección «Ajustar inventario» más arriba; la taxonomía es ADR-0095, no 0075).** **`AjustarInventarioModal.tsx` selecciona `variantes.talla`, que ya no existe (es `talla_id`)** desde la taxonomía cerrada (ADR-0075): «Ajustar
+      inventario» probablemente falla al cargar las variantes. No se tocó aquí; verificar con datos reales.
+
+---
+
 ## 🎯 Módulo «Notas de crédito» aparte de Recepción (2026-09-19) — spike listo, sin implementar
 - [x] Spike visual: `docs/maquetas/notas-credito-spike-2026-09/notas-credito-vivo.html` (+ README con el mapa pantalla → datos/RPC reales, lo que requiere migración y 5 decisiones D1–D5 con Ganas/Pagas). Verificado abriéndolo en el navegador; el movimiento en curso lo debe juzgar Felipe a ojo.
 - [ ] Decisiones de Felipe D1–D5 (README del spike). Recomendaciones: registrar la nota solo en el módulo; «reclamada» en segunda fase; «Aplicada» deducida por FIFO; urgencia a 14 días; adjunto ligado a la nota.
@@ -62,7 +106,8 @@ Plan completo en [`docs/PLAN-PRODUCCION.md`](PLAN-PRODUCCION.md); diseño de ref
 **Nada de esto está construido:** solo el spike y el plan (verificado en el navegador). Cada fase = un PR.
 
 - [x] **F0 · Preparación (2026-09-19):** `origin/main` fusionada (rama al día), ADR-0133 reservado (el 0130 —renumerado tras chocar con el menú plegable en `main`—, 0131 y 0132 los tienen otras ramas), spike y plan commiteados.
-- [x] **D-A (menú)** — ok de Felipe al pedir F1 (2026-09-19): el líder ve Producción desde cualquier ubicación; revierte la regla del 2026-09-17.
+- [x] **D-A (menú) — REVERTIDA el 2026-09-20 por Felipe:** Producción se ve **solo parado en un Taller, líder incluido** (por el tipo de la ubicación activa). Rigió el 2026-09-19 lo contrario (el líder la veía desde cualquier ubicación). Solo menú y páginas, sin esquema; Compras no cambió. Ver nota en ADR-0133.
+- [ ] **Pendiente derivado de D-A (2026-09-20):** el enlace del Resumen de Inventario a `/produccion` (`lib/resumen-acciones.ts`, paso «revisar abastecimiento» de una prenda que se repone fabricando) ya no lleva a las Órdenes cuando el líder mira desde una tienda: aterriza en el aviso «cambia al Taller». Funciona, pero es un paso de más — decidir si el Resumen debería mandar a la orden con la ubicación ya cambiada, o si basta el aviso.
 - [x] **D-H (2026-09-19, decisión de Felipe contra mi recomendación):** Producción tiene su propio directorio de proveedores y sus propios Comprobantes / Por pagar / Recibir. Compras no se toca.
 - [ ] **Decisiones de Felipe que siguen abiertas (bloquean F4 y F7):** **D-I** (vista consolidada de deuda e IGV de los dos módulos) ·
       D-E `maquila_referencias` · D-F `gastos_taller` · D-G costos de insumos solo líder.
@@ -833,6 +878,12 @@ vuelo del censo fallan en la pantalla actual («Elige la marca del producto»).
       margen, código previsto, etiquetas todo-o-nada y resumen que dice qué falta. Probado en el navegador con
       datos y red simuladas; typecheck, lint y 540 pruebas en verde. **Falta verificarlo con sesión de Líder real
       contra la base** una vez pegados los SQL (aviso de parecidos con `pg_trgm` real, guardado de verdad).
+- [x] **Primer paso menos caótico** (2026-09-20): de entrada solo Indumentaria, Accesorios y Complementos y Bisutería; el
+      resto (Calzado, Belleza, Papelería) tras «Ver más», y la búsqueda las alcanza igual. De paso se arregló el
+      encimado de las tarjetas con el menú lateral abierto (columnas por ancho del bloque, no de la ventana).
+      Cuáles van a la vista vive en `FAMILIAS_A_LA_VISTA` (`lib/alta-producto.ts`), no en la base. **Se revisa si**
+      Calzado empieza a darse de alta a diario (subirlo a la vista es una línea) o si otra pantalla necesita saber
+      qué familias son «principales» (ahí sí se sube a una columna de `familias`).
 - [ ] **«+ Nuevo color» dentro del formulario**: hoy se enlaza a Atributos en otra pestaña (un color pide código,
       tono, familia de color y tipo). Si duele, hacerlo como modal con esos 4 campos.
 - [x] **Paso 4 — pantalla de éxito** (`ProductoCreado.tsx`): Agregar fotos (lleva a `/productos/{id}/editar#fotos`,
