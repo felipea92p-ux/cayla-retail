@@ -3,7 +3,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getResumenCompras } from "@/lib/compras";
-import { getProveedores } from "@/lib/proveedores";
+import { getMarcasPorProveedor, getProveedores } from "@/lib/proveedores";
 import { repartoDisponible } from "@/lib/compras-reparto";
 import { datosPagoDe } from "@/lib/proveedores-reglas";
 import { CompraFormV2 } from "@/components/CompraFormV2";
@@ -15,12 +15,13 @@ import { CompraFormV2 } from "@/components/CompraFormV2";
 export default async function NuevaCompraPage({ searchParams }: { searchParams: Promise<{ prov?: string }> }) {
   const persona = await requirePersonaActualV2();
   const { prov } = await searchParams;
-  const [directorio, ubicaciones, catalogo, resumen, hayReparto] = await Promise.all([getProveedores(), getUbicaciones(), getCatalogo(), getResumenCompras(), repartoDisponible()]);
+  const [directorio, ubicaciones, catalogo, resumen, hayReparto, marcas] = await Promise.all([getProveedores(), getUbicaciones(), getCatalogo(), getResumenCompras(), repartoDisponible(), getMarcasPorProveedor()]);
   // Solo los activos; con su plazo, forma de pago y saldo (lo financiero es de líder, y esta pantalla también) y con
   // cómo se les paga (cuenta, CCI, Yape/Plin, titular: ADR-0134), que sale del mismo directorio, sin otra consulta.
+  // Y con sus marcas (ADR-0140): el nombre es la razón social, pero se les busca por la marca; opcional (`null` → sin marcas).
   const proveedores = directorio
     .filter((p) => p.activo)
-    .map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, plazoCreditoDias: p.plazo_credito_dias, formaPagoPreferida: p.forma_pago_preferida, saldo: p.saldo, saldoFavor: p.saldo_favor, datosPago: datosPagoDe(p, p.saldo_favor ?? 0) }));
+    .map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: marcas?.[p.id] ?? [], plazoCreditoDias: p.plazo_credito_dias, formaPagoPreferida: p.forma_pago_preferida, saldo: p.saldo, saldoFavor: p.saldo_favor, datosPago: datosPagoDe(p, p.saldo_favor ?? 0) }));
 
   // Cabecera del diseño: «← Comprobantes», título y bajada. La entrega el formulario junto al avance «Listo N de 4».
   const cabecera = (

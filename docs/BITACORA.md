@@ -8458,3 +8458,15 @@ esta hoja (`99059734`): no subir esa rama.
 ## 2026-09-20 («Ajustar inventario» se abría vacío)
 Desde la taxonomía cerrada de tallas (`variantes.talla` pasó a `talla_id`, migración `20260917100500`), el modal «Ajustar» —el de Existencias y Productos— pedía una columna que ya no existía: la base contestaba «column variantes.talla does not exist» y el modal quedaba vacío con el aviso «No se pudo cargar las variantes del producto». Nada lo detectó porque el resultado de la consulta pasaba por un `as unknown as`, que le apaga el chequeo al compilador. Ahora pide `talla:tallas ( valor )` sin cast —si reaparece una columna inexistente, `tsc` falla— y las tallas salen en orden de curva (XS · S · M · L, 28 · 30 · 32) en vez de alfabético.
 Reproducido contra un Postgres local con el esquema real (solo lectura): el select viejo falla, el nuevo devuelve las filas. Barrido de `apps/web`: ningún otro `.select` ni filtro pide `talla` a secas sobre `variantes`; los otros 4 casts de selects (`venta-detalle`, `colaboradores`, `comprobantes`, `envio`) solo angostan tipos, no esconden columnas rotas. 1644 pruebas, `tsc` y `eslint` en verde. Falta abrirlo en el navegador con datos reales (sin Docker no hay PostgREST local).
+
+## 2026-09-20 (Proveedores: buscar y mostrar por marca — ADR-0140)
+Tras la carga de 74 proveedores, 44 de las 71 fichas con marca no se hallaban escribiendo su marca (el buscador miraba nombre, RUC y
+contacto; el nombre es la razón social). Ahora la lista de Proveedores busca también por marca y muestra las marcas como etiquetas
+(las que coinciden suben y se resaltan, máx. 3 + «+N»), y el detalle rápido, la ficha y el combo de «nueva compra» también las usan.
+**Sin migración**: `getMarcasPorProveedor()` lee `marcas` y `marca_proveedores` y, si falla, la pantalla se pinta como antes (lectura
+secundaria, como la serie mensual). 12 pruebas nuevas (1.669 en total, tsc y eslint en verde) y verificado en el navegador con datos
+inventados: mayúsculas/tildes, marca oculta tras «+N», marca de un desactivado, modo sin marcas y vista de colaborador. Una revisión
+adversarial independiente encontró 2 defectos reales que ya estaban corregidos antes del commit: las marcas iban entre el nombre y el
+RUC en el texto buscable (rompía pegar «razón social + RUC» de una factura) y el chip partía la palabra al resaltar a medias. No
+cubre los buscadores de Comprobantes y Recepciones (filtran el proveedor por nombre dentro de sus RPC: requiere migración).
+

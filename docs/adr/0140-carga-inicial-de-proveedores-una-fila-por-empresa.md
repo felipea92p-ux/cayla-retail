@@ -79,10 +79,17 @@ anti-duplicado es el nombre.
   (autorreferencia: cada RUC sigue siendo una fila, la ficha del principal muestra sus «razones sociales relacionadas», el
   comprobante lleva su RUC real y la llave de facturas deja de chocar) **más** una columna `direccion` (62 de 74 la traían).
   Un solo cambio de esquema en vez de dos parches.
-- **Proveedores debe mostrar y buscar por marca.** El vínculo marca↔proveedor solo se ve en `/productos/marcas`: la lista de
-  Proveedores y el combo de Compras buscan por nombre, RUC y contacto (`ProveedoresPanel.tsx:108`, `CompraFormV2.tsx`). Con
-  «razón social primero», **44 de las 71 fichas con marca no se encuentran escribiendo su marca** (quien busca por la marca con que
-  conoce al proveedor no halla su razón social). Propuesta: `fn_proveedores()` devuelve las marcas y el buscador las incluye. No implementado.
+- ~~**Proveedores debe mostrar y buscar por marca.**~~ **Hecho el 2026-09-20, sin migración.** El vínculo marca↔proveedor solo se
+  veía en `/productos/marcas`: la lista de Proveedores y el combo de Compras buscaban por nombre, RUC y contacto, y con «razón
+  social primero» **44 de las 71 fichas con marca no se encontraban escribiendo su marca**. Se resolvió en pantalla, sin tocar la
+  base: `getMarcasPorProveedor()` (`lib/proveedores.ts`) lee `marcas` y `marca_proveedores` —abiertas a cualquiera con cuenta— y
+  las pliega a «proveedor → marcas» con reglas puras y probadas (`lib/proveedores-reglas.ts`). Es una lectura **secundaria**: si
+  falla llega `null` y todo se pinta como antes (y el buscador deja de prometer «marca»). La lista busca también por marca y
+  muestra las etiquetas (las que coinciden con lo escrito suben y se resaltan), el detalle rápido y la ficha las muestran, y el
+  combo de «nueva compra» las usa junto al RUC. Sigue pendiente decidir si `fn_proveedores()` debe devolverlas (una lectura
+  menos por pantalla) cuando exista la migración conjunta. **No cubre** los buscadores de Comprobantes y Recepciones: filtran el
+  proveedor con `pr.nombre ilike` dentro de sus RPC, así que escribir una marca allí no halla nada; arreglarlo exige una
+  migración (ver «Migración conjunta propuesta»).
 - Verificar a mano en SUNAT los RUC 10 de mayor gasto y los RUC 20 marcados como dudosos (varios espejos discrepan; ninguna
   fuente consultada es SUNAT oficial) antes de pagar.
 - **Higiene de git (no la hace esta carga):** existe un commit local sin publicar, `99059734` (2026-09-12, rama local

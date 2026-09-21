@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
 import { hoyLima } from "@/lib/fechas-lima";
-import { serie12Meses } from "@/lib/proveedores-reglas";
+import { marcasPorProveedor, serie12Meses, type MarcasDeProveedor } from "@/lib/proveedores-reglas";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Alta, edición y archivo
 // pasan por las RPC directo desde el componente cliente (registrar_proveedor /
@@ -102,6 +102,31 @@ export async function getProveedoresSerie(): Promise<Record<string, number[]> | 
   }
   const hoy = hoyLima();
   return Object.fromEntries([...porProveedor].map(([id, filas]) => [id, serie12Meses(filas, hoy)]));
+}
+
+// Las marcas con que se conoce a cada proveedor (ADR-0140): el nombre es la razón social, pero el equipo busca
+// por «Kero», no por «Textil Ejemplo SAC». Devuelve, por id de proveedor, sus marcas activas. Lee las mismas dos
+// tablas que el catálogo (`marcas` y `marca_proveedores`, abiertas a cualquiera con cuenta), sin RPC ni migración.
+//
+// Es un ADORNO de la lista, no un dato del que dependa nada: si la lectura falla devuelve `null` y la pantalla se
+// pinta igual, sin marcas ni búsqueda por marca — principio 9: una lectura secundaria nunca tumba la pantalla.
+// El tope por defecto de PostgREST (`max_rows` en supabase/config.toml).
+const TOPE_FILAS = 1000;
+
+export async function getMarcasPorProveedor(): Promise<MarcasDeProveedor | null> {
+  const supabase = await createClient();
+  const [resMarcas, resVinculos] = await Promise.all([supabase.from("marcas").select("id, nombre, activo"), supabase.from("marca_proveedores").select("marca_id, proveedor_id")]);
+  if (resMarcas.error || resVinculos.error) {
+    console.error("[proveedores] no se pudieron leer las marcas; la lista se muestra sin ellas:", (resMarcas.error ?? resVinculos.error)?.message);
+    return null;
+  }
+  // PostgREST corta en silencio a TOPE_FILAS (200 OK, sin error): un mapa recortado se vería igual que uno completo y
+  // algunos proveedores aparecerían «sin marcas». Es preferible degradar a `null` (que se nota) que mostrar a medias.
+  if ((resMarcas.data?.length ?? 0) >= TOPE_FILAS || (resVinculos.data?.length ?? 0) >= TOPE_FILAS) {
+    console.error(`[proveedores] las marcas llegaron al tope de ${TOPE_FILAS} filas; se muestra la lista sin ellas hasta paginar la lectura.`);
+    return null;
+  }
+  return marcasPorProveedor(resMarcas.data ?? [], resVinculos.data ?? []);
 }
 
 // Las cifras de la cabecera de la lista (ADR-0111): activos, deuda total con proveedores,

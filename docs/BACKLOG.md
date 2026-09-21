@@ -35,7 +35,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] Próxima carga masiva: **una sola sentencia `do $$`** (atómica por sí sola); no depender de `begin/commit` ni de tablas temporales entre sentencias.
 - [ ] Verificar en SUNAT los RUC 10 de mayor gasto y los RUC 20 con aviso (lista en `03-pendientes-privados.md`); pedir el RUC vigente a los que entraron sin RUC.
 - [ ] **Proponer (requiere aprobación + ADR propio):** una sola migración con `proveedor_principal_id` (razones sociales relacionadas: cada RUC sigue siendo fila; cierra el choque de `unique (proveedor_id, serie, numero)`) y `direccion`. Hoy `compras` no guarda el RUC del emisor; hay 0 compras, así que hay que decidirlo antes de la primera factura de un RUC relacionado.
-- [ ] Proveedores: **mostrar y buscar por marca** (`fn_proveedores()` + buscador + combo de Compras); hoy 44 de 71 fichas con marca no se hallan por ella.
+- [x] Proveedores: **buscar y mostrar por marca** (2026-09-20, sin migración): lista, detalle rápido, ficha y combo de nueva compra; lectura secundaria que degrada a `null` (ADR-0140). Verificado en el navegador con datos inventados; pendiente verlo con los datos reales. **No cubre** los buscadores de Comprobantes y Recepciones (filtran el proveedor por nombre dentro de sus RPC: requiere migración).
 - [ ] Higiene de git: commit local sin publicar `99059734` (rama `claude/sweet-gould-fe63b4`) con un volcado anterior de esta hoja. No subir esa rama; no borrar con `gc --prune=now` (destruiría otro commit sin publicar y el reflog de los demás worktrees).
 
 ## 🎯 «Ajustar inventario» se abría vacío: seguía pidiendo `variantes.talla` (2026-09-20)
