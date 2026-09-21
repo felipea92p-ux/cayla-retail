@@ -6,6 +6,7 @@ import {
   PERIODOS_RAPIDOS,
   PROCESOS_FILTRO,
   desdeDeUltimosDias,
+  etiquetaActividad,
   etiquetaDia,
   etiquetaMovimiento,
   etiquetaProceso,
@@ -431,5 +432,21 @@ describe("textoPeriodo", () => {
     expect(textoPeriodo("personalizado", "2026-09-01")).toBe("Desde 01/09/2026");
     expect(textoPeriodo("personalizado", undefined, "2026-09-10")).toBe("Hasta 10/09/2026");
     expect(textoPeriodo("personalizado")).toBe("Todo el historial");
+  });
+});
+
+describe("etiquetaActividad", () => {
+  const base = { categoria: "salida" as const, delta: -1, venta: null, cambio: null, devolucion: null };
+  it("distingue una venta de un retiro, aunque las dos sean «salida»", () => {
+    expect(etiquetaActividad({ ...base, venta: { id: "v", nota: null, comprobante: null } })).toBe("Venta");
+    expect(etiquetaActividad(base)).toBe("Salida");
+  });
+  it("un cambio o una devolución mandan sobre la venta de la que cuelgan", () => {
+    const venta = { id: "v", nota: null, comprobante: null };
+    expect(etiquetaActividad({ ...base, venta, cambio: { id: "c", diferencia: 0 } })).toBe("Cambio");
+    expect(etiquetaActividad({ ...base, venta, devolucion: { id: "d", motivo: null, estado: "aprobada" } })).toBe("Devolución");
+  });
+  it("una fila que suma unidades y cuelga de una venta no se rotula «Venta»", () => {
+    expect(etiquetaActividad({ ...base, categoria: "entrada", delta: 1, venta: { id: "v", nota: null, comprobante: null } })).toBe("Entrada");
   });
 });
