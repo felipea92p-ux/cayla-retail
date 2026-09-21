@@ -365,6 +365,17 @@ export function hoyEnLima(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 }
 
+/** El rótulo de una fila en «Actividad reciente» de Inicio. `categoria` dice solo el tipo
+ *  contable («Salida»), y una venta, un cambio y una merma son todas «salida»: quien mira
+ *  Inicio necesita distinguirlas. Cambio y devolución van primero porque también pueden
+ *  colgar de una venta. Lo demás cae a la categoría de siempre. */
+export function etiquetaActividad(m: Pick<Movimiento, "categoria" | "delta" | "venta" | "cambio" | "devolucion">): string {
+  if (m.cambio) return "Cambio";
+  if (m.devolucion) return "Devolución";
+  if (m.venta && m.delta < 0) return "Venta";
+  return ETIQUETA_CATEGORIA[m.categoria];
+}
+
 export function fechaCorta(iso: string): string {
   const [a, m, d] = iso.slice(0, 10).split("-");
   return `${d}/${m}/${a}`;

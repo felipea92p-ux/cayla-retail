@@ -60,7 +60,7 @@ export function ActividadDeHoy({ filas, ahora }: { filas: FilaDeActividad[]; aho
   const visibles = filas.filter((f) => coincide(camposDeBusquedaDeLaFila(f), busqueda));
 
   return (
-    <div className="card-cayla anim-sube @container overflow-hidden" style={{ "--i": 5 } as CSSProperties}>
+    <div className="card-cayla anim-sube @container overflow-hidden" style={{ "--i": 7 } as CSSProperties}>
       <div className="flex items-end justify-between gap-3 px-5 pt-[18px] pb-3.5">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Ventas de hoy</p>

@@ -28,6 +28,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Roles y permisos a medida (2026-09-22, ADR-0150) — F0 hecha (decisiones + ADR + maqueta); nada aplicado
+- [x] **F0:** 8 decisiones cerradas por Felipe (roles en tabla; ve/no ve por pantalla; solo el líder administra roles; Facturación no se delega; un rol por persona; piloto Inventario/Almacén; catálogos de Dynamic y retail separados; acceso a retail explícito con ubicación). Maqueta ajustada en `docs/maquetas/roles-spike-2026-09/` (bloqueo «Solo líder por ahora», Archivar rol, historial, Dar acceso, movimiento ADR-0136).
+- [ ] **F1** migración (`roles`, `permisos`, `rol_permisos`, `roles_historial`, `rol_id` en `colaboradores` **y** `colaboradores_suspendidos`, `fn_tiene_permiso`, `fn_mis_permisos`) — comportamiento idéntico al de hoy. **Cambio de esquema en producción: confirmar con Felipe antes de pegar.**
+- [ ] **F2** `permisosDe` de `lib/menu.ts` lee de la base; la fotografía `menu-hoy.golden.json` no debe cambiar · **F3** piloto Inventario/Almacén + pantallas «Asignar rol» y «Roles y accesos» · **F4** Catálogo · **F5** Compras (reaplicar `fn_aplicar_candado_de_dinero()`) · **F6** Producción y ubicación · **F7** limpieza de `esLider`, ARQUITECTURA y diccionario.
+- [ ] Pregunta abierta para F1: ¿el alta en «Agregar colaboradores» debe proponer la ubicación desde la sede base de Dynamic? Hoy se elige a mano.
+- [ ] Coordinar con el PR `claude/adr-0145-compras-permisos` antes de F5 (mismo terreno: permisos de Compras).
+
 ## 🎯 Menú a datos: `lib/menu.ts` (2026-09-21, ADR-0144) — paso 1, sin cambio visible
 - [x] Árbol de datos + `menuPara` (permisos semánticos, no `esLider`) + fotografía del menú de hoy (`menu-hoy.golden.json`, capturada del `AppShell.tsx` real de `main`) + pruebas (equivalencia en 6 perfiles, invariantes, topes 8/6, rutas vivas existen). `AppShell.tsx` pierde las constantes de filas y `produccion-menu.ts` pasa a ser vista fina. `tsc`, `eslint` y 2023 pruebas en verde; 1176 renders del original y del nuevo, 0 diferencias.
 - [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
@@ -62,6 +69,31 @@ Análisis completo en [docs/pantallas/colaboradores.md](pantallas/colaboradores.
 - [ ] Deuda ajena que apareció: `fn_ventas_del_dia` no lee `ventas.estado` — una anulada de hoy cuenta completa en «Vendido hoy» (ya en la lista de Facturación).
 
 ## 🎯 Candado de líder: solo el líder cierra la caja y ajusta stock (2026-09-21, ADR-0143) — APLICADO EN PRODUCCIÓN
+
+## 🎯 Filtro de búsqueda especial (2026-09-21, anexo del ADR-0071) — Existencias, Análisis y Movimientos
+- [x] `lib/filtro-busqueda-especial.ts` (`crearIndiceBusquedaEspecial`, `interpretarBusquedaEspecial`, `filtrarConBusquedaEspecial`) + su prueba (130, sobre `filtro-busqueda-especial.casos.json`): términos en cualquier orden sobre nombre/SKU/código/color/talla, todos deben cumplirse; una talla suelta que existe en los datos se compara solo con la talla, los colores con sus equivalentes (blanca/blanco…); plurales, códigos sin guiones y palabras que no filtran («talla», «de»…); el texto pisa el filtro visual de su dimensión y la pantalla avisa. Existencias lo usa en `InventarioPanel.tsx`.
+- [x] Análisis (Desempeño y Comparar › Detalle): `aplicarAlcance` usa el filtro; `resumen-busqueda.ts` quedó como adaptador (la categoría cuenta como nombre). Verificado en local con «blusa rosado m», «blusas rosadas», «camisas» (categoría), «blusa talla l», «vestido rosada s». Sin migraciones.
+- [x] Movimientos, en SQL: migración `20260921153700_movimientos_busqueda_especial.sql` (nuevo cuerpo de `fn_movimientos_variantes` + `fn_busqueda_singulares` + `fn_busqueda_formas_color`), aplicada en el Postgres local; `pnpm pruebas:fn-movimientos-busqueda-especial` (146) lee el mismo archivo de casos que TypeScript.
+- [ ] **Aplicar `20260921153700` en producción** (proyecto `cayla-dynamic`, schema `retail`; el archivo ya trae los nombres con `retail.` y su `set search_path`). Se intentó el 2026-09-21: el clasificador de permisos bloqueó incluso el ensayo revertible. Al aplicar: ensayo en transacción que se revierte, `apply_migration` con el texto exacto del archivo y verificar `md5(prosrc)` = `fn_busqueda_formas_color` 2fc226c03605dbc40c6fcf30b4a972ce · `fn_busqueda_singulares` dc36c2913cee31fe22d7440668c2f783 · `fn_movimientos_variantes` f991f653cfd38dca86d1f2dc165655bd (hoy `fn_movimientos_variantes` en producción es 3d0f876f8bc83ccd399106e1b6a67ffd, igual que en local antes del cambio). Es compatible hacia atrás: todo lo que la búsqueda anterior encontraba se sigue encontrando.
+- [ ] Al aplicarla, cambiar el texto guía de `FiltrosMovimientos.tsx` (hoy «Prenda, código, barras o referencia…») a «Prenda, color, talla, código… ej. blusa rosado m» y su `aria-label`. Se dejó fuera del merge a propósito: no prometer en pantalla lo que producción aún no hace.
+- [ ] Sumar `pruebas:fn-movimientos-busqueda-especial` al job `pruebas-postgres` de `.github/workflows/ci.yml`.
+- [ ] Aplicarlo a los demás buscadores —la misma función; cada pantalla dice cómo leer sus campos—: Traslados, Conteo (buscador y sugerencias) y Vender/Cambios/Devoluciones. En la caja hoy manda `filtrarPrendasV2`, que a propósito no separa palabras (su prueba lo fija): cambiarlo es una decisión aparte.
+- [ ] Decidir dos reglas: (a) los códigos de barras se buscan parcial (antes, exacto); (b) dos tallas o dos colores escritos a la vez se exigen los dos (no hay «M o L»).
+- [ ] La marca (ya se busca en la caja, ADR-0109) no entra en Existencias: `FilaStock` no la trae.
+
+## 🎯 Análisis: un solo selector de fechas (2026-09-21, anexo del ADR-0138) — hecho y verificado en local; en `main`
+- [x] Período A, Período B y «Personalizado» de Desempeño abren el mismo `PopoverRango` (`ResumenControles.tsx`): Desde/Hasta en dd/mm/aaaa ya cargados, foco en «Desde», Tab, Enter o «Aplicar», calendario de ayuda, errores en línea; los atajos de A y B (período anterior / año pasado; 7-30-90 días / este mes) van dentro. `CampoFecha` gana el modo opt-in `estricto` + `revelarError`. Verificado en local (A 09/07→09/08, B 09/05→09/06, Personalizado 01/08→01/09, fechas inválidas, presets, 320–430 px). Sin cambios de base ni de `lib/`.
+- [ ] Autoformato de `CampoFecha` con día o mes de un dígito: «9/7/2026» queda «97/20/26» (solo entiende dd/mm/aaaa con ceros). Completar con 0 al teclear «/» — toca todos los campos de fecha del ERP; decidir con Felipe.
+- [ ] Felipe dijo «UI siempre en DD/MM/YYYY»: el selector y sus avisos lo cumplen, las píldoras de Comparar conservan «desde 9 jul. hasta 9 ago.» del Figma. Decidir si pasan a dd/mm/aaaa (cambia `textoPildoraPeriodo`).
+- [ ] El selector no se cierra con Escape ni con clic afuera (solo «Cancelar»/«Aplicar») y al cerrar el foco no vuelve a la píldora o al chip que lo abrió.
+
+## 🎯 Producto / variante: una sola celda en Existencias y Conteo (2026-09-21, anexo del ADR-0071) — hecho y verificado en local; en `main`
+- [x] `ProductoVarianteCelda` (`ui/PrendaCelda.tsx`) en Existencias, «Conviene contar primero» y el detalle de un conteo; encabezado «Producto / variante» en Existencias y en ese detalle. `lib/apariencia-variantes.ts` trae foto principal + `colorHex` con la regla de Existencias (degrada sin tumbar la pantalla); `fotoPrincipal` pasó a `inventario-reglas.ts` (+4 pruebas); `LineaConteo` gana `colorHex` y `fotoUrl`. Sin cambios de base. Verificado en el navegador integrado (320–1920 px, fotos sembradas y retiradas, consulta rota a propósito).
+- [ ] Movimientos (`MovimientosLista.tsx`, «Prenda · variante»), Traslados › detalle y Desempeño/Comparar siguen con el encabezado viejo y/o la celda de texto de `PrendaCelda`; Felipe pidió solo Existencias y Conteo. Decidir si pasan a `ProductoVarianteCelda` (Movimientos y Traslados › detalle necesitan `colorHex` en su dato).
+- [ ] Conteo abierto (buscador, líneas ya contadas y modal «Revisar antes de cerrar») sigue en texto plano: es un flujo de escaneo donde la densidad importa y solo se ve con un conteo abierto (escribe en la base). Es la misma celda si se quiere. Para contar, la foto del COLOR (la prenda que se tiene en la mano) ayudaría más que la principal del producto; hoy Existencias usa la principal.
+- [ ] Las pestañas de Inventario tienen scroll horizontal de página a ≤ 360 px (7 px a 360, 47 a 320), también en Movimientos y Traslados: causa sin identificar, no viene de la celda.
+
+## 🎯 Candado de líder: solo el líder cierra la caja y ajusta stock (2026-09-21, ADR-0143) — hecho en local, falta pegar en producción
 - [x] Migración `20260921120000` (renumerada desde `20260921110000` el 2026-09-21 por chocar con Por pagar de Producción, que ya estaba en producción; `cerrar_caja` y `registrar_movimiento` exigen `fn_es_lider()`, 42501), prueba `pruebas:candado-lider` (20/20; 9/20 contra las funciones de producción sin candado), escenario C2 de `caja:verificar` ajustado, y cinco botones escondidos a quien no es líder (Caja, Punto de Venta, Existencias, Productos en lista y en grilla).
 - [x] **Aplicado en producción el 2026-09-21** con ok de Felipe: PR #218 fusionado y desplegado, sonda sin escrituras, ensayo revertido, `apply_migration` (registrada como `20260921152907`) y verificación por catálogo y con un colaborador, un líder y `anon` reales (pasos en el ADR-0143).
 - [ ] Decisión operativa de Felipe: quién cierra la caja cuando no hay un líder en la tienda (hoy 9 líderes con alcance global, ninguno fijo a una tienda; 3 cajas abiertas, probablemente de prueba).
@@ -260,6 +292,17 @@ la RPC `guardar_cuentas_proveedor` (solo líder) y `fn_proveedores()` con 28 col
 - [ ] **Cargar a mano el CCI/celular/titular de los 2 proveedores reales** cuando la web se fusione, y mirar en pantalla que
       «Sin datos de pago» y los avisos de `CompraFormV2`/`LineasPago` salgan como se espera (las pantallas no tienen prueba automática).
 
+## 🔧 Repo contra producción: lo que producción tiene y el repo no (2026-09-21)
+
+La base local se dejó idéntica a producción el 2026-09-21 (huella por objeto: 217 de 217 funciones y 81 de 82 tablas y vistas; la que falta es `planilla_por_sede`, que necesita las tablas reales de Dynamic — no se ponen stubs en `public`: rompen `pruebas:planilla-por-sede`). Para lograrlo hubo que aplicar a mano cosas que **ninguna migración de `main` escribe**; una base local nueva o una marca nueva no las tendría:
+
+- [ ] **Permisos de producción sin migración.** Default global `postgres:f:global:{postgres=X/postgres}` (`alter default privileges for role postgres revoke execute on functions from public`); `revoke execute on all functions in schema retail from public` (en producción `anon` ejecuta 0 funciones; local llegó a tener 96); `stock`, `transferencias` y `transferencia_items` solo SELECT para `authenticated`; `stock` y `movimientos` solo lectura para `service_role`; `fn_aplicar_movimiento` y `recalcular_stock` sin EXECUTE para `service_role`. Falta una migración idempotente que lo escriba.
+- [ ] **`retail.gastos` y `registrar_gasto` (11 parámetros) están en producción y no en la cadena de `main`.** Vienen de las migraciones tempranas de `claude/garza-caja-modulo-7aad0f` (`20260916171500_gastos_operativos` y `20260916174750_gastos_idempotente`, sin fusionar); las posteriores (`20260918193000_gastos`, ADR-0117) NO están en producción. Sin ellas Eficiencia (Taller), que lee `gastos`, falla en una base local reconstruida. Decidir: fusionar las dos tempranas o escribir la migración desde la definición viva de producción.
+- [ ] **Apartar stock (ADR-0141, `20260920160000`) está en `main` y NO en producción**, y el front ya llama a `apartar_stock`, `liberar_apartado` y `listar_apartados`: esas pantallas fallan en producción. Se retiró de la base local para que calce con producción. Pegar en producción (necesita el OK de Felipe) y reaplicar en local con `psql` registrando la versión.
+- [ ] **Refrescar `docs/datos/generado/funciones-produccion.txt`** (199 firmas contra 217 en producción): `pnpm datos:comparar` marca como rotas 5 pantallas que sí existen en producción.
+
+Aparte: `pnpm pruebas:colaboradores-endurecimiento` falla en local con `no rows returned for \gset` porque su montaje busca una persona activa que aún no sea colaboradora y la base ya no tiene ninguna (no es de la sincronización).
+
 ## 🎯 Facturación en cuatro vistas (2026-09-18, ADR-0124)
 
 Rama `claude/billing-design-analysis-ee464b`. Spec aprobado por Felipe el 2026-09-19: `docs/superpowers/specs/2026-09-18-facturacion-cuatro-vistas-design.md`. Plan: `docs/superpowers/plans/2026-09-19-facturacion-cuatro-vistas-r0-r1.md` (R0 y R1 al detalle; R2 a R4 se hicieron directo, por rebanadas). **Estado al 2026-09-21: R1 y las cuatro vistas con su look (R2 rebanadas A a C, R3 y R4) construidas y verificadas en el navegador contra la base local, sin push.** `main` está fusionada (Atelier entró a `main` el 2026-09-19, ADR-0123). Las migraciones de `fn_ventas_del_dia`, de `anular_venta` y del candado de comprobante sobre venta anulada (`20260921161500`) ya están pegadas en producción (2026-09-21). La franja de proformas del Resumen (R2) ya está. Falta el cierre: ver «Falta para cerrar Facturación» más abajo.
@@ -283,6 +326,8 @@ Rama `claude/billing-design-analysis-ee464b`. Spec aprobado por Felipe el 2026-0
   - **Comprobantes:** cuatro tarjetas (Emitidos; «Monto facturado» = aceptado en producción, restadas las notas de crédito, con «de prueba», «sin enviar» y «por confirmar» aparte; Pendientes y Rechazados, de cualquier mes), la franja de series que faltan por tienda (hoy: la de nota de crédito) con «Registrar serie» que abre el formulario ya puesto en la primera que falta, «Nota de crédito» como tipo del formulario, y la lista con chips y botones compactos (`accionesDelComprobante` decide qué botón le toca a cada estado; un rechazado nunca se libera, ADR-0093). Revisada con ojos frescos: 4 Importantes, todos arreglados.
   - **Proformas:** tarjetas Vigentes / Monto cotizado / Por vencer (48 h) / Vencidas desde `resumenProformas` (la cuenta del contador de la pestaña; antes el panel sumaba las vencidas como plata por cobrar), orden «excepciones primero» y la línea «Vence en 5 h» / «Venció hace 2 d».
 - [x] **R4 — Códigos de descuento** (2026-09-21): cuatro tarjetas (Vigentes / Por vencer en 7 días / Vencidos / Apagados) y estado de cada código (vigente, por vencer, programado, vencido, apagado) contra `hoyLima`, la misma fecha con la que `registrar_venta` valida al cobrar (`fn_hoy_lima()`).
+
+- [x] **Cabecera y entrada unificadas con Cambios, Devoluciones, Caja e Historial** (2026-09-21, Felipe: «que siga el patrón de diseño de las demás»). `FacturacionCabecera` usa `EncabezadoPagina` (hilo que se dibuja, «Todas las tiendas · fecha y hora de Lima», título serif de 46 px, frase) con las dos acciones bajo la frase (como Caja) y `ResumenSede` a la derecha (por enviar a SUNAT y proformas vigentes, con `CifraAnimada`; un `null` —la lectura falló— no dibuja la cifra, un cero sí). La línea viva («actualizado hace 16 s», punto que late y pasa a ámbar a los 10 min) se conserva dentro de la línea de arriba: `EncabezadoPagina` ganó un `detalle` opcional que no cambia las otras pantallas. La caja de búsqueda bajó a la fila de las pestañas (`CajaDeBusqueda`, exportada). Cascada de entrada: cabecera 0, resumen 1, pestañas 2 y las vistas empiezan en 2 (antes en 0; sus paneles pasaron de 4 y 5 a 6 y 7); `space-y-7` como las demás. Verificado en el navegador a 1440 y 390 px (sin desborde), con las medidas de Cambios (misma letra a 46 px, mismo origen) y cambiando de pestaña (la cabecera no se remonta). Falta decidir si las tarjetas de vidrio (look v8) también pasan a `card-cayla`.
 
 ### Falta para cerrar Facturación (2026-09-21)
 
@@ -1440,6 +1485,15 @@ tomó el 0097 primero y ya está en producción — ver ADR-0101 y la fila de ab
       Capital; «Qué cambió» → dona **«Evolución del ritmo»** (Aceleró/Estable/Desaceleró, interactiva a Detalle);
       ranking de texto → barras horizontales A/B; **«Distribución de sell-through»** en vez de Cobertura; Detalle a
       6 columnas con **«Cambio relevante»** (uno solo, el más importante) en vez de Interpretación.
+- [x] **Fila de períodos en dos píldoras** (frame de Figma de Felipe, 2026-09-21; `ResumenControles.tsx`,
+      `textoPildoraPeriodo`/`etiquetaRangoLarga` en `lib/resumen-periodo.ts`): «Período A: desde … hasta …» y
+      «Período B: …», de 36 px y alineadas con el selector de Categoría (el frame las dibujó de 32 y con el rango
+      de A también en la B); cada una abre el selector de fechas unificado (ver el ítem de 2026-09-21, más arriba). Probado en local:
+      1920/1024/390 px, presets, «año anterior», «otro período…», Detalle; sin errores de consola.
+- [ ] Diseñar en Figma los estados de las píldoras (abierta, hover, foco, móvil) y la píldora con un rango de un solo
+      día: hoy se resolvieron con los tokens existentes (abierta = borde tinta/60, hover = tinta/50).
+- [ ] La píldora en reposo usa el fondo y borde del estado «abierto» del botón anterior (tinta/4 % + tinta/30, como
+      lo dibuja el frame): junto a los demás controles (borde tinta/15) se lee como «seleccionada». Decidir con Felipe.
 - [x] **Miniatura + color real** (`ui/PrendaCelda.tsx:SinFoto`, `ui/MuestraColor.tsx`, como Existencias) en
       Desempeño y Comparar › Detalle (ya tenían `colorHex`); solo miniatura (sin cápsula) en Movimientos,
       Traslados › detalle y Conteo › detalle.

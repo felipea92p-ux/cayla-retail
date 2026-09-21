@@ -11,6 +11,7 @@ export function EncabezadoPagina({
   titulo,
   subtitulo,
   sinHora = false,
+  detalle,
   pie,
   children,
 }: {
@@ -19,6 +20,8 @@ export function EncabezadoPagina({
   subtitulo: string;
   /** La línea de arriba dice solo el día: la pantalla trae su propio reloj (Caja). */
   sinHora?: boolean;
+  /** Algo más que decir en la línea de arriba, tras la hora (Facturación: desde cuándo está lo que se ve). */
+  detalle?: ReactNode;
   /** Bajo la frase, a la izquierda: las acciones de la pantalla (Caja: ingreso/egreso y cerrar). */
   pie?: ReactNode;
   children?: ReactNode;
@@ -30,6 +33,7 @@ export function EncabezadoPagina({
           <span aria-hidden className="hilo-dibuja block h-px w-8 shrink-0 bg-taupe" />
           <span className="min-w-0">
             {sede} · <FechaHoraLima sinHora={sinHora} />
+            {detalle && <> · {detalle}</>}
           </span>
         </p>
         <h1 className="font-display mt-3 text-4xl leading-none tracking-tight text-tinta sm:text-[46px]">{titulo}</h1>

@@ -951,7 +951,7 @@ export function PuntoDeVentaTicket({
               </div>
             </div>
           ) : !carrito.length ? (
-            <div className="flex h-full min-h-48 flex-col items-center justify-center px-8 text-center">
+            <div className="anim-sube flex h-full min-h-48 flex-col items-center justify-center px-8 text-center">
               <p className="font-medium text-tinta">El ticket está vacío</p>
               <p className="mt-1 max-w-64 text-sm text-tinta/60">Escanea una etiqueta o elige una prenda del catálogo.</p>
             </div>

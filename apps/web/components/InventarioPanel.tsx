@@ -1,9 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { clave } from "@/lib/buscar-prenda-v2";
+import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial } from "@/lib/filtro-busqueda-especial";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { CampoTexto, CampoSelect } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
@@ -13,7 +12,7 @@ import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
 import { ApartarModal } from "@/components/ApartarModal";
 import { ApartadosModal } from "@/components/ApartadosModal";
 import { hoyLima, resumirApartados, type Apartado } from "@/lib/apartados-reglas";
-import { MuestraColor } from "@/components/ui/MuestraColor";
+import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 import { resumenRed } from "@/lib/stock-por-sede";
 import { descargarCsv } from "@/lib/exportar-csv";
 import {
@@ -28,19 +27,6 @@ import { textoCobertura } from "@/lib/resumen-formato";
 import { bandaDeCobertura, type Cobertura } from "@/lib/resumen-reglas";
 import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/inventario-v2";
 import type { Sububicacion } from "@/lib/sububicaciones";
-
-// Silueta de perchero — el mismo trazo que ya usa IC.inventario en
-// AppShell.tsx — como marcador cuando el producto todavía no tiene foto
-// cargada. Nunca un roto de <img>, nunca un cuadro vacío sin explicación.
-function SinFoto() {
-  return (
-    <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-tinta/10 bg-sand/50 text-tinta/25">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-        <path d="M4 7l8-4 8 4v10l-8 4-8-4V7zm8 4L4 7m8 4l8-4m-8 4v10" />
-      </svg>
-    </span>
-  );
-}
 
 // «Normal» no lleva chip: es la mayoría de las filas y un chip verde en cada
 // una sería decoración (brandbook: el semáforo nunca es adorno). Los tres
@@ -165,20 +151,27 @@ export function InventarioPanel({
     [stock]
   );
 
-  const k = clave(busqueda);
-  const filtradas = useMemo(() => {
-    return stock.filter((f) => {
-      if (k && !clave(f.referencia).includes(k) && !clave(f.sku).includes(k) && !f.codigosBarras.some((c) => clave(c) === k)) {
-        return false;
-      }
-      if (categoria !== TODAS && f.categoria !== categoria) return false;
-      if (talla !== TODAS && f.talla !== talla) return false;
-      if (color !== TODAS && f.color !== color) return false;
-      if (estado === DANADO) return (f.danado ?? 0) > 0;
-      if (estado !== TODAS && f.estado !== estado) return false;
-      return true;
-    });
-  }, [stock, k, categoria, talla, color, estado]);
+  // Filtro de búsqueda especial (`lib/filtro-busqueda-especial.ts`): lo escrito se parte en términos —nombre,
+  // SKU, código, color y talla, en cualquier orden— y todos deben cumplirse. Si el texto dice una talla o un
+  // color, manda sobre el filtro visual de esa dimensión; Categoría y Estado siempre aplican.
+  const indiceBusqueda = useMemo(
+    () => crearIndiceBusquedaEspecial(stock, (f) => ({ nombre: f.referencia, sku: f.sku, codigosBarras: f.codigosBarras, color: f.color, talla: f.talla })),
+    [stock]
+  );
+  const { filas: filtradas, dimensiones: dichoEnLaBusqueda } = useMemo(
+    () =>
+      filtrarConBusquedaEspecial(indiceBusqueda, busqueda, {
+        talla: talla === TODAS ? null : talla,
+        color: color === TODAS ? null : color,
+        otros: (f) => {
+          if (categoria !== TODAS && f.categoria !== categoria) return false;
+          if (estado === DANADO) return (f.danado ?? 0) > 0;
+          if (estado !== TODAS && f.estado !== estado) return false;
+          return true;
+        },
+      }),
+    [indiceBusqueda, busqueda, talla, color, categoria, estado]
+  );
 
   const puedeReponer = Boolean(resumen.separaPisoAlmacen && sububicacionPiso && sububicacionAlmacen);
   // Apartar necesita saber DE DÓNDE (piso o almacén): solo donde la ubicación separa las dos.
@@ -214,7 +207,7 @@ export function InventarioPanel({
 
   // `minmax(13.5rem,1.4fr)`, no `1fr` a secas: con columnas fijas + `truncate`
   // (que habilita min-width automático 0 en la pista), una ventana angosta
-  // dejaba "Prenda" en 0px — invisible, no acortado. El piso de 13.5rem es
+  // dejaba "Producto" en 0px — invisible, no acortado. El piso de 13.5rem es
   // la miniatura (36px) más «Casaca Ximena» y su SKU debajo antes de que la
   // Tabla entre a scroll horizontal (ver `ui/Tabla.tsx`). "En la red" subió
   // a 10.5rem: ahora son dos líneas («Disponible en 3 sedes: 36 uds» y el
@@ -279,7 +272,7 @@ export function InventarioPanel({
 
       {stock.length > 0 && (
         <div className={`card-cayla grid gap-4 p-5 ${separa ? "sm:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]" : "sm:grid-cols-[1.4fr_1fr_1fr_1fr]"}`}>
-          <CampoTexto etiqueta="Buscar" placeholder="Producto, SKU o código de barras" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+          <CampoTexto etiqueta="Buscar" placeholder="Producto, SKU, color, talla… ej. blusa rosado m" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
           <CampoSelect
             etiqueta="Categoría"
             valor={categoria}
@@ -293,6 +286,7 @@ export function InventarioPanel({
             onValor={setTalla}
             marcador="Todas"
             opciones={[{ valor: TODAS, texto: "Todas" }, ...tallas.map((t) => ({ valor: t, texto: t }))]}
+            pie={dichoEnLaBusqueda.talla && talla !== TODAS ? "Se usa lo que escribiste" : undefined}
           />
           <CampoSelect
             etiqueta="Color"
@@ -300,6 +294,7 @@ export function InventarioPanel({
             onValor={setColor}
             marcador="Todos"
             opciones={[{ valor: TODAS, texto: "Todos" }, ...colores.map((c) => ({ valor: c, texto: c }))]}
+            pie={dichoEnLaBusqueda.color && color !== TODAS ? "Se usa lo que escribiste" : undefined}
           />
           {separa && (
             <CampoSelect
@@ -332,7 +327,7 @@ export function InventarioPanel({
             columnas={
               separa
                 ? [
-                    { titulo: "Prenda · variante" },
+                    { titulo: "Producto / variante" },
                     { titulo: "Piso · Almacén", alinear: "centro" },
                     { titulo: "Disponible", alinear: "centro" },
                     { titulo: "Estado", alinear: "centro" },
@@ -341,7 +336,7 @@ export function InventarioPanel({
                     { titulo: "", alinear: "centro" },
                   ]
                 : [
-                    { titulo: "Prenda · variante" },
+                    { titulo: "Producto / variante" },
                     { titulo: "Disponible", alinear: "centro" },
                     { titulo: "En camino", alinear: "centro" },
                     { titulo: "En la red", alinear: "centro" },
@@ -353,36 +348,8 @@ export function InventarioPanel({
             const red = resumenRed(f.enRed);
             return (
               <div key={f.varianteId} className={fila(plantilla)}>
-                {/* `items-start`, no `items-center`: con dos líneas de texto la
-                    miniatura se ve mejor alineada arriba, como una etiqueta
-                    colgada de la prenda, no flotando a media altura. */}
-                <span className="flex min-w-0 items-start gap-2.5">
-                  {f.fotoUrl ? (
-                    <Image
-                      src={f.fotoUrl}
-                      alt=""
-                      width={36}
-                      height={36}
-                      unoptimized
-                      className="h-9 w-9 shrink-0 rounded-md border border-tinta/10 object-cover"
-                    />
-                  ) : (
-                    <SinFoto />
-                  )}
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm text-tinta" title={f.referencia}>
-                      {f.referencia}
-                    </span>
-                    {/* `overflow-visible`: la pastilla con el nombre del color flota
-                        fuera de la celda al pasar el mouse. */}
-                    <span className="flex items-center gap-1.5 overflow-visible text-xs text-tinta/65">
-                      <span className="font-mono">{f.sku}</span>
-                      {f.talla && <span>· {f.talla}</span>}
-                      <span>·</span>
-                      <MuestraColor nombre={f.color} hex={f.colorHex} />
-                    </span>
-                  </span>
-                </span>
+                {/* La misma celda que dibuja Conteo (`ui/PrendaCelda.tsx`). */}
+                <ProductoVarianteCelda referencia={f.referencia} sku={f.sku} talla={f.talla} color={f.color} colorHex={f.colorHex} fotoUrl={f.fotoUrl} />
                 {separa && (
                   <span className={celda("centro", "text-sm tabular-nums")}>
                     <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Piso · Almacén</span>

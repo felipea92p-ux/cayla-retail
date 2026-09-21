@@ -331,7 +331,7 @@ export function ComprobantesPanel({
   return (
     <div className="space-y-6">
       {/* Series registradas: una franja que dice si falta alguna y, aparte, el detalle. */}
-      <section className="card-cayla anim-sube px-5 py-4" style={{ "--i": 4 } as CSSProperties} aria-labelledby="series-titulo">
+      <section className="card-cayla anim-sube px-5 py-4" style={{ "--i": 6 } as CSSProperties} aria-labelledby="series-titulo">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <div className="min-w-0">
             <h2 className="label-cayla text-[11px] text-tinta/65">
@@ -394,7 +394,7 @@ export function ComprobantesPanel({
       {/* Comprobantes del mes: una sola fila para todos los anchos (ver `COLUMNAS`). */}
       {/* `overflow-hidden` solo con filas: recorta el hover de la última fila contra las esquinas redondas. Sin filas
           (mes vacío o búsqueda sin resultados) la tarjeta es baja y recortaría el globo de ayuda del encabezado. */}
-      <div className={`card-cayla anim-sube @container ${visibles.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 5 } as CSSProperties}>
+      <div className={`card-cayla anim-sube @container ${visibles.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 7 } as CSSProperties}>
         <div className="px-5 pt-[18px] pb-3.5">
           <p className="label-cayla text-[11px] text-tinta/65">
             Comprobantes

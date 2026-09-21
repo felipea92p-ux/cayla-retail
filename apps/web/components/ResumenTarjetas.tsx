@@ -77,7 +77,7 @@ export function ResumenTarjetas({
         etiqueta="Vendido hoy"
         tono={tonoVendido}
         icono={<ChartColumn size={15} strokeWidth={1.75} />}
-        indice={0}
+        indice={2}
         valor={<CifraAnimada valor={total} formato="soles" />}
         contexto={
           !referencia ? (
@@ -98,7 +98,7 @@ export function ResumenTarjetas({
         etiqueta="Ventas"
         tono="taupe"
         icono={<ShoppingBag size={15} strokeWidth={1.75} />}
-        indice={1}
+        indice={3}
         valor={<CifraAnimada valor={cantidad} />}
         contexto={
           !referencia || !enCantidad ? (
@@ -117,7 +117,7 @@ export function ResumenTarjetas({
         etiqueta="Por enviar a SUNAT"
         tono={tonoEnvio}
         icono={<Send size={15} strokeWidth={1.75} />}
-        indice={2}
+        indice={4}
         colorearCifra
         // Sin `CifraAnimada`: sube desde 0 cada vez que cambia el valor, y esta cifra es una cola que
         // sube y baja. Con `key` la cifra «se asienta» (`anim-asentar`) solo cuando cambia.
@@ -157,7 +157,7 @@ export function ResumenTarjetas({
         etiqueta="Ticket promedio"
         tono="taupe"
         icono={<Receipt size={15} strokeWidth={1.75} />}
-        indice={3}
+        indice={5}
         valor={cantidad > 0 ? <CifraAnimada valor={total / cantidad} formato="soles" /> : "—"}
         contexto={
           cantidad === 0
