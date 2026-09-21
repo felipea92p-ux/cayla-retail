@@ -32,6 +32,12 @@ describe("motivoParaNoTransmitir", () => {
     expect(motivoParaNoTransmitir(comprobante({ venta: null }))).toEqual({ error: "No se pudo comprobar si la venta de este comprobante sigue vigente. Reintenta.", status: 503 });
   });
 
+  it("si la venta llega en otra forma (sin el embebido, un arreglo, sin estado) se niega igual: el fallo es cerrado, no abierto", () => {
+    for (const venta of [undefined, [], [{ estado: "completada" }], {}]) {
+      expect(motivoParaNoTransmitir(comprobante({ venta: venta as never }))?.status).toBe(503);
+    }
+  });
+
   it("un comprobante que no nació de una venta (manual) se transmite sin mirar ninguna venta", () => {
     expect(motivoParaNoTransmitir(comprobante({ venta_id: null, venta: null }))).toBeNull();
   });

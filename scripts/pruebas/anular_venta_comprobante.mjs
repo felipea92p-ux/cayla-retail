@@ -16,7 +16,8 @@
  *   4. `rechazado` NO se toca (ya llegó a SUNAT, ADR-0093) y la anulación sigue adelante.
  *   5. Una venta sin comprobante se anula igual.
  *   6. `enviado` sigue frenando la anulación, y no cambia nada.
- *   7. Todo-o-nada: si la anulación falla, el comprobante no se libera.
+ *   7. Una anulación rechazada por una guarda no libera nada (la atomicidad es de Postgres: esto fija
+ *      el comportamiento visible, no prueba el código nuevo).
  *   8. La reparación de la migración: un pendiente que YA quedó colgado de una venta anulada
  *      (anulada antes de esta migración) pasa a `no_emitido` con los datos de quien anuló.
  *
@@ -162,6 +163,7 @@ select 'c_venta|' || estado from retail.ventas where id = :'c';
 select 'd_comprobante|' || estado || '|' || coalesce(motivo_rechazo, '') from retail.comprobantes where id = :'d_cmp';
 select 'd_venta|' || estado from retail.ventas where id = :'d';
 select 'e_venta|' || estado from retail.ventas where id = :'e';
+select 'e_comprobantes|' || count(*) from retail.comprobantes where venta_id = :'e';
 select 'pendientes_de_anuladas|' || count(*) from retail.comprobantes c join retail.ventas v on v.id = c.venta_id
   where v.id in (:'a', :'c', :'d', :'e') and c.estado = 'pendiente';
 rollback;
@@ -191,7 +193,7 @@ rollback;
     dato1("d_comprobante") === "rechazado|RUC no habido" && dato1("d_venta") === "anulada",
     r1.salida
   );
-  esperar("una venta sin comprobante se anula igual", dato1("e_venta") === "anulada", r1.salida);
+  esperar("una venta sin comprobante se anula igual", dato1("e_venta") === "anulada" && dato1("e_comprobantes") === "0", r1.salida);
   esperar("ninguna venta anulada de la prueba deja un comprobante pendiente", dato1("pendientes_de_anuladas") === "0", r1.salida);
 
   // ---- Escenario 2: lo que NO debe pasar. Los errores se atrapan con un bloque `do` para mirar el estado después. ----
@@ -212,7 +214,7 @@ do $$ begin
   end;
 end $$;
 
--- G: anulación que falla a mitad de camino (líneas mal contadas) → el comprobante NO se libera
+-- G: anulación rechazada por una guarda (líneas mal contadas) → el comprobante NO se libera (atomicidad de Postgres)
 select ${VENTA_CON_BOLETA} as g \\gset
 select set_config('t.g', :'g', true) as _g2 \\gset
 do $$ begin
@@ -247,7 +249,7 @@ rollback;
     r2.salida
   );
   esperar(
-    "todo o nada: si la anulación falla, el comprobante pendiente no se libera y la venta sigue completada",
+    "una anulación rechazada por una guarda no libera el comprobante pendiente y la venta sigue completada",
     (dato2("g_error") ?? "").includes("necesita la condición de cada una") && dato2("g_comprobante") === "pendiente" && dato2("g_venta") === "completada",
     r2.salida
   );

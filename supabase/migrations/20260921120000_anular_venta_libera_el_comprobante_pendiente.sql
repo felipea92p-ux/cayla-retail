@@ -28,8 +28,10 @@
 -- QUÉ NO CAMBIA. La firma (`create or replace` en el lugar: no nace una sobrecarga —el hueco de
 -- ADR-0009/0004— y los permisos de EXECUTE quedan como estén, ADR-0078), ni una sola de las demás
 -- guardas de `anular_venta` (líder, motivo, caja abierta, sin cambios ni devoluciones, una línea
--- cada vez, stock de vuelta). El resto del cuerpo es idéntico al de `20260916214500` (huella
--- del cuerpo en producción y local: 338b85903b5005c140a049e9c9747c34).
+-- cada vez, stock de vuelta). El resto del cuerpo es idéntico al de `20260916214500`: un `diff`
+-- solo muestra el bloque agregado. Huella del cuerpo (md5 de `pg_get_functiondef` sin espacios en
+-- blanco): ANTES 338b85903b5005c140a049e9c9747c34 (la de producción hasta este pegado);
+-- DESPUÉS bf62399b8935871806c765f1779a5f49.
 --
 -- SE ROMPE SI: alguien recrea `anular_venta` desde `20260916214500` sin este bloque (el comprobante
 -- pendiente vuelve a sobrevivir a la anulación). Lo cubre `scripts/pruebas/anular_venta_comprobante.mjs`

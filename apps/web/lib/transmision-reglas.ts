@@ -17,13 +17,14 @@ export type NoSePuedeTransmitir = { error: string; status: 409 | 503 };
  *  de una venta ANULADA: se le devolvió el dinero a la clienta y sus prendas volvieron al stock, así que
  *  declararla a SUNAT sería declarar una venta que no existe. `anular_venta` ya libera el pendiente de
  *  la venta que anula (`20260921120000`); esto cubre el que sigue vivo (un `rechazado`) y cualquier
- *  base que aún no tenga esa migración. Si la venta existe pero no se pudo leer, se niega y se pide
- *  reintentar: ante la duda no se declara nada. */
+ *  base que aún no tenga esa migración. Si la venta existe pero no se pudo leer —o llegó sin `estado`:
+ *  el `select` perdió el embebido, o PostgREST cambió su forma—, se niega y se pide reintentar: ante la
+ *  duda no se declara nada (falla cerrada; `undefined` o un arreglo no pasan por «venta viva»). */
 export function motivoParaNoTransmitir(c: ComprobanteParaTransmitir): NoSePuedeTransmitir | null {
   if (c.estado !== "pendiente" && c.estado !== "rechazado") {
     return { error: `Este comprobante ya está en estado "${c.estado}" — no se vuelve a transmitir.`, status: 409 };
   }
-  if (c.venta_id !== null && c.venta === null) {
+  if (c.venta_id !== null && typeof c.venta?.estado !== "string") {
     return { error: "No se pudo comprobar si la venta de este comprobante sigue vigente. Reintenta.", status: 503 };
   }
   if (c.venta?.estado === "anulada") {
