@@ -8511,3 +8511,8 @@ En cada ubicación el líder ve UNO de los dos módulos (prueba nueva).
 
 ## 2026-09-21 (Aviso central al cambiar de sede)
 Los dos selectores de sede —`UbicacionSwitcher` (cabecera, global, cookie) y `SelectorUbicacion` (por pantalla, `?ubicacion=`)— ahora muestran `AvisoCambioDeSede`: hoja central con «Tienda A → Tienda B» que dura lo que tarda la carga (`useTransition`, sin reloj) y sale con el movimiento de modales (ADR-0136). La pastilla dice el destino al instante. Sin cambios de base. Maqueta: `docs/maquetas/cambio-de-sede-spike-2026-09/`. Verificado en el navegador con ambos selectores; tipos y lint limpios.
+
+## 2026-09-21 (Versión de migración repetida: candado de caja → 20260921120000)
+Al fusionar #218 quedaron en main dos migraciones con la versión `20260921110000` (`por_pagar_produccion`, ya pegada en producción, y `candado_de_lider_caja_y_ajuste`, aún NO pegada;
+verificado contra la base: `cerrar_caja` y `registrar_movimiento` no tienen el candado). Regla del repo: se renombra la que aún no corrió en producción. Renombrada a `20260921120000`
+con sus referencias (ADR-0143, prueba `candado_lider_caja_y_ajuste.mjs`, BACKLOG). El contenido no cambió. El CI de «Versiones de migración» estaba rojo en todos los PR por esto.
