@@ -9,6 +9,7 @@ import type { MetodoPago } from "@cayla-retail/shared";
 import type { EstadoComprobante } from "./comprobantes-reglas";
 import { codigoPrenda } from "./prenda-reglas";
 import { armarRecibo, type PagoRecibo, type ReciboVenta, type TipoDocCliente, type TipoReciboFiscal } from "./recibo-reglas";
+import { nombresCortos } from "./nombre-integrante";
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -84,6 +85,9 @@ export function armarDetalleVenta(filas: FilasVenta, ctx: { sede: string; vended
   });
   const total = redondear2(lineas.reduce((a, l) => a + l.importe, 0));
 
+  // El papel dice el primer nombre de quien atendió (`ctx.vendedor` llega completo, o `null`/«—» si no se sabe).
+  const atendio = ctx.vendedor ? (nombresCortos([ctx.vendedor]).get(ctx.vendedor) ?? null) : null;
+
   const c = filas.comprobante;
   const esFiscal = c !== null && (c.tipo === "boleta" || c.tipo === "factura");
   const recibo = esFiscal
@@ -101,6 +105,7 @@ export function armarDetalleVenta(filas: FilasVenta, ctx: { sede: string; vended
         })),
         pagos: filas.pagos.map((p) => ({ metodo: p.metodo, monto: p.monto, recibido: p.recibido ?? undefined })),
         tasaIgv: 0.18,
+        atendio,
       })
     : null;
 

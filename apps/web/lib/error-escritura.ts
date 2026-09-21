@@ -104,6 +104,13 @@ const HUELLAS: Huella[] = [
     frase: (prenda) => `${prenda} está restringida a otra sede — no se puede vender desde acá.`,
   },
   {
+    // 20260922143700_vendedora_en_la_venta.sql — `registrar_venta` exige que quien atendió (`p_vendedora_id`)
+    // sea colaboradora de ESA sede. La fila del ticket solo ofrece las de la sede, así que esto aparece si un
+    // líder la quitó o la cambió de sede entre que se guardó una venta sin red y se subió.
+    marca: "venta_vendedora_no_es_de_la_sede",
+    frase: () => "La colaboradora elegida ya no es de esta sede: elige otra y cobra de nuevo.",
+  },
+  {
     // Misma migración — el mismo candado, del lado de Traslados: no se puede sacar de una
     // sede una variante que una etiqueta restringe a otra.
     marca: "traslado_variante_restringida_a_otra_sede",

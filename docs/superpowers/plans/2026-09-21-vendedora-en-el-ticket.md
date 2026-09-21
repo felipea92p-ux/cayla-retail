@@ -1020,7 +1020,7 @@ describe("armarRecibo — quién atendió", () => {
 });
 ```
 
-**b) `venta-detalle-reglas.test.ts`** — inserta este `it` **justo antes** de `it("sin comprobante no hay recibo, pero el detalle se arma igual", () => {`:
+**b) `venta-detalle-reglas.test.ts`** — inserta este `it` **dentro del primer `describe("armarDetalleVenta", …)`** (donde existe `const d`), **justo antes** de `it("expone el hash y el estado del comprobante", () => {`. (No lo pongas junto a «sin comprobante no hay recibo…»: ese `it` está en otro `describe` y `d` no existe ahí.)
 
 ```ts
   it("el recibo dice quién atendió (primer nombre) y sin vendedor no se inventa", () => {

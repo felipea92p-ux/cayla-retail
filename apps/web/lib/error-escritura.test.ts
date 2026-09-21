@@ -172,6 +172,11 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
     expect(salida).toBe("Blusa Emma (BLU-EMMA-BEI-S) está restringida a otra sede — no se puede vender desde acá.");
   });
 
+  it("vendedora que ya no es de la sede: dice qué hacer, no el código crudo", () => {
+    const salida = traducirError({ message: "venta_vendedora_no_es_de_la_sede", details: "00000000-0000-4000-8000-000000000001", code: "P0001" }, "registrar la venta");
+    expect(salida).toBe("La colaboradora elegida ya no es de esta sede: elige otra y cobra de nuevo.");
+  });
+
   it("variante restringida a otra sede en un traslado: misma frase, del lado de trasladar", () => {
     const salida = traducirError(
       { message: "traslado_variante_restringida_a_otra_sede", details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" },

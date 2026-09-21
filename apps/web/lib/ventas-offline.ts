@@ -52,7 +52,7 @@ export type ItemRegistrarVenta = {
   descuento_etiqueta_id?: string;
 };
 
-/** El payload completo de `registrar_venta` (11 parámetros, hoy). Se guarda entero en la
+/** El payload completo de `registrar_venta` (12 parámetros, hoy). Se guarda entero en la
  *  cola y se reenvía sin cambios al subir — el `p_token` adentro es el mismo que dejó el
  *  envío que falló, así que un reintento (desde esta pestaña o desde otra) no duplica. */
 export type ParamsRegistrarVenta = {
@@ -66,6 +66,8 @@ export type ParamsRegistrarVenta = {
   p_cliente_nombre?: string;
   p_codigo_descuento?: string;
   p_nota?: string;
+  /** Quién atendió (`fn_vendedoras_de_sede`). Solo viaja si hay a quién atribuirla; la base valida que sea de la sede. */
+  p_vendedora_id?: string;
 };
 
 export type VentaEncolada = {

@@ -44,6 +44,8 @@ export type ReciboVenta = {
   total: number;
   pagos: PagoRecibo[];
   vueltoTotal: number;
+  /** Quién atendió a la clienta (nombre corto), si la caja lo sabe. Ausente/`null` en las ventas anteriores o sin elección. */
+  atendio?: string | null;
 };
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
@@ -74,6 +76,8 @@ export function armarRecibo(entrada: {
   lineas: { cantidad: number; referencia: string; codigo: string | null; precioUnitario: number; descuentoUnitario: number; detalle?: string }[];
   pagos: readonly PagoAplicado[];
   tasaIgv: number;
+  /** Nombre corto de quien atendió; ver `atendioCorto` en `vender-reglas.ts`. */
+  atendio?: string | null;
 }): ReciboVenta {
   const lineas: LineaRecibo[] = entrada.lineas.map((l) => ({
     cantidad: l.cantidad,
@@ -103,6 +107,7 @@ export function armarRecibo(entrada: {
     total,
     pagos,
     vueltoTotal: redondear2(pagos.reduce((acc, p) => acc + p.vuelto, 0)),
+    atendio: entrada.atendio ?? null,
   };
 }
 

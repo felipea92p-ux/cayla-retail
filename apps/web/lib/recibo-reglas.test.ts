@@ -128,3 +128,22 @@ describe("armarRecibo — detalle opcional por línea (talla · color)", () => {
     expect(r.lineas[0]).not.toHaveProperty("detalle");
   });
 });
+
+describe("armarRecibo — quién atendió", () => {
+  const entrada = {
+    comprobante: { tipo: "boleta" as const, serie: "B001", numero: 2, created_at: "2026-09-19T17:05:00Z" },
+    sede: "Tienda Trujillo",
+    cliente: { tipoDoc: "sin_documento" as const, numDoc: null, nombre: null },
+    lineas: [{ cantidad: 1, referencia: "Polo Zoe", codigo: "POL-1", precioUnitario: 50, descuentoUnitario: 0 }],
+    pagos: [{ metodo: "efectivo" as const, monto: 50 }],
+    tasaIgv: 0.18,
+  };
+
+  it("lleva el nombre corto de quien atendió, para el papel", () => {
+    expect(armarRecibo({ ...entrada, atendio: "María" }).atendio).toBe("María");
+  });
+
+  it("sin dato queda en null: no se inventa a nadie", () => {
+    expect(armarRecibo(entrada).atendio).toBeNull();
+  });
+});
