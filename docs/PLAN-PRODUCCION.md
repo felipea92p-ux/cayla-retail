@@ -54,8 +54,8 @@ cierran en la base, no en la pantalla), **7** (cada paso se prueba en el navegad
 | **D-B** | Destino Taller/Tiendas de un comprobante | ⛔ **Sin objeto.** Producción registra **sus** comprobantes (D-H); ya no comparte `compras` ni el reparto de ADR-0139 | — | — |
 | **D-C** | Cómo entra la tela a una factura | ⛔ **Reemplazada por D-H.** Ya no se toca `compra_items` | — | — |
 | **D-D** | Rendimiento (m/prenda) | **Medido**: consumo real ÷ buenas de las órdenes cerradas del modelo. Sin receta ni tablas. Modelo sin historial: se escribe el rendimiento en la orden y solo alimenta la vista previa | `bom_items` murió; una receta manual envejece. Lo medido no miente | — |
-| **D-E** | Cotización de maquila externa (D-31) | Tabla `maquila_referencias` (append-only: modelo, precio por prenda, fecha, proveedor opcional). Solo líder | Es la mitad de D-31 sin dónde vivir (hueco 3) | esquema: ok |
-| **D-F** | Gastos del Taller (denominador de D-31) | Tabla mínima `gastos_taller` (mes, concepto, monto). Solo líder | Finanzas se borró en el corte V1→V2; esperar su reconstrucción bloquea Eficiencia. Se migra cuando exista | esquema: ok |
+| **D-E** | Cotización de maquila externa (mitad de D-31) | ⛔ **Descartada por Felipe (2026-09-22): «no sería necesario registrar cuánto cobraría un taller externo».** No hay tabla `maquila_referencias` ni comparación producir vs maquilar | — | — |
+| **D-F** | Gastos del Taller | ✅ **Resuelta sin tabla nueva (2026-09-22).** Sueldos: **se leen de Dynamic** (D-33) por la vista puente `retail.planilla_por_sede` (solo importes agregados). Alquiler, servicios y demás: **el modelo de gastos de Finanzas** (`gastos`, ubicación Taller; ADR-0117) es la única fuente. Producción no lleva `gastos_taller` | Evita duplicar planilla y gastos, que ya tienen dueño (D-32, D-33) | esquema: 1 vista |
 | **D-G** | Costos de insumos | Cerrar `insumo_lotes`/`movimientos_insumo` a `fn_puede_ver_dinero_de_compras`; el colaborador lee cantidades por una función **operativa** (mismo patrón que ADR-0126) y `v_insumo_saldos` pasa a `security_invoker` | El colaborador no debe ver lo que cuesta la tela; hoy puede | esquema: ok |
 | **D-H** | Abastecimiento de Producción | ✅ **Decidida por Felipe (2026-09-19), contra mi recomendación.** Producción tiene **su propio directorio de proveedores** y **sus propios Comprobantes, Por pagar y Recibir**. Forma que propongo: tabla `proveedores_produccion` (mismas columnas útiles que `proveedores`), y `comprobantes_produccion` (+ `_items`, `_pagos`) con las reglas de ADR-0035 | Separa los módulos de raíz y desbloquea Producción sin tocar Compras. Cuesta duplicados y deuda en dos sitios (ver el recuadro de arriba) | esquema: ok al pegar |
 | **D-I** | Vista consolidada de deuda e IGV | ✅ **Decidida por Felipe (2026-09-21): se procede con la recomendación.** Consolidado de **solo lectura** para el líder, dentro de «Por pagar» de Producción: deuda por proveedor de Compras y de Producción juntas (con lo vencido y el próximo vencimiento) y el IGV crédito fiscal del mes de los dos libros menos las notas de crédito de Compras. `fn_deuda_consolidada()` y `fn_igv_credito_fiscal(mes)` leen `compras` y `compra_notas_credito` sin modificarlas | Sin él, «cuánto debe CAYLA» exigía sumar a mano dos pantallas y el registro de compras de SUNAT quedaba partido | construido en F4c |
@@ -262,11 +262,20 @@ Solo para el **líder** (ventas y stock de toda la red, costos de insumos); quie
 - **Verificas:** con la factura de tela sin recibir aparece «faltan X… pero ya está facturado»; al recibirla (o al pagar, o al cerrar una orden) la tarjeta desaparece al recargar; un colaborador que abre `/produccion` va a Órdenes.
   **Pendiente:** verlo con clics y con datos reales (hoy producción no tiene ventas ni órdenes cerradas con insumos, así que se verá casi vacío).
 
-### F7 · Eficiencia del Taller (L) — esquema · requiere **D-E, D-F**
-- `maquila_referencias` y `gastos_taller` (RPC de escritura, solo líder, historial que se agrega y no se edita). Pantalla:
-  gastado vs. absorbido, fabricar o maquilar por modelo, rendimiento real vs. estándar, costo por prenda mes a mes.
-- **Verificas:** sin datos → estados vacíos claros; con una cotización y un gasto de prueba → el veredicto y la eficiencia
-  cambian y coinciden con la cuenta a mano.
+### F7 · Eficiencia del Taller (M) — esquema mínimo (una vista) · **construida en local 2026-09-22; migración `20260921160000` SIN pegar en producción**
+Decisiones de Felipe (2026-09-22): **no se registra la cotización de maquila externa** (D-E descartada); los **sueldos se leen de Dynamic**; alquiler y servicios vienen de los gastos.
+- **Cómo se mide (interpretación de D-31, mía y documentada):** el Taller no vende, absorbe: se mide por **lo que cuesta cada prenda terminada** = *materiales* (tela + avíos + maquila de las órdenes cerradas)
+  ÷ prendas buenas **+** *conversión* (planilla del Taller + gastos generales del Taller) ÷ prendas buenas. Se compara período a período. Las segundas no cuentan: el costo de lo que salió mal lo pagan las buenas.
+  El período es el de la planilla de Dynamic (29 al 28). **Sin planilla visible no se inventa la conversión**: se dice qué falta y se muestran los materiales por prenda.
+- **Sueldos (D-33):** vista `retail.planilla_por_sede` (`security_invoker`): agrega `public.v_planilla_pagada` por sede y período (personas, pagado, provisiones, **costo total**), solo períodos `pagado`, sin el grupo
+  `prueba`, **oculta grupos de menos de 3 personas y nunca expone a una persona**. Dynamic decide quién ve filas con su RLS (admin o líder de allá): retail no abre una puerta nueva. El Taller se reconoce por
+  `sedes.tipo = 'taller'` (no por el código `LIM`). En bases locales sin Dynamic la migración no crea la vista ni falla; la app tolera que falte.
+- **Alquiler y servicios:** de `gastos` con la ubicación Taller (Finanzas, ADR-0117); fecha = la del registro. **Dependencia:** el PR del modelo de gastos (#170) aún no está fusionado; `gastos` existe en producción (0 filas) y se lee
+  con un tipo mínimo local. Cuando ADR-0117 agregue el estado «anulado», habrá que filtrar solo los vigentes en `lib/eficiencia.ts`.
+- Pantalla `/produccion/eficiencia` (solo líder; **pestaña «Hoy | Eficiencia» del Resumen, no fila del lateral**: el menú de Producción está en su tope de 7 hijas —ver «DEUDA» en `lib/menu.test.ts`— y una octava exige regrupar antes): prendas buenas, costo por prenda, materiales por prenda y conversión por prenda con su variación contra el período anterior;
+  «¿en qué se fue la plata del Taller?» (planilla, materiales, maquila, gastos); entregas a tiempo/tarde; tabla período a período. **Sin rojo.**
+- Pruebas: `pnpm pruebas:planilla-por-sede` (7 casos, en CI) + `lib/eficiencia-reglas.test.ts` (10).
+- **Pendiente:** pegar la migración; verlo con clics; hoy producción no tiene órdenes cerradas, así que las cifras por prenda saldrán vacías hasta el primer cierre (la planilla de Dynamic sí se verá: 2 períodos pagados con ~5 personas en el Taller).
 
 ### F8 · Cierre y conexión con Inventario (S)
 - «Siguiente paso: llevarlas a las tiendas» (cierre → `/inventario/mover` prellenado); verificar la referencia «Orden N» en
