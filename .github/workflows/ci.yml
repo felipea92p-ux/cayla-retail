@@ -303,6 +303,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:compras-compradores
 
+      # La LECTURA por tienda del dinero de Compras (ADR-0150, F1 paso 2): un comprador ve la factura de SU tienda y de ninguna otra
+      # (ni la de la sede donde está fijo, ni la repartida con una tienda ajena) en las 5 tablas, el bucket de escaneos, la vista
+      # `compras_resumen` y las 5 funciones de dinero; escribir y las notas de crédito siguen solo del líder; el líder ve lo de siempre;
+      # `fn_aplicar_candado_de_dinero` repone el filtro. Carga las dos migraciones DENTRO de cada caso, que termina en ROLLBACK.
+      - name: pruebas:compras-dinero-por-tienda
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:compras-dinero-por-tienda
+
       # Módulo Notas de crédito: el tablero trae notas y pendientes con sus montos (incluido el
       # monto_esperado del faltante cerrado y el a_favor de la nota que superó la deuda), registrar con
       # destino «a_favor» deja el mismo estado que la RPC de antes, con «reembolso» nacen nota y

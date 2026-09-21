@@ -567,7 +567,8 @@ do $$
 declare v text; o oid;
 begin
   select p.oid into strict o from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'recepciones_sin_comprobante';
-  v := regexp_replace(pg_get_functiondef(o), 'case when retail\\.fn_puede_ver_dinero_de_compras\\(\\) then\\s+(round\\(.*?\\))\\s+end', '\\1');
+  -- Acepta las dos formas del enmascarado: la de ADR-0126 (la puerta) y la de ADR-0150 (comprar para ESA tienda).
+  v := regexp_replace(pg_get_functiondef(o), 'case when retail\\.fn_(?:puede_ver_dinero_de_compras\\(\\)|puede_comprar_en\\(l\\.ubicacion_id\\)) then\\s+(round\\(.*?\\))\\s+end', '\\1');
   execute v;
 end;
 $$;

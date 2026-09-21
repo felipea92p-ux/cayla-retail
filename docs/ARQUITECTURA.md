@@ -443,6 +443,17 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `fn_aplicar_candado_de_dinero()` se los pone (o se los devuelve tras otra migración). La página además tacha los
   montos en el servidor como segunda línea (`comprobanteSinMontos`). «Recibidas» (`?vista=recibidas`) agrupa las filas
   de un envío de 2+ proveedores bajo una cabecera (`agruparPorEnvio`, `getEnviosDeLotes` lee `lotes.envio_id`).
+- **Comprador de tienda: leer el dinero de SU tienda** (2026-09-21, ADR-0150 F1; migraciones `20260922120000` y `20260922130000`,
+  **solo en local, no en producción**). Tabla `compradores_de_tienda (persona_id, ubicacion_id)` —una fila por persona y tienda—
+  que se escribe solo por `agregar_/quitar_comprador_de_tienda` (líder). `fn_compras_ubicaciones()` da todas las ubicaciones al
+  líder y las suyas al comprador. `fn_puede_ver_dinero_de_compras()` (la puerta de LECTURA) pasa a «líder o comprador»;
+  `fn_puede_registrar_compras()` (ESCRIBIR) sigue siendo solo del líder hasta F3/F4. Cada lectura además se acota con
+  `fn_compra_es_de_mis_tiendas(compra_id)`: el comprador ve una factura solo si TODA ella va a tiendas suyas (la repartida con
+  una tienda ajena se abre en F2/F3). Lo usan las 5 políticas de SELECT, el bucket (`fn_puede_ver_adjunto_de_compra`, por la
+  carpeta `<compra_id>/`) y las 5 funciones de dinero, que dejan de filtrar por la SEDE fija (`fn_puede_ver_compra`, hecha para
+  recibir) y filtran por las tiendas donde COMPRA; `fn_aplicar_candado_de_dinero()` repone ese filtro. Notas de crédito
+  (`notas_credito_tablero`, `fn_facturas_para_nota_credito`) siguen solo del líder (`fn_exige_solo_lider_de_compras`) hasta F6.
+  `/compras` sigue redirigiendo a quien no es líder: la pantalla se abre en F5.
 - **Un comprobante se reparte entre tiendas y cada tienda recibe lo suyo** (2026-09-19, ADR-0139; migraciones `20260919172000`
   + `20260919173000`, **en producción desde el 2026-09-20**). La factura ya no tiene un destino (`compras.ubicacion_destino_id` se
   elimina): tiene un **reparto por línea y tienda**, `compra_item_destinos` (siempre existe, aunque sea de una sola tienda; su

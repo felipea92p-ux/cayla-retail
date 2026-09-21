@@ -70,6 +70,21 @@ siguen siendo la puerta única, sin parámetro: pasan de «soy líder» a «soy 
 **Ser comprador NO exige ser líder** y **esto revierte a propósito** una parte de ADR-0126 («dinero solo del líder»): el candado pasa de «rol = líder» a «líder, o comprador de esta tienda». El riesgo que ADR-0126 cerraba
 (un integrante cualquiera leyendo montos por la API) **sigue cerrado**: un integrante sin fila en `compradores_de_tienda` no ve nada.
 
+**Cómo quedó F1 al construirla (2026-09-21; migraciones `20260922120000` y `20260922130000`).** Tres decisiones que este texto no fijaba:
+
+1. **Las «dos puertas» se separan.** `fn_puede_ver_dinero_de_compras()` (LEER) se abre a «líder o comprador de alguna tienda»; `fn_puede_registrar_compras()`
+   (ESCRIBIR) **no se toca** y sigue siendo solo del líder hasta F3/F4. Las 12 funciones de escritura (`registrar_*`, `anular_compra`, adjuntos, notas) reciben un
+   `compra_id` sin filtrar por tienda: abrirlas ahora dejaría a un comprador pagar o anular la factura de otra tienda. F1 es la fase de lectura.
+2. **Regla interina de visibilidad, más estricta que la de D2:** un comprador ve una factura **solo si TODA ella va a tiendas suyas**
+   (`fn_compra_es_de_mis_tiendas`). La factura repartida con una tienda ajena queda **cerrada** para él hasta F2 (vista de partes): sin partir el dinero
+   por tienda no hay forma de enseñarle «su parte» sin enseñarle la de la otra. Costo: hasta F2/F3 un comprador no ve una factura compartida.
+3. **La lectura del comprador sigue las tiendas donde COMPRA, no la sede donde está fijo.** Las 5 funciones de dinero filtraban por `fn_puede_ver_compra`
+   (sede fija, hecha para recibir); pasan a `fn_compra_es_de_mis_tiendas`. Un comprador de Lima fijo en Trujillo no ve Trujillo. Notas de crédito
+   (`notas_credito_tablero`, `fn_facturas_para_nota_credito`) siguen solo del líder hasta F6 porque no filtran por tienda.
+
+**Límite conocido (F5):** las vistas calculan «recibido» leyendo `movimientos`/`lotes`, que se ven por sede; un comprador fijo en una sede que compra para
+otra verá el estado de recepción de esa otra según lo que su sede alcanza a ver. La cuenta pensada (una por tienda, fija en su tienda) no lo sufre.
+
 **Riesgo aceptado por Felipe (respuesta 11):** todo líder de equipo ve el dinero de Compras de **todas** las tiendas, no solo de la suya. Es lo que pasa hoy; este ADR no lo empeora ni lo arregla.
 
 ### D2 — Cada factura tiene una tienda que la gestiona; el dinero se parte por tienda desde el reparto
