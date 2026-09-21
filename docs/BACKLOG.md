@@ -826,10 +826,10 @@ dinero intacto, RLS sin permisos de escritura, triggers diferidos activos. Produ
       las firmas de 3 funciones de otras sesiones ya aplicadas en producción (`fn_resumen_comparacion`, `devolver_insumo_de_produccion`,
       `fn_recalcular_costo_insumos_produccion`) que hacían que `datos:comparar` las diera por «rotas».
 - [x] **Candados nuevos en `docs/datos/01-INVARIANTES.md`** (suma del reparto, tope por tienda, reasignar solo lo pendiente, escritura solo por RPC).
-- [ ] **Alinear los comentarios de base de datos de producción a «ADR-0139» (opcional, cosmético).** Los 8 objetos (`fn_puede_ver_compra`,
-      `reasignar_reparto_compra`, `lineas_compra_operativo`, `listar_compras_operativo`, `compra_item_destinos`, `compra_reasignaciones`,
-      `compra_item_reparto_resumen` y la columna `compra_item_cierres.ubicacion_id`) dicen «ADR-0138», que hoy es el ADR de Comparar
-      períodos (Inventario). Solo `COMMENT ON`; no toca datos ni estructura.
+- [x] **Comentarios de base de datos de producción alineados a «ADR-0139» (2026-09-21):** Felipe corrió el `COMMENT ON` y se comprobó en solo
+      lectura que los 8 objetos (`fn_puede_ver_compra`, `reasignar_reparto_compra`, `lineas_compra_operativo`, `listar_compras_operativo`,
+      `compra_item_destinos`, `compra_reasignaciones`, `compra_item_reparto_resumen` y `compra_item_cierres.ubicacion_id`) dicen «ADR-0139» y
+      ninguno dice «ADR-0138» (número que hoy es del ADR de Comparar períodos, Inventario).
 - [x] **Refresco COMPLETO del volcado (2026-09-21):** los 7 archivos de `generado/` comparados contra `cayla-dynamic` (solo lectura) con un
       hash por tabla y por grupo de funciones, y parchados solo donde difería; al final los 7 dan hash idéntico al de producción. Entraron: las 4
       tablas de Producción (`proveedores_produccion`, `comprobantes_produccion` y sus `_items`/`_pagos`; F4a/F4b), `venta_pagos.recibido` (Caja,
@@ -848,6 +848,18 @@ dinero intacto, RLS sin permisos de escritura, triggers diferidos activos. Produ
       (repartido 10+14, con una reasignación y un cierre). Solo local, **producción tiene 0** (verificado 2026-09-21); Felipe: no es problema,
       se dejan. Lo único que hacen es ensuciar los totales locales de «Por pagar»/«Por recibir».
 - [ ] **Anotado, no de este cambio:** el `--en-seco` de `pagos_compras_endurecimiento` ya no sirve con el reparto aplicado.
+- [ ] **Postgres local compartido: un saldo a favor de S/ 200 de Textiles Andina, sobrante de otra sesión, rompe 2 suites** (no tiene relación con
+      Compras-reparto ni con el filtro «Destino»): `pnpm pruebas:pago-por-lote-medios` (24/27) y `pnpm pruebas:notas-credito` (35/42); todas sus
+      pruebas fallidas hablan de saldo a favor. Se resuelve anulando ese crédito en el local (no se borra: es un libro inmutable) o corriendo esas
+      suites en una base limpia. `notas-credito` sí corre en CI (base limpia) y allí pasa; `pago-por-lote-medios` no está en el CI.
+- [ ] **Sumar `pnpm pruebas:compras-reparto` al CI (`.github/workflows/ci.yml`).** Hoy solo corre en local: sus 57 escenarios (el reparto 12/12, el tope
+      por tienda, reasignar solo lo pendiente, lo que ve un integrante, el candado de dinero, el filtro «Destino» y las dos firmas de
+      `listar_compras`/`por_pagar_tramos`) no vigilan nada en cada push. Usa el mismo seed que `dinero-compras` (ya en el CI); habría que ver que pase
+      sobre la base limpia del CI antes de dejarlo obligatorio.
+- [ ] **Decisión de diseño abierta (opcional): las cuatro cifras de arriba de Comprobantes y Por pagar (Por pagar, Por recibir, Compras del mes, IGV;
+      Deuda, Vencido, Vence esta semana, Concentración) no siguen NINGÚN filtro**, tampoco el de proveedor ni ahora «Destino»; solo los
+      subtotales por tramo de Por pagar lo siguen. Si Felipe quiere que sigan el filtro, cada una de esas funciones necesita su parámetro
+      (candado de dinero incluido) — hoy se dejó así a propósito para no cambiar cinco funciones de dinero.
 
 ## 🎯 Traslados: lectura operativa, franja «Atención hoy» y contador del menú (2026-09-18, ADR-0105)
 
