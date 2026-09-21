@@ -30,10 +30,13 @@ set local search_path to retail, public, extensions;
 -- ---------------------------------------------------------------------------
 do $$
 declare
-  pv_fin date := current_date;              -- último día de la ventana (Lima)
+  pv_fin date := (now() at time zone 'America/Lima')::date;  -- último día de la ventana (día Lima, no UTC)
   pv_dias int := 90;
   pv_semilla double precision := 0.5726;     -- setseed(): misma semilla = mismos datos
+  pv_escala numeric := 1;                    -- volumen de ventas: 1 = ~7.000 boletas; 0.05 para ensayos chicos
 begin
+  perform set_config('cayla_seed.semilla', pv_semilla::text, true);
+  perform set_config('cayla_seed.escala', pv_escala::text, true);
   perform set_config('cayla_seed.fin', pv_fin::text, true);
   perform set_config('cayla_seed.inicio', (pv_fin - (pv_dias - 1))::text, true);
   perform set_config('cayla_seed.carga_inicial', (pv_fin - pv_dias)::text, true);
@@ -149,7 +152,7 @@ from tmp_pool_specs s, unnest(s.estilos) estilo, unnest(s.detalles) detalle;
 -- ---- 1.3 Elegir N nombres por categoría, sin chocar con productos existentes ----
 create temp table tmp_productos_nuevos (
   id uuid, categoria_id uuid, referencia text, marca_id uuid, proveedor_id uuid,
-  tejido_id uuid, patron_id uuid, temporada text, stock_minimo int, creado_en timestamptz
+  tejido_id uuid, patron_id uuid, temporada text, stock_minimo int, creado_en timestamptz, estado text
 ) on commit drop;
 
 with candidatos_numerados as (
@@ -192,7 +195,9 @@ select
   (select cp.patron_id from retail.categoria_patrones cp where cp.categoria_id = f.categoria_id order by random() limit 1),
   f.temporada,
   (3 + (f.orden_global % 5))::int,
-  (f.fecha_alta::timestamptz + (f.orden_global % 12) * interval '1 hour' + (f.orden_global % 60) * interval '1 minute')
+  (f.fecha_alta::timestamptz + (f.orden_global % 12) * interval '1 hour' + (f.orden_global % 60) * interval '1 minute'),
+  -- A14: una prenda de las viejas (la 41, fuera de las 40 nuevas) ya está descontinuada y conserva stock
+  case when f.orden_global = 41 then 'descontinuado' else 'activo' end
 from fechas f
 -- marca/proveedor: la pareja depende de cada producto (si no, Postgres evalúa el
 -- subselect una sola vez y todas las prendas salen de la misma marca) y se
@@ -219,7 +224,7 @@ end $$;
 
 insert into retail.productos (id, categoria_id, referencia, estado, created_at, stock_minimo, temporada,
   permitir_venta_sin_stock, tejido_id, patron_id, marca_id, proveedor_id)
-select id, categoria_id, referencia, 'activo', creado_en, stock_minimo, temporada,
+select id, categoria_id, referencia, estado, creado_en, stock_minimo, temporada,
   false, tejido_id, patron_id, marca_id, proveedor_id
 from tmp_productos_nuevos;
 
@@ -397,7 +402,334 @@ begin
     raise exception '[check catálogo] poca variedad: % marcas y % colores distintos', v_marcas, v_colores;
   end if;
 
+  if (select count(*) from retail.productos where id::text like '5eed%' and estado = 'descontinuado') <> 1 then
+    raise exception '[check catálogo] se esperaba exactamente 1 producto descontinuado (A14)';
+  end if;
+
   raise notice '[check catálogo] OK — % productos, % variantes, % marcas, % colores', v_productos, v_variantes, v_marcas, v_colores;
+end $$;
+
+-- =============================================================================
+-- FASE 2 — DEMANDA (solo tablas temporales: no escribe en ninguna tabla real)
+-- Genera los tickets y sus líneas: cuánto se vende, dónde, cuándo y qué. De
+-- aquí saldrán (fases 3-4) el abastecimiento —el stock no puede quedar negativo
+-- porque primero se decide la demanda y luego se compra lo que la cubre— y las
+-- ventas reales con sus pagos, cajas y comprobantes.
+-- =============================================================================
+
+-- Número al azar determinista en [0,1): misma semilla + misma clave = mismo valor.
+create function pg_temp.h(k text) returns numeric language sql stable as
+$f$ select (('x' || substr(md5(current_setting('cayla_seed.semilla') || ':' || k), 1, 6))::bit(24)::bigint)::numeric / 16777216 $f$;
+
+-- ---- 2.1 Ventana, tiendas y calendario ----
+create temp table tmp_ventana on commit drop as
+select current_setting('cayla_seed.inicio')::date as inicio,
+       current_setting('cayla_seed.fin')::date    as fin,
+       (current_setting('cayla_seed.fin')::date - current_setting('cayla_seed.inicio')::date + 1) as dias,
+       round(7000 * current_setting('cayla_seed.escala')::numeric)::int as n_total,
+       -- el último día es un turno cerrado: las ventas llegan solo hasta hace 15 min
+       (now() - interval '15 minutes') as corte;
+
+-- reparto por tienda «como las ventas 2026»; LIM es tienda nueva y crece (rampa)
+create temp table tmp_tiendas on commit drop as
+select u.id as ubicacion_id, x.codigo, x.share, x.ramp_ini, x.ramp_fin
+from retail.ubicaciones u
+join (values ('Tienda TRU', 'TRU', 0.68, 1.0, 1.0),
+             ('Tienda AQP', 'AQP', 0.27, 1.0, 1.0),
+             ('Tienda LIM', 'LIM', 0.05, 0.3, 1.7)) x(nombre, codigo, share, ramp_ini, ramp_fin)
+  on x.nombre = u.nombre;
+
+do $$
+begin
+  if (select count(*) from tmp_tiendas) <> 3 then
+    raise exception 'No se encontraron las 3 tiendas (TRU, AQP, LIM) en retail.ubicaciones';
+  end if;
+end $$;
+
+-- calendario: horario de tienda (10-21; domingo 11-20) y peso del día
+create temp table tmp_dias on commit drop as
+select d.fecha, extract(isodow from d.fecha)::int as dow, (d.fecha - v.inicio) as idx,
+       case when extract(isodow from d.fecha) = 7 then time '11:00' else time '10:00' end as abre,
+       case when extract(isodow from d.fecha) = 7 then time '20:00' else time '21:00' end as cierra,
+       -- día de la semana (lunes flojo, sábado fuerte)
+       (case extract(isodow from d.fecha)::int when 1 then 0.75 when 2 then 0.90 when 3 then 0.95 when 4 then 1.00
+                                               when 5 then 1.15 when 6 then 1.35 else 1.10 end)
+       -- quincena: días 14-16 y 29-31
+       * (case when extract(day from d.fecha) in (14, 15, 16, 29, 30, 31) then 1.25 else 1.0 end)
+       -- julio es «mes bueno» (Fiestas Patrias); pico el 28-29 jul; 30 ago sube un poco
+       * (case when extract(month from d.fecha) = 7 and extract(day from d.fecha) in (28, 29) then 2.0
+               when extract(month from d.fecha) = 7 then 1.4
+               when extract(month from d.fecha) = 8 and extract(day from d.fecha) = 30 then 1.3
+               else 1.0 end)
+       -- tendencia suave (+8 % a lo largo de la ventana)
+       * (0.96 + 0.08 * (d.fecha - v.inicio) / greatest(v.dias - 1, 1)) as factor
+from tmp_ventana v
+cross join lateral (select (v.inicio + i)::date as fecha from generate_series(0, v.dias - 1) i) d;
+
+-- fracción del último día que ya transcurrió (0 si aún no abre)
+create temp table tmp_dia_tienda on commit drop as
+with base as (
+  select d.fecha, d.dow, d.abre, d.cierra, t.ubicacion_id, t.codigo,
+         t.share * d.factor
+           * (t.ramp_ini + (t.ramp_fin - t.ramp_ini) * d.idx / greatest(v.dias - 1, 1))
+           * (0.88 + 0.24 * pg_temp.h('ruido:' || t.codigo || ':' || d.fecha))
+           * (case when d.fecha = v.fin then
+                greatest(0, least(1, extract(epoch from (v.corte - ((d.fecha + d.abre) at time zone 'America/Lima')))
+                                    / extract(epoch from (((d.fecha + d.cierra) at time zone 'America/Lima') - ((d.fecha + d.abre) at time zone 'America/Lima')))))
+              else 1 end) as w
+  from tmp_dias d cross join tmp_tiendas t cross join tmp_ventana v
+)
+select b.*, round(b.w / sum(b.w) over () * v.n_total)::int as n
+from base b cross join tmp_ventana v;
+
+-- ---- 2.2 Vida de cada producto: cuándo empieza y cuándo deja de venderse ----
+-- Popularidad tipo Zipf; las prendas baratas rotan bastante más (exponente 1,3 de
+-- precio, calibrado para que 7.000 boletas sumen ≈ S/900.000). A8: 15 prendas
+-- viejas y de baja rotación dejan de venderse a propósito (6 hace 60+ días, 9 hace
+-- 30+ días); con las que la Zipf deja sin venta por sí solas salen ≈ 25 sin venta en 30 días.
+-- A14: la descontinuada dejó de venderse hace ~40 días.
+create temp table tmp_producto_vida on commit drop as
+with p as (
+  select tp.id as producto_id, tp.temporada, tp.estado, tp.creado_en,
+         (select max(v.precio) from tmp_variantes_nuevas v where v.producto_id = tp.id) as precio,
+         row_number() over (order by pg_temp.h('rango:' || tp.id)) as rango
+  from tmp_productos_nuevos tp
+),
+muertos as (
+  select producto_id, row_number() over (order by pg_temp.h('muerto:' || producto_id)) as orden
+  from p where temporada = 'Otoño-Invierno' and estado = 'activo' and rango >= 100
+)
+select p.producto_id, p.precio, p.rango,
+       power(p.rango::numeric, -0.7) * power(100.0 / p.precio, 1.3) as w_pop,
+       case when p.temporada = 'Primavera-Verano'
+            then ((p.creado_en at time zone 'America/Lima')::date + 1)
+            else v.inicio end as vende_desde,
+       case when p.estado = 'descontinuado' then v.fin - 40
+            when m.orden <= 6 then v.fin - 61
+            when m.orden <= 15 then v.fin - 31
+            else v.fin end as vende_hasta
+from p cross join tmp_ventana v
+left join muertos m on m.producto_id = p.producto_id;
+
+-- épocas: tramos en los que no cambia el surtido vendible (nace o muere alguna prenda)
+create temp table tmp_epocas on commit drop as
+with cortes as (
+  select v.inicio as d from tmp_ventana v
+  union select vende_desde from tmp_producto_vida, tmp_ventana v where vende_desde > v.inicio and vende_desde <= v.fin
+  union select vende_hasta + 1 from tmp_producto_vida, tmp_ventana v where vende_hasta < v.fin and vende_hasta >= v.inicio
+)
+select d as ini, coalesce(lead(d) over (order by d), (select fin from tmp_ventana) + 1) - 1 as fin from cortes;
+
+-- ---- 2.3 Peso de cada variante en cada tienda y época (para sortear qué se vende) ----
+create temp table tmp_pesos on commit drop as
+with w as (
+  select e.ini as epoca_ini, t.ubicacion_id, v.id as variante_id,
+         pv.w_pop
+           * (0.6 + 0.8 * pg_temp.h('tienda:' || t.codigo || ':' || v.producto_id))                 -- gusto propio de cada tienda
+           * (case ta.valor when 'M' then 1.4 when 'S' then 1.0 when 'L' then 1.0 when 'XL' then 0.5
+                            when 'XS' then 0.4 when 'XXL' then 0.25 when 'Estándar' then 0.9
+                            when '30' then 1.3 when '28' then 1.1 when '32' then 1.1 when '26' then 0.7 when '34' then 0.5
+                            when '37' then 1.4 when '38' then 1.4 when '36' then 1.1 when '39' then 1.1 else 1.0 end)
+           * (case v.color_codigo when 'NEG' then 1.7 when 'BLA' then 1.5 when 'BEI' then 1.2 when 'AZM' then 1.1 else 1.0 end)
+           * (0.6 + 0.8 * pg_temp.h('color:' || v.producto_id || ':' || v.color_codigo)) as peso
+  from tmp_epocas e
+  cross join tmp_tiendas t
+  join tmp_variantes_nuevas v on true
+  join tmp_producto_vida pv on pv.producto_id = v.producto_id and pv.vende_desde <= e.ini and pv.vende_hasta >= e.fin
+  join retail.tallas ta on ta.id = v.talla_id
+)
+select epoca_ini, ubicacion_id, variante_id,
+       sum(peso) over (partition by ubicacion_id, epoca_ini order by variante_id) as cum_hi,
+       sum(peso) over (partition by ubicacion_id, epoca_ini order by variante_id) - peso as cum_lo,
+       sum(peso) over (partition by ubicacion_id, epoca_ini) as total
+from w;
+create index on tmp_pesos (ubicacion_id, epoca_ini, cum_hi);
+
+-- ---- 2.4 Tickets: hora del día con pico de 16 a 20 ----
+create temp table tmp_horas on commit drop as
+select tipo, hora, peso,
+       sum(peso) over (partition by tipo order by hora) as cum_hi,
+       sum(peso) over (partition by tipo order by hora) - peso as cum_lo,
+       sum(peso) over (partition by tipo) as total
+from (values ('sem', 10, 0.55), ('sem', 11, 0.75), ('sem', 12, 0.90), ('sem', 13, 0.90), ('sem', 14, 0.80),
+             ('sem', 15, 1.00), ('sem', 16, 1.40), ('sem', 17, 1.60), ('sem', 18, 1.80), ('sem', 19, 1.70), ('sem', 20, 1.00),
+             ('dom', 11, 0.80), ('dom', 12, 1.00), ('dom', 13, 1.00), ('dom', 14, 0.90), ('dom', 15, 1.10),
+             ('dom', 16, 1.40), ('dom', 17, 1.50), ('dom', 18, 1.40), ('dom', 19, 1.00)) x(tipo, hora, peso);
+
+create temp table tmp_tickets on commit drop as
+with t as (
+  select overlay(md5('seed:ventas:' || dt.codigo || ':' || dt.fecha || ':' || g) placing '5eed' from 1 for 4)::uuid as ticket_id,
+         dt.ubicacion_id, dt.codigo, dt.fecha, dt.dow, dt.abre, dt.cierra, g as k,
+         (select max(e.ini) from tmp_epocas e where e.ini <= dt.fecha) as epoca_ini
+  from tmp_dia_tienda dt cross join lateral generate_series(1, dt.n) g
+),
+h as (
+  select t.*,
+         pg_temp.h('hora:' || t.ticket_id) as u_hora,
+         pg_temp.h('min:'  || t.ticket_id) as u_min,
+         pg_temp.h('lin:'  || t.ticket_id) as u_lin
+  from t
+)
+select h.ticket_id, h.ubicacion_id, h.codigo, h.fecha, h.epoca_ini,
+       case when h.fecha = v.fin then
+              -- último día: uniforme entre la apertura y el corte
+              ((h.fecha + h.abre) at time zone 'America/Lima')
+                + h.u_min * (v.corte - ((h.fecha + h.abre) at time zone 'America/Lima'))
+            else
+              ((h.fecha
+                + make_interval(hours => (select hh.hora from tmp_horas hh
+                                          where hh.tipo = case when h.dow = 7 then 'dom' else 'sem' end
+                                            and h.u_hora * hh.total >= hh.cum_lo and h.u_hora * hh.total < hh.cum_hi))
+                + make_interval(mins => floor(h.u_min * 60)::int, secs => floor(pg_temp.h('seg:' || h.ticket_id) * 60)::int))
+               at time zone 'America/Lima')
+       end as ts,
+       -- 1 línea 62 %, 2 líneas 28 %, 3 líneas 8 %, 4 líneas 2 %
+       case when h.u_lin < 0.62 then 1 when h.u_lin < 0.90 then 2 when h.u_lin < 0.98 then 3 else 4 end as nlineas,
+       row_number() over (partition by h.ubicacion_id order by h.fecha, h.u_hora, h.ticket_id) as orden_tmp
+from h cross join tmp_ventana v;
+
+-- número correlativo de boleta dentro de la tienda, en orden de hora (lo usará la Fase 4)
+alter table tmp_tickets add column seq int;
+update tmp_tickets t set seq = x.seq
+from (select ticket_id, row_number() over (partition by ubicacion_id order by ts, ticket_id) as seq from tmp_tickets) x
+where x.ticket_id = t.ticket_id;
+
+-- ---- 2.5 Líneas: qué variante y cuántas unidades ----
+create temp table tmp_lineas_brutas on commit drop as
+select t.ticket_id, t.ubicacion_id, t.fecha, l,
+       pick.variante_id,
+       case when pg_temp.h('qty:' || t.ticket_id || ':' || l) < 0.06 then 2 else 1 end as cantidad
+from tmp_tickets t
+cross join lateral generate_series(1, t.nlineas) l
+cross join lateral (
+  select w.variante_id
+  from tmp_pesos w
+  where w.ubicacion_id = t.ubicacion_id and w.epoca_ini = t.epoca_ini
+    and w.cum_hi > pg_temp.h('var:' || t.ticket_id || ':' || l) * w.total
+  order by w.cum_hi
+  limit 1
+) pick;
+
+-- una misma prenda repetida en el ticket se junta en una sola línea
+create temp table tmp_lineas on commit drop as
+with juntas as (
+  select ticket_id, ubicacion_id, fecha, variante_id, sum(cantidad)::int as cantidad, min(l) as l
+  from tmp_lineas_brutas group by ticket_id, ubicacion_id, fecha, variante_id
+),
+con_campana as (
+  select j.*, v.precio, v.costo, camp.etiqueta_id, camp.pct
+  from juntas j
+  join tmp_variantes_nuevas v on v.id = j.variante_id
+  left join lateral (
+    select e.id as etiqueta_id, e.descuento_pct as pct
+    from retail.variante_etiquetas ve
+    join retail.etiquetas e on e.id = ve.etiqueta_id
+    where ve.variante_id = j.variante_id and e.descuento_pct is not null
+      and j.fecha between e.vigente_desde and e.vigente_hasta
+    order by e.descuento_pct desc, e.id
+    limit 1
+  ) camp on true
+),
+con_manual as (
+  select c.*,
+         -- descuento manual en el 6 % de las líneas sin campaña (R-45): 5-20 % lo da el líder solo,
+         -- 25-35 % siempre con argumento; nunca más de 35 %
+         (c.etiqueta_id is null and pg_temp.h('desc:' || c.ticket_id || ':' || c.variante_id) < 0.06) as manual,
+         case when pg_temp.h('pct:' || c.ticket_id || ':' || c.variante_id) < 0.60
+              then 5 + 5 * floor(pg_temp.h('pct2:' || c.ticket_id || ':' || c.variante_id) * 4)
+              else 25 + 5 * floor(pg_temp.h('pct2:' || c.ticket_id || ':' || c.variante_id) * 3) end as pct_manual,
+         pg_temp.h('mot:' || c.ticket_id || ':' || c.variante_id) as u_motivo
+  from con_campana c
+)
+select m.ticket_id, m.ubicacion_id, m.fecha, m.variante_id, m.cantidad, m.l,
+       m.precio as precio_unitario, m.costo as costo_unitario,
+       case when m.etiqueta_id is not null then round(m.precio * m.pct / 100, 2)
+            when m.manual then round(m.precio * m.pct_manual / 100, 2)
+            else 0 end as descuento_unitario,
+       case when m.etiqueta_id is not null then 'campana'
+            when m.manual then (case when m.u_motivo < 0.40 then 'cerrar_venta' when m.u_motivo < 0.65 then 'liquidacion_temporada'
+                                     when m.u_motivo < 0.80 then 'cumpleanos_clienta_top' when m.u_motivo < 0.92 then 'prenda_con_desperfecto'
+                                     else 'otro' end)
+            end as motivo_descuento,
+       case when m.manual and m.u_motivo >= 0.92 then 'Acuerdo con la clienta por llevar varias prendas' end as motivo_descuento_detalle,
+       case when m.manual and m.pct_manual > 20
+            then (array['Clienta frecuente, lleva varias prendas','Última unidad de la talla, con pequeño detalle',
+                        'Cierra la venta hoy, no alcanzaba con el descuento anterior','Compra por mayor a la habitual'])
+                 [1 + floor(pg_temp.h('arg:' || m.ticket_id || ':' || m.variante_id) * 4)::int] end as argumento_descuento,
+       m.etiqueta_id as descuento_etiqueta_id,
+       m.manual
+from con_manual m;
+
+-- ---- 2.6 Chequeos de la Fase 2 ----
+do $$
+declare
+  v_n int; v_n_esp int; v_sin_lineas int; v_fuera_hora int; v_futuro int; v_no_disponible int; v_dup int;
+  v_campana_mal int; v_desc_mal int; v_share record; v_pico numeric; v_mediana numeric;
+begin
+  select count(*) into v_n from tmp_tickets;
+  select n_total into v_n_esp from tmp_ventana;
+  if abs(v_n - v_n_esp) > greatest(5, v_n_esp * 0.01) then
+    raise exception '[check demanda] % tickets, se esperaban ~%', v_n, v_n_esp;
+  end if;
+
+  select count(*) into v_sin_lineas from tmp_tickets t where not exists (select 1 from tmp_lineas l where l.ticket_id = t.ticket_id);
+  if v_sin_lineas > 0 then raise exception '[check demanda] % tickets sin líneas', v_sin_lineas; end if;
+
+  -- dentro del horario de su tienda (domingo 11-20, resto 10-21) y nunca después del corte
+  select count(*) into v_fuera_hora from tmp_tickets t join tmp_dias d on d.fecha = t.fecha
+   where (t.ts at time zone 'America/Lima')::time < d.abre or (t.ts at time zone 'America/Lima')::time >= d.cierra
+      or (t.ts at time zone 'America/Lima')::date <> t.fecha;
+  if v_fuera_hora > 0 then raise exception '[check demanda] % tickets fuera de horario', v_fuera_hora; end if;
+  select count(*) into v_futuro from tmp_tickets t, tmp_ventana v where t.ts > v.corte;
+  if v_futuro > 0 then raise exception '[check demanda] % tickets después del corte (futuro)', v_futuro; end if;
+
+  -- ninguna línea de una prenda que ese día no se vendía (aún no nacida o ya retirada)
+  select count(*) into v_no_disponible from tmp_lineas l
+    join tmp_variantes_nuevas v on v.id = l.variante_id
+    join tmp_producto_vida pv on pv.producto_id = v.producto_id
+   where l.fecha < pv.vende_desde or l.fecha > pv.vende_hasta;
+  if v_no_disponible > 0 then raise exception '[check demanda] % líneas de prendas no disponibles ese día', v_no_disponible; end if;
+
+  select count(*) into v_dup from (select ticket_id, variante_id from tmp_lineas group by 1, 2 having count(*) > 1) x;
+  if v_dup > 0 then raise exception '[check demanda] % prendas repetidas dentro de un ticket', v_dup; end if;
+
+  -- campaña: toda línea de una prenda con campaña vigente lleva exactamente su descuento (registrar_venta lo exige)
+  select count(*) into v_campana_mal from tmp_lineas l
+   where (l.motivo_descuento = 'campana') <> (l.descuento_etiqueta_id is not null)
+      or exists (select 1 from retail.variante_etiquetas ve join retail.etiquetas e on e.id = ve.etiqueta_id
+                  where ve.variante_id = l.variante_id and e.descuento_pct is not null and l.fecha between e.vigente_desde and e.vigente_hasta
+                    and l.descuento_etiqueta_id is distinct from e.id);
+  if v_campana_mal > 0 then raise exception '[check demanda] % líneas con la campaña mal aplicada', v_campana_mal; end if;
+
+  -- descuento manual: ≤ 35 %, > 20 % con argumento, nunca bajo el costo
+  select count(*) into v_desc_mal from tmp_lineas l
+   where l.descuento_unitario > 0 and l.motivo_descuento <> 'campana'
+     and (l.descuento_unitario > round(l.precio_unitario * 0.35, 2) + 0.01
+          or (l.descuento_unitario > round(l.precio_unitario * 0.20, 2) + 0.01 and coalesce(l.argumento_descuento, '') = '')
+          or l.precio_unitario - l.descuento_unitario < l.costo_unitario);
+  if v_desc_mal > 0 then raise exception '[check demanda] % líneas con descuento manual fuera de regla', v_desc_mal; end if;
+
+  -- reparto por tienda
+  for v_share in
+    select t.codigo, count(*)::numeric / v_n as p from tmp_tickets t group by t.codigo
+  loop
+    if (v_share.codigo = 'TRU' and v_share.p not between 0.64 and 0.72)
+    or (v_share.codigo = 'AQP' and v_share.p not between 0.23 and 0.31)
+    or (v_share.codigo = 'LIM' and v_share.p not between 0.03 and 0.08) then
+      raise exception '[check demanda] reparto fuera de rango en %: %', v_share.codigo, round(v_share.p, 3);
+    end if;
+  end loop;
+
+  -- feriado: el pico del 28-29 jul debe superar claramente un día típico (si cae en la ventana)
+  if exists (select 1 from tmp_dias where extract(month from fecha) = 7 and extract(day from fecha) = 28) then
+    select max(c) into v_pico from (select fecha, count(*) c from tmp_tickets where extract(month from fecha) = 7 and extract(day from fecha) in (28, 29) group by fecha) x;
+    select percentile_cont(0.5) within group (order by c) into v_mediana from (select fecha, count(*) c from tmp_tickets group by fecha) y;
+    if v_pico < 1.5 * v_mediana then
+      raise exception '[check demanda] el pico del 28-29 jul (%) no supera 1,5 veces el día típico (%)', v_pico, v_mediana;
+    end if;
+  end if;
+
+  raise notice '[check demanda] OK — % tickets, % líneas', v_n, (select count(*) from tmp_lineas);
 end $$;
 
 -- ---------------------------------------------------------------------------

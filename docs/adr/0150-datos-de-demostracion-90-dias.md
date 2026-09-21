@@ -1,7 +1,7 @@
 # ADR-0150 — Datos de demostración: 90 días de historia sintética, cargados con un generador SQL desechable
 
 - **Fecha:** 2026-09-21
-- **Estado:** En curso — Fase 1 (catálogo) ensayada con `ROLLBACK`; fases 2-7 pendientes. **Nada está escrito en producción.**
+- **Estado:** En curso — Fases 1 (catálogo) y 2 (demanda) ensayadas con `ROLLBACK`; fases 3-7 pendientes. **Nada está escrito en producción.**
   **Numeración provisional:** verificar en refs remotas antes de subir (los números de ADR chocan entre sesiones paralelas).
 - **Decide:** Felipe (volumen ×3, personas reales como autoras, carga desechable, isotipo como imagen, él pega el `COMMIT`).
   Arquitectura: este documento.
@@ -46,6 +46,31 @@ complementos 21 %, blusas 9 %), bandas de precio por categoría terminadas en `.
 prendas en las tres mayores), 31 colores, 180 de Otoño-Invierno y 40 de Primavera-Verano, códigos únicos y en orden cronológico.
 Las tres campañas reales (Fiestas Patrias, Día Internacional del Gato y del Perro) ya existen sin descuento; **no se tocan**: las
 demo son nuevas y llevan «(demo)» en el nombre. El SKU manual queda vacío (el trigger asigna código y código de barras).
+
+## Fase 2 — demanda (ensayada)
+
+Solo tablas temporales: no escribe en ninguna tabla real. Decide **cuánto se vende, dónde, cuándo y qué**; de ahí saldrán el
+abastecimiento (fase 3, para que el stock no pueda quedar negativo) y las ventas con sus pagos, cajas y comprobantes (fase 4).
+Resultado del ensayo con volumen completo: **7.003 boletas, 11.004 prendas (1,57 por boleta), S/ 962.230** (S/ 137 por boleta;
+el plan decía ≈ S/ 900.000: +7 %, dentro de «≈»). Reparto TRU 68,2 % · AQP 26,9 % · LIM 4,9 % (LIM crece de 0,3 a 1,7 a lo largo de
+la ventana). Julio 94 boletas al día y el resto 69-71; pico el 29 de julio (142); hora fuerte 16-20; 5,9 % de líneas con descuento
+manual, 214 con campaña; 1.066 de 1.261 variantes vendidas (las demás quedan para las anomalías de stock); 24 productos sin venta
+en 30 días y 13 en 60 (A8).
+
+Diseño que las fases siguientes heredan:
+
+- **Sorteo por épocas.** Cada vez que nace o deja de venderse una prenda empieza una época (9 en el ensayo); por tienda y época hay
+  una tabla de pesos acumulados y cada línea sortea su variante con un solo cruce. Así ninguna línea cae en una prenda que ese día no
+  existía (una colección nueva no vende antes de nacer) y no hay que rechazar-y-repetir.
+- **Peso de una variante** = Zipf por producto (exponente 0,7) × baratura (`(100/precio)^1,3`, calibrado con el total) × gusto propio
+  de cada tienda × talla (M rota más que XS/XXL) × color (negro y blanco lideran).
+- **El último día es un turno cerrado:** sus boletas llegan solo hasta `now() − 15 min` y su volumen se prorratea por la fracción
+  de día transcurrida; la fecha «hoy» es la de **Lima**, no la de UTC (`current_date` daba otro día pasadas las 19:00).
+- **Reglas de `registrar_venta` respetadas en la demanda:** la campaña vigente es obligatoria y con el monto exacto; el descuento
+  manual nunca pasa de 35 %, exige argumento sobre 20 % y no baja del costo. Los 592 tickets con descuento manual necesitarán
+  autora líder en la fase 4 (`registrar_venta` pide líder o código de descuento).
+- **Salidas para la fase 3:** `tmp_lineas` (por ticket, variante y fecha), `tmp_tickets` (con `seq` por tienda, en orden de hora, para
+  el correlativo de boleta) y `tmp_producto_vida` (desde/hasta de cada prenda).
 
 ## Lo que enseñó la Fase 1 (para no repetirlo en las fases siguientes)
 
