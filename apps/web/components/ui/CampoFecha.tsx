@@ -27,6 +27,15 @@ import { ALTO_CONTROL, Campo, Hilo } from "@/components/ui/campos";
    Hacia afuera el valor sigue siendo ISO `aaaa-mm-dd` (o "" si está
    vacío), igual que devolvía el input nativo: ningún llamador cambia su
    lógica ni sus consultas.
+
+   Modo `estricto` (2026-09-21, los rangos de Análisis) — opt-in. Volver en
+   silencio a la última fecha válida es lo correcto para un campo suelto,
+   pero en un rango deja a la persona sin saber por qué «Aplicar» usó otra
+   fecha que la que escribió. Con `estricto`, lo tipeado que no es una fecha
+   real (31/02, a medias) se queda para corregirlo, con un aviso en línea al
+   salir del campo —o cuando el llamador lo pide con `revelarError`, al
+   intentar aplicar— y `onValor("")` le dice que ahora no hay fecha válida.
+   Sin `estricto` todo sigue exactamente como arriba.
    ==================================================================== */
 
 const DIAS_SEMANA = ["L", "M", "M", "J", "V", "S", "D"];
@@ -100,6 +109,8 @@ export function CampoFecha({
   required = false,
   disabled = false,
   id: idPropio,
+  estricto = false,
+  revelarError = false,
 }: {
   etiqueta: ReactNode;
   ayuda?: ReactNode;
@@ -112,6 +123,11 @@ export function CampoFecha({
   disabled?: boolean;
   /** Para enfocarlo desde un aviso. */
   id?: string;
+  /** Rangos (2026-09-21): lo tipeado que no es una fecha real se queda y se avisa; `onValor("")` = «no hay
+   *  fecha válida ahora». Ver el comentario de arriba. */
+  estricto?: boolean;
+  /** Solo con `estricto`: mostrar el aviso ya, sin esperar a que se salga del campo (al intentar aplicar). */
+  revelarError?: boolean;
 }) {
   const idGenerado = useId();
   const id = idPropio ?? idGenerado;
@@ -119,6 +135,7 @@ export function CampoFecha({
   const [texto, setTexto] = useState(aTexto(elegido));
   const [abierto, setAbierto] = useState(false);
   const [enfocado, setEnfocado] = useState(false);
+  const [tocado, setTocado] = useState(false);
   // El día con foco dentro de la grilla (teclado) y el mes que se muestra.
   const [cursor, setCursor] = useState<Dia>(elegido ?? hoy());
   const raiz = useRef<HTMLDivElement>(null);
@@ -168,14 +185,22 @@ export function CampoFecha({
     if (dia) {
       setCursor(dia);
       onValor(aIso(dia));
+    } else if (estricto) {
+      // A medias o imposible (31/02): el texto se queda; al llamador le llega «no hay fecha válida».
+      // `setValorPrevio("")` para que el ajuste de arriba no tome ese "" por un cambio de afuera y
+      // borre lo que se está escribiendo.
+      setValorPrevio("");
+      onValor("");
     }
   }
 
   // Al salir del campo, lo tipeado a medias o imposible vuelve a la última
   // fecha válida: nunca queda un texto que no corresponde a ningún día.
+  // (Con `estricto` se queda, para corregirlo: ver el comentario de arriba.)
   function alSalir() {
     setEnfocado(false);
-    setTexto(aTexto(elegido));
+    if (estricto) setTocado(true);
+    else setTexto(aTexto(elegido));
   }
 
   function tecladoInput(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -212,8 +237,19 @@ export function CampoFecha({
   const elHoy = hoy();
   const celdas = celdasDelMes(cursor.a, cursor.m);
 
+  // Solo `estricto`: sin fecha válida (vacío en un campo obligatorio, a medias o imposible) y ya sea
+  // porque se salió del campo o porque el llamador lo pide. Mientras se escribe, sin avisos.
+  const sinFecha = estricto && (texto === "" ? required : deTexto(texto) === null);
+  const conError = sinFecha && (revelarError || (tocado && !enfocado));
+
   return (
-    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id}>
+    <Campo
+      etiqueta={etiqueta}
+      ayuda={ayuda}
+      pie={conError ? <span role="alert">{texto === "" ? "Falta la fecha." : "Fecha no válida. Usa dd/mm/aaaa."}</span> : pie}
+      tono={conError ? "error" : tono}
+      htmlFor={id}
+    >
       <div ref={raiz} className="relative">
         <input
           id={id}
@@ -224,6 +260,7 @@ export function CampoFecha({
           value={texto}
           required={required}
           disabled={disabled}
+          aria-invalid={conError || undefined}
           onChange={(e) => alTipear(e.target.value)}
           onFocus={() => setEnfocado(true)}
           onBlur={alSalir}

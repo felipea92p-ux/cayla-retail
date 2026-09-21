@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { DETALLE_TARDA, MENSAJE_ESPERA, clasificarPeticion, type MensajeEspera } from "@/lib/espera-reglas";
+import { marcarFichas, marcarLoaderALaVista } from "@/lib/espera-estado";
 
 /* ====================================================================
    El loader general (ADR-0149) — UNO solo, a pantalla completa.
@@ -24,6 +25,10 @@ import { DETALLE_TARDA, MENSAJE_ESPERA, clasificarPeticion, type MensajeEspera }
    sobre datos que se están dejando. No es un diálogo (no se cierra con Escape): es un estado, `role="status"`.
    Entra y sale con el movimiento de los modales (ADR-0136). Lo único en bucle es la señal de «estoy
    trabajando» (el arco y el hilo); con movimiento reducido se queda quieta.
+
+   Los avisos (Avisos.tsx) esperan a que este loader se vaya: `emitir` y el efecto de `visible` publican en
+   lib/espera-estado.ts si hay algo en curso o el loader sigue a la vista, y `Avisos` no pinta nada hasta que se libera.
+   Así el aviso de éxito de un guardado sale DESPUÉS del loader, nunca encima.
 
    Tiempos: 200 ms antes de aparecer (una respuesta rápida no lo muestra), 400 ms mínimo una vez
    visible, 150 ms de gracia para fusionar peticiones encadenadas (guardar → refrescar), a los 4 s
@@ -53,6 +58,8 @@ let instantanea: readonly Ficha[] = SIN_FICHAS;
 function emitir() {
   instantanea = fichas.size ? [...fichas.values()] : SIN_FICHAS;
   oyentes.forEach((o) => o());
+  // Los avisos (Avisos.tsx) esperan a que no quede ninguna ficha ni el loader a la vista.
+  marcarFichas(fichas.size);
 }
 function suscribir(o: () => void) {
   oyentes.add(o);
@@ -238,6 +245,14 @@ export function EsperaGlobal() {
       window.clearTimeout(r.cerrar);
     };
   }, []);
+
+  // `visible` sigue en true durante la salida de 220 ms y pasa a false cuando el loader ya no está: ahí, y no
+  // antes, los avisos que esperaban pueden mostrarse. Va en dos efectos para que un cambio de `visible` no
+  // marque «libre» un instante entre medias (la limpieza corre antes de la siguiente ejecución).
+  useEffect(() => {
+    marcarLoaderALaVista(visible);
+  }, [visible]);
+  useEffect(() => () => marcarLoaderALaVista(false), []);
 
   // Admite que tarda; el aviso vuelve a «normal» cuando se va.
   useEffect(() => {

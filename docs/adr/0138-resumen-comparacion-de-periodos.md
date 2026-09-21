@@ -177,3 +177,44 @@ DESCARTÉ: esa excepción, porque Desempeño no la tiene y las dos pantallas hub
 caso — el «caso especial» quedaría en Comparar y en Desempeño no, dos respuestas para la misma pregunta.
 SE ROMPE SI: alguien agrega la excepción a una de las dos pantallas sin la otra — hay que tocar `calcularTendencia`
 (o `evolucionDelRitmo`, que la envuelve), no una pantalla sola.
+
+## Fila de períodos: dos píldoras (2026-09-21, diseño de Figma de Felipe)
+
+Sustituye a la línea «A → B · Cambiar períodos» del rediseño de arriba. Felipe editó a mano, en un frame de Figma
+capturado del navegador, la fila de contexto de Comparar: dos píldoras «Período A: desde … hasta …» y «Período B:
+desde … hasta …» (calendario de 14 px, texto de 13 px medium, fondo tinta/4 %, borde tinta/30, radio 8) más el
+selector de Categoría a la derecha. Se implementó con dos correcciones que se acordaron antes de escribir código:
+del alto de todo control y con SU rango cada una.
+
+DECIDÍ: píldoras de 36 px (`ALTO_CONTROL`) alineadas con la línea del selector de Categoría, no centradas en la
+banda etiqueta+selector; el texto de cada una sale de `textoPildoraPeriodo(letra, rango)` con el rango de SU período; y
+cada píldora abre SU configurador —B los presets del período que se analiza, A «comparar con» y sus fechas—.
+DESCARTÉ: implementar el frame al pie de la letra. Sus píldoras de 32 px rompían la línea de 36 px que comparten
+pestañas, presets y selector; la B llevaba escrito el rango de A (24 jul – 22 ago) mientras los gráficos de abajo
+decían 23 ago – 21 sep; y no dibujaba a dónde se cambian los períodos, así que tomarlo tal cual quitaba los presets y
+«otro período…». Tampoco un único panel para las dos: tocar «Período B» y ver «comparar con» de A es una sorpresa.
+SE ROMPE SI: alguien escribe el texto de una píldora a mano y no por `textoPildoraPeriodo` (vuelve a poder mentir
+sobre B), o si dos píldoras + Categoría dejan de caber: por debajo de ~1100 px de ventana la Categoría baja a otra fila
+y en celular las píldoras se apilan (verificado sin desborde a 1024 y 390 px).
+
+Estados que el frame no dibuja y se resolvieron con los tokens que ya existen (pendientes de confirmar en Figma):
+abierta = borde tinta/60; hover = borde tinta/50; foco = el contorno rojo/60 de los demás controles.
+
+## Anexo 2026-09-21 (más tarde): un solo selector de fechas
+
+Sustituye la parte de la decisión anterior que dice que «cada píldora abre SU configurador» (B los presets, A «comparar
+con»): eran dos selectores distintos y Felipe pidió uno solo, con las fechas escritas a mano como forma principal.
+
+DECIDÍ: Período A, Período B y el «Personalizado» de Desempeño abren el mismo `PopoverRango` (`ResumenControles.tsx`):
+Desde y Hasta en dd/mm/aaaa ya cargados con el período actual, foco en «Desde», Tab entre los dos, Enter o «Aplicar», el
+calendario de `CampoFecha` como ayuda y los errores en línea. Los atajos que cada uno tenía —A: período anterior y mismo
+período del año pasado; B: 7, 30, 90 días y este mes— viven DENTRO de ese selector (chips), para no quitar ninguna
+función. Aplicar B deja `preset=personalizado&desde&hasta`; aplicar A, `comparar=personalizado&cdesde&chasta`: la URL y el
+flujo de comparación son los de siempre.
+DESCARTÉ: (a) dejar solo los dos campos: en Comparar se perdía la vuelta a «7 días» o «año anterior» sin editar la URL;
+(b) un `<input type="date">` nativo o un componente nuevo: `CampoFecha` ya escribe dd/mm/aaaa con calendario de apoyo, y se
+le sumó el modo `estricto` (opt-in) porque volvía en silencio a la última fecha válida —en un rango eso hace que «Aplicar»
+use otra fecha que la escrita—; (c) apagar «Aplicar» cuando algo está mal: un botón apagado no dice por qué.
+SE ROMPE SI: se usa `estricto` sin pasar `revelarError` al intentar aplicar (el campo no avisa hasta que se sale de él); si
+un atajo se ata a un solo período sin pensar en el otro (A y B deben verse y comportarse igual); o si los dos campos van
+lado a lado por debajo de ~380 px: a ~120 px cada uno corta «23/08/2026», por eso se apilan.
