@@ -247,11 +247,20 @@ Solo para el **líder** (ventas y stock de toda la red, costos de insumos); quie
 - **Pruebas:** `lib/produccion-decision-reglas.test.ts` (16). **Verificas:** un modelo casi agotado sugiere cantidad y curva coherentes con `/inventario/resumen`; sin ritmo no sugiere; tras cerrar una orden con
   insumos descontados aparece el rendimiento; abrir la orden crea las líneas por variante. **Pendiente:** verlo con clics y con datos reales (hoy producción no tiene ventas ni órdenes cerradas con insumos).
 
-### F6 · Resumen: «¿qué necesita mi decisión hoy?» (M) — sin esquema
-- `lib/produccion-decisiones.ts` (puras, con tests, mismas reglas del spike) + página. Cada tarjeta lleva evidencia y una acción
-  que abre la pantalla correcta con el contexto ya puesto. Solo líder; montos bajo el candado.
-- **Verificas:** con la factura de tela sin recibir, aparece «faltan X m… pero ya llegó F00x»; al recibirla la tarjeta
-  desaparece sin recargar; un colaborador que fuerza la URL recibe redirección y la base no le entrega montos.
+### F6 · Resumen: «¿qué necesita mi decisión hoy?» (M) — sin esquema · **construida en local 2026-09-21 (sin migraciones)**
+`/produccion` es ahora el Resumen (menú «Resumen», primero del grupo; solo líder; quien trabaja en el Taller va directo a Órdenes). Reglas puras en `lib/produccion-decisiones.ts` (15 pruebas); todo se calcula en el servidor.
+- **Para decidir** (hasta 7 tarjetas, por urgencia; cada una con su evidencia y una acción que abre la pantalla correcta con el contexto puesto; desaparecen solas cuando el dato cambia): entregas vencidas o por vencer
+  (**solo hechos**: la fecha ya pasó / falta ≤ 2 días, y en qué etapa está); tela o avíos que faltan para lo que las órdenes abiertas todavía necesitan (rendimiento medido × prendas − ya descontado), con la variante
+  **«pero ya está facturado» → Recibir mercadería** (F4d) cuando lo por llegar cubre lo que falta; plata vencida o por vencer en 7 días → Por pagar; modelos que se agotan sin orden abierta → **Abrir orden sugerida**
+  (`/produccion/ordenes?nueva=<modelo>`, con el modelo ya elegido); sobrestock (> 60 días) → no producir más; insumos bajo el mínimo sin pedido en camino.
+- **Cifras:** capital en insumos, valor en proceso (tela y avíos de órdenes abiertas), por pagar (con lo vencido), entregas por atender. El rojo lo lleva solo «Por pagar» cuando hay algo vencido.
+- **¿Qué producir?** por modelo: stock de las tiendas, ventas por semana, cobertura en días (marcas en 7 y 30, escala hasta 60: los umbrales de Inventario) y sugerencia (Producir ya / Ya hay orden abierta / Vigilar / Alcanza / Sobrestock / Sin ritmo medido).
+  **¿Alcanza la tela?** por tela: hay + facturado por recibir contra lo que piden las órdenes abiertas.
+- **Lo que NO se dibuja a propósito** (no hay base honesta): «llegará N días tarde», «faltan N días de trabajo», el tiempo de una corrida, la comparación producir vs maquilar y la eficiencia del Taller (F7). Un modelo sin ritmo de venta o
+  sin rendimiento medido no genera tarjeta.
+- Enlaces nuevos: `/produccion/ordenes?orden=<id>` abre esa orden; `?nueva=<modelo>` abre «Nueva orden» con el modelo elegido (`auto` = el primero).
+- **Verificas:** con la factura de tela sin recibir aparece «faltan X… pero ya está facturado»; al recibirla (o al pagar, o al cerrar una orden) la tarjeta desaparece al recargar; un colaborador que abre `/produccion` va a Órdenes.
+  **Pendiente:** verlo con clics y con datos reales (hoy producción no tiene ventas ni órdenes cerradas con insumos, así que se verá casi vacío).
 
 ### F7 · Eficiencia del Taller (L) — esquema · requiere **D-E, D-F**
 - `maquila_referencias` y `gastos_taller` (RPC de escritura, solo líder, historial que se agrega y no se edita). Pantalla:

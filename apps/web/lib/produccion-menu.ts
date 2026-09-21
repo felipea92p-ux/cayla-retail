@@ -14,9 +14,9 @@ export type PerfilMenu = {
   ubicacionTipo: "tienda" | "almacen" | "taller";
 };
 
-/** Pantallas de Producción, en orden. Hoy Órdenes, Insumos, Proveedores, Comprobantes, Recibir y Por pagar (Proveedores, Comprobantes y Por pagar
- *  son solo del líder): Resumen y Eficiencia se suman acá cuando existan (fases F6 y F7). */
-export type ClaveMenuProduccion = "ordenes" | "insumos" | "proveedoresProduccion" | "comprobantesProduccion" | "recibirProduccion" | "porPagarProduccion";
+/** Pantallas de Producción, en orden. Hoy Resumen, Órdenes, Insumos, Proveedores, Comprobantes, Recibir y Por pagar (Resumen, Proveedores, Comprobantes y Por pagar
+ *  son solo del líder): Eficiencia se suma acá cuando exista (fase F7). */
+export type ClaveMenuProduccion = "resumenProduccion" | "ordenes" | "insumos" | "proveedoresProduccion" | "comprobantesProduccion" | "recibirProduccion" | "porPagarProduccion";
 
 /**
  * Producción se ve **solo parado en un Taller, líder incluido** (decisión de Felipe, 2026-09-20: vuelve a la regla del
@@ -38,7 +38,7 @@ export function hijosMenuProduccion(perfil: PerfilMenu): ClaveMenuProduccion[] {
   if (!puedeVerProduccion(perfil)) return [];
   // Proveedores, Comprobantes y Por pagar son solo del líder (F4a a F4c): llevan datos bancarios y montos (D-G). Recibir lo usa también quien trabaja
   // en el Taller (F4d), sin ver dinero. Orden como en Compras: proveedor → comprobante → recibir → pago.
-  return perfil.esLider ? ["ordenes", "insumos", "proveedoresProduccion", "comprobantesProduccion", "recibirProduccion", "porPagarProduccion"] : ["ordenes", "insumos", "recibirProduccion"];
+  return perfil.esLider ? ["resumenProduccion", "ordenes", "insumos", "proveedoresProduccion", "comprobantesProduccion", "recibirProduccion", "porPagarProduccion"] : ["ordenes", "insumos", "recibirProduccion"];
 }
 
 export type ClaveMenuCompras = "proveedores" | "comprobantes" | "recibir" | "porPagar" | "notasCredito";
