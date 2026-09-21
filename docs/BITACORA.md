@@ -8497,3 +8497,9 @@ No abre lotes (F4d). Compras no se tocó.
 Felipe fusionó F4b y pegó su migración (validada contra producción: crédito, contado con dos medios, anular con pagos rechazado, 0 filas de rastro). Aprobó D-I. F4c
 construida en local: pago posterior con uno o varios medios (sin pasarse del saldo, idempotente por token), pantalla `/produccion/por-pagar` y el consolidado «Deuda total de
 CAYLA» (Compras + Producción) con el IGV del mes, de solo lectura. El formulario de comprobantes al contado también admite varios medios. Migración `20260921110000` sin pegar.
+
+## 2026-09-21 (Compras no se muestra parado en el Taller)
+Felipe pidió que, con el Taller seleccionado, el menú oculte «Compras» (es de las tiendas), del mismo modo que Producción se oculta en una tienda. Nueva regla `puedeVerCompras`
+(`apps/web/lib/produccion-menu.ts`): solo líder y solo si la ubicación activa NO es un Taller. Revierte la prueba que guardaba lo contrario («Compras no depende de dónde está
+parado el líder»), que era una decisión previa distinta. Solo visibilidad del menú: las URLs de `/compras/*` siguen abriendo porque otras pantallas enlazan a ellas.
+En cada ubicación el líder ve UNO de los dos módulos (prueba nueva).
