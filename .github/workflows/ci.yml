@@ -273,3 +273,13 @@ jobs:
       - name: pruebas:candado-lider
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:candado-lider
+
+      # Deriva de producción (las migraciones que producción tenía y el repo no): una sola firma de
+      # registrar_movimiento, catalogo_actualizar_producto y registrar_compra (con p_token, idempotente por
+      # token), el historial de «estado» no se pisa, el TRUNCATE del libro de movimientos se frena, y las
+      # columnas/índices de tejidos y patrones existen. Se agrega el 2026-09-21: llevaba semanas sin correr en
+      # ningún sitio y un caso quedó roto sin que nadie lo notara cuando el reparto (ADR-0139) retiró
+      # `compras.ubicacion_destino_id`. Cada caso termina en ROLLBACK.
+      - name: pruebas:deriva-produccion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:deriva-produccion
