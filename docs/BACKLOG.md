@@ -28,6 +28,11 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Candado de líder: solo el líder cierra la caja y ajusta stock (2026-09-21, ADR-0142) — hecho en local, falta pegar en producción
+- [x] Migración `20260921100000` (`cerrar_caja` y `registrar_movimiento` exigen `fn_es_lider()`, 42501), prueba `pruebas:candado-lider` (20/20; 9/20 contra las funciones de producción sin candado), escenario C2 de `caja:verificar` ajustado, y cinco botones escondidos a quien no es líder (Caja, Punto de Venta, Existencias, Productos en lista y en grilla).
+- [ ] **Fusionar y desplegar las pantallas ANTES; después pegar la migración en producción** con ok de Felipe (ensayo revertido → pegar → verificar por catálogo y llamada real de un colaborador; pasos en el ADR-0142).
+- [ ] Decisión operativa de Felipe: quién cierra la caja cuando no hay un líder en la tienda (hoy 9 líderes con alcance global, ninguno fijo a una tienda; 3 cajas abiertas, probablemente de prueba).
+
 ## 🎯 Carga inicial de proveedores (2026-09-20, ADR-0140) — APLICADA EN PRODUCCIÓN
 - [x] Hoja depurada a 74 fichas / 75 marcas / 75 vínculos; revisión adversarial; ensayo contra producción con retroceso (2→76, 1→76, 1→76; base intacta).
 - [x] **Aplicada el 2026-09-20** (76/76/76; 74/74 fichas y 75/75 vínculos idénticos, auditado desde afuera). El editor confirmó antes del paso 6 (`42P01 _antes`): solo falló la autocomprobación. **No volver a pegar.** Material privado: `~/Developer/cayla-cargas-privadas/proveedores-2026-09/`.
