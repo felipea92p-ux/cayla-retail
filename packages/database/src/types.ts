@@ -641,6 +641,7 @@ export type Database = {
       colaboradores: {
         Row: {
           agregado_por: string | null
+          atiende_en_caja: boolean
           created_at: string
           persona_id: string
           rol: string
@@ -648,6 +649,7 @@ export type Database = {
         }
         Insert: {
           agregado_por?: string | null
+          atiende_en_caja?: boolean
           created_at?: string
           persona_id: string
           rol?: string
@@ -655,6 +657,7 @@ export type Database = {
         }
         Update: {
           agregado_por?: string | null
+          atiende_en_caja?: boolean
           created_at?: string
           persona_id?: string
           rol?: string
@@ -3973,6 +3976,7 @@ export type Database = {
           token_cliente: string | null
           ubicacion_id: string
           usuario_id: string | null
+          vendedora_id: string | null
         }
         Insert: {
           anulado_en?: string | null
@@ -3987,6 +3991,7 @@ export type Database = {
           token_cliente?: string | null
           ubicacion_id: string
           usuario_id?: string | null
+          vendedora_id?: string | null
         }
         Update: {
           anulado_en?: string | null
@@ -4001,6 +4006,7 @@ export type Database = {
           token_cliente?: string | null
           ubicacion_id?: string
           usuario_id?: string | null
+          vendedora_id?: string | null
         }
         Relationships: [
           {
@@ -4677,6 +4683,14 @@ export type Database = {
           etiqueta_id: string
           etiqueta_nombre: string
           variante_id: string
+        }[]
+      }
+      fn_candidatas_vendedora_de_sede: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          atiende_en_caja: boolean
+          nombre: string
+          persona_id: string
         }[]
       }
       fn_clave_referencia: { Args: { p: string }; Returns: string }
@@ -5488,6 +5502,13 @@ export type Database = {
         Args: { p_ubicacion_id: string; p_variante_id: string }
         Returns: boolean
       }
+      fn_vendedoras_de_sede: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          nombre: string
+          persona_id: string
+        }[]
+      }
       fn_ventas_del_dia: {
         Args: { p_ubicacion_id?: string }
         Returns: {
@@ -5732,6 +5753,10 @@ export type Database = {
           unidades_facturadas: number
           unidades_llegaron: number
         }[]
+      }
+      marcar_atiende_en_caja: {
+        Args: { p_atiende: boolean; p_persona_id: string }
+        Returns: undefined
       }
       marcar_comprobante_no_emitido: {
         Args: { p_comprobante_id: string; p_motivo: string }
@@ -6124,6 +6149,7 @@ export type Database = {
           p_tipo_comprobante?: string
           p_token?: string
           p_ubicacion_id: string
+          p_vendedora_id?: string
         }
         Returns: string
       }

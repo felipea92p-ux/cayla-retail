@@ -160,6 +160,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-venta
 
+      # «Quién vendió» (20260922143700): la venta guarda a la vendedora Y a la sesión, la base la valida
+      # contra la sede, y las tres funciones nuevas respetan quién lee y escribe qué. Cada caso termina en ROLLBACK.
+      - name: pruebas:vendedora-en-venta
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:vendedora-en-venta
+
       # La lista de lo vendido hoy (Caja, Vender, Facturación): una fila por venta aunque tenga dos
       # comprobantes y sin las anuladas (20260921103000). Cada caso termina en ROLLBACK.
       - name: pruebas:ventas-del-dia
