@@ -142,9 +142,11 @@ lugar, los permisos ni el esquema; no se agregó ninguna clase de CSS (ADR-0105)
   marca ninguna función de esta pantalla.
 - **Vista previa con datos inventados** (ruta temporal, borrada) en 1440, 1024, 768 y 390 px: sin desborde horizontal; se corrigió una
   tabla de seis columnas que pedía 860 px cuando el contenido útil mide ~650 px a 1024 px de ventana.
-- **Con la sesión real del panel del navegador** (leyendo el HTML que sirve el servidor, sin clics) se recorrieron cada filtro, el cursor y los
+- **Con la sesión del panel del navegador, sobre la base LOCAL** (el servidor de prueba apunta a ella: son 23 ventas de prueba, no las de
+  producción, que tenía 16 al compararla) y leyendo el HTML que sirve el servidor, sin clics, se recorrieron cada filtro, el cursor y los
   valores basura de la URL, y las cifras coinciden con SQL: 23 ventas, S/ 2,936.70, ticket S/ 127.68; el viernes 18 suma S/ 2,697.00 en
-  20 ventas y el sábado 19, S/ 239.70 en 3; la mezcla de pagos suma lo mismo que el total.
+  20 ventas y el sábado 19, S/ 239.70 en 3; la mezcla de pagos suma lo mismo que el total. Con datos de producción la pantalla todavía no
+  se ha visto: contra producción solo se hicieron las lecturas de catálogo del punto anterior.
 - **Falta:** lo que exige el navegador visible y con hidratación —cambiar filtros con el mouse, paginar, tocar una fila para abrir el
   detalle, el hover del pulso—, una venta anulada de verdad (no hay ninguna) y fotos reales de prenda (5 de 17 variantes vendidas). Con
   el panel oculto React no hidrata y no hay clics.
