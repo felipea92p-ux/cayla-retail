@@ -28,6 +28,10 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 «Ajustar inventario» se abría vacío: seguía pidiendo `variantes.talla` (2026-09-20)
+- [x] `AjustarInventarioModal.tsx` pedía la columna `variantes.talla`, que la taxonomía cerrada eliminó (ADR-0095, `20260917100500`); la base respondía «column variantes.talla does not exist» y el modal quedaba vacío desde «Ajustar» en Existencias y Productos. Ahora usa `talla:tallas ( valor )` sin cast (si vuelve a pedir una columna inexistente, `tsc` falla — comprobado con una mutación) y arma las filas en `lib/ajuste-reglas.ts` (12 pruebas), con las tallas en orden de curva. Reproducido a nivel de Postgres (esquema real, solo lectura); barrido de `apps/web`: ningún otro select ni filtro pide `talla` a secas sobre `variantes`, y los otros 4 `as unknown as` de selects solo angostan tipos.
+- [ ] Verlo en navegador con datos reales (sin Docker no hay PostgREST local): abrir «Ajustar» en un producto con varias tallas y ver que salgan ordenadas y con su stock. En producción la columna ya estaba borrada desde el 2026-09-17 (ver 🎯 Taxonomía de variante), así que el modal llevaba roto desde entonces — según este BACKLOG, no consultado en vivo.
+
 ## 🎯 Apartar stock — Fase 1: reserva física con clienta y fecha límite (2026-09-20, ADR-0141) — hecho en local, falta pegar en producción
 
 Una prenda apartada para una clienta ya **no se puede vender**: sigue contando en el conteo físico, pero deja de estar *disponible*. Existencias tiene la
@@ -63,7 +67,7 @@ decisiones, lo que se descartó y la verificación en [docs/adr/0141-apartar-sto
 - [ ] **La reposición sugerida desde Resumen** (`ReponerPisoModal` con `cantidadInicial`) todavía parte del stock físico del almacén; en Existencias ya se corrigió.
 - [ ] **El mensaje del cierre de conteo** ya nombra el SKU, pero la vista previa (`previsualizar_cierre_conteo`) no avisa de los apartados: quien cuenta no ve
       que hay prendas reservadas que también hay que contar.
-- [ ] 🩹 **`AjustarInventarioModal.tsx` selecciona `variantes.talla`, que ya no existe (es `talla_id`)** desde la taxonomía cerrada (ADR-0075): «Ajustar
+- [x] 🩹 **CORREGIDO en el PR #210 (2026-09-20; ver la sección «Ajustar inventario» más arriba; la taxonomía es ADR-0095, no 0075).** **`AjustarInventarioModal.tsx` selecciona `variantes.talla`, que ya no existe (es `talla_id`)** desde la taxonomía cerrada (ADR-0075): «Ajustar
       inventario» probablemente falla al cargar las variantes. No se tocó aquí; verificar con datos reales.
 
 ---
