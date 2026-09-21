@@ -832,11 +832,15 @@ dinero intacto, RLS sin permisos de escritura, triggers diferidos activos. Produ
       Producción se asignaron al Gallito en `scripts/datos/aviario.mjs` (sin pájaro el CI cae al próximo refresco): **la sesión de Producción lo confirma**.
       `datos:comparar` queda en 3 «rotas» a propósito: `apartar_stock`, `liberar_apartado` y `listar_apartados` (Apartar stock, ADR-0141, cuya migración
       `20260920160000` sigue sin pegar en producción; no es de esta sesión).
-- [ ] **Filtro y chip «Destino» en Comprobantes y Por pagar.** Pendiente a propósito: la lista es paginada en Postgres, así que un filtro
-      en el navegador mentiría; pide un parámetro nuevo en `listar_compras` (`drop function` + `create`) y coordinar con la sesión de Por
-      pagar. Hoy cada comprobante repartido dice a qué tiendas va.
-- [ ] **Datos de prueba en el Postgres LOCAL compartido:** `TST-REPARTO01` (tiene recepciones: no se puede anular) y `TST-RUI0001`
-      (repartido 10+14, con una reasignación y un cierre). Solo local; ensucian los totales locales de «Por pagar»/«Por recibir».
+- [x] **Filtro y chip «Destino» en Comprobantes y Por pagar (2026-09-21, anexo del ADR-0139):** hecho y verificado en local (SQL 57/57, navegador:
+      Trujillo = 5 comprobantes en Comprobantes y 4 con S/ 4,212.60 en Por pagar, cuadrando con los subtotales). Migración
+      `20260921130000_compras_filtro_por_tienda_destino.sql`.
+- [ ] **Pegar `20260921130000_compras_filtro_por_tienda_destino.sql` en producción, ANTES de fusionar el PR del filtro** (entera; re-pegable). Después
+      refrescar en `funciones-produccion.txt` las líneas de `listar_compras` (18 parámetros) y `por_pagar_tramos` (8). Sin esa migración la lista
+      sigue igual; solo elegir una tienda en «Destino» avisa que falta actualizar la base.
+- [x] **Datos de prueba en el Postgres LOCAL compartido:** `TST-REPARTO01` (tiene recepciones: no se puede anular) y `TST-RUI0001`
+      (repartido 10+14, con una reasignación y un cierre). Solo local, **producción tiene 0** (verificado 2026-09-21); Felipe: no es problema,
+      se dejan. Lo único que hacen es ensuciar los totales locales de «Por pagar»/«Por recibir».
 - [ ] **Anotado, no de este cambio:** el `--en-seco` de `pagos_compras_endurecimiento` ya no sirve con el reparto aplicado.
 
 ## 🎯 Traslados: lectura operativa, franja «Atención hoy» y contador del menú (2026-09-18, ADR-0105)
