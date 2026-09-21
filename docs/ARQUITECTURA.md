@@ -101,6 +101,13 @@ flowchart TB
   valida el servidor vía `fn_puede_operar_sede` — la cookie es solo UX.
 - `(app)/layout.tsx` → `AppShell.tsx` (shell de navegación de todo el app) +
   `SedeSwitcher.tsx` → Server Action `cambiarSedeActiva`.
+- `/colaboradores` (solo líder; ADR-0145 y ADR-0148) → `lib/colaboradores.ts` (lecturas: `fn_colaboradores`,
+  `fn_colaboradores_suspendidos`, `fn_colaboradores_inactivos`, `fn_colaboradores_actividad`, `fn_dynamic_disponibles`) →
+  `ColaboradoresPanel.tsx` (pestañas, tarjetas, modales) + `ColaboradoresTablas.tsx` + `ColaboradoresModales.tsx` +
+  `ui/MenuAcciones.tsx`. Escribe por `lib/colaboradores-acciones.ts` → RPC `agregar_colaboradores`, `suspender_colaborador`,
+  `reactivar_colaborador`, `cambiar_ubicacion_colaborador`, `quitar_colaborador`. Reglas puras en `colaboradores-reglas.ts`.
+  **Suspender mueve la fila** de `colaboradores` a `colaboradores_suspendidos`; el historial vive en
+  `colaboradores_historial` (solo se agrega). `/vender/historial` también lee estas listas para el filtro «vendedor».
 
 **Catálogo / inventario**
 - `/inventario` → `lib/inteligencia.ts` (`getCatalogoInteligente`, reusa

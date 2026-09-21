@@ -33,6 +33,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
 - [ ] **Producción SUPERA el tope de 6: 7 hijas** (líder parado en el Taller) desde que #231 (Resumen, F6) entró sin regrupar; queda como deuda explícita con una prueba «DEUDA…» que la vigila. F7 Eficiencia obligará a regrupar (candidato: `produccion.abastecimiento`). **Quien agregue una fila al menú edita `lib/menu.ts`, no `AppShell.tsx`** (cómo, en el ADR-0144).
 
+## 🎯 Colaboradores: rediseño con Suspender, Cambiar ubicación, Actividad e Inactivas (2026-09-22, ADR-0148) — hecho en local, falta pegar en producción
+Sobre la maqueta de Felipe. Detalle, decisiones y lo descartado en [docs/adr/0148-colaboradores-suspender-mueve-la-fila-y-el-historial-solo-se-agrega.md](adr/0148-colaboradores-suspender-mueve-la-fila-y-el-historial-solo-se-agrega.md).
+- [x] Pantalla: 4 tarjetas reales, pestañas Activos / Suspendidos / Inactivas en Dynamic / Actividad, buscador y filtro por rol, «Tú», menú «⋯» (Cambiar ubicación · Suspender · Quitar), alta de varias personas a la vez. Tipos, lint y 2357 pruebas en verde; visto en el navegador con datos de ejemplo.
+- [x] Migración `20260922110000_colaboradores_suspender_y_actividad.sql`: probada con 67 comprobaciones en PGlite (no Docker).
+- [ ] **Pegar `20260922110000` en producción ANTES de fusionar la web** (con ok de Felipe; entera y de una vez, es re-ejecutable). Sin ella `/colaboradores` falla.
+- [ ] Correr la prueba contra el Postgres local con Docker cuando haya (las 67 comprobaciones de PGlite no reemplazan al contenedor).
+- [ ] Refrescar el volcado de producción (`generado/COMO-REFRESCAR.md`) para que `colaboradores_suspendidos` y `colaboradores_historial` entren al diccionario.
+- [ ] Verlo con clics en localhost con datos reales: suspender a una persona de prueba y comprobar que **de verdad** no puede entrar (probar el ingreso con su cuenta).
+- [ ] Decisión abierta: si una persona suspendida tiene una caja abierta a su nombre, hoy no se cierra sola.
+- [ ] Fuera de esta tanda: la decisión de cuáles de los 9 líderes deben serlo (`docs/pantallas/colaboradores.md`, sección 10); hoy solo se cambia entrando a la base.
+
 ## 🎯 Colaboradores: auditoría y primeros arreglos (2026-09-22, ADR-0145) — pantalla hecha, falta pegar la migración en producción
 Análisis completo en [docs/pantallas/colaboradores.md](pantallas/colaboradores.md) (6,5/10, Soporte, 12 tareas).
 - [x] Pantalla (#1, #7, #8, #9): alta sin persona ni ubicación puestas de antemano, un solo rojo, contraste y textos corregidos. Tipos, lint y pruebas de `error-escritura` en verde.
