@@ -6,6 +6,7 @@ import {
   claveRubro,
   cuentaLocalVisible,
   datosPagoDe,
+  detalleProveedorCombo,
   enmascararCci,
   enmascararCelular,
   enmascararCuenta,
@@ -15,6 +16,8 @@ import {
   normalizarCelular,
   haceCuanto,
   inicialesMeses,
+  marcasParaMostrar,
+  marcasPorProveedor,
   ordenarProveedores,
   proveedorConRuc,
   repartoDeuda,
@@ -25,6 +28,7 @@ import {
   siguientePaso,
   sinDatosDePago,
   subeEnCadaCompra,
+  textoBuscableProveedor,
   urlWhatsApp,
   validarCci,
   validarCelular,
@@ -320,5 +324,78 @@ describe("datos para pagar (ADR-0134)", () => {
     expect(d.titular).toBe("Rosita SAC");
     expect(d.saldoFavor).toBe(120);
     expect("saldoFavor" in datosPagoDe({ ...{ id: "prov-1", banco: null, cuenta_bancaria: null, cci: null, celular_billetera: null, billeteras: null, titular_cuenta: null, telefono: null, plazo_credito_dias: null, forma_pago_preferida: null } })).toBe(false);
+  });
+});
+
+describe("marcasPorProveedor (ADR-0140)", () => {
+  const marcas = [
+    { id: "m1", nombre: "Now Sur", activo: true },
+    { id: "m2", nombre: "Kero", activo: true },
+    { id: "m3", nombre: "Étnica", activo: true },
+    { id: "m4", nombre: "Vieja", activo: false },
+  ];
+  it("agrupa por proveedor y ordena sin tildes ni mayúsculas", () => {
+    const r = marcasPorProveedor(marcas, [
+      { marca_id: "m1", proveedor_id: "p1" },
+      { marca_id: "m3", proveedor_id: "p1" },
+      { marca_id: "m2", proveedor_id: "p1" },
+      { marca_id: "m2", proveedor_id: "p2" },
+    ]);
+    expect(r).toEqual({ p1: ["Étnica", "Kero", "Now Sur"], p2: ["Kero"] });
+  });
+  it("una marca desactivada no cuenta y un proveedor que solo tenía esa no aparece", () => {
+    expect(marcasPorProveedor(marcas, [{ marca_id: "m4", proveedor_id: "p9" }])).toEqual({});
+  });
+  it("un vínculo a una marca que no llegó se ignora en vez de romper", () => {
+    expect(marcasPorProveedor(marcas, [{ marca_id: "no-existe", proveedor_id: "p1" }, { marca_id: "m2", proveedor_id: "p1" }])).toEqual({ p1: ["Kero"] });
+  });
+  it("sin datos devuelve un mapa vacío", () => {
+    expect(marcasPorProveedor([], [])).toEqual({});
+  });
+});
+
+describe("textoBuscableProveedor", () => {
+  const p = { nombre: "Textil Ejemplo SAC", ruc: "20111111111", contacto: "Rosa" };
+  it("incluye nombre, marcas, RUC y contacto", () => {
+    const t = textoBuscableProveedor(p, ["Kero", "Now Sur"]);
+    for (const trozo of ["Textil Ejemplo SAC", "Kero", "Now Sur", "20111111111", "Rosa"]) expect(t).toContain(trozo);
+  });
+  it("las marcas van al final: nombre + RUC + contacto siguen siendo una subcadena contigua (lo que ya se podía buscar)", () => {
+    const t = textoBuscableProveedor(p, ["Kero"]).toLowerCase();
+    // Lo que alguien pega desde una factura: razón social y RUC seguidos.
+    expect(t).toContain("textil ejemplo sac 20111111111");
+    expect(t).toContain("sac 2011");
+    expect(t).toContain("20111111111 rosa");
+    // Y la marca, sola, también.
+    expect(t).toContain("kero");
+  });
+  it("sin marcas, RUC ni contacto no deja separadores sueltos", () => {
+    expect(textoBuscableProveedor({ nombre: "Taller Sin Marca", ruc: null, contacto: null })).toBe("Taller Sin Marca");
+  });
+});
+
+describe("detalleProveedorCombo", () => {
+  it("junta RUC y marcas con un punto medio", () => {
+    expect(detalleProveedorCombo("20111111111", ["Kero"])).toBe("20111111111 · Kero");
+    expect(detalleProveedorCombo(null, ["Kero", "Kero Kids"])).toBe("Kero · Kero Kids");
+  });
+  it("sin RUC ni marcas no hay detalle (undefined, no cadena vacía)", () => {
+    expect(detalleProveedorCombo(null, [])).toBeUndefined();
+    expect(detalleProveedorCombo(null)).toBeUndefined();
+  });
+});
+
+describe("marcasParaMostrar", () => {
+  const marcas = ["Ana", "Bella", "Céfiro", "Dalia"];
+  it("sin búsqueda respeta el orden y cuenta las que no caben", () => {
+    expect(marcasParaMostrar(marcas, "", 2)).toEqual({ visibles: ["Ana", "Bella"], ocultas: 2 });
+    expect(marcasParaMostrar(marcas, "  ", 2)).toEqual({ visibles: ["Ana", "Bella"], ocultas: 2 });
+  });
+  it("con búsqueda, la que coincide sube aunque estuviera al final (sin tildes ni mayúsculas)", () => {
+    expect(marcasParaMostrar(marcas, "CEFIRO", 2)).toEqual({ visibles: ["Céfiro", "Ana"], ocultas: 2 });
+  });
+  it("si caben todas no hay ocultas", () => {
+    expect(marcasParaMostrar(["Ana"], "", 3)).toEqual({ visibles: ["Ana"], ocultas: 0 });
+    expect(marcasParaMostrar([], "x", 3)).toEqual({ visibles: [], ocultas: 0 });
   });
 });

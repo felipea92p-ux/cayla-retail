@@ -65,8 +65,9 @@ type Persona = {
   rol: "lider" | "integrante";
   ubicacionId: string;
   ubicacionEtiqueta: string;
-  /** Producción (2026-09-15): un integrante del Taller ve el módulo sin ser
-   *  líder. Solo el AppShell lo mira; el permiso real lo da la base. */
+  /** Producción (2026-09-15): decide si se ve el módulo del Taller — solo cuando
+   *  la ubicación activa es un Taller, sea quien sea la persona. Lo miran el
+   *  AppShell y las páginas de Producción; el permiso real lo da la base. */
   ubicacionTipo: "tienda" | "almacen" | "taller";
   puedeCambiarUbicacion: boolean;
 };
@@ -907,12 +908,13 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   const colaboradores: Item = { href: "/colaboradores", etiqueta: "Colaboradores", icono: IC.colaboradores };
   const ordenes: Item = { href: "/produccion/ordenes", etiqueta: "Órdenes", icono: IC.produccion };
   const insumos: Item = { href: "/produccion/insumos", etiqueta: "Insumos", icono: IC.insumos };
+  const proveedoresProduccion: Item = { href: "/produccion/proveedores", etiqueta: "Proveedores", icono: IC.proveedores };
   // Producción y Compras son dos módulos distintos (ADR-0133, decisión de Felipe
-  // 2026-09-19): cada uno con su grupo. Producción (D-A — reemplaza la regla del
-  // 2026-09-17 «solo parado en el Taller, líder incluido»): el líder la ve desde
-  // cualquier ubicación, porque la base ya lo permite (`fn_puede_operar_ubicacion`
-  // = líder o mi ubicación); quien trabaja en el Taller ve sus pantallas. El
-  // candado real sigue siendo el de cada RPC; esto solo decide qué se muestra.
+  // 2026-09-19): cada uno con su grupo. Producción solo se ve parado en el Taller,
+  // líder incluido (Felipe, 2026-09-20: vuelve a la regla del 2026-09-17 y deja sin
+  // efecto la D-A): un líder que mira desde una tienda no la ve; si quiere operar el
+  // Taller, cambia la ubicación en el selector. El candado real sigue siendo el de
+  // cada RPC; esto solo decide qué se muestra (regla en `lib/produccion-menu.ts`).
   const perfilMenu = { esLider, ubicacionTipo: persona.ubicacionTipo };
   const clavesProduccion = hijosMenuProduccion(perfilMenu);
   const clavesCompras = hijosMenuCompras(perfilMenu);
@@ -961,11 +963,11 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
     hijos: clavesCompras.map((c) => itemsCompras[c]),
   };
 
-  // "Producción" (ADR-0133) es el módulo de fabricar: hoy Órdenes e Insumos;
-  // Resumen, proveedores de producción, comprobantes y Eficiencia se suman
-  // cuando existan (F4 a F7). Sin rótulos de sección a propósito: el riel del lateral se mueve
+  // "Producción" (ADR-0133) es el módulo de fabricar: hoy Órdenes, Insumos y Proveedores (solo líder);
+  // Resumen, comprobantes, por pagar, recibir y Eficiencia se suman
+  // cuando existan (F4b a F7). Sin rótulos de sección a propósito: el riel del lateral se mueve
   // por filas de alto fijo (`PASO_FILA`) y una fila de otra altura lo desalinearía.
-  const itemsProduccion: Record<ClaveMenuProduccion, Item> = { ordenes, insumos };
+  const itemsProduccion: Record<ClaveMenuProduccion, Item> = { ordenes, insumos, proveedoresProduccion };
   const hijosProduccion: Item[] = clavesProduccion.map((c) => itemsProduccion[c]);
   const grupoProduccion: ItemGrupo = {
     id: "produccion",

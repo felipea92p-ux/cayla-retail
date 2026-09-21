@@ -39,7 +39,7 @@ cierran en la base, no en la pantalla), **7** (cada paso se prueba en el navegad
 | `registrar_compra` y el reparto por tienda (ADR-0139, en curso en otra rama) son de **Compras** | `CompraFormV2.tsx`, ADR-0139 | **No condicionan a Producción** (D-H): tiene su propio abastecimiento y no toca `compras` |
 | Otras ramas tocan Compras (ADR-0131 Por pagar, ADR-0139 reparto entre tiendas) | `git log origin/main..rama` | Ninguna fase de Producción modifica Compras; solo se coordina el orden de los ADR y de las migraciones |
 | `compra_items.producto_id` es **NOT NULL**: una factura de tela no cabe | `DICCIONARIO-RETAIL.md:1686` | F4 (único cambio de esquema grande) |
-| `fn_puede_operar_ubicacion` = líder **o** mi ubicación: **el líder ya puede operar el Taller desde cualquier sede** | `0006_colaboradores.sql:51` | La regla «Producción solo parado en el Taller» (2026-09-17) es de menú, no de base |
+| `fn_puede_operar_ubicacion` = líder **o** mi ubicación: **el líder ya puede operar el Taller desde cualquier sede** | `0006_colaboradores.sql:51` | La regla «Producción solo parado en el Taller» (2026-09-17, vigente otra vez desde 2026-09-20) es de menú y de página, no de base |
 | El motor de reposición ya existe: `fn_resumen_variantes` (ventas, disponible, en camino, días observables, `en_red`) | `20260919141804_resumen_inventario_v2.sql` | «¿Qué producir?» **lo reutiliza**, no recalcula ventas por su cuenta |
 | El dinero de Compras es solo del líder y lo hace cumplir la base (`fn_puede_ver_dinero_de_compras`) | ADR-0126 | Todo monto nuevo nace bajo ese candado |
 | `insumo_lotes`/`movimientos_insumo` se leen con `fn_puede_operar_ubicacion`: **un colaborador del Taller ve costos** | `DICCIONARIO-RETAIL.md:2088` | F4c cierra ese hueco (D-G) |
@@ -50,7 +50,7 @@ cierran en la base, no en la pantalla), **7** (cada paso se prueba en el navegad
 
 | # | Decisión | Recomiendo | Por qué | Gate |
 |---|---|---|---|---|
-| **D-A** | Menú: ¿quién ve Producción? | ✅ **Decidida.** El líder la ve **desde cualquier ubicación**; quien trabaja en el Taller ve sus pantallas; **Compras sigue siendo un grupo aparte** | La base ya lo permite; **revierte la regla del 2026-09-17** | dada por Felipe (F1) |
+| **D-A** | Menú: ¿quién ve Producción? | ✅ **Decidida y REVERTIDA el 2026-09-20.** Hoy rige: Producción se ve **solo parado en un Taller, líder incluido** (por el tipo de la ubicación activa); **Compras sigue siendo un grupo aparte** y no cambió. Entre el 2026-09-19 y el 2026-09-20 rigió lo contrario (el líder la veía desde cualquier ubicación) | Es solo de menú y de página: la base sigue dejando al líder operar el Taller desde cualquier sede. Vuelve a la regla del 2026-09-17 | Felipe (2026-09-20, al verla en una tienda) |
 | **D-B** | Destino Taller/Tiendas de un comprobante | ⛔ **Sin objeto.** Producción registra **sus** comprobantes (D-H); ya no comparte `compras` ni el reparto de ADR-0139 | — | — |
 | **D-C** | Cómo entra la tela a una factura | ⛔ **Reemplazada por D-H.** Ya no se toca `compra_items` | — | — |
 | **D-D** | Rendimiento (m/prenda) | **Medido**: consumo real ÷ buenas de las órdenes cerradas del modelo. Sin receta ni tablas. Modelo sin historial: se escribe el rendimiento en la orden y solo alimenta la vista previa | `bom_items` murió; una receta manual envejece. Lo medido no miente | — |
@@ -166,7 +166,7 @@ Tamaño: **S** ≈ media sesión · **M** ≈ una sesión · **L** ≈ dos o má
   baja a 170 m y el libro lo registra; anular avisa; 390 px sin desborde; sin errores de consola. **Sin verificar:** colaborador del Taller.
 - **Conocido:** quien no es líder no ve montos en pantalla, pero `insumo_lotes.costo_unitario` sigue legible por la API (F4e).
 
-### F3b · Devolver insumos (S) — esquema · **construida en local 2026-09-20; migración SIN pegar en producción**
+### F3b · Devolver insumos (S) — esquema · **✅ aplicada en producción y validada (2026-09-20)**
 Migración `20260920100000_devolver_insumos_de_produccion.sql` (todo sobre tablas que ya existen; producción tiene 0 insumos y 0 órdenes, así que no hay datos que migrar):
 - `devolver_insumo_de_produccion(p_produccion_id, p_insumo_id, p_cantidad, p_nota)`: escribe el movimiento `devolucion` que la tabla ya admitía. La cantidad vuelve al
   **último lote del que esa orden sacó ese insumo** (PEPS al revés) y al costo con que salió; no parte entre lotes; nunca más de lo descontado (neto); solo con la orden en proceso.
@@ -176,14 +176,19 @@ Migración `20260920100000_devolver_insumos_de_produccion.sql` (todo sobre tabla
 - UI: en el panel de la orden cada insumo descontado muestra su neto y «Devolver al estante» con vista previa (a qué lote vuelve, cómo queda el costo por prenda); el modal
   «Anular» avisa qué vuelve al estante. El ritmo de consumo (`consumoSemanal`) resta lo devuelto para no inflar la cobertura.
 - Prueba: `scripts/pruebas/insumos_devolucion.mjs` (10 casos, `pnpm pruebas:insumos-devolucion`, paso en CI) + 6 pruebas nuevas de `insumos-reglas`.
-- **Sin verificar en el navegador** (el panel estaba oculto y no hidrata); sí verificado el camino completo de la base con SQL real.
+- **Validado en producción (2026-09-20, solo lectura + bloque con rollback):** una sola versión de cada función, el helper cerrado a `authenticated`, y costo 800 → 500 → 0 con el saldo del lote volviendo a 75 y 100; 0 filas de rastro. **Sin verificar en el navegador** (panel oculto).
 
 ### F4 · Abastecimiento propio de Producción (L, **alto riesgo**) — esquema · requiere **D-H, D-G** (y **D-I** antes de F4c)
 Ya **no depende de ADR-0139** ni toca `compras`, `compra_items`, `registrar_compra` ni `recibir_compras`. Cinco PR, cada uno con su prueba SQL:
-- **F4a · Proveedores de Producción.** Tabla `proveedores_produccion` (nombre, RUC, contacto, teléfono, banco, cuenta, CCI, billeteras, `rubro`
-  tela | avíos | maquila | otro, `plazo_credito_dias`, forma de pago, `activo`). `insumos.proveedor_id` e `insumo_lotes.proveedor_id` se
-  **repuntan** a esta tabla (hoy apuntan a `retail.proveedores`; están en **0 filas** en producción: verificar de nuevo antes de pegar).
-  `fn_proveedor_metricas_insumos` pasa al directorio propio. Pantalla: lista, ficha y vista rápida (el diseño ya aprobado de Proveedores, ADR-0128).
+- **F4a · Proveedores de Producción — construida en local 2026-09-20; migración `20260920110000` SIN pegar en producción.**
+  Tabla `proveedores_produccion` (mismo molde y CHECK que `proveedores`; `rubro` obligatorio: tela | avios | maquila | otro), **solo-líder por RLS**
+  (datos bancarios de terceros = dinero, D-G) y sin grants de escritura: se escribe por `guardar_proveedor_produccion` (id nulo = crear; normaliza y valida
+  RUC/CCI/celular/billeteras con los mensajes de Compras) y `cambiar_estado_proveedor_produccion` (archivar/reactivar, nunca borrar). Lectura:
+  `fn_proveedores_produccion()` y `fn_proveedor_produccion_metricas(uuid)` (lotes, total comprado, última entrega; cero filas para quien no es líder).
+  `insumos.proveedor_id` e `insumo_lotes.proveedor_id` se **repuntan** (la migración se detiene si hay filas; hoy 0). **Decisión:** `fn_proveedor_metricas_insumos`
+  de Compras NO se reescribe (Compras idéntico; devolverá ceros, que es lo correcto) — se cierra con el candado de F4e. Pantalla `/produccion/proveedores`
+  (solo líder, menú «Proveedores»): lista con filtro por rubro y búsqueda, cifras, alta/edición en `<Modal>`, archivar. Saldo y cumplimiento del spike
+  **no se dibujan** hasta F4b–F4d (no hay de dónde calcularlos). Prueba `pnpm pruebas:proveedores-produccion` (15 casos, en CI) + 8 de reglas. Sin ver en navegador.
 - **F4b · Comprobantes de Producción.** `comprobantes_produccion` + `_items` (insumo, cantidad, costo unitario **sin IGV**) + `_pagos`;
   RPC `registrar_comprobante_produccion` con las reglas de ADR-0035: **contado ⇒ pago obligatorio en la misma transacción**, crédito ⇒
   vencimiento, escritura solo por RPC, anular (nunca borrar), idempotencia por token.
@@ -243,7 +248,7 @@ a ADR-0139: los dos módulos avanzan en paralelo sin tocar las mismas funciones.
 | Repuntar `insumo_lotes.proveedor_id` con datos ya cargados | hoy 0 filas; verificar de nuevo el día de pegar, y si hubiera filas, migrarlas antes de repuntar |
 | Choque con otras sesiones (ADR/timestamps). **Ya visible:** los ADR 0130-0132 estaban tomados por ramas sin fusionar | F0: fusionar `main`, reservar ADR-0133 y timestamps, fila en `SESIONES-ACTIVAS.md`; `git status` y ramas antes de cada fase; F4 solo tras ADR-0132 |
 | Tocar Compras por accidente | Compras **no se modifica** en ninguna fase; su prueba SQL corre en cada PR de F4 |
-| Regla de menú del 2026-09-17 revertida sin querer | D-A explícita; el ADR-0133 la marca como **reemplazada** |
+| Regla de menú de Producción cambiada sin que nadie lo decida (pasó dos veces: 09-17 → 09-19 → 09-20) | La regla vive en **una sola función** (`puedeVerProduccion`, `lib/produccion-menu.ts`) que usan el menú y las páginas, con prueba de que no pueden discrepar; el cambio se anota en D-A y en el ADR-0133 |
 | El colaborador ve costos por la API | F4c antes de exponer Insumos a colaboradores fuera del Taller; prueba `dinero_compras_solo_lider.mjs` extendida |
 | Cifras de ejemplo que se cuelan a producción | regla 4 del contrato de diseño; revisión de cada PR contra el spike |
 | El spike se ve distinto en Tailwind real | criterio único: lo que difiera debe estar en la tabla de la sección 5 |

@@ -3,7 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
-## 2026-09-19 (Notas de crédito: módulo propio, fuera de Recepción — ADR-0140)
+## 2026-09-20 (Apartar stock, Fase 1 — ADR-0141: una prenda apartada ya no se puede vender)
+Una prenda que una clienta pidió por WhatsApp seguía contando como disponible, y cualquier otra caja podía vendérsela. Ahora se **aparta** (clienta, teléfono y fecha límite): sigue en la tienda —el conteo físico no cambia— pero la base rechaza venderla, trasladarla o ajustarla por debajo de lo apartado, con un mensaje que dice por qué. Existencias tiene la tarjeta «Apartados» (lo vencido en rojo; no se libera solo, porque la clienta pudo dejar adelanto), «Apartar» por fila y «Liberar» (quien apartó, o una líder).
+Lo que Felipe se lleva: (1) el diseño se **probó rompiéndolo a propósito** —se dañó el código de tres maneras y cada una hizo fallar justo su prueba— y con carreras reales de hasta 120 conexiones mezclando apartar y vender sobre la misma fila: cero sobreventa, cero deadlocks, cero descuadres; (2) una regla de permisos vive en UN lugar (la base la entrega calculada; la pantalla no la repite); (3) dos «alarmas» del diseño resultaron falsas al ponerles número —`movimientos` tenía 474 filas, no millones—, y una sí era real: la primera versión dejaba vender lo apartado, y la revisión adversarial lo cazó antes de escribir código.
+Sin resolver: el **adelanto ligado a Caja** (Fase 2, con `registrar_venta` consumiendo la reserva; antes, validar con el contador el tratamiento tributario de un anticipo); probarlo con datos reales en el navegador (esta sesión no tenía base de datos); y pegar la migración en producción antes de desplegar la web. Aparte: `AjustarInventarioModal` selecciona `variantes.talla`, que ya no existe — anotado en BACKLOG, no tocado.
+
+## 2026-09-19 (Notas de crédito: módulo propio, fuera de Recepción — ADR-0142)
 Las notas de crédito de proveedor salieron de Recibir mercadería y tienen su pantalla, `/compras/notas-credito` (solo líder): tablero de lo que falta reclamar, registro con buscador de facturas por documento, proveedor o MONTO, detalle con su recorrido y los saldos a favor por proveedor. Recepción vuelve a ser contar prendas: solo avisa «Nota de crédito por reclamar · S/ X» con un chip al módulo, y el detalle del comprobante deja de ser la segunda puerta al mismo formulario (`AccionesFaltantes` pasó de 183 a 26 líneas).
 Decisión de Felipe: al registrar una nota se elige qué pasa con el dinero que sobra — «nos lo devuelve ahora» (reembolso, con medio, fecha y N.º de operación opcional) o «queda a favor para otra compra» (por defecto). La nota y su devolución se escriben en UNA transacción (`registrar_nota_credito_compra` con `p_destino`); antes eran dos RPC que podían quedar a medias. Migración `20260919211000`, aplicada en local, **pendiente de producción**.
 Felipe se lleva: el spike visual sirvió de contrato — se comparó pantalla contra maqueta y las diferencias quedaron escritas (el detalle es modal, no ruta propia; no hay «reclamada al proveedor» todavía; se quitaron las cuentas de CAYLA que la maqueta inventaba porque la base no las guarda). Y una regla que se repite: cuando algo se puede registrar desde dos pantallas, la regla se duplica y una de las dos se queda vieja.
@@ -8426,3 +8431,53 @@ lote del que salió y al mismo costo; `anular_produccion` devuelve todo lo desco
 tela/avíos neto de devoluciones (antes las ignoraba). Migración `20260920100000` solo en local; `pnpm pruebas:insumos-devolucion` 10/10 y
 1421 pruebas del web en verde. Falta pegarla en producción (Felipe) y verla en el navegador (el panel estaba oculto). Referencias al
 reparto entre tiendas renumeradas a ADR-0139.
+
+## 2026-09-20 (Producción F3b aplicada y F4a: proveedores propios — ADR-0133)
+Felipe pegó la migración de F3b y se validó contra producción: una sola versión de cada función, helper cerrado, costo 800 → 500 → 0 y saldo del lote 75 → 100
+en un bloque que se revierte solo (0 filas de rastro). F4a construida en local: directorio `proveedores_produccion` aparte del de Compras, solo-líder, escritura
+solo por RPC, pantalla `/produccion/proveedores`. Migración `20260920110000` sin pegar; `insumos`/`insumo_lotes` se repuntan a la tabla nueva (0 filas hoy).
+`pruebas:proveedores-produccion` 15/15 y 1629 pruebas del web en verde. Compras no se tocó.
+
+## 2026-09-20 (Producción solo se ve en el Taller — revierte D-A de ADR-0133)
+Felipe vio «Producción» en el menú de una tienda y pidió que solo salga en el Taller. La regla vuelve a ser la del 2026-09-17: se ve parado en un
+Taller, líder incluido, decidido por el **tipo** de la ubicación activa (no por el nombre «LIM»). La regla quedó en una sola función
+(`puedeVerProduccion`) que usan el menú y las páginas de Órdenes e Insumos; un líder que llega por URL desde otra ubicación ve un aviso, no un rebote mudo.
+Sin esquema ni migración; Compras no cambió. Verificado con el `AppShell` real en el navegador (6 combinaciones rol × tipo) y 10 pruebas de la regla;
+falta probarlo con sesión real de líder cambiando de Tienda a Taller con el selector.
+
+## 2026-09-20 (Nuevo producto: primer paso con tres familias a la vista)
+El primer paso mostraba las 6 familias parejas y, con el menú lateral abierto, las tarjetas se montaban unas sobre otras (a 1024 px el
+bloque medía 334 px y a cada una le tocaban 49). Ahora se ven Indumentaria, Accesorios y Complementos y Bisutería, más una tarjeta «Ver más»
+que nombra lo escondido (Calzado, Belleza y Papelería); la búsqueda las alcanza igual. Las columnas las decide el ancho del bloque
+(`@container`) y no el de la ventana, como ya hacen Recepciones y Por pagar. La regla vive en `repartirFamilias` (7 pruebas; la que importa:
+ninguna familia se pierde) y no en una columna de `familias`. Verificado en navegador a 375, 1024, 1280 y 1440 px con datos simulados
+(sin Docker): cero desbordes; 1628 pruebas y typecheck en verde. Falta verlo con sesión de Líder real contra la base.
+
+## 2026-09-20 (Carga inicial de proveedores — ADR-0142)
+Se depuró la hoja de 1.558 proveedores (293 con RUC válido) hasta **74 fichas** (62 con RUC, 12 sin), **75 marcas** y **75 vínculos**
+marca↔proveedor, con un SQL todo-o-nada que **no está en git** (lleva nombres y celulares de personas naturales): vive en
+`~/Developer/cayla-cargas-privadas/proveedores-2026-09/`. Decisiones: una fila por empresa con el RUC oficial (RUC 20, o el de
+mayor gasto entre RUC 10) y el otro anotado aparte; RUC en baja de oficio o inválido ⇒ ficha sin RUC (se verificaron 30 RUC 20 en
+directorios públicos; los RUC 10 no, porque contienen el DNI); sin datos de pago ni dirección. Revisión adversarial (4 revisores +
+refutadores) y ensayo contra producción con retroceso: `proveedores 2→76, marcas 1→76, vínculos 1→76`, base intacta después. **Aplicada
+en producción el mismo día** (76/76/76; auditada desde afuera: 74/74 fichas y 75/75 vínculos idénticos). Al pegarla, el editor
+confirmó la transacción antes del paso 6 (`42P01 _antes`): las escrituras ya estaban hechas y solo falló la autocomprobación. Falta
+verla en `/proveedores` y `/productos/marcas`. Hallazgo abierto: el buscador de Proveedores no
+mira las marcas (44 de 71 fichas con marca no se encuentran por ella) y existe un commit local sin publicar con un volcado anterior de
+esta hoja (`99059734`): no subir esa rama.
+
+## 2026-09-20 («Ajustar inventario» se abría vacío)
+Desde la taxonomía cerrada de tallas (`variantes.talla` pasó a `talla_id`, migración `20260917100500`), el modal «Ajustar» —el de Existencias y Productos— pedía una columna que ya no existía: la base contestaba «column variantes.talla does not exist» y el modal quedaba vacío con el aviso «No se pudo cargar las variantes del producto». Nada lo detectó porque el resultado de la consulta pasaba por un `as unknown as`, que le apaga el chequeo al compilador. Ahora pide `talla:tallas ( valor )` sin cast —si reaparece una columna inexistente, `tsc` falla— y las tallas salen en orden de curva (XS · S · M · L, 28 · 30 · 32) en vez de alfabético.
+Reproducido contra un Postgres local con el esquema real (solo lectura): el select viejo falla, el nuevo devuelve las filas. Barrido de `apps/web`: ningún otro `.select` ni filtro pide `talla` a secas sobre `variantes`; los otros 4 casts de selects (`venta-detalle`, `colaboradores`, `comprobantes`, `envio`) solo angostan tipos, no esconden columnas rotas. 1644 pruebas, `tsc` y `eslint` en verde. Falta abrirlo en el navegador con datos reales (sin Docker no hay PostgREST local).
+
+## 2026-09-20 (Proveedores: buscar y mostrar por marca — ADR-0142)
+Tras la carga de 74 proveedores, 44 de las 71 fichas con marca no se hallaban escribiendo su marca (el buscador miraba nombre, RUC y
+contacto; el nombre es la razón social). Ahora la lista de Proveedores busca también por marca y muestra las marcas como etiquetas
+(las que coinciden suben y se resaltan, máx. 3 + «+N»), y el detalle rápido, la ficha y el combo de «nueva compra» también las usan.
+**Sin migración**: `getMarcasPorProveedor()` lee `marcas` y `marca_proveedores` y, si falla, la pantalla se pinta como antes (lectura
+secundaria, como la serie mensual). 12 pruebas nuevas (1.669 en total, tsc y eslint en verde) y verificado en el navegador con datos
+inventados: mayúsculas/tildes, marca oculta tras «+N», marca de un desactivado, modo sin marcas y vista de colaborador. Una revisión
+adversarial independiente encontró 2 defectos reales que ya estaban corregidos antes del commit: las marcas iban entre el nombre y el
+RUC en el texto buscable (rompía pegar «razón social + RUC» de una factura) y el chip partía la palabra al resaltar a medias. No
+cubre los buscadores de Comprobantes y Recepciones (filtran el proveedor por nombre dentro de sus RPC: requiere migración).
+

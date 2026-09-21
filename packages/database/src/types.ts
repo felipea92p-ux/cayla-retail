@@ -74,6 +74,128 @@ export type Database = {
           },
         ]
       }
+      apartados: {
+        Row: {
+          adelanto_caja_movimiento_id: string | null
+          adelanto_medio: string | null
+          adelanto_monto: number | null
+          cantidad: number
+          cerrado_en: string | null
+          cerrado_por: string | null
+          cierre_motivo: string | null
+          clienta_contacto: string
+          clienta_nombre: string
+          creado_por: string | null
+          created_at: string
+          estado: string
+          id: string
+          movimiento_cierre_id: string | null
+          movimiento_id: string
+          nota: string | null
+          sububicacion_id: string | null
+          ubicacion_id: string
+          variante_id: string
+          vence_el: string
+          venta_id: string | null
+        }
+        Insert: {
+          adelanto_caja_movimiento_id?: string | null
+          adelanto_medio?: string | null
+          adelanto_monto?: number | null
+          cantidad: number
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          cierre_motivo?: string | null
+          clienta_contacto: string
+          clienta_nombre: string
+          creado_por?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          movimiento_cierre_id?: string | null
+          movimiento_id: string
+          nota?: string | null
+          sububicacion_id?: string | null
+          ubicacion_id: string
+          variante_id: string
+          vence_el: string
+          venta_id?: string | null
+        }
+        Update: {
+          adelanto_caja_movimiento_id?: string | null
+          adelanto_medio?: string | null
+          adelanto_monto?: number | null
+          cantidad?: number
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          cierre_motivo?: string | null
+          clienta_contacto?: string
+          clienta_nombre?: string
+          creado_por?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          movimiento_cierre_id?: string | null
+          movimiento_id?: string
+          nota?: string | null
+          sububicacion_id?: string | null
+          ubicacion_id?: string
+          variante_id?: string
+          vence_el?: string
+          venta_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apartados_cerrado_por_fkey"
+            columns: ["cerrado_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apartados_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apartados_movimiento_cierre_id_fkey"
+            columns: ["movimiento_cierre_id"]
+            isOneToOne: false
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apartados_movimiento_id_fkey"
+            columns: ["movimiento_id"]
+            isOneToOne: false
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apartados_sububicacion_pertenece_fk"
+            columns: ["sububicacion_id", "ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "sububicaciones"
+            referencedColumns: ["id", "ubicacion_id"]
+          },
+          {
+            foreignKeyName: "apartados_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apartados_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       caja_movimientos: {
         Row: {
           caja_id: string
@@ -2927,6 +3049,63 @@ export type Database = {
         }
         Relationships: []
       }
+      proveedores_produccion: {
+        Row: {
+          activo: boolean
+          banco: string | null
+          billeteras: string[] | null
+          cci: string | null
+          celular_billetera: string | null
+          contacto: string | null
+          created_at: string
+          cuenta_bancaria: string | null
+          forma_pago_preferida: string | null
+          id: string
+          nombre: string
+          plazo_credito_dias: number | null
+          rubro: string
+          ruc: string | null
+          telefono: string | null
+          titular_cuenta: string | null
+        }
+        Insert: {
+          activo?: boolean
+          banco?: string | null
+          billeteras?: string[] | null
+          cci?: string | null
+          celular_billetera?: string | null
+          contacto?: string | null
+          created_at?: string
+          cuenta_bancaria?: string | null
+          forma_pago_preferida?: string | null
+          id?: string
+          nombre: string
+          plazo_credito_dias?: number | null
+          rubro: string
+          ruc?: string | null
+          telefono?: string | null
+          titular_cuenta?: string | null
+        }
+        Update: {
+          activo?: boolean
+          banco?: string | null
+          billeteras?: string[] | null
+          cci?: string | null
+          celular_billetera?: string | null
+          contacto?: string | null
+          created_at?: string
+          cuenta_bancaria?: string | null
+          forma_pago_preferida?: string | null
+          id?: string
+          nombre?: string
+          plazo_credito_dias?: number | null
+          rubro?: string
+          ruc?: string | null
+          telefono?: string | null
+          titular_cuenta?: string | null
+        }
+        Relationships: []
+      }
       series_comprobantes: {
         Row: {
           id: string
@@ -2962,6 +3141,7 @@ export type Database = {
       stock: {
         Row: {
           cantidad: number
+          cantidad_apartada: number
           sububicacion_id: string | null
           ubicacion_id: string
           updated_at: string
@@ -2969,6 +3149,7 @@ export type Database = {
         }
         Insert: {
           cantidad?: number
+          cantidad_apartada?: number
           sububicacion_id?: string | null
           ubicacion_id: string
           updated_at?: string
@@ -2976,6 +3157,7 @@ export type Database = {
         }
         Update: {
           cantidad?: number
+          cantidad_apartada?: number
           sububicacion_id?: string | null
           ubicacion_id?: string
           updated_at?: string
@@ -3964,6 +4146,19 @@ export type Database = {
         Args: { p_items: Json; p_motivo: string; p_venta_id: string }
         Returns: undefined
       }
+      apartar_stock: {
+        Args: {
+          p_cantidad: number
+          p_clienta_contacto: string
+          p_clienta_nombre: string
+          p_nota?: string
+          p_sububicacion_id?: string
+          p_ubicacion_id: string
+          p_variante_id: string
+          p_vence_el: string
+        }
+        Returns: string
+      }
       aprobar_devolucion: {
         Args: {
           p_devolucion_id: string
@@ -4178,6 +4373,10 @@ export type Database = {
           p_vence_at?: string
         }
         Returns: string
+      }
+      cambiar_estado_proveedor_produccion: {
+        Args: { p_activo: boolean; p_proveedor_id: string }
+        Returns: undefined
       }
       desactivar_categoria: {
         Args: { p_categoria_id: string }
@@ -4674,6 +4873,37 @@ export type Database = {
           ultima_entrega: string
         }[]
       }
+      fn_proveedor_produccion_metricas: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          lotes: number
+          total_comprado: number
+          ultima_entrega: string
+        }[]
+      }
+      fn_proveedores_produccion: {
+        Args: never
+        Returns: {
+          activo: boolean
+          banco: string
+          billeteras: string[]
+          cci: string
+          celular_billetera: string
+          contacto: string
+          cuenta_bancaria: string
+          forma_pago_preferida: string
+          id: string
+          lotes: number
+          nombre: string
+          plazo_credito_dias: number
+          rubro: string
+          ruc: string
+          telefono: string
+          titular_cuenta: string
+          total_comprado: number
+          ultima_entrega: string
+        }[]
+      }
       fn_proveedores: {
         Args: never
         Returns: {
@@ -4926,6 +5156,16 @@ export type Database = {
           venta_id: string
         }[]
       }
+      fn_verificar_apartados: {
+        Args: never
+        Returns: {
+          en_apartados: number
+          en_stock: number
+          sububicacion_id: string
+          ubicacion_id: string
+          variante_id: string
+        }[]
+      }
       guardar_cuentas_proveedor: {
         Args: {
           p_billeteras?: string[]
@@ -4936,6 +5176,25 @@ export type Database = {
         }
         Returns: undefined
       }
+      guardar_proveedor_produccion: {
+        Args: {
+          p_banco?: string
+          p_billeteras?: string[]
+          p_cci?: string
+          p_celular_billetera?: string
+          p_contacto?: string
+          p_cuenta_bancaria?: string
+          p_forma_pago_preferida?: string
+          p_nombre: string
+          p_plazo_credito_dias?: number
+          p_proveedor_id: string | null
+          p_rubro: string
+          p_ruc?: string
+          p_telefono?: string
+          p_titular_cuenta?: string
+        }
+        Returns: string
+      }
       iniciar_traslado: {
         Args: {
           p_fecha_estimada_llegada: string
@@ -4945,6 +5204,10 @@ export type Database = {
           p_ubicacion_origen_id: string
         }
         Returns: string
+      }
+      liberar_apartado: {
+        Args: { p_apartado_id: string; p_motivo: string }
+        Returns: undefined
       }
       lineas_compra_operativo: {
         Args: { p_compra_ids: string[]; p_ubicacion_id?: string }
@@ -4974,6 +5237,27 @@ export type Database = {
           p_precio_unitario: number
         }
         Returns: string
+      }
+      listar_apartados: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          cantidad: number
+          clienta_contacto: string
+          clienta_nombre: string
+          color: string
+          creado_por: string
+          creado_por_nombre: string
+          created_at: string
+          id: string
+          nota: string
+          puede_liberar: boolean
+          referencia: string
+          sku: string
+          sububicacion_id: string
+          talla: string
+          variante_id: string
+          vence_el: string
+        }[]
       }
       listar_compras: {
         Args: {

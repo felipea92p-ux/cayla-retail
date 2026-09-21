@@ -160,12 +160,26 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-venta
 
+      # Apartar stock (ADR-0141): una venta, un traslado o un ajuste no se llevan lo apartado; quién puede apartar y
+      # liberar; RLS y privilegios; y el contador de cada fila siempre cuadra con la suma de sus apartados abiertos.
+      # Cada caso termina en ROLLBACK.
+      - name: pruebas:apartar-stock
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:apartar-stock
+
       # Devolver insumos (ADR-0133, F3b): lo devuelto vuelve al último lote del que salió la orden, el costo de
       # tela/avíos de la orden queda neto, anular devuelve todo al estante y quien no opera el Taller no puede.
       # Cada caso termina en ROLLBACK.
       - name: pruebas:insumos-devolucion
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:insumos-devolucion
+
+      # Directorio de proveedores de Producción (ADR-0133, F4a; D-H): solo el líder lo ve y lo escribe (por RPC),
+      # RUC/CCI/celular se normalizan y se rechazan con mensaje claro, nombre y RUC no se repiten, se archiva sin
+      # borrar, la lista suma lotes y total comprado, y un lote no acepta un proveedor del directorio de Compras.
+      - name: pruebas:proveedores-produccion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:proveedores-produccion
 
       # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
       # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las

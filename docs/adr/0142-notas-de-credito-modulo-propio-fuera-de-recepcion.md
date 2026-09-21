@@ -1,9 +1,12 @@
-# ADR-0140 — Las notas de crédito salen de Recepción y tienen módulo propio
+# ADR-0142 — Las notas de crédito salen de Recepción y tienen módulo propio
+
+> **Número:** nació como 0140; ese número lo tomó «Carga inicial de proveedores» al llegar a `main` primero, y 0141 es «Apartar stock». Es el mismo documento.
 
 **Fecha:** 2026-09-19 (spike aprobado, implementación y verificación en local)
 **Estado:** Aceptado e **implementado** en la rama `claude/comprobantes-ui-ux-animations-ab153b`. Verificado con pruebas SQL
-(42/42), pruebas de la web (1677) y recorrido en el navegador con sesión de líder. **La migración `20260919211000` NO está
-aplicada en producción**: se pega con ok explícito de Felipe (ver «Cómo se pega en producción»).
+(42/42), pruebas de la web (1677) y recorrido en el navegador con sesión de líder. **La migración `20260919211000` está aplicada en
+producción** (pegada por Felipe; verificada contra la base el 2026-09-21: las 6 funciones con el md5 idéntico al local y la
+columna nueva presente).
 **Decide:** Felipe, en lo de negocio: «aplicar un módulo más para las notas de crédito, para no mezclar en recepción de
 mercadería» y «cuando se genera una nota de crédito indicar si el dinero se devuelve a CAYLA en ese momento o queda como saldo a
 favor para otra compra». Arquitectura: este documento.

@@ -1,6 +1,6 @@
 # Spike visual · Notas de crédito de compra (2026-09-19)
 
-> **APLICADO (2026-09-19, ADR-0140).** Este spike ya se implementó: `/compras/notas-credito`, y las notas de crédito salieron de Recepción. Lo que aquí se dibuja y NO se construyó está anotado en el ADR: «reclamada al proveedor» (fase 2), el adjunto desde el módulo, y las cuentas de CAYLA (se quitaron: eran un dato inventado, la base no las guarda). El detalle es un modal, no una ruta propia.
+> **APLICADO (2026-09-19, ADR-0142).** Este spike ya se implementó: `/compras/notas-credito`, y las notas de crédito salieron de Recepción. Lo que aquí se dibuja y NO se construyó está anotado en el ADR: «reclamada al proveedor» (fase 2), el adjunto desde el módulo, y las cuentas de CAYLA (se quitaron: eran un dato inventado, la base no las guarda). El detalle es un modal, no una ruta propia.
 
 
 > **Estado: propuesta, sin implementar.** Nada de esto está en `apps/`, `supabase/` ni en producción. Este HTML es la referencia
