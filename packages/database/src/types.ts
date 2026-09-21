@@ -644,6 +644,7 @@ export type Database = {
           created_at: string
           persona_id: string
           rol: string
+          terminal: string | null
           ubicacion_asignada_id: string | null
         }
         Insert: {
@@ -651,6 +652,7 @@ export type Database = {
           created_at?: string
           persona_id: string
           rol?: string
+          terminal?: string | null
           ubicacion_asignada_id?: string | null
         }
         Update: {
@@ -658,6 +660,7 @@ export type Database = {
           created_at?: string
           persona_id?: string
           rol?: string
+          terminal?: string | null
           ubicacion_asignada_id?: string | null
         }
         Relationships: [
@@ -4328,6 +4331,10 @@ export type Database = {
         Args: { p_personas: string[]; p_ubicacion_id: string }
         Returns: number
       }
+      agregar_terminal: {
+        Args: { p_persona_id: string; p_terminal: string; p_ubicacion_id: string }
+        Returns: undefined
+      }
       ajustar_insumo_por_conteo: {
         Args: {
           p_cantidad_contada: number
@@ -4985,6 +4992,10 @@ export type Database = {
           id: string
           nombre: string
         }[]
+      }
+      fn_mi_terminal: {
+        Args: never
+        Returns: string
       }
       fn_persona_actual_resumen: {
         Args: never

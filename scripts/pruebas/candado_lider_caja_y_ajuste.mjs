@@ -369,12 +369,18 @@ exito(
   "el candado de líder va PRIMERO y el de ubicación se CONSERVA después (fn_puede_operar_ubicacion sigue en las dos funciones) — listo para cuando R-48 acote al líder a su sede",
   comoPersona(
     FELIPE,
+    // La puerta de líder es `fn_es_lider()` o, desde ADR-0152 (terminales), su capacidad —«líder o terminal»—:
+    // `fn_puede_gestionar_caja()` en cerrar_caja y `fn_puede_ajustar_inventario()` en registrar_movimiento. Lo que se
+    // prueba es la POSICIÓN de la puerta, no su nombre.
     `select
-  strpos(d1, 'fn_es_lider()') > 0 and strpos(d1, 'fn_es_lider()') < strpos(d1, 'select * into v_caja') and strpos(d1, 'fn_es_lider()') < strpos(d1, 'fn_puede_operar_ubicacion'),
-  strpos(d2, 'fn_es_lider()') > 0 and strpos(d2, 'fn_es_lider()') < strpos(d2, 'fn_puede_operar_ubicacion') and strpos(d2, 'fn_puede_operar_ubicacion') > 0
+  g1 > 0 and g1 < strpos(d1, 'select * into v_caja') and g1 < strpos(d1, 'fn_puede_operar_ubicacion'),
+  g2 > 0 and g2 < strpos(d2, 'fn_puede_operar_ubicacion') and strpos(d2, 'fn_puede_operar_ubicacion') > 0
+from (select d1, d2,
+  coalesce(nullif(strpos(d1, 'fn_es_lider()'), 0), strpos(d1, 'fn_puede_gestionar_caja()')) as g1,
+  coalesce(nullif(strpos(d2, 'fn_es_lider()'), 0), strpos(d2, 'fn_puede_ajustar_inventario()')) as g2
 from (select
   (select pg_get_functiondef(p.oid) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'cerrar_caja') as d1,
-  (select pg_get_functiondef(p.oid) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_movimiento') as d2) x;
+  (select pg_get_functiondef(p.oid) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_movimiento') as d2) y) x;
 rollback;
 `
   ),
