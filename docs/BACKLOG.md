@@ -28,6 +28,16 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Carga inicial de proveedores (2026-09-20, ADR-0140) — APLICADA EN PRODUCCIÓN
+- [x] Hoja depurada a 74 fichas / 75 marcas / 75 vínculos; revisión adversarial; ensayo contra producción con retroceso (2→76, 1→76, 1→76; base intacta).
+- [x] **Aplicada el 2026-09-20** (76/76/76; 74/74 fichas y 75/75 vínculos idénticos, auditado desde afuera). El editor confirmó antes del paso 6 (`42P01 _antes`): solo falló la autocomprobación. **No volver a pegar.** Material privado: `~/Developer/cayla-cargas-privadas/proveedores-2026-09/`.
+- [ ] Verla en el navegador: `/proveedores` (74 fichas nuevas, chip «Sin datos de pago») y `/productos/marcas` (75 marcas vinculadas).
+- [ ] Próxima carga masiva: **una sola sentencia `do $$`** (atómica por sí sola); no depender de `begin/commit` ni de tablas temporales entre sentencias.
+- [ ] Verificar en SUNAT los RUC 10 de mayor gasto y los RUC 20 con aviso (lista en `03-pendientes-privados.md`); pedir el RUC vigente a los que entraron sin RUC.
+- [ ] **Proponer (requiere aprobación + ADR propio):** una sola migración con `proveedor_principal_id` (razones sociales relacionadas: cada RUC sigue siendo fila; cierra el choque de `unique (proveedor_id, serie, numero)`) y `direccion`. Hoy `compras` no guarda el RUC del emisor; hay 0 compras, así que hay que decidirlo antes de la primera factura de un RUC relacionado.
+- [x] Proveedores: **buscar y mostrar por marca** (2026-09-20, sin migración): lista, detalle rápido, ficha y combo de nueva compra; lectura secundaria que degrada a `null` (ADR-0140). Verificado en el navegador con datos inventados; pendiente verlo con los datos reales. **No cubre** los buscadores de Comprobantes y Recepciones (filtran el proveedor por nombre dentro de sus RPC: requiere migración).
+- [ ] Higiene de git: commit local sin publicar `99059734` (rama `claude/sweet-gould-fe63b4`) con un volcado anterior de esta hoja. No subir esa rama; no borrar con `gc --prune=now` (destruiría otro commit sin publicar y el reflog de los demás worktrees).
+
 ## 🎯 «Ajustar inventario» se abría vacío: seguía pidiendo `variantes.talla` (2026-09-20)
 - [x] `AjustarInventarioModal.tsx` pedía la columna `variantes.talla`, que la taxonomía cerrada eliminó (ADR-0095, `20260917100500`); la base respondía «column variantes.talla does not exist» y el modal quedaba vacío desde «Ajustar» en Existencias y Productos. Ahora usa `talla:tallas ( valor )` sin cast (si vuelve a pedir una columna inexistente, `tsc` falla — comprobado con una mutación) y arma las filas en `lib/ajuste-reglas.ts` (12 pruebas), con las tallas en orden de curva. Reproducido a nivel de Postgres (esquema real, solo lectura); barrido de `apps/web`: ningún otro select ni filtro pide `talla` a secas sobre `variantes`, y los otros 4 `as unknown as` de selects solo angostan tipos.
 - [ ] Verlo en navegador con datos reales (sin Docker no hay PostgREST local): abrir «Ajustar» en un producto con varias tallas y ver que salgan ordenadas y con su stock. En producción la columna ya estaba borrada desde el 2026-09-17 (ver 🎯 Taxonomía de variante), así que el modal llevaba roto desde entonces — según este BACKLOG, no consultado en vivo.

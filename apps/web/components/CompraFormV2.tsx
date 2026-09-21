@@ -19,7 +19,7 @@ import { Chip } from "@/components/ui/Chip";
 import { faltaDatoDePago } from "@/lib/destino-de-pago";
 import { ayudaDeCosto, costoConocido, progresoDeCompra, requisitosDeCompra } from "@/lib/compra-form-progreso";
 import { AyudaCostoLinea, BarraProgreso, BotonRegistrar, CifraCompra, ListaPendientes, NumeroTramo, TextoQueSeAsienta, type EstadoRegistro } from "@/components/CompraFormProgreso";
-import type { DatosPagoProveedor } from "@/lib/proveedores-reglas";
+import { detalleProveedorCombo, type DatosPagoProveedor } from "@/lib/proveedores-reglas";
 import { hoyLima, sumarDias } from "@/lib/fechas-lima";
 import { costoBase, costoParaTipear, ETIQUETA_METODO, fechaCorta, METODO_SALDO_A_FAVOR, soles, totalesCompra } from "@/lib/compras-reglas";
 import { destinosParaRpc, repartirEnPartesIguales, repartoSoloDe, unidadesPorTienda, type RepartoLinea } from "@/lib/reparto-reglas";
@@ -40,6 +40,8 @@ type Proveedor = {
   id: string;
   nombre: string;
   ruc: string | null;
+  /** Marcas con que se conoce al proveedor (ADR-0140): se buscan y se muestran junto al RUC. */
+  marcas?: readonly string[];
   plazoCreditoDias?: number | null;
   formaPagoPreferida?: string | null;
   saldo?: number | null;
@@ -136,9 +138,11 @@ export function CompraFormV2({
   });
 
   const opcionesProducto = useMemo(() => productos.map((p) => ({ valor: p.id, texto: p.referencia, detalle: `${p.variantes.length} ${p.variantes.length === 1 ? "variante" : "variantes"}` })), [productos]);
-  // El RUC va como detalle: el combo filtra por texto + detalle, así que se
-  // encuentra al proveedor tipeando su nombre o su número.
-  const opcionesProveedor = useMemo(() => proveedores.map((p) => ({ valor: p.id, texto: p.nombre, detalle: p.ruc ?? undefined })), [proveedores]);
+  // El RUC y las marcas van como detalle: el combo filtra por texto + detalle, así que se encuentra al proveedor
+  // tipeando su razón social, su número o la marca con que se le conoce (ADR-0140).
+  const opcionesProveedor = useMemo(() => proveedores.map((p) => ({ valor: p.id, texto: p.nombre, detalle: detalleProveedorCombo(p.ruc, p.marcas) })), [proveedores]);
+  // Solo se promete «marca» si algún proveedor tiene marcas que buscar (si la lectura falló, todos llegan sin ellas).
+  const hayMarcas = useMemo(() => proveedores.some((p) => (p.marcas?.length ?? 0) > 0), [proveedores]);
 
   // Sin proveedor preseleccionado: elegir al primero de la lista era una
   // trampa — una factura registrada sin mirar iba a parar al proveedor
@@ -460,7 +464,7 @@ export function CompraFormV2({
                     setPagos((ps) => (ps.some((l) => l.metodo === METODO_SALDO_A_FAVOR) ? ps.map((l) => (l.metodo === METODO_SALDO_A_FAVOR ? lineaPagoVacia(l.monto) : l)) : ps));
                     void comprobarRepetido(id, serie, numero);
                   }}
-                  opciones={opcionesProveedor} marcador="Busca por nombre o RUC…" />
+                  opciones={opcionesProveedor} marcador={hayMarcas ? "Busca por nombre, marca o RUC…" : "Busca por nombre o RUC…"} />
                 {proveedor && (proveedor.plazoCreditoDias != null || proveedor.formaPagoPreferida || (proveedor.saldo ?? 0) > 0 || (proveedor.saldoFavor ?? 0) > 0 || faltaCuenta) && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {proveedor.plazoCreditoDias != null && <Chip>Crédito {proveedor.plazoCreditoDias} días</Chip>}
