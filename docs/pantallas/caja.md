@@ -237,3 +237,4 @@ No la doy por decidida: ADR-0056 la decidió Felipe el 2026-09-15 (líder-only).
 | Fecha | Modo | Cumplimiento | Relevancia | Tareas cerradas de las 12 anteriores |
 |---|---|---|---|---|
 | 2026-09-21 | completo (SQL parcial: solo E7) | 5,0 | 8,0 | — (primer análisis) |
+| 2026-09-21 | cierre parcial | — | — | #2, #3, #6, #10 (rama `claude/caja-mejoras-sin-decision`); #11 solo la parte de «Ingreso» en verde y sin spinner |

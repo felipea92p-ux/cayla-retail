@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-21 (Caja: las tareas de la auditoría que no esperaban decisión)
+De las 12 tareas de `docs/pantallas/caja.md` se cerraron #2, #3, #6 y #10: el modal de Ingreso/egreso conoce el rol (un integrante ya no ve «Ajuste»), nada viene elegido de antemano, «Depósito bancario» y «Otro» exigen referencia, una caja abierta 18 h o más muestra una franja de aviso, y los movimientos manuales se ordenan en hora de Lima.
+Felipe se lleva: (1) **la demo en navegador encontró lo que los tests no**: varias ediciones no se habían aplicado por los saltos de línea CRLF del archivo y `tsc`, lint y pruebas salían verdes igual — solo verlo abierto mostró que faltaba el «S/» y que «Retiro de efectivo» seguía preelegido; (2) esconder opciones en el modal **no es** el candado: el candado real sigue siendo la tarea #1 (la base decide qué es un ajuste), que espera la decisión de Felipe sobre permisos y sobre el ajuste (§8 de la auditoría).
+Sin resolver: #1 y #5 (decisiones), y el envío real del formulario contra la base, que no se probó (no hay Supabase local en esta máquina).
+
 ## 2026-09-21 (Facturación adopta la cabecera y la entrada de Cambios, Devoluciones, Caja e Historial)
 Felipe pidió que Facturación siguiera el patrón de las demás pantallas. Su cabecera propia (título de 24 px, sin hilo) pasó a `EncabezadoPagina` con `ResumenSede` a la derecha, las acciones bajo la frase y la búsqueda en la fila de las pestañas; la línea viva se conservó en la línea de arriba (`detalle`, opcional en `EncabezadoPagina`) y toda la pantalla entra en cascada con las mismas animaciones (`anim-sube` escalonado, hilo que se dibuja, cifras que suben).
 Felipe se lleva: (1) **una convención se reutiliza, no se copia**: en vez de estilar a mano una cabecera «parecida», se usó el componente compartido y se le abrió un hueco opcional para lo que Facturación sí necesita; (2) el escalonado de la entrada es un orden de lectura (cabecera, resumen, pestañas, tarjetas, paneles), así que al sumar piezas arriba hubo que correr las de abajo; (3) al cambiar de pestaña la cabecera no se anima otra vez, solo la vista.
