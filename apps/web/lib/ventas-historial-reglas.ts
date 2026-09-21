@@ -329,41 +329,83 @@ export function agruparPorDia(filas: FilaHistorial[]): DiaDeVentas[] {
   return dias;
 }
 
-export type Trazo = {
-  /** Trazo suave que une el total de cada día (curva de Bézier con tangentes horizontales: no se pasa de los puntos). */
-  linea: string;
-  /** La misma curva cerrada contra la base, para el degradado. */
-  area: string;
-  /** El día que más vendió (con su posición en el dibujo), o null si no hubo ventas. */
+/** El lunes de la semana de un día `aaaa-mm-dd` (las semanas empiezan en lunes). */
+function lunesDe(dia: string): string {
+  const desdeLunes = (new Date(aMilisegundos(dia)).getUTCDay() + 6) % 7;
+  return restarDias(dia, desdeLunes);
+}
+
+/** Junta los días en semanas (de lunes a domingo) para que un rango largo no dibuje cientos de hilos. Sirve también con una serie
+ *  sin rellenar: agrupa por fecha, no por posición. */
+export function agruparEnSemanas(dias: DiaResumen[]): DiaResumen[] {
+  const semanas = new Map<string, DiaResumen>();
+  for (const d of dias) {
+    const lunes = lunesDe(d.fecha);
+    const semana = semanas.get(lunes) ?? { fecha: lunes, ventas: 0, total: 0 };
+    semana.ventas += d.ventas;
+    semana.total = redondear2(semana.total + d.total);
+    semanas.set(lunes, semana);
+  }
+  return [...semanas.values()].sort((a, b) => a.fecha.localeCompare(b.fecha));
+}
+
+/** Media móvil centrada: cada punto es el promedio de sus vecinos dentro de la ventana (en las puntas, de los que haya). */
+export function mediaMovil(valores: number[], ventana: number): number[] {
+  const medio = Math.floor(ventana / 2);
+  return valores.map((_, i) => {
+    const tramo = valores.slice(Math.max(0, i - medio), Math.min(valores.length, i + medio + 1));
+    return tramo.reduce((s, v) => s + v, 0) / tramo.length;
+  });
+}
+
+/** Cuánto se suaviza el hilo de tendencia según cuántos puntos hay: con pocos, nada (suavizar sería borrar el dato). */
+export const ventanaDeSuavizado = (n: number): number => (n >= 21 ? 7 : n >= 10 ? 3 : 1);
+
+export type Pulso = {
+  /** La línea de suelo, en el dibujo. */
+  base: number;
+  /** Un hilo vertical por día: dónde va (x), hasta dónde sube (y) y cuánto mide (alto). */
+  barras: { x: number; y: number; alto: number }[];
+  anchoBarra: number;
+  /** La tendencia (media móvil) como una curva suave que cruza los hilos. */
+  hilo: string;
+  /** Altura del promedio diario, para la línea punteada; null si no hubo ventas. */
+  promedioY: number | null;
+  /** El día que más vendió (con su posición), o null si no hubo ventas. */
   pico: { x: number; y: number; indice: number } | null;
-  ultimo: { x: number; y: number } | null;
 };
 
 const redondear1 = (n: number) => Math.round(n * 10) / 10;
 
-/** Convierte lo vendido por día en el dibujo del período. El eje Y va de 0 al mejor día; sin ventas la línea corre pegada a la base. */
-export function trazoDeVentas(
+/** La geometría del gráfico del período: cada día es un hilo vertical —la urdimbre— y una curva de tendencia lo cruza —la trama—.
+ *  El eje va de 0 al mejor día; sin ventas todo queda pegado al suelo. */
+export function pulsoDeVentas(
   dias: DiaResumen[],
   { ancho, alto, margen }: { ancho: number; alto: number; margen: { x: number; arriba: number; abajo: number } }
-): Trazo {
-  if (dias.length === 0) return { linea: "", area: "", pico: null, ultimo: null };
-  const max = Math.max(...dias.map((d) => d.total));
+): Pulso {
   const base = alto - margen.abajo;
+  if (dias.length === 0) return { base, barras: [], anchoBarra: 0, hilo: "", promedioY: null, pico: null };
+  const totales = dias.map((d) => d.total);
+  const max = Math.max(...totales);
   const util = alto - margen.arriba - margen.abajo;
-  const x = (i: number) => (dias.length === 1 ? ancho / 2 : margen.x + (i * (ancho - 2 * margen.x)) / (dias.length - 1));
-  const y = (v: number) => (max > 0 ? base - (v / max) * util : base);
-  const pts = dias.map((d, i) => ({ x: redondear1(x(i)), y: redondear1(y(d.total)) }));
-  let linea = `M${pts[0].x} ${pts[0].y}`;
-  for (let i = 1; i < pts.length; i++) {
-    const medio = redondear1((pts[i - 1].x + pts[i].x) / 2);
-    linea += `C${medio} ${pts[i - 1].y} ${medio} ${pts[i].y} ${pts[i].x} ${pts[i].y}`;
+  const paso = (ancho - 2 * margen.x) / dias.length;
+  const x = (i: number) => redondear1(margen.x + paso * (i + 0.5));
+  const y = (v: number) => redondear1(max > 0 ? base - (v / max) * util : base);
+  const barras = totales.map((t, i) => ({ x: x(i), y: y(t), alto: redondear1(base - y(t)) }));
+  const tendencia = mediaMovil(totales, ventanaDeSuavizado(dias.length)).map((v, i) => ({ x: x(i), y: y(v) }));
+  let hilo = `M${tendencia[0].x} ${tendencia[0].y}`;
+  for (let i = 1; i < tendencia.length; i++) {
+    const medio = redondear1((tendencia[i - 1].x + tendencia[i].x) / 2);
+    hilo += `C${medio} ${tendencia[i - 1].y} ${medio} ${tendencia[i].y} ${tendencia[i].x} ${tendencia[i].y}`;
   }
-  const ultimo = pts[pts.length - 1];
-  const indice = max > 0 ? dias.findIndex((d) => d.total === max) : -1;
+  const indice = max > 0 ? totales.indexOf(max) : -1;
+  const promedio = totales.reduce((s, v) => s + v, 0) / totales.length;
   return {
-    linea,
-    area: `${linea}L${ultimo.x} ${base}L${pts[0].x} ${base}Z`,
-    pico: indice >= 0 ? { ...pts[indice], indice } : null,
-    ultimo,
+    base,
+    barras,
+    anchoBarra: redondear1(Math.max(1.5, Math.min(4, paso * 0.5))),
+    hilo,
+    promedioY: max > 0 ? y(promedio) : null,
+    pico: indice >= 0 ? { x: barras[indice].x, y: barras[indice].y, indice } : null,
   };
 }

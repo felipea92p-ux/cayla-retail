@@ -31,9 +31,9 @@ import { PaginacionCursor } from "@/components/Paginacion";
 // devolución), nunca tocando la fila.
 //
 // Aspecto (2026-09-21): la misma línea que Cambios, Devoluciones y Caja (Atelier) — cabecera con las cifras de
-// la tienda arriba a la derecha, hoja de papel para el trazo del período, hilo taupe con un nudo por día — y
-// los filtros como los de Catálogo. El elemento que se recuerda es el trazo: lo vendido día por día, dibujado
-// como un hilo.
+// la tienda arriba a la derecha, hilo taupe con un nudo por día — y los filtros como los de Catálogo. Las ventas
+// mandan: van en la columna principal, y el pulso del período (lo vendido día por día, dibujado como hilos) las
+// acompaña en un lateral, chico y pegajoso.
 export default async function HistorialVentasPage({ searchParams }: { searchParams: Promise<ParamsHistorial> }) {
   const persona = await requirePersonaActualV2();
   const params = await searchParams;
@@ -78,43 +78,51 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
         )}
       </EncabezadoPagina>
 
-      <HistorialVentasPulso totales={totales} periodo={periodoEnPalabras} />
+      {/* Las ventas son lo primero: ocupan la columna principal y el pulso las acompaña en un lateral pegajoso (desde 1280 px).
+          Más angosto, el pulso pasa DEBAJO de la lista, no encima: nada se interpone entre la persona y las ventas. */}
+      <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_19rem] xl:items-start">
+        <div className="min-w-0 space-y-7">
+          <FiltrosHistorialVentas
+            tiendas={esLider ? tiendas.map((t) => ({ id: t.id, nombre: t.nombre })) : undefined}
+            vendedores={esLider ? vendedores : undefined}
+            periodo={filtros.periodo}
+            desde={filtros.desde ?? ""}
+            hasta={filtros.hasta ?? ""}
+            estado={filtros.estado}
+            comprobante={filtros.comprobante}
+            pago={filtros.pago ?? ""}
+            sede={filtros.sedeId ?? ""}
+            vendedor={filtros.vendedorId ?? ""}
+          />
 
-      <FiltrosHistorialVentas
-        tiendas={esLider ? tiendas.map((t) => ({ id: t.id, nombre: t.nombre })) : undefined}
-        vendedores={esLider ? vendedores : undefined}
-        periodo={filtros.periodo}
-        desde={filtros.desde ?? ""}
-        hasta={filtros.hasta ?? ""}
-        estado={filtros.estado}
-        comprobante={filtros.comprobante}
-        pago={filtros.pago ?? ""}
-        sede={filtros.sedeId ?? ""}
-        vendedor={filtros.vendedorId ?? ""}
-      />
+          {filas.length === 0 && !cursor ? (
+            <EstadoVacio
+              titulo="Ninguna venta coincide"
+              detalle={`No hay ventas con estos filtros (${periodoEnPalabras.toLowerCase()}). Prueba con otro período o quita algún filtro.`}
+            />
+          ) : (
+            <HistorialVentasLista filas={filas} hoyLima={hoyEnLima()} totalesPorDia={totalesPorDia} />
+          )}
 
-      {filas.length === 0 && !cursor ? (
-        <EstadoVacio
-          titulo="Ninguna venta coincide"
-          detalle={`No hay ventas con estos filtros (${periodoEnPalabras.toLowerCase()}). Prueba con otro período o quita algún filtro.`}
-        />
-      ) : (
-        <HistorialVentasLista filas={filas} hoyLima={hoyEnLima()} totalesPorDia={totalesPorDia} />
-      )}
+          <PaginacionCursor
+            mostradas={filas.length}
+            cursorSiguiente={siguiente ? serializarCursorVentas(siguiente) : null}
+            hayCursor={!!cursor}
+            params={params}
+            pathname="/vender/historial"
+            sustantivo={["venta", "ventas"]}
+          />
 
-      <PaginacionCursor
-        mostradas={filas.length}
-        cursorSiguiente={siguiente ? serializarCursorVentas(siguiente) : null}
-        hayCursor={!!cursor}
-        params={params}
-        pathname="/vender/historial"
-        sustantivo={["venta", "ventas"]}
-      />
+          <p className="max-w-2xl text-xs leading-relaxed text-tinta/60">
+            <span className="text-tinta">Registro transparente:</span> una venta no se edita ni se borra. Si se anula, sigue en el historial —tachada— y deja de
+            sumar a lo vendido; si la clienta cambia o devuelve una prenda, queda anotado en Cambios o Devoluciones.
+          </p>
+        </div>
 
-      <p className="max-w-2xl text-xs leading-relaxed text-tinta/60">
-        <span className="text-tinta">Registro transparente:</span> una venta no se edita ni se borra. Si se anula, sigue en el historial —tachada— y deja de
-        sumar a lo vendido; si la clienta cambia o devuelve una prenda, queda anotado en Cambios o Devoluciones.
-      </p>
+        <aside aria-label="Pulso del período" className="xl:sticky xl:top-24">
+          <HistorialVentasPulso totales={totales} periodo={periodoEnPalabras} />
+        </aside>
+      </div>
     </div>
   );
 }

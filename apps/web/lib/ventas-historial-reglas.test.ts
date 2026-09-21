@@ -6,13 +6,16 @@ import {
   elegirComprobante,
   filtrosDesdeParams,
   limitesUTC,
+  agruparEnSemanas,
+  mediaMovil,
   mezclaDePagos,
+  pulsoDeVentas,
+  ventanaDeSuavizado,
   piezasDeVenta,
   resumir,
   serieDiaria,
   subtituloDePrendas,
   titulosDePrendas,
-  trazoDeVentas,
   subtotalDeItem,
   textoMetodos,
   textoPrendas,
@@ -369,26 +372,61 @@ describe("títulos de una venta", () => {
   });
 });
 
-describe("trazoDeVentas — la geometría del período", () => {
-  const medidas = { ancho: 100, alto: 50, margen: { x: 10, arriba: 10, abajo: 10 } };
+describe("pulsoDeVentas — un hilo por día y una tendencia que los cruza", () => {
+  const medidas = { ancho: 100, alto: 60, margen: { x: 10, arriba: 10, abajo: 10 } };
   const d = (total: number, i: number) => ({ fecha: `2026-09-${10 + i}`, ventas: total > 0 ? 1 : 0, total });
 
-  it("el mejor día toca el margen de arriba y un día sin ventas, la base", () => {
-    const t = trazoDeVentas([d(0, 0), d(100, 1), d(50, 2)], medidas);
-    expect(t.pico).toEqual({ x: 50, y: 10, indice: 1 });
-    expect(t.linea.startsWith("M10 40")).toBe(true);
-    expect(t.ultimo).toEqual({ x: 90, y: 25 });
-    expect(t.area.endsWith("L90 40L10 40Z")).toBe(true);
+  it("el mejor día llega arriba, uno a medias a la mitad y uno sin ventas mide cero", () => {
+    const p = pulsoDeVentas([d(0, 0), d(100, 1), d(50, 2)], medidas);
+    expect(p.base).toBe(50);
+    expect(p.barras.map((b) => b.alto)).toEqual([0, 40, 20]);
+    expect(p.pico).toMatchObject({ indice: 1, y: 10 });
+    expect(p.barras[0].x).toBeLessThan(p.barras[1].x);
+    expect(p.hilo.startsWith("M")).toBe(true);
   });
 
-  it("sin ventas no hay pico y la línea corre pegada a la base", () => {
-    const t = trazoDeVentas([d(0, 0), d(0, 1)], medidas);
-    expect(t.pico).toBeNull();
-    expect(t.linea).toBe("M10 40C50 40 50 40 90 40");
+  it("el promedio queda entre el suelo y el mejor día", () => {
+    const p = pulsoDeVentas([d(0, 0), d(100, 1), d(50, 2)], medidas);
+    expect(p.promedioY).toBe(30);
   });
 
-  it("un solo día se dibuja en el centro; sin días, nada", () => {
-    expect(trazoDeVentas([d(30, 0)], medidas).ultimo).toEqual({ x: 50, y: 10 });
-    expect(trazoDeVentas([], medidas)).toEqual({ linea: "", area: "", pico: null, ultimo: null });
+  it("sin ventas no hay pico ni promedio y todo queda pegado al suelo; sin días, nada", () => {
+    const p = pulsoDeVentas([d(0, 0), d(0, 1)], medidas);
+    expect(p.pico).toBeNull();
+    expect(p.promedioY).toBeNull();
+    expect(p.barras.every((b) => b.alto === 0)).toBe(true);
+    expect(pulsoDeVentas([], medidas)).toEqual({ base: 50, barras: [], anchoBarra: 0, hilo: "", promedioY: null, pico: null });
+  });
+
+  it("el grosor del hilo se adapta a cuántos días hay, sin pasarse de 4 ni bajar de 1.5", () => {
+    expect(pulsoDeVentas([d(1, 0)], medidas).anchoBarra).toBe(4);
+    const muchos = Array.from({ length: 400 }, (_, i) => d(i, 0));
+    expect(pulsoDeVentas(muchos, { ...medidas, ancho: 300 }).anchoBarra).toBe(1.5);
+  });
+});
+
+describe("tendencia", () => {
+  it("la media móvil centrada promedia a los vecinos y, en las puntas, a los que haya", () => {
+    expect(mediaMovil([0, 10, 0], 3)).toEqual([5, 10 / 3, 5]);
+    expect(mediaMovil([4, 8], 1)).toEqual([4, 8]);
+  });
+
+  it("se suaviza más cuantos más días hay; con pocos no se toca el dato", () => {
+    expect([5, 9, 10, 20, 21, 90].map(ventanaDeSuavizado)).toEqual([1, 1, 3, 3, 7, 7]);
+  });
+});
+
+describe("agruparEnSemanas", () => {
+  it("junta de lunes a domingo, también en una serie sin rellenar", () => {
+    // 2026-09-14 y 2026-09-21 son lunes
+    const dias = [
+      { fecha: "2026-09-14", ventas: 1, total: 10 },
+      { fecha: "2026-09-20", ventas: 2, total: 5.5 },
+      { fecha: "2026-09-21", ventas: 1, total: 7 },
+    ];
+    expect(agruparEnSemanas(dias)).toEqual([
+      { fecha: "2026-09-14", ventas: 3, total: 15.5 },
+      { fecha: "2026-09-21", ventas: 1, total: 7 },
+    ]);
   });
 });

@@ -25,10 +25,10 @@ import { agruparPorDia, subtituloDePrendas, titulosDePrendas, type FilaHistorial
 // entre dos páginas muestra el mismo total en las dos. Una venta anulada se ve apagada y tachada; sigue en
 // el libro (una venta no se borra) pero no cuenta en ninguna cifra.
 //
-// Tres anchos, cada uno determinista: en el celular (<640 px) el racimo y el texto arriba y, debajo, el comprobante y el total;
-// de 640 a 1279 px el total arriba a la derecha (como un precio) y el comprobante en una segunda línea bajo el texto; y desde
-// `xl` (1280 px) cuatro columnas. Con el lateral abierto, a 1024 px el contenido útil mide ~650: cuatro columnas dejaban al
-// título en ~130 px.
+// Tres anchos, cada uno determinista, medidos sobre el ancho de LA COLUMNA (consulta de contenedor) y no sobre el de la
+// ventana —con el pulso en un lateral, la columna de ventas es más angosta que la pantalla—: angosto, el racimo y el texto
+// arriba y, debajo, el comprobante y el total; desde 30 rem el total arriba a la derecha (como un precio) y el comprobante en
+// una segunda línea bajo el texto; y desde 54 rem cuatro columnas.
 //
 // La fila NO es un <button>: el botón que abre el detalle cubre la fila entera (`absolute inset-0`).
 
@@ -58,7 +58,7 @@ export function HistorialVentasLista({
 
   return (
     <>
-      <div className="relative pl-8 sm:pl-11">
+      <div className="@container relative pl-8 sm:pl-11">
         <span aria-hidden className="hilo-vertical absolute bottom-0 left-[11px] top-1.5 w-[1.5px] bg-gradient-to-b from-taupe to-taupe/15" />
         <div className="space-y-8">
           {dias.map((dia, d) => {
@@ -116,12 +116,12 @@ function FilaVenta({ v, onAbrir }: { v: FilaHistorial; onAbrir: () => void }) {
         className="absolute inset-0 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
       />
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3.5 sm:grid sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-start sm:gap-y-2 sm:px-5 xl:grid-cols-[auto_minmax(0,1fr)_11.5rem_8.5rem] xl:items-center">
-        <div className="sm:row-span-2 xl:row-span-1">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3.5 @[30rem]:grid @[30rem]:grid-cols-[auto_minmax(0,1fr)_auto] @[30rem]:items-start @[30rem]:gap-y-2 @[30rem]:px-5 @[54rem]:grid-cols-[auto_minmax(0,1fr)_11.5rem_8.5rem] @[54rem]:items-center">
+        <div className="@[30rem]:row-span-2 @[54rem]:row-span-1">
           <Racimo piezas={v.piezas} anulada={v.anulada} />
         </div>
 
-        <div className="min-w-0 flex-1 basis-56 sm:col-start-2 sm:row-start-1 sm:basis-auto">
+        <div className="min-w-0 flex-1 basis-56 @[30rem]:col-start-2 @[30rem]:row-start-1 @[30rem]:basis-auto">
           <p className={`font-display line-clamp-1 text-[19px] leading-tight ${apagado}`} title={v.prendas}>
             {titulosDePrendas(v.piezas)}
           </p>
@@ -131,7 +131,7 @@ function FilaVenta({ v, onAbrir }: { v: FilaHistorial; onAbrir: () => void }) {
           </p>
         </div>
 
-        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:col-span-2 sm:col-start-2 sm:row-start-2 xl:col-span-1 xl:col-start-3 xl:row-start-1 xl:flex-col xl:items-start xl:gap-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 @[30rem]:col-span-2 @[30rem]:col-start-2 @[30rem]:row-start-2 @[54rem]:col-span-1 @[54rem]:col-start-3 @[54rem]:row-start-1 @[54rem]:flex-col @[54rem]:items-start @[54rem]:gap-1">
           {v.anulada && <Chip tono="rojo">Anulada</Chip>}
           {v.comprobante ? (
             <>
@@ -145,7 +145,7 @@ function FilaVenta({ v, onAbrir }: { v: FilaHistorial; onAbrir: () => void }) {
           )}
         </div>
 
-        <div className="ml-auto text-right sm:col-start-3 sm:row-start-1 sm:ml-0 xl:col-start-4">
+        <div className="ml-auto text-right @[30rem]:col-start-3 @[30rem]:row-start-1 @[30rem]:ml-0 @[54rem]:col-start-4">
           <p className={`font-display text-[22px] leading-none tabular-nums ${v.anulada ? "text-tinta/45 line-through" : "text-tinta"}`}>{soles(v.total)}</p>
           {v.pagos && <p className="mt-1 text-xs text-tinta/55">{v.pagos}</p>}
         </div>
