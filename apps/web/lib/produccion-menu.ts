@@ -42,10 +42,17 @@ export function hijosMenuProduccion(perfil: PerfilMenu): ClaveMenuProduccion[] {
 
 export type ClaveMenuCompras = "proveedores" | "comprobantes" | "recibir" | "porPagar" | "notasCredito";
 
+/** Compras es el módulo de comprar para las TIENDAS: parado en el Taller no se muestra (decisión de Felipe, 2026-09-21), del mismo modo que
+ *  Producción no se muestra parado en una tienda. Se decide por el TIPO de la ubicación activa, no por su nombre. Es solo visibilidad del menú:
+ *  las URLs de Compras siguen abriendo (otras pantallas enlazan a ellas) y el candado real sigue siendo el de cada RPC. */
+export function puedeVerCompras(perfil: Pick<PerfilMenu, "esLider" | "ubicacionTipo">): boolean {
+  return perfil.esLider && perfil.ubicacionTipo !== "taller";
+}
+
 /** Compras es solo de líder (su layout redirige al resto). Mismo orden que ya tenía: proveedor → factura →
  *  recepción → pago. El «Recibir mercadería» de quien no es líder vive en Inventario, donde está el stock.
  *  «Notas de crédito» (2026-09-19) va JUNTO a «Por pagar» y al final: las dos son dinero del proveedor —una
  *  lo que se le debe, otra lo que él debe— y se miran seguidas. */
 export function hijosMenuCompras(perfil: PerfilMenu): ClaveMenuCompras[] {
-  return perfil.esLider ? ["proveedores", "comprobantes", "recibir", "porPagar", "notasCredito"] : [];
+  return puedeVerCompras(perfil) ? ["proveedores", "comprobantes", "recibir", "porPagar", "notasCredito"] : [];
 }
