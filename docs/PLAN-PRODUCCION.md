@@ -219,8 +219,14 @@ Ya **no depende de ADR-0139** ni toca `compras`, `compra_items`, `registrar_comp
   Pantalla `/produccion/recibir` (Taller + líder; menú «Recibir» entre Comprobantes y Por pagar): cifras, comprobantes con lo pendiente, modal por entrega (llegó / no llegará + motivo / código de lote /
   nota). El detalle del comprobante (líder) muestra lo recibido por línea. Prueba `pnpm pruebas:recibir-comprobante-produccion` (24 casos, en CI) + 11 de reglas. Sin ver con clics.
   **Pendiente para F4e:** `insumo_lotes` y `movimientos_insumo` aún dejan leer el costo por la API directa.
-- **F4e · Candado del dinero (D-G).** Las tablas nuevas nacen solo-líder; `insumo_lotes`, `movimientos_insumo` y `producciones.costo_*` pasan al mismo
-  candado, con funciones **operativas** sin monto para el Taller; `v_insumo_saldos` con `security_invoker`.
+- **F4e · Candado del dinero (D-G) — construida en local 2026-09-21; dos migraciones SIN pegar en producción (A luego B).**
+  Cierra EN LA BASE lo que hasta hoy solo se escondía en pantalla: `insumo_lotes.costo_unitario`, `movimientos_insumo.costo_unitario` y `producciones.costo_tela / costo_avios / costo_maquila / costo_unitario`
+  dejan de ser legibles por `authenticated` (**privilegio por columna**: conserva el SELECT de todas las demás, así el colaborador del Taller sigue leyendo cantidades, lotes, estados y líneas). La vista
+  `v_insumo_saldos` (trae `valor` y, sin `security_invoker`, mostraba todas las ubicaciones) queda cerrada a cualquier sesión. Las funciones `security definer` (recibir, descontar, devolver, abrir y cerrar
+  órdenes) siguen leyendo los costos por su dueño: el colaborador trabaja igual. El líder los lee por dos puertas solo-suyas: `fn_costos_insumos_taller(ubicación)` y `fn_costos_producciones(ubicación)`;
+  el costo de un movimiento es el de su lote. **Orden (patrón ADR-0126):** A `20260921150000` (crea las dos funciones) → desplegar la app (`lib/insumos.ts` y `lib/produccion.ts` ya no piden las columnas de dinero) →
+  B `20260921151000` (los revoke; se niega a correr sin A). **Cuidado futuro:** una columna nueva en esas tres tablas nace cerrada; la prueba `pnpm pruebas:candado-dinero-produccion` (20 casos, en CI) lo vigila.
+  **Fuera de alcance, para decidir:** `fn_costo_historial` (costo de PRENDAS, no de insumos) lo puede llamar cualquier colaborador.
 - **Método:** migraciones idempotentes; prueba `scripts/pruebas/produccion_abastecimiento.mjs` + paso en `ci.yml`; timestamps **≥ `20260919210000`**;
   al pegar en producción, prefijo `retail.` (regla de CLAUDE.md). Solo se reescribe una función existente (`fn_proveedor_metricas_insumos`): partir de
   su `pg_get_functiondef` de producción.

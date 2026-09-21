@@ -8531,3 +8531,8 @@ con sus referencias (ADR-0143, prueba `candado_lider_caja_y_ajuste.mjs`, BACKLOG
 Felipe fusionó el menú sin Compras en el Taller. Renumeré el candado de caja (#218) a `20260921120000` porque chocaba con Por pagar, que ya estaba en producción. F4d construida en local:
 `recibir_comprobante_produccion` abre un lote por línea con el costo de la línea, lo llama quien opera el Taller SIN ver montos, lo que no llegará se cierra con motivo, idempotente; la anulación
 se niega con mercadería recibida. Pantalla `/produccion/recibir`. Migración `20260921140000` sin pegar. `pruebas:recibir-comprobante-produccion` 24/24.
+
+## 2026-09-21 (Producción F4e: candado del dinero en la base — ADR-0133)
+Felipe pegó F4d (validada contra producción: lote de 60 m a S/ 20, tope de recepción, anular negada, la función de líneas sin columnas de dinero). F4e construida en local: los costos de lotes, movimientos y
+órdenes ya no se pueden leer por la API directa (privilegio por columna), la vista `v_insumo_saldos` queda cerrada, y el líder los lee por `fn_costos_insumos_taller` / `fn_costos_producciones`. Dos migraciones,
+patrón ADR-0126: A `20260921150000` → desplegar la app → B `20260921151000`. `pruebas:candado-dinero-produccion` 20/20. Observado y NO tocado: `fn_costo_historial` (costo de prendas) es legible por cualquier colaborador.

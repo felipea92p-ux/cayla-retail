@@ -25,6 +25,7 @@
     "pruebas:comprobantes-produccion": "node scripts/pruebas/comprobantes_produccion.mjs",
     "pruebas:por-pagar-produccion": "node scripts/pruebas/por_pagar_produccion.mjs",
     "pruebas:recibir-comprobante-produccion": "node scripts/pruebas/recibir_comprobante_produccion.mjs",
+    "pruebas:candado-dinero-produccion": "node scripts/pruebas/candado_dinero_produccion.mjs",
     "pruebas:recibir-envio": "node scripts/pruebas/recibir_envio.mjs",
     "pruebas:dinero-compras": "node scripts/pruebas/dinero_compras_solo_lider.mjs",
     "pruebas:proveedores-cuentas": "node scripts/pruebas/proveedores_cuentas_pago.mjs",
