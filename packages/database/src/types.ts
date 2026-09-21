@@ -4028,6 +4028,20 @@ export type Database = {
       }
     }
     Views: {
+      planilla_por_sede: {
+        Row: {
+          costo_total: number | null
+          fecha_fin: string | null
+          fecha_ini: string | null
+          pagado: number | null
+          periodo_id: string | null
+          personas: number | null
+          provisiones: number | null
+          sede_codigo: string | null
+          sede_tipo: string | null
+        }
+        Relationships: []
+      }
       compra_item_reparto_resumen: {
         Row: {
           asignado: number | null
@@ -4310,6 +4324,10 @@ export type Database = {
         Args: { p_persona_id: string; p_ubicacion_id: string }
         Returns: undefined
       }
+      agregar_colaboradores: {
+        Args: { p_personas: string[]; p_ubicacion_id: string }
+        Returns: number
+      }
       ajustar_insumo_por_conteo: {
         Args: {
           p_cantidad_contada: number
@@ -4577,6 +4595,10 @@ export type Database = {
         Args: { p_activo: boolean; p_proveedor_id: string }
         Returns: undefined
       }
+      cambiar_ubicacion_colaborador: {
+        Args: { p_persona_id: string; p_ubicacion_id: string }
+        Returns: undefined
+      }
       desactivar_categoria: {
         Args: { p_categoria_id: string }
         Returns: undefined
@@ -4664,10 +4686,54 @@ export type Database = {
         Returns: {
           agregado_en: string
           correo: string
+          es_yo: boolean
           nombre: string
           persona_id: string
           rol: string
           sede: string
+          ubicacion_asignada: string
+          ubicacion_id: string
+          ultimo_acceso: string
+        }[]
+      }
+      fn_colaboradores_actividad: {
+        Args: { p_limite?: number }
+        Returns: {
+          accion: string
+          created_at: string
+          id: number
+          motivo: string
+          persona_nombre: string
+          por_nombre: string
+          rol: string
+          total: number
+          ubicacion_anterior: string
+          ubicacion_nueva: string
+        }[]
+      }
+      fn_colaboradores_inactivos: {
+        Args: never
+        Returns: {
+          correo: string
+          estado_dynamic: string
+          nombre: string
+          persona_id: string
+          rol: string
+          sede: string
+          suspendida: boolean
+        }[]
+      }
+      fn_colaboradores_suspendidos: {
+        Args: never
+        Returns: {
+          correo: string
+          motivo: string
+          nombre: string
+          persona_id: string
+          rol: string
+          sede: string
+          suspendido_en: string
+          suspendido_por_nombre: string
           ubicacion_asignada: string
         }[]
       }
@@ -5096,6 +5162,23 @@ export type Database = {
           tipo: string
           total: number
           vencido: boolean
+        }[]
+      }
+      fn_costos_insumos_taller: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          costo_unitario: number
+          lote_id: string
+        }[]
+      }
+      fn_costos_producciones: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          costo_avios: number
+          costo_maquila: number
+          costo_tela: number
+          costo_unitario: number
+          produccion_id: string
         }[]
       }
       fn_deuda_consolidada: {
@@ -5697,6 +5780,8 @@ export type Database = {
         }[]
       }
       quitar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }
+      reactivar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }
+      suspender_colaborador: { Args: { p_motivo?: string; p_persona_id: string }; Returns: undefined }
       reactivar_categoria: {
         Args: { p_categoria_id: string }
         Returns: undefined

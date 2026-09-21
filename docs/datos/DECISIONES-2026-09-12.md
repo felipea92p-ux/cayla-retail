@@ -192,6 +192,11 @@ externa**. Nada inventado, todo automático, la consolidación es una suma.
 Descartado explícitamente: el precio de transferencia interno (lo fija Felipe, así
 que el resultado también lo fijaría Felipe).
 
+> **Enmienda (2026-09-22, Felipe):** la segunda mitad —medir contra una cotización real de
+> maquila externa— **se descarta**: no se registra ninguna cotización. El Taller se mide por
+> lo que cuesta cada prenda terminada (materiales + conversión), período a período. Ver
+> `docs/PLAN-PRODUCCION.md` F7.
+
 **D-32 · Gastos que no son de ninguna sede** (sueldo de Felipe, contador, servidores,
 software) → **van a la sede corporativa `CCO`**.
 

@@ -61,15 +61,25 @@ export async function getTaller(): Promise<Taller | null> {
 }
 
 /** Órdenes del Taller, las más recientes primero. `limite` acota las
- *  terminadas/anuladas — las en proceso siempre vienen todas. */
-export async function getOrdenesProduccion(tallerId: string, limite = 60): Promise<OrdenProduccion[]> {
+ *  terminadas/anuladas — las en proceso siempre vienen todas.
+ *
+ *  Los cuatro costos (tela, avíos, maquila y unitario) NO se leen de la tabla: desde F4e (D-G) `authenticated` no tiene SELECT sobre esas
+ *  columnas (migración 20260921151000). Con `conCostos` (solo el líder) llegan por `fn_costos_producciones`; sin él quedan en 0 y la
+ *  pantalla, que ya los oculta a quien no es líder, no los muestra. */
+export async function getOrdenesProduccion(tallerId: string, opciones: { conCostos: boolean; limite?: number } = { conCostos: false }): Promise<OrdenProduccion[]> {
+  const limite = opciones.limite ?? 60;
   const supabase = await createClient();
+  const costos = new Map(
+    opciones.conCostos
+      ? exigir(await supabase.rpc("fn_costos_producciones", { p_ubicacion_id: tallerId }), "los costos de las órdenes").map((c) => [c.produccion_id, c])
+      : []
+  );
   const filas = exigir(
     await supabase
       .from("producciones")
       .select(
-        `id, producto_id, estado, es_muestra, etapas, costo_tela, costo_avios, costo_maquila,
-         cantidad_plan, cantidad_buenas, costo_unitario, fecha_entrega, nota, inventariado_at, created_at,
+        `id, producto_id, estado, es_muestra, etapas,
+         cantidad_plan, cantidad_buenas, fecha_entrega, nota, inventariado_at, created_at,
          producto:productos ( referencia, categoria:categorias ( nombre ), variantes ( precio ) ),
          lineas:produccion_lineas (
            variante_id, cantidad_plan, cantidad_buenas,
@@ -90,12 +100,12 @@ export async function getOrdenesProduccion(tallerId: string, limite = 60): Promi
     estado: p.estado as EstadoOrden,
     esMuestra: p.es_muestra,
     etapas: (p.etapas ?? {}) as OrdenProduccion["etapas"],
-    costoTela: Number(p.costo_tela),
-    costoAvios: Number(p.costo_avios),
-    costoMaquila: Number(p.costo_maquila),
+    costoTela: Number(costos.get(p.id)?.costo_tela ?? 0),
+    costoAvios: Number(costos.get(p.id)?.costo_avios ?? 0),
+    costoMaquila: Number(costos.get(p.id)?.costo_maquila ?? 0),
     cantidadPlan: p.cantidad_plan,
     cantidadBuenas: p.cantidad_buenas,
-    costoUnitario: Number(p.costo_unitario ?? 0),
+    costoUnitario: Number(costos.get(p.id)?.costo_unitario ?? 0),
     precioVenta: Math.max(0, ...(p.producto?.variantes ?? []).map((v) => Number(v.precio))),
     fechaEntrega: p.fecha_entrega,
     nota: p.nota,

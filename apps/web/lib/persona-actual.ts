@@ -87,3 +87,14 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     puedeCambiarUbicacion: !!data.es_lider,
   };
 });
+
+/** Pantallas de líder (Facturación, Códigos de descuento…): un integrante vuelve al inicio.
+ *  Es la primera de las tres capas —pantalla, RPC, RLS— y cada `page.tsx` la repite: un
+ *  layout no vuelve a ejecutarse al navegar entre sus hijas, así que no puede ser la única
+ *  puerta. `requirePersonaActualV2` va con `cache`, así que layout y página comparten la
+ *  misma lectura de la persona. */
+export async function exigirLider(): Promise<PersonaActualV2> {
+  const persona = await requirePersonaActualV2();
+  if (persona.rol !== "lider") redirect("/");
+  return persona;
+}

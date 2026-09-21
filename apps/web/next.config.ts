@@ -64,6 +64,11 @@ const nextConfig: NextConfig = {
       { source: "/productos/tejidos", destination: "/productos/atributos?tipo=tejidos", permanent: false },
       { source: "/productos/patrones", destination: "/productos/atributos?tipo=patrones", permanent: false },
       { source: "/productos/etiquetas", destination: "/productos/atributos?tipo=etiquetas", permanent: false },
+      // Facturación en cuatro vistas (ADR-0124, 2026-09): los códigos de descuento pasaron a
+      // ser la cuarta pestaña de Facturación. `permanent: false` por la misma razón que los
+      // otros alias: un redirect permanente queda cacheado en cada navegador y no hay forma
+      // de limpiarlo del lado del cliente.
+      { source: "/vender/descuentos", destination: "/vender/facturacion/descuentos", permanent: false },
     ];
   },
 };
