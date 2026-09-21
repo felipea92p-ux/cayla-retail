@@ -23,7 +23,7 @@ Hoy `/vender/facturacion` es una sola página larga (ventas de hoy, proformas y 
 | Estructura | Cuatro rutas bajo un layout (§4), con el estado del mes solo donde aplica. |
 | Secuencia con Atelier | **Opción 1**: se construye sobre lo de Atelier (ADR-0106, rama `interface-recommendations-8ce365`, sin mergear). R1 no depende de nada; R2 a R4 esperan a que Atelier entre a `main`. |
 | Ajustes respecto al diseño presentado | (a) **`BotonCompacto` nuevo**, en vez de una variante de `Boton`: `Boton` es compartido y su tipografía en versalitas es otra, así que no se toca. (b) **Los importes usan `soles()`** («S/ 950.00», con separador de miles): `CifraAnimada` ya lo usa y así la tarjeta y la tabla no muestran dos formatos. (c) **Una cuarta tarjeta «Vencidas»** en Proformas, para que el estado derivado se vea. (d) **Una franja de proformas de una línea** en Resumen (no estaba en la maqueta; es la recomendación del análisis, para no duplicar la pestaña). |
-| Defaults revocables | «Monto facturado» = aceptados en producción; «Convertir» sigue disponible en una proforma vencida (la base no lo impide y cambiarlo es decisión de negocio; el chip «Vencida» avisa); el hilo solo en Resumen (Comprobantes usa chip y botones). |
+| Defaults revocables | «Monto facturado» = aceptados en producción; «Convertir» sigue disponible en una proforma vencida, pero el modal pide una confirmación consciente (opción B de Felipe, 2026-09-21; la base no lo impide; el chip «Vencida» avisa); el hilo solo en Resumen (Comprobantes usa chip y botones). |
 
 ## 3. Fuera de alcance
 
