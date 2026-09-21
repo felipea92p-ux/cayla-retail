@@ -11,7 +11,7 @@ import { Chip } from "@/components/ui/Chip";
 import { describirRotacion } from "@/lib/reorden-reglas";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import type { ProductoListado, VarianteCatalogo } from "@/lib/catalogo-v2";
-import { alertaDeStock, textoDeStock, EXPLICACION_STOCK_TOTAL } from "@/lib/productos-stock";
+import { alertaDeStock, textoDeStock, EXPLICACION_STOCK_TOTAL, MENSAJE_SIN_RESULTADOS } from "@/lib/productos-stock";
 
 /** Rango de costo del modelo a partir de sus variantes — no hay `costo` a nivel
  *  de producto en el esquema (vive por variante, `variantes.costo`), así que se
@@ -25,8 +25,7 @@ function rangoCosto(variantes: VarianteCatalogo[]): string {
   return min === max ? `S/${min.toFixed(2)}` : `S/${min.toFixed(2)}–${max.toFixed(2)}`;
 }
 
-// La 5.ª columna (Stock total) es más ancha que antes: «STOCK TOTAL» en versalitas de 11 px no cabía en 4.5rem.
-const PLANTILLA_FILA = "sm:grid-cols-[1.25rem_1fr_7rem_4.5rem_6rem_6.5rem_6.5rem_2.25rem]";
+const PLANTILLA_FILA = "sm:grid-cols-[1.25rem_1fr_7rem_4.5rem_4.5rem_6.5rem_6.5rem_2.25rem]";
 
 /**
  * Catálogo agrupado por producto — una fila por modelo, expandible a sus
@@ -58,11 +57,13 @@ export function ProductosAgrupados({
   ubicacionId,
   sububicaciones,
   esLider,
+  mensajeVacio = MENSAJE_SIN_RESULTADOS,
 }: {
   productos: ProductoListado[];
   ubicacionId: string;
   sububicaciones: Sububicacion[];
   esLider: boolean;
+  mensajeVacio?: string;
 }) {
   const router = useRouter();
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
@@ -116,7 +117,7 @@ export function ProductosAgrupados({
   }
 
   if (productos.length === 0) {
-    return <p className="card-cayla p-5 text-sm text-tinta/75">Ningún producto calza con esos filtros.</p>;
+    return <p className="card-cayla p-5 text-sm text-tinta/75">{mensajeVacio}</p>;
   }
 
   return (
@@ -160,7 +161,8 @@ export function ProductosAgrupados({
         <span>Producto</span>
         <span>Categoría</span>
         <span className="text-right">Variantes</span>
-        <span className="whitespace-nowrap text-right" title={EXPLICACION_STOCK_TOTAL}>
+        {/* «STOCK TOTAL» no cabe en 4.5rem en una línea: baja a dos, en vez de robarle ancho a la columna Producto. */}
+        <span className="text-right leading-tight" title={EXPLICACION_STOCK_TOTAL}>
           Stock total
         </span>
         <span className="text-right">Costo</span>
@@ -171,9 +173,9 @@ export function ProductosAgrupados({
       {productos.map((p) => {
         const abierto = abiertos.has(p.productoId);
         // Misma regla que la tarjeta de la Grilla (lib/productos-stock.ts): solo las activas piden atención y
-        // «Agotado» no es rojo (una fila roja por cada prenda en 0 rompía el máximo de rojos por pantalla).
+        // «Sin stock» no es rojo (una fila roja por cada prenda en 0 rompía el máximo de rojos por pantalla).
         const alerta = alertaDeStock(p);
-        const tonoStock = alerta === "agotado" ? "text-tinta" : alerta === "bajo" ? "text-ambar" : p.estado !== "activo" ? "text-tinta/55" : "text-tinta/75";
+        const tonoStock = alerta === "sin_stock" ? "text-tinta" : alerta === "bajo" ? "text-ambar" : p.estado !== "activo" ? "text-tinta/70" : "text-tinta/75";
         const rotacion = describirRotacion(p.demandaDiaria);
         return (
           <div key={p.productoId} className="card-cayla overflow-hidden">
@@ -213,11 +215,13 @@ export function ProductosAgrupados({
               </span>
               <span className="hidden text-right text-xs tabular-nums text-tinta/65 sm:block">{p.variantes.length}</span>
               <span title={EXPLICACION_STOCK_TOTAL} className={`hidden text-right text-xs font-semibold tabular-nums sm:block ${tonoStock}`}>
-                {p.stockTotal === 0 ? "Agotado" : p.stockTotal}
+                {alerta === "sin_stock" ? "Sin stock" : alerta === "bajo" ? `${p.stockTotal} · bajo` : p.stockTotal}
               </span>
               <span className="hidden text-right text-xs tabular-nums text-tinta/65 sm:block">{rangoCosto(p.variantes)}</span>
               <span className="hidden sm:block">
-                <Chip tono={p.estado === "activo" ? "verde" : "apagado"}>{p.estado === "activo" ? "Activo" : "Descontinuado"}</Chip>
+                <Chip tono={p.estado === "activo" ? "verde" : "apagado"} tachado={false}>
+                  {p.estado === "activo" ? "Activo" : "Descontinuado"}
+                </Chip>
               </span>
               <span className="justify-self-end">
                 <MenuFila productoId={p.productoId} ubicacionId={ubicacionId} sububicaciones={sububicaciones} esLider={esLider} />
@@ -234,8 +238,10 @@ export function ProductosAgrupados({
                 {textoDeStock(p.stockTotal)}
               </span>
               <span className="text-xs tabular-nums text-tinta/65">{rangoCosto(p.variantes)}</span>
-              <Chip tono={p.estado === "activo" ? "verde" : "apagado"}>{p.estado === "activo" ? "Activo" : "Descontinuado"}</Chip>
-              {alerta === "agotado" && <Chip tono="neutro">Agotado</Chip>}
+              <Chip tono={p.estado === "activo" ? "verde" : "apagado"} tachado={false}>
+                {p.estado === "activo" ? "Activo" : "Descontinuado"}
+              </Chip>
+              {alerta === "sin_stock" && <Chip tono="neutro">Sin stock</Chip>}
               {alerta === "bajo" && <Chip tono="ambar">Stock bajo</Chip>}
               {p.reponerDeProveedor && <Chip tono="ambar">Pedir a proveedor</Chip>}
               {rotacion && <span className="text-xs text-tinta/55">{rotacion}</span>}

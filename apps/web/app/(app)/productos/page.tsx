@@ -18,6 +18,7 @@ import { ProductosGrilla } from "@/components/ProductosGrilla";
 import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
 import { NotaStockTotal } from "@/components/NotaStockTotal";
+import { mensajeSinResultados } from "@/lib/productos-stock";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -187,6 +188,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           ubicacionId={persona.ubicacionId}
           sububicaciones={sububicaciones}
           esLider={persona.rol === "lider"}
+          mensajeVacio={mensajeSinResultados(filtros)}
         />
       ) : (
         <ProductosAgrupados
@@ -194,6 +196,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           ubicacionId={persona.ubicacionId}
           sububicaciones={sububicaciones}
           esLider={persona.rol === "lider"}
+          mensajeVacio={mensajeSinResultados(filtros)}
         />
       )}
 
