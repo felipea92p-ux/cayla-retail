@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-21 (Serie de nota de crédito: Felipe eligió A)
+Felipe eligió la opción A: una serie de nota de crédito con B por tienda ahora, y la de factura cuando se emita la primera factura (SUNAT exige F si la nota corrige una factura y B si corrige una boleta; hoy en producción solo hay boletas). Decidir no es ejecutar, y al ejecutarlo aparecieron tres dependencias: la pantalla de producción todavía no ofrece «nota de crédito» en «Registrar serie» (está en la rama sin subir), la forma del documento de nota de crédito hacia Lucode nunca se probó en el sandbox, y Tienda LIM no tiene ninguna serie. Quedó todo anotado en el BACKLOG.
+Lo que Felipe se lleva: una decisión de negocio se cierra en el chat, pero se vuelve real cuando cada pieza que la sostiene (pantalla, proveedor, datos) está lista; conviene mirar esas piezas antes de decir «ya está».
+
 ## 2026-09-21 (Proforma vencida: se puede convertir, pero pide confirmación)
 Felipe eligió la opción B para las proformas vencidas: no se prohíbe convertirlas (a veces se quiere honrar una cotización vieja), pero ya no pasa en silencio. El modal de convertir muestra un aviso ámbar —«Esta proforma venció hace 3 d… saldrá con el precio de la cotización, no con el de hoy»— y el botón de emitir queda apagado hasta que la persona marca que sí quiere. Es solo pantalla: la base no cambió, así que no hubo nada que pegar en producción.
 Lo que Felipe se lleva: entre «prohibir» y «dejar pasar» hay un tercer camino barato, poner una fricción justo donde el riesgo es real (una vencida) y en ningún otro lado; y la regla que decide cuándo pedirla vive en una función pura con pruebas, no dentro del componente.

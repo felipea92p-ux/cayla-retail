@@ -573,6 +573,18 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
     en cada emisión. Menor prioridad que 14/15 — es una limitación de reporting, no un
     riesgo de datos.
 
+17. **Una sola serie de nota de crédito por tienda, y SUNAT pide dos — encontrado 2026-09-21.**
+    `series_comprobantes` tiene `unique (ubicacion_id, tipo)`: una serie de `nota_credito` por
+    tienda, y `fn_reservar_numero_serie` la usa sin mirar qué documento se corrige. SUNAT (RS
+    117-2017, Anexo N.° 3) pide que la serie de una nota de crédito tenga cuatro caracteres y
+    empiece en **F** si corrige una factura y en **B** si corrige una boleta: una tienda que emite
+    las dos no puede cumplir con una sola. Hoy no duele: en producción solo se han emitido boletas
+    (las series de factura F004 y F005 nunca se usaron) y ninguna tienda tiene serie de nota de
+    crédito todavía. **Decidido por Felipe (2026-09-21, opción A):** una serie con B por tienda
+    ahora, y la de factura cuando se emita la primera factura (eso son dos series por tienda: una
+    migración de `series_comprobantes`, `fn_reservar_numero_serie`, `emitir_nota` y «Registrar
+    serie»). Hasta entonces, una nota de crédito de una factura con serie B la rechazaría SUNAT.
+
 ## Decisiones que lo gobiernan
 
 - **D-34** · Boleta y venta se unen. **Incumplida hoy**: `venta_id` existe y nadie lo llena (hueco 3).
