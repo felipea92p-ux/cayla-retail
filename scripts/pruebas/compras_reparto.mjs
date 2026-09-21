@@ -10,7 +10,10 @@
  *   · el faltante (cierre de línea) es de una tienda concreta y respeta el tope de esa tienda;
  *   · un integrante no ve la parte de otra tienda (RPC de lectura y RLS);
  *   · lo de siempre sigue igual: un comprobante de una sola tienda, la web vieja (4 argumentos, sin
- *     `destinos`) y la migración re-pegable.
+ *     `destinos`) y la migración re-pegable;
+ *   · el filtro «Destino» de Comprobantes y Por pagar (`p_ubicacion_id` en `listar_compras` y `por_pagar_tramos`,
+ *     migración 20260921130000): solo trae los comprobantes con mercadería para esa tienda, los subtotales de Por pagar
+ *     cuadran con la lista filtrada, sigue cerrado a quien no es líder y no deja dos firmas de cada función.
  *
  * CÓMO. Mismo patrón que `recibir_envio.mjs` y `dinero_compras_solo_lider.mjs`: cada escenario corre en su
  * propia transacción con ROLLBACK — nunca se commitea nada, corre seguro contra el Postgres local que
@@ -41,7 +44,11 @@ const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualq
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — fija a Tienda Trujillo
 
 const EN_SECO = process.argv.includes("--en-seco");
-const MIGRACIONES = ["20260919172000_reparto_compra_por_tienda.sql", "20260919173000_reparto_compra_retira_destino_de_cabecera.sql"];
+const MIGRACIONES = [
+  "20260919172000_reparto_compra_por_tienda.sql",
+  "20260919173000_reparto_compra_retira_destino_de_cabecera.sql",
+  "20260921130000_compras_filtro_por_tienda_destino.sql",
+];
 const leer = (f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8");
 const PRELUDIO = EN_SECO ? MIGRACIONES.map(leer).join("\n") : "";
 
@@ -767,6 +774,148 @@ rollback;
   );
 }
 
+
+// ===========================================================================
+// 9. FILTRO «DESTINO» en Comprobantes y Por pagar (migración 20260921130000)
+// ===========================================================================
+// Tres comprobantes de importes distintos para que cada tienda tenga una suma propia y comprobable:
+//   c1 = 24 u. a S/ 50 repartidas 12 Trujillo + 12 Taller → S/ 1 416.00 con IGV
+//   c2 = 10 u. a S/ 50, todo a Trujillo (proveedor 2)     → S/   590.00
+//   c3 =  5 u. a S/ 50, todo al Taller                    → S/   295.00
+const TRES_DESTINOS = `${compra("c1", { lineas: [{ cant: 24, dest: { trujillo: 12, taller: 12 } }] })}${compra("c2", { prov: "prov2", lineas: [{ cant: 10, dest: { trujillo: 10 } }] })}${compra("c3", { lineas: [{ cant: 5, dest: { taller: 5 } }] })}`;
+const SOLO_MIOS = `id in (:'c1', :'c2', :'c3')`;
+const LISTA_DE = (ub, extra = "") => `select count(*) filter (where id = :'c1'), count(*) filter (where id = :'c2'), count(*) filter (where id = :'c3') from retail.listar_compras(p_limite => 200, p_ubicacion_id => ${ub}${extra});`;
+
+exito(
+  "filtro «Destino» = Trujillo: la lista trae los comprobantes con algo para Trujillo (el repartido y el de Trujillo) y no el del Taller",
+  comoPersona(FELIPE, `${BASE}${TRES_DESTINOS}\n${LISTA_DE(":'trujillo'")}\nrollback;\n`),
+  ["1", "1", "0"]
+);
+
+exito(
+  "filtro «Destino» = Taller: el repartido y el del Taller, no el de Trujillo",
+  comoPersona(FELIPE, `${BASE}${TRES_DESTINOS}\n${LISTA_DE(":'taller'")}\nrollback;\n`),
+  ["1", "0", "1"]
+);
+
+exito(
+  "sin tienda (null) la lista es la de siempre: trae los tres",
+  comoPersona(
+    FELIPE,
+    `${BASE}${TRES_DESTINOS}
+select count(*) filter (where ${SOLO_MIOS}) from retail.listar_compras(p_limite => 200);
+select count(*) filter (where ${SOLO_MIOS}) from retail.listar_compras(p_limite => 200, p_ubicacion_id => null);
+rollback;
+`
+  ),
+  ["3"]
+);
+
+exito(
+  "una tienda sin ninguno de estos comprobantes (Tienda Lima) o una que no existe: no trae ninguno",
+  comoPersona(
+    FELIPE,
+    `${BASE}${TRES_DESTINOS}
+select count(*) filter (where ${SOLO_MIOS}) as en_lima from retail.listar_compras(p_limite => 200, p_ubicacion_id => :'lima') \\gset
+select :en_lima, count(*) filter (where ${SOLO_MIOS}) from retail.listar_compras(p_limite => 200, p_ubicacion_id => gen_random_uuid());
+rollback;
+`
+  ),
+  ["0", "0"]
+);
+
+exito(
+  "el filtro se combina con los demás: Trujillo + proveedor 2 deja solo c2; Taller + con saldo + orden por vencimiento (la otra rama) deja c1 y c3",
+  comoPersona(
+    FELIPE,
+    `${BASE}${TRES_DESTINOS}
+select
+  (select count(*) from retail.listar_compras(p_limite => 200, p_ubicacion_id => :'trujillo', p_proveedor_id => :'prov2') where id = :'c1'),
+  (select count(*) from retail.listar_compras(p_limite => 200, p_ubicacion_id => :'trujillo', p_proveedor_id => :'prov2') where id = :'c2'),
+  (select count(*) from retail.listar_compras(p_limite => 200, p_orden => 'vencimiento', p_con_saldo => true, p_ubicacion_id => :'taller') where id = :'c1'),
+  (select count(*) from retail.listar_compras(p_limite => 200, p_orden => 'vencimiento', p_con_saldo => true, p_ubicacion_id => :'taller') where id = :'c2'),
+  (select count(*) from retail.listar_compras(p_limite => 200, p_orden => 'vencimiento', p_con_saldo => true, p_ubicacion_id => :'taller') where id = :'c3');
+rollback;
+`
+  ),
+  ["0", "1", "1", "0", "1"]
+);
+
+exito(
+  "el filtro sigue al reparto: si se reasigna TODA la parte del Taller a Trujillo, c1 deja de aparecer bajo «Taller» (c3 sigue) y queda entero bajo «Trujillo»",
+  comoPersona(
+    FELIPE,
+    `${BASE}${TRES_DESTINOS}
+select count(*) filter (where id = :'c1') as antes from retail.listar_compras(p_limite => 200, p_ubicacion_id => :'taller') \\gset
+select retail.reasignar_reparto_compra(:'c1_l1', :'taller', :'trujillo', 12, 'otro', 'prueba del filtro');
+select :antes,
+  (select count(*) from retail.listar_compras(p_limite => 200, p_ubicacion_id => :'taller') where id = :'c1'),
+  (select count(*) from retail.listar_compras(p_limite => 200, p_ubicacion_id => :'taller') where id = :'c3'),
+  (select count(*) from retail.listar_compras(p_limite => 200, p_ubicacion_id => :'trujillo') where id = :'c1');
+rollback;
+`
+  ),
+  ["1", "0", "1", "1"]
+);
+
+exito(
+  "los subtotales de Por pagar cuadran con la lista filtrada y suman lo que se espera: Trujillo = c1 + c2, Taller = c1 + c3, sin filtro = los tres",
+  comoPersona(
+    FELIPE,
+    `${BASE}
+select coalesce(sum(saldo), 0) as t0 from retail.por_pagar_tramos(p_ubicacion_id => :'trujillo') \\gset
+select coalesce(sum(saldo), 0) as k0 from retail.por_pagar_tramos(p_ubicacion_id => :'taller') \\gset
+select coalesce(sum(saldo), 0) as n0 from retail.por_pagar_tramos() \\gset
+${TRES_DESTINOS}
+select coalesce(sum(saldo), 0) as t1 from retail.por_pagar_tramos(p_ubicacion_id => :'trujillo') \\gset
+select coalesce(sum(saldo), 0) as k1 from retail.por_pagar_tramos(p_ubicacion_id => :'taller') \\gset
+select coalesce(sum(saldo), 0) as n1 from retail.por_pagar_tramos() \\gset
+select :t1 - :t0, :k1 - :k0, :n1 - :n0,
+  (select coalesce(sum(comprobantes), 0) from retail.por_pagar_tramos(p_ubicacion_id => :'trujillo'))
+    = (select count(*) from retail.listar_compras(p_limite => 200, p_con_saldo => true, p_ubicacion_id => :'trujillo')),
+  (select coalesce(sum(saldo), 0) from retail.por_pagar_tramos(p_ubicacion_id => :'trujillo'))
+    = (select coalesce(sum(saldo), 0) from retail.listar_compras(p_limite => 200, p_con_saldo => true, p_ubicacion_id => :'trujillo'));
+rollback;
+`
+  ),
+  ["2006.00", "1711.00", "2301.00", "t", "t"]
+);
+
+error(
+  "el candado de dinero sigue: un integrante no puede pedir los subtotales de Por pagar ni con la tienda puesta",
+  comoPersona(FELIPE, `${BASE}${cambiaA(MICAELA)}select * from retail.por_pagar_tramos(p_ubicacion_id => :'trujillo');`),
+  "Solo un líder puede ver"
+);
+
+exito(
+  "un integrante (con la seguridad por fila puesta) no ve NINGUNO de los comprobantes por la lista de líder, aunque pida su tienda",
+  comoPersona(
+    FELIPE,
+    `${BASE}${TRES_DESTINOS}
+${cambiaA(MICAELA)}set local role authenticated;
+select count(*) filter (where ${SOLO_MIOS}) from retail.listar_compras(p_limite => 200, p_ubicacion_id => :'trujillo');
+rollback;
+`
+  ),
+  ["0"]
+);
+
+exito(
+  "las dos funciones quedaron con UNA sola firma (sin sobrecargas), cerradas a anon y abiertas a authenticated",
+  comoPersona(
+    FELIPE,
+    `select
+  (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'listar_compras'),
+  (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'por_pagar_tramos'),
+  bool_or(has_function_privilege('anon', p.oid, 'execute')),
+  bool_and(has_function_privilege('authenticated', p.oid, 'execute')),
+  bool_and(p.proname <> 'por_pagar_tramos' or pg_get_functiondef(p.oid) like '%fn_exige_dinero_de_compras%')
+from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in ('listar_compras', 'por_pagar_tramos');
+`
+  ),
+  ["1", "1", "f", "t", "t"]
+);
+
 function main() {
   try {
     execFileSync("docker", ["exec", CONTENEDOR_LOCAL, "true"]);
@@ -788,6 +937,14 @@ function main() {
       process.exit(2);
     }
     console.log("Modo --en-seco: las migraciones del reparto se cargan dentro de cada escenario (no se aplican a la base).\n");
+  }
+
+  if (!EN_SECO) {
+    const filtro = correr("select to_regprocedure('retail.por_pagar_tramos(uuid,text,boolean,text,text,date,date,uuid)') is not null;");
+    if (filtro.ok && filtro.salida.trim() === "f") {
+      console.error("Falta aplicar la migración del filtro «Destino» (20260921130000_compras_filtro_por_tienda_destino.sql) en esta base: las pruebas de la sección 9 no pueden correr.");
+      process.exit(2);
+    }
   }
 
   let fallos = 0;
