@@ -27,12 +27,14 @@ export function ComprobantesProduccionPanel({
   todosLosProveedores,
   insumos,
   hoy,
+  tallerId,
 }: {
   comprobantes: ComprobanteProduccion[];
   proveedores: ProveedorProduccion[];
   todosLosProveedores: ProveedorProduccion[];
   insumos: InsumoParaComprobante[];
   hoy: string;
+  tallerId: string | null;
 }) {
   const [estado, setEstado] = useState<FiltroEstado>("todos");
   const [proveedorId, setProveedorId] = useState("");
@@ -179,12 +181,12 @@ export function ComprobantesProduccionPanel({
               </ul>
             </div>
           )}
-          <p className="text-xs text-tinta/65">Un comprobante dice qué se compró, no qué llegó: recibir la mercadería y abrir su lote viene después. El pago posterior de un crédito se registra en Por pagar.</p>
+          <p className="text-xs text-tinta/65">Un comprobante dice qué se compró, no qué llegó: la mercadería se recibe en Recibir, donde cada línea abre su lote. El pago posterior de un crédito se registra en Por pagar.</p>
         </div>
       )}
 
       {nuevo && <ComprobanteProduccionForm proveedores={proveedores} insumos={insumos} hoy={hoy} proveedorInicialId={proveedorId || null} onClose={() => setNuevo(false)} />}
-      {detalle && <ComprobanteProduccionDetalle comprobante={detalle} hoy={hoy} onClose={() => setAbierto(null)} />}
+      {detalle && <ComprobanteProduccionDetalle comprobante={detalle} hoy={hoy} tallerId={tallerId} onClose={() => setAbierto(null)} />}
     </div>
   );
 }

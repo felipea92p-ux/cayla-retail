@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { puedeVerProduccion } from "@/lib/produccion-menu";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
+import { getTaller } from "@/lib/produccion";
 import { getComprobantesProduccion, getInsumosParaComprobante } from "@/lib/comprobantes-produccion";
 import { getProveedoresProduccion } from "@/lib/proveedores-produccion";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -17,10 +18,10 @@ export default async function ComprobantesProduccionPage() {
   }
   if (persona.rol !== "lider") redirect("/produccion/ordenes");
 
-  const [comprobantes, proveedores, insumos] = await Promise.all([getComprobantesProduccion(), getProveedoresProduccion(), getInsumosParaComprobante()]);
+  const [comprobantes, proveedores, insumos, taller] = await Promise.all([getComprobantesProduccion(), getProveedoresProduccion(), getInsumosParaComprobante(), getTaller()]);
   return (
     <div className="space-y-6">
-      <ComprobantesProduccionPanel comprobantes={comprobantes} proveedores={proveedores.filter((p) => p.activo)} todosLosProveedores={proveedores} insumos={insumos} hoy={hoyLima()} />
+      <ComprobantesProduccionPanel comprobantes={comprobantes} proveedores={proveedores.filter((p) => p.activo)} todosLosProveedores={proveedores} insumos={insumos} hoy={hoyLima()} tallerId={taller?.id ?? null} />
     </div>
   );
 }
