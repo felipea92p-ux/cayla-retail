@@ -30,10 +30,13 @@
 // FALTA CONFIRMAR EN SANDBOX REAL antes de dar esto por probado:
 //   - Base URLs, endpoints, autenticación Bearer, forma de factura/boleta:
 //     confirmado con la documentación pública.
-//   - Forma exacta de nota_credito/nota_debito (mismo nombre de campo
-//     `nota_credito_codigo_tipo` reusado para nota_debito): la documentación
-//     lo describe como "estructura similar", no lo confirma campo por campo.
-//     Verificar con una nota_debito real en sandbox antes de confiar en esto.
+//   - nota_credito: PROBADA contra el sandbox real el 2026-09-21 (BC01-1, que
+//     corrige la boleta B001-21 por su total, motivo «06»): SUNAT la aceptó a
+//     la primera, con una serie que nunca se dio de alta en ningún panel.
+//   - nota_debito (mismo nombre de campo `nota_credito_codigo_tipo` reusado):
+//     la documentación lo describe como "estructura similar", no lo confirma
+//     campo por campo. Verificar con una nota_debito real en sandbox antes de
+//     confiar en esto (CAYLA no las emite hoy).
 //   - El catálogo MOTIVO_NC/MOTIVO_ND de abajo solo cubre los motivos que
 //     CAYLA puede llegar a usar en retail — no es el catálogo 09/10 completo.
 //   - Anulación (paso c): PROBADA contra el sandbox real el 2026-09-09, y la

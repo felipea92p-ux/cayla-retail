@@ -8,7 +8,7 @@ import type { Comprobante, SerieComprobante, TipoComprobante } from "@/lib/compr
 import { ETIQUETA_TIPO } from "@/lib/comprobantes-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { chipDelComprobante } from "@/lib/facturacion-actividad";
-import { accionesDelComprobante, camposDeBusquedaDelComprobante, motivoDelComprobante, seriesFaltantes, TIPOS_CON_SERIE, textoDeSeriesFaltantes } from "@/lib/facturacion-comprobantes-reglas";
+import { accionesDelComprobante, camposDeBusquedaDelComprobante, motivoDelComprobante, errorDeSerie, seriesFaltantes, TIPOS_CON_SERIE, textoDeSeriesFaltantes } from "@/lib/facturacion-comprobantes-reglas";
 import { coincide } from "@/lib/facturacion-busqueda";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { nombreCorto } from "@/lib/resumen-formato";
@@ -295,12 +295,20 @@ export function ComprobantesPanel({
 
   async function onRegistrarSerie(e: React.FormEvent) {
     e.preventDefault();
+    // Una serie mal escrita queda guardada y todos sus comprobantes se rechazan (y cada intento quema un
+    // número): se comprueba el formato antes de guardar, no después.
+    const errorSerie = errorDeSerie(serieTipo, serieTexto);
+    if (errorSerie) {
+      avisar.error(errorSerie);
+      return;
+    }
+    const serie = serieTexto.trim().toUpperCase();
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.rpc("registrar_serie_comprobante", {
       p_ubicacion_id: serieUbicacionId,
       p_tipo: serieTipo,
-      p_serie: serieTexto,
+      p_serie: serie,
       // undefined se cae del JSON: sin número, la RPC no toca el correlativo.
       p_siguiente_numero: serieNumero ? Number(serieNumero) : undefined,
     });
@@ -310,7 +318,7 @@ export function ComprobantesPanel({
       return;
     }
     setLoading(false);
-    avisar.exito(`Serie ${serieTexto} registrada`);
+    avisar.exito(`Serie ${serie} registrada`);
     cerrarModal();
     router.refresh();
   }

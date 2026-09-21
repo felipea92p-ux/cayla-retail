@@ -12,6 +12,22 @@ import { nombreCorto } from "./resumen-formato";
  *  de crédito y, sin serie, la devolución no se puede aprobar). Las notas de débito no se emiten. */
 export const TIPOS_CON_SERIE: TipoComprobante[] = ["boleta", "factura", "nota_credito"];
 
+/** Lo que SUNAT exige de la serie (RS 117-2017, Anexo N.° 3, y lo mismo para boletas y facturas): cuatro
+ *  caracteres, letras o números, y la primera letra según el documento —B una boleta, F una factura, y una
+ *  nota de crédito la del documento que corrige (B si corrige boletas, F si corrige facturas)—. `null` si
+ *  está bien; si no, el texto que se le muestra a la persona. Se comprueba al REGISTRAR: una serie mal
+ *  escrita queda guardada y todos sus comprobantes se rechazan, cada intento quemando un número. */
+export function errorDeSerie(tipo: TipoComprobante, texto: string): string | null {
+  const serie = texto.trim().toUpperCase();
+  if (!/^[A-Z0-9]{4}$/.test(serie)) return "La serie tiene cuatro caracteres, solo letras y números (por ejemplo B001).";
+  if (tipo === "boleta" && serie[0] !== "B") return "La serie de una boleta empieza con B (por ejemplo B001).";
+  if (tipo === "factura" && serie[0] !== "F") return "La serie de una factura empieza con F (por ejemplo F001).";
+  if ((tipo === "nota_credito" || tipo === "nota_debito") && serie[0] !== "B" && serie[0] !== "F") {
+    return `La serie de una ${ETIQUETA_TIPO[tipo].toLowerCase()} empieza con B si corrige boletas o con F si corrige facturas (por ejemplo BC01).`;
+  }
+  return null;
+}
+
 export type GrupoSeriesFaltantes = { tipo: TipoComprobante; tiendas: { id: string; nombre: string }[] };
 
 /** Las series que faltan, agrupadas por tipo (en el orden boleta, factura, nota de crédito) y con

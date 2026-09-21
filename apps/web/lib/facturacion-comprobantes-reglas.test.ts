@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Comprobante } from "./comprobantes-reglas";
-import { accionesDelComprobante, camposDeBusquedaDelComprobante, montosDelMes, motivoDelComprobante, seriesFaltantes, textoDeSeriesFaltantes } from "./facturacion-comprobantes-reglas";
+import { accionesDelComprobante, camposDeBusquedaDelComprobante, montosDelMes, motivoDelComprobante, seriesFaltantes, textoDeSeriesFaltantes, errorDeSerie } from "./facturacion-comprobantes-reglas";
 
 const TRU = { id: "u-tru", nombre: "Tienda Trujillo", tipo: "tienda" as const };
 const AQP = { id: "u-aqp", nombre: "Tienda Arequipa", tipo: "tienda" as const };
@@ -245,5 +245,32 @@ describe("accionesDelComprobante (qué botones le tocan a cada estado)", () => {
 
   it("enviado, anulado y no emitido: sin botones", () => {
     for (const estado of ["enviado", "anulado", "no_emitido"] as const) expect(accionesDelComprobante(c({ estado }))).toEqual([]);
+  });
+});
+
+describe("errorDeSerie", () => {
+  it("acepta lo que SUNAT acepta: cuatro caracteres y la letra del documento", () => {
+    expect(errorDeSerie("boleta", "B001")).toBeNull();
+    expect(errorDeSerie("factura", "F004")).toBeNull();
+    expect(errorDeSerie("nota_credito", "BC04")).toBeNull();
+    expect(errorDeSerie("nota_credito", "FC01")).toBeNull();
+    expect(errorDeSerie("boleta", " b001 ")).toBeNull();
+  });
+
+  it("rechaza lo que no tiene cuatro caracteres o trae símbolos y espacios", () => {
+    for (const mala of ["", "B", "B01", "B0001", "B-01", "B 01", "B0Ñ1"]) {
+      expect(errorDeSerie("boleta", mala)).toBe("La serie tiene cuatro caracteres, solo letras y números (por ejemplo B001).");
+    }
+  });
+
+  it("una boleta empieza con B y una factura con F", () => {
+    expect(errorDeSerie("boleta", "F001")).toBe("La serie de una boleta empieza con B (por ejemplo B001).");
+    expect(errorDeSerie("factura", "B001")).toBe("La serie de una factura empieza con F (por ejemplo F001).");
+  });
+
+  it("una nota de crédito empieza con B si corrige boletas o con F si corrige facturas, y con ninguna otra letra", () => {
+    const mensaje = "La serie de una nota de crédito empieza con B si corrige boletas o con F si corrige facturas (por ejemplo BC01).";
+    expect(errorDeSerie("nota_credito", "NC01")).toBe(mensaje);
+    expect(errorDeSerie("nota_credito", "0C01")).toBe(mensaje);
   });
 });
