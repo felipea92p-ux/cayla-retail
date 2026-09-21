@@ -8587,3 +8587,8 @@ Documentación al día: módulo 10 de datos (sección «ESTADO ACTUAL»), ADR-01
 ## 2026-09-22 (Versión de migración repetida: productos_por_categoria → 20260921170000)
 `20260921160000_planilla_por_sede.sql` (Producción F7) y `20260921160000_productos_por_categoria.sql` (Catálogo) compartían versión en main; las dos ya estaban pegadas en producción (verificado: la vista y `fn_productos_por_categoria`
 existen). Como ninguna corre por versión en producción, se renombró la que casi no tenía referencias: `productos_por_categoria` pasa a `20260921170000`. El contenido no cambió.
+
+## 2026-09-21 (Avisos con coreografía — ADR-0146)
+Felipe aprobó el spike de avisos y pidió efectos. `Avisos.tsx` pasa a la piel «Ficha»: icono con forma por tono (✓ ! ⚠), el anillo del icono es el único reloj, título = qué pasó / `detalle` = sobre qué, tope de 4 y «Cerrar todos».
+Coreografía del éxito (anillo que se dibuja, check que se traza, texto que se revela, una onda, y solo entonces la cuenta atrás) en `app/estilos/avisos.css`. `avisar.proceso()` devuelve ahora una función con `.progreso()`, `.exito()` y `.error()`: el mismo aviso se transforma sin parpadeo (los 8 llamados actuales siguen igual). Sin migraciones.
+Verificado en el navegador con una página temporal (ya retirada): los 3 tonos, el proceso con avance → éxito, el cierre solo al agotarse el anillo y Escape en errores. Bug propio hallado y corregido: en Chrome el trazo discontinuo no se escala con `pathLength` en un `<circle>` (queda punteado, parece lleno).
