@@ -851,7 +851,11 @@ dinero intacto, RLS sin permisos de escritura, triggers diferidos activos. Produ
 - [ ] **Postgres local compartido: un saldo a favor de S/ 200 de Textiles Andina, sobrante de otra sesión, rompe 2 suites** (no tiene relación con
       Compras-reparto ni con el filtro «Destino»): `pnpm pruebas:pago-por-lote-medios` (24/27) y `pnpm pruebas:notas-credito` (35/42); todas sus
       pruebas fallidas hablan de saldo a favor. Se resuelve anulando ese crédito en el local (no se borra: es un libro inmutable) o corriendo esas
-      suites en una base limpia (no se comprobó si el CI las corre; ver si `pruebas:pago-por-lote-medios` y `pruebas:notas-credito` están en `.github/workflows/ci.yml`).
+      suites en una base limpia. `notas-credito` sí corre en CI (base limpia) y allí pasa; `pago-por-lote-medios` no está en el CI.
+- [ ] **Sumar `pnpm pruebas:compras-reparto` al CI (`.github/workflows/ci.yml`).** Hoy solo corre en local: sus 57 escenarios (el reparto 12/12, el tope
+      por tienda, reasignar solo lo pendiente, lo que ve un integrante, el candado de dinero, el filtro «Destino» y las dos firmas de
+      `listar_compras`/`por_pagar_tramos`) no vigilan nada en cada push. Usa el mismo seed que `dinero-compras` (ya en el CI); habría que ver que pase
+      sobre la base limpia del CI antes de dejarlo obligatorio.
 - [ ] **Decisión de diseño abierta (opcional): las cuatro cifras de arriba de Comprobantes y Por pagar (Por pagar, Por recibir, Compras del mes, IGV;
       Deuda, Vencido, Vence esta semana, Concentración) no siguen NINGÚN filtro**, tampoco el de proveedor ni ahora «Destino»; solo los
       subtotales por tramo de Por pagar lo siguen. Si Felipe quiere que sigan el filtro, cada una de esas funciones necesita su parámetro
