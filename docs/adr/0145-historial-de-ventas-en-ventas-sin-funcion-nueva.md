@@ -1,7 +1,7 @@
 # ADR-0145 — El historial de ventas vive en Ventas ▸ Historial y se lee sin función nueva en la base
 
 **Fecha:** 2026-09-21
-**Estado:** Aceptado e **implementado en local** (rama `claude/sales-history-placement-5a443d`, sin publicar). Verificado con la base local real
+**Estado:** Aceptado e **implementado** (rama `claude/sales-history-placement-5a443d`, publicada el 2026-09-21). Verificado con la base local real
 (8 pruebas de integración, como líder y como colaboradora) y con una vista previa de datos inventados en cuatro anchos. **No hay migración:
 no hay nada que pegar en producción.**
 **Decide:** el análisis de ubicación es de este documento; quien pidió el trabajo lo aprobó el 2026-09-21 («me parece bien, construye eso»).
@@ -131,8 +131,9 @@ lugar, los permisos ni el esquema; no se agregó ninguna clase de CSS (ADR-0105)
 
 ## Verificación
 
-- `ventas-historial-reglas.test.ts`: 25 pruebas (límites de día en hora de Lima, filtros de la URL por rol, importes sin ruido de
-  decimales, comprobante elegido entre varios, anuladas fuera de los totales). Suite completa: 1784/1784. `tsc` y `eslint` limpios.
+- `ventas-historial-reglas.test.ts`: 45 pruebas (límites de día en hora de Lima, filtros de la URL por rol, importes sin ruido de
+  decimales, comprobante elegido entre varios, anuladas fuera de los totales, y el dibujo del pulso: hilos, tendencia, semanas).
+  Suite completa: 2098/2098 tras traer `main` el 2026-09-21. `tsc` y `eslint` limpios.
 - **8 pruebas de integración** (temporales, no versionadas) ejecutaron `ventas-historial.ts` **real** contra la base local con un JWT local, como
   líder y como colaboradora, y compararon con SQL independiente: paginado sin perder ni repetir (23 = 23, mismo orden), totales = suma SQL sin
   anuladas, filtros de pago/comprobante/tienda/estado, límites de día de Lima, y la colaboradora limitada a su tienda (1 de 23).
@@ -141,5 +142,9 @@ lugar, los permisos ni el esquema; no se agregó ninguna clase de CSS (ADR-0105)
   marca ninguna función de esta pantalla.
 - **Vista previa con datos inventados** (ruta temporal, borrada) en 1440, 1024, 768 y 390 px: sin desborde horizontal; se corrigió una
   tabla de seis columnas que pedía 860 px cuando el contenido útil mide ~650 px a 1024 px de ventana.
-- **Falta:** abrir `/vender/historial` con una sesión real (líder e integrante) en el navegador. Las pruebas cubren la lectura y la interfaz
-  por separado; recorrerlas juntas con sesión es el paso que no se pudo hacer sin las credenciales de nadie.
+- **Con la sesión real del panel del navegador** (leyendo el HTML que sirve el servidor, sin clics) se recorrieron cada filtro, el cursor y los
+  valores basura de la URL, y las cifras coinciden con SQL: 23 ventas, S/ 2,936.70, ticket S/ 127.68; el viernes 18 suma S/ 2,697.00 en
+  20 ventas y el sábado 19, S/ 239.70 en 3; la mezcla de pagos suma lo mismo que el total.
+- **Falta:** lo que exige el navegador visible y con hidratación —cambiar filtros con el mouse, paginar, tocar una fila para abrir el
+  detalle, el hover del pulso—, una venta anulada de verdad (no hay ninguna) y fotos reales de prenda (5 de 17 variantes vendidas). Con
+  el panel oculto React no hidrata y no hay clics.
