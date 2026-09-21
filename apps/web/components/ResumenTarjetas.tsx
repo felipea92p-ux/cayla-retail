@@ -53,7 +53,9 @@ export function ResumenTarjetas({
   referencia: VentasDeReferencia | null;
   ahora: Date;
 }) {
-  // Una fila por venta: `fn_ventas_del_dia` repite la venta que tiene dos comprobantes (un anulado y su reemplazo).
+  // Una fila por venta. Desde `20260921103000` la función ya lo garantiza; `ventasUnicas` queda por una base que
+  // todavía no la tenga (producción antes de pegarla, un Postgres local atrasado): sin ella, una venta con dos
+  // comprobantes (uno liberado o dado de baja y su reemplazo) contaría doble.
   const unicas = ventasUnicas(ventas);
   const cantidad = unicas.length;
   const total = Math.round(unicas.reduce((suma, v) => suma + Number(v.total), 0) * 100) / 100;

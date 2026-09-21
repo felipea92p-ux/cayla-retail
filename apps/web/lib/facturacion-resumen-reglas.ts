@@ -34,9 +34,10 @@ export function horaDeReloj(hhmm: string): number {
   return h + (m || 0) / 60;
 }
 
-/** Una fila por venta. `fn_ventas_del_dia` hace `left join comprobantes` y `comprobantes.venta_id` no es
- *  único: una venta con dos comprobantes (un anulado y su reemplazo) sale dos veces, con el mismo total.
- *  Para sumar y contar ventas se toma la primera de cada una; la lista de actividad sí muestra cada par. */
+/** Una fila por venta. `fn_ventas_del_dia` hacía `left join comprobantes` y `comprobantes.venta_id` no es
+ *  único: una venta con dos comprobantes (uno liberado o dado de baja y su reemplazo) salía dos veces, con
+ *  el mismo total. La migración `20260921103000` lo corrige en la base; esto queda como defensa para una base
+ *  que aún no la tenga. Para sumar y contar ventas se toma la primera de cada una. */
 export function ventasUnicas<T extends { venta_id: string }>(filas: T[]): T[] {
   return [...new Map(filas.map((f) => [f.venta_id, f])).values()];
 }

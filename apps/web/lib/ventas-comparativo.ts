@@ -9,12 +9,12 @@ import type { VentaEnHora } from "@/lib/facturacion-resumen-graficos";
 // comparable en una tienda.
 //
 // Mide lo mismo que «Vendido hoy»: la suma de `venta_items.subtotal` (lo cobrado en el
-// mostrador, con IGV — la definición de ADR-0110) de las ventas `completada` de la ventana. OJO:
-// hoy eso solo es cierto mientras no haya ventas anuladas. `fn_ventas_del_dia` no filtra
-// `ventas.estado` (pendiente de migración con el OK de Felipe, BACKLOG «Facturación en cuatro
-// vistas», R0 (b)), así que una venta anulada hoy suma a «Vendido hoy» y a las demás cifras del día
-// pero no a esta referencia: ese día el comparativo sale inflado. Se corrige con la migración, no
-// acá. Es un dato secundario: si la lectura falla, `null` y la tarjeta lo dice (nunca una cifra inventada).
+// mostrador, con IGV — la definición de ADR-0110) de las ventas `completada` de la ventana. Desde la
+// migración `20260921103000` «Vendido hoy» mide lo mismo: `fn_ventas_del_dia` ya no lista las ventas
+// anuladas ni repite la que tiene dos comprobantes. OJO en una base que todavía no la tenga (producción
+// antes de pegarla, un Postgres local atrasado): una venta anulada de hoy suma a «Vendido hoy» y no a
+// esta referencia, y ese día el comparativo sale inflado. Es un dato secundario: si la lectura falla,
+// `null` y la tarjeta lo dice (nunca una cifra inventada).
 export type VentasDeReferencia = { ventas: VentaEnHora[]; total: number };
 
 export async function getVentasDeReferencia(ahora: Date, diasAtras = 7): Promise<VentasDeReferencia | null> {
