@@ -13,8 +13,8 @@ rehacer el menú. Arquitectura: este documento.
 
 1. Las reglas de quién ve qué estaban repartidas en siete constantes sueltas de `AppShell.tsx`, una lista de rutas por grupo repetida a mano
    (`RUTAS_POR_GRUPO`), las acciones de «+ Nuevo» dentro de otro componente, y `lib/produccion-menu.ts`.
-2. **En un solo día `main` cambió el menú cuatro veces** (Notas de crédito, Por pagar de Producción, «Compras no se muestra en el Taller», «Recibir» en
-   Producción) y seis PRs abiertos editaban `AppShell.tsx`. Cada uno agrega su fila a mano en la misma zona y choca con los demás; cada reconciliación cuesta
+2. **En un solo día `main` cambió el menú cinco veces** (Notas de crédito, Por pagar de Producción, «Compras no se muestra en el Taller», «Recibir» y
+   «Resumen» en Producción) y seis PRs abiertos editaban `AppShell.tsx`. Cada uno agrega su fila a mano en la misma zona y choca con los demás; cada reconciliación cuesta
    una vuelta de trabajo.
 3. **No había manera de saber si un cambio del menú cambió lo que ve algún perfil.** `AppShell.tsx` tiene 1200 líneas con hooks: no se prueba sin abrir un navegador.
 4. El aviario (14 pájaros) y el menú no se correspondían y nada lo vigilaba: cinco pájaros sin puerta y ninguna regla que dijera cuáles debían tenerla.
@@ -57,7 +57,10 @@ en vez de regrupar.
 
 ## Lo que queda abierto
 
-- **Producción está en el tope de 6 hijas** para el líder parado en el Taller. La próxima (Resumen en F6, Eficiencia en F7) obliga a regrupar.
+- **Producción SUPERA el tope de 6: tiene 7 hijas** para el líder parado en el Taller desde que #231 (Resumen, F6) entró a `main` sin regrupar. Está registrado como deuda
+  explícita, no escondido: `EXCEPCIONES_TOPE_HIJAS = { produccion: 7 }` en `menu.test.ts` y una prueba «DEUDA: Producción supera el tope de 6 hijas desde #231…» que falla
+  si el grupo crece a 8 y también si baja a 6 sin quitar la excepción. Remedio: regrupar (el nodo futuro `produccion.abastecimiento` es el candidato para Proveedores,
+  Comprobantes, Recibir y Por pagar) antes de agregar Eficiencia (F7). Regrupar cambia lo visible: es un paso aparte, con el OK de Felipe.
 - **Nombres repetidos entre Compras y Producción** (Proveedores, Comprobantes, Por pagar): Felipe eligió «… del Taller». Es el paso de nombres y cambia la fotografía a propósito.
 - `grupoDe` mira todo el árbol vivo, no solo lo que el perfil ve: un líder en tienda que aterriza en `/produccion` cierra los demás grupos aunque no vea Producción.
   Se conservó porque es el comportamiento de hoy; queda como decisión para un paso posterior.
