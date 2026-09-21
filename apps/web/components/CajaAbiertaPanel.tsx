@@ -193,9 +193,16 @@ export function CajaAbiertaPanel({
                 <Boton peso="discreto" onClick={() => setModal("movimiento")}>
                   + Ingreso / egreso
                 </Boton>
-                <Boton peso="primario" onClick={() => setModal("cerrar")}>
-                  Cerrar caja
-                </Boton>
+                {/* D-13: solo el líder cierra la caja. El candado real está en `cerrar_caja`
+                    (20260921100000); acá solo se decide qué se muestra. A quien no es líder no se le
+                    deja un hueco mudo: se le dice quién la cierra. */}
+                {personaRol === "lider" ? (
+                  <Boton peso="primario" onClick={() => setModal("cerrar")}>
+                    Cerrar caja
+                  </Boton>
+                ) : (
+                  <p className="text-xs text-tinta/60">La caja la cierra un líder de equipo.</p>
+                )}
               </>
             }
           >

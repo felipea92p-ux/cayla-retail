@@ -159,6 +159,7 @@ function TarjetaProducto({
   producto,
   ubicacionId,
   sububicaciones,
+  esLider,
 }: {
   producto: ProductoListado;
   ubicacionId: string;
@@ -230,6 +231,7 @@ function TarjetaProducto({
           colores={colores}
           colorInicial={nombreActivo}
           onClose={() => setVistaRapida(false)}
+          esLider={esLider}
           onAjustarInventario={() => {
             setVistaRapida(false);
             setAjustando(true);
@@ -254,12 +256,14 @@ function VistaRapidaModal({
   colorInicial,
   onClose,
   onAjustarInventario,
+  esLider,
 }: {
   producto: ProductoListado;
   colores: ColorDisponible[];
   colorInicial: string | null;
   onClose: () => void;
   onAjustarInventario: () => void;
+  esLider: boolean;
 }) {
   const [colorFijo, setColorFijo] = useState<string | null>(colorInicial);
   const [colorHover, setColorHover] = useState<string | null>(null);
@@ -319,9 +323,12 @@ function VistaRapidaModal({
             <Link href={`/productos/${producto.productoId}/editar`} className={`${botonCancelar} text-center`}>
               Editar
             </Link>
-            <button type="button" onClick={onAjustarInventario} className={botonPrimario}>
-              Ajustar inventario
-            </button>
+            {/* D-13: ajustar stock fuera de una venta es del líder (candado real en `registrar_movimiento`, 20260921100000). */}
+            {esLider && (
+              <button type="button" onClick={onAjustarInventario} className={botonPrimario}>
+                Ajustar inventario
+              </button>
+            )}
           </div>
         </div>
       </div>
