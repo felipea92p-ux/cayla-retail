@@ -36,6 +36,7 @@ import {
   type DetalleDescuento,
   type MomentoTicket,
   type PagoAplicado,
+  type CandidataVendedora,
   type Vendedora,
 } from "@/lib/vender-reglas";
 import { borrar, claveLocal, guardar, leer } from "@/lib/almacen-local";
@@ -52,6 +53,7 @@ import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { armarRecibo, textoNumeroRecibo, type ReciboVenta } from "@/lib/recibo-reglas";
 import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
+import { ElegirVendedorasModal } from "@/components/ElegirVendedorasModal";
 
 /**
  * "Cargo especial" (migración `..._cargo_especial_pos.sql`): variante centinela para
@@ -193,10 +195,12 @@ type Props = {
   vendedoras: Vendedora[];
   /** La lectura de arriba falló (no es «la función aún no existe»): se vende igual, pero a nombre de la sesión. */
   vendedorasNoCargaron?: boolean;
+  /** Todas las colaboradoras de la sede con su interruptor; solo llega llena si quien mira es líder. */
+  candidatas: CandidataVendedora[];
   ventasHoyNode: ReactNode;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, variantes, campanasNoCargaron = false, vendedoras, vendedorasNoCargaron = false, ventasHoyNode }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, variantes, campanasNoCargaron = false, vendedoras, vendedorasNoCargaron = false, candidatas, ventasHoyNode }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -238,6 +242,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
   const [nota, setNota] = useState("");
   // Quién atendió a la clienta (la fila de chips del ticket). `null` = todavía no se tocó ninguna.
   const [vendedoraElegida, setVendedoraElegida] = useState<string | null>(null);
+  // El modal «¿Quiénes atienden en caja?» (solo un líder llega a abrirlo).
+  const [eligiendoQuienes, setEligiendoQuienes] = useState(false);
   // Tickets en espera de ESTA sede. Arranca vacío a propósito y se carga después de
   // montar (efecto más abajo): el servidor no tiene localStorage, y leerlo durante el
   // render dejaría el HTML del servidor distinto del primero del navegador (hidratación).
@@ -308,7 +314,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
   const modalCerrarVisible = modalCaja === "cerrar" && cajaId !== null;
   // Los dos efectos de foco de abajo se apagan con un modal abierto: el modal es dueño
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`).
-  const hayModal = manualAbierto || modalAbrirVisible || modalCerrarVisible || ok !== null;
+  const hayModal = manualAbierto || modalAbrirVisible || modalCerrarVisible || ok !== null || eligiendoQuienes;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -1071,6 +1077,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
           vendedoraId={vendedoraId}
           onVendedora={setVendedoraElegida}
           vendedorasNoCargaron={vendedorasNoCargaron}
+          onElegirQuienes={esLider ? () => setEligiendoQuienes(true) : undefined}
         />
       </div>
 
@@ -1149,6 +1156,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
       )}
 
       {ok && <VentaRegistradaModal ok={ok} ubicacionEtiqueta={ubicacionEtiqueta} onClose={cerrarVentaRegistrada} alCerrarEnfocar={buscador} />}
+      {eligiendoQuienes && (
+        <ElegirVendedorasModal
+          candidatas={candidatas}
+          ubicacionEtiqueta={ubicacionEtiqueta}
+          onClose={() => setEligiendoQuienes(false)}
+          alCerrarEnfocar={buscador}
+        />
+      )}
     </div>
   );
 }

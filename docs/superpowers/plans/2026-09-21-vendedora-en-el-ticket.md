@@ -1524,7 +1524,7 @@ export function ElegirVendedorasModal({
               ))}
             </ul>
           )}
-          <button type="button" onClick={cerrar} className={botonPrimario}>
+          <button type="button" onClick={cerrar} className={`${botonPrimario} w-full`}>
             Listo
           </button>
         </div>
