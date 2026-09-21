@@ -476,7 +476,7 @@ export function InventarioPanel({
                         Apartar
                       </button>
                     )}
-                    {/* D-13: ajustar stock fuera de una venta es del líder (candado real en `registrar_movimiento`, 20260921100000). */}
+                    {/* D-13: ajustar stock fuera de una venta es del líder (candado real en `registrar_movimiento`, 20260921110000). */}
                     {esLider && (
                       <button
                         type="button"

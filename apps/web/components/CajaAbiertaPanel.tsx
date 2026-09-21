@@ -194,7 +194,7 @@ export function CajaAbiertaPanel({
                   + Ingreso / egreso
                 </Boton>
                 {/* D-13: solo el líder cierra la caja. El candado real está en `cerrar_caja`
-                    (20260921100000); acá solo se decide qué se muestra. A quien no es líder no se le
+                    (20260921110000); acá solo se decide qué se muestra. A quien no es líder no se le
                     deja un hueco mudo: se le dice quién la cierra. */}
                 {personaRol === "lider" ? (
                   <Boton peso="primario" onClick={() => setModal("cerrar")}>

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260921100000_candado_de_lider_caja_y_ajuste.sql — CAYLA V2
+-- 20260921110000_candado_de_lider_caja_y_ajuste.sql — CAYLA V2
 --
 -- «SOLO EL LÍDER DE EQUIPO CIERRA LA CAJA Y AJUSTA STOCK FUERA DE UNA VENTA» — EN LA BASE.
 --

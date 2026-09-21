@@ -28,9 +28,9 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Candado de líder: solo el líder cierra la caja y ajusta stock (2026-09-21, ADR-0142) — hecho en local, falta pegar en producción
-- [x] Migración `20260921100000` (`cerrar_caja` y `registrar_movimiento` exigen `fn_es_lider()`, 42501), prueba `pruebas:candado-lider` (20/20; 9/20 contra las funciones de producción sin candado), escenario C2 de `caja:verificar` ajustado, y cinco botones escondidos a quien no es líder (Caja, Punto de Venta, Existencias, Productos en lista y en grilla).
-- [ ] **Fusionar y desplegar las pantallas ANTES; después pegar la migración en producción** con ok de Felipe (ensayo revertido → pegar → verificar por catálogo y llamada real de un colaborador; pasos en el ADR-0142).
+## 🎯 Candado de líder: solo el líder cierra la caja y ajusta stock (2026-09-21, ADR-0143) — hecho en local, falta pegar en producción
+- [x] Migración `20260921110000` (`cerrar_caja` y `registrar_movimiento` exigen `fn_es_lider()`, 42501), prueba `pruebas:candado-lider` (20/20; 9/20 contra las funciones de producción sin candado), escenario C2 de `caja:verificar` ajustado, y cinco botones escondidos a quien no es líder (Caja, Punto de Venta, Existencias, Productos en lista y en grilla).
+- [ ] **Fusionar y desplegar las pantallas ANTES; después pegar la migración en producción** con ok de Felipe (ensayo revertido → pegar → verificar por catálogo y llamada real de un colaborador; pasos en el ADR-0143).
 - [ ] Decisión operativa de Felipe: quién cierra la caja cuando no hay un líder en la tienda (hoy 9 líderes con alcance global, ninguno fijo a una tienda; 3 cajas abiertas, probablemente de prueba).
 
 ## 🎯 Carga inicial de proveedores (2026-09-20, ADR-0140) — APLICADA EN PRODUCCIÓN

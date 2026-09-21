@@ -913,7 +913,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
             ))}
           </nav>
           {/* D-13: abrir la caja lo puede cualquiera; CERRARLA solo el líder (candado real en
-              `cerrar_caja`, 20260921100000). Con la caja abierta, un colaborador no ve el botón. */}
+              `cerrar_caja`, 20260921110000). Con la caja abierta, un colaborador no ve el botón. */}
           {(bloqueado || esLider) && (
             <button
               type="button"

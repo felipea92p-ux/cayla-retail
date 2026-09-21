@@ -29,7 +29,7 @@
  * mensaje, porque ese rol no ve el schema temporal.
  *
  * `--en-seco`: antes de cada escenario carga DENTRO de su transacción la migración
- * `20260921100000_candado_de_lider_caja_y_ajuste.sql`, así se prueba SIN haberla aplicado a la base
+ * `20260921110000_candado_de_lider_caja_y_ajuste.sql`, así se prueba SIN haberla aplicado a la base
  * compartida. Sin el flag asume que ya está aplicada.
  *
  * USO
@@ -52,7 +52,7 @@ const MSG_CAJA = "Solo un líder de equipo puede cerrar la caja";
 const MSG_AJUSTE = "Solo un líder de equipo puede ajustar stock fuera de una venta";
 
 const EN_SECO = process.argv.includes("--en-seco");
-const SQL_MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260921100000_candado_de_lider_caja_y_ajuste.sql"), "utf8");
+const SQL_MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260921110000_candado_de_lider_caja_y_ajuste.sql"), "utf8");
 const PRELUDIO = EN_SECO ? SQL_MIGRACION : "";
 
 function psql(sql) {

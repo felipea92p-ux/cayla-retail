@@ -1,4 +1,4 @@
-# ADR-0142 — Solo el líder de equipo cierra la caja y ajusta stock fuera de una venta: el candado va en la base
+# ADR-0143 — Solo el líder de equipo cierra la caja y ajusta stock fuera de una venta: el candado va en la base
 
 **Fecha:** 2026-09-21
 **Estado:** Aceptado e **implementado en local** en la rama `claude/cayla-menu-pajaros-aviario-1f2c50`. Verificado contra un Postgres 17 desechable
@@ -44,7 +44,7 @@ un rol «Solo lectura» o «Admin» y el candado sigue leyendo `fn_es_lider()` e
 
 ## Qué cambia
 
-- `supabase/migrations/20260921100000_candado_de_lider_caja_y_ajuste.sql`. Su cuerpo, **quitando solo el bloque del candado, es idéntico byte a byte al de
+- `supabase/migrations/20260921110000_candado_de_lider_caja_y_ajuste.sql`. Su cuerpo, **quitando solo el bloque del candado, es idéntico byte a byte al de
   producción** (mismo `md5` y largo: `cerrar_caja` 03e68706…, 2502; `registrar_movimiento` eeae9a03…, 1331). Mismo `SECURITY DEFINER`, mismo
   `search_path`, mismos permisos de ejecución (`create or replace` con la misma firma).
 - `scripts/pruebas/candado_lider_caja_y_ajuste.mjs` (20 escenarios, cada uno con ROLLBACK; `--en-seco` carga la migración dentro de cada escenario) y
