@@ -4,6 +4,7 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { getComparacionInventario, getDesempenoInventario } from "@/lib/resumen-inventario";
 import { pideComparacion } from "@/lib/resumen-comparacion";
 import { ResumenBanner } from "@/components/ResumenBanner";
+import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { ResumenComparacionPanel } from "@/components/ResumenComparacionPanel";
 import { ResumenDesempenoPanel } from "@/components/ResumenDesempenoPanel";
 
@@ -43,16 +44,12 @@ export default async function ResumenInventarioPage({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
-        <div className="min-w-0">
-          <p className="label-cayla text-[11px] text-tinta/65">
-            Inventario <span aria-hidden>›</span> Análisis <span aria-hidden>›</span> <span className="text-ambar-profundo">{ubicacionActiva.nombre}</span>
-          </p>
-          <h1 className="font-display mt-1 text-[2rem] leading-tight text-tinta">Análisis de inventario</h1>
-          <p className="mt-1 text-sm text-tinta/65">Analiza cómo se mueve y rinde tu inventario a lo largo del tiempo.</p>
-        </div>
-        <ResumenBanner exactitud={exactitud} ubicacionId={ubicacionActiva.id} />
-      </div>
+      <CabeceraPantalla
+        sobretitulo={`Inventario › Análisis › ${ubicacionActiva.nombre}`}
+        titulo="Análisis de inventario"
+        bajada="Analiza cómo se mueve y rinde tu inventario a lo largo del tiempo."
+        acciones={<ResumenBanner exactitud={exactitud} ubicacionId={ubicacionActiva.id} />}
+      />
 
       {panel}
     </div>

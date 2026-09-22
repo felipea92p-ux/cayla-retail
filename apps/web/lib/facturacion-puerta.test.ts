@@ -10,11 +10,8 @@ import { describe, expect, it } from "vitest";
 //    `page.tsx` repite su puerta como LO PRIMERO que espera (antes de leer nada). Desde ADR-0160 son
 //    dos puertas: las cuatro vistas y el layout las abre el permiso `facturar` (`exigirPermiso("facturar")`:
 //    el líder y la terminal de ventas) y «Códigos de descuento» sigue siendo SOLO del líder (`exigirLider()`).
-// 2) Los dos modales viven en el shell, una vez cada uno y sin condicional sobre su apertura:
-//    el token de idempotencia de «Emitir» es un `useRef` del modal y tiene que vivir tanto como
-//    el shell. Un `{modal === "emitir" && <EmitirComprobanteModal … />}` —o una segunda instancia
-//    en cualquier otro componente, un panel o una vista nueva— daría un token nuevo por apertura
-//    y quemaría un correlativo si se corta la red entre dos intentos.
+// 2) El shell no dibuja modales (2026-09-22): «Emitir comprobante» se quitó y «Nueva proforma» vive en
+//    la pestaña Proformas, la única que lee el catálogo que el modal necesita.
 
 const RAIZ = join(__dirname, "../app/(app)/vender/comprobantes");
 const COMPONENTES = join(__dirname, "../components");
@@ -37,13 +34,6 @@ function primerAwait(fuente: string): string | null {
   if (inicio < 0) return null;
   const encontrado = sinComentarios.slice(inicio).match(/await\s*\(?\s*([\w.]+)(\s*\()?/);
   return encontrado ? `${encontrado[1]}${encontrado[2] ? "()" : ""}` : null;
-}
-
-/** ¿La etiqueta del modal va detrás de una condición sobre su estado (`modal … &&`, `abierto ? …`)?
- *  Eso lo montaría y desmontaría en cada apertura. Se mira lo que hay ANTES de la etiqueta: el
- *  `abierto={modal === "emitir"}` que la acompaña, ya dentro de la etiqueta, es lo correcto. */
-function condicionadoAlEstado(fuente: string, modal: string): boolean {
-  return new RegExp(`(\\bmodal\\b|\\babierto\\b)[^{}<]*?(&&|\\?)\\s*<${modal}\\b`).test(fuente);
 }
 
 // Lo que sería solo del líder dentro de Comprobantes. Desde que salió «Códigos de descuento»
@@ -85,40 +75,14 @@ describe("Facturación — puerta (líder o terminal de ventas)", () => {
   });
 });
 
-describe("Facturación — los modales viven una sola vez, en el shell", () => {
-  const archivos = archivosBajo(COMPONENTES, (n) => n.endsWith(".tsx")).map((ruta) => ({
-    nombre: ruta.slice(COMPONENTES.length + 1).replace(/\\/g, "/"),
-    fuente: readFileSync(ruta, "utf8"),
-  }));
-  const shell = archivos.find((a) => a.nombre === "FacturacionShell.tsx")?.fuente ?? "";
+describe("Facturación — el shell ya no dibuja modales", () => {
+  const shell = readFileSync(join(COMPONENTES, "FacturacionShell.tsx"), "utf8");
 
-  it("encuentra el shell y los componentes (que el candado no mire el vacío)", () => {
+  it("encuentra el shell (que el candado no mire el vacío)", () => {
     expect(shell).not.toBe("");
-    expect(archivos.length).toBeGreaterThan(20);
   });
 
-  for (const modal of ["EmitirComprobanteModal", "NuevaProformaModal"]) {
-    it(`<${modal}> se dibuja en un solo lugar de toda la app: el shell, una vez`, () => {
-      const enQueArchivos = archivos.filter((a) => new RegExp(`<${modal}\\b`).test(a.fuente)).map((a) => a.nombre);
-      expect(enQueArchivos).toEqual(["FacturacionShell.tsx"]);
-      expect(shell.match(new RegExp(`<${modal}\\b`, "g"))).toHaveLength(1);
-    });
-
-    it(`<${modal}> no depende de una condición sobre su apertura`, () => {
-      expect(condicionadoAlEstado(shell, modal)).toBe(false);
-    });
-  }
-
-  it("el detector sí ve un modal condicionado a su apertura, en cualquiera de sus formas", () => {
-    const modal = "EmitirComprobanteModal";
-    for (const malo of [
-      `{modal === "emitir" && <${modal} />}`,
-      `{modal && <${modal} />}`,
-      `{modal !== null && <${modal} />}`,
-      `{abierto ? <${modal} /> : null}`,
-    ]) {
-      expect(condicionadoAlEstado(malo, modal)).toBe(true);
-    }
-    expect(condicionadoAlEstado(`{series && tiendas && <${modal} abierto={modal === "emitir"} />}`, modal)).toBe(false);
+  it("ni «Nueva proforma» ni «Emitir comprobante» se montan en el shell: la primera vive en su pestaña (necesita el catálogo) y la segunda se quitó", () => {
+    expect(shell).not.toMatch(/<NuevaProformaModal\b|<EmitirComprobanteModal\b/);
   });
 });

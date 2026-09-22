@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { SerieComprobante, TipoComprobante } from "@/lib/comprobantes-reglas";
 import type { SerieArchivada } from "@/lib/comprobantes";
 import { diaYHoraLima } from "@/lib/fechas-lima";
+import { antiguedad } from "@/lib/facturacion-resumen-reglas";
 import { ETIQUETA_TIPO } from "@/lib/comprobantes-reglas";
 import { errorDeSerie, nombreDelTipo, numerosUsados, seriesPorTienda, TIPOS_CON_SERIE } from "@/lib/facturacion-comprobantes-reglas";
 import { coincide } from "@/lib/facturacion-busqueda";
@@ -32,6 +33,8 @@ export function SeriesPanel({
   tiendas,
   esLider,
   enPruebas,
+  ultimoPorSerie,
+  ahora,
 }: {
   series: SerieComprobante[];
   /** `null` si no se pudieron leer: la sección no se dibuja (las activas sí se exigen). */
@@ -40,6 +43,9 @@ export function SeriesPanel({
   esLider: boolean;
   /** El envío va al sandbox: se muestra qué hacer el día de pasar a la SUNAT real. */
   enPruebas: boolean;
+  /** Cuándo salió el último comprobante de cada serie (por id); una serie sin fecha no la dice. */
+  ultimoPorSerie: Record<string, string>;
+  ahora: Date;
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
@@ -146,7 +152,8 @@ export function SeriesPanel({
                 {g.series.length === 0 ? "sin series: no emite comprobantes" : `${g.series.length} ${g.series.length === 1 ? "serie" : "series"}`}
               </span>
             </h3>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-3">
+            {/* Una columna por tipo (boleta, factura, nota de venta, nota de crédito): se estiran a todo el ancho. */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {g.series.map((s) => {
                 const usados = numerosUsados(s);
                 return (
@@ -162,6 +169,7 @@ export function SeriesPanel({
                     <div className="flex items-center justify-between gap-2 border-t border-tinta/10 pt-2">
                       <p className="text-xs tabular-nums text-tinta/60">
                         {usados === 0 ? "Todavía no emitió ninguno" : `${usados} ${usados === 1 ? "número usado" : "números usados"}`}
+                        {ultimoPorSerie[s.id] && <span className="block">Último: {antiguedad(ultimoPorSerie[s.id], ahora)}</span>}
                       </p>
                       {esLider && (
                         <button

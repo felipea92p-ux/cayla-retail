@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
+import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, Campo, CampoSelect } from "@/components/ui/campos";
 import type { CuentaConRol, RolVista } from "@/lib/roles-reglas";
@@ -167,11 +168,16 @@ export function AsignarRolModal({
     () =>
       cuentas.map((c) => ({
         valor: `${c.tipo}:${c.id}`,
-        texto: `${c.nombre}${c.ubicacion ? ` · ${c.ubicacion}` : ""}${c.tipo === "terminal" ? " (terminal)" : ""} — hoy: ${roles.find((r) => r.id === c.rolId)?.nombre ?? "otro rol"}`,
+        texto: c.nombre,
+        // El detalle también se busca: tipear «TRU» o «terminal» filtra por ahí.
+        detalle: [c.ubicacion, c.tipo === "terminal" ? "terminal" : null, `hoy: ${roles.find((r) => r.id === c.rolId)?.nombre ?? "otro rol"}`]
+          .filter(Boolean)
+          .join(" · "),
       })),
     [cuentas, roles],
   );
   const listo = !!cuenta && !!rolId && rolId !== cuenta.rolId;
+  const idCuenta = useId();
 
   return (
     <Modal
@@ -193,7 +199,16 @@ export function AsignarRolModal({
           }}
         >
           {!cuentaFija && (
-            <CampoSelect etiqueta="Cuenta" valor={cuentaId} onValor={setCuentaId} opciones={opcionesCuenta} marcador="Elige una persona o una terminal" />
+            <Campo etiqueta="Cuenta" htmlFor={idCuenta} pie={opcionesCuenta.length === 0 ? "No hay otras cuentas a las que asignar este rol." : undefined}>
+              <ComboBuscable
+                id={idCuenta}
+                valor={cuentaId}
+                onValor={setCuentaId}
+                opciones={opcionesCuenta}
+                marcador="Busca una persona o una terminal"
+                etiquetaAccesible="Cuenta"
+              />
+            </Campo>
           )}
           {cuentaFija && (
             <p className="text-sm text-tinta/75">

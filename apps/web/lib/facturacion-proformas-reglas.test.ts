@@ -1,10 +1,21 @@
 import { describe, expect, it } from "vitest";
 import type { Proforma } from "./proformas-reglas";
 import { soles } from "./compras-reglas";
-import { camposDeBusquedaDeLaProforma, chipDeLaProforma, confirmacionDeConversion, detalleDeLaProforma, estadoVisible, franjaDeProformas, ordenarProformas } from "./facturacion-proformas-reglas";
+import { conversionDelMes, textoWhatsAppDeLaProforma, camposDeBusquedaDeLaProforma, chipDeLaProforma, confirmacionDeConversion, detalleDeLaProforma, estadoVisible, franjaDeProformas, ordenarProformas } from "./facturacion-proformas-reglas";
 
 const AHORA = new Date("2026-09-19T20:00:00Z");
 const enHoras = (h: number) => new Date(AHORA.getTime() + h * 3600 * 1000).toISOString();
+
+const LINEA = {
+  variante_id: "v",
+  cantidad: 1,
+  precio_unitario: 79.9,
+  descuento_unitario: 0,
+  motivo_descuento: null,
+  motivo_descuento_detalle: null,
+  descripcion: "Blusa Emma · S · Negro",
+  codigo: "CMS-0001-NEG-S",
+};
 
 function proforma(extra: Partial<Proforma> = {}): Proforma {
   return {
@@ -17,6 +28,10 @@ function proforma(extra: Partial<Proforma> = {}): Proforma {
     comprobante_id: null,
     created_at: enHoras(-24),
     vence_at: enHoras(100),
+    numero: null,
+    nota: null,
+    venta_id: null,
+    items: [],
     porVencer: false,
     vencida: false,
     ...extra,
@@ -116,6 +131,12 @@ describe("camposDeBusquedaDeLaProforma", () => {
     for (const esperado of ["Lucía Paredes", "45678912", "Por vencer", "320.00"]) expect(texto).toContain(esperado);
   });
 
+  it("se encuentra por su número y por las prendas que lleva", () => {
+    const texto = camposDeBusquedaDeLaProforma(proforma({ numero: 123, items: [LINEA] })).join(" ");
+    expect(texto).toContain("PRO-000123");
+    expect(texto).toContain("Blusa Emma · S · Negro");
+  });
+
   it("una vigente cuyo plazo pasó se encuentra escribiendo «vencida», no «vigente»", () => {
     const texto = camposDeBusquedaDeLaProforma(proforma({ vencida: true })).join(" ");
     expect(texto).toContain("Vencida");
@@ -155,16 +176,43 @@ describe("confirmacionDeConversion", () => {
     expect(confirmacionDeConversion(proforma({ porVencer: true, vence_at: enHoras(10) }), AHORA)).toBeNull();
   });
 
-  it("una vencida avisa hace cuánto venció y con qué precio saldría el comprobante", () => {
+  it("una vencida avisa hace cuánto venció y que se cobraría al precio de la cotización", () => {
     expect(confirmacionDeConversion(proforma({ vencida: true, vence_at: enHoras(-72), total: 88.5 }), AHORA)).toEqual({
       titulo: "Esta proforma venció hace 3 d.",
-      detalle: "El comprobante saldrá con el precio de la cotización (S/ 88.50), no con el de hoy. Si ya cambió, cotiza de nuevo.",
-      casilla: "Sí, emitirlo al precio de entonces",
+      detalle: "Se cobraría con el precio de la cotización (S/ 88.50), no con el de hoy. Si ya cambió, renuévala.",
+      casilla: "Sí, cobrarla al precio de entonces",
     });
   });
 
   it("dice «hace 12 min» si venció hace poco, y sin plazo no hay nada que confirmar", () => {
     expect(confirmacionDeConversion(proforma({ vencida: true, vence_at: enHoras(-0.2) }), AHORA)?.titulo).toBe("Esta proforma venció hace 12 min.");
     expect(confirmacionDeConversion(proforma({ vencida: true, vence_at: null }), AHORA)).toBeNull();
+  });
+});
+
+describe("conversionDelMes", () => {
+  const desde = "2026-09-01T05:00:00Z";
+  const hasta = "2026-10-01T05:00:00Z";
+  it("cuenta solo las creadas en el mes, sin anuladas", () => {
+    const lista = [
+      { estado: "convertida" as const, created_at: "2026-09-10T00:00:00Z" },
+      { estado: "vigente" as const, created_at: "2026-09-11T00:00:00+00:00" },
+      { estado: "anulada" as const, created_at: "2026-09-12T00:00:00Z" },
+      { estado: "convertida" as const, created_at: "2026-08-30T00:00:00Z" }, // otro mes
+    ];
+    expect(conversionDelMes(lista, desde, hasta)).toEqual({ convertidas: 1, creadas: 2, porcentaje: 50 });
+  });
+  it("sin proformas no inventa un porcentaje", () => {
+    expect(conversionDelMes([], desde, hasta).porcentaje).toBeNull();
+  });
+});
+
+describe("textoWhatsAppDeLaProforma", () => {
+  it("saluda por nombre, dice el número, cuántas prendas, el total y hasta cuándo vale (día de Lima)", () => {
+    const texto = textoWhatsAppDeLaProforma({ numero: 7, cliente_nombre: "Ana", total: 150, vence_at: "2026-09-26T03:00:00Z", items: [{ ...LINEA, cantidad: 2 }] });
+    expect(texto).toBe(`Hola Ana, esta es tu proforma PRO-000007 de CAYLA: 2 prendas por ${soles(150)}. Te guardamos este precio hasta el 25 de setiembre.`); // es-PE escribe «setiembre»
+  });
+  it("sin nombre, sin prendas legibles ni vencimiento, igual se entiende", () => {
+    expect(textoWhatsAppDeLaProforma({ numero: 1, cliente_nombre: null, total: 10, vence_at: null, items: [] })).toBe(`Hola, esta es tu proforma PRO-000001 de CAYLA por ${soles(10)}.`);
   });
 });

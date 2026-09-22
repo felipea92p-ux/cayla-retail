@@ -44,6 +44,11 @@ const listo = {
 } as const;
 
 describe("motivoBloqueoCobro — qué falta para cobrar, en orden", () => {
+  it("una proforma vencida no se cobra sin confirmar que va al precio de entonces (y solo al cobrar)", () => {
+    expect(motivoBloqueoCobro({ ...listo, proformaVencidaSinConfirmar: true })).toBe("Confirma que cobras la proforma vencida al precio de entonces.");
+    expect(motivoBloqueoCobro({ ...listo, momento: "armar", proformaVencidaSinConfirmar: true })).toBeNull();
+  });
+
   it("con la caja cerrada pide abrirla, aunque todo lo demás esté completo", () => {
     expect(motivoBloqueoCobro({ ...listo, cajaAbierta: false })).toBe("Abre la caja para vender.");
   });
