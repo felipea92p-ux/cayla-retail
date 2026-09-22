@@ -28,7 +28,10 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Datos de demostración: 90 días de historia sintética en producción (2026-09-21, ADR-0150) — Fase 1 ensayada, NADA escrito en producción
+## 🎯 Datos de demostración: 90 días de historia sintética en producción (2026-09-21, ADR-0150) — **CARGADO EN PRODUCCIÓN el 2026-09-22** (fases 1-4, 5 parcial, 6)
+
+- [x] **Carga definitiva (2026-09-22, con OK de Felipe en el chat):** ensayo contra producción abortado a propósito (pasó todo), luego `COMMIT` por `supabase db query --linked` (1 min 18 s). Quedó: 220 productos, 1.287 variantes, 7.000 ventas (54 anuladas, S/ 935.587 en las completadas), 176 cambios, 6.663 comprobantes (todos `aceptado`/`no_emitido`), 270 cajas, 162 compras, 23.868 movimientos, 5.484 filas de stock sin negativos. Series: B004 → 4647, B005 → 1808, F004 → 157, F005 → 82, NC01/NC02 nuevas. Respaldo previo: físico del 2026-09-22 03:36 Lima (sin PITR).
+- [ ] **`deshacer-90-dias.sql`** (no existe todavía): receta en el ADR-0150 («Revisión adversarial», hallazgo 4) + series de comprobantes. Escribirlo y ensayarlo en local ANTES de necesitarlo; correrlo en producción solo con OK explícito.
 - [x] Preflight (solo lectura): producción, roles (`colaboradores.rol`), sedes de los colaboradores, categorías/tallas/marcas, series, triggers de alta.
 - [x] **Fase 1 — catálogo** (`scripts/demo/sembrar-90-dias.sql`): 220 productos, 1.261 variantes, 441 fotos, 3 campañas demo; ensayada con `ROLLBACK` contra producción y verificada intacta después.
 - [x] **Fase 2 — demanda** (solo tablas temporales): 7.003 boletas, 11.004 prendas, S/ 962.230 (el plan decía ≈ S/ 900.000; +7 %; **Felipe aceptó la cantidad el 2026-09-21**). Ensayada; producción intacta.
