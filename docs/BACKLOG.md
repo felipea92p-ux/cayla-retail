@@ -188,6 +188,14 @@ Análisis completo en [docs/pantallas/colaboradores.md](pantallas/colaboradores.
 - [ ] Decidir dos reglas: (a) los códigos de barras se buscan parcial (antes, exacto); (b) dos tallas o dos colores escritos a la vez se exigen los dos (no hay «M o L»).
 - [ ] La marca (ya se busca en la caja, ADR-0109) no entra en Existencias: `FilaStock` no la trae.
 
+## 🎯 Análisis: rediseño con la guía oficial (2026-09-22) — demo lista, sin construir
+Demo interactiva y decisiones: [docs/maquetas/analisis-rediseno-2026-09/](maquetas/analisis-rediseno-2026-09/README.md).
+- [x] Decidido: columna «Cambio relevante» por reglas fijas (7 reglas en orden, en el README de la maqueta).
+- [ ] Decisión de Felipe con la demo: forma de Desempeño (A misma anatomía / B solo tabla), aviso de exactitud (franja / chip / tarjeta), sede sin datos (con salidas / estructura en cero).
+- [ ] Construir tras la decisión: `lib/resumen-lectura.ts` + pruebas; pestañas subrayadas y cifras A → B en `ResumenComparacionPanel`/`ResumenComparacionGeneral` (sin partir en «Vista general / Detalle»); Desempeño según la opción; `ResumenBanner` según la opción; vacío nuevo en los dos paneles. Sin migración.
+- [ ] Paleta de gráficos de ritmo: cambiar verde/taupe/ámbar por verde/neutro/ámbar en `ResumenComparacionGeneral` (taupe y ámbar no se distinguen, ΔE 9.8).
+- [ ] Decisión global aparte: lateral oscuro de la guía vs lateral claro de hoy (afecta a todo el ERP).
+
 ## 🎯 Análisis: un solo selector de fechas (2026-09-21, anexo del ADR-0138) — hecho y verificado en local; en `main`
 - [x] Período A, Período B y «Personalizado» de Desempeño abren el mismo `PopoverRango` (`ResumenControles.tsx`): Desde/Hasta en dd/mm/aaaa ya cargados, foco en «Desde», Tab, Enter o «Aplicar», calendario de ayuda, errores en línea; los atajos de A y B (período anterior / año pasado; 7-30-90 días / este mes) van dentro. `CampoFecha` gana el modo opt-in `estricto` + `revelarError`. Verificado en local (A 09/07→09/08, B 09/05→09/06, Personalizado 01/08→01/09, fechas inválidas, presets, 320–430 px). Sin cambios de base ni de `lib/`.
 - [ ] Autoformato de `CampoFecha` con día o mes de un dígito: «9/7/2026» queda «97/20/26» (solo entiende dd/mm/aaaa con ceros). Completar con 0 al teclear «/» — toca todos los campos de fecha del ERP; decidir con Felipe.
