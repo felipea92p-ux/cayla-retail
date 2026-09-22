@@ -59,6 +59,8 @@
     "datos:comparar": "node scripts/datos/comparar.mjs --md",
     "datos:aviario": "node scripts/datos/aviario.mjs",
     "local:donde": "node scripts/local/donde-estoy.mjs",
+    "terminales:crear": "node scripts/terminales/crear.mjs",
+    "terminales:probar": "node --test scripts/terminales/",
     "prepare": "git config core.hooksPath .githooks || true"
   },
   "devDependencies": {
