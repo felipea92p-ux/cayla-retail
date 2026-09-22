@@ -9,6 +9,11 @@ Felipe pidió rediseñar Conteo sobre la Sala de Diseño y presentarlo en demo. 
 Felipe se lleva: (1) **la pantalla de hoy rompía el conteo a ciegas**: la tarjeta «Diferencia hasta ahora» le dice a quien cuenta cuánto se aleja del sistema mientras cuenta; (2) un «Sin diferencias» en verde sobre 0 prendas afirma algo falso, y los 4 conteos de TRU son justo eso; (3) sumar por escaneo no necesita cambiar la base: la pantalla ya sabe cuánto se anotó.
 Sin resolver: variante A o B de pendientes, la migración que impide cerrar un conteo vacío, y llevar la maqueta al código.
 
+## 2026-09-22 (Cambiar el rol entre líderes — actualización del ADR-0161)
+Felipe pidió que el rol se pueda cambiar entre líderes: hasta hoy a un líder no se le cambiaba y «Líder de equipo» no se daba desde la app. `asignar_rol` ahora sube a Líder y baja a un líder; la fila de un líder en Colaboradores tiene «Cambiar rol» y el rol Líder, «Asignar a una persona». Probado en Postgres local dentro de una transacción revertida.
+Felipe se lleva: (1) **el candado que evita quedarse sin líder es «nadie se cambia su propio rol»**: quien cambia ya es líder y no puede bajarse, así que siempre queda uno, sin contar nada; (2) **bajar a un líder obliga a elegirle sede**, porque un líder opera todas y no tiene una, y cualquier otro rol trabaja en una — los 9 líderes de producción están así.
+Sin resolver: pegar la migración en producción (OK de Felipe) y verlo con clics.
+
 ## 2026-09-22 (Roles y accesos: el buscador de «Asignar rol» — listas recortadas en modales)
 Felipe reportó que el campo Cuenta de «Asignar rol» no funcionaba. Se reprodujo en el navegador: la lista sí se abría, pero la hoja del modal tiene scroll propio y la recortaba (5 filas visibles, título y botones empujados fuera). Arreglo de raíz: `Desplegable` y `ComboBuscable` dibujan su lista en `fixed` medida contra el control (`usePosicionLista`, se abre hacia arriba si no cabe), la entrada del modal pasa a `animation-fill-mode: backwards` (con `both` Chrome seguía tratando la hoja como contenedor de los `fixed`), y Cuenta pasa a ser un buscador que filtra por nombre, sede o «terminal». Probado con clic y teclado, en escritorio y celular, y en «Rol de …» (desplegable Nuevo rol).
 Felipe se lleva: **una lista que se abre pero no se ve se siente igual que una rota**; el defecto no era del modal de roles sino de todo desplegable cerca del pie de cualquier modal, por eso se arregló en el control y no en la pantalla.
@@ -8917,3 +8922,7 @@ Sin resolver: pegar F2 y luego F3 en producción (y volver a pegar la F3 si desp
 Fusionado el PR #285 (terminales sin persona, combo Responsable, roles por módulo), Felipe pidió que quede como regla: cada módulo nuevo aparece en Roles y accesos y solo lo ve el líder hasta que él lo asigna. Quedó en `CLAUDE.md` («Módulos y roles») con los tres pasos (migración en `retail.modulos` sin `rol_modulos`, `lib/modulos.ts` + `modulo` en el menú + `exigirModulo`, y firmar con `fn_actor_persona_id`).
 Felipe se lleva: (1) **una regla que solo vive en un documento se olvida; una que vive en una prueba no**: `modulos.test.ts` ahora lee TODAS las migraciones y falla si alguna asigna un módulo a un rol, y `pruebas:roles` comprueba que un módulo recién creado solo lo ve el líder; (2) el catálogo de módulos es uno solo, en la base y en la web, y las pruebas impiden que se separen.
 Sin resolver: nada de esta regla; los pasos a producción del PR #285 siguen pendientes (migraciones en orden, `SUPABASE_SERVICE_ROLE_KEY`, encender `fn_exige_responsable()`).
+
+**2026-09-22 · fix(ui): la lista del buscador sigue al campo mientras el modal entra.** En «Asignar rol» la lista salía
+más angosta, corrida y ~28 px más abajo, tapando los botones: Radix enfoca Cuenta al abrir, el combo se abre y medía el
+campo a mitad de la entrada (hoja al 96,5 % + cascada). `usePosicionLista` ahora mide cuadro a cuadro mientras está abierta.

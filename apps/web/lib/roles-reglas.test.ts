@@ -10,6 +10,7 @@ import {
   modulosPorGrupo,
   motivoParaNoArchivar,
   nombreDeCopia,
+  pideUbicacion,
   rolesAsignables,
   veModulo,
   type RolVista,
@@ -106,14 +107,27 @@ describe("archivar, duplicar y asignar", () => {
     expect(nombreDeCopia("Almacén", ["Almacén", "copia de almacén"])).toBe("Copia de Almacén (2)");
   });
 
-  it("no se ofrece el Líder ni un rol archivado; a un líder no se le cambia el rol", () => {
+  it("el Líder se ofrece a una persona, nunca a una terminal; un rol archivado, a nadie", () => {
     const archivado = rol({ id: "a", archivado: true });
-    expect(rolesAsignables([LIDER, INTEGRANTE, archivado]).map((r) => r.id)).toEqual(["i"]);
-    expect(
-      cuentasAsignables([
-        { tipo: "persona", id: "1", nombre: "Felipe", ubicacion: null, rolId: "l", esLider: true, estado: "activo" },
-        { tipo: "terminal", id: "2", nombre: "Terminal Ventas TRU", ubicacion: "Tienda Trujillo", rolId: "tv", esLider: false, estado: "activo" },
-      ]).map((c) => c.id),
-    ).toEqual(["2"]);
+    expect(rolesAsignables([LIDER, INTEGRANTE, archivado], { tipo: "persona" }).map((r) => r.id)).toEqual(["l", "i"]);
+    expect(rolesAsignables([LIDER, INTEGRANTE, archivado], { tipo: "terminal" }).map((r) => r.id)).toEqual(["i"]);
+  });
+
+  it("entre líderes se cambia el rol, pero nadie se cambia el suyo", () => {
+    const cuentas = [
+      { tipo: "persona" as const, id: "yo", nombre: "Felipe", ubicacion: null, rolId: "l", esLider: true, estado: "activo" },
+      { tipo: "persona" as const, id: "1", nombre: "Otra líder", ubicacion: null, rolId: "l", esLider: true, estado: "activo" },
+      { tipo: "persona" as const, id: "2", nombre: "Ana", ubicacion: "Tienda Trujillo", rolId: "i", esLider: false, estado: "activo" },
+      { tipo: "terminal" as const, id: "3", nombre: "Terminal Ventas TRU", ubicacion: "Tienda Trujillo", rolId: "tv", esLider: false, estado: "activo" },
+    ];
+    expect(cuentasAsignables(cuentas, INTEGRANTE, "yo").map((c) => c.id)).toEqual(["1", "3"]);
+    expect(cuentasAsignables(cuentas, LIDER, "yo").map((c) => c.id)).toEqual(["2"]);
+  });
+
+  it("al bajar a un líder sin sede hay que elegírsela", () => {
+    expect(pideUbicacion({ esLider: true, ubicacion: null }, INTEGRANTE)).toBe(true);
+    expect(pideUbicacion({ esLider: true, ubicacion: "Tienda Arequipa" }, INTEGRANTE)).toBe(false);
+    expect(pideUbicacion({ esLider: true, ubicacion: null }, LIDER)).toBe(false);
+    expect(pideUbicacion({ esLider: false, ubicacion: null }, INTEGRANTE)).toBe(false);
   });
 });
