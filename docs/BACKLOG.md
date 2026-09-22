@@ -28,6 +28,18 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Candado de dinero en Caja, Cambios y Devoluciones (2026-09-22, ADR-0166) — pegado y verificado en producción
+Del análisis `/pantalla` completo del módulo Ventas: la misma familia de hueco en tres pantallas (dinero se movía sin que la base exigiera líder), cerrada en una sola migración. Detalle en [docs/adr/0166-candado-de-dinero-en-caja-cambios-devoluciones.md](adr/0166-candado-de-dinero-en-caja-cambios-devoluciones.md).
+- [x] `registrar_movimiento_caja`: `es_ajuste` deducido del motivo (vocabulario cerrado), no de lo que manda el navegador; referencia obligatoria en "Depósito bancario"/"Otro".
+- [x] `registrar_cambio`: exige líder cuando la diferencia le devuelve plata a la clienta.
+- [x] `aprobar_devolucion`: quien registra no puede aprobar su propia devolución; el reembolso no puede superar lo pagado con descuento.
+- [x] `revoke insert/update/delete/truncate` sobre `devoluciones`/`devolucion_items`/`prendas_danadas`/`cambios` para `authenticated`/`anon` (mismo patrón que `colaboradores` y `apartados`).
+- [x] **Migración `20260922235000` pegada en producción el 2026-09-22** (Felipe) — verificada en solo lectura (huellas de las 3 funciones, permisos de tabla) y con Postgres desechable local (209 migraciones + la nueva, dos veces, 64/64 pruebas, incluida prueba de mutación del `revoke`).
+- [x] De paso, `scripts/pruebas/candado_dinero_caja_cambios_devoluciones.mjs` (nuevo) y 3 arreglos a fixtures que solo se notaron porque el candado ya es real: `supabase/seed.sql` (motivos de caja inventados, una sola líder), `aprobar_devolucion_caja.mjs` y `candado_lider_caja_y_ajuste.mjs` (un motivo con la tilde mal puesta, nunca coincidía con nada).
+- [ ] **Decisión de Felipe: Cambios no tiene un flujo de "queda pendiente, un líder lo aprueba después"** (a diferencia de Devoluciones) — hoy un cambio con diferencia negativa sin un líder presente se rechaza sin más salida que llamar a una líder. ¿Se construye ese flujo, o queda así?
+- [ ] Pendiente, aparte, con ok explícito de Felipe (toca lo que se reporta a SUNAT): la nota de crédito de una devolución se sigue calculando sobre precio de lista, no sobre lo pagado con descuento (`docs/pantallas/devoluciones.md` §2.3).
+- [ ] Pendiente, ya decidido por Felipe (BACKLOG, más abajo): nota de crédito por diferencia de un cambio (serie B por tienda) — proyecto de SUNAT/Lucode aparte, no se mezcló con este candado.
+
 ## 🎯 «Quién vendió» en el ticket del Punto de venta (2026-09-22, ADR-0163) — rehecho sobre la asistencia de Dynamic; migración en producción, falta fusionar la web
 Un solo equipo de caja y varias colaboradoras por tienda. La fila «Atendió» ofrece a quienes marcaron entrada hoy en Dynamic (`fn_asesoras_de_turno`) y la venta se guarda en `ventas.asesora_id` — ambas ya en producción desde la 20260922150000 (ADR-0153). Decisión en [docs/adr/0163-vendedora-en-el-ticket.md](adr/0163-vendedora-en-el-ticket.md).
 - [x] Primera versión con columna propia (`vendedora_id`) e interruptor del líder: verificada en navegador el 2026-09-22, pero chocaba con la 150000 de main (dos columnas, dos `registrar_venta`). **Descartada al fusionar main**: se borró la 20260922143700 (nunca se pegó) y el modal del líder.

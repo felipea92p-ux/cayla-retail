@@ -125,13 +125,18 @@ select coalesce(sum(cantidad), 0) as s0 from retail.stock where variante_id = :'
  * sistema espera al cierre es 100 + 30 - 40 = S/ 90.00. Deja `:caja`; termina con la sesión en Felipe.
  * Antes cierra —con la RPC real y como líder— cualquier caja que otra sesión haya dejado abierta en Trujillo,
  * porque solo puede haber una abierta por ubicación (todo dentro de la transacción: el ROLLBACK la revive).
+ *
+ * Motivos ajustados al vocabulario cerrado de 20260922235000_candado_dinero_caja_cambios_devoluciones.sql
+ * (antes texto libre, nunca validado en la base): "Ingreso vario de prueba" no es un motivo real → "Otro"
+ * con nota; "Deposito bancario" le faltaba la tilde de siempre (nunca se notó porque nada la exigía) →
+ * "Depósito bancario", el motivo real que ya usa el modal.
  */
 const CAJA_ABIERTA_POR_MICAELA = `${BASE}${cambiaA(FELIPE)}select (select count(*) from (
   select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'trujillo' and estado = 'abierta'
 ) x) as _cerro_previa \\gset
 ${cambiaA(MICAELA)}select retail.abrir_caja(:'trujillo', 100.00) as caja \\gset
-${cambiaA(FELIPE)}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Ingreso vario de prueba') as _i \\gset
-select retail.registrar_movimiento_caja(:'caja', 'egreso', 40, 'Deposito bancario', 'Voucher-TEST-001', false) as _e \\gset
+${cambiaA(FELIPE)}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Otro', 'Ingreso vario de prueba') as _i \\gset
+select retail.registrar_movimiento_caja(:'caja', 'egreso', 40, 'Depósito bancario', 'Voucher-TEST-001', false) as _e \\gset
 `;
 
 /** Stock del piso de Trujillo de la variante de prueba en este momento. */
