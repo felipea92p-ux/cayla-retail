@@ -45,6 +45,7 @@
     "pruebas:candado-lider": "node scripts/pruebas/candado_lider_caja_y_ajuste.mjs",
     "pruebas:terminales": "node scripts/pruebas/terminales_por_tienda.mjs",
     "pruebas:terminales-sin-persona": "node scripts/pruebas/terminales_sin_persona.mjs",
+    "pruebas:actor-firma": "node scripts/pruebas/actor_firma_las_operaciones.mjs",
     "pruebas:colaboradores-endurecimiento": "node scripts/pruebas/colaboradores_endurecimiento.mjs",
     "pruebas:archivar-datos-prueba": "node scripts/pruebas/archivar_datos_prueba.mjs",
     "pruebas:clientas": "node scripts/pruebas/clientas.mjs",
