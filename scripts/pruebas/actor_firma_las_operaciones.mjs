@@ -13,8 +13,8 @@
  *         · terminal sin responsable → 42501 (`responsable_requerido`), nada se escribe;
  *         · persona sin encabezado → firma ella (interruptor `fn_exige_responsable()` apagado), `terminal_id` vacío;
  *         · Compras (`false`): la persona firma a su nombre aunque llegue `x-responsable`.
- *   (c) Las dos A MANO: el permiso sigue en la CUENTA — el tope de descuento de venta de una terminal es 0 (aunque
- *       la responsable sea líder) y una terminal no libera apartados; la persona conserva su comportamiento de hoy.
+ *   (c) Las dos A MANO: el permiso sigue en la CUENTA — una terminal descuenta SIN tope ni autorización (Felipe,
+ *       2026-09-22), aunque la responsable sea una integrante con tope 10 %, y una terminal libera apartados siempre; la persona conserva su comportamiento de hoy.
  *
  * CÓMO. Cada caso en su transacción con ROLLBACK (la base local la comparten ~20 sesiones). Las terminales (con su
  * `auth.users`, SIN persona), Rosa (integrante de Trujillo, la responsable) y la asistencia de Dynamic
@@ -361,11 +361,19 @@ select concat_ws(',', (select usuario_id = :'felipe' from retail.compras where i
 /* ------------------------------------------------------------------ */
 
 const VENTA_5 = `, p_descuento_pct => 5, p_motivo_descuento => 'prueba'`;
+const VENTA_50 = `, p_descuento_pct => 50, p_motivo_descuento => 'prueba'`;
 caso(
-  "registrar_venta con 5 % de descuento — terminal con la LÍDER Felipe de responsable: igual pide autorización (tope de la cuenta = 0)",
-  `${CAJA_TRU}${sesion(T_VENTAS, { resp: "felipe" })}select pg_temp.intento(format($q$select retail.registrar_venta(%L,
+  "registrar_venta con 50 % de descuento — terminal con Rosa (integrante, tope 10 %): pasa SIN autorización y firma Rosa",
+  `${CAJA_TRU}${sesion(T_VENTAS, { resp: "rosa" })}select pg_temp.intento(format($q$select retail.registrar_venta(%L,
   jsonb_build_array(jsonb_build_object('variante_id', %L, 'cantidad', 1, 'precio_unitario', %L::numeric, 'descuento_unitario', 0)),
-  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', %L::numeric)), null, gen_random_uuid()${VENTA_5})$q$, :'tru', :'v1', :'v1_precio', :'v1_precio'));`,
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', %L::numeric)), null, gen_random_uuid()${VENTA_50})$q$, :'tru', :'v1', :'v1_precio', :'v1_precio'));`,
+  (s) => !s.includes("supera tu tope")
+);
+caso(
+  "registrar_venta con 50 % de descuento — Micaela (tope 10 %) con su cuenta: igual pide autorización, como hoy",
+  `${CAJA_TRU}${sesion(MICAELA)}select pg_temp.intento(format($q$select retail.registrar_venta(%L,
+  jsonb_build_array(jsonb_build_object('variante_id', %L, 'cantidad', 1, 'precio_unitario', %L::numeric, 'descuento_unitario', 0)),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', %L::numeric)), null, gen_random_uuid()${VENTA_50})$q$, :'tru', :'v1', :'v1_precio', :'v1_precio'));`,
   (s) => s.startsWith("42501|") && s.includes("supera tu tope")
 );
 caso(
@@ -382,10 +390,10 @@ select (creado_por = :'rosa')::text from retail.apartados where id = :'ap';`,
   "true"
 );
 caso(
-  "liberar_apartado — terminal + Rosa (la que apartó): NO libera, solo una líder (permiso de la cuenta, falla cerrado)",
-  `${sesion(T_VENTAS, { resp: "rosa" })}select ${APARTAR} as ap \\gset
-select pg_temp.intento(format('select retail.liberar_apartado(%L, ''entregada'')', :'ap'));`,
-  (s) => s.includes("Solo quien apartó la prenda o una líder")
+  "liberar_apartado — la terminal libera SIEMPRE, aunque el apartado sea de otra persona (Felipe, 2026-09-22)",
+  `${sesion(MICAELA)}select ${APARTAR} as ap \\gset
+${sesion(T_VENTAS, { resp: "rosa" })}select pg_temp.intento(format('select retail.liberar_apartado(%L, ''entregada'')', :'ap'));`,
+  "SIN_ERROR"
 );
 caso(
   "liberar_apartado — Micaela libera el suyo (como hoy); el movimiento lo firma ella",

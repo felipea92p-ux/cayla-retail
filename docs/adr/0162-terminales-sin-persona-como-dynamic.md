@@ -131,6 +131,16 @@ Solo cambia de dónde sacan su respuesta `fn_es_terminal(tipo)` y `fn_mi_termina
 
 **Estimación:** 4 a 6 sesiones. F3 es la más larga, pero es mecánica y la cubren las pruebas.
 
+## Decididas por Felipe al construir (2026-09-22)
+
+- **Descuentos desde la terminal: sin tope y sin autorización.** El tope sigue siendo de la CUENTA (una persona con su
+  propia cuenta conserva su tope de D-67); la terminal no tiene tope (`NULL`, como un líder). No se toma el tope del
+  responsable, porque sin PIN cualquiera podría elegir a quien más tope tiene.
+- **Apartados: la terminal libera siempre** (entregar la prenda o soltar un apartado vencido). Una persona con su
+  cuenta sigue con la regla de hoy: quien apartó o una líder.
+- **Operaciones de varios pasos** (conteo, recepción de traslado): el combo se vacía al cerrar la operación completa,
+  no después de cada prenda.
+
 ## Abierto
 
 1. ~~Ventas sin conexión~~ **Decidido (Felipe, 2026-09-22):** se valida contra la **hora de la venta** (como

@@ -234,27 +234,29 @@ $migracion$;
 
 -- ==================== 3. Las dos A MANO: el permiso vuelve a la CUENTA ====================
 -- (a) registrar_venta — tope de descuento de VENTA (D-67). Antes: el tope de v_persona (= la cuenta). Ahora
---     v_persona puede ser el responsable elegido sin PIN; el tope se sigue leyendo de la cuenta, y una terminal
---     (sin persona ni fila en `colaboradores`, que daría NULL = «sin tope») queda en 0: falla cerrado.
+--     v_persona puede ser el responsable elegido sin PIN; el tope se sigue leyendo de la CUENTA. Una terminal
+--     NO tiene tope: descuenta sin pedir autorización (decisión de Felipe, 2026-09-22).
 select pg_temp.reemplazar(
   'retail.registrar_venta(uuid, jsonb, jsonb, uuid, uuid, text, text, text, text, text, text, uuid, text, numeric, uuid, text)',
   'select tope_descuento_pct into v_tope_descuento from colaboradores where persona_id = v_persona;',
   $n$-- ADR-0162: el tope es un PERMISO de la CUENTA, no de quien firma (v_persona puede ser el responsable
-    -- elegido en el combo, sin PIN: elegir a una líder daría «sin tope»). Una terminal no tiene tope propio:
-    -- 0, todo descuento de venta pide la autorización de un líder (falla cerrado, hasta que Felipe decida).
+    -- elegido en el combo, sin PIN). Una terminal descuenta SIN tope ni autorización (Felipe, 2026-09-22):
+    -- NULL = «sin tope», igual que un líder.
     select tope_descuento_pct into v_tope_descuento from colaboradores
       where persona_id = (select id from personas where auth_user_id = auth.uid());
     if exists (select 1 from retail.fn_terminal_actual()) then
-      v_tope_descuento := 0;
+      v_tope_descuento := null;
     end if;$n$,
   1);
 
--- (b) liberar_apartado — «solo quien apartó o una líder». Se compara con la persona de la CUENTA y con coalesce:
---     en una terminal esa persona no existe → false → solo una líder libera (falla cerrado, hasta que Felipe decida).
+-- (b) liberar_apartado — «solo quien apartó o una líder», y ahora también una TERMINAL, siempre (Felipe, 2026-09-22).
+--     Se compara con la persona de la CUENTA (no con el responsable elegido sin PIN) y con coalesce.
 select pg_temp.reemplazar(
   'retail.liberar_apartado(uuid, text)',
   'if not (fn_es_lider() or a.creado_por = v_persona) then',
-  $n$-- ADR-0162: el permiso es de la CUENTA (v_persona puede ser el responsable elegido sin PIN). coalesce: en una
-  -- terminal la comparación daría NULL y `if not (false or NULL)` no lanzaba.
-  if not (fn_es_lider() or coalesce(a.creado_por = (select id from personas where auth_user_id = auth.uid()), false)) then$n$,
+  $n$-- ADR-0162: el permiso es de la CUENTA (v_persona puede ser el responsable elegido sin PIN). Una TERMINAL
+  -- libera siempre (Felipe, 2026-09-22): entregar la prenda o soltar un apartado vencido es operación del mostrador.
+  -- coalesce: sin él, en una terminal la comparación daría NULL.
+  if not (fn_es_lider() or exists (select 1 from retail.fn_terminal_actual())
+          or coalesce(a.creado_por = (select id from personas where auth_user_id = auth.uid()), false)) then$n$,
   1);
