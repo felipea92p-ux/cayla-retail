@@ -114,7 +114,7 @@ describe("accionesDeFila", () => {
     expect(accionesDeFila({ rol: "lider", es_yo: false })).toEqual(["suspender", "quitar"]);
   });
 
-  it("una terminal (ADR-0152) no se muda de tienda: solo se suspende o se quita — así nunca queda una en el Taller", () => {
+  it("una terminal (ADR-0159) no se muda de tienda: solo se suspende o se quita — así nunca queda una en el Taller", () => {
     expect(accionesDeFila({ rol: "colaborador", es_yo: false, terminal: "ventas" })).toEqual(["suspender", "quitar"]);
     expect(accionesDeFila({ rol: "colaborador", es_yo: false, terminal: "administrativa" })).toEqual(["suspender", "quitar"]);
   });
@@ -167,6 +167,13 @@ describe("fraseEvento", () => {
     const baja = fraseEvento({ ...base, accion: "baja", ubicacion_anterior: "Tienda TRU" });
     expect(texto(baja)).toBe("Felipe quitó el acceso a Angie.");
     expect(baja.detalle).toBe("Estaba en: Tienda TRU");
+  });
+  it("aprobación (D-70): quién aprobó, a quién, con qué rol y dónde", () => {
+    const f = fraseEvento({ ...base, accion: "aprobacion", ubicacion_nueva: "Tienda TRU" });
+    expect(f.etiqueta).toBe("Aprobación");
+    expect(f.tono).toBe("verde");
+    expect(texto(f)).toBe("Felipe aprobó el alta de Angie como Colaborador.");
+    expect(f.detalle).toBe("Ubicación: Tienda TRU");
   });
   it("cambio de ubicación dice de dónde a dónde", () => {
     const f = fraseEvento({ ...base, accion: "ubicacion", ubicacion_anterior: "Tienda TRU", ubicacion_nueva: "Taller LIM" });

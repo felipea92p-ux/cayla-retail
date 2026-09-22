@@ -10,8 +10,14 @@ export type ResultadoAccion = { error: ErrorEscritura };
 
 export type AccionesColaboradores = {
   agregar: (personas: string[], ubicacionId: string) => Promise<ResultadoAccion>;
-  /** Da entrada a una persona de Dynamic como TERMINAL de una tienda (ADR-0152): siempre colaborador, solo en una tienda. */
+  /** Da entrada a una persona de Dynamic como TERMINAL de una tienda (ADR-0159): siempre colaborador, solo en una tienda.
+   *  Exenta de la aprobación de D-70 a propósito (ver `aprobar` abajo): el líder que la crea ya es la aprobación — no es
+   *  una persona nueva entrando al equipo, es una cuenta de servicio que él mismo decide abrir. */
   agregarTerminal: (personaId: string, ubicacionId: string, tipo: TipoTerminal) => Promise<ResultadoAccion>;
+  /** D-70: aprueba el alta de un colaborador (persona) que otro líder propuso. Nunca aplica a una terminal:
+   *  `agregarTerminal` ya deja la fila en `estado = 'activo'` (el default de la columna), sin pasar por
+   *  `pendiente_aprobacion`. */
+  aprobar: (personaId: string) => Promise<ResultadoAccion>;
   suspender: (personaId: string, motivo: string) => Promise<ResultadoAccion>;
   reactivar: (personaId: string) => Promise<ResultadoAccion>;
   cambiarUbicacion: (personaId: string, ubicacionId: string) => Promise<ResultadoAccion>;
@@ -25,6 +31,10 @@ export const accionesSupabase: AccionesColaboradores = {
   },
   agregarTerminal: async (personaId, ubicacionId, tipo) => {
     const { error } = await createClient().rpc("agregar_terminal", { p_persona_id: personaId, p_ubicacion_id: ubicacionId, p_terminal: tipo });
+    return { error };
+  },
+  aprobar: async (personaId) => {
+    const { error } = await createClient().rpc("fn_aprobar_alta_colaborador", { p_persona_id: personaId });
     return { error };
   },
   suspender: async (personaId, motivo) => {

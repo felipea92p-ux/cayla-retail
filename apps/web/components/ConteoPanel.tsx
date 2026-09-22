@@ -47,7 +47,7 @@ export function ConteoPanel({
   marcas,
 }: {
   ubicacionId: string;
-  /** Cerrar el conteo aplica lo contado al stock: un líder o la terminal administrativa (ADR-0152). */
+  /** Cerrar el conteo aplica lo contado al stock: un líder o la terminal administrativa (ADR-0159). */
   puedeCerrar: boolean;
   /** Crear una marca al dar de alta al vuelo es del Catálogo: un líder o la terminal administrativa. */
   puedeCrearMarcas: boolean;

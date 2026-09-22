@@ -39,7 +39,7 @@ export function FacturacionShell({
   children,
 }: {
   conteos: ConteosPestanas;
-  /** Solo el líder ve «Códigos de descuento»; la terminal de ventas ve el resto (ADR-0152). */
+  /** Solo el líder ve «Códigos de descuento»; la terminal de ventas ve el resto (ADR-0159). */
   esLider: boolean;
   cifras: CifrasCabecera;
   sede: string;

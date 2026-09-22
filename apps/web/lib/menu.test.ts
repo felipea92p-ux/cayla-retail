@@ -12,6 +12,7 @@ import {
   TIPOS_UBICACION,
   esGrupo,
   esGrupoMenu,
+  hojasDe,
   menuPara,
   permisosDe,
   puedeVerProduccion,
@@ -19,6 +20,7 @@ import {
   type Accion,
   type FilaMenu,
   type FuenteMenu,
+  type GrupoMenu,
   type Hoja,
   type Nodo,
   type Permiso,
@@ -38,9 +40,9 @@ import {
    Felipe. Un cambio de fila sin cambio de fotografía es exactamente lo que esta prueba existe para atrapar.
    ==================================================================== */
 
-type HijoDorado = { etiqueta: string; href: string; icono: string; insignia?: number };
-type FilaDorada = HijoDorado | { grupo: string; etiqueta: string; icono: string; insignia?: number; hijos: HijoDorado[] };
-type ColumnaDorada = HijoDorado | { hueco: string };
+// Recursivo (D-84): una hija de un grupo dorado puede ser, a su vez, otro grupo dorado (un subgrupo).
+type FilaDorada = { etiqueta: string; href: string; icono: string; insignia?: number } | { grupo: string; etiqueta: string; icono: string; insignia?: number; hijos: FilaDorada[] };
+type ColumnaDorada = { etiqueta: string; href: string; icono: string; insignia?: number } | { hueco: string };
 type Vista = { escritorio: FilaDorada[]; movil: ColumnaDorada[] };
 type PerfilDorado = {
   rol: "lider" | "integrante";
@@ -61,9 +63,9 @@ function comoEscritorio(riel: FilaMenu[]): FilaDorada[] {
           grupo: f.id,
           etiqueta: f.etiqueta,
           icono: f.icono,
-          // La cabecera cerrada muestra la suma de sus hijas (ADR: el número sube a la cabecera para que se vea igual).
-          ...conInsignia(f.hijos.reduce((acc, h) => acc + (h.contador ?? 0), 0)),
-          hijos: f.hijos.map((h) => ({ etiqueta: h.etiqueta, href: h.href, icono: h.icono, ...conInsignia(h.contador) })),
+          // La cabecera cerrada muestra la suma de TODAS sus hojas (un subgrupo incluido: el número sube al tope).
+          ...conInsignia(hojasDe(f).reduce((acc, h) => acc + (h.contador ?? 0), 0)),
+          hijos: comoEscritorio(f.hijos),
         }
       : { etiqueta: f.etiqueta, href: f.href, icono: f.icono, ...conInsignia(f.contador) },
   );
@@ -180,7 +182,6 @@ describe("los nodos futuros: en el árbol para que el aviario quede a la vista, 
 
   it("existen los que el rediseño ya nombró, cada uno con su pájaro", () => {
     expect(Object.fromEntries(futuros)).toEqual({
-      "produccion.abastecimiento": "10 Gallito",
       "produccion.eficiencia": "10 Gallito",
       finanzas: "11 Garza",
       "finanzas.gastos": "11 Garza",
@@ -197,10 +198,13 @@ describe("los nodos futuros: en el árbol para que el aviario quede a la vista, 
     });
   });
 
+  // Recorre TODA la profundidad (un subgrupo puede tener, a su vez, hijos) — no solo la primera fila y sus hijas.
+  const idsDe = (f: FilaMenu): string[] => [f.id, ...(esGrupoMenu(f) ? f.hijos.flatMap(idsDe) : [])];
+
   it("ningún perfil los ve: ni en el lateral, ni en el celular, ni en «+ Nuevo»", () => {
     for (const perfil of PERFILES) {
       const menu = menuPara(perfil);
-      const emitidos = [...menu.riel.flatMap((f) => [f.id, ...(esGrupoMenu(f) ? f.hijos.map((h) => h.id) : [])]), ...menu.movil.flatMap((c) => (c ? [c.id] : []))];
+      const emitidos = [...menu.riel.flatMap(idsDe), ...menu.movil.flatMap((c) => (c ? [c.id] : []))];
       expect(emitidos.filter((id) => futuros.has(id)), nombreDe(perfil)).toEqual([]);
     }
   });
@@ -219,31 +223,34 @@ describe("las rutas del menú existen", () => {
 });
 
 // Los topes del menú (regla de diseño, no de código): más filas o más hijas y el lateral deja de leerse de un vistazo. Si una
-// pantalla nueva no cabe, se REGRUPA; estos números no se suben para que la prueba pase.
+// pantalla nueva no cabe, se REGRUPA (un subgrupo dentro del grupo, D-84); estos números no se suben para que la prueba pase.
 const TOPE_FILAS = 8;
 const TOPE_HIJAS = 6;
-// EXCEPCIÓN DOCUMENTADA, la única, con su valor real: Producción vista por el líder en el Taller cuenta 7 hijas desde que
-// la fila «Resumen» (F6, #231) entró a main. La rompió ese PR, no el paso «menú a datos» (que no cambia lo que se ve). NO es
-// un tope nuevo: es una deuda con fecha de caducidad. La prueba «DEUDA: Producción supera el tope…» falla si el grupo crece
-// (8) y también si baja a 6 o menos sin quitar esta línea, para que la excepción no sobreviva a la deuda.
-const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { produccion: 7 };
+// Escape documentado para cuando un grupo necesite más margen que el tope general — vacío hoy: Producción lo usó desde
+// #231 hasta que D-84/ADR-0155 (2026-09-21) lo regrupó (un subgrupo, «Abastecimiento», en vez de subir el tope), que es
+// el remedio esperado, no una excepción a mantener. Vive el mecanismo, no la deuda.
+const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = {};
 const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE_HIJAS;
+
+// Todos los grupos que hay dentro de `fs`, en cualquier profundidad: un subgrupo (D-84) tiene que cumplir el mismo tope
+// y la misma regla de «con una sola hija no agrupa nada» que un grupo de primer nivel — no hay un caso especial para él.
+const gruposDe = (fs: readonly FilaMenu[]): GrupoMenu[] => fs.filter(esGrupoMenu).flatMap((f) => [f, ...gruposDe(f.hijos)]);
 
 describe.each(PERFILES.map((p) => [nombreDe(p), p] as const))("forma del menú de %s", (_nombre, perfil) => {
   const menu = menuPara(perfil);
-  const hrefs = menu.riel.flatMap((f) => (esGrupoMenu(f) ? f.hijos.map((h) => h.href) : [f.href]));
+  const hrefs = menu.riel.flatMap(hojasDe).map((h) => h.href);
 
   it("ninguna ruta aparece dos veces en el lateral", () => {
     expect(hrefs.filter((h, i) => hrefs.indexOf(h) !== i)).toEqual([]);
   });
 
-  it("ningún grupo tiene una sola hija (con una, se muestra como fila suelta)", () => {
-    for (const f of menu.riel) if (esGrupoMenu(f)) expect(f.hijos.length, f.id).toBeGreaterThanOrEqual(2);
+  it("ningún grupo tiene una sola hija (con una, se muestra como fila suelta), a cualquier profundidad", () => {
+    for (const g of gruposDe(menu.riel)) expect(g.hijos.length, g.id).toBeGreaterThanOrEqual(2);
   });
 
-  it(`caben en el tope: ${TOPE_FILAS} filas de primer nivel y ${TOPE_HIJAS} hijas por grupo (excepción con nombre: Producción, 7; ver «DEUDA»)`, () => {
+  it(`caben en el tope: ${TOPE_FILAS} filas de primer nivel y ${TOPE_HIJAS} hijas por grupo, a cualquier profundidad`, () => {
     expect(menu.riel.length).toBeLessThanOrEqual(TOPE_FILAS);
-    for (const f of menu.riel) if (esGrupoMenu(f)) expect(f.hijos.length, f.id).toBeLessThanOrEqual(topeDeHijas(f.id));
+    for (const g of gruposDe(menu.riel)) expect(g.hijos.length, g.id).toBeLessThanOrEqual(topeDeHijas(g.id));
   });
 
   it("la barra del celular tiene 5 columnas: cuatro pantallas y el hueco del «+» al centro", () => {
@@ -251,15 +258,15 @@ describe.each(PERFILES.map((p) => [nombreDe(p), p] as const))("forma del menú d
     expect(menu.movil.map((c) => c === null)).toEqual([false, false, true, false, false]);
   });
 
-  it("la ruta de cada fila abre el grupo de esa fila (y ningún otro se la queda)", () => {
+  it("la ruta de cada fila (a cualquier profundidad) abre el grupo de PRIMER NIVEL que la contiene, y ningún otro se la queda", () => {
     for (const f of menu.riel) {
       if (!esGrupoMenu(f)) continue;
-      for (const h of f.hijos) expect(menu.grupoDe(h.href), `${h.etiqueta} (${h.href})`).toBe(f.id);
+      for (const h of hojasDe(f)) expect(menu.grupoDe(h.href), `${h.etiqueta} (${h.href})`).toBe(f.id);
     }
   });
 
   it("«Recibir mercadería» vive como MÁXIMO en un grupo: Compras si ve el dinero, Inventario si no, y ninguno si ve el dinero parado en el Taller", () => {
-    const dueños = menu.riel.filter(esGrupoMenu).filter((g) => g.hijos.some((h) => h.href === "/recibir")).map((g) => g.id);
+    const dueños = menu.riel.filter(esGrupoMenu).filter((g) => hojasDe(g).some((h) => h.href === "/recibir")).map((g) => g.id);
     const veDinero = perfil.permisos.includes("verDinero");
     expect(dueños.length).toBeLessThanOrEqual(1);
     // El único perfil sin grupo es el del hecho de producto que documenta la sección 3 (PR #219, Felipe 2026-09-21).
@@ -285,15 +292,32 @@ const hijosDeGrupo = (perfil: PerfilDelMenu, id: string) => {
   const fila = menuPara(perfil).riel.find((f) => f.id === id);
   return fila && esGrupoMenu(fila) ? fila.hijos.map((h) => h.id) : [];
 };
+/** Las hijas de un SUBGRUPO (D-84): busca dentro de lo que YA se pintó para `idGrupoTop`, no en `arbol` — si a este
+ *  perfil el subgrupo se le disolvió (le quedaba una sola hija visible), no lo encuentra, y eso también es correcto. */
+const hijosDeSubgrupo = (perfil: PerfilDelMenu, idGrupoTop: string, idSubgrupo: string) => {
+  const top = menuPara(perfil).riel.find((f) => f.id === idGrupoTop);
+  const sub = top && esGrupoMenu(top) ? top.hijos.find((h) => h.id === idSubgrupo) : undefined;
+  return sub && esGrupoMenu(sub) ? sub.hijos.map((h) => h.id) : [];
+};
 const LIDER: readonly Permiso[] = permisosDe("lider");
 const INTEGRANTE: readonly Permiso[] = permisosDe("integrante");
 
 describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líder incluido", () => {
-  it("en el Taller, el líder ve las siete: Resumen, Órdenes, Insumos, Proveedores, Comprobantes, Recibir y Por pagar, en ese orden y ninguna futura", () => {
+  // Hasta D-84/ADR-0155 (2026-09-21) el líder contaba SIETE hijas sueltas acá (Resumen, Órdenes, Insumos, Proveedores,
+  // Comprobantes, Recibir, Por pagar) — por encima del tope de 6 (deuda declarada desde #231). El regrupo bajó las
+  // cuatro de dinero/abastecimiento a un subgrupo, «Abastecimiento»: las dos pruebas de abajo reemplazan a la que
+  // antes verificaba las siete sueltas.
+  it("en el Taller, el líder ve cuatro hijas de primer nivel: Resumen, Órdenes, Insumos y Abastecimiento; ninguna futura", () => {
     expect(hijosDeGrupo({ permisos: LIDER, ubicacionTipo: "taller" }, "produccion")).toEqual([
       "produccion.resumenProduccion",
       "produccion.ordenes",
       "produccion.insumos",
+      "produccion.abastecimiento",
+    ]);
+  });
+
+  it("Abastecimiento, adentro, tiene las cuatro que antes eran hijas sueltas: Proveedores, Comprobantes, Recibir y Por pagar", () => {
+    expect(hijosDeSubgrupo({ permisos: LIDER, ubicacionTipo: "taller" }, "produccion", "produccion.abastecimiento")).toEqual([
       "produccion.proveedoresProduccion",
       "produccion.comprobantesProduccion",
       "produccion.recibirProduccion",
@@ -303,36 +327,34 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
 
   it("en el Taller, quien trabaja ahí ve Órdenes, Insumos y Recibir, pero no el Resumen ni las pantallas con datos bancarios y montos (D-G)", () => {
     const operativas = ["produccion.ordenes", "produccion.insumos", "produccion.recibirProduccion"];
+    // Sin `verDinero`, Abastecimiento se queda con una sola hija visible (Recibir) y se disuelve: sube con su propio
+    // nombre (no como «Abastecimiento») — por eso el resultado es idéntico al de antes de D-84, sin el subgrupo de por medio.
     expect(hijosDeGrupo({ permisos: INTEGRANTE, ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
     // Administrar no abre nada de esto.
     expect(hijosDeGrupo({ permisos: ["administrar"], ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
   });
 
-  it("cada permiso abre lo suyo: `analizar` el Resumen (y solo eso), `verDinero` Proveedores, Comprobantes y Por pagar (y no el Resumen)", () => {
+  it("`analizar` abre el Resumen (y solo eso); sin `verDinero`, Abastecimiento se disuelve en «Recibir», su única hija visible", () => {
     expect(hijosDeGrupo({ permisos: ["analizar"], ubicacionTipo: "taller" }, "produccion")).toEqual([
       "produccion.resumenProduccion",
       "produccion.ordenes",
       "produccion.insumos",
       "produccion.recibirProduccion",
     ]);
+  });
+
+  it("`verDinero` abre Abastecimiento como subgrupo — Proveedores, Comprobantes, Recibir y Por pagar — y no el Resumen (falta `analizar`)", () => {
     expect(hijosDeGrupo({ permisos: ["verDinero"], ubicacionTipo: "taller" }, "produccion")).toEqual([
       "produccion.ordenes",
       "produccion.insumos",
+      "produccion.abastecimiento",
+    ]);
+    expect(hijosDeSubgrupo({ permisos: ["verDinero"], ubicacionTipo: "taller" }, "produccion", "produccion.abastecimiento")).toEqual([
       "produccion.proveedoresProduccion",
       "produccion.comprobantesProduccion",
       "produccion.recibirProduccion",
       "produccion.porPagarProduccion",
     ]);
-  });
-
-  it("DEUDA: Producción supera el tope de 6 hijas desde #231; hay que regrupar antes de agregar otra (Eficiencia F7)", () => {
-    // (a) Si el grupo CRECE (8), falla: se regrupa, no se sube la excepción. (b) Si BAJA a 6 o menos, también falla: ya no supera
-    // el tope y hay que borrar `EXCEPCIONES_TOPE_HIJAS.produccion` (y esta prueba), para que la excepción no sobreviva a la
-    // deuda. Regrupar = por ejemplo bajar Proveedores, Comprobantes, Recibir y Por pagar a `produccion.abastecimiento`.
-    const hijas = hijosDeGrupo({ permisos: LIDER, ubicacionTipo: "taller" }, "produccion").length;
-    expect(hijas, "creció: hay que REGRUPAR, no subir la excepción").toBeLessThanOrEqual(7);
-    expect(hijas, "ya no supera el tope de 6: quita la excepción de EXCEPCIONES_TOPE_HIJAS y esta prueba").toBeGreaterThan(TOPE_HIJAS);
-    expect(EXCEPCIONES_TOPE_HIJAS.produccion, "la excepción debe valer exactamente lo que hay hoy").toBe(hijas);
   });
 
   it("desde una tienda o un almacén no lo ve nadie, ni el líder", () => {
@@ -374,7 +396,7 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
     // Taller sí debe verlo en el lateral, se revierte a propósito (p. ej. quitando `soloSinPermiso` de `inventario.recibir`) y
     // esta prueba cambia con esa decisión; no debe ponerse en verde por accidente.
     const menu = menuPara({ permisos: LIDER, ubicacionTipo: "taller" });
-    const filas = menu.riel.flatMap((f) => (esGrupoMenu(f) ? f.hijos : [f]));
+    const filas = menu.riel.flatMap(hojasDe);
     expect(filas.map((f) => f.href)).not.toContain("/recibir");
     expect(filas.map((f) => f.etiqueta)).not.toContain("Recibir mercadería");
     expect(menu.nuevo.map((a) => a.href)).toContain("/recibir");
@@ -385,7 +407,9 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
   });
 
   it("no se confunden los dos «Recibir»: en el Taller hay otro, el de tela y avíos de Producción (/produccion/recibir), y no reemplaza al de mercadería", () => {
-    const enElTaller = (permisos: readonly Permiso[]) => menuPara({ permisos, ubicacionTipo: "taller" }).riel.flatMap((f) => (esGrupoMenu(f) ? f.hijos : [f]));
+    // `hojasDe` baja hasta las pantallas de verdad sin importar si «Recibir» vive suelta (INTEGRANTE, Abastecimiento
+    // disuelto) o dentro del subgrupo Abastecimiento (LIDER, con las 4 hijas visibles).
+    const enElTaller = (permisos: readonly Permiso[]) => menuPara({ permisos, ubicacionTipo: "taller" }).riel.flatMap(hojasDe);
     for (const permisos of [LIDER, INTEGRANTE]) {
       const recibir = enElTaller(permisos).filter((f) => f.href === "/produccion/recibir");
       expect(recibir).toEqual([expect.objectContaining({ id: "produccion.recibirProduccion", etiqueta: "Recibir" })]);
@@ -401,7 +425,7 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
     const compras = riel.find((f) => f.id === "compras");
     const notas = compras && esGrupoMenu(compras) ? compras.hijos.at(-1) : undefined;
     expect(notas).toMatchObject({ id: "compras.notasCredito", href: "/compras/notas-credito" });
-    expect(notas?.contador).toBeUndefined();
+    expect(notas && !esGrupoMenu(notas) ? notas.contador : undefined).toBeUndefined();
   });
 
   it("sin `verDinero` no ve Compras, esté donde esté", () => {
@@ -513,7 +537,7 @@ describe("reglas de menuPara", () => {
 });
 
 /* ====================================================================
-   Las cuentas TERMINAL (ADR-0152): dos por tienda, compartidas por quien trabaja ahí. La terminal decide QUÉ MÓDULOS hay
+   Las cuentas TERMINAL (ADR-0159): dos por tienda, compartidas por quien trabaja ahí. La terminal decide QUÉ MÓDULOS hay
    (ventas o administrativa); lo que puede HACER dentro lo dice su permiso (`permisosDe`), que espeja una capacidad de la base.
    El menú de una persona (terminal `null`) no cambia: lo prueban la fotografía de hoy y los invariantes de arriba.
    ==================================================================== */

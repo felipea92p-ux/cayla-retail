@@ -24,7 +24,7 @@ export type PersonaActualV2 = {
    *  (0012_control_total_temporal.sql) se revierta, esto puede volver a
    *  distinguirse sin tocar el componente. */
   puedeCambiarUbicacion: boolean;
-  /** Si esta cuenta es una TERMINAL de su tienda (ADR-0152) y de qué tipo; `null` = una persona. Una terminal es un
+  /** Si esta cuenta es una TERMINAL de su tienda (ADR-0159) y de qué tipo; `null` = una persona. Una terminal es un
    *  integrante fijo a una tienda que comparte quien trabaja ahí: `ventas` (caja, punto de venta, Facturación) o
    *  `administrativa` (inventario, catálogo y, con ADR-0151, Compras). */
   terminal: TipoTerminal | null;
@@ -54,7 +54,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
   if (!claims?.claims?.sub) redirect("/login");
 
   // El tipo de terminal se pide EN PARALELO con el resumen: no suma una espera. Falla cerrado: si la RPC aún no existe
-  // en esa base (la web se desplegó antes de pegar la migración 20260922140000) o responde algo raro, es una persona
+  // en esa base (la web se desplegó antes de pegar la migración 20260922200000) o responde algo raro, es una persona
   // común — pierde poder, nunca lo gana (principio 9).
   const [{ data, error }, { data: tipoTerminal, error: errorTerminal }] = await Promise.all([
     supabase.rpc("fn_persona_actual_resumen").maybeSingle(),
@@ -108,7 +108,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
   };
 });
 
-/** ¿Esta cuenta tiene el permiso? Es lo que preguntan las pantallas y los botones en vez de «¿es líder?» (ADR-0152):
+/** ¿Esta cuenta tiene el permiso? Es lo que preguntan las pantallas y los botones en vez de «¿es líder?» (ADR-0159):
  *  así una terminal cierra caja o ajusta stock sin ser líder, y el líder sigue pasando por todo. */
 export function puede(persona: Pick<PersonaActualV2, "permisos">, permiso: Permiso): boolean {
   return persona.permisos.includes(permiso);

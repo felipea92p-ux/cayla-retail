@@ -4,6 +4,7 @@ import {
   getActividadAccesos,
   getColaboradores,
   getColaboradoresInactivos,
+  getColaboradoresPendientes,
   getColaboradoresSuspendidos,
   getDynamicDisponibles,
 } from "@/lib/colaboradores";
@@ -16,8 +17,9 @@ export default async function ColaboradoresPage() {
   const persona = await requirePersonaActualV2();
   if (persona.rol !== "lider") redirect("/");
 
-  const [colaboradores, suspendidos, inactivos, actividad, disponibles, ubicaciones] = await Promise.all([
+  const [colaboradores, pendientes, suspendidos, inactivos, actividad, disponibles, ubicaciones] = await Promise.all([
     getColaboradores(),
+    getColaboradoresPendientes(),
     getColaboradoresSuspendidos(),
     getColaboradoresInactivos(),
     getActividadAccesos(),
@@ -28,6 +30,7 @@ export default async function ColaboradoresPage() {
   return (
     <ColaboradoresPanel
       colaboradores={colaboradores}
+      pendientes={pendientes}
       suspendidos={suspendidos}
       inactivos={inactivos}
       actividad={actividad}

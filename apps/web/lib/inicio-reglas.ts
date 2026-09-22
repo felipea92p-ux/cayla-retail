@@ -12,7 +12,7 @@ import type { TipoTerminal } from "./menu";
 export type PerfilInicio = {
   rol: "lider" | "integrante";
   ubicacionTipo: "tienda" | "almacen" | "taller";
-  /** Si quien mira es una cuenta terminal (ADR-0152). La de ventas nunca llega acá (aterriza en el Punto de Venta). */
+  /** Si quien mira es una cuenta terminal (ADR-0159). La de ventas nunca llega acá (aterriza en el Punto de Venta). */
   terminal?: TipoTerminal | null;
 };
 
@@ -135,7 +135,7 @@ export function accesosInicio(perfil: PerfilInicio, cajaAbierta: boolean | null)
   if (perfil.ubicacionTipo === "almacen") {
     return [{ ...recibir, principal: true }, { href: "/inventario", etiqueta: "Inventario", detalle: "Stock por ubicación", principal: false }, buscar];
   }
-  // La terminal administrativa no tiene Ventas en el menú: su casa es el inventario, no el mostrador (ADR-0152).
+  // La terminal administrativa no tiene Ventas en el menú: su casa es el inventario, no el mostrador (ADR-0159).
   if (perfil.terminal === "administrativa") {
     return [{ href: "/inventario", etiqueta: "Inventario", detalle: "Stock por ubicación", principal: true }, recibir, buscar];
   }

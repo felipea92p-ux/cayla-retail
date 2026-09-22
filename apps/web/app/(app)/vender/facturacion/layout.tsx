@@ -10,7 +10,7 @@ import { FacturacionShell } from "@/components/FacturacionShell";
 // Facturación electrónica — rescatada de producción (2026-09-12, ver
 // supabase/migrations/0010_facturacion.sql). Reserva comprobantes con correlativo oficial y
 // los transmite a SUNAT por Lucode (PSE) desde la misma pantalla; anular es un tercer paso
-// aparte. La pantalla es del líder y de la terminal de ventas (ADR-0152, permiso `facturar`): emitir, transmitir y anular mueven documentos
+// aparte. La pantalla es del líder y de la terminal de ventas (ADR-0159, permiso `facturar`): emitir, transmitir y anular mueven documentos
 // legales, y anular, las series y los descuentos siguen siendo solo del líder. `exigirPermiso` es la primera de las tres capas (pantalla, RPC, RLS) y CADA
 // `page.tsx` la repite: este layout no vuelve a ejecutarse al navegar entre las vistas.
 //

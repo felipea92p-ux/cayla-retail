@@ -167,7 +167,7 @@ type Props = {
   ubicacionEtiqueta: string;
   /** Un Líder descuenta sin código; una Colaboradora necesita uno (la base lo exige). */
   esLider: boolean;
-  /** ¿Puede cerrar la caja? Un líder o la terminal de ventas (ADR-0152). `esLider` queda para lo que sigue siendo del líder (descuentos). */
+  /** ¿Puede cerrar la caja? Un líder o la terminal de ventas (ADR-0159). `esLider` queda para lo que sigue siendo del líder (descuentos). */
   puedeCerrarCaja: boolean;
   /** Null si no hay caja abierta — el catálogo se ve igual, pero queda desactivado
    *  (ver `bloqueado` más abajo). */
@@ -916,7 +916,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           </nav>
           {/* D-13: abrir la caja lo puede cualquiera; CERRARLA solo el líder (candado real en
               `cerrar_caja`, 20260921110000). Con la caja abierta, un colaborador común no ve el botón; la terminal de
-              ventas sí (ADR-0152: `fn_puede_gestionar_caja`). */}
+              ventas sí (ADR-0159: `fn_puede_gestionar_caja`). */}
           {(bloqueado || puedeCerrarCaja) && (
             <button
               type="button"

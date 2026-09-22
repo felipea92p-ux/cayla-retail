@@ -20,7 +20,7 @@ export type Colaborador = {
   /** La persona que está mirando la pantalla: a ella no se le ofrece suspenderse ni quitarse. */
   es_yo: boolean;
   ultimo_acceso: string | null;
-  /** Si es una cuenta TERMINAL de su tienda (ADR-0152) y de qué tipo; `null` o ausente = una persona. */
+  /** Si es una cuenta TERMINAL de su tienda (ADR-0159) y de qué tipo; `null` o ausente = una persona. */
   terminal?: TipoTerminal | null;
 };
 
@@ -47,7 +47,18 @@ export type ColaboradorInactivo = {
   suspendida: boolean;
 };
 
-export type AccionAcceso = "alta" | "baja" | "suspension" | "reactivacion" | "ubicacion";
+export type ColaboradorPendiente = {
+  persona_id: string;
+  nombre: string;
+  correo: string;
+  sede: string | null;
+  ubicacion_asignada: string | null;
+  /** Quién propuso el alta (D-70: no es la misma persona que la aprueba necesariamente). */
+  propuesto_por: string | null;
+  propuesto_en: string;
+};
+
+export type AccionAcceso = "alta" | "baja" | "suspension" | "reactivacion" | "ubicacion" | "aprobacion";
 
 export type EventoAcceso = {
   id: number;
@@ -75,7 +86,7 @@ export async function getColaboradores(): Promise<Colaborador[]> {
   const supabase = await createClient();
   const [res, resTerminales] = await Promise.all([
     supabase.rpc("fn_colaboradores"),
-    // El tipo de terminal (ADR-0152) se lee APARTE: `fn_colaboradores()` no lo devuelve y agregárselo exigiría borrarla y
+    // El tipo de terminal (ADR-0159) se lee APARTE: `fn_colaboradores()` no lo devuelve y agregárselo exigiría borrarla y
     // recrearla (cambiar el tipo de retorno no admite `create or replace`). Solo el líder lee `colaboradores` (RLS) y esta
     // pantalla es de líder. Si la columna aún no existe en esa base (la web se desplegó antes que la migración) el error
     // se ignora: nadie sale como terminal, que es el lado seguro.
@@ -87,6 +98,12 @@ export async function getColaboradores(): Promise<Colaborador[]> {
     if ((TIPOS_TERMINAL as readonly string[]).includes(f.terminal ?? "")) terminales.set(f.persona_id, f.terminal as TipoTerminal);
   }
   return lista.map((c) => ({ ...c, terminal: terminales.get(c.persona_id) ?? null }));
+}
+
+export async function getColaboradoresPendientes(): Promise<ColaboradorPendiente[]> {
+  const supabase = await createClient();
+  const res = await supabase.rpc("fn_colaboradores_pendientes");
+  return exigir(res, "las altas pendientes de aprobación") as unknown as ColaboradorPendiente[];
 }
 
 export async function getColaboradoresSuspendidos(): Promise<ColaboradorSuspendido[]> {

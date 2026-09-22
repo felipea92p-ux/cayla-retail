@@ -1,7 +1,16 @@
 "use client";
 
-import type { Colaborador, ColaboradorInactivo, ColaboradorSuspendido, EventoAcceso, RolColaborador } from "@/lib/colaboradores";
-import { accionesDeFila, ETIQUETA_ROL, fechaLima, fraseEvento, plural, ultimoAccesoTexto, type AccionFila, ETIQUETA_TERMINAL } from "@/lib/colaboradores-reglas";
+import type { Colaborador, ColaboradorInactivo, ColaboradorPendiente, ColaboradorSuspendido, EventoAcceso, RolColaborador } from "@/lib/colaboradores";
+import {
+  accionesDeFila,
+  ETIQUETA_ROL,
+  ETIQUETA_TERMINAL,
+  fechaLima,
+  fraseEvento,
+  plural,
+  ultimoAccesoTexto,
+  type AccionFila,
+} from "@/lib/colaboradores-reglas";
 import type { TipoTerminal } from "@/lib/menu";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { Chip } from "@/components/ui/Chip";
@@ -101,6 +110,113 @@ export function TablaActivos({
             </tr>
           );
         })}
+      </tbody>
+    </Caja>
+  );
+}
+
+// Cuentas terminal (ADR-0159): mismo patrón visual que TablaActivos —de hecho lee las mismas filas de
+// `fn_colaboradores()`, solo el subconjunto con `terminal` puesto— pero en su propia tabla, para que una cuenta
+// compartida por el equipo no se lea como una persona más en Activos. Sin «Sesión activa» (nadie es «tú» acá) ni
+// columna «Sede en Dynamic» (no aporta nada de una cuenta de servicio): en su lugar, el tipo de terminal.
+export function TablaTerminales({
+  filas,
+  ocupadoId,
+  onAccion,
+}: {
+  filas: Colaborador[];
+  ocupadoId: string | null;
+  onAccion: (c: Colaborador, accion: AccionFila) => void;
+}) {
+  return (
+    <Caja minimo="min-w-[760px]">
+      <thead className="border-b border-tinta/10 bg-tinta/[0.03] text-tinta/70">
+        <tr>
+          <th className={CABECERA}>Terminal</th>
+          <th className={CABECERA}>Tipo</th>
+          <th className={CABECERA}>Tienda</th>
+          <th className={CABECERA}>Desde</th>
+          <th className={CABECERA}>Último ingreso</th>
+          <th className={`${CABECERA} text-right`}>Acciones</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-tinta/5">
+        {filas.map((c) => {
+          const items: ItemMenu[] = accionesDeFila(c).map((a) => ({
+            clave: a,
+            etiqueta: ETIQUETA_ACCION[a],
+            peligro: a === "quitar",
+            onSelect: () => onAccion(c, a),
+          }));
+          return (
+            <tr key={c.persona_id} className={`transition-colors duration-150 hover:bg-tinta/[0.025] ${ocupadoId === c.persona_id ? "opacity-50" : ""}`}>
+              <td className={CELDA}>
+                <Persona nombre={c.nombre} correo={c.correo} />
+              </td>
+              <td className={CELDA}>
+                <ChipRol rol={c.rol} terminal={c.terminal} />
+              </td>
+              <td className={`${CELDA} whitespace-nowrap text-tinta/85`}>{c.ubicacion_asignada ?? "—"}</td>
+              <td className={`${CELDA} whitespace-nowrap tabular-nums text-tinta/75`}>{fechaLima(c.agregado_en)}</td>
+              <td className={`${CELDA} whitespace-nowrap tabular-nums text-tinta/75`}>{ultimoAccesoTexto(c.ultimo_acceso)}</td>
+              <td className={`${CELDA} text-right`}>
+                <MenuAcciones etiqueta={`Acciones de ${c.nombre}`} items={items} deshabilitado={ocupadoId === c.persona_id} />
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </Caja>
+  );
+}
+
+// D-70: altas propuestas por un líder que todavía no pueden operar — nadie entra a retail
+// con un solo clic. Mismo patrón visual que TablaSuspendidos (botón primario + menú «⋯»).
+export function TablaPendientes({
+  filas,
+  ocupadoId,
+  onAprobar,
+  onRechazar,
+}: {
+  filas: ColaboradorPendiente[];
+  ocupadoId: string | null;
+  onAprobar: (c: ColaboradorPendiente) => void;
+  onRechazar: (c: ColaboradorPendiente) => void;
+}) {
+  return (
+    <Caja minimo="min-w-[760px]">
+      <thead className="border-b border-tinta/10 bg-tinta/[0.03] text-tinta/70">
+        <tr>
+          <th className={CABECERA}>Persona</th>
+          <th className={CABECERA}>Ubicación propuesta</th>
+          <th className={CABECERA}>Propuesta por</th>
+          <th className={CABECERA}>Cuándo</th>
+          <th className={`${CABECERA} text-right`}>Acciones</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-tinta/5">
+        {filas.map((c) => (
+          <tr key={c.persona_id} className={`transition-colors duration-150 hover:bg-tinta/[0.025] ${ocupadoId === c.persona_id ? "opacity-50" : ""}`}>
+            <td className={CELDA}>
+              <Persona nombre={c.nombre} correo={c.correo} />
+            </td>
+            <td className={`${CELDA} whitespace-nowrap text-tinta/85`}>{c.ubicacion_asignada ?? "—"}</td>
+            <td className={`${CELDA} whitespace-nowrap text-tinta/75`}>{c.propuesto_por ?? "—"}</td>
+            <td className={`${CELDA} whitespace-nowrap tabular-nums text-tinta/75`}>{fechaLima(c.propuesto_en)}</td>
+            <td className={CELDA}>
+              <div className="flex items-center justify-end gap-2">
+                <Boton type="button" peso="primario" className="px-3 py-1.5 text-[11px]" disabled={ocupadoId === c.persona_id} onClick={() => onAprobar(c)}>
+                  Aprobar
+                </Boton>
+                <MenuAcciones
+                  etiqueta={`Más acciones de ${c.nombre}`}
+                  deshabilitado={ocupadoId === c.persona_id}
+                  items={[{ clave: "rechazar", etiqueta: "Rechazar alta", peligro: true, onSelect: () => onRechazar(c) }]}
+                />
+              </div>
+            </td>
+          </tr>
+        ))}
       </tbody>
     </Caja>
   );

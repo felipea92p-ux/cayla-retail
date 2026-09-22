@@ -28,16 +28,39 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Cuentas terminal por tienda (2026-09-21, ADR-0152) — hecho y probado en local; NADA en producción
-- [x] **Base:** `20260922140000_terminales_por_tienda.sql` (columna `terminal`, `agregar_terminal`, 5 capacidades `fn_puede_*` «líder O terminal», candados inyectados desde la definición real en 13 funciones + 5 disparadores + 15 políticas). `pnpm pruebas:terminales` (75 casos, en el CI) y las 20 del ADR-0143 en verde con esta migración encima.
-- [x] **Web:** menú por terminal (`terminales` en `lib/menu.ts`, falla cerrado), `puede()` / `exigirPermiso()`, la terminal de ventas aterriza en `/vender`, y Caja, Existencias, Productos, Conteo, Traslados, Facturación y Catálogo deciden por permiso; «+ Agregar terminal» en `/colaboradores`. 104 archivos / 7.752 pruebas, tipos y lint limpios.
-- [ ] **Pegar la migración en producción — cambio de esquema: confirmar con Felipe antes.** Pasos y verificación en el ADR-0152.
+## 🎯 Cuentas terminal por tienda (2026-09-21, ADR-0159) — hecho y probado en local; NADA en producción
+- [x] **Base:** `20260922200000_terminales_por_tienda.sql` (columna `terminal`, `agregar_terminal`, 5 capacidades `fn_puede_*` «líder O terminal», candados inyectados desde la definición real en 13 funciones + 5 disparadores + 15 políticas; `suspender_colaborador`/`reactivar_colaborador` conservan el tipo también tras D-70). `pnpm pruebas:terminales` (75 casos, en el CI) y las 20 del ADR-0143 en verde con esta migración encima.
+- [x] **Web:** menú por terminal (`terminales` en `lib/menu.ts`, falla cerrado, con herencia por D-84), `puede()` / `exigirPermiso()`, la terminal de ventas aterriza en `/vender`, y Caja, Existencias, Productos, Conteo, Traslados, Facturación y Catálogo deciden por permiso; pestaña propia **«Terminales»** en `/colaboradores` (separada de Activos, pedido de Felipe) con «+ Agregar terminal». Fusionado con D-70 (alta con aprobación) y D-84 (subgrupos de menú): la terminal queda **exenta** de la cola de aprobación.
+- [ ] **Pegar la migración en producción — cambio de esquema: confirmar con Felipe antes.** Pasos y verificación en el ADR-0159.
 - [ ] **Felipe:** crear las 6 personas en Dynamic (+ 6 usuarios en Supabase Auth) y dar entrada con «+ Agregar terminal». Quien administra Dynamic debe sacarlas de la marcación (`terminal_roster`) y la planilla.
 - [ ] **Probarlas con clics:** nadie ha visto las terminales en el navegador (entrar como terminal exige claves que yo no escribo).
 - [ ] **Compras de la administrativa = ADR-0151** («comprador de tienda»). Esa rama (`claude/adr-0145-compras-permisos`) **no está subida a GitHub**. Conflicto esperado al fusionar: `menu.ts`, `ci.yml`, `package.json`.
 - [ ] El combo «¿quién atiende?» del Punto de Venta (`ventas.vendedor_id`) — otra sesión.
 - [ ] Disparador que impida mover una terminal al Taller llamando `cambiar_ubicacion_colaborador` a mano (la web no lo ofrece; la base no lo impide).
 - [ ] Tras pegar: `pnpm datos:generar:produccion` (la columna `terminal` entra al diccionario).
+
+## 🎯 Ficha de clienta v1, backend (2026-09-22, ADR-0152, D-76/D-77) — hecho en local, FALTA PEGAR 1 MIGRACIÓN EN PRODUCCIÓN
+Tabla `retail.clientas` + RPC `buscar_clienta`/`registrar_clienta`. La FK de `ventas.cliente_id` se repuntó desde la tabla vieja `retail.clientes`
+(se retira — ~0 filas en producción, pero dos lectores activos que también se actualizaron: `fn_ventas_del_dia` y el embed de Ventas ▸ Historial).
+16 pruebas en verde con un Postgres 17 desechable que corrió las 195 migraciones del repo en orden (`pnpm pruebas:clientas`).
+- [ ] **Pegar en producción** la migración `20260922140000_ficha_de_clienta_v1_backend.sql` (agregar el prefijo `retail.` o `set search_path` al
+      pegar en el SQL Editor — nunca en el archivo del repo) y correr `pnpm datos:generar:produccion` después.
+- [ ] **La pantalla de captura del mostrador (Punto de Venta)** — la construye otra tanda de agentes. `/clientas` (esta tarea) es solo una
+      pantalla mínima de verificación (lista + buscador + alta), sin engancharse a `lib/menu.ts` (otra tarea de la misma tanda lo toca).
+- [ ] **Regenerar `packages/database/src/types.ts` de verdad** con `supabase gen types --local` cuando el stack local (Docker) esté arriba — esta
+      sesión lo editó a mano porque Docker no estaba disponible; conviene confirmar que calza exacto.
+
+## 🎯 Productos: las alertas de stock solo cuentan activas, «Stock total» y números que no mienten (2026-09-22, ADR-0151) — hecho en local, FALTA PEGAR 1 MIGRACIÓN EN PRODUCCIÓN
+Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió la opción A y ordenó la #1 a la #4).
+- [x] **#1 Descontinuados fuera de «sin stock», «stock bajo», «para pedir» y «A quién pedirle»**, y marcados con un chip en la Grilla. Migración `20260922120000` (mismas firmas; el filtro y el contador cambian juntos, con o sin filtros: 18 combinaciones en la prueba). Además «stock bajo» y «sin stock» ya no se solapan, y pedir descontinuadas + alerta de stock explica por qué no hay nada.
+- [x] **#2 «Stock total»** (opción A): la tarjeta, la Tabla y una línea bajo los contadores dicen que el número es la suma de todas las sedes y el Taller. `components/NotaStockTotal.tsx`, `lib/productos-stock.ts`.
+- [x] **#3 «N variantes»** cuenta variantes, no filas de stock (`count(distinct v.id)`), en la misma migración `20260922120000` (un solo archivo: se pega a mano y dos archivos sobre las mismas funciones dependían del orden).
+- [x] **#4 «Sin stock» ya no es rojo** (chip neutro en la Grilla, tinta en la Tabla; se llama igual que el subtítulo y el filtro): queda un solo rojo, el de «N sin stock» del subtítulo. «Stock bajo» también se dice con palabras.
+- [ ] **Pegar en producción la migración** `20260922120000_productos_alertas_solo_activas_y_variantes_distintas.sql` (ya trae `set search_path`; idempotente) y verificar con las consultas del ADR-0151. El orden con el despliegue del código no importa. Hasta entonces «no está en producción».
+- [ ] **Decisión de Felipe — qué número ve una tienda (opciones B/C):** R-48 («cada líder ve solo su sede») choca con su propia decisión del 2026-09-15 («Productos suma toda la red»). Opciones y recomendación: sección 8 de `docs/pantallas/productos.md`. Bloquea la #10 y la #12 del análisis.
+- [ ] Pendientes del análisis (#5–#12, sin orden de ejecución dado): fotos y rótulo «MUESTRA» (34 de 39 activos sin foto), esconder «Editar» al integrante, demanda y plazo de entrega por producto (medir antes), `p_stock_minimo` en el alta, un solo universo de variantes vigentes, «Activar» en bloque sin revalidar marca y proveedor, táctil y contraste. Y fuera de la pantalla: `fn_productos*` y las lecturas de `productos`/`variantes` sirven costo y stock a cualquier cuenta autenticada del proyecto de Dynamic (consulta Q12).
+- [ ] **Revisión adversarial (3 revisores) — lo que quedó abierto a propósito, ADR-0151 «Lo que NO toca»:** Inventario (Existencias y Resumen) sigue contando descontinuadas como sin stock / stock bajo / reponer piso, y «Desactivar» en bloque no toca `variantes.activo` — decidir con Felipe si Inventario sigue a Productos; Inicio cuenta «Productos activos» sobre todas las filas (descontinuadas y el producto especial incluidos); R-48 en `15-COMO-OPERA-CAYLA.md` debe llevar la excepción cuando se decida.
+- [ ] Confirmar con Q2 y Q4a del análisis las cifras de producción que salieron de una lectura de solo lectura hecha por un agente (17 o 18 sin stock activas, 0 para pedir sin descontinuadas, 163 variantes reales).
 
 ## 🎯 Roles y permisos a medida (2026-09-22, ADR-0150) — F0 hecha (decisiones + ADR + maqueta); nada aplicado
 - [x] **F0:** 8 decisiones cerradas por Felipe (roles en tabla; ve/no ve por pantalla; solo el líder administra roles; Facturación no se delega; un rol por persona; piloto Inventario/Almacén; catálogos de Dynamic y retail separados; acceso a retail explícito con ubicación). Maqueta ajustada en `docs/maquetas/roles-spike-2026-09/` (bloqueo «Solo líder por ahora», Archivar rol, historial, Dar acceso, movimiento ADR-0136).
@@ -50,6 +73,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [x] Árbol de datos + `menuPara` (permisos semánticos, no `esLider`) + fotografía del menú de hoy (`menu-hoy.golden.json`, capturada del `AppShell.tsx` real de `main`) + pruebas (equivalencia en 6 perfiles, invariantes, topes 8/6, rutas vivas existen). `AppShell.tsx` pierde las constantes de filas y `produccion-menu.ts` pasa a ser vista fina. `tsc`, `eslint` y 2023 pruebas en verde; 1176 renders del original y del nuevo, 0 diferencias.
 - [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
 - [ ] **Producción SUPERA el tope de 6: 7 hijas** (líder parado en el Taller) desde que #231 (Resumen, F6) entró sin regrupar; queda como deuda explícita con una prueba «DEUDA…» que la vigila. F7 Eficiencia obligará a regrupar (candidato: `produccion.abastecimiento`). **Quien agregue una fila al menú edita `lib/menu.ts`, no `AppShell.tsx`** (cómo, en el ADR-0144).
+
+## 🎯 Colaboradores: el alta nueva no queda operativa sin aprobación (2026-09-22, ADR-0157, D-70) — hecho en local, falta pegar en producción
+Detalle, decisiones y lo descartado en [docs/adr/0157-alta-de-colaborador-requiere-aprobacion.md](adr/0157-alta-de-colaborador-requiere-aprobacion.md).
+- [x] Investigado primero (no asumido): no existe trigger sobre `personas` que cree colaboradores — el alta ya era manual, pero de un solo paso (proponer = dar acceso). La baja automática por Dynamic (`p.estado = 'activo'`) ya existía desde 0006/0009 y no se tocó.
+- [x] `retail.colaboradores` gana `estado` (`pendiente_aprobacion`/`activo`, default `activo` — no desconecta a nadie ya operando). El candado se sumó en las seis funciones que leen `colaboradores` (no solo las tres obvias): `fn_es_lider`, `fn_ubicacion_actual_persona`, `fn_tiene_acceso_retail`, `fn_mi_perfil`, `fn_persona_actual_resumen` (el gate de login), `fn_stock_por_sede`.
+- [x] RPC `fn_aprobar_alta_colaborador` (solo líder, candado primero) y `fn_colaboradores_pendientes`. `suspender_colaborador` rechaza a alguien todavía pendiente (evita que `reactivar_colaborador` lo active sin haber pasado por aprobación).
+- [x] Pantalla: pestaña «Pendientes» en `/colaboradores` con Aprobar y Rechazar. Tipos, lint y pruebas en verde; visto en el navegador con datos de ejemplo. Migración `20260922170000_alta_colaborador_requiere_aprobacion.sql`: 10 escenarios en `scripts/pruebas/colaboradores_alta_requiere_aprobacion.mjs` (Postgres 17 desechable, sin Docker), más regresión en `colaboradores_endurecimiento.mjs` y `candado_lider_caja_y_ajuste.mjs`.
+- [ ] **Pegar `20260922170000` en producción** (con ok de Felipe; entera, es re-ejecutable; no hay orden estricto con el despliegue de la web).
+- [ ] Refrescar el volcado de producción (`generado/COMO-REFRESCAR.md`) para que la columna `estado` y las dos funciones nuevas entren al diccionario.
+- [ ] **D-69 queda aparte** (líder acotado a su sede): `fn_aprobar_alta_colaborador` hoy acepta a cualquier líder, el estado real antes de D-69 — según su propia decisión, D-69 se aplica después de la salida en TRU.
+- [ ] Verlo con clics en localhost con datos reales: proponer un alta, confirmar que la persona no puede operar todavía, aprobarla y confirmar que sí puede.
 
 ## 🎯 Colaboradores: rediseño con Suspender, Cambiar ubicación, Actividad e Inactivas (2026-09-22, ADR-0148) — hecho en local, falta pegar en producción
 Sobre la maqueta de Felipe. Detalle, decisiones y lo descartado en [docs/adr/0148-colaboradores-suspender-mueve-la-fila-y-el-historial-solo-se-agrega.md](adr/0148-colaboradores-suspender-mueve-la-fila-y-el-historial-solo-se-agrega.md).
@@ -575,9 +609,20 @@ solo pantalla y lectura. Detalle, decisiones tomadas por él y descartes en ADR-
       reversible en `estadoPrendaDevolucion`). Falta que Felipe diga quién decide pasado el plazo
       (¿solo un líder?, ¿con motivo escrito?), y si una prenda con defecto de fábrica debe poder
       devolverse pasado el plazo (no está escrito en R-38; conviene revisarlo con quien lleve lo legal).
-- [ ] **`devoluciones.motivo_codigo` estructurado** (hoy el motivo es uno de cinco textos fijos +
-      detalle, sumables con `group by`): esperar a fusionar la migración de venta anulada para no
-      tocar `crear_devolucion` en paralelo.
+- [x] **`devoluciones.motivo_codigo` estructurado — CERRADO 2026-09-22 (D-79, ADR-0158).** La
+      migración de venta anulada de otra sesión (`20260918163712`) no llegó a `origin/main` antes de
+      esta, así que no hubo colisión que esperar. Lista cerrada: talla, calce, defecto, no_le_gusto,
+      regalo, otro — candado en `crear_devolucion` (`p_motivo_codigo`, sin default), no solo en la
+      pantalla; `DevolucionesFlujo.tsx` ya la usa con chips de un toque. La columna `motivo` (texto
+      libre) sigue igual, para lo que la clienta cuenta de más. **Sin aplicar en producción**
+      (`supabase/migrations/20260922180000_devoluciones_motivo_estructurado.sql`, espera revisión de
+      Felipe). Prueba `pnpm pruebas:crear-devolucion-motivo` (8/8). **Prohibido explícitamente por
+      Felipe:** este dato es para revisar el calce por prenda con el Taller — nunca para rankear,
+      puntuar ni comparar asesoras; nada en esta migración ni en el código que la acompaña lo agrupa
+      por colaboradora. `cambios.motivo` (20260919000100, ya en producción) NO se tocó: tiene su
+      propio vocabulario (talla_chica/talla_grande/otro_color/defecto/otro), más granular para lo que
+      el Taller necesita de Cambios, y unificarlo con el de arriba es una decisión de Felipe que
+      queda abierta (ver ADR-0158, sección "por qué cambios.motivo no se toca").
 - [ ] **Token de idempotencia en `crear_devolucion`** (como `registrar_cambio`, ADR-0032): sin él,
       una red que se corta después del commit deja un reintento que sale con «ya se devolvieron…».
 - [ ] **La nota de crédito usa `precio_unitario` sin restarle `descuento_unitario`**

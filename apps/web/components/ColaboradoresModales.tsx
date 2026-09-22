@@ -256,11 +256,14 @@ export function CambiarUbicacionModal({
 export function QuitarAccesoModal({
   nombre,
   suspendida,
+  pendiente = false,
   onConfirmar,
   onClose,
 }: {
   nombre: string;
   suspendida: boolean;
+  /** D-70: la persona todavía no tenía acceso real, solo un alta propuesta sin aprobar. */
+  pendiente?: boolean;
   onConfirmar: () => Promise<boolean>;
   onClose: () => void;
 }) {
@@ -275,20 +278,29 @@ export function QuitarAccesoModal({
   }
 
   return (
-    <Modal titulo="Quitar acceso" ancho="max-w-sm" onClose={onClose}>
+    <Modal titulo={pendiente ? "Rechazar alta" : "Quitar acceso"} ancho="max-w-sm" onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           <p className="text-sm leading-relaxed text-tinta/85">
-            <strong className="font-semibold text-tinta">{nombre}</strong> ya no va a poder entrar al sistema de retail
-            {suspendida ? " y dejará de figurar como suspendida" : ""}. Es una baja definitiva: para que vuelva, hay que agregarla de nuevo desde «Agregar colaboradores».
-            {!suspendida && " Si solo quieres pausar el acceso, usa «Suspender»."}
+            {pendiente ? (
+              <>
+                <strong className="font-semibold text-tinta">{nombre}</strong> no llegará a tener acceso a retail — la propuesta de alta se descarta. Si más adelante sí debería
+                entrar, hay que agregarla de nuevo desde «Agregar colaboradores».
+              </>
+            ) : (
+              <>
+                <strong className="font-semibold text-tinta">{nombre}</strong> ya no va a poder entrar al sistema de retail
+                {suspendida ? " y dejará de figurar como suspendida" : ""}. Es una baja definitiva: para que vuelva, hay que agregarla de nuevo desde «Agregar colaboradores».
+                {!suspendida && " Si solo quieres pausar el acceso, usa «Suspender»."}
+              </>
+            )}
           </p>
           <div className="flex gap-2">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton type="button" peso="primario" className="flex-1 bg-rojo hover:bg-rojo/90" cargando={enviando} onClick={() => confirmar(cerrar)}>
-              {enviando ? "Quitando…" : "Sí, quitar acceso"}
+              {enviando ? (pendiente ? "Rechazando…" : "Quitando…") : pendiente ? "Sí, rechazar alta" : "Sí, quitar acceso"}
             </Boton>
           </div>
         </div>
@@ -298,7 +310,7 @@ export function QuitarAccesoModal({
 }
 
 /**
- * Da entrada a una persona de Dynamic como TERMINAL de una tienda (ADR-0152): una cuenta compartida por quien trabaja ahí.
+ * Da entrada a una persona de Dynamic como TERMINAL de una tienda (ADR-0159): una cuenta compartida por quien trabaja ahí.
  * Sigue la regla del ADR-0145: abre SIN nada elegido y «Agregar» espera a que estén los tres campos. La base rechaza lo
  * que este formulario ya evita (una segunda terminal del mismo tipo en la tienda, el Taller), así que esto es ayuda, no candado.
  */

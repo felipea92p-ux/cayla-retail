@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas de las cuentas TERMINAL por tienda (ADR-0152, migración `20260922140000_terminales_por_tienda.sql`)
+ * Pruebas de las cuentas TERMINAL por tienda (ADR-0159, migración `20260922200000_terminales_por_tienda.sql`)
  * contra el Postgres local — CAYLA V2.
  *
  * QUÉ PRUEBA. Que los poderes de cada terminal estén EN LA BASE y no solo en el menú, y que NADA MÁS se haya
@@ -43,7 +43,7 @@ const T_VENTAS = "22222222-2222-4222-8222-0000000000a1"; // terminal de ventas d
 const T_ADMIN = "22222222-2222-4222-8222-0000000000a2"; // terminal administrativa de Trujillo (idem)
 
 const EN_SECO = process.argv.includes("--en-seco");
-const SQL_MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260922140000_terminales_por_tienda.sql"), "utf8");
+const SQL_MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260922200000_terminales_por_tienda.sql"), "utf8");
 const PRELUDIO = EN_SECO ? SQL_MIGRACION : "";
 
 function psql(sql) {

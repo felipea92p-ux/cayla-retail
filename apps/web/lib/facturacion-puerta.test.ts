@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 // (mismo espíritu que `globals-capas.test.ts`: leer los fuentes y fallar si dejan de cumplirse).
 //
 // 1) Puerta. Un layout no se vuelve a ejecutar cuando se navega entre sus hijas, así que cada
-//    `page.tsx` repite su puerta como LO PRIMERO que espera (antes de leer nada). Desde ADR-0152 son
+//    `page.tsx` repite su puerta como LO PRIMERO que espera (antes de leer nada). Desde ADR-0159 son
 //    dos puertas: las cuatro vistas y el layout las abre el permiso `facturar` (`exigirPermiso("facturar")`:
 //    el líder y la terminal de ventas) y «Códigos de descuento» sigue siendo SOLO del líder (`exigirLider()`).
 // 2) Los dos modales viven en el shell, una vez cada uno y sin condicional sobre su apertura:

@@ -247,6 +247,7 @@ export type Database = {
           cerrada_en: string | null
           cerrada_por: string | null
           diferencia: number | null
+          es_prueba: boolean
           estado: string
           id: string
           monto_apertura: number
@@ -261,6 +262,7 @@ export type Database = {
           cerrada_en?: string | null
           cerrada_por?: string | null
           diferencia?: number | null
+          es_prueba?: boolean
           estado?: string
           id?: string
           monto_apertura: number
@@ -275,6 +277,7 @@ export type Database = {
           cerrada_en?: string | null
           cerrada_por?: string | null
           diferencia?: number | null
+          es_prueba?: boolean
           estado?: string
           id?: string
           monto_apertura?: number
@@ -517,33 +520,42 @@ export type Database = {
           },
         ]
       }
-      clientes: {
+      clientas: {
         Row: {
           created_at: string
-          email: string | null
+          created_por: string | null
+          cumple_dia: number | null
+          cumple_mes: number | null
+          dni: string | null
           id: string
-          nombre: string
-          num_doc: string | null
-          telefono: string | null
-          tipo_doc: string | null
+          nombre: string | null
+          tallas: Json | null
+          telefono_whatsapp: string | null
+          whatsapp_consentimiento_en: string | null
         }
         Insert: {
           created_at?: string
-          email?: string | null
+          created_por?: string | null
+          cumple_dia?: number | null
+          cumple_mes?: number | null
+          dni?: string | null
           id?: string
-          nombre: string
-          num_doc?: string | null
-          telefono?: string | null
-          tipo_doc?: string | null
+          nombre?: string | null
+          tallas?: Json | null
+          telefono_whatsapp?: string | null
+          whatsapp_consentimiento_en?: string | null
         }
         Update: {
           created_at?: string
-          email?: string | null
+          created_por?: string | null
+          cumple_dia?: number | null
+          cumple_mes?: number | null
+          dni?: string | null
           id?: string
-          nombre?: string
-          num_doc?: string | null
-          telefono?: string | null
-          tipo_doc?: string | null
+          nombre?: string | null
+          tallas?: Json | null
+          telefono_whatsapp?: string | null
+          whatsapp_consentimiento_en?: string | null
         }
         Relationships: []
       }
@@ -1442,6 +1454,7 @@ export type Database = {
           cerrado_en: string | null
           cerrado_por: string | null
           created_at: string
+          es_prueba: boolean
           estado: string
           id: string
           numero: number
@@ -1455,6 +1468,7 @@ export type Database = {
           cerrado_en?: string | null
           cerrado_por?: string | null
           created_at?: string
+          es_prueba?: boolean
           estado?: string
           id?: string
           numero?: number
@@ -1468,6 +1482,7 @@ export type Database = {
           cerrado_en?: string | null
           cerrado_por?: string | null
           created_at?: string
+          es_prueba?: boolean
           estado?: string
           id?: string
           numero?: number
@@ -1555,6 +1570,47 @@ export type Database = {
           },
         ]
       }
+      cotizaciones_maquila: {
+        Row: {
+          categoria_id: string
+          creado_por: string | null
+          created_at: string
+          fecha_cotizacion: string
+          id: string
+          precio_maquila: number
+          proveedor_referencia: string | null
+          vigente_hasta: string
+        }
+        Insert: {
+          categoria_id: string
+          creado_por?: string | null
+          created_at?: string
+          fecha_cotizacion: string
+          id?: string
+          precio_maquila: number
+          proveedor_referencia?: string | null
+          vigente_hasta: string
+        }
+        Update: {
+          categoria_id?: string
+          creado_por?: string | null
+          created_at?: string
+          fecha_cotizacion?: string
+          id?: string
+          precio_maquila?: number
+          proveedor_referencia?: string | null
+          vigente_hasta?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotizaciones_maquila_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devolucion_items: {
         Row: {
           cantidad: number
@@ -1613,6 +1669,7 @@ export type Database = {
           estado: string
           id: string
           motivo: string
+          motivo_codigo: string | null
           nota_credito_id: string | null
           reembolso_metodo: string | null
           reembolso_monto: number | null
@@ -1628,6 +1685,7 @@ export type Database = {
           estado?: string
           id?: string
           motivo: string
+          motivo_codigo?: string | null
           nota_credito_id?: string | null
           reembolso_metodo?: string | null
           reembolso_monto?: number | null
@@ -1643,6 +1701,7 @@ export type Database = {
           estado?: string
           id?: string
           motivo?: string
+          motivo_codigo?: string | null
           nota_credito_id?: string | null
           reembolso_metodo?: string | null
           reembolso_monto?: number | null
@@ -2479,6 +2538,67 @@ export type Database = {
         }
         Relationships: []
       }
+      pedidos_no_atendidos: {
+        Row: {
+          atendido_por: string | null
+          clienta_id: string | null
+          created_at: string
+          descripcion_libre: string | null
+          id: string
+          producto_id: string | null
+          resuelto: boolean
+          resuelto_en: string | null
+          talla: string | null
+          ubicacion_id: string
+        }
+        Insert: {
+          atendido_por?: string | null
+          clienta_id?: string | null
+          created_at?: string
+          descripcion_libre?: string | null
+          id?: string
+          producto_id?: string | null
+          resuelto?: boolean
+          resuelto_en?: string | null
+          talla?: string | null
+          ubicacion_id: string
+        }
+        Update: {
+          atendido_por?: string | null
+          clienta_id?: string | null
+          created_at?: string
+          descripcion_libre?: string | null
+          id?: string
+          producto_id?: string | null
+          resuelto?: boolean
+          resuelto_en?: string | null
+          talla?: string | null
+          ubicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_no_atendidos_atendido_por_fkey"
+            columns: ["atendido_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_no_atendidos_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_no_atendidos_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prendas_danadas: {
         Row: {
           cambio_id: string | null
@@ -2753,6 +2873,7 @@ export type Database = {
           codigo: string | null
           created_at: string
           descripcion: string | null
+          es_prueba: boolean
           estado: string
           estado_alta: string
           id: string
@@ -2774,6 +2895,7 @@ export type Database = {
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
+          es_prueba?: boolean
           estado?: string
           estado_alta?: string
           id?: string
@@ -2795,6 +2917,7 @@ export type Database = {
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
+          es_prueba?: boolean
           estado?: string
           estado_alta?: string
           id?: string
@@ -3969,6 +4092,7 @@ export type Database = {
           caja_id: string | null
           cliente_id: string | null
           created_at: string
+          es_prueba: boolean
           estado: string
           id: string
           motivo_anulacion: string | null
@@ -3983,6 +4107,7 @@ export type Database = {
           caja_id?: string | null
           cliente_id?: string | null
           created_at?: string
+          es_prueba?: boolean
           estado?: string
           id?: string
           motivo_anulacion?: string | null
@@ -3997,6 +4122,7 @@ export type Database = {
           caja_id?: string | null
           cliente_id?: string | null
           created_at?: string
+          es_prueba?: boolean
           estado?: string
           id?: string
           motivo_anulacion?: string | null
@@ -4014,10 +4140,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "ventas_cliente_id_fkey"
+            foreignKeyName: "ventas_clienta_fk"
             columns: ["cliente_id"]
             isOneToOne: false
-            referencedRelation: "clientes"
+            referencedRelation: "clientas"
             referencedColumns: ["id"]
           },
           {
@@ -4399,6 +4525,21 @@ export type Database = {
         Args: { p_comprobante_id: string; p_motivo: string }
         Returns: undefined
       }
+      buscar_clienta: {
+        Args: { p_termino: string }
+        Returns: {
+          created_at: string
+          created_por: string | null
+          cumple_dia: number | null
+          cumple_mes: number | null
+          dni: string | null
+          id: string
+          nombre: string | null
+          tallas: Json | null
+          telefono_whatsapp: string | null
+          whatsapp_consentimiento_en: string | null
+        }[]
+      }
       buscar_productos_parecidos: {
         Args: { p_excluir_id?: string; p_referencia: string }
         Returns: {
@@ -4560,6 +4701,7 @@ export type Database = {
         Args: {
           p_items: Json
           p_motivo: string
+          p_motivo_codigo: string
           p_ubicacion_id: string
           p_venta_id: string
         }
@@ -4665,6 +4807,10 @@ export type Database = {
         Args: { p_movimiento_id: string }
         Returns: undefined
       }
+      fn_aprobar_alta_colaborador: {
+        Args: { p_persona_id: string }
+        Returns: undefined
+      }
       fn_asignar_codigo_producto: {
         Args: { p_producto_id: string }
         Returns: string
@@ -4728,6 +4874,18 @@ export type Database = {
           rol: string
           sede: string
           suspendida: boolean
+        }[]
+      }
+      fn_colaboradores_pendientes: {
+        Args: never
+        Returns: {
+          correo: string
+          nombre: string
+          persona_id: string
+          propuesto_en: string
+          propuesto_por: string
+          sede: string
+          ubicacion_asignada: string
         }[]
       }
       fn_colaboradores_suspendidos: {
@@ -4795,6 +4953,19 @@ export type Database = {
           stock_previo: number
           usuario_nombre: string
         }[]
+      }
+      fn_cotizacion_maquila_vigente: {
+        Args: { p_categoria_id: string }
+        Returns: {
+          categoria_id: string
+          creado_por: string | null
+          created_at: string
+          fecha_cotizacion: string
+          id: string
+          precio_maquila: number
+          proveedor_referencia: string | null
+          vigente_hasta: string
+        }
       }
       fn_dentro_de_una_edicion: {
         Args: { a: string; b: string }
@@ -5748,6 +5919,10 @@ export type Database = {
         Args: { p_comprobante_id: string; p_motivo: string }
         Returns: undefined
       }
+      marcar_pedido_no_atendido_resuelto: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
+      }
       mover_interno: {
         Args: {
           p_cantidad: number
@@ -5948,6 +6123,17 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_clienta: {
+        Args: {
+          p_acepta_whatsapp?: boolean
+          p_cumple_dia?: number
+          p_cumple_mes?: number
+          p_dni?: string
+          p_nombre?: string
+          p_telefono_whatsapp?: string
+        }
+        Returns: string
+      }
       registrar_compra: {
         Args: {
           p_condicion: string
@@ -6079,6 +6265,16 @@ export type Database = {
           p_token?: string
         }
         Returns: string[]
+      }
+      registrar_pedido_no_atendido: {
+        Args: {
+          p_clienta_id?: string
+          p_descripcion_libre?: string
+          p_producto_id?: string
+          p_talla?: string
+          p_ubicacion_id: string
+        }
+        Returns: string
       }
       registrar_proveedor: {
         Args: {

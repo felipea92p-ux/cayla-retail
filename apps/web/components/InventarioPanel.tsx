@@ -129,7 +129,7 @@ export function InventarioPanel({
    *  una integrante puede ABRIR la cola y verla, no marcarla. */
   /** Sigue siendo del líder: resolver y liquidar prendas dañadas. */
   esLider: boolean;
-  /** ¿Puede ajustar stock fuera de una venta? Un líder o la terminal administrativa (ADR-0152). */
+  /** ¿Puede ajustar stock fuera de una venta? Un líder o la terminal administrativa (ADR-0159). */
   puedeAjustar: boolean;
   /** Si la cobertura no se pudo calcular: el aviso (las filas quedan en «N/D»); null = todo bien. */
   coberturaFallo?: string | null;

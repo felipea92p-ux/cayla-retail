@@ -45,7 +45,7 @@ export type Pajaro = (typeof PAJAROS)[number];
  *  - administrar: dar y quitar acceso, configurar (Colaboradores).
  *  - verDinero:   costos, compras, pagos y comprobantes (ADR-0126: `fn_puede_ver_dinero_de_compras`).
  *  - analizar:    lecturas de decisión de una sede (Análisis de inventario).
- * Y los poderes que una cuenta TERMINAL (ADR-0152) recibe sin ser líder. Cada uno espeja una capacidad de la base
+ * Y los poderes que una cuenta TERMINAL (ADR-0159) recibe sin ser líder. Cada uno espeja una capacidad de la base
  * (`fn_puede_*()` = «líder O terminal de tal tipo»), así que la pantalla y el candado dicen lo mismo:
  *  - facturar:               Facturación (emitir y ver comprobantes). Las anulaciones siguen siendo del líder.
  *  - gestionarCaja:          cerrar caja y mover caja                          (fn_puede_gestionar_caja)
@@ -62,7 +62,7 @@ export type Permiso = (typeof PERMISOS)[number];
 export type RolMenu = "lider" | "integrante";
 
 /**
- * La cuenta TERMINAL de una tienda (ADR-0152): compartida por quien trabaja ahí, una de cada tipo por tienda. Es un
+ * La cuenta TERMINAL de una tienda (ADR-0159): compartida por quien trabaja ahí, una de cada tipo por tienda. Es un
  * integrante fijo a su tienda (`colaboradores.terminal`); `null` es una persona.
  */
 export type TipoTerminal = "ventas" | "administrativa";
@@ -86,7 +86,7 @@ export function permisosDe(rol: RolMenu, terminal: TipoTerminal | null = null): 
 /** Claves de los íconos. Los trazos viven en `AppShell.tsx` (`IC`); acá solo se nombra cuál lleva cada nodo. */
 export type ClaveIcono =
   | "inicio" | "vender" | "caja" | "historial" | "productos" | "inventario" | "movimientos" | "traslados" | "conteo" | "resumen"
-  | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "cambios" | "devoluciones" | "venta"
+  | "facturacion" | "compras" | "insumos" | "produccion" | "cambios" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
@@ -121,13 +121,17 @@ type Comun = {
 /** Una pantalla. */
 export type Hoja = Comun & { estado: "viva"; ruta: string; icono: ClaveIcono; contador?: ClaveContador };
 
-/** Una cabecera que agrupa pantallas y no navega (en el celular, su `raiz` es a donde lleva). */
+/** Una cabecera que agrupa pantallas y no navega (en el celular, su `raiz` es a donde lleva). Una hija puede ser, a su
+ *  vez, OTRO grupo (D-84, ADR-0155): un subgrupo dentro de un grupo, para cuando un módulo junta demasiadas pantallas
+ *  de un mismo tema (Producción → Abastecimiento) y separarlas en su propio módulo de primer nivel no tiene sentido
+ *  (comparten pájaro, ubicación y el prefijo de ruta). `menuPara` lo arma con la misma recursión que arma el resto:
+ *  no hay un caso especial de "grupo de segundo nivel" en el código, solo un nodo que vuelve a ser un nodo. */
 export type Grupo = Comun & {
   estado: "viva";
   icono: ClaveIcono;
   /** La puerta del módulo: todo lo que cuelga de esta ruta es de este grupo (decide qué grupo se abre al aterrizar). */
   raiz: string;
-  hijos: readonly (Hoja | Futura)[];
+  hijos: readonly (Hoja | Grupo | Futura)[];
 };
 
 /** Algo que todavía no existe: vive en el árbol para que el aviario quede a la vista, y `menuPara` NO lo emite. */
@@ -144,15 +148,18 @@ export type Accion = Comun & { estado: "viva"; ruta: string; detalle: string };
 
 /* ------------------------------------------------------------------
    El árbol de HOY (más lo que viene)
-   El orden es el del menú: Inicio, Colaboradores, Catálogo, Producción, Compras, Ventas, Inventario (Felipe, 2026-09-16).
+   El orden es el del menú: Inicio, Catálogo, Producción, Compras, Ventas, Inventario (Felipe, 2026-09-16).
    ------------------------------------------------------------------ */
 
 export const ARBOL: readonly Nodo[] = [
   // Inicio y Análisis no son dueños de tablas: leen lo de otros. Águila es «Inteligencia y reportes» (lee lo de los demás).
   { id: "inicio", etiqueta: "Inicio", estado: "viva", ruta: "/", icono: "inicio", pajaro: "13 Águila", terminales: ["administrativa"] },
 
-  // Integración con Dynamic (2026-09-13): «a quién de Dynamic le doy entrada a retail». Solo quien administra.
-  { id: "colaboradores", etiqueta: "Colaboradores", estado: "viva", ruta: "/colaboradores", icono: "colaboradores", pajaro: "01 Ganso", exige: "administrar" },
+  // «Colaboradores» (a quién de Dynamic le doy entrada a retail, 0013_colaboradores_autorizados.sql) salió de acá el
+  // 2026-09-21 (decisión de Felipe): es configuración de acceso, no trabajo diario, y no debía competir por espacio en
+  // el menú principal con Catálogo/Compras/Ventas/Inventario. Vive hoy en «Mi perfil» (`PerfilModal.tsx`), solo para
+  // quien administra — la ruta `/colaboradores` sigue exigiendo el mismo permiso en la página y en la RPC; esto solo
+  // decidía qué se pintaba. El destino final, cuando nazca, es «configuracion.accesos» (ver el árbol «futura» abajo).
 
   // Catálogo (2026-09-16/17): qué ES una prenda y el vocabulario del que cuelga. Colores, tallas, tejidos, patrones y
   // etiquetas viven como pestañas de «Atributos».
@@ -169,12 +176,11 @@ export const ARBOL: readonly Nodo[] = [
   // se decide por el TIPO de la ubicación activa, no por su nombre — un segundo Taller entraría solo. Es visibilidad; la
   // base sigue dejando al líder operar el Taller desde cualquier sede (`fn_puede_operar_ubicacion`).
   //
-  // ATENCIÓN — TOPE ROTO (DEUDA desde #231): quien ve el dinero y analiza (el líder) cuenta 7 hijas acá (Resumen, Órdenes,
-  // Insumos, Proveedores, Comprobantes, Recibir, Por pagar): POR ENCIMA del tope de 6 por grupo. Lo rompió la fila «Resumen»
-  // (F6, #231); este árbol solo la refleja, sin cambiar lo que se ve. NO se sube el tope: la excepción está declarada y con
-  // nombre en menu.test.ts («DEUDA: Producción supera el tope de 6 hijas…») y se quita al regrupar. Antes de agregar otra
-  // (Eficiencia F7) hay que REGRUPAR; candidato natural: el abastecimiento (Proveedores, Comprobantes, Recibir, Por pagar)
-  // bajo `produccion.abastecimiento`.
+  // REGRUPADO (D-84, ADR-0155, 2026-09-21): quien ve el dinero y analiza (el líder) llegó a contar 7 hijas acá (Resumen,
+  // Órdenes, Insumos, Proveedores, Comprobantes, Recibir, Por pagar) — por encima del tope de 6 por grupo, deuda declarada
+  // desde que «Resumen» entró (F6, #231). Las cuatro de dinero/abastecimiento bajan un nivel, a `produccion.abastecimiento`
+  // (mismo patrón que ya usa «Compras»: una cabecera que agrupa, no una pantalla propia). Producción vuelve a 4 hijas de
+  // primer nivel, con sitio de sobra para cuando `produccion.eficiencia` (F7) esté lista.
   {
     id: "produccion", etiqueta: "Producción", estado: "viva", icono: "produccion", raiz: "/produccion", pajaro: "10 Gallito", ubicaciones: ["taller"],
     hijos: [
@@ -186,23 +192,33 @@ export const ARBOL: readonly Nodo[] = [
       { id: "produccion.ordenes", etiqueta: "Órdenes", estado: "viva", ruta: "/produccion/ordenes", icono: "produccion", pajaro: "10 Gallito" },
       { id: "produccion.insumos", etiqueta: "Insumos", estado: "viva", ruta: "/produccion/insumos", icono: "insumos", pajaro: "10 Gallito" },
       // Abastecimiento del Taller (F4a a F4d, ADR-0133): proveedores, comprobantes, recepción y deuda de tela y avíos, APARTE de
-      // los de Compras (D-H). Proveedores, Comprobantes y Por pagar solo para quien ve el dinero (D-G): llevan datos bancarios
-      // de terceros y montos comprados. Recibir NO exige dinero: lo usa también quien trabaja en el Taller. El id termina en
-      // «Produccion» a propósito: es la clave que `produccion-menu.ts` ya expone (`ClaveMenuProduccion`) y no debe chocar con
-      // las de Compras. El pájaro es Gallito: `aviario.mjs` le da `proveedores_produccion` y `comprobantes_produccion` (y
-      // Recibir escribe `insumo_lotes`, también suyo). Orden como en Compras: proveedor → comprobante → recibir → pago.
-      { id: "produccion.proveedoresProduccion", etiqueta: "Proveedores", estado: "viva", ruta: "/produccion/proveedores", icono: "proveedores", pajaro: "10 Gallito", exige: "verDinero" },
-      { id: "produccion.comprobantesProduccion", etiqueta: "Comprobantes", estado: "viva", ruta: "/produccion/comprobantes", icono: "facturas", pajaro: "10 Gallito", exige: "verDinero" },
-      // OJO, no es «Recibir mercadería»: aquel (`/recibir`, de Compras e Inventario) recibe prendas contra un envío; este recibe
-      // tela y avíos contra un comprobante de Producción. Dos pantallas de dos módulos, una etiqueta parecida. Visible solo en el
-      // Taller porque el grupo entero lo es (`ubicaciones` del grupo).
-      { id: "produccion.recibirProduccion", etiqueta: "Recibir", estado: "viva", ruta: "/produccion/recibir", icono: "recibir", pajaro: "10 Gallito" },
-      { id: "produccion.porPagarProduccion", etiqueta: "Por pagar", estado: "viva", ruta: "/produccion/por-pagar", icono: "porPagar", pajaro: "10 Gallito", exige: "verDinero" },
-      // Lo que falta de `docs/PLAN-PRODUCCION.md` (F7). El orden final se decide cuando nazca.
-      { id: "produccion.abastecimiento", etiqueta: "Abastecimiento", estado: "futura", pajaro: "10 Gallito", nota: "El abastecimiento (F4a a F4d) ya vive arriba como hijas sueltas; el nodo queda como el candidato a agruparlas: Producción ya pasa el tope de 6 hijas (DEUDA desde #231)." },
-      // F7 (2026-09-22) ya existe: `/produccion/eficiencia`. NO es una fila del lateral a propósito: Producción ya está en su tope de 7 hijas (ver
-      // «DEUDA» en `menu.test.ts`) y agregar una octava exige regrupar antes. Vive como PESTAÑA del Resumen («Hoy | Eficiencia»), que es su puerta.
-      { id: "produccion.eficiencia", etiqueta: "Eficiencia", estado: "futura", pajaro: "10 Gallito", nota: "Existe como pestaña del Resumen: /produccion/eficiencia (F7). No es fila del lateral: Producción está en su tope de 7 hijas." },
+      // los de Compras (D-H). SUBGRUPO (D-84): antes eran 4 hijas sueltas de Producción; ahora cuelgan de esta cabecera, igual
+      // que «Compras» agrupa a las suyas — el mismo trazo (`icono: "compras"`) a propósito, es el mismo concepto (abastecerse
+      // de un proveedor) aplicado al Taller en vez de a la tienda. `raiz` reutiliza la ruta de su primera hija (Proveedores):
+      // el subgrupo no tiene pantalla propia, así como la `raiz` de Producción reutiliza la de Resumen y la de Catálogo la de
+      // Productos. Proveedores, Comprobantes y Por pagar solo para quien ve el dinero (D-G): llevan datos bancarios de terceros
+      // y montos comprados. Recibir NO exige dinero: lo usa también quien trabaja en el Taller — por eso, para quien no ve el
+      // dinero, `menuPara` deshace el subgrupo solo (le queda una única hija visible, «Recibir») y sube esa hija con SU propio
+      // nombre, no con «Abastecimiento»: el subgrupo es una etiqueta de organización para quien ve varias pantallas, no una que
+      // valga la pena imponerle a quien solo necesita recibir tela. El id de cada hija termina en «Produccion» a propósito: es
+      // la clave que `produccion-menu.ts` ya expone (`ClaveMenuProduccion`) y no debe chocar con las de Compras. El pájaro es
+      // Gallito: `aviario.mjs` le da `proveedores_produccion` y `comprobantes_produccion` (y Recibir escribe `insumo_lotes`,
+      // también suyo). Orden como en Compras: proveedor → comprobante → recibir → pago.
+      {
+        id: "produccion.abastecimiento", etiqueta: "Abastecimiento", estado: "viva", icono: "compras", raiz: "/produccion/proveedores", pajaro: "10 Gallito",
+        hijos: [
+          { id: "produccion.proveedoresProduccion", etiqueta: "Proveedores", estado: "viva", ruta: "/produccion/proveedores", icono: "proveedores", pajaro: "10 Gallito", exige: "verDinero" },
+          { id: "produccion.comprobantesProduccion", etiqueta: "Comprobantes", estado: "viva", ruta: "/produccion/comprobantes", icono: "facturas", pajaro: "10 Gallito", exige: "verDinero" },
+          // OJO, no es «Recibir mercadería»: aquel (`/recibir`, de Compras e Inventario) recibe prendas contra un envío; este
+          // recibe tela y avíos contra un comprobante de Producción. Dos pantallas de dos módulos, una etiqueta parecida.
+          { id: "produccion.recibirProduccion", etiqueta: "Recibir", estado: "viva", ruta: "/produccion/recibir", icono: "recibir", pajaro: "10 Gallito" },
+          { id: "produccion.porPagarProduccion", etiqueta: "Por pagar", estado: "viva", ruta: "/produccion/por-pagar", icono: "porPagar", pajaro: "10 Gallito", exige: "verDinero" },
+        ],
+      },
+      // F7 (2026-09-22) ya existe: `/produccion/eficiencia`. NO es una fila del lateral a propósito: vive como PESTAÑA del
+      // Resumen («Hoy | Eficiencia»), que es su puerta. Con el regrupo de arriba, sumarla como quinta hija cuando nazca
+      // sigue dejando a Producción dentro del tope de 6 (D-84 lo dejó con sitio de sobra a propósito).
+      { id: "produccion.eficiencia", etiqueta: "Eficiencia", estado: "futura", pajaro: "10 Gallito", nota: "Existe como pestaña del Resumen: /produccion/eficiencia (F7). No es fila del lateral." },
     ],
   },
 
@@ -311,12 +327,20 @@ export const COLUMNAS_MOVIL: readonly (string | null)[] = ["inicio", "venta.punt
    ------------------------------------------------------------------ */
 
 export type ItemMenu = { id: string; etiqueta: string; href: string; icono: ClaveIcono; /** Cuántas cosas de esta fila piden acción a quien mira; ausente = sin insignia. */ contador?: number };
-export type GrupoMenu = { id: string; etiqueta: string; icono: ClaveIcono; hijos: ItemMenu[] };
+/** Una hija puede volver a ser un `GrupoMenu` (subgrupo, D-84): el tipo es recursivo porque el árbol lo es. */
+export type GrupoMenu = { id: string; etiqueta: string; icono: ClaveIcono; hijos: FilaMenu[] };
 export type FilaMenu = ItemMenu | GrupoMenu;
 export type AccionNuevo = { id: string; etiqueta: string; detalle: string; href: string };
 
 export function esGrupoMenu(f: FilaMenu): f is GrupoMenu {
   return "hijos" in f;
+}
+
+/** Todas las hojas que cuelgan de una fila YA CONSTRUIDA (`riel`/`movil`), sin importar cuántos subgrupos haya en el
+ *  medio (D-84): la usan `menuPara` (para sumar los números de la barra del celular) y `menu.test.ts` (para que un
+ *  invariante siga valiendo aunque una pantalla se mude un nivel más abajo, sin tener que saber a qué profundidad vive). */
+export function hojasDe(f: FilaMenu): ItemMenu[] {
+  return esGrupoMenu(f) ? f.hijos.flatMap(hojasDe) : [f];
 }
 
 export type PerfilDelMenu = {
@@ -355,17 +379,25 @@ function cumplePermisos(n: Comun, permisos: readonly Permiso[]): boolean {
   return true;
 }
 
-function esVisible(n: Comun & { estado: string }, perfil: PerfilDelMenu): boolean {
+/** `terminalesEfectivos` ya viene resuelto con herencia (el propio de `n`, o el de su grupo si `n` no declara el suyo —
+ *  ver `construirFila`): `esVisible` nunca camina el árbol hacia arriba por su cuenta, solo aplica lo que ya le pasaron. */
+function esVisible(n: Comun & { estado: string }, perfil: PerfilDelMenu, terminalesEfectivos?: readonly TipoTerminal[]): boolean {
   if (n.estado !== "viva") return false;
   if (!cumplePermisos(n, perfil.permisos)) return false;
   if (n.ubicaciones && !n.ubicaciones.includes(perfil.ubicacionTipo)) return false;
-  if (perfil.terminal && !n.terminales?.includes(perfil.terminal)) return false;
+  if (perfil.terminal && !terminalesEfectivos?.includes(perfil.terminal)) return false;
   return true;
 }
 
-/** Una hija hereda las terminales de su grupo salvo que declare las suyas. */
-const conTerminalesDe = <T extends Comun & { estado: string }>(hija: T, grupo: Comun): T =>
-  hija.terminales === undefined && grupo.terminales !== undefined ? { ...hija, terminales: grupo.terminales } : hija;
+/** Todas las rutas que cuelgan de `n` para este perfil: la propia si es una hoja, o `raiz` + las de sus hijos (recursivo:
+ *  un hijo puede ser, a su vez, un subgrupo) si es un grupo. Filtra solo por PERMISO, no por ubicación — igual que hacía
+ *  el código antes de D-84: hoy ningún hijo declara una `ubicaciones` propia distinta de la de su grupo. La usa `grupoDe`
+ *  para saber, de TODO el árbol vivo, qué módulo de primer nivel contiene una ruta (se mira aunque el perfil no la vea). */
+function rutasDe(n: Hoja | Grupo | Futura, permisos: readonly Permiso[]): string[] {
+  if (n.estado !== "viva") return [];
+  if (esGrupo(n)) return [n.raiz, ...n.hijos.filter((h) => cumplePermisos(h, permisos)).flatMap((h) => rutasDe(h, permisos))];
+  return [n.ruta];
+}
 
 /** ¿Este perfil ve el módulo de Producción? Lo lee de `ubicaciones` del nodo: la regla vive en el árbol, no en un `if`. */
 export function puedeVerProduccion(perfil: { ubicacionTipo: TipoUbicacion }): boolean {
@@ -388,23 +420,38 @@ export function menuPara(perfil: PerfilDelMenu, { arbol, acciones, columnas }: F
     return { id: h.id, etiqueta: h.etiqueta, href: h.ruta, icono: h.icono, ...(contador !== undefined ? { contador } : {}) };
   };
 
+  // Arma la fila de `n` para este perfil, o `undefined` si no le toca ninguna — MISMA función para un nodo de primer
+  // nivel que para un subgrupo (D-84): un grupo con hijos que a su vez son grupos no es un caso especial, es la misma
+  // regla llamándose de nuevo. `esRaiz` decide qué pasa si el grupo termina con una sola hija visible: la raíz absorbe
+  // el nombre del grupo (así ya se comportaba «Compras» o «Catálogo»: el módulo necesita una etiqueta estable aunque
+  // adentro solo quede una pantalla) — un SUBGRUPO no: su hija sube con su propio nombre, sin pasar por el del subgrupo,
+  // porque ese nombre («Abastecimiento») es solo una etiqueta de organización para quien ve varias pantallas ahí, no una
+  // que valga la pena imponerle a quien ve una sola (quien no ve dinero en el Taller solo tiene «Recibir»: debe seguir
+  // leyendo «Recibir», no «Abastecimiento» — es exactamente lo que veía antes de D-84, sin el subgrupo de por medio).
+  // `terminalesHeredados`: lo que ya resolvió el padre en su propia llamada — así una hija sin `terminales` propio hereda
+  // la de su grupo (y esa, la de SU grupo si tampoco la declaró), sin que cada nodo tenga que repetirla. Distinto de
+  // `ubicaciones`, que nunca se hereda (si el candado falla arriba, la recursión ya ni entra a los hijos) — acá hace
+  // falta explícito porque `terminales` es al revés: sin declarar, CIERRA para cualquier terminal (falla cerrado), así
+  // que una hoja bajo un grupo como Inventario necesita heredar la marca de su grupo para no quedar invisible.
+  const construirFila = (n: Nodo, esRaiz: boolean, terminalesHeredados?: readonly TipoTerminal[]): FilaMenu | undefined => {
+    const terminales = n.terminales ?? terminalesHeredados;
+    if (!esVisible(n, perfil, terminales) || n.estado !== "viva") return undefined; // el 2do checkeo es solo para que TS estreche Nodo a Hoja | Grupo.
+    if (!esGrupo(n)) return aItem(n);
+    const hijos = n.hijos.map((h) => construirFila(h, false, terminales)).filter((f): f is FilaMenu => f !== undefined);
+    // Un grupo sin hijas visibles no agrupa nada; con una sola, se disuelve: sube esa hija (ver la nota de arriba).
+    if (hijos.length === 0) return undefined;
+    if (hijos.length === 1) return esRaiz ? { ...hijos[0], id: n.id, etiqueta: n.etiqueta } : hijos[0];
+    return { id: n.id, etiqueta: n.etiqueta, icono: n.icono, hijos };
+  };
+
   // ---- riel de escritorio ----
   const riel: FilaMenu[] = [];
   const emitidos = new Map<string, FilaMenu>();
   for (const n of arbol) {
-    if (!esVisible(n, perfil)) continue;
-    if (esGrupo(n)) {
-      const hijos = n.hijos.filter((h): h is Hoja => esVisible(conTerminalesDe(h, n), perfil)).map(aItem);
-      // Un grupo sin hijas no agrupa nada; con una sola, se muestra como fila suelta (con el nombre del grupo).
-      if (hijos.length === 0) continue;
-      const fila: FilaMenu = hijos.length === 1 ? { ...hijos[0], id: n.id, etiqueta: n.etiqueta } : { id: n.id, etiqueta: n.etiqueta, icono: n.icono, hijos };
-      riel.push(fila);
-      emitidos.set(n.id, fila);
-    } else if (n.estado === "viva" && "ruta" in n) {
-      const fila = aItem(n);
-      riel.push(fila);
-      emitidos.set(n.id, fila);
-    }
+    const fila = construirFila(n, true);
+    if (!fila) continue;
+    riel.push(fila);
+    emitidos.set(n.id, fila);
   }
 
   // ---- barra del celular ----
@@ -414,31 +461,35 @@ export function menuPara(perfil: PerfilDelMenu, { arbol, acciones, columnas }: F
       movil.push(null);
       continue;
     }
-    const fila = emitidos.get(id) ?? riel.flatMap((f) => (esGrupoMenu(f) ? f.hijos : [])).find((h) => h.id === id);
+    const fila = emitidos.get(id) ?? riel.flatMap(hojasDe).find((h) => h.id === id);
     if (!fila) continue;
     if (!esGrupoMenu(fila)) {
       movil.push(fila);
       continue;
     }
-    // Una cabecera en la barra lleva a la puerta de su módulo y suma los números de sus hijas.
+    // Una cabecera en la barra lleva a la puerta de su módulo y suma los números de TODAS sus hojas (los de un subgrupo
+    // incluidos: la columna representa al módulo entero, no a un nivel del árbol).
     const nodo = arbol.find((n) => n.id === id);
     if (!nodo || !esGrupo(nodo)) continue;
-    const suma = fila.hijos.reduce((acc, h) => acc + (h.contador ?? 0), 0);
+    const suma = hojasDe(fila).reduce((acc, h) => acc + (h.contador ?? 0), 0);
     movil.push({ id, etiqueta: fila.etiqueta, href: nodo.raiz, icono: fila.icono, ...(suma > 0 ? { contador: suma } : {}) });
   }
 
   // ---- «+ Nuevo» ----
-  const nuevo = acciones.filter((a) => esVisible(a, perfil)).map((a) => ({ id: a.id, etiqueta: a.etiqueta, detalle: a.detalle, href: a.ruta }));
+  // Una acción de «+ Nuevo» no cuelga de ningún grupo: usa su propia `terminales`, sin herencia que resolver.
+  const nuevo = acciones.filter((a) => esVisible(a, perfil, a.terminales)).map((a) => ({ id: a.id, etiqueta: a.etiqueta, detalle: a.detalle, href: a.ruta }));
 
   // ---- qué grupo contiene cada ruta ----
   // La puerta del módulo (`raiz`) cubre todo lo que cuelga de ella; las hijas aportan lo que vive fuera de ese prefijo
-  // (Caja, Cambios y Devoluciones cuelgan de otras rutas que `/vender`; `/recibir`, de ninguna). Una hija que este perfil
-  // no tiene por permiso no aporta su ruta: así «Recibir mercadería» cuenta para UN solo grupo por perfil.
+  // (Caja, Cambios y Devoluciones cuelgan de otras rutas que `/vender`; `/recibir`, de ninguna) — un subgrupo aporta,
+  // recursivamente, las suyas (`rutasDe`). Una hija que este perfil no tiene por permiso no aporta su ruta: así «Recibir
+  // mercadería» cuenta para UN solo grupo por perfil. Solo se mira el primer nivel del árbol: aterrizar en cualquier
+  // ruta de un subgrupo sigue abriendo el MÓDULO que lo contiene (Producción), no el subgrupo (Abastecimiento) — es la
+  // cabecera de primer nivel la que cierra a las demás al aterrizar, igual que hoy.
   const rutasPorGrupo: [string, string[]][] = [];
   for (const n of arbol) {
     if (!esGrupo(n)) continue;
-    const propias = n.hijos.filter((h): h is Hoja => h.estado === "viva" && cumplePermisos(h, perfil.permisos)).map((h) => h.ruta);
-    rutasPorGrupo.push([n.id, [n.raiz, ...propias]]);
+    rutasPorGrupo.push([n.id, rutasDe(n, perfil.permisos)]);
   }
   const grupoDe = (pathname: string): string | null => rutasPorGrupo.find(([, rutas]) => rutas.some((r) => rutaActiva(pathname, r)))?.[0] ?? null;
 
