@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+
+## 2026-09-22 (Traslados: tarjetas que filtran y dirección a la vista — ADR-0175)
+Felipe eligió «todas la A» en la demo de Traslados. Al ir a implementarlo apareció que otra sesión acababa de fusionar el rediseño de lista y detalle (ADR-0173, #316) con su propia demo en la MISMA carpeta: se dejó la suya, la mía pasó a `traslados-cifras-filtros-2026-09/`, y el detalle no se tocó (el «Alcance A» ya estaba cumplido). Sobre esa base: las tarjetas son el filtro, los chips quedan en Abiertos · Cerrados · Todos, Entran/Salen a la vista y la tabla pasa de 3 acomodos a 2.
+Felipe se lleva: (1) **dos sesiones sobre la misma pantalla el mismo día** chocan hasta en el nombre de la carpeta: revisar `main` justo antes de implementar, no solo al empezar; (2) **una cifra, un lugar**: si la tarjeta ya filtra, un chip con el mismo número solo suma ruido; (3) «1280 px» no es la ventana sino lo que queda después del lateral: la tabla se diseña para ~928 px.
+Sin resolver: verlo con clics reales; las 4 cabeceras vacías de producción (ADR-0173).
+
 ## 2026-09-22 (Conteo físico: rediseño implementado — ADR-0174)
 Felipe eligió la variante A (lista de lo que falta, sin cifras) y pidió implementar. Quedó: abrir en tres pasos, contar con «Suma por escaneo» o «Escribir cantidad», «Faltan por contar» acotado al alcance, sin la diferencia a la vista mientras se cuenta, «Vacío» para los conteos sin prendas y la revisión en el modal del sistema. En la base, `cerrar_conteo` ya no cierra un conteo vacío (migración con prueba en CI, sin pegar en producción). Verificado en navegador con los componentes reales contra un servidor falso: tres lecturas seguidas de la misma blusa guardaron 1, 2 y 3 en orden.
 Felipe se lleva: (1) **cuando la pistola va más rápido que la base, las escrituras se hacen en fila**: cada lectura manda el total y, si salieran a la vez, una respuesta atrasada podía dejar la prenda en 2 cuando iba en 3; (2) **«a ciegas» se rompía en tres sitios, no en uno** (la tarjeta, el historial y el detalle del conteo abierto): una regla de negocio se revisa pantalla por pantalla; (3) la lista de pendientes tuvo que acotarse a la categoría porque la vista previa de la base no conoce el alcance.

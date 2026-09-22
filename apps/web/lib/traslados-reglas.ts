@@ -104,13 +104,18 @@ export function esAbierto(s: SituacionTraslado): boolean {
  *  `por_recibir` NO es un chip de la «Vista rápida»: es el atajo de la tarjeta «Por recibir hoy»,
  *  que cuenta solo recepciones y por eso tiene que filtrar solo recepciones — si filtrara «Acción
  *  hoy», un líder con una diferencia pendiente vería «0» en la tarjeta y una fila al tocarla. */
-export type FiltroTraslado = "todos" | "accion" | "en_camino" | "con_diferencia" | "cerrados" | "por_recibir";
+export type FiltroTraslado = "todos" | "abiertos" | "accion" | "en_camino" | "con_diferencia" | "cerrados" | "por_recibir";
 
-/** Los cinco chips de la fila «Vista rápida», en su orden. */
-export const FILTROS_TRASLADO: FiltroTraslado[] = ["todos", "accion", "en_camino", "con_diferencia", "cerrados"];
+/** Los chips de la fila «Vista rápida», en su orden. Rediseño 2026-09-22 (Felipe, demo
+ *  `docs/maquetas/traslados-cifras-filtros-2026-09/`, ADR-0175): las cifras que ya tienen tarjeta
+ *  —por recibir, en camino, con diferencia— se filtran tocando su TARJETA; los chips solo separan
+ *  lo abierto de lo cerrado, así cada número se dice una vez. «Acción hoy» sigue siendo un filtro
+ *  válido (lo usa la franja) aunque ya no tenga chip. */
+export const FILTROS_TRASLADO: FiltroTraslado[] = ["abiertos", "cerrados", "todos"];
 
 export const ETIQUETA_FILTRO_TRASLADO: Record<FiltroTraslado, string> = {
   todos: "Todos",
+  abiertos: "Abiertos",
   accion: "Acción hoy",
   en_camino: "En camino",
   con_diferencia: "Con diferencia",
@@ -130,6 +135,8 @@ export function coincideFiltro(s: SituacionTraslado, filtro: FiltroTraslado): bo
       return s === "con_diferencia" || s === "requiere_revision";
     case "cerrados":
       return s === "cerrado";
+    case "abiertos":
+      return s !== "cerrado";
     case "por_recibir":
       return s === "requiere_recepcion";
   }
@@ -167,7 +174,7 @@ export function resumirTraslados(ts: (TrasladoLeible & { unidadesEnviadas: numbe
     requierenAccion: 0,
     unidadesEnTransito: 0,
     abiertos: 0,
-    porFiltro: { todos: ts.length, accion: 0, en_camino: 0, con_diferencia: 0, cerrados: 0, por_recibir: 0 },
+    porFiltro: { todos: ts.length, abiertos: 0, accion: 0, en_camino: 0, con_diferencia: 0, cerrados: 0, por_recibir: 0 },
   };
   for (const t of ts) {
     const s = situacionTraslado(t, ctx);

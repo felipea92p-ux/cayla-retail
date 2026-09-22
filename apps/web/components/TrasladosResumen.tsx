@@ -23,6 +23,10 @@ export function TrasladosResumen({
   const alternar = (f: FiltroTraslado) => onFiltro(filtro === f ? "todos" : f);
   // Tocable si lleva a algo (cuenta > 0) o si es el filtro que ya está puesto (para poder quitarlo).
   const atajo = (f: FiltroTraslado) => (r.porFiltro[f] > 0 || filtro === f ? () => alternar(f) : undefined);
+  // Desde el rediseño del 2026-09-22 (ADR-0175) estas tarjetas SON el filtro de por recibir / en camino /
+  // con diferencia (esos chips se fueron): la pista lo dice, en vez de esperar que alguien lo descubra.
+  const pista = (f: FiltroTraslado) =>
+    atajo(f) ? <span className="mt-1 block text-[11px] text-taupe">{filtro === f ? "Filtrando · toca para quitar" : "Toca para filtrar"}</span> : null;
 
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
@@ -37,6 +41,7 @@ export function TrasladosResumen({
         onClick={atajo("por_recibir")}
       >
         {r.porRecibir > 0 ? "Ya debieron llegar: cuéntalos" : "Nada esperando tu confirmación"}
+        {pista("por_recibir")}
       </TarjetaCifra>
 
       <TarjetaCifra
@@ -52,6 +57,7 @@ export function TrasladosResumen({
             la cifra de la tarjeta y la de la lista cuadren en vez de contradecirse. */}
         En tránsito a tu sede
         {r.salientesEnCamino > 0 && ` · ${r.salientesEnCamino} ${r.salientesEnCamino === 1 ? "sale" : "salen"} de tu sede`}
+        {pista("en_camino")}
       </TarjetaCifra>
 
       <TarjetaCifra
@@ -68,6 +74,7 @@ export function TrasladosResumen({
           : r.porRevisar > 0
             ? `${r.porRevisar} ${r.porRevisar === 1 ? "requiere" : "requieren"} tu revisión`
             : "Esperan la revisión de un líder"}
+        {pista("con_diferencia")}
       </TarjetaCifra>
 
       <TarjetaCifra

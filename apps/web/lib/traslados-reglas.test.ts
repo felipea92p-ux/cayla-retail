@@ -154,6 +154,10 @@ describe("coincideFiltro", () => {
     expect(coincideFiltro("requiere_revision", "con_diferencia")).toBe(true);
     expect(coincideFiltro("requiere_revision", "accion")).toBe(true);
     expect(coincideFiltro("con_diferencia", "accion")).toBe(false);
+    // «Abiertos» = todo lo que no está cerrado, pida acción o no.
+    expect(coincideFiltro("en_camino_saliente", "abiertos")).toBe(true);
+    expect(coincideFiltro("con_diferencia", "abiertos")).toBe(true);
+    expect(coincideFiltro("cerrado", "abiertos")).toBe(false);
   });
 
   it("«En camino» junta lo entrante a tiempo y lo saliente; lo vencido que me toca NO", () => {
@@ -184,7 +188,7 @@ describe("resumirTraslados", () => {
     expect(r.unidadesEnTransito).toBe(43); // 28 + 15; el completado no cuenta
     expect(r.abiertos).toBe(2);
     expect(r.requierenAccion).toBe(1);
-    expect(r.porFiltro).toEqual({ todos: 3, accion: 1, en_camino: 1, con_diferencia: 0, cerrados: 1, por_recibir: 1 });
+    expect(r.porFiltro).toEqual({ todos: 3, abiertos: 2, accion: 1, en_camino: 1, con_diferencia: 0, cerrados: 1, por_recibir: 1 });
   });
 
   it("los salientes suman al filtro «En camino» y a las prendas en tránsito, pero no a «Vienen en camino»", () => {
