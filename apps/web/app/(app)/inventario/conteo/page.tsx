@@ -81,7 +81,6 @@ export default async function ConteoPage() {
           etiqueta="Conteo abierto"
           valor={conteoAbierto ? `Conteo ${conteoAbierto.numero}` : "Ninguno"}
           tono={conteoAbierto ? "text-tinta" : "text-taupe"}
-          acento={!!conteoAbierto}
           accion={conteoAbierto ? { href: "#contar", texto: "Seguir contando" } : undefined}
         >
           {conteoAbierto && avance
@@ -174,14 +173,12 @@ function Tarjeta({
   etiqueta,
   valor,
   tono,
-  acento = false,
   accion,
   children,
 }: {
   etiqueta: string;
   valor: string;
   tono?: string;
-  acento?: boolean;
   accion?: { href: string; texto: string };
   children: React.ReactNode;
 }) {
@@ -189,7 +186,7 @@ function Tarjeta({
   // nativo: es un salto de ancla dentro de la misma página (#contar) — el <Link> de Next no siempre dispara
   // el scroll nativo para un href de solo-hash en la misma ruta.
   return (
-    <TarjetaCifra etiqueta={etiqueta} valor={valor} tono={tono} acento={acento}>
+    <TarjetaCifra etiqueta={etiqueta} valor={valor} tono={tono}>
       {children}
       {accion && (
         <a href={accion.href} className="label-cayla mt-3 block text-[11px] text-tinta underline underline-offset-2 hover:no-underline">

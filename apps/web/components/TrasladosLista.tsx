@@ -119,7 +119,7 @@ export function TrasladosLista({
 
   if (filas.length === 0) {
     return (
-      <div className="space-y-3 p-1 text-sm text-taupe">
+      <div className="space-y-3 p-5 text-sm text-taupe">
         <p>{hayFiltros ? "Ningún traslado coincide con lo que buscas." : "No hay traslados para mostrar."}</p>
         {hayFiltros && (
           <button type="button" onClick={onLimpiar} className={`btn-cayla btn-secundario btn-chico ${FOCO}`}>
@@ -131,9 +131,9 @@ export function TrasladosLista({
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg">
+    <div className="overflow-x-auto">
       <div role="table" aria-label="Traslados">
-        <div role="row" className={`encabezado-tabla-cayla hidden gap-x-3 rounded-t-lg px-5 py-2 min-[1400px]:grid ${PLANTILLA}`}>
+        <div role="row" className={`encabezado-tabla-cayla hidden gap-x-3 px-5 py-2 min-[1400px]:grid ${PLANTILLA}`}>
           {COLUMNAS.map((c) => (
             <span key={c.titulo} role="columnheader" className={`${TABLA.titulo} whitespace-nowrap ${c.alinear === "centro" ? "text-center" : ""}`}>
               {c.titulo}
@@ -141,7 +141,7 @@ export function TrasladosLista({
           ))}
         </div>
 
-        <div role="rowgroup" className="divide-y divide-sand border-t border-sand">
+        <div role="rowgroup" className="divide-y divide-sand">
           {filas.map(({ t, s }) => {
             const accion = accionDeTraslado(s);
             const direccion = direccionTraslado(t, miUbicacionId);

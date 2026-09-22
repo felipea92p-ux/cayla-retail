@@ -369,7 +369,8 @@ body {
     background: color-mix(in oklab, var(--color-sand) 40%, transparent);
   }
   .pildora-cayla[aria-pressed="true"],
-  .pildora-cayla[aria-current="page"] {
+  .pildora-cayla[aria-current="page"],
+  .pildora-cayla[data-activa="true"] {
     background: var(--color-tinta);
     border-color: var(--color-tinta);
     color: var(--color-crema);

@@ -173,7 +173,7 @@ export function ConteoPanel({
                 type="button"
                 onClick={() => piso && abrir(piso.id)}
                 disabled={!piso || abriendo !== null}
-                className={`${botonPrimario} px-6`}
+                className="btn-cayla btn-primario px-6"
               >
                 {abriendo === piso?.id ? "Abriendo…" : "Contar piso de venta"}
               </button>
@@ -181,13 +181,13 @@ export function ConteoPanel({
                 type="button"
                 onClick={() => almacen && abrir(almacen.id)}
                 disabled={!almacen || abriendo !== null}
-                className={`${botonPrimario} px-6`}
+                className="btn-cayla btn-primario px-6"
               >
                 {abriendo === almacen?.id ? "Abriendo…" : "Contar almacén de tienda"}
               </button>
             </div>
           ) : (
-            <button type="button" onClick={() => abrir(null)} disabled={abriendo !== null} className={`${botonPrimario} mx-auto w-fit px-6`}>
+            <button type="button" onClick={() => abrir(null)} disabled={abriendo !== null} className="btn-cayla btn-primario mx-auto px-6">
               {abriendo === "todo" ? "Abriendo…" : "Abrir conteo"}
             </button>
           )}
@@ -383,7 +383,7 @@ function ConteoEnCurso({
               <button
                 type="button"
                 onClick={() => setConfirmarCancelar(true)}
-                className="mt-1.5 text-xs text-tinta/45 underline underline-offset-2 hover:text-rojo"
+                className="btn-enlace mt-1.5 text-xs text-taupe"
               >
                 Cancelar este conteo
               </button>
@@ -436,7 +436,7 @@ function ConteoEnCurso({
                 if (exacto) setSeleccionada(exacto);
               }}
               placeholder="Escanea el código de barras o escribe el SKU…"
-              className="w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo"
+              className="caja-cayla h-11 w-full px-3 text-sm text-tinta outline-none placeholder:text-taupe"
             />
             {coincidencias.length > 0 && (
               <div className="mt-2 space-y-1">
@@ -539,14 +539,12 @@ function ConteoEnCurso({
         </div>
       )}
 
-      <button
-        type="button"
-        disabled={conteo.items.length === 0}
-        onClick={() => setRevisando(true)}
-        className={`${botonPrimario} w-full disabled:opacity-40`}
-      >
-        Revisar y cerrar conteo
-      </button>
+      {/* Guía oficial (ADR-0167): el botón primario del sistema, a la derecha — no una barra a todo el ancho. */}
+      <div className="flex justify-end">
+        <button type="button" disabled={conteo.items.length === 0} onClick={() => setRevisando(true)} className="btn-cayla btn-primario">
+          Revisar y cerrar conteo →
+        </button>
+      </div>
 
       {revisando && (
         <RevisarCierre conteoId={conteo.id} catalogo={catalogo} puedeCerrar={puedeCerrar} onClose={() => setRevisando(false)} />

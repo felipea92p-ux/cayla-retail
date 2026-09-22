@@ -90,10 +90,10 @@ export function TrasladosFiltros({
           )}
         </div>
 
-        <div className="order-1 flex min-w-0 flex-1 basis-72 items-center gap-2">
+        <div className="order-1 flex min-w-0 flex-1 basis-full items-center gap-2 sm:basis-72">
           {/* El botón de limpiar va AL LADO del campo, no dentro de un <label>: un <label> con un botón adentro
               mezcla dos controles en uno y, al desaparecer la X, el foco se perdía. Ahora vuelve al campo. */}
-          <div className="caja-cayla relative flex h-10 min-w-[13rem] flex-1 items-center">
+          <div className="caja-cayla relative flex h-10 min-w-0 flex-1 items-center">
             <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-tinta/50" />
             <input
               ref={entrada}

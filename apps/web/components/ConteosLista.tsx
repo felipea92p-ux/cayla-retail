@@ -68,7 +68,11 @@ export function ConteosLista({ conteos }: { conteos: ConteoResumen[] }) {
                 {c.sistema} <span className="text-tinta/45">→</span> {c.contado}
               </span>
               <span className={`block text-xs tabular-nums ${c.solesDiferencia < 0 ? "text-rojo-profundo" : c.solesDiferencia > 0 ? "text-verde-profundo" : "text-taupe"}`}>
-                {c.lineasConDiferencia === 0 ? "coinciden" : `${c.lineasConDiferencia} con diferencia · ${soles(c.solesDiferencia)}`}
+                {c.lineasConDiferencia === 0 ? "coinciden" : (
+                  <>
+                    {c.lineasConDiferencia} con diferencia · <span className="whitespace-nowrap">{soles(c.solesDiferencia)}</span>
+                  </>
+                )}
               </span>
             </span>
             <span className="min-w-0 sm:text-center">
@@ -76,7 +80,7 @@ export function ConteosLista({ conteos }: { conteos: ConteoResumen[] }) {
               {!abierto && <span className="block truncate text-xs text-taupe">Cerró {c.cerradoPorNombre}</span>}
             </span>
             <span className={celda("centro", "overflow-visible")}>
-              <span className={abierto ? "btn-enlace text-[13px]" : "btn-cayla btn-secundario btn-chico"}>{abierto ? "Contar" : "Ver detalle"}</span>
+              <span className={`btn-cayla btn-chico ${abierto ? "btn-primario" : "btn-secundario"}`}>{abierto ? "Contar" : "Ver detalle"}</span>
             </span>
           </Link>
         );

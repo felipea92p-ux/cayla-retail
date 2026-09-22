@@ -137,7 +137,7 @@ function PopoverRango({
           <button type="button" onClick={onCancelar} className="label-cayla text-[11px] text-tinta/65 hover:text-tinta">
             Cancelar
           </button>
-          <button type="submit" className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo">
+          <button type="submit" className="btn-cayla btn-primario">
             Aplicar
           </button>
         </div>
@@ -232,8 +232,9 @@ export function ResumenControles({
   const chipsPeriodo = (
     <div className="max-w-full">
       <span className={ETIQUETA}>Período analizado</span>
-      <div className="mt-1.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div role="radiogroup" aria-label="Período analizado" className="inline-flex overflow-hidden rounded-md border border-tinta/15 bg-papel">
+      <div className="mt-1.5 max-w-full">
+        {/* Guía oficial (ADR-0167): píldoras que se envuelven en el celular, en vez de un segmento que se corta. */}
+        <div role="radiogroup" aria-label="Período analizado" className="flex flex-wrap gap-1.5">
           {PRESETS_PERIODO.map((p) => {
             const activo = periodo.preset === p.valor && !(p.valor === "personalizado" && abierto !== "periodo" && periodo.preset !== "personalizado");
             return (
@@ -246,9 +247,8 @@ export function ResumenControles({
                 role="radio"
                 aria-checked={periodo.preset === p.valor}
                 onClick={() => elegirPreset(p.valor)}
-                className={`label-cayla inline-flex ${ALTO_CONTROL} items-center gap-1.5 whitespace-nowrap px-3 text-[11px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo/60 ${
-                  activo ? "bg-tinta text-crema" : "text-tinta/75 hover:bg-tinta/[0.05]"
-                }`}
+                data-activa={activo}
+                className="pildora-cayla focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
               >
                 {p.valor === "personalizado" && <CalendarDays aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />}
                 {p.texto}

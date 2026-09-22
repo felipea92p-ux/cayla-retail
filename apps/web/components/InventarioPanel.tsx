@@ -325,7 +325,7 @@ export function InventarioPanel({
   // horizontal (`ui/Tabla.tsx`) — con Cobertura y Ritmo como columnas propias (antes la cobertura era
   // la segunda línea de «Disponible»), 9 columnas piden más ancho que 1400px: se desplaza, no encima.
   const plantilla = separa
-    ? "sm:grid-cols-[minmax(13.5rem,1.3fr)_6.5rem_4.5rem_6rem_7rem_9rem_5rem_minmax(9rem,1fr)_8rem]"
+    ? "sm:grid-cols-[minmax(13.5rem,1.3fr)_6.5rem_4.5rem_6rem_7rem_11rem_5rem_minmax(9rem,1fr)_6rem]"
     : "sm:grid-cols-[minmax(13.5rem,1.4fr)_5rem_6rem_5rem_minmax(9rem,1fr)_4.5rem]";
 
   return (
@@ -354,7 +354,7 @@ export function InventarioPanel({
             </button>
           )}
         </div>
-        <div className={`mt-3 grid gap-3 ${separa ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-3"}`}>
+        <div className={`mt-3 grid gap-3 ${separa ? "sm:grid-cols-2 xl:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-3"}`}>
           {separa && (
             <TarjetaPrioridad
               icono={PackagePlus}
@@ -440,7 +440,7 @@ export function InventarioPanel({
             </div>
           </div>
           <div className="flex items-center gap-3 sm:max-w-xs">
-            <p className="hidden text-xs leading-snug text-taupe sm:block">Enfócate en tener los productos clave en piso. Más disponibilidad = más ventas.</p>
+            <p className="hidden text-xs leading-snug text-taupe xl:block">Enfócate en tener los productos clave en piso. Más disponibilidad = más ventas.</p>
             <button
               type="button"
               onClick={() => setViendoCobertura(true)}
@@ -454,17 +454,17 @@ export function InventarioPanel({
 
       {/* Guía oficial (2026-09-22, ADR-0167): los filtros y la tabla viven en UNA tarjeta — lo que se filtra
           y lo filtrado se leen como una sola cosa. Los filtros son cajas hundidas en hueso, sin etiqueta visible. */}
-      <div className="card-cayla space-y-3 p-4 sm:p-5">
+      <div className="card-cayla overflow-hidden">
       {stock.length > 0 && (
-        <div className={`grid gap-x-3 gap-y-1 ${separa ? "sm:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]" : "sm:grid-cols-[1.4fr_1fr_1fr_1fr]"}`}>
-          <CampoTexto caja etiqueta="Buscar" placeholder="Producto, SKU, color, talla… ej. blusa rosado m" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+        <div className={`grid gap-x-3 gap-y-1 px-4 pt-4 sm:px-5 sm:pt-5 ${separa ? "sm:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]" : "sm:grid-cols-[1.4fr_1fr_1fr_1fr]"}`}>
+          <CampoTexto caja etiqueta="Buscar" placeholder="Producto, SKU, color, talla…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
           <CampoSelect
             caja
             etiqueta="Categoría"
             valor={categoria}
             onValor={setCategoria}
             marcador="Todas"
-            opciones={[{ valor: TODAS, texto: "Todas" }, ...categorias.map((c) => ({ valor: c, texto: c }))]}
+            opciones={[{ valor: TODAS, texto: "Categoría: todas" }, ...categorias.map((c) => ({ valor: c, texto: c }))]}
           />
           <CampoSelect
             caja
@@ -472,7 +472,7 @@ export function InventarioPanel({
             valor={talla}
             onValor={setTalla}
             marcador="Todas"
-            opciones={[{ valor: TODAS, texto: "Todas" }, ...tallas.map((t) => ({ valor: t, texto: t }))]}
+            opciones={[{ valor: TODAS, texto: "Talla: todas" }, ...tallas.map((t) => ({ valor: t, texto: t }))]}
             pie={dichoEnLaBusqueda.talla && talla !== TODAS ? "Se usa lo que escribiste" : undefined}
           />
           <CampoSelect
@@ -481,7 +481,7 @@ export function InventarioPanel({
             valor={color}
             onValor={setColor}
             marcador="Todos"
-            opciones={[{ valor: TODAS, texto: "Todos" }, ...colores.map((c) => ({ valor: c, texto: c }))]}
+            opciones={[{ valor: TODAS, texto: "Color: todos" }, ...colores.map((c) => ({ valor: c, texto: c }))]}
             pie={dichoEnLaBusqueda.color && color !== TODAS ? "Se usa lo que escribiste" : undefined}
           />
           {separa && (
@@ -492,7 +492,7 @@ export function InventarioPanel({
               onValor={setEstado}
               marcador="Todos"
               opciones={[
-                { valor: TODAS, texto: "Todos" },
+                { valor: TODAS, texto: "Estado: todos" },
                 { valor: DANADO, texto: "Dañado" },
                 ...ESTADOS.map((e) => ({ valor: e, texto: ETIQUETA_ESTADO_STOCK[e] })),
               ]}
@@ -509,13 +509,13 @@ export function InventarioPanel({
         </div>
       )}
 
-      {separa && coberturaFallo && stock.length > 0 && <p className="text-xs text-ambar">{coberturaFallo}</p>}
+      {separa && coberturaFallo && stock.length > 0 && <p className="px-4 pb-2 text-xs text-ambar sm:px-5">{coberturaFallo}</p>}
       {stock.length === 0 ? (
-        <p className="p-1 text-sm text-taupe">Esta ubicación no tiene stock todavía.</p>
+        <p className="p-5 text-sm text-taupe">Esta ubicación no tiene stock todavía.</p>
       ) : filtradas.length === 0 ? (
-        <p className="p-1 text-sm text-taupe">Ningún producto coincide con la búsqueda.</p>
+        <p className="border-t border-sand p-5 text-sm text-taupe">Ningún producto coincide con la búsqueda.</p>
       ) : (
-        <Tabla className="rounded-lg border-0 bg-transparent">
+        <Tabla className="rounded-none border-0 border-t border-sand bg-transparent">
           {/* Toda la tabla centrada (Felipe, 2026-09-15) salvo la prenda, que
               va a la izquierda como en su diseño: dos líneas (nombre, y SKU ·
               talla · color) se leen mal centradas. */}
@@ -580,7 +580,7 @@ export function InventarioPanel({
                 </span>
                 {separa && (
                   <span className={celda("centro", "overflow-visible")}>
-                    <span className="inline-flex items-center justify-center gap-2">
+                    <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
                       {f.estado === "normal" || f.estado === null ? (
                         <span className="text-[13px] text-taupe" title={ACCION_ESTADO_STOCK.normal}>
                           Normal
@@ -601,7 +601,7 @@ export function InventarioPanel({
                           // Lo apartado para una clienta no se puede bajar del almacén (la base lo rechaza): el modal
                           // ofrece y valida contra lo DISPONIBLE, no contra lo físico (ADR-0141).
                           onClick={() => setReponiendo({ ...f, piso: f.pisoDisponible, almacen: f.almacenDisponible })}
-                          className="btn-cayla btn-primario btn-chico"
+                          className="btn-cayla btn-primario px-2 py-0.5 text-xs"
                         >
                           Reponer
                         </button>
@@ -648,7 +648,7 @@ export function InventarioPanel({
                         <button
                           type="button"
                           onClick={() => setApartando(f)}
-                          className="btn-cayla btn-secundario btn-chico"
+                          className="btn-enlace text-xs"
                         >
                           Apartar
                         </button>
@@ -658,7 +658,7 @@ export function InventarioPanel({
                         <button
                           type="button"
                           onClick={() => setAjustando(f)}
-                          className="btn-cayla btn-secundario btn-chico"
+                          className="btn-enlace text-xs"
                         >
                           Ajustar
                         </button>

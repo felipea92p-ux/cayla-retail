@@ -157,7 +157,8 @@ export function TrasladosPanel({
       <TrasladosAtencion resumen={resumen} masUrgente={urgente ? { id: urgente.id, numero: urgente.numero } : null} />
       <TrasladosResumen resumen={resumen} filtro={filtroEfectivo} onFiltro={alFiltrar(setFiltro)} />
       {/* Guía oficial (2026-09-22, ADR-0167): buscador, píldoras y tabla en UNA tarjeta. */}
-      <div className="card-cayla space-y-4 p-4 sm:p-5">
+      <div className="card-cayla overflow-hidden">
+      <div className="p-4 sm:p-5">
       <TrasladosFiltros
         filtro={filtroEfectivo}
         onFiltro={alFiltrar(setFiltro)}
@@ -174,6 +175,9 @@ export function TrasladosPanel({
         masActivos={masActivos}
         onLimpiarMas={limpiarMas}
       />
+      </div>
+      {/* La tabla va a sangre, sin el relleno de la tarjeta: sus 6 columnas necesitan el ancho completo. */}
+      <div className="border-t border-sand">
       <TrasladosLista
         filas={visibles}
         totalFiltrados={filtradas.length}
@@ -189,6 +193,7 @@ export function TrasladosPanel({
         onRefrescar={() => iniciarRefresco(() => router.refresh())}
         refrescando={refrescando}
       />
+      </div>
       </div>
     </div>
   );
