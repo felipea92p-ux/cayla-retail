@@ -4,6 +4,11 @@
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
 
+## 2026-09-22 (Combo «Responsable»: propone a quien inició sesión — actualización del ADR-0161)
+Felipe pidió un texto más amable y que el combo venga con la persona de la sesión. Queda «¿Quién está atendiendo?» en todos los módulos; con una persona el combo viene elegido con ella (si está de turno) y vuelve a ella después de guardar; en una terminal y en el módulo Punto de venta (venta y apartados) sigue vacío. Sin migración: `fn_actor_persona_id(false)` ya devolvía el id propio (probado en producción, 5 de 5 personas, y la terminal falla como se espera).
+Felipe se lleva: (1) **proponer no es firmar**: la base sigue exigiendo que el responsable esté presente, así que si quien inició sesión no marcó entrada, el combo viene vacío; (2) **en la venta no se propone** porque el elegido queda como asesora de la venta, y quien abrió sesión en el mostrador no siempre es quien atiende.
+Sin resolver: verlo con clics con una cuenta de persona y una terminal.
+
 ## 2026-09-22 (Conteo físico: demo del rediseño con la guía oficial)
 Felipe pidió rediseñar Conteo sobre la Sala de Diseño y presentarlo en demo. Se decidió: cantidad con los dos modos e interruptor (suma por escaneo / escribir), y los conteos cerrados sin prendas salen «Vacío», fuera de la exactitud, y ya no se podrán cerrar. Se publicó una demo interactiva de los cuatro momentos (abrir, contar, revisar y cerrar, detalle) en `docs/maquetas/conteo-rediseno-2026-09/`.
 Felipe se lleva: (1) **la pantalla de hoy rompía el conteo a ciegas**: la tarjeta «Diferencia hasta ahora» le dice a quien cuenta cuánto se aleja del sistema mientras cuenta; (2) un «Sin diferencias» en verde sobre 0 prendas afirma algo falso, y los 4 conteos de TRU son justo eso; (3) sumar por escaneo no necesita cambiar la base: la pantalla ya sabe cuánto se anotó.

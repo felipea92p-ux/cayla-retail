@@ -639,8 +639,8 @@ describe("atendioCorto — el nombre que sale en el papel", () => {
 
 describe("motivoBloqueoCobro — el responsable (ADR-0161)", () => {
   it("sin responsable frena ya al armar, con la frase del combo", () => {
-    expect(motivoBloqueoCobro({ ...listo, momento: "armar", pagos: [], motivoResponsable: "Elige quién hace esta operación." })).toBe(
-      "Elige quién hace esta operación.",
+    expect(motivoBloqueoCobro({ ...listo, momento: "armar", pagos: [], motivoResponsable: "Elige quién está atendiendo." })).toBe(
+      "Elige quién está atendiendo.",
     );
   });
 
