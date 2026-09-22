@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (Separaciones: análisis, referentes y demo funcional — antes de construir)
+Felipe pidió un apartado para separar prendas con adelanto. Es la Fase 2 de ADR-0141, que ya dejó el candado de stock: se investigó cómo lo hacen Lightspeed y Shopify, qué dicen la contabilidad, SUNAT e Indecopi, y se armó una demo funcional (separar por escaneo, bandeja con vencimiento y liberación automática, entrega con saldo, dinero en custodia).
+Felipe se lleva: (1) **su intuición del «dinero aparte» es la regla contable**: un adelanto es una deuda con la clienta (pasivo), no un ingreso, hasta que recoge; (2) **SUNAT pide comprobante al cobrar el anticipo**, lo que contradice la decisión «sin comprobante» de ADR-0141 — se recomienda boleta de anticipo y deducirla en la boleta final; (3) «preventa» es otra cosa (vender lo que aún no llega): el nombre es «Separaciones».
+Sin resolver: D1–D5 (ANALISIS §7), confirmar anticipos con Lucode y el contador, y pegar ADR-0141 en producción antes de construir.
+
 ## 2026-09-21 (Caja: las tareas de la auditoría que no esperaban decisión)
 De las 12 tareas de `docs/pantallas/caja.md` se cerraron #2, #3, #6 y #10: el modal de Ingreso/egreso conoce el rol (un integrante ya no ve «Ajuste»), nada viene elegido de antemano, «Depósito bancario» y «Otro» exigen referencia, una caja abierta 18 h o más muestra una franja de aviso, y los movimientos manuales se ordenan en hora de Lima.
 Felipe se lleva: (1) **la demo en navegador encontró lo que los tests no**: varias ediciones no se habían aplicado por los saltos de línea CRLF del archivo y `tsc`, lint y pruebas salían verdes igual — solo verlo abierto mostró que faltaba el «S/» y que «Retiro de efectivo» seguía preelegido; (2) esconder opciones en el modal **no es** el candado: el candado real sigue siendo la tarea #1 (la base decide qué es un ajuste), que espera la decisión de Felipe sobre permisos y sobre el ajuste (§8 de la auditoría).
