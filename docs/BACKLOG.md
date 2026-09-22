@@ -44,6 +44,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [x] La migración del ADR-0160 **ya está pegada** en producción, con 0 terminales dadas de alta.
 
 ## 🎯 Responsable en cada operación + roles retomados (2026-09-22, ADR-0161) — combo Responsable CONSTRUIDO (F4b, PR #285); roles en otra rama
+- [ ] **Más adelante (Felipe, 2026-09-22: «no es tan importante por ahora»):** guardar quién crea o cambia marcas (`retail.marcas` no tiene columna de firma) y anotar los cambios de NOMBRE de una prenda en el historial (`fn_registrar_cambio_producto` solo registra categoría, estado, marca, proveedor, precio y costo). Hoy el combo se pide en Catálogo pero esos dos casos no dejan rastro.
 - [x] **Decisiones de Felipe** (4 rondas): combo «Responsable» vacío en cada acción que guarda, solo el nombre, solo quien marcó entrada hoy en esa tienda y no salió, bloqueo si no hay nadie (también LIM y también el líder desde casa), en todas las cuentas para la operación de tienda. Roles simplificados después a «ve / no ve» por módulo.
 - [x] **Spike visual:** `docs/maquetas/responsable-y-roles-spike-2026-09/` (editor de roles, combo en una venta, cierre de caja, nadie de turno).
 - [x] **Spike aprobado.** En pausa NO firma ni opera; sin conexión vale la hora de la venta.
