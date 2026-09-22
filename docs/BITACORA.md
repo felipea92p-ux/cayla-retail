@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+
+## 2026-09-22 (Conteo físico: demo del rediseño con la guía oficial)
+Felipe pidió rediseñar Conteo sobre la Sala de Diseño y presentarlo en demo. Se decidió: cantidad con los dos modos e interruptor (suma por escaneo / escribir), y los conteos cerrados sin prendas salen «Vacío», fuera de la exactitud, y ya no se podrán cerrar. Se publicó una demo interactiva de los cuatro momentos (abrir, contar, revisar y cerrar, detalle) en `docs/maquetas/conteo-rediseno-2026-09/`.
+Felipe se lleva: (1) **la pantalla de hoy rompía el conteo a ciegas**: la tarjeta «Diferencia hasta ahora» le dice a quien cuenta cuánto se aleja del sistema mientras cuenta; (2) un «Sin diferencias» en verde sobre 0 prendas afirma algo falso, y los 4 conteos de TRU son justo eso; (3) sumar por escaneo no necesita cambiar la base: la pantalla ya sabe cuánto se anotó.
+Sin resolver: variante A o B de pendientes, la migración que impide cerrar un conteo vacío, y llevar la maqueta al código.
+
 ## 2026-09-22 (Cambiar el rol entre líderes — actualización del ADR-0161)
 Felipe pidió que el rol se pueda cambiar entre líderes: hasta hoy a un líder no se le cambiaba y «Líder de equipo» no se daba desde la app. `asignar_rol` ahora sube a Líder y baja a un líder; la fila de un líder en Colaboradores tiene «Cambiar rol» y el rol Líder, «Asignar a una persona». Probado en Postgres local dentro de una transacción revertida.
 Felipe se lleva: (1) **el candado que evita quedarse sin líder es «nadie se cambia su propio rol»**: quien cambia ya es líder y no puede bajarse, así que siempre queda uno, sin contar nada; (2) **bajar a un líder obliga a elegirle sede**, porque un líder opera todas y no tiene una, y cualquier otro rol trabaja en una — los 9 líderes de producción están así.
