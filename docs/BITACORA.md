@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (Movimientos: demo de rediseño con la guía oficial)
+Sobre la guía «CAYLA Dynamic» se armó una demo navegable de Inventario › Movimientos (`docs/maquetas/movimientos-rediseno-2026-09/`): un solo selector de sede (decidido: el de la cabecera) y tres decisiones abiertas con interruptores — filtro por proceso (drill-down vs. panel), orden de filtros (guía / sububicación en Más filtros / tres filas) y lista (guía + hora vs. tabla de 6 columnas).
+Felipe se lleva: (1) un select de 19 opciones es señal de que falta una jerarquía: los procesos ya pertenecen a un tipo, y la pantalla puede usarla; (2) un estado vacío útil dice por qué está vacío y ofrece el siguiente paso con la cifra real; (3) comparar opciones en la pantalla, con datos, decide mejor que describirlas.
+Sin resolver: las tres decisiones de la demo; después, implementar en `FiltrosMovimientos.tsx`, `MovimientosLista.tsx` y `inventario/movimientos/page.tsx` (sin cambio de base).
+
 ## 2026-09-22 (Apartados: buscador con foto — ADR-0168)
 Felipe probó en una demo tres formas de buscar prendas (lista sin foto, fila con miniatura, tarjetas) y eligió la fila con miniatura, solo para Apartados. Se implementó el buscador en vivo con foto, con las agotadas atenuadas al final (y «N en el almacén: tráela al piso» cuando está atrás); y se midió en producción que cada foto pesa en promedio 90 KB, así que ahora se sirve al tamaño en que se ve (≈5 KB). Probado en la app real: flechas, Enter, lector de código, agotadas, sin errores.
 Felipe se lleva: (1) **lo que pesa no es cuántas fotos hay, es cómo se sirven**: una miniatura de 44 px bajando la foto original es 18 veces más de lo necesario; (2) al probar apareció que `next/image` con un host no permitido **tumba la pantalla entera**, así que solo se optimiza lo que viene de nuestro Storage y el resto se muestra como siempre; (3) una regla correcta («solo se aparta lo del piso») también necesita decir el porqué en pantalla: si la prenda está en el almacén, la colaboradora lo ve.
