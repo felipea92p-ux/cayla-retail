@@ -259,6 +259,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-resumen-comparacion
 
+      # Productos (ADR-0151): una prenda descontinuada no cuenta como «sin stock», «stock bajo» ni «para pedir»
+      # (y por tanto no sale en «A quién pedirle»), el contador de arriba dice lo mismo que la lista de abajo, y
+      # «N variantes» cuenta variantes, no filas de stock. Cada caso termina en ROLLBACK.
+      - name: pruebas:productos-alertas-de-stock
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:productos-alertas-de-stock
+
       # El dinero de Compras es solo del líder (ADR-0126): que un integrante no lea ni un monto —por
       # función, por tabla ni por el bucket de escaneos—, que recibir siga funcionando y que ninguna
       # migración le quite el candado a las cinco funciones de dinero (el riesgo residual del ADR).
