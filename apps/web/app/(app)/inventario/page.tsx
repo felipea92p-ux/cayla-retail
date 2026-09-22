@@ -29,7 +29,7 @@ export default async function InventarioPage({
 }) {
   const persona = await requirePersonaActualV2();
   const { ubicacion: ubicacionQuery, prueba } = await searchParams;
-  // D-54 (ADR-0152): apagado por defecto — los productos archivados como dato de prueba
+  // D-54 (ADR-0159): apagado por defecto — los productos archivados como dato de prueba
   // (nunca borrados) no se piden a la base salvo que se pida verlos.
   const incluirPrueba = prueba === "1";
   const ubicaciones = await getUbicaciones();
@@ -90,7 +90,7 @@ export default async function InventarioPage({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {persona.rol === "lider" && <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} />}
-          {/* D-54 (ADR-0152): apagado por defecto — los productos archivados como dato de prueba
+          {/* D-54 (ADR-0159): apagado por defecto — los productos archivados como dato de prueba
               (nunca borrados) quedan afuera de «Existencias» salvo que se pida verlos. */}
           <Link
             href={hrefPrueba}

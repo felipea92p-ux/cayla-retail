@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { CalendarDays } from "lucide-react";
 import { BuscadorDebounced } from "@/components/ui/BuscadorDebounced";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { ALTO_CONTROL, SelectNativo } from "@/components/ui/campos";
+import { usePosicionAnclada } from "@/components/ui/useAnclaje";
 import type { CambiosUrl } from "@/components/useResumenUrl";
 import type { ModoResumen } from "@/lib/resumen-comparacion";
-import { MODOS_COMPARACION, PRESETS_PERIODO, textoPildoraPeriodo, type ModoComparacion, type PeriodoResuelto, type PresetPeriodo, type Rango } from "@/lib/resumen-periodo";
+import { PRESETS_PERIODO, textoPildoraPeriodo, type ModoComparacion, type PeriodoResuelto, type PresetPeriodo, type Rango } from "@/lib/resumen-periodo";
 import { OPCIONES_SELL_THROUGH, type AlcanceResumen, type FiltroSellThrough } from "@/lib/resumen-filtros";
 
 // La franja de mando del Análisis de inventario. Todo cambio va a la URL (`useResumenUrl`) y el
@@ -21,17 +23,18 @@ import { OPCIONES_SELL_THROUGH, type AlcanceResumen, type FiltroSellThrough } fr
 // COMPARAR PERÍODOS (`modo = "comparar"`): CONTEXTO de la página, no otra card protagonista (2026-09-19).
 // Desde el diseño de Figma del 2026-09-21 son dos píldoras, «Período A: desde … hasta …» y «Período B: desde …
 // hasta …», del alto de todo control (`ALTO_CONTROL`) y alineadas con la línea del selector de Categoría.
-// Tocar cualquiera abre EL MISMO selector de fechas (`PopoverRango`) que usa «Personalizado» en Desempeño:
-// Desde y Hasta escritos a mano y ya cargados con el período actual. Los atajos que A y B ya tenían —A: período
-// anterior o mismo período del año pasado; B: 7, 30, 90 días y este mes— viven dentro de ese mismo selector, para
-// que unificarlos no le quite a nadie una capacidad. «Sin comparación» no existe: sin A no hay qué comparar. La
+// Tocar cualquiera abre EL MISMO selector de fechas (`PopoverRango`) que usa «Personalizado» en Desempeño —
+// literal, sin nada propio de A o B adentro (2026-09-22, Felipe): Desde y Hasta escritos a mano, Cancelar y
+// Aplicar. Los atajos que A y B tenían antes —A: período anterior o mismo período del año pasado; B: 7, 30, 90
+// días y este mes— se quitaron: duplicaban los presets generales (B) o eran un caso de un solo módulo (A), y
+// para elegir esas fechas alcanza con escribirlas. «Sin comparación» no existe: sin A no hay qué comparar. La
 // búsqueda NO vive aquí: se mudó al Detalle (Vista general no filtra productos, los explica).
 
 const ETIQUETA = "label-cayla text-[10px] text-tinta/65";
 
-// Dónde cae el selector de fechas: bajo la tarjeta de Desempeño, o bajo la píldora que se tocó en Comparar.
-const POSICION_TARJETA = "absolute left-4 top-[calc(100%-0.25rem)] z-20 w-[min(22rem,calc(100%-2rem))]";
-const POSICION_PILDORA = "absolute left-0 top-full z-20 mt-2 w-[22rem] max-w-[calc(100vw-2rem)]";
+// Ancho nominal del selector de fechas (`w-[22rem]` en su propia clase, abajo): lo que usa
+// `usePosicionAnclada` para no calcular un `left` que lo saque de la pantalla.
+const ANCHO_POPOVER = 352;
 
 function Filtro({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
   return (
@@ -43,19 +46,27 @@ function Filtro({ etiqueta, children }: { etiqueta: string; children: React.Reac
 }
 
 /** El selector de fechas de todo el Análisis (2026-09-21): el de «Personalizado» en Desempeño y el de las
- *  píldoras A y B en Comparar son ESTE, no tres. Escribir es lo principal: abre con las dos fechas del período
- *  que se está viendo ya cargadas y «Desde» listo para teclear (seleccionado: lo escrito reemplaza la fecha),
- *  Tab pasa de una a otra y Enter aplica; el calendario de cada campo queda como ayuda, nunca obligatorio.
- *  Los errores van en línea, jamás un alert: una fecha que no existe se marca en su campo y «Desde» posterior a
- *  «Hasta» debajo de los dos. «Aplicar» no se apaga: al intentarlo con algo mal dice qué y lleva el foco al
- *  campo que hay que arreglar (un botón apagado no explica nada). Los topes del período —no empezar en el
- *  futuro, 366 días— siguen siendo del servidor, que avisa con su `advertencia`. */
+ *  píldoras A y B en Comparar son ESTE, no tres — Felipe lo pidió literal, sin diferencias: título, Desde/Hasta,
+ *  Cancelar/Aplicar y nada más (2026-09-22: A y B traían además sus propios atajos —«Período anterior»/«Mismo
+ *  período del año anterior» en A, «7/30/90 días · Este mes» repetido en B— y eso era justo lo que los volvía
+ *  distintos entre sí; se quitaron, no se escondieron: A y B se eligen escribiendo la fecha, como Personalizado.
+ *  Los presets generales de Desempeño, fuera de este panel, siguen intactos). Escribir es lo principal: abre con
+ *  las dos fechas del período que se está viendo ya cargadas y «Desde» listo para teclear (seleccionado: lo
+ *  escrito reemplaza la fecha), Tab pasa de una a otra y Enter aplica; el calendario de cada campo queda como
+ *  ayuda, nunca obligatorio. Los errores van en línea, jamás un alert: una fecha que no existe se marca en su
+ *  campo y «Desde» posterior a «Hasta» debajo de los dos. «Aplicar» no se apaga: al intentarlo con algo mal dice
+ *  qué y lleva el foco al campo que hay que arreglar (un botón apagado no explica nada). Los topes del período
+ *  —no empezar en el futuro, 366 días— siguen siendo del servidor, que avisa con su `advertencia`.
+ *
+ *  Se ancla a `control` (2026-09-22) con el mismo mecanismo que `MenuAcciones` — portal a `document.body` +
+ *  `position: fixed` medida con `getBoundingClientRect` (`useAnclaje.ts`) — así los tres caen igual, pegados
+ *  al control que los abrió, sin importar si ese control vive dentro de una franja con `overflow-x-auto` (el
+ *  caso de «Personalizado», que antes se posicionaba contra la tarjeta entera por eso mismo). */
 function PopoverRango({
   id,
   titulo,
   inicial,
-  className,
-  atajos,
+  control,
   onCancelar,
   onAplicar,
 }: {
@@ -63,13 +74,12 @@ function PopoverRango({
   titulo: string;
   /** Las fechas con que abre: las del período que se está viendo (null = todavía sin fechas). */
   inicial: Rango | null;
-  /** Dónde se posiciona: lo decide quien lo usa. */
-  className: string;
-  /** Opcional: los atajos del período (chips) que se aplican de un clic. */
-  atajos?: ReactNode;
+  /** El control que lo abrió: se ancla debajo de él, alineado a su izquierda. */
+  control: RefObject<HTMLElement | null>;
   onCancelar: () => void;
   onAplicar: (rango: Rango) => void;
 }) {
+  const pos = usePosicionAnclada(control, true, ANCHO_POPOVER);
   const [desde, setDesde] = useState(inicial?.desde ?? "");
   const [hasta, setHasta] = useState(inicial?.hasta ?? "");
   // Aplicar se intentó con algo mal: desde ahí los avisos se ven y se corrigen en vivo.
@@ -95,11 +105,19 @@ function PopoverRango({
     formulario.current?.querySelectorAll("input")[desde === "" ? 0 : 1]?.focus();
   };
 
-  return (
-    <div id={id} role="group" aria-label={titulo} className={`anim-revelar rounded-lg border border-tinta/15 bg-papel p-4 shadow-lg ${className}`}>
+  // Todavía sin medir el control (primer render tras abrir): un cuadro sin posición se vería en 0,0.
+  if (!pos) return null;
+
+  return createPortal(
+    <div
+      id={id}
+      role="group"
+      aria-label={titulo}
+      style={{ top: pos.top, left: pos.left }}
+      className="anim-revelar fixed z-[60] w-[22rem] max-w-[calc(100vw-2rem)] rounded-lg border border-tinta/15 bg-papel p-4 shadow-lg"
+    >
       <form ref={formulario} noValidate onSubmit={aplicar}>
         <p className="label-cayla text-[11px] text-tinta">{titulo}</p>
-        {atajos && <div className="mt-3 flex flex-wrap gap-1.5">{atajos}</div>}
         {/* Lado a lado desde 380px: por debajo, cada campo queda de ~120px y «23/08/2026» (~127px con su
             icono de calendario) se corta; apilados caben en cualquier pantalla. */}
         <div className="mt-3 grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">
@@ -124,24 +142,8 @@ function PopoverRango({
           </button>
         </div>
       </form>
-    </div>
-  );
-}
-
-/** Un atajo dentro del selector de fechas: un clic y se aplica. El activo va en tinta, como los presets de
- *  Desempeño; si el período es uno escrito a mano, ninguno lo está. */
-function Atajo({ activo, onClick, children }: { activo: boolean; onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={activo}
-      className={`label-cayla inline-flex h-8 items-center rounded-md border px-2.5 text-[11px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo/60 ${
-        activo ? "border-tinta bg-tinta text-crema" : "border-tinta/15 bg-papel text-tinta/75 hover:border-tinta/40"
-      }`}
-    >
-      {children}
-    </button>
+    </div>,
+    document.body
   );
 }
 
@@ -149,10 +151,28 @@ function Atajo({ activo, onClick, children }: { activo: boolean; onClick: () => 
  *  13 px medium, fondo tinta/4 %, borde tinta/30, radio 8, padding lateral 12, 8 entre ícono y texto. Del alto de
  *  todo control (`ALTO_CONTROL`, 36 px) —el frame la dibujó de 32 y con eso rompía la línea que comparten
  *  pestañas, presets y selector— y abierta (su selector de fechas a la vista) oscurece el borde. Es un botón: en
- *  una ventana angosta el texto se recorta con «…» antes que desbordar la fila. */
-function PildoraPeriodo({ texto, titulo, abierta, controla, onClick }: { texto: string; titulo: string; abierta: boolean; controla: string; onClick: () => void }) {
+ *  una ventana angosta el texto se recorta con «…» antes que desbordar la fila.
+ *
+ *  `ref` (React 19: un componente función lo recibe como prop, sin `forwardRef`) apunta al botón real, para que
+ *  `usePosicionAnclada` mida ESTE control y no un contenedor que lo envuelve. */
+function PildoraPeriodo({
+  texto,
+  titulo,
+  abierta,
+  controla,
+  onClick,
+  ref,
+}: {
+  texto: string;
+  titulo: string;
+  abierta: boolean;
+  controla: string;
+  onClick: () => void;
+  ref?: RefObject<HTMLButtonElement | null>;
+}) {
   return (
     <button
+      ref={ref}
       type="button"
       onClick={onClick}
       aria-expanded={abierta}
@@ -175,7 +195,6 @@ export function ResumenControles({
   categorias,
   actualizar,
   sellThrough = "todos",
-  modoComparacion = "anterior",
   rangoComparacion = null,
 }: {
   modo?: ModoResumen;
@@ -185,7 +204,10 @@ export function ResumenControles({
   actualizar: (cambios: CambiosUrl) => void;
   /** Solo Desempeño: la banda de sell-through elegida. */
   sellThrough?: FiltroSellThrough;
-  /** Solo Comparar: cómo se eligió A y el rango con que se compara hoy (A es «Otro período…» cuando lo escribió a mano). */
+  /** Solo Comparar: cómo se eligió A (período anterior, mismo período del año pasado, u otro escrito a mano).
+   *  `ResumenComparacionPanel.tsx` lo sigue mandando — es lo que decide, en `resumen-periodo.ts`, cuál es el
+   *  rango por defecto de A — pero este componente ya no lo usa para dibujar nada (2026-09-22: la píldora A ya
+   *  no trae atajos propios, así que no hay un botón que necesite saber cuál está activo). */
   modoComparacion?: ModoComparacion;
   rangoComparacion?: Rango | null;
 }) {
@@ -194,16 +216,16 @@ export function ResumenControles({
   // «Personalizado» en Desempeño) o el de A, el período contra el que se compara.
   const [abierto, setAbierto] = useState<"periodo" | "comparacion" | null>(null);
   const alternar = (cual: "periodo" | "comparacion") => setAbierto((a) => (a === cual ? null : cual));
+  // El control que abre cada selector — `usePosicionAnclada` (dentro de `PopoverRango`) mide ESTE elemento,
+  // sea la píldora B o el chip «Personalizado»: dos controles distintos según el modo, un solo ref porque
+  // nunca se dibujan los dos a la vez.
+  const refPeriodo = useRef<HTMLButtonElement>(null);
+  const refComparacion = useRef<HTMLButtonElement>(null);
 
   const elegirPreset = (p: PresetPeriodo) => {
     if (p === "personalizado") return alternar("periodo");
     setAbierto(null);
     actualizar({ preset: p === "30d" ? null : p, desde: null, hasta: null });
-  };
-
-  const elegirComparacion = (valor: "anterior" | "anio") => {
-    setAbierto(null);
-    actualizar({ comparar: valor === "anterior" ? null : valor, cdesde: null, chasta: null });
   };
 
   // Las piezas se arman una vez y las usan las dos composiciones.
@@ -217,6 +239,9 @@ export function ResumenControles({
             return (
               <button
                 key={p.valor}
+                // Solo «Personalizado» abre un selector: es el único control que `usePosicionAnclada`
+                // necesita medir. Los demás presets se aplican solos, sin panel que anclar.
+                ref={p.valor === "personalizado" ? refPeriodo : undefined}
                 type="button"
                 role="radio"
                 aria-checked={periodo.preset === p.valor}
@@ -248,22 +273,14 @@ export function ResumenControles({
     </Filtro>
   );
 
-  // El selector del período que se analiza: B en Comparar (con sus atajos de 7/30/90 días y este mes) y
-  // «Personalizado» en Desempeño (sin atajos: esos ya son los chips de al lado).
+  // El selector del período que se analiza: B en Comparar y «Personalizado» en Desempeño — el mismo panel,
+  // sin atajos propios; los presets generales de 7/30/90 días y Este mes se eligen fuera, en `chipsPeriodo`.
   const popoverPeriodo = abierto === "periodo" && (
     <PopoverRango
       id="selector-periodo"
       titulo={comparando ? "Período B · el que analizas" : "Período personalizado"}
       inicial={{ desde: periodo.desde, hasta: periodo.hasta }}
-      className={comparando ? POSICION_PILDORA : POSICION_TARJETA}
-      atajos={
-        comparando &&
-        PRESETS_PERIODO.filter((p) => p.valor !== "personalizado").map((p) => (
-          <Atajo key={p.valor} activo={periodo.preset === p.valor} onClick={() => elegirPreset(p.valor)}>
-            {p.texto}
-          </Atajo>
-        ))
-      }
+      control={refPeriodo}
       onCancelar={() => setAbierto(null)}
       onAplicar={({ desde, hasta }) => {
         setAbierto(null);
@@ -276,7 +293,7 @@ export function ResumenControles({
   // acomodan solos debajo del período si no caben); abajo, la búsqueda a todo el ancho.
   if (!comparando) {
     return (
-      <div className="card-cayla relative min-w-0 space-y-4 p-4">
+      <div className="card-cayla min-w-0 space-y-4 p-4">
         <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
           {chipsPeriodo}
           {/* En celular los dos filtros se reparten el ancho de la fila; desde `sm` son de 11 rem cada uno. */}
@@ -308,45 +325,38 @@ export function ResumenControles({
   const anioDistinto = rangoComparacion ? rangoComparacion.desde.slice(0, 4) !== periodo.desde.slice(0, 4) || rangoComparacion.hasta.slice(0, 4) !== periodo.hasta.slice(0, 4) : false;
 
   return (
-    <div className="relative min-w-0">
+    <div className="min-w-0">
       <div className="flex flex-wrap items-end gap-x-3 gap-y-2.5">
-        <div className="relative min-w-0 max-w-full">
-          <PildoraPeriodo
-            texto={textoPildoraPeriodo("A", rangoComparacion, anioDistinto)}
-            titulo="Período A: contra el que se compara"
-            abierta={abierto === "comparacion"}
-            controla="selector-comparacion"
-            onClick={() => alternar("comparacion")}
+        <PildoraPeriodo
+          ref={refComparacion}
+          texto={textoPildoraPeriodo("A", rangoComparacion, anioDistinto)}
+          titulo="Período A: contra el que se compara"
+          abierta={abierto === "comparacion"}
+          controla="selector-comparacion"
+          onClick={() => alternar("comparacion")}
+        />
+        {abierto === "comparacion" && (
+          <PopoverRango
+            id="selector-comparacion"
+            titulo="Período A · el que se compara"
+            inicial={rangoComparacion}
+            control={refComparacion}
+            onCancelar={() => setAbierto(null)}
+            onAplicar={({ desde, hasta }) => {
+              setAbierto(null);
+              actualizar({ comparar: "personalizado", cdesde: desde, chasta: hasta });
+            }}
           />
-          {abierto === "comparacion" && (
-            <PopoverRango
-              id="selector-comparacion"
-              titulo="Período A · el que se compara"
-              inicial={rangoComparacion}
-              className={POSICION_PILDORA}
-              atajos={MODOS_COMPARACION.filter((m): m is { valor: "anterior" | "anio"; texto: string } => m.valor === "anterior" || m.valor === "anio").map((m) => (
-                <Atajo key={m.valor} activo={modoComparacion === m.valor} onClick={() => elegirComparacion(m.valor)}>
-                  {m.texto}
-                </Atajo>
-              ))}
-              onCancelar={() => setAbierto(null)}
-              onAplicar={({ desde, hasta }) => {
-                setAbierto(null);
-                actualizar({ comparar: "personalizado", cdesde: desde, chasta: hasta });
-              }}
-            />
-          )}
-        </div>
-        <div className="relative min-w-0 max-w-full">
-          <PildoraPeriodo
-            texto={textoPildoraPeriodo("B", { desde: periodo.desde, hasta: periodo.hasta }, anioDistinto)}
-            titulo="Período B: el que analizas"
-            abierta={abierto === "periodo"}
-            controla="selector-periodo"
-            onClick={() => alternar("periodo")}
-          />
-          {popoverPeriodo}
-        </div>
+        )}
+        <PildoraPeriodo
+          ref={refPeriodo}
+          texto={textoPildoraPeriodo("B", { desde: periodo.desde, hasta: periodo.hasta }, anioDistinto)}
+          titulo="Período B: el que analizas"
+          abierta={abierto === "periodo"}
+          controla="selector-periodo"
+          onClick={() => alternar("periodo")}
+        />
+        {popoverPeriodo}
         <div className="ml-auto w-full min-w-0 sm:ml-auto sm:w-44">{selectorCategoria}</div>
       </div>
     </div>

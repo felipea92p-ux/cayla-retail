@@ -78,7 +78,7 @@ order by v.created_at;
 -- -- … las que hagan falta hasta cubrir las ~14 que confirmaste en el PASO 1.
 --
 -- Nota: archivar la VENTA no cambia el comprobante (`comprobantes.estado` sigue `pendiente`) —
--- a propósito, fuera de alcance de D-54 (ver ADR-0152, «fuera de alcance»). Si Facturación
+-- a propósito, fuera de alcance de D-54 (ver ADR-0159, «fuera de alcance»). Si Facturación
 -- necesita dejar de ofrecer estas boletas para transmitir, es una decisión aparte.
 
 -- ============================================================================

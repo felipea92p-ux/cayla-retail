@@ -1,4 +1,4 @@
-# ADR-0152 — Ficha de clienta, v1: backend mínimo y no invasivo, y por qué se retira `retail.clientes`
+# ADR-0154 — Ficha de clienta, v1: backend mínimo y no invasivo, y por qué se retira `retail.clientes`
 
 **Fecha:** 2026-09-22
 **Estado:** Aceptado e **implementado en local** (rama `feat/ficha-clienta-backend-d76-d77`). Verificado con un Postgres 17 desechable que corrió
