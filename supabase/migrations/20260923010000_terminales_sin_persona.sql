@@ -85,6 +85,8 @@ create policy terminales_select on retail.terminales for select to authenticated
 revoke all on retail.terminales from anon;
 revoke insert, update, delete on retail.terminales from authenticated;
 grant select on retail.terminales to authenticated;
+-- El script `pnpm terminales:crear` usa la llave de servicio: sin este grant, su insert falla (patrón de las migraciones recientes).
+grant all on retail.terminales to service_role;
 
 -- ==================== 2. Quién es la terminal de esta sesión ====================
 create or replace function retail.fn_terminal_actual()
