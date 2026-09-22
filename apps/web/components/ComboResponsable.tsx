@@ -128,7 +128,7 @@ export function ComboResponsable({ control, hacia = "en-linea", deshabilitado = 
         aria-haspopup="listbox"
         aria-expanded={abierto}
         aria-controls={abierto ? idLista : undefined}
-        aria-label={elegido ? `Responsable: ${elegido.nombre}. Cambiar` : "Elegir responsable"}
+        aria-label={elegido ? `Responsable: ${elegido.nombre.replace(/\.$/, "")}. Cambiar` : "Elegir responsable"}
         disabled={deshabilitado || cargando}
         onClick={() => setAbierto((a) => !a)}
         className={`flex h-12 w-full items-center gap-2.5 rounded-lg border bg-crema px-3.5 text-left transition-[border-color,box-shadow] duration-200 disabled:cursor-default disabled:opacity-60 ${

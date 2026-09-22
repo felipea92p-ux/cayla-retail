@@ -37,13 +37,13 @@
 --
 -- A MANO (2): la variable de persona NO solo firma, también AUTORIZA. Cambiarla por el responsable (elegido
 -- sin PIN) cambiaría quién tiene permiso. Se firma con el actor, pero el permiso se sigue mirando en la
--- CUENTA, y una terminal (que no tiene persona) cae en el lado cerrado hasta que Felipe decida:
+-- CUENTA, nunca del responsable elegido sin PIN. Para la terminal, Felipe decidió (2026-09-22):
 --   · registrar_venta: el tope de descuento de venta (D-67) se leía de `colaboradores` por v_persona. Con el
---     responsable, elegir a una líder (tope NULL = sin tope) daría descuento ilimitado a cualquiera en la
---     terminal. Ahora: tope de la CUENTA; una terminal tiene tope 0 (todo descuento de venta pide `p_autorizado_por`
---     líder). Los descuentos por línea ya miraban `fn_es_lider()` (la cuenta) y no cambian.
+--     responsable, elegir a una líder (tope NULL = sin tope) le daría ese tope a quien sea. Ahora: tope de la
+--     CUENTA; una persona conserva el suyo y una TERMINAL no tiene tope (NULL) ni pide autorización. Los descuentos
+--     POR LÍNEA siguen mirando `fn_es_lider()` (la cuenta): en la terminal exigen código de descuento, como hoy.
 --   · liberar_apartado: «solo quien apartó o una líder» comparaba `a.creado_por = v_persona`. Ahora compara con la
---     persona de la CUENTA y con `coalesce(…, false)`: una terminal no libera apartados (solo la líder). Sin el
+--     persona de la CUENTA con `coalesce(…, false)`, y una TERMINAL libera siempre. Sin el
 --     coalesce, en una terminal `null = x` es NULL, `if not (false or NULL)` NO lanza y el candado quedaba abierto.
 --
 -- SE QUEDAN ASÍ, A PROPÓSITO (miran `auth.uid()` porque preguntan por la CUENTA, no por quien firma)

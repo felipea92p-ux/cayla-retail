@@ -28,20 +28,36 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Terminales sin persona, como en Dynamic (2026-09-22, ADR-0162) — APROBADO por Felipe (2026-09-22); EN CONSTRUCCIÓN
+## 🎯 Terminales sin persona, como en Dynamic (2026-09-22, ADR-0162) — CONSTRUIDO en la rama `claude/responsable-y-roles-spike` (PR #285); falta pegar en producción y publicar
 - [x] Investigado Dynamic (`public.terminales`, cuenta de Auth sin persona, `fn_sede_actual_terminal`, script de alta, sin PIN) y medido en producción: 75 funciones de retail buscan persona (~65 con un reemplazo mecánico, 10 a mano).
-- [x] Plan en `docs/adr/0162-terminales-sin-persona-como-dynamic.md`; spike, pantallas 5 y 6.
-- [ ] Felipe aprueba → F1 prueba del encabezado `x-responsable` por PostgREST → F2 base → F3 las 75 funciones → F4 web → F5 script `terminales:crear`.
-- [x] La migración del ADR-0160 **ya está pegada** en producción, con 0 terminales dadas de alta. **No crear las 6 personas en Dynamic.**
+- [x] Plan en `docs/adr/0162-terminales-sin-persona-como-dynamic.md`; spike, pantallas 5 y 6. Aprobado por Felipe.
+- [x] **F1:** el encabezado `x-responsable` llega por PostgREST (local con `curl` y `supabase-js`; en producción, el CORS ya lo acepta).
+- [x] **F2** `20260923010000_terminales_sin_persona.sql`: `retail.terminales`, `fn_terminal_actual`, `fn_persona_presente`, `fn_actor_persona_id`, `fn_exige_responsable` (apagado), `terminal_id` + `trg_sellar_terminal` en 10 tablas, `fn_terminales`/`desactivar_terminal`/`reactivar_terminal`, retiro de `colaboradores.terminal` y `agregar_terminal`. `pnpm pruebas:terminales-sin-persona` 34/34.
+- [x] **F3** `20260923020000_actor_firma_las_operaciones.sql`: 65 funciones firman con `fn_actor_persona_id` (36 de tienda, 29 no), cotejadas contra producción en solo lectura. Terminal sin tope de descuento y libera apartados siempre (Felipe). `pnpm pruebas:actor-firma` 30/30, `pnpm pruebas:terminales` (reescrita) 74/74.
+- [x] **F4a** web: sesión de terminal por `requirePersonaActualV2`, pie del lateral con el aparato, aviso de terminal desactivada en `/login`, pestaña Colaboradores ▸ Terminales (Desactivar / Reactivar).
+- [x] **F5** script `pnpm terminales:crear` (+ `pnpm terminales:probar`), sin correr contra ningún entorno.
+- [ ] **Pegar en producción, en orden:** F2 `20260923010000` → F3 `20260923020000`, cada una empezando con `set search_path to retail, public, extensions;`. Si después se pegan «apartar stock» o «comprador de tienda», **volver a pegar la F3** (hoy las omite con aviso porque producción no las tiene). Pedir OK a Felipe antes.
+- [ ] Publicar la web (fusionar el PR #285; lo fusiona Felipe).
+- [ ] Felipe crea las 6 terminales (ventas y administrativa de TRU/AQP/LIM) con `pnpm terminales:crear`. **No crear personas en Dynamic.**
+- [ ] `pnpm datos:generar:produccion` + `pnpm datos:comparar` después de pegar, para que `terminales` y las funciones nuevas entren al diccionario.
+- [ ] Verificar con una terminal de verdad en TRU (aún no se probó con la sesión de un aparato en el navegador; sí con la de un líder).
+- [x] La migración del ADR-0160 **ya está pegada** en producción, con 0 terminales dadas de alta.
 
-## 🎯 Responsable en cada operación + roles retomados (2026-09-22, ADR-0161) — spike APROBADO (2026-09-22); en construcción junto con ADR-0162
-- [x] **Decisiones de Felipe** (4 rondas): combo «Responsable» vacío en cada acción que guarda, solo el nombre, solo quien marcó entrada hoy en esa tienda y no salió, bloqueo si no hay nadie (también LIM y también el líder desde casa), en todas las cuentas para la operación de tienda. Se retoma el ADR-0150 con las terminales como un rol más, y cada rol configura módulos **y** acciones.
+## 🎯 Responsable en cada operación + roles retomados (2026-09-22, ADR-0161) — combo Responsable CONSTRUIDO (F4b, PR #285); roles en otra rama
+- [ ] **Más adelante (Felipe, 2026-09-22: «no es tan importante por ahora»):** guardar quién crea o cambia marcas (`retail.marcas` no tiene columna de firma) y anotar los cambios de NOMBRE de una prenda en el historial (`fn_registrar_cambio_producto` solo registra categoría, estado, marca, proveedor, precio y costo). Hoy el combo se pide en Catálogo pero esos dos casos no dejan rastro.
+- [x] **Decisiones de Felipe** (4 rondas): combo «Responsable» vacío en cada acción que guarda, solo el nombre, solo quien marcó entrada hoy en esa tienda y no salió, bloqueo si no hay nadie (también LIM y también el líder desde casa), en todas las cuentas para la operación de tienda. Roles simplificados después a «ve / no ve» por módulo.
 - [x] **Spike visual:** `docs/maquetas/responsable-y-roles-spike-2026-09/` (editor de roles, combo en una venta, cierre de caja, nadie de turno).
 - [x] **Spike aprobado.** En pausa NO firma ni opera; sin conexión vale la hora de la venta.
-- [ ] Construir en **dos sesiones en paralelo**: (a) responsable: `fn_responsable_actual()` lee el encabezado `x-responsable`, primero una prueba de que PostgREST lo pasa y de cómo se comportan las ventas offline; (b) roles: ADR-0150 F1+ con acciones por módulo.
-- [ ] LIM no podrá guardar nada hasta que se cargue su asistencia en Dynamic (decisión A5).
-
-- [ ] **Alinear la fila «Atendió» del ADR-0163 (PR #286) con el ADR-0161:** hoy, con 1 de turno la elige sola y con 0 vende a nombre de la sesión; lo decidido es vacío siempre y bloqueo. Se reutiliza `VendedorasFila`/`useVendedorasDeTurno`.
+- [x] **(a) Responsable, en la base:** lo resuelve `fn_actor_persona_id` del ADR-0162 (no hizo falta un `fn_responsable_actual()` aparte ni una columna `responsable_id`: `usuario_id` es el responsable y `terminal_id` el aparato).
+- [x] **(a) Responsable, en la web (F4b):** `lib/responsable-reglas.ts` (+ test), `lib/useDeTurno.ts`, `lib/useResponsable.ts`, `components/ComboResponsable.tsx`, `components/SedeActiva.tsx`; encabezados `x-responsable` / `x-ubicacion` / `x-momento`. Conectado en Punto de venta (reemplaza la fila «Atendió» del ADR-0163) y ventas sin conexión, Caja, Cambios, Devoluciones, Facturación, Inventario y Catálogo (lista en el ADR-0161, «F4b»).
+- [x] **Verificado en navegador** (Postgres local, sesión de líder): abrir caja, cobrar (nota de venta), egreso de caja y cerrar caja → combo vacío, botón apagado hasta elegir, vuelve a vacío, y en la base firma la persona ELEGIDA.
+- [ ] Encender `fn_exige_responsable()` (`create or replace … select true`) **solo después** de publicar la web y de revisar que no quede una escritura de tienda sin combo; si no, la base rechaza a una persona sin encabezado con `responsable_requerido`.
+- [ ] (b) **Roles «ve / no ve» por módulo:** en construcción en otra rama (`claude/roles-por-modulo`), **no está en el PR #285**.
+- [ ] LIM no podrá guardar nada hasta que se cargue su asistencia en Dynamic (decisión A5). En el Postgres local (sin `marcajes`/`jornadas`) todo queda bloqueado igual: es la regla, no un error.
+- [ ] **Decide Felipe:** ¿«Pedidos no atendidos» es operación de tienda (lleva combo)? Hoy no tiene combo; su función ya firma con `fn_actor_persona_id(true)`.
+- [x] **Decide Felipe:** la terminal descuenta sin tope, pero como no es líder, un descuento manual por línea le sigue exigiendo un código de descuento válido (`venta_descuento_requiere_codigo`, `registrar_venta`). ¿Se deja así o la terminal queda libre del código también? **Decidido (Felipe, 2026-09-22): la terminal pide código, como una colaboradora.**
+- [ ] **Límite conocido:** un Punto de venta abierto SIN conexión desde el inicio no carga la lista del combo y no puede vender sin conexión hasta que la cargue una vez con red.
+- [x] ~~Alinear la fila «Atendió» del ADR-0163 con el ADR-0161~~: hecho en F4b (el combo la reemplaza; vacío siempre y bloqueo).
 
 ## 🎯 «Quién vendió» en el ticket del Punto de venta (2026-09-22, ADR-0163) — rehecho sobre la asistencia de Dynamic; migración en producción, falta fusionar la web
 Un solo equipo de caja y varias colaboradoras por tienda. La fila «Atendió» ofrece a quienes marcaron entrada hoy en Dynamic (`fn_asesoras_de_turno`) y la venta se guarda en `ventas.asesora_id` — ambas ya en producción desde la 20260922150000 (ADR-0153). Decisión en [docs/adr/0163-vendedora-en-el-ticket.md](adr/0163-vendedora-en-el-ticket.md).
