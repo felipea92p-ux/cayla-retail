@@ -155,11 +155,14 @@ export function motivoBloqueoCobro(v: {
   facturaSinRuc: boolean;
   /** Hay 2 o más marcadas en la sede y todavía no se eligió quién atendió (`vendedoraPendiente`). Ausente = no aplica. */
   vendedoraFalta?: boolean;
+  /** Se cobra una proforma VENCIDA y aún no se confirmó que va al precio de entonces (ADR-0167). Ausente = no aplica. */
+  proformaVencidaSinConfirmar?: boolean;
 }): string | null {
   if (!v.cajaAbierta) return "Abre la caja para vender.";
   if (v.prendas === 0) return "Agrega una prenda para cobrar.";
   if (v.vendedoraFalta) return "Elige quién atendió a la clienta.";
   if (v.momento !== "cobrar") return null;
+  if (v.proformaVencidaSinConfirmar) return "Confirma que cobras la proforma vencida al precio de entonces.";
   if (v.pagos.length === 0) return "Elige cómo pagó la clienta.";
   const restante = restanteDePagos(v.total, v.pagos);
   if (restante > 0) return `Falta cubrir S/${restante.toFixed(2)}.`;
