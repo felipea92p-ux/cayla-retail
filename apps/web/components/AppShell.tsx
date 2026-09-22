@@ -71,6 +71,9 @@ type Persona = {
    *  AppShell y las páginas de Producción; el permiso real lo da la base. */
   ubicacionTipo: "tienda" | "almacen" | "taller";
   puedeCambiarUbicacion: boolean;
+  /** ADR-0151: si es comprador de al menos una tienda (`persona.tiendasCompra.length > 0`
+   *  en `persona-actual.ts`) — abre el permiso `verDineroCompras` del menú. El líder no lo necesita. */
+  esCompradorDeTienda: boolean;
 };
 
 type Props = {
@@ -807,7 +810,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
 
   // El menú de esta persona: filas, barra del celular, «+ Nuevo» y qué grupo contiene cada ruta. Todo sale de `lib/menu.ts`.
   const menu = menuPara({
-    permisos: permisosDe(persona.rol),
+    permisos: permisosDe(persona.rol, persona.esCompradorDeTienda),
     ubicacionTipo: persona.ubicacionTipo,
     contadores: { trasladosPorAtender },
   });

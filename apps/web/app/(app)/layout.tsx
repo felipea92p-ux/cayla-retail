@@ -32,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         ubicacionEtiqueta: persona.ubicacionEtiqueta,
         ubicacionTipo: persona.ubicacionTipo,
         puedeCambiarUbicacion: persona.puedeCambiarUbicacion,
+        esCompradorDeTienda: persona.tiendasCompra.length > 0,
       }}
       ubicaciones={ubicaciones}
       trasladosPorAtender={trasladosPorAtender}

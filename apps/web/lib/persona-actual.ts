@@ -23,6 +23,10 @@ export type PersonaActualV2 = {
    *  (0012_control_total_temporal.sql) se revierta, esto puede volver a
    *  distinguirse sin tocar el componente. */
   puedeCambiarUbicacion: boolean;
+  /** ADR-0151 (Compras por tienda): las tiendas donde esta persona ve, registra y paga Compras —
+   *  de `compradores_de_tienda`, vía `fn_compras_ubicaciones()`. El líder no necesita esto (ve
+   *  todas por rol); para un integrante, vacío = no es comprador de ninguna. Puede ser más de una. */
+  tiendasCompra: { id: string; nombre: string }[];
 };
 
 // Mismo nombre que en app/actions/ubicacion.ts — no se comparte como
@@ -78,6 +82,19 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     }
   }
 
+  // ADR-0151: solo para un integrante — el líder ya ve todas las tiendas por rol, no necesita esta lista
+  // (una llamada menos en el camino más transitado de la app). `fn_compras_ubicaciones()` da los ids
+  // (todas si líder, las de `compradores_de_tienda` si comprador, ninguna si no); acá solo se usa la rama
+  // integrante, así que un array vacío significa «no es comprador de ninguna tienda».
+  let tiendasCompra: PersonaActualV2["tiendasCompra"] = [];
+  if (!data.es_lider) {
+    const { data: ids } = await supabase.rpc("fn_compras_ubicaciones");
+    if (ids && ids.length > 0) {
+      const { data: tiendas } = await supabase.from("ubicaciones").select("id, nombre").in("id", ids).eq("activo", true).order("nombre");
+      tiendasCompra = tiendas ?? [];
+    }
+  }
+
   return {
     nombre: data.nombre ?? "",
     rol: data.es_lider ? "lider" : "integrante",
@@ -85,6 +102,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     ubicacionEtiqueta,
     ubicacionTipo,
     puedeCambiarUbicacion: !!data.es_lider,
+    tiendasCompra,
   };
 });
 
@@ -96,5 +114,14 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
 export async function exigirLider(): Promise<PersonaActualV2> {
   const persona = await requirePersonaActualV2();
   if (persona.rol !== "lider") redirect("/");
+  return persona;
+}
+
+/** Pantallas de Compras (ADR-0151): líder o comprador de al menos una tienda; cualquier otro vuelve al
+ *  inicio. Mismo patrón que `exigirLider` — primera de las tres capas, cada `page.tsx` de Compras la repite
+ *  porque el layout no se vuelve a ejecutar al navegar entre sus hijas. */
+export async function exigirLiderOCompradorDeTienda(): Promise<PersonaActualV2> {
+  const persona = await requirePersonaActualV2();
+  if (persona.rol !== "lider" && persona.tiendasCompra.length === 0) redirect("/");
   return persona;
 }

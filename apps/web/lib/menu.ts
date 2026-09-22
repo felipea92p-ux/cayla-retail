@@ -40,20 +40,27 @@ export type Pajaro = (typeof PAJAROS)[number];
 
 /**
  * Permisos SEMÁNTICOS: lo que una fila exige no es «ser líder», es poder hacer algo. Hoy el líder los tiene todos y el
- * integrante ninguno (`permisosDe`); el día que nazcan Admin y Solo lectura (D-12, cuatro niveles) se cambia UNA función y
- * el árbol no se toca.
- *  - administrar: dar y quitar acceso, configurar (Colaboradores).
- *  - verDinero:   costos, compras, pagos y comprobantes (ADR-0126: `fn_puede_ver_dinero_de_compras`).
- *  - analizar:    lecturas de decisión de una sede (Análisis de inventario).
+ * integrante ninguno salvo `verDineroCompras` (`permisosDe`); el día que nazcan Admin y Solo lectura (D-12, cuatro niveles)
+ * se cambia UNA función y el árbol no se toca.
+ *  - administrar:     dar y quitar acceso, configurar (Colaboradores).
+ *  - verDinero:       costos, compras, pagos y comprobantes de Producción y Facturación — sigue siendo SOLO del líder
+ *                      (ADR-0126: `fn_puede_ver_dinero_de_compras`; ADR-0133; ADR-0151 no lo toca).
+ *  - verDineroCompras: el dinero de COMPRAS (tiendas), y solo de eso (ADR-0151: `fn_puede_ver_dinero_de_compras` se abrió a
+ *                      «líder o comprador de alguna tienda», pero Producción y Facturación no deben abrirse con esto — por
+ *                      eso es un permiso aparte de `verDinero`, no el mismo). El líder lo tiene siempre (ve todo); un
+ *                      integrante lo tiene solo si es comprador de alguna tienda (`compradores_de_tienda`).
+ *  - analizar:        lecturas de decisión de una sede (Análisis de inventario).
  */
-export const PERMISOS = ["administrar", "verDinero", "analizar"] as const;
+export const PERMISOS = ["administrar", "verDinero", "verDineroCompras", "analizar"] as const;
 export type Permiso = (typeof PERMISOS)[number];
 
 export type RolMenu = "lider" | "integrante";
 
-/** El ÚNICO lugar donde el rol se traduce a permisos. Ningún nodo del árbol pregunta por el rol: pregunta por un permiso. */
-export function permisosDe(rol: RolMenu): readonly Permiso[] {
-  return rol === "lider" ? PERMISOS : [];
+/** El ÚNICO lugar donde el rol se traduce a permisos. Ningún nodo del árbol pregunta por el rol: pregunta por un permiso.
+ *  `esCompradorDeTienda` (ADR-0151): un integrante con al menos una fila en `compradores_de_tienda` — se calcula aparte
+ *  (`fn_compras_ubicaciones()`, en `persona-actual.ts`) porque depende de una tabla, no del rol. */
+export function permisosDe(rol: RolMenu, esCompradorDeTienda = false): readonly Permiso[] {
+  return rol === "lider" ? PERMISOS : esCompradorDeTienda ? ["verDineroCompras"] : [];
 }
 
 /** Claves de los íconos. Los trazos viven en `AppShell.tsx` (`IC`); acá solo se nombra cuál lleva cada nodo. */
@@ -174,20 +181,25 @@ export const ARBOL: readonly Nodo[] = [
     ],
   },
 
-  // Compras (ADR-0126): dinero de proveedores. Cada puerta exige `verDinero`; el grupo sale solo cuando no queda ninguna.
-  // Es el módulo de comprar para las TIENDAS: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21), del mismo
-  // modo que Producción no se muestra en una tienda: en cada ubicación el líder ve UNO de los dos. Solo visibilidad: las
-  // URLs de Compras siguen abriendo (otras pantallas enlazan a ellas) y el candado real es el de cada RPC. Consecuencia
-  // conocida: «Recibir mercadería» vivía acá para el líder, así que parado en el Taller solo le queda en «+ Nuevo».
-  // Mismo orden que ya tenía: proveedor → factura → recepción → pago → notas de crédito.
+  // Compras (ADR-0126; abierto a compradores de tienda en ADR-0151): dinero de proveedores. El grupo sale solo cuando no
+  // queda ninguna hija. Es el módulo de comprar para las TIENDAS: parado en el Taller no se muestra, ni al líder
+  // (Felipe, 2026-09-21), del mismo modo que Producción no se muestra en una tienda: en cada ubicación el líder ve UNO de
+  // los dos. Solo visibilidad: las URLs de Compras siguen abriendo (otras pantallas enlazan a ellas) y el candado real es
+  // el de cada RPC. Mismo orden que ya tenía: proveedor → factura → recepción → pago → notas de crédito.
+  //
+  // `verDineroCompras`, no `verDinero`, en Proveedores/Comprobantes/Por pagar (ADR-0151): un comprador de tienda ve SU
+  // dinero de Compras (la RPC y RLS ya filtran a sus tiendas) pero no debe heredar Producción ni Facturación, que siguen
+  // exigiendo `verDinero`. «Recibir mercadería» y «Notas de crédito» NO cambian: Recibir no lleva montos (un comprador ya la
+  // ve por Inventario, `soloSinPermiso: "verDinero"`, sin duplicarse — ver esa fila); Notas de crédito sigue solo del líder
+  // hasta que exista el reparto por tienda (ADR-0151, D5/F6).
   {
     id: "compras", etiqueta: "Compras", estado: "viva", icono: "compras", raiz: "/compras", pajaro: "09 Pelícano", ubicaciones: ["tienda", "almacen"],
     hijos: [
-      { id: "compras.proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "verDinero" },
-      { id: "compras.comprobantes", etiqueta: "Comprobantes", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDinero" },
+      { id: "compras.proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "verDineroCompras" },
+      { id: "compras.comprobantes", etiqueta: "Comprobantes", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDineroCompras" },
       // ADR-0111/0113: recibir es una sola puerta (`/recibir`). El dato es del Halcón (envíos y lotes), no del Pelícano.
       { id: "compras.recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", exige: "verDinero" },
-      { id: "compras.porPagar", etiqueta: "Por pagar", estado: "viva", ruta: "/compras/por-pagar", icono: "porPagar", pajaro: "09 Pelícano", exige: "verDinero" },
+      { id: "compras.porPagar", etiqueta: "Por pagar", estado: "viva", ruta: "/compras/por-pagar", icono: "porPagar", pajaro: "09 Pelícano", exige: "verDineroCompras" },
       // Notas de crédito (2026-09-19): lo que el proveedor le acredita a CAYLA. Va pegada a «Por pagar» y al final: las dos
       // responden a la misma pregunta —cuánto dinero hay entre CAYLA y ese proveedor—, una de cada lado. Sin insignia a
       // propósito: el contador de «por reclamar» saldría de `notas_credito_tablero()`, y pagarlo en CADA pantalla de la app
@@ -256,11 +268,12 @@ export const ARBOL: readonly Nodo[] = [
 /**
  * El panel «+ Nuevo»: registrar algo, no ir a una pantalla. Fase UI 1 (2026-09-11) lo recortó a las escrituras que V2 ya
  * tiene resueltas de punta a punta; ofrecer otra antes sería un enlace que compila y revienta. ADR-0111: UNA sola puerta
- * para recibir. ADR-0113: la misma para todos. «Registrar comprobante» es del líder: es dinero.
+ * para recibir. ADR-0113: la misma para todos. «Registrar comprobante» es de quien ve dinero de Compras — el líder o,
+ * desde ADR-0151 (F3), un comprador de tienda (`verDineroCompras`, registra sin pago: solo el líder paga al contado).
  */
 export const ACCIONES_NUEVO: readonly Accion[] = [
   { id: "nuevo.venta", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta", estado: "viva", ruta: "/vender", pajaro: "07 Colibrí" },
-  { id: "nuevo.comprobante", etiqueta: "Registrar comprobante", detalle: "Una compra a proveedor, con su pago si es al contado", estado: "viva", ruta: "/compras/nueva", pajaro: "09 Pelícano", exige: "verDinero" },
+  { id: "nuevo.comprobante", etiqueta: "Registrar comprobante", detalle: "Una compra a proveedor, con su pago si es al contado", estado: "viva", ruta: "/compras/nueva", pajaro: "09 Pelícano", exige: "verDineroCompras" },
   { id: "nuevo.recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó, contra sus comprobantes", estado: "viva", ruta: "/recibir", pajaro: "05 Halcón" },
   { id: "nuevo.mover", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones", estado: "viva", ruta: "/inventario/mover", pajaro: "05 Halcón" },
   { id: "nuevo.cambio", etiqueta: "Registrar cambio", detalle: "La clienta cambia una prenda por otra talla o color", estado: "viva", ruta: "/cambios", pajaro: "07 Colibrí" },

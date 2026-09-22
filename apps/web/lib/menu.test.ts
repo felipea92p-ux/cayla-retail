@@ -426,6 +426,43 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
   });
 });
 
+describe("Compras se abre a un comprador de tienda (ADR-0151, F5): `verDineroCompras`, no `verDinero`", () => {
+  const COMPRADOR: readonly Permiso[] = permisosDe("integrante", true);
+
+  it("`permisosDe(\"integrante\", true)` da exactamente `verDineroCompras`; sin el segundo argumento sigue dando ninguno", () => {
+    expect([...COMPRADOR]).toEqual(["verDineroCompras"]);
+    expect(permisosDe("integrante", false)).toEqual([]);
+    expect(permisosDe("integrante")).toEqual([]);
+  });
+
+  it("un comprador de tienda ve Proveedores, Comprobantes y Por pagar — en ese orden — pero NO Recibir ni Notas de crédito (siguen exigiendo `verDinero`)", () => {
+    expect(hijosDeGrupo({ permisos: COMPRADOR, ubicacionTipo: "tienda" }, "compras")).toEqual(["compras.proveedores", "compras.comprobantes", "compras.porPagar"]);
+  });
+
+  it("«Recibir mercadería» no se duplica: un comprador la ve por Inventario (sin dinero), no por Compras", () => {
+    const filas = menuPara({ permisos: COMPRADOR, ubicacionTipo: "tienda" }).riel.flatMap((f) => (esGrupoMenu(f) ? f.hijos : [f]));
+    expect(filas.filter((f) => f.href === "/recibir")).toHaveLength(1);
+    expect(hijosDeGrupo({ permisos: COMPRADOR, ubicacionTipo: "tienda" }, "inventario")).toContain("inventario.recibir");
+    expect(hijosDeGrupo({ permisos: COMPRADOR, ubicacionTipo: "tienda" }, "compras")).not.toContain("compras.recibir");
+  });
+
+  it("un comprador de tienda NO ve el dinero de Producción ni Facturación (siguen exigiendo `verDinero`, no `verDineroCompras`)", () => {
+    // El grupo Producción igual aparece en el Taller (Órdenes e Insumos no piden dinero, cualquier integrante los ve); lo
+    // que un comprador de tienda NO debe heredar es justo lo que sí lleva plata.
+    expect(hijosDeGrupo({ permisos: COMPRADOR, ubicacionTipo: "taller" }, "produccion")).toEqual(["produccion.ordenes", "produccion.insumos", "produccion.recibirProduccion"]);
+    expect(hijosDeGrupo({ permisos: COMPRADOR, ubicacionTipo: "tienda" }, "venta")).not.toContain("venta.facturacion");
+  });
+
+  it("parado en el Taller un comprador de tienda tampoco ve Compras (el grupo entero es de tiendas y almacenes)", () => {
+    expect(menuPara({ permisos: COMPRADOR, ubicacionTipo: "taller" }).riel.some((f) => f.id === "compras")).toBe(false);
+  });
+
+  it("un comprador de tienda ve «Registrar comprobante» en «+ Nuevo» (ADR-0151, F3: registra sin pago)", () => {
+    expect(menuPara({ permisos: COMPRADOR, ubicacionTipo: "tienda" }).nuevo.map((a) => a.id)).toContain("nuevo.comprobante");
+    expect(menuPara({ permisos: [], ubicacionTipo: "tienda" }).nuevo.map((a) => a.id)).not.toContain("nuevo.comprobante");
+  });
+});
+
 /* ====================================================================
    4. LAS REGLAS SUELTAS de `menuPara`, probadas sobre árboles chicos a propósito (así la prueba no depende de cómo esté hoy
    el árbol de verdad).

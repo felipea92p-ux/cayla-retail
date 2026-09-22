@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { exigirLiderOCompradorDeTienda } from "@/lib/persona-actual";
 
 // Compras (ADR-0035): varias pantallas sobre la misma entidad — la factura
 // del proveedor. La sub-navegación que este layout ponía (`ComprasNav.tsx`,
@@ -11,12 +10,15 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 // resuelve el candado de rol; cada página sigue resolviendo su propia
 // persona y datos.
 //
-// Líder-only (0016_roles_colaborador.sql), igual que Facturación y
-// Colaboradores. Faltaba acá: el menú ya escondía el enlace (`esLider` en
-// AppShell.tsx), pero ninguna de las 5 pantallas de Compras tenía este
-// redirect — un Colaborador que entrara por URL directa veía la pantalla
-// entera (aunque no pudiera escribir nada, eso sí lo bloqueaban las RPC).
-// Puesto acá, en el layout, protege las 5 de una sola vez.
+// Líder o comprador de tienda (ADR-0151, F5) — antes era solo líder
+// (0016_roles_colaborador.sql), igual que Facturación y Colaboradores.
+// Faltaba acá: el menú ya escondía el enlace (`esLider` en AppShell.tsx),
+// pero ninguna de las 5 pantallas de Compras tenía este redirect — un
+// Colaborador que entrara por URL directa veía la pantalla entera (aunque no
+// pudiera escribir nada, eso sí lo bloqueaban las RPC). Puesto acá, en el
+// layout, protege las 5 de una sola vez. Un comprador que pasa este candado
+// solo ve, dentro de cada pantalla, lo de SUS tiendas — eso lo filtra la
+// base (RLS, `fn_compra_es_de_mis_tiendas`), no este layout.
 //
 // `modal` es un slot paralelo (`@modal/`): ahí Next dibuja el detalle de una
 // factura como modal cuando se abre desde una lista del módulo (ruta
@@ -30,8 +32,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 // intentaba abrir el modal con id "por-pagar"). Con el prefijo `factura/`
 // el patrón interceptado ya no se solapa con las pantallas hermanas.
 export default async function ComprasLayout({ children, modal }: { children: React.ReactNode; modal: React.ReactNode }) {
-  const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") redirect("/");
+  await exigirLiderOCompradorDeTienda();
 
   return (
     <div className="space-y-6">

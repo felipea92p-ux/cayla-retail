@@ -51,7 +51,7 @@ const PLANTILLA = "sm:grid-cols-[8rem_1fr_7.5rem_10.75rem_11rem_7.25rem_1rem]";
 const PARAMS_DE_VISTA = ["saldo", "porrecibir", "vencidas", "pago"];
 
 export default async function ComprasPage({ searchParams }: { searchParams: Promise<ParamsCompras> }) {
-  await requirePersonaActualV2();
+  const persona = await requirePersonaActualV2();
   const params = await searchParams;
   const filtros = filtrosDesdeParams(params);
   const cursor = leerCursor(params.cursor);
@@ -108,13 +108,17 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           <p className="mt-1 text-sm text-tinta/65">Cada comprobante registra lo que se compró; la recepción y el pago se anotan contra él.</p>
         </div>
         <div className="flex flex-wrap gap-2.5">
-          {/* El registro de compras del mes que se le manda al contador. */}
-          <a
-            href={`/compras/exportar?mes=${hoy.slice(0, 7)}`}
-            className="label-cayla inline-flex items-center gap-2 rounded-md border border-tinta/25 px-4 py-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
-          >
-            <Download aria-hidden className="h-3.5 w-3.5" /> Exportar mes
-          </a>
+          {/* El registro de compras del mes que se le manda al contador: es de la empresa entera, sigue siendo
+              solo del líder (ADR-0151 no lo abre) — /compras/exportar ya lo exige, esto solo evita el botón
+              que lleva a un 403 para un comprador de tienda. */}
+          {persona.rol === "lider" && (
+            <a
+              href={`/compras/exportar?mes=${hoy.slice(0, 7)}`}
+              className="label-cayla inline-flex items-center gap-2 rounded-md border border-tinta/25 px-4 py-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+            >
+              <Download aria-hidden className="h-3.5 w-3.5" /> Exportar mes
+            </a>
+          )}
           <Link href="/compras/nueva" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
             + Registrar comprobante
           </Link>
