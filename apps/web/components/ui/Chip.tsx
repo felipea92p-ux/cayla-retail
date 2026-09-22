@@ -28,13 +28,14 @@ const TONO: Record<TonoChip, string> = {
   verde: "border-verde/45 bg-verde/10 text-verde-profundo",
   rojo: "border-rojo/30 bg-rojo/10 text-rojo-profundo",
   // /65 y no /45: a 10 px y tachado, el 45 % no llegaba a 3:1 y «Anulado» / «No emitido» son la única palabra que dice el estado.
-  apagado: "border-tinta/10 bg-transparent text-tinta/65 line-through",
+  apagado: "border-tinta/10 bg-transparent text-tinta/65",
 };
 
 export function Chip({
   tono = "neutro",
   versalitas = true,
   vivo = false,
+  tachado = true,
   children,
   className = "",
 }: {
@@ -45,6 +46,10 @@ export function Chip({
   versalitas?: boolean;
   /** Punto que late suave antes del texto (solo con `versalitas`). Reservado a lo que pide actuar hoy. */
   vivo?: boolean;
+  /** Solo con `tono="apagado"`: el texto va tachado (es lo que pide «Anulado» / «No emitido»: algo que se
+   *  canceló). `false` para un estado que NO es una anulación —«Descontinuado» en Productos—, donde un
+   *  tachado se lee como negación («no descontinuado»). */
+  tachado?: boolean;
   children: ReactNode;
   className?: string;
 }) {
@@ -52,7 +57,7 @@ export function Chip({
     ? `label-cayla ${vivo ? "inline-flex items-center gap-1.5" : "inline-block"} px-2.5 py-0.5 text-[10px] leading-4`
     : "inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold leading-5";
   return (
-    <span className={`${forma} whitespace-nowrap rounded-full border ${TONO[tono]} ${className}`}>
+    <span className={`${forma} whitespace-nowrap rounded-full border ${TONO[tono]} ${tono === "apagado" && tachado ? "line-through" : ""} ${className}`}>
       {vivo && versalitas && <span aria-hidden className="cmp-punto-vivo" />}
       {children}
     </span>

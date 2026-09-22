@@ -133,6 +133,9 @@ function FilaVenta({ v, onAbrir }: { v: FilaHistorial; onAbrir: () => void }) {
 
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 @[30rem]:col-span-2 @[30rem]:col-start-2 @[30rem]:row-start-2 @[54rem]:col-span-1 @[54rem]:col-start-3 @[54rem]:row-start-1 @[54rem]:flex-col @[54rem]:items-start @[54rem]:gap-1">
           {v.anulada && <Chip tono="rojo">Anulada</Chip>}
+          {/* Solo aparece con el toggle «Con datos de prueba» activo (D-54, ADR-0159): sin él, esta fila
+              ni siquiera llega de la base — así que no hace falta un tono de alerta, solo distinguirla. */}
+          {v.esPrueba && <Chip tono="neutro">Prueba</Chip>}
           {v.comprobante ? (
             <>
               <span className={`text-xs font-medium ${apagado}`}>

@@ -20,7 +20,7 @@ function lima(anio: number, mes: number, dia: number, hora = 12): Date {
 describe("textoMotivo", () => {
   it("compone la etiqueta con el detalle; sin motivo elegido no hay texto", () => {
     expect(textoMotivo("defecto", "costura abierta")).toBe("Tiene un defecto — costura abierta");
-    expect(textoMotivo("no_le_queda", "  ")).toBe("No le queda bien");
+    expect(textoMotivo("talla", "  ")).toBe("No era su talla");
     expect(textoMotivo(null, "lo que sea")).toBe("");
   });
 });
@@ -117,7 +117,7 @@ describe("validarDevolucion / primerBloqueo", () => {
     venta: { comprobante: "Boleta B001-000010", creadoEn: lima(2026, 9, 18, 11).toISOString(), anulada: false },
     ahora,
     elegidas: [prenda()],
-    motivo: "no_le_queda" as const,
+    motivo: "talla" as const,
     detalle: "",
   };
 

@@ -25,10 +25,13 @@ import { InventarioPanel } from "@/components/InventarioPanel";
 export default async function InventarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ubicacion?: string }>;
+  searchParams: Promise<{ ubicacion?: string; prueba?: string }>;
 }) {
   const persona = await requirePersonaActualV2();
-  const { ubicacion: ubicacionQuery } = await searchParams;
+  const { ubicacion: ubicacionQuery, prueba } = await searchParams;
+  // D-54 (ADR-0159): apagado por defecto — los productos archivados como dato de prueba
+  // (nunca borrados) no se piden a la base salvo que se pida verlos.
+  const incluirPrueba = prueba === "1";
   const ubicaciones = await getUbicaciones();
 
   const ubicacionActivaId =
@@ -36,11 +39,16 @@ export default async function InventarioPage({
       ? ubicacionQuery
       : persona.ubicacionId;
   const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
+  // Para que el toggle «Con datos de prueba» no le borre a un líder la sede que eligió.
+  const paramsPrueba = new URLSearchParams();
+  if (persona.rol === "lider" && ubicacionQuery) paramsPrueba.set("ubicacion", ubicacionQuery);
+  if (!incluirPrueba) paramsPrueba.set("prueba", "1");
+  const hrefPrueba = paramsPrueba.toString() ? `/inventario?${paramsPrueba}` : "/inventario";
 
   // La cobertura («cuánto dura este stock al ritmo reciente») solo tiene sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
   const [stockBase, sububicaciones, traslados, danadosPendientes, cobertura, apartados] = await Promise.all([
-    getExistencias(ubicacionActivaId, ubicaciones),
+    getExistencias(ubicacionActivaId, ubicaciones, { incluirPrueba }),
     getSububicaciones(ubicacionActivaId),
     getTrasladosEnCurso(ubicacionActivaId),
     getPrendasDanadasPendientes(ubicacionActivaId),
@@ -82,6 +90,17 @@ export default async function InventarioPage({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {persona.rol === "lider" && <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} />}
+          {/* D-54 (ADR-0159): apagado por defecto — los productos archivados como dato de prueba
+              (nunca borrados) quedan afuera de «Existencias» salvo que se pida verlos. */}
+          <Link
+            href={hrefPrueba}
+            aria-pressed={incluirPrueba}
+            className={`label-cayla rounded-md border px-3 py-2.5 text-[11px] transition-colors ${
+              incluirPrueba ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo"
+            }`}
+          >
+            Con datos de prueba
+          </Link>
           <Link
             href="/inventario/mover"
             className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"

@@ -9,7 +9,7 @@ import { Boton } from "@/components/ui/campos";
 import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
-import { esGrupoMenu as esGrupo, menuPara, permisosDe, rutaActiva, type AccionNuevo, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item } from "@/lib/menu";
+import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type AccionNuevo, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item } from "@/lib/menu";
 import { PerfilModal } from "@/components/PerfilModal";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 
@@ -112,7 +112,6 @@ const IC: Record<ClaveIcono | "nuevo" | "chevron", string> = {
   resumen: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
   facturacion: "M9 12h6m-6 4h6M9 8h1m3.5-5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 3z",
   compras: "M3 4h2l2.2 11.2a1 1 0 001 .8h9.6a1 1 0 001-.8L20 8H6.5M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2zM12 8v4m-2-2h4",
-  colaboradores: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
   // Carrete de hilo: la materia prima del Taller (tela y avíos) — Insumos, hija de Producción.
   insumos: "M7 4h10M7 20h10M8 4v16M16 4v16M8 9h8M8 12h8M8 15h8",
   produccion: "M6 9a3 3 0 100-6 3 3 0 000 6zm0 12a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12",
@@ -180,6 +179,18 @@ type FilaLateral =
   | { tipo: "item"; item: Item }
   | { tipo: "grupo"; item: ItemGrupo };
 
+/** Todos los ids de grupo (de cualquier profundidad, D-84) que contienen la ruta activa, de afuera hacia adentro: los
+ *  usa `AppShell` para abrir un SUBGRUPO (p.ej. Abastecimiento dentro de Producción) solo cuando aterriza adentro —
+ *  si no, quien llega directo a `/produccion/proveedores` vería Producción abierto pero Abastecimiento cerrado, con
+ *  la fila activa escondida detrás de una cabecera. */
+function cadenaAbiertaDesde(filas: readonly FilaMenu[], activo: (href: string) => boolean): string[] {
+  for (const f of filas) {
+    if (!esGrupo(f)) continue;
+    if (hojasDe(f).some((h) => activo(h.href))) return [f.id, ...cadenaAbiertaDesde(f.hijos, activo)];
+  }
+  return [];
+}
+
 function GrupoLateral({
   titulo,
   items,
@@ -214,16 +225,21 @@ function GrupoLateral({
   // Aplana cabecera + hijas (solo si está abierta) en las filas que de
   // verdad se van a ver — el riel lee ESTE índice, nunca el del array
   // original, así que nunca se desalinea aunque un grupo cambie cuántas
-  // filas ocupa al abrirse o cerrarse.
+  // filas ocupa al abrirse o cerrarse. Recursivo (D-84): una hija abierta puede ser, a su vez, un SUBGRUPO
+  // (Abastecimiento dentro de Producción) — se sigue bajando mientras cada nivel esté abierto, sin un caso
+  // especial para «un grupo dentro de otro»: es la misma regla, otra vez.
   const filas: FilaLateral[] = [];
-  items.forEach((it) => {
-    if (esGrupo(it)) {
-      filas.push({ tipo: "grupo", item: it });
-      if (estaAbierto(it.id)) it.hijos.forEach((h) => filas.push({ tipo: "item", item: h }));
-    } else {
-      filas.push({ tipo: "item", item: it });
-    }
-  });
+  const agregarFilas = (nodos: readonly FilaMenu[]) => {
+    nodos.forEach((it) => {
+      if (esGrupo(it)) {
+        filas.push({ tipo: "grupo", item: it });
+        if (estaAbierto(it.id)) agregarFilas(it.hijos);
+      } else {
+        filas.push({ tipo: "item", item: it });
+      }
+    });
+  };
+  agregarFilas(items);
 
   // Con el grupo cerrado, la cabecera hace de sustituto de sus hijas: si una
   // de ellas es la ruta activa, el riel se queda en la cabecera (la única
@@ -249,13 +265,15 @@ function GrupoLateral({
   if (indiceActivo < 0) {
     let mejorLargo = -1;
     filas.forEach((f, i) => {
+      // `hojasDe` baja hasta las pantallas de verdad sin importar la profundidad: una cabecera cerrada compite con
+      // el largo de la hoja que le calza, esté esa hoja directo debajo o dentro de un subgrupo (D-84).
       const largo =
         f.tipo === "item"
           ? activo(f.item.href)
             ? f.item.href.length
             : -1
           : !estaAbierto(f.item.id)
-            ? Math.max(-1, ...f.item.hijos.filter((h) => activo(h.href)).map((h) => h.href.length))
+            ? Math.max(-1, ...hojasDe(f.item).filter((h) => activo(h.href)).map((h) => h.href.length))
             : -1;
       if (largo > mejorLargo) {
         mejorLargo = largo;
@@ -269,13 +287,76 @@ function GrupoLateral({
   const filaActiva = indiceActivo >= 0 ? filas[indiceActivo] : null;
   const claveActiva = filaActiva ? (filaActiva.tipo === "grupo" ? `g:${filaActiva.item.id}` : `i:${filaActiva.item.href}`) : null;
 
-  // Clases de una fila (cabecera o ítem). `overflow-hidden` + `nowrap`: al plegar, la etiqueta se
-  // apaga y el ancho la recorta, en vez de partirse en dos líneas a mitad de la animación.
-  const claseFila = (esActivo: boolean, indentada: boolean) =>
+  // Clases de una fila (cabecera o ítem). `overflow-hidden` + `nowrap`: al plegar, la etiqueta se apaga y el ancho la
+  // recorta, en vez de partirse en dos líneas a mitad de la animación. `profundidad` reemplaza al viejo `indentada`
+  // (booleano): 0 es de primer nivel, 1 es hija de un grupo, 2 es hija de un SUBGRUPO (D-84, p.ej. Abastecimiento).
+  const PL_POR_PROFUNDIDAD = ["pl-4", "pl-9", "pl-14"] as const;
+  const claseFila = (esActivo: boolean, profundidad: 0 | 1 | 2) =>
     `group relative flex items-center gap-3.5 overflow-hidden whitespace-nowrap rounded-lg pr-3 text-sm transition-colors ${
-      indentada ? "pl-9" : "pl-4"
+      PL_POR_PROFUNDIDAD[profundidad]
     } ${esActivo ? "bg-sand/70 font-medium text-tinta" : "text-tinta/80 hover:bg-sand/40 hover:text-rojo"}`;
   const claseEtiqueta = `min-w-0 flex-1 truncate transition-opacity duration-200 ease-cayla ${compacto ? "opacity-0" : ""}`;
+
+  // Pinta UNA hija — una pantalla (Link) o, a su vez, un SUBGRUPO (D-84: botón que despliega SUS propias hijas, un
+  // nivel más indentado) — a la profundidad 1 (hija de un grupo de primer nivel) o 2 (hija de un subgrupo). Es la
+  // MISMA función a cualquier profundidad: un subgrupo no es un caso especial del lateral, es un grupo que se pinta
+  // un nivel más adentro. Un subgrupo NUNCA se pinta plegado (`compacto`): sus filas viven dentro de `.lateral-hijos`
+  // del grupo que lo contiene, que mide 0 y queda `inert` cuando el lateral está plegado — por eso su botón no
+  // necesita la rama de `onAbrirCajon` que sí necesita un grupo de primer nivel.
+  const filaHija = (h: FilaMenu, idx: number, profundidad: 1 | 2) => {
+    if (!esGrupo(h)) {
+      const hijoActivo = claveActiva === `i:${h.href}`;
+      return (
+        <div key={h.href} className="lateral-hijo" style={{ marginTop: AIRE_FILA, "--i": idx } as React.CSSProperties}>
+          <Link href={h.href} aria-current={hijoActivo ? "page" : undefined} style={{ height: ALTO_FILA }} className={claseFila(hijoActivo, profundidad)}>
+            {/* Marca fantasma: al pasar el mouse por una fila apagada aparece el riel en gris, en el mismo sitio
+                exacto donde va a quedar el rojo si sueltas el clic. Se lee "estás acá / irías allá" — es el riel
+                mostrando su próximo destino, no un efecto aparte. */}
+            <FantasmaRiel esActivo={hijoActivo} />
+            <Icono
+              d={IC[h.icono]}
+              className={`h-5 w-5 shrink-0 transition-[transform,color] duration-300 ease-cayla ${
+                hijoActivo ? "text-tinta" : "text-tinta/60 group-hover:translate-x-0.5 group-hover:text-rojo"
+              }`}
+            />
+            <span className="flex-1">{h.etiqueta}</span>
+            <Insignia n={h.contador ?? 0} etiqueta="por atender" />
+          </Link>
+        </div>
+      );
+    }
+    const abierto = estaAbierto(h.id);
+    const esActivoSub = claveActiva === `g:${h.id}`;
+    const contieneActivoSub = hojasDe(h).some((x) => activo(x.href));
+    const sumaSub = hojasDe(h).reduce((acc, x) => acc + (x.contador ?? 0), 0);
+    return (
+      <div key={h.id} className="lateral-hijo" style={{ marginTop: AIRE_FILA, "--i": idx } as React.CSSProperties}>
+        <button
+          type="button"
+          onClick={() => onToggleGrupo(h.id)}
+          style={{ height: ALTO_FILA }}
+          className={`w-full text-left ${claseFila(esActivoSub, profundidad)}`}
+          aria-expanded={abierto}
+        >
+          <Icono
+            d={IC[h.icono]}
+            className={`h-5 w-5 shrink-0 transition-colors duration-300 ease-cayla ${
+              esActivoSub || contieneActivoSub ? "text-tinta" : "text-tinta/60 group-hover:text-rojo"
+            }`}
+          />
+          <span className="flex-1 text-left">{h.etiqueta}</span>
+          {!abierto && <Insignia n={sumaSub} etiqueta="por atender" />}
+          <Icono
+            d={IC.chevron}
+            className={`h-3.5 w-3.5 shrink-0 text-tinta/50 transition-transform duration-300 ease-cayla ${abierto ? "rotate-90" : ""}`}
+          />
+        </button>
+        <div className="lateral-hijos" data-abierto={abierto} inert={!abierto}>
+          <div>{h.hijos.map((h2, idx2) => filaHija(h2, idx2, 2))}</div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -307,7 +388,7 @@ function GrupoLateral({
                   href={it.href}
                   aria-current={esActivo ? "page" : undefined}
                   style={{ height: ALTO_FILA }}
-                  className={claseFila(esActivo, false)}
+                  className={claseFila(esActivo, 0)}
                   onMouseEnter={(e) => onEntrarFila(e.currentTarget, it.etiqueta)}
                   onFocus={(e) => onEntrarFila(e.currentTarget, it.etiqueta)}
                   onMouseLeave={onSalirFila}
@@ -329,8 +410,10 @@ function GrupoLateral({
 
           const abierto = estaAbierto(it.id);
           const esActivo = claveActiva === `g:${it.id}`;
-          const contieneActivo = it.hijos.some((h) => activo(h.href));
-          const suma = it.hijos.reduce((acc, h) => acc + (h.contador ?? 0), 0);
+          // `hojasDe` baja hasta las pantallas de verdad: si una hija es un subgrupo (D-84), cuenta lo de ADENTRO,
+          // no el subgrupo como si fuera una sola pantalla.
+          const contieneActivo = hojasDe(it).some((h) => activo(h.href));
+          const suma = hojasDe(it).reduce((acc, h) => acc + (h.contador ?? 0), 0);
           return (
             <div key={it.id} style={margen}>
               <button
@@ -343,7 +426,7 @@ function GrupoLateral({
                 aria-haspopup={compacto ? "menu" : undefined}
                 aria-expanded={compacto ? cajonDe === it.id : abierto}
                 style={{ height: ALTO_FILA }}
-                className={`w-full text-left ${claseFila(esActivo, false)}`}
+                className={`w-full text-left ${claseFila(esActivo, 0)}`}
               >
                 <Icono
                   d={IC[it.icono]}
@@ -362,37 +445,10 @@ function GrupoLateral({
                 />
               </button>
               {/* Las hijas se despliegan por `grid-template-rows: 0fr → 1fr`: se abren sin medir alturas
-                  (una medición tardía es un salto). `inert` cerrado: invisibles Y fuera del tabulador. */}
+                  (una medición tardía es un salto). `inert` cerrado: invisibles Y fuera del tabulador. Cada hija
+                  se pinta con `filaHija` — una pantalla o, si es un subgrupo (D-84), su propio botón desplegable. */}
               <div className="lateral-hijos" data-abierto={abierto} inert={!abierto}>
-                <div>
-                  {it.hijos.map((h, idx) => {
-                    const hijoActivo = claveActiva === `i:${h.href}`;
-                    return (
-                      <div key={h.href} className="lateral-hijo" style={{ marginTop: AIRE_FILA, "--i": idx } as React.CSSProperties}>
-                        <Link
-                          href={h.href}
-                          aria-current={hijoActivo ? "page" : undefined}
-                          style={{ height: ALTO_FILA }}
-                          className={claseFila(hijoActivo, true)}
-                        >
-                          {/* Marca fantasma: al pasar el mouse por una fila apagada aparece
-                              el riel en gris, en el mismo sitio exacto donde va a quedar el
-                              rojo si sueltas el clic. Se lee "estás acá / irías allá" — es
-                              el riel mostrando su próximo destino, no un efecto aparte. */}
-                          <FantasmaRiel esActivo={hijoActivo} />
-                          <Icono
-                            d={IC[h.icono]}
-                            className={`h-5 w-5 shrink-0 transition-[transform,color] duration-300 ease-cayla ${
-                              hijoActivo ? "text-tinta" : "text-tinta/60 group-hover:translate-x-0.5 group-hover:text-rojo"
-                            }`}
-                          />
-                          <span className="flex-1">{h.etiqueta}</span>
-                          <Insignia n={h.contador ?? 0} etiqueta="por atender" />
-                        </Link>
-                      </div>
-                    );
-                  })}
-                </div>
+                <div>{it.hijos.map((h, idx) => filaHija(h, idx, 1))}</div>
               </div>
             </div>
           );
@@ -601,6 +657,10 @@ function CajonGrupo({
   onSalir: () => void;
 }) {
   const filas = useRef<(HTMLAnchorElement | null)[]>([]);
+  // Solo las PANTALLAS, a cualquier profundidad (D-84: un subgrupo como Abastecimiento se aplana acá en vez de abrir
+  // un segundo cajón en cascada — el cajón ya es la vista rápida y plegada, no vale la pena otro nivel de flotante
+  // para un menú de cuatro filas). El teclado (flechas, Inicio/Fin) navega entre PANTALLAS, nunca entre etiquetas.
+  const hojas = hojasDe(grupo);
 
   useEffect(() => {
     if (enfocar) filas.current[0]?.focus();
@@ -608,13 +668,10 @@ function CajonGrupo({
 
   // La hija activa es la de coincidencia más larga (misma regla que el riel: `/inventario` y
   // `/inventario/traslados` calzan las dos en un traslado, gana la que de verdad lo contiene).
-  const mejor = grupo.hijos.reduce<Item | null>(
-    (m, h) => (activo(h.href) && (!m || h.href.length > m.href.length) ? h : m),
-    null,
-  );
+  const mejor = hojas.reduce<Item | null>((m, h) => (activo(h.href) && (!m || h.href.length > m.href.length) ? h : m), null);
 
   function irA(i: number) {
-    const n = (i + grupo.hijos.length) % grupo.hijos.length;
+    const n = (i + hojas.length) % hojas.length;
     filas.current[n]?.focus();
   }
   function alTeclado(e: React.KeyboardEvent) {
@@ -634,7 +691,7 @@ function CajonGrupo({
         break;
       case "End":
         e.preventDefault();
-        irA(grupo.hijos.length - 1);
+        irA(hojas.length - 1);
         break;
       case "Escape":
       case "Tab":
@@ -649,6 +706,35 @@ function CajonGrupo({
     }
   }
 
+  // Pinta las filas del cajón: una pantalla (Link, con el índice que le toca en `hojas`) o, si es un subgrupo, su
+  // etiqueta de sección seguida de SUS pantallas — `cursor` (por referencia, fuera de la función) reparte el índice
+  // de `hojas` en el mismo orden en que `hojasDe` las juntó, sin importar cuántas etiquetas haya antes.
+  let cursor = 0;
+  const pintarFilas = (fs: readonly FilaMenu[]): React.ReactNode =>
+    fs.map((h) => {
+      if (esGrupo(h)) {
+        return (
+          <div key={h.id} className="mt-1.5">
+            <p aria-hidden className="label-cayla px-3 pb-1 pt-1.5 text-[10px] text-tinta/50">{h.etiqueta}</p>
+            {pintarFilas(h.hijos)}
+          </div>
+        );
+      }
+      const idx = cursor++; // se fija ACÁ, no en `refFila`: ese callback corre después de terminar todo el render.
+      return (
+        <FilaCajon
+          key={h.href}
+          h={h}
+          i={idx}
+          esActivo={mejor?.href === h.href}
+          onCerrar={onCerrar}
+          refFila={(el) => {
+            filas.current[idx] = el;
+          }}
+        />
+      );
+    });
+
   return (
     <div
       role="menu"
@@ -660,33 +746,33 @@ function CajonGrupo({
       className="anim-flota card-cayla fixed z-[60] w-[15rem] p-2 shadow-lg"
     >
       <p aria-hidden className="label-cayla px-3 pb-1.5 pt-2 text-[11px] text-tinta/65">{grupo.etiqueta}</p>
-      {grupo.hijos.map((h, i) => {
-        const esActivo = mejor?.href === h.href;
-        return (
-          <Link
-            key={h.href}
-            href={h.href}
-            role="menuitem"
-            tabIndex={-1}
-            aria-current={esActivo ? "page" : undefined}
-            ref={(el) => {
-              filas.current[i] = el;
-            }}
-            onClick={() => onCerrar(false)}
-            // Escalonado de 30 ms por fila, el mismo de `MenuNuevo` y del desplegable de campos.tsx.
-            style={{ animationDelay: `${i * 30}ms` }}
-            className={`anim-revelar group relative flex h-11 items-center gap-3 rounded-lg px-3 text-sm outline-none transition-colors focus-visible:bg-sand/60 focus-visible:text-rojo ${
-              esActivo ? "bg-sand/70 font-medium text-tinta" : "text-tinta/80 hover:bg-sand/40 hover:text-rojo"
-            }`}
-          >
-            {esActivo && <span aria-hidden className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo" />}
-            <Icono d={IC[h.icono]} className={`h-[18px] w-[18px] shrink-0 transition-colors ${esActivo ? "text-tinta" : "text-tinta/60 group-hover:text-rojo"}`} />
-            <span className="flex-1">{h.etiqueta}</span>
-            <Insignia n={h.contador ?? 0} etiqueta="por atender" />
-          </Link>
-        );
-      })}
+      {pintarFilas(grupo.hijos)}
     </div>
+  );
+}
+
+/** Una fila del cajón (una pantalla). Aparte para que `pintarFilas` (recursiva, D-84) no repita el marcado cada vez
+ *  que encuentra una hoja dentro o fuera de un subgrupo. */
+function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; esActivo: boolean; onCerrar: (devolverFoco: boolean) => void; refFila: (el: HTMLAnchorElement | null) => void }) {
+  return (
+    <Link
+      href={h.href}
+      role="menuitem"
+      tabIndex={-1}
+      aria-current={esActivo ? "page" : undefined}
+      ref={refFila}
+      onClick={() => onCerrar(false)}
+      // Escalonado de 30 ms por fila, el mismo de `MenuNuevo` y del desplegable de campos.tsx.
+      style={{ animationDelay: `${i * 30}ms` }}
+      className={`anim-revelar group relative flex h-11 items-center gap-3 rounded-lg px-3 text-sm outline-none transition-colors focus-visible:bg-sand/60 focus-visible:text-rojo ${
+        esActivo ? "bg-sand/70 font-medium text-tinta" : "text-tinta/80 hover:bg-sand/40 hover:text-rojo"
+      }`}
+    >
+      {esActivo && <span aria-hidden className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo" />}
+      <Icono d={IC[h.icono]} className={`h-[18px] w-[18px] shrink-0 transition-colors ${esActivo ? "text-tinta" : "text-tinta/60 group-hover:text-rojo"}`} />
+      <span className="flex-1">{h.etiqueta}</span>
+      <Insignia n={h.contador ?? 0} etiqueta="por atender" />
+    </Link>
   );
 }
 
@@ -786,8 +872,10 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
     const g = grupos.flatMap((x) => x.items).find((f): f is ItemGrupo => esGrupo(f) && f.id === grupoId);
     if (!g) return;
     const r = el.getBoundingClientRect();
-    // Alto estimado (cabecera + filas de 44 px + aire): alcanza para que nunca se salga por abajo.
-    const alto = 16 + 34 + g.hijos.length * 44;
+    // Alto estimado (cabecera + filas de 44 px + aire, contando también la etiqueta de cada subgrupo que el cajón
+    // aplana, D-84, como si fuera una fila más): alcanza para que nunca se salga por abajo — sobra, no falta.
+    const filasDelCajon = g.hijos.reduce((acc, h): number => acc + (esGrupo(h) ? 1 + hojasDe(h).length : 1), 0);
+    const alto = 16 + 34 + filasDelCajon * 44;
     setEtiqueta(null);
     setCajon({ grupoId, top: Math.max(64, Math.min(r.top - 8, window.innerHeight - alto - 12)), left: borde(), enfocar });
   };
@@ -822,10 +910,15 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   // grupo contiene cada ruta lo decide el árbol (`menu.grupoDe`), no una lista
   // repetida a mano acá.
   const grupoActivo = menu.grupoDe(pathname);
+  // Si la ruta activa vive dentro de un SUBGRUPO (D-84, ADR-0155: p.ej. Abastecimiento dentro de Producción), lo abre
+  // también, además del grupo de primer nivel — `cadenaAbiertaDesde` mira solo lo que ESTE perfil ya ve (`menu.riel`):
+  // si `grupoActivo` está oculto para él, no hay fila de la que colgar un subgrupo.
+  const filaDelGrupoActivo = grupoActivo ? menu.riel.find((f) => f.id === grupoActivo) : undefined;
+  const gruposAAbrir = grupoActivo
+    ? [grupoActivo, ...(filaDelGrupoActivo && esGrupo(filaDelGrupoActivo) ? cadenaAbiertaDesde(filaDelGrupoActivo.hijos, activo) : [])]
+    : [];
 
-  const [gruposAbiertos, setGruposAbiertos] = useState<Record<string, boolean>>(() =>
-    grupoActivo ? { [grupoActivo]: true } : {}
-  );
+  const [gruposAbiertos, setGruposAbiertos] = useState<Record<string, boolean>>(() => Object.fromEntries(gruposAAbrir.map((id) => [id, true])));
 
   // Cambiar de sección DESPUÉS de montado (un link de "+ Nuevo", un
   // favorito, sin recargar la página) tampoco debe dejar la ruta nueva
@@ -840,7 +933,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   if (grupoActivo !== grupoActivoAnterior) {
     setGrupoActivoAnterior(grupoActivo);
     if (grupoActivo) {
-      setGruposAbiertos({ [grupoActivo]: true });
+      setGruposAbiertos(Object.fromEntries(gruposAAbrir.map((id) => [id, true])));
     }
   }
 
