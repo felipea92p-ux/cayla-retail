@@ -149,6 +149,29 @@ RPC de solo lectura llamada desde el navegador, suma su prefijo o nombre a la li
 `fn_`, `previsualizar_`, `campanas_`, `resumen_`, `buscar_`, `get_`); si no, el loader bloqueará la pantalla mientras se busca
 o se escribe. Tiempos, alternativas y verificación: `docs/adr/0149-loader-general-a-pantalla-completa.md`.
 
+## Módulos y roles (regla — ADR-0161, Felipe 2026-09-22)
+
+**Lo que ve cada cuenta (persona o terminal) lo decide su ROL, módulo por módulo («ve / no ve»), en Colaboradores ▸ Roles y
+accesos.** Quien ve un módulo hace todo lo que hay en él, salvo lo «siempre solo del líder» (que vive en cada función con
+`fn_es_lider()`). Por eso **todo módulo nuevo que se desarrolle tiene que aparecer en Roles y accesos, y nace disponible SOLO
+para el líder**: el líder decide después a qué rol se lo da. Nunca se asigna un módulo a un rol desde el código.
+
+Al crear un módulo nuevo (pantalla o grupo de pantallas nuevas), en el mismo PR:
+1. **Base:** una migración propia con `insert into retail.modulos (clave, grupo, nombre, incluye, orden, solo_lider, delegable)`
+   — `incluye` en palabras del negocio; `delegable = false` si sus funciones todavía exigen `fn_es_lider()` (sale como «Solo
+   líder por ahora»). **Sin** `insert into retail.rol_modulos`: el módulo nace sin rol.
+2. **Web:** agregarlo a `CLAVES_MODULO` y `MODULOS` en `apps/web/lib/modulos.ts` (mismo `orden` que en la base); su nodo en
+   `lib/menu.ts` declara `modulo: "<clave>"`; y su ruta tiene un `layout.tsx` con `await exigirModulo("<clave>")` (URL directa
+   sin el módulo → «Sin acceso»).
+3. **Funciones que guardan:** si es operación de tienda, firman con `retail.fn_actor_persona_id(true)` (el responsable del
+   combo, ADR-0162) —nunca con `select id into … from personas where auth_user_id = auth.uid()`— y su pantalla usa el combo
+   «Responsable» (`useResponsable` + `<ComboResponsable>`). Los permisos se preguntan a la cuenta (`fn_ve_modulo`,
+   `fn_es_lider`), no al responsable.
+
+Lo vigilan las pruebas: `lib/modulos.test.ts` (toda pantalla del menú declara un módulo que existe; el catálogo de la web es el
+de TODAS las migraciones; **ninguna migración fuera de la siembra de roles escribe en `rol_modulos`**) y
+`pnpm pruebas:roles` (un módulo recién creado solo lo ve el líder).
+
 ## Vocabulario obligatorio
 
 Nunca "empleado/jefe/sucursal". Usa: "colaborador/integrante", "líder de equipo/

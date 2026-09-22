@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   ACCIONES_NUEVO,
@@ -23,15 +23,29 @@ import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, esDelegable, leerModulos, modul
 
 const MIGRACION = readFileSync(new URL("../../../supabase/migrations/20260923030000_roles_por_modulo.sql", import.meta.url), "utf8");
 
-describe("el catálogo de la web es el de la base", () => {
-  const filas = [...MIGRACION.matchAll(/^\s*\('([a-z_]+)',\s*'[^']+',\s*'[^']+',\s*'[^']+',\s*(\d+),\s*(true|false),\s*(true|false)\)/gm)].map((m) => ({
-    clave: m[1],
-    orden: Number(m[2]),
-    soloLider: m[3] === "true",
-    delegable: m[4] === "true",
-  }));
+// REGLA (Felipe, 2026-09-22 — CLAUDE.md «Módulos y roles»): todo módulo nuevo se da de alta en `retail.modulos` con una
+// migración PROPIA, se agrega a `lib/modulos.ts` y su pantalla declara `modulo` en `lib/menu.ts`; y nace SIN ROL: solo lo
+// ve el líder hasta que él lo enciende en Colaboradores ▸ Roles y accesos. Por eso el catálogo se arma leyendo TODAS las
+// migraciones (no solo la de 20260923030000) y ninguna migración posterior puede asignar módulos a un rol.
+const DIR_MIGRACIONES = new URL("../../../supabase/migrations/", import.meta.url);
+const ARCHIVOS_MIGRACION = readdirSync(DIR_MIGRACIONES).filter((f) => /^\d{14}_.+\.sql$/.test(f)).sort();
+const TODAS = ARCHIVOS_MIGRACION.map((f) => ({ archivo: f, sql: readFileSync(new URL(f, DIR_MIGRACIONES), "utf8") }));
+/** Las migraciones que sí pueden sembrar roles: la que creó los roles y la de la decisión B2d. */
+const SIEMBRA_DE_ROLES = new Set(["20260923030000_roles_por_modulo.sql", "20260923031000_integrante_hace_lo_que_ve.sql"]);
 
-  it("las mismas 23 claves, en el mismo orden", () => {
+describe("el catálogo de la web es el de la base", () => {
+  const filas = TODAS.flatMap(({ sql }) =>
+    [...sql.matchAll(/insert into retail\.modulos\b[\s\S]*?\)\s*(?:on conflict[^;]*)?;[ \t]*$/gim)].flatMap((ins) =>
+      [...ins[0].matchAll(/\('([a-z_]+)',\s*'[^']+',\s*'[^']+',\s*'[^']+',\s*(\d+),\s*(true|false),\s*(true|false)\)/g)].map((m) => ({
+        clave: m[1],
+        orden: Number(m[2]),
+        soloLider: m[3] === "true",
+        delegable: m[4] === "true",
+      })),
+    ),
+  ).sort((a, b) => a.orden - b.orden);
+
+  it("las mismas claves que la base (todas las migraciones), en el orden de `retail.modulos.orden`", () => {
     expect(filas.map((f) => f.clave)).toEqual([...CLAVES_MODULO]);
     expect(MODULOS.map((m) => m.clave)).toEqual([...CLAVES_MODULO]);
   });
@@ -194,5 +208,22 @@ describe("sin `fn_mis_modulos` (base anterior a los roles): la terminal lee lo d
 describe("leerModulos", () => {
   it("ignora claves que esta versión de la web no conoce", () => {
     expect(leerModulos([{ clave: "caja", completo: true }, { clave: "modulo_del_futuro", completo: true }])).toEqual([{ clave: "caja", completo: true }]);
+  });
+});
+
+describe("REGLA: un módulo nuevo nace solo para el líder", () => {
+  it("ninguna migración, salvo la siembra de roles, asigna módulos a un rol (rol_modulos)", () => {
+    const culpables = TODAS.filter(({ archivo, sql }) => !SIEMBRA_DE_ROLES.has(archivo) && /insert\s+into\s+retail\.rol_modulos/i.test(sql)).map((m) => m.archivo);
+    // Si falla: el módulo nuevo no se le da a nadie por migración. Lo enciende el líder en Colaboradores ▸ Roles y accesos.
+    expect(culpables).toEqual([]);
+  });
+
+  it("toda clave del catálogo tiene su fila en `MODULOS` con grupo, nombre e «incluye»", () => {
+    for (const clave of CLAVES_MODULO) {
+      const m = MODULOS.find((x) => x.clave === clave);
+      expect(m, clave).toBeDefined();
+      expect(m!.nombre.length, clave).toBeGreaterThan(0);
+      expect(m!.incluye.length, clave).toBeGreaterThan(0);
+    }
   });
 });
