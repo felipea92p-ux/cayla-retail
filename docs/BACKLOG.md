@@ -28,6 +28,16 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Proformas con prendas, hoja A4 con fotos y cobro en el Punto de Venta (2026-09-22, ADR-0167) — hecho y probado en local; FALTA PEGAR 1 MIGRACIÓN EN PRODUCCIÓN
+Rama `claude/modulo-comprobantes-redesign-3d2ffc`, **sin push**. Diseño: `docs/superpowers/specs/2026-09-22-proformas-con-prendas-design.md` (maqueta C, con foto de cada prenda); plan: `docs/superpowers/plans/2026-09-22-proformas-con-prendas.md`. Decisión en [docs/adr/0167-proformas-con-prendas.md](adr/0167-proformas-con-prendas.md).
+- [x] **Rediseño de Comprobantes** (mismo día, commit `1a470626`): sin botones en la cabecera; «Emitir comprobante» borrado (cada venta se declara sola, D-60); Series a todo el ancho con la sede propia primero y «Último: hace…»; Emitidos con filtros tipo/tienda/estado, totales por tipo y WhatsApp; Por reintentar con «Qué hacer», plazo de SUNAT (3 días) y «Reintentar los N». Verificado en el navegador local contra la base (totales = SQL).
+- [x] **Migración `20260923094700_proformas_con_prendas.sql`**: `numero`, `nota`, `venta_id`; `crear_proforma` v2 (valida y calcula; borra la firma vieja); `marcar_proforma_cobrada`; `convertir_proforma_a_comprobante` sin permiso. Ensayada en una transacción con ROLLBACK (rechazos, una sola firma, idempotencia, otra tienda) y aplicada solo en local.
+- [x] Pantalla: «Nueva proforma» con buscador/escáner, cantidad, descuento hasta 20 % con motivo, clienta, validez y nota; lista con número, detalle con foto, Ver / imprimir, WhatsApp, Duplicar / Renovar y Cobrar. Hoja A4 verificada con un PDF real (una hoja, nada cortado).
+- [x] **Cobro de punta a punta en el navegador local** (PRO-000006, Trujillo): carrito armado, venta completada, piso 4 → 3 con su movimiento, proforma «convertida» y enlazada, nota de venta NV01-000002. Se cobró con nota de venta porque la boleta chocó con el problema de series de abajo.
+- [ ] **Pegar la migración en producción** (OK de Felipe). Hasta entonces la rama NO se puede fusionar: la pestaña Proformas lee columnas que producción no tiene. Después: `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
+- [ ] PR a `main` y su fusión (despliega): OK aparte.
+- [ ] En la base LOCAL, Lima y Trujillo comparten la serie `B001` con contadores independientes: la siguiente boleta de Trujillo (B001-24) choca con la de Lima (`comprobantes_tipo_serie_numero_key`). Producción no lo tiene (B004/B005). Arreglar la base local (una serie por tienda), no el código.
+
 ## 🎯 «Quién vendió» en el ticket del Punto de venta (2026-09-22, ADR-0163) — rehecho sobre la asistencia de Dynamic; migración en producción, falta fusionar la web
 Un solo equipo de caja y varias colaboradoras por tienda. La fila «Atendió» ofrece a quienes marcaron entrada hoy en Dynamic (`fn_asesoras_de_turno`) y la venta se guarda en `ventas.asesora_id` — ambas ya en producción desde la 20260922150000 (ADR-0153). Decisión en [docs/adr/0163-vendedora-en-el-ticket.md](adr/0163-vendedora-en-el-ticket.md).
 - [x] Primera versión con columna propia (`vendedora_id`) e interruptor del líder: verificada en navegador el 2026-09-22, pero chocaba con la 150000 de main (dos columnas, dos `registrar_venta`). **Descartada al fusionar main**: se borró la 20260922143700 (nunca se pegó) y el modal del líder.

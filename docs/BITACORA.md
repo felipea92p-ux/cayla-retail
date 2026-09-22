@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (Proformas con prendas, hoja A4 con fotos y cobro en el Punto de Venta — ADR-0167)
+Felipe pidió que la proforma lleve productos reales y genere un archivo. Se decidió en el chat, una pregunta a la vez: se cobra cargándola en el Punto de Venta (no se «convierte»), no aparta stock, hoja A4 para imprimir o guardar en PDF, descuento por línea y nota, y si la prenda subió se respeta el precio de la proforma. Entre tres maquetas eligió la C, con foto de cada prenda. Probado de punta a punta en local: la venta bajó el stock y la proforma quedó enlazada a ella.
+Felipe se lleva: (1) **«convertir» una proforma creaba un comprobante sin venta ni stock**, y además declaraba un 18 % de más por guardar el precio con IGV donde se lee sin IGV: dos defectos que solo aparecieron al diseñar las prendas; (2) **la proforma guarda una copia de cada prenda**, porque el papel que se le entregó a la clienta no puede cambiar si mañana cambia el catálogo; (3) para pedir maquetas en otra sesión: «usa brainstorming y muéstrame 3 maquetas en el acompañante visual antes de construir».
+Sin resolver: pegar la migración en producción (OK), el PR, y las series B001 repetidas entre Lima y Trujillo en la base local.
+
 ## 2026-09-22 (Separaciones: demo de interfaz con el lenguaje del ERP)
 Después de validar las funciones, Felipe pidió verlo como interfaz. Se armó `interfaz.html` calcando Punto de Venta: el mismo lateral y la misma hoja, el panel derecho que pasa de ticket a formulario con la barra de 3 tramos, la grilla de medios F1–F5, y el modal «Separación registrada» con la forma de «Venta registrada» y el movimiento de ADR-0136.
 Felipe se lleva: (1) **una pantalla nueva no inventa su propio lenguaje**: reutiliza el ticket, el cobro y el modal que las colaboradoras ya saben usar, y solo agrega lo que es propio de separar (fecha límite, «en custodia», devolución); (2) la demo encontró un bug que el código no mostraba: redibujar el formulario al salir de un campo borraba lo escrito en el siguiente.
