@@ -3615,6 +3615,45 @@ export type Database = {
         }
         Relationships: []
       }
+      terminales: {
+        Row: {
+          activo: boolean
+          auth_user_id: string | null
+          creada_at: string
+          creada_por: string | null
+          desactivada_at: string | null
+          desactivada_por: string | null
+          id: string
+          nombre: string
+          tipo: string
+          ubicacion_id: string
+        }
+        Insert: {
+          activo?: boolean
+          auth_user_id?: string | null
+          creada_at?: string
+          creada_por?: string | null
+          desactivada_at?: string | null
+          desactivada_por?: string | null
+          id?: string
+          nombre: string
+          tipo: string
+          ubicacion_id: string
+        }
+        Update: {
+          activo?: boolean
+          auth_user_id?: string | null
+          creada_at?: string
+          creada_por?: string | null
+          desactivada_at?: string | null
+          desactivada_por?: string | null
+          id?: string
+          nombre?: string
+          tipo?: string
+          ubicacion_id?: string
+        }
+        Relationships: []
+      }
       transferencia_items: {
         Row: {
           cantidad: number
@@ -4774,6 +4813,7 @@ export type Database = {
         Args: { p_proveedor_id: string }
         Returns: undefined
       }
+      desactivar_terminal: { Args: { p_terminal_id: string }; Returns: undefined }
       devolver_insumo_de_produccion: {
         Args: {
           p_cantidad: number
@@ -5667,6 +5707,20 @@ export type Database = {
         Args: { p_ubicacion_id: string; p_uso: string }
         Returns: string
       }
+      fn_terminales: {
+        Args: never
+        Returns: {
+          activo: boolean
+          creada_at: string
+          desactivada_at: string | null
+          id: string
+          nombre: string
+          tipo: string
+          ubicacion_id: string
+          ubicacion_nombre: string
+          ultimo_acceso: string | null
+        }[]
+      }
       fn_texto_o_null: { Args: { p: string }; Returns: string }
       fn_tiene_acceso_retail: { Args: never; Returns: boolean }
       fn_titulo_referencia: { Args: { p: string }; Returns: string }
@@ -5994,6 +6048,7 @@ export type Database = {
       }
       quitar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }
       reactivar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }
+      reactivar_terminal: { Args: { p_terminal_id: string }; Returns: undefined }
       suspender_colaborador: { Args: { p_motivo?: string; p_persona_id: string }; Returns: undefined }
       reactivar_categoria: {
         Args: { p_categoria_id: string }

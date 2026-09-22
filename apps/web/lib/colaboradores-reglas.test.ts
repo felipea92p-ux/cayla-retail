@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { Colaborador, ColaboradorSuspendido, DynamicDisponible } from "./colaboradores";
 import {
   accionesDeFila,
+  avisoTerminal,
+  confirmacionTerminal,
+  ETIQUETA_TIPO_TERMINAL,
   fechaHoraLima,
   fechaLima,
   filtrarColaboradores,
@@ -113,14 +116,30 @@ describe("accionesDeFila", () => {
   it("un líder no tiene ubicación que cambiar", () => {
     expect(accionesDeFila({ rol: "lider", es_yo: false })).toEqual(["suspender", "quitar"]);
   });
+});
 
-  it("una terminal (ADR-0160) no se muda de tienda: solo se suspende o se quita — así nunca queda una en el Taller", () => {
-    expect(accionesDeFila({ rol: "colaborador", es_yo: false, terminal: "ventas" })).toEqual(["suspender", "quitar"]);
-    expect(accionesDeFila({ rol: "colaborador", es_yo: false, terminal: "administrativa" })).toEqual(["suspender", "quitar"]);
+describe("terminales sin persona (ADR-0162)", () => {
+  it("desactivar avisa que corta la sesión al instante y conserva el historial", () => {
+    const c = confirmacionTerminal({ nombre: "Terminal Ventas TRU", activo: true });
+    expect(c.titulo).toBe("Desactivar Terminal Ventas TRU");
+    expect(c.boton).toBe("Desactivar");
+    expect(c.texto).toMatch(/al instante/);
+    expect(c.texto).toMatch(/historial se conserva/);
   });
-
-  it("una persona con `terminal: null` conserva las tres acciones de siempre", () => {
-    expect(accionesDeFila({ rol: "colaborador", es_yo: false, terminal: null })).toEqual(["cambiar_ubicacion", "suspender", "quitar"]);  });
+  it("reactivar vuelve con la misma clave", () => {
+    expect(confirmacionTerminal({ nombre: "Terminal Ventas LIM", activo: false })).toEqual({
+      titulo: "Reactivar Terminal Ventas LIM",
+      texto: "El aparato vuelve a funcionar con su misma clave.",
+      boton: "Reactivar",
+    });
+  });
+  it("el aviso dice el estado NUEVO, a partir del de antes", () => {
+    expect(avisoTerminal("Terminal Ventas TRU", true)).toBe("Terminal Ventas TRU desactivada");
+    expect(avisoTerminal("Terminal Ventas TRU", false)).toBe("Terminal Ventas TRU reactivada");
+  });
+  it("el tipo se lee corto en la tabla", () => {
+    expect(ETIQUETA_TIPO_TERMINAL).toEqual({ ventas: "Ventas", administrativa: "Administrativa" });
+  });
 });
 
 describe("fechas en hora de Lima", () => {

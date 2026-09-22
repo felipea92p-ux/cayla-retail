@@ -9,9 +9,10 @@ import type {
   ColaboradorSuspendido,
   DynamicDisponible,
   EventoAcceso,
+  Terminal,
 } from "@/lib/colaboradores";
 import { accionesSupabase, type AccionesColaboradores, type ResultadoAccion } from "@/lib/colaboradores-acciones";
-import { filtrarColaboradores, plural, resumirAccesos, type AccionFila, type FiltroRol } from "@/lib/colaboradores-reglas";
+import { avisoTerminal, filtrarColaboradores, plural, resumirAccesos, type AccionFila, type FiltroRol } from "@/lib/colaboradores-reglas";
 import type { Ubicacion } from "@/lib/ubicaciones";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -19,17 +20,17 @@ import { Boton } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TabsSubrayado } from "@/components/ui/TabsSubrayado";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { AgregarColaboradoresModal, AgregarTerminalModal, CambiarUbicacionModal, QuitarAccesoModal, SuspenderModal } from "@/components/ColaboradoresModales";
+import { AgregarColaboradoresModal, AlternarTerminalModal, CambiarUbicacionModal, QuitarAccesoModal, SuspenderModal } from "@/components/ColaboradoresModales";
 import { ListaActividad, TablaActivos, TablaInactivas, TablaPendientes, TablaSuspendidos, TablaTerminales } from "@/components/ColaboradoresTablas";
 
-// «Terminales» separada de «Activos» (pedido de Felipe, 2026-09-22): una cuenta terminal no es una persona real y
-// mezclarla en la misma tabla que líderes/colaboradores generaba confusión. Vive en su propia pestaña, entre Activos
-// (a quién le toca primero) y Pendientes (D-70) — mismos datos de `fn_colaboradores()`, solo separados en la pantalla.
+// «Terminales» (ADR-0162): aparatos de cada tienda con cuenta propia y SIN persona — ya no salen de `fn_colaboradores()`
+// sino de `fn_terminales()`. Aquí se ven, se desactivan y se reactivan; crearlas o cambiarles la clave lo hace un líder con
+// `pnpm terminales:crear`, porque exige la llave de servicio que la web no debe tener.
 type Pestana = "activos" | "terminales" | "pendientes" | "suspendidos" | "inactivas" | "actividad";
 
 type Modal =
   | { tipo: "agregar" }
-  | { tipo: "terminal" }
+  | { tipo: "terminal"; terminal: Terminal }
   | { tipo: "suspender"; persona: Colaborador }
   | { tipo: "ubicacion"; persona: Colaborador }
   | { tipo: "quitar"; persona: { persona_id: string; nombre: string }; suspendida: boolean; pendiente?: boolean };
@@ -55,6 +56,7 @@ export function ColaboradoresPanel({
   actividad,
   disponibles,
   ubicaciones,
+  terminales,
   acciones = accionesSupabase,
   alActualizar,
 }: {
@@ -65,6 +67,8 @@ export function ColaboradoresPanel({
   actividad: EventoAcceso[];
   disponibles: DynamicDisponible[];
   ubicaciones: Ubicacion[];
+  /** `null` = no se pudieron leer (p. ej. la base aún no tiene la migración del ADR-0162); el resto de la pantalla sigue. */
+  terminales: Terminal[] | null;
   acciones?: AccionesColaboradores;
   alActualizar?: () => void;
 }) {
@@ -75,13 +79,8 @@ export function ColaboradoresPanel({
   const [modal, setModal] = useState<Modal | null>(null);
   const [ocupadoId, setOcupadoId] = useState<string | null>(null);
 
-  // Separadas UNA vez acá: el resto del panel (KPIs, buscador, pestaña Activos) trabaja solo con personas reales;
-  // «Terminales» es la única pestaña que lee `terminales`. Los datos son los mismos `fn_colaboradores()`, no una
-  // lectura aparte — separar es cosa de la pantalla, no de la base (ver ADR-0160).
-  const colaboradoresReales = useMemo(() => colaboradores.filter((c) => !c.terminal), [colaboradores]);
-  const terminales = useMemo(() => colaboradores.filter((c) => c.terminal), [colaboradores]);
   const resumen = useMemo(() => resumirAccesos(colaboradores, suspendidos, disponibles), [colaboradores, suspendidos, disponibles]);
-  const filas = useMemo(() => filtrarColaboradores(colaboradoresReales, busqueda, rol), [colaboradoresReales, busqueda, rol]);
+  const filas = useMemo(() => filtrarColaboradores(colaboradores, busqueda, rol), [colaboradores, busqueda, rol]);
   const totalActividad = actividad[0]?.total ?? 0;
 
   async function ejecutar(idOcupado: string | null, verbo: string, llamada: () => Promise<ResultadoAccion>, exito: string, detalle?: string) {
@@ -116,9 +115,6 @@ export function ColaboradoresPanel({
         </div>
         <div className="text-right">
           <div className="flex flex-wrap justify-end gap-2">
-            <Boton peso="fantasma" onClick={() => setModal({ tipo: "terminal" })} disabled={disponibles.length === 0}>
-              + Agregar terminal
-            </Boton>
             <Boton peso="primario" onClick={() => setModal({ tipo: "agregar" })} disabled={disponibles.length === 0}>
               + Agregar colaboradores
             </Boton>
@@ -156,8 +152,8 @@ export function ColaboradoresPanel({
         className="border-b border-tinta/10"
         clasePestana="px-1 py-3 text-sm"
         items={[
-          { clave: "activos", etiqueta: "Activos", conteo: colaboradoresReales.length },
-          { clave: "terminales", etiqueta: "Terminales", conteo: terminales.length },
+          { clave: "activos", etiqueta: "Activos", conteo: colaboradores.length },
+          { clave: "terminales", etiqueta: "Terminales", conteo: terminales?.filter((t) => t.activo).length ?? 0 },
           { clave: "pendientes", etiqueta: "Pendientes", conteo: pendientes.length, tono: pendientes.length > 0 ? "ambar" : undefined },
           { clave: "suspendidos", etiqueta: "Suspendidos", conteo: suspendidos.length, tono: suspendidos.length > 0 ? "ambar" : undefined },
           { clave: "inactivas", etiqueta: "Inactivas en Dynamic", conteo: inactivos.length },
@@ -167,7 +163,7 @@ export function ColaboradoresPanel({
 
       {pestana === "activos" && (
         <section aria-label="Colaboradores activos" className="space-y-4">
-          {colaboradoresReales.length === 0 ? (
+          {colaboradores.length === 0 ? (
             <Vacio>Nadie tiene acceso a retail todavía.</Vacio>
           ) : (
             <>
@@ -186,7 +182,7 @@ export function ColaboradoresPanel({
                   valor={rol}
                   onCambio={(k) => setRol(k as FiltroRol)}
                   opciones={[
-                    { clave: "todos", etiqueta: "Todos", conteo: colaboradoresReales.length },
+                    { clave: "todos", etiqueta: "Todos", conteo: colaboradores.length },
                     { clave: "lider", etiqueta: "Líderes", conteo: resumen.lideres },
                     { clave: "colaborador", etiqueta: "Colaboradores", conteo: resumen.colaboradores },
                   ]}
@@ -198,9 +194,9 @@ export function ColaboradoresPanel({
                 <TablaActivos filas={filas} ocupadoId={ocupadoId} onAccion={alElegirAccion} />
               )}
               <p className="text-xs text-tinta/65" role="status">
-                {filas.length === colaboradoresReales.length
+                {filas.length === colaboradores.length
                   ? plural(filas.length, "persona con acceso", "personas con acceso")
-                  : `${filas.length} de ${plural(colaboradoresReales.length, "persona", "personas")}`}
+                  : `${filas.length} de ${plural(colaboradores.length, "persona", "personas")}`}
               </p>
             </>
           )}
@@ -208,18 +204,31 @@ export function ColaboradoresPanel({
       )}
 
       {pestana === "terminales" && (
-        <section aria-label="Cuentas terminal" className="space-y-3">
-          {terminales.length === 0 ? (
+        <section aria-label="Terminales" className="space-y-4">
+          <p className="text-sm text-tinta/70">Aparatos compartidos de cada tienda. No son personas: lo que hacen lo firma quien se elige como responsable.</p>
+          {terminales === null ? (
+            <Vacio>No se pudieron leer las terminales. Lo demás de esta pantalla sí está al día.</Vacio>
+          ) : terminales.length === 0 ? (
             <Vacio>Ninguna tienda tiene una terminal todavía.</Vacio>
           ) : (
-            <>
-              <p className="text-sm text-tinta/70">
-                Cuentas compartidas por el equipo de una tienda (ADR-0160), no personas — por eso viven aparte de Activos. La de ventas cobra, cierra caja y
-                factura; la administrativa ajusta inventario, escribe en el catálogo y edita las cuentas de proveedores.
-              </p>
-              <TablaTerminales filas={terminales} ocupadoId={ocupadoId} onAccion={alElegirAccion} />
-            </>
+            <TablaTerminales filas={terminales} ocupadoId={ocupadoId} onAlternar={(t) => setModal({ tipo: "terminal", terminal: t })} />
           )}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="card-cayla px-4 py-3.5 text-[13.5px] leading-relaxed text-tinta/80">
+              <p className="label-cayla text-[11px] text-taupe-profundo">Crear una terminal o cambiarle la clave</p>
+              <p className="mt-1.5">
+                Lo corre un líder: <code className="rounded-md bg-sand/60 px-1.5 py-px text-[12.5px]">pnpm terminales:crear TRU ventas</code>. La clave se muestra{" "}
+                <strong className="font-semibold text-tinta">una sola vez</strong>; se escribe en el aparato y no se guarda en ningún otro lado.
+              </p>
+            </div>
+            <div className="card-cayla px-4 py-3.5 text-[13.5px] leading-relaxed text-tinta/80">
+              <p className="label-cayla text-[11px] text-taupe-profundo">Si alguien deja de trabajar en la tienda</p>
+              <p className="mt-1.5">
+                No hace falta cambiar la clave: la persona no puede firmar si no marca su entrada. Si se pierde el aparato,{" "}
+                <strong className="font-semibold text-tinta">Desactivar</strong> corta su sesión en el acto.
+              </p>
+            </div>
+          </div>
         </section>
       )}
 
@@ -297,13 +306,16 @@ export function ColaboradoresPanel({
         />
       )}
       {modal?.tipo === "terminal" && (
-        <AgregarTerminalModal
-          disponibles={disponibles}
-          tiendas={ubicaciones.filter((u) => u.tipo === "tienda" && u.activo)}
-          ocupadas={new Set(terminales.filter((c) => c.ubicacion_id).map((c) => `${c.ubicacion_id}|${c.terminal}`))}
+        <AlternarTerminalModal
+          terminal={modal.terminal}
           onClose={() => setModal(null)}
-          onConfirmar={(personaId, ubicacionId, tipo) =>
-            ejecutar(null, "agregar la terminal", () => acciones.agregarTerminal(personaId, ubicacionId, tipo), "Terminal agregada", `Ya puede entrar a retail como ${tipo === "ventas" ? "terminal de ventas" : "terminal administrativa"}.`)
+          onConfirmar={() =>
+            ejecutar(
+              modal.terminal.id,
+              modal.terminal.activo ? "desactivar la terminal" : "reactivar la terminal",
+              () => (modal.terminal.activo ? acciones.desactivarTerminal(modal.terminal.id) : acciones.reactivarTerminal(modal.terminal.id)),
+              avisoTerminal(modal.terminal.nombre, modal.terminal.activo)
+            )
           }
         />
       )}
