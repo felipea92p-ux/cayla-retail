@@ -1,3 +1,4 @@
+import { History, ArrowDownToLine, ArrowUpFromLine, Info } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getSububicaciones } from "@/lib/sububicaciones";
@@ -14,7 +15,8 @@ import {
   type ParamsMovimientos,
   type ResumenMovimientos,
 } from "@/lib/movimientos-v2";
-import { SelectorUbicacion } from "@/components/SelectorUbicacion";
+import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
+import { TarjetaIndicador } from "@/components/ui/TarjetaIndicador";
 import { FiltrosMovimientos } from "@/components/FiltrosMovimientos";
 import { MovimientosLista } from "@/components/MovimientosLista";
 import { PaginacionCursor } from "@/components/Paginacion";
@@ -64,16 +66,13 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Inventario · Movimientos</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">{ubicacionActiva?.nombre ?? "—"}</h1>
-          <p className="mt-1 text-sm text-tinta/65">
-            Qué cambió en el stock de esta sede, el proceso que lo originó y de dónde a dónde. No se edita ni se borra nunca.
-          </p>
-        </div>
-        {esLider && <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} />}
-      </div>
+      <InventarioHero
+        eyebrow="Inventario · Movimientos"
+        titulo={ubicacionActiva?.nombre ?? "—"}
+        descripcion="Historial de entradas, salidas, traslados y ajustes de esta sede."
+        foto={fotoHeroPorPantalla("movimientos")}
+        variante="integrado"
+      />
 
       <Resumen resumen={resumen} periodo={periodoEnPalabras} />
 
@@ -84,7 +83,16 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
           {hayFiltros ? "Ningún movimiento coincide con esos filtros." : "Todavía no hay movimientos en esta ubicación."}
         </p>
       ) : (
-        <MovimientosLista movimientos={filas} hoyLima={hoyEnLima()} enlaceCompras={esLider} />
+        <>
+          {/* Reemplaza al detalle que antes se abría al hacer clic en cualquier fila (quitado en este
+              rediseño): una sola línea, sin caja, para que se entienda la Referencia sin tener que
+              probar a hacer clic en una fila y descubrir que ya no pasa nada. */}
+          <p className="flex items-center gap-2 text-xs text-tinta/55">
+            <Info aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5 shrink-0" />
+            Haz clic en una Referencia para ver el detalle en su módulo de origen — ventas en Historial, traslados en Traslados, compras en Compras.
+          </p>
+          <MovimientosLista movimientos={filas} hoyLima={hoyEnLima()} enlaceCompras={esLider} />
+        </>
       )}
 
       <PaginacionCursor
@@ -105,13 +113,15 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
   );
 }
 
-// Tres tarjetas (diseño de Felipe, 2026-09-16), del mismo período que la
-// lista — no de la página: con paginado, la página nunca es «todo el
-// período». La primera cuenta registros y los reparte por categoría; las
-// otras dos son las unidades que entraron y salieron. Traslados, ajustes e
-// internos viven en el desglose de la primera con su signo (¿la sede recibió
-// o mandó?, ¿faltó o sobró?) — son las cifras que antes tenían tarjeta
-// propia y siguen a la vista, solo más compactas.
+// Tres tarjetas (diseño de Felipe, 2026-09-16; mismo lenguaje visual que «Prioridades de hoy» de
+// Existencias desde 2026-09-22 — `TarjetaIndicador`), del mismo período que la lista — no de la
+// página: con paginado, la página nunca es «todo el período». La primera cuenta registros y los
+// reparte por categoría; las otras dos son las unidades que entraron y salieron. Traslados, ajustes e
+// internos viven en el desglose de la primera con su signo (¿la sede recibió o mandó?, ¿faltó o
+// sobró?) — son las cifras que antes tenían tarjeta propia y siguen a la vista, solo más compactas.
+// Sin «Ajustes» aparte: ya está en ese desglose, y sumar una cuarta tarjeta por lo mismo sería la caja
+// de más que Felipe pidió evitar. Ninguna es clic — ya existe el filtro «Tipo» debajo para eso, y
+// poner la misma acción en dos controles distintos confunde más de lo que ayuda.
 function Resumen({ resumen, periodo }: { resumen: ResumenMovimientos; periodo: string }) {
   const total = Object.values(resumen).reduce((acc, r) => acc + r.movimientos, 0);
   const n = (v: number) => v.toLocaleString("es-PE");
@@ -128,39 +138,31 @@ function Resumen({ resumen, periodo }: { resumen: ResumenMovimientos; periodo: s
 
   return (
     <div className="grid gap-3 sm:grid-cols-3">
-      <Tarjeta etiqueta={`Movimientos · ${periodo}`} valor={n(total)} unidad={total === 1 ? "registro" : "registros"}>
+      <TarjetaIndicador tono="neutro" icono={History} etiqueta={`Movimientos · ${periodo}`} valor={total} unidad={total === 1 ? "registro" : "registros"}>
         {total === 0 ? "Sin movimientos en el período" : desglose.join(" · ")}
-      </Tarjeta>
-      <Tarjeta
+      </TarjetaIndicador>
+      <TarjetaIndicador
+        tono="verde"
+        icono={ArrowDownToLine}
         etiqueta={`${ETIQUETA_CATEGORIA.entrada}s`}
         valor={resumen.entrada.movimientos === 0 ? "—" : `+${n(resumen.entrada.unidades)}`}
         unidad="unidades"
-        tono={resumen.entrada.movimientos > 0 ? "text-verde-profundo" : undefined}
       >
         {resumen.entrada.movimientos === 0
           ? "Nada entró en el período"
           : `${plural(resumen.entrada.movimientos, "movimiento", "movimientos")} · recepciones, devoluciones, producción`}
-      </Tarjeta>
-      <Tarjeta
+      </TarjetaIndicador>
+      {/* «Salida» no es alarma (una venta es lo esperado, no un problema) — mismo criterio de color
+          que ya usa la lista (`tonoCategoria`): neutro, no coral. */}
+      <TarjetaIndicador
+        tono="neutro"
+        icono={ArrowUpFromLine}
         etiqueta={`${ETIQUETA_CATEGORIA.salida}s`}
         valor={resumen.salida.movimientos === 0 ? "—" : `−${n(resumen.salida.unidades)}`}
         unidad="unidades"
       >
         {resumen.salida.movimientos === 0 ? "Nada salió en el período" : `${plural(resumen.salida.movimientos, "movimiento", "movimientos")} · ventas y cambios`}
-      </Tarjeta>
-    </div>
-  );
-}
-
-function Tarjeta({ etiqueta, valor, unidad, tono, children }: { etiqueta: string; valor: string; unidad: string; tono?: string; children: React.ReactNode }) {
-  return (
-    <div className="card-cayla p-5">
-      <p className="label-cayla text-[11px] text-tinta/65">{etiqueta}</p>
-      <p className="mt-1 flex items-baseline gap-2">
-        <span className={`font-display text-3xl tabular-nums ${tono ?? "text-tinta"}`}>{valor}</span>
-        <span className="text-sm text-tinta/55">{unidad}</span>
-      </p>
-      <p className="mt-1 text-xs text-tinta/65">{children}</p>
+      </TarjetaIndicador>
     </div>
   );
 }

@@ -9,9 +9,8 @@ import { deltaDisponibleSede } from "@/lib/existencias-categorias";
 import { recomendacionesDeSede } from "@/lib/existencias-recomendaciones";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { estaAtrasado } from "@/lib/traslados-reglas";
-import { SelectorUbicacion } from "@/components/SelectorUbicacion";
 import { InventarioPanel } from "@/components/InventarioPanel";
-import { ExistenciasHero } from "@/components/ExistenciasHero";
+import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
 // (20260914210000_inventario_piso_almacen.sql). Sigue siendo UNA tabla
@@ -28,13 +27,10 @@ import { ExistenciasHero } from "@/components/ExistenciasHero";
 export default async function InventarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ubicacion?: string; prueba?: string }>;
+  searchParams: Promise<{ ubicacion?: string }>;
 }) {
   const persona = await requirePersonaActualV2();
-  const { ubicacion: ubicacionQuery, prueba } = await searchParams;
-  // D-54 (ADR-0159): apagado por defecto — los productos archivados como dato de prueba
-  // (nunca borrados) no se piden a la base salvo que se pida verlos.
-  const incluirPrueba = prueba === "1";
+  const { ubicacion: ubicacionQuery } = await searchParams;
   const ubicaciones = await getUbicaciones();
 
   const ubicacionActivaId =
@@ -42,16 +38,14 @@ export default async function InventarioPage({
       ? ubicacionQuery
       : persona.ubicacionId;
   const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
-  // Para que el toggle «Con datos de prueba» no le borre a un líder la sede que eligió.
-  const paramsPrueba = new URLSearchParams();
-  if (persona.rol === "lider" && ubicacionQuery) paramsPrueba.set("ubicacion", ubicacionQuery);
-  if (!incluirPrueba) paramsPrueba.set("prueba", "1");
-  const hrefPrueba = paramsPrueba.toString() ? `/inventario?${paramsPrueba}` : "/inventario";
 
   // La cobertura («cuánto dura este stock al ritmo reciente») solo tiene sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
   const [stockBase, sububicaciones, traslados, danadosPendientes, cobertura, apartados, filasSemana, filasRecientes] = await Promise.all([
-    getExistencias(ubicacionActivaId, ubicaciones, { incluirPrueba }),
+    // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
+    // pide siempre el default de la función (apagado) — los productos archivados como dato de
+    // prueba, nunca borrados, quedan afuera.
+    getExistencias(ubicacionActivaId, ubicaciones),
     getSububicaciones(ubicacionActivaId),
     getTrasladosEnCurso(ubicacionActivaId),
     getPrendasDanadasPendientes(ubicacionActivaId),
@@ -91,44 +85,23 @@ export default async function InventarioPage({
   const recomendaciones = ubicacionActiva && vende ? recomendacionesDeSede(filasRecientes, ubicacionActiva) : [];
 
   return (
-    <div className="space-y-6">
-      {/* Encabezado (rediseño 2026-09-22): mismo contenido de siempre —breadcrumb, título, subtítulo,
-          selector de sede, «+ Nuevo traslado»— con más aire y el ropero decorativo a la derecha
-          (`ExistenciasHero`, sutil, nunca compite con el texto). */}
-      <div className="card-cayla anim-sube grid grid-cols-1 items-center gap-6 overflow-hidden p-6 sm:p-8 md:grid-cols-[1fr_auto]">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="label-cayla text-[11px] text-tinta/65">Inventario · Existencias</p>
-            <h1 className="font-display mt-1 text-3xl text-tinta">{ubicacionActiva?.nombre ?? "—"}</h1>
-            <p className="mt-1.5 max-w-md text-sm text-tinta/65">Qué hay en piso y almacén, qué viene en camino y qué deberías reponer hoy.</p>
-            <p className="mt-1 text-xs text-tinta/45">Vista cargada a las {horaCarga} — recarga para ver lo último.</p>
-          </div>
-        </div>
-        <div className="hidden h-28 w-56 shrink-0 md:block">
-          <ExistenciasHero />
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        {persona.rol === "lider" && <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} />}
-        {/* D-54 (ADR-0159): apagado por defecto — los productos archivados como dato de prueba
-            (nunca borrados) quedan afuera de «Existencias» salvo que se pida verlos. */}
-        <Link
-          href={hrefPrueba}
-          aria-pressed={incluirPrueba}
-          className={`label-cayla rounded-md border px-3 py-2.5 text-[11px] transition-colors ${
-            incluirPrueba ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo"
-          }`}
-        >
-          Con datos de prueba
-        </Link>
-        <Link
-          href="/inventario/mover"
-          className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-        >
-          + Nuevo traslado
-        </Link>
-      </div>
+    <div className="space-y-4">
+      <InventarioHero
+        eyebrow="Inventario · Existencias"
+        titulo={ubicacionActiva?.nombre ?? "—"}
+        descripcion="Qué hay en piso y almacén, qué viene en camino y qué deberías reponer hoy."
+        auxiliar={<p className="text-[11px] text-tinta/40">Cargado a las {horaCarga}</p>}
+        foto={fotoHeroPorPantalla("existencias")}
+        variante="integrado"
+        accion={
+          <Link
+            href="/inventario/mover"
+            className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema shadow-sm transition-colors hover:bg-rojo"
+          >
+            + Nuevo traslado
+          </Link>
+        }
+      />
 
       <InventarioPanel
         ubicacionId={ubicacionActivaId}
