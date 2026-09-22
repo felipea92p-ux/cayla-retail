@@ -3,7 +3,7 @@
  * Pruebas de las cuentas TERMINAL por tienda — CAYLA V2. Los PODERES son los del ADR-0160
  * (`20260922200000_terminales_por_tienda.sql`); la IDENTIDAD es la del ADR-0162: una terminal es un aparato de
  * `retail.terminales` con su propia cuenta de Auth y SIN persona (`20260923010000_terminales_sin_persona.sql`), y lo
- * que hace lo firma el responsable elegido en el combo (`20260923020000_actor_firma_las_operaciones.sql`).
+ * que hace lo firma el responsable elegido en el combo (`20260923100000_actor_firma_las_operaciones.sql`).
  * Reescrita el 2026-09-22 (ADR-0162 F3): antes creaba la terminal como persona con `agregar_terminal`, que se retiró.
  *
  * QUÉ PRUEBA. Que los poderes de cada terminal estén EN LA BASE y no solo en el menú, que NADA MÁS se haya abierto,

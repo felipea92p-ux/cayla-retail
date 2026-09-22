@@ -15,6 +15,7 @@
     "pruebas:aprobar-devolucion-caja": "node scripts/pruebas/aprobar_devolucion_caja.mjs",
     "pruebas:fn-aplicar-movimiento": "node scripts/pruebas/fn_aplicar_movimiento.mjs",
     "pruebas:apartar-stock": "node scripts/pruebas/apartar_stock.mjs",
+    "pruebas:separaciones": "node scripts/pruebas/separaciones.mjs",
     "pruebas:fn-movimientos-referencias": "node scripts/pruebas/fn_movimientos_referencias.mjs",
     "pruebas:fn-movimientos-busqueda-especial": "node scripts/pruebas/fn_movimientos_busqueda_especial.mjs",
     "pruebas:fn-resumen-comparacion": "node scripts/pruebas/fn_resumen_comparacion.mjs",

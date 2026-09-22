@@ -93,8 +93,8 @@ export function aterrizajeDe(perfil: { terminal?: boolean; modulos?: readonly Cl
 
 /** Claves de los íconos. Los trazos viven en `AppShell.tsx` (`IC`); acá solo se nombra cuál lleva cada nodo. */
 export type ClaveIcono =
-  | "inicio" | "vender" | "caja" | "historial" | "productos" | "inventario" | "movimientos" | "traslados" | "conteo" | "resumen"
-  | "facturacion" | "compras" | "insumos" | "produccion" | "cambios" | "devoluciones" | "venta"
+  | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "movimientos" | "traslados" | "conteo" | "resumen"
+  | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "cambios" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
@@ -165,11 +165,10 @@ export const ARBOL: readonly Nodo[] = [
   // Inicio y Análisis no son dueños de tablas: leen lo de otros. Águila es «Inteligencia y reportes» (lee lo de los demás).
   { id: "inicio", etiqueta: "Inicio", estado: "viva", ruta: "/", icono: "inicio", pajaro: "13 Águila" },
 
-  // «Colaboradores» (a quién de Dynamic le doy entrada a retail, 0013_colaboradores_autorizados.sql) salió de acá el
-  // 2026-09-21 (decisión de Felipe): es configuración de acceso, no trabajo diario, y no debía competir por espacio en
-  // el menú principal con Catálogo/Compras/Ventas/Inventario. Vive hoy en «Mi perfil» (`PerfilModal.tsx`), solo para
-  // quien administra — la ruta `/colaboradores` sigue exigiendo el mismo permiso en la página y en la RPC; esto solo
-  // decidía qué se pintaba. El destino final, cuando nazca, es «configuracion.accesos» (ver el árbol «futura» abajo).
+  // «Colaboradores» (a quién de Dynamic le doy entrada a retail) NO va en el menú lateral: se entra desde el perfil del
+  // líder (`PerfilModal.tsx`), y adentro viven sus pestañas Terminales y Roles y accesos. Main lo había devuelto al
+  // menú el 2026-09-22; Felipe pidió ese mismo día dejarlo en el perfil (se corrige en main después). La ruta
+  // `/colaboradores` sigue exigiendo el permiso en la página y en la RPC.
 
   // Catálogo (2026-09-16/17): qué ES una prenda y el vocabulario del que cuelga. Colores, tallas, tejidos, patrones y
   // etiquetas viven como pestañas de «Atributos».
@@ -260,12 +259,23 @@ export const ARBOL: readonly Nodo[] = [
     id: "venta", etiqueta: "Ventas", estado: "viva", icono: "venta", raiz: "/vender", pajaro: "07 Colibrí",
     hijos: [
       { id: "venta.puntoDeVenta", modulo: "vender", etiqueta: "Punto de Venta", estado: "viva", ruta: "/vender", icono: "vender", pajaro: "07 Colibrí" },
+      // Apartados (ADR-0166): la clienta aparta con un adelanto y recoge pagando el saldo. Junto al Punto de venta: es la
+      // misma caja — por eso en los roles cuelga del módulo «Punto de venta».
+      { id: "venta.apartados", modulo: "vender", etiqueta: "Apartados", estado: "viva", ruta: "/vender/apartados", icono: "apartados", pajaro: "07 Colibrí" },
       { id: "venta.caja", modulo: "caja", etiqueta: "Caja", estado: "viva", ruta: "/caja", icono: "caja", pajaro: "07 Colibrí" },
       // Historial de ventas (ADR-0147): el libro de todas las ventas; se lee tras cobrar y cuadrar y de ahí se pasa a corregir.
       { id: "venta.historial", modulo: "historial", etiqueta: "Historial", estado: "viva", ruta: "/vender/historial", icono: "historial", pajaro: "07 Colibrí" },
-      { id: "venta.cambios", modulo: "cambios", etiqueta: "Cambios", estado: "viva", ruta: "/cambios", icono: "cambios", pajaro: "07 Colibrí" },
-      { id: "venta.devoluciones", modulo: "devoluciones", etiqueta: "Devoluciones", estado: "viva", ruta: "/devoluciones", icono: "devoluciones", pajaro: "07 Colibrí" },
-      { id: "venta.facturacion", modulo: "facturacion", etiqueta: "Facturación", estado: "viva", ruta: "/vender/facturacion", icono: "facturacion", pajaro: "08 Cuervo", exige: "facturar" },
+      // Posventa (D-84, ADR-0166): al entrar Apartados, Ventas pasaba el tope de 6 hijas. Cambios y Devoluciones son lo que pasa
+      // DESPUÉS de una venta y se usan mucho menos que el mostrador y la caja: se agrupan en vez de subir el tope (ADR-0144).
+      // `raiz` reutiliza la de su primera hija, como Abastecimiento.
+      {
+        id: "venta.posventa", etiqueta: "Posventa", estado: "viva", icono: "cambios", raiz: "/cambios", pajaro: "07 Colibrí",
+        hijos: [
+          { id: "venta.cambios", modulo: "cambios", etiqueta: "Cambios", estado: "viva", ruta: "/cambios", icono: "cambios", pajaro: "07 Colibrí" },
+          { id: "venta.devoluciones", modulo: "devoluciones", etiqueta: "Devoluciones", estado: "viva", ruta: "/devoluciones", icono: "devoluciones", pajaro: "07 Colibrí" },
+        ],
+      },
+      { id: "venta.facturacion", modulo: "facturacion", etiqueta: "Comprobantes", estado: "viva", ruta: "/vender/comprobantes", icono: "facturacion", pajaro: "08 Cuervo", exige: "facturar" },
     ],
   },
 

@@ -117,7 +117,7 @@ function IconoPlin({ className }: { className?: string }) {
   );
 }
 
-const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
+export const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
   efectivo: <Banknote className={ICONO} aria-hidden />,
   tarjeta: <CreditCard className={ICONO} aria-hidden />,
   yape: <IconoYape className={ICONO} />,

@@ -72,7 +72,7 @@ describe("«Así queda su menú»", () => {
     expect(etiquetasDelMenu(menuDelRol(INTEGRANTE))).toEqual([
       { etiqueta: "Inicio", hijas: [] },
       { etiqueta: "Catálogo", hijas: ["Productos", "Categorías", "Atributos"] },
-      { etiqueta: "Ventas", hijas: ["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones"] },
+      { etiqueta: "Ventas", hijas: ["Punto de Venta", "Apartados", "Caja", "Historial", "Posventa"] },
       { etiqueta: "Inventario", hijas: ["Existencias", "Movimientos", "Traslados", "Conteo", "Recibir mercadería"] },
     ]);
   });

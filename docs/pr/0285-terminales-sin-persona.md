@@ -38,7 +38,7 @@ la tienda, bloquea si no hay nadie y vuelve a vacío al guardar. Viaja en los en
 | # | Archivo | Qué hace |
 |---|---|---|
 | 1 | `supabase/migrations/20260923010000_terminales_sin_persona.sql` (F2) | Tabla, funciones base, `terminal_id` + disparador, pestaña Terminales, retiro del ADR-0160 |
-| 2 | `supabase/migrations/20260923020000_actor_firma_las_operaciones.sql` (F3) | Las 65 funciones pasan a firmar con el actor (se leen de `pg_get_functiondef` en vivo) |
+| 2 | `supabase/migrations/20260923100000_actor_firma_las_operaciones.sql` (F3) | Las 65 funciones pasan a firmar con el actor (se leen de `pg_get_functiondef` en vivo) |
 
 - Se pegan **en ese orden**, cada una empezando con `set search_path to retail, public, extensions;`. La F3 exige la F2.
 - La F3 **falla cerrada**: si una función cambió en producción, o aparece una función nueva con el patrón sin
@@ -90,7 +90,7 @@ caja. En las cuatro:
   búsqueda por `auth.uid()`, y la terminal firmaría NULL. `pnpm pruebas:actor-firma` lo detecta.
 - **Punto de venta abierto sin conexión desde el inicio:** no carga la lista del combo y no puede vender sin conexión
   hasta que la cargue una vez con red.
-- **Comentario viejo en la F3:** el encabezado de `20260923020000` todavía dice que la terminal tiene tope 0 y que no
+- **Comentario viejo en la F3:** el encabezado de `20260923100000` todavía dice que la terminal tiene tope 0 y que no
   libera apartados. El cuerpo de la migración, que es lo que corre, ya aplica lo que decidió Felipe (sin tope y libera
   siempre). Conviene corregir ese comentario en un commit aparte.
 - **Descuento con código:** la terminal no tiene tope, pero como no es líder, un descuento manual por línea le sigue
@@ -100,7 +100,7 @@ caja. En las cuatro:
 
 - [ ] OK de Felipe para tocar producción.
 - [ ] Pegar la F2 `20260923010000` (con `set search_path to retail, public, extensions;`).
-- [ ] Pegar la F3 `20260923020000` (igual). Revisar los avisos: qué funciones omitió.
+- [ ] Pegar la F3 `20260923100000` (igual). Revisar los avisos: qué funciones omitió.
 - [ ] Fusionar este PR y confirmar la web publicada en `origin/main` (lo fusiona Felipe).
 - [ ] Felipe crea las 6 terminales con `pnpm terminales:crear`.
 - [ ] Probar una terminal de verdad en TRU: entra, vende con responsable presente, y se bloquea sin nadie de turno.

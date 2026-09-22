@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { AlertTriangle, Boxes, ChevronRight, PackagePlus, SlidersHorizontal, Truck } from "lucide-react";
+import { AlertTriangle, Boxes, ChevronRight, PackagePlus, Sparkles, SlidersHorizontal, Truck } from "lucide-react";
 import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial } from "@/lib/filtro-busqueda-especial";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { CampoTexto, CampoSelect } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { MenuAcciones } from "@/components/ui/MenuAcciones";
 import { ReponerPisoModal } from "@/components/ReponerPisoModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
@@ -14,10 +16,12 @@ import { ApartarModal } from "@/components/ApartarModal";
 import { ApartadosModal } from "@/components/ApartadosModal";
 import { DisponibleTotalOverlay } from "@/components/DisponibleTotalOverlay";
 import { AnalisisCoberturaOverlay } from "@/components/AnalisisCoberturaOverlay";
+import { RecomendacionesOverlay } from "@/components/RecomendacionesOverlay";
 import { hoyLima, resumirApartados, type Apartado } from "@/lib/apartados-reglas";
 import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 import { resumenRed } from "@/lib/stock-por-sede";
 import { descargarCsv } from "@/lib/exportar-csv";
+import type { Recomendacion } from "@/lib/existencias-recomendaciones";
 import {
   ACCION_ESTADO_STOCK,
   DIAS_RITMO_RECIENTE,
@@ -181,6 +185,7 @@ export function InventarioPanel({
   coberturaFallo = null,
   filasSemana,
   deltaSede,
+  recomendaciones,
 }: {
   ubicacionId: string;
   stock: FilaExistencias[];
@@ -208,7 +213,11 @@ export function InventarioPanel({
   filasSemana: FilaResumen[];
   /** El delta de disponible de TODA la sede en los últimos 7 días, para la tarjeta «Disponible total». */
   deltaSede: { hoy: number; hace7d: number; pct: number | null };
+  /** «Ver recomendaciones» (2026-09-22): el motor de reposición (`planDeReposicion`, ya existía para
+   *  Producción) corrido por cada variante de la sede — ya ordenada por urgencia, vacía en Taller. */
+  recomendaciones: Recomendacion[];
 }) {
+  const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
   const [categoria, setCategoria] = useState(TODAS);
   const [talla, setTalla] = useState(TODAS);
@@ -221,6 +230,7 @@ export function InventarioPanel({
   const [viendoApartados, setViendoApartados] = useState(false);
   const [viendoDisponible, setViendoDisponible] = useState(false);
   const [viendoCobertura, setViendoCobertura] = useState(false);
+  const [viendoRecomendaciones, setViendoRecomendaciones] = useState(false);
 
   const categorias = useMemo(
     () => Array.from(new Set(stock.map((f) => f.categoria).filter((c): c is string => !!c))).sort((a, b) => a.localeCompare(b, "es")),
@@ -327,8 +337,26 @@ export function InventarioPanel({
           propósito de acción cada una. A es la más urgente (acento rojo); B abre el desglose por
           categoría; C y D se comportaban igual antes, solo con más presencia visual. */}
       <div>
-        <p className="font-display text-lg text-tinta">Prioridades de hoy</p>
-        <p className="mt-0.5 text-xs text-tinta/60">Acciones sugeridas para impulsar tus ventas en tienda.</p>
+        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+          <div>
+            <p className="font-display text-lg text-tinta">Prioridades de hoy</p>
+            <p className="mt-0.5 text-xs text-tinta/60">Acciones sugeridas para impulsar tus ventas en tienda.</p>
+          </div>
+          {/* «Ver recomendaciones»: el motor de reposición (`planDeReposicion`) corrido por variante —
+              ya existía para Producción, nadie lo mostraba todavía por sede. Solo donde se vende. */}
+          {separa && (
+            <button
+              type="button"
+              onClick={() => setViendoRecomendaciones(true)}
+              className="label-cayla inline-flex items-center gap-1.5 text-[11px] text-rojo hover:underline"
+            >
+              <Sparkles aria-hidden className="h-3.5 w-3.5" />
+              Ver recomendaciones
+              {recomendaciones.length > 0 && <span className="tabular-nums text-rojo/70">({recomendaciones.length})</span>}
+              <ChevronRight aria-hidden className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
         <div className={`mt-3 grid gap-3 ${separa ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-3"}`}>
           {separa && (
             <TarjetaPrioridad
@@ -609,27 +637,37 @@ export function InventarioPanel({
                     <span className="text-tinta/35">—</span>
                   )}
                 </span>
-                <span className={celda("centro")}>
-                  <span className="flex flex-col items-center gap-1">
-                    {puedeApartar && f.disponible > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setApartando(f)}
-                        className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline"
-                      >
-                        Apartar
-                      </button>
-                    )}
-                    {/* D-13: ajustar stock fuera de una venta es del líder o de la terminal administrativa (candado real en `registrar_movimiento`). */}
-                    {puedeAjustar && (
-                      <button
-                        type="button"
-                        onClick={() => setAjustando(f)}
-                        className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline"
-                      >
-                        Ajustar
-                      </button>
-                    )}
+                <span className={celda("centro", "overflow-visible")}>
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="flex flex-col items-center gap-1">
+                      {puedeApartar && f.disponible > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setApartando(f)}
+                          className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline"
+                        >
+                          Apartar
+                        </button>
+                      )}
+                      {/* D-13: ajustar stock fuera de una venta es del líder o de la terminal administrativa (candado real en `registrar_movimiento`, ADR-0160). */}
+                      {puedeAjustar && (
+                        <button
+                          type="button"
+                          onClick={() => setAjustando(f)}
+                          className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline"
+                        >
+                          Ajustar
+                        </button>
+                      )}
+                    </span>
+                    {/* «···»: un solo destino real — el historial del producto (verificado que existe como
+                        página propia; `/productos/[id]` a secas SOLO existe como modal interceptado desde
+                        DENTRO de /productos, no como destino navegable — de ahí llegando, un `router.push`
+                        directo daba 404). No se inventan acciones que no llevan a ningún lado. */}
+                    <MenuAcciones
+                      etiqueta={`Más acciones: ${f.referencia}`}
+                      items={[{ clave: "historial", etiqueta: "Ver historial del producto", onSelect: () => router.push(`/productos/${f.productoId}/historial`) }]}
+                    />
                   </span>
                 </span>
               </div>
@@ -701,6 +739,8 @@ export function InventarioPanel({
       {viendoDisponible && <DisponibleTotalOverlay filas={filasSemana} esLider={esLider} onClose={() => setViendoDisponible(false)} />}
 
       {viendoCobertura && <AnalisisCoberturaOverlay stock={stock} onClose={() => setViendoCobertura(false)} />}
+
+      {viendoRecomendaciones && <RecomendacionesOverlay recomendaciones={recomendaciones} onClose={() => setViendoRecomendaciones(false)} />}
     </div>
   );
 }

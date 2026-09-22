@@ -36,6 +36,7 @@ const TONO_COMPROBANTE: Record<EstadoComprobante, TonoChip> = {
   aceptado: "verde",
   enviado: "ambar",
   pendiente: "ambar",
+  pendiente_reintento: "ambar",
   rechazado: "rojo",
   anulado: "apagado",
   no_emitido: "apagado",

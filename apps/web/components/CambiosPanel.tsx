@@ -110,8 +110,11 @@ export function CambiosPanel({
     navegar(parametros);
   }
 
-  function iniciar(linea: LineaVentaReciente) {
-    setFlujo({ venta: lineas.filter((l) => l.ventaId === linea.ventaId), lineaId: linea.ventaItemId });
+  /** `preseleccionar=false` desde la tarjeta-resumen de Actividad reciente: entra a la
+   *  venta sin ninguna prenda marcada — se elige recién en el paso "Prenda". Desde una
+   *  fila puntual de la búsqueda sigue entrando con esa prenda ya marcada. */
+  function iniciar(linea: LineaVentaReciente, preseleccionar: boolean) {
+    setFlujo({ venta: lineas.filter((l) => l.ventaId === linea.ventaId), lineaId: preseleccionar ? linea.ventaItemId : null });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -219,7 +222,7 @@ export function CambiosPanel({
           </div>
 
           {lineasVisibles.length > 0 ? (
-            <CambiosVentas lineas={lineasVisibles} ahora={ahora} onIniciar={iniciar} />
+            <CambiosVentas lineas={lineasVisibles} ahora={ahora} resumen onIniciar={iniciar} />
           ) : (
             <EstadoVacio
               titulo={

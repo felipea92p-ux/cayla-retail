@@ -24,7 +24,7 @@ export default async function ProformasPage({ searchParams }: { searchParams: Pr
   return (
     <div className="space-y-6">
       <MarcaDeCarga en={ahora.getTime()} />
-      <SelectorMesFacturacion ruta="/vender/facturacion/proformas" mes={mes} actual={actual} />
+      <SelectorMesFacturacion ruta="/vender/comprobantes/proformas" mes={mes} actual={actual} />
       <ProformasTarjetas resumen={resumenProformas(proformas, ahora.getTime())} />
       <ProformasPanel proformas={proformas} periodo={periodoDelMes(mes, actual)} ahora={ahora} />
     </div>

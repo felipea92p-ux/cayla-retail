@@ -141,6 +141,7 @@ export function puedeImprimir(estado: EstadoComprobante): { ok: true; leyenda: s
     case "aceptado":
       return { ok: true, leyenda: null };
     case "pendiente":
+    case "pendiente_reintento":
     case "enviado":
       return { ok: true, leyenda: "Comprobante pendiente de validación en SUNAT." };
     case "rechazado":

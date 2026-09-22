@@ -52,9 +52,25 @@ export const getSeriesComprobantes = cache(async (): Promise<SerieComprobante[]>
   const resSeries = await supabase
     .from("series_comprobantes")
     .select("id, ubicacion_id, tipo, serie, siguiente_numero")
+    // Solo las activas: una archivada ya no reserva números (D-60 paso 4) y nadie debe ofrecerla.
+    .is("archivada_at", null)
     .order("tipo");
   return exigir(resSeries, "las series de comprobantes") as SerieComprobante[];
 });
+
+export type SerieArchivada = SerieComprobante & { archivada_at: string; motivo_archivo: string };
+
+/** Las series archivadas, para que la vista Series muestre su historial. `null` si la consulta falla:
+ *  es secundaria (`tolerar`), las activas sí se exigen. */
+export async function getSeriesArchivadas(): Promise<SerieArchivada[] | null> {
+  const supabase = await createClient();
+  const res = await supabase
+    .from("series_comprobantes")
+    .select("id, ubicacion_id, tipo, serie, siguiente_numero, archivada_at, motivo_archivo")
+    .not("archivada_at", "is", null)
+    .order("archivada_at", { ascending: false });
+  return tolerar(res, "las series archivadas").datos as SerieArchivada[] | null;
+}
 
 /** Todo lo vendido hoy (hora Lima), con su comprobante si ya tiene uno. La
  *  RPC (`fn_ventas_del_dia`, security definer) ya filtra por rol: un líder ve
@@ -76,9 +92,33 @@ export async function getVentasDeHoy(ubicacionId?: string): Promise<VentaDelDia[
  *  «Por enviar», en la misma petición — se lee una sola vez y las dos cifras no pueden diferir. */
 export const getResumenPorEnviar = cache(async (): Promise<ResumenPorEnviar | null> => {
   const supabase = await createClient();
-  const res = await supabase.from("comprobantes").select("estado, created_at").in("estado", ["pendiente", "rechazado"]);
+  const res = await supabase.from("comprobantes").select("estado, created_at").in("estado", ["pendiente", "pendiente_reintento", "rechazado"]);
   const { datos, fallo } = tolerar(res, "los comprobantes por enviar");
   // `fallo` es el aviso para la persona; la causa real (Postgres) es para quien lea el log.
   if (fallo) console.error("Facturación: no se pudo leer la cola «por enviar» (contador de la pestaña Comprobantes):", res.error?.message);
   return datos ? resumenPorEnviar(datos as { estado: EstadoComprobante; created_at: string }[]) : null;
+});
+
+export type FilaColaReintento = {
+  comprobante_id: string;
+  ubicacion_id: string;
+  tipo: string;
+  serie: string;
+  numero: number;
+  intentos_transmision: number;
+  ultimo_intento_transmision_at: string | null;
+  ultimo_error_transmision: string | null;
+  horas_esperando: number | null;
+};
+
+/** La cola de SUNAT (D-60): lo que Lucode no aceptó y espera su reintento, de la más vieja a la más
+ *  nueva. `ubicacionId` `null` = todas las sedes (solo líder, la RPC lo exige). `cache`: el layout la
+ *  pide para el contador y el aviso, y la vista «Por reintentar» para la lista, en la misma petición.
+ *  `null` si falla: el marco la tolera, la vista la exige (`exigirColaReintento`). */
+export const getColaReintento = cache(async (ubicacionId: string | null): Promise<FilaColaReintento[] | null> => {
+  const supabase = await createClient();
+  const res = await supabase.rpc("fn_comprobantes_cola_reintento", { p_ubicacion_id: ubicacionId ?? undefined });
+  const { datos, fallo } = tolerar(res, "la cola de reintento");
+  if (fallo) console.error("Comprobantes: no se pudo leer la cola de reintento:", res.error?.message);
+  return (datos as FilaColaReintento[] | null) ?? null;
 });

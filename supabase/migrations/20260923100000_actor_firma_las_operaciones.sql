@@ -1,5 +1,9 @@
 -- ============================================================================
--- 20260923020000_actor_firma_las_operaciones.sql — CAYLA V2 · ADR-0162, fase F3
+-- 20260923100000_actor_firma_las_operaciones.sql — CAYLA V2 · ADR-0162, fase F3
+--
+-- RENUMERADA (2026-09-22): era 20260923020000. Va DESPUÉS de todas las migraciones que crean funciones de
+-- retail (p. ej. 20260923090000_separaciones): en una base armada desde cero (CI, `db reset`) tiene que correr al
+-- final para alcanzarlas a todas. Mismo contenido; solo cambió el nombre.
 --
 -- EL PROBLEMA PRIMERO. Las funciones de retail averiguan quién opera con
 --     select id into v_persona from [public.]personas where auth_user_id = auth.uid();
@@ -120,6 +124,8 @@ declare
 
   -- DE TIENDA (true). Firmadas por el responsable si llega `x-responsable` (siempre, en una terminal).
   v_de_tienda text[] := array[
+    -- Apartados de ADR-0166 (20260923090000_separaciones, ya en producción): operación de tienda.
+    'separar_prendas', 'entregar_separacion', 'liberar_separacion', 'registrar_devolucion_separacion',
     -- ventas, comprobantes y clientas
     'anular_venta', 'crear_proforma', 'emitir_comprobante', 'emitir_nota', 'anular_comprobante',
     'marcar_comprobante_no_emitido', 'registrar_clienta', 'registrar_pedido_no_atendido',

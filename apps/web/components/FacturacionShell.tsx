@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { SerieComprobante } from "@/lib/comprobantes-reglas";
 import type { ConteosPestanas } from "@/lib/facturacion-reglas";
@@ -14,7 +15,7 @@ import { FacturacionPestanas } from "@/components/FacturacionPestanas";
 
 type Tienda = { id: string; nombre: string };
 
-// El marco de /vender/facturacion (ADR-0124): cabecera, pestañas y los dos modales que se
+// El marco de /vender/comprobantes (ADR-0124; «Facturación» hasta 2026-09-22): cabecera, pestañas y los dos modales que se
 // abren desde cualquier vista. Es el padre con estado (molde de ADR-0043): guarda cuál
 // modal está abierto y les da a las vistas, por contexto, la forma de abrirlos. Los
 // modales se dibujan UNA vez acá — y siempre montados (ver `EmitirComprobanteModal`),
@@ -30,7 +31,8 @@ type Tienda = { id: string; nombre: string };
 // un efecto que lo reponga.
 export function FacturacionShell({
   conteos,
-  esLider,
+  atrasadosEnCola,
+  entorno,
   cifras,
   sede,
   series,
@@ -39,8 +41,10 @@ export function FacturacionShell({
   children,
 }: {
   conteos: ConteosPestanas;
-  /** Solo el líder ve «Códigos de descuento»; la terminal de ventas ve el resto (ADR-0160). */
-  esLider: boolean;
+  /** Comprobantes que llevan más de 1 hora en la cola de SUNAT: el aviso de arriba (D-60). */
+  atrasadosEnCola: number;
+  /** Adónde va el envío automático a SUNAT: la cabecera avisa «pruebas» si es el sandbox. */
+  entorno: "sandbox" | "produccion";
   cifras: CifrasCabecera;
   sede: string;
   series: SerieComprobante[] | null;
@@ -82,12 +86,30 @@ export function FacturacionShell({
             cascada: la cabecera y su resumen (0 y 1), la fila de las pestañas con la búsqueda (2) y, debajo, la
             vista, que empieza en 2 y escalona sus tarjetas y paneles hacia abajo. */}
         <div className="tema-vidrio space-y-7">
-          <FacturacionCabecera sede={sede} cifras={cifras} />
+          <FacturacionCabecera sede={sede} cifras={cifras} entorno={entorno} />
+          {/* D-60: si algo pasa más de una hora sin llegar a SUNAT, el reintento solo no alcanzó — se dice
+              arriba, en todas las vistas, con el camino a la cola. */}
+          {atrasadosEnCola > 0 && (
+            <Link
+              href="/vender/comprobantes/por-reintentar"
+              role="alert"
+              className="anim-sube flex items-center justify-between gap-3 rounded-[12px] border border-rojo/30 bg-rojo/[0.06] px-4 py-3 text-[14px] text-rojo-profundo outline-none transition-colors duration-200 hover:bg-rojo/[0.1] focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
+              style={{ "--i": 1 } as CSSProperties}
+            >
+              <span>
+                <b className="font-semibold">
+                  {atrasadosEnCola === 1 ? "1 comprobante lleva" : `${atrasadosEnCola} comprobantes llevan`} más de 1 hora sin llegar a SUNAT.
+                </b>{" "}
+                El reintento automático no alcanzó: revisa el error.
+              </span>
+              <span className="shrink-0 font-semibold">Ver la cola →</span>
+            </Link>
+          )}
           <div className="anim-sube flex flex-wrap items-center justify-between gap-x-4 gap-y-3" style={{ "--i": 2 } as CSSProperties}>
             {/* `useSearchParams` (en las pestañas) exige un <Suspense>. Como el layout es
                 dinámico nunca llega a mostrarse el respaldo; `null` basta. */}
             <Suspense fallback={null}>
-              <FacturacionPestanas conteos={conteos} esLider={esLider} />
+              <FacturacionPestanas conteos={conteos} />
             </Suspense>
             <CajaDeBusqueda />
           </div>
