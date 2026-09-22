@@ -65,23 +65,6 @@ export async function getProformaParaCobrar(id: string, ahora: number = Date.now
   return datos ? marcarPorVencer([datos as ProformaFila], ahora)[0] : null;
 }
 
+/** Foto (la del producto para ese color) y tinte del color de una prenda: el detalle y la hoja A4 la muestran;
+ *  sin foto, un recuadro del color. Sale del catálogo (`getCatalogo`). */
 export type FotoDePrenda = { fotoUrl: string | null; colorHex: string | null };
-
-/** Foto (por color) y tinte de cada prenda de las proformas, para el detalle y la hoja A4. La misma regla que
- *  el catálogo (`catalogo-v2.ts`): la foto del producto para ese color; sin foto, el `hex` del color. Vacío si
- *  la lectura falla: la hoja cae al recuadro de color, nunca se rompe por una foto. */
-export async function getFotosDeVariantes(ids: string[]): Promise<Record<string, FotoDePrenda>> {
-  if (ids.length === 0) return {};
-  const supabase = await createClient();
-  const res = await supabase
-    .from("variantes")
-    .select("id, color_codigo, color:colores ( hex ), producto:productos ( producto_fotos ( url, color_codigo ) )")
-    .in("id", ids);
-  const { datos } = tolerar(res, "las fotos de las prendas");
-  return Object.fromEntries(
-    (datos ?? []).map((v) => [
-      v.id,
-      { fotoUrl: v.producto?.producto_fotos.find((f) => f.color_codigo === v.color_codigo)?.url ?? null, colorHex: v.color?.hex ?? null },
-    ]),
-  );
-}
