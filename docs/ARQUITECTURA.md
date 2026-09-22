@@ -101,13 +101,18 @@ flowchart TB
   valida el servidor vía `fn_puede_operar_sede` — la cookie es solo UX.
 - `(app)/layout.tsx` → `AppShell.tsx` (shell de navegación de todo el app) +
   `SedeSwitcher.tsx` → Server Action `cambiarSedeActiva`.
-- `/colaboradores` (solo líder; ADR-0145 y ADR-0148) → `lib/colaboradores.ts` (lecturas: `fn_colaboradores`,
-  `fn_colaboradores_suspendidos`, `fn_colaboradores_inactivos`, `fn_colaboradores_actividad`, `fn_dynamic_disponibles`) →
-  `ColaboradoresPanel.tsx` (pestañas, tarjetas, modales) + `ColaboradoresTablas.tsx` + `ColaboradoresModales.tsx` +
-  `ui/MenuAcciones.tsx`. Escribe por `lib/colaboradores-acciones.ts` → RPC `agregar_colaboradores`, `suspender_colaborador`,
-  `reactivar_colaborador`, `cambiar_ubicacion_colaborador`, `quitar_colaborador`. Reglas puras en `colaboradores-reglas.ts`.
+- `/colaboradores` (solo líder; ADR-0145, ADR-0148 y ADR-0157) → `lib/colaboradores.ts` (lecturas: `fn_colaboradores`,
+  `fn_colaboradores_pendientes`, `fn_colaboradores_suspendidos`, `fn_colaboradores_inactivos`, `fn_colaboradores_actividad`,
+  `fn_dynamic_disponibles`) → `ColaboradoresPanel.tsx` (pestañas, tarjetas, modales) + `ColaboradoresTablas.tsx` +
+  `ColaboradoresModales.tsx` + `ui/MenuAcciones.tsx`. Escribe por `lib/colaboradores-acciones.ts` → RPC
+  `agregar_colaboradores`, `fn_aprobar_alta_colaborador`, `suspender_colaborador`, `reactivar_colaborador`,
+  `cambiar_ubicacion_colaborador`, `quitar_colaborador`. Reglas puras en `colaboradores-reglas.ts`.
   **Suspender mueve la fila** de `colaboradores` a `colaboradores_suspendidos`; el historial vive en
   `colaboradores_historial` (solo se agrega). `/vender/historial` también lee estas listas para el filtro «vendedor».
+  **D-70 (ADR-0157): el alta no queda operativa sola.** `colaboradores.estado` (`pendiente_aprobacion`/`activo`)
+  gatea `fn_es_lider`, `fn_ubicacion_actual_persona`, `fn_tiene_acceso_retail`, `fn_mi_perfil`,
+  `fn_persona_actual_resumen` (el gate de login) y `fn_stock_por_sede` — las seis funciones que leen
+  `colaboradores`, no solo las tres obvias. `fn_aprobar_alta_colaborador` (solo líder) es el segundo paso.
 
 **Catálogo / inventario**
 - `/inventario` → `lib/inteligencia.ts` (`getCatalogoInteligente`, reusa
@@ -382,6 +387,12 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   la Nota de Crédito si el comprobante está aceptado —ADR-0100— y el reembolso opcional; lo
   dañado entra a cuarentena) y `rechazar_devolucion`. Reglas puras en
   `lib/devoluciones-reglas.ts`. `?item=` abre el flujo sobre una prenda (desde y hacia Cambios).
+- `/clientas` (2026-09-22, ADR-0152, D-76/D-77; **pantalla mínima de verificación, sin
+  engancharse a `lib/menu.ts`** — la captura real en el mostrador es de otra tanda de
+  agentes) → `lib/clientas.ts:getClientas` (lectura server) → `ClientasPanel.tsx` (lista +
+  buscador + alta) → `lib/clientas-acciones.ts` → RPC `buscar_clienta` / `registrar_clienta`.
+  Reglas puras (tipo + mapeo de fila) en `lib/clientas-reglas.ts`, mismo criterio de
+  separación server/cliente que `ventas-historial.ts`/`ventas-historial-reglas.ts`.
 
 **Compras (V2, ADR-0035 — la factura del proveedor es el eje)**
 - `/compras/proveedores` → `lib/proveedores.ts:getProveedores` (RPC
@@ -591,6 +602,14 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 - **Sedes/personas**: `sedes`, `personas` (`auth_user_id` único).
 - **Ventas**: `cajas` (una sola caja abierta por sede — índice único
   parcial), `ventas` (1 fila por checkout).
+- **Clientas** (2026-09-22, ADR-0152, D-76/D-77; **migración `20260922140000`, sin
+  pegar en producción**): `clientas` (DNI opcional en un solo campo, único cuando no
+  es nulo; `whatsapp_consentimiento_en` — NULL = sin permiso, aparte del teléfono,
+  Ley 29733; `cumple_dia`/`cumple_mes`; `tallas` jsonb libre). Sustituye a la tabla
+  vieja `retail.clientes` (retirada en la misma migración — ver ADR-0152 «El
+  hallazgo»). `ventas.cliente_id` (ya existía) ahora referencia `clientas` vía
+  `ventas_clienta_fk`. RLS: cualquier colaborador con sesión, sin noción de «mi
+  clienta»; sin política de DELETE.
 - **Compras**: `proveedores`, `ordenes_compra` / `ordenes_compra_items`.
 - **Producción** (V2 desde 2026-09-15, ADR-0052): `producciones` (por
   `ubicacion_id` del Taller —`ubicaciones.tipo = 'taller'`—; `cantidad_plan` vs
@@ -629,6 +648,8 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `fn_resumen_comparacion(p_ubicacion_id, p_a_desde, p_a_hasta, p_b_desde, p_b_hasta)` (2026-09-19, **solo local: no aplicada en producción**; la usan Desempeño —con el período partido en dos mitades— y Comparar períodos) | Por variante de UNA sede y para cada período A/B: unidades vendidas y devueltas (misma clasificación por FK que `fn_resumen_variantes`), importe cobrado, costo de lo vendido y de lo devuelto EN COMPONENTES (COGS: `venta_items.costo_unitario`, el costo de ese día) y unidades sin costo, entradas (lo que llegó de afuera), stock utilizable al inicio y al cierre reconstruido del ledger (saldo(t) = saldo de hoy − Σ movimientos posteriores) y días con stock; `ledger_consistente`. Solo `fn_es_lider()` con `fn_puede_operar_ubicacion` (0 filas para un colaborador). `security definer`, `revoke … from public, anon`. NO decide nada: las reglas viven en `lib/resumen-comparacion.ts`. ADR-0138 |
 | `fn_movimientos_variantes` / `fn_busqueda_singulares` / `fn_busqueda_formas_color` (2026-09-21, ADR-0071; **en `main` y en local, pendiente en producción**) | El Filtro de búsqueda especial en SQL: `fn_movimientos_variantes(text) returns uuid[]` (misma firma y permisos que antes; NULL si no hay nada escrito) parte lo escrito en términos y exige todos, sobre nombre, SKU, códigos, color y talla; las dos ayudas llevan las reglas de plural, género y alias de color. Espejo de `lib/filtro-busqueda-especial.ts`, atado por `filtro-busqueda-especial.casos.json` y `pnpm pruebas:fn-movimientos-busqueda-especial`. La usa `fn_movimientos_busqueda`. |
 | `fn_movimientos` / `fn_movimientos_resumen` (2026-09-15; **la búsqueda por proceso y los números de traslado/conteo, 2026-09-19, ADR-0127: en producción desde el 2026-09-19**) | Lectura del ledger para la pantalla de Movimientos: una fila plana por movimiento con su proceso resuelto (comprobante, guía, factura, conteo, devolución, cambio), categoría y signo calculados en SQL, filtros y cursor server-side. `p_ubicacion_id` obligatorio; excluye la variante centinela «Cargo especial». Desde ADR-0127 la fila trae además `transferencia_numero` y `conteo_numero` (las dos últimas columnas) y `p_busqueda` entiende «traslado 24», «conteo 12», «boleta 184», «B001-000184», guía y factura de compra (`fn_movimientos_busqueda` + `fn_movimientos_de_comprobante`; la lista y las tarjetas usan la misma). ADR-0050, ADR-0127 |
+
+| `buscar_clienta` / `registrar_clienta` (2026-09-22, ADR-0152; **sin pegar en producción**) | Ficha de clienta v1: `buscar_clienta` por DNI/WhatsApp exactos o nombre ILIKE (término vacío no devuelve filas); `registrar_clienta` alta o upsert por DNI — el consentimiento de WhatsApp solo se marca con `p_acepta_whatsapp=true` en ESA llamada, y un upsert con `false` (el default) nunca revoca uno ya dado. `security definer`, `revoke … from public, anon` (Postgres da EXECUTE a PUBLIC por defecto — sin el revoke, `anon` podía llamarlas). Sin candado de rol: cualquier colaborador con sesión. |
 
 ### 4.3 RLS sin `tenant_id`
 

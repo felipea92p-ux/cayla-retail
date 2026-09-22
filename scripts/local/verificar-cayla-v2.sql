@@ -117,7 +117,7 @@ select retail.crear_devolucion(
   (select venta_id from retail.venta_items limit 1),
   (select id from retail.ubicaciones where nombre='Tienda Lima'),
   jsonb_build_array(jsonb_build_object('venta_item_id', (select id from retail.venta_items limit 1), 'cantidad', 999, 'condicion', 'vendible')),
-  'intento de devolver de más'
+  'intento de devolver de más', 'otro'
 );
 
 \echo ''

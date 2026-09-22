@@ -178,7 +178,7 @@ export type ProductoListado = {
   leadTimeDias: number;
   /** ceil(demandaDiaria × leadTimeDias) + stockMinimo. */
   puntoReorden: number;
-  /** stockTotal <= puntoReorden y demandaDiaria > 0 — la señal "Pedir a proveedor". */
+  /** stockTotal <= puntoReorden, demandaDiaria > 0 y la prenda está ACTIVA (una descontinuada no se repone, 20260922120000) — la señal "Pedir a proveedor". */
   reponerDeProveedor: boolean;
   variantes: VarianteCatalogo[];
 };

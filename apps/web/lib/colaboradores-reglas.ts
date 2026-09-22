@@ -144,6 +144,13 @@ export function fraseEvento(e: Pick<EventoAcceso, "accion" | "persona_nombre" | 
         partes: [R(quien, true), R(" reactivó el acceso a "), R(persona, true), R(".")],
         detalle: e.ubicacion_nueva ? `Vuelve a: ${e.ubicacion_nueva}` : null,
       };
+    case "aprobacion":
+      return {
+        etiqueta: "Aprobación",
+        tono: "verde",
+        partes: [R(quien, true), R(" aprobó el alta de "), R(persona, true), R(` como ${como(e.rol)}.`)],
+        detalle: e.ubicacion_nueva ? `Ubicación: ${e.ubicacion_nueva}` : null,
+      };
     case "ubicacion":
       return {
         etiqueta: "Ubicación",

@@ -259,6 +259,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-resumen-comparacion
 
+      # Productos (ADR-0151): una prenda descontinuada no cuenta como «sin stock», «stock bajo» ni «para pedir»
+      # (y por tanto no sale en «A quién pedirle»), el contador de arriba dice lo mismo que la lista de abajo, y
+      # «N variantes» cuenta variantes, no filas de stock. Cada caso termina en ROLLBACK.
+      - name: pruebas:productos-alertas-de-stock
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:productos-alertas-de-stock
+
       # El dinero de Compras es solo del líder (ADR-0126): que un integrante no lea ni un monto —por
       # función, por tabla ni por el bucket de escaneos—, que recibir siga funcionando y que ninguna
       # migración le quite el candado a las cinco funciones de dinero (el riesgo residual del ADR).
@@ -324,3 +331,14 @@ jobs:
       - name: pruebas:deriva-produccion
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:deriva-produccion
+
+      # Contrato de venta ampliado — asesora, emisor y descuento con tope de líder (D-56/57/62/67/85/86/87,
+      # ADR-0152): la llamada de hoy sin los 5 parámetros nuevos se comporta exactamente igual (mismo stock,
+      # mismo comprobante reservado); fn_asesoras_de_turno nunca falla, ni sin sede_dynamic_id ni sin las
+      # tablas de Dynamic; un descuento de venta sobre el tope del rol sin autorización de líder falla con
+      # SQLSTATE 42501 exacto, y el mismo descuento con un líder real autorizando pasa y queda auditado;
+      # p_emisor = 'alegra' no reserva comprobante; anular_venta libera también un comprobante que ya estaba
+      # en la cola de reintento de SUNAT (pendiente_reintento, D-60). Cada caso termina en ROLLBACK.
+      - name: pruebas:venta-contrato-ampliado
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:venta-contrato-ampliado
