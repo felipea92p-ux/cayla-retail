@@ -6,13 +6,15 @@
 La barra negra de arriba **no existe en el ERP**. Sirve para cambiar de **pantalla**, de **cuenta** (terminal de
 ventas, terminal administrativa, Felipe con su cuenta personal) y de **asistencia de hoy** en TRU.
 
-## Las cuatro pantallas
+## Las seis pantallas
 
 | # | Pantalla | Qué hay que aprobar |
 |---|---|---|
 | 1 | **Roles y accesos** | Un interruptor por módulo («lo ve»), con una línea que dice qué incluye. Quien ve un módulo hace todo lo que hay en él, salvo la lista fija «Siempre solo del líder». Solo el **Líder** es fijo; **Integrante se edita**. |
 | 2 | **Punto de venta** | El combo **Responsable** va encima de COBRAR y viene vacío. Solo lista a quienes están presentes; quien está en pausa sale deshabilitado y quien ya salió no aparece. COBRAR se activa recién al elegir. Al cobrar, el aviso dice «atendió María P.» y el combo vuelve a vacío. |
 | 3 | **Cierre de caja** | El combo va dentro del modal «Cerrar caja». Cada movimiento muestra la persona («10:42 · María P.») y el resultado dice quién cerró. |
+| 5 | **Terminales (sin persona, ADR-0162)** | Colaboradores ▸ Terminales: los 6 aparatos, cada uno con su cuenta y **sin persona**, como en Dynamic. Se desactivan y reactivan con un modal. Crear una terminal o cambiarle la clave se hace con un script, no en pantalla. |
+| 6 | **Sesión de una terminal** | En el pie del menú va el aparato, no una persona. El historial muestra **Responsable** (quién) y **Desde** (qué terminal). |
 | 4 | **Nadie de turno** | No hay nada que elegir: la operación se bloquea y la pantalla explica qué hacer (marcar la entrada en el kiosco y tocar «Actualizar lista»). Con la cuenta de Felipe dice «tampoco tú». |
 
 ## Preguntas que el spike deja a la vista

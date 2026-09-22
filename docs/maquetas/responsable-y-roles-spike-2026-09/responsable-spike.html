@@ -197,6 +197,31 @@ h1.t{font-family:'EB Garamond',Georgia,serif;font-weight:400;font-size:clamp(34p
 .res .fila{display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--sand);font-size:14px}
 .res .fila:first-of-type{border-top:0}
 
+/* ---------- 5/6. Terminales sin persona (ADR-0162) ---------- */
+.tabla{width:100%;border-collapse:collapse;font-size:14px}
+.tabla th{font-weight:600;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe-p);text-align:left;padding:10px 14px;background:rgba(232,224,208,.35)}
+.tabla td{border-top:1px solid var(--sand);padding:12px 14px;vertical-align:middle}
+.tabla td.der{text-align:right}
+.tabla tr.apagada td{color:var(--t50)}
+.dev{display:flex;align-items:center;gap:10px}
+.dev .ico{width:34px;height:34px;border-radius:10px;background:rgba(232,224,208,.7);display:grid;place-items:center;flex:none}
+.dev small{display:block;font-size:12px;color:var(--t65)}
+.pie-nota{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:16px}
+.pie-nota .card{padding:14px 16px;font-size:13.5px;color:var(--t80)}
+.pie-nota code{font-size:12.5px;background:rgba(232,224,208,.6);padding:1px 6px;border-radius:6px}
+.velo{position:fixed;inset:0;z-index:70;background:rgba(26,26,24,.35);backdrop-filter:blur(3px);display:grid;place-items:center;padding:16px;animation:velo 200ms var(--ease)}
+.velo .modal{max-width:440px;width:100%;animation:subir 300ms var(--ease) both}
+.shell{display:grid;grid-template-columns:240px minmax(0,1fr);border:1px solid var(--sand);border-radius:22px;overflow:hidden;background:var(--crema);min-height:520px}
+.lado{border-right:1px solid var(--sand);display:flex;flex-direction:column;padding:18px 12px}
+.lado .marca{font-size:13px;letter-spacing:.26em;font-weight:600;padding:4px 10px 18px}
+.lado .it{height:40px;display:flex;align-items:center;padding:0 12px;border-radius:8px;font-size:14px;color:var(--t80)}
+.lado .it.act{background:rgba(232,224,208,.7);color:var(--tinta);font-weight:500}
+.lado .yo{margin-top:auto;border-top:1px solid var(--sand);padding:14px 8px 0;display:flex;gap:10px;align-items:center}
+.lado .yo .ico{width:36px;height:36px;border-radius:10px;background:var(--tinta);color:var(--crema);display:grid;place-items:center;flex:none}
+.lado .yo p{font-size:13.5px}.lado .yo small{display:block;font-size:11px;letter-spacing:.06em;color:var(--taupe-p)}
+.cuerpo{padding:22px}
+@media (max-width:760px){.shell{grid-template-columns:1fr}.lado{border-right:0;border-bottom:1px solid var(--sand)}}
+
 @media (max-width:1100px){
   .rgrid{grid-template-columns:1fr}
   .pdv .body{grid-template-columns:1fr;height:auto}
@@ -221,6 +246,8 @@ h1.t{font-family:'EB Garamond',Georgia,serif;font-weight:400;font-size:clamp(34p
       <option value="pdv">2 · Punto de venta</option>
       <option value="caja">3 · Cierre de caja</option>
       <option value="nadie">4 · Nadie de turno</option>
+      <option value="terms">5 · Terminales (sin persona)</option>
+      <option value="sesion">6 · Sesión de una terminal</option>
     </select>
   </label>
   <span class="sep"></span>
@@ -504,10 +531,81 @@ function pantallaNadie() {
   return html;
 }
 
+
+/* ================= 5. Terminales sin persona (ADR-0162) ================= */
+const TERMINALES = [
+  { id: 't1', n: 'Terminal Ventas TRU', tienda: 'Tienda TRU', tipo: 'Ventas', activa: true, visto: 'Hace 3 min' },
+  { id: 't2', n: 'Terminal Administrativa TRU', tienda: 'Tienda TRU', tipo: 'Administrativa', activa: true, visto: 'Hoy 11:20' },
+  { id: 't3', n: 'Terminal Ventas AQP', tienda: 'Tienda AQP', tipo: 'Ventas', activa: true, visto: 'Hace 12 min' },
+  { id: 't4', n: 'Terminal Administrativa AQP', tienda: 'Tienda AQP', tipo: 'Administrativa', activa: true, visto: 'Ayer 18:40' },
+  { id: 't5', n: 'Terminal Ventas LIM', tienda: 'Tienda LIM', tipo: 'Ventas', activa: false, visto: 'Nunca' },
+  { id: 't6', n: 'Terminal Administrativa LIM', tienda: 'Tienda LIM', tipo: 'Administrativa', activa: false, visto: 'Nunca' },
+];
+const ICO_DEV = '<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>';
+function pantallaTerminales() {
+  const t = est.confirmar && TERMINALES.find((x) => x.id === est.confirmar);
+  return `<div class="pagina">
+    <div class="nota"><b>Qué mirar:</b> una terminal es un <b>aparato con su propia cuenta, sin persona</b> (como en Dynamic). No existe en Dynamic,
+      así que no sale en su directorio, en su kiosco ni en su planilla. Aquí se ve, se desactiva y se reactiva. Crear una o cambiarle la clave lo hace un líder con un script,
+      porque exige una llave que la web no debe tener.</div>
+    <p class="lbl tp">Colaboradores</p><h1 class="t">Terminales</h1>
+    <p class="sub">Aparatos compartidos de cada tienda. No son personas: lo que hacen lo firma quien se elige como responsable.</p>
+    <div class="card" style="margin-top:22px;overflow-x:auto">
+      <table class="tabla"><thead><tr><th>Terminal</th><th>Tienda</th><th>Tipo</th><th>Estado</th><th>Última actividad</th><th></th></tr></thead>
+      <tbody>${TERMINALES.map((x) => `<tr class="${x.activa ? '' : 'apagada'}">
+        <td><span class="dev"><span class="ico">${ICO_DEV}</span><span>${x.n}<small>Sin persona · cuenta del aparato</small></span></span></td>
+        <td>${x.tienda}</td><td>${x.tipo}</td>
+        <td>${x.activa ? '<span class="chip verde">Activa</span>' : '<span class="chip lock">Desactivada</span>'}</td>
+        <td>${x.visto}</td>
+        <td class="der"><button class="btn sec" style="height:34px;padding:0 12px" data-a="confirmar" data-id="${x.id}">${x.activa ? 'Desactivar' : 'Reactivar'}</button></td>
+      </tr>`).join('')}</tbody></table>
+    </div>
+    <div class="pie-nota">
+      <div class="card"><p class="lbl tp">Crear una terminal o cambiarle la clave</p>
+        <p style="margin-top:6px">Lo corre un líder: <code>pnpm terminales:crear TRU ventas</code>. La clave se muestra <b>una sola vez</b>; se escribe en el aparato y no se guarda en ningún otro lado.</p></div>
+      <div class="card"><p class="lbl tp">Si alguien deja de trabajar en la tienda</p>
+        <p style="margin-top:6px">No hace falta cambiar la clave: la persona no puede firmar si no marca su entrada. Si se pierde el aparato, <b>Desactivar</b> corta su sesión en el acto.</p></div>
+    </div>
+    ${t ? `<div class="velo" data-a="cerrarmodal"><div class="modal" data-no-cierra>
+      <h2>${t.activa ? 'Desactivar' : 'Reactivar'} ${t.n}</h2>
+      <p class="s">${t.activa ? 'El aparato deja de funcionar al instante: su sesión ya no puede leer ni guardar nada. Su historial se conserva.' : 'El aparato vuelve a funcionar con su misma clave.'}</p>
+      <div class="acc2"><button class="btn sec" data-a="cerrarmodal">Cancelar</button><button class="btn" data-a="alternar" data-id="${t.id}">${t.activa ? 'Desactivar' : 'Reactivar'}</button></div>
+    </div></div>` : ''}
+  </div>`;
+}
+
+/* ================= 6. La sesión de una terminal ================= */
+function pantallaSesion() {
+  const filas = [
+    ['10:42', 'Venta B001-000812', 'María P.', 'S/ 218.90'],
+    ['11:15', 'Egreso de caja · Movilidad', 'Carmen T.', '−S/ 12.00'],
+    ['12:30', 'Venta B001-000813', 'Lucía R.', 'S/ 159.00'],
+    ['13:02', 'Cambio de prenda', 'Lucía R.', '—'],
+  ];
+  return `<div class="pagina">
+    <div class="nota"><b>Qué mirar:</b> abajo a la izquierda, donde hoy va la persona, va <b>el aparato</b>. Cada operación queda con dos datos:
+      <b>quién</b> (la responsable elegida, una persona real) y <b>desde dónde</b> (la terminal). El aparato nunca firma solo.</div>
+    <div class="shell">
+      <aside class="lado"><p class="marca">CAYLA</p>
+        ${['Punto de venta', 'Caja', 'Cambios', 'Devoluciones', 'Historial de ventas', 'Facturación'].map((n, i) => `<div class="it ${i === 4 ? 'act' : ''}">${n}</div>`).join('')}
+        <div class="yo"><span class="ico">${ICO_DEV}</span><p>Terminal Ventas TRU<small>APARATO · TIENDA TRU</small></p></div>
+      </aside>
+      <div class="cuerpo">
+        <p class="lbl tp">Ventas</p><h1 class="t" style="font-size:38px">Historial de hoy</h1>
+        <div class="card" style="margin-top:18px;overflow-x:auto"><table class="tabla">
+          <thead><tr><th>Hora</th><th>Operación</th><th>Responsable</th><th>Desde</th><th class="der">Monto</th></tr></thead>
+          <tbody>${filas.map(([h, o, q, m]) => `<tr><td>${h}</td><td>${o}</td><td><b style="font-weight:500">${q}</b></td>
+            <td><span class="dev" style="gap:6px;font-size:13px;color:var(--t65)">${ICO_DEV}Terminal Ventas TRU</span></td><td class="der">${m}</td></tr>`).join('')}</tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>`;
+}
+
 // La entrada se anima solo al cambiar de pantalla, no en cada clic (ADR-0136: nada decorativo).
 let ultimaPantalla = null;
 function pintar() {
-  const p = { roles: pantallaRoles, pdv: pantallaPdv, caja: pantallaCaja, nadie: pantallaNadie }[est.pant];
+  const p = { roles: pantallaRoles, pdv: pantallaPdv, caja: pantallaCaja, nadie: pantallaNadie, terms: pantallaTerminales, sesion: pantallaSesion }[est.pant];
   const nueva = ultimaPantalla !== est.pant;
   ultimaPantalla = est.pant;
   $('#app').innerHTML = p().replace('<div class="pagina">', `<div class="pagina${nueva ? ' entra' : ''}">`) + (est.aviso ? `<div class="aviso" role="status"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>${est.aviso}</div>` : '');
@@ -529,6 +627,14 @@ document.addEventListener('click', (e) => {
   if (a === 'cerrarcaja') est.cajaPaso = 'resultado';
   if (a === 'reiniciarcaja') { est.cajaPaso = 'contar'; est.elegido = null; }
   if (a === 'rol') est.rol = b.dataset.id;
+  if (a === 'confirmar') est.confirmar = b.dataset.id;
+  if (a === 'cerrarmodal') { if (e.target.closest('[data-no-cierra]') && !e.target.closest('button')) return; est.confirmar = null; }
+  if (a === 'alternar') {
+    const t = TERMINALES.find((x) => x.id === b.dataset.id);
+    t.activa = !t.activa; est.confirmar = null;
+    est.aviso = `${t.n} ${t.activa ? 'reactivada' : 'desactivada'}`;
+    setTimeout(() => { est.aviso = null; pintar(); }, 2600);
+  }
   if (a === 'ver') {
     const rol = ROLES.find((r) => r.id === est.rol);
     const m = b.dataset.m;

@@ -83,7 +83,7 @@ llamando a `fn_es_lider()`. Un módulo cuyas funciones todavía no revisan su ll
 **3. Ventas ya tiene la mitad hecha.** `ventas.asesora_id` y `fn_asesoras_de_turno` están en producción (ADR-0153).
 `asesora_id` pasa a ser el responsable de la venta; no se crea una segunda columna para lo mismo.
 
-**4. Dónde se guarda.** `responsable_id` va en `movimientos`, `ventas`, `caja_movimientos`, los cierres de caja,
+**4. Dónde se guarda.** *(Actualizado por el ADR-0162: con terminales sin persona, `usuario_id` pasa a ser el responsable y se agrega `terminal_id`; la columna `responsable_id` ya no hace falta.)* `responsable_id` va en `movimientos`, `ventas`, `caja_movimientos`, los cierres de caja,
 `transferencias`, `conteos` y los comprobantes. En Catálogo (`productos`, `variantes`) va al historial de cambios,
 no a la fila de la prenda.
 
