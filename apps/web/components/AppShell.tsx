@@ -840,163 +840,17 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
     }
   }
 
-  const inicio: Item = { href: "/", etiqueta: "Inicio", icono: IC.inicio };
-  const puntoDeVenta: Item = { href: "/vender", etiqueta: "Punto de Venta", icono: IC.vender };
-  const caja: Item = { href: "/caja", etiqueta: "Caja", icono: IC.caja };
-  const cambios: Item = { href: "/cambios", etiqueta: "Cambios", icono: IC.cambios };
-  const devoluciones: Item = { href: "/devoluciones", etiqueta: "Devoluciones", icono: IC.devoluciones };
-  const productos: Item = { href: "/productos", etiqueta: "Productos", icono: IC.productos };
-  const categorias: Item = { href: "/productos/categorias", etiqueta: "Categorías", icono: IC.categorias };
-  // Reemplaza a Colores/Tallas/Tejidos/Patrones/Etiquetas como filas sueltas
-  // (2026-09-17, pedido de Felipe: "con 3 está bien") — las 5 siguen vivas,
-  // ahora como pestañas dentro de `/productos/atributos`.
-  const atributos: Item = { href: "/productos/atributos", etiqueta: "Atributos", icono: IC.atributos };
-  // Lo que espera a quien mira: sin número (0/null) no hay insignia.
-  const nTraslados = trasladosPorAtender && trasladosPorAtender > 0 ? trasladosPorAtender : undefined;
-  const inventario: Item = { href: "/inventario", etiqueta: "Inventario", icono: IC.inventario, contador: nTraslados };
-  // Los cuatro hijos de Inventario (Felipe, 2026-09-16, integrando sus
-  // diseños): "Existencias" es la raíz del módulo; Movimientos se mudó de
-  // `/movimientos` a `/inventario/movimientos` (la ruta vieja redirige).
-  const existencias: Item = { href: "/inventario", etiqueta: "Existencias", icono: IC.inventario };
-  const movimientos: Item = { href: "/inventario/movimientos", etiqueta: "Movimientos", icono: IC.movimientos };
-  const traslados: Item = { href: "/inventario/traslados", etiqueta: "Traslados", icono: IC.traslados, contador: nTraslados };
-  const conteo: Item = { href: "/inventario/conteo", etiqueta: "Conteo", icono: IC.conteo };
-  // Quinta pestaña de Inventario (ADR-0101): decisión a nivel sede, solo líder —
-  // mismo criterio de visibilidad que Compras.
-  const resumen: Item = { href: "/inventario/resumen", etiqueta: "Análisis", icono: IC.resumen };
-  const facturacion: Item = { href: "/vender/facturacion", etiqueta: "Facturación", icono: IC.facturacion };
-  // Mismas cuatro secciones y mismo orden que ya definía `ComprasNav.tsx`
-  // (la factura del proveedor es el eje; "Recibir mercadería" y "Por pagar"
-  // son lo que se hace CONTRA una factura) — esa nav queda redundante con
-  // el grupo del lateral, igual que pasó con Productos/Categorías/Colores.
-  const proveedores: Item = { href: "/compras/proveedores", etiqueta: "Proveedores", icono: IC.proveedores };
-  const facturas: Item = { href: "/compras", etiqueta: "Comprobantes", icono: IC.facturas };
-  const recibirMercaderia: Item = { href: "/recibir", etiqueta: "Recibir mercadería", icono: IC.recibir };
-  const porPagar: Item = { href: "/compras/por-pagar", etiqueta: "Por pagar", icono: IC.porPagar };
-  // Notas de crédito (2026-09-19): lo que el proveedor le acredita a CAYLA. Va pegada a «Por pagar»
-  // porque las dos responden a la misma pregunta —cuánto dinero hay entre CAYLA y ese proveedor—, una
-  // de cada lado. Sin insignia: el contador de «por reclamar» saldría de `notas_credito_tablero()`, que
-  // recorre comprobantes, cierres y notas; pagarlo en CADA pantalla de la app por un número que ya se ve
-  // como primera cifra del módulo no vale la pena (principio 5).
-  const notasCredito: Item = { href: "/compras/notas-credito", etiqueta: "Notas de crédito", icono: IC.notasCredito };
-  const resumenProduccion: Item = { href: "/produccion", etiqueta: "Resumen", icono: IC.resumen };
-  const ordenes: Item = { href: "/produccion/ordenes", etiqueta: "Órdenes", icono: IC.produccion };
-  const insumos: Item = { href: "/produccion/insumos", etiqueta: "Insumos", icono: IC.insumos };
-  const proveedoresProduccion: Item = { href: "/produccion/proveedores", etiqueta: "Proveedores", icono: IC.proveedores };
-  const comprobantesProduccion: Item = { href: "/produccion/comprobantes", etiqueta: "Comprobantes", icono: IC.facturas };
-  const recibirProduccion: Item = { href: "/produccion/recibir", etiqueta: "Recibir", icono: IC.recibir };
-  const porPagarProduccion: Item = { href: "/produccion/por-pagar", etiqueta: "Por pagar", icono: IC.porPagar };
-  // Producción y Compras son dos módulos distintos (ADR-0133, decisión de Felipe
-  // 2026-09-19): cada uno con su grupo. Producción solo se ve parado en el Taller,
-  // líder incluido (Felipe, 2026-09-20: vuelve a la regla del 2026-09-17 y deja sin
-  // efecto la D-A): un líder que mira desde una tienda no la ve; si quiere operar el
-  // Taller, cambia la ubicación en el selector. El candado real sigue siendo el de
-  // cada RPC; esto solo decide qué se muestra (regla en `lib/produccion-menu.ts`).
-  const perfilMenu = { esLider, ubicacionTipo: persona.ubicacionTipo };
-  const clavesProduccion = hijosMenuProduccion(perfilMenu);
-  const clavesCompras = hijosMenuCompras(perfilMenu);
-  const veProduccion = clavesProduccion.length > 0;
-
-  // Integración con Dynamic (2026-09-12): "Colaboradores" salió del nav
-  // porque Dynamic es dueño de la IDENTIDAD (alta, rol, sede, activar/
-  // desactivar) — eso sigue igual, retail no la administra ni la duplica.
-  // Vuelve el 2026-09-13 con un significado distinto y propio de retail:
-  // no "quién es esta persona" sino "a quién de Dynamic le doy entrada a
-  // retail" (0013_colaboradores_autorizados.sql — "control total temporal"
-  // de 0012 abrió la puerta a cualquiera; esto la vuelve a cerrar a una
-  // lista elegida). Comercial y Finanzas siguen sin pantalla V2, siguen
-  // fuera por esa otra razón. "Facturación" (0010_facturacion.sql) —
-  // líder-only, emite documentos legales ante SUNAT.
-  // "Venta" agrupa el mostrador + lo legal del cobro (rediseño 2026-09-15):
-  // Punto de Venta/Caja/Cambios/Devoluciones son de cualquier integrante;
-  // Facturación queda adentro pero sigue líder-only, igual que siempre.
-  const grupoVenta: ItemGrupo = {
-    id: "venta",
-    etiqueta: "Ventas",
-    icono: IC.venta,
-    hijos: [puntoDeVenta, caja, cambios, devoluciones, ...(esLider ? [facturacion] : [])],
-  };
-  // "Catálogo" agrupa qué ES una prenda (Productos) y el vocabulario del que
-  // cuelga (Categorías, Colores) — pedido de Felipe, 2026-09-16, de
-  // mantenerlos separados del resto del menú. Categorías/Colores solo vivían
-  // como pestañas de `ProductosNav.tsx` dentro de `/productos`; esa nav
-  // queda redundante con el grupo y se retira de las 4 pantallas que la usaban.
-  const grupoCatalogo: ItemGrupo = {
-    id: "catalogo",
-    etiqueta: "Catálogo",
-    icono: IC.catalogo,
-    hijos: [productos, categorias, atributos],
-  };
-  // "Compras" agrupa las cuatro pantallas que antes vivían como pestañas de
-  // `ComprasNav.tsx` (pedido de Felipe, 2026-09-16, mismo criterio que Catálogo:
-  // "generalizado y ordenado"). Líder-only: registra facturas y pagos a proveedor.
-  // Sigue siendo un módulo APARTE de Producción (2026-09-19): se conectan por los
-  // datos, no por el menú.
-  const itemsCompras: Record<ClaveMenuCompras, Item> = { proveedores, comprobantes: facturas, recibir: recibirMercaderia, porPagar, notasCredito };
-  const grupoCompras: ItemGrupo = {
-    id: "compras",
-    etiqueta: "Compras",
-    icono: IC.compras,
-    hijos: clavesCompras.map((c) => itemsCompras[c]),
-  };
-
-  // "Producción" (ADR-0133) es el módulo de fabricar: hoy Órdenes, Insumos y Proveedores (solo líder);
-  // Resumen, comprobantes, por pagar, recibir y Eficiencia se suman
-  // cuando existan (F4b a F7). Sin rótulos de sección a propósito: el riel del lateral se mueve
-  // por filas de alto fijo (`PASO_FILA`) y una fila de otra altura lo desalinearía.
-  const itemsProduccion: Record<ClaveMenuProduccion, Item> = { resumenProduccion, ordenes, insumos, proveedoresProduccion, comprobantesProduccion, recibirProduccion, porPagarProduccion };
-  const hijosProduccion: Item[] = clavesProduccion.map((c) => itemsProduccion[c]);
-  const grupoProduccion: ItemGrupo = {
-    id: "produccion",
-    etiqueta: "Producción",
-    icono: IC.produccion,
-    hijos: hijosProduccion,
-  };
-  // Un grupo de una sola fila no agrupa nada: se muestra como fila suelta.
-  const entradaProduccion: FilaMenu =
-    hijosProduccion.length > 1 ? grupoProduccion : { ...ordenes, etiqueta: "Producción" };
-
-  // "Inventario" agrupa las cuatro pantallas del stock (Felipe, 2026-09-16,
-  // integrando sus diseños; mismo criterio que Catálogo y Compras). Antes
-  // eran tres filas sueltas (Movimientos, Inventario, Traslados) y Conteo
-  // solo se alcanzaba por pestaña. Lo ve cualquier integrante: opera stock,
-  // recibe y cuenta, con menos permisos dentro de cada pantalla.
-  const grupoInventario: ItemGrupo = {
-    id: "inventario",
-    etiqueta: "Inventario",
-    icono: IC.inventario,
-    // Quien no es líder no tiene el grupo Compras: su puerta a «Recibir mercadería» está acá, donde vive el stock.
-    hijos: [existencias, movimientos, traslados, conteo, ...(esLider ? [resumen] : [recibirMercaderia])],
-  };
-
-  const grupos = [
-    {
-      titulo: null,
-      // Orden pedido por Felipe, 2026-09-16: Inicio, Catálogo, Producción,
-      // Compras, Ventas, Inventario. Colaboradores salió del menú principal el
-      // 2026-09-21 (decisión de Felipe): es configuración de acceso, no trabajo
-      // diario. Vive en «Mi perfil» (`PerfilModal`), solo para líderes.
-      items: [
-        inicio,
-        grupoCatalogo,
-        ...(veProduccion ? [entradaProduccion] : []),
-        ...(clavesCompras.length > 0 ? [grupoCompras] : []),
-        grupoVenta,
-        grupoInventario,
-      ],
-    },
-  ].filter((g) => g.items.length > 0);
+  // Sin rótulos de sección a propósito: el riel del lateral se mueve por filas de alto fijo (`PASO_FILA`) y una fila de
+  // otra altura lo desalinearía. Un solo bloque de filas, en el orden que dice el árbol.
+  const grupos = [{ titulo: null, items: menu.riel }].filter((g) => g.items.length > 0);
 
   const grupoDelCajon = cajon
     ? (grupos.flatMap((x) => x.items).find((f): f is ItemGrupo => esGrupo(f) && f.id === cajon.grupoId) ?? null)
     : null;
 
-  // Celular: 5 columnas fijas con el "+" al centro. Punto de Venta y Caja
-  // son las de uso diario en el mostrador; Productos/Movimientos
-  // quedan a un toque del lateral (no entran en 5 columnas
-  // fijas). El lateral de escritorio (con el grupo "Venta") no existe en
-  // celular — esta barra es su propia estructura, sin cambios acá.
-  const columnas: (Item | null)[] = [inicio, puntoDeVenta, null, inventario, caja];
+  // Celular: 5 columnas fijas con el "+" al centro (`null`). Punto de Venta y Caja son las de uso diario en el
+  // mostrador; lo demás queda a un toque del lateral. Qué columnas son lo decide `COLUMNAS_MOVIL` (lib/menu.ts).
+  const columnas = menu.movil;
   const indiceMovil = columnas.findIndex((c) => c !== null && activo(c.href));
 
   const iniciales =
