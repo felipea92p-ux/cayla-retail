@@ -97,6 +97,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
             pago={filtros.pago ?? ""}
             sede={filtros.sedeId ?? ""}
             vendedor={filtros.vendedorId ?? ""}
+            incluirPrueba={filtros.incluirPrueba}
           />
 
           {filas.length === 0 && !cursor ? (

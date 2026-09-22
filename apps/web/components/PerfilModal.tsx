@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -223,6 +224,25 @@ export function PerfilModal({ onClose }: { onClose: () => void }) {
                 <Campo etiqueta="Último acceso" valor={perfil.ultimo_acceso ? formatoFecha(perfil.ultimo_acceso) : "Sin registrar"} />
               </div>
             </div>
+
+            {/* Quién puede entrar a retail. Solo líder: la pantalla y la RPC lo vuelven a exigir,
+                esto solo decide si se ofrece la puerta. */}
+            {perfil.rol === "lider" && (
+              <div>
+                <p className="label-cayla mb-3 text-[11px] text-tinta/65">Administración</p>
+                <Link
+                  href="/colaboradores"
+                  onClick={onClose}
+                  className="card-cayla flex items-center justify-between gap-3 p-4 transition-colors hover:bg-sand/40"
+                >
+                  <span>
+                    <span className="block text-sm text-tinta">Colaboradores</span>
+                    <span className="mt-0.5 block text-xs text-tinta/55">A quién de Dynamic se le abre la puerta de retail.</span>
+                  </span>
+                  <span aria-hidden className="text-tinta/45">→</span>
+                </Link>
+              </div>
+            )}
 
             {claveAbierta ? (
               <CambiarClave onListo={() => setClaveAbierta(false)} />

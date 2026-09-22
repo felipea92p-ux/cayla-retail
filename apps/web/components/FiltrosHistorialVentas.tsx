@@ -45,6 +45,7 @@ export function FiltrosHistorialVentas({
   pago,
   sede,
   vendedor,
+  incluirPrueba,
 }: {
   /** El día de hoy en Lima (`aaaa-mm-dd`), para los atajos «Hoy» y «Ayer». */
   hoy: string;
@@ -61,6 +62,8 @@ export function FiltrosHistorialVentas({
   pago: string;
   sede: string;
   vendedor: string;
+  /** D-54 (ADR-0152): con el toggle apagado (el default) las ventas `es_prueba` ni siquiera llegan de la base. */
+  incluirPrueba: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -136,6 +139,13 @@ export function FiltrosHistorialVentas({
           </Pastilla>
           <Pastilla activa={comprobante === "pendiente"} onClick={() => aplicar({ comp: comprobante === "pendiente" ? "" : "pendiente" })}>
             Pendientes de comprobante
+          </Pastilla>
+          <span aria-hidden className="mx-1 h-4 w-px bg-tinta/15" />
+          {/* D-54 (ADR-0152): apagado por defecto — las ventas de prueba (archivadas, nunca borradas) ni
+              siquiera se piden a la base. Aparte de las demás píldoras porque no es un filtro del día a
+              día, es una excepción puntual («¿dónde quedó esa venta de prueba de antes de salir en vivo?»). */}
+          <Pastilla activa={incluirPrueba} onClick={() => aplicar({ prueba: incluirPrueba ? "" : "1" })}>
+            Con datos de prueba
           </Pastilla>
         </div>
         {/* `BotonFiltros` trae su `mt-1.5` para alinearse con un campo con etiqueta; acá no hay etiqueta. */}

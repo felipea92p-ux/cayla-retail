@@ -22,11 +22,13 @@ export type PerfilMenu = {
   ubicacionTipo: TipoUbicacion;
 };
 
-/** Pantallas de Producción, en orden. Hoy Resumen, Órdenes, Insumos, Proveedores, Comprobantes, Recibir y Por pagar (Resumen,
- *  Proveedores, Comprobantes y Por pagar son solo de quien ve el dinero; Recibir lo usa también quien trabaja en el Taller):
- *  Eficiencia se suma en `lib/menu.ts` cuando exista (fase F7). La clave es lo que sigue al punto del id del nodo
- *  (`produccion.ordenes`, `produccion.resumenProduccion`…). */
-export type ClaveMenuProduccion = "resumenProduccion" | "ordenes" | "insumos" | "proveedoresProduccion" | "comprobantesProduccion" | "recibirProduccion" | "porPagarProduccion";
+/** Hijas de PRIMER NIVEL de Producción, en orden. Hasta D-84/ADR-0155 (2026-09-21) eran siete, sueltas; el regrupo bajó
+ *  las cuatro de dinero/abastecimiento (Proveedores, Comprobantes, Recibir, Por pagar) a un subgrupo, `abastecimiento`
+ *  (`lib/menu.ts`) — esta lista ya NO las nombra una por una: quien quiera vive «dentro» de Abastecimiento se disuelve
+ *  a esta misma clave cuando a un perfil solo le queda una hija visible ahí (Recibir, para quien no ve el dinero). La
+ *  clave es lo que sigue al punto del id del nodo (`produccion.ordenes`, `produccion.abastecimiento`…). Eficiencia se
+ *  suma en `lib/menu.ts` cuando exista (fase F7). */
+export type ClaveMenuProduccion = "resumenProduccion" | "ordenes" | "insumos" | "abastecimiento" | "recibirProduccion";
 
 export type ClaveMenuCompras = "proveedores" | "comprobantes" | "recibir" | "porPagar" | "notasCredito";
 
