@@ -5225,6 +5225,15 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
 - [ ] **Costeo por margen de contribución** (introducido en `0024`) — por qué la
       mano de obra y los gastos fijos del Taller NO entran al costo por prenda y sí
       al resultado mensual del Taller; es una decisión contable, no un descuido.
+- [ ] **Identidad vs. permiso: «quién firma» no es «qué puede hacer la cuenta»** (examen del 2026-09-22,
+      ADR-0162). Felipe acertó en que la terminal no anula aunque elija a una líder, pero lo atribuyó a que la
+      validación «ya existe». Falta el porqué: al cambiar quién firma (`fn_actor_persona_id`), los permisos tienen
+      que seguir mirando la **cuenta** (`fn_es_lider()` falso para la terminal), o elegir a Carmen en el combo, que
+      no pide PIN, le daría a cualquiera los poderes de líder.
+- [ ] **Diagnóstico por descarte: «falla en una tienda y no en las otras» apunta a datos, no a código** (examen
+      del 2026-09-22). Felipe dio el primer paso correcto (¿alguien marcó en AQP?), pero no el siguiente si sí
+      marcaron. Orden: la marca → la marca subida al servidor (el kiosco de Dynamic guarda y sube cada 15 s) → el
+      vínculo `ubicaciones.sede_dynamic_id` → pausa u otra sede.
 
 ## ✅ CERRADO (últimos, con fecha)
 
