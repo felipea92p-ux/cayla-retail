@@ -2476,6 +2476,67 @@ export type Database = {
         }
         Relationships: []
       }
+      pedidos_no_atendidos: {
+        Row: {
+          atendido_por: string | null
+          clienta_id: string | null
+          created_at: string
+          descripcion_libre: string | null
+          id: string
+          producto_id: string | null
+          resuelto: boolean
+          resuelto_en: string | null
+          talla: string | null
+          ubicacion_id: string
+        }
+        Insert: {
+          atendido_por?: string | null
+          clienta_id?: string | null
+          created_at?: string
+          descripcion_libre?: string | null
+          id?: string
+          producto_id?: string | null
+          resuelto?: boolean
+          resuelto_en?: string | null
+          talla?: string | null
+          ubicacion_id: string
+        }
+        Update: {
+          atendido_por?: string | null
+          clienta_id?: string | null
+          created_at?: string
+          descripcion_libre?: string | null
+          id?: string
+          producto_id?: string | null
+          resuelto?: boolean
+          resuelto_en?: string | null
+          talla?: string | null
+          ubicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_no_atendidos_atendido_por_fkey"
+            columns: ["atendido_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_no_atendidos_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_no_atendidos_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prendas_danadas: {
         Row: {
           cambio_id: string | null
@@ -5737,6 +5798,10 @@ export type Database = {
         Args: { p_comprobante_id: string; p_motivo: string }
         Returns: undefined
       }
+      marcar_pedido_no_atendido_resuelto: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
+      }
       mover_interno: {
         Args: {
           p_cantidad: number
@@ -6068,6 +6133,16 @@ export type Database = {
           p_token?: string
         }
         Returns: string[]
+      }
+      registrar_pedido_no_atendido: {
+        Args: {
+          p_clienta_id?: string
+          p_descripcion_libre?: string
+          p_producto_id?: string
+          p_talla?: string
+          p_ubicacion_id: string
+        }
+        Returns: string
       }
       registrar_proveedor: {
         Args: {
