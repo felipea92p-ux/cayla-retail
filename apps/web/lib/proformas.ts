@@ -1,12 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
-import { marcarPorVencer, type ProformaFila } from "@/lib/proformas-reglas";
+import { marcarPorVencer, type Proforma, type ProformaFila } from "@/lib/proformas-reglas";
 import { resumenProformas, type ResumenProformas } from "@/lib/facturacion-reglas";
 
-export type { EstadoProforma, Proforma, ProformaFila } from "@/lib/proformas-reglas";
+export type { EstadoProforma, LineaProforma, Proforma, ProformaFila } from "@/lib/proformas-reglas";
 export { marcarPorVencer } from "@/lib/proformas-reglas";
 
-const COLUMNAS_PROFORMA = "id, ubicacion_id, cliente_nombre, cliente_num_doc, total, estado, comprobante_id, created_at, vence_at";
+const COLUMNAS_PROFORMA = "id, numero, ubicacion_id, cliente_nombre, cliente_num_doc, total, estado, comprobante_id, venta_id, nota, items, created_at, vence_at";
 
 // Lectura pura (lib/ nunca escribe — la escritura pasa por `crear_proforma` /
 // `convertir_proforma_a_comprobante`, ver ADR-0007). Trae también las
@@ -54,4 +54,34 @@ export async function getResumenProformas(): Promise<ResumenProformas | null> {
   // `fallo` es el aviso para la persona; la causa real (Postgres) es para quien lea el log.
   if (fallo) console.error("Facturación: no se pudo leer las proformas vigentes (contador de la pestaña Proformas):", res.error?.message);
   return datos ? resumenProformas(datos as ProformaFila[]) : null;
+}
+
+/** Una proforma para cargarla en el Punto de Venta (`/vender?proforma=<id>`). `null` si no existe o RLS no la
+ *  deja ver: la página lo dice y arranca con el carrito vacío. */
+export async function getProformaParaCobrar(id: string, ahora: number = Date.now()): Promise<Proforma | null> {
+  const supabase = await createClient();
+  const res = await supabase.from("proformas").select(COLUMNAS_PROFORMA).eq("id", id).maybeSingle();
+  const { datos } = tolerar(res, "la proforma a cobrar");
+  return datos ? marcarPorVencer([datos as ProformaFila], ahora)[0] : null;
+}
+
+export type FotoDePrenda = { fotoUrl: string | null; colorHex: string | null };
+
+/** Foto (por color) y tinte de cada prenda de las proformas, para el detalle y la hoja A4. La misma regla que
+ *  el catálogo (`catalogo-v2.ts`): la foto del producto para ese color; sin foto, el `hex` del color. Vacío si
+ *  la lectura falla: la hoja cae al recuadro de color, nunca se rompe por una foto. */
+export async function getFotosDeVariantes(ids: string[]): Promise<Record<string, FotoDePrenda>> {
+  if (ids.length === 0) return {};
+  const supabase = await createClient();
+  const res = await supabase
+    .from("variantes")
+    .select("id, color_codigo, color:colores ( hex ), producto:productos ( producto_fotos ( url, color_codigo ) )")
+    .in("id", ids);
+  const { datos } = tolerar(res, "las fotos de las prendas");
+  return Object.fromEntries(
+    (datos ?? []).map((v) => [
+      v.id,
+      { fotoUrl: v.producto?.producto_fotos.find((f) => f.color_codigo === v.color_codigo)?.url ?? null, colorHex: v.color?.hex ?? null },
+    ]),
+  );
 }
