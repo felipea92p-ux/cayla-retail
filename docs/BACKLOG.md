@@ -166,6 +166,7 @@ demo: `docs/maquetas/separaciones-2026-09/demo.html`.
 - [x] Investigación (Lightspeed, Shopify, contabilidad, SUNAT, Indecopi) y demo funcional con reloj simulado.
 - [x] Decisiones D1–D4 (Felipe, 2026-09-22): boleta de anticipo, monto libre, 100% devuelto preferentemente por Yape/Plin/transferencia (se registra al separar), una sola extensión de +7.
 - [ ] **Felipe valida las funciones en la demo** y decide D5 (quién libera y registra la devolución).
+- [x] Demo de interfaz con el lenguaje visual del ERP (`docs/maquetas/separaciones-2026-09/interfaz.html`, 2026-09-22): lateral con «Separaciones» bajo Ventas, Separar / Entregar / Todas, modales ADR-0136. Falta que Felipe la revise.
 - [ ] Confirmar con Lucode (apisunat.pe) la emisión de anticipo + regularización, y con el contador el tratamiento (pasivo 122 + IGV al cobrar).
 - [ ] Requisito: pegar ADR-0141 (`20260920160000_apartar_stock.sql`) en producción.
 - [ ] Construir: migración `separaciones` + `separacion_pagos` + 3 RPC (separar, entregar consumiendo el apartado, liberar/devolver) con pruebas SQL; pantallas Separar, Entregar, Bandeja; `cerrar_caja` cuenta el efectivo de adelantos; ADR propio.
