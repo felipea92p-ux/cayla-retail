@@ -4,22 +4,31 @@ import Image from "next/image";
 import { useState } from "react";
 import type { FotoTraslado } from "@/lib/producto-fotos-reglas";
 
-// Hasta tres miniaturas REALES de lo que viaja (ver `fotosDelTraslado`), debajo
-// del texto de la celda «Contenido». Sin fotos —el caso más común mientras el
-// catálogo se fotografía— no se dibuja NADA: ni un marcador ni cajas grises, la
-// fila simplemente es más baja. Un marcador repetido en cada fila leería como
-// una función rota, y debajo del texto no hay nada que alinear.
+// Hasta tres miniaturas REALES de lo que viaja (ver `fotosDelTraslado`), junto al
+// texto de la celda «Contenido». Sin fotos —el caso más común mientras el catálogo
+// se fotografía— se dibujan los COLORES de lo que va (rediseño 2026-09-22): es un
+// dato real («van blusas negras y tops beige»), no un marcador de «sin foto». Sin
+// fotos ni colores (Estampado, Multicolor) no se dibuja nada.
 // Si una URL da 404 (el archivo se borró a mano, cambió el host) esa foto se
 // descarta; si no queda ninguna, tampoco se dibuja nada: nunca una imagen rota.
 // `unoptimized`: el repo no declara dominios remotos para el optimizador de
 // imágenes (igual que las otras 8 imágenes de Storage), y una miniatura de
 // 32 px no lo necesita.
-export function TrasladoMiniaturas({ fotos }: { fotos: FotoTraslado[] }) {
+export function TrasladoMiniaturas({ fotos, colores = [] }: { fotos: FotoTraslado[]; colores?: string[] }) {
   const [rotas, setRotas] = useState<Set<string>>(new Set());
   const buenas = fotos.filter((f) => !rotas.has(f.url));
-  if (buenas.length === 0) return null;
+  if (buenas.length === 0) {
+    if (colores.length === 0) return null;
+    return (
+      <span aria-hidden className="flex shrink-0 -space-x-2">
+        {colores.map((hex) => (
+          <span key={hex} className="h-8 w-[26px] shrink-0 rounded-md border border-tinta/10 ring-2 ring-papel" style={{ background: hex }} />
+        ))}
+      </span>
+    );
+  }
   return (
-    <span aria-hidden className="mt-1.5 flex -space-x-2">
+    <span aria-hidden className="flex shrink-0 -space-x-2">
       {buenas.map((f) => (
         <Image
           key={f.url}

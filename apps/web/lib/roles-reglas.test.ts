@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { MODULOS, MODULOS_DE_HOY } from "./modulos";
+import { MODULOS, MODULOS_DE_HOY, esDelegable } from "./modulos";
 import {
+  alternarGrupo,
   alternarModulo,
+  avisoDelRol,
+  cambiosDelBorrador,
+  familiaDeRol,
+  menuConCambios,
+  modulosFiltrados,
   controlDe,
   cuentasAsignables,
   etiquetasDelMenu,
@@ -40,11 +46,12 @@ describe("controles del editor", () => {
     }
   });
 
-  it("Colaboradores y Roles salen con candado «Solo líder»; lo aún no delegable, «Solo líder por ahora»", () => {
-    expect(controlDe(INTEGRANTE, modulo("roles"))).toEqual({ tipo: "candado", texto: "Solo líder" });
-    expect(controlDe(INTEGRANTE, modulo("colaboradores"))).toEqual({ tipo: "candado", texto: "Solo líder" });
-    expect(controlDe(INTEGRANTE, modulo("analisis"))).toEqual({ tipo: "candado", texto: "Solo líder por ahora" });
-    expect(controlDe(INTEGRANTE, modulo("caja"))).toEqual({ tipo: "interruptor", editable: true });
+  it("hoy todo módulo sale con interruptor (Felipe, 2026-09-22: se abrieron los 7 que tenían candado); el candado sigue para uno que nazca así", () => {
+    for (const clave of ["roles", "colaboradores", "analisis", "etiquetas", "facturas_compra", "por_pagar", "notas_credito", "caja"] as const) {
+      expect(controlDe(INTEGRANTE, modulo(clave)), clave).toEqual({ tipo: "interruptor", editable: true });
+    }
+    expect(controlDe(INTEGRANTE, { ...modulo("caja"), soloLider: true })).toEqual({ tipo: "candado", texto: "Solo líder" });
+    expect(controlDe(INTEGRANTE, { ...modulo("caja"), noDelegable: true })).toEqual({ tipo: "candado", texto: "Solo líder por ahora" });
   });
 
   it("un rol archivado no se edita", () => {
@@ -54,8 +61,9 @@ describe("controles del editor", () => {
   it("alternar enciende y apaga, en el orden del catálogo, y nunca deja entrar lo que no se delega", () => {
     expect(alternarModulo(["movimientos"], "vender")).toEqual(["vender", "movimientos"]);
     expect(alternarModulo(["vender", "movimientos"], "vender")).toEqual(["movimientos"]);
-    expect(alternarModulo([], "roles")).toEqual([]);
-    expect(alternarModulo([], "por_pagar")).toEqual([]);
+    // Desde 20260923130000/20260923131000 se delegan: entran como cualquier otro.
+    expect(alternarModulo([], "roles")).toEqual(["roles"]);
+    expect(alternarModulo(["vender"], "por_pagar")).toEqual(["vender", "por_pagar"]);
   });
 
   it("hay cambios solo si el conjunto difiere", () => {
@@ -122,6 +130,10 @@ describe("archivar, duplicar y asignar", () => {
     ];
     expect(cuentasAsignables(cuentas, INTEGRANTE, "yo").map((c) => c.id)).toEqual(["1", "3"]);
     expect(cuentasAsignables(cuentas, LIDER, "yo").map((c) => c.id)).toEqual(["2"]);
+    // Quien administra roles SIN ser líder (20260923131000): no toca a los líderes ni da el rol Líder.
+    expect(cuentasAsignables(cuentas, INTEGRANTE, "yo", false).map((c) => c.id)).toEqual(["3"]);
+    expect(cuentasAsignables(cuentas, LIDER, "yo", false)).toEqual([]);
+    expect(rolesAsignables([LIDER, INTEGRANTE], { tipo: "persona" }, false).map((r) => r.id)).toEqual(["i"]);
   });
 
   it("al bajar a un líder sin sede hay que elegírsela", () => {
@@ -129,5 +141,47 @@ describe("archivar, duplicar y asignar", () => {
     expect(pideUbicacion({ esLider: true, ubicacion: "Tienda Arequipa" }, INTEGRANTE)).toBe(false);
     expect(pideUbicacion({ esLider: true, ubicacion: null }, LIDER)).toBe(false);
     expect(pideUbicacion({ esLider: false, ubicacion: null }, INTEGRANTE)).toBe(false);
+  });
+});
+
+describe("editor rediseñado (spike colaboradores-ux 2026-09-22)", () => {
+  it("agrupa los roles en sistema, terminal y a medida", () => {
+    expect(familiaDeRol(LIDER)).toBe("sistema");
+    expect(familiaDeRol(INTEGRANTE)).toBe("sistema");
+    expect(familiaDeRol(rol({ clave: "terminal_ventas", esSistema: true }))).toBe("terminal");
+    expect(familiaDeRol(rol())).toBe("a_medida");
+  });
+  it("avisa «Solo Inicio» y «Sin uso», nunca del Líder ni de un archivado", () => {
+    expect(avisoDelRol(rol(), 16)).toBe("solo_inicio");
+    expect(avisoDelRol(rol(), 0)).toBe("sin_uso");
+    expect(avisoDelRol(rol({ modulos: ["vender"] }), 3)).toBeNull();
+    expect(avisoDelRol(LIDER, 0)).toBeNull();
+    expect(avisoDelRol(rol({ archivado: true }), 0)).toBeNull();
+  });
+  it("separa lo que el borrador suma de lo que quita", () => {
+    expect(cambiosDelBorrador(["vender", "caja"], ["caja", "clientas"])).toEqual({ suma: ["clientas"], quita: ["vender"] });
+  });
+  it("«Encender todo» enciende el grupo entero (solo lo que se delega) sin tocar otros grupos", () => {
+    const r = alternarGrupo(["existencias"], "Compras", true);
+    const compras = MODULOS.filter((m) => m.grupo === "Compras" && esDelegable(m)).map((m) => m.clave);
+    expect(compras.length).toBeGreaterThan(0);
+    for (const c of compras) expect(r).toContain(c);
+    expect(r).toContain("existencias");
+    expect(r.filter((c) => !compras.includes(c))).toEqual(["existencias"]);
+    expect(alternarGrupo(r, "Compras", false)).toEqual(["existencias"]);
+  });
+  it("el buscador encuentra por lo que incluye, sin tildes", () => {
+    const g = modulosFiltrados("reimprimir");
+    expect(g.flatMap((x) => x.modulos.map((m) => m.clave))).toEqual(["historial"]);
+    expect(modulosFiltrados("categorias").flatMap((x) => x.modulos.map((m) => m.clave))).toContain("atributos");
+    expect(modulosFiltrados("")).toEqual(modulosPorGrupo());
+  });
+  it("la vista previa marca lo que se suma y lo que se quita", () => {
+    const guardado = rol({ modulos: ["vender"] });
+    const menu = menuConCambios(guardado, ["existencias"]);
+    const cambios = menu.flatMap((f) => [[f.etiqueta, f.cambio], ...f.hijas.map((h) => [`${f.etiqueta}/${h.etiqueta}`, h.cambio])]);
+    expect(cambios.some(([, c]) => c === "suma")).toBe(true);
+    expect(cambios.some(([, c]) => c === "quita")).toBe(true);
+    expect(menuConCambios(guardado, ["vender"]).every((f) => f.cambio === "igual" && f.hijas.every((h) => h.cambio === "igual"))).toBe(true);
   });
 });

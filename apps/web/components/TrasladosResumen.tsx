@@ -36,7 +36,7 @@ export function TrasladosResumen({
         activa={filtro === "por_recibir"}
         onClick={atajo("por_recibir")}
       >
-        {r.porRecibir > 0 ? "Requiere tu confirmación" : "Nada esperando tu confirmación"}
+        {r.porRecibir > 0 ? "Ya debieron llegar: cuéntalos" : "Nada esperando tu confirmación"}
       </TarjetaCifra>
 
       <TarjetaCifra

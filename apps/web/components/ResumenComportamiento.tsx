@@ -4,14 +4,20 @@ import { SelectNativo } from "@/components/ui/campos";
 import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 import { Encabezado, fila, TABLA } from "@/components/ui/Tabla";
 import type { CambiosUrl } from "@/components/useResumenUrl";
-import { FILAS_POR_PAGINA } from "@/lib/resumen-filtros";
+import { LecturaCelda } from "@/components/ResumenCifras";
+import { FILAS_POR_PAGINA, OPCIONES_SELL_THROUGH } from "@/lib/resumen-filtros";
+import { lecturaDesempeno } from "@/lib/resumen-lectura";
 import { formatoRotacion, formatoVariacion, formatoVelocidad } from "@/lib/resumen-formato";
 import { AYUDA_ROTACION, TEXTO_MOTIVO_ROTACION } from "@/lib/rotacion";
 import { ETIQUETA_TENDENCIA, OPCIONES_ORDEN_DESEMPENO, ORDEN_INICIAL_DESEMPENO, type AnalisisDesempeno, type DesempenoParaPantalla, type DireccionTendencia, type OrdenDesempeno } from "@/lib/resumen-desempeno";
 
 // «Comportamiento del inventario»: cómo se comportó cada producto y variante DURANTE el período
-// elegido. Solo métricas históricas —vendido, ritmo, sell-through, rotación y tendencia—; el stock
-// de hoy, la cobertura y las acciones son de Existencias y no aparecen aquí.
+// elegido. Solo métricas históricas —vendido, ritmo, sell-through, rotación y tendencia— y, al final, la
+// lectura de la variante (`lib/resumen-lectura.ts`, 2026-09-22): una frase por reglas que dice qué hacer con
+// esas cifras. El stock de hoy, la cobertura y las acciones son de Existencias y no aparecen aquí.
+//
+// La banda de sell-through vive en la cabecera de esta tabla (2026-09-22) y no arriba: recorta la tabla y nada
+// más, igual que el filtro de cambio en Comparar. Las cifras y los gráficos de arriba no se mueven con ella.
 //
 // Composición: el producto es lo que manda (una columna elástica, la celda de Existencias) y las cinco
 // métricas son compactas, centradas y con cifras tabulares, como en Existencias (`ui/Tabla.tsx`). Cada
@@ -19,7 +25,7 @@ import { ETIQUETA_TENDENCIA, OPCIONES_ORDEN_DESEMPENO, ORDEN_INICIAL_DESEMPENO, 
 // entre números. La tabla se desplaza dentro de su tarjeta cuando la ventana es angosta y nunca ensancha
 // la página.
 
-const PLANTILLA = "grid-cols-[minmax(13.5rem,1fr)_minmax(4rem,5rem)_minmax(6rem,7rem)_minmax(6.5rem,7.5rem)_minmax(4.5rem,6rem)_minmax(6.25rem,7.5rem)]";
+const PLANTILLA = "grid-cols-[minmax(13.5rem,1fr)_minmax(4rem,5rem)_minmax(6rem,7rem)_minmax(6.5rem,7.5rem)_minmax(4.5rem,6rem)_minmax(6.25rem,7.5rem)_minmax(12rem,1fr)]";
 
 const FLECHA: Record<DireccionTendencia, string> = { alza: "↑", estable: "→", baja: "↓" };
 // El rojo del Análisis es urgencia de inventario: desacelerar no lo es, se marca en ámbar.
@@ -29,7 +35,7 @@ const NO_DATO = <span className="text-tinta/45">N/D</span>;
 /** Un cero no es información nueva: se apaga para que lo que sí se movió destaque al leer hacia abajo. */
 const tonoCifra = (esCero: boolean) => (esCero ? "text-tinta/40" : "text-tinta");
 
-function Fila({ x }: { x: AnalisisDesempeno }) {
+function Fila({ x, dias }: { x: AnalisisDesempeno; dias: number }) {
   const f = x.fila;
   const t = x.tendencia;
   return (
@@ -85,6 +91,8 @@ function Fila({ x }: { x: AnalisisDesempeno }) {
           </span>
         )}
       </span>
+
+      <LecturaCelda lectura={lecturaDesempeno(x, dias)} />
     </div>
   );
 }
@@ -99,11 +107,24 @@ export function ResumenComportamiento({ datos, actualizar }: { datos: DesempenoP
     <section className="card-cayla overflow-x-auto" aria-labelledby="comportamiento-titulo">
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 px-5 pb-4 pt-5">
         <div className="min-w-0">
-          <h2 id="comportamiento-titulo" className="font-display text-[1.35rem] leading-tight text-tinta">
+          <h2 id="comportamiento-titulo" className="scroll-mt-24 font-display text-[1.35rem] leading-tight text-tinta">
             Comportamiento del inventario
           </h2>
           <p className="mt-0.5 max-w-3xl text-xs text-tinta/65">Productos y variantes según su desempeño durante el período seleccionado.</p>
         </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <label className="flex items-center gap-2">
+          <span className="label-cayla text-[10px] text-tinta/60">Sell-through</span>
+          <span className="w-44">
+            <SelectNativo value={sellThrough} onChange={(e) => actualizar({ st: e.target.value === "todos" ? null : e.target.value })}>
+              {OPCIONES_SELL_THROUGH.map((o) => (
+                <option key={o.valor} value={o.valor}>
+                  {o.texto}
+                </option>
+              ))}
+            </SelectNativo>
+          </span>
+        </label>
         <label className="flex items-center gap-2">
           <span className="label-cayla text-[10px] text-tinta/60">Ordenar por</span>
           <span className="w-52">
@@ -116,6 +137,7 @@ export function ResumenComportamiento({ datos, actualizar }: { datos: DesempenoP
             </SelectNativo>
           </span>
         </label>
+        </div>
       </div>
 
       {tabla.total === 0 ? (
@@ -128,7 +150,7 @@ export function ResumenComportamiento({ datos, actualizar }: { datos: DesempenoP
           )}
         </div>
       ) : (
-        <div role="table" aria-label="Comportamiento del inventario" className="min-w-[49rem] divide-y divide-tinta/10 border-t border-tinta/10">
+        <div role="table" aria-label="Comportamiento del inventario" className="min-w-[62rem] divide-y divide-tinta/10 border-t border-tinta/10">
           <Encabezado
             siempre
             plantilla={PLANTILLA}
@@ -139,11 +161,12 @@ export function ResumenComportamiento({ datos, actualizar }: { datos: DesempenoP
               { titulo: "Sell-through", subtitulo: "del período", alinear: "centro", ayuda: "Ventas netas ÷ (stock al inicio del período + entradas): qué parte de lo disponible se vendió" },
               { titulo: "Rotación", subtitulo: "veces", alinear: "centro", ayuda: AYUDA_ROTACION },
               { titulo: "Tendencia", subtitulo: "2.ª vs 1.ª mitad", alinear: "centro", ayuda: "El ritmo de la segunda mitad del período contra el de la primera" },
+              { titulo: "Lectura del período", ayuda: "Qué hacer con estas cifras: una frase por reglas fijas, en orden (estimadas, agotada, sin ventas, tendencia, vendió casi todo, rota lento)" },
             ]}
           />
           <div role="rowgroup" className="divide-y divide-tinta/10">
             {tabla.filas.map((x) => (
-              <Fila key={x.fila.varianteId} x={x} />
+              <Fila key={x.fila.varianteId} x={x} dias={periodo.dias} />
             ))}
           </div>
         </div>
