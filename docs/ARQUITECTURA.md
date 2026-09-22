@@ -245,7 +245,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   «Vacío») → `/inventario/conteo/[id]` → `ConteoDetalleVista.tsx` (`getConteoDetalle`, que trae foto, `colorHex` y
   soles por línea en su misma consulta; solo lectura; `?ver=todas`). Reglas puras en `lib/conteo-reglas.ts`
   (ADR-0174); exactitud con `exactitudConteos` (`lib/conteo-varianza.ts`). `cerrar_conteo` rechaza un conteo sin
-  prendas (hint `conteo_vacio`, `20260923120000`, **no está en producción**).
+  prendas (hint `conteo_vacio`, `20260923120000`, en producción desde el 2026-09-22).
 - `/inventario/resumen` (**Análisis de inventario**, solo líder; nació como «Resumen» en ADR-0101/0121 y se
   repartió y rediseñó en ADR-0138) → `page.tsx` lee de la URL `preset, desde, hasta, q, cat, st, orden, pag` (+
   `modo=comparar`, `comparar`, `cdesde`, `chasta`, `vista`, `cambio`). La sede es SIEMPRE la del selector global.

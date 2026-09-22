@@ -46,10 +46,10 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] **PR aparte:** construir las 6 decisiones P1-P6 del ADR-0161 (Felipe, 2026-09-22): registrar en Compras por módulo, montos en Recibir, ficha y edición de proveedores con su módulo, etiquetas sin descuento desde la ficha con Productos, Análisis sin costo ni red en Existencias, Colaboradores y Roles solo a personas.
 - Cómo verificas: en Roles y accesos los 7 módulos salen con interruptor; un rol con solo «Por pagar» ve Compras ▸ Por pagar con montos; uno con «Etiquetas» ve la pestaña Etiquetas y no puede poner descuento.
 
-## 🎯 Conteo físico: rediseño con la guía oficial (2026-09-22, ADR-0174) — hecho en código; la migración NO está en producción
+## 🎯 Conteo físico: rediseño con la guía oficial (2026-09-22, ADR-0174) — hecho; migración en producción desde el 2026-09-22
 Demo: `docs/maquetas/conteo-rediseno-2026-09/conteo.html` (artifact https://claude.ai/artifact/U6e6UwKXX3rByebdBPDLrD).
 - [x] Pantalla: abrir en tres pasos; «Suma por escaneo» / «Escribir cantidad» con escrituras en fila; «Faltan por contar» sin cifras (variante A, elegida por Felipe); sin «Diferencia hasta ahora» con conteo abierto; «Vacío» en historial y detalle; revisión en `<Modal>`; detalle con «Con diferencia / Todas» y soles por línea. Tipos, lint y 8031 pruebas en verde; recorrido en navegador con datos de muestra (sin base local).
-- [ ] **Pegar en producción (con OK de Felipe):** `20260923120000_conteo_vacio_no_se_cierra.sql` — `cerrar_conteo` rechaza un conteo sin prendas. Ya trae `retail.`; se puede pegar dos veces. Después: `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
+- [x] **Migración en producción** (OK de Felipe, 2026-09-22, por MCP en una transacción): `20260923120000_conteo_vacio_no_se_cierra.sql`. Verificado: candado 1 vez, antes de tocar stock, `security definer`, una firma, mismos permisos; md5 `257e622c…` → `acc166a9…`. No había conteos abiertos. Falta refrescar el volcado (`generado/COMO-REFRESCAR.md`); la firma no cambió.
 - [ ] **Verlo con clics reales** en TRU: abrir «Solo Camisas y Blusas» en el piso, contar con la pistola en suma (varias lecturas seguidas de la misma prenda), corregir, revisar y cerrar; y confirmar que la pistola manda Enter al final de cada lectura (si no, en suma no cuenta: hay que configurarla).
 
 ## 🎯 Paleta oficial «CAYLA Dynamic» + rediseño visual de Inventario (2026-09-22, ADR-0169) — hecho, SIN migraciones; falta verlo con clics reales
@@ -93,7 +93,7 @@ PR [#298](https://github.com/felipea92p-ux/cayla-retail/pull/298), fusionado. Di
 ## 🎯 Cambiar rol y ubicación entre líderes (2026-09-22, actualización del ADR-0161) — rol EN PRODUCCIÓN (PR #304); ubicación CONSTRUIDA
 - [x] `asignar_rol` sube a Líder y baja a un líder (con sede si no tiene); nunca a uno mismo ni Líder a una terminal. Pegada en producción el 2026-09-22, **pero la primera versión** (busca la cuenta a mano en vez de `fn_actor_persona_id`): funciona igual; falta volver a pegar `20260923110000` para quedar igual al repo.
 - [x] Ubicación entre líderes: `cambiar_ubicacion_colaborador` acepta líderes; para ellos es la tienda donde arrancan (`fn_ubicacion_de_partida`). Probado en local (`pruebas:roles` 39/39).
-- [ ] **Pegar en producción**, en orden: `20260923110000_cambiar_rol_entre_lideres.sql` (otra vez) y `20260923120000_ubicacion_de_lideres.sql`, cada una con `set search_path to retail, public;`. Después `pnpm datos:generar:produccion` + `pnpm datos:comparar`.
+- [ ] **Pegar en producción**, en orden: `20260923110000_cambiar_rol_entre_lideres.sql` (otra vez) y `20260923120100_ubicacion_de_lideres.sql`, cada una con `set search_path to retail, public;`. Después `pnpm datos:generar:produccion` + `pnpm datos:comparar`.
 - [ ] Verlo con clics: poner «Tienda Trujillo» a un líder de Oficina TRU y que entre ahí.
 
 ## 🎯 Responsable en cada operación + roles retomados (2026-09-22, ADR-0161) — combo Responsable CONSTRUIDO (F4b, PR #285); roles en otra rama

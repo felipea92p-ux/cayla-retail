@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (Conteo vacío: migración en producción y la prueba de terminales)
+Con el OK de Felipe se aplicó en producción `20260923120000_conteo_vacio_no_se_cierra.sql`, por MCP y en una transacción. Antes se revisó que la línea donde se inserta el candado estuviera una sola vez y que no hubiera conteos abiertos; después, que el candado quedara una vez, antes de tocar el stock, con los mismos permisos y `security definer`. En la misma corrida de CI, `pruebas:terminales` cerraba un conteo vacío para probar quién firma: se corrigió la escena (una prenda contada), no la regla (PR #321).
+Felipe se lleva: **un candado nuevo en la base puede tumbar pruebas viejas que dependían del hueco**, y eso es buena señal: la prueba de terminales «pasaba» sus puertas de `cerrar_conteo` por la razón equivocada (el rechazo por conteo vacío no era el de permiso). Ahora pasan de verdad.
+Sin resolver: refrescar el volcado de producción para el diccionario, verlo con clics reales en TRU y confirmar que la pistola manda Enter.
+
 ## 2026-09-22 (Existencias: 15 prendas por página)
 Felipe reportó que Existencias demoraba en cargar y pidió ver solo 15 prendas por página. La tabla pintaba TODAS las variantes de la sede, cada una con foto, chips, botones y menú; ahora pinta una página de 15 con paginador al pie (‹ 1 2 … 4 ›), vuelve a la página 1 al filtrar y el CSV sigue exportando todo lo filtrado. Probado en navegador sobre una demo con 52 variantes, escritorio y celular; 7,989 pruebas, typecheck y lint en verde.
 Felipe se lleva: **paginar la tabla no es lo mismo que paginar la base**: las tarjetas de arriba (disponible total, reponer, recomendaciones) necesitan todas las prendas, así que los datos siguen llegando completos y lo que se ahorra es dibujarlas; si con esto aún demora, el siguiente paso es medir las consultas del servidor.
