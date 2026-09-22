@@ -1,7 +1,29 @@
 import path from "node:path";
 import type { NextConfig } from "next";
 
+// El optimizador de imágenes solo acepta fotos del Storage PÚBLICO de nuestro Supabase (las de prendas,
+// `retail-productos-fotos`), nada de otro host: sin lista cerrada, `/_next/image?url=…` serviría de proxy a
+// cualquier URL. Se arma desde `NEXT_PUBLIC_SUPABASE_URL` porque producción y local apuntan a hosts distintos.
+// Quien lo usa hoy: `FotoPrenda` de Apartados (ADR-0168). Las demás imágenes de Storage siguen `unoptimized`.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL) : null;
+
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: supabaseUrl
+      ? [
+          {
+            protocol: supabaseUrl.protocol === "http:" ? "http" : "https",
+            hostname: supabaseUrl.hostname,
+            port: supabaseUrl.port,
+            pathname: "/storage/v1/object/public/**",
+          },
+        ]
+      : [],
+    // Solo en `next dev`: el Supabase local vive en localhost, que Next 16 bloquea por defecto (protección SSRF).
+    // Nunca en producción: allá el host es público y esta puerta queda cerrada.
+    dangerouslyAllowLocalIP: process.env.NODE_ENV === "development",
+  },
+
   // Raíz del workspace para Turbopack. Sin esto Next la infiere buscando lockfiles hacia
   // arriba, encuentra un `package-lock.json` suelto en el home del desarrollador (quedó de
   // una instalación del CLI de supabase) y toma `C:\Users\<usuario>` como raíz del proyecto.

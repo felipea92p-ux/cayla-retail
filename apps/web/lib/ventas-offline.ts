@@ -36,6 +36,7 @@
 
 import type { MetodoPago } from "@cayla-retail/shared";
 import { ID_CARGO_ESPECIAL } from "./cargo-especial";
+import type { Firma } from "./responsable-reglas";
 
 export type ItemVentaEncolada = { varianteId: string; cantidad: number };
 
@@ -66,7 +67,8 @@ export type ParamsRegistrarVenta = {
   p_cliente_nombre?: string;
   p_codigo_descuento?: string;
   p_nota?: string;
-  /** Quién atendió (fila «Atendió», asistencia de Dynamic). Solo viaja si hay a quién atribuirla. */
+  /** El RESPONSABLE de la venta (combo del ADR-0161; antes, la fila «Atendió» del ADR-0163). Es el mismo uuid que
+   *  viaja en `x-responsable`: la venta queda a nombre de quien la hizo, no de la cuenta. */
   p_asesora_id?: string;
 };
 
@@ -162,4 +164,17 @@ export function totalEfectivoEncolado(cola: readonly VentaEncolada[]): number {
     .flatMap((v) => v.params.p_pagos)
     .filter((p) => p.metodo === "efectivo")
     .reduce((acc, p) => acc + p.monto, 0);
+}
+
+/**
+ * La firma con la que se sube una venta encolada (ADR-0161/0162): el responsable que se eligió al cobrar
+ * (`p_asesora_id`), la tienda de la venta y —la diferencia con una venta en línea— `x-momento` con la HORA DE LA
+ * VENTA, no la de la sincronización (Felipe, 2026-09-22, igual que `timestamp_cliente` en Dynamic). Así la base
+ * valida que la persona estaba presente cuando cobró, aunque suba horas después, cuando ya marcó su salida.
+ * `null` para una venta encolada antes de existir el combo: sube como antes (la base decide si la acepta).
+ */
+export function firmaDeVentaEncolada(venta: Pick<VentaEncolada, "ubicacionId" | "creadoEn" | "params">): Firma | null {
+  const responsableId = venta.params.p_asesora_id;
+  if (!responsableId) return null;
+  return { responsableId, ubicacionId: venta.ubicacionId, momento: venta.creadoEn };
 }

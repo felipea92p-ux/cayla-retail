@@ -9,8 +9,10 @@ import { Boton } from "@/components/ui/campos";
 import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
-import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type AccionNuevo, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type TipoTerminal } from "@/lib/menu";
+import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type AccionNuevo, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
+import type { ClaveModulo } from "@/lib/modulos";
 import { PerfilModal } from "@/components/PerfilModal";
+import { IconoAparato } from "@/components/ui/IconoAparato";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
@@ -71,9 +73,14 @@ type Persona = {
    *  AppShell y las páginas de Producción; el permiso real lo da la base. */
   ubicacionTipo: "tienda" | "almacen" | "taller";
   puedeCambiarUbicacion: boolean;
-  /** Si esta cuenta es una TERMINAL de su tienda (ADR-0160). Opcional: quien arma el AppShell sin persona real (las
-   *  rutas de prueba) no tiene que saber de terminales; ausente = una persona. */
-  terminal?: TipoTerminal | null;
+  /** Si esta sesión es la de una TERMINAL, un aparato SIN persona (ADR-0162). Opcional: quien arma el AppShell sin persona
+   *  real (las rutas de prueba) no tiene que saber de terminales; ausente = una persona. Con terminal, el pie del lateral
+   *  muestra el aparato (no una persona) y no abre «Mi perfil». */
+  terminal?: boolean;
+  /** Lo que su ROL deja ver y hacer (ADR-0161 B2, `fn_mis_modulos()`), ya resuelto en el servidor. Opcional por la misma
+   *  razón que `terminal`: sin esto, el menú sale con la regla fija de antes (`permisosDe`). */
+  permisos?: readonly Permiso[];
+  modulos?: readonly ClaveModulo[];
 };
 
 type Props = {
@@ -795,7 +802,9 @@ function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; 
 // panel de validaciones ya había de sobra qué poner a los lados.
 // Producción entró el 2026-09-22 (pedido de Felipe: «los módulos no ocupan todo el espacio»): el Resumen (cifras, tarjetas, tablas de modelos y telas), el tablero de Órdenes (cuatro
 // columnas desde 1240 px) y las tablas de Comprobantes, Por pagar y Eficiencia se apretaban en la columna de 64 rem, con ~300 px de margen vacío a cada lado en pantallas grandes.
-const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/recibir", "/caja", "/cambios", "/devoluciones", "/produccion"];
+// Colaboradores entró el 2026-09-22 (pedido de Felipe): «Roles y accesos» pasa a tres columnas —roles, módulos del rol y el
+// efecto en el menú— y las tablas de Activos/Terminales tienen qué poner a lo ancho. Los párrafos siguen con su `max-w-*`.
+const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/recibir", "/caja", "/cambios", "/devoluciones", "/produccion", "/colaboradores"];
 
 export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPlegado = false, children }: Props) {
   const pathname = usePathname();
@@ -803,6 +812,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   const [perfilAbierto, setPerfilAbierto] = useState(false);
   const disparadorNuevo = useRef<HTMLButtonElement | null>(null);
   const esLider = persona.rol === "lider";
+  const esAparato = !!persona.terminal;
 
   // ---- Lateral plegado (v3.6) ----
   const [plegado, setPlegado] = useState(lateralPlegado);
@@ -900,9 +910,10 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
 
   // El menú de esta persona: filas, barra del celular, «+ Nuevo» y qué grupo contiene cada ruta. Todo sale de `lib/menu.ts`.
   const menu = menuPara({
-    permisos: permisosDe(persona.rol, persona.terminal ?? null),
+    permisos: persona.permisos ?? permisosDe(persona.rol),
     ubicacionTipo: persona.ubicacionTipo,
-    terminal: persona.terminal ?? null,
+    terminal: !!persona.terminal,
+    modulos: persona.modulos ?? null,
     contadores: { trasladosPorAtender },
   });
 
@@ -1046,31 +1057,50 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         {/* Plegado el avatar queda centrado en la columna (px-5 + 36 de avatar = centro en 38 px). */}
         <div className={`overflow-hidden border-t border-tinta/10 py-5 transition-[padding] duration-300 ease-cayla ${plegado ? "px-5" : "px-7"}`}>
           <div className="flex items-center gap-3">
-            {/* Botón, no <div>: abre "Mi perfil". Salir queda AFUERA de este
-                botón, como hermano — un clic ahí nunca dispara el perfil. */}
-            <button
-              type="button"
-              onClick={() => setPerfilAbierto(true)}
-              onMouseEnter={(e) => entrarFila(e.currentTarget, "Mi perfil")}
-              onMouseLeave={salirFila}
-              onFocus={(e) => entrarFila(e.currentTarget, "Mi perfil")}
-              onBlur={salirFila}
-              aria-label={plegado ? "Mi perfil" : undefined}
-              className="group flex min-w-0 flex-1 items-center gap-3 text-left"
-            >
-              <span
-                aria-hidden
-                className="font-display flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sand text-sm text-tinta transition-colors group-hover:bg-rojo/15"
+            {esAparato ? (
+              // Una terminal (ADR-0162) no es una persona: donde iría el avatar va el APARATO, y no hay «Mi perfil» que abrir
+              // (no tiene ficha de RRHH en Dynamic). No es botón: nada que hacer al tocarlo. Plegado, el nombre sale al pasar
+              // el mouse igual que en las filas del menú.
+              <div
+                className="flex min-w-0 flex-1 items-center gap-3"
+                onMouseEnter={(e) => entrarFila(e.currentTarget, persona.nombre)}
+                onMouseLeave={salirFila}
               >
-                {iniciales}
-              </span>
-              <div className={`min-w-0 flex-1 transition-opacity duration-200 ${plegado ? "opacity-0" : ""}`}>
-                <p className="truncate text-sm text-tinta transition-colors group-hover:text-rojo">{persona.nombre}</p>
-                <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">
-                  {esLider ? "Líder" : "Colaborador"} · {persona.ubicacionEtiqueta}
-                </p>
+                <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-tinta text-crema">
+                  <IconoAparato />
+                </span>
+                <div className={`min-w-0 flex-1 transition-opacity duration-200 ${plegado ? "opacity-0" : ""}`}>
+                  <p className="truncate text-sm text-tinta">{persona.nombre}</p>
+                  <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">Aparato · {persona.ubicacionEtiqueta}</p>
+                </div>
               </div>
-            </button>
+            ) : (
+              // Botón, no <div>: abre "Mi perfil". Salir queda AFUERA de este
+              // botón, como hermano — un clic ahí nunca dispara el perfil.
+              <button
+                type="button"
+                onClick={() => setPerfilAbierto(true)}
+                onMouseEnter={(e) => entrarFila(e.currentTarget, "Mi perfil")}
+                onMouseLeave={salirFila}
+                onFocus={(e) => entrarFila(e.currentTarget, "Mi perfil")}
+                onBlur={salirFila}
+                aria-label={plegado ? "Mi perfil" : undefined}
+                className="group flex min-w-0 flex-1 items-center gap-3 text-left"
+              >
+                <span
+                  aria-hidden
+                  className="font-display flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sand text-sm text-tinta transition-colors group-hover:bg-rojo/15"
+                >
+                  {iniciales}
+                </span>
+                <div className={`min-w-0 flex-1 transition-opacity duration-200 ${plegado ? "opacity-0" : ""}`}>
+                  <p className="truncate text-sm text-tinta transition-colors group-hover:text-rojo">{persona.nombre}</p>
+                  <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">
+                    {esLider ? "Líder" : "Colaborador"} · {persona.ubicacionEtiqueta}
+                  </p>
+                </div>
+              </button>
+            )}
             {/* Plegado «Salir» no cabe: se apaga y sale del tabulador (`inert`); el perfil sigue a un clic. */}
             <span className={`transition-opacity duration-200 ${plegado ? "opacity-0" : ""}`} inert={plegado}>
               <LogoutButton />
@@ -1079,7 +1109,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         </div>
       </aside>
 
-      {perfilAbierto && <PerfilModal onClose={() => setPerfilAbierto(false)} />}
+      {perfilAbierto && !esAparato && <PerfilModal onClose={() => setPerfilAbierto(false)} />}
 
       {/* Etiqueta de una fila plegada. Fuera del <aside> a propósito: el aside recorta (`overflow-hidden`)
           y una etiqueta que se corta a mitad de palabra es peor que ninguna. */}
@@ -1159,7 +1189,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
 
       {/* ==================== Pestañas (celular) ==================== */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-tinta/10 bg-crema/90 backdrop-blur-md pb-[env(safe-area-inset-bottom)] sm:hidden">
-        {/* Las columnas salen del menú de esta cuenta: 5 para una persona, menos para una terminal (la de ventas no tiene Inicio ni Inventario). */}
+        {/* Las columnas salen del menú de esta cuenta: 5 para una persona, según su rol para una terminal (la que ve el Punto de venta no tiene Inicio). */}
         <div className="relative grid" style={{ gridTemplateColumns: `repeat(${columnas.length}, minmax(0, 1fr))` }}>
           {/* El mismo riel del lateral, acostado: una sola marca que se desliza
               entre pestañas en vez de cinco que se prenden y se apagan. */}

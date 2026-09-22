@@ -15,6 +15,9 @@ import { NOMBRE_METODO } from "@/lib/recibo-reglas";
 import { cobroDelSaldo, coincide, diasEntre, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
 import { EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
 import { ApartadoEntregadoModal } from "@/components/apartados/ModalesApartado";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
@@ -24,6 +27,7 @@ const BILLETES = [10, 20, 50, 100, 200];
 const iniciales = (a: Apartado) => `${a.nombres[0] ?? ""}${a.apellidos[0] ?? ""}`.toUpperCase();
 
 export function EntregarVista({
+  ubicacionId,
   ubicacionEtiqueta,
   hoy,
   cajaAbierta,
@@ -32,6 +36,7 @@ export function EntregarVista({
   elegido,
   onElegir,
 }: {
+  ubicacionId: string;
   ubicacionEtiqueta: string;
   hoy: string;
   cajaAbierta: boolean;
@@ -47,6 +52,14 @@ export function EntregarVista({
   const [enviando, setEnviando] = useState(false);
   const [entregado, setEntregado] = useState<{ apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number } | null>(null);
   const token = useRef<string>(crypto.randomUUID());
+  // Entregar guarda en la tienda (cobra el saldo y cierra la venta): pide Responsable (ADR-0161), vacío en cada entrega.
+  const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
+
+  /** Cambiar de clienta es otra operación: el combo vuelve a vacío. */
+  function elegir(id: string | null) {
+    responsable.limpiar();
+    onElegir(id);
+  }
 
   const abiertos = apartados.filter((a) => a.estado === "abierta");
   const encontrados = abiertos.filter((a) => coincide(a, texto)).sort((x, y) => x.venceEl.localeCompare(y.venceEl));
@@ -65,14 +78,19 @@ export function EntregarVista({
   }
 
   async function entregar() {
-    if (!a || !cobro.listo || !cajaAbierta) return;
+    if (!a || !cobro.listo || !cajaAbierta || !responsable.listo) return;
     setEnviando(true);
-    const { error } = await createClient().rpc("entregar_separacion", {
-      p_separacion_id: a.id,
-      p_pagos: pagosParaRpcApartado(pagos),
-      p_token: token.current,
-    });
+    const { error } = await firmar(
+      createClient().rpc("entregar_separacion", {
+        p_separacion_id: a.id,
+        p_pagos: pagosParaRpcApartado(pagos),
+        p_token: token.current,
+      }),
+      responsable.firma(),
+    );
     setEnviando(false);
+    // Éxito → el combo vuelve a vacío; rechazo por el responsable (marcó salida) → vacía y relee la lista.
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "entregar el apartado", { confirmarAntesDeRepetir: true }));
       return;
@@ -82,7 +100,7 @@ export function EntregarVista({
     setEntregado({ apartado: a, pagadoHoy, vuelto: cobro.vuelto });
     avisar.exito(`Venta de ${money(a.total)} registrada`, { detalle: `Apartado ${a.codigo} entregado` });
     setPagos([]);
-    onElegir(null);
+    elegir(null);
     setTexto("");
     router.refresh();
   }
@@ -97,7 +115,7 @@ export function EntregarVista({
             value={texto}
             onChange={(e) => {
               setTexto(e.target.value);
-              onElegir(null);
+              elegir(null);
               setPagos([]);
             }}
             placeholder="Nombre, DNI, celular o N.º de boleta de la clienta"
@@ -123,7 +141,7 @@ export function EntregarVista({
               <div className="text-right">
                 <EstadoChip {...estadoVisible(a, hoy)} />
                 <p className="mt-1 font-mono text-[11px] text-tinta/55">{a.codigo} · {a.comprobanteAnticipo}</p>
-                <button type="button" onClick={() => onElegir(null)} className="label-cayla mt-1 h-7 rounded-md px-2 text-[10.5px] text-tinta/70 hover:bg-sand/40">
+                <button type="button" onClick={() => elegir(null)} className="label-cayla mt-1 h-7 rounded-md px-2 text-[10.5px] text-tinta/70 hover:bg-sand/40">
                   Otra clienta
                 </button>
               </div>
@@ -132,7 +150,7 @@ export function EntregarVista({
             <ul className="divide-y divide-sand border-t border-sand">
               {a.prendas.map((pr) => (
                 <li key={pr.varianteId} className="flex items-center gap-3 py-2.5">
-                  <FotoPrenda fotoUrl={fotos.get(pr.varianteId)} referencia={pr.referencia} className="w-11" />
+                  <FotoPrenda fotoUrl={fotos.get(pr.varianteId)} referencia={pr.referencia} ancho={44} className="w-11" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-tinta">{pr.referencia}</p>
                     <p className="font-mono text-[11px] text-tinta/55">{pr.sku} · {pr.cantidad} u.</p>
@@ -158,7 +176,7 @@ export function EntregarVista({
               <ul className="space-y-2">
                 {encontrados.map((x) => (
                   <li key={x.id}>
-                    <button type="button" onClick={() => onElegir(x.id)} className="anim-revelar grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-sand bg-papel px-4 py-3 text-left hover:border-taupe">
+                    <button type="button" onClick={() => elegir(x.id)} className="anim-revelar grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-sand bg-papel px-4 py-3 text-left hover:border-taupe">
                       <span className="font-display grid h-9 w-9 place-items-center rounded-full bg-sand/70 text-sm">{iniciales(x)}</span>
                       <span className="min-w-0">
                         <b className="font-semibold">{x.nombres} {x.apellidos}</b> <span className="font-mono text-[11px] text-tinta/55">{x.codigo}</span>
@@ -278,11 +296,19 @@ export function EntregarVista({
                   <p className="font-display text-[44px] leading-none text-tinta tabular-nums">{money(saldo)}</p>
                 </div>
               </div>
-              <button type="button" disabled={enviando || !cobro.listo || !cajaAbierta || (efectivo?.recibido !== undefined && efectivo.recibido < efectivo.monto)} onClick={entregar} className={BOTON_PRINCIPAL}>
+              {/* El combo «Responsable» (ADR-0161), justo encima del botón que guarda, como en Cobrar; se abre hacia arriba. */}
+              {cajaAbierta && <ComboResponsable control={responsable} hacia="arriba" deshabilitado={enviando} />}
+              <button
+                type="button"
+                disabled={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || (efectivo?.recibido !== undefined && efectivo.recibido < efectivo.monto)}
+                title={cajaAbierta ? (responsable.motivo ?? undefined) : undefined}
+                onClick={entregar}
+                className={BOTON_PRINCIPAL}
+              >
                 <span className="label-cayla flex items-center gap-2.5 text-[11px]"><ShoppingBag className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Entregar y cobrar"}</span>
                 <span className="font-display text-xl tabular-nums">{money(saldo)}</span>
               </button>
-              <p className="text-center text-xs text-tinta/55">{!cajaAbierta ? "Abre la caja para poder entregar." : cobro.listo ? "Listo: entrega la prenda y la boleta." : "Elige cómo paga el saldo."}</p>
+              <p className="text-center text-xs text-tinta/55">{!cajaAbierta ? "Abre la caja para poder entregar." : !cobro.listo ? "Elige cómo paga el saldo." : (responsable.motivo ?? "Listo: entrega la prenda y la boleta.")}</p>
             </div>
           </>
         )}

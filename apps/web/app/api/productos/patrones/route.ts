@@ -1,5 +1,8 @@
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
+// ADR-0161: cambiar el catálogo es operación de tienda; la firma del combo «Responsable» que manda la pantalla
+// viaja a la base en cada consulta de este cliente (sin firma, igual que antes).
+import { firmaDeEncabezados } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
 
 // POST/PATCH /api/productos/patrones → vocabulario cerrado de patrones
@@ -15,7 +18,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Falta el nombre del patrón." }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
   const { data, error } = await supabase.from("patrones").insert({ nombre }).select("id, nombre, activo, notas, estado").single();
 
   if (error) {
@@ -59,7 +62,7 @@ export async function PATCH(request: Request) {
     patch.notas = typeof cuerpoObj.notas === "string" && cuerpoObj.notas.trim() ? cuerpoObj.notas.trim() : null;
   }
 
-  const supabase = await createClient();
+  const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
 
   if ("activo" in cuerpoObj) {
     const activo = cuerpoObj.activo === true;

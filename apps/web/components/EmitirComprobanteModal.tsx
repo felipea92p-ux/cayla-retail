@@ -10,6 +10,9 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoMonto, CampoSelect, Segmentado } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 type Ubicacion = { id: string; nombre: string };
 
@@ -38,6 +41,8 @@ export function EmitirComprobanteModal({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  // Emitir reserva un correlativo: pide Responsable (ADR-0161; Facturación se delega en parte, B4).
+  const responsable = useResponsable();
   // Idempotencia (hueco 1, GRAVE): un mismo token sobrevive reintentos del
   // formulario — si la respuesta se corta después de que el servidor ya
   // reservó el correlativo, reintentar con el mismo token no quema un
@@ -71,6 +76,10 @@ export function EmitirComprobanteModal({
 
   async function onEmitir(e: React.FormEvent) {
     e.preventDefault();
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setLoading(true);
     const supabase = createClient();
     // IGV incluido en el total: el precio ya lo lleva, así que se desagrega dividiendo
@@ -78,17 +87,21 @@ export function EmitirComprobanteModal({
     // exacta por línea queda para cuando esto se conecte a `ventas`.
     const igv = Math.round((total - total / 1.18) * 100) / 100;
     const subtotal = Math.round((total - igv) * 100) / 100;
-    const { error } = await supabase.rpc("emitir_comprobante", {
-      p_ubicacion_id: ubicacionId,
-      p_tipo: tipo,
-      p_subtotal: subtotal,
-      p_igv: igv,
-      p_total: total,
-      p_cliente_tipo_doc: clienteTipoDoc,
-      p_cliente_num_doc: clienteNumDoc || undefined,
-      p_cliente_nombre: clienteNombre || undefined,
-      p_token: tokenEmision.current,
-    });
+    const { error } = await firmar(
+      supabase.rpc("emitir_comprobante", {
+        p_ubicacion_id: ubicacionId,
+        p_tipo: tipo,
+        p_subtotal: subtotal,
+        p_igv: igv,
+        p_total: total,
+        p_cliente_tipo_doc: clienteTipoDoc,
+        p_cliente_num_doc: clienteNumDoc || undefined,
+        p_cliente_nombre: clienteNombre || undefined,
+        p_token: tokenEmision.current,
+      }),
+      responsable.firma(),
+    );
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "emitir el comprobante"));
       setLoading(false);
@@ -186,11 +199,13 @@ export function EmitirComprobanteModal({
             &ldquo;Transmitir&rdquo; en la lista de abajo, que es lo que lo envía.
           </p>
 
+          <ComboResponsable control={responsable} deshabilitado={loading} className="pt-2" />
+
           <div className="flex gap-2 pt-3">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrarAnimado}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
+            <Boton type="submit" peso="primario" className="flex-1" cargando={loading} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
               {loading ? "Emitiendo…" : "Emitir"}
             </Boton>
           </div>

@@ -48,6 +48,17 @@ function preparar(quien = MICAELA, { colchon = 50 } = {}) {
   return `
 begin;
 set local request.jwt.claim.sub = '${FELIPE}';
+-- Roles por módulo (ADR-0161 B2d): extender, liberar y devolver los hace quien puede gestionar la caja, y con la
+-- decisión B2d eso es «líder o un rol que VE Caja». Para seguir probando D5 (una colaboradora SIN Caja no puede),
+-- Micaela recibe dentro de esta transacción un rol de prueba que solo ve el Punto de venta. En una base sin roles no hace nada.
+do $r$ begin
+  if to_regclass('retail.rol_modulos') is not null then
+    insert into retail.roles (id, nombre, descripcion) values ('44444444-4444-4444-8444-000000000003', 'Solo vender (prueba de apartados)', 'temporal');
+    insert into retail.rol_modulos (rol_id, modulo) values ('44444444-4444-4444-8444-000000000003', 'vender');
+    update retail.colaboradores set rol_id = '44444444-4444-4444-8444-000000000003'
+      where persona_id = (select id from public.personas where auth_user_id = '${MICAELA}');
+  end if;
+end $r$;
 select id as ubic from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
   select :'ubic', 'Piso de venta', 'piso_venta'

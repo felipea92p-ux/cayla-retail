@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { VarianteBusqueda } from "@/components/PuntoDeVenta";
+import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import type { ResumenApartados } from "@/lib/separaciones";
 import { estadoVisible, type Apartado } from "@/lib/separaciones-reglas";
 import { ApartarVista } from "@/components/apartados/ApartarVista";
@@ -17,7 +17,7 @@ type Props = {
   cajaAbierta: boolean;
   /** Extender, liberar y registrar la devolución (D5): líder o terminal de ventas. */
   puedeGestionar: boolean;
-  prendas: VarianteBusqueda[];
+  prendas: PrendaApartable[];
   apartados: Apartado[];
   resumen: ResumenApartados;
   liberadosAhora: number;
@@ -82,10 +82,10 @@ export function ApartadosPanel(props: Props) {
         <ApartarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} prendas={props.prendas} irAEntregar={() => setVista("entregar")} />
       )}
       {vista === "entregar" && (
-        <EntregarVista ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} />
+        <EntregarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} />
       )}
       {vista === "todos" && (
-        <TodosVista ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} puedeGestionar={props.puedeGestionar} cajaAbierta={props.cajaAbierta} apartados={props.apartados} resumen={props.resumen} prendas={props.prendas} irAEntregar={irAEntregar} />
+        <TodosVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} puedeGestionar={props.puedeGestionar} cajaAbierta={props.cajaAbierta} apartados={props.apartados} resumen={props.resumen} prendas={props.prendas} irAEntregar={irAEntregar} />
       )}
     </section>
   );
