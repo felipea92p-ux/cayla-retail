@@ -517,33 +517,42 @@ export type Database = {
           },
         ]
       }
-      clientes: {
+      clientas: {
         Row: {
           created_at: string
-          email: string | null
+          created_por: string | null
+          cumple_dia: number | null
+          cumple_mes: number | null
+          dni: string | null
           id: string
-          nombre: string
-          num_doc: string | null
-          telefono: string | null
-          tipo_doc: string | null
+          nombre: string | null
+          tallas: Json | null
+          telefono_whatsapp: string | null
+          whatsapp_consentimiento_en: string | null
         }
         Insert: {
           created_at?: string
-          email?: string | null
+          created_por?: string | null
+          cumple_dia?: number | null
+          cumple_mes?: number | null
+          dni?: string | null
           id?: string
-          nombre: string
-          num_doc?: string | null
-          telefono?: string | null
-          tipo_doc?: string | null
+          nombre?: string | null
+          tallas?: Json | null
+          telefono_whatsapp?: string | null
+          whatsapp_consentimiento_en?: string | null
         }
         Update: {
           created_at?: string
-          email?: string | null
+          created_por?: string | null
+          cumple_dia?: number | null
+          cumple_mes?: number | null
+          dni?: string | null
           id?: string
-          nombre?: string
-          num_doc?: string | null
-          telefono?: string | null
-          tipo_doc?: string | null
+          nombre?: string | null
+          tallas?: Json | null
+          telefono_whatsapp?: string | null
+          whatsapp_consentimiento_en?: string | null
         }
         Relationships: []
       }
@@ -4011,10 +4020,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "ventas_cliente_id_fkey"
+            foreignKeyName: "ventas_clienta_fk"
             columns: ["cliente_id"]
             isOneToOne: false
-            referencedRelation: "clientes"
+            referencedRelation: "clientas"
             referencedColumns: ["id"]
           },
           {
@@ -4391,6 +4400,21 @@ export type Database = {
       anular_comprobante_produccion: {
         Args: { p_comprobante_id: string; p_motivo: string }
         Returns: undefined
+      }
+      buscar_clienta: {
+        Args: { p_termino: string }
+        Returns: {
+          created_at: string
+          created_por: string | null
+          cumple_dia: number | null
+          cumple_mes: number | null
+          dni: string | null
+          id: string
+          nombre: string | null
+          tallas: Json | null
+          telefono_whatsapp: string | null
+          whatsapp_consentimiento_en: string | null
+        }[]
       }
       buscar_productos_parecidos: {
         Args: { p_excluir_id?: string; p_referencia: string }
@@ -5934,6 +5958,17 @@ export type Database = {
           p_ubicacion_id: string
           p_variante_nueva_id: string
           p_venta_item_id: string
+        }
+        Returns: string
+      }
+      registrar_clienta: {
+        Args: {
+          p_acepta_whatsapp?: boolean
+          p_cumple_dia?: number
+          p_cumple_mes?: number
+          p_dni?: string
+          p_nombre?: string
+          p_telefono_whatsapp?: string
         }
         Returns: string
       }
