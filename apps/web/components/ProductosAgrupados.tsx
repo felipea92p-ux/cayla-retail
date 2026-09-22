@@ -11,6 +11,7 @@ import { Chip } from "@/components/ui/Chip";
 import { describirRotacion } from "@/lib/reorden-reglas";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import type { ProductoListado, VarianteCatalogo } from "@/lib/catalogo-v2";
+import { alertaDeStock, textoDeStock, EXPLICACION_STOCK_TOTAL, MENSAJE_SIN_RESULTADOS } from "@/lib/productos-stock";
 
 /** Rango de costo del modelo a partir de sus variantes — no hay `costo` a nivel
  *  de producto en el esquema (vive por variante, `variantes.costo`), así que se
@@ -55,12 +56,16 @@ export function ProductosAgrupados({
   productos,
   ubicacionId,
   sububicaciones,
-  esLider,
+  puedeEditar,
+  puedeAjustar,
+  mensajeVacio = MENSAJE_SIN_RESULTADOS,
 }: {
   productos: ProductoListado[];
   ubicacionId: string;
   sububicaciones: Sububicacion[];
-  esLider: boolean;
+  puedeEditar: boolean;
+  puedeAjustar: boolean;
+  mensajeVacio?: string;
 }) {
   const router = useRouter();
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
@@ -114,7 +119,7 @@ export function ProductosAgrupados({
   }
 
   if (productos.length === 0) {
-    return <p className="card-cayla p-5 text-sm text-tinta/75">Ningún producto calza con esos filtros.</p>;
+    return <p className="card-cayla p-5 text-sm text-tinta/75">{mensajeVacio}</p>;
   }
 
   return (
@@ -124,7 +129,7 @@ export function ProductosAgrupados({
         {seleccionados.size > 0 ? (
           <>
             {seleccionados.size} seleccionado{seleccionados.size === 1 ? "" : "s"}
-            {esLider && (
+            {puedeEditar && (
               <>
                 <button
                   type="button"
@@ -158,7 +163,10 @@ export function ProductosAgrupados({
         <span>Producto</span>
         <span>Categoría</span>
         <span className="text-right">Variantes</span>
-        <span className="text-right">Stock</span>
+        {/* «STOCK TOTAL» no cabe en 4.5rem en una línea: baja a dos, en vez de robarle ancho a la columna Producto. */}
+        <span className="text-right leading-tight" title={EXPLICACION_STOCK_TOTAL}>
+          Stock total
+        </span>
         <span className="text-right">Costo</span>
         <span>Estado</span>
         <span aria-hidden />
@@ -166,9 +174,10 @@ export function ProductosAgrupados({
 
       {productos.map((p) => {
         const abierto = abiertos.has(p.productoId);
-        const sinStock = p.stockTotal === 0;
-        const stockBajo = !sinStock && p.stockMinimo != null && p.stockTotal < p.stockMinimo;
-        const tonoStock = sinStock ? "text-rojo" : stockBajo ? "text-ambar" : "text-tinta/75";
+        // Misma regla que la tarjeta de la Grilla (lib/productos-stock.ts): solo las activas piden atención y
+        // «Sin stock» no es rojo (una fila roja por cada prenda en 0 rompía el máximo de rojos por pantalla).
+        const alerta = alertaDeStock(p);
+        const tonoStock = alerta === "sin_stock" ? "text-tinta" : alerta === "bajo" ? "text-ambar" : p.estado !== "activo" ? "text-tinta/70" : "text-tinta/75";
         const rotacion = describirRotacion(p.demandaDiaria);
         return (
           <div key={p.productoId} className="card-cayla overflow-hidden">
@@ -207,13 +216,17 @@ export function ProductosAgrupados({
                 <span className="block truncate text-[10.5px] text-tinta/45">{p.marca}</span>
               </span>
               <span className="hidden text-right text-xs tabular-nums text-tinta/65 sm:block">{p.variantes.length}</span>
-              <span className={`hidden text-right text-xs font-semibold tabular-nums sm:block ${tonoStock}`}>{p.stockTotal}</span>
+              <span title={EXPLICACION_STOCK_TOTAL} className={`hidden text-right text-xs font-semibold tabular-nums sm:block ${tonoStock}`}>
+                {alerta === "sin_stock" ? "Sin stock" : alerta === "bajo" ? `${p.stockTotal} · bajo` : p.stockTotal}
+              </span>
               <span className="hidden text-right text-xs tabular-nums text-tinta/65 sm:block">{rangoCosto(p.variantes)}</span>
               <span className="hidden sm:block">
-                <Chip tono={p.estado === "activo" ? "verde" : "apagado"}>{p.estado === "activo" ? "Activo" : "Descontinuado"}</Chip>
+                <Chip tono={p.estado === "activo" ? "verde" : "apagado"} tachado={false}>
+                  {p.estado === "activo" ? "Activo" : "Descontinuado"}
+                </Chip>
               </span>
               <span className="justify-self-end">
-                <MenuFila productoId={p.productoId} ubicacionId={ubicacionId} sububicaciones={sububicaciones} esLider={esLider} />
+                <MenuFila productoId={p.productoId} ubicacionId={ubicacionId} sububicaciones={sububicaciones} puedeAjustar={puedeAjustar} />
               </span>
             </div>
 
@@ -223,11 +236,15 @@ export function ProductosAgrupados({
               <span className="label-cayla text-[11px] text-tinta/55">
                 {p.variantes.length} {p.variantes.length === 1 ? "variante" : "variantes"}
               </span>
-              <span className={`text-xs font-semibold tabular-nums ${tonoStock}`}>Stock {p.stockTotal}</span>
+              <span title={EXPLICACION_STOCK_TOTAL} className={`text-xs font-semibold tabular-nums ${tonoStock}`}>
+                {textoDeStock(p.stockTotal)}
+              </span>
               <span className="text-xs tabular-nums text-tinta/65">{rangoCosto(p.variantes)}</span>
-              <Chip tono={p.estado === "activo" ? "verde" : "apagado"}>{p.estado === "activo" ? "Activo" : "Descontinuado"}</Chip>
-              {sinStock && <Chip tono="rojo">Sin stock</Chip>}
-              {stockBajo && <Chip tono="ambar">Stock bajo</Chip>}
+              <Chip tono={p.estado === "activo" ? "verde" : "apagado"} tachado={false}>
+                {p.estado === "activo" ? "Activo" : "Descontinuado"}
+              </Chip>
+              {alerta === "sin_stock" && <Chip tono="neutro">Sin stock</Chip>}
+              {alerta === "bajo" && <Chip tono="ambar">Stock bajo</Chip>}
               {p.reponerDeProveedor && <Chip tono="ambar">Pedir a proveedor</Chip>}
               {rotacion && <span className="text-xs text-tinta/55">{rotacion}</span>}
             </div>
@@ -289,12 +306,12 @@ function MenuFila({
   productoId,
   ubicacionId,
   sububicaciones,
-  esLider,
+  puedeAjustar,
 }: {
   productoId: string;
   ubicacionId: string;
   sububicaciones: Sububicacion[];
-  esLider: boolean;
+  puedeAjustar: boolean;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [ajustando, setAjustando] = useState(false);
@@ -357,8 +374,8 @@ function MenuFila({
               Editar
             </Link>
           </li>
-          {/* D-13: ajustar stock fuera de una venta es del líder (candado real en `registrar_movimiento`, 20260921110000). */}
-          {esLider && (
+          {/* D-13: ajustar stock fuera de una venta es del líder o de la terminal administrativa (candado real en `registrar_movimiento`). */}
+          {puedeAjustar && (
             <li role="none">
               <button
                 role="menuitem"

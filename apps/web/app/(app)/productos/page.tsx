@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { getSububicaciones } from "@/lib/sububicaciones";
@@ -17,6 +17,8 @@ import { ProductosAgrupados } from "@/components/ProductosAgrupados";
 import { ProductosGrilla } from "@/components/ProductosGrilla";
 import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
+import { NotaStockTotal } from "@/components/NotaStockTotal";
+import { mensajeSinResultados } from "@/lib/productos-stock";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -41,7 +43,7 @@ import { PaginacionPaginas } from "@/components/Paginacion";
 //
 // Fase 2 (2026-09-15): alta de producto con matriz talla×color, en
 // `/productos/nuevo` — RPC `crear_producto_con_variantes`, candado real de
-// Líder ahí; `persona.rol === "lider"` de acá solo decide si el botón se
+// Líder o terminal administrativa ahí (ADR-0160); `puede(persona, "editarCatalogo")` de acá solo decide si el botón se
 // MUESTRA. Editar un producto ya existente sigue en `ProductoForm`
 // (`/productos/[id]/editar`): la matriz es para crear varias variantes de
 // una sola vez, no tiene sentido para una que ya existe.
@@ -73,7 +75,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
     getSububicaciones(persona.ubicacionId),
-    persona.rol === "lider" ? getProductosPendientesAlta() : Promise.resolve([]),
+    puede(persona, "editarCatalogo") ? getProductosPendientesAlta() : Promise.resolve([]),
   ]);
 
   // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal).
@@ -88,7 +90,12 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Catálogo</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Productos</h1>
-          {vista === "grilla" && <Resumen resumen={resumen} params={params} compacto />}
+          {vista === "grilla" && (
+            <>
+              <Resumen resumen={resumen} params={params} compacto />
+              <NotaStockTotal />
+            </>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <div className="flex gap-0.5 rounded-lg bg-sand p-0.5">
@@ -111,7 +118,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
               Tabla
             </Link>
           </div>
-          {persona.rol === "lider" && (
+          {puede(persona, "editarCatalogo") && (
             <Link href="/productos/nuevo" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
               + Nuevo producto
             </Link>
@@ -180,14 +187,17 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           productos={resultado.productos}
           ubicacionId={persona.ubicacionId}
           sububicaciones={sububicaciones}
-          esLider={persona.rol === "lider"}
+          puedeAjustar={puede(persona, "ajustarInventario")}
+          mensajeVacio={mensajeSinResultados(filtros)}
         />
       ) : (
         <ProductosAgrupados
           productos={resultado.productos}
           ubicacionId={persona.ubicacionId}
           sububicaciones={sububicaciones}
-          esLider={persona.rol === "lider"}
+          puedeEditar={puede(persona, "editarCatalogo")}
+          puedeAjustar={puede(persona, "ajustarInventario")}
+          mensajeVacio={mensajeSinResultados(filtros)}
         />
       )}
 
@@ -283,6 +293,7 @@ function Resumen({ resumen, params, compacto = false }: { resumen: ResumenProduc
           </dd>
         </Link>
       </dl>
+      <NotaStockTotal />
     </div>
   );
 }

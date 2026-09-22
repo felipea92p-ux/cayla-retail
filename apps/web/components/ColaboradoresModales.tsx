@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import type { DynamicDisponible } from "@/lib/colaboradores";
 import type { Ubicacion } from "@/lib/ubicaciones";
-import { filtrarDisponibles, resumenAlta } from "@/lib/colaboradores-reglas";
+import { ETIQUETA_TERMINAL, filtrarDisponibles, resumenAlta } from "@/lib/colaboradores-reglas";
+import { TIPOS_TERMINAL, type TipoTerminal } from "@/lib/menu";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, Campo, CampoSelect } from "@/components/ui/campos";
 
@@ -255,11 +256,14 @@ export function CambiarUbicacionModal({
 export function QuitarAccesoModal({
   nombre,
   suspendida,
+  pendiente = false,
   onConfirmar,
   onClose,
 }: {
   nombre: string;
   suspendida: boolean;
+  /** D-70: la persona todavía no tenía acceso real, solo un alta propuesta sin aprobar. */
+  pendiente?: boolean;
   onConfirmar: () => Promise<boolean>;
   onClose: () => void;
 }) {
@@ -274,23 +278,119 @@ export function QuitarAccesoModal({
   }
 
   return (
-    <Modal titulo="Quitar acceso" ancho="max-w-sm" onClose={onClose}>
+    <Modal titulo={pendiente ? "Rechazar alta" : "Quitar acceso"} ancho="max-w-sm" onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           <p className="text-sm leading-relaxed text-tinta/85">
-            <strong className="font-semibold text-tinta">{nombre}</strong> ya no va a poder entrar al sistema de retail
-            {suspendida ? " y dejará de figurar como suspendida" : ""}. Es una baja definitiva: para que vuelva, hay que agregarla de nuevo desde «Agregar colaboradores».
-            {!suspendida && " Si solo quieres pausar el acceso, usa «Suspender»."}
+            {pendiente ? (
+              <>
+                <strong className="font-semibold text-tinta">{nombre}</strong> no llegará a tener acceso a retail — la propuesta de alta se descarta. Si más adelante sí debería
+                entrar, hay que agregarla de nuevo desde «Agregar colaboradores».
+              </>
+            ) : (
+              <>
+                <strong className="font-semibold text-tinta">{nombre}</strong> ya no va a poder entrar al sistema de retail
+                {suspendida ? " y dejará de figurar como suspendida" : ""}. Es una baja definitiva: para que vuelva, hay que agregarla de nuevo desde «Agregar colaboradores».
+                {!suspendida && " Si solo quieres pausar el acceso, usa «Suspender»."}
+              </>
+            )}
           </p>
           <div className="flex gap-2">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton type="button" peso="primario" className="flex-1 bg-rojo hover:bg-rojo/90" cargando={enviando} onClick={() => confirmar(cerrar)}>
-              {enviando ? "Quitando…" : "Sí, quitar acceso"}
+              {enviando ? (pendiente ? "Rechazando…" : "Quitando…") : pendiente ? "Sí, rechazar alta" : "Sí, quitar acceso"}
             </Boton>
           </div>
         </div>
+      )}
+    </Modal>
+  );
+}
+
+/**
+ * Da entrada a una persona de Dynamic como TERMINAL de una tienda (ADR-0160): una cuenta compartida por quien trabaja ahí.
+ * Sigue la regla del ADR-0145: abre SIN nada elegido y «Agregar» espera a que estén los tres campos. La base rechaza lo
+ * que este formulario ya evita (una segunda terminal del mismo tipo en la tienda, el Taller), así que esto es ayuda, no candado.
+ */
+export function AgregarTerminalModal({
+  disponibles,
+  tiendas,
+  ocupadas,
+  onConfirmar,
+  onClose,
+}: {
+  disponibles: DynamicDisponible[];
+  /** Solo tiendas activas: una terminal no se asigna al Taller. */
+  tiendas: Ubicacion[];
+  /** Las terminales que ya existen, como «tiendaId|tipo»: se avisa antes de que la base rechace la segunda. */
+  ocupadas: ReadonlySet<string>;
+  onConfirmar: (personaId: string, ubicacionId: string, tipo: TipoTerminal) => Promise<boolean>;
+  onClose: () => void;
+}) {
+  const [personaId, setPersonaId] = useState("");
+  const [ubicacionId, setUbicacionId] = useState("");
+  const [tipo, setTipo] = useState<TipoTerminal | "">("");
+  const [enviando, setEnviando] = useState(false);
+
+  const completo = personaId !== "" && ubicacionId !== "" && tipo !== "";
+  const yaExiste = ubicacionId !== "" && tipo !== "" && ocupadas.has(`${ubicacionId}|${tipo}`);
+  const tienda = tiendas.find((t) => t.id === ubicacionId)?.nombre ?? "esa tienda";
+
+  async function enviar(e: React.FormEvent, cerrar: Cerrar) {
+    e.preventDefault();
+    if (!completo || yaExiste || enviando) return;
+    setEnviando(true);
+    const ok = await onConfirmar(personaId, ubicacionId, tipo);
+    setEnviando(false);
+    if (ok) cerrar();
+  }
+
+  return (
+    <Modal titulo="Agregar terminal" ancho="max-w-md" onClose={onClose}>
+      {(cerrar) => (
+        <form onSubmit={(e) => enviar(e, cerrar)} className="mt-5 space-y-4">
+          <p className="text-sm leading-relaxed text-tinta/85">
+            Una terminal es una cuenta <strong className="font-semibold text-tinta">compartida por quien trabaja en la tienda</strong>, con los poderes de un solo
+            oficio: <em>ventas</em> (punto de venta, caja y Facturación) o <em>administrativa</em> (inventario, catálogo y, más adelante, Compras). Se crea primero
+            como persona en Dynamic, con su propio correo.
+          </p>
+          <CampoSelect
+            etiqueta="Persona de Dynamic"
+            valor={personaId}
+            onValor={setPersonaId}
+            opciones={disponibles.map((d) => ({ valor: d.persona_id, texto: `${d.nombre} · ${d.correo}` }))}
+            marcador="Elige la cuenta de la terminal"
+          />
+          <CampoSelect
+            etiqueta="Tienda"
+            valor={ubicacionId}
+            onValor={setUbicacionId}
+            opciones={tiendas.map((t) => ({ valor: t.id, texto: t.nombre }))}
+            marcador="Elige una tienda"
+          />
+          <CampoSelect
+            etiqueta="Tipo de terminal"
+            valor={tipo}
+            onValor={(v) => setTipo(v === "" ? "" : (v as TipoTerminal))}
+            opciones={TIPOS_TERMINAL.map((t) => ({ valor: t, texto: ETIQUETA_TERMINAL[t] }))}
+            marcador="Elige el tipo"
+          />
+          {yaExiste && (
+            <p className="text-xs text-rojo">
+              {tienda} ya tiene su {ETIQUETA_TERMINAL[tipo].toLowerCase()}. Suspéndela o quítala primero si quieres cambiar de cuenta.
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+              Cancelar
+            </Boton>
+            <Boton type="submit" peso="primario" className="flex-1" cargando={enviando} disabled={!completo || yaExiste}>
+              {enviando ? "Agregando…" : "Agregar"}
+            </Boton>
+          </div>
+        </form>
       )}
     </Modal>
   );

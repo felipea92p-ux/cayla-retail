@@ -223,6 +223,9 @@ export function DevolucionesFlujo({
       p_ubicacion_id: ubicacionId,
       p_items: items,
       p_motivo: textoMotivo(motivo, detalle),
+      // D-79: el código cerrado va aparte del texto libre de arriba — ver
+      // devoluciones-reglas.ts. `bloqueo || !motivo` ya frenó más arriba si faltara.
+      p_motivo_codigo: motivo,
     });
     enviandoAhora.current = false;
     setEnviando(false);

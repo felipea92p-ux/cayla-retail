@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Info } from "lucide-react";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTrasladosDeLaSede, type TrasladoResumen } from "@/lib/traslados";
 import { horaLima } from "@/lib/traslados-reglas";
 import { TrasladosPanel } from "@/components/TrasladosPanel";
@@ -51,7 +51,7 @@ export default async function TrasladosPage() {
         key={persona.ubicacionId}
         traslados={Array.from(porId.values())}
         miUbicacionId={persona.ubicacionId}
-        esLider={persona.rol === "lider"}
+        puedeCerrarDiferencia={puede(persona, "ajustarInventario")}
         ahoraIso={ahoraIso}
         horaCarga={horaLima(ahoraIso)}
         cerradosAcotados={cerrados.length >= LIMITE_CERRADOS}

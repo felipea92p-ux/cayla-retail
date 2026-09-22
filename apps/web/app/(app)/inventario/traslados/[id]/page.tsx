@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTrasladoDetalle } from "@/lib/traslados";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { TrasladoDetallePanel } from "@/components/TrasladoDetallePanel";
@@ -30,7 +30,7 @@ export default async function TrasladoDetallePage({ params }: { params: Promise<
         traslado={traslado}
         esDestino={persona.ubicacionId === traslado.ubicacionDestinoId}
         ahoraIso={new Date().toISOString()}
-        esLider={persona.rol === "lider"}
+        puedeCerrarDiferencia={puede(persona, "ajustarInventario")}
         catalogo={catalogo
           .filter((v) => v.activo)
           .map((v) => ({ varianteId: v.varianteId, sku: v.sku, referencia: v.referencia, talla: v.talla, color: v.color, codigosBarras: v.codigosBarras }))}

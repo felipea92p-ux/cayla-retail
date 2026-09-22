@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCajaAbierta, getResumenCaja, getMovimientosCaja, getSeriesVentasCaja, getHistorialCierres } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { createClient } from "@/lib/supabase/server";
@@ -46,6 +46,7 @@ export default async function CajaPage() {
           ubicacionNombre={persona.ubicacionEtiqueta}
           personaNombre={persona.nombre}
           personaRol={persona.rol}
+          puedeCerrar={puede(persona, "gestionarCaja")}
         />
       )}
     </div>
@@ -57,11 +58,13 @@ async function CajaConDatos({
   ubicacionNombre,
   personaNombre,
   personaRol,
+  puedeCerrar,
 }: {
   caja: NonNullable<Awaited<ReturnType<typeof getCajaAbierta>>>;
   ubicacionNombre: string;
   personaNombre: string;
   personaRol: "lider" | "integrante";
+  puedeCerrar: boolean;
 }) {
   const supabase = await createClient();
   const [resumen, movimientos, series, ubicaciones, historial, resVentasHoy] = await Promise.all([
@@ -91,6 +94,7 @@ async function CajaConDatos({
       ubicacionNombre={ubicacionNombre}
       personaNombre={personaNombre}
       personaRol={personaRol}
+      puedeCerrar={puedeCerrar}
       caja={caja}
       resumen={resumen}
       movimientos={movimientos}

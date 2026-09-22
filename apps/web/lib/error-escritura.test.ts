@@ -111,6 +111,39 @@ describe("traduce lo que escribe Postgres por su cuenta", () => {
     );
     expect(salida).toBe("Esta ubicación ya tiene una caja abierta. Ciérrala antes de abrir otra.");
   });
+
+  it("una colaboradora cargando una cotización de maquila recibe el mensaje de líder, no el genérico de ubicación", () => {
+    const salida = traducirError(
+      { message: 'new row violates row-level security policy for table "cotizaciones_maquila"', code: "42501" },
+      "cargar la cotización"
+    );
+    expect(salida).toBe("Solo un líder de equipo puede cargar o corregir una cotización de maquila.");
+    expect(salida).not.toContain("ubicación");
+  });
+
+  it("una cotización de maquila con vigencia al revés dice qué revisar, no cita el constraint", () => {
+    const salida = traducirError(
+      {
+        message: 'new row for relation "cotizaciones_maquila" violates check constraint "cotizaciones_maquila_vigencia_coherente"',
+        code: "23514",
+      },
+      "cargar la cotización"
+    );
+    expect(salida).not.toContain("constraint");
+    expect(salida).toContain("no puede terminar antes");
+  });
+
+  it("un precio de maquila negativo se explica, no se cita la restricción", () => {
+    const salida = traducirError(
+      {
+        message: 'new row for relation "cotizaciones_maquila" violates check constraint "cotizaciones_maquila_precio_maquila_check"',
+        code: "23514",
+      },
+      "cargar la cotización"
+    );
+    expect(salida).not.toContain("constraint");
+    expect(salida).toContain("no puede ser negativo");
+  });
 });
 
 describe("no re-traduce lo que las RPC ya dicen bien", () => {

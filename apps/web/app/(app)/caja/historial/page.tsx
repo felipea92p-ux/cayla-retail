@@ -25,22 +25,37 @@ const PLANTILLA = "sm:grid-cols-[minmax(8rem,1fr)_7.5rem_6.5rem_5.5rem_5.5rem_5.
 // filtro de ubicación propios — misma RLS que ya usa /caja (fn_puede_operar_ubicacion)
 // y el mismo criterio de Facturación: mientras "control total temporal" siga
 // vigente, se ve todo, con la sede en cada fila.
-export default async function HistorialCierresPage() {
+export default async function HistorialCierresPage({ searchParams }: { searchParams: Promise<{ prueba?: string }> }) {
   await requirePersonaActualV2();
-  const cierres = await getHistorialCierres();
+  // D-54 (ADR-0159): apagado por defecto — las cajas archivadas como dato de prueba (nunca
+  // borradas) no se piden a la base salvo que se pida verlas.
+  const { prueba } = await searchParams;
+  const incluirPrueba = prueba === "1";
+  const cierres = await getHistorialCierres(60, incluirPrueba);
 
   return (
     // `/caja` va a todo el ancho (AppShell), pero esta tabla tiene una columna flexible (la sede) que
     // en pantalla grande separaría la sede de sus cifras: conserva la columna de lectura de siempre.
     <div className="mx-auto max-w-5xl space-y-6">
-      <div>
-        <Link href="/caja" className="label-cayla text-[11px] text-tinta/60 hover:text-rojo">
-          ← Caja
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <Link href="/caja" className="label-cayla text-[11px] text-tinta/60 hover:text-rojo">
+            ← Caja
+          </Link>
+          <h1 className="font-display mt-1 text-2xl text-tinta">Historial de cierres</h1>
+          <p className="mt-1 text-sm text-tinta/65">
+            {cierres.length === 0 ? "Todavía no se cerró ninguna caja." : `Las últimas ${cierres.length} cajas cerradas, de todas las sedes.`}
+          </p>
+        </div>
+        <Link
+          href={incluirPrueba ? "/caja/historial" : "/caja/historial?prueba=1"}
+          aria-pressed={incluirPrueba}
+          className={`label-cayla mt-1 rounded-full border px-3 py-1.5 text-[11px] transition-colors ${
+            incluirPrueba ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo"
+          }`}
+        >
+          Con datos de prueba
         </Link>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Historial de cierres</h1>
-        <p className="mt-1 text-sm text-tinta/65">
-          {cierres.length === 0 ? "Todavía no se cerró ninguna caja." : `Las últimas ${cierres.length} cajas cerradas, de todas las sedes.`}
-        </p>
       </div>
 
       {cierres.length > 0 && (

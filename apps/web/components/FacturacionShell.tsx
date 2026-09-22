@@ -30,6 +30,7 @@ type Tienda = { id: string; nombre: string };
 // un efecto que lo reponga.
 export function FacturacionShell({
   conteos,
+  esLider,
   cifras,
   sede,
   series,
@@ -38,6 +39,8 @@ export function FacturacionShell({
   children,
 }: {
   conteos: ConteosPestanas;
+  /** Solo el líder ve «Códigos de descuento»; la terminal de ventas ve el resto (ADR-0160). */
+  esLider: boolean;
   cifras: CifrasCabecera;
   sede: string;
   series: SerieComprobante[] | null;
@@ -84,7 +87,7 @@ export function FacturacionShell({
             {/* `useSearchParams` (en las pestañas) exige un <Suspense>. Como el layout es
                 dinámico nunca llega a mostrarse el respaldo; `null` basta. */}
             <Suspense fallback={null}>
-              <FacturacionPestanas conteos={conteos} />
+              <FacturacionPestanas conteos={conteos} esLider={esLider} />
             </Suspense>
             <CajaDeBusqueda />
           </div>

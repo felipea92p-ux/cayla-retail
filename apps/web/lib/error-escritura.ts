@@ -90,6 +90,12 @@ const HUELLAS: Huella[] = [
     frase: "Ese producto ya tiene esa talla y ese color. Búscalo en el catálogo: el código que escaneaste puede ser un duplicado de la etiqueta.",
   },
   {
+    // 20260922140000_ficha_de_clienta_v1_backend.sql — un DNI, una clienta. `registrar_clienta`
+    // hace upsert por DNI (no debería chocar); esto es la red si algún camino inserta directo.
+    marca: "clientas_dni_unico",
+    frase: "Ya hay una clienta con ese DNI. Búscala arriba en vez de crearla de nuevo.",
+  },
+  {
     // 20260914215059_candado_precio_venta.sql — `registrar_venta` compara cada precio con
     // `variantes.precio`: la caja ya no edita precios, y la base deja de confiar en el
     // navegador. El detalle es «referencia (sku)».
@@ -261,6 +267,24 @@ const HUELLAS: Huella[] = [
     // 20260914150000_proveedores_administrables.sql — ni el mismo nombre con distinta forma.
     marca: "proveedores_nombre_clave_unica",
     frase: "Ya existe un proveedor con ese nombre (aunque esté escrito distinto). Búscalo en Compras → Proveedores.",
+  },
+  {
+    // 20260922160000_cotizaciones_maquila.sql — insertar/editar una cotización es solo de
+    // líder; no tiene que ver con la ubicación (por eso va ANTES del genérico de abajo, que sí
+    // habla de ubicación y sería engañoso acá).
+    marca: 'row-level security policy for table "cotizaciones_maquila"',
+    frase: "Solo un líder de equipo puede cargar o corregir una cotización de maquila.",
+  },
+  {
+    // 20260922160000_cotizaciones_maquila.sql — check (vigente_hasta >= fecha_cotizacion).
+    marca: "cotizaciones_maquila_vigencia_coherente",
+    frase: "La vigencia no puede terminar antes de la fecha de la cotización. Revisa las dos fechas.",
+  },
+  {
+    // 20260922160000_cotizaciones_maquila.sql — check (precio_maquila >= 0), sin nombre propio:
+    // Postgres la nombra <tabla>_<columna>_check.
+    marca: "cotizaciones_maquila_precio_maquila_check",
+    frase: "El precio de maquila no puede ser negativo. Corrígelo y vuelve a intentar.",
   },
   {
     // RLS: la política rechazó la fila. Pasa cuando se opera sobre una ubicación que no es la tuya.

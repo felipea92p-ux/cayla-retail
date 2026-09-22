@@ -1,4 +1,4 @@
-# ADR-0152 — «Quién vendió»: la vendedora se elige en el ticket y vive junto a la sesión que cobró
+# ADR-0161 — «Quién vendió»: la vendedora se elige en el ticket y vive junto a la sesión que cobró
 
 **Fecha:** 2026-09-21 · **Estado:** aceptado (diseño aprobado por el usuario el 2026-09-21). Migración `20260922143700_vendedora_en_la_venta.sql` aplicada **solo en local**; producción espera el OK explícito · **Spec:** `docs/superpowers/specs/2026-09-21-vendedora-en-el-ticket-design.md`
 

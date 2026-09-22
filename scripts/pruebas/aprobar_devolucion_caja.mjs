@@ -86,7 +86,7 @@ const ITEMS_DEVOLUCION = `jsonb_build_array(jsonb_build_object('venta_item_id', 
 
 /** La base + una devolución pendiente + la caja cerrada (ninguna abierta en Lima). */
 const FIXTURE_VENTA = `${FIXTURE_BASE}
-select retail.crear_devolucion(:'venta_id', :'ubic', ${ITEMS_DEVOLUCION}, 'prueba automatizada') as devolucion_id \\gset
+select retail.crear_devolucion(:'venta_id', :'ubic', ${ITEMS_DEVOLUCION}, 'prueba automatizada', 'otro') as devolucion_id \\gset
 
 -- cierra la caja que se abrió para poder vender: a partir de acá, NINGUNA caja
 -- está abierta en Lima — el escenario que el candado nuevo debe cubrir.
@@ -143,7 +143,7 @@ rollback;
 
   const crearSobreAnulada = correr(`${FIXTURE_BASE}
 ${ANULAR}
-select retail.crear_devolucion(:'venta_id', :'ubic', ${ITEMS_DEVOLUCION}, 'prueba automatizada');
+select retail.crear_devolucion(:'venta_id', :'ubic', ${ITEMS_DEVOLUCION}, 'prueba automatizada', 'otro');
 `);
   esperar(
     "crear una devolución sobre una venta anulada se rechaza",

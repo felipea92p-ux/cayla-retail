@@ -9,6 +9,25 @@ describe("mostrarHoy", () => {
   });
 });
 
+describe("Inicio de la terminal administrativa (ADR-0160)", () => {
+  const admin = { rol: "integrante", ubicacionTipo: "tienda", terminal: "administrativa" } as const;
+
+  it("no muestra «Hoy»: no vende, y su menú no tiene Ventas", () => {
+    expect(mostrarHoy(admin)).toBe(false);
+    expect(mostrarHoy({ ubicacionTipo: "tienda", terminal: null })).toBe(true);
+  });
+
+  it("su acción principal es el Inventario, no Vender; y sigue habiendo UNA sola principal", () => {
+    const a = accesosInicio(admin, null);
+    expect(a.map((x) => x.etiqueta)).toEqual(["Inventario", "Recibir", "Buscar"]);
+    expect(a.filter((x) => x.principal).map((x) => x.etiqueta)).toEqual(["Inventario"]);
+  });
+
+  it("una persona con `terminal: null` conserva el Inicio de siempre", () => {
+    expect(accesosInicio({ rol: "integrante", ubicacionTipo: "tienda", terminal: null }, null).map((x) => x.etiqueta)).toEqual(["Vender", "Recibir", "Buscar"]);
+  });
+});
+
 describe("nombreDiaLima", () => {
   it("usa la hora de Lima: las 11 p. m. del viernes en Lima siguen siendo viernes aunque en UTC ya sea sábado", () => {
     expect(nombreDiaLima(Date.UTC(2026, 8, 26, 4, 0))).toBe("viernes"); // 26-sep 04:00 UTC = 25-sep 23:00 Lima

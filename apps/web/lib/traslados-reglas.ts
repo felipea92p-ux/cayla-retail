@@ -42,8 +42,9 @@ export type TrasladoLeible = {
 
 export type ContextoTraslados = {
   miUbicacionId: string;
-  /** Solo un líder puede cerrar un traslado con diferencia (`cerrar_traslado_con_diferencia`). */
-  esLider: boolean;
+  /** Quién puede cerrar un traslado con diferencia (`cerrar_traslado_con_diferencia`): un líder o la terminal administrativa
+   *  (ADR-0160, `fn_puede_ajustar_inventario`). Antes se llamaba `esLider`. */
+  puedeCerrarDiferencia: boolean;
   /** El «ahora» con el que se calcula todo. Lo fija el servidor y se pasa hacia abajo para
    *  que el HTML del servidor y el del navegador digan exactamente lo mismo («hace 1 h»). */
   ahoraIso: string;
@@ -81,7 +82,7 @@ export function debioLlegar(fechaEstimadaLlegada: string | null, ahoraIso: strin
 
 export function situacionTraslado(t: TrasladoLeible, ctx: ContextoTraslados): SituacionTraslado {
   const soyDestino = t.ubicacionDestinoId === ctx.miUbicacionId;
-  if (t.estado === "recibido_con_diferencia") return soyDestino && ctx.esLider ? "requiere_revision" : "con_diferencia";
+  if (t.estado === "recibido_con_diferencia") return soyDestino && ctx.puedeCerrarDiferencia ? "requiere_revision" : "con_diferencia";
   if (t.estado !== "en_transito") return "cerrado";
   if (!soyDestino) return "en_camino_saliente";
   // Que alguien ya haya registrado líneas (`confirmadoEn`) significa que el bulto llegó,

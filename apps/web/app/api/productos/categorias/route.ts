@@ -1,4 +1,4 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { traducirError } from "@/lib/error-escritura";
 
@@ -22,7 +22,7 @@ import { traducirError } from "@/lib/error-escritura";
 //   familia — dos familias no pueden compartir un nombre de categoría.
 export async function POST(request: Request) {
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") {
+  if (!puede(persona, "editarCatalogo")) {
     return Response.json({ error: "Solo un Líder puede agregar una categoría." }, { status: 403 });
   }
 
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
 // desincronizada.
 export async function PUT(request: Request) {
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") {
+  if (!puede(persona, "editarCatalogo")) {
     return Response.json({ error: "Solo un Líder puede editar una categoría." }, { status: 403 });
   }
 
@@ -127,7 +127,7 @@ export async function PUT(request: Request) {
 // avisa cuántos en el mensaje de error en vez de dejar seguir.
 export async function PATCH(request: Request) {
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") {
+  if (!puede(persona, "editarCatalogo")) {
     return Response.json({ error: "Solo un Líder puede desactivar o reactivar una categoría." }, { status: 403 });
   }
 

@@ -1,4 +1,4 @@
-import { exigirLider } from "@/lib/persona-actual";
+import { exigirPermiso } from "@/lib/persona-actual";
 import { getProformasMes } from "@/lib/proformas";
 import { mesActualLima, mesLimaUTC } from "@/lib/fecha-lima";
 import { mesDeParametro, periodoDelMes, resumenProformas } from "@/lib/facturacion-reglas";
@@ -11,7 +11,7 @@ import { SelectorMesFacturacion } from "@/components/SelectorMesFacturacion";
 // tiendas): esta vista solo lee las proformas del mes (`getProformasMes` suma además todas
 // las vigentes, sin filtro de mes, porque son una cola de trabajo).
 export default async function ProformasPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
-  await exigirLider();
+  await exigirPermiso("facturar");
   const { m } = await searchParams;
   const ahora = new Date();
   const actual = mesActualLima();

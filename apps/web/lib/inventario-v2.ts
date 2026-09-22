@@ -236,11 +236,17 @@ export type FilaExistencias = FilaStock & {
   /** Cuánto dura el stock de hoy al ritmo de venta reciente (`getCoberturaPorVariante`). Solo tiendas;
    *  ausente o null = «N/D» (no vende, no hay historial o el cálculo falló). */
   cobertura?: Cobertura | null;
+  /** Producto marcado `es_prueba` (D-54, ADR-0159): solo llega con `incluirPrueba`. */
+  esPrueba?: boolean;
 };
 
-export async function getExistencias(ubicacionId: string, ubicaciones: { id: string; nombre: string }[]): Promise<FilaExistencias[]> {
+export async function getExistencias(
+  ubicacionId: string,
+  ubicaciones: { id: string; nombre: string }[],
+  opciones: { incluirPrueba?: boolean } = {}
+): Promise<FilaExistencias[]> {
   const supabase = await createClient();
-  const [stock, redRes, transitoRes] = await Promise.all([
+  const [stock, redRes, transitoRes, pruebaRes] = await Promise.all([
     getStockPorUbicacion(ubicacionId),
     supabase.rpc("fn_stock_por_sede"),
     // Solo los traslados cuyo destino es ESTA ubicación: lo que sale de acá ya
@@ -261,17 +267,30 @@ export async function getExistencias(ubicacionId: string, ubicaciones: { id: str
       )
       .eq("transferencia.ubicacion_destino_id", ubicacionId)
       .in("transferencia.estado", ["en_transito", "recibido_con_diferencia"]),
+    // D-54 (ADR-0159): qué productos están marcados `es_prueba`, para sacarlos de la lista por
+    // defecto (Existencias no llama `getStockPorUbicacion` con un filtro propio — Vender, Cambios
+    // y Traslados comparten esa misma función y NO estaban en el alcance de D-54, así que se
+    // filtra acá, después, solo para esta pantalla). Aparte del `stock` para no tocar el `select`
+    // que comparten esas otras pantallas: si la columna todavía no existe en producción, esta
+    // consulta es la única que falla (código `42703`) y se trata como "ningún producto de prueba
+    // conocido" en vez de tumbar toda la pantalla.
+    supabase.from("productos").select("id").eq("es_prueba", true),
   ]);
   const red = agruparStockPorSede(exigir(redRes, "el stock de las otras sedes"), ubicaciones, ubicacionId);
   const enCamino = exigir(transitoRes, "lo que viene en camino");
   const transito = new Map<string, number>();
   for (const item of enCamino) transito.set(item.variante_id, (transito.get(item.variante_id) ?? 0) + item.cantidad);
+  const idsPrueba = new Set((pruebaRes.error ? [] : (pruebaRes.data ?? [])).map((p) => p.id as string));
 
-  const filas: FilaExistencias[] = stock.map((f) => ({
-    ...f,
-    enTransito: transito.get(f.varianteId) ?? 0,
-    enRed: red.get(f.varianteId)?.otrasSedes ?? [],
-  }));
+  const incluirPrueba = opciones.incluirPrueba ?? false;
+  const filas: FilaExistencias[] = stock
+    .filter((f) => incluirPrueba || !idsPrueba.has(f.productoId))
+    .map((f) => ({
+      ...f,
+      enTransito: transito.get(f.varianteId) ?? 0,
+      enRed: red.get(f.varianteId)?.otrasSedes ?? [],
+      esPrueba: idsPrueba.has(f.productoId),
+    }));
 
   // Una prenda que viene en camino y que ESTA tienda nunca tuvo no existe en
   // `stock` — y sin fila, la encargada no la vería llegar. Se le arma una
@@ -283,6 +302,8 @@ export async function getExistencias(ubicacionId: string, ubicaciones: { id: str
   const yaListadas = new Set(filas.map((f) => f.varianteId));
   for (const item of enCamino) {
     if (yaListadas.has(item.variante_id) || item.variante_id === ID_CARGO_ESPECIAL) continue;
+    const productoEsPrueba = !!item.variante?.producto?.id && idsPrueba.has(item.variante.producto.id);
+    if (productoEsPrueba && !incluirPrueba) continue;
     yaListadas.add(item.variante_id);
     filas.push({
       varianteId: item.variante_id,
@@ -306,6 +327,7 @@ export async function getExistencias(ubicacionId: string, ubicaciones: { id: str
       estado: separa ? calcularEstado(0, 0) : null,
       enTransito: transito.get(item.variante_id) ?? 0,
       enRed: red.get(item.variante_id)?.otrasSedes ?? [],
+      esPrueba: productoEsPrueba,
     });
   }
   return filas.sort((a, b) => a.referencia.localeCompare(b.referencia, "es") || (a.sku ?? "").localeCompare(b.sku ?? "", "es"));

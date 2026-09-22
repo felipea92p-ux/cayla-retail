@@ -25,7 +25,7 @@ export function ConteosLista({ conteos }: { conteos: ConteoResumen[] }) {
         plantilla={PLANTILLA}
         columnas={[
           { titulo: "Conteo" },
-          { titulo: "Qué se contó" },
+          { titulo: "Qué se contó", alinear: "centro" },
           { titulo: "Resultado", alinear: "centro" },
           { titulo: "Sistema → físico", alinear: "centro" },
           { titulo: "Responsables", alinear: "centro" },
@@ -45,7 +45,7 @@ export function ConteosLista({ conteos }: { conteos: ConteoResumen[] }) {
               <span className="block text-sm text-tinta">Conteo {c.numero}</span>
               <span className="block text-xs text-tinta/55">{abierto ? `Abierto ${fecha(c.creadoEn)}` : `Cerrado ${fecha(c.cerradoEn ?? c.creadoEn)}`}</span>
             </span>
-            <span className="min-w-0">
+            <span className="min-w-0 sm:text-center">
               <span className="block truncate text-sm text-tinta">{c.sububicacionNombre ?? "Toda la ubicación"}</span>
               <span className="block truncate text-xs text-tinta/55">
                 {alcance} · {c.lineas} {c.lineas === 1 ? "línea" : "líneas"}

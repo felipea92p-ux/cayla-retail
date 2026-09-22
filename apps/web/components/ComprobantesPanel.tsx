@@ -38,10 +38,14 @@ function accionComprobante(
     onAnularClick: (c: Comprobante) => void;
     onConsultarAnulacion: (id: string) => void;
     onLiberarClick: (c: Comprobante) => void;
+    /** Anular y «liberar sin espera» son solo del líder (`anular_comprobante`, `marcar_comprobante_no_emitido`). */
+    esLider: boolean;
   }
 ) {
   const numero = `${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${String(c.numero).padStart(6, "0")}`;
-  const botones = accionesDelComprobante(c).map((accion) => {
+  const botones = accionesDelComprobante(c)
+    .filter((accion) => handlers.esLider || (accion !== "anular" && accion !== "liberar"))
+    .map((accion) => {
     switch (accion) {
       case "transmitir":
       case "reintentar": {
@@ -129,6 +133,7 @@ export function ComprobantesPanel({
   ubicaciones,
   ubicacionActualId,
   periodo,
+  esLider,
 }: {
   comprobantes: Comprobante[];
   series: SerieComprobante[];
@@ -137,6 +142,8 @@ export function ComprobantesPanel({
   ubicacionActualId: string;
   /** «este mes» o «en agosto»: cómo se dice el mes que se mira (`periodoDelMes`). */
   periodo: string;
+  /** Anular, «liberar sin espera» y registrar series son solo del líder; la terminal de ventas emite y transmite. */
+  esLider: boolean;
 }) {
   const router = useRouter();
   const [modal, setModal] = useState<"serie" | "anular" | "liberar" | null>(null);
@@ -323,7 +330,7 @@ export function ComprobantesPanel({
     router.refresh();
   }
 
-  const acciones = { transmitiendoId, consultandoId, onTransmitir, onAnularClick, onConsultarAnulacion, onLiberarClick };
+  const acciones = { transmitiendoId, consultandoId, onTransmitir, onAnularClick, onConsultarAnulacion, onLiberarClick, esLider };
 
   const { texto: busqueda } = useFacturacionBusqueda();
   const visibles = comprobantes.filter((c) => coincide(camposDeBusquedaDelComprobante(c), busqueda));
@@ -363,9 +370,11 @@ export function ComprobantesPanel({
               )}
             </p>
           </div>
-          <BotonCompacto variante="fila" onClick={abrirSerie}>
-            Registrar serie
-          </BotonCompacto>
+          {esLider && (
+            <BotonCompacto variante="fila" onClick={abrirSerie}>
+              Registrar serie
+            </BotonCompacto>
+          )}
         </div>
 
         {series.length > 0 && (

@@ -73,7 +73,10 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
 
     setCargando(true);
     const { error } = await createClient().rpc("guardar_proveedor_produccion", {
-      p_proveedor_id: proveedor?.id ?? null,
+      // p_proveedor_id no tiene DEFAULT en Postgres (hay que pasarlo siempre), pero sí acepta
+      // NULL como valor explícito ("id nulo = crear", ver la migración) — el tipo generado no
+      // lo refleja porque el generador solo agrega `| null` a parámetros con DEFAULT.
+      p_proveedor_id: (proveedor?.id ?? null) as string,
       p_nombre: nombre.trim(),
       p_rubro: rubro,
       p_ruc: rucDigitos || undefined,

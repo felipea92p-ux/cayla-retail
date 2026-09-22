@@ -1,4 +1,4 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
@@ -141,7 +141,8 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
         categorias={categorias}
         prendasConCosto={prendasConCosto}
         variantesManuales={variantesManuales}
-        puedeEditar={persona.rol === "lider"}
+        puedeEditar={puede(persona, "editarCatalogo")}
+        puedeEditarEtiquetas={persona.rol === "lider"}
       />
     </div>
   );
