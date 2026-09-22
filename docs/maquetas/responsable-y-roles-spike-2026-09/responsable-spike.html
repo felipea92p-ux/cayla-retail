@@ -50,7 +50,7 @@ svg.ic{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-wid
 .spk .sep{width:1px;height:18px;background:rgba(245,240,232,.2);flex:none}
 
 main{padding:calc(var(--bar) + 28px) 28px 80px;max-width:1320px;margin:0 auto}
-.pagina{animation:entrada 360ms var(--ease) both}
+.pagina.entra{animation:entrada 360ms var(--ease) both}
 .nota{margin:0 0 22px;padding:12px 16px;border:1px dashed var(--t30);border-radius:12px;font-size:13.5px;color:var(--t65);max-width:92ch}
 .nota b{color:var(--tinta);font-weight:600}
 h1.t{font-family:'EB Garamond',Georgia,serif;font-weight:400;font-size:clamp(34px,4.4vw,48px);line-height:1.05}
@@ -67,40 +67,51 @@ h1.t{font-family:'EB Garamond',Georgia,serif;font-weight:400;font-size:clamp(34p
 .btn[disabled]{opacity:.38;pointer-events:none}
 
 /* ---------- 1. Roles y accesos ---------- */
-.rgrid{display:grid;grid-template-columns:240px minmax(0,1fr) 270px;gap:22px;align-items:start;margin-top:26px}
+.rgrid{display:grid;grid-template-columns:230px minmax(0,1fr);gap:22px;align-items:start;margin-top:26px}
 .rol{display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%;padding:12px 14px;border-radius:12px;border:1px solid transparent;text-align:left;transition:all 220ms var(--ease)}
 .rol:hover{background:rgba(232,224,208,.45)}
 .rol[aria-pressed=true]{background:var(--papel);border-color:var(--sand)}
 .rol .n{font-weight:500}
 .rol .d{font-size:12px;color:var(--t65)}
-.mod{border-top:1px solid var(--sand)}
-.mod:first-child{border-top:0}
-.modh{display:flex;align-items:center;gap:12px;padding:14px 18px}
-.modh .nm{flex:1;font-weight:500}
-.sw{position:relative;width:38px;height:22px;border-radius:99px;background:var(--t30);transition:background 220ms var(--ease);flex:none}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform 220ms var(--ease)}
+.rcab{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;padding:18px 20px;border-bottom:1px solid var(--sand)}
+.rcab h2{font-family:'EB Garamond',serif;font-weight:400;font-size:30px;line-height:1.1}
+.rcab .s{font-size:13px;color:var(--t65);margin-top:4px;max-width:60ch}
+.rcab .der{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.cuentas{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.avm{width:22px;height:22px;border-radius:50%;background:var(--papel);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:11px;flex:none}
+/* Matriz: una fila por módulo, columnas Ver · Crear · Editar · Eliminar · Más acciones */
+.mx{width:100%;border-collapse:collapse;font-size:14px}
+.mx th{font-weight:600;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe-p);text-align:center;padding:10px 6px;background:rgba(232,224,208,.35)}
+.mx th:first-child{text-align:left;padding-left:20px}
+.mx td{border-top:1px solid var(--sand);padding:8px 6px;text-align:center;vertical-align:middle}
+.mx td:first-child{text-align:left;padding-left:20px}
+.mx tr.grupo td{background:rgba(232,224,208,.2);font-weight:600;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--t65);padding:10px 20px}
+.mx .mn{font-weight:500}
+.mx .mn small{display:block;font-weight:400;font-size:12px;color:var(--t65)}
+.mx tr.off .mn{color:var(--t50)}
+.mx input[type=checkbox]{width:18px;height:18px;accent-color:var(--tinta);cursor:pointer}
+.mx input:disabled{cursor:not-allowed;opacity:.35}
+.na{color:var(--t30)}
+.mas{height:30px;padding:0 10px;border-radius:8px;border:1px solid var(--sand);font-size:12.5px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.mas:hover{border-color:var(--t30)}
+.mas b{font-weight:600}
+.mas[disabled]{opacity:.35;pointer-events:none}
+tr.det td{background:var(--crema);text-align:left;padding:4px 20px 16px 20px}
+.det .col{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:4px 18px;margin-top:6px}
+.ac{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:8px;font-size:13.5px}
+.ac:hover{background:rgba(232,224,208,.45)}
+.ac input{width:17px;height:17px;accent-color:var(--tinta);flex:none}
+.ac.solo{color:var(--t50)}
+.det .sig{font-size:12.5px;color:var(--t65);margin-top:8px}
+.det .sig b{color:var(--tinta);font-weight:500}
+.sw{position:relative;width:36px;height:20px;border-radius:99px;background:var(--t30);transition:background 220ms var(--ease);flex:none;vertical-align:middle}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform 220ms var(--ease)}
 .sw[aria-checked=true]{background:var(--tinta)}
 .sw[aria-checked=true]::after{transform:translateX(16px)}
 .sw[disabled]{opacity:.35;cursor:not-allowed}
-.acc{display:grid;grid-template-rows:0fr;transition:grid-template-rows 300ms var(--ease)}
-.acc>div{overflow:hidden;min-height:0}
-.mod.on .acc{grid-template-rows:1fr}
-.accs{padding:0 18px 14px 18px;display:flex;flex-direction:column;gap:2px}
-.ac{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:8px;font-size:14px}
-.ac:hover{background:rgba(232,224,208,.35)}
-.ac input{width:17px;height:17px;accent-color:var(--tinta);flex:none}
-.ac .an{flex:1}
-.ac .firma{font-size:11px;color:var(--taupe-p);display:inline-flex;align-items:center;gap:4px}
-.ac.solo{color:var(--t50)}
-.lat .card{padding:16px}
-.lat .card+.card{margin-top:14px}
-.lat ul{list-style:none;margin-top:10px;display:flex;flex-direction:column;gap:8px;font-size:14px}
-.lat li{display:flex;align-items:center;gap:8px}
-.avm{width:26px;height:26px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:13px;flex:none}
-.menuprev{margin-top:10px;display:flex;flex-direction:column;gap:6px;font-size:14px}
-.menuprev div{padding:7px 10px;border-radius:8px;background:rgba(232,224,208,.45)}
-.menuprev div.nuevo{animation:revelar 320ms var(--ease) both}
-
+.aviso-rol{margin:14px 20px 0;padding:10px 14px;border-radius:12px;background:rgba(232,224,208,.45);font-size:13px;color:var(--t80);display:flex;gap:8px;align-items:flex-start}
+.menuprev{display:flex;flex-wrap:wrap;gap:6px;padding:14px 20px 18px;border-top:1px solid var(--sand)}
+.menuprev span{padding:5px 10px;border-radius:8px;background:rgba(232,224,208,.55);font-size:13px}
 /* ---------- 2/4. Punto de venta ---------- */
 .pdv{border:1px solid var(--sand);border-radius:22px;background:var(--crema);overflow:hidden}
 .pdv .top{min-height:64px;border-bottom:1px solid var(--sand);background:var(--papel);display:flex;align-items:center;gap:18px;padding:0 20px;flex-wrap:wrap}
@@ -263,40 +274,80 @@ const CUENTAS = {
   felipe: { nombre: 'Felipe A.',                   tipo: 'Líder de equipo' },
 };
 
-/* ---- Catálogo de acciones por módulo (ilustrativo). `solo` = nunca se delega. ---- */
+/* ---- Catálogo de módulos. Cada módulo dice qué significa en él crear / editar / eliminar
+   (null = no aplica) y sus acciones propias. «Eliminar» en CAYLA nunca borra: archiva o anula.
+   `solo` = decisión 4 del ADR-0150 (anular y series de SUNAT solo el líder) o administrar roles. ---- */
 const MODULOS = [
-  { id: 'vender', nombre: 'Punto de venta', acciones: [
-      { id: 'venta', n: 'Registrar venta' }, { id: 'desc', n: 'Aplicar descuento (hasta su tope)' }, { id: 'espera', n: 'Dejar en espera' } ] },
-  { id: 'caja', nombre: 'Caja', acciones: [
-      { id: 'abrir', n: 'Abrir caja' }, { id: 'mov', n: 'Registrar ingreso / egreso' }, { id: 'cerrar', n: 'Cerrar caja' } ] },
-  { id: 'cambios', nombre: 'Cambios y devoluciones', acciones: [
-      { id: 'cambio', n: 'Registrar cambio' }, { id: 'devol', n: 'Solicitar devolución' }, { id: 'aprob', n: 'Aprobar o rechazar devolución', solo: true } ] },
-  { id: 'fact', nombre: 'Facturación', acciones: [
-      { id: 'emitir', n: 'Emitir y reenviar a SUNAT' }, { id: 'anular', n: 'Anular comprobante', solo: true }, { id: 'series', n: 'Series de comprobantes', solo: true } ] },
-  { id: 'inv', nombre: 'Inventario', acciones: [
-      { id: 'ajuste', n: 'Ajustar stock' }, { id: 'conteo', n: 'Registrar y cerrar conteo' }, { id: 'tras', n: 'Enviar y recibir traslados' }, { id: 'dif', n: 'Cerrar traslado con diferencia' } ] },
-  { id: 'catalogo', nombre: 'Catálogo', acciones: [
-      { id: 'crear', n: 'Crear y editar prendas' }, { id: 'fotos', n: 'Fotos y códigos de barra' }, { id: 'etq', n: 'Etiquetas con descuento', solo: true } ] },
-  { id: 'compras', nombre: 'Compras', acciones: [
-      { id: 'reg', n: 'Registrar factura de compra' }, { id: 'pagar', n: 'Pagar a proveedores' }, { id: 'ctas', n: 'Cuentas bancarias de proveedores' } ] },
-  { id: 'colab', nombre: 'Colaboradores y roles', acciones: [
-      { id: 'roles', n: 'Crear roles y asignarlos', solo: true } ] },
+  { g: 'Ventas', id: 'vender', n: 'Punto de venta', crear: 'Registrar una venta', editar: null, eliminar: 'Anular una venta',
+    mas: [['desc', 'Aplicar descuento hasta su tope'], ['descsobre', 'Autorizar descuento sobre el tope'], ['espera', 'Dejar un ticket en espera'], ['manual', 'Cobrar un monto manual']] },
+  { g: 'Ventas', id: 'caja', n: 'Caja', crear: 'Abrir caja y registrar ingresos o egresos', editar: null, eliminar: null,
+    mas: [['cerrar', 'Cerrar caja'], ['ajuste', 'Registrar un ajuste de caja'], ['esperado', 'Ver el monto esperado antes de contar']] },
+  { g: 'Ventas', id: 'cambios', n: 'Cambios', crear: 'Registrar un cambio de prenda', editar: null, eliminar: null, mas: [] },
+  { g: 'Ventas', id: 'devol', n: 'Devoluciones', crear: 'Solicitar una devolución', editar: null, eliminar: null,
+    mas: [['aprobar', 'Aprobar o rechazar una devolución']] },
+  { g: 'Ventas', id: 'hist', n: 'Historial de ventas', crear: null, editar: null, eliminar: null,
+    mas: [['reimp', 'Reimprimir ticket o A4'], ['export', 'Exportar a Excel']] },
+  { g: 'Ventas', id: 'fact', n: 'Facturación', crear: 'Emitir boleta, factura o nota', editar: null, eliminar: 'Anular un comprobante',
+    eliminarSolo: true, mas: [['reenviar', 'Reenviar a SUNAT'], ['series', 'Series de comprobantes', true]] },
+  { g: 'Ventas', id: 'clientas', n: 'Clientas', crear: 'Registrar una clienta', editar: 'Editar sus datos', eliminar: 'Archivar una clienta',
+    mas: [['compras', 'Ver su historial de compras']] },
+  { g: 'Inventario', id: 'exist', n: 'Existencias', crear: null, editar: null, eliminar: null,
+    mas: [['ajustar', 'Ajustar stock a mano'], ['apartar', 'Apartar una prenda para una clienta'], ['costo', 'Ver el costo']] },
+  { g: 'Inventario', id: 'conteo', n: 'Conteos', crear: 'Iniciar un conteo', editar: 'Registrar lo contado', eliminar: 'Cancelar un conteo',
+    mas: [['cerrarc', 'Cerrar el conteo (mueve el stock)']] },
+  { g: 'Inventario', id: 'tras', n: 'Traslados', crear: 'Enviar un traslado', editar: null, eliminar: 'Cancelar un traslado',
+    mas: [['recibir', 'Recibir un traslado'], ['dif', 'Cerrar con diferencia']] },
+  { g: 'Inventario', id: 'movs', n: 'Movimientos', crear: null, editar: null, eliminar: null, mas: [['exportm', 'Exportar']] },
+  { g: 'Catálogo', id: 'prod', n: 'Productos', crear: 'Crear una prenda', editar: 'Editar una prenda', eliminar: 'Archivar una prenda',
+    mas: [['precio', 'Cambiar el precio'], ['fotos', 'Fotos y códigos de barra'], ['costop', 'Ver el costo']] },
+  { g: 'Catálogo', id: 'atrib', n: 'Categorías, marcas y atributos', crear: 'Crear', editar: 'Editar', eliminar: 'Desactivar',
+    mas: [['aprobarc', 'Aprobar lo que propone otra persona']] },
+  { g: 'Catálogo', id: 'etq', n: 'Etiquetas', crear: 'Crear', editar: 'Editar', eliminar: 'Archivar',
+    mas: [['etqdesc', 'Poner etiquetas con descuento a una prenda']] },
+  { g: 'Compras', id: 'fcomp', n: 'Facturas de compra', crear: 'Registrar una factura', editar: 'Corregirla', eliminar: 'Anularla',
+    mas: [['montos', 'Ver montos']] },
+  { g: 'Compras', id: 'recibir', n: 'Recibir mercadería', crear: 'Recibir un envío', editar: null, eliminar: null, mas: [] },
+  { g: 'Compras', id: 'porpagar', n: 'Por pagar', crear: null, editar: null, eliminar: null,
+    mas: [['pagar', 'Registrar un pago'], ['montosp', 'Ver montos']] },
+  { g: 'Compras', id: 'prov', n: 'Proveedores', crear: 'Crear un proveedor', editar: 'Editarlo', eliminar: 'Archivarlo',
+    mas: [['ctas', 'Cuentas bancarias, Yape y Plin']] },
+  { g: 'Compras', id: 'nc', n: 'Notas de crédito', crear: 'Registrar una nota', editar: null, eliminar: 'Anularla', mas: [] },
+  { g: 'Producción', id: 'prodn', n: 'Órdenes de producción', crear: 'Crear una orden', editar: 'Editarla', eliminar: 'Cancelarla',
+    mas: [['avance', 'Registrar avance'], ['costos', 'Ver costos']] },
+  { g: 'Gestión', id: 'analisis', n: 'Análisis', crear: null, editar: null, eliminar: null, mas: [['montosa', 'Ver montos y márgenes']] },
+  { g: 'Gestión', id: 'colab', n: 'Colaboradores', crear: 'Dar acceso a una persona', editar: 'Cambiar su ubicación', eliminar: 'Quitar el acceso',
+    mas: [['susp', 'Suspender y reactivar'], ['aprobalta', 'Aprobar altas propuestas']] },
+  { g: 'Gestión', id: 'roles', n: 'Roles y accesos', crear: 'Crear un rol', editar: 'Editar permisos y asignar', eliminar: 'Archivar un rol',
+    soloTodo: true, mas: [] },
 ];
+const VERBOS = ['crear', 'editar', 'eliminar'];
 
-/* ---- Roles: lo que hoy está fijo en ADR-0160, ya como filas editables ---- */
+/* Permisos de un rol: { modulo: Set('ver','crear',…, ids de «más acciones») }. Arrancan como hoy. */
+const P = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, new Set(v)]));
 const ROLES = [
-  { id: 'lider', n: 'Líder de equipo', d: 'Rol de sistema · ve y hace todo', sistema: true, cuentas: ['Carmen T.', 'Felipe A.'] },
-  { id: 'integ', n: 'Integrante', d: 'Rol de sistema', sistema: true, cuentas: ['María P.', 'Lucía R.', 'Rosa M.', 'Diana Q.'],
-    perm: { vender: ['venta', 'desc', 'espera'], caja: ['mov'], cambios: ['cambio', 'devol'], inv: ['tras'] } },
+  { id: 'lider', n: 'Líder de equipo', d: 'Ve y hace todo', fijo: true, cuentas: ['Carmen T.', 'Felipe A.'] },
+  { id: 'integ', n: 'Integrante', d: 'Rol por defecto de una persona nueva', cuentas: ['María P.', 'Lucía R.', 'Rosa M.', 'Diana Q.'],
+    perm: P({ vender: ['ver', 'crear', 'desc', 'espera'], caja: ['ver', 'crear'], cambios: ['ver', 'crear'], devol: ['ver', 'crear'],
+      hist: ['ver', 'reimp'], clientas: ['ver', 'crear', 'editar'], exist: ['ver', 'apartar'], conteo: ['ver', 'editar'],
+      tras: ['ver', 'crear', 'recibir'], movs: ['ver'], prod: ['ver', 'crear'], atrib: ['ver', 'crear'], etq: ['ver'], recibir: ['ver', 'crear'] }) },
   { id: 'tv', n: 'Terminal de ventas', d: 'Cuenta compartida por tienda', cuentas: ['Terminal Ventas TRU', 'Terminal Ventas AQP', 'Terminal Ventas LIM'],
-    perm: { vender: ['venta', 'desc', 'espera'], caja: ['abrir', 'mov', 'cerrar'], cambios: ['cambio', 'devol'], fact: ['emitir'] } },
+    perm: P({ vender: ['ver', 'crear', 'desc', 'espera', 'manual'], caja: ['ver', 'crear', 'cerrar'], cambios: ['ver', 'crear'],
+      devol: ['ver', 'crear'], hist: ['ver', 'reimp'], fact: ['ver', 'crear', 'reenviar'], clientas: ['ver', 'crear', 'editar'] }) },
   { id: 'ta', n: 'Terminal administrativa', d: 'Cuenta compartida por tienda', cuentas: ['Terminal Administrativa TRU', 'Terminal Administrativa AQP', 'Terminal Administrativa LIM'],
-    perm: { inv: ['ajuste', 'conteo', 'tras', 'dif'], catalogo: ['crear', 'fotos'], compras: ['ctas'] } },
+    perm: P({ exist: ['ver', 'ajustar', 'apartar'], conteo: ['ver', 'crear', 'editar', 'cerrarc'], tras: ['ver', 'crear', 'recibir', 'dif'],
+      movs: ['ver'], prod: ['ver', 'crear', 'editar', 'fotos'], atrib: ['ver', 'crear', 'editar'], recibir: ['ver', 'crear'], prov: ['ver', 'ctas'] }) },
   { id: 'alm', n: 'Almacén', d: 'Ejemplo de rol a medida', cuentas: [],
-    perm: { inv: ['conteo', 'tras'] } },
+    perm: P({ exist: ['ver'], conteo: ['ver', 'crear', 'editar'], tras: ['ver', 'crear', 'recibir'], movs: ['ver'], recibir: ['ver', 'crear'] }) },
 ];
+/* ¿Esta casilla es de las que nunca se delegan? */
+function esSolo(m, clave) {
+  if (m.soloTodo) return true;
+  if (clave === 'eliminar' && m.eliminarSolo) return true;
+  const x = m.mas.find(([id]) => id === clave);
+  return !!(x && x[2]);
+}
 
-const est = { pant: 'roles', cuenta: 'tv', asis: 'normal', rol: 'tv', abierto: false, elegido: null, aviso: null, cajaPaso: 'contar' };
+const est = { pant: 'roles', cuenta: 'tv', asis: 'normal', rol: 'integ', detalle: 'vender', abierto: false, elegido: null, aviso: null, cajaPaso: 'contar' };
 
 const $ = (s) => document.querySelector(s);
 const ini = (n) => n.split(' ').map((p) => p[0]).join('').slice(0, 2);
@@ -350,51 +401,74 @@ function comboResponsable(abajo = false) {
 }
 
 /* ================= 1. Roles y accesos ================= */
+function tiene(rol, m, clave) {
+  if (rol.fijo) return true;
+  return !!(rol.perm[m.id] && rol.perm[m.id].has(clave));
+}
 function pantallaRoles() {
   const rol = ROLES.find((r) => r.id === est.rol);
-  const perm = rol.perm || {};
-  const mods = MODULOS.map((m) => {
-    const on = rol.sistema && rol.id === 'lider' ? true : (perm[m.id] || []).length > 0;
-    const accs = m.acciones.map((a) => {
-      const marc = rol.id === 'lider' ? true : (perm[m.id] || []).includes(a.id);
-      const bloqueada = rol.sistema || (a.solo && rol.id !== 'lider');
-      return `<label class="ac ${a.solo && rol.id !== 'lider' ? 'solo' : ''}">
-        <input type="checkbox" ${marc ? 'checked' : ''} ${bloqueada ? 'disabled' : ''} data-a="acc" data-m="${m.id}" data-ac="${a.id}">
-        <span class="an">${a.n}</span>
-        ${a.solo && rol.id !== 'lider' ? `<span class="chip lock">${ICO.lock} Solo líder</span>` : `<span class="firma">${ICO.pen} pide Responsable</span>`}
-      </label>`;
+  let grupo = '';
+  const filas = MODULOS.map((m) => {
+    const ve = tiene(rol, m, 'ver');
+    const bloq = rol.fijo;
+    let cab = '';
+    if (m.g !== grupo) { grupo = m.g; cab = `<tr class="grupo"><td colspan="6">${grupo}</td></tr>`; }
+    const celdas = VERBOS.map((v) => {
+      if (!m[v]) return '<td><span class="na" title="No aplica en este módulo">—</span></td>';
+      const solo = esSolo(m, v) && !rol.fijo;
+      if (solo) return `<td><span class="na" title="${m[v]}: solo líder" aria-label="${m.n}: ${m[v]}, solo líder">${ICO.lock}</span></td>`;
+      return `<td><input type="checkbox" title="${m[v]}${solo ? ' · solo líder' : ''}" aria-label="${m.n}: ${m[v]}"
+        ${tiene(rol, m, v) ? 'checked' : ''} ${bloq || solo || !ve ? 'disabled' : ''} data-a="perm" data-m="${m.id}" data-k="${v}"></td>`;
     }).join('');
-    return `<div class="mod ${on ? 'on' : ''}">
-      <div class="modh"><span class="nm">${m.nombre}</span>
-        <span class="lbl tp" style="font-size:10px">${on ? 'Lo ve' : 'No lo ve'}</span>
-        <button class="sw" role="switch" aria-checked="${on}" aria-label="Ve ${m.nombre}" data-a="mod" data-m="${m.id}" ${rol.sistema ? 'disabled' : ''}></button></div>
-      <div class="acc"><div><div class="accs">${accs}</div></div></div>
-    </div>`;
+    const nMas = m.mas.filter(([id]) => tiene(rol, m, id)).length;
+    const abierto = est.detalle === m.id;
+    const det = abierto ? `<tr class="det"><td colspan="6">
+      <p class="sig">En <b>${m.n}</b>: ${VERBOS.filter((v) => m[v]).map((v) => `<b>${v === 'crear' ? 'Crear' : v === 'editar' ? 'Editar' : 'Eliminar'}</b> = ${m[v].toLowerCase()}`).join(' · ') || 'solo se mira'}.${m.eliminar ? ' Eliminar nunca borra: queda archivado o anulado, con su historial.' : ''}</p>
+      ${m.mas.length ? `<div class="col">${m.mas.map(([id, n]) => {
+        const solo = esSolo(m, id) && !rol.fijo;
+        return `<label class="ac ${solo ? 'solo' : ''}"><input type="checkbox" ${tiene(rol, m, id) ? 'checked' : ''} ${bloq || solo || !ve ? 'disabled' : ''}
+          data-a="perm" data-m="${m.id}" data-k="${id}"><span style="flex:1">${n}</span>${solo ? `<span class="chip lock">${ICO.lock} Solo líder</span>` : ''}</label>`;
+      }).join('')}</div>` : ''}
+    </td></tr>` : '';
+    return `${cab}<tr class="${ve ? '' : 'off'}">
+      <td><span class="mn">${m.n}${m.soloTodo && !rol.fijo ? ` <span class="chip lock">${ICO.lock} Solo líder</span>` : ''}</span></td>
+      <td><button class="sw" role="switch" aria-checked="${ve}" aria-label="Ver ${m.n}" data-a="ver" data-m="${m.id}" ${bloq || (m.soloTodo) ? 'disabled' : ''}></button></td>
+      ${celdas}
+      <td>${m.mas.length || m.eliminar || m.crear ? `<button class="mas" data-a="det" data-m="${m.id}" ${!ve && !rol.fijo ? 'disabled' : ''} aria-expanded="${abierto}">
+        ${m.mas.length ? `<b>${nMas}/${m.mas.length}</b> acciones` : 'Detalle'} ${ICO.chev}</button>` : ''}</td>
+    </tr>${det}`;
   }).join('');
-  const menu = rol.id === 'lider' ? MODULOS : MODULOS.filter((m) => (perm[m.id] || []).length);
+  const menu = MODULOS.filter((m) => tiene(rol, m, 'ver'));
   return `<div class="pagina">
-    <div class="nota"><b>Qué mirar:</b> cada rol decide <b>qué módulos ve</b> (interruptor) y <b>qué acciones hace dentro</b> (casillas). Las terminales son un rol más.
-      «pide Responsable» <b>no se configura</b>: toda acción que guarda lo pide, fijo en el sistema. «Solo líder» nunca se delega.</div>
+    <div class="nota"><b>Qué mirar:</b> una fila por módulo. <b>Ver</b> lo pone en el menú; <b>Crear, Editar y Eliminar</b> significan algo distinto en cada módulo
+      (pasa el mouse o abre «acciones»); cada módulo tiene además sus <b>acciones propias</b>. «—» = no existe en ese módulo. Solo el <b>Líder</b> es fijo.
+      «Solo líder» se reserva a administrar roles y a anular o configurar comprobantes de SUNAT (ADR-0150, decisión 4).</div>
     <p class="lbl tp">Colaboradores</p>
     <h1 class="t">Roles y accesos</h1>
-    <p class="sub">Qué ve y qué puede hacer cada cuenta. Solo un líder de equipo cambia esto.</p>
+    <p class="sub">Qué ve y qué puede hacer cada cuenta, módulo por módulo. Solo un líder de equipo cambia esto.</p>
     <div class="rgrid">
-      <div class="lista-roles">${ROLES.map((r) => `<button class="rol" aria-pressed="${r.id === est.rol}" data-a="rol" data-id="${r.id}">
-          <span class="n">${r.n}</span><span class="d">${r.d}</span>
-          ${r.sistema ? `<span class="chip lock">${ICO.lock} No se edita</span>` : ''}</button>`).join('')}
+      <div>${ROLES.map((r) => `<button class="rol" aria-pressed="${r.id === est.rol}" data-a="rol" data-id="${r.id}">
+          <span class="n">${r.n}</span><span class="d">${r.d} · ${r.cuentas.length} cuenta${r.cuentas.length === 1 ? '' : 's'}</span>
+          ${r.fijo ? `<span class="chip lock">${ICO.lock} No se edita</span>` : ''}</button>`).join('')}
         <button class="btn sec" style="margin-top:10px;width:100%">+ Nuevo rol</button>
       </div>
-      <div class="card" style="overflow:hidden">${mods}</div>
-      <div class="lat">
-        <div class="card"><p class="lbl tp">Cuentas con este rol</p>
-          <ul>${rol.cuentas.length ? rol.cuentas.map((c) => `<li><span class="avm">${ini(c)}</span>${c}</li>`).join('') : '<li style="color:var(--t65)">Nadie todavía</li>'}</ul></div>
-        <div class="card"><p class="lbl tp">Así queda su menú</p>
-          <div class="menuprev">${menu.length ? menu.map((m) => `<div class="nuevo">${m.nombre}</div>`).join('') : '<p style="color:var(--t65);font-size:13px">Solo Inicio</p>'}</div></div>
+      <div class="card" style="overflow:hidden">
+        <div class="rcab"><div><h2>${rol.n}</h2><p class="s">${rol.fijo
+          ? 'Ve y hace todo, siempre. No se edita para que nunca falte alguien que pueda administrar los accesos.'
+          : rol.id === 'integ' ? 'Rol que recibe una persona nueva al darle acceso. Sus permisos se editan como los de cualquier rol; lo único que no se puede es archivarlo.'
+          : 'Rol a medida. Se edita, se duplica y se archiva (nunca se borra).'}</p>
+          <div class="cuentas">${rol.cuentas.map((c) => `<span class="chip"><span class="avm">${ini(c)}</span>${c}</span>`).join('') || '<span class="chip lock">Nadie tiene este rol</span>'}</div></div>
+          ${rol.fijo ? '' : `<div class="der"><button class="btn sec" style="height:36px">Duplicar</button>${rol.id === 'integ' ? '' : '<button class="btn sec" style="height:36px">Archivar</button>'}</div>`}
+        </div>
+        <div style="overflow-x:auto"><table class="mx">
+          <thead><tr><th>Módulo</th><th>Ver</th><th>Crear</th><th>Editar</th><th>Eliminar</th><th>Más</th></tr></thead>
+          <tbody>${filas}</tbody></table></div>
+        <p class="lbl tp" style="padding:16px 20px 0">Así queda su menú</p>
+        <div class="menuprev">${menu.map((m) => `<span>${m.n}</span>`).join('') || '<span>Solo Inicio</span>'}</div>
       </div>
     </div>
   </div>`;
 }
-
 /* ================= 2. Punto de venta ================= */
 const NOTA_PDV = `<b>Qué mirar:</b> el combo <b>Responsable</b> va justo encima de COBRAR, <b>vacío</b> en cada venta. Solo lista a quien marcó entrada hoy en esta tienda y no marcó salida.
   COBRAR no se activa hasta elegir. Al cobrar, el combo vuelve a quedar vacío para la siguiente venta. Cambia «Cuenta» arriba: el combo sale igual en la cuenta personal de un líder.`;
@@ -481,9 +555,13 @@ function pantallaNadie() {
   return html;
 }
 
+// La entrada se anima solo al cambiar de pantalla, no en cada clic (ADR-0136: nada decorativo).
+let ultimaPantalla = null;
 function pintar() {
   const p = { roles: pantallaRoles, pdv: pantallaPdv, caja: pantallaCaja, nadie: pantallaNadie }[est.pant];
-  $('#app').innerHTML = p() + (est.aviso ? `<div class="aviso" role="status"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>${est.aviso}</div>` : '');
+  const nueva = ultimaPantalla !== est.pant;
+  ultimaPantalla = est.pant;
+  $('#app').innerHTML = p().replace('<div class="pagina">', `<div class="pagina${nueva ? ' entra' : ''}">`) + (est.aviso ? `<div class="aviso" role="status"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>${est.aviso}</div>` : '');
 }
 
 document.addEventListener('click', (e) => {
@@ -502,17 +580,16 @@ document.addEventListener('click', (e) => {
   if (a === 'cerrarcaja') est.cajaPaso = 'resultado';
   if (a === 'reiniciarcaja') { est.cajaPaso = 'contar'; est.elegido = null; }
   if (a === 'rol') est.rol = b.dataset.id;
-  if (a === 'mod' || a === 'acc') {
+  if (a === 'det') est.detalle = est.detalle === b.dataset.m ? null : b.dataset.m;
+  if (a === 'ver' || a === 'perm') {
     const rol = ROLES.find((r) => r.id === est.rol);
-    rol.perm = rol.perm || {};
     const m = b.dataset.m;
-    if (a === 'mod') {
-      const on = (rol.perm[m] || []).length > 0;
-      rol.perm[m] = on ? [] : MODULOS.find((x) => x.id === m).acciones.filter((x) => !x.solo).map((x) => x.id);
+    const set = rol.perm[m] || (rol.perm[m] = new Set());
+    if (a === 'ver') {
+      // Apagar «Ver» apaga todo el módulo: no se puede editar lo que no se ve.
+      if (set.has('ver')) set.clear(); else set.add('ver');
     } else {
-      const set = new Set(rol.perm[m] || []);
-      b.checked ? set.add(b.dataset.ac) : set.delete(b.dataset.ac);
-      rol.perm[m] = [...set];
+      b.checked ? set.add(b.dataset.k) : set.delete(b.dataset.k);
     }
   }
   pintar();
@@ -521,7 +598,7 @@ document.addEventListener('click', (e) => {
 for (const [id, k] of [['#sel-pant', 'pant'], ['#sel-cuenta', 'cuenta'], ['#sel-asis', 'asis']]) {
   $(id).addEventListener('change', (e) => {
     est[k] = e.target.value; est.abierto = false; est.elegido = null; est.aviso = null; est.cajaPaso = 'contar';
-    if (k === 'pant' && e.target.value === 'roles') est.rol = 'tv';
+    
     pintar();
   });
 }

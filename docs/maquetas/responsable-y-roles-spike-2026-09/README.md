@@ -10,12 +10,14 @@ ventas, terminal administrativa, Felipe con su cuenta personal) y de **asistenci
 
 | # | Pantalla | Qué hay que aprobar |
 |---|---|---|
-| 1 | **Roles y accesos** | Cada rol tiene un interruptor por módulo («lo ve») y casillas por acción. Las terminales son un rol más. «Solo líder» nunca se delega. «pide Responsable» está a la vista, pero no se configura. |
+| 1 | **Roles y accesos** | Una tabla con una fila por módulo y columnas **Ver · Crear · Editar · Eliminar**, más «acciones», que despliega lo propio del módulo y explica qué significa cada verbo ahí. «—» indica que ese verbo no existe en ese módulo. Solo el **Líder** es fijo; **Integrante se edita**. El candado indica «solo líder»: administrar roles, y anular o configurar series de SUNAT. |
 | 2 | **Punto de venta** | El combo **Responsable** va encima de COBRAR y viene vacío. Solo lista a quienes están presentes; quien está en pausa sale deshabilitado y quien ya salió no aparece. COBRAR se activa recién al elegir. Al cobrar, el aviso dice «atendió María P.» y el combo vuelve a vacío. |
 | 3 | **Cierre de caja** | El combo va dentro del modal «Cerrar caja». Cada movimiento muestra la persona («10:42 · María P.») y el resultado dice quién cerró. |
 | 4 | **Nadie de turno** | No hay nada que elegir: la operación se bloquea y la pantalla explica qué hacer (marcar la entrada en el kiosco y tocar «Actualizar lista»). Con la cuenta de Felipe dice «tampoco tú». |
 
 ## Preguntas que el spike deja a la vista
+
+- **Solo líder:** ¿se quedan así «anular comprobante» y «series de SUNAT» (decisión 4 del ADR-0150), o también las quieres configurables?
 
 - **En pausa:** hoy sale deshabilitado. ¿Así queda?
 - **Cuántos clics cuesta:** con el combo en cada operación, una venta pasa de un clic (COBRAR) a tres (abrir el combo,
