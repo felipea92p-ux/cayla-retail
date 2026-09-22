@@ -3,11 +3,13 @@ import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getCajaAbierta } from "@/lib/caja";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
+import { getUbicaciones } from "@/lib/ubicaciones";
+import { agruparStockPorSede } from "@/lib/stock-por-sede";
 import { getApartadosDeTienda } from "@/lib/separaciones";
 import { hoyLima } from "@/lib/fechas-lima";
 import { createClient } from "@/lib/supabase/server";
 import { ApartadosPanel } from "@/components/apartados/ApartadosPanel";
-import type { VarianteBusqueda } from "@/components/PuntoDeVenta";
+import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 
 /**
  * Apartados (ADR-0166): la clienta aparta prendas con un adelanto, las recoge pagando el saldo, o vencen y se le
@@ -33,12 +35,16 @@ async function Apartados() {
   }
 
   const supabase = await createClient();
-  const [datos, variantes, caja, stockAqui, resCampanas] = await Promise.all([
+  const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones] = await Promise.all([
     getApartadosDeTienda(persona.ubicacionId),
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
     getStockPorUbicacion(persona.ubicacionId),
     supabase.rpc("campanas_vigentes"),
+    // «¿Dónde más hay?» para lo que aquí no tiene disponible (misma lectura que el Punto de venta). Es secundario:
+    // si falla, el buscador sigue funcionando sin esa línea.
+    supabase.rpc("fn_stock_por_sede"),
+    getUbicaciones(),
   ]);
 
   if (!datos.instalado) {
@@ -54,8 +60,10 @@ async function Apartados() {
 
   // Lo que se puede apartar es lo DISPONIBLE en el piso (ADR-0141): lo ya apartado para otra clienta no se ofrece.
   const piso = new Map(stockAqui.map((f) => [f.varianteId, f.pisoDisponible ?? f.disponible]));
+  const almacen = new Map(stockAqui.map((f) => [f.varianteId, f.almacenDisponible ?? 0]));
+  const otrasSedes = resStockSedes.error ? new Map() : agruparStockPorSede(resStockSedes.data ?? [], ubicaciones, persona.ubicacionId);
   const campana = new Map((resCampanas.data ?? []).map((c) => [c.variante_id, { etiquetaId: c.etiqueta_id, nombre: c.etiqueta_nombre, pct: Number(c.descuento_pct) }]));
-  const prendas: VarianteBusqueda[] = variantes
+  const prendas: PrendaApartable[] = variantes
     .filter((v) => v.activo)
     .map((v) => ({
       varianteId: v.varianteId,
@@ -71,6 +79,8 @@ async function Apartados() {
       fotoUrl: v.fotoUrl,
       codigosBarras: v.codigosBarras,
       stockAqui: piso.get(v.varianteId) ?? 0,
+      almacenAqui: almacen.get(v.varianteId) ?? 0,
+      stockOtrasSedes: otrasSedes.get(v.varianteId)?.otrasSedes ?? [],
     }));
 
   return (

@@ -150,7 +150,7 @@ export function EntregarVista({
             <ul className="divide-y divide-sand border-t border-sand">
               {a.prendas.map((pr) => (
                 <li key={pr.varianteId} className="flex items-center gap-3 py-2.5">
-                  <FotoPrenda fotoUrl={fotos.get(pr.varianteId)} referencia={pr.referencia} className="w-11" />
+                  <FotoPrenda fotoUrl={fotos.get(pr.varianteId)} referencia={pr.referencia} ancho={44} className="w-11" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-tinta">{pr.referencia}</p>
                     <p className="font-mono text-[11px] text-tinta/55">{pr.sku} · {pr.cantidad} u.</p>

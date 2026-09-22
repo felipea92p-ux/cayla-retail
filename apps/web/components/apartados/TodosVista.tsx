@@ -135,7 +135,7 @@ export function TodosVista({
                     <div className="flex min-w-0 items-center gap-2 max-md:hidden">
                       <span className="flex">
                         {a.prendas.slice(0, 3).map((pr, j) => (
-                          <FotoPrenda key={pr.varianteId} fotoUrl={fotos.get(pr.varianteId)} referencia={pr.referencia} className={`w-8 border border-papel ${j ? "-ml-3.5" : ""}`} />
+                          <FotoPrenda key={pr.varianteId} fotoUrl={fotos.get(pr.varianteId)} referencia={pr.referencia} ancho={32} className={`w-8 border border-papel ${j ? "-ml-3.5" : ""}`} />
                         ))}
                       </span>
                       <span className="truncate text-[12.5px] text-tinta/60">{a.prendas.map((pr) => pr.referencia.split(" ")[0]).join(", ")}</span>

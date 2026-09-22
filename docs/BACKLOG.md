@@ -236,6 +236,8 @@ demo: `docs/maquetas/separaciones-2026-09/demo.html`.
       «Anticipo por apartado»). Probado en el navegador contra Postgres real. Menú: Cambios y Devoluciones pasan al subgrupo «Posventa».
 - [x] **Felipe aprobó el subgrupo «Posventa»** (2026-09-22) en el menú (el golden se cambió a propósito; si no lo quiere, la alternativa es sacar
       Apartados del lateral y dejarlo como pestaña del Punto de venta).
+- [x] **Buscador con foto en Apartar (2026-09-22, ADR-0168):** búsqueda en vivo por nombre como el Punto de venta, con miniatura por fila; agotadas atenuadas al final con «N en el almacén» o dónde más hay. `FotoPrenda` de Apartados sale optimizada (≈5 KB en vez de ≈90 KB por foto). Demo: `docs/maquetas/separaciones-2026-09/buscador.html`.
+- [ ] **Llevar el buscador con foto al Punto de venta** si Felipe lo pide (hoy decidió solo Apartados); la pieza a mover es la de `ApartarVista` + `FotoPrenda`.
 - [ ] **En Caja**, la tarjeta «En custodia» (hoy vive en Apartados → Todos) y `anticipo` en `NOMBRE_METODO`/historial de ventas.
 - [ ] **Existencias** sigue ofreciendo «Apartar» de ADR-0141 (sin adelanto): decidir si se quita o se deja como reserva rápida.
 - [ ] Ya en producción: refrescar el volcado y regenerar el diccionario (`pnpm datos:generar:produccion`) para que entren las 4 tablas nuevas.

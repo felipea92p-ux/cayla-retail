@@ -11,7 +11,9 @@ import { CampoMonto } from "@/components/ui/CampoMonto";
 import { avisar } from "@/components/ui/Avisos";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { filtrarPrendasV2, resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
+import { resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
+import { codigoPrenda } from "@/lib/prenda-reglas";
+import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import {
@@ -20,6 +22,8 @@ import {
   adelantoDe,
   apartadoDeFila,
   erroresDelApartado,
+  moverActivo,
+  resultadosDelBuscador,
   pagosParaRpcApartado,
   pasoDelApartado,
   soloDigitos,
@@ -34,6 +38,10 @@ import { FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
 import { ApartadoRegistradoModal } from "@/components/apartados/ModalesApartado";
 
 type Linea = { varianteId: string; cantidad: number };
+
+/** Una prenda del buscador de Apartados: la del Punto de venta más lo que esta tienda tiene en su ALMACÉN. Solo se
+ *  aparta lo del piso (ADR-0141), pero si la prenda está atrás la colaboradora tiene que saberlo para traerla. */
+export type PrendaApartable = VarianteBusqueda & { almacenAqui?: number };
 
 const OPCION = "rounded-lg transition-colors";
 const OPCION_ACTIVA = "bg-papel text-tinta shadow-sm";
@@ -73,14 +81,14 @@ export function ApartarVista({
   ubicacionEtiqueta: string;
   hoy: string;
   cajaAbierta: boolean;
-  prendas: VarianteBusqueda[];
+  prendas: PrendaApartable[];
   irAEntregar: () => void;
 }) {
   const router = useRouter();
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
   const [texto, setTexto] = useState("");
   const [mensaje, setMensaje] = useState<{ tono: "ok" | "error" | "info"; texto: string } | null>(null);
-  const [sugeridas, setSugeridas] = useState<VarianteBusqueda[]>([]);
+  const [activo, setActivo] = useState(0);
   const [ultima, setUltima] = useState<string | null>(null);
   const [recientes, setRecientes] = useState<string[]>([]);
   const [lineas, setLineas] = useState<Linea[]>([]);
@@ -112,7 +120,9 @@ export function ApartarVista({
     const p = porId.get(varianteId);
     if (!p) return;
     setUltima(varianteId);
-    setSugeridas([]);
+    setTexto("");
+    setActivo(0);
+    escaner.current?.focus();
     setRecientes((r) => [varianteId, ...r.filter((x) => x !== varianteId)].slice(0, 4));
     const enTicket = lineas.find((l) => l.varianteId === varianteId)?.cantidad ?? 0;
     if (p.stockAqui - enTicket <= 0) {
@@ -124,19 +134,77 @@ export function ApartarVista({
     setMensaje({ tono: "ok", texto: `Agregada: ${p.referencia} ${p.color ?? ""} · ${p.talla ?? ""}` });
   }
 
-  function buscar(e: React.FormEvent) {
-    e.preventDefault();
-    const t = texto.trim();
-    setTexto("");
-    if (!t) return;
-    const exacta = resolverCodigoV2(t, prendas);
-    if (exacta) return agregar(exacta.varianteId);
-    const encontradas = filtrarPrendasV2(t, prendas, 8);
-    if (encontradas.length === 0) return setMensaje({ tono: "error", texto: `Ninguna prenda de ${ubicacionEtiqueta} coincide con «${t}». Revisa el código de la etiqueta.` });
-    if (encontradas.length === 1) return agregar(encontradas[0].varianteId);
-    setSugeridas(encontradas);
-    setMensaje({ tono: "info", texto: `${encontradas.length} prendas coinciden con «${t}»: elige la talla y el color.` });
+  // La lista se arma mientras se escribe, como en el Punto de venta: lo que se puede apartar arriba, lo agotado al
+  // final y sin poder elegirse (ADR-0168). El lector de código no la usa: escribe el código y manda Enter.
+  const { disponibles, agotadas } = useMemo(() => resultadosDelBuscador(texto, prendas), [texto, prendas]);
+  const abierta = texto.trim() !== "";
+
+  function escribir(valor: string) {
+    setTexto(valor);
+    setActivo(0);
+    setMensaje(null);
   }
+
+  function teclado(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      setActivo((a) => moverActivo(a, e.key === "ArrowDown" ? 1 : -1, disponibles.length));
+    } else if (e.key === "Escape") {
+      setTexto("");
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const t = texto.trim();
+      if (!t) return;
+      const exacta = resolverCodigoV2(t, prendas);
+      if (exacta) return agregar(exacta.varianteId);
+      const elegida = disponibles[activo];
+      if (elegida) return agregar(elegida.varianteId);
+      setMensaje({
+        tono: "error",
+        texto: agotadas.some((a) => (a.almacenAqui ?? 0) > 0)
+          ? `«${t}» está en el almacén de ${ubicacionEtiqueta}, no en el piso: tráela al piso para apartarla.`
+          : agotadas.length
+          ? `«${t}» no tiene nada disponible en ${ubicacionEtiqueta}: lo que hay ya está vendido o apartado.`
+          : `Ninguna prenda de ${ubicacionEtiqueta} coincide con «${t}». Revisa el código de la etiqueta.`,
+      });
+    }
+  }
+
+  const filaResultado = (v: PrendaApartable, i: number | null) => {
+    const puede = i !== null;
+    const otras = textoOtrasSedes(v.stockOtrasSedes ?? []);
+    const atras = !puede && (v.almacenAqui ?? 0) > 0 ? v.almacenAqui : 0;
+    return (
+      <li key={v.varianteId} id={puede ? `apt-op-${i}` : undefined} role="option" aria-selected={puede && i === activo} aria-disabled={!puede}>
+        <button
+          type="button"
+          disabled={!puede}
+          onMouseEnter={() => puede && setActivo(i)}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => agregar(v.varianteId)}
+          className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors duration-200 ${puede && i === activo ? "bg-sand/60" : ""} ${puede ? "" : "cursor-not-allowed opacity-55"}`}
+        >
+          <FotoPrenda fotoUrl={v.fotoUrl} referencia={v.referencia} ancho={44} className="w-11" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-semibold text-tinta">{v.referencia}</span>
+            <span className="text-xs text-tinta/60">
+              {[v.talla, v.color].filter(Boolean).join("/")} · {codigoPrenda(v)}
+            </span>
+          </span>
+          <span className="shrink-0 text-right">
+            <span className="block text-sm font-semibold tabular-nums text-tinta">
+              {v.campana && <span className="mr-1.5 text-xs font-normal text-tinta/45 line-through">{money(v.precio)}</span>}
+              {money(precioFinal(v))}
+            </span>
+            <span className={`block text-xs ${puede ? "text-tinta/60" : atras ? "text-ambar-profundo" : "text-rojo-profundo"}`}>
+              {puede ? `${v.stockAqui} disp.` : atras ? `${atras} en el almacén: tráela al piso` : "sin disponible aquí"}
+            </span>
+            {otras && <span className="block text-[11px] text-tinta/55">{otras}</span>}
+          </span>
+        </button>
+      </li>
+    );
+  };
 
   function tocarMedio(m: MetodoPago) {
     setF((x) => {
@@ -215,40 +283,63 @@ export function ApartarVista({
     <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_420px]">
       {/* Izquierda: solo lo escaneado, nunca el catálogo entero. */}
       <div className="flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-r lg:border-b-0">
-        <form onSubmit={buscar} className="flex flex-col gap-2.5 sm:flex-row" autoComplete="off">
-          <label className="flex h-14 w-full items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-taupe sm:flex-1">
-            <ScanBarcode className="h-5 w-5 shrink-0 text-tinta/60" aria-hidden />
-            <input ref={escaner} autoFocus value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Escanea la etiqueta o escribe el código de la prenda" aria-label="Código de la prenda" className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-tinta/40" />
-          </label>
+        <div className="flex flex-col gap-2.5 sm:flex-row">
+          <div className="relative z-20 w-full sm:flex-1">
+            <label className="flex h-14 w-full items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-taupe">
+              <ScanBarcode className="h-5 w-5 shrink-0 text-tinta/60" aria-hidden />
+              <input
+                ref={escaner}
+                autoFocus
+                value={texto}
+                onChange={(e) => escribir(e.target.value)}
+                onKeyDown={teclado}
+                placeholder="Escanea la etiqueta o busca la prenda por nombre"
+                aria-label="Escanea la etiqueta o busca la prenda por nombre"
+                autoComplete="off"
+                role="combobox"
+                aria-expanded={abierta}
+                aria-controls="apt-resultados"
+                aria-activedescendant={abierta && disponibles.length ? `apt-op-${activo}` : undefined}
+                aria-autocomplete="list"
+                className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-tinta/40"
+              />
+              {texto && (
+                <button type="button" aria-label="Limpiar búsqueda" onClick={() => escribir("")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-base text-tinta/50 hover:bg-sand/40">
+                  ×
+                </button>
+              )}
+            </label>
+            {abierta && (
+              <ul id="apt-resultados" role="listbox" aria-label="Prendas encontradas" className="card-cayla anim-globo scroll-cayla absolute top-16 right-0 left-0 max-h-[430px] divide-y divide-sand overflow-y-auto !p-0 shadow-lg">
+                {disponibles.length + agotadas.length === 0 ? (
+                  <li className="px-4 py-5 text-sm text-tinta/65">No encontramos «{texto.trim()}» en {ubicacionEtiqueta}.</li>
+                ) : (
+                  <>
+                    {disponibles.map((v, i) => filaResultado(v, i))}
+                    {agotadas.length > 0 && (
+                      <li role="presentation" className="label-cayla bg-sand/25 px-4 py-2 text-[10.5px] text-tinta/50">
+                        Sin disponible en {ubicacionEtiqueta}
+                      </li>
+                    )}
+                    {agotadas.map((v) => filaResultado(v, null))}
+                  </>
+                )}
+              </ul>
+            )}
+          </div>
           <button type="button" onClick={irAEntregar} className="label-cayla h-12 rounded-xl border border-sand bg-papel px-4 text-[11px] text-tinta hover:border-taupe sm:h-14">
             Buscar apartado
           </button>
-        </form>
+        </div>
         {mensaje && (
           <p role="status" className={`text-[13px] ${mensaje.tono === "error" ? "text-rojo-profundo" : mensaje.tono === "ok" ? "text-verde-profundo" : "text-tinta/70"}`}>
             {mensaje.texto}
           </p>
         )}
-        {sugeridas.length > 0 && (
-          <ul className="divide-y divide-sand overflow-hidden rounded-xl border border-sand">
-            {sugeridas.map((s) => (
-              <li key={s.varianteId}>
-                <button type="button" onClick={() => agregar(s.varianteId)} className="flex w-full items-center justify-between gap-3 bg-papel px-4 py-2.5 text-left text-sm hover:bg-crema">
-                  <span>
-                    <b className="font-semibold">{s.referencia}</b> · {s.color ?? "—"} · {s.talla ?? "—"} <span className="font-mono text-[11px] text-tinta/55">{s.sku}</span>
-                  </span>
-                  <span className="shrink-0 tabular-nums text-tinta/70">
-                    {money(precioFinal(s))} · {s.stockAqui} disp.
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
 
         {p ? (
           <article className="anim-revelar grid gap-5 rounded-2xl border border-sand bg-papel p-4 sm:grid-cols-[200px_minmax(0,1fr)]">
-            <FotoPrenda fotoUrl={p.fotoUrl} referencia={p.referencia} className="w-full max-w-[200px]" />
+            <FotoPrenda fotoUrl={p.fotoUrl} referencia={p.referencia} ancho={200} className="w-full max-w-[200px]" />
             <div className="flex min-w-0 flex-col">
               <p className="label-cayla text-[11px] text-tinta/60">Recién escaneada</p>
               <h3 className="font-display mt-1 text-2xl text-tinta">{p.referencia}</h3>
@@ -283,7 +374,7 @@ export function ApartarVista({
                 <ScanBarcode className="h-7 w-7 text-tinta/70" aria-hidden />
               </div>
               <p className="font-display text-2xl text-tinta">Escanea la prenda que la clienta quiere apartar</p>
-              <p className="mx-auto mt-2 max-w-md text-sm text-tinta/60">Aquí no hay catálogo: solo aparece lo que pasas por la pistola. Si escribes un nombre, eliges la talla y el color exactos.</p>
+              <p className="mx-auto mt-2 max-w-md text-sm text-tinta/60">Pasa la etiqueta por la pistola. Si no la tienes, escribe el nombre o el color: la lista muestra la foto de cada prenda.</p>
             </div>
           </div>
         )}
@@ -296,7 +387,7 @@ export function ApartarVista({
                 const r = porId.get(id)!;
                 return (
                   <button key={id} type="button" onClick={() => agregar(id)} className="flex items-center gap-2.5 rounded-xl border border-sand bg-papel p-2 text-left hover:border-taupe">
-                    <FotoPrenda fotoUrl={r.fotoUrl} referencia={r.referencia} className="w-11" />
+                    <FotoPrenda fotoUrl={r.fotoUrl} referencia={r.referencia} ancho={44} className="w-11" />
                     <span className="min-w-0 text-xs">
                       <b className="block truncate text-[13px] font-semibold">{r.referencia}</b>
                       <span className="text-tinta/60">{r.color ?? "—"} · {r.talla ?? "—"} · {r.stockAqui} disp.</span>
