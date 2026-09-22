@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type {
   Colaborador,
   ColaboradorInactivo,
+  ColaboradorPendiente,
   ColaboradorSuspendido,
   DynamicDisponible,
   EventoAcceso,
@@ -19,15 +20,15 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TabsSubrayado } from "@/components/ui/TabsSubrayado";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { AgregarColaboradoresModal, CambiarUbicacionModal, QuitarAccesoModal, SuspenderModal } from "@/components/ColaboradoresModales";
-import { ListaActividad, TablaActivos, TablaInactivas, TablaSuspendidos } from "@/components/ColaboradoresTablas";
+import { ListaActividad, TablaActivos, TablaInactivas, TablaPendientes, TablaSuspendidos } from "@/components/ColaboradoresTablas";
 
-type Pestana = "activos" | "suspendidos" | "inactivas" | "actividad";
+type Pestana = "activos" | "pendientes" | "suspendidos" | "inactivas" | "actividad";
 
 type Modal =
   | { tipo: "agregar" }
   | { tipo: "suspender"; persona: Colaborador }
   | { tipo: "ubicacion"; persona: Colaborador }
-  | { tipo: "quitar"; persona: { persona_id: string; nombre: string }; suspendida: boolean };
+  | { tipo: "quitar"; persona: { persona_id: string; nombre: string }; suspendida: boolean; pendiente?: boolean };
 
 const entrada =
   "card-cayla w-full px-3 py-2 text-sm text-tinta outline-none placeholder:text-tinta/55 focus:border-rojo sm:w-80";
@@ -44,6 +45,7 @@ function Vacio({ children }: { children: React.ReactNode }) {
 // la base y recargan los datos del servidor.
 export function ColaboradoresPanel({
   colaboradores,
+  pendientes,
   suspendidos,
   inactivos,
   actividad,
@@ -53,6 +55,7 @@ export function ColaboradoresPanel({
   alActualizar,
 }: {
   colaboradores: Colaborador[];
+  pendientes: ColaboradorPendiente[];
   suspendidos: ColaboradorSuspendido[];
   inactivos: ColaboradorInactivo[];
   actividad: EventoAcceso[];
@@ -140,6 +143,7 @@ export function ColaboradoresPanel({
         clasePestana="px-1 py-3 text-sm"
         items={[
           { clave: "activos", etiqueta: "Activos", conteo: colaboradores.length },
+          { clave: "pendientes", etiqueta: "Pendientes", conteo: pendientes.length, tono: pendientes.length > 0 ? "ambar" : undefined },
           { clave: "suspendidos", etiqueta: "Suspendidos", conteo: suspendidos.length, tono: suspendidos.length > 0 ? "ambar" : undefined },
           { clave: "inactivas", etiqueta: "Inactivas en Dynamic", conteo: inactivos.length },
           { clave: "actividad", etiqueta: "Actividad", conteo: totalActividad },
@@ -183,6 +187,28 @@ export function ColaboradoresPanel({
                   ? plural(filas.length, "persona con acceso", "personas con acceso")
                   : `${filas.length} de ${plural(colaboradores.length, "persona", "personas")}`}
               </p>
+            </>
+          )}
+        </section>
+      )}
+
+      {pestana === "pendientes" && (
+        <section aria-label="Altas pendientes de aprobación" className="space-y-3">
+          {pendientes.length === 0 ? (
+            <Vacio>No hay altas esperando aprobación.</Vacio>
+          ) : (
+            <>
+              <p className="text-sm text-tinta/70">
+                Un líder propuso el alta de estas personas (D-70): todavía no pueden vender, abrir caja ni mover stock hasta que alguien —el mismo líder u otro— la apruebe.
+              </p>
+              <TablaPendientes
+                filas={pendientes}
+                ocupadoId={ocupadoId}
+                onAprobar={(c) =>
+                  ejecutar(c.persona_id, "aprobar el alta", () => acciones.aprobar(c.persona_id), `${c.nombre} ya puede entrar a retail`)
+                }
+                onRechazar={(c) => setModal({ tipo: "quitar", persona: c, suspendida: false, pendiente: true })}
+              />
             </>
           )}
         </section>
@@ -263,9 +289,16 @@ export function ColaboradoresPanel({
         <QuitarAccesoModal
           nombre={modal.persona.nombre}
           suspendida={modal.suspendida}
+          pendiente={modal.pendiente}
           onClose={() => setModal(null)}
           onConfirmar={() =>
-            ejecutar(modal.persona.persona_id, "quitar el acceso", () => acciones.quitar(modal.persona.persona_id), "Acceso quitado", "La persona ya no puede entrar al sistema de retail.")
+            ejecutar(
+              modal.persona.persona_id,
+              modal.pendiente ? "rechazar el alta" : "quitar el acceso",
+              () => acciones.quitar(modal.persona.persona_id),
+              modal.pendiente ? "Alta rechazada" : "Acceso quitado",
+              modal.pendiente ? "La propuesta de alta se descartó." : "La persona ya no puede entrar al sistema de retail."
+            )
           }
         />
       )}
