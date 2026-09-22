@@ -9,6 +9,7 @@ import {
   textoNumeroRecibo,
   textoQrSunat,
   TITULO_DOCUMENTO,
+  desglosaIgv,
   type ReciboVenta,
 } from "@/lib/recibo-reglas";
 
@@ -35,7 +36,8 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
   const { fecha, hora } = fechaHoraLima(recibo.emitidoEn);
   const cli = recibo.cliente;
   const tieneDoc = cli.tipoDoc !== "sin_documento" && !!cli.numDoc;
-  const qr = emisor.ruc ? textoQrSunat(recibo, emisor.ruc) : null;
+  const fiscal = desglosaIgv(recibo.tipo);
+  const qr = fiscal && emisor.ruc ? textoQrSunat(recibo, emisor.ruc) : null;
   const contacto = [emisor.telefono, emisor.email].filter(Boolean);
 
   return (
@@ -103,14 +105,18 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
       ))}
 
       <div className="rt-linea" />
-      <div className="rt-fila">
-        <span>Subtotal (sin IGV)</span>
-        <span>{s(recibo.subtotal)}</span>
-      </div>
-      <div className="rt-fila">
-        <span>IGV 18%</span>
-        <span>{s(recibo.igv)}</span>
-      </div>
+      {fiscal && (
+        <>
+          <div className="rt-fila">
+            <span>Subtotal (sin IGV)</span>
+            <span>{s(recibo.subtotal)}</span>
+          </div>
+          <div className="rt-fila">
+            <span>IGV 18%</span>
+            <span>{s(recibo.igv)}</span>
+          </div>
+        </>
+      )}
       <div className="rt-fila rt-total">
         <span>TOTAL</span>
         <span>{s(recibo.total)}</span>
@@ -143,10 +149,16 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
 
       <div className="rt-linea" />
       <footer className="rt-centro rt-pie">
-        <p>Representación impresa de la {recibo.tipo === "factura" ? "factura" : "boleta de venta"} electrónica.</p>
-        {emisor.resolucion && <p>Autorizado mediante resolución N° {emisor.resolucion}</p>}
+        {fiscal ? (
+          <>
+            <p>Representación impresa de la {recibo.tipo === "factura" ? "factura" : "boleta de venta"} electrónica.</p>
+            {emisor.resolucion && <p>Autorizado mediante resolución N° {emisor.resolucion}</p>}
+          </>
+        ) : (
+          <p>Documento sin valor tributario. No es un comprobante de pago.</p>
+        )}
         <p>
-          Cambios dentro de {DIAS_PLAZO_CAMBIO} días con este comprobante.
+          Cambios dentro de {DIAS_PLAZO_CAMBIO} días con este {fiscal ? "comprobante" : "documento"}.
           {emisor.web && ` Más en ${emisor.web}`}
         </p>
         <p className="rt-lema">{emisor.lema}</p>

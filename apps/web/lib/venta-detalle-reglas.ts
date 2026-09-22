@@ -89,7 +89,8 @@ export function armarDetalleVenta(filas: FilasVenta, ctx: { sede: string; vended
   const atendio = ctx.vendedor ? (nombresCortos([ctx.vendedor]).get(ctx.vendedor) ?? null) : null;
 
   const c = filas.comprobante;
-  const esFiscal = c !== null && (c.tipo === "boleta" || c.tipo === "factura");
+  // Imprimible: boleta, factura y la nota de venta (ADR-0164), que sale en el mismo papel sin IGV.
+  const esFiscal = c !== null && (c.tipo === "boleta" || c.tipo === "factura" || c.tipo === "nota_venta");
   const recibo = esFiscal
     ? armarRecibo({
         comprobante: { tipo: c.tipo as TipoReciboFiscal, serie: c.serie, numero: c.numero, created_at: c.created_at },
@@ -148,5 +149,8 @@ export function puedeImprimir(estado: EstadoComprobante): { ok: true; leyenda: s
       return { ok: false, motivo: "Este comprobante está anulado: no se puede imprimir." };
     case "no_emitido":
       return { ok: false, motivo: "Este comprobante no se emitió: no hay nada que imprimir." };
+    case "interna":
+      // La nota de venta: el papel ya dice «Documento sin valor tributario», no hay validación que esperar.
+      return { ok: true, leyenda: null };
   }
 }

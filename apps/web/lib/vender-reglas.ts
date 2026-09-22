@@ -338,7 +338,7 @@ export function necesitaArgumentoEscrito(esLider: boolean, porcentaje: number): 
   return esLider && porcentaje > 20;
 }
 
-// ---- «¿Quién atendió a la clienta?» (ADR-0161) ------------------------------------------------
+// ---- «¿Quién atendió a la clienta?» (ADR-0163) ------------------------------------------------
 // En una tienda con UN equipo de caja y varias colaboradoras, la sesión no dice quién vendió. La fila de
 // chips ofrece a quienes marcaron entrada hoy en Dynamic (`fn_asesoras_de_turno`) y la venta se guarda en
 // `ventas.asesora_id`. Estas reglas viven acá, sin React, para probarlas sin navegador.

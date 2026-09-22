@@ -160,7 +160,7 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-venta
 
-      # «Quién vendió» (ADR-0161): la venta guarda a quien atendió (asesora_id) Y a la sesión, «Ventas de hoy»
+      # «Quién vendió» (ADR-0163): la venta guarda a quien atendió (asesora_id) Y a la sesión, «Ventas de hoy»
       # la firma con quien atendió y queda una sola registrar_venta. Cada caso termina en ROLLBACK.
       - name: pruebas:vendedora-en-venta
         if: ${{ always() && steps.supabase.outcome == 'success' }}

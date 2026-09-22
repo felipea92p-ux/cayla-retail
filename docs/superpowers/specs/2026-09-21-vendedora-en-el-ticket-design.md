@@ -1,6 +1,6 @@
 # «Quién vendió» en el ticket del Punto de venta — diseño
 
-> **Reemplazado el 2026-09-22** (ADR-0161): la columna es `ventas.asesora_id` y la lista sale de la asistencia de Dynamic, no de un interruptor del líder. Se conserva como historia.
+> **Reemplazado el 2026-09-22** (ADR-0163): la columna es `ventas.asesora_id` y la lista sale de la asistencia de Dynamic, no de un interruptor del líder. Se conserva como historia.
 
 **Fecha:** 2026-09-21 · **Estado:** diseño aprobado en el chat el 2026-09-21; falta la revisión de este documento.
 **Rama:** `claude/pos-ticket-seller-selection-95d5b3` · **ADR:** pendiente (el número se toma al cerrar, mirando las ramas remotas; el «siguiente libre» de `main` ya chocó varias veces).

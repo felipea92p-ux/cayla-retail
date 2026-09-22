@@ -17,7 +17,7 @@ type Props = {
  * «¿Quién atendió a la clienta?» — la fila de chips arriba del ticket. Un toque, sin desplegable: en una
  * tienda con varias colaboradoras y UN equipo de caja, la sesión no dice quién vendió. Sin estado ni hooks:
  * la elección vive en `PuntoDeVenta`, que la manda a `registrar_venta` (`p_asesora_id`). Quiénes salen lo decide
- * la asistencia de Dynamic (`vendedorasDeTurno`, ADR-0161).
+ * la asistencia de Dynamic (`vendedorasDeTurno`, ADR-0163).
  *
  *  · 2 o más de turno: los chips, SIN ninguna preseleccionada (el silencio no atribuye la venta a nadie).
  *  · Una: «Atiende X», sin chips. Ninguna: nada que mostrar, la venta sale a nombre de la sesión.

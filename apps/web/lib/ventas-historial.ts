@@ -93,8 +93,8 @@ function consulta(supabase: Supabase, select: string, f: FiltrosHistorial, conPr
   // datos de prueba» lo trae de vuelta.
   if (conPrueba && !f.incluirPrueba) q = q.eq("es_prueba", false);
   if (f.pago) q = q.eq("pago_filtro.metodo", f.pago);
-  // Una nota de crédito corrige un comprobante, no ampara la venta: solo boleta y factura cuentan.
-  if (f.comprobante !== "todos") q = q.in("comp_filtro.tipo", ["boleta", "factura"]);
+  // Una nota de crédito corrige un comprobante, no ampara la venta: cuentan boleta, factura y nota de venta (ADR-0164).
+  if (f.comprobante !== "todos") q = q.in("comp_filtro.tipo", ["boleta", "factura", "nota_venta"]);
   if (f.comprobante === "sin") q = q.is("comp_filtro", null);
   return q;
 }

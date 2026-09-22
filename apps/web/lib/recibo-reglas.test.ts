@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { armarRecibo, fechaHoraLima, montoEnLetras, textoNumeroRecibo, textoQrSunat } from "./recibo-reglas";
+import { armarRecibo, desglosaIgv, fechaHoraLima, montoEnLetras, textoNumeroRecibo, textoQrSunat, TITULO_DOCUMENTO } from "./recibo-reglas";
 
 // El comprobante impreso es lo que la clienta se lleva y lo que SUNAT puede cotejar: si un
 // número acá se descuadra por un centavo, el papel y la base dicen cosas distintas.
@@ -145,5 +145,28 @@ describe("armarRecibo — quién atendió", () => {
 
   it("sin dato queda en null: no se inventa a nadie", () => {
     expect(armarRecibo(entrada).atendio).toBeNull();
+  });
+});
+
+describe("armarRecibo — nota de venta (ADR-0164)", () => {
+  const nv = armarRecibo({
+    comprobante: { tipo: "nota_venta", serie: "NV01", numero: 1, created_at: "2026-09-22T19:32:00Z" },
+    sede: "Tienda TRU",
+    cliente: { tipoDoc: "sin_documento", numDoc: null, nombre: null },
+    lineas: [{ cantidad: 1, referencia: "Blusa Emma", codigo: "CMS-1", precioUnitario: 79.9, descuentoUnitario: 0 }],
+    pagos: [{ metodo: "efectivo", monto: 79.9 }],
+    tasaIgv: 0.18,
+  });
+
+  it("la clienta paga lo mismo que con boleta; el papel no separa el IGV", () => {
+    expect(nv.total).toBe(79.9);
+    expect(nv.igv).toBe(0);
+    expect(nv.subtotal).toBe(79.9);
+  });
+
+  it("no es un comprobante de pago: título propio y sin lo que pide SUNAT", () => {
+    expect(TITULO_DOCUMENTO.nota_venta).toBe("NOTA DE VENTA");
+    expect(desglosaIgv("nota_venta")).toBe(false);
+    expect(desglosaIgv("boleta")).toBe(true);
   });
 });

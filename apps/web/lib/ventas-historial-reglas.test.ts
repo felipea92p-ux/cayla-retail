@@ -442,3 +442,10 @@ describe("agruparEnSemanas", () => {
     ]);
   });
 });
+
+describe("elegirComprobante — la nota de venta (ADR-0164)", () => {
+  it("una venta con nota de venta la muestra, no «sin comprobante»", () => {
+    const nv = { tipo: "nota_venta", serie: "NV01", numero: 3, estado: "interna", created_at: "2026-09-22T17:06:00+00:00" };
+    expect(elegirComprobante([nv])).toEqual({ tipo: "nota_venta", numero: "NV01-000003", estado: "interna" });
+  });
+});

@@ -195,10 +195,10 @@ export type ComprobanteVenta = { tipo: TipoComprobante; numero: string; estado: 
 
 const ESTADOS_MUERTOS = ["anulado", "rechazado", "no_emitido"];
 
-/** El comprobante que ampara la venta: solo boleta o factura (una nota de crédito corrige, no ampara). Si hubo
+/** El documento de la venta: boleta, factura o nota de venta (ADR-0164; una nota de crédito corrige, no ampara). Si hubo
  *  más de uno, el más reciente que siga vivo; si todos murieron, el más reciente — así se ve por qué. */
 export function elegirComprobante(cs: VentaCruda["comprobantes"]): ComprobanteVenta | null {
-  const propios = cs.filter((c) => c.tipo === "boleta" || c.tipo === "factura").sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const propios = cs.filter((c) => c.tipo === "boleta" || c.tipo === "factura" || c.tipo === "nota_venta").sort((a, b) => b.created_at.localeCompare(a.created_at));
   const c = propios.find((x) => !ESTADOS_MUERTOS.includes(x.estado)) ?? propios[0];
   return c ? { tipo: c.tipo as TipoComprobante, numero: textoNumeroRecibo(c), estado: c.estado as EstadoComprobante } : null;
 }

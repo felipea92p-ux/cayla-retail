@@ -236,7 +236,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // Quién atendió a la clienta (la fila de chips del ticket). `null` = todavía no se tocó ninguna.
   const [vendedoraElegida, setVendedoraElegida] = useState<string | null>(null);
   // El modal «¿Quiénes atienden en caja?» (solo un líder llega a abrirlo).
-  // Quién atendió: las que marcaron entrada hoy en Dynamic, releídas cada minuto (ADR-0161). Ninguna = se vende
+  // Quién atendió: las que marcaron entrada hoy en Dynamic, releídas cada minuto (ADR-0163). Ninguna = se vende
   // como antes, a nombre de la sesión; una sola = es ella, sin tocar nada.
   const { vendedoras, sinAsistencia: vendedorasSinAsistencia, noCargaron: vendedorasNoCargaron } = useVendedorasDeTurno(ubicacionId);
   // Tickets en espera de ESTA sede. Arranca vacío a propósito y se carga después de
@@ -250,7 +250,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // que subiera (ADR-0036, addendum "por sede").
   const [cola, setCola] = useState<VentaEncolada[]>([]);
   const claveCola = claveLocal(ubicacionId, "cola");
-  const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura">>("boleta");
+  const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">>("boleta");
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [clienteNombre, setClienteNombre] = useState("");
   const [aviso, setAviso] = useState<string | null>(null);
@@ -869,7 +869,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     let estado: EstadoComprobante | null = null;
     if (ventaId) {
       const { data: comp } = await supabase.from("comprobantes").select("tipo, serie, numero, estado, created_at").eq("venta_id", ventaId).maybeSingle();
-      if (comp && (comp.tipo === "boleta" || comp.tipo === "factura")) {
+      if (comp && (comp.tipo === "boleta" || comp.tipo === "factura" || comp.tipo === "nota_venta")) {
         estado = comp.estado as EstadoComprobante;
         // Sale de lo que se acaba de cobrar (mismos ítems, descuentos y pagos que vio la
         // cajera, con el vuelto) más lo que la base asignó: serie, número y fecha.

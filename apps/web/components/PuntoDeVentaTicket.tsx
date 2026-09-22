@@ -202,8 +202,8 @@ type Props = {
   /** Lo entregado en efectivo (null = borrar). Solo de pantalla, para el vuelto. */
   onRecibido: (monto: number | null) => void;
   // Comprobante + documento de la clienta
-  tipoComprobante: Extract<TipoComprobante, "boleta" | "factura">;
-  onTipoComprobante: (t: Extract<TipoComprobante, "boleta" | "factura">) => void;
+  tipoComprobante: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">;
+  onTipoComprobante: (t: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">) => void;
   clienteNumDoc: string;
   onClienteNumDoc: (v: string) => void;
   clienteNombre: string;
@@ -945,8 +945,8 @@ export function PuntoDeVentaTicket({
                       {paso === "comprobante" && <PastillaPaso>Opcional</PastillaPaso>}
                     </span>
                   </legend>
-                  <div className="grid grid-cols-2 gap-1 rounded-lg bg-sand/50 p-1">
-                    {(["boleta", "factura"] as const).map((t) => (
+                  <div className="grid grid-cols-3 gap-1 rounded-lg bg-sand/50 p-1">
+                    {(["boleta", "factura", "nota_venta"] as const).map((t) => (
                       <button
                         key={t}
                         type="button"
@@ -957,7 +957,7 @@ export function PuntoDeVentaTicket({
                           tipoComprobante === t ? OPCION_ACTIVA : OPCION_INACTIVA
                         }`}
                       >
-                        {t === "boleta" ? <Receipt className={ICONO_CHICO} aria-hidden /> : <FileText className={ICONO_CHICO} aria-hidden />}
+                        {t === "factura" ? <FileText className={ICONO_CHICO} aria-hidden /> : <Receipt className={ICONO_CHICO} aria-hidden />}
                         {ETIQUETA_TIPO[t]}
                       </button>
                     ))}
@@ -972,6 +972,9 @@ export function PuntoDeVentaTicket({
                       onNombre={onClienteNombre}
                     />
                   </fieldset>
+                  {tipoComprobante === "nota_venta" && (
+                    <p className="text-[11px] text-tinta/60">Documento interno de la tienda: no se envía a SUNAT y no desglosa IGV.</p>
+                  )}
                 </fieldset>
               </div>
             </div>
@@ -1183,12 +1186,15 @@ export function PuntoDeVentaTicket({
                 así que el pie no crece. El precio ya trae el IGV: subtotal + IGV = total. */}
             <div className="text-xs text-tinta/60">
               <p>{etiquetaPrendas}</p>
-              <dl className="grid grid-cols-[auto_auto] justify-start gap-x-3 tabular-nums">
-                <dt>Subtotal</dt>
-                <dd className="text-right">{money(desglose.subtotal)}</dd>
-                <dt>IGV ({(TASA_IGV * 100).toFixed(0)}%)</dt>
-                <dd className="text-right">{money(desglose.igv)}</dd>
-              </dl>
+              {/* La nota de venta no desglosa IGV (ADR-0164): el pie muestra solo el total. */}
+              {tipoComprobante !== "nota_venta" && (
+                <dl className="grid grid-cols-[auto_auto] justify-start gap-x-3 tabular-nums">
+                  <dt>Subtotal</dt>
+                  <dd className="text-right">{money(desglose.subtotal)}</dd>
+                  <dt>IGV ({(TASA_IGV * 100).toFixed(0)}%)</dt>
+                  <dd className="text-right">{money(desglose.igv)}</dd>
+                </dl>
+              )}
             </div>
             <div className="text-right">
               <p className="label-cayla text-[11px] text-tinta/60">Total</p>

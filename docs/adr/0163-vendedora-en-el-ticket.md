@@ -1,6 +1,8 @@
-# ADR-0161 — «Quién vendió»: la fila «Atendió» del ticket sale de la asistencia de Dynamic
+# ADR-0163 — «Quién vendió»: la fila «Atendió» del ticket sale de la asistencia de Dynamic
 
 **Fecha:** 2026-09-21, rehecho el 2026-09-22 · **Estado:** aceptado (Felipe, 2026-09-22: «1A 2A 3A», ver abajo). Migración `20260922213700_ventas_del_dia_firma_con_quien_atendio.sql` **sin pegar en producción** · **Se apoya en:** ADR-0153 (`ventas.asesora_id`, `fn_asesoras_de_turno`, `registrar_venta` con `p_asesora_id` — ya en producción)
+
+> **Número:** nació como ADR-0152 y luego 0161; los dos ya estaban tomados por otras ramas. El comentario dentro del cuerpo de `fn_ventas_del_dia` (20260922213700, ya en producción) todavía dice «ADR-0161»: se dejó así para que la huella del repo siga igual a la de producción.
 
 ## Contexto
 

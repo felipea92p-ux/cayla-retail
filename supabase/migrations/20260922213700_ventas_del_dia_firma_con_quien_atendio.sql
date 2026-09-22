@@ -3,7 +3,7 @@
 --
 -- QUÉ HACE. «Ventas de hoy» (`fn_ventas_del_dia`) firma cada venta con quien atendió a la clienta
 -- (`ventas.asesora_id`) y, si la caja no eligió a nadie, con la sesión que cobró (`usuario_id`), como
--- hasta hoy. Misma firma y mismas columnas: Caja, Vender y Facturación no notan el cambio. ADR-0161.
+-- hasta hoy. Misma firma y mismas columnas: Caja, Vender y Facturación no notan el cambio. ADR-0163.
 --
 -- POR QUÉ. El Punto de venta ya elige quién atendió (fila «Atendió», alimentada por la asistencia de
 -- Dynamic vía `fn_asesoras_de_turno`) y lo manda en `p_asesora_id` a `registrar_venta` — ambas cosas
@@ -77,4 +77,4 @@ as $function$
 $function$;
 
 comment on function retail.fn_ventas_del_dia(uuid) is
-  'Lo vendido hoy (hora de Lima): UNA fila por venta completada, con su comprobante vigente (o el más nuevo si solo hay anulados/no emitidos). El vendedor es quien atendió (ventas.asesora_id) y, si no se eligió, la sesión que cobró (ADR-0161). Un líder ve todas las sedes o la que pida; el resto, la suya. Sin ventas anuladas (ADR-0110). El nombre de la clienta sale de `clientas`.';
+  'Lo vendido hoy (hora de Lima): UNA fila por venta completada, con su comprobante vigente (o el más nuevo si solo hay anulados/no emitidos). El vendedor es quien atendió (ventas.asesora_id) y, si no se eligió, la sesión que cobró (ADR-0163). Un líder ve todas las sedes o la que pida; el resto, la suya. Sin ventas anuladas (ADR-0110). El nombre de la clienta sale de `clientas`.';

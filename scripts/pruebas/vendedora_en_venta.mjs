@@ -5,7 +5,7 @@
  * QUÉ PRUEBA. Que la venta guarde a quien atendió (`ventas.asesora_id`, parámetro `p_asesora_id` de
  * `registrar_venta`, desde 20260922150000) SIN perder a la sesión que cobró (`usuario_id`), que «Ventas de
  * hoy» la firme con quien atendió (20260922213700), que quede UNA sola versión de `registrar_venta`, y que
- * la lectura de turno (`fn_asesoras_de_turno`) no rompa nada donde no hay asistencia de Dynamic. ADR-0161.
+ * la lectura de turno (`fn_asesoras_de_turno`) no rompa nada donde no hay asistencia de Dynamic. ADR-0163.
  *
  * CÓMO. Mismo patrón que `registrar_venta.mjs` (léelo primero si algo no se entiende): cada escenario
  * corre en su propia transacción con ROLLBACK, hablando con Postgres por `docker exec … psql`, y simula
