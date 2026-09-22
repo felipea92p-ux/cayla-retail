@@ -462,6 +462,11 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   guardado desde ADR-0139) en vez de agregar uno nuevo, para no crear una sobrecarga. Candado de esquema: la gestora tiene que tener parte en el
   reparto (también para el líder), con un disparador diferido que protege incluso escribir el reparto directo. Un comprador registra sin pago
   (pagar es F4); `fn_compra_es_de_mis_tiendas` se amplía para que la gestora vea la factura entera. `cambiar_tienda_gestora_compra`: solo líder.
+  **F4 (migración `20260922170000`, solo en local):** `compra_pagos.ubicacion_id` + `fn_saldo_de_tienda(compra, ubicacion)` (su parte menos lo
+  que ya pagó ESA tienda; todavía no resta notas de crédito por tienda, eso es F6). Las tres RPC de pago (`registrar_pagos_compra`,
+  `registrar_pago_compras`, `registrar_pago_compras_medios`) ganan `p_ubicacion_id uuid default null` al final (`drop` + `create` explícito,
+  no solo `create or replace`, para no dejar dos firmas vivas — y con sus propios `revoke`/`grant` después, porque el objeto nuevo no hereda
+  los permisos del viejo). Sin tienda, solo el líder; con tienda, un candado de esquema (disparador diferido) impide superar su saldo.
 - **Un comprobante se reparte entre tiendas y cada tienda recibe lo suyo** (2026-09-19, ADR-0139; migraciones `20260919172000`
   + `20260919173000`, **en producción desde el 2026-09-20**). La factura ya no tiene un destino (`compras.ubicacion_destino_id` se
   elimina): tiene un **reparto por línea y tienda**, `compra_item_destinos` (siempre existe, aunque sea de una sola tienda; su

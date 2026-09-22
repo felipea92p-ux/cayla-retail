@@ -40,6 +40,7 @@
     "pruebas:compras-dinero-por-tienda": "node scripts/pruebas/compras_dinero_por_tienda.mjs",
     "pruebas:compras-parte-por-tienda": "node scripts/pruebas/compras_parte_por_tienda.mjs",
     "pruebas:compras-tienda-gestora": "node scripts/pruebas/compras_tienda_gestora.mjs",
+    "pruebas:compras-pagar-por-tienda": "node scripts/pruebas/compras_pagar_por_tienda.mjs",
     "pruebas:pago-por-lote-medios": "node scripts/pruebas/pago_por_lote_medios.mjs",
     "pruebas:pagos-compras-endurecimiento": "node scripts/pruebas/pagos_compras_endurecimiento.mjs",
     "pruebas:notas-credito": "node scripts/pruebas/notas_credito_modulo.mjs",

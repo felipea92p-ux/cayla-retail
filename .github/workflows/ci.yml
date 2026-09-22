@@ -326,6 +326,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:compras-tienda-gestora
 
+      # Pagar por tienda (ADR-0151, F4): un comprador paga solo la parte de SU tienda (también en facturas que gestiona
+      # otra) y no puede superar su saldo (candado de esquema); el líder sigue pagando sin atarse a ninguna tienda;
+      # «pagar juntos» respeta la regla por cada comprobante del lote (todo o nada); las tres RPC de pago no quedan
+      # abiertas a PUBLIC/anon. Carga las cinco migraciones DENTRO de cada caso, que termina en ROLLBACK.
+      - name: pruebas:compras-pagar-por-tienda
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:compras-pagar-por-tienda
+
       # Módulo Notas de crédito: el tablero trae notas y pendientes con sus montos (incluido el
       # monto_esperado del faltante cerrado y el a_favor de la nota que superó la deuda), registrar con
       # destino «a_favor» deja el mismo estado que la RPC de antes, con «reembolso» nacen nota y
