@@ -199,7 +199,7 @@ Expected: PASS, tsc sin errores.
 ### Task 2: Migración — número, nota, venta enlazada, `crear_proforma` v2 y `marcar_proforma_cobrada`
 
 **Files:**
-- Create: `supabase/migrations/20260922235700_proformas_con_prendas.sql` (antes de crear: `ls supabase/migrations | sort | tail -3` y usar un timestamp posterior al último, minutos no redondos)
+- Create: `supabase/migrations/20260923094700_proformas_con_prendas.sql` (antes de crear: `ls supabase/migrations | sort | tail -3` y usar un timestamp posterior al último, minutos no redondos)
 - Modify: `packages/database/src/types.ts` (regenerar después de aplicar en local)
 
 **Interfaces:**
@@ -368,7 +368,7 @@ revoke execute on function retail.convertir_proforma_a_comprobante from authenti
 - [ ] **Step 2: Ensayar en local dentro de una transacción** (no deja nada)
 
 ```bash
-cd supabase/migrations && sed 's/\r$//' 20260922235700_proformas_con_prendas.sql > "$TEMP/m.sql"
+cd supabase/migrations && sed 's/\r$//' 20260923094700_proformas_con_prendas.sql > "$TEMP/m.sql"
 ```
 
 Luego, en una sola llamada: `(echo "begin; set search_path to retail, public;"; cat "$TEMP/m.sql"; cat pruebas.sql; echo "rollback;") | docker exec -i supabase_db_cayla-retail psql -U postgres -v ON_ERROR_STOP=1`, con `pruebas.sql` (en el scratchpad):
