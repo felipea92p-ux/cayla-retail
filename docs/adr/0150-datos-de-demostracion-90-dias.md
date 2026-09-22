@@ -1,5 +1,43 @@
 # ADR-0150 — Datos de demostración: 90 días de historia sintética, cargados con un generador SQL desechable
 
+## Traspaso a otra sesión o cuenta (léelo primero, actualizado 2026-09-22)
+
+- **Rama:** `claude/inject-3-month-data-eae360`, ya subida a `origin` (antes solo vivía en un worktree local). `git fetch` y
+  `git checkout claude/inject-3-month-data-eae360` para retomarla. Está **224 commits detrás de `main`** — normal para una
+  rama de trabajo que no se ha fusionado; no hace falta ponerla al día para seguir escribiendo el generador, solo para el
+  día en que se abra el PR final.
+- **Estado real (commit `925fec11`):** Fases 1-4 completas, ensayadas y comprometidas. Fase 5 (postventa/gastos/Taller):
+  investigación terminada (7 agentes en paralelo + síntesis, ver abajo) y **2 de 8 piezas ya escritas y probadas**: 5.1
+  (serie de Nota de Crédito) y el parche a la Fase 4 ya comprometida (sección 4.6b, selección de anulaciones). Faltan 6:
+  anulaciones (completar `venta_anulacion_items`), cambios, devoluciones+NC, conteos, cuarentena, gastos+proformas,
+  producción del Taller, y un cierre financiero único de cajas al final de la fase.
+- **Las 7 recetas verificadas NO viven solo en este ADR** (aquí hay un resumen ejecutivo) — el detalle completo, palabra por
+  palabra contra producción en vivo, está en dos archivos nuevos que hay que leer ANTES de escribir el resto de la Fase 5:
+  - `docs/demo-90-dias/fase-5-recetas-verificadas.md` — las 7 recetas completas (devoluciones+NC, cambios, anulaciones,
+    conteos+cuarentena, gastos+proformas, producción-infra, producción-órdenes) + la síntesis cruzada íntegra. Esto existía
+    solo en el resultado de un `Workflow` (carpeta temporal de la sesión que lo corrió) — si no se hubiera volcado a un
+    archivo del repo, se habría perdido al cerrar esa sesión.
+  - `docs/demo-90-dias/fase-5-produccion-taller-verificado.md` — el esquema exacto (columnas/constraints) de las 10 tablas
+    de Producción y el cuerpo verbatim de sus 8 RPC reales (`abrir_produccion`, `registrar_comprobante_produccion`,
+    `recibir_comprobante_produccion`, `cerrar_produccion`, `registrar_consumo_insumo`,
+    `fn_recalcular_costo_insumos_produccion`, `set_etapa_produccion`, `fn_recalcular_costo_variante`), verificado
+    directamente (no por agente) porque las dos recetas de Producción se contradecían en un punto real (ver hallazgo 4 de
+    la síntesis) y hacía falta la fuente primaria para resolverlo.
+- **Antes de escribir una sola línea más:** el drift cambia rápido en este repo (otras sesiones aplicaron ~10 migraciones
+  en la hora previa a esta investigación) — repetir el chequeo de `supabase_migrations.schema_migrations` por nombre/fecha
+  contra las tablas que se van a tocar, no asumir que lo verificado el 2026-09-22 sigue vigente si pasó más de un día.
+- **Arnés local:** `scripts/demo/local/fixtures-produccion-simulada.sql` + el generador completo, contra
+  `docker exec -i supabase_db_cayla-retail psql -U postgres -d postgres -v ON_ERROR_STOP=1 -At` (contenedor Docker local de
+  Supabase — confirmar que existe con `docker ps` antes; si no, `.env.local` y el stub de migraciones también faltan en un
+  worktree nuevo, ver la memoria del proyecto). Correr el archivo completo (no hace falta escala reducida, ya corre en
+  minutos) y revisar que termine en `ROLLBACK` sin ningún `ERROR`.
+- **Reglas que no se negocian** (ver también CLAUDE.md): nunca `DELETE`/`UPDATE` sobre `movimientos` ni apagar sus
+  triggers; jamás un comprobante `pendiente`/`rechazado`; **no tocar `series_comprobantes` salvo la excepción de NC01/NC02
+  ya hecha en 5.1** (Felipe ya la autorizó, no pedir de nuevo); no llamar `recalcular_stock()` global; el `COMMIT` final en
+  producción lo pega Felipe, nadie más.
+
+---
+
 - **Fecha:** 2026-09-21
 - **Estado:** En curso — Fases 1 (catálogo), 2 (demanda), 3 (inventario inicial y abastecimiento) y 4 (ventas, caja y comprobantes)
   ensayadas con `ROLLBACK` (3 y 4, en una base local con datos de la forma de producción); fases 5-7 pendientes. **Nada está escrito
