@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (Cambiar el rol entre líderes — actualización del ADR-0161)
+Felipe pidió que el rol se pueda cambiar entre líderes: hasta hoy a un líder no se le cambiaba y «Líder de equipo» no se daba desde la app. `asignar_rol` ahora sube a Líder y baja a un líder; la fila de un líder en Colaboradores tiene «Cambiar rol» y el rol Líder, «Asignar a una persona». Probado en Postgres local dentro de una transacción revertida.
+Felipe se lleva: (1) **el candado que evita quedarse sin líder es «nadie se cambia su propio rol»**: quien cambia ya es líder y no puede bajarse, así que siempre queda uno, sin contar nada; (2) **bajar a un líder obliga a elegirle sede**, porque un líder opera todas y no tiene una, y cualquier otro rol trabaja en una — los 9 líderes de producción están así.
+Sin resolver: pegar la migración en producción (OK de Felipe) y verlo con clics.
+
 ## 2026-09-22 (Apartados: buscador con foto — ADR-0168)
 Felipe probó en una demo tres formas de buscar prendas (lista sin foto, fila con miniatura, tarjetas) y eligió la fila con miniatura, solo para Apartados. Se implementó el buscador en vivo con foto, con las agotadas atenuadas al final (y «N en el almacén: tráela al piso» cuando está atrás); y se midió en producción que cada foto pesa en promedio 90 KB, así que ahora se sirve al tamaño en que se ve (≈5 KB). Probado en la app real: flechas, Enter, lector de código, agotadas, sin errores.
 Felipe se lleva: (1) **lo que pesa no es cuántas fotos hay, es cómo se sirven**: una miniatura de 44 px bajando la foto original es 18 veces más de lo necesario; (2) al probar apareció que `next/image` con un host no permitido **tumba la pantalla entera**, así que solo se optimiza lo que viene de nuestro Storage y el resto se muestra como siempre; (3) una regla correcta («solo se aparta lo del piso») también necesita decir el porqué en pantalla: si la prenda está en el almacén, la colaboradora lo ve.
