@@ -121,12 +121,25 @@ Solo cambia de dónde sacan su respuesta `fn_es_terminal(tipo)` y `fn_mi_termina
 | F1 | **Prueba del encabezado:** una RPC de juguete lee `x-responsable` a través de PostgREST en local y en una rama de Supabase | Si el encabezado no llega, se cambia de mecanismo **antes** de construir lo demás |
 | | **F1 HECHA (2026-09-22): el encabezado llega.** Local: `curl` y `supabase-js` con `.rpc(...).setHeader('x-responsable', …)` → la función lo lee de `request.headers`; sin él, llega vacío. Producción: la pregunta previa del navegador (CORS) a `vovjyyiafkxteijimpuy.supabase.co` responde `access-control-allow-headers: …,x-responsable` (sin tocar datos). | |
 | | **F2 HECHA en local:** `20260923010000_terminales_sin_persona.sql` y `pnpm pruebas:terminales-sin-persona` (34/34) sobre una copia aislada del local (`cayla_f2`), para no tocar la base compartida. | |
+| | **F3 HECHA en local (2026-09-22):** `20260923020000_actor_firma_las_operaciones.sql`, 65 funciones firman con `fn_actor_persona_id` (36 de tienda, 29 no). Se cotejó contra producción (solo lectura): las funciones que allí buscan a la persona están todas clasificadas (se sumaron `archivar_serie_comprobante` y `registrar_gasto`, que solo existen allá). Las listadas que producción no tiene (apartar stock, comprador de tienda) se omiten con aviso: **al pegar sus migraciones, volver a pegar la F3.** `pruebas:actor-firma` 28/28, `pruebas:terminales` (reescrita) 74/74. | |
 | F2 | Migración base: `retail.terminales`, `fn_terminal_actual`, `fn_actor_persona_id`, `terminal_id`, y el nuevo interior de `fn_es_terminal` / `fn_mi_terminal` / `fn_ubicacion_actual_persona` | `pnpm pruebas:terminales` adaptado: una terminal sin persona abre la caja de su tienda y no la de otra |
 | F3 | Reemplazo mecánico de las ~65 funciones, más las 10 a mano | Prueba nueva: cada una de las 75, llamada como terminal con un responsable presente, firma con ese responsable. Sin responsable o con uno ausente, se rechaza |
 | F4 | Web: la rama de terminal, el pie del menú, Colaboradores ▸ Terminales, el combo Responsable (ADR-0161) mandando el encabezado | Demo en el navegador con una terminal de verdad |
+| | **F4a CONSTRUIDA (rama `claude/adr-0162-f4a-terminales`, sin verificar en navegador):** la sesión de una terminal entra por el mismo `requirePersonaActualV2` (su fila ya viene de `fn_persona_actual_resumen`); `persona.terminal` es el dato de «es un aparato». El pie del lateral muestra el aparato («Terminal Ventas TRU», «APARATO · TIENDA TRU») y no abre «Mi perfil». Inicio no la saluda por «primer nombre». Una terminal desactivada ve su propio aviso en `/login`. Colaboradores ▸ Terminales lee `fn_terminales()` con Desactivar / Reactivar y sin alta desde la pantalla. Se retiró la lectura de `colaboradores.terminal`. El combo Responsable queda fuera: es F4b. | |
 | F5 | `pnpm terminales:crear` (lo corre Felipe), retiro de `agregar_terminal`, diccionario (`datos:generar:produccion`) | Las 6 terminales entran y venden en TRU/AQP |
+| | **Script CONSTRUIDO, sin correr contra ningún entorno:** `scripts/terminales/crear.mjs` (uso en `scripts/terminales/README.md`), con pruebas de sus partes puras en `pnpm terminales:probar`. | |
 
 **Estimación:** 4 a 6 sesiones. F3 es la más larga, pero es mecánica y la cubren las pruebas.
+
+## Decididas por Felipe al construir (2026-09-22)
+
+- **Descuentos desde la terminal: sin tope y sin autorización.** El tope sigue siendo de la CUENTA (una persona con su
+  propia cuenta conserva su tope de D-67); la terminal no tiene tope (`NULL`, como un líder). No se toma el tope del
+  responsable, porque sin PIN cualquiera podría elegir a quien más tope tiene.
+- **Apartados: la terminal libera siempre** (entregar la prenda o soltar un apartado vencido). Una persona con su
+  cuenta sigue con la regla de hoy: quien apartó o una líder.
+- **Operaciones de varios pasos** (conteo, recepción de traslado): el combo se vacía al cerrar la operación completa,
+  no después de cada prenda.
 
 ## Abierto
 

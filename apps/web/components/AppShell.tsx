@@ -11,6 +11,7 @@ import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
 import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type AccionNuevo, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type TipoTerminal } from "@/lib/menu";
 import { PerfilModal } from "@/components/PerfilModal";
+import { IconoAparato } from "@/components/ui/IconoAparato";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
@@ -71,8 +72,9 @@ type Persona = {
    *  AppShell y las páginas de Producción; el permiso real lo da la base. */
   ubicacionTipo: "tienda" | "almacen" | "taller";
   puedeCambiarUbicacion: boolean;
-  /** Si esta cuenta es una TERMINAL de su tienda (ADR-0160). Opcional: quien arma el AppShell sin persona real (las
-   *  rutas de prueba) no tiene que saber de terminales; ausente = una persona. */
+  /** Si esta sesión es la de una TERMINAL, un aparato SIN persona (ADR-0162). Opcional: quien arma el AppShell sin persona
+   *  real (las rutas de prueba) no tiene que saber de terminales; ausente = una persona. Con terminal, el pie del lateral
+   *  muestra el aparato (no una persona) y no abre «Mi perfil». */
   terminal?: TipoTerminal | null;
 };
 
@@ -801,6 +803,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   const [perfilAbierto, setPerfilAbierto] = useState(false);
   const disparadorNuevo = useRef<HTMLButtonElement | null>(null);
   const esLider = persona.rol === "lider";
+  const esAparato = !!persona.terminal;
 
   // ---- Lateral plegado (v3.6) ----
   const [plegado, setPlegado] = useState(lateralPlegado);
@@ -1044,31 +1047,50 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         {/* Plegado el avatar queda centrado en la columna (px-5 + 36 de avatar = centro en 38 px). */}
         <div className={`overflow-hidden border-t border-tinta/10 py-5 transition-[padding] duration-300 ease-cayla ${plegado ? "px-5" : "px-7"}`}>
           <div className="flex items-center gap-3">
-            {/* Botón, no <div>: abre "Mi perfil". Salir queda AFUERA de este
-                botón, como hermano — un clic ahí nunca dispara el perfil. */}
-            <button
-              type="button"
-              onClick={() => setPerfilAbierto(true)}
-              onMouseEnter={(e) => entrarFila(e.currentTarget, "Mi perfil")}
-              onMouseLeave={salirFila}
-              onFocus={(e) => entrarFila(e.currentTarget, "Mi perfil")}
-              onBlur={salirFila}
-              aria-label={plegado ? "Mi perfil" : undefined}
-              className="group flex min-w-0 flex-1 items-center gap-3 text-left"
-            >
-              <span
-                aria-hidden
-                className="font-display flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sand text-sm text-tinta transition-colors group-hover:bg-rojo/15"
+            {esAparato ? (
+              // Una terminal (ADR-0162) no es una persona: donde iría el avatar va el APARATO, y no hay «Mi perfil» que abrir
+              // (no tiene ficha de RRHH en Dynamic). No es botón: nada que hacer al tocarlo. Plegado, el nombre sale al pasar
+              // el mouse igual que en las filas del menú.
+              <div
+                className="flex min-w-0 flex-1 items-center gap-3"
+                onMouseEnter={(e) => entrarFila(e.currentTarget, persona.nombre)}
+                onMouseLeave={salirFila}
               >
-                {iniciales}
-              </span>
-              <div className={`min-w-0 flex-1 transition-opacity duration-200 ${plegado ? "opacity-0" : ""}`}>
-                <p className="truncate text-sm text-tinta transition-colors group-hover:text-rojo">{persona.nombre}</p>
-                <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">
-                  {esLider ? "Líder" : "Colaborador"} · {persona.ubicacionEtiqueta}
-                </p>
+                <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-tinta text-crema">
+                  <IconoAparato />
+                </span>
+                <div className={`min-w-0 flex-1 transition-opacity duration-200 ${plegado ? "opacity-0" : ""}`}>
+                  <p className="truncate text-sm text-tinta">{persona.nombre}</p>
+                  <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">Aparato · {persona.ubicacionEtiqueta}</p>
+                </div>
               </div>
-            </button>
+            ) : (
+              // Botón, no <div>: abre "Mi perfil". Salir queda AFUERA de este
+              // botón, como hermano — un clic ahí nunca dispara el perfil.
+              <button
+                type="button"
+                onClick={() => setPerfilAbierto(true)}
+                onMouseEnter={(e) => entrarFila(e.currentTarget, "Mi perfil")}
+                onMouseLeave={salirFila}
+                onFocus={(e) => entrarFila(e.currentTarget, "Mi perfil")}
+                onBlur={salirFila}
+                aria-label={plegado ? "Mi perfil" : undefined}
+                className="group flex min-w-0 flex-1 items-center gap-3 text-left"
+              >
+                <span
+                  aria-hidden
+                  className="font-display flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sand text-sm text-tinta transition-colors group-hover:bg-rojo/15"
+                >
+                  {iniciales}
+                </span>
+                <div className={`min-w-0 flex-1 transition-opacity duration-200 ${plegado ? "opacity-0" : ""}`}>
+                  <p className="truncate text-sm text-tinta transition-colors group-hover:text-rojo">{persona.nombre}</p>
+                  <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">
+                    {esLider ? "Líder" : "Colaborador"} · {persona.ubicacionEtiqueta}
+                  </p>
+                </div>
+              </button>
+            )}
             {/* Plegado «Salir» no cabe: se apaga y sale del tabulador (`inert`); el perfil sigue a un clic. */}
             <span className={`transition-opacity duration-200 ${plegado ? "opacity-0" : ""}`} inert={plegado}>
               <LogoutButton />
@@ -1077,7 +1099,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         </div>
       </aside>
 
-      {perfilAbierto && <PerfilModal onClose={() => setPerfilAbierto(false)} />}
+      {perfilAbierto && !esAparato && <PerfilModal onClose={() => setPerfilAbierto(false)} />}
 
       {/* Etiqueta de una fila plegada. Fuera del <aside> a propósito: el aside recorta (`overflow-hidden`)
           y una etiqueta que se corta a mitad de palabra es peor que ninguna. */}

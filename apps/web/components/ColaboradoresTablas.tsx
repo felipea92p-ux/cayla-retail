@@ -1,21 +1,22 @@
 "use client";
 
-import type { Colaborador, ColaboradorInactivo, ColaboradorPendiente, ColaboradorSuspendido, EventoAcceso, RolColaborador } from "@/lib/colaboradores";
+import type { Colaborador, ColaboradorInactivo, ColaboradorPendiente, ColaboradorSuspendido, EventoAcceso, RolColaborador, Terminal } from "@/lib/colaboradores";
 import {
   accionesDeFila,
   ETIQUETA_ROL,
-  ETIQUETA_TERMINAL,
+  ETIQUETA_TIPO_TERMINAL,
+  fechaHoraLima,
   fechaLima,
   fraseEvento,
   plural,
   ultimoAccesoTexto,
   type AccionFila,
 } from "@/lib/colaboradores-reglas";
-import type { TipoTerminal } from "@/lib/menu";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { Chip } from "@/components/ui/Chip";
 import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { Boton } from "@/components/ui/campos";
+import { IconoAparato } from "@/components/ui/IconoAparato";
 
 // Las tres tablas y el registro de actividad de /colaboradores. Solo dibujan lo que reciben y avisan qué se
 // eligió: las decisiones (modales, llamadas a la base) viven en `ColaboradoresPanel`.
@@ -33,8 +34,7 @@ function Caja({ minimo, children }: { minimo: string; children: React.ReactNode 
   );
 }
 
-function ChipRol({ rol, terminal }: { rol: RolColaborador; terminal?: TipoTerminal | null }) {
-  if (terminal) return <Chip tono="verde">{ETIQUETA_TERMINAL[terminal]}</Chip>;
+function ChipRol({ rol }: { rol: RolColaborador }) {
   return <Chip tono="neutro">{ETIQUETA_ROL[rol]}</Chip>;
 }
 
@@ -94,7 +94,7 @@ export function TablaActivos({
                 <Persona nombre={c.nombre} correo={c.correo} tu={c.es_yo} />
               </td>
               <td className={CELDA}>
-                <ChipRol rol={c.rol} terminal={c.terminal} />
+                <ChipRol rol={c.rol} />
               </td>
               <td className={`${CELDA} whitespace-nowrap text-tinta/85`}>{c.rol === "lider" ? cualquiera : (c.ubicacion_asignada ?? "—")}</td>
               <td className={`${CELDA} whitespace-nowrap text-tinta/75`}>{c.sede ?? "—"}</td>
@@ -115,56 +115,60 @@ export function TablaActivos({
   );
 }
 
-// Cuentas terminal (ADR-0160): mismo patrón visual que TablaActivos —de hecho lee las mismas filas de
-// `fn_colaboradores()`, solo el subconjunto con `terminal` puesto— pero en su propia tabla, para que una cuenta
-// compartida por el equipo no se lea como una persona más en Activos. Sin «Sesión activa» (nadie es «tú» acá) ni
-// columna «Sede en Dynamic» (no aporta nada de una cuenta de servicio): en su lugar, el tipo de terminal.
+// Terminales (ADR-0162): aparatos con cuenta propia, SIN persona — por eso no usan `Persona` ni el menú «⋯» de las
+// personas: su única acción es Desactivar / Reactivar, a la vista (pantalla 5 del spike aprobado). Una desactivada queda
+// en la lista apagada, nunca desaparece: su historial sigue firmado con `terminal_id`.
 export function TablaTerminales({
   filas,
   ocupadoId,
-  onAccion,
+  onAlternar,
 }: {
-  filas: Colaborador[];
+  filas: Terminal[];
   ocupadoId: string | null;
-  onAccion: (c: Colaborador, accion: AccionFila) => void;
+  onAlternar: (t: Terminal) => void;
 }) {
   return (
     <Caja minimo="min-w-[760px]">
       <thead className="border-b border-tinta/10 bg-tinta/[0.03] text-tinta/70">
         <tr>
           <th className={CABECERA}>Terminal</th>
-          <th className={CABECERA}>Tipo</th>
           <th className={CABECERA}>Tienda</th>
-          <th className={CABECERA}>Desde</th>
-          <th className={CABECERA}>Último ingreso</th>
-          <th className={`${CABECERA} text-right`}>Acciones</th>
+          <th className={CABECERA}>Tipo</th>
+          <th className={CABECERA}>Estado</th>
+          <th className={CABECERA}>Última actividad</th>
+          <th className={`${CABECERA} text-right`}>
+            <span className="sr-only">Acciones</span>
+          </th>
         </tr>
       </thead>
       <tbody className="divide-y divide-tinta/5">
-        {filas.map((c) => {
-          const items: ItemMenu[] = accionesDeFila(c).map((a) => ({
-            clave: a,
-            etiqueta: ETIQUETA_ACCION[a],
-            peligro: a === "quitar",
-            onSelect: () => onAccion(c, a),
-          }));
-          return (
-            <tr key={c.persona_id} className={`transition-colors duration-150 hover:bg-tinta/[0.025] ${ocupadoId === c.persona_id ? "opacity-50" : ""}`}>
-              <td className={CELDA}>
-                <Persona nombre={c.nombre} correo={c.correo} />
-              </td>
-              <td className={CELDA}>
-                <ChipRol rol={c.rol} terminal={c.terminal} />
-              </td>
-              <td className={`${CELDA} whitespace-nowrap text-tinta/85`}>{c.ubicacion_asignada ?? "—"}</td>
-              <td className={`${CELDA} whitespace-nowrap tabular-nums text-tinta/75`}>{fechaLima(c.agregado_en)}</td>
-              <td className={`${CELDA} whitespace-nowrap tabular-nums text-tinta/75`}>{ultimoAccesoTexto(c.ultimo_acceso)}</td>
-              <td className={`${CELDA} text-right`}>
-                <MenuAcciones etiqueta={`Acciones de ${c.nombre}`} items={items} deshabilitado={ocupadoId === c.persona_id} />
-              </td>
-            </tr>
-          );
-        })}
+        {filas.map((t) => (
+          <tr
+            key={t.id}
+            className={`transition-colors duration-150 hover:bg-tinta/[0.025] ${t.activo ? "" : "text-tinta/55"} ${ocupadoId === t.id ? "opacity-50" : ""}`}
+          >
+            <td className={CELDA}>
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-sand/70 text-tinta">
+                  <IconoAparato />
+                </span>
+                <div className="min-w-0">
+                  <div className={`font-medium ${t.activo ? "text-tinta" : "text-tinta/60"}`}>{t.nombre}</div>
+                  <div className="text-xs text-tinta/65">Sin persona · cuenta del aparato</div>
+                </div>
+              </div>
+            </td>
+            <td className={`${CELDA} whitespace-nowrap`}>{t.ubicacion_nombre}</td>
+            <td className={`${CELDA} whitespace-nowrap`}>{ETIQUETA_TIPO_TERMINAL[t.tipo]}</td>
+            <td className={CELDA}>{t.activo ? <Chip tono="verde">Activa</Chip> : <Chip tono="apagado">Desactivada</Chip>}</td>
+            <td className={`${CELDA} whitespace-nowrap tabular-nums`}>{t.ultimo_acceso ? fechaHoraLima(t.ultimo_acceso) : "Nunca"}</td>
+            <td className={`${CELDA} text-right`}>
+              <Boton type="button" peso="discreto" className="px-3 py-1.5 text-[11px]" disabled={ocupadoId !== null} onClick={() => onAlternar(t)}>
+                {t.activo ? "Desactivar" : "Reactivar"}
+              </Boton>
+            </td>
+          </tr>
+        ))}
       </tbody>
     </Caja>
   );

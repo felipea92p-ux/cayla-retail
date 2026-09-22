@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
+import { exigir, tolerar, type Tolerado } from "@/lib/resultado";
 import { TIPOS_TERMINAL, type TipoTerminal } from "@/lib/menu";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Las escrituras pasan por las RPC
@@ -20,8 +20,21 @@ export type Colaborador = {
   /** La persona que está mirando la pantalla: a ella no se le ofrece suspenderse ni quitarse. */
   es_yo: boolean;
   ultimo_acceso: string | null;
-  /** Si es una cuenta TERMINAL de su tienda (ADR-0160) y de qué tipo; `null` o ausente = una persona. */
-  terminal?: TipoTerminal | null;
+};
+
+/** Un aparato compartido de una tienda (ADR-0162, `retail.terminales`): cuenta de Auth propia, SIN persona. Ya no es
+ *  una fila de `fn_colaboradores()` — la terminal-persona del ADR-0160 se retiró (`colaboradores.terminal` siempre null). */
+export type Terminal = {
+  id: string;
+  nombre: string;
+  tipo: TipoTerminal;
+  ubicacion_id: string;
+  ubicacion_nombre: string;
+  activo: boolean;
+  creada_at: string;
+  desactivada_at: string | null;
+  /** Último inicio de sesión de la cuenta del aparato (`auth.users.last_sign_in_at`); `null` = nunca entró. */
+  ultimo_acceso: string | null;
 };
 
 export type ColaboradorSuspendido = {
@@ -84,20 +97,24 @@ export type DynamicDisponible = {
 
 export async function getColaboradores(): Promise<Colaborador[]> {
   const supabase = await createClient();
-  const [res, resTerminales] = await Promise.all([
-    supabase.rpc("fn_colaboradores"),
-    // El tipo de terminal (ADR-0160) se lee APARTE: `fn_colaboradores()` no lo devuelve y agregárselo exigiría borrarla y
-    // recrearla (cambiar el tipo de retorno no admite `create or replace`). Solo el líder lee `colaboradores` (RLS) y esta
-    // pantalla es de líder. Si la columna aún no existe en esa base (la web se desplegó antes que la migración) el error
-    // se ignora: nadie sale como terminal, que es el lado seguro.
-    supabase.from("colaboradores").select("persona_id, terminal").not("terminal", "is", null),
-  ]);
-  const lista = exigir(res, "los colaboradores") as unknown as Colaborador[];
-  const terminales = new Map<string, TipoTerminal>();
-  for (const f of resTerminales.error ? [] : (resTerminales.data ?? [])) {
-    if ((TIPOS_TERMINAL as readonly string[]).includes(f.terminal ?? "")) terminales.set(f.persona_id, f.terminal as TipoTerminal);
-  }
-  return lista.map((c) => ({ ...c, terminal: terminales.get(c.persona_id) ?? null }));
+  const res = await supabase.rpc("fn_colaboradores");
+  return exigir(res, "los colaboradores") as unknown as Colaborador[];
+}
+
+/** Las terminales de todas las tiendas (`fn_terminales()`, solo líder). Se TOLERA el fallo: es un listado de apoyo en
+ *  una pestaña, no plata ni stock — si la base todavía no tiene la migración del ADR-0162 (la web se publicó antes), el
+ *  resto de Colaboradores sigue funcionando y la pestaña dice que no pudo leerlas. Una fila con un tipo desconocido se
+ *  descarta en vez de pintarse mal. */
+export async function getTerminales(): Promise<Tolerado<Terminal[]>> {
+  const supabase = await createClient();
+  const { datos, fallo } = tolerar(await supabase.rpc("fn_terminales"), "las terminales");
+  if (!datos) return { datos: null, fallo };
+  return {
+    datos: datos
+      .filter((t) => (TIPOS_TERMINAL as readonly string[]).includes(t.tipo))
+      .map((t) => ({ ...t, tipo: t.tipo as TipoTerminal })),
+    fallo: null,
+  };
 }
 
 export async function getColaboradoresPendientes(): Promise<ColaboradorPendiente[]> {

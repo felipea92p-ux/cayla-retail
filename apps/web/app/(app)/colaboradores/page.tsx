@@ -7,6 +7,7 @@ import {
   getColaboradoresPendientes,
   getColaboradoresSuspendidos,
   getDynamicDisponibles,
+  getTerminales,
 } from "@/lib/colaboradores";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { ColaboradoresPanel } from "@/components/ColaboradoresPanel";
@@ -17,7 +18,7 @@ export default async function ColaboradoresPage() {
   const persona = await requirePersonaActualV2();
   if (persona.rol !== "lider") redirect("/");
 
-  const [colaboradores, pendientes, suspendidos, inactivos, actividad, disponibles, ubicaciones] = await Promise.all([
+  const [colaboradores, pendientes, suspendidos, inactivos, actividad, disponibles, ubicaciones, terminales] = await Promise.all([
     getColaboradores(),
     getColaboradoresPendientes(),
     getColaboradoresSuspendidos(),
@@ -25,6 +26,8 @@ export default async function ColaboradoresPage() {
     getActividadAccesos(),
     getDynamicDisponibles(),
     getUbicaciones(),
+    // ADR-0162: los aparatos de cada tienda. Tolerado: si falla, solo la pestaña Terminales lo dice.
+    getTerminales(),
   ]);
 
   return (
@@ -36,6 +39,7 @@ export default async function ColaboradoresPage() {
       actividad={actividad}
       disponibles={disponibles}
       ubicaciones={ubicaciones}
+      terminales={terminales.datos}
     />
   );
 }
