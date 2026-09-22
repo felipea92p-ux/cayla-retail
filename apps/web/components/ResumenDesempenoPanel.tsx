@@ -45,11 +45,11 @@ export function ResumenDesempenoPanel({ datos }: { datos: DesempenoParaPantalla 
       <ResumenControles modo="desempeno" periodo={periodo} alcance={datos.alcance} categorias={datos.categorias} sellThrough={datos.sellThrough} actualizar={actualizar} />
 
       {ubicacion.tipo !== "tienda" ? (
-        <p className="card-cayla px-5 py-10 text-sm text-tinta/65">
+        <p className="card-cayla px-5 py-10 text-sm text-taupe">
           {ubicacion.nombre} no vende a clientas: no hay ventas, ritmo ni rotación que analizar. Elige una tienda en el selector de sede de arriba.
         </p>
       ) : datos.tabla.totalSede === 0 ? (
-        <p className="card-cayla px-5 py-10 text-sm text-tinta/65">
+        <p className="card-cayla px-5 py-10 text-sm text-taupe">
           {ubicacion.nombre} no tuvo stock ni ventas en este período. Cuando reciba mercadería o venda, aparecerá acá.
         </p>
       ) : (

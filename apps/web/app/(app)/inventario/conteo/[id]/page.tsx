@@ -36,7 +36,7 @@ export default async function ConteoDetallePage({ params }: { params: Promise<{ 
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="label-cayla text-[11px] text-tinta/65">
+          <p className="label-cayla text-[11px] text-taupe">
             <Link href="/inventario/conteo" className="hover:text-rojo">
               Conteo
             </Link>{" "}
@@ -44,10 +44,10 @@ export default async function ConteoDetallePage({ params }: { params: Promise<{ 
           </p>
           <h1 className="font-display mt-1 text-2xl text-tinta">
             Conteo {conteo.numero}
-            <span className="text-tinta/55"> · </span>
+            <span className="text-taupe"> · </span>
             {conteo.sububicacionNombre ?? "Toda la ubicación"}
           </h1>
-          <p className="mt-1 text-sm text-tinta/65">
+          <p className="mt-1 text-sm text-taupe">
             {alcance.charAt(0).toUpperCase() + alcance.slice(1)} · abrió {conteo.abiertoPorNombre} el {fechaHora(conteo.creadoEn)}
             {!abierto && conteo.cerradoEn && ` · cerró ${conteo.cerradoPorNombre} el ${fechaHora(conteo.cerradoEn)}`}
           </p>
@@ -65,25 +65,25 @@ export default async function ConteoDetallePage({ params }: { params: Promise<{ 
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="card-cayla p-5">
-          <p className="label-cayla text-[11px] text-tinta/65">Líneas contadas</p>
+          <p className="label-cayla text-[11px] text-taupe">Líneas contadas</p>
           <p className="font-display mt-1 text-3xl tabular-nums text-tinta">{conteo.lineas}</p>
-          <p className="mt-1 text-xs text-tinta/65">{conDiferencia.length === 0 ? "todas coinciden con el sistema" : `${conDiferencia.length} con diferencia`}</p>
+          <p className="mt-1 text-xs text-taupe">{conDiferencia.length === 0 ? "todas coinciden con el sistema" : `${conDiferencia.length} con diferencia`}</p>
         </div>
         <div className="card-cayla p-5">
-          <p className="label-cayla text-[11px] text-tinta/65">Sistema → físico</p>
+          <p className="label-cayla text-[11px] text-taupe">Sistema → físico</p>
           <p className="font-display mt-1 text-3xl tabular-nums text-tinta">
             {conteo.sistema} <span className="text-tinta/45">→</span> {conteo.contado}
           </p>
-          <p className="mt-1 text-xs text-tinta/65">
+          <p className="mt-1 text-xs text-taupe">
             {conteo.diferencia === 0 ? "sin diferencia neta" : `${conteo.diferencia > 0 ? "+" : ""}${conteo.diferencia} unidades ${conteo.diferencia > 0 ? "de más" : "de menos"}`}
           </p>
         </div>
         <div className="card-cayla p-5">
-          <p className="label-cayla text-[11px] text-tinta/65">Diferencia en soles</p>
+          <p className="label-cayla text-[11px] text-taupe">Diferencia en soles</p>
           <p className={`font-display mt-1 text-3xl tabular-nums ${conteo.solesDiferencia < 0 ? "text-rojo-profundo" : conteo.solesDiferencia > 0 ? "text-verde-profundo" : "text-tinta"}`}>
             {soles(conteo.solesDiferencia)}
           </p>
-          <p className="mt-1 text-xs text-tinta/65">al costo actual de cada prenda{abierto ? " · se ajusta al cerrar" : " · ya ajustado en el stock"}</p>
+          <p className="mt-1 text-xs text-taupe">al costo actual de cada prenda{abierto ? " · se ajusta al cerrar" : " · ya ajustado en el stock"}</p>
         </div>
       </div>
 
@@ -121,7 +121,7 @@ export default async function ConteoDetallePage({ params }: { params: Promise<{ 
       )}
 
       {!abierto && conDiferencia.length > 0 && (
-        <p className="text-xs text-tinta/65">
+        <p className="text-xs text-taupe">
           Cada diferencia quedó registrada como un ajuste por conteo en{" "}
           <Link href="/inventario/movimientos?proc=conteo" className="text-rojo hover:underline">
             Movimientos
