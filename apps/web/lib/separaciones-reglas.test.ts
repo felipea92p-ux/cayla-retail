@@ -7,6 +7,8 @@ import {
   enlaceWhatsapp,
   erroresDelApartado,
   estadoVisible,
+  moverActivo,
+  resultadosDelBuscador,
   pasoDelApartado,
   pagosParaRpcApartado,
   sumarDiasIso,
@@ -135,5 +137,55 @@ describe("búsqueda y textos", () => {
     const a = apartadoDeFila({ id: "x", codigo: "APT-TRU-0001", estado: "abierta", total: "179.00", adelanto: "90.00", saldo: "89.00", vence_el: "2026-09-29", items: [{ variante_id: "v", cantidad: 1, precio_unitario: "179.00", descuento_unitario: "0" }], pagos: [] });
     expect(a.total).toBe(179);
     expect(a.prendas[0].precioUnitario).toBe(179);
+  });
+});
+
+describe("resultadosDelBuscador", () => {
+  const prenda = (referencia: string, color: string, talla: string, stockAqui: number) => ({
+    varianteId: `${referencia}-${color}-${talla}`,
+    sku: `${referencia.slice(0, 3).toUpperCase()}-${color.slice(0, 3).toUpperCase()}-${talla}`,
+    referencia,
+    color,
+    talla,
+    codigosBarras: [],
+    stockAqui,
+  });
+  const catalogo = [
+    prenda("Blusa Camila", "Blanco", "S", 0),
+    prenda("Blusa Camila", "Blanco", "M", 0),
+    prenda("Blusa Regina", "Rosado", "L", 2),
+    prenda("Blusa Regina", "Rosado", "S", 0),
+    prenda("Blusa Emma", "Negro", "M", 5),
+    prenda("Casaca Biker", "Negro", "M", 1),
+  ];
+
+  it("pone primero lo que se puede apartar y deja las agotadas al final", () => {
+    const r = resultadosDelBuscador("blusa", catalogo);
+    expect(r.disponibles.map((p) => p.varianteId)).toEqual(["Blusa Regina-Rosado-L", "Blusa Emma-Negro-M"]);
+    expect(r.agotadas.map((p) => p.varianteId)).toEqual(["Blusa Camila-Blanco-S", "Blusa Camila-Blanco-M", "Blusa Regina-Rosado-S"]);
+  });
+
+  it("busca por color como el Punto de venta", () => {
+    expect(resultadosDelBuscador("negro", catalogo).disponibles.map((p) => p.referencia)).toEqual(["Blusa Emma", "Casaca Biker"]);
+  });
+
+  it("las agotadas nunca desplazan a una disponible del tope", () => {
+    const muchas = [...Array.from({ length: 10 }, (_, i) => prenda("Blusa Agotada", "Blanco", String(i), 0)), ...Array.from({ length: 12 }, (_, i) => prenda("Blusa Lista", "Negro", String(i), 1))];
+    const r = resultadosDelBuscador("blusa", muchas);
+    expect(r.disponibles).toHaveLength(12);
+    expect(r.agotadas).toHaveLength(0);
+  });
+
+  it("sin texto no muestra nada", () => {
+    expect(resultadosDelBuscador("   ", catalogo)).toEqual({ disponibles: [], agotadas: [] });
+  });
+});
+
+describe("moverActivo", () => {
+  it("baja y sube sin salirse de la lista", () => {
+    expect(moverActivo(0, 1, 3)).toBe(1);
+    expect(moverActivo(2, 1, 3)).toBe(2);
+    expect(moverActivo(0, -1, 3)).toBe(0);
+    expect(moverActivo(5, -1, 0)).toBe(0);
   });
 });

@@ -7,6 +7,9 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { esMotivoDeAjuste, motivosDeMovimiento, referenciaObligatoria } from "@/lib/caja-panel-reglas";
 import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // «Retiro de efectivo» y «Depósito bancario» son un egreso con motivo predefinido — mismo caso que
 // registrar_movimiento_caja() en SQL: un tipo, no una tabla. «Ajuste de caja» además marca es_ajuste=true, que
@@ -21,6 +24,8 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
   const [motivoLibre, setMotivoLibre] = useState("");
   const [nota, setNota] = useState("");
   const [loading, setLoading] = useState(false);
+  // Quién hace el ingreso o egreso (ADR-0161, A12: el cierre de caja lo muestra por movimiento).
+  const responsable = useResponsable();
 
   const motivosRapidos = tipo ? motivosDeMovimiento(tipo, esLider) : [];
   const mostrarLibre = motivoRapido === "Otro";
@@ -48,17 +53,25 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
       avisar.error("Anota el N.º de operación o una referencia.", { enfocar: "mov-nota" });
       return;
     }
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.rpc("registrar_movimiento_caja", {
-      p_caja_id: cajaId,
-      p_tipo: tipo,
-      p_monto: Number(monto) || 0,
-      p_motivo: motivo,
-      p_nota: nota.trim() || undefined,
-      p_es_ajuste: esAjuste,
-    });
+    const { error } = await firmar(
+      supabase.rpc("registrar_movimiento_caja", {
+        p_caja_id: cajaId,
+        p_tipo: tipo,
+        p_monto: Number(monto) || 0,
+        p_motivo: motivo,
+        p_nota: nota.trim() || undefined,
+        p_es_ajuste: esAjuste,
+      }),
+      responsable.firma(),
+    );
     setLoading(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "registrar el movimiento de caja"));
       return;
@@ -174,11 +187,12 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
           />
         </div>
 
+        <ComboResponsable control={responsable} deshabilitado={loading} />
         <div className="flex gap-2 pt-1">
           <button type="button" onClick={cerrar} className={botonCancelar}>
             Cancelar
           </button>
-          <button type="submit" disabled={loading || !tipo || !motivoRapido} className={botonPrimario}>
+          <button type="submit" disabled={loading || !tipo || !motivoRapido || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
             {loading ? "Guardando…" : "Registrar"}
           </button>
         </div>

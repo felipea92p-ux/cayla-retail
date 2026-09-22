@@ -54,6 +54,19 @@ begin;
 -- a que termine — se libera solo en cuanto el `rollback` cierra la transacción.
 update retail.cajas set estado = 'cerrada', cerrada_en = now() where estado = 'abierta';
 
+-- Roles por módulo (ADR-0161 B2d, 2026-09-22): cerrar caja y ajustar stock ya no son «solo del líder», son «del
+-- líder o de un rol que VE Caja / Existencias». Esta prueba verifica que una colaboradora SIN esos módulos no puede,
+-- así que Micaela recibe (dentro de esta transacción, que termina en rollback) un rol de prueba que solo ve el Punto
+-- de venta. En una base sin roles este bloque no hace nada.
+do $r$ begin
+  if to_regclass('retail.rol_modulos') is not null then
+    insert into retail.roles (id, nombre, descripcion) values ('44444444-4444-4444-8444-000000000004', 'Solo vender (prueba de caja)', 'temporal');
+    insert into retail.rol_modulos (rol_id, modulo) values ('44444444-4444-4444-8444-000000000004', 'vender');
+    update retail.colaboradores set rol_id = '44444444-4444-4444-8444-000000000004'
+      where persona_id = (select id from public.personas where auth_user_id = '22222222-2222-4222-8222-000000000003');
+  end if;
+end $r$;
+
 -- ============================================================================
 -- GRUPO A — abrir_caja: permisos por ubicación, unicidad, monto de apertura
 -- ============================================================================

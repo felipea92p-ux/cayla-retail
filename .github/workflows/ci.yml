@@ -334,14 +334,41 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:candado-lider
 
-      # Cuentas TERMINAL por tienda (ADR-0152): la de ventas cierra caja y mueve caja; la administrativa ajusta stock, cierra
-      # conteos y traslados con diferencia, escribe en el Catálogo y edita las cuentas de proveedores; y NADA más se abrió
-      # (etiquetas con descuento, anulaciones, devoluciones y series siguen siendo solo del líder). Alta solo del líder y solo
-      # en una tienda, una de cada tipo por tienda; suspender y reactivar conservan el tipo; la migración se puede pegar dos
-      # veces y con otro search_path. Un escenario por actor. Cada caso termina en ROLLBACK.
+      # Cuentas TERMINAL por tienda (poderes del ADR-0160, identidad del ADR-0162): la de ventas cierra caja y mueve caja; la
+      # administrativa ajusta stock, cierra conteos y traslados con diferencia, escribe en el Catálogo y edita las cuentas de
+      # proveedores; y NADA más se abrió (etiquetas con descuento, anulaciones, devoluciones y series siguen siendo solo del
+      # líder). La terminal es un aparato SIN persona: cada operación la firma el responsable presente (`x-responsable`) y
+      # queda su `terminal_id`; sin responsable, 42501. `agregar_terminal` y `colaboradores.terminal` quedaron retiradas. Un
+      # escenario por actor. Cada caso termina en ROLLBACK.
       - name: pruebas:terminales
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:terminales
+
+      # Terminales SIN persona (ADR-0162): el aparato nunca firma solo — `fn_actor_persona_id()` exige un responsable
+      # PRESENTE en la tienda de la terminal (en pausa, con salida, sin marcas u otra tienda → rechazado); los permisos
+      # son de la cuenta (con una líder como responsable, la terminal sigue sin ser líder); `terminal_id` se sella al
+      # insertar; la pantalla es solo del líder. Asistencia de Dynamic simulada dentro de cada caso. ROLLBACK siempre.
+      - name: pruebas:terminales-sin-persona
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:terminales-sin-persona
+
+      # Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
+      # fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y
+      # terminal; y el PUNTO DE ENCHUFE: todas las `fn_puede_*()` dan lo mismo que con las definiciones fijas del ADR-0160
+      # para líder, integrante y las dos terminales (ninguna capacidad nueva). ROLLBACK siempre.
+      - name: pruebas:roles
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:roles
+
+      # Quién FIRMA (ADR-0162, F3): ninguna función de retail conserva `select id into … from personas where auth_user_id =
+      # auth.uid()` salvo las de permiso/identidad listadas (una nueva obliga a clasificarla); 36 firman con el actor de tienda
+      # y 29 con el de no-tienda; la migración se pega dos veces y aborta ante una función sin clasificar. Venta, caja, ajuste,
+      # traslado, Catálogo: terminal + responsable presente → firma el responsable y queda `terminal_id`; sin responsable →
+      # 42501; persona sin encabezado → firma ella. Compras firma con la persona de la sesión aunque llegue `x-responsable`.
+      # El tope de descuento y liberar apartados siguen siendo permisos de la CUENTA. ROLLBACK siempre.
+      - name: pruebas:actor-firma
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:actor-firma
 
       # Deriva de producción (las migraciones que producción tenía y el repo no): una sola firma de
       # registrar_movimiento, catalogo_actualizar_producto y registrar_compra (con p_token, idempotente por

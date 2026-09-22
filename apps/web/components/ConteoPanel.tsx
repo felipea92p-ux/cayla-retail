@@ -16,6 +16,9 @@ import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
 import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { CampoMonto, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 type VarianteConteo = {
   varianteId: string;
@@ -71,6 +74,9 @@ export function ConteoPanel({
   marcas: CatalogoMarcas;
 }) {
   const router = useRouter();
+  // Todo lo que guarda en un conteo (abrir, contar, dar de alta al vuelo, cancelar, cerrar) pide Responsable
+  // (ADR-0161). Un solo control para todo el panel: se pasa a las piezas de abajo.
+  const responsable = useResponsable();
   const [abriendo, setAbriendo] = useState<string | "todo" | null>(null);
   const [error, setError] = useState<string | null>(null);
   // "" = todo el catálogo; si no, el id de la categoría elegida. Solo
@@ -115,16 +121,21 @@ export function ConteoPanel({
   }, [categoriaId, ubicacionId]);
 
   async function abrir(sububicacionId: string | null) {
+    if (!responsable.listo) return;
     setAbriendo(sububicacionId ?? "todo");
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.rpc("abrir_conteo", {
-      p_ubicacion_id: ubicacionId,
-      p_sububicacion_id: sububicacionId ?? undefined,
-      p_alcance: categoriaId ? "categoria" : "todo",
-      p_alcance_categoria_id: categoriaId || undefined,
-    });
+    const { error } = await firmar(
+      supabase.rpc("abrir_conteo", {
+        p_ubicacion_id: ubicacionId,
+        p_sububicacion_id: sububicacionId ?? undefined,
+        p_alcance: categoriaId ? "categoria" : "todo",
+        p_alcance_categoria_id: categoriaId || undefined,
+      }),
+      responsable.firma(),
+    );
     setAbriendo(null);
+    responsable.despues(error);
     if (error) {
       setError(traducirError(error, "abrir el conteo"));
       return;
@@ -167,12 +178,14 @@ export function ConteoPanel({
               </select>
             </div>
           )}
+          <ComboResponsable control={responsable} deshabilitado={abriendo !== null} className="mx-auto max-w-sm text-left" />
           {separaPisoAlmacen ? (
             <div className="mx-auto flex w-fit flex-wrap justify-center gap-2">
               <button
                 type="button"
                 onClick={() => piso && abrir(piso.id)}
-                disabled={!piso || abriendo !== null}
+                disabled={!piso || abriendo !== null || !responsable.listo}
+                title={responsable.motivo ?? undefined}
                 className={`${botonPrimario} px-6`}
               >
                 {abriendo === piso?.id ? "Abriendo…" : "Contar piso de venta"}
@@ -180,14 +193,15 @@ export function ConteoPanel({
               <button
                 type="button"
                 onClick={() => almacen && abrir(almacen.id)}
-                disabled={!almacen || abriendo !== null}
+                disabled={!almacen || abriendo !== null || !responsable.listo}
+                title={responsable.motivo ?? undefined}
                 className={`${botonPrimario} px-6`}
               >
                 {abriendo === almacen?.id ? "Abriendo…" : "Contar almacén de tienda"}
               </button>
             </div>
           ) : (
-            <button type="button" onClick={() => abrir(null)} disabled={abriendo !== null} className={`${botonPrimario} mx-auto w-fit px-6`}>
+            <button type="button" onClick={() => abrir(null)} disabled={abriendo !== null || !responsable.listo} title={responsable.motivo ?? undefined} className={`${botonPrimario} mx-auto w-fit px-6`}>
               {abriendo === "todo" ? "Abriendo…" : "Abrir conteo"}
             </button>
           )}
@@ -254,6 +268,7 @@ export function ConteoPanel({
       colores={colores}
       tallasPorCategoria={tallasPorCategoria}
       marcas={marcas}
+      responsable={responsable}
     />
   );
 }
@@ -268,6 +283,7 @@ function ConteoEnCurso({
   colores,
   tallasPorCategoria,
   marcas,
+  responsable,
 }: {
   conteo: ConteoAbierto;
   avance: AvanceConteo | null;
@@ -278,6 +294,7 @@ function ConteoEnCurso({
   colores: { codigo: string; nombre: string }[];
   tallasPorCategoria: Record<string, { id: string; texto: string }[]>;
   marcas: CatalogoMarcas;
+  responsable: ControlResponsable;
 }) {
   const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
@@ -304,9 +321,15 @@ function ConteoEnCurso({
   const catalogoCompleto = useMemo(() => [...catalogo, ...catalogoNuevo], [catalogo, catalogoNuevo]);
 
   async function cancelarConteo() {
+    if (!responsable.listo) {
+      setError(responsable.motivo);
+      setConfirmarCancelar(false);
+      return;
+    }
     setCancelando(true);
-    const { error } = await createClient().rpc("anular_conteo", { p_conteo_id: conteo.id });
+    const { error } = await firmar(createClient().rpc("anular_conteo", { p_conteo_id: conteo.id }), responsable.firma());
     setCancelando(false);
+    responsable.despues(error);
     if (error) {
       setError(traducirError(error, "cancelar el conteo"));
       setConfirmarCancelar(false);
@@ -339,6 +362,7 @@ function ConteoEnCurso({
   async function registrarConteo(e: React.FormEvent) {
     e.preventDefault();
     if (!seleccionada) return;
+    if (!responsable.listo) return;
     const n = Number(cantidad);
     if (!Number.isInteger(n) || n < 0) {
       setError("La cantidad física debe ser un número entero, 0 o más.");
@@ -347,12 +371,19 @@ function ConteoEnCurso({
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.rpc("conteo_contar", {
-      p_conteo_id: conteo.id,
-      p_variante_id: seleccionada.varianteId,
-      p_cantidad_contada: n,
-    });
+    const { error } = await firmar(
+      supabase.rpc("conteo_contar", {
+        p_conteo_id: conteo.id,
+        p_variante_id: seleccionada.varianteId,
+        p_cantidad_contada: n,
+      }),
+      responsable.firma(),
+    );
     setLoading(false);
+    // Contar una prenda es un paso del MISMO conteo (en un censo, cientos seguidos): el éxito no vacía el combo,
+    // o habría que volver a elegir en cada escaneo. Se vacía al cerrar o cancelar el conteo; un rechazo por el
+    // responsable sí lo vacía y relee la lista.
+    if (error) responsable.despues(error);
     if (error) {
       setError(traducirError(error, "registrar el conteo de esa prenda"));
       return;
@@ -390,7 +421,12 @@ function ConteoEnCurso({
             ) : (
               <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
                 <span className="text-taupe">¿Cancelar? Se pierde lo contado — el stock no se toca.</span>
-                <button type="button" onClick={cancelarConteo} disabled={cancelando} className="font-semibold text-rojo hover:underline disabled:opacity-50">
+                <button
+                  type="button"
+                  onClick={cancelarConteo}
+                  disabled={cancelando || !responsable.listo}
+                  title={responsable.motivo ?? undefined}
+                  className="font-semibold text-rojo hover:underline disabled:opacity-50">
                   {cancelando ? "Cancelando…" : "Sí, cancelar"}
                 </button>
                 <button type="button" onClick={() => setConfirmarCancelar(false)} className="text-taupe hover:underline">
@@ -418,6 +454,8 @@ function ConteoEnCurso({
             </div>
           )}
         </div>
+
+        <ComboResponsable control={responsable} deshabilitado={loading || cancelando} className="mt-3" />
 
         {!seleccionada ? (
           <div className="mt-3">
@@ -476,6 +514,7 @@ function ConteoEnCurso({
                 onListas={(l) => setMarcasLocal((prev) => ({ ...prev, ...l }))}
                 puedeCrearMarcas={puedeCrearMarcas}
                 parejaInicial={ultimaPareja}
+                responsable={responsable}
                 onCancelar={() => setAltaAbierta(false)}
                 onCreada={(variante, pareja) => {
                   setUltimaPareja(pareja);
@@ -505,7 +544,7 @@ function ConteoEnCurso({
                   className="w-28 border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo"
                 />
               </div>
-              <button type="submit" disabled={loading} className={botonPrimario}>
+              <button type="submit" disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
                 {loading ? "Guardando…" : "Registrar"}
               </button>
               <button
@@ -549,7 +588,13 @@ function ConteoEnCurso({
       </button>
 
       {revisando && (
-        <RevisarCierre conteoId={conteo.id} catalogo={catalogo} puedeCerrar={puedeCerrar} onClose={() => setRevisando(false)} />
+        <RevisarCierre
+          conteoId={conteo.id}
+          catalogo={catalogo}
+          puedeCerrar={puedeCerrar}
+          responsable={responsable}
+          onClose={() => setRevisando(false)}
+        />
       )}
     </div>
   );
@@ -559,11 +604,13 @@ function RevisarCierre({
   conteoId,
   catalogo,
   puedeCerrar,
+  responsable,
   onClose,
 }: {
   conteoId: string;
   catalogo: VarianteConteo[];
   puedeCerrar: boolean;
+  responsable: ControlResponsable;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -602,10 +649,12 @@ function RevisarCierre({
   }, [conteoId]);
 
   async function cerrar() {
+    if (!responsable.listo) return;
     setCerrando(true);
     setError(null);
-    const { error } = await createClient().rpc("cerrar_conteo", { p_conteo_id: conteoId });
+    const { error } = await firmar(createClient().rpc("cerrar_conteo", { p_conteo_id: conteoId }), responsable.firma());
     setCerrando(false);
+    responsable.despues(error);
     if (error) {
       setError(traducirError(error, "cerrar el conteo"));
       return;
@@ -664,11 +713,20 @@ function RevisarCierre({
             {!puedeCerrar && <p className="text-xs text-rojo">Solo un líder o la terminal administrativa puede cerrar el conteo.</p>}
             {error && <p className="text-sm text-rojo">{error}</p>}
 
+            {/* Cerrar aplica lo contado al stock: quien cierra se elige aquí mismo, encima del botón (ADR-0161). */}
+            {puedeCerrar && <ComboResponsable control={responsable} deshabilitado={cerrando} />}
+
             <div className="flex gap-2 pt-1">
               <button type="button" onClick={onClose} className={botonCancelar}>
                 Seguir contando
               </button>
-              <button type="button" onClick={cerrar} disabled={cerrando || !puedeCerrar} className={botonPrimario}>
+              <button
+                type="button"
+                onClick={cerrar}
+                disabled={cerrando || !puedeCerrar || !responsable.listo}
+                title={responsable.motivo ?? undefined}
+                className={botonPrimario}
+              >
                 {cerrando ? "Cerrando…" : "Cerrar conteo"}
               </button>
             </div>
@@ -699,6 +757,7 @@ function AltaAlVuelo({
   parejaInicial,
   onCancelar,
   onCreada,
+  responsable,
 }: {
   codigoBarras: string;
   categorias: { id: string; nombre: string }[];
@@ -710,6 +769,7 @@ function AltaAlVuelo({
   parejaInicial: { marcaId: string; proveedorId: string } | null;
   onCancelar: () => void;
   onCreada: (variante: VarianteConteo, pareja: { marcaId: string; proveedorId: string }) => void;
+  responsable: ControlResponsable;
 }) {
   const [referencia, setReferencia] = useState("");
   const [categoriaId, setCategoriaId] = useState("");
@@ -734,9 +794,10 @@ function AltaAlVuelo({
       setError("Elige la marca y el proveedor de la prenda.");
       return;
     }
+    if (!responsable.listo) return;
     setGuardando(true);
     setError(null);
-    const { data, error } = await createClient().rpc("censo_crear_variante", {
+    const { data, error } = await firmar(createClient().rpc("censo_crear_variante", {
       p_referencia: referencia.trim(),
       p_categoria_id: categoriaId,
       p_codigo_barras: codigoBarras,
@@ -746,8 +807,11 @@ function AltaAlVuelo({
       p_precio: precio ? Number(precio) : 0,
       p_marca_id: marcaId,
       p_proveedor_id: proveedorId,
-    });
+    }), responsable.firma());
     setGuardando(false);
+    // Igual que contar: el alta al vuelo es un paso del conteo (enseguida se cuenta esa prenda), así que el éxito
+    // no vacía el combo; un rechazo por el responsable sí.
+    if (error) responsable.despues(error);
     const fila = data?.[0];
     if (error || !fila) {
       setError(traducirError(error, "dar de alta esta prenda"));
@@ -843,7 +907,7 @@ function AltaAlVuelo({
       <p className="text-xs text-taupe">Un Líder va a revisar esto después — si no sabes el costo o el precio, déjalo en 0 y los completa él.</p>
       {error && <p className="text-sm text-rojo">{error}</p>}
       <div className="flex gap-2">
-        <button type="submit" disabled={guardando} className={botonPrimario}>
+        <button type="submit" disabled={guardando || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
           {guardando ? "Creando…" : "Crear y contar"}
         </button>
         <button type="button" onClick={onCancelar} className={botonCancelar}>

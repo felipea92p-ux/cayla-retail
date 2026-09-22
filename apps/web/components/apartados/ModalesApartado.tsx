@@ -9,9 +9,15 @@ import { money } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { AVISO_DIAS, PLAZO_DIAS, soloDigitos, sumarDiasIso, textoDevolucion, type Apartado, type MedioDevolucionReal } from "@/lib/separaciones-reglas";
+import { AVISO_DIAS, EXTENSIONES_MAX, PLAZO_DIAS, soloDigitos, sumarDiasIso, textoDevolucion, type Apartado, type MedioDevolucionReal } from "@/lib/separaciones-reglas";
 import { NOMBRE_METODO } from "@/lib/recibo-reglas";
 import { ReciboApartado, fechaCorta } from "@/components/apartados/piezas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
+
+/** La tienda del apartado: el combo «Responsable» lista a quien está de turno AHÍ, no en otra sede activa. */
+export type UbicacionApartado = { ubicacionId: string; etiqueta: string };
 
 /** Imprime y cierra cuando el navegador avisa que terminó (mismo criterio que «Venta registrada»). */
 function imprimirYSeguir(cerrar: () => void) {
@@ -171,15 +177,21 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, sede, onCl
   );
 }
 
-export function LiberarModal({ apartado, onClose }: { apartado: Apartado; onClose: () => void }) {
+export function LiberarModal({ apartado, ubicacion, onClose }: { apartado: Apartado; ubicacion: UbicacionApartado; onClose: () => void }) {
   const router = useRouter();
   const [enviando, setEnviando] = useState(false);
   const [motivo, setMotivo] = useState<"vencio" | "clienta_desistio" | "error_de_carga" | null>(null);
+  // Liberar guarda en la tienda (las prendas vuelven a venderse): pide Responsable (ADR-0161), vacío al abrir.
+  const responsable = useResponsable(ubicacion);
   async function liberar(cerrar: () => void) {
-    if (!motivo) return;
+    if (!motivo || !responsable.listo) return;
     setEnviando(true);
-    const { error } = await createClient().rpc("liberar_separacion", { p_separacion_id: apartado.id, p_motivo: motivo });
+    const { error } = await firmar(
+      createClient().rpc("liberar_separacion", { p_separacion_id: apartado.id, p_motivo: motivo }),
+      responsable.firma(),
+    );
     setEnviando(false);
+    responsable.despues(error);
     if (error) return avisar.error(traducirError(error, "liberar el apartado"));
     avisar.exito("Prendas liberadas", { detalle: `Falta devolver ${money(apartado.adelanto)} a ${apartado.nombres}.` });
     router.refresh();
@@ -204,9 +216,16 @@ export function LiberarModal({ apartado, onClose }: { apartado: Apartado; onClos
               </button>
             ))}
           </div>
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="flex gap-2">
             <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
-            <button type="button" disabled={!motivo || enviando} onClick={() => liberar(cerrar)} className={botonPrimario}>
+            <button
+              type="button"
+              disabled={!motivo || enviando || !responsable.listo}
+              title={!motivo ? "Elige por qué se libera." : (responsable.motivo ?? undefined)}
+              onClick={() => liberar(cerrar)}
+              className={botonPrimario}
+            >
               {enviando ? "Liberando…" : "Liberar prendas"}
             </button>
           </div>
@@ -217,7 +236,7 @@ export function LiberarModal({ apartado, onClose }: { apartado: Apartado; onClos
 }
 
 /** Devolver el adelanto (D4): por el medio que la clienta dejó anotado; efectivo solo si vino a la tienda. */
-export function DevolverModal({ apartado, cajaAbierta, onClose }: { apartado: Apartado; cajaAbierta: boolean; onClose: () => void }) {
+export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { apartado: Apartado; ubicacion: UbicacionApartado; cajaAbierta: boolean; onClose: () => void }) {
   const router = useRouter();
   const [medio, setMedio] = useState<MedioDevolucionReal>(apartado.devolucionMedio);
   const [operacion, setOperacion] = useState("");
@@ -227,18 +246,24 @@ export function DevolverModal({ apartado, cajaAbierta, onClose }: { apartado: Ap
   const faltaOperacion = medio !== "efectivo" && !operacion.trim();
   const cciMalo = cci !== "" && soloDigitos(cci).length !== 20;
   const sinCaja = medio === "efectivo" && !cajaAbierta;
+  // Registrar la devolución mueve dinero de la tienda: pide Responsable (ADR-0161), vacío al abrir.
+  const responsable = useResponsable(ubicacion);
 
   async function devolver(cerrar: () => void) {
     setIntento(true);
-    if (faltaOperacion || cciMalo || sinCaja) return;
+    if (faltaOperacion || cciMalo || sinCaja || !responsable.listo) return;
     setEnviando(true);
-    const { data, error } = await createClient().rpc("registrar_devolucion_separacion", {
-      p_separacion_id: apartado.id,
-      p_medio: medio,
-      p_operacion: operacion.trim() || undefined,
-      p_cci: cci ? soloDigitos(cci) : undefined,
-    });
+    const { data, error } = await firmar(
+      createClient().rpc("registrar_devolucion_separacion", {
+        p_separacion_id: apartado.id,
+        p_medio: medio,
+        p_operacion: operacion.trim() || undefined,
+        p_cci: cci ? soloDigitos(cci) : undefined,
+      }),
+      responsable.firma(),
+    );
     setEnviando(false);
+    responsable.despues(error);
     if (error) return avisar.error(traducirError(error, "registrar la devolución", { confirmarAntesDeRepetir: true }));
     const aviso = (data as { aviso?: string | null } | null)?.aviso;
     avisar.exito(`Devolución de ${money(apartado.adelanto)} registrada`, { detalle: aviso ?? `${apartado.nombres} · ${NOMBRE_METODO[medio as keyof typeof NOMBRE_METODO] ?? medio}` });
@@ -292,10 +317,57 @@ export function DevolverModal({ apartado, cajaAbierta, onClose }: { apartado: Ap
             </div>
           )}
           <p className="text-xs text-tinta/60">Se intentará la nota de crédito sobre la boleta {apartado.comprobanteAnticipo}; si SUNAT aún no la aceptó, queda pendiente con aviso.</p>
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="flex gap-2">
             <button type="button" onClick={cerrar} className={botonCancelar}>Cancelar</button>
-            <button type="button" disabled={enviando} onClick={() => devolver(cerrar)} className={botonPrimario}>
+            <button type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => devolver(cerrar)} className={botonPrimario}>
               {enviando ? "Registrando…" : "Registrar devolución"}
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+/** Extender el plazo 7 días (una sola vez): una confirmación breve para que quien lo hace firme con el combo. */
+export function ExtenderModal({ apartado, ubicacion, onClose }: { apartado: Apartado; ubicacion: UbicacionApartado; onClose: () => void }) {
+  const router = useRouter();
+  const [enviando, setEnviando] = useState(false);
+  // Extender guarda en la tienda (cambia la fecha límite de la clienta): pide Responsable (ADR-0161), vacío al abrir.
+  const responsable = useResponsable(ubicacion);
+  const agotado = apartado.extensiones >= EXTENSIONES_MAX;
+
+  async function extender(cerrar: () => void) {
+    if (agotado || !responsable.listo) return;
+    setEnviando(true);
+    const { data, error } = await firmar(createClient().rpc("extender_separacion", { p_separacion_id: apartado.id }), responsable.firma());
+    setEnviando(false);
+    responsable.despues(error);
+    if (error) return avisar.error(traducirError(error, "extender el apartado"));
+    avisar.exito("Plazo extendido 7 días", { detalle: `${apartado.nombres} recoge hasta el ${fechaCorta(String(data))}. Avísale por WhatsApp.` });
+    router.refresh();
+    cerrar();
+  }
+
+  return (
+    <Modal titulo="¿Extender 7 días?" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo}`} onClose={onClose}>
+      {(cerrar) => (
+        <div className="space-y-4">
+          <p className="text-sm text-tinta/80">
+            Venció el <b>{fechaCorta(apartado.venceEl)}</b>. Las prendas siguen guardadas una semana más y el precio se mantiene. Solo se puede extender una vez.
+          </p>
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
+          <div className="flex gap-2">
+            <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
+            <button
+              type="button"
+              disabled={enviando || agotado || !responsable.listo}
+              title={agotado ? "Ya se extendió una vez." : (responsable.motivo ?? undefined)}
+              onClick={() => extender(cerrar)}
+              className={botonPrimario}
+            >
+              {enviando ? "Extendiendo…" : "Extender 7 días"}
             </button>
           </div>
         </div>

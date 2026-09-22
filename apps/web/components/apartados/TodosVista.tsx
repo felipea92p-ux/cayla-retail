@@ -1,12 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { MessageCircle, Search } from "lucide-react";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
-import { avisar } from "@/components/ui/Avisos";
-import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
 import type { ResumenApartados } from "@/lib/separaciones";
 import {
   EXTENSIONES_MAX,
@@ -21,7 +17,7 @@ import {
   type ClaveEstado,
 } from "@/lib/separaciones-reglas";
 import { BarraPlazo, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
-import { DevolverModal, LiberarModal } from "@/components/apartados/ModalesApartado";
+import { DevolverModal, ExtenderModal, LiberarModal } from "@/components/apartados/ModalesApartado";
 
 type Filtro = "hoy" | "abiertos" | "cerrados" | "todos";
 const FILTROS: { id: Filtro; etiqueta: string }[] = [
@@ -40,6 +36,7 @@ const BOTON_CHICO = "label-cayla h-8 whitespace-nowrap rounded-md border border-
 const BOTON_CHICO_NEGRO = "label-cayla h-8 whitespace-nowrap rounded-md bg-tinta px-3 text-[10.5px] text-crema transition-colors hover:bg-rojo";
 
 export function TodosVista({
+  ubicacionId,
   ubicacionEtiqueta,
   hoy,
   puedeGestionar,
@@ -49,6 +46,7 @@ export function TodosVista({
   prendas,
   irAEntregar,
 }: {
+  ubicacionId: string;
   ubicacionEtiqueta: string;
   hoy: string;
   puedeGestionar: boolean;
@@ -58,13 +56,14 @@ export function TodosVista({
   prendas: VarianteBusqueda[];
   irAEntregar: (id: string) => void;
 }) {
-  const router = useRouter();
   const fotos = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p.fotoUrl])), [prendas]);
   const [filtro, setFiltro] = useState<Filtro>("hoy");
   const [texto, setTexto] = useState("");
   const [liberar, setLiberar] = useState<Apartado | null>(null);
   const [devolver, setDevolver] = useState<Apartado | null>(null);
-  const [extendiendo, setExtendiendo] = useState<string | null>(null);
+  const [extender, setExtender] = useState<Apartado | null>(null);
+  // Extender, liberar y devolver firman con el combo «Responsable» (ADR-0161) dentro de su modal, de esta tienda.
+  const ubicacion = { ubicacionId, etiqueta: ubicacionEtiqueta };
 
   const conEstado = apartados.map((a) => ({ a, e: estadoVisible(a, hoy) }));
   const lista = conEstado
@@ -73,15 +72,6 @@ export function TodosVista({
       filtro === "hoy" ? ["porvencer", "vencida", "devolver"].includes(e.clave) : filtro === "abiertos" ? a.estado === "abierta" : filtro === "cerrados" ? e.clave === "cerrada" : true,
     )
     .sort((x, y) => ORDEN_ESTADO[x.e.clave] - ORDEN_ESTADO[y.e.clave] || x.a.venceEl.localeCompare(y.a.venceEl));
-
-  async function extender(a: Apartado) {
-    setExtendiendo(a.id);
-    const { data, error } = await createClient().rpc("extender_separacion", { p_separacion_id: a.id });
-    setExtendiendo(null);
-    if (error) return avisar.error(traducirError(error, "extender el apartado"));
-    avisar.exito("Plazo extendido 7 días", { detalle: `${a.nombres} recoge hasta el ${fechaCorta(String(data))}. Avísale por WhatsApp.` });
-    router.refresh();
-  }
 
   const cifras = [
     { etiqueta: "Por recoger", valor: String(resumen.porRecoger), pie: `${resumen.prendasGuardadas} ${resumen.prendasGuardadas === 1 ? "prenda guardada" : "prendas guardadas"}` },
@@ -145,7 +135,7 @@ export function TodosVista({
                     <div className="flex min-w-0 items-center gap-2 max-md:hidden">
                       <span className="flex">
                         {a.prendas.slice(0, 3).map((pr, j) => (
-                          <FotoPrenda key={pr.varianteId} fotoUrl={fotos.get(pr.varianteId)} referencia={pr.referencia} className={`w-8 border border-papel ${j ? "-ml-3.5" : ""}`} />
+                          <FotoPrenda key={pr.varianteId} fotoUrl={fotos.get(pr.varianteId)} referencia={pr.referencia} ancho={32} className={`w-8 border border-papel ${j ? "-ml-3.5" : ""}`} />
                         ))}
                       </span>
                       <span className="truncate text-[12.5px] text-tinta/60">{a.prendas.map((pr) => pr.referencia.split(" ")[0]).join(", ")}</span>
@@ -169,8 +159,8 @@ export function TodosVista({
                       )}
                       {e.clave === "vencida" && puedeGestionar && (
                         <>
-                          <button type="button" disabled={a.extensiones >= EXTENSIONES_MAX || extendiendo === a.id} title={a.extensiones >= EXTENSIONES_MAX ? "Ya se extendió una vez" : undefined} onClick={() => extender(a)} className={BOTON_CHICO}>
-                            {extendiendo === a.id ? "…" : "+7 días"}
+                          <button type="button" disabled={a.extensiones >= EXTENSIONES_MAX} title={a.extensiones >= EXTENSIONES_MAX ? "Ya se extendió una vez" : undefined} onClick={() => setExtender(a)} className={BOTON_CHICO}>
+                            +7 días
                           </button>
                           <button type="button" onClick={() => setLiberar(a)} className={BOTON_CHICO}>Liberar</button>
                         </>
@@ -193,8 +183,9 @@ export function TodosVista({
         })
       )}
 
-      {liberar && <LiberarModal apartado={liberar} onClose={() => setLiberar(null)} />}
-      {devolver && <DevolverModal apartado={devolver} cajaAbierta={cajaAbierta} onClose={() => setDevolver(null)} />}
+      {extender && <ExtenderModal apartado={extender} ubicacion={ubicacion} onClose={() => setExtender(null)} />}
+      {liberar && <LiberarModal apartado={liberar} ubicacion={ubicacion} onClose={() => setLiberar(null)} />}
+      {devolver && <DevolverModal apartado={devolver} ubicacion={ubicacion} cajaAbierta={cajaAbierta} onClose={() => setDevolver(null)} />}
     </div>
   );
 }

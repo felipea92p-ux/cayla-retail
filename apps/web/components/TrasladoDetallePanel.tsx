@@ -12,6 +12,9 @@ import { botonPrimario } from "@/components/ui/Modal";
 import { resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
 import { situacionTraslado } from "@/lib/traslados-reglas";
 import type { TrasladoDetalle } from "@/lib/traslados";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 type VarianteBusqueda = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null; codigosBarras: string[] };
 
@@ -45,6 +48,9 @@ export function TrasladoDetallePanel({
   const [cerrando, setCerrando] = useState(false);
   const [notaCierre, setNotaCierre] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Recibir un traslado (anotar lo que llegó, confirmar, cerrar con diferencia) guarda en la tienda: pide
+  // Responsable (ADR-0161). Uno solo para todo el panel.
+  const responsable = useResponsable();
 
   // El estado se dice con las mismas palabras que la lista de Traslados («Requiere confirmación», «En camino»…):
   // la misma cosa con dos nombres, según la pantalla, es lo que hace dudar. Quien mira es el destino o, si no,
@@ -62,14 +68,25 @@ export function TrasladoDetallePanel({
   }, [busqueda, catalogo]);
 
   async function guardarLinea(varianteId: string, cantidad: number) {
+    if (!responsable.listo) {
+      setError(responsable.motivo);
+      return;
+    }
     setGuardando(varianteId);
     setError(null);
-    const { error } = await createClient().rpc("registrar_recepcion_traslado", {
-      p_transferencia_id: t.id,
-      p_variante_id: varianteId,
-      p_cantidad_recibida: cantidad,
-    });
+    const { error } = await firmar(
+      createClient().rpc("registrar_recepcion_traslado", {
+        p_transferencia_id: t.id,
+        p_variante_id: varianteId,
+        p_cantidad_recibida: cantidad,
+      }),
+      responsable.firma(),
+    );
     setGuardando(null);
+    // Cada línea se guarda al salir del campo: son pasos de UNA recepción, así que el éxito NO vacía el combo
+    // (obligaría a elegir de nuevo en cada casilla). Se vacía al confirmar o cerrar; un rechazo por el
+    // responsable sí lo vacía y relee la lista.
+    if (error) responsable.despues(error);
     if (error) {
       setError(traducirError(error, "registrar lo recibido"));
       return;
@@ -78,10 +95,12 @@ export function TrasladoDetallePanel({
   }
 
   async function confirmar() {
+    if (!responsable.listo) return;
     setConfirmando(true);
     setError(null);
-    const { data, error } = await createClient().rpc("confirmar_traslado", { p_transferencia_id: t.id });
+    const { data, error } = await firmar(createClient().rpc("confirmar_traslado", { p_transferencia_id: t.id }), responsable.firma());
     setConfirmando(false);
+    responsable.despues(error);
     if (error) {
       setError(traducirError(error, "confirmar la recepción"));
       return;
@@ -92,10 +111,15 @@ export function TrasladoDetallePanel({
   }
 
   async function cerrarConDiferencia() {
+    if (!responsable.listo) return;
     setCerrando(true);
     setError(null);
-    const { error } = await createClient().rpc("cerrar_traslado_con_diferencia", { p_transferencia_id: t.id, p_nota: notaCierre || undefined });
+    const { error } = await firmar(
+      createClient().rpc("cerrar_traslado_con_diferencia", { p_transferencia_id: t.id, p_nota: notaCierre || undefined }),
+      responsable.firma(),
+    );
     setCerrando(false);
+    responsable.despues(error);
     if (error) {
       setError(traducirError(error, "cerrar el traslado"));
       return;
@@ -111,6 +135,9 @@ export function TrasladoDetallePanel({
   // antes de que el servidor tenga cada línea solo rebota con el error de
   // la RPC — mejor no ofrecer el botón todavía.
   const faltanPorConfirmar = t.lineas.some((l) => l.cantidadEnviada != null && l.cantidadRecibida == null);
+  // El combo se ve solo si en este panel hay algo que guardar.
+  const hayQueGuardar = puedeEditar || (t.estado === "recibido_con_diferencia" && puedeCerrarDiferencia);
+  const ocupado = guardando !== null || confirmando || cerrando;
 
   return (
     <div className="space-y-5">
@@ -123,6 +150,8 @@ export function TrasladoDetallePanel({
       </div>
       {t.nota && <p className="text-sm text-tinta/70">Nota de envío: {t.nota}</p>}
       {error && <p className="text-sm text-rojo">{error}</p>}
+      {/* Encima de la tabla y no al pie: las casillas de «Recibido» ya guardan al salir de cada una. */}
+      {hayQueGuardar && <ComboResponsable control={responsable} deshabilitado={ocupado} />}
 
       <div className="card-cayla overflow-hidden">
         <table className="w-full text-sm">
@@ -163,7 +192,8 @@ export function TrasladoDetallePanel({
                           const n = Number(e.target.value);
                           if (Number.isInteger(n) && n >= 0) guardarLinea(l.varianteId, n);
                         }}
-                        disabled={guardando === l.varianteId}
+                        disabled={guardando === l.varianteId || !responsable.listo}
+                        title={responsable.motivo ?? undefined}
                         className={`w-20 rounded-lg border px-2 py-1 text-right tabular-nums ${diferente ? "border-ambar text-ambar-profundo" : "border-tinta/15 text-tinta"}`}
                       />
                     ) : (
@@ -192,6 +222,8 @@ export function TrasladoDetallePanel({
               }
             }}
             placeholder="Escanea el código de barras o escribe el SKU…"
+            disabled={!responsable.listo}
+            title={responsable.motivo ?? undefined}
             className="w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo"
           />
           {coincidencias.length > 0 && (
@@ -220,7 +252,8 @@ export function TrasladoDetallePanel({
         <button
           type="button"
           onClick={confirmar}
-          disabled={confirmando || faltanPorConfirmar}
+          disabled={confirmando || faltanPorConfirmar || !responsable.listo}
+          title={responsable.motivo ?? undefined}
           className={`${botonPrimario} w-full`}
         >
           {confirmando ? "Confirmando…" : "Confirmar recepción"}
@@ -241,7 +274,7 @@ export function TrasladoDetallePanel({
               className="w-full rounded-lg border border-tinta/15 bg-papel px-3 py-2 text-sm text-tinta"
               rows={2}
             />
-            <button type="button" onClick={cerrarConDiferencia} disabled={cerrando} className={`${botonPrimario} w-full`}>
+            <button type="button" onClick={cerrarConDiferencia} disabled={cerrando || !responsable.listo} title={responsable.motivo ?? undefined} className={`${botonPrimario} w-full`}>
               {cerrando ? "Cerrando…" : "Cerrar con esta diferencia"}
             </button>
           </div>

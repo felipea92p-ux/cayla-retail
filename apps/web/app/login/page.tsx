@@ -13,6 +13,8 @@ const MENSAJES_ERROR: Record<string, string> = {
     // el estado interno de un alta a quien todavía no puede entrar; en los dos casos el
     // siguiente paso es el mismo: hablar con un líder.
     "Tu cuenta existe pero todavía no puede entrar a retail. Pide a un Líder que te dé de alta o que apruebe tu acceso.",
+  // ADR-0162: la cuenta de un APARATO (terminal de tienda) que un líder desactivó en Colaboradores ▸ Terminales.
+  terminal_desactivada: "Esta terminal está desactivada. Pide a un Líder que la reactive en Colaboradores ▸ Terminales.",
 };
 
 export default function LoginPage() {

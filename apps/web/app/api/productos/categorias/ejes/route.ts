@@ -1,5 +1,8 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
+// ADR-0161: cambiar el catálogo es operación de tienda; la firma del combo «Responsable» que manda la pantalla
+// viaja a la base en cada consulta de este cliente (sin firma, igual que antes).
+import { firmaDeEncabezados } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
 
 // PUT /api/productos/categorias/ejes → qué tallas/tejidos/patrones ofrece
@@ -19,7 +22,7 @@ export async function PUT(request: Request) {
     return Response.json({ error: "Falta la categoría a editar." }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
   const { error } = await supabase.rpc("actualizar_categoria_ejes", {
     p_categoria_id: categoriaId,
     p_talla_ids: idsValidos(cuerpo?.tallaIds),
