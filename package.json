@@ -44,6 +44,7 @@
     "pruebas:notas-credito": "node scripts/pruebas/notas_credito_modulo.mjs",
     "pruebas:candado-lider": "node scripts/pruebas/candado_lider_caja_y_ajuste.mjs",
     "pruebas:terminales": "node scripts/pruebas/terminales_por_tienda.mjs",
+    "pruebas:terminales-sin-persona": "node scripts/pruebas/terminales_sin_persona.mjs",
     "pruebas:colaboradores-endurecimiento": "node scripts/pruebas/colaboradores_endurecimiento.mjs",
     "pruebas:archivar-datos-prueba": "node scripts/pruebas/archivar_datos_prueba.mjs",
     "pruebas:clientas": "node scripts/pruebas/clientas.mjs",

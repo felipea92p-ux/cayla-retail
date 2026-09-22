@@ -337,6 +337,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:terminales
 
+      # Terminales SIN persona (ADR-0162): el aparato nunca firma solo — `fn_actor_persona_id()` exige un responsable
+      # PRESENTE en la tienda de la terminal (en pausa, con salida, sin marcas u otra tienda → rechazado); los permisos
+      # son de la cuenta (con una líder como responsable, la terminal sigue sin ser líder); `terminal_id` se sella al
+      # insertar; la pantalla es solo del líder. Asistencia de Dynamic simulada dentro de cada caso. ROLLBACK siempre.
+      - name: pruebas:terminales-sin-persona
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:terminales-sin-persona
+
       # Deriva de producción (las migraciones que producción tenía y el repo no): una sola firma de
       # registrar_movimiento, catalogo_actualizar_producto y registrar_compra (con p_token, idempotente por
       # token), el historial de «estado» no se pisa, el TRUNCATE del libro de movimientos se frena, y las

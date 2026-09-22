@@ -119,6 +119,8 @@ Solo cambia de dónde sacan su respuesta `fn_es_terminal(tipo)` y `fn_mi_termina
 |---|---|---|
 | F0 | Este ADR y las pantallas 5 y 6 del spike | Felipe aprueba |
 | F1 | **Prueba del encabezado:** una RPC de juguete lee `x-responsable` a través de PostgREST en local y en una rama de Supabase | Si el encabezado no llega, se cambia de mecanismo **antes** de construir lo demás |
+| | **F1 HECHA (2026-09-22): el encabezado llega.** Local: `curl` y `supabase-js` con `.rpc(...).setHeader('x-responsable', …)` → la función lo lee de `request.headers`; sin él, llega vacío. Producción: la pregunta previa del navegador (CORS) a `vovjyyiafkxteijimpuy.supabase.co` responde `access-control-allow-headers: …,x-responsable` (sin tocar datos). | |
+| | **F2 HECHA en local:** `20260923010000_terminales_sin_persona.sql` y `pnpm pruebas:terminales-sin-persona` (34/34) sobre una copia aislada del local (`cayla_f2`), para no tocar la base compartida. | |
 | F2 | Migración base: `retail.terminales`, `fn_terminal_actual`, `fn_actor_persona_id`, `terminal_id`, y el nuevo interior de `fn_es_terminal` / `fn_mi_terminal` / `fn_ubicacion_actual_persona` | `pnpm pruebas:terminales` adaptado: una terminal sin persona abre la caja de su tienda y no la de otra |
 | F3 | Reemplazo mecánico de las ~65 funciones, más las 10 a mano | Prueba nueva: cada una de las 75, llamada como terminal con un responsable presente, firma con ese responsable. Sin responsable o con uno ausente, se rechaza |
 | F4 | Web: la rama de terminal, el pie del menú, Colaboradores ▸ Terminales, el combo Responsable (ADR-0161) mandando el encabezado | Demo en el navegador con una terminal de verdad |
