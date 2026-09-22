@@ -87,6 +87,43 @@ llamando a `fn_es_lider()`. Un módulo cuyas funciones todavía no revisan su ll
 `transferencias`, `conteos` y los comprobantes. En Catálogo (`productos`, `variantes`) va al historial de cambios,
 no a la fila de la prenda.
 
+## F4b — la web manda el responsable (2026-09-22, rama `claude/adr-0161-f4b-responsable`)
+
+**Piezas:** reglas puras en `apps/web/lib/responsable-reglas.ts` (+ test), lectura de asistencia en `lib/useDeTurno.ts`
+(evoluciona `useVendedorasDeTurno`), estado en `lib/useResponsable.ts`, el combo en `components/ComboResponsable.tsx`
+(diseño del spike, pantallas 2-4) y la sede activa como contexto (`components/SedeActiva.tsx`, montado en
+`app/(app)/layout.tsx`). `traducirError` traduce los 42501 con `hint` (`responsable_*`, `ubicacion_requerida`).
+
+**Cómo viaja:** desde el navegador, con `firmar(supabase.rpc(...), responsable.firma())` → `.setHeader('x-responsable')`
+y `x-ubicacion` (la sede activa). Las rutas `/api/*` que guardan reciben esos encabezados en el `fetch` y los reenvían con
+`createClient({ firma: firmaDeEncabezados(request.headers) })`. No hay server actions de escritura en estas pantallas.
+La venta sin conexión guarda el responsable en `p_asesora_id` y al subir manda además `x-momento` = hora de la venta.
+`/api/lucode/emitir` valida al responsable con `fn_actor_persona_id` **antes** de llamar a Lucode.
+
+**Pantallas conectadas** (combo vacío, solo presentes, bloqueo sin nadie, vuelve a vacío al guardar):
+- **Punto de venta:** cobrar (reemplaza la fila «Atendió» del ADR-0163: ya no se elige sola con una presente ni vende a
+  nombre de la sesión con cero; `p_asesora_id` = responsable); subida de ventas sin conexión.
+- **Caja:** abrir, ingreso/egreso, cerrar (el resultado muestra «Responsable del cierre»).
+- **Cambios:** registrar. **Devoluciones:** solicitar («Lo registra» = responsable).
+- **Facturación:** emitir comprobante, convertir proforma, crear proforma, transmitir/reintentar a SUNAT (confirmación
+  corta con el combo, desde Comprobantes y desde «Actividad de hoy»).
+- **Inventario:** ajuste de stock, apartar y liberar apartado, reponer piso, prendas dañadas, conteo (abrir, registrar,
+  cerrar, anular, alta al vuelo), traslados (enviar —lista del origen—, recibir, confirmar, cerrar con diferencia). En
+  operaciones de varios pasos el combo se vacía al cerrar la operación, no en cada prenda (Felipe, 2026-09-22).
+- **Catálogo:** nueva prenda, editar prenda y sus etiquetas, archivar en lote, revisar alta al vuelo, etiquetar prendas,
+  marcas (lista y alta desde el formulario), categorías y ejes, colores, tallas, tejidos, patrones, familias, etiquetas.
+
+**No conectadas, a propósito:** lo que es solo del líder (anular venta o comprobante, liberar comprobante no emitido,
+series, aprobar/rechazar devoluciones, códigos de descuento); Compras, Producción, Colaboradores y Configuración (A8);
+`registrar_clienta` (alta de clienta dentro del cobro: la firma va en la venta); pedidos no atendidos (pendiente de decidir
+si es operación de tienda).
+
+**Para encender `fn_exige_responsable()`:** publicar esta web primero. Antes de pegar el interruptor, revisar que no quede
+una escritura de tienda fuera de la lista de arriba (la base rechazaría a una persona sin encabezado con
+`responsable_requerido`). Límites conocidos: una pantalla abierta sin conexión desde el inicio no tiene lista y no puede
+vender sin conexión; en Tienda LIM (sin asistencia cargada) y en el Postgres local (sin `marcajes`/`jornadas`) todo queda
+bloqueado — es la regla A4/A5, no un error.
+
 ## Lo que queda abierto
 
 1. ~~En pausa~~ **Decidido (Felipe, 2026-09-22): quien está en pausa no puede firmar ni operar.** Solo firma quien está `presente`.
