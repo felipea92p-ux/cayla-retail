@@ -40,7 +40,8 @@ import {
 // lista de roles agrupada y con avisos, grupos de módulos plegables con buscador, borrador con barra de guardado, vista previa
 // del menú que marca lo que se suma y se quita, y «Comparar roles» (matriz). Cada rol decide SOLO qué módulos ve; quien ve un
 // módulo hace todo lo que hay en él, salvo la lista fija «siempre solo del líder». Solo el Líder no se edita (sus módulos),
-// pero sí se asigna y se quita, entre líderes. Todo lo que se escribe pasa por RPC solo del líder, que anota `roles_historial`.
+// pero sí se asigna y se quita, entre líderes. Todo lo que se escribe pasa por RPC (del líder o de quien ve Roles y accesos,
+// 20260923131000), que anota `roles_historial`; subir a alguien a Líder o cambiarle el rol a un líder sigue siendo de un líder.
 
 type Modal =
   | { tipo: "nuevo" }
@@ -85,6 +86,7 @@ export function RolesPanel({
   ubicaciones,
   yoId,
   rolInicialId = null,
+  soyLider = true,
   acciones = accionesRolesSupabase,
 }: {
   roles: RolVista[];
@@ -96,6 +98,8 @@ export function RolesPanel({
   yoId: string | null;
   /** Con qué rol abre (desde el rol de una fila en Cuentas). Sin esto, Integrante. */
   rolInicialId?: string | null;
+  /** ¿Quien mira es líder? Sin serlo (módulo Roles y accesos) no da el rol Líder ni le cambia el rol a un líder. */
+  soyLider?: boolean;
   acciones?: AccionesRoles;
 }) {
   const router = useRouter();
@@ -206,7 +210,7 @@ export function RolesPanel({
             { clave: "matriz", etiqueta: "Comparar roles" },
           ]}
         />
-        <p className="text-[13px] text-tinta/60">Solo un líder de equipo cambia esto.</p>
+        <p className="text-[13px] text-tinta/60">Lo cambia un líder de equipo o quien tenga Roles y accesos en su rol.</p>
       </div>
 
       {vista === "matriz" ? (
@@ -272,7 +276,7 @@ export function RolesPanel({
                 <p className="mt-1 text-sm text-tinta/70">{descripcionDe(rol)}</p>
               </div>
               <div className="flex items-center gap-2">
-                {!rol.archivado && (
+                {!rol.archivado && (soyLider || !rol.fijo) && (
                   <Boton type="button" peso="discreto" className="px-3 py-2" onClick={() => setModal({ tipo: "asignar", rol })} disabled={!cuentas}>
                     {rol.fijo ? "Asignar a una persona" : "Asignar a una cuenta"}
                   </Boton>
@@ -548,8 +552,8 @@ export function RolesPanel({
       )}
       {modal?.tipo === "asignar" && cuentas && (
         <AsignarRolModal
-          roles={rolesAsignables(roles)}
-          cuentas={cuentasAsignables(cuentas, modal.rol, yoId)}
+          roles={rolesAsignables(roles, undefined, soyLider)}
+          cuentas={cuentasAsignables(cuentas, modal.rol, yoId, soyLider)}
           ubicaciones={ubicaciones}
           rolFijo={modal.rol}
           onClose={() => setModal(null)}

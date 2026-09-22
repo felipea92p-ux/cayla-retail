@@ -266,13 +266,13 @@ rollback;`
 error(
   "permisos · Micaela (integrante) no puede leer el tablero",
   como(FELIPE, `${BASE}${cambiaA(MICAELA)}${COMO_AUTENTICADO}select * from retail.notas_credito_tablero();`),
-  "Solo un líder puede ver las notas de crédito de proveedores"
+  "puede ver las notas de crédito de proveedores"
 );
 
 error(
   "permisos · Micaela no puede buscar facturas para la nota",
   como(FELIPE, `${BASE}${cambiaA(MICAELA)}${COMO_AUTENTICADO}select * from retail.fn_facturas_para_nota_credito('TST');`),
-  "Solo un líder puede ver las facturas de proveedores"
+  "puede ver las facturas de proveedores"
 );
 
 error(

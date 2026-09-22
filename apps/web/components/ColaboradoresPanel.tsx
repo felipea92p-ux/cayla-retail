@@ -105,6 +105,8 @@ export function ColaboradoresPanel({
   roles = null,
   cuentas = null,
   vistaInicial = vistaDe(undefined),
+  secciones,
+  soyLider = true,
   acciones = accionesSupabase,
   accionesRoles = accionesRolesSupabase,
   accionesTerminales,
@@ -125,6 +127,11 @@ export function ColaboradoresPanel({
   cuentas?: CuentaConRol[] | null;
   /** Sección y filtros con que abre (`?pestana=` de siempre, ver `vistaDe`). */
   vistaInicial?: VistaColaboradores;
+  /** Las secciones que ve esta cuenta (20260923131000): Cuentas con el módulo Colaboradores, Roles y accesos con el suyo.
+   *  Ausente = las dos (el líder, y las maquetas). */
+  secciones?: readonly SeccionColaboradores[];
+  /** ¿Quien mira es líder? Sin serlo (tiene el módulo), no se le ofrece tocar a un líder ni dar el rol Líder. */
+  soyLider?: boolean;
   acciones?: AccionesColaboradores;
   accionesRoles?: AccionesRoles;
   /** Crear terminal y cambiar su clave. Por defecto, las Server Actions de `app/actions/terminales.ts`. */
@@ -179,6 +186,7 @@ export function ColaboradoresPanel({
     else setModal({ tipo: "quitar", persona: c, suspendida: false });
   }
 
+  const ve = (x: SeccionColaboradores) => !secciones || secciones.includes(x);
   const avisos = porAtender(pendientes.length, inactivos.length);
   const terminalesActivas = terminales?.filter((t) => t.activo).length ?? 0;
   const rolesVigentes = roles?.filter((r) => !r.archivado) ?? [];
@@ -193,7 +201,7 @@ export function ColaboradoresPanel({
     setTipo("personas");
     setEstado(e);
   };
-  const verRolDe = roles && cuentas ? (personaId: string) => {
+  const verRolDe = roles && cuentas && ve("roles") ? (personaId: string) => {
     const c = cuentas.find((x) => x.tipo === "persona" && x.id === personaId);
     if (!c) return;
     setRolElegidoId(c.rolId);
@@ -210,6 +218,7 @@ export function ColaboradoresPanel({
             Quién entra a retail, con qué rol y desde qué ubicación. Las personas se dan de alta en Dynamic.
           </p>
         </div>
+        {ve("cuentas") && (
         <div className="text-right">
           <div className="flex flex-wrap justify-end gap-2">
             <Boton peso="discreto" onClick={() => setVerActividad(true)}>
@@ -222,9 +231,11 @@ export function ColaboradoresPanel({
           </div>
           {disponibles.length === 0 && <p className="mt-1 text-xs text-tinta/65">Todas las cuentas activas de Dynamic ya tienen acceso.</p>}
         </div>
+        )}
       </div>
 
       {/* Dos secciones grandes en vez de 7 pestañas. Cada una resume lo suyo y avisa en ámbar lo que pide atención. */}
+      {ve("cuentas") && ve("roles") && (
       <nav aria-label="Secciones de colaboradores" className="grid gap-2.5 sm:grid-cols-2 xl:max-w-3xl">
         <BotonSeccion activa={seccion === "cuentas"} onClick={() => setSeccion("cuentas")} titulo="Cuentas">
           {plural(colaboradores.length, "persona", "personas")} · {plural(terminalesActivas, "terminal", "terminales")}
@@ -239,8 +250,9 @@ export function ColaboradoresPanel({
           )}
         </BotonSeccion>
       </nav>
+      )}
 
-      {seccion === "cuentas" && (
+      {seccion === "cuentas" && ve("cuentas") && (
         <section aria-label="Cuentas" className="space-y-4">
           {avisos.length > 0 ? (
             <div className="space-y-2">
@@ -345,7 +357,7 @@ export function ColaboradoresPanel({
                   {filas.length === 0 ? (
                     <Vacio>Nadie coincide con lo que buscas.</Vacio>
                   ) : (
-                    <TablaActivos filas={filas} ocupadoId={ocupadoId} onAccion={alElegirAccion} rolDe={rolDe} onVerRol={verRolDe} />
+                    <TablaActivos filas={filas} ocupadoId={ocupadoId} onAccion={alElegirAccion} rolDe={rolDe} onVerRol={verRolDe} soyLider={soyLider} />
                   )}
                   <p className="text-xs text-tinta/65" role="status">
                     {filas.length === colaboradores.length
@@ -416,7 +428,7 @@ export function ColaboradoresPanel({
         </section>
       )}
 
-      {seccion === "roles" && (
+      {seccion === "roles" && ve("roles") && (
         <section aria-label="Roles y accesos">
           {roles === null ? (
             <Vacio>No se pudieron leer los roles. Lo demás de esta pantalla sí está al día.</Vacio>
@@ -428,6 +440,7 @@ export function ColaboradoresPanel({
               ubicaciones={ubicaciones}
               yoId={colaboradores.find((c) => c.es_yo)?.persona_id ?? null}
               rolInicialId={rolElegidoId}
+              soyLider={soyLider}
               acciones={accionesRoles}
             />
           )}
@@ -493,7 +506,7 @@ export function ColaboradoresPanel({
       )}
       {modal?.tipo === "rol" && roles && (
         <AsignarRolModal
-          roles={rolesAsignables(roles)}
+          roles={rolesAsignables(roles, undefined, soyLider)}
           cuentas={[]}
           ubicaciones={ubicaciones}
           cuentaFija={modal.cuenta}

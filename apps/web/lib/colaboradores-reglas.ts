@@ -138,8 +138,10 @@ export function porAtender(pendientes: number, inactivas: number): AvisoPorAtend
  *  alguien a Líder); nunca a uno mismo. «Cambiar ubicación» sigue siendo solo de quien no es líder: un líder opera todas. */
 export type AccionFila = "cambiar_rol" | "cambiar_ubicacion" | "suspender" | "quitar";
 
-export function accionesDeFila(c: Pick<Colaborador, "rol" | "es_yo">): AccionFila[] {
+export function accionesDeFila(c: Pick<Colaborador, "rol" | "es_yo">, soyLider = true): AccionFila[] {
   if (c.es_yo) return [];
+  // A un líder solo lo toca un líder (20260923131000): quien gestiona accesos con el módulo, sin ser líder, no ve acciones.
+  if (!soyLider && c.rol === "lider") return [];
   return c.rol === "colaborador" ? ["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"] : ["cambiar_rol", "suspender", "quitar"];
 }
 

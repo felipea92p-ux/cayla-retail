@@ -64,10 +64,13 @@ export function TablaActivos({
   onAccion,
   rolDe,
   onVerRol,
+  soyLider = true,
 }: {
   filas: Colaborador[];
   ocupadoId: string | null;
   onAccion: (c: Colaborador, accion: AccionFila) => void;
+  /** Quien mira es líder. Sin serlo (módulo Colaboradores), las filas de líderes no ofrecen acciones. */
+  soyLider?: boolean;
   /** El nombre del rol de cada cuenta (ADR-0161 B); sin esto, solo el nivel (Líder / Colaborador). */
   rolDe?: (id: string) => string | null;
   /** Abre ese rol en «Roles y accesos» (spike colaboradores-ux, 2026-09-22): el rol de la fila es un atajo, no solo texto. */
@@ -88,7 +91,7 @@ export function TablaActivos({
       </thead>
       <tbody className="divide-y divide-tinta/5">
         {filas.map((c) => {
-          const items: ItemMenu[] = accionesDeFila(c).map((a) => ({
+          const items: ItemMenu[] = accionesDeFila(c, soyLider).map((a) => ({
             clave: a,
             etiqueta: ETIQUETA_ACCION[a],
             peligro: a === "quitar",

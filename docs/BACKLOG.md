@@ -28,6 +28,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Los 7 módulos «del líder» se pueden dar a un rol (2026-09-22, ADR-0161 B6-B8) — CONSTRUIDO en la rama `claude/abrir-modulos-a-los-roles`; NO está en producción
+- [ ] Pegar en producción, en orden: `20260923130000_abrir_modulos_a_los_roles.sql` y `20260923131000_colaboradores_y_roles_delegables.sql` (empezar con `set search_path to retail, public, extensions;`). Las dos abortan solas si alguna función cambió.
+- [ ] Refrescar el volcado y el diccionario (`generado/COMO-REFRESCAR.md`) y correr `pnpm datos:comparar`.
+- [ ] **PR aparte:** construir las 6 decisiones P1-P6 del ADR-0161 (Felipe, 2026-09-22): registrar en Compras por módulo, montos en Recibir, ficha y edición de proveedores con su módulo, etiquetas sin descuento desde la ficha con Productos, Análisis sin costo ni red en Existencias, Colaboradores y Roles solo a personas.
+- Cómo verificas: en Roles y accesos los 7 módulos salen con interruptor; un rol con solo «Por pagar» ve Compras ▸ Por pagar con montos; uno con «Etiquetas» ve la pestaña Etiquetas y no puede poner descuento.
+
 ## 🎯 Conteo físico: rediseño con la guía oficial (2026-09-22) — maqueta lista, sin código
 Demo: `docs/maquetas/conteo-rediseno-2026-09/conteo.html` (artifact https://claude.ai/artifact/U6e6UwKXX3rByebdBPDLrD).
 - [ ] **Decisión de Felipe:** pendientes mientras se cuenta — variante A (lista sin cifras) o B (solo el número).

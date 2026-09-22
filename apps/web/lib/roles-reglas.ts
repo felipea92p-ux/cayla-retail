@@ -106,8 +106,9 @@ export function nombreDeCopia(origen: string, vigentes: readonly string[]): stri
 
 /** Los roles que se le pueden asignar a una cuenta: los vigentes. El Líder, solo a una persona (una terminal nunca es
  *  líder, ADR-0162); sin cuenta elegida todavía, se ofrece igual y la base decide. */
-export function rolesAsignables(roles: readonly RolVista[], cuenta?: Pick<CuentaConRol, "tipo">): RolVista[] {
-  return roles.filter((r) => !r.archivado && (!r.fijo || cuenta?.tipo !== "terminal"));
+export function rolesAsignables(roles: readonly RolVista[], cuenta?: Pick<CuentaConRol, "tipo">, soyLider = true): RolVista[] {
+  // Quien administra roles sin ser líder (módulo Roles y accesos, 20260923131000) no sube a nadie a Líder.
+  return roles.filter((r) => !r.archivado && (!r.fijo || (soyLider && cuenta?.tipo !== "terminal")));
 }
 
 /** Las cuentas de un rol. */
@@ -117,8 +118,10 @@ export function cuentasDelRol(cuentas: readonly CuentaConRol[], rolId: string): 
 
 /** Las cuentas a las que se les puede dar este rol: todas menos uno mismo (nadie se cambia su propio rol: así nunca se
  *  queda la tienda sin líder), las que ya lo tienen y, si es el Líder, las terminales. Misma regla que `asignar_rol`. */
-export function cuentasAsignables(cuentas: readonly CuentaConRol[], rol: Pick<RolVista, "id" | "fijo">, yoId: string | null): CuentaConRol[] {
-  return cuentas.filter((c) => c.id !== yoId && c.rolId !== rol.id && !(rol.fijo && c.tipo === "terminal"));
+export function cuentasAsignables(cuentas: readonly CuentaConRol[], rol: Pick<RolVista, "id" | "fijo">, yoId: string | null, soyLider = true): CuentaConRol[] {
+  // Sin ser líder (20260923131000): a un líder no se le cambia el rol, y el rol Líder no se da.
+  if (!soyLider && rol.fijo) return [];
+  return cuentas.filter((c) => c.id !== yoId && c.rolId !== rol.id && !(rol.fijo && c.tipo === "terminal") && (soyLider || !c.esLider));
 }
 
 /** ¿Hay que elegirle sede? Solo al bajar a un líder sin ubicación: un líder opera todas, cualquier otro rol trabaja en

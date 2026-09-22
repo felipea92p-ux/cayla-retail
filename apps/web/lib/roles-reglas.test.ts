@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MODULOS, MODULOS_DE_HOY } from "./modulos";
+import { MODULOS, MODULOS_DE_HOY, esDelegable } from "./modulos";
 import {
   alternarGrupo,
   alternarModulo,
@@ -46,11 +46,12 @@ describe("controles del editor", () => {
     }
   });
 
-  it("Colaboradores y Roles salen con candado «Solo líder»; lo aún no delegable, «Solo líder por ahora»", () => {
-    expect(controlDe(INTEGRANTE, modulo("roles"))).toEqual({ tipo: "candado", texto: "Solo líder" });
-    expect(controlDe(INTEGRANTE, modulo("colaboradores"))).toEqual({ tipo: "candado", texto: "Solo líder" });
-    expect(controlDe(INTEGRANTE, modulo("analisis"))).toEqual({ tipo: "candado", texto: "Solo líder por ahora" });
-    expect(controlDe(INTEGRANTE, modulo("caja"))).toEqual({ tipo: "interruptor", editable: true });
+  it("hoy todo módulo sale con interruptor (Felipe, 2026-09-22: se abrieron los 7 que tenían candado); el candado sigue para uno que nazca así", () => {
+    for (const clave of ["roles", "colaboradores", "analisis", "etiquetas", "facturas_compra", "por_pagar", "notas_credito", "caja"] as const) {
+      expect(controlDe(INTEGRANTE, modulo(clave)), clave).toEqual({ tipo: "interruptor", editable: true });
+    }
+    expect(controlDe(INTEGRANTE, { ...modulo("caja"), soloLider: true })).toEqual({ tipo: "candado", texto: "Solo líder" });
+    expect(controlDe(INTEGRANTE, { ...modulo("caja"), noDelegable: true })).toEqual({ tipo: "candado", texto: "Solo líder por ahora" });
   });
 
   it("un rol archivado no se edita", () => {
@@ -60,8 +61,9 @@ describe("controles del editor", () => {
   it("alternar enciende y apaga, en el orden del catálogo, y nunca deja entrar lo que no se delega", () => {
     expect(alternarModulo(["movimientos"], "vender")).toEqual(["vender", "movimientos"]);
     expect(alternarModulo(["vender", "movimientos"], "vender")).toEqual(["movimientos"]);
-    expect(alternarModulo([], "roles")).toEqual([]);
-    expect(alternarModulo([], "por_pagar")).toEqual([]);
+    // Desde 20260923130000/20260923131000 se delegan: entran como cualquier otro.
+    expect(alternarModulo([], "roles")).toEqual(["roles"]);
+    expect(alternarModulo(["vender"], "por_pagar")).toEqual(["vender", "por_pagar"]);
   });
 
   it("hay cambios solo si el conjunto difiere", () => {
@@ -128,6 +130,10 @@ describe("archivar, duplicar y asignar", () => {
     ];
     expect(cuentasAsignables(cuentas, INTEGRANTE, "yo").map((c) => c.id)).toEqual(["1", "3"]);
     expect(cuentasAsignables(cuentas, LIDER, "yo").map((c) => c.id)).toEqual(["2"]);
+    // Quien administra roles SIN ser líder (20260923131000): no toca a los líderes ni da el rol Líder.
+    expect(cuentasAsignables(cuentas, INTEGRANTE, "yo", false).map((c) => c.id)).toEqual(["3"]);
+    expect(cuentasAsignables(cuentas, LIDER, "yo", false)).toEqual([]);
+    expect(rolesAsignables([LIDER, INTEGRANTE], { tipo: "persona" }, false).map((r) => r.id)).toEqual(["i"]);
   });
 
   it("al bajar a un líder sin sede hay que elegírsela", () => {
@@ -155,11 +161,13 @@ describe("editor rediseñado (spike colaboradores-ux 2026-09-22)", () => {
   it("separa lo que el borrador suma de lo que quita", () => {
     expect(cambiosDelBorrador(["vender", "caja"], ["caja", "clientas"])).toEqual({ suma: ["clientas"], quita: ["vender"] });
   });
-  it("«Encender todo» de un grupo no mete lo que no se delega ni toca otros grupos", () => {
+  it("«Encender todo» enciende el grupo entero (solo lo que se delega) sin tocar otros grupos", () => {
     const r = alternarGrupo(["existencias"], "Compras", true);
-    expect(r).toContain("recibir");
+    const compras = MODULOS.filter((m) => m.grupo === "Compras" && esDelegable(m)).map((m) => m.clave);
+    expect(compras.length).toBeGreaterThan(0);
+    for (const c of compras) expect(r).toContain(c);
     expect(r).toContain("existencias");
-    expect(r).not.toContain("facturas_compra");
+    expect(r.filter((c) => !compras.includes(c))).toEqual(["existencias"]);
     expect(alternarGrupo(r, "Compras", false)).toEqual(["existencias"]);
   });
   it("el buscador encuentra por lo que incluye, sin tildes", () => {
