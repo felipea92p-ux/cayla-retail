@@ -43,6 +43,7 @@
     "pruebas:notas-credito": "node scripts/pruebas/notas_credito_modulo.mjs",
     "pruebas:candado-lider": "node scripts/pruebas/candado_lider_caja_y_ajuste.mjs",
     "pruebas:colaboradores-endurecimiento": "node scripts/pruebas/colaboradores_endurecimiento.mjs",
+    "pruebas:venta-contrato-ampliado": "node scripts/pruebas/venta_contrato_ampliado.mjs",
     "pruebas:colaboradores-alta-aprobacion": "node scripts/pruebas/colaboradores_alta_requiere_aprobacion.mjs",
     "pruebas:crear-devolucion-motivo": "node scripts/pruebas/crear_devolucion_motivo.mjs",
     "pruebas:pedidos-no-atendidos": "node scripts/pruebas/pedidos_no_atendidos.mjs",
