@@ -20,7 +20,7 @@ function soles(n: number) {
 
 export function ConteosLista({ conteos }: { conteos: ConteoResumen[] }) {
   return (
-    <Tabla>
+    <Tabla className="rounded-lg border-0 bg-transparent">
       <Encabezado
         plantilla={PLANTILLA}
         columnas={[
@@ -39,15 +39,15 @@ export function ConteosLista({ conteos }: { conteos: ConteoResumen[] }) {
           <Link
             key={c.id}
             href={abierto ? "/inventario/conteo#contar" : `/inventario/conteo/${c.id}`}
-            className={fila(PLANTILLA, "transition-colors hover:bg-tinta/[0.03] focus-visible:bg-tinta/[0.03] focus-visible:outline-none")}
+            className={fila(PLANTILLA, "focus-visible:bg-crema/60 focus-visible:outline-none")}
           >
             <span className="min-w-0">
               <span className="block text-sm text-tinta">Conteo {c.numero}</span>
-              <span className="block text-xs text-tinta/55">{abierto ? `Abierto ${fecha(c.creadoEn)}` : `Cerrado ${fecha(c.cerradoEn ?? c.creadoEn)}`}</span>
+              <span className="block text-xs text-taupe">{abierto ? `Abierto ${fecha(c.creadoEn)}` : `Cerrado ${fecha(c.cerradoEn ?? c.creadoEn)}`}</span>
             </span>
             <span className="min-w-0 sm:text-center">
               <span className="block truncate text-sm text-tinta">{c.sububicacionNombre ?? "Toda la ubicación"}</span>
-              <span className="block truncate text-xs text-tinta/55">
+              <span className="block truncate text-xs text-taupe">
                 {alcance} · {c.lineas} {c.lineas === 1 ? "línea" : "líneas"}
               </span>
             </span>
@@ -67,15 +67,21 @@ export function ConteosLista({ conteos }: { conteos: ConteoResumen[] }) {
               <span className="block text-sm tabular-nums text-tinta">
                 {c.sistema} <span className="text-tinta/45">→</span> {c.contado}
               </span>
-              <span className={`block text-xs tabular-nums ${c.solesDiferencia < 0 ? "text-rojo-profundo" : c.solesDiferencia > 0 ? "text-verde-profundo" : "text-tinta/55"}`}>
-                {c.lineasConDiferencia === 0 ? "coinciden" : `${c.lineasConDiferencia} con diferencia · ${soles(c.solesDiferencia)}`}
+              <span className={`block text-xs tabular-nums ${c.solesDiferencia < 0 ? "text-rojo-profundo" : c.solesDiferencia > 0 ? "text-verde-profundo" : "text-taupe"}`}>
+                {c.lineasConDiferencia === 0 ? "coinciden" : (
+                  <>
+                    {c.lineasConDiferencia} con diferencia · <span className="whitespace-nowrap">{soles(c.solesDiferencia)}</span>
+                  </>
+                )}
               </span>
             </span>
             <span className="min-w-0 sm:text-center">
               <span className="block truncate text-xs text-tinta/75">Abrió {c.abiertoPorNombre}</span>
-              {!abierto && <span className="block truncate text-xs text-tinta/55">Cerró {c.cerradoPorNombre}</span>}
+              {!abierto && <span className="block truncate text-xs text-taupe">Cerró {c.cerradoPorNombre}</span>}
             </span>
-            <span className={celda("centro", "label-cayla text-[10px] text-tinta/55")}>{abierto ? "Contar" : "Ver detalle"}</span>
+            <span className={celda("centro", "overflow-visible")}>
+              <span className={`btn-cayla btn-chico ${abierto ? "btn-primario" : "btn-secundario"}`}>{abierto ? "Contar" : "Ver detalle"}</span>
+            </span>
           </Link>
         );
       })}

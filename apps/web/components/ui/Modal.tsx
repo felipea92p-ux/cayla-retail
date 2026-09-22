@@ -124,4 +124,4 @@ export const campoSelect = "w-full card-cayla px-3 py-2 text-sm text-tinta outli
 export const botonCancelar =
   "label-cayla rounded-md flex-1 border border-tinta/25 px-3 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo";
 export const botonPrimario =
-  "label-cayla rounded-md flex-1 bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-50";
+  "label-cayla rounded-md flex-1 bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-50";

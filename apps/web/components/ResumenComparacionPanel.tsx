@@ -61,7 +61,7 @@ export function ResumenComparacionPanel({ datos }: { datos: ComparacionParaPanta
       ))}
 
       {ubicacion.tipo !== "tienda" ? (
-        <p className="card-cayla px-5 py-10 text-sm text-tinta/65">
+        <p className="card-cayla px-5 py-10 text-sm text-taupe">
           {ubicacion.nombre} no vende a clientas: no hay ventas ni rotación que comparar. Elige una tienda en el selector de sede de arriba.
         </p>
       ) : (
@@ -74,7 +74,7 @@ export function ResumenComparacionPanel({ datos }: { datos: ComparacionParaPanta
             onValor={(v) => actualizar({ vista: v === "detalle" ? "detalle" : null, cambio: null, orden: null })}
           />
           {datos.tabla.totalSede === 0 ? (
-            <p className="card-cayla px-5 py-10 text-sm text-tinta/65">
+            <p className="card-cayla px-5 py-10 text-sm text-taupe">
               {ubicacion.nombre} no tuvo stock ni ventas en estos dos períodos. Cuando reciba mercadería o venda, aparecerá acá.
             </p>
           ) : vista === "general" ? (

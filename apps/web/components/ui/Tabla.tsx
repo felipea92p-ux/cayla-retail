@@ -42,13 +42,15 @@ const ALINEAR: Record<Alineacion, string> = { izq: "text-left", der: "text-right
 /** Las clases de toda tabla de Inventario (2026-09-21; la referencia de estilo es Existencias). Una sola
  *  fuente: `Tabla`, `Encabezado` y `fila` las usan, y las tablas que arman su propia rejilla (Traslados, las
  *  de Análisis) las importan en vez de copiarlas — así un cambio de padding o de tono llega a todas a la vez. */
+// Guía oficial (2026-09-22, ADR-0169): cabecera en sand con los títulos en taupe, peso normal y SIN
+// versalitas (una tabla se lee, no se grita); divisiones en sand; zebra en hueso (`fila-cayla`, globals.css).
 export const TABLA = {
-  contenedor: "card-cayla divide-y divide-tinta/10 overflow-x-auto",
-  encabezado: "gap-x-4 px-5 py-2",
-  titulo: "label-cayla text-[11px] text-tinta/55",
-  fila: "gap-x-4 gap-y-1 px-5 py-3",
+  contenedor: "card-cayla divide-y divide-sand overflow-x-auto",
+  encabezado: "encabezado-tabla-cayla gap-x-4 px-5 py-2",
+  titulo: "text-xs font-normal text-taupe",
+  fila: "fila-cayla gap-x-4 gap-y-1 px-5 py-3",
   /** El renglón de pie (cuántas se muestran, exportar, paginar). */
-  pie: "px-5 py-2.5 text-xs text-tinta/55",
+  pie: "px-5 py-2.5 text-xs text-taupe",
   /** Sin resultados: una tarjeta aparte, o dentro de la tarjeta de la sección con `border-t`. */
   vacio: "p-5 text-sm text-tinta/75",
 } as const;
@@ -82,7 +84,7 @@ export function Encabezado({ columnas, plantilla, siempre = false }: { columnas:
           role="columnheader"
         >
           {c.titulo}
-          {c.subtitulo && <span className="block truncate text-[10px] normal-case tracking-normal text-tinta/45">{c.subtitulo}</span>}
+          {c.subtitulo && <span className="block truncate text-[10px] text-taupe">{c.subtitulo}</span>}
         </span>
       ))}
     </div>
