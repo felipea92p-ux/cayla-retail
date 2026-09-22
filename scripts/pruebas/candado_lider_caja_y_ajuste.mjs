@@ -72,9 +72,31 @@ function correr(sql) {
   }
 }
 
+/**
+ * Desde los roles por módulo (ADR-0161 B2, decisión B2d de Felipe 2026-09-22) el candado ya no es «solo el líder»: es
+ * «el líder O una cuenta cuyo ROL ve Caja / Existencias». Para que esta suite siga probando el CANDADO (que una
+ * colaboradora sin ese permiso no consigue nada), cada escenario le da a Micaela, dentro de su transacción, un rol de
+ * prueba que solo ve Punto de venta. Los dos casos del final le devuelven el rol Integrante y verifican que AHORA sí
+ * puede. En una base sin roles (antes de 20260923030000) este bloque no hace nada y la suite prueba lo de antes.
+ */
+const ROL_SIN_CAJA_NI_STOCK = `
+do $r$
+begin
+  if to_regclass('retail.rol_modulos') is not null then
+    insert into retail.roles (id, nombre, descripcion) values ('44444444-4444-4444-8444-000000000001', 'Solo vender (prueba del candado)', 'temporal');
+    insert into retail.rol_modulos (rol_id, modulo) values ('44444444-4444-4444-8444-000000000001', 'vender');
+    update retail.colaboradores set rol_id = '44444444-4444-4444-8444-000000000001'
+      where persona_id = (select id from public.personas where auth_user_id = '${MICAELA}');
+  end if;
+end $r$;
+`;
+const MICAELA_INTEGRANTE = `update retail.colaboradores set rol_id = retail.fn_rol_por_clave('integrante')
+  where persona_id = (select id from public.personas where auth_user_id = '${MICAELA}');\n`;
+
 const comoPersona = (authUserId, sql) => `
 begin;
 ${PRELUDIO}
+${ROL_SIN_CAJA_NI_STOCK}
 set local request.jwt.claim.sub = '${authUserId}';
 ${sql}
 `;
@@ -417,6 +439,21 @@ rollback;
 // ===========================================================================
 // Corredor — mismo que dinero_compras_solo_lider.mjs
 // ===========================================================================
+
+// ---- Decisión B2d (Felipe, 2026-09-22): con el rol Integrante (ve Caja y Existencias) la colaboradora SÍ puede ----
+exito(
+  "colaboradora con rol Integrante (ve Caja): AHORA cierra la caja de su tienda (B2d)",
+  comoPersona(
+    FELIPE,
+    `${CAJA_ABIERTA_POR_MICAELA}${MICAELA_INTEGRANTE}${cambiaA(MICAELA)}select (monto_real is not null) as cerrada from retail.cerrar_caja(:'caja', 100);\n`
+  ),
+  ["t"]
+);
+exito(
+  "colaboradora con rol Integrante (ve Existencias): AHORA registra un ajuste en su tienda (B2d)",
+  comoPersona(FELIPE, `${BASE}${MICAELA_INTEGRANTE}${cambiaA(MICAELA)}${MOVER("ajuste", 1)} is not null as ok;\n`),
+  ["t"]
+);
 
 function main() {
   try {
