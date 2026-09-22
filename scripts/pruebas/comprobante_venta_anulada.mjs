@@ -21,8 +21,8 @@
  * CÓMO. Mismo mecanismo que `anular_venta_comprobante.mjs` y `ventas_del_dia.mjs` (léelos primero):
  * `docker exec ... psql`, `set local request.jwt.claim.sub` para ser Felipe (líder) y una sola transacción
  * que termina SIEMPRE en ROLLBACK — no deja rastro en el Postgres compartido. Todo se arma con las RPC
- * reales (`registrar_venta`, `anular_venta`, `emitir_comprobante`, `crear_proforma`,
- * `convertir_proforma_a_comprobante`). Los errores esperados se atrapan con un bloque `do` (que se revierte
+ * reales (`registrar_venta`, `anular_venta`, `emitir_comprobante`, `convertir_proforma_a_comprobante`; la
+ * proforma se inserta directo con el formato anterior, porque `crear_proforma` solo acepta prendas desde ADR-0167). Los errores esperados se atrapan con un bloque `do` (que se revierte
  * solo, con lo que hizo antes de fallar) para poder mirar el estado DESPUÉS del fallo.
  *
  * NO PRUEBA la carrera con `anular_venta` (una espera a la otra por el `for share` / `for update` sobre la
@@ -157,7 +157,9 @@ create temp table _r (clave text, valor text);
 select ${VENTA_SIN_COMPROBANTE} as d \\gset
 ${ITEM_DE("d")}
 select retail.anular_venta(:'d', 'prueba automatizada', ${ITEMS_ANULACION("d")}) as _anul_d \\gset
-select retail.crear_proforma(:'ubic', '[{"descripcion":"prueba","cantidad":1,"precio_unitario":84.75}]'::jsonb, 84.75, 15.25, 100.00) as prof \\gset
+-- Proforma de formato anterior (un total sin prenda), insertada directo: desde ADR-0167 crear_proforma solo acepta
+-- prendas del catálogo, pero convertir_proforma_a_comprobante sigue en la base (sin permiso para la app) y su candado se prueba igual.
+insert into retail.proformas (ubicacion_id, items, subtotal, igv, total) values (:'ubic', '[{"descripcion":"prueba","cantidad":1,"precio_unitario":84.75}]'::jsonb, 84.75, 15.25, 100.00) returning id as prof \\gset
 select siguiente_numero as sig_antes from retail.series_comprobantes where ubicacion_id = :'ubic' and tipo = 'boleta' \\gset
 select set_config('t.d', :'d', true) as _g1 \\gset
 select set_config('t.ubic', :'ubic', true) as _g2 \\gset

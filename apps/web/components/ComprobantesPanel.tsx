@@ -7,7 +7,7 @@ import type { Comprobante } from "@/lib/comprobantes-reglas";
 import { ETIQUETA_TIPO } from "@/lib/comprobantes-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { chipDelComprobante } from "@/lib/facturacion-actividad";
-import { accionesDelComprobante, camposDeBusquedaDelComprobante, motivoDelComprobante } from "@/lib/facturacion-comprobantes-reglas";
+import { accionesDelComprobante, camposDeBusquedaDelComprobante, enlaceWhatsApp, motivoDelComprobante, totalesPorTipo } from "@/lib/facturacion-comprobantes-reglas";
 import { coincide } from "@/lib/facturacion-busqueda";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { useFacturacionBusqueda } from "@/lib/useFacturacionBusqueda";
@@ -15,6 +15,8 @@ import { Ayuda } from "@/components/Ayuda";
 import { SinCoincidencias } from "@/components/SinCoincidencias";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
+import { DesplegablePildora, ItemDesplegable, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
+import { CircleCheck, FileText, Store } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
@@ -91,6 +93,17 @@ function DocumentosSunat({ c }: { c: Comprobante }) {
           Ver PDF
         </a>
       )}
+      {c.pdfUrl && (
+        <a
+          href={enlaceWhatsApp(`Hola${c.cliente_nombre ? ` ${c.cliente_nombre}` : ""}, aquí está tu ${ETIQUETA_TIPO[c.tipo].toLowerCase()} ${c.serie}-${String(c.numero).padStart(6, "0")} de CAYLA: ${c.pdfUrl}`)}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`Enviar por WhatsApp ${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`}
+          className="text-tinta/65 hover:text-rojo-profundo hover:underline"
+        >
+          WhatsApp
+        </a>
+      )}
       {c.xmlUrl && (
         <a href={c.xmlUrl} target="_blank" rel="noreferrer" className="text-tinta/65 hover:text-rojo-profundo hover:underline">
           XML
@@ -118,14 +131,16 @@ const COLUMNAS = "@min-[640px]:grid @min-[640px]:grid-cols-[72px_minmax(0,1.1fr)
 // Reservar y transmitir siguen separados a propósito: emitir no puede depender
 // de que un proveedor externo esté arriba (principio 9).
 // Un componente: la lista del mes y los dos modales de esta vista (anular y liberar). Las series
-// viven en su propia vista (`SeriesPanel`) desde 2026-09-22. Las tarjetas de arriba las dibuja `ComprobantesTarjetas`; «Emitir
-// comprobante» vive en la cabecera de Facturación (`FacturacionCabecera`).
+// viven en su propia vista (`SeriesPanel`) desde 2026-09-22. Las tarjetas de arriba las dibuja `ComprobantesTarjetas`.
 export function ComprobantesPanel({
   comprobantes,
   periodo,
   esLider,
+  tiendas,
 }: {
   comprobantes: Comprobante[];
+  /** Para el filtro de tienda y su nombre; solo se ofrece si en el mes hay comprobantes de más de una. */
+  tiendas: { id: string; nombre: string }[];
   /** «este mes» o «en agosto»: cómo se dice el mes que se mira (`periodoDelMes`). */
   periodo: string;
   /** Anular y «liberar sin espera» son solo del líder; la terminal de ventas emite y reintenta. */
@@ -258,8 +273,24 @@ export function ComprobantesPanel({
 
   const acciones = { transmitiendoId, consultandoId, onTransmitir, onAnularClick, onConsultarAnulacion, onLiberarClick, esLider };
 
+  // Filtros de la lista (en memoria: el mes ya está entero en pantalla). Las opciones salen de lo que hay
+  // en el mes, así nunca se ofrece un filtro que deja la lista vacía de entrada.
+  const [filtroTipo, setFiltroTipo] = useState(TODOS);
+  const [filtroTienda, setFiltroTienda] = useState(TODOS);
+  const [filtroEstado, setFiltroEstado] = useState(TODOS);
+  const tiposDelMes = [...new Set(comprobantes.map((c) => c.tipo))];
+  const tiendasDelMes = tiendas.filter((t) => comprobantes.some((c) => c.ubicacion_id === t.id));
+  const estadosDelMes = [...new Set(comprobantes.map((c) => chipDelComprobante(c).texto))];
+
   const { texto: busqueda } = useFacturacionBusqueda();
-  const visibles = comprobantes.filter((c) => coincide(camposDeBusquedaDelComprobante(c), busqueda));
+  const visibles = comprobantes.filter(
+    (c) =>
+      coincide(camposDeBusquedaDelComprobante(c), busqueda) &&
+      (filtroTipo === TODOS || c.tipo === filtroTipo) &&
+      (filtroTienda === TODOS || c.ubicacion_id === filtroTienda) &&
+      (filtroEstado === TODOS || chipDelComprobante(c).texto === filtroEstado)
+  );
+  const totales = totalesPorTipo(visibles);
 
   return (
     <div className="space-y-6">
@@ -281,6 +312,38 @@ export function ComprobantesPanel({
           </p>
           <h2 className="font-display mt-0.5 text-xl leading-tight text-tinta">Todos los comprobantes</h2>
           <p className="mt-0.5 text-xs text-tinta/65">Los de {periodo}, con su estado ante SUNAT y lo que se puede hacer con cada uno.</p>
+          {comprobantes.length > 0 && (
+            <div className="mt-3 flex">
+              <PanelPildoras>
+                <DesplegablePildora icono={FileText} etiqueta="Tipo" valor={filtroTipo} onValor={setFiltroTipo}>
+                  <ItemDesplegable value={TODOS}>Todos los tipos</ItemDesplegable>
+                  {tiposDelMes.map((t) => (
+                    <ItemDesplegable key={t} value={t}>
+                      {ETIQUETA_TIPO[t]}
+                    </ItemDesplegable>
+                  ))}
+                </DesplegablePildora>
+                {tiendasDelMes.length > 1 && (
+                  <DesplegablePildora icono={Store} etiqueta="Tienda" valor={filtroTienda} onValor={setFiltroTienda}>
+                    <ItemDesplegable value={TODOS}>Todas las tiendas</ItemDesplegable>
+                    {tiendasDelMes.map((t) => (
+                      <ItemDesplegable key={t.id} value={t.id}>
+                        {t.nombre}
+                      </ItemDesplegable>
+                    ))}
+                  </DesplegablePildora>
+                )}
+                <DesplegablePildora icono={CircleCheck} etiqueta="Estado" valor={filtroEstado} onValor={setFiltroEstado}>
+                  <ItemDesplegable value={TODOS}>Todos los estados</ItemDesplegable>
+                  {estadosDelMes.map((e) => (
+                    <ItemDesplegable key={e} value={e}>
+                      {e}
+                    </ItemDesplegable>
+                  ))}
+                </DesplegablePildora>
+              </PanelPildoras>
+            </div>
+          )}
         </div>
 
         {comprobantes.length === 0 ? (
@@ -339,6 +402,17 @@ export function ComprobantesPanel({
                 </div>
               );
             })}
+            {totales.length > 0 && (
+              <p className="flex flex-wrap gap-x-5 gap-y-1 border-t border-tinta/10 bg-tinta/[0.02] px-5 py-3 text-[13px] text-tinta/70">
+                {totales.map((t) => (
+                  <span key={t.tipo}>
+                    {ETIQUETA_TIPO[t.tipo]}: <b className="font-semibold tabular-nums text-tinta">{t.cantidad}</b> ·{" "}
+                    <span className="tabular-nums text-tinta">{soles(t.monto)}</span>
+                  </span>
+                ))}
+                <span className="text-tinta/55">Sin anulados ni liberados.</span>
+              </p>
+            )}
           </>
         )}
       </div>

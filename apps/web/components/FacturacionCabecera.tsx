@@ -2,19 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { FileText, Plus, Search, Send, X } from "lucide-react";
-import { BotonCompacto } from "@/components/ui/BotonCompacto";
+import { FileText, Search, Send, X } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede, type CifraResumen } from "@/components/ui/ResumenSede";
 import { pestanaDeRuta, SEGUNDOS_VISTA_FRESCA, textoDeFrescura, type ClavePestana } from "@/lib/facturacion-reglas";
-import { useFacturacionAcciones } from "@/lib/useFacturacionAcciones";
 import { useFacturacionBusqueda } from "@/lib/useFacturacionBusqueda";
 import { useUltimaCarga } from "@/lib/ultima-carga-facturacion";
 
 // Cabecera de Facturación: la misma de Cambios, Devoluciones, Caja e Historial (`EncabezadoPagina`),
-// con la línea viva (desde cuándo está lo que se ve) en la línea de arriba, las dos acciones globales
-// bajo la frase y las cifras de Facturación a la derecha. La caja de búsqueda vive con las pestañas
+// con la línea viva (desde cuándo está lo que se ve) en la línea de arriba y las cifras de Facturación
+// a la derecha. Sin acciones globales: «Nueva proforma» vive en su pestaña. La caja de búsqueda vive con las pestañas
 // (`CajaDeBusqueda`, en el shell), como la barra de filtros de Historial.
 
 const PISTA_DE_BUSQUEDA: Record<ClavePestana, string> = {
@@ -97,7 +95,6 @@ function cifrasDe({ porEnviar, proformasVigentes }: CifrasCabecera): CifraResume
 
 /** `sede` es la que está seleccionada arriba a la derecha (la de la persona), como en las otras pantallas. */
 export function FacturacionCabecera({ sede, cifras, entorno }: { sede: string; cifras: CifrasCabecera; entorno: "sandbox" | "produccion" }) {
-  const { abrirEmitir, abrirProforma } = useFacturacionAcciones();
   const resumen = cifrasDe(cifras);
   return (
     <EncabezadoPagina
@@ -115,16 +112,6 @@ export function FacturacionCabecera({ sede, cifras, entorno }: { sede: string; c
             </Chip>
           )}
         </span>
-      }
-      pie={
-        <>
-          <BotonCompacto variante="vidrio" icono={<FileText aria-hidden strokeWidth={1.75} />} onClick={abrirEmitir}>
-            Emitir comprobante
-          </BotonCompacto>
-          <BotonCompacto variante="primario" icono={<Plus aria-hidden strokeWidth={1.75} />} onClick={abrirProforma}>
-            Nueva proforma
-          </BotonCompacto>
-        </>
       }
     >
       {resumen.length > 0 && <ResumenSede sede={sede} cifras={resumen} />}

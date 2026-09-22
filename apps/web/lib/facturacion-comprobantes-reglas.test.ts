@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Comprobante } from "./comprobantes-reglas";
-import { accionesDelComprobante, camposDeBusquedaDelComprobante, montosDelMes, motivoDelComprobante, nombreDelTipo, numerosUsados, seriesFaltantes, seriesPorTienda, textoDeSeriesFaltantes, errorDeSerie } from "./facturacion-comprobantes-reglas";
+import { accionesDelComprobante, camposDeBusquedaDelComprobante, enlaceWhatsApp, totalesPorTipo, montosDelMes, motivoDelComprobante, nombreDelTipo, numerosUsados, seriesFaltantes, seriesPorTienda, textoDeSeriesFaltantes, errorDeSerie } from "./facturacion-comprobantes-reglas";
 
 const TRU = { id: "u-tru", nombre: "Tienda Trujillo", tipo: "tienda" as const };
 const AQP = { id: "u-aqp", nombre: "Tienda Arequipa", tipo: "tienda" as const };
@@ -308,5 +308,33 @@ describe("un tipo de serie que este código aún no conoce (la nota de venta de 
     const nv = { id: "nv", ubicacion_id: "u-tru", tipo: "nota_venta" as never, serie: "NV01", siguiente_numero: 1 };
     const b = { id: "b", ubicacion_id: "u-tru", tipo: "boleta" as const, serie: "B004", siguiente_numero: 1 };
     expect(seriesPorTienda([nv, b], [TRU])[0].series.map((s) => s.serie)).toEqual(["B004", "NV01"]);
+  });
+});
+
+describe("totalesPorTipo (pie de Emitidos)", () => {
+  it("cuenta y suma por tipo en el orden de siempre, sin anulados ni liberados", () => {
+    const lista = [
+      c({ tipo: "factura", total: 200 }),
+      c({ tipo: "boleta", total: 10.1 }),
+      c({ tipo: "boleta", total: 20.2 }),
+      c({ tipo: "boleta", total: 99, estado: "anulado" }),
+      c({ tipo: "boleta", total: 99, estado: "no_emitido" }),
+      c({ tipo: "nota_credito", total: 15 }),
+    ];
+    expect(totalesPorTipo(lista)).toEqual([
+      { tipo: "boleta", cantidad: 2, monto: 30.3 },
+      { tipo: "factura", cantidad: 1, monto: 200 },
+      { tipo: "nota_credito", cantidad: 1, monto: 15 },
+    ]);
+  });
+
+  it("sin comprobantes, sin filas", () => {
+    expect(totalesPorTipo([])).toEqual([]);
+  });
+});
+
+describe("enlaceWhatsApp", () => {
+  it("codifica el texto (espacios, saltos y la URL del PDF)", () => {
+    expect(enlaceWhatsApp("Hola\nhttps://x.pe/a?b=1&c=2")).toBe("https://wa.me/?text=Hola%0Ahttps%3A%2F%2Fx.pe%2Fa%3Fb%3D1%26c%3D2");
   });
 });

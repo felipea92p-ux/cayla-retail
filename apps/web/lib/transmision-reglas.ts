@@ -114,3 +114,29 @@ export function errorDeColaLegible(crudo: string | null): string | null {
   if (!legible) return crudo;
   return motivo === "rechazado_por_lucode" && resto.length > 0 ? `${legible}: ${resto.join(": ")}` : legible;
 }
+
+const QUE_HACER: Record<string, string> = {
+  sin_respuesta: "No hagas nada: se reintenta solo cuando Lucode vuelva a responder.",
+  sin_credenciales: "Carga LUCODE_TOKEN en Vercel y vuelve a desplegar; hasta entonces nada llega a SUNAT.",
+  credenciales_invalidas: "Renueva la clave en el panel de Lucode y actualiza LUCODE_TOKEN en Vercel.",
+  rechazado_por_lucode: "Reintentar no lo arregla: revisa el dato que menciona el error (documento de la clienta, serie o montos).",
+};
+
+/** Qué tiene que hacer alguien con el último error de la cola; `null` si el motivo no se conoce (se
+ *  muestra solo el error, sin inventar un consejo). */
+export function queHacerConElError(crudo: string | null): string | null {
+  if (!crudo) return null;
+  return QUE_HACER[crudo.split(": ")[0]] ?? null;
+}
+
+/** Días calendario que SUNAT da para recibir un comprobante después del día en que se emitió
+ *  (RS 000193-2020/SUNAT: facturas, boletas y sus notas, hasta 3 días calendario siguientes). Pasado ese
+ *  plazo SUNAT lo rechaza por extemporáneo y la venta queda sin comprobante válido. */
+export const DIAS_PLAZO_SUNAT = 3;
+
+/** Cuántos días le quedan a un comprobante para llegar a SUNAT, contando días de calendario de Lima
+ *  (Perú no tiene horario de verano: UTC−5 fijo). 0 = vence hoy a medianoche; negativo = fuera de plazo. */
+export function diasParaElPlazo(creadoIso: string, ahora: Date): number {
+  const diaLima = (ms: number) => Math.floor((ms - 5 * 3600 * 1000) / 86_400_000);
+  return diaLima(Date.parse(creadoIso)) + DIAS_PLAZO_SUNAT - diaLima(ahora.getTime());
+}
