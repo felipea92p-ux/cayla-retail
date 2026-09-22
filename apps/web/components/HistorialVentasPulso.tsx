@@ -4,7 +4,7 @@ import { useState, type CSSProperties, type PointerEvent, type ReactNode } from 
 import type { MetodoPago } from "@cayla-retail/shared";
 import { soles } from "@/lib/compras-reglas";
 import { NOMBRE_METODO } from "@/lib/recibo-reglas";
-import { agruparEnSemanas, pulsoDeVentas } from "@/lib/ventas-historial-reglas";
+import { agruparEnSemanas, porDiaVendido, pulsoDeVentas } from "@/lib/ventas-historial-reglas";
 import type { TotalesHistorial } from "@/lib/ventas-historial";
 
 // El pulso del período (Ventas ▸ Historial, ADR-0147), en la columna lateral: lo importante son las ventas y esto las
@@ -142,7 +142,7 @@ export function HistorialVentasPulso({ totales, periodo }: { totales: TotalesHis
       {!parcial && resumen.ventas > 0 && (
         <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-dashed border-tinta/10 pt-4">
           <Dato etiqueta="Ticket promedio" valor={soles(resumen.ticket)} />
-          <Dato etiqueta={porSemana ? "Por semana" : "Por día"} valor={soles(resumen.total / Math.max(1, dias.length))} />
+          <Dato etiqueta={porSemana ? "Por semana" : "Por día vendido"} valor={soles(porDiaVendido(resumen.total, dias.length))} />
           <Dato etiqueta="Prendas" valor={resumen.unidades.toLocaleString("es-PE")} />
           <Dato etiqueta="Anuladas" valor={String(resumen.anuladas)} nota={resumen.anuladas > 0 ? "no suman" : undefined} />
         </dl>

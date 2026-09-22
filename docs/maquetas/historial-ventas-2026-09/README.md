@@ -4,6 +4,11 @@ Referencia visual del rediseño propuesto en la auditoría `docs/pantallas/vende
 **Es una maqueta, no código de la app**: no se importa desde `apps/web`. Se abre `historial.html` en el navegador
 (carga Tailwind y las fuentes desde CDN, hace falta conexión).
 
+**Ya en código (2026-09-22):** la búsqueda única, los atajos «Hoy» / «Ayer» / «Pendientes de comprobante» y la
+franja de 4 cifras del encabezado se implementaron de verdad en `apps/web/app/(app)/vender/historial/page.tsx`,
+`components/FiltrosHistorialVentas.tsx` y `lib/ventas-historial.ts` — ver `docs/BITACORA.md` (2026-09-22). Esta
+carpeta sigue siendo la referencia visual, no la fuente de verdad del comportamiento.
+
 - Origen: Stitch, proyecto «CAYLA · Historial de ventas» (id `13520313933471370286`), sistema de diseño «CAYLA Atelier».
 - **Los datos son ilustrativos** (nombres de vendedoras, boletas, montos por día, porcentajes de pago, «68 prendas»,
   «mejor día S/ 1,520»). Solo S/ 5,487.10, 17 ventas y 17 pendientes salen de producción (2026-09-21).

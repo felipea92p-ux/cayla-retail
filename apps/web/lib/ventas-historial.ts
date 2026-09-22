@@ -1,11 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { hoyEnLima } from "@/lib/movimientos-reglas";
+import { clasificarBusqueda } from "@/lib/cambios-reglas";
+import { literalParaIlike } from "@/lib/ventas-v2";
 import {
   TAMANO_PAGINA,
   TOPE_TOTALES,
   aFila,
+  contarPendientesDeComprobante,
   diaDeLima,
+  elegirComprobante,
   limitesUTC,
   mezclaDePagos,
   resumir,
@@ -45,10 +49,12 @@ const SELECT_LISTA = `id, created_at, estado, nota, usuario_id,
   venta_pagos ( metodo, monto ),
   comprobantes ( tipo, serie, numero, estado, created_at )`;
 
-// Para los totales del rango solo hacen falta los importes, el día y cómo se pagó: sin prendas ni comprobantes.
+// Para los totales del rango hacen falta los importes, el día, cómo se pagó y el estado del
+// comprobante (para contar «pendientes de enviar»): sin prendas, sin el detalle de cada línea.
 const SELECT_TOTALES = `id, created_at, estado,
   venta_items ( cantidad, precio_unitario, descuento_unitario, subtotal ),
-  venta_pagos ( metodo, monto )`;
+  venta_pagos ( metodo, monto ),
+  comprobantes ( tipo, serie, numero, estado, created_at )`;
 
 /** La consulta base con los filtros de la pantalla. La lista y los totales pasan por acá para
  *  que filtren EXACTAMENTE igual: un total que no coincide con la lista es peor que ninguno.
@@ -58,10 +64,16 @@ const SELECT_TOTALES = `id, created_at, estado,
  *  líneas del embed donde se aplica — una venta pagada mitad efectivo y mitad Yape, filtrada por
  *  efectivo, mostraría solo la mitad. «Sin comprobante» es un anti-join (`is.null` sobre el embed
  *  con `!left`); los dos se probaron contra la base local y contados a mano. */
+// Un id imposible: fuerza cero filas cuando la búsqueda no encontró nada, sin que `.in("id", [])`
+// (que algunos motores tratan distinto de "sin filtro") tenga que resolverlo por su cuenta.
+const ID_IMPOSIBLE = "00000000-0000-0000-0000-000000000000";
+
 function consulta(supabase: Supabase, select: string, f: FiltrosHistorial) {
   const extras = [
     f.pago ? "pago_filtro:venta_pagos!inner ( metodo )" : null,
-    f.comprobante === "con" ? "comp_filtro:comprobantes!inner ( tipo )" : null,
+    // «pendiente» necesita el estado además del tipo; «con» lo pide igual, es barato y así
+    // los dos casos comparten el mismo embed en vez de bifurcar la consulta.
+    f.comprobante === "con" || f.comprobante === "pendiente" ? "comp_filtro:comprobantes!inner ( tipo, estado )" : null,
     f.comprobante === "sin" ? "comp_filtro:comprobantes!left ( tipo )" : null,
   ].filter((e): e is string => e !== null);
 
@@ -76,6 +88,10 @@ function consulta(supabase: Supabase, select: string, f: FiltrosHistorial) {
   // Una nota de crédito corrige un comprobante, no ampara la venta: solo boleta y factura cuentan.
   if (f.comprobante !== "todos") q = q.in("comp_filtro.tipo", ["boleta", "factura"]);
   if (f.comprobante === "sin") q = q.is("comp_filtro", null);
+  if (f.comprobante === "pendiente") q = q.eq("comp_filtro.estado", "pendiente");
+  // La búsqueda ya se resolvió a ids en `resolverBusqueda` (ver la página): acá solo se
+  // intersecta. `idsBusqueda` viene `undefined` sin búsqueda, `null` explícito tampoco filtra.
+  if (f.idsBusqueda) q = q.in("id", f.idsBusqueda.length > 0 ? f.idsBusqueda : [ID_IMPOSIBLE]);
   return q;
 }
 
@@ -127,6 +143,9 @@ export type TotalesHistorial = {
   porDia: DiaResumen[];
   /** Cuánto se cobró por cada forma de pago en el rango. Vacío si `parcial`. */
   porMetodo: MetodoResumen[];
+  /** Ventas completadas con boleta o factura «pendiente de enviar» — cifra del encabezado y del
+   *  atajo «Pendientes de comprobante». 0 (no "desconocido") si `parcial`, como el resto de acá. */
+  pendientesComprobante: number;
 };
 
 /** Los totales de TODO el rango filtrado (no de la página): cuántas ventas, cuánto se vendió, ticket promedio,
@@ -142,6 +161,7 @@ export async function totalesVentasHistorial(f: FiltrosHistorial): Promise<Total
     estado: string;
     venta_items: ItemCrudo[];
     venta_pagos: VentaCruda["venta_pagos"];
+    comprobantes: VentaCruda["comprobantes"];
   }[];
   const parcial = crudas.length > TOPE_TOTALES;
   const ventas = (parcial ? crudas.slice(0, TOPE_TOTALES) : crudas).map((v) => ({
@@ -150,6 +170,7 @@ export async function totalesVentasHistorial(f: FiltrosHistorial): Promise<Total
     unidades: unidadesDeVenta(v.venta_items),
     fecha: diaDeLima(v.created_at),
     pagos: v.venta_pagos,
+    comprobante: elegirComprobante(v.comprobantes),
   }));
   return {
     parcial,
@@ -157,5 +178,96 @@ export async function totalesVentasHistorial(f: FiltrosHistorial): Promise<Total
     // Con el tope superado solo habría los días más recientes: un trazo así mentiría, y no se dibuja.
     porDia: parcial ? [] : serieDiaria(ventas, { desde: f.desde, hasta: f.hasta, hoy: hoyEnLima() }),
     porMetodo: parcial ? [] : mezclaDePagos(ventas),
+    pendientesComprobante: parcial ? 0 : contarPendientesDeComprobante(ventas),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Búsqueda única (Ventas ▸ Historial, 2026-09-22): «boleta, clienta o prenda» en una sola
+// barra (H7 de la auditoría). Mismo patrón que `buscarVentas` de `ventas-v2.ts` (Cambios):
+// varias consultas chicas por fuente, nunca un `.or()` entre tablas embebidas — el propio
+// comentario de `consulta()` ya explica por qué eso recorta filas donde no se quiere.
+// ---------------------------------------------------------------------------
+
+/** Hasta cuántas ventas trae cada fuente de la búsqueda: de sobra para reconocer «la venta»
+ *  entre resultados, sin acercarse al tope de PostgREST. */
+const LIMITE_BUSQUEDA = 30;
+
+async function idsPorComprobante(serie: string | null, numero: number): Promise<string[]> {
+  const supabase = await createClient();
+  let q = supabase.from("comprobantes").select("venta_id").eq("numero", numero).not("venta_id", "is", null);
+  if (serie) q = q.eq("serie", serie);
+  const filas = exigir(await q, "el comprobante buscado");
+  return [...new Set(filas.map((f) => f.venta_id as string))];
+}
+
+async function idsPorClienta(campo: "documento" | "nombre", texto: string): Promise<string[]> {
+  const supabase = await createClient();
+  let q = supabase.from("clientes").select("id");
+  q = campo === "documento" ? q.eq("num_doc", texto) : q.ilike("nombre", `%${literalParaIlike(texto)}%`);
+  const clientes = exigir(await q.limit(LIMITE_BUSQUEDA), "las clientas buscadas");
+  if (clientes.length === 0) return [];
+  const ventas = exigir(
+    await supabase
+      .from("ventas")
+      .select("id")
+      .in(
+        "cliente_id",
+        clientes.map((c) => c.id)
+      )
+      .limit(LIMITE_BUSQUEDA),
+    "las ventas de esa clienta"
+  );
+  return ventas.map((v) => v.id);
+}
+
+async function idsPorPrenda(texto: string): Promise<string[]> {
+  const supabase = await createClient();
+  const productos = exigir(await supabase.from("productos").select("id").ilike("referencia", `%${literalParaIlike(texto)}%`).limit(10), "las prendas con ese nombre");
+  if (productos.length === 0) return [];
+  const variantes = exigir(
+    await supabase.from("variantes").select("id").in(
+      "producto_id",
+      productos.map((p) => p.id)
+    ),
+    "las tallas y colores de esas prendas"
+  );
+  if (variantes.length === 0) return [];
+  const filas = exigir(
+    await supabase
+      .from("venta_items")
+      .select("venta_id")
+      .in(
+        "variante_id",
+        variantes.map((v) => v.id)
+      )
+      .limit(LIMITE_BUSQUEDA),
+    "las ventas de esa prenda"
+  );
+  return [...new Set(filas.map((f) => f.venta_id as string))];
+}
+
+/** Traduce lo escrito en la barra a los ids de venta que califican, o `null` si la barra está
+ *  vacía (no hay búsqueda que resolver). Los filtros normales (tienda, período…) se aplican
+ *  después, en `consulta()`, sobre este mismo conjunto — buscar «Emilia» en Lima solo muestra
+ *  las de Lima aunque la búsqueda haya encontrado ventas de otra tienda. */
+export async function resolverBusqueda(q?: string): Promise<string[] | null> {
+  const busqueda = q ? clasificarBusqueda(q) : null;
+  if (!busqueda) return null;
+
+  const candidatas = new Set<string>();
+  if (busqueda.tipo === "comprobante") {
+    (await idsPorComprobante(busqueda.serie, busqueda.numero)).forEach((id) => candidatas.add(id));
+  } else if (busqueda.tipo === "numero") {
+    // Una racha de dígitos puede ser el N° de una boleta o el DNI/RUC de la clienta: se buscan los dos.
+    const [porNumero, porDocumento] = await Promise.all([
+      busqueda.numero !== null ? idsPorComprobante(null, busqueda.numero) : Promise.resolve([]),
+      idsPorClienta("documento", busqueda.texto),
+    ]);
+    [...porNumero, ...porDocumento].forEach((id) => candidatas.add(id));
+  } else {
+    const [porClienta, porPrenda] = await Promise.all([idsPorClienta("nombre", busqueda.texto), idsPorPrenda(busqueda.texto)]);
+    [...porClienta, ...porPrenda].forEach((id) => candidatas.add(id));
+  }
+  return [...candidatas];
 }

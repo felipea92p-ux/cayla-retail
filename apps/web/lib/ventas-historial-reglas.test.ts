@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   aFila,
   agruparPorDia,
+  contarPendientesDeComprobante,
   diaDeLima,
   elegirComprobante,
   filtrosDesdeParams,
@@ -9,6 +10,7 @@ import {
   agruparEnSemanas,
   mediaMovil,
   mezclaDePagos,
+  porDiaVendido,
   pulsoDeVentas,
   ventanaDeSuavizado,
   piezasDeVenta,
@@ -21,6 +23,7 @@ import {
   textoPrendas,
   totalDeVenta,
   unidadesDeVenta,
+  type ComprobanteVenta,
   type ItemCrudo,
   type VentaCruda,
 } from "./ventas-historial-reglas";
@@ -124,6 +127,17 @@ describe("filtrosDesdeParams", () => {
       comprobante: "todos",
     });
   });
+
+  it("«pendiente» es un valor válido de comprobante (atajo «Pendientes de comprobante», 2026-09-22)", () => {
+    expect(filtrosDesdeParams({ comp: "pendiente" }, ctxLider)).toMatchObject({ comprobante: "pendiente" });
+  });
+
+  it("la búsqueda se recorta y se limpia; vacía o solo espacios queda `undefined`", () => {
+    expect(filtrosDesdeParams({ q: "  Casaca Emilia  " }, ctxLider)).toMatchObject({ q: "Casaca Emilia" });
+    expect(filtrosDesdeParams({ q: "   " }, ctxLider)).toMatchObject({ q: undefined });
+    expect(filtrosDesdeParams({}, ctxLider)).toMatchObject({ q: undefined });
+    expect(filtrosDesdeParams({ q: "x".repeat(200) }, ctxLider).q).toHaveLength(80);
+  });
 });
 
 describe("importes de una venta", () => {
@@ -207,6 +221,37 @@ describe("resumir — lo anulado nunca suma", () => {
   it("un rango vacío da ceros, sin dividir por cero", () => {
     expect(resumir([])).toEqual({ ventas: 0, anuladas: 0, unidades: 0, total: 0, ticket: 0 });
     expect(resumir([{ anulada: true, total: 50, unidades: 1 }])).toMatchObject({ ventas: 0, anuladas: 1, total: 0, ticket: 0 });
+  });
+});
+
+describe("porDiaVendido — por día CON venta, no por día del calendario (H5)", () => {
+  it("divide entre los días que sí vendieron", () => {
+    expect(porDiaVendido(5487.1, 8)).toBe(685.89);
+  });
+
+  it("sin días (nada vendido) no divide por cero", () => {
+    expect(porDiaVendido(0, 0)).toBe(0);
+  });
+});
+
+describe("contarPendientesDeComprobante", () => {
+  const comprobante = (estado: ComprobanteVenta["estado"]): ComprobanteVenta => ({ tipo: "boleta", numero: "B001-000001", estado });
+
+  it("cuenta solo las completadas con comprobante «pendiente de enviar»", () => {
+    expect(
+      contarPendientesDeComprobante([
+        { anulada: false, comprobante: comprobante("pendiente") },
+        { anulada: false, comprobante: comprobante("aceptado") },
+        { anulada: false, comprobante: comprobante("enviado") },
+        { anulada: false, comprobante: null },
+        // Anulada y pendiente no cuenta: ya no representa dinero cobrado.
+        { anulada: true, comprobante: comprobante("pendiente") },
+      ])
+    ).toBe(1);
+  });
+
+  it("sin ventas, cero", () => {
+    expect(contarPendientesDeComprobante([])).toBe(0);
   });
 });
 

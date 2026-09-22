@@ -25,7 +25,10 @@ export const TAMANO_PAGINA = 20;
 export const TOPE_TOTALES = 1000;
 
 export type EstadoFiltro = "todas" | "completada" | "anulada";
-export type ComprobanteFiltro = "todos" | "con" | "sin";
+/** «pendiente» (2026-09-22, atajo «Pendientes de comprobante»): tiene boleta o factura asignada
+ *  pero SUNAT todavía no la aceptó (`estado === "pendiente"`, ESTADO_ETIQUETA "Pendiente de
+ *  enviar") — no es lo mismo que «sin comprobante», que no tiene ni serie ni número. */
+export type ComprobanteFiltro = "todos" | "con" | "sin" | "pendiente";
 
 /** Parámetros de la URL. `sede` y `vendedor` solo los honra un líder (una integrante ve su tienda: lo decide la RLS). */
 export type ParamsHistorial = {
@@ -37,6 +40,8 @@ export type ParamsHistorial = {
   estado?: string;
   pago?: string;
   comp?: string;
+  /** La única barra de búsqueda: boleta, clienta o nombre de la prenda (H7 de la auditoría 2026-09-21). */
+  q?: string;
   cursor?: string;
 };
 
@@ -49,8 +54,14 @@ export type FiltrosHistorial = {
   vendedorId?: string;
   estado: EstadoFiltro;
   pago?: MetodoPago;
-  /** «con» / «sin» boleta o factura. Una nota de crédito no cuenta como comprobante de la venta. */
+  /** «con» / «sin» / «pendiente». Una nota de crédito no cuenta como comprobante de la venta. */
   comprobante: ComprobanteFiltro;
+  /** El texto tal cual escrito, ya recortado; `undefined` si la barra está vacía. */
+  q?: string;
+  /** Resuelto en el servidor a partir de `q` (`resolverBusqueda` en `ventas-historial.ts`), NUNCA
+   *  desde la URL: `null` = no hay búsqueda activa, `[]` = no coincidió ninguna venta (la
+   *  consulta debe devolver cero filas), un arreglo = los ids que sí calzan. */
+  idsBusqueda?: string[] | null;
 };
 
 // El cursor tiene la misma forma que el de Movimientos (`created_at` + `id`): no hay una fecha de
@@ -77,7 +88,10 @@ export function filtrosDesdeParams(
     vendedorId: ctx.esLider && esUuid(p.vendedor) ? p.vendedor : undefined,
     estado: p.estado === "completada" || p.estado === "anulada" ? p.estado : "todas",
     pago: METODOS.find((m) => m === p.pago),
-    comprobante: p.comp === "con" || p.comp === "sin" ? p.comp : "todos",
+    comprobante: p.comp === "con" || p.comp === "sin" || p.comp === "pendiente" ? p.comp : "todos",
+    // Tope de 80: una boleta, un nombre o un DNI/RUC caben de sobra; más que eso ya no es una
+    // búsqueda, es pegar otra cosa por error.
+    q: p.q?.trim().slice(0, 80) || undefined,
   };
 }
 
@@ -264,6 +278,21 @@ export function resumir(ventas: { anulada: boolean; total: number; unidades: num
   }
   total = redondear2(total);
   return { ventas: completadas, anuladas, unidades, total, ticket: completadas ? redondear2(total / completadas) : 0 };
+}
+
+/** Lo vendido por cada día CON venta del rango — no por cada día del calendario, que subestima
+ *  el ritmo real de un ERP joven con huecos sin operar (H5 de la auditoría 2026-09-21: 30 días
+ *  de rango con ventas solo desde hace 8 daba un promedio casi plano). `dias` es cuántos trae la
+ *  serie diaria (`porDia`, nunca 0 si hubo al menos una venta). */
+export function porDiaVendido(total: number, dias: number): number {
+  return redondear2(total / Math.max(1, dias));
+}
+
+/** Cuántas ventas completadas del rango tienen un comprobante «pendiente de enviar» (serie y
+ *  número asignados, SUNAT todavía no lo vio) — el atajo «Pendientes de comprobante» y la cifra
+ *  roja del encabezado. Una anulada no cuenta: ya no representa dinero cobrado. */
+export function contarPendientesDeComprobante(ventas: { anulada: boolean; comprobante: ComprobanteVenta | null }[]): number {
+  return ventas.filter((v) => !v.anulada && v.comprobante?.estado === "pendiente").length;
 }
 
 export type DiaResumen = { fecha: string; ventas: number; total: number };
