@@ -52,6 +52,17 @@ Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió l
 - [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
 - [ ] **Producción SUPERA el tope de 6: 7 hijas** (líder parado en el Taller) desde que #231 (Resumen, F6) entró sin regrupar; queda como deuda explícita con una prueba «DEUDA…» que la vigila. F7 Eficiencia obligará a regrupar (candidato: `produccion.abastecimiento`). **Quien agregue una fila al menú edita `lib/menu.ts`, no `AppShell.tsx`** (cómo, en el ADR-0144).
 
+## 🎯 Colaboradores: el alta nueva no queda operativa sin aprobación (2026-09-22, ADR-0157, D-70) — hecho en local, falta pegar en producción
+Detalle, decisiones y lo descartado en [docs/adr/0157-alta-de-colaborador-requiere-aprobacion.md](adr/0157-alta-de-colaborador-requiere-aprobacion.md).
+- [x] Investigado primero (no asumido): no existe trigger sobre `personas` que cree colaboradores — el alta ya era manual, pero de un solo paso (proponer = dar acceso). La baja automática por Dynamic (`p.estado = 'activo'`) ya existía desde 0006/0009 y no se tocó.
+- [x] `retail.colaboradores` gana `estado` (`pendiente_aprobacion`/`activo`, default `activo` — no desconecta a nadie ya operando). El candado se sumó en las seis funciones que leen `colaboradores` (no solo las tres obvias): `fn_es_lider`, `fn_ubicacion_actual_persona`, `fn_tiene_acceso_retail`, `fn_mi_perfil`, `fn_persona_actual_resumen` (el gate de login), `fn_stock_por_sede`.
+- [x] RPC `fn_aprobar_alta_colaborador` (solo líder, candado primero) y `fn_colaboradores_pendientes`. `suspender_colaborador` rechaza a alguien todavía pendiente (evita que `reactivar_colaborador` lo active sin haber pasado por aprobación).
+- [x] Pantalla: pestaña «Pendientes» en `/colaboradores` con Aprobar y Rechazar. Tipos, lint y pruebas en verde; visto en el navegador con datos de ejemplo. Migración `20260922170000_alta_colaborador_requiere_aprobacion.sql`: 10 escenarios en `scripts/pruebas/colaboradores_alta_requiere_aprobacion.mjs` (Postgres 17 desechable, sin Docker), más regresión en `colaboradores_endurecimiento.mjs` y `candado_lider_caja_y_ajuste.mjs`.
+- [ ] **Pegar `20260922170000` en producción** (con ok de Felipe; entera, es re-ejecutable; no hay orden estricto con el despliegue de la web).
+- [ ] Refrescar el volcado de producción (`generado/COMO-REFRESCAR.md`) para que la columna `estado` y las dos funciones nuevas entren al diccionario.
+- [ ] **D-69 queda aparte** (líder acotado a su sede): `fn_aprobar_alta_colaborador` hoy acepta a cualquier líder, el estado real antes de D-69 — según su propia decisión, D-69 se aplica después de la salida en TRU.
+- [ ] Verlo con clics en localhost con datos reales: proponer un alta, confirmar que la persona no puede operar todavía, aprobarla y confirmar que sí puede.
+
 ## 🎯 Colaboradores: rediseño con Suspender, Cambiar ubicación, Actividad e Inactivas (2026-09-22, ADR-0148) — hecho en local, falta pegar en producción
 Sobre la maqueta de Felipe. Detalle, decisiones y lo descartado en [docs/adr/0148-colaboradores-suspender-mueve-la-fila-y-el-historial-solo-se-agrega.md](adr/0148-colaboradores-suspender-mueve-la-fila-y-el-historial-solo-se-agrega.md).
 - [x] Pantalla: 4 tarjetas reales, pestañas Activos / Suspendidos / Inactivas en Dynamic / Actividad, buscador y filtro por rol, «Tú», menú «⋯» (Cambiar ubicación · Suspender · Quitar), alta de varias personas a la vez. Tipos, lint y 2357 pruebas en verde; visto en el navegador con datos de ejemplo.
@@ -576,9 +587,20 @@ solo pantalla y lectura. Detalle, decisiones tomadas por él y descartes en ADR-
       reversible en `estadoPrendaDevolucion`). Falta que Felipe diga quién decide pasado el plazo
       (¿solo un líder?, ¿con motivo escrito?), y si una prenda con defecto de fábrica debe poder
       devolverse pasado el plazo (no está escrito en R-38; conviene revisarlo con quien lleve lo legal).
-- [ ] **`devoluciones.motivo_codigo` estructurado** (hoy el motivo es uno de cinco textos fijos +
-      detalle, sumables con `group by`): esperar a fusionar la migración de venta anulada para no
-      tocar `crear_devolucion` en paralelo.
+- [x] **`devoluciones.motivo_codigo` estructurado — CERRADO 2026-09-22 (D-79, ADR-0158).** La
+      migración de venta anulada de otra sesión (`20260918163712`) no llegó a `origin/main` antes de
+      esta, así que no hubo colisión que esperar. Lista cerrada: talla, calce, defecto, no_le_gusto,
+      regalo, otro — candado en `crear_devolucion` (`p_motivo_codigo`, sin default), no solo en la
+      pantalla; `DevolucionesFlujo.tsx` ya la usa con chips de un toque. La columna `motivo` (texto
+      libre) sigue igual, para lo que la clienta cuenta de más. **Sin aplicar en producción**
+      (`supabase/migrations/20260922180000_devoluciones_motivo_estructurado.sql`, espera revisión de
+      Felipe). Prueba `pnpm pruebas:crear-devolucion-motivo` (8/8). **Prohibido explícitamente por
+      Felipe:** este dato es para revisar el calce por prenda con el Taller — nunca para rankear,
+      puntuar ni comparar asesoras; nada en esta migración ni en el código que la acompaña lo agrupa
+      por colaboradora. `cambios.motivo` (20260919000100, ya en producción) NO se tocó: tiene su
+      propio vocabulario (talla_chica/talla_grande/otro_color/defecto/otro), más granular para lo que
+      el Taller necesita de Cambios, y unificarlo con el de arriba es una decisión de Felipe que
+      queda abierta (ver ADR-0158, sección "por qué cambios.motivo no se toca").
 - [ ] **Token de idempotencia en `crear_devolucion`** (como `registrar_cambio`, ADR-0032): sin él,
       una red que se corta después del commit deja un reintento que sale con «ya se devolvieron…».
 - [ ] **La nota de crédito usa `precio_unitario` sin restarle `descuento_unitario`**

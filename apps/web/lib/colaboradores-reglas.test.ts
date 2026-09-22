@@ -160,6 +160,13 @@ describe("fraseEvento", () => {
     expect(texto(baja)).toBe("Felipe quitó el acceso a Angie.");
     expect(baja.detalle).toBe("Estaba en: Tienda TRU");
   });
+  it("aprobación (D-70): quién aprobó, a quién, con qué rol y dónde", () => {
+    const f = fraseEvento({ ...base, accion: "aprobacion", ubicacion_nueva: "Tienda TRU" });
+    expect(f.etiqueta).toBe("Aprobación");
+    expect(f.tono).toBe("verde");
+    expect(texto(f)).toBe("Felipe aprobó el alta de Angie como Colaborador.");
+    expect(f.detalle).toBe("Ubicación: Tienda TRU");
+  });
   it("cambio de ubicación dice de dónde a dónde", () => {
     const f = fraseEvento({ ...base, accion: "ubicacion", ubicacion_anterior: "Tienda TRU", ubicacion_nueva: "Taller LIM" });
     expect(texto(f)).toBe("Felipe cambió la ubicación de Angie de Tienda TRU a Taller LIM.");
