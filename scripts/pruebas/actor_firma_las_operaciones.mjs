@@ -396,6 +396,12 @@ ${sesion(T_VENTAS, { resp: "rosa" })}select pg_temp.intento(format('select retai
   "SIN_ERROR"
 );
 caso(
+  "listar_apartados — en una terminal, puede_liberar es verdadero aunque lo haya apartado otra (igual que el candado)",
+  `${sesion(MICAELA)}select ${APARTAR} as ap \\gset
+${sesion(T_VENTAS, { resp: "rosa" })}select puede_liberar::text from retail.listar_apartados(:'tru') where id = :'ap';`,
+  "true"
+);
+caso(
   "liberar_apartado — Micaela libera el suyo (como hoy); el movimiento lo firma ella",
   `${sesion(MICAELA)}select ${APARTAR} as ap \\gset
 select retail.liberar_apartado(:'ap', 'entregada') as _l \\gset

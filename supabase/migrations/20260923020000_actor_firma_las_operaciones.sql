@@ -260,3 +260,13 @@ select pg_temp.reemplazar(
   if not (fn_es_lider() or exists (select 1 from retail.fn_terminal_actual())
           or coalesce(a.creado_por = (select id from personas where auth_user_id = auth.uid()), false)) then$n$,
   1);
+
+-- (c) listar_apartados — la columna `puede_liberar` que lee la pantalla tiene que decir lo mismo que el candado de
+--     `liberar_apartado` (arriba, b): una TERMINAL libera siempre (Felipe, 2026-09-22). Sin esto la base acepta la
+--     liberación pero la pantalla esconde el botón. Si la función no existe en esta base (producción, hasta que se pegue
+--     apartar stock), se omite con aviso.
+select pg_temp.reemplazar(
+  'retail.listar_apartados(uuid)',
+  '(fn_es_lider() or a.creado_por is not distinct from (select pe.id from personas pe where pe.auth_user_id = auth.uid()))',
+  '(fn_es_lider() or exists (select 1 from retail.fn_terminal_actual()) or a.creado_por is not distinct from (select pe.id from personas pe where pe.auth_user_id = auth.uid()))',
+  1);
