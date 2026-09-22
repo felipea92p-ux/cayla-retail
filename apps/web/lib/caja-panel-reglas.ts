@@ -261,3 +261,34 @@ export function senalCaja(cantidadEnCola: number): { tono: "verde" | "ambar"; te
     texto: cantidadEnCola === 1 ? "1 venta sin subir" : `${cantidadEnCola} ventas sin subir`,
   };
 }
+
+/** Desde cuántas horas abierta una caja deja de ser «el turno de hoy» y pasa a pedir cierre (auditoría de /caja, #3). */
+export const HORAS_TURNO_LARGO = 18;
+
+/** ¿La caja lleva tanto abierta que casi seguro se quedó sin cerrar de un día para otro? */
+export function turnoLargo(minutosAbierta: number, umbralHoras = HORAS_TURNO_LARGO): boolean {
+  return Number.isFinite(minutosAbierta) && minutosAbierta >= umbralHoras * 60;
+}
+
+export const MOTIVO_AJUSTE_INGRESO = "Ajuste de caja (sobrante)";
+export const MOTIVO_AJUSTE_EGRESO = "Ajuste de caja (faltante)";
+
+const MOTIVOS_EGRESO = ["Retiro de efectivo", "Depósito bancario", MOTIVO_AJUSTE_EGRESO, "Compra de insumos", "Otro"];
+const MOTIVOS_INGRESO = [MOTIVO_AJUSTE_INGRESO, "Otro"];
+
+/** El motivo es de ajuste: la base lo exige de líder (`registrar_movimiento_caja`, ADR-0056). */
+export function esMotivoDeAjuste(motivo: string): boolean {
+  return motivo === MOTIVO_AJUSTE_INGRESO || motivo === MOTIVO_AJUSTE_EGRESO;
+}
+
+/** Los motivos que el modal ofrece. A quien no es líder no se le muestra «Ajuste»: la base lo rechazaría
+ *  recién al enviar. Solo esconde lo que la base ya rechaza — el candado real sigue siendo la RPC. */
+export function motivosDeMovimiento(tipo: "ingreso" | "egreso", esLider: boolean): string[] {
+  const todos = tipo === "egreso" ? MOTIVOS_EGRESO : MOTIVOS_INGRESO;
+  return esLider ? todos : todos.filter((m) => !esMotivoDeAjuste(m));
+}
+
+/** «Depósito bancario» y «Otro» necesitan un rastro (N.º de operación o explicación) para poder revisarse después. */
+export function referenciaObligatoria(motivo: string): boolean {
+  return motivo === "Depósito bancario" || motivo === "Otro";
+}

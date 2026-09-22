@@ -5,47 +5,47 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { esMotivoDeAjuste, motivosDeMovimiento, referenciaObligatoria } from "@/lib/caja-panel-reglas";
 import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 
-const MOTIVO_AJUSTE_INGRESO = "Ajuste de caja (sobrante)";
-const MOTIVO_AJUSTE_EGRESO = "Ajuste de caja (faltante)";
+// «Retiro de efectivo» y «Depósito bancario» son un egreso con motivo predefinido — mismo caso que
+// registrar_movimiento_caja() en SQL: un tipo, no una tabla. «Ajuste de caja» además marca es_ajuste=true, que
+// la RPC exige de líder (ADR-0056). Las listas y las reglas viven en lib/caja-panel-reglas.ts.
 
-// "Retiro de efectivo" y "Depósito bancario" son un egreso con motivo
-// predefinido — mismo caso que registrar_movimiento_caja() en SQL: un tipo,
-// no una tabla. "Ajuste de caja" además marca es_ajuste=true, que la RPC
-// exige que solo un líder pueda registrar (ADR-0056: rechaza si no lo es).
-const MOTIVOS_EGRESO_RAPIDO = ["Retiro de efectivo", "Depósito bancario", MOTIVO_AJUSTE_EGRESO, "Compra de insumos", "Otro"];
-const MOTIVOS_INGRESO_RAPIDO = [MOTIVO_AJUSTE_INGRESO, "Otro"];
-
-export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClose: () => void }) {
+export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: string; esLider: boolean; onClose: () => void }) {
   const router = useRouter();
-  const [tipo, setTipo] = useState<"ingreso" | "egreso">("egreso");
+  // Nada viene elegido de antemano (auditoría de /caja, #6): un movimiento de plata se decide, no se acepta por defecto.
+  const [tipo, setTipo] = useState<"ingreso" | "egreso" | null>(null);
   const [monto, setMonto] = useState("");
-  const [motivoRapido, setMotivoRapido] = useState(MOTIVOS_EGRESO_RAPIDO[0]);
+  const [motivoRapido, setMotivoRapido] = useState("");
   const [motivoLibre, setMotivoLibre] = useState("");
   const [nota, setNota] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ADR-0056 le agregó una lista rápida a "ingreso" (antes siempre se
-  // explicaba a mano) — así que ahora el select se muestra para los dos
-  // tipos, y lo único que anima su aparición/desaparición es el campo libre
-  // ("Otro" en cualquiera de las dos listas).
-  const motivosRapidos = tipo === "egreso" ? MOTIVOS_EGRESO_RAPIDO : MOTIVOS_INGRESO_RAPIDO;
+  const motivosRapidos = tipo ? motivosDeMovimiento(tipo, esLider) : [];
   const mostrarLibre = motivoRapido === "Otro";
   const motivo = mostrarLibre ? motivoLibre : motivoRapido;
-  const esAjuste = motivoRapido === MOTIVO_AJUSTE_INGRESO || motivoRapido === MOTIVO_AJUSTE_EGRESO;
+  const esAjuste = esMotivoDeAjuste(motivoRapido);
+  const pideReferencia = referenciaObligatoria(motivoRapido);
 
   function cambiarTipo(t: "ingreso" | "egreso") {
     setTipo(t);
-    // La lista rápida cambia con el tipo; sin este reseteo el select quedaría
-    // mostrando el motivo del tipo anterior contra las opciones del nuevo.
-    setMotivoRapido(t === "egreso" ? MOTIVOS_EGRESO_RAPIDO[0] : MOTIVOS_INGRESO_RAPIDO[0]);
+    // La lista cambia con el tipo; sin este reseteo el select quedaría con el motivo del tipo anterior.
+    setMotivoRapido("");
   }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!tipo) {
+      avisar.error("Elige si es un ingreso o un egreso.");
+      return;
+    }
     if (!motivo.trim()) {
       avisar.error("Escribe el motivo.", { enfocar: "mov-motivo-libre" });
+      return;
+    }
+    if (pideReferencia && !nota.trim()) {
+      avisar.error("Anota el N.º de operación o una referencia.", { enfocar: "mov-nota" });
       return;
     }
     setLoading(true);
@@ -81,7 +81,11 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
                 type="button"
                 onClick={() => cambiarTipo(t)}
                 className={`flex-1 rounded-md border px-3 py-2 text-sm capitalize transition-colors ${
-                  tipo === t ? "border-rojo bg-rojo/8 text-rojo" : "border-tinta/20 text-tinta/70"
+                  tipo !== t
+                    ? "border-tinta/20 text-tinta/70"
+                    : t === "ingreso"
+                      ? "border-verde bg-verde/10 text-verde"
+                      : "border-rojo bg-rojo/8 text-rojo"
                 }`}
               >
                 {t}
@@ -94,16 +98,24 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
           <label className={campoEtiqueta} htmlFor="mov-monto">
             Monto
           </label>
-          <input
-            id="mov-monto"
-            type="number"
-            min={0.01}
-            step="0.01"
-            required
-            value={monto}
-            onChange={(e) => setMonto(e.target.value)}
-            className={campoTexto}
-          />
+          <div className="relative">
+            <span aria-hidden className="pointer-events-none absolute left-1 top-1/2 -translate-y-1/2 text-sm text-tinta/55">
+              S/
+            </span>
+            <input
+              id="mov-monto"
+              type="number"
+              inputMode="decimal"
+              min={0.01}
+              step="0.01"
+              required
+              autoFocus
+              placeholder="0.00"
+              value={monto}
+              onChange={(e) => setMonto(e.target.value)}
+              className={`${campoTexto} pl-7 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+            />
+          </div>
         </div>
 
         <div className="space-y-1.5">
@@ -114,8 +126,12 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
             id="mov-motivo-rapido"
             value={motivoRapido}
             onChange={(e) => setMotivoRapido(e.target.value)}
+            disabled={!tipo}
             className={campoSelect}
           >
+            <option value="" disabled>
+              {tipo ? "Elige un motivo" : "Primero elige el tipo"}
+            </option>
             {motivosRapidos.map((m) => (
               <option key={m} value={m}>
                 {m}
@@ -146,11 +162,12 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
 
         <div className="space-y-1.5">
           <label className={campoEtiqueta} htmlFor="mov-nota">
-            Referencia (opcional)
+            Referencia{pideReferencia ? "" : " (opcional)"}
           </label>
           <input
             id="mov-nota"
             placeholder="N° de operación, voucher, u otra nota"
+            required={pideReferencia}
             value={nota}
             onChange={(e) => setNota(e.target.value)}
             className={campoTexto}
@@ -161,7 +178,7 @@ export function MovimientoCajaModal({ cajaId, onClose }: { cajaId: string; onClo
           <button type="button" onClick={cerrar} className={botonCancelar}>
             Cancelar
           </button>
-          <button type="submit" disabled={loading} className={botonPrimario}>
+          <button type="submit" disabled={loading || !tipo || !motivoRapido} className={botonPrimario}>
             {loading ? "Guardando…" : "Registrar"}
           </button>
         </div>
