@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cambios — spike visual</title>
+<style>
+  :root{
+    --crema:#f5f0e8; --papel:#fbf6ec; --tinta:#1a1a18; --tinta-60:#5b544c;
+    --sand:#e8e0d0; --rojo:#b8412d; --verde:#556e49; --ambar:#8c631f; --taupe:#a47865;
+    --serif:"EB Garamond",Georgia,serif; --sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--crema); color:var(--tinta); font-family:var(--sans);}
+  .lienzo{max-width:1580px; margin:0 auto; padding:28px 28px 60px;}
+  .marco-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px;}
+  .marco-head .titulo{display:flex; gap:14px; align-items:flex-start;}
+  .num{width:34px; height:34px; border-radius:50%; background:var(--tinta); color:var(--crema); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:16px; flex:none;}
+  .marco-head h1{font-family:var(--serif); font-weight:500; font-size:26px; margin:0 0 3px;}
+  .marco-head p{margin:0; font-size:13.5px; color:var(--tinta-60);}
+  .tag{font-size:11px; font-weight:700; letter-spacing:.06em; background:var(--sand); color:var(--tinta-60); padding:5px 12px; border-radius:999px; white-space:nowrap;}
+  code{background:var(--sand); padding:.05em .35em; border-radius:4px; font-size:.92em;}
+
+  .app{display:flex; border:1px solid var(--sand); border-radius:22px; overflow:hidden; background:var(--papel); box-shadow:0 30px 60px -40px rgba(26,26,24,.25);}
+  aside{width:250px; background:var(--tinta); color:var(--crema); padding:22px 16px; display:flex; flex-direction:column; flex:none;}
+  .logo{display:flex; align-items:center; gap:9px; padding:0 6px 20px; font-family:var(--serif); font-size:19px;}
+  .logo img{width:22px; height:22px;}
+  .nuevo{background:var(--crema); color:var(--tinta); border:none; border-radius:10px; padding:10px 12px; font-weight:700; font-size:12.5px; margin-bottom:18px; cursor:pointer;}
+  nav{flex:1; display:flex; flex-direction:column; gap:2px; font-size:13.5px;}
+  .ni{display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; color:color-mix(in srgb, var(--crema) 78%, transparent); text-decoration:none;}
+  .dot{width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.5; flex:none;}
+  .grupo-lbl{display:flex; align-items:center; gap:10px; padding:8px 10px; font-weight:600; color:var(--crema);}
+  .hijos{padding-left:24px; display:flex; flex-direction:column; gap:1px; margin:2px 0 8px;}
+  .hijo{padding:7px 10px; border-radius:7px; font-size:13px; color:color-mix(in srgb, var(--crema) 75%, transparent); text-decoration:none; display:block;}
+  .hijo.activo{background:color-mix(in srgb, var(--crema) 14%, transparent); color:var(--crema); font-weight:600;}
+  .foot{margin-top:auto; padding-top:14px; border-top:1px solid color-mix(in srgb, var(--crema) 14%, transparent);}
+  .foot .tagline{font-family:var(--serif); font-style:italic; font-size:12.5px; color:color-mix(in srgb, var(--crema) 55%, transparent); margin:0 0 12px;}
+  .persona{display:flex; align-items:center; gap:9px;}
+  .avatar{width:30px; height:30px; border-radius:50%; background:var(--rojo); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex:none;}
+  .persona b{display:block; font-size:12.5px;}
+  .persona span{font-size:10.5px; color:color-mix(in srgb, var(--crema) 60%, transparent); letter-spacing:.03em;}
+
+  main{flex:1; padding:26px 30px; position:relative;}
+  .topbar{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;}
+  .eyebrow{font-size:11.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--rojo); margin:0 0 4px;}
+  h2.pagetitle{font-family:var(--serif); font-weight:500; font-size:28px; margin:0 0 5px;}
+  .subtitle{font-size:14px; color:var(--tinta-60); margin:0;}
+  .resumen3{display:flex; gap:26px;}
+  .resumen3 div{text-align:right;}
+  .resumen3 b{display:block; font-family:var(--serif); font-size:19px;}
+  .resumen3 span{font-size:11px; color:var(--tinta-60); text-transform:uppercase; letter-spacing:.04em;}
+
+  .marker{position:absolute; width:24px; height:24px; border-radius:50%; background:var(--tinta); color:var(--crema); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; z-index:5; font-family:var(--serif);}
+
+  .bloque{background:var(--crema); border:1px solid var(--sand); border-radius:14px; padding:20px 22px; margin-bottom:16px; position:relative;}
+  .bloque h3{font-family:var(--serif); font-weight:500; font-size:19px; margin:0 0 4px;}
+  .bloque .hint{font-size:13px; color:var(--tinta-60); margin:0 0 16px;}
+
+  .buscador{display:flex; gap:10px; align-items:center; margin-bottom:12px;}
+  .buscador input{flex:1; border:1px solid var(--sand); background:var(--papel); border-radius:10px; padding:12px 14px; font-size:13.5px; font-family:var(--sans);}
+  .btn{border:none; border-radius:10px; padding:11px 18px; font-size:13px; font-weight:700; cursor:pointer; font-family:var(--sans); white-space:nowrap;}
+  .btn.primario{background:var(--tinta); color:var(--crema);}
+  .btn.fantasma{background:transparent; border:1px solid var(--sand); color:var(--tinta);}
+  .chipsrow{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .chip{font-size:12px; font-weight:600; border:1px solid var(--sand); border-radius:999px; padding:6px 13px; background:var(--papel); color:var(--tinta-60);}
+  .chip.link{color:var(--rojo); border-color:transparent; background:none; padding-left:0;}
+  select.sel{border:1px solid var(--sand); background:var(--papel); border-radius:999px; padding:6px 12px; font-size:12px; margin-left:auto;}
+
+  .filtros{display:flex; gap:8px; margin:4px 0 16px;}
+  .filtro{font-size:12.5px; font-weight:700; border-radius:999px; padding:7px 14px; border:1px solid var(--sand); background:var(--papel); color:var(--tinta-60);}
+  .filtro.activo{background:var(--tinta); color:var(--crema); border-color:var(--tinta);}
+
+  .venta-row{display:flex; align-items:center; gap:14px; padding:13px 0; border-bottom:1px solid var(--sand);}
+  .venta-row:last-child{border-bottom:none;}
+  .venta-row .thumb{width:38px; height:38px; border-radius:8px; background:var(--sand); flex:none;}
+  .venta-row .info{flex:1; min-width:0;}
+  .venta-row .info b{font-size:13.5px; display:block;}
+  .venta-row .info span{font-size:11.5px; color:var(--tinta-60);}
+  .pill{font-size:11px; font-weight:700; border-radius:999px; padding:4px 10px; white-space:nowrap; display:inline-flex; align-items:center; gap:5px;}
+  .pill::before{content:""; width:5px; height:5px; border-radius:50%; background:currentColor;}
+  .pill.verde{color:var(--verde); background:color-mix(in srgb, var(--verde) 14%, var(--papel));}
+  .pill.rojo{color:var(--rojo); background:color-mix(in srgb, var(--rojo) 14%, var(--papel));}
+  .pill.neutro{color:var(--tinta-60); background:var(--sand);}
+  .venta-row .accion{font-size:12.5px; font-weight:700; color:var(--tinta); white-space:nowrap;}
+
+  .tallas{background:var(--papel); border:1.5px dashed var(--sand); border-radius:12px; padding:14px 18px; margin-top:4px;}
+  .tallas .lock{font-size:10.5px; font-weight:700; letter-spacing:.05em; color:var(--taupe); text-transform:uppercase; margin-bottom:4px;}
+  .tallas h4{margin:0 0 3px; font-size:14px; font-family:var(--serif); font-weight:500;}
+  .tallas p{margin:0; font-size:12px; color:var(--tinta-60);}
+
+  .preview{border:1.5px dashed var(--sand); border-radius:14px; padding:20px; background:var(--papel);}
+  .preview .lbl{font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--rojo); margin-bottom:10px;}
+  .preview h4{font-family:var(--serif); font-weight:500; font-size:17px; margin:0 0 12px;}
+  .motivo-chips{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;}
+  .motivo-chip{font-size:12.5px; font-weight:600; border:1.5px solid var(--sand); border-radius:999px; padding:8px 15px; background:var(--crema);}
+  .motivo-chip.sel{border-color:var(--tinta); background:var(--tinta); color:var(--crema);}
+  .condicion2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .cond-card{border:1.5px solid var(--sand); border-radius:12px; padding:14px; background:var(--crema);}
+  .cond-card.sel{border-color:var(--verde); background:color-mix(in srgb, var(--verde) 8%, var(--crema));}
+  .cond-card b{display:block; font-size:13.5px; margin-bottom:4px;}
+  .cond-card span{font-size:11.5px; color:var(--tinta-60);}
+
+  .explicacion{background:var(--papel); border:1px solid var(--sand); border-radius:22px; padding:28px 32px; margin-top:22px;}
+  .explicacion .tag2{font-size:11px; font-weight:700; letter-spacing:.08em; color:var(--tinta-60); text-transform:uppercase; margin-bottom:16px;}
+  .cols2{columns:2; column-gap:36px;}
+  .item{break-inside:avoid; display:flex; gap:12px; margin-bottom:18px;}
+  .item .n{width:22px; height:22px; border-radius:50%; background:var(--tinta); color:var(--crema); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:none; margin-top:1px;}
+  .item h4{margin:0 0 3px; font-size:13.5px; font-weight:700;}
+  .item p{margin:0; font-size:12.5px; color:var(--tinta-60); line-height:1.55;}
+</style>
+</head>
+<body>
+<div class="lienzo">
+
+  <div class="marco-head">
+    <div class="titulo">
+      <span class="num">C</span>
+      <div><h1>Cambios</h1><p>Ruta <code>/cambios</code> — estado actual, tal como está construida hoy (ADR-0125)</p></div>
+    </div>
+    <span class="tag">SPIKE VISUAL · DOCUMENTA EL CÓDIGO REAL, DATOS DE EJEMPLO</span>
+  </div>
+
+  <div class="app">
+    <aside>
+      <div class="logo"><img src="cayla-isotipo.png" alt=""><span>CAYLA</span></div>
+      <button class="nuevo">+ NUEVO</button>
+      <nav>
+        <a class="ni"><span class="dot"></span>Inicio</a>
+        <a class="ni"><span class="dot"></span>Colaboradores</a>
+        <a class="ni"><span class="dot"></span>Catálogo</a>
+        <a class="ni"><span class="dot"></span>Compras</a>
+        <div class="grupo-lbl"><span class="dot" style="opacity:1"></span>Ventas</div>
+        <div class="hijos">
+          <a class="hijo">Punto de Venta</a>
+          <a class="hijo">Caja</a>
+          <a class="hijo">Historial</a>
+          <a class="hijo activo">Cambios</a>
+          <a class="hijo">Devoluciones</a>
+          <a class="hijo">Facturación</a>
+        </div>
+        <a class="ni"><span class="dot"></span>Inventario</a>
+      </nav>
+      <div class="foot">
+        <p class="tagline">Donde el estilo transforma.</p>
+        <div class="persona"><span class="avatar">FA</span><div><b>Felipe Alvarez</b><span>LÍDER · TIENDA LIMA</span></div></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div>
+          <p class="eyebrow">Ventas</p>
+          <h2 class="pagetitle">Cambios</h2>
+          <p class="subtitle">Gestiona cambios de prendas de manera rápida y segura.</p>
+        </div>
+        <div class="resumen3">
+          <div><b>3</b><span>Cambios hoy</span></div>
+          <div><b>41</b><span>Este mes</span></div>
+          <div><b>S/ 2,180</b><span>Valor cambiado</span></div>
+        </div>
+      </div>
+
+      <div class="bloque">
+        <div class="marker" style="top:-8px; left:-8px;">1</div>
+        <h3>Iniciar un cambio</h3>
+        <div class="buscador">
+          <input placeholder="Boleta, DNI, clienta, prenda o código" disabled>
+          <button class="btn primario">Buscar</button>
+        </div>
+        <div class="chipsrow">
+          <span class="chip">📷 Escanear prenda</span>
+          <span class="chip link">Sin comprobante →</span>
+          <div class="marker" style="position:static; display:inline-flex; margin-left:8px;">2</div>
+          <select class="sel"><option>Buscar en esta sede</option><option>Buscar en todas las tiendas</option></select>
+        </div>
+      </div>
+
+      <div class="bloque">
+        <h3>Actividad reciente</h3>
+        <p class="hint">Compras de los últimos 15 días en Tienda Lima: las que todavía se pueden cambiar.</p>
+        <div class="filtros">
+          <div class="marker" style="position:static; display:inline-flex;">3</div>
+          <span class="filtro activo">Todas · 24</span>
+          <span class="filtro">Con cambio · 6</span>
+          <span class="filtro">Sin comprobante · 3</span>
+        </div>
+
+        <div class="venta-row">
+          <div class="marker" style="position:static;">4</div>
+          <div class="thumb"></div>
+          <div class="info"><b>Boleta B001-0142 · Casaca Emilia +2</b><span>Vendido 18/09 · Rosa Quispe</span></div>
+          <span class="pill verde">Vence en 4 días</span>
+          <span class="accion">Iniciar cambio →</span>
+        </div>
+        <div class="venta-row">
+          <div class="thumb"></div>
+          <div class="info"><b>Boleta B004-000021 · Blusa Emma</b><span>Vendido 15/09 · Rosa Quispe</span></div>
+          <span class="pill neutro">Cambio completado</span>
+          <span class="accion" style="color:var(--tinta-60)">Ver detalle</span>
+        </div>
+        <div class="venta-row">
+          <div class="thumb"></div>
+          <div class="info"><b>Sin comprobante · Pantalón Culotte Siena</b><span>Vendido 12/09 · Luciana Torres</span></div>
+          <span class="pill rojo">Fuera del plazo</span>
+          <span class="accion">Iniciar cambio →</span>
+        </div>
+        <div class="venta-row">
+          <div class="thumb" style="opacity:.4"></div>
+          <div class="info" style="opacity:.5"><b>Boleta B001-0139 · Capa Andina Paracas</b><span>Vendido 10/09 · Rosa Quispe</span></div>
+          <span class="pill neutro">Venta anulada</span>
+        </div>
+      </div>
+
+      <div class="tallas">
+        <div class="marker" style="position:static; display:inline-flex; margin-bottom:6px;">5</div>
+        <div class="lock">Solo líder</div>
+        <h4>Tallas que no calzan · últimos 90 días</h4>
+        <p>Prendas que se cambian seguido a otra talla, en todas las sedes. Si una va casi siempre a la talla de arriba, la horma puede estar calzando chica.</p>
+      </div>
+
+    </main>
+  </div>
+
+  <div class="preview" style="margin-top:18px; position:relative;">
+    <div class="marker" style="top:16px; left:16px;">6</div>
+    <div class="lbl" style="padding-left:32px;">Vista previa · paso 3 del flujo guiado ("¿Por qué la cambia?")</div>
+    <h4 style="padding-left:32px;">Reemplazo — Blusa Emma, talla M</h4>
+    <div style="padding-left:32px;">
+      <div class="motivo-chips">
+        <span class="motivo-chip sel">Le quedó chica</span>
+        <span class="motivo-chip">Le quedó grande</span>
+        <span class="motivo-chip">Prefiere otro color</span>
+        <span class="motivo-chip">Tiene un defecto</span>
+        <span class="motivo-chip">Otro motivo</span>
+      </div>
+      <p style="font-size:12.5px; color:var(--tinta-60); margin:-8px 0 10px;">¿Cómo vuelve la prenda que trae?</p>
+      <div class="condicion2">
+        <div class="cond-card sel"><b>Impecable</b><span>Vuelve al piso de venta.</span></div>
+        <div class="cond-card"><b>Con defecto o uso</b><span>Va a cuarentena: un líder decide si se repara, se dona o vuelve al proveedor.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="explicacion">
+    <p class="tag2">Cómo funciona hoy — no es una propuesta, es el código real</p>
+    <div class="cols2">
+      <div class="item"><span class="n">1</span><div><h4>Un buscador único, no un formulario</h4><p>Entiende boleta, DNI/RUC, nombre de clienta o código de prenda en el mismo campo. Con pistola de código de barras, la búsqueda sale sola.</p></div></div>
+      <div class="item"><span class="n">2</span><div><h4>"Todas las tiendas" solo existe para un líder</h4><p>Una integrante no puede ver otras sedes (RLS de ventas): si viera la opción y no trajera nada, la pantalla mentiría diciendo "no encontramos".</p></div></div>
+      <div class="item"><span class="n">3</span><div><h4>Los filtros son pastillas con conteo, no un select</h4><p>Todas · Con cambio · Sin comprobante — cada uno con su número, para no tener que abrir nada para saber cuántos hay.</p></div></div>
+      <div class="item"><span class="n">4</span><div><h4>Un mismo chip nunca miente sobre el plazo</h4><p>Verde = dentro del plazo o ya resuelto; rojo = fuera del plazo (no bloquea, solo avisa); neutro = ya cambiada o venta anulada (fila atenuada, sin acción).</p></div></div>
+      <div class="item"><span class="n">5</span><div><h4>"Tallas que no calzan" es para el Taller, no para el mostrador</h4><p>Por eso va al final de la pantalla y solo la ve un líder — no es información que una integrante necesite para atender.</p></div></div>
+      <div class="item"><span class="n">6</span><div><h4>Motivo y condición son decisiones separadas</h4><p>El motivo es una lista cerrada de 5 chips. Si el motivo es "Tiene un defecto", la condición queda forzada a "Con defecto o uso" y la otra opción se deshabilita — una prenda con defecto no puede volver al piso.</p></div></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

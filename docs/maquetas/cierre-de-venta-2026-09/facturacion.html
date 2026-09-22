@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Facturación — spike visual</title>
+<style>
+  :root{
+    --crema:#f5f0e8; --papel:#fbf6ec; --tinta:#1a1a18; --tinta-60:#5b544c;
+    --sand:#e8e0d0; --rojo:#b8412d; --verde:#556e49; --ambar:#8c631f; --taupe:#a47865; --taupe-profundo:#805c4c;
+    --serif:"EB Garamond",Georgia,serif; --sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--crema); color:var(--tinta); font-family:var(--sans); font-variant-numeric:tabular-nums;}
+  .lienzo{max-width:1580px; margin:0 auto; padding:28px 28px 60px;}
+  .marco-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px;}
+  .marco-head .titulo{display:flex; gap:14px; align-items:flex-start;}
+  .num{width:34px; height:34px; border-radius:50%; background:var(--tinta); color:var(--crema); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:16px; flex:none;}
+  .marco-head h1{font-family:var(--serif); font-weight:500; font-size:26px; margin:0 0 3px;}
+  .marco-head p{margin:0; font-size:13.5px; color:var(--tinta-60);}
+  .tag{font-size:11px; font-weight:700; letter-spacing:.06em; background:var(--sand); color:var(--tinta-60); padding:5px 12px; border-radius:999px; white-space:nowrap;}
+  code{background:var(--sand); padding:.05em .35em; border-radius:4px; font-size:.92em;}
+
+  .app{display:flex; border:1px solid var(--sand); border-radius:22px; overflow:hidden; background:var(--papel); box-shadow:0 30px 60px -40px rgba(26,26,24,.25);}
+  aside{width:250px; background:var(--tinta); color:var(--crema); padding:22px 16px; display:flex; flex-direction:column; flex:none;}
+  .logo{display:flex; align-items:center; gap:9px; padding:0 6px 20px; font-family:var(--serif); font-size:19px;}
+  .logo img{width:22px; height:22px;}
+  .nuevo{background:var(--crema); color:var(--tinta); border:none; border-radius:10px; padding:10px 12px; font-weight:700; font-size:12.5px; margin-bottom:18px; cursor:pointer;}
+  nav{flex:1; display:flex; flex-direction:column; gap:2px; font-size:13.5px;}
+  .ni{display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; color:color-mix(in srgb, var(--crema) 78%, transparent); text-decoration:none;}
+  .dot{width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.5; flex:none;}
+  .grupo-lbl{display:flex; align-items:center; gap:10px; padding:8px 10px; font-weight:600; color:var(--crema);}
+  .hijos{padding-left:24px; display:flex; flex-direction:column; gap:1px; margin:2px 0 8px;}
+  .hijo{padding:7px 10px; border-radius:7px; font-size:13px; color:color-mix(in srgb, var(--crema) 75%, transparent); text-decoration:none; display:block;}
+  .hijo.activo{background:color-mix(in srgb, var(--crema) 14%, transparent); color:var(--crema); font-weight:600;}
+  .foot{margin-top:auto; padding-top:14px; border-top:1px solid color-mix(in srgb, var(--crema) 14%, transparent);}
+  .foot .tagline{font-family:var(--serif); font-style:italic; font-size:12.5px; color:color-mix(in srgb, var(--crema) 55%, transparent); margin:0 0 12px;}
+  .persona{display:flex; align-items:center; gap:9px;}
+  .avatar{width:30px; height:30px; border-radius:50%; background:var(--rojo); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex:none;}
+  .persona b{display:block; font-size:12.5px;}
+  .persona span{font-size:10.5px; color:color-mix(in srgb, var(--crema) 60%, transparent); letter-spacing:.03em;}
+
+  main{flex:1; padding:26px 30px; position:relative; background:linear-gradient(180deg, #efe6d4, var(--papel) 220px);}
+  .marker{position:absolute; width:24px; height:24px; border-radius:50%; background:var(--tinta); color:var(--crema); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; z-index:5; font-family:var(--serif);}
+
+  .cab{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;}
+  .eyebrow{font-size:11.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--rojo); margin:0 0 4px;}
+  h2.pagetitle{font-family:var(--serif); font-weight:500; font-size:28px; margin:0 0 5px;}
+  .subtitle{font-size:14px; color:var(--tinta-60); margin:0 0 8px;}
+  .vivo{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--verde); font-weight:600; margin-bottom:14px;}
+  .vivo .punto{width:6px; height:6px; border-radius:50%; background:var(--verde); animation:late 1.6s infinite;}
+  @keyframes late{0%,100%{opacity:1} 50%{opacity:.3}}
+  .cab-botones{display:flex; gap:10px;}
+  .btn{border:none; border-radius:10px; padding:10px 16px; font-size:13px; font-weight:700; cursor:pointer; font-family:var(--sans); white-space:nowrap;}
+  .btn.vidrio{background:rgba(255,255,255,.5); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,.6); color:var(--tinta);}
+  .btn.primario{background:var(--tinta); color:var(--crema);}
+  .resumen2{display:flex; gap:22px; text-align:right;}
+  .resumen2 div b{display:block; font-family:var(--serif); font-size:19px;}
+  .resumen2 div span{font-size:11px; color:var(--tinta-60); text-transform:uppercase; letter-spacing:.03em;}
+
+  .pestanas{display:flex; align-items:center; gap:4px; border-bottom:1px solid var(--sand); margin:18px 0 20px;}
+  .pestana{font-size:13px; font-weight:600; padding:10px 6px; margin-right:22px; color:var(--tinta-60); border-bottom:2px solid transparent; cursor:default;}
+  .pestana.activa{color:var(--tinta); border-color:var(--rojo);}
+  .buscar{margin-left:auto; border:1px solid var(--sand); border-radius:999px; padding:8px 16px; font-size:12.5px; color:var(--tinta-60); background:var(--papel); width:230px;}
+
+  .glass-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px; position:relative;}
+  .glass{
+    background:rgba(255,255,255,.42); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,.65); border-radius:16px; padding:16px 17px;
+    box-shadow:0 18px 34px -26px rgba(26,26,24,.4); border-left:3px solid var(--tono, var(--taupe));
+  }
+  .glass.verde{--tono:#556e49;} .glass.ambar{--tono:#8c631f;} .glass.rojo{--tono:#b8412d;} .glass.taupe{--tono:#a47865;}
+  .glass .lbl{font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--tinta-60); margin-bottom:8px;}
+  .glass .val{font-family:var(--serif); font-size:25px; font-weight:500; margin-bottom:4px;}
+  .glass .ctx{font-size:11.5px; color:var(--tinta-60); line-height:1.4; margin-bottom:8px; min-height:28px;}
+  .glass svg{width:100%; height:26px; display:block;}
+
+  .franja-proformas{display:flex; justify-content:space-between; align-items:center; background:var(--papel); border:1px solid var(--sand); border-radius:12px; padding:13px 18px; margin-bottom:20px; font-size:13px;}
+  .franja-proformas b{font-weight:700;}
+  .franja-proformas .chip{font-size:11px; font-weight:700; background:color-mix(in srgb, var(--ambar) 16%, var(--papel)); color:var(--ambar); border-radius:999px; padding:3px 10px; margin-left:8px;}
+  .franja-proformas a{color:var(--rojo); font-weight:700; text-decoration:none; font-size:12.5px;}
+
+  .actividad{background:var(--crema); border:1px solid var(--sand); border-radius:14px; padding:20px 22px; position:relative;}
+  .actividad-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;}
+  .actividad-head .et{font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--rojo);}
+  .actividad-head h3{font-family:var(--serif); font-weight:500; font-size:19px; margin:2px 0 3px;}
+  .actividad-head p{font-size:12.5px; color:var(--tinta-60); margin:0;}
+  .actividad-head a{font-size:12.5px; font-weight:700; color:var(--tinta); text-decoration:none;}
+
+  table.act{width:100%; border-collapse:collapse; font-size:13px;}
+  table.act th{text-align:left; font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--tinta-60); padding:0 8px 8px; border-bottom:1px solid var(--sand);}
+  table.act td{padding:11px 8px; border-bottom:1px solid var(--sand); vertical-align:middle;}
+  table.act tr:last-child td{border-bottom:none;}
+
+  .hilo{display:flex; align-items:center; gap:0;}
+  .hilo .nodo{width:9px; height:9px; border-radius:50%; flex:none; position:relative; z-index:1;}
+  .hilo .seg{width:16px; height:2px; flex:none;}
+  .n-verde{background:var(--verde);} .n-ambar{background:var(--ambar);} .n-rojo{background:var(--rojo);} .n-apagado{background:var(--sand); border:1px solid var(--tinta-60);}
+  .s-verde{background:var(--verde);} .s-ambar{background:repeating-linear-gradient(90deg,var(--ambar) 0 4px,transparent 4px 7px);} .s-apagado{background:var(--sand);}
+  .pulso{animation:late 1.4s infinite;}
+
+  .estado-chip{font-size:11px; font-weight:700; border-radius:999px; padding:4px 10px; white-space:nowrap;}
+  .estado-chip.ambar{color:var(--ambar); background:color-mix(in srgb, var(--ambar) 16%, var(--crema));}
+  .estado-chip.verde{color:var(--verde); background:color-mix(in srgb, var(--verde) 16%, var(--crema));}
+  .estado-chip.rojo{color:var(--rojo); background:color-mix(in srgb, var(--rojo) 16%, var(--crema));}
+
+  .accion-fila{font-size:12px; font-weight:700; border:1px solid var(--sand); border-radius:999px; padding:6px 12px; background:var(--papel); cursor:default; white-space:nowrap;}
+  .accion-fila.alerta{color:var(--rojo); border-color:color-mix(in srgb, var(--rojo) 40%, var(--sand));}
+
+  .leyenda{display:flex; gap:20px; flex-wrap:wrap; font-size:11px; color:var(--tinta-60); margin-top:14px; padding-top:12px; border-top:1px dashed var(--sand);}
+  .leyenda span{display:inline-flex; align-items:center; gap:5px;}
+  .leyenda .sw{width:8px; height:8px; border-radius:50%;}
+
+  .explicacion{background:var(--papel); border:1px solid var(--sand); border-radius:22px; padding:28px 32px; margin-top:22px;}
+  .explicacion .tag2{font-size:11px; font-weight:700; letter-spacing:.08em; color:var(--tinta-60); text-transform:uppercase; margin-bottom:16px;}
+  .cols2{columns:2; column-gap:36px;}
+  .item{break-inside:avoid; display:flex; gap:12px; margin-bottom:18px;}
+  .item .n{width:22px; height:22px; border-radius:50%; background:var(--tinta); color:var(--crema); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:none; margin-top:1px;}
+  .item h4{margin:0 0 3px; font-size:13.5px; font-weight:700;}
+  .item p{margin:0; font-size:12.5px; color:var(--tinta-60); line-height:1.55;}
+</style>
+</head>
+<body>
+<div class="lienzo">
+
+  <div class="marco-head">
+    <div class="titulo">
+      <span class="num">F</span>
+      <div><h1>Facturación</h1><p>Ruta <code>/vender/facturacion</code> — vista Resumen, estado actual (ADR-0124, R1+R3 cerrados)</p></div>
+    </div>
+    <span class="tag">SPIKE VISUAL · DOCUMENTA EL CÓDIGO REAL, DATOS DE EJEMPLO</span>
+  </div>
+
+  <div class="app">
+    <aside>
+      <div class="logo"><img src="cayla-isotipo.png" alt=""><span>CAYLA</span></div>
+      <button class="nuevo">+ NUEVO</button>
+      <nav>
+        <a class="ni"><span class="dot"></span>Inicio</a>
+        <a class="ni"><span class="dot"></span>Colaboradores</a>
+        <a class="ni"><span class="dot"></span>Catálogo</a>
+        <a class="ni"><span class="dot"></span>Compras</a>
+        <div class="grupo-lbl"><span class="dot" style="opacity:1"></span>Ventas</div>
+        <div class="hijos">
+          <a class="hijo">Punto de Venta</a>
+          <a class="hijo">Caja</a>
+          <a class="hijo">Historial</a>
+          <a class="hijo">Cambios</a>
+          <a class="hijo">Devoluciones</a>
+          <a class="hijo activo">Facturación</a>
+        </div>
+        <a class="ni"><span class="dot"></span>Inventario</a>
+      </nav>
+      <div class="foot">
+        <p class="tagline">Donde el estilo transforma.</p>
+        <div class="persona"><span class="avatar">FA</span><div><b>Felipe Alvarez</b><span>LÍDER · TIENDA LIMA</span></div></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="cab">
+        <div>
+          <p class="eyebrow">Ventas</p>
+          <h2 class="pagetitle">Facturación</h2>
+          <p class="subtitle">Emite y sigue tus comprobantes hasta que SUNAT los acepta.</p>
+          <div class="vivo"><span class="punto"></span>Lunes, 21 de setiembre · 09:27 · actualizado hace 16 s</div>
+          <div class="cab-botones">
+            <button class="btn vidrio">📄 Emitir comprobante</button>
+            <button class="btn primario">+ Nueva proforma</button>
+          </div>
+        </div>
+        <div class="resumen2">
+          <div><b>4</b><span>Por enviar a SUNAT</span></div>
+          <div><b>1</b><span>Proforma vigente</span></div>
+        </div>
+      </div>
+
+      <div class="pestanas">
+        <span class="pestana activa">Resumen</span>
+        <span class="pestana">Proformas · 1</span>
+        <span class="pestana">Comprobantes · 8</span>
+        <span class="pestana">Códigos de descuento</span>
+        <input class="buscar" placeholder="Buscar venta, cliente o boleta…" disabled>
+      </div>
+
+      <div class="glass-grid">
+        <div class="marker" style="top:-10px; left:-8px;">1</div>
+        <div class="glass verde">
+          <div class="lbl">Vendido hoy</div>
+          <div class="val">S/ 1,245.00</div>
+          <div class="ctx">+12% vs. mismo día de la semana pasada a esta hora (S/ 1,112.00)</div>
+          <svg viewBox="0 0 100 26" preserveAspectRatio="none">
+            <polyline points="0,20 20,17 40,14 60,10 80,7 100,4" fill="none" stroke="#556e49" stroke-width="2"/>
+            <polyline points="0,22 20,19 40,17 60,15 80,13 100,11" fill="none" stroke="#556e49" stroke-width="1.4" stroke-dasharray="3 3" opacity=".6"/>
+          </svg>
+        </div>
+        <div class="glass taupe">
+          <div class="lbl">Ventas</div>
+          <div class="val">7</div>
+          <div class="ctx">+1 venta vs. misma hora la semana pasada</div>
+          <svg viewBox="0 0 100 26"><circle cx="6" cy="16" r="2.4" fill="#a47865"/><circle cx="22" cy="12" r="2.4" fill="#a47865"/><circle cx="38" cy="18" r="2.4" fill="#a47865"/><circle cx="54" cy="9" r="2.4" fill="#a47865"/><circle cx="70" cy="14" r="2.4" fill="#a47865"/><circle cx="86" cy="6" r="2.4" fill="#a47865"/></svg>
+        </div>
+        <div class="glass ambar">
+          <div class="lbl">Por enviar a SUNAT</div>
+          <div class="val">4</div>
+          <div class="ctx">1 rechazado · el más antiguo: hace 38 min</div>
+          <svg viewBox="0 0 100 10"><rect x="0" y="0" width="70" height="10" rx="5" fill="#e8e0d0"/><rect x="0" y="0" width="43" height="10" rx="5" fill="#8c631f"/></svg>
+        </div>
+        <div class="glass taupe">
+          <div class="lbl">Ticket promedio</div>
+          <div class="val">S/ 177.86</div>
+          <div class="ctx">Total ÷ 7 ventas. Barras: las últimas 16.</div>
+          <svg viewBox="0 0 100 26"><line x1="0" y1="14" x2="100" y2="14" stroke="#a47865" stroke-dasharray="2 2"/><rect x="2" y="6" width="6" height="20" fill="#a47865" opacity=".7"/><rect x="12" y="10" width="6" height="16" fill="#a47865" opacity=".7"/><rect x="22" y="2" width="6" height="24" fill="#a47865" opacity=".7"/><rect x="32" y="12" width="6" height="14" fill="#a47865" opacity=".7"/><rect x="42" y="8" width="6" height="18" fill="#a47865" opacity=".7"/><rect x="52" y="15" width="6" height="11" fill="#a47865" opacity=".7"/><rect x="62" y="4" width="6" height="22" fill="#a47865" opacity=".7"/><rect x="72" y="11" width="6" height="15" fill="#a47865" opacity=".7"/></svg>
+        </div>
+      </div>
+
+      <div class="franja-proformas">
+        <span><b>Proformas</b> · 1 vigente · S/ 88.50 · 0 por vencer <span class="chip">0 por vencer</span></span>
+        <a href="#">Ver proformas →</a>
+      </div>
+
+      <div class="actividad">
+        <div class="marker" style="top:-10px; left:-8px;">2</div>
+        <div class="actividad-head">
+          <div><span class="et">Ventas de hoy</span><h3>Actividad de hoy</h3><p>Con el camino de cada comprobante hasta SUNAT</p></div>
+          <a href="#">Ver comprobantes →</a>
+        </div>
+        <table class="act">
+          <tr><th>Hora</th><th>Productos</th><th>Pago</th><th>Total</th><th>Comprobante</th><th></th></tr>
+          <tr>
+            <td>09:12</td><td>Casaca Emilia, +2</td><td>Yape</td><td>S/ 368.00</td>
+            <td><div class="hilo"><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-ambar pulso"></div><div class="seg s-ambar"></div><div class="nodo n-apagado"></div></div></td>
+            <td><span class="estado-chip ambar">Enviado, esperando</span></td>
+          </tr>
+          <tr>
+            <td>10:48</td><td>Chompa Alpaca Cuello Alto</td><td>Tarjeta</td><td>S/ 255.00</td>
+            <td><div class="hilo"><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-verde"></div></div></td>
+            <td><span class="estado-chip verde">Aceptado</span></td>
+          </tr>
+          <tr>
+            <td>12:15</td><td>Blusa Emma, +2</td><td>Plin</td><td>S/ 189.00</td>
+            <td><div class="hilo"><div class="nodo n-ambar"></div><div class="seg s-apagado"></div><div class="nodo n-apagado"></div><div class="seg s-apagado"></div><div class="nodo n-apagado"></div><div class="seg s-apagado"></div><div class="nodo n-apagado"></div></div></td>
+            <td><span class="estado-chip ambar">Sin comprobante</span></td>
+            <td><button class="accion-fila">Transmitir</button></td>
+          </tr>
+          <tr>
+            <td>14:32</td><td>Vestido Solsticio</td><td>Efectivo</td><td>S/ 219.00</td>
+            <td><div class="hilo"><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-verde"></div><div class="seg s-ambar"></div><div class="nodo n-rojo"></div><div class="seg s-apagado"></div><div class="nodo n-apagado"></div></div></td>
+            <td><span class="estado-chip rojo">Rechazado</span></td>
+            <td><button class="accion-fila alerta">Reintentar</button></td>
+          </tr>
+          <tr>
+            <td>16:03</td><td>Kimono Wayra</td><td>Transferencia</td><td>S/ 214.00</td>
+            <td><div class="hilo"><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-verde"></div></div></td>
+            <td><span class="estado-chip verde">Aceptado</span></td>
+            <td><button class="accion-fila">Ver PDF</button></td>
+          </tr>
+        </table>
+        <div class="leyenda">
+          <span>Cómo se lee el hilo: venta · número reservado · enviado a SUNAT · aceptado</span>
+          <span><span class="sw" style="background:#556e49"></span>Aceptado</span>
+          <span><span class="sw" style="background:#8c631f"></span>Enviado, esperando</span>
+          <span><span class="sw" style="background:#b8412d"></span>Rechazado</span>
+          <span><span class="sw" style="background:#e8e0d0; border:1px solid #5b544c"></span>Sin comprobante / anulado</span>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <div class="explicacion">
+    <p class="tag2">Cómo funciona hoy — no es una propuesta, es el código real</p>
+    <div class="cols2">
+      <div class="item"><span class="n">1</span><div><h4>Cuatro tarjetas de vidrio, no tarjetas de papel</h4><p>Facturación es la única pantalla del ERP con este look (translúcido + blur) — el resto del sistema usa <code>card-cayla</code> (papel opaco). Sigue sin decidirse si esto se unifica.</p></div></div>
+      <div class="item"><span class="n">1</span><div><h4>Cada tarjeta compara contra algo real</h4><p>"Vendido hoy" y "Ventas" se comparan contra la misma hora de la semana pasada, no contra un promedio abstracto — si no hay ese dato, la tarjeta lo dice ("No se pudo leer la semana pasada"), nunca se inventa un cero.</p></div></div>
+      <div class="item"><span class="n">2</span><div><h4>El hilo del comprobante son 4 etapas, siempre las mismas</h4><p>Venta → número reservado → enviado a SUNAT → aceptado. Verde = hecho, ámbar punteado = falta (con pulso mientras espera respuesta), rojo = rechazado, gris = anulado o no emitido. Un comprobante de prueba (sandbox) nunca se pinta verde, aunque SUNAT lo acepte.</p></div></div>
+      <div class="item"><span class="n">2</span><div><h4>Un botón por fila, nunca dos</h4><p>"Transmitir" si está pendiente, "Reintentar" si SUNAT lo rechazó, "Ver PDF" si ya fue aceptado — el estado decide cuál de los tres se muestra, no hay un menú de acciones.</p></div></div>
+      <div class="item"><span class="n">·</span><div><h4>La línea viva no es decorativa</h4><p>El punto verde late solo si la última lectura tiene menos de 10 minutos; pasado ese tiempo se queda quieto en ámbar. El texto siempre acompaña al color ("actualizado hace 16 s").</p></div></div>
+      <div class="item"><span class="n">·</span><div><h4>Pendiente real, no de esta maqueta</h4><p><code>getComprobantesMes</code> no pagina (PostgREST corta en 1000 filas sin avisar) y la revisión completa del rango nunca se cerró — solo se auditaron el Resumen y Comprobantes.</p></div></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

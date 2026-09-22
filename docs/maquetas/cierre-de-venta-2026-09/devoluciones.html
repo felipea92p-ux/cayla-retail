@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Devoluciones — spike visual</title>
+<style>
+  :root{
+    --crema:#f5f0e8; --papel:#fbf6ec; --tinta:#1a1a18; --tinta-60:#5b544c;
+    --sand:#e8e0d0; --rojo:#b8412d; --verde:#556e49; --ambar:#8c631f; --taupe:#a47865;
+    --serif:"EB Garamond",Georgia,serif; --sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--crema); color:var(--tinta); font-family:var(--sans);}
+  .lienzo{max-width:1580px; margin:0 auto; padding:28px 28px 60px;}
+  .marco-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px;}
+  .marco-head .titulo{display:flex; gap:14px; align-items:flex-start;}
+  .num{width:34px; height:34px; border-radius:50%; background:var(--tinta); color:var(--crema); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:16px; flex:none;}
+  .marco-head h1{font-family:var(--serif); font-weight:500; font-size:26px; margin:0 0 3px;}
+  .marco-head p{margin:0; font-size:13.5px; color:var(--tinta-60);}
+  .tag{font-size:11px; font-weight:700; letter-spacing:.06em; background:var(--sand); color:var(--tinta-60); padding:5px 12px; border-radius:999px; white-space:nowrap;}
+  code{background:var(--sand); padding:.05em .35em; border-radius:4px; font-size:.92em;}
+
+  .app{display:flex; border:1px solid var(--sand); border-radius:22px; overflow:hidden; background:var(--papel); box-shadow:0 30px 60px -40px rgba(26,26,24,.25);}
+  aside{width:250px; background:var(--tinta); color:var(--crema); padding:22px 16px; display:flex; flex-direction:column; flex:none;}
+  .logo{display:flex; align-items:center; gap:9px; padding:0 6px 20px; font-family:var(--serif); font-size:19px;}
+  .logo img{width:22px; height:22px;}
+  .nuevo{background:var(--crema); color:var(--tinta); border:none; border-radius:10px; padding:10px 12px; font-weight:700; font-size:12.5px; margin-bottom:18px; cursor:pointer;}
+  nav{flex:1; display:flex; flex-direction:column; gap:2px; font-size:13.5px;}
+  .ni{display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; color:color-mix(in srgb, var(--crema) 78%, transparent); text-decoration:none;}
+  .dot{width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.5; flex:none;}
+  .grupo-lbl{display:flex; align-items:center; gap:10px; padding:8px 10px; font-weight:600; color:var(--crema);}
+  .hijos{padding-left:24px; display:flex; flex-direction:column; gap:1px; margin:2px 0 8px;}
+  .hijo{padding:7px 10px; border-radius:7px; font-size:13px; color:color-mix(in srgb, var(--crema) 75%, transparent); text-decoration:none; display:block;}
+  .hijo.activo{background:color-mix(in srgb, var(--crema) 14%, transparent); color:var(--crema); font-weight:600;}
+  .foot{margin-top:auto; padding-top:14px; border-top:1px solid color-mix(in srgb, var(--crema) 14%, transparent);}
+  .foot .tagline{font-family:var(--serif); font-style:italic; font-size:12.5px; color:color-mix(in srgb, var(--crema) 55%, transparent); margin:0 0 12px;}
+  .persona{display:flex; align-items:center; gap:9px;}
+  .avatar{width:30px; height:30px; border-radius:50%; background:var(--rojo); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex:none;}
+  .persona b{display:block; font-size:12.5px;}
+  .persona span{font-size:10.5px; color:color-mix(in srgb, var(--crema) 60%, transparent); letter-spacing:.03em;}
+
+  main{flex:1; padding:26px 30px; position:relative;}
+  .topbar{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;}
+  .eyebrow{font-size:11.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--rojo); margin:0 0 4px;}
+  h2.pagetitle{font-family:var(--serif); font-weight:500; font-size:28px; margin:0 0 5px;}
+  .subtitle{font-size:14px; color:var(--tinta-60); margin:0;}
+  .resumen3{display:flex; gap:26px;}
+  .resumen3 div{text-align:right;}
+  .resumen3 b{display:block; font-family:var(--serif); font-size:19px;}
+  .resumen3 span{font-size:11px; color:var(--tinta-60); text-transform:uppercase; letter-spacing:.04em;}
+
+  .marker{position:absolute; width:24px; height:24px; border-radius:50%; background:var(--tinta); color:var(--crema); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; z-index:5; font-family:var(--serif);}
+
+  .bloque{background:var(--crema); border:1px solid var(--sand); border-radius:14px; padding:20px 22px; margin-bottom:16px; position:relative;}
+  .bloque h3{font-family:var(--serif); font-weight:500; font-size:19px; margin:0 0 4px; display:flex; align-items:center; gap:8px;}
+  .bloque h3 span.count{font-size:14px; color:var(--tinta-60); font-family:var(--sans); font-weight:600;}
+  .bloque .hint{font-size:13px; color:var(--tinta-60); margin:0 0 16px;}
+
+  .buscador{display:flex; gap:10px; align-items:center; margin-bottom:12px;}
+  .buscador input{flex:1; border:1px solid var(--sand); background:var(--papel); border-radius:10px; padding:12px 14px; font-size:13.5px; font-family:var(--sans);}
+  .btn{border:none; border-radius:10px; padding:11px 18px; font-size:13px; font-weight:700; cursor:pointer; font-family:var(--sans); white-space:nowrap;}
+  .btn.primario{background:var(--tinta); color:var(--crema);}
+  .btn.rojo{background:var(--rojo); color:var(--crema);}
+  .btn.fantasma{background:transparent; border:1px solid var(--sand); color:var(--tinta);}
+  .chipsrow{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .chip{font-size:12px; font-weight:600; border:1px solid var(--sand); border-radius:999px; padding:6px 13px; background:var(--papel); color:var(--tinta-60);}
+  .chip.link{color:var(--rojo); border-color:transparent; background:none; padding-left:0;}
+
+  .pill{font-size:11px; font-weight:700; border-radius:999px; padding:4px 10px; white-space:nowrap; display:inline-flex; align-items:center; gap:5px;}
+  .pill::before{content:""; width:5px; height:5px; border-radius:50%; background:currentColor;}
+  .pill.verde{color:var(--verde); background:color-mix(in srgb, var(--verde) 14%, var(--papel));}
+  .pill.rojo{color:var(--rojo); background:color-mix(in srgb, var(--rojo) 14%, var(--papel));}
+  .pill.ambar{color:var(--ambar); background:color-mix(in srgb, var(--ambar) 14%, var(--papel));}
+  .pill.neutro{color:var(--tinta-60); background:var(--sand);}
+
+  .aprobar-card{border:1.5px solid var(--sand); border-radius:12px; padding:16px 18px; margin-bottom:12px; position:relative;}
+  .aprobar-card .top{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
+  .aprobar-card .cliente{font-size:14px; font-weight:700;}
+  .aprobar-card .linea{display:flex; justify-content:space-between; font-size:13px; padding:6px 0; border-bottom:1px dashed var(--sand);}
+  .aprobar-card .linea:last-of-type{border-bottom:none;}
+  .aprobar-card .foot{display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:12.5px; color:var(--tinta-60);}
+  .aprobar-card .botones{display:flex; gap:8px;}
+  .aprobar-card .botones button{padding:8px 16px; font-size:12.5px;}
+
+  .filtros{display:flex; gap:8px; margin:4px 0 16px;}
+  .filtro{font-size:12.5px; font-weight:700; border-radius:999px; padding:7px 14px; border:1px solid var(--sand); background:var(--papel); color:var(--tinta-60);}
+  .filtro.activo{background:var(--tinta); color:var(--crema); border-color:var(--tinta);}
+
+  .venta-row{display:flex; align-items:center; gap:14px; padding:13px 0; border-bottom:1px solid var(--sand);}
+  .venta-row:last-child{border-bottom:none;}
+  .venta-row input[type=checkbox]{width:16px; height:16px; accent-color:var(--tinta); flex:none;}
+  .venta-row .thumb{width:38px; height:38px; border-radius:8px; background:var(--sand); flex:none;}
+  .venta-row .info{flex:1; min-width:0;}
+  .venta-row .info b{font-size:13.5px; display:block;}
+  .venta-row .info span{font-size:11.5px; color:var(--tinta-60);}
+  .venta-row .accion{font-size:12.5px; font-weight:700; color:var(--tinta); white-space:nowrap;}
+
+  .preview{border:1.5px dashed var(--sand); border-radius:14px; padding:20px; background:var(--papel); position:relative; margin-top:18px;}
+  .preview .lbl{font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--rojo); margin-bottom:10px; padding-left:32px;}
+  .preview h4{font-family:var(--serif); font-weight:500; font-size:17px; margin:0 0 12px; padding-left:32px;}
+  .motivo-chips{display:flex; gap:8px; flex-wrap:wrap; padding-left:32px;}
+  .motivo-chip{font-size:12.5px; font-weight:600; border:1.5px solid var(--sand); border-radius:999px; padding:8px 15px; background:var(--crema);}
+  .motivo-chip.sel{border-color:var(--tinta); background:var(--tinta); color:var(--crema);}
+
+  .explicacion{background:var(--papel); border:1px solid var(--sand); border-radius:22px; padding:28px 32px; margin-top:22px;}
+  .explicacion .tag2{font-size:11px; font-weight:700; letter-spacing:.08em; color:var(--tinta-60); text-transform:uppercase; margin-bottom:16px;}
+  .cols2{columns:2; column-gap:36px;}
+  .item{break-inside:avoid; display:flex; gap:12px; margin-bottom:18px;}
+  .item .n{width:22px; height:22px; border-radius:50%; background:var(--tinta); color:var(--crema); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:none; margin-top:1px;}
+  .item h4{margin:0 0 3px; font-size:13.5px; font-weight:700;}
+  .item p{margin:0; font-size:12.5px; color:var(--tinta-60); line-height:1.55;}
+</style>
+</head>
+<body>
+<div class="lienzo">
+
+  <div class="marco-head">
+    <div class="titulo">
+      <span class="num">D</span>
+      <div><h1>Devoluciones</h1><p>Ruta <code>/devoluciones</code> — estado actual (ADR-0122, motivo estructurado ADR-0158 · 2026-09-22)</p></div>
+    </div>
+    <span class="tag">SPIKE VISUAL · DOCUMENTA EL CÓDIGO REAL, DATOS DE EJEMPLO</span>
+  </div>
+
+  <div class="app">
+    <aside>
+      <div class="logo"><img src="cayla-isotipo.png" alt=""><span>CAYLA</span></div>
+      <button class="nuevo">+ NUEVO</button>
+      <nav>
+        <a class="ni"><span class="dot"></span>Inicio</a>
+        <a class="ni"><span class="dot"></span>Colaboradores</a>
+        <a class="ni"><span class="dot"></span>Catálogo</a>
+        <a class="ni"><span class="dot"></span>Compras</a>
+        <div class="grupo-lbl"><span class="dot" style="opacity:1"></span>Ventas</div>
+        <div class="hijos">
+          <a class="hijo">Punto de Venta</a>
+          <a class="hijo">Caja</a>
+          <a class="hijo">Historial</a>
+          <a class="hijo">Cambios</a>
+          <a class="hijo activo">Devoluciones</a>
+          <a class="hijo">Facturación</a>
+        </div>
+        <a class="ni"><span class="dot"></span>Inventario</a>
+      </nav>
+      <div class="foot">
+        <p class="tagline">Donde el estilo transforma.</p>
+        <div class="persona"><span class="avatar">FA</span><div><b>Felipe Alvarez</b><span>LÍDER · TIENDA LIMA</span></div></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div>
+          <p class="eyebrow">Ventas</p>
+          <h2 class="pagetitle">Devoluciones</h2>
+          <p class="subtitle">Registra las devoluciones de la clienta y aprueba las que esperan.</p>
+        </div>
+        <div class="resumen3">
+          <div><b>1</b><span>Devoluciones hoy</span></div>
+          <div><b>19</b><span>Este mes</span></div>
+          <div><b>S/ 1,430</b><span>Valor devuelto</span></div>
+        </div>
+      </div>
+
+      <div class="bloque">
+        <div class="marker" style="top:-8px; left:-8px;">1</div>
+        <h3>Iniciar una devolución</h3>
+        <div class="buscador">
+          <input placeholder="Boleta, DNI, clienta, prenda o código" disabled>
+          <button class="btn primario">Buscar</button>
+        </div>
+        <div class="chipsrow">
+          <span class="chip">📷 Escanear prenda</span>
+          <span class="chip link">Sin comprobante →</span>
+        </div>
+      </div>
+
+      <div class="bloque">
+        <div class="marker" style="top:-8px; left:-8px;">2</div>
+        <h3>Por aprobar <span class="count">(2)</span></h3>
+        <p class="hint">Revisa cada una: al aprobarla se mueve el stock.</p>
+
+        <div class="aprobar-card">
+          <div class="top">
+            <span class="cliente">María Dávila · Boleta B002-0091</span>
+            <span class="pill rojo">Compra hace 19 días · fuera del plazo</span>
+          </div>
+          <div class="linea"><span>Vestido Solsticio · talla M</span><span>S/ 219.00</span></div>
+          <div class="linea"><span>Motivo</span><span>No era su talla — le quedó ancho de busto</span></div>
+          <div class="linea"><span>Estado al volver</span><span class="pill neutro" style="margin:0">Impecable</span></div>
+          <div class="foot">
+            <span>La clienta pagó S/ 219.00 por esto. Al aprobarla se emite la nota de crédito.</span>
+            <div class="botones">
+              <div class="marker" style="position:static; display:inline-flex; margin-right:4px;">3</div>
+              <button class="btn fantasma">Rechazar</button>
+              <button class="btn primario">Aprobar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="aprobar-card">
+          <div class="top">
+            <span class="cliente">Sofía Reyes · Boleta B001-0140</span>
+            <span class="pill verde">Dentro del plazo · quedan 6 días</span>
+          </div>
+          <div class="linea"><span>Blusa Emma + Kimono Wayra</span><span>S/ 485.00</span></div>
+          <div class="linea"><span>Motivo</span><span>Tiene un defecto — costura abierta en la manga</span></div>
+          <div class="linea"><span>Estado al volver</span><span class="pill ambar" style="margin:0">Dañada · reparar</span></div>
+          <div class="foot">
+            <span>Esperando aprobación de un líder.</span>
+            <div class="botones"><button class="btn fantasma">Rechazar</button><button class="btn primario">Aprobar</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bloque">
+        <h3>Actividad reciente</h3>
+        <p class="hint">Compras de los últimos 15 días en Tienda Lima: el plazo para cambiar o devolver.</p>
+        <div class="filtros">
+          <div class="marker" style="position:static; display:inline-flex;">4</div>
+          <span class="filtro activo">Todas · 24</span>
+          <span class="filtro">Con devolución · 4</span>
+          <span class="filtro">Sin comprobante · 2</span>
+        </div>
+        <div class="venta-row">
+          <div class="marker" style="position:static;">5</div>
+          <input type="checkbox" checked>
+          <div class="thumb"></div>
+          <div class="info"><b>Boleta B001-0140 · Vestido Solsticio + Blusa Emma</b><span>Vendido 20/09 · Sofía Reyes</span></div>
+          <input type="checkbox" checked>
+          <div class="thumb"></div>
+          <div class="info"><b>2 prendas marcadas</b><span>Una nota de crédito para ambas</span></div>
+          <span class="accion">Continuar →</span>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <div class="preview">
+    <div class="marker" style="top:16px; left:16px;">6</div>
+    <div class="lbl">Motivo estructurado — ADR-0158, cerrado 2026-09-22</div>
+    <h4>¿Por qué la devuelve?</h4>
+    <div class="motivo-chips">
+      <span class="motivo-chip">No era su talla</span>
+      <span class="motivo-chip sel">No le calzó bien</span>
+      <span class="motivo-chip">Tiene un defecto</span>
+      <span class="motivo-chip">No le gustó</span>
+      <span class="motivo-chip">Era un regalo</span>
+      <span class="motivo-chip">Otro motivo</span>
+    </div>
+  </div>
+
+  <div class="explicacion">
+    <p class="tag2">Cómo funciona hoy — no es una propuesta, es el código real</p>
+    <div class="cols2">
+      <div class="item"><span class="n">1</span><div><h4>Mismo buscador que Cambios</h4><p>Reutiliza <code>BuscadorVentas</code> y <code>getVentasRecientes</code> — el mismo lector, dos pantallas. "Sin comprobante" también entra por acá.</p></div></div>
+      <div class="item"><span class="n">2</span><div><h4>El plazo avisa, nunca bloquea</h4><p>Una devolución fuera de los 15 días (<code>DIAS_PLAZO_CAMBIO</code>) igual se puede registrar — el chip rojo es una advertencia para el líder, no un candado. Hoy no está definido quién decide pasado el plazo.</p></div></div>
+      <div class="item"><span class="n">3</span><div><h4>Nada mueve stock hasta que un líder aprueba</h4><p>Registrar una devolución la deja "pendiente de aprobación": el stock y la caja no cambian hasta que alguien con rol de líder la revisa.</p></div></div>
+      <div class="item"><span class="n">4</span><div><h4>Los mismos tres filtros que Cambios</h4><p>Todas · Con devolución · Sin comprobante — mismo patrón visual, mismo componente (<code>ComprasAgrupadas</code>).</p></div></div>
+      <div class="item"><span class="n">5</span><div><h4>Varias prendas, una sola nota de crédito</h4><p>Antes se creaba una devolución por prenda y cada aprobación emitía su propia nota parcial. Hoy se marcan varias líneas con checkbox y <code>crear_devolucion</code> recibe la lista completa — una nota total o parcial según cuántas se marquen.</p></div></div>
+      <div class="item"><span class="n">6</span><div><h4>Motivo con código Y texto libre</h4><p>El chip fija un <code>motivo_codigo</code> cerrado (para reportar "6 de 8 fueron por defecto"); el texto libre sigue existiendo debajo para el detalle. Ojo: este código NO comparte vocabulario con el de Cambios — son migraciones distintas, dos días de diferencia.</p></div></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
