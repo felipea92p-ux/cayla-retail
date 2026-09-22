@@ -24,7 +24,8 @@ create table if not exists retail.terminales_por_convertir (
 
 insert into retail.terminales_por_convertir (persona_id, auth_user_id, ubicacion_id, tipo, nombre)
 select c.persona_id, p.auth_user_id, c.ubicacion_asignada_id, c.terminal,
-       coalesce(nullif(btrim(regexp_replace(p.nombres, '^.*—\s*([^(]+?)\s*(\(.*)?$', '\1')), ''), p.nombres)
+       -- «ESTACIÓN — Caja» + apellido «Trujillo (no es persona)» → «Caja Trujillo» (la ciudad vive en el apellido).
+       btrim(regexp_replace(regexp_replace(p.nombres || ' ' || coalesce(p.apellidos, ''), '^\s*ESTACI[ÓO]N\s*[—-]\s*', ''), '\s*\(no es persona\)\s*$', ''))
   from retail.colaboradores c join public.personas p on p.id = c.persona_id
  where c.terminal is not null and p.auth_user_id is not null
 on conflict (persona_id) do nothing;
@@ -40,3 +41,8 @@ delete from retail.colaboradores c
  where c.persona_id = t.persona_id and c.terminal is not null;
 
 select count(*) as estaciones_por_convertir from retail.terminales_por_convertir;
+
+-- APLICADO EN PRODUCCIÓN el 2026-09-22 (pasos 1 a 6 por el SQL Editor; el paso 7, la F3, por el conector de Supabase
+-- porque el SQL Editor cortaba mal sus bloques $n$ anidados y fallaba con «relation v_tope_descuento does not exist»).
+-- La primera versión de este puente guardó solo «Caja»/«Almacén» (la ciudad vive en el apellido); se corrigió en
+-- producción con un update de `terminales.nombre` desde `personas.nombres || apellidos` y aquí quedó la expresión buena.
