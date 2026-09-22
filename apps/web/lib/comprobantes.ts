@@ -72,6 +72,28 @@ export async function getSeriesArchivadas(): Promise<SerieArchivada[] | null> {
   return tolerar(res, "las series archivadas").datos as SerieArchivada[] | null;
 }
 
+/** Cuándo salió el último comprobante de cada serie activa, por id de serie. Se busca exacto (serie +
+ *  número `siguiente_numero − 1`), no escaneando el historial: una fila por serie como mucho. Si ese
+ *  número quedó en hueco (se liberó), la serie no trae fecha y la tarjeta no la dice. `null` si falla:
+ *  es un dato de adorno de la vista Series (`tolerar`). */
+export async function getUltimoPorSerie(series: SerieComprobante[]): Promise<Record<string, string> | null> {
+  const usadas = series.filter((s) => s.siguiente_numero > 1);
+  if (usadas.length === 0) return {};
+  const supabase = await createClient();
+  const res = await supabase
+    .from("comprobantes")
+    .select("ubicacion_id, serie, numero, created_at")
+    .or(usadas.map((s) => `and(serie.eq.${s.serie},numero.eq.${s.siguiente_numero - 1})`).join(","));
+  const { datos } = tolerar(res, "el último comprobante de cada serie");
+  if (!datos) return null;
+  const porSerie: Record<string, string> = {};
+  for (const s of usadas) {
+    const fila = datos.find((c) => c.serie === s.serie && c.ubicacion_id === s.ubicacion_id && c.numero === s.siguiente_numero - 1);
+    if (fila) porSerie[s.id] = fila.created_at;
+  }
+  return porSerie;
+}
+
 /** Todo lo vendido hoy (hora Lima), con su comprobante si ya tiene uno. La
  *  RPC (`fn_ventas_del_dia`, security definer) ya filtra por rol: un líder ve
  *  todas las ubicaciones o una sola si se lo pides; un integrante solo ve la
@@ -110,6 +132,16 @@ export type FilaColaReintento = {
   ultimo_error_transmision: string | null;
   horas_esperando: number | null;
 };
+
+/** Cuándo se emitió cada comprobante de la cola (la RPC de la cola no lo trae): el plazo de SUNAT cuenta
+ *  desde ahí. `null` si falla: el plazo es un dato de más en «Por reintentar», no se inventa. */
+export async function getFechasDeEmision(ids: string[]): Promise<Record<string, string> | null> {
+  if (ids.length === 0) return {};
+  const supabase = await createClient();
+  const res = await supabase.from("comprobantes").select("id, created_at").in("id", ids);
+  const { datos } = tolerar(res, "la fecha de emisión de la cola");
+  return datos ? Object.fromEntries(datos.map((c) => [c.id, c.created_at])) : null;
+}
 
 /** La cola de SUNAT (D-60): lo que Lucode no aceptó y espera su reintento, de la más vieja a la más
  *  nueva. `ubicacionId` `null` = todas las sedes (solo líder, la RPC lo exige). `cache`: el layout la

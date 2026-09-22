@@ -8,6 +8,7 @@ import { Boton, Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { ArchivarRolModal, AsignarRolModal, NuevoRolModal, RenombrarRolModal } from "@/components/RolesModales";
 import { traducirError } from "@/lib/error-escritura";
+import type { Ubicacion } from "@/lib/ubicaciones";
 import { SIEMPRE_SOLO_LIDER, type ClaveModulo } from "@/lib/modulos";
 import { accionesRolesSupabase, type AccionesRoles, type ResultadoRol } from "@/lib/roles-acciones";
 import {
@@ -29,7 +30,7 @@ import {
 
 // «Roles y accesos» (ADR-0161 B; spike aprobado `docs/maquetas/responsable-y-roles-spike-2026-09/`, pantalla 1). Cada rol
 // decide SOLO qué módulos ve; quien ve un módulo hace todo lo que hay en él, salvo la lista fija «siempre solo del líder».
-// Solo el Líder no se edita. Todo lo que se escribe pasa por RPC solo del líder, que además anota `roles_historial`.
+// Solo el Líder no se edita (sus módulos), pero sí se asigna y se quita, entre líderes (2026-09-22). Todo lo que se escribe pasa por RPC solo del líder, que además anota `roles_historial`.
 
 type Modal =
   | { tipo: "nuevo" }
@@ -63,11 +64,17 @@ function descripcionDe(rol: RolVista): string {
 export function RolesPanel({
   roles,
   cuentas,
+  ubicaciones,
+  yoId,
   acciones = accionesRolesSupabase,
 }: {
   roles: RolVista[];
   /** `null` = no se pudieron leer: la pantalla sigue, sin la lista de cuentas. */
   cuentas: CuentaConRol[] | null;
+  /** Para la sede de un líder al que se le baja el rol. */
+  ubicaciones: Pick<Ubicacion, "id" | "nombre">[];
+  /** La persona de esta sesión: no se ofrece a sí misma (nadie se cambia su propio rol). */
+  yoId: string | null;
   acciones?: AccionesRoles;
 }) {
   const router = useRouter();
@@ -242,9 +249,14 @@ export function RolesPanel({
               </div>
             )}
             {rol.fijo && (
-              <Boton type="button" peso="discreto" className="px-3 py-2" onClick={() => setModal({ tipo: "duplicar", rol })}>
-                Duplicar
-              </Boton>
+              <div className="flex flex-wrap gap-2">
+                <Boton type="button" peso="discreto" className="px-3 py-2" onClick={() => setModal({ tipo: "asignar", rol })} disabled={!cuentas}>
+                  Asignar a una persona
+                </Boton>
+                <Boton type="button" peso="discreto" className="px-3 py-2" onClick={() => setModal({ tipo: "duplicar", rol })}>
+                  Duplicar
+                </Boton>
+              </div>
             )}
           </div>
 
@@ -351,11 +363,12 @@ export function RolesPanel({
       {modal?.tipo === "asignar" && cuentas && (
         <AsignarRolModal
           roles={rolesAsignables(roles)}
-          cuentas={cuentasAsignables(cuentas).filter((c) => c.rolId !== modal.rol.id)}
+          cuentas={cuentasAsignables(cuentas, modal.rol, yoId)}
+          ubicaciones={ubicaciones}
           rolFijo={modal.rol}
           onClose={() => setModal(null)}
-          onConfirmar={async (rolId, cuenta) =>
-            !!(await ejecutar("asignar el rol", () => acciones.asignar(rolId, cuenta), `${cuenta.nombre} ahora tiene «${modal.rol.nombre}»`))
+          onConfirmar={async (rolId, cuenta, ubicacionId) =>
+            !!(await ejecutar("asignar el rol", () => acciones.asignar(rolId, cuenta, ubicacionId), `${cuenta.nombre} ahora tiene «${modal.rol.nombre}»`))
           }
         />
       )}

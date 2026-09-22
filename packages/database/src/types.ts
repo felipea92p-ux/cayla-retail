@@ -2987,11 +2987,14 @@ export type Database = {
           id: string
           igv: number
           items: Json
+          nota: string | null
+          numero: number
           subtotal: number
           total: number
           ubicacion_id: string
           usuario_id: string | null
           vence_at: string | null
+          venta_id: string | null
         }
         Insert: {
           cliente_nombre?: string | null
@@ -3002,11 +3005,14 @@ export type Database = {
           id?: string
           igv?: number
           items: Json
+          nota?: string | null
+          numero?: number
           subtotal?: number
           total: number
           ubicacion_id: string
           usuario_id?: string | null
           vence_at?: string | null
+          venta_id?: string | null
         }
         Update: {
           cliente_nombre?: string | null
@@ -3017,11 +3023,14 @@ export type Database = {
           id?: string
           igv?: number
           items?: Json
+          nota?: string | null
+          numero?: number
           subtotal?: number
           total?: number
           ubicacion_id?: string
           usuario_id?: string | null
           vence_at?: string | null
+          venta_id?: string | null
         }
         Relationships: [
           {
@@ -3036,6 +3045,13 @@ export type Database = {
             columns: ["ubicacion_id"]
             isOneToOne: false
             referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proformas_venta_id_fkey"
+            columns: ["venta_id"]
+            isOneToOne: false
+            referencedRelation: "ventas"
             referencedColumns: ["id"]
           },
         ]
@@ -4987,10 +5003,8 @@ export type Database = {
         Args: {
           p_cliente_nombre?: string
           p_cliente_num_doc?: string
-          p_igv: number
           p_items: Json
-          p_subtotal: number
-          p_total: number
+          p_nota?: string
           p_ubicacion_id: string
           p_vence_at?: string
         }
@@ -5936,7 +5950,12 @@ export type Database = {
       }
       archivar_rol: { Args: { p_rol_id: string }; Returns: undefined }
       asignar_rol: {
-        Args: { p_persona_id?: string; p_rol_id: string; p_terminal_id?: string }
+        Args: {
+          p_persona_id?: string
+          p_rol_id: string
+          p_terminal_id?: string
+          p_ubicacion_id?: string
+        }
         Returns: undefined
       }
       crear_rol: {
@@ -6265,6 +6284,10 @@ export type Database = {
       }
       marcar_comprobante_no_emitido: {
         Args: { p_comprobante_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      marcar_proforma_cobrada: {
+        Args: { p_proforma_id: string; p_venta_id: string }
         Returns: undefined
       }
       marcar_pedido_no_atendido_resuelto: {

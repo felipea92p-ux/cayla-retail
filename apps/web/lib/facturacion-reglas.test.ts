@@ -142,6 +142,10 @@ describe("resumenProformas — lo que sigue valiendo", () => {
     comprobante_id: null,
     created_at: "2026-09-10T15:00:00Z",
     vence_at: null,
+    numero: null,
+    nota: null,
+    venta_id: null,
+    items: [],
     ...sobre,
   });
 

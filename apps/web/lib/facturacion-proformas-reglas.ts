@@ -1,4 +1,4 @@
-import type { Proforma } from "./proformas-reglas";
+import { lineasDeLaProforma, numeroDeProforma, type Proforma } from "./proformas-reglas";
 import { soles } from "./compras-reglas";
 import type { ResumenProformas } from "./facturacion-reglas";
 import { antiguedad, faltaPara } from "./facturacion-resumen-reglas";
@@ -73,10 +73,11 @@ export function detalleDeLaProforma(p: Proforma, ahora: Date): { texto: string; 
   }
 }
 
-/** Lo que se puede escribir en el buscador para encontrar esta proforma: la clienta, su documento, el
- *  estado y el total. Lo consume `coincide`. */
+/** Lo que se puede escribir en el buscador para encontrar esta proforma: su número, la clienta, su documento,
+ *  el estado, el total y las prendas que lleva. Lo consume `coincide`. */
 export function camposDeBusquedaDeLaProforma(p: Proforma): (string | null)[] {
-  return [p.cliente_nombre ?? "Cliente varios", p.cliente_num_doc, chipDeLaProforma(p).texto, Number(p.total).toFixed(2)];
+  const prendas = (lineasDeLaProforma(p.items) ?? []).flatMap((l) => [l.descripcion, l.codigo]);
+  return [numeroDeProforma(p.numero), p.cliente_nombre ?? "Cliente varios", p.cliente_num_doc, chipDeLaProforma(p).texto, Number(p.total).toFixed(2), ...prendas];
 }
 
 /** Lo que dice la franja de proformas del Resumen (spec §7): «1 vigente · S/ 88.50 · 0 por vencer». Sale de
@@ -98,17 +99,42 @@ export function franjaDeProformas(r: ResumenProformas): FranjaDeProformas {
   };
 }
 
-/** Lo que se le dice a la persona antes de emitir un comprobante desde una proforma VENCIDA. La base no lo
- *  impide y el comprobante sale con el precio de la cotización, no con el de hoy; Felipe eligió (2026-09-21,
- *  opción B) no prohibirlo ni dejarlo pasar sin fricción, sino pedir una confirmación consciente en la
- *  pantalla. `null` si la proforma sigue valiendo o no tiene plazo: ahí no hay nada que confirmar. */
+/** Lo que se le dice a la persona antes de cobrar en el Punto de Venta una proforma VENCIDA: se cobraría con el
+ *  precio de la cotización, no con el de hoy. Felipe eligió (2026-09-21, opción B) no prohibirlo ni dejarlo
+ *  pasar sin fricción, sino pedir una confirmación consciente. Desde 2026-09-22 la proforma se cobra en el
+ *  Punto de Venta (ya no se «convierte»); la regla es la misma. `null` si sigue valiendo o no tiene plazo. */
 export type ConfirmacionDeConversion = { titulo: string; detalle: string; casilla: string };
 
 export function confirmacionDeConversion(p: Proforma, ahora: Date): ConfirmacionDeConversion | null {
   if (estadoVisible(p) !== "vencida" || !p.vence_at) return null;
   return {
     titulo: `Esta proforma venció ${antiguedad(p.vence_at, ahora)}.`,
-    detalle: `El comprobante saldrá con el precio de la cotización (${soles(Number(p.total))}), no con el de hoy. Si ya cambió, cotiza de nuevo.`,
-    casilla: "Sí, emitirlo al precio de entonces",
+    detalle: `Se cobraría con el precio de la cotización (${soles(Number(p.total))}), no con el de hoy. Si ya cambió, renuévala.`,
+    casilla: "Sí, cobrarla al precio de entonces",
   };
+}
+
+/** Cuántas de las proformas creadas en el mes terminaron en venta. Las anuladas no cuentan en ningún
+ *  lado (se cotizaron por error); `porcentaje` es `null` sin proformas, nunca un 0 % inventado. */
+export function conversionDelMes(proformas: Pick<Proforma, "estado" | "created_at">[], desde: string, hasta: string) {
+  const enRango = (iso: string) => Date.parse(iso) >= Date.parse(desde) && Date.parse(iso) < Date.parse(hasta);
+  const delMes = proformas.filter((p) => enRango(p.created_at) && p.estado !== "anulada");
+  const convertidas = delMes.filter((p) => p.estado === "convertida").length;
+  return { convertidas, creadas: delMes.length, porcentaje: delMes.length === 0 ? null : Math.round((convertidas / delMes.length) * 100) };
+}
+
+/** El texto para mandarle una proforma a la clienta por WhatsApp: número, cuántas prendas, total y hasta
+ *  cuándo vale. La hoja con el detalle se adjunta aparte (se guarda en PDF desde «Ver / imprimir»). */
+export function textoWhatsAppDeLaProforma(p: Pick<Proforma, "numero" | "cliente_nombre" | "total" | "vence_at" | "items">): string {
+  const prendas = (lineasDeLaProforma(p.items) ?? []).reduce((n, l) => n + l.cantidad, 0);
+  const cuantas = prendas > 0 ? `: ${prendas} ${prendas === 1 ? "prenda" : "prendas"}` : "";
+  const vence = p.vence_at
+    ? ` Te guardamos este precio hasta el ${new Date(p.vence_at).toLocaleDateString("es-PE", { day: "numeric", month: "long", timeZone: "America/Lima" })}.`
+    : "";
+  return `Hola${p.cliente_nombre ? ` ${p.cliente_nombre}` : ""}, esta es tu proforma ${numeroDeProforma(p.numero)} de CAYLA${cuantas} por ${soles(Number(p.total))}.${vence}`;
+}
+
+/** El `vence_at` de una proforma que vale `dias` desde ahora (el reloj entra por parámetro para probarlo). */
+export function venceDentroDe(dias: number, ahoraMs: number = Date.now()): string {
+  return new Date(ahoraMs + dias * 24 * 3600 * 1000).toISOString();
 }

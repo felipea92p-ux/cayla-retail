@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { usePosicionLista } from "@/components/ui/useAnclaje";
 import { clave } from "@/lib/buscar-prenda-v2";
 
 /* ====================================================================
@@ -56,6 +57,9 @@ export function ComboBuscable<T extends string>({
   const [activo, setActivo] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   const lista = useRef<HTMLUListElement>(null);
+  // La lista va en `fixed`, medida contra el input: dentro de un <Modal> o de una tabla con scroll, una lista
+  // `absolute` queda recortada por esa caja (ver `usePosicionLista`).
+  const posLista = usePosicionLista(input, abierto, 256, 4);
 
   // Si el valor cambia desde afuera (se limpió la línea, se cargó otra),
   // el texto acompaña. Se ajusta durante el render —el patrón de React para
@@ -153,13 +157,14 @@ export function ComboBuscable<T extends string>({
         onBlur={() => cerrarSinElegir()}
         className="w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-b-2 focus:border-rojo"
       />
-      {abierto && (
+      {abierto && posLista && (
         <ul
           ref={lista}
+          style={{ position: "fixed", ...posLista }}
           id={`${id}-lista`}
           role="listbox"
           aria-label={etiquetaAccesible}
-          className="card-cayla absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto shadow-lg"
+          className="card-cayla z-50 overflow-y-auto shadow-lg"
         >
           {filtradas.length === 0 ? (
             <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{texto.trim()}».</li>

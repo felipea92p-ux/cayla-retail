@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { ALTO_CONTROL } from "@/components/ui/campos";
 import { ResumenActualizado } from "@/components/ResumenActualizado";
 import type { CambiosUrl } from "@/components/useResumenUrl";
 import type { ModoResumen } from "@/lib/resumen-comparacion";
@@ -11,7 +10,7 @@ import type { ModoResumen } from "@/lib/resumen-comparacion";
 // El modo vive en la URL (`?modo=comparar`) como todo lo demás: se comparte, se recarga y
 // «atrás» funciona.
 
-/** Pestañas en píldora: el mismo trazo que los presets de período. Sirve al modo de la
+/** Pestañas subrayadas (guía oficial, 2026-09-22). Sirve al modo de la
  *  pantalla y a «Vista general / Detalle por producto». */
 export function Pestanas<T extends string>({
   etiqueta,
@@ -25,7 +24,8 @@ export function Pestanas<T extends string>({
   onValor: (v: T) => void;
 }) {
   return (
-    <div role="tablist" aria-label={etiqueta} className="inline-flex max-w-full overflow-hidden rounded-md border border-tinta/15 bg-papel">
+    // Guía oficial (ADR-0169): pestañas subrayadas sobre la línea de sand; la elegida en tinta con el hilo rojo.
+    <div role="tablist" aria-label={etiqueta} className="flex max-w-full gap-1 overflow-x-auto border-b border-sand">
       {opciones.map((o) => (
         <button
           key={o.valor}
@@ -33,8 +33,8 @@ export function Pestanas<T extends string>({
           role="tab"
           aria-selected={o.valor === valor}
           onClick={() => o.valor !== valor && onValor(o.valor)}
-          className={`label-cayla inline-flex ${ALTO_CONTROL} items-center whitespace-nowrap px-3.5 text-[11px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo/60 ${
-            o.valor === valor ? "bg-tinta text-crema" : "text-tinta/75 hover:bg-tinta/[0.05]"
+          className={`-mb-px inline-flex items-center whitespace-nowrap border-b-2 px-3.5 pb-2.5 pt-1 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo/60 ${
+            o.valor === valor ? "border-rojo text-tinta" : "border-transparent text-taupe hover:text-tinta"
           }`}
         >
           {o.texto}
