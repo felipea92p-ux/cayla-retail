@@ -10,6 +10,7 @@ import {
   filtrarColaboradores,
   filtrarDisponibles,
   fraseEvento,
+  pestanaDe,
   resumenAlta,
   resumirAccesos,
   ultimoAccesoTexto,
@@ -111,7 +112,7 @@ describe("accionesDeFila", () => {
     expect(accionesDeFila({ rol: "lider", es_yo: true })).toEqual([]);
   });
   it("a un colaborador se le puede cambiar la ubicación, suspender y quitar", () => {
-    expect(accionesDeFila({ rol: "colaborador", es_yo: false })).toEqual(["cambiar_ubicacion", "suspender", "quitar"]);
+    expect(accionesDeFila({ rol: "colaborador", es_yo: false })).toEqual(["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"]);
   });
   it("un líder no tiene ubicación que cambiar", () => {
     expect(accionesDeFila({ rol: "lider", es_yo: false })).toEqual(["suspender", "quitar"]);
@@ -200,5 +201,14 @@ describe("fraseEvento", () => {
   });
   it("una persona que ya no se puede nombrar no rompe la frase", () => {
     expect(texto(fraseEvento({ ...base, accion: "baja", persona_nombre: null }))).toBe("Felipe quitó el acceso a una persona.");
+  });
+});
+
+describe("pestanaDe (Roles y accesos es una pestaña de Colaboradores, ADR-0161 B)", () => {
+  it("abre la pestaña pedida por ?pestana= y cae en Activos con cualquier otra cosa", () => {
+    expect(pestanaDe("roles")).toBe("roles");
+    expect(pestanaDe("terminales")).toBe("terminales");
+    expect(pestanaDe("otra")).toBe("activos");
+    expect(pestanaDe(undefined)).toBe("activos");
   });
 });

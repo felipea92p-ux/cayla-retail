@@ -11,14 +11,17 @@ import {
 } from "@/lib/colaboradores";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { ColaboradoresPanel } from "@/components/ColaboradoresPanel";
+import { pestanaDe } from "@/lib/colaboradores-reglas";
+import { getCuentasConRol, getRolesTolerado } from "@/lib/roles";
 
 // Gestión de acceso a retail (0013 + 0016_roles_colaborador.sql + 20260922110000_colaboradores_suspender_y_actividad.sql).
 // Líder-only en la pantalla — cada RPC lo vuelve a exigir (fn_es_lider), esta es solo la primera de las capas de siempre.
-export default async function ColaboradoresPage() {
+export default async function ColaboradoresPage({ searchParams }: { searchParams: Promise<{ pestana?: string }> }) {
+  const { pestana } = await searchParams;
   const persona = await requirePersonaActualV2();
   if (persona.rol !== "lider") redirect("/");
 
-  const [colaboradores, pendientes, suspendidos, inactivos, actividad, disponibles, ubicaciones, terminales] = await Promise.all([
+  const [colaboradores, pendientes, suspendidos, inactivos, actividad, disponibles, ubicaciones, terminales, roles, cuentas] = await Promise.all([
     getColaboradores(),
     getColaboradoresPendientes(),
     getColaboradoresSuspendidos(),
@@ -28,6 +31,9 @@ export default async function ColaboradoresPage() {
     getUbicaciones(),
     // ADR-0162: los aparatos de cada tienda. Tolerado: si falla, solo la pestaña Terminales lo dice.
     getTerminales(),
+    // ADR-0161 B: el rol de cada cuenta. Tolerado: si la base aún no tiene los roles, la pantalla sale como antes.
+    getRolesTolerado(),
+    getCuentasConRol(),
   ]);
 
   return (
@@ -40,6 +46,9 @@ export default async function ColaboradoresPage() {
       disponibles={disponibles}
       ubicaciones={ubicaciones}
       terminales={terminales.datos}
+      roles={roles}
+      cuentas={cuentas.datos}
+      pestanaInicial={pestanaDe(pestana)}
     />
   );
 }

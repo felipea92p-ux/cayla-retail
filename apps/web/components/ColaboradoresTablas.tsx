@@ -53,6 +53,7 @@ function Persona({ nombre, correo, tu = false, apagada = false }: { nombre: stri
 const cualquiera = <span className="italic text-tinta/65">cualquiera</span>;
 
 const ETIQUETA_ACCION: Record<AccionFila, string> = {
+  cambiar_rol: "Cambiar rol",
   cambiar_ubicacion: "Cambiar ubicación",
   suspender: "Suspender acceso",
   quitar: "Quitar acceso",
@@ -62,10 +63,13 @@ export function TablaActivos({
   filas,
   ocupadoId,
   onAccion,
+  rolDe,
 }: {
   filas: Colaborador[];
   ocupadoId: string | null;
   onAccion: (c: Colaborador, accion: AccionFila) => void;
+  /** El nombre del rol de cada cuenta (ADR-0161 B); sin esto, solo el nivel (Líder / Colaborador). */
+  rolDe?: (id: string) => string | null;
 }) {
   return (
     <Caja minimo="min-w-[860px]">
@@ -95,6 +99,7 @@ export function TablaActivos({
               </td>
               <td className={CELDA}>
                 <ChipRol rol={c.rol} />
+                {c.rol !== "lider" && rolDe?.(c.persona_id) && <div className="mt-1 text-xs text-tinta/65">{rolDe(c.persona_id)}</div>}
               </td>
               <td className={`${CELDA} whitespace-nowrap text-tinta/85`}>{c.rol === "lider" ? cualquiera : (c.ubicacion_asignada ?? "—")}</td>
               <td className={`${CELDA} whitespace-nowrap text-tinta/75`}>{c.sede ?? "—"}</td>
@@ -122,10 +127,15 @@ export function TablaTerminales({
   filas,
   ocupadoId,
   onAlternar,
+  rolDe,
+  onCambiarRol,
 }: {
   filas: Terminal[];
   ocupadoId: string | null;
   onAlternar: (t: Terminal) => void;
+  /** ADR-0161 B1: una terminal es una cuenta más con su rol. Sin esto, la columna «Rol» no sale. */
+  rolDe?: (id: string) => string | null;
+  onCambiarRol?: (t: Terminal) => void;
 }) {
   return (
     <Caja minimo="min-w-[760px]">
@@ -134,6 +144,7 @@ export function TablaTerminales({
           <th className={CABECERA}>Terminal</th>
           <th className={CABECERA}>Tienda</th>
           <th className={CABECERA}>Tipo</th>
+          {rolDe && <th className={CABECERA}>Rol</th>}
           <th className={CABECERA}>Estado</th>
           <th className={CABECERA}>Última actividad</th>
           <th className={`${CABECERA} text-right`}>
@@ -160,9 +171,15 @@ export function TablaTerminales({
             </td>
             <td className={`${CELDA} whitespace-nowrap`}>{t.ubicacion_nombre}</td>
             <td className={`${CELDA} whitespace-nowrap`}>{ETIQUETA_TIPO_TERMINAL[t.tipo]}</td>
+            {rolDe && <td className={`${CELDA} whitespace-nowrap`}>{rolDe(t.id) ?? "—"}</td>}
             <td className={CELDA}>{t.activo ? <Chip tono="verde">Activa</Chip> : <Chip tono="apagado">Desactivada</Chip>}</td>
             <td className={`${CELDA} whitespace-nowrap tabular-nums`}>{t.ultimo_acceso ? fechaHoraLima(t.ultimo_acceso) : "Nunca"}</td>
-            <td className={`${CELDA} text-right`}>
+            <td className={`${CELDA} whitespace-nowrap text-right`}>
+              {onCambiarRol && (
+                <Boton type="button" peso="discreto" className="mr-2 px-3 py-1.5 text-[11px]" disabled={ocupadoId !== null} onClick={() => onCambiarRol(t)}>
+                  Cambiar rol
+                </Boton>
+              )}
               <Boton type="button" peso="discreto" className="px-3 py-1.5 text-[11px]" disabled={ocupadoId !== null} onClick={() => onAlternar(t)}>
                 {t.activo ? "Desactivar" : "Reactivar"}
               </Boton>

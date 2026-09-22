@@ -34,6 +34,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         ubicacionTipo: persona.ubicacionTipo,
         puedeCambiarUbicacion: persona.puedeCambiarUbicacion,
         terminal: persona.terminal,
+        permisos: persona.permisos,
+        modulos: persona.modulos.map((m) => m.clave),
       }}
       ubicaciones={ubicaciones}
       trasladosPorAtender={trasladosPorAtender}

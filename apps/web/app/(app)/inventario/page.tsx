@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
+import { exigirModulo, puede } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
@@ -29,7 +29,7 @@ export default async function InventarioPage({
 }: {
   searchParams: Promise<{ ubicacion?: string; prueba?: string }>;
 }) {
-  const persona = await requirePersonaActualV2();
+  const persona = await exigirModulo("existencias"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   const { ubicacion: ubicacionQuery, prueba } = await searchParams;
   // D-54 (ADR-0159): apagado por defecto — los productos archivados como dato de prueba
   // (nunca borrados) no se piden a la base salvo que se pida verlos.

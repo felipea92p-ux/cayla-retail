@@ -19,6 +19,8 @@
 // ADR-0113 (una sola puerta para recibir), ADR-0126 (el dinero de Compras no se le muestra a quien no lo ve), ADR-0130 (el
 // lateral se pliega: los grupos cuentan como cerrados) y ADR-0133 (Producción y Compras son dos módulos distintos).
 
+import type { ClaveModulo } from "./modulos";
+
 /* ------------------------------------------------------------------
    Vocabulario del árbol
    ------------------------------------------------------------------ */
@@ -116,6 +118,13 @@ type Comun = {
    * compartida por olvido). No afecta a las personas. Las hijas de un grupo heredan el del grupo salvo que declaren el suyo.
    */
   terminales?: readonly TipoTerminal[];
+  /**
+   * El módulo del rol (ADR-0161 B2, `lib/modulos.ts`) al que pertenece esta pantalla o acción. Cuando el perfil trae sus
+   * `modulos` (leídos de `fn_mis_modulos()`), la fila sale solo si la cuenta ve ese módulo, y eso REEMPLAZA a
+   * `terminales` (una terminal es una cuenta más con su rol). Los grupos no lo declaran: salen si les queda alguna hija.
+   * Una hoja SIN módulo (Inicio) no es de ningún rol: la ven las personas, y de las terminales, las que nombra `terminales`.
+   */
+  modulo?: ClaveModulo;
 };
 
 /** Una pantalla. */
@@ -166,9 +175,9 @@ export const ARBOL: readonly Nodo[] = [
   {
     id: "catalogo", etiqueta: "Catálogo", estado: "viva", icono: "catalogo", raiz: "/productos", pajaro: "02 Loro", terminales: ["administrativa"],
     hijos: [
-      { id: "catalogo.productos", etiqueta: "Productos", estado: "viva", ruta: "/productos", icono: "productos", pajaro: "02 Loro" },
-      { id: "catalogo.categorias", etiqueta: "Categorías", estado: "viva", ruta: "/productos/categorias", icono: "categorias", pajaro: "02 Loro" },
-      { id: "catalogo.atributos", etiqueta: "Atributos", estado: "viva", ruta: "/productos/atributos", icono: "atributos", pajaro: "02 Loro" },
+      { id: "catalogo.productos", modulo: "productos", etiqueta: "Productos", estado: "viva", ruta: "/productos", icono: "productos", pajaro: "02 Loro" },
+      { id: "catalogo.categorias", modulo: "atributos", etiqueta: "Categorías", estado: "viva", ruta: "/productos/categorias", icono: "categorias", pajaro: "02 Loro" },
+      { id: "catalogo.atributos", modulo: "atributos", etiqueta: "Atributos", estado: "viva", ruta: "/productos/atributos", icono: "atributos", pajaro: "02 Loro" },
     ],
   },
 
@@ -188,9 +197,9 @@ export const ARBOL: readonly Nodo[] = [
       // decisión que mezcla ventas de la red y dinero: solo el líder (`analizar`); quien trabaja en el Taller va directo a Órdenes.
       // Va PRIMERA. Su ruta es la `raiz` del grupo: el riel resuelve la fila activa por coincidencia exacta y luego por el
       // prefijo más largo, así que en `/produccion/ordenes` sigue marcando Órdenes y no Resumen.
-      { id: "produccion.resumenProduccion", etiqueta: "Resumen", estado: "viva", ruta: "/produccion", icono: "resumen", pajaro: "10 Gallito", exige: "analizar" },
-      { id: "produccion.ordenes", etiqueta: "Órdenes", estado: "viva", ruta: "/produccion/ordenes", icono: "produccion", pajaro: "10 Gallito" },
-      { id: "produccion.insumos", etiqueta: "Insumos", estado: "viva", ruta: "/produccion/insumos", icono: "insumos", pajaro: "10 Gallito" },
+      { id: "produccion.resumenProduccion", modulo: "produccion", etiqueta: "Resumen", estado: "viva", ruta: "/produccion", icono: "resumen", pajaro: "10 Gallito", exige: "analizar" },
+      { id: "produccion.ordenes", modulo: "produccion", etiqueta: "Órdenes", estado: "viva", ruta: "/produccion/ordenes", icono: "produccion", pajaro: "10 Gallito" },
+      { id: "produccion.insumos", modulo: "produccion", etiqueta: "Insumos", estado: "viva", ruta: "/produccion/insumos", icono: "insumos", pajaro: "10 Gallito" },
       // Abastecimiento del Taller (F4a a F4d, ADR-0133): proveedores, comprobantes, recepción y deuda de tela y avíos, APARTE de
       // los de Compras (D-H). SUBGRUPO (D-84): antes eran 4 hijas sueltas de Producción; ahora cuelgan de esta cabecera, igual
       // que «Compras» agrupa a las suyas — el mismo trazo (`icono: "compras"`) a propósito, es el mismo concepto (abastecerse
@@ -207,12 +216,12 @@ export const ARBOL: readonly Nodo[] = [
       {
         id: "produccion.abastecimiento", etiqueta: "Abastecimiento", estado: "viva", icono: "compras", raiz: "/produccion/proveedores", pajaro: "10 Gallito",
         hijos: [
-          { id: "produccion.proveedoresProduccion", etiqueta: "Proveedores", estado: "viva", ruta: "/produccion/proveedores", icono: "proveedores", pajaro: "10 Gallito", exige: "verDinero" },
-          { id: "produccion.comprobantesProduccion", etiqueta: "Comprobantes", estado: "viva", ruta: "/produccion/comprobantes", icono: "facturas", pajaro: "10 Gallito", exige: "verDinero" },
+          { id: "produccion.proveedoresProduccion", modulo: "produccion", etiqueta: "Proveedores", estado: "viva", ruta: "/produccion/proveedores", icono: "proveedores", pajaro: "10 Gallito", exige: "verDinero" },
+          { id: "produccion.comprobantesProduccion", modulo: "produccion", etiqueta: "Comprobantes", estado: "viva", ruta: "/produccion/comprobantes", icono: "facturas", pajaro: "10 Gallito", exige: "verDinero" },
           // OJO, no es «Recibir mercadería»: aquel (`/recibir`, de Compras e Inventario) recibe prendas contra un envío; este
           // recibe tela y avíos contra un comprobante de Producción. Dos pantallas de dos módulos, una etiqueta parecida.
-          { id: "produccion.recibirProduccion", etiqueta: "Recibir", estado: "viva", ruta: "/produccion/recibir", icono: "recibir", pajaro: "10 Gallito" },
-          { id: "produccion.porPagarProduccion", etiqueta: "Por pagar", estado: "viva", ruta: "/produccion/por-pagar", icono: "porPagar", pajaro: "10 Gallito", exige: "verDinero" },
+          { id: "produccion.recibirProduccion", modulo: "produccion", etiqueta: "Recibir", estado: "viva", ruta: "/produccion/recibir", icono: "recibir", pajaro: "10 Gallito" },
+          { id: "produccion.porPagarProduccion", modulo: "produccion", etiqueta: "Por pagar", estado: "viva", ruta: "/produccion/por-pagar", icono: "porPagar", pajaro: "10 Gallito", exige: "verDinero" },
         ],
       },
       // F7 (2026-09-22) ya existe: `/produccion/eficiencia`. NO es una fila del lateral a propósito: vive como PESTAÑA del
@@ -231,16 +240,16 @@ export const ARBOL: readonly Nodo[] = [
   {
     id: "compras", etiqueta: "Compras", estado: "viva", icono: "compras", raiz: "/compras", pajaro: "09 Pelícano", ubicaciones: ["tienda", "almacen"], terminales: ["administrativa"],
     hijos: [
-      { id: "compras.proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "verDinero" },
-      { id: "compras.comprobantes", etiqueta: "Comprobantes", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDinero" },
+      { id: "compras.proveedores", modulo: "proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "verDinero" },
+      { id: "compras.comprobantes", modulo: "facturas_compra", etiqueta: "Comprobantes", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDinero" },
       // ADR-0111/0113: recibir es una sola puerta (`/recibir`). El dato es del Halcón (envíos y lotes), no del Pelícano.
-      { id: "compras.recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", exige: "verDinero" },
-      { id: "compras.porPagar", etiqueta: "Por pagar", estado: "viva", ruta: "/compras/por-pagar", icono: "porPagar", pajaro: "09 Pelícano", exige: "verDinero" },
+      { id: "compras.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", exige: "verDinero" },
+      { id: "compras.porPagar", modulo: "por_pagar", etiqueta: "Por pagar", estado: "viva", ruta: "/compras/por-pagar", icono: "porPagar", pajaro: "09 Pelícano", exige: "verDinero" },
       // Notas de crédito (2026-09-19): lo que el proveedor le acredita a CAYLA. Va pegada a «Por pagar» y al final: las dos
       // responden a la misma pregunta —cuánto dinero hay entre CAYLA y ese proveedor—, una de cada lado. Sin insignia a
       // propósito: el contador de «por reclamar» saldría de `notas_credito_tablero()`, y pagarlo en CADA pantalla de la app
       // por un número que ya se ve como primera cifra del módulo no vale la pena (principio 5).
-      { id: "compras.notasCredito", etiqueta: "Notas de crédito", estado: "viva", ruta: "/compras/notas-credito", icono: "notasCredito", pajaro: "09 Pelícano", exige: "verDinero" },
+      { id: "compras.notasCredito", modulo: "notas_credito", etiqueta: "Notas de crédito", estado: "viva", ruta: "/compras/notas-credito", icono: "notasCredito", pajaro: "09 Pelícano", exige: "verDinero" },
     ],
   },
 
@@ -249,13 +258,13 @@ export const ARBOL: readonly Nodo[] = [
   {
     id: "venta", etiqueta: "Ventas", estado: "viva", icono: "venta", raiz: "/vender", pajaro: "07 Colibrí", terminales: ["ventas"],
     hijos: [
-      { id: "venta.puntoDeVenta", etiqueta: "Punto de Venta", estado: "viva", ruta: "/vender", icono: "vender", pajaro: "07 Colibrí" },
-      { id: "venta.caja", etiqueta: "Caja", estado: "viva", ruta: "/caja", icono: "caja", pajaro: "07 Colibrí" },
+      { id: "venta.puntoDeVenta", modulo: "vender", etiqueta: "Punto de Venta", estado: "viva", ruta: "/vender", icono: "vender", pajaro: "07 Colibrí" },
+      { id: "venta.caja", modulo: "caja", etiqueta: "Caja", estado: "viva", ruta: "/caja", icono: "caja", pajaro: "07 Colibrí" },
       // Historial de ventas (ADR-0147): el libro de todas las ventas; se lee tras cobrar y cuadrar y de ahí se pasa a corregir.
-      { id: "venta.historial", etiqueta: "Historial", estado: "viva", ruta: "/vender/historial", icono: "historial", pajaro: "07 Colibrí" },
-      { id: "venta.cambios", etiqueta: "Cambios", estado: "viva", ruta: "/cambios", icono: "cambios", pajaro: "07 Colibrí" },
-      { id: "venta.devoluciones", etiqueta: "Devoluciones", estado: "viva", ruta: "/devoluciones", icono: "devoluciones", pajaro: "07 Colibrí" },
-      { id: "venta.facturacion", etiqueta: "Facturación", estado: "viva", ruta: "/vender/facturacion", icono: "facturacion", pajaro: "08 Cuervo", exige: "facturar" },
+      { id: "venta.historial", modulo: "historial", etiqueta: "Historial", estado: "viva", ruta: "/vender/historial", icono: "historial", pajaro: "07 Colibrí" },
+      { id: "venta.cambios", modulo: "cambios", etiqueta: "Cambios", estado: "viva", ruta: "/cambios", icono: "cambios", pajaro: "07 Colibrí" },
+      { id: "venta.devoluciones", modulo: "devoluciones", etiqueta: "Devoluciones", estado: "viva", ruta: "/devoluciones", icono: "devoluciones", pajaro: "07 Colibrí" },
+      { id: "venta.facturacion", modulo: "facturacion", etiqueta: "Facturación", estado: "viva", ruta: "/vender/facturacion", icono: "facturacion", pajaro: "08 Cuervo", exige: "facturar" },
     ],
   },
 
@@ -263,15 +272,15 @@ export const ARBOL: readonly Nodo[] = [
   {
     id: "inventario", etiqueta: "Inventario", estado: "viva", icono: "inventario", raiz: "/inventario", pajaro: "05 Halcón", terminales: ["administrativa"],
     hijos: [
-      { id: "inventario.existencias", etiqueta: "Existencias", estado: "viva", ruta: "/inventario", icono: "inventario", pajaro: "05 Halcón" },
-      { id: "inventario.movimientos", etiqueta: "Movimientos", estado: "viva", ruta: "/inventario/movimientos", icono: "movimientos", pajaro: "05 Halcón" },
+      { id: "inventario.existencias", modulo: "existencias", etiqueta: "Existencias", estado: "viva", ruta: "/inventario", icono: "inventario", pajaro: "05 Halcón" },
+      { id: "inventario.movimientos", modulo: "movimientos", etiqueta: "Movimientos", estado: "viva", ruta: "/inventario/movimientos", icono: "movimientos", pajaro: "05 Halcón" },
       // El único con insignia hoy: los traslados que esperan a quien mira (rediseño de Traslados, 2026-09-18).
-      { id: "inventario.traslados", etiqueta: "Traslados", estado: "viva", ruta: "/inventario/traslados", icono: "traslados", contador: "trasladosPorAtender", pajaro: "05 Halcón" },
-      { id: "inventario.conteo", etiqueta: "Conteo", estado: "viva", ruta: "/inventario/conteo", icono: "conteo", pajaro: "06 Lechuza" },
+      { id: "inventario.traslados", modulo: "traslados", etiqueta: "Traslados", estado: "viva", ruta: "/inventario/traslados", icono: "traslados", contador: "trasladosPorAtender", pajaro: "05 Halcón" },
+      { id: "inventario.conteo", modulo: "conteos", etiqueta: "Conteo", estado: "viva", ruta: "/inventario/conteo", icono: "conteo", pajaro: "06 Lechuza" },
       // Quinta pantalla (ADR-0101): decisión a nivel sede.
-      { id: "inventario.analisis", etiqueta: "Análisis", estado: "viva", ruta: "/inventario/resumen", icono: "resumen", pajaro: "13 Águila", exige: "analizar" },
+      { id: "inventario.analisis", modulo: "analisis", etiqueta: "Análisis", estado: "viva", ruta: "/inventario/resumen", icono: "resumen", pajaro: "13 Águila", exige: "analizar" },
       // Quien no ve Compras no tiene el grupo donde vive «Recibir mercadería»: su puerta está acá, donde vive el stock.
-      { id: "inventario.recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", soloSinPermiso: "verDinero" },
+      { id: "inventario.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", soloSinPermiso: "verDinero" },
     ],
   },
 
@@ -307,12 +316,12 @@ export const ARBOL: readonly Nodo[] = [
  * para recibir. ADR-0113: la misma para todos. «Registrar comprobante» es del líder: es dinero.
  */
 export const ACCIONES_NUEVO: readonly Accion[] = [
-  { id: "nuevo.venta", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta", estado: "viva", ruta: "/vender", pajaro: "07 Colibrí", terminales: ["ventas"] },
-  { id: "nuevo.comprobante", etiqueta: "Registrar comprobante", detalle: "Una compra a proveedor, con su pago si es al contado", estado: "viva", ruta: "/compras/nueva", pajaro: "09 Pelícano", exige: "verDinero", terminales: ["administrativa"] },
-  { id: "nuevo.recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó, contra sus comprobantes", estado: "viva", ruta: "/recibir", pajaro: "05 Halcón", terminales: ["administrativa"] },
-  { id: "nuevo.mover", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones", estado: "viva", ruta: "/inventario/mover", pajaro: "05 Halcón", terminales: ["administrativa"] },
-  { id: "nuevo.cambio", etiqueta: "Registrar cambio", detalle: "La clienta cambia una prenda por otra talla o color", estado: "viva", ruta: "/cambios", pajaro: "07 Colibrí", terminales: ["ventas"] },
-  { id: "nuevo.devolucion", etiqueta: "Registrar devolución", detalle: "Una clienta devuelve algo que compró", estado: "viva", ruta: "/devoluciones", pajaro: "07 Colibrí", terminales: ["ventas"] },
+  { id: "nuevo.venta", modulo: "vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta", estado: "viva", ruta: "/vender", pajaro: "07 Colibrí", terminales: ["ventas"] },
+  { id: "nuevo.comprobante", modulo: "facturas_compra", etiqueta: "Registrar comprobante", detalle: "Una compra a proveedor, con su pago si es al contado", estado: "viva", ruta: "/compras/nueva", pajaro: "09 Pelícano", exige: "verDinero", terminales: ["administrativa"] },
+  { id: "nuevo.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó, contra sus comprobantes", estado: "viva", ruta: "/recibir", pajaro: "05 Halcón", terminales: ["administrativa"] },
+  { id: "nuevo.mover", modulo: "traslados", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones", estado: "viva", ruta: "/inventario/mover", pajaro: "05 Halcón", terminales: ["administrativa"] },
+  { id: "nuevo.cambio", modulo: "cambios", etiqueta: "Registrar cambio", detalle: "La clienta cambia una prenda por otra talla o color", estado: "viva", ruta: "/cambios", pajaro: "07 Colibrí", terminales: ["ventas"] },
+  { id: "nuevo.devolucion", modulo: "devoluciones", etiqueta: "Registrar devolución", detalle: "Una clienta devuelve algo que compró", estado: "viva", ruta: "/devoluciones", pajaro: "07 Colibrí", terminales: ["ventas"] },
 ];
 
 /**
@@ -348,6 +357,9 @@ export type PerfilDelMenu = {
   ubicacionTipo: TipoUbicacion;
   /** Si quien mira es una cuenta terminal, de qué tipo; ausente o `null` = una persona. */
   terminal?: TipoTerminal | null;
+  /** Los módulos que ve la cuenta (su rol, `fn_mis_modulos()`). Ausente = la regla fija de antes (`terminales`), que es la
+   *  que prueban la fotografía y los invariantes; `menu.test.ts` exige que los módulos de hoy den el mismo menú. */
+  modulos?: readonly ClaveModulo[] | null;
   /** Números que salen en las insignias; `null`/ausente/0 = sin insignia. */
   contadores?: Contadores;
 };
@@ -385,8 +397,19 @@ function esVisible(n: Comun & { estado: string }, perfil: PerfilDelMenu, termina
   if (n.estado !== "viva") return false;
   if (!cumplePermisos(n, perfil.permisos)) return false;
   if (n.ubicaciones && !n.ubicaciones.includes(perfil.ubicacionTipo)) return false;
+  if (perfil.modulos) {
+    // Por rol (ADR-0161): la hoja sale si la cuenta ve su módulo; un grupo, si le queda alguna hija (lo resuelve
+    // `construirFila`). Solo una hoja sin módulo (Inicio) sigue la regla de `terminales`.
+    if (n.modulo) return perfil.modulos.includes(n.modulo);
+    if (esHojaOAccion(n) && perfil.terminal && !terminalesEfectivos?.includes(perfil.terminal)) return false;
+    return true;
+  }
   if (perfil.terminal && !terminalesEfectivos?.includes(perfil.terminal)) return false;
   return true;
+}
+
+function esHojaOAccion(n: object): boolean {
+  return !("hijos" in n);
 }
 
 /** Todas las rutas que cuelgan de `n` para este perfil: la propia si es una hoja, o `raiz` + las de sus hijos (recursivo:

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { permisosDe, TIPOS_TERMINAL, type Permiso, type TipoTerminal } from "@/lib/menu";
+import { leerModulos, modulosDeHoy, permisosDeModulos, type ClaveModulo, type ModuloDeCuenta } from "@/lib/modulos";
 
 // Integración con Dynamic (2026-09-12): retail ya no tiene su propia
 // tabla `personas` — Dynamic es dueño de esa identidad (rol, estado,
@@ -35,6 +36,9 @@ export type PersonaActualV2 = {
   /** Lo que puede hacer además de operar su tienda, resuelto UNA vez desde el rol y la terminal (`permisosDe`).
    *  Las pantallas y los botones preguntan por un permiso (`puede`), no por «¿es líder?». */
   permisos: readonly Permiso[];
+  /** Los módulos que ve esta cuenta según su ROL (ADR-0161 B2, `fn_mis_modulos()`): de acá salen el menú, `permisos` y
+   *  la puerta `exigirModulo`. Si la base aún no tiene la función, son los de hoy (`modulosDeHoy`): nada cambia. */
+  modulos: readonly ModuloDeCuenta[];
 };
 
 // Mismo nombre que en app/actions/ubicacion.ts — no se comparte como
@@ -64,9 +68,12 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
   // El tipo de terminal se pide EN PARALELO con el resumen: no suma una espera. Falla cerrado: si la RPC aún no existe
   // en esa base (la web se desplegó antes de pegar la migración 20260922200000) o responde algo raro, es una persona
   // común — pierde poder, nunca lo gana (principio 9).
-  const [{ data, error }, { data: tipoTerminal, error: errorTerminal }] = await Promise.all([
+  // Los módulos del rol también van en paralelo (ADR-0161). Si la función aún no existe (web publicada antes de pegar
+  // 20260923030000), la cuenta ve lo de hoy: ni más ni menos (principio 9).
+  const [{ data, error }, { data: tipoTerminal, error: errorTerminal }, { data: filasModulos, error: errorModulos }] = await Promise.all([
     supabase.rpc("fn_persona_actual_resumen").maybeSingle(),
     supabase.rpc("fn_mi_terminal"),
+    supabase.rpc("fn_mis_modulos"),
   ]);
 
   if (error || !data || !data.ubicacion_id) {
@@ -76,6 +83,8 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
   const terminal: TipoTerminal | null =
     !errorTerminal && (TIPOS_TERMINAL as readonly string[]).includes(tipoTerminal ?? "") ? (tipoTerminal as TipoTerminal) : null;
   const rol = data.es_lider ? "lider" : "integrante";
+  const deLaBase = !errorModulos && Array.isArray(filasModulos);
+  const modulos = deLaBase ? leerModulos(filasModulos) : modulosDeHoy(rol, terminal);
 
   let ubicacionId = data.ubicacion_id;
   let ubicacionEtiqueta = data.ubicacion_nombre ?? "";
@@ -112,7 +121,8 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     ubicacionTipo,
     puedeCambiarUbicacion: !!data.es_lider,
     terminal,
-    permisos: permisosDe(rol, terminal),
+    permisos: deLaBase ? permisosDeModulos(rol, modulos) : permisosDe(rol, terminal),
+    modulos,
   };
 });
 
@@ -136,6 +146,20 @@ export function puede(persona: Pick<PersonaActualV2, "permisos">, permiso: Permi
 export async function exigirPermiso(permiso: Permiso): Promise<PersonaActualV2> {
   const persona = await requirePersonaActualV2();
   if (!puede(persona, permiso)) redirect("/");
+  return persona;
+}
+
+/** ¿Esta cuenta ve el módulo? (su rol lo incluye; el líder ve todos). Visibilidad: el candado real sigue en la base. */
+export function veModulo(persona: Pick<PersonaActualV2, "modulos">, clave: ClaveModulo): boolean {
+  return persona.modulos.some((m) => m.clave === clave);
+}
+
+/** La puerta de pantalla por MÓDULO (ADR-0161 B2): quien llega por URL directa a un módulo que su rol no ve, cae en
+ *  «Sin acceso» en vez de ver una pantalla que después falla al guardar. No reemplaza a `exigirPermiso` (que sigue
+ *  valiendo para lo que exige un poder, como Facturación): se suman. Va en el `layout.tsx` del módulo o en su página. */
+export async function exigirModulo(clave: ClaveModulo): Promise<PersonaActualV2> {
+  const persona = await requirePersonaActualV2();
+  if (!veModulo(persona, clave)) redirect(`/sin-acceso?modulo=${clave}`);
   return persona;
 }
 

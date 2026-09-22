@@ -12,7 +12,7 @@ import type {
   Terminal,
 } from "@/lib/colaboradores";
 import { accionesSupabase, type AccionesColaboradores, type ResultadoAccion } from "@/lib/colaboradores-acciones";
-import { avisoTerminal, filtrarColaboradores, plural, resumirAccesos, type AccionFila, type FiltroRol } from "@/lib/colaboradores-reglas";
+import { avisoTerminal, filtrarColaboradores, type PestanaColaboradores, plural, resumirAccesos, type AccionFila, type FiltroRol } from "@/lib/colaboradores-reglas";
 import type { Ubicacion } from "@/lib/ubicaciones";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -21,19 +21,26 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TabsSubrayado } from "@/components/ui/TabsSubrayado";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { AgregarColaboradoresModal, AlternarTerminalModal, CambiarUbicacionModal, QuitarAccesoModal, SuspenderModal } from "@/components/ColaboradoresModales";
+import { AsignarRolModal } from "@/components/RolesModales";
+import { accionesRolesSupabase, type AccionesRoles } from "@/lib/roles-acciones";
+import { rolesAsignables, type CuentaConRol, type RolVista } from "@/lib/roles-reglas";
+import { RolesPanel } from "@/components/RolesPanel";
 import { ListaActividad, TablaActivos, TablaInactivas, TablaPendientes, TablaSuspendidos, TablaTerminales } from "@/components/ColaboradoresTablas";
 
 // «Terminales» (ADR-0162): aparatos de cada tienda con cuenta propia y SIN persona — ya no salen de `fn_colaboradores()`
 // sino de `fn_terminales()`. Aquí se ven, se desactivan y se reactivan; crearlas o cambiarles la clave lo hace un líder con
 // `pnpm terminales:crear`, porque exige la llave de servicio que la web no debe tener.
-type Pestana = "activos" | "terminales" | "pendientes" | "suspendidos" | "inactivas" | "actividad";
+// «Roles y accesos» (ADR-0161 B; Felipe, 2026-09-22) es una pestaña más, no una ruta ni una fila del menú lateral:
+// Colaboradores ya es la pantalla del líder para los accesos. `?pestana=roles` abre directo en ella.
+type Pestana = PestanaColaboradores;
 
 type Modal =
   | { tipo: "agregar" }
   | { tipo: "terminal"; terminal: Terminal }
   | { tipo: "suspender"; persona: Colaborador }
   | { tipo: "ubicacion"; persona: Colaborador }
-  | { tipo: "quitar"; persona: { persona_id: string; nombre: string }; suspendida: boolean; pendiente?: boolean };
+  | { tipo: "quitar"; persona: { persona_id: string; nombre: string }; suspendida: boolean; pendiente?: boolean }
+  | { tipo: "rol"; cuenta: CuentaConRol };
 
 const entrada =
   "card-cayla w-full px-3 py-2 text-sm text-tinta outline-none placeholder:text-tinta/55 focus:border-rojo sm:w-80";
@@ -57,7 +64,11 @@ export function ColaboradoresPanel({
   disponibles,
   ubicaciones,
   terminales,
+  roles = null,
+  cuentas = null,
+  pestanaInicial = "activos",
   acciones = accionesSupabase,
+  accionesRoles = accionesRolesSupabase,
   alActualizar,
 }: {
   colaboradores: Colaborador[];
@@ -69,11 +80,17 @@ export function ColaboradoresPanel({
   ubicaciones: Ubicacion[];
   /** `null` = no se pudieron leer (p. ej. la base aún no tiene la migración del ADR-0162); el resto de la pantalla sigue. */
   terminales: Terminal[] | null;
+  /** ADR-0161 B: los roles y las cuentas con su rol. `null` = no se pudieron leer (o la base aún no tiene la migración):
+   *  la pantalla sigue, sin la columna del rol ni «Cambiar rol». */
+  roles?: RolVista[] | null;
+  cuentas?: CuentaConRol[] | null;
+  pestanaInicial?: Pestana;
   acciones?: AccionesColaboradores;
+  accionesRoles?: AccionesRoles;
   alActualizar?: () => void;
 }) {
   const router = useRouter();
-  const [pestana, setPestana] = useState<Pestana>("activos");
+  const [pestana, setPestana] = useState<Pestana>(pestanaInicial);
   const [busqueda, setBusqueda] = useState("");
   const [rol, setRol] = useState<FiltroRol>("todos");
   const [modal, setModal] = useState<Modal | null>(null);
@@ -96,8 +113,23 @@ export function ColaboradoresPanel({
     return true;
   }
 
+  const nombreDeRol = (id: string) => roles?.find((r) => r.id === id)?.nombre ?? null;
+  const rolDe = roles && cuentas ? (id: string) => {
+    const c = cuentas.find((x) => x.id === id);
+    return c ? nombreDeRol(c.rolId) : null;
+  } : undefined;
+  function abrirCambioDeRol(tipo: "persona" | "terminal", id: string) {
+    const cuenta = cuentas?.find((c) => c.tipo === tipo && c.id === id);
+    if (!roles || !cuenta) {
+      avisar.error("No se pudieron leer los roles. Actualiza la pantalla e inténtalo de nuevo.");
+      return;
+    }
+    setModal({ tipo: "rol", cuenta });
+  }
+
   function alElegirAccion(c: Colaborador, accion: AccionFila) {
-    if (accion === "cambiar_ubicacion") setModal({ tipo: "ubicacion", persona: c });
+    if (accion === "cambiar_rol") abrirCambioDeRol("persona", c.persona_id);
+    else if (accion === "cambiar_ubicacion") setModal({ tipo: "ubicacion", persona: c });
     else if (accion === "suspender") setModal({ tipo: "suspender", persona: c });
     else setModal({ tipo: "quitar", persona: c, suspendida: false });
   }
@@ -154,6 +186,7 @@ export function ColaboradoresPanel({
         items={[
           { clave: "activos", etiqueta: "Activos", conteo: colaboradores.length },
           { clave: "terminales", etiqueta: "Terminales", conteo: terminales?.filter((t) => t.activo).length ?? 0 },
+          { clave: "roles", etiqueta: "Roles y accesos", conteo: roles?.filter((r) => !r.archivado).length ?? 0 },
           { clave: "pendientes", etiqueta: "Pendientes", conteo: pendientes.length, tono: pendientes.length > 0 ? "ambar" : undefined },
           { clave: "suspendidos", etiqueta: "Suspendidos", conteo: suspendidos.length, tono: suspendidos.length > 0 ? "ambar" : undefined },
           { clave: "inactivas", etiqueta: "Inactivas en Dynamic", conteo: inactivos.length },
@@ -191,7 +224,7 @@ export function ColaboradoresPanel({
               {filas.length === 0 ? (
                 <Vacio>Nadie coincide con lo que buscas.</Vacio>
               ) : (
-                <TablaActivos filas={filas} ocupadoId={ocupadoId} onAccion={alElegirAccion} />
+                <TablaActivos filas={filas} ocupadoId={ocupadoId} onAccion={alElegirAccion} rolDe={rolDe} />
               )}
               <p className="text-xs text-tinta/65" role="status">
                 {filas.length === colaboradores.length
@@ -211,7 +244,13 @@ export function ColaboradoresPanel({
           ) : terminales.length === 0 ? (
             <Vacio>Ninguna tienda tiene una terminal todavía.</Vacio>
           ) : (
-            <TablaTerminales filas={terminales} ocupadoId={ocupadoId} onAlternar={(t) => setModal({ tipo: "terminal", terminal: t })} />
+            <TablaTerminales
+              filas={terminales}
+              ocupadoId={ocupadoId}
+              onAlternar={(t) => setModal({ tipo: "terminal", terminal: t })}
+              rolDe={rolDe}
+              onCambiarRol={rolDe ? (t) => abrirCambioDeRol("terminal", t.id) : undefined}
+            />
           )}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="card-cayla px-4 py-3.5 text-[13.5px] leading-relaxed text-tinta/80">
@@ -229,6 +268,16 @@ export function ColaboradoresPanel({
               </p>
             </div>
           </div>
+        </section>
+      )}
+
+      {pestana === "roles" && (
+        <section aria-label="Roles y accesos">
+          {roles === null ? (
+            <Vacio>No se pudieron leer los roles. Lo demás de esta pantalla sí está al día.</Vacio>
+          ) : (
+            <RolesPanel roles={roles} cuentas={cuentas} acciones={accionesRoles} />
+          )}
         </section>
       )}
 
@@ -336,6 +385,17 @@ export function ColaboradoresPanel({
           onClose={() => setModal(null)}
           onConfirmar={(ubicacionId) =>
             ejecutar(modal.persona.persona_id, "cambiar la ubicación", () => acciones.cambiarUbicacion(modal.persona.persona_id, ubicacionId), "Ubicación actualizada", `${modal.persona.nombre} quedó en ${ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "la nueva ubicación"}.`)
+          }
+        />
+      )}
+      {modal?.tipo === "rol" && roles && (
+        <AsignarRolModal
+          roles={rolesAsignables(roles)}
+          cuentas={[]}
+          cuentaFija={modal.cuenta}
+          onClose={() => setModal(null)}
+          onConfirmar={(rolId, cuenta) =>
+            ejecutar(cuenta.id, "cambiar el rol", () => accionesRoles.asignar(rolId, cuenta), "Rol actualizado", `${cuenta.nombre} ahora tiene «${nombreDeRol(rolId) ?? "el nuevo rol"}».`)
           }
         />
       )}

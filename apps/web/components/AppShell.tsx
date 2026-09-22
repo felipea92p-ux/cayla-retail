@@ -9,7 +9,8 @@ import { Boton } from "@/components/ui/campos";
 import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
-import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type AccionNuevo, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type TipoTerminal } from "@/lib/menu";
+import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type AccionNuevo, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type TipoTerminal, type Permiso } from "@/lib/menu";
+import type { ClaveModulo } from "@/lib/modulos";
 import { PerfilModal } from "@/components/PerfilModal";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
@@ -76,6 +77,10 @@ type Persona = {
    *  real (las rutas de prueba) no tiene que saber de terminales; ausente = una persona. Con terminal, el pie del lateral
    *  muestra el aparato (no una persona) y no abre «Mi perfil». */
   terminal?: TipoTerminal | null;
+  /** Lo que su ROL deja ver y hacer (ADR-0161 B2, `fn_mis_modulos()`), ya resuelto en el servidor. Opcional por la misma
+   *  razón que `terminal`: sin esto, el menú sale con la regla fija de antes (`permisosDe`). */
+  permisos?: readonly Permiso[];
+  modulos?: readonly ClaveModulo[];
 };
 
 type Props = {
@@ -901,9 +906,10 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
 
   // El menú de esta persona: filas, barra del celular, «+ Nuevo» y qué grupo contiene cada ruta. Todo sale de `lib/menu.ts`.
   const menu = menuPara({
-    permisos: permisosDe(persona.rol, persona.terminal ?? null),
+    permisos: persona.permisos ?? permisosDe(persona.rol, persona.terminal ?? null),
     ubicacionTipo: persona.ubicacionTipo,
     terminal: persona.terminal ?? null,
+    modulos: persona.modulos ?? null,
     contadores: { trasladosPorAtender },
   });
 

@@ -89,11 +89,21 @@ export function resumenAlta(cuantas: number, ubicacion: string | null): string {
 }
 
 /** Lo que puede hacer la fila del menú «⋯», en el orden en que se muestra. */
-export type AccionFila = "cambiar_ubicacion" | "suspender" | "quitar";
+/** Las pestañas de /colaboradores. «Roles y accesos» es una más (Felipe, 2026-09-22), no una ruta propia. Vive aquí (y no
+ *  en el panel, que es "use client") porque la página del servidor la usa para leer `?pestana=`. */
+export const PESTANAS_COLABORADORES = ["activos", "terminales", "roles", "pendientes", "suspendidos", "inactivas", "actividad"] as const;
+export type PestanaColaboradores = (typeof PESTANAS_COLABORADORES)[number];
+
+export function pestanaDe(valor: string | undefined): PestanaColaboradores {
+  return (PESTANAS_COLABORADORES as readonly string[]).includes(valor ?? "") ? (valor as PestanaColaboradores) : "activos";
+}
+
+/** `cambiar_rol` (ADR-0161 B): el rol decide qué módulos ve. A un líder no se le cambia: siempre tiene Líder de equipo. */
+export type AccionFila = "cambiar_rol" | "cambiar_ubicacion" | "suspender" | "quitar";
 
 export function accionesDeFila(c: Pick<Colaborador, "rol" | "es_yo">): AccionFila[] {
   if (c.es_yo) return [];
-  return c.rol === "colaborador" ? ["cambiar_ubicacion", "suspender", "quitar"] : ["suspender", "quitar"];
+  return c.rol === "colaborador" ? ["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"] : ["suspender", "quitar"];
 }
 
 const dosDigitos = (n: number) => String(n).padStart(2, "0");
