@@ -9,6 +9,7 @@ export type ResultadoAccion = { error: ErrorEscritura };
 
 export type AccionesColaboradores = {
   agregar: (personas: string[], ubicacionId: string) => Promise<ResultadoAccion>;
+  aprobar: (personaId: string) => Promise<ResultadoAccion>;
   suspender: (personaId: string, motivo: string) => Promise<ResultadoAccion>;
   reactivar: (personaId: string) => Promise<ResultadoAccion>;
   cambiarUbicacion: (personaId: string, ubicacionId: string) => Promise<ResultadoAccion>;
@@ -18,6 +19,10 @@ export type AccionesColaboradores = {
 export const accionesSupabase: AccionesColaboradores = {
   agregar: async (personas, ubicacionId) => {
     const { error } = await createClient().rpc("agregar_colaboradores", { p_personas: personas, p_ubicacion_id: ubicacionId });
+    return { error };
+  },
+  aprobar: async (personaId) => {
+    const { error } = await createClient().rpc("fn_aprobar_alta_colaborador", { p_persona_id: personaId });
     return { error };
   },
   suspender: async (personaId, motivo) => {

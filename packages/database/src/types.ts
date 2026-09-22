@@ -1561,6 +1561,47 @@ export type Database = {
           },
         ]
       }
+      cotizaciones_maquila: {
+        Row: {
+          categoria_id: string
+          creado_por: string | null
+          created_at: string
+          fecha_cotizacion: string
+          id: string
+          precio_maquila: number
+          proveedor_referencia: string | null
+          vigente_hasta: string
+        }
+        Insert: {
+          categoria_id: string
+          creado_por?: string | null
+          created_at?: string
+          fecha_cotizacion: string
+          id?: string
+          precio_maquila: number
+          proveedor_referencia?: string | null
+          vigente_hasta: string
+        }
+        Update: {
+          categoria_id?: string
+          creado_por?: string | null
+          created_at?: string
+          fecha_cotizacion?: string
+          id?: string
+          precio_maquila?: number
+          proveedor_referencia?: string | null
+          vigente_hasta?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotizaciones_maquila_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devolucion_items: {
         Row: {
           cantidad: number
@@ -1619,6 +1660,7 @@ export type Database = {
           estado: string
           id: string
           motivo: string
+          motivo_codigo: string | null
           nota_credito_id: string | null
           reembolso_metodo: string | null
           reembolso_monto: number | null
@@ -1634,6 +1676,7 @@ export type Database = {
           estado?: string
           id?: string
           motivo: string
+          motivo_codigo?: string | null
           nota_credito_id?: string | null
           reembolso_metodo?: string | null
           reembolso_monto?: number | null
@@ -1649,6 +1692,7 @@ export type Database = {
           estado?: string
           id?: string
           motivo?: string
+          motivo_codigo?: string | null
           nota_credito_id?: string | null
           reembolso_metodo?: string | null
           reembolso_monto?: number | null
@@ -2484,6 +2528,67 @@ export type Database = {
           propuesto_por?: string | null
         }
         Relationships: []
+      }
+      pedidos_no_atendidos: {
+        Row: {
+          atendido_por: string | null
+          clienta_id: string | null
+          created_at: string
+          descripcion_libre: string | null
+          id: string
+          producto_id: string | null
+          resuelto: boolean
+          resuelto_en: string | null
+          talla: string | null
+          ubicacion_id: string
+        }
+        Insert: {
+          atendido_por?: string | null
+          clienta_id?: string | null
+          created_at?: string
+          descripcion_libre?: string | null
+          id?: string
+          producto_id?: string | null
+          resuelto?: boolean
+          resuelto_en?: string | null
+          talla?: string | null
+          ubicacion_id: string
+        }
+        Update: {
+          atendido_por?: string | null
+          clienta_id?: string | null
+          created_at?: string
+          descripcion_libre?: string | null
+          id?: string
+          producto_id?: string | null
+          resuelto?: boolean
+          resuelto_en?: string | null
+          talla?: string | null
+          ubicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_no_atendidos_atendido_por_fkey"
+            columns: ["atendido_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_no_atendidos_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_no_atendidos_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       prendas_danadas: {
         Row: {
@@ -4577,6 +4682,7 @@ export type Database = {
         Args: {
           p_items: Json
           p_motivo: string
+          p_motivo_codigo: string
           p_ubicacion_id: string
           p_venta_id: string
         }
@@ -4682,6 +4788,10 @@ export type Database = {
         Args: { p_movimiento_id: string }
         Returns: undefined
       }
+      fn_aprobar_alta_colaborador: {
+        Args: { p_persona_id: string }
+        Returns: undefined
+      }
       fn_asignar_codigo_producto: {
         Args: { p_producto_id: string }
         Returns: string
@@ -4745,6 +4855,18 @@ export type Database = {
           rol: string
           sede: string
           suspendida: boolean
+        }[]
+      }
+      fn_colaboradores_pendientes: {
+        Args: never
+        Returns: {
+          correo: string
+          nombre: string
+          persona_id: string
+          propuesto_en: string
+          propuesto_por: string
+          sede: string
+          ubicacion_asignada: string
         }[]
       }
       fn_colaboradores_suspendidos: {
@@ -4812,6 +4934,19 @@ export type Database = {
           stock_previo: number
           usuario_nombre: string
         }[]
+      }
+      fn_cotizacion_maquila_vigente: {
+        Args: { p_categoria_id: string }
+        Returns: {
+          categoria_id: string
+          creado_por: string | null
+          created_at: string
+          fecha_cotizacion: string
+          id: string
+          precio_maquila: number
+          proveedor_referencia: string | null
+          vigente_hasta: string
+        }
       }
       fn_dentro_de_una_edicion: {
         Args: { a: string; b: string }
@@ -5761,6 +5896,10 @@ export type Database = {
         Args: { p_comprobante_id: string; p_motivo: string }
         Returns: undefined
       }
+      marcar_pedido_no_atendido_resuelto: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
+      }
       mover_interno: {
         Args: {
           p_cantidad: number
@@ -6103,6 +6242,16 @@ export type Database = {
           p_token?: string
         }
         Returns: string[]
+      }
+      registrar_pedido_no_atendido: {
+        Args: {
+          p_clienta_id?: string
+          p_descripcion_libre?: string
+          p_producto_id?: string
+          p_talla?: string
+          p_ubicacion_id: string
+        }
+        Returns: string
       }
       registrar_proveedor: {
         Args: {

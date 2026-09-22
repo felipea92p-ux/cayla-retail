@@ -262,6 +262,24 @@ const HUELLAS: Huella[] = [
     frase: "Ya existe un proveedor con ese nombre (aunque esté escrito distinto). Búscalo en Compras → Proveedores.",
   },
   {
+    // 20260922160000_cotizaciones_maquila.sql — insertar/editar una cotización es solo de
+    // líder; no tiene que ver con la ubicación (por eso va ANTES del genérico de abajo, que sí
+    // habla de ubicación y sería engañoso acá).
+    marca: 'row-level security policy for table "cotizaciones_maquila"',
+    frase: "Solo un líder de equipo puede cargar o corregir una cotización de maquila.",
+  },
+  {
+    // 20260922160000_cotizaciones_maquila.sql — check (vigente_hasta >= fecha_cotizacion).
+    marca: "cotizaciones_maquila_vigencia_coherente",
+    frase: "La vigencia no puede terminar antes de la fecha de la cotización. Revisa las dos fechas.",
+  },
+  {
+    // 20260922160000_cotizaciones_maquila.sql — check (precio_maquila >= 0), sin nombre propio:
+    // Postgres la nombra <tabla>_<columna>_check.
+    marca: "cotizaciones_maquila_precio_maquila_check",
+    frase: "El precio de maquila no puede ser negativo. Corrígelo y vuelve a intentar.",
+  },
+  {
     // RLS: la política rechazó la fila. Pasa cuando se opera sobre una ubicación que no es la tuya.
     marca: "row-level security",
     frase:
