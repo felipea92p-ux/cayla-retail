@@ -131,7 +131,7 @@ flowchart TB
     lista completa y lo que queda fuera a propósito: ADR-0161, sección «F4b».
 - `/colaboradores` (solo líder; ADR-0145, ADR-0148 y ADR-0157) → `lib/colaboradores.ts` (lecturas: `fn_colaboradores`,
   `fn_colaboradores_pendientes`, `fn_colaboradores_suspendidos`, `fn_colaboradores_inactivos`, `fn_colaboradores_actividad`,
-  `fn_dynamic_disponibles`) → `ColaboradoresPanel.tsx` (pestañas, tarjetas, modales) + `ColaboradoresTablas.tsx` +
+  `fn_dynamic_disponibles`) → `ColaboradoresPanel.tsx` (dos secciones —Cuentas y Roles y accesos—, «Por atender», Actividad en modal; ADR-0172) + `ColaboradoresTablas.tsx` +
   `ColaboradoresModales.tsx` + `ui/MenuAcciones.tsx`. Escribe por `lib/colaboradores-acciones.ts` → RPC
   `agregar_colaboradores`, `fn_aprobar_alta_colaborador`, `suspender_colaborador`, `reactivar_colaborador`,
   `cambiar_ubicacion_colaborador`, `quitar_colaborador`. Reglas puras en `colaboradores-reglas.ts`.
@@ -139,7 +139,7 @@ flowchart TB
   `colaboradores_historial` (solo se agrega). `/vender/historial` también lee estas listas para el filtro «vendedor».
   **Terminales sin persona (ADR-0162, reemplaza la terminal-persona de ADR-0152/0160):** un aparato por fila en
   `retail.terminales` (tienda, tipo `ventas` | `administrativa`, cuenta de Auth propia, una activa de cada tipo por tienda).
-  La pestaña «Terminales» lee `fn_terminales()` (`getTerminales` en `lib/colaboradores.ts`, tolerado) y hace
+  Cuentas ▸ Terminales lee `fn_terminales()` (`getTerminales` en `lib/colaboradores.ts`, tolerado) y hace
   `desactivar_terminal` / `reactivar_terminal` (`TablaTerminales`, `AlternarTerminalModal`). **Crear y cambiar la clave no
   es una RPC:** exige la llave de servicio y lo hace `pnpm terminales:crear` (`scripts/terminales/`). `colaboradores.terminal`
   quedó retirada (siempre null) y `agregar_terminal` lanza 0A000. Los poderes siguen siendo las cinco capacidades

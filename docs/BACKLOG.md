@@ -36,6 +36,12 @@ Con el sembrado de 90 días (7.001 ventas), `/vender/historial` pasaba los 8 s d
 - [ ] **Decisión de Felipe:** las 7.002 ventas en producción tienen `es_prueba = false`, sembradas incluidas. El filtro «Ver datos de prueba» no las esconde y cuentan en los totales. ¿Es a propósito (ADR-0150)?
 - [ ] **Previo, sin relación con esto:** `scripts/pruebas/registrar_venta.mjs` da 21/25 en local. Fallan los 4 casos «colaboradora + código de descuento»; fallan igual con las políticas viejas.
 
+## 🎯 Los 7 módulos «del líder» se pueden dar a un rol (2026-09-22, ADR-0161 B6-B8) — CONSTRUIDO en la rama `claude/abrir-modulos-a-los-roles`; NO está en producción
+- [ ] Pegar en producción, en orden: `20260923130000_abrir_modulos_a_los_roles.sql` y `20260923131000_colaboradores_y_roles_delegables.sql` (empezar con `set search_path to retail, public, extensions;`). Las dos abortan solas si alguna función cambió.
+- [ ] Refrescar el volcado y el diccionario (`generado/COMO-REFRESCAR.md`) y correr `pnpm datos:comparar`.
+- [ ] **PR aparte:** construir las 6 decisiones P1-P6 del ADR-0161 (Felipe, 2026-09-22): registrar en Compras por módulo, montos en Recibir, ficha y edición de proveedores con su módulo, etiquetas sin descuento desde la ficha con Productos, Análisis sin costo ni red en Existencias, Colaboradores y Roles solo a personas.
+- Cómo verificas: en Roles y accesos los 7 módulos salen con interruptor; un rol con solo «Por pagar» ve Compras ▸ Por pagar con montos; uno con «Etiquetas» ve la pestaña Etiquetas y no puede poner descuento.
+
 ## 🎯 Conteo físico: rediseño con la guía oficial (2026-09-22) — maqueta lista, sin código
 Demo: `docs/maquetas/conteo-rediseno-2026-09/conteo.html` (artifact https://claude.ai/artifact/U6e6UwKXX3rByebdBPDLrD).
 - [ ] **Decisión de Felipe:** pendientes mientras se cuenta — variante A (lista sin cifras) o B (solo el número).
@@ -168,6 +174,12 @@ Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió l
 - [x] Árbol de datos + `menuPara` (permisos semánticos, no `esLider`) + fotografía del menú de hoy (`menu-hoy.golden.json`, capturada del `AppShell.tsx` real de `main`) + pruebas (equivalencia en 6 perfiles, invariantes, topes 8/6, rutas vivas existen). `AppShell.tsx` pierde las constantes de filas y `produccion-menu.ts` pasa a ser vista fina. `tsc`, `eslint` y 2023 pruebas en verde; 1176 renders del original y del nuevo, 0 diferencias.
 - [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
 - [ ] **Producción SUPERA el tope de 6: 7 hijas** (líder parado en el Taller) desde que #231 (Resumen, F6) entró sin regrupar; queda como deuda explícita con una prueba «DEUDA…» que la vigila. F7 Eficiencia obligará a regrupar (candidato: `produccion.abastecimiento`). **Quien agregue una fila al menú edita `lib/menu.ts`, no `AppShell.tsx`** (cómo, en el ADR-0144).
+
+## 🎯 Colaboradores en dos secciones + editor de roles rediseñado (2026-09-22, ADR-0172) — hecho, sin migraciones
+
+- [x] Spike aprobado (`docs/maquetas/colaboradores-ux-spike-2026-09/`, PR #313) y construido: Cuentas / Roles y accesos, «Por atender», Actividad en modal, `?pestana=` viejos siguen funcionando.
+- [x] Roles: lista agrupada con avisos, grupos plegables + buscador, «Se suma / Se quita», vista previa con cambios, matriz «Comparar roles».
+- [ ] Verlo con clics reales contra la base (solo se probó con datos de ejemplo) · decidir si «Asignar» acepta varias cuentas a la vez (la RPC `asignar_rol` es de a una).
 
 ## 🎯 Colaboradores: el alta nueva no queda operativa sin aprobación (2026-09-22, ADR-0157, D-70) — hecho en local, falta pegar en producción
 Detalle, decisiones y lo descartado en [docs/adr/0157-alta-de-colaborador-requiere-aprobacion.md](adr/0157-alta-de-colaborador-requiere-aprobacion.md).
