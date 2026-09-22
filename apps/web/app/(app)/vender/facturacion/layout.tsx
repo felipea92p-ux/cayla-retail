@@ -6,6 +6,7 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { opcional } from "@/lib/resultado";
 import { conteosDePestanas, tiendasOperativas, ubicacionActualDe } from "@/lib/facturacion-reglas";
 import { FacturacionShell } from "@/components/FacturacionShell";
+import { BarridoColaSunat } from "@/components/BarridoColaSunat";
 
 // Facturación electrónica — rescatada de producción (2026-09-12, ver
 // supabase/migrations/0010_facturacion.sql). Reserva comprobantes con correlativo oficial y
@@ -43,6 +44,8 @@ export default async function FacturacionLayout({ children }: { children: ReactN
       tiendas={tiendas ? tiendas.map(({ id, nombre }) => ({ id, nombre })) : null}
       ubicacionActualId={tiendas ? ubicacionActualDe(tiendas, persona.ubicacionId) : ""}
     >
+      {/* D-60: al abrir, reintenta la cola de SUNAT — todas las sedes si es líder, la suya si es la terminal. */}
+      <BarridoColaSunat ubicacionId={persona.rol === "lider" ? null : persona.ubicacionId} />
       {children}
     </FacturacionShell>
   );

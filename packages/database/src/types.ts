@@ -5044,6 +5044,10 @@ export type Database = {
         Args: { p_comprobante_id: string; p_error: string }
         Returns: undefined
       }
+      fn_tomar_comprobantes_para_reintento: {
+        Args: { p_limite?: number; p_ubicacion_id?: string }
+        Returns: string[]
+      }
       fn_mi_perfil: {
         Args: never
         Returns: {
