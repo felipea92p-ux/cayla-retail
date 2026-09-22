@@ -1,0 +1,990 @@
+<title>Separaciones CAYLA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Tokens del sistema CAYLA (apps/web/app/globals.css). El ERP es de un solo tema claro: se pinta explícito. */
+  :root {
+    --rojo:#b8412d; --rojo-p:#8b2a1f; --crema:#f5f0e8; --papel:#fbf6ec; --tinta:#1a1a18; --tinta-60:#5b544c;
+    --sand:#e8e0d0; --taupe:#a47865; --verde:#556e49; --ambar:#8c631f;
+    --efectivo:#d19a12; --tarjeta:#525a64; --yape:#6d3fa3; --plin:#1c6b56; --transfer:#2f6aa3;
+    --ease:cubic-bezier(.32,.72,.24,1);
+    --sans:"DM Sans",ui-sans-serif,system-ui,sans-serif; --serif:"EB Garamond",ui-serif,Georgia,serif;
+    --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+    color-scheme:light;
+  }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { background:var(--crema); color:var(--tinta); font-family:var(--sans); font-size:14px; line-height:1.45;
+         padding-inline:16px; padding-block:20px 60px; }
+  .wrap { max-width:1280px; margin:0 auto; display:flex; flex-direction:column; gap:16px; }
+  h1,h2,h3 { font-family:var(--serif); font-weight:400; margin:0; text-wrap:balance; }
+  h1 { font-size:30px; } h2 { font-size:22px; } h3 { font-size:18px; }
+  .eyebrow { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--tinta-60); font-weight:500; }
+  .muted { color:var(--tinta-60); } .mono { font-family:var(--mono); font-size:12px; }
+  .num { font-variant-numeric:tabular-nums; }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline:2px solid var(--rojo); outline-offset:2px; }
+  input, select { font:inherit; color:var(--tinta); background:var(--papel); border:1px solid var(--sand); border-radius:8px;
+                  padding:9px 11px; width:100%; }
+  label { display:flex; flex-direction:column; gap:5px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--tinta-60); font-weight:500; }
+  label.check { flex-direction:row; align-items:flex-start; gap:8px; text-transform:none; letter-spacing:0; font-size:12.5px; }
+  label.check input { width:auto; margin-top:2px; }
+
+  /* Cabecera */
+  .top { display:flex; flex-wrap:wrap; gap:12px 20px; align-items:flex-end; justify-content:space-between; }
+  .reloj { display:flex; align-items:center; gap:8px; background:var(--papel); border:1px solid var(--sand); border-radius:999px; padding:5px 6px 5px 14px; }
+  .reloj b { font-weight:600; }
+  .btn { border:1px solid var(--sand); background:var(--papel); border-radius:8px; padding:8px 14px; font-size:11.5px; letter-spacing:.1em;
+         text-transform:uppercase; font-weight:600; transition:background .2s var(--ease); }
+  .btn:hover { background:var(--sand); }
+  .btn.negro { background:var(--tinta); color:var(--crema); border-color:var(--tinta); }
+  .btn.negro:hover { background:#34332f; }
+  .btn.negro:disabled { background:#8a8780; border-color:#8a8780; cursor:not-allowed; }
+  .btn.rojo { color:var(--rojo-p); border-color:#e3c2b8; }
+  .btn.chico { padding:5px 10px; font-size:10.5px; border-radius:999px; }
+  .tabs { display:flex; flex-wrap:wrap; gap:6px; border-bottom:1px solid var(--sand); padding-bottom:10px; }
+  .tab { border:1px solid var(--sand); background:transparent; border-radius:8px; padding:7px 13px; font-size:11px; letter-spacing:.12em; text-transform:uppercase; font-weight:600; position:relative; }
+  .tab[aria-selected="true"] { background:var(--tinta); color:var(--crema); border-color:var(--tinta); }
+  .tab .badge { display:inline-grid; place-items:center; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:var(--rojo); color:#fff; font-size:10px; margin-left:6px; letter-spacing:0; }
+  .alertas { display:flex; flex-direction:column; gap:6px; }
+  .alerta { display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; border:1px solid var(--sand); background:var(--papel); border-radius:10px; padding:9px 12px; font-size:13px; }
+  .alerta .dot { width:8px; height:8px; border-radius:50%; background:var(--ambar); flex:none; }
+  .alerta.roja .dot { background:var(--rojo); }
+  .alerta.roja { border-color:#e6c6bc; }
+
+  /* Superficie de trabajo (misma forma que Punto de Venta) */
+  .hoja { background:var(--papel); border:1px solid var(--sand); border-radius:18px; overflow:hidden; }
+  .hoja-cab { display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; padding:14px 20px; border-bottom:1px solid var(--sand); }
+  .pos { display:grid; grid-template-columns:minmax(0,1fr) 400px; }
+  @media (max-width:980px){ .pos { grid-template-columns:1fr; } }
+  .izq { padding:18px 20px; display:flex; flex-direction:column; gap:14px; border-right:1px solid var(--sand); min-width:0; }
+  .der { padding:18px 20px; display:flex; flex-direction:column; gap:14px; background:#f8f2e7; min-width:0; }
+  .scan { display:flex; gap:8px; }
+  .scan input { font-size:15px; padding:13px 14px; }
+  .hint { display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:12px; }
+  .chip { border:1px dashed var(--sand); background:transparent; border-radius:999px; padding:3px 10px; font-family:var(--mono); font-size:11px; }
+  .chip:hover { border-color:var(--taupe); }
+  .sugerencias { display:flex; flex-direction:column; border:1px solid var(--sand); border-radius:10px; overflow:hidden; }
+  .sugerencias button { display:flex; justify-content:space-between; gap:10px; text-align:left; border:0; border-bottom:1px solid var(--sand); background:var(--papel); padding:10px 12px; }
+  .sugerencias button:last-child { border-bottom:0; }
+  .sugerencias button:hover { background:var(--crema); }
+  .vacio { border:1px dashed var(--sand); border-radius:12px; padding:28px 18px; text-align:center; color:var(--tinta-60); }
+  .vacio h3 { color:var(--tinta); margin-bottom:4px; }
+  .linea { display:grid; grid-template-columns:1fr auto; gap:4px 12px; padding:12px 0; border-bottom:1px solid var(--sand); }
+  .linea:last-child { border-bottom:0; }
+  .linea .nom { font-weight:600; }
+  .qty { display:inline-flex; align-items:center; border:1px solid var(--sand); border-radius:8px; }
+  .qty button { border:0; background:transparent; width:30px; height:30px; }
+  .qty span { min-width:24px; text-align:center; }
+  .error { color:var(--rojo-p); font-size:12.5px; }
+  .ok { color:var(--verde); font-size:12.5px; }
+
+  .pasos { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .pasos i { height:3px; border-radius:3px; background:var(--sand); }
+  .pasos i.on { background:var(--rojo); }
+  .bloque { display:flex; flex-direction:column; gap:10px; }
+  .bloque + .bloque { border-top:1px solid var(--sand); padding-top:14px; }
+  .fila2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:420px){ .fila2 { grid-template-columns:1fr; } }
+  .medios { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; background:#efe7d8; border-radius:12px; padding:4px; }
+  .medio { border:1px solid transparent; background:transparent; border-radius:9px; padding:8px 2px; font-size:11px; display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .medio .ico { width:10px; height:10px; border-radius:50%; }
+  .medio[aria-pressed="true"] { background:var(--papel); border-color:var(--tinta); }
+  .seg { display:grid; grid-template-columns:1fr 1fr; gap:4px; background:#efe7d8; border-radius:12px; padding:4px; }
+  .seg button { border:0; background:transparent; border-radius:9px; padding:8px; font-size:11px; letter-spacing:.12em; text-transform:uppercase; font-weight:600; }
+  .seg button[aria-pressed="true"] { background:var(--papel); box-shadow:0 1px 0 var(--sand); }
+  .pago { display:grid; grid-template-columns:auto 1fr auto; gap:8px; align-items:center; border:1px solid var(--sand); border-radius:10px; padding:6px 8px 6px 12px; background:var(--papel); }
+  .pago input { padding:6px 8px; text-align:right; }
+  .pago button { border:0; background:transparent; color:var(--rojo-p); }
+  .totales { display:grid; grid-template-columns:1fr auto; gap:3px 12px; font-size:13px; }
+  .totales .grande { font-family:var(--serif); font-size:36px; line-height:1; text-align:right; }
+  .barra { height:8px; background:var(--sand); border-radius:8px; overflow:hidden; }
+  .barra i { display:block; height:100%; background:var(--tinta); transition:width .4s var(--ease); }
+  .barra i.bajo { background:var(--rojo); }
+
+  /* Bandeja */
+  .filtros { display:flex; flex-wrap:wrap; gap:6px; }
+  .tabla-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; min-width:760px; }
+  th { text-align:left; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--tinta-60); font-weight:600; padding:10px; border-bottom:1px solid var(--sand); }
+  td { padding:11px 10px; border-bottom:1px solid var(--sand); vertical-align:top; }
+  tr.sel td { background:#f1e9da; }
+  .estado { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:3px 9px; font-size:11px; font-weight:600; white-space:nowrap; border:1px solid; }
+  .estado::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .e-vigente { color:var(--verde); border-color:#c9d4c2; }
+  .e-porvencer { color:var(--ambar); border-color:#e2cfa9; }
+  .e-vencida { color:var(--rojo-p); border-color:#e6c6bc; background:#f8e9e3; }
+  .e-vencida::before { animation:late 1.6s infinite; }
+  @keyframes late { 50% { opacity:.3; } }
+  .e-devolver { color:var(--rojo-p); border-color:#e6c6bc; }
+  .e-cerrada { color:var(--tinta-60); border-color:var(--sand); }
+  .acciones { display:flex; flex-wrap:wrap; gap:6px; }
+
+  /* Tarjetas de caja */
+  .kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  @media (max-width:760px){ .kpis { grid-template-columns:1fr; } }
+  .kpi { border:1px solid var(--sand); border-radius:14px; padding:14px 16px; background:var(--papel); display:flex; flex-direction:column; gap:4px; }
+  .kpi .v { font-family:var(--serif); font-size:30px; line-height:1.1; }
+  .kpi.custodia { background:#f3ecdf; border-style:dashed; }
+
+  /* Comprobante térmico 80 mm */
+  .velo { position:fixed; inset:0; background:rgba(26,26,24,.28); backdrop-filter:blur(6px); display:grid; place-items:center; padding:16px; z-index:10; overflow:auto; }
+  .modal { background:#f3eee4; border-radius:22px; padding:22px; width:min(760px,100%); max-height:calc(100vh - 32px); overflow:auto; display:flex; flex-direction:column; gap:14px;
+           animation:sube .42s var(--ease); }
+  @keyframes sube { from { transform:translateY(18px) scale(.98); opacity:0; } }
+  @media (prefers-reduced-motion:reduce){ .modal { animation:none; } .e-vencida::before { animation:none; } .barra i { transition:none; } }
+  .modal-cuerpo { display:grid; grid-template-columns:300px 1fr; gap:18px; align-items:start; }
+  @media (max-width:700px){ .modal-cuerpo { grid-template-columns:1fr; } }
+  .ticket { background:#fff; color:#111; font-family:var(--mono); font-size:11px; line-height:1.5; padding:16px 14px; border-radius:4px; box-shadow:0 1px 0 var(--sand), 0 10px 30px rgba(26,26,24,.08); max-width:300px; }
+  .ticket .c { text-align:center; } .ticket .b { font-weight:600; }
+  .ticket hr { border:0; border-top:1px dashed #999; margin:7px 0; }
+  .ticket .r { display:flex; justify-content:space-between; gap:8px; }
+  .ticket .sello { border:1.5px solid #111; text-align:center; padding:4px; margin:6px 0; font-weight:600; letter-spacing:.08em; }
+  .ticket .tyc { font-size:9.5px; line-height:1.4; }
+  .ticket .qr { width:62px; height:62px; margin:6px auto; background:
+      repeating-linear-gradient(90deg,#111 0 4px,transparent 4px 7px), repeating-linear-gradient(0deg,#111 0 3px,transparent 3px 6px); background-blend-mode:multiply; opacity:.85; }
+  .siguiente { display:flex; flex-direction:column; gap:10px; }
+  .siguiente ol { margin:0; padding-left:20px; display:flex; flex-direction:column; gap:8px; }
+  .siguiente li.hecho { color:var(--tinta-60); text-decoration:line-through; }
+  .caja-nota { border-left:3px solid var(--taupe); padding:6px 12px; background:var(--papel); border-radius:0 8px 8px 0; font-size:12.5px; }
+
+  /* Estudio */
+  .estudio { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px; }
+  .ref { border:1px solid var(--sand); background:var(--papel); border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:8px; }
+  .ref ul { margin:0; padding-left:18px; display:flex; flex-direction:column; gap:4px; }
+  .ref .toma { border-top:1px solid var(--sand); padding-top:8px; font-size:12.5px; }
+  .ref .toma b { color:var(--rojo-p); font-weight:600; }
+  .flujo-sim { display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:12px; }
+  .flujo-sim span { border:1px solid var(--sand); border-radius:6px; padding:3px 8px; background:var(--crema); }
+  .decision { border:1px solid #e6c6bc; background:#fbefe9; border-radius:14px; padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
+  .toast { position:fixed; top:16px; right:16px; background:var(--papel); border:1px solid var(--sand); border-radius:12px; padding:10px 14px; box-shadow:0 10px 30px rgba(26,26,24,.1); z-index:20; max-width:340px; animation:sube .3s var(--ease); }
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div>
+      <div class="eyebrow">Demo funcional · Ventas › Separaciones · Tienda TRU</div>
+      <h1>Separar una prenda y entregarla después</h1>
+      <p class="muted" style="margin:4px 0 0;max-width:70ch">Datos de ejemplo, todo vive en esta página. Avanza el reloj para ver el ciclo: aviso a 2 días, vencimiento, 2 días para decidir y liberación automática con devolución pendiente.</p>
+    </div>
+    <div class="reloj" aria-live="polite">
+      <span class="muted">Hoy</span> <b id="hoy" class="num"></b>
+      <button class="btn chico" id="masDia" type="button">+1 día</button>
+      <button class="btn chico" id="reiniciar" type="button">Reiniciar</button>
+    </div>
+  </div>
+
+  <div class="alertas" id="alertas"></div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="nueva" aria-selected="true">Separar</button>
+    <button class="tab" role="tab" data-tab="bandeja">Separaciones<span class="badge" id="badgeBandeja" hidden></span></button>
+    <button class="tab" role="tab" data-tab="entregar">Entregar</button>
+    <button class="tab" role="tab" data-tab="caja">Caja y stock</button>
+    <button class="tab" role="tab" data-tab="estudio">Cómo lo hacen otros</button>
+  </div>
+
+  <!-- ============ SEPARAR ============ -->
+  <section id="tab-nueva" class="hoja">
+    <div class="hoja-cab">
+      <div class="eyebrow">Nueva separación · Tienda TRU</div>
+      <div class="hint muted">Solo aparece lo que escaneas. Nada de catálogo.</div>
+    </div>
+    <div class="pos">
+      <div class="izq">
+        <form class="scan" id="formScan" autocomplete="off">
+          <input id="scanInput" placeholder="Escanea la etiqueta o escribe el código (ej. CAS-0002-NEG-M)" aria-label="Código o nombre de la prenda">
+          <button class="btn" type="submit">Agregar</button>
+        </form>
+        <div class="hint"><span class="muted">Probar con:</span>
+          <button class="chip" type="button" data-code="CAS-0002-NEG-M">CAS-0002-NEG-M</button>
+          <button class="chip" type="button" data-code="CAS-0002-NAR-S">CAS-0002-NAR-S</button>
+          <button class="chip" type="button" data-code="BLU-0001-ROS-L">BLU-0001-ROS-L</button>
+          <button class="chip" type="button" data-code="JEA-0003-AZU-28">JEA-0003-AZU-28</button>
+          <button class="chip" type="button" data-code="casaca">casaca</button>
+        </div>
+        <div id="scanMsg" aria-live="polite"></div>
+        <div id="sugerencias"></div>
+        <div id="ticketSep"></div>
+      </div>
+
+      <div class="der" id="panelSep"></div>
+    </div>
+  </section>
+
+  <!-- ============ BANDEJA ============ -->
+  <section id="tab-bandeja" class="hoja" hidden>
+    <div class="hoja-cab">
+      <div class="eyebrow">Separaciones de Tienda TRU</div>
+      <div class="filtros" id="filtros"></div>
+    </div>
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
+      <input id="buscarBandeja" placeholder="Buscar por nombre, DNI, celular, N.º de separación o boleta" aria-label="Buscar separación">
+      <div class="tabla-wrap"><table>
+        <thead><tr><th>Separación</th><th>Clienta</th><th>Prendas</th><th class="num">Adelanto / saldo</th><th>Vence</th><th>Estado</th><th>Qué hacer</th></tr></thead>
+        <tbody id="filasBandeja"></tbody>
+      </table></div>
+      <p class="muted" style="margin:0;font-size:12.5px">Reglas: 7 días calendario desde que se separa · aviso cuando faltan 2 días · al vencer, quien vea la separación decide (extender 7 días más o liberar) · si nadie decide en 2 días, la prenda vuelve sola al stock y queda la devolución pendiente.</p>
+    </div>
+  </section>
+
+  <!-- ============ ENTREGAR ============ -->
+  <section id="tab-entregar" class="hoja" hidden>
+    <div class="hoja-cab">
+      <div class="eyebrow">Entregar separación · cobrar el saldo</div>
+      <div class="hint muted">La clienta llega con su boleta, su DNI o su nombre.</div>
+    </div>
+    <div class="pos">
+      <div class="izq">
+        <input id="buscarEntrega" placeholder="Nombre, DNI, celular, SEP-TRU-0006 o B004-000021" aria-label="Buscar separación para entregar">
+        <div id="resultadosEntrega"></div>
+        <div id="detalleEntrega"></div>
+      </div>
+      <div class="der" id="panelEntrega"></div>
+    </div>
+  </section>
+
+  <!-- ============ CAJA ============ -->
+  <section id="tab-caja" class="hoja" hidden>
+    <div class="hoja-cab"><div class="eyebrow">Cómo se ve el dinero y el stock de las separaciones</div></div>
+    <div style="padding:18px 20px;display:flex;flex-direction:column;gap:16px">
+      <div class="kpis" id="kpis"></div>
+      <div class="caja-nota">El efectivo de un adelanto <b>sí entra al cajón</b> (el arqueo lo cuenta), pero <b>no suma a «Ventas del día»</b>: queda en «En custodia» hasta que la clienta recoge. Ese día pasa a venta por el total. Si la separación se libera, sale de custodia como devolución.</div>
+      <h3>Movimientos de caja de separaciones</h3>
+      <div class="tabla-wrap"><table>
+        <thead><tr><th>Fecha</th><th>Separación</th><th>Movimiento</th><th>Medio</th><th class="num">Monto</th><th>Cuenta a la que va</th></tr></thead>
+        <tbody id="filasCaja"></tbody>
+      </table></div>
+      <h3>Stock de Tienda TRU</h3>
+      <div class="tabla-wrap"><table>
+        <thead><tr><th>Prenda</th><th>Código</th><th class="num">En tienda (físico)</th><th class="num">Separado</th><th class="num">Disponible para vender</th><th>Qué ve Punto de Venta</th></tr></thead>
+        <tbody id="filasStock"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- ============ ESTUDIO ============ -->
+  <section id="tab-estudio" hidden style="display:flex;flex-direction:column;gap:14px">
+    <div class="estudio">
+      <article class="ref">
+        <div class="eyebrow">Lightspeed Retail (X-Series)</div>
+        <h3>Layaway como una venta abierta</h3>
+        <div class="flujo-sim"><span>Ticket</span>→<span>Clienta obligatoria</span>→<span>Pago parcial</span>→<span>Stock descontado</span>→<span>Buscar por N.º de ticket</span>→<span>Saldo</span></div>
+        <ul>
+          <li>El stock se descuenta al crear la separación, no al recoger.</li>
+          <li>Sin clienta vinculada no hay separación (ni devolución de depósito).</li>
+          <li>El saldo pendiente es un «balance» de la clienta, separado de las ventas.</li>
+        </ul>
+        <div class="toma"><b>Tomamos:</b> clienta obligatoria, búsqueda por N.º de comprobante, saldo aparte. <b>Mejoramos:</b> Lightspeed no vence solo; aquí sí, con aviso.</div>
+      </article>
+      <article class="ref">
+        <div class="eyebrow">Lightspeed R-Series / OnSite</div>
+        <h3>Depósito ≠ venta</h3>
+        <div class="flujo-sim"><span>Cancelar layaway</span>→<span>¡el depósito se queda!</span>→<span>Devolver aparte</span></div>
+        <ul>
+          <li>Cancelar no devuelve el depósito: es un paso aparte y se olvida.</li>
+          <li>Para devolver, el sistema exige la clienta y el medio.</li>
+        </ul>
+        <div class="toma"><b>Lección:</b> liberar la prenda y devolver el dinero son dos pasos, pero la bandeja no deja «cerrada» una separación con devolución pendiente.</div>
+      </article>
+      <article class="ref">
+        <div class="eyebrow">Shopify POS + apps (Layaway, Reservo)</div>
+        <h3>Plazo, auto-vencimiento y avisos</h3>
+        <div class="flujo-sim"><span>Reserva</span>→<span>Plazo configurable</span>→<span>Aviso</span>→<span>Vence</span>→<span>Stock vuelve solo</span></div>
+        <ul>
+          <li>Shopify solo no tiene layaway: lo resuelven apps con pago parcial.</li>
+          <li>Al vencer, el stock vuelve solo y se avisa por correo.</li>
+        </ul>
+        <div class="toma"><b>Tomamos:</b> plazo fijo, aviso previo, vuelta automática. <b>Mejoramos:</b> 2 días de gracia para que una persona decida antes de que el sistema libere.</div>
+      </article>
+      <article class="ref">
+        <div class="eyebrow">Contabilidad (Square, QuickBooks, PCGE)</div>
+        <h3>El adelanto es una deuda con la clienta</h3>
+        <ul>
+          <li>Un depósito de layaway no es ingreso: es un pasivo («anticipos de clientes», cuenta 122 del PCGE) hasta la entrega.</li>
+          <li>Ese día pasa a venta por el total.</li>
+        </ul>
+        <div class="toma"><b>Confirma tu intuición:</b> el dinero existe, pero no es de CAYLA todavía. Por eso la tarjeta «En custodia» en Caja.</div>
+      </article>
+      <article class="ref">
+        <div class="eyebrow">SUNAT (Perú)</div>
+        <h3>Sí se puede —y se debe— dar comprobante</h3>
+        <ul>
+          <li>En venta de bienes muebles, el comprobante se emite al entregar <i>o al cobrar</i>, lo que ocurra primero.</li>
+          <li>El IGV nace con el anticipo, por el monto recibido, aunque no haya comprobante.</li>
+          <li>Factura de anticipo: sí, con RUC. Al entregar, el comprobante final <b>deduce el anticipo</b>.</li>
+          <li>Si se devuelve: nota de crédito sobre el comprobante del anticipo.</li>
+        </ul>
+        <div class="toma"><b>Choca con ADR-0141 (Fase 2):</b> ahí se decidió «sin comprobante hasta la venta final». Ver la decisión abierta abajo.</div>
+      </article>
+      <article class="ref">
+        <div class="eyebrow">Indecopi (Código del Consumidor)</div>
+        <h3>Retener el adelanto exige cláusula previa</h3>
+        <ul>
+          <li>Solo puedes quedarte con parte del adelanto si la clienta desiste y existe una cláusula expresa que se informó antes de pagar.</li>
+          <li>Una penalidad desproporcionada se considera abusiva.</li>
+        </ul>
+        <div class="toma"><b>Propuesta:</b> devolución del 100% (lo que pediste) e impresa en la boleta. Más simple y genera confianza.</div>
+      </article>
+    </div>
+    <div class="decision">
+      <div class="eyebrow" style="color:var(--rojo-p)">Felipe eligió A (2026-09-22) · se deja B para comparar</div>
+      <div>¿Qué documento recibe la clienta al dejar el adelanto? Cámbialo aquí y vuelve a «Separar» o «Entregar»:</div>
+      <div class="seg" id="modoComprobante" style="max-width:560px">
+        <button type="button" data-modo="A" aria-pressed="true">A · Boleta de anticipo</button>
+        <button type="button" data-modo="B" aria-pressed="false">B · Recibo interno</button>
+      </div>
+      <div class="muted" id="modoExplica" style="font-size:12.5px"></div>
+    </div>
+  </section>
+</div>
+
+<div id="capaModal"></div>
+<div id="capaToast"></div>
+
+<script>
+(() => {
+  // ---------- Reglas de negocio (lo que irá a lib/separaciones-reglas.ts) ----------
+  // Decidido por Felipe (2026-09-22): monto libre (sin mínimo), una sola extensión, devolución digital preferida.
+  const PLAZO_DIAS = 7, AVISO_DIAS = 2, GRACIA_DIAS = 2, EXTENSIONES_MAX = 1;
+  const DEVOLUCION = [ { id:'yape', nom:'Yape' }, { id:'plin', nom:'Plin' }, { id:'transferencia', nom:'Transferencia' } ];
+  const DIA = 86400000;
+  const MEDIOS = [
+    { id:'efectivo', nom:'Efectivo', color:'var(--efectivo)', k:'F1' },
+    { id:'tarjeta', nom:'Tarjeta', color:'var(--tarjeta)', k:'F2' },
+    { id:'yape', nom:'Yape', color:'var(--yape)', k:'F3' },
+    { id:'plin', nom:'Plin', color:'var(--plin)', k:'F4' },
+    { id:'transferencia', nom:'Transferencia', color:'var(--transfer)', k:'F5' },
+  ];
+  // En el ERP: fn_asesoras_de_turno(ubicacion) — quienes marcaron asistencia hoy en TRU (Dynamic).
+  const COLABORADORAS_TRU = ['Camila Rojas', 'Lucía Paredes', 'Andrea Vásquez', 'Felipe Alvarez (líder)'];
+
+  const soles = n => 'S/' + (Math.round(n * 100) / 100).toFixed(2);
+  const fmt = d => new Date(d).toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric', timeZone:'UTC' });
+  const fmtCorta = d => new Date(d).toLocaleDateString('es-PE', { weekday:'short', day:'2-digit', month:'short', timeZone:'UTC' });
+  const dia = s => Date.parse(s + 'T00:00:00Z');
+  const diasEntre = (a, b) => Math.round((b - a) / DIA);
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+  const igv = total => { const base = total / 1.18; return { base, igv: total - base }; };
+  const nombreMedio = id => MEDIOS.find(m => m.id === id)?.nom ?? id;
+  const devTxt = s => s.dev.medio === 'transferencia' ? 'transferencia (CCI ' + (s.dev.cci ? '…' + s.dev.cci.slice(-4) : 'por pedir') + ')' : nombreMedio(s.dev.medio) + ' al ' + s.dev.numero;
+
+  // Estado derivado: nunca se guarda «por vencer» ni «vencida»; se calcula contra la fecha.
+  function estadoDe(s, hoy) {
+    if (s.estado === 'entregada') return { k:'cerrada', txt:'Entregada' };
+    if (s.estado === 'devuelta') return { k:'cerrada', txt:'Liberada · devuelta' };
+    if (s.estado === 'liberada') return { k:'devolver', txt:'Devolver ' + soles(s.adelanto) };
+    const falta = diasEntre(hoy, s.vence);
+    if (falta < 0) return { k:'vencida', txt:'Vencida · quedan ' + (GRACIA_DIAS + falta + 1) + ' d para decidir' };
+    if (falta <= AVISO_DIAS) return { k:'porvencer', txt: falta === 0 ? 'Vence hoy' : 'Vence en ' + falta + ' d' };
+    return { k:'vigente', txt:'Vigente' };
+  }
+
+  // ---------- Datos de ejemplo ----------
+  const CATALOGO = [
+    { cod:'CAS-0002-NEG-M', nom:'Casaca Emilia', det:'Negro · M', precio:179, fisico:14 },
+    { cod:'CAS-0002-NEG-S', nom:'Casaca Emilia', det:'Negro · S', precio:179, fisico:12 },
+    { cod:'CAS-0002-NAR-S', nom:'Casaca Emilia', det:'Naranja · S', precio:179, fisico:10 },
+    { cod:'CAS-0002-BLA-L', nom:'Casaca Emilia', det:'Blanco · L', precio:179, fisico:20 },
+    { cod:'BLU-0001-ROS-L', nom:'Blusa Regina', det:'Rosado · L', precio:75, fisico:2 },
+    { cod:'CHO-0004-CRE-M', nom:'Chompa Aurora', det:'Crema · M', precio:129, fisico:8 },
+    { cod:'JEA-0003-AZU-28', nom:'Jean Olivia', det:'Azul · 28', precio:149, fisico:1 },
+  ];
+  function semilla() {
+    return {
+      hoy: dia('2026-09-22'), modo: 'A', correlativoB: 24, correlativoBC: 3, correlativoSep: 7,
+      seps: [
+        { id:'SEP-TRU-0001', clienta:{ nombres:'Rosa', apellidos:'Mendoza Díaz', cel:'987 654 321', dni:'45879632' }, atendio:'Lucía Paredes',
+          lineas:[{ cod:'CHO-0004-CRE-M', cant:1 }], total:129, adelanto:60, medio:'yape', creada:dia('2026-09-10'), vence:dia('2026-09-17'),
+          estado:'liberada', comp:'B004-000017', liberadaPor:'sistema', extensiones:0, dev:{ medio:'yape', numero:'', cci:'' } },
+        { id:'SEP-TRU-0002', clienta:{ nombres:'Karla', apellidos:'Soto Vega', cel:'955 111 204', dni:'' }, atendio:'Camila Rojas',
+          lineas:[{ cod:'CAS-0002-BLA-L', cant:1 }], total:179, adelanto:90, medio:'efectivo', creada:dia('2026-09-11'), vence:dia('2026-09-18'),
+          estado:'entregada', comp:'B004-000018', compFinal:'B004-000020', extensiones:0, dev:{ medio:'yape', numero:'', cci:'' } },
+        { id:'SEP-TRU-0003', clienta:{ nombres:'Mariana', apellidos:'Quispe Luján', cel:'944 820 117', dni:'70124598' }, atendio:'Andrea Vásquez',
+          lineas:[{ cod:'CAS-0002-NEG-S', cant:1 }, { cod:'BLU-0001-ROS-L', cant:1 }], total:254, adelanto:80, medio:'efectivo', creada:dia('2026-09-14'), vence:dia('2026-09-21'),
+          estado:'vigente', comp:'B004-000019', extensiones:0, dev:{ medio:'yape', numero:'', cci:'' } },
+        { id:'SEP-TRU-0005', clienta:{ nombres:'Valeria', apellidos:'Castro Ríos', cel:'912 300 455', dni:'72233411' }, atendio:'Camila Rojas',
+          lineas:[{ cod:'CAS-0002-NAR-S', cant:1 }], total:179, adelanto:100, medio:'tarjeta', creada:dia('2026-09-17'), vence:dia('2026-09-24'),
+          estado:'vigente', comp:'B004-000021', extensiones:0, dev:{ medio:'yape', numero:'', cci:'' } },
+        { id:'SEP-TRU-0006', clienta:{ nombres:'Daniela', apellidos:'Ruiz Paz', cel:'933 402 118', dni:'46655210' }, atendio:'Lucía Paredes',
+          lineas:[{ cod:'CAS-0002-NEG-M', cant:1 }], total:179, adelanto:60, medio:'plin', creada:dia('2026-09-20'), vence:dia('2026-09-27'),
+          estado:'vigente', comp:'B004-000023', extensiones:0, dev:{ medio:'yape', numero:'', cci:'' } },
+      ],
+      caja: [], // se arma desde las separaciones al iniciar
+    };
+  }
+  let S;
+  function reiniciar() {
+    S = semilla();
+    S.seps.forEach(s => {
+      if (!s.dev.numero) s.dev.numero = s.clienta.cel;
+      S.caja.push({ fecha:s.creada, sep:s.id, tipo:'adelanto', medio:s.medio, monto:s.adelanto });
+      if (s.estado === 'entregada') {
+        S.caja.push({ fecha:dia('2026-09-16'), sep:s.id, tipo:'saldo', medio:'efectivo', monto:s.total - s.adelanto });
+        s.entregadaEl = dia('2026-09-16');
+      }
+    });
+    sep = nuevaSep(); entregaSel = null; entregaPagos = [];
+  }
+  const prenda = cod => CATALOGO.find(p => p.cod === cod);
+  const abierta = s => s.estado === 'vigente';
+  function separado(cod) {
+    return S.seps.filter(abierta).reduce((a, s) => a + s.lineas.filter(l => l.cod === cod).reduce((x, l) => x + l.cant, 0), 0);
+  }
+  function vendidoPorEntrega(cod) {
+    return S.seps.filter(s => s.estado === 'entregada').reduce((a, s) => a + s.lineas.filter(l => l.cod === cod).reduce((x, l) => x + l.cant, 0), 0);
+  }
+  const fisico = cod => prenda(cod).fisico - vendidoPorEntrega(cod);
+  const disponible = cod => fisico(cod) - separado(cod);
+
+  // Liberación automática: vencida + 2 días sin decisión → la prenda vuelve y queda la devolución.
+  function procesarVencimientos() {
+    const liberadas = [];
+    S.seps.forEach(s => {
+      if (s.estado === 'vigente' && diasEntre(s.vence, S.hoy) > GRACIA_DIAS) {
+        s.estado = 'liberada'; s.liberadaPor = 'sistema'; s.liberadaEl = S.hoy; liberadas.push(s);
+      }
+    });
+    return liberadas;
+  }
+
+  // ---------- Separar ----------
+  let sep, entregaSel, entregaPagos;
+  function nuevaSep() {
+    return { lineas:[], clienta:{ nombres:'', apellidos:'', cel:'', dni:'', ruc:'', razon:'' }, comprobante:'boleta', atendio:'', consent:false, pagos:[], nota:'', dev:{ medio:'yape', numero:'', cci:'' } };
+  }
+  const totalSep = () => sep.lineas.reduce((a, l) => a + prenda(l.cod).precio * l.cant, 0);
+  const pagadoSep = () => sep.pagos.reduce((a, p) => a + (Number(p.monto) || 0), 0);
+
+  function agregar(cod) {
+    const p = prenda(cod);
+    const ya = sep.lineas.find(l => l.cod === cod);
+    const enTicket = ya ? ya.cant : 0;
+    if (disponible(cod) - enTicket <= 0) {
+      const sp = separado(cod);
+      msg('scanMsg', `<span class="error">${esc(p.nom)} ${esc(p.det)}: no queda disponible en Tienda TRU${sp ? ` (${sp} ya separada${sp > 1 ? 's' : ''} para otra clienta)` : ''}.</span>`);
+      return;
+    }
+    if (ya) ya.cant++; else sep.lineas.push({ cod, cant:1 });
+    msg('scanMsg', `<span class="ok">Agregada: ${esc(p.nom)} ${esc(p.det)}.</span>`);
+    document.getElementById('sugerencias').innerHTML = '';
+    render();
+  }
+  function msg(id, html) { document.getElementById(id).innerHTML = html; }
+
+  document.getElementById('formScan').addEventListener('submit', e => {
+    e.preventDefault();
+    const q = document.getElementById('scanInput').value.trim();
+    buscarPrenda(q);
+    document.getElementById('scanInput').value = '';
+  });
+  document.querySelectorAll('[data-code]').forEach(b => b.addEventListener('click', () => buscarPrenda(b.dataset.code)));
+  function buscarPrenda(q) {
+    if (!q) return;
+    const exacta = CATALOGO.find(p => p.cod.toLowerCase() === q.toLowerCase());
+    if (exacta) return agregar(exacta.cod);
+    const t = q.toLowerCase();
+    const hits = CATALOGO.filter(p => (p.nom + ' ' + p.det + ' ' + p.cod).toLowerCase().includes(t));
+    if (!hits.length) { msg('scanMsg', `<span class="error">No hay ninguna prenda con «${esc(q)}» en Tienda TRU. Revisa el código de la etiqueta.</span>`); return; }
+    if (hits.length === 1) return agregar(hits[0].cod);
+    msg('scanMsg', `<span class="muted">${hits.length} prendas coinciden con «${esc(q)}». Elige la talla y el color:</span>`);
+    document.getElementById('sugerencias').innerHTML = '<div class="sugerencias">' + hits.map(p =>
+      `<button type="button" data-add="${p.cod}"><span><b>${esc(p.nom)}</b> · ${esc(p.det)} <span class="mono muted">${p.cod}</span></span><span class="num">${soles(p.precio)} · ${disponible(p.cod)} disp.</span></button>`).join('') + '</div>';
+    document.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => agregar(b.dataset.add)));
+  }
+
+  function renderTicketSep() {
+    const el = document.getElementById('ticketSep');
+    if (!sep.lineas.length) {
+      el.innerHTML = `<div class="vacio"><h3>Ticket de separación vacío</h3>Escanea la etiqueta de la prenda que la clienta quiere separar.</div>`;
+      return;
+    }
+    el.innerHTML = `<div><div class="eyebrow" style="margin-bottom:4px">Prendas a separar</div>` + sep.lineas.map((l, i) => {
+      const p = prenda(l.cod);
+      return `<div class="linea"><div><div class="nom">${esc(p.nom)} <span class="muted" style="font-weight:400">· ${esc(p.det)}</span></div>
+        <div class="mono muted">${p.cod} · quedan ${disponible(p.cod) - l.cant} disponibles tras separar</div></div>
+        <div style="text-align:right"><div class="num"><b>${soles(p.precio * l.cant)}</b></div>
+        <div class="qty" style="margin-top:4px"><button type="button" aria-label="Quitar una" data-menos="${i}">−</button><span class="num">${l.cant}</span><button type="button" aria-label="Sumar una" data-mas="${i}">+</button></div></div></div>`;
+    }).join('') + '</div>';
+    el.querySelectorAll('[data-menos]').forEach(b => b.addEventListener('click', () => { const l = sep.lineas[b.dataset.menos]; l.cant--; if (!l.cant) sep.lineas.splice(b.dataset.menos, 1); render(); }));
+    el.querySelectorAll('[data-mas]').forEach(b => b.addEventListener('click', () => agregar(sep.lineas[b.dataset.mas].cod)));
+  }
+
+  function validarSep() {
+    const c = sep.clienta, errs = {};
+    if (!sep.lineas.length) errs.lineas = 'Escanea al menos una prenda.';
+    if (!c.nombres.trim()) errs.nombres = 'Escribe los nombres.';
+    if (!c.apellidos.trim()) errs.apellidos = 'Escribe los apellidos.';
+    if (c.cel.replace(/\D/g, '').length !== 9) errs.cel = 'El celular tiene 9 dígitos: es por donde le avisamos y le devolvemos.';
+    if (c.dni && !/^\d{8}$/.test(c.dni)) errs.dni = 'El DNI tiene 8 dígitos.';
+    if (sep.comprobante === 'factura') {
+      if (!/^(10|20)\d{9}$/.test(c.ruc)) errs.ruc = 'El RUC tiene 11 dígitos y empieza en 10 o 20.';
+      if (!c.razon.trim()) errs.razon = 'Escribe la razón social.';
+    }
+    if (!sep.atendio) errs.atendio = 'Elige quién atendió.';
+    const total = totalSep(), pagado = pagadoSep();
+    if (!sep.pagos.length) errs.pago = 'Elige cómo dejó el adelanto.';
+    else if (pagado <= 0) errs.pago = 'Escribe cuánto deja de adelanto.';
+    if (sep.dev.medio === 'transferencia' && sep.dev.cci.replace(/\D/g,'').length !== 20) errs.dev = 'El CCI tiene 20 dígitos.';
+    if (sep.dev.medio !== 'transferencia' && sep.dev.numero && sep.dev.numero.replace(/\D/g,'').length !== 9) errs.dev = 'El número de ' + nombreMedio(sep.dev.medio) + ' tiene 9 dígitos.';
+    else if (pagado > total && !sep.pagos.some(p => p.medio === 'efectivo')) errs.pago = 'El adelanto no puede pasar el total.';
+    if (!sep.consent) errs.consent = 'Confirma que la clienta aceptó las condiciones.';
+    return errs;
+  }
+
+  let intentoSep = false;
+  function renderPanelSep() {
+    const el = document.getElementById('panelSep');
+    const total = totalSep(), pagado = pagadoSep(), min = 0;
+    const efectivo = sep.pagos.filter(p => p.medio === 'efectivo').reduce((a, p) => a + (Number(p.monto) || 0), 0);
+    const adelanto = Math.min(pagado, total), vuelto = Math.max(0, pagado - total);
+    const saldo = Math.max(0, total - adelanto);
+    const errs = validarSep(), E = k => intentoSep && errs[k] ? `<span class="error">${errs[k]}</span>` : '';
+    const paso = !sep.lineas.length ? 0 : (!sep.clienta.nombres || !sep.atendio) ? 1 : (!sep.pagos.length ? 2 : 3);
+    const vence = S.hoy + PLAZO_DIAS * DIA;
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><h2>Separación</h2><span class="muted num">${sep.lineas.reduce((a,l)=>a+l.cant,0)} prendas</span></div>
+      <div class="pasos"><i class="${paso>=1?'on':''}"></i><i class="${paso>=2?'on':''}"></i><i class="${paso>=3?'on':''}"></i></div>
+
+      <div class="bloque">
+        <div class="eyebrow">1 · La clienta</div>
+        <div class="fila2">
+          <label>Nombres<input id="c_nombres" value="${esc(sep.clienta.nombres)}" autocomplete="off">${E('nombres')}</label>
+          <label>Apellidos<input id="c_apellidos" value="${esc(sep.clienta.apellidos)}" autocomplete="off">${E('apellidos')}</label>
+        </div>
+        <div class="fila2">
+          <label>Celular (WhatsApp)<input id="c_cel" inputmode="numeric" placeholder="9 dígitos" value="${esc(sep.clienta.cel)}">${E('cel')}</label>
+          <label>DNI ${total > 700 ? '(obligatorio: más de S/700)' : '(recomendado)'}<input id="c_dni" inputmode="numeric" placeholder="8 dígitos" value="${esc(sep.clienta.dni)}">${E('dni')}</label>
+        </div>
+        <div class="seg" id="segComp">
+          <button type="button" data-comp="boleta" aria-pressed="${sep.comprobante==='boleta'}">Boleta</button>
+          <button type="button" data-comp="factura" aria-pressed="${sep.comprobante==='factura'}">Factura</button>
+        </div>
+        ${sep.comprobante === 'factura' ? `<div class="fila2">
+          <label>RUC<input id="c_ruc" inputmode="numeric" value="${esc(sep.clienta.ruc)}">${E('ruc')}</label>
+          <label>Razón social<input id="c_razon" value="${esc(sep.clienta.razon)}">${E('razon')}</label></div>` : ''}
+      </div>
+
+      <div class="bloque">
+        <div class="eyebrow">2 · Quién atendió</div>
+        <label>De turno hoy en Tienda TRU
+          <select id="c_atendio"><option value="">Elige…</option>${COLABORADORAS_TRU.map(n => `<option ${sep.atendio===n?'selected':''}>${esc(n)}</option>`).join('')}</select>${E('atendio')}
+        </label>
+      </div>
+
+      <div class="bloque">
+        <div class="eyebrow">3 · Adelanto · monto libre</div>
+        <div class="medios">${MEDIOS.map(m => `<button type="button" class="medio" data-medio="${m.id}" aria-pressed="${sep.pagos.some(p=>p.medio===m.id)}"><span class="ico" style="background:${m.color}"></span>${m.nom}</button>`).join('')}</div>
+        ${sep.pagos.map((p, i) => `<div class="pago"><span><span class="ico" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${MEDIOS.find(m=>m.id===p.medio).color};margin-right:6px"></span>${nombreMedio(p.medio)}</span>
+          <input data-monto="${i}" inputmode="decimal" value="${p.monto}" aria-label="Monto en ${nombreMedio(p.medio)}"><button type="button" data-quitar="${i}" aria-label="Quitar medio">✕</button></div>`).join('')}
+        <div class="hint">${[0.3, 0.5, 1].map(f => `<button type="button" class="chip" data-atajo="${f}">${f === 1 ? 'Todo' : Math.round(f*100) + '%'} · ${soles(f === 1 ? total : Math.ceil(total*f))}</button>`).join('')}</div>
+        ${total ? `<div class="barra" aria-hidden="true"><i class="" style="width:${Math.min(100, adelanto/total*100)}%"></i></div>` : ''}
+        ${E('pago')}
+        ${vuelto > 0 ? `<div class="ok">Vuelto en efectivo: <b>${soles(vuelto)}</b></div>` : ''}
+      </div>
+
+      <div class="bloque">
+        <div class="eyebrow">4 · Si no recoge, le devolvemos por</div>
+        <div class="seg" style="grid-template-columns:repeat(3,1fr)">${DEVOLUCION.map(d => `<button type="button" data-dev="${d.id}" aria-pressed="${sep.dev.medio===d.id}">${d.nom}</button>`).join('')}</div>
+        ${sep.dev.medio === 'transferencia' ? `<label>CCI de la clienta<input id="c_cci" inputmode="numeric" placeholder="20 dígitos" value="${esc(sep.dev.cci)}"></label>` : `<label>Número ${nombreMedio(sep.dev.medio)} (vacío = su celular)<input id="c_devnum" inputmode="numeric" placeholder="${esc(sep.clienta.cel || '9 dígitos')}" value="${esc(sep.dev.numero)}"></label>`}
+        ${E('dev')}
+        <div class="muted" style="font-size:12px">Así no tiene que volver a la tienda. Efectivo, solo si viene a recogerlo antes de que se le transfiera.</div>
+      </div>
+
+      <div class="bloque">
+        <label class="check"><input type="checkbox" id="c_consent" ${sep.consent?'checked':''}>
+          <span>La clienta aceptó: recoge hasta el <b>${fmtCorta(vence)}</b> con su comprobante o DNI; si no, se le devuelve el 100% del adelanto por ${nombreMedio(sep.dev.medio)} y le escribimos por WhatsApp.</span></label>${E('consent')}
+      </div>
+
+      <div class="totales">
+        <span class="muted">Total de las prendas</span><span class="num">${soles(total)}</span>
+        <span class="muted">Adelanto hoy</span><span class="num">${soles(adelanto)}</span>
+        <span class="muted">Saldo al recoger</span><span class="num"><b>${soles(saldo)}</b></span>
+        <span class="eyebrow" style="align-self:end">Cobrar hoy</span><span class="grande num">${soles(adelanto)}</span>
+      </div>
+      <button class="btn negro" id="confirmarSep" type="button" style="padding:15px;display:flex;justify-content:space-between">
+        <span>Confirmar separación</span><span class="num" style="font-family:var(--serif);font-size:17px;letter-spacing:0;text-transform:none">${soles(adelanto)}</span></button>
+      ${intentoSep && Object.keys(errs).length ? `<div class="error" style="text-align:center">Falta: ${Object.values(errs).length} dato${Object.values(errs).length>1?'s':''} (en rojo arriba).</div>` : ''}
+    `;
+    const bind = (id, k, o = sep.clienta) => { const i = document.getElementById(id); if (i) i.addEventListener('input', () => { o[k] = i.value; if (intentoSep) rerenderSepConservandoFoco(id); }); };
+    bind('c_nombres','nombres'); bind('c_apellidos','apellidos'); bind('c_cel','cel'); bind('c_dni','dni'); bind('c_ruc','ruc'); bind('c_razon','razon');
+    el.querySelectorAll('[data-dev]').forEach(b => b.addEventListener('click', () => { sep.dev.medio = b.dataset.dev; render(); }));
+    bind('c_cci','cci', sep.dev); bind('c_devnum','numero', sep.dev);
+    document.getElementById('c_atendio').addEventListener('change', e => { sep.atendio = e.target.value; render(); });
+    document.getElementById('c_consent').addEventListener('change', e => { sep.consent = e.target.checked; render(); });
+    el.querySelectorAll('[data-comp]').forEach(b => b.addEventListener('click', () => { sep.comprobante = b.dataset.comp; render(); }));
+    el.querySelectorAll('[data-medio]').forEach(b => b.addEventListener('click', () => {
+      const i = sep.pagos.findIndex(p => p.medio === b.dataset.medio);
+      if (i >= 0) sep.pagos.splice(i, 1);
+      else sep.pagos.push({ medio:b.dataset.medio, monto: sep.pagos.length ? 0 : Math.ceil(total*0.5) });
+      render();
+    }));
+    el.querySelectorAll('[data-monto]').forEach(i => i.addEventListener('change', () => { sep.pagos[i.dataset.monto].monto = Number(i.value.replace(',', '.')) || 0; render(); }));
+    el.querySelectorAll('[data-quitar]').forEach(b => b.addEventListener('click', () => { sep.pagos.splice(b.dataset.quitar, 1); render(); }));
+    el.querySelectorAll('[data-atajo]').forEach(b => b.addEventListener('click', () => {
+      const f = Number(b.dataset.atajo), m = f === 1 ? total : Math.ceil(total * f);
+      if (!sep.pagos.length) sep.pagos.push({ medio:'efectivo', monto:m }); else { sep.pagos.length = 1; sep.pagos[0].monto = m; }
+      render();
+    }));
+    document.getElementById('confirmarSep').addEventListener('click', confirmarSep);
+  }
+  function rerenderSepConservandoFoco(id) {
+    const pos = document.getElementById(id)?.selectionStart;
+    renderPanelSep(); const i = document.getElementById(id); if (i) { i.focus(); try { i.setSelectionRange(pos, pos); } catch {} }
+  }
+
+  function confirmarSep() {
+    intentoSep = true;
+    const errs = validarSep();
+    if (Object.keys(errs).length) { renderPanelSep(); return; }
+    const total = totalSep(), adelanto = Math.min(pagadoSep(), total);
+    const s = {
+      id: 'SEP-TRU-' + String(S.correlativoSep++).padStart(4, '0'),
+      clienta: { ...sep.clienta }, atendio: sep.atendio, comprobante: sep.comprobante,
+      lineas: sep.lineas.map(l => ({ ...l })), total, adelanto,
+      medio: sep.pagos.length === 1 ? sep.pagos[0].medio : 'mixto', pagos: sep.pagos.map(p => ({ ...p })),
+      dev: { medio: sep.dev.medio, numero: sep.dev.numero || sep.clienta.cel, cci: sep.dev.cci },
+      creada: S.hoy, vence: S.hoy + PLAZO_DIAS * DIA, estado: 'vigente', extensiones: 0,
+      comp: S.modo === 'A' ? (sep.comprobante === 'factura' ? 'F004-' : 'B004-') + String(S.correlativoB++).padStart(6, '0') : null,
+    };
+    S.seps.unshift(s);
+    let resto = adelanto;
+    s.pagos.forEach(p => { const m = Math.min(resto, Number(p.monto) || 0); resto -= m; if (m > 0) S.caja.push({ fecha:S.hoy, sep:s.id, tipo:'adelanto', medio:p.medio, monto:m }); });
+    sep = nuevaSep(); intentoSep = false;
+    msg('scanMsg', '');
+    render();
+    abrirModalSeparada(s);
+  }
+
+  // ---------- Comprobantes (vista previa del ticket térmico 80 mm) ----------
+  function ticketHTML(tipo, s, extra = {}) {
+    const c = s.clienta;
+    const nombre = (c.nombres + ' ' + c.apellidos).trim();
+    const lineas = s.lineas.map(l => { const p = prenda(l.cod); return `<div class="r"><span>${l.cant} ${esc(p.nom)} ${esc(p.det)}</span><span>${soles(p.precio*l.cant)}</span></div>`; }).join('');
+    const cab = `<div class="c b">CAYLA</div><div class="c">CAYLA S.A.C. · RUC 20XXXXXXXXX<br>Tienda TRU · Av. Larco 000, Trujillo</div><hr>`;
+    const cli = `<div>${s.comprobante === 'factura' ? 'RUC: ' + esc(c.ruc) + '<br>' + esc(c.razon) : 'Clienta: ' + esc(nombre) + (c.dni ? '<br>DNI: ' + esc(c.dni) : '')}</div><div>Cel.: ${esc(c.cel)}</div><div>Atendió: ${esc(s.atendio)}</div>`;
+    const tyc = `<hr><div class="tyc"><b>CONDICIONES DE TU SEPARACIÓN</b><br>
+      1. Tus prendas quedan guardadas hasta el <b>${fmt(s.vence)}</b>.<br>
+      2. Para recogerlas trae este comprobante o tu DNI.<br>
+      3. Si no las recoges a tiempo, vuelven a tienda y te devolvemos el 100% de tu adelanto por ${devTxt(s)}, sin que tengas que venir. Te escribiremos al ${esc(c.cel)}.<br>
+      4. El precio queda congelado. Cambios y devoluciones: desde el día que recoges.</div>`;
+    if (tipo === 'anticipo') {
+      const { base, igv: i } = igv(s.adelanto);
+      const doc = S.modo === 'A'
+        ? `<div class="c b">${s.comprobante === 'factura' ? 'FACTURA' : 'BOLETA DE VENTA'} ELECTRÓNICA</div><div class="c b">${s.comp}</div>`
+        : `<div class="c b">RECIBO DE SEPARACIÓN</div><div class="c">(documento interno, no es comprobante de pago)</div>`;
+      return `<div class="ticket">${cab}${doc}<div class="sello">SEPARACIÓN ${s.id}</div>
+        <div>Fecha: ${fmt(s.creada)}</div>${cli}<hr>
+        <div class="b">Prendas separadas</div>${lineas}<div class="r b"><span>Total de las prendas</span><span>${soles(s.total)}</span></div><hr>
+        <div class="r"><span>${S.modo === 'A' ? 'Anticipo por separación' : 'Adelanto recibido'}</span><span>${soles(s.adelanto)}</span></div>
+        ${S.modo === 'A' ? `<div class="r"><span>Op. gravada</span><span>${soles(base)}</span></div><div class="r"><span>IGV 18%</span><span>${soles(i)}</span></div>` : ''}
+        <div class="r"><span>Pagado con</span><span>${(s.pagos||[{medio:s.medio}]).map(p=>nombreMedio(p.medio)).join(' + ')}</span></div>
+        <div class="r b"><span>SALDO AL RECOGER</span><span>${soles(s.total - s.adelanto)}</span></div>
+        <div class="r b"><span>RECOGER HASTA</span><span>${fmt(s.vence)}</span></div>
+        ${tyc}${S.modo === 'A' ? '<div class="qr"></div><div class="c">Representación impresa de la<br>boleta de venta electrónica</div>' : ''}</div>`;
+    }
+    if (tipo === 'final') {
+      const saldo = s.total - s.adelanto, { base, igv: i } = igv(S.modo === 'A' ? saldo : s.total);
+      const doc = `<div class="c b">${s.comprobante === 'factura' ? 'FACTURA' : 'BOLETA DE VENTA'} ELECTRÓNICA</div><div class="c b">${s.compFinal}</div>`;
+      return `<div class="ticket">${cab}${doc}<div class="sello">SEPARACIÓN ${s.id} · ENTREGADA</div>
+        <div>Fecha: ${fmt(s.entregadaEl)}</div>${cli}<hr>${lineas}<hr>
+        <div class="r"><span>Total de las prendas</span><span>${soles(s.total)}</span></div>
+        ${S.modo === 'A'
+          ? `<div class="r"><span>(−) Anticipo ${s.comp} del ${fmt(s.creada)}</span><span>−${soles(s.adelanto)}</span></div>
+             <div class="r"><span>Op. gravada</span><span>${soles(base)}</span></div><div class="r"><span>IGV 18%</span><span>${soles(i)}</span></div>`
+          : `<div class="r"><span>Op. gravada</span><span>${soles(base)}</span></div><div class="r"><span>IGV 18%</span><span>${soles(i)}</span></div>
+             <div class="r"><span>(−) Adelanto recibo ${s.id}</span><span>−${soles(s.adelanto)}</span></div>`}
+        <div class="r b"><span>SALDO PAGADO HOY</span><span>${soles(saldo)}</span></div>
+        <div class="r"><span>Pagado con</span><span>${extra.medios || ''}</span></div>
+        ${extra.vuelto ? `<div class="r"><span>Vuelto</span><span>${soles(extra.vuelto)}</span></div>` : ''}
+        <hr><div class="c b">SEPARACIÓN LIQUIDADA · PAGADO ${soles(s.total)}</div>
+        <div class="tyc">Cambios y devoluciones: 7 días desde hoy con este comprobante.</div>
+        <div class="qr"></div><div class="c">Representación impresa de la<br>boleta de venta electrónica</div></div>`;
+    }
+    if (tipo === 'nc') {
+      return `<div class="ticket">${cab}<div class="c b">NOTA DE CRÉDITO ELECTRÓNICA</div><div class="c b">${s.compNC}</div>
+        <div>Fecha: ${fmt(s.devueltaEl)}</div><div>Afecta a: ${s.comp}</div><div>Motivo: 01 Anulación de la operación</div>${cli}<hr>
+        <div class="r"><span>Devolución de anticipo ${s.id}</span><span>${soles(s.adelanto)}</span></div>
+        <div class="r"><span>Devuelto por</span><span>${esc(extra.medio || '')}</span></div><div class="qr"></div></div>`;
+    }
+  }
+
+  function abrirModal(html, alCerrar) {
+    const capa = document.getElementById('capaModal');
+    capa.innerHTML = `<div class="velo" role="dialog" aria-modal="true"><div class="modal">${html}</div></div>`;
+    const cerrar = () => { capa.innerHTML = ''; document.removeEventListener('keydown', esc_); alCerrar && alCerrar(); };
+    const esc_ = e => { if (e.key === 'Escape') cerrar(); };
+    document.addEventListener('keydown', esc_);
+    capa.querySelectorAll('[data-cerrar]').forEach(b => b.addEventListener('click', cerrar));
+    return { capa, cerrar };
+  }
+
+  function abrirModalSeparada(s) {
+    const pasos = ['Pega la etiqueta «SEPARADO · ' + s.id + '» en la prenda (sale con el comprobante).', 'Guárdala en la zona «Separados» del almacén, no en el piso.', 'Envía el comprobante por WhatsApp al ' + s.clienta.cel + '.'];
+    const { capa } = abrirModal(`
+      <div><h2>Separación registrada</h2><div class="muted">Tienda TRU · ${s.id}</div></div>
+      <div class="modal-cuerpo">
+        ${ticketHTML('anticipo', s)}
+        <div class="siguiente">
+          <div class="kpi" style="background:transparent"><span class="eyebrow">Recoger hasta</span><span class="v">${fmtCorta(s.vence)}</span>
+            <span class="muted">Saldo al recoger: <b class="num">${soles(s.total - s.adelanto)}</b></span></div>
+          <div class="eyebrow">Ahora, con la prenda en la mano</div>
+          <ol>${pasos.map((p,i) => `<li><label class="check"><input type="checkbox" data-paso="${i}"><span>${esc(p)}</span></label></li>`).join('')}</ol>
+          <div class="caja-nota">Ya no se puede vender en ninguna caja: sale como «separada» en Punto de Venta. El adelanto entró a caja como <b>En custodia</b>, no como venta.</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn negro" type="button" data-cerrar>Imprimir y nueva separación</button>
+            <button class="btn" type="button" data-cerrar>Sin imprimir</button>
+          </div>
+        </div>
+      </div>`);
+    capa.querySelectorAll('[data-paso]').forEach(c => c.addEventListener('change', () => c.closest('li').classList.toggle('hecho', c.checked)));
+    toast(`Separación ${s.id} registrada`, S.modo === 'A' ? `Boleta de anticipo ${s.comp}` : 'Recibo interno');
+  }
+
+  function toast(t, sub) {
+    const c = document.getElementById('capaToast');
+    c.innerHTML = `<div class="toast"><b>${esc(t)}</b><div class="muted" style="font-size:12.5px">${esc(sub || '')}</div></div>`;
+    clearTimeout(toast.t); toast.t = setTimeout(() => c.innerHTML = '', 3200);
+  }
+
+  // ---------- Bandeja ----------
+  let filtro = 'abiertas', busqueda = '';
+  const FILTROS = { abiertas:'Necesitan algo', todas:'Todas', vigente:'Vigentes', cerradas:'Cerradas' };
+  function coincide(s, q) {
+    if (!q) return true;
+    const t = q.toLowerCase().replace(/\s/g, '');
+    return [s.id, s.comp, s.compFinal, s.clienta.nombres + s.clienta.apellidos, s.clienta.dni, s.clienta.cel].some(v => (v || '').toLowerCase().replace(/\s/g, '').includes(t));
+  }
+  function renderBandeja() {
+    document.getElementById('filtros').innerHTML = Object.entries(FILTROS).map(([k, v]) => `<button type="button" class="tab" data-filtro="${k}" aria-selected="${filtro===k}">${v}</button>`).join('');
+    document.querySelectorAll('[data-filtro]').forEach(b => b.addEventListener('click', () => { filtro = b.dataset.filtro; renderBandeja(); }));
+    const filas = S.seps.filter(s => coincide(s, busqueda)).filter(s => {
+      const e = estadoDe(s, S.hoy).k;
+      if (filtro === 'abiertas') return ['porvencer','vencida','devolver'].includes(e);
+      if (filtro === 'vigente') return e === 'vigente' || e === 'porvencer' || e === 'vencida';
+      if (filtro === 'cerradas') return e === 'cerrada';
+      return true;
+    }).sort((a, b) => a.vence - b.vence);
+    document.getElementById('filasBandeja').innerHTML = filas.length ? filas.map(s => {
+      const e = estadoDe(s, S.hoy);
+      let acc = '';
+      if (e.k === 'vigente' || e.k === 'porvencer') acc = `<button class="btn chico negro" data-ir-entregar="${s.id}">Entregar</button><button class="btn chico" data-avisar="${s.id}">Avisar</button>`;
+      if (e.k === 'vencida') acc = `<button class="btn chico negro" data-ir-entregar="${s.id}">Entregar</button><button class="btn chico" data-extender="${s.id}" ${s.extensiones>=EXTENSIONES_MAX?'disabled title="Ya se extendió una vez"':''}>+7 días</button><button class="btn chico rojo" data-liberar="${s.id}">Liberar</button>`;
+      if (e.k === 'devolver') acc = `<button class="btn chico rojo" data-devolver="${s.id}">Registrar devolución</button>`;
+      if (e.k === 'cerrada') acc = `<span class="muted" style="font-size:12px">${s.estado==='entregada' ? 'Boleta ' + (s.compFinal||'') : 'NC ' + (s.compNC||'—')}</span>`;
+      const prendas = s.lineas.map(l => { const p = prenda(l.cod); return `${l.cant}× ${esc(p.nom)} <span class="muted">${esc(p.det)}</span>`; }).join('<br>');
+      return `<tr><td><b class="mono">${s.id}</b><div class="muted mono">${s.comp || 'recibo interno'}</div></td>
+        <td>${esc(s.clienta.nombres + ' ' + s.clienta.apellidos)}<div class="muted num">${esc(s.clienta.cel)}${s.clienta.dni ? ' · DNI ' + esc(s.clienta.dni) : ''}</div><div class="muted" style="font-size:12px">Atendió: ${esc(s.atendio)}</div></td>
+        <td>${prendas}</td>
+        <td class="num">${soles(s.adelanto)} <span class="muted">${nombreMedio(s.medio)}</span><div class="muted">saldo ${soles(s.estado==='entregada'?0:s.total - s.adelanto)}</div></td>
+        <td class="num">${fmtCorta(s.vence)}${s.extensiones ? '<div class="muted">extendida</div>' : ''}${s.liberadaPor==='sistema' ? '<div class="muted" style="font-size:12px">liberada sola</div>' : ''}</td>
+        <td><span class="estado e-${e.k}">${e.txt}</span></td><td><div class="acciones">${acc}</div></td></tr>`;
+    }).join('') : `<tr><td colspan="7" class="muted" style="text-align:center;padding:26px">Nada por aquí. ${filtro==='abiertas' ? 'Ninguna separación necesita algo hoy.' : ''}</td></tr>`;
+    const q = sel => document.querySelectorAll(sel);
+    q('[data-ir-entregar]').forEach(b => b.addEventListener('click', () => { entregaSel = b.dataset.irEntregar; entregaPagos = []; irA('entregar'); }));
+    q('[data-avisar]').forEach(b => b.addEventListener('click', () => { const s = porId(b.dataset.avisar); toast('Mensaje listo para WhatsApp', `«Hola ${s.clienta.nombres}, tu separación ${s.id} te espera en CAYLA Trujillo hasta el ${fmtCorta(s.vence)}. Saldo: ${soles(s.total-s.adelanto)}.»`); }));
+    q('[data-extender]').forEach(b => b.addEventListener('click', () => { const s = porId(b.dataset.extender); s.vence = S.hoy + PLAZO_DIAS * DIA; s.extensiones++; toast('Plazo extendido', `${s.id} vence ahora el ${fmtCorta(s.vence)}. Avísale a la clienta.`); render(); }));
+    q('[data-liberar]').forEach(b => b.addEventListener('click', () => confirmarLiberar(porId(b.dataset.liberar))));
+    q('[data-devolver]').forEach(b => b.addEventListener('click', () => abrirDevolucion(porId(b.dataset.devolver))));
+  }
+  const porId = id => S.seps.find(s => s.id === id);
+  document.getElementById('buscarBandeja').addEventListener('input', e => { busqueda = e.target.value; renderBandeja(); });
+
+  function confirmarLiberar(s) {
+    abrirModal(`<div><h2>¿Liberar ${s.id}?</h2><div class="muted">${esc(s.clienta.nombres + ' ' + s.clienta.apellidos)} · vence ${fmtCorta(s.vence)}</div></div>
+      <div>Las prendas vuelven a estar disponibles para vender. El adelanto de <b>${soles(s.adelanto)}</b> queda como <b>devolución pendiente</b> hasta que registres cómo se le devolvió.</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" data-cerrar>Mejor no</button><button class="btn negro" id="okLiberar">Liberar prendas</button></div>`);
+    document.getElementById('okLiberar').addEventListener('click', () => { s.estado = 'liberada'; s.liberadaPor = 'Felipe Alvarez'; s.liberadaEl = S.hoy; document.getElementById('capaModal').innerHTML = ''; toast('Prendas liberadas', `Falta devolver ${soles(s.adelanto)} a ${s.clienta.nombres}.`); render(); });
+  }
+
+  function abrirDevolucion(s) {
+    let medio = s.dev.medio;
+    const pintar = () => {
+      const { capa } = abrirModal(`<div><h2>Devolver el adelanto</h2><div class="muted">${s.id} · ${esc(s.clienta.nombres + ' ' + s.clienta.apellidos)} · cel. <span class="num">${esc(s.clienta.cel)}</span></div></div>
+        <div class="kpi" style="background:transparent"><span class="eyebrow">A devolver</span><span class="v">${soles(s.adelanto)}</span><span class="muted">Lo dejó por ${nombreMedio(s.medio)} el ${fmtCorta(s.creada)} Pidió la devolución por <b>${devTxt(s)}</b>.</span></div>
+        <div class="medios">${MEDIOS.map(m => `<button type="button" class="medio" data-dm="${m.id}" aria-pressed="${medio===m.id}"><span class="ico" style="background:${m.color}"></span>${m.nom}</button>`).join('')}</div>
+        ${medio === 'efectivo' ? '<div class="caja-nota">Solo si la clienta vino a la tienda. Sale del cajón de la caja abierta como egreso «Devolución de separación».</div>' : ''}
+        ${medio === 'tarjeta' ? '<div class="caja-nota">Se extorna desde el POS del banco; anota el N.º de operación.</div>' : ''}
+        ${['yape','plin'].includes(medio) ? `<div class="caja-nota">Enviar a <b class="num">${esc(s.dev.numero)}</b> (${esc(s.clienta.nombres + ' ' + s.clienta.apellidos)}).</div>` : ''}
+        ${['yape','plin'].includes(medio) ? `<label>N.º de operación ${nombreMedio(medio)}<input id="opDev" placeholder="Obligatorio"></label>` : ''}
+        ${medio === 'transferencia' ? '<div class="fila2"><label>CCI de la clienta<input id="cciDev" placeholder="20 dígitos" value="${esc(s.dev.cci)}"></label><label>N.º de operación<input id="opDev"></label></div>' : ''}
+        ${S.modo === 'A' ? `<div class="muted" style="font-size:12.5px">Se emite una nota de crédito sobre ${s.comp} (motivo: anulación de la operación).</div>` : ''}
+        <div id="errDev"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" data-cerrar>Cancelar</button><button class="btn negro" id="okDev">Registrar devolución</button></div>`);
+      capa.querySelectorAll('[data-dm]').forEach(b => b.addEventListener('click', () => { medio = b.dataset.dm; pintar(); }));
+      document.getElementById('okDev').addEventListener('click', () => {
+        const op = document.getElementById('opDev'), cci = document.getElementById('cciDev');
+        if (op && !op.value.trim()) { msg('errDev', '<span class="error">Anota el N.º de operación: es la prueba de que se devolvió.</span>'); return; }
+        if (cci && cci.value.replace(/\D/g,'').length !== 20) { msg('errDev', '<span class="error">El CCI tiene 20 dígitos.</span>'); return; }
+        s.estado = 'devuelta'; s.devueltaEl = S.hoy;
+        if (S.modo === 'A') s.compNC = 'BC04-' + String(S.correlativoBC++).padStart(6, '0');
+        S.caja.push({ fecha:S.hoy, sep:s.id, tipo:'devolucion', medio, monto:-s.adelanto });
+        render();
+        abrirModal(`<div><h2>Devolución registrada</h2><div class="muted">${s.id}</div></div>
+          <div class="modal-cuerpo">${S.modo === 'A' ? ticketHTML('nc', s, { medio:nombreMedio(medio) }) : '<div class="caja-nota">Sin comprobante: se anota en caja y en la separación.</div>'}
+          <div class="siguiente"><div>La separación queda cerrada como «Liberada · devuelta».</div><button class="btn negro" data-cerrar>Listo</button></div></div>`);
+      });
+    };
+    pintar();
+  }
+
+  // ---------- Entregar ----------
+  const buscarEntrega = document.getElementById('buscarEntrega');
+  buscarEntrega.addEventListener('input', () => { entregaSel = null; entregaPagos = []; renderEntrega(); });
+  function renderEntrega() {
+    const q = buscarEntrega.value.trim();
+    const abiertas = S.seps.filter(s => s.estado === 'vigente');
+    const res = document.getElementById('resultadosEntrega');
+    if (!entregaSel) {
+      const hits = abiertas.filter(s => coincide(s, q));
+      res.innerHTML = `<div class="eyebrow">${q ? 'Coinciden' : 'Por recoger en Tienda TRU'} (${hits.length})</div><div class="sugerencias">` + (hits.map(s => {
+        const e = estadoDe(s, S.hoy);
+        return `<button type="button" data-elegir="${s.id}"><span><b>${esc(s.clienta.nombres + ' ' + s.clienta.apellidos)}</b> <span class="mono muted">${s.id}</span><br><span class="muted">${s.lineas.map(l => prenda(l.cod).nom + ' ' + prenda(l.cod).det).join(', ')}</span></span>
+          <span style="text-align:right"><span class="estado e-${e.k}">${e.txt}</span><br><span class="num">saldo ${soles(s.total - s.adelanto)}</span></span></button>`;
+      }).join('') || `<div class="vacio">Ninguna separación abierta coincide con «${esc(q)}». Si ya venció y se liberó, búscala en «Separaciones».</div>`) + '</div>';
+      res.querySelectorAll('[data-elegir]').forEach(b => b.addEventListener('click', () => { entregaSel = b.dataset.elegir; entregaPagos = []; renderEntrega(); }));
+      document.getElementById('detalleEntrega').innerHTML = '';
+      document.getElementById('panelEntrega').innerHTML = `<div class="vacio"><h3>Elige una separación</h3>Busca por nombre, DNI, celular o el N.º de su comprobante.</div>`;
+      return;
+    }
+    res.innerHTML = `<button class="btn chico" type="button" id="volverLista">← Otra separación</button>`;
+    document.getElementById('volverLista').addEventListener('click', () => { entregaSel = null; renderEntrega(); });
+    const s = porId(entregaSel), e = estadoDe(s, S.hoy);
+    document.getElementById('detalleEntrega').innerHTML = `
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><h2>${esc(s.clienta.nombres + ' ' + s.clienta.apellidos)}</h2>
+      <div class="muted num">${esc(s.clienta.cel)}${s.clienta.dni ? ' · DNI ' + esc(s.clienta.dni) : ''} · atendió ${esc(s.atendio)}</div></div>
+      <div style="text-align:right"><span class="estado e-${e.k}">${e.txt}</span><div class="mono muted">${s.id} · ${s.comp || 'recibo interno'}</div></div></div>
+      <div class="caja-nota">Verifica: la prenda está en «Separados» con la etiqueta ${s.id}, y el DNI o el comprobante coinciden.</div>
+      <div>${s.lineas.map(l => { const p = prenda(l.cod); return `<div class="linea"><div><div class="nom">${esc(p.nom)} <span class="muted" style="font-weight:400">· ${esc(p.det)}</span></div><div class="mono muted">${p.cod} · ${l.cant} u.</div></div><div class="num"><b>${soles(p.precio*l.cant)}</b></div></div>`; }).join('')}</div>`;
+    renderPanelEntrega(s);
+  }
+  function renderPanelEntrega(s) {
+    const saldo = s.total - s.adelanto;
+    const pagado = entregaPagos.reduce((a, p) => a + (Number(p.monto) || 0), 0);
+    const hayEfectivo = entregaPagos.some(p => p.medio === 'efectivo');
+    const falta = Math.max(0, saldo - pagado), vuelto = hayEfectivo ? Math.max(0, pagado - saldo) : 0;
+    const exceso = !hayEfectivo && pagado > saldo;
+    const listo = saldo === 0 || (pagado >= saldo && !exceso);
+    const el = document.getElementById('panelEntrega');
+    el.innerHTML = `
+      <h2>Cobro del saldo</h2>
+      <div class="totales">
+        <span class="muted">Total de las prendas</span><span class="num">${soles(s.total)}</span>
+        <span class="muted">Ya pagó (${nombreMedio(s.medio)}, ${fmtCorta(s.creada)})</span><span class="num">−${soles(s.adelanto)}</span>
+      </div>
+      <div class="bloque">
+        <div class="eyebrow">Cómo paga el saldo</div>
+        <div class="medios">${MEDIOS.map(m => `<button type="button" class="medio" data-emedio="${m.id}" aria-pressed="${entregaPagos.some(p=>p.medio===m.id)}"><span class="ico" style="background:${m.color}"></span>${m.nom}</button>`).join('')}</div>
+        ${entregaPagos.map((p, i) => `<div class="pago"><span>${nombreMedio(p.medio)}</span><input data-emonto="${i}" inputmode="decimal" value="${p.monto}" aria-label="Monto en ${nombreMedio(p.medio)}"><button type="button" data-equitar="${i}" aria-label="Quitar">✕</button></div>`).join('')}
+        ${hayEfectivo ? `<div class="hint">${[saldo, Math.ceil(saldo/10)*10, Math.ceil(saldo/50)*50, 200].filter((v,i,a)=>v>=saldo && a.indexOf(v)===i).map(v => `<button class="chip" type="button" data-billete="${v}">Recibe ${soles(v)}</button>`).join('')}</div>` : ''}
+        ${falta > 0 && entregaPagos.length ? `<div class="error">Falta ${soles(falta)}</div>` : ''}
+        ${exceso ? `<div class="error">Con ${nombreMedio(entregaPagos[0].medio)} no hay vuelto: cobra justo ${soles(saldo)}.</div>` : ''}
+        ${vuelto > 0 ? `<div class="ok">Vuelto: <b class="num">${soles(vuelto)}</b></div>` : ''}
+        <div class="muted" style="font-size:12.5px">Los datos de la clienta ya vienen de la separación: no se vuelven a pedir.</div>
+      </div>
+      <div class="totales"><span class="eyebrow" style="align-self:end">Saldo a cobrar</span><span class="grande num">${soles(saldo)}</span></div>
+      <button class="btn negro" id="okEntrega" type="button" ${listo ? '' : 'disabled'} style="padding:15px;display:flex;justify-content:space-between">
+        <span>Entregar y cobrar</span><span class="num" style="font-family:var(--serif);font-size:17px;letter-spacing:0;text-transform:none">${soles(saldo)}</span></button>
+      ${!listo && !entregaPagos.length ? '<div class="muted" style="text-align:center;font-size:12.5px">Elige cómo paga el saldo.</div>' : ''}`;
+    el.querySelectorAll('[data-emedio]').forEach(b => b.addEventListener('click', () => {
+      const i = entregaPagos.findIndex(p => p.medio === b.dataset.emedio);
+      if (i >= 0) entregaPagos.splice(i, 1); else entregaPagos.push({ medio:b.dataset.emedio, monto: Math.max(0, saldo - entregaPagos.reduce((a,p)=>a+(Number(p.monto)||0),0)) });
+      renderPanelEntrega(s);
+    }));
+    el.querySelectorAll('[data-emonto]').forEach(i => i.addEventListener('change', () => { entregaPagos[i.dataset.emonto].monto = Number(i.value.replace(',', '.')) || 0; renderPanelEntrega(s); }));
+    el.querySelectorAll('[data-equitar]').forEach(b => b.addEventListener('click', () => { entregaPagos.splice(b.dataset.equitar, 1); renderPanelEntrega(s); }));
+    el.querySelectorAll('[data-billete]').forEach(b => b.addEventListener('click', () => { const p = entregaPagos.find(p => p.medio === 'efectivo'); p.monto = Number(b.dataset.billete); renderPanelEntrega(s); }));
+    document.getElementById('okEntrega').addEventListener('click', () => {
+      s.estado = 'entregada'; s.entregadaEl = S.hoy;
+      s.compFinal = (s.comprobante === 'factura' ? 'F004-' : 'B004-') + String(S.correlativoB++).padStart(6, '0');
+      let resto = saldo;
+      entregaPagos.forEach(p => { const m = Math.min(resto, Number(p.monto) || 0); resto -= m; if (m > 0) S.caja.push({ fecha:S.hoy, sep:s.id, tipo:'saldo', medio:p.medio, monto:m }); });
+      const medios = entregaPagos.map(p => nombreMedio(p.medio)).join(' + ');
+      entregaSel = null; entregaPagos = []; buscarEntrega.value = '';
+      render();
+      abrirModal(`<div><h2>Separación entregada</h2><div class="muted">Tienda TRU · ${s.id}</div></div>
+        <div class="modal-cuerpo">${ticketHTML('final', s, { medios, vuelto })}
+        <div class="siguiente"><div class="kpi" style="background:transparent"><span class="eyebrow">Venta reconocida hoy</span><span class="v">${soles(s.total)}</span>
+          <span class="muted">${soles(s.adelanto)} salen de «En custodia» y ${soles(saldo)} entran hoy. Todo suma a Ventas del día.</span></div>
+          <div class="caja-nota">La prenda deja de estar separada y sale del stock físico (es una venta).</div>
+          <button class="btn negro" data-cerrar>Imprimir y listo</button><button class="btn" data-cerrar>Sin imprimir</button></div></div>`);
+      toast(`Venta de ${soles(s.total)} registrada`, `Boleta ${s.compFinal} · separación ${s.id} liquidada`);
+    });
+  }
+
+  // ---------- Caja y stock ----------
+  function renderCaja() {
+    const custodia = S.seps.filter(s => s.estado === 'vigente').reduce((a, s) => a + s.adelanto, 0);
+    const porDevolver = S.seps.filter(s => s.estado === 'liberada').reduce((a, s) => a + s.adelanto, 0);
+    const ventasSep = S.seps.filter(s => s.estado === 'entregada').reduce((a, s) => a + s.total, 0);
+    document.getElementById('kpis').innerHTML = `
+      <div class="kpi"><span class="eyebrow">Ventas por separaciones entregadas</span><span class="v num">${soles(ventasSep)}</span><span class="muted">Ya son de CAYLA: suman a ingresos.</span></div>
+      <div class="kpi custodia"><span class="eyebrow">En custodia</span><span class="v num">${soles(custodia)}</span><span class="muted">Adelantos de ${S.seps.filter(s=>s.estado==='vigente').length} separaciones abiertas. No son ingreso todavía.</span></div>
+      <div class="kpi"><span class="eyebrow" style="color:var(--rojo-p)">Por devolver</span><span class="v num" style="color:${porDevolver?'var(--rojo-p)':'inherit'}">${soles(porDevolver)}</span><span class="muted">Separaciones liberadas sin devolución registrada.</span></div>`;
+    const cuenta = m => {
+      const s = porId(m.sep);
+      if (m.tipo === 'devolucion') return 'Sale de custodia (devuelto)';
+      if (m.tipo === 'saldo') return 'Venta';
+      return s.estado === 'entregada' ? 'Custodia → pasó a venta' : s.estado === 'vigente' ? 'En custodia' : s.estado === 'liberada' ? 'Custodia · por devolver' : 'Custodia → devuelto';
+    };
+    const tipoTxt = { adelanto:'Adelanto de separación', saldo:'Saldo al entregar', devolucion:'Devolución de separación' };
+    document.getElementById('filasCaja').innerHTML = [...S.caja].sort((a, b) => b.fecha - a.fecha).map(m =>
+      `<tr><td class="num">${fmtCorta(m.fecha)}</td><td class="mono">${m.sep}</td><td>${tipoTxt[m.tipo]}</td><td>${nombreMedio(m.medio)}${m.medio==='efectivo'?' <span class="muted">(cajón)</span>':''}</td>
+       <td class="num" style="color:${m.monto<0?'var(--rojo-p)':'inherit'}">${m.monto<0?'−':''}${soles(Math.abs(m.monto))}</td><td>${cuenta(m)}</td></tr>`).join('');
+    document.getElementById('filasStock').innerHTML = CATALOGO.map(p => {
+      const sp = separado(p.cod), d = disponible(p.cod);
+      return `<tr><td>${esc(p.nom)} <span class="muted">${esc(p.det)}</span></td><td class="mono">${p.cod}</td><td class="num">${fisico(p.cod)}</td>
+        <td class="num">${sp || '—'}</td><td class="num"><b>${d}</b></td>
+        <td>${d === 0 && sp ? '<span class="estado e-porvencer">Separada para una clienta</span>' : d === 0 ? '<span class="estado e-cerrada">Agotada</span>' : sp ? `${d} disponibles · <span class="muted">${sp} separada${sp>1?'s':''}</span>` : `${d} disponibles`}</td></tr>`;
+    }).join('');
+  }
+
+  // ---------- Alertas ----------
+  function renderAlertas() {
+    const vencen = S.seps.filter(s => estadoDe(s, S.hoy).k === 'porvencer');
+    const vencidas = S.seps.filter(s => estadoDe(s, S.hoy).k === 'vencida');
+    const devolver = S.seps.filter(s => s.estado === 'liberada');
+    const a = [];
+    vencidas.forEach(s => a.push(`<div class="alerta roja"><span class="dot"></span><span><b>${s.id}</b> de ${esc(s.clienta.nombres)} venció el ${fmtCorta(s.vence)} Decide antes del ${fmtCorta(s.vence + (GRACIA_DIAS+1)*DIA)} o se libera sola.</span><button class="btn chico" data-alerta="bandeja">Decidir</button></div>`));
+    devolver.forEach(s => a.push(`<div class="alerta roja"><span class="dot"></span><span>Devolver <b>${soles(s.adelanto)}</b> a ${esc(s.clienta.nombres + ' ' + s.clienta.apellidos)} por ${devTxt(s)} · ${s.id}${s.liberadaPor==='sistema'?' se liberó sola':''}.</span><button class="btn chico" data-alerta="bandeja">Registrar</button></div>`));
+    if (vencen.length) a.push(`<div class="alerta"><span class="dot"></span><span>${vencen.length} separación${vencen.length>1?'es vencen':' vence'} en 2 días o menos: ${vencen.map(s => esc(s.clienta.nombres) + ' (' + fmtCorta(s.vence) + ')').join(', ')}. Buen momento para escribirles.</span><button class="btn chico" data-alerta="bandeja">Ver</button></div>`);
+    document.getElementById('alertas').innerHTML = a.join('');
+    document.querySelectorAll('[data-alerta]').forEach(b => b.addEventListener('click', () => { filtro = 'abiertas'; irA('bandeja'); }));
+    const n = vencen.length + vencidas.length + devolver.length, bd = document.getElementById('badgeBandeja');
+    bd.hidden = !n; bd.textContent = n;
+  }
+
+  // ---------- Modo de comprobante ----------
+  const EXPLICA = {
+    A: 'A (elegida por Felipe): al recibir el adelanto se emite boleta o factura por ese monto con IGV, como pide SUNAT; al entregar, la boleta final deduce el anticipo y solo cobra el saldo; si se devuelve, nota de crédito. Correcto ante SUNAT, pero exige que el PSE (Lucode / apisunat.pe) soporte anticipos — hay que probarlo.',
+    B: 'B (lo decidido en ADR-0141): recibo interno sin valor tributario; la boleta sale al entregar por el total. Más simple, pero el IGV del anticipo nace igual al cobrarlo: si pasa de mes, se declara tarde. Riesgo de multa: el contador lo tiene que aprobar.',
+  };
+  document.querySelectorAll('[data-modo]').forEach(b => b.addEventListener('click', () => {
+    S.modo = b.dataset.modo;
+    document.querySelectorAll('[data-modo]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    document.getElementById('modoExplica').textContent = EXPLICA[S.modo];
+  }));
+
+  // ---------- Navegación y reloj ----------
+  function irA(t) {
+    document.querySelectorAll('.tab[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t));
+    ['nueva','bandeja','entregar','caja','estudio'].forEach(k => document.getElementById('tab-' + k).hidden = k !== t);
+    render();
+  }
+  document.querySelectorAll('.tab[data-tab]').forEach(b => b.addEventListener('click', () => irA(b.dataset.tab)));
+  document.getElementById('masDia').addEventListener('click', () => {
+    S.hoy += DIA;
+    const lib = procesarVencimientos();
+    render();
+    if (lib.length) toast(`${lib.length} separación${lib.length>1?'es se liberaron':' se liberó'} sola${lib.length>1?'s':''}`, 'Nadie decidió en 2 días: las prendas volvieron al stock y quedó la devolución pendiente.');
+  });
+  document.getElementById('reiniciar').addEventListener('click', () => { reiniciar(); render(); toast('Demo reiniciada', 'Datos de ejemplo del 22/09/2026.'); });
+
+  function render() {
+    document.getElementById('hoy').textContent = fmtCorta(S.hoy);
+    renderAlertas(); renderTicketSep(); renderPanelSep(); renderBandeja(); renderEntrega(); renderCaja();
+    document.getElementById('modoExplica').textContent = EXPLICA[S.modo];
+  }
+  reiniciar(); render();
+})();
+</script>

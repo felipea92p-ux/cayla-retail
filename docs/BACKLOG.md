@@ -178,6 +178,20 @@ Análisis completo en [docs/pantallas/colaboradores.md](pantallas/colaboradores.
 - [x] `AjustarInventarioModal.tsx` pedía la columna `variantes.talla`, que la taxonomía cerrada eliminó (ADR-0095, `20260917100500`); la base respondía «column variantes.talla does not exist» y el modal quedaba vacío desde «Ajustar» en Existencias y Productos. Ahora usa `talla:tallas ( valor )` sin cast (si vuelve a pedir una columna inexistente, `tsc` falla — comprobado con una mutación) y arma las filas en `lib/ajuste-reglas.ts` (12 pruebas), con las tallas en orden de curva. Reproducido a nivel de Postgres (esquema real, solo lectura); barrido de `apps/web`: ningún otro select ni filtro pide `talla` a secas sobre `variantes`, y los otros 4 `as unknown as` de selects solo angostan tipos.
 - [ ] Verlo en navegador con datos reales (sin Docker no hay PostgREST local): abrir «Ajustar» en un producto con varias tallas y ver que salgan ordenadas y con su stock. En producción la columna ya estaba borrada desde el 2026-09-17 (ver 🎯 Taxonomía de variante), así que el modal llevaba roto desde entonces — según este BACKLOG, no consultado en vivo.
 
+## 🎯 Separaciones (Fase 2 de Apartar stock) — análisis y demo funcional (2026-09-22), sin construir
+
+Separar una prenda con adelanto, entregarla cobrando el saldo, vencer con aviso y liberar sola, con el adelanto «en custodia» fuera de
+los ingresos hasta la entrega. Análisis, referentes y modelo propuesto: [docs/maquetas/separaciones-2026-09/ANALISIS.md](maquetas/separaciones-2026-09/ANALISIS.md);
+demo: `docs/maquetas/separaciones-2026-09/demo.html`.
+
+- [x] Investigación (Lightspeed, Shopify, contabilidad, SUNAT, Indecopi) y demo funcional con reloj simulado.
+- [x] Decisiones D1–D4 (Felipe, 2026-09-22): boleta de anticipo, monto libre, 100% devuelto preferentemente por Yape/Plin/transferencia (se registra al separar), una sola extensión de +7.
+- [ ] **Felipe valida las funciones en la demo** y decide D5 (quién libera y registra la devolución).
+- [x] Demo de interfaz con el lenguaje visual del ERP (`docs/maquetas/separaciones-2026-09/interfaz.html`, 2026-09-22): lateral con «Separaciones» bajo Ventas, Separar / Entregar / Todas, modales ADR-0136. Falta que Felipe la revise.
+- [ ] Confirmar con Lucode (apisunat.pe) la emisión de anticipo + regularización, y con el contador el tratamiento (pasivo 122 + IGV al cobrar).
+- [ ] Requisito: pegar ADR-0141 (`20260920160000_apartar_stock.sql`) en producción.
+- [ ] Construir: migración `separaciones` + `separacion_pagos` + 3 RPC (separar, entregar consumiendo el apartado, liberar/devolver) con pruebas SQL; pantallas Separar, Entregar, Bandeja; `cerrar_caja` cuenta el efectivo de adelantos; ADR propio.
+
 ## 🎯 Apartar stock — Fase 1: reserva física con clienta y fecha límite (2026-09-20, ADR-0141) — hecho en local, falta pegar en producción
 
 Una prenda apartada para una clienta ya **no se puede vender**: sigue contando en el conteo físico, pero deja de estar *disponible*. Existencias tiene la

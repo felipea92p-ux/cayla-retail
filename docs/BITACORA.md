@@ -3,6 +3,16 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (Separaciones: demo de interfaz con el lenguaje del ERP)
+Después de validar las funciones, Felipe pidió verlo como interfaz. Se armó `interfaz.html` calcando Punto de Venta: el mismo lateral y la misma hoja, el panel derecho que pasa de ticket a formulario con la barra de 3 tramos, la grilla de medios F1–F5, y el modal «Separación registrada» con la forma de «Venta registrada» y el movimiento de ADR-0136.
+Felipe se lleva: (1) **una pantalla nueva no inventa su propio lenguaje**: reutiliza el ticket, el cobro y el modal que las colaboradoras ya saben usar, y solo agrega lo que es propio de separar (fecha límite, «en custodia», devolución); (2) la demo encontró un bug que el código no mostraba: redibujar el formulario al salir de un campo borraba lo escrito en el siguiente.
+Sin resolver: D5, la revisión visual de Felipe, y todo lo de construir (ver BACKLOG).
+
+## 2026-09-22 (Separaciones: análisis, referentes y demo funcional — antes de construir)
+Felipe pidió un apartado para separar prendas con adelanto. Es la Fase 2 de ADR-0141, que ya dejó el candado de stock: se investigó cómo lo hacen Lightspeed y Shopify, qué dicen la contabilidad, SUNAT e Indecopi, y se armó una demo funcional (separar por escaneo, bandeja con vencimiento y liberación automática, entrega con saldo, dinero en custodia).
+Felipe se lleva: (1) **su intuición del «dinero aparte» es la regla contable**: un adelanto es una deuda con la clienta (pasivo), no un ingreso, hasta que recoge; (2) **SUNAT pide comprobante al cobrar el anticipo**, lo que contradice la decisión «sin comprobante» de ADR-0141 — se recomienda boleta de anticipo y deducirla en la boleta final; (3) «preventa» es otra cosa (vender lo que aún no llega): el nombre es «Separaciones».
+Sin resolver: D1–D5 (ANALISIS §7), confirmar anticipos con Lucode y el contador, y pegar ADR-0141 en producción antes de construir.
+
 ## 2026-09-22 (Nota de venta en el Punto de venta — ADR-0164)
 Tercera opción del comprobante: nota de venta con serie propia por tienda (NV01/NV02/NV03), mismo precio sin desglose de IGV y nunca enviada a SUNAT. Vive en `comprobantes` con un estado propio (`interna`) y un candado que hace imposible que quede «pendiente de enviar»; las tres funciones de venta se tocaron sobre su definición viva, sin copiarlas. Verificado en el navegador local: cobro, papel, Historial y que Facturación no la muestre.
 Felipe se lleva: **en Facturación lo que decide si algo va a SUNAT es el estado, no el tipo** — agregar un tipo nuevo sin estado propio lo habría dejado a un clic de transmitirse; el candado va en la base porque la pantalla se puede equivocar. Y **dos ramas tomaron los mismos números de ADR** (0161 y 0162, `responsable-y-roles-spike`): «quién atendió» pasó a 0163 y la nota de venta es 0164.
