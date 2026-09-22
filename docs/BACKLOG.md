@@ -576,9 +576,20 @@ solo pantalla y lectura. Detalle, decisiones tomadas por él y descartes en ADR-
       reversible en `estadoPrendaDevolucion`). Falta que Felipe diga quién decide pasado el plazo
       (¿solo un líder?, ¿con motivo escrito?), y si una prenda con defecto de fábrica debe poder
       devolverse pasado el plazo (no está escrito en R-38; conviene revisarlo con quien lleve lo legal).
-- [ ] **`devoluciones.motivo_codigo` estructurado** (hoy el motivo es uno de cinco textos fijos +
-      detalle, sumables con `group by`): esperar a fusionar la migración de venta anulada para no
-      tocar `crear_devolucion` en paralelo.
+- [x] **`devoluciones.motivo_codigo` estructurado — CERRADO 2026-09-22 (D-79, ADR-0158).** La
+      migración de venta anulada de otra sesión (`20260918163712`) no llegó a `origin/main` antes de
+      esta, así que no hubo colisión que esperar. Lista cerrada: talla, calce, defecto, no_le_gusto,
+      regalo, otro — candado en `crear_devolucion` (`p_motivo_codigo`, sin default), no solo en la
+      pantalla; `DevolucionesFlujo.tsx` ya la usa con chips de un toque. La columna `motivo` (texto
+      libre) sigue igual, para lo que la clienta cuenta de más. **Sin aplicar en producción**
+      (`supabase/migrations/20260922180000_devoluciones_motivo_estructurado.sql`, espera revisión de
+      Felipe). Prueba `pnpm pruebas:crear-devolucion-motivo` (8/8). **Prohibido explícitamente por
+      Felipe:** este dato es para revisar el calce por prenda con el Taller — nunca para rankear,
+      puntuar ni comparar asesoras; nada en esta migración ni en el código que la acompaña lo agrupa
+      por colaboradora. `cambios.motivo` (20260919000100, ya en producción) NO se tocó: tiene su
+      propio vocabulario (talla_chica/talla_grande/otro_color/defecto/otro), más granular para lo que
+      el Taller necesita de Cambios, y unificarlo con el de arriba es una decisión de Felipe que
+      queda abierta (ver ADR-0158, sección "por qué cambios.motivo no se toca").
 - [ ] **Token de idempotencia en `crear_devolucion`** (como `registrar_cambio`, ADR-0032): sin él,
       una red que se corta después del commit deja un reintento que sale con «ya se devolvieron…».
 - [ ] **La nota de crédito usa `precio_unitario` sin restarle `descuento_unitario`**
