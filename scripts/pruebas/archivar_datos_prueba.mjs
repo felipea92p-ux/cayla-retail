@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas de `20260922130000_archivar_datos_de_prueba.sql` (D-54, ADR-0152) contra el Postgres
+ * Pruebas de `20260922130000_archivar_datos_de_prueba.sql` (D-54, ADR-0159) contra el Postgres
  * local — CAYLA V2.
  *
  * QUÉ PRUEBA

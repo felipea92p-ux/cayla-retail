@@ -236,7 +236,7 @@ export type FilaExistencias = FilaStock & {
   /** Cuánto dura el stock de hoy al ritmo de venta reciente (`getCoberturaPorVariante`). Solo tiendas;
    *  ausente o null = «N/D» (no vende, no hay historial o el cálculo falló). */
   cobertura?: Cobertura | null;
-  /** Producto marcado `es_prueba` (D-54, ADR-0152): solo llega con `incluirPrueba`. */
+  /** Producto marcado `es_prueba` (D-54, ADR-0159): solo llega con `incluirPrueba`. */
   esPrueba?: boolean;
 };
 
@@ -267,7 +267,7 @@ export async function getExistencias(
       )
       .eq("transferencia.ubicacion_destino_id", ubicacionId)
       .in("transferencia.estado", ["en_transito", "recibido_con_diferencia"]),
-    // D-54 (ADR-0152): qué productos están marcados `es_prueba`, para sacarlos de la lista por
+    // D-54 (ADR-0159): qué productos están marcados `es_prueba`, para sacarlos de la lista por
     // defecto (Existencias no llama `getStockPorUbicacion` con un filtro propio — Vender, Cambios
     // y Traslados comparten esa misma función y NO estaban en el alcance de D-54, así que se
     // filtra acá, después, solo para esta pantalla). Aparte del `stock` para no tocar el `select`
