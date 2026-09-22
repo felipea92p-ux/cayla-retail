@@ -1,0 +1,930 @@
+<title>Apartados CAYLA</title>
+<meta name="description" content="Demo navegable del rediseño de Apartados con la paleta oficial CAYLA Dynamic: tres estructuras, dos listas y dos formas de entregar.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   Tokens: los de apps/web/app/globals.css (guía oficial «CAYLA Dynamic», ADR-0169).
+   Un solo tema, a propósito: el ERP todavía no tiene modo oscuro (ADR-0169, «Lo que NO se hizo»).
+   ========================================================================== */
+:root{
+  color-scheme: light;
+  --crema:#f5f0e8; --papel:#fbf8f2; --tinta:#1a1a18; --rojo:#b8412d; --rojo-profundo:#8b2a1f;
+  --sand:#e8e0d0; --taupe:#805c4c; --verde:#48603f; --ambar:#74501a; --hueso:#eae1d2; --pizarra:#4c5d6e;
+  --ease-cayla:cubic-bezier(.32,.72,.24,1);
+  --r-control:8px; --r-sup:16px; --r-flot:20px;
+  --serif:"EB Garamond", ui-serif, Georgia, serif;
+  --sans:"DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{background:var(--crema)}
+body{margin:0;color:var(--tinta);font-family:var(--sans);font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+button:disabled{cursor:not-allowed}
+input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid color-mix(in oklab,var(--taupe) 70%,transparent);outline-offset:2px}
+.serif{font-family:var(--serif);font-weight:600;letter-spacing:-.005em}
+.label{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+.taupe{color:var(--taupe)}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.92em}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- Comparador (fuera de la pantalla del ERP) ---------- */
+.comparador{padding:22px 20px 18px;max-width:1440px;margin:0 auto}
+.comp-top{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+.comp-top h1{font-family:var(--serif);font-weight:600;font-size:28px;margin:2px 0 0;line-height:1.1;text-wrap:balance}
+.comp-top p{margin:4px 0 0;color:var(--taupe);font-size:13.5px;max-width:680px}
+.sello{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:var(--sand);color:var(--taupe);padding:4px 11px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.decisiones{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;gap:12px;margin-top:16px}
+.decision{background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-sup);padding:12px 14px 13px}
+.decision h2{margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--taupe)}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{border:1px solid var(--sand);background:transparent;border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:600;color:var(--taupe);display:inline-flex;align-items:center;gap:6px;transition:background-color 150ms,color 150ms,border-color 150ms}
+.seg button:hover{color:var(--tinta);background:color-mix(in oklab,var(--sand) 40%,transparent)}
+.seg button[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.seg .rec{width:6px;height:6px;border-radius:50%;background:var(--verde)}
+.seg button[aria-pressed="true"] .rec{background:#b9cdb0}
+.gp{margin-top:9px;font-size:12px;line-height:1.5;color:var(--taupe)}
+.gp b{color:var(--tinta);font-weight:600}
+.leyenda{margin-top:8px;font-size:11.5px;color:var(--taupe);display:flex;gap:6px;align-items:center}
+.leyenda .rec{width:6px;height:6px;border-radius:50%;background:var(--verde)}
+
+/* ---------- Marco del ERP ---------- */
+.marco{max-width:1440px;margin:0 auto 40px;padding-inline:20px}
+.app{display:grid;grid-template-columns:232px 1fr;border:1px solid var(--sand);border-radius:22px;overflow:hidden;background:var(--crema);min-height:860px}
+.lateral{border-right:1px solid var(--sand);padding:22px 12px 16px;display:flex;flex-direction:column;gap:18px}
+.marca{display:flex;align-items:center;gap:10px;padding:0 12px}
+.marca span{font-size:13px;font-weight:600;letter-spacing:.32em}
+.nuevo{background:var(--tinta);color:var(--crema);border:none;border-radius:var(--r-control);height:40px;font-size:11px;font-weight:700;letter-spacing:.14em}
+.menu{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.menu li{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:10px;font-size:14px;color:var(--tinta)}
+.menu li svg{width:17px;height:17px;color:color-mix(in oklab,var(--tinta) 70%,transparent);flex:none}
+.menu li.hija{padding-left:28px;font-size:13.5px}
+.menu li.activa{background:color-mix(in oklab,var(--sand) 80%,transparent);box-shadow:inset 2px 0 0 var(--rojo)}
+.lateral .pie{margin-top:auto;border-top:1px solid var(--sand);padding:14px 10px 0;display:flex;align-items:center;gap:10px}
+.lema{font-family:var(--serif);font-style:italic;font-size:12px;color:var(--taupe);padding:0 12px}
+.av{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--sand);font-family:var(--serif);font-weight:600;font-size:13px;flex:none}
+.principal{min-width:0;display:flex;flex-direction:column}
+.barra-sup{height:56px;border-bottom:1px solid var(--sand);display:flex;align-items:center;justify-content:space-between;padding:0 24px}
+.selector-sede{border:1px solid var(--sand);border-radius:var(--r-control);padding:6px 12px;font-size:11px;font-weight:700;letter-spacing:.12em;display:flex;gap:8px;align-items:center;background:var(--papel)}
+.lienzo{padding:28px 32px 40px;display:flex;flex-direction:column;gap:20px;min-width:0}
+
+/* ---------- Piezas oficiales ---------- */
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--rojo);margin:0}
+.cabecera{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:16px 32px}
+.cabecera h1{font-family:var(--serif);font-weight:600;font-size:30px;line-height:1.15;margin:6px 0 0}
+.cabecera .bajada{margin:6px 0 0;font-size:15px;line-height:1.55;color:var(--taupe);max-width:620px}
+.acciones{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--r-control);border:1px solid transparent;padding:8px 16px;font-size:13.5px;font-weight:500;line-height:1.25;white-space:nowrap;background:transparent;transition:background-color 150ms,border-color 150ms,color 150ms}
+.btn:disabled{opacity:.5}
+.btn svg{width:15px;height:15px}
+.btn-chico{padding:5px 12px;font-size:12.5px}
+.btn-chico svg{width:14px;height:14px}
+.btn-primario{background:var(--tinta);color:var(--crema)}
+.btn-primario:hover:not(:disabled){background:var(--rojo-profundo)}
+.btn-secundario{border-color:var(--sand);color:var(--tinta)}
+.btn-secundario:hover:not(:disabled){border-color:color-mix(in oklab,var(--taupe) 40%,transparent);background:color-mix(in oklab,var(--sand) 50%,transparent)}
+.btn-peligro{color:var(--rojo);border-color:color-mix(in oklab,var(--rojo) 30%,transparent)}
+.btn-peligro:hover:not(:disabled){background:color-mix(in oklab,var(--rojo) 10%,transparent)}
+.btn-sutil{color:var(--taupe);border-color:var(--sand)}
+.btn-sutil:hover:not(:disabled){color:var(--tinta);background:color-mix(in oklab,var(--sand) 30%,transparent)}
+.btn-enlace{border:none;padding:0;color:var(--tinta);text-decoration:underline;text-underline-offset:2px;font-size:13px}
+.btn-enlace:hover{color:var(--taupe)}
+.btn-grande{height:56px;width:100%;justify-content:space-between;padding:0 20px;border-radius:12px}
+.btn-grande .monto{font-family:var(--serif);font-weight:600;font-size:21px}
+.pildora{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--sand);padding:5px 14px;font-size:13px;font-weight:600;color:var(--taupe);background:transparent;white-space:nowrap;transition:background-color 150ms,color 150ms,border-color 150ms}
+.pildora:hover{color:var(--tinta);background:color-mix(in oklab,var(--sand) 40%,transparent)}
+.pildora[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.caja{background:var(--hueso);border:1px solid var(--sand);border-radius:var(--r-control);display:flex;align-items:center;gap:10px;padding:0 12px;transition:border-color 150ms}
+.caja:focus-within{border-color:color-mix(in oklab,var(--taupe) 55%,transparent)}
+.caja input,.caja select{border:none;background:transparent;outline:none;flex:1;min-width:0;height:40px;font-size:14px}
+.caja input::placeholder{color:color-mix(in oklab,var(--taupe) 80%,transparent)}
+.caja svg{width:17px;height:17px;color:var(--taupe);flex:none}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-sup)}
+.nota{background:color-mix(in oklab,var(--hueso) 85%,transparent);border-radius:var(--r-sup);padding:14px 18px;font-size:13px;line-height:1.6;color:var(--taupe)}
+.nota b{color:var(--tinta);font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 10px;font-size:12px;line-height:20px;white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.chip.vivo::before{animation:late 1.8s ease-in-out infinite}
+@keyframes late{0%,100%{box-shadow:0 0 0 0 color-mix(in oklab,var(--rojo) 45%,transparent)}50%{box-shadow:0 0 0 4px transparent}}
+.t-verde{background:color-mix(in oklab,var(--verde) 15%,transparent);color:var(--verde)}
+.t-ambar{background:color-mix(in oklab,var(--ambar) 15%,transparent);color:var(--ambar)}
+.t-rojo{background:color-mix(in oklab,var(--rojo) 10%,transparent);color:var(--rojo-profundo)}
+.t-pizarra{background:color-mix(in oklab,var(--pizarra) 15%,transparent);color:var(--pizarra)}
+.t-neutro{background:var(--sand);color:var(--taupe)}
+.contador{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--rojo);color:var(--crema);font-size:10.5px;font-weight:700;letter-spacing:0}
+
+/* Cifras */
+.cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.cifra{padding:18px 20px}
+.cifra .et{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--taupe);margin:0}
+.cifra .et i{width:6px;height:6px;border-radius:50%;display:block}
+.cifra .val{font-family:var(--serif);font-weight:600;font-size:28px;line-height:1.2;margin:4px 0 0}
+.cifra .ctx{font-size:12px;color:var(--taupe);margin:3px 0 0;line-height:1.45}
+.cifra.custodia{background-image:repeating-linear-gradient(135deg,transparent 0 9px,color-mix(in oklab,var(--sand) 45%,transparent) 9px 10px)}
+
+/* Franjas */
+.franja{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;border-radius:var(--r-sup);padding:14px 18px;border:1px solid}
+.franja h3{margin:0;font-family:var(--serif);font-weight:600;font-size:17px}
+.franja p{margin:2px 0 0;font-size:12.5px}
+.franja.roja{background:color-mix(in oklab,var(--rojo) 7%,var(--papel));border-color:color-mix(in oklab,var(--rojo) 22%,transparent)}
+.franja.roja p{color:var(--rojo-profundo)}
+.franja.ambar{background:color-mix(in oklab,var(--ambar) 9%,var(--papel));border-color:color-mix(in oklab,var(--ambar) 25%,transparent)}
+.franja.ambar p{color:var(--ambar)}
+
+/* Tarjeta de lista */
+.lista-card{padding:18px}
+.filtros{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.filtros .caja{flex:1 1 280px;max-width:420px;margin-left:auto}
+.tabla-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--sand)}
+table.tabla{width:100%;border-collapse:collapse;min-width:960px}
+.tabla thead{background:color-mix(in oklab,var(--sand) 70%,transparent)}
+.tabla th{text-align:left;font-weight:400;color:var(--taupe);font-size:12px;padding:9px 14px;white-space:nowrap}
+.tabla td{padding:11px 14px;border-top:1px solid var(--sand);vertical-align:middle}
+.tabla tr.fila{transition:background-color 150ms}
+.tabla tr.fila:nth-child(even){background:color-mix(in oklab,var(--hueso) 50%,transparent)}
+.tabla tr.fila:hover{background:color-mix(in oklab,var(--crema) 60%,transparent)}
+.tabla tr.nueva{background:color-mix(in oklab,var(--verde) 9%,transparent)!important}
+.clienta{display:flex;align-items:center;gap:11px;min-width:0}
+.clienta b{font-weight:600;display:block;white-space:nowrap}
+.clienta small{display:block;color:var(--taupe);font-size:12px;white-space:nowrap}
+.ini{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:color-mix(in oklab,var(--sand) 80%,transparent);font-family:var(--serif);font-weight:600;font-size:14px;flex:none}
+.fotos{display:flex;align-items:center;gap:8px;min-width:0}
+.fotos .pila{display:flex}
+.fotos .pila .sw{width:28px;border:1.5px solid var(--papel)}
+.fotos .pila .sw + .sw{margin-left:-12px}
+.fotos span.refs{font-size:12.5px;color:var(--taupe);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.dinero{white-space:nowrap}
+.dinero b{font-weight:600}
+.dinero small{display:block;color:var(--taupe);font-size:12px}
+.plazo{min-width:150px}
+.plazo small{display:block;font-size:11.5px;color:var(--taupe);margin-top:5px}
+.tramos{display:grid;grid-template-columns:repeat(9,1fr);gap:2px}
+.tramos i{height:6px;border-radius:2px;display:block}
+.acc{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;max-width:210px;margin-left:auto}
+.pie-tabla{margin-top:10px;font-size:12px;color:var(--taupe)}
+.vacio{border:1.5px dashed var(--sand);border-radius:var(--r-sup);padding:36px 24px;text-align:center}
+.vacio h3{margin:0;font-family:var(--serif);font-weight:600;font-size:21px}
+.vacio p{margin:6px auto 0;color:var(--taupe);max-width:420px;font-size:13.5px}
+.vacio .disco{width:60px;height:60px;border-radius:50%;background:var(--hueso);display:grid;place-items:center;margin:0 auto 14px}
+.vacio .disco svg{width:24px;height:24px;color:var(--taupe)}
+
+/* Lista agrupada */
+.grupo + .grupo{margin-top:18px}
+.grupo h3{margin:0 0 9px;font-family:var(--serif);font-weight:600;font-size:18px;display:flex;align-items:baseline;gap:8px}
+.grupo h3 span{font-family:var(--sans);font-size:11.5px;color:var(--taupe);font-weight:500}
+.filas{list-style:none;margin:0;padding:0;border:1px solid var(--sand);border-radius:14px;overflow:hidden}
+.filas li{display:grid;grid-template-columns:minmax(200px,1.3fr) minmax(150px,1fr) 150px 180px auto;align-items:center;gap:10px 18px;padding:13px 16px;border-top:1px solid var(--sand)}
+.filas li:first-child{border-top:none}
+.filas li:hover{background:color-mix(in oklab,var(--crema) 60%,transparent)}
+
+/* Hoja (Apartar y Entregar en dos columnas) */
+.hoja{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(340px,1fr);overflow:hidden;min-height:620px}
+.hoja > section{padding:22px 24px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.hoja > aside{border-left:1px solid var(--sand);display:flex;flex-direction:column;min-width:0}
+.hoja-cab{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 22px;border-bottom:1px solid var(--sand)}
+.hoja-cab h2{margin:0;font-family:var(--serif);font-weight:600;font-size:22px;display:flex;align-items:center;gap:10px}
+.hoja-cab h2 svg{width:21px;height:21px;color:var(--taupe)}
+.hoja-cuerpo{padding:18px 22px;flex:1;overflow:auto;display:flex;flex-direction:column;gap:14px}
+.hoja-pie{border-top:1px solid var(--sand);padding:16px 22px 18px;display:flex;flex-direction:column;gap:12px}
+.total-fila{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.total-fila .grande{font-family:var(--serif);font-weight:600;font-size:40px;line-height:1}
+.ayuda{text-align:center;font-size:12px;color:var(--taupe);margin:0}
+.escaner{position:relative}
+.escaner .caja{height:52px}
+.escaner .caja input{height:50px;font-size:15px}
+.resultados{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:20;background:var(--papel);border:1px solid var(--sand);border-radius:14px;box-shadow:0 18px 40px -22px rgba(26,26,24,.35);max-height:360px;overflow:auto;padding:6px}
+.res{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:transparent;border:none;border-radius:10px;padding:8px 10px}
+.res:hover,.res.activo{background:color-mix(in oklab,var(--sand) 45%,transparent)}
+.res[disabled]{opacity:.55}
+.res .sw{width:36px}
+.res b{font-weight:600;font-size:13.5px}
+.res small{display:block;color:var(--taupe);font-size:12px}
+.res .pr{margin-left:auto;text-align:right;font-size:13px;font-weight:600;white-space:nowrap}
+.res .pr small{font-weight:400}
+.sep-res{font-size:10.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--taupe);padding:8px 10px 4px}
+.escaneada{display:grid;grid-template-columns:150px 1fr;gap:20px;padding:18px}
+.escaneada .sw{width:150px;border-radius:12px}
+.escaneada h3{margin:4px 0 2px;font-family:var(--serif);font-weight:600;font-size:26px}
+.dato{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:13px}
+.dato span{color:var(--taupe);display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+.recientes{display:flex;gap:10px;flex-wrap:wrap}
+.reciente{display:flex;align-items:center;gap:8px;border:1px solid var(--sand);border-radius:12px;padding:6px 10px 6px 6px;background:var(--papel);font-size:12.5px}
+.reciente .sw{width:26px}
+.linea{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--sand)}
+.linea .sw{width:44px}
+.linea b{font-weight:600;display:block}
+.linea small{color:var(--taupe);font-size:12px;display:block}
+.linea .der{text-align:right}
+.linea .der .tach{text-decoration:line-through;color:var(--taupe);font-size:12px;margin-right:4px}
+.pista{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--taupe)}
+.pista button{border:1px dashed var(--sand);background:transparent;border-radius:999px;padding:2px 10px;font-size:12px;color:var(--taupe)}
+.pista button:hover{color:var(--tinta);border-color:var(--taupe)}
+
+/* Pasos del formulario (es una secuencia real: prendas → clienta → adelanto) */
+.pasos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.pasos div{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe)}
+.pasos div::before{content:"";display:block;height:3px;border-radius:2px;background:var(--sand);margin-bottom:6px}
+.pasos div.hecho::before{background:var(--taupe)}
+.pasos div.ahora{color:var(--tinta)}
+.pasos div.ahora::before{background:var(--tinta)}
+.campos{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.campo{display:flex;flex-direction:column;gap:5px;min-width:0}
+.campo > .et{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe)}
+.campo .caja input{height:38px;font-size:13.5px}
+.campo.err .caja{border-color:color-mix(in oklab,var(--rojo) 45%,transparent)}
+.campo em{font-style:normal;font-size:11.5px;color:var(--rojo-profundo)}
+.opciones{display:flex;flex-wrap:wrap;gap:6px}
+.opcion{border:1px solid var(--sand);background:transparent;border-radius:var(--r-control);padding:7px 12px;font-size:12.5px;font-weight:600;color:var(--taupe);display:inline-flex;align-items:center;gap:6px}
+.opcion:hover{color:var(--tinta)}
+.opcion[aria-pressed="true"]{border-color:var(--tinta);color:var(--tinta);background:color-mix(in oklab,var(--sand) 45%,transparent)}
+.opcion .m{width:8px;height:8px;border-radius:2px}
+.resumen{display:grid;grid-template-columns:1fr auto;gap:5px 12px;font-size:13px;margin:0}
+.resumen dt{color:var(--taupe)}
+.resumen dd{margin:0;text-align:right}
+.bloque{display:flex;flex-direction:column;gap:8px}
+.bloque > .t{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe)}
+.vuelto{display:flex;justify-content:space-between;align-items:center;background:color-mix(in oklab,var(--verde) 10%,transparent);border-radius:10px;padding:10px 14px;color:var(--verde);font-weight:600;font-size:13px}
+.vuelto b{font-family:var(--serif);font-size:22px;color:var(--tinta)}
+.aviso-ok{background:color-mix(in oklab,var(--verde) 10%,transparent);color:var(--verde);border-radius:10px;padding:10px 14px;font-size:12.5px}
+
+/* Lista de Entregar (dos columnas) */
+.por-recoger{display:flex;flex-direction:column;gap:8px}
+.tarjeta-ap{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;width:100%;text-align:left;background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:12px 14px;transition:background-color 150ms,border-color 150ms}
+.tarjeta-ap:hover{background:color-mix(in oklab,var(--sand) 25%,var(--papel))}
+.tarjeta-ap[aria-pressed="true"]{border-color:color-mix(in oklab,var(--taupe) 55%,transparent);background:color-mix(in oklab,var(--sand) 40%,var(--papel))}
+.tarjeta-ap b{font-weight:600;display:block}
+.tarjeta-ap small{color:var(--taupe);font-size:12px;display:block}
+.tarjeta-ap .der{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+
+/* Pestañas de la opción B (subrayado en tinta, como hoy) y segmento de la opción C */
+.pestanas{display:flex;gap:26px;align-items:center}
+.pestanas button{background:none;border:none;height:52px;position:relative;font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:color-mix(in oklab,var(--tinta) 55%,transparent);display:inline-flex;gap:6px;align-items:center}
+.pestanas button:hover{color:var(--tinta)}
+.pestanas button[aria-current="page"]{color:var(--tinta)}
+.pestanas button[aria-current="page"]::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--tinta)}
+.hoja-tabs{display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid var(--sand);gap:16px;flex-wrap:wrap}
+.segmento{display:inline-flex;gap:4px;background:var(--hueso);border:1px solid var(--sand);border-radius:12px;padding:4px}
+.segmento button{border:none;background:transparent;border-radius:9px;padding:7px 16px;font-size:13px;font-weight:600;color:var(--taupe);display:inline-flex;gap:7px;align-items:center}
+.segmento button[aria-current="page"]{background:var(--papel);color:var(--tinta);box-shadow:0 0 0 1px var(--sand)}
+.volver{display:inline-flex;align-items:center;gap:6px;background:none;border:none;padding:0;font-size:13px;color:var(--taupe)}
+.volver:hover{color:var(--tinta)}
+.volver svg{width:15px;height:15px}
+
+/* Muestra de tela (en la app es la foto; aquí, el color de la prenda con su tejido) */
+.sw{aspect-ratio:4/5;border-radius:8px;position:relative;overflow:hidden;flex:none;max-width:100%;box-shadow:inset 0 0 0 1px rgba(26,26,24,.06)}
+.sw::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 2px,transparent 2px 5px),repeating-linear-gradient(-45deg,rgba(0,0,0,.05) 0 2px,transparent 2px 5px)}
+
+/* Modal (ADR-0136): velo con desenfoque → hoja que sube 18 px y crece → contenido en cascada */
+.velo{position:fixed;inset:0;z-index:60;background:rgba(26,26,24,.38);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;animation:velo 220ms var(--ease-cayla) backwards}
+@keyframes velo{from{opacity:0}}
+.modal{width:min(560px,100%);max-height:calc(100vh - 40px);overflow:auto;background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-flot);animation:hojaModal 420ms var(--ease-cayla) backwards}
+@keyframes hojaModal{from{opacity:0;transform:translate3d(0,18px,0) scale(.965)}}
+.modal-cuerpo{padding:24px 26px 8px;display:flex;flex-direction:column;gap:16px}
+.cascada > *{animation:cascada 500ms var(--ease-cayla) backwards;animation-delay:calc(var(--k,0) * 55ms + 120ms)}
+@keyframes cascada{from{opacity:0;transform:translate3d(0,10px,0)}}
+.modal h2{margin:4px 0 0;font-family:var(--serif);font-weight:600;font-size:26px;line-height:1.15}
+.modal .baj{margin:4px 0 0;color:var(--taupe);font-size:13.5px}
+.modal-pie{display:flex;justify-content:flex-end;gap:10px;padding:16px 26px 22px;border-top:1px solid var(--sand);margin-top:10px;position:sticky;bottom:0;background:var(--papel)}
+.visto{width:56px;height:56px;border-radius:50%;background:color-mix(in oklab,var(--verde) 14%,transparent);display:grid;place-items:center}
+.visto path{stroke:var(--verde);stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:30;stroke-dashoffset:30;animation:dibuja 480ms var(--ease-cayla) 360ms forwards}
+@keyframes dibuja{to{stroke-dashoffset:0}}
+
+/* Aviso de éxito (esquina superior derecha, sale después del loader) */
+.aviso{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:16px;z-index:70;background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:12px 16px;display:flex;gap:10px;align-items:flex-start;max-width:360px;box-shadow:0 14px 34px -20px rgba(26,26,24,.4);animation:hojaModal 380ms var(--ease-cayla) backwards}
+.aviso i{width:8px;height:8px;border-radius:50%;background:var(--verde);margin-top:6px;flex:none}
+.aviso b{display:block;font-weight:600;font-size:13.5px}
+.aviso span{font-size:12.5px;color:var(--taupe)}
+
+.anim{animation:sube 700ms var(--ease-cayla) backwards;animation-delay:calc(var(--i,0) * 70ms + 40ms)}
+@keyframes sube{from{opacity:0;transform:translate3d(0,10px,0)}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}
+  .visto path{stroke-dashoffset:0}
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width:1180px){
+  .decisiones{grid-template-columns:1fr 1fr}
+  .cifras{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .hoja{grid-template-columns:1fr}
+  .hoja > aside{border-left:none;border-top:1px solid var(--sand)}
+}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .lateral{display:none}
+  .lienzo{padding:22px 18px 32px}
+  .filas li{grid-template-columns:1fr auto}
+  .filas li > .oc{display:none}
+}
+@media (max-width:620px){
+  .comparador,.marco{padding-inline:16px}
+  .decisiones{grid-template-columns:1fr}
+  .cifras{grid-template-columns:1fr 1fr;gap:10px}
+  .cifra{padding:14px}
+  .cifra .val{font-size:23px}
+  .campos{grid-template-columns:1fr}
+  .escaneada{grid-template-columns:90px 1fr;gap:14px}
+  .escaneada .sw{width:90px}
+  .barra-sup{padding:0 16px}
+  .cabecera h1{font-size:26px}
+  .pestanas{gap:16px}
+  .hoja > section,.hoja-cuerpo{padding-inline:16px}
+}
+</style>
+
+<header class="comparador">
+  <div class="comp-top">
+    <div>
+      <span class="sello">Rediseño · 2026-09-22 · datos de ejemplo</span>
+      <h1>Apartados con la paleta oficial</h1>
+      <p>Toca las opciones: la pantalla de abajo cambia en el acto. Todo es navegable — busca una prenda, aparta, entrega, devuelve. Tokens, botones, chips y tabla salen de <span class="mono">globals.css</span> (ADR-0169); los modales siguen ADR-0136.</p>
+    </div>
+    <div class="leyenda"><span class="rec"></span> lo que recomiendo</div>
+  </div>
+  <div class="decisiones" id="decisiones"></div>
+</header>
+
+<main class="marco">
+  <div class="app">
+    <nav class="lateral" aria-label="Menú">
+      <div class="marca">
+        <svg width="30" height="26" viewBox="0 0 30 26" aria-hidden="true"><path d="M2 6c6 1 10 5 12 10 2-6 7-11 14-13-4 3-6 7-7 11l-5 9-4-8C9 11 6 8 2 6Z" fill="none" stroke="#b8412d" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        <span>CAYLA</span>
+      </div>
+      <button class="nuevo" type="button">+ NUEVO</button>
+      <ul class="menu">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Inicio</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg>Catálogo</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4h2l2.4 11h10.8L21 7H6.2"/><circle cx="9" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/></svg>Compras</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 8h12l-1 12H7z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>Ventas</li>
+        <li class="hija">Punto de Venta</li>
+        <li class="hija activa">Apartados</li>
+        <li class="hija">Caja</li>
+        <li class="hija">Historial</li>
+        <li class="hija">Posventa</li>
+        <li class="hija">Comprobantes</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg>Inventario</li>
+      </ul>
+      <p class="lema">Donde el estilo transforma.</p>
+      <div class="pie"><span class="av">FA</span><div><div style="font-size:13.5px">Felipe Alvarez</div><div class="label taupe" style="font-size:10px">Líder · Tienda TRU</div></div></div>
+    </nav>
+    <div class="principal">
+      <div class="barra-sup">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#805c4c" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
+        <span class="selector-sede">TIENDA TRU <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+      </div>
+      <div class="lienzo" id="lienzo"></div>
+    </div>
+  </div>
+</main>
+<div id="capa"></div>
+
+<script>
+(function(){
+"use strict";
+/* ----------------------------------------------------------------------------------
+   Datos de ejemplo (Tienda TRU, hoy martes 22 de setiembre de 2026). Reglas reales
+   de lib/separaciones-reglas.ts: 7 días de plazo, aviso a 2 días, 2 de gracia, 1 extensión.
+   ---------------------------------------------------------------------------------- */
+var HOY = "2026-09-22", PLAZO = 7, AVISO = 2, GRACIA = 2;
+var SEDE = "Tienda TRU";
+var CAT = [
+  {id:"cas-bei-m", ref:"Casaca Emilia", color:"Beige", talla:"M", hex:"#d8c3a5", precio:189, sku:"CAS-EMI-BEI-M", piso:2, otras:null},
+  {id:"cas-bei-s", ref:"Casaca Emilia", color:"Beige", talla:"S", hex:"#d8c3a5", precio:189, sku:"CAS-EMI-BEI-S", piso:1, otras:null},
+  {id:"blu-neg-s", ref:"Blusa Emma", color:"Negro", talla:"S", hex:"#2e2b28", precio:129, sku:"BLU-EMM-NEG-S", piso:3, otras:null},
+  {id:"blu-cre-m", ref:"Blusa Emma", color:"Crema", talla:"M", hex:"#efe4cf", precio:129, campana:{nombre:"Fin de temporada", pct:15}, sku:"BLU-EMM-CRE-M", piso:2, otras:null},
+  {id:"ves-ter-m", ref:"Vestido Solsticio", color:"Terracota", talla:"M", hex:"#b5643f", precio:219, sku:"VES-SOL-TER-M", piso:1, otras:null},
+  {id:"pan-sie-l", ref:"Pantalón Culotte", color:"Siena", talla:"L", hex:"#9c5a3c", precio:149, sku:"PAN-CUL-SIE-L", piso:2, otras:null},
+  {id:"pan-neg-s", ref:"Pantalón Culotte", color:"Negro", talla:"S", hex:"#2e2b28", precio:149, sku:"PAN-CUL-NEG-S", piso:1, otras:null},
+  {id:"chm-gri-m", ref:"Chompa Alpaca", color:"Gris perla", talla:"M", hex:"#bdb8b0", precio:255, sku:"CHM-ALP-GRI-M", piso:2, otras:null},
+  {id:"kim-cru-u", ref:"Kimono Wayra", color:"Crudo", talla:"Única", hex:"#e9dfcc", precio:214, sku:"KIM-WAY-CRU-U", piso:0, otras:"2 en Tienda AQP"}
+];
+function prenda(id){ for (var i=0;i<CAT.length;i++) if (CAT[i].id===id) return CAT[i]; return null; }
+function precioFinal(p){ return p.campana ? Math.round(p.precio*(100-p.campana.pct))/100 : p.precio; }
+function linea(id){ var p=prenda(id); return {v:id, precio:precioFinal(p)}; }
+function APS(){ return [
+  {id:"a1", codigo:"APT-TRU-0011", estado:"abierta", nombres:"María", apellidos:"Dávila Rojas", celular:"987321456", dni:"45123987", asesora:"Ana", adelanto:90, creada:"2026-09-13", vence:"2026-09-20", ext:0, devMedio:"yape", devNum:"987321456", antic:"B004-0121", prendas:[linea("cas-bei-m")], pagos:[{m:"efectivo",monto:90}]},
+  {id:"a2", codigo:"APT-TRU-0009", estado:"liberada", sola:true, nombres:"Lucía", apellidos:"Paredes Vega", celular:"987654321", dni:null, asesora:"Rocío", adelanto:60, creada:"2026-09-09", vence:"2026-09-16", ext:0, devMedio:"yape", devNum:"987654321", antic:"B004-0117", prendas:[linea("kim-cru-u")], pagos:[{m:"yape",monto:60}]},
+  {id:"a3", codigo:"APT-TRU-0012", estado:"abierta", nombres:"Sofía", apellidos:"Reyes Castro", celular:"986111222", dni:"46781234", asesora:"Milagros", adelanto:100, creada:"2026-09-16", vence:"2026-09-23", ext:0, devMedio:"yape", devNum:"986111222", antic:"B004-0128", prendas:[linea("blu-neg-s"), linea("pan-sie-l")], pagos:[{m:"yape",monto:100}]},
+  {id:"a4", codigo:"APT-TRU-0013", estado:"abierta", nombres:"Carla", apellidos:"Mendoza Ríos", celular:"945222333", dni:null, asesora:"Ana", adelanto:110, creada:"2026-09-17", vence:"2026-09-24", ext:0, devMedio:"plin", devNum:"945222333", antic:"B004-0130", prendas:[linea("ves-ter-m")], pagos:[{m:"efectivo",monto:110}]},
+  {id:"a5", codigo:"APT-TRU-0015", estado:"abierta", nombres:"Andrea", apellidos:"Quispe Luna", celular:"912444555", dni:"70123456", asesora:"Rocío", adelanto:255, creada:"2026-09-20", vence:"2026-09-27", ext:0, devMedio:"transferencia", devNum:"00219300123456789012", antic:"B004-0135", prendas:[linea("chm-gri-m")], pagos:[{m:"tarjeta",monto:255}]},
+  {id:"a6", codigo:"APT-TRU-0014", estado:"abierta", nombres:"Valeria", apellidos:"Torres Díaz", celular:"923555666", dni:null, asesora:"Milagros", adelanto:70, creada:"2026-09-19", vence:"2026-09-26", ext:0, devMedio:"plin", devNum:"923555666", antic:"B004-0133", prendas:[linea("cas-bei-s")], pagos:[{m:"plin",monto:70}]},
+  {id:"a7", codigo:"APT-TRU-0016", estado:"abierta", nombres:"Rosa", apellidos:"Huamán Salas", celular:"934666777", dni:"41239876", asesora:"Ana", adelanto:150, creada:"2026-09-21", vence:"2026-09-28", ext:0, devMedio:"yape", devNum:"934666777", antic:"B004-0138", prendas:[linea("blu-cre-m"), linea("pan-neg-s")], pagos:[{m:"efectivo",monto:150}]},
+  {id:"a8", codigo:"APT-TRU-0017", estado:"abierta", nombres:"Daniela", apellidos:"Chávez Ramos", celular:"956777888", dni:null, asesora:"Rocío", adelanto:50, creada:"2026-09-22", vence:"2026-09-29", ext:0, devMedio:"yape", devNum:"956777888", antic:"B004-0140", prendas:[linea("pan-sie-l")], pagos:[{m:"efectivo",monto:50}]},
+  {id:"a9", codigo:"APT-TRU-0007", estado:"entregada", nombres:"Gabriela", apellidos:"Soto Pinto", celular:"998123123", dni:"43219876", asesora:"Ana", adelanto:100, creada:"2026-09-10", vence:"2026-09-17", ext:0, devMedio:"yape", devNum:"998123123", antic:"B004-0119", final:"B004-0132", prendas:[linea("ves-ter-m")], pagos:[{m:"efectivo",monto:100}]},
+  {id:"a10", codigo:"APT-TRU-0005", estado:"devuelta", nombres:"Patricia", apellidos:"León Arce", celular:"976555444", dni:null, asesora:"Milagros", adelanto:80, creada:"2026-09-02", vence:"2026-09-09", ext:0, devMedio:"yape", devNum:"976555444", antic:"B004-0109", nc:"BC04-0003", prendas:[linea("cas-bei-s")], pagos:[{m:"yape",monto:80}]}
+];}
+var METODOS = [["efectivo","Efectivo","#d19a12"],["tarjeta","Tarjeta","#525a64"],["yape","Yape","#6d3fa3"],["plin","Plin","#1c6b56"],["transferencia","Transf.","#2f6aa3"]];
+var NOMBRE_METODO = {efectivo:"Efectivo", tarjeta:"Tarjeta", yape:"Yape", plin:"Plin", transferencia:"Transferencia"};
+var VENDEDORAS = ["Ana Quispe","Milagros Vega","Rocío Salazar"];
+
+/* ---------- Estado de la demo ---------- */
+var S = {
+  estructura:"A", lista:"tabla", entregar:"modal", escenario:"normal",
+  vista:"tablero", tab:"apartar", filtro:"hoy", busca:"", buscaEnt:"",
+  ticket:[], ultima:null, paso:"ticket", escaner:"", activo:0,
+  form:null, elegido:null, cobro:null, modal:null, aviso:null, nuevaId:null,
+  aps:APS(), sigCod:18, sigBol:141, sigNC:4, animar:true
+};
+function reiniciarForm(){ S.form={nombres:"",apellidos:"",celular:"",dni:"",comprobante:"boleta",adelanto:"",metodo:"efectivo",recibido:"",devMedio:"yape",devNum:"",atendio:"Ana Quispe",intento:false}; }
+reiniciarForm();
+
+/* ---------- Utilidades ---------- */
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];}); }
+function money(n){ return "S/" + Number(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+var DIAS=["dom","lun","mar","mié","jue","vie","sáb"], MESES=["ene","feb","mar","abr","may","jun","jul","ago","set","oct","nov","dic"];
+function fecha(iso){ var d=new Date(iso+"T00:00:00Z"); return DIAS[d.getUTCDay()]+" "+d.getUTCDate()+" "+MESES[d.getUTCMonth()]; }
+function diasEntre(a,b){ return Math.round((Date.parse(b+"T00:00:00Z")-Date.parse(a+"T00:00:00Z"))/86400000); }
+function sumar(iso,n){ return new Date(Date.parse(iso+"T00:00:00Z")+n*86400000).toISOString().slice(0,10); }
+function cel(c){ return c.replace(/(\d{3})(\d{3})(\d{3})/,"$1 $2 $3"); }
+function total(a){ return a.prendas.reduce(function(s,l){return s+l.precio;},0); }
+function saldo(a){ return Math.max(0, Math.round((total(a)-a.adelanto)*100)/100); }
+function iniciales(a){ return (a.nombres[0]+a.apellidos[0]).toUpperCase(); }
+function nombre(a){ return a.nombres+" "+a.apellidos.split(" ")[0]; }
+function sw(p,cls){ return '<span class="sw '+(cls||"")+'" style="background:'+p.hex+'" aria-hidden="true"></span>'; }
+function textoDev(a){ return a.devMedio==="transferencia" ? "transferencia (CCI …"+a.devNum.slice(-4)+")" : NOMBRE_METODO[a.devMedio]+" al "+cel(a.devNum); }
+function estado(a){
+  if (a.estado==="entregada") return {c:"cerrada", t:"Entregado", tono:"t-verde"};
+  if (a.estado==="devuelta") return {c:"cerrada", t:"Devuelto", tono:"t-neutro"};
+  if (a.estado==="liberada") return {c:"devolver", t:"Devolver "+money(a.adelanto), tono:"t-rojo"};
+  var f=diasEntre(HOY,a.vence);
+  if (f<0){ var q=Math.max(0,GRACIA+f+1); return {c:"vencida", t:q===1?"Vencido · decide hoy":"Vencido · decide en "+q+" días", tono:"t-rojo", vivo:true}; }
+  if (f<=AVISO) return {c:"porvencer", t:f===0?"Vence hoy":f===1?"Vence mañana":"Vence en "+f+" días", tono:"t-ambar"};
+  return {c:"vigente", t:"Quedan "+f+" días", tono:"t-pizarra"};
+}
+var ORDEN={devolver:0,vencida:1,porvencer:2,vigente:3,cerrada:4};
+function chip(e){ return '<span class="chip '+e.tono+(e.vivo?" vivo":"")+'">'+esc(e.t)+'</span>'; }
+function tramos(a){
+  var dia=diasEntre(a.creada,HOY), h="";
+  for (var i=0;i<PLAZO+GRACIA;i++){
+    var g=i>=PLAZO, m=i<dia?"p":i===dia?"h":"f", c;
+    if (m==="h") c=g?"var(--rojo)":"var(--tinta)";
+    else if (m==="p") c=g?"var(--rojo)":"color-mix(in oklab,var(--taupe) 50%,transparent)";
+    else c=g?"color-mix(in oklab,var(--rojo) 20%,transparent)":"var(--sand)";
+    h+='<i style="background:'+c+'"></i>';
+  }
+  return '<div class="tramos" aria-hidden="true">'+h+'</div>';
+}
+function coincide(a,t){
+  t=t.trim().toLowerCase(); if(!t) return true;
+  var d=t.replace(/\D/g,""), s=t.replace(/\s+/g,"");
+  return (a.nombres+" "+a.apellidos).toLowerCase().indexOf(t)>=0 || a.codigo.toLowerCase().indexOf(s)>=0 ||
+    (a.antic||"").toLowerCase().indexOf(s)>=0 || (a.final||"").toLowerCase().indexOf(s)>=0 ||
+    (d.length>=6 && (a.dni===d || a.celular===d || a.celular.indexOf(d)>=0));
+}
+function lista(){ return S.escenario==="vacia" ? [] : S.aps; }
+function cajaAbierta(){ return S.escenario!=="caja"; }
+function resumen(){
+  var ab=lista().filter(function(a){return a.estado==="abierta";});
+  var lib=lista().filter(function(a){return a.estado==="liberada";});
+  var efectivo=ab.reduce(function(s,a){return s+a.pagos.filter(function(p){return p.m==="efectivo";}).reduce(function(x,p){return x+p.monto;},0);},0);
+  var necesitan=lista().filter(function(a){var c=estado(a).c; return c==="devolver"||c==="vencida"||c==="porvencer";});
+  return {
+    porRecoger:ab.length, prendas:ab.reduce(function(s,a){return s+a.prendas.length;},0),
+    custodia:ab.reduce(function(s,a){return s+a.adelanto;},0), efectivo:efectivo,
+    porDevolver:lib.length, montoDevolver:lib.reduce(function(s,a){return s+a.adelanto;},0),
+    vencenPronto:ab.filter(function(a){return estado(a).c==="porvencer";}).length,
+    vencidos:ab.filter(function(a){return estado(a).c==="vencida";}).length,
+    necesitan:necesitan.length, sola:lib.filter(function(a){return a.sola;}).length
+  };
+}
+
+/* ---------- Íconos (trazo Lucide) ---------- */
+var I = {
+  mas:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  buscar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  escanear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M8 7v10M12 7v10M16 7v10"/></svg>',
+  marcador:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>',
+  billetera:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M19 7V5a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2"/><path d="M3 6v12a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-3"/></svg>',
+  bolsa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M6 8h12l-1 12H7z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>',
+  wsp:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.5L3 21l2-5.4A8.5 8.5 0 1 1 21 11.5Z"/></svg>',
+  atras:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>',
+  flecha:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>'
+};
+
+/* ---------- Comparador ---------- */
+var DECISIONES = [
+  {k:"estructura", t:"1 · Estructura de la pantalla", ops:[["A","Tablero + flujo",true],["B","Tres pestañas, solo visual"],["C","Pestañas + cifras fijas"]], gp:{
+    A:"<b>Ganas:</b> lo que pide acción se ve antes de tocar nada; un solo buscador de clientas (hoy hay dos); apartar queda a un clic como acción principal. <b>Pagas:</b> el recorrido cambia — al llegar una clienta se toca «+ Nuevo apartado» en vez de encontrar la pestaña abierta.",
+    B:"<b>Ganas:</b> nadie reaprende nada; mismo criterio «solo visual» que Inventario (ADR-0169). <b>Pagas:</b> en una tienda sin movimiento abre en un estado vacío, siguen dos buscadores que buscan lo mismo y la custodia solo se ve en «Todos».",
+    C:"<b>Ganas:</b> custodia y vencidos siempre a la vista, sin cambiar el recorrido. <b>Pagas:</b> las cifras empujan hacia abajo el escáner de Apartar: en una laptop de 768 px de alto el ticket pierde aire."}},
+  {k:"lista", t:"2 · La lista", ops:[["tabla","Tabla + franja",true],["grupos","Agrupada por urgencia"]], gp:{
+    tabla:"<b>Ganas:</b> saldos y plazos se comparan en columna, igual que Traslados y Existencias; la franja dice qué hacer hoy. <b>Pagas:</b> en celular la tabla se desplaza de lado.",
+    grupos:"<b>Ganas:</b> la urgencia es la estructura: los bloques ya dicen qué va primero. <b>Pagas:</b> no es la tabla de la guía; con 30 apartados se vuelve larga."}},
+  {k:"entregar", t:"3 · Cobrar el saldo", ops:[["modal","Modal de entrega",true],["hoja","Hoja de dos columnas"]], gp:{
+    modal:"<b>Ganas:</b> mismo gesto que Devolver, Liberar y +7 días; el tablero no se pierde de vista. <b>Pagas:</b> un pago mixto alarga el modal (hace scroll en pantallas bajas).",
+    hoja:"<b>Ganas:</b> espacio de sobra para billetes y pagos mixtos; es la forma del Punto de Venta. <b>Pagas:</b> una vista más: para entregar hay que salir de la lista y volver."}},
+  {k:"escenario", t:"Escenario", ops:[["normal","Día normal"],["vacia","Tienda vacía"],["caja","Caja cerrada"]], gp:{
+    normal:"8 apartados abiertos, 1 vencido, 1 por devolver y 2 cerrados en Tienda TRU.",
+    vacia:"Lo que hoy se ve en tus capturas: ningún apartado todavía.",
+    caja:"Sin caja abierta no se aparta ni se entrega; la lista se consulta igual."}}
+];
+function pintarDecisiones(){
+  var h="";
+  DECISIONES.forEach(function(d){
+    h+='<div class="decision"><h2>'+d.t+'</h2><div class="seg" role="group" aria-label="'+esc(d.t)+'">';
+    d.ops.forEach(function(o){ h+='<button type="button" data-dec="'+d.k+'" data-val="'+o[0]+'" aria-pressed="'+(S[d.k]===o[0])+'">'+(o[2]?'<span class="rec" aria-hidden="true"></span>':"")+esc(o[1])+(o[2]?'<span class="sr"> (recomendado)</span>':"")+'</button>'; });
+    h+='</div><div class="gp">'+d.gp[S[d.k]]+'</div></div>';
+  });
+  document.getElementById("decisiones").innerHTML=h;
+}
+
+/* ---------- Piezas de la pantalla ---------- */
+function cabecera(o){
+  return '<header class="cabecera'+(S.animar?" anim":"")+'"><div style="min-width:0;max-width:660px"><p class="eyebrow">'+o.sobre+'</p><h1>'+o.titulo+'</h1>'+(o.bajada?'<p class="bajada">'+o.bajada+'</p>':"")+'</div>'+(o.acciones?'<div class="acciones">'+o.acciones+'</div>':"")+'</header>';
+}
+function cifras(){
+  var r=resumen(), a=S.animar?" anim":"";
+  var c=[
+    {et:"Por recoger", v:String(r.porRecoger), ctx:r.prendas+(r.prendas===1?" prenda guardada":" prendas guardadas")},
+    {et:"En custodia", v:money(r.custodia), ctx:"No es ingreso hasta que recojan · "+money(r.efectivo)+" en el cajón", cls:" custodia"},
+    {et:"Por devolver", v:money(r.montoDevolver), ctx:r.porDevolver===0?"Nadie espera su dinero":r.porDevolver+(r.porDevolver===1?" clienta espera":" clientas esperan")+" su dinero", punto:r.porDevolver>0?"var(--rojo)":null, tono:r.porDevolver>0?"color:var(--rojo-profundo)":""},
+    {et:"Vencen en 2 días", v:String(r.vencenPronto), ctx:r.vencenPronto?"Buen momento para escribirles":"Nadie vence esta semana", punto:r.vencenPronto?"var(--ambar)":null}
+  ];
+  return '<div class="cifras">'+c.map(function(x,i){ return '<div class="card cifra'+(x.cls||"")+a+'" style="--i:'+(i+1)+'"><p class="et">'+(x.punto?'<i style="background:'+x.punto+'"></i>':"")+x.et+'</p><p class="val" style="'+(x.tono||"")+'">'+x.v+'</p><p class="ctx">'+x.ctx+'</p></div>'; }).join("")+'</div>';
+}
+function franjaCaja(){
+  if (cajaAbierta()) return "";
+  return '<div class="franja ambar'+(S.animar?" anim":"")+'"><div><h3>No hay caja abierta en '+SEDE+'</h3><p>Para apartar o entregar, primero abre la caja. La lista se puede consultar igual.</p></div><button class="btn btn-secundario" type="button" data-aviso="En la app te lleva a Caja ▸ Abrir caja.">Ir a Caja '+I.flecha+'</button></div>';
+}
+function franjaAtencion(){
+  var r=resumen();
+  if (S.lista==="tabla" && r.necesitan>0){
+    var partes=[];
+    if (r.porDevolver) partes.push(r.porDevolver+" por devolver ("+money(r.montoDevolver)+")"+(r.sola?" — se liberó solo":""));
+    if (r.vencidos) partes.push(r.vencidos+(r.vencidos===1?" vencido para decidir":" vencidos para decidir"));
+    if (r.vencenPronto) partes.push(r.vencenPronto+(r.vencenPronto===1?" vence":" vencen")+" en 2 días");
+    return '<div class="franja roja'+(S.animar?" anim":"")+'" style="--i:1"><div><h3>'+r.necesitan+(r.necesitan===1?" apartado necesita":" apartados necesitan")+' algo hoy</h3><p>'+partes.join(" · ")+'</p></div>'+(S.filtro==="hoy"?"":'<button class="btn btn-primario" type="button" data-filtro="hoy">Revisar ahora '+I.flecha+'</button>')+'</div>';
+  }
+  if (S.lista==="grupos" && r.sola>0){
+    return '<div class="franja roja'+(S.animar?" anim":"")+'"><div><h3>Un apartado venció hace más de 2 días y se liberó solo</h3><p>La prenda volvió al stock y falta devolver el adelanto.</p></div></div>';
+  }
+  return "";
+}
+function filtrados(){
+  return lista().map(function(a){return {a:a,e:estado(a)};})
+    .filter(function(x){return coincide(x.a,S.busca);})
+    .filter(function(x){ var c=x.e.c; return S.filtro==="hoy"?(c==="devolver"||c==="vencida"||c==="porvencer"):S.filtro==="abiertos"?x.a.estado==="abierta":S.filtro==="cerrados"?c==="cerrada":true; })
+    .sort(function(x,y){ return ORDEN[x.e.c]-ORDEN[y.e.c] || x.a.vence.localeCompare(y.a.vence); });
+}
+function conteos(){
+  var l=lista(), n={hoy:0,abiertos:0,cerrados:0,todos:l.length};
+  l.forEach(function(a){ var c=estado(a).c; if(c==="devolver"||c==="vencida"||c==="porvencer") n.hoy++; if(a.estado==="abierta") n.abiertos++; if(c==="cerrada") n.cerrados++; });
+  return n;
+}
+function acciones(a,e){
+  var h="", ab=cajaAbierta();
+  if (e.c==="vigente"||e.c==="porvencer"||e.c==="vencida") h+='<button class="btn btn-sutil btn-chico" type="button" data-wsp="'+a.id+'" aria-label="Escribir a '+esc(a.nombres)+' por WhatsApp" title="Escribir por WhatsApp">'+I.wsp+'</button>';
+  if (e.c==="vencida"){ h+='<button class="btn btn-sutil btn-chico" type="button" data-modal="extender" data-id="'+a.id+'"'+(a.ext>=1?' disabled title="Ya se extendió una vez"':"")+'>+7 días</button><button class="btn btn-peligro btn-chico" type="button" data-modal="liberar" data-id="'+a.id+'">Liberar</button>'; }
+  if (a.estado==="abierta") h+='<button class="btn btn-primario btn-chico" type="button" data-entregar="'+a.id+'"'+(ab?"":' disabled title="Abre la caja para entregar"')+'>Entregar</button>';
+  if (e.c==="devolver") h+='<button class="btn btn-primario btn-chico" type="button" data-modal="devolver" data-id="'+a.id+'">Devolver</button>';
+  if (e.c==="cerrada") h+='<span style="font-size:12px;color:var(--taupe)">'+(a.estado==="entregada"?"boleta "+a.final:"NC "+(a.nc||"pendiente"))+'</span>';
+  return h;
+}
+function celdaPrendas(a){
+  return '<div class="fotos"><span class="pila">'+a.prendas.slice(0,3).map(function(l){return sw(prenda(l.v));}).join("")+'</span><span class="refs">'+(function(){var p=prenda(a.prendas[0].v);return p.ref+" "+p.talla+(a.prendas.length>1?" +"+(a.prendas.length-1):"");})()+'</span></div>';
+}
+function celdaDinero(a){
+  return '<div class="dinero"><b>'+money(a.adelanto)+'</b> <span style="font-size:12px;color:var(--taupe)">de '+money(total(a))+'</span><small>'+(a.estado==="liberada"?"por "+textoDev(a):a.estado==="abierta"?(saldo(a)===0?"pagó el 100 %":"saldo "+money(saldo(a))):"cerrado")+'</small></div>';
+}
+function celdaPlazo(a){
+  if (a.estado==="abierta") return '<div class="plazo">'+tramos(a)+'<small>vence '+fecha(a.vence)+(a.ext?" · extendido":"")+'</small></div>';
+  return '<div class="plazo"><small style="margin:0">'+(a.estado==="liberada"?(a.sola?"se liberó solo el "+fecha(sumar(a.vence,GRACIA+1)):"liberado"):a.estado==="entregada"?"entregado":"devuelto")+'</small></div>';
+}
+function tarjetaLista(){
+  var n=conteos(), f=filtrados(), a=S.animar;
+  var FIL=[["hoy","Necesitan algo"],["abiertos","Por recoger"],["cerrados","Cerrados"],["todos","Todos"]];
+  var h='<section class="card lista-card'+(a?" anim":"")+'" style="--i:5" aria-label="Apartados de '+SEDE+'"><div class="filtros">';
+  FIL.forEach(function(x){ h+='<button class="pildora" type="button" data-filtro="'+x[0]+'" aria-pressed="'+(S.filtro===x[0])+'">'+x[1]+' · '+n[x[0]]+'</button>'; });
+  h+='<label class="caja"><span class="sr">Buscar en los apartados</span>'+I.buscar+'<input id="busca" value="'+esc(S.busca)+'" placeholder="Nombre, DNI, celular, APT- o B004-" autocomplete="off"></label></div>';
+  if (lista().length===0){
+    return h+'<div class="vacio"><div class="disco">'+I.marcador+'</div><h3>Todavía no hay apartados en '+SEDE+'</h3><p>Cuando una clienta deje un adelanto por una prenda, aparecerá aquí con su plazo, su saldo y lo que falta hacer.</p></div></section>';
+  }
+  if (f.length===0){
+    return h+'<div class="vacio"><h3>'+(S.busca?"Nadie con «"+esc(S.busca)+"»":S.filtro==="hoy"?"Todo al día":"Nada por aquí")+'</h3><p>'+(S.busca?"Prueba con el DNI, el celular o el N.º de boleta.":S.filtro==="hoy"?"Ningún apartado vence ni espera devolución hoy.":"Cambia el filtro para ver los demás.")+'</p></div></section>';
+  }
+  if (S.lista==="tabla"){
+    h+='<div class="tabla-wrap"><table class="tabla"><thead><tr><th>Clienta</th><th>Prendas</th><th>Adelanto</th><th>Plazo</th><th>Estado</th><th style="text-align:right">Acción</th></tr></thead><tbody>';
+    f.forEach(function(x){ var ap=x.a;
+      h+='<tr class="fila'+(S.nuevaId===ap.id?" nueva":"")+'"><td><div class="clienta"><span class="ini">'+iniciales(ap)+'</span><div><b>'+esc(ap.nombres+" "+ap.apellidos)+'</b><small>'+cel(ap.celular)+' · <span class="mono">'+ap.codigo+'</span></small></div></div></td><td>'+celdaPrendas(ap)+'</td><td>'+celdaDinero(ap)+'</td><td>'+celdaPlazo(ap)+'</td><td>'+chip(x.e)+'</td><td><div class="acc">'+acciones(ap,x.e)+'</div></td></tr>';
+    });
+    h+='</tbody></table></div><p class="pie-tabla">Mostrando '+f.length+' de '+lista().length+' · lo que exige una acción hoy va primero · los cerrados se guardan 30 días en esta lista</p>';
+  } else {
+    var G=[["Hoy, sin falta",["devolver","vencida"]],["Vencen pronto",["porvencer"]],["A tiempo",["vigente"]],["Cerrados",["cerrada"]]];
+    G.forEach(function(g){
+      var filas=f.filter(function(x){return g[1].indexOf(x.e.c)>=0;}); if(!filas.length) return;
+      h+='<div class="grupo"><h3>'+g[0]+' <span>'+filas.length+'</span></h3><ul class="filas">';
+      filas.forEach(function(x){ var ap=x.a;
+        h+='<li'+(S.nuevaId===ap.id?' style="background:color-mix(in oklab,var(--verde) 9%,transparent)"':"")+'><div class="clienta"><span class="ini">'+iniciales(ap)+'</span><div><b>'+esc(ap.nombres+" "+ap.apellidos)+'</b><small>'+cel(ap.celular)+' · <span class="mono">'+ap.codigo+'</span></small></div></div><div class="oc">'+celdaPrendas(ap)+'</div><div class="oc">'+celdaDinero(ap)+'</div><div class="oc" style="display:flex;flex-direction:column;gap:6px">'+chip(x.e)+(ap.estado==="abierta"?celdaPlazo(ap):"")+'</div><div class="acc">'+acciones(ap,x.e)+'</div></li>';
+      });
+      h+='</ul></div>';
+    });
+  }
+  return h+'</section>';
+}
+function nota(){
+  return '<p class="nota'+(S.animar?" anim":"")+'" style="--i:6;margin:0">El adelanto <b>no es venta</b>: es de la clienta hasta que recoge. Al entregar, la venta nace por el total y el adelanto se descuenta de la boleta. Si no recoge en <b>7 días</b>, hay <b>2 de gracia</b> para decidir; después la prenda vuelve sola al piso y se le devuelve el 100 % por el medio que eligió.</p>';
+}
+
+/* ---------- Apartar (hoja en dos columnas) ---------- */
+function resultados(){
+  var t=S.escaner.trim().toLowerCase(); if(!t) return {d:[],a:[]};
+  var ps=t.split(/\s+/);
+  var m=CAT.filter(function(p){ var s=(p.ref+" "+p.color+" "+p.talla+" "+p.sku).toLowerCase(); return ps.every(function(x){return s.indexOf(x)>=0;}); });
+  var d=m.filter(function(p){return disponible(p)>0;}), a=m.filter(function(p){return disponible(p)<=0;});
+  return {d:d.slice(0,8), a:a.slice(0,Math.max(0,8-d.length))};
+}
+function disponible(p){ var ya=S.ticket.filter(function(x){return x===p.id;}).length; return p.piso-ya; }
+function totalTicket(){ return S.ticket.reduce(function(s,id){return s+precioFinal(prenda(id));},0); }
+function hojaApartar(conBotonBuscar){
+  var r=resultados(), p=S.ultima?prenda(S.ultima):null, ab=cajaAbierta(), a=S.animar;
+  var h='<div class="card hoja'+(a?" anim":"")+'" style="--i:2"><section>';
+  h+='<div style="display:flex;gap:10px"><div class="escaner" style="flex:1"><label class="caja"><span class="sr">Escanear o buscar prenda</span>'+I.escanear+'<input id="escaner" value="'+esc(S.escaner)+'" placeholder="Escanea la etiqueta o busca la prenda por nombre" autocomplete="off"></label>';
+  if (S.escaner.trim()){
+    h+='<div class="resultados" role="listbox">';
+    if (!r.d.length && !r.a.length) h+='<p style="margin:0;padding:14px;font-size:13px;color:var(--taupe)">No encontramos «'+esc(S.escaner)+'» en '+SEDE+'.</p>';
+    r.d.forEach(function(x,i){ h+='<button type="button" class="res'+(i===S.activo?" activo":"")+'" data-agregar="'+x.id+'">'+sw(x)+'<span><b>'+x.ref+'</b><small>'+x.color+' · '+x.talla+' · <span class="mono">'+x.sku+'</span></small></span><span class="pr">'+money(precioFinal(x))+'<small>'+disponible(x)+' en piso</small></span></button>'; });
+    if (r.a.length){ h+='<p class="sep-res">Sin disponible aquí</p>'; r.a.forEach(function(x){ h+='<button type="button" class="res" disabled>'+sw(x)+'<span><b>'+x.ref+'</b><small>'+x.color+' · '+x.talla+(x.otras?' · hay '+x.otras:"")+'</small></span><span class="pr">'+money(x.precio)+'</span></button>'; }); }
+    h+='</div>';
+  }
+  h+='</div>'+(conBotonBuscar?'<button class="btn btn-secundario" type="button" data-ir="entregar" style="height:52px">Buscar apartado</button>':"")+'</div>';
+  h+='<div class="pista"><span>Prueba escribir:</span>'+["blusa","casaca beige","culotte","kimono"].map(function(t){return '<button type="button" data-pista="'+t+'">'+t+'</button>';}).join("")+'</div>';
+  if (p){
+    h+='<div class="card escaneada">'+sw(p)+'<div><p class="label taupe" style="margin:0">Recién escaneada</p><h3>'+p.ref+'</h3><p style="margin:0;color:var(--taupe)">'+p.color+' · talla '+p.talla+' · <span class="mono">'+p.sku+'</span></p>'+(p.campana?'<p style="margin:8px 0 0"><span class="chip t-pizarra">Campaña '+p.campana.nombre+' · −'+p.campana.pct+' %</span></p>':"")+'<div class="dato"><div><span>Precio que se congela</span><b class="serif" style="font-size:20px">'+money(precioFinal(p))+'</b></div><div><span>Queda en piso</span><b>'+disponible(p)+'</b></div><div><span>Se guarda hasta</span><b>'+fecha(sumar(HOY,PLAZO))+'</b></div></div></div></div>';
+    var rec=S.ticket.filter(function(v,i,arr){return arr.indexOf(v)===i && v!==S.ultima;});
+    if (rec.length) h+='<div><p class="label taupe" style="margin:0 0 8px">También en este apartado</p><div class="recientes">'+rec.map(function(v){var q=prenda(v);return '<span class="reciente">'+sw(q)+q.ref+' · '+q.talla+'</span>';}).join("")+'</div></div>';
+  } else {
+    h+='<div class="vacio" style="flex:1;display:flex;flex-direction:column;justify-content:center"><div class="disco">'+I.escanear+'</div><h3>Escanea la prenda que la clienta quiere apartar</h3><p>Pasa la etiqueta por la pistola. Si no la tienes, escribe el nombre o el color: la lista muestra la foto de cada prenda.</p></div>';
+  }
+  h+='</section><aside>';
+  if (S.paso==="ticket"){
+    h+='<div class="hoja-cab"><h2>'+I.marcador+'Por apartar</h2>'+(S.ticket.length?'<span class="chip t-neutro">'+S.ticket.length+(S.ticket.length===1?" prenda":" prendas")+'</span>':"")+'</div><div class="hoja-cuerpo">';
+    if (!S.ticket.length) h+='<div style="text-align:center;padding:30px 10px"><p class="serif" style="font-size:19px;margin:0">Nada por apartar todavía</p><p class="taupe" style="margin:4px 0 0;font-size:13px">Escanea la etiqueta de la prenda.</p></div>';
+    S.ticket.forEach(function(id,i){ var q=prenda(id); h+='<div class="linea">'+sw(q)+'<div><b>'+q.ref+'</b><small>'+q.color+' · '+q.talla+' · <span class="mono">'+q.sku+'</span></small></div><div class="der">'+(q.campana?'<span class="tach">'+money(q.precio)+'</span>':"")+'<b>'+money(precioFinal(q))+'</b><button class="btn-enlace" type="button" data-quitar="'+i+'" style="font-size:12px;color:var(--rojo-profundo)">Quitar</button></div></div>'; });
+    var t=totalTicket();
+    h+='</div><div class="hoja-pie"><div class="total-fila"><p style="margin:0;font-size:12px;color:var(--taupe)">Precio congelado<br>hasta el '+fecha(sumar(HOY,PLAZO))+'</p><div style="text-align:right"><p class="label taupe" style="margin:0 0 4px">Total</p><p class="grande" style="margin:0">'+money(t)+'</p></div></div>';
+    h+='<button class="btn btn-primario btn-grande" type="button" data-siguiente'+(S.ticket.length&&ab?"":" disabled")+'><span class="label" style="display:flex;gap:10px;align-items:center">'+I.marcador+'Apartar</span><span class="monto">'+money(t)+'</span></button><p class="ayuda">'+(!ab?"Abre la caja para poder apartar.":S.ticket.length?"Siguiente: los datos de la clienta y el adelanto.":"Agrega una prenda para apartar.")+'</p></div>';
+  } else {
+    h+=formularioApartar();
+  }
+  return h+'</aside></div>';
+}
+function validar(){
+  var f=S.form, e={}, t=totalTicket(), ad=parseFloat(f.adelanto);
+  if (!f.nombres.trim()) e.nombres="Falta el nombre";
+  if (!f.apellidos.trim()) e.apellidos="Faltan los apellidos";
+  if (f.celular.replace(/\D/g,"").length!==9) e.celular="9 dígitos";
+  if (f.dni && f.dni.replace(/\D/g,"").length!==8) e.dni="8 dígitos";
+  if (t>700 && !f.dni) e.dni="Obligatorio: la boleta pasa S/700";
+  if (!(ad>0)) e.adelanto="Indica el adelanto"; else if (ad>t) e.adelanto="No puede pasar el total";
+  if (f.metodo==="efectivo" && f.recibido && parseFloat(f.recibido)<ad) e.recibido="Recibido menor que el adelanto";
+  return e;
+}
+function campo(k,et,ph,ext){ var e=S.form.intento?validar()[k]:null; return '<label class="campo'+(e?" err":"")+'" style="'+(ext||"")+'"><span class="et">'+et+'</span><span class="caja"><input id="f-'+k+'" data-campo="'+k+'" value="'+esc(S.form[k])+'" placeholder="'+ph+'"'+(/celular|dni|recibido|devNum/.test(k)?' inputmode="numeric"':"")+'></span>'+(e?'<em>'+e+'</em>':"")+'</label>'; }
+function formularioApartar(){
+  var f=S.form, t=totalTicket(), ad=parseFloat(f.adelanto)||0, e=S.form.intento?validar():{};
+  var h='<div class="hoja-cab"><button class="volver" type="button" data-paso="ticket">'+I.atras+'Prendas</button><h2 style="font-size:20px">'+I.marcador+'Datos del apartado</h2></div><div class="hoja-cuerpo">';
+  h+='<div class="pasos" aria-label="Pasos"><div class="hecho">Prendas</div><div class="ahora">Clienta</div><div'+(ad>0?' class="ahora"':"")+'>Adelanto</div></div>';
+  h+='<div class="campos">'+campo("nombres","Nombres","Ej. Sofía")+campo("apellidos","Apellidos","Ej. Reyes Castro")+campo("celular","Celular · WhatsApp","9 dígitos")+campo("dni",t>700?"DNI":"DNI (recomendado)","8 dígitos")+'</div>';
+  h+='<div class="bloque"><span class="t">Comprobante del adelanto</span><div class="opciones">'+[["boleta","Boleta"],["factura","Factura"]].map(function(o){return '<button type="button" class="opcion" data-set="comprobante" data-val="'+o[0]+'" aria-pressed="'+(f.comprobante===o[0])+'">'+o[1]+'</button>';}).join("")+'</div></div>';
+  h+='<div class="bloque"><span class="t">Adelanto</span><div class="opciones">'+[[0.3,"30 %"],[0.5,"50 %"],[1,"Todo"]].map(function(o){var v=(Math.round(t*o[0]*10)/10).toFixed(2);return '<button type="button" class="opcion" data-set="adelanto" data-val="'+v+'" aria-pressed="'+(f.adelanto===v)+'">'+o[1]+' · '+money(v)+'</button>';}).join("")+'</div>'+campo("adelanto","Otro monto","0.00")+'</div>';
+  h+='<div class="bloque"><span class="t">Cómo paga el adelanto</span><div class="opciones">'+METODOS.map(function(m){return '<button type="button" class="opcion" data-set="metodo" data-val="'+m[0]+'" aria-pressed="'+(f.metodo===m[0])+'"><i class="m" style="background:'+m[2]+'"></i>'+m[1]+'</button>';}).join("")+'</div>';
+  if (f.metodo==="efectivo"){ h+=campo("recibido","Recibido en efectivo",ad?ad.toFixed(2):"0.00"); var rec=parseFloat(f.recibido)||0; if (rec>ad && ad>0) h+='<div class="vuelto"><span>Entregar vuelto</span><b>'+money(rec-ad)+'</b></div>'; }
+  h+='</div>';
+  h+='<div class="bloque"><span class="t">Si no recoge, se le devuelve por</span><div class="opciones">'+[["yape","Yape"],["plin","Plin"],["transferencia","Transferencia"]].map(function(o){return '<button type="button" class="opcion" data-set="devMedio" data-val="'+o[0]+'" aria-pressed="'+(f.devMedio===o[0])+'">'+o[1]+'</button>';}).join("")+'</div>'+campo("devNum",f.devMedio==="transferencia"?"CCI de la clienta":"Número de "+NOMBRE_METODO[f.devMedio],f.devMedio==="transferencia"?"20 dígitos":(f.celular||"el mismo celular"))+'</div>';
+  h+='<div class="bloque"><span class="t">Atendió</span><div class="opciones">'+VENDEDORAS.map(function(v){return '<button type="button" class="opcion" data-set="atendio" data-val="'+v+'" aria-pressed="'+(f.atendio===v)+'">'+v+'</button>';}).join("")+'</div></div>';
+  h+='</div><div class="hoja-pie"><dl class="resumen"><dt>Total de las prendas</dt><dd>'+money(t)+'</dd><dt>Saldo al recoger</dt><dd>'+money(Math.max(0,t-ad))+'</dd><dt>Recoger hasta</dt><dd>'+fecha(sumar(HOY,PLAZO))+'</dd></dl>';
+  var n=Object.keys(e).length;
+  h+='<button class="btn btn-primario btn-grande" type="button" data-confirmar'+(cajaAbierta()?"":" disabled")+'><span class="label" style="display:flex;gap:10px;align-items:center">'+I.marcador+'Confirmar apartado</span><span class="monto">'+money(ad)+'</span></button><p class="ayuda">'+(n?"Revisa "+n+(n===1?" dato marcado.":" datos marcados."):"Se emite la boleta de anticipo por "+money(ad)+" y la prenda queda guardada.")+'</p></div>';
+  return h;
+}
+
+/* ---------- Entregar: cuerpo compartido (modal u hoja) ---------- */
+function cobroCuerpo(a){
+  var c=S.cobro, sal=saldo(a), h="";
+  h+='<div class="bloque">'+a.prendas.map(function(l){var q=prenda(l.v);return '<div class="linea">'+sw(q)+'<div><b>'+q.ref+'</b><small>'+q.color+' · '+q.talla+' · precio congelado</small></div><div class="der"><b>'+money(l.precio)+'</b></div></div>';}).join("")+'</div>';
+  h+='<dl class="resumen"><dt>Total de las prendas</dt><dd>'+money(total(a))+'</dd><dt>Adelanto · '+a.antic+'</dt><dd>−'+money(a.adelanto)+'</dd><dt style="color:var(--tinta);font-weight:600;align-self:end">Saldo</dt><dd class="serif" style="font-size:32px;line-height:1">'+money(sal)+'</dd></dl>';
+  if (sal===0){ h+='<p class="aviso-ok" style="margin:0">Pagó el 100 % al apartar: solo se entrega la prenda. No se emite un segundo comprobante.</p>'; }
+  else {
+    h+='<div class="bloque"><span class="t">Cómo paga el saldo</span><div class="opciones">'+METODOS.map(function(m){return '<button type="button" class="opcion" data-cobro="metodo" data-val="'+m[0]+'" aria-pressed="'+(c.metodo===m[0])+'"><i class="m" style="background:'+m[2]+'"></i>'+m[1]+'</button>';}).join("")+'</div></div>';
+    if (c.metodo==="efectivo"){
+      var billetes=[sal].concat([50,100,200].map(function(b){return Math.ceil(sal/b)*b;})).filter(function(v,i,arr){return arr.indexOf(v)===i;});
+      h+='<div class="bloque"><span class="t">Recibido</span><div class="opciones">'+billetes.map(function(b,i){return '<button type="button" class="opcion" data-cobro="recibido" data-val="'+b+'" aria-pressed="'+(Number(c.recibido)===b)+'">'+(i===0?"Exacto":money(b))+'</button>';}).join("")+'</div>';
+      var r=Number(c.recibido)||0; if (r>sal) h+='<div class="vuelto"><span>Entregar vuelto</span><b>'+money(r-sal)+'</b></div>';
+      h+='</div>';
+    } else if (c.metodo!=="tarjeta"){
+      h+='<label class="campo"><span class="et">N.º de operación</span><span class="caja"><input id="c-op" data-cobro-in="op" value="'+esc(c.op||"")+'" placeholder="Del voucher de '+NOMBRE_METODO[c.metodo]+'"></span></label>';
+    }
+  }
+  h+='<label class="campo"><span class="et">Responsable</span><span class="caja"><select id="c-resp" data-cobro-in="resp">'+VENDEDORAS.map(function(v){return '<option'+(c.resp===v?" selected":"")+'>'+v+'</option>';}).join("")+'</select></span></label>';
+  return h;
+}
+function cobroListo(a){ var c=S.cobro, sal=saldo(a); if (sal===0) return true; if (!c.metodo) return false; if (c.metodo==="efectivo") return Number(c.recibido)>=sal; return true; }
+function hojaEntregar(conAtras){
+  var ab=lista().filter(function(a){return a.estado==="abierta" && coincide(a,S.buscaEnt);}).sort(function(x,y){return x.vence.localeCompare(y.vence);});
+  var el=S.elegido?lista().filter(function(a){return a.id===S.elegido && a.estado==="abierta";})[0]:null, an=S.animar;
+  var h='<div class="card hoja'+(an?" anim":"")+'" style="--i:2"><section>';
+  h+='<label class="caja" style="height:48px"><span class="sr">Buscar clienta</span>'+I.buscar+'<input id="buscaEnt" value="'+esc(S.buscaEnt)+'" placeholder="Nombre, DNI, celular o N.º de boleta de la clienta" autocomplete="off"></label>';
+  h+='<p class="label taupe" style="margin:0">'+(S.buscaEnt?"Coinciden":"Por recoger en "+SEDE)+' · '+ab.length+'</p><div class="por-recoger">';
+  if (!ab.length) h+='<div class="vacio"><h3>'+(S.buscaEnt?"Nadie con «"+esc(S.buscaEnt)+"»":"No hay apartados por recoger")+'</h3><p>'+(S.buscaEnt?"Prueba con el DNI o el N.º de boleta.":"Cuando una clienta aparte una prenda, aparecerá aquí.")+'</p></div>';
+  ab.forEach(function(a){ var e=estado(a); h+='<button type="button" class="tarjeta-ap" data-elegir="'+a.id+'" aria-pressed="'+(S.elegido===a.id)+'"><span class="ini">'+iniciales(a)+'</span><span style="min-width:0"><b>'+esc(a.nombres+" "+a.apellidos)+'</b><small>'+cel(a.celular)+' · <span class="mono">'+a.codigo+'</span></small><span style="margin-top:6px;display:block">'+celdaPrendas(a)+'</span></span><span class="der">'+chip(e)+'<span style="font-size:12.5px">saldo <b>'+money(saldo(a))+'</b></span></span></button>'; });
+  h+='</div></section><aside><div class="hoja-cab"><h2>'+I.billetera+'Saldo</h2>'+(el?'<span class="mono taupe" style="font-size:12px">'+el.codigo+'</span>':"")+'</div>';
+  if (!el){ h+='<div class="hoja-cuerpo" style="justify-content:center;text-align:center"><p class="serif" style="font-size:19px;margin:0">Elige un apartado</p><p class="taupe" style="margin:4px auto 0;font-size:13px;max-width:280px">Sus datos ya están: aquí solo se cobra lo que falta.</p></div>'; }
+  else {
+    h+='<div class="hoja-cuerpo"><div><p class="serif" style="font-size:24px;margin:0">'+esc(el.nombres+" "+el.apellidos)+'</p><p class="taupe" style="margin:2px 0 0;font-size:13px">'+cel(el.celular)+(el.dni?" · DNI "+el.dni:"")+' · apartó el '+fecha(el.creada)+'</p></div>'+cobroCuerpo(el)+'</div>';
+    var listo=cobroListo(el)&&cajaAbierta();
+    h+='<div class="hoja-pie"><button class="btn btn-primario btn-grande" type="button" data-cobrar="'+el.id+'"'+(listo?"":" disabled")+'><span class="label" style="display:flex;gap:10px;align-items:center">'+I.bolsa+'Entregar y cobrar</span><span class="monto">'+money(saldo(el))+'</span></button><p class="ayuda">'+(!cajaAbierta()?"Abre la caja para poder entregar.":listo?"Listo: entrega la prenda y la boleta.":"Elige cómo paga el saldo.")+'</p></div>';
+  }
+  return h+'</aside></div>';
+}
+function listaEntregarModal(){
+  /* Estructura B/C con entrega en modal: la pestaña Entregar es solo el buscador + la lista; el cobro se abre encima. */
+  var ab=lista().filter(function(a){return a.estado==="abierta" && coincide(a,S.buscaEnt);}).sort(function(x,y){return x.vence.localeCompare(y.vence);});
+  var h='<div class="card lista-card'+(S.animar?" anim":"")+'" style="--i:2"><div class="filtros"><label class="caja" style="max-width:none;margin:0;height:48px"><span class="sr">Buscar clienta</span>'+I.buscar+'<input id="buscaEnt" value="'+esc(S.buscaEnt)+'" placeholder="Nombre, DNI, celular o N.º de boleta de la clienta" autocomplete="off"></label></div>';
+  h+='<p class="label taupe" style="margin:0 0 10px">'+(S.buscaEnt?"Coinciden":"Por recoger en "+SEDE)+' · '+ab.length+'</p><div class="por-recoger">';
+  if (!ab.length) h+='<div class="vacio"><h3>'+(S.buscaEnt?"Nadie con «"+esc(S.buscaEnt)+"»":"No hay apartados por recoger")+'</h3></div>';
+  ab.forEach(function(a){ h+='<button type="button" class="tarjeta-ap" data-entregar="'+a.id+'"'+(cajaAbierta()?"":" disabled")+'><span class="ini">'+iniciales(a)+'</span><span style="min-width:0"><b>'+esc(a.nombres+" "+a.apellidos)+'</b><small>'+cel(a.celular)+' · <span class="mono">'+a.codigo+'</span></small></span><span class="der">'+chip(estado(a))+'<span style="font-size:12.5px">saldo <b>'+money(saldo(a))+'</b></span></span></button>'; });
+  return h+'</div></div>';
+}
+
+/* ---------- Pantalla según la estructura ---------- */
+function pintar(){
+  pintarDecisiones();
+  var L=document.getElementById("lienzo"), h="", r=resumen();
+  var titulo="Apartados · "+SEDE;
+  var bajada="La clienta deja un adelanto y la prenda la espera 7 días. Aquí se aparta, se entrega y se devuelve.";
+  if (S.estructura==="A"){
+    if (S.vista==="apartar"){
+      h+='<button class="volver'+(S.animar?" anim":"")+'" type="button" data-vista="tablero">'+I.atras+'Volver a Apartados</button>';
+      h+=cabecera({sobre:"Ventas · Apartados", titulo:"Nuevo apartado", bajada:"Escanea las prendas, toma los datos de la clienta y cobra el adelanto. El precio queda congelado 7 días.", acciones:'<button class="btn btn-secundario" type="button" data-vista="tablero">Cancelar</button>'});
+      h+=franjaCaja()+hojaApartar(false);
+    } else if (S.vista==="entregar"){
+      h+='<button class="volver'+(S.animar?" anim":"")+'" type="button" data-vista="tablero">'+I.atras+'Volver a Apartados</button>';
+      h+=cabecera({sobre:"Ventas · Apartados", titulo:"Entregar un apartado", bajada:"Busca a la clienta, cobra el saldo y entrega la prenda con su boleta."});
+      h+=hojaEntregar(true);
+    } else {
+      h+=cabecera({sobre:"Ventas", titulo:titulo, bajada:bajada, acciones:'<button class="btn btn-primario" type="button" data-vista="apartar"'+(cajaAbierta()?"":' disabled title="Abre la caja para apartar"')+'>'+I.mas+'Nuevo apartado</button>'});
+      h+=franjaCaja()+franjaAtencion()+cifras()+tarjetaLista()+nota();
+    }
+  } else {
+    var pest=[["apartar","Apartar"],["entregar","Entregar"],["todos","Todos",r.necesitan]];
+    if (S.estructura==="B"){
+      h+=cabecera({sobre:"Ventas", titulo:titulo, bajada:bajada});
+      h+=franjaCaja();
+      h+='<div class="card'+(S.animar?" anim":"")+'" style="--i:1;overflow:hidden"><div class="hoja-tabs"><p class="label" style="margin:0;font-size:11px">'+(S.tab==="apartar"?"Nuevo apartado":S.tab==="entregar"?"Entregar":"Todos los apartados")+'</p><nav class="pestanas" aria-label="Apartados">'+pest.map(function(p){return '<button type="button" data-tab="'+p[0]+'"'+(S.tab===p[0]?' aria-current="page"':"")+'>'+p[1]+(p[2]?'<span class="contador">'+p[2]+'</span>':"")+'</button>';}).join("")+'</nav></div>';
+      h+='<div style="padding:18px;display:flex;flex-direction:column;gap:18px">';
+      if (S.tab==="apartar") h+=hojaApartar(true).replace('class="card hoja','class="hoja').replace('style="--i:2"','style="border:none"');
+      else if (S.tab==="entregar") h+=S.entregar==="hoja"?hojaEntregar(false):listaEntregarModal();
+      else h+=franjaAtencion()+cifras()+tarjetaLista();
+      h+='</div></div>';
+      if (S.tab==="todos") h+=nota();
+    } else {
+      h+=cabecera({sobre:"Ventas", titulo:titulo, bajada:bajada, acciones:'<nav class="segmento" aria-label="Apartados">'+pest.map(function(p){return '<button type="button" data-tab="'+p[0]+'"'+(S.tab===p[0]?' aria-current="page"':"")+'>'+p[1]+(p[2]?'<span class="contador">'+p[2]+'</span>':"")+'</button>';}).join("")+'</nav>'});
+      h+=franjaCaja()+(S.tab==="todos"?franjaAtencion():"")+cifras();
+      if (S.tab==="apartar") h+=hojaApartar(true);
+      else if (S.tab==="entregar") h+=S.entregar==="hoja"?hojaEntregar(false):listaEntregarModal();
+      else h+=tarjetaLista()+nota();
+    }
+  }
+  L.innerHTML=h;
+  pintarCapa();
+  S.animar=false;
+}
+
+/* ---------- Modales y aviso ---------- */
+function ap(id){ return S.aps.filter(function(a){return a.id===id;})[0]; }
+function pintarCapa(){
+  var c=document.getElementById("capa"), h="";
+  var m=S.modal;
+  if (m){
+    var a=m.id?ap(m.id):null, cuerpo="", pie="";
+    if (m.tipo==="entregar"){
+      cuerpo='<div><p class="eyebrow">Entregar · '+a.codigo+'</p><h2>'+esc(a.nombres+" "+a.apellidos)+'</h2><p class="baj">'+cel(a.celular)+(a.dni?" · DNI "+a.dni:"")+' · apartó el '+fecha(a.creada)+' · atendió '+a.asesora+'</p></div>'+cobroCuerpo(a);
+      pie='<button class="btn btn-secundario" type="button" data-cerrar>Cancelar</button><button class="btn btn-primario" type="button" data-cobrar="'+a.id+'"'+(cobroListo(a)?"":" disabled")+'>'+I.bolsa+'Entregar y cobrar '+money(saldo(a))+'</button>';
+    } else if (m.tipo==="devolver"){
+      var pideOp=a.devMedio!=="efectivo";
+      cuerpo='<div><p class="eyebrow">Devolver adelanto · '+a.codigo+'</p><h2>Devolver '+money(a.adelanto)+' a '+esc(nombre(a))+'</h2><p class="baj">'+(a.sola?"Su apartado venció hace más de 2 días y la prenda ya volvió al piso sola.":"La prenda ya volvió al piso.")+' Pidió la devolución por '+textoDev(a)+'.</p></div>';
+      cuerpo+='<dl class="resumen"><dt>Adelanto · '+a.antic+'</dt><dd>'+money(a.adelanto)+'</dd><dt>Medio</dt><dd>'+NOMBRE_METODO[a.devMedio]+'</dd><dt>Nota de crédito</dt><dd>se emite sobre '+a.antic+'</dd></dl>';
+      if (pideOp) cuerpo+='<label class="campo"><span class="et">N.º de operación del '+NOMBRE_METODO[a.devMedio]+'</span><span class="caja"><input id="m-op" data-mop value="'+esc(m.op||"")+'" placeholder="Obligatorio"></span></label>';
+      cuerpo+='<label class="campo"><span class="et">Responsable</span><span class="caja"><select id="m-resp">'+VENDEDORAS.map(function(v){return '<option>'+v+'</option>';}).join("")+'</select></span></label>';
+      pie='<button class="btn btn-secundario" type="button" data-cerrar>Cancelar</button><button class="btn btn-primario" type="button" data-hacer="devolver"'+(pideOp&&!(m.op||"").trim()?" disabled":"")+'>Registrar devolución</button>';
+    } else if (m.tipo==="liberar"){
+      cuerpo='<div><p class="eyebrow">Liberar · '+a.codigo+'</p><h2>Liberar el apartado de '+esc(nombre(a))+'</h2><p class="baj">Venció el '+fecha(a.vence)+'. '+a.prendas.map(function(l){return prenda(l.v).ref;}).join(" y ")+' vuelve'+(a.prendas.length>1?"n":"")+' al piso para la venta, y el adelanto de '+money(a.adelanto)+' queda <b style="color:var(--tinta)">por devolver</b> por '+textoDev(a)+'.</p></div><p class="nota" style="margin:0">Antes de liberar, un último mensaje por WhatsApp suele bastar: muchas clientas recogen al día siguiente.</p>';
+      pie='<button class="btn btn-secundario" type="button" data-cerrar>Cancelar</button><button class="btn btn-peligro" type="button" data-hacer="liberar">Liberar prendas</button>';
+    } else if (m.tipo==="extender"){
+      cuerpo='<div><p class="eyebrow">+7 días · '+a.codigo+'</p><h2>Darle 7 días más a '+esc(nombre(a))+'</h2><p class="baj">Nuevo plazo: hasta el <b style="color:var(--tinta)">'+fecha(sumar(HOY,PLAZO))+'</b>. Solo se puede extender una vez; el precio sigue congelado.</p></div>';
+      pie='<button class="btn btn-secundario" type="button" data-cerrar>Cancelar</button><button class="btn btn-primario" type="button" data-hacer="extender">Extender 7 días</button>';
+    } else if (m.tipo==="exito"){
+      cuerpo='<div class="visto"><svg width="28" height="28" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><div><p class="eyebrow">Apartado guardado</p><h2>'+a.codigo+' · '+esc(nombre(a))+'</h2><p class="baj">Boleta de anticipo <b style="color:var(--tinta)">'+a.antic+'</b> por '+money(a.adelanto)+'. '+(saldo(a)?"Saldo al recoger "+money(saldo(a))+". ":"")+'Recoge hasta el '+fecha(a.vence)+'.</p></div><div class="bloque">'+a.prendas.map(function(l){var q=prenda(l.v);return '<div class="linea">'+sw(q)+'<div><b>'+q.ref+'</b><small>'+q.color+' · '+q.talla+'</small></div><div class="der"><b>'+money(l.precio)+'</b></div></div>';}).join("")+'</div>';
+      pie='<button class="btn btn-secundario" type="button" data-wsp="'+a.id+'">'+I.wsp+'Enviarle el resumen</button><button class="btn btn-primario" type="button" data-cerrar-exito>Listo</button>';
+    }
+    h+='<div class="velo" data-velo><div class="modal" role="dialog" aria-modal="true"><div class="modal-cuerpo cascada">'+cuerpo+'</div><div class="modal-pie">'+pie+'</div></div></div>';
+  }
+  if (S.aviso) h+='<div class="aviso" role="status"><i></i><div><b>'+S.aviso.t+'</b>'+(S.aviso.d?'<span>'+S.aviso.d+'</span>':"")+'</div></div>';
+  c.innerHTML=h;
+  // La cascada: cada hijo directo sube 55 ms después del anterior.
+  var cas=c.querySelector(".cascada"); if (cas && m && !m.pintado){ Array.prototype.forEach.call(cas.children,function(el,i){el.style.setProperty("--k",Math.min(i,7));}); m.pintado=true; } else if (cas){ Array.prototype.forEach.call(cas.children,function(el){el.style.animation="none";}); c.querySelector(".modal").style.animation="none"; c.querySelector(".velo").style.animation="none"; }
+}
+var avisoTimer=null;
+function avisar(t,d){ S.aviso={t:t,d:d}; clearTimeout(avisoTimer); avisoTimer=setTimeout(function(){S.aviso=null; pintarCapa();},3800); }
+function abrirEntrega(id){
+  var a=ap(id); S.cobro={metodo:saldo(a)?"efectivo":null, recibido:"", op:"", resp:VENDEDORAS[0]};
+  if (S.entregar==="modal"){ S.modal={tipo:"entregar", id:id}; pintarCapa(); }
+  else { S.elegido=id; if (S.estructura==="A") S.vista="entregar"; else S.tab="entregar"; S.animar=true; pintar(); }
+}
+
+/* ---------- Eventos ---------- */
+document.addEventListener("click",function(ev){
+  var t=ev.target.closest("button, [data-velo]"); if(!t) return;
+  var d=t.dataset;
+  if (d.velo!==undefined && ev.target!==t) return;
+  if (d.velo!==undefined){ S.modal=null; pintarCapa(); return; }
+  if (t.disabled) return;
+  if (d.dec){ S[d.dec]=d.val; if(d.dec==="estructura"){ S.vista="tablero"; S.tab=d.val==="A"?"todos":"apartar"; } if(d.dec==="escenario"){ S.aps=APS(); S.nuevaId=null; } S.modal=null; S.animar=true; pintar(); return; }
+  if (d.vista){ S.vista=d.vista; S.paso="ticket"; S.animar=true; if(d.vista==="tablero"){ S.elegido=null; } pintar(); return; }
+  if (d.tab){ S.tab=d.tab; S.animar=true; pintar(); return; }
+  if (d.ir==="entregar"){ if (S.estructura==="A"){ S.vista="tablero"; } else S.tab="entregar"; S.animar=true; pintar(); return; }
+  if (d.filtro){ S.filtro=d.filtro; if (S.estructura!=="A" && S.tab!=="todos") S.tab="todos"; pintar(); return; }
+  if (d.pista!==undefined){ S.escaner=d.pista; S.activo=0; pintar(); var i=document.getElementById("escaner"); if(i){i.focus(); i.setSelectionRange(i.value.length,i.value.length);} return; }
+  if (d.agregar){ agregar(d.agregar); return; }
+  if (d.quitar!==undefined){ var id=S.ticket.splice(Number(d.quitar),1)[0]; if(S.ultima===id) S.ultima=S.ticket.length?S.ticket[S.ticket.length-1]:null; pintar(); return; }
+  if (d.siguiente!==undefined){ S.paso="formulario"; reiniciarForm(); pintar(); return; }
+  if (d.paso){ S.paso=d.paso; pintar(); return; }
+  if (d.set){ S.form[d.set]=d.val; if(d.set==="devMedio") S.form.devNum=d.val==="transferencia"?"":S.form.celular; pintar(); return; }
+  if (d.confirmar!==undefined){ confirmar(); return; }
+  if (d.entregar){ abrirEntrega(d.entregar); return; }
+  if (d.elegir){ S.elegido=d.elegir; var a=ap(d.elegir); S.cobro={metodo:saldo(a)?"efectivo":null, recibido:"", op:"", resp:VENDEDORAS[0]}; pintar(); return; }
+  if (d.cobro){ S.cobro[d.cobro]=d.cobro==="recibido"?Number(d.val):d.val; if(S.modal) pintarCapa(); else pintar(); return; }
+  if (d.cobrar){ cobrar(d.cobrar); return; }
+  if (d.modal){ S.modal={tipo:d.modal, id:d.id}; pintarCapa(); return; }
+  if (d.hacer){ hacer(d.hacer); return; }
+  if (d.cerrar!==undefined){ S.modal=null; pintarCapa(); return; }
+  if (d.cerrarExito!==undefined){ S.modal=null; if(S.estructura==="A"){ S.vista="tablero"; S.filtro="abiertos"; S.animar=true; } pintar(); avisar("Apartado guardado","La prenda quedó guardada en el piso de "+SEDE+"."); pintarCapa(); return; }
+  if (d.wsp){ var w=ap(d.wsp); avisar("Mensaje listo para "+w.nombres, "En la app abre WhatsApp con el resumen y el plazo ("+cel(w.celular)+")."); pintarCapa(); return; }
+  if (d.aviso){ avisar("Solo en la demo", d.aviso); pintarCapa(); return; }
+});
+document.addEventListener("input",function(ev){
+  var t=ev.target, pos=t.selectionStart;
+  if (t.id==="busca"){ S.busca=t.value; }
+  else if (t.id==="buscaEnt"){ S.buscaEnt=t.value; }
+  else if (t.id==="escaner"){ S.escaner=t.value; S.activo=0; }
+  else if (t.dataset.campo){ S.form[t.dataset.campo]=t.value; if(t.dataset.campo==="celular" && S.form.devMedio!=="transferencia") S.form.devNum=t.value; }
+  else if (t.dataset.cobroIn){ S.cobro[t.dataset.cobroIn]=t.value; if(S.modal){ refrescarPieModal(); } return; }
+  else if (t.dataset.mop!==undefined){ S.modal.op=t.value; refrescarPieModal(); return; }
+  else return;
+  var id=t.id; pintar(); var n=document.getElementById(id); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos);}catch(e){} }
+});
+document.addEventListener("change",function(ev){ var t=ev.target; if (t.dataset && t.dataset.cobroIn){ S.cobro[t.dataset.cobroIn]=t.value; } });
+document.addEventListener("keydown",function(ev){
+  if (ev.key==="Escape" && S.modal){ S.modal=null; pintarCapa(); return; }
+  if (ev.target.id==="escaner"){
+    var r=resultados();
+    if (ev.key==="ArrowDown"){ S.activo=Math.min(r.d.length-1,S.activo+1); ev.preventDefault(); pintar(); document.getElementById("escaner").focus(); }
+    if (ev.key==="ArrowUp"){ S.activo=Math.max(0,S.activo-1); ev.preventDefault(); pintar(); document.getElementById("escaner").focus(); }
+    if (ev.key==="Enter" && r.d[S.activo]){ agregar(r.d[S.activo].id); }
+  }
+});
+function refrescarPieModal(){
+  var m=S.modal, b;
+  if (m.tipo==="devolver"){ b=document.querySelector('[data-hacer="devolver"]'); if(b) b.disabled=!(m.op||"").trim(); }
+}
+function agregar(id){
+  var p=prenda(id); if(!p || disponible(p)<=0) return;
+  S.ticket.push(id); S.ultima=id; S.escaner=""; S.activo=0; S.paso="ticket"; pintar();
+  var i=document.getElementById("escaner"); if(i) i.focus();
+}
+function confirmar(){
+  S.form.intento=true; var e=validar();
+  if (Object.keys(e).length){ pintar(); return; }
+  var f=S.form, ad=Math.round(parseFloat(f.adelanto)*100)/100;
+  var nuevo={id:"n"+S.sigCod, codigo:"APT-TRU-00"+S.sigCod, estado:"abierta", nombres:f.nombres.trim(), apellidos:f.apellidos.trim(), celular:f.celular.replace(/\D/g,""), dni:f.dni||null, asesora:f.atendio.split(" ")[0], adelanto:ad, creada:HOY, vence:sumar(HOY,PLAZO), ext:0, devMedio:f.devMedio, devNum:(f.devNum||f.celular).replace(/\D/g,""), antic:"B004-0"+S.sigBol, prendas:S.ticket.map(linea), pagos:[{m:f.metodo, monto:ad}]};
+  S.sigCod++; S.sigBol++;
+  if (S.escenario==="vacia"){ S.escenario="normal"; S.aps=[]; }
+  S.aps.unshift(nuevo); S.nuevaId=nuevo.id;
+  S.ticket=[]; S.ultima=null; S.paso="ticket"; reiniciarForm();
+  S.modal={tipo:"exito", id:nuevo.id}; pintar();
+}
+function cobrar(id){
+  var a=ap(id); if(!cobroListo(a)) return;
+  var sal=saldo(a), vuelto=S.cobro.metodo==="efectivo"?Math.max(0,(Number(S.cobro.recibido)||0)-sal):0;
+  a.estado="entregada"; a.final=sal?"B004-0"+(S.sigBol++):a.antic;
+  S.modal=null; S.elegido=null;
+  if (S.estructura==="A" && S.vista==="entregar"){ S.vista="tablero"; S.animar=true; }
+  pintar();
+  avisar("Entregado a "+nombre(a), sal?"Boleta "+a.final+" por "+money(sal)+(vuelto?" · vuelto "+money(vuelto):""):"Pagó el 100 %: sin segundo comprobante."); pintarCapa();
+}
+function hacer(que){
+  var a=ap(S.modal.id);
+  if (que==="devolver"){ a.estado="devuelta"; a.nc="BC04-000"+(S.sigNC++); S.modal=null; pintar(); avisar("Devolución registrada", money(a.adelanto)+" por "+NOMBRE_METODO[a.devMedio]+" · nota de crédito "+a.nc); }
+  if (que==="liberar"){ a.estado="liberada"; a.sola=false; S.modal=null; pintar(); avisar("Prendas liberadas","Volvieron al piso. Falta devolver "+money(a.adelanto)+" a "+a.nombres+"."); }
+  if (que==="extender"){ a.vence=sumar(HOY,PLAZO); a.ext=1; S.modal=null; pintar(); avisar("Plazo extendido","Ahora vence el "+fecha(a.vence)+"."); }
+  pintarCapa();
+}
+
+S.tab="todos";
+pintar();
+})();
+</script>
