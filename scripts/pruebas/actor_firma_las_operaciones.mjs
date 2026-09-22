@@ -174,10 +174,15 @@ const MIRAN_LA_CUENTA = [
   "fn_stock_por_sede", "fn_terminal_actual", "fn_tiene_acceso_retail", "fn_ubicacion_actual_persona",
   "liberar_apartado", "listar_apartados", "registrar_venta",
 ].sort();
+// Las de roles por módulo (20260923030000) se clasifican y se vigilan en `roles_por_modulo.mjs`: `fn_mi_rol_id` mira la
+// cuenta (permiso) y sus 6 RPC firman con el actor de no-tienda, una vez cada una. Se excluyen acá para que este conteo
+// dé lo mismo con esa migración aplicada o sin ella.
+const DE_ROLES = ["fn_mi_rol_id", "crear_rol", "guardar_modulos_rol", "renombrar_rol", "archivar_rol", "restaurar_rol", "asignar_rol"];
+const SIN_ROLES = `proname <> all (array[${DE_ROLES.map((f) => `'${f}'`).join(", ")}])`;
 caso(
   `las únicas que miran la cuenta con auth.uid() son las ${MIRAN_LA_CUENTA.length} de permiso/identidad (y los permisos de las 2 a mano)`,
   `select string_agg(distinct proname, ',' order by proname) from pg_proc
-    where pronamespace = 'retail'::regnamespace and pg_get_functiondef(oid) ~* 'auth_user_id\\s*=\\s*auth\\.uid\\(\\)';`,
+    where pronamespace = 'retail'::regnamespace and ${SIN_ROLES} and pg_get_functiondef(oid) ~* 'auth_user_id\\s*=\\s*auth\\.uid\\(\\)';`,
   MIRAN_LA_CUENTA.join(",")
 );
 
@@ -187,7 +192,7 @@ caso(
      count(*) filter (where d ~ 'fn_actor_persona_id\\(true\\)'),
      count(*) filter (where d ~ 'fn_actor_persona_id\\(false\\)'),
      count(*) filter (where (length(d) - length(replace(d, 'fn_actor_persona_id(', ''))) / length('fn_actor_persona_id(') > 1))
-   from (select pg_get_functiondef(oid) d from pg_proc where pronamespace = 'retail'::regnamespace and proname <> 'fn_actor_persona_id') x;`,
+   from (select pg_get_functiondef(oid) d from pg_proc where pronamespace = 'retail'::regnamespace and proname <> 'fn_actor_persona_id' and ${SIN_ROLES}) x;`,
   "36,29,0"
 );
 

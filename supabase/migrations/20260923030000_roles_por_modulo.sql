@@ -479,8 +479,10 @@ declare
   v_id uuid;
   v_nombre text := btrim(coalesce(p_nombre, ''));
   v_origen retail.roles;
+  v_quien uuid;
 begin
   perform retail.fn_exigir_lider_de_roles();
+  v_quien := retail.fn_actor_persona_id(false);
   if v_nombre = '' then
     raise exception 'Ponle un nombre al rol';
   end if;
@@ -494,7 +496,7 @@ begin
     end if;
   end if;
   insert into retail.roles (nombre, descripcion, creado_por)
-    values (v_nombre, nullif(btrim(coalesce(p_descripcion, '')), ''), retail.fn_actor_persona_id(false))
+    values (v_nombre, nullif(btrim(coalesce(p_descripcion, '')), ''), v_quien)
     returning id into v_id;
   if v_origen.id is not null then
     -- Duplicar el Líder da un rol con todo lo delegable (el Líder no guarda filas: ya ve todo).
@@ -506,7 +508,7 @@ begin
   insert into retail.roles_historial (rol_id, accion, detalle, hecho_por)
     values (v_id, 'creacion', jsonb_build_object('nombre', v_nombre, 'copia_de', v_origen.nombre,
             'modulos', coalesce((select jsonb_agg(modulo order by modulo) from retail.rol_modulos where rol_id = v_id), '[]'::jsonb)),
-            retail.fn_actor_persona_id(false));
+            v_quien);
   return v_id;
 end;
 $fn$;
@@ -603,6 +605,7 @@ as $fn$
 declare
   v_rol retail.roles;
   v_n integer;
+  v_quien uuid;
 begin
   perform retail.fn_exigir_lider_de_roles();
   select * into v_rol from retail.roles where id = p_rol_id for update;
@@ -621,9 +624,10 @@ begin
   if v_n > 0 then
     raise exception 'El rol % lo tienen % cuenta(s): asígnales otro rol antes de archivarlo', v_rol.nombre, v_n using errcode = '23503';
   end if;
-  update retail.roles set archivado_at = now(), archivado_por = retail.fn_actor_persona_id(false) where id = p_rol_id;
+  v_quien := retail.fn_actor_persona_id(false);
+  update retail.roles set archivado_at = now(), archivado_por = v_quien where id = p_rol_id;
   insert into retail.roles_historial (rol_id, accion, detalle, hecho_por)
-    values (p_rol_id, 'archivo', '{}'::jsonb, retail.fn_actor_persona_id(false));
+    values (p_rol_id, 'archivo', '{}'::jsonb, v_quien);
 end;
 $fn$;
 
