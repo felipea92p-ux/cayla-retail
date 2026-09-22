@@ -5,6 +5,8 @@ import {
   FILTROS_TIPO,
   PERIODOS_RAPIDOS,
   PROCESOS_FILTRO,
+  PROCESOS_POR_CATEGORIA,
+  categoriaDeProceso,
   desdeDeUltimosDias,
   etiquetaActividad,
   etiquetaDia,
@@ -248,6 +250,29 @@ describe("etiquetaProceso", () => {
     expect(porValor.venta).toBe("Venta");
     expect(porValor.movimiento_interno).toBe("Reposición interna");
     expect(PROCESOS_FILTRO.every((p) => p.etiqueta && !p.etiqueta.includes("_"))).toBe(true);
+  });
+});
+
+describe("filtro de proceso en dos pasos (tipo → proceso)", () => {
+  it("todo proceso del filtro tiene al menos un tipo, y todo proceso de un tipo existe en el filtro", () => {
+    const filtro = new Set(PROCESOS_FILTRO.map((p) => p.valor));
+    const enTipos = new Set(CATEGORIAS.flatMap((c) => PROCESOS_POR_CATEGORIA[c]));
+    expect([...filtro].filter((p) => !enTipos.has(p))).toEqual([]);
+    expect([...enTipos].filter((p) => !filtro.has(p))).toEqual([]);
+  });
+
+  it("«Cambio» vive en Entradas y en Salidas (la prenda devuelta entra, la nueva sale)", () => {
+    expect(PROCESOS_POR_CATEGORIA.entrada).toContain("cambio");
+    expect(PROCESOS_POR_CATEGORIA.salida).toContain("cambio");
+  });
+
+  it("un enlace con solo ?proc= deduce su tipo si es uno solo", () => {
+    expect(categoriaDeProceso("conteo")).toBe("ajuste");
+    expect(categoriaDeProceso("venta")).toBe("salida");
+    expect(categoriaDeProceso("traslado_entrada")).toBe("transferencia");
+    expect(categoriaDeProceso("cambio")).toBeNull();
+    expect(categoriaDeProceso("inventado")).toBeNull();
+    expect(categoriaDeProceso(null)).toBeNull();
   });
 });
 

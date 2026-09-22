@@ -41,6 +41,15 @@
   --color-verde: #48603f;       /* Va bien / hecho — oficial 2026-09-22 (antes #556e49, 4.99:1); más oscuro, sube el contraste */
   --color-ambar: #74501a;       /* Al filo / en proceso — oficial 2026-09-22 (antes #8c631f, 4.72:1); más oscuro, sube el contraste */
 
+  /* Marcas de GRÁFICO con polaridad (Análisis de inventario, 2026-09-22): aceleró · estable · desaceleró.
+     Son relleno, no texto. El verde y el ámbar oficiales se confunden como relleno vecino (ΔE 7.9, 4.5
+     con deuteranopía) y el taupe también se confundía con el ámbar: con el validador de paletas, este
+     trío pasa en todos los pares (ΔE ≥ 17 normal, ≥ 11 con daltonismo). El neutro es el punto medio de
+     una escala divergente: claro a propósito, y siempre va con etiqueta y número al lado. */
+  --color-grafico-alza: #48603f;
+  --color-grafico-neutro: #d3c8b4;
+  --color-grafico-baja: #a8741f;
+
   /* Versiones profundas, SOLO para texto sobre su propio tinte (los chips de
      estado). Un chip pinta el fondo con el mismo color al 10%, y eso le come
      ~0.6 puntos de contraste al texto: `text-verde` sobre `bg-verde/10` cae a

@@ -320,13 +320,27 @@ caso(
 
 // ---------------- Reglas de los roles ----------------
 caso(
-  "Líder no se edita, no se archiva y no se asigna",
+  "Líder no se edita, no se archiva y no se renombra",
   como(FELIPE_AUTH) +
     intento(`select retail.guardar_modulos_rol(retail.fn_rol_por_clave('lider'), array['vender'])`) + "\n" +
     intento(`select retail.archivar_rol(retail.fn_rol_por_clave('lider'))`) + "\n" +
-    intento(`select retail.renombrar_rol(retail.fn_rol_por_clave('lider'), 'Jefa')`) + "\n" +
-    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_lider, micaela)) from ids;`,
-  (s) => s.split("\n").length === 4 && s.split("\n").every((l) => l.startsWith("42501|"))
+    intento(`select retail.renombrar_rol(retail.fn_rol_por_clave('lider'), 'Jefa')`),
+  (s) => s.split("\n").length === 3 && s.split("\n").every((l) => l.startsWith("42501|"))
+);
+caso(
+  "entre líderes: se sube a Líder y se baja a otro líder (con sede si no tiene)",
+  como(FELIPE_AUTH) +
+    `select asignar_rol(r_lider, micaela) from ids \\g /dev/null\n` +
+    `select c.rol, c.rol_id = i.r_lider from retail.colaboradores c, ids i where c.persona_id = i.micaela;\n` +
+    // Como los líderes de producción: sin sede fija.
+    `update retail.colaboradores set ubicacion_asignada_id = null where persona_id = (select micaela from ids);\n` +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_integ, micaela)) from ids;\n` +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, micaela, tru)) from ids;\n` +
+    `select c.rol, c.rol_id = i.r_integ, c.ubicacion_asignada_id = i.tru from retail.colaboradores c, ids i where c.persona_id = i.micaela;`,
+  (s) => {
+    const l = s.split("\n");
+    return l.length === 4 && l[0] === "lider|t" && l[1].startsWith("23514|") && l[2] === "SIN_ERROR" && l[3] === "colaborador|t|t";
+  }
 );
 caso(
   "Integrante se edita y se renombra, pero no se archiva",
@@ -401,7 +415,7 @@ caso(
   "caja,cambios,clientas,devoluciones,facturacion,historial,vender"
 );
 caso(
-  "a un líder no se le cambia el rol",
+  "nadie se cambia su propio rol (así nunca falta un líder)",
   como(FELIPE_AUTH) + `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_integ, felipe)) from ids;`,
   (s) => s.startsWith("42501|")
 );
