@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cambios — rediseño oficial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="cayla-oficial.css">
+<style>
+  .buscador{display:flex; gap:10px; align-items:center; margin-bottom:12px;}
+  .chip{font-size:12px; font-weight:600; border:1px solid var(--sand); border-radius:var(--r-pildora); padding:6px 13px; background:var(--papel); color:var(--taupe);}
+  .chip.link{color:var(--rojo); border-color:transparent; background:none; padding-left:0;}
+  .venta-row{display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--sand);}
+  .venta-row:last-child{border-bottom:none;}
+  .venta-row .info{flex:1; min-width:0;}
+  .venta-row .info b{font-size:13.5px; display:block;}
+  .venta-row .info span{font-size:11.5px; color:var(--taupe);}
+  .venta-row .accion{font-size:12.5px; font-weight:700; color:var(--tinta); white-space:nowrap;}
+  .tallas{border:1.5px dashed var(--sand); border-radius:var(--r-superficie); padding:14px 18px; margin-top:4px;}
+  .tallas .lock{font-size:10.5px; font-weight:700; letter-spacing:.05em; color:var(--taupe); text-transform:uppercase; margin-bottom:4px;}
+  .motivo-chips{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;}
+  .motivo-chip{font-size:12.5px; font-weight:600; border:1.5px solid var(--sand); border-radius:var(--r-pildora); padding:8px 15px; background:var(--crema);}
+  .motivo-chip.sel{border-color:var(--tinta); background:var(--tinta); color:var(--crema);}
+  .condicion2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .cond-card{border:1.5px solid var(--sand); border-radius:var(--r-superficie); padding:14px; background:var(--crema);}
+  .cond-card.sel{border-color:var(--verde); background:color-mix(in oklab, var(--verde) 8%, var(--crema));}
+</style>
+</head>
+<body data-tema="claro">
+<div class="lienzo">
+
+  <div class="marco-head">
+    <div class="titulo">
+      <span class="num">C</span>
+      <div><h1>Cambios</h1><p>Ruta <code>/cambios</code> — rediseño con la paleta oficial CAYLA</p></div>
+    </div>
+    <div class="row">
+      <span class="tag">REDISEÑO 2026-09-22</span>
+      <button class="tema-toggle" onclick="document.body.dataset.tema = document.body.dataset.tema==='oscuro' ? 'claro' : 'oscuro'; this.textContent = document.body.dataset.tema==='oscuro' ? 'Ver en claro' : 'Ver en oscuro';">Ver en oscuro</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside>
+      <div class="logo"><img src="cayla-isotipo.png" alt="">CAYLA</div>
+      <button class="nuevo">+ NUEVO</button>
+      <nav>
+        <a class="ni"><span class="dot"></span>Inicio</a>
+        <a class="ni"><span class="dot"></span>Colaboradores</a>
+        <a class="ni"><span class="dot"></span>Catálogo</a>
+        <a class="ni"><span class="dot"></span>Compras</a>
+        <div class="grupo-lbl"><span class="dot" style="opacity:1"></span>Ventas</div>
+        <div class="hijos">
+          <a class="hijo">Punto de Venta</a>
+          <a class="hijo">Caja</a>
+          <a class="hijo">Historial</a>
+          <a class="hijo activo">Cambios</a>
+          <a class="hijo">Devoluciones</a>
+          <a class="hijo">Facturación</a>
+        </div>
+        <a class="ni"><span class="dot"></span>Inventario</a>
+      </nav>
+      <div class="foot">
+        <p class="tagline">Donde el estilo transforma.</p>
+        <div class="persona"><span class="avatar">FA</span><div><b>Felipe Alvarez</b><span>LÍDER · TIENDA LIMA</span></div></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar entra">
+        <div>
+          <p class="eyebrow">Ventas</p>
+          <h2 class="pagetitle">Cambios</h2>
+          <p class="subtitle">Gestiona cambios de prendas de manera rápida y segura.</p>
+        </div>
+        <div class="row" style="gap:22px;">
+          <div style="text-align:right;"><b style="font-family:var(--serif); font-size:18px; display:block;">3</b><span style="font-size:10.5px; color:var(--taupe); text-transform:uppercase;">Cambios hoy</span></div>
+          <div style="text-align:right;"><b style="font-family:var(--serif); font-size:18px; display:block;">41</b><span style="font-size:10.5px; color:var(--taupe); text-transform:uppercase;">Este mes</span></div>
+          <div style="text-align:right;"><b style="font-family:var(--serif); font-size:18px; display:block;">S/ 2,180</b><span style="font-size:10.5px; color:var(--taupe); text-transform:uppercase;">Valor cambiado</span></div>
+        </div>
+      </div>
+
+      <div class="card entra" style="margin-bottom:14px; animation-delay:60ms;">
+        <h3>Iniciar un cambio</h3>
+        <div class="buscador">
+          <input class="input" placeholder="Boleta, DNI, clienta, prenda o código" disabled>
+          <button class="btn btn-primario">Buscar</button>
+        </div>
+        <div class="row" style="flex-wrap:wrap;">
+          <span class="chip">📷 Escanear prenda</span>
+          <span class="chip link">Sin comprobante →</span>
+          <select class="input right" style="width:auto; border-radius:999px;"><option>Buscar en esta sede</option><option>Buscar en todas las tiendas</option></select>
+        </div>
+      </div>
+
+      <div class="card entra" style="margin-bottom:14px; animation-delay:100ms;">
+        <h3>Actividad reciente</h3>
+        <p class="hint">Compras de los últimos 15 días en Tienda Lima: las que todavía se pueden cambiar.</p>
+        <div class="filtros" style="margin-top:0;">
+          <span class="filtro activo">Todas · 24</span>
+          <span class="filtro">Con cambio · 6</span>
+          <span class="filtro">Sin comprobante · 3</span>
+        </div>
+        <div class="stack" style="gap:0;">
+          <div class="venta-row">
+            <div class="thumb"></div>
+            <div class="info"><b>Boleta B001-0142 · Casaca Emilia +2</b><span>Vendido 18/09 · Rosa Quispe</span></div>
+            <span class="badge" data-tono="verde">Vence en 4 días</span>
+            <span class="accion">Iniciar cambio →</span>
+          </div>
+          <div class="venta-row">
+            <div class="thumb"></div>
+            <div class="info"><b>Boleta B004-000021 · Blusa Emma</b><span>Vendido 15/09 · Rosa Quispe</span></div>
+            <span class="badge" data-tono="taupe">Cambio completado</span>
+            <span class="accion" style="color:var(--taupe)">Ver detalle</span>
+          </div>
+          <div class="venta-row">
+            <div class="thumb"></div>
+            <div class="info"><b>Sin comprobante · Pantalón Culotte Siena</b><span>Vendido 12/09 · Luciana Torres</span></div>
+            <span class="badge" data-tono="rojo">Fuera del plazo</span>
+            <span class="accion">Iniciar cambio →</span>
+          </div>
+          <div class="venta-row" style="opacity:.55;">
+            <div class="thumb"></div>
+            <div class="info"><b>Boleta B001-0139 · Capa Andina Paracas</b><span>Vendido 10/09 · Rosa Quispe</span></div>
+            <span class="badge" data-tono="apagado">Venta anulada</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tallas entra" style="animation-delay:140ms;">
+        <div class="lock">Solo líder</div>
+        <h3 style="margin-bottom:2px;">Tallas que no calzan · últimos 90 días</h3>
+        <p class="hint" style="margin:0;">Prendas que se cambian seguido a otra talla, en todas las sedes. Si una va casi siempre a la talla de arriba, la horma puede estar calzando chica.</p>
+      </div>
+    </main>
+  </div>
+
+  <div class="card entra" style="margin-top:16px; animation-delay:180ms;">
+    <p class="eyebrow" style="margin-bottom:10px;">Vista previa · paso 3 del flujo guiado («¿Por qué la cambia?»)</p>
+    <h3 style="margin-bottom:14px;">Reemplazo — Blusa Emma, talla M</h3>
+    <div class="motivo-chips">
+      <span class="motivo-chip sel">Le quedó chica</span>
+      <span class="motivo-chip">Le quedó grande</span>
+      <span class="motivo-chip">Prefiere otro color</span>
+      <span class="motivo-chip">Tiene un defecto</span>
+      <span class="motivo-chip">Otro motivo</span>
+    </div>
+    <p class="hint" style="margin:0 0 8px;">¿Cómo vuelve la prenda que trae?</p>
+    <div class="condicion2">
+      <div class="cond-card sel"><b style="display:block; font-size:13.5px; margin-bottom:3px;">Impecable</b><span class="muted" style="font-size:11.5px;">Vuelve al piso de venta.</span></div>
+      <div class="cond-card"><b style="display:block; font-size:13.5px; margin-bottom:3px;">Con defecto o uso</b><span class="muted" style="font-size:11.5px;">Va a cuarentena: un líder decide si se repara, se dona o vuelve al proveedor.</span></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Productos — rediseño oficial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="cayla-oficial.css">
+<style>
+  .kpi.clic{cursor:default;}
+  .kpi.clic:hover{border-color:var(--taupe);}
+  .filtros-fila{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;}
+  .filtros-fila .input{width:auto; min-width:130px; flex:1;}
+  .toggle-vista{display:flex; border:1px solid var(--sand); border-radius:var(--r-control); overflow:hidden;}
+  .toggle-vista span{padding:8px 14px; font-size:12.5px; font-weight:600; color:var(--taupe);}
+  .toggle-vista span.activo{background:var(--tinta); color:var(--crema);}
+  .swatch-mini{width:12px; height:12px; border-radius:3px; display:inline-block; border:1px solid var(--sand);}
+</style>
+</head>
+<body data-tema="claro">
+<div class="lienzo">
+
+  <div class="marco-head">
+    <div class="titulo">
+      <span class="num">P</span>
+      <div><h1>Productos</h1><p>Ruta <code>/productos</code> — rediseño con la paleta oficial CAYLA</p></div>
+    </div>
+    <div class="row">
+      <span class="tag">REDISEÑO 2026-09-22</span>
+      <button class="tema-toggle" onclick="document.body.dataset.tema = document.body.dataset.tema==='oscuro' ? 'claro' : 'oscuro'; this.textContent = document.body.dataset.tema==='oscuro' ? 'Ver en claro' : 'Ver en oscuro';">Ver en oscuro</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside>
+      <div class="logo"><img src="cayla-isotipo.png" alt="">CAYLA</div>
+      <button class="nuevo">+ NUEVO</button>
+      <nav>
+        <a class="ni"><span class="dot"></span>Inicio</a>
+        <a class="ni"><span class="dot"></span>Colaboradores</a>
+        <div class="grupo-lbl"><span class="dot" style="opacity:1"></span>Catálogo</div>
+        <div class="hijos">
+          <a class="hijo activo">Productos</a>
+          <a class="hijo">Categorías</a>
+          <a class="hijo">Atributos</a>
+        </div>
+        <a class="ni"><span class="dot"></span>Compras</a>
+        <a class="ni"><span class="dot"></span>Ventas</a>
+        <a class="ni"><span class="dot"></span>Inventario</a>
+      </nav>
+      <div class="foot">
+        <p class="tagline">Donde el estilo transforma.</p>
+        <div class="persona"><span class="avatar">FA</span><div><b>Felipe Alvarez</b><span>LÍDER · TIENDA LIMA</span></div></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar entra">
+        <div>
+          <p class="eyebrow">Catálogo</p>
+          <h2 class="pagetitle">Productos</h2>
+          <p class="subtitle" style="margin-bottom:0;">124 productos · 486 variantes · 12 para pedir · 8 con stock bajo · 3 sin stock</p>
+        </div>
+        <div class="row">
+          <div class="toggle-vista"><span>Grilla</span><span class="activo">Tabla</span></div>
+          <button class="btn btn-primario">+ Nuevo producto</button>
+        </div>
+      </div>
+
+      <div class="kpi-row entra" style="grid-template-columns:repeat(5,1fr); animation-delay:40ms;">
+        <div class="kpi clic"><div class="lbl">Productos</div><div class="val">124</div></div>
+        <div class="kpi clic"><div class="lbl">Variantes</div><div class="val">486</div></div>
+        <div class="kpi clic ambar"><div class="lbl">Pedir a proveedor</div><div class="val">12</div></div>
+        <div class="kpi clic ambar"><div class="lbl">Stock bajo</div><div class="val">8</div></div>
+        <div class="kpi clic rojo"><div class="lbl">Sin stock</div><div class="val">3</div></div>
+      </div>
+
+      <div class="card entra" style="margin-bottom:14px; animation-delay:80ms;">
+        <div class="filtros-fila">
+          <input class="input" placeholder="Referencia, código, SKU o código de barras" disabled>
+          <select class="input"><option>Categoría</option></select>
+          <select class="input"><option>Marca</option></select>
+          <select class="input"><option>Proveedor</option></select>
+          <select class="input"><option>Estado</option></select>
+        </div>
+        <table class="tabla">
+          <thead><tr><th></th><th>Producto</th><th>Categoría</th><th>Variantes</th><th>Stock total</th><th>Costo</th><th>Estado</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td><b>Casaca Emilia</b><br><span class="muted" style="font-size:11px;">CAS-EMI</span></td>
+              <td>Casacas <span class="muted">· Andina</span></td>
+              <td>6</td>
+              <td>48 <span class="badge sinpunto" data-tono="taupe" style="margin-left:4px;">bajo</span></td>
+              <td>S/ 62.00</td>
+              <td><span class="badge" data-tono="verde">Activo</span></td>
+              <td>···</td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td><b>Blusa Emma</b><br><span class="muted" style="font-size:11px;">BLU-EMM</span></td>
+              <td>Blusas <span class="muted">· Wayra</span></td>
+              <td>9</td>
+              <td>112</td>
+              <td>S/ 38.00</td>
+              <td><span class="badge" data-tono="verde">Activo</span></td>
+              <td>···</td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td><b>Vestido Solsticio</b><br><span class="muted" style="font-size:11px;">VES-SOL</span></td>
+              <td>Vestidos <span class="muted">· Tara</span></td>
+              <td>5</td>
+              <td>Sin stock</td>
+              <td>S/ 71.00</td>
+              <td><span class="badge" data-tono="verde">Activo</span></td>
+              <td>···</td>
+            </tr>
+            <tr>
+              <td><input type="checkbox"></td>
+              <td><b>Capa Andina Paracas</b><br><span class="muted" style="font-size:11px;">CAP-AND</span></td>
+              <td>Abrigos</td>
+              <td>3</td>
+              <td>—</td>
+              <td>S/ 95.00</td>
+              <td><span class="badge" data-tono="apagado">Descontinuado</span></td>
+              <td>···</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

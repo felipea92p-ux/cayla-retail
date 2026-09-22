@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Historial de ventas — rediseño oficial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="cayla-oficial.css">
+<style>
+  .grid-hist{display:grid; grid-template-columns:1.7fr 1fr; gap:16px;}
+  .venta-fila{display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--sand);}
+  .venta-fila:last-child{border-bottom:none;}
+  .venta-fila .thumbs{display:flex;}
+  .venta-fila .thumb{width:32px; height:32px; border-radius:var(--r-control); background:var(--hueso); border:2px solid var(--papel); margin-left:-10px;}
+  .venta-fila .thumb:first-child{margin-left:0;}
+  .venta-fila .info{flex:1; min-width:0;}
+  .venta-fila .info b{font-size:13.5px; display:block;}
+  .venta-fila .info span{font-size:11.5px; color:var(--taupe);}
+  .venta-fila .monto{font-weight:700; font-size:14px; text-align:right; white-space:nowrap;}
+  .venta-fila .monto span{display:block; font-weight:400; font-size:11px; color:var(--taupe);}
+  .dia-head{display:flex; justify-content:space-between; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--taupe); padding:12px 0 6px; border-top:1px solid var(--sand); margin-top:6px;}
+  .dia-head:first-of-type{border-top:none; margin-top:0;}
+  .barras-dia{display:flex; align-items:flex-end; gap:4px; height:70px; margin:10px 0;}
+  .barras-dia .bar{flex:1; background:var(--sand); border-radius:2px 2px 0 0;}
+  .barras-dia .bar.pico{background:var(--rojo);}
+  .pago-row{display:flex; align-items:center; gap:8px; font-size:12px; margin-bottom:6px;}
+  .pago-row .sw{width:9px; height:9px; border-radius:3px; flex:none;}
+  .pago-row .val{margin-left:auto; font-weight:600;}
+</style>
+</head>
+<body data-tema="claro">
+<div class="lienzo">
+
+  <div class="marco-head">
+    <div class="titulo">
+      <span class="num">H</span>
+      <div><h1>Historial de ventas</h1><p>Ruta <code>/vender/historial</code> — rediseño con la paleta oficial CAYLA</p></div>
+    </div>
+    <div class="row">
+      <span class="tag">REDISEÑO 2026-09-22</span>
+      <button class="tema-toggle" onclick="document.body.dataset.tema = document.body.dataset.tema==='oscuro' ? 'claro' : 'oscuro'; this.textContent = document.body.dataset.tema==='oscuro' ? 'Ver en claro' : 'Ver en oscuro';">Ver en oscuro</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside>
+      <div class="logo"><img src="cayla-isotipo.png" alt="">CAYLA</div>
+      <button class="nuevo">+ NUEVO</button>
+      <nav>
+        <a class="ni"><span class="dot"></span>Inicio</a>
+        <a class="ni"><span class="dot"></span>Colaboradores</a>
+        <a class="ni"><span class="dot"></span>Catálogo</a>
+        <a class="ni"><span class="dot"></span>Compras</a>
+        <div class="grupo-lbl"><span class="dot" style="opacity:1"></span>Ventas</div>
+        <div class="hijos">
+          <a class="hijo">Punto de Venta</a>
+          <a class="hijo">Caja</a>
+          <a class="hijo activo">Historial</a>
+          <a class="hijo">Cambios</a>
+          <a class="hijo">Devoluciones</a>
+          <a class="hijo">Facturación</a>
+        </div>
+        <a class="ni"><span class="dot"></span>Inventario</a>
+      </nav>
+      <div class="foot">
+        <p class="tagline">Donde el estilo transforma.</p>
+        <div class="persona"><span class="avatar">FA</span><div><b>Felipe Alvarez</b><span>LÍDER · TIENDA LIMA</span></div></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar entra">
+        <div>
+          <p class="eyebrow">Ventas</p>
+          <h2 class="pagetitle">Historial</h2>
+          <p class="subtitle">Libro de todas las ventas. Solo lectura: una venta se corrige con anulación, cambio o devolución.</p>
+        </div>
+      </div>
+
+      <div class="kpi-row entra" style="animation-delay:40ms;">
+        <div class="kpi"><div class="lbl">Ventas del período</div><div class="val">S/ 5,487.10</div></div>
+        <div class="kpi"><div class="lbl">Ventas</div><div class="val">17</div></div>
+        <div class="kpi"><div class="lbl">Por día vendido</div><div class="val">S/ 686</div></div>
+        <div class="kpi rojo"><div class="lbl">Pendientes de comprobante</div><div class="val">17</div></div>
+      </div>
+
+      <div class="card entra" style="margin-bottom:14px; animation-delay:80ms;">
+        <input class="input" placeholder="Busca por boleta, clienta o prenda…" disabled style="margin-bottom:12px;">
+        <div class="filtros" style="margin:0;">
+          <span class="filtro">Hoy</span>
+          <span class="filtro">Ayer</span>
+          <span class="filtro">Pendientes de comprobante · 17</span>
+          <span class="right"></span>
+          <span class="filtro">7 días</span>
+          <span class="filtro activo">30 días</span>
+          <span class="filtro">90 días</span>
+          <span class="filtro">Personalizado</span>
+        </div>
+      </div>
+
+      <div class="grid-hist entra" style="animation-delay:120ms;">
+        <div class="card">
+          <div class="dia-head"><span>Hoy · lunes 21 de setiembre</span><span>S/ 812.00 · 3 ventas</span></div>
+          <div class="venta-fila">
+            <div class="thumbs"><div class="thumb"></div><div class="thumb"></div><div class="thumb"></div></div>
+            <div class="info"><b>Casaca Emilia, +13</b><span>Boleta B001-0142 · 14:32 · Tienda Lima</span></div>
+            <span class="badge sinpunto" data-tono="verde">Enviado</span>
+            <div class="monto">S/ 368.00<span>Yape</span></div>
+          </div>
+          <div class="venta-fila">
+            <div class="thumbs"><div class="thumb"></div><div class="thumb"></div></div>
+            <div class="info"><b>Blusa Emma, +2</b><span>Boleta B004-000021 · 12:15 · Tienda Lima</span></div>
+            <span class="badge" data-tono="ambar">Pendiente de enviar</span>
+            <div class="monto">S/ 189.00<span>Plin</span></div>
+          </div>
+          <div class="venta-fila">
+            <div class="thumbs"><div class="thumb"></div></div>
+            <div class="info"><b>Chompa Alpaca Cuello Alto</b><span>Boleta B001-0141 · 10:48 · Tienda Lima · Vendido por C.</span></div>
+            <span class="badge sinpunto" data-tono="verde">Enviado</span>
+            <div class="monto">S/ 255.00<span>Tarjeta</span></div>
+          </div>
+
+          <div class="dia-head"><span>Ayer · domingo 20 de setiembre</span><span>S/ 1,420.50 · 4 ventas (1 anulada)</span></div>
+          <div class="venta-fila">
+            <div class="thumbs"><div class="thumb"></div><div class="thumb"></div></div>
+            <div class="info"><b>Vestido Solsticio y Blus…</b><span>Boleta B001-0140 · 19:40 · Tienda Lima</span></div>
+            <span class="badge sinpunto" data-tono="verde">Enviado</span>
+            <div class="monto">S/ 485.00<span>Efectivo</span></div>
+          </div>
+          <div class="venta-fila">
+            <div class="thumbs"><div class="thumb"></div></div>
+            <div class="info"><b>Pantalón Culotte Siena</b><span>17:10 · Tienda Lima</span></div>
+            <span class="badge" data-tono="ambar">Sin comprobante</span>
+            <div class="monto">S/ 235.00<span>Yape</span></div>
+          </div>
+          <div class="venta-fila" style="opacity:.5;">
+            <div class="thumbs"><div class="thumb"></div></div>
+            <div class="info"><b style="text-decoration:line-through;">Capa Andina Paracas</b><span>15:20 · Tienda Lima · Vendido por Luciana</span></div>
+            <span class="badge" data-tono="apagado">Anulada</span>
+            <div class="monto" style="text-decoration:line-through;">S/ 700.00<span>Tarjeta</span></div>
+          </div>
+          <div class="venta-fila">
+            <div class="thumbs"><div class="thumb"></div><div class="thumb"></div></div>
+            <div class="info"><b>Kimono…</b><span>Boleta B001-0139 · 11:05 · Tienda Lima</span></div>
+            <span class="badge sinpunto" data-tono="verde">Enviado</span>
+            <div class="monto">S/ 310.00<span>Transf. + Tarjeta + Efvo.</span></div>
+          </div>
+          <button class="btn btn-secundario" style="width:100%; justify-content:center; margin-top:14px;">Cargar más ventas ▾</button>
+        </div>
+
+        <div class="stack">
+          <div class="card">
+            <h3>Ventas por día</h3>
+            <p class="hint">Últimos 30 días</p>
+            <div class="barras-dia">
+              <div class="bar" style="height:35%"></div><div class="bar" style="height:45%"></div><div class="bar" style="height:30%"></div>
+              <div class="bar" style="height:55%"></div><div class="bar" style="height:50%"></div><div class="bar" style="height:60%"></div>
+              <div class="bar" style="height:65%"></div><div class="bar" style="height:58%"></div><div class="bar" style="height:70%"></div>
+              <div class="bar" style="height:62%"></div><div class="bar pico" style="height:100%"></div>
+            </div>
+            <p class="hint" style="margin:0;">Mejor día · lun, 21 set — <b style="color:var(--tinta)">S/ 1,520.00 · 4 ventas</b></p>
+          </div>
+          <div class="grid-2">
+            <div class="card"><div class="lbl" style="font-size:10.5px; color:var(--taupe); text-transform:uppercase;">Ticket promedio</div><div style="font-family:var(--serif); font-size:19px; font-weight:600;">S/ 322.76</div></div>
+            <div class="card"><div class="lbl" style="font-size:10.5px; color:var(--taupe); text-transform:uppercase;">Por día vendido</div><div style="font-family:var(--serif); font-size:19px; font-weight:600;">S/ 686.00</div></div>
+            <div class="card"><div class="lbl" style="font-size:10.5px; color:var(--taupe); text-transform:uppercase;">Prendas vendidas</div><div style="font-family:var(--serif); font-size:19px; font-weight:600;">68</div></div>
+            <div class="card"><div class="lbl" style="font-size:10.5px; color:var(--taupe); text-transform:uppercase;">Anuladas</div><div style="font-family:var(--serif); font-size:19px; font-weight:600; color:var(--rojo-profundo);">1 (S/ 700)</div></div>
+          </div>
+          <div class="card">
+            <h3>Cómo se pagó</h3>
+            <div class="pago-row"><span class="sw" style="background:var(--ambar)"></span>Yape 40%<span class="val">S/ 2,180.00</span></div>
+            <div class="pago-row"><span class="sw" style="background:var(--pizarra)"></span>Tarjeta 30%<span class="val">S/ 1,640.10</span></div>
+            <div class="pago-row"><span class="sw" style="background:var(--taupe)"></span>Plin 15%<span class="val">S/ 820.00</span></div>
+            <div class="pago-row"><span class="sw" style="background:var(--verde)"></span>Efectivo 9%<span class="val">S/ 512.00</span></div>
+            <div class="pago-row"><span class="sw" style="background:var(--sand)"></span>Transferencia 6%<span class="val">S/ 335.00</span></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

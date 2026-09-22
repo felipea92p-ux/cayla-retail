@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Conteo — rediseño oficial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="cayla-oficial.css">
+<style>
+  .kpi.acento{border-left:3px solid var(--rojo);}
+</style>
+</head>
+<body data-tema="claro">
+<div class="lienzo">
+
+  <div class="marco-head">
+    <div class="titulo">
+      <span class="num">C</span>
+      <div><h1>Conteo físico</h1><p>Ruta <code>/inventario/conteo</code> — rediseño con la paleta oficial CAYLA</p></div>
+    </div>
+    <div class="row">
+      <span class="tag">REDISEÑO 2026-09-22</span>
+      <button class="tema-toggle" onclick="document.body.dataset.tema = document.body.dataset.tema==='oscuro' ? 'claro' : 'oscuro'; this.textContent = document.body.dataset.tema==='oscuro' ? 'Ver en claro' : 'Ver en oscuro';">Ver en oscuro</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside>
+      <div class="logo"><img src="cayla-isotipo.png" alt="">CAYLA</div>
+      <button class="nuevo">+ NUEVO</button>
+      <nav>
+        <a class="ni"><span class="dot"></span>Inicio</a>
+        <a class="ni"><span class="dot"></span>Colaboradores</a>
+        <a class="ni"><span class="dot"></span>Catálogo</a>
+        <a class="ni"><span class="dot"></span>Compras</a>
+        <a class="ni"><span class="dot"></span>Ventas</a>
+        <div class="grupo-lbl"><span class="dot" style="opacity:1"></span>Inventario</div>
+        <div class="hijos">
+          <a class="hijo">Existencias</a>
+          <a class="hijo">Movimientos</a>
+          <a class="hijo">Traslados</a>
+          <a class="hijo activo">Conteo</a>
+          <a class="hijo">Análisis</a>
+        </div>
+      </nav>
+      <div class="foot">
+        <p class="tagline">Donde el estilo transforma.</p>
+        <div class="persona"><span class="avatar">FA</span><div><b>Felipe Alvarez</b><span>LÍDER · TIENDA LIMA</span></div></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar entra">
+        <div>
+          <p class="eyebrow">Inventario · Conteo · Tienda Lima</p>
+          <h2 class="pagetitle">Conteo físico</h2>
+          <p class="subtitle">Compara lo que dice el sistema contra lo que hay de verdad en la tienda. Se cuenta a ciegas: el sistema no muestra su cifra hasta revisar.</p>
+        </div>
+      </div>
+
+      <div class="kpi-row entra" style="grid-template-columns:repeat(3,1fr); animation-delay:40ms;">
+        <div class="kpi verde"><div class="lbl">Exactitud del inventario</div><div class="val">96 %</div><div class="ctx">142 de 148 líneas coincidieron · 6 conteos cerrados</div></div>
+        <div class="kpi acento"><div class="lbl">Conteo abierto</div><div class="val">Conteo 13</div><div class="ctx">Piso · solo Blusas · 24 de 60 prendas (40%)</div></div>
+        <div class="kpi rojo"><div class="lbl">Diferencia hasta ahora</div><div class="val">−S/ 84.00</div><div class="ctx">2 prendas con diferencia · se ajusta al cerrar</div></div>
+      </div>
+
+      <div class="row entra" style="margin-bottom:16px; animation-delay:80ms;">
+        <button class="btn btn-primario">Seguir contando →</button>
+      </div>
+
+      <div class="card entra" style="animation-delay:120ms;">
+        <h3>Conteos de esta ubicación</h3>
+        <table class="tabla">
+          <thead><tr><th>Conteo</th><th>Qué se contó</th><th>Resultado</th><th>Sistema → físico</th><th>Responsables</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><b>Conteo 13</b><br><span class="muted" style="font-size:11px;">Abierto 21/09</span></td>
+              <td>Piso · Solo Blusas · 24 líneas</td>
+              <td><span class="badge" data-tono="ambar">En curso</span></td>
+              <td>—</td>
+              <td>Abrió Rosa Quispe</td>
+              <td><button class="btn btn-enlace" style="font-size:12px;">Contar</button></td>
+            </tr>
+            <tr>
+              <td><b>Conteo 12</b><br><span class="muted" style="font-size:11px;">Cerrado 14/09</span></td>
+              <td>Toda la ubicación · Todo el catálogo · 148 líneas</td>
+              <td><span class="badge" data-tono="rojo">Diferencia −S/ 210</span></td>
+              <td>842 → 836 · 6 con diferencia</td>
+              <td>Abrió Rosa · Cerró Felipe</td>
+              <td><button class="btn btn-secundario" style="padding:6px 12px; font-size:12px;">Ver detalle</button></td>
+            </tr>
+            <tr>
+              <td><b>Conteo 11</b><br><span class="muted" style="font-size:11px;">Cerrado 30/08</span></td>
+              <td>Almacén · Todo el catálogo · 96 líneas</td>
+              <td><span class="badge" data-tono="verde">Sin diferencias</span></td>
+              <td>coinciden</td>
+              <td>Abrió y cerró Felipe</td>
+              <td><button class="btn btn-secundario" style="padding:6px 12px; font-size:12px;">Ver detalle</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="hint" style="margin-top:10px;">Un conteo está abierto o cerrado, nada más — no existe un estado «por revisar».</p>
+      </div>
+
+      <div class="antes-nota" style="background:var(--hueso); border:1px solid var(--sand); border-radius:var(--r-superficie); padding:14px 16px; font-size:12.5px; color:var(--taupe); line-height:1.6; margin-top:16px;">
+        <b style="color:var(--tinta);">Cómo se cuenta:</b> se escanea o se escribe el SKU y se anota lo que hay físicamente, sin ver la cifra del sistema. Al cerrar, el stock queda ajustado a lo contado y cada ajuste queda como movimiento. <button class="btn btn-enlace" style="font-size:12px;">Ver ajustes por conteo →</button>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

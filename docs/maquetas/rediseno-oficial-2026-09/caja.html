@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Caja — rediseño oficial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="cayla-oficial.css">
+<style>
+  .dona-wrap{display:flex; align-items:center; gap:18px;}
+  .metodos-list{flex:1; display:flex; flex-direction:column; gap:8px;}
+  .metodo-row{display:flex; align-items:center; gap:8px; font-size:12.5px;}
+  .metodo-row .sw{width:10px; height:10px; border-radius:3px; flex:none;}
+  .metodo-row .fill{margin-left:auto; font-weight:600;}
+  .ritmo{height:110px; position:relative; border-bottom:1px solid var(--sand); margin-top:6px;}
+  .ritmo .eje{position:absolute; bottom:-18px; font-size:10px; color:var(--taupe);}
+  .punto{position:absolute; border-radius:50%; bottom:6px;}
+  .mov{display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--sand);}
+  .mov:last-child{border-bottom:none;}
+  .mov .ic{width:32px; height:32px; border-radius:var(--r-control); background:var(--hueso); display:flex; align-items:center; justify-content:center; flex:none; font-size:14px;}
+  .mov .info{flex:1; min-width:0;}
+  .mov .info b{display:block; font-size:13.5px;}
+  .mov .info span{font-size:11.5px; color:var(--taupe);}
+  .mov .monto{font-weight:700; font-size:14px; white-space:nowrap;}
+  .mov .monto.pos{color:var(--verde);} .mov .monto.neg{color:var(--rojo-profundo);}
+  .verlink{display:block; text-align:center; margin-top:8px; font-size:12.5px; font-weight:600; color:var(--tinta); text-decoration:none; border-top:1px dashed var(--sand); padding-top:10px;}
+  .cierres-mini{display:flex; align-items:flex-end; gap:5px; height:64px; margin-top:6px;}
+  .cierres-mini .bar{flex:1; background:var(--sand); border-radius:3px 3px 0 0;}
+  .cierres-mini .bar.hoy{background:var(--rojo);}
+</style>
+</head>
+<body data-tema="claro">
+<div class="lienzo">
+
+  <div class="marco-head">
+    <div class="titulo">
+      <span class="num">C</span>
+      <div><h1>Caja</h1><p>Ruta <code>/caja</code> · <code>/caja/historial</code> — rediseño con la paleta oficial CAYLA</p></div>
+    </div>
+    <div class="row">
+      <span class="tag">REDISEÑO 2026-09-22</span>
+      <button class="tema-toggle" onclick="document.body.dataset.tema = document.body.dataset.tema==='oscuro' ? 'claro' : 'oscuro'; this.textContent = document.body.dataset.tema==='oscuro' ? 'Ver en claro' : 'Ver en oscuro';">Ver en oscuro</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside>
+      <div class="logo"><img src="cayla-isotipo.png" alt="">CAYLA</div>
+      <button class="nuevo">+ NUEVO</button>
+      <nav>
+        <a class="ni"><span class="dot"></span>Inicio</a>
+        <a class="ni"><span class="dot"></span>Colaboradores</a>
+        <a class="ni"><span class="dot"></span>Catálogo</a>
+        <a class="ni"><span class="dot"></span>Compras</a>
+        <div class="grupo-lbl"><span class="dot" style="opacity:1"></span>Ventas</div>
+        <div class="hijos">
+          <a class="hijo">Punto de Venta</a>
+          <a class="hijo activo">Caja</a>
+          <a class="hijo">Historial</a>
+          <a class="hijo">Cambios</a>
+          <a class="hijo">Devoluciones</a>
+          <a class="hijo">Facturación</a>
+        </div>
+        <a class="ni"><span class="dot"></span>Inventario</a>
+      </nav>
+      <div class="foot">
+        <p class="tagline">Donde el estilo transforma.</p>
+        <div class="persona"><span class="avatar">FA</span><div><b>Felipe Alvarez</b><span>LÍDER · TIENDA LIMA</span></div></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar entra">
+        <div>
+          <p class="eyebrow">Ventas</p>
+          <h2 class="pagetitle">Caja</h2>
+          <p class="subtitle">Turno de Rosa Quispe · Líder de equipo</p>
+        </div>
+        <span class="sede-chip">TIENDA LIMA ▾</span>
+      </div>
+
+      <div class="kpi-row entra" style="animation-delay:40ms">
+        <div class="kpi"><div class="lbl">↑ Apertura</div><div class="val">S/ 200.00</div></div>
+        <div class="kpi verde"><div class="lbl">💵 Ventas efectivo</div><div class="val">S/ 486.00</div></div>
+        <div class="kpi"><div class="lbl">💳 Ventas otro método</div><div class="val">S/ 759.00</div></div>
+        <div class="kpi verde"><div class="lbl">⊕ Ingresos</div><div class="val">S/ 0.00</div></div>
+        <div class="kpi rojo"><div class="lbl">⊖ Egresos</div><div class="val">S/ 45.00</div></div>
+      </div>
+
+      <div class="card entra" style="margin-bottom:14px; animation-delay:80ms;">
+        <div class="row" style="justify-content:space-between;">
+          <span style="font-size:13px; font-weight:600;">Meta del día · Tienda Lima</span>
+          <span style="font-size:13px;"><b>S/ 1,245.00</b> de S/ 2,000.00 · 62 %</span>
+        </div>
+        <div style="height:8px; background:var(--hueso); border-radius:999px; overflow:hidden; margin-top:8px;"><div style="height:100%; width:62%; background:var(--verde);"></div></div>
+      </div>
+
+      <div class="grid-2 entra" style="margin-bottom:14px; animation-delay:120ms;">
+        <div class="card">
+          <h3>Métodos de pago</h3>
+          <p class="hint">Ver como tabla ⟷ dona · S/ 1,245.00 vendido hoy</p>
+          <div class="dona-wrap">
+            <svg width="88" height="88" viewBox="0 0 42 42">
+              <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--sand)" stroke-width="6"/>
+              <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--ambar)" stroke-width="6" stroke-dasharray="39 61" stroke-dashoffset="25"/>
+              <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--pizarra)" stroke-width="6" stroke-dasharray="30 70" stroke-dashoffset="-14"/>
+              <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--verde)" stroke-width="6" stroke-dasharray="18 82" stroke-dashoffset="-44"/>
+              <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--taupe)" stroke-width="6" stroke-dasharray="13 87" stroke-dashoffset="-62"/>
+            </svg>
+            <div class="metodos-list">
+              <div class="metodo-row"><span class="sw" style="background:var(--ambar)"></span>Efectivo<span class="fill">39% · S/ 486</span></div>
+              <div class="metodo-row"><span class="sw" style="background:var(--pizarra)"></span>Tarjeta<span class="fill">30% · S/ 374</span></div>
+              <div class="metodo-row"><span class="sw" style="background:var(--verde)"></span>Yape / Plin<span class="fill">18% · S/ 224</span></div>
+              <div class="metodo-row"><span class="sw" style="background:var(--taupe)"></span>Transferencia<span class="fill">13% · S/ 161</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Ritmo del día</h3>
+          <p class="hint">Cada punto es una venta, desde que abrió la caja. El tamaño del punto es el monto.</p>
+          <div class="ritmo">
+            <div class="punto" style="left:4%; width:10px; height:10px; background:var(--ambar);"></div>
+            <div class="punto" style="left:14%; width:16px; height:16px; background:var(--pizarra);"></div>
+            <div class="punto" style="left:26%; width:8px; height:8px; background:var(--ambar);"></div>
+            <div class="punto" style="left:40%; width:20px; height:20px; background:var(--verde);"></div>
+            <div class="punto" style="left:52%; width:12px; height:12px; background:var(--ambar);"></div>
+            <div class="punto" style="left:64%; width:14px; height:14px; background:var(--pizarra);"></div>
+            <div class="punto" style="left:74%; width:9px; height:9px; background:var(--taupe);"></div>
+            <div class="punto" style="left:88%; width:18px; height:18px; background:var(--ambar);"></div>
+            <span class="eje" style="left:0">10:00</span><span class="eje" style="left:45%">14:00</span><span class="eje" style="right:0">18:40</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2 entra" style="grid-template-columns:1.4fr 1fr; animation-delay:160ms;">
+        <div class="card">
+          <h3>Movimientos recientes</h3>
+          <div class="stack" style="gap:0;">
+            <div class="mov"><div class="ic">🛍️</div><div class="info"><b>Venta · Yape</b><span>Rosa Quispe · hace 6 min</span></div><div class="monto pos">+S/ 189.00</div></div>
+            <div class="mov"><div class="ic">🛍️</div><div class="info"><b>Venta · Efectivo + Tarjeta</b><span>Rosa Quispe · hace 22 min</span></div><div class="monto pos">+S/ 340.00</div></div>
+            <div class="mov"><div class="ic">⊖</div><div class="info"><b>Vuelto de proveedor</b><span>Ajuste de caja · hace 1 h</span></div><div class="monto neg">−S/ 45.00</div></div>
+            <div class="mov"><div class="ic">🛍️</div><div class="info"><b>Venta · Efectivo</b><span>Rosa Quispe · hace 1 h 40 min</span></div><div class="monto pos">+S/ 96.00</div></div>
+          </div>
+          <a class="verlink">Ver todo (17)</a>
+        </div>
+        <div class="card">
+          <h3>Historial de cierres</h3>
+          <p class="hint">Últimos 14 días, todas las sedes.</p>
+          <div class="cierres-mini">
+            <div class="bar" style="height:40%"></div><div class="bar" style="height:65%"></div><div class="bar" style="height:30%"></div>
+            <div class="bar" style="height:80%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:70%"></div>
+            <div class="bar" style="height:45%"></div><div class="bar" style="height:60%"></div><div class="bar" style="height:35%"></div>
+            <div class="bar" style="height:75%"></div><div class="bar" style="height:50%"></div><div class="bar" style="height:65%"></div>
+            <div class="bar" style="height:58%"></div><div class="bar hoy" style="height:62%"></div>
+          </div>
+          <a class="verlink">Ver historial completo</a>
+        </div>
+      </div>
+
+      <div class="row entra" style="margin-top:16px; animation-delay:200ms;">
+        <button class="btn btn-secundario">+ Ingreso / egreso</button>
+        <button class="btn btn-primario">Cerrar caja</button>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

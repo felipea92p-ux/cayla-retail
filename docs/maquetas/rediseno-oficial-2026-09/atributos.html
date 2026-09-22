@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Atributos — rediseño oficial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="cayla-oficial.css">
+<style>
+  .tabs2{display:flex; gap:4px; border-bottom:1px solid var(--sand); margin-bottom:16px;}
+  .tab2{font-size:13px; font-weight:600; padding:9px 14px; color:var(--taupe); border-bottom:2px solid transparent;}
+  .tab2.activa{color:var(--tinta); border-color:var(--rojo);}
+  .fam-head{display:flex; align-items:baseline; gap:10px; margin-bottom:10px;}
+  .fam-head b{font-family:var(--serif); font-size:15px; font-weight:600;}
+  .color-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin-bottom:20px;}
+  .color-card{border:1px solid var(--sand); border-radius:var(--r-superficie); background:var(--papel); padding:12px; display:flex; align-items:center; gap:10px;}
+  .color-card .sw{width:28px; height:28px; border-radius:var(--r-control); border:1px solid var(--sand); flex:none;}
+  .color-card b{font-size:13px; display:block;}
+  .color-card span{font-size:10.5px; color:var(--taupe); font-family:ui-monospace,monospace;}
+</style>
+</head>
+<body data-tema="claro">
+<div class="lienzo">
+
+  <div class="marco-head">
+    <div class="titulo">
+      <span class="num">A</span>
+      <div><h1>Atributos</h1><p>Ruta <code>/productos/atributos</code> — rediseño con la paleta oficial CAYLA</p></div>
+    </div>
+    <div class="row">
+      <span class="tag">REDISEÑO 2026-09-22</span>
+      <button class="tema-toggle" onclick="document.body.dataset.tema = document.body.dataset.tema==='oscuro' ? 'claro' : 'oscuro'; this.textContent = document.body.dataset.tema==='oscuro' ? 'Ver en claro' : 'Ver en oscuro';">Ver en oscuro</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside>
+      <div class="logo"><img src="cayla-isotipo.png" alt="">CAYLA</div>
+      <button class="nuevo">+ NUEVO</button>
+      <nav>
+        <a class="ni"><span class="dot"></span>Inicio</a>
+        <a class="ni"><span class="dot"></span>Colaboradores</a>
+        <div class="grupo-lbl"><span class="dot" style="opacity:1"></span>Catálogo</div>
+        <div class="hijos">
+          <a class="hijo">Productos</a>
+          <a class="hijo">Categorías</a>
+          <a class="hijo activo">Atributos</a>
+        </div>
+        <a class="ni"><span class="dot"></span>Compras</a>
+        <a class="ni"><span class="dot"></span>Ventas</a>
+        <a class="ni"><span class="dot"></span>Inventario</a>
+      </nav>
+      <div class="foot">
+        <p class="tagline">Donde el estilo transforma.</p>
+        <div class="persona"><span class="avatar">FA</span><div><b>Felipe Alvarez</b><span>LÍDER · TIENDA LIMA</span></div></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar entra">
+        <div>
+          <p class="eyebrow">Productos · Catálogo</p>
+          <h2 class="pagetitle">Atributos</h2>
+          <p class="subtitle">Los 5 vocabularios cerrados que describen una prenda además de su categoría. Cualquiera propone un valor nuevo; un líder lo aprueba o lo rechaza después.</p>
+        </div>
+        <button class="btn btn-primario">+ Agregar color</button>
+      </div>
+
+      <div class="tabs2 entra" style="animation-delay:40ms;">
+        <span class="tab2">Etiquetas</span>
+        <span class="tab2 activa">Colores</span>
+        <span class="tab2">Tallas</span>
+        <span class="tab2">Tejidos</span>
+        <span class="tab2">Patrones</span>
+      </div>
+
+      <div class="entra" style="animation-delay:80ms;">
+        <div class="fam-head"><b>Rojos</b><span class="muted" style="font-size:12px;">· 3</span></div>
+        <div class="color-grid">
+          <div class="color-card"><div class="sw" style="background:#b8412d;"></div><div><b>Rojo teja</b><span>#B8412D</span></div></div>
+          <div class="color-card"><div class="sw" style="background:#8b2a1f;"></div><div><b>Terracota</b><span>#8B2A1F</span></div></div>
+          <div class="color-card"><div class="sw" style="background:#d4634a;"></div><div><b>Coral</b><span style="display:block; margin-bottom:5px;">#D4634A</span><span class="badge" data-tono="rojo">Pendiente</span></div></div>
+        </div>
+        <div class="fam-head"><b>Neutros</b><span class="muted" style="font-size:12px;">· 4</span></div>
+        <div class="color-grid">
+          <div class="color-card"><div class="sw" style="background:#eae1d2;"></div><div><b>Hueso</b><span>#EAE1D2</span></div></div>
+          <div class="color-card"><div class="sw" style="background:#1a1a18;"></div><div><b>Negro</b><span>#1A1A18</span></div></div>
+          <div class="color-card"><div class="sw" style="background:#805c4c;"></div><div><b>Taupe</b><span>#805C4C</span></div></div>
+        </div>
+      </div>
+
+      <div class="card entra" style="border-style:dashed; animation-delay:120ms;">
+        <p class="hint" style="margin-bottom:10px;">Desactivados — ya no se pueden elegir en una prenda nueva</p>
+        <span class="badge" data-tono="rojo">Verde Menta · Rechazado</span>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

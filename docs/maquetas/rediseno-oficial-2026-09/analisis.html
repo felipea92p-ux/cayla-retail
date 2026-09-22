@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Análisis de inventario — rediseño oficial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="cayla-oficial.css">
+<style>
+  .tabs2{display:flex; gap:4px; border-bottom:1px solid var(--sand); margin-bottom:16px;}
+  .tab2{font-size:13px; font-weight:600; padding:9px 14px; color:var(--taupe); border-bottom:2px solid transparent;}
+  .tab2.activa{color:var(--tinta); border-color:var(--rojo);}
+  .periodo-pill{border:1px solid var(--sand); border-radius:999px; padding:7px 14px; font-size:12.5px; background:var(--papel);}
+  .flecha-ab{font-size:11px; font-weight:600;}
+  .flecha-ab.up{color:var(--verde);} .flecha-ab.down{color:var(--rojo-profundo);}
+  .grid-graf{display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-bottom:16px;}
+  .barras-h{display:flex; flex-direction:column; gap:8px;}
+  .barra-h-row{display:flex; align-items:center; gap:8px; font-size:11.5px;}
+  .barra-h-row .track{flex:1; height:8px; background:var(--sand); border-radius:999px; overflow:hidden;}
+  .barra-h-row .fill{height:100%; background:var(--verde);}
+</style>
+</head>
+<body data-tema="claro">
+<div class="lienzo">
+
+  <div class="marco-head">
+    <div class="titulo">
+      <span class="num">A</span>
+      <div><h1>Análisis</h1><p>Ruta <code>/inventario/resumen</code> — rediseño con la paleta oficial CAYLA</p></div>
+    </div>
+    <div class="row">
+      <span class="tag">REDISEÑO 2026-09-22</span>
+      <button class="tema-toggle" onclick="document.body.dataset.tema = document.body.dataset.tema==='oscuro' ? 'claro' : 'oscuro'; this.textContent = document.body.dataset.tema==='oscuro' ? 'Ver en claro' : 'Ver en oscuro';">Ver en oscuro</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside>
+      <div class="logo"><img src="cayla-isotipo.png" alt="">CAYLA</div>
+      <button class="nuevo">+ NUEVO</button>
+      <nav>
+        <a class="ni"><span class="dot"></span>Inicio</a>
+        <a class="ni"><span class="dot"></span>Colaboradores</a>
+        <a class="ni"><span class="dot"></span>Catálogo</a>
+        <a class="ni"><span class="dot"></span>Compras</a>
+        <a class="ni"><span class="dot"></span>Ventas</a>
+        <div class="grupo-lbl"><span class="dot" style="opacity:1"></span>Inventario</div>
+        <div class="hijos">
+          <a class="hijo">Existencias</a>
+          <a class="hijo">Movimientos</a>
+          <a class="hijo">Traslados</a>
+          <a class="hijo">Conteo</a>
+          <a class="hijo activo">Análisis</a>
+        </div>
+      </nav>
+      <div class="foot">
+        <p class="tagline">Donde el estilo transforma.</p>
+        <div class="persona"><span class="avatar">FA</span><div><b>Felipe Alvarez</b><span>LÍDER · TIENDA LIMA</span></div></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar entra">
+        <div>
+          <p class="eyebrow">Inventario › Análisis › Tienda Lima</p>
+          <h2 class="pagetitle">Análisis de inventario</h2>
+          <p class="subtitle">Analiza cómo se mueve y rinde tu inventario a lo largo del tiempo.</p>
+        </div>
+      </div>
+
+      <div class="tabs2 entra" style="animation-delay:40ms;">
+        <span class="tab2">Desempeño</span>
+        <span class="tab2 activa">Comparar períodos</span>
+      </div>
+
+      <div class="row entra" style="margin-bottom:16px; animation-delay:60ms;">
+        <span class="periodo-pill">Período A: 1–15 set</span>
+        <span class="muted">vs.</span>
+        <span class="periodo-pill">Período B: 16–21 set</span>
+        <select class="input right" style="width:auto;"><option>Categoría: todas</option></select>
+      </div>
+
+      <div class="kpi-row entra" style="animation-delay:80ms;">
+        <div class="kpi"><div class="lbl">Ventas</div><div class="val">S/ 6,120 <span class="flecha-ab up">→ S/ 7,850 ↑</span></div></div>
+        <div class="kpi"><div class="lbl">Rotación</div><div class="val">2.4× <span class="flecha-ab up">→ 2.9× ↑</span></div></div>
+        <div class="kpi"><div class="lbl">Sell-through</div><div class="val">58% <span class="flecha-ab down">→ 51% ↓</span></div></div>
+        <div class="kpi"><div class="lbl">Capital en inventario</div><div class="val">S/ 42,100 <span class="flecha-ab down">→ S/ 38,900 ↓</span></div></div>
+      </div>
+
+      <div class="grid-graf entra" style="animation-delay:120ms;">
+        <div class="card">
+          <h3 style="font-size:14px;">Evolución del ritmo de venta</h3>
+          <div style="display:flex; align-items:center; gap:14px; margin-top:10px;">
+            <svg width="76" height="76" viewBox="0 0 42 42">
+              <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--sand)" stroke-width="6"/>
+              <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--verde)" stroke-width="6" stroke-dasharray="55 45" stroke-dashoffset="25"/>
+              <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--taupe)" stroke-width="6" stroke-dasharray="25 75" stroke-dashoffset="-30"/>
+              <circle cx="21" cy="21" r="15.9" fill="transparent" stroke="var(--ambar)" stroke-width="6" stroke-dasharray="20 80" stroke-dashoffset="-55"/>
+            </svg>
+            <div style="font-size:11px; color:var(--taupe); display:flex; flex-direction:column; gap:4px;">
+              <span><span style="color:var(--verde);">●</span> Aceleraron 55%</span>
+              <span><span style="color:var(--taupe);">●</span> Estables 25%</span>
+              <span><span style="color:var(--ambar);">●</span> Desaceleraron 20%</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="font-size:14px;">Top rotación</h3>
+          <div class="barras-h" style="margin-top:10px;">
+            <div class="barra-h-row"><span style="width:70px;">Blusa Emma</span><div class="track"><div class="fill" style="width:90%;"></div></div><span>4.1×</span></div>
+            <div class="barra-h-row"><span style="width:70px;">Casaca Emilia</span><div class="track"><div class="fill" style="width:70%; background:var(--taupe);"></div></div><span>3.2×</span></div>
+            <div class="barra-h-row"><span style="width:70px;">Kimono Wayra</span><div class="track"><div class="fill" style="width:45%; background:var(--ambar);"></div></div><span>2.0×</span></div>
+          </div>
+          <button class="btn btn-enlace" style="font-size:11.5px; margin-top:10px;">Ver ranking completo</button>
+        </div>
+        <div class="card">
+          <h3 style="font-size:14px;">Distribución de sell-through</h3>
+          <div style="display:flex; align-items:flex-end; gap:6px; height:60px; margin-top:14px;">
+            <div style="flex:1; background:var(--sand); height:30%; border-radius:2px;"></div>
+            <div style="flex:1; background:var(--sand); height:55%; border-radius:2px;"></div>
+            <div style="flex:1; background:var(--verde); height:85%; border-radius:2px;"></div>
+            <div style="flex:1; background:var(--sand); height:40%; border-radius:2px;"></div>
+            <div style="flex:1; background:var(--ambar); height:20%; border-radius:2px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card entra" style="animation-delay:160ms;">
+        <h3>Detalle por producto</h3>
+        <table class="tabla">
+          <thead><tr><th>Producto / variante</th><th>Ventas A→B</th><th>Stock A→B</th><th>Sell-through A→B</th><th>Rotación A→B</th><th>Cambio relevante</th></tr></thead>
+          <tbody>
+            <tr><td><b>Blusa Emma</b> <span class="muted" style="font-size:11px;">Negro · S</span></td><td>18 → 31</td><td>140 → 112</td><td>52% → 68%</td><td>2.1× → 4.1×</td><td class="muted" style="font-size:12px;">Aceleró fuerte tras la campaña de fin de temporada</td></tr>
+            <tr><td><b>Vestido Solsticio</b> <span class="muted" style="font-size:11px;">Terracota · M</span></td><td>9 → 4</td><td>28 → 0</td><td>61% → 100%</td><td>2.8× → 3.5×</td><td class="muted" style="font-size:12px;">Se agotó — pendiente reponer</td></tr>
+            <tr><td><b>≈ Capa Andina Paracas</b></td><td>N/D → 2</td><td>14 → 12</td><td>N/D</td><td>N/D</td><td class="muted" style="font-size:12px;">Cifras estimadas — historial inconsistente</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

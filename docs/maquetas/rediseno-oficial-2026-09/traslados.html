@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Traslados — rediseño oficial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="cayla-oficial.css">
+<style>
+  .franja-atencion{display:flex; justify-content:space-between; align-items:center; background:color-mix(in oklab, var(--rojo) 8%, var(--papel)); border:1px solid color-mix(in oklab, var(--rojo) 25%, var(--sand)); border-radius:var(--r-superficie); padding:14px 18px; margin-bottom:16px;}
+  .franja-atencion b{font-family:var(--serif); font-size:15px;}
+  .franja-atencion span{font-size:12px; color:var(--taupe); display:block; margin-top:2px;}
+</style>
+</head>
+<body data-tema="claro">
+<div class="lienzo">
+
+  <div class="marco-head">
+    <div class="titulo">
+      <span class="num">T</span>
+      <div><h1>Traslados</h1><p>Ruta <code>/inventario/traslados</code> — rediseño con la paleta oficial CAYLA</p></div>
+    </div>
+    <div class="row">
+      <span class="tag">REDISEÑO 2026-09-22</span>
+      <button class="tema-toggle" onclick="document.body.dataset.tema = document.body.dataset.tema==='oscuro' ? 'claro' : 'oscuro'; this.textContent = document.body.dataset.tema==='oscuro' ? 'Ver en claro' : 'Ver en oscuro';">Ver en oscuro</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside>
+      <div class="logo"><img src="cayla-isotipo.png" alt="">CAYLA</div>
+      <button class="nuevo">+ NUEVO</button>
+      <nav>
+        <a class="ni"><span class="dot"></span>Inicio</a>
+        <a class="ni"><span class="dot"></span>Colaboradores</a>
+        <a class="ni"><span class="dot"></span>Catálogo</a>
+        <a class="ni"><span class="dot"></span>Compras</a>
+        <a class="ni"><span class="dot"></span>Ventas</a>
+        <div class="grupo-lbl"><span class="dot" style="opacity:1"></span>Inventario</div>
+        <div class="hijos">
+          <a class="hijo">Existencias</a>
+          <a class="hijo">Movimientos</a>
+          <a class="hijo activo">Traslados</a>
+          <a class="hijo">Conteo</a>
+          <a class="hijo">Análisis</a>
+        </div>
+      </nav>
+      <div class="foot">
+        <p class="tagline">Donde el estilo transforma.</p>
+        <div class="persona"><span class="avatar">FA</span><div><b>Felipe Alvarez</b><span>LÍDER · TIENDA LIMA</span></div></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar entra">
+        <div>
+          <p class="eyebrow">Inventario</p>
+          <h2 class="pagetitle">Traslados entre sedes</h2>
+          <p class="subtitle">Seguimos los traslados de inventario entrantes y salientes hasta que se confirme su recepción.</p>
+        </div>
+        <button class="btn btn-primario">+ Nuevo traslado</button>
+      </div>
+
+      <div class="franja-atencion entra" style="animation-delay:40ms;">
+        <div><b>2 traslados requieren revisión hoy</b><span>1 esperando confirmación, 1 con diferencia registrada.</span></div>
+        <button class="btn btn-primario">Revisar ahora →</button>
+      </div>
+
+      <div class="kpi-row entra" style="animation-delay:80ms;">
+        <div class="kpi rojo"><div class="lbl">Por recibir hoy</div><div class="val">1</div><div class="ctx">Requiere tu confirmación</div></div>
+        <div class="kpi"><div class="lbl">Vienen en camino</div><div class="val">3</div><div class="ctx">En tránsito a tu sede</div></div>
+        <div class="kpi ambar"><div class="lbl">Con diferencia</div><div class="val">1</div><div class="ctx">Requiere tu revisión</div></div>
+        <div class="kpi"><div class="lbl">Prendas en tránsito</div><div class="val">340 u.</div><div class="ctx">En 3 traslados abiertos</div></div>
+      </div>
+
+      <div class="card entra" style="animation-delay:120ms;">
+        <div class="row" style="flex-wrap:wrap;">
+          <input class="input" style="width:auto; flex:1; min-width:200px;" placeholder="Buscar traslado, sede o prenda…" disabled>
+          <button class="btn btn-sutil">Más filtros</button>
+        </div>
+        <div class="filtros">
+          <span class="filtro activo">Todos · 8</span>
+          <span class="filtro">Acción hoy · 2</span>
+          <span class="filtro">En camino · 3</span>
+          <span class="filtro">Con diferencia · 1</span>
+          <span class="filtro">Cerrados · 2</span>
+        </div>
+        <table class="tabla">
+          <thead><tr><th>Traslado</th><th>Ruta</th><th>Contenido</th><th>Llegada estimada</th><th>Estado</th><th></th></tr></thead>
+          <tbody>
+            <tr style="background:color-mix(in oklab, var(--rojo) 6%, transparent);">
+              <td><b>Traslado T-0412</b><br><span class="muted" style="font-size:11px;">Salió 19/09</span></td>
+              <td>Trujillo → Lima <span class="muted" style="font-size:11px;">· Entrante</span></td>
+              <td>80 u. · 3 variantes<br><span class="muted" style="font-size:11px;">Blusa Emma + 2 más</span></td>
+              <td>Debió llegar hace 1 h</td>
+              <td><span class="badge" data-tono="rojo">Requiere confirmación</span></td>
+              <td><button class="btn btn-primario" style="padding:6px 12px; font-size:12px;">Confirmar recepción</button></td>
+            </tr>
+            <tr style="background:color-mix(in oklab, var(--ambar) 6%, transparent);">
+              <td><b>Traslado T-0405</b><br><span class="muted" style="font-size:11px;">Salió 17/09</span></td>
+              <td>Lima → Arequipa <span class="muted" style="font-size:11px;">· Saliente</span></td>
+              <td>44 u. · 2 variantes<br><span class="muted" style="font-size:11px;">Vestido Solsticio + 1 más</span></td>
+              <td>Recibido hoy 08:10</td>
+              <td><span class="badge" data-tono="ambar">Con diferencia</span></td>
+              <td><button class="btn btn-primario" style="padding:6px 12px; font-size:12px;">Revisar diferencia</button></td>
+            </tr>
+            <tr>
+              <td><b>Traslado T-0418</b><br><span class="muted" style="font-size:11px;">Salió 21/09</span></td>
+              <td>Almacén Central → Lima <span class="muted" style="font-size:11px;">· Entrante</span></td>
+              <td>216 u. · 6 variantes</td>
+              <td>Llega hoy 16:15</td>
+              <td><span class="badge" data-tono="taupe">En camino</span></td>
+              <td><button class="btn btn-secundario" style="padding:6px 12px; font-size:12px;">Ver detalle</button></td>
+            </tr>
+            <tr>
+              <td><b>Traslado T-0398</b><br><span class="muted" style="font-size:11px;">Salió 14/09</span></td>
+              <td>Lima → Trujillo <span class="muted" style="font-size:11px;">· Saliente</span></td>
+              <td>60 u. · 4 variantes</td>
+              <td>Completado 16/09</td>
+              <td><span class="badge" data-tono="verde">Completado</span></td>
+              <td><button class="btn btn-secundario" style="padding:6px 12px; font-size:12px;">Ver detalle</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="hint" style="margin-top:10px;">Mostrando 4 de 8 traslados · los cerrados se acotan a los últimos 30 días</p>
+      </div>
+
+      <div class="antes-nota" style="background:var(--hueso); border:1px solid var(--sand); border-radius:var(--r-superficie); padding:14px 16px; font-size:12.5px; color:var(--taupe); line-height:1.6; margin-top:16px;">
+        El stock solo ingresa a la tienda cuando confirmas la recepción. Si hay diferencia, regístrala: el traslado queda «con diferencia» y las prendas entran al stock cuando un líder lo cierra.
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Devoluciones — rediseño oficial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="cayla-oficial.css">
+<style>
+  .buscador{display:flex; gap:10px; align-items:center; margin-bottom:12px;}
+  .chip{font-size:12px; font-weight:600; border:1px solid var(--sand); border-radius:var(--r-pildora); padding:6px 13px; background:var(--papel); color:var(--taupe);}
+  .aprobar-card{border:1.5px solid var(--sand); border-radius:var(--r-superficie); padding:16px 18px; margin-bottom:12px;}
+  .aprobar-card .top{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;}
+  .aprobar-card .cliente{font-size:14px; font-weight:700;}
+  .aprobar-card .linea{display:flex; justify-content:space-between; font-size:13px; padding:6px 0; border-bottom:1px dashed var(--sand);}
+  .aprobar-card .linea:last-of-type{border-bottom:none;}
+  .aprobar-card .foot{display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:12.5px; color:var(--taupe); flex-wrap:wrap; gap:8px;}
+  .venta-row{display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--sand);}
+  .venta-row:last-child{border-bottom:none;}
+  .venta-row input[type=checkbox]{width:16px; height:16px; accent-color:var(--tinta); flex:none;}
+  .venta-row .info{flex:1; min-width:0;}
+  .venta-row .info b{font-size:13.5px; display:block;}
+  .venta-row .info span{font-size:11.5px; color:var(--taupe);}
+  .motivo-chips{display:flex; gap:8px; flex-wrap:wrap;}
+  .motivo-chip{font-size:12.5px; font-weight:600; border:1.5px solid var(--sand); border-radius:var(--r-pildora); padding:8px 15px; background:var(--crema);}
+  .motivo-chip.sel{border-color:var(--tinta); background:var(--tinta); color:var(--crema);}
+</style>
+</head>
+<body data-tema="claro">
+<div class="lienzo">
+
+  <div class="marco-head">
+    <div class="titulo">
+      <span class="num">D</span>
+      <div><h1>Devoluciones</h1><p>Ruta <code>/devoluciones</code> — rediseño con la paleta oficial CAYLA (motivo estructurado ADR-0158)</p></div>
+    </div>
+    <div class="row">
+      <span class="tag">REDISEÑO 2026-09-22</span>
+      <button class="tema-toggle" onclick="document.body.dataset.tema = document.body.dataset.tema==='oscuro' ? 'claro' : 'oscuro'; this.textContent = document.body.dataset.tema==='oscuro' ? 'Ver en claro' : 'Ver en oscuro';">Ver en oscuro</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside>
+      <div class="logo"><img src="cayla-isotipo.png" alt="">CAYLA</div>
+      <button class="nuevo">+ NUEVO</button>
+      <nav>
+        <a class="ni"><span class="dot"></span>Inicio</a>
+        <a class="ni"><span class="dot"></span>Colaboradores</a>
+        <a class="ni"><span class="dot"></span>Catálogo</a>
+        <a class="ni"><span class="dot"></span>Compras</a>
+        <div class="grupo-lbl"><span class="dot" style="opacity:1"></span>Ventas</div>
+        <div class="hijos">
+          <a class="hijo">Punto de Venta</a>
+          <a class="hijo">Caja</a>
+          <a class="hijo">Historial</a>
+          <a class="hijo">Cambios</a>
+          <a class="hijo activo">Devoluciones</a>
+          <a class="hijo">Facturación</a>
+        </div>
+        <a class="ni"><span class="dot"></span>Inventario</a>
+      </nav>
+      <div class="foot">
+        <p class="tagline">Donde el estilo transforma.</p>
+        <div class="persona"><span class="avatar">FA</span><div><b>Felipe Alvarez</b><span>LÍDER · TIENDA LIMA</span></div></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar entra">
+        <div>
+          <p class="eyebrow">Ventas</p>
+          <h2 class="pagetitle">Devoluciones</h2>
+          <p class="subtitle">Registra las devoluciones de la clienta y aprueba las que esperan.</p>
+        </div>
+        <div class="row" style="gap:22px;">
+          <div style="text-align:right;"><b style="font-family:var(--serif); font-size:18px; display:block;">1</b><span style="font-size:10.5px; color:var(--taupe); text-transform:uppercase;">Devoluciones hoy</span></div>
+          <div style="text-align:right;"><b style="font-family:var(--serif); font-size:18px; display:block;">19</b><span style="font-size:10.5px; color:var(--taupe); text-transform:uppercase;">Este mes</span></div>
+          <div style="text-align:right;"><b style="font-family:var(--serif); font-size:18px; display:block;">S/ 1,430</b><span style="font-size:10.5px; color:var(--taupe); text-transform:uppercase;">Valor devuelto</span></div>
+        </div>
+      </div>
+
+      <div class="card entra" style="margin-bottom:14px; animation-delay:60ms;">
+        <h3>Iniciar una devolución</h3>
+        <div class="buscador">
+          <input class="input" placeholder="Boleta, DNI, clienta, prenda o código" disabled>
+          <button class="btn btn-primario">Buscar</button>
+        </div>
+        <div class="row"><span class="chip">📷 Escanear prenda</span><span class="chip" style="color:var(--rojo); border-color:transparent; background:none; padding-left:0;">Sin comprobante →</span></div>
+      </div>
+
+      <div class="card entra" style="margin-bottom:14px; animation-delay:100ms;">
+        <h3>Por aprobar <span class="muted" style="font-family:var(--sans); font-weight:600;">(2)</span></h3>
+        <p class="hint">Revisa cada una: al aprobarla se mueve el stock.</p>
+
+        <div class="aprobar-card">
+          <div class="top"><span class="cliente">María Dávila · Boleta B002-0091</span><span class="badge" data-tono="rojo">Compra hace 19 días · fuera del plazo</span></div>
+          <div class="linea"><span>Vestido Solsticio · talla M</span><span>S/ 219.00</span></div>
+          <div class="linea"><span>Motivo</span><span>No era su talla — le quedó ancho de busto</span></div>
+          <div class="linea"><span>Estado al volver</span><span class="badge sinpunto" data-tono="taupe">Impecable</span></div>
+          <div class="foot">
+            <span>La clienta pagó S/ 219.00 por esto. Al aprobarla se emite la nota de crédito.</span>
+            <div class="row"><button class="btn btn-secundario" style="padding:7px 14px;">Rechazar</button><button class="btn btn-primario" style="padding:7px 14px;">Aprobar</button></div>
+          </div>
+        </div>
+
+        <div class="aprobar-card">
+          <div class="top"><span class="cliente">Sofía Reyes · Boleta B001-0140</span><span class="badge" data-tono="verde">Dentro del plazo · quedan 6 días</span></div>
+          <div class="linea"><span>Blusa Emma + Kimono Wayra</span><span>S/ 485.00</span></div>
+          <div class="linea"><span>Motivo</span><span>Tiene un defecto — costura abierta en la manga</span></div>
+          <div class="linea"><span>Estado al volver</span><span class="badge" data-tono="ambar">Dañada · reparar</span></div>
+          <div class="foot">
+            <span>Esperando aprobación de un líder.</span>
+            <div class="row"><button class="btn btn-secundario" style="padding:7px 14px;">Rechazar</button><button class="btn btn-primario" style="padding:7px 14px;">Aprobar</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card entra" style="animation-delay:140ms;">
+        <h3>Actividad reciente</h3>
+        <p class="hint">Compras de los últimos 15 días en Tienda Lima: el plazo para cambiar o devolver.</p>
+        <div class="filtros" style="margin-top:0;">
+          <span class="filtro activo">Todas · 24</span>
+          <span class="filtro">Con devolución · 4</span>
+          <span class="filtro">Sin comprobante · 2</span>
+        </div>
+        <div class="venta-row">
+          <input type="checkbox" checked><div class="thumb"></div>
+          <div class="info"><b>Boleta B001-0140 · Vestido Solsticio + Blusa Emma</b><span>Vendido 20/09 · Sofía Reyes</span></div>
+          <span class="muted" style="font-size:12px;">2 prendas marcadas · una nota de crédito para ambas</span>
+          <span style="font-size:12.5px; font-weight:700;">Continuar →</span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="card entra" style="margin-top:16px; animation-delay:180ms;">
+    <p class="eyebrow" style="margin-bottom:6px;">Motivo estructurado — ADR-0158, cerrado 2026-09-22</p>
+    <h3 style="margin-bottom:12px;">¿Por qué la devuelve?</h3>
+    <div class="motivo-chips">
+      <span class="motivo-chip">No era su talla</span>
+      <span class="motivo-chip sel">No le calzó bien</span>
+      <span class="motivo-chip">Tiene un defecto</span>
+      <span class="motivo-chip">No le gustó</span>
+      <span class="motivo-chip">Era un regalo</span>
+      <span class="motivo-chip">Otro motivo</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>

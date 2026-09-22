@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Inicio — rediseño oficial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="cayla-oficial.css">
+<style>
+  .accesos{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+  .acceso{border-radius:var(--r-superficie); padding:18px; display:flex; flex-direction:column; gap:6px;}
+  .acceso.principal{background:var(--tinta); color:var(--crema);}
+  .acceso.principal span.d{color:color-mix(in oklab, var(--crema) 65%, transparent);}
+  .acceso:not(.principal){background:var(--papel); border:1px solid var(--sand);}
+  .acceso:not(.principal) span.d{color:var(--taupe);}
+  .acceso b{font-family:var(--serif); font-size:17px; font-weight:600;}
+  .cola-row{display:flex; align-items:center; gap:12px; padding:12px 0;}
+  .cola-row b{font-size:13.5px;}
+  .cola-row span{font-size:11.5px; color:var(--taupe);}
+  .act-row{display:flex; align-items:center; gap:12px; padding:9px 0; border-bottom:1px solid var(--sand); font-size:13px;}
+  .act-row:last-child{border-bottom:none;}
+  .act-row .fecha{width:44px; color:var(--taupe); font-size:11.5px; flex:none;}
+  .act-row .proc{width:150px; flex:none;}
+  .act-row .ref{flex:1; color:var(--taupe); font-size:12px;}
+  .act-row .delta{font-weight:700; white-space:nowrap;}
+</style>
+</head>
+<body data-tema="claro">
+<div class="lienzo">
+
+  <div class="marco-head">
+    <div class="titulo">
+      <span class="num">I</span>
+      <div><h1>Inicio</h1><p>Ruta <code>/</code> — rediseño con la paleta oficial CAYLA</p></div>
+    </div>
+    <div class="row">
+      <span class="tag">REDISEÑO 2026-09-22</span>
+      <button class="tema-toggle" onclick="document.body.dataset.tema = document.body.dataset.tema==='oscuro' ? 'claro' : 'oscuro'; this.textContent = document.body.dataset.tema==='oscuro' ? 'Ver en claro' : 'Ver en oscuro';">Ver en oscuro</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside>
+      <div class="logo"><img src="cayla-isotipo.png" alt="">CAYLA</div>
+      <button class="nuevo">+ NUEVO</button>
+      <nav>
+        <a class="ni" style="background:color-mix(in oklab, var(--crema) 14%, transparent); color:var(--crema); font-weight:600;"><span class="dot" style="opacity:1"></span>Inicio</a>
+        <a class="ni"><span class="dot"></span>Colaboradores</a>
+        <a class="ni"><span class="dot"></span>Catálogo</a>
+        <a class="ni"><span class="dot"></span>Compras</a>
+        <a class="ni"><span class="dot"></span>Ventas</a>
+        <a class="ni"><span class="dot"></span>Inventario</a>
+      </nav>
+      <div class="foot">
+        <p class="tagline">Donde el estilo transforma.</p>
+        <div class="persona"><span class="avatar">FA</span><div><b>Felipe Alvarez</b><span>LÍDER · TIENDA LIMA</span></div></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar entra">
+        <div>
+          <h2 class="pagetitle">Hola, Felipe</h2>
+          <p class="subtitle">Así va Tienda Lima</p>
+        </div>
+      </div>
+
+      <p class="eyebrow entra" style="animation-delay:20ms;">Hoy</p>
+      <div class="kpi-row entra" style="grid-template-columns:repeat(3,1fr); animation-delay:40ms;">
+        <div class="kpi verde">
+          <div class="lbl">Ventas</div>
+          <div class="val">S/ 1,245.00</div>
+          <div class="ctx" style="color:var(--verde);">▲ 12% vs. lunes pasado</div>
+        </div>
+        <div class="kpi">
+          <div class="lbl">Valor medio</div>
+          <div class="val">S/ 177.86</div>
+          <div class="ctx">7 ventas</div>
+        </div>
+        <div class="kpi">
+          <div class="lbl">Meta del día</div>
+          <div class="val">62 %</div>
+          <div class="ctx">Faltan S/ 755.00 de S/ 2,000.00</div>
+          <div style="height:6px; background:var(--hueso); border-radius:999px; overflow:hidden; margin-top:6px;"><div style="height:100%; width:62%; background:var(--verde);"></div></div>
+        </div>
+      </div>
+
+      <p class="eyebrow entra" style="animation-delay:80ms;">Por atender</p>
+      <div class="card entra" style="margin-bottom:20px; animation-delay:100ms;">
+        <div class="cola-row">
+          <span class="badge" data-tono="ambar">2</span>
+          <div style="flex:1;"><b>Traslados por recibir</b><br><span>2 esperan tu confirmación.</span></div>
+          <button class="btn btn-enlace">Ir →</button>
+        </div>
+      </div>
+
+      <p class="eyebrow entra" style="animation-delay:120ms;">Ir a</p>
+      <div class="accesos entra" style="margin-bottom:20px; animation-delay:140ms;">
+        <div class="acceso principal"><b>Vender</b><span class="d">Punto de venta</span></div>
+        <div class="acceso"><b>Caja</b><span class="d">Abierta · puedes vender</span></div>
+        <div class="acceso"><b>Buscar</b><span class="d">SKU, talla o color</span></div>
+      </div>
+
+      <p class="eyebrow entra" style="animation-delay:160ms;">Actividad reciente</p>
+      <div class="card entra" style="animation-delay:180ms;">
+        <div class="act-row"><span class="fecha">21/09</span><span class="proc">Venta</span><span class="ref">Boleta B001-0142 · Casaca Emilia</span><span class="delta" style="color:var(--verde);">−1</span></div>
+        <div class="act-row"><span class="fecha">21/09</span><span class="proc">Transferencia · llegada</span><span class="ref">Desde Tienda Trujillo</span><span class="delta" style="color:var(--verde);">+6</span></div>
+        <div class="act-row"><span class="fecha">20/09</span><span class="proc">Devolución</span><span class="ref">Vestido Solsticio · talla M</span><span class="delta" style="color:var(--verde);">+1</span></div>
+        <div class="act-row"><span class="fecha">20/09</span><span class="proc">Cambio</span><span class="ref">Blusa Emma S → M</span><span class="delta">0</span></div>
+        <div class="act-row"><span class="fecha">19/09</span><span class="proc">Ajuste · merma</span><span class="ref">Conteo físico #12</span><span class="delta" style="color:var(--rojo-profundo);">−2</span></div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

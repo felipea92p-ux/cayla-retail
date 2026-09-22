@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Punto de Venta — rediseño oficial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="cayla-oficial.css">
+<style>
+  .pos{display:grid; grid-template-columns:1.5fr 1fr; gap:16px;}
+  .buscador-pos{border:1px solid var(--sand); background:var(--hueso); border-radius:var(--r-control); padding:13px 16px; font-size:14px; width:100%; margin-bottom:12px;}
+  .cat-chips{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
+  .cat-chip{font-size:12px; font-weight:600; border-radius:999px; padding:6px 13px; border:1px solid var(--sand); background:var(--papel); color:var(--taupe);}
+  .cat-chip.activo{background:var(--tinta); color:var(--crema); border-color:var(--tinta);}
+  .prenda-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+  .prenda-card{border:1px solid var(--sand); border-radius:var(--r-superficie); background:var(--papel); padding:11px; position:relative;}
+  .prenda-card .foto{height:64px; border-radius:var(--r-control); background:var(--hueso); margin-bottom:8px;}
+  .prenda-card b{font-size:12.5px; display:block;}
+  .prenda-card span.meta{font-size:11px; color:var(--taupe);}
+  .prenda-card .precio{font-family:var(--serif); font-size:15px; font-weight:600; margin-top:4px; display:block;}
+  .prenda-card .badge-carrito{position:absolute; top:8px; right:8px; width:20px; height:20px; border-radius:999px; background:var(--rojo); color:var(--crema); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center;}
+  .ticket{border:1px solid var(--sand); border-radius:var(--r-superficie); background:var(--papel); display:flex; flex-direction:column; height:100%;}
+  .ticket-head{padding:16px 18px; border-bottom:1px solid var(--sand); display:flex; justify-content:space-between; align-items:center;}
+  .ticket-head h3{font-family:var(--serif); font-weight:600; font-size:17px; margin:0;}
+  .ticket-body{flex:1; padding:6px 18px; overflow-y:auto;}
+  .item{padding:12px 0; border-bottom:1px solid var(--sand);}
+  .item .fila1{display:flex; justify-content:space-between; align-items:flex-start;}
+  .item b{font-size:13.5px;}
+  .item .codigo{font-family:ui-monospace,monospace; font-size:10.5px; color:var(--taupe);}
+  .item .fila2{display:flex; justify-content:space-between; align-items:center; margin-top:8px;}
+  .stepper{display:flex; align-items:center; gap:8px;}
+  .stepper button{width:24px; height:24px; border-radius:var(--r-control); border:1px solid var(--sand); background:var(--hueso); cursor:pointer;}
+  .precio-tachado{text-decoration:line-through; color:var(--taupe); font-size:12px; margin-right:6px;}
+  .ticket-foot{padding:16px 18px; border-top:1px solid var(--sand); display:flex; flex-direction:column; gap:10px;}
+  .totales{display:flex; justify-content:space-between; font-size:14px;}
+  .totales.grande{font-family:var(--serif); font-size:20px; font-weight:600;}
+  .metodos-pago{display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:4px 0;}
+  .metodo-btn{border:1px solid var(--sand); border-radius:var(--r-control); padding:8px 4px; font-size:10.5px; text-align:center; background:var(--papel); color:var(--taupe);}
+  .metodo-btn.activo{background:var(--tinta); color:var(--crema); border-color:var(--tinta);}
+</style>
+</head>
+<body data-tema="claro">
+<div class="lienzo">
+
+  <div class="marco-head">
+    <div class="titulo">
+      <span class="num">V</span>
+      <div><h1>Punto de Venta</h1><p>Ruta <code>/vender</code> — rediseño con la paleta oficial CAYLA</p></div>
+    </div>
+    <div class="row">
+      <span class="tag">REDISEÑO 2026-09-22</span>
+      <button class="tema-toggle" onclick="document.body.dataset.tema = document.body.dataset.tema==='oscuro' ? 'claro' : 'oscuro'; this.textContent = document.body.dataset.tema==='oscuro' ? 'Ver en claro' : 'Ver en oscuro';">Ver en oscuro</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside>
+      <div class="logo"><img src="cayla-isotipo.png" alt="">CAYLA</div>
+      <button class="nuevo">+ NUEVO</button>
+      <nav>
+        <a class="ni"><span class="dot"></span>Inicio</a>
+        <a class="ni"><span class="dot"></span>Colaboradores</a>
+        <a class="ni"><span class="dot"></span>Catálogo</a>
+        <a class="ni"><span class="dot"></span>Compras</a>
+        <div class="grupo-lbl"><span class="dot" style="opacity:1"></span>Ventas</div>
+        <div class="hijos">
+          <a class="hijo activo">Punto de Venta</a>
+          <a class="hijo">Caja</a>
+          <a class="hijo">Historial</a>
+          <a class="hijo">Cambios</a>
+          <a class="hijo">Devoluciones</a>
+          <a class="hijo">Facturación</a>
+        </div>
+        <a class="ni"><span class="dot"></span>Inventario</a>
+      </nav>
+      <div class="foot">
+        <p class="tagline">Donde el estilo transforma.</p>
+        <div class="persona"><span class="avatar">FA</span><div><b>Felipe Alvarez</b><span>LÍDER · TIENDA LIMA</span></div></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar entra">
+        <div>
+          <p class="eyebrow">Ventas</p>
+          <h2 class="pagetitle">Venta en tienda · Tienda Lima</h2>
+        </div>
+        <span class="badge" data-tono="ambar">En espera · 2</span>
+      </div>
+
+      <div class="pos entra" style="animation-delay:40ms;">
+        <div class="card">
+          <input class="buscador-pos" placeholder="Escanea la etiqueta o busca la prenda" disabled>
+          <div class="row" style="margin-bottom:12px;">
+            <label style="font-size:12px; color:var(--taupe); display:flex; align-items:center; gap:6px;"><input type="checkbox" checked style="accent-color:var(--tinta);"> Solo con stock</label>
+            <button class="btn btn-sutil right" style="padding:7px 12px; font-size:12px;">Monto manual</button>
+          </div>
+          <div class="cat-chips">
+            <span class="cat-chip activo">Todas</span>
+            <span class="cat-chip">Blusas</span>
+            <span class="cat-chip">Vestidos</span>
+            <span class="cat-chip">Pantalones</span>
+            <span class="cat-chip">Abrigos</span>
+          </div>
+          <div class="prenda-grid">
+            <div class="prenda-card"><div class="foto"></div><b>Casaca Emilia</b><span class="meta">Beige · M</span><span class="precio">S/ 189.00</span></div>
+            <div class="prenda-card"><div class="badge-carrito">2</div><div class="foto"></div><b>Blusa Emma</b><span class="meta">Negro · S</span><span class="precio">S/ 129.00</span></div>
+            <div class="prenda-card"><div class="foto"></div><b>Vestido Solsticio</b><span class="meta">Terracota · M</span><span class="precio">S/ 219.00</span></div>
+            <div class="prenda-card" style="opacity:.55;"><div class="foto"></div><b>Kimono Wayra</b><span class="meta" style="color:var(--rojo-profundo);">Sin stock aquí</span><span class="precio">S/ 214.00</span></div>
+            <div class="prenda-card"><div class="foto"></div><b>Pantalón Culotte</b><span class="meta">Siena · L</span><span class="precio">S/ 149.00</span></div>
+            <div class="prenda-card"><div class="foto"></div><b>Chompa Alpaca</b><span class="meta">Cuello alto · M</span><span class="precio">S/ 255.00</span></div>
+          </div>
+          <p class="hint" style="margin-top:14px; border-top:1px dashed var(--sand); padding-top:10px;">▾ Ventas de hoy — 7 registradas, S/ 1,245.00</p>
+        </div>
+
+        <div class="ticket">
+          <div class="ticket-head"><h3>🛍 Ticket actual</h3><span class="badge sinpunto" data-tono="ambar">Siguiente paso</span></div>
+          <div class="ticket-body">
+            <div class="item">
+              <div class="fila1"><div><b>Blusa Emma</b><br><span class="codigo">BLU-EMM-NEG-S</span><br><span class="badge sinpunto" data-tono="pizarra" style="margin-top:4px;">Campaña · Fin de temporada</span></div><span style="font-size:12px; font-weight:600; color:var(--rojo-profundo);">−15%</span></div>
+              <div class="fila2">
+                <div class="stepper"><button>−</button><span style="font-size:13px; min-width:16px; text-align:center;">2</span><button>+</button></div>
+                <div style="text-align:right;"><span class="precio-tachado">S/ 129.00</span><b style="font-family:var(--serif);">S/ 219.30</b></div>
+              </div>
+              <span style="font-size:10.5px; color:var(--taupe);">Máximo disponible en sede: 3</span>
+            </div>
+            <div class="item">
+              <div class="fila1"><div><b>Casaca Emilia</b><br><span class="codigo">CAS-EMI-BEI-M</span></div><button class="btn btn-enlace" style="font-size:11px;">Quitar</button></div>
+              <div class="fila2">
+                <div class="stepper"><button>−</button><span style="font-size:13px; min-width:16px; text-align:center;">1</span><button>+</button></div>
+                <b style="font-family:var(--serif);">S/ 189.00</b>
+              </div>
+            </div>
+          </div>
+          <div class="ticket-foot">
+            <div class="totales"><span class="muted">Subtotal</span><span>S/ 372.30</span></div>
+            <div class="totales"><span class="muted">IGV incluido</span><span>S/ 56.79</span></div>
+            <div class="totales grande"><span>Total</span><span>S/ 372.30</span></div>
+            <div class="metodos-pago">
+              <div class="metodo-btn activo">Efectivo<br><span style="opacity:.7;">F1</span></div>
+              <div class="metodo-btn">Tarjeta<br><span style="opacity:.7;">F2</span></div>
+              <div class="metodo-btn">Yape<br><span style="opacity:.7;">F3</span></div>
+              <div class="metodo-btn">Plin<br><span style="opacity:.7;">F4</span></div>
+              <div class="metodo-btn">Transf.<br><span style="opacity:.7;">F5</span></div>
+            </div>
+            <button class="btn btn-secundario" style="width:100%; justify-content:center;">Exacto</button>
+            <button class="btn btn-primario" style="width:100%; justify-content:center; padding:12px;">Cobrar</button>
+            <div class="row" style="justify-content:center; gap:16px;">
+              <button class="btn btn-enlace" style="font-size:12px;">Dejar en espera</button>
+              <button class="btn btn-enlace" style="font-size:12px; color:var(--rojo-profundo);">Vaciar ticket</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

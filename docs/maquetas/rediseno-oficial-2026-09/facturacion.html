@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Facturación — rediseño oficial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="cayla-oficial.css">
+<style>
+  .vivo{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--verde); font-weight:600; margin-bottom:14px;}
+  .vivo .punto{width:6px; height:6px; border-radius:999px; background:var(--verde); animation:late 1.6s infinite;}
+  @keyframes late{0%,100%{opacity:1} 50%{opacity:.3}}
+  .pestanas{display:flex; align-items:center; gap:4px; border-bottom:1px solid var(--sand); margin:16px 0 18px;}
+  .pestana{font-size:13px; font-weight:600; padding:9px 6px; margin-right:20px; color:var(--taupe); border-bottom:2px solid transparent;}
+  .pestana.activa{color:var(--tinta); border-color:var(--rojo);}
+  .buscar-facturacion{margin-left:auto; border:1px solid var(--sand); border-radius:999px; padding:8px 16px; font-size:12.5px; color:var(--taupe); background:var(--hueso); width:220px;}
+  .kpi-row2{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px;}
+  .kpi2{background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie); padding:15px 16px; border-left:3px solid var(--tono, var(--taupe));}
+  .kpi2.verde{--tono:var(--verde);} .kpi2.ambar{--tono:var(--ambar);} .kpi2.rojo{--tono:var(--rojo);} .kpi2.taupe{--tono:var(--taupe);}
+  .kpi2 .lbl{font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--taupe); margin-bottom:7px;}
+  .kpi2 .val{font-family:var(--serif); font-size:22px; font-weight:600; margin-bottom:3px;}
+  .kpi2 .ctx{font-size:11px; color:var(--taupe); line-height:1.4; margin-bottom:7px; min-height:26px;}
+  .kpi2 svg{width:100%; height:24px; display:block;}
+  .franja{display:flex; justify-content:space-between; align-items:center; background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie); padding:12px 18px; margin-bottom:18px; font-size:13px;}
+  table.hilo-tabla th, table.hilo-tabla td{white-space:nowrap;}
+  .hilo{display:flex; align-items:center; gap:0;}
+  .hilo .nodo{width:9px; height:9px; border-radius:50%; flex:none;}
+  .hilo .seg{width:15px; height:2px; flex:none;}
+  .n-verde{background:var(--verde);} .n-ambar{background:var(--ambar);} .n-rojo{background:var(--rojo-profundo);} .n-apagado{background:var(--sand); border:1px solid var(--taupe);}
+  .s-verde{background:var(--verde);} .s-ambar{background:repeating-linear-gradient(90deg,var(--ambar) 0 4px,transparent 4px 7px);} .s-apagado{background:var(--sand);}
+  .pulso{animation:late 1.4s infinite;}
+  .leyenda{display:flex; gap:18px; flex-wrap:wrap; font-size:11px; color:var(--taupe); margin-top:14px; padding-top:12px; border-top:1px dashed var(--sand);}
+  .leyenda span{display:inline-flex; align-items:center; gap:5px;}
+  .leyenda .sw{width:8px; height:8px; border-radius:50%;}
+  .antes-nota{background:var(--hueso); border:1px solid var(--sand); border-radius:var(--r-superficie); padding:14px 16px; font-size:12.5px; color:var(--taupe); line-height:1.6; margin-top:16px;}
+  .antes-nota b{color:var(--tinta);}
+</style>
+</head>
+<body data-tema="claro">
+<div class="lienzo">
+
+  <div class="marco-head">
+    <div class="titulo">
+      <span class="num">F</span>
+      <div><h1>Facturación</h1><p>Ruta <code>/vender/facturacion</code> — vista Resumen, rediseño oficial (arregla las tarjetas de vidrio)</p></div>
+    </div>
+    <div class="row">
+      <span class="tag">REDISEÑO 2026-09-22</span>
+      <button class="tema-toggle" onclick="document.body.dataset.tema = document.body.dataset.tema==='oscuro' ? 'claro' : 'oscuro'; this.textContent = document.body.dataset.tema==='oscuro' ? 'Ver en claro' : 'Ver en oscuro';">Ver en oscuro</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside>
+      <div class="logo"><img src="cayla-isotipo.png" alt="">CAYLA</div>
+      <button class="nuevo">+ NUEVO</button>
+      <nav>
+        <a class="ni"><span class="dot"></span>Inicio</a>
+        <a class="ni"><span class="dot"></span>Colaboradores</a>
+        <a class="ni"><span class="dot"></span>Catálogo</a>
+        <a class="ni"><span class="dot"></span>Compras</a>
+        <div class="grupo-lbl"><span class="dot" style="opacity:1"></span>Ventas</div>
+        <div class="hijos">
+          <a class="hijo">Punto de Venta</a>
+          <a class="hijo">Caja</a>
+          <a class="hijo">Historial</a>
+          <a class="hijo">Cambios</a>
+          <a class="hijo">Devoluciones</a>
+          <a class="hijo activo">Facturación</a>
+        </div>
+        <a class="ni"><span class="dot"></span>Inventario</a>
+      </nav>
+      <div class="foot">
+        <p class="tagline">Donde el estilo transforma.</p>
+        <div class="persona"><span class="avatar">FA</span><div><b>Felipe Alvarez</b><span>LÍDER · TIENDA LIMA</span></div></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar entra">
+        <div>
+          <p class="eyebrow">Ventas</p>
+          <h2 class="pagetitle">Facturación</h2>
+          <p class="subtitle" style="margin-bottom:6px;">Emite y sigue tus comprobantes hasta que SUNAT los acepta.</p>
+          <div class="vivo"><span class="punto"></span>Lunes, 21 de setiembre · 09:27 · actualizado hace 16 s</div>
+          <div class="row">
+            <button class="btn btn-secundario">📄 Emitir comprobante</button>
+            <button class="btn btn-primario">+ Nueva proforma</button>
+          </div>
+        </div>
+        <div class="row" style="gap:22px;">
+          <div style="text-align:right;"><b style="font-family:var(--serif); font-size:18px; display:block;">4</b><span style="font-size:10.5px; color:var(--taupe); text-transform:uppercase;">Por enviar a SUNAT</span></div>
+          <div style="text-align:right;"><b style="font-family:var(--serif); font-size:18px; display:block;">1</b><span style="font-size:10.5px; color:var(--taupe); text-transform:uppercase;">Proforma vigente</span></div>
+        </div>
+      </div>
+
+      <div class="pestanas entra" style="animation-delay:40ms;">
+        <span class="pestana activa">Resumen</span>
+        <span class="pestana">Proformas · 1</span>
+        <span class="pestana">Comprobantes · 8</span>
+        <span class="pestana">Códigos de descuento</span>
+        <input class="buscar-facturacion" placeholder="Buscar venta, cliente o boleta…" disabled>
+      </div>
+
+      <div class="kpi-row2 entra" style="animation-delay:80ms;">
+        <div class="kpi2 verde">
+          <div class="lbl">Vendido hoy</div>
+          <div class="val">S/ 1,245.00</div>
+          <div class="ctx">+12% vs. mismo día de la semana pasada a esta hora (S/ 1,112.00)</div>
+          <svg viewBox="0 0 100 26" preserveAspectRatio="none">
+            <polyline points="0,20 20,17 40,14 60,10 80,7 100,4" fill="none" stroke="var(--verde)" stroke-width="2"/>
+            <polyline points="0,22 20,19 40,17 60,15 80,13 100,11" fill="none" stroke="var(--verde)" stroke-width="1.4" stroke-dasharray="3 3" opacity=".55"/>
+          </svg>
+        </div>
+        <div class="kpi2 taupe">
+          <div class="lbl">Ventas</div>
+          <div class="val">7</div>
+          <div class="ctx">+1 venta vs. misma hora la semana pasada</div>
+          <svg viewBox="0 0 100 26"><circle cx="6" cy="16" r="2.4" fill="var(--taupe)"/><circle cx="22" cy="12" r="2.4" fill="var(--taupe)"/><circle cx="38" cy="18" r="2.4" fill="var(--taupe)"/><circle cx="54" cy="9" r="2.4" fill="var(--taupe)"/><circle cx="70" cy="14" r="2.4" fill="var(--taupe)"/><circle cx="86" cy="6" r="2.4" fill="var(--taupe)"/></svg>
+        </div>
+        <div class="kpi2 ambar">
+          <div class="lbl">Por enviar a SUNAT</div>
+          <div class="val">4</div>
+          <div class="ctx">1 rechazado · el más antiguo: hace 38 min</div>
+          <svg viewBox="0 0 100 10"><rect x="0" y="0" width="70" height="10" rx="5" fill="var(--sand)"/><rect x="0" y="0" width="43" height="10" rx="5" fill="var(--ambar)"/></svg>
+        </div>
+        <div class="kpi2 taupe">
+          <div class="lbl">Ticket promedio</div>
+          <div class="val">S/ 177.86</div>
+          <div class="ctx">Total ÷ 7 ventas. Barras: las últimas 16.</div>
+          <svg viewBox="0 0 100 26"><line x1="0" y1="14" x2="100" y2="14" stroke="var(--taupe)" stroke-dasharray="2 2"/><rect x="2" y="6" width="6" height="20" fill="var(--taupe)" opacity=".7"/><rect x="12" y="10" width="6" height="16" fill="var(--taupe)" opacity=".7"/><rect x="22" y="2" width="6" height="24" fill="var(--taupe)" opacity=".7"/><rect x="32" y="12" width="6" height="14" fill="var(--taupe)" opacity=".7"/><rect x="42" y="8" width="6" height="18" fill="var(--taupe)" opacity=".7"/><rect x="52" y="15" width="6" height="11" fill="var(--taupe)" opacity=".7"/><rect x="62" y="4" width="6" height="22" fill="var(--taupe)" opacity=".7"/><rect x="72" y="11" width="6" height="15" fill="var(--taupe)" opacity=".7"/></svg>
+        </div>
+      </div>
+
+      <div class="franja entra" style="animation-delay:120ms;">
+        <span><b>Proformas</b> · 1 vigente · S/ 88.50 · <span class="badge" data-tono="ambar" style="margin-left:4px;">0 por vencer</span></span>
+        <button class="btn btn-enlace">Ver proformas →</button>
+      </div>
+
+      <div class="card entra" style="animation-delay:160ms;">
+        <div class="row" style="justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+          <div><span class="eyebrow">Ventas de hoy</span><h3 style="margin:2px 0 3px;">Actividad de hoy</h3><span class="hint" style="margin:0;">Con el camino de cada comprobante hasta SUNAT</span></div>
+          <button class="btn btn-enlace">Ver comprobantes →</button>
+        </div>
+        <table class="tabla hilo-tabla">
+          <thead><tr><th>Hora</th><th>Productos</th><th>Pago</th><th>Total</th><th>Comprobante</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td>09:12</td><td>Casaca Emilia, +2</td><td>Yape</td><td>S/ 368.00</td>
+              <td><div class="hilo"><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-ambar pulso"></div><div class="seg s-ambar"></div><div class="nodo n-apagado"></div></div></td>
+              <td><span class="badge" data-tono="ambar">Enviado, esperando</span></td>
+            </tr>
+            <tr>
+              <td>10:48</td><td>Chompa Alpaca Cuello Alto</td><td>Tarjeta</td><td>S/ 255.00</td>
+              <td><div class="hilo"><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-verde"></div></div></td>
+              <td><span class="badge" data-tono="verde">Aceptado</span></td>
+            </tr>
+            <tr>
+              <td>12:15</td><td>Blusa Emma, +2</td><td>Plin</td><td>S/ 189.00</td>
+              <td><div class="hilo"><div class="nodo n-ambar"></div><div class="seg s-apagado"></div><div class="nodo n-apagado"></div><div class="seg s-apagado"></div><div class="nodo n-apagado"></div><div class="seg s-apagado"></div><div class="nodo n-apagado"></div></div></td>
+              <td><span class="badge" data-tono="ambar">Sin comprobante</span></td>
+              <td><button class="btn btn-secundario" style="padding:6px 12px; font-size:12px;">Transmitir</button></td>
+            </tr>
+            <tr>
+              <td>14:32</td><td>Vestido Solsticio</td><td>Efectivo</td><td>S/ 219.00</td>
+              <td><div class="hilo"><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-verde"></div><div class="seg s-ambar"></div><div class="nodo n-rojo"></div><div class="seg s-apagado"></div><div class="nodo n-apagado"></div></div></td>
+              <td><span class="badge" data-tono="rojo">Rechazado</span></td>
+              <td><button class="btn btn-peligro" style="padding:6px 12px; font-size:12px;">Reintentar</button></td>
+            </tr>
+            <tr>
+              <td>16:03</td><td>Kimono Wayra</td><td>Transferencia</td><td>S/ 214.00</td>
+              <td><div class="hilo"><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-verde"></div><div class="seg s-verde"></div><div class="nodo n-verde"></div></div></td>
+              <td><span class="badge" data-tono="verde">Aceptado</span></td>
+              <td><button class="btn btn-secundario" style="padding:6px 12px; font-size:12px;">Ver PDF</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="leyenda">
+          <span>Cómo se lee el hilo: venta · número reservado · enviado a SUNAT · aceptado</span>
+          <span><span class="sw" style="background:var(--verde)"></span>Aceptado</span>
+          <span><span class="sw" style="background:var(--ambar)"></span>Enviado, esperando</span>
+          <span><span class="sw" style="background:var(--rojo-profundo)"></span>Rechazado</span>
+          <span><span class="sw" style="background:var(--sand); border:1px solid var(--taupe)"></span>Sin comprobante / anulado</span>
+        </div>
+      </div>
+
+      <div class="antes-nota entra" style="animation-delay:200ms;">
+        <b>Qué cambió con la guía oficial:</b> antes, estas cuatro tarjetas eran de vidrio (fondo translúcido + <code>backdrop-filter: blur</code>) — la única pantalla del ERP con ese look. Ahora son <b>papel plano, borde sand de 1px, sin sombra ni desenfoque</b> — igual que cualquier otra tarjeta del sistema. El resto del contenido (línea viva, hilo del comprobante, gráficos) no cambió: solo la superficie.
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

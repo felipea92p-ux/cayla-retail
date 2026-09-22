@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Existencias — rediseño oficial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="cayla-oficial.css">
+<style>
+  .filtros-fila{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;}
+  .filtros-fila .input{width:auto; min-width:130px; flex:1;}
+  .leyenda-estado{display:flex; gap:16px; flex-wrap:wrap; font-size:11px; color:var(--taupe); margin-top:12px; padding-top:10px; border-top:1px dashed var(--sand);}
+  .leyenda-estado span{display:inline-flex; align-items:center; gap:5px;}
+  .leyenda-estado .sw{width:8px; height:8px; border-radius:50%;}
+</style>
+</head>
+<body data-tema="claro">
+<div class="lienzo">
+
+  <div class="marco-head">
+    <div class="titulo">
+      <span class="num">E</span>
+      <div><h1>Existencias</h1><p>Ruta <code>/inventario</code> — rediseño con la paleta oficial CAYLA</p></div>
+    </div>
+    <div class="row">
+      <span class="tag">REDISEÑO 2026-09-22</span>
+      <button class="tema-toggle" onclick="document.body.dataset.tema = document.body.dataset.tema==='oscuro' ? 'claro' : 'oscuro'; this.textContent = document.body.dataset.tema==='oscuro' ? 'Ver en claro' : 'Ver en oscuro';">Ver en oscuro</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside>
+      <div class="logo"><img src="cayla-isotipo.png" alt="">CAYLA</div>
+      <button class="nuevo">+ NUEVO</button>
+      <nav>
+        <a class="ni"><span class="dot"></span>Inicio</a>
+        <a class="ni"><span class="dot"></span>Colaboradores</a>
+        <a class="ni"><span class="dot"></span>Catálogo</a>
+        <a class="ni"><span class="dot"></span>Compras</a>
+        <a class="ni"><span class="dot"></span>Ventas</a>
+        <div class="grupo-lbl"><span class="dot" style="opacity:1"></span>Inventario</div>
+        <div class="hijos">
+          <a class="hijo activo">Existencias</a>
+          <a class="hijo">Movimientos</a>
+          <a class="hijo">Traslados</a>
+          <a class="hijo">Conteo</a>
+          <a class="hijo">Análisis</a>
+        </div>
+      </nav>
+      <div class="foot">
+        <p class="tagline">Donde el estilo transforma.</p>
+        <div class="persona"><span class="avatar">FA</span><div><b>Felipe Alvarez</b><span>LÍDER · TIENDA LIMA</span></div></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar entra">
+        <div>
+          <p class="eyebrow">Inventario · Existencias</p>
+          <h2 class="pagetitle">Tienda Lima</h2>
+          <p class="subtitle">Qué hay en piso y almacén, qué viene en camino y dónde más hay. Vista cargada a las 09:27.</p>
+        </div>
+        <button class="btn btn-primario">+ Nuevo traslado</button>
+      </div>
+
+      <div class="kpi-row entra" style="animation-delay:40ms;">
+        <div class="kpi"><div class="lbl">Prendas disponibles</div><div class="val">842</div><div class="ctx">62% en el piso · 320 almacén · 12 apartada(s)</div></div>
+        <div class="kpi rojo"><div class="lbl">Dañado</div><div class="val">5</div><div class="ctx">En cuarentena — liquidar, botar o donar</div></div>
+        <div class="kpi ambar"><div class="lbl">Apartados</div><div class="val">12</div><div class="ctx">2 vencido(s)</div></div>
+        <div class="kpi"><div class="lbl">En camino hacia acá</div><div class="val">340 u.</div><div class="ctx">2 traslados · 1 atrasado</div></div>
+      </div>
+
+      <div class="card entra" style="animation-delay:80ms;">
+        <div class="filtros-fila">
+          <input class="input" placeholder="Producto, SKU, color, talla…" disabled>
+          <select class="input"><option>Categoría</option></select>
+          <select class="input"><option>Talla</option></select>
+          <select class="input"><option>Color</option></select>
+          <select class="input"><option>Estado</option></select>
+        </div>
+        <table class="tabla">
+          <thead><tr><th>Producto / variante</th><th>Piso · Almacén</th><th>Disponible</th><th>Estado</th><th>En camino</th><th>En la red</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="thumb" style="display:inline-block; vertical-align:middle; margin-right:8px;"></div><b>Blusa Emma</b> <span class="muted" style="font-size:11px;">Negro · S</span></td>
+              <td>18 · 94</td>
+              <td>112 <span class="muted" style="font-size:11px;">· cubre 8 días</span></td>
+              <td><span class="muted" style="font-size:12px;">Normal</span></td>
+              <td>—</td>
+              <td>Disponible en 3 sedes: 40 u.</td>
+              <td><button class="btn btn-secundario" style="padding:5px 10px; font-size:11.5px;">Ajustar</button></td>
+            </tr>
+            <tr>
+              <td><div class="thumb" style="display:inline-block; vertical-align:middle; margin-right:8px;"></div><b>Casaca Emilia</b> <span class="muted" style="font-size:11px;">Beige · M</span></td>
+              <td>4 · 8</td>
+              <td>12</td>
+              <td><span class="badge" data-tono="ambar">Reponer piso</span></td>
+              <td>40 u. · llega 24/09</td>
+              <td>Disponible en 1 sede: 6 u.</td>
+              <td><button class="btn btn-primario" style="padding:5px 10px; font-size:11.5px;">Reponer</button></td>
+            </tr>
+            <tr>
+              <td><div class="thumb" style="display:inline-block; vertical-align:middle; margin-right:8px;"></div><b>Vestido Solsticio</b> <span class="muted" style="font-size:11px;">Terracota · M</span></td>
+              <td>0 · 0</td>
+              <td>0</td>
+              <td><span class="badge" data-tono="rojo">Sin stock</span></td>
+              <td>—</td>
+              <td>Nada en esta tienda — ver dónde hay</td>
+              <td><button class="btn btn-sutil" style="padding:5px 10px; font-size:11.5px;">Apartar</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="leyenda-estado">
+          <span><span class="sw" style="background:var(--sand)"></span>Normal</span>
+          <span><span class="sw" style="background:var(--ambar)"></span>Reponer piso — bajar del almacén</span>
+          <span><span class="sw" style="background:var(--rojo-profundo)"></span>Stock bajo / sin stock — pedir traslado</span>
+        </div>
+        <div class="row" style="margin-top:12px; justify-content:space-between;">
+          <span class="muted" style="font-size:12px;">Mostrando 3 de 842 prendas</span>
+          <button class="btn btn-sutil" style="font-size:12px;">Exportar CSV</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
