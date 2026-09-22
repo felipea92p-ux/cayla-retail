@@ -23,9 +23,6 @@ import {
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
   vueltoDe,
-  vendedoraDeLaVenta,
-  vendedoraPendiente,
-  vendedorasDeTurno,
   type CampanaLinea,
   type DetalleDescuento,
   type PagoAplicado,
@@ -613,40 +610,11 @@ describe("pasoDelCobro — cuál es el siguiente paso que la pantalla resalta", 
   });
 });
 
-// «¿Quién atendió a la clienta?» — la fila de chips del ticket. Con UN solo equipo de caja en la tienda, la
-// sesión no dice quién vendió; la fila lo pregunta, y estas reglas deciden a quién se atribuye la venta y
-// cuándo frenan el cobro. Con nadie en la fila NO se frena nada: la venta sale a nombre de la sesión.
+// El nombre de quien atendió en el papel del ticket: el responsable de la venta (ADR-0161).
 
 const MARIA: Vendedora = { personaId: "p-maria", nombre: "María Pérez Soto" };
 const ROSA: Vendedora = { personaId: "p-rosa", nombre: "Rosa Díaz Luna" };
 const MARIA_L: Vendedora = { personaId: "p-maria-l", nombre: "María López Vera" };
-
-describe("quién atendió — a quién se le atribuye la venta", () => {
-  it("con ninguna marcada en la sede nadie se atribuye: sale a nombre de la sesión, como siempre", () => {
-    expect(vendedoraDeLaVenta([], null)).toBeNull();
-    expect(vendedoraPendiente([], null)).toBe(false);
-  });
-
-  it("con una sola marcada es ella, sin tocar nada", () => {
-    expect(vendedoraDeLaVenta([MARIA], null)).toBe("p-maria");
-    expect(vendedoraPendiente([MARIA], null)).toBe(false);
-  });
-
-  it("con varias y ninguna elegida falta elegir: el silencio no atribuye la venta a nadie", () => {
-    expect(vendedoraDeLaVenta([MARIA, ROSA], null)).toBeNull();
-    expect(vendedoraPendiente([MARIA, ROSA], null)).toBe(true);
-  });
-
-  it("con varias, la elegida es la que cuenta", () => {
-    expect(vendedoraDeLaVenta([MARIA, ROSA], "p-rosa")).toBe("p-rosa");
-    expect(vendedoraPendiente([MARIA, ROSA], "p-rosa")).toBe(false);
-  });
-
-  it("si la elegida ya no está en la fila (la desmarcaron con el ticket armado) vuelve a faltar elegir", () => {
-    expect(vendedoraDeLaVenta([MARIA, ROSA], "p-otra")).toBeNull();
-    expect(vendedoraPendiente([MARIA, ROSA], "p-otra")).toBe(true);
-  });
-});
 
 describe("atendioCorto — el nombre que sale en el papel", () => {
   it("el primer nombre basta cuando no hay otra igual en la fila", () => {
@@ -664,53 +632,24 @@ describe("atendioCorto — el nombre que sale en el papel", () => {
   });
 });
 
-describe("motivoBloqueoCobro — quién atendió", () => {
-  it("con varias marcadas y ninguna elegida frena ya al armar, con el mensaje exacto", () => {
-    expect(motivoBloqueoCobro({ ...listo, momento: "armar", pagos: [], vendedoraFalta: true })).toBe("Elige quién atendió a la clienta.");
+describe("motivoBloqueoCobro — el responsable (ADR-0161)", () => {
+  it("sin responsable frena ya al armar, con la frase del combo", () => {
+    expect(motivoBloqueoCobro({ ...listo, momento: "armar", pagos: [], motivoResponsable: "Elige quién hace esta operación." })).toBe(
+      "Elige quién hace esta operación.",
+    );
   });
 
-  it("se pide antes que el pago: primero quién atendió, después la plata", () => {
-    expect(motivoBloqueoCobro({ ...listo, pagos: [], vendedoraFalta: true })).toBe("Elige quién atendió a la clienta.");
+  it("se pide antes que el pago: primero quién hace la venta, después la plata", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: [], motivoResponsable: "Nadie de turno" })).toBe("Nadie de turno");
   });
 
-  it("la caja cerrada y el ticket vacío mandan sobre ella", () => {
-    expect(motivoBloqueoCobro({ ...listo, cajaAbierta: false, vendedoraFalta: true })).toBe("Abre la caja para vender.");
-    expect(motivoBloqueoCobro({ ...listo, prendas: 0, vendedoraFalta: true })).toBe("Agrega una prenda para cobrar.");
+  it("la caja cerrada y el ticket vacío mandan sobre él", () => {
+    expect(motivoBloqueoCobro({ ...listo, cajaAbierta: false, motivoResponsable: "x" })).toBe("Abre la caja para vender.");
+    expect(motivoBloqueoCobro({ ...listo, prendas: 0, motivoResponsable: "x" })).toBe("Agrega una prenda para cobrar.");
   });
 
-  it("con la vendedora elegida (o sin la regla) no bloquea", () => {
-    expect(motivoBloqueoCobro({ ...listo, vendedoraFalta: false })).toBeNull();
+  it("con responsable elegido (o sin la regla) no bloquea", () => {
+    expect(motivoBloqueoCobro({ ...listo, motivoResponsable: null })).toBeNull();
     expect(motivoBloqueoCobro(listo)).toBeNull();
-  });
-});
-
-describe("vendedorasDeTurno — quién sale en la fila según la asistencia de Dynamic", () => {
-  const fila = (id: string, estado: string, deEstaSede = true) => ({ persona_id: id, nombre_corto: id, estado_ahora: estado, es_de_esta_sede: deEstaSede });
-  const ids = (r: { vendedoras: Vendedora[] }) => r.vendedoras.map((v) => v.personaId);
-
-  it("solo las presentes: en pausa y las que ya salieron no atienden ahora", () => {
-    const r = vendedorasDeTurno([fila("ana", "presente"), fila("bea", "en_pausa"), fila("cata", "salio"), fila("dora", "programada")]);
-    expect(ids(r)).toEqual(["ana"]);
-    expect(r.sinAsistencia).toBe(false);
-  });
-
-  it("una de otra sede que marcó entrada aquí también atiende", () => {
-    expect(ids(vendedorasDeTurno([fila("ana", "presente"), fila("eva", "presente", false)]))).toEqual(["ana", "eva"]);
-  });
-
-  it("si nadie marcó nada hoy, salen todas las de la sede con aviso (un olvido no frena la atribución)", () => {
-    const r = vendedorasDeTurno([fila("ana", "programada"), fila("bea", "programada"), fila("eva", "programada", false)]);
-    expect(ids(r)).toEqual(["ana", "bea"]);
-    expect(r.sinAsistencia).toBe(true);
-  });
-
-  it("si alguien marcó pero ahora no hay nadie presente, la fila queda vacía y sin aviso", () => {
-    const r = vendedorasDeTurno([fila("ana", "en_pausa"), fila("bea", "programada")]);
-    expect(r.vendedoras).toEqual([]);
-    expect(r.sinAsistencia).toBe(false);
-  });
-
-  it("sin filas (Dynamic no respondió o la sede no está enlazada) no hay a quién ofrecer", () => {
-    expect(vendedorasDeTurno([])).toEqual({ vendedoras: [], sinAsistencia: false });
   });
 });

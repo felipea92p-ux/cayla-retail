@@ -29,8 +29,6 @@ import {
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
   vueltoDe,
-  vendedoraDeLaVenta,
-  vendedoraPendiente,
   conDescuentoDeCampana,
   type CampanaLinea,
   type DetalleDescuento,
@@ -38,7 +36,8 @@ import {
   type PagoAplicado,
 } from "@/lib/vender-reglas";
 import { borrar, claveLocal, guardar, leer } from "@/lib/almacen-local";
-import { carritoPasaElUmbral, conStockComprometidoDescontado, type ParamsRegistrarVenta, type VentaEncolada } from "@/lib/ventas-offline";
+import { carritoPasaElUmbral, conStockComprometidoDescontado, firmaDeVentaEncolada, type ParamsRegistrarVenta, type VentaEncolada } from "@/lib/ventas-offline";
+import { firmar } from "@/lib/responsable-reglas";
 import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
@@ -51,7 +50,7 @@ import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { armarRecibo, textoNumeroRecibo, type ReciboVenta } from "@/lib/recibo-reglas";
 import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
-import { useVendedorasDeTurno } from "@/lib/useVendedorasDeTurno";
+import { useResponsable } from "@/lib/useResponsable";
 
 /**
  * "Cargo especial" (migración `..._cargo_especial_pos.sql`): variante centinela para
@@ -138,7 +137,8 @@ export type TicketEnEspera = {
   carrito: ItemCarrito[];
   nota: string;
   codigoDescuento: string;
-  /** Quién atendía a la clienta. Un ticket guardado antes de la fila «Atendió» no lo trae. */
+  /** Quién atendía (fila «Atendió», ADR-0163). Ya no se guarda ni se restaura: el responsable se elige en cada
+   *  cobro (ADR-0161, A6). Queda en el tipo solo porque tickets viejos en localStorage pueden traerlo. */
   vendedoraId?: string | null;
 };
 
@@ -233,12 +233,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // Nota del ticket («lo recoge el sábado»): parte del ticket, no del cobro — el ticket
   // en espera (paso siguiente) la guarda y la recupera con las líneas. No va al comprobante.
   const [nota, setNota] = useState("");
-  // Quién atendió a la clienta (la fila de chips del ticket). `null` = todavía no se tocó ninguna.
-  const [vendedoraElegida, setVendedoraElegida] = useState<string | null>(null);
-  // El modal «¿Quiénes atienden en caja?» (solo un líder llega a abrirlo).
-  // Quién atendió: las que marcaron entrada hoy en Dynamic, releídas cada minuto (ADR-0163). Ninguna = se vende
-  // como antes, a nombre de la sesión; una sola = es ella, sin tocar nada.
-  const { vendedoras, sinAsistencia: vendedorasSinAsistencia, noCargaron: vendedorasNoCargaron } = useVendedorasDeTurno(ubicacionId);
+  // El RESPONSABLE de la venta (ADR-0161; reemplaza la fila «Atendió» del ADR-0163): solo quienes están presentes
+  // ahora en la tienda, vacío en cada venta, y sin nadie presente no se cobra. Viaja como `p_asesora_id` y como
+  // encabezado `x-responsable` (`firmar`), y es el nombre que sale en el papel del ticket.
+  const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
   // Tickets en espera de ESTA sede. Arranca vacío a propósito y se carga después de
   // montar (efecto más abajo): el servidor no tiene localStorage, y leerlo durante el
   // render dejaría el HTML del servidor distinto del primero del navegador (hidratación).
@@ -379,7 +377,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
 
       const resueltos = new Map<string, VentaEncolada | null>();
       for (const venta of aReintentar) {
-        const { error } = await supabase.rpc("registrar_venta", venta.params);
+        // Sube con el responsable que se eligió al cobrar y la HORA DE LA VENTA (`x-momento`), no la de ahora.
+        const { error } = await firmar(supabase.rpc("registrar_venta", venta.params), firmaDeVentaEncolada(venta));
         if (!error) resueltos.set(venta.token, null);
         else if (!esFalloDeRed(error)) resueltos.set(venta.token, { ...venta, rechazo: traducirError(error, "subir la venta guardada sin conexión") });
         // sigue siendo fallo de red: no se toca, se reintenta en el próximo latido
@@ -627,7 +626,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     setCodigoDescuento("");
     setPagos([]);
     setDescuento(DESCUENTO_VACIO);
-    setVendedoraElegida(null);
+    responsable.limpiar();
     setMomento("armar");
   }
   function dejarEnEspera() {
@@ -637,7 +636,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       return;
     }
     capturarFlip();
-    persistirEspera([...enEspera, { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, codigoDescuento, vendedoraId: vendedoraElegida }]);
+    persistirEspera([...enEspera, { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, codigoDescuento }]);
     limpiarTicket();
     buscador.current?.focus();
   }
@@ -646,7 +645,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     if (!ticket) return;
     // Si el ticket actual tiene líneas, se intercambian: el actual ocupa el lugar del retomado.
     const actual: TicketEnEspera | null =
-      carrito.length > 0 ? { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, codigoDescuento, vendedoraId: vendedoraElegida } : null;
+      carrito.length > 0 ? { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, codigoDescuento } : null;
     persistirEspera(enEspera.map((t) => (t.id === id ? actual : t)).filter((t): t is TicketEnEspera => t !== null));
     // Un ticket guardado antes de que el carrito llevara `codigo` vuelve sin él: se
     // completa acá, la única puerta por la que algo del navegador vuelve al carrito.
@@ -658,7 +657,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     setCarrito(lineas);
     setNota(ticket.nota);
     setCodigoDescuento(ticket.codigoDescuento);
-    setVendedoraElegida(ticket.vendedoraId ?? null);
+    // El responsable NO vuelve con el ticket: se elige en cada cobro (ADR-0161, A6).
+    responsable.limpiar();
     setPagos([]);
     setMomento("armar");
     // Lo que la pantalla sabe del stock (refrescado tras cada venta): si algo ya no alcanza,
@@ -708,11 +708,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // porque `cobrar()` también lo necesita — ver `motivoBloqueoCobro`.
   const restante = restanteDePagos(total, pagos);
   const vuelto = pagos.reduce((acc, p) => acc + vueltoDe(p), 0);
-  // Quién atendió: con una sola marcada es ella; con varias, la que se tocó (si sigue en la fila); con ninguna,
-  // nadie (la venta sale a nombre de la sesión, como antes). `vendedoraFalta` frena el cobro solo con 2 o más.
-  const vendedoraId = vendedoraDeLaVenta(vendedoras, vendedoraElegida);
-  const vendedoraFalta = vendedoraPendiente(vendedoras, vendedoraElegida);
-  const motivoBloqueo = motivoBloqueoCobro({ cajaAbierta: !bloqueado, prendas, momento, total, pagos, facturaSinRuc, vendedoraFalta });
+  // Sin responsable vigente no se cobra (ni se pasa a «cobrar»): su frase explica el botón apagado.
+  const motivoBloqueo = motivoBloqueoCobro({ cajaAbierta: !bloqueado, prendas, momento, total, pagos, facturaSinRuc, motivoResponsable: responsable.motivo });
 
   // Tocar un medio agrega su fila con lo que falta cubrir; combinar es bajar un monto y
   // tocar otro medio. Una fila por medio: tocar uno que ya está no duplica.
@@ -805,12 +802,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       p_cliente_nombre: clienteNombre || undefined,
       p_codigo_descuento: codigoDescuento.trim() || undefined,
       p_nota: nota.trim() || undefined,
-      // Solo viaja si hay a quién atribuirla: sin ella la clave ni aparece y la base la deja vacía.
-      p_asesora_id: vendedoraId ?? undefined,
+      // El responsable elegido en el combo (ADR-0161): la venta queda a su nombre (ADR-0163, `asesora_id`).
+      p_asesora_id: responsable.elegidoId ?? undefined,
     };
 
     const supabase = createClient();
-    const { data: ventaId, error } = await supabase.rpc("registrar_venta", params);
+    const { data: ventaId, error } = await firmar(supabase.rpc("registrar_venta", params), responsable.firma());
 
     if (error) {
       // Sin red: no es un rechazo del servidor, es que el envío no llegó. Se intenta
@@ -837,6 +834,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
         setLoading(false);
         token.current = crypto.randomUUID();
         avisar.exito(`Venta de ${money(total)} guardada sin conexión`, { detalle: "Subirá sola cuando vuelva el internet." });
+        // El responsable ya viaja dentro de la venta encolada (`p_asesora_id`); el combo vuelve a vacío.
+        responsable.despues(null);
         setOk({ total, prendas, recibo: null, estado: null, offline: true });
         setCarrito([]);
         limpiarComprobante();
@@ -859,6 +858,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           ? `${cortas.map((it) => `${it.referencia} (${codigoPrenda(it)}) — quedan ${variantesConOverlay.find((x) => x.varianteId === it.varianteId)?.stockAqui ?? 0}`).join("; ")} ya no tiene stock suficiente en ${ubicacionEtiqueta}. Ajusta la cantidad o quita la prenda.`
           : traducirError(error, "registrar la venta")
       );
+      // Si la base rechazó por el responsable (marcó salida entre que se eligió y se cobró), vacía y relee.
+      responsable.despues(error);
       return;
     }
 
@@ -886,13 +887,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           })),
           pagos,
           tasaIgv: 0.18,
-          atendio: atendioCorto(vendedoras, vendedoraId),
+          atendio: atendioCorto(responsable.lista.elegibles, responsable.elegidoId),
         });
       }
     }
 
     setLoading(false);
     token.current = crypto.randomUUID();
+    responsable.despues(null);
     avisar.exito(`Venta de ${money(total)} registrada`, { detalle: recibo ? `${ETIQUETA_TIPO[recibo.tipo]} ${textoNumeroRecibo(recibo)}` : `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${ubicacionEtiqueta}` });
     setOk({ total, prendas, recibo, estado, offline: false });
     setCarrito([]);
@@ -909,7 +911,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     setPagos([]);
     setCodigoDescuento("");
     setNota("");
-    setVendedoraElegida(null);
+    responsable.limpiar();
     setMomento("armar");
   }
 
@@ -1069,11 +1071,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           onIrACobrar={() => setMomento("cobrar")}
           onVolverATicket={() => setMomento("armar")}
           motivoBloqueo={motivoBloqueo}
-          vendedoras={vendedoras}
-          vendedoraId={vendedoraId}
-          onVendedora={setVendedoraElegida}
-          vendedorasNoCargaron={vendedorasNoCargaron}
-          vendedorasSinAsistencia={vendedorasSinAsistencia}
+          responsable={responsable}
         />
       </div>
 
