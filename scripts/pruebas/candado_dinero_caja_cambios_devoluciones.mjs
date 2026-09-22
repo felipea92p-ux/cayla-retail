@@ -10,8 +10,12 @@
  *      el navegador (`p_es_ajuste` queda ignorado); el vocabulario de motivos es cerrado; y
  *      "Depósito bancario"/"Otro" exigen una referencia. Los motivos normales de siempre
  *      (Retiro de efectivo, Compra de insumos) siguen funcionando igual para una colaboradora.
- *   2. `registrar_cambio`: una diferencia NEGATIVA (CAYLA le devuelve plata a la clienta)
- *      exige líder, igual que ya exigía `aprobar_devolucion` del otro lado del mostrador.
+ *   2. `registrar_cambio`: el candado de líder para una diferencia NEGATIVA se sumó y se
+ *      REVIRTIÓ el mismo día (`20260923110000_cambios_sin_candado_de_lider.sql`, decisión de
+ *      Felipe: "0 trabas, agilidad para la clienta"). Esta prueba confirma que hoy una
+ *      colaboradora sola completa el cambio igual con diferencia negativa, positiva, o siendo
+ *      líder — las tres dan el mismo resultado. El riesgo que eso acepta queda documentado en
+ *      esa migración, no aquí: esto solo prueba que la base hace lo que Felipe pidió.
  *   3. `aprobar_devolucion`: quien registró la devolución no puede aprobarla ella misma, y el
  *      reembolso no puede superar lo que la clienta pagó de verdad (con descuento).
  *   4. El `revoke`: sin pasar por ninguna RPC, un `update`/`insert`/`delete` directo sobre
@@ -333,18 +337,24 @@ rollback;
 );
 
 // ===========================================================================
-// 2. registrar_cambio — devolver plata en un cambio exige líder
+// 2. registrar_cambio — SIN candado de líder (revertido a propósito, ver
+//    20260923110000_cambios_sin_candado_de_lider.sql: decisión de Felipe,
+//    2026-09-23, "0 trabas, agilidad para la clienta"). Se prueba que una
+//    colaboradora sola SÍ puede completar un cambio con diferencia negativa,
+//    igual que con diferencia positiva y que un líder — las tres dan lo mismo.
 // ===========================================================================
 
-error(
-  "colaboradora (Micaela, en su propia tienda): un cambio con diferencia NEGATIVA se rechaza — CAYLA le devolvería plata a la clienta sin que ningún líder se entere",
+exito(
+  "colaboradora (Micaela, en su propia tienda): un cambio con diferencia NEGATIVA se completa sola, sin líder (decisión de Felipe, 2026-09-23: agilidad para la clienta)",
   comoPersona(
     FELIPE,
     `${fixtureCambio({ persona: MICAELA, diferenciaUnitaria: -20 })}
-select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, 'efectivo', gen_random_uuid());
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, 'efectivo', gen_random_uuid()) as cambio_id \\gset
+select c.diferencia, c.metodo_pago_diferencia from retail.cambios c where c.id = :'cambio_id';
+rollback;
 `
   ),
-  "necesita la aprobación de un líder de equipo"
+  ["-20.00", "efectivo"]
 );
 
 exito(
@@ -361,7 +371,7 @@ rollback;
 );
 
 exito(
-  "líder (Felipe, en una tienda que no es la suya): SÍ puede hacer el cambio con diferencia negativa",
+  "líder (Felipe, en una tienda que no es la suya): sigue pudiendo hacer el cambio con diferencia negativa (nunca dejó de poder)",
   comoPersona(
     FELIPE,
     `${fixtureCambio({ persona: FELIPE, diferenciaUnitaria: -20 })}
