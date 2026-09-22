@@ -199,7 +199,7 @@ Análisis completo en [docs/pantallas/colaboradores.md](pantallas/colaboradores.
 - [ ] Decidir dos reglas: (a) los códigos de barras se buscan parcial (antes, exacto); (b) dos tallas o dos colores escritos a la vez se exigen los dos (no hay «M o L»).
 - [ ] La marca (ya se busca en la caja, ADR-0109) no entra en Existencias: `FilaStock` no la trae.
 
-## 🎯 Análisis: rediseño con la guía oficial (2026-09-22, ADR-0170) — construido y verificado con datos de muestra; sin migración
+## 🎯 Análisis: rediseño con la guía oficial (2026-09-22, ADR-0171) — construido y verificado con datos de muestra; sin migración
 Demo y decisiones: [docs/maquetas/analisis-rediseno-2026-09/](maquetas/analisis-rediseno-2026-09/README.md).
 - [x] Felipe eligió: Desempeño con la misma anatomía que Comparar (A), aviso de exactitud en franja y sede sin datos con salidas.
 - [x] «Cambio relevante» por reglas: `lib/resumen-lectura.ts` + `resumen-lectura.test.ts` (7 reglas en orden), en las dos tablas.

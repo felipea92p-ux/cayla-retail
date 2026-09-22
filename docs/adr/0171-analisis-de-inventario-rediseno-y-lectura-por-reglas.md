@@ -1,4 +1,4 @@
-# ADR-0170 — Análisis de inventario: una sola lectura, misma anatomía en las dos pestañas y «Cambio relevante» por reglas
+# ADR-0171 — Análisis de inventario: una sola lectura, misma anatomía en las dos pestañas y «Cambio relevante» por reglas
 
 **Fecha:** 2026-09-22 · **Estado:** aceptado (Felipe, 2026-09-22) · **Sin migraciones** · **Amplía:** ADR-0138 (Análisis de inventario) · **Se apoya en:** ADR-0169 (paleta oficial) · **Referencia visual:** Sala de Diseño («Análisis — Comparar períodos») y la demo `docs/maquetas/analisis-rediseno-2026-09/demo.html`
 

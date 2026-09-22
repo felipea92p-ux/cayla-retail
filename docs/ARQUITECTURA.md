@@ -255,7 +255,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `distribucionDesempeno`, sobre el alcance) → `ResumenDesempenoPanel` con `ResumenControles` (una barra: período ·
   categoría, búsqueda debajo), `ResumenDesempenoGeneral` (4 cifras + dona de tendencia + top rotación + distribución
   de sell-through) y `ResumenComportamiento` (tabla «Comportamiento del inventario» con la banda de sell-through en
-  su cabecera y la columna «Lectura del período», orden por defecto «Más vendidos», 15 filas). ADR-0170.
+  su cabecera y la columna «Lectura del período», orden por defecto «Más vendidos», 15 filas). ADR-0171.
   · **Comparar períodos** (rediseño visual 2026-09-19) → `getComparacionInventario` = la misma RPC con A y B
   elegidos → `lib/resumen-comparacion.ts:armarComparacion` → `ResumenComparacionPanel`: contexto en dos
   píldoras «Período A: desde … hasta …» y «Período B: …» (`ResumenControles`, diseño de Figma 2026-09-21; cada una
@@ -267,7 +267,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   dos tablas sale de `lib/resumen-lectura.ts` (`lecturaDesempeno`, `lecturaComparacion`: 7 reglas en orden; en Comparar
   la regla 4 es `cambioMostrado` con su `PRIORIDAD_CAMBIO`). Sin datos o en el Taller: `ResumenVacio` (ampliar a 90
   días, ver otra tienda con `cambiarUbicacionActiva`, ir a Recibir). Exactitud: `ResumenBanner` como franja bajo el
-  título. ADR-0170.
+  título. ADR-0171.
   · **Rotación** = `lib/rotacion.ts` (COGS ÷ inventario promedio a costo; fallback de dos puntos, punto de
   sustitución para un promedio diario): la ÚNICA fórmula de las filas, el ranking, los órdenes y los KPI de
   Desempeño y Comparar. Una variante es estricta (sin dato = N/D); un total es `rotacionAgregada` (Σ COGS ÷ Σ
