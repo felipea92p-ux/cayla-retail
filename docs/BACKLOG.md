@@ -28,6 +28,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Conteo físico: rediseño con la guía oficial (2026-09-22) — maqueta lista, sin código
+Demo: `docs/maquetas/conteo-rediseno-2026-09/conteo.html` (artifact https://claude.ai/artifact/U6e6UwKXX3rByebdBPDLrD).
+- [ ] **Decisión de Felipe:** pendientes mientras se cuenta — variante A (lista sin cifras) o B (solo el número).
+- [ ] **Base:** `cerrar_conteo` rechaza un conteo sin `conteo_items` (decidido: «Vacío» + no se cierra). Migración propia; OK antes de producción.
+- [ ] **Web:** llevar la maqueta a `conteo/page.tsx`, `ConteoPanel.tsx`, `ConteosLista.tsx` y `[id]/page.tsx` (interruptor suma/escribir, sin «Diferencia hasta ahora» con conteo abierto, «Vacío», revisión en `<Modal>`).
+
 ## 🎯 Paleta oficial «CAYLA Dynamic» + rediseño visual de Inventario (2026-09-22, ADR-0169) — hecho, SIN migraciones; falta verlo con clics reales
 - [x] Tokens oficiales en `globals.css` para todo el ERP: papel `#fbf8f2`, taupe `#805c4c`, verde `#48603f`, ámbar `#74501a`, más `hueso` y `pizarra` nuevos, radio flotante de 20 px y serif en 600. Contraste medido: todo ≥ 4.5:1.
 - [x] Piezas del sistema: `eyebrow-cayla`, `btn-cayla` (primario/secundario/peligro/sutil/enlace), `pildora-cayla`, `caja-cayla`, `nota-cayla` y zebra de tabla; `Tabla`, `Chip` (insignia con punto + tono `pizarra`), `TarjetaCifra`, `campos` (variante `caja`) y `CabeceraPantalla` nueva.
