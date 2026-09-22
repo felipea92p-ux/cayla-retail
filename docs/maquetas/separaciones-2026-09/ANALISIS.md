@@ -41,7 +41,7 @@ Lo que **no** existe: tareas programadas (`pg_cron`), notificaciones, y nada de 
 ## 4. El flujo (lo que hace la demo)
 
 **Separar** — escanear o escribir el código → solo aparece esa prenda (si el texto coincide con varias, se elige talla/color) →
-clienta → quién atendió → adelanto (mínimo 30%, atajos 30/50/100%, varios medios, vuelto si es efectivo) → la clienta acepta las
+clienta → quién atendió → adelanto (monto libre, atajos 30/50/100%, varios medios, vuelto si es efectivo) → cómo se le devuelve si no recoge → la clienta acepta las
 condiciones → **Confirmar separación**. Sale el comprobante con: sello `SEPARACIÓN SEP-TRU-0007`, prendas, total, anticipo con IGV,
 saldo, **fecha límite** y condiciones cortas. Después, tres pasos físicos: etiqueta «SEPARADO», guardarla en la zona «Separados»
 del almacén (no en el piso), enviar el comprobante por WhatsApp.
