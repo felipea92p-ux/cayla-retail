@@ -12,7 +12,9 @@ export type TipoComprobante = "boleta" | "factura" | "nota_credito" | "nota_debi
 // "no_emitido" (ADR-0093): un líder liberó un comprobante `pendiente` que nunca se
 // transmitió a SUNAT — su número queda sin usar para siempre, nunca se reutiliza. Distinto
 // de "anulado": eso es una baja real ANTE SUNAT de algo que sí llegó a transmitirse.
-export type EstadoComprobante = "pendiente" | "enviado" | "aceptado" | "rechazado" | "anulado" | "no_emitido";
+/** `pendiente_reintento`: Lucode/SUNAT no respondió al enviarlo y espera en la cola, que se reintenta
+ *  sola (D-60) — nunca un rechazo de SUNAT, que es `rechazado`. */
+export type EstadoComprobante = "pendiente" | "pendiente_reintento" | "enviado" | "aceptado" | "rechazado" | "anulado" | "no_emitido";
 /** `null` = todavía no se transmitió. `sandbox` = se transmitió, pero a la
  *  plataforma de pruebas: SUNAT no lo vio y el comprobante NO es válido. */
 export type EntornoTransmision = "sandbox" | "produccion" | null;
@@ -86,6 +88,7 @@ export const ETIQUETA_TIPO: Record<TipoComprobante, string> = {
 
 export const ESTADO_ESTILO: Record<EstadoComprobante, string> = {
   pendiente: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
+  pendiente_reintento: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
   enviado: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
   aceptado: "border-verde/45 bg-verde/10 text-verde-profundo",
   rechazado: "border-rojo/30 bg-rojo/10 text-rojo-profundo",
@@ -98,6 +101,7 @@ export const ESTADO_ESTILO: Record<EstadoComprobante, string> = {
 
 export const ESTADO_ETIQUETA: Record<EstadoComprobante, string> = {
   pendiente: "Pendiente de enviar",
+  pendiente_reintento: "En cola: se reintenta solo",
   enviado: "Enviado a SUNAT",
   aceptado: "Aceptado",
   rechazado: "Rechazado",

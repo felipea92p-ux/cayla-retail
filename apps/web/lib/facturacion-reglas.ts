@@ -56,27 +56,28 @@ export function periodoDelMes(mes: Mes, actual: Mes): string {
 
 /* ---------------------------- Las pestañas ---------------------------- */
 
-export type ClavePestana = "resumen" | "proformas" | "comprobantes" | "descuentos";
+export type ClavePestana = "series" | "emitidos" | "proformas";
 
 export type PestanaFacturacion = { clave: ClavePestana; etiqueta: string; ruta: string; conMes: boolean };
 
-const RUTA = "/vender/facturacion";
+const RUTA = "/vender/comprobantes";
 
 /** Las cuatro vistas, en el orden en que se dibujan. `conMes`: solo Proformas y
- *  Comprobantes viven en un mes; Resumen es «hoy» y Códigos no tiene tiempo. */
+ *  Emitidos viven en un mes; Series no tiene tiempo. Desde 2026-09-22 (D-60) la pantalla es
+ *  «Comprobantes»: el envío a SUNAT es automático, así que la base es Series y ya no hay Resumen ni
+ *  Códigos de descuento (el código se sigue usando al cobrar en Vender). */
 export const PESTANAS: readonly PestanaFacturacion[] = [
-  { clave: "resumen", etiqueta: "Resumen", ruta: RUTA, conMes: false },
+  { clave: "series", etiqueta: "Series", ruta: RUTA, conMes: false },
+  { clave: "emitidos", etiqueta: "Emitidos", ruta: `${RUTA}/emitidos`, conMes: true },
   { clave: "proformas", etiqueta: "Proformas", ruta: `${RUTA}/proformas`, conMes: true },
-  { clave: "comprobantes", etiqueta: "Comprobantes", ruta: `${RUTA}/comprobantes`, conMes: true },
-  { clave: "descuentos", etiqueta: "Códigos de descuento", ruta: `${RUTA}/descuentos`, conMes: false },
 ];
 
-/** La pestaña que le toca a una ruta. Una ruta desconocida cae en Resumen (la base). El
+/** La pestaña que le toca a una ruta. Una ruta desconocida cae en Series (la base). El
  *  prefijo tiene que terminar en `/` o en el fin: `/proformas-viejas` no es Proformas. */
 export function pestanaDeRuta(pathname: string): ClavePestana {
   const limpia = pathname.replace(/\/+$/, "");
-  const hallada = PESTANAS.find((p) => p.clave !== "resumen" && (limpia === p.ruta || limpia.startsWith(`${p.ruta}/`)));
-  return hallada?.clave ?? "resumen";
+  const hallada = PESTANAS.find((p) => p.clave !== "series" && (limpia === p.ruta || limpia.startsWith(`${p.ruta}/`)));
+  return hallada?.clave ?? "series";
 }
 
 /** El enlace de una pestaña. Solo las dos que viven en un mes llevan `?m=`, y solo si el
@@ -130,7 +131,7 @@ export type ConteosPestanas = Partial<Record<ClavePestana, ConteoPestana>>;
 export function conteosDePestanas(porEnviar: ResumenPorEnviar | null, proformas: ResumenProformas | null): ConteosPestanas {
   const conteos: ConteosPestanas = {};
   if (porEnviar && porEnviar.porEnviar > 0) {
-    conteos.comprobantes =
+    conteos.emitidos =
       porEnviar.rechazados > 0
         ? { valor: porEnviar.porEnviar, tono: "rojo", texto: "por enviar a SUNAT, con rechazados" }
         : { valor: porEnviar.porEnviar, tono: "ambar", texto: "por enviar a SUNAT" };

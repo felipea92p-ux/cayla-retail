@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { FileText, Plus, Search, Send, X } from "lucide-react";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
+import { Chip } from "@/components/ui/Chip";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede, type CifraResumen } from "@/components/ui/ResumenSede";
 import { pestanaDeRuta, SEGUNDOS_VISTA_FRESCA, textoDeFrescura, type ClavePestana } from "@/lib/facturacion-reglas";
@@ -17,10 +18,9 @@ import { useUltimaCarga } from "@/lib/ultima-carga-facturacion";
 // (`CajaDeBusqueda`, en el shell), como la barra de filtros de Historial.
 
 const PISTA_DE_BUSQUEDA: Record<ClavePestana, string> = {
-  resumen: "Buscar venta, cliente o boleta…",
+  series: "Buscar serie o tienda…",
+  emitidos: "Buscar número, cliente o RUC…",
   proformas: "Buscar cliente…",
-  comprobantes: "Buscar número, cliente o RUC…",
-  descuentos: "Buscar código o sede…",
 };
 
 // La línea viva. El punto late mientras lo que se ve es reciente; pasados diez minutos sin recargar se
@@ -95,15 +95,26 @@ function cifrasDe({ porEnviar, proformasVigentes }: CifrasCabecera): CifraResume
 }
 
 /** `sede` es la que está seleccionada arriba a la derecha (la de la persona), como en las otras pantallas. */
-export function FacturacionCabecera({ sede, cifras }: { sede: string; cifras: CifrasCabecera }) {
+export function FacturacionCabecera({ sede, cifras, entorno }: { sede: string; cifras: CifrasCabecera; entorno: "sandbox" | "produccion" }) {
   const { abrirEmitir, abrirProforma } = useFacturacionAcciones();
   const resumen = cifrasDe(cifras);
   return (
     <EncabezadoPagina
       sede={sede}
-      titulo="Facturación"
-      subtitulo="Emite y sigue tus comprobantes hasta que SUNAT los acepta."
-      detalle={<EstadoDeFrescura />}
+      titulo="Comprobantes"
+      subtitulo="Tus series y en qué número va cada una. Cada venta se declara sola a SUNAT al cobrar."
+      detalle={
+        <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+          <EstadoDeFrescura />
+          {/* Mientras el sistema está en desarrollo todo va al sandbox de Lucode: que se vea, para que
+              nadie crea que una boleta de prueba vale ante SUNAT (y para notar si alguien lo cambia). */}
+          {entorno === "sandbox" && (
+            <Chip tono="ambar" className="normal-case tracking-normal">
+              Pruebas: se envía al sandbox, no a SUNAT
+            </Chip>
+          )}
+        </span>
+      }
       pie={
         <>
           <BotonCompacto variante="vidrio" icono={<FileText aria-hidden strokeWidth={1.75} />} onClick={abrirEmitir}>

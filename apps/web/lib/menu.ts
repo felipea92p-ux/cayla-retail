@@ -255,7 +255,7 @@ export const ARBOL: readonly Nodo[] = [
       { id: "venta.historial", etiqueta: "Historial", estado: "viva", ruta: "/vender/historial", icono: "historial", pajaro: "07 Colibrí" },
       { id: "venta.cambios", etiqueta: "Cambios", estado: "viva", ruta: "/cambios", icono: "cambios", pajaro: "07 Colibrí" },
       { id: "venta.devoluciones", etiqueta: "Devoluciones", estado: "viva", ruta: "/devoluciones", icono: "devoluciones", pajaro: "07 Colibrí" },
-      { id: "venta.facturacion", etiqueta: "Facturación", estado: "viva", ruta: "/vender/facturacion", icono: "facturacion", pajaro: "08 Cuervo", exige: "facturar" },
+      { id: "venta.facturacion", etiqueta: "Comprobantes", estado: "viva", ruta: "/vender/comprobantes", icono: "facturacion", pajaro: "08 Cuervo", exige: "facturar" },
     ],
   },
 

@@ -7,8 +7,10 @@ import { opcional } from "@/lib/resultado";
 import { conteosDePestanas, tiendasOperativas, ubicacionActualDe } from "@/lib/facturacion-reglas";
 import { FacturacionShell } from "@/components/FacturacionShell";
 import { BarridoColaSunat } from "@/components/BarridoColaSunat";
+import { entornoLucode } from "@/lib/lucode";
 
-// Facturación electrónica — rescatada de producción (2026-09-12, ver
+// Comprobantes (se llamó «Facturación» hasta 2026-09-22: el envío a SUNAT pasó a ser automático al
+// cobrar, D-60, y la pantalla es de series). Facturación electrónica — rescatada de producción (2026-09-12, ver
 // supabase/migrations/0010_facturacion.sql). Reserva comprobantes con correlativo oficial y
 // los transmite a SUNAT por Lucode (PSE) desde la misma pantalla; anular es un tercer paso
 // aparte. La pantalla es del líder y de la terminal de ventas (ADR-0160, permiso `facturar`): emitir, transmitir y anular mueven documentos
@@ -35,8 +37,7 @@ export default async function FacturacionLayout({ children }: { children: ReactN
   return (
     <FacturacionShell
       conteos={conteosDePestanas(porEnviar, proformas)}
-      // Anular, marcar no emitido, series y descuentos siguen siendo SOLO del líder (candado real en la base).
-      esLider={persona.rol === "lider"}
+      entorno={entornoLucode()}
       sede={persona.ubicacionEtiqueta}
       // Un `null` (la lectura falló) no dibuja la cifra en la cabecera: nunca un número inventado.
       cifras={{ porEnviar: porEnviar?.porEnviar ?? null, proformasVigentes: proformas?.vigentes ?? null }}

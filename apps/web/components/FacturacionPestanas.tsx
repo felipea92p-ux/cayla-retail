@@ -18,7 +18,7 @@ const TONO_CONTEO: Record<ConteoPestana["tono"], string> = {
 // navegador funciona y una vista se puede compartir); la activa lleva `aria-current`.
 // Usa `useSearchParams` para conservar `?m=` entre Proformas y Comprobantes, y por eso el
 // shell la envuelve en <Suspense>.
-export function FacturacionPestanas({ conteos, esLider }: { conteos: ConteosPestanas; esLider: boolean }) {
+export function FacturacionPestanas({ conteos }: { conteos: ConteosPestanas }) {
   const pathname = usePathname();
   const m = useSearchParams().get("m");
   const activa = pestanaDeRuta(pathname);
@@ -72,10 +72,10 @@ export function FacturacionPestanas({ conteos, esLider }: { conteos: ConteosPest
   }, []);
 
   return (
-    <nav ref={nav} aria-label="Vistas de Facturación" className="vidrio-cayla pestanas-vidrio">
+    <nav ref={nav} aria-label="Vistas de Comprobantes" className="vidrio-cayla pestanas-vidrio">
       {/* Decorativa: la información está en las etiquetas y en `aria-current`. */}
       <span aria-hidden className="pestanas-vidrio__pildora" />
-      {PESTANAS.filter((p) => esLider || p.clave !== "descuentos").map((p) => {
+      {PESTANAS.map((p) => {
         const esActiva = p.clave === activa;
         const conteo = conteos[p.clave];
         return (

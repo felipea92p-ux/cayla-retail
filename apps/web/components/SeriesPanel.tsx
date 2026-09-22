@@ -1,0 +1,205 @@
+"use client";
+
+import { useState, type CSSProperties } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import type { SerieComprobante, TipoComprobante } from "@/lib/comprobantes-reglas";
+import { ETIQUETA_TIPO } from "@/lib/comprobantes-reglas";
+import { errorDeSerie, nombreDelTipo, numerosUsados, seriesPorTienda, TIPOS_CON_SERIE } from "@/lib/facturacion-comprobantes-reglas";
+import { coincide } from "@/lib/facturacion-busqueda";
+import { traducirError } from "@/lib/error-escritura";
+import { useFacturacionBusqueda } from "@/lib/useFacturacionBusqueda";
+import { Ayuda } from "@/components/Ayuda";
+import { SinCoincidencias } from "@/components/SinCoincidencias";
+import { avisar } from "@/components/ui/Avisos";
+import { BotonCompacto } from "@/components/ui/BotonCompacto";
+import { Chip } from "@/components/ui/Chip";
+import { Modal } from "@/components/ui/Modal";
+import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+
+type Tienda = { id: string; nombre: string };
+
+// La vista principal de Comprobantes (D-60, 2026-09-22): las series de cada tienda y en qué número va
+// cada una. Desde que el envío a SUNAT es automático, esto es lo único que alguien tiene que mirar a
+// propósito: qué series hay, cuál falta y cuál se está usando. Una tarjeta punteada por cada serie que
+// le falta a una tienda (sin la de nota de crédito, una devolución de un comprobante aceptado no se
+// puede aprobar, ADR-0100). Registrar una serie es solo del líder (candado real en la base).
+export function SeriesPanel({ series, tiendas, esLider }: { series: SerieComprobante[]; tiendas: Tienda[]; esLider: boolean }) {
+  const router = useRouter();
+  const [abierto, setAbierto] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [ubicacionId, setUbicacionId] = useState(tiendas[0]?.id ?? "");
+  const [tipo, setTipo] = useState<TipoComprobante>("boleta");
+  const [texto, setTexto] = useState("");
+  // Vacío = el sistema lleva el correlativo solo. Se llena únicamente para continuar una serie que ya
+  // venía emitiéndose fuera de este sistema.
+  const [numero, setNumero] = useState("");
+
+  const { texto: busqueda } = useFacturacionBusqueda();
+  const grupos = seriesPorTienda(series, tiendas)
+    .map((g) => ({ ...g, series: g.series.filter((s) => coincide([s.serie, nombreDelTipo(s.tipo), g.tienda.nombre], busqueda)) }))
+    .filter((g) => !busqueda || g.series.length > 0);
+
+  function abrir(tiendaId?: string, tipoInicial?: TipoComprobante) {
+    if (tiendaId) setUbicacionId(tiendaId);
+    if (tipoInicial) setTipo(tipoInicial);
+    setAbierto(true);
+  }
+
+  function cerrarModal() {
+    setAbierto(false);
+    setTexto("");
+    setNumero("");
+  }
+
+  async function onRegistrar(e: React.FormEvent) {
+    e.preventDefault();
+    // Una serie mal escrita queda guardada y todos sus comprobantes se rechazan (y cada intento quema un
+    // número): se comprueba el formato antes de guardar, no después.
+    const error = errorDeSerie(tipo, texto);
+    if (error) {
+      avisar.error(error);
+      return;
+    }
+    const serie = texto.trim().toUpperCase();
+    setLoading(true);
+    const { error: errorBase } = await createClient().rpc("registrar_serie_comprobante", {
+      p_ubicacion_id: ubicacionId,
+      p_tipo: tipo,
+      p_serie: serie,
+      // undefined se cae del JSON: sin número, la RPC no toca el correlativo.
+      p_siguiente_numero: numero ? Number(numero) : undefined,
+    });
+    setLoading(false);
+    if (errorBase) {
+      avisar.error(traducirError(errorBase, "registrar la serie"));
+      return;
+    }
+    avisar.exito(`Serie ${serie} registrada`);
+    cerrarModal();
+    router.refresh();
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="anim-sube flex flex-wrap items-end justify-between gap-3" style={{ "--i": 3 } as CSSProperties}>
+        <div className="min-w-0">
+          <h2 className="font-display text-xl leading-tight text-tinta">
+            Series registradas
+            <Ayuda titulo="Series de comprobantes">
+              La serie identifica desde qué tienda salió el comprobante: una letra según el tipo (B para boleta, F para factura) más tres
+              caracteres. En facturación electrónica las defines tú, no SUNAT — no hay que pedir autorización. Lo normal es una serie por
+              tienda (B004 Trujillo, B005 Arequipa) para saber de dónde vino cada venta. El correlativo lo lleva el sistema.
+            </Ayuda>
+          </h2>
+          <p className="mt-0.5 text-xs text-tinta/65">En qué número va cada una. El siguiente comprobante que emita la tienda sale con ese número.</p>
+        </div>
+        {esLider && (
+          <BotonCompacto variante="primario" onClick={() => abrir()}>
+            Nueva serie
+          </BotonCompacto>
+        )}
+      </div>
+
+      {busqueda && grupos.length === 0 ? (
+        <SinCoincidencias />
+      ) : (
+        grupos.map((g, i) => (
+          <section key={g.tienda.id} className="anim-sube space-y-3" style={{ "--i": 4 + i } as CSSProperties} aria-labelledby={`tienda-${g.tienda.id}`}>
+            <h3 id={`tienda-${g.tienda.id}`} className="flex items-baseline gap-2">
+              <span className="font-display text-lg text-tinta">{g.tienda.nombre}</span>
+              <span className="text-xs text-tinta/60">
+                {g.series.length === 0 ? "sin series: no emite comprobantes" : `${g.series.length} ${g.series.length === 1 ? "serie" : "series"}`}
+              </span>
+            </h3>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-3">
+              {g.series.map((s) => {
+                const usados = numerosUsados(s);
+                return (
+                  <article key={s.id} className="card-cayla flex flex-col gap-2 px-4 py-3.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="label-cayla text-[11px] text-tinta/65">{nombreDelTipo(s.tipo)}</span>
+                      {usados > 0 ? <Chip tono="verde">en uso</Chip> : <Chip tono="neutro">sin estrenar</Chip>}
+                    </div>
+                    <p className="font-display text-[28px] leading-none tracking-wide text-tinta">{s.serie}</p>
+                    <p className="text-[13px] text-tinta/70">
+                      Próximo: <b className="font-semibold tabular-nums text-tinta">{s.serie}-{String(s.siguiente_numero).padStart(8, "0")}</b>
+                    </p>
+                    <p className="border-t border-tinta/10 pt-2 text-xs tabular-nums text-tinta/60">
+                      {usados === 0 ? "Todavía no emitió ninguno" : `${usados} ${usados === 1 ? "número usado" : "números usados"}`}
+                    </p>
+                  </article>
+                );
+              })}
+              {!busqueda &&
+                g.faltan.map((t) => (
+                  <div key={t} className="flex flex-col justify-center gap-2 rounded-[14px] border border-dashed border-tinta/25 px-4 py-3.5 text-[13px] text-tinta/70">
+                    <p>
+                      Sin serie de <b className="font-semibold text-tinta">{ETIQUETA_TIPO[t].toLowerCase()}</b>
+                      {t === "nota_credito" ? ": las devoluciones de esta tienda no pueden emitir su nota de crédito." : "."}
+                    </p>
+                    {esLider && (
+                      <BotonCompacto variante="fila" className="self-start" onClick={() => abrir(g.tienda.id, t)}>
+                        Registrar
+                      </BotonCompacto>
+                    )}
+                  </div>
+                ))}
+            </div>
+          </section>
+        ))
+      )}
+
+      {abierto && (
+        <Modal titulo="Nueva serie" onClose={cerrarModal}>
+          {(cerrar) => (
+            <form onSubmit={onRegistrar} className="mt-5 space-y-2">
+              <CampoSelect etiqueta="Tienda" valor={ubicacionId} onValor={setUbicacionId} opciones={tiendas.map((u) => ({ valor: u.id, texto: u.nombre }))} />
+              <CampoSelect etiqueta="Tipo" valor={tipo} onValor={setTipo} opciones={TIPOS_CON_SERIE.map((t) => ({ valor: t, texto: ETIQUETA_TIPO[t] }))} />
+              <CampoTexto
+                etiqueta="Serie"
+                pie={
+                  tipo === "nota_credito"
+                    ? "Cuatro caracteres. Empieza con B si corrige boletas o con F si corrige facturas (por ejemplo BC01)."
+                    : "Una letra según el tipo más tres caracteres."
+                }
+                mono
+                required
+                value={texto}
+                onChange={(e) => setTexto(e.target.value.toUpperCase())}
+                maxLength={4}
+                placeholder={tipo === "factura" ? "F001" : tipo === "nota_credito" ? "BC01" : "B001"}
+                className="uppercase"
+              />
+              <CampoTexto
+                etiqueta="Próximo número"
+                ayuda={
+                  <Ayuda titulo="Próximo número">
+                    Déjalo vacío si esta serie empieza de cero: el sistema arranca en 1 y lleva el correlativo solo. Llénalo únicamente si esta
+                    serie ya venía emitiéndose fuera de este sistema — pon el número que sigue al último emitido. Mandarle a SUNAT un número ya
+                    usado hace que el comprobante se rechace por duplicado.
+                  </Ayuda>
+                }
+                pie="Vacío = el sistema lo lleva solo."
+                mono
+                type="number"
+                min="1"
+                value={numero}
+                onChange={(e) => setNumero(e.target.value)}
+                placeholder="1"
+              />
+              <div className="flex gap-2 pt-3">
+                <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+                  Cancelar
+                </Boton>
+                <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
+                  {loading ? "Guardando…" : "Registrar serie"}
+                </Boton>
+              </div>
+            </form>
+          )}
+        </Modal>
+      )}
+    </div>
+  );
+}

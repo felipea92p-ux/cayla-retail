@@ -14,7 +14,7 @@ import { FacturacionPestanas } from "@/components/FacturacionPestanas";
 
 type Tienda = { id: string; nombre: string };
 
-// El marco de /vender/facturacion (ADR-0124): cabecera, pestañas y los dos modales que se
+// El marco de /vender/comprobantes (ADR-0124; «Facturación» hasta 2026-09-22): cabecera, pestañas y los dos modales que se
 // abren desde cualquier vista. Es el padre con estado (molde de ADR-0043): guarda cuál
 // modal está abierto y les da a las vistas, por contexto, la forma de abrirlos. Los
 // modales se dibujan UNA vez acá — y siempre montados (ver `EmitirComprobanteModal`),
@@ -30,7 +30,7 @@ type Tienda = { id: string; nombre: string };
 // un efecto que lo reponga.
 export function FacturacionShell({
   conteos,
-  esLider,
+  entorno,
   cifras,
   sede,
   series,
@@ -39,8 +39,8 @@ export function FacturacionShell({
   children,
 }: {
   conteos: ConteosPestanas;
-  /** Solo el líder ve «Códigos de descuento»; la terminal de ventas ve el resto (ADR-0160). */
-  esLider: boolean;
+  /** Adónde va el envío automático a SUNAT: la cabecera avisa «pruebas» si es el sandbox. */
+  entorno: "sandbox" | "produccion";
   cifras: CifrasCabecera;
   sede: string;
   series: SerieComprobante[] | null;
@@ -82,12 +82,12 @@ export function FacturacionShell({
             cascada: la cabecera y su resumen (0 y 1), la fila de las pestañas con la búsqueda (2) y, debajo, la
             vista, que empieza en 2 y escalona sus tarjetas y paneles hacia abajo. */}
         <div className="tema-vidrio space-y-7">
-          <FacturacionCabecera sede={sede} cifras={cifras} />
+          <FacturacionCabecera sede={sede} cifras={cifras} entorno={entorno} />
           <div className="anim-sube flex flex-wrap items-center justify-between gap-x-4 gap-y-3" style={{ "--i": 2 } as CSSProperties}>
             {/* `useSearchParams` (en las pestañas) exige un <Suspense>. Como el layout es
                 dinámico nunca llega a mostrarse el respaldo; `null` basta. */}
             <Suspense fallback={null}>
-              <FacturacionPestanas conteos={conteos} esLider={esLider} />
+              <FacturacionPestanas conteos={conteos} />
             </Suspense>
             <CajaDeBusqueda />
           </div>
