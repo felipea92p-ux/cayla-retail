@@ -211,6 +211,21 @@ decisiones, lo que se descartó y la verificación en [docs/adr/0141-apartar-sto
 - [ ] Decidir si se borran las piezas que quedaron huérfanas: `components/NotaCreditoCierre.tsx` (nadie lo importa) y en `lib/recepciones-reglas.ts` `notaDelBloque`, `disponibilidadNota`, `efectoCierre`, `igvDeMonto`, `montoNotaSugerido`.
 - [ ] «Aplicada» se deduce por FIFO (D3): si algún día se quiere exacta, hay que guardar de qué nota salió cada uso del saldo — toca funciones que mueven dinero, por eso no se hizo.
 
+## 🎯 Caja: tareas de la auditoría `docs/pantallas/caja.md` (2026-09-21)
+- [x] #2 El modal de movimientos recibe el rol y no ofrece «Ajuste» a quien no es líder (reglas puras en `lib/caja-panel-reglas.ts`, `motivosDeMovimiento`). Solo esconde: el candado real es la #1.
+- [x] #3 Franja de aviso cuando la caja lleva 18 h o más abierta (`turnoLargo`, `AvisoTurnoLargo` en `CajaAbiertaPanel.tsx`). **Falta decidir con Felipe:** el umbral (18 h es propuesta) y quién cierra si no hay líder en la tienda.
+- [x] #6 Modal sin valores prellenados, foco en el monto, «S/», sin spinner, «Ingreso» en verde; referencia obligatoria en «Depósito bancario» y «Otro» (solo en el navegador; la base aún no lo exige).
+- [x] #10 Movimientos manuales en hora de Lima (`diaYHoraLima`).
+- [ ] #1 Candado real en `registrar_movimiento_caja` (vocabulario cerrado, `es_ajuste` del servidor, referencia obligatoria; reconciliar D-13 con ADR-0056) — **migración en producción: confirmar con Felipe**. Espera su decisión sobre permisos.
+- [ ] #5 Replantear «Ajuste de caja» (A o B, §8 de la auditoría) — decide Felipe.
+- [ ] #4 Tarjetas, dona, lista y ritmo miden el turno; `getResumenCaja` excluye anuladas — M
+- [ ] #7 El cierre muestra al líder los movimientos manuales del turno con su autor — S
+- [ ] #8 Historial de cierres con la diferencia visible, filtro por sede y paginación — M
+- [ ] #9 Movimientos de caja sin internet y chip de sincronía honesto — M
+- [ ] #11 Piel restante del modal: desplegable propio y tope de 2 rojos en el tablero — S (bajo valor)
+- [ ] #12 Borrar `CajaGraficos.tsx`, `senalCaja`, `tendenciaCierres7Dias` (sin uso) y pruebas de `getResumenCaja` — S (bajo valor)
+- [ ] Verificar en producción si `cajas_update` permite reescribir un cierre ya hecho (D1/D4 de la auditoría, nunca corridas) — S
+
 ## 🎯 Caja: «Ver todo», detalle de venta y reimpresión — ticket y A4 (2026-09-19, ADR-0137)
 
 Felipe pidió que en «Movimientos recientes» hubiera un «Ver todo» y que una venta abriera su detalle
