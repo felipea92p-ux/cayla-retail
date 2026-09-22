@@ -13,7 +13,8 @@ export type ComprobanteParaTransmitir = {
 export type NoSePuedeTransmitir = { error: string; status: 409 | 503 };
 
 /** Por qué un comprobante NO se puede transmitir ahora, o `null` si sí. Solo se transmiten los
- *  `pendiente` (nunca salieron) y los `rechazado` (su único camino es reintentar, ADR-0093). Y nunca el
+ *  `pendiente` (nunca salieron), los `pendiente_reintento` (Lucode no respondió y esperan en la cola,
+ *  D-60) y los `rechazado` (su único camino es reintentar, ADR-0093). Y nunca el
  *  de una venta ANULADA: se le devolvió el dinero a la clienta y sus prendas volvieron al stock, así que
  *  declararla a SUNAT sería declarar una venta que no existe. `anular_venta` ya libera el pendiente de
  *  la venta que anula (`20260921121500`); esto cubre el que sigue vivo (un `rechazado`) y cualquier
@@ -21,7 +22,7 @@ export type NoSePuedeTransmitir = { error: string; status: 409 | 503 };
  *  el `select` perdió el embebido, o PostgREST cambió su forma—, se niega y se pide reintentar: ante la
  *  duda no se declara nada (falla cerrada; `undefined` o un arreglo no pasan por «venta viva»). */
 export function motivoParaNoTransmitir(c: ComprobanteParaTransmitir): NoSePuedeTransmitir | null {
-  if (c.estado !== "pendiente" && c.estado !== "rechazado") {
+  if (c.estado !== "pendiente" && c.estado !== "pendiente_reintento" && c.estado !== "rechazado") {
     return { error: `Este comprobante ya está en estado "${c.estado}" — no se vuelve a transmitir.`, status: 409 };
   }
   if (c.venta_id !== null && typeof c.venta?.estado !== "string") {
@@ -31,4 +32,11 @@ export function motivoParaNoTransmitir(c: ComprobanteParaTransmitir): NoSePuedeT
     return { error: "La venta de este comprobante está anulada: no se transmite a SUNAT una venta que ya se devolvió.", status: 409 };
   }
   return null;
+}
+
+/** Si un fallo de Lucode (red, proveedor, credenciales: nunca un rechazo de SUNAT) debe mandar el
+ *  comprobante a la cola de reintento. Solo lo que aún no salió: un `rechazado` ya tiene respuesta de
+ *  SUNAT y `fn_marcar_reintento_transmision` lo niega. */
+export function vaALaColaDeReintento(estado: string): boolean {
+  return estado === "pendiente" || estado === "pendiente_reintento";
 }

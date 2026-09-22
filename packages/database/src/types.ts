@@ -5040,6 +5040,10 @@ export type Database = {
         }
         Returns: string
       }
+      fn_marcar_reintento_transmision: {
+        Args: { p_comprobante_id: string; p_error: string }
+        Returns: undefined
+      }
       fn_mi_perfil: {
         Args: never
         Returns: {

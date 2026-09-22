@@ -1,8 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { emitirDocumentoLucode, entornoLucode, type DatosComprobante, type ItemComprobante, type TipoDocumentoLucode } from "@/lib/lucode";
-import { motivoParaNoTransmitir } from "@/lib/transmision-reglas";
+import { motivoParaNoTransmitir, vaALaColaDeReintento } from "@/lib/transmision-reglas";
 
-// POST /api/lucode/emitir  { comprobante_id: string }
+// POST /api/lucode/emitir  { comprobante_id: string } | { venta_id: string }
+//
+// Con `venta_id` la dispara Vender sola al cobrar (D-60, envío automático): busca la boleta o
+// factura de esa venta. Una venta sin comprobante responde 404 y no pasa nada.
 //
 // CONTRATO
 //   PROMETE: transmite a Lucode un comprobante que `emitir_comprobante`/
@@ -11,8 +14,9 @@ import { motivoParaNoTransmitir } from "@/lib/transmision-reglas";
 //   ASUME:   sesión válida (RLS decide si esta persona puede ver/tocar ese
 //            comprobante, igual que el resto del sistema).
 //   NO HACE: no reserva número ni serie (eso ya pasó), no reintenta solo si
-//            Lucode no responde — el comprobante se queda "pendiente" y
-//            queda a la vista para volver a intentar (principio 9).
+//            Lucode no responde — el comprobante pasa a "pendiente_reintento"
+//            (la cola visible de D-60) con su intento anotado, nunca se pierde
+//            ni cambia de número (principio 9).
 //
 // Vive separado de la RPC a propósito: `emitir_comprobante` es Postgres puro
 // (puede correr sin depender de que un proveedor externo esté arriba, tal
@@ -60,15 +64,16 @@ function itemsValidos(raw: unknown): ItemComprobante[] | null {
 }
 
 export async function POST(request: Request) {
-  let body: { comprobante_id?: string };
+  let body: { comprobante_id?: string; venta_id?: string };
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: "Cuerpo inválido" }, { status: 400 });
   }
   const comprobanteId = body.comprobante_id;
-  if (!comprobanteId) {
-    return Response.json({ error: "Falta comprobante_id" }, { status: 400 });
+  const ventaId = body.venta_id;
+  if (!comprobanteId && !ventaId) {
+    return Response.json({ error: "Falta comprobante_id o venta_id" }, { status: 400 });
   }
 
   const supabase = await createClient();
@@ -82,7 +87,9 @@ export async function POST(request: Request) {
     .select(
       "id, tipo, serie, numero, moneda, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, items, comprobante_original_id, motivo, entorno_transmision, venta_id, venta:ventas(estado)"
     )
-    .eq("id", comprobanteId)
+    .match(comprobanteId ? { id: comprobanteId } : { venta_id: ventaId! })
+    // Por venta solo cuenta su boleta o factura: una nota de crédito posterior también lleva `venta_id`.
+    .in("tipo", comprobanteId ? ["boleta", "factura", "nota_credito", "nota_debito"] : ["boleta", "factura"])
     .maybeSingle();
 
   if (errLectura || !comprobante) {
@@ -151,10 +158,20 @@ export async function POST(request: Request) {
   const resultado = await emitirDocumentoLucode(datos);
 
   if (!resultado.ok) {
-    // No se toca `estado`: sigue "pendiente"/"rechazado", visible para
-    // reintentar. Un problema de red o de credenciales no es un rechazo de
-    // SUNAT — no se debe confundir el uno con el otro en la base.
-    return Response.json({ error: resultado.detalle, motivo: resultado.motivo }, { status: 502 });
+    // Un problema de red o de credenciales no es un rechazo de SUNAT — no se
+    // confunde el uno con el otro en la base. Lo que aún no salió entra a la
+    // cola de reintento (D-60) con el error anotado; un "rechazado" se queda
+    // como estaba, visible para reintentar a mano.
+    let encolado = false;
+    if (vaALaColaDeReintento(fila.estado)) {
+      const { error: errCola } = await supabase.rpc("fn_marcar_reintento_transmision", {
+        p_comprobante_id: fila.id,
+        p_error: `${resultado.motivo}: ${resultado.detalle}`,
+      });
+      encolado = !errCola;
+      if (errCola) console.error("No se pudo encolar el comprobante para reintento", fila.id, errCola.message);
+    }
+    return Response.json({ error: resultado.detalle, motivo: resultado.motivo, encolado }, { status: 502 });
   }
 
   const nuevoEstado = resultado.estado === "ACEPTADO" ? "aceptado" : resultado.estado === "RECHAZADO" ? "rechazado" : "enviado";

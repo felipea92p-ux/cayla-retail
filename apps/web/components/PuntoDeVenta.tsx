@@ -181,6 +181,22 @@ type Props = {
   ventasHoyNode: ReactNode;
 };
 
+// Envío automático a SUNAT al cobrar (D-60): la venta ya quedó registrada con su comprobante en la
+// misma transacción; esto solo lo declara. En segundo plano y sin esperar respuesta: la vendedora no
+// espera a Lucode, y si Lucode no responde la ruta deja el comprobante en la cola de reintento —
+// nada que la pantalla tenga que mostrar. `keepalive` para que salga aunque se cierre la pestaña;
+// `x-espera: no` para que el loader global no bloquee la venta siguiente (ADR-0149).
+function enviarASunat(ventaId: string) {
+  fetch("/api/lucode/emitir", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-espera": "no" },
+    body: JSON.stringify({ venta_id: ventaId }),
+    keepalive: true,
+  }).catch(() => {
+    // Sin red: el comprobante sigue `pendiente` y lo recoge el reintento (paso 2 de D-60).
+  });
+}
+
 export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, variantes, campanasNoCargaron = false, ventasHoyNode }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
@@ -361,8 +377,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
 
       const resueltos = new Map<string, VentaEncolada | null>();
       for (const venta of aReintentar) {
-        const { error } = await supabase.rpc("registrar_venta", venta.params);
-        if (!error) resueltos.set(venta.token, null);
+        const { data: ventaSubida, error } = await supabase.rpc("registrar_venta", venta.params);
+        if (!error) {
+          resueltos.set(venta.token, null);
+          if (ventaSubida) enviarASunat(ventaSubida);
+        }
         else if (!esFalloDeRed(error)) resueltos.set(venta.token, { ...venta, rechazo: traducirError(error, "subir la venta guardada sin conexión") });
         // sigue siendo fallo de red: no se toca, se reintenta en el próximo latido
       }
@@ -842,6 +861,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     let recibo: ReciboVenta | null = null;
     let estado: EstadoComprobante | null = null;
     if (ventaId) {
+      enviarASunat(ventaId);
       const { data: comp } = await supabase.from("comprobantes").select("tipo, serie, numero, estado, created_at").eq("venta_id", ventaId).maybeSingle();
       if (comp && (comp.tipo === "boleta" || comp.tipo === "factura")) {
         estado = comp.estado as EstadoComprobante;

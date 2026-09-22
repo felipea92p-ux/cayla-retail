@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { motivoParaNoTransmitir, type ComprobanteParaTransmitir } from "./transmision-reglas";
+import { motivoParaNoTransmitir, vaALaColaDeReintento, type ComprobanteParaTransmitir } from "./transmision-reglas";
 
 function comprobante(extra: Partial<ComprobanteParaTransmitir> = {}): ComprobanteParaTransmitir {
   return { estado: "pendiente", venta_id: "v1", venta: { estado: "completada" }, ...extra };
@@ -12,6 +12,10 @@ describe("motivoParaNoTransmitir", () => {
 
   it("un rechazado de una venta completada se puede reintentar (ADR-0093)", () => {
     expect(motivoParaNoTransmitir(comprobante({ estado: "rechazado" }))).toBeNull();
+  });
+
+  it("uno que espera en la cola de reintento (D-60) se vuelve a transmitir", () => {
+    expect(motivoParaNoTransmitir(comprobante({ estado: "pendiente_reintento" }))).toBeNull();
   });
 
   it("enviado, aceptado, anulado y no emitido no se vuelven a transmitir, y lo dicen con su estado", () => {
@@ -44,5 +48,13 @@ describe("motivoParaNoTransmitir", () => {
 
   it("el estado del comprobante manda sobre la venta: uno ya aceptado dice eso, no que la venta está anulada", () => {
     expect(motivoParaNoTransmitir(comprobante({ estado: "aceptado", venta: { estado: "anulada" } }))?.error).toMatch(/ya está en estado "aceptado"/);
+  });
+});
+
+describe("vaALaColaDeReintento", () => {
+  it("solo lo que todavía no salió a SUNAT entra a la cola", () => {
+    expect(vaALaColaDeReintento("pendiente")).toBe(true);
+    expect(vaALaColaDeReintento("pendiente_reintento")).toBe(true);
+    for (const estado of ["rechazado", "enviado", "aceptado", "anulado", "no_emitido"]) expect(vaALaColaDeReintento(estado)).toBe(false);
   });
 });
