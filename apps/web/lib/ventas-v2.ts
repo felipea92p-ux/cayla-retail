@@ -39,8 +39,9 @@ export async function buscarVentaIdsPorComprobante(
 }
 
 /** `ilike` interpreta `%`, `_` y `\`: se escapan para que el texto de la colaboradora
- *  se lea tal cual. */
-function literalParaIlike(texto: string): string {
+ *  se lea tal cual. Exportado (2026-09-22): el Historial de ventas lo reutiliza para su
+ *  propia búsqueda por boleta/clienta/prenda — misma regla, no se copia una segunda vez. */
+export function literalParaIlike(texto: string): string {
   return texto.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 

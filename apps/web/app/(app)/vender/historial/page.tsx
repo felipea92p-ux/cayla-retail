@@ -1,12 +1,14 @@
-import { ReceiptText, Wallet } from "lucide-react";
+import { AlertCircle, ReceiptText, Wallet } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getColaboradores, getColaboradoresInactivos, getColaboradoresSuspendidos } from "@/lib/colaboradores";
-import { hoyEnLima, textoPeriodo } from "@/lib/movimientos-reglas";
+import { hoyEnLima, restarDias, textoPeriodo } from "@/lib/movimientos-reglas";
 import {
   filtrosDesdeParams,
   leerCursorVentas,
   listarVentasHistorial,
+  porDiaVendido,
+  resolverBusqueda,
   serializarCursorVentas,
   totalesVentasHistorial,
   type ParamsHistorial,
@@ -49,7 +51,11 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
   ]);
   // Solo las tiendas venden: ni el Taller ni un almacén tienen mostrador.
   const tiendas = ubicaciones.filter((u) => u.tipo === "tienda");
-  const filtros = filtrosDesdeParams(params, { esLider, sedesIds: tiendas.map((t) => t.id) });
+  const sinBusqueda = filtrosDesdeParams(params, { esLider, sedesIds: tiendas.map((t) => t.id) });
+  // La búsqueda se resuelve UNA vez y se reparte a la lista y a los totales: las dos deben coincidir
+  // en qué ventas cuentan, igual que con cualquier otro filtro (ver el comentario de `consulta()`).
+  const idsBusqueda = await resolverBusqueda(sinBusqueda.q);
+  const filtros = { ...sinBusqueda, idsBusqueda };
   const cursor = leerCursorVentas(params.cursor);
 
   const [{ filas, siguiente }, totales] = await Promise.all([listarVentasHistorial(filtros, { cursor }), totalesVentasHistorial(filtros)]);
@@ -59,6 +65,8 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
   const vendedores = [...colaboradores, ...suspendidos, ...inactivos].map((c) => ({ id: c.persona_id, nombre: c.nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   const totalesPorDia = Object.fromEntries(totales.porDia.map((d) => [d.fecha, { ventas: d.ventas, total: d.total }]));
   const { resumen } = totales;
+  const hoy = hoyEnLima();
+  const ayer = restarDias(hoy, 1);
 
   return (
     <div className="space-y-7">
@@ -76,6 +84,8 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
             cifras={[
               { valor: resumen.total, formato: "soles", etiqueta: "vendido", icono: Wallet },
               { valor: resumen.ventas, etiqueta: resumen.ventas === 1 ? "venta" : "ventas", icono: ReceiptText },
+              { valor: porDiaVendido(resumen.total, totales.porDia.length), formato: "soles", etiqueta: "por día vendido", icono: Wallet },
+              { valor: totales.pendientesComprobante, etiqueta: "pendientes de comprobante", icono: AlertCircle },
             ]}
           />
         )}
@@ -96,16 +106,24 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
             pago={filtros.pago ?? ""}
             sede={filtros.sedeId ?? ""}
             vendedor={filtros.vendedorId ?? ""}
+            q={filtros.q ?? ""}
+            hoy={hoy}
+            ayer={ayer}
+            pendientesComprobante={totales.pendientesComprobante}
             incluirPrueba={filtros.incluirPrueba}
           />
 
           {filas.length === 0 && !cursor ? (
             <EstadoVacio
               titulo="Ninguna venta coincide"
-              detalle={`No hay ventas con estos filtros (${periodoEnPalabras.toLowerCase()}). Prueba con otro período o quita algún filtro.`}
+              detalle={
+                filtros.q
+                  ? `Nada calzó con «${filtros.q}» (${periodoEnPalabras.toLowerCase()}). Prueba con otro texto o quita algún filtro.`
+                  : `No hay ventas con estos filtros (${periodoEnPalabras.toLowerCase()}). Prueba con otro período o quita algún filtro.`
+              }
             />
           ) : (
-            <HistorialVentasLista filas={filas} hoyLima={hoyEnLima()} totalesPorDia={totalesPorDia} />
+            <HistorialVentasLista filas={filas} hoyLima={hoy} totalesPorDia={totalesPorDia} />
           )}
 
           <PaginacionCursor
