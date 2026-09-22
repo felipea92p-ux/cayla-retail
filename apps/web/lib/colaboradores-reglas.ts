@@ -85,21 +85,63 @@ export function resumenAlta(cuantas: number, ubicacion: string | null): string {
 }
 
 /** Lo que puede hacer la fila del menú «⋯», en el orden en que se muestra. */
-/** Las pestañas de /colaboradores. «Roles y accesos» es una más (Felipe, 2026-09-22), no una ruta propia. Vive aquí (y no
- *  en el panel, que es "use client") porque la página del servidor la usa para leer `?pestana=`. */
-export const PESTANAS_COLABORADORES = ["activos", "terminales", "roles", "pendientes", "suspendidos", "inactivas", "actividad"] as const;
-export type PestanaColaboradores = (typeof PESTANAS_COLABORADORES)[number];
+/* Colaboradores tiene DOS secciones (spike `docs/maquetas/colaboradores-ux-spike-2026-09/`, Felipe 2026-09-22): «Cuentas»
+ * (personas y terminales, filtradas por estado) y «Roles y accesos». Antes eran 7 pestañas que mezclaban estados de una
+ * misma lista, un tipo de cuenta, la configuración y un historial. Actividad se abre aparte: se consulta, no se trabaja ahí.
+ * Vive aquí (y no en el panel, que es "use client") porque la página del servidor lee `?pestana=`. */
+export type SeccionColaboradores = "cuentas" | "roles";
+export type TipoCuenta = "personas" | "terminales";
+export type EstadoCuenta = "activas" | "pendientes" | "suspendidas" | "inactivas";
+export type VistaColaboradores = { seccion: SeccionColaboradores; tipo: TipoCuenta; estado: EstadoCuenta; actividad: boolean };
 
-export function pestanaDe(valor: string | undefined): PestanaColaboradores {
-  return (PESTANAS_COLABORADORES as readonly string[]).includes(valor ?? "") ? (valor as PestanaColaboradores) : "activos";
+/** Los enlaces viejos (`?pestana=pendientes`, `?pestana=actividad`…) siguen llevando al mismo lugar. */
+const VISTAS: Record<string, Partial<VistaColaboradores>> = {
+  cuentas: {},
+  activos: {},
+  terminales: { tipo: "terminales" },
+  roles: { seccion: "roles" },
+  pendientes: { estado: "pendientes" },
+  suspendidos: { estado: "suspendidas" },
+  inactivas: { estado: "inactivas" },
+  actividad: { actividad: true },
+};
+
+export function vistaDe(valor: string | undefined): VistaColaboradores {
+  return { seccion: "cuentas", tipo: "personas", estado: "activas", actividad: false, ...VISTAS[valor ?? ""] };
+}
+
+export type AvisoPorAtender = { estado: EstadoCuenta; tono: "ambar" | "neutro"; titulo: string; detalle: string; accion: string };
+
+/** «Por atender»: solo lo que pide que un líder haga algo. Con todo en cero, no hay avisos (y la pantalla no los pinta). */
+export function porAtender(pendientes: number, inactivas: number): AvisoPorAtender[] {
+  const avisos: AvisoPorAtender[] = [];
+  if (pendientes > 0)
+    avisos.push({
+      estado: "pendientes",
+      tono: "ambar",
+      titulo: `${plural(pendientes, "alta espera", "altas esperan")} tu aprobación.`,
+      detalle: "No pueden vender, abrir caja ni mover stock hasta que un líder la apruebe.",
+      accion: "Revisar",
+    });
+  if (inactivas > 0)
+    avisos.push({
+      estado: "inactivas",
+      tono: "neutro",
+      titulo: `${plural(inactivas, "cuenta con acceso está inactiva", "cuentas con acceso están inactivas")} en Dynamic.`,
+      detalle: "No pueden entrar. Si Dynamic las reactiva, recuperan su acceso solas.",
+      accion: "Ver",
+    });
+  return avisos;
 }
 
 /** `cambiar_rol` (ADR-0161 B): el rol decide qué módulos ve. Desde 2026-09-22 también a un líder (se le baja o se sube a
  *  alguien a Líder); nunca a uno mismo. «Cambiar ubicación» sigue siendo solo de quien no es líder: un líder opera todas. */
 export type AccionFila = "cambiar_rol" | "cambiar_ubicacion" | "suspender" | "quitar";
 
-export function accionesDeFila(c: Pick<Colaborador, "rol" | "es_yo">): AccionFila[] {
+export function accionesDeFila(c: Pick<Colaborador, "rol" | "es_yo">, soyLider = true): AccionFila[] {
   if (c.es_yo) return [];
+  // A un líder solo lo toca un líder (20260923131000): quien gestiona accesos con el módulo, sin ser líder, no ve acciones.
+  if (!soyLider && c.rol === "lider") return [];
   return c.rol === "colaborador" ? ["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"] : ["cambiar_rol", "suspender", "quitar"];
 }
 

@@ -1,8 +1,9 @@
 // Quién ve qué en el menú de Producción y de Compras (ADR-0133, D-A).
 //
 // LA REGLA YA NO VIVE ACÁ (2026-09-21, paso 1 de «menú a datos»): está declarada en el árbol de `lib/menu.ts` —Producción
-// con `ubicaciones: ["taller"]`, sus tres puertas de dinero con `exige: "verDinero"` y el Resumen con `exige: "analizar"`;
-// Compras con `ubicaciones: ["tienda", "almacen"]` y sus cinco puertas con `exige: "verDinero"`— y se calcula con
+// con `ubicaciones: ["taller"]`, sus tres puertas de dinero y el Resumen con `exige: "verDinero"` (solo el líder; el
+// Resumen exigía `analizar` hasta el 2026-09-22, cuando ese permiso pasó a salir del módulo Análisis); Compras con
+// `ubicaciones: ["tienda", "almacen"]` y sus cinco puertas con `exige: "verDineroCompras"` (20260923130000)— y se calcula con
 // `menuPara`. Este archivo queda como vista de compatibilidad para lo que todavía lo importa: las dos páginas de Producción
 // (`puedeVerProduccion`) y su prueba, que sigue corriendo SIN cambios y por eso demuestra que la regla absorbida es la misma.
 // Cuando esas páginas importen de `lib/menu.ts`, este archivo se borra.

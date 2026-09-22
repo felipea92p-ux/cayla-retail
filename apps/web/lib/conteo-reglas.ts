@@ -1,5 +1,5 @@
 /**
- * Las reglas de la pantalla de Conteo rediseñada (ADR-0172, 2026-09-22), sin red ni React: se importan desde el
+ * Las reglas de la pantalla de Conteo rediseñada (ADR-0174, 2026-09-22), sin red ni React: se importan desde el
  * servidor (la página) y desde el navegador (el panel de contar), y se prueban en `conteo-reglas.test.ts`.
  *
  * Tres decisiones de Felipe viven acá:

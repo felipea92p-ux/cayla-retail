@@ -197,7 +197,7 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:separaciones
 
-      # Conteo vacío (ADR-0172): cerrar_conteo rechaza un conteo sin prendas (hint conteo_vacio) y lo deja abierto para
+      # Conteo vacío (ADR-0174): cerrar_conteo rechaza un conteo sin prendas (hint conteo_vacio) y lo deja abierto para
       # contar o cancelar; con prendas cierra como siempre; la migración se puede pegar dos veces. Cada caso: ROLLBACK.
       - name: pruebas:conteo-vacio
         if: ${{ always() && steps.supabase.outcome == 'success' }}

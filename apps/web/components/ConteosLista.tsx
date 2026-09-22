@@ -11,7 +11,7 @@ import { resultadoConteo } from "@/lib/conteo-reglas";
 // — no hay estado: los conteos de una tienda son pocos y no hace falta
 // filtrar en memoria.
 //
-// ADR-0172 (2026-09-22): un conteo cerrado sin prendas sale «Vacío» (neutro), no «Sin diferencias» en verde — eso
+// ADR-0174 (2026-09-22): un conteo cerrado sin prendas sale «Vacío» (neutro), no «Sin diferencias» en verde — eso
 // afirmaba algo sobre cero prendas. Tampoco cuenta para la exactitud, y desde la migración
 // 20260923120000_conteo_vacio_no_se_cierra.sql la base ya no deja cerrar uno.
 const PLANTILLA = "sm:grid-cols-[6rem_minmax(9rem,1.2fr)_9rem_minmax(8rem,1fr)_minmax(8rem,1fr)_5.5rem]";

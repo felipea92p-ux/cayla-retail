@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas del candado «un conteo sin prendas no se cierra» (ADR-0172, migración
+ * Pruebas del candado «un conteo sin prendas no se cierra» (ADR-0174, migración
  * `20260923120000_conteo_vacio_no_se_cierra.sql`) contra el Postgres local — CAYLA V2.
  *
  * QUÉ PRUEBA. Que la regla viva EN LA BASE y no solo en el botón gris de la pantalla:

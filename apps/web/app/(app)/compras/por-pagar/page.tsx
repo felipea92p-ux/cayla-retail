@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { exigirModulo } from "@/lib/persona-actual";
 import { listarPorPagar, getPagosDeCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, getCompra, type ParamsCompras } from "@/lib/compras";
 import { getDeudaPorVencimiento, getNotasPendientes, getPorPagarTramos, getResumenComprasExtra, getSalidasCaja30d } from "@/lib/compras-indicadores";
 import { getProveedores } from "@/lib/proveedores";
@@ -38,7 +38,7 @@ import type { DatosPagoProveedor } from "@/components/PagoJuntosModal";
 // y sus piezas conversan — apuntar a un tramo, una semana de caja o un proveedor enciende las filas que le
 // corresponden (`PorPagarContexto`). Todo eso es presentación: las cifras y los filtros son los de siempre.
 export default async function PorPagarPage({ searchParams }: { searchParams: Promise<ParamsCompras & { agrupar?: string; marcar?: string }> }) {
-  await requirePersonaActualV2();
+  await exigirModulo("por_pagar"); // 20260923130000: la puerta del módulo Por pagar
   // `pagar` y `marcar` son órdenes de una sola vez («abre el modal de este comprobante» / «llega con los de este
   // proveedor marcados»), no filtros: no deben viajar en los enlaces de paginación ni en los filtros. `agrupar` sí
   // viaja, pero solo si se eligió (la vista por defecto no ensucia la URL).

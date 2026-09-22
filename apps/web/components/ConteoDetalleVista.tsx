@@ -22,7 +22,7 @@ function soles(n: number) {
 // diferencia — las diferencias primero. Es solo lectura: un conteo cerrado ya escribió sus ajustes como movimientos
 // y no se toca; uno abierto se sigue contando en `/inventario/conteo`.
 //
-// Rediseño 2026-09-22 (ADR-0172): abre filtrado en «Con diferencia» (es lo que se viene a mirar) con «Todas» a un
+// Rediseño 2026-09-22 (ADR-0174): abre filtrado en «Con diferencia» (es lo que se viene a mirar) con «Todas» a un
 // clic, suma la columna en soles por prenda, y un conteo cerrado sin prendas dice «Vacío» en vez de tres ceros y un
 // «todas coinciden con el sistema» que no era cierto de nada. Un conteo ABIERTO ya no muestra su tabla con la cifra
 // del sistema (la mostraba: rompía el conteo a ciegas); dice cuántas prendas lleva y manda a seguir contando.

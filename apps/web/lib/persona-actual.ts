@@ -165,9 +165,10 @@ export function veModulo(persona: Pick<PersonaActualV2, "modulos">, clave: Clave
 /** La puerta de pantalla por MÓDULO (ADR-0161 B2): quien llega por URL directa a un módulo que su rol no ve, cae en
  *  «Sin acceso» en vez de ver una pantalla que después falla al guardar. No reemplaza a `exigirPermiso` (que sigue
  *  valiendo para lo que exige un poder, como Facturación): se suman. Va en el `layout.tsx` del módulo o en su página. */
-export async function exigirModulo(clave: ClaveModulo): Promise<PersonaActualV2> {
+export async function exigirModulo(clave: ClaveModulo, ...alternos: ClaveModulo[]): Promise<PersonaActualV2> {
   const persona = await requirePersonaActualV2();
-  if (!veModulo(persona, clave)) redirect(`/sin-acceso?modulo=${clave}`);
+  // `alternos`: otros módulos que también abren esta pantalla (Atributos se abre con Etiquetas, que vive en una pestaña).
+  if (![clave, ...alternos].some((c) => veModulo(persona, c))) redirect(`/sin-acceso?modulo=${clave}`);
   return persona;
 }
 

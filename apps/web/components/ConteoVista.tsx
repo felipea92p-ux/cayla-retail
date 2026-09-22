@@ -23,7 +23,7 @@ function soles(n: number) {
 // ubicación que los separa exige elegir cuál se cuenta — `sububicaciones`
 // llega para que `ConteoPanel` decida si ofrece ese selector o abre directo.
 //
-// Rediseño 2026-09-22 (ADR-0172, demo en docs/maquetas/conteo-rediseno-2026-09/):
+// Rediseño 2026-09-22 (ADR-0174, demo en docs/maquetas/conteo-rediseno-2026-09/):
 //  · Con un conteo abierto ya NO se muestra «Diferencia hasta ahora»: le decía a quien cuenta cuánto se alejaba
 //    del sistema mientras contaba, y el conteo dejaba de ser a ciegas. La diferencia se ve al revisar.
 //  · Sin conteo abierto, la tarjeta del medio deja de decir «Ninguno» y dice cuánta plata hay en lo que más

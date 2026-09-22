@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260923120000_conteo_vacio_no_se_cierra.sql — CAYLA V2 · ADR-0172
+-- 20260923120000_conteo_vacio_no_se_cierra.sql — CAYLA V2 · ADR-0174
 --
 -- Un conteo sin prendas no se cierra: se cancela (`anular_conteo`).
 --
@@ -48,7 +48,7 @@ $f$;
 select pg_temp.insertar_antes(
   'retail.cerrar_conteo(uuid)',
   'for r in select * from conteo_items where conteo_id = p_conteo_id and diferencia is null loop',
-  $bloque$-- conteo_vacio_no_se_cierra (ADR-0172): sin prendas contadas no hay nada que aprobar; se cancela.
+  $bloque$-- conteo_vacio_no_se_cierra (ADR-0174): sin prendas contadas no hay nada que aprobar; se cancela.
   if not exists (select 1 from conteo_items where conteo_id = p_conteo_id) then
     raise exception 'Este conteo no tiene ninguna prenda contada: no se cierra. Si no se va a contar, cancélalo.'
       using errcode = 'P0001', hint = 'conteo_vacio';
@@ -60,4 +60,4 @@ select pg_temp.insertar_antes(
 
 comment on function retail.cerrar_conteo(uuid) is
   'Cierra un conteo abierto: ajusta el stock a lo contado (un movimiento de ajuste por prenda con diferencia) y lo '
-  'marca cerrado. Rechaza un conteo sin prendas contadas (hint conteo_vacio, ADR-0172): ese se cancela con anular_conteo.';
+  'marca cerrado. Rechaza un conteo sin prendas contadas (hint conteo_vacio, ADR-0174): ese se cancela con anular_conteo.';

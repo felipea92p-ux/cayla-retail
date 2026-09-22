@@ -1,4 +1,4 @@
-# ADR-0172 — Conteo físico: contar con pistola, a ciegas de verdad, y ningún conteo vacío cerrado
+# ADR-0174 — Conteo físico: contar con pistola, a ciegas de verdad, y ningún conteo vacío cerrado
 
 - **Fecha:** 2026-09-22
 - **Estado:** aceptado (Felipe eligió en la demo `docs/maquetas/conteo-rediseno-2026-09/`: los dos modos con

@@ -100,7 +100,7 @@ export function ConteoPanel({
   /** Crear una marca al dar de alta al vuelo es del Catálogo: un líder o la terminal administrativa. */
   puedeCrearMarcas: boolean;
   conteoAbierto: ConteoAbierto | null;
-  /** Lo que falta contar del conteo abierto, dentro de su alcance y SIN la cifra del sistema (ADR-0172). */
+  /** Lo que falta contar del conteo abierto, dentro de su alcance y SIN la cifra del sistema (ADR-0174). */
   pendientes: PrendaPendiente[];
   /** Por sububicación (id), una línea sobre su último conteo con prendas: ayuda a elegir dónde contar. */
   ultimoPorLugar: Record<string, string>;
@@ -151,7 +151,7 @@ export function ConteoPanel({
 }
 
 // ================================================================================================================
-// 1 · Abrir: dónde, qué y quién (ADR-0172). Antes eran dos botones grises que no decían por qué no se podían tocar
+// 1 · Abrir: dónde, qué y quién (ADR-0174). Antes eran dos botones grises que no decían por qué no se podían tocar
 // y un desplegable de 25 «Solo …»; ahora cada paso se ve, y el botón dice qué abre o qué falta.
 // ================================================================================================================
 
@@ -434,7 +434,7 @@ function Paso({ numero, titulo, hecho, children }: { numero: number; titulo: str
 }
 
 // ================================================================================================================
-// 2 · Contar (ADR-0172). La pistola manda y el teclado corrige:
+// 2 · Contar (ADR-0174). La pistola manda y el teclado corrige:
 //  · «Suma por escaneo»: cada lectura (Enter de la pistola) suma 1 a esa prenda y se guarda sola, sin loader — es
 //    un conteo de cientos de lecturas seguidas y un velo en cada una frenaría la pistola. Las lecturas se guardan
 //    EN FILA (`crearColaEnSerie`): cada una manda el total, y la última en salir es la última en escribirse.

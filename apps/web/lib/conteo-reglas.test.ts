@@ -13,7 +13,7 @@ import {
 } from "./conteo-reglas";
 import type { FilaPrevisualizacion } from "./conteo-varianza";
 
-// Tres reglas de Felipe (ADR-0172) que se rompen calladas si nadie las fija:
+// Tres reglas de Felipe (ADR-0174) que se rompen calladas si nadie las fija:
 //  · un conteo cerrado con 0 prendas no puede salir en verde «Sin diferencias»;
 //  · la lista de pendientes que ve quien cuenta nunca trae la cifra del sistema;
 //  · con «suma por escaneo», lecturas rápidas no pueden pisarse entre ellas al guardar.

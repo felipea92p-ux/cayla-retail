@@ -8,7 +8,7 @@ import { exigir } from "@/lib/resultado";
 import { getCatalogoMarcas } from "@/lib/marcas-datos";
 import { ConteoVista } from "@/components/ConteoVista";
 
-// Conteos físicos (Felipe, 2026-09-14; rediseño 2026-09-22, ADR-0172). Esta página LEE; `ConteoVista` dibuja (ahí vive
+// Conteos físicos (Felipe, 2026-09-14; rediseño 2026-09-22, ADR-0174). Esta página LEE; `ConteoVista` dibuja (ahí vive
 // el porqué de cada pieza). Lo único que se decide acá es qué viaja al navegador: `pendientes` va SIN la cifra del
 // sistema (`pendientesSinCifras`) y acotado al alcance del conteo — el conteo sigue a ciegas.
 export default async function ConteoPage() {

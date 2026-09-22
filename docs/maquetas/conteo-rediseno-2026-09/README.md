@@ -18,7 +18,7 @@ lecturas, un código que no existe abre «dar de alta», y cerrar pasa por la es
    (migración propia, con OK antes de producción).
 3. **Pendientes mientras se cuenta: variante A** (elegida el 2026-09-22): lista de qué falta, sin la cifra del sistema.
 
-**Implementado el 2026-09-22 (ADR-0172).** Capturas de la pantalla real con datos de muestra: `implementado-abrir.png`,
+**Implementado el 2026-09-22 (ADR-0174).** Capturas de la pantalla real con datos de muestra: `implementado-abrir.png`,
 `implementado-contando.png`, `implementado-revisar.png`.
 
 ## Otros cambios que trae la maqueta (recomendación, sin decisión de negocio)

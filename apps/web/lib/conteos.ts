@@ -18,7 +18,7 @@ export type ItemConteoAbierto = {
   talla: string | null;
   color: string | null;
   /** Lo anotado. A propósito SIN la cantidad del sistema: esto viaja al navegador de quien cuenta, y el conteo es a
-   *  ciegas hasta revisar (ADR-0172). La diferencia la calcula `previsualizar_cierre_conteo` al revisar. */
+   *  ciegas hasta revisar (ADR-0174). La diferencia la calcula `previsualizar_cierre_conteo` al revisar. */
   cantidadContada: number;
 };
 
@@ -236,7 +236,7 @@ export type LineaConteo = {
   sistema: number;
   contado: number;
   diferencia: number;
-  /** La diferencia al costo actual de la variante (ADR-0172: el detalle la muestra por línea). */
+  /** La diferencia al costo actual de la variante (ADR-0174: el detalle la muestra por línea). */
   soles: number;
 };
 
