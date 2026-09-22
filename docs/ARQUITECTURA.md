@@ -101,13 +101,18 @@ flowchart TB
   valida el servidor vía `fn_puede_operar_sede` — la cookie es solo UX.
 - `(app)/layout.tsx` → `AppShell.tsx` (shell de navegación de todo el app) +
   `SedeSwitcher.tsx` → Server Action `cambiarSedeActiva`.
-- `/colaboradores` (solo líder; ADR-0145 y ADR-0148) → `lib/colaboradores.ts` (lecturas: `fn_colaboradores`,
-  `fn_colaboradores_suspendidos`, `fn_colaboradores_inactivos`, `fn_colaboradores_actividad`, `fn_dynamic_disponibles`) →
-  `ColaboradoresPanel.tsx` (pestañas, tarjetas, modales) + `ColaboradoresTablas.tsx` + `ColaboradoresModales.tsx` +
-  `ui/MenuAcciones.tsx`. Escribe por `lib/colaboradores-acciones.ts` → RPC `agregar_colaboradores`, `suspender_colaborador`,
-  `reactivar_colaborador`, `cambiar_ubicacion_colaborador`, `quitar_colaborador`. Reglas puras en `colaboradores-reglas.ts`.
+- `/colaboradores` (solo líder; ADR-0145, ADR-0148 y ADR-0157) → `lib/colaboradores.ts` (lecturas: `fn_colaboradores`,
+  `fn_colaboradores_pendientes`, `fn_colaboradores_suspendidos`, `fn_colaboradores_inactivos`, `fn_colaboradores_actividad`,
+  `fn_dynamic_disponibles`) → `ColaboradoresPanel.tsx` (pestañas, tarjetas, modales) + `ColaboradoresTablas.tsx` +
+  `ColaboradoresModales.tsx` + `ui/MenuAcciones.tsx`. Escribe por `lib/colaboradores-acciones.ts` → RPC
+  `agregar_colaboradores`, `fn_aprobar_alta_colaborador`, `suspender_colaborador`, `reactivar_colaborador`,
+  `cambiar_ubicacion_colaborador`, `quitar_colaborador`. Reglas puras en `colaboradores-reglas.ts`.
   **Suspender mueve la fila** de `colaboradores` a `colaboradores_suspendidos`; el historial vive en
   `colaboradores_historial` (solo se agrega). `/vender/historial` también lee estas listas para el filtro «vendedor».
+  **D-70 (ADR-0157): el alta no queda operativa sola.** `colaboradores.estado` (`pendiente_aprobacion`/`activo`)
+  gatea `fn_es_lider`, `fn_ubicacion_actual_persona`, `fn_tiene_acceso_retail`, `fn_mi_perfil`,
+  `fn_persona_actual_resumen` (el gate de login) y `fn_stock_por_sede` — las seis funciones que leen
+  `colaboradores`, no solo las tres obvias. `fn_aprobar_alta_colaborador` (solo líder) es el segundo paso.
 
 **Catálogo / inventario**
 - `/inventario` → `lib/inteligencia.ts` (`getCatalogoInteligente`, reusa

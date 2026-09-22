@@ -4764,6 +4764,10 @@ export type Database = {
         Args: { p_movimiento_id: string }
         Returns: undefined
       }
+      fn_aprobar_alta_colaborador: {
+        Args: { p_persona_id: string }
+        Returns: undefined
+      }
       fn_asignar_codigo_producto: {
         Args: { p_producto_id: string }
         Returns: string
@@ -4827,6 +4831,18 @@ export type Database = {
           rol: string
           sede: string
           suspendida: boolean
+        }[]
+      }
+      fn_colaboradores_pendientes: {
+        Args: never
+        Returns: {
+          correo: string
+          nombre: string
+          persona_id: string
+          propuesto_en: string
+          propuesto_por: string
+          sede: string
+          ubicacion_asignada: string
         }[]
       }
       fn_colaboradores_suspendidos: {
