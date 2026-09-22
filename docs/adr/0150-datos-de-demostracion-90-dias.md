@@ -228,6 +228,14 @@ haría la Fase 6). Dos hallazgos:
    con datos reales de compras a esta escala. Queda en `docs/BACKLOG.md` como bug de producto — el arreglo (comparar por
    `cierre_id`, no por `compra_id` + motivo) es una migración aparte, con el OK de Felipe, no algo que este generador deba
    rodear cambiando cómo siembra A5 (eso escondería el bug real).
+
+   **Corregido 2026-09-22, antes de empezar la Fase 5** (Felipe pidió cerrarlo primero): migración
+   `20260922151800_notas_credito_pendiente_por_cierre.sql`, reproducida y verificada en Docker local (repro con nota
+   `devolucion` → antes 2 filas, después 1; regresión con un cierre sin nota → sigue pendiente, sin cambio) y pegada en
+   producción por MCP, confirmada en vivo por la huella de la definición. Producción no tenía ningún caso real duplicado
+   todavía — el bug llevaba tiempo latente porque casi todas las notas reales son de motivo `faltante`; esta siembra iba a
+   ser la primera en activarlo con datos reales. Detalle en `docs/BITACORA.md` (2026-09-22, «Doble conteo de notas de
+   crédito de compras»).
 2. **[Medio, ya cubierto por diseño] Si alguna vez se comprueba «solo Fase 1-3» en producción sin la Fase 4**, `fn_resumen_variantes`
    sale con `ledger_consistente=false` en 70-87 % de las filas y «Pedir a proveedor» en cero, porque las ventas de la Fase 2 siguen
    siendo virtuales hasta que la Fase 4 las convierte en movimientos reales. Confirmado y medido, pero es justo lo que la regla 6 de
