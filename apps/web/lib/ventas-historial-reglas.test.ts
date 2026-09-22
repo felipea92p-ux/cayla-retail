@@ -87,6 +87,7 @@ describe("filtrosDesdeParams", () => {
       estado: "todas",
       pago: undefined,
       comprobante: "todos",
+      incluirPrueba: false,
     });
   });
 

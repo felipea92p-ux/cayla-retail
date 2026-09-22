@@ -40,19 +40,26 @@ export * from "@/lib/ventas-historial-reglas";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
-const SELECT_LISTA = `id, created_at, estado, nota, usuario_id,
-  ubicacion:ubicaciones ( id, nombre ),
+const CAMPOS_LISTA = "id, created_at, estado, nota, usuario_id";
+const EMBEBIDOS_LISTA = `ubicacion:ubicaciones ( id, nombre ),
   cliente:clientas ( nombre ),
   venta_items ( cantidad, precio_unitario, descuento_unitario, subtotal,
     variante:variantes ( color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex ),
       producto:productos ( referencia, producto_fotos ( url, color_codigo ) ) ) ),
   venta_pagos ( metodo, monto ),
   comprobantes ( tipo, serie, numero, estado, created_at )`;
+const SELECT_LISTA = `${CAMPOS_LISTA}, es_prueba, ${EMBEBIDOS_LISTA}`;
+const SELECT_LISTA_SIN_PRUEBA = `${CAMPOS_LISTA}, ${EMBEBIDOS_LISTA}`;
 
 // Para los totales del rango solo hacen falta los importes, el día y cómo se pagó: sin prendas ni comprobantes.
-const SELECT_TOTALES = `id, created_at, estado,
-  venta_items ( cantidad, precio_unitario, descuento_unitario, subtotal ),
-  venta_pagos ( metodo, monto )`;
+const SELECT_TOTALES = "id, created_at, estado, venta_items ( cantidad, precio_unitario, descuento_unitario, subtotal ), venta_pagos ( metodo, monto )";
+
+// `42703` = undefined_column: PostgREST lo devuelve cuando el `select`/filtro nombra una columna
+// que la base no tiene todavía. Mismo criterio que `getStockPorUbicacion` con `cantidad_apartada`
+// (`inventario-v2.ts`): la migración de `es_prueba` (D-54, ADR-0152) es aditiva y puede tardar en
+// pegarse en producción — sin este reintento, desplegar la web ANTES que la migración tumbaría
+// todo el historial de ventas, no solo el filtro nuevo.
+const COLUMNA_INEXISTENTE = "42703";
 
 /** La consulta base con los filtros de la pantalla. La lista y los totales pasan por acá para
  *  que filtren EXACTAMENTE igual: un total que no coincide con la lista es peor que ninguno.
@@ -61,8 +68,11 @@ const SELECT_TOTALES = `id, created_at, estado,
  *  aparte del que se dibuja: `!inner` deja solo las ventas que lo cumplen, pero también recorta las
  *  líneas del embed donde se aplica — una venta pagada mitad efectivo y mitad Yape, filtrada por
  *  efectivo, mostraría solo la mitad. «Sin comprobante» es un anti-join (`is.null` sobre el embed
- *  con `!left`); los dos se probaron contra la base local y contados a mano. */
-function consulta(supabase: Supabase, select: string, f: FiltrosHistorial) {
+ *  con `!left`); los dos se probaron contra la base local y contados a mano.
+ *
+ *  `conPrueba = false` (el reintento de más abajo) quita `es_prueba` del `select` Y del filtro:
+ *  pedirla en el `select` con la columna inexistente fallaría igual que filtrarla por ella. */
+function consulta(supabase: Supabase, select: string, f: FiltrosHistorial, conPrueba = true) {
   const extras = [
     f.pago ? "pago_filtro:venta_pagos!inner ( metodo )" : null,
     f.comprobante === "con" ? "comp_filtro:comprobantes!inner ( tipo )" : null,
@@ -76,6 +86,9 @@ function consulta(supabase: Supabase, select: string, f: FiltrosHistorial) {
   if (f.sedeId) q = q.eq("ubicacion_id", f.sedeId);
   if (f.vendedorId) q = q.eq("usuario_id", f.vendedorId);
   if (f.estado !== "todas") q = q.eq("estado", f.estado);
+  // D-54 (ADR-0152): dato ficticio de prueba, fuera de la vista por defecto — el toggle «Ver
+  // datos de prueba» lo trae de vuelta.
+  if (conPrueba && !f.incluirPrueba) q = q.eq("es_prueba", false);
   if (f.pago) q = q.eq("pago_filtro.metodo", f.pago);
   // Una nota de crédito corrige un comprobante, no ampara la venta: solo boleta y factura cuentan.
   if (f.comprobante !== "todos") q = q.in("comp_filtro.tipo", ["boleta", "factura"]);
@@ -104,13 +117,17 @@ export async function listarVentasHistorial(
 ): Promise<PaginaHistorial> {
   const limite = opciones.limite ?? TAMANO_PAGINA;
   const supabase = await createClient();
-  let q = consulta(supabase, SELECT_LISTA, f);
   const c = opciones.cursor;
-  // «Las siguientes a ESTA»: más vieja, o del mismo instante con un id menor. Los valores ya pasaron por
-  // `leerCursorVentas` (formato de fecha y de uuid), así que no traen nada que rompa el filtro.
-  if (c) q = q.or(`created_at.lt."${c.creadoEn}",and(created_at.eq."${c.creadoEn}",id.lt.${c.id})`);
-  // Una fila de más: si llega, hay página siguiente (sin un `count` aparte).
-  const res = await q.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limite + 1);
+  const pedir = (select: string, conPrueba: boolean) => {
+    let q = consulta(supabase, select, f, conPrueba);
+    // «Las siguientes a ESTA»: más vieja, o del mismo instante con un id menor. Los valores ya pasaron por
+    // `leerCursorVentas` (formato de fecha y de uuid), así que no traen nada que rompa el filtro.
+    if (c) q = q.or(`created_at.lt."${c.creadoEn}",and(created_at.eq."${c.creadoEn}",id.lt.${c.id})`);
+    // Una fila de más: si llega, hay página siguiente (sin un `count` aparte).
+    return q.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limite + 1);
+  };
+  let res = await pedir(SELECT_LISTA, true);
+  if (res.error?.code === COLUMNA_INEXISTENTE) res = await pedir(SELECT_LISTA_SIN_PRUEBA, false);
   const crudas = exigir(res, "el historial de ventas") as unknown as VentaCruda[];
 
   const hayMas = crudas.length > limite;
@@ -137,9 +154,9 @@ export type TotalesHistorial = {
  *  más lo vendido por día y por forma de pago. Todo sale de la misma consulta, con el mismo tope. */
 export async function totalesVentasHistorial(f: FiltrosHistorial): Promise<TotalesHistorial> {
   const supabase = await createClient();
-  const res = await consulta(supabase, SELECT_TOTALES, f)
-    .order("created_at", { ascending: false })
-    .limit(TOPE_TOTALES + 1);
+  const pedir = (conPrueba: boolean) => consulta(supabase, SELECT_TOTALES, f, conPrueba).order("created_at", { ascending: false }).limit(TOPE_TOTALES + 1);
+  let res = await pedir(true);
+  if (res.error?.code === COLUMNA_INEXISTENTE) res = await pedir(false);
   const crudas = exigir(res, "los totales del historial de ventas") as unknown as {
     id: string;
     created_at: string;
