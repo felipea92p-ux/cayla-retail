@@ -197,6 +197,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:separaciones
 
+      # Conteo vacío (ADR-0174): cerrar_conteo rechaza un conteo sin prendas (hint conteo_vacio) y lo deja abierto para
+      # contar o cancelar; con prendas cierra como siempre; la migración se puede pegar dos veces. Cada caso: ROLLBACK.
+      - name: pruebas:conteo-vacio
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:conteo-vacio
+
       # Devolver insumos (ADR-0133, F3b): lo devuelto vuelve al último lote del que salió la orden, el costo de
       # tela/avíos de la orden queda neto, anular devuelve todo al estante y quien no opera el Taller no puede.
       # Cada caso termina en ROLLBACK.
