@@ -159,6 +159,12 @@ Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió l
 - [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
 - [ ] **Producción SUPERA el tope de 6: 7 hijas** (líder parado en el Taller) desde que #231 (Resumen, F6) entró sin regrupar; queda como deuda explícita con una prueba «DEUDA…» que la vigila. F7 Eficiencia obligará a regrupar (candidato: `produccion.abastecimiento`). **Quien agregue una fila al menú edita `lib/menu.ts`, no `AppShell.tsx`** (cómo, en el ADR-0144).
 
+## 🎯 Colaboradores en dos secciones + editor de roles rediseñado (2026-09-22, ADR-0172) — hecho, sin migraciones
+
+- [x] Spike aprobado (`docs/maquetas/colaboradores-ux-spike-2026-09/`, PR #313) y construido: Cuentas / Roles y accesos, «Por atender», Actividad en modal, `?pestana=` viejos siguen funcionando.
+- [x] Roles: lista agrupada con avisos, grupos plegables + buscador, «Se suma / Se quita», vista previa con cambios, matriz «Comparar roles».
+- [ ] Verlo con clics reales contra la base (solo se probó con datos de ejemplo) · decidir si «Asignar» acepta varias cuentas a la vez (la RPC `asignar_rol` es de a una).
+
 ## 🎯 Colaboradores: el alta nueva no queda operativa sin aprobación (2026-09-22, ADR-0157, D-70) — hecho en local, falta pegar en producción
 Detalle, decisiones y lo descartado en [docs/adr/0157-alta-de-colaborador-requiere-aprobacion.md](adr/0157-alta-de-colaborador-requiere-aprobacion.md).
 - [x] Investigado primero (no asumido): no existe trigger sobre `personas` que cree colaboradores — el alta ya era manual, pero de un solo paso (proponer = dar acceso). La baja automática por Dynamic (`p.estado = 'activo'`) ya existía desde 0006/0009 y no se tocó.

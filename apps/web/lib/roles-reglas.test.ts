@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { MODULOS, MODULOS_DE_HOY } from "./modulos";
 import {
+  alternarGrupo,
   alternarModulo,
+  avisoDelRol,
+  cambiosDelBorrador,
+  familiaDeRol,
+  menuConCambios,
+  modulosFiltrados,
   controlDe,
   cuentasAsignables,
   etiquetasDelMenu,
@@ -129,5 +135,45 @@ describe("archivar, duplicar y asignar", () => {
     expect(pideUbicacion({ esLider: true, ubicacion: "Tienda Arequipa" }, INTEGRANTE)).toBe(false);
     expect(pideUbicacion({ esLider: true, ubicacion: null }, LIDER)).toBe(false);
     expect(pideUbicacion({ esLider: false, ubicacion: null }, INTEGRANTE)).toBe(false);
+  });
+});
+
+describe("editor rediseñado (spike colaboradores-ux 2026-09-22)", () => {
+  it("agrupa los roles en sistema, terminal y a medida", () => {
+    expect(familiaDeRol(LIDER)).toBe("sistema");
+    expect(familiaDeRol(INTEGRANTE)).toBe("sistema");
+    expect(familiaDeRol(rol({ clave: "terminal_ventas", esSistema: true }))).toBe("terminal");
+    expect(familiaDeRol(rol())).toBe("a_medida");
+  });
+  it("avisa «Solo Inicio» y «Sin uso», nunca del Líder ni de un archivado", () => {
+    expect(avisoDelRol(rol(), 16)).toBe("solo_inicio");
+    expect(avisoDelRol(rol(), 0)).toBe("sin_uso");
+    expect(avisoDelRol(rol({ modulos: ["vender"] }), 3)).toBeNull();
+    expect(avisoDelRol(LIDER, 0)).toBeNull();
+    expect(avisoDelRol(rol({ archivado: true }), 0)).toBeNull();
+  });
+  it("separa lo que el borrador suma de lo que quita", () => {
+    expect(cambiosDelBorrador(["vender", "caja"], ["caja", "clientas"])).toEqual({ suma: ["clientas"], quita: ["vender"] });
+  });
+  it("«Encender todo» de un grupo no mete lo que no se delega ni toca otros grupos", () => {
+    const r = alternarGrupo(["existencias"], "Compras", true);
+    expect(r).toContain("recibir");
+    expect(r).toContain("existencias");
+    expect(r).not.toContain("facturas_compra");
+    expect(alternarGrupo(r, "Compras", false)).toEqual(["existencias"]);
+  });
+  it("el buscador encuentra por lo que incluye, sin tildes", () => {
+    const g = modulosFiltrados("reimprimir");
+    expect(g.flatMap((x) => x.modulos.map((m) => m.clave))).toEqual(["historial"]);
+    expect(modulosFiltrados("categorias").flatMap((x) => x.modulos.map((m) => m.clave))).toContain("atributos");
+    expect(modulosFiltrados("")).toEqual(modulosPorGrupo());
+  });
+  it("la vista previa marca lo que se suma y lo que se quita", () => {
+    const guardado = rol({ modulos: ["vender"] });
+    const menu = menuConCambios(guardado, ["existencias"]);
+    const cambios = menu.flatMap((f) => [[f.etiqueta, f.cambio], ...f.hijas.map((h) => [`${f.etiqueta}/${h.etiqueta}`, h.cambio])]);
+    expect(cambios.some(([, c]) => c === "suma")).toBe(true);
+    expect(cambios.some(([, c]) => c === "quita")).toBe(true);
+    expect(menuConCambios(guardado, ["vender"]).every((f) => f.cambio === "igual" && f.hijas.every((h) => h.cambio === "igual"))).toBe(true);
   });
 });
