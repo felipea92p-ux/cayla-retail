@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (Historial de ventas caído: la RLS se evaluaba fila por fila — ADR-0173, opción A)
+Felipe pasó la captura de «No se pudo cargar» (código 575251889). Los logs de Vercel dieron la pantalla (`/vender/historial`) y el error (`statement timeout`, 8 s). Medido en producción: con las 7.001 ventas del sembrado, la RLS llamaba `fn_es_lider()` una vez por venta, ítem, pago y comprobante, y la lista tardaba 12,3 s. Se reescribieron las 4 políticas de venta con `(select …)` y se agregó un índice por fecha: la lista baja a 0,5 s y cada cuenta sigue viendo exactamente las mismas filas (huellas antes/después, como líder e integrante). Quedó PEGADA en producción con el OK de Felipe.
+Felipe se lleva: (1) **el «Código» de la pantalla de error sirve**: con él se encuentra el error exacto en los logs; (2) **la regla de seguridad cuesta según cuántas veces se pregunta**: preguntar «¿quién eres?» una vez por pedido y no una vez por fila es la diferencia entre 2,6 s y 1,6 ms; (3) el volumen de prueba adelantó un problema que igual iba a llegar con las ventas reales.
+Sin resolver: la opción B (92 políticas con el mismo patrón, ya acordada), verlo con clics, y si las ventas sembradas deberían ser `es_prueba`.
+
 ## 2026-09-22 (Existencias: demo del rediseño con la paleta oficial)
 Sobre la guía «Sala de diseño» se armó `docs/maquetas/existencias-rediseno-2026-09/demo.html`: lateral claro (decidido por Felipe), tabla con piso·almacén, cobertura, ritmo 7D, en camino y en la red, modales con el movimiento de ADR-0136 y el loader único con el aviso después (ADR-0149). Felipe pidió decidir viendo, así que la demo trae 3 variantes de cifras y 2 de acciones por fila, más el estado vacío guiado que eligió.
 Felipe se lleva: (1) **una sede vacía no es una pantalla vacía**: es el momento de decirle a la colaboradora por dónde entra la mercadería; (2) la demo se armó con la captura real de TRU, que mostró 3 traslados «completados» con 0 unidades: por eso el piso sigue vacío, y se señala en el estado vacío.
