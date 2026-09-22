@@ -380,9 +380,11 @@ describe("la URL", () => {
   });
 
   it("vista, cambio y orden: lo que no se reconoce cae en los valores iniciales", () => {
-    expect(leerVistaComparacion({})).toMatchObject({ vista: "general", cambio: "todos", orden: "vendidos_b", pagina: 1 });
-    expect(leerVistaComparacion({ vista: "detalle", cambio: "desacelero", orden: "rotacion_b", pag: "3" })).toMatchObject({ vista: "detalle", cambio: "desacelero", orden: "rotacion_b", pagina: 3 });
-    expect(leerVistaComparacion({ vista: "x", cambio: "x", orden: "prioridad" })).toMatchObject({ vista: "general", cambio: "todos", orden: "vendidos_b" });
+    expect(leerVistaComparacion({})).toMatchObject({ cambio: "todos", orden: "vendidos_b", pagina: 1 });
+    expect(leerVistaComparacion({ cambio: "desacelero", orden: "rotacion_b", pag: "3" })).toMatchObject({ cambio: "desacelero", orden: "rotacion_b", pagina: 3 });
+    expect(leerVistaComparacion({ cambio: "x", orden: "prioridad" })).toMatchObject({ cambio: "todos", orden: "vendidos_b" });
+    // Un enlace viejo con «?vista=detalle» no rompe nada: la vista ya no existe y se ignora.
+    expect(leerVistaComparacion({ vista: "detalle" })).not.toHaveProperty("vista");
   });
 
   it("A es «comparar con»: período anterior por defecto, «sin comparación» cae en anterior y «otro período» respeta las fechas", () => {
@@ -433,9 +435,9 @@ describe("armarComparacion", () => {
     // v1 aceleró (0.3→0.6 uds/día) y mejoró su rotación; v2 quedó estable; v3 no tiene datos suficientes.
     expect(r.conteoCambios).toMatchObject({ acelero: 1, mejoro_rotacion: 1 });
     for (const c of ["acelero", "desacelero", "mejoro_rotacion"] as const) {
-      expect(armar({ cambio: c, vista: "detalle" }).tabla.total).toBe(r.conteoCambios[c]);
+      expect(armar({ cambio: c }).tabla.total).toBe(r.conteoCambios[c]);
     }
-    expect(armar({ cambio: "acelero", vista: "detalle" }).kpis).toEqual(r.kpis);
+    expect(armar({ cambio: "acelero" }).kpis).toEqual(r.kpis);
   });
 
   it("categoría y búsqueda recortan los KPI y la tabla, no el selector de categorías", () => {

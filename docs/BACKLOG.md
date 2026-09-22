@@ -196,12 +196,16 @@ Análisis completo en [docs/pantallas/colaboradores.md](pantallas/colaboradores.
 - [ ] Decidir dos reglas: (a) los códigos de barras se buscan parcial (antes, exacto); (b) dos tallas o dos colores escritos a la vez se exigen los dos (no hay «M o L»).
 - [ ] La marca (ya se busca en la caja, ADR-0109) no entra en Existencias: `FilaStock` no la trae.
 
-## 🎯 Análisis: rediseño con la guía oficial (2026-09-22) — demo lista, sin construir
-Demo interactiva y decisiones: [docs/maquetas/analisis-rediseno-2026-09/](maquetas/analisis-rediseno-2026-09/README.md).
-- [x] Decidido: columna «Cambio relevante» por reglas fijas (7 reglas en orden, en el README de la maqueta).
-- [ ] Decisión de Felipe con la demo: forma de Desempeño (A misma anatomía / B solo tabla), aviso de exactitud (franja / chip / tarjeta), sede sin datos (con salidas / estructura en cero).
-- [ ] Construir tras la decisión: `lib/resumen-lectura.ts` + pruebas; pestañas subrayadas y cifras A → B en `ResumenComparacionPanel`/`ResumenComparacionGeneral` (sin partir en «Vista general / Detalle»); Desempeño según la opción; `ResumenBanner` según la opción; vacío nuevo en los dos paneles. Sin migración.
-- [ ] Paleta de gráficos de ritmo: cambiar verde/taupe/ámbar por verde/neutro/ámbar en `ResumenComparacionGeneral` (taupe y ámbar no se distinguen, ΔE 9.8).
+## 🎯 Análisis: rediseño con la guía oficial (2026-09-22, ADR-0170) — construido y verificado con datos de muestra; sin migración
+Demo y decisiones: [docs/maquetas/analisis-rediseno-2026-09/](maquetas/analisis-rediseno-2026-09/README.md).
+- [x] Felipe eligió: Desempeño con la misma anatomía que Comparar (A), aviso de exactitud en franja y sede sin datos con salidas.
+- [x] «Cambio relevante» por reglas: `lib/resumen-lectura.ts` + `resumen-lectura.test.ts` (7 reglas en orden), en las dos tablas.
+- [x] Desempeño: 4 cifras + 3 gráficos (`ResumenDesempenoGeneral`, agregados en `resumen-desempeno.ts`), banda de sell-through en la cabecera de la tabla.
+- [x] Comparar: una sola lectura (sin «Vista general / Detalle»), cifras A → B, 3 gráficos en una fila, la dona filtra la tabla y baja hasta ella.
+- [x] Franja de exactitud (`ResumenBanner`) y vacío con salidas (`ResumenVacio`, también para el Taller).
+- [x] Colores de gráfico `--color-grafico-*` (verde/neutro/ámbar claro), validados como relleno vecino.
+- [ ] **Verlo con clics reales contra la base** (local o producción): en esta sesión no había Docker; se verificó con los componentes reales y datos de muestra.
+- [ ] En el celular, la columna «Lectura» queda a la derecha de la tabla, que se desplaza dentro de su tarjeta. Evaluar si en el celular la lectura debe ir bajo el nombre del producto.
 - [ ] Decisión global aparte: lateral oscuro de la guía vs lateral claro de hoy (afecta a todo el ERP).
 
 ## 🎯 Análisis: un solo selector de fechas (2026-09-21, anexo del ADR-0138) — hecho y verificado en local; en `main`

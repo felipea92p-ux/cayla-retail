@@ -248,17 +248,24 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `fn_resumen_comparacion` con el período partido en dos mitades (A = 1.ª, B = 2.ª; paginada de a 1000) +
   `getConteosResumen`/`exactitudConteos` → `lib/resumen-desempeno.ts:armarDesempeno` (puro: suma las mitades,
   toma el stock al inicio de A y al cierre de B, y calcula vendido, ritmo, sell-through, rotación y tendencia con
-  `metricasDePeriodo`, `calcularSellThrough` y `calcularTendencia`) → `ResumenDesempenoPanel` con
-  `ResumenControles` (una barra: período · categoría · sell-through, búsqueda debajo) y
-  `ResumenComportamiento` (tabla «Comportamiento del inventario», orden por defecto «Más vendidos», 15 filas).
+  `metricasDePeriodo`, `calcularSellThrough` y `calcularTendencia`; desde el 2026-09-22 también las cifras y los
+  gráficos del período: `calcularKpisDesempeno`, `contarTendencias`, `rankingRotacionDesempeno`,
+  `distribucionDesempeno`, sobre el alcance) → `ResumenDesempenoPanel` con `ResumenControles` (una barra: período ·
+  categoría, búsqueda debajo), `ResumenDesempenoGeneral` (4 cifras + dona de tendencia + top rotación + distribución
+  de sell-through) y `ResumenComportamiento` (tabla «Comportamiento del inventario» con la banda de sell-through en
+  su cabecera y la columna «Lectura del período», orden por defecto «Más vendidos», 15 filas). ADR-0170.
   · **Comparar períodos** (rediseño visual 2026-09-19) → `getComparacionInventario` = la misma RPC con A y B
   elegidos → `lib/resumen-comparacion.ts:armarComparacion` → `ResumenComparacionPanel`: contexto en dos
   píldoras «Período A: desde … hasta …» y «Período B: …» (`ResumenControles`, diseño de Figma 2026-09-21; cada una
   abre el MISMO selector de fechas —`PopoverRango`, el de «Personalizado» de Desempeño, con Desde/Hasta escritos a mano;
-  los atajos de A y B van dentro—; la búsqueda vive solo en Detalle) + `…General` (4 KPI — Ventas, Rotación, Sell-through, Capital —, dona «Evolución del
+  los atajos de A y B van dentro—; la búsqueda vive solo en Detalle) + `…General` (4 KPI A → B — Ventas, Rotación, Sell-through, Capital —, dona «Evolución del
   ritmo» con `evolucionDelRitmo`/`evolucionRitmoTotal` sobre `calcularTendencia`, barras A/B «Top rotación» y
-  «Distribución de sell-through») + `…Detalle` (tabla de 6 columnas con `cambioMostrado`/`textoCambio`: UN
-  cambio relevante por fila, el más importante de `PRIORIDAD_CAMBIO`, no una lista de señales).
+  «Distribución de sell-through», los tres en una fila) + `…Detalle` DEBAJO, en la misma pantalla (desde el 2026-09-22
+  ya no hay «Vista general / Detalle»: la dona filtra la tabla con `?cambio=`). La columna «Cambio relevante» de las
+  dos tablas sale de `lib/resumen-lectura.ts` (`lecturaDesempeno`, `lecturaComparacion`: 7 reglas en orden; en Comparar
+  la regla 4 es `cambioMostrado` con su `PRIORIDAD_CAMBIO`). Sin datos o en el Taller: `ResumenVacio` (ampliar a 90
+  días, ver otra tienda con `cambiarUbicacionActiva`, ir a Recibir). Exactitud: `ResumenBanner` como franja bajo el
+  título. ADR-0170.
   · **Rotación** = `lib/rotacion.ts` (COGS ÷ inventario promedio a costo; fallback de dos puntos, punto de
   sustitución para un promedio diario): la ÚNICA fórmula de las filas, el ranking, los órdenes y los KPI de
   Desempeño y Comparar. Una variante es estricta (sin dato = N/D); un total es `rotacionAgregada` (Σ COGS ÷ Σ
