@@ -121,12 +121,6 @@ export function pasoDelCobro(pagos: readonly PagoAplicado[], total: number): Pas
   return "comprobante";
 }
 
-export const TEXTO_PASO_COBRO: Record<PasoCobro, string> = {
-  medio: "Elige cómo pagó la clienta.",
-  recibido: "Toca los billetes que entregó, o «Exacto» si pagó justo.",
-  comprobante: "Listo. El documento es opcional: ya puedes confirmar el cobro.",
-};
-
 /** Los pagos como viajan a `registrar_venta`. Solo montos > 0 (`venta_pagos` lo exige). El
  *  `recibido` va únicamente en efectivo y solo si cubre lo que corresponde: la base lo
  *  guarda para reimprimir el vuelto y su candado (`venta_pagos_recibido_coherente`) rechaza

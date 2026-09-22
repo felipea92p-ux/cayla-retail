@@ -39,7 +39,6 @@ import {
 import { Ayuda } from "@/components/Ayuda";
 import { CampoMonto } from "@/components/ui/CampoMonto";
 import { BilleteRapido } from "@/components/BilleteRapido";
-import { PasosCobro } from "@/components/PasosCobro";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { VendedorasFila } from "@/components/VendedorasFila";
 import { codigoPrenda } from "@/lib/prenda-reglas";
@@ -762,7 +761,6 @@ export function PuntoDeVentaTicket({
             </div>
           ) : cobrando ? (
             <div className={saliendo ? "anim-revelar-salida space-y-5 px-5 py-4" : "anim-revelar space-y-5 px-5 py-4"}>
-              <PasosCobro paso={paso} />
               {/* 1 · Cuánto y cómo pagó — antes que el comprobante: el cobro existe
                   aunque la clienta no pida nada. Tocar un medio agrega su fila con lo que
                   falta; combinar («Yape + efectivo», la venta más común de la tienda) es bajar
