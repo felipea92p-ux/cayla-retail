@@ -2,7 +2,8 @@ import { exigirPermiso } from "@/lib/persona-actual";
 import { opcional } from "@/lib/resultado";
 import { getComprobantesMes, getResumenPorEnviar } from "@/lib/comprobantes";
 import { mesActualLima, mesLimaUTC } from "@/lib/fecha-lima";
-import { mesDeParametro, periodoDelMes } from "@/lib/facturacion-reglas";
+import { mesDeParametro, periodoDelMes, tiendasOperativas } from "@/lib/facturacion-reglas";
+import { getUbicaciones } from "@/lib/ubicaciones";
 import { ComprobantesPanel } from "@/components/ComprobantesPanel";
 import { ComprobantesTarjetas } from "@/components/ComprobantesTarjetas";
 import { MarcaDeCarga } from "@/components/MarcaDeCarga";
@@ -21,9 +22,10 @@ export default async function EmitidosPage({ searchParams }: { searchParams: Pro
   // lee otra vez; al navegar entre vistas el layout no se vuelve a ejecutar y se lee aquí.
   // Los comprobantes del mes son plata: sin ellos la pantalla no se dibuja (`exigir`). La cola de
   // SUNAT es secundaria: si falla (o lanza, `opcional`) llega `null` y sus tarjetas lo dicen.
-  const [comprobantes, porEnviar] = await Promise.all([
+  const [comprobantes, porEnviar, ubicaciones] = await Promise.all([
     getComprobantesMes(desde, hasta),
     opcional(getResumenPorEnviar(), "la cola de SUNAT (Emitidos)"),
+    getUbicaciones(),
   ]);
   const periodo = periodoDelMes(mes, actual);
 
@@ -36,6 +38,7 @@ export default async function EmitidosPage({ searchParams }: { searchParams: Pro
         comprobantes={comprobantes}
         periodo={periodo}
         esLider={persona.rol === "lider"}
+        tiendas={tiendasOperativas(ubicaciones).map(({ id, nombre }) => ({ id, nombre }))}
       />
     </div>
   );

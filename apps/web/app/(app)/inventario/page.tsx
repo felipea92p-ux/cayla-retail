@@ -93,7 +93,7 @@ export default async function InventarioPage({
 
   return (
     <div className="space-y-6">
-      {/* Encabezado (guía oficial, 2026-09-22, ADR-0167): sobretítulo, sede y bajada directo sobre el crema;
+      {/* Encabezado (guía oficial, 2026-09-22, ADR-0169): sobretítulo, sede y bajada directo sobre el crema;
           a la derecha el selector de sede, el interruptor de datos de prueba y la acción principal. */}
       <CabeceraPantalla
         sobretitulo="Inventario · Existencias"

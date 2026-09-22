@@ -22,7 +22,7 @@ import type { ReactNode } from "react";
 
 export type TonoChip = "neutro" | "ambar" | "verde" | "rojo" | "pizarra" | "apagado";
 
-// Guía oficial (2026-09-22, ADR-0167): insignia sin borde, fondo del color del estado al 10–15 % y un punto
+// Guía oficial (2026-09-22, ADR-0169): insignia sin borde, fondo del color del estado al 10–15 % y un punto
 // del mismo color antes del texto. `pizarra` es el estado informativo (en camino, en revisión): no es semáforo.
 const TONO: Record<TonoChip, string> = {
   neutro: "bg-sand text-taupe",

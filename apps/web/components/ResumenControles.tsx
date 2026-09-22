@@ -233,7 +233,7 @@ export function ResumenControles({
     <div className="max-w-full">
       <span className={ETIQUETA}>Período analizado</span>
       <div className="mt-1.5 max-w-full">
-        {/* Guía oficial (ADR-0167): píldoras que se envuelven en el celular, en vez de un segmento que se corta. */}
+        {/* Guía oficial (ADR-0169): píldoras que se envuelven en el celular, en vez de un segmento que se corta. */}
         <div role="radiogroup" aria-label="Período analizado" className="flex flex-wrap gap-1.5">
           {PRESETS_PERIODO.map((p) => {
             const activo = periodo.preset === p.valor && !(p.valor === "personalizado" && abierto !== "periodo" && periodo.preset !== "personalizado");

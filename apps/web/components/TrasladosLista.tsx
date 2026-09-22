@@ -55,7 +55,7 @@ const CELDA = {
 };
 
 const FOCO = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo";
-// Guía oficial (2026-09-22, ADR-0167): primario y secundario del sistema.
+// Guía oficial (2026-09-22, ADR-0169): primario y secundario del sistema.
 const BOTON_FUERTE = `btn-cayla btn-primario btn-chico ${FOCO}`;
 const BOTON_SUAVE = `btn-cayla btn-secundario btn-chico ${FOCO}`;
 

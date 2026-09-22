@@ -461,7 +461,7 @@ const FORMA_DESPLEGABLE = {
   campo: "w-full justify-between rounded-t-md px-0.5 py-2 text-sm hover:bg-tinta/[0.03]",
   pastilla:
     "gap-2 rounded-md border bg-papel px-2.5 py-1.5 label-cayla text-[11px] hover:border-rojo",
-  /** Guía oficial (2026-09-22, ADR-0167): la caja hundida en hueso, para las barras de filtros. */
+  /** Guía oficial (2026-09-22, ADR-0169): la caja hundida en hueso, para las barras de filtros. */
   caja: "caja-cayla h-10 w-full justify-between gap-3 px-3 text-sm",
 } as const;
 

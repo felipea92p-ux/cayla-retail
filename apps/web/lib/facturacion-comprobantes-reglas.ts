@@ -189,3 +189,27 @@ export function nombreDelTipo(tipo: string): string {
 export function numerosUsados(s: Pick<SerieComprobante, "siguiente_numero">): number {
   return Math.max(0, s.siguiente_numero - 1);
 }
+
+export type TotalDelTipo = { tipo: TipoComprobante; cantidad: number; monto: number };
+
+/** El pie de Emitidos: cuántos comprobantes hay de cada tipo y cuánto suman, en el orden de siempre
+ *  (boleta, factura, notas). Anulados y liberados («no emitido») no cuentan: ya no valen. Las pruebas sí
+ *  cuentan, porque el pie resume lo que se ve en la lista; el monto que vale ante SUNAT es la tarjeta
+ *  «Monto facturado». La nota de crédito se muestra en positivo: el pie dice cuánto se devolvió. */
+export function totalesPorTipo(comprobantes: Comprobante[]): TotalDelTipo[] {
+  const porTipo = new Map<TipoComprobante, TotalDelTipo>();
+  for (const c of comprobantes) {
+    if (c.estado === "anulado" || c.estado === "no_emitido") continue;
+    const t = porTipo.get(c.tipo) ?? { tipo: c.tipo, cantidad: 0, monto: 0 };
+    t.cantidad += 1;
+    t.monto = Math.round((t.monto + Number(c.total)) * 100) / 100;
+    porTipo.set(c.tipo, t);
+  }
+  return [...porTipo.values()].sort((a, b) => ordenDelTipo(a.tipo) - ordenDelTipo(b.tipo));
+}
+
+/** El enlace de WhatsApp para mandarle a la clienta su comprobante: sin número (no se guarda el de la
+ *  clienta en el comprobante), así WhatsApp pregunta a quién. */
+export function enlaceWhatsApp(texto: string): string {
+  return `https://wa.me/?text=${encodeURIComponent(texto)}`;
+}

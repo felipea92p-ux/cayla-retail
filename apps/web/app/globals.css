@@ -21,7 +21,7 @@
   /* Paleta secundaria — solo jerarquía interna, jamás decoración */
   --color-rojo-profundo: #8b2a1f;
   --color-sand: #e8e0d0;        /* Bordes y recuadros neutrales (la "línea" del sistema) */
-  /* 2026-09-22 — PALETA OFICIAL «CAYLA Dynamic» (ADR-0167, decisión de Felipe): taupe, papel, verde y
+  /* 2026-09-22 — PALETA OFICIAL «CAYLA Dynamic» (ADR-0169, decisión de Felipe): taupe, papel, verde y
      ámbar toman el valor de la guía de estilo oficial, la misma que usa CAYLA Dynamic. Los cuatro ya
      existían; lo que cambia es el tono, así que ninguna pantalla se toca para heredarlo. */
   --color-taupe: #805c4c;       /* Texto secundario y borde de control interactivo. Antes #a47865, que
@@ -267,7 +267,7 @@ body {
     font-weight: 600;
   }
 
-  /* ---------------- Guía oficial «CAYLA Dynamic» (2026-09-22, ADR-0167) ----------------
+  /* ---------------- Guía oficial «CAYLA Dynamic» (2026-09-22, ADR-0169) ----------------
      Las piezas que la guía nombra y que antes cada pantalla escribía a mano con utilidades
      sueltas. Nada de sombras ni gradientes: la línea fina de sand es el único adorno. */
 

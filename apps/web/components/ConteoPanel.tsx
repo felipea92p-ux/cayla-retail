@@ -578,7 +578,7 @@ function ConteoEnCurso({
         </div>
       )}
 
-      {/* Guía oficial (ADR-0167): el botón primario del sistema, a la derecha — no una barra a todo el ancho. */}
+      {/* Guía oficial (ADR-0169): el botón primario del sistema, a la derecha — no una barra a todo el ancho. */}
       <div className="flex justify-end">
         <button type="button" disabled={conteo.items.length === 0} onClick={() => setRevisando(true)} className="btn-cayla btn-primario">
           Revisar y cerrar conteo →

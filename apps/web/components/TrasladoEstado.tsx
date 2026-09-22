@@ -7,7 +7,7 @@ import type { SituacionTraslado } from "@/lib/traslados-reglas";
 // El color reparte el énfasis: coral solo para lo que me toca ya; ámbar para
 // lo que no cuadra; neutro para lo que viaja bien; verde para lo terminado.
 // «En camino» va en pizarra, el estado informativo de la guía oficial (2026-09-22,
-// ADR-0167): viaja bien, no pide nada, pero tampoco está terminado.
+// ADR-0169): viaja bien, no pide nada, pero tampoco está terminado.
 const ETIQUETA: Record<SituacionTraslado, string> = {
   requiere_recepcion: "Requiere confirmación",
   requiere_revision: "Con diferencia",

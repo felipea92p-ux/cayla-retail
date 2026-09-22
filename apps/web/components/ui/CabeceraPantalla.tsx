@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 /* ====================================================================
    CabeceraPantalla · el orden oficial de la parte de arriba de una pantalla
-   (2026-09-22, guía «CAYLA Dynamic», ADR-0167)
+   (2026-09-22, guía «CAYLA Dynamic», ADR-0169)
 
    Sobretítulo en rojo (módulo · sección) → título en la serif de la casa
    (casi siempre la sede que se mira) → una bajada en taupe que dice para

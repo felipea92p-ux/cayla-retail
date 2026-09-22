@@ -156,7 +156,7 @@ export function TrasladosPanel({
       </p>
       <TrasladosAtencion resumen={resumen} masUrgente={urgente ? { id: urgente.id, numero: urgente.numero } : null} />
       <TrasladosResumen resumen={resumen} filtro={filtroEfectivo} onFiltro={alFiltrar(setFiltro)} />
-      {/* Guía oficial (2026-09-22, ADR-0167): buscador, píldoras y tabla en UNA tarjeta. */}
+      {/* Guía oficial (2026-09-22, ADR-0169): buscador, píldoras y tabla en UNA tarjeta. */}
       <div className="card-cayla overflow-hidden">
       <div className="p-4 sm:p-5">
       <TrasladosFiltros

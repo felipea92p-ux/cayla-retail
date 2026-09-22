@@ -1,4 +1,6 @@
-# ADR-0167 — Paleta oficial «CAYLA Dynamic» en todo el ERP, y el orden oficial de pantalla empezando por Inventario
+# ADR-0169 — Paleta oficial «CAYLA Dynamic» en todo el ERP, y el orden oficial de pantalla empezando por Inventario
+
+> **Número:** nació como ADR-0167; al traer `main` resultó tomado por Proformas con prendas, así que pasó a 0169 (0168 también estaba tomado).
 
 **Fecha:** 2026-09-22 · **Estado:** aceptado (Felipe, 2026-09-22) · **Sin migraciones** · **Reemplaza en parte:** ADR-0012 (el valor de `papel`, 2026-09-18) · **Referencia visual:** la «Sala de Diseño CAYLA» (artifact de Felipe, sección «La paleta y las formas que debe llevar CAYLA» y las 15 pantallas de «Rediseño completo · 2026-09-22»)
 

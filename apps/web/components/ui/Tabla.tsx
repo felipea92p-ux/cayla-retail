@@ -42,7 +42,7 @@ const ALINEAR: Record<Alineacion, string> = { izq: "text-left", der: "text-right
 /** Las clases de toda tabla de Inventario (2026-09-21; la referencia de estilo es Existencias). Una sola
  *  fuente: `Tabla`, `Encabezado` y `fila` las usan, y las tablas que arman su propia rejilla (Traslados, las
  *  de Análisis) las importan en vez de copiarlas — así un cambio de padding o de tono llega a todas a la vez. */
-// Guía oficial (2026-09-22, ADR-0167): cabecera en sand con los títulos en taupe, peso normal y SIN
+// Guía oficial (2026-09-22, ADR-0169): cabecera en sand con los títulos en taupe, peso normal y SIN
 // versalitas (una tabla se lee, no se grita); divisiones en sand; zebra en hueso (`fila-cayla`, globals.css).
 export const TABLA = {
   contenedor: "card-cayla divide-y divide-sand overflow-x-auto",

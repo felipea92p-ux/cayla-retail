@@ -31,7 +31,7 @@ import {
 // ve la venta de hace dos meses.
 type Sububicacion = { id: string; tipo: string | null; nombre: string };
 
-// Guía oficial (2026-09-22, ADR-0167): la píldora del sistema (`pildora-cayla`); la activa va en tinta.
+// Guía oficial (2026-09-22, ADR-0169): la píldora del sistema (`pildora-cayla`); la activa va en tinta.
 function Pastilla({ activa, onClick, children }: { activa: boolean; onClick: () => void; children: ReactNode }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={activa} className="pildora-cayla">

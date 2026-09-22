@@ -24,7 +24,7 @@ export function Pestanas<T extends string>({
   onValor: (v: T) => void;
 }) {
   return (
-    // Guía oficial (ADR-0167): pestañas subrayadas sobre la línea de sand; la elegida en tinta con el hilo rojo.
+    // Guía oficial (ADR-0169): pestañas subrayadas sobre la línea de sand; la elegida en tinta con el hilo rojo.
     <div role="tablist" aria-label={etiqueta} className="flex max-w-full gap-1 overflow-x-auto border-b border-sand">
       {opciones.map((o) => (
         <button

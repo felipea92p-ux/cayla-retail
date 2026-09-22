@@ -8,7 +8,7 @@ import type { FiltroTraslado, ResumenTraslados } from "@/lib/traslados-reglas";
 // no un filtro, así que no se dibuja como tocable: una tarjeta que parece
 // botón y no hace nada es peor que no tenerla.
 // Todo el número sale de `resumirTraslados`; acá solo se dice con palabras.
-// Guía oficial (2026-09-22, ADR-0167): las cuatro son la tarjeta de cifra del sistema, sin disco de ícono —
+// Guía oficial (2026-09-22, ADR-0169): las cuatro son la tarjeta de cifra del sistema, sin disco de ícono —
 // la cifra en color ya dice qué pide atención.
 
 export function TrasladosResumen({

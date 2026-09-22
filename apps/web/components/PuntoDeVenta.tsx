@@ -192,9 +192,26 @@ type Props = {
    *  se rechazaría al cobrar — hay que avisarlo antes, no descubrirlo con la clienta. */
   campanasNoCargaron?: boolean;
   ventasHoyNode: ReactNode;
+  /** «Cobrar» desde Proformas (`/vender?proforma=<id>`, ADR-0167): el carrito arranca con sus prendas. */
+  proforma?: ProformaEnCobro | null;
+  /** Por qué la proforma pedida no se cargó («ya se cobró», «es de otra tienda»…), para avisarlo. */
+  avisoProforma?: string | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, variantes, campanasNoCargaron = false, ventasHoyNode }: Props) {
+/** La proforma que se está cobrando: lo que la franja muestra y lo que `marcar_proforma_cobrada` necesita. */
+export type ProformaEnCobro = {
+  id: string;
+  numero: string;
+  cliente: string | null;
+  clienteDoc: string | null;
+  lineas: ItemCarrito[];
+  /** Lo que no entró al carrito (no hay en esta tienda o no alcanza), con nombre. */
+  faltan: string[];
+  /** Si venció: el texto de la confirmación consciente (`confirmacionDeConversion`); null si sigue valiendo. */
+  confirmacion: { titulo: string; detalle: string; casilla: string } | null;
+};
+
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, variantes, campanasNoCargaron = false, ventasHoyNode, proforma = null, avisoProforma = null }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -220,7 +237,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // no el grupo: el grupo se vuelve a buscar en `grupos` en cada render, así nunca muestra
   // un stock viejo.
   const [tarjetaElegida, setTarjetaElegida] = useState<string | null>(null);
-  const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
+  const [carrito, setCarrito] = useState<ItemCarrito[]>(() => proforma?.lineas ?? []);
+  // La proforma en cobro (ADR-0167): se suelta al cobrar o con «Soltar». Una vencida pide confirmar el precio.
+  const [proformaActiva, setProformaActiva] = useState<ProformaEnCobro | null>(proforma);
+  const [confirmoVencida, setConfirmoVencida] = useState(false);
   // El ticket tiene dos momentos: «armar» (solo líneas y total) y «cobrar» (pago y
   // comprobante). Vive acá y no en el ticket porque `cobrar()` lo devuelve a «armar».
   const [momento, setMomento] = useState<MomentoTicket>("armar");
@@ -249,9 +269,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // que subiera (ADR-0036, addendum "por sede").
   const [cola, setCola] = useState<VentaEncolada[]>([]);
   const claveCola = claveLocal(ubicacionId, "cola");
-  const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">>("boleta");
-  const [clienteNumDoc, setClienteNumDoc] = useState("");
-  const [clienteNombre, setClienteNombre] = useState("");
+  // Una proforma a nombre de una empresa (RUC) se cobra con factura; lo demás, boleta.
+  const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">>(proforma?.clienteDoc?.length === 11 ? "factura" : "boleta");
+  const [clienteNumDoc, setClienteNumDoc] = useState(proforma?.clienteDoc ?? "");
+  const [clienteNombre, setClienteNombre] = useState(proforma?.cliente ?? "");
   const [aviso, setAviso] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<VentaOk | null>(null);
@@ -714,7 +735,36 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const restante = restanteDePagos(total, pagos);
   const vuelto = pagos.reduce((acc, p) => acc + vueltoDe(p), 0);
   // Sin responsable vigente no se cobra (ni se pasa a «cobrar»): su frase explica el botón apagado.
-  const motivoBloqueo = motivoBloqueoCobro({ cajaAbierta: !bloqueado, prendas, momento, total, pagos, facturaSinRuc, motivoResponsable: responsable.motivo });
+  const motivoBloqueo = motivoBloqueoCobro({
+    cajaAbierta: !bloqueado,
+    prendas,
+    momento,
+    total,
+    pagos,
+    facturaSinRuc,
+    motivoResponsable: responsable.motivo,
+    proformaVencidaSinConfirmar: proformaActiva?.confirmacion != null && !confirmoVencida,
+  });
+
+  // Al llegar desde «Cobrar»: se dice qué no entró al carrito y por qué no se cargó una proforma. Una sola vez
+  // (el ref evita el doble aviso del modo estricto de React en desarrollo).
+  const avisadoProforma = useRef(false);
+  useEffect(() => {
+    if (avisadoProforma.current) return;
+    avisadoProforma.current = true;
+    if (avisoProforma) avisar.aviso(avisoProforma);
+    if (proforma && proforma.faltan.length > 0) {
+      avisar.aviso(`No todo lo de ${proforma.numero} entró al ticket`, { detalle: `${proforma.faltan.join("; ")}. En el piso de esta tienda no hay (o no alcanza); lo del almacén se repone antes de vender.` });
+    }
+  }, [avisoProforma, proforma]);
+
+  function soltarProforma() {
+    setProformaActiva(null);
+    setConfirmoVencida(false);
+    setCarrito([]);
+    limpiarComprobante();
+    router.replace("/vender");
+  }
 
   // Tocar un medio agrega su fila con lo que falta cubrir; combinar es bajar un monto y
   // tocar otro medio. Una fila por medio: tocar uno que ya está no duplica.
@@ -838,7 +888,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
         setCola(nuevaCola);
         setLoading(false);
         token.current = crypto.randomUUID();
-        avisar.exito(`Venta de ${money(total)} guardada sin conexión`, { detalle: "Subirá sola cuando vuelva el internet." });
+        avisar.exito(`Venta de ${money(total)} guardada sin conexión`, {
+          detalle: proformaActiva
+            ? `Subirá sola cuando vuelva el internet. ${proformaActiva.numero} sigue «vigente»: márcala luego en Proformas.`
+            : "Subirá sola cuando vuelva el internet.",
+        });
+        setProformaActiva(null);
         // El responsable ya viaja dentro de la venta encolada (`p_asesora_id`); el combo vuelve a vacío.
         responsable.despues(null);
         setOk({ total, prendas, recibo: null, estado: null, offline: true });
@@ -873,6 +928,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     // serie-número; nunca puede "fallar en emitir" por separado.
     let recibo: ReciboVenta | null = null;
     let estado: EstadoComprobante | null = null;
+    if (ventaId && proformaActiva) {
+      // Paso 2 del cobro de una proforma: la venta ya movió stock, caja y comprobante; esto solo la enlaza.
+      // Si falla, la venta está bien y no se cobró dos veces: se avisa y se marca desde Proformas.
+      const { error: errorMarcar } = await supabase.rpc("marcar_proforma_cobrada", { p_proforma_id: proformaActiva.id, p_venta_id: ventaId });
+      if (errorMarcar) avisar.aviso(`La venta quedó bien, pero ${proformaActiva.numero} sigue «vigente»`, { detalle: traducirError(errorMarcar, "marcar la proforma como cobrada") });
+    }
     if (ventaId) {
       // D-60: se declara sola a SUNAT, y de paso se reintenta lo que quedó en la cola de esta sede.
       enviarVentaASunat(ventaId);
@@ -907,7 +968,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     setOk({ total, prendas, recibo, estado, offline: false });
     setCarrito([]);
     limpiarComprobante();
-    router.refresh();
+    // Cobrada la proforma, se quita `?proforma=` de la dirección (si no, recargar la volvería a pedir).
+    if (proformaActiva) {
+      setProformaActiva(null);
+      setConfirmoVencida(false);
+      router.replace("/vender");
+    } else router.refresh();
   }
 
   // Al cerrar «Venta registrada» el ticket vuelve a «armar»: la venta siguiente
@@ -975,6 +1041,31 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           addendum "por sede"): una venta guardada sin conexión, o rechazada de verdad al
           subir, se tiene que ver tanto si la caja sigue abierta como si ya cerró. */}
       <PuntoDeVentaColaOffline cola={cola} onDescartar={descartarRechazada} />
+
+      {/* Cobrando una proforma (ADR-0167): de quién es, y la confirmación si venció. */}
+      {proformaActiva && (
+        <div role="status" className="anim-revelar flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-sand bg-ambar/[0.07] px-4 py-2.5 text-sm sm:px-6">
+          <p className="mr-auto">
+            Cobrando la proforma <b className="font-semibold">{proformaActiva.numero}</b>
+            {proformaActiva.cliente && <> de {proformaActiva.cliente}</>}. Puedes quitar o cambiar prendas antes de cobrar.
+          </p>
+          {proformaActiva.confirmacion && (
+            <label className="flex cursor-pointer items-start gap-2 text-ambar-profundo">
+              <input type="checkbox" checked={confirmoVencida} onChange={(e) => setConfirmoVencida(e.target.checked)} className="mt-0.5 accent-tinta" />
+              <span>
+                <b className="font-semibold">{proformaActiva.confirmacion.titulo}</b> {proformaActiva.confirmacion.casilla}
+              </span>
+            </label>
+          )}
+          <button
+            type="button"
+            onClick={soltarProforma}
+            className="label-cayla rounded-md px-2 py-1 text-[11px] text-tinta/65 transition-colors hover:bg-sand/40 hover:text-tinta"
+          >
+            Soltar
+          </button>
+        </div>
+      )}
 
       {/* Con la caja cerrada, el catálogo y el ticket se ven igual — pero apagados y
           fuera de alcance del mouse. `disabled` real en cada control de abajo, no

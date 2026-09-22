@@ -118,7 +118,7 @@ function TarjetaPrioridad({
   children: React.ReactNode;
 }) {
   const clickeable = Boolean(href || onClick);
-  // Guía oficial (2026-09-22, ADR-0167): papel plano con la línea de sand, sin sombra ni fondo tintado. Lo
+  // Guía oficial (2026-09-22, ADR-0169): papel plano con la línea de sand, sin sombra ni fondo tintado. Lo
   // urgente se dice con la CIFRA en rojo profundo y el borde un punto más cálido, no con una tarjeta rosada.
   const clase = `card-cayla group relative block p-5 text-left transition-colors ${urgente ? "border-rojo/30" : ""} ${
     clickeable ? "hover:bg-sand/30" : ""
@@ -452,7 +452,7 @@ export function InventarioPanel({
         </div>
       )}
 
-      {/* Guía oficial (2026-09-22, ADR-0167): los filtros y la tabla viven en UNA tarjeta — lo que se filtra
+      {/* Guía oficial (2026-09-22, ADR-0169): los filtros y la tabla viven en UNA tarjeta — lo que se filtra
           y lo filtrado se leen como una sola cosa. Los filtros son cajas hundidas en hueso, sin etiqueta visible. */}
       <div className="card-cayla overflow-hidden">
       {stock.length > 0 && (

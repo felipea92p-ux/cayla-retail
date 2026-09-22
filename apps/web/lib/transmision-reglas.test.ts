@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { errorDeColaLegible, itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar, type ComprobanteParaTransmitir } from "./transmision-reglas";
+import { diasParaElPlazo, queHacerConElError, errorDeColaLegible, itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar, type ComprobanteParaTransmitir } from "./transmision-reglas";
 
 function comprobante(extra: Partial<ComprobanteParaTransmitir> = {}): ComprobanteParaTransmitir {
   return { estado: "pendiente", venta_id: "v1", venta: { estado: "completada" }, ...extra };
@@ -128,5 +128,28 @@ describe("motivoParaNoTransmitir — la nota de venta nunca va a SUNAT (ADR-0164
   it("sin las columnas de separaciones (web antes que la migración) todo sigue como hoy", () => {
     expect(motivoParaNoTransmitir(comprobante({ es_anticipo: false, anticipo_deducido: "0.00" }))).toBeNull();
     expect(motivoParaNoTransmitir(comprobante({ anticipo_deducido: null }))).toBeNull();
+  });
+});
+
+describe("queHacerConElError", () => {
+  it("da un paso concreto por motivo conocido, aunque traiga detalle", () => {
+    expect(queHacerConElError("sin_respuesta")).toMatch(/se reintenta solo/);
+    expect(queHacerConElError("rechazado_por_lucode: RUC inválido")).toMatch(/Reintentar no lo arregla/);
+  });
+  it("sin error o con un motivo desconocido, no inventa consejo", () => {
+    expect(queHacerConElError(null)).toBeNull();
+    expect(queHacerConElError("algo_nuevo: x")).toBeNull();
+  });
+});
+
+describe("diasParaElPlazo (3 días calendario de Lima)", () => {
+  // Emitido el lunes 21 a las 23:30 de Lima = martes 22, 04:30 UTC: cuenta el lunes, no el martes.
+  const emitido = "2026-09-22T04:30:00Z";
+  it("el mismo día de Lima quedan 3", () => {
+    expect(diasParaElPlazo(emitido, new Date("2026-09-22T04:45:00Z"))).toBe(3);
+  });
+  it("el jueves 24 de Lima queda 0 (vence hoy) y el viernes 25 ya está fuera de plazo", () => {
+    expect(diasParaElPlazo(emitido, new Date("2026-09-25T04:59:00Z"))).toBe(0); // jueves 24, 23:59 Lima
+    expect(diasParaElPlazo(emitido, new Date("2026-09-25T05:00:00Z"))).toBe(-1); // viernes 25, 00:00 Lima
   });
 });
