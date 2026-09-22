@@ -6,6 +6,7 @@ import { pideComparacion } from "@/lib/resumen-comparacion";
 import { ResumenBanner } from "@/components/ResumenBanner";
 import { ResumenComparacionPanel } from "@/components/ResumenComparacionPanel";
 import { ResumenDesempenoPanel } from "@/components/ResumenDesempenoPanel";
+import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
 
 // Análisis de inventario (ADR-0121 → ADR-0138): la capa histórica del inventario de UNA sede. Tres
 // responsabilidades, cada una en su pantalla:
@@ -42,14 +43,23 @@ export default async function ResumenInventarioPage({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
-        <div className="min-w-0">
-          <p className="label-cayla text-[11px] text-tinta/65">
+      <InventarioHero
+        eyebrow={
+          <>
             Inventario <span aria-hidden>›</span> Análisis <span aria-hidden>›</span> <span className="text-ambar-profundo">{ubicacionActiva.nombre}</span>
-          </p>
-          <h1 className="font-display mt-1 text-[2rem] leading-tight text-tinta">Análisis de inventario</h1>
-          <p className="mt-1 text-sm text-tinta/65">Analiza cómo se mueve y rinde tu inventario a lo largo del tiempo.</p>
-        </div>
+          </>
+        }
+        titulo="Análisis de inventario"
+        descripcion="Analiza cómo se mueve y rinde tu inventario a lo largo del tiempo."
+        foto={fotoHeroPorPantalla("analisis")}
+        variante="integrado"
+      />
+
+      {/* El aviso de exactitud es una advertencia de confianza de datos, no una acción — se queda
+          fuera del hero (que ya trae foto detrás) para que se lea completo si tiene dos líneas.
+          `ResumenBanner` ya devuelve null cuando no hay nada que avisar, así que este `<div>` nunca
+          queda vacío doblando el `space-y-5` de acá arriba. */}
+      <div className="flex justify-end">
         <ResumenBanner exactitud={exactitud} ubicacionId={ubicacionActiva.id} />
       </div>
 

@@ -136,6 +136,21 @@ export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | 
   return etiquetaProceso(m.motivo);
 }
 
+/** Rediseño de Movimientos (2026-09-22): el mismo texto de `etiquetaMovimiento`, con el prefijo
+ *  Entrada/Salida/Interno/Ajuste delante — para que se entienda de inmediato sin interpretar el
+ *  proceso. No es una categoría nueva: es `ETIQUETA_CATEGORIA[categoria]` (ADR-0050, sin tocar), con
+ *  un caso especial para «transferencia» — que a nivel de categoría sigue siendo transferencia, pero
+ *  la pierna que llega a esta sede se LEE como entrada y la que sale, como salida (mismo criterio de
+ *  signo que ya usa `etiquetaMovimiento`). Si el texto del proceso ya empieza con esa palabra (los
+ *  ajustes sueltos ya traen «Ajuste ·» en `ETIQUETA_PROCESO`), no se duplica. */
+export function etiquetaConDireccion(m: Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacion" | "sububicacionDestino">): string {
+  if (m.categoria === "transferencia") return m.delta > 0 ? "Entrada · Traslado recibido" : "Salida · Traslado enviado";
+  if (m.categoria === "interno") return `Interno · a ${nombreCortoSububicacion(m.sububicacionDestino).toLowerCase()}`;
+  const detalle = etiquetaMovimiento(m);
+  const direccion = ETIQUETA_CATEGORIA[m.categoria];
+  return detalle.startsWith(direccion) ? detalle : `${direccion} · ${detalle}`;
+}
+
 export const ETIQUETA_ESTADO_DEVOLUCION: Record<string, string> = {
   pendiente: "Pendiente de aprobar",
   aprobada: "Aprobada",

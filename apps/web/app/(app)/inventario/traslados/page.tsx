@@ -4,6 +4,7 @@ import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTrasladosDeLaSede, type TrasladoResumen } from "@/lib/traslados";
 import { horaLima } from "@/lib/traslados-reglas";
 import { TrasladosPanel } from "@/components/TrasladosPanel";
+import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
 
 // Traslados en dos fases (20260916150000): lo que antes era instantáneo
 // (transferir()) ahora tiene un tramo intermedio que alguien tiene que poder
@@ -34,16 +35,18 @@ export default async function TrasladosPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Inventario</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Traslados entre sedes</h1>
-          <p className="mt-1 text-sm text-tinta/65">Seguimos los traslados de inventario entrantes y salientes hasta que se confirme su recepción.</p>
-        </div>
-        <Link href="/inventario/mover" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
-          + Nuevo traslado
-        </Link>
-      </div>
+      <InventarioHero
+        eyebrow="Inventario · Traslados"
+        titulo="Traslados entre sedes"
+        descripcion="Seguimos los traslados de inventario entrantes y salientes hasta que se confirme su recepción."
+        foto={fotoHeroPorPantalla("traslados")}
+        variante="integrado"
+        accion={
+          <Link href="/inventario/mover" className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema shadow-sm transition-colors hover:bg-rojo">
+            + Nuevo traslado
+          </Link>
+        }
+      />
 
       {/* `key` por sede: al cambiar de sede con el selector, los filtros y la búsqueda de la sede anterior no se
           arrastran (una sede elegida en «Más filtros» ni siquiera existiría en la nueva). */}

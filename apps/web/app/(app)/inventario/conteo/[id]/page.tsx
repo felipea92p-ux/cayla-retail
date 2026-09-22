@@ -5,6 +5,7 @@ import { getConteoDetalle } from "@/lib/conteos";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
+import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
 
 // Primera columna con el mismo piso (13.5rem) que Existencias: la celda de la prenda es la misma
 // y necesita el mismo ancho para que «SKU · talla · cápsula» no se salga hacia la columna vecina.
@@ -34,34 +35,45 @@ export default async function ConteoDetallePage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">
+      <InventarioHero
+        eyebrow={
+          <>
             <Link href="/inventario/conteo" className="hover:text-rojo">
               Conteo
             </Link>{" "}
             · {persona.ubicacionEtiqueta}
-          </p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">
+          </>
+        }
+        titulo={
+          <>
             Conteo {conteo.numero}
             <span className="text-tinta/55"> · </span>
             {conteo.sububicacionNombre ?? "Toda la ubicación"}
-          </h1>
-          <p className="mt-1 text-sm text-tinta/65">
+          </>
+        }
+        descripcion={
+          <>
             {alcance.charAt(0).toUpperCase() + alcance.slice(1)} · abrió {conteo.abiertoPorNombre} el {fechaHora(conteo.creadoEn)}
             {!abierto && conteo.cerradoEn && ` · cerró ${conteo.cerradoPorNombre} el ${fechaHora(conteo.cerradoEn)}`}
-          </p>
-        </div>
-        {abierto ? (
-          <Link href="/inventario/conteo#contar" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
-            Seguir contando
-          </Link>
-        ) : (
-          <Chip tono={conteo.lineasConDiferencia === 0 ? "verde" : "rojo"}>
-            {conteo.lineasConDiferencia === 0 ? "Sin diferencias" : `${conteo.lineasConDiferencia} con diferencia`}
-          </Chip>
-        )}
-      </div>
+          </>
+        }
+        foto={fotoHeroPorPantalla("conteo")}
+        variante="integrado"
+        accion={
+          abierto ? (
+            <Link
+              href="/inventario/conteo#contar"
+              className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema shadow-sm transition-colors hover:bg-rojo"
+            >
+              Seguir contando
+            </Link>
+          ) : (
+            <Chip tono={conteo.lineasConDiferencia === 0 ? "verde" : "rojo"}>
+              {conteo.lineasConDiferencia === 0 ? "Sin diferencias" : `${conteo.lineasConDiferencia} con diferencia`}
+            </Chip>
+          )
+        }
+      />
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="card-cayla p-5">

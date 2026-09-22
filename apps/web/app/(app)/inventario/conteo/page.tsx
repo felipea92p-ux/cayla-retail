@@ -9,6 +9,7 @@ import { exigir } from "@/lib/resultado";
 import { ConteoPanel } from "@/components/ConteoPanel";
 import { getCatalogoMarcas } from "@/lib/marcas-datos";
 import { ConteosLista } from "@/components/ConteosLista";
+import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
 
 function soles(n: number) {
   return `${n < 0 ? "−" : ""}S/ ${Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -58,114 +59,118 @@ export default async function ConteoPage() {
   const ultimoCerrado = conteos.find((c) => c.estado === "cerrado") ?? null;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Inventario · Conteo · {persona.ubicacionEtiqueta}</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Conteo físico</h1>
-          <p className="mt-1 text-sm text-tinta/65">Compara lo que dice el sistema contra lo que hay de verdad en la tienda. Se cuenta a ciegas: el sistema no muestra su cifra hasta revisar.</p>
-        </div>
-      </div>
+    <div>
+      <InventarioHero
+        eyebrow={`Inventario · Conteo · ${persona.ubicacionEtiqueta}`}
+        titulo="Conteo físico"
+        descripcion="Compara lo que dice el sistema contra lo que hay de verdad en la tienda. Se cuenta a ciegas: el sistema no muestra su cifra hasta revisar."
+        foto={fotoHeroPorPantalla("conteo")}
+        variante="integrado"
+      />
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Tarjeta
-          etiqueta="Exactitud del inventario"
-          valor={exactitud ? `${exactitud.porcentaje.toLocaleString("es-PE")} %` : "—"}
-          tono={exactitud ? tonoExactitud(exactitud.porcentaje) : undefined}
-        >
-          {exactitud
-            ? `${exactitud.correctas} de ${exactitud.lineas} líneas coincidieron · ${exactitud.conteos} ${exactitud.conteos === 1 ? "conteo cerrado" : "conteos cerrados"}`
-            : "Sin conteos cerrados todavía — el primero que se cierre estrena esta cifra"}
-        </Tarjeta>
-        <Tarjeta
-          etiqueta="Conteo abierto"
-          valor={conteoAbierto ? `Conteo ${conteoAbierto.numero}` : "Ninguno"}
-          tono={conteoAbierto ? "text-tinta" : "text-tinta/55"}
-          acento={!!conteoAbierto}
-          accion={conteoAbierto ? { href: "#contar", texto: "Seguir contando" } : undefined}
-        >
-          {conteoAbierto && avance
-            ? `${conteoAbierto.sububicacionNombre ?? "Toda la ubicación"}${
-                conteoAbierto.alcance === "categoria" && conteoAbierto.alcanceCategoriaNombre ? ` · solo ${conteoAbierto.alcanceCategoriaNombre}` : ""
-              } · ${avance.contadas} de ${avance.total} prendas contadas (${avance.porcentaje} %)`
-            : "Abre uno abajo para empezar a contar"}
-        </Tarjeta>
-        <Tarjeta
-          etiqueta={conteoAbierto ? "Diferencia hasta ahora" : "Último conteo cerrado"}
-          valor={
-            conteoAbierto && varianza
-              ? soles(varianza.solesNeto)
-              : ultimoCerrado
-                ? soles(ultimoCerrado.solesDiferencia)
-                : "—"
-          }
-          tono={
-            conteoAbierto && varianza
-              ? varianza.solesNeto < 0
-                ? "text-rojo-profundo"
-                : varianza.solesNeto > 0
-                  ? "text-verde-profundo"
-                  : "text-tinta"
-              : ultimoCerrado
-                ? ultimoCerrado.solesDiferencia < 0
+      {/* `mt-5` (20px) solo para el hueco hero→tarjetas (pedido de Felipe: 16-20px, no los 24px de
+          costumbre); de acá para abajo todo sigue en su propio `space-y-6`, sin tocar. */}
+      <div className="mt-5 space-y-6">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Tarjeta
+            etiqueta="Exactitud del inventario"
+            valor={exactitud ? `${exactitud.porcentaje.toLocaleString("es-PE")} %` : "—"}
+            tono={exactitud ? tonoExactitud(exactitud.porcentaje) : undefined}
+          >
+            {exactitud
+              ? `${exactitud.correctas} de ${exactitud.lineas} líneas coincidieron · ${exactitud.conteos} ${exactitud.conteos === 1 ? "conteo cerrado" : "conteos cerrados"}`
+              : "Sin conteos cerrados todavía — el primero que se cierre estrena esta cifra"}
+          </Tarjeta>
+          <Tarjeta
+            etiqueta="Conteo abierto"
+            valor={conteoAbierto ? `Conteo ${conteoAbierto.numero}` : "Ninguno"}
+            tono={conteoAbierto ? "text-tinta" : "text-tinta/55"}
+            acento={!!conteoAbierto}
+            accion={conteoAbierto ? { href: "#contar", texto: "Seguir contando" } : undefined}
+          >
+            {conteoAbierto && avance
+              ? `${conteoAbierto.sububicacionNombre ?? "Toda la ubicación"}${
+                  conteoAbierto.alcance === "categoria" && conteoAbierto.alcanceCategoriaNombre ? ` · solo ${conteoAbierto.alcanceCategoriaNombre}` : ""
+                } · ${avance.contadas} de ${avance.total} prendas contadas (${avance.porcentaje} %)`
+              : "Abre uno abajo para empezar a contar"}
+          </Tarjeta>
+          <Tarjeta
+            etiqueta={conteoAbierto ? "Diferencia hasta ahora" : "Último conteo cerrado"}
+            valor={
+              conteoAbierto && varianza
+                ? soles(varianza.solesNeto)
+                : ultimoCerrado
+                  ? soles(ultimoCerrado.solesDiferencia)
+                  : "—"
+            }
+            tono={
+              conteoAbierto && varianza
+                ? varianza.solesNeto < 0
                   ? "text-rojo-profundo"
-                  : "text-tinta"
-                : undefined
-          }
-        >
-          {conteoAbierto && varianza
-            ? lineasConDiferencia === 0
-              ? "Todo lo contado coincide con el sistema"
-              : `${lineasConDiferencia} ${lineasConDiferencia === 1 ? "prenda" : "prendas"} con diferencia · ${varianza.unidadesFaltantes} de menos · ${
-                  varianza.unidadesSobrantes
-                } de más · se ajusta al cerrar`
-            : ultimoCerrado
-              ? `Conteo ${ultimoCerrado.numero} · ${ultimoCerrado.lineasConDiferencia === 0 ? "sin diferencias" : `${ultimoCerrado.diferencia > 0 ? "+" : ""}${ultimoCerrado.diferencia} unidades`}`
-              : "Sin conteos cerrados todavía"}
-        </Tarjeta>
-      </div>
-
-      <div id="contar" className="scroll-mt-6">
-        <ConteoPanel
-          ubicacionId={persona.ubicacionId}
-          puedeCerrar={puede(persona, "ajustarInventario")}
-          puedeCrearMarcas={puede(persona, "editarCatalogo")}
-          conteoAbierto={conteoAbierto}
-          avance={avance}
-          sububicaciones={sububicaciones}
-          categorias={categoriasOpciones}
-          prioridad={prioridad}
-          colores={coloresOpciones}
-          tallasPorCategoria={ejes.tallas}
-          marcas={catalogoMarcas}
-          catalogo={catalogo
-            .filter((v) => v.activo)
-            .map((v) => ({
-              varianteId: v.varianteId,
-              sku: v.sku,
-              referencia: v.referencia,
-              talla: v.talla,
-              color: v.color,
-              costo: v.costo,
-              codigosBarras: v.codigosBarras,
-            }))}
-        />
-      </div>
-
-      {conteos.length > 0 && (
-        <div>
-          <p className="label-cayla mb-3 text-[11px] text-tinta/65">Conteos de esta ubicación</p>
-          <ConteosLista conteos={conteos} />
+                  : varianza.solesNeto > 0
+                    ? "text-verde-profundo"
+                    : "text-tinta"
+                : ultimoCerrado
+                  ? ultimoCerrado.solesDiferencia < 0
+                    ? "text-rojo-profundo"
+                    : "text-tinta"
+                  : undefined
+            }
+          >
+            {conteoAbierto && varianza
+              ? lineasConDiferencia === 0
+                ? "Todo lo contado coincide con el sistema"
+                : `${lineasConDiferencia} ${lineasConDiferencia === 1 ? "prenda" : "prendas"} con diferencia · ${varianza.unidadesFaltantes} de menos · ${
+                    varianza.unidadesSobrantes
+                  } de más · se ajusta al cerrar`
+              : ultimoCerrado
+                ? `Conteo ${ultimoCerrado.numero} · ${ultimoCerrado.lineasConDiferencia === 0 ? "sin diferencias" : `${ultimoCerrado.diferencia > 0 ? "+" : ""}${ultimoCerrado.diferencia} unidades`}`
+                : "Sin conteos cerrados todavía"}
+          </Tarjeta>
         </div>
-      )}
-
-      <p className="card-cayla px-5 py-3 text-xs text-tinta/65">
-        <span className="text-tinta">Cómo se cuenta:</span> se escanea o se escribe el SKU y se anota lo que hay físicamente, sin ver la cifra del sistema. Al
-        revisar, se ve la diferencia en unidades y en soles; al cerrar, el stock queda ajustado a lo contado y cada ajuste queda como movimiento.{" "}
-        <Link href="/inventario/movimientos?proc=conteo" className="text-rojo hover:underline">
-          Ver ajustes por conteo →
-        </Link>
-      </p>
+  
+        <div id="contar" className="scroll-mt-6">
+          <ConteoPanel
+            ubicacionId={persona.ubicacionId}
+            puedeCerrar={puede(persona, "ajustarInventario")}
+            puedeCrearMarcas={puede(persona, "editarCatalogo")}
+            conteoAbierto={conteoAbierto}
+            avance={avance}
+            sububicaciones={sububicaciones}
+            categorias={categoriasOpciones}
+            prioridad={prioridad}
+            colores={coloresOpciones}
+            tallasPorCategoria={ejes.tallas}
+            marcas={catalogoMarcas}
+            catalogo={catalogo
+              .filter((v) => v.activo)
+              .map((v) => ({
+                varianteId: v.varianteId,
+                sku: v.sku,
+                referencia: v.referencia,
+                talla: v.talla,
+                color: v.color,
+                costo: v.costo,
+                codigosBarras: v.codigosBarras,
+              }))}
+          />
+        </div>
+  
+        {conteos.length > 0 && (
+          <div>
+            <p className="label-cayla mb-3 text-[11px] text-tinta/65">Conteos de esta ubicación</p>
+            <ConteosLista conteos={conteos} />
+          </div>
+        )}
+  
+        <p className="card-cayla px-5 py-3 text-xs text-tinta/65">
+          <span className="text-tinta">Cómo se cuenta:</span> se escanea o se escribe el SKU y se anota lo que hay físicamente, sin ver la cifra del sistema. Al
+          revisar, se ve la diferencia en unidades y en soles; al cerrar, el stock queda ajustado a lo contado y cada ajuste queda como movimiento.{" "}
+          <Link href="/inventario/movimientos?proc=conteo" className="text-rojo hover:underline">
+            Ver ajustes por conteo →
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }
