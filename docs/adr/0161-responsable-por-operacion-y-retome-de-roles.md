@@ -150,3 +150,20 @@ Todo módulo nuevo que se desarrolle **aparece en Roles y accesos y nace disponi
 después a qué rol dárselo. Se da de alta con su propia migración en `retail.modulos` (sin tocar `rol_modulos`), en
 `lib/modulos.ts` y con `modulo` en su nodo de `lib/menu.ts` + `exigirModulo` en su ruta. La regla operativa completa está en
 `CLAUDE.md` («Módulos y roles») y la vigilan `lib/modulos.test.ts` y `pnpm pruebas:roles`.
+
+## Actualización 2026-09-22 — el rol se cambia también entre líderes
+
+Felipe pidió que el cambio de rol funcione entre líderes. Hasta aquí `asignar_rol` tenía dos candados: a un líder no se le
+cambiaba el rol y «Líder de equipo» no se asignaba desde ningún lado (solo con SQL a mano). Se levantan los dos, con tres
+reglas que se mantienen:
+
+| # | Regla | Por qué |
+|---|---|---|
+| L1 | **Un líder sube a otra persona a Líder o baja a otro líder** a cualquier rol vigente, desde Colaboradores («⋯ ▸ Cambiar rol») o desde Roles y accesos («Asignar a una persona» en el rol Líder). | Es la misma decisión que asignar cualquier otro rol; no tenía sentido que exigiera SQL. |
+| L2 | **Nadie se cambia su propio rol.** | Quien hace el cambio ya es líder y no puede bajarse: la tienda nunca se queda sin líder, sin necesidad de contar líderes. |
+| L3 | **Al bajar a un líder sin sede, se elige la sede donde queda.** | Un líder opera todas y no tiene `ubicacion_asignada_id`; cualquier otro rol la necesita (check `rol = 'lider' or ubicacion_asignada_id is not null`). Hoy los 9 líderes de producción no tienen sede. |
+
+Una terminal sigue sin poder ser líder. Migración `20260923110000_cambiar_rol_entre_lideres.sql`: `asignar_rol` gana
+`p_ubicacion_id` (se suelta la firma vieja para no crear una sobrecarga) y escribe `colaboradores.rol`; el disparador
+`fn_colaborador_rol_coherente` deja `rol_id` coherente. Reglas de la web: `rolesAsignables`, `cuentasAsignables` y
+`pideUbicacion` en `lib/roles-reglas.ts`, `accionesDeFila` en `lib/colaboradores-reglas.ts`.

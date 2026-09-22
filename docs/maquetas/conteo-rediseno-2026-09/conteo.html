@@ -1,0 +1,1088 @@
+<title>Conteo físico CAYLA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+  /* Tokens de la guía oficial «CAYLA Dynamic» (Sala de Diseño, 2026-09-22) — nada inventado por pantalla. */
+  :root{
+    --crema:#f5f0e8; --papel:#fbf8f2; --tinta:#1a1a18; --rojo:#b8412d; --rojo-profundo:#8b2a1f;
+    --sand:#e8e0d0; --taupe:#805c4c; --verde:#48603f; --ambar:#74501a; --hueso:#eae1d2; --pizarra:#4c5d6e;
+    --velo:rgba(26,26,24,.30);
+    --r-control:8px; --r-superficie:16px; --r-flotante:20px; --r-pildora:999px;
+    --ease:cubic-bezier(.22,1,.36,1);
+    --serif:"EB Garamond", ui-serif, Georgia, serif;
+    --sans:"DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme:dark;
+      --crema:#1c1a16; --papel:#26221d; --tinta:#ede7db; --rojo:#d4634a; --rojo-profundo:#e8836b;
+      --sand:#332e27; --taupe:#ab9080; --verde:#8fae80; --ambar:#c99a4a; --hueso:#15110d; --pizarra:#9db0c2;
+      --velo:rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --crema:#1c1a16; --papel:#26221d; --tinta:#ede7db; --rojo:#d4634a; --rojo-profundo:#e8836b;
+    --sand:#332e27; --taupe:#ab9080; --verde:#8fae80; --ambar:#c99a4a; --hueso:#15110d; --pizarra:#9db0c2;
+    --velo:rgba(0,0,0,.5);
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--crema); color:var(--tinta); font-family:var(--sans); font-size:14px; line-height:1.5; font-variant-numeric:tabular-nums; -webkit-font-smoothing:antialiased;}
+  button, input, select{font:inherit; color:inherit;}
+  button{cursor:pointer;}
+  :focus-visible{outline:2px solid var(--rojo); outline-offset:2px;}
+  h1,h2,h3{font-family:var(--serif); font-weight:500; margin:0; text-wrap:balance;}
+  .etiqueta{font-size:11px; font-weight:500; letter-spacing:.16em; text-transform:uppercase; color:var(--taupe);}
+  .suave{color:var(--taupe);}
+  .num{font-variant-numeric:tabular-nums;}
+
+  /* ---------- Barra de la demo (no es parte de la pantalla) ---------- */
+  .demo{position:sticky; top:env(safe-area-inset-top,0px); z-index:30; background:var(--tinta); color:var(--crema); padding:10px 16px;}
+  .demo-in{max-width:1440px; margin:0 auto; display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px;}
+  .demo b{font-family:var(--serif); font-weight:500; font-size:17px; white-space:nowrap;}
+  .demo .grupo{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .demo .grupo > span{font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; opacity:.62;}
+  .seg-demo{display:inline-flex; border:1px solid color-mix(in oklab, var(--crema) 26%, transparent); border-radius:var(--r-control); overflow:hidden;}
+  .seg-demo button{background:transparent; border:0; padding:6px 11px; font-size:12.5px; color:inherit; opacity:.75; white-space:nowrap;}
+  .seg-demo button[aria-pressed="true"]{background:var(--crema); color:var(--tinta); opacity:1;}
+  .demo .tema{margin-left:auto; background:transparent; border:1px solid color-mix(in oklab, var(--crema) 26%, transparent); color:inherit; border-radius:var(--r-control); padding:6px 11px; font-size:12.5px;}
+
+  /* ---------- Marco de la app ---------- */
+  .app{display:grid; grid-template-columns:248px minmax(0,1fr); min-height:calc(100vh - 52px); max-width:1440px; margin:0 auto; border-inline:1px solid var(--sand);}
+  .lateral{background:var(--crema); border-right:1px solid var(--sand); padding:22px 14px; display:flex; flex-direction:column; gap:18px;}
+  .marca{display:flex; align-items:center; gap:10px; padding:0 8px; font-size:14px; font-weight:600; letter-spacing:.3em;}
+  .marca img{width:34px; height:34px; object-fit:contain;}
+  .nuevo{background:var(--tinta); color:var(--crema); border:0; border-radius:var(--r-control); padding:11px; font-size:11.5px; font-weight:600; letter-spacing:.14em;}
+  .nav{display:flex; flex-direction:column; gap:2px;}
+  .nav a{display:flex; align-items:center; gap:12px; padding:9px 12px; border-radius:var(--r-control); color:var(--tinta); text-decoration:none; font-size:14.5px;}
+  .nav a.sub{padding-left:34px; font-size:14px; color:color-mix(in oklab, var(--tinta) 80%, transparent);}
+  .nav a.activo{background:var(--sand); color:var(--tinta);}
+  .nav a .ico{width:6px; height:6px; flex:none; background:currentColor; border-radius:50%; opacity:.4; margin-inline:5px;}
+  .persona{margin-top:auto; border-top:1px solid var(--sand); padding:14px 8px 0; display:flex; gap:10px; align-items:center;}
+  .avatar{width:34px; height:34px; border-radius:50%; background:var(--sand); display:grid; place-items:center; font-family:var(--serif); font-size:13px; flex:none;}
+  .persona small{display:block; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--taupe);}
+
+  .principal{min-width:0; display:flex; flex-direction:column;}
+  .cabecera{display:flex; justify-content:flex-end; padding:12px 28px; border-bottom:1px solid var(--sand);}
+  .sede{border:1px solid var(--sand); background:var(--papel); border-radius:var(--r-control); padding:7px 12px; font-size:11px; font-weight:600; letter-spacing:.14em;}
+  .pagina{padding:30px 28px 48px; display:flex; flex-direction:column; gap:22px; max-width:1180px; width:100%;}
+
+  /* ---------- Piezas del sistema ---------- */
+  .tarjeta{background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie);}
+  .btn{border-radius:var(--r-control); font-size:13.5px; font-weight:500; padding:9px 16px; border:1px solid transparent; transition:background-color 150ms, border-color 150ms, color 150ms, opacity 150ms; white-space:nowrap;}
+  .btn:disabled{opacity:.42; cursor:not-allowed;}
+  .btn-primario{background:var(--tinta); color:var(--crema);}
+  .btn-primario:not(:disabled):hover{background:var(--rojo-profundo);}
+  .btn-secundario{background:transparent; border-color:var(--sand);}
+  .btn-secundario:not(:disabled):hover{background:color-mix(in oklab, var(--sand) 50%, transparent); border-color:color-mix(in oklab, var(--taupe) 40%, transparent);}
+  .btn-peligro{background:transparent; color:var(--rojo); border-color:color-mix(in oklab, var(--rojo) 30%, transparent);}
+  .btn-peligro:not(:disabled):hover{background:color-mix(in oklab, var(--rojo) 10%, transparent);}
+  .btn-sutil{background:transparent; color:var(--taupe); border-color:var(--sand);}
+  .btn-sutil:not(:disabled):hover{color:var(--tinta); background:color-mix(in oklab, var(--sand) 30%, transparent);}
+  .btn-enlace{background:none; border:0; padding:0; color:var(--tinta); text-decoration:underline; text-underline-offset:2px; font-size:13px;}
+  .btn-enlace:hover{color:var(--taupe);}
+  .btn-grande{padding:12px 20px; font-size:14px;}
+
+  .insignia{display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:var(--r-pildora); font-size:12px; white-space:nowrap;}
+  .insignia::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor;}
+  .insignia[data-tono="verde"]{background:color-mix(in oklab, var(--verde) 15%, transparent); color:var(--verde);}
+  .insignia[data-tono="ambar"]{background:color-mix(in oklab, var(--ambar) 15%, transparent); color:var(--ambar);}
+  .insignia[data-tono="rojo"]{background:color-mix(in oklab, var(--rojo) 10%, transparent); color:var(--rojo-profundo);}
+  .insignia[data-tono="pizarra"]{background:color-mix(in oklab, var(--pizarra) 15%, transparent); color:var(--pizarra);}
+  .insignia[data-tono="taupe"]{background:var(--sand); color:var(--taupe);}
+
+  .seg{display:inline-flex; background:var(--hueso); border:1px solid var(--sand); border-radius:var(--r-control); padding:3px; gap:2px;}
+  .seg button{border:0; background:transparent; border-radius:6px; padding:7px 13px; font-size:13px; color:var(--taupe); transition:background-color 150ms, color 150ms; white-space:nowrap;}
+  .seg button[aria-pressed="true"]{background:var(--papel); color:var(--tinta); box-shadow:0 0 0 1px var(--sand);}
+
+  .campo{border-radius:var(--r-control); border:1px solid var(--sand); background:var(--hueso); padding:9px 12px; font-size:16px; width:100%;}
+  .campo:focus{outline:none; border-color:var(--rojo);}
+
+  .tabla-caja{overflow-x:auto;}
+  table.tabla{width:100%; border-collapse:collapse; font-size:13.5px; min-width:720px;}
+  .tabla thead{background:color-mix(in oklab, var(--sand) 70%, transparent);}
+  .tabla th{text-align:left; font-weight:400; color:var(--taupe); padding:9px 16px; font-size:12px; white-space:nowrap;}
+  .tabla td{padding:11px 16px; border-top:1px solid var(--sand); vertical-align:middle;}
+  .tabla tbody tr:nth-child(even){background:color-mix(in oklab, var(--hueso) 50%, transparent);}
+  .tabla tbody tr.clic{cursor:pointer; transition:background-color 150ms;}
+  .tabla tbody tr.clic:hover{background:color-mix(in oklab, var(--sand) 45%, transparent);}
+  .tabla .der{text-align:right;} .tabla .cen{text-align:center;}
+  .tabla small{display:block; color:var(--taupe); font-size:12px;}
+
+  .prenda{display:flex; align-items:center; gap:11px; min-width:0;}
+  .muestra{width:38px; height:38px; border-radius:var(--r-control); border:1px solid var(--sand); flex:none; position:relative; overflow:hidden;}
+  .muestra::after{content:""; position:absolute; inset:9px 8px 6px; background:rgba(255,255,255,.18); clip-path:polygon(28% 0,40% 10%,60% 10%,72% 0,100% 18%,88% 42%,78% 36%,78% 100%,22% 100%,22% 36%,12% 42%,0 18%);}
+  .prenda b{display:block; font-weight:500; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .prenda span{display:block; font-size:12px; color:var(--taupe); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .sku{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11.5px;}
+
+  /* ---------- Encabezado de pantalla y cifras ---------- */
+  .titular{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-start; gap:14px;}
+  .titular h1{font-size:30px; margin-top:6px;}
+  .titular p.bajada{margin:6px 0 0; color:var(--taupe); max-width:68ch;}
+  .migas a{color:inherit; text-decoration:none;} .migas a:hover{color:var(--rojo);}
+  .cifras{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px;}
+  .cifra{padding:18px 20px; display:flex; flex-direction:column; gap:4px; min-width:0;}
+  .cifra .valor{font-family:var(--serif); font-size:32px; line-height:1.15; font-weight:500;}
+  .cifra .valor.sin{color:var(--taupe);}
+  .cifra p{margin:0; font-size:12.5px; color:var(--taupe);}
+  .cifra .barra{margin-top:6px;}
+  .t-verde{color:var(--verde);} .t-ambar{color:var(--ambar);} .t-rojo{color:var(--rojo-profundo);}
+
+  .barra{height:6px; border-radius:var(--r-pildora); background:var(--sand); overflow:hidden;}
+  .barra i{display:block; height:100%; background:var(--tinta); border-radius:inherit; transition:width 320ms var(--ease);}
+
+  /* ---------- Abrir un conteo ---------- */
+  .abrir{padding:24px; display:grid; gap:22px;}
+  .abrir-cab{display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:baseline;}
+  .abrir-cab h2{font-size:22px;}
+  .pasos{display:grid; grid-template-columns:1.15fr 1fr 1fr; gap:22px;}
+  .paso{display:flex; flex-direction:column; gap:10px; min-width:0;}
+  .paso-tit{display:flex; align-items:center; gap:8px;}
+  .paso-tit em{font-style:normal; width:20px; height:20px; border-radius:50%; border:1px solid var(--sand); display:grid; place-items:center; font-size:11px; color:var(--taupe);}
+  .paso-tit em.ok{background:var(--tinta); border-color:var(--tinta); color:var(--crema);}
+  .lugares{display:grid; gap:8px;}
+  .lugar{text-align:left; background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-control); padding:12px 14px; display:grid; gap:2px; transition:border-color 150ms, background-color 150ms;}
+  .lugar:hover{border-color:color-mix(in oklab, var(--taupe) 45%, transparent);}
+  .lugar[aria-pressed="true"]{border-color:var(--tinta); background:color-mix(in oklab, var(--sand) 35%, var(--papel)); box-shadow:inset 0 0 0 1px var(--tinta);}
+  .lugar b{font-weight:500; font-size:14.5px;}
+  .lugar span{font-size:12px; color:var(--taupe);}
+  .lugar .aviso{color:var(--ambar);}
+  .chips{display:flex; flex-wrap:wrap; gap:6px;}
+  .chip{border:1px solid var(--sand); background:var(--papel); border-radius:var(--r-pildora); padding:5px 11px; font-size:12.5px; transition:border-color 150ms, background-color 150ms;}
+  .chip:hover{border-color:color-mix(in oklab, var(--taupe) 45%, transparent);}
+  .chip[aria-pressed="true"]{background:var(--tinta); border-color:var(--tinta); color:var(--crema);}
+  .chip small{opacity:.7; margin-left:4px;}
+  .buscar-cat{position:relative;}
+  .buscar-cat .campo{font-size:14px; padding:8px 12px;}
+  .ayuda{font-size:12px; color:var(--taupe); margin:0;}
+  .abrir-pie{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; border-top:1px solid var(--sand); padding-top:18px;}
+  .resumen-abrir{font-size:13.5px;}
+  .resumen-abrir .falta{color:var(--rojo-profundo);}
+
+  /* Responsable (mismo control que <ComboResponsable>) */
+  .combo{position:relative;}
+  .combo-btn{width:100%; display:flex; align-items:center; gap:10px; text-align:left; background:var(--papel); border:1px dashed color-mix(in oklab, var(--rojo) 55%, transparent); color:var(--rojo-profundo); border-radius:var(--r-control); padding:10px 12px; font-size:14px;}
+  .combo-btn.lleno{border-style:solid; border-color:var(--sand); color:var(--tinta);}
+  .combo-btn .avatar{width:26px; height:26px; font-size:11px;}
+  .combo-btn .flecha{margin-left:auto; opacity:.6;}
+  .combo-lista{position:absolute; left:0; right:0; top:calc(100% + 6px); z-index:20; background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie); padding:8px; max-height:320px; overflow:auto;}
+  .combo-lista .etiqueta{padding:6px 8px 8px; display:block;}
+  .combo-op{width:100%; display:flex; align-items:center; gap:10px; background:transparent; border:0; border-radius:var(--r-control); padding:8px; text-align:left;}
+  .combo-op:hover, .combo-op:focus-visible{background:color-mix(in oklab, var(--sand) 50%, transparent);}
+  .combo-op .avatar{width:30px; height:30px; font-size:11.5px;}
+  .combo-op small{display:block; color:var(--taupe); font-size:11.5px;}
+  .combo-op .punto{margin-left:auto; width:7px; height:7px; border-radius:50%; background:var(--verde);}
+  .combo-lista .pie{border-top:1px solid var(--sand); margin-top:6px; padding:8px 8px 2px; font-size:12px; color:var(--taupe);}
+
+  /* ---------- Contando ---------- */
+  .contando{display:grid; grid-template-columns:minmax(0,1.45fr) minmax(0,1fr); gap:16px; align-items:start;}
+  .mesa{padding:22px; display:grid; gap:18px;}
+  .mesa-cab{display:flex; flex-wrap:wrap; justify-content:space-between; gap:14px 24px;}
+  .mesa-cab h2{font-size:24px;}
+  .mesa-cab p{margin:2px 0 0; font-size:13px; color:var(--taupe);}
+  .avance{min-width:220px; flex:1; max-width:320px; display:grid; gap:6px; align-content:start;}
+  .avance-fila{display:flex; justify-content:space-between; font-size:12.5px; color:var(--taupe);}
+  .avance-fila b{color:var(--tinta); font-weight:600;}
+  .controles{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;}
+  .quien{display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--taupe); position:relative;}
+  .quien b{color:var(--tinta); font-weight:500;}
+  .escaner{position:relative;}
+  .escaner svg{position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--taupe);}
+  .escaner .campo{padding:14px 14px 14px 46px; font-size:16px;}
+  .coincidencias{border:1px solid var(--sand); border-radius:var(--r-control); background:var(--papel); overflow:hidden;}
+  .coincidencias button{display:flex; width:100%; justify-content:space-between; gap:10px; align-items:center; border:0; background:transparent; padding:9px 12px; text-align:left; font-size:13.5px;}
+  .coincidencias button + button{border-top:1px solid var(--sand);}
+  .coincidencias button:hover{background:color-mix(in oklab, var(--sand) 40%, transparent);}
+  .pistola{display:flex; flex-wrap:wrap; gap:6px; align-items:center;}
+  .pistola > span{font-size:12px; color:var(--taupe); margin-right:2px;}
+  .pistola button{border:1px dashed var(--sand); background:transparent; border-radius:var(--r-control); padding:4px 9px; font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11.5px; color:var(--taupe);}
+  .pistola button:hover{color:var(--tinta); border-color:var(--taupe);}
+
+  .ultima{border:1px solid var(--sand); background:color-mix(in oklab, var(--hueso) 45%, var(--papel)); border-radius:var(--r-superficie); padding:16px; display:flex; flex-wrap:wrap; align-items:center; gap:16px;}
+  .ultima .prenda{flex:1 1 220px;}
+  .ultima .muestra{width:52px; height:52px;}
+  .ultima .prenda b{font-size:15px; white-space:normal;}
+  .stepper{display:flex; align-items:center; gap:8px;}
+  .stepper button{width:44px; height:44px; border-radius:var(--r-control); border:1px solid var(--sand); background:var(--papel); font-size:20px; line-height:1;}
+  .stepper button:hover{background:color-mix(in oklab, var(--sand) 45%, transparent);}
+  .stepper input{width:84px; height:52px; text-align:center; font-family:var(--serif); font-size:34px; border:1px solid var(--sand); background:var(--hueso); border-radius:var(--r-control);}
+  .stepper input:focus{outline:none; border-color:var(--rojo);}
+  .guardado{font-size:12px; color:var(--verde); display:flex; align-items:center; gap:6px; flex-basis:100%;}
+  .guardado.no{color:var(--taupe);}
+  .vacio-mesa{border:1.5px dashed var(--sand); border-radius:var(--r-superficie); padding:22px; text-align:center; color:var(--taupe); font-size:13.5px;}
+  .vacio-mesa b{display:block; color:var(--tinta); font-weight:500; font-size:15px; margin-bottom:2px;}
+  .no-encontrada{border:1px solid color-mix(in oklab, var(--ambar) 35%, transparent); background:color-mix(in oklab, var(--ambar) 8%, var(--papel)); border-radius:var(--r-control); padding:10px 12px; font-size:13px; display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center;}
+  .mesa-pie{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; border-top:1px solid var(--sand); padding-top:16px;}
+  .confirmar{display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:12.5px;}
+  .regla{font-size:12px; color:var(--taupe); margin:0; flex-basis:100%; text-align:right;}
+
+  .columna{display:grid; gap:16px;}
+  .lista-cab{display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:16px 18px 10px;}
+  .lista-cab h3{font-size:18px;}
+  .lista-cab span{font-size:12.5px; color:var(--taupe);}
+  .lista{max-height:340px; overflow:auto;}
+  .item{display:flex; align-items:center; gap:10px; padding:9px 18px; border-top:1px solid var(--sand);}
+  .item .prenda{flex:1;}
+  .item .cant{font-family:var(--serif); font-size:20px; min-width:44px; text-align:right;}
+  .item .editar{border:0; background:transparent; color:var(--taupe); padding:6px; border-radius:6px; font-size:12px; text-decoration:underline; text-underline-offset:2px;}
+  .item .editar:hover{color:var(--tinta);}
+  .item.nuevo-item{animation:ilumina 900ms var(--ease);}
+  @keyframes ilumina{from{background:color-mix(in oklab, var(--verde) 14%, transparent);} to{background:transparent;}}
+  .solo-numero{padding:4px 18px 20px; display:grid; gap:6px;}
+  .solo-numero .valor{font-family:var(--serif); font-size:40px; line-height:1.1;}
+  .solo-numero p{margin:0; font-size:12.5px; color:var(--taupe);}
+  .variante{font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--pizarra); border:1px solid color-mix(in oklab, var(--pizarra) 35%, transparent); border-radius:var(--r-pildora); padding:2px 8px; white-space:nowrap;}
+  .lista-vacia{padding:14px 18px 18px; font-size:13px; color:var(--taupe); border-top:1px solid var(--sand);}
+
+  .seccion-cab{display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap; padding:18px 20px 12px;}
+  .seccion-cab h2{font-size:20px;}
+  .seccion-cab p{margin:0; font-size:12.5px; color:var(--taupe);}
+  .tabla-pie{padding:12px 20px 16px; font-size:12.5px; color:var(--taupe); border-top:1px solid var(--sand);}
+
+  .nota{background:var(--hueso); border:1px solid var(--sand); border-radius:var(--r-superficie); padding:14px 18px; font-size:13px; color:var(--taupe); line-height:1.6;}
+  .nota b{color:var(--tinta); font-weight:500;}
+  .nota a{color:var(--tinta);}
+
+  /* ---------- Detalle ---------- */
+  .filtro-cab{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding:16px 20px;}
+  .vacio-detalle{padding:26px; display:grid; gap:6px; max-width:640px;}
+  .vacio-detalle h2{font-size:22px;}
+  .vacio-detalle p{margin:0; color:var(--taupe);}
+
+  /* ---------- Modal (ADR-0136): velo con desenfoque → hoja que sube 18 px → cascada 55 ms ---------- */
+  .velo{position:fixed; inset:0; z-index:50; background:var(--velo); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); display:grid; place-items:center; padding:16px; animation:velo-in 200ms var(--ease) both;}
+  .velo.saliendo{animation:velo-out 160ms var(--ease) both;}
+  .hoja{background:var(--crema); border:1px solid var(--sand); border-radius:var(--r-flotante); width:min(560px,100%); max-height:88vh; overflow:auto; padding:24px; display:grid; gap:16px; animation:hoja-in 320ms var(--ease) both;}
+  .velo.saliendo .hoja{animation:hoja-out 160ms var(--ease) both;}
+  .hoja > *{animation:cascada 320ms var(--ease) both; animation-delay:calc(var(--i,0) * 55ms + 80ms);}
+  .hoja [data-sin-cascada]{animation:none;}
+  @keyframes velo-in{from{opacity:0;} to{opacity:1;}}
+  @keyframes velo-out{to{opacity:0;}}
+  @keyframes hoja-in{from{opacity:0; transform:translateY(18px) scale(.965);} to{opacity:1; transform:none;}}
+  @keyframes hoja-out{to{opacity:0; transform:translateY(8px) scale(.985);}}
+  @keyframes cascada{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
+  .neta{text-align:center; padding:16px; display:grid; gap:2px;}
+  .neta .valor{font-family:var(--serif); font-size:38px; line-height:1.1;}
+  .neta p{margin:0; font-size:12.5px; color:var(--taupe);}
+  .difs{border:1px solid var(--sand); border-radius:var(--r-superficie); background:var(--papel); overflow:hidden;}
+  .dif{display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 14px;}
+  .dif + .dif{border-top:1px solid var(--sand);}
+  .dif .mov{font-size:13px; white-space:nowrap;}
+  .alerta{border:1px solid color-mix(in oklab, var(--ambar) 35%, transparent); background:color-mix(in oklab, var(--ambar) 8%, transparent); color:var(--tinta); border-radius:var(--r-control); padding:10px 12px; font-size:12.5px;}
+  .alerta b{color:var(--ambar); font-weight:600;}
+  .hoja-pie{display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;}
+
+  /* ---------- Espera (ADR-0149) y avisos ---------- */
+  .espera{position:fixed; inset:0; z-index:60; background:color-mix(in oklab, var(--crema) 78%, transparent); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); display:grid; place-items:center; animation:velo-in 200ms var(--ease) both;}
+  .espera div{display:grid; justify-items:center; gap:12px; font-size:13px; color:var(--taupe);}
+  .espera img{width:46px; height:46px; object-fit:contain; animation:aletea 1.6s ease-in-out infinite;}
+  @keyframes aletea{0%,100%{transform:translateY(0);} 50%{transform:translateY(-5px);}}
+  .avisos{position:fixed; top:calc(env(safe-area-inset-top,0px) + 64px); right:16px; z-index:70; display:grid; gap:8px; width:min(340px, calc(100vw - 32px));}
+  .aviso-t{background:var(--papel); border:1px solid var(--sand); border-left:3px solid var(--verde); border-radius:var(--r-control); padding:11px 14px; font-size:13px; animation:cascada 320ms var(--ease) both;}
+  .aviso-t.info{border-left-color:var(--pizarra);}
+  .aviso-t b{display:block; font-weight:600;}
+  .aviso-t span{color:var(--taupe); font-size:12.5px;}
+
+  code{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:.86em; background:var(--sand); padding:.1em .4em; border-radius:5px;}
+  .quieto .entra, .hoja.quieta > *{animation:none;}
+  .entra{animation:cascada 320ms var(--ease) both; animation-delay:calc(var(--i,0) * 55ms);}
+  .sube{animation:sube 220ms var(--ease);}
+  @keyframes sube{from{transform:translateY(6px); opacity:.2;} to{transform:none; opacity:1;}}
+
+  /* ---------- Qué cambia (fuera de la pantalla) ---------- */
+  .cambios{max-width:1440px; margin:0 auto; padding:40px 28px 56px; border-top:1px solid var(--sand); display:grid; gap:20px;}
+  .cambios > header h2{font-size:28px;}
+  .cambios > header p{margin:6px 0 0; color:var(--taupe); max-width:70ch;}
+  .tres{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px;}
+  .tres article{padding:20px; display:grid; gap:10px; align-content:start;}
+  .tres h3{font-size:19px;}
+  .tres ul{margin:0; padding-left:18px; display:grid; gap:8px; font-size:13.5px;}
+  .tres li::marker{color:var(--rojo);}
+  .tres li span{color:var(--taupe);}
+
+  @media (max-width:1080px){
+    .pasos{grid-template-columns:1fr 1fr;}
+    .pasos .paso:first-child{grid-column:1 / -1;}
+    .contando{grid-template-columns:1fr;}
+  }
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr;}
+    .lateral{display:none;}
+    .cabecera{padding:10px 16px;}
+    .pagina{padding:22px 16px 40px;}
+    .cifras, .tres{grid-template-columns:1fr;}
+    .cambios{padding:32px 16px 48px;}
+  }
+  @media (max-width:640px){
+    .pasos{grid-template-columns:1fr;}
+    .titular h1{font-size:26px;}
+    .abrir, .mesa{padding:18px;}
+    .demo .tema{margin-left:0;}
+    .regla{text-align:left;}
+    .mesa-pie > *{width:100%;}
+    .mesa-pie .btn{width:100%;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{animation:none !important; transition:none !important;}
+  }
+</style>
+
+<div class="demo" role="region" aria-label="Controles de la demo">
+  <div class="demo-in">
+    <b>Demo · Conteo físico</b>
+    <div class="grupo">
+      <span>Momento</span>
+      <div class="seg-demo" id="demo-momento">
+        <button type="button" data-momento="inicio">1 · Sin conteo abierto</button>
+        <button type="button" data-momento="contando">2 · Contando</button>
+        <button type="button" data-momento="revisar">3 · Revisar y cerrar</button>
+        <button type="button" data-momento="detalle">4 · Conteo cerrado</button>
+      </div>
+    </div>
+    <div class="grupo">
+      <span>Pendientes al contar</span>
+      <div class="seg-demo" id="demo-pendientes">
+        <button type="button" data-pend="lista">A · Lista sin cifras</button>
+        <button type="button" data-pend="numero">B · Solo el número</button>
+      </div>
+    </div>
+    <button type="button" class="tema" id="tema">Ver en oscuro</button>
+  </div>
+</div>
+
+<div class="app">
+  <aside class="lateral" aria-label="Menú">
+    <div class="marca"><img src="cayla-isotipo.png" alt="">CAYLA</div>
+    <button type="button" class="nuevo">+ NUEVO</button>
+    <nav class="nav">
+      <a href="#"><span class="ico"></span>Inicio</a>
+      <a href="#"><span class="ico"></span>Catálogo</a>
+      <a href="#"><span class="ico"></span>Compras</a>
+      <a href="#"><span class="ico"></span>Ventas</a>
+      <a href="#"><span class="ico"></span>Inventario</a>
+      <a href="#" class="sub">Existencias</a>
+      <a href="#" class="sub">Movimientos</a>
+      <a href="#" class="sub">Traslados</a>
+      <a href="#" class="sub activo" id="nav-conteo">Conteo</a>
+      <a href="#" class="sub">Análisis</a>
+    </nav>
+    <div class="persona"><span class="avatar">FA</span><div>Felipe Alvarez<small>Líder · Tienda TRU</small></div></div>
+  </aside>
+  <main class="principal">
+    <div class="cabecera"><span class="sede">TIENDA TRU ▾</span></div>
+    <div class="pagina" id="pagina"></div>
+  </main>
+</div>
+
+<section class="cambios" aria-labelledby="cambios-t">
+  <header>
+    <p class="etiqueta">Qué cambia frente a la pantalla de hoy</p>
+    <h2 id="cambios-t">Tres momentos, tres arreglos cada uno</h2>
+    <p>Misma base, mismas funciones (<code>abrir_conteo</code>, <code>conteo_contar</code>, <code>previsualizar_cierre_conteo</code>, <code>cerrar_conteo</code>): lo que cambia es cómo se opera. Datos de ejemplo de Tienda TRU; los 4 conteos del historial son los reales.</p>
+  </header>
+  <div class="tres">
+    <article class="tarjeta">
+      <p class="etiqueta">Abrir</p>
+      <h3>Se entiende qué falta antes de abrir</h3>
+      <ul>
+        <li>Dónde, qué y quién en tres pasos visibles. <span>Hoy los botones salen grises sin decir por qué; ahora el botón nombra lo que abre y lo que falta.</span></li>
+        <li>Categoría con buscador y las tres con más plata en riesgo primero. <span>Hoy es un desplegable de 30 «Solo …».</span></li>
+        <li>La tarjeta vacía «Ninguno» pasa a ser «Valor sin contar». <span>Una cifra que empuja a contar, no un guion.</span></li>
+      </ul>
+    </article>
+    <article class="tarjeta">
+      <p class="etiqueta">Contar</p>
+      <h3>La pistola manda, el teclado corrige</h3>
+      <ul>
+        <li>Interruptor «Suma por escaneo / Escribir cantidad». <span>Con suma, cada pistoletazo es +1 y se guarda al instante; − / + y la cifra corrigen.</span></li>
+        <li>La diferencia en soles deja de verse mientras se cuenta. <span>Hoy la tarjeta «Diferencia hasta ahora» revela lo que dice el sistema: rompe el conteo a ciegas.</span></li>
+        <li>Pendientes: lista sin cifras (A) o solo el número (B). <span>Compáralas con el interruptor de arriba y decide.</span></li>
+      </ul>
+    </article>
+    <article class="tarjeta">
+      <p class="etiqueta">Cerrar y leer</p>
+      <h3>Nada dice «sin diferencias» sobre cero prendas</h3>
+      <ul>
+        <li>Un conteo sin prendas no se cierra: se cancela. <span>Los cerrados vacíos salen «Vacío» y no cuentan para la exactitud.</span></li>
+        <li>La revisión usa el modal del sistema (ADR-0136) y la espera global (ADR-0149). <span>El aviso de éxito sale después del loader, nunca encima.</span></li>
+        <li>El detalle abre en «Con diferencia» y la terminal se nombra como terminal. <span>Adiós a «ESTACIÓN — … (no es persona)».</span></li>
+      </ul>
+    </article>
+  </div>
+</section>
+
+<div class="avisos" id="avisos" aria-live="polite"></div>
+
+<script>
+(function(){
+  /* ================= Datos de ejemplo ================= */
+  var PERSONAS = [
+    {n:'Chiara', i:'CF'}, {n:'Danixa', i:'DV'}, {n:'Diana', i:'DP'},
+    {n:'Janis', i:'JR'}, {n:'Keyla', i:'KR'}, {n:'Pamela', i:'PB'}
+  ];
+  var CATEGORIAS = ['Abrigos','Anillos','Aretes','Bailarinas','Blazers','Bodys','Bolsos y Carteras','Botas','Botines','Camisas y Blusas','Casacas','Chalecos','Chompas','Cinturones','Collares','Conjuntos','Enterizos','Faldas','Jeans','Pantalones','Polos','Sandalias','Tops','Vestidos','Zapatillas'];
+  var RIESGO_CAT = {'Camisas y Blusas':1240, 'Vestidos':980, 'Casacas':860};
+  var LUGARES = {
+    piso:{nombre:'Piso de venta', meta:'186 prendas con stock', ultimo:'Último conteo con prendas: nunca', aviso:true},
+    almacen:{nombre:'Almacén de tienda', meta:'142 prendas con stock', ultimo:'Conteo 4 cerró vacío el 22/9', aviso:true}
+  };
+  var PRODUCTOS = [
+    {ref:'Blusa Emma', pre:'BLU', cod:'EMMA', tallas:['S','M','L'], colores:[['Negro','NEG','#23201d'],['Marfil','MAR','#e9dfca']], costo:38},
+    {ref:'Blusa Valentina', pre:'BLU', cod:'VALE', tallas:['M','L'], colores:[['Rosa palo','ROS','#d4a197']], costo:42},
+    {ref:'Camisa Lino Andina', pre:'CAM', cod:'LINO', tallas:['S','M','L'], colores:[['Arena','ARE','#c8b28b']], costo:55},
+    {ref:'Blusa Olivia satinada', pre:'BLU', cod:'OLIV', tallas:['S','M'], colores:[['Vino','VIN','#6c2330']], costo:47},
+    {ref:'Camisa Oversize', pre:'CAM', cod:'OVER', tallas:['M','L'], colores:[['Blanco','BLA','#f3efe7'],['Celeste','CEL','#9fbbd0']], costo:44},
+    {ref:'Blusa Bordada Sierra', pre:'BLU', cod:'SIER', tallas:['Única'], colores:[['Crudo','CRU','#ddd1b8']], costo:61},
+    {ref:'Blusa Cuello Bebé', pre:'BLU', cod:'BEBE', tallas:['S','M','L'], colores:[['Verde oliva','OLI','#66673a']], costo:36},
+    {ref:'Camisa Rayas Puerto', pre:'CAM', cod:'PUER', tallas:['S','M','L'], colores:[['Azul marino','AZU','#27344d']], costo:49}
+  ];
+  var SISTEMA = [4,5,2,3,3,2, 3,2, 2,4,3, 2,3, 3,2,4,3, 5, 2,3,1, 2,3,2];
+  var VARIANTES = [];
+  PRODUCTOS.forEach(function(p){
+    p.colores.forEach(function(c){
+      p.tallas.forEach(function(t){
+        VARIANTES.push({
+          id:'v'+VARIANTES.length, ref:p.ref, talla:t, color:c[0], hex:c[2], costo:p.costo,
+          sku:p.pre+'-'+p.cod+'-'+(t==='Única'?'U':t)+'-'+c[1],
+          sistema:SISTEMA[VARIANTES.length] || 2
+        });
+      });
+    });
+  });
+  function porSku(s){ s=(s||'').trim().toUpperCase(); return VARIANTES.find(function(v){return v.sku===s;}) || null; }
+  // Lo que ya se contó en el escenario «2 · Contando»: nueve prendas, tres con diferencia.
+  var ESCENARIO = [['BLU-EMMA-S-NEG',4],['BLU-EMMA-M-NEG',4],['BLU-EMMA-L-NEG',2],['BLU-EMMA-S-MAR',3],['BLU-EMMA-M-MAR',3],['BLU-VALE-M-ROS',3],['BLU-OLIV-S-VIN',2],['CAM-OVER-L-CEL',4],['BLU-SIER-U-CRU',5]];
+  // En el sistema: EMMA-M-NEG=5 (falta 1), VALE-M-ROS=3→ ok? se fija abajo; OLIV-S-VIN=3 (falta 1); OVER-L-CEL=3 (sobra 1).
+  porSku('BLU-OLIV-S-VIN').sistema = 3;
+  porSku('CAM-OVER-L-CEL').sistema = 3;
+  porSku('BLU-VALE-M-ROS').sistema = 3;
+  porSku('BLU-SIER-U-CRU').sistema = 5;
+
+  var SUGERENCIAS = [
+    {ref:'Casaca Denim Nazca', det:'M · Índigo', sku:'CAS-NAZC-M-IND', hex:'#3d4f6e', lugar:'Almacén de tienda', ult:null, riesgo:612},
+    {ref:'Blusa Emma', det:'M · Negro', sku:'BLU-EMMA-M-NEG', hex:'#23201d', lugar:'Piso de venta', ult:null, riesgo:456},
+    {ref:'Vestido Sofía', det:'S · Terracota', sku:'VES-SOFI-S-TER', hex:'#a8583f', lugar:'Piso de venta', ult:null, riesgo:438},
+    {ref:'Blazer Miraflores', det:'L · Camel', sku:'BLA-MIRA-L-CAM', hex:'#b08a5a', lugar:'Almacén de tienda', ult:null, riesgo:402},
+    {ref:'Vestido Antonia', det:'M · Negro', sku:'VES-ANTO-M-NEG', hex:'#23201d', lugar:'Piso de venta', ult:null, riesgo:365},
+    {ref:'Pantalón Carla', det:'28 · Beige', sku:'PAN-CARL-28-BEI', hex:'#cdb89a', lugar:'Almacén de tienda', ult:null, riesgo:318}
+  ];
+  var VALOR_SIN_CONTAR = 4380;
+
+  var HISTORIAL_BASE = [
+    {n:4, lugar:'Almacén de tienda', alcance:'Todo el catálogo', fecha:'22/9', abrio:'Terminal · Almacén Trujillo', cerro:'Janis Revilla', lineas:0},
+    {n:3, lugar:'Piso de venta', alcance:'Todo el catálogo', fecha:'17/9', abrio:'Benjamin Cueva', cerro:'Benjamin Cueva', lineas:0},
+    {n:2, lugar:'Almacén de tienda', alcance:'Todo el catálogo', fecha:'17/9', abrio:'Benjamin Cueva', cerro:'Benjamin Cueva', lineas:0},
+    {n:1, lugar:'Almacén de tienda', alcance:'Todo el catálogo', fecha:'17/9', abrio:'Benjamin Cueva', cerro:'Benjamin Cueva', lineas:0}
+  ];
+
+  /* ================= Estado ================= */
+  var S = {
+    vista:'inicio',              // inicio | detalle
+    abrir:{lugar:null, alcance:'categoria', categoria:'Camisas y Blusas', filtroCat:'', responsable:null},
+    conteo:null,                 // {n, lugar, categoria, abrio, hora, counts:{id:n}, orden:[id...]}
+    cerrados:[],                 // conteos cerrados en esta demo (con líneas)
+    modo:'suma',                 // suma | escribir
+    pend:'lista',                // lista | numero
+    ultima:null,                 // id de la última prenda (modo suma)
+    seleccionada:null,           // id elegida en modo escribir
+    busqueda:'',
+    noEncontrada:null,
+    confirmarCancelar:false,
+    detalle:null,                // objeto conteo a mostrar
+    filtroDetalle:'dif',
+    comboAbierto:null,           // 'abrir' | 'quien' | 'cerrar'
+    cierreResponsable:null,
+    guardadoAhora:false
+  };
+
+  /* ================= Utilidades ================= */
+  var $ = function(s, r){ return (r||document).querySelector(s); };
+  function soles(n, signo){
+    var s = Math.abs(n).toLocaleString('es-PE',{minimumFractionDigits:2, maximumFractionDigits:2});
+    return (n<0 ? '−' : (signo && n>0 ? '+' : '')) + 'S/ ' + s;
+  }
+  function det(v){ return v.talla + ' · ' + v.color; }
+  function muestra(hex){ return '<span class="muestra" style="background:'+hex+'"></span>'; }
+  function celdaPrenda(v, conSku){
+    return '<div class="prenda">'+muestra(v.hex)+'<div><b>'+v.ref+'</b><span>'+(conSku!==false?'<span class="sku" style="display:inline">'+v.sku+'</span> · ':'')+det(v)+'</span></div></div>';
+  }
+  function persona(n){ return PERSONAS.find(function(p){return p.n===n;}); }
+  function hora(){ var d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+
+  function alcanceConteo(c){ return VARIANTES; } // la demo cuenta «Solo Camisas y Blusas» en el piso: 24 prendas con stock
+  function avance(c){
+    var total = alcanceConteo(c).length;
+    var contadas = Object.keys(c.counts).length;
+    return {contadas:contadas, total:total, pct: total ? Math.round(contadas*100/total) : 0};
+  }
+  function unidades(c){ return Object.keys(c.counts).reduce(function(a,k){return a+c.counts[k];},0); }
+  function resultado(c){
+    var lineas = Object.keys(c.counts).map(function(id){
+      var v = VARIANTES.find(function(x){return x.id===id;});
+      return {v:v, sistema:v.sistema, contado:c.counts[id], dif:c.counts[id]-v.sistema};
+    });
+    var sis = lineas.reduce(function(a,l){return a+l.sistema;},0);
+    var con = lineas.reduce(function(a,l){return a+l.contado;},0);
+    var neto = lineas.reduce(function(a,l){return a+l.dif*l.v.costo;},0);
+    var conDif = lineas.filter(function(l){return l.dif!==0;});
+    return {lineas:lineas, sistema:sis, contado:con, neto:neto, conDif:conDif,
+      sobran:lineas.reduce(function(a,l){return a+Math.max(0,l.dif);},0),
+      faltan:lineas.reduce(function(a,l){return a+Math.max(0,-l.dif);},0)};
+  }
+  function exactitud(){
+    var lineas=0, ok=0;
+    S.cerrados.forEach(function(c){ var r=c.res; lineas+=r.lineas.length; ok+=r.lineas.length-r.conDif.length; });
+    if(!lineas) return null;
+    return {pct:Math.round(ok*1000/lineas)/10, lineas:lineas, ok:ok, conteos:S.cerrados.length};
+  }
+  function tonoExactitud(p){ return p>=98?'t-verde':p>=95?'t-ambar':'t-rojo'; }
+
+  function avisar(titulo, detalle, info){
+    var box = $('#avisos');
+    var el = document.createElement('div');
+    el.className = 'aviso-t' + (info?' info':'');
+    el.innerHTML = '<b>'+titulo+'</b>'+(detalle?'<span>'+detalle+'</span>':'');
+    box.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 3400);
+  }
+  function esperar(mensaje, ms, luego){
+    var el = document.createElement('div');
+    el.className = 'espera';
+    el.innerHTML = '<div><img src="cayla-isotipo.png" alt=""><span>'+mensaje+'</span></div>';
+    document.body.appendChild(el);
+    setTimeout(function(){ el.remove(); luego(); }, ms);
+  }
+
+  /* ================= Render ================= */
+  function render(){
+    var p = $('#pagina');
+    // La cascada de entrada es para llegar a una pantalla, no para cada escaneo.
+    var clave = S.vista + (S.conteo ? '-contando' : '-abrir') + (S.detalle ? S.detalle.n : '');
+    p.classList.toggle('quieto', clave === render.ultima);
+    render.ultima = clave;
+    p.innerHTML = S.vista==='detalle' ? vistaDetalle() : vistaConteo();
+    marcarDemo();
+    if(S.vista!=='detalle' && S.conteo){
+      var f = $('#escaner');
+      if(f && !S.seleccionada && !S.comboAbierto && document.activeElement===document.body) f.focus({preventScroll:true});
+    }
+  }
+
+  function marcarDemo(){
+    var m = S.vista==='detalle' ? 'detalle' : (S.conteo ? ($('.velo') ? 'revisar' : 'contando') : 'inicio');
+    document.querySelectorAll('#demo-momento button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.momento===m)); });
+    document.querySelectorAll('#demo-pendientes button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.pend===S.pend)); });
+  }
+
+  function vistaConteo(){
+    return ''+
+      '<header class="titular entra">'+
+        '<div><p class="etiqueta">Inventario · Conteo · Tienda TRU</p>'+
+        '<h1>Conteo físico</h1>'+
+        '<p class="bajada">Compara lo que dice el sistema contra lo que hay de verdad en la tienda. Se cuenta a ciegas: el sistema no muestra su cifra hasta revisar.</p></div>'+
+      '</header>'+
+      cifras()+
+      (S.conteo ? panelContando() : panelAbrir())+
+      historial()+
+      '<p class="nota entra" style="--i:5"><b>Cómo se cuenta:</b> se escanea o se escribe el SKU y se anota lo que hay físicamente, sin ver la cifra del sistema. Al revisar se ve la diferencia en unidades y en soles; al cerrar, el stock queda ajustado a lo contado y cada ajuste queda como movimiento. <a href="#" onclick="return false">Ver ajustes por conteo →</a></p>';
+  }
+
+  function cifras(){
+    var ex = exactitud();
+    var c1 = '<div class="tarjeta cifra entra" style="--i:1"><p class="etiqueta">Exactitud del inventario</p>'+
+      (ex ? '<div class="valor '+tonoExactitud(ex.pct)+'">'+ex.pct.toLocaleString('es-PE')+' %</div><p>'+ex.ok+' de '+ex.lineas+' prendas coincidieron · '+ex.conteos+' '+(ex.conteos===1?'conteo':'conteos')+' con prendas</p>'
+          : '<div class="valor sin">—</div><p>Todavía ningún conteo con prendas: los 4 cerrados salieron vacíos y no cuentan.</p>')+
+      '</div>';
+    var c2;
+    if(S.conteo){
+      var a = avance(S.conteo);
+      c2 = '<div class="tarjeta cifra entra" style="--i:2"><p class="etiqueta">Conteo abierto</p><div class="valor">Conteo '+S.conteo.n+'</div>'+
+        '<p>'+S.conteo.lugar+' · solo '+S.conteo.categoria+' · '+a.contadas+' de '+a.total+' prendas ('+a.pct+' %)</p>'+
+        '<div class="barra" role="progressbar" aria-valuenow="'+a.pct+'" aria-valuemin="0" aria-valuemax="100"><i style="width:'+a.pct+'%"></i></div></div>';
+    } else {
+      c2 = '<div class="tarjeta cifra entra" style="--i:2"><p class="etiqueta">Valor sin contar</p><div class="valor">'+soles(VALOR_SIN_CONTAR)+'</div>'+
+        '<p>Al costo, en prendas que nadie contó en los últimos 30 días. Abajo, por dónde empezar.</p></div>';
+    }
+    var ult = S.cerrados[0];
+    var c3 = '<div class="tarjeta cifra entra" style="--i:3"><p class="etiqueta">Último conteo con prendas</p>'+
+      (ult ? '<div class="valor '+(ult.res.neto<0?'t-rojo':'')+'">'+soles(ult.res.neto, true)+'</div><p>Conteo '+ult.n+' · '+ult.lugar+' · '+(ult.res.conDif.length? ult.res.conDif.length+' prendas con diferencia':'todo coincidió')+' · ya ajustado</p>'
+           : '<div class="valor sin">—</div><p>Sin conteos con prendas todavía.</p>')+
+      '</div>';
+    return '<div class="cifras">'+c1+c2+c3+'</div>';
+  }
+
+  /* ---------- 1 · Abrir ---------- */
+  function panelAbrir(){
+    var A = S.abrir;
+    var lugares = ['piso','almacen'].map(function(k){
+      var L = LUGARES[k];
+      return '<button type="button" class="lugar" data-lugar="'+k+'" aria-pressed="'+(A.lugar===k)+'"><b>'+L.nombre+'</b><span>'+L.meta+'</span><span class="aviso">'+L.ultimo+'</span></button>';
+    }).join('');
+
+    var q = A.filtroCat.trim().toLowerCase();
+    var cats = q ? CATEGORIAS.filter(function(c){return c.toLowerCase().indexOf(q)>=0;})
+                 : ['Camisas y Blusas','Vestidos','Casacas'];
+    var chipsCat = cats.slice(0,8).map(function(c){
+      var r = RIESGO_CAT[c];
+      return '<button type="button" class="chip" data-cat="'+c+'" aria-pressed="'+(A.alcance==='categoria' && A.categoria===c)+'">'+c+(r?'<small>'+soles(r).replace(',00','').replace('.00','')+'</small>':'')+'</button>';
+    }).join('') || '<span class="ayuda">Ninguna categoría se llama así.</span>';
+
+    var quien = A.responsable;
+    var faltan = [];
+    if(!A.lugar) faltan.push('dónde');
+    if(A.alcance==='categoria' && !A.categoria) faltan.push('qué categoría');
+    if(!quien) faltan.push('quién cuenta');
+    var listo = !faltan.length;
+    var queTexto = A.alcance==='todo' ? 'todo el catálogo' : ('solo '+(A.categoria||'…'));
+    var resumen = listo
+      ? 'Se abre el <b>Conteo 5</b> en <b>'+LUGARES[A.lugar].nombre.toLowerCase()+'</b>, <b>'+queTexto+'</b>, a nombre de <b>'+quien+'</b>.'
+      : '<span class="falta">Falta elegir '+faltan.join(', ').replace(/, ([^,]*)$/,' y $1')+'.</span>';
+
+    return ''+
+    '<section class="tarjeta abrir entra" style="--i:4" aria-labelledby="abrir-t">'+
+      '<div class="abrir-cab"><h2 id="abrir-t">Abrir un conteo</h2><span class="insignia" data-tono="taupe">Ninguno abierto en esta tienda</span></div>'+
+      '<div class="pasos">'+
+        '<div class="paso"><div class="paso-tit"><em class="'+(A.lugar?'ok':'')+'">1</em><span class="etiqueta">Dónde</span></div><div class="lugares">'+lugares+'</div></div>'+
+        '<div class="paso"><div class="paso-tit"><em class="'+(A.alcance==='todo'||A.categoria?'ok':'')+'">2</em><span class="etiqueta">Qué</span></div>'+
+          '<div class="seg" role="group" aria-label="Alcance"><button type="button" data-alcance="categoria" aria-pressed="'+(A.alcance==='categoria')+'">Una categoría</button><button type="button" data-alcance="todo" aria-pressed="'+(A.alcance==='todo')+'">Todo el catálogo</button></div>'+
+          (A.alcance==='categoria'
+            ? '<div class="buscar-cat"><input id="filtro-cat" class="campo" type="search" placeholder="Buscar entre las 25 categorías…" value="'+A.filtroCat.replace(/"/g,'&quot;')+'" autocomplete="off"></div>'+
+              (q?'':'<p class="ayuda">Primero las tres con más plata en riesgo:</p>')+
+              '<div class="chips">'+chipsCat+'</div>'
+            : '<p class="ayuda">Un conteo de todo el catálogo en el piso son ~186 prendas: calcula una tarde entera. Por categoría se cierra en menos de una hora.</p>')+
+        '</div>'+
+        '<div class="paso"><div class="paso-tit"><em class="'+(quien?'ok':'')+'">3</em><span class="etiqueta">Quién cuenta <span style="color:var(--rojo)">*</span></span></div>'+
+          combo('abrir', quien)+
+          '<p class="ayuda">Obligatorio. Viene vacío en cada operación.</p>'+
+        '</div>'+
+      '</div>'+
+      '<div class="abrir-pie"><p class="resumen-abrir" style="margin:0">'+resumen+'</p>'+
+        '<button type="button" class="btn btn-primario btn-grande" id="btn-abrir" '+(listo?'':'disabled')+'>'+(listo?'Abrir y empezar a contar':'Abrir conteo')+'</button></div>'+
+    '</section>'+
+    sugerencias();
+  }
+
+  function combo(clave, valor){
+    var p = valor ? persona(valor) : null;
+    var abierto = S.comboAbierto===clave;
+    return '<div class="combo">'+
+      '<button type="button" class="combo-btn '+(p?'lleno':'')+'" data-combo="'+clave+'" aria-expanded="'+abierto+'">'+
+        (p ? '<span class="avatar">'+p.i+'</span>'+p.n : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>¿Quién hace esta operación?')+
+        '<span class="flecha">'+(abierto?'▴':'▾')+'</span></button>'+
+      (abierto ? listaCombo(clave) : '')+
+    '</div>';
+  }
+  function listaCombo(clave){
+    return '<div class="combo-lista" role="listbox"><span class="etiqueta">De turno ahora · Tienda TRU</span>'+
+      PERSONAS.map(function(p){
+        return '<button type="button" class="combo-op" data-elige="'+clave+'" data-persona="'+p.n+'"><span class="avatar">'+p.i+'</span><span>'+p.n+'<small>De turno</small></span><span class="punto"></span></button>';
+      }).join('')+
+      '<div class="pie">3 personas ya marcaron su salida y no aparecen.</div></div>';
+  }
+
+  function sugerencias(){
+    var filas = SUGERENCIAS.map(function(s){
+      return '<tr><td><div class="prenda">'+muestra(s.hex)+'<div><b>'+s.ref+'</b><span><span class="sku" style="display:inline">'+s.sku+'</span> · '+s.det+'</span></div></div></td>'+
+        '<td>'+s.lugar+'</td><td>'+(s.ult==null?'<span class="insignia" data-tono="ambar">Nunca contada</span>':'hace '+s.ult+' d')+'</td><td class="der"><b style="font-weight:600">'+soles(s.riesgo)+'</b></td></tr>';
+    }).join('');
+    return '<section class="tarjeta entra" style="--i:5" aria-labelledby="sug-t">'+
+      '<div class="seccion-cab"><h2 id="sug-t">Conviene contar primero</h2><p>Mayor plata en riesgo: stock al costo × días sin contar</p></div>'+
+      '<div class="tabla-caja"><table class="tabla"><thead><tr><th>Producto / variante</th><th>Ubicación</th><th>Último conteo</th><th class="der">En riesgo</th></tr></thead><tbody>'+filas+'</tbody></table></div>'+
+    '</section>';
+  }
+
+  /* ---------- 2 · Contando ---------- */
+  function panelContando(){
+    var C = S.conteo, a = avance(C);
+    var resp = C.responsable;
+    var cab = '<div class="mesa-cab"><div><p class="etiqueta">En curso · abierto '+C.hora+'</p><h2>Conteo '+C.n+' · '+C.lugar+'</h2>'+
+        '<p>Solo '+C.categoria+' · abrió '+C.abrio+'</p></div>'+
+        '<div class="avance"><div class="avance-fila"><span>'+a.contadas+' de '+a.total+' prendas contadas</span><b>'+a.pct+' %</b></div>'+
+        '<div class="barra" role="progressbar" aria-label="Avance" aria-valuenow="'+a.pct+'" aria-valuemin="0" aria-valuemax="100"><i style="width:'+a.pct+'%"></i></div>'+
+        '<div class="avance-fila"><span>'+unidades(C)+' unidades anotadas</span><span>'+(a.total-a.contadas)+' pendientes</span></div></div></div>';
+
+    var controles = '<div class="controles">'+
+      '<div class="seg" role="group" aria-label="Cómo se anota la cantidad"><button type="button" data-modo="suma" aria-pressed="'+(S.modo==='suma')+'">Suma por escaneo</button><button type="button" data-modo="escribir" aria-pressed="'+(S.modo==='escribir')+'">Escribir cantidad</button></div>'+
+      '<div class="quien">Cuenta <b>'+resp+'</b> <button type="button" class="btn-enlace" data-combo="quien">cambiar</button>'+
+        (S.comboAbierto==='quien' ? '<div class="combo" style="position:absolute; right:0; top:100%; width:280px;">'+listaCombo('quien')+'</div>' : '')+
+      '</div></div>';
+
+    var coinc = '';
+    var q = S.busqueda.trim().toUpperCase();
+    if(q && !S.seleccionada){
+      var m = VARIANTES.filter(function(v){return v.sku.indexOf(q)>=0 || v.ref.toUpperCase().indexOf(q)>=0;}).slice(0,6);
+      if(m.length) coinc = '<div class="coincidencias">'+m.map(function(v){
+        return '<button type="button" data-escoge="'+v.id+'"><span>'+v.ref+' <span class="suave">'+det(v)+'</span></span><span class="sku suave">'+v.sku+(C.counts[v.id]!=null?' · ya contada':'')+'</span></button>';
+      }).join('')+'</div>';
+      else if(q.length>=6) S.noEncontrada = S.busqueda.trim();
+    }
+
+    var escaner = '<div class="escaner"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>'+
+      '<input id="escaner" class="campo" type="text" autocomplete="off" placeholder="'+(S.modo==='suma'?'Escanea: cada lectura suma 1 · o escribe el SKU y Enter':'Escanea el código de barras o escribe el SKU…')+'" value="'+S.busqueda.replace(/"/g,'&quot;')+'" aria-label="Código o SKU"></div>';
+
+    var pruebas = pistolaPrueba();
+
+    var zona;
+    if(S.noEncontrada){
+      zona = '<div class="no-encontrada"><span>No se encontró «<b>'+S.noEncontrada+'</b>» en el catálogo.</span><span style="display:flex; gap:8px"><button type="button" class="btn btn-secundario" data-accion="alta">Dar de alta esta prenda</button><button type="button" class="btn btn-sutil" data-accion="descartar">Descartar</button></span></div>';
+    } else if(S.modo==='escribir' && S.seleccionada){
+      var v = VARIANTES.find(function(x){return x.id===S.seleccionada;});
+      var prev = C.counts[v.id];
+      zona = '<form class="ultima" id="form-cantidad">'+celdaPrenda(v)+
+        '<div class="stepper"><button type="button" data-paso="-1" aria-label="Uno menos">−</button><input id="cantidad" type="number" min="0" inputmode="numeric" value="'+(prev!=null?prev:'')+'" aria-label="Cantidad física"><button type="button" data-paso="1" aria-label="Uno más">+</button></div>'+
+        '<div style="display:flex; gap:8px"><button type="submit" class="btn btn-primario">Registrar</button><button type="button" class="btn btn-secundario" data-accion="soltar">Cancelar</button></div>'+
+        '<p class="guardado no" style="margin:0">'+(prev!=null?'Ya se contaron '+prev+'. Lo que escribas reemplaza esa cifra.':'Escribe lo que hay físicamente y Enter.')+'</p></form>';
+    } else if(S.modo==='suma' && S.ultima){
+      var u = VARIANTES.find(function(x){return x.id===S.ultima;});
+      zona = '<div class="ultima"><div style="flex-basis:100%" class="etiqueta">Última prenda leída</div>'+celdaPrenda(u)+
+        '<div class="stepper"><button type="button" data-ajuste="-1" aria-label="Uno menos">−</button><input id="cant-ultima" type="number" min="0" inputmode="numeric" value="'+C.counts[u.id]+'" class="'+(S.guardadoAhora?'sube':'')+'" aria-label="Cantidad de esta prenda"><button type="button" data-ajuste="1" aria-label="Uno más">+</button></div>'+
+        '<p class="guardado">✓ Guardado · vuelve a escanear para sumar, o corrige con − / +</p></div>';
+    } else {
+      zona = '<div class="vacio-mesa"><b>'+(S.modo==='suma'?'Apunta la pistola y dispara':'Escanea o busca una prenda')+'</b>'+
+        (S.modo==='suma'?'Cada lectura suma 1 a esa prenda y se guarda al instante. Si tienes 12 iguales en una pila, escanea una y escribe 12.':'Elige la prenda, escribe cuántas hay y registra. Sirve para pilas grandes o sin pistola.')+'</div>';
+    }
+
+    var hayContadas = Object.keys(C.counts).length>0;
+    var pie = '<div class="mesa-pie">'+
+      (S.confirmarCancelar
+        ? '<div class="confirmar"><span>¿Cancelar? Se pierde lo contado — el stock no se toca.</span><button type="button" class="btn btn-peligro" data-accion="cancelar-si">Sí, cancelar</button><button type="button" class="btn btn-sutil" data-accion="cancelar-no">Seguir contando</button></div>'
+        : '<button type="button" class="btn btn-sutil" data-accion="cancelar">Cancelar este conteo</button>')+
+      '<button type="button" class="btn btn-primario btn-grande" data-accion="revisar" '+(hayContadas?'':'disabled')+'>Revisar y cerrar</button>'+
+      (hayContadas?'':'<p class="regla">Un conteo sin prendas no se cierra. Si no se va a contar, cancélalo.</p>')+
+    '</div>';
+
+    return '<div class="contando" id="contar">'+
+      '<section class="tarjeta mesa entra" style="--i:4" aria-label="Contar">'+cab+controles+escaner+coinc+pruebas+zona+pie+'</section>'+
+      '<div class="columna">'+listaContadas()+listaPendientes()+'</div>'+
+    '</div>';
+  }
+
+  function pistolaPrueba(){
+    var C = S.conteo;
+    var pendientes = VARIANTES.filter(function(v){return C.counts[v.id]==null;});
+    var contadas = C.orden.slice(-2);
+    var opciones = pendientes.slice(0,3).map(function(v){return v.sku;});
+    if(contadas.length){ var v = VARIANTES.find(function(x){return x.id===contadas[contadas.length-1];}); if(v) opciones.unshift(v.sku); }
+    opciones.push('7750184420316');
+    return '<div class="pistola"><span>Pistola de prueba:</span>'+opciones.map(function(s){return '<button type="button" data-lee="'+s+'">'+s+'</button>';}).join('')+'</div>';
+  }
+
+  function listaContadas(){
+    var C = S.conteo;
+    var ids = C.orden.slice().reverse();
+    var cuerpo = ids.length ? '<div class="lista">'+ids.map(function(id, idx){
+      var v = VARIANTES.find(function(x){return x.id===id;});
+      return '<div class="item '+(idx===0 && S.guardadoAhora?'nuevo-item':'')+'">'+celdaPrenda(v)+'<span class="cant">× '+C.counts[id]+'</span><button type="button" class="editar" data-edita="'+id+'">Corregir</button></div>';
+    }).join('')+'</div>' : '<p class="lista-vacia">Todavía nada. Lo que cuentes aparece aquí, lo último arriba.</p>';
+    return '<section class="tarjeta entra" style="--i:5"><div class="lista-cab"><h3>Contadas</h3><span>'+ids.length+' prendas · '+unidades(C)+' unidades</span></div>'+cuerpo+'</section>';
+  }
+
+  function listaPendientes(){
+    var C = S.conteo;
+    var pend = VARIANTES.filter(function(v){return C.counts[v.id]==null;});
+    var cab = '<div class="lista-cab"><h3>Faltan por contar</h3><span class="variante">Variante '+(S.pend==='lista'?'A':'B')+'</span></div>';
+    if(S.pend==='numero'){
+      return '<section class="tarjeta entra" style="--i:6">'+cab+'<div class="solo-numero"><div class="valor">'+pend.length+' prendas</div>'+
+        '<p>Con stock en el piso y sin contar todavía. El sistema no dice cuáles ni cuántas: se cuenta a ciegas.</p>'+
+        '<p>Las que no se cuenten no se tocan al cerrar.</p></div></section>';
+    }
+    var cuerpo = pend.length ? '<div class="lista">'+pend.map(function(v){
+      return '<div class="item">'+celdaPrenda(v)+'</div>';
+    }).join('')+'</div>' : '<p class="lista-vacia">No falta nada: ya se contó todo el alcance.</p>';
+    return '<section class="tarjeta entra" style="--i:6">'+cab+
+      '<p class="ayuda" style="padding:0 18px 10px">Qué buscar en el rack, sin cuántas dice el sistema. Al contarla, sale de aquí.</p>'+cuerpo+'</section>';
+  }
+
+  /* ---------- Historial ---------- */
+  function historial(){
+    var filas = [];
+    if(S.conteo){
+      var a = avance(S.conteo);
+      filas.push('<tr class="clic" data-ir="contar"><td><b style="font-weight:600">Conteo '+S.conteo.n+'</b><small>Abierto hoy '+S.conteo.hora+'</small></td>'+
+        '<td>'+S.conteo.lugar+'<small>Solo '+S.conteo.categoria+' · '+a.contadas+' de '+a.total+'</small></td>'+
+        '<td><span class="insignia" data-tono="ambar">En curso</span></td><td><span class="suave">a ciegas hasta cerrar</span></td>'+
+        '<td>Abrió '+S.conteo.abrio+'</td><td class="der"><span class="btn-enlace">Seguir contando</span></td></tr>');
+    }
+    S.cerrados.forEach(function(c){
+      var r = c.res;
+      filas.push('<tr class="clic" data-detalle="'+c.n+'"><td><b style="font-weight:600">Conteo '+c.n+'</b><small>Cerrado '+c.fecha+'</small></td>'+
+        '<td>'+c.lugar+'<small>Solo '+c.categoria+' · '+r.lineas.length+' prendas</small></td>'+
+        '<td>'+(r.conDif.length?'<span class="insignia" data-tono="rojo">'+r.conDif.length+' con diferencia</span>':'<span class="insignia" data-tono="verde">Sin diferencias</span>')+'</td>'+
+        '<td>'+r.sistema+' → '+r.contado+'<small class="'+(r.neto<0?'t-rojo':'')+'">'+soles(r.neto,true)+'</small></td>'+
+        '<td>Abrió '+c.abrio+'<small>Cerró '+c.cerro+'</small></td><td class="der"><span class="btn btn-secundario">Ver detalle</span></td></tr>');
+    });
+    HISTORIAL_BASE.forEach(function(c){
+      filas.push('<tr class="clic" data-vacio="'+c.n+'"><td><b style="font-weight:600">Conteo '+c.n+'</b><small>Cerrado '+c.fecha+'</small></td>'+
+        '<td>'+c.lugar+'<small>'+c.alcance+' · 0 prendas</small></td>'+
+        '<td><span class="insignia" data-tono="taupe">Vacío</span></td><td><span class="suave">no cuenta para la exactitud</span></td>'+
+        '<td>Abrió '+c.abrio+'<small>Cerró '+c.cerro+'</small></td><td class="der"><span class="btn btn-sutil">Ver</span></td></tr>');
+    });
+    return '<section class="tarjeta entra" style="--i:6" aria-labelledby="hist-t">'+
+      '<div class="seccion-cab"><h2 id="hist-t">Conteos de esta tienda</h2><p>Un conteo está abierto o cerrado, nada más.</p></div>'+
+      '<div class="tabla-caja"><table class="tabla"><thead><tr><th>Conteo</th><th>Dónde y qué</th><th>Resultado</th><th>Sistema → físico</th><th>Responsables</th><th></th></tr></thead><tbody>'+filas.join('')+'</tbody></table></div>'+
+    '</section>';
+  }
+
+  /* ---------- 3 · Revisar y cerrar (modal) ---------- */
+  function abrirRevision(){
+    cerrarModal(true);
+    var C = S.conteo, r = resultado(C), a = avance(C);
+    S.cierreResponsable = C.responsable;
+    var velo = document.createElement('div');
+    velo.className = 'velo';
+    velo.setAttribute('role','dialog'); velo.setAttribute('aria-modal','true'); velo.setAttribute('aria-labelledby','rev-t');
+    velo.innerHTML = '<div class="hoja" id="hoja"></div>';
+    document.body.appendChild(velo);
+    pintarHoja();
+    velo.addEventListener('click', function(e){ if(e.target===velo) cerrarModal(); });
+    marcarDemo();
+  }
+  function pintarHoja(){
+    var C = S.conteo, r = resultado(C), a = avance(C);
+    var noContadas = a.total - a.contadas;
+    var difs = r.conDif.length ? '<div class="difs" style="--i:3">'+r.conDif.map(function(l){
+      return '<div class="dif">'+celdaPrenda(l.v, false)+'<span class="mov">'+l.sistema+' → '+l.contado+' <b class="'+(l.dif<0?'t-rojo':'t-verde')+'">('+(l.dif>0?'+':'')+l.dif+')</b></span></div>';
+    }).join('')+'</div>' : '<p class="ayuda" style="--i:3">Todo lo contado coincide con el sistema.</p>';
+    var hoja = $('#hoja');
+    if(hoja.innerHTML) hoja.classList.add('quieta');
+    hoja.innerHTML =
+      '<div style="--i:0"><p class="etiqueta">Conteo '+C.n+' · '+C.lugar+' · solo '+C.categoria+'</p><h2 id="rev-t" style="font-size:24px; margin-top:4px">Revisar antes de cerrar</h2></div>'+
+      '<div class="tarjeta neta" style="--i:1"><p class="etiqueta">Diferencia neta al costo</p><div class="valor '+(r.neto<0?'t-rojo':r.neto>0?'t-verde':'')+'">'+soles(r.neto,true)+'</div>'+
+        '<p>'+r.contado+' contadas contra '+r.sistema+' del sistema · '+r.faltan+' de menos · '+r.sobran+' de más</p></div>'+
+      '<p class="etiqueta" style="--i:2; margin:0">'+(r.conDif.length? r.conDif.length+' prendas con diferencia' : 'Sin diferencias')+'</p>'+
+      difs+
+      (noContadas? '<p class="alerta" style="--i:4; margin:0"><b>'+noContadas+' prendas con stock no se contaron.</b> No se tocan al cerrar: siguen con la cifra del sistema.</p>':'')+
+      '<div style="--i:5; display:grid; gap:6px"><span class="etiqueta">Quién cierra y ajusta el stock <span style="color:var(--rojo)">*</span></span>'+combo('cerrar', S.cierreResponsable)+'</div>'+
+      '<div class="hoja-pie" style="--i:6"><button type="button" class="btn btn-secundario" data-accion="volver">Volver a contar</button><button type="button" class="btn btn-primario" data-accion="cerrar" '+(S.cierreResponsable?'':'disabled')+'>Cerrar y ajustar el stock</button></div>';
+  }
+  function cerrarModal(inmediato){
+    var v = $('.velo'); if(!v) return;
+    S.comboAbierto = null;
+    if(inmediato){ v.remove(); marcarDemo(); return; }
+    v.classList.add('saliendo');
+    setTimeout(function(){ v.remove(); marcarDemo(); }, 160);
+  }
+  function cerrarConteo(){
+    var C = S.conteo;
+    var r = resultado(C);
+    var cerrado = {n:C.n, lugar:C.lugar, categoria:C.categoria, abrio:C.abrio, cerro:S.cierreResponsable, fecha:'hoy '+hora(), res:r, total:avance(C).total};
+    cerrarModal(true);
+    esperar('Cerrando el conteo y ajustando el stock…', 1100, function(){
+      S.cerrados.unshift(cerrado);
+      S.conteo = null; S.ultima = null; S.seleccionada = null; S.busqueda=''; S.noEncontrada=null;
+      S.detalle = cerrado; S.vista = 'detalle'; S.filtroDetalle = r.conDif.length ? 'dif' : 'todas';
+      render(); window.scrollTo({top:0});
+      avisar('Conteo '+cerrado.n+' cerrado', 'El stock ya quedó ajustado a lo contado.');
+    });
+  }
+
+  /* ---------- 4 · Detalle ---------- */
+  function vistaDetalle(){
+    var c = S.detalle;
+    var migas = '<p class="etiqueta migas"><a href="#" data-accion="a-conteos">← Conteo</a> · Tienda TRU</p>';
+    if(c.vacio){
+      return '<header class="titular entra"><div>'+migas+'<h1>Conteo '+c.n+' · '+c.lugar+'</h1><p class="bajada">'+c.alcance+' · abrió '+c.abrio+' · cerró '+c.cerro+' el '+c.fecha+'</p></div><span class="insignia" data-tono="taupe">Vacío</span></header>'+
+        '<section class="tarjeta vacio-detalle entra" style="--i:1"><h2>Este conteo cerró sin prendas contadas</h2><p>No ajustó nada del stock y no cuenta para la exactitud. Con el rediseño, un conteo así ya no se puede cerrar: se cancela.</p></section>';
+    }
+    var r = c.res;
+    var lineas = (S.filtroDetalle==='dif' ? r.conDif : r.lineas).slice().sort(function(a,b){ return Math.abs(b.dif)-Math.abs(a.dif); });
+    var filas = lineas.map(function(l){
+      return '<tr><td>'+celdaPrenda(l.v)+'</td><td class="cen">'+l.sistema+'</td><td class="cen"><b style="font-weight:600">'+l.contado+'</b></td>'+
+        '<td class="cen"><b class="'+(l.dif<0?'t-rojo':l.dif>0?'t-verde':'suave')+'" style="font-weight:600">'+(l.dif===0?'=':(l.dif>0?'+':'')+l.dif)+'</b></td>'+
+        '<td class="der '+(l.dif<0?'t-rojo':'')+'">'+(l.dif===0?'—':soles(l.dif*l.v.costo,true))+'</td></tr>';
+    }).join('');
+    var noContadas = c.total - r.lineas.length;
+    return ''+
+      '<header class="titular entra"><div>'+migas+'<h1>Conteo '+c.n+' · '+c.lugar+'</h1><p class="bajada">Solo '+c.categoria+' · abrió '+c.abrio+' · cerró '+c.cerro+' '+c.fecha+'</p></div>'+
+        (r.conDif.length?'<span class="insignia" data-tono="rojo">'+r.conDif.length+' con diferencia</span>':'<span class="insignia" data-tono="verde">Sin diferencias</span>')+'</header>'+
+      '<div class="cifras">'+
+        '<div class="tarjeta cifra entra" style="--i:1"><p class="etiqueta">Prendas contadas</p><div class="valor">'+r.lineas.length+' <span class="suave" style="font-size:20px">de '+c.total+'</span></div><p>'+(noContadas? noContadas+' no se contaron y quedaron como estaban':'Se contó todo el alcance')+'</p></div>'+
+        '<div class="tarjeta cifra entra" style="--i:2"><p class="etiqueta">Sistema → físico</p><div class="valor">'+r.sistema+' <span class="suave">→</span> '+r.contado+'</div><p>'+r.faltan+' de menos · '+r.sobran+' de más</p></div>'+
+        '<div class="tarjeta cifra entra" style="--i:3"><p class="etiqueta">Diferencia en soles</p><div class="valor '+(r.neto<0?'t-rojo':r.neto>0?'t-verde':'')+'">'+soles(r.neto,true)+'</div><p>Al costo de cada prenda · ya ajustado en el stock</p></div>'+
+      '</div>'+
+      '<section class="tarjeta entra" style="--i:4">'+
+        '<div class="filtro-cab"><div class="seg" role="group" aria-label="Qué líneas ver"><button type="button" data-filtro="dif" aria-pressed="'+(S.filtroDetalle==='dif')+'">Con diferencia · '+r.conDif.length+'</button><button type="button" data-filtro="todas" aria-pressed="'+(S.filtroDetalle==='todas')+'">Todas · '+r.lineas.length+'</button></div>'+
+        '<a href="#" onclick="return false" class="btn-enlace">Ver los '+r.conDif.length+' ajustes en Movimientos →</a></div>'+
+        '<div class="tabla-caja"><table class="tabla"><thead><tr><th>Producto / variante</th><th class="cen">Sistema</th><th class="cen">Físico</th><th class="cen">Diferencia</th><th class="der">En soles</th></tr></thead><tbody>'+
+        (filas || '<tr><td colspan="5" class="suave">Todo lo contado coincidió con el sistema.</td></tr>')+'</tbody></table></div>'+
+      '</section>';
+  }
+
+  /* ================= Acciones ================= */
+  function nuevoConteo(lugar, categoria, responsable, conEscenario){
+    S.conteo = {n:5, lugar:LUGARES[lugar].nombre, categoria:categoria, abrio:responsable, responsable:responsable, hora:hora(), counts:{}, orden:[]};
+    if(conEscenario){
+      ESCENARIO.forEach(function(e){ var v = porSku(e[0]); S.conteo.counts[v.id]=e[1]; S.conteo.orden.push(v.id); });
+    }
+    S.ultima = null; S.seleccionada = null; S.busqueda=''; S.noEncontrada=null; S.confirmarCancelar=false; S.vista='inicio';
+  }
+  function leer(codigo){
+    var C = S.conteo; if(!C) return;
+    var v = porSku(codigo);
+    S.busqueda = '';
+    if(!v){ S.noEncontrada = codigo; S.ultima=null; render(); return; }
+    S.noEncontrada = null;
+    if(S.modo==='suma'){
+      C.counts[v.id] = (C.counts[v.id]||0) + 1;
+      tocar(v.id);
+      S.ultima = v.id; S.guardadoAhora = true;
+      render(); S.guardadoAhora = false;
+      var f = $('#escaner'); if(f) f.focus();
+    } else {
+      S.seleccionada = v.id; render();
+      var c = $('#cantidad'); if(c){ c.focus(); c.select(); }
+    }
+  }
+  function tocar(id){
+    var C = S.conteo;
+    var i = C.orden.indexOf(id); if(i>=0) C.orden.splice(i,1);
+    C.orden.push(id);
+  }
+  function fijar(id, n){
+    var C = S.conteo;
+    n = Math.max(0, Math.floor(Number(n)||0));
+    C.counts[id] = n; tocar(id);
+  }
+
+  document.addEventListener('click', function(e){
+    var t = e.target.closest('button, tr[data-detalle], tr[data-vacio], tr[data-ir], a[data-accion]');
+    if(!t){ if(S.comboAbierto && !e.target.closest('.combo-lista')){ S.comboAbierto=null; repintar(); } return; }
+
+    if(t.dataset.momento){ irA(t.dataset.momento); return; }
+    if(t.dataset.pend){ S.pend = t.dataset.pend; render(); return; }
+    if(t.id==='tema'){ return; }
+
+    if(t.dataset.combo){ S.comboAbierto = S.comboAbierto===t.dataset.combo ? null : t.dataset.combo; repintar(); return; }
+    if(t.dataset.elige){
+      var clave = t.dataset.elige, n = t.dataset.persona;
+      S.comboAbierto = null;
+      if(clave==='abrir') S.abrir.responsable = n;
+      if(clave==='quien'){ S.conteo.responsable = n; avisar('Ahora cuenta '+n, 'Lo que se anote desde aquí queda a su nombre.', true); }
+      if(clave==='cerrar') S.cierreResponsable = n;
+      repintar(); return;
+    }
+    if(S.comboAbierto && !t.closest('.combo')){ S.comboAbierto = null; }
+
+    if(t.dataset.lugar){ S.abrir.lugar = t.dataset.lugar; render(); return; }
+    if(t.dataset.alcance){ S.abrir.alcance = t.dataset.alcance; render(); return; }
+    if(t.dataset.cat){ S.abrir.categoria = t.dataset.cat; S.abrir.alcance='categoria'; render(); return; }
+    if(t.id==='btn-abrir'){
+      var A = S.abrir;
+      esperar('Abriendo el conteo…', 600, function(){
+        nuevoConteo(A.lugar, A.alcance==='todo' ? 'Camisas y Blusas' : A.categoria, A.responsable, false);
+        render(); avisar('Conteo 5 abierto', 'A contar: la pistola ya está lista.');
+      });
+      return;
+    }
+    if(t.dataset.modo){ S.modo = t.dataset.modo; S.seleccionada=null; S.ultima=null; render(); return; }
+    if(t.dataset.lee){ leer(t.dataset.lee); return; }
+    if(t.dataset.escoge){ leer(VARIANTES.find(function(v){return v.id===t.dataset.escoge;}).sku); return; }
+    if(t.dataset.ajuste){
+      var id = S.ultima; fijar(id, S.conteo.counts[id] + Number(t.dataset.ajuste)); S.guardadoAhora = true; render(); S.guardadoAhora=false; return;
+    }
+    if(t.dataset.paso){
+      var c = $('#cantidad'); c.value = Math.max(0, (Number(c.value)||0) + Number(t.dataset.paso)); c.focus(); return;
+    }
+    if(t.dataset.edita){
+      var v = VARIANTES.find(function(x){return x.id===t.dataset.edita;});
+      if(S.modo==='suma'){ S.ultima = v.id; render(); var u=$('#cant-ultima'); if(u){u.focus(); u.select();} }
+      else { S.seleccionada = v.id; render(); var q=$('#cantidad'); if(q){q.focus(); q.select();} }
+      return;
+    }
+    if(t.dataset.filtro){ S.filtroDetalle = t.dataset.filtro; render(); return; }
+    if(t.dataset.detalle){ S.detalle = S.cerrados.find(function(c){return String(c.n)===t.dataset.detalle;}); S.vista='detalle'; S.filtroDetalle = S.detalle.res.conDif.length?'dif':'todas'; render(); window.scrollTo({top:0}); return; }
+    if(t.dataset.vacio){ var h = HISTORIAL_BASE.find(function(c){return String(c.n)===t.dataset.vacio;}); S.detalle = Object.assign({vacio:true}, h); S.vista='detalle'; render(); window.scrollTo({top:0}); return; }
+    if(t.dataset.ir==='contar'){ var m=$('#contar'); if(m) m.scrollIntoView({behavior:'smooth', block:'start'}); return; }
+
+    var ac = t.dataset.accion;
+    if(!ac) return;
+    if(ac==='alta'){ avisar('Alta al vuelo', 'Igual que hoy: se crea la prenda y queda elegida para contarla.', true); S.noEncontrada=null; render(); return; }
+    if(ac==='descartar'){ S.noEncontrada=null; render(); return; }
+    if(ac==='soltar'){ S.seleccionada=null; render(); return; }
+    if(ac==='cancelar'){ S.confirmarCancelar=true; render(); return; }
+    if(ac==='cancelar-no'){ S.confirmarCancelar=false; render(); return; }
+    if(ac==='cancelar-si'){ esperar('Cancelando…', 500, function(){ S.conteo=null; S.confirmarCancelar=false; render(); avisar('Conteo cancelado', 'El stock no se tocó.'); }); return; }
+    if(ac==='revisar'){ abrirRevision(); return; }
+    if(ac==='volver'){ cerrarModal(); return; }
+    if(ac==='cerrar'){ cerrarConteo(); return; }
+    if(ac==='a-conteos'){ e.preventDefault(); S.vista='inicio'; render(); return; }
+  });
+
+  function repintar(){ if($('.velo')) pintarHoja(); else render(); }
+
+  document.addEventListener('input', function(e){
+    if(e.target.id==='filtro-cat'){
+      S.abrir.filtroCat = e.target.value; var pos = e.target.selectionStart;
+      render(); var f=$('#filtro-cat'); if(f){ f.focus(); f.setSelectionRange(pos,pos); }
+    }
+    if(e.target.id==='escaner'){
+      var val = e.target.value;
+      if(porSku(val)){ leer(val); return; }
+      S.busqueda = val; S.noEncontrada = null;
+      render(); var f2=$('#escaner'); if(f2){ f2.focus(); f2.setSelectionRange(val.length, val.length); }
+    }
+  });
+  document.addEventListener('change', function(e){
+    if(e.target.id==='cant-ultima' && S.ultima){ fijar(S.ultima, e.target.value); render(); }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape'){ if(S.comboAbierto){ S.comboAbierto=null; repintar(); } else if($('.velo')) cerrarModal(); }
+    if(e.key==='Enter' && e.target.id==='escaner'){
+      e.preventDefault();
+      var val = e.target.value.trim(); if(!val) return;
+      leer(val);
+    }
+  });
+  document.addEventListener('submit', function(e){
+    if(e.target.id==='form-cantidad'){
+      e.preventDefault();
+      var n = Number($('#cantidad').value);
+      if(!Number.isInteger(n) || n<0){ avisar('Cantidad no válida', 'Tiene que ser un número entero, 0 o más.', true); return; }
+      var v = VARIANTES.find(function(x){return x.id===S.seleccionada;});
+      fijar(v.id, n); S.seleccionada=null; S.guardadoAhora=true; render(); S.guardadoAhora=false;
+      avisar(v.ref+' '+v.talla+' contada', '× '+n);
+      var f=$('#escaner'); if(f) f.focus();
+    }
+  });
+
+  /* ================= Momentos de la demo ================= */
+  function irA(m){
+    cerrarModal(true);
+    S.comboAbierto = null;
+    if(m==='inicio'){ S.conteo=null; S.vista='inicio'; S.abrir.responsable=null; S.abrir.lugar=null; render(); }
+    if(m==='contando' || m==='revisar'){
+      nuevoConteo('piso','Camisas y Blusas','Chiara', true);
+      S.ultima = porSku('CAM-OVER-L-CEL').id; tocar(S.ultima);
+      if(S.modo==='escribir') S.ultima = null;
+      render();
+      if(m==='revisar') abrirRevision();
+    }
+    if(m==='detalle'){
+      nuevoConteo('piso','Camisas y Blusas','Chiara', true);
+      var r = resultado(S.conteo);
+      var c = {n:5, lugar:'Piso de venta', categoria:'Camisas y Blusas', abrio:'Chiara', cerro:'Janis', fecha:'hoy 17:40', res:r, total:avance(S.conteo).total};
+      S.conteo=null; S.cerrados=[c]; S.detalle=c; S.vista='detalle'; S.filtroDetalle='dif';
+      render();
+    }
+    window.scrollTo({top:0});
+  }
+
+  /* ================= Tema ================= */
+  var btnTema = $('#tema');
+  function temaActual(){
+    var d = document.documentElement.dataset.theme;
+    if(d) return d;
+    return window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function rotular(){ btnTema.textContent = temaActual()==='dark' ? 'Ver en claro' : 'Ver en oscuro'; }
+  btnTema.addEventListener('click', function(){
+    document.documentElement.dataset.theme = temaActual()==='dark' ? 'light' : 'dark'; rotular();
+  });
+  rotular();
+
+  irA('contando');
+})();
+</script>
