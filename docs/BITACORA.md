@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (Existencias: demo del rediseño con la paleta oficial)
+Sobre la guía «Sala de diseño» se armó `docs/maquetas/existencias-rediseno-2026-09/demo.html`: lateral claro (decidido por Felipe), tabla con piso·almacén, cobertura, ritmo 7D, en camino y en la red, modales con el movimiento de ADR-0136 y el loader único con el aviso después (ADR-0149). Felipe pidió decidir viendo, así que la demo trae 3 variantes de cifras y 2 de acciones por fila, más el estado vacío guiado que eligió.
+Felipe se lleva: (1) **una sede vacía no es una pantalla vacía**: es el momento de decirle a la colaboradora por dónde entra la mercadería; (2) la demo se armó con la captura real de TRU, que mostró 3 traslados «completados» con 0 unidades: por eso el piso sigue vacío, y se señala en el estado vacío.
+Sin resolver: elegir variante de cifras (A/B/C) y de acciones (A/B); revisar por qué esos traslados cerraron sin líneas; recién después, llevarlo a `InventarioPanel.tsx`.
 
 ## 2026-09-22 (Colaboradores en dos secciones y editor de roles rediseñado — ADR-0172)
 Felipe aprobó el spike de UX y se construyó: las 7 pestañas de Colaboradores pasan a **Cuentas** y **Roles y accesos**, con «Por atender» arriba (altas por aprobar, inactivas en Dynamic) y Actividad en un modal. Roles y accesos tiene lista agrupada con avisos («Solo Inicio»), grupos de módulos plegables con buscador, borrador marcado «Se suma / Se quita», vista previa del menú con lo que cambia y matriz «Comparar roles». Sin migraciones; verificado en el navegador con datos de ejemplo (escritorio y 375 px).
@@ -8931,3 +8935,13 @@ Sin resolver: nada de esta regla; los pasos a producción del PR #285 siguen pen
 **2026-09-22 · fix(ui): la lista del buscador sigue al campo mientras el modal entra.** En «Asignar rol» la lista salía
 más angosta, corrida y ~28 px más abajo, tapando los botones: Radix enfoca Cuenta al abrir, el combo se abre y medía el
 campo a mitad de la entrada (hoja al 96,5 % + cascada). `usePosicionLista` ahora mide cuadro a cuadro mientras está abierta.
+
+## 2026-09-22 (Análisis de inventario: demo del rediseño con la guía oficial)
+Felipe pasó dos capturas de `/inventario/resumen` en TRU (vacías) y la Sala de Diseño como guía. Se armó una demo interactiva (`docs/maquetas/analisis-rediseno-2026-09/demo.html`, publicada como artefacto) con las dos pestañas, datos de ejemplo por sede y un panel que intercambia en vivo las decisiones abiertas: forma de Desempeño (A/B), aviso de exactitud (franja/chip/tarjeta) y sede sin datos (con salidas/estructura en cero). Decidió que «Cambio relevante» va por reglas fijas (7, en orden). Sin tocar código del ERP ni la base.
+Felipe se lleva: (1) **una pantalla vacía también es diseño**: TRU hoy dice una línea y deja al líder sin salida; (2) la columna «Cambio relevante» convierte cifras en decisiones sin fórmulas nuevas: solo lee lo que `lib/resumen-*` ya calcula; (3) el trío verde/taupe/ámbar de la dona no se distingue (validador: ΔE 9.8), la demo usa verde/neutro/ámbar.
+Sin resolver: sus tres elecciones en la demo, y aparte la del lateral oscuro de la guía (es de todo el ERP).
+
+## 2026-09-22 (Análisis de inventario construido: A, franja y vacío con salidas — ADR-0171)
+Felipe eligió en la demo: Desempeño con la misma anatomía que Comparar, el aviso de exactitud como franja y el vacío con salidas. Construido sin migración: `lib/resumen-lectura.ts` (7 reglas de «Cambio relevante», en las dos tablas), cifras y gráficos de Desempeño en `resumen-desempeno.ts` + `ResumenDesempenoGeneral`, Comparar en una sola lectura (se quitó `vista`; la dona filtra la tabla y baja a ella), `ResumenBanner` en franja, `ResumenVacio` con «Ampliar a 90 días», «Ver <tienda>» e «Ir a Recibir». Typecheck, lint y 8,002 pruebas en verde; verificado con los componentes reales y datos de muestra (sin Docker).
+Felipe se lleva: (1) **un filtro de la tabla no mueve las cifras de arriba**: la banda de sell-through se mudó a la tabla por eso, y una prueba lo fija; (2) el verde y el ámbar oficiales sirven para texto, pero como relleno vecino se confunden (ΔE 7.9): los gráficos tienen sus propios tres colores; (3) la lectura no inventa fórmulas: solo ordena métricas que ya se calculaban.
+Sin resolver: verlo con clics reales contra la base; la lectura en el celular; el lateral oscuro de la guía (decisión de todo el ERP).
