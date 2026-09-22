@@ -28,6 +28,11 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Existencias: la tabla pinta 15 prendas por página (2026-09-22) — hecho, SIN migraciones
+- [x] `InventarioPanel.tsx` pinta solo una página de 15 (`FILAS_POR_PAGINA`); las tarjetas, los filtros, el CSV (todas las páginas de lo filtrado) y los overlays siguen viendo todo. Cambiar un filtro vuelve a la página 1; si un guardado achica la lista, cae en la última que existe. Pie: «Mostrando 1–15 de 52 prendas» / «Mostrando 1–15 de 18 (de 52 prendas)».
+- [x] Lógica pura en `lib/paginacion.ts` (`paginar`, `numerosDePagina`, este último movido desde `components/Paginacion.tsx`) + 8 pruebas; paginador en memoria `components/ui/PaginacionLocal.tsx`, mismo dibujo que `PaginacionPaginas`. Probado en navegador sobre una demo temporal con 52 variantes (escritorio y 390 px, sin errores de consola).
+- [ ] **Verlo con clics reales** en TRU contra producción y medir cuánto bajó la carga. Si sigue lenta, lo que queda es el servidor: la página trae TODAS las variantes y 8 consultas (`getExistencias` + cobertura + ritmo 7D/30D + apartados…) antes de pintar; paginar en la base exige mover filtros, tarjetas y recomendaciones a RPC — decidir con la medición en la mano, no antes.
+
 ## 🎯 Paleta oficial «CAYLA Dynamic» + rediseño visual de Inventario (2026-09-22, ADR-0169) — hecho, SIN migraciones; falta verlo con clics reales
 - [x] Tokens oficiales en `globals.css` para todo el ERP: papel `#fbf8f2`, taupe `#805c4c`, verde `#48603f`, ámbar `#74501a`, más `hueso` y `pizarra` nuevos, radio flotante de 20 px y serif en 600. Contraste medido: todo ≥ 4.5:1.
 - [x] Piezas del sistema: `eyebrow-cayla`, `btn-cayla` (primario/secundario/peligro/sutil/enlace), `pildora-cayla`, `caja-cayla`, `nota-cayla` y zebra de tabla; `Tabla`, `Chip` (insignia con punto + tono `pizarra`), `TarjetaCifra`, `campos` (variante `caja`) y `CabeceraPantalla` nueva.

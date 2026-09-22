@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (Existencias: 15 prendas por página)
+Felipe reportó que Existencias demoraba en cargar y pidió ver solo 15 prendas por página. La tabla pintaba TODAS las variantes de la sede, cada una con foto, chips, botones y menú; ahora pinta una página de 15 con paginador al pie (‹ 1 2 … 4 ›), vuelve a la página 1 al filtrar y el CSV sigue exportando todo lo filtrado. Probado en navegador sobre una demo con 52 variantes, escritorio y celular; 7,989 pruebas, typecheck y lint en verde.
+Felipe se lleva: **paginar la tabla no es lo mismo que paginar la base**: las tarjetas de arriba (disponible total, reponer, recomendaciones) necesitan todas las prendas, así que los datos siguen llegando completos y lo que se ahorra es dibujarlas; si con esto aún demora, el siguiente paso es medir las consultas del servidor.
+
 ## 2026-09-22 (Roles y accesos: el buscador de «Asignar rol» — listas recortadas en modales)
 Felipe reportó que el campo Cuenta de «Asignar rol» no funcionaba. Se reprodujo en el navegador: la lista sí se abría, pero la hoja del modal tiene scroll propio y la recortaba (5 filas visibles, título y botones empujados fuera). Arreglo de raíz: `Desplegable` y `ComboBuscable` dibujan su lista en `fixed` medida contra el control (`usePosicionLista`, se abre hacia arriba si no cabe), la entrada del modal pasa a `animation-fill-mode: backwards` (con `both` Chrome seguía tratando la hoja como contenedor de los `fixed`), y Cuenta pasa a ser un buscador que filtra por nombre, sede o «terminal». Probado con clic y teclado, en escritorio y celular, y en «Rol de …» (desplegable Nuevo rol).
 Felipe se lleva: **una lista que se abre pero no se ve se siente igual que una rota**; el defecto no era del modal de roles sino de todo desplegable cerca del pie de cualquier modal, por eso se arregló en el control y no en la pantalla.

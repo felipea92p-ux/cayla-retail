@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AlertTriangle, Boxes, ChevronRight, PackagePlus, Sparkles, SlidersHorizontal, Truck } from "lucide-react";
 import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial } from "@/lib/filtro-busqueda-especial";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { CampoTexto, CampoSelect } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { MenuAcciones } from "@/components/ui/MenuAcciones";
+import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
+import { paginar } from "@/lib/paginacion";
 import { ReponerPisoModal } from "@/components/ReponerPisoModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
@@ -52,6 +54,17 @@ const PUNTO_ESTADO: Record<EstadoStock, string> = {
 };
 
 const TODAS = "__todas__";
+/** Filas por página de la tabla (Felipe, 2026-09-22: «que solo se vean 15»). Pintar TODAS las variantes
+ *  de una tienda —cada una con foto, chips, botones y menú— era lo que hacía lenta la pantalla. */
+const FILAS_POR_PAGINA = 15;
+
+/** «Mostrando 1–15 de 120 prendas»; con filtro, «Mostrando 1–15 de 40 (de 120 prendas)». */
+function textoMostrando(p: { desde: number; hasta: number; totalPaginas: number }, filtradas: number, total: number): string {
+  const prendas = total === 1 ? "prenda" : "prendas";
+  if (p.totalPaginas <= 1) return `Mostrando ${filtradas} de ${total} ${prendas}`;
+  const rango = `Mostrando ${p.desde}–${p.hasta} de`;
+  return filtradas === total ? `${rango} ${total} ${prendas}` : `${rango} ${filtradas} (de ${total} ${prendas})`;
+}
 /** Filtro de "Dañado" (2026-09-17): eje aparte del semáforo piso/almacén —
  *  reemplazó al filtro compuesto "Piden atención" (Felipe: "el estado PIDE
  *  ATENCIÓN lo vamos a cambiar por DAÑADO"). Las tres cosas que antes sumaba
@@ -268,6 +281,25 @@ export function InventarioPanel({
     [indiceBusqueda, busqueda, talla, color, categoria, estado]
   );
 
+  // La tabla pinta UNA página de `filtradas`; las tarjetas, los filtros y el CSV siguen viendo todas.
+  // Cambiar cualquier filtro vuelve a la página 1 (ajuste durante el render, sin efecto: la firma de
+  // los filtros cambió → se reinicia). `paginar` acota: si un guardado achicó la lista, cae en la última.
+  const [pagina, setPagina] = useState(1);
+  const firmaFiltros = [busqueda, categoria, talla, color, estado].join("\u0000");
+  const [firmaPrevia, setFirmaPrevia] = useState(firmaFiltros);
+  if (firmaFiltros !== firmaPrevia) {
+    setFirmaPrevia(firmaFiltros);
+    setPagina(1);
+  }
+  const paginaActual = paginar(filtradas, pagina, FILAS_POR_PAGINA);
+  const tarjetaTablaRef = useRef<HTMLDivElement>(null);
+  function irAPagina(n: number) {
+    setPagina(n);
+    // El paginador está al pie: al cambiar de página, que la tabla empiece a leerse desde arriba.
+    const tarjeta = tarjetaTablaRef.current;
+    if (tarjeta && tarjeta.getBoundingClientRect().top < 0) tarjeta.scrollIntoView({ block: "start" });
+  }
+
   const hayFiltrosActivos = busqueda !== "" || categoria !== TODAS || talla !== TODAS || color !== TODAS || estado !== TODAS;
   function limpiarFiltros() {
     setBusqueda("");
@@ -295,7 +327,8 @@ export function InventarioPanel({
   );
 
   // Exporta lo que la colaboradora está viendo, no todo el inventario: usa
-  // `filtradas` (mismo array que pinta la tabla), así que si ya filtró por
+  // `filtradas` (lo que pinta la tabla, TODAS sus páginas —no solo la de la
+  // vista—), así que si ya filtró por
   // categoría/talla/color/estado antes de exportar, el CSV trae eso y no de
   // más. Columnas Piso/Almacén/Estado solo si esta ubicación las separa
   // (`separa`) — en Taller siempre son `null` y mostrar tres columnas vacías
@@ -454,7 +487,7 @@ export function InventarioPanel({
 
       {/* Guía oficial (2026-09-22, ADR-0169): los filtros y la tabla viven en UNA tarjeta — lo que se filtra
           y lo filtrado se leen como una sola cosa. Los filtros son cajas hundidas en hueso, sin etiqueta visible. */}
-      <div className="card-cayla overflow-hidden">
+      <div ref={tarjetaTablaRef} className="card-cayla scroll-mt-4 overflow-hidden">
       {stock.length > 0 && (
         <div className={`grid gap-x-3 gap-y-1 px-4 pt-4 sm:px-5 sm:pt-5 ${separa ? "sm:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]" : "sm:grid-cols-[1.4fr_1fr_1fr_1fr]"}`}>
           <CampoTexto caja etiqueta="Buscar" placeholder="Producto, SKU, color, talla…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
@@ -544,7 +577,7 @@ export function InventarioPanel({
                   ]
             }
           />
-          {filtradas.map((f) => {
+          {paginaActual.filas.map((f) => {
             const red = resumenRed(f.enRed);
             const ritmo = ritmoPorVariante.get(f.varianteId) ?? null;
             return (
@@ -679,9 +712,8 @@ export function InventarioPanel({
           })}
           <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs text-taupe">
             <span className="flex flex-wrap items-center gap-3">
-              <span>
-                Mostrando {filtradas.length} de {stock.length} {stock.length === 1 ? "prenda" : "prendas"}
-              </span>
+              <span>{textoMostrando(paginaActual, filtradas.length, stock.length)}</span>
+              <PaginacionLocal pagina={paginaActual.pagina} totalPaginas={paginaActual.totalPaginas} onPagina={irAPagina} />
               <button
                 type="button"
                 onClick={exportarCsv}
