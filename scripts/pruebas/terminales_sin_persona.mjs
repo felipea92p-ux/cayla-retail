@@ -77,6 +77,9 @@ $f$;
 create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo text, timestamp_marca timestamptz,
   fecha_jornada date, anulada_at timestamptz);
 create table if not exists public.jornadas (persona_id uuid, sede_id uuid, fecha date, estado text);
+-- Cada caso arranca SIN asistencia (la base local puede tener marcas simuladas de una demo); el ROLLBACK la devuelve.
+delete from public.marcajes;
+delete from public.jornadas;
 create temp table ids as
   select (select id from retail.ubicaciones where nombre = 'Tienda Trujillo') as tru,
          (select id from retail.ubicaciones where nombre = 'Tienda Lima') as lim,
