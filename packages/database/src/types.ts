@@ -1552,6 +1552,47 @@ export type Database = {
           },
         ]
       }
+      cotizaciones_maquila: {
+        Row: {
+          categoria_id: string
+          creado_por: string | null
+          created_at: string
+          fecha_cotizacion: string
+          id: string
+          precio_maquila: number
+          proveedor_referencia: string | null
+          vigente_hasta: string
+        }
+        Insert: {
+          categoria_id: string
+          creado_por?: string | null
+          created_at?: string
+          fecha_cotizacion: string
+          id?: string
+          precio_maquila: number
+          proveedor_referencia?: string | null
+          vigente_hasta: string
+        }
+        Update: {
+          categoria_id?: string
+          creado_por?: string | null
+          created_at?: string
+          fecha_cotizacion?: string
+          id?: string
+          precio_maquila?: number
+          proveedor_referencia?: string | null
+          vigente_hasta?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotizaciones_maquila_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devolucion_items: {
         Row: {
           cantidad: number
@@ -4788,6 +4829,19 @@ export type Database = {
           stock_previo: number
           usuario_nombre: string
         }[]
+      }
+      fn_cotizacion_maquila_vigente: {
+        Args: { p_categoria_id: string }
+        Returns: {
+          categoria_id: string
+          creado_por: string | null
+          created_at: string
+          fecha_cotizacion: string
+          id: string
+          precio_maquila: number
+          proveedor_referencia: string | null
+          vigente_hasta: string
+        }
       }
       fn_dentro_de_una_edicion: {
         Args: { a: string; b: string }
