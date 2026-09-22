@@ -8,6 +8,12 @@ import { traducirError } from "./error-escritura";
 // importante— lo que deja pasar tal cual.
 
 describe("traduce lo que escribe Postgres por su cuenta", () => {
+  it("una RPC rechazada por falta de sesión pide volver a entrar, no cita a Postgres", () => {
+    const salida = traducirError({ message: "permission denied for function registrar_venta", code: "42501" }, "registrar la venta", { confirmarAntesDeRepetir: true });
+    expect(salida).not.toContain("permission denied");
+    expect(salida).toContain("vuelve a entrar");
+  });
+
   it("renombrar una marca a un nombre existente se explica, no cita el índice", () => {
     const salida = traducirError({ message: 'duplicate key value violates unique constraint "marcas_nombre_unico"', code: "23505" }, "renombrar la marca");
     expect(salida).not.toContain("marcas_nombre_unico");

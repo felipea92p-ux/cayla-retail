@@ -11,7 +11,7 @@ import type { ModoResumen } from "@/lib/resumen-comparacion";
 // «atrás» funciona.
 
 /** Pestañas subrayadas (guía oficial, 2026-09-22). Sirve al modo de la
- *  pantalla y a «Vista general / Detalle por producto». */
+ *  pantalla (Comparar ya no tiene «Vista general / Detalle por producto» desde el rediseño del 2026-09-22). */
 export function Pestanas<T extends string>({
   etiqueta,
   valor,
@@ -68,7 +68,7 @@ export function ResumenCabecera({
         valor={modo}
         opciones={MODOS}
         // Cada modo tiene sus propios órdenes y filtros de tabla: al cambiar se parte de los iniciales.
-        onValor={(m) => actualizar(m === "comparar" ? { modo: "comparar", orden: null } : { modo: null, vista: null, senal: null, orden: null })}
+        onValor={(m) => actualizar(m === "comparar" ? { modo: "comparar", orden: null, st: null } : { modo: null, vista: null, senal: null, orden: null, cambio: null })}
       />
       <ResumenActualizado ahoraIso={ahoraIso}>{children}</ResumenActualizado>
     </div>

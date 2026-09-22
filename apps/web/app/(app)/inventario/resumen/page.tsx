@@ -38,9 +38,12 @@ export default async function ResumenInventarioPage({
   const ubicacionActiva = ubicaciones.find((u) => u.id === persona.ubicacionId);
   if (!ubicacionActiva) redirect("/inventario");
 
+  // Las salidas del estado vacío (2026-09-22): las otras tiendas activas a las que el líder puede cambiarse.
+  const otrasTiendas = ubicaciones.filter((u) => u.tipo === "tienda" && u.activo && u.id !== ubicacionActiva.id).map((u) => ({ id: u.id, nombre: u.nombre }));
+
   const { exactitud, panel } = pideComparacion(params)
-    ? await getComparacionInventario(ubicacionActiva, params).then((datos) => ({ exactitud: datos.exactitud, panel: <ResumenComparacionPanel datos={datos} /> }))
-    : await getDesempenoInventario(ubicacionActiva, params).then((datos) => ({ exactitud: datos.exactitud, panel: <ResumenDesempenoPanel datos={datos} /> }));
+    ? await getComparacionInventario(ubicacionActiva, params).then((datos) => ({ exactitud: datos.exactitud, panel: <ResumenComparacionPanel datos={datos} otrasTiendas={otrasTiendas} /> }))
+    : await getDesempenoInventario(ubicacionActiva, params).then((datos) => ({ exactitud: datos.exactitud, panel: <ResumenDesempenoPanel datos={datos} otrasTiendas={otrasTiendas} /> }));
 
   return (
     <div className="space-y-5">
@@ -48,8 +51,9 @@ export default async function ResumenInventarioPage({
         sobretitulo={`Inventario › Análisis › ${ubicacionActiva.nombre}`}
         titulo="Análisis de inventario"
         bajada="Analiza cómo se mueve y rinde tu inventario a lo largo del tiempo."
-        acciones={<ResumenBanner exactitud={exactitud} ubicacionId={ubicacionActiva.id} />}
       />
+      {/* El aviso de exactitud es una franja bajo el título (2026-09-22), no una tarjeta que compite con él. */}
+      <ResumenBanner exactitud={exactitud} ubicacionId={ubicacionActiva.id} />
 
       {panel}
     </div>
