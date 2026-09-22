@@ -63,6 +63,13 @@ describe("armarDetalleVenta", () => {
     expect(d.recibo?.lineas[0]?.detalle).toBe("M · Negro");
   });
 
+  it("el recibo dice quién atendió (primer nombre) y sin vendedor no se inventa", () => {
+    expect(d.recibo?.atendio).toBe("Rosa");
+    expect(armarDetalleVenta(filas, { ...ctx, vendedor: "Rosa Díaz Luna" }).recibo?.atendio).toBe("Rosa");
+    expect(armarDetalleVenta(filas, { ...ctx, vendedor: null }).recibo?.atendio).toBeNull();
+    expect(armarDetalleVenta(filas, { ...ctx, vendedor: "—" }).recibo?.atendio).toBeNull();
+  });
+
   it("expone el hash y el estado del comprobante", () => {
     expect(d.comprobante).toMatchObject({ estado: "aceptado", hash: "abc123=", motivoRechazo: null });
   });

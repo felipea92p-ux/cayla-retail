@@ -163,7 +163,7 @@ export function DetalleVentaModal({
                   )}
                 </div>
               ))}
-              {d.recibo && (
+              {d.recibo && d.recibo.tipo !== "nota_venta" && (
                 <div className="space-y-0.5 border-t border-sand pt-2 text-xs tabular-nums text-tinta/65">
                   <p className="flex justify-between">
                     <span>Subtotal</span>

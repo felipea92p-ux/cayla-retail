@@ -12,7 +12,12 @@ import { desgloseIgv, vueltoDe, type PagoAplicado } from "./vender-reglas";
 
 /** Solo lo que Vender emite hoy. Una nota de venta (sin valor tributario) no existe todavía
  *  como opción en la pantalla — ver ADR-0114. */
-export type TipoReciboFiscal = "boleta" | "factura";
+// Lo que se imprime al cobrar. La nota de venta (ADR-0164) no es un comprobante de pago: mismo papel, pero sin
+// IGV desglosado, sin QR de SUNAT y con la leyenda «Documento sin valor tributario» (`desglosaIgv`).
+export type TipoReciboFiscal = "boleta" | "factura" | "nota_venta";
+
+/** Si el papel separa el IGV y lleva lo que SUNAT pide (QR, «representación impresa»). La nota de venta no. */
+export const desglosaIgv = (tipo: TipoReciboFiscal): boolean => tipo !== "nota_venta";
 export type TipoDocCliente = "dni" | "ruc" | "sin_documento";
 
 export type LineaRecibo = {
@@ -44,6 +49,8 @@ export type ReciboVenta = {
   total: number;
   pagos: PagoRecibo[];
   vueltoTotal: number;
+  /** Quién atendió a la clienta (nombre corto), si la caja lo sabe. Ausente/`null` en las ventas anteriores o sin elección. */
+  atendio?: string | null;
 };
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
@@ -65,6 +72,7 @@ export function textoNumeroRecibo(r: { serie: string; numero: number }): string 
 export const TITULO_DOCUMENTO: Record<TipoReciboFiscal, string> = {
   boleta: "BOLETA DE VENTA ELECTRÓNICA",
   factura: "FACTURA ELECTRÓNICA",
+  nota_venta: "NOTA DE VENTA",
 };
 
 export function armarRecibo(entrada: {
@@ -74,6 +82,8 @@ export function armarRecibo(entrada: {
   lineas: { cantidad: number; referencia: string; codigo: string | null; precioUnitario: number; descuentoUnitario: number; detalle?: string }[];
   pagos: readonly PagoAplicado[];
   tasaIgv: number;
+  /** Nombre corto de quien atendió; ver `atendioCorto` en `vender-reglas.ts`. */
+  atendio?: string | null;
 }): ReciboVenta {
   const lineas: LineaRecibo[] = entrada.lineas.map((l) => ({
     cantidad: l.cantidad,
@@ -85,7 +95,8 @@ export function armarRecibo(entrada: {
     importe: redondear2(l.cantidad * (l.precioUnitario - l.descuentoUnitario)),
   }));
   const total = redondear2(lineas.reduce((acc, l) => acc + l.importe, 0));
-  const { subtotal, igv } = desgloseIgv(total, entrada.tasaIgv);
+  // 1A (Felipe, 2026-09-22): la clienta paga lo mismo; la nota de venta solo no separa el IGV.
+  const { subtotal, igv } = desglosaIgv(entrada.comprobante.tipo) ? desgloseIgv(total, entrada.tasaIgv) : { subtotal: total, igv: 0 };
   // Solo los medios que cubrieron algo: una fila en 0 no se cobró por ahí.
   const pagos: PagoRecibo[] = entrada.pagos
     .filter((p) => p.monto > 0)
@@ -103,6 +114,7 @@ export function armarRecibo(entrada: {
     total,
     pagos,
     vueltoTotal: redondear2(pagos.reduce((acc, p) => acc + p.vuelto, 0)),
+    atendio: entrada.atendio ?? null,
   };
 }
 
