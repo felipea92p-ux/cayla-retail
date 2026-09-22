@@ -1,6 +1,6 @@
 # ADR-0173 — RLS: la función de permisos se evalúa una vez por consulta, no una vez por fila
 
-**Fecha:** 2026-09-22 · **Estado:** aceptado (Felipe, 2026-09-22: «hazlo con la A y luego hacemos B») · **Migración:** `20260923143700_rls_ventas_una_vez_por_consulta.sql` — **PEGADA en producción** el 2026-09-22
+**Fecha:** 2026-09-22 · **Estado:** aceptado (Felipe, 2026-09-22: «hazlo con la A y luego hacemos B») · **Migraciones:** `20260923143700_rls_ventas_una_vez_por_consulta.sql` (A) y `20260923152300_rls_todas_una_vez_por_consulta.sql` (B) — las dos **PEGADAS en producción** el 2026-09-22
 
 ## Contexto
 
@@ -35,7 +35,20 @@ using ((select retail.fn_es_lider()) or ubicacion_id = (select retail.fn_ubicaci
 ## Alcance por etapas
 
 - **A (hecha):** las políticas de lectura de `ventas`, `venta_items`, `venta_pagos` y `comprobantes`, más el índice `ventas (created_at desc, id desc)`.
-- **B (pendiente, acordada):** quedan 92 políticas en `retail` con el mismo patrón (`stock`, `movimientos`, `cajas`, `transferencias`, `separaciones`…, y las `*_write_lider` del catálogo, que por ser `ALL` también se evalúan al leer). Hoy son el resto del 1,2 s de la lista: `variantes`, `productos` y `producto_fotos` llaman `fn_puede_editar_catalogo()` por fila, y `ubicaciones` llama `fn_es_lider()`. Van en su propia migración, con la misma prueba de huellas tabla por tabla.
+- **B (hecha, Felipe 2026-09-22: «vamos con la B»):** `20260923152300_rls_todas_una_vez_por_consulta.sql` reescribe todas las demás con dos funciones que quedan en la base: `retail.fn_rls_reescribir(texto)` (reescritura pura del texto) y `retail.fn_rls_una_vez_por_consulta()` (recorre las políticas vigentes y aplica `alter policy` a las que cambian). Se eligió una función en vez de 92 `alter policy` copiados a mano porque varias migraciones de `main` que crean o cambian políticas todavía no están en producción, y copiar el texto de hoy las habría pisado. La equivalencia se probó expresión por expresión: para cada política y cada cláusula (USING y WITH CHECK), las filas donde la vieja da verdadero son las mismas que con la nueva, como líder, integrantes de TRU, AQP y Taller, y dos terminales. Detalle abajo.
+- **Contexto de la B:** antes de cerrar la A quedaban 92 políticas en `retail` con el mismo patrón (`stock`, `movimientos`, `cajas`, `transferencias`, `separaciones`…, y las `*_write_lider` del catálogo, que por ser `ALL` también se evalúan al leer). Hoy son el resto del 1,2 s de la lista: `variantes`, `productos` y `producto_fotos` llaman `fn_puede_editar_catalogo()` por fila, y `ubicaciones` llama `fn_es_lider()`. Van en su propia migración, con la misma prueba de huellas tabla por tabla.
+
+### Resultado de la B (pegada en producción el 2026-09-22)
+
+La función reescribió **92 políticas**; al cerrar quedaban 0 pendientes de las 131 de `retail`. La equivalencia se comparó sobre 121 cláusulas en producción, con 6 cuentas (líder; integrantes de TRU, AQP y Taller; terminales Caja Lima y Almacén Trujillo): 121 de 121 iguales en cada una. Se midió como integrante de TRU, con las mismas filas visibles antes y después:
+
+| Consulta | Antes | Después |
+|---|---|---|
+| Contar movimientos visibles (13.563) | **57,1 s** (se caía: tope de 8 s) | 14 ms |
+| Contar stock visible (2.348) | **7,3 s** (al borde) | 3 ms |
+| Historial, 21 ventas con catálogo | 475 ms | 23 ms |
+
+Antes de pegarla se guardó fuera del repo un respaldo de las 131 políticas como estaban (un `alter policy` por cada una, con el texto viejo). No se versiona: volver atrás solo devolvería la lentitud, porque la reescritura cambia la forma de la regla y no qué permite.
 
 ## Lo que se rompería sin esto
 
@@ -43,7 +56,11 @@ Cada pantalla que lee muchas filas se vuelve más lenta en proporción directa a
 
 ## Regla para lo nuevo
 
-Una política nueva no llama a una función de permisos sin `(select …)`. Para revisar lo que ya existe:
+Una política nueva no llama a una función de permisos sin `(select …)`. **Toda migración que cree o cambie políticas termina con `select retail.fn_rls_una_vez_por_consulta();`**: es idempotente, no toca lo que ya está bien, y así pegar en producción una migración escrita antes de esta regla no reintroduce la lentitud. Solo la pueden ejecutar las migraciones (dueño de las tablas); la app no tiene permiso.
+
+La función entiende dos formas: las llamadas `retail.fn_xxx()` sin argumentos, y `retail.fn_puede_operar_ubicacion(columna)`. Una función de permisos nueva que reciba argumentos necesita su propia regla en `fn_rls_reescribir`: si no, la consulta de abajo la muestra como pendiente.
+
+Para revisar lo que ya existe:
 
 ```sql
 -- políticas con alguna llamada a función que NO está envuelta en (select …); 92 al cerrar la A

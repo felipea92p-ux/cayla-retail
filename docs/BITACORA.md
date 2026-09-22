@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (RLS una vez por consulta en todo `retail` — ADR-0173, opción B)
+Felipe confirmó que Historial volvió a cargar y pidió la B. En vez de copiar 92 políticas a mano (hay migraciones de `main` sin pegar que también las cambian), quedó en la base `retail.fn_rls_una_vez_por_consulta()`, que reescribe solo la forma de llamar a las funciones de permisos en las políticas vigentes. Se comprobó que da lo mismo: 121 de 121 cláusulas iguales con 6 cuentas (líder, integrantes de 3 sedes y 2 terminales), y está PEGADA en producción. Para una integrante, Movimientos pasó de 57 s (se caía) a 14 ms y Stock de 7,3 s a 3 ms.
+Felipe se lleva: (1) **Historial no era la única pantalla caída**: para una integrante, contar sus movimientos ya pasaba el tope de 8 s; el volumen del sembrado adelantó el problema en varias pantallas a la vez; (2) **una regla que el equipo tiene que recordar se olvida; una función que se corre sola no**: toda migración con políticas termina llamándola.
+Sin resolver: correr la función después de pegar las migraciones de roles pendientes; separaciones no está en la base local.
+
 ## 2026-09-22 (Historial de ventas caído: la RLS se evaluaba fila por fila — ADR-0173, opción A)
 Felipe pasó la captura de «No se pudo cargar» (código 575251889). Los logs de Vercel dieron la pantalla (`/vender/historial`) y el error (`statement timeout`, 8 s). Medido en producción: con las 7.001 ventas del sembrado, la RLS llamaba `fn_es_lider()` una vez por venta, ítem, pago y comprobante, y la lista tardaba 12,3 s. Se reescribieron las 4 políticas de venta con `(select …)` y se agregó un índice por fecha: la lista baja a 0,5 s y cada cuenta sigue viendo exactamente las mismas filas (huellas antes/después, como líder e integrante). Quedó PEGADA en producción con el OK de Felipe.
 Felipe se lleva: (1) **el «Código» de la pantalla de error sirve**: con él se encuentra el error exacto en los logs; (2) **la regla de seguridad cuesta según cuántas veces se pregunta**: preguntar «¿quién eres?» una vez por pedido y no una vez por fila es la diferencia entre 2,6 s y 1,6 ms; (3) el volumen de prueba adelantó un problema que igual iba a llegar con las ventas reales.
