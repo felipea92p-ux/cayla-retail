@@ -44,6 +44,9 @@ declare
   v_ubicacion uuid;
   v_cuenta text;
   v_a_lider boolean;
+  -- Quién hace el cambio: firma el historial y es a quien no se le deja cambiarse. Un líder nunca es una terminal, así
+  -- que es su propia persona (ADR-0162: la cuenta no se busca a mano en cada función).
+  v_yo uuid := retail.fn_actor_persona_id(false);
 begin
   perform retail.fn_exigir_lider_de_roles();
   if (p_persona_id is null) = (p_terminal_id is null) then
@@ -59,7 +62,7 @@ begin
   v_a_lider := v_rol.clave = 'lider';
 
   if p_persona_id is not null then
-    if exists (select 1 from public.personas where id = p_persona_id and auth_user_id = auth.uid()) then
+    if p_persona_id = v_yo then
       raise exception 'No puedes cambiar tu propio rol: pídeselo a otro líder' using errcode = '42501';
     end if;
 
@@ -112,7 +115,7 @@ begin
         'cuenta', v_cuenta, 'persona_id', p_persona_id, 'terminal_id', p_terminal_id,
         'rol_antes', (select nombre from retail.roles where id = v_antes), 'rol_antes_id', v_antes,
         'ubicacion_id', case when v_rol_cuenta = 'lider' and not v_a_lider then v_ubicacion end),
-        retail.fn_actor_persona_id(false));
+        v_yo);
   end if;
 end;
 $fn$;
