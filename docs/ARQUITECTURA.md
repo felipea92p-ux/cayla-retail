@@ -220,17 +220,22 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `ProductoVarianteCelda` de `ui/PrendaCelda.tsx`, la misma que dibuja Conteo) → `ReponerPisoModal.tsx` (RPC
   `mover_interno`) y `AjustarInventarioModal.tsx` (RPC `registrar_movimiento`).
 - `/inventario/traslados` → `lib/traslados.ts` (`getTrasladosDeLaSede`: en curso + últimos 30
-  cerrados + miniaturas con UNA consulta de fotos, tolerante a fallo; `numero`) →
+  cerrados + miniaturas con UNA consulta de fotos, tolerante a fallo; `numero`; `colores` de `colores.hex`
+  para la muestra sin foto; los traslados SIN prendas se apartan con `separarVacios` y se cuentan en
+  `vacios`, ADR-0172) →
   `TrasladosPanel.tsx` (el único con estado: filtros, buscador, paginación, refresco cada minuto) →
   `TrasladosAtencion` / `TrasladosResumen` / `TrasladosFiltros` / `TrasladosLista` +
   `TrasladoEstado` / `TrasladoLlegada` / `TrasladoMiniaturas`. Todo lo que se decide (qué requiere
   acción, qué viene en camino, cuántas prendas están en tránsito, el orden por espera) vive en
   `lib/traslados-reglas.ts` (`situacionTraslado`, ADR-0105) y se comparte con el contador «por atender»
-  del menú: `getTrasladosPorAtender` (total, nunca lanza) → `(app)/layout.tsx`
+  del menú: `getTrasladosPorAtender` (total, nunca lanza; `transferencia_items!inner` deja fuera los vacíos) → `(app)/layout.tsx`
   → `AppShell` (`ui/Insignia`). Las fotos se eligen con `lib/producto-fotos-reglas.ts`
   (color exacto o general, nunca de otro color) →
-  `/inventario/traslados/[id]` → `TrasladoDetallePanel.tsx` (RPC `registrar_recepcion_traslado`,
-  `confirmar_traslado`, `cerrar_traslado_con_diferencia`; dice el estado con `TrasladoEstado`).
+  `/inventario/traslados/[id]` → `getTrasladoDetalle` (líneas por `fn_traslado_lineas`; quién envió, contó y
+  cerró por `fn_nombres_personas`; color y foto por `getAparienciaVariantes`) → `TrasladoRecorrido.tsx` (4 pasos,
+  `recorridoTraslado`) + `TrasladoDetallePanel.tsx` (conteo por borradores con `leerRecepcion`; al confirmar,
+  cerrar o guardar el recuento manda cada línea cambiada a `registrar_recepcion_traslado` y después
+  `confirmar_traslado` / `cerrar_traslado_con_diferencia`; confirma con `<Modal>`; ADR-0172).
 - `/inventario/conteo` → `lib/conteos.ts` (`getConteoAbierto`, `getConteosResumen` → RPC
   `fn_conteos_resumen`, `getPrevisualizacionCierre`, `getPrioridadConteo` + su `apariencia`: foto principal y
   `colorHex` de `lib/apariencia-variantes.ts`, la regla de Existencias; si falla degrada, no tumba) →
@@ -285,8 +290,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   · **Miniatura + color** (`ui/PrendaCelda.tsx:SinFoto`, `ui/MuestraColor.tsx`, el mismo lenguaje que Existencias)
   en toda fila «Producto/variante» que sea una tabla real: Desempeño, Comparar (Detalle), Movimientos,
   Traslados › detalle y Conteo › detalle. Sin miniatura ni cápsula en Mover/Recibir (son `<select>` nativos: un
-  `<option>` no admite marcado) ni donde el hex de color no viaja hasta la fila (Movimientos y Traslados › detalle
-  muestran el color como texto; Desempeño, Comparar y Conteo › detalle tienen `colorHex` en sus datos, y el último
+  `<option>` no admite marcado) ni donde el hex de color no viaja hasta la fila (Movimientos muestra el color como
+  texto; Traslados › detalle ya usa `ProductoVarianteCelda` con color y foto desde ADR-0172; Desempeño, Comparar y Conteo › detalle tienen `colorHex` en sus datos, y el último
   usa la celda completa de Existencias, `ProductoVarianteCelda`, con la foto principal del producto).
   · **Existencias** (`/inventario`) gana la cobertura: `getCoberturaPorVariante` = `fn_resumen_variantes` con la
   ventana de `DIAS_RITMO_RECIENTE` (30 días) + `calcularCobertura`; segunda línea bajo «Disponible», dato

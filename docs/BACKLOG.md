@@ -28,6 +28,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Traslados: rediseño de lista y detalle, conteo por borradores y vacíos ocultos (2026-09-22, ADR-0172) — construido y verificado con datos de muestra; SIN migración
+- [x] Demo aprobada por Felipe (`docs/maquetas/traslados-rediseno-2026-09/`). En producción, los 4 traslados tienen 0 líneas y 0 movimientos (quedaron de la limpieza de datos): se **ocultan** en la lista, en las lecturas de `lib/traslados.ts` y en el contador del menú. No se borran.
+- [x] Lista: estados «Por confirmar / Por revisar / En camino / Completado», los colores de lo que va cuando no hay fotos, «Salió» con hora, píldoras en lugar del `<select>` nativo y el aviso de vacíos para el líder. Detalle: recorrido en 4 pasos (quién envió, quién contó, quién cerró), 3 cifras, conteo con −/+/«Coincide» guardado al confirmar, un solo campo para escanear, `<Modal>` para confirmar, nota obligatoria al cerrar con diferencia y tarjetas en celular. Cierra el pendiente «Traslados › detalle sigue con la celda de texto».
+- [ ] **Verlo con una sesión real** (TRU y AQP): contar y confirmar un traslado de prueba, abrir el modal y cerrar uno con diferencia como líder. En la ruta de muestra el combo Responsable no tenía base y el modal no se abrió.
+- [ ] Endurecer en la base la nota de cierre: hoy solo la pantalla la exige; `cerrar_traslado_con_diferencia` acepta `p_nota` vacía.
+- [ ] Decidir qué hacer con las 4 cabeceras vacías de producción (Traslados 1 al 4): siguen en la base; el 4 está «en tránsito».
+
 ## 🎯 Los 7 módulos «del líder» se pueden dar a un rol (2026-09-22, ADR-0161 B6-B8) — CONSTRUIDO en la rama `claude/abrir-modulos-a-los-roles`; NO está en producción
 - [ ] Pegar en producción, en orden: `20260923130000_abrir_modulos_a_los_roles.sql` y `20260923131000_colaboradores_y_roles_delegables.sql` (empezar con `set search_path to retail, public, extensions;`). Las dos abortan solas si alguna función cambió.
 - [ ] Refrescar el volcado y el diccionario (`generado/COMO-REFRESCAR.md`) y correr `pnpm datos:comparar`.
@@ -239,7 +246,7 @@ Demo y decisiones: [docs/maquetas/analisis-rediseno-2026-09/](maquetas/analisis-
 
 ## 🎯 Producto / variante: una sola celda en Existencias y Conteo (2026-09-21, anexo del ADR-0071) — hecho y verificado en local; en `main`
 - [x] `ProductoVarianteCelda` (`ui/PrendaCelda.tsx`) en Existencias, «Conviene contar primero» y el detalle de un conteo; encabezado «Producto / variante» en Existencias y en ese detalle. `lib/apariencia-variantes.ts` trae foto principal + `colorHex` con la regla de Existencias (degrada sin tumbar la pantalla); `fotoPrincipal` pasó a `inventario-reglas.ts` (+4 pruebas); `LineaConteo` gana `colorHex` y `fotoUrl`. Sin cambios de base. Verificado en el navegador integrado (320–1920 px, fotos sembradas y retiradas, consulta rota a propósito).
-- [ ] Traslados › detalle sigue con la celda de texto de `PrendaCelda`. (2026-09-21: Movimientos, Desempeño y Detalle por producto ya usan `ProductoVarianteCelda` con el encabezado «Producto / variante»; Movimientos muestra el color en texto y sin foto —su dato no trae `colorHex` ni `fotoUrl`—, y las filas de Análisis tampoco traen foto. Sumarlos a sus consultas si se quiere la cápsula y la miniatura.)
+- [x] ~~Traslados › detalle sigue con la celda de texto de `PrendaCelda`.~~ Cerrado el 2026-09-22 (ADR-0172): usa `ProductoVarianteCelda` con color y foto. (2026-09-21: Movimientos, Desempeño y Detalle por producto ya usan `ProductoVarianteCelda` con el encabezado «Producto / variante»; Movimientos muestra el color en texto y sin foto —su dato no trae `colorHex` ni `fotoUrl`—, y las filas de Análisis tampoco traen foto. Sumarlos a sus consultas si se quiere la cápsula y la miniatura.)
 - [ ] Conteo abierto (buscador, líneas ya contadas y modal «Revisar antes de cerrar») sigue en texto plano: es un flujo de escaneo donde la densidad importa y solo se ve con un conteo abierto (escribe en la base). Es la misma celda si se quiere. Para contar, la foto del COLOR (la prenda que se tiene en la mano) ayudaría más que la principal del producto; hoy Existencias usa la principal.
 - [ ] Las pestañas de Inventario tienen scroll horizontal de página a ≤ 360 px (7 px a 360, 47 a 320), también en Movimientos y Traslados: causa sin identificar, no viene de la celda. (2026-09-21: la franja de pestañas se quitó; falta comprobar a ≤ 360 px si el scroll de página desaparece con ella.)
 
