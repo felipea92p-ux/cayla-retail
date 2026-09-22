@@ -178,6 +178,48 @@ los cinco dentro de 1 punto del objetivo. Los 9 chequeos internos pasaron a la p
   `venta_pagos`, `cajas`, `caja_movimientos`, `comprobantes`) tiene un trigger `DEFERRABLE`, así que no hay ningún candado
   diferido que un ensayo con `ROLLBACK` esté dejando de ejercitar.
 
+## Investigación de la Fase 5 y primer parche (2026-09-22)
+
+Antes de escribir una sola línea, 7 agentes en paralelo (uno por subsistema de postventa/gastos/Taller: devoluciones+NC, cambios,
+anulaciones, conteos+cuarentena, gastos+proformas, producción-infraestructura, producción-órdenes) verificaron cada tabla/trigger/RPC
+**contra producción en vivo, hoy**, no contra el texto del plan (verificado la última vez el 2026-09-21 — un día alcanza para que
+otra sesión lo desactualice). Una síntesis final cruzó los 7 hallazgos entre sí. Resultado completo (7 recetas + riesgos cruzados)
+en el journal del workflow; acá solo lo que cambió el diseño:
+
+1. **[Bloqueante, resuelto con Felipe]** `series_comprobantes` no tenía ninguna fila `tipo='nota_credito'` para TRU/AQP —
+   `aprobar_devolucion()` llama a `fn_reservar_numero_serie(ubicacion_id, 'nota_credito')` y esa función aborta sin una serie
+   activa, así que casi todas las ~140 devoluciones planeadas (95 % son TRU/AQP con comprobante `aceptado`) tumbarían la
+   transacción entera en la primera. **Felipe decidió (2026-09-22) que el propio script la registre**: NC01 (TRU), NC02 (AQP) —
+   única excepción autorizada a la regla «no tocar `series_comprobantes`» de este ADR, y solo para este caso puntual. Sección 5.1.
+2. **[Drift no listado en el plan]** `anular_venta()` fue reescrita hoy mismo por otra sesión (migración
+   `comprobantes_cola_de_reintento`): ya no pone el comprobante en `anulado`, y **aborta si el comprobante de la venta ya está
+   `enviado`/`aceptado`** — exactamente el estado de las 6.995 ventas que la Fase 4 ya sembró (todas `aceptado`, sin excepción).
+   Sin esto, las ~50 «anulaciones» del plan no representarían ningún estado que la app real pudiera producir hoy (principio 2:
+   cero estados inconsistentes). Arreglo: se parcheó la Fase 4 YA COMPROMETIDA (sección 4.6b, nueva) para elegir ~50 ventas de
+   TRU/AQP de forma determinista (`pg_temp.h('anular:'||ticket_id) < 0.0075`, con margen real antes de que cierre su caja) y
+   4.7 les da `no_emitido` (con `motivo_no_emitido`/`marcado_no_emitido_por`/`_at`) en vez de `aceptado` — nunca pasan por
+   `aceptado`, tal como en la vida real un líder anula antes de que se transmita. Un chequeo nuevo (4b) confirma que los
+   comprobantes `no_emitido` son EXACTAMENTE esas ventas, ni más ni menos. Ensayado en Docker local: 54 elegidas (35-65
+   esperadas), los 9 chequeos originales de la Fase 4 siguen en verde, `ROLLBACK` limpio.
+3. **[Conflicto entre dos recetas, resuelto por la síntesis]** El agente de «producción-infraestructura» diseñó `insumo_lotes`
+   como INSERT directo sin trazabilidad (`comprobante_item_id`/`recepcion_id` en NULL); el de «producción-órdenes» descubrió en
+   vivo que esas mismas columnas son FK reales a `comprobantes_produccion_items`/`_recepciones`, y que los lotes que las ~30 OP
+   consumen por FIFO SÍ deben venir de un comprobante de producción real. Se fusionan en un solo bloque de Fase 5, un solo autor,
+   orden estricto: `proveedores_produccion → insumos → comprobantes_produccion(+items) → comprobantes_produccion_recepciones →
+   insumo_lotes (con FK reales) → movimientos_insumo compra → producciones → movimientos_insumo consumo (FIFO) →
+   cerrar_produccion`, con un chequeo final `v_insumo_saldos.fisico < 0` = 0 filas.
+4. **[Riesgo cruzado, a resolver al escribir el resto]** Anulaciones, Cambios y Devoluciones seleccionan sobre el mismo pool de
+   ~7.000 ventas — sin partición por hash triple-excluyente (`NOT EXISTS` cruzado entre las tres, no solo contra Anulaciones),
+   un mismo `venta_item` podría terminar con dos historias contradictorias. Gastos, Cambios y Devoluciones tocan las MISMAS
+   cajas que la Fase 4 ya cerró (reembolsos, diferencia de cambio, egresos de gasto) — un solo «cierre financiero» al final de
+   la Fase 5 debe recalcular `monto_cierre_sistema`/`monto_cierre_real` con la fórmula completa de `cerrar_caja()`, no cada
+   sub-área por separado. Ninguno de los dos está resuelto todavía en código — queda para cuando se escriban esas secciones.
+
+Lo que ya envejeció del plan original y no se siguió al pie de la letra: el patrón de RUC de 11 dígitos que el plan decía
+«reutilizar de la Fase 3» solo existe en el fixture local de pruebas, no en el generador real (la Fase 3 lee RUCs de proveedores
+ya existentes, nunca genera uno nuevo) — la receta de producción-infraestructura genera el suyo con `pg_temp.h()`, determinista,
+en vez de asumir un patrón que no estaba ahí.
+
 ## Revisión adversarial de la Fase 3 (2026-09-22)
 
 Tres lentes (estados imposibles, pantallas, riesgo para producción viva) revisaron el generador; cada hallazgo lo intentó refutar un
@@ -254,11 +296,13 @@ haría la Fase 6). Dos hallazgos:
 - **`referencia` es el nombre del producto** en la pantalla actual (los datos viejos la usan como código); se sigue la convención de
   la pantalla.
 
-## Qué falta (fases 4-7) y lo que se decidirá con Felipe
+## Qué falta (fase 5 en curso, fases 6-7) y lo que se decidirá con Felipe
 
-Fase 4 ventas, caja y comprobantes (las ventas reales con sus pagos, las cajas por día y los comprobantes `aceptado` con series demo) ·
-fase 5 postventa, gastos y producción del Taller · fase 6 `stock` derivado y cierre · fase 7 ensayo completo y prueba de reversibilidad
-(`verificar-90-dias.sql`, `deshacer-90-dias.sql`, `docs/demo-90-dias/QUE-MIRAR.md`).
+De la Fase 5 (postventa, gastos y producción del Taller) ya están escritas y ensayadas: 5.1 (serie de NC) y la selección de
+anulaciones (4.6b, parche a la Fase 4). Falta escribir, con las 7 recetas ya verificadas: el resto de anulaciones
+(`venta_anulacion_items` + `ventas.estado`), cambios, devoluciones+NC, conteos, cuarentena, gastos+proformas, producción del
+Taller (infra+órdenes en un solo bloque) y el cierre financiero único de cajas. Luego fase 6 `stock` derivado y cierre · fase 7
+ensayo completo y prueba de reversibilidad (`verificar-90-dias.sql`, `deshacer-90-dias.sql`, `docs/demo-90-dias/QUE-MIRAR.md`).
 
 **Decidido por Felipe (2026-09-21):** la cantidad (≈ S/ 962 mil) sirve, y la ventana termina el día en que se pegue el `COMMIT`, que
 será el mismo día en que se termine de armar (el script toma «hoy» de la base; se puede fijar con `cayla_seed.ahora`).

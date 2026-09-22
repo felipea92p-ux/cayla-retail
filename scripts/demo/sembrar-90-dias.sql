@@ -1893,6 +1893,41 @@ begin
   if v_n > 0 then raise exception '[check ventas] % ventas donde los pagos no cuadran con el total', v_n; end if;
 end $$;
 
+-- ---- 4.6b Selección de anulaciones (se resuelven en la Fase 5): ~50 ventas de TRU/AQP que un líder anuló el mismo
+-- día, antes de que se transmitiera su comprobante. `anular_venta()` (reescrita 2026-09-22, migración
+-- `comprobantes_cola_de_reintento`) bloquea la anulación si el comprobante de la venta ya está `enviado`/`aceptado`
+-- — así que estas ~50 ventas NUNCA deben recibir un comprobante `aceptado` en 4.7 (más abajo): reciben `no_emitido`
+-- directamente, tal como `anular_venta()` lo dejaría en la vida real (nunca inserta un comprobante nuevo, solo
+-- actualiza uno `pendiente` a `no_emitido`). Se materializa aquí, antes de 4.7, para que ese loop ya lo sepa; el
+-- resto del acto de anular (`venta_anulacion_items`, `ventas.estado`) se hace en la Fase 5 con estos mismos datos,
+-- para que el motivo y el instante coincidan en los dos lugares.
+create temp table tmp_venta_anulada on commit drop as
+select v.ticket_id, v.ubicacion_id, v.codigo, v.ts, c.cerrada_en,
+       -- el líder anula entre 5 y 90 minutos después de la venta, siempre con al menos 1 minuto de margen antes de
+       -- que cierre la caja de ese día (anular_venta exige caja.estado='abierta')
+       least(v.ts + (5 + floor(pg_temp.h('anularmin:' || v.ticket_id) * 85)::int) * interval '1 minute',
+             c.cerrada_en - interval '1 minute') as anulado_en,
+       pg_temp.firmante(v.ubicacion_id, v.fecha, true, 'anular:' || v.ticket_id) as anulado_por,
+       (array['Se equivocó de producto', 'La clienta se arrepintió antes de salir de la tienda',
+              'Precio mal cobrado, se rehace la venta', 'Duplicó el ticket por error del sistema'])
+         [1 + floor(pg_temp.h('motivoanular:' || v.ticket_id) * 4)::int] as motivo_anulacion
+from tmp_venta_cab v
+join cajas c on c.id = v.caja_id
+where v.codigo in ('TRU', 'AQP')
+  and pg_temp.h('anular:' || v.ticket_id) < 0.0075
+  -- descarta ventas de último minuto que no dejarían margen real antes del cierre de caja
+  and v.ts + interval '6 minutes' < c.cerrada_en;
+
+do $$
+declare v_n int;
+begin
+  select count(*) into v_n from tmp_venta_anulada;
+  if v_n < 35 or v_n > 65 then raise exception '[fase 4b] % ventas elegidas para anular (se esperaban ~50)', v_n; end if;
+  if exists (select 1 from tmp_venta_anulada where anulado_por is null) then
+    raise exception '[fase 4b] alguna anulación no tiene líder firmante elegible';
+  end if;
+end $$;
+
 -- ---- 4.7 Comprobantes: boleta o factura, solo TRU y AQP (LIM no tiene ninguna serie registrada — hallazgo previo del
 -- preflight, no algo que este seed deba resolver). aceptado + sandbox, jamás pendiente/rechazado. El correlativo sale de
 -- fn_reservar_numero_serie() en orden cronológico, la misma función que usa emitir_comprobante(): avanza de verdad
@@ -1901,7 +1936,7 @@ end $$;
 do $$
 declare
   r record; v_serie text; v_numero int; v_tipo text; v_items jsonb; v_sub numeric; v_igv numeric;
-  v_doc_tipo text; v_doc_num text; v_doc_nombre text;
+  v_doc_tipo text; v_doc_num text; v_doc_nombre text; v_anulada tmp_venta_anulada%rowtype;
 begin
   for r in
     select v.ticket_id, v.ubicacion_id, v.ts, v.usuario_id, t.total
@@ -1935,12 +1970,24 @@ begin
              'precio_unitario', vi.precio_unitario, 'descuento_unitario', vi.descuento_unitario) order by vi.id)
       into v_items from venta_items vi where vi.venta_id = r.ticket_id;
 
+    select * into v_anulada from tmp_venta_anulada where ticket_id = r.ticket_id;
+
+    -- las ~50 ventas de 4.6b nunca llegan a `aceptado`: quedan `no_emitido`, con el mismo motivo/firmante/instante
+    -- que la Fase 5 usará para anular_venta — nunca se transmiten, `entorno_transmision`/`respuesta_sunat`/`enviado_at`
+    -- quedan NULL (así habría quedado un comprobante `pendiente` real que nunca llegó a transmitirse).
     insert into comprobantes (id, venta_id, ubicacion_id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc,
       cliente_nombre, moneda, subtotal, igv, total, estado, usuario_id, items, entorno_transmision, respuesta_sunat,
-      created_at, enviado_at)
+      created_at, enviado_at, motivo_no_emitido, marcado_no_emitido_por, marcado_no_emitido_at)
     values (pg_temp.sid('comp', r.ticket_id::text), r.ticket_id, r.ubicacion_id, v_tipo, v_serie, v_numero, v_doc_tipo,
-      v_doc_num, v_doc_nombre, 'PEN', v_sub, v_igv, r.total, 'aceptado', r.usuario_id, v_items, 'sandbox',
-      '{"seed": true}'::jsonb, r.ts, r.ts);
+      v_doc_num, v_doc_nombre, 'PEN', v_sub, v_igv, r.total,
+      case when v_anulada.ticket_id is null then 'aceptado' else 'no_emitido' end,
+      r.usuario_id, v_items,
+      case when v_anulada.ticket_id is null then 'sandbox' end,
+      case when v_anulada.ticket_id is null then '{"seed": true}'::jsonb end,
+      r.ts,
+      case when v_anulada.ticket_id is null then r.ts end,
+      case when v_anulada.ticket_id is not null then 'Venta anulada: ' || v_anulada.motivo_anulacion end,
+      v_anulada.anulado_por, v_anulada.anulado_en);
   end loop;
 end $$;
 
@@ -1976,8 +2023,17 @@ begin
   select count(*) into v_n from comprobantes c join ventas v on v.id = c.venta_id
     where c.id::text like '5eed%' and round(c.total, 2) <> round((select sum(i.subtotal) from venta_items i where i.venta_id = v.id), 2);
   if v_n > 0 then raise exception '[check ventas] % comprobantes cuyo total no es el de su venta', v_n; end if;
-  select count(*) into v_n from comprobantes where id::text like '5eed%' and estado not in ('aceptado');
-  if v_n > 0 then raise exception '[check ventas] % comprobantes sembrados en un estado que no es aceptado', v_n; end if;
+  select count(*) into v_n from comprobantes where id::text like '5eed%' and estado not in ('aceptado', 'no_emitido');
+  if v_n > 0 then raise exception '[check ventas] % comprobantes sembrados en un estado que no es aceptado ni no_emitido', v_n; end if;
+  -- (4b) los comprobantes no_emitido son EXACTAMENTE los de las ~50 ventas elegidas para anular en 4.6b — ni más ni menos
+  select count(*) into v_n from (
+    select venta_id from comprobantes where id::text like '5eed%' and estado = 'no_emitido'
+    except select ticket_id from tmp_venta_anulada
+    union
+    select ticket_id from tmp_venta_anulada
+    except select venta_id from comprobantes where id::text like '5eed%' and estado = 'no_emitido'
+  ) z;
+  if v_n > 0 then raise exception '[check ventas] los comprobantes no_emitido no coinciden exactamente con las ventas elegidas para anular (4.6b)'; end if;
   select count(*) into v_n from (
     select tipo, serie, numero, count(*) from comprobantes where tipo in ('boleta', 'factura') group by 1, 2, 3 having count(*) > 1) z;
   if v_n > 0 then raise exception '[check ventas] números de comprobante repetidos'; end if;
@@ -2031,6 +2087,29 @@ begin
   if v_n > 0 then raise exception '[check ventas] % instantes con dos movimientos del mismo bucket (venta/reposición)', v_n; end if;
 
   raise notice '[check ventas] OK — % ventas, % comprobantes, % cajas', v_ventas, v_comp, v_cajas;
+end $$;
+
+-- =============================================================================
+-- FASE 5 — POSTVENTA, GASTOS Y PRODUCCIÓN DEL TALLER (la más frágil: 7 subsistemas)
+-- =============================================================================
+
+-- ---- 5.1 Serie de Nota de Crédito para TRU y AQP ----
+-- Producción no tenía ninguna serie `nota_credito` registrada (verificado en vivo 2026-09-22; LIM tampoco, pero LIM
+-- no emite ningún comprobante — hallazgo previo, ni boleta ni NC). Sin esto, `fn_reservar_numero_serie(ubicacion_id,
+-- 'nota_credito')` —la misma función que usa `aprobar_devolucion()` internamente— abortaría en la primera
+-- devolución con nota de crédito. Felipe autorizó explícitamente que este script la registre (2026-09-22, ver
+-- BITACORA «Doble conteo de notas de crédito»/decisión de Fase 5): NC01 para TRU, NC02 para AQP, el mismo patrón de
+-- numeración por tienda que ya usan boleta/factura/nota_venta ahí. `siguiente_numero` arranca en 1 (default de la
+-- tabla) — no hay ninguna NC real hoy que este script deba respetar.
+insert into series_comprobantes (ubicacion_id, tipo, serie)
+select u.ubicacion_id, 'nota_credito', case u.codigo when 'TRU' then 'NC01' when 'AQP' then 'NC02' end
+from tmp_ubic u where u.codigo in ('TRU', 'AQP');
+
+do $$
+declare v_n int;
+begin
+  select count(*) into v_n from series_comprobantes where tipo = 'nota_credito' and archivada_at is null;
+  if v_n <> 2 then raise exception '[fase 5] % series de nota_credito activas (se esperaban 2: TRU y AQP)', v_n; end if;
 end $$;
 
 -- Sincroniza transferencias_numero_seq con el número más alto que quedó sembrado. Un INSERT con `numero` explícito nunca

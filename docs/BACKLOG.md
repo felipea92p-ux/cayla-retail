@@ -39,11 +39,27 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
   comprobantes (3,6 % factura, 34,4 % boletas con DNI), medios de pago dentro de 1 punto del objetivo, A1 sembrado. 9 chequeos en
   verde a la primera corrida. Ensayada en local; producción intacta. LIM se queda sin comprobante en sus 337 ventas (no tiene
   serie registrada — hallazgo previo, no un bug de esta fase). Falta revisión adversarial (igual que la Fase 3) antes de la Fase 5.
-- [ ] Fase 5 postventa + gastos + Taller · Fase 6 cierre (`stock` de las variantes nuevas, con filas en 0) · Fase 7 ensayo completo + prueba de reversibilidad.
+- [x] **Investigación de la Fase 5** (7 áreas en paralelo + síntesis cruzada, 2026-09-22): verificó en vivo devoluciones+NC, cambios,
+  anulaciones, conteos+cuarentena, gastos+proformas y producción del Taller (infra+órdenes) contra el esquema/triggers/RPC reales
+  de producción — no contra el plan original, que había envejecido en varios puntos. Encontró un **bloqueante real**: `series_comprobantes`
+  no tenía ninguna fila `nota_credito` para TRU/AQP (`aprobar_devolucion()` abortaría en casi todas las ~140 devoluciones) — **Felipe
+  decidió (2026-09-22) que el propio script la registre** (NC01 TRU, NC02 AQP), excepción puntual a la regla de abajo. También
+  confirmó que `anular_venta()` fue reescrita (migración `comprobantes_cola_de_reintento`) y bloquea anular una venta cuyo comprobante
+  ya está `aceptado` — como la Fase 4 ya sembrada emite TODOS los comprobantes `aceptado`, hizo falta parchearla (ver abajo). Detalle
+  completo (7 recetas verificadas + 7 riesgos cruzados) en el ADR.
+- [x] **Parche a la Fase 4 (ya comprometida) + Fase 5.1**: sección 4.6b elige ~50 ventas de TRU/AQP para anular (determinista,
+  con margen real antes del cierre de su caja); 4.7 ya no les da comprobante `aceptado`, les da `no_emitido` con el mismo
+  motivo/firmante/instante que usará la anulación real; nuevo chequeo (4b) confirma que coinciden exacto. Fase 5.1 registra
+  NC01/NC02. Ensayado en local (Docker): 54 anulaciones elegidas (dentro de 35-65), todos los chequeos de la Fase 4 en verde,
+  `ROLLBACK` limpio.
+- [ ] Falta escribir el resto de la Fase 5 (con las 7 recetas ya verificadas): anulaciones (`venta_anulacion_items` + `ventas.estado`),
+  cambios, devoluciones+NC, conteos, cuarentena, gastos+proformas, producción del Taller (infra+órdenes en un solo bloque, por el
+  conflicto de mecanismo que encontró la síntesis), y un cierre financiero único de cajas al final de la fase (gastos/cambios/
+  devoluciones tocan las mismas cajas que la Fase 4 ya cerró). Luego Fase 6 (`stock` derivado) y Fase 7 (ensayo completo + reversibilidad).
 - [ ] Decidido por Felipe (2026-09-21): la ventana termina el día del `COMMIT` (el mismo en que se arme); falta la hora tranquila y confirmar el respaldo del día. **Una fase por turno; Felipe da el OK entre cada una.**
 - [ ] Archivos que faltan: `scripts/demo/verificar-90-dias.sql`, `scripts/demo/deshacer-90-dias.sql` (no se corre sin OK), `docs/demo-90-dias/QUE-MIRAR.md`.
 - [ ] **Decisión de Felipe:** el día en que termina la ventana (el del `COMMIT`) y una ventana tranquila: hay pruebas en producción en vivo. Antes del `COMMIT`, confirmar en Supabase (Database → Backups) una copia de ese día.
-- [ ] Reglas que no se negocian: nunca `DELETE`/`UPDATE` sobre `movimientos` ni apagar sus triggers en la carga; jamás un comprobante `pendiente`/`rechazado`; no tocar `series_comprobantes`; no llamar `recalcular_stock()` global (borraría las 138 filas reales de stock); el `COMMIT` lo pega Felipe.
+- [ ] Reglas que no se negocian: nunca `DELETE`/`UPDATE` sobre `movimientos` ni apagar sus triggers en la carga; jamás un comprobante `pendiente`/`rechazado`; no tocar `series_comprobantes` **salvo la excepción de NC01/NC02 de arriba, con OK explícito de Felipe**; no llamar `recalcular_stock()` global (borraría las 138 filas reales de stock); el `COMMIT` lo pega Felipe.
 
 ## 🐛 Bug real: `notas_credito_tablero()` y `compras_nota_pendiente()` duplicaban un cierre ya resuelto — CORREGIDO 2026-09-22 (hallado por la siembra de 90 días, ver ADR-0150)
 - [x] Un cierre de línea de compra (`compra_item_cierres`) ya resuelto con una nota de crédito de motivo `devolucion`/`descuento`/`otro` seguía apareciendo como «pendiente, falta la nota» para siempre. Las dos funciones filtraban «¿esta COMPRA ya tiene alguna nota con motivo `faltante`?» en vez de «¿este CIERRE concreto ya tiene alguna nota (cualquier motivo)?» — comparaban al nivel equivocado. `fn_insertar_nota_credito_compra` sí permite legítimamente resolver un cierre con esos otros motivos sin exigir la compra resuelta (solo `faltante` lo exige), así que cualquier líder real podía producir este estado.
