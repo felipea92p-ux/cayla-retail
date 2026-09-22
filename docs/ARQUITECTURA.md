@@ -101,6 +101,13 @@ flowchart TB
   valida el servidor vía `fn_puede_operar_sede` — la cookie es solo UX.
 - `(app)/layout.tsx` → `AppShell.tsx` (shell de navegación de todo el app) +
   `SedeSwitcher.tsx` → Server Action `cambiarSedeActiva`.
+- `/colaboradores` (solo líder; ADR-0145 y ADR-0148) → `lib/colaboradores.ts` (lecturas: `fn_colaboradores`,
+  `fn_colaboradores_suspendidos`, `fn_colaboradores_inactivos`, `fn_colaboradores_actividad`, `fn_dynamic_disponibles`) →
+  `ColaboradoresPanel.tsx` (pestañas, tarjetas, modales) + `ColaboradoresTablas.tsx` + `ColaboradoresModales.tsx` +
+  `ui/MenuAcciones.tsx`. Escribe por `lib/colaboradores-acciones.ts` → RPC `agregar_colaboradores`, `suspender_colaborador`,
+  `reactivar_colaborador`, `cambiar_ubicacion_colaborador`, `quitar_colaborador`. Reglas puras en `colaboradores-reglas.ts`.
+  **Suspender mueve la fila** de `colaboradores` a `colaboradores_suspendidos`; el historial vive en
+  `colaboradores_historial` (solo se agrega). `/vender/historial` también lee estas listas para el filtro «vendedor».
 
 **Catálogo / inventario**
 - `/inventario` → `lib/inteligencia.ts` (`getCatalogoInteligente`, reusa
@@ -136,7 +143,9 @@ flowchart TB
   (`listarMovimientos`, `getResumenMovimientos`) → RPC `fn_movimientos` /
   `fn_movimientos_resumen` (lectura pura, cursor, filtros en Postgres; la búsqueda
   por prenda **y por proceso** —«Traslado 24», «B001-000184»— la resuelve
-  `fn_movimientos_busqueda`, una sola vez para la lista y las tarjetas) →
+  `fn_movimientos_busqueda`, una sola vez para la lista y las tarjetas; la parte de prenda es
+  el Filtro de búsqueda especial escrito en SQL, `fn_movimientos_variantes`, migración `20260921153700`:
+  ver su fila en la tabla de RPC y el ADR-0071) →
   `FiltrosMovimientos.tsx` (buscador, Tipo, Sububicación y Período a la vista, el
   proceso específico en «Más filtros»; todo en la URL) + `MovimientosLista.tsx`
   (agrupada por día: Prenda · Hora y dónde · Movimiento · Origen → Destino · Cant. ·
@@ -156,8 +165,10 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
 - `/inventario` (Existencias) → `lib/inventario-v2.ts:getExistencias` = `getStockPorUbicacion`
   (tabla `stock` agregada por variante) + RPC `fn_stock_por_sede` (dónde más hay, la misma
   de Vender, vía `lib/stock-por-sede.ts`) + `transferencia_items` en tránsito hacia acá →
-  `InventarioPanel.tsx` (tres tarjetas, filtros en memoria, semáforo de 4 estados con
-  `calcularEstado` en `lib/inventario-reglas.ts`, leyenda) → `ReponerPisoModal.tsx` (RPC
+  `InventarioPanel.tsx` (tres tarjetas, filtros en memoria —el buscador es el Filtro de búsqueda especial,
+  `lib/filtro-busqueda-especial.ts`: términos en cualquier orden sobre nombre/SKU/código/color/talla—, semáforo de 4 estados con
+  `calcularEstado` en `lib/inventario-reglas.ts`, leyenda; primera columna «Producto / variante» =
+  `ProductoVarianteCelda` de `ui/PrendaCelda.tsx`, la misma que dibuja Conteo) → `ReponerPisoModal.tsx` (RPC
   `mover_interno`) y `AjustarInventarioModal.tsx` (RPC `registrar_movimiento`).
 - `/inventario/traslados` → `lib/traslados.ts` (`getTrasladosDeLaSede`: en curso + últimos 30
   cerrados + miniaturas con UNA consulta de fotos, tolerante a fallo; `numero`) →
@@ -172,10 +183,12 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `/inventario/traslados/[id]` → `TrasladoDetallePanel.tsx` (RPC `registrar_recepcion_traslado`,
   `confirmar_traslado`, `cerrar_traslado_con_diferencia`; dice el estado con `TrasladoEstado`).
 - `/inventario/conteo` → `lib/conteos.ts` (`getConteoAbierto`, `getConteosResumen` → RPC
-  `fn_conteos_resumen`, `getPrevisualizacionCierre`, `getPrioridadConteo`) →
-  `ConteoPanel.tsx` (RPC `abrir_conteo`, `conteo_contar`, `cerrar_conteo`; avance con
+  `fn_conteos_resumen`, `getPrevisualizacionCierre`, `getPrioridadConteo` + su `apariencia`: foto principal y
+  `colorHex` de `lib/apariencia-variantes.ts`, la regla de Existencias; si falla degrada, no tumba) →
+  `ConteoPanel.tsx` («Conviene contar primero» con `ProductoVarianteCelda`; RPC `abrir_conteo`,
+  `conteo_contar`, `cerrar_conteo`; avance con
   `avanceConteo`) + `ConteosLista.tsx` (historial) → `/inventario/conteo/[id]`
-  (`getConteoDetalle`, solo lectura). Exactitud con `exactitudConteos`
+  (`getConteoDetalle`, que trae foto y `colorHex` en su misma consulta; solo lectura). Exactitud con `exactitudConteos`
   (`lib/conteo-varianza.ts`).
 - `/inventario/resumen` (**Análisis de inventario**, solo líder; nació como «Resumen» en ADR-0101/0121 y se
   repartió y rediseñó en ADR-0138) → `page.tsx` lee de la URL `preset, desde, hasta, q, cat, st, orden, pag` (+
@@ -192,9 +205,10 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `ResumenControles` (una barra: período · categoría · sell-through, búsqueda debajo) y
   `ResumenComportamiento` (tabla «Comportamiento del inventario», orden por defecto «Más vendidos», 15 filas).
   · **Comparar períodos** (rediseño visual 2026-09-19) → `getComparacionInventario` = la misma RPC con A y B
-  elegidos → `lib/resumen-comparacion.ts:armarComparacion` → `ResumenComparacionPanel`: contexto compacto
-  «A → B · Cambiar períodos» (`ResumenControles`, el configurador completo se despliega a pedido; la búsqueda
-  vive solo en Detalle) + `…General` (4 KPI — Ventas, Rotación, Sell-through, Capital —, dona «Evolución del
+  elegidos → `lib/resumen-comparacion.ts:armarComparacion` → `ResumenComparacionPanel`: contexto en dos
+  píldoras «Período A: desde … hasta …» y «Período B: …» (`ResumenControles`, diseño de Figma 2026-09-21; cada una
+  abre el MISMO selector de fechas —`PopoverRango`, el de «Personalizado» de Desempeño, con Desde/Hasta escritos a mano;
+  los atajos de A y B van dentro—; la búsqueda vive solo en Detalle) + `…General` (4 KPI — Ventas, Rotación, Sell-through, Capital —, dona «Evolución del
   ritmo» con `evolucionDelRitmo`/`evolucionRitmoTotal` sobre `calcularTendencia`, barras A/B «Top rotación» y
   «Distribución de sell-through») + `…Detalle` (tabla de 6 columnas con `cambioMostrado`/`textoCambio`: UN
   cambio relevante por fila, el más importante de `PRIORIDAD_CAMBIO`, no una lista de señales).
@@ -215,8 +229,9 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   · **Miniatura + color** (`ui/PrendaCelda.tsx:SinFoto`, `ui/MuestraColor.tsx`, el mismo lenguaje que Existencias)
   en toda fila «Producto/variante» que sea una tabla real: Desempeño, Comparar (Detalle), Movimientos,
   Traslados › detalle y Conteo › detalle. Sin miniatura ni cápsula en Mover/Recibir (son `<select>` nativos: un
-  `<option>` no admite marcado) ni donde el hex de color no viaja hasta la fila (Movimientos, Traslados › detalle,
-  Conteo › detalle muestran el color como texto; solo Desempeño y Comparar tienen `colorHex` en sus datos).
+  `<option>` no admite marcado) ni donde el hex de color no viaja hasta la fila (Movimientos y Traslados › detalle
+  muestran el color como texto; Desempeño, Comparar y Conteo › detalle tienen `colorHex` en sus datos, y el último
+  usa la celda completa de Existencias, `ProductoVarianteCelda`, con la foto principal del producto).
   · **Existencias** (`/inventario`) gana la cobertura: `getCoberturaPorVariante` = `fn_resumen_variantes` con la
   ventana de `DIAS_RITMO_RECIENTE` (30 días) + `calcularCobertura`; segunda línea bajo «Disponible», dato
   secundario que degrada a «N/D» (nunca tumba la pantalla).
@@ -495,7 +510,30 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   lectura + edición directa (`PatrimonioEditor`, `HistoricosEditor`).
 - `RegistrarGastoModal.tsx` (accesible desde varias pantallas) → RPC
   `registrar_gasto`.
-- `/vender/facturacion` → `lib/comprobantes.ts` → `ComprobantesPanel.tsx` →
+- `/vender/facturacion/**` (layout + cuatro vistas por ruta, ADR-0124): `layout.tsx` lee
+  series, tiendas y los contadores de las pestañas y los pasa a `FacturacionShell.tsx`, que
+  dibuja la cabecera (`FacturacionCabecera`: línea viva «actualizado hace…», caja de búsqueda y
+  las dos acciones), las pestañas y —una sola vez— los modales «Emitir comprobante» y «Nueva
+  proforma». El shell guarda además el texto del buscador (`useFacturacionBusqueda`, se borra al
+  cambiar de vista): cada lista lo lee y filtra sus filas con `coincide`
+  (`lib/facturacion-busqueda.ts`). Cada `page.tsx` pide `exigirLider()` primero (lo fija
+  `lib/facturacion-puerta.test.ts`) y monta `MarcaDeCarga`, que le dice a la cabecera cuándo llegó
+  la vista (reloj del navegador, `lib/ultima-carga-facturacion.ts`). Cada vista son cuatro
+  tarjetas de vidrio (`TarjetaKpiVidrio`) y una lista (columnas por ancho de la tarjeta, con
+  container queries `@min-[640px]` y `@min-[900px]`, no por ancho de ventana); lo que decide
+  estados, cuentas, orden y textos vive en `lib/facturacion-*-reglas.ts` (puras y probadas).
+  Vistas: Resumen (`page.tsx`) → `ResumenTarjetas` + `ActividadDeHoy` (el hilo del comprobante,
+  `HiloComprobante`, y *Transmitir* por fila con `useTransmitir`) ← `fn_ventas_del_dia`,
+  `getComprobantesMes`, `getResumenPorEnviar`, `ventas-comparativo.ts` (reglas
+  `facturacion-resumen-reglas`, `-graficos` y `facturacion-actividad`); `proformas/` →
+  `ProformasTarjetas` + `ProformasPanel` ← `getProformasMes` (reglas `facturacion-proformas-reglas`
+  y `resumenProformas`, la misma cuenta que el contador de la pestaña) → RPC
+  `convertir_proforma_a_comprobante`; `descuentos/` → `CodigosTarjetas` + `CodigosDescuentoPanel`
+  (antes `/vender/descuentos`, que redirige; escribe directo a `codigos_descuento`, la RLS exige
+  líder; reglas `facturacion-codigos-reglas`, con «hoy» de `hoyLima`, la misma fecha con la que
+  `registrar_venta` valida el código); `comprobantes/` → `lib/comprobantes.ts` →
+  `ComprobantesTarjetas` + `ComprobantesPanel` (franja de series que faltan por tienda, lista,
+  modales de serie, anular y liberar; reglas `facturacion-comprobantes-reglas`) →
   RPCs `emitir_comprobante` (reserva serie+correlativo, `for update`) y
   `registrar_serie_comprobante`. Emitir NO transmite: el envío a SUNAT es el
   botón "Transmitir" de cada fila → `POST /api/lucode/emitir` (ADR-0005,
@@ -504,6 +542,15 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `GET /api/padron?tipo=dni|ruc&numero=…` → `lib/padron.ts` → proveedor externo
   del padrón (RENIEC/SUNAT). Validación de formato y dígito verificador en
   `packages/shared/src/documento.ts` (pura, corre en los dos lados). ADR-0008.
+- `/vender/historial` → `lib/ventas-historial.ts` (lectura; reglas puras en
+  `ventas-historial-reglas.ts`) → `HistorialVentasLista.tsx`, `FiltrosHistorialVentas.tsx`
+  y `HistorialVentasPulso.tsx` (el trazo del período). Solo lectura, **sin RPC propia**: PostgREST sobre
+  `ventas` + `venta_items` + `venta_pagos` + `comprobantes`, con la RLS
+  `fn_puede_operar_ubicacion` acotando por tienda (líder: todas). El nombre de quien
+  vendió sale de `fn_nombres_personas`; el filtro por vendedor, de `fn_colaboradores`.
+  Filtros y cursor `(created_at, id)` viven en la URL. Al tocar una fila abre
+  `DetalleVentaModal` (`leerVentaDetalle`, en el navegador). No usa `fn_ventas_del_dia`
+  (fija a hoy y sin `ventas.estado`). ADR-0147.
 
 ### 3.x Rutas de API (`app/api/**/route.ts`)
 
@@ -580,6 +627,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `fn_conteos_resumen` (2026-09-16) | Lista de conteos de una ubicación con líneas, sistema/contado/diferencia y soles ya sumados en Postgres; `security invoker` (RLS de conteos decide). Alimenta la pestaña Conteo. ADR-0071 |
 | `fn_resumen_variantes` (2026-09-17 en producción; **v2 aplicada en producción el 2026-09-19**, firma `(p_ubicacion_id, p_ventana_dias, p_desde, p_hasta, p_cmp_desde, p_cmp_hasta)`, la `(uuid, integer)` se elimina) | Agregados por variante para UNA ubicación: stock por sububicación **siempre actual** (cuarentena excluida), primer ingreso, **días con stock del período** (reconstruidos del ledger: saldo(t) = stock hoy − Σ movimientos posteriores, con las reglas de `fn_aplicar_movimiento`; `ledger_consistente = false` si el saldo da negativo), stock al inicio, demanda neta del período **y del período comparado** clasificada por FK (venta completada + cambio salida − devolución vendible − cambio entrada, atribuida a la sede de la venta; las salidas `venta` sin `venta_item_id` también cuentan), entradas/mermas, en camino hacia esa sede (enviado, `en_transito`/`recibido_con_diferencia`, atrasado, próxima llegada y su traslado), origen de abastecimiento, códigos de barras, categoría, precio, y `costo` + `estado_costo` (`oficial`/`declarado`/`alterado`/`sin_costo`) **solo si `fn_es_lider()`**; jsonb `en_red` con lo mismo (utilizable, piso, días con stock) de las otras sedes activas. `security definer` con baranda `fn_puede_operar_ubicacion` (0 filas si no puede), `revoke … from public, anon` y `grant execute … to authenticated`. NO decide nada: las reglas viven en `lib/resumen-reglas.ts`. ADR-0101, ADR-0113 |
 | `fn_resumen_comparacion(p_ubicacion_id, p_a_desde, p_a_hasta, p_b_desde, p_b_hasta)` (2026-09-19, **solo local: no aplicada en producción**; la usan Desempeño —con el período partido en dos mitades— y Comparar períodos) | Por variante de UNA sede y para cada período A/B: unidades vendidas y devueltas (misma clasificación por FK que `fn_resumen_variantes`), importe cobrado, costo de lo vendido y de lo devuelto EN COMPONENTES (COGS: `venta_items.costo_unitario`, el costo de ese día) y unidades sin costo, entradas (lo que llegó de afuera), stock utilizable al inicio y al cierre reconstruido del ledger (saldo(t) = saldo de hoy − Σ movimientos posteriores) y días con stock; `ledger_consistente`. Solo `fn_es_lider()` con `fn_puede_operar_ubicacion` (0 filas para un colaborador). `security definer`, `revoke … from public, anon`. NO decide nada: las reglas viven en `lib/resumen-comparacion.ts`. ADR-0138 |
+| `fn_movimientos_variantes` / `fn_busqueda_singulares` / `fn_busqueda_formas_color` (2026-09-21, ADR-0071; **en `main` y en local, pendiente en producción**) | El Filtro de búsqueda especial en SQL: `fn_movimientos_variantes(text) returns uuid[]` (misma firma y permisos que antes; NULL si no hay nada escrito) parte lo escrito en términos y exige todos, sobre nombre, SKU, códigos, color y talla; las dos ayudas llevan las reglas de plural, género y alias de color. Espejo de `lib/filtro-busqueda-especial.ts`, atado por `filtro-busqueda-especial.casos.json` y `pnpm pruebas:fn-movimientos-busqueda-especial`. La usa `fn_movimientos_busqueda`. |
 | `fn_movimientos` / `fn_movimientos_resumen` (2026-09-15; **la búsqueda por proceso y los números de traslado/conteo, 2026-09-19, ADR-0127: en producción desde el 2026-09-19**) | Lectura del ledger para la pantalla de Movimientos: una fila plana por movimiento con su proceso resuelto (comprobante, guía, factura, conteo, devolución, cambio), categoría y signo calculados en SQL, filtros y cursor server-side. `p_ubicacion_id` obligatorio; excluye la variante centinela «Cargo especial». Desde ADR-0127 la fila trae además `transferencia_numero` y `conteo_numero` (las dos últimas columnas) y `p_busqueda` entiende «traslado 24», «conteo 12», «boleta 184», «B001-000184», guía y factura de compra (`fn_movimientos_busqueda` + `fn_movimientos_de_comprobante`; la lista y las tarjetas usan la misma). ADR-0050, ADR-0127 |
 
 ### 4.3 RLS sin `tenant_id`

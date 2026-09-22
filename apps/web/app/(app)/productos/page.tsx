@@ -17,6 +17,8 @@ import { ProductosAgrupados } from "@/components/ProductosAgrupados";
 import { ProductosGrilla } from "@/components/ProductosGrilla";
 import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
+import { NotaStockTotal } from "@/components/NotaStockTotal";
+import { mensajeSinResultados } from "@/lib/productos-stock";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -88,7 +90,12 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Catálogo</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Productos</h1>
-          {vista === "grilla" && <Resumen resumen={resumen} params={params} compacto />}
+          {vista === "grilla" && (
+            <>
+              <Resumen resumen={resumen} params={params} compacto />
+              <NotaStockTotal />
+            </>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <div className="flex gap-0.5 rounded-lg bg-sand p-0.5">
@@ -181,6 +188,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           ubicacionId={persona.ubicacionId}
           sububicaciones={sububicaciones}
           esLider={persona.rol === "lider"}
+          mensajeVacio={mensajeSinResultados(filtros)}
         />
       ) : (
         <ProductosAgrupados
@@ -188,6 +196,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           ubicacionId={persona.ubicacionId}
           sububicaciones={sububicaciones}
           esLider={persona.rol === "lider"}
+          mensajeVacio={mensajeSinResultados(filtros)}
         />
       )}
 
@@ -283,6 +292,7 @@ function Resumen({ resumen, params, compacto = false }: { resumen: ResumenProduc
           </dd>
         </Link>
       </dl>
+      <NotaStockTotal />
     </div>
   );
 }

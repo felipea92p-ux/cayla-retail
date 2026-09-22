@@ -79,3 +79,20 @@ export function tolerar<T>(resultado: ResultadoConsulta<T>, que: string): Tolera
   }
   return { datos: resultado.data, fallo: null };
 }
+
+/**
+ * Una lectura secundaria que puede LANZAR, no solo devolver `error`: `createClient()` fuera de un
+ * request, un fallo de red que supabase-js no envuelve, un resumidor que revienta. `tolerar()` solo
+ * ve el `error` de la consulta; esto atrapa lo demás. Si la lectura lanza, devuelve `null` y deja la
+ * causa real en el log — la pantalla sigue con lo que sí cargó y quien lee el dato dice «no se pudo
+ * leer» en vez de inventar una cifra. Para lo que no puede tumbar la vista: el marco de una pantalla
+ * (`layout.tsx` de Facturación) y las tarjetas que no son plata.
+ */
+export async function opcional<T>(lectura: Promise<T>, que: string): Promise<T | null> {
+  try {
+    return await lectura;
+  } catch (error) {
+    console.error(`No se pudo leer ${que}:`, error);
+    return null;
+  }
+}

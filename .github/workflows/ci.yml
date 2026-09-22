@@ -160,6 +160,24 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-venta
 
+      # La lista de lo vendido hoy (Caja, Vender, Facturación): una fila por venta aunque tenga dos
+      # comprobantes y sin las anuladas (20260921103000). Cada caso termina en ROLLBACK.
+      - name: pruebas:ventas-del-dia
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:ventas-del-dia
+
+      # Anular una venta libera su comprobante pendiente (20260921121500): no queda uno en la cola de
+      # SUNAT con su botón «Transmitir» de una venta que ya se devolvió. Cada caso termina en ROLLBACK.
+      - name: pruebas:anular-venta-comprobante
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:anular-venta-comprobante
+
+      # Un comprobante no nace sobre una venta anulada (20260921161500): ni por `emitir_comprobante`, ni por
+      # un insert directo, ni convirtiendo una proforma. Cada caso termina en ROLLBACK.
+      - name: pruebas:comprobante-venta-anulada
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:comprobante-venta-anulada
+
       # Apartar stock (ADR-0141): una venta, un traslado o un ajuste no se llevan lo apartado; quién puede apartar y
       # liberar; RLS y privilegios; y el contador de cada fila siempre cuadra con la suma de sus apartados abiertos.
       # Cada caso termina en ROLLBACK.
@@ -216,6 +234,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:planilla-por-sede
 
+      # Recorrido de PUNTA A PUNTA de Producción por el ERP (ADR-0133): proveedor → comprobante (Por pagar, Deuda consolidada, IGV) → recepción por un colaborador del Taller sin ver montos →
+      # pago → orden con insumos → cierre (stock, movimientos, costo de la variante) → traslado a la tienda → lo que ven Inventario y el líder. Una transacción con ROLLBACK; corta en el primer paso que falle.
+      - name: pruebas:produccion-punta-a-punta
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:produccion-punta-a-punta
+
       # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
       # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las
       # tarjetas de arriba cuentan lo mismo. Cada caso termina en ROLLBACK.
@@ -234,6 +258,13 @@ jobs:
       - name: pruebas:fn-resumen-comparacion
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-resumen-comparacion
+
+      # Productos (ADR-0151): una prenda descontinuada no cuenta como «sin stock», «stock bajo» ni «para pedir»
+      # (y por tanto no sale en «A quién pedirle»), el contador de arriba dice lo mismo que la lista de abajo, y
+      # «N variantes» cuenta variantes, no filas de stock. Cada caso termina en ROLLBACK.
+      - name: pruebas:productos-alertas-de-stock
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:productos-alertas-de-stock
 
       # El dinero de Compras es solo del líder (ADR-0126): que un integrante no lea ni un monto —por
       # función, por tabla ni por el bucket de escaneos—, que recibir siga funcionando y que ninguna

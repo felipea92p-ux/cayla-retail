@@ -319,3 +319,88 @@ con `0097-activar-tienda-lima.md`, ya en producción). Este ADR sigue vigente pa
   minuto de otra sesión (`variantes_identidad_unica`) mientras se construía esto. Se
   renombró a `20260916200000` antes de fusionar — cuarta colisión de este tipo en el
   repo, misma regla: el que fusiona renumera.
+
+## Anexo 2026-09-21: una sola celda «Producto / variante» para Existencias y Conteo
+
+La columna que la decisión 3 llamó «Prenda · variante» (miniatura, nombre, «SKU · talla · color») se
+llama ahora **«Producto / variante»** en Existencias y en el detalle de un conteo, y es un componente:
+`ProductoVarianteCelda` (`apps/web/components/ui/PrendaCelda.tsx`). La dibujan Existencias, la lista
+«Conviene contar primero» y el detalle de un conteo, para que la misma prenda se vea igual en las dos
+pantallas. No cambia ninguna regla de negocio ni la base.
+
+- **DECIDÍ:** que Conteo traiga la foto y el color con la MISMA regla que Existencias —la foto principal
+  del producto (`fotoPrincipal`, ahora en `lib/inventario-reglas.ts` con pruebas) y `colores.hex`— mediante
+  `lib/apariencia-variantes.ts`. Es un dato secundario (`tolerar`): si la consulta falla, Conteo sigue viva,
+  sin foto y con el color en texto, nunca con el degradado de «varios colores» (que diría algo falso).
+  El detalle de un conteo los trae dentro de la misma consulta que las líneas.
+- **DESCARTÉ:** (a) sacar foto y color de `getCatalogo()`, que ya viaja al cliente de Conteo — su foto es
+  por color (la de Vender), así que la misma prenda se vería distinta en las dos pantallas, y habría que
+  mandarle al navegador la URL de la foto de todo el catálogo para dibujar 8 filas; (b) devolver foto y hex
+  desde `fn_prioridad_conteo` — un cambio de base para un asunto visual; (c) un «modo» de `PrendaCelda`
+  (la celda de texto de Resumen) — cambia el orden de la segunda línea y el color pasa de palabra a cápsula,
+  y habría movido Resumen y las demás listas que sí quieren el texto.
+- **SE ROMPE SI:** alguien cambia la regla de la foto en un solo lado (por eso vive en un módulo y se prueba);
+  si se pide la apariencia de cientos de variantes por id (las URLs de PostgREST no aguantan miles: por eso el
+  detalle la trae en su propia consulta y la lista de prioridad, de 20 filas como máximo, la pide aparte); o si
+  el menú lateral cambia de ancho y la fila de Conteo, que solo va «lado a lado» desde `lg` (1024 px), deja de
+  tener holgura — a 768 px, con el menú, el dato de la derecha se encimaba 148 px sobre la prenda cuando el
+  cambio era desde `sm`.
+- **Verificación:** navegador integrado con datos reales, 320–1920 px, fotos de prueba sembradas y retiradas,
+  y la consulta de foto/color rota a propósito. Encontró y corrigió tres desbordes de la celda y la fila (ver
+  BITÁCORA de esta fecha).
+
+## Anexo 2026-09-21 (Existencias): Filtro de búsqueda especial
+
+El buscador de Existencias deja de tratar lo escrito como una sola cadena: se parte en términos, todos deben
+cumplirse —en cualquier orden—, cada uno sobre nombre, SKU, código de barras, color o talla
+(`apps/web/lib/filtro-busqueda-especial.ts`). Es lógica pura y sin tipo de fila propio: cada pantalla dice cómo
+leer sus campos, para que otros buscadores de Inventario y Ventas la usen sin copiarla.
+
+- **DECIDÍ:** (1) una talla que existe en los datos, escrita como término suelto, se compara solo con la talla y
+  exacta; un color completo, con el color y sus equivalentes (género y plural, y tres alias: café → marrón,
+  anaranjado → naranja, rosa → rosado); lo demás, parcial y sin tildes sobre nombre/SKU/código/color/talla.
+  (2) Talla y color se reconocen contra el vocabulario de las filas que se buscan, no con una lista fija.
+  (3) El texto manda sobre el filtro visual de su MISMA dimensión (talla, color); Categoría, Estado y lo que el
+  texto no dice siguen aplicando, y la pantalla avisa bajo el filtro pisado.
+- **DESCARTÉ:** (a) buscar cada término en todos los campos por igual: «blusa l» traería todas las blusas
+  (Blusa tiene una «l») y «30» se colaría en códigos y SKU; (b) una lista fija de tallas y colores: «xl» sería
+  talla aunque no exista ninguna y un número corto que no es talla dejaría de buscarse donde antes se buscaba;
+  (c) `pg_trgm`/`unaccent` o buscar en la base: son las filas que Existencias ya tiene en el navegador, sin
+  migraciones ni extensiones; (d) cambiar `filtrarPrendasV2`: la caja se lee distinto y una prueba suya fija que
+  dos palabras sueltas no se buscan por separado.
+- **SE ROMPE SI:** se agrega un color cuyo nombre es una talla (un color «L») o una talla con nombre de color; si
+  Existencias deja de traer al navegador todas las filas de la ubicación (el filtro supone el conjunto completo: con
+  paginación en el servidor hay que llevarlo a la consulta); o si se pide «M o L» (hoy dos tallas a la vez no traen
+  nada).
+- **Verificación:** 37 pruebas y la app local con los ejemplos pedidos y las combinaciones con Talla, Color,
+  Categoría y Estado (BITÁCORA de esta fecha).
+
+## Anexo 2026-09-21 (Movimientos y Análisis): el mismo filtro, con las mismas reglas
+
+Movimientos y Análisis (Desempeño, Comparar › Detalle) buscan con el Filtro de búsqueda especial. Análisis lo usa
+tal cual (`aplicarAlcance` en `lib/resumen-filtros.ts`; `lib/resumen-busqueda.ts` quedó como el adaptador que dice cómo
+se lee una fila suya: la categoría cuenta como parte del nombre). Movimientos resuelve la búsqueda en Postgres, así que
+las reglas se escribieron también en SQL: `fn_movimientos_variantes(text)` cambia de cuerpo (misma firma, mismos
+permisos) y suma dos ayudas, `fn_busqueda_singulares` y `fn_busqueda_formas_color`
+(`supabase/migrations/20260921153700_movimientos_busqueda_especial.sql`).
+
+- **DECIDÍ:** (1) las reglas viven dos veces —TypeScript y SQL— y las une un archivo de casos,
+  `apps/web/lib/filtro-busqueda-especial.casos.json` (prendas, consultas y respuestas): lo lee la prueba de TypeScript y
+  `pnpm pruebas:fn-movimientos-busqueda-especial` (Postgres), así que una regla que cambia en un lado y no en el otro
+  rompe una de las dos. (2) Para que Análisis no perdiera nada de lo que ya encontraba, el módulo suma tres reglas:
+  el plural busca el singular (solo al comienzo de una palabra del nombre: «inés» no se convierte en «ine»), los
+  códigos se encuentran sin guiones (desde 4 letras) y «talla», «color», «de»… no filtran (salvo que sean lo único
+  escrito). (3) En Movimientos, qué es talla y qué es color sale de todo el catálogo, porque el historial abarca todo.
+- **DESCARTÉ:** (a) resolver la búsqueda en TypeScript y pasar la lista de ids a `fn_movimientos`: cambia la firma de dos
+  RPC que la lista y las tarjetas comparten, y manda miles de ids en cada tecla; (b) una columna de búsqueda ya
+  normalizada en `variantes`: es una migración de esquema que hoy no hace falta (164 variantes en producción; la búsqueda
+  tarda ~1 ms con datos reales locales y 30 ms con 4.000 variantes sintéticas); (c) mi primera versión en SQL, que
+  normalizaba cada código con `fn_clave_texto`: 95 ms con 4.000 variantes y 485 ms con 20.000, contra 30 y 120 de la que
+  quedó.
+- **SE ROMPE SI:** el catálogo pasa de ~50.000 variantes (ahí la columna normalizada deja de ser opcional); si alguien
+  cambia una regla en un solo lado y no corre las dos pruebas; o si un colaborador necesita buscar con «M o L» (dos
+  tallas a la vez no traen nada, igual que en Existencias).
+- **Estado en producción:** la migración está en `main` y aplicada en el Postgres local, pero **NO en producción** (el
+  ensayo y la aplicación fueron bloqueados por el clasificador de permisos del modo automático el 2026-09-21). Hasta
+  aplicarla, Movimientos busca como antes; Análisis y Existencias no dependen de la base. Cuando se aplique, el texto
+  guía de `FiltrosMovimientos.tsx` pasa a «Prenda, color, talla, código… ej. blusa rosado m».

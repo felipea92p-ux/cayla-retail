@@ -1,13 +1,17 @@
-// Suspense boundary automática de Next.js alrededor de cada page.tsx bajo (app) — sin
-// esto, el árbol completo (layout + página) se renderizaba como una sola unidad
-// síncrona: el navegador no recibía ni un byte de HTML hasta que TODOS los awaits
-// (persona, sedes, catálogo, movimientos...) terminaban. El layout (nav, selector de
-// sede) igual espera su propia data — pero una vez resuelto, el contenido de CUALQUIER
-// página puede mostrar esto en vez de pantalla en blanco mientras carga la suya.
+import { EsperaPantalla } from "@/components/ui/Espera";
+
+// Suspense boundary automática de Next.js alrededor de cada page.tsx bajo (app) — sin esto, el árbol
+// completo (layout + página) se renderizaba como una sola unidad síncrona: el navegador no recibía ni
+// un byte de HTML hasta que TODOS los awaits (persona, sedes, catálogo, movimientos...) terminaban.
+//
+// Mientras este fallback está montado la pantalla destino NO está lista: `EsperaPantalla` enciende el
+// loader general (ADR-0149), a pantalla completa y por encima del menú. Acá no se dibuja nada propio:
+// una pantalla con esqueleto (compras/, recibir/…) hace lo mismo y deja su silueta detrás del velo.
 export default function Loading() {
   return (
-    <div className="flex min-h-[40vh] items-center justify-center">
-      <p className="label-cayla text-[11px] text-tinta/65">Cargando…</p>
-    </div>
+    <>
+      <EsperaPantalla />
+      <div className="min-h-[40vh]" aria-busy="true" />
+    </>
   );
 }

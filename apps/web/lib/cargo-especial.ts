@@ -12,3 +12,7 @@
 // El mismo valor está como constante `c_cargo_especial` en `registrar_venta`,
 // `fn_movimientos` y `fn_movimientos_resumen`.
 export const ID_CARGO_ESPECIAL = "22222222-2222-4222-8222-222222222222";
+
+/** El PRODUCTO padre de la variante centinela (mismo archivo de migración). Vive en `productos`
+ *  con `estado = 'activo'`, así que todo conteo de productos lo debe excluir por este id. */
+export const ID_PRODUCTO_CARGO_ESPECIAL = "11111111-1111-4111-8111-111111111111";

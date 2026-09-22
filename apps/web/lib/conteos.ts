@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
 import type { FilaPrevisualizacion } from "@/lib/conteo-varianza";
+import { getAparienciaVariantes, type Apariencia } from "@/lib/apariencia-variantes";
+import { fotoPrincipal } from "@/lib/inventario-reglas";
 
 // Conteos físicos (Felipe, 2026-09-14): abrir_conteo/conteo_contar/cerrar_conteo
 // ya existían y siguen probados intactos — este archivo solo trae lecturas.
@@ -178,6 +180,10 @@ export type PrioridadConteo = {
   sububicacionId: string | null;
   diasSinContar: number | null;
   valorEnRiesgo: number;
+  /** La miniatura y el color, con la misma regla que Existencias (`lib/apariencia-variantes.ts`).
+   *  La función de Postgres no los devuelve. Ausente = no se pudieron leer: la fila se dibuja
+   *  igual, sin foto y con el color en texto. */
+  apariencia?: Apariencia;
 };
 
 /** Las 20 variantes que más conviene contar primero: nunca contadas antes,
@@ -192,6 +198,10 @@ export async function getPrioridadConteo(ubicacionId: string, categoriaId?: stri
     }),
     "qué conviene contar primero"
   );
+  const apariencia = await getAparienciaVariantes(
+    supabase,
+    filas.map((f) => f.variante_id)
+  );
   return filas.map((f) => ({
     varianteId: f.variante_id,
     sku: f.sku,
@@ -201,6 +211,7 @@ export async function getPrioridadConteo(ubicacionId: string, categoriaId?: stri
     sububicacionId: f.sububicacion_id,
     diasSinContar: f.dias_sin_contar,
     valorEnRiesgo: Number(f.valor_en_riesgo),
+    apariencia: apariencia.get(f.variante_id),
   }));
 }
 
@@ -217,6 +228,11 @@ export type LineaConteo = {
   referencia: string;
   talla: string | null;
   color: string | null;
+  /** Para dibujar la prenda como Existencias (2026-09-21): el hex de `colores.hex` y la foto
+   *  principal del producto. Vienen en la misma consulta que las líneas — un conteo entero
+   *  puede tener miles, y pedirlas aparte (por id, en la URL) no alcanzaría. */
+  colorHex: string | null;
+  fotoUrl: string | null;
   sistema: number;
   contado: number;
   diferencia: number;
@@ -245,7 +261,7 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
       .from("conteo_items")
       .select(
         `variante_id, cantidad_sistema, cantidad_contada,
-         variante:variantes ( sku, talla:tallas ( valor ), costo, color:colores ( nombre ), producto:productos ( referencia ) )`
+         variante:variantes ( sku, talla:tallas ( valor ), costo, color:colores ( nombre, hex ), producto:productos ( referencia, producto_fotos ( url, orden, es_principal ) ) )`
       )
       .eq("conteo_id", id),
     ids.length > 0 ? supabase.rpc("fn_nombres_personas", { p_ids: ids }) : Promise.resolve({ data: [], error: null }),
@@ -260,6 +276,8 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
       referencia: i.variante?.producto?.referencia ?? "",
       talla: i.variante?.talla?.valor ?? null,
       color: i.variante?.color?.nombre ?? null,
+      colorHex: i.variante?.color?.hex ?? null,
+      fotoUrl: fotoPrincipal(i.variante?.producto?.producto_fotos),
       sistema: i.cantidad_sistema,
       contado: i.cantidad_contada,
       diferencia: i.cantidad_contada - i.cantidad_sistema,

@@ -4,9 +4,11 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getConteoDetalle } from "@/lib/conteos";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
-import { SinFoto } from "@/components/ui/PrendaCelda";
+import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 
-const PLANTILLA = "sm:grid-cols-[minmax(12rem,1.4fr)_5rem_5rem_6rem]";
+// Primera columna con el mismo piso (13.5rem) que Existencias: la celda de la prenda es la misma
+// y necesita el mismo ancho para que «SKU · talla · cápsula» no se salga hacia la columna vecina.
+const PLANTILLA = "sm:grid-cols-[minmax(13.5rem,1.4fr)_5rem_5rem_6rem]";
 
 function fechaHora(iso: string) {
   return new Date(iso).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
@@ -92,7 +94,7 @@ export default async function ConteoDetallePage({ params }: { params: Promise<{ 
           <Encabezado
             plantilla={PLANTILLA}
             columnas={[
-              { titulo: "Prenda · variante" },
+              { titulo: "Producto / variante" },
               { titulo: "Sistema", alinear: "centro" },
               { titulo: "Físico", alinear: "centro" },
               { titulo: "Diferencia", alinear: "centro" },
@@ -100,18 +102,7 @@ export default async function ConteoDetallePage({ params }: { params: Promise<{ 
           />
           {conteo.lineasDetalle.map((l) => (
             <div key={l.varianteId} className={fila(PLANTILLA)}>
-              <span className="flex min-w-0 items-start gap-2.5">
-                <SinFoto />
-                <span className="min-w-0">
-                  <span className="block truncate text-sm text-tinta" title={l.referencia}>
-                    {l.referencia}
-                  </span>
-                  <span className="block truncate text-xs text-tinta/65">
-                    <span className="font-mono">{l.sku}</span>
-                    {[l.talla, l.color].filter(Boolean).length > 0 && ` · ${[l.talla, l.color].filter(Boolean).join(" · ")}`}
-                  </span>
-                </span>
-              </span>
+              <ProductoVarianteCelda referencia={l.referencia} sku={l.sku} talla={l.talla} color={l.color} colorHex={l.colorHex} fotoUrl={l.fotoUrl} />
               <span className={celda("centro", "text-sm tabular-nums text-tinta/75")}>
                 <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Sistema</span>
                 {l.sistema}
