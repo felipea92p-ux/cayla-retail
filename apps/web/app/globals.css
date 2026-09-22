@@ -935,7 +935,10 @@ body {
 }
 @layer components {
   /* Móvil: la hoja sube desde el borde (misma que siempre). Escritorio: sube 18 px y crece. */
-  .anim-modal-entra { animation: cayla-hoja 380ms var(--ease-cayla) both; }
+  /* `backwards` y no `both` (2026-09-22): terminada la entrada la hoja vuelve a su estilo natural, que es el mismo
+     cuadro final. Con `both` la animación seguía «sosteniendo» el transform y Chrome trataba la hoja como contenedor
+     de todo `position: fixed` de adentro: la lista de un desplegable (usePosicionLista) quedaba otra vez recortada. */
+  .anim-modal-entra { animation: cayla-hoja 380ms var(--ease-cayla) backwards; }
   .anim-modal-sale { animation: cayla-hoja-salida 220ms var(--ease-salida) both; }
   @media (min-width: 640px) {
     .anim-modal-entra { animation-name: cayla-modal-entra; animation-duration: 420ms; }
