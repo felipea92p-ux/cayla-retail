@@ -10,10 +10,11 @@ import { rangosDelResumen, type ParametrosResumen } from "./resumen-armado";
 // Comparación de dos períodos, A contra B (2026-09-19, ADR-0138). Puro y sin servidor: `fn_resumen_comparacion`
 // trae NÚMEROS crudos por variante (ventas, importe y costo de lo vendido, entradas, stock al inicio y al cierre,
 // días con stock) y acá se decide qué significan. Responde UNA pregunta: «¿qué cambió en el desempeño del
-// inventario entre A y B?» — en dos vistas:
-//   · Vista general → cuatro cifras A → B (ventas, rotación, sell-through y capital), cómo evolucionó el ritmo de
-//     venta de las variantes, qué productos más rotan y cómo se reparte el sell-through.
-//   · Detalle       → «¿qué productos lo explican?» (una fila por variante, con su cambio más relevante).
+// inventario entre A y B?» — en una sola lectura de arriba abajo (rediseño 2026-09-22):
+//   · Cifras y gráficos → cuatro cifras A → B (ventas, rotación, sell-through y capital), cómo evolucionó el ritmo
+//     de venta de las variantes, qué productos más rotan y cómo se reparte el sell-through.
+//   · Detalle por producto, debajo → «¿qué productos lo explican?» (una fila por variante, con su lectura en
+//     `resumen-lectura.ts`). La dona filtra esa tabla; nunca recalcula las cifras.
 //
 // NO responde «¿qué stock tengo ahora?» ni «¿cuánto me dura?»: eso es de Existencias (la cobertura salió de acá,
 // con las señales de riesgo de quiebre y sobrestock). Reutiliza las definiciones canónicas de `resumen-reglas.ts`
@@ -586,9 +587,10 @@ export const OPCIONES_ORDEN_COMPARACION: readonly { valor: OrdenComparacion; tex
   { valor: "desaceleracion", texto: "Mayor desaceleración" },
 ];
 
-/** Los dos modos del Análisis de inventario: Desempeño (el período) o Comparar períodos (A contra B). */
+/** Los dos modos del Análisis de inventario: Desempeño (el período) o Comparar períodos (A contra B). Comparar
+ *  ya no se parte en «Vista general / Detalle por producto» (rediseño 2026-09-22): es una sola lectura, cifras →
+ *  gráficos → tabla, y un `?vista=detalle` de un enlace viejo simplemente se ignora. */
 export type ModoResumen = "desempeno" | "comparar";
-export type VistaComparacion = "general" | "detalle";
 
 /** Comparador que deja lo que no se puede medir (null) siempre al final; lo comparten Desempeño y Comparar. */
 export const conNullAlFinal = <T>(f: (x: T) => number | null, sentido: 1 | -1) => (x: T, y: T) => {
@@ -627,13 +629,12 @@ export function pideComparacion(params: ParamsCrudos): boolean {
   return primero(params.modo) === "comparar";
 }
 
-export function leerVistaComparacion(p: ParamsCrudos): { alcance: AlcanceResumen; vista: VistaComparacion; cambio: FiltroCambio; orden: OrdenComparacion; pagina: number } {
+export function leerVistaComparacion(p: ParamsCrudos): { alcance: AlcanceResumen; cambio: FiltroCambio; orden: OrdenComparacion; pagina: number } {
   const { alcance, pagina } = leerFiltros(p);
   const cambioUrl = primero(p.cambio);
   const orden = primero(p.orden);
   return {
     alcance,
-    vista: primero(p.vista) === "detalle" ? "detalle" : "general",
     cambio: FILTROS_CAMBIO.find((f) => f.valor === cambioUrl)?.valor ?? "todos",
     orden: OPCIONES_ORDEN_COMPARACION.find((o) => o.valor === orden)?.valor ?? "vendidos_b",
     pagina,
@@ -655,7 +656,6 @@ export type ComparacionParaPantalla = {
   periodoB: PeriodoResuelto & { etiquetaCorta: string };
   ahoraIso: string;
   alcance: AlcanceResumen;
-  vista: VistaComparacion;
   cambio: FiltroCambio;
   orden: OrdenComparacion;
   kpis: KpisComparacion;
@@ -702,7 +702,7 @@ export function armarComparacion(e: {
   conteos: { exactitud: { porcentaje: number; lineas: number; conteos: number } | null; ultimoCerradoEn: string | null };
 }): ComparacionParaPantalla {
   const { rangoA, modoA, periodoB } = rangosDeLaComparacion(e.params, e.ahora);
-  const { alcance, vista, cambio, orden, pagina } = leerVistaComparacion(e.params);
+  const { alcance, cambio, orden, pagina } = leerVistaComparacion(e.params);
   const rangoB: Rango = { desde: periodoB.desde, hasta: periodoB.hasta };
   const diasA = diasDelRango(rangoA);
   // Si los dos períodos no caen en el mismo año se dice el año en ambos: «21 jul – 19 ago»
@@ -720,7 +720,6 @@ export function armarComparacion(e: {
     periodoB: { ...periodoB, etiquetaCorta: etiquetaRango(rangoB, conAnio) },
     ahoraIso: e.ahora.toISOString(),
     alcance,
-    vista,
     cambio,
     orden,
     // Los agregados salen de TODO el alcance (categoría y búsqueda): el filtro de cambio solo recorta la tabla,
