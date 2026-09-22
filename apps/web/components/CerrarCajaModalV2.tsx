@@ -8,6 +8,9 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { totalEfectivoEncolado, type VentaEncolada } from "@/lib/ventas-offline";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -41,11 +44,15 @@ export function CerrarCajaModalV2({
   const router = useRouter();
   const [montoReal, setMontoReal] = useState("");
   const [loading, setLoading] = useState(false);
+  // Quién cierra (ADR-0161, spike pantalla 3): el cierre pide Responsable como cualquier acción que guarda.
+  const responsable = useResponsable();
   const [resultado, setResultado] = useState<{
     sistema: number;
     contado: number;
     diferencia: number;
     efectivoEncoladoAlCerrar: number;
+    /** El responsable del cierre (spike, pantalla 3: «Responsable del cierre»). */
+    quienCerro: string | null;
   } | null>(null);
 
   const efectivoEncolado = totalEfectivoEncolado(cola);
@@ -71,17 +78,22 @@ export function CerrarCajaModalV2({
       avisar.error("Hay ventas offline subiendo al sistema todavía — espera unos segundos y vuelve a intentar.");
       return;
     }
+    if (!responsable.listo) return;
     setLoading(true);
     const supabase = createClient();
-    const { data, error } = await supabase
-      .rpc("cerrar_caja", { p_caja_id: cajaId, p_monto_real: Number(montoReal) || 0 })
-      .single();
+    const { data, error } = await firmar(
+      supabase.rpc("cerrar_caja", { p_caja_id: cajaId, p_monto_real: Number(montoReal) || 0 }).single(),
+      responsable.firma(),
+    );
     setLoading(false);
     if (error) {
+      responsable.despues(error);
       avisar.error(traducirError(error, "cerrar la caja"));
       return;
     }
     const diferencia = Number(data.diferencia);
+    const quienCerro = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null;
+    responsable.despues(null);
     avisar.exito("Caja cerrada", {
       detalle: diferencia === 0 ? "Cuadró exacto." : `${diferencia > 0 ? "Sobran" : "Faltan"} S/ ${Math.abs(diferencia).toFixed(2)} contra el sistema.`,
     });
@@ -90,6 +102,7 @@ export function CerrarCajaModalV2({
       contado: Number(data.monto_real),
       diferencia,
       efectivoEncoladoAlCerrar: efectivoEncolado,
+      quienCerro,
     });
   }
 
@@ -134,6 +147,12 @@ export function CerrarCajaModalV2({
               <dt className="text-tinta/60">Contaste</dt>
               <dd className="tabular-nums">{money(resultado.contado)}</dd>
             </div>
+            {resultado.quienCerro && (
+              <div className="flex justify-between">
+                <dt className="text-tinta/60">Responsable del cierre</dt>
+                <dd>{resultado.quienCerro}</dd>
+              </div>
+            )}
             {resultado.efectivoEncoladoAlCerrar > 0 && (
               <div className="flex justify-between text-ambar-profundo">
                 <dt>Ventas offline sin subir</dt>
@@ -203,11 +222,12 @@ export function CerrarCajaModalV2({
             className={campoTexto}
           />
         </div>
+        <ComboResponsable control={responsable} deshabilitado={loading} />
         <div className="flex gap-2 pt-1">
           <button type="button" onClick={cerrar} className={botonCancelar}>
             Cancelar
           </button>
-          <button type="submit" disabled={loading || bloqueaCierre} className={botonPrimario}>
+          <button type="submit" disabled={loading || bloqueaCierre || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
             {loading ? "Cerrando…" : bloqueaCierre ? "Esperando ventas offline…" : "Cerrar caja"}
           </button>
         </div>

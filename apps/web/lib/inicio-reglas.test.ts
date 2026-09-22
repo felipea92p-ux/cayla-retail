@@ -9,22 +9,33 @@ describe("mostrarHoy", () => {
   });
 });
 
-describe("Inicio de la terminal administrativa (ADR-0160)", () => {
-  const admin = { rol: "integrante", ubicacionTipo: "tienda", terminal: "administrativa" } as const;
+describe("Inicio de una terminal que no vende (sin tipo: sus accesos salen de su ROL)", () => {
+  const admin = {
+    rol: "integrante",
+    ubicacionTipo: "tienda",
+    terminal: true,
+    modulos: ["existencias", "conteos", "traslados", "movimientos", "recibir", "productos", "atributos", "proveedores"],
+  } as const;
 
-  it("no muestra «Hoy»: no vende, y su menú no tiene Ventas", () => {
+  it("no muestra «Hoy»: si viera el Punto de venta habría aterrizado en /vender", () => {
     expect(mostrarHoy(admin)).toBe(false);
-    expect(mostrarHoy({ ubicacionTipo: "tienda", terminal: null })).toBe(true);
+    expect(mostrarHoy({ ubicacionTipo: "tienda", terminal: false })).toBe(true);
   });
 
-  it("su acción principal es el Inventario, no Vender; y sigue habiendo UNA sola principal", () => {
+  it("con el rol de la terminal administrativa: Inventario (principal), Recibir y Buscar — como antes", () => {
     const a = accesosInicio(admin, null);
     expect(a.map((x) => x.etiqueta)).toEqual(["Inventario", "Recibir", "Buscar"]);
     expect(a.filter((x) => x.principal).map((x) => x.etiqueta)).toEqual(["Inventario"]);
   });
 
-  it("una persona con `terminal: null` conserva el Inicio de siempre", () => {
-    expect(accesosInicio({ rol: "integrante", ubicacionTipo: "tienda", terminal: null }, null).map((x) => x.etiqueta)).toEqual(["Vender", "Recibir", "Buscar"]);
+  it("nunca ofrece una puerta que su rol no ve: una terminal que solo ve Caja tiene Caja y Buscar", () => {
+    const a = accesosInicio({ rol: "integrante", ubicacionTipo: "tienda", terminal: true, modulos: ["caja"] }, null);
+    expect(a.map((x) => x.etiqueta)).toEqual(["Caja", "Buscar"]);
+    expect(a[0]!.principal).toBe(true);
+  });
+
+  it("una persona (`terminal: false`) conserva el Inicio de siempre", () => {
+    expect(accesosInicio({ rol: "integrante", ubicacionTipo: "tienda", terminal: false }, null).map((x) => x.etiqueta)).toEqual(["Vender", "Recibir", "Buscar"]);
   });
 });
 

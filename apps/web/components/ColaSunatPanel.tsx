@@ -14,6 +14,7 @@ import { useTransmitir } from "@/lib/useTransmitir";
 import { SinCoincidencias } from "@/components/SinCoincidencias";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
+import { ConfirmarTransmision } from "@/components/ConfirmarTransmision";
 
 // «Por reintentar» (D-60): lo que Lucode/SUNAT no aceptó al cobrar y espera en la cola. Se reintenta
 // solo (cada cobro y cada apertura de Comprobantes barren la cola, `/api/lucode/reintentar`); acá se ve
@@ -42,19 +43,21 @@ export function ColaSunatPanel({
   ahora: Date;
 }) {
   const router = useRouter();
-  const { transmitiendoId, transmitir } = useTransmitir();
+  const { transmitiendoId, transmitir, confirmacion: confirmacionTransmitir } = useTransmitir();
   const [reintentandoTodos, setReintentandoTodos] = useState(false);
+  // «Reintentar los N» también guarda en la base: pide el Responsable una vez, con la misma confirmación (ADR-0161).
+  const [confirmarTodos, setConfirmarTodos] = useState(false);
 
   // «Reintentar todos»: uno por uno (Lucode recibe de a uno y un rechazo no frena a los demás), con un
   // solo aviso al final en vez de uno por fila. Mismo endpoint que «Reintentar ahora».
-  async function reintentarTodos() {
+  async function reintentarTodos(encabezados: Record<string, string>) {
     setReintentandoTodos(true);
     let llegaron = 0;
     for (const f of filas) {
       try {
         const r = await fetch("/api/lucode/emitir", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...encabezados },
           body: JSON.stringify({ comprobante_id: f.comprobante_id }),
         });
         if (r.ok) llegaron += 1;
@@ -75,6 +78,17 @@ export function ColaSunatPanel({
 
   return (
     <div className="card-cayla anim-sube overflow-hidden" style={{ "--i": 3 } as CSSProperties}>
+      {/* La confirmación con el combo «Responsable» antes de reintentar (ADR-0161): la de una fila y la de todas. */}
+      {confirmacionTransmitir}
+      {confirmarTodos && (
+        <ConfirmarTransmision
+          onClose={() => setConfirmarTodos(false)}
+          onTransmitir={(encabezados) => {
+            setConfirmarTodos(false);
+            void reintentarTodos(encabezados);
+          }}
+        />
+      )}
       <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-[18px] pb-3.5">
         <div className="min-w-0">
           <h2 className="font-display text-xl leading-tight text-tinta">Por reintentar</h2>
@@ -83,7 +97,7 @@ export function ColaSunatPanel({
           </p>
         </div>
         {filas.length > 1 && (
-          <BotonCompacto variante="primario" cargando={reintentandoTodos} disabled={transmitiendoId !== null} onClick={reintentarTodos}>
+          <BotonCompacto variante="primario" cargando={reintentandoTodos} disabled={transmitiendoId !== null} onClick={() => setConfirmarTodos(true)}>
             {reintentandoTodos ? "Reintentando…" : `Reintentar los ${filas.length}`}
           </BotonCompacto>
         )}

@@ -32,6 +32,8 @@
  * A DÓNDE IR EN VEZ DE.
  */
 
+import { mensajeErrorResponsable } from "./responsable-reglas";
+
 /** La forma del error de supabase-js, sin acoplarnos a su tipo. */
 export type ErrorEscritura = {
   message: string;
@@ -388,6 +390,11 @@ export function traducirError(error: ErrorEscritura, contexto: string, opciones:
     }
     return `No se pudo ${contexto}: la conexión falló antes de llegar al servidor. No se guardó nada — revisa el internet y vuelve a intentar.`;
   }
+
+  // El combo «Responsable» (ADR-0161/0162): la base rechaza con 42501 y un `hint` estable. Va antes de las huellas:
+  // su frase dice qué hacer (volver a elegir, marcar entrada) y es la misma en todas las pantallas.
+  const porResponsable = mensajeErrorResponsable(error);
+  if (porResponsable) return porResponsable;
 
   const crudo = [error.message, error.details, error.hint].filter(Boolean).join(" · ");
   const enMinusculas = crudo.toLowerCase();

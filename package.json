@@ -15,6 +15,7 @@
     "pruebas:aprobar-devolucion-caja": "node scripts/pruebas/aprobar_devolucion_caja.mjs",
     "pruebas:fn-aplicar-movimiento": "node scripts/pruebas/fn_aplicar_movimiento.mjs",
     "pruebas:apartar-stock": "node scripts/pruebas/apartar_stock.mjs",
+    "pruebas:separaciones": "node scripts/pruebas/separaciones.mjs",
     "pruebas:fn-movimientos-referencias": "node scripts/pruebas/fn_movimientos_referencias.mjs",
     "pruebas:fn-movimientos-busqueda-especial": "node scripts/pruebas/fn_movimientos_busqueda_especial.mjs",
     "pruebas:fn-resumen-comparacion": "node scripts/pruebas/fn_resumen_comparacion.mjs",
@@ -44,6 +45,9 @@
     "pruebas:notas-credito": "node scripts/pruebas/notas_credito_modulo.mjs",
     "pruebas:candado-lider": "node scripts/pruebas/candado_lider_caja_y_ajuste.mjs",
     "pruebas:terminales": "node scripts/pruebas/terminales_por_tienda.mjs",
+    "pruebas:terminales-sin-persona": "node scripts/pruebas/terminales_sin_persona.mjs",
+    "pruebas:roles": "node scripts/pruebas/roles_por_modulo.mjs",
+    "pruebas:actor-firma": "node scripts/pruebas/actor_firma_las_operaciones.mjs",
     "pruebas:colaboradores-endurecimiento": "node scripts/pruebas/colaboradores_endurecimiento.mjs",
     "pruebas:archivar-datos-prueba": "node scripts/pruebas/archivar_datos_prueba.mjs",
     "pruebas:clientas": "node scripts/pruebas/clientas.mjs",
@@ -58,6 +62,8 @@
     "datos:comparar": "node scripts/datos/comparar.mjs --md",
     "datos:aviario": "node scripts/datos/aviario.mjs",
     "local:donde": "node scripts/local/donde-estoy.mjs",
+    "terminales:crear": "node scripts/terminales/crear.mjs",
+    "terminales:probar": "node --test scripts/terminales/",
     "prepare": "git config core.hooksPath .githooks || true"
   },
   "devDependencies": {

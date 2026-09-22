@@ -7,21 +7,25 @@
 // Estructura tomada de tres referentes públicos (maqueta en docs/maquetas/inicio-referentes-2026-09/).
 
 import { comparativoSemanaAnterior, type Comparativo } from "./caja-panel-reglas";
-import type { TipoTerminal } from "./menu";
+import type { ClaveModulo } from "./modulos";
 
 export type PerfilInicio = {
   rol: "lider" | "integrante";
   ubicacionTipo: "tienda" | "almacen" | "taller";
-  /** Si quien mira es una cuenta terminal (ADR-0160). La de ventas nunca llega acá (aterriza en el Punto de Venta). */
-  terminal?: TipoTerminal | null;
+  /** ¿Quien mira es una cuenta TERMINAL (un aparato, ADR-0162)? Una que ve el Punto de venta nunca llega acá: aterriza en
+   *  `/vender` (`aterrizajeDe` en `lib/menu.ts`). Las que llegan no venden: su casa es lo que su rol ve. */
+  terminal?: boolean;
+  /** Los módulos de su rol. Solo se miran para una terminal: los accesos de «Ir a» salen de lo que ve. */
+  modulos?: readonly ClaveModulo[];
 };
 
 // ── «Hoy» ────────────────────────────────────────────────────────────────────────────────────────
 
-/** Solo las tiendas venden: en un almacén o en el Taller no hay «ventas de hoy» que mostrar. Tampoco la terminal
- *  administrativa: no vende (su menú no tiene Ventas), así que un «Tu día» de ventas no le dice nada. */
+/** Solo las tiendas venden: en un almacén o en el Taller no hay «ventas de hoy» que mostrar. Tampoco una terminal que
+ *  llega a Inicio: si su rol viera el Punto de venta habría aterrizado en `/vender`, así que no vende y un «Tu día» de
+ *  ventas no le dice nada. */
 export function mostrarHoy(perfil: Pick<PerfilInicio, "ubicacionTipo" | "terminal">): boolean {
-  return perfil.ubicacionTipo === "tienda" && perfil.terminal !== "administrativa";
+  return perfil.ubicacionTipo === "tienda" && !perfil.terminal;
 }
 
 const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"] as const;
@@ -135,9 +139,18 @@ export function accesosInicio(perfil: PerfilInicio, cajaAbierta: boolean | null)
   if (perfil.ubicacionTipo === "almacen") {
     return [{ ...recibir, principal: true }, { href: "/inventario", etiqueta: "Inventario", detalle: "Stock por ubicación", principal: false }, buscar];
   }
-  // La terminal administrativa no tiene Ventas en el menú: su casa es el inventario, no el mostrador (ADR-0160).
-  if (perfil.terminal === "administrativa") {
-    return [{ href: "/inventario", etiqueta: "Inventario", detalle: "Stock por ubicación", principal: true }, recibir, buscar];
+  // Una terminal que llega a Inicio no vende (ver `mostrarHoy`): sus accesos salen de lo que VE su rol, nunca uno que la
+  // mande a una pantalla cerrada. El primero que tenga es el principal.
+  if (perfil.terminal) {
+    const ve = (m: ClaveModulo) => perfil.modulos?.includes(m) ?? false;
+    const posibles: (Acceso | null)[] = [
+      ve("existencias") ? { href: "/inventario", etiqueta: "Inventario", detalle: "Stock por ubicación", principal: false } : null,
+      ve("recibir") ? recibir : null,
+      ve("caja") ? { href: "/caja", etiqueta: "Caja", detalle: "Ver el estado de la caja", principal: false } : null,
+      ve("productos") ? { href: "/productos", etiqueta: "Productos", detalle: "El catálogo de prendas", principal: false } : null,
+    ];
+    const accesos = posibles.filter((a): a is Acceso => a !== null).slice(0, 2);
+    return [...accesos, buscar].map((a, i) => ({ ...a, principal: i === 0 }));
   }
   const vender: Acceso = { href: "/vender", etiqueta: "Vender", detalle: "Punto de venta", principal: true };
   if (perfil.rol === "lider") {

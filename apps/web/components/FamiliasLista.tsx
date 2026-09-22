@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 
@@ -39,6 +41,9 @@ export function FamiliasLista({
   familiasIniciales: Familia[];
   puedeEditar: boolean;
 }) {
+  // Cambiar las familias es Catálogo, operación de tienda (ADR-0161): UN combo «Responsable» firma todo lo que se
+  // guarda desde esta lista (arriba; el mismo se repite en el modal) y cada guardado exitoso lo vacía.
+  const responsable = useResponsable();
   const [familias, setFamilias] = useState(familiasIniciales);
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -54,7 +59,7 @@ export function FamiliasLista({
     try {
       const res = await fetch("/api/productos/familias", {
         method: editando ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ codigo: borrador.codigo ?? undefined, nombre: borrador.nombre }),
       });
       const datos = await res.json();
@@ -71,6 +76,7 @@ export function FamiliasLista({
       };
       setFamilias((actual) => [...actual.filter((f) => f.codigo !== guardada.codigo), guardada]);
       setBorrador(null);
+      responsable.despues(null);
       avisar.exito(editando ? "Familia editada." : "Familia agregada — ya está disponible en Categorías.");
     } finally {
       setGuardando(false);
@@ -82,7 +88,7 @@ export function FamiliasLista({
     try {
       const res = await fetch("/api/productos/familias", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ codigo: f.codigo, activo: !f.activo }),
       });
       const datos = await res.json().catch(() => null);
@@ -91,6 +97,7 @@ export function FamiliasLista({
         return;
       }
       setFamilias((actual) => actual.map((x) => (x.codigo === f.codigo ? { ...x, activo: !f.activo } : x)));
+      responsable.despues(null);
     } finally {
       setCambiandoCodigo(null);
     }
@@ -99,7 +106,8 @@ export function FamiliasLista({
   return (
     <div className="space-y-3">
       {puedeEditar && (
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <ComboResponsable control={responsable} deshabilitado={cambiandoCodigo !== null} hacia="abajo" className="w-full max-w-xs" />
           <button
             type="button"
             onClick={() => setBorrador({ codigo: null, nombre: "" })}
@@ -128,6 +136,8 @@ export function FamiliasLista({
                   peso="discreto"
                   className="px-2.5 py-1.5 text-[10.5px] text-rojo/70 hover:text-rojo"
                   cargando={cambiandoCodigo === f.codigo}
+                  disabled={!responsable.listo}
+                  title={responsable.motivo ?? undefined}
                   onClick={() => cambiarEstado(f)}
                 >
                   Desactivar
@@ -159,6 +169,7 @@ export function FamiliasLista({
                   autoFocus
                 />
               </div>
+              <ComboResponsable control={responsable} deshabilitado={guardando} className="mt-5" />
               <div className="mt-6 flex justify-end gap-2">
                 <Boton peso="fantasma" onClick={cerrar}>
                   Cancelar
@@ -166,7 +177,8 @@ export function FamiliasLista({
                 <Boton
                   peso="primario"
                   cargando={guardando}
-                  disabled={!borrador.nombre.trim()}
+                  disabled={!borrador.nombre.trim() || !responsable.listo}
+                  title={responsable.motivo ?? undefined}
                   onClick={async () => {
                     await guardar();
                     cerrar();
@@ -195,6 +207,8 @@ export function FamiliasLista({
                     peso="discreto"
                     className="px-2 py-1 text-[10.5px]"
                     cargando={cambiandoCodigo === f.codigo}
+                    disabled={!responsable.listo}
+                    title={responsable.motivo ?? undefined}
                     onClick={() => cambiarEstado(f)}
                   >
                     Reactivar

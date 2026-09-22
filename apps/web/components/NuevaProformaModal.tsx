@@ -15,6 +15,9 @@ import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Modal } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 /** Una prenda del catálogo que se puede poner en una proforma (la arma la página Proformas desde `getCatalogo`). */
 export type PrendaParaProforma = PrendaBuscableV2 & { codigo: string | null; precio: number; fotoUrl: string | null; colorHex: string | null };
@@ -46,6 +49,8 @@ export function NuevaProformaModal({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  // Crear una proforma guarda en Facturación: pide Responsable (ADR-0161, A7).
+  const responsable = useResponsable();
   const [ubicacionId, setUbicacionId] = useState(inicial?.ubicacion_id ?? ubicacionActualId);
   const lineasIniciales = lineasDeLaProforma(inicial?.items) ?? [];
   const [filas, setFilas] = useState<Fila[]>(() =>
@@ -93,8 +98,9 @@ export function NuevaProformaModal({
     e.preventDefault();
     if (filas.length === 0) return void avisar.error("Agrega al menos una prenda.");
     if (faltaMotivo) return void avisar.error("Cada descuento necesita su motivo.");
+    if (!responsable.listo) return;
     setLoading(true);
-    const { error } = await createClient().rpc("crear_proforma", {
+    const { error } = await firmar(createClient().rpc("crear_proforma", {
       p_ubicacion_id: ubicacionId,
       p_items: filas.map((f) => ({
         variante_id: f.prenda.varianteId,
@@ -108,7 +114,8 @@ export function NuevaProformaModal({
       p_cliente_num_doc: clienteDoc.trim() || undefined,
       p_vence_at: venceDentroDe(diasValidos),
       p_nota: nota.trim() || undefined,
-    });
+    }), responsable.firma());
+    responsable.despues(error);
     setLoading(false);
     if (error) return void avisar.error(traducirError(error, "crear la proforma"));
     avisar.exito(`Proforma de ${soles(totales.total)} creada`, {
@@ -281,11 +288,20 @@ export function NuevaProformaModal({
             </dl>
           </div>
 
+          <ComboResponsable control={responsable} deshabilitado={loading} />
+
           <div className="flex gap-2 pt-1">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" className="flex-1" cargando={loading} disabled={filas.length === 0}>
+            <Boton
+              type="submit"
+              peso="primario"
+              className="flex-1"
+              cargando={loading}
+              disabled={filas.length === 0 || !responsable.listo}
+              title={responsable.motivo ?? undefined}
+            >
               {loading ? "Guardando…" : "Crear proforma"}
             </Boton>
           </div>

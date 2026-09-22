@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
+import { exigirModulo, puede } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getCajaAbierta } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -35,7 +35,7 @@ export default async function VenderPage({ searchParams }: { searchParams: Promi
 }
 
 async function Caja({ proformaId }: { proformaId: string | null }) {
-  const persona = await requirePersonaActualV2();
+  const persona = await exigirModulo("vender"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   const supabase = await createClient();
   // Dos lecturas de stock con dos preguntas distintas:
   // · «¿cuánto puedo cobrar AQUÍ ya?» → `getStockPorUbicacion`, la misma regla que la

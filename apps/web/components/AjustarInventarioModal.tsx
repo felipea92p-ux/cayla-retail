@@ -10,6 +10,9 @@ import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/camp
 import { armarVariantesAjuste, type VarianteAjuste } from "@/lib/ajuste-reglas";
 import { descargarCsv } from "@/lib/exportar-csv";
 import type { Sububicacion } from "@/lib/sububicaciones";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Reusa `retail.registrar_movimiento` (20260914230000_inventario_piso_almacen.sql,
 // tipo='ajuste') — la misma RPC que ya escribe ajustes sueltos en el repo. No existe
@@ -53,6 +56,8 @@ export function AjustarInventarioModal({
   const [nota, setNota] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Un ajuste de stock guarda en la tienda: pide Responsable (ADR-0161).
+  const responsable = useResponsable();
 
   useEffect(() => {
     let vigente = true;
@@ -136,6 +141,10 @@ export function AjustarInventarioModal({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!responsable.listo) {
+      if (responsable.motivo) setError(responsable.motivo);
+      return;
+    }
     if (!motivo) {
       setError("Elige un motivo para el ajuste.");
       return;
@@ -155,8 +164,10 @@ export function AjustarInventarioModal({
     setError(null);
     const supabase = createClient();
     const pendientes = [...lineas];
+    // Una sola firma para todo el ajuste: cada línea es una llamada, pero la operación es una y la hace una persona.
+    const firma = responsable.firma();
     for (const linea of pendientes) {
-      const { error: errorRpc } = await supabase.rpc("registrar_movimiento", {
+      const { error: errorRpc } = await firmar(supabase.rpc("registrar_movimiento", {
         p_variante_id: linea.variante.varianteId,
         p_ubicacion_id: ubicacionId,
         p_tipo: "ajuste",
@@ -166,9 +177,10 @@ export function AjustarInventarioModal({
         ...(separaPisoAlmacen
           ? { p_sububicacion_id: ubicado === "piso" ? sububicacionPiso!.id : sububicacionAlmacen!.id }
           : {}),
-      });
+      }), firma);
       if (errorRpc) {
         setEnviando(false);
+        responsable.despues(errorRpc);
         setError(traducirError(errorRpc, "ajustar el inventario"));
         // Las líneas ya aplicadas se quitan del formulario para no reenviarlas
         // dos veces si Felipe corrige y reintenta.
@@ -183,6 +195,7 @@ export function AjustarInventarioModal({
       }
     }
     setEnviando(false);
+    responsable.despues(null);
     avisar.exito(`${lineas.length} ${lineas.length === 1 ? "variante ajustada" : "variantes ajustadas"}`, {
       detalle: referencia,
     });
@@ -273,6 +286,8 @@ export function AjustarInventarioModal({
             </button>
           )}
 
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
+
           <div className="flex gap-2 pt-1">
             <Boton type="button" onClick={cerrar} className="flex-1">
               Cancelar
@@ -281,7 +296,8 @@ export function AjustarInventarioModal({
               type="submit"
               peso="primario"
               cargando={enviando}
-              disabled={cargando || variantes.length === 0}
+              disabled={cargando || variantes.length === 0 || !responsable.listo}
+              title={responsable.motivo ?? undefined}
               className="flex-1"
             >
               Confirmar

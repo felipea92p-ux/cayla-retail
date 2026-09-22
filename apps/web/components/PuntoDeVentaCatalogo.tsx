@@ -409,7 +409,9 @@ export function PuntoDeVentaCatalogo({
                       estorbar los chips. */}
                   {topeTarjeta?.clave === g.clave && (
                     <span
-                      key={topeTarjeta.pulso}
+                      // Prefijo en la `key`: es hermana del globito de abajo; con `pulso` 1 y 1 prenda en el carrito ambas
+                      // valían `1` y React avisaba «two children with the same key».
+                      key={`tope-${topeTarjeta.pulso}`}
                       aria-hidden
                       className="anim-tope pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-xl bg-rojo/[0.06] shadow-lg shadow-rojo/25 ring-1 ring-inset ring-rojo/50"
                     >
@@ -423,7 +425,7 @@ export function PuntoDeVentaCatalogo({
                   {/* El globito se re-asienta cada vez que cambia la cantidad (`key`): el ojo
                       nota que cambió sin releerlo. */}
                   {enCarrito > 0 && (
-                    <Badge key={enCarrito} className="anim-pop pointer-events-none absolute top-2 right-2 h-6 min-w-6 rounded-full px-1.5 text-xs">
+                    <Badge key={`globo-${enCarrito}`} className="anim-pop pointer-events-none absolute top-2 right-2 h-6 min-w-6 rounded-full px-1.5 text-xs">
                       {enCarrito}
                     </Badge>
                   )}
