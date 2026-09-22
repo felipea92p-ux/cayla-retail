@@ -79,4 +79,13 @@ select overlay(md5('fx:marca:' || g) placing 'fe03' from 1 for 4)::uuid,
        overlay(md5('fx:prov:' || (case when g <= 72 then g else g - 72 end)) placing 'fe02' from 1 for 4)::uuid
 from generate_series(1, 77) g;
 
+-- Series de comprobantes: como en producción, TRU y AQP tienen boleta+factura y LIM no tiene ninguna (hueco real, que
+-- el generador no debe tapar).
+insert into retail.series_comprobantes (ubicacion_id, tipo, serie, siguiente_numero)
+select u.id, x.tipo, x.serie, 1
+from retail.ubicaciones u
+join (values ('Tienda TRU', 'boleta', 'B004'), ('Tienda TRU', 'factura', 'F004'),
+             ('Tienda AQP', 'boleta', 'B005'), ('Tienda AQP', 'factura', 'F005')) x(nombre, tipo, serie)
+  on x.nombre = u.nombre;
+
 -- (la transacción sigue abierta: el generador que se concatena a continuación la cierra con ROLLBACK)

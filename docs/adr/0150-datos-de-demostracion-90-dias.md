@@ -1,8 +1,9 @@
 # ADR-0150 — Datos de demostración: 90 días de historia sintética, cargados con un generador SQL desechable
 
 - **Fecha:** 2026-09-21
-- **Estado:** En curso — Fases 1 (catálogo), 2 (demanda) y 3 (inventario inicial y abastecimiento) ensayadas con `ROLLBACK` (la 3, en una
-  base local con datos de la forma de producción); fases 4-7 pendientes. **Nada está escrito en producción.**
+- **Estado:** En curso — Fases 1 (catálogo), 2 (demanda), 3 (inventario inicial y abastecimiento) y 4 (ventas, caja y comprobantes)
+  ensayadas con `ROLLBACK` (3 y 4, en una base local con datos de la forma de producción); fases 5-7 pendientes. **Nada está escrito
+  en producción.**
   **Numeración provisional:** verificar en refs remotas antes de subir (los números de ADR chocan entre sesiones paralelas).
 - **Decide:** Felipe (volumen ×3, personas reales como autoras, carga desechable, isotipo como imagen, él pega el `COMMIT`).
   Arquitectura: este documento.
@@ -148,6 +149,34 @@ aún no tiene y el generador no usa) y 22 de las 23 funciones de las que depende
   datos de prueba creaba ubicaciones con uuid al azar y los ids de lotes y movimientos se arman con ellos.
 - **El plan de compras debe estar hecho antes de la simulación, no después:** las llegadas de A5 se agregaron tarde y la simulación no las
   veía. Se mueve el bloque, no se parcha el chequeo.
+
+## Fase 4 — ventas, caja y comprobantes (ensayada en local)
+
+Convierte la demanda de la Fase 2 (`tmp_tickets`/`tmp_lineas`) en ventas reales. Resultado del primer ensayo, sin necesitar
+recalibración: **6.995 ventas** por S/ 932.430, **267 cajas** (3 tiendas × ~89 días con caja abierta ese día — el primer día de la
+ventana algunas tiendas todavía no habían abierto a la hora del corte), **6.658 comprobantes** (6.421 boletas + 237 facturas, 3,6 %;
+34,4 % de las boletas con DNI). Medios de pago: efectivo 47,2 %, yape 24,2 %, plin 13,9 %, tarjeta 10,4 %, transferencia 4,3 % —
+los cinco dentro de 1 punto del objetivo. Los 9 chequeos internos pasaron a la primera.
+
+- **Cajas antes que ventas.** `ventas.caja_id` es una FK real: hubo que insertar `cajas` antes de `ventas` (el primer intento falló
+  con `ventas_caja_id_fkey`). Una caja por tienda y día de la ventana, apertura S/ 150, la abre un colaborador o un líder y la
+  **cierra siempre un líder** (candado D-13, confirmado aplicado en producción). Fórmula de cierre idéntica a `cerrar_caja()`:
+  apertura + efectivo de sus ventas (sin ingresos/egresos ni cambios todavía — eso es la Fase 5).
+- **LIM no tiene ninguna serie de comprobantes.** Es un hueco real de producción, no algo que este seed deba tapar:
+  `registrar_venta` acepta `p_tipo_comprobante = NULL` (una venta válida sin emitir boleta/factura), así que las 337 ventas de LIM
+  quedan así — un chequeo nuevo (`% comprobantes en LIM`) aborta si alguna vez alguien intentara sembrar uno ahí por error.
+- **El correlativo de cada comprobante sale de `fn_reservar_numero_serie()` real**, llamada en un bucle PL/pgSQL en orden
+  cronológico (mismo patrón que `fn_aplicar_movimiento` en un ensayo). A diferencia del `setval()` de la Fase 3, esto es una
+  `UPDATE` normal sobre una fila de `series_comprobantes` — sí es transaccional, un `ROLLBACK` la deshace sin dejar rastro.
+- **`estado='aceptado'` y `entorno_transmision='sandbox'` desde el `INSERT`,** nunca `pendiente` (el default de la columna). El
+  generador nunca llama a `emitir_comprobante()` como RPC viva.
+- **Autoría:** líder si el ticket lleva algún descuento manual (`registrar_venta` exige líder o código de descuento; aquí no se
+  siembra ningún código), cualquier colaborador de esa tienda en el resto — reusa `pg_temp.firmante()` de la Fase 3.
+- **A1** (caja con faltante −S/ 38,50 en TRU y con sobrante +S/ 12 en AQP): dos cajas puntuales con `monto_cierre_real` distinto del
+  sistema; un chequeo exige que sean exactamente esas dos y ninguna otra.
+- **Verificado que no repite el gotcha de la Fase 3:** ninguna de las 6 tablas que toca esta fase (`ventas`, `venta_items`,
+  `venta_pagos`, `cajas`, `caja_movimientos`, `comprobantes`) tiene un trigger `DEFERRABLE`, así que no hay ningún candado
+  diferido que un ensayo con `ROLLBACK` esté dejando de ejercitar.
 
 ## Revisión adversarial de la Fase 3 (2026-09-22)
 

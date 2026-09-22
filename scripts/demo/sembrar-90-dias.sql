@@ -1728,6 +1728,311 @@ begin
     (select count(*) from transferencias where id::text like '5eed%');
 end $$;
 
+-- =============================================================================
+-- FASE 4 — VENTAS, CAJA Y COMPROBANTES
+-- Convierte la demanda de la Fase 2 (tmp_tickets/tmp_lineas) en ventas reales: cada tienda abre y cierra caja todos los
+-- días de la ventana (una caja la abre un colaborador o un líder, la cierra SIEMPRE un líder — candado D-13, ya aplicado
+-- en producción); las ventas del día cuelgan de esa caja; los pagos y los comprobantes siguen las reglas de
+-- registrar_venta / emitir_comprobante, pero por INSERT directo (ninguna RPC acepta fecha).
+-- =============================================================================
+
+-- ---- 4.1 Medio de pago de cada ticket (efectivo 48 %, yape 24 %, plin 14 %, tarjeta 10 %, transferencia 5 %; el 8 % de
+-- los tickets paga con dos medios, en vez de uno) ----
+create temp table tmp_pago4 (ticket_id uuid, metodo text, monto numeric, recibido numeric) on commit drop;
+
+create temp table tmp_ticket_total on commit drop as
+select l.ticket_id, sum((l.precio_unitario - l.descuento_unitario) * l.cantidad) as total
+from tmp_lineas l group by l.ticket_id;
+
+create function pg_temp.metodo_por_umbral(u numeric) returns text language sql immutable as
+$f$ select case when u < 0.48 then 'efectivo' when u < 0.72 then 'yape' when u < 0.86 then 'plin' when u < 0.96 then 'tarjeta' else 'transferencia' end $f$;
+
+insert into tmp_pago4 (ticket_id, metodo, monto)
+select t.ticket_id, m.metodo, m.monto
+from tmp_ticket_total t
+cross join lateral (
+  select pg_temp.metodo_por_umbral(pg_temp.h('pago:' || t.ticket_id)) as metodo, t.total as monto
+  where pg_temp.h('mix:' || t.ticket_id) >= 0.08
+  union all
+  select pg_temp.metodo_por_umbral(pg_temp.h('pagoA:' || t.ticket_id)),
+         round(t.total * (0.35 + 0.30 * pg_temp.h('split:' || t.ticket_id)), 2)
+  where pg_temp.h('mix:' || t.ticket_id) < 0.08
+  union all
+  select pg_temp.metodo_por_umbral(pg_temp.h('pagoB:' || t.ticket_id) * 0.8 + 0.2),  -- desplazado para que casi siempre salga distinto del medio A
+         t.total - round(t.total * (0.35 + 0.30 * pg_temp.h('split:' || t.ticket_id)), 2)
+  where pg_temp.h('mix:' || t.ticket_id) < 0.08
+) m;
+
+-- si el sorteo dejó los dos medios del ticket mixto iguales (raro, pero posible), se funden en una sola fila para no
+-- violar ninguna regla de negocio (no es un error: simplemente ese ticket paga con un solo medio). El `recibido` se
+-- calcula AQUÍ, sobre el monto ya fusionado — calcularlo antes (por mitad) y luego tomar el máximo podía dejarlo por
+-- debajo del monto total una vez sumado, violando el CHECK real de venta_pagos.
+create temp table tmp_pago4b on commit drop as
+select ticket_id, metodo, sum(monto) as monto,
+  -- redondeado al billete de S/10 más cercano por arriba (simplificación: no arma vuelto exacto con la denominación
+  -- real de billetes/monedas; alcanza para que `recibido >= monto`, que es lo único que exige la base)
+  case when metodo = 'efectivo' then ceil(sum(monto) / 10) * 10 end as recibido
+from tmp_pago4 group by ticket_id, metodo;
+
+do $$
+declare v_n int;
+begin
+  select count(*) into v_n from (select ticket_id from tmp_pago4b group by ticket_id having count(*) > 2) x;
+  if v_n > 0 then raise exception '[check ventas] % tickets con más de 2 medios de pago', v_n; end if;
+end $$;
+
+-- ---- 4.2 Cajas: una por tienda y día de la ventana (270 en el ensayo completo). Apertura S/150; el último día cierra
+-- en el corte (turno cerrado), no a la hora normal, y si el corte cae antes de abrir, esa tienda no llega a abrir hoy ----
+create temp table tmp_cajas on commit drop as
+select pg_temp.sid('caja', t.codigo || ':' || d.fecha) as caja_id, t.ubicacion_id, t.codigo, d.fecha,
+       ((d.fecha + d.abre) at time zone 'America/Lima') as abierta_en,
+       least(((d.fecha + d.cierra) at time zone 'America/Lima'), w.corte) as cerrada_en
+from tmp_tiendas t cross join tmp_dias d cross join tmp_v3 w
+where least(((d.fecha + d.cierra) at time zone 'America/Lima'), w.corte) > ((d.fecha + d.abre) at time zone 'America/Lima');
+
+do $$
+declare v_n int; v_esp int;
+begin
+  select count(*) into v_n from tmp_cajas;
+  select (select dias from tmp_v3) * 3 into v_esp;
+  if v_n < v_esp - 3 or v_n > v_esp then
+    raise exception '[check ventas] % cajas planificadas, se esperaban ~% (3 tiendas × días de la ventana)', v_n, v_esp;
+  end if;
+end $$;
+
+-- ---- 4.3 Ventas: quién firma cada una (líder si el ticket lleva descuento manual — registrar_venta exige líder o
+-- código de descuento y aquí no se siembra ningún código; el resto, cualquiera que opere esa tienda ese día) ----
+create temp table tmp_venta_cab on commit drop as
+select t.ticket_id, t.ubicacion_id, t.codigo, t.fecha, t.ts, c.caja_id,
+       bool_or(l.manual) as necesita_lider
+from tmp_tickets t
+join tmp_cajas c on c.ubicacion_id = t.ubicacion_id and c.fecha = t.fecha
+join tmp_lineas l on l.ticket_id = t.ticket_id
+group by t.ticket_id, t.ubicacion_id, t.codigo, t.fecha, t.ts, c.caja_id;
+
+do $$
+declare v_n int;
+begin
+  select count(*) into v_n from tmp_tickets t where not exists (select 1 from tmp_venta_cab v where v.ticket_id = t.ticket_id);
+  if v_n > 0 then raise exception '[check ventas] % tickets sin caja abierta ese día (la ventana de la caja no cubre su hora)', v_n; end if;
+end $$;
+
+alter table tmp_venta_cab add column usuario_id uuid;
+update tmp_venta_cab v set usuario_id = pg_temp.firmante(v.ubicacion_id, v.fecha, v.necesita_lider, 'venta:' || v.ticket_id);
+
+do $$
+declare v_n int;
+begin
+  select count(*) into v_n from tmp_venta_cab where usuario_id is null;
+  if v_n > 0 then raise exception '[check ventas] % ventas sin firmante elegible', v_n; end if;
+end $$;
+
+-- Las cajas se insertan ANTES que las ventas (ventas.caja_id las referencia por FK): apertura + efectivo de sus ventas
+-- (todavía no hay ingresos/egresos ni cambios: eso es la Fase 5) — misma fórmula que cerrar_caja(). A1: una caja de TRU
+-- cierra con faltante de S/38,50 y una de AQP con sobrante de S/12 (el líder contó distinto de lo que dice el sistema;
+-- ninguna otra caja tiene diferencia).
+create temp table tmp_caja_cierre on commit drop as
+select c.caja_id, c.ubicacion_id, c.codigo, c.fecha, c.abierta_en, c.cerrada_en,
+       150::numeric as apertura,
+       150::numeric + coalesce((select sum(p.monto) from tmp_pago4b p join tmp_venta_cab v on v.ticket_id = p.ticket_id
+                                where v.caja_id = c.caja_id and p.metodo = 'efectivo'), 0) as sistema,
+       pg_temp.firmante(c.ubicacion_id, c.fecha, false, 'aperturacaja:' || c.caja_id) as abierta_por,
+       pg_temp.firmante(c.ubicacion_id, c.fecha, true, 'cierrecaja:' || c.caja_id) as cerrada_por,
+       row_number() over (partition by c.codigo order by c.fecha) as n_dia
+from tmp_cajas c;
+
+do $$
+declare v_n int;
+begin
+  select count(*) into v_n from tmp_caja_cierre where abierta_por is null or cerrada_por is null;
+  if v_n > 0 then raise exception '[check ventas] % cajas sin firmante elegible para abrir o cerrar', v_n; end if;
+end $$;
+
+insert into cajas (id, ubicacion_id, estado, monto_apertura, abierta_por, abierta_en, monto_cierre_sistema,
+                   monto_cierre_real, diferencia, cerrada_por, cerrada_en)
+select caja_id, ubicacion_id, 'cerrada', apertura, abierta_por, abierta_en, sistema,
+       case when codigo = 'TRU' and n_dia = 45 then sistema - 38.50
+            when codigo = 'AQP' and n_dia = 20 then sistema + 12
+            else sistema end,
+       case when codigo = 'TRU' and n_dia = 45 then -38.50
+            when codigo = 'AQP' and n_dia = 20 then 12
+            else 0 end,
+       cerrada_por, cerrada_en
+from tmp_caja_cierre;
+
+insert into ventas (id, ubicacion_id, usuario_id, created_at, caja_id, estado)
+select ticket_id, ubicacion_id, usuario_id, ts, caja_id, 'completada' from tmp_venta_cab;
+
+-- ---- 4.4 Líneas de venta (de tmp_lineas, ya con sus descuentos calculados en la Fase 2) ----
+insert into venta_items (id, venta_id, variante_id, cantidad, precio_unitario, descuento_unitario, costo_unitario,
+                         motivo_descuento, motivo_descuento_detalle, argumento_descuento, descuento_etiqueta_id)
+select pg_temp.sid('vi', l.ticket_id || ':' || l.variante_id), l.ticket_id, l.variante_id, l.cantidad, l.precio_unitario,
+       l.descuento_unitario, l.costo_unitario, l.motivo_descuento, l.motivo_descuento_detalle, l.argumento_descuento,
+       l.descuento_etiqueta_id
+from tmp_lineas l;
+
+-- ---- 4.5 Movimientos de la venta: salida del piso de venta de esa tienda ----
+insert into movimientos (id, variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, venta_item_id, usuario_id, created_at)
+select pg_temp.sid('mov', 'venta:' || l.ticket_id || ':' || l.variante_id), l.variante_id, v.ubicacion_id, u.sub_piso,
+       'salida', l.cantidad, 'venta', pg_temp.sid('vi', l.ticket_id || ':' || l.variante_id), v.usuario_id, v.ts
+from tmp_lineas l
+join tmp_venta_cab v on v.ticket_id = l.ticket_id
+join tmp_ubic u on u.ubicacion_id = v.ubicacion_id;
+
+-- ---- 4.6 Pagos ----
+insert into venta_pagos (id, venta_id, metodo, monto, recibido)
+select pg_temp.sid('pago', p.ticket_id || ':' || p.metodo), p.ticket_id, p.metodo, p.monto, p.recibido from tmp_pago4b p;
+
+do $$
+declare v_n int;
+begin
+  select count(*) into v_n from (
+    select t.ticket_id, t.total, sum(p.monto) pagado from tmp_ticket_total t join tmp_pago4b p on p.ticket_id = t.ticket_id
+    group by t.ticket_id, t.total) x
+  where round(x.total, 2) <> round(x.pagado, 2);
+  if v_n > 0 then raise exception '[check ventas] % ventas donde los pagos no cuadran con el total', v_n; end if;
+end $$;
+
+-- ---- 4.7 Comprobantes: boleta o factura, solo TRU y AQP (LIM no tiene ninguna serie registrada — hallazgo previo del
+-- preflight, no algo que este seed deba resolver). aceptado + sandbox, jamás pendiente/rechazado. El correlativo sale de
+-- fn_reservar_numero_serie() en orden cronológico, la misma función que usa emitir_comprobante(): avanza de verdad
+-- series_comprobantes.siguiente_numero (una fila normal, no una secuencia de Postgres — a diferencia del setval() de
+-- transferencias, esto SÍ es transaccional y un ROLLBACK lo deshace sin dejar rastro).
+do $$
+declare
+  r record; v_serie text; v_numero int; v_tipo text; v_items jsonb; v_sub numeric; v_igv numeric;
+  v_doc_tipo text; v_doc_num text; v_doc_nombre text;
+begin
+  for r in
+    select v.ticket_id, v.ubicacion_id, v.ts, v.usuario_id, t.total
+    from tmp_venta_cab v join tmp_ticket_total t on t.ticket_id = v.ticket_id
+    where v.codigo in ('TRU', 'AQP')
+    order by v.ts, v.ticket_id
+  loop
+    if pg_temp.h('doc:' || r.ticket_id) < 0.04 then
+      v_tipo := 'factura';
+      v_doc_tipo := 'ruc';
+      v_doc_num := '20' || lpad((abs(hashtext(r.ticket_id::text)) % 100000000)::text, 8, '0');
+      v_doc_nombre := 'Empresa Demo ' || upper(substr(r.ticket_id::text, 1, 6));
+    elsif pg_temp.h('dni:' || r.ticket_id) < 0.35 then
+      v_tipo := 'boleta';
+      v_doc_tipo := 'dni';
+      v_doc_num := lpad((10000000 + abs(hashtext(r.ticket_id::text)) % 80000000)::text, 8, '0');
+      v_doc_nombre := 'Clienta Demo ' || upper(substr(r.ticket_id::text, 1, 6));
+    else
+      v_tipo := 'boleta';
+      v_doc_tipo := 'sin_documento';
+      v_doc_num := null;
+      v_doc_nombre := null;
+    end if;
+
+    select serie, numero into v_serie, v_numero from fn_reservar_numero_serie(r.ubicacion_id, v_tipo);
+
+    v_igv := round(r.total - r.total / 1.18, 2);
+    v_sub := round(r.total - v_igv, 2);
+
+    select jsonb_agg(jsonb_build_object('variante_id', vi.variante_id, 'cantidad', vi.cantidad,
+             'precio_unitario', vi.precio_unitario, 'descuento_unitario', vi.descuento_unitario) order by vi.id)
+      into v_items from venta_items vi where vi.venta_id = r.ticket_id;
+
+    insert into comprobantes (id, venta_id, ubicacion_id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc,
+      cliente_nombre, moneda, subtotal, igv, total, estado, usuario_id, items, entorno_transmision, respuesta_sunat,
+      created_at, enviado_at)
+    values (pg_temp.sid('comp', r.ticket_id::text), r.ticket_id, r.ubicacion_id, v_tipo, v_serie, v_numero, v_doc_tipo,
+      v_doc_num, v_doc_nombre, 'PEN', v_sub, v_igv, r.total, 'aceptado', r.usuario_id, v_items, 'sandbox',
+      '{"seed": true}'::jsonb, r.ts, r.ts);
+  end loop;
+end $$;
+
+-- ---- 4.8 Chequeos ----
+do $$
+declare v_productos int; v_n int; v_ventas int; v_comp int; v_cajas int;
+begin
+  select count(*) into v_ventas from ventas where id::text like '5eed%';
+  select count(*) into v_comp from comprobantes where id::text like '5eed%';
+  select count(*) into v_cajas from cajas where id::text like '5eed%';
+
+  -- (1) ninguna venta llegó sin sus líneas, sus pagos o su movimiento de salida
+  select count(*) into v_n from ventas v where v.id::text like '5eed%'
+    and (not exists (select 1 from venta_items i where i.venta_id = v.id)
+      or not exists (select 1 from venta_pagos p where p.venta_id = v.id)
+      or not exists (select 1 from movimientos m where m.venta_item_id in (select id from venta_items i where i.venta_id = v.id)));
+  if v_n > 0 then raise exception '[check ventas] % ventas incompletas (sin líneas, sin pago o sin movimiento)', v_n; end if;
+
+  -- (2) los pagos de cada venta suman su total (igual que exige registrar_venta)
+  select count(*) into v_n from (
+    select v.id, round(coalesce((select sum(i.subtotal) from venta_items i where i.venta_id = v.id), 0), 2) as total,
+           round(coalesce((select sum(p.monto) from venta_pagos p where p.venta_id = v.id), 0), 2) as pagado
+    from ventas v where v.id::text like '5eed%') x
+  where x.total <> x.pagado;
+  if v_n > 0 then raise exception '[check ventas] % ventas donde Σ pagos ≠ Σ líneas', v_n; end if;
+
+  -- (3) toda venta cae dentro del horario y de la caja de su ubicación (nunca fuera del rango abierta_en..cerrada_en)
+  select count(*) into v_n from ventas v join cajas c on c.id = v.caja_id
+    where v.id::text like '5eed%' and (v.created_at < c.abierta_en or v.created_at > c.cerrada_en or v.ubicacion_id <> c.ubicacion_id);
+  if v_n > 0 then raise exception '[check ventas] % ventas fuera del horario o la ubicación de su caja', v_n; end if;
+
+  -- (4) comprobante = total de la venta; ningún comprobante pendiente/rechazado; correlativos contiguos y sin huecos por serie
+  select count(*) into v_n from comprobantes c join ventas v on v.id = c.venta_id
+    where c.id::text like '5eed%' and round(c.total, 2) <> round((select sum(i.subtotal) from venta_items i where i.venta_id = v.id), 2);
+  if v_n > 0 then raise exception '[check ventas] % comprobantes cuyo total no es el de su venta', v_n; end if;
+  select count(*) into v_n from comprobantes where id::text like '5eed%' and estado not in ('aceptado');
+  if v_n > 0 then raise exception '[check ventas] % comprobantes sembrados en un estado que no es aceptado', v_n; end if;
+  select count(*) into v_n from (
+    select tipo, serie, numero, count(*) from comprobantes where tipo in ('boleta', 'factura') group by 1, 2, 3 having count(*) > 1) z;
+  if v_n > 0 then raise exception '[check ventas] números de comprobante repetidos'; end if;
+  select count(*) into v_n from (
+    select serie, numero, numero - lag(numero) over (partition by tipo, serie order by numero) as salto
+    from comprobantes where tipo in ('boleta', 'factura')) x where salto > 1;
+  if v_n > 0 then raise exception '[check ventas] % huecos en la numeración de comprobantes', v_n; end if;
+
+  -- (5) ninguna venta sembrada con comprobante en Lima (no hay serie: si esto falla, alguien la agregó y hay que revisar)
+  select count(*) into v_n from comprobantes c join ventas v on v.id = c.venta_id join ubicaciones u on u.id = v.ubicacion_id
+    where c.id::text like '5eed%' and u.nombre = 'Tienda LIM';
+  if v_n > 0 then raise exception '[check ventas] % comprobantes en LIM (esa tienda no tiene serie registrada)', v_n; end if;
+
+  -- (6) firmantes: nadie firma antes de haber ingresado; cierre de caja y ventas con descuento manual, siempre líder
+  select count(*) into v_n from (
+    select v.id from ventas v join public.personas p on p.id = v.usuario_id
+     where v.id::text like '5eed%' and p.fecha_ingreso > (v.created_at at time zone 'America/Lima')::date
+    union all select c.id from cajas c join public.personas p on p.id in (c.abierta_por, c.cerrada_por)
+     where c.id::text like '5eed%' and p.fecha_ingreso > (c.cerrada_en at time zone 'America/Lima')::date) f;
+  if v_n > 0 then raise exception '[check ventas] % firmas anteriores al ingreso de quien firma', v_n; end if;
+  select count(*) into v_n from cajas c where c.id::text like '5eed%'
+    and not exists (select 1 from colaboradores k where k.persona_id = c.cerrada_por and k.rol = 'lider');
+  if v_n > 0 then raise exception '[check ventas] % cierres de caja que no firmó un líder (candado D-13)', v_n; end if;
+  select count(*) into v_n from tmp_venta_cab v where v.necesita_lider
+    and not exists (select 1 from colaboradores k where k.persona_id = v.usuario_id and k.rol = 'lider');
+  if v_n > 0 then raise exception '[check ventas] % ventas con descuento manual que no firmó un líder', v_n; end if;
+
+  -- (7) cierre de caja = fórmula de cerrar_caja() (apertura + efectivo de sus ventas), y diferencia = real - sistema
+  select count(*) into v_n from cajas c where c.id::text like '5eed%'
+    and c.monto_cierre_sistema <> c.monto_apertura + coalesce((select sum(p.monto) from venta_pagos p join ventas v on v.id = p.venta_id
+                                                                where v.caja_id = c.id and p.metodo = 'efectivo'), 0);
+  if v_n > 0 then raise exception '[check ventas] % cajas cuyo cierre no sigue la fórmula de cerrar_caja()', v_n; end if;
+  select count(*) into v_n from cajas where id::text like '5eed%' and round(diferencia, 2) <> round(monto_cierre_real - monto_cierre_sistema, 2);
+  if v_n > 0 then raise exception '[check ventas] % cajas con diferencia mal calculada', v_n; end if;
+  select count(*) into v_n from cajas where id::text like '5eed%' and diferencia <> 0;
+  if v_n <> 2 then raise exception '[check ventas] % cajas con diferencia (se esperaban exactamente 2: A1)', v_n; end if;
+
+  -- (8) mezcla de pagos (R-02-ish: transferencia baja, efectivo predominante) y de documento
+  select round(100.0 * count(*) filter (where metodo = 'efectivo') / count(*)) into v_n from venta_pagos where id::text like '5eed%';
+  if v_n < 40 or v_n > 56 then raise exception '[check ventas] % %% de pagos en efectivo (se esperaba 40-56 %%)', v_n; end if;
+  select round(100.0 * count(*) filter (where cliente_tipo_doc = 'dni') / count(*)) into v_n from comprobantes where id::text like '5eed%' and tipo = 'boleta';
+  if v_n < 28 or v_n > 42 then raise exception '[check ventas] % %% de boletas con DNI (se esperaba ~35 %%)', v_n; end if;
+  select round(100.0 * count(*) filter (where tipo = 'factura') / count(*)) into v_n from comprobantes where id::text like '5eed%';
+  if v_n < 1 or v_n > 8 then raise exception '[check ventas] % %% de comprobantes son factura (se esperaba ~4 %%)', v_n; end if;
+
+  -- (9) no hay dos eventos del mismo bucket en el mismo instante (una venta y la subida que la abastece)
+  select count(*) into v_n from (
+    select variante_id, ubicacion_id, sububicacion_id, created_at from movimientos
+    where id::text like '5eed%' and motivo in ('venta', 'movimiento_interno')
+    group by 1, 2, 3, 4 having count(*) > 1) z;
+  if v_n > 0 then raise exception '[check ventas] % instantes con dos movimientos del mismo bucket (venta/reposición)', v_n; end if;
+
+  raise notice '[check ventas] OK — % ventas, % comprobantes, % cajas', v_ventas, v_comp, v_cajas;
+end $$;
+
 -- Sincroniza transferencias_numero_seq con el número más alto que quedó sembrado. Un INSERT con `numero` explícito nunca
 -- llama a nextval(): sin esto, el primer «Iniciar traslado» real después del COMMIT pediría un número que una fila
 -- sembrada ya ocupa (transferencias_numero_unique). SOLO corre si `cayla_seed.definitivo = 'true'` (ver el parámetro al
