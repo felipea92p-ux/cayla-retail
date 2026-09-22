@@ -258,7 +258,7 @@ export function ColaboradoresPanel({
           {roles === null ? (
             <Vacio>No se pudieron leer los roles. Lo demás de esta pantalla sí está al día.</Vacio>
           ) : (
-            <RolesPanel roles={roles} cuentas={cuentas} acciones={accionesRoles} />
+            <RolesPanel roles={roles} cuentas={cuentas} ubicaciones={ubicaciones} yoId={colaboradores.find((c) => c.es_yo)?.persona_id ?? null} acciones={accionesRoles} />
           )}
         </section>
       )}
@@ -374,10 +374,11 @@ export function ColaboradoresPanel({
         <AsignarRolModal
           roles={rolesAsignables(roles)}
           cuentas={[]}
+          ubicaciones={ubicaciones}
           cuentaFija={modal.cuenta}
           onClose={() => setModal(null)}
-          onConfirmar={(rolId, cuenta) =>
-            ejecutar(cuenta.id, "cambiar el rol", () => accionesRoles.asignar(rolId, cuenta), "Rol actualizado", `${cuenta.nombre} ahora tiene «${nombreDeRol(rolId) ?? "el nuevo rol"}».`)
+          onConfirmar={(rolId, cuenta, ubicacionId) =>
+            ejecutar(cuenta.id, "cambiar el rol", () => accionesRoles.asignar(rolId, cuenta, ubicacionId), "Rol actualizado", `${cuenta.nombre} ahora tiene «${nombreDeRol(rolId) ?? "el nuevo rol"}».`)
           }
         />
       )}

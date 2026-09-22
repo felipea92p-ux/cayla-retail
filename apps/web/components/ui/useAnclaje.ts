@@ -72,6 +72,17 @@ export function usePosicionAnclada(control: RefObject<HTMLElement | null>, abier
    `max-h-*`); se achica si no hay tanto espacio en ninguno de los dos lados.
    Mientras mide por primera vez devuelve `null`: quien lo usa no pinta la
    lista hasta tener posición, para que no aparezca un cuadro en (0,0).
+
+   Se mide EN CADA CUADRO mientras está abierta, no solo al abrir, al
+   desplazarse o al redimensionar (2026-09-22): al abrir un modal, Radix
+   enfoca el primer campo en el mismo instante en que la hoja empieza a
+   entrar —achicada al 96,5 % y 18 px más abajo, y el campo 10 px más por la
+   cascada—; el combo se abre con ese foco y medía el campo a medio camino.
+   Terminada la entrada el campo quedaba en su lugar y la lista no: más
+   angosta, corrida y ~28 px más abajo, tapando los botones. Una animación
+   no dispara `scroll` ni `resize`, y tampoco un aviso que aparece arriba y
+   empuja el campo. Cuesta un `getBoundingClientRect` por cuadro, solo con
+   la lista a la vista, y el estado cambia solo si la posición cambió.
    ==================================================================== */
 export type PosicionLista = { left: number; width: number; maxHeight: number } & ({ top: number } | { bottom: number });
 
@@ -80,26 +91,33 @@ export function usePosicionLista(control: RefObject<HTMLElement | null>, abierto
 
   useLayoutEffect(() => {
     if (!abierto || !control.current) return;
+    let previa = "";
+    let cuadro = 0;
     function calcular() {
-      const r = control.current!.getBoundingClientRect();
+      if (!control.current) return;
+      const r = control.current.getBoundingClientRect();
       const margen = 8;
       const abajo = window.innerHeight - r.bottom - separacion - margen;
       const arriba = r.top - separacion - margen;
       const base = { left: r.left, width: r.width };
       // Abajo es lo esperado; arriba solo si abajo no alcanza y arriba hay más aire.
-      if (abajo >= Math.min(alto, 160) || abajo >= arriba) {
-        setPos({ ...base, top: r.bottom + separacion, maxHeight: Math.min(alto, Math.max(abajo, 120)) });
-      } else {
-        setPos({ ...base, bottom: window.innerHeight - r.top + separacion, maxHeight: Math.min(alto, arriba) });
+      const nueva: PosicionLista =
+        abajo >= Math.min(alto, 160) || abajo >= arriba
+          ? { ...base, top: r.bottom + separacion, maxHeight: Math.min(alto, Math.max(abajo, 120)) }
+          : { ...base, bottom: window.innerHeight - r.top + separacion, maxHeight: Math.min(alto, arriba) };
+      const clave = JSON.stringify(nueva);
+      if (clave !== previa) {
+        previa = clave;
+        setPos(nueva);
       }
     }
-    calcular();
-    window.addEventListener("resize", calcular);
-    window.addEventListener("scroll", calcular, true);
-    return () => {
-      window.removeEventListener("resize", calcular);
-      window.removeEventListener("scroll", calcular, true);
-    };
+    // Cuadro a cuadro (ver arriba): cubre la entrada del modal, el scroll, el resize y el campo que se mueve solo.
+    function seguir() {
+      calcular();
+      cuadro = requestAnimationFrame(seguir);
+    }
+    seguir();
+    return () => cancelAnimationFrame(cuadro);
   }, [abierto, control, alto, separacion]);
 
   return abierto ? pos : null;

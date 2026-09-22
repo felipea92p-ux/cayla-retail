@@ -1,0 +1,768 @@
+<title>Existencias CAYLA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+  /* Paleta oficial CAYLA (guía «CAYLA Dynamic», Sala de diseño 2026-09-22) — once tokens, cuatro radios,
+     una curva de entrada y una de salida (globals.css). Sin sombras, sin gradientes: la línea sand es el adorno. */
+  :root{
+    --crema:#f5f0e8; --papel:#fbf8f2; --tinta:#1a1a18; --rojo:#b8412d; --rojo-profundo:#8b2a1f;
+    --sand:#e8e0d0; --taupe:#805c4c; --verde:#48603f; --ambar:#74501a; --hueso:#eae1d2; --pizarra:#4c5d6e;
+    --velo:rgba(26,26,24,.38);
+    --r-control:8px; --r-superficie:16px; --r-flotante:20px; --r-pildora:999px;
+    --ease-cayla:cubic-bezier(.32,.72,.24,1); --ease-salida:cubic-bezier(.4,0,1,1);
+    --serif:"EB Garamond", ui-serif, Georgia, serif;
+    --sans:"DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme:dark;
+      --crema:#1c1a16; --papel:#26221d; --tinta:#ede7db; --rojo:#d4634a; --rojo-profundo:#e8836b;
+      --sand:#332e27; --taupe:#ab9080; --verde:#8fae80; --ambar:#c99a4a; --hueso:#15110d; --pizarra:#9db0c2;
+      --velo:rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --crema:#1c1a16; --papel:#26221d; --tinta:#ede7db; --rojo:#d4634a; --rojo-profundo:#e8836b;
+    --sand:#332e27; --taupe:#ab9080; --verde:#8fae80; --ambar:#c99a4a; --hueso:#15110d; --pizarra:#9db0c2;
+    --velo:rgba(0,0,0,.55);
+  }
+  *{box-sizing:border-box;}
+  html,body{background:var(--crema);}
+  body{color:var(--tinta); font-family:var(--sans); font-size:14px; font-variant-numeric:tabular-nums; -webkit-font-smoothing:antialiased;}
+  button,input,select{font:inherit; color:inherit;}
+  button{cursor:pointer;}
+  :focus-visible{outline:2px solid var(--rojo); outline-offset:2px;}
+  .serif{font-family:var(--serif);}
+  .etq{font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--taupe);}
+  .sub{color:var(--taupe);}
+
+  /* ---------- Barra de la demo (no es parte del ERP) ---------- */
+  .demo{position:sticky; top:env(safe-area-inset-top,0px); z-index:30; background:var(--tinta); color:var(--crema);
+    padding:10px 16px; display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px;}
+  .demo b.marca{font-family:var(--serif); font-size:17px; font-weight:500; margin-right:4px; white-space:nowrap;}
+  .demo .grupo{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .demo .grupo > span{font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; opacity:.62;}
+  .seg{display:inline-flex; max-width:100%; overflow-x:auto; border:1px solid color-mix(in oklab, var(--crema) 28%, transparent); border-radius:var(--r-control); overflow:hidden;}
+  .seg button{background:transparent; border:0; color:var(--crema); padding:6px 11px; font-size:12.5px; font-weight:500; white-space:nowrap; transition:background-color 150ms, color 150ms;}
+  .seg button + button{border-left:1px solid color-mix(in oklab, var(--crema) 20%, transparent);}
+  .seg button[aria-pressed="true"]{background:var(--crema); color:var(--tinta);}
+  .demo .nota{flex-basis:100%; font-size:12.5px; line-height:1.5; opacity:.82; margin:0;}
+  .demo .nota b{opacity:1; color:var(--crema);}
+
+  /* ---------- Carcasa del ERP (lateral claro, como hoy) ---------- */
+  .app{display:grid; grid-template-columns:248px 1fr; min-height:calc(100vh - 90px);}
+  .lateral{border-right:1px solid var(--sand); padding:22px 14px 16px; display:flex; flex-direction:column; gap:18px; background:var(--crema);}
+  .logo{display:flex; align-items:center; gap:10px; padding:0 8px; font-size:15px; font-weight:600; letter-spacing:.32em;}
+  .btn-nuevo{background:var(--tinta); color:var(--crema); border:0; border-radius:var(--r-control); padding:12px; font-size:11.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;}
+  .nav{display:flex; flex-direction:column; gap:2px;}
+  .nav a{display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:var(--r-control); text-decoration:none; color:var(--tinta); font-size:14px;}
+  .nav a svg{width:17px; height:17px; flex:none; stroke:currentColor; fill:none; stroke-width:1.4;}
+  .nav a .flecha{margin-left:auto; opacity:.4; font-size:11px;}
+  .nav .hijo{padding-left:32px;}
+  .nav a.activo{background:var(--sand); font-weight:500;}
+  .nav a:not(.activo):hover{background:color-mix(in oklab, var(--sand) 50%, transparent);}
+  .lateral .pie{margin-top:auto; border-top:1px solid var(--sand); padding:14px 8px 0; display:flex; align-items:center; gap:10px;}
+  .avatar{width:34px; height:34px; border-radius:50%; background:var(--sand); display:grid; place-items:center; font-family:var(--serif); font-size:14px;}
+  .lema{font-family:var(--serif); font-style:italic; font-size:12.5px; color:var(--taupe); padding:0 8px;}
+
+  .principal{min-width:0; display:flex; flex-direction:column;}
+  .cabecera{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 32px; border-bottom:1px solid var(--sand);}
+  .icono-btn{background:transparent; border:1px solid transparent; border-radius:var(--r-control); width:34px; height:34px; display:grid; place-items:center; color:var(--taupe);}
+  .icono-btn:hover{border-color:var(--sand);}
+  .chip-sede{border:1px solid var(--sand); background:var(--papel); border-radius:var(--r-control); padding:8px 12px; font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; display:inline-flex; gap:8px; align-items:center;}
+  .pagina{padding:28px 32px 56px; display:flex; flex-direction:column; gap:22px; max-width:1320px; width:100%;}
+
+  /* ---------- Botones: cinco variantes de la guía ---------- */
+  .btn{border-radius:var(--r-control); font-size:13px; font-weight:500; padding:8px 14px; border:1px solid transparent; white-space:nowrap; transition:background-color 150ms, border-color 150ms, color 150ms; display:inline-flex; align-items:center; gap:6px; line-height:1.2;}
+  .btn-primario{background:var(--tinta); color:var(--crema);}
+  .btn-primario:hover{background:var(--rojo-profundo);}
+  .btn-secundario{background:transparent; border-color:var(--sand); color:var(--tinta);}
+  .btn-secundario:hover{border-color:color-mix(in oklab, var(--taupe) 40%, transparent); background:color-mix(in oklab, var(--sand) 50%, transparent);}
+  .btn-sutil{background:transparent; border-color:var(--sand); color:var(--taupe);}
+  .btn-sutil:hover{color:var(--tinta); background:color-mix(in oklab, var(--sand) 30%, transparent);}
+  .btn-sutil[aria-pressed="true"]{color:var(--tinta); border-color:var(--tinta);}
+  .btn-enlace{background:none; border:0; padding:0; color:var(--tinta); text-decoration:underline; text-underline-offset:3px; font-size:12.5px;}
+  .btn-enlace:hover{color:var(--rojo);}
+  .btn-enlace.rojo{color:var(--rojo);}
+  .btn-sm{padding:6px 11px; font-size:12.5px;}
+  .btn[disabled]{opacity:.45; cursor:not-allowed;}
+
+  /* ---------- Encabezado de pantalla ---------- */
+  .encabezado{display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:16px 24px;}
+  .encabezado h1{font-family:var(--serif); font-weight:500; font-size:36px; line-height:1.05; margin:6px 0 8px; text-wrap:balance;}
+  .encabezado p{margin:0; max-width:58ch; line-height:1.55;}
+  .encabezado .hora{font-size:12px; margin-top:6px; color:var(--taupe);}
+  .encabezado .acciones{display:flex; gap:10px; flex-wrap:wrap;}
+
+  /* ---------- Insignias ---------- */
+  .badge{display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:var(--r-pildora); font-size:12px; white-space:nowrap;}
+  .badge::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor;}
+  .badge[data-tono="verde"]{background:color-mix(in oklab, var(--verde) 15%, transparent); color:var(--verde);}
+  .badge[data-tono="ambar"]{background:color-mix(in oklab, var(--ambar) 15%, transparent); color:var(--ambar);}
+  .badge[data-tono="rojo"]{background:color-mix(in oklab, var(--rojo) 11%, transparent); color:var(--rojo-profundo);}
+  .badge[data-tono="pizarra"]{background:color-mix(in oklab, var(--pizarra) 15%, transparent); color:var(--pizarra);}
+  .badge[data-tono="taupe"]{background:var(--sand); color:var(--taupe);}
+  .badge.sin-punto::before{display:none;}
+
+  /* ---------- Cifras ---------- */
+  .cifras{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px;}
+  .tile{background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie); padding:16px 18px; text-align:left; display:flex; flex-direction:column; gap:6px; min-width:0;}
+  button.tile{transition:border-color 150ms, background-color 150ms;}
+  button.tile:hover{border-color:color-mix(in oklab, var(--taupe) 45%, transparent);}
+  button.tile[aria-pressed="true"]{border-color:var(--tinta); background:color-mix(in oklab, var(--hueso) 45%, var(--papel));}
+  .tile .fila-top{display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .tile .valor{font-family:var(--serif); font-size:32px; line-height:1; font-weight:500;}
+  .tile .valor small{font-family:var(--sans); font-size:13px; color:var(--taupe); font-weight:400; margin-left:4px;}
+  .tile .valor.rojo{color:var(--rojo);} .tile .valor.ambar{color:var(--ambar);}
+  .tile .det{font-size:12.5px; color:var(--taupe); line-height:1.45;}
+  .tile .ir{font-size:12px; color:var(--taupe);}
+  .split{display:flex; height:6px; border-radius:var(--r-pildora); overflow:hidden; background:var(--hueso); margin-top:2px;}
+  .split i{display:block; height:100%;}
+  .split i.piso{background:var(--tinta);} .split i.alm{background:color-mix(in oklab, var(--taupe) 55%, transparent);}
+  .prioridades-cab{display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:12px;}
+  .prioridades-cab h2{font-family:var(--serif); font-weight:500; font-size:22px; margin:0;}
+  .prioridades-cab p{margin:2px 0 0; font-size:13px; color:var(--taupe);}
+
+  /* ---------- Superficie de la tabla ---------- */
+  .superficie{background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie); overflow:hidden;}
+  .herramientas{display:flex; flex-wrap:wrap; gap:10px; padding:14px; align-items:center; border-bottom:1px solid var(--sand);}
+  .buscar{flex:1 1 240px; position:relative;}
+  .buscar svg{position:absolute; left:11px; top:50%; transform:translateY(-50%); width:15px; height:15px; stroke:var(--taupe); fill:none; stroke-width:1.6;}
+  .control{border-radius:var(--r-control); border:1px solid var(--sand); background:var(--hueso); padding:8px 12px; font-size:13.5px; width:100%; min-height:36px;}
+  .buscar .control{padding-left:34px;}
+  select.control{width:auto; flex:0 1 150px; appearance:none; padding-right:30px;
+    background-image:linear-gradient(45deg, transparent 50%, var(--taupe) 50%), linear-gradient(135deg, var(--taupe) 50%, transparent 50%);
+    background-position:calc(100% - 15px) 55%, calc(100% - 10px) 55%; background-size:5px 5px; background-repeat:no-repeat;}
+  .filtro-activo{display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--sand); font-size:13px; background:color-mix(in oklab, var(--hueso) 40%, transparent);}
+
+  .tabla-wrap{overflow-x:auto;}
+  table.t{width:100%; border-collapse:collapse; font-size:13px; min-width:980px;}
+  table.t thead{background:color-mix(in oklab, var(--sand) 70%, transparent);}
+  table.t th{text-align:left; font-weight:400; color:var(--taupe); padding:9px 14px; font-size:12px; white-space:nowrap;}
+  table.t th.num, table.t td.num{text-align:right;}
+  table.t td{padding:11px 14px; border-top:1px solid var(--sand); vertical-align:middle;}
+  table.t tbody tr:nth-child(even){background:color-mix(in oklab, var(--hueso) 50%, transparent);}
+  table.t tbody tr{transition:background-color 150ms;}
+  table.t tbody tr:hover{background:color-mix(in oklab, var(--crema) 60%, transparent);}
+  .prenda{display:flex; align-items:center; gap:12px; min-width:0;}
+  .tela{width:38px; height:44px; border-radius:6px; flex:none; border:1px solid var(--sand); position:relative; overflow:hidden;}
+  .tela::after{content:""; position:absolute; inset:0; background:repeating-linear-gradient(135deg, rgba(255,255,255,.07) 0 2px, transparent 2px 5px);}
+  .prenda b{font-weight:600; font-size:13.5px; display:block;}
+  .prenda span{font-size:12px; color:var(--taupe); display:block;}
+  .prenda .sku{font-size:11px; letter-spacing:.02em; opacity:.8;}
+  td.c-prenda{min-width:230px;}
+  .pa{display:flex; flex-direction:column; gap:5px; min-width:92px;}
+  .pa .n{white-space:nowrap;} .pa .n em{font-style:normal; color:var(--taupe);}
+  .pa .split{width:92px; height:4px;}
+  .disp b{font-family:var(--serif); font-size:20px; font-weight:500;}
+  .disp span{display:block; font-size:11.5px; color:var(--taupe); white-space:nowrap;}
+  .disp span.alerta{color:var(--rojo-profundo);}
+  .red{font-size:12.5px; line-height:1.45; color:var(--taupe); max-width:190px;}
+  .red b{color:var(--tinta); font-weight:500; white-space:nowrap;}
+  .camino{font-size:12.5px; white-space:nowrap;} .camino span{display:block; color:var(--taupe); font-size:11.5px;}
+  .camino .tarde{color:var(--rojo-profundo);}
+  .acc{display:flex; justify-content:flex-end; align-items:center; gap:6px; position:relative;}
+  .acc-links{display:flex; gap:12px; justify-content:flex-end; flex-wrap:wrap;}
+  .mas{width:30px; height:30px; padding:0; justify-content:center; font-size:16px; line-height:1;}
+  .extras{display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;}
+  .pie-tabla{display:flex; flex-wrap:wrap; gap:10px 18px; justify-content:space-between; align-items:center; padding:12px 14px; border-top:1px solid var(--sand); font-size:12.5px; color:var(--taupe);}
+  .leyenda{display:flex; flex-wrap:wrap; gap:6px 16px;}
+  .vacio-filtro{padding:32px 16px; text-align:center; color:var(--taupe);}
+
+  /* ---------- Menú «⋯» ---------- */
+  .menu{position:absolute; right:0; top:calc(100% + 6px); z-index:20; background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-control); min-width:188px; padding:4px; display:flex; flex-direction:column; animation:sube-menu 200ms var(--ease-cayla) both;}
+  .menu button{background:none; border:0; text-align:left; padding:8px 10px; border-radius:6px; font-size:13px;}
+  .menu button:hover{background:var(--hueso);}
+  .menu hr{border:0; border-top:1px solid var(--sand); margin:4px 0;}
+  @keyframes sube-menu{from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:none;}}
+
+  /* ---------- Estado vacío: guía de primeros pasos ---------- */
+  .guia{background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie); padding:28px;}
+  .guia h2{font-family:var(--serif); font-weight:500; font-size:28px; margin:6px 0 6px; text-wrap:balance;}
+  .guia > p{margin:0 0 20px; color:var(--taupe); max-width:62ch; line-height:1.55;}
+  .caminos{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px;}
+  .camino-c{border:1px solid var(--sand); border-radius:var(--r-superficie); padding:18px; display:flex; flex-direction:column; gap:10px; background:var(--crema);}
+  .camino-c .ico{width:36px; height:36px; border-radius:50%; background:var(--hueso); display:grid; place-items:center;}
+  .camino-c .ico svg{width:18px; height:18px; stroke:var(--tinta); fill:none; stroke-width:1.4;}
+  .camino-c h3{margin:0; font-size:15px; font-weight:600;}
+  .camino-c p{margin:0; font-size:13px; color:var(--taupe); line-height:1.5; flex:1;}
+  .camino-c .dato{font-family:var(--serif); font-size:20px;}
+  .aviso-franja{display:flex; gap:12px; align-items:flex-start; margin-top:18px; padding:12px 14px; border-radius:var(--r-control); background:color-mix(in oklab, var(--ambar) 10%, transparent); border:1px solid color-mix(in oklab, var(--ambar) 28%, transparent); font-size:13px; line-height:1.5;}
+  .aviso-franja b{color:var(--ambar);}
+
+  /* ---------- Modal (ADR-0136): velo con desenfoque → hoja sube 18px y crece → cascada 55ms ---------- */
+  .velo{position:fixed; inset:0; z-index:60; background:var(--velo); backdrop-filter:blur(3px); display:grid; place-items:center; padding:16px; animation:velo-in 220ms var(--ease-cayla) both;}
+  .velo.sale{animation:velo-out 220ms var(--ease-salida) both;}
+  .hoja{background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-flotante); width:min(480px,100%); max-height:calc(100vh - 32px); overflow:auto; padding:24px; animation:hoja-in 380ms var(--ease-cayla) both;}
+  .velo.sale .hoja{animation:hoja-out 220ms var(--ease-salida) both;}
+  .hoja > *{animation:cascada 320ms var(--ease-cayla) both; animation-delay:calc(120ms + var(--i,0) * 55ms);}
+  .hoja h3{font-family:var(--serif); font-weight:500; font-size:24px; margin:0 0 4px;}
+  .hoja .bajada{margin:0 0 18px; color:var(--taupe); font-size:13.5px; line-height:1.5;}
+  .hoja label{display:block; font-size:12px; color:var(--taupe); margin-bottom:6px;}
+  .hoja .campo{margin-bottom:16px;}
+  .hoja .botones{display:flex; justify-content:flex-end; gap:10px; margin-top:6px;}
+  .paso{display:flex; align-items:center; gap:10px;}
+  .paso button{width:36px; height:36px; border-radius:var(--r-control); border:1px solid var(--sand); background:var(--hueso); font-size:18px;}
+  .paso output{font-family:var(--serif); font-size:28px; min-width:48px; text-align:center;}
+  .antes-despues{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px;}
+  .antes-despues div{background:var(--hueso); border-radius:var(--r-control); padding:10px 12px; font-size:12.5px; color:var(--taupe);}
+  .antes-despues b{display:block; font-family:var(--serif); font-size:20px; color:var(--tinta); font-weight:500;}
+  .lista-mov{list-style:none; margin:0 0 16px; padding:0;}
+  .lista-mov li{display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-top:1px solid var(--sand); font-size:13px;}
+  .lista-mov li span{color:var(--taupe); font-size:12px;}
+  .radios{display:flex; gap:8px;}
+  .radios label{flex:1; margin:0; border:1px solid var(--sand); border-radius:var(--r-control); padding:10px 12px; color:var(--tinta); font-size:13px; display:flex; gap:8px; align-items:center; background:var(--hueso);}
+  @keyframes velo-in{from{opacity:0;} to{opacity:1;}}
+  @keyframes velo-out{to{opacity:0;}}
+  @keyframes hoja-in{from{opacity:0; transform:translate3d(0,18px,0) scale(.965);} to{opacity:1; transform:none;}}
+  @keyframes hoja-out{to{opacity:0; transform:translate3d(0,10px,0) scale(.98);}}
+  @keyframes cascada{from{opacity:0; transform:translate3d(0,10px,0);} to{opacity:1; transform:none;}}
+
+  /* ---------- Loader único (ADR-0149) y aviso que sale DESPUÉS ---------- */
+  .espera{position:fixed; inset:0; z-index:80; background:color-mix(in oklab, var(--crema) 82%, transparent); backdrop-filter:blur(2px); display:grid; place-items:center; animation:velo-in 200ms var(--ease-cayla) both;}
+  .espera div{display:flex; flex-direction:column; align-items:center; gap:12px; font-size:13px; color:var(--taupe);}
+  .espera svg{animation:aletea 1.6s ease-in-out infinite;}
+  @keyframes aletea{0%,100%{transform:translateY(0);} 50%{transform:translateY(-5px);}}
+  .aviso{position:fixed; top:calc(16px + env(safe-area-inset-top,0px)); right:16px; z-index:90; background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie); padding:12px 16px; display:flex; gap:10px; align-items:center; font-size:13.5px; max-width:calc(100vw - 32px); animation:hoja-in 320ms var(--ease-cayla) both;}
+  .aviso svg{flex:none; stroke:var(--verde); fill:none; stroke-width:2;}
+  .aviso svg path{stroke-dasharray:24; stroke-dashoffset:24; animation:visto 360ms 120ms var(--ease-cayla) forwards;}
+  @keyframes visto{to{stroke-dashoffset:0;}}
+  .fila-nueva td{animation:destello 1.4s var(--ease-cayla);}
+  @keyframes destello{0%{background:color-mix(in oklab, var(--verde) 14%, transparent);} 100%{background:transparent;}}
+
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{animation:none !important; transition:none !important;}
+  }
+
+  /* ---------- Anchos menores ---------- */
+  @media (max-width:1080px){
+    .cifras{grid-template-columns:repeat(2,minmax(0,1fr));}
+  }
+  @media (max-width:860px){
+    .demo{position:static;}
+    .app{grid-template-columns:1fr;}
+    .lateral{display:none;}
+    .cabecera{padding:10px 16px;}
+    .pagina{padding:20px 16px 48px;}
+    .caminos{grid-template-columns:1fr;}
+    select.control{flex:1 1 130px;}
+    /* La tabla se vuelve fichas: el colaborador de piso la usa de pie, con el celular. */
+    table.t{min-width:0;}
+    table.t thead{display:none;}
+    table.t, table.t tbody, table.t tr, table.t td{display:block; width:100%;}
+    table.t tbody tr{padding:12px 14px; border-top:1px solid var(--sand); display:grid; grid-template-columns:1fr 1fr; gap:10px 14px;}
+    table.t tbody tr:first-child{border-top:0;}
+    table.t td{border:0; padding:0;}
+    table.t td[data-l]::before{content:attr(data-l); display:block; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--taupe); margin-bottom:3px;}
+    table.t td.c-prenda, table.t td.c-acc{grid-column:1 / -1;}
+    table.t td.num{text-align:left;}
+    .acc, .acc-links{justify-content:flex-start;}
+    .red{max-width:none;}
+  }
+  @media (max-width:480px){
+    .cifras{grid-template-columns:1fr;}
+    .encabezado h1{font-size:30px;}
+  }
+</style>
+
+<div class="demo" role="region" aria-label="Controles de la demo">
+  <b class="marca">Demo · Existencias</b>
+  <div class="grupo"><span>Sede</span>
+    <div class="seg" data-ctl="estado"><button data-v="lleno" aria-pressed="true">Con stock</button><button data-v="vacio">Vacía (hoy en TRU)</button></div>
+  </div>
+  <div class="grupo"><span>Cifras</span>
+    <div class="seg" data-ctl="cifras"><button data-v="A" aria-pressed="true">A · Guía + acción</button><button data-v="B">B · Maqueta exacta</button><button data-v="C">C · Prioridades de hoy</button></div>
+  </div>
+  <div class="grupo"><span>Acciones</span>
+    <div class="seg" data-ctl="acciones"><button data-v="A" aria-pressed="true">A · Sugerida + ⋯</button><button data-v="B">B · Todas visibles</button></div>
+  </div>
+  <div class="grupo"><span>Tema</span>
+    <div class="seg" data-ctl="tema"><button data-v="light">Claro</button><button data-v="dark">Oscuro</button></div>
+  </div>
+  <p class="nota" id="nota"></p>
+</div>
+
+<div class="app">
+  <aside class="lateral" aria-label="Menú">
+    <div class="logo">
+      <svg width="30" height="26" viewBox="0 0 30 26" aria-hidden="true"><path d="M2 5c5 1 9 4 11 9 2-6 7-10 15-12-4 3-7 7-8 12-1 5-4 9-9 10 2-2 3-5 2-8-3 0-7-3-11-11z" fill="none" stroke="var(--rojo)" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      CAYLA
+    </div>
+    <button class="btn-nuevo" type="button">+ Nuevo</button>
+    <nav class="nav">
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>Inicio</a>
+      <a href="#"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg>Catálogo<span class="flecha">›</span></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M3 5h3l2 10h11l2-7H7"/><circle cx="9" cy="19" r="1.3"/><circle cx="18" cy="19" r="1.3"/></svg>Compras<span class="flecha">›</span></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7z"/><path d="M9 8a3 3 0 016 0"/></svg>Ventas<span class="flecha">›</span></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg>Inventario<span class="flecha">⌄</span></a>
+      <a href="#" class="hijo activo"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg>Existencias</a>
+      <a href="#" class="hijo"><svg viewBox="0 0 24 24"><path d="M5 8h13l-3-3M19 16H6l3 3"/></svg>Movimientos</a>
+      <a href="#" class="hijo"><svg viewBox="0 0 24 24"><path d="M4 12h15l-5-5M19 12l-5 5"/></svg>Traslados</a>
+      <a href="#" class="hijo"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 12l2 2 4-4"/></svg>Conteo</a>
+      <a href="#" class="hijo"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg>Análisis</a>
+    </nav>
+    <p class="lema">Donde el estilo transforma.</p>
+    <div class="pie"><span class="avatar">FA</span><div><div style="font-size:13.5px">Felipe Alvarez</div><div class="etq" style="font-size:9.5px">Líder · Tienda TRU</div></div></div>
+  </aside>
+
+  <div class="principal">
+    <div class="cabecera">
+      <button class="icono-btn" type="button" aria-label="Contraer menú"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>
+      <span class="chip-sede">Tienda TRU <span aria-hidden="true">⌄</span></span>
+    </div>
+
+    <main class="pagina">
+      <header class="encabezado">
+        <div>
+          <p class="etq" style="color:var(--rojo); margin:0">Inventario · Existencias</p>
+          <h1>Tienda TRU</h1>
+          <p class="sub">Qué hay en piso y almacén, qué viene en camino y qué deberías reponer hoy.</p>
+          <p class="hora" id="hora"></p>
+        </div>
+        <div class="acciones">
+          <button class="btn btn-sutil" type="button" id="btn-otra-sede">Ver otra sede ⌄</button>
+          <button class="btn btn-primario" type="button" data-accion="nuevo-traslado">+ Nuevo traslado</button>
+        </div>
+      </header>
+
+      <section id="cifras" aria-label="Cifras de la sede"></section>
+      <section id="cuerpo"></section>
+    </main>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  // ---------- Datos de ejemplo (Tienda TRU) — prendas y cifras inventadas para la demo ----------
+  var PRENDAS = [
+    {id:1, p:"Blusa Emma", c:"Negro", t:"S", sku:"BLU-EMM-NEG-S", cat:"Blusas", tela:"#2b2926", piso:18, alm:34, apart:2, dan:0, ritmo:9, camino:null, red:[["AQP",12],["LIM",6]]},
+    {id:2, p:"Casaca Emilia", c:"Beige", t:"M", sku:"CAS-EMI-BEI-M", cat:"Casacas", tela:"#cdb89a", piso:1, alm:8, apart:0, dan:0, ritmo:5, camino:{u:12, llega:"24/09", tarde:false}, red:[["AQP",6]]},
+    {id:3, p:"Vestido Solsticio", c:"Terracota", t:"M", sku:"VES-SOL-TER-M", cat:"Vestidos", tela:"#a5533a", piso:0, alm:0, apart:0, dan:0, ritmo:6, camino:null, red:[["AQP",4],["Taller",20]]},
+    {id:4, p:"Pantalón Andina", c:"Crudo", t:"28", sku:"PAN-AND-CRU-28", cat:"Pantalones", tela:"#e2d6c0", piso:6, alm:14, apart:0, dan:0, ritmo:3, camino:null, red:[["LIM",9]]},
+    {id:5, p:"Top Lúcuma", c:"Mostaza", t:"S", sku:"TOP-LUC-MOS-S", cat:"Tops", tela:"#c49a3c", piso:2, alm:11, apart:0, dan:0, ritmo:7, camino:null, red:[]},
+    {id:6, p:"Falda Misti", c:"Vino", t:"M", sku:"FAL-MIS-VIN-M", cat:"Faldas", tela:"#6b2530", piso:9, alm:0, apart:0, dan:1, ritmo:2, camino:null, red:[["AQP",3]]},
+    {id:7, p:"Chompa Huanchaco", c:"Gris perla", t:"L", sku:"CHO-HUA-GRI-L", cat:"Chompas", tela:"#b9b6b0", piso:3, alm:1, apart:0, dan:0, ritmo:6, camino:{u:20, llega:"21/09", tarde:true}, red:[["Taller",30]]},
+    {id:8, p:"Blazer Moche", c:"Arena", t:"M", sku:"BLA-MOC-ARE-M", cat:"Blazers", tela:"#bfa987", piso:5, alm:7, apart:0, dan:2, ritmo:1, camino:null, red:[["LIM",4]]},
+    {id:9, p:"Vestido Solsticio", c:"Terracota", t:"S", sku:"VES-SOL-TER-S", cat:"Vestidos", tela:"#a5533a", piso:0, alm:0, apart:0, dan:0, ritmo:4, camino:null, red:[]},
+    {id:10, p:"Blusa Emma", c:"Marfil", t:"M", sku:"BLU-EMM-MAR-M", cat:"Blusas", tela:"#efe6d4", piso:11, alm:20, apart:1, dan:0, ritmo:6, camino:null, red:[["AQP",8]]},
+    {id:11, p:"Camisa Chan Chan", c:"Celeste", t:"M", sku:"CAM-CHA-CEL-M", cat:"Camisas", tela:"#9fb6c8", piso:7, alm:9, apart:0, dan:2, ritmo:2, camino:null, red:[["AQP",5],["LIM",2]]},
+    {id:12, p:"Jean Costa", c:"Índigo", t:"30", sku:"JEA-COS-IND-30", cat:"Pantalones", tela:"#34405c", piso:1, alm:16, apart:0, dan:0, ritmo:4, camino:null, red:[["LIM",7]]}
+  ];
+  var PRUEBA = [
+    {id:91, p:"Polo prueba", c:"Blanco", t:"M", sku:"TEST-POL-BLA-M", cat:"Tops", tela:"#f4f1ea", piso:3, alm:0, apart:0, dan:0, ritmo:0, camino:null, red:[], prueba:true},
+    {id:92, p:"Producto demo QA", c:"Rojo", t:"U", sku:"TEST-QA-001", cat:"Tops", tela:"#b8412d", piso:0, alm:5, apart:0, dan:0, ritmo:0, camino:null, red:[], prueba:true}
+  ];
+  var MOTIVOS_ESTADO = {
+    sin:{t:"Sin stock", tono:"rojo"}, reponer:{t:"Reponer piso", tono:"ambar"}, bajo:{t:"Stock bajo", tono:"rojo"}, normal:{t:"Normal", tono:"taupe"}
+  };
+
+  var S = {estado:"lleno", cifras:"A", acciones:"A", tema:null, filtro:null, q:"", cat:"", talla:"", est:"", prueba:false, menu:null, recienId:null};
+
+  // ---------- Reglas (en el ERP viven en lib/*.ts, lógica pura) ----------
+  function disponible(f){ return f.piso + f.alm; }
+  function cobertura(f){ return f.ritmo > 0 ? Math.round(disponible(f) / (f.ritmo / 7)) : null; }
+  function redTotal(f){ return f.red.reduce(function(a,r){ return a + r[1]; }, 0); }
+  function reponePiso(f){ return f.piso <= 2 && f.alm > 0; }
+  function estado(f){
+    if (disponible(f) === 0) return "sin";
+    if (reponePiso(f)) return "reponer";
+    var cob = cobertura(f);
+    if (cob !== null && cob < 7) return "bajo";
+    return "normal";
+  }
+  function sugerida(f){
+    var e = estado(f);
+    if (e === "reponer") return {a:"reponer", t:"Reponer", clase:"btn-primario"};
+    if (e === "sin") return redTotal(f) > 0 ? {a:"traslado", t:"Pedir traslado", clase:"btn-primario"} : {a:"red", t:"Avisar a Producción", clase:"btn-sutil"};
+    if (e === "bajo") return {a:"traslado", t:"Pedir traslado", clase:"btn-secundario"};
+    return {a:"apartar", t:"Apartar", clase:"btn-secundario"};
+  }
+  function filas(){
+    if (S.estado === "vacio") return [];
+    return S.prueba ? PRENDAS.concat(PRUEBA) : PRENDAS;
+  }
+  function resumen(){
+    var fs = filas(), r = {piso:0, alm:0, disp:0, apart:0, dan:0, danFilas:0, reponer:0, reponerU:0, bajo:0, sin:0, camino:0, caminoN:0, tarde:0, variantes:fs.length};
+    fs.forEach(function(f){
+      r.piso += f.piso; r.alm += f.alm; r.apart += f.apart; r.dan += f.dan;
+      if (f.dan) r.danFilas++;
+      var e = estado(f);
+      if (e === "reponer"){ r.reponer++; r.reponerU += f.alm; }
+      if (e === "bajo") r.bajo++;
+      if (e === "sin") r.sin++;
+      if (f.camino){ r.camino += f.camino.u; r.caminoN++; if (f.camino.tarde) r.tarde++; }
+    });
+    r.disp = r.piso + r.alm;
+    return r;
+  }
+  function num(n){ return n.toLocaleString("es-PE"); }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(ch){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]; }); }
+  function plural(n, uno, varios){ return n === 1 ? uno : varios; }
+
+  // ---------- Notas de la barra de demo: el porqué de cada variante ----------
+  var NOTAS = {
+    cifras:{
+      A:"<b>A · Guía + acción:</b> las 4 cifras de la maqueta, pero «Apartados» baja a una línea y entra «Reponer piso hoy», que es lo que el piso hace cada mañana. Toca una tarjeta: filtra la tabla.",
+      B:"<b>B · Maqueta exacta:</b> Disponibles · Dañado · Apartados · En camino, informativas. Reponer queda solo como insignia en la fila.",
+      C:"<b>C · Prioridades de hoy:</b> las 4 tarjetas de hoy (reponer, por agotarse, dañado, en camino) re-vestidas con la paleta oficial, con «Ver recomendaciones»."
+    },
+    acciones:{
+      A:"<b>Acciones A:</b> un botón con lo que la fila pide hoy y «⋯» con el resto.",
+      B:"<b>Acciones B:</b> Reponer · Apartar · Ajustar visibles como enlaces en cada fila, como hoy."
+    }
+  };
+
+  // ---------- Cifras ----------
+  function tile(o){
+    var tag = o.filtro ? "button" : "div";
+    var attrs = o.filtro ? ' type="button" class="tile" data-filtro="' + o.filtro + '" aria-pressed="' + (S.filtro === o.filtro) + '"' : ' class="tile"';
+    return "<" + tag + attrs + ">" +
+      '<div class="fila-top"><span class="etq">' + o.etq + "</span>" + (o.filtro ? '<span class="ir">' + (S.filtro === o.filtro ? "Quitar filtro ×" : "Ver →") + "</span>" : "") + "</div>" +
+      '<div class="valor ' + (o.tono || "") + '">' + o.valor + (o.unidad ? "<small>" + o.unidad + "</small>" : "") + "</div>" +
+      (o.extra || "") +
+      '<div class="det">' + o.det + "</div></" + tag + ">";
+  }
+  function splitBar(piso, alm){
+    var tot = piso + alm; if (!tot) return '<div class="split"></div>';
+    return '<div class="split" aria-hidden="true"><i class="piso" style="width:' + (piso / tot * 100) + '%"></i><i class="alm" style="width:' + (alm / tot * 100) + '%"></i></div>';
+  }
+  function renderCifras(){
+    var r = resumen(), h = "";
+    var pctPiso = r.disp ? Math.round(r.piso / r.disp * 100) : 0;
+    if (S.cifras === "A"){
+      h = '<div class="cifras">' +
+        tile({etq:"Disponibles", valor:num(r.disp), unidad:"u.", extra:splitBar(r.piso, r.alm),
+          det: r.disp ? num(r.piso) + " en piso (" + pctPiso + "%) · " + num(r.alm) + " en almacén · " + r.apart + " " + plural(r.apart,"apartada","apartadas") : "Todavía no entra ninguna prenda"}) +
+        tile({etq:"Reponer piso hoy", valor:r.reponer, unidad:plural(r.reponer,"variante","variantes"), tono:r.reponer ? "ambar" : "", filtro:r.reponer ? "reponer" : null,
+          det: r.reponer ? num(r.reponerU) + " u. esperan en almacén — bajarlas antes de abrir" : "El piso está completo"}) +
+        tile({etq:"Dañado", valor:r.dan, unidad:plural(r.dan,"prenda","prendas"), tono:r.dan ? "rojo" : "", filtro:r.dan ? "danado" : null,
+          det: r.dan ? "En cuarentena — liquidar, botar o donar" : "Ninguna prenda en cuarentena"}) +
+        tile({etq:"En camino hacia acá", valor:num(r.camino), unidad:"u.", filtro:r.caminoN ? "camino" : null,
+          det: r.caminoN ? r.caminoN + " " + plural(r.caminoN,"traslado","traslados") + (r.tarde ? ' · <span style="color:var(--rojo-profundo)">' + r.tarde + " atrasado</span>" : "") : "Ningún traslado en camino"}) +
+        "</div>";
+    } else if (S.cifras === "B"){
+      h = '<div class="cifras">' +
+        tile({etq:"Prendas disponibles", valor:num(r.disp), det: r.disp ? pctPiso + "% en el piso · " + num(r.alm) + " almacén · " + r.apart + " " + plural(r.apart,"apartada","apartadas") : "Todavía no entra ninguna prenda"}) +
+        tile({etq:"Dañado", valor:r.dan, tono:r.dan ? "rojo" : "", det:"En cuarentena — liquidar, botar o donar"}) +
+        tile({etq:"Apartados", valor:r.apart, tono:r.apart ? "ambar" : "", det: r.apart ? "0 vencidos" : "Sin apartados abiertos"}) +
+        tile({etq:"En camino hacia acá", valor:num(r.camino) + " u.", det: r.caminoN ? r.caminoN + " traslados · " + r.tarde + " atrasado" : "Ningún traslado en camino"}) +
+        "</div>";
+    } else {
+      h = '<div class="prioridades-cab"><div><h2>Prioridades de hoy</h2><p>Acciones sugeridas para impulsar tus ventas en tienda.</p></div>' +
+        (r.variantes ? '<button class="btn btn-enlace rojo" type="button" data-accion="recomendaciones">Ver recomendaciones →</button>' : "") + "</div>" +
+        '<div class="cifras">' +
+        tile({etq:"Reponer a piso hoy", valor:r.reponer, unidad:plural(r.reponer,"variante","variantes"), tono:r.reponer ? "ambar" : "", filtro:r.reponer ? "reponer" : null,
+          det: r.reponer ? num(r.reponerU) + " u. disponibles en almacén — con demanda" : "Nada pendiente de bajar al piso"}) +
+        tile({etq:"Por agotarse", valor:r.bajo + r.sin, unidad:"variantes", tono:(r.bajo + r.sin) ? "rojo" : "", filtro:(r.bajo + r.sin) ? "agotarse" : null,
+          det: (r.bajo + r.sin) ? r.sin + " sin stock · " + r.bajo + " con menos de 7 días" : "Ninguna al filo"}) +
+        tile({etq:"Dañado / Cuarentena", valor:r.dan, unidad:"prendas", tono:r.dan ? "rojo" : "", filtro:r.dan ? "danado" : null,
+          det: r.dan ? "En revisión — liquidar, botar o donar" : "Ninguna prenda dañada pendiente"}) +
+        tile({etq:"En camino hacia acá", valor:num(r.camino), unidad:"u.", filtro:r.caminoN ? "camino" : null,
+          det: r.caminoN ? r.caminoN + " traslados · próximo llega 24/09" : "Ningún traslado en camino"}) +
+        "</div>";
+    }
+    document.getElementById("cifras").innerHTML = h;
+  }
+
+  // ---------- Tabla ----------
+  function pasaFiltros(f){
+    var e = estado(f);
+    if (S.filtro === "reponer" && e !== "reponer") return false;
+    if (S.filtro === "danado" && !f.dan) return false;
+    if (S.filtro === "camino" && !f.camino) return false;
+    if (S.filtro === "agotarse" && e !== "bajo" && e !== "sin") return false;
+    if (S.cat && f.cat !== S.cat) return false;
+    if (S.talla && f.t !== S.talla) return false;
+    if (S.est && e !== S.est) return false;
+    if (S.q){
+      var q = S.q.toLowerCase();
+      if ((f.p + " " + f.c + " " + f.t + " " + f.sku + " " + f.cat).toLowerCase().indexOf(q) < 0) return false;
+    }
+    return true;
+  }
+  var ETQ_FILTRO = {reponer:"Reponer piso hoy", danado:"Dañado", camino:"En camino hacia acá", agotarse:"Por agotarse"};
+
+  function celdaAccion(f){
+    if (S.acciones === "B"){
+      var links = [];
+      if (reponePiso(f)) links.push('<button class="btn-enlace rojo" type="button" data-accion="reponer" data-id="' + f.id + '">Reponer</button>');
+      if (disponible(f) > 0) links.push('<button class="btn-enlace" type="button" data-accion="apartar" data-id="' + f.id + '">Apartar</button>');
+      links.push('<button class="btn-enlace" type="button" data-accion="ajustar" data-id="' + f.id + '">Ajustar</button>');
+      return '<div class="acc-links">' + links.join("") + "</div>";
+    }
+    var s = sugerida(f);
+    var menu = "";
+    if (S.menu === f.id){
+      var items = [];
+      if (s.a !== "reponer" && reponePiso(f)) items.push(["reponer","Reponer piso"]);
+      if (s.a !== "apartar" && disponible(f) > 0) items.push(["apartar","Apartar para una clienta"]);
+      if (s.a !== "traslado") items.push(["traslado","Pedir traslado"]);
+      items.push(["ajustar","Ajustar cantidad"]);
+      menu = '<div class="menu" role="menu">' + items.map(function(it){
+        return '<button type="button" role="menuitem" data-accion="' + it[0] + '" data-id="' + f.id + '">' + it[1] + "</button>";
+      }).join("") + '<hr><button type="button" role="menuitem" data-accion="movimientos" data-id="' + f.id + '">Ver movimientos</button></div>';
+    }
+    return '<div class="acc"><button class="btn btn-sm ' + s.clase + '" type="button" data-accion="' + s.a + '" data-id="' + f.id + '">' + s.t + "</button>" +
+      '<button class="btn btn-sutil mas" type="button" aria-label="Más acciones" aria-haspopup="menu" aria-expanded="' + (S.menu === f.id) + '" data-menu="' + f.id + '">⋯</button>' + menu + "</div>";
+  }
+
+  function filaHTML(f){
+    var e = estado(f), est = MOTIVOS_ESTADO[e], cob = cobertura(f), d = disponible(f);
+    var cobTxt = d === 0 ? "" : (cob === null ? "sin ventas 7D" : "cubre " + cob + " " + plural(cob, "día", "días"));
+    var red = f.red.length ? "Hay en " + f.red.map(function(r){ return "<b>" + r[0] + " " + r[1] + "</b>"; }).join(" · ") : (d === 0 ? "Nada en la red — pedir a Producción" : "—");
+    var extras = [];
+    if (f.dan) extras.push('<span class="badge" data-tono="rojo">Dañado · ' + f.dan + "</span>");
+    if (f.apart) extras.push('<span class="badge" data-tono="pizarra">' + f.apart + " " + plural(f.apart,"apartada","apartadas") + "</span>");
+    if (f.prueba) extras.push('<span class="badge sin-punto" data-tono="taupe">Dato de prueba</span>');
+    return '<tr' + (S.recienId === f.id ? ' class="fila-nueva"' : "") + ">" +
+      '<td class="c-prenda"><div class="prenda"><span class="tela" style="background:' + f.tela + '"></span><div><b>' + esc(f.p) + '</b><span>' + esc(f.c) + " · Talla " + esc(f.t) + '</span><span class="sku">' + f.sku + "</span>" +
+        (extras.length ? '<div class="extras">' + extras.join("") + "</div>" : "") + "</div></div></td>" +
+      '<td data-l="Piso · Almacén"><div class="pa"><span class="n">' + f.piso + " <em>·</em> " + f.alm + "</span>" + splitBar(f.piso, f.alm) + "</div></td>" +
+      '<td data-l="Disponible"><div class="disp"><b>' + d + "</b>" + (cobTxt ? '<span class="' + (cob !== null && cob < 7 ? "alerta" : "") + '">' + cobTxt + "</span>" : "") + "</div></td>" +
+      '<td data-l="Ritmo 7D" class="num">' + (f.ritmo ? f.ritmo + " u." : '<span class="sub">—</span>') + "</td>" +
+      '<td data-l="Estado"><span class="badge" data-tono="' + est.tono + '">' + est.t + "</span></td>" +
+      '<td data-l="En camino">' + (f.camino ? '<div class="camino">' + f.camino.u + " u.<span" + (f.camino.tarde ? ' class="tarde">debió llegar ' : ">llega ") + f.camino.llega + "</span></div>" : '<span class="sub">—</span>') + "</td>" +
+      '<td data-l="En la red"><div class="red">' + red + "</div></td>" +
+      '<td class="c-acc">' + celdaAccion(f) + "</td></tr>";
+  }
+
+  function opciones(lista, sel, vacio){
+    return '<option value="">' + vacio + "</option>" + lista.map(function(v){
+      return '<option value="' + esc(v) + '"' + (sel === v ? " selected" : "") + ">" + esc(v) + "</option>";
+    }).join("");
+  }
+
+  function renderTabla(){
+    var todas = filas(), vis = todas.filter(pasaFiltros);
+    var cats = Array.from(new Set(todas.map(function(f){ return f.cat; }))).sort();
+    var tallas = Array.from(new Set(todas.map(function(f){ return f.t; })));
+    var h = '<div class="superficie">' +
+      '<div class="herramientas">' +
+        '<div class="buscar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>' +
+          '<input class="control" id="q" type="search" placeholder="Prenda, SKU, color o talla…" aria-label="Buscar prenda" value="' + esc(S.q) + '"></div>' +
+        '<select class="control" id="f-cat" aria-label="Categoría">' + opciones(cats, S.cat, "Categoría") + "</select>" +
+        '<select class="control" id="f-talla" aria-label="Talla">' + opciones(tallas, S.talla, "Talla") + "</select>" +
+        '<select class="control" id="f-est" aria-label="Estado"><option value="">Estado</option>' +
+          ["sin","reponer","bajo","normal"].map(function(k){ return '<option value="' + k + '"' + (S.est === k ? " selected" : "") + ">" + MOTIVOS_ESTADO[k].t + "</option>"; }).join("") + "</select>" +
+        '<button class="btn btn-sutil" type="button" id="btn-prueba" aria-pressed="' + S.prueba + '" title="Productos archivados como dato de prueba (D-54). Apagado por defecto.">Datos de prueba</button>' +
+      "</div>";
+    if (S.filtro){
+      h += '<div class="filtro-activo"><span class="badge sin-punto" data-tono="taupe">' + ETQ_FILTRO[S.filtro] + '</span><span class="sub">' + vis.length + " de " + todas.length + ' variantes</span><button class="btn-enlace" type="button" id="quitar-filtro">Quitar filtro</button></div>';
+    }
+    if (!vis.length){
+      h += '<div class="vacio-filtro">Ninguna prenda coincide con estos filtros. <button class="btn-enlace" type="button" id="limpiar">Limpiar filtros</button></div>';
+    } else {
+      h += '<div class="tabla-wrap"><table class="t"><thead><tr><th>Prenda</th><th>Piso · Almacén</th><th>Disponible</th><th class="num">Ritmo 7D</th><th>Estado</th><th>En camino</th><th>En la red</th><th class="num">Acción</th></tr></thead><tbody>' +
+        vis.map(filaHTML).join("") + "</tbody></table></div>";
+    }
+    h += '<div class="pie-tabla"><div class="leyenda">' +
+      '<span class="badge" data-tono="taupe">Normal</span><span class="badge" data-tono="ambar">Reponer piso — bajar del almacén</span><span class="badge" data-tono="rojo">Stock bajo / sin stock — pedir traslado</span></div>' +
+      '<div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap"><span>Mostrando ' + vis.length + " de " + todas.length + ' variantes</span><button class="btn btn-sutil btn-sm" type="button" data-accion="csv">Exportar CSV</button></div></div>';
+    h += "</div>";
+    document.getElementById("cuerpo").innerHTML = h;
+  }
+
+  function renderVacio(){
+    document.getElementById("cuerpo").innerHTML =
+      '<div class="guia"><p class="etq" style="margin:0">Tienda TRU todavía no tiene prendas</p>' +
+      "<h2>Tres caminos para llenar el piso</h2>" +
+      "<p>Existencias se llena solo cuando entra mercadería: cada ingreso queda como movimiento, nunca se escribe el stock a mano. Elige por dónde llega la tuya.</p>" +
+      '<div class="caminos">' +
+        '<div class="camino-c"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12v9M4 7.5l8 4.5 8-4.5"/></svg></span><h3>Recibir mercadería</h3><p>¿Llegó una caja del proveedor? Cuéntala línea por línea y entra al stock con su comprobante.</p><button class="btn btn-primario" type="button" data-accion="recibir">Recibir mercadería</button></div>' +
+        '<div class="camino-c"><span class="ico"><svg viewBox="0 0 24 24"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.5"/><circle cx="17" cy="17.5" r="1.5"/></svg></span><h3>Pedir traslado desde el Taller</h3><p>El Taller en Lima tiene prendas listas para enviar. Pides, sale el traslado y lo confirmas al llegar.</p><span class="dato">214 u. <span class="sub" style="font-family:var(--sans); font-size:12.5px">listas · 38 variantes</span></span><button class="btn btn-secundario" type="button" data-accion="nuevo-traslado">Pedir traslado</button></div>' +
+        '<div class="camino-c"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.5 2.5 2.5 13.5 0 16M12 4c-2.5 2.5-2.5 13.5 0 16"/></svg></span><h3>Ver dónde hay en la red</h3><p>Antes de pedir, mira qué tiene cada sede: pide a la que le sobra, no a la que vende lo mismo.</p><span class="dato">AQP 312 · LIM 128 <span class="sub" style="font-family:var(--sans); font-size:12.5px">u.</span></span><button class="btn btn-secundario" type="button" data-accion="otra-sede">Ver otra sede</button></div>' +
+      "</div>" +
+      '<div class="aviso-franja"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ambar)" stroke-width="1.6" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg>' +
+      "<div><b>Revisa Traslados:</b> los 3 traslados de TRU figuran como <i>completados</i> con 0 unidades y 0 variantes. Si enviaron prendas, no llegaron a registrarse — por eso el piso sigue vacío. " +
+      '<button class="btn-enlace" type="button" data-accion="ver-traslados">Ver traslados</button></div></div></div>';
+  }
+
+  function render(){
+    renderCifras();
+    if (S.estado === "vacio") renderVacio(); else renderTabla();
+    document.getElementById("nota").innerHTML = NOTAS.cifras[S.cifras] + " " + NOTAS.acciones[S.acciones];
+    document.querySelectorAll(".seg").forEach(function(seg){
+      var k = seg.dataset.ctl, v = k === "tema" ? temaActual() : S[k];
+      seg.querySelectorAll("button").forEach(function(b){ b.setAttribute("aria-pressed", String(b.dataset.v === v)); });
+    });
+  }
+  function temaActual(){
+    var t = document.documentElement.getAttribute("data-theme");
+    if (t) return t;
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  // ---------- Modal, loader y aviso ----------
+  var modalAbierto = null;
+  function abrirModal(html, alConfirmar){
+    cerrarModal(true);
+    var velo = document.createElement("div");
+    velo.className = "velo";
+    velo.innerHTML = '<div class="hoja" role="dialog" aria-modal="true">' + html + "</div>";
+    Array.prototype.forEach.call(velo.querySelector(".hoja").children, function(el, i){ el.style.setProperty("--i", i); });
+    document.body.appendChild(velo);
+    modalAbierto = velo;
+    velo.addEventListener("click", function(ev){
+      if (ev.target === velo || ev.target.closest("[data-cerrar]")) cerrarModal();
+      var ok = ev.target.closest("[data-ok]");
+      if (ok && alConfirmar){ var fin = alConfirmar(velo); if (fin !== false) guardar(fin); }
+    });
+    var foco = velo.querySelector("input, select, [data-ok]"); if (foco) foco.focus();
+  }
+  function cerrarModal(inmediato){
+    if (!modalAbierto) return;
+    var v = modalAbierto; modalAbierto = null;
+    if (inmediato){ v.remove(); return; }
+    v.classList.add("sale");
+    setTimeout(function(){ v.remove(); }, 220);
+  }
+  function guardar(fin){
+    cerrarModal();
+    var esp = document.createElement("div");
+    esp.className = "espera";
+    esp.innerHTML = '<div><svg width="40" height="34" viewBox="0 0 30 26" aria-hidden="true"><path d="M2 5c5 1 9 4 11 9 2-6 7-10 15-12-4 3-7 7-8 12-1 5-4 9-9 10 2-2 3-5 2-8-3 0-7-3-11-11z" fill="none" stroke="var(--rojo)" stroke-width="1.4" stroke-linejoin="round"/></svg>Guardando…</div>';
+    document.body.appendChild(esp);
+    setTimeout(function(){
+      esp.remove();
+      if (fin && fin.aplicar) fin.aplicar();
+      render();
+      if (fin && fin.aviso) avisar(fin.aviso);   // el aviso sale DESPUÉS del loader, nunca encima (ADR-0149)
+      setTimeout(function(){ S.recienId = null; }, 1500);
+    }, 750);
+  }
+  function avisar(txt){
+    var a = document.createElement("div");
+    a.className = "aviso"; a.setAttribute("role", "status");
+    a.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>' + txt + "</span>";
+    document.body.appendChild(a);
+    setTimeout(function(){ a.style.transition = "opacity 220ms"; a.style.opacity = "0"; setTimeout(function(){ a.remove(); }, 240); }, 3200);
+  }
+  function porId(id){ return PRENDAS.concat(PRUEBA).filter(function(f){ return f.id === id; })[0]; }
+  function nombre(f){ return esc(f.p) + " · " + esc(f.c) + " · " + esc(f.t); }
+
+  var ACCIONES = {
+    reponer: function(f){
+      var n = f.alm;
+      abrirModal('<h3>Reponer piso</h3><p class="bajada">' + nombre(f) + " — baja del almacén al piso de venta.</p>" +
+        '<div class="campo"><label for="cant">Cuántas bajan</label><div class="paso"><button type="button" data-paso="-1" aria-label="Una menos">−</button><output id="cant">' + n + '</output><button type="button" data-paso="1" aria-label="Una más">+</button><span class="sub" style="font-size:12.5px">de ' + f.alm + " en almacén</span></div></div>" +
+        '<div class="antes-despues"><div>Piso<b id="ad-piso">' + f.piso + " → " + (f.piso + n) + '</b></div><div>Almacén<b id="ad-alm">' + f.alm + " → " + (f.alm - n) + "</b></div></div>" +
+        '<div class="botones"><button class="btn btn-secundario" type="button" data-cerrar>Cancelar</button><button class="btn btn-primario" type="button" data-ok id="ok-reponer">Bajar ' + n + " al piso</button></div>",
+        function(v){
+          var c = +v.querySelector("#cant").textContent;
+          if (c <= 0) return false;
+          return {aplicar:function(){ f.piso += c; f.alm -= c; S.recienId = f.id; }, aviso:"Listo: " + c + " " + plural(c,"prenda bajó","prendas bajaron") + " al piso."};
+        });
+      modalAbierto.addEventListener("click", function(ev){
+        var b = ev.target.closest("[data-paso]"); if (!b) return;
+        var out = modalAbierto.querySelector("#cant"), c = Math.max(0, Math.min(f.alm, +out.textContent + (+b.dataset.paso)));
+        out.textContent = c;
+        modalAbierto.querySelector("#ad-piso").textContent = f.piso + " → " + (f.piso + c);
+        modalAbierto.querySelector("#ad-alm").textContent = f.alm + " → " + (f.alm - c);
+        modalAbierto.querySelector("#ok-reponer").textContent = "Bajar " + c + " al piso";
+      });
+    },
+    traslado: function(f){
+      var origenes = f ? f.red : [["Taller",214],["AQP",312],["LIM",128]];
+      if (!origenes.length) origenes = [["Taller",0]];
+      abrirModal("<h3>Pedir traslado</h3><p class=\"bajada\">" + (f ? nombre(f) + " — " : "") + "sale como traslado y entra al stock cuando confirmes la recepción.</p>" +
+        '<div class="campo"><label for="origen">Desde</label><select class="control" id="origen">' + origenes.map(function(o){ return '<option value="' + o[0] + '">' + o[0] + " — " + o[1] + " disponibles</option>"; }).join("") + "</select></div>" +
+        '<div class="campo"><label for="cant-t">Cuántas</label><input class="control" id="cant-t" type="number" min="1" value="' + (f ? Math.min(6, Math.max(1, redTotal(f))) : 12) + '"></div>' +
+        '<div class="botones"><button class="btn btn-secundario" type="button" data-cerrar>Cancelar</button><button class="btn btn-primario" type="button" data-ok>Pedir traslado</button></div>',
+        function(v){
+          var c = Math.max(1, +v.querySelector("#cant-t").value || 1), o = v.querySelector("#origen").value;
+          return {aplicar:function(){ if (f && S.estado === "lleno"){ f.camino = {u:(f.camino ? f.camino.u : 0) + c, llega:"25/09", tarde:false}; S.recienId = f.id; } },
+            aviso:"Traslado pedido: " + c + " u. desde " + o + ". Llega aprox. el 25/09."};
+        });
+    },
+    apartar: function(f){
+      abrirModal("<h3>Apartar para una clienta</h3><p class=\"bajada\">" + nombre(f) + " — la prenda queda reservada y deja de venderse a otra clienta.</p>" +
+        '<div class="campo"><label for="clienta">Clienta</label><input class="control" id="clienta" placeholder="Nombre o DNI"></div>' +
+        '<div class="campo"><label>Sale de</label><div class="radios"><label><input type="radio" name="de" checked' + (f.piso ? "" : " disabled") + "> Piso (" + f.piso + ")</label><label><input type=\"radio\" name=\"de\"" + (f.alm ? "" : " disabled") + "> Almacén (" + f.alm + ")</label></div></div>" +
+        '<div class="botones"><button class="btn btn-secundario" type="button" data-cerrar>Cancelar</button><button class="btn btn-primario" type="button" data-ok>Apartar</button></div>',
+        function(v){
+          var cl = v.querySelector("#clienta").value.trim() || "la clienta";
+          return {aplicar:function(){ f.apart++; S.recienId = f.id; }, aviso:"Apartado para " + esc(cl) + ". Vence en 7 días."};
+        });
+    },
+    ajustar: function(f){
+      abrirModal("<h3>Ajustar cantidad</h3><p class=\"bajada\">" + nombre(f) + " — queda como movimiento con su motivo. Solo el líder cierra un ajuste.</p>" +
+        '<div class="campo"><label for="motivo">Motivo</label><select class="control" id="motivo"><option>Conteo físico no coincide</option><option>Prenda dañada — a cuarentena</option><option>Pérdida</option></select></div>' +
+        '<div class="campo"><label for="nuevo">Cantidad real en piso</label><input class="control" id="nuevo" type="number" min="0" value="' + f.piso + '"></div>' +
+        '<div class="botones"><button class="btn btn-secundario" type="button" data-cerrar>Cancelar</button><button class="btn btn-primario" type="button" data-ok>Registrar ajuste</button></div>',
+        function(v){
+          var nuevo = Math.max(0, +v.querySelector("#nuevo").value || 0), dif = nuevo - f.piso, mot = v.querySelector("#motivo").selectedIndex;
+          return {aplicar:function(){ if (mot === 1 && dif < 0) f.dan += -dif; f.piso = nuevo; S.recienId = f.id; },
+            aviso:"Ajuste registrado: " + (dif > 0 ? "+" : "") + dif + " en piso."};
+        });
+    },
+    movimientos: function(f){
+      abrirModal("<h3>Últimos movimientos</h3><p class=\"bajada\">" + nombre(f) + " — historial inmutable; nada se edita, todo se registra.</p>" +
+        '<ul class="lista-mov"><li>Venta · boleta B001-0412<span>hoy 11:42 · −1 piso</span></li><li>Reposición piso ← almacén<span>ayer 09:05 · +4 piso</span></li><li>Recepción · traslado 2 desde Taller<span>17/09 · +12 almacén</span></li></ul>' +
+        '<div class="botones"><button class="btn btn-secundario" type="button" data-cerrar>Cerrar</button><button class="btn btn-primario" type="button" data-cerrar>Abrir en Movimientos →</button></div>');
+    },
+    red: function(f){
+      abrirModal("<h3>Nadie tiene esta prenda</h3><p class=\"bajada\">" + nombre(f) + " — ni AQP, ni LIM, ni el Taller tienen unidades. La única vía es que Producción la vuelva a cortar.</p>" +
+        '<div class="botones"><button class="btn btn-secundario" type="button" data-cerrar>Cancelar</button><button class="btn btn-primario" type="button" data-ok>Avisar a Producción</button></div>',
+        function(){ return {aviso:"Producción recibió el pedido de " + nombre(f) + "."}; });
+    }
+  };
+  var SIMPLES = {
+    "nuevo-traslado": function(){ ACCIONES.traslado(null); },
+    recibir: function(){ avisar("En el ERP esto abre Inventario ▸ Recibir."); },
+    "otra-sede": function(){ avisar("En el ERP esto abre el selector: AQP · LIM · Taller."); },
+    "ver-traslados": function(){ avisar("En el ERP esto abre Inventario ▸ Traslados ▸ Cerrados."); },
+    recomendaciones: function(){ avisar("En el ERP esto abre el plan de reposición (planDeReposicion)."); },
+    csv: function(){ avisar("Exportación lista (en el ERP descarga el CSV)."); }
+  };
+
+  // ---------- Eventos ----------
+  document.addEventListener("click", function(ev){
+    var seg = ev.target.closest(".seg button");
+    if (seg){
+      var k = seg.parentElement.dataset.ctl;
+      if (k === "tema") document.documentElement.setAttribute("data-theme", seg.dataset.v);
+      else { S[k] = seg.dataset.v; S.filtro = null; S.menu = null; }
+      if (k === "estado"){ S.q = ""; S.cat = ""; S.talla = ""; S.est = ""; }
+      render(); return;
+    }
+    var t = ev.target.closest("[data-filtro]");
+    if (t){ S.filtro = S.filtro === t.dataset.filtro ? null : t.dataset.filtro; S.menu = null; render(); return; }
+    var m = ev.target.closest("[data-menu]");
+    if (m){ var id = +m.dataset.menu; S.menu = S.menu === id ? null : id; renderTabla(); var abierto = document.querySelector(".menu button"); if (abierto) abierto.focus(); return; }
+    var a = ev.target.closest("[data-accion]");
+    if (a && !ev.target.closest(".velo")){
+      var ac = a.dataset.accion; S.menu = null;
+      if (SIMPLES[ac]){ renderTabla && S.estado === "lleno" && renderTabla(); SIMPLES[ac](); return; }
+      if (ACCIONES[ac]){ if (S.estado === "lleno") renderTabla(); ACCIONES[ac](porId(+a.dataset.id)); return; }
+    }
+    if (ev.target.id === "btn-prueba"){ S.prueba = !S.prueba; render(); return; }
+    if (ev.target.id === "quitar-filtro"){ S.filtro = null; render(); return; }
+    if (ev.target.id === "limpiar"){ S.filtro = null; S.q = ""; S.cat = ""; S.talla = ""; S.est = ""; render(); return; }
+    if (ev.target.id === "btn-otra-sede"){ SIMPLES["otra-sede"](); return; }
+    if (S.menu !== null && !ev.target.closest(".menu")){ S.menu = null; renderTabla(); }
+  });
+  document.addEventListener("input", function(ev){
+    if (ev.target.id === "q"){
+      S.q = ev.target.value; renderTabla();
+      var q = document.getElementById("q"); q.focus(); q.setSelectionRange(q.value.length, q.value.length);
+    }
+  });
+  document.addEventListener("change", function(ev){
+    if (ev.target.id === "f-cat"){ S.cat = ev.target.value; renderTabla(); }
+    if (ev.target.id === "f-talla"){ S.talla = ev.target.value; renderTabla(); }
+    if (ev.target.id === "f-est"){ S.est = ev.target.value; renderTabla(); }
+  });
+  document.addEventListener("keydown", function(ev){
+    if (ev.key !== "Escape") return;
+    if (modalAbierto) cerrarModal();
+    else if (S.menu !== null){ S.menu = null; renderTabla(); }
+  });
+
+  var hora = new Date().toLocaleTimeString("es-PE", {hour:"2-digit", minute:"2-digit", hour12:false, timeZone:"America/Lima"});
+  document.getElementById("hora").textContent = "Vista cargada a las " + hora + " — recarga para ver lo último.";
+  render();
+})();
+</script>
