@@ -7,22 +7,22 @@ import { TABLA } from "@/components/ui/Tabla";
 import { TrasladoEstado } from "@/components/TrasladoEstado";
 import { TrasladoLlegada } from "@/components/TrasladoLlegada";
 import { TrasladoMiniaturas } from "@/components/TrasladoMiniaturas";
-import { accionDeTraslado, diaMes, direccionTraslado, resumenPrendas, type SituacionTraslado } from "@/lib/traslados-reglas";
+import { accionDeTraslado, diaHora, direccionTraslado, resumenPrendas, type SituacionTraslado } from "@/lib/traslados-reglas";
 import type { TrasladoResumen } from "@/lib/traslados";
 
 // La tabla de traslados (rediseño 2026-09-18). Tres acomodos de las MISMAS celdas,
 // por `col-start`/`row-start`, en vez de una tabla que se corta o pide scroll:
 //  · desde 1400 px de ventana: seis columnas (con el lateral quedan ~1040 px de
-//    contenido, lo que piden las seis con el chip «REQUIERE CONFIRMACIÓN» y el botón
-//    «CONFIRMAR RECEPCIÓN», que en las mayúsculas del sistema miden 187 y 184 px —
-//    medido en el navegador).
+//    contenido). Desde el rediseño del 2026-09-22 la insignia y el botón van en minúscula
+//    («Por confirmar», «Confirmar recepción») y caben en 10 rem cada uno; lo que se ganó
+//    va a «Traslado», que ahora dice la hora de salida («Salió 21 sep · 15:30»).
 //  · de 1280 a 1399: dos líneas por fila (los dos cortes son variantes `min-[…px]:` del mismo tipo a propósito:
 //    con `xl:` mezclado el orden de la hoja de estilos hacía ganar al de 1280 también a 1440 px) (Traslado+Ruta · Contenido · Llegada+Estado · Acción).
 //  · por debajo: una tarjeta de cuatro líneas.
 // Lo que hace cada columna:
 //  · Traslado  el número que se dice por WhatsApp + cuándo salió.
 //  · Ruta      de dónde a dónde, y si es entrante o saliente para esta sede.
-//  · Contenido prendas (lo que piensa el encargado), variantes y miniaturas si las hay.
+//  · Contenido miniaturas (o los colores, sin fotos), prendas y variantes.
 //  · Llegada   fechas humanas; la frase depende de la situación real.
 //  · Estado    información: un chip suave, sin forma de botón.
 //  · Acción    un botón. El fuerte (tinta) solo si de verdad pide intervención.
@@ -32,7 +32,7 @@ import type { TrasladoResumen } from "@/lib/traslados";
 // pantalla siguen estando el enlace del número y el botón de la acción.
 const BASE = "grid-cols-[minmax(0,1fr)_auto]";
 const PLANTILLA_MEDIA = "min-[1280px]:grid-cols-[minmax(8.5rem,1fr)_minmax(11rem,1.4fr)_12rem_11.75rem]";
-const PLANTILLA = "min-[1400px]:grid-cols-[6rem_minmax(7.5rem,0.9fr)_minmax(11rem,1.3fr)_minmax(10.25rem,1fr)_12rem_11.75rem]";
+const PLANTILLA = "min-[1400px]:grid-cols-[8.5rem_minmax(8rem,0.9fr)_minmax(12rem,1.3fr)_minmax(10.25rem,1fr)_10rem_10.5rem]";
 
 // Desde 1400 px (seis columnas) todo se centra menos «Traslado», la identidad de la fila — el mismo criterio de
 // Existencias y Movimientos. Cada celda pasa a rejilla con `justify-items-center` para que sus bloques (texto,
@@ -57,7 +57,9 @@ const CELDA = {
 const FOCO = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo";
 // Guía oficial (2026-09-22, ADR-0169): primario y secundario del sistema.
 const BOTON_FUERTE = `btn-cayla btn-primario btn-chico ${FOCO}`;
-const BOTON_SUAVE = `btn-cayla btn-secundario btn-chico ${FOCO}`;
+// «Ver detalle» va en sutil (rediseño 2026-09-22): la fila entera ya abre el detalle, y así el único botón que
+// pesa en la lista es el de la acción que de verdad toca.
+const BOTON_SUAVE = `btn-cayla btn-sutil btn-chico ${FOCO}`;
 
 // Solo el que le toca a quien mira lleva fondo: coral suave si es una recepción,
 // ámbar suave si es una diferencia que debe cerrar un líder. El resto es tranquilo.
@@ -85,6 +87,7 @@ export function TrasladosLista({
   horaCarga,
   hayFiltros,
   cerradosAcotados,
+  vacios,
   onLimpiar,
   onMostrarMas,
   siguientePagina,
@@ -100,6 +103,9 @@ export function TrasladosLista({
   hayFiltros: boolean;
   /** Los cerrados se traen acotados (los últimos 30): avisarlo, o «no aparece» parece «no existe». */
   cerradosAcotados: boolean;
+  /** Traslados sin prendas que se apartaron (`separarVacios`). Solo se avisa a quien puede ajustar
+   *  inventario: es un tema de datos, no algo que un integrante tenga que resolver. 0 = no se dice nada. */
+  vacios: number;
   onLimpiar: () => void;
   onMostrarMas: () => void;
   /** Cuántos se sumarían al pulsar «Mostrar más» (0 = no hay más). */
@@ -156,7 +162,7 @@ export function TrasladosLista({
                   <Link id={`traslado-${t.id}`} href={`/inventario/traslados/${t.id}`} className={`block whitespace-nowrap rounded-sm text-sm font-medium text-tinta ${FOCO}`}>
                     Traslado {t.numero}
                   </Link>
-                  <p className="text-xs text-taupe">Salió {diaMes(t.creadoEn)}</p>
+                  <p className="whitespace-nowrap text-xs text-taupe">Salió {diaHora(t.creadoEn, ahoraIso)}</p>
                 </div>
 
                 <div role="cell" className={CELDA.ruta}>
@@ -172,25 +178,29 @@ export function TrasladosLista({
                     </span>
                   </p>
                   <p className="truncate text-xs text-taupe" title={t.nota ?? undefined}>
-                    {direccion === "entrante" ? "Entrante" : "Saliente"}
+                    {direccion === "entrante" ? "Entra a tu sede" : "Sale de tu sede"}
                     {t.nota ? ` · ${t.nota}` : ""}
                   </p>
                 </div>
 
                 <div role="cell" className={CELDA.contenido}>
-                  <p className="text-sm text-tinta">
-                    <span className="font-medium tabular-nums">
-                      {t.unidadesEnviadas.toLocaleString("es-PE")} {t.unidadesEnviadas === 1 ? "unidad" : "unidades"}
-                    </span>
-                    <span className="text-taupe">
-                      {" "}
-                      · {t.lineas} {t.lineas === 1 ? "variante" : "variantes"}
-                    </span>
-                  </p>
-                  <p className="truncate text-xs text-taupe" title={t.referencias.join(", ")}>
-                    {resumenPrendas(t.referencias)}
-                  </p>
-                  <TrasladoMiniaturas fotos={t.fotos} />
+                  {/* Las miniaturas (o los colores, si aún no hay fotos) a la izquierda del texto: se lee QUÉ va
+                      antes de cuánto. */}
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <TrasladoMiniaturas fotos={t.fotos} colores={t.colores} />
+                    <div className="min-w-0 text-left">
+                      <p className="whitespace-nowrap text-sm text-tinta">
+                        <span className="font-medium tabular-nums">{t.unidadesEnviadas.toLocaleString("es-PE")} u.</span>
+                        <span className="text-taupe">
+                          {" "}
+                          · {t.lineas} {t.lineas === 1 ? "variante" : "variantes"}
+                        </span>
+                      </p>
+                      <p className="truncate text-xs text-taupe" title={t.referencias.join(", ")}>
+                        {resumenPrendas(t.referencias)}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 <div role="cell" className={CELDA.llegada}>
@@ -218,6 +228,7 @@ export function TrasladosLista({
           Mostrando {filas.length} de {totalFiltrados} {totalFiltrados === 1 ? "traslado" : "traslados"}
           {hayFiltros && totalFiltrados !== totalTraslados && ` (${totalTraslados} en total)`}
           {cerradosAcotados && " · los cerrados se acotan a los últimos 30"}
+          {vacios > 0 && ` · ${vacios} ${vacios === 1 ? "traslado sin prendas no se muestra" : "traslados sin prendas no se muestran"}`}
         </p>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {siguientePagina > 0 && (
@@ -237,7 +248,7 @@ export function TrasladosLista({
               type="button"
               onClick={onRefrescar}
               disabled={refrescando}
-              className={`label-cayla rounded-sm text-[11px] text-tinta/75 underline-offset-2 hover:text-rojo hover:underline disabled:cursor-wait disabled:opacity-60 ${FOCO}`}
+              className={`btn-enlace text-xs disabled:cursor-wait disabled:opacity-60 ${FOCO}`}
             >
               {refrescando ? "Actualizando…" : "Actualizar"}
             </button>

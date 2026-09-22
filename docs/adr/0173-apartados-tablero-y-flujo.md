@@ -1,4 +1,6 @@
-# ADR-0172 — Apartados con la guía oficial: el tablero es la portada, Apartar es un flujo y Entregar un modal
+# ADR-0173 — Apartados con la guía oficial: el tablero es la portada, Apartar es un flujo y Entregar un modal
+
+> **Número:** nació como ADR-0172; al traer `main` ese número ya lo usaban Colaboradores y Traslados, así que pasó a 0173.
 
 **Fecha:** 2026-09-22 · **Estado:** aceptado (Felipe, 2026-09-22) · **Sin migraciones** · **Sobre:** ADR-0166 (pantallas de Apartados),
 ADR-0169 (paleta y orden oficial de pantalla), ADR-0136 (modales) · **Demo:** `docs/maquetas/apartados-rediseno-2026-09/demo.html`

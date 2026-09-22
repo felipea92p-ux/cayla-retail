@@ -26,7 +26,7 @@ type Props = {
 };
 
 /**
- * Apartados con la guía oficial (rediseño 2026-09-22, ADR-0172 sobre ADR-0169; decidido por Felipe sobre la demo
+ * Apartados con la guía oficial (rediseño 2026-09-22, ADR-0173 sobre ADR-0169; decidido por Felipe sobre la demo
  * `docs/maquetas/apartados-rediseno-2026-09/demo.html`): «tablero + flujo».
  *
  * - La portada es el TABLERO: cabecera oficial con «+ Nuevo apartado» como acción principal → franjas (caja cerrada,

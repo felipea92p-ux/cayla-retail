@@ -277,9 +277,10 @@ const PUERTAS = [
   { nombre: "crear_marca", previo: "", intento: LLAMADA(`select retail.crear_marca('Marca de prueba', gen_random_uuid())`), mensaje: /Solo un Líder puede agregar marcas/, pasan: ["admin", "micaela"] },
   { nombre: "desactivar_categoria", previo: "", intento: LLAMADA(`select retail.desactivar_categoria(gen_random_uuid())`), mensaje: /Solo un Líder puede desactivar una categoría/, pasan: ["admin", "micaela"] },
   { nombre: "actualizar_categoria_ejes", previo: "", intento: LLAMADA(`select retail.actualizar_categoria_ejes(gen_random_uuid(), '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[])`), mensaje: /Solo un Líder puede editar qué tallas/, pasan: ["admin", "micaela"] },
+  // Etiquetas (20260923130000): se abren a quien ve el módulo Etiquetas; ninguna de estas cuentas lo ve.
+  { nombre: "etiquetar_variantes (sin el módulo Etiquetas)", previo: "", intento: LLAMADA(`select retail.etiquetar_variantes('[]'::jsonb)`), mensaje: /Etiquetar prendas necesita el módulo Etiquetas/, pasan: [] },
+  { nombre: "actualizar_variantes_etiquetas (sin el módulo Etiquetas)", previo: "", intento: LLAMADA(`select retail.actualizar_variantes_etiquetas('[]'::jsonb)`), mensaje: /Aplicar etiquetas a una prenda necesita el módulo Etiquetas/, pasan: [] },
   // Lo que NO se abrió y cuyo candado va primero: solo el líder.
-  { nombre: "etiquetar_variantes (descuentos)", previo: "", intento: LLAMADA(`select retail.etiquetar_variantes('[]'::jsonb)`), mensaje: /Solo un Líder puede etiquetar prendas/, pasan: [] },
-  { nombre: "actualizar_variantes_etiquetas (descuentos)", previo: "", intento: LLAMADA(`select retail.actualizar_variantes_etiquetas('[]'::jsonb)`), mensaje: /Solo un Líder puede aplicar etiquetas a una variante/, pasan: [] },
   { nombre: "anular_venta", previo: "", intento: LLAMADA(`select retail.anular_venta(gen_random_uuid(), 'x', '[]'::jsonb)`), mensaje: /Solo un líder puede anular una venta/, pasan: [] },
   { nombre: "registrar_serie_comprobante", previo: "", intento: LLAMADA(`select retail.registrar_serie_comprobante(gen_random_uuid(), 'boleta', 'B001', 1)`), mensaje: /Solo un líder puede registrar una serie de comprobantes/, pasan: [] },
 ];
@@ -307,14 +308,21 @@ select (select cerrado_por = :'rosa' from retail.conteos where id = :'conteo') |
 );
 
 // Las que NO se abrieron y verifican otras cosas antes del candado: se prueban por su definición. Siguen pidiendo
-// líder y NINGUNA menciona una capacidad de terminal.
+// líder y NINGUNA menciona una capacidad de terminal. Las de etiquetas salieron de esta lista (20260923130000): se abren
+// con el módulo Etiquetas y lo que lleva descuento lo cuida `fn_puede_dar_descuento_por_etiqueta` (verificado abajo).
 const SIGUEN_DEL_LIDER = [
   "aprobar_devolucion", "rechazar_devolucion", "anular_venta", "anular_comprobante", "marcar_comprobante_no_emitido",
-  "registrar_serie_comprobante", "etiquetar_variantes", "actualizar_variantes_etiquetas", "actualizar_campana_etiqueta",
-  "liquidar_prenda_danada", "resolver_prenda_danada",
+  "registrar_serie_comprobante", "liquidar_prenda_danada", "resolver_prenda_danada",
 ];
 verificar(
-  `siguen del líder (${SIGUEN_DEL_LIDER.length}): devoluciones, anulaciones, series, etiquetas con descuento, prendas dañadas`,
+  "etiquetas (20260923130000): las 3 funciones que tocan descuentos los dejan al líder (fn_puede_tocar_etiqueta / fn_puede_dar_descuento_por_etiqueta)",
+  correr(escena(`select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
+    and p.proname in ('etiquetar_variantes', 'actualizar_variantes_etiquetas', 'actualizar_campana_etiqueta')
+    and pg_get_functiondef(p.oid) ~ 'fn_puede_(tocar_etiqueta|dar_descuento_por_etiqueta)\\(';`)),
+  /^3$/
+);
+verificar(
+  `siguen del líder (${SIGUEN_DEL_LIDER.length}): devoluciones, anulaciones, series, prendas dañadas`,
   correr(escena(`select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
     and p.proname in (${SIGUEN_DEL_LIDER.map((f) => `'${f}'`).join(", ")})
     and pg_get_functiondef(p.oid) ~ 'fn_es_lider\\(\\)'
@@ -357,13 +365,15 @@ const POLITICAS_CATALOGO = [
   "patrones_update_lider", "producto_fotos_write_lider", "productos_write_lider", "tallas_update_lider", "tejidos_update_lider", "variantes_write_lider",
 ];
 verificar(
-  "políticas: las 15 de Catálogo piden fn_puede_editar_catalogo; las de etiquetas siguen pidiendo líder",
+  "políticas: las 15 de Catálogo piden fn_puede_editar_catalogo; las de escritura directa de etiquetas siguen pidiendo líder y la de editar etiquetas deja el descuento al líder",
   correr(escena(`select
     (select count(*) from pg_policies where schemaname = 'retail' and policyname in (${POLITICAS_CATALOGO.map((p) => `'${p}'`).join(", ")})
        and (coalesce(qual, '') ~ 'fn_puede_editar_catalogo' or coalesce(with_check, '') ~ 'fn_puede_editar_catalogo'))
-    || '|' || (select count(*) from pg_policies where schemaname = 'retail' and policyname in ('etiquetas_update_lider', 'etiqueta_categorias_write_lider', 'variante_etiquetas_write_lider')
-       and coalesce(qual, '') ~ 'fn_es_lider');`)),
-  /^15\|3$/
+    || '|' || (select count(*) from pg_policies where schemaname = 'retail' and policyname in ('etiqueta_categorias_write_lider', 'variante_etiquetas_write_lider')
+       and coalesce(qual, '') ~ 'fn_es_lider')
+    || '|' || (select count(*) from pg_policies where schemaname = 'retail' and tablename = 'etiquetas' and policyname = 'etiquetas_update'
+       and coalesce(with_check, '') ~ 'fn_puede_dar_descuento_por_etiqueta' and coalesce(with_check, '') ~ 'descuento_pct IS NULL');`)),
+  /^15\|2\|1$/
 );
 
 verificar(
