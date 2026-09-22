@@ -1,0 +1,843 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Colaboradores · spike UX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+/* Tokens del brandbook v3.0 (apps/web/app/globals.css). Datos inventados. */
+:root{
+  --rojo:#b8412d; --rojo-profundo:#8b2a1f; --crema:#f5f0e8; --tinta:#1a1a18; --tinta-60:#5b544c;
+  --sand:#e8e0d0; --taupe:#a47865; --taupe-profundo:#805c4c; --papel:#fbf6ec;
+  --verde:#556e49; --verde-fondo:#e7ecdf; --ambar:#8c631f; --ambar-fondo:#f3e7cf;
+  --ease:cubic-bezier(.32,.72,.24,1);
+  --r-md:8px; --r-lg:12px; --r-xl:16px;
+  --sombra:0 2px 8px -2px rgb(26 26 24 / .07); --sombra-md:0 8px 24px -8px rgb(26 26 24 / .11); --sombra-lg:0 18px 44px -14px rgb(26 26 24 / .16);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+[hidden]{display:none!important}
+body{background:var(--crema);color:var(--tinta);font:15px/1.55 "DM Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+.serif{font-family:"EB Garamond",Georgia,serif;font-weight:400}
+.cap{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--tinta-60);font-weight:500}
+.muted{color:var(--tinta-60)}
+.page{max-width:1480px;margin:0 auto;padding:36px 40px 120px}
+
+/* ---------- Cabecera de la pantalla (compacta: los KPI viven en Activos) ---------- */
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.head h1{font-size:34px;line-height:1.1;margin:6px 0 0}
+.btn{border:1px solid var(--sand);background:var(--papel);border-radius:var(--r-md);padding:9px 14px;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:8px;transition:background .2s var(--ease),border-color .2s var(--ease)}
+.btn:hover{border-color:var(--taupe)}
+.btn.primario{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.btn.primario:hover{background:#000}
+.btn.fantasma{background:transparent;border-color:transparent}
+.btn.fantasma:hover{background:var(--sand)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.tabs{display:flex;gap:4px;margin-top:22px;border-bottom:1px solid var(--sand);overflow-x:auto;scrollbar-width:none}
+.tab{padding:10px 12px;border:0;background:none;color:var(--tinta-60);white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab .n{font-size:11px;background:var(--sand);border-radius:99px;padding:1px 7px;margin-left:6px}
+.tab.on{color:var(--tinta);border-bottom-color:var(--rojo)}
+
+/* ---------- Franja explicativa: 3 ideas en vez de un párrafo ---------- */
+.ideas{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0 20px}
+.idea{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:var(--r-lg);background:rgb(251 246 236 / .6);border:1px dashed var(--sand)}
+.idea .num{flex:none;width:24px;height:24px;border-radius:99px;background:var(--tinta);color:var(--crema);font-size:12px;display:grid;place-items:center;font-weight:600}
+.idea b{font-weight:600}
+.idea p{margin:0;font-size:13px;color:var(--tinta-60)}
+.cerrar-ideas{margin-left:auto;align-self:center}
+
+/* ---------- Conmutador de vista ---------- */
+.barra-vista{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--sand);border-radius:10px;padding:3px}
+.seg button{border:0;background:none;padding:6px 14px;border-radius:8px;font-size:13px;color:var(--tinta-60)}
+.seg button.on{background:var(--papel);color:var(--tinta);box-shadow:var(--sombra)}
+
+/* ---------- Layout principal ---------- */
+.grid{display:grid;grid-template-columns:280px minmax(0,1fr) 320px;gap:20px;align-items:start}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-xl)}
+
+/* Lista de roles */
+.roles{padding:10px;position:sticky;top:16px}
+.roles-top{display:flex;justify-content:space-between;align-items:center;padding:6px 8px 10px}
+.rol{width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:var(--r-lg);padding:12px;display:block;transition:background .2s var(--ease),border-color .2s var(--ease)}
+.rol:hover{background:var(--crema)}
+.rol.on{background:var(--crema);border-color:var(--sand);box-shadow:inset 3px 0 0 var(--rojo)}
+.rol .fila{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rol .nom{font-weight:600;font-size:14.5px}
+.rol .sub{font-size:12.5px;color:var(--tinta-60);margin-top:2px;display:flex;gap:10px;align-items:center}
+.medidor{height:4px;border-radius:99px;background:var(--sand);margin-top:9px;overflow:hidden}
+.medidor i{display:block;height:100%;background:var(--tinta);border-radius:99px;transition:width .4s var(--ease)}
+.rol.fijo .medidor i{background:var(--taupe)}
+.aviso-chip{font-size:11px;font-weight:600;padding:2px 7px;border-radius:99px;background:var(--ambar-fondo);color:var(--ambar);white-space:nowrap}
+.tipo{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--taupe-profundo);font-weight:600}
+.sep{height:1px;background:var(--sand);margin:8px 10px}
+
+/* Editor */
+.editor-head{padding:22px 24px 18px;border-bottom:1px solid var(--sand)}
+.editor-head .t{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.editor-head h2{font-size:30px;margin:2px 0 4px;line-height:1.15}
+.quienes{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+.avs{display:flex}
+.av{width:30px;height:30px;border-radius:99px;border:2px solid var(--papel);display:grid;place-items:center;font-size:11px;font-weight:600;margin-left:-8px;background:var(--sand);color:var(--tinta)}
+.av:first-child{margin-left:0}
+.av.term{background:#e3e6ea;color:#3d4550}
+.av.mas{background:var(--tinta);color:var(--crema)}
+.vacio-cuentas{font-size:13px;color:var(--tinta-60);display:flex;align-items:center;gap:8px}
+.menu-acc{position:relative}
+.pop{position:absolute;right:0;top:calc(100% + 6px);background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-lg);box-shadow:var(--sombra-lg);padding:6px;min-width:220px;z-index:20;display:none}
+.pop.on{display:block;animation:sube .22s var(--ease)}
+.pop button{display:flex;width:100%;border:0;background:none;padding:9px 10px;border-radius:8px;text-align:left;gap:10px;font-size:13.5px}
+.pop button:hover{background:var(--crema)}
+.pop button small{display:block;color:var(--tinta-60);font-size:12px}
+.pop button:disabled{opacity:.5;cursor:not-allowed}
+@keyframes sube{from{opacity:0;transform:translateY(6px)}}
+
+.banda{margin:16px 24px 0;padding:12px 14px;border-radius:var(--r-lg);display:flex;gap:12px;align-items:flex-start;font-size:13.5px}
+.banda.ambar{background:var(--ambar-fondo);color:#5e4210}
+.banda.info{background:var(--crema);color:var(--tinta-60);border:1px solid var(--sand)}
+.banda b{color:inherit}
+
+.herr{display:flex;gap:10px;align-items:center;padding:16px 24px 6px;flex-wrap:wrap}
+.buscar{flex:1;min-width:200px;display:flex;align-items:center;gap:8px;border:1px solid var(--sand);border-radius:var(--r-md);padding:8px 12px;background:var(--crema)}
+.buscar input{border:0;background:none;outline:none;font:inherit;font-size:14px;width:100%;color:var(--tinta)}
+.contador{font-size:13px;color:var(--tinta-60);white-space:nowrap}
+.contador b{color:var(--tinta)}
+
+.grupos{padding:10px 24px 24px;display:grid;gap:12px}
+.grupo{border:1px solid var(--sand);border-radius:var(--r-lg);overflow:hidden;background:#fffaf2}
+.grupo-h{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--crema);cursor:pointer;user-select:none}
+.grupo-h .gn{font-weight:600;font-size:14px}
+.grupo-h .gc{font-size:12.5px;color:var(--tinta-60)}
+.grupo-h .flecha{margin-left:auto;transition:transform .25s var(--ease);color:var(--tinta-60)}
+.grupo.cerrado .flecha{transform:rotate(-90deg)}
+.grupo.cerrado .mods{display:none}
+.mini{display:flex;gap:3px}
+.mini i{width:8px;height:8px;border-radius:2px;background:var(--sand)}
+.mini i.on{background:var(--tinta)}
+.mini i.lock{background:transparent;border:1px dashed var(--taupe)}
+.todo{font-size:12px;border:1px solid var(--sand);background:var(--papel);border-radius:99px;padding:3px 10px}
+.todo:hover{border-color:var(--taupe)}
+.mod{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;padding:12px 14px;border-top:1px solid var(--sand);transition:background .25s var(--ease)}
+.mod:hover{background:rgb(245 240 232 / .6)}
+.mod .mn{font-weight:500;font-size:14px;display:flex;align-items:center;gap:8px}
+.mod .mi{font-size:12.5px;color:var(--tinta-60);margin-top:1px}
+.mod.cambio{background:rgb(243 231 207 / .45)}
+.marca{font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:99px}
+.marca.mas{background:var(--verde-fondo);color:var(--verde)}
+.marca.menos{background:#f1dcd6;color:var(--rojo-profundo)}
+.mod.bloq .mn{color:var(--tinta-60)}
+.candado{font-size:12px;color:var(--taupe-profundo);display:inline-flex;gap:6px;align-items:center;white-space:nowrap;border:1px dashed var(--taupe);border-radius:99px;padding:3px 10px}
+
+/* Interruptor */
+.sw{position:relative;width:42px;height:24px;border-radius:99px;border:0;background:#d8cfbf;padding:0;transition:background .25s var(--ease);flex:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:99px;background:#fff;box-shadow:0 1px 3px rgb(0 0 0 / .2);transition:transform .25s var(--ease)}
+.sw[aria-checked="true"]{background:var(--tinta)}
+.sw[aria-checked="true"]::after{transform:translateX(18px)}
+.sw:disabled{cursor:not-allowed;opacity:.55}
+.sw:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+
+/* Vista previa */
+.lado{position:sticky;top:16px;display:grid;gap:14px}
+.prev{padding:18px}
+.prev h3,.lider h3{font-size:20px;margin:0}
+.prev .sub{font-size:12.5px;color:var(--tinta-60);margin:2px 0 12px}
+.lateral{background:#1f1e1b;color:#eee6d8;border-radius:var(--r-lg);padding:14px 10px;min-height:200px}
+.lateral .logo{display:flex;gap:8px;align-items:center;padding:0 8px 12px;border-bottom:1px solid rgb(255 255 255 / .08);margin-bottom:8px}
+.lateral .logo i{width:22px;height:22px;border-radius:6px;background:var(--rojo);display:block}
+.lateral .logo span{font-family:"EB Garamond",serif;font-size:17px;letter-spacing:.08em}
+.it{padding:6px 10px;border-radius:7px;font-size:13px;display:flex;align-items:center;gap:8px}
+.it .pt{width:6px;height:6px;border-radius:2px;background:rgb(255 255 255 / .35)}
+.it.grupo-l{margin-top:6px;font-weight:600}
+.it.hija{padding-left:26px;font-size:12.5px;color:#cfc6b6}
+.it.nuevo{background:rgb(85 110 73 / .35);color:#e5f0dc}
+.it.quitado{text-decoration:line-through;color:#8f877a}
+.lat-vacio{font-size:12.5px;color:#a9a091;padding:14px 10px;line-height:1.45}
+.ubi{margin-top:12px;display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--tinta-60)}
+.ubi .seg button{padding:4px 10px;font-size:12px}
+.leyenda{display:flex;gap:12px;font-size:11.5px;color:var(--tinta-60);margin-top:10px}
+.leyenda span{display:inline-flex;align-items:center;gap:5px}
+.leyenda i{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+.lider{padding:0;overflow:hidden}
+.lider summary{list-style:none;padding:16px 18px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.lider summary::-webkit-details-marker{display:none}
+.lider[open] summary .flecha{transform:rotate(180deg)}
+.lider .flecha{transition:transform .25s var(--ease);color:var(--tinta-60)}
+.lider ul{margin:0;padding:0 18px 16px;list-style:none;display:grid;gap:10px}
+.lider li{display:flex;gap:10px;font-size:13px;line-height:1.4}
+.lider li svg{flex:none;margin-top:2px;color:var(--taupe-profundo)}
+
+/* Barra de guardado */
+.guardar{position:fixed;left:50%;bottom:22px;transform:translate(-50%,140%);background:var(--tinta);color:var(--crema);border-radius:14px;padding:10px 10px 10px 18px;display:flex;align-items:center;gap:16px;box-shadow:var(--sombra-lg);transition:transform .35s var(--ease);z-index:40;max-width:calc(100% - 32px)}
+.guardar.on{transform:translate(-50%,0)}
+.guardar .txt{font-size:13.5px}
+.guardar .txt b{font-weight:600}
+.guardar .btn{border-color:rgb(255 255 255 / .2);background:transparent;color:var(--crema)}
+.guardar .btn.primario{background:var(--crema);color:var(--tinta);border-color:var(--crema)}
+
+/* Aviso */
+.aviso{position:fixed;top:18px;right:18px;background:var(--papel);border:1px solid var(--sand);border-left:3px solid var(--verde);border-radius:var(--r-lg);box-shadow:var(--sombra-md);padding:12px 16px;font-size:13.5px;transform:translateX(120%);transition:transform .35s var(--ease);z-index:50}
+.aviso.on{transform:none}
+
+/* Matriz */
+.matriz-wrap{overflow:auto;padding:0}
+table.mx{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
+.mx th,.mx td{padding:10px 12px;border-bottom:1px solid var(--sand);text-align:center;white-space:nowrap}
+.mx thead th{position:sticky;top:0;background:var(--crema);font-weight:600;font-size:12.5px;z-index:2}
+.mx th:first-child,.mx td:first-child{text-align:left;position:sticky;left:0;background:var(--papel);z-index:1}
+.mx thead th:first-child{background:var(--crema);z-index:3}
+.mx tr.gr td{background:var(--crema);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--tinta-60);font-weight:500;text-align:left}
+.mx tr.gr td:first-child{background:var(--crema)}
+.pto{width:18px;height:18px;border-radius:5px;display:inline-grid;place-items:center;border:1px solid var(--sand);background:transparent}
+.pto.on{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.pto.fijo{background:var(--taupe);border-color:var(--taupe);color:#fff}
+.mx .colh small{display:block;font-weight:400;color:var(--tinta-60);font-size:11.5px}
+.mx td button.pto{cursor:pointer}
+.mx td button.pto:hover{border-color:var(--tinta)}
+
+/* Modal (mismo efecto de ADR-0136, versión spike) */
+.velo{position:fixed;inset:0;background:rgb(26 26 24 / .28);backdrop-filter:blur(6px);display:none;place-items:center;z-index:60;padding:16px}
+.velo.on{display:grid;animation:fade .25s var(--ease)}
+.hoja{background:var(--papel);border-radius:var(--r-xl);box-shadow:var(--sombra-lg);width:min(520px,100%);max-height:86vh;display:flex;flex-direction:column;animation:hoja .4s var(--ease)}
+.hoja header{padding:22px 24px 10px}
+.hoja h3{font-size:26px;margin:0}
+.hoja .cuerpo{padding:6px 24px;overflow:auto}
+.hoja footer{padding:14px 24px 20px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--sand);margin-top:10px}
+.cuenta{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--sand);font-size:14px}
+.cuenta .av{margin:0}
+.cuenta .de{font-size:12px;color:var(--tinta-60)}
+.cuenta input{margin-left:auto;width:18px;height:18px;accent-color:var(--tinta)}
+/* Asignar: buscar primero, nunca una lista completa */
+.bus-asig{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border:1px solid var(--sand);border-radius:var(--r-md);padding:6px 10px;background:var(--crema);transition:border-color .2s var(--ease)}
+.bus-asig:focus-within{border-color:var(--tinta)}
+.bus-asig input{flex:1;min-width:140px;border:0;background:none;outline:none;font:inherit;font-size:14.5px;padding:4px 0;color:var(--tinta)}
+.chip-c{display:inline-flex;align-items:center;gap:6px;background:var(--tinta);color:var(--crema);border-radius:99px;padding:3px 4px 3px 10px;font-size:12.5px;animation:sube .2s var(--ease)}
+.chip-c button{border:0;background:rgb(255 255 255 / .15);color:inherit;width:18px;height:18px;border-radius:99px;display:grid;place-items:center;font-size:12px;padding:0}
+.filtros{display:flex;gap:6px;margin:10px 0 4px}
+.filtros button{border:1px solid var(--sand);background:var(--papel);border-radius:99px;padding:3px 11px;font-size:12.5px;color:var(--tinta-60)}
+.filtros button.on{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.resultados{height:300px;overflow:auto;margin-top:6px}
+.res{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:14px}
+.res .av{margin:0}
+.res .de{font-size:12px;color:var(--tinta-60)}
+.res .der{margin-left:auto;font-size:12px;color:var(--tinta-60);white-space:nowrap}
+.res.activo{background:var(--crema);box-shadow:inset 0 0 0 1px var(--sand)}
+.res.ya{cursor:default;opacity:.55}
+.res.elegida .der{color:var(--verde);font-weight:600}
+.res mark{background:#f3e7cf;color:inherit;border-radius:3px;padding:0 1px}
+.pista{padding:26px 12px;text-align:center;color:var(--tinta-60);font-size:13.5px}
+.pista kbd,.teclas kbd{font:11px "DM Sans",sans-serif;border:1px solid var(--sand);border-bottom-width:2px;border-radius:5px;padding:1px 5px;background:var(--papel)}
+.sugeridas-t{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--tinta-60);font-weight:500;padding:10px 10px 4px}
+.mas-res{font-size:12.5px;color:var(--tinta-60);padding:8px 10px}
+.resumen-asig{font-size:12.5px;color:var(--tinta-60);margin-right:auto;align-self:center}
+.teclas{font-size:11.5px;color:var(--tinta-60);margin-top:8px;display:flex;gap:12px;flex-wrap:wrap}
+@keyframes fade{from{opacity:0}}
+@keyframes hoja{from{opacity:0;transform:translateY(18px) scale(.98)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* Responsivo */
+@media (max-width:1180px){.grid{grid-template-columns:250px minmax(0,1fr)}.lado{grid-column:1/-1;position:static;grid-template-columns:1fr 1fr}}
+@media (max-width:820px){
+  .page{padding:20px 16px 120px}
+  .ideas{grid-template-columns:1fr}
+  .grid{grid-template-columns:1fr}
+  .roles{position:static;display:flex;gap:8px;overflow-x:auto;padding:8px}
+  .roles-top,.sep,.roles .tipo{display:none}
+  .rol{min-width:200px}
+  .lado{grid-template-columns:1fr}
+  .editor-head,.herr,.grupos{padding-left:16px;padding-right:16px}
+  .banda{margin-left:16px;margin-right:16px}
+}
+
+/* ---------- Secciones (reemplaza las 7 pestañas) ---------- */
+.bajada{margin:6px 0 0;color:var(--tinta-60);font-size:14px;max-width:560px}
+.secciones{display:flex;gap:10px;margin:22px 0 18px}
+.secciones button{flex:0 1 340px;text-align:left;border:1px solid var(--sand);background:transparent;border-radius:var(--r-lg);padding:12px 16px;transition:background .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease)}
+.secciones button:hover{background:rgb(251 246 236 / .7)}
+.secciones button.on{background:var(--papel);border-color:var(--taupe);box-shadow:var(--sombra),inset 0 -2px 0 var(--rojo)}
+.secciones .st{display:block;font-weight:600;font-size:15px}
+.secciones .sd{display:block;font-size:12.5px;color:var(--tinta-60);margin-top:1px}
+.secciones .sd b{color:var(--ambar);font-weight:600}
+
+/* Por atender */
+.atender{display:grid;gap:8px;margin-bottom:14px}
+.pend{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:var(--r-lg);background:var(--ambar-fondo);color:#5e4210;font-size:14px}
+.pend .ico{width:28px;height:28px;border-radius:99px;background:rgb(140 99 31 / .15);display:grid;place-items:center;flex:none;font-weight:700}
+.pend .btn{margin-left:auto;background:var(--papel);border-color:rgb(140 99 31 / .3)}
+.pend.gris{background:var(--papel);color:var(--tinta-60);border:1px solid var(--sand)}
+.al-dia{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--verde);margin-bottom:12px}
+
+/* Barra de filtros de cuentas */
+.barra-c{display:flex;gap:10px;align-items:center;padding:14px 16px;flex-wrap:wrap;border-bottom:1px solid var(--sand)}
+.barra-c .buscar{flex:1;min-width:220px}
+.sel{border:1px solid var(--sand);background:var(--papel);border-radius:var(--r-md);padding:8px 10px;font:inherit;font-size:13px;color:var(--tinta)}
+.estados{display:flex;gap:6px;padding:10px 16px;flex-wrap:wrap;border-bottom:1px solid var(--sand)}
+.est{border:1px solid var(--sand);background:var(--papel);border-radius:99px;padding:4px 12px;font-size:12.5px;color:var(--tinta-60);display:inline-flex;gap:6px;align-items:center}
+.est .c{font-weight:600;color:var(--tinta)}
+.est.on{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.est.on .c{color:var(--crema)}
+.est.cero{opacity:.45}
+.est .dot{width:7px;height:7px;border-radius:99px}
+
+/* Tabla de cuentas */
+.tabla-wrap{overflow-x:auto}
+table.tc{width:100%;border-collapse:collapse;font-size:14px}
+.tc th{text-align:left;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--tinta-60);font-weight:500;padding:10px 16px;background:var(--crema)}
+.tc td{padding:11px 16px;border-top:1px solid var(--sand);vertical-align:middle}
+.tc tr:hover td{background:rgb(245 240 232 / .5)}
+.quien{display:flex;align-items:center;gap:12px}
+.quien .av{margin:0}
+.quien small{display:block;color:var(--tinta-60);font-size:12px}
+.rol-chip{border:1px solid var(--sand);background:var(--papel);border-radius:99px;padding:3px 10px;font-size:12.5px;display:inline-flex;gap:6px;align-items:center}
+.rol-chip:hover{border-color:var(--taupe)}
+.rol-chip.lider{background:var(--crema)}
+.badge{font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.badge.activa{background:var(--verde-fondo);color:var(--verde)}
+.badge.pendiente{background:var(--ambar-fondo);color:var(--ambar)}
+.badge.suspendida{background:#f1dcd6;color:var(--rojo-profundo)}
+.badge.inactiva{background:var(--sand);color:var(--tinta-60)}
+.acc-fila{display:flex;gap:6px;justify-content:flex-end}
+.acc-fila .btn{padding:5px 10px;font-size:12.5px}
+.tc .vacio td{text-align:center;color:var(--tinta-60);padding:36px}
+.pie-tabla{padding:10px 16px;font-size:12.5px;color:var(--tinta-60);border-top:1px solid var(--sand)}
+
+/* Cajón de actividad */
+.cajon{place-items:stretch end;padding:0}
+.panel-lat{background:var(--papel);width:min(440px,100%);height:100%;box-shadow:var(--sombra-lg);display:flex;flex-direction:column;animation:lat .38s var(--ease)}
+.panel-lat header{display:flex;justify-content:space-between;align-items:flex-start;padding:22px 22px 12px}
+.panel-lat h3{font-size:26px;margin:2px 0 0}
+@keyframes lat{from{transform:translateX(40px);opacity:0}}
+.linea{list-style:none;margin:8px 0 0;padding:6px 22px 22px;overflow:auto;flex:1}
+.linea li{display:grid;grid-template-columns:14px 1fr;gap:12px;padding:10px 0;position:relative}
+.linea li::before{content:"";position:absolute;left:6px;top:24px;bottom:-10px;width:1px;background:var(--sand)}
+.linea li:last-child::before{display:none}
+.linea .p{width:13px;height:13px;border-radius:99px;border:2px solid var(--papel);box-shadow:0 0 0 1px var(--sand);margin-top:4px}
+.linea .q{font-size:13.5px}
+.linea .q small{display:block;color:var(--tinta-60);font-size:12px}
+.linea .dia{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--tinta-60);padding:10px 0 0}
+.linea .dia::before{display:none}
+@media (max-width:820px){
+  .secciones button{flex:1}
+  .tc .col-opt{display:none}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="head">
+    <div>
+      <div class="cap">Retail</div>
+      <h1 class="serif">Colaboradores</h1>
+      <p class="bajada">Quién entra a retail, con qué rol y desde qué ubicación. Las personas se dan de alta en Dynamic.</p>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="abrirActividad()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>Actividad</button>
+      <button class="btn primario">+ Agregar colaboradores</button>
+    </div>
+  </div>
+
+  <nav class="secciones" aria-label="Secciones">
+    <button id="sCuentas" class="on" onclick="seccion('cuentas')"><span class="st">Cuentas</span><span class="sd" id="sdCuentas"></span></button>
+    <button id="sRoles" onclick="seccion('roles')"><span class="st">Roles y accesos</span><span class="sd" id="sdRoles"></span></button>
+  </nav>
+
+  <!-- ================= CUENTAS ================= -->
+  <section id="secCuentas">
+    <div id="atender"></div>
+    <div class="card">
+      <div class="barra-c">
+        <label class="buscar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="qC" placeholder="Buscar por nombre, tienda o rol…" oninput="fc.q=this.value;pintarCuentas()"></label>
+        <div class="seg" id="segTipo"></div>
+        <select class="sel" id="selUbic" onchange="fc.ubic=this.value;pintarCuentas()">
+          <option value="">Todas las ubicaciones</option><option>TRU</option><option>AQP</option><option>LIM</option><option>Taller</option>
+        </select>
+      </div>
+      <div class="estados" id="estados"></div>
+      <div class="tabla-wrap"><table class="tc" id="tablaC"></table></div>
+    </div>
+  </section>
+
+  <!-- ================= ROLES ================= -->
+  <section id="secRoles" hidden>
+  <section class="ideas" id="ideas" aria-label="Cómo funciona">
+    <div class="idea"><span class="num">1</span><div><b>Un rol es una lista de módulos.</b><p>Quien ve un módulo hace todo lo que hay en él.</p></div></div>
+    <div class="idea"><span class="num">2</span><div><b>Cada cuenta tiene un solo rol.</b><p>Persona o terminal. Se asigna aquí o desde su fila.</p></div></div>
+    <div class="idea"><span class="num">3</span><div><b>Algunas cosas son siempre del líder.</b><p>Anular, autorizar sobre el tope… no dependen del rol.</p></div></div>
+  </section>
+
+  <div class="barra-vista">
+    <div class="seg" role="tablist">
+      <button id="vRol" class="on" onclick="vista('rol')">Editar por rol</button>
+      <button id="vMx" onclick="vista('mx')">Comparar roles</button>
+    </div>
+    <span class="muted" style="font-size:13px">Solo un líder de equipo cambia esto.</span>
+  </div>
+
+  <!-- ================= VISTA POR ROL ================= -->
+  <div class="grid" id="vistaRol">
+    <aside class="card roles" id="listaRoles" aria-label="Roles"></aside>
+
+    <main class="card" id="editor"></main>
+
+    <div class="lado">
+      <section class="card prev">
+        <h3 class="serif">Así queda su menú</h3>
+        <p class="sub" id="prevSub">Lo que verá en el lateral al entrar.</p>
+        <div class="lateral" id="lateral"></div>
+        <div class="leyenda" id="leyenda" hidden>
+          <span><i style="background:#556e49"></i>Se suma</span>
+          <span><i style="background:#8f877a"></i>Se quita</span>
+        </div>
+        <div class="ubi">
+          <span>Parado en</span>
+          <div class="seg"><button class="on" id="uTienda" onclick="ubicar('tienda')">Una tienda</button><button id="uTaller" onclick="ubicar('taller')">El Taller</button></div>
+        </div>
+      </section>
+
+      <details class="card lider">
+        <summary>
+          <div><h3 class="serif">Siempre solo del líder</h3><div class="muted" style="font-size:12.5px">5 acciones que ningún rol hereda</div></div>
+          <svg class="flecha" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <ul id="soloLider"></ul>
+      </details>
+    </div>
+  </div>
+
+  <!-- ================= VISTA MATRIZ ================= -->
+  <section class="card matriz-wrap" id="vistaMx" hidden></section>
+  </section>
+</div>
+
+<div class="velo cajon" id="cajon" onclick="if(event.target===this)cerrarActividad()">
+  <aside class="panel-lat" role="dialog" aria-modal="true" aria-label="Actividad de accesos">
+    <header><div><div class="cap">Historial · 55 movimientos</div><h3 class="serif">Actividad de accesos</h3></div><button class="btn fantasma" onclick="cerrarActividad()" aria-label="Cerrar">✕</button></header>
+    <div class="filtros" id="filtAct" style="padding:0 22px;flex-wrap:wrap"></div>
+    <ol class="linea" id="linea"></ol>
+  </aside>
+</div>
+
+<div class="guardar" id="guardar" role="status">
+  <span class="txt" id="guardarTxt"></span>
+  <button class="btn" onclick="descartar()">Descartar</button>
+  <button class="btn primario" onclick="guardar()">Guardar cambios</button>
+</div>
+<div class="aviso" id="aviso"></div>
+
+<div class="velo" id="velo" onclick="if(event.target===this)cerrarModal()">
+  <div class="hoja" role="dialog" aria-modal="true">
+    <header><div class="cap" id="mCap"></div><h3 class="serif" id="mTit"></h3><p class="muted" id="mBaj" style="margin:4px 0 0;font-size:14px"></p></header>
+    <div class="cuerpo" id="mCuerpo"></div>
+    <footer id="mPie"></footer>
+  </div>
+</div>
+
+<script>
+/* ---------- Catálogo (igual a apps/web/lib/modulos.ts) ---------- */
+const MODULOS = [
+  ["vender","Ventas","Punto de venta","Registrar ventas, descuento hasta su tope, dejar en espera"],
+  ["caja","Ventas","Caja","Abrir y cerrar caja, ingresos y egresos"],
+  ["cambios","Ventas","Cambios","Registrar cambios de prenda"],
+  ["devoluciones","Ventas","Devoluciones","Solicitar devoluciones"],
+  ["historial","Ventas","Historial de ventas","Consultar, reimprimir y exportar"],
+  ["facturacion","Ventas","Facturación","Emitir boletas, facturas y notas; reenviar a SUNAT"],
+  ["clientas","Ventas","Clientas","Registrar, editar y archivar clientas"],
+  ["existencias","Inventario","Existencias","Consultar stock, ajustar stock, apartar prendas"],
+  ["conteos","Inventario","Conteos","Iniciar, registrar y cerrar conteos"],
+  ["traslados","Inventario","Traslados","Enviar, recibir, cancelar y cerrar con diferencia"],
+  ["movimientos","Inventario","Movimientos","Consultar y exportar"],
+  ["productos","Catálogo","Productos","Crear, editar y archivar prendas; precios, fotos y códigos"],
+  ["atributos","Catálogo","Categorías, marcas y atributos","Crear, editar, desactivar y aprobar propuestas"],
+  ["etiquetas","Catálogo","Etiquetas","Crear, editar y archivar etiquetas","ahora"],
+  ["facturas_compra","Compras","Facturas de compra","Registrar, corregir y anular facturas","ahora"],
+  ["recibir","Compras","Recibir mercadería","Recibir envíos de proveedores"],
+  ["por_pagar","Compras","Por pagar","Ver lo que se debe y registrar pagos","ahora"],
+  ["proveedores","Compras","Proveedores","Crear, editar y archivar; cuentas bancarias, Yape y Plin"],
+  ["notas_credito","Compras","Notas de crédito","Registrar y anular notas","ahora"],
+  ["produccion","Producción","Órdenes de producción","Crear, editar y cancelar órdenes; registrar avance"],
+  ["analisis","Gestión","Análisis","Reportes de ventas e inventario","ahora"],
+  ["colaboradores","Gestión","Colaboradores","Dar y quitar accesos, suspender, cambiar ubicación","siempre"],
+  ["roles","Gestión","Roles y accesos","Crear roles y asignarlos","siempre"],
+].map(([clave,grupo,nombre,incluye,bloqueo])=>({clave,grupo,nombre,incluye,bloqueo}));
+const GRUPOS = [...new Set(MODULOS.map(m=>m.grupo))];
+const DELEGABLES = MODULOS.filter(m=>!m.bloqueo);
+const SOLO_LIDER = [
+  "Anular una venta o un comprobante, y las series de SUNAT",
+  "Autorizar un descuento por encima del tope",
+  "Aprobar o rechazar devoluciones",
+  "Ver y registrar dinero de Compras (facturas, pagos, notas)",
+  "Dar accesos y cambiar roles",
+];
+
+/* ---------- Datos inventados ---------- */
+const CUENTAS = [
+  ...["Ana Ruiz","Beto Paz","Carla Díaz","Diego Soto","Eva Luna","Fabi Ríos","Gabo Mena","Hilda Vera","Iván Cruz","Julia Ortiz","Kathy León","Lucho Salas","Mía Torres","Nico Vargas","Olga Ramos","Pía Castro"].map((n,i)=>({id:"p"+i,nombre:n,tipo:"persona",ubic:["TRU","AQP","LIM","Taller"][i%4],rol:"integrante"})),
+  {id:"t1",nombre:"Caja TRU",tipo:"terminal",ubic:"TRU",rol:"t_ventas"},
+  {id:"t2",nombre:"Caja AQP",tipo:"terminal",ubic:"AQP",rol:"t_ventas"},
+  {id:"t3",nombre:"Caja LIM",tipo:"terminal",ubic:"LIM",rol:"t_ventas"},
+  {id:"t4",nombre:"Almacén LIM",tipo:"terminal",ubic:"LIM",rol:"t_almacen"},
+  {id:"t5",nombre:"Almacén TRU",tipo:"terminal",ubic:"TRU",rol:"t_almacen"},
+  {id:"t6",nombre:"Mesa Taller",tipo:"terminal",ubic:"Taller",rol:"t_almacen"},
+];
+/* Cuentas que no cuentan para los roles del ejemplo: líderes y las que esperan o sobran. */
+const LIDERES = ["Felipe Alvarez","María Campos","Rosa Pinto","Luis Tello","Sara Quispe","Tomás Uribe","Vero Zapata","Walter Ñique","Ximena Yupanqui"].map((n,i)=>({id:"l"+i,nombre:n,tipo:"persona",ubic:"Todas",rol:"lider",estado:"activa"}));
+const OTRAS = [
+  {id:"x1",nombre:"Yolanda Paredes",tipo:"persona",ubic:"AQP",rol:"integrante",estado:"pendiente",nota:"Propuesta por Rosa Pinto · hace 2 h"},
+  {id:"x2",nombre:"Zoe Carranza",tipo:"persona",ubic:"LIM",rol:"integrante",estado:"pendiente",nota:"Propuesta por Luis Tello · ayer"},
+  {id:"x3",nombre:"Raúl Benites",tipo:"persona",ubic:"TRU",rol:"integrante",estado:"inactiva",nota:"Desactivado en Dynamic el 18 sep"},
+];
+const HACE = ["hace 5 min","hace 1 h","hoy 9:12","ayer","hace 3 días","hace 1 semana"];
+let fc = {q:"",tipo:"todas",estado:"activa",ubic:""};
+let roles = [
+  {id:"lider",nombre:"Líder de equipo",tipo:"Sistema",fijo:true,desc:"Ve y hace todo. No se edita, para que nunca falte quien administre.",cuentas:9,modulos:MODULOS.map(m=>m.clave)},
+  {id:"integrante",nombre:"Integrante",tipo:"Sistema",sistema:true,desc:"El rol que recibe una persona nueva al darle acceso.",modulos:[]},
+  {id:"t_ventas",nombre:"Terminal de ventas",tipo:"Terminal",desc:"La caja de cada tienda.",modulos:["vender","caja","cambios","devoluciones","historial","facturacion","clientas"]},
+  {id:"t_almacen",nombre:"Terminal Almacén",tipo:"Terminal",desc:"Recepción y movimientos de stock.",modulos:["existencias","conteos","traslados","movimientos","recibir"]},
+  {id:"admin",nombre:"Administrador",tipo:"A medida",desc:"Rol a medida.",modulos:[]},
+  {id:"vitrina",nombre:"Encargada de vitrina",tipo:"A medida",desc:"Rol a medida.",modulos:["vender","historial","clientas","existencias","productos"]},
+];
+let sel = "integrante", borrador = null, ubic = "tienda", cerrados = new Set(), filtro = "";
+
+const $ = s=>document.querySelector(s);
+const rol = id=>roles.find(r=>r.id===id);
+const cuentasDe = id=> id==="lider" ? [] : CUENTAS.filter(c=>c.rol===id);
+const nCuentas = r=> r.fijo ? r.cuentas : cuentasDe(r.id).length;
+const ini = n=>n.split(" ").map(p=>p[0]).slice(0,2).join("");
+const mods = ()=> borrador ?? rol(sel).modulos;
+const cambios = ()=>{ if(!borrador) return {mas:[],menos:[]}; const g=rol(sel).modulos; return {mas:borrador.filter(c=>!g.includes(c)),menos:g.filter(c=>!borrador.includes(c))}; };
+const nCambios = ()=>{const c=cambios();return c.mas.length+c.menos.length;};
+const LOCK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+const FLECHA = '<svg class="flecha" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>';
+
+/* ---------- Lista de roles ---------- */
+function pintarRoles(){
+  const fila = r=>{
+    const n = r.fijo ? MODULOS.length : r.modulos.length, c = nCuentas(r);
+    let chip = "";
+    if(!r.fijo && n===0 && c>0) chip = `<span class="aviso-chip" title="Estas cuentas solo ven Inicio">Solo Inicio</span>`;
+    else if(!r.fijo && c===0) chip = `<span class="aviso-chip" style="background:var(--sand);color:var(--tinta-60)">Sin uso</span>`;
+    return `<button class="rol ${r.id===sel?"on":""} ${r.fijo?"fijo":""}" onclick="elegir('${r.id}')">
+      <div class="fila"><span class="nom">${r.nombre}</span>${r.fijo?`<span class="muted">${LOCK}</span>`:chip}</div>
+      <div class="sub"><span>${r.fijo?"Todo":n+" de "+DELEGABLES.length+" módulos"}</span><span>·</span><span>${c} ${c===1?"cuenta":"cuentas"}</span></div>
+      <div class="medidor"><i style="width:${r.fijo?100:Math.round(n/DELEGABLES.length*100)}%"></i></div>
+    </button>`;
+  };
+  const sis = roles.filter(r=>r.tipo==="Sistema"), ter = roles.filter(r=>r.tipo==="Terminal"), med = roles.filter(r=>r.tipo==="A medida");
+  $("#listaRoles").innerHTML = `
+    <div class="roles-top"><span class="cap">Roles</span><button class="btn fantasma" style="padding:5px 8px" onclick="nuevoRol()">+ Nuevo</button></div>
+    <div class="tipo" style="padding:4px 12px">Del sistema</div>${sis.map(fila).join("")}
+    <div class="sep"></div><div class="tipo" style="padding:4px 12px">Terminales</div>${ter.map(fila).join("")}
+    <div class="sep"></div><div class="tipo" style="padding:4px 12px">A medida</div>${med.map(fila).join("")}`;
+}
+
+/* ---------- Editor ---------- */
+function pintarEditor(){
+  const r = rol(sel), cs = cuentasDe(sel), m = mods(), c = cambios();
+  const nVe = r.fijo ? MODULOS.length : m.length;
+  const avatares = r.fijo
+    ? `<div class="avs">${["FA","MC","RP","LT"].map(x=>`<span class="av">${x}</span>`).join("")}<span class="av mas">+5</span></div><span class="muted" style="font-size:13px">9 líderes</span>`
+    : cs.length
+      ? `<div class="avs">${cs.slice(0,5).map(x=>`<span class="av ${x.tipo==="terminal"?"term":""}" title="${x.nombre}">${ini(x.nombre)}</span>`).join("")}${cs.length>5?`<span class="av mas">+${cs.length-5}</span>`:""}</div>
+         <button class="btn fantasma" style="padding:5px 8px;font-size:13px" onclick="verCuentas()">${cs.length} ${cs.length===1?"cuenta":"cuentas"} tienen este rol →</button>`
+      : `<span class="vacio-cuentas">Ninguna cuenta tiene este rol todavía.</span>`;
+
+  let banda = "";
+  if(r.fijo) banda = `<div class="banda info">${LOCK}<div>Este rol <b>no se edita</b>: siempre tiene que haber alguien que pueda dar accesos. Para que alguien sea líder, se cambia desde su fila en Activos.</div></div>`;
+  else if(m.length===0 && cs.length>0) banda = `<div class="banda ambar">⚠<div><b>${cs.length} cuentas solo ven Inicio.</b> Enciende los módulos que necesitan, o asígnales otro rol.</div></div>`;
+  else if(r.sistema) banda = `<div class="banda info">ℹ<div>Toda persona nueva entra con este rol. Lo que enciendas aquí lo verán desde su primer día.</div></div>`;
+
+  const grupos = GRUPOS.map(g=>{
+    const todos = MODULOS.filter(x=>x.grupo===g && (!filtro || (x.nombre+" "+x.incluye).toLowerCase().includes(filtro)));
+    if(!todos.length) return "";
+    const deleg = todos.filter(x=>!x.bloqueo), on = deleg.filter(x=>r.fijo||m.includes(x.clave));
+    const todoOn = deleg.length && on.length===deleg.length;
+    const abierto = !cerrados.has(g) || filtro;
+    const filas = todos.map(x=>{
+      const ve = r.fijo || m.includes(x.clave);
+      const marca = c.mas.includes(x.clave)?`<span class="marca mas">Se suma</span>`:c.menos.includes(x.clave)?`<span class="marca menos">Se quita</span>`:"";
+      const ctrl = r.fijo
+        ? `<button class="sw" role="switch" aria-checked="true" disabled aria-label="${x.nombre}"></button>`
+        : x.bloqueo
+          ? `<span class="candado" title="${x.bloqueo==="siempre"?"Nunca se delega":"Sus funciones aún exigen líder"}">${LOCK} ${x.bloqueo==="siempre"?"Solo líder":"Solo líder por ahora"}</span>`
+          : `<button class="sw" role="switch" aria-checked="${ve}" aria-label="${x.nombre}" onclick="alternar('${x.clave}')"></button>`;
+      return `<div class="mod ${x.bloqueo&&!r.fijo?"bloq":""} ${marca?"cambio":""}"><div><div class="mn">${x.nombre} ${marca}</div><div class="mi">${x.incluye}</div></div>${ctrl}</div>`;
+    }).join("");
+    return `<div class="grupo ${abierto?"":"cerrado"}">
+      <div class="grupo-h" onclick="plegar('${g}')">
+        <span class="gn">${g}</span>
+        <span class="mini">${todos.map(x=>`<i class="${x.bloqueo&&!r.fijo?"lock":(r.fijo||m.includes(x.clave))?"on":""}"></i>`).join("")}</span>
+        <span class="gc">${r.fijo?todos.length:on.length} de ${r.fijo?todos.length:deleg.length}</span>
+        ${!r.fijo && deleg.length?`<button class="todo" onclick="event.stopPropagation();todoGrupo('${g}',${!todoOn})">${todoOn?"Quitar todo":"Encender todo"}</button>`:""}
+        ${FLECHA}
+      </div>
+      <div class="mods">${filas}</div>
+    </div>`;
+  }).join("");
+
+  const archivable = !r.fijo && !r.sistema && cs.length===0;
+  $("#editor").innerHTML = `
+    <div class="editor-head">
+      <div class="t">
+        <div>
+          <div class="cap">${r.tipo==="A medida"?"Rol a medida":r.tipo==="Terminal"?"Rol de terminal":"Rol del sistema"}</div>
+          <h2 class="serif">${r.nombre}</h2>
+          <div class="muted" style="font-size:14px">${r.desc}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          ${r.fijo?"":`<button class="btn" onclick="asignar()">Asignar a cuentas</button>`}
+          <div class="menu-acc">
+            <button class="btn" aria-label="Más acciones" onclick="event.stopPropagation();$('#pop').classList.toggle('on')">⋯</button>
+            <div class="pop" id="pop">
+              <button ${r.fijo||r.sistema?"disabled":""} onclick="renombrar()">✎<span>Renombrar<small>${r.fijo||r.sistema?"Los roles del sistema no se renombran":"Cambia el nombre y la descripción"}</small></span></button>
+              <button onclick="duplicar()">⧉<span>Duplicar<small>Parte de estos módulos para un rol nuevo</small></span></button>
+              <button ${archivable?"":"disabled"} onclick="avisar('Rol archivado (no se borra)')">⌫<span>Archivar<small>${r.fijo?"Siempre tiene que haber quien administre":r.sistema?"Es el rol de las personas nuevas":cs.length?`Primero reasigna sus ${cs.length} cuentas`:"Se guarda en el historial, nunca se borra"}</small></span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="quienes">${avatares}</div>
+    </div>
+    ${banda}
+    <div class="herr">
+      <label class="buscar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" placeholder="Buscar módulo o acción (ej. «anular», «stock»)" value="${filtro}" oninput="buscar(this.value)" /></label>
+      <span class="contador">Ve <b>${nVe}</b> de ${r.fijo?MODULOS.length:DELEGABLES.length}${r.fijo?"":" módulos que se pueden dar"}</span>
+    </div>
+    <div class="grupos">${grupos || `<p class="muted" style="text-align:center;padding:24px">Ningún módulo coincide con «${filtro}».</p>`}</div>`;
+  if(filtro){const q=$("#q");q.focus();q.setSelectionRange(q.value.length,q.value.length);}
+}
+
+/* ---------- Vista previa del menú ---------- */
+function pintarPrevia(){
+  const r = rol(sel), m = r.fijo ? MODULOS.map(x=>x.clave) : mods(), c = cambios();
+  const visibles = x=> !(x.clave==="produccion" && ubic!=="taller");
+  const antes = r.fijo ? m : rol(sel).modulos;
+  let html = `<div class="logo"><i></i><span>CAYLA</span></div><div class="it"><span class="pt"></span>Inicio</div>`;
+  let alguno = false;
+  for(const g of GRUPOS){
+    const hijos = MODULOS.filter(x=>x.grupo===g && visibles(x) && (m.includes(x.clave)||c.menos.includes(x.clave)));
+    if(!hijos.length) continue;
+    alguno = true;
+    const grupoNuevo = hijos.every(x=>c.mas.includes(x.clave)), grupoFuera = hijos.every(x=>c.menos.includes(x.clave));
+    html += `<div class="it grupo-l ${grupoNuevo?"nuevo":grupoFuera?"quitado":""}"><span class="pt"></span>${g}</div>`;
+    html += hijos.map(x=>`<div class="it hija ${c.mas.includes(x.clave)?"nuevo":c.menos.includes(x.clave)?"quitado":""}">${x.nombre}</div>`).join("");
+  }
+  if(!alguno) html += `<div class="lat-vacio">Solo Inicio. Enciende un módulo y aparecerá aquí al instante.</div>`;
+  $("#lateral").innerHTML = html;
+  $("#leyenda").hidden = !nCambios();
+  $("#prevSub").textContent = nCambios() ? "Así quedará al guardar. Lo resaltado es lo que cambia." : "Lo que verá en el lateral al entrar.";
+}
+
+/* ---------- Barra de guardado ---------- */
+function pintarGuardar(){
+  const n = nCambios(), c = cambios(), cs = cuentasDe(sel).length;
+  $("#guardar").classList.toggle("on", n>0);
+  if(n) $("#guardarTxt").innerHTML = `<b>${n} ${n===1?"cambio":"cambios"}</b> en ${rol(sel).nombre}${cs?` · afecta a ${cs} ${cs===1?"cuenta":"cuentas"}`:""}`;
+}
+
+function pintar(){ pintarSecciones(); pintarRoles(); pintarEditor(); pintarPrevia(); pintarGuardar(); if(!$("#vistaMx").hidden) pintarMatriz(); }
+
+/* ---------- Acciones ---------- */
+function elegir(id){
+  if(nCambios() && !confirm("Tienes cambios sin guardar en "+rol(sel).nombre+". ¿Descartarlos?")) return;
+  sel=id; borrador=null; filtro=""; pintar();
+}
+function alternar(clave){ const m=[...mods()]; borrador = m.includes(clave)? m.filter(x=>x!==clave) : MODULOS.map(x=>x.clave).filter(k=>k===clave||m.includes(k)); if(!nCambios()) borrador=null; pintar(); }
+function todoGrupo(g,encender){ const claves = MODULOS.filter(x=>x.grupo===g&&!x.bloqueo).map(x=>x.clave); const m=new Set(mods()); claves.forEach(k=>encender?m.add(k):m.delete(k)); borrador=MODULOS.map(x=>x.clave).filter(k=>m.has(k)); if(!nCambios()) borrador=null; pintar(); }
+function plegar(g){ cerrados.has(g)?cerrados.delete(g):cerrados.add(g); pintarEditor(); }
+function buscar(v){ filtro=v.trim().toLowerCase(); pintarEditor(); }
+function descartar(){ borrador=null; pintar(); }
+function guardar(){ const n=nCambios(); rol(sel).modulos=borrador; borrador=null; pintar(); avisar(`Listo: ${rol(sel).nombre} guardado (${n} ${n===1?"cambio":"cambios"}).`); }
+function ubicar(u){ ubic=u; $("#uTienda").classList.toggle("on",u==="tienda"); $("#uTaller").classList.toggle("on",u==="taller"); pintarPrevia(); }
+function avisar(t){ const a=$("#aviso"); a.textContent=t; a.classList.add("on"); clearTimeout(a._t); a._t=setTimeout(()=>a.classList.remove("on"),2600); }
+function duplicar(){ const r=rol(sel), id="c"+Date.now(); roles.push({id,nombre:"Copia de "+r.nombre,tipo:"A medida",desc:"Rol a medida.",modulos:r.fijo?DELEGABLES.map(x=>x.clave):[...r.modulos]}); sel=id; borrador=null; pintar(); avisar("Rol duplicado. Ajusta sus módulos."); }
+function nuevoRol(){ const id="n"+Date.now(); roles.push({id,nombre:"Rol nuevo",tipo:"A medida",desc:"Rol a medida.",modulos:[]}); sel=id; borrador=null; pintar(); }
+function renombrar(){ const n=prompt("Nombre del rol",rol(sel).nombre); if(n){rol(sel).nombre=n.slice(0,60); pintar();} }
+document.addEventListener("click",()=>$("#pop")?.classList.remove("on"));
+
+/* ---------- Modal: asignar / ver cuentas ---------- */
+function abrirModal(cap,tit,baj,cuerpo,pie){ $("#mCap").textContent=cap; $("#mTit").textContent=tit; $("#mBaj").textContent=baj; $("#mCuerpo").innerHTML=cuerpo; $("#mPie").innerHTML=pie; $("#velo").classList.add("on"); }
+function cerrarModal(){ $("#velo").classList.remove("on"); }
+function filaCuenta(c,check){ return `<label class="cuenta"><span class="av ${c.tipo==="terminal"?"term":""}">${ini(c.nombre)}</span><span>${c.nombre}<div class="de">${c.tipo==="terminal"?"Terminal":"Persona"} · ${c.ubic} · hoy: ${rol(c.rol).nombre}</div></span>${check?`<input type="checkbox" value="${c.id}" ${c.rol===sel?"checked disabled":""}>`:""}</label>`; }
+/* Asignar: el modal no crece con las cuentas. Se busca, se eligen en fichas, y a lo sumo 6 resultados a la vez. */
+const MAX_RES = 6;
+let asig = null;
+const norm = t=>t.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const resaltar = (t,q)=>{ if(!q) return t; const i=norm(t).indexOf(norm(q)); return i<0?t:t.slice(0,i)+"<mark>"+t.slice(i,i+q.length)+"</mark>"+t.slice(i+q.length); };
+function asignar(){
+  asig = {q:"", tipo:"todas", elegidas:[], activo:0};
+  abrirModal("Asignar rol","A quién le das «"+rol(sel).nombre+"»","Busca por nombre, tienda o terminal. Cada cuenta tiene un solo rol: al asignarle este, deja el que tenía.",
+    `<label class="bus-asig" id="busAsig"></label>
+     <div class="filtros" id="filtAsig"></div>
+     <div class="resultados" id="resAsig" role="listbox"></div>
+     <div class="teclas"><span><kbd>↑</kbd> <kbd>↓</kbd> moverse</span><span><kbd>Enter</kbd> agregar</span><span><kbd>⌫</kbd> quitar la última</span><span><kbd>Esc</kbd> cerrar</span></div>`,
+    `<span class="resumen-asig" id="resumenAsig"></span><button class="btn" onclick="cerrarModal()">Cancelar</button><button class="btn primario" id="btnAsig" onclick="confirmarAsignar()">Asignar</button>`);
+  pintarAsig(true);
+}
+function candidatas(){
+  const q = norm(asig.q.trim());
+  return CUENTAS.filter(c=>(asig.tipo==="todas"||c.tipo===asig.tipo) && (!q || norm(c.nombre+" "+c.ubic+" "+rol(c.rol).nombre).includes(q)));
+}
+function pintarAsig(enfocar){
+  const q = asig.q.trim();
+  const elegidas = asig.elegidas.map(id=>CUENTAS.find(c=>c.id===id));
+  $("#busAsig").innerHTML = elegidas.map(c=>`<span class="chip-c">${c.nombre}<button aria-label="Quitar ${c.nombre}" onclick="quitarAsig('${c.id}')">×</button></span>`).join("")
+    + `<input id="qAsig" autocomplete="off" placeholder="${elegidas.length?"Agregar otra…":"Escribe un nombre, «TRU», «caja»…"}" value="${asig.q.replace(/"/g,"&quot;")}" oninput="asig.q=this.value;asig.activo=0;pintarAsig(true)" onkeydown="teclaAsig(event)">`;
+  const n = t=>CUENTAS.filter(c=>t==="todas"||c.tipo===t).length;
+  $("#filtAsig").innerHTML = [["todas","Todas"],["persona","Personas"],["terminal","Terminales"]].map(([k,l])=>`<button class="${asig.tipo===k?"on":""}" onclick="asig.tipo='${k}';asig.activo=0;pintarAsig(true)">${l} ${n(k)}</button>`).join("");
+
+  let lista, cab = "", pie = "";
+  if(!q){
+    // Sin texto: nada de listas largas. Solo sugerencias útiles (cuentas que hoy solo ven Inicio).
+    lista = candidatas().filter(c=>c.rol!==sel && rol(c.rol).modulos.length===0 && !asig.elegidas.includes(c.id)).slice(0,3);
+    cab = lista.length ? `<div class="sugeridas-t">Sugeridas · hoy solo ven Inicio</div>` : "";
+    if(!lista.length) cab = `<div class="pista">Escribe para buscar entre ${CUENTAS.length} cuentas.</div>`;
+  } else {
+    const todas = candidatas();
+    lista = todas.slice(0,MAX_RES);
+    if(!todas.length) cab = `<div class="pista">Ninguna cuenta coincide con «${q}».<br>¿Es alguien nuevo? Primero se da de alta en Dynamic y se le da acceso en <b>Pendientes</b>.</div>`;
+    if(todas.length>MAX_RES) pie = `<div class="mas-res">Y ${todas.length-MAX_RES} más. Sigue escribiendo para afinar.</div>`;
+  }
+  asig.visibles = lista.filter(c=>c.rol!==sel).map(c=>c.id);
+  if(asig.activo>=asig.visibles.length) asig.activo=Math.max(0,asig.visibles.length-1);
+  $("#resAsig").innerHTML = cab + lista.map(c=>{
+    const ya = c.rol===sel, eleg = asig.elegidas.includes(c.id), act = !ya && asig.visibles[asig.activo]===c.id;
+    return `<div class="res ${ya?"ya":""} ${eleg?"elegida":""} ${act?"activo":""}" role="option" aria-selected="${eleg}" ${ya?"":`onclick="alternarAsig('${c.id}')"`}>
+      <span class="av ${c.tipo==="terminal"?"term":""}">${ini(c.nombre)}</span>
+      <span>${resaltar(c.nombre,q)}<div class="de">${c.tipo==="terminal"?"Terminal":"Persona"} · ${resaltar(c.ubic,q)}</div></span>
+      <span class="der">${ya?"Ya tiene este rol":eleg?"✓ Elegida":"Hoy: "+rol(c.rol).nombre}</span></div>`;
+  }).join("") + pie;
+
+  const k = asig.elegidas.length, desde = {};
+  elegidas.forEach(c=>desde[rol(c.rol).nombre]=(desde[rol(c.rol).nombre]||0)+1);
+  $("#resumenAsig").textContent = k ? "Dejan: "+Object.entries(desde).map(([r,x])=>`${r} (${x})`).join(", ") : "";
+  $("#btnAsig").disabled = !k;
+  $("#btnAsig").textContent = k ? `Asignar a ${k} ${k===1?"cuenta":"cuentas"}` : "Asignar";
+  if(enfocar){ const i=$("#qAsig"); i.focus(); i.setSelectionRange(i.value.length,i.value.length); }
+}
+function alternarAsig(id){ const e=asig.elegidas; asig.elegidas = e.includes(id)? e.filter(x=>x!==id) : [...e,id]; asig.q=""; pintarAsig(true); }
+function quitarAsig(id){ asig.elegidas = asig.elegidas.filter(x=>x!==id); pintarAsig(true); }
+function teclaAsig(e){
+  const v = asig.visibles||[];
+  if(e.key==="ArrowDown"){ e.preventDefault(); asig.activo=Math.min(v.length-1,asig.activo+1); pintarAsig(true); }
+  else if(e.key==="ArrowUp"){ e.preventDefault(); asig.activo=Math.max(0,asig.activo-1); pintarAsig(true); }
+  else if(e.key==="Enter" && v[asig.activo]){ e.preventDefault(); alternarAsig(v[asig.activo]); }
+  else if(e.key==="Backspace" && !asig.q && asig.elegidas.length){ asig.elegidas.pop(); pintarAsig(true); }
+  else if(e.key==="Escape") cerrarModal();
+}
+function confirmarAsignar(){ const ids=asig.elegidas; ids.forEach(id=>CUENTAS.find(c=>c.id===id).rol=sel); cerrarModal(); pintar(); if(ids.length) avisar(`${ids.length} ${ids.length===1?"cuenta pasa":"cuentas pasan"} a ${rol(sel).nombre}.`); }
+function verCuentas(){
+  const cs=cuentasDe(sel);
+  abrirModal("Cuentas con este rol",rol(sel).nombre,`${cs.length} ${cs.length===1?"cuenta":"cuentas"}. Para cambiar el rol de una, hazlo desde su fila en Activos o Terminales.`,
+    `<label class="bus-asig"><input id="qVer" autocomplete="off" placeholder="Buscar entre estas ${cs.length} cuentas…" oninput="pintarVer(this.value)" onkeydown="if(event.key==='Escape')cerrarModal()"></label><div class="resultados" id="resVer"></div>`,
+    `<button class="btn primario" onclick="cerrarModal()">Entendido</button>`);
+  pintarVer(""); $("#qVer").focus();
+}
+function pintarVer(q){
+  const t=cuentasDe(sel).filter(c=>norm(c.nombre+" "+c.ubic).includes(norm(q.trim()))), l=t.slice(0,8);
+  $("#resVer").innerHTML = (t.length?"":`<div class="pista">Ninguna coincide con «${q}».</div>`) + l.map(c=>`<div class="res ya" style="opacity:1"><span class="av ${c.tipo==="terminal"?"term":""}">${ini(c.nombre)}</span><span>${resaltar(c.nombre,q.trim())}<div class="de">${c.tipo==="terminal"?"Terminal":"Persona"} · ${c.ubic}</div></span></div>`).join("") + (t.length>8?`<div class="mas-res">Y ${t.length-8} más. Escribe para encontrar a alguien.</div>`:"");
+}
+
+/* ---------- Matriz ---------- */
+function pintarMatriz(){
+  const rs = roles;
+  let h = `<table class="mx"><thead><tr><th>Módulo</th>${rs.map(r=>`<th class="colh"><a href="#" onclick="event.preventDefault();vista('rol');elegir('${r.id}')" style="color:inherit">${r.nombre}</a><small>${nCuentas(r)} cuentas</small></th>`).join("")}</tr></thead><tbody>`;
+  for(const g of GRUPOS){
+    h += `<tr class="gr"><td colspan="${rs.length+1}">${g}</td></tr>`;
+    for(const x of MODULOS.filter(m=>m.grupo===g)){
+      h += `<tr><td>${x.nombre}${x.bloqueo?` <span class="muted" title="Solo líder">${LOCK}</span>`:""}</td>${rs.map(r=>{
+        if(r.fijo) return `<td><span class="pto fijo">✓</span></td>`;
+        if(x.bloqueo) return `<td><span class="muted">—</span></td>`;
+        const on = r.modulos.includes(x.clave);
+        return `<td><button class="pto ${on?"on":""}" title="${on?"Quitar":"Dar"} ${x.nombre} a ${r.nombre}" onclick="mxAlternar('${r.id}','${x.clave}')">${on?"✓":""}</button></td>`;
+      }).join("")}</tr>`;
+    }
+  }
+  $("#vistaMx").innerHTML = h+"</tbody></table>";
+}
+function mxAlternar(rid,clave){ const r=rol(rid); r.modulos = r.modulos.includes(clave)? r.modulos.filter(k=>k!==clave) : MODULOS.map(x=>x.clave).filter(k=>k===clave||r.modulos.includes(k)); if(rid===sel) borrador=null; pintar(); avisar(`${r.nombre}: ${MODULOS.find(m=>m.clave===clave).nombre} ${r.modulos.includes(clave)?"encendido":"apagado"}.`); }
+function vista(v){ $("#vistaRol").hidden = v!=="rol"; $("#vistaMx").hidden = v!=="mx"; $("#vRol").classList.toggle("on",v==="rol"); $("#vMx").classList.toggle("on",v==="mx"); if(v==="mx") pintarMatriz(); }
+
+$("#soloLider").innerHTML = SOLO_LIDER.map(t=>`<li>${LOCK.replace('<svg','<svg')}<span>${t}</span></li>`).join("");
+/* ---------- Secciones ---------- */
+const todasCuentas = ()=>[...LIDERES,...CUENTAS.map(c=>({estado:"activa",...c})),...OTRAS];
+function seccion(v){
+  $("#secCuentas").hidden = v!=="cuentas"; $("#secRoles").hidden = v!=="roles";
+  $("#sCuentas").classList.toggle("on",v==="cuentas"); $("#sRoles").classList.toggle("on",v==="roles");
+  try{history.replaceState(null,"","#"+v)}catch(e){}
+  if(v==="cuentas") pintarCuentas();
+}
+function pintarSecciones(){
+  const t=todasCuentas(), pend=t.filter(c=>c.estado==="pendiente").length;
+  $("#sdCuentas").innerHTML = `${t.filter(c=>c.estado==="activa").length} con acceso · ${t.filter(c=>c.tipo==="terminal").length} terminales${pend?` · <b>${pend} por aprobar</b>`:""}`;
+  const solo = roles.filter(r=>!r.fijo&&r.modulos.length===0&&cuentasDe(r.id).length).length;
+  $("#sdRoles").innerHTML = `${roles.length} roles${solo?` · <b>${solo} ${solo===1?"deja":"dejan"} cuentas solo en Inicio</b>`:" · qué ve cada cuenta"}`;
+}
+
+/* ---------- Cuentas ---------- */
+const ESTADOS = [["activa","Activas","var(--verde)"],["pendiente","Por aprobar","var(--ambar)"],["suspendida","Suspendidas","var(--rojo-profundo)"],["inactiva","Inactivas en Dynamic","var(--taupe)"]];
+function pintarCuentas(){
+  const t = todasCuentas(), q = norm(fc.q.trim());
+  // Por atender: solo aparece lo que pide una acción. Con todo en cero, no ocupa lugar.
+  const pend = t.filter(c=>c.estado==="pendiente"), inac = t.filter(c=>c.estado==="inactiva");
+  let at = "";
+  if(pend.length) at += `<div class="pend"><span class="ico">!</span><div><b>${pend.length} ${pend.length===1?"alta espera":"altas esperan"} tu aprobación.</b> No pueden entrar hasta que un líder las apruebe.</div><button class="btn" onclick="filtrarEstado('pendiente')">Revisar</button></div>`;
+  if(inac.length) at += `<div class="pend gris"><span class="ico">–</span><div><b>${inac.length} ${inac.length===1?"cuenta sigue":"cuentas siguen"} con acceso pero ${inac.length===1?"está inactiva":"están inactivas"} en Dynamic.</b> Conviene quitarles el acceso.</div><button class="btn" onclick="filtrarEstado('inactiva')">Ver</button></div>`;
+  $("#atender").innerHTML = at ? `<div class="atender">${at}</div>` : `<div class="al-dia">✓ Nada por atender: sin altas pendientes ni cuentas inactivas.</div>`;
+
+  const nT = k=>t.filter(c=>c.estado===fc.estado&&(k==="todas"||c.tipo===k)).length;
+  $("#segTipo").innerHTML = [["todas","Todas"],["persona","Personas"],["terminal","Terminales"]].map(([k,l])=>`<button class="${fc.tipo===k?"on":""}" onclick="fc.tipo='${k}';pintarCuentas()">${l} ${nT(k)}</button>`).join("");
+  $("#estados").innerHTML = ESTADOS.map(([k,l,col])=>{ const n=t.filter(c=>c.estado===k).length; return `<button class="est ${fc.estado===k?"on":""} ${n?"":"cero"}" onclick="filtrarEstado('${k}')"><span class="dot" style="background:${col}"></span>${l} <span class="c">${n}</span></button>`; }).join("");
+
+  const filas = t.filter(c=>c.estado===fc.estado && (fc.tipo==="todas"||c.tipo===fc.tipo) && (!fc.ubic||c.ubic===fc.ubic) && (!q||norm(c.nombre+" "+c.ubic+" "+rol(c.rol).nombre).includes(q)));
+  const MAX=12, vis=filas.slice(0,MAX);
+  const cab = `<thead><tr><th>Cuenta</th><th>Ubicación</th><th>Rol</th><th class="col-opt">${fc.estado==="activa"?"Última entrada":"Detalle"}</th><th></th></tr></thead>`;
+  const cuerpo = vis.map((c,i)=>{
+    const r = rol(c.rol);
+    const acc = c.estado==="pendiente" ? `<button class="btn" onclick="rechazar('${c.id}')">Rechazar</button><button class="btn primario" onclick="aprobar('${c.id}')">Aprobar</button>`
+      : c.estado==="inactiva" ? `<button class="btn" onclick="quitarAcceso('${c.id}')">Quitar acceso</button>`
+      : `<button class="btn fantasma" aria-label="Más acciones">⋯</button>`;
+    return `<tr><td><div class="quien"><span class="av ${c.tipo==="terminal"?"term":""}">${ini(c.nombre)}</span><span>${c.nombre}<small>${c.tipo==="terminal"?"Terminal":"Persona"}</small></span></div></td>
+      <td>${c.ubic}</td>
+      <td><button class="rol-chip ${c.rol==="lider"?"lider":""}" title="Ver qué ve este rol" onclick="irARol('${c.rol}')">${c.rol==="lider"?LOCK:""}${r.nombre}${r.fijo?"":` <span class="muted">· ${r.modulos.length} mód.</span>`}</button></td>
+      <td class="col-opt muted" style="font-size:13px">${c.nota || HACE[i%HACE.length]}</td>
+      <td><div class="acc-fila">${acc}</div></td></tr>`;
+  }).join("");
+  const est = ESTADOS.find(e=>e[0]===fc.estado)[1].toLowerCase();
+  $("#tablaC").innerHTML = cab + `<tbody>${cuerpo || `<tr class="vacio"><td colspan="5">${q||fc.ubic?"Ninguna cuenta coincide con el filtro.":`No hay cuentas ${est}.`}</td></tr>`}</tbody>`
+    + (filas.length>MAX?`<tfoot><tr><td colspan="5" class="pie-tabla">Mostrando ${MAX} de ${filas.length}. Busca o filtra para encontrar a alguien. <a href="#" onclick="event.preventDefault()">Ver todas</a></td></tr></tfoot>`:"");
+  pintarSecciones();
+}
+function filtrarEstado(k){ fc.estado=k; pintarCuentas(); }
+function irARol(id){ seccion("roles"); vista("rol"); elegir(id); }
+function aprobar(id){ const c=OTRAS.find(x=>x.id===id); c.estado="activa"; c.nota=null; pintarCuentas(); avisar(`${c.nombre} ya puede entrar (rol Integrante).`); }
+function rechazar(id){ const c=OTRAS.find(x=>x.id===id); c.estado="rechazada"; pintarCuentas(); avisar(`Alta de ${c.nombre} rechazada (queda en Actividad).`); }
+function quitarAcceso(id){ const c=OTRAS.find(x=>x.id===id); c.estado="retirada"; pintarCuentas(); avisar(`${c.nombre} ya no puede entrar a retail.`); }
+
+/* ---------- Actividad (cajón, no pestaña: se consulta, no se trabaja ahí) ---------- */
+const EVENTOS = [
+  ["Hoy",[["rol","Felipe Alvarez cambió el rol de <b>Caja TRU</b> a Terminal de ventas","10:42"],["alta","Rosa Pinto propuso el alta de <b>Yolanda Paredes</b> (AQP)","09:15"],["modulo","Felipe Alvarez encendió <b>Clientas</b> en Encargada de vitrina","08:50"]]],
+  ["Ayer",[["alta","Luis Tello propuso el alta de <b>Zoe Carranza</b> (LIM)","18:02"],["susp","María Campos suspendió a <b>Kevin Soto</b>","16:30"],["ubic","María Campos cambió la ubicación de <b>Eva Luna</b> a TRU","11:20"]]],
+  ["18 sep",[["dyn","Dynamic desactivó a <b>Raúl Benites</b>","19:05"],["rol","Felipe Alvarez creó el rol <b>Encargada de vitrina</b>","15:40"]]],
+];
+const TIPOS_EV = {rol:["Roles","var(--tinta)"],modulo:["Roles","var(--tinta)"],alta:["Altas","var(--ambar)"],susp:["Suspensiones","var(--rojo-profundo)"],ubic:["Ubicación","var(--taupe)"],dyn:["Dynamic","var(--taupe)"]};
+let fAct="Todo";
+function pintarActividad(){
+  const cats=["Todo",...new Set(Object.values(TIPOS_EV).map(x=>x[0]))];
+  $("#filtAct").innerHTML = cats.map(c=>`<button class="${fAct===c?"on":""}" onclick="fAct='${c}';pintarActividad()">${c}</button>`).join("");
+  $("#linea").innerHTML = EVENTOS.map(([dia,evs])=>{ const e=evs.filter(x=>fAct==="Todo"||TIPOS_EV[x[0]][0]===fAct); return e.length?`<li class="dia">${dia}</li>`+e.map(([k,t,h])=>`<li><span class="p" style="background:${TIPOS_EV[k][1]}"></span><span class="q">${t}<small>${h}</small></span></li>`).join(""):""; }).join("");
+}
+function abrirActividad(){ pintarActividad(); $("#cajon").classList.add("on"); }
+function cerrarActividad(){ $("#cajon").classList.remove("on"); }
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") cerrarActividad(); });
+
+pintar();
+seccion(location.hash==="#roles"?"roles":"cuentas");
+</script>
+</body>
+</html>
