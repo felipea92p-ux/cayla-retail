@@ -15,7 +15,8 @@ export type ComprobanteParaTransmitir = {
 export type NoSePuedeTransmitir = { error: string; status: 409 | 503 };
 
 /** Por qué un comprobante NO se puede transmitir ahora, o `null` si sí. Solo se transmiten los
- *  `pendiente` (nunca salieron) y los `rechazado` (su único camino es reintentar, ADR-0093). Y nunca el
+ *  `pendiente` (nunca salieron), los `pendiente_reintento` (Lucode no respondió y esperan en la cola,
+ *  D-60) y los `rechazado` (su único camino es reintentar, ADR-0093). Y nunca el
  *  de una venta ANULADA: se le devolvió el dinero a la clienta y sus prendas volvieron al stock, así que
  *  declararla a SUNAT sería declarar una venta que no existe. `anular_venta` ya libera el pendiente de
  *  la venta que anula (`20260921121500`); esto cubre el que sigue vivo (un `rechazado`) y cualquier
@@ -28,7 +29,7 @@ export function motivoParaNoTransmitir(c: ComprobanteParaTransmitir): NoSePuedeT
   if (c.tipo === "nota_venta") {
     return { error: "Una nota de venta es un documento interno: no se transmite a SUNAT.", status: 409 };
   }
-  if (c.estado !== "pendiente" && c.estado !== "rechazado") {
+  if (c.estado !== "pendiente" && c.estado !== "pendiente_reintento" && c.estado !== "rechazado") {
     return { error: `Este comprobante ya está en estado "${c.estado}" — no se vuelve a transmitir.`, status: 409 };
   }
   if (c.venta_id !== null && typeof c.venta?.estado !== "string") {
@@ -38,4 +39,64 @@ export function motivoParaNoTransmitir(c: ComprobanteParaTransmitir): NoSePuedeT
     return { error: "La venta de este comprobante está anulada: no se transmite a SUNAT una venta que ya se devolvió.", status: 409 };
   }
   return null;
+}
+
+/** Si un fallo de Lucode (red, proveedor, credenciales: nunca un rechazo de SUNAT) debe mandar el
+ *  comprobante a la cola de reintento. Solo lo que aún no salió: un `rechazado` ya tiene respuesta de
+ *  SUNAT y `fn_marcar_reintento_transmision` lo niega. */
+export function vaALaColaDeReintento(estado: string): boolean {
+  return estado === "pendiente" || estado === "pendiente_reintento";
+}
+
+export type ItemLucode = { descripcion: string; cantidad: number; precio_unitario: number };
+
+const esNumero = (x: unknown): x is number => typeof x === "number" && Number.isFinite(x);
+
+/** Los `variante_id` que hay que nombrar para transmitir: los ítems de una venta no traen descripción. */
+export function variantesPorNombrar(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((it) => (typeof it?.descripcion !== "string" && typeof it?.variante_id === "string" ? [it.variante_id] : []));
+}
+
+/** Los ítems de `comprobantes.items` en la forma que Lucode espera, o `null` si alguno no sirve.
+ *  Llegan de dos formas: el comprobante manual trae `{descripcion, cantidad, precio_unitario}` con el
+ *  precio YA sin IGV (ADR-0009); el de una venta (`registrar_venta`) trae
+ *  `{variante_id, cantidad, precio_unitario, descuento_unitario}` con el precio de etiqueta CON IGV y el
+ *  descuento aparte. Para ese, la descripción sale de `nombres` y el valor unitario es
+ *  (precio − descuento) / 1,18 con 6 decimales: así Σ valor × 1,18 × cantidad vuelve al total cobrado,
+ *  que es el que `registrar_venta` calculó y el que se declara. Sin nombre para una variante → `null`:
+ *  no se declara a SUNAT una línea que no se sabe qué es. */
+export function itemsParaLucode(raw: unknown, nombres: ReadonlyMap<string, string>): ItemLucode[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const items: ItemLucode[] = [];
+  for (const it of raw) {
+    if (typeof it !== "object" || it === null || !esNumero(it.cantidad) || !esNumero(it.precio_unitario)) return null;
+    if (typeof it.descripcion === "string") {
+      items.push({ descripcion: it.descripcion, cantidad: it.cantidad, precio_unitario: it.precio_unitario });
+      continue;
+    }
+    const nombre = typeof it.variante_id === "string" ? nombres.get(it.variante_id) : undefined;
+    const descuento = it.descuento_unitario === undefined ? 0 : it.descuento_unitario;
+    if (!nombre || !esNumero(descuento)) return null;
+    items.push({ descripcion: nombre, cantidad: it.cantidad, precio_unitario: Math.round(((it.precio_unitario - descuento) / 1.18) * 1e6) / 1e6 });
+  }
+  return items;
+}
+
+const ERROR_LEGIBLE: Record<string, string> = {
+  sin_respuesta: "Lucode no respondió (sin internet o el servicio está caído).",
+  sin_credenciales: "Falta configurar la conexión con Lucode en el servidor.",
+  credenciales_invalidas: "Lucode rechazó la clave de conexión: hay que renovarla.",
+  rechazado_por_lucode: "Lucode no aceptó el envío",
+};
+
+/** El último error de la cola en palabras de tienda. En la base queda crudo (`motivo: detalle`, lo que
+ *  escribe `transmitirComprobante`) para diagnosticar; en pantalla, qué pasó y a quién le toca. Un
+ *  motivo desconocido se muestra tal cual: mejor el texto técnico que ninguno. */
+export function errorDeColaLegible(crudo: string | null): string | null {
+  if (!crudo) return null;
+  const [motivo, ...resto] = crudo.split(": ");
+  const legible = ERROR_LEGIBLE[motivo];
+  if (!legible) return crudo;
+  return motivo === "rechazado_por_lucode" && resto.length > 0 ? `${legible}: ${resto.join(": ")}` : legible;
 }

@@ -1,13 +1,16 @@
 import type { ReactNode } from "react";
 import { exigirPermiso } from "@/lib/persona-actual";
-import { getResumenPorEnviar, getSeriesComprobantes } from "@/lib/comprobantes";
+import { getColaReintento, getResumenPorEnviar, getSeriesComprobantes } from "@/lib/comprobantes";
 import { getResumenProformas } from "@/lib/proformas";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { opcional } from "@/lib/resultado";
-import { conteosDePestanas, tiendasOperativas, ubicacionActualDe } from "@/lib/facturacion-reglas";
+import { conteosDePestanas, resumenCola, tiendasOperativas, ubicacionActualDe } from "@/lib/facturacion-reglas";
 import { FacturacionShell } from "@/components/FacturacionShell";
+import { BarridoColaSunat } from "@/components/BarridoColaSunat";
+import { entornoLucode } from "@/lib/lucode";
 
-// Facturación electrónica — rescatada de producción (2026-09-12, ver
+// Comprobantes (se llamó «Facturación» hasta 2026-09-22: el envío a SUNAT pasó a ser automático al
+// cobrar, D-60, y la pantalla es de series). Facturación electrónica — rescatada de producción (2026-09-12, ver
 // supabase/migrations/0010_facturacion.sql). Reserva comprobantes con correlativo oficial y
 // los transmite a SUNAT por Lucode (PSE) desde la misma pantalla; anular es un tercer paso
 // aparte. La pantalla es del líder y de la terminal de ventas (ADR-0160, permiso `facturar`): emitir, transmitir y anular mueven documentos
@@ -22,20 +25,23 @@ import { FacturacionShell } from "@/components/FacturacionShell";
 export default async function FacturacionLayout({ children }: { children: ReactNode }) {
   const persona = await exigirPermiso("facturar");
 
-  const [ubicaciones, series, porEnviar, proformas] = await Promise.all([
+  const [ubicaciones, series, porEnviar, proformas, cola] = await Promise.all([
     opcional(getUbicaciones(), "las ubicaciones (marco de Facturación)"),
     opcional(getSeriesComprobantes(), "las series (marco de Facturación)"),
     opcional(getResumenPorEnviar(), "la cola de SUNAT (marco de Facturación)"), // ya devuelven `null` si la consulta falla (`tolerar`);
     opcional(getResumenProformas(), "las proformas vigentes (marco de Facturación)"), // `opcional` cubre además lo que `tolerar` no ve (`createClient()`)
+    // D-60: la cola de SUNAT, para el contador de «Por reintentar» y el aviso de más de 1 hora.
+    opcional(getColaReintento(persona.rol === "lider" ? null : persona.ubicacionId), "la cola de reintento (marco de Comprobantes)"),
   ]);
+  const enCola = cola ? resumenCola(cola) : null;
 
   const tiendas = ubicaciones ? tiendasOperativas(ubicaciones) : null;
 
   return (
     <FacturacionShell
-      conteos={conteosDePestanas(porEnviar, proformas)}
-      // Anular, marcar no emitido, series y descuentos siguen siendo SOLO del líder (candado real en la base).
-      esLider={persona.rol === "lider"}
+      conteos={conteosDePestanas(porEnviar, proformas, enCola)}
+      atrasadosEnCola={enCola?.masDeUnaHora ?? 0}
+      entorno={entornoLucode()}
       sede={persona.ubicacionEtiqueta}
       // Un `null` (la lectura falló) no dibuja la cifra en la cabecera: nunca un número inventado.
       cifras={{ porEnviar: porEnviar?.porEnviar ?? null, proformasVigentes: proformas?.vigentes ?? null }}
@@ -43,6 +49,8 @@ export default async function FacturacionLayout({ children }: { children: ReactN
       tiendas={tiendas ? tiendas.map(({ id, nombre }) => ({ id, nombre })) : null}
       ubicacionActualId={tiendas ? ubicacionActualDe(tiendas, persona.ubicacionId) : ""}
     >
+      {/* D-60: al abrir, reintenta la cola de SUNAT — todas las sedes si es líder, la suya si es la terminal. */}
+      <BarridoColaSunat ubicacionId={persona.rol === "lider" ? null : persona.ubicacionId} />
       {children}
     </FacturacionShell>
   );

@@ -534,38 +534,29 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   lectura + edición directa (`PatrimonioEditor`, `HistoricosEditor`).
 - `RegistrarGastoModal.tsx` (accesible desde varias pantallas) → RPC
   `registrar_gasto`.
-- `/vender/facturacion/**` (layout + cuatro vistas por ruta, ADR-0124): `layout.tsx` lee
-  series, tiendas y los contadores de las pestañas y los pasa a `FacturacionShell.tsx`, que
-  dibuja la cabecera (`FacturacionCabecera`: línea viva «actualizado hace…», caja de búsqueda y
-  las dos acciones), las pestañas y —una sola vez— los modales «Emitir comprobante» y «Nueva
-  proforma». El shell guarda además el texto del buscador (`useFacturacionBusqueda`, se borra al
-  cambiar de vista): cada lista lo lee y filtra sus filas con `coincide`
-  (`lib/facturacion-busqueda.ts`). Cada `page.tsx` pide `exigirLider()` primero (lo fija
-  `lib/facturacion-puerta.test.ts`) y monta `MarcaDeCarga`, que le dice a la cabecera cuándo llegó
-  la vista (reloj del navegador, `lib/ultima-carga-facturacion.ts`). Cada vista son cuatro
-  tarjetas de vidrio (`TarjetaKpiVidrio`) y una lista (columnas por ancho de la tarjeta, con
-  container queries `@min-[640px]` y `@min-[900px]`, no por ancho de ventana); lo que decide
-  estados, cuentas, orden y textos vive en `lib/facturacion-*-reglas.ts` (puras y probadas).
-  Vistas: Resumen (`page.tsx`) → `ResumenTarjetas` + `ActividadDeHoy` (el hilo del comprobante,
-  `HiloComprobante`, y *Transmitir* por fila con `useTransmitir`) ← `fn_ventas_del_dia`,
-  `getComprobantesMes`, `getResumenPorEnviar`, `ventas-comparativo.ts` (reglas
-  `facturacion-resumen-reglas`, `-graficos` y `facturacion-actividad`); `proformas/` →
-  `ProformasTarjetas` + `ProformasPanel` ← `getProformasMes` (reglas `facturacion-proformas-reglas`
-  y `resumenProformas`, la misma cuenta que el contador de la pestaña) → RPC
-  `convertir_proforma_a_comprobante`; `descuentos/` → `CodigosTarjetas` + `CodigosDescuentoPanel`
-  (antes `/vender/descuentos`, que redirige; escribe directo a `codigos_descuento`, la RLS exige
-  líder; reglas `facturacion-codigos-reglas`, con «hoy» de `hoyLima`, la misma fecha con la que
-  `registrar_venta` valida el código); `comprobantes/` → `lib/comprobantes.ts` →
-  `ComprobantesTarjetas` + `ComprobantesPanel` (franja de series que faltan por tienda, lista,
-  modales de serie, anular y liberar; reglas `facturacion-comprobantes-reglas`) →
-  RPCs `emitir_comprobante` (reserva serie+correlativo, `for update`) y
-  `registrar_serie_comprobante`. Emitir NO transmite: el envío a SUNAT es el
-  botón "Transmitir" de cada fila → `POST /api/lucode/emitir` (ADR-0005,
-  ADR-0009). El modal de emisión usa `ConsultaDocumento.tsx`, el
-  único componente que llama a una ruta de API propia en vez de a una RPC:
-  `GET /api/padron?tipo=dni|ruc&numero=…` → `lib/padron.ts` → proveedor externo
-  del padrón (RENIEC/SUNAT). Validación de formato y dígito verificador en
-  `packages/shared/src/documento.ts` (pura, corre en los dos lados). ADR-0008.
+- `/vender/comprobantes/**` (se llamó `/vender/facturacion` hasta 2026-09-22, que redirige; ADR-0124 y
+  ADR-0165): `layout.tsx` lee series activas, tiendas, la cola de SUNAT (`fn_comprobantes_cola_reintento`)
+  y los contadores, y los pasa a `FacturacionShell.tsx` (cabecera con la pastilla «Pruebas» si
+  `LUCODE_ENTORNO` no es producción, aviso rojo si algo pasa 1 hora en cola, pestañas, buscador y los
+  modales «Emitir comprobante» y «Nueva proforma»). Monta `BarridoColaSunat`, que al abrir llama a
+  `POST /api/lucode/reintentar`. Cada `page.tsx` pide `exigirPermiso("facturar")` primero (lo fija
+  `lib/facturacion-puerta.test.ts`). Vistas: Series (`page.tsx`) → `SeriesPanel` ← `getSeriesComprobantes`
+  (solo activas) + `getSeriesArchivadas` → RPCs `registrar_serie_comprobante` (ya no reemplaza: exige
+  archivar antes y no reusa nombres) y `archivar_serie_comprobante`; `emitidos/` → `ComprobantesTarjetas`
+  + `ComprobantesPanel` ← `getComprobantesMes` (anular, liberar y «Reintentar»; reglas
+  `facturacion-comprobantes-reglas`); `por-reintentar/` → `ColaSunatPanel` ← `getColaReintento`
+  («Reintentar ahora» con `useTransmitir`); `proformas/` → `ProformasTarjetas` + `ProformasPanel` →
+  `convertir_proforma_a_comprobante`.
+  **Envío a SUNAT (D-60):** nadie lo dispara a mano. Vender (`PuntoDeVenta.tsx`, vía `lib/envio-sunat.ts`)
+  llama a `POST /api/lucode/emitir { venta_id }` al cobrar y a `/api/lucode/reintentar` para su sede. Las
+  dos rutas usan `lib/transmitir-comprobante.ts` (guardas de `lib/transmision-reglas.ts`, ítems de la venta
+  con `itemsParaLucode`) → `lib/lucode.ts` → `actualizar_transmision_comprobante`, o
+  `fn_marcar_reintento_transmision` si Lucode no responde. `/api/lucode/reintentar` toma lo vencido con
+  `fn_tomar_comprobantes_para_reintento` (reserva de 5 min, `for update skip locked`). La numeración sale
+  de `fn_reservar_numero_serie` (solo la serie activa), que llaman `emitir_comprobante`, `emitir_nota` y
+  `aprobar_devolucion`. El modal de emisión usa `ConsultaDocumento.tsx` → `GET /api/padron` →
+  `lib/padron.ts` → padrón externo (RENIEC/SUNAT); formato y dígito verificador en
+  `packages/shared/src/documento.ts`. ADR-0008.
 - `/vender/historial` → `lib/ventas-historial.ts` (lectura; reglas puras en
   `ventas-historial-reglas.ts`) → `HistorialVentasLista.tsx`, `FiltrosHistorialVentas.tsx`
   y `HistorialVentasPulso.tsx` (el trazo del período). Solo lectura, **sin RPC propia**: PostgREST sobre

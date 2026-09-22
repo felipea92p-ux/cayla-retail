@@ -3429,14 +3429,20 @@ export type Database = {
       }
       series_comprobantes: {
         Row: {
+          archivada_at: string | null
+          archivada_por: string | null
           id: string
+          motivo_archivo: string | null
           serie: string
           siguiente_numero: number
           tipo: string
           ubicacion_id: string
         }
         Insert: {
+          archivada_at?: string | null
+          archivada_por?: string | null
           id?: string
+          motivo_archivo?: string | null
           serie: string
           siguiente_numero?: number
           tipo: string
@@ -5066,6 +5072,33 @@ export type Database = {
           p_serie_numero: string
         }
         Returns: string
+      }
+      archivar_serie_comprobante: {
+        Args: { p_motivo: string; p_serie_id: string }
+        Returns: undefined
+      }
+      fn_comprobantes_cola_reintento: {
+        Args: { p_ubicacion_id?: string }
+        Returns: {
+          comprobante_id: string
+          horas_esperando: number
+          intentos_transmision: number
+          numero: number
+          serie: string
+          tipo: string
+          ubicacion_id: string
+          ultimo_error_transmision: string
+          ultimo_intento_transmision_at: string
+          venta_id: string
+        }[]
+      }
+      fn_marcar_reintento_transmision: {
+        Args: { p_comprobante_id: string; p_error: string }
+        Returns: undefined
+      }
+      fn_tomar_comprobantes_para_reintento: {
+        Args: { p_limite?: number; p_ubicacion_id?: string }
+        Returns: string[]
       }
       fn_mi_perfil: {
         Args: never

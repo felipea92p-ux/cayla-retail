@@ -526,7 +526,7 @@ describe("reglas de menuPara", () => {
   it("rutaActiva: `/` solo coincide consigo misma y un prefijo corta en el límite de un segmento", () => {
     expect(rutaActiva("/", "/")).toBe(true);
     expect(rutaActiva("/vender", "/")).toBe(false);
-    expect(rutaActiva("/vender/facturacion", "/vender")).toBe(true);
+    expect(rutaActiva("/vender/comprobantes", "/vender")).toBe(true);
     expect(rutaActiva("/venderx", "/vender")).toBe(false);
   });
 
@@ -585,9 +585,9 @@ describe("permisos de una terminal", () => {
 describe("el menú de la terminal de VENTAS", () => {
   const { riel, movil, nuevo } = menuPara(perfilTerminal("ventas"));
 
-  it("ve solo Ventas: Punto de Venta, Caja, Historial, Cambios, Devoluciones y Facturación, en ese orden", () => {
+  it("ve solo Ventas: Punto de Venta, Caja, Historial, Cambios, Devoluciones y Comprobantes, en ese orden", () => {
     expect(etiquetasDe(riel)).toEqual(["Ventas"]);
-    expect(hijasDe(riel, "Ventas")).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Facturación"]);
+    expect(hijasDe(riel, "Ventas")).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes"]);
   });
 
   it("no tiene Inicio (su casa es el Punto de Venta), ni Inventario, Catálogo, Compras, Colaboradores ni Producción", () => {
