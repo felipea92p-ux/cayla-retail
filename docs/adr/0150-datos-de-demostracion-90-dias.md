@@ -212,6 +212,28 @@ producción») se descartó porque ya estaba anotado en «Qué falta» — no er
    un producto real en esa categoría entre la siembra y el deshacer, restar dejaría el contador mal): hay que recalcularlo desde el código
    más alto de las filas NO-`5eed` de cada prefijo. Sigue como trabajo de la Fase 7 (ya estaba en «Qué falta»), con esta receta.
 
+## Revisor de «pantallas» de la Fase 3 (2026-09-22, completado tras un choque de infraestructura)
+
+Corrió las 19 funciones que alimentan Compras/Recibir/Traslados/Análisis contra lo sembrado (con un `stock` agregado a mano, como
+haría la Fase 6). Dos hallazgos:
+
+1. **[Alto — bug real de la aplicación, no del generador] `notas_credito_tablero()` y `compras_nota_pendiente()` muestran el mismo
+   dinero dos veces.** A5 (recepción parcial) cierra 6 unidades dañadas con una nota de crédito `motivo='devolucion'` — correcto:
+   `fn_insertar_nota_credito_compra` solo exige la compra resuelta cuando el motivo es `'faltante'`, así que un líder real puede
+   hacer exactamente esto hoy. El bug: ambas funciones filtran «¿esta compra ya tiene ALGUNA nota con motivo `faltante`?» en vez de
+   «¿este cierre concreto ya tiene alguna nota?» — así que un cierre ya resuelto con otro motivo (`devolucion`/`descuento`/`otro`)
+   sigue apareciendo como «pendiente, faltante S/ 474,43» para siempre. Reproducido dos veces contra las definiciones vivas
+   (`compras_nota_pendiente`: `not exists (... and n.motivo = 'faltante')`; `notas_credito_tablero` hace lo mismo dentro de su CTE
+   `f`). **No es un defecto de la Fase 3**: es una regla de negocio implementada mal que esta siembra fue la primera en ejercitar,
+   con datos reales de compras a esta escala. Queda en `docs/BACKLOG.md` como bug de producto — el arreglo (comparar por
+   `cierre_id`, no por `compra_id` + motivo) es una migración aparte, con el OK de Felipe, no algo que este generador deba
+   rodear cambiando cómo siembra A5 (eso escondería el bug real).
+2. **[Medio, ya cubierto por diseño] Si alguna vez se comprueba «solo Fase 1-3» en producción sin la Fase 4**, `fn_resumen_variantes`
+   sale con `ledger_consistente=false` en 70-87 % de las filas y «Pedir a proveedor» en cero, porque las ventas de la Fase 2 siguen
+   siendo virtuales hasta que la Fase 4 las convierte en movimientos reales. Confirmado y medido, pero es justo lo que la regla 6 de
+   este ADR ya existe para evitar (COMMIT único de las 7 fases juntas). Con la Fase 4 ya escrita esto deja de ser un riesgo real del
+   plan; queda anotado por si alguna vez se prueba un COMMIT parcial fuera de la corrida definitiva.
+
 ## Lo que enseñó la Fase 1 (para no repetirlo en las fases siguientes)
 
 - **Un subselect que no depende de la fila se evalúa una sola vez.** `cross join lateral (… order by random() limit 1)` dio la
