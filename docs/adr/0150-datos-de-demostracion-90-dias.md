@@ -149,6 +149,40 @@ aún no tiene y el generador no usa) y 22 de las 23 funciones de las que depende
 - **El plan de compras debe estar hecho antes de la simulación, no después:** las llegadas de A5 se agregaron tarde y la simulación no las
   veía. Se mueve el bloque, no se parcha el chequeo.
 
+## Revisión adversarial de la Fase 3 (2026-09-22)
+
+Tres lentes (estados imposibles, pantallas, riesgo para producción viva) revisaron el generador; cada hallazgo lo intentó refutar un
+escéptico independiente antes de darlo por bueno. Cuatro hallazgos sobrevivieron; uno («falta ensayar el archivo completo contra
+producción») se descartó porque ya estaba anotado en «Qué falta» — no era un defecto nuevo.
+
+1. **[Bloqueante, corregido] `transferencias.numero` no sincronizaba la secuencia real.** El generador calcula el número a mano
+   (`max(numero) + row_number()`) para que el correlativo siga el orden cronológico, no el de inserción — pero un `INSERT` con valor
+   explícito nunca llama a `nextval()`. Sin corrección, el primer «Iniciar traslado» real después del `COMMIT` habría pedido el mismo
+   número que una fila sembrada, con `unique_violation` en cadena hasta que la secuencia alcanzara el máximo sembrado. **Arreglo:** un
+   `setval()` condicionado a un parámetro `cayla_seed.definitivo` que Felipe fija aparte del `COMMIT`, nunca durante un ensayo — porque
+   `setval()` **no es transaccional** (comprobado en local: sobrevive a un `ROLLBACK`, a diferencia de todo `INSERT` del script). Verificado
+   con tres corridas: por defecto la secuencia no se mueve (aunque el archivo cambie), con el parámetro activado se mueve *aunque termine en
+   `ROLLBACK`* (por diseño: confirma que el parámetro y el `COMMIT` deben ir siempre juntos), y una tercera corrida por defecto confirma que
+   el parámetro no queda pegado entre conexiones.
+2. **[Alto, corregido] El segundo `SET CONSTRAINTS ALL IMMEDIATE` no revisaba nada.** El candado «ninguna tienda recibe o cierra más de lo
+   asignado» lo pone `recibir_compras()` con un `RAISE` propio sobre `movimientos`/`compra_item_cierres`, no el trigger diferido de reparto
+   (que solo se dispara si se toca `compra_items`/`compra_item_destinos`, y la Fase 3 no vuelve a tocarlas después del primer flush). El
+   segundo flush era, en la práctica, un no-op. **Arreglo:** chequeo (13) nuevo que replica esa regla en SQL contra `compra_item_destinos`.
+3. **[Alto, documentado] `codigos_correlativos` queda bajo lock de fila durante toda la corrida.** `fn_siguiente_correlativo` hace un
+   `UPSERT ... RETURNING`, que mantiene el lock de esa fila hasta el `COMMIT`/`ROLLBACK` de **toda la transacción**, no solo de la Fase 1.
+   Las 12 categorías que la Fase 1 usa (BLU, TOP, POL, CMP, VES, JEA, PAN, SHO, CAS, FAL, BLZ, GEN) ya tienen fila hoy en producción. Mientras
+   dure la corrida definitiva (las 7 fases en una sola transacción, por diseño — regla 6 de este ADR), dar de alta un producto real en
+   cualquiera de esas categorías queda bloqueado. La revisión corrigió además un dato del hallazgo original: el rol `authenticated` (el que
+   usa la app real vía PostgREST) tiene `statement_timeout` de **8 segundos**, no los 2 minutos del rol `postgres` del MCP — la ventana de
+   riesgo es mucho más chica de lo que parecía. No es un defecto de código: es un aviso para la ventana tranquila (ya pedida en «Qué falta»).
+4. **[Alto, documentado] Falta `deshacer-90-dias.sql`, y no es trivial.** `movimientos`, `compra_item_cierres` y `compra_notas_credito` son
+   inmutables (`RAISE EXCEPTION` en `UPDATE`/`DELETE`); deshacer exige desactivar esos 3 triggers, y hay un ciclo real de FK
+   (`movimientos.transferencia_item_id` ↔ `transferencia_items.movimiento_id`, y lo mismo con `transferencia_recepciones`) que obliga a
+   anular esas columnas con `UPDATE` **antes** de poder borrar — ese `UPDATE` también lo bloquea `movimientos_inmutables` (dispara en
+   `UPDATE`, no solo en `DELETE`). Y `codigos_correlativos.ultimo` no se puede restar a ciegas (no lleva marca `5eed`; si alguien da de alta
+   un producto real en esa categoría entre la siembra y el deshacer, restar dejaría el contador mal): hay que recalcularlo desde el código
+   más alto de las filas NO-`5eed` de cada prefijo. Sigue como trabajo de la Fase 7 (ya estaba en «Qué falta»), con esta receta.
+
 ## Lo que enseñó la Fase 1 (para no repetirlo en las fases siguientes)
 
 - **Un subselect que no depende de la fila se evalúa una sola vez.** `cross join lateral (… order by random() limit 1)` dio la

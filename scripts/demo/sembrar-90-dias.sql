@@ -42,6 +42,15 @@ declare
 begin
   perform set_config('cayla_seed.ahora_efectiva', pv_ahora::text, true);
   perform set_config('cayla_seed.semilla', pv_semilla::text, true);
+  -- Corrida DEFINITIVA (no ensayo): sin esto, el setval() de más abajo no corre. NO es un interruptor para ir probando:
+  -- setval() NO es transaccional en Postgres (comprobado: un ROLLBACK no lo deshace, a diferencia de todo INSERT de
+  -- este script), así que activarlo en CUALQUIER corrida que no termine en COMMIT deja la secuencia real de
+  -- transferencias corrida sin ningún dato que la respalde — inofensivo en la base local de ensayos, pero un daño
+  -- real y permanente si se hiciera contra producción. Se usa UNA SOLA VEZ: Felipe agrega
+  -- `set cayla_seed.definitivo = 'true';` como primera línea del pegado JUNTO con cambiar la última línea a COMMIT,
+  -- nunca por separado ni antes de estar listo para el COMMIT real.
+  perform set_config('cayla_seed.definitivo',
+    coalesce(nullif(current_setting('cayla_seed.definitivo', true), ''), 'false'), true);
   perform set_config('cayla_seed.escala', pv_escala::text, true);
   perform set_config('cayla_seed.fin', pv_fin::text, true);
   perform set_config('cayla_seed.inicio', (pv_fin - (pv_dias - 1))::text, true);
@@ -1495,7 +1504,10 @@ from tmp_tras t
 join tmp_ubic tal on tal.codigo = 'TAL'
 join tmp_ubic d on d.codigo = t.destino;
 
--- número explícito y creciente con la fecha (la secuencia real va en 4: el setval se hace solo en la corrida definitiva)
+-- número explícito y creciente con la fecha (no por nextval: así el orden coincide con la fecha, no con el orden de inserción).
+-- El setval que sincroniza transferencias_numero_seq va en la sección de chequeos, DENTRO de esta misma transacción — nunca
+-- quedó como paso aparte para Felipe: sin él, el primer «Iniciar traslado» real después del COMMIT chocaría con una fila
+-- sembrada (transferencias_numero_unique) porque nextval() seguiría devolviendo los números que este INSERT ya usó a mano.
 insert into transferencias (id, ubicacion_origen_id, ubicacion_destino_id, estado, creado_por, nota, created_at, fecha_estimada_llegada,
                             confirmado_por, confirmado_en, cerrado_por, cerrado_en, nota_cierre, numero)
 select t.traslado_id, t.origen_id, t.destino_id, t.estado, t.creado_por,
@@ -1544,7 +1556,10 @@ select pg_temp.sid('mov', 'int:' || m.variante_id || ':' || m.ubicacion_id || ':
 from tmp_moves m join tmp_ubic u on u.ubicacion_id = m.ubicacion_id
 where m.cant > 0;
 
--- ahora sí: la suma de lo recibido más lo cerrado no puede pasar de lo asignado a cada tienda, ni de lo facturado
+-- flush de los constraint triggers diferidos del reparto (compra_item_destinos_cuadra / compra_items_reparto_cuadra): solo
+-- reevalúan lo que de verdad se tocó en compra_items/compra_item_destinos desde el primer flush — en esta fase, nada; el
+-- candado de «ninguna tienda recibe o cierra más de lo que le tocó» lo pone recibir_compras() con un RAISE propio sobre
+-- movimientos/compra_item_cierres, no un trigger, así que este flush no lo cubre (queda como check (13) más abajo).
 set constraints all immediate;
 set constraints all deferred;
 
@@ -1693,9 +1708,35 @@ begin
          or (m.created_at at time zone 'America/Lima')::time >= time '10:00');
   if v_n > 0 then raise exception '[check abastecimiento] % subidas al piso mal formadas', v_n; end if;
 
+  -- (13) reparto por tienda: ninguna tienda recibe + cierra más de lo que le tocó (candado real de recibir_compras(),
+  -- que NINGÚN trigger diferido revisa cuando se inserta directo en movimientos/compra_item_cierres — ver comentario
+  -- de más arriba, junto al segundo `set constraints all immediate`)
+  select count(*) into v_n from (
+    select d.compra_item_id, d.ubicacion_id, d.cantidad as asignado,
+           coalesce((select sum(m.cantidad) from movimientos m
+                      where m.compra_item_id = d.compra_item_id and m.ubicacion_id = d.ubicacion_id), 0) as recibido,
+           coalesce((select sum(k.cantidad) from compra_item_cierres k
+                      where k.compra_item_id = d.compra_item_id and k.ubicacion_id = d.ubicacion_id), 0) as cerrado
+    from compra_item_destinos d
+    join compra_items i on i.id = d.compra_item_id
+    where i.compra_id::text like '5eed%') x
+  where x.recibido + x.cerrado > x.asignado;
+  if v_n > 0 then raise exception '[check abastecimiento] % reparto(s) por tienda reciben/cierran más de lo asignado (recibir_compras() real lo habría rechazado)', v_n; end if;
+
   raise notice '[check abastecimiento] OK — % compras, % movimientos, % traslados',
     (select count(*) from compras where id::text like '5eed%'), (select count(*) from movimientos where id::text like '5eed%'),
     (select count(*) from transferencias where id::text like '5eed%');
+end $$;
+
+-- Sincroniza transferencias_numero_seq con el número más alto que quedó sembrado. Un INSERT con `numero` explícito nunca
+-- llama a nextval(): sin esto, el primer «Iniciar traslado» real después del COMMIT pediría un número que una fila
+-- sembrada ya ocupa (transferencias_numero_unique). SOLO corre si `cayla_seed.definitivo = 'true'` (ver el parámetro al
+-- inicio): setval() no es transaccional, así que en cualquier ensayo con ROLLBACK esto debe quedar apagado.
+do $$
+begin
+  if current_setting('cayla_seed.definitivo')::boolean then
+    perform setval('transferencias_numero_seq', (select max(numero) from transferencias), true);
+  end if;
 end $$;
 
 -- ---------------------------------------------------------------------------
