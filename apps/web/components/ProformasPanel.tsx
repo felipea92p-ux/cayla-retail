@@ -20,6 +20,9 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, Segmentado } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Las columnas de la lista, según el ancho DE LA TARJETA (container queries) y no el de la ventana,
 // igual que en Comprobantes y en «Actividad de hoy»: con el menú lateral desplegado, una ventana de
@@ -40,6 +43,8 @@ export function ProformasPanel({ proformas, periodo, ahora }: { proformas: Profo
   const router = useRouter();
   const [modal, setModal] = useState<{ convertir: Proforma } | null>(null);
   const [loading, setLoading] = useState(false);
+  // Convertir una proforma emite un comprobante: pide Responsable (ADR-0161, B4).
+  const responsable = useResponsable();
 
   // Formulario de conversión
   const [tipo, setTipo] = useState<TipoComprobante>("boleta");
@@ -66,16 +71,20 @@ export function ProformasPanel({ proformas, periodo, ahora }: { proformas: Profo
 
   async function onConvertir(e: React.FormEvent, proforma: Proforma) {
     e.preventDefault();
-    if (faltaConfirmar) return;
+    if (faltaConfirmar || !responsable.listo) return;
     setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.rpc("convertir_proforma_a_comprobante", {
-      p_proforma_id: proforma.id,
-      p_tipo: tipo,
-      p_cliente_tipo_doc: clienteTipoDoc,
-      p_cliente_num_doc: clienteNumDoc || undefined,
-      p_cliente_nombre: convertirNombre || proforma.cliente_nombre || undefined,
-    });
+    const { error } = await firmar(
+      supabase.rpc("convertir_proforma_a_comprobante", {
+        p_proforma_id: proforma.id,
+        p_tipo: tipo,
+        p_cliente_tipo_doc: clienteTipoDoc,
+        p_cliente_num_doc: clienteNumDoc || undefined,
+        p_cliente_nombre: convertirNombre || proforma.cliente_nombre || undefined,
+      }),
+      responsable.firma(),
+    );
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "convertir la proforma en comprobante"));
       setLoading(false);
@@ -200,11 +209,13 @@ export function ProformasPanel({ proformas, periodo, ahora }: { proformas: Profo
               onNombre={setConvertirNombre}
             />
 
+            <ComboResponsable control={responsable} deshabilitado={loading} className="pt-2" />
+
             <div className="flex gap-2 pt-3">
               <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrarModal}>
                 Cancelar
               </Boton>
-              <Boton type="submit" peso="primario" className="flex-1" cargando={loading} disabled={faltaConfirmar}>
+              <Boton type="submit" peso="primario" className="flex-1" cargando={loading} disabled={faltaConfirmar || !responsable.listo} title={responsable.motivo ?? undefined}>
                 {loading ? "Emitiendo…" : "Emitir comprobante"}
               </Boton>
             </div>

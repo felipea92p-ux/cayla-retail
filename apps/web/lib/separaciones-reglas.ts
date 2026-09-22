@@ -171,7 +171,7 @@ export function erroresDelApartado(f: FormularioApartado, total: number): Partia
 /** La barra de 3 tramos (clienta → adelanto → devolución), igual que el cobro del Punto de venta. */
 export type PasoApartado = 0 | 1 | 2;
 export const TEXTO_PASO_APARTADO: Record<PasoApartado, string> = {
-  0: "Anota a la clienta y quién la atendió.",
+  0: "Anota a la clienta y elige quién hace el apartado.",
   1: "Registra cuánto deja de adelanto y cómo.",
   2: "Cómo se le devuelve si no recoge, y que acepte.",
 };

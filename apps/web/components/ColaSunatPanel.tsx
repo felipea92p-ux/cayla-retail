@@ -19,7 +19,7 @@ import { Chip } from "@/components/ui/Chip";
 // para uno. Lo que pasa de una hora se pinta en rojo: el reintento solo no alcanzó y alguien tiene que
 // mirar (Lucode caído mucho rato, credenciales vencidas).
 export function ColaSunatPanel({ filas, tiendas }: { filas: FilaColaReintento[]; tiendas: { id: string; nombre: string }[] }) {
-  const { transmitiendoId, transmitir } = useTransmitir();
+  const { transmitiendoId, transmitir, confirmacion: confirmacionTransmitir } = useTransmitir();
   const { texto: busqueda } = useFacturacionBusqueda();
   const nombreDe = (id: string) => tiendas.find((t) => t.id === id)?.nombre ?? "—";
   const numero = (f: FilaColaReintento) => `${f.serie}-${String(f.numero).padStart(8, "0")}`;
@@ -27,6 +27,9 @@ export function ColaSunatPanel({ filas, tiendas }: { filas: FilaColaReintento[];
 
   return (
     <div className="card-cayla anim-sube overflow-hidden" style={{ "--i": 3 } as CSSProperties}>
+      {/* La confirmación con el combo «Responsable» antes de reintentar (ADR-0161): sin esto, «Reintentar ahora»
+          abría una confirmación que nunca se pintaba. */}
+      {confirmacionTransmitir}
       <div className="px-5 pt-[18px] pb-3.5">
         <h2 className="font-display text-xl leading-tight text-tinta">Por reintentar</h2>
         <p className="mt-0.5 text-xs text-tinta/65">

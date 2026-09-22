@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
 import type { ErrorEscritura } from "@/lib/error-escritura";
-import type { TipoTerminal } from "@/lib/menu";
 
 // Las escrituras de /colaboradores: una función por RPC (20260922110000_colaboradores_suspender_y_actividad.sql).
 // Están detrás de esta interfaz para que el panel no sepa de Supabase: así se puede mostrar con datos de ejemplo
@@ -10,27 +9,22 @@ export type ResultadoAccion = { error: ErrorEscritura };
 
 export type AccionesColaboradores = {
   agregar: (personas: string[], ubicacionId: string) => Promise<ResultadoAccion>;
-  /** Da entrada a una persona de Dynamic como TERMINAL de una tienda (ADR-0160): siempre colaborador, solo en una tienda.
-   *  Exenta de la aprobación de D-70 a propósito (ver `aprobar` abajo): el líder que la crea ya es la aprobación — no es
-   *  una persona nueva entrando al equipo, es una cuenta de servicio que él mismo decide abrir. */
-  agregarTerminal: (personaId: string, ubicacionId: string, tipo: TipoTerminal) => Promise<ResultadoAccion>;
-  /** D-70: aprueba el alta de un colaborador (persona) que otro líder propuso. Nunca aplica a una terminal:
-   *  `agregarTerminal` ya deja la fila en `estado = 'activo'` (el default de la columna), sin pasar por
-   *  `pendiente_aprobacion`. */
+  /** D-70: aprueba el alta de un colaborador (persona) que otro líder propuso. Las terminales no pasan por aquí: no son
+   *  personas (ADR-0162) y se crean con `pnpm terminales:crear`, no desde esta pantalla. */
   aprobar: (personaId: string) => Promise<ResultadoAccion>;
   suspender: (personaId: string, motivo: string) => Promise<ResultadoAccion>;
   reactivar: (personaId: string) => Promise<ResultadoAccion>;
   cambiarUbicacion: (personaId: string, ubicacionId: string) => Promise<ResultadoAccion>;
   quitar: (personaId: string) => Promise<ResultadoAccion>;
+  /** ADR-0162: apaga el aparato. Su sesión deja de leer y guardar al instante; su historial queda. */
+  desactivarTerminal: (terminalId: string) => Promise<ResultadoAccion>;
+  /** ADR-0162: lo vuelve a encender con su misma clave (la base rechaza si la tienda ya tiene otra activa de ese tipo). */
+  reactivarTerminal: (terminalId: string) => Promise<ResultadoAccion>;
 };
 
 export const accionesSupabase: AccionesColaboradores = {
   agregar: async (personas, ubicacionId) => {
     const { error } = await createClient().rpc("agregar_colaboradores", { p_personas: personas, p_ubicacion_id: ubicacionId });
-    return { error };
-  },
-  agregarTerminal: async (personaId, ubicacionId, tipo) => {
-    const { error } = await createClient().rpc("agregar_terminal", { p_persona_id: personaId, p_ubicacion_id: ubicacionId, p_terminal: tipo });
     return { error };
   },
   aprobar: async (personaId) => {
@@ -51,6 +45,14 @@ export const accionesSupabase: AccionesColaboradores = {
   },
   quitar: async (personaId) => {
     const { error } = await createClient().rpc("quitar_colaborador", { p_persona_id: personaId });
+    return { error };
+  },
+  desactivarTerminal: async (terminalId) => {
+    const { error } = await createClient().rpc("desactivar_terminal", { p_terminal_id: terminalId });
+    return { error };
+  },
+  reactivarTerminal: async (terminalId) => {
+    const { error } = await createClient().rpc("reactivar_terminal", { p_terminal_id: terminalId });
     return { error };
   },
 };

@@ -16,6 +16,9 @@ import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProv
 import { claveReferencia, leerErrorAlta, tituloReferencia } from "@/lib/alta-producto";
 import type { CatalogoMarcas } from "@/lib/marcas-datos";
 import { useParecidos } from "@/lib/use-parecidos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 /* ====================================================================
    ProductoForm · edición de producto+variantes (V2, 2026-09-15)
@@ -202,6 +205,9 @@ export function ProductoForm({
       });
   });
   const [loading, setLoading] = useState(false);
+  // Editar una prenda es Catálogo, operación de tienda (ADR-0161): quien está de turno firma el guardado (las dos
+  // llamadas de «Guardar cambios» van con la misma firma: son un solo gesto).
+  const responsable = useResponsable();
   // Una sola fila de etiquetas abierta a la vez — mismo criterio que el
   // resto de las pantallas de admin (una edición inline visible por vez).
   const [etiquetasAbiertoEn, setEtiquetasAbiertoEn] = useState<number | null>(null);
@@ -298,6 +304,8 @@ export function ProductoForm({
     }
     if (exigeTejido && !tejidoId) return void avisar.error(`Esta prenda ya tenía tejido y en ${categoriaActual?.nombre ?? "esta categoría"} no se puede dejar sin él. Elige uno.`);
     if (exigePatron && !patronId) return void avisar.error("Esta prenda ya tenía patrón y no se puede dejar sin él (si no tiene diseño, elige Liso).");
+    const firma = responsable.firma();
+    if (!responsable.listo || !firma) return void avisar.error(responsable.motivo ?? "Elige quién hace esta operación.");
 
     setLoading(true);
     const cerrarProceso = avisar.proceso(`Guardando ${referencia.trim()}…`);
@@ -320,7 +328,7 @@ export function ProductoForm({
     }));
 
     const supabase = createClient();
-    const { error } = await supabase.rpc("catalogo_actualizar_producto", {
+    const { error } = await firmar(supabase.rpc("catalogo_actualizar_producto", {
       p_producto_id: producto.id,
       p_referencia: referencia.trim(),
       p_estado: estado,
@@ -336,11 +344,12 @@ export function ProductoForm({
       // Marca y proveedor solo si CAMBIARON: si no, un proveedor desactivado más tarde impediría guardar hasta un cambio de precio.
       ...(parejaCambio ? { p_marca_id: marcaId, p_proveedor_id: proveedorId } : {}),
       ...(parecidos.confirmo ? { p_confirmo_distinto: true } : {}),
-    });
+    }), firma);
 
     if (error) {
       cerrarProceso();
       setLoading(false);
+      responsable.despues(error);
       const lectura = leerErrorAlta(error);
       if (lectura.tipo !== "otro") {
         // Otra persona creó ese nombre mientras se editaba: se muestra en pantalla, no solo en un aviso.
@@ -365,9 +374,11 @@ export function ProductoForm({
       .filter((v) => v.id && !mismoConjunto(v.etiquetaIds, etiquetaIdsOriginales.current.get(v.id) ?? []))
       .map((v) => ({ variante_id: v.id, etiqueta_ids: v.etiquetaIds }));
     if (editando && asignacionesEtiquetas.length > 0) {
-      const { error: errorEtiquetas } = await supabase.rpc("actualizar_variantes_etiquetas", { p_asignaciones: asignacionesEtiquetas });
+      const { error: errorEtiquetas } = await firmar(supabase.rpc("actualizar_variantes_etiquetas", { p_asignaciones: asignacionesEtiquetas }), firma);
       cerrarProceso();
       setLoading(false);
+      // Si falla, el combo se queda: «vuelve a pulsar Guardar cambios» es el mismo gesto (salvo rechazo por responsable).
+      responsable.despues(errorEtiquetas);
       if (errorEtiquetas) {
         avisar.error(traducirError(errorEtiquetas, "guardar las etiquetas de las variantes"), {
           detalle: `${referencia.trim()} ya quedó guardado — vuelve a pulsar "Guardar cambios" para las etiquetas.`,
@@ -377,6 +388,7 @@ export function ProductoForm({
     } else {
       cerrarProceso();
       setLoading(false);
+      responsable.despues(null);
     }
 
     avisar.exito(`${referencia.trim()} guardado`, {
@@ -638,8 +650,9 @@ export function ProductoForm({
         <p className="text-sm text-tinta/65">
           El código corto de cada variante (para etiqueta y pistola) se asigna solo al guardar — no hace falta escribirlo.
         </p>
+        <ComboResponsable control={responsable} deshabilitado={loading} />
         <div className="flex flex-col gap-2">
-          <Boton type="submit" peso="primario" cargando={loading} className="w-full">
+          <Boton type="submit" peso="primario" cargando={loading} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
             {editando ? "Guardar cambios" : "Crear producto"}
           </Boton>
           <Boton type="button" peso="discreto" onClick={() => router.push("/productos")} disabled={loading} className="w-full">

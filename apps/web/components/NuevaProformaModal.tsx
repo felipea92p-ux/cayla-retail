@@ -7,6 +7,9 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 type Ubicacion = { id: string; nombre: string };
 
@@ -27,6 +30,8 @@ export function NuevaProformaModal({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  // Crear una proforma guarda en Facturación: pide Responsable (ADR-0161, A7).
+  const responsable = useResponsable();
   const [ubicacionId, setUbicacionId] = useState(ubicacionActualId);
   const [total, setTotal] = useState(0);
   const [clienteNombre, setClienteNombre] = useState("");
@@ -42,12 +47,13 @@ export function NuevaProformaModal({
 
   async function onCrear(e: React.FormEvent) {
     e.preventDefault();
+    if (!responsable.listo) return;
     setLoading(true);
     const supabase = createClient();
     const igv = Math.round((total - total / 1.18) * 100) / 100;
     const subtotal = Math.round((total - igv) * 100) / 100;
     const venceAt = new Date(Date.now() + venceEnDias * 24 * 3600 * 1000).toISOString();
-    const { error } = await supabase.rpc("crear_proforma", {
+    const { error } = await firmar(supabase.rpc("crear_proforma", {
       p_ubicacion_id: ubicacionId,
       // Sin catálogo de ítems en esta pantalla todavía (mismo nivel de detalle
       // que "Emitir comprobante" hoy: un total, no líneas) — se guarda como un
@@ -61,7 +67,8 @@ export function NuevaProformaModal({
       p_total: total,
       p_cliente_nombre: clienteNombre || undefined,
       p_vence_at: venceAt,
-    });
+    }), responsable.firma());
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "crear la proforma"));
       setLoading(false);
@@ -112,11 +119,13 @@ export function NuevaProformaModal({
           onChange={(e) => setVenceEnDias(Number(e.target.value))}
         />
 
+        <ComboResponsable control={responsable} deshabilitado={loading} className="pt-2" />
+
         <div className="flex gap-2 pt-3">
           <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
             Cancelar
           </Boton>
-          <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
+          <Boton type="submit" peso="primario" className="flex-1" cargando={loading} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
             {loading ? "Guardando…" : "Guardar proforma"}
           </Boton>
         </div>

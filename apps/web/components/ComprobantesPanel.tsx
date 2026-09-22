@@ -136,7 +136,7 @@ export function ComprobantesPanel({
 
   // Transmisión a Lucode (Fase 1, ADR-0009), por fila: la misma implementación que usa la
   // fila de «Actividad de hoy» del Resumen (`lib/useTransmitir.ts`).
-  const { transmitiendoId, transmitir: onTransmitir } = useTransmitir();
+  const { transmitiendoId, transmitir: onTransmitir, confirmacion: confirmacionTransmitir } = useTransmitir();
 
   // Anulación (paso c, ADR-0016). Solo líder — la pantalla entera ya lo es,
   // pero `anular_comprobante` lo vuelve a exigir en la base.
@@ -263,6 +263,8 @@ export function ComprobantesPanel({
 
   return (
     <div className="space-y-6">
+      {/* La confirmación con el combo «Responsable» antes de transmitir (ADR-0161). */}
+      {confirmacionTransmitir}
       {/* Comprobantes del mes: una sola fila para todos los anchos (ver `COLUMNAS`). */}
       {/* `overflow-hidden` solo con filas: recorta el hover de la última fila contra las esquinas redondas. Sin filas
           (mes vacío o búsqueda sin resultados) la tarjeta es baja y recortaría el globo de ayuda del encabezado. */}

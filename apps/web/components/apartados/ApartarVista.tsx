@@ -6,14 +6,14 @@ import { Bookmark, FileText, Minus, Plus, Receipt, ScanBarcode, ShieldCheck, Sti
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
-import { VendedorasFila } from "@/components/VendedorasFila";
+import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoMonto } from "@/components/ui/CampoMonto";
 import { avisar } from "@/components/ui/Avisos";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { filtrarPrendasV2, resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
-import { useVendedorasDeTurno } from "@/lib/useVendedorasDeTurno";
-import { vendedoraDeLaVenta, vendedoraPendiente } from "@/lib/vender-reglas";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 import {
   PLAZO_DIAS,
   TEXTO_PASO_APARTADO,
@@ -87,22 +87,20 @@ export function ApartarVista({
   const [nota, setNota] = useState("");
   const [paso, setPaso] = useState<"ticket" | "formulario">("ticket");
   const [f, setF] = useState(FORMULARIO_VACIO);
-  const [elegidaId, setElegidaId] = useState<string | null>(null);
   const [intento, setIntento] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [registrado, setRegistrado] = useState<{ apartado: Apartado; vuelto: number } | null>(null);
   const token = useRef<string>(crypto.randomUUID());
   const escaner = useRef<HTMLInputElement>(null);
-  const turno = useVendedorasDeTurno(ubicacionId);
+  // Apartar guarda en la tienda (cobra un adelanto y deja las prendas no disponibles): pide Responsable (ADR-0161).
+  // Viene vacío en cada apartado; el elegido queda como asesora del apartado (`p_asesora_id`), igual que en la venta.
+  const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
 
   const total = lineas.reduce((a, l) => a + precioFinal(porId.get(l.varianteId)!) * l.cantidad, 0);
   const prendasEnTicket = lineas.reduce((a, l) => a + l.cantidad, 0);
   const vence = sumarDiasIso(hoy, PLAZO_DIAS);
-  const formulario: FormularioApartado = {
-    ...f,
-    asesoraId: vendedoraDeLaVenta(turno.vendedoras, elegidaId),
-    faltaAsesora: vendedoraPendiente(turno.vendedoras, elegidaId),
-  };
+  // Quién atiende ya no se valida como campo del formulario: lo exige el combo «Responsable», que apaga el botón.
+  const formulario: FormularioApartado = { ...f, asesoraId: responsable.elegidoId, faltaAsesora: false };
   const errores = erroresDelApartado(formulario, total);
   const pasoForm = pasoDelApartado(errores);
   const adelanto = Math.min(adelantoDe(f.pagos), total);
@@ -157,10 +155,10 @@ export function ApartarVista({
 
   async function confirmar() {
     setIntento(true);
-    if (Object.keys(errores).length > 0 || !cajaAbierta) return;
+    if (Object.keys(errores).length > 0 || !cajaAbierta || !responsable.listo) return;
     setEnviando(true);
     const supabase = createClient();
-    const { data: id, error } = await supabase.rpc("separar_prendas", {
+    const { data: id, error } = await firmar(supabase.rpc("separar_prendas", {
       p_ubicacion_id: ubicacionId,
       p_items: lineas.map((l) => {
         const p = porId.get(l.varianteId)!;
@@ -177,10 +175,12 @@ export function ApartarVista({
       p_devolucion_medio: f.devolucionMedio,
       p_devolucion_numero: f.devolucionMedio === "transferencia" ? undefined : soloDigitos(f.devolucionNumero) || undefined,
       p_devolucion_cci: f.devolucionMedio === "transferencia" ? soloDigitos(f.devolucionCci) : undefined,
-      p_asesora_id: formulario.asesoraId ?? undefined,
+      p_asesora_id: responsable.elegidoId ?? undefined,
       p_nota: nota.trim() || undefined,
       p_token: token.current,
-    });
+    }), responsable.firma());
+    // Éxito → el combo vuelve a vacío; rechazo por el responsable (marcó salida) → vacía y relee la lista.
+    responsable.despues(error);
     if (error || !id) {
       setEnviando(false);
       avisar.error(traducirError(error, "registrar el apartado", { confirmarAntesDeRepetir: true }));
@@ -201,7 +201,6 @@ export function ApartarVista({
     setLineas([]);
     setNota("");
     setF(FORMULARIO_VACIO);
-    setElegidaId(null);
     setIntento(false);
     setPaso("ticket");
     setUltima(null);
@@ -438,11 +437,6 @@ export function ApartarVista({
                   )}
                 </fieldset>
 
-                <div className="-mx-5">
-                  <VendedorasFila vendedoras={turno.vendedoras} elegidaId={elegidaId} onElegir={setElegidaId} noCargaron={turno.noCargaron} deshabilitada={enviando} sinAsistencia={turno.sinAsistencia} />
-                  {ver("asesora") && <p className="px-5 pt-1 text-xs text-rojo-profundo">{ver("asesora")}</p>}
-                </div>
-
                 <fieldset className="space-y-2">
                   <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><Wallet className="h-3.5 w-3.5" aria-hidden /> Adelanto · cómo pagó la clienta</legend>
                   <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1">
@@ -538,12 +532,19 @@ export function ApartarVista({
                   <p className="font-display text-[44px] leading-none text-tinta tabular-nums">{money(adelanto)}</p>
                 </div>
               </div>
-              <button type="button" disabled={enviando || !cajaAbierta} onClick={confirmar} className={BOTON_PRINCIPAL}>
+              {/* El combo «Responsable» (ADR-0161), justo encima del botón que guarda, como en Cobrar. La lista se abre
+                  hacia arriba: debajo solo está el botón. Sin caja abierta no se muestra: no hay nada que firmar. */}
+              {cajaAbierta && <ComboResponsable control={responsable} hacia="arriba" deshabilitado={enviando} />}
+              <button type="button" disabled={enviando || !cajaAbierta || !responsable.listo} title={cajaAbierta ? (responsable.motivo ?? undefined) : undefined} onClick={confirmar} className={BOTON_PRINCIPAL}>
                 <span className="label-cayla flex items-center gap-2.5 text-[11px]"><Bookmark className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Confirmar apartado"}</span>
                 <span className="font-display text-xl tabular-nums">{money(adelanto)}</span>
               </button>
               <p className={`text-center text-xs ${intento && Object.keys(errores).length ? "text-rojo-profundo" : "text-tinta/55"}`}>
-                {!cajaAbierta ? "Abre la caja para poder apartar." : intento && Object.keys(errores).length ? Object.values(errores)[0] : TEXTO_PASO_APARTADO[pasoForm]}
+                {!cajaAbierta
+                  ? "Abre la caja para poder apartar."
+                  : intento && Object.keys(errores).length
+                    ? Object.values(errores)[0]
+                    : (responsable.motivo ?? TEXTO_PASO_APARTADO[pasoForm])}
               </p>
             </div>
           </>

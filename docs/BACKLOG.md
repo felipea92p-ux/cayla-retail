@@ -28,6 +28,37 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Terminales sin persona, como en Dynamic (2026-09-22, ADR-0162) — CONSTRUIDO en la rama `claude/responsable-y-roles-spike` (PR #285); falta pegar en producción y publicar
+- [x] Investigado Dynamic (`public.terminales`, cuenta de Auth sin persona, `fn_sede_actual_terminal`, script de alta, sin PIN) y medido en producción: 75 funciones de retail buscan persona (~65 con un reemplazo mecánico, 10 a mano).
+- [x] Plan en `docs/adr/0162-terminales-sin-persona-como-dynamic.md`; spike, pantallas 5 y 6. Aprobado por Felipe.
+- [x] **F1:** el encabezado `x-responsable` llega por PostgREST (local con `curl` y `supabase-js`; en producción, el CORS ya lo acepta).
+- [x] **F2** `20260923010000_terminales_sin_persona.sql`: `retail.terminales`, `fn_terminal_actual`, `fn_persona_presente`, `fn_actor_persona_id`, `fn_exige_responsable` (apagado), `terminal_id` + `trg_sellar_terminal` en 10 tablas, `fn_terminales`/`desactivar_terminal`/`reactivar_terminal`, retiro de `colaboradores.terminal` y `agregar_terminal`. `pnpm pruebas:terminales-sin-persona` 34/34.
+- [x] **F3** `20260923100000_actor_firma_las_operaciones.sql`: 65 funciones firman con `fn_actor_persona_id` (36 de tienda, 29 no), cotejadas contra producción en solo lectura. Terminal sin tope de descuento y libera apartados siempre (Felipe). `pnpm pruebas:actor-firma` 30/30, `pnpm pruebas:terminales` (reescrita) 74/74.
+- [x] **F4a** web: sesión de terminal por `requirePersonaActualV2`, pie del lateral con el aparato, aviso de terminal desactivada en `/login`, pestaña Colaboradores ▸ Terminales (Desactivar / Reactivar).
+- [x] **F5** script `pnpm terminales:crear` (+ `pnpm terminales:probar`), sin correr contra ningún entorno.
+- [ ] **Pegar en producción, en orden:** F2 `20260923010000` → F3 `20260923100000`, cada una empezando con `set search_path to retail, public, extensions;`. Si después se pegan «apartar stock» o «comprador de tienda», **volver a pegar la F3** (hoy las omite con aviso porque producción no las tiene). Pedir OK a Felipe antes.
+- [ ] Publicar la web (fusionar el PR #285; lo fusiona Felipe).
+- [ ] Felipe crea las 6 terminales (ventas y administrativa de TRU/AQP/LIM) con `pnpm terminales:crear`. **No crear personas en Dynamic.**
+- [ ] `pnpm datos:generar:produccion` + `pnpm datos:comparar` después de pegar, para que `terminales` y las funciones nuevas entren al diccionario.
+- [ ] Verificar con una terminal de verdad en TRU (aún no se probó con la sesión de un aparato en el navegador; sí con la de un líder).
+- [x] La migración del ADR-0160 **ya está pegada** en producción, con 0 terminales dadas de alta.
+
+## 🎯 Responsable en cada operación + roles retomados (2026-09-22, ADR-0161) — combo Responsable CONSTRUIDO (F4b, PR #285); roles en otra rama
+- [ ] **Más adelante (Felipe, 2026-09-22: «no es tan importante por ahora»):** guardar quién crea o cambia marcas (`retail.marcas` no tiene columna de firma) y anotar los cambios de NOMBRE de una prenda en el historial (`fn_registrar_cambio_producto` solo registra categoría, estado, marca, proveedor, precio y costo). Hoy el combo se pide en Catálogo pero esos dos casos no dejan rastro.
+- [x] **Decisiones de Felipe** (4 rondas): combo «Responsable» vacío en cada acción que guarda, solo el nombre, solo quien marcó entrada hoy en esa tienda y no salió, bloqueo si no hay nadie (también LIM y también el líder desde casa), en todas las cuentas para la operación de tienda. Roles simplificados después a «ve / no ve» por módulo.
+- [x] **Spike visual:** `docs/maquetas/responsable-y-roles-spike-2026-09/` (editor de roles, combo en una venta, cierre de caja, nadie de turno).
+- [x] **Spike aprobado.** En pausa NO firma ni opera; sin conexión vale la hora de la venta.
+- [x] **(a) Responsable, en la base:** lo resuelve `fn_actor_persona_id` del ADR-0162 (no hizo falta un `fn_responsable_actual()` aparte ni una columna `responsable_id`: `usuario_id` es el responsable y `terminal_id` el aparato).
+- [x] **(a) Responsable, en la web (F4b):** `lib/responsable-reglas.ts` (+ test), `lib/useDeTurno.ts`, `lib/useResponsable.ts`, `components/ComboResponsable.tsx`, `components/SedeActiva.tsx`; encabezados `x-responsable` / `x-ubicacion` / `x-momento`. Conectado en Punto de venta (reemplaza la fila «Atendió» del ADR-0163) y ventas sin conexión, Caja, Cambios, Devoluciones, Facturación, Inventario y Catálogo (lista en el ADR-0161, «F4b»).
+- [x] **Verificado en navegador** (Postgres local, sesión de líder): abrir caja, cobrar (nota de venta), egreso de caja y cerrar caja → combo vacío, botón apagado hasta elegir, vuelve a vacío, y en la base firma la persona ELEGIDA.
+- [ ] Encender `fn_exige_responsable()` (`create or replace … select true`) **solo después** de publicar la web y de revisar que no quede una escritura de tienda sin combo; si no, la base rechaza a una persona sin encabezado con `responsable_requerido`.
+- [ ] (b) **Roles «ve / no ve» por módulo:** en construcción en otra rama (`claude/roles-por-modulo`), **no está en el PR #285**.
+- [ ] LIM no podrá guardar nada hasta que se cargue su asistencia en Dynamic (decisión A5). En el Postgres local (sin `marcajes`/`jornadas`) todo queda bloqueado igual: es la regla, no un error.
+- [ ] **Decide Felipe:** ¿«Pedidos no atendidos» es operación de tienda (lleva combo)? Hoy no tiene combo; su función ya firma con `fn_actor_persona_id(true)`.
+- [x] **Decide Felipe:** la terminal descuenta sin tope, pero como no es líder, un descuento manual por línea le sigue exigiendo un código de descuento válido (`venta_descuento_requiere_codigo`, `registrar_venta`). ¿Se deja así o la terminal queda libre del código también? **Decidido (Felipe, 2026-09-22): la terminal pide código, como una colaboradora.**
+- [ ] **Límite conocido:** un Punto de venta abierto SIN conexión desde el inicio no carga la lista del combo y no puede vender sin conexión hasta que la cargue una vez con red.
+- [x] ~~Alinear la fila «Atendió» del ADR-0163 con el ADR-0161~~: hecho en F4b (el combo la reemplaza; vacío siempre y bloqueo).
+
 ## 🎯 «Quién vendió» en el ticket del Punto de venta (2026-09-22, ADR-0163) — rehecho sobre la asistencia de Dynamic; migración en producción, falta fusionar la web
 Un solo equipo de caja y varias colaboradoras por tienda. La fila «Atendió» ofrece a quienes marcaron entrada hoy en Dynamic (`fn_asesoras_de_turno`) y la venta se guarda en `ventas.asesora_id` — ambas ya en producción desde la 20260922150000 (ADR-0153). Decisión en [docs/adr/0163-vendedora-en-el-ticket.md](adr/0163-vendedora-en-el-ticket.md).
 - [x] Primera versión con columna propia (`vendedora_id`) e interruptor del líder: verificada en navegador el 2026-09-22, pero chocaba con la 150000 de main (dos columnas, dos `registrar_venta`). **Descartada al fusionar main**: se borró la 20260922143700 (nunca se pegó) y el modal del líder.
@@ -49,14 +80,14 @@ Tercera opción del comprobante: Boleta | Factura | Nota de venta. Documento int
 - [x] **Hallazgo del CI (PR #286):** en una base armada desde cero, `registrar_venta`, `fn_asesoras_de_turno` y `fn_es_lider_persona` (recreadas/creadas en la 150000) quedaban ejecutables por `PUBLIC` — Postgres lo da por defecto y la regla que lo quita en producción y local vive FUERA de las migraciones. `20260922231700` lo cierra explícito. **No hace falta pegarla:** producción ya tiene `{postgres, authenticated}` en las tres (verificado); aplicada en local sin cambios.
 - [ ] Aparte: pasar a una migración el `alter default privileges ... revoke execute on functions from public` que producción y local tienen a mano, para que una base nueva nazca igual.
 
-## 🎯 Cuentas terminal por tienda (2026-09-21, ADR-0159) — hecho y probado en local; NADA en producción
+## 🎯 Cuentas terminal por tienda (2026-09-21, ADR-0160) — fusionado a `main` (PR #281); migración entregada a Felipe para pegar
 - [x] **Base:** `20260922200000_terminales_por_tienda.sql` (columna `terminal`, `agregar_terminal`, 5 capacidades `fn_puede_*` «líder O terminal», candados inyectados desde la definición real en 13 funciones + 5 disparadores + 15 políticas; `suspender_colaborador`/`reactivar_colaborador` conservan el tipo también tras D-70). `pnpm pruebas:terminales` (75 casos, en el CI) y las 20 del ADR-0143 en verde con esta migración encima.
 - [x] **Web:** menú por terminal (`terminales` en `lib/menu.ts`, falla cerrado, con herencia por D-84), `puede()` / `exigirPermiso()`, la terminal de ventas aterriza en `/vender`, y Caja, Existencias, Productos, Conteo, Traslados, Facturación y Catálogo deciden por permiso; pestaña propia **«Terminales»** en `/colaboradores` (separada de Activos, pedido de Felipe) con «+ Agregar terminal». Fusionado con D-70 (alta con aprobación) y D-84 (subgrupos de menú): la terminal queda **exenta** de la cola de aprobación.
-- [ ] **Pegar la migración en producción — cambio de esquema: confirmar con Felipe antes.** Pasos y verificación en el ADR-0159.
-- [ ] **Felipe:** crear las 6 personas en Dynamic (+ 6 usuarios en Supabase Auth) y dar entrada con «+ Agregar terminal». Quien administra Dynamic debe sacarlas de la marcación (`terminal_roster`) y la planilla.
+- [x] **Pegada en producción** (verificado 2026-09-22: columna y `agregar_terminal` existen, 0 terminales). Queda reemplazada en identidad por el ADR-0162. Antes, prueba en seco contra producción, solo lectura: las 23 funciones y las 15 políticas coinciden, así que no debería abortar. Luego verificar en la base y correr `datos:generar:produccion`.
+- [x] ~~Felipe: crear las 6 personas en Dynamic~~ — **ya no**: el ADR-0162 reemplaza la terminal-persona por una terminal sin persona.
 - [ ] **Probarlas con clics:** nadie ha visto las terminales en el navegador (entrar como terminal exige claves que yo no escribo).
 - [ ] **Compras de la administrativa = ADR-0151** («comprador de tienda»). Esa rama (`claude/adr-0145-compras-permisos`) **no está subida a GitHub**. Conflicto esperado al fusionar: `menu.ts`, `ci.yml`, `package.json`.
-- [ ] El combo «¿quién atiende?» del Punto de Venta (`ventas.vendedor_id`) — otra sesión.
+- [ ] El combo «¿quién atiende?» pasó a ser el combo **Responsable** de todas las operaciones: ADR-0161.
 - [ ] Disparador que impida mover una terminal al Taller llamando `cambiar_ubicacion_colaborador` a mano (la web no lo ofrece; la base no lo impide).
 - [ ] Tras pegar: `pnpm datos:generar:produccion` (la columna `terminal` entra al diccionario).
 
@@ -83,7 +114,7 @@ Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió l
 - [ ] **Revisión adversarial (3 revisores) — lo que quedó abierto a propósito, ADR-0151 «Lo que NO toca»:** Inventario (Existencias y Resumen) sigue contando descontinuadas como sin stock / stock bajo / reponer piso, y «Desactivar» en bloque no toca `variantes.activo` — decidir con Felipe si Inventario sigue a Productos; Inicio cuenta «Productos activos» sobre todas las filas (descontinuadas y el producto especial incluidos); R-48 en `15-COMO-OPERA-CAYLA.md` debe llevar la excepción cuando se decida.
 - [ ] Confirmar con Q2 y Q4a del análisis las cifras de producción que salieron de una lectura de solo lectura hecha por un agente (17 o 18 sin stock activas, 0 para pedir sin descontinuadas, 163 variantes reales).
 
-## 🎯 Roles y permisos a medida (2026-09-22, ADR-0150) — F0 hecha (decisiones + ADR + maqueta); nada aplicado
+## 🎯 Roles y permisos a medida (2026-09-22, ADR-0150) — se abandonó en F1 y se RETOMÓ el mismo día (ADR-0161): ahora con acciones por módulo y con las terminales dentro
 - [x] **F0:** 8 decisiones cerradas por Felipe (roles en tabla; ve/no ve por pantalla; solo el líder administra roles; Facturación no se delega; un rol por persona; piloto Inventario/Almacén; catálogos de Dynamic y retail separados; acceso a retail explícito con ubicación). Maqueta ajustada en `docs/maquetas/roles-spike-2026-09/` (bloqueo «Solo líder por ahora», Archivar rol, historial, Dar acceso, movimiento ADR-0136).
 - [ ] **F1** migración (`roles`, `permisos`, `rol_permisos`, `roles_historial`, `rol_id` en `colaboradores` **y** `colaboradores_suspendidos`, `fn_tiene_permiso`, `fn_mis_permisos`) — comportamiento idéntico al de hoy. **Cambio de esquema en producción: confirmar con Felipe antes de pegar.**
 - [ ] **F2** `permisosDe` de `lib/menu.ts` lee de la base; la fotografía `menu-hoy.golden.json` no debe cambiar · **F3** piloto Inventario/Almacén + pantallas «Asignar rol» y «Roles y accesos» · **F4** Catálogo · **F5** Compras (reaplicar `fn_aplicar_candado_de_dinero()`) · **F6** Producción y ubicación · **F7** limpieza de `esLider`, ARQUITECTURA y diccionario.
@@ -5303,6 +5334,15 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
 - [ ] **Costeo por margen de contribución** (introducido en `0024`) — por qué la
       mano de obra y los gastos fijos del Taller NO entran al costo por prenda y sí
       al resultado mensual del Taller; es una decisión contable, no un descuido.
+- [ ] **Identidad vs. permiso: «quién firma» no es «qué puede hacer la cuenta»** (examen del 2026-09-22,
+      ADR-0162). Felipe acertó en que la terminal no anula aunque elija a una líder, pero lo atribuyó a que la
+      validación «ya existe». Falta el porqué: al cambiar quién firma (`fn_actor_persona_id`), los permisos tienen
+      que seguir mirando la **cuenta** (`fn_es_lider()` falso para la terminal), o elegir a Carmen en el combo, que
+      no pide PIN, le daría a cualquiera los poderes de líder.
+- [ ] **Diagnóstico por descarte: «falla en una tienda y no en las otras» apunta a datos, no a código** (examen
+      del 2026-09-22). Felipe dio el primer paso correcto (¿alguien marcó en AQP?), pero no el siguiente si sí
+      marcaron. Orden: la marca → la marca subida al servidor (el kiosco de Dynamic guarda y sube cada 15 s) → el
+      vínculo `ubicaciones.sede_dynamic_id` → pausa u otra sede.
 
 ## ✅ CERRADO (últimos, con fecha)
 
