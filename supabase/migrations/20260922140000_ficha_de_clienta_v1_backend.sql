@@ -166,13 +166,18 @@ drop policy if exists clientas_select on retail.clientas;
 create policy clientas_select on retail.clientas
   for select using (auth.role() = 'authenticated');
 
+-- CORREGIDO (revisión del PR, 2026-09-21): la primera versión traía policies de INSERT/UPDATE
+-- con el mismo criterio que SELECT ('authenticated'), lo que dejaba escribir la tabla directo
+-- por PostgREST sin pasar por registrar_clienta() — exactamente lo que esa RPC existe para
+-- evitar: el candado de "un upsert con p_acepta_whatsapp=false nunca revoca un consentimiento
+-- ya dado" (Ley 29733) vive SOLO dentro de la función, y una escritura directa a la tabla lo
+-- rodea por completo. Mismo patrón que ya usa el repo para tablas donde la RPC debe ser la
+-- única puerta: retail.colaboradores (0013_colaboradores_autorizados.sql), conteo_items
+-- (0004_rls.sql) y cambios (0007_cambios.sql) tampoco tienen policy de INSERT/UPDATE. clientas
+-- sigue ese mismo patrón: solo SELECT por RLS, escritura exclusiva vía registrar_clienta()
+-- (que es SECURITY DEFINER y por lo tanto no necesita su propia policy de escritura).
 drop policy if exists clientas_insert on retail.clientas;
-create policy clientas_insert on retail.clientas
-  for insert with check (auth.role() = 'authenticated');
-
 drop policy if exists clientas_update on retail.clientas;
-create policy clientas_update on retail.clientas
-  for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 -- Sin política de DELETE a propósito: una clienta no se borra (mismo
 -- criterio que movimientos y los catálogos con historial, CLAUDE.md).
