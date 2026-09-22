@@ -3,7 +3,9 @@ import { tolerar } from "@/lib/resultado";
 import { listarMovimientos, type Movimiento } from "@/lib/movimientos-v2";
 import { ID_CARGO_ESPECIAL, ID_PRODUCTO_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { getTrasladosPorAtender } from "@/lib/traslados";
-import { armarPendientes, primerAviso, sumarUnidades, type PendienteInicio } from "@/lib/inicio-reglas";
+import { getCajaAbierta } from "@/lib/caja";
+import { getUbicaciones } from "@/lib/ubicaciones";
+import { armarPendientes, primerAviso, sumarUnidades, type EstadoHoy, type PendienteInicio } from "@/lib/inicio-reglas";
 
 /** Contrato: dada una sede, devuelve las tres cifras de catálogo y la actividad reciente.
  *  NUNCA lanza: cada bloque falla por su cuenta. Una cifra que no se pudo leer llega como
@@ -85,4 +87,30 @@ export async function getPendientesInicio(ubicacionId: string, esLider: boolean)
       : Promise.resolve(undefined),
   ]);
   return armarPendientes({ traslados, devoluciones });
+}
+
+/**
+ * Contrato: caja, ventas del día y meta de una sede. NUNCA lanza — cada pieza cae por su
+ * cuenta a `null` («no sé»), nunca a 0 («nada vendido»), que en una sede real se leería
+ * como un mal día. `fn_ventas_del_dia` es la misma RPC que ya usa `/caja` (0008_caja_y_pagos.sql):
+ * una sola fuente de verdad para «cuánto llevamos hoy», que Inicio no reinventa.
+ */
+export async function getHoyInicio(ubicacionId: string): Promise<EstadoHoy> {
+  const supabase = await createClient();
+  const [cajaAbierta, ventasHoy, ubicaciones] = await Promise.all([
+    getCajaAbierta(ubicacionId).then(
+      (c) => c !== null,
+      () => null
+    ),
+    supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: ubicacionId }).then(
+      (r) => (r.error ? null : (r.data ?? []).reduce((acc: number, v: { total: number | string }) => acc + Number(v.total), 0)),
+      () => null
+    ),
+    getUbicaciones().catch(() => null),
+  ]);
+  return {
+    cajaAbierta,
+    ventasHoy,
+    metaVentaDiaria: ubicaciones?.find((u) => u.id === ubicacionId)?.metaVentaDiaria ?? null,
+  };
 }

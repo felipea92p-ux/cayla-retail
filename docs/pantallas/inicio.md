@@ -98,14 +98,14 @@ Relevancia = (2·4 + 2 + 9 + 3) / 5 = **4.4** → Comodidad. Con #5–#6 sube a 
 - **Cómo lo verificas tú:** entra como integrante en TRU y llega a «Punto de Venta» en un toque desde Inicio.
 - **Esfuerzo / dependencias:** S · coordinar con la sesión que toca `AppShell.tsx` para no duplicar decisiones.
 
-### #5 · [Reconstruir] Bloque «Hoy en TRU»: ventas, caja y meta
+### #5 · [Reconstruir] Bloque «Hoy en TRU»: ventas, caja y meta — ✅ HECHA 2026-09-22 (`getHoyInicio` + `progresoMeta`, 3 pruebas; visible a todo rol por decisión de Felipe; sin ver en navegador, sin base local)
 - **Dónde:** `page.tsx` (bloque nuevo); leer de `lib/caja.ts` / `lib/panel-serie.ts`, `ubicaciones.meta_venta_diaria`, `ventas`. De dónde leer exactamente: verificarlo al empezar.
 - **Por qué en este puesto:** responde la pregunta real de la líder: ¿cómo va el día? Sin esto Inicio sigue siendo un catálogo.
 - **Cómo lo verificas tú:** registra una venta de prueba en TRU y el monto del día sube en Inicio; abre y cierra caja y el estado cambia.
 - **Esfuerzo / dependencias:** L · después de #3 y de #11.
-- **DECIDÍ:** reutilizar la lectura de Caja/panel ya construida, sin tabla nueva ni caché.
-- **DESCARTÉ:** una vista materializada de «ventas del día», porque con 3 tiendas y pocas decenas de ventas por hora no hay volumen que la justifique y añade otro estado que sincronizar.
-- **SE ROMPE SI:** Caja e Inicio calculan el «hoy» con zonas horarias distintas y una venta de las 23:50 en Lima aparece en el día equivocado en una de las dos.
+- **DECIDÍ:** reutilizar `fn_ventas_del_dia` (la misma RPC que `/caja`) y `getUbicaciones()` (ya cacheado por request), sin tabla nueva ni caché propia; visible a todo rol (decisión de Felipe, 2026-09-22 — transparencia real: caja, ventas del día y meta no comprometen a nadie; costo y margen quedan fuera).
+- **DESCARTÉ:** una vista materializada de «ventas del día», porque con 3 tiendas y pocas decenas de ventas por hora no hay volumen que la justifique y añade otro estado que sincronizar. También descarté ocultarlo a la integrante: ya ve pasar cada venta por caja, y sin la meta el número no le sirve para decidir nada.
+- **SE ROMPE SI:** Caja e Inicio calculan el «hoy» con zonas horarias distintas y una venta de las 23:50 en Lima aparece en el día equivocado en una de las dos — hoy no se rompe porque los dos llaman a la misma RPC.
 
 ### #6 · [Reconstruir] Bandeja «Por atender» que se esconde si no hay nada — ✅ PRIMERA ENTREGA 2026-09-21: traslados por atender (todos) y devoluciones por aprobar (solo líder). FALTA «bajo stock_minimo» (necesita E1 y decidir el umbral); sin commitear, sin ver en navegador
 - **Dónde:** `page.tsx` (bloque nuevo); `lib/traslados.ts:222` (`getTrasladosPorAtender`, ya calculado en el layout), devoluciones por aprobar, `productos.stock_minimo`.

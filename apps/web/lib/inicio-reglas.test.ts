@@ -58,3 +58,19 @@ describe("armarPendientes (la bandeja «Por atender»)", () => {
     expect(armarPendientes({ traslados: 2, devoluciones: undefined }).items.map((i) => i.clave)).toEqual(["traslados"]);
   });
 });
+
+import { progresoMeta } from "./inicio-reglas";
+
+describe("progresoMeta", () => {
+  it("calcula el porcentaje, igual que la barra de Caja", () => {
+    expect(progresoMeta(450, 900)).toBe(50);
+  });
+  it("nunca pasa de 100 aunque se supere la meta", () => {
+    expect(progresoMeta(1200, 900)).toBe(100);
+  });
+  it("sin meta configurada, o venta/meta sin leer: null (no dibuja barra)", () => {
+    expect(progresoMeta(450, null)).toBeNull();
+    expect(progresoMeta(null, 900)).toBeNull();
+    expect(progresoMeta(450, 0)).toBeNull();
+  });
+});

@@ -2,18 +2,24 @@ import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { etiquetaActividad, fechaCorta, textoDelta } from "@/lib/movimientos-v2";
-import { getPendientesInicio, getResumenInicio } from "@/lib/inicio";
-import { textoCifra } from "@/lib/inicio-reglas";
+import { getHoyInicio, getPendientesInicio, getResumenInicio } from "@/lib/inicio";
+import { progresoMeta, textoCifra } from "@/lib/inicio-reglas";
+
+function money(n: number) {
+  return "S/" + n.toFixed(2);
+}
 
 // Inicio: qué hay hoy en la sede y a un toque de lo que se va a hacer. Las lecturas y sus
 // reglas viven en `lib/inicio.ts` / `lib/inicio-reglas.ts`; esta página solo las dibuja.
 export default async function InicioPage() {
   const persona = await requirePersonaActualV2();
-  const [{ productosActivos, variantesActivas, unidadesEnSede, aviso, actividad }, pendientes] = await Promise.all([
+  const [{ productosActivos, variantesActivas, unidadesEnSede, aviso, actividad }, pendientes, hoy] = await Promise.all([
     getResumenInicio(persona.ubicacionId),
     getPendientesInicio(persona.ubicacionId, persona.rol === "lider"),
+    getHoyInicio(persona.ubicacionId),
   ]);
   const movimientosRecientes = actividad.filas;
+  const pct = progresoMeta(hoy.ventasHoy, hoy.metaVentaDiaria);
 
   return (
     <div className="space-y-10">
@@ -22,6 +28,36 @@ export default async function InicioPage() {
         titulo={`Hola, ${persona.nombre.split(" ")[0]}`}
         subtitulo="Lo que hay hoy en tu sede."
       />
+
+      {/* «Hoy»: visible para todo rol (decisión de Felipe, 2026-09-22) — quien vende ya ve
+          pasar cada venta por caja; sin la meta al lado el número no le sirve para decidir
+          nada. Costo y margen no van acá: esos sí comprometen a otra gente. */}
+      <div className="card-cayla p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <p className="label-cayla text-[11px] text-tinta/65">Hoy en tu sede</p>
+          <span
+            className={`label-cayla text-[11px] ${hoy.cajaAbierta ? "text-verde-profundo" : "text-tinta/65"}`}
+          >
+            {hoy.cajaAbierta === null ? "Caja: no se pudo leer" : hoy.cajaAbierta ? "Caja abierta" : "Caja cerrada"}
+          </span>
+        </div>
+        <p className="font-display mt-2 text-3xl text-tinta">
+          {hoy.ventasHoy === null ? "—" : money(hoy.ventasHoy)}
+          {hoy.metaVentaDiaria !== null && (
+            <span className="text-base font-normal text-tinta/50"> de {money(hoy.metaVentaDiaria)}</span>
+          )}
+        </p>
+        {pct !== null && (
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-tinta/10">
+            <div className="h-full rounded-full bg-rojo" style={{ width: `${pct}%` }} />
+          </div>
+        )}
+        {!hoy.cajaAbierta && hoy.cajaAbierta !== null && (
+          <Link href="/caja" className="mt-3 inline-block text-xs text-tinta/70 underline hover:text-rojo">
+            Abrir caja →
+          </Link>
+        )}
+      </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <TarjetaSimple etiqueta="Productos activos" valor={textoCifra(productosActivos)} />

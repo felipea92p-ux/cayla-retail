@@ -52,3 +52,20 @@ export function armarPendientes(c: ConteosPendientes): { items: PendienteInicio[
   }
   return { items, incompleta: c.traslados === null || c.devoluciones === null };
 }
+
+/** El bloque «Hoy en tu sede»: caja, ventas del día y meta. Visible para todo rol —
+ *  la integrante ya ve pasar cada venta por caja; sin la meta al lado el número no
+ *  le sirve para decidir nada (decisión de Felipe, 2026-09-22: transparencia real,
+ *  no jerarquía, en lo que no compromete a otra persona — costo/margen quedan fuera). */
+export type EstadoHoy = {
+  cajaAbierta: boolean | null; // null = no se pudo leer
+  ventasHoy: number | null;
+  metaVentaDiaria: number | null;
+};
+
+/** % de la meta alcanzado, tope 100 (igual que la barra de Caja, `CajaAbiertaPanel.tsx:123`).
+ *  `null` si falta la venta, la meta, o la sede no tiene meta configurada. */
+export function progresoMeta(ventasHoy: number | null, meta: number | null): number | null {
+  if (ventasHoy === null || meta === null || meta <= 0) return null;
+  return Math.min(100, Math.round((ventasHoy / meta) * 100));
+}
