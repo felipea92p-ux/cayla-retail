@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (Existencias: demo del rediseño con la paleta oficial)
+Sobre la guía «Sala de diseño» se armó `docs/maquetas/existencias-rediseno-2026-09/demo.html`: lateral claro (decidido por Felipe), tabla con piso·almacén, cobertura, ritmo 7D, en camino y en la red, modales con el movimiento de ADR-0136 y el loader único con el aviso después (ADR-0149). Felipe pidió decidir viendo, así que la demo trae 3 variantes de cifras y 2 de acciones por fila, más el estado vacío guiado que eligió.
+Felipe se lleva: (1) **una sede vacía no es una pantalla vacía**: es el momento de decirle a la colaboradora por dónde entra la mercadería; (2) la demo se armó con la captura real de TRU, que mostró 3 traslados «completados» con 0 unidades: por eso el piso sigue vacío, y se señala en el estado vacío.
+Sin resolver: elegir variante de cifras (A/B/C) y de acciones (A/B); revisar por qué esos traslados cerraron sin líneas; recién después, llevarlo a `InventarioPanel.tsx`.
 
 ## 2026-09-22 (Conteo físico: demo del rediseño con la guía oficial)
 Felipe pidió rediseñar Conteo sobre la Sala de Diseño y presentarlo en demo. Se decidió: cantidad con los dos modos e interruptor (suma por escaneo / escribir), y los conteos cerrados sin prendas salen «Vacío», fuera de la exactitud, y ya no se podrán cerrar. Se publicó una demo interactiva de los cuatro momentos (abrir, contar, revisar y cerrar, detalle) en `docs/maquetas/conteo-rediseno-2026-09/`.
