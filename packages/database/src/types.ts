@@ -247,6 +247,7 @@ export type Database = {
           cerrada_en: string | null
           cerrada_por: string | null
           diferencia: number | null
+          es_prueba: boolean
           estado: string
           id: string
           monto_apertura: number
@@ -261,6 +262,7 @@ export type Database = {
           cerrada_en?: string | null
           cerrada_por?: string | null
           diferencia?: number | null
+          es_prueba?: boolean
           estado?: string
           id?: string
           monto_apertura: number
@@ -275,6 +277,7 @@ export type Database = {
           cerrada_en?: string | null
           cerrada_por?: string | null
           diferencia?: number | null
+          es_prueba?: boolean
           estado?: string
           id?: string
           monto_apertura?: number
@@ -1439,6 +1442,7 @@ export type Database = {
           cerrado_en: string | null
           cerrado_por: string | null
           created_at: string
+          es_prueba: boolean
           estado: string
           id: string
           numero: number
@@ -1452,6 +1456,7 @@ export type Database = {
           cerrado_en?: string | null
           cerrado_por?: string | null
           created_at?: string
+          es_prueba?: boolean
           estado?: string
           id?: string
           numero?: number
@@ -1465,6 +1470,7 @@ export type Database = {
           cerrado_en?: string | null
           cerrado_por?: string | null
           created_at?: string
+          es_prueba?: boolean
           estado?: string
           id?: string
           numero?: number
@@ -2750,6 +2756,7 @@ export type Database = {
           codigo: string | null
           created_at: string
           descripcion: string | null
+          es_prueba: boolean
           estado: string
           estado_alta: string
           id: string
@@ -2771,6 +2778,7 @@ export type Database = {
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
+          es_prueba?: boolean
           estado?: string
           estado_alta?: string
           id?: string
@@ -2792,6 +2800,7 @@ export type Database = {
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
+          es_prueba?: boolean
           estado?: string
           estado_alta?: string
           id?: string
@@ -3966,6 +3975,7 @@ export type Database = {
           caja_id: string | null
           cliente_id: string | null
           created_at: string
+          es_prueba: boolean
           estado: string
           id: string
           motivo_anulacion: string | null
@@ -3980,6 +3990,7 @@ export type Database = {
           caja_id?: string | null
           cliente_id?: string | null
           created_at?: string
+          es_prueba?: boolean
           estado?: string
           id?: string
           motivo_anulacion?: string | null
@@ -3994,6 +4005,7 @@ export type Database = {
           caja_id?: string | null
           cliente_id?: string | null
           created_at?: string
+          es_prueba?: boolean
           estado?: string
           id?: string
           motivo_anulacion?: string | null

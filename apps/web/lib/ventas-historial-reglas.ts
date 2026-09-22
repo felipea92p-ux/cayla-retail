@@ -38,6 +38,8 @@ export type ParamsHistorial = {
   pago?: string;
   comp?: string;
   cursor?: string;
+  /** «1» incluye los datos de prueba (D-54) en la lista; ausente o cualquier otro valor los deja fuera. */
+  prueba?: string;
 };
 
 export type FiltrosHistorial = {
@@ -51,6 +53,8 @@ export type FiltrosHistorial = {
   pago?: MetodoPago;
   /** «con» / «sin» boleta o factura. Una nota de crédito no cuenta como comprobante de la venta. */
   comprobante: ComprobanteFiltro;
+  /** Ventas marcadas `es_prueba` (D-54, ADR-0152): fuera por defecto, un toggle las trae de vuelta. */
+  incluirPrueba: boolean;
 };
 
 // El cursor tiene la misma forma que el de Movimientos (`created_at` + `id`): no hay una fecha de
@@ -78,6 +82,7 @@ export function filtrosDesdeParams(
     estado: p.estado === "completada" || p.estado === "anulada" ? p.estado : "todas",
     pago: METODOS.find((m) => m === p.pago),
     comprobante: p.comp === "con" || p.comp === "sin" ? p.comp : "todos",
+    incluirPrueba: p.prueba === "1",
   };
 }
 
@@ -118,6 +123,7 @@ export type VentaCruda = {
   created_at: string;
   estado: string;
   nota: string | null;
+  es_prueba?: boolean;
   usuario_id: string | null;
   ubicacion: { id: string; nombre: string } | null;
   cliente: { nombre: string } | null;
@@ -214,6 +220,8 @@ export type FilaHistorial = {
   comprobante: ComprobanteVenta | null;
   anulada: boolean;
   nota: string | null;
+  /** Dato ficticio de prueba (D-54, ADR-0152): solo llega a esta fila con el toggle «Ver datos de prueba». */
+  esPrueba: boolean;
 };
 
 const FORMATO_DIA = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" });
@@ -241,6 +249,7 @@ export function aFila(v: VentaCruda, nombres: ReadonlyMap<string, string>): Fila
     comprobante: elegirComprobante(v.comprobantes),
     anulada: v.estado === "anulada",
     nota: v.nota,
+    esPrueba: v.es_prueba === true,
   };
 }
 
