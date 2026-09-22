@@ -144,8 +144,12 @@ on conflict (auth_user_id) do nothing;
 -- probar ("que RLS de verdad acota por ubicación y no solo funciona porque
 -- todo el mundo es líder"), y que "control total temporal" (0012) había
 -- vuelto imposible de probar hasta ahora.
-insert into retail.colaboradores (persona_id, rol)
-select id, 'lider' from public.personas where auth_user_id = '22222222-2222-4222-8222-000000000001'
+-- `tope_descuento_pct = null` a mano (D-67, 20260922150000_venta_asesora_emisor_descuento_lider.sql):
+-- ese INSERT toma el DEFAULT de la columna (10) porque este seed corre DESPUÉS de todas las
+-- migraciones — el `update ... where rol = 'lider'` de esa migración ya pasó y no ve una fila que
+-- todavía no existe. Sin este null, Felipe (líder) queda con el mismo tope que un colaborador.
+insert into retail.colaboradores (persona_id, rol, tope_descuento_pct)
+select id, 'lider', null from public.personas where auth_user_id = '22222222-2222-4222-8222-000000000001'
 on conflict (persona_id) do nothing;
 
 insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id)

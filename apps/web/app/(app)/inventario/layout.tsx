@@ -1,24 +1,6 @@
-import { InventarioNav } from "@/components/InventarioNav";
-import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getTrasladosPorAtender } from "@/lib/traslados";
-
-// Mismo patrón que `compras/layout.tsx`: el layout solo pone la
-// sub-navegación, cada página resuelve su propia persona y datos. A
-// diferencia de Compras, Inventario no es líder-only — un Colaborador
-// también opera stock, recibe y cuenta, solo con menos permisos dentro de
-// cada pantalla (`esLider` como prop), así que este layout no redirige a
-// nadie. La única pestaña líder-only es Resumen (ADR-0101): acá se decide si
-// se dibuja, igual que el lateral, para que un integrante no vea una pestaña
-// que lo rebota. `requirePersonaActualV2` está cacheada por request: la
-// página no vuelve a consultar.
-export default async function InventarioLayout({ children }: { children: React.ReactNode }) {
-  const persona = await requirePersonaActualV2();
-  // Mismo número que el del lateral (una sola función, cacheada por request: no se consulta dos veces).
-  const trasladosPorAtender = await getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario"));
-  return (
-    <div className="space-y-6">
-      <InventarioNav mostrarResumen={persona.rol === "lider"} contadores={{ "/inventario/traslados": trasladosPorAtender }} />
-      {children}
-    </div>
-  );
+// Inventario ya no lleva sub-navegación propia (2026-09-21, Felipe): entre Existencias, Movimientos, Traslados, Conteo y
+// Análisis se navega solo con el lateral (`lib/menu.ts`, grupo «Inventario»). El layout queda como envoltorio de
+// espaciado: cada página resuelve su persona y sus datos, y `(app)/layout.tsx` ya exige sesión.
+export default function InventarioLayout({ children }: { children: React.ReactNode }) {
+  return <div className="space-y-6">{children}</div>;
 }

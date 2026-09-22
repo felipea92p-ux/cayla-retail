@@ -45,7 +45,7 @@ export type Pajaro = (typeof PAJAROS)[number];
  *  - administrar: dar y quitar acceso, configurar (Colaboradores).
  *  - verDinero:   costos, compras, pagos y comprobantes (ADR-0126: `fn_puede_ver_dinero_de_compras`).
  *  - analizar:    lecturas de decisión de una sede (Análisis de inventario).
- * Y los poderes que una cuenta TERMINAL (ADR-0159) recibe sin ser líder. Cada uno espeja una capacidad de la base
+ * Y los poderes que una cuenta TERMINAL (ADR-0160) recibe sin ser líder. Cada uno espeja una capacidad de la base
  * (`fn_puede_*()` = «líder O terminal de tal tipo»), así que la pantalla y el candado dicen lo mismo:
  *  - facturar:               Facturación (emitir y ver comprobantes). Las anulaciones siguen siendo del líder.
  *  - gestionarCaja:          cerrar caja y mover caja                          (fn_puede_gestionar_caja)
@@ -62,7 +62,7 @@ export type Permiso = (typeof PERMISOS)[number];
 export type RolMenu = "lider" | "integrante";
 
 /**
- * La cuenta TERMINAL de una tienda (ADR-0159): compartida por quien trabaja ahí, una de cada tipo por tienda. Es un
+ * La cuenta TERMINAL de una tienda (ADR-0160): compartida por quien trabaja ahí, una de cada tipo por tienda. Es un
  * integrante fijo a su tienda (`colaboradores.terminal`); `null` es una persona.
  */
 export type TipoTerminal = "ventas" | "administrativa";

@@ -71,7 +71,7 @@ type Persona = {
    *  AppShell y las páginas de Producción; el permiso real lo da la base. */
   ubicacionTipo: "tienda" | "almacen" | "taller";
   puedeCambiarUbicacion: boolean;
-  /** Si esta cuenta es una TERMINAL de su tienda (ADR-0159). Opcional: quien arma el AppShell sin persona real (las
+  /** Si esta cuenta es una TERMINAL de su tienda (ADR-0160). Opcional: quien arma el AppShell sin persona real (las
    *  rutas de prueba) no tiene que saber de terminales; ausente = una persona. */
   terminal?: TipoTerminal | null;
 };

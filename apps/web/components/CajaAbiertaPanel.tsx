@@ -83,7 +83,7 @@ export function CajaAbiertaPanel({
   ubicacionNombre: string;
   personaNombre: string;
   personaRol: "lider" | "integrante";
-  /** ¿Puede cerrar la caja? Un líder o la terminal de ventas (ADR-0159); el candado real está en `cerrar_caja`. */
+  /** ¿Puede cerrar la caja? Un líder o la terminal de ventas (ADR-0160); el candado real está en `cerrar_caja`. */
   puedeCerrar: boolean;
   caja: CajaAbierta;
   resumen: ResumenCaja;

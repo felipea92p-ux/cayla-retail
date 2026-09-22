@@ -115,7 +115,7 @@ export function TablaActivos({
   );
 }
 
-// Cuentas terminal (ADR-0159): mismo patrón visual que TablaActivos —de hecho lee las mismas filas de
+// Cuentas terminal (ADR-0160): mismo patrón visual que TablaActivos —de hecho lee las mismas filas de
 // `fn_colaboradores()`, solo el subconjunto con `terminal` puesto— pero en su propia tabla, para que una cuenta
 // compartida por el equipo no se lea como una persona más en Activos. Sin «Sesión activa» (nadie es «tú» acá) ni
 // columna «Sede en Dynamic» (no aporta nada de una cuenta de servicio): en su lugar, el tipo de terminal.

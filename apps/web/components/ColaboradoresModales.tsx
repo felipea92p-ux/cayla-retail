@@ -310,7 +310,7 @@ export function QuitarAccesoModal({
 }
 
 /**
- * Da entrada a una persona de Dynamic como TERMINAL de una tienda (ADR-0159): una cuenta compartida por quien trabaja ahí.
+ * Da entrada a una persona de Dynamic como TERMINAL de una tienda (ADR-0160): una cuenta compartida por quien trabaja ahí.
  * Sigue la regla del ADR-0145: abre SIN nada elegido y «Agregar» espera a que estén los tres campos. La base rechaza lo
  * que este formulario ya evita (una segunda terminal del mismo tipo en la tienda, el Taller), así que esto es ayuda, no candado.
  */

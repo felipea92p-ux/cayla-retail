@@ -172,8 +172,8 @@ flowchart TB
 
 **Inventario V2 — cuatro pantallas operativas + una de decisión (2026-09-16, ADR-0071;
 quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
-(`AppShell.tsx`, `grupoInventario`) y `inventario/layout.tsx` monta `InventarioNav.tsx`
-con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · Resumen (esta
+(`AppShell.tsx`, `grupoInventario`) —la única navegación entre ellas desde 2026-09-21:
+`inventario/layout.tsx` ya no monta franja de pestañas— con Existencias · Movimientos · Traslados · Conteo · Análisis (esta
 última solo líder). Todo `/inventario/*` va a ancho completo (`SIN_TOPE_DE_ANCHO`).
 - `/inventario` (Existencias) → `lib/inventario-v2.ts:getExistencias` = `getStockPorUbicacion`
   (tabla `stock` agregada por variante) + RPC `fn_stock_por_sede` (dónde más hay, la misma
@@ -190,8 +190,8 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   `TrasladoEstado` / `TrasladoLlegada` / `TrasladoMiniaturas`. Todo lo que se decide (qué requiere
   acción, qué viene en camino, cuántas prendas están en tránsito, el orden por espera) vive en
   `lib/traslados-reglas.ts` (`situacionTraslado`, ADR-0105) y se comparte con el contador «por atender»
-  del menú: `getTrasladosPorAtender` (total, nunca lanza) → `(app)/layout.tsx` e `inventario/layout.tsx`
-  → `AppShell` / `InventarioNav` (`ui/Insignia`). Las fotos se eligen con `lib/producto-fotos-reglas.ts`
+  del menú: `getTrasladosPorAtender` (total, nunca lanza) → `(app)/layout.tsx`
+  → `AppShell` (`ui/Insignia`). Las fotos se eligen con `lib/producto-fotos-reglas.ts`
   (color exacto o general, nunca de otro color) →
   `/inventario/traslados/[id]` → `TrasladoDetallePanel.tsx` (RPC `registrar_recepcion_traslado`,
   `confirmar_traslado`, `cerrar_traslado_con_diferencia`; dice el estado con `TrasladoEstado`).
@@ -395,7 +395,7 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   la Nota de Crédito si el comprobante está aceptado —ADR-0100— y el reembolso opcional; lo
   dañado entra a cuarentena) y `rechazar_devolucion`. Reglas puras en
   `lib/devoluciones-reglas.ts`. `?item=` abre el flujo sobre una prenda (desde y hacia Cambios).
-- `/clientas` (2026-09-22, ADR-0152, D-76/D-77; **pantalla mínima de verificación, sin
+- `/clientas` (2026-09-22, ADR-0154, D-76/D-77; **pantalla mínima de verificación, sin
   engancharse a `lib/menu.ts`** — la captura real en el mostrador es de otra tanda de
   agentes) → `lib/clientas.ts:getClientas` (lectura server) → `ClientasPanel.tsx` (lista +
   buscador + alta) → `lib/clientas-acciones.ts` → RPC `buscar_clienta` / `registrar_clienta`.
@@ -610,11 +610,11 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 - **Sedes/personas**: `sedes`, `personas` (`auth_user_id` único).
 - **Ventas**: `cajas` (una sola caja abierta por sede — índice único
   parcial), `ventas` (1 fila por checkout).
-- **Clientas** (2026-09-22, ADR-0152, D-76/D-77; **migración `20260922140000`, sin
+- **Clientas** (2026-09-22, ADR-0154, D-76/D-77; **migración `20260922140000`, sin
   pegar en producción**): `clientas` (DNI opcional en un solo campo, único cuando no
   es nulo; `whatsapp_consentimiento_en` — NULL = sin permiso, aparte del teléfono,
   Ley 29733; `cumple_dia`/`cumple_mes`; `tallas` jsonb libre). Sustituye a la tabla
-  vieja `retail.clientes` (retirada en la misma migración — ver ADR-0152 «El
+  vieja `retail.clientes` (retirada en la misma migración — ver ADR-0154 «El
   hallazgo»). `ventas.cliente_id` (ya existía) ahora referencia `clientas` vía
   `ventas_clienta_fk`. RLS: cualquier colaborador con sesión, sin noción de «mi
   clienta»; sin política de DELETE.
@@ -657,7 +657,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `fn_movimientos_variantes` / `fn_busqueda_singulares` / `fn_busqueda_formas_color` (2026-09-21, ADR-0071; **en `main` y en local, pendiente en producción**) | El Filtro de búsqueda especial en SQL: `fn_movimientos_variantes(text) returns uuid[]` (misma firma y permisos que antes; NULL si no hay nada escrito) parte lo escrito en términos y exige todos, sobre nombre, SKU, códigos, color y talla; las dos ayudas llevan las reglas de plural, género y alias de color. Espejo de `lib/filtro-busqueda-especial.ts`, atado por `filtro-busqueda-especial.casos.json` y `pnpm pruebas:fn-movimientos-busqueda-especial`. La usa `fn_movimientos_busqueda`. |
 | `fn_movimientos` / `fn_movimientos_resumen` (2026-09-15; **la búsqueda por proceso y los números de traslado/conteo, 2026-09-19, ADR-0127: en producción desde el 2026-09-19**) | Lectura del ledger para la pantalla de Movimientos: una fila plana por movimiento con su proceso resuelto (comprobante, guía, factura, conteo, devolución, cambio), categoría y signo calculados en SQL, filtros y cursor server-side. `p_ubicacion_id` obligatorio; excluye la variante centinela «Cargo especial». Desde ADR-0127 la fila trae además `transferencia_numero` y `conteo_numero` (las dos últimas columnas) y `p_busqueda` entiende «traslado 24», «conteo 12», «boleta 184», «B001-000184», guía y factura de compra (`fn_movimientos_busqueda` + `fn_movimientos_de_comprobante`; la lista y las tarjetas usan la misma). ADR-0050, ADR-0127 |
 
-| `buscar_clienta` / `registrar_clienta` (2026-09-22, ADR-0152; **sin pegar en producción**) | Ficha de clienta v1: `buscar_clienta` por DNI/WhatsApp exactos o nombre ILIKE (término vacío no devuelve filas); `registrar_clienta` alta o upsert por DNI — el consentimiento de WhatsApp solo se marca con `p_acepta_whatsapp=true` en ESA llamada, y un upsert con `false` (el default) nunca revoca uno ya dado. `security definer`, `revoke … from public, anon` (Postgres da EXECUTE a PUBLIC por defecto — sin el revoke, `anon` podía llamarlas). Sin candado de rol: cualquier colaborador con sesión. |
+| `buscar_clienta` / `registrar_clienta` (2026-09-22, ADR-0154; **sin pegar en producción**) | Ficha de clienta v1: `buscar_clienta` por DNI/WhatsApp exactos o nombre ILIKE (término vacío no devuelve filas); `registrar_clienta` alta o upsert por DNI — el consentimiento de WhatsApp solo se marca con `p_acepta_whatsapp=true` en ESA llamada, y un upsert con `false` (el default) nunca revoca uno ya dado. `security definer`, `revoke … from public, anon` (Postgres da EXECUTE a PUBLIC por defecto — sin el revoke, `anon` podía llamarlas). Sin candado de rol: cualquier colaborador con sesión. |
 
 ### 4.3 RLS sin `tenant_id`
 

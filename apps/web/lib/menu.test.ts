@@ -537,7 +537,7 @@ describe("reglas de menuPara", () => {
 });
 
 /* ====================================================================
-   Las cuentas TERMINAL (ADR-0159): dos por tienda, compartidas por quien trabaja ahí. La terminal decide QUÉ MÓDULOS hay
+   Las cuentas TERMINAL (ADR-0160): dos por tienda, compartidas por quien trabaja ahí. La terminal decide QUÉ MÓDULOS hay
    (ventas o administrativa); lo que puede HACER dentro lo dice su permiso (`permisosDe`), que espeja una capacidad de la base.
    El menú de una persona (terminal `null`) no cambia: lo prueban la fotografía de hoy y los invariantes de arriba.
    ==================================================================== */

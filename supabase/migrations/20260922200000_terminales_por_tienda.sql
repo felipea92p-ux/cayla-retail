@@ -1,11 +1,13 @@
 -- ============================================================================
 -- 20260922200000_terminales_por_tienda.sql — CAYLA V2
 --
--- Renumerada al fusionar con main (2026-09-22): tanto el ADR (0152→0159) como esta migración
--- (20260922140000→20260922200000) chocaban con trabajo de otra sesión del mismo día
--- («Ficha de clienta v1»). Mismo contenido, solo los nombres cambiaron.
+-- Renumerada DOS veces al fusionar con main (2026-09-22): el ADR 0152→0159→0160 (colisión con
+-- «Ficha de clienta v1» primero, con «Archivar datos de prueba» después — ese ADR tomó el 0159
+-- que yo mismo había elegido, en un fix de CI de otra sesión que corrió mientras esta rama estaba
+-- abierta). Esta migración, una sola vez: 20260922140000→20260922200000 (chocaba de nombre exacto
+-- con `20260922140000_ficha_de_clienta_v1_backend.sql`). Mismo contenido, solo los nombres cambiaron.
 --
--- ADR-0159. Cuentas TERMINAL por tienda: dos por tienda, compartidas por quien trabaja
+-- ADR-0160. Cuentas TERMINAL por tienda: dos por tienda, compartidas por quien trabaja
 -- ahí — una de VENTAS y una ADMINISTRATIVA.
 --
 -- EL PROBLEMA PRIMERO. Hasta hoy retail solo distingue `lider` y `colaborador`. Una cuenta compartida
@@ -134,15 +136,15 @@ language sql stable set search_path = retail, public, extensions
 as $$ select fn_es_lider(); $$;
 
 comment on function retail.fn_puede_dar_descuento_por_etiqueta() is
-  'Solo el líder: asignar una etiqueta con descuento a una prenda al crearla (ADR-0159). Punto único para abrirlo el día que se decida.';
+  'Solo el líder: asignar una etiqueta con descuento a una prenda al crearla (ADR-0160). Punto único para abrirlo el día que se decida.';
 comment on function retail.fn_puede_gestionar_caja() is
-  'Líder o terminal de ventas: cerrar caja y mover caja (ADR-0159; refina ADR-0143).';
+  'Líder o terminal de ventas: cerrar caja y mover caja (ADR-0160; refina ADR-0143).';
 comment on function retail.fn_puede_ajustar_inventario() is
-  'Líder o terminal administrativa: ajustar stock, cerrar conteo y cerrar un traslado con diferencia (ADR-0159; refina ADR-0143).';
+  'Líder o terminal administrativa: ajustar stock, cerrar conteo y cerrar un traslado con diferencia (ADR-0160; refina ADR-0143).';
 comment on function retail.fn_puede_editar_catalogo() is
-  'Líder o terminal administrativa: escribir en el Catálogo (ADR-0159). Las etiquetas NO entran: llevan descuentos.';
+  'Líder o terminal administrativa: escribir en el Catálogo (ADR-0160). Las etiquetas NO entran: llevan descuentos.';
 comment on function retail.fn_puede_editar_cuentas_proveedor() is
-  'Líder o terminal administrativa: cuentas bancarias de proveedores (ADR-0159).';
+  'Líder o terminal administrativa: cuentas bancarias de proveedores (ADR-0160).';
 
 -- ==================== 4. El alta de una terminal ====================
 -- Copia de `agregar_colaborador` (definición de producción del 2026-09-21) con tres diferencias: pide el

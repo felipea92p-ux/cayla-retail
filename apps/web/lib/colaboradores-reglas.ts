@@ -12,7 +12,7 @@ import type { TipoTerminal } from "./menu";
 
 export const ETIQUETA_ROL: Record<RolColaborador, string> = { lider: "Líder", colaborador: "Colaborador" };
 
-/** Cómo se lee una cuenta terminal en la tabla (ADR-0159). */
+/** Cómo se lee una cuenta terminal en la tabla (ADR-0160). */
 export const ETIQUETA_TERMINAL: Record<TipoTerminal, string> = { ventas: "Terminal de ventas", administrativa: "Terminal administrativa" };
 
 const sinTildes = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -47,7 +47,7 @@ export type ResumenAccesos = {
 /** Los cuatro números de arriba, todos derivados de las listas reales (nada inventado). Recibe TODO `activos` (personas
  *  y terminales juntas, tal como llega de `fn_colaboradores()`): «con acceso» y «cuentas de Dynamic» cuentan a las dos
  *  por igual —una terminal sí tiene acceso y sí es una cuenta de Dynamic—, pero «Líderes»/«Colaboradores» son un conteo
- *  de PERSONAS y una cuenta compartida no es una persona (ADR-0159) — se resta antes de repartir entre las dos. */
+ *  de PERSONAS y una cuenta compartida no es una persona (ADR-0160) — se resta antes de repartir entre las dos. */
 export function resumirAccesos(
   activos: readonly Colaborador[],
   suspendidos: readonly ColaboradorSuspendido[],
@@ -78,7 +78,7 @@ export type AccionFila = "cambiar_ubicacion" | "suspender" | "quitar";
 
 export function accionesDeFila(c: Pick<Colaborador, "rol" | "es_yo" | "terminal">): AccionFila[] {
   if (c.es_yo) return [];
-  // Una terminal no se muda: está fija a UNA tienda por diseño (ADR-0159) y `agregar_terminal` solo acepta tiendas. Para
+  // Una terminal no se muda: está fija a UNA tienda por diseño (ADR-0160) y `agregar_terminal` solo acepta tiendas. Para
   // moverla se quita y se agrega otra; así nunca queda una terminal en el Taller.
   if (c.terminal) return ["suspender", "quitar"];
   return c.rol === "colaborador" ? ["cambiar_ubicacion", "suspender", "quitar"] : ["suspender", "quitar"];

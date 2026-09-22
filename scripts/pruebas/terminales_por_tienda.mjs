@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas de las cuentas TERMINAL por tienda (ADR-0159, migración `20260922200000_terminales_por_tienda.sql`)
+ * Pruebas de las cuentas TERMINAL por tienda (ADR-0160, migración `20260922200000_terminales_por_tienda.sql`)
  * contra el Postgres local — CAYLA V2.
  *
  * QUÉ PRUEBA. Que los poderes de cada terminal estén EN LA BASE y no solo en el menú, y que NADA MÁS se haya

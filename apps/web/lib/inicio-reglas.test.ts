@@ -9,7 +9,7 @@ describe("mostrarHoy", () => {
   });
 });
 
-describe("Inicio de la terminal administrativa (ADR-0159)", () => {
+describe("Inicio de la terminal administrativa (ADR-0160)", () => {
   const admin = { rol: "integrante", ubicacionTipo: "tienda", terminal: "administrativa" } as const;
 
   it("no muestra «Hoy»: no vende, y su menú no tiene Ventas", () => {

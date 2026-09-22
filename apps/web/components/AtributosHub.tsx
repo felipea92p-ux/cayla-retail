@@ -91,7 +91,7 @@ export function AtributosHub({
   categorias: ComponentProps<typeof EtiquetasLista>["categorias"];
   prendasConCosto: ComponentProps<typeof EtiquetasLista>["prendasConCosto"];
   variantesManuales: ComponentProps<typeof EtiquetasLista>["variantesManuales"];
-  /** Colores, tallas, tejidos y patrones: el líder o la terminal administrativa (ADR-0159). */
+  /** Colores, tallas, tejidos y patrones: el líder o la terminal administrativa (ADR-0160). */
   puedeEditar: boolean;
   /** Etiquetas: SOLO el líder — pueden llevar descuento, que es poder de precios. */
   puedeEditarEtiquetas: boolean;

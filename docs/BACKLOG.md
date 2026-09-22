@@ -39,7 +39,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] Disparador que impida mover una terminal al Taller llamando `cambiar_ubicacion_colaborador` a mano (la web no lo ofrece; la base no lo impide).
 - [ ] Tras pegar: `pnpm datos:generar:produccion` (la columna `terminal` entra al diccionario).
 
-## 🎯 Ficha de clienta v1, backend (2026-09-22, ADR-0152, D-76/D-77) — hecho en local, FALTA PEGAR 1 MIGRACIÓN EN PRODUCCIÓN
+## 🎯 Ficha de clienta v1, backend (2026-09-22, ADR-0154, D-76/D-77) — hecho en local, FALTA PEGAR 1 MIGRACIÓN EN PRODUCCIÓN
 Tabla `retail.clientas` + RPC `buscar_clienta`/`registrar_clienta`. La FK de `ventas.cliente_id` se repuntó desde la tabla vieja `retail.clientes`
 (se retira — ~0 filas en producción, pero dos lectores activos que también se actualizaron: `fn_ventas_del_dia` y el embed de Ventas ▸ Historial).
 16 pruebas en verde con un Postgres 17 desechable que corrió las 195 migraciones del repo en orden (`pnpm pruebas:clientas`).
@@ -134,9 +134,9 @@ Análisis completo en [docs/pantallas/colaboradores.md](pantallas/colaboradores.
 
 ## 🎯 Producto / variante: una sola celda en Existencias y Conteo (2026-09-21, anexo del ADR-0071) — hecho y verificado en local; en `main`
 - [x] `ProductoVarianteCelda` (`ui/PrendaCelda.tsx`) en Existencias, «Conviene contar primero» y el detalle de un conteo; encabezado «Producto / variante» en Existencias y en ese detalle. `lib/apariencia-variantes.ts` trae foto principal + `colorHex` con la regla de Existencias (degrada sin tumbar la pantalla); `fotoPrincipal` pasó a `inventario-reglas.ts` (+4 pruebas); `LineaConteo` gana `colorHex` y `fotoUrl`. Sin cambios de base. Verificado en el navegador integrado (320–1920 px, fotos sembradas y retiradas, consulta rota a propósito).
-- [ ] Movimientos (`MovimientosLista.tsx`, «Prenda · variante»), Traslados › detalle y Desempeño/Comparar siguen con el encabezado viejo y/o la celda de texto de `PrendaCelda`; Felipe pidió solo Existencias y Conteo. Decidir si pasan a `ProductoVarianteCelda` (Movimientos y Traslados › detalle necesitan `colorHex` en su dato).
+- [ ] Traslados › detalle sigue con la celda de texto de `PrendaCelda`. (2026-09-21: Movimientos, Desempeño y Detalle por producto ya usan `ProductoVarianteCelda` con el encabezado «Producto / variante»; Movimientos muestra el color en texto y sin foto —su dato no trae `colorHex` ni `fotoUrl`—, y las filas de Análisis tampoco traen foto. Sumarlos a sus consultas si se quiere la cápsula y la miniatura.)
 - [ ] Conteo abierto (buscador, líneas ya contadas y modal «Revisar antes de cerrar») sigue en texto plano: es un flujo de escaneo donde la densidad importa y solo se ve con un conteo abierto (escribe en la base). Es la misma celda si se quiere. Para contar, la foto del COLOR (la prenda que se tiene en la mano) ayudaría más que la principal del producto; hoy Existencias usa la principal.
-- [ ] Las pestañas de Inventario tienen scroll horizontal de página a ≤ 360 px (7 px a 360, 47 a 320), también en Movimientos y Traslados: causa sin identificar, no viene de la celda.
+- [ ] Las pestañas de Inventario tienen scroll horizontal de página a ≤ 360 px (7 px a 360, 47 a 320), también en Movimientos y Traslados: causa sin identificar, no viene de la celda. (2026-09-21: la franja de pestañas se quitó; falta comprobar a ≤ 360 px si el scroll de página desaparece con ella.)
 
 ## 🎯 Candado de líder: solo el líder cierra la caja y ajusta stock (2026-09-21, ADR-0143) — hecho en local, falta pegar en producción
 - [x] Migración `20260921120000` (renumerada desde `20260921110000` el 2026-09-21 por chocar con Por pagar de Producción, que ya estaba en producción; `cerrar_caja` y `registrar_movimiento` exigen `fn_es_lider()`, 42501), prueba `pruebas:candado-lider` (20/20; 9/20 contra las funciones de producción sin candado), escenario C2 de `caja:verificar` ajustado, y cinco botones escondidos a quien no es líder (Caja, Punto de Venta, Existencias, Productos en lista y en grilla).

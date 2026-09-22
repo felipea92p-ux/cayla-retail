@@ -77,7 +77,7 @@ export function ColaboradoresPanel({
 
   // Separadas UNA vez acá: el resto del panel (KPIs, buscador, pestaña Activos) trabaja solo con personas reales;
   // «Terminales» es la única pestaña que lee `terminales`. Los datos son los mismos `fn_colaboradores()`, no una
-  // lectura aparte — separar es cosa de la pantalla, no de la base (ver ADR-0159).
+  // lectura aparte — separar es cosa de la pantalla, no de la base (ver ADR-0160).
   const colaboradoresReales = useMemo(() => colaboradores.filter((c) => !c.terminal), [colaboradores]);
   const terminales = useMemo(() => colaboradores.filter((c) => c.terminal), [colaboradores]);
   const resumen = useMemo(() => resumirAccesos(colaboradores, suspendidos, disponibles), [colaboradores, suspendidos, disponibles]);
@@ -214,7 +214,7 @@ export function ColaboradoresPanel({
           ) : (
             <>
               <p className="text-sm text-tinta/70">
-                Cuentas compartidas por el equipo de una tienda (ADR-0159), no personas — por eso viven aparte de Activos. La de ventas cobra, cierra caja y
+                Cuentas compartidas por el equipo de una tienda (ADR-0160), no personas — por eso viven aparte de Activos. La de ventas cobra, cierra caja y
                 factura; la administrativa ajusta inventario, escribe en el catálogo y edita las cuentas de proveedores.
               </p>
               <TablaTerminales filas={terminales} ocupadoId={ocupadoId} onAccion={alElegirAccion} />

@@ -43,7 +43,7 @@ export type TrasladoLeible = {
 export type ContextoTraslados = {
   miUbicacionId: string;
   /** Quién puede cerrar un traslado con diferencia (`cerrar_traslado_con_diferencia`): un líder o la terminal administrativa
-   *  (ADR-0159, `fn_puede_ajustar_inventario`). Antes se llamaba `esLider`. */
+   *  (ADR-0160, `fn_puede_ajustar_inventario`). Antes se llamaba `esLider`. */
   puedeCerrarDiferencia: boolean;
   /** El «ahora» con el que se calcula todo. Lo fija el servidor y se pasa hacia abajo para
    *  que el HTML del servidor y el del navegador digan exactamente lo mismo («hace 1 h»). */

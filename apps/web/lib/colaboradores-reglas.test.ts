@@ -114,7 +114,7 @@ describe("accionesDeFila", () => {
     expect(accionesDeFila({ rol: "lider", es_yo: false })).toEqual(["suspender", "quitar"]);
   });
 
-  it("una terminal (ADR-0159) no se muda de tienda: solo se suspende o se quita — así nunca queda una en el Taller", () => {
+  it("una terminal (ADR-0160) no se muda de tienda: solo se suspende o se quita — así nunca queda una en el Taller", () => {
     expect(accionesDeFila({ rol: "colaborador", es_yo: false, terminal: "ventas" })).toEqual(["suspender", "quitar"]);
     expect(accionesDeFila({ rol: "colaborador", es_yo: false, terminal: "administrativa" })).toEqual(["suspender", "quitar"]);
   });

@@ -59,7 +59,7 @@ export function FiltrosHistorialVentas({
   pago: string;
   sede: string;
   vendedor: string;
-  /** D-54 (ADR-0152): con el toggle apagado (el default) las ventas `es_prueba` ni siquiera llegan de la base. */
+  /** D-54 (ADR-0159): con el toggle apagado (el default) las ventas `es_prueba` ni siquiera llegan de la base. */
   incluirPrueba: boolean;
 }) {
   const router = useRouter();
@@ -112,7 +112,7 @@ export function FiltrosHistorialVentas({
           <Pastilla activa={mostrarFechas} onClick={() => setPersonalizadoAbierto(true)}>
             Personalizado
           </Pastilla>
-          {/* D-54 (ADR-0152): apagado por defecto — las ventas de prueba (archivadas, nunca borradas) ni
+          {/* D-54 (ADR-0159): apagado por defecto — las ventas de prueba (archivadas, nunca borradas) ni
               siquiera se piden a la base. Aparte de las demás píldoras porque no es un filtro del día a
               día, es una excepción puntual («¿dónde quedó esa venta de prueba de antes de salir en vivo?»). */}
           <Pastilla activa={incluirPrueba} onClick={() => aplicar({ prueba: incluirPrueba ? "" : "1" })}>

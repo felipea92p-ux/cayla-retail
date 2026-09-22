@@ -1,9 +1,9 @@
-# ADR-0159 — Cuentas terminal por tienda: dos por tienda, compartidas, con los poderes de un solo oficio
+# ADR-0160 — Cuentas terminal por tienda: dos por tienda, compartidas, con los poderes de un solo oficio
 
 **Fecha:** 2026-09-21
 **Estado:** **Implementado en la rama `claude/terminales-cuentas-129fd4`, probado en local. NADA aplicado en producción**: falta pegar la migración `20260922200000_terminales_por_tienda.sql` (cambio de esquema: **se detiene y se confirma antes de pegar**), crear las 6 personas en Dynamic y darles entrada.
 **Decide:** Felipe, el 2026-09-21 (respuestas en «Lo que dijo el negocio»). Arquitectura: este documento.
-**Número:** asignado al fusionar `origin/main` (2026-09-22) — `0150` es «roles y permisos a medida» (abandonado), `0151` es «Compras por tienda» (rama `claude/adr-0145-compras-permisos`, sin subir a GitHub), y `0152` ya lo tomaron CUATRO ADR distintos de otras sesiones el mismo día (`archivar-datos-de-prueba`, `contrato-de-venta-ampliado`, `ficha-de-clienta-v1`, `pedido-no-atendido-en-un-toque`). `0153`–`0158` también ocupados; `0159` es el primero libre. Misma renumeración en la migración: `20260922140000` → `20260922200000` (chocaba con `ficha_de_clienta_v1_backend`).
+**Número:** renumerado DOS veces al fusionar `origin/main` (2026-09-22). Primero `0152` → `0159`: ese número ya lo tenían cuatro ADR de otras sesiones el mismo día (`archivar-datos-de-prueba`, `contrato-de-venta-ampliado`, `ficha-de-clienta-v1`, `pedido-no-atendido-en-un-toque`) y `0153`–`0158` también estaban ocupados. Al volver a fusionar, otra sesión había corrido un `fix(ci)` que renumeró justo `archivar-datos-de-prueba` a **`0159`** — el número que yo acababa de tomar — así que se renumeró otra vez, a **`0160`** (primero libre). La migración se renumeró una sola vez: `20260922140000` → `20260922200000` (chocaba de nombre exacto con `ficha_de_clienta_v1_backend`).
 **Refina** ADR-0143 (solo el líder cierra la caja y ajusta stock) y **revierte en parte** ADR-0126 y ADR-0143 *para una cuenta que no es una persona*. **No toca** `fn_puede_registrar_compras()` ni `fn_puede_ver_dinero_de_compras()`: el Compras de la terminal administrativa es de ADR-0151.
 
 ## Lo que dijo el negocio (2026-09-21)

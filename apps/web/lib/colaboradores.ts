@@ -20,7 +20,7 @@ export type Colaborador = {
   /** La persona que está mirando la pantalla: a ella no se le ofrece suspenderse ni quitarse. */
   es_yo: boolean;
   ultimo_acceso: string | null;
-  /** Si es una cuenta TERMINAL de su tienda (ADR-0159) y de qué tipo; `null` o ausente = una persona. */
+  /** Si es una cuenta TERMINAL de su tienda (ADR-0160) y de qué tipo; `null` o ausente = una persona. */
   terminal?: TipoTerminal | null;
 };
 
@@ -86,7 +86,7 @@ export async function getColaboradores(): Promise<Colaborador[]> {
   const supabase = await createClient();
   const [res, resTerminales] = await Promise.all([
     supabase.rpc("fn_colaboradores"),
-    // El tipo de terminal (ADR-0159) se lee APARTE: `fn_colaboradores()` no lo devuelve y agregárselo exigiría borrarla y
+    // El tipo de terminal (ADR-0160) se lee APARTE: `fn_colaboradores()` no lo devuelve y agregárselo exigiría borrarla y
     // recrearla (cambiar el tipo de retorno no admite `create or replace`). Solo el líder lee `colaboradores` (RLS) y esta
     // pantalla es de líder. Si la columna aún no existe en esa base (la web se desplegó antes que la migración) el error
     // se ignora: nadie sale como terminal, que es el lado seguro.

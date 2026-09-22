@@ -369,7 +369,7 @@ exito(
   "el candado de líder va PRIMERO y el de ubicación se CONSERVA después (fn_puede_operar_ubicacion sigue en las dos funciones) — listo para cuando R-48 acote al líder a su sede",
   comoPersona(
     FELIPE,
-    // La puerta de líder es `fn_es_lider()` o, desde ADR-0159 (terminales), su capacidad —«líder o terminal»—:
+    // La puerta de líder es `fn_es_lider()` o, desde ADR-0160 (terminales), su capacidad —«líder o terminal»—:
     // `fn_puede_gestionar_caja()` en cerrar_caja y `fn_puede_ajustar_inventario()` en registrar_movimiento. Lo que se
     // prueba es la POSICIÓN de la puerta, no su nombre.
     `select

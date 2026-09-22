@@ -43,7 +43,7 @@ import { mensajeSinResultados } from "@/lib/productos-stock";
 //
 // Fase 2 (2026-09-15): alta de producto con matriz talla×color, en
 // `/productos/nuevo` — RPC `crear_producto_con_variantes`, candado real de
-// Líder o terminal administrativa ahí (ADR-0159); `puede(persona, "editarCatalogo")` de acá solo decide si el botón se
+// Líder o terminal administrativa ahí (ADR-0160); `puede(persona, "editarCatalogo")` de acá solo decide si el botón se
 // MUESTRA. Editar un producto ya existente sigue en `ProductoForm`
 // (`/productos/[id]/editar`): la matriz es para crear varias variantes de
 // una sola vez, no tiene sentido para una que ya existe.

@@ -199,11 +199,11 @@ export type CierreCaja = {
   cerradaEn: string;
   cerradaPorNombre: string | null;
   nota: string | null;
-  /** Dato ficticio de prueba (D-54, ADR-0152): solo llega con `incluirPrueba`. */
+  /** Dato ficticio de prueba (D-54, ADR-0159): solo llega con `incluirPrueba`. */
   esPrueba: boolean;
 };
 
-// `42703` = undefined_column: la migración de `es_prueba` (D-54, ADR-0152) es aditiva y puede
+// `42703` = undefined_column: la migración de `es_prueba` (D-54, ADR-0159) es aditiva y puede
 // tardar en pegarse en producción — mismo reintento que `ventas-historial.ts` y
 // `getStockPorUbicacion` (`inventario-v2.ts`), para que desplegar la web antes que la migración
 // no tumbe todo el historial de cierres, solo el filtro nuevo.
@@ -217,7 +217,7 @@ const COLUMNA_INEXISTENTE = "42703";
  * frontera que la base no hace cumplir. Cada fila lleva el nombre de la sede para
  * que se lea igual de claro.
  *
- * `incluirPrueba` (D-54, ADR-0152): apagado por defecto, las cajas `es_prueba` no se piden.
+ * `incluirPrueba` (D-54, ADR-0159): apagado por defecto, las cajas `es_prueba` no se piden.
  */
 export async function getHistorialCierres(limite = 60, incluirPrueba = false): Promise<CierreCaja[]> {
   const supabase = await createClient();

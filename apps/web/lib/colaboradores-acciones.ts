@@ -10,7 +10,7 @@ export type ResultadoAccion = { error: ErrorEscritura };
 
 export type AccionesColaboradores = {
   agregar: (personas: string[], ubicacionId: string) => Promise<ResultadoAccion>;
-  /** Da entrada a una persona de Dynamic como TERMINAL de una tienda (ADR-0159): siempre colaborador, solo en una tienda.
+  /** Da entrada a una persona de Dynamic como TERMINAL de una tienda (ADR-0160): siempre colaborador, solo en una tienda.
    *  Exenta de la aprobación de D-70 a propósito (ver `aprobar` abajo): el líder que la crea ya es la aprobación — no es
    *  una persona nueva entrando al equipo, es una cuenta de servicio que él mismo decide abrir. */
   agregarTerminal: (personaId: string, ubicacionId: string, tipo: TipoTerminal) => Promise<ResultadoAccion>;

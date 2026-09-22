@@ -1,4 +1,4 @@
-# ADR-0152 — El contrato de venta se amplía: asesora, quién emite, descuento con tope de líder, y una cola para lo que SUNAT no acepta
+# ADR-0153 — El contrato de venta se amplía: asesora, quién emite, descuento con tope de líder, y una cola para lo que SUNAT no acepta
 
 **Fecha:** 2026-09-22
 **Estado:** Backend construido (esquema + RPC) y verificado contra un Postgres 17 desechable local (Docker caído) más producción en solo lectura para

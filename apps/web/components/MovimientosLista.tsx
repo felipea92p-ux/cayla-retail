@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
-import { SinFoto } from "@/components/ui/PrendaCelda";
+import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 import type { TonoChip } from "@/components/ui/Chip";
 import { MovimientoDetalle } from "@/components/MovimientoDetalle";
 import {
@@ -45,12 +45,12 @@ import {
 // no es HTML válido. El botón que abre el detalle cubre la fila entera (`absolute
 // inset-0`) y el enlace queda encima (`relative z-10`).
 //
-// Anchos: la prenda cede espacio (su nombre y su código son lo único que aguanta un «…»); el
-// movimiento y el origen → destino lo reciben, porque «Transferencia · llegada» y «Taller →
-// Tienda Trujillo» son lo que se viene a leer. En pantallas muy angostas se parten en dos
-// líneas antes que cortarse.
+// Anchos: la prenda tiene el mismo piso que en Existencias (13.5rem: es la celda de Existencias, con
+// «SKU · talla · color» sin partirse); el movimiento y el origen → destino reciben el resto, porque
+// «Transferencia · llegada» y «Taller → Tienda Trujillo» son lo que se viene a leer. En pantallas muy
+// angostas se parten en dos líneas antes que cortarse y la tabla se desplaza dentro de su tarjeta.
 const PLANTILLA =
-  "sm:grid-cols-[minmax(5rem,0.7fr)_4rem_minmax(7rem,1.3fr)_minmax(6rem,1.15fr)_2.75rem] xl:grid-cols-[minmax(10rem,1.2fr)_5rem_minmax(9.5rem,0.9fr)_minmax(8rem,1fr)_3.5rem_minmax(7.5rem,0.9fr)]";
+  "sm:grid-cols-[minmax(13.5rem,1.2fr)_4rem_minmax(7rem,1.3fr)_minmax(6rem,1.15fr)_2.75rem] xl:grid-cols-[minmax(13.5rem,1.2fr)_5rem_minmax(9.5rem,0.9fr)_minmax(8rem,1fr)_3.5rem_minmax(7.5rem,0.9fr)]";
 
 // El tono que antes llevaba el chip de categoría, ahora como un punto: sobrio, y no
 // obliga a que «Transferencia · llegada» quepa en un chip de versalitas.
@@ -112,7 +112,7 @@ export function MovimientosLista({ movimientos, hoyLima, enlaceCompras }: { movi
         <Encabezado
           plantilla={PLANTILLA}
           columnas={[
-            { titulo: "Prenda · variante" },
+            { titulo: "Producto / variante" },
             { titulo: "Hora · dónde", alinear: "centro" },
             { titulo: "Movimiento", alinear: "centro" },
             { titulo: "Origen → Destino", alinear: "centro" },
@@ -133,7 +133,6 @@ export function MovimientosLista({ movimientos, hoyLima, enlaceCompras }: { movi
               const origenDestino = destino ? `${origen} → ${destino}` : origen;
               const etiqueta = etiquetaMovimiento(m);
               const referencia = referenciaMovimiento(m, { enlaceCompras });
-              const detallePrenda = [m.talla, m.color].filter(Boolean).join(" · ");
               const donde = m.sububicacion ? nombreCortoSububicacion(m.sububicacion) : null;
               return (
                 <div key={m.id} className={fila(PLANTILLA, "relative w-full text-left transition-colors hover:bg-tinta/[0.03] focus-within:bg-tinta/[0.03]")}>
@@ -144,16 +143,9 @@ export function MovimientosLista({ movimientos, hoyLima, enlaceCompras }: { movi
                     className="absolute inset-0 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
                   />
 
-                  <span className="flex min-w-0 items-start gap-2.5">
-                    <SinFoto />
-                    <span className="min-w-0">
-                      <span className="line-clamp-2 block break-words text-sm leading-snug text-tinta" title={m.referencia}>{m.referencia}</span>
-                      <span className="block truncate text-xs text-tinta/65" title={`${m.sku}${detallePrenda ? ` · ${detallePrenda}` : ""}`}>
-                        <span className="font-mono">{m.sku}</span>
-                        {detallePrenda && ` · ${detallePrenda}`}
-                      </span>
-                    </span>
-                  </span>
+                  {/* La misma celda que dibuja Existencias (`ui/PrendaCelda.tsx`). El historial no trae foto ni
+                      el código hex del color: la miniatura es el marcador de perchero y el color va en texto. */}
+                  <ProductoVarianteCelda referencia={m.referencia} sku={m.sku} talla={m.talla} color={m.color} fotoUrl={null} />
 
                   {/* `sm:text-center`, no `text-center` a secas: en celular la fila se apila
                       y ahí sigue yendo todo a la izquierda (mismo criterio que `celda()`). */}
