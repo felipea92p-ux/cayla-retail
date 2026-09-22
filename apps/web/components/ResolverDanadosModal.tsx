@@ -9,6 +9,9 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto, CampoMonto, CampoSelect } from "@/components/ui/campos";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import type { PrendaDanada } from "@/lib/inventario-v2";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // "Dañado" (2026-09-17, ADR-0071, Opción A): cola de prendas en cuarentena
 // (`aprobar_devolucion`, condición danada_reparacion/danada_donar) esperando
@@ -52,16 +55,24 @@ export function ResolverDanadosModal({
   const [liquidando, setLiquidando] = useState<string | null>(null);
   const [precios, setPrecios] = useState<Record<string, string>>({});
   const [metodos, setMetodos] = useState<Record<string, MetodoPago>>({});
+  // Resolver o liquidar una prenda dañada es operación de tienda (sale del stock en cuarentena; liquidar es una
+  // venta con caja): pide Responsable, también al líder (ADR-0161, A8/A9). Uno solo para todo el modal.
+  const responsable = useResponsable();
 
   async function resolver(id: string, estado: EstadoSimple) {
+    if (!responsable.listo) return;
     setResolviendo(id);
     const supabase = createClient();
-    const { error } = await supabase.rpc("resolver_prenda_danada", {
-      p_id: id,
-      p_estado: estado,
-      p_nota: notas[id]?.trim() || undefined,
-    });
+    const { error } = await firmar(
+      supabase.rpc("resolver_prenda_danada", {
+        p_id: id,
+        p_estado: estado,
+        p_nota: notas[id]?.trim() || undefined,
+      }),
+      responsable.firma(),
+    );
     setResolviendo(null);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "resolver esta prenda dañada"));
       return;
@@ -76,15 +87,20 @@ export function ResolverDanadosModal({
       avisar.error("Ingresa un precio de liquidación mayor a cero.");
       return;
     }
+    if (!responsable.listo) return;
     setResolviendo(p.id);
     const supabase = createClient();
-    const { error } = await supabase.rpc("liquidar_prenda_danada", {
-      p_id: p.id,
-      p_precio_unitario: precio,
-      p_metodo_pago: metodos[p.id] ?? "efectivo",
-      p_nota: notas[p.id]?.trim() || undefined,
-    });
+    const { error } = await firmar(
+      supabase.rpc("liquidar_prenda_danada", {
+        p_id: p.id,
+        p_precio_unitario: precio,
+        p_metodo_pago: metodos[p.id] ?? "efectivo",
+        p_nota: notas[p.id]?.trim() || undefined,
+      }),
+      responsable.firma(),
+    );
     setResolviendo(null);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "liquidar esta prenda"));
       return;
@@ -108,6 +124,8 @@ export function ResolverDanadosModal({
               Solo un líder de sede puede resolver una prenda dañada — se ven acá, pero no se pueden marcar.
             </p>
           )}
+          {/* Los botones van por prenda: el combo queda arriba de la lista, antes de cualquiera de ellos. */}
+          {esLider && pendientes.length > 0 && <ComboResponsable control={responsable} deshabilitado={resolviendo !== null} />}
           {pendientes.length === 0 ? (
             <p className="text-sm text-tinta/65">No hay prendas dañadas pendientes en esta ubicación.</p>
           ) : (
@@ -138,7 +156,8 @@ export function ResolverDanadosModal({
                             setLiquidando(p.id);
                             setPrecios((prev) => ({ ...prev, [p.id]: prev[p.id] ?? (p.precioReferencia || "").toString() }));
                           }}
-                          disabled={resolviendo !== null}
+                          disabled={resolviendo !== null || !responsable.listo}
+                          title={responsable.motivo ?? undefined}
                           className="flex-1"
                         >
                           Liquidada
@@ -149,7 +168,8 @@ export function ResolverDanadosModal({
                             type="button"
                             onClick={() => resolver(p.id, e.valor)}
                             cargando={resolviendo === p.id}
-                            disabled={resolviendo !== null}
+                            disabled={resolviendo !== null || !responsable.listo}
+                            title={responsable.motivo ?? undefined}
                             className="flex-1"
                           >
                             {e.texto}
@@ -186,7 +206,8 @@ export function ResolverDanadosModal({
                           peso="primario"
                           onClick={() => confirmarLiquidacion(p)}
                           cargando={resolviendo === p.id}
-                          disabled={resolviendo !== null}
+                          disabled={resolviendo !== null || !responsable.listo}
+                          title={responsable.motivo ?? undefined}
                           className="flex-1"
                         >
                           Confirmar liquidación

@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Responsable y roles · spike visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Responsable por operación + roles a medida (ADR-0161)
+   Cuatro preguntas, una por pantalla:
+     1. Roles y accesos — ¿cómo se configura qué MÓDULOS ve y qué ACCIONES
+        hace cada rol (personas y terminales)?
+     2. Punto de venta — ¿cómo se elige al responsable en cada operación?
+     3. Cierre de caja — ¿cómo queda firmado el cierre y cada movimiento?
+     4. Nadie de turno — ¿qué ve la tienda cuando no hay nadie marcado?
+   Tokens = los reales de apps/web/app/globals.css. Datos inventados;
+   nada de esto toca el ERP ni la base.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf6ec;
+  --taupe-p:#805c4c;--verde:#556e49;--verde-p:#44583a;--ambar:#8c631f;--ambar-p:#734f15;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t30:rgba(26,26,24,.3);--t10:rgba(26,26,24,.10);
+  --ease:cubic-bezier(.32,.72,.24,1);
+  --bar:44px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5;min-height:100vh}
+button,select,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:400}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+.tp{color:var(--taupe-p)}
+svg.ic{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+@keyframes entrada{from{opacity:0;transform:translate3d(0,8px,0)}to{opacity:1;transform:none}}
+@keyframes velo{from{opacity:0}to{opacity:1}}
+@keyframes subir{from{opacity:0;transform:translate3d(0,18px,0) scale(.985)}to{opacity:1;transform:none}}
+@keyframes revelar{from{opacity:0;transform:translate3d(0,-4px,0)}to{opacity:1;transform:none}}
+@keyframes visto{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* ---------- barra del spike (no existe en el ERP) ---------- */
+.spk{position:fixed;inset:0 0 auto 0;z-index:80;min-height:var(--bar);display:flex;align-items:center;gap:14px;padding:6px 16px;background:var(--tinta);color:var(--crema);font-size:13px;overflow-x:auto;white-space:nowrap}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.spk label{display:flex;align-items:center;gap:8px;color:rgba(245,240,232,.7)}
+.spk select{height:30px;border-radius:8px;border:1px dashed rgba(245,240,232,.4);background:rgba(245,240,232,.06);color:var(--crema);padding:0 8px;font-size:13px;cursor:pointer}
+.spk select option{color:var(--tinta);background:var(--crema)}
+.spk .sep{width:1px;height:18px;background:rgba(245,240,232,.2);flex:none}
+
+main{padding:calc(var(--bar) + 28px) 28px 80px;max-width:1320px;margin:0 auto}
+.pagina.entra{animation:entrada 360ms var(--ease) both}
+.nota{margin:0 0 22px;padding:12px 16px;border:1px dashed var(--t30);border-radius:12px;font-size:13.5px;color:var(--t65);max-width:92ch}
+.nota b{color:var(--tinta);font-weight:600}
+h1.t{font-family:'EB Garamond',Georgia,serif;font-weight:400;font-size:clamp(34px,4.4vw,48px);line-height:1.05}
+.sub{color:var(--t65);margin-top:8px;max-width:70ch}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:99px;background:var(--sand);font-size:11.5px;font-weight:500;white-space:nowrap}
+.chip.lock{background:transparent;border:1px solid var(--t10);color:var(--t65)}
+.chip.verde{background:rgba(85,110,73,.14);color:var(--verde-p)}
+.chip.ambar{background:rgba(140,99,31,.13);color:var(--ambar-p)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border-radius:8px;background:var(--tinta);color:var(--crema);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;transition:background 220ms var(--ease)}
+.btn:hover{background:var(--rojo)}
+.btn.sec{background:transparent;color:var(--tinta);border:1px solid var(--t10)}
+.btn.sec:hover{background:rgba(232,224,208,.5);color:var(--rojo)}
+.btn[disabled]{opacity:.38;pointer-events:none}
+
+/* ---------- 1. Roles y accesos ---------- */
+.rgrid{display:grid;grid-template-columns:230px minmax(0,1fr);gap:22px;align-items:start;margin-top:26px}
+.rol{display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%;padding:12px 14px;border-radius:12px;border:1px solid transparent;text-align:left;transition:all 220ms var(--ease)}
+.rol:hover{background:rgba(232,224,208,.45)}
+.rol[aria-pressed=true]{background:var(--papel);border-color:var(--sand)}
+.rol .n{font-weight:500}
+.rol .d{font-size:12px;color:var(--t65)}
+.rcab{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;padding:18px 20px;border-bottom:1px solid var(--sand)}
+.rcab h2{font-family:'EB Garamond',serif;font-weight:400;font-size:30px;line-height:1.1}
+.rcab .s{font-size:13px;color:var(--t65);margin-top:4px;max-width:60ch}
+.rcab .der{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.cuentas{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.avm{width:22px;height:22px;border-radius:50%;background:var(--papel);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:11px;flex:none}
+/* Matriz: una fila por módulo, columnas Ver · Crear · Editar · Eliminar · Más acciones */
+.mx{width:100%;border-collapse:collapse;font-size:14px}
+.mx th{font-weight:600;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe-p);text-align:center;padding:10px 6px;background:rgba(232,224,208,.35)}
+.mx th:first-child{text-align:left;padding-left:20px}
+.mx td{border-top:1px solid var(--sand);padding:8px 6px;text-align:center;vertical-align:middle}
+.mx td:first-child{text-align:left;padding-left:20px}
+.mx tr.grupo td{background:rgba(232,224,208,.2);font-weight:600;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--t65);padding:10px 20px}
+.mx .mn{font-weight:500}
+.mx .mn small{display:block;font-weight:400;font-size:12px;color:var(--t65)}
+.mx tr.off .mn{color:var(--t50)}
+.mx td:last-child,.mx th:last-child{text-align:right;padding-right:20px}
+.mx tr.grupo td{text-align:left}
+.fijos{margin:16px 20px 0;padding:14px 16px;border:1px solid var(--sand);border-radius:12px;background:var(--crema)}
+.fijos ul{list-style:none;margin-top:8px;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.fijos li{display:flex;align-items:center;gap:8px;color:var(--t80)}
+.fijos li svg{color:var(--t50)}
+.fijos li span{flex:1}
+.fijos li small{font-size:11.5px;color:var(--t50)}
+.sw{position:relative;width:36px;height:20px;border-radius:99px;background:var(--t30);transition:background 220ms var(--ease);flex:none;vertical-align:middle}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform 220ms var(--ease)}
+.sw[aria-checked=true]{background:var(--tinta)}
+.sw[aria-checked=true]::after{transform:translateX(16px)}
+.sw[disabled]{opacity:.35;cursor:not-allowed}
+.aviso-rol{margin:14px 20px 0;padding:10px 14px;border-radius:12px;background:rgba(232,224,208,.45);font-size:13px;color:var(--t80);display:flex;gap:8px;align-items:flex-start}
+.menuprev{display:flex;flex-wrap:wrap;gap:6px;padding:14px 20px 18px;border-top:1px solid var(--sand)}
+.menuprev span{padding:5px 10px;border-radius:8px;background:rgba(232,224,208,.55);font-size:13px}
+/* ---------- 2/4. Punto de venta ---------- */
+.pdv{border:1px solid var(--sand);border-radius:22px;background:var(--crema);overflow:hidden}
+.pdv .top{min-height:64px;border-bottom:1px solid var(--sand);background:var(--papel);display:flex;align-items:center;gap:18px;padding:0 20px;flex-wrap:wrap}
+.pdv .top .lks{margin-left:auto;display:flex;gap:16px;font-size:13.5px;color:var(--t65)}
+.pdv .top .cc{height:36px;padding:0 14px;border-radius:8px;border:1px solid rgba(26,26,24,.25);font-size:13px}
+/* Altura fija como el ERP real (PuntoDeVenta.tsx: calc(100dvh-9rem)): el catálogo se desplaza, el ticket no. */
+.pdv .body{display:grid;grid-template-columns:minmax(0,1fr) 420px;height:max(560px,calc(100vh - 230px))}
+.cat{padding:20px;border-right:1px solid var(--sand);overflow-y:auto}
+.tk{overflow:visible;min-height:0}
+.bus{height:56px;border-radius:16px;border:1px solid var(--sand);background:var(--papel);display:flex;align-items:center;gap:10px;padding:0 16px;color:var(--t50)}
+.prods{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}
+.prod{border:1px solid var(--sand);border-radius:16px;padding:10px;background:var(--papel)}
+.prod .ph{aspect-ratio:4/5;border-radius:12px;background:rgba(232,224,208,.6);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:26px;color:var(--taupe-p)}
+.prod p{font-size:13.5px;margin-top:8px}
+.prod b{font-size:14px}
+.tk{background:var(--papel);display:flex;flex-direction:column}
+.tk .h{min-height:72px;border-bottom:1px solid var(--sand);display:flex;align-items:center;gap:10px;padding:0 20px}
+.tk .it{padding:14px 20px;border-bottom:1px solid var(--sand);display:flex;justify-content:space-between;gap:10px;font-size:14px}
+.tk .it small{display:block;color:var(--t65);font-size:12px}
+.tk .pie{margin-top:auto;border-top:1px solid var(--sand);padding:16px 20px 20px}
+.tot{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px}
+.tot .n{font-family:'EB Garamond',serif;font-size:44px;line-height:1}
+.cobrar{height:56px;width:100%;border-radius:8px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;justify-content:space-between;padding:0 18px;transition:background 220ms var(--ease),opacity 220ms var(--ease)}
+.cobrar:hover{background:var(--rojo)}
+.cobrar[disabled]{opacity:.35;pointer-events:none}
+.cobrar .lbl{font-size:12px}
+.cobrar .m{font-family:'EB Garamond',serif;font-size:24px}
+
+/* ---------- El combo Responsable (la pieza nueva) ---------- */
+.resp{position:relative;margin-bottom:12px}
+.resp .lbl{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.resp .lbl .req{color:var(--rojo)}
+.rbtn{width:100%;height:48px;border-radius:8px;border:1px solid var(--sand);background:var(--crema);display:flex;align-items:center;gap:10px;padding:0 14px;text-align:left;transition:border-color 220ms var(--ease),box-shadow 220ms var(--ease)}
+.rbtn:hover{border-color:rgba(26,26,24,.3)}
+.rbtn.vacio{border-style:dashed;border-color:rgba(184,65,45,.55);color:var(--rojo-p)}
+.rbtn.puesto{border-color:var(--tinta)}
+.rbtn .av{width:28px;height:28px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:14px;flex:none}
+.rbtn .v{flex:1;min-width:0}
+.rbtn .v small{display:block;font-size:11.5px;color:var(--t65)}
+.rbtn.bloq{border-style:solid;border-color:rgba(140,99,31,.45);background:rgba(140,99,31,.07);color:var(--ambar-p);cursor:default}
+.pista{font-size:12px;color:var(--t65);margin-top:6px}
+.lista{position:absolute;left:0;right:0;bottom:calc(100% + 6px);z-index:20;background:var(--papel);border:1px solid var(--sand);border-radius:12px;box-shadow:0 18px 44px -14px rgb(26 26 24/.22);padding:8px;animation:subir 260ms var(--ease) both}
+.lista.abajo{bottom:auto;top:calc(100% + 6px)}
+.lista .cab{padding:6px 8px 8px;font-size:11px}
+.op{display:flex;align-items:center;gap:10px;width:100%;padding:9px 8px;border-radius:8px;text-align:left;font-size:14px;transition:background 180ms var(--ease)}
+.op:hover{background:rgba(232,224,208,.55)}
+.op .av{width:28px;height:28px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:14px;flex:none}
+.op .v{flex:1}
+.op .v small{display:block;font-size:11.5px;color:var(--t65)}
+.op .pt{width:8px;height:8px;border-radius:50%;background:var(--verde);flex:none}
+.op[disabled]{opacity:.45;cursor:not-allowed}
+.op[disabled]:hover{background:none}
+.op[disabled] .pt{background:var(--ambar)}
+.lista .fuera{border-top:1px solid var(--sand);margin-top:6px;padding:8px 8px 2px;font-size:12px;color:var(--t65)}
+
+/* bloqueo «nadie de turno» */
+.bloqueo{border:1px solid rgba(140,99,31,.35);background:rgba(140,99,31,.07);border-radius:12px;padding:14px;margin-bottom:12px;animation:entrada 300ms var(--ease) both}
+.bloqueo p.t{font-weight:600;color:var(--ambar-p);display:flex;gap:8px;align-items:center}
+.bloqueo p.x{font-size:13px;color:var(--t80);margin-top:6px}
+.bloqueo ol{font-size:13px;color:var(--t80);margin:8px 0 0 18px}
+.bloqueo .btn{margin-top:12px;height:36px;font-size:10.5px}
+
+/* aviso de éxito (esquina superior derecha, como avisar.exito) */
+.aviso{position:fixed;top:calc(var(--bar) + 16px);right:16px;z-index:90;display:flex;align-items:center;gap:10px;background:var(--tinta);color:var(--crema);padding:12px 16px;border-radius:12px;font-size:14px;box-shadow:0 18px 44px -14px rgb(26 26 24/.3);animation:subir 300ms var(--ease) both}
+.aviso path{stroke-dasharray:24;stroke-dashoffset:24;animation:visto 400ms var(--ease) 150ms forwards}
+
+/* ---------- 3. Caja ---------- */
+.caja{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:22px;margin-top:22px;align-items:start}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.kpi{background:var(--papel);border:1px solid var(--sand);border-left:3px solid var(--sand);border-radius:12px;padding:12px}
+.kpi .n{font-family:'EB Garamond',serif;font-size:26px;margin-top:4px}
+.movs{margin-top:16px;padding:6px 0}
+.movs h3{font-family:'EB Garamond',serif;font-weight:400;font-size:22px;padding:12px 18px 2px}
+.movs .s{font-size:13px;color:var(--t65);padding:0 18px 8px}
+.mv{display:flex;align-items:center;gap:12px;padding:11px 18px;border-top:1px solid var(--sand)}
+.mv .ico{width:32px;height:32px;border-radius:12px;display:grid;place-items:center;background:rgba(85,110,73,.13);color:var(--verde-p);flex:none}
+.mv .ico.eg{background:rgba(184,65,45,.1);color:var(--rojo)}
+.mv .v{flex:1;min-width:0;font-size:14px}
+.mv .v small{display:block;font-size:12.5px;color:var(--t65)}
+.mv .v small b{color:var(--tinta);font-weight:500}
+.mv .m{font-weight:600;font-size:14px;color:var(--verde-p)}
+.mv .m.eg{color:var(--rojo)}
+.modal{background:var(--papel);border:1px solid var(--sand);border-radius:22px;padding:24px;box-shadow:0 18px 44px -14px rgb(26 26 24/.16)}
+.modal h2{font-family:'EB Garamond',serif;font-weight:400;font-size:30px}
+.modal .s{color:var(--t65);font-size:14px;margin-top:4px}
+.campo{margin-top:18px}
+.campo .lbl{display:block;margin-bottom:6px}
+.campo input{width:100%;height:48px;border-radius:8px;border:1px solid var(--sand);background:var(--crema);padding:0 14px;font-size:16px}
+.modal .acc2{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+.res .fila{display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--sand);font-size:14px}
+.res .fila:first-of-type{border-top:0}
+
+/* ---------- 5/6. Terminales sin persona (ADR-0162) ---------- */
+.tabla{width:100%;border-collapse:collapse;font-size:14px}
+.tabla th{font-weight:600;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe-p);text-align:left;padding:10px 14px;background:rgba(232,224,208,.35)}
+.tabla td{border-top:1px solid var(--sand);padding:12px 14px;vertical-align:middle}
+.tabla td.der{text-align:right}
+.tabla tr.apagada td{color:var(--t50)}
+.dev{display:flex;align-items:center;gap:10px}
+.dev .ico{width:34px;height:34px;border-radius:10px;background:rgba(232,224,208,.7);display:grid;place-items:center;flex:none}
+.dev small{display:block;font-size:12px;color:var(--t65)}
+.pie-nota{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:16px}
+.pie-nota .card{padding:14px 16px;font-size:13.5px;color:var(--t80)}
+.pie-nota code{font-size:12.5px;background:rgba(232,224,208,.6);padding:1px 6px;border-radius:6px}
+.velo{position:fixed;inset:0;z-index:70;background:rgba(26,26,24,.35);backdrop-filter:blur(3px);display:grid;place-items:center;padding:16px;animation:velo 200ms var(--ease)}
+.velo .modal{max-width:440px;width:100%;animation:subir 300ms var(--ease) both}
+.shell{display:grid;grid-template-columns:240px minmax(0,1fr);border:1px solid var(--sand);border-radius:22px;overflow:hidden;background:var(--crema);min-height:520px}
+.lado{border-right:1px solid var(--sand);display:flex;flex-direction:column;padding:18px 12px}
+.lado .marca{font-size:13px;letter-spacing:.26em;font-weight:600;padding:4px 10px 18px}
+.lado .it{height:40px;display:flex;align-items:center;padding:0 12px;border-radius:8px;font-size:14px;color:var(--t80)}
+.lado .it.act{background:rgba(232,224,208,.7);color:var(--tinta);font-weight:500}
+.lado .yo{margin-top:auto;border-top:1px solid var(--sand);padding:14px 8px 0;display:flex;gap:10px;align-items:center}
+.lado .yo .ico{width:36px;height:36px;border-radius:10px;background:var(--tinta);color:var(--crema);display:grid;place-items:center;flex:none}
+.lado .yo p{font-size:13.5px}.lado .yo small{display:block;font-size:11px;letter-spacing:.06em;color:var(--taupe-p)}
+.cuerpo{padding:22px}
+@media (max-width:760px){.shell{grid-template-columns:1fr}.lado{border-right:0;border-bottom:1px solid var(--sand)}}
+
+@media (max-width:1100px){
+  .rgrid{grid-template-columns:1fr}
+  .pdv .body{grid-template-columns:1fr;height:auto}
+  .cat{border-right:0;border-bottom:1px solid var(--sand)}
+  .caja{grid-template-columns:1fr}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  main{padding:calc(var(--bar) + 20px) 16px 60px}
+  .prods{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pdv .top .lks{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="spk" role="toolbar" aria-label="Controles del spike">
+  <span class="tag">Spike · ADR-0161</span>
+  <label>Pantalla
+    <select id="sel-pant">
+      <option value="roles">1 · Roles y accesos</option>
+      <option value="pdv">2 · Punto de venta</option>
+      <option value="caja">3 · Cierre de caja</option>
+      <option value="nadie">4 · Nadie de turno</option>
+      <option value="terms">5 · Terminales (sin persona)</option>
+      <option value="sesion">6 · Sesión de una terminal</option>
+    </select>
+  </label>
+  <span class="sep"></span>
+  <label>Cuenta
+    <select id="sel-cuenta">
+      <option value="tv">Terminal Ventas TRU</option>
+      <option value="ta">Terminal Administrativa TRU</option>
+      <option value="felipe">Felipe (líder, cuenta personal)</option>
+    </select>
+  </label>
+  <span class="sep"></span>
+  <label>Asistencia hoy en TRU
+    <select id="sel-asis">
+      <option value="normal">3 presentes · 1 en pausa · 1 salió</option>
+      <option value="felipe">Felipe también marcó en TRU</option>
+      <option value="vacia">Nadie marcó entrada</option>
+    </select>
+  </label>
+</div>
+
+<main id="app"></main>
+
+<script>
+/* ============================================================
+   Datos inventados. Estados = los que ya devuelve
+   retail.fn_asesoras_de_turno en producción:
+   presente | en_pausa | salio | programada
+   ============================================================ */
+const ASISTENCIA = {
+  normal: [
+    { id: 'maria',  nombre: 'María P.',   rol: 'Integrante',        estado: 'presente', desde: 'Entrada 09:02' },
+    { id: 'lucia',  nombre: 'Lucía R.',   rol: 'Integrante',        estado: 'presente', desde: 'Entrada 09:10' },
+    { id: 'carmen', nombre: 'Carmen T.',  rol: 'Líder de equipo',   estado: 'presente', desde: 'Entrada 08:55' },
+    { id: 'rosa',   nombre: 'Rosa M.',    rol: 'Integrante',        estado: 'en_pausa', desde: 'Salió a almorzar 13:05' },
+    { id: 'diana',  nombre: 'Diana Q.',   rol: 'Integrante',        estado: 'salio',    desde: 'Salida 14:00' },
+  ],
+};
+ASISTENCIA.felipe = [...ASISTENCIA.normal, { id: 'felipe', nombre: 'Felipe A.', rol: 'Líder de equipo', estado: 'presente', desde: 'Entrada 11:40' }];
+ASISTENCIA.vacia = [];
+
+const CUENTAS = {
+  tv:     { nombre: 'Terminal Ventas TRU',         tipo: 'Terminal de ventas' },
+  ta:     { nombre: 'Terminal Administrativa TRU', tipo: 'Terminal administrativa' },
+  felipe: { nombre: 'Felipe A.',                   tipo: 'Líder de equipo' },
+};
+
+/* ---- Catálogo de módulos. Regla (Felipe, 2026-09-22): el rol solo decide «ve / no ve» por módulo, y quien ve un
+   módulo hace todo lo que hay en él, salvo la lista fija SOLO_LIDER. `incluye` dice qué se está dando al encenderlo.
+   `lider` = el módulo entero es solo del líder (administrar accesos: ADR-0150, decisión 3). ---- */
+const MODULOS = [
+  { g: 'Ventas', id: 'vender', n: 'Punto de venta', incluye: 'Registrar ventas, descuento hasta su tope, dejar en espera, monto manual' },
+  { g: 'Ventas', id: 'caja', n: 'Caja', incluye: 'Abrir y cerrar caja, ingresos y egresos, ajustes de caja' },
+  { g: 'Ventas', id: 'cambios', n: 'Cambios', incluye: 'Registrar cambios de prenda' },
+  { g: 'Ventas', id: 'devol', n: 'Devoluciones', incluye: 'Solicitar devoluciones' },
+  { g: 'Ventas', id: 'hist', n: 'Historial de ventas', incluye: 'Consultar, reimprimir y exportar' },
+  { g: 'Ventas', id: 'fact', n: 'Facturación', incluye: 'Emitir boletas, facturas y notas; reenviar a SUNAT' },
+  { g: 'Ventas', id: 'clientas', n: 'Clientas', incluye: 'Registrar, editar y archivar clientas; ver sus compras' },
+  { g: 'Inventario', id: 'exist', n: 'Existencias', incluye: 'Consultar stock, ajustar stock, apartar prendas' },
+  { g: 'Inventario', id: 'conteo', n: 'Conteos', incluye: 'Iniciar, registrar y cerrar conteos' },
+  { g: 'Inventario', id: 'tras', n: 'Traslados', incluye: 'Enviar, recibir, cancelar y cerrar con diferencia' },
+  { g: 'Inventario', id: 'movs', n: 'Movimientos', incluye: 'Consultar y exportar' },
+  { g: 'Catálogo', id: 'prod', n: 'Productos', incluye: 'Crear, editar y archivar prendas; precios, fotos y códigos' },
+  { g: 'Catálogo', id: 'atrib', n: 'Categorías, marcas y atributos', incluye: 'Crear, editar, desactivar y aprobar propuestas' },
+  { g: 'Catálogo', id: 'etq', n: 'Etiquetas', incluye: 'Crear, editar y archivar etiquetas sin descuento' },
+  { g: 'Compras', id: 'fcomp', n: 'Facturas de compra', incluye: 'Registrar, corregir y anular facturas' },
+  { g: 'Compras', id: 'recibir', n: 'Recibir mercadería', incluye: 'Recibir envíos de proveedores' },
+  { g: 'Compras', id: 'porpagar', n: 'Por pagar', incluye: 'Ver lo que se debe y registrar pagos' },
+  { g: 'Compras', id: 'prov', n: 'Proveedores', incluye: 'Crear, editar y archivar; cuentas bancarias, Yape y Plin' },
+  { g: 'Compras', id: 'nc', n: 'Notas de crédito', incluye: 'Registrar y anular notas' },
+  { g: 'Producción', id: 'prodn', n: 'Órdenes de producción', incluye: 'Crear, editar y cancelar órdenes; registrar avance' },
+  { g: 'Gestión', id: 'analisis', n: 'Análisis', incluye: 'Reportes de ventas e inventario' },
+  { g: 'Gestión', id: 'colab', n: 'Colaboradores', incluye: 'Dar y quitar accesos, suspender, cambiar ubicación', lider: true },
+  { g: 'Gestión', id: 'roles', n: 'Roles y accesos', incluye: 'Crear roles y asignarlos', lider: true },
+];
+
+/* Lo que sigue siendo del líder aunque el rol vea el módulo: decisiones ya tomadas, no nuevas. */
+const SOLO_LIDER = [
+  ['Anular una venta o un comprobante, y las series de SUNAT', 'ADR-0150, decisión 4'],
+  ['Autorizar un descuento por encima del tope', 'D-67'],
+  ['Aprobar o rechazar devoluciones', 'ADR-0160'],
+  ['Ver costos, márgenes y montos de Compras', 'ADR-0126'],
+  ['Poner etiquetas con descuento a una prenda', 'ADR-0160'],
+  ['Colaboradores, y Roles y accesos', 'ADR-0150, decisión 3'],
+];
+
+/* Permisos de un rol = los módulos que ve. Arrancan como hoy. */
+const ROLES = [
+  { id: 'lider', n: 'Líder de equipo', d: 'Ve y hace todo', fijo: true, cuentas: ['Carmen T.', 'Felipe A.'] },
+  { id: 'integ', n: 'Integrante', d: 'Rol por defecto de una persona nueva', cuentas: ['María P.', 'Lucía R.', 'Rosa M.', 'Diana Q.'],
+    ve: new Set(['vender', 'cambios', 'devol', 'hist', 'clientas', 'exist', 'conteo', 'tras', 'movs', 'prod', 'recibir']) },
+  { id: 'tv', n: 'Terminal de ventas', d: 'Cuenta compartida por tienda', cuentas: ['Terminal Ventas TRU', 'Terminal Ventas AQP', 'Terminal Ventas LIM'],
+    ve: new Set(['vender', 'caja', 'cambios', 'devol', 'hist', 'fact', 'clientas']) },
+  { id: 'ta', n: 'Terminal administrativa', d: 'Cuenta compartida por tienda', cuentas: ['Terminal Administrativa TRU', 'Terminal Administrativa AQP', 'Terminal Administrativa LIM'],
+    ve: new Set(['exist', 'conteo', 'tras', 'movs', 'prod', 'atrib', 'recibir', 'prov']) },
+  { id: 'alm', n: 'Almacén', d: 'Ejemplo de rol a medida', cuentas: [], ve: new Set(['exist', 'conteo', 'tras', 'movs', 'recibir']) },
+];
+
+const est = { pant: 'roles', cuenta: 'tv', asis: 'normal', rol: 'integ', abierto: false, elegido: null, aviso: null, cajaPaso: 'contar' };
+
+const $ = (s) => document.querySelector(s);
+const ini = (n) => n.split(' ').map((p) => p[0]).join('').slice(0, 2);
+const ICO = {
+  user: '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+  chev: '<svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="m6 9 6 6 6-6"/></svg>',
+  lock: '<svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  pen: '<svg class="ic" viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+  reloj: '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  bolsa: '<svg class="ic" viewBox="0 0 24 24"><path d="M5 8h14l-1 13H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
+  mas: '<svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M12 5v14M5 12h14"/></svg>',
+  menos: '<svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M5 12h14"/></svg>',
+  visto: '<svg class="ic" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>',
+};
+
+/* ¿Quiénes pueden firmar? Regla de ADR-0161: solo «presente» (marcó entrada y no salida)
+   en la sede activa. En pausa se ve pero no se elige (pregunta abierta en el README). */
+function deTurno() { return ASISTENCIA[est.asis]; }
+function firmables() { return deTurno().filter((p) => p.estado === 'presente'); }
+
+/* ================= El combo Responsable (se reusa en todas las pantallas) ================= */
+function comboResponsable(abajo = false) {
+  const lista = deTurno();
+  if (firmables().length === 0) {
+    return `<div class="bloqueo" role="alert">
+      <p class="t">${ICO.reloj} Nadie de turno en Tienda TRU</p>
+      <p class="x">Para guardar, quien atiende tiene que haber marcado su <b>entrada</b> hoy en esta tienda. Nadie lo ha hecho todavía${est.cuenta === 'felipe' ? ' — tampoco tú: la regla es la misma para los líderes' : ''}.</p>
+      <ol><li>Marca tu entrada en el kiosco de asistencia de la tienda.</li><li>Vuelve aquí y toca «Actualizar lista».</li></ol>
+      <button class="btn sec" data-a="actualizar">Actualizar lista</button>
+    </div>`;
+  }
+  const el = est.elegido && lista.find((p) => p.id === est.elegido);
+  const boton = el
+    ? `<button class="rbtn puesto" data-a="abrir" aria-haspopup="listbox"><span class="av">${ini(el.nombre)}</span><span class="v">${el.nombre}<small>${el.rol} · ${el.desde}</small></span>${ICO.chev}</button>`
+    : `<button class="rbtn vacio" data-a="abrir" aria-haspopup="listbox">${ICO.user}<span class="v">¿Quién hace esta operación?</span>${ICO.chev}</button>`;
+  const opciones = lista.filter((p) => p.estado !== 'salio').map((p) => {
+    const pausa = p.estado === 'en_pausa';
+    return `<button class="op" role="option" data-a="elegir" data-id="${p.id}" ${pausa ? 'disabled' : ''}>
+      <span class="av">${ini(p.nombre)}</span><span class="v">${p.nombre}<small>${pausa ? 'En pausa · ' : ''}${p.desde}</small></span><span class="pt"></span></button>`;
+  }).join('');
+  const salieron = lista.filter((p) => p.estado === 'salio').length;
+  return `<div class="resp">
+    <span class="lbl tp">Responsable <span class="req">*</span></span>
+    ${boton}
+    ${est.abierto ? `<div class="lista ${abajo ? 'abajo' : ''}" role="listbox">
+      <p class="cab lbl tp">De turno ahora · Tienda TRU</p>${opciones}
+      ${salieron ? `<p class="fuera">${salieron} persona${salieron > 1 ? 's' : ''} ya marcó su salida y no aparece.</p>` : ''}
+    </div>` : ''}
+    ${el ? '' : '<p class="pista">Obligatorio. Viene vacío en cada operación.</p>'}
+  </div>`;
+}
+
+/* ================= 1. Roles y accesos ================= */
+const ve = (rol, m) => rol.fijo || rol.ve.has(m.id);
+function pantallaRoles() {
+  const rol = ROLES.find((r) => r.id === est.rol);
+  let grupo = '';
+  const filas = MODULOS.map((m) => {
+    const on = ve(rol, m);
+    let cab = '';
+    if (m.g !== grupo) { grupo = m.g; cab = `<tr class="grupo"><td colspan="2">${grupo}</td></tr>`; }
+    const control = m.lider && !rol.fijo
+      ? `<span class="chip lock">${ICO.lock} Solo líder</span>`
+      : `<button class="sw" role="switch" aria-checked="${on}" aria-label="Ve ${m.n}" data-a="ver" data-m="${m.id}" ${rol.fijo ? 'disabled' : ''}></button>`;
+    return `${cab}<tr class="${on ? '' : 'off'}">
+      <td><span class="mn">${m.n}<small>${m.incluye}</small></span></td>
+      <td style="width:120px">${control}</td></tr>`;
+  }).join('');
+  const menu = MODULOS.filter((m) => ve(rol, m) && (!m.lider || rol.fijo));
+  return `<div class="pagina">
+    <div class="nota"><b>Qué mirar:</b> cada rol decide solo <b>qué módulos ve</b>. Quien ve un módulo hace todo lo que hay en él
+      (debajo de cada nombre dice qué incluye), salvo la lista fija de <b>solo del líder</b>. Solo el rol Líder no se edita.</div>
+    <p class="lbl tp">Colaboradores</p>
+    <h1 class="t">Roles y accesos</h1>
+    <p class="sub">Qué módulos ve cada cuenta. Solo un líder de equipo cambia esto.</p>
+    <div class="rgrid">
+      <div>${ROLES.map((r) => `<button class="rol" aria-pressed="${r.id === est.rol}" data-a="rol" data-id="${r.id}">
+          <span class="n">${r.n}</span><span class="d">${r.d} · ${r.cuentas.length} cuenta${r.cuentas.length === 1 ? '' : 's'}</span>
+          ${r.fijo ? `<span class="chip lock">${ICO.lock} No se edita</span>` : ''}</button>`).join('')}
+        <button class="btn sec" style="margin-top:10px;width:100%">+ Nuevo rol</button>
+      </div>
+      <div class="card" style="overflow:hidden">
+        <div class="rcab"><div><h2>${rol.n}</h2><p class="s">${rol.fijo
+          ? 'Ve y hace todo, siempre. No se edita para que nunca falte alguien que pueda administrar los accesos.'
+          : rol.id === 'integ' ? 'Rol que recibe una persona nueva al darle acceso. Se edita como cualquier rol; lo único que no se puede es archivarlo.'
+          : 'Rol a medida. Se edita, se duplica y se archiva (nunca se borra).'}</p>
+          <div class="cuentas">${rol.cuentas.map((c) => `<span class="chip"><span class="avm">${ini(c)}</span>${c}</span>`).join('') || '<span class="chip lock">Nadie tiene este rol</span>'}</div></div>
+          ${rol.fijo ? '' : `<div class="der"><button class="btn sec" style="height:36px">Duplicar</button>${rol.id === 'integ' ? '' : '<button class="btn sec" style="height:36px">Archivar</button>'}</div>`}
+        </div>
+        <table class="mx"><thead><tr><th>Módulo</th><th>Lo ve</th></tr></thead><tbody>${filas}</tbody></table>
+        <div class="fijos"><p class="lbl tp">Siempre solo del líder, aunque el rol vea el módulo</p>
+          <ul>${SOLO_LIDER.map(([t, o]) => `<li>${ICO.lock}<span>${t}</span><small>${o}</small></li>`).join('')}</ul></div>
+        <p class="lbl tp" style="padding:16px 20px 0">Así queda su menú</p>
+        <div class="menuprev">${menu.map((m) => `<span>${m.n}</span>`).join('') || '<span>Solo Inicio</span>'}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ================= 2. Punto de venta ================= */
+const NOTA_PDV = `<b>Qué mirar:</b> el combo <b>Responsable</b> va justo encima de COBRAR, <b>vacío</b> en cada venta. Solo lista a quien marcó entrada hoy en esta tienda y no marcó salida.
+  COBRAR no se activa hasta elegir. Al cobrar, el combo vuelve a quedar vacío para la siguiente venta. Cambia «Cuenta» arriba: el combo sale igual en la cuenta personal de un líder.`;
+function pantallaPdv(nota = NOTA_PDV) {
+  const hayFirma = !!est.elegido && firmables().some((p) => p.id === est.elegido);
+  return `<div class="pagina">
+    <div class="nota">${nota}</div>
+    <div class="pdv">
+      <div class="top"><span class="lbl tp">Venta en tienda · Tienda TRU</span>
+        <span class="chip">${CUENTAS[est.cuenta].nombre}</span>
+        <span class="lks"><span>Caja</span><span>Cambios</span><span>Devoluciones</span></span>
+        <button class="cc">Cerrar caja</button></div>
+      <div class="body">
+        <div class="cat">
+          <div class="bus">${ICO.bolsa} Escanea la etiqueta o busca la prenda</div>
+          <div class="prods">
+            ${[['Blusa Maira', 'Crudo', '89.90'], ['Pantalón Lía', 'Negro', '129.00'], ['Vestido Ámbar', 'Terracota', '159.00'], ['Top Nara', 'Blanco', '59.90'], ['Falda Inti', 'Arena', '99.00'], ['Casaca Qori', 'Camel', '219.00']]
+              .map(([n, c, p]) => `<div class="prod"><div class="ph">${ini(n)}</div><p>${n}</p><p style="color:var(--t65);margin-top:0">${c}</p><b>S/ ${p}</b></div>`).join('')}
+          </div>
+        </div>
+        <aside class="tk">
+          <div class="h">${ICO.bolsa}<span class="disp" style="font-size:24px">Ticket actual</span></div>
+          <div class="it"><span>Blusa Maira<small>Talla M · Crudo</small></span><b>S/ 89.90</b></div>
+          <div class="it"><span>Pantalón Lía<small>Talla 28 · Negro</small></span><b>S/ 129.00</b></div>
+          <div class="pie">
+            <div class="tot"><span style="font-size:13px;color:var(--t65)">2 prendas<br>IGV (18%) incluido</span><span><span class="lbl tp" style="display:block;text-align:right">Total</span><span class="n">S/ 218.90</span></span></div>
+            ${comboResponsable()}
+            <button class="cobrar" data-a="cobrar" ${hayFirma ? '' : 'disabled'}><span class="lbl">Cobrar</span><span class="m">S/ 218.90</span></button>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ================= 3. Cierre de caja ================= */
+function pantallaCaja() {
+  const el = est.elegido && firmables().find((p) => p.id === est.elegido);
+  const modal = est.cajaPaso === 'contar'
+    ? `<div class="modal"><h2>Cerrar caja</h2><p class="s">Cuenta el efectivo del cajón. Al cerrar te decimos si cuadra.</p>
+        <div class="campo">${comboResponsable(true)}</div>
+        <div class="campo"><span class="lbl tp">Cuenta el efectivo físico y escribe el total</span><input inputmode="decimal" value="1,245.50" aria-label="Efectivo contado"></div>
+        <div class="acc2"><button class="btn sec">Cancelar</button><button class="btn" data-a="cerrarcaja" ${el ? '' : 'disabled'}>Cerrar caja</button></div></div>`
+    : `<div class="modal res"><h2>Caja cerrada</h2><p class="s" style="color:var(--rojo);font-weight:600">No cuadró · −S/ 4.50</p>
+        <div style="margin-top:14px">
+          <div class="fila"><span>El sistema esperaba</span><b>S/ 1,250.00</b></div>
+          <div class="fila"><span>Contaste</span><b>S/ 1,245.50</b></div>
+          <div class="fila"><span>Responsable del cierre</span><b>${el ? el.nombre : '—'}</b></div>
+          <div class="fila"><span>Cuenta</span><span>${CUENTAS[est.cuenta].nombre}</span></div>
+        </div>
+        <div class="acc2"><button class="btn" data-a="reiniciarcaja">Listo</button></div></div>`;
+  const movs = [
+    ['in', 'Venta · Efectivo', '10:42', 'María P.', '+S/ 89.90'],
+    ['eg', 'Egreso · Movilidad a Taller', '11:15', 'Carmen T.', '−S/ 12.00'],
+    ['in', 'Venta · Yape + Efectivo', '12:30', 'Lucía R.', '+S/ 159.00'],
+    ['in', 'Ingreso · Sencillo para vuelto', '13:40', 'Lucía R.', '+S/ 50.00'],
+  ];
+  return `<div class="pagina">
+    <div class="nota"><b>Qué mirar:</b> el cierre pide Responsable como cualquier otra acción que guarda (vacío, solo quienes están de turno).
+      En <b>Movimientos</b>, cada fila dice <b>quién</b> la hizo, no la cuenta: «10:42 · María P.». El resultado del cierre dice quién cerró.</div>
+    <p class="lbl tp">Ventas</p><h1 class="t">Caja</h1><p class="sub">Tienda TRU · ${CUENTAS[est.cuenta].nombre}</p>
+    <div class="caja">
+      <div>
+        <div class="kpis">${[['Apertura', 'S/ 200.00'], ['Ventas efectivo', 'S/ 1,012.00'], ['Ventas otro método', 'S/ 1,480.00'], ['Ingresos', 'S/ 50.00'], ['Egresos', 'S/ 12.00']]
+          .map(([l, n]) => `<div class="kpi"><p class="lbl tp" style="font-size:10px">${l}</p><p class="n">${n}</p></div>`).join('')}</div>
+        <div class="card movs"><h3>Movimientos recientes</h3><p class="s">Últimos registros de esta caja</p>
+          ${movs.map(([t, n, h, q, m]) => `<div class="mv"><span class="ico ${t === 'eg' ? 'eg' : ''}">${t === 'eg' ? ICO.menos : ICO.mas}</span>
+            <span class="v">${n}<small>${h} · <b>${q}</b></small></span><span class="m ${t === 'eg' ? 'eg' : ''}">${m}</span></div>`).join('')}
+        </div>
+      </div>
+      ${modal}
+    </div>
+  </div>`;
+}
+
+/* ================= 4. Nadie de turno ================= */
+const NOTA_NADIE = `<b>Qué mirar (asistencia forzada a «Nadie marcó»):</b> no hay combo que elegir: la operación se <b>bloquea</b>
+  y la pantalla dice qué hacer. Vale igual para la terminal y para un líder con su cuenta personal, incluso trabajando desde casa.`;
+function pantallaNadie() {
+  const guardado = est.asis;
+  est.asis = 'vacia';
+  const html = pantallaPdv(NOTA_NADIE);
+  est.asis = guardado;
+  return html;
+}
+
+
+/* ================= 5. Terminales sin persona (ADR-0162) ================= */
+const TERMINALES = [
+  { id: 't1', n: 'Terminal Ventas TRU', tienda: 'Tienda TRU', tipo: 'Ventas', activa: true, visto: 'Hace 3 min' },
+  { id: 't2', n: 'Terminal Administrativa TRU', tienda: 'Tienda TRU', tipo: 'Administrativa', activa: true, visto: 'Hoy 11:20' },
+  { id: 't3', n: 'Terminal Ventas AQP', tienda: 'Tienda AQP', tipo: 'Ventas', activa: true, visto: 'Hace 12 min' },
+  { id: 't4', n: 'Terminal Administrativa AQP', tienda: 'Tienda AQP', tipo: 'Administrativa', activa: true, visto: 'Ayer 18:40' },
+  { id: 't5', n: 'Terminal Ventas LIM', tienda: 'Tienda LIM', tipo: 'Ventas', activa: false, visto: 'Nunca' },
+  { id: 't6', n: 'Terminal Administrativa LIM', tienda: 'Tienda LIM', tipo: 'Administrativa', activa: false, visto: 'Nunca' },
+];
+const ICO_DEV = '<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>';
+function pantallaTerminales() {
+  const t = est.confirmar && TERMINALES.find((x) => x.id === est.confirmar);
+  return `<div class="pagina">
+    <div class="nota"><b>Qué mirar:</b> una terminal es un <b>aparato con su propia cuenta, sin persona</b> (como en Dynamic). No existe en Dynamic,
+      así que no sale en su directorio, en su kiosco ni en su planilla. Aquí se ve, se desactiva y se reactiva. Crear una o cambiarle la clave lo hace un líder con un script,
+      porque exige una llave que la web no debe tener.</div>
+    <p class="lbl tp">Colaboradores</p><h1 class="t">Terminales</h1>
+    <p class="sub">Aparatos compartidos de cada tienda. No son personas: lo que hacen lo firma quien se elige como responsable.</p>
+    <div class="card" style="margin-top:22px;overflow-x:auto">
+      <table class="tabla"><thead><tr><th>Terminal</th><th>Tienda</th><th>Tipo</th><th>Estado</th><th>Última actividad</th><th></th></tr></thead>
+      <tbody>${TERMINALES.map((x) => `<tr class="${x.activa ? '' : 'apagada'}">
+        <td><span class="dev"><span class="ico">${ICO_DEV}</span><span>${x.n}<small>Sin persona · cuenta del aparato</small></span></span></td>
+        <td>${x.tienda}</td><td>${x.tipo}</td>
+        <td>${x.activa ? '<span class="chip verde">Activa</span>' : '<span class="chip lock">Desactivada</span>'}</td>
+        <td>${x.visto}</td>
+        <td class="der"><button class="btn sec" style="height:34px;padding:0 12px" data-a="confirmar" data-id="${x.id}">${x.activa ? 'Desactivar' : 'Reactivar'}</button></td>
+      </tr>`).join('')}</tbody></table>
+    </div>
+    <div class="pie-nota">
+      <div class="card"><p class="lbl tp">Crear una terminal o cambiarle la clave</p>
+        <p style="margin-top:6px">Lo corre un líder: <code>pnpm terminales:crear TRU ventas</code>. La clave se muestra <b>una sola vez</b>; se escribe en el aparato y no se guarda en ningún otro lado.</p></div>
+      <div class="card"><p class="lbl tp">Si alguien deja de trabajar en la tienda</p>
+        <p style="margin-top:6px">No hace falta cambiar la clave: la persona no puede firmar si no marca su entrada. Si se pierde el aparato, <b>Desactivar</b> corta su sesión en el acto.</p></div>
+    </div>
+    ${t ? `<div class="velo" data-a="cerrarmodal"><div class="modal" data-no-cierra>
+      <h2>${t.activa ? 'Desactivar' : 'Reactivar'} ${t.n}</h2>
+      <p class="s">${t.activa ? 'El aparato deja de funcionar al instante: su sesión ya no puede leer ni guardar nada. Su historial se conserva.' : 'El aparato vuelve a funcionar con su misma clave.'}</p>
+      <div class="acc2"><button class="btn sec" data-a="cerrarmodal">Cancelar</button><button class="btn" data-a="alternar" data-id="${t.id}">${t.activa ? 'Desactivar' : 'Reactivar'}</button></div>
+    </div></div>` : ''}
+  </div>`;
+}
+
+/* ================= 6. La sesión de una terminal ================= */
+function pantallaSesion() {
+  const filas = [
+    ['10:42', 'Venta B001-000812', 'María P.', 'S/ 218.90'],
+    ['11:15', 'Egreso de caja · Movilidad', 'Carmen T.', '−S/ 12.00'],
+    ['12:30', 'Venta B001-000813', 'Lucía R.', 'S/ 159.00'],
+    ['13:02', 'Cambio de prenda', 'Lucía R.', '—'],
+  ];
+  return `<div class="pagina">
+    <div class="nota"><b>Qué mirar:</b> abajo a la izquierda, donde hoy va la persona, va <b>el aparato</b>. Cada operación queda con dos datos:
+      <b>quién</b> (la responsable elegida, una persona real) y <b>desde dónde</b> (la terminal). El aparato nunca firma solo.</div>
+    <div class="shell">
+      <aside class="lado"><p class="marca">CAYLA</p>
+        ${['Punto de venta', 'Caja', 'Cambios', 'Devoluciones', 'Historial de ventas', 'Facturación'].map((n, i) => `<div class="it ${i === 4 ? 'act' : ''}">${n}</div>`).join('')}
+        <div class="yo"><span class="ico">${ICO_DEV}</span><p>Terminal Ventas TRU<small>APARATO · TIENDA TRU</small></p></div>
+      </aside>
+      <div class="cuerpo">
+        <p class="lbl tp">Ventas</p><h1 class="t" style="font-size:38px">Historial de hoy</h1>
+        <div class="card" style="margin-top:18px;overflow-x:auto"><table class="tabla">
+          <thead><tr><th>Hora</th><th>Operación</th><th>Responsable</th><th>Desde</th><th class="der">Monto</th></tr></thead>
+          <tbody>${filas.map(([h, o, q, m]) => `<tr><td>${h}</td><td>${o}</td><td><b style="font-weight:500">${q}</b></td>
+            <td><span class="dev" style="gap:6px;font-size:13px;color:var(--t65)">${ICO_DEV}Terminal Ventas TRU</span></td><td class="der">${m}</td></tr>`).join('')}</tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// La entrada se anima solo al cambiar de pantalla, no en cada clic (ADR-0136: nada decorativo).
+let ultimaPantalla = null;
+function pintar() {
+  const p = { roles: pantallaRoles, pdv: pantallaPdv, caja: pantallaCaja, nadie: pantallaNadie, terms: pantallaTerminales, sesion: pantallaSesion }[est.pant];
+  const nueva = ultimaPantalla !== est.pant;
+  ultimaPantalla = est.pant;
+  $('#app').innerHTML = p().replace('<div class="pagina">', `<div class="pagina${nueva ? ' entra' : ''}">`) + (est.aviso ? `<div class="aviso" role="status"><svg class="ic" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>${est.aviso}</div>` : '');
+}
+
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-a]');
+  if (!b) { if (est.abierto && !e.target.closest('.lista')) { est.abierto = false; pintar(); } return; }
+  const a = b.dataset.a;
+  if (a === 'abrir') est.abierto = !est.abierto;
+  if (a === 'elegir') { est.elegido = b.dataset.id; est.abierto = false; }
+  if (a === 'actualizar') { est.aviso = null; }
+  if (a === 'cobrar') {
+    const el = firmables().find((p) => p.id === est.elegido);
+    est.aviso = `Venta registrada · atendió ${el.nombre}`;
+    est.elegido = null; // vuelve vacío para la siguiente
+    setTimeout(() => { est.aviso = null; pintar(); }, 2600);
+  }
+  if (a === 'cerrarcaja') est.cajaPaso = 'resultado';
+  if (a === 'reiniciarcaja') { est.cajaPaso = 'contar'; est.elegido = null; }
+  if (a === 'rol') est.rol = b.dataset.id;
+  if (a === 'confirmar') est.confirmar = b.dataset.id;
+  if (a === 'cerrarmodal') { if (e.target.closest('[data-no-cierra]') && !e.target.closest('button')) return; est.confirmar = null; }
+  if (a === 'alternar') {
+    const t = TERMINALES.find((x) => x.id === b.dataset.id);
+    t.activa = !t.activa; est.confirmar = null;
+    est.aviso = `${t.n} ${t.activa ? 'reactivada' : 'desactivada'}`;
+    setTimeout(() => { est.aviso = null; pintar(); }, 2600);
+  }
+  if (a === 'ver') {
+    const rol = ROLES.find((r) => r.id === est.rol);
+    const m = b.dataset.m;
+    rol.ve.has(m) ? rol.ve.delete(m) : rol.ve.add(m);
+  }
+  pintar();
+});
+
+for (const [id, k] of [['#sel-pant', 'pant'], ['#sel-cuenta', 'cuenta'], ['#sel-asis', 'asis']]) {
+  $(id).addEventListener('change', (e) => {
+    est[k] = e.target.value; est.abierto = false; est.elegido = null; est.aviso = null; est.cajaPaso = 'contar';
+    
+    pintar();
+  });
+}
+pintar();
+</script>
+</body>
+</html>

@@ -12,6 +12,9 @@ import { describirRotacion } from "@/lib/reorden-reglas";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import type { ProductoListado, VarianteCatalogo } from "@/lib/catalogo-v2";
 import { alertaDeStock, textoDeStock, EXPLICACION_STOCK_TOTAL, MENSAJE_SIN_RESULTADOS } from "@/lib/productos-stock";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 /** Rango de costo del modelo a partir de sus variantes — no hay `costo` a nivel
  *  de producto en el esquema (vive por variante, `variantes.costo`), así que se
@@ -102,11 +105,13 @@ export function ProductosAgrupados({
   // Un solo UPDATE para toda la selección — `productos.estado` no tiene RPC
   // propia, el trigger de historial (20260915223000) escucha cualquier
   // UPDATE sobre `productos`, no una llamada explícita.
-  async function aplicarEstadoMasivo(estado: "activo" | "descontinuado") {
+  async function aplicarEstadoMasivo(estado: "activo" | "descontinuado", responsable: ControlResponsable) {
+    if (!responsable.listo) return;
     const ids = Array.from(seleccionados);
     setAplicando(true);
-    const { error } = await createClient().from("productos").update({ estado }).in("id", ids);
+    const { error } = await firmar(createClient().from("productos").update({ estado }).in("id", ids), responsable.firma());
     setAplicando(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, estado === "activo" ? "activar los productos" : "desactivar los productos"));
       return;
@@ -129,26 +134,6 @@ export function ProductosAgrupados({
         {seleccionados.size > 0 ? (
           <>
             {seleccionados.size} seleccionado{seleccionados.size === 1 ? "" : "s"}
-            {puedeEditar && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => aplicarEstadoMasivo("activo")}
-                  disabled={aplicando}
-                  className="ml-2 text-tinta/55 hover:text-rojo disabled:opacity-50"
-                >
-                  Activar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => aplicarEstadoMasivo("descontinuado")}
-                  disabled={aplicando}
-                  className="ml-2 text-tinta/55 hover:text-rojo disabled:opacity-50"
-                >
-                  Desactivar
-                </button>
-              </>
-            )}
             <button type="button" onClick={() => setSeleccionados(new Set())} className="ml-2 text-tinta/55 hover:text-rojo">
               Limpiar selección
             </button>
@@ -157,6 +142,9 @@ export function ProductosAgrupados({
           "Seleccionar todo en esta página"
         )}
       </label>
+
+      {/* Activar/Desactivar van fuera del <label> (el combo no debe marcar la casilla al tocarlo). */}
+      {puedeEditar && seleccionados.size > 0 && <CambiarEstadoMasivo aplicando={aplicando} onAplicar={aplicarEstadoMasivo} />}
 
       <div className={`label-cayla hidden items-center gap-3 px-5 text-[11px] text-tinta/55 sm:grid ${PLANTILLA_FILA}`}>
         <span aria-hidden />
@@ -427,6 +415,46 @@ function MenuFila({
           onClose={() => setAjustando(false)}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * Activar/Desactivar la selección, con su combo «Responsable» (ADR-0161: cambiar el estado de una prenda es
+ * Catálogo, operación de tienda). Se monta solo mientras hay algo seleccionado, así la lista de productos no lee la
+ * asistencia cada minuto mientras nadie va a guardar nada. Al desmontarse (se limpió la selección) el combo se pierde:
+ * la próxima vez viene vacío, que es la regla.
+ */
+function CambiarEstadoMasivo({
+  aplicando,
+  onAplicar,
+}: {
+  aplicando: boolean;
+  onAplicar: (estado: "activo" | "descontinuado", responsable: ControlResponsable) => Promise<void>;
+}) {
+  const responsable = useResponsable();
+  const apagado = aplicando || !responsable.listo;
+  return (
+    <div className="flex flex-wrap items-end gap-3 px-1">
+      <ComboResponsable control={responsable} deshabilitado={aplicando} hacia="abajo" className="w-full max-w-xs" />
+      <button
+        type="button"
+        onClick={() => void onAplicar("activo", responsable)}
+        disabled={apagado}
+        title={responsable.motivo ?? undefined}
+        className="label-cayla text-[11px] text-tinta/55 hover:text-rojo disabled:opacity-50"
+      >
+        Activar
+      </button>
+      <button
+        type="button"
+        onClick={() => void onAplicar("descontinuado", responsable)}
+        disabled={apagado}
+        title={responsable.motivo ?? undefined}
+        className="label-cayla text-[11px] text-tinta/55 hover:text-rojo disabled:opacity-50"
+      >
+        Desactivar
+      </button>
     </div>
   );
 }

@@ -5,6 +5,8 @@ import { avisar } from "@/components/ui/Avisos";
 import { guardarEjesCategoria, proponerValorVocabulario, type EjeIds, type TipoVocabulario } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { sinTildes } from "@/lib/marcas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
 
 // "+ Nueva talla / tejido / patrón" dentro del bloque, sin salir del formulario
 // (decidido con Felipe, 2026-09-18: salir a Atributos hacía perder lo llenado).
@@ -27,6 +29,11 @@ import { sinTildes } from "@/lib/marcas";
 // Colores NO se propone acá a propósito: un color necesita código corto, tono,
 // familia de color y tipo (cinco datos), y merece su propia pantalla
 // (Catálogo → Atributos → Colores); ver `EnlaceColorNuevo` en el formulario.
+//
+// Responsable (ADR-0161): agregar un valor es un guardado aparte del producto,
+// así que lleva su propio combo. Vive en la parte ABIERTA (`ProponerValorAbierto`)
+// para que el formulario no lea la asistencia tres veces por minuto por tres
+// enlaces «+ Nueva …» que nadie abrió.
 
 const TEXTOS: Record<TipoVocabulario, { boton: string; placeholder: string; singular: string }> = {
   tallas: { boton: "+ Nueva talla", placeholder: "Ej. 44", singular: "talla" },
@@ -34,13 +41,7 @@ const TEXTOS: Record<TipoVocabulario, { boton: string; placeholder: string; sing
   patrones: { boton: "+ Nuevo patrón", placeholder: "Ej. Pata de gallo", singular: "patrón" },
 };
 
-export function ProponerValor({
-  tipo,
-  categoriaId,
-  ejesActuales,
-  universo,
-  onCreado,
-}: {
+type Props = {
   tipo: TipoVocabulario;
   categoriaId: string;
   /** Lo que la categoría ofrece HOY en los tres ejes: la RPC reemplaza, así que hay que devolverlo entero + el valor nuevo. */
@@ -48,16 +49,30 @@ export function ProponerValor({
   /** Todo el vocabulario aprobado de este tipo (no solo lo que la categoría ofrece): para reconocer un valor que ya existe. */
   universo: ValorVocabulario[];
   onCreado: (valor: ValorVocabulario) => void;
-}) {
+};
+
+export function ProponerValor(props: Props) {
   const [abierto, setAbierto] = useState(false);
+  if (!abierto) {
+    return (
+      <button type="button" onClick={() => setAbierto(true)} className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo">
+        {TEXTOS[props.tipo].boton}
+      </button>
+    );
+  }
+  return <ProponerValorAbierto {...props} onCerrar={() => setAbierto(false)} />;
+}
+
+function ProponerValorAbierto({ tipo, categoriaId, ejesActuales, universo, onCreado, onCerrar }: Props & { onCerrar: () => void }) {
   const [texto, setTexto] = useState("");
   const [trabajando, setTrabajando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const responsable = useResponsable();
   const t = TEXTOS[tipo];
 
   async function agregar() {
     const limpio = texto.trim();
-    if (!limpio || trabajando) return;
+    if (!limpio || trabajando || !responsable.listo) return;
     setTrabajando(true);
     setError(null);
 
@@ -72,17 +87,18 @@ export function ProponerValor({
 
     const { valor, error: errCrear } = existente
       ? { valor: { id: existente.id, texto: existente.texto, aprobado: true }, error: null }
-      : await proponerValorVocabulario(tipo, limpio);
+      : await proponerValorVocabulario(tipo, limpio, responsable.encabezados());
     if (errCrear || !valor) {
       setError(errCrear);
       setTrabajando(false);
       return;
     }
     if (!valor.aprobado) {
+      responsable.despues(null);
       avisar.aviso(`Propuesta enviada: ${valor.texto}`, { detalle: "Un Líder tiene que aprobarla en Catálogo → Atributos antes de poder usarla." });
       setTrabajando(false);
       setTexto("");
-      setAbierto(false);
+      onCerrar();
       return;
     }
 
@@ -91,28 +107,22 @@ export function ProponerValor({
       tejidoIds: tipo === "tejidos" ? [...ejesActuales.tejidoIds, valor.id] : ejesActuales.tejidoIds,
       patronIds: tipo === "patrones" ? [...ejesActuales.patronIds, valor.id] : ejesActuales.patronIds,
     };
-    const errOfrecer = await guardarEjesCategoria(categoriaId, nuevos);
+    const errOfrecer = await guardarEjesCategoria(categoriaId, nuevos, responsable.encabezados());
     setTrabajando(false);
     if (errOfrecer) {
       setError(`«${valor.texto}» ya está en el catálogo, pero no se pudo ofrecer en esta categoría: ${errOfrecer} Vuelve a tocar «Agregar»: no se crea otra vez.`);
       return;
     }
+    responsable.despues(null);
     avisar.exito(`${valor.texto} agregada a la categoría`);
     onCreado({ id: valor.id, texto: valor.texto });
     setTexto("");
-    setAbierto(false);
-  }
-
-  if (!abierto) {
-    return (
-      <button type="button" onClick={() => setAbierto(true)} className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo">
-        {t.boton}
-      </button>
-    );
+    onCerrar();
   }
 
   return (
     <div className="space-y-2">
+      <ComboResponsable control={responsable} deshabilitado={trabajando} className="max-w-sm" />
       <div className="flex flex-wrap items-center gap-2">
         <label className="sr-only" htmlFor={`nuevo-${tipo}`}>
           Nombre de la {t.singular} nueva
@@ -128,7 +138,7 @@ export function ProponerValor({
               e.preventDefault();
               void agregar();
             }
-            if (e.key === "Escape") setAbierto(false);
+            if (e.key === "Escape") onCerrar();
           }}
           placeholder={t.placeholder}
           disabled={trabajando}
@@ -137,12 +147,13 @@ export function ProponerValor({
         <button
           type="button"
           onClick={() => void agregar()}
-          disabled={!texto.trim() || trabajando}
+          disabled={!texto.trim() || trabajando || !responsable.listo}
+          title={responsable.motivo ?? undefined}
           className="label-cayla rounded-md bg-tinta px-3 py-2 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-40"
         >
           {trabajando ? "Guardando…" : "Agregar"}
         </button>
-        <button type="button" onClick={() => setAbierto(false)} disabled={trabajando} className="label-cayla text-[11px] text-tinta/60 hover:text-tinta">
+        <button type="button" onClick={() => onCerrar()} disabled={trabajando} className="label-cayla text-[11px] text-tinta/60 hover:text-tinta">
           Cancelar
         </button>
       </div>

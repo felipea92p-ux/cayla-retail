@@ -2987,11 +2987,14 @@ export type Database = {
           id: string
           igv: number
           items: Json
+          nota: string | null
+          numero: number
           subtotal: number
           total: number
           ubicacion_id: string
           usuario_id: string | null
           vence_at: string | null
+          venta_id: string | null
         }
         Insert: {
           cliente_nombre?: string | null
@@ -3002,11 +3005,14 @@ export type Database = {
           id?: string
           igv?: number
           items: Json
+          nota?: string | null
+          numero?: number
           subtotal?: number
           total: number
           ubicacion_id: string
           usuario_id?: string | null
           vence_at?: string | null
+          venta_id?: string | null
         }
         Update: {
           cliente_nombre?: string | null
@@ -3017,11 +3023,14 @@ export type Database = {
           id?: string
           igv?: number
           items?: Json
+          nota?: string | null
+          numero?: number
           subtotal?: number
           total?: number
           ubicacion_id?: string
           usuario_id?: string | null
           vence_at?: string | null
+          venta_id?: string | null
         }
         Relationships: [
           {
@@ -3036,6 +3045,13 @@ export type Database = {
             columns: ["ubicacion_id"]
             isOneToOne: false
             referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proformas_venta_id_fkey"
+            columns: ["venta_id"]
+            isOneToOne: false
+            referencedRelation: "ventas"
             referencedColumns: ["id"]
           },
         ]
@@ -3618,6 +3634,153 @@ export type Database = {
           nombre?: string
           notas?: string | null
           propuesto_por?: string | null
+        }
+        Relationships: []
+      }
+      modulos: {
+        Row: {
+          clave: string
+          delegable: boolean
+          grupo: string
+          incluye: string
+          nombre: string
+          orden: number
+          solo_lider: boolean
+        }
+        Insert: {
+          clave: string
+          delegable?: boolean
+          grupo: string
+          incluye: string
+          nombre: string
+          orden: number
+          solo_lider?: boolean
+        }
+        Update: {
+          clave?: string
+          delegable?: boolean
+          grupo?: string
+          incluye?: string
+          nombre?: string
+          orden?: number
+          solo_lider?: boolean
+        }
+        Relationships: []
+      }
+      rol_modulos: {
+        Row: { modulo: string; rol_id: string }
+        Insert: { modulo: string; rol_id: string }
+        Update: { modulo?: string; rol_id?: string }
+        Relationships: []
+      }
+      roles: {
+        Row: {
+          archivado_at: string | null
+          archivado_por: string | null
+          clave: string | null
+          creado_at: string
+          creado_por: string | null
+          descripcion: string | null
+          es_sistema: boolean
+          fijo: boolean
+          id: string
+          limitado_como_hoy: boolean
+          nombre: string
+        }
+        Insert: {
+          archivado_at?: string | null
+          archivado_por?: string | null
+          clave?: string | null
+          creado_at?: string
+          creado_por?: string | null
+          descripcion?: string | null
+          es_sistema?: boolean
+          fijo?: boolean
+          id?: string
+          limitado_como_hoy?: boolean
+          nombre: string
+        }
+        Update: {
+          archivado_at?: string | null
+          archivado_por?: string | null
+          clave?: string | null
+          creado_at?: string
+          creado_por?: string | null
+          descripcion?: string | null
+          es_sistema?: boolean
+          fijo?: boolean
+          id?: string
+          limitado_como_hoy?: boolean
+          nombre?: string
+        }
+        Relationships: []
+      }
+      roles_historial: {
+        Row: {
+          accion: string
+          detalle: Json
+          hecho_at: string
+          hecho_por: string | null
+          id: number
+          rol_id: string
+        }
+        Insert: {
+          accion: string
+          detalle?: Json
+          hecho_at?: string
+          hecho_por?: string | null
+          id?: never
+          rol_id: string
+        }
+        Update: {
+          accion?: string
+          detalle?: Json
+          hecho_at?: string
+          hecho_por?: string | null
+          id?: never
+          rol_id?: string
+        }
+        Relationships: []
+      }
+      terminales: {
+        Row: {
+          activo: boolean
+          auth_user_id: string | null
+          creada_at: string
+          creada_por: string | null
+          desactivada_at: string | null
+          desactivada_por: string | null
+          id: string
+          nombre: string
+          rol_id: string
+          tipo: string | null
+          ubicacion_id: string
+        }
+        Insert: {
+          activo?: boolean
+          auth_user_id?: string | null
+          creada_at?: string
+          creada_por?: string | null
+          desactivada_at?: string | null
+          desactivada_por?: string | null
+          id?: string
+          nombre: string
+          rol_id?: string
+          tipo?: string | null
+          ubicacion_id: string
+        }
+        Update: {
+          activo?: boolean
+          auth_user_id?: string | null
+          creada_at?: string
+          creada_por?: string | null
+          desactivada_at?: string | null
+          desactivada_por?: string | null
+          id?: string
+          nombre?: string
+          rol_id?: string
+          tipo?: string | null
+          ubicacion_id?: string
         }
         Relationships: []
       }
@@ -4529,6 +4692,91 @@ export type Database = {
         }
         Returns: string
       }
+      // Apartados con adelanto (ADR-0166, 20260923090000_separaciones.sql). Escritos a mano con la forma que da
+      // `supabase gen types` (esta sesión no pudo levantar el stack): regenerar al pegar la migración en producción.
+      buscar_separaciones: {
+        Args: { p_estados?: string[]; p_texto?: string; p_ubicacion_id: string }
+        Returns: {
+          adelanto: number
+          asesora: string | null
+          clienta_apellidos: string
+          clienta_celular: string
+          clienta_dni: string | null
+          clienta_nombres: string
+          codigo: string
+          comprobante_anticipo: string | null
+          comprobante_final: string | null
+          creada_en: string
+          devolucion_cci_final: string | null
+          devolucion_medio: string
+          devolucion_numero: string | null
+          estado: string
+          extensiones: number
+          id: string
+          items: Json
+          liberada_sola: boolean
+          nota_credito: string | null
+          pagos: Json
+          saldo: number
+          total: number
+          vence_el: string
+        }[]
+      }
+      entregar_separacion: {
+        Args: { p_pagos?: Json; p_separacion_id: string; p_token?: string }
+        Returns: string
+      }
+      extender_separacion: {
+        Args: { p_separacion_id: string }
+        Returns: string
+      }
+      fn_vencer_separaciones: {
+        Args: { p_ubicacion_id: string }
+        Returns: number
+      }
+      liberar_separacion: {
+        Args: { p_motivo: string; p_separacion_id: string }
+        Returns: undefined
+      }
+      registrar_devolucion_separacion: {
+        Args: { p_cci?: string; p_medio: string; p_operacion?: string; p_separacion_id: string }
+        Returns: Json
+      }
+      resumen_separaciones: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          en_custodia: number
+          en_custodia_efectivo: number
+          monto_por_devolver: number
+          por_devolver: number
+          por_recoger: number
+          prendas_guardadas: number
+          vencen_pronto: number
+          vencidas: number
+        }[]
+      }
+      separar_prendas: {
+        Args: {
+          p_asesora_id?: string
+          p_cliente_razon_social?: string
+          p_cliente_ruc?: string
+          p_clienta_apellidos: string
+          p_clienta_celular: string
+          p_clienta_dni?: string
+          p_clienta_id?: string
+          p_clienta_nombres: string
+          p_comprobante_tipo?: string
+          p_devolucion_cci?: string
+          p_devolucion_medio: string
+          p_devolucion_numero?: string
+          p_items: Json
+          p_nota?: string
+          p_pagos: Json
+          p_token?: string
+          p_ubicacion_id: string
+        }
+        Returns: string
+      }
       aprobar_devolucion: {
         Args: {
           p_devolucion_id: string
@@ -4755,10 +5003,8 @@ export type Database = {
         Args: {
           p_cliente_nombre?: string
           p_cliente_num_doc?: string
-          p_igv: number
           p_items: Json
-          p_subtotal: number
-          p_total: number
+          p_nota?: string
           p_ubicacion_id: string
           p_vence_at?: string
         }
@@ -4780,6 +5026,7 @@ export type Database = {
         Args: { p_proveedor_id: string }
         Returns: undefined
       }
+      desactivar_terminal: { Args: { p_terminal_id: string }; Returns: undefined }
       devolver_insumo_de_produccion: {
         Args: {
           p_cantidad: number
@@ -5014,6 +5261,7 @@ export type Database = {
         }[]
       }
       fn_es_lider: { Args: never; Returns: boolean }
+      fn_actor_persona_id: { Args: { p_de_tienda?: boolean }; Returns: string }
       fn_exige_dinero_de_compras: {
         Args: { p_que?: string }
         Returns: undefined
@@ -5700,6 +5948,60 @@ export type Database = {
         Args: { p_ubicacion_id: string; p_uso: string }
         Returns: string
       }
+      archivar_rol: { Args: { p_rol_id: string }; Returns: undefined }
+      asignar_rol: {
+        Args: { p_persona_id?: string; p_rol_id: string; p_terminal_id?: string }
+        Returns: undefined
+      }
+      crear_rol: {
+        Args: { p_copiar_de?: string; p_descripcion?: string; p_nombre: string }
+        Returns: string
+      }
+      fn_cuentas_con_rol: {
+        Args: never
+        Returns: {
+          es_lider: boolean
+          estado: string
+          id: string
+          nombre: string
+          rol_id: string
+          tipo: string
+          ubicacion_nombre: string | null
+        }[]
+      }
+      fn_mis_modulos: {
+        Args: never
+        Returns: {
+          clave: string
+          completo: boolean
+        }[]
+      }
+      fn_ve_modulo: { Args: { p_clave: string }; Returns: boolean }
+      guardar_modulos_rol: {
+        Args: { p_modulos: string[]; p_rol_id: string }
+        Returns: undefined
+      }
+      renombrar_rol: {
+        Args: { p_descripcion?: string; p_nombre: string; p_rol_id: string }
+        Returns: undefined
+      }
+      restaurar_rol: { Args: { p_rol_id: string }; Returns: undefined }
+      fn_terminales: {
+        Args: never
+        Returns: {
+          activo: boolean
+          correo: string | null
+          creada_at: string
+          desactivada_at: string | null
+          id: string
+          nombre: string
+          rol_id: string
+          rol_nombre: string
+          ubicacion_id: string
+          ubicacion_nombre: string
+          ultimo_acceso: string | null
+        }[]
+      }
       fn_texto_o_null: { Args: { p: string }; Returns: string }
       fn_tiene_acceso_retail: { Args: never; Returns: boolean }
       fn_titulo_referencia: { Args: { p: string }; Returns: string }
@@ -5979,6 +6281,10 @@ export type Database = {
         Args: { p_comprobante_id: string; p_motivo: string }
         Returns: undefined
       }
+      marcar_proforma_cobrada: {
+        Args: { p_proforma_id: string; p_venta_id: string }
+        Returns: undefined
+      }
       marcar_pedido_no_atendido_resuelto: {
         Args: { p_pedido_id: string }
         Returns: undefined
@@ -6027,6 +6333,7 @@ export type Database = {
       }
       quitar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }
       reactivar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }
+      reactivar_terminal: { Args: { p_terminal_id: string }; Returns: undefined }
       suspender_colaborador: { Args: { p_motivo?: string; p_persona_id: string }; Returns: undefined }
       reactivar_categoria: {
         Args: { p_categoria_id: string }

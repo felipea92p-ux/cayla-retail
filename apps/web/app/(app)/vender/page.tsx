@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
+import { exigirModulo, puede } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getCajaAbierta } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -8,7 +8,11 @@ import { nombresCortos } from "@/lib/nombre-integrante";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
-import { PuntoDeVenta } from "@/components/PuntoDeVenta";
+import { PuntoDeVenta, type ProformaEnCobro } from "@/components/PuntoDeVenta";
+import { getProformaParaCobrar } from "@/lib/proformas";
+import { numeroDeProforma } from "@/lib/proformas-reglas";
+import { confirmacionDeConversion } from "@/lib/facturacion-proformas-reglas";
+import { lineasDelCarritoDesdeProforma } from "@/lib/proforma-al-carrito";
 import type { CampanaLinea } from "@/lib/vender-reglas";
 
 /**
@@ -21,16 +25,17 @@ import type { CampanaLinea } from "@/lib/vender-reglas";
  * `registrar_venta`. Vive dentro de `(app)` con el sidebar de AppShell,
  * sin el tope de ancho `max-w-5xl` (ver AppShell.tsx).
  */
-export default async function VenderPage() {
+export default async function VenderPage({ searchParams }: { searchParams: Promise<{ proforma?: string }> }) {
+  const { proforma } = await searchParams;
   return (
     <Suspense fallback={<p className="label-cayla text-[11px] text-tinta/50">Cargando caja…</p>}>
-      <Caja />
+      <Caja proformaId={proforma ?? null} />
     </Suspense>
   );
 }
 
-async function Caja() {
-  const persona = await requirePersonaActualV2();
+async function Caja({ proformaId }: { proformaId: string | null }) {
+  const persona = await exigirModulo("vender"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   const supabase = await createClient();
   // Dos lecturas de stock con dos preguntas distintas:
   // · «¿cuánto puedo cobrar AQUÍ ya?» → `getStockPorUbicacion`, la misma regla que la
@@ -85,8 +90,35 @@ async function Caja() {
       stockOtrasSedes: stockPorVariante.get(v.varianteId)?.otrasSedes ?? [],
     }));
 
+  // «Cobrar» desde Proformas (ADR-0167): la proforma entra como carrito si es de esta tienda y sigue vigente.
+  let proformaEnCobro: ProformaEnCobro | null = null;
+  let avisoProforma: string | null = null;
+  if (proformaId) {
+    const ahora = new Date();
+    const p = await getProformaParaCobrar(proformaId, ahora.getTime());
+    if (!p) avisoProforma = "No se encontró esa proforma.";
+    else if (p.estado !== "vigente") avisoProforma = `${numeroDeProforma(p.numero)} ya no está vigente (está ${p.estado}).`;
+    else if (p.ubicacion_id !== persona.ubicacionId) avisoProforma = `${numeroDeProforma(p.numero)} es de otra tienda: cóbrala desde esa sede.`;
+    else {
+      const { lineas, faltan } = lineasDelCarritoDesdeProforma(p, variantesParaVenta);
+      proformaEnCobro = {
+        id: p.id,
+        numero: numeroDeProforma(p.numero),
+        cliente: p.cliente_nombre,
+        clienteDoc: p.cliente_num_doc,
+        lineas,
+        faltan,
+        confirmacion: confirmacionDeConversion(p, ahora),
+      };
+    }
+  }
+
   return (
     <PuntoDeVenta
+      // Otra proforma (u otra vez la misma tras soltarla) arranca un ticket nuevo: el carrito se arma al montar.
+      key={proformaEnCobro?.id ?? "caja"}
+      proforma={proformaEnCobro}
+      avisoProforma={avisoProforma}
       ubicacionId={persona.ubicacionId}
       // Solo decide qué se muestra (el campo «Código» del descuento): la regla de quién
       // descuenta la aplica `registrar_venta` (20260914215103_codigos_descuento.sql).

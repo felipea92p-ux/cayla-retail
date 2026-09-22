@@ -1,5 +1,8 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
+// ADR-0161: cambiar el catálogo es operación de tienda; la firma del combo «Responsable» que manda la pantalla
+// viaja a la base en cada consulta de este cliente (sin firma, igual que antes).
+import { firmaDeEncabezados } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
 import { objecionVigencia, parsearDescuento, parsearFecha } from "@/lib/etiqueta-campana";
 
@@ -17,7 +20,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Falta el nombre de la etiqueta." }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
   const { data, error } = await supabase.from("etiquetas").insert({ nombre }).select("id, nombre, activo, notas, estado").single();
 
   if (error) {
@@ -59,7 +62,7 @@ export async function PATCH(request: Request) {
       return Response.json({ error: "Las categorías elegidas no son válidas." }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
     const { error } = await supabase.rpc("actualizar_campana_etiqueta", {
       p_etiqueta_id: id,
       p_descuento_pct: descuento.valor as number,
@@ -92,7 +95,7 @@ export async function PATCH(request: Request) {
     patch.notas = typeof cuerpoObj.notas === "string" && cuerpoObj.notas.trim() ? cuerpoObj.notas.trim() : null;
   }
 
-  const supabase = await createClient();
+  const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
 
   if ("activo" in cuerpoObj) {
     const activo = cuerpoObj.activo === true;

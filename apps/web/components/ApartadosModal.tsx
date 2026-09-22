@@ -17,6 +17,9 @@ import {
   type Apartado,
   type MotivoLiberacion,
 } from "@/lib/apartados-reglas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Los apartados abiertos de esta tienda (ADR-0141). Lo que vence primero —o ya venció— sale arriba, y
 // lo vencido va en rojo: NO se libera solo (la clienta pudo dejar adelanto), decide quien lo ve. El
@@ -30,16 +33,23 @@ export function ApartadosModal({ apartados, onClose }: { apartados: Apartado[]; 
   const [motivo, setMotivo] = useState<MotivoLiberacion | "">("");
   const [enviando, setEnviando] = useState(false);
   const [intento, setIntento] = useState(false);
+  // Liberar guarda en la tienda (la prenda vuelve a estar disponible): pide Responsable (ADR-0161).
+  const responsable = useResponsable();
 
   async function liberar(e: React.FormEvent) {
     e.preventDefault();
     if (!liberando) return;
     setIntento(true);
     if (!motivo) return;
+    if (!responsable.listo) return;
 
     setEnviando(true);
-    const { error } = await createClient().rpc("liberar_apartado", { p_apartado_id: liberando.id, p_motivo: motivo });
+    const { error } = await firmar(
+      createClient().rpc("liberar_apartado", { p_apartado_id: liberando.id, p_motivo: motivo }),
+      responsable.firma(),
+    );
     setEnviando(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "liberar el apartado"));
       return;
@@ -82,11 +92,19 @@ export function ApartadosModal({ apartados, onClose }: { apartados: Apartado[]; 
               pie={intento && !motivo ? "Elige por qué se libera." : motivo === "entregada" ? "Queda disponible: cóbrala en Vender enseguida." : undefined}
               tono={intento && !motivo ? "error" : undefined}
             />
+            <ComboResponsable control={responsable} deshabilitado={enviando} />
             <div className="flex gap-2 pt-1">
-              <Boton type="button" onClick={() => { setLiberando(null); setMotivo(""); setIntento(false); }} className="flex-1">
+              <Boton type="button" onClick={() => { setLiberando(null); setMotivo(""); setIntento(false); responsable.limpiar(); }} className="flex-1">
                 Volver
               </Boton>
-              <Boton type="submit" peso="primario" cargando={enviando} className="flex-1">
+              <Boton
+                type="submit"
+                peso="primario"
+                cargando={enviando}
+                disabled={!responsable.listo}
+                title={responsable.motivo ?? undefined}
+                className="flex-1"
+              >
                 Liberar apartado
               </Boton>
             </div>

@@ -10,6 +10,9 @@ import { Boton, CampoTexto, Segmentado } from "@/components/ui/campos";
 import { DIAS_SUGERIDOS_APARTADO, MAX_DIAS_APARTADO, hoyLima, sumarDias, validarApartar } from "@/lib/apartados-reglas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import type { Sububicacion } from "@/lib/sububicaciones";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Apartar una prenda para una clienta (ADR-0141): `retail.apartar_stock`. La prenda sigue físicamente
 // en la tienda —el conteo no cambia— pero deja de estar DISPONIBLE: ninguna caja puede cobrarla ni
@@ -43,6 +46,8 @@ export function ApartarModal({
   const [nota, setNota] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [intento, setIntento] = useState(false);
+  // Apartar guarda en la tienda (deja la prenda no disponible): pide Responsable (ADR-0161).
+  const responsable = useResponsable();
 
   const disponible = donde === "piso" ? pisoDisponible : almacenDisponible;
   const errores = validarApartar({ cantidad, clienta, contacto, fecha }, disponible, hoy);
@@ -52,9 +57,10 @@ export function ApartarModal({
     e.preventDefault();
     setIntento(true);
     if (Object.keys(errores).length > 0) return;
+    if (!responsable.listo) return;
 
     setEnviando(true);
-    const { error } = await createClient().rpc("apartar_stock", {
+    const { error } = await firmar(createClient().rpc("apartar_stock", {
       p_variante_id: fila.varianteId,
       p_ubicacion_id: ubicacionId,
       p_cantidad: Number(cantidad),
@@ -63,8 +69,9 @@ export function ApartarModal({
       p_vence_el: fecha,
       p_nota: nota.trim() || undefined,
       p_sububicacion_id: (donde === "piso" ? sububicacionPiso : sububicacionAlmacen).id,
-    });
+    }), responsable.firma());
     setEnviando(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "apartar la prenda"));
       return;
@@ -143,11 +150,20 @@ export function ApartarModal({
             placeholder="Ej. la pasa a recoger por la tarde"
           />
 
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
+
           <div className="flex gap-2 pt-1">
             <Boton type="button" onClick={cerrar} className="flex-1">
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={enviando} className="flex-1">
+            <Boton
+              type="submit"
+              peso="primario"
+              cargando={enviando}
+              disabled={!responsable.listo}
+              title={responsable.motivo ?? undefined}
+              className="flex-1"
+            >
               Apartar
             </Boton>
           </div>

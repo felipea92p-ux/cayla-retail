@@ -153,13 +153,17 @@ export function motivoBloqueoCobro(v: {
   total: number;
   pagos: readonly PagoAplicado[];
   facturaSinRuc: boolean;
-  /** Hay 2 o más marcadas en la sede y todavía no se eligió quién atendió (`vendedoraPendiente`). Ausente = no aplica. */
-  vendedoraFalta?: boolean;
+  /** Por qué el combo «Responsable» todavía no deja guardar (`ControlResponsable.motivo`, ADR-0161); `null`/ausente = ya
+   *  hay responsable. Se pide antes que el pago: primero quién hace la venta, después la plata. */
+  motivoResponsable?: string | null;
+  /** Se cobra una proforma VENCIDA y aún no se confirmó que va al precio de entonces (ADR-0167). Ausente = no aplica. */
+  proformaVencidaSinConfirmar?: boolean;
 }): string | null {
   if (!v.cajaAbierta) return "Abre la caja para vender.";
   if (v.prendas === 0) return "Agrega una prenda para cobrar.";
-  if (v.vendedoraFalta) return "Elige quién atendió a la clienta.";
+  if (v.motivoResponsable) return v.motivoResponsable;
   if (v.momento !== "cobrar") return null;
+  if (v.proformaVencidaSinConfirmar) return "Confirma que cobras la proforma vencida al precio de entonces.";
   if (v.pagos.length === 0) return "Elige cómo pagó la clienta.";
   const restante = restanteDePagos(v.total, v.pagos);
   if (restante > 0) return `Falta cubrir S/${restante.toFixed(2)}.`;
@@ -338,54 +342,13 @@ export function necesitaArgumentoEscrito(esLider: boolean, porcentaje: number): 
   return esLider && porcentaje > 20;
 }
 
-// ---- «¿Quién atendió a la clienta?» (ADR-0163) ------------------------------------------------
-// En una tienda con UN equipo de caja y varias colaboradoras, la sesión no dice quién vendió. La fila de
-// chips ofrece a quienes marcaron entrada hoy en Dynamic (`fn_asesoras_de_turno`) y la venta se guarda en
-// `ventas.asesora_id`. Estas reglas viven acá, sin React, para probarlas sin navegador.
+// ---- Quién atendió: el papel del ticket (ADR-0163 → ADR-0161) ------------------------------------------------------
+// Quién atendió ya no es una fila de chips propia: es el RESPONSABLE de la venta, elegido en el combo del ADR-0161
+// (`components/ComboResponsable.tsx`, reglas en `lib/responsable-reglas.ts`), y viaja a `registrar_venta` como
+// `p_asesora_id`. Aquí queda solo cómo se nombra en el papel.
 
-/** Una colaboradora que se puede elegir en la fila «Atendió». */
+/** Una persona que se puede nombrar en el ticket (`PersonaDeTurno` calza con esta forma). */
 export type Vendedora = { personaId: string; nombre: string };
-
-/** Una fila de `fn_asesoras_de_turno`: la asistencia de hoy según Dynamic. */
-export type AsesoraDeTurno = {
-  persona_id: string;
-  nombre_corto: string;
-  estado_ahora: string; // 'presente' | 'en_pausa' | 'salio' | 'programada'
-  es_de_esta_sede: boolean;
-};
-
-/**
- * Quiénes salen en la fila «Atendió», según la asistencia de hoy (Felipe, 2026-09-22):
- *  · Solo las `presente` — quien está en almuerzo o trámite no atiende en ese momento y vuelve sola al
- *    marcar su regreso.
- *  · Si en la tienda NADIE marcó nada hoy (todas `programada`), se ofrecen todas las de la sede con un aviso:
- *    un olvido en Dynamic no debe dejar la venta sin a quién atribuirla.
- *  · Si alguien marcó pero ahora no hay nadie presente (todas en pausa o ya salieron), la fila queda vacía y
- *    la venta sale a nombre de la sesión, como antes de existir la fila.
- */
-export function vendedorasDeTurno(filas: readonly AsesoraDeTurno[]): { vendedoras: Vendedora[]; sinAsistencia: boolean } {
-  const aVendedora = (f: AsesoraDeTurno): Vendedora => ({ personaId: f.persona_id, nombre: f.nombre_corto });
-  const nadieMarco = filas.length > 0 && filas.every((f) => f.estado_ahora === "programada");
-  if (nadieMarco) return { vendedoras: filas.filter((f) => f.es_de_esta_sede).map(aVendedora), sinAsistencia: true };
-  return { vendedoras: filas.filter((f) => f.estado_ahora === "presente").map(aVendedora), sinAsistencia: false };
-}
-
-/**
- * A quién se le atribuye la venta. Con una sola marcada es ella, sin tocar nada; con varias, la que se
- * eligió (si sigue en la fila: pudo salir a almorzar con el ticket armado); con nadie en la fila, nadie —
- * la venta sale a nombre de la sesión, como antes de existir la fila. Nunca hay preselección con varias:
- * el silencio no debe atribuir la venta a nadie.
- */
-export function vendedoraDeLaVenta(vendedoras: readonly Vendedora[], elegidaId: string | null): string | null {
-  if (vendedoras.length === 0) return null;
-  if (vendedoras.length === 1) return vendedoras[0].personaId;
-  return vendedoras.some((v) => v.personaId === elegidaId) ? elegidaId : null;
-}
-
-/** Falta elegir: solo cuando hay dos o más en la fila y todavía no se tocó ninguna. */
-export function vendedoraPendiente(vendedoras: readonly Vendedora[], elegidaId: string | null): boolean {
-  return vendedoras.length >= 2 && vendedoraDeLaVenta(vendedoras, elegidaId) === null;
-}
 
 /** El nombre que sale en el papel: el primer nombre, y la inicial del apellido solo si otra de la fila comparte
  *  primer nombre (`nombresCortos`, la misma regla de «Ventas de hoy»). `null` si no hay a quién nombrar. */

@@ -34,13 +34,13 @@ import {
   porcentajeDeLinea,
   RAZONES_DESCUENTO,
   type MomentoTicket,
-  type Vendedora,
 } from "@/lib/vender-reglas";
 import { Ayuda } from "@/components/Ayuda";
 import { CampoMonto } from "@/components/ui/CampoMonto";
 import { BilleteRapido } from "@/components/BilleteRapido";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
-import { VendedorasFila } from "@/components/VendedorasFila";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import type { ControlResponsable } from "@/lib/useResponsable";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ID_CARGO_ESPECIAL, money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
 
@@ -117,7 +117,7 @@ function IconoPlin({ className }: { className?: string }) {
   );
 }
 
-const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
+export const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
   efectivo: <Banknote className={ICONO} aria-hidden />,
   tarjeta: <CreditCard className={ICONO} aria-hidden />,
   yape: <IconoYape className={ICONO} />,
@@ -185,13 +185,8 @@ type Props = {
   /** Derivado en el padre, una sola vez: por qué el botón principal está apagado
    *  (o null). Apaga el botón y se muestra debajo de él, tal cual. */
   motivoBloqueo: string | null;
-  // Quién atendió a la clienta — la fila de chips arriba (`VendedorasFila`); las reglas viven en `vender-reglas`
-  vendedoras: Vendedora[];
-  vendedoraId: string | null;
-  onVendedora: (personaId: string) => void;
-  vendedorasNoCargaron: boolean;
-  /** Nadie marcó asistencia hoy en la tienda: la fila ofrece a todas las de la sede y lo dice. */
-  vendedorasSinAsistencia: boolean;
+  /** El combo «Responsable» (ADR-0161), justo encima de Cobrar. Su estado vive en el padre (`useResponsable`). */
+  responsable: ControlResponsable;
   // Pago mixto — una fila por medio; `restante` y `vuelto` ya derivados en el padre
   pagos: PagoAplicado[];
   restante: number;
@@ -257,11 +252,7 @@ export function PuntoDeVentaTicket({
   onIrACobrar,
   onVolverATicket,
   motivoBloqueo,
-  vendedoras,
-  vendedoraId,
-  onVendedora,
-  vendedorasNoCargaron,
-  vendedorasSinAsistencia,
+  responsable,
   pagos,
   restante,
   vuelto,
@@ -447,19 +438,6 @@ export function PuntoDeVentaTicket({
           </>
         )}
       </div>
-
-      {/* Quién atendió: visible al armar y al cobrar (la elección la puede hacer en cualquiera de los dos),
-          nunca dentro del formulario — son botones sueltos y no deben enviarlo. */}
-      {(momentoMostrado === "armar" || cobrando) && (
-        <VendedorasFila
-          vendedoras={vendedoras}
-          elegidaId={vendedoraId}
-          onElegir={onVendedora}
-          noCargaron={vendedorasNoCargaron}
-          deshabilitada={bloqueado}
-          sinAsistencia={vendedorasSinAsistencia}
-        />
-      )}
 
       <form
         id={id}
@@ -1206,6 +1184,13 @@ export function PuntoDeVentaTicket({
             </div>
           </div>
 
+
+          {/* El combo «Responsable» (ADR-0161; spike, pantalla 2): justo encima de Cobrar, vacío en cada venta. Al armar
+              y al cobrar — la elección puede hacerse en cualquiera de los dos —; sus botones son `type="button"` y no
+              envían el formulario. La lista se abre hacia arriba: debajo solo está el botón. */}
+          {(momentoMostrado === "armar" || cobrando) && !bloqueado && (
+            <ComboResponsable control={responsable} hacia="arriba" deshabilitado={loading} className="mb-3" />
+          )}
 
           {/* El botón apagado dice por qué: el mismo motivo que lo apaga, debajo de él.
               Truco de `grid-template-rows` (0fr↔1fr): el párrafo queda siempre montado y

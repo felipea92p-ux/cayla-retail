@@ -39,6 +39,48 @@ Del análisis `/pantalla` completo del módulo Ventas: la misma familia de hueco
 - [ ] **Decisión de Felipe: Cambios no tiene un flujo de "queda pendiente, un líder lo aprueba después"** (a diferencia de Devoluciones) — hoy un cambio con diferencia negativa sin un líder presente se rechaza sin más salida que llamar a una líder. ¿Se construye ese flujo, o queda así?
 - [ ] Pendiente, aparte, con ok explícito de Felipe (toca lo que se reporta a SUNAT): la nota de crédito de una devolución se sigue calculando sobre precio de lista, no sobre lo pagado con descuento (`docs/pantallas/devoluciones.md` §2.3).
 - [ ] Pendiente, ya decidido por Felipe (BACKLOG, más abajo): nota de crédito por diferencia de un cambio (serie B por tienda) — proyecto de SUNAT/Lucode aparte, no se mezcló con este candado.
+- [x] **Verificado tras la fusión del PR #285:** la migración F3 de abajo (`actor_firma_las_operaciones`) lee la definición viva de `registrar_movimiento_caja`/`registrar_cambio`/`aprobar_devolucion` y solo reemplaza la línea que busca a la persona — no pisa este candado cuando F3 se pegue en producción.
+
+## 🎯 Proformas con prendas, hoja A4 con fotos y cobro en el Punto de Venta (2026-09-22, ADR-0167) — migración EN PRODUCCIÓN; falta fusionar la web
+Rama `claude/modulo-comprobantes-redesign-3d2ffc`, **sin push**. Diseño: `docs/superpowers/specs/2026-09-22-proformas-con-prendas-design.md` (maqueta C, con foto de cada prenda); plan: `docs/superpowers/plans/2026-09-22-proformas-con-prendas.md`. Decisión en [docs/adr/0167-proformas-con-prendas.md](adr/0167-proformas-con-prendas.md).
+- [x] **Rediseño de Comprobantes** (mismo día, commit `1a470626`): sin botones en la cabecera; «Emitir comprobante» borrado (cada venta se declara sola, D-60); Series a todo el ancho con la sede propia primero y «Último: hace…»; Emitidos con filtros tipo/tienda/estado, totales por tipo y WhatsApp; Por reintentar con «Qué hacer», plazo de SUNAT (3 días) y «Reintentar los N». Verificado en el navegador local contra la base (totales = SQL).
+- [x] **Migración `20260923094700_proformas_con_prendas.sql`**: `numero`, `nota`, `venta_id`; `crear_proforma` v2 (valida y calcula; borra la firma vieja); `marcar_proforma_cobrada`; `convertir_proforma_a_comprobante` sin permiso. Ensayada en una transacción con ROLLBACK (rechazos, una sola firma, idempotencia, otra tienda) y aplicada solo en local.
+- [x] Pantalla: «Nueva proforma» con buscador/escáner, cantidad, descuento hasta 20 % con motivo, clienta, validez y nota; lista con número, detalle con foto, Ver / imprimir, WhatsApp, Duplicar / Renovar y Cobrar. Hoja A4 verificada con un PDF real (una hoja, nada cortado).
+- [x] **Cobro de punta a punta en el navegador local** (PRO-000006, Trujillo): carrito armado, venta completada, piso 4 → 3 con su movimiento, proforma «convertida» y enlazada, nota de venta NV01-000002. Se cobró con nota de venta porque la boleta chocó con el problema de series de abajo.
+- [x] **Pegada en producción el 2026-09-22** (Felipe: «Ok»), por el MCP en una sola transacción con bloque de validación final, ensayada antes en local sobre el estado de producción. Antes: `crear_proforma` vieja `45909742…` (rollback guardado = su definición de `20260918091500`, misma huella), 1 proforma vigente de S/ 7,000, sin disparadores en `proformas`. Después: `crear_proforma` `1cf28322…` y `marcar_proforma_cobrada` `1dbeece0…` (iguales a local), una sola firma, EXECUTE solo `postgres`/`authenticated`, `convertir_proforma_a_comprobante` solo `postgres`; la proforma existente es PRO-000001. Humo como líder real sin escribir: `crear_proforma([])` → «necesita al menos una prenda», `marcar_proforma_cobrada(uuid inexistente)` → «no existe»; después, 1 proforma y último número 1. No se registró en `schema_migrations` de producción (igual que pegados anteriores).
+- [ ] Refrescar el volcado de producción (`docs/datos/generado/COMO-REFRESCAR.md`, seis consultas) y correr `pnpm datos:generar:produccion` y `pnpm datos:comparar`: el volcado ya venía atrasado por otras sesiones, conviene hacerlo en una pasada propia.
+- [ ] PR a `main` y su fusión (despliega): OK aparte.
+- [ ] En la base LOCAL, Lima y Trujillo comparten la serie `B001` con contadores independientes: la siguiente boleta de Trujillo (B001-24) choca con la de Lima (`comprobantes_tipo_serie_numero_key`). Producción no lo tiene (B004/B005). Arreglar la base local (una serie por tienda), no el código.
+## 🎯 Terminales sin persona, como en Dynamic (2026-09-22, ADR-0162) — CONSTRUIDO en la rama `claude/responsable-y-roles-spike` (PR #285); falta pegar en producción y publicar
+- [x] Investigado Dynamic (`public.terminales`, cuenta de Auth sin persona, `fn_sede_actual_terminal`, script de alta, sin PIN) y medido en producción: 75 funciones de retail buscan persona (~65 con un reemplazo mecánico, 10 a mano).
+- [x] Plan en `docs/adr/0162-terminales-sin-persona-como-dynamic.md`; spike, pantallas 5 y 6. Aprobado por Felipe.
+- [x] **F1:** el encabezado `x-responsable` llega por PostgREST (local con `curl` y `supabase-js`; en producción, el CORS ya lo acepta).
+- [x] **F2** `20260923010000_terminales_sin_persona.sql`: `retail.terminales`, `fn_terminal_actual`, `fn_persona_presente`, `fn_actor_persona_id`, `fn_exige_responsable` (apagado), `terminal_id` + `trg_sellar_terminal` en 10 tablas, `fn_terminales`/`desactivar_terminal`/`reactivar_terminal`, retiro de `colaboradores.terminal` y `agregar_terminal`. `pnpm pruebas:terminales-sin-persona` 34/34.
+- [x] **F3** `20260923100000_actor_firma_las_operaciones.sql`: 65 funciones firman con `fn_actor_persona_id` (36 de tienda, 29 no), cotejadas contra producción en solo lectura. Terminal sin tope de descuento y libera apartados siempre (Felipe). `pnpm pruebas:actor-firma` 30/30, `pnpm pruebas:terminales` (reescrita) 74/74.
+- [x] **F4a** web: sesión de terminal por `requirePersonaActualV2`, pie del lateral con el aparato, aviso de terminal desactivada en `/login`, pestaña Colaboradores ▸ Terminales (Desactivar / Reactivar).
+- [x] **F5** script `pnpm terminales:crear` (+ `pnpm terminales:probar`), sin correr contra ningún entorno.
+- [ ] **Pegar en producción, en orden:** F2 `20260923010000` → F3 `20260923100000`, cada una empezando con `set search_path to retail, public, extensions;`. Si después se pegan «apartar stock» o «comprador de tienda», **volver a pegar la F3** (hoy las omite con aviso porque producción no las tiene). Pedir OK a Felipe antes.
+- [ ] Publicar la web (fusionar el PR #285; lo fusiona Felipe).
+- [ ] Felipe crea las 6 terminales (ventas y administrativa de TRU/AQP/LIM) con `pnpm terminales:crear`. **No crear personas en Dynamic.**
+- [ ] `pnpm datos:generar:produccion` + `pnpm datos:comparar` después de pegar, para que `terminales` y las funciones nuevas entren al diccionario.
+- [ ] Verificar con una terminal de verdad en TRU (aún no se probó con la sesión de un aparato en el navegador; sí con la de un líder).
+- [x] La migración del ADR-0160 **ya está pegada** en producción, con 0 terminales dadas de alta.
+
+## 🎯 Responsable en cada operación + roles retomados (2026-09-22, ADR-0161) — combo Responsable CONSTRUIDO (F4b, PR #285); roles en otra rama
+- [ ] **Más adelante (Felipe, 2026-09-22: «no es tan importante por ahora»):** guardar quién crea o cambia marcas (`retail.marcas` no tiene columna de firma) y anotar los cambios de NOMBRE de una prenda en el historial (`fn_registrar_cambio_producto` solo registra categoría, estado, marca, proveedor, precio y costo). Hoy el combo se pide en Catálogo pero esos dos casos no dejan rastro.
+- [x] **Decisiones de Felipe** (4 rondas): combo «Responsable» vacío en cada acción que guarda, solo el nombre, solo quien marcó entrada hoy en esa tienda y no salió, bloqueo si no hay nadie (también LIM y también el líder desde casa), en todas las cuentas para la operación de tienda. Roles simplificados después a «ve / no ve» por módulo.
+- [x] **Spike visual:** `docs/maquetas/responsable-y-roles-spike-2026-09/` (editor de roles, combo en una venta, cierre de caja, nadie de turno).
+- [x] **Spike aprobado.** En pausa NO firma ni opera; sin conexión vale la hora de la venta.
+- [x] **(a) Responsable, en la base:** lo resuelve `fn_actor_persona_id` del ADR-0162 (no hizo falta un `fn_responsable_actual()` aparte ni una columna `responsable_id`: `usuario_id` es el responsable y `terminal_id` el aparato).
+- [x] **(a) Responsable, en la web (F4b):** `lib/responsable-reglas.ts` (+ test), `lib/useDeTurno.ts`, `lib/useResponsable.ts`, `components/ComboResponsable.tsx`, `components/SedeActiva.tsx`; encabezados `x-responsable` / `x-ubicacion` / `x-momento`. Conectado en Punto de venta (reemplaza la fila «Atendió» del ADR-0163) y ventas sin conexión, Caja, Cambios, Devoluciones, Facturación, Inventario y Catálogo (lista en el ADR-0161, «F4b»).
+- [x] **Verificado en navegador** (Postgres local, sesión de líder): abrir caja, cobrar (nota de venta), egreso de caja y cerrar caja → combo vacío, botón apagado hasta elegir, vuelve a vacío, y en la base firma la persona ELEGIDA.
+- [ ] Encender `fn_exige_responsable()` (`create or replace … select true`) **solo después** de publicar la web y de revisar que no quede una escritura de tienda sin combo; si no, la base rechaza a una persona sin encabezado con `responsable_requerido`.
+- [ ] (b) **Roles «ve / no ve» por módulo:** en construcción en otra rama (`claude/roles-por-modulo`), **no está en el PR #285**.
+- [ ] LIM no podrá guardar nada hasta que se cargue su asistencia en Dynamic (decisión A5). En el Postgres local (sin `marcajes`/`jornadas`) todo queda bloqueado igual: es la regla, no un error.
+- [ ] **Decide Felipe:** ¿«Pedidos no atendidos» es operación de tienda (lleva combo)? Hoy no tiene combo; su función ya firma con `fn_actor_persona_id(true)`.
+- [x] **Decide Felipe:** la terminal descuenta sin tope, pero como no es líder, un descuento manual por línea le sigue exigiendo un código de descuento válido (`venta_descuento_requiere_codigo`, `registrar_venta`). ¿Se deja así o la terminal queda libre del código también? **Decidido (Felipe, 2026-09-22): la terminal pide código, como una colaboradora.**
+- [ ] **Límite conocido:** un Punto de venta abierto SIN conexión desde el inicio no carga la lista del combo y no puede vender sin conexión hasta que la cargue una vez con red.
+- [x] ~~Alinear la fila «Atendió» del ADR-0163 con el ADR-0161~~: hecho en F4b (el combo la reemplaza; vacío siempre y bloqueo).
 
 ## 🎯 «Quién vendió» en el ticket del Punto de venta (2026-09-22, ADR-0163) — rehecho sobre la asistencia de Dynamic; migración en producción, falta fusionar la web
 Un solo equipo de caja y varias colaboradoras por tienda. La fila «Atendió» ofrece a quienes marcaron entrada hoy en Dynamic (`fn_asesoras_de_turno`) y la venta se guarda en `ventas.asesora_id` — ambas ya en producción desde la 20260922150000 (ADR-0153). Decisión en [docs/adr/0163-vendedora-en-el-ticket.md](adr/0163-vendedora-en-el-ticket.md).
@@ -61,14 +103,14 @@ Tercera opción del comprobante: Boleta | Factura | Nota de venta. Documento int
 - [x] **Hallazgo del CI (PR #286):** en una base armada desde cero, `registrar_venta`, `fn_asesoras_de_turno` y `fn_es_lider_persona` (recreadas/creadas en la 150000) quedaban ejecutables por `PUBLIC` — Postgres lo da por defecto y la regla que lo quita en producción y local vive FUERA de las migraciones. `20260922231700` lo cierra explícito. **No hace falta pegarla:** producción ya tiene `{postgres, authenticated}` en las tres (verificado); aplicada en local sin cambios.
 - [ ] Aparte: pasar a una migración el `alter default privileges ... revoke execute on functions from public` que producción y local tienen a mano, para que una base nueva nazca igual.
 
-## 🎯 Cuentas terminal por tienda (2026-09-21, ADR-0159) — hecho y probado en local; NADA en producción
+## 🎯 Cuentas terminal por tienda (2026-09-21, ADR-0160) — fusionado a `main` (PR #281); migración entregada a Felipe para pegar
 - [x] **Base:** `20260922200000_terminales_por_tienda.sql` (columna `terminal`, `agregar_terminal`, 5 capacidades `fn_puede_*` «líder O terminal», candados inyectados desde la definición real en 13 funciones + 5 disparadores + 15 políticas; `suspender_colaborador`/`reactivar_colaborador` conservan el tipo también tras D-70). `pnpm pruebas:terminales` (75 casos, en el CI) y las 20 del ADR-0143 en verde con esta migración encima.
 - [x] **Web:** menú por terminal (`terminales` en `lib/menu.ts`, falla cerrado, con herencia por D-84), `puede()` / `exigirPermiso()`, la terminal de ventas aterriza en `/vender`, y Caja, Existencias, Productos, Conteo, Traslados, Facturación y Catálogo deciden por permiso; pestaña propia **«Terminales»** en `/colaboradores` (separada de Activos, pedido de Felipe) con «+ Agregar terminal». Fusionado con D-70 (alta con aprobación) y D-84 (subgrupos de menú): la terminal queda **exenta** de la cola de aprobación.
-- [ ] **Pegar la migración en producción — cambio de esquema: confirmar con Felipe antes.** Pasos y verificación en el ADR-0159.
-- [ ] **Felipe:** crear las 6 personas en Dynamic (+ 6 usuarios en Supabase Auth) y dar entrada con «+ Agregar terminal». Quien administra Dynamic debe sacarlas de la marcación (`terminal_roster`) y la planilla.
+- [x] **Pegada en producción** (verificado 2026-09-22: columna y `agregar_terminal` existen, 0 terminales). Queda reemplazada en identidad por el ADR-0162. Antes, prueba en seco contra producción, solo lectura: las 23 funciones y las 15 políticas coinciden, así que no debería abortar. Luego verificar en la base y correr `datos:generar:produccion`.
+- [x] ~~Felipe: crear las 6 personas en Dynamic~~ — **ya no**: el ADR-0162 reemplaza la terminal-persona por una terminal sin persona.
 - [ ] **Probarlas con clics:** nadie ha visto las terminales en el navegador (entrar como terminal exige claves que yo no escribo).
 - [ ] **Compras de la administrativa = ADR-0151** («comprador de tienda»). Esa rama (`claude/adr-0145-compras-permisos`) **no está subida a GitHub**. Conflicto esperado al fusionar: `menu.ts`, `ci.yml`, `package.json`.
-- [ ] El combo «¿quién atiende?» del Punto de Venta (`ventas.vendedor_id`) — otra sesión.
+- [ ] El combo «¿quién atiende?» pasó a ser el combo **Responsable** de todas las operaciones: ADR-0161.
 - [ ] Disparador que impida mover una terminal al Taller llamando `cambiar_ubicacion_colaborador` a mano (la web no lo ofrece; la base no lo impide).
 - [ ] Tras pegar: `pnpm datos:generar:produccion` (la columna `terminal` entra al diccionario).
 
@@ -95,7 +137,7 @@ Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió l
 - [ ] **Revisión adversarial (3 revisores) — lo que quedó abierto a propósito, ADR-0151 «Lo que NO toca»:** Inventario (Existencias y Resumen) sigue contando descontinuadas como sin stock / stock bajo / reponer piso, y «Desactivar» en bloque no toca `variantes.activo` — decidir con Felipe si Inventario sigue a Productos; Inicio cuenta «Productos activos» sobre todas las filas (descontinuadas y el producto especial incluidos); R-48 en `15-COMO-OPERA-CAYLA.md` debe llevar la excepción cuando se decida.
 - [ ] Confirmar con Q2 y Q4a del análisis las cifras de producción que salieron de una lectura de solo lectura hecha por un agente (17 o 18 sin stock activas, 0 para pedir sin descontinuadas, 163 variantes reales).
 
-## 🎯 Roles y permisos a medida (2026-09-22, ADR-0150) — F0 hecha (decisiones + ADR + maqueta); nada aplicado
+## 🎯 Roles y permisos a medida (2026-09-22, ADR-0150) — se abandonó en F1 y se RETOMÓ el mismo día (ADR-0161): ahora con acciones por módulo y con las terminales dentro
 - [x] **F0:** 8 decisiones cerradas por Felipe (roles en tabla; ve/no ve por pantalla; solo el líder administra roles; Facturación no se delega; un rol por persona; piloto Inventario/Almacén; catálogos de Dynamic y retail separados; acceso a retail explícito con ubicación). Maqueta ajustada en `docs/maquetas/roles-spike-2026-09/` (bloqueo «Solo líder por ahora», Archivar rol, historial, Dar acceso, movimiento ADR-0136).
 - [ ] **F1** migración (`roles`, `permisos`, `rol_permisos`, `roles_historial`, `rol_id` en `colaboradores` **y** `colaboradores_suspendidos`, `fn_tiene_permiso`, `fn_mis_permisos`) — comportamiento idéntico al de hoy. **Cambio de esquema en producción: confirmar con Felipe antes de pegar.**
 - [ ] **F2** `permisosDe` de `lib/menu.ts` lee de la base; la fotografía `menu-hoy.golden.json` no debe cambiar · **F3** piloto Inventario/Almacén + pantallas «Asignar rol» y «Roles y accesos» · **F4** Catálogo · **F5** Compras (reaplicar `fn_aplicar_candado_de_dinero()`) · **F6** Producción y ubicación · **F7** limpieza de `esLider`, ARQUITECTURA y diccionario.
@@ -201,10 +243,29 @@ demo: `docs/maquetas/separaciones-2026-09/demo.html`.
 - [ ] **Felipe valida las funciones en la demo** y decide D5 (quién libera y registra la devolución).
 - [x] Demo de interfaz con el lenguaje visual del ERP (`docs/maquetas/separaciones-2026-09/interfaz.html`, 2026-09-22): lateral con «Separaciones» bajo Ventas, Separar / Entregar / Todas, modales ADR-0136. Falta que Felipe la revise.
 - [ ] Confirmar con Lucode (apisunat.pe) la emisión de anticipo + regularización, y con el contador el tratamiento (pasivo 122 + IGV al cobrar).
-- [ ] Requisito: pegar ADR-0141 (`20260920160000_apartar_stock.sql`) en producción.
-- [ ] Construir: migración `separaciones` + `separacion_pagos` + 3 RPC (separar, entregar consumiendo el apartado, liberar/devolver) con pruebas SQL; pantallas Separar, Entregar, Bandeja; `cerrar_caja` cuenta el efectivo de adelantos; ADR propio.
+- [x] Requisito: ADR-0141 (`20260920160000_apartar_stock.sql`) **aplicada en producción el 2026-09-22** (con OK de Felipe; Claude, vía SQL en una transacción): cuerpos de función idénticos al repo por md5, verificador en 0 filas, stock intacto (153 filas).
+- [x] **Base de datos (2026-09-23, ADR-0166):** `20260923090000_separaciones.sql` — `separaciones`, `separacion_items`, `separacion_pagos`,
+      `separacion_correlativos`; 9 funciones (`separar_prendas`, `entregar_separacion`, `extender_separacion`, `liberar_separacion`,
+      `registrar_devolucion_separacion`, `fn_vencer_separaciones`, `buscar_separaciones`, `resumen_separaciones`, `fn_verificar_separaciones`).
+      46 pruebas SQL (`pnpm pruebas:separaciones`, en CI), 4 mutaciones detectadas, regresión en verde. `cerrar_caja` no se tocó: el efectivo del
+      adelanto entra como ingreso de caja. **Aplicada en producción el 2026-09-22** (con OK de Felipe; Claude, vía SQL en una transacción): cuerpos de función idénticos al repo por md5, verificador en 0 filas, stock intacto (153 filas).
+- [x] **`20260923090000_separaciones.sql` pegada en producción** (2026-09-22, después de ADR-0141): 10 funciones con md5 idéntico, `fn_verificar_separaciones` en 0, `venta_pagos` acepta `anticipo`.
+- [ ] **Series faltantes en producción:** Lima (LIM) solo tiene `NV03`: un apartado en Lima falla al emitir la boleta de anticipo hasta que se registre su serie de boleta/factura. Ninguna tienda tiene serie de nota de crédito: la devolución se registra igual, con el aviso «La nota de crédito queda pendiente».
+- [ ] **Transmitir anticipos a SUNAT:** hoy `motivoParaNoTransmitir` los frena (boleta de anticipo y la final que lo deduce). Falta armar el payload
+      de anticipo/regularización en `lib/lucode.ts` y probarlo en el sandbox; confirmar con el contador el caso del adelanto del 100% (no se emite
+      segundo comprobante).
+- [ ] **D5 por confirmar:** extender/liberar/devolver hoy exigen `fn_puede_gestionar_caja()` (líder o terminal de ventas).
+- [x] **Pantallas (2026-09-23):** `/vender/apartados` con Apartar, Entregar y Todos; en pantalla se llama **Apartados** (código APT-, boleta
+      «Anticipo por apartado»). Probado en el navegador contra Postgres real. Menú: Cambios y Devoluciones pasan al subgrupo «Posventa».
+- [x] **Felipe aprobó el subgrupo «Posventa»** (2026-09-22) en el menú (el golden se cambió a propósito; si no lo quiere, la alternativa es sacar
+      Apartados del lateral y dejarlo como pestaña del Punto de venta).
+- [x] **Buscador con foto en Apartar (2026-09-22, ADR-0168):** búsqueda en vivo por nombre como el Punto de venta, con miniatura por fila; agotadas atenuadas al final con «N en el almacén» o dónde más hay. `FotoPrenda` de Apartados sale optimizada (≈5 KB en vez de ≈90 KB por foto). Demo: `docs/maquetas/separaciones-2026-09/buscador.html`.
+- [ ] **Llevar el buscador con foto al Punto de venta** si Felipe lo pide (hoy decidió solo Apartados); la pieza a mover es la de `ApartarVista` + `FotoPrenda`.
+- [ ] **En Caja**, la tarjeta «En custodia» (hoy vive en Apartados → Todos) y `anticipo` en `NOMBRE_METODO`/historial de ventas.
+- [ ] **Existencias** sigue ofreciendo «Apartar» de ADR-0141 (sin adelanto): decidir si se quita o se deja como reserva rápida.
+- [ ] Ya en producción: refrescar el volcado y regenerar el diccionario (`pnpm datos:generar:produccion`) para que entren las 4 tablas nuevas.
 
-## 🎯 Apartar stock — Fase 1: reserva física con clienta y fecha límite (2026-09-20, ADR-0141) — hecho en local, falta pegar en producción
+## 🎯 Apartar stock — Fase 1: reserva física con clienta y fecha límite (2026-09-20, ADR-0141) — en producción desde el 2026-09-22
 
 Una prenda apartada para una clienta ya **no se puede vender**: sigue contando en el conteo físico, pero deja de estar *disponible*. Existencias tiene la
 tarjeta «Apartados» (lo vencido en rojo; **no se libera solo**), la acción «Apartar» por fila y «Liberar» (solo quien apartó, o una líder). Detalle,
@@ -213,7 +274,7 @@ decisiones, lo que se descartó y la verificación en [docs/adr/0141-apartar-sto
 - [x] **Motor, tabla y RPC** (`20260920160000_apartar_stock.sql`): `stock.cantidad_apartada`, `apartados`, `apartar_stock`, `liberar_apartado`,
       `listar_apartados`, `fn_verificar_apartados`; `fn_aplicar_movimiento` (venta, traslado y ajuste miran lo disponible) y `recalcular_stock`.
       Verificado con 41 pruebas SQL + 54 de regresión + carreras con COMMIT (hasta 120 conexiones) + prueba de mutación.
-- [ ] **Pegar `20260920160000_apartar_stock.sql` en producción, ANTES de desplegar la web** (Existencias lee la columna nueva). Entera, en el SQL Editor de
+- [x] **`20260920160000_apartar_stock.sql` pegada en producción el 2026-09-22, antes de desplegar la web** — los 6 cuerpos con md5 idéntico al repo, `fn_verificar_apartados` en 0. (Existencias lee la columna nueva). Entera, en el SQL Editor de
       cayla-dynamic; es re-ejecutable. Pasos y verificación en el ADR («Cómo se pega en producción»).
 - [ ] **Probarlo en el navegador con datos reales, como colaboradora y como líder.** Esta sesión no tenía base de datos: se vieron los componentes reales
       con datos de ejemplo (formulario, errores, vencidos, caída de red), pero no el ciclo completo apartar → ver → liberar contra Postgres.
@@ -405,7 +466,7 @@ La base local se dejó idéntica a producción el 2026-09-21 (huella por objeto:
 
 - [ ] **Permisos de producción sin migración.** Default global `postgres:f:global:{postgres=X/postgres}` (`alter default privileges for role postgres revoke execute on functions from public`); `revoke execute on all functions in schema retail from public` (en producción `anon` ejecuta 0 funciones; local llegó a tener 96); `stock`, `transferencias` y `transferencia_items` solo SELECT para `authenticated`; `stock` y `movimientos` solo lectura para `service_role`; `fn_aplicar_movimiento` y `recalcular_stock` sin EXECUTE para `service_role`. Falta una migración idempotente que lo escriba.
 - [ ] **`retail.gastos` y `registrar_gasto` (11 parámetros) están en producción y no en la cadena de `main`.** Vienen de las migraciones tempranas de `claude/garza-caja-modulo-7aad0f` (`20260916171500_gastos_operativos` y `20260916174750_gastos_idempotente`, sin fusionar); las posteriores (`20260918193000_gastos`, ADR-0117) NO están en producción. Sin ellas Eficiencia (Taller), que lee `gastos`, falla en una base local reconstruida. Decidir: fusionar las dos tempranas o escribir la migración desde la definición viva de producción.
-- [ ] **Apartar stock (ADR-0141, `20260920160000`) está en `main` y NO en producción**, y el front ya llama a `apartar_stock`, `liberar_apartado` y `listar_apartados`: esas pantallas fallan en producción. Se retiró de la base local para que calce con producción. Pegar en producción (necesita el OK de Felipe) y reaplicar en local con `psql` registrando la versión.
+- [x] **(Resuelto 2026-09-22: aplicada en producción.)** Apartar stock (ADR-0141, `20260920160000`) estaba en `main` y NO en producción, y el front ya llama a `apartar_stock`, `liberar_apartado` y `listar_apartados`: esas pantallas fallan en producción. Se retiró de la base local para que calce con producción. Pegar en producción (necesita el OK de Felipe) y reaplicar en local con `psql` registrando la versión.
 - [ ] **Refrescar `docs/datos/generado/funciones-produccion.txt`** (199 firmas contra 217 en producción): `pnpm datos:comparar` marca como rotas 5 pantallas que sí existen en producción.
 
 Aparte: `pnpm pruebas:colaboradores-endurecimiento` falla en local con `no rows returned for \gset` porque su montaje busca una persona activa que aún no sea colaboradora y la base ya no tiene ninguna (no es de la sincronización).
@@ -612,6 +673,15 @@ tiene de verdad — detalle y descartes en ADR-0125.
       local por la otra sesión (`20260918163712_devolucion_rechaza_venta_anulada.sql`, rama
       `claude/blissful-mccarthy-3b06e5`, **no está en producción**). Al fusionar, la pantalla
       nueva de Devoluciones ya etiqueta la venta anulada y no deja elegir sus prendas.
+- [x] **"Actividad reciente" en una tarjeta por venta, no una fila por prenda — CERRADO
+      2026-09-22**, mismo patrón que Devoluciones (tarea #8 de `docs/pantallas/devoluciones.md`).
+      La tarjeta resume prendas · importe, un chip de plazo por venta y una nota si ya tuvo
+      actividad previa; el botón "Iniciar cambio" entra al paso "Prenda" sin preseleccionar
+      nada. `totalesVenta` y `actividadPreviaVenta` se comparten con Devoluciones en
+      `cambios-reglas.ts` (eran genéricas, no hablaban de devolución); el plazo vencido sigue
+      bloqueando en Cambios y no en Devoluciones — `estadoPlazoVenta` y `estadoPlazoDevolucion`
+      quedan separadas a propósito, con su propio texto. Sin migración. `ComprasAgrupadas` y
+      `CambiosFlujo` no se tocaron — ya soportaban esto desde Devoluciones.
 
 ## 🎯 Movimientos: qué cambió en el stock y qué proceso lo originó (2026-09-19, ADR-0127)
 
@@ -5289,6 +5359,15 @@ el próximo reparto de sesiones en paralelo debería usar worktrees separados
 - [ ] **Costeo por margen de contribución** (introducido en `0024`) — por qué la
       mano de obra y los gastos fijos del Taller NO entran al costo por prenda y sí
       al resultado mensual del Taller; es una decisión contable, no un descuido.
+- [ ] **Identidad vs. permiso: «quién firma» no es «qué puede hacer la cuenta»** (examen del 2026-09-22,
+      ADR-0162). Felipe acertó en que la terminal no anula aunque elija a una líder, pero lo atribuyó a que la
+      validación «ya existe». Falta el porqué: al cambiar quién firma (`fn_actor_persona_id`), los permisos tienen
+      que seguir mirando la **cuenta** (`fn_es_lider()` falso para la terminal), o elegir a Carmen en el combo, que
+      no pide PIN, le daría a cualquiera los poderes de líder.
+- [ ] **Diagnóstico por descarte: «falla en una tienda y no en las otras» apunta a datos, no a código** (examen
+      del 2026-09-22). Felipe dio el primer paso correcto (¿alguien marcó en AQP?), pero no el siguiente si sí
+      marcaron. Orden: la marca → la marca subida al servidor (el kiosco de Dynamic guarda y sube cada 15 s) → el
+      vínculo `ubicaciones.sede_dynamic_id` → pausa u otra sede.
 
 ## ✅ CERRADO (últimos, con fecha)
 

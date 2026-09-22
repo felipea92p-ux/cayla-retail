@@ -3,8 +3,8 @@
 import { ArrowRight, Check, Clock } from "lucide-react";
 import { CLASE_BOTON_FILA, ChipEstado, ComprasAgrupadas, FilaPrendaVenta, formatearHora, type CompraAgrupada } from "@/components/ComprasAgrupadas";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
-import { descripcionEntregada, etiquetaDia } from "@/lib/cambios-reglas";
-import { actividadPreviaVenta, estadoPlazoDevolucion, estadoPrendaDevolucion, totalesVenta } from "@/lib/devoluciones-reglas";
+import { actividadPreviaVenta, descripcionEntregada, etiquetaDia, totalesVenta } from "@/lib/cambios-reglas";
+import { estadoPlazoDevolucion, estadoPrendaDevolucion } from "@/lib/devoluciones-reglas";
 import { soles } from "@/lib/compras-reglas";
 
 /**

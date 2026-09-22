@@ -1,12 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
-import { marcarPorVencer, type ProformaFila } from "@/lib/proformas-reglas";
+import { marcarPorVencer, type Proforma, type ProformaFila } from "@/lib/proformas-reglas";
 import { resumenProformas, type ResumenProformas } from "@/lib/facturacion-reglas";
 
-export type { EstadoProforma, Proforma, ProformaFila } from "@/lib/proformas-reglas";
+export type { EstadoProforma, LineaProforma, Proforma, ProformaFila } from "@/lib/proformas-reglas";
 export { marcarPorVencer } from "@/lib/proformas-reglas";
 
-const COLUMNAS_PROFORMA = "id, ubicacion_id, cliente_nombre, cliente_num_doc, total, estado, comprobante_id, created_at, vence_at";
+const COLUMNAS_PROFORMA = "id, numero, ubicacion_id, cliente_nombre, cliente_num_doc, total, estado, comprobante_id, venta_id, nota, items, created_at, vence_at";
 
 // Lectura pura (lib/ nunca escribe — la escritura pasa por `crear_proforma` /
 // `convertir_proforma_a_comprobante`, ver ADR-0007). Trae también las
@@ -55,3 +55,16 @@ export async function getResumenProformas(): Promise<ResumenProformas | null> {
   if (fallo) console.error("Facturación: no se pudo leer las proformas vigentes (contador de la pestaña Proformas):", res.error?.message);
   return datos ? resumenProformas(datos as ProformaFila[]) : null;
 }
+
+/** Una proforma para cargarla en el Punto de Venta (`/vender?proforma=<id>`). `null` si no existe o RLS no la
+ *  deja ver: la página lo dice y arranca con el carrito vacío. */
+export async function getProformaParaCobrar(id: string, ahora: number = Date.now()): Promise<Proforma | null> {
+  const supabase = await createClient();
+  const res = await supabase.from("proformas").select(COLUMNAS_PROFORMA).eq("id", id).maybeSingle();
+  const { datos } = tolerar(res, "la proforma a cobrar");
+  return datos ? marcarPorVencer([datos as ProformaFila], ahora)[0] : null;
+}
+
+/** Foto (la del producto para ese color) y tinte del color de una prenda: el detalle y la hoja A4 la muestran;
+ *  sin foto, un recuadro del color. Sale del catálogo (`getCatalogo`). */
+export type FotoDePrenda = { fotoUrl: string | null; colorHex: string | null };

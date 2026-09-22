@@ -22,6 +22,10 @@ function fila(extra: Partial<ProformaFila>): ProformaFila {
     comprobante_id: null,
     created_at: enHoras(-24),
     vence_at: enHoras(10),
+    numero: null,
+    nota: null,
+    venta_id: null,
+    items: [],
     ...extra,
   };
 }
