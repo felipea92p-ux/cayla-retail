@@ -62,6 +62,16 @@ export async function getFilasRecientesDeSede(ubicacionId: string, ahora: Date =
   return getFilasVariantes(ubicacionId, { desde: sumarDias(hoy, -(DIAS_RITMO_RECIENTE - 1)), hasta: hoy }, null);
 }
 
+/** Los últimos 7 días de una sede (2026-09-22, rediseño de Existencias): mismo dato que
+ *  `getFilasRecientesDeSede`, ventana corta — `stockInicial` de esta fila es el stock de hace 7 días,
+ *  y `ventas`/`devoluciones` son la semana, para «Ritmo de venta (7D)» y el delta de «Disponible total».
+ *  Trae también `costo`/`precio`/`categoria` de una sola pasada: no hace falta otra llamada para
+ *  valorar el stock. */
+export async function getFilasSemanaDeSede(ubicacionId: string, ahora: Date = new Date()): Promise<FilaResumen[]> {
+  const hoy = hoyEnLima(ahora);
+  return getFilasVariantes(ubicacionId, { desde: sumarDias(hoy, -6), hasta: hoy }, null);
+}
+
 /**
  * Cobertura de Existencias: «con el ritmo de venta de los últimos `DIAS_RITMO_RECIENTE` días, ¿cuántos
  * días dura el stock de hoy?». Es la MISMA cuenta que ya hacía el Resumen (`velocidadDeFila` +
