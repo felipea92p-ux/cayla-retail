@@ -3429,14 +3429,20 @@ export type Database = {
       }
       series_comprobantes: {
         Row: {
+          archivada_at: string | null
+          archivada_por: string | null
           id: string
+          motivo_archivo: string | null
           serie: string
           siguiente_numero: number
           tipo: string
           ubicacion_id: string
         }
         Insert: {
+          archivada_at?: string | null
+          archivada_por?: string | null
           id?: string
+          motivo_archivo?: string | null
           serie: string
           siguiente_numero?: number
           tipo: string
@@ -5039,6 +5045,10 @@ export type Database = {
           p_serie_numero: string
         }
         Returns: string
+      }
+      archivar_serie_comprobante: {
+        Args: { p_motivo: string; p_serie_id: string }
+        Returns: undefined
       }
       fn_comprobantes_cola_reintento: {
         Args: { p_ubicacion_id?: string }

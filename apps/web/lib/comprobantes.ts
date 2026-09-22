@@ -50,9 +50,25 @@ export const getSeriesComprobantes = cache(async (): Promise<SerieComprobante[]>
   const resSeries = await supabase
     .from("series_comprobantes")
     .select("id, ubicacion_id, tipo, serie, siguiente_numero")
+    // Solo las activas: una archivada ya no reserva números (D-60 paso 4) y nadie debe ofrecerla.
+    .is("archivada_at", null)
     .order("tipo");
   return exigir(resSeries, "las series de comprobantes") as SerieComprobante[];
 });
+
+export type SerieArchivada = SerieComprobante & { archivada_at: string; motivo_archivo: string };
+
+/** Las series archivadas, para que la vista Series muestre su historial. `null` si la consulta falla:
+ *  es secundaria (`tolerar`), las activas sí se exigen. */
+export async function getSeriesArchivadas(): Promise<SerieArchivada[] | null> {
+  const supabase = await createClient();
+  const res = await supabase
+    .from("series_comprobantes")
+    .select("id, ubicacion_id, tipo, serie, siguiente_numero, archivada_at, motivo_archivo")
+    .not("archivada_at", "is", null)
+    .order("archivada_at", { ascending: false });
+  return tolerar(res, "las series archivadas").datos as SerieArchivada[] | null;
+}
 
 /** Todo lo vendido hoy (hora Lima), con su comprobante si ya tiene uno. La
  *  RPC (`fn_ventas_del_dia`, security definer) ya filtra por rol: un líder ve

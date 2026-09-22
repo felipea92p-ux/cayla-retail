@@ -4,6 +4,8 @@ import { useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { SerieComprobante, TipoComprobante } from "@/lib/comprobantes-reglas";
+import type { SerieArchivada } from "@/lib/comprobantes";
+import { diaYHoraLima } from "@/lib/fechas-lima";
 import { ETIQUETA_TIPO } from "@/lib/comprobantes-reglas";
 import { errorDeSerie, nombreDelTipo, numerosUsados, seriesPorTienda, TIPOS_CON_SERIE } from "@/lib/facturacion-comprobantes-reglas";
 import { coincide } from "@/lib/facturacion-busqueda";
@@ -24,9 +26,25 @@ type Tienda = { id: string; nombre: string };
 // propósito: qué series hay, cuál falta y cuál se está usando. Una tarjeta punteada por cada serie que
 // le falta a una tienda (sin la de nota de crédito, una devolución de un comprobante aceptado no se
 // puede aprobar, ADR-0100). Registrar una serie es solo del líder (candado real en la base).
-export function SeriesPanel({ series, tiendas, esLider }: { series: SerieComprobante[]; tiendas: Tienda[]; esLider: boolean }) {
+export function SeriesPanel({
+  series,
+  archivadas,
+  tiendas,
+  esLider,
+  enPruebas,
+}: {
+  series: SerieComprobante[];
+  /** `null` si no se pudieron leer: la sección no se dibuja (las activas sí se exigen). */
+  archivadas: SerieArchivada[] | null;
+  tiendas: Tienda[];
+  esLider: boolean;
+  /** El envío va al sandbox: se muestra qué hacer el día de pasar a la SUNAT real. */
+  enPruebas: boolean;
+}) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
+  const [archivando, setArchivando] = useState<SerieComprobante | null>(null);
+  const [motivoArchivo, setMotivoArchivo] = useState("");
   const [loading, setLoading] = useState(false);
   const [ubicacionId, setUbicacionId] = useState(tiendas[0]?.id ?? "");
   const [tipo, setTipo] = useState<TipoComprobante>("boleta");
@@ -50,6 +68,22 @@ export function SeriesPanel({ series, tiendas, esLider }: { series: SerieComprob
     setAbierto(false);
     setTexto("");
     setNumero("");
+  }
+
+  async function onArchivar(e: React.FormEvent) {
+    e.preventDefault();
+    if (!archivando) return;
+    setLoading(true);
+    const { error } = await createClient().rpc("archivar_serie_comprobante", { p_serie_id: archivando.id, p_motivo: motivoArchivo.trim() });
+    setLoading(false);
+    if (error) {
+      avisar.error(traducirError(error, "archivar la serie"));
+      return;
+    }
+    avisar.exito(`Serie ${archivando.serie} archivada`, { detalle: "Ya no reserva números. Registra la nueva para seguir emitiendo." });
+    setArchivando(null);
+    setMotivoArchivo("");
+    router.refresh();
   }
 
   async function onRegistrar(e: React.FormEvent) {
@@ -125,9 +159,21 @@ export function SeriesPanel({ series, tiendas, esLider }: { series: SerieComprob
                     <p className="text-[13px] text-tinta/70">
                       Próximo: <b className="font-semibold tabular-nums text-tinta">{s.serie}-{String(s.siguiente_numero).padStart(8, "0")}</b>
                     </p>
-                    <p className="border-t border-tinta/10 pt-2 text-xs tabular-nums text-tinta/60">
-                      {usados === 0 ? "Todavía no emitió ninguno" : `${usados} ${usados === 1 ? "número usado" : "números usados"}`}
-                    </p>
+                    <div className="flex items-center justify-between gap-2 border-t border-tinta/10 pt-2">
+                      <p className="text-xs tabular-nums text-tinta/60">
+                        {usados === 0 ? "Todavía no emitió ninguno" : `${usados} ${usados === 1 ? "número usado" : "números usados"}`}
+                      </p>
+                      {esLider && (
+                        <button
+                          type="button"
+                          onClick={() => setArchivando(s)}
+                          aria-label={`Archivar la serie ${s.serie}`}
+                          className="rounded-md px-1.5 py-0.5 text-xs text-tinta/60 outline-none transition-colors duration-200 hover:bg-tinta/10 hover:text-tinta focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-rojo/60"
+                        >
+                          Archivar
+                        </button>
+                      )}
+                    </div>
                   </article>
                 );
               })}
@@ -148,6 +194,67 @@ export function SeriesPanel({ series, tiendas, esLider }: { series: SerieComprob
             </div>
           </section>
         ))
+      )}
+
+      {archivadas && archivadas.length > 0 && !busqueda && (
+        <details className="anim-sube" style={{ "--i": 4 + grupos.length } as CSSProperties}>
+          <summary className="label-cayla cursor-pointer list-none text-[11px] text-tinta/65 outline-none hover:text-tinta focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-rojo/60 [&::-webkit-details-marker]:hidden">
+            {archivadas.length === 1 ? "1 serie archivada" : `${archivadas.length} series archivadas`} ›
+          </summary>
+          <ul className="mt-3 space-y-1.5 text-[13px] text-tinta/70">
+            {archivadas.map((a) => (
+              <li key={a.id}>
+                <b className="font-semibold text-tinta">{a.serie}</b> · {nombreDelTipo(a.tipo)} · {tiendas.find((t) => t.id === a.ubicacion_id)?.nombre ?? "—"} · llegó al{" "}
+                {numerosUsados(a)} · archivada el {diaYHoraLima(a.archivada_at).dia}: {a.motivo_archivo}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {/* El día de pasar a la SUNAT real (D-60): las pruebas en sandbox gastan la misma numeración, así que
+          se arranca con series nuevas. Se muestra solo mientras el envío va al sandbox. */}
+      {enPruebas && esLider && !busqueda && (
+        <section className="anim-sube rounded-[14px] border border-ambar/30 bg-ambar/[0.06] px-5 py-4 text-[13px] text-tinta/80" style={{ "--i": 5 + grupos.length } as CSSProperties}>
+          <h3 className="font-display text-base text-tinta">El día de pasar a la SUNAT real</h3>
+          <ol className="mt-2 list-decimal space-y-1 pl-5">
+            <li>
+              En Vercel, cambia <code className="font-mono">LUCODE_ENTORNO</code> a <code className="font-mono">produccion</code> y vuelve a desplegar.
+            </li>
+            <li>Aquí, archiva cada serie usada en pruebas y registra una nueva por tienda y tipo: empieza en 1.</li>
+            <li>Haz una venta chica y revisa en Emitidos que SUNAT la aceptó.</li>
+          </ol>
+        </section>
+      )}
+
+      {archivando && (
+        <Modal titulo="Archivar serie" onClose={() => setArchivando(null)}>
+          {(cerrar) => (
+            <form onSubmit={onArchivar} className="mt-5 space-y-2">
+              <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
+                <b className="font-semibold">{archivando.serie}</b> deja de reservar números: los comprobantes que ya emitió se quedan como están.
+                Después registra la serie nueva de esta tienda, que empieza en 1. Una serie archivada no se vuelve a usar.
+              </p>
+              <CampoTexto
+                id="archivo-motivo"
+                etiqueta="Motivo"
+                required
+                minLength={3}
+                value={motivoArchivo}
+                onChange={(e) => setMotivoArchivo(e.target.value)}
+                placeholder="Serie de pruebas: pasamos a la SUNAT real"
+              />
+              <div className="flex gap-2 pt-3">
+                <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+                  Cancelar
+                </Boton>
+                <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
+                  {loading ? "Archivando…" : "Archivar"}
+                </Boton>
+              </div>
+            </form>
+          )}
+        </Modal>
       )}
 
       {abierto && (
