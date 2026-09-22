@@ -1,9 +1,9 @@
 # ADR-0166 — Apartados (en la base, `separaciones`): apartar prendas con adelanto, entregarlas con el saldo y devolver si no recogen
 
 **Fecha:** 2026-09-23
-**Estado:** Aceptado. **Base de datos implementada y probada en local** (`supabase/migrations/20260923090000_separaciones.sql`). **NO aplicada en
-producción**: es un cambio de esquema, se pega con el OK explícito de Felipe y **después** de ADR-0141 (`20260920160000_apartar_stock.sql`), que
-tampoco está en producción y del que depende. Pantallas: construidas y probadas en local (ver «Pantallas»).
+**Estado:** Aceptado. **Base de datos implementada y probada en local** (`supabase/migrations/20260923090000_separaciones.sql`). **Aplicada en
+producción el 2026-09-22** con el OK de Felipe, justo **después** de ADR-0141 (`20260920160000_apartar_stock.sql`), de la que depende:
+las 10 funciones con md5 idéntico al repo y `fn_verificar_separaciones` en 0 filas. Pantallas: construidas y probadas en local (ver «Pantallas»).
 **Decide:** Felipe, en lo de negocio (D1–D4 del 2026-09-22, `docs/maquetas/separaciones-2026-09/ANALISIS.md` §7; D5 propuesta y pendiente).
 Arquitectura: este documento.
 **Es la Fase 2 de ADR-0141**, y **revierte** una línea de su «Fase 2 — no construida»: allí se decidió «no se emite comprobante al recibir el

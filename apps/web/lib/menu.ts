@@ -86,7 +86,7 @@ export function permisosDe(rol: RolMenu, terminal: TipoTerminal | null = null): 
 /** Claves de los íconos. Los trazos viven en `AppShell.tsx` (`IC`); acá solo se nombra cuál lleva cada nodo. */
 export type ClaveIcono =
   | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "movimientos" | "traslados" | "conteo" | "resumen"
-  | "facturacion" | "compras" | "insumos" | "produccion" | "cambios" | "devoluciones" | "venta"
+  | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "cambios" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
@@ -148,18 +148,17 @@ export type Accion = Comun & { estado: "viva"; ruta: string; detalle: string };
 
 /* ------------------------------------------------------------------
    El árbol de HOY (más lo que viene)
-   El orden es el del menú: Inicio, Catálogo, Producción, Compras, Ventas, Inventario (Felipe, 2026-09-16).
+   El orden es el del menú: Inicio, Colaboradores, Catálogo, Producción, Compras, Ventas, Inventario (Felipe, 2026-09-16).
    ------------------------------------------------------------------ */
 
 export const ARBOL: readonly Nodo[] = [
   // Inicio y Análisis no son dueños de tablas: leen lo de otros. Águila es «Inteligencia y reportes» (lee lo de los demás).
   { id: "inicio", etiqueta: "Inicio", estado: "viva", ruta: "/", icono: "inicio", pajaro: "13 Águila", terminales: ["administrativa"] },
 
-  // «Colaboradores» (a quién de Dynamic le doy entrada a retail, 0013_colaboradores_autorizados.sql) salió de acá el
-  // 2026-09-21 (decisión de Felipe): es configuración de acceso, no trabajo diario, y no debía competir por espacio en
-  // el menú principal con Catálogo/Compras/Ventas/Inventario. Vive hoy en «Mi perfil» (`PerfilModal.tsx`), solo para
-  // quien administra — la ruta `/colaboradores` sigue exigiendo el mismo permiso en la página y en la RPC; esto solo
-  // decidía qué se pintaba. El destino final, cuando nazca, es «configuracion.accesos» (ver el árbol «futura» abajo).
+  // Integración con Dynamic (2026-09-13): «a quién de Dynamic le doy entrada a retail». Solo quien administra.
+  // Salió del menú el 2026-09-21 (a «Mi perfil») y VOLVIÓ el 2026-09-22 a pedido de Felipe: desde el perfil nadie lo
+  // encontraba. Sigue también en «Mi perfil» (`PerfilModal.tsx`). Destino final: «configuracion.accesos» (árbol «futura»).
+  { id: "colaboradores", etiqueta: "Colaboradores", estado: "viva", ruta: "/colaboradores", icono: "colaboradores", pajaro: "01 Ganso", exige: "administrar" },
 
   // Catálogo (2026-09-16/17): qué ES una prenda y el vocabulario del que cuelga. Colores, tallas, tejidos, patrones y
   // etiquetas viven como pestañas de «Atributos».

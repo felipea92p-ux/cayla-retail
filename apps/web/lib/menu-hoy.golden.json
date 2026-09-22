@@ -129,6 +129,7 @@
       "conTraslados3": {
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Colaboradores", "href": "/colaboradores", "icono": "colaboradores" },
           {
             "grupo": "catalogo",
             "etiqueta": "Catálogo",
@@ -197,6 +198,7 @@
       "sinTraslados": {
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Colaboradores", "href": "/colaboradores", "icono": "colaboradores" },
           {
             "grupo": "catalogo",
             "etiqueta": "Catálogo",
@@ -418,6 +420,7 @@
       "conTraslados3": {
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Colaboradores", "href": "/colaboradores", "icono": "colaboradores" },
           {
             "grupo": "catalogo",
             "etiqueta": "Catálogo",
@@ -495,6 +498,7 @@
       "sinTraslados": {
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Colaboradores", "href": "/colaboradores", "icono": "colaboradores" },
           {
             "grupo": "catalogo",
             "etiqueta": "Catálogo",
@@ -705,6 +709,7 @@
       "conTraslados3": {
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Colaboradores", "href": "/colaboradores", "icono": "colaboradores" },
           {
             "grupo": "catalogo",
             "etiqueta": "Catálogo",
@@ -773,6 +778,7 @@
       "sinTraslados": {
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Colaboradores", "href": "/colaboradores", "icono": "colaboradores" },
           {
             "grupo": "catalogo",
             "etiqueta": "Catálogo",

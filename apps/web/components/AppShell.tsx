@@ -108,6 +108,7 @@ const IC: Record<ClaveIcono | "nuevo" | "chevron", string> = {
   inventario: "M4 7l8-4 8 4v10l-8 4-8-4V7zm8 4L4 7m8 4l8-4m-8 4v10",
   movimientos: "M3 7h13m0 0l-4-4m4 4l-4 4M21 17H8m0 0l4 4m-4-4l4-4",
   traslados: "M4 12h13M13 5l7 7-7 7",
+  colaboradores: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
   // Planilla con un visto: contar lo que hay y dejarlo asentado. La cabecera
   // "Inventario" se queda con la caja de siempre (IC.inventario), que
   // "Existencias" comparte — es la raíz del módulo, la misma cosa.
