@@ -261,7 +261,7 @@ export function ColaboradoresPanel({
           ubicaciones={ubicaciones}
           onClose={() => setModal(null)}
           onConfirmar={(personas, ubicacionId) =>
-            ejecutar(null, "agregar a los colaboradores", () => acciones.agregar(personas, ubicacionId), `${plural(personas.length, "persona ya tiene", "personas ya tienen")} acceso`)
+            ejecutar(null, "agregar a los colaboradores", () => acciones.agregar(personas, ubicacionId), `${plural(personas.length, "persona queda pendiente de aprobación", "personas quedan pendientes de aprobación")} — un líder debe aprobarlas antes de que puedan operar`)
           }
         />
       )}
