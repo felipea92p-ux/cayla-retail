@@ -28,6 +28,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Ficha de clienta v1, backend (2026-09-22, ADR-0152, D-76/D-77) — hecho en local, FALTA PEGAR 1 MIGRACIÓN EN PRODUCCIÓN
+Tabla `retail.clientas` + RPC `buscar_clienta`/`registrar_clienta`. La FK de `ventas.cliente_id` se repuntó desde la tabla vieja `retail.clientes`
+(se retira — ~0 filas en producción, pero dos lectores activos que también se actualizaron: `fn_ventas_del_dia` y el embed de Ventas ▸ Historial).
+16 pruebas en verde con un Postgres 17 desechable que corrió las 195 migraciones del repo en orden (`pnpm pruebas:clientas`).
+- [ ] **Pegar en producción** la migración `20260922140000_ficha_de_clienta_v1_backend.sql` (agregar el prefijo `retail.` o `set search_path` al
+      pegar en el SQL Editor — nunca en el archivo del repo) y correr `pnpm datos:generar:produccion` después.
+- [ ] **La pantalla de captura del mostrador (Punto de Venta)** — la construye otra tanda de agentes. `/clientas` (esta tarea) es solo una
+      pantalla mínima de verificación (lista + buscador + alta), sin engancharse a `lib/menu.ts` (otra tarea de la misma tanda lo toca).
+- [ ] **Regenerar `packages/database/src/types.ts` de verdad** con `supabase gen types --local` cuando el stack local (Docker) esté arriba — esta
+      sesión lo editó a mano porque Docker no estaba disponible; conviene confirmar que calza exacto.
+
 ## 🎯 Productos: las alertas de stock solo cuentan activas, «Stock total» y números que no mienten (2026-09-22, ADR-0151) — hecho en local, FALTA PEGAR 1 MIGRACIÓN EN PRODUCCIÓN
 Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió la opción A y ordenó la #1 a la #4).
 - [x] **#1 Descontinuados fuera de «sin stock», «stock bajo», «para pedir» y «A quién pedirle»**, y marcados con un chip en la Grilla. Migración `20260922120000` (mismas firmas; el filtro y el contador cambian juntos, con o sin filtros: 18 combinaciones en la prueba). Además «stock bajo» y «sin stock» ya no se solapan, y pedir descontinuadas + alerta de stock explica por qué no hay nada.

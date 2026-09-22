@@ -176,17 +176,21 @@ insert into retail.colores (codigo, nombre, hex) values
   ('ROS', 'Rosa', '#e8a5b0')
   on conflict (codigo) do nothing;
 
-insert into retail.clientes (tipo_doc, num_doc, nombre, telefono) values
-  ('dni', '45612378', 'Valeria Chávez', '987111222'),
-  ('dni', '41278965', 'Camila Torres', '987222333'),
-  ('dni', '47891234', 'Daniela Ríos', '987333444'),
-  ('dni', '40123987', 'Fernanda Quispe', '987444555'),
-  ('dni', '48765123', 'Gabriela Salas', '987555666'),
-  ('dni', '42987654', 'Andrea Cárdenas', '987666777'),
-  ('dni', '46123789', 'Paola Mendoza', '987777888'),
-  ('dni', '43219876', 'Rosa Delgado', '987888999'),
-  ('ruc', '20601234567', 'Boutique Mía SAC', '014567890'),
-  ('sin_documento', null, 'Cliente de mostrador', null);
+-- `retail.clientas` (ficha de clienta v1, D-76/D-77, 20260922140000): un solo
+-- campo de documento, sin distinguir dni/ruc/sin_documento (la tabla vieja
+-- `retail.clientes` que esto reemplazaba sí lo hacía; la nueva no, a
+-- propósito — decisión de Felipe de no ser invasivos). Sin consentimiento de
+-- WhatsApp sembrado: sería inventar un permiso que nadie dio.
+insert into retail.clientas (dni, nombre, telefono_whatsapp) values
+  ('45612378', 'Valeria Chávez', '987111222'),
+  ('41278965', 'Camila Torres', '987222333'),
+  ('47891234', 'Daniela Ríos', '987333444'),
+  ('40123987', 'Fernanda Quispe', '987444555'),
+  ('48765123', 'Gabriela Salas', '987555666'),
+  ('42987654', 'Andrea Cárdenas', '987666777'),
+  ('46123789', 'Paola Mendoza', '987777888'),
+  ('43219876', 'Rosa Delgado', '987888999'),
+  ('20601234567', 'Boutique Mía SAC', '014567890');
 
 -- ---------- tallas (vocabulario cerrado desde 20260917100000/100500) ----------
 -- Nacen 'aprobado' directo, igual que los 30 colores de 20260912235500: son
@@ -420,8 +424,8 @@ begin
   caja_trujillo := retail.abrir_caja(ubic_trujillo, 80.00);
 
   -- ---------- ventas (los sku_* ya se resolvieron arriba, para la reposición) ----------
-  select id into cli_valeria from retail.clientes where nombre = 'Valeria Chávez';
-  select id into cli_camila from retail.clientes where nombre = 'Camila Torres';
+  select id into cli_valeria from retail.clientas where nombre = 'Valeria Chávez';
+  select id into cli_camila from retail.clientas where nombre = 'Camila Torres';
 
   -- Con boleta a propósito (las series se sembraron arriba): así el historial de
   -- Movimientos tiene una venta con comprobante que mostrar, no solo «Sin comprobante».

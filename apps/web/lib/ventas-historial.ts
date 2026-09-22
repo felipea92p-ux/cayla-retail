@@ -33,12 +33,16 @@ export * from "@/lib/ventas-historial-reglas";
 //
 // `ventas.created_at` es la única fecha de la venta y el cursor de paginado es
 // (`created_at`, `id`): estable aunque dos ventas caigan en el mismo instante.
+//
+// El embed `cliente:clientas` (antes `clientes`) sigue la FK `ventas_clienta_fk`
+// desde 20260922140000_ficha_de_clienta_v1_backend.sql — la ficha de clienta (D-76/D-77)
+// retira la tabla vieja `clientes` (~0 filas, sin RLS de UPDATE) en favor de `clientas`.
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 const SELECT_LISTA = `id, created_at, estado, nota, usuario_id,
   ubicacion:ubicaciones ( id, nombre ),
-  cliente:clientes ( nombre ),
+  cliente:clientas ( nombre ),
   venta_items ( cantidad, precio_unitario, descuento_unitario, subtotal,
     variante:variantes ( color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex ),
       producto:productos ( referencia, producto_fotos ( url, color_codigo ) ) ) ),

@@ -90,6 +90,12 @@ const HUELLAS: Huella[] = [
     frase: "Ese producto ya tiene esa talla y ese color. Búscalo en el catálogo: el código que escaneaste puede ser un duplicado de la etiqueta.",
   },
   {
+    // 20260922140000_ficha_de_clienta_v1_backend.sql — un DNI, una clienta. `registrar_clienta`
+    // hace upsert por DNI (no debería chocar); esto es la red si algún camino inserta directo.
+    marca: "clientas_dni_unico",
+    frase: "Ya hay una clienta con ese DNI. Búscala arriba en vez de crearla de nuevo.",
+  },
+  {
     // 20260914215059_candado_precio_venta.sql — `registrar_venta` compara cada precio con
     // `variantes.precio`: la caja ya no edita precios, y la base deja de confiar en el
     // navegador. El detalle es «referencia (sku)».
