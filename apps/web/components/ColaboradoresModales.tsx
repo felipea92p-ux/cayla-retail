@@ -207,7 +207,7 @@ export function CambiarUbicacionModal({
   onClose,
 }: {
   nombre: string;
-  /** A un líder la ubicación no lo limita: es la tienda donde arranca su sesión (20260923120000). */
+  /** A un líder la ubicación no lo limita: es la tienda donde arranca su sesión (20260923120100). */
   esLider?: boolean;
   ubicacionActualId: string | null;
   ubicaciones: Ubicacion[];

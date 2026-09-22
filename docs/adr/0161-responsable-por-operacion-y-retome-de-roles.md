@@ -223,4 +223,4 @@ Una terminal sigue sin poder ser líder. Migración `20260923110000_cambiar_rol_
 
 Orden para decidir dónde arranca un líder: su ubicación asignada → la tienda de su sede de Dynamic → la primera tienda.
 Vive en `retail.fn_ubicacion_de_partida`, que usan `fn_persona_actual_resumen` y `fn_ubicacion_actual_persona`. Migración
-`20260923120000_ubicacion_de_lideres.sql`.
+`20260923120100_ubicacion_de_lideres.sql`.
