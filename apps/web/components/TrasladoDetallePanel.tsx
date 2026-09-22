@@ -146,7 +146,7 @@ export function TrasladoDetallePanel({
           <TrasladoEstado situacion={situacion} />
           <TrasladoLlegada traslado={t} situacion={situacion} ahoraIso={ahoraIso} />
         </div>
-        <p className="text-xs text-tinta/65">Envió {t.creadoPorNombre}</p>
+        <p className="text-xs text-taupe">Envió {t.creadoPorNombre}</p>
       </div>
       {t.nota && <p className="text-sm text-tinta/70">Nota de envío: {t.nota}</p>}
       {error && <p className="text-sm text-rojo">{error}</p>}
@@ -156,13 +156,13 @@ export function TrasladoDetallePanel({
       <div className="card-cayla overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-tinta/10 text-left text-[11px] text-tinta/65">
+            <tr className="border-b border-sand text-left text-[11px] text-taupe">
               <th className="label-cayla px-5 py-2.5">Prenda</th>
               <th className="label-cayla px-3 py-2.5 text-right">Enviado</th>
               <th className="label-cayla px-3 py-2.5 text-right">Recibido</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-tinta/10">
+          <tbody className="divide-y divide-sand">
             {t.lineas.map((l) => {
               const diferente = l.cantidadEnviada != null && l.cantidadRecibida != null && l.cantidadEnviada !== l.cantidadRecibida;
               const nueva = l.cantidadEnviada == null;
@@ -173,7 +173,7 @@ export function TrasladoDetallePanel({
                       <SinFoto />
                       <span className="min-w-0">
                         <p className="text-tinta">{l.referencia}</p>
-                        <p className="text-xs text-tinta/55">
+                        <p className="text-xs text-taupe">
                           {l.sku} {[l.talla, l.color].filter(Boolean).join("/")}
                           {nueva && " · no estaba en el envío"}
                         </p>
@@ -209,7 +209,7 @@ export function TrasladoDetallePanel({
 
       {puedeEditar && (
         <div className="card-cayla p-5">
-          <p className="label-cayla mb-2 text-[11px] text-tinta/65">Llegó algo que no estaba en el envío</p>
+          <p className="label-cayla mb-2 text-[11px] text-taupe">Llegó algo que no estaba en el envío</p>
           <input
             type="text"
             value={busqueda}
@@ -260,7 +260,7 @@ export function TrasladoDetallePanel({
         </button>
       )}
       {puedeEditar && t.estado === "en_transito" && faltanPorConfirmar && (
-        <p className="text-center text-xs text-tinta/55">Registra qué pasó con cada prenda enviada (aunque sea 0) antes de confirmar.</p>
+        <p className="text-center text-xs text-taupe">Registra qué pasó con cada prenda enviada (aunque sea 0) antes de confirmar.</p>
       )}
 
       {t.estado === "recibido_con_diferencia" && (
@@ -279,7 +279,7 @@ export function TrasladoDetallePanel({
             </button>
           </div>
         ) : (
-          <p className="card-cayla p-5 text-center text-sm text-tinta/65">
+          <p className="card-cayla p-5 text-center text-sm text-taupe">
             Solo un líder puede cerrar este traslado — quedó con una diferencia entre lo enviado y lo recibido.
           </p>
         )

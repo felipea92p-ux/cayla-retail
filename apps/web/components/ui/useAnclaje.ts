@@ -51,3 +51,56 @@ export function usePosicionAnclada(control: RefObject<HTMLElement | null>, abier
 
   return pos;
 }
+
+/* ====================================================================
+   usePosicionLista · la lista de un desplegable, fuera de la caja que la
+   contiene (2026-09-22)
+
+   Por qué existe: `Desplegable` y `ComboBuscable` dibujaban su lista en
+   `absolute` debajo del control. Dentro de un `<Modal>` eso no funciona: la
+   hoja tiene `overflow-y-auto` (para que un formulario largo se desplace) y
+   RECORTA todo lo que sobresale. En «Asignar rol» el campo Cuenta está al
+   pie de la hoja: la lista se abría, pero quedaba metida en un scroll
+   interno de cinco filas, con el título y los botones empujados fuera de la
+   vista — se veía como un buscador roto.
+
+   Mismo remedio que `MenuAcciones` y `usePosicionAnclada`: `position: fixed`
+   medido contra el control, que ninguna caja con overflow recorta. A
+   diferencia de aquel, la lista toma el ANCHO del control y, si no cabe
+   abajo, se abre hacia arriba — en un modal el campo suele estar cerca del
+   borde inferior de la ventana. `alto` es el tope de la lista (su
+   `max-h-*`); se achica si no hay tanto espacio en ninguno de los dos lados.
+   Mientras mide por primera vez devuelve `null`: quien lo usa no pinta la
+   lista hasta tener posición, para que no aparezca un cuadro en (0,0).
+   ==================================================================== */
+export type PosicionLista = { left: number; width: number; maxHeight: number } & ({ top: number } | { bottom: number });
+
+export function usePosicionLista(control: RefObject<HTMLElement | null>, abierto: boolean, alto: number, separacion = 6): PosicionLista | null {
+  const [pos, setPos] = useState<PosicionLista | null>(null);
+
+  useLayoutEffect(() => {
+    if (!abierto || !control.current) return;
+    function calcular() {
+      const r = control.current!.getBoundingClientRect();
+      const margen = 8;
+      const abajo = window.innerHeight - r.bottom - separacion - margen;
+      const arriba = r.top - separacion - margen;
+      const base = { left: r.left, width: r.width };
+      // Abajo es lo esperado; arriba solo si abajo no alcanza y arriba hay más aire.
+      if (abajo >= Math.min(alto, 160) || abajo >= arriba) {
+        setPos({ ...base, top: r.bottom + separacion, maxHeight: Math.min(alto, Math.max(abajo, 120)) });
+      } else {
+        setPos({ ...base, bottom: window.innerHeight - r.top + separacion, maxHeight: Math.min(alto, arriba) });
+      }
+    }
+    calcular();
+    window.addEventListener("resize", calcular);
+    window.addEventListener("scroll", calcular, true);
+    return () => {
+      window.removeEventListener("resize", calcular);
+      window.removeEventListener("scroll", calcular, true);
+    };
+  }, [abierto, control, alto, separacion]);
+
+  return abierto ? pos : null;
+}

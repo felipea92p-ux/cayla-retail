@@ -30,6 +30,11 @@ lecturas, un código que no existe abre «dar de alta», y cerrar pasa por la es
 - «Revisar antes de cerrar» pasa a `<Modal>` (ADR-0136) — hoy dibuja su propio `fixed inset-0`.
 
 ## Ojo al llevarla al código
+- **El PR #295 (ADR-0169) ya pasó Conteo a la paleta oficial** — `CabeceraPantalla`, `TarjetaCifra`, `Tabla` y `Chip` con
+  punto. Esa parte visual está hecha; esta maqueta agrega lo que #295 dejó fuera a propósito («solo visual, ninguna
+  pantalla cambia su información»): el flujo de contar, la regla de vacíos y el conteo a ciegas. La implementación
+  se monta sobre esas piezas, no las reemplaza. Siguen vivos en `main`: «Diferencia hasta ahora» con conteo abierto
+  y «Sin diferencias» en verde para un conteo de 0 prendas.
 - Los datos son de ejemplo (prendas, SKUs, montos). Los 4 conteos del historial son los reales de TRU (todos vacíos).
 - El lateral es solo contexto; no se propone cambiarlo aquí.
 - Las piezas ya existen: `Tabla`, `Chip`, `ComboResponsable`, `ProductoVarianteCelda`, `Modal`, `avisar`, `EsperaGlobal`.

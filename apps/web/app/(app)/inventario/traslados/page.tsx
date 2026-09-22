@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { Info } from "lucide-react";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTrasladosDeLaSede, type TrasladoResumen } from "@/lib/traslados";
@@ -34,16 +35,16 @@ export default async function TrasladosPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Inventario</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Traslados entre sedes</h1>
-          <p className="mt-1 text-sm text-tinta/65">Seguimos los traslados de inventario entrantes y salientes hasta que se confirme su recepción.</p>
-        </div>
-        <Link href="/inventario/mover" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
-          + Nuevo traslado
-        </Link>
-      </div>
+      <CabeceraPantalla
+        sobretitulo="Inventario · Traslados"
+        titulo="Traslados entre sedes"
+        bajada="Seguimos los traslados de inventario entrantes y salientes hasta que se confirme su recepción."
+        acciones={
+          <Link href="/inventario/mover" className="btn-cayla btn-primario">
+            + Nuevo traslado
+          </Link>
+        }
+      />
 
       {/* `key` por sede: al cambiar de sede con el selector, los filtros y la búsqueda de la sede anterior no se
           arrastran (una sede elegida en «Más filtros» ni siquiera existiría en la nueva). */}
@@ -59,10 +60,10 @@ export default async function TrasladosPage() {
 
       {/* Ayuda operativa, secundaria a propósito. Dice lo que de verdad pasa: con diferencia, NADA entra al
           stock hasta que un líder cierra el traslado (`confirmar_traslado` / `cerrar_traslado_con_diferencia`). */}
-      <aside className="card-cayla flex items-start gap-3 px-5 py-3.5">
-        <Info aria-hidden strokeWidth={1.5} className="mt-0.5 h-4 w-4 shrink-0 text-tinta/50" />
-        <div className="text-xs text-tinta/65">
-          <p className="text-sm text-tinta">El stock solo ingresa a la tienda cuando confirmas la recepción.</p>
+      <aside className="nota-cayla flex items-start gap-3">
+        <Info aria-hidden strokeWidth={1.5} className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
+        <div>
+          <p className="font-semibold text-tinta">El stock solo ingresa a la tienda cuando confirmas la recepción.</p>
           <p className="mt-0.5">
             Al recibir, revisa que lo enviado coincida con lo que llegó. Si hay diferencia, regístrala: el traslado queda «con diferencia» y las prendas entran al stock cuando un
             líder lo cierra.
