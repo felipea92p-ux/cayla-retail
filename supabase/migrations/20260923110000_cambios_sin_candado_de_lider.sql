@@ -26,6 +26,17 @@
 -- bloque `if v_diferencia < 0 and not fn_es_lider() then raise exception...`
 -- que sumó 20260922235000. Todo lo demás del cuerpo (vocabulario de motivo,
 -- condición, venta anulada, cuarentena) sigue exactamente igual.
+--
+-- OJO (verificado en producción el 2026-09-23, antes de escribir esto): entre
+-- que se pegó 20260922235000 y esta migración, **ya se pegó también la F3**
+-- (`20260923100000_actor_firma_las_operaciones.sql`, ADR-0162): la línea
+-- `select id into v_persona from personas where auth_user_id = auth.uid();`
+-- de esta función YA es `v_persona := retail.fn_actor_persona_id(true);` en
+-- producción. El cuerpo de abajo parte de esa versión VIVA (leída con
+-- `pg_get_functiondef` contra `cayla-dynamic`, no de una copia vieja del
+-- repo) — pegar la versión anterior (con `select ... auth.uid()` a secas)
+-- habría revertido la F3 en silencio, el mismo tipo de landmina que ya
+-- documentó la memoria de `colaboradores_endurecimiento`.
 -- ============================================================================
 
 set search_path = retail, public, extensions;
@@ -99,7 +110,7 @@ begin
     raise exception 'Hay una diferencia de S/% — indica cómo se cobra o se devuelve', v_diferencia;
   end if;
 
-  select id into v_persona from personas where auth_user_id = auth.uid();
+  v_persona := retail.fn_actor_persona_id(true);
   v_sub := fn_sububicacion_por_defecto(p_ubicacion_id, 'venta');
   select id into v_caja_id from cajas where ubicacion_id = p_ubicacion_id and estado = 'abierta';
 
