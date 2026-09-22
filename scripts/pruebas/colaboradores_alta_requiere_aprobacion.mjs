@@ -7,7 +7,7 @@
  *   · `agregar_colaborador` crea la fila en `pendiente_aprobacion`, no en `activo`;
  *   · con la fila en `pendiente_aprobacion`, `fn_puede_operar_ubicacion` da falso para esa
  *     ubicación — la persona nueva NO puede operar;
- *   · `fn_aprobar_alta_colaborador` exige ser líder o tener el módulo Colaboradores (20260923111000; 42501 si no);
+ *   · `fn_aprobar_alta_colaborador` exige ser líder o tener el módulo Colaboradores (20260923131000; 42501 si no);
  *   · tras aprobar, `fn_puede_operar_ubicacion` da verdadero para su ubicación asignada;
  *   · aprobar una alta que ya está activa, o que no existe, falla con un mensaje claro;
  *   · `suspender_colaborador` rechaza a alguien todavía pendiente (no se puede "pausar" lo

@@ -56,7 +56,7 @@ export type Pajaro = (typeof PAJAROS)[number];
  *  - editarCatalogo:         escribir en el Catálogo                            (fn_puede_editar_catalogo)
  *  - editarCuentasProveedor: cuentas bancarias de proveedores                   (fn_puede_editar_cuentas_proveedor)
  *  - verDineroCompras:       los montos y el registro de Compras (Facturas de compra, Por pagar, Notas de crédito;
- *                            fn_puede_ver_dinero_de_compras / fn_puede_registrar_compras, 20260923110000). Hasta el
+ *                            fn_puede_ver_dinero_de_compras / fn_puede_registrar_compras, 20260923130000). Hasta el
  *                            2026-09-22 era `verDinero` y solo del líder (ADR-0126).
  *  - editarEtiquetas:        crear, editar y archivar etiquetas SIN descuento  (fn_puede_editar_etiquetas)
  *  - analizar:               Análisis de inventario de su sede                  (fn_puede_analizar)
@@ -132,7 +132,7 @@ type Comun = {
    * módulo (Inicio) no es de ningún rol: la ven las personas, y las terminales según `terminalVeInicio`.
    */
   modulo?: ClaveModulo;
-  /** Otro módulo que TAMBIÉN abre esta fila (ADR-0161, 20260923110000). Existe por UN caso: las etiquetas viven como
+  /** Otro módulo que TAMBIÉN abre esta fila (ADR-0161, 20260923130000). Existe por UN caso: las etiquetas viven como
    *  pestaña de «Atributos», así que un rol que ve Etiquetas sin ver Categorías/atributos entra por la misma fila (y la
    *  pantalla le muestra solo esa pestaña). */
   moduloAlterno?: ClaveModulo;
@@ -243,7 +243,7 @@ export const ARBOL: readonly Nodo[] = [
   },
 
   // Compras (ADR-0126): dinero de proveedores. Cada puerta exige `verDineroCompras` (quien ve Facturas de compra, Por pagar
-  // o Notas de crédito, 20260923110000) Y su propio módulo; el grupo sale solo cuando no queda ninguna.
+  // o Notas de crédito, 20260923130000) Y su propio módulo; el grupo sale solo cuando no queda ninguna.
   // Es el módulo de comprar para las TIENDAS: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21), del mismo
   // modo que Producción no se muestra en una tienda: en cada ubicación el líder ve UNO de los dos. Solo visibilidad: las
   // URLs de Compras siguen abriendo (otras pantallas enlazan a ellas) y el candado real es el de cada RPC. Consecuencia

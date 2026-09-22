@@ -22,7 +22,7 @@ import { SaldoFavorProveedor } from "@/components/SaldoFavorProveedor";
 // (vía insumo_lotes), en secciones separadas — nunca sumadas en un solo total, son negocios distintos
 // aunque compartan la misma ficha (20260917230000_proveedor_metricas_compras_e_insumos.sql).
 //
-// Toda esta pantalla es solo de líder. Hasta el 2026-09-22 lo cuidaba el layout de /compras; desde 20260923110000 ese
+// Toda esta pantalla es solo de líder. Hasta el 2026-09-22 lo cuidaba el layout de /compras; desde 20260923130000 ese
 // layout deja entrar a quien ve los montos de Compras (un rol con Facturas de compra, Por pagar o Notas de crédito), y esta
 // ficha mezcla los insumos del TALLER (`fn_proveedor_metricas_insumos`, solo líder): por eso el chequeo vuelve acá. Lo que sí protege la base: `fn_proveedor_metricas_compras` y las demás
 // funciones de esta ficha rechazan a quien no sea líder DENTRO de la base, así que aunque alguien las

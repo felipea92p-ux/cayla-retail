@@ -4,7 +4,7 @@ import { esClaveModulo, type ClaveModulo } from "@/lib/modulos";
 import type { CuentaConRol, RolVista } from "@/lib/roles-reglas";
 
 // Lectura de «Roles y accesos» (ADR-0161 B, migración 20260923030000_roles_por_modulo.sql). El líder o quien ve el módulo
-// Roles y accesos (20260923111000): las tablas `roles` y `rol_modulos` se leen por RLS (`fn_puede_administrar_roles()`)
+// Roles y accesos (20260923131000): las tablas `roles` y `rol_modulos` se leen por RLS (`fn_puede_administrar_roles()`)
 // y las cuentas por `fn_cuentas_con_rol()`, que lo vuelve a exigir. Las escrituras van por RPC desde el cliente (`lib/roles-acciones.ts`).
 
 const CLAVES_SISTEMA = ["lider", "integrante", "terminal_ventas", "terminal_administrativa"] as const;

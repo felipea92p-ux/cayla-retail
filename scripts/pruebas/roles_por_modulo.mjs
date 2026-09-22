@@ -39,8 +39,9 @@ const MIGRACION = [
   "20260923030000_roles_por_modulo.sql",
   "20260923031000_integrante_hace_lo_que_ve.sql",
   "20260923040000_terminales_sin_tipo.sql",
-  "20260923110000_abrir_modulos_a_los_roles.sql",
-  "20260923111000_colaboradores_y_roles_delegables.sql",
+  "20260923110000_cambiar_rol_entre_lideres.sql",
+  "20260923130000_abrir_modulos_a_los_roles.sql",
+  "20260923131000_colaboradores_y_roles_delegables.sql",
 ]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
@@ -144,12 +145,12 @@ const modulosDe = (clave) =>
 // ---------------- La siembra ----------------
 // «Al menos 23»: la regla de CLAUDE.md («Módulos y roles») manda que cada módulo nuevo se sume con su propia migración.
 caso(
-  "hay al menos los 23 módulos de la siembra; ninguno es ya «siempre solo del líder» (Colaboradores y Roles se abrieron en 20260923111000)",
+  "hay al menos los 23 módulos de la siembra; ninguno es ya «siempre solo del líder» (Colaboradores y Roles se abrieron en 20260923131000)",
   `select (count(*) >= 23)::text, coalesce(string_agg(clave, ',' order by clave) filter (where solo_lider), '') from retail.modulos;`,
   "true|"
 );
 caso(
-  "ya no queda ningún módulo «solo líder por ahora» (20260923110000 abrió Etiquetas, Facturas de compra, Por pagar, Notas de crédito y Análisis)",
+  "ya no queda ningún módulo «solo líder por ahora» (20260923130000 abrió Etiquetas, Facturas de compra, Por pagar, Notas de crédito y Análisis)",
   `select coalesce(string_agg(clave, ',' order by clave), '') from retail.modulos where not delegable and not solo_lider;`,
   ""
 );
@@ -324,7 +325,7 @@ caso(
   "false"
 );
 
-// ---------------- Los 5 módulos abiertos (20260923110000, Felipe 2026-09-22) ----------------
+// ---------------- Los 5 módulos abiertos (20260923130000, Felipe 2026-09-22) ----------------
 // Un rol a medida con UN módulo, asignado a la integrante (Micaela, Trujillo). El líder arma la escena.
 const conRol = (nombre, modulos) =>
   como(FELIPE_AUTH) +
@@ -439,7 +440,7 @@ caso(
   "f,f,f,f"
 );
 
-// ---------------- Colaboradores y Roles y accesos abiertos (20260923111000, Felipe 2026-09-22) ----------------
+// ---------------- Colaboradores y Roles y accesos abiertos (20260923131000, Felipe 2026-09-22) ----------------
 // Una persona nueva de Dynamic (activa, sin acceso a retail) para dar de alta y asignar. Deja `:nueva`.
 const PERSONA_NUEVA = `insert into public.personas (id, nombres, apellidos, estado, sede_base_id)
   select '33333333-3333-4333-8333-0000000000c2', 'Nueva', 'Por Rol', 'activo', sede_dynamic_id from retail.ubicaciones where id = (select tru from ids);
@@ -457,12 +458,43 @@ caso(
     `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_integ, :'nueva')) from ids;\n` +
     `select pg_temp.intento(format('select retail.asignar_rol(%L, p_terminal_id => %L)', (select id from rol_nuevo), (select id from retail.terminales where auth_user_id = '${T_VENTAS_AUTH}')));\n` +
     `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_lider, :'nueva')) from ids;\n` +
-    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_integ, felipe)) from ids;\n` +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, felipe, tru)) from ids;\n` +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_integ, micaela)) from ids;\n` +
+    `select rol from retail.colaboradores where persona_id = :'nueva';\n` +
     `set local role authenticated;\nselect (count(*) > 0)::text from retail.roles;`,
   (s) => {
     const l = s.split("\n");
-    return l[0] === "t,t,f" && l[1] === "SIN_ERROR" && l[2] === "SIN_ERROR" && l[3] === "SIN_ERROR" && l[4].startsWith("42501|") && l[5].startsWith("42501|") && l[6] === "true";
+    return (
+      l[0] === "t,t,f" && l[1] === "SIN_ERROR" && l[2] === "SIN_ERROR" && l[3] === "SIN_ERROR" &&
+      l[4].startsWith("42501|") && l[4].includes("subir a alguien a Líder") && // no sube a nadie a Líder
+      l[5].startsWith("42501|") && l[5].includes("otro líder") && // no le cambia el rol a un líder
+      l[6].startsWith("42501|") && l[6].includes("propio rol") && // nadie se cambia su propio rol
+      l[7] === "colaborador" && l[8] === "true"
+    );
   }
+);
+caso(
+  "entre líderes con el módulo abierto: un LÍDER sigue subiendo a Líder y bajando a otro líder; nunca queda cero líderes",
+  PERSONA_NUEVA +
+    `insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id, estado) select :'nueva', 'colaborador', tru, 'activo' from ids;\n` +
+    como(FELIPE_AUTH) +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_lider, :'nueva')) from ids;\n` +
+    `select rol from retail.colaboradores where persona_id = :'nueva';\n` +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, :'nueva', tru)) from ids;\n` +
+    `select rol from retail.colaboradores where persona_id = :'nueva';\n` +
+    // El único líder activo es Felipe: bajarlo lo impide «tu propio rol» y, si no, el candado de «último líder».
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, felipe, tru)) from ids;`,
+  (s) => {
+    const l = s.split("\n");
+    return l[0] === "SIN_ERROR" && l[1] === "lider" && l[2] === "SIN_ERROR" && l[3] === "colaborador" && l[4].startsWith("42501|");
+  }
+);
+caso(
+  "protección 2 también en la ubicación: quien tiene Colaboradores sin ser líder no le cambia la sede a un líder",
+  conRol("Gestor de accesos", ["colaboradores"]) +
+    como(MICAELA_AUTH) +
+    `select pg_temp.intento(format('select retail.cambiar_ubicacion_colaborador(%L, %L)', felipe, tru)) from ids;`,
+  (s) => s.startsWith("42501|") && s.includes("otro líder")
 );
 caso(
   "Roles y accesos: quien tiene el módulo edita SUS propios módulos (se da Facturación) y queda en roles_historial a su nombre",
@@ -545,13 +577,27 @@ caso(
 
 // ---------------- Reglas de los roles ----------------
 caso(
-  "Líder no se edita, no se archiva y no se asigna",
+  "Líder no se edita, no se archiva y no se renombra",
   como(FELIPE_AUTH) +
     intento(`select retail.guardar_modulos_rol(retail.fn_rol_por_clave('lider'), array['vender'])`) + "\n" +
     intento(`select retail.archivar_rol(retail.fn_rol_por_clave('lider'))`) + "\n" +
-    intento(`select retail.renombrar_rol(retail.fn_rol_por_clave('lider'), 'Jefa')`) + "\n" +
-    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_lider, micaela)) from ids;`,
-  (s) => s.split("\n").length === 4 && s.split("\n").every((l) => l.startsWith("42501|"))
+    intento(`select retail.renombrar_rol(retail.fn_rol_por_clave('lider'), 'Jefa')`),
+  (s) => s.split("\n").length === 3 && s.split("\n").every((l) => l.startsWith("42501|"))
+);
+caso(
+  "entre líderes: se sube a Líder y se baja a otro líder (con sede si no tiene)",
+  como(FELIPE_AUTH) +
+    `select asignar_rol(r_lider, micaela) from ids \\g /dev/null\n` +
+    `select c.rol, c.rol_id = i.r_lider from retail.colaboradores c, ids i where c.persona_id = i.micaela;\n` +
+    // Como los líderes de producción: sin sede fija.
+    `update retail.colaboradores set ubicacion_asignada_id = null where persona_id = (select micaela from ids);\n` +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_integ, micaela)) from ids;\n` +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, micaela, tru)) from ids;\n` +
+    `select c.rol, c.rol_id = i.r_integ, c.ubicacion_asignada_id = i.tru from retail.colaboradores c, ids i where c.persona_id = i.micaela;`,
+  (s) => {
+    const l = s.split("\n");
+    return l.length === 4 && l[0] === "lider|t" && l[1].startsWith("23514|") && l[2] === "SIN_ERROR" && l[3] === "colaborador|t|t";
+  }
 );
 caso(
   "Integrante se edita y se renombra, pero no se archiva",
@@ -585,7 +631,7 @@ caso(
 );
 caso(
   "no se delega un módulo solo del líder ni uno «solo líder por ahora», ni siquiera a mano",
-  // Hoy no queda ningún módulo así (20260923110000 y 20260923111000 abrieron los 7): se crean dos de prueba en la transacción.
+  // Hoy no queda ningún módulo así (20260923130000 y 20260923131000 abrieron los 7): se crean dos de prueba en la transacción.
   `insert into retail.modulos (clave, grupo, nombre, incluye, orden, solo_lider, delegable) values
      ('zz_por_ahora', 'Gestión', 'Por ahora (prueba)', 'Algo', 9998, false, false),
      ('zz_solo_lider', 'Gestión', 'Solo líder (prueba)', 'Algo', 9997, true, false);\n` +
@@ -630,7 +676,7 @@ caso(
   "caja,cambios,clientas,devoluciones,facturacion,historial,vender"
 );
 caso(
-  "a un líder no se le cambia el rol",
+  "nadie se cambia su propio rol (así nunca falta un líder)",
   como(FELIPE_AUTH) + `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_integ, felipe)) from ids;`,
   (s) => s.startsWith("42501|")
 );

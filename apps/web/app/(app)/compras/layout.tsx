@@ -29,7 +29,7 @@ import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 // intentaba abrir el modal con id "por-pagar"). Con el prefijo `factura/`
 // el patrón interceptado ya no se solapa con las pantallas hermanas.
 export default async function ComprasLayout({ children, modal }: { children: React.ReactNode; modal: React.ReactNode }) {
-  // 20260923110000 (Felipe, 2026-09-22): ya no es solo del líder. Entra quien ve los montos de Compras (su rol ve Facturas
+  // 20260923130000 (Felipe, 2026-09-22): ya no es solo del líder. Entra quien ve los montos de Compras (su rol ve Facturas
   // de compra, Por pagar o Notas de crédito: `verDineroCompras`); cada pantalla exige además SU módulo (`exigirModulo`).
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "verDineroCompras")) redirect("/");

@@ -69,6 +69,7 @@ export function ColaboradoresPanel({
   cuentas = null,
   pestanaInicial = "activos",
   pestanas,
+  soyLider = true,
   acciones = accionesSupabase,
   accionesRoles = accionesRolesSupabase,
   accionesTerminales,
@@ -88,9 +89,11 @@ export function ColaboradoresPanel({
   roles?: RolVista[] | null;
   cuentas?: CuentaConRol[] | null;
   pestanaInicial?: Pestana;
-  /** Las pestañas que ve esta cuenta (20260923111000): Roles y accesos con su módulo, el resto con Colaboradores. Ausente =
+  /** Las pestañas que ve esta cuenta (20260923131000): Roles y accesos con su módulo, el resto con Colaboradores. Ausente =
    *  todas (el líder, y las maquetas). */
   pestanas?: readonly Pestana[];
+  /** ¿Quien mira es líder? Sin serlo (tiene el módulo), no se le ofrece tocar a un líder ni dar el rol Líder. */
+  soyLider?: boolean;
   acciones?: AccionesColaboradores;
   accionesRoles?: AccionesRoles;
   /** Crear terminal y cambiar su clave. Por defecto, las Server Actions de `app/actions/terminales.ts`. */
@@ -240,7 +243,7 @@ export function ColaboradoresPanel({
               {filas.length === 0 ? (
                 <Vacio>Nadie coincide con lo que buscas.</Vacio>
               ) : (
-                <TablaActivos filas={filas} ocupadoId={ocupadoId} onAccion={alElegirAccion} rolDe={rolDe} />
+                <TablaActivos filas={filas} ocupadoId={ocupadoId} onAccion={alElegirAccion} rolDe={rolDe} soyLider={soyLider} />
               )}
               <p className="text-xs text-tinta/65" role="status">
                 {filas.length === colaboradores.length
@@ -270,7 +273,7 @@ export function ColaboradoresPanel({
           {roles === null ? (
             <Vacio>No se pudieron leer los roles. Lo demás de esta pantalla sí está al día.</Vacio>
           ) : (
-            <RolesPanel roles={roles} cuentas={cuentas} acciones={accionesRoles} />
+            <RolesPanel roles={roles} cuentas={cuentas} ubicaciones={ubicaciones} yoId={colaboradores.find((c) => c.es_yo)?.persona_id ?? null} soyLider={soyLider} acciones={accionesRoles} />
           )}
         </section>
       )}
@@ -384,12 +387,13 @@ export function ColaboradoresPanel({
       )}
       {modal?.tipo === "rol" && roles && (
         <AsignarRolModal
-          roles={rolesAsignables(roles)}
+          roles={rolesAsignables(roles, undefined, soyLider)}
           cuentas={[]}
+          ubicaciones={ubicaciones}
           cuentaFija={modal.cuenta}
           onClose={() => setModal(null)}
-          onConfirmar={(rolId, cuenta) =>
-            ejecutar(cuenta.id, "cambiar el rol", () => accionesRoles.asignar(rolId, cuenta), "Rol actualizado", `${cuenta.nombre} ahora tiene «${nombreDeRol(rolId) ?? "el nuevo rol"}».`)
+          onConfirmar={(rolId, cuenta, ubicacionId) =>
+            ejecutar(cuenta.id, "cambiar el rol", () => accionesRoles.asignar(rolId, cuenta, ubicacionId), "Rol actualizado", `${cuenta.nombre} ahora tiene «${nombreDeRol(rolId) ?? "el nuevo rol"}».`)
           }
         />
       )}

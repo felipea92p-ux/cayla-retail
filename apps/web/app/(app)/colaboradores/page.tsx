@@ -15,7 +15,7 @@ import { PESTANAS_COLABORADORES, pestanaDe } from "@/lib/colaboradores-reglas";
 import { getCuentasConRol, getRolesTolerado } from "@/lib/roles";
 
 // Gestión de acceso a retail (0013 + 0016_roles_colaborador.sql + 20260922110000_colaboradores_suspender_y_actividad.sql).
-// Desde 20260923111000 (Felipe, 2026-09-22) no es solo del líder: la abre quien ve el módulo Colaboradores (Activos,
+// Desde 20260923131000 (Felipe, 2026-09-22) no es solo del líder: la abre quien ve el módulo Colaboradores (Activos,
 // Terminales, Pendientes, Suspendidos, Inactivas, Actividad) o Roles y accesos (su pestaña); cada una sale solo con su
 // módulo. Cada RPC lo vuelve a exigir en la base (fn_puede_gestionar_colaboradores / fn_puede_administrar_roles).
 export default async function ColaboradoresPage({ searchParams }: { searchParams: Promise<{ pestana?: string }> }) {
@@ -58,6 +58,7 @@ export default async function ColaboradoresPage({ searchParams }: { searchParams
       cuentas={cuentas.datos}
       pestanaInicial={pestanas.includes(pedida) ? pedida : pestanas[0]}
       pestanas={pestanas}
+      soyLider={persona.rol === "lider"}
     />
   );
 }

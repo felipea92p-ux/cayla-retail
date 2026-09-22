@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  // 20260923110000: el líder o un rol con el módulo Etiquetas (`editarEtiquetas`). Lo que lleva descuento sigue siendo del
+  // 20260923130000: el líder o un rol con el módulo Etiquetas (`editarEtiquetas`). Lo que lleva descuento sigue siendo del
   // líder: se dice aquí con palabras y la base lo vuelve a exigir (política `etiquetas_update`, `fn_puede_tocar_etiqueta`).
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "editarEtiquetas")) {

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260923111000_colaboradores_y_roles_delegables.sql — CAYLA V2 · ADR-0161 B, cambio de alcance del 2026-09-22
+-- 20260923131000_colaboradores_y_roles_delegables.sql — CAYLA V2 · ADR-0161 B, cambio de alcance del 2026-09-22
 --
 -- EL PROBLEMA PRIMERO. Colaboradores, y Roles y accesos, eran los dos módulos «siempre solo del líder» (`modulos.solo_lider`,
 -- ADR-0150 decisión 3). Felipe decidió el 2026-09-22 que también se pueden dar a cualquier rol: quien los tenga usa esos
@@ -13,19 +13,23 @@
 -- vetarlas; están escritas aquí y en el ADR-0161:
 --   1. El rol «Líder de equipo» sigue fijo: nadie lo edita ni lo archiva (ya era así: `roles.fijo`, guardar_modulos_rol,
 --      renombrar_rol, archivar_rol). No cambia.
---   2. Solo un LÍDER toca a un líder. Hoy NINGUNA función da el rol Líder (ser líder es `colaboradores.rol = 'lider'` y se
---      da por SQL); `asignar_rol` rechaza asignar el rol Líder y cambiarle el rol a un líder, llame quien llame — eso se
---      conserva tal cual, es MÁS estricto que la regla. Lo nuevo: quien no es líder no puede QUITAR, SUSPENDER ni REACTIVAR
---      a un líder (reactivar a un líder suspendido es devolverle el poder de líder). Un líder sí, como hoy.
---   3. Nunca se quita ni se suspende al ÚLTIMO líder activo. Hasta hoy lo cuidaba de rebote «no te quites a ti mismo» (solo
---      un líder podía actuar); con el módulo abierto hace falta explícito. Degradar a un líder no existe como operación.
---   Además se conserva «no te quites / no te suspendas a ti mismo» (quitar_colaborador, suspender_colaborador).
+--   2. Solo un LÍDER toca a un líder. Desde 20260923110000_cambiar_rol_entre_lideres (ya en producción) `asignar_rol` sube a
+--      una persona a Líder y baja a un líder a otro rol; esa migración lo dejaba solo al líder. Aquí se combina: un LÍDER
+--      sigue subiendo y bajando líderes; quien tiene Roles y accesos SIN ser líder asigna cualquier OTRO rol, pero no sube
+--      a nadie a Líder ni le cambia el rol a un líder. Y quien no es líder tampoco QUITA, SUSPENDE ni REACTIVA a un líder
+--      (reactivar a un líder suspendido es devolverle el poder de líder).
+--   3. Nunca quedan cero líderes activos: no se quita ni se suspende al último, y `asignar_rol` no baja al último (hoy ya
+--      lo impide de rebote «nadie se cambia su propio rol»: quien baja a un líder es otro líder; queda escrito igual).
+--   Además se conservan «nadie se cambia su propio rol» (asignar_rol) y «no te quites / no te suspendas a ti mismo»
+--   (quitar_colaborador, suspender_colaborador).
 --
 -- CLASIFICACIÓN (inventario de producción, 2026-09-22; cada `fn_es_lider()` y QUÉ protegía)
 --   Capacidad nueva `fn_puede_gestionar_colaboradores()` = líder o un rol con Colaboradores:
 --     · agregar_colaborador, agregar_colaboradores, fn_aprobar_alta_colaborador, cambiar_ubicacion_colaborador,
 --       quitar_colaborador, suspender_colaborador, reactivar_colaborador            → gestionar accesos (el candado de
---       entrada y su mensaje). quitar/suspender/reactivar además llaman a `fn_exigir_puede_tocar_colaborador` (2 y 3).
+--       entrada y su mensaje). quitar/suspender/reactivar/cambiar ubicación además llaman a
+--       `fn_exigir_puede_tocar_colaborador` (2 y 3): la rama `ubicacion_de_lideres` deja cambiar la sede de un líder, y
+--       eso también es tocar a un líder.
 --     · fn_colaboradores, fn_colaboradores_pendientes, fn_colaboradores_suspendidos, fn_colaboradores_inactivos,
 --       fn_colaboradores_actividad, fn_dynamic_disponibles                            → LEER las listas de la pantalla.
 --     · fn_terminales, desactivar_terminal, reactivar_terminal                        → las terminales viven en una pestaña
@@ -38,17 +42,22 @@
 --       restaurar_rol, asignar_rol y fn_cuentas_con_rol. Se cambia su interior; conserva el nombre (lo llaman 7
 --       funciones; renombrarlo obligaría a recrearlas todas).
 --     · políticas roles_select, rol_modulos_select, roles_historial_select.
---   NO CAMBIAN: fn_es_lider (identidad), fn_mi_perfil, fn_mis_modulos/fn_ve_modulo (el líder ve todo), asignar_rol (sus
---   candados del rol Líder se quedan), fn_historial_colaborador (solo anota), los disparadores de coherencia de rol.
+--     · asignar_rol(uuid, uuid, uuid, uuid) — la VIVA (20260923110000_cambiar_rol_entre_lideres; en producción el cuerpo
+--       difiere del archivo del repo en cómo mira «tu propio rol», por eso se inyecta en dos anclas que tienen ambos):
+--       subir a Líder y cambiarle el rol a un líder exigen fn_es_lider(); bajar al último líder activo, nunca.
+--   NO CAMBIAN: fn_es_lider (identidad), fn_mi_perfil, fn_mis_modulos/fn_ve_modulo (el líder ve todo),
+--   fn_historial_colaborador (solo anota), los disparadores de coherencia de rol.
 --
 -- SE ROMPE SI
 --   · Se vuelve a pegar 20260923030000 entero: devuelve `solo_lider = true` a los dos módulos (falla CERRADO: los roles
 --     que los tengan dejan de recibirlos; la base rechaza de nuevo encenderlos). Volver a pegar esta.
 --   · Otra migración recrea alguna de estas funciones con su cuerpo viejo: vuelve «solo el líder» (también cerrado).
---   · Se agrega una RPC que ponga `colaboradores.rol = 'lider'`: tiene que exigir `fn_es_lider()` (protección 2).
+--   · Se agrega OTRA RPC que ponga `colaboradores.rol = 'lider'`: tiene que exigir `fn_es_lider()` (protección 2).
+--   · Se vuelve a pegar 20260923110000_cambiar_rol_entre_lideres: recrea asignar_rol sin la protección 2 (quien tenga Roles
+--     podría subir a alguien a Líder). Volver a pegar esta (re-ejecutable). `pnpm pruebas:roles` lo detecta.
 --
--- Re-ejecutable. Mismas reglas de pegado que 20260923110000 (`set search_path to retail, public, extensions;` al pegar en
--- producción). Requiere 20260923030000 (roles por módulo).
+-- Re-ejecutable. Mismas reglas de pegado que 20260923130000 (`set search_path to retail, public, extensions;` al pegar en
+-- producción). Requiere 20260923030000 (roles por módulo) y 20260923110000_cambiar_rol_entre_lideres (asignar_rol con sede).
 -- ============================================================================
 
 set search_path = retail, public, extensions;
@@ -58,9 +67,12 @@ begin
   if to_regprocedure('retail.fn_capacidad_por_modulos(text[])') is null then
     raise exception 'Falta la migración de roles por módulo (retail.fn_capacidad_por_modulos): pega antes 20260923030000_roles_por_modulo.sql';
   end if;
+  if to_regprocedure('retail.asignar_rol(uuid, uuid, uuid, uuid)') is null then
+    raise exception 'Falta asignar_rol con sede: pega antes 20260923110000_cambiar_rol_entre_lideres.sql';
+  end if;
 end $$;
 
--- ==================== 0. Herramienta temporal (misma que 20260923110000; nombre propio para no chocar) ====================
+-- ==================== 0. Herramienta temporal (misma que 20260923130000; nombre propio para no chocar) ====================
 create or replace function pg_temp.reemplazar_colab(p_firma text, p_viejo text, p_nuevo text, p_veces integer)
 returns void
 language plpgsql
@@ -91,14 +103,14 @@ language sql stable set search_path = retail, public, extensions
 as $$ select retail.fn_es_lider() or retail.fn_capacidad_por_modulos(array['colaboradores']); $$;
 
 comment on function retail.fn_puede_gestionar_colaboradores() is
-  'Líder, o un rol que ve Colaboradores (ADR-0161, 20260923111000). Dar, quitar, suspender y reactivar accesos; ubicación; altas; terminales. A un líder solo lo toca un líder (fn_exigir_puede_tocar_colaborador).';
+  'Líder, o un rol que ve Colaboradores (ADR-0161, 20260923131000). Dar, quitar, suspender y reactivar accesos; ubicación; altas; terminales. A un líder solo lo toca un líder (fn_exigir_puede_tocar_colaborador).';
 
 create or replace function retail.fn_puede_administrar_roles() returns boolean
 language sql stable set search_path = retail, public, extensions
 as $$ select retail.fn_es_lider() or retail.fn_capacidad_por_modulos(array['roles']); $$;
 
 comment on function retail.fn_puede_administrar_roles() is
-  'Líder, o un rol que ve Roles y accesos (ADR-0161, 20260923111000). Crear, editar, archivar y asignar roles; el rol Líder no se toca (fijo) ni se asigna.';
+  'Líder, o un rol que ve Roles y accesos (ADR-0161, 20260923131000). Crear, editar, archivar y asignar roles; el rol Líder no se toca (fijo) ni se asigna.';
 
 -- Protecciones 2 y 3 (ver cabecera). `p_accion`: 'quitar', 'suspender' o 'reactivar'. Security definer: lee las dos tablas
 -- de colaboradores sin depender de la RLS de quien llama.
@@ -129,7 +141,7 @@ end;
 $fn$;
 
 comment on function retail.fn_exigir_puede_tocar_colaborador(uuid, text) is
-  'ADR-0161 (20260923111000), protecciones 2 y 3: a un líder solo lo quita, suspende o reactiva otro líder, y nunca se quita ni se suspende al último líder activo. Decisión de arquitectura, revisable por Felipe.';
+  'ADR-0161 (20260923131000), protecciones 2 y 3: a un líder solo lo quita, suspende o reactiva otro líder, y nunca se quita ni se suspende al último líder activo. Decisión de arquitectura, revisable por Felipe.';
 
 do $$
 declare
@@ -165,15 +177,20 @@ begin
   -- Protecciones 2 y 3, justo después del candado de entrada.
   perform pg_temp.reemplazar_colab('retail.quitar_colaborador(uuid)',
     'v_quien := retail.fn_actor_persona_id(false);',
-    $v$perform retail.fn_exigir_puede_tocar_colaborador(p_persona_id, 'quitar'); -- ADR-0161 (20260923111000)
+    $v$perform retail.fn_exigir_puede_tocar_colaborador(p_persona_id, 'quitar'); -- ADR-0161 (20260923131000)
   v_quien := retail.fn_actor_persona_id(false);$v$, 1);
   perform pg_temp.reemplazar_colab('retail.suspender_colaborador(uuid, text)',
     'v_quien := retail.fn_actor_persona_id(false);',
-    $v$perform retail.fn_exigir_puede_tocar_colaborador(p_persona_id, 'suspender'); -- ADR-0161 (20260923111000)
+    $v$perform retail.fn_exigir_puede_tocar_colaborador(p_persona_id, 'suspender'); -- ADR-0161 (20260923131000)
   v_quien := retail.fn_actor_persona_id(false);$v$, 1);
+  -- La ubicación de un líder (la tienda donde arranca; otra rama, `ubicacion_de_lideres`, deja cambiarla): solo un líder.
+  perform pg_temp.reemplazar_colab('retail.cambiar_ubicacion_colaborador(uuid, uuid)',
+    'select * into v_fila from colaboradores where persona_id = p_persona_id for update;',
+    $v$perform retail.fn_exigir_puede_tocar_colaborador(p_persona_id, 'cambiar de ubicación'); -- ADR-0161 (20260923131000)
+  select * into v_fila from colaboradores where persona_id = p_persona_id for update;$v$, 1);
   perform pg_temp.reemplazar_colab('retail.reactivar_colaborador(uuid)',
     'select * into v_fila from colaboradores_suspendidos where persona_id = p_persona_id for update;',
-    $v$perform retail.fn_exigir_puede_tocar_colaborador(p_persona_id, 'reactivar'); -- ADR-0161 (20260923111000)
+    $v$perform retail.fn_exigir_puede_tocar_colaborador(p_persona_id, 'reactivar'); -- ADR-0161 (20260923131000)
   select * into v_fila from colaboradores_suspendidos where persona_id = p_persona_id for update;$v$, 1);
 
   -- Las listas de la pantalla.
@@ -206,7 +223,32 @@ begin
 end $$;
 
 comment on function retail.fn_exigir_lider_de_roles() is
-  'Candado de las RPC de roles. Desde 20260923111000: líder O un rol con Roles y accesos (fn_puede_administrar_roles); el nombre se conserva porque lo llaman 7 funciones.';
+  'Candado de las RPC de roles. Desde 20260923131000: líder O un rol con Roles y accesos (fn_puede_administrar_roles); el nombre se conserva porque lo llaman 7 funciones.';
+
+-- asignar_rol (la VIVA, con sede): protección 2 y 3 sobre la regla «entre líderes» de 20260923110000.
+do $$
+begin
+  -- Subir a alguien a Líder: solo un líder (vale para persona y terminal; a una terminal la base ya la rechaza después).
+  perform pg_temp.reemplazar_colab('retail.asignar_rol(uuid, uuid, uuid, uuid)',
+    $v$v_a_lider := v_rol.clave = 'lider';$v$,
+    $v$v_a_lider := v_rol.clave = 'lider';
+  -- 20260923131000 (protección 2): quien administra roles sin ser líder no sube a nadie a Líder.
+  if v_a_lider and not retail.fn_es_lider() then
+    raise exception 'Solo un líder de equipo puede subir a alguien a Líder de equipo' using errcode = '42501';
+  end if;$v$, 1);
+  -- Bajar a un líder: solo otro líder, y nunca al último activo.
+  perform pg_temp.reemplazar_colab('retail.asignar_rol(uuid, uuid, uuid, uuid)',
+    'v_ubicacion := coalesce(p_ubicacion_id, v_ubicacion);',
+    $v$-- 20260923131000 (protecciones 2 y 3): a un líder solo le cambia el rol otro líder, y siempre queda uno activo.
+        if not retail.fn_es_lider() then
+          raise exception 'Solo un líder de equipo puede cambiarle el rol a otro líder' using errcode = '42501';
+        end if;
+        if not exists (select 1 from retail.colaboradores c join public.personas p on p.id = c.persona_id
+                        where c.rol = 'lider' and c.estado = 'activo' and p.estado = 'activo' and c.persona_id <> p_persona_id) then
+          raise exception 'No se puede bajar al último líder activo: siempre tiene que quedar quien administre' using errcode = '42501';
+        end if;
+        v_ubicacion := coalesce(p_ubicacion_id, v_ubicacion);$v$, 1);
+end $$;
 
 -- ==================== 4. Políticas de lectura ====================
 -- Se verifica que cada una sea la que se inventarió antes de reemplazarla (pg_policies escribe la expresión según el
@@ -258,7 +300,7 @@ begin
     raise exception 'Quedaron sin el candado nuevo: %', v_malas;
   end if;
   select array_agg(f) into v_malas from (values ('retail.quitar_colaborador(uuid)'), ('retail.suspender_colaborador(uuid, text)'),
-      ('retail.reactivar_colaborador(uuid)')) x(f)
+      ('retail.reactivar_colaborador(uuid)'), ('retail.cambiar_ubicacion_colaborador(uuid, uuid)')) x(f)
    where position('fn_exigir_puede_tocar_colaborador(' in pg_get_functiondef(f::regprocedure)) = 0;
   if v_malas is not null then
     raise exception 'Quedaron sin las protecciones de líder: %', v_malas;
@@ -266,10 +308,11 @@ begin
   if position('fn_puede_administrar_roles()' in pg_get_functiondef('retail.fn_exigir_lider_de_roles()'::regprocedure)) = 0 then
     raise exception 'fn_exigir_lider_de_roles quedó sin el candado nuevo';
   end if;
-  -- Protección 1 y la parte ya existente de la 2: asignar_rol sigue rechazando el rol Líder y a los líderes.
-  if pg_get_functiondef('retail.asignar_rol(uuid, uuid, uuid)'::regprocedure) not like '%v_rol.fijo%'
-     or pg_get_functiondef('retail.asignar_rol(uuid, uuid, uuid)'::regprocedure) not like '%v_rol_cuenta = ''lider''%' then
-    raise exception 'asignar_rol ya no rechaza el rol Líder o a un líder: revísala antes de abrir Roles y accesos';
+  -- Protecciones 2 y 3 en asignar_rol, y la regla de main que se conserva: nadie se cambia su propio rol.
+  if pg_get_functiondef('retail.asignar_rol(uuid, uuid, uuid, uuid)'::regprocedure) not like '%subir a alguien a Líder de equipo%'
+     or pg_get_functiondef('retail.asignar_rol(uuid, uuid, uuid, uuid)'::regprocedure) not like '%cambiarle el rol a otro líder%'
+     or pg_get_functiondef('retail.asignar_rol(uuid, uuid, uuid, uuid)'::regprocedure) not like '%No puedes cambiar tu propio rol%' then
+    raise exception 'asignar_rol quedó sin las protecciones de líder o sin «nadie se cambia su propio rol»: revísala antes de abrir Roles y accesos';
   end if;
 end $$;
 

@@ -13,7 +13,7 @@ import { CompraFormV2 } from "@/components/CompraFormV2";
 // crédito exige vencimiento, la misma factura no se registra dos veces)
 // viven en la RPC `registrar_compra`.
 export default async function NuevaCompraPage({ searchParams }: { searchParams: Promise<{ prov?: string }> }) {
-  const persona = await exigirModulo("facturas_compra"); // 20260923110000: registrar es del módulo Facturas de compra
+  const persona = await exigirModulo("facturas_compra"); // 20260923130000: registrar es del módulo Facturas de compra
   const { prov } = await searchParams;
   const [directorio, ubicaciones, catalogo, resumen, hayReparto, marcas] = await Promise.all([getProveedores(), getUbicaciones(), getCatalogo(), getResumenCompras(), repartoDisponible(), getMarcasPorProveedor()]);
   // Solo los activos; con su plazo, forma de pago y saldo (lo financiero es de líder, y esta pantalla también) y con

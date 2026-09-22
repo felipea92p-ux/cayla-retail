@@ -19,7 +19,7 @@ const MAX_FILAS = 20_000; // tope de seguridad: un mes real de CAYLA son decenas
 
 export async function GET(request: Request) {
   const persona = await requirePersonaActualV2();
-  // 20260923110000: quien ve los montos y el módulo Facturas de compra (antes, solo el líder).
+  // 20260923130000: quien ve los montos y el módulo Facturas de compra (antes, solo el líder).
   if (!puede(persona, "verDineroCompras") || !veModulo(persona, "facturas_compra")) {
     return Response.json({ error: "Exportar el registro de compras necesita el módulo Facturas de compra en tu rol." }, { status: 403 });
   }

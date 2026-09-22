@@ -268,7 +268,7 @@ describe.each(PERFILES.map((p) => [nombreDe(p), p] as const))("forma del menú d
 
   it("«Recibir mercadería» vive como MÁXIMO en un grupo: Compras si ve el dinero de Compras, Inventario si no, y ninguno si lo ve parado en el Taller", () => {
     const dueños = menu.riel.filter(esGrupoMenu).filter((g) => hojasDe(g).some((h) => h.href === "/recibir")).map((g) => g.id);
-    // Desde 20260923110000 el dinero de Compras es su propio permiso (`verDineroCompras`); `verDinero` quedó para el Taller.
+    // Desde 20260923130000 el dinero de Compras es su propio permiso (`verDineroCompras`); `verDinero` quedó para el Taller.
     const veDinero = perfil.permisos.includes("verDineroCompras");
     expect(dueños.length).toBeLessThanOrEqual(1);
     // El único perfil sin grupo es el del hecho de producto que documenta la sección 3 (PR #219, Felipe 2026-09-21).
@@ -336,7 +336,7 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
     expect(hijosDeGrupo({ permisos: ["administrar"], ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
   });
 
-  it("`analizar` (el módulo Análisis, 20260923110000) y `verDineroCompras` NO abren nada del Taller: Abastecimiento se disuelve en «Recibir»", () => {
+  it("`analizar` (el módulo Análisis, 20260923130000) y `verDineroCompras` NO abren nada del Taller: Abastecimiento se disuelve en «Recibir»", () => {
     const operativas = ["produccion.ordenes", "produccion.insumos", "produccion.recibirProduccion"];
     expect(hijosDeGrupo({ permisos: ["analizar"], ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
     expect(hijosDeGrupo({ permisos: ["verDineroCompras"], ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);

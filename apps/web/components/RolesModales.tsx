@@ -4,7 +4,8 @@ import { useId, useMemo, useState } from "react";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, Campo, CampoSelect } from "@/components/ui/campos";
-import type { CuentaConRol, RolVista } from "@/lib/roles-reglas";
+import { pideUbicacion, rolesAsignables, type CuentaConRol, type RolVista } from "@/lib/roles-reglas";
+import type { Ubicacion } from "@/lib/ubicaciones";
 
 // Los modales de «Roles y accesos» (ADR-0161 B). Todos con `<Modal>` (ADR-0136): heredan el velo, la hoja que sube y la
 // cascada; no agregan movimiento propio. Cada uno recibe `onConfirmar`, que devuelve `true` si la base aceptó; solo
@@ -146,24 +147,31 @@ export function ArchivarRolModal({ rol, onConfirmar, onClose }: { rol: RolVista;
 export function AsignarRolModal({
   roles,
   cuentas,
+  ubicaciones,
   cuentaFija,
   rolFijo,
   onConfirmar,
   onClose,
 }: {
+  /** Los roles vigentes; el modal quita el Líder si la cuenta es una terminal. */
   roles: RolVista[];
   cuentas: CuentaConRol[];
+  /** Para elegir la sede de un líder al que se le baja el rol. */
+  ubicaciones: Pick<Ubicacion, "id" | "nombre">[];
   cuentaFija?: CuentaConRol;
   rolFijo?: RolVista;
-  onConfirmar: (rolId: string, cuenta: CuentaConRol) => Promise<boolean>;
+  onConfirmar: (rolId: string, cuenta: CuentaConRol, ubicacionId?: string) => Promise<boolean>;
   onClose: () => void;
 }) {
   const [rolId, setRolId] = useState(rolFijo?.id ?? "");
   const [cuentaId, setCuentaId] = useState(cuentaFija ? `${cuentaFija.tipo}:${cuentaFija.id}` : "");
+  const [ubicacionId, setUbicacionId] = useState("");
   const [enviando, setEnviando] = useState(false);
   const cuenta = cuentaFija ?? cuentas.find((c) => `${c.tipo}:${c.id}` === cuentaId);
   const rolActual = cuenta ? roles.find((r) => r.id === cuenta.rolId) : undefined;
-  const opcionesRol = useMemo(() => roles.map((r) => ({ valor: r.id, texto: r.nombre })), [roles]);
+  const destino = roles.find((r) => r.id === rolId);
+  const conSede = !!cuenta && pideUbicacion(cuenta, destino);
+  const opcionesRol = useMemo(() => rolesAsignables(roles, cuenta).map((r) => ({ valor: r.id, texto: r.nombre })), [roles, cuenta]);
   const opcionesCuenta = useMemo(
     () =>
       cuentas.map((c) => ({
@@ -176,7 +184,8 @@ export function AsignarRolModal({
       })),
     [cuentas, roles],
   );
-  const listo = !!cuenta && !!rolId && rolId !== cuenta.rolId;
+  const opcionesSede = useMemo(() => ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre })), [ubicaciones]);
+  const listo = !!cuenta && !!rolId && rolId !== cuenta.rolId && (!conSede || !!ubicacionId);
   const idCuenta = useId();
 
   return (
@@ -193,7 +202,7 @@ export function AsignarRolModal({
             e.preventDefault();
             if (!listo || !cuenta || enviando) return;
             setEnviando(true);
-            const ok = await onConfirmar(rolId, cuenta);
+            const ok = await onConfirmar(rolId, cuenta, conSede ? ubicacionId : undefined);
             setEnviando(false);
             if (ok) cerrar();
           }}
@@ -216,7 +225,20 @@ export function AsignarRolModal({
             </p>
           )}
           {!rolFijo && <CampoSelect etiqueta="Nuevo rol" valor={rolId} onValor={setRolId} opciones={opcionesRol} marcador="Elige un rol" />}
+          {conSede && (
+            <CampoSelect etiqueta="Sede donde queda" valor={ubicacionId} onValor={setUbicacionId} opciones={opcionesSede} marcador="Elige una sede" />
+          )}
           {cuenta && rolId && rolId === cuenta.rolId && <p className="text-xs text-tinta/65">Ya tiene ese rol.</p>}
+          {cuenta && destino && rolId !== cuenta.rolId && destino.fijo && (
+            <p className="rounded-md border border-ambar/30 bg-ambar/10 px-3.5 py-2.5 text-[13px] leading-relaxed text-ambar-profundo">
+              Como líder verá y hará todo en todas las sedes, incluidos Colaboradores y Roles y accesos.
+            </p>
+          )}
+          {cuenta && destino && cuenta.esLider && !destino.fijo && (
+            <p className="rounded-md border border-ambar/30 bg-ambar/10 px-3.5 py-2.5 text-[13px] leading-relaxed text-ambar-profundo">
+              Deja de ser líder: solo verá los módulos de «{destino.nombre}»{conSede ? ", en la sede que elijas" : ""}.
+            </p>
+          )}
           <div className="flex justify-end gap-2">
             <Boton type="button" peso="discreto" onClick={cerrar}>
               Cancelar

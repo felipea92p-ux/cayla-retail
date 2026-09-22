@@ -5,7 +5,7 @@
 // usarla. Por eso el orden de este archivo es la regla:
 //   1. Se pregunta a la base, con la SESIÓN de quien llama (no con la llave), si puede gestionar colaboradores
 //      (`fn_puede_gestionar_colaboradores()`: el líder, o un rol con el módulo Colaboradores — Felipe, 2026-09-22,
-//      20260923111000; antes solo `fn_es_lider()`). Si no puede, o la pregunta falla, se rechaza y la llave NI SE CREA.
+//      20260923131000; antes solo `fn_es_lider()`). Si no puede, o la pregunta falla, se rechaza y la llave NI SE CREA.
 //   2. Recién ahí se abre el cliente con la llave (`admin()`), se valida tienda, rol y nombre, y se crea la cuenta.
 //   3. Si la fila de `retail.terminales` no entra, se borra la cuenta recién creada: nunca queda una cuenta que pueda
 //      iniciar sesión sin terminal (misma lógica que `pnpm terminales:crear`).

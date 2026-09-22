@@ -7,7 +7,7 @@
  * mercadería como siempre; y que el líder (Felipe) siga viendo exactamente lo mismo:
  *   · las 5 funciones que devolvían dinero con solo el candado de sede ahora fallan para el integrante y
  *     para quien no tiene sesión (42501 «Solo un líder o un rol con Facturas de compra, Por pagar o Notas de crédito
- *     puede ver …»; hasta 20260923110000 decía «Solo un líder puede ver …»). Micaela es Integrante: su rol NO ve ninguno
+ *     puede ver …»; hasta 20260923130000 decía «Solo un líder puede ver …»). Micaela es Integrante: su rol NO ve ninguno
  *     de esos tres módulos, así que sigue sin ver un monto (la regla nueva la prueba `pnpm pruebas:roles`);
  *   · `listar_compras_operativo` y `lineas_compra_operativo` le dan lo que necesita para recibir —solo su
  *     sede, mismo orden, filtros y cursor que `listar_compras`— sin una sola columna de dinero;
@@ -167,7 +167,7 @@ const error = (nombre, sql, contiene) => CASOS.push({ nombre, tipo: "error", sql
 // ===========================================================================
 
 for (const [fn, que] of LAS_CINCO) {
-  // Desde 20260923110000 el mensaje dice también quién más la ve (un rol con Facturas de compra, Por pagar o Notas de crédito).
+  // Desde 20260923130000 el mensaje dice también quién más la ve (un rol con Facturas de compra, Por pagar o Notas de crédito).
   error(`integrante: retail.${fn} le responde «… puede ver ${que}.» — ni una cifra`, comoPersona(MICAELA, `select * from retail.${fn};`), `puede ver ${que}.`);
 }
 

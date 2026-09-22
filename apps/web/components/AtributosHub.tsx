@@ -95,7 +95,7 @@ export function AtributosHub({
   variantesManuales: ComponentProps<typeof EtiquetasLista>["variantesManuales"];
   /** Colores, tallas, tejidos y patrones: el líder o la terminal administrativa (ADR-0160). */
   puedeEditar: boolean;
-  /** Etiquetas SIN descuento: el líder o un rol con el módulo Etiquetas (20260923110000). */
+  /** Etiquetas SIN descuento: el líder o un rol con el módulo Etiquetas (20260923130000). */
   puedeEditarEtiquetas: boolean;
   /** Poner, cambiar o quitar el descuento de una etiqueta, y tocar las que lo llevan: SOLO el líder (poder de precios,
    *  `fn_puede_dar_descuento_por_etiqueta`). */

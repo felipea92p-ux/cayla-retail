@@ -25,7 +25,7 @@ import { ProveedoresPanel } from "@/components/ProveedoresPanel";
 export default async function ProveedoresPage() {
   // La puerta del módulo Proveedores (además de ver los montos, que pide el layout de /compras). Lo financiero, el detalle
   // y la edición siguen siendo del líder aquí: las RPC de escribir un proveedor todavía exigen fn_es_lider (módulo
-  // Proveedores, fuera del alcance de 20260923110000).
+  // Proveedores, fuera del alcance de 20260923130000).
   const persona = await exigirModulo("proveedores");
   const esLider = persona.rol === "lider";
   const [proveedores, resumen, series, marcas] = await Promise.all([getProveedores(), esLider ? getProveedoresResumen() : null, esLider ? getProveedoresSerie() : null, getMarcasPorProveedor()]);

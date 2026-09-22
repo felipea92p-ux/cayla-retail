@@ -65,7 +65,7 @@ function Campo({ etiqueta, valor }: { etiqueta: string; valor: string }) {
 
 export function PerfilModal({ onClose, veAdministracion = false }: {
   onClose: () => void;
-  /** ¿Su rol ve Colaboradores o Roles y accesos? (20260923111000: ya no son solo del líder). El líder, siempre. */
+  /** ¿Su rol ve Colaboradores o Roles y accesos? (20260923131000: ya no son solo del líder). El líder, siempre. */
   veAdministracion?: boolean;
 }) {
   const router = useRouter();

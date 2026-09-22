@@ -678,7 +678,7 @@ rollback;
 error(
   "el candado de dinero sigue en pie tras el re-llaveo: un integrante no puede pedir el resumen de Compras",
   comoPersona(FELIPE, `${cambiaA(MICAELA)}select * from retail.resumen_compras();`),
-  "puede ver" // 20260923110000: «Solo un líder o un rol con Facturas de compra, Por pagar o Notas de crédito puede ver …»
+  "puede ver" // 20260923130000: «Solo un líder o un rol con Facturas de compra, Por pagar o Notas de crédito puede ver …»
 );
 
 exito(
@@ -884,7 +884,7 @@ rollback;
 error(
   "el candado de dinero sigue: un integrante no puede pedir los subtotales de Por pagar ni con la tienda puesta",
   comoPersona(FELIPE, `${BASE}${cambiaA(MICAELA)}select * from retail.por_pagar_tramos(p_ubicacion_id => :'trujillo');`),
-  "puede ver" // 20260923110000: «Solo un líder o un rol con Facturas de compra, Por pagar o Notas de crédito puede ver …»
+  "puede ver" // 20260923130000: «Solo un líder o un rol con Facturas de compra, Por pagar o Notas de crédito puede ver …»
 );
 
 exito(

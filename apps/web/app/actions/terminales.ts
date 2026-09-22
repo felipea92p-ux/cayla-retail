@@ -8,7 +8,7 @@ import { esFuncionAusente } from "@/lib/compras-reglas";
 import type { EntradaTerminal } from "@/lib/terminales-reglas";
 
 // Colaboradores ▸ Terminales: crear una terminal y cambiarle la clave (Felipe, 2026-09-22). Todo el cuidado —solo quien
-// puede gestionar colaboradores (el líder o un rol con ese módulo, 20260923111000), la llave de servicio recién después,
+// puede gestionar colaboradores (el líder o un rol con ese módulo, 20260923131000), la llave de servicio recién después,
 // deshacer la cuenta si la fila no entra, la clave una sola vez— vive en `lib/terminales-alta.ts`, donde se prueba. Aquí
 // solo se conectan las piezas de verdad.
 //
@@ -21,7 +21,7 @@ async function dependencias(): Promise<Dependencias> {
     puedeGestionar: async () => {
       const { data, error } = await sesion.rpc("fn_puede_gestionar_colaboradores");
       if (!error) return data === true;
-      // La web se publicó antes de pegar 20260923111000 (la función aún no existe): se pregunta lo de antes, «¿es líder?».
+      // La web se publicó antes de pegar 20260923131000 (la función aún no existe): se pregunta lo de antes, «¿es líder?».
       // Cualquier otro error = «no» (falla cerrado).
       if (!esFuncionAusente(error)) return null;
       const lider = await sesion.rpc("fn_es_lider");

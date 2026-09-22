@@ -189,7 +189,7 @@ export function EtiquetasLista({
   variantesManuales: Record<string, string[]>;
   /** Crear, editar, aprobar y archivar etiquetas SIN descuento: el líder o un rol con el módulo Etiquetas. */
   puedeEditar: boolean;
-  /** Tocar una etiqueta CON descuento o ponerle uno: solo el líder (20260923110000; la base lo vuelve a exigir). */
+  /** Tocar una etiqueta CON descuento o ponerle uno: solo el líder (20260923130000; la base lo vuelve a exigir). */
   puedeDarDescuento?: boolean;
 }) {
   // Cambiar el vocabulario es Catálogo, operación de tienda (ADR-0161): UN combo «Responsable» firma todo lo que se

@@ -4,9 +4,21 @@
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
 ## 2026-09-22 (Roles: se abren los 7 módulos que eran del líder — ADR-0161 B6-B8)
-Felipe decidió que Etiquetas, Facturas de compra, Por pagar, Notas de crédito, Análisis, Colaboradores y Roles y accesos se puedan dar a cualquier rol. Antes de cambiar nada se inventarió en producción (solo lectura) cada `fn_es_lider()` y qué protegía; dos migraciones (`20260923110000`, `20260923111000`) lo cambian desde la definición viva, dejan fuera lo que mezcla el Taller y abren los módulos al final. Pruebas de roles 49/49 en una copia de la base; typecheck, lint y vitest en verde. Sin pegar en producción.
+Felipe decidió que Etiquetas, Facturas de compra, Por pagar, Notas de crédito, Análisis, Colaboradores y Roles y accesos se puedan dar a cualquier rol. Antes de cambiar nada se inventarió en producción (solo lectura) cada `fn_es_lider()` y qué protegía; dos migraciones (`20260923130000`, `20260923131000`) lo cambian desde la definición viva, dejan fuera lo que mezcla el Taller y abren los módulos al final. Pruebas de roles 49/49 en una copia de la base; typecheck, lint y vitest en verde. Sin pegar en producción.
 Felipe se lleva: (1) **el ADR-0126 ya había dejado la regla del dinero en UNA función**: cambiar «solo el líder» por «líder o quien tenga estos módulos» fue tocar esa función, no veinte; (2) abrir Colaboradores y Roles exige **protecciones mínimas** para no quedarse sin control: el rol Líder no se toca ni se asigna, a un líder solo lo toca un líder y nunca se quita al último; (3) no todo `fn_es_lider()` era «del módulo»: la deuda consolidada y el IGV suman el Taller, y abrirlos habría destapado el dinero de Producción.
-Sin resolver: las 6 preguntas del ADR-0161 («Preguntas abiertas para Felipe»), pegar las dos migraciones y refrescar el diccionario.
+Felipe decidió las 6 preguntas «como propones» (P1-P6 del ADR-0161); se construyen en otro PR. Las migraciones se renumeraron a 130000/131000 y `asignar_rol` combina la regla «entre líderes» de main con las protecciones.
+Sin resolver: construir P1-P6, pegar las dos migraciones y refrescar el diccionario.
+
+
+## 2026-09-22 (Conteo físico: demo del rediseño con la guía oficial)
+Felipe pidió rediseñar Conteo sobre la Sala de Diseño y presentarlo en demo. Se decidió: cantidad con los dos modos e interruptor (suma por escaneo / escribir), y los conteos cerrados sin prendas salen «Vacío», fuera de la exactitud, y ya no se podrán cerrar. Se publicó una demo interactiva de los cuatro momentos (abrir, contar, revisar y cerrar, detalle) en `docs/maquetas/conteo-rediseno-2026-09/`.
+Felipe se lleva: (1) **la pantalla de hoy rompía el conteo a ciegas**: la tarjeta «Diferencia hasta ahora» le dice a quien cuenta cuánto se aleja del sistema mientras cuenta; (2) un «Sin diferencias» en verde sobre 0 prendas afirma algo falso, y los 4 conteos de TRU son justo eso; (3) sumar por escaneo no necesita cambiar la base: la pantalla ya sabe cuánto se anotó.
+Sin resolver: variante A o B de pendientes, la migración que impide cerrar un conteo vacío, y llevar la maqueta al código.
+
+## 2026-09-22 (Cambiar el rol entre líderes — actualización del ADR-0161)
+Felipe pidió que el rol se pueda cambiar entre líderes: hasta hoy a un líder no se le cambiaba y «Líder de equipo» no se daba desde la app. `asignar_rol` ahora sube a Líder y baja a un líder; la fila de un líder en Colaboradores tiene «Cambiar rol» y el rol Líder, «Asignar a una persona». Probado en Postgres local dentro de una transacción revertida.
+Felipe se lleva: (1) **el candado que evita quedarse sin líder es «nadie se cambia su propio rol»**: quien cambia ya es líder y no puede bajarse, así que siempre queda uno, sin contar nada; (2) **bajar a un líder obliga a elegirle sede**, porque un líder opera todas y no tiene una, y cualquier otro rol trabaja en una — los 9 líderes de producción están así.
+Sin resolver: pegar la migración en producción (OK de Felipe) y verlo con clics.
 
 ## 2026-09-22 (Roles y accesos: el buscador de «Asignar rol» — listas recortadas en modales)
 Felipe reportó que el campo Cuenta de «Asignar rol» no funcionaba. Se reprodujo en el navegador: la lista sí se abría, pero la hoja del modal tiene scroll propio y la recortaba (5 filas visibles, título y botones empujados fuera). Arreglo de raíz: `Desplegable` y `ComboBuscable` dibujan su lista en `fixed` medida contra el control (`usePosicionLista`, se abre hacia arriba si no cabe), la entrada del modal pasa a `animation-fill-mode: backwards` (con `both` Chrome seguía tratando la hoja como contenedor de los `fixed`), y Cuenta pasa a ser un buscador que filtra por nombre, sede o «terminal». Probado con clic y teclado, en escritorio y celular, y en «Rol de …» (desplegable Nuevo rol).
@@ -8916,3 +8928,7 @@ Sin resolver: pegar F2 y luego F3 en producción (y volver a pegar la F3 si desp
 Fusionado el PR #285 (terminales sin persona, combo Responsable, roles por módulo), Felipe pidió que quede como regla: cada módulo nuevo aparece en Roles y accesos y solo lo ve el líder hasta que él lo asigna. Quedó en `CLAUDE.md` («Módulos y roles») con los tres pasos (migración en `retail.modulos` sin `rol_modulos`, `lib/modulos.ts` + `modulo` en el menú + `exigirModulo`, y firmar con `fn_actor_persona_id`).
 Felipe se lleva: (1) **una regla que solo vive en un documento se olvida; una que vive en una prueba no**: `modulos.test.ts` ahora lee TODAS las migraciones y falla si alguna asigna un módulo a un rol, y `pruebas:roles` comprueba que un módulo recién creado solo lo ve el líder; (2) el catálogo de módulos es uno solo, en la base y en la web, y las pruebas impiden que se separen.
 Sin resolver: nada de esta regla; los pasos a producción del PR #285 siguen pendientes (migraciones en orden, `SUPABASE_SERVICE_ROLE_KEY`, encender `fn_exige_responsable()`).
+
+**2026-09-22 · fix(ui): la lista del buscador sigue al campo mientras el modal entra.** En «Asignar rol» la lista salía
+más angosta, corrida y ~28 px más abajo, tapando los botones: Radix enfoca Cuenta al abrir, el combo se abre y medía el
+campo a mitad de la entrada (hoja al 96,5 % + cascada). `usePosicionLista` ahora mide cuadro a cuadro mientras está abierta.

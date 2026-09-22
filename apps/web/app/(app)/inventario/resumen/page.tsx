@@ -15,7 +15,7 @@ import { ResumenDesempenoPanel } from "@/components/ResumenDesempenoPanel";
 //   · Análisis › Comparar   «¿qué cambió entre dos períodos?» (`?modo=comparar`)
 // Esta pantalla NO mezcla el stock de hoy con métricas del período. La ruta sigue siendo
 // `/inventario/resumen` (renombrar la URL rompería enlaces y marcadores por nada). Es del módulo Análisis: hasta el
-// 2026-09-22 solo del líder; desde 20260923110000, de quien lo tenga en su rol (`fn_puede_analizar`), para SU sede —
+// 2026-09-22 solo del líder; desde 20260923130000, de quien lo tenga en su rol (`fn_puede_analizar`), para SU sede —
 // quien no es líder no cambia de sede, así que analiza la suya.
 //
 // La sede es SIEMPRE la que el líder eligió en el selector global del ERP

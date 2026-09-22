@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260923110000_abrir_modulos_a_los_roles.sql — CAYLA V2 · ADR-0161 B (roles por módulo), decisión del 2026-09-22
+-- 20260923130000_abrir_modulos_a_los_roles.sql — CAYLA V2 · ADR-0161 B (roles por módulo), decisión del 2026-09-22
 --
 -- EL PROBLEMA PRIMERO. Cinco módulos de Roles y accesos salían como «Solo líder por ahora» (`retail.modulos.delegable =
 -- false`): Etiquetas, Facturas de compra, Por pagar, Notas de crédito y Análisis. No era una decisión de negocio, era una
@@ -155,7 +155,7 @@ language sql stable set search_path = retail, public, extensions
 as $$ select retail.fn_es_lider() or retail.fn_capacidad_por_modulos(array['etiquetas']); $$;
 
 comment on function retail.fn_puede_editar_etiquetas() is
-  'Líder, o un rol que ve Etiquetas (ADR-0161, 20260923110000). Crear, editar, aprobar y archivar etiquetas SIN descuento; etiquetar prendas con ellas. Lo que lleva descuento: fn_puede_dar_descuento_por_etiqueta (solo líder).';
+  'Líder, o un rol que ve Etiquetas (ADR-0161, 20260923130000). Crear, editar, aprobar y archivar etiquetas SIN descuento; etiquetar prendas con ellas. Lo que lleva descuento: fn_puede_dar_descuento_por_etiqueta (solo líder).';
 
 -- ¿Puede tocar ESTA etiqueta? El líder, siempre. Con el módulo, solo si la etiqueta no tiene descuento y no se le pone
 -- uno. Security definer: lee `etiquetas` sin depender de la RLS de quien llama.
@@ -170,14 +170,14 @@ as $$
 $$;
 
 comment on function retail.fn_puede_tocar_etiqueta(uuid, numeric) is
-  'ADR-0161 (20260923110000): quien da descuentos por etiqueta (el líder) toca cualquier etiqueta; quien ve Etiquetas, solo una SIN descuento y sin ponerle uno.';
+  'ADR-0161 (20260923130000): quien da descuentos por etiqueta (el líder) toca cualquier etiqueta; quien ve Etiquetas, solo una SIN descuento y sin ponerle uno.';
 
 create or replace function retail.fn_puede_analizar() returns boolean
 language sql stable set search_path = retail, public, extensions
 as $$ select retail.fn_es_lider() or retail.fn_capacidad_por_modulos(array['analisis']); $$;
 
 comment on function retail.fn_puede_analizar() is
-  'Líder, o un rol que ve Análisis (ADR-0161, 20260923110000). Reportes de ventas e inventario de su sede, con costo y stock de la red.';
+  'Líder, o un rol que ve Análisis (ADR-0161, 20260923130000). Reportes de ventas e inventario de su sede, con costo y stock de la red.';
 
 do $$
 declare
@@ -226,14 +226,14 @@ begin
   -- Gastos: NO es de estos módulos. Se queda solo del líder, exactamente como estaba (solo existe en producción).
   perform pg_temp.reemplazar_vivo('retail.registrar_gasto(uuid, text, numeric, text, uuid, text, text, text, numeric, text, uuid)',
     'if not fn_puede_registrar_compras() then',
-    'if not retail.fn_es_lider() then -- 20260923110000: gastos no es de Compras; abrir Compras a un rol no abre gastos',
+    'if not retail.fn_es_lider() then -- 20260923130000: gastos no es de Compras; abrir Compras a un rol no abre gastos',
     1, true);
 end $$;
 
 comment on function retail.fn_puede_registrar_compras() is
-  'Líder, o un rol que ve Facturas de compra, Por pagar o Notas de crédito (ADR-0161, 20260923110000; antes solo líder). Registrar y anular facturas, pagos, notas de crédito, reembolsos, adjuntos y reparto.';
+  'Líder, o un rol que ve Facturas de compra, Por pagar o Notas de crédito (ADR-0161, 20260923130000; antes solo líder). Registrar y anular facturas, pagos, notas de crédito, reembolsos, adjuntos y reparto.';
 comment on function retail.fn_puede_ver_dinero_de_compras() is
-  'ADR-0126 D1, cambiada por ADR-0161 (20260923110000): líder, o un rol que ve Facturas de compra, Por pagar o Notas de crédito. La regla del dinero de Compras vive SOLO aquí.';
+  'ADR-0126 D1, cambiada por ADR-0161 (20260923130000): líder, o un rol que ve Facturas de compra, Por pagar o Notas de crédito. La regla del dinero de Compras vive SOLO aquí.';
 
 -- ==================== 3. Etiquetas: con el módulo, lo que no lleva descuento ====================
 do $$
@@ -261,7 +261,7 @@ begin
     1);
   perform pg_temp.reemplazar_vivo('retail.etiquetar_variantes(jsonb)',
     'if coalesce(array_length(v_agregar, 1), 0) > 0 then',
-    $v$-- ADR-0161 (20260923110000): poner o quitar una etiqueta CON descuento cambia el precio en caja: solo el líder.
+    $v$-- ADR-0161 (20260923130000): poner o quitar una etiqueta CON descuento cambia el precio en caja: solo el líder.
     if not retail.fn_puede_tocar_etiqueta(v_etiqueta_id) then
       raise exception 'Solo un líder puede poner o quitar una etiqueta con descuento.' using errcode = '42501';
     end if;
@@ -278,7 +278,7 @@ begin
     1);
   perform pg_temp.reemplazar_vivo('retail.actualizar_variantes_etiquetas(jsonb)',
     'delete from retail.variante_etiquetas where variante_id = v_variante_id;',
-    $v$-- ADR-0161 (20260923110000): lo que CAMBIA (se pone o se quita) no puede ser una etiqueta con descuento, salvo el líder.
+    $v$-- ADR-0161 (20260923130000): lo que CAMBIA (se pone o se quita) no puede ser una etiqueta con descuento, salvo el líder.
     if not coalesce(retail.fn_puede_dar_descuento_por_etiqueta(), false) and exists (
       select 1 from retail.etiquetas e
        where e.descuento_pct is not null
@@ -314,7 +314,7 @@ create policy etiquetas_update on retail.etiquetas for update
   with check (retail.fn_puede_dar_descuento_por_etiqueta() or (retail.fn_puede_editar_etiquetas() and descuento_pct is null));
 
 comment on policy etiquetas_update on retail.etiquetas is
-  'ADR-0161 (20260923110000): el líder edita cualquier etiqueta; un rol con Etiquetas, solo las que no tienen descuento (y no puede ponerles uno). Reemplaza a etiquetas_update_lider.';
+  'ADR-0161 (20260923130000): el líder edita cualquier etiqueta; un rol con Etiquetas, solo las que no tienen descuento (y no puede ponerles uno). Reemplaza a etiquetas_update_lider.';
 
 -- ==================== 4. Análisis ====================
 do $$

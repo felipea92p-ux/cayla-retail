@@ -16,7 +16,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   const { tipo: tipoParam } = await searchParams;
   // Mismo orden que las pestañas de `AtributosHub`; la primera es la que abre por defecto.
   const TIPOS = ["etiquetas", "colores", "tallas", "tejidos", "patrones"] as const;
-  // Un rol con Etiquetas y sin Categorías/atributos (20260923110000) ve SOLO la pestaña de etiquetas; uno con Categorías/
+  // Un rol con Etiquetas y sin Categorías/atributos (20260923130000) ve SOLO la pestaña de etiquetas; uno con Categorías/
   // atributos y sin Etiquetas, las otras cuatro. El líder, todas.
   const veEtiquetas = veModulo(persona, "etiquetas");
   const veAtributos = veModulo(persona, "atributos");

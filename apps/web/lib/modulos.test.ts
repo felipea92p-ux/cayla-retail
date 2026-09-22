@@ -35,8 +35,8 @@ const SIEMBRA_DE_ROLES = new Set(["20260923030000_roles_por_modulo.sql", "202609
 
 describe("el catálogo de la web es el de la base", () => {
   // Las altas (`insert into retail.modulos`) y, en el orden de las migraciones, los cambios posteriores de «solo del líder»
-  // y «se puede delegar» (`update retail.modulos set [solo_lider = …,] delegable = … where clave in (…)`, 20260923110000 y
-  // 20260923111000).
+  // y «se puede delegar» (`update retail.modulos set [solo_lider = …,] delegable = … where clave in (…)`, 20260923130000 y
+  // 20260923131000).
   const porClave = new Map<string, { clave: string; orden: number; soloLider: boolean; delegable: boolean }>();
   for (const { sql } of TODAS) {
     for (const ins of sql.matchAll(/insert into retail\.modulos\b[\s\S]*?\)\s*(?:on conflict[^;]*)?;[ \t]*$/gim)) {
@@ -68,7 +68,7 @@ describe("el catálogo de la web es el de la base", () => {
     }
   });
 
-  it("hoy ningún módulo es «siempre solo del líder» ni «solo líder por ahora» (Felipe, 2026-09-22: 20260923110000 y 20260923111000)", () => {
+  it("hoy ningún módulo es «siempre solo del líder» ni «solo líder por ahora» (Felipe, 2026-09-22: 20260923130000 y 20260923131000)", () => {
     expect(MODULOS.filter((m) => m.soloLider || m.noDelegable).map((m) => m.clave)).toEqual([]);
   });
 
@@ -183,7 +183,7 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     expect(con("vender", "historial", "movimientos", "recibir")).toEqual([]);
   });
 
-  it("los módulos abiertos el 2026-09-22 dan su permiso (20260923110000), y ninguno da `verDinero` (el dinero del Taller)", () => {
+  it("los módulos abiertos el 2026-09-22 dan su permiso (20260923130000), y ninguno da `verDinero` (el dinero del Taller)", () => {
     const con = (...cs: ClaveModulo[]) => permisosDeModulos("integrante", cs.map((clave) => ({ clave, completo: true })));
     expect(con("facturas_compra")).toEqual(["verDineroCompras"]);
     expect(con("por_pagar")).toEqual(["verDineroCompras"]);

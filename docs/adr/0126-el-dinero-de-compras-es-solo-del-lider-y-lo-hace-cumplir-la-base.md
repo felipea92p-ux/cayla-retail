@@ -13,7 +13,7 @@
   «líder o `fn_capacidad_por_modulos(['facturas_compra','por_pagar','notas_credito'])`», las 5 tablas, el bucket y las 5
   funciones la siguen usando, y el mensaje de `fn_exige_dinero_de_compras` dice ahora «Solo un líder o un rol con Facturas
   de compra, Por pagar o Notas de crédito puede ver …». También `fn_puede_ver_compra` (todas las sedes para quien ve el
-  dinero) y los montos por proveedor (`fn_proveedores` y afines). Migración `20260923110000_abrir_modulos_a_los_roles.sql`
+  dinero) y los montos por proveedor (`fn_proveedores` y afines). Migración `20260923130000_abrir_modulos_a_los_roles.sql`
   (sin pegar en producción al escribir esto). El título de este ADR describe la regla de 2026-09-19.
 
 ## Contexto — el problema

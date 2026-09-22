@@ -51,7 +51,7 @@ const PLANTILLA = "sm:grid-cols-[8rem_1fr_7.5rem_10.75rem_11rem_7.25rem_1rem]";
 const PARAMS_DE_VISTA = ["saldo", "porrecibir", "vencidas", "pago"];
 
 export default async function ComprasPage({ searchParams }: { searchParams: Promise<ParamsCompras> }) {
-  await exigirModulo("facturas_compra"); // 20260923110000: la lista de facturas es del módulo Facturas de compra
+  await exigirModulo("facturas_compra"); // 20260923130000: la lista de facturas es del módulo Facturas de compra
   const params = await searchParams;
   const filtros = filtrosDesdeParams(params);
   const cursor = leerCursor(params.cursor);
