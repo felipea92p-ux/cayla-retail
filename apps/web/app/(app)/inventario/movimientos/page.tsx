@@ -15,6 +15,8 @@ import {
   type ResumenMovimientos,
 } from "@/lib/movimientos-v2";
 import { SelectorUbicacion } from "@/components/SelectorUbicacion";
+import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { FiltrosMovimientos } from "@/components/FiltrosMovimientos";
 import { MovimientosLista } from "@/components/MovimientosLista";
 import { PaginacionCursor } from "@/components/Paginacion";
@@ -64,23 +66,19 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Inventario · Movimientos</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">{ubicacionActiva?.nombre ?? "—"}</h1>
-          <p className="mt-1 text-sm text-tinta/65">
-            Qué cambió en el stock de esta sede, el proceso que lo originó y de dónde a dónde. No se edita ni se borra nunca.
-          </p>
-        </div>
-        {esLider && <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} />}
-      </div>
+      <CabeceraPantalla
+        sobretitulo="Inventario · Movimientos"
+        titulo={ubicacionActiva?.nombre ?? "—"}
+        bajada="Qué cambió en el stock de esta sede, el proceso que lo originó y de dónde a dónde. No se edita ni se borra nunca."
+        acciones={esLider ? <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} /> : undefined}
+      />
 
       <Resumen resumen={resumen} periodo={periodoEnPalabras} />
 
       <FiltrosMovimientos sububicaciones={sububicaciones} sub={sub} periodo={periodo} desde={filtros.desde ?? ""} hasta={filtros.hasta ?? ""} />
 
       {filas.length === 0 && !cursor ? (
-        <p className="card-cayla p-5 text-sm text-tinta/75">
+        <p className="card-cayla p-5 text-sm text-taupe">
           {hayFiltros ? "Ningún movimiento coincide con esos filtros." : "Todavía no hay movimientos en esta ubicación."}
         </p>
       ) : (
@@ -97,8 +95,8 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
         sustantivo={["movimiento", "movimientos"]}
       />
 
-      <p className="card-cayla px-5 py-3 text-xs text-tinta/65">
-        <span className="text-tinta">Registro transparente:</span> cada movimiento queda con quién lo hizo, a qué hora y contra qué documento (boleta, factura
+      <p className="nota-cayla">
+        <b>Registro transparente:</b> cada movimiento queda con quién lo hizo, a qué hora y contra qué documento (boleta, factura
         del proveedor, traslado, conteo). No se edita ni se borra nunca — se corrige con otro movimiento, y los dos quedan.
       </p>
     </div>
@@ -135,7 +133,7 @@ function Resumen({ resumen, periodo }: { resumen: ResumenMovimientos; periodo: s
         etiqueta={`${ETIQUETA_CATEGORIA.entrada}s`}
         valor={resumen.entrada.movimientos === 0 ? "—" : `+${n(resumen.entrada.unidades)}`}
         unidad="unidades"
-        tono={resumen.entrada.movimientos > 0 ? "text-verde-profundo" : undefined}
+        tono={resumen.entrada.movimientos > 0 ? "text-verde" : undefined}
       >
         {resumen.entrada.movimientos === 0
           ? "Nada entró en el período"
@@ -152,15 +150,11 @@ function Resumen({ resumen, periodo }: { resumen: ResumenMovimientos; periodo: s
   );
 }
 
+// La tarjeta del sistema (`ui/TarjetaCifra`): antes era una copia local con la misma receta.
 function Tarjeta({ etiqueta, valor, unidad, tono, children }: { etiqueta: string; valor: string; unidad: string; tono?: string; children: React.ReactNode }) {
   return (
-    <div className="card-cayla p-5">
-      <p className="label-cayla text-[11px] text-tinta/65">{etiqueta}</p>
-      <p className="mt-1 flex items-baseline gap-2">
-        <span className={`font-display text-3xl tabular-nums ${tono ?? "text-tinta"}`}>{valor}</span>
-        <span className="text-sm text-tinta/55">{unidad}</span>
-      </p>
-      <p className="mt-1 text-xs text-tinta/65">{children}</p>
-    </div>
+    <TarjetaCifra etiqueta={etiqueta} valor={valor} unidad={unidad} tono={tono}>
+      {children}
+    </TarjetaCifra>
   );
 }

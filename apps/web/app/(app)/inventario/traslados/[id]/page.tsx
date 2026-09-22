@@ -14,7 +14,7 @@ export default async function TrasladoDetallePage({ params }: { params: Promise<
   return (
     <div className="space-y-6">
       <div>
-        <p className="label-cayla text-[11px] text-tinta/65">
+        <p className="label-cayla text-[11px] text-taupe">
           <Link href="/inventario/traslados" className="hover:text-rojo">
             Traslados
           </Link>{" "}
@@ -22,8 +22,8 @@ export default async function TrasladoDetallePage({ params }: { params: Promise<
         </p>
         <h1 className="font-display mt-1 text-2xl text-tinta">
           Traslado {traslado.numero}
-          <span className="text-tinta/55"> · </span>
-          {traslado.ubicacionOrigenNombre} <span className="text-tinta/55">→</span> {traslado.ubicacionDestinoNombre}
+          <span className="text-taupe"> · </span>
+          {traslado.ubicacionOrigenNombre} <span className="text-taupe">→</span> {traslado.ubicacionDestinoNombre}
         </h1>
       </div>
       <TrasladoDetallePanel

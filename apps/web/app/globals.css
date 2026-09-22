@@ -21,18 +21,25 @@
   /* Paleta secundaria — solo jerarquía interna, jamás decoración */
   --color-rojo-profundo: #8b2a1f;
   --color-sand: #e8e0d0;        /* Bordes y recuadros neutrales (la "línea" del sistema) */
-  --color-taupe: #a47865;
-  --color-papel: #fbf6ec;       /* Blanco cálido para tarjetas sobre crema. 2026-09-18: el #fbf8f2 anterior
-                                   se leía como blanco puro (Felipe); este sube el amarillo, sigue más claro
-                                   que el crema — el contraste de texto medido en ADR-0012 no baja. */
+  /* 2026-09-22 — PALETA OFICIAL «CAYLA Dynamic» (ADR-0169, decisión de Felipe): taupe, papel, verde y
+     ámbar toman el valor de la guía de estilo oficial, la misma que usa CAYLA Dynamic. Los cuatro ya
+     existían; lo que cambia es el tono, así que ninguna pantalla se toca para heredarlo. */
+  --color-taupe: #805c4c;       /* Texto secundario y borde de control interactivo. Antes #a47865, que
+                                   reprobaba AA como texto (3.39:1): el oficial es el que ya era
+                                   `taupe-profundo`, así que ahora taupe sirve para las dos cosas. */
+  --color-papel: #fbf8f2;       /* Superficie elevada — tarjetas, tablas, modales — sin sombra. El 2026-09-18
+                                   se había subido a #fbf6ec porque este «se leía como blanco puro»; el
+                                   2026-09-22 Felipe eligió la paleta oficial completa, este incluido. */
+  --color-hueso: #eae1d2;       /* Superficie HUNDIDA: inputs en caja y la zebra de las tablas. */
+  --color-pizarra: #4c5d6e;     /* Estado informativo — programado, en revisión, en camino. No es semáforo. */
   --color-tinta-60: #5b544c;    /* Texto secundario cálido */
 
   /* Semánticos (semáforo): separados del acento, jamás decoración */
   /* Oscurecidos el 2026-09-08: el ámbar daba 3.07:1 sobre crema y el verde
      4.21:1 — los dos reprobaban AA (mínimo 4.5). Ahora dan 4.72 y 4.99. Mismo
      lugar en el semáforo, solo con cuerpo suficiente para leerse. */
-  --color-verde: #556e49;       /* Va bien / hecho — 4.99:1 sobre crema */
-  --color-ambar: #8c631f;       /* Al filo / en proceso — 4.72:1 sobre crema */
+  --color-verde: #48603f;       /* Va bien / hecho — oficial 2026-09-22 (antes #556e49, 4.99:1); más oscuro, sube el contraste */
+  --color-ambar: #74501a;       /* Al filo / en proceso — oficial 2026-09-22 (antes #8c631f, 4.72:1); más oscuro, sube el contraste */
 
   /* Versiones profundas, SOLO para texto sobre su propio tinte (los chips de
      estado). Un chip pinta el fondo con el mismo color al 10%, y eso le come
@@ -101,7 +108,7 @@
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
-  --radius-2xl: 22px;
+  --radius-2xl: 20px;           /* «flotante» de la guía oficial (2026-09-22): modal, drawer, buscador. Antes 22. */
 
   /* Ancho del lateral — UNA sola fuente de verdad. El <aside>, la cabecera
      fija y el <main> leen el mismo token (`w-lateral`, `left-lateral`,
@@ -243,7 +250,9 @@ body {
   /* Título/cifra en serif — "el alma del sistema" */
   .font-display {
     font-family: var(--font-serif);
-    font-weight: 400;
+    /* 600 desde la paleta oficial (2026-09-22): los títulos, un monto, un nombre. En 400 la Garamond
+       se veía frágil al lado del DM Sans de 600 de las etiquetas. */
+    font-weight: 600;
     letter-spacing: -0.005em;
   }
 
@@ -256,6 +265,157 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.13em;
     font-weight: 600;
+  }
+
+  /* ---------------- Guía oficial «CAYLA Dynamic» (2026-09-22, ADR-0169) ----------------
+     Las piezas que la guía nombra y que antes cada pantalla escribía a mano con utilidades
+     sueltas. Nada de sombras ni gradientes: la línea fina de sand es el único adorno. */
+
+  /* El sobretítulo de una pantalla («INVENTARIO · EXISTENCIAS»): en rojo, el único rojo de la
+     cabecera. Cuenta dentro del máximo de 2 rojos por pantalla. */
+  .eyebrow-cayla {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-rojo);
+  }
+
+  /* Botón — cinco variantes, todas con el radio de control (8 px). El primario es el único
+     relleno; su hover pasa a rojo profundo, nunca al rojo de marca. */
+  .btn-cayla {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    padding: 0.5rem 1rem;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.25;
+    white-space: nowrap;
+    transition: background-color 150ms, border-color 150ms, color 150ms;
+  }
+  .btn-cayla:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  .btn-chico {
+    padding: 0.3125rem 0.75rem;
+    font-size: 12.5px;
+  }
+  .btn-primario {
+    background: var(--color-tinta);
+    color: var(--color-crema);
+  }
+  .btn-primario:hover:not(:disabled) {
+    background: var(--color-rojo-profundo);
+  }
+  .btn-secundario {
+    background: transparent;
+    color: var(--color-tinta);
+    border-color: var(--color-sand);
+  }
+  .btn-secundario:hover:not(:disabled) {
+    border-color: color-mix(in oklab, var(--color-taupe) 40%, transparent);
+    background: color-mix(in oklab, var(--color-sand) 50%, transparent);
+  }
+  .btn-peligro {
+    background: transparent;
+    color: var(--color-rojo);
+    border-color: color-mix(in oklab, var(--color-rojo) 30%, transparent);
+  }
+  .btn-peligro:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--color-rojo) 10%, transparent);
+  }
+  .btn-sutil {
+    background: transparent;
+    color: var(--color-taupe);
+    border-color: var(--color-sand);
+  }
+  .btn-sutil:hover:not(:disabled) {
+    color: var(--color-tinta);
+    background: color-mix(in oklab, var(--color-sand) 30%, transparent);
+  }
+  .btn-enlace {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--color-tinta);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .btn-enlace:hover:not(:disabled) {
+    color: var(--color-taupe);
+  }
+
+  /* Píldora de filtro (Todos · Entradas · Salidas…): la activa se rellena de tinta. */
+  .pildora-cayla {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-sand);
+    padding: 0.3125rem 0.875rem;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-taupe);
+    white-space: nowrap;
+    transition: background-color 150ms, border-color 150ms, color 150ms;
+  }
+  .pildora-cayla:hover {
+    color: var(--color-tinta);
+    background: color-mix(in oklab, var(--color-sand) 40%, transparent);
+  }
+  .pildora-cayla[aria-pressed="true"],
+  .pildora-cayla[aria-current="page"],
+  .pildora-cayla[data-activa="true"] {
+    background: var(--color-tinta);
+    border-color: var(--color-tinta);
+    color: var(--color-crema);
+  }
+
+  /* Caja de control hundida (input, select, buscador): hueso, borde sand, radio de control. */
+  .caja-cayla {
+    background: var(--color-hueso);
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-md);
+    transition: border-color 150ms;
+  }
+  .caja-cayla:focus-within {
+    border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+  }
+
+  /* La nota al pie de una pantalla («Registro transparente: …»): explica una regla del negocio,
+     no un error. Superficie hundida, sin borde. */
+  .nota-cayla {
+    background: color-mix(in oklab, var(--color-hueso) 85%, transparent);
+    border-radius: var(--radius-xl);
+    padding: 0.875rem 1.125rem;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--color-taupe);
+  }
+  .nota-cayla b,
+  .nota-cayla strong {
+    color: var(--color-tinta);
+    font-weight: 600;
+  }
+
+  /* Tabla oficial: la cabecera en sand y la zebra en hueso. La zebra cuenta SOLO las filas de datos
+     (`:nth-child(… of .fila-cayla)`): el encabezado y el pie no desplazan el rayado. */
+  .encabezado-tabla-cayla {
+    background: color-mix(in oklab, var(--color-sand) 70%, transparent);
+  }
+  .fila-cayla {
+    transition: background-color 150ms;
+  }
+  .fila-cayla:nth-child(even of .fila-cayla) {
+    background: color-mix(in oklab, var(--color-hueso) 50%, transparent);
+  }
+  .fila-cayla:hover {
+    background: color-mix(in oklab, var(--color-crema) 60%, transparent);
   }
 }
 
@@ -775,7 +935,10 @@ body {
 }
 @layer components {
   /* Móvil: la hoja sube desde el borde (misma que siempre). Escritorio: sube 18 px y crece. */
-  .anim-modal-entra { animation: cayla-hoja 380ms var(--ease-cayla) both; }
+  /* `backwards` y no `both` (2026-09-22): terminada la entrada la hoja vuelve a su estilo natural, que es el mismo
+     cuadro final. Con `both` la animación seguía «sosteniendo» el transform y Chrome trataba la hoja como contenedor
+     de todo `position: fixed` de adentro: la lista de un desplegable (usePosicionLista) quedaba otra vez recortada. */
+  .anim-modal-entra { animation: cayla-hoja 380ms var(--ease-cayla) backwards; }
   .anim-modal-sale { animation: cayla-hoja-salida 220ms var(--ease-salida) both; }
   @media (min-width: 640px) {
     .anim-modal-entra { animation-name: cayla-modal-entra; animation-duration: 420ms; }
