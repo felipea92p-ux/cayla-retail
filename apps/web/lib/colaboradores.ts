@@ -44,7 +44,18 @@ export type ColaboradorInactivo = {
   suspendida: boolean;
 };
 
-export type AccionAcceso = "alta" | "baja" | "suspension" | "reactivacion" | "ubicacion";
+export type ColaboradorPendiente = {
+  persona_id: string;
+  nombre: string;
+  correo: string;
+  sede: string | null;
+  ubicacion_asignada: string | null;
+  /** Quién propuso el alta (D-70: no es la misma persona que la aprueba necesariamente). */
+  propuesto_por: string | null;
+  propuesto_en: string;
+};
+
+export type AccionAcceso = "alta" | "baja" | "suspension" | "reactivacion" | "ubicacion" | "aprobacion";
 
 export type EventoAcceso = {
   id: number;
@@ -72,6 +83,12 @@ export async function getColaboradores(): Promise<Colaborador[]> {
   const supabase = await createClient();
   const res = await supabase.rpc("fn_colaboradores");
   return exigir(res, "los colaboradores") as unknown as Colaborador[];
+}
+
+export async function getColaboradoresPendientes(): Promise<ColaboradorPendiente[]> {
+  const supabase = await createClient();
+  const res = await supabase.rpc("fn_colaboradores_pendientes");
+  return exigir(res, "las altas pendientes de aprobación") as unknown as ColaboradorPendiente[];
 }
 
 export async function getColaboradoresSuspendidos(): Promise<ColaboradorSuspendido[]> {

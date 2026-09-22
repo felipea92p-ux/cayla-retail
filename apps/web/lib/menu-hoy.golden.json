@@ -388,10 +388,17 @@
               { "etiqueta": "Resumen", "href": "/produccion", "icono": "resumen" },
               { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
               { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
-              { "etiqueta": "Proveedores", "href": "/produccion/proveedores", "icono": "proveedores" },
-              { "etiqueta": "Comprobantes", "href": "/produccion/comprobantes", "icono": "facturas" },
-              { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" },
-              { "etiqueta": "Por pagar", "href": "/produccion/por-pagar", "icono": "porPagar" }
+              {
+                "grupo": "produccion.abastecimiento",
+                "etiqueta": "Abastecimiento",
+                "icono": "compras",
+                "hijos": [
+                  { "etiqueta": "Proveedores", "href": "/produccion/proveedores", "icono": "proveedores" },
+                  { "etiqueta": "Comprobantes", "href": "/produccion/comprobantes", "icono": "facturas" },
+                  { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" },
+                  { "etiqueta": "Por pagar", "href": "/produccion/por-pagar", "icono": "porPagar" }
+                ]
+              }
             ]
           },
           {
@@ -450,10 +457,17 @@
               { "etiqueta": "Resumen", "href": "/produccion", "icono": "resumen" },
               { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
               { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
-              { "etiqueta": "Proveedores", "href": "/produccion/proveedores", "icono": "proveedores" },
-              { "etiqueta": "Comprobantes", "href": "/produccion/comprobantes", "icono": "facturas" },
-              { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" },
-              { "etiqueta": "Por pagar", "href": "/produccion/por-pagar", "icono": "porPagar" }
+              {
+                "grupo": "produccion.abastecimiento",
+                "etiqueta": "Abastecimiento",
+                "icono": "compras",
+                "hijos": [
+                  { "etiqueta": "Proveedores", "href": "/produccion/proveedores", "icono": "proveedores" },
+                  { "etiqueta": "Comprobantes", "href": "/produccion/comprobantes", "icono": "facturas" },
+                  { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" },
+                  { "etiqueta": "Por pagar", "href": "/produccion/por-pagar", "icono": "porPagar" }
+                ]
+              }
             ]
           },
           {
