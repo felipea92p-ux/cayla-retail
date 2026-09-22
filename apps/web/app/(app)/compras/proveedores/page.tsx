@@ -1,4 +1,4 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { exigirModulo } from "@/lib/persona-actual";
 import { getMarcasPorProveedor, getProveedores, getProveedoresResumen, getProveedoresSerie } from "@/lib/proveedores";
 import { ProveedoresPanel } from "@/components/ProveedoresPanel";
 
@@ -23,7 +23,10 @@ import { ProveedoresPanel } from "@/components/ProveedoresPanel";
 // (tablas `marcas` y `marca_proveedores`, sin migración) para buscar por ellas y verlas en cada fila; es opcional
 // igual que la serie: si falla, la lista se pinta sin marcas.
 export default async function ProveedoresPage() {
-  const persona = await requirePersonaActualV2();
+  // La puerta del módulo Proveedores (además de ver los montos, que pide el layout de /compras). Lo financiero, el detalle
+  // y la edición siguen siendo del líder aquí: las RPC de escribir un proveedor todavía exigen fn_es_lider (módulo
+  // Proveedores, fuera del alcance de 20260923110000).
+  const persona = await exigirModulo("proveedores");
   const esLider = persona.rol === "lider";
   const [proveedores, resumen, series, marcas] = await Promise.all([getProveedores(), esLider ? getProveedoresResumen() : null, esLider ? getProveedoresSerie() : null, getMarcasPorProveedor()]);
 

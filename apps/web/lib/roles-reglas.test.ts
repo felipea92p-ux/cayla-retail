@@ -39,11 +39,12 @@ describe("controles del editor", () => {
     }
   });
 
-  it("Colaboradores y Roles salen con candado «Solo líder»; lo aún no delegable, «Solo líder por ahora»", () => {
-    expect(controlDe(INTEGRANTE, modulo("roles"))).toEqual({ tipo: "candado", texto: "Solo líder" });
-    expect(controlDe(INTEGRANTE, modulo("colaboradores"))).toEqual({ tipo: "candado", texto: "Solo líder" });
-    expect(controlDe(INTEGRANTE, modulo("analisis"))).toEqual({ tipo: "candado", texto: "Solo líder por ahora" });
-    expect(controlDe(INTEGRANTE, modulo("caja"))).toEqual({ tipo: "interruptor", editable: true });
+  it("hoy todo módulo sale con interruptor (Felipe, 2026-09-22: se abrieron los 7 que tenían candado); el candado sigue para uno que nazca así", () => {
+    for (const clave of ["roles", "colaboradores", "analisis", "etiquetas", "facturas_compra", "por_pagar", "notas_credito", "caja"] as const) {
+      expect(controlDe(INTEGRANTE, modulo(clave)), clave).toEqual({ tipo: "interruptor", editable: true });
+    }
+    expect(controlDe(INTEGRANTE, { ...modulo("caja"), soloLider: true })).toEqual({ tipo: "candado", texto: "Solo líder" });
+    expect(controlDe(INTEGRANTE, { ...modulo("caja"), noDelegable: true })).toEqual({ tipo: "candado", texto: "Solo líder por ahora" });
   });
 
   it("un rol archivado no se edita", () => {
@@ -53,8 +54,9 @@ describe("controles del editor", () => {
   it("alternar enciende y apaga, en el orden del catálogo, y nunca deja entrar lo que no se delega", () => {
     expect(alternarModulo(["movimientos"], "vender")).toEqual(["vender", "movimientos"]);
     expect(alternarModulo(["vender", "movimientos"], "vender")).toEqual(["movimientos"]);
-    expect(alternarModulo([], "roles")).toEqual([]);
-    expect(alternarModulo([], "por_pagar")).toEqual([]);
+    // Desde 20260923110000/20260923111000 se delegan: entran como cualquier otro.
+    expect(alternarModulo([], "roles")).toEqual(["roles"]);
+    expect(alternarModulo(["vender"], "por_pagar")).toEqual(["vender", "por_pagar"]);
   });
 
   it("hay cambios solo si el conjunto difiere", () => {

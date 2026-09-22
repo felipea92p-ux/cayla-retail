@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor } from "@/lib/proveedores";
 import { listarCompras, ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras";
@@ -22,9 +22,9 @@ import { SaldoFavorProveedor } from "@/components/SaldoFavorProveedor";
 // (vía insumo_lotes), en secciones separadas — nunca sumadas en un solo total, son negocios distintos
 // aunque compartan la misma ficha (20260917230000_proveedor_metricas_compras_e_insumos.sql).
 //
-// Toda esta pantalla es solo de líder: `app/(app)/compras/layout.tsx` (2026-09-16) redirige a "/" a
-// cualquier colaborador para las pantallas de Compras, ésta incluida; no hace falta (ni conviene)
-// repetir ese chequeo acá. Lo que sí protege la base: `fn_proveedor_metricas_compras` y las demás
+// Toda esta pantalla es solo de líder. Hasta el 2026-09-22 lo cuidaba el layout de /compras; desde 20260923110000 ese
+// layout deja entrar a quien ve los montos de Compras (un rol con Facturas de compra, Por pagar o Notas de crédito), y esta
+// ficha mezcla los insumos del TALLER (`fn_proveedor_metricas_insumos`, solo líder): por eso el chequeo vuelve acá. Lo que sí protege la base: `fn_proveedor_metricas_compras` y las demás
 // funciones de esta ficha rechazan a quien no sea líder DENTRO de la base, así que aunque alguien las
 // llame directo por API sigue sin poder ver el dato.
 //
@@ -32,7 +32,8 @@ import { SaldoFavorProveedor } from "@/components/SaldoFavorProveedor";
 // que cada promedio dice en cuántos comprobantes se basa, y el plazo de pago real espera a tener al
 // menos dos comprobantes pagados por completo en lugar de mostrar un número engañoso.
 export default async function ProveedorPage({ params }: { params: Promise<{ id: string }> }) {
-  await requirePersonaActualV2();
+  const persona = await requirePersonaActualV2();
+  if (persona.rol !== "lider") redirect("/compras/proveedores");
   const { id } = await params;
 
   const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa] = await Promise.all([

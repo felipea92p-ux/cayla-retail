@@ -63,7 +63,11 @@ function Campo({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   );
 }
 
-export function PerfilModal({ onClose }: { onClose: () => void }) {
+export function PerfilModal({ onClose, veAdministracion = false }: {
+  onClose: () => void;
+  /** ¿Su rol ve Colaboradores o Roles y accesos? (20260923111000: ya no son solo del líder). El líder, siempre. */
+  veAdministracion?: boolean;
+}) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [perfil, setPerfil] = useState<MiPerfil | null>(null);
@@ -225,9 +229,9 @@ export function PerfilModal({ onClose }: { onClose: () => void }) {
               </div>
             </div>
 
-            {/* Quién puede entrar a retail. Solo líder: la pantalla y la RPC lo vuelven a exigir,
-                esto solo decide si se ofrece la puerta. */}
-            {perfil.rol === "lider" && (
+            {/* Quién puede entrar a retail: el líder, o quien ve Colaboradores o Roles y accesos. La pantalla y cada RPC lo
+                vuelven a exigir; esto solo decide si se ofrece la puerta. */}
+            {(perfil.rol === "lider" || veAdministracion) && (
               <div>
                 <p className="label-cayla mb-3 text-[11px] text-tinta/65">Administración</p>
                 <Link

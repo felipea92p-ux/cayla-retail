@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { exigirModulo, puede } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getComparacionInventario, getDesempenoInventario } from "@/lib/resumen-inventario";
 import { pideComparacion } from "@/lib/resumen-comparacion";
@@ -13,8 +13,9 @@ import { ResumenDesempenoPanel } from "@/components/ResumenDesempenoPanel";
 //   · Análisis › Desempeño  «¿cómo se comportó mi inventario durante el período?»
 //   · Análisis › Comparar   «¿qué cambió entre dos períodos?» (`?modo=comparar`)
 // Esta pantalla NO mezcla el stock de hoy con métricas del período. La ruta sigue siendo
-// `/inventario/resumen` (renombrar la URL rompería enlaces y marcadores por nada). Solo Líder (es la
-// pregunta de quien decide reposición, liquidación y traslados; mismo criterio que Compras).
+// `/inventario/resumen` (renombrar la URL rompería enlaces y marcadores por nada). Es del módulo Análisis: hasta el
+// 2026-09-22 solo del líder; desde 20260923110000, de quien lo tenga en su rol (`fn_puede_analizar`), para SU sede —
+// quien no es líder no cambia de sede, así que analiza la suya.
 //
 // La sede es SIEMPRE la que el líder eligió en el selector global del ERP
 // (`persona.ubicacionId`): la pantalla no tiene selector propio. Uno duplicado
@@ -28,8 +29,8 @@ export default async function ResumenInventarioPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") redirect("/inventario");
+  const persona = await exigirModulo("analisis");
+  if (!puede(persona, "analizar")) redirect("/inventario"); // lo ve pero su rol está limitado: sin las lecturas del módulo
 
   const params = await searchParams;
   const ubicaciones = await getUbicaciones();

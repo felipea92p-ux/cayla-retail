@@ -1,4 +1,4 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { exigirModulo } from "@/lib/persona-actual";
 import { getFacturasParaNota, getTableroNotasCredito } from "@/lib/notas-credito";
 import { hoyLima } from "@/lib/fechas-lima";
 import { NotasCreditoPanel } from "@/components/NotasCreditoPanel";
@@ -21,7 +21,7 @@ import { NotasCreditoPanel } from "@/components/NotasCreditoPanel";
 // una llamada y son decenas de filas, así que filtrar, agrupar y buscar se resuelven sin ir al
 // servidor — que es lo que permite que las filas se deslicen en vez de redibujarse.
 export default async function NotasCreditoPage() {
-  await requirePersonaActualV2();
+  await exigirModulo("notas_credito"); // 20260923110000: la puerta del módulo Notas de crédito
   const [tablero, facturas] = await Promise.all([getTableroNotasCredito(), getFacturasParaNota()]);
 
   return (

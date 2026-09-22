@@ -29,7 +29,8 @@ import {
 
 // «Roles y accesos» (ADR-0161 B; spike aprobado `docs/maquetas/responsable-y-roles-spike-2026-09/`, pantalla 1). Cada rol
 // decide SOLO qué módulos ve; quien ve un módulo hace todo lo que hay en él, salvo la lista fija «siempre solo del líder».
-// Solo el Líder no se edita. Todo lo que se escribe pasa por RPC solo del líder, que además anota `roles_historial`.
+// Solo el Líder no se edita. Todo lo que se escribe pasa por RPC (del líder o de quien ve Roles y accesos, 20260923111000),
+// que además anota `roles_historial`.
 
 type Modal =
   | { tipo: "nuevo" }
@@ -123,8 +124,8 @@ export function RolesPanel({
   return (
     <div className="@container space-y-6">
       <p className="max-w-3xl text-sm leading-relaxed text-tinta/70">
-        Qué módulos ve cada cuenta, persona o terminal. Quien ve un módulo hace todo lo que hay en él, salvo lo que es siempre solo del líder. Solo un líder de
-        equipo cambia esto; el rol de cada cuenta se cambia desde su fila en Activos o Terminales.
+        Qué módulos ve cada cuenta, persona o terminal. Quien ve un módulo hace todo lo que hay en él, salvo lo que es siempre solo del líder. Lo cambia un
+        líder de equipo o quien tenga Roles y accesos en su rol; el rol de cada cuenta se cambia desde su fila en Activos o Terminales.
       </p>
 
       {/* Tres columnas por el ancho del CONTENEDOR, no de la ventana (con el lateral plegado o no, cuenta el espacio real):
