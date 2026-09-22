@@ -111,8 +111,9 @@ export function MarcasLista({
         {puedeEditar && <Boton onClick={() => setModo({ tipo: "nueva" })}>+ Nueva marca</Boton>}
       </div>
 
-      {/* Firma renombrar y desactivar/reactivar de esta lista (ADR-0161). */}
-      {puedeEditar && marcas.length > 0 && <ComboResponsable control={responsable} deshabilitado={trabajando !== null} className="max-w-sm" />}
+      {/* Firma renombrar y desactivar/reactivar de esta lista (ADR-0161). Mientras el formulario de alta está abierto, se
+          esconde: ese formulario trae su propio combo y dos «Responsable» a la vez confundían (prueba en navegador 2026-09-22). */}
+      {puedeEditar && marcas.length > 0 && modo?.tipo !== "nueva" && modo?.tipo !== "proveedor" && <ComboResponsable control={responsable} deshabilitado={trabajando !== null} className="max-w-sm" />}
 
       {modo?.tipo === "nueva" && (
         <NuevaMarcaForm proveedores={proveedores} nombreExistente={(n) => marcas.find((m) => m.nombre.toLowerCase() === n.toLowerCase())?.nombre} onGuardado={alGuardar} onCancelar={() => setModo(null)} />
