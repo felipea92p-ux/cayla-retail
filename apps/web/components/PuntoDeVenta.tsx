@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { MetodoPago } from "@cayla-retail/shared";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
+import { barrerColaSunat, enviarVentaASunat } from "@/lib/envio-sunat";
 import { avisar } from "@/components/ui/Avisos";
 import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
@@ -14,6 +15,7 @@ import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type EstadoComprobante, type Tip
 import {
   aplicarDescuento,
   aplicarDescuentoMonto,
+  atendioCorto,
   conCampanas,
   conCodigoDelCatalogo,
   descuentoResultante,
@@ -28,6 +30,8 @@ import {
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
   vueltoDe,
+  vendedoraDeLaVenta,
+  vendedoraPendiente,
   conDescuentoDeCampana,
   type CampanaLinea,
   type DetalleDescuento,
@@ -48,6 +52,7 @@ import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { armarRecibo, textoNumeroRecibo, type ReciboVenta } from "@/lib/recibo-reglas";
 import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
+import { useVendedorasDeTurno } from "@/lib/useVendedorasDeTurno";
 
 /**
  * "Cargo especial" (migración `..._cargo_especial_pos.sql`): variante centinela para
@@ -128,7 +133,15 @@ export type DescuentoForm = {
  *  para retomarlo tal cual — líneas (con su descuento adentro), nota y código. El
  *  formulario de % no: es un borrador, no parte del ticket. Vive en localStorage por
  *  sede (`lib/almacen-local.ts`), sin reservar stock. */
-export type TicketEnEspera = { id: string; creadoEn: string; carrito: ItemCarrito[]; nota: string; codigoDescuento: string };
+export type TicketEnEspera = {
+  id: string;
+  creadoEn: string;
+  carrito: ItemCarrito[];
+  nota: string;
+  codigoDescuento: string;
+  /** Quién atendía a la clienta. Un ticket guardado antes de la fila «Atendió» no lo trae. */
+  vendedoraId?: string | null;
+};
 
 /** Más de esto no es «en espera», es un mostrador desbordado: el sexto avisa. */
 const TOPE_ESPERA = 5;
@@ -221,6 +234,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // Nota del ticket («lo recoge el sábado»): parte del ticket, no del cobro — el ticket
   // en espera (paso siguiente) la guarda y la recupera con las líneas. No va al comprobante.
   const [nota, setNota] = useState("");
+  // Quién atendió a la clienta (la fila de chips del ticket). `null` = todavía no se tocó ninguna.
+  const [vendedoraElegida, setVendedoraElegida] = useState<string | null>(null);
+  // El modal «¿Quiénes atienden en caja?» (solo un líder llega a abrirlo).
+  // Quién atendió: las que marcaron entrada hoy en Dynamic, releídas cada minuto (ADR-0163). Ninguna = se vende
+  // como antes, a nombre de la sesión; una sola = es ella, sin tocar nada.
+  const { vendedoras, sinAsistencia: vendedorasSinAsistencia, noCargaron: vendedorasNoCargaron } = useVendedorasDeTurno(ubicacionId);
   // Tickets en espera de ESTA sede. Arranca vacío a propósito y se carga después de
   // montar (efecto más abajo): el servidor no tiene localStorage, y leerlo durante el
   // render dejaría el HTML del servidor distinto del primero del navegador (hidratación).
@@ -232,7 +251,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // que subiera (ADR-0036, addendum "por sede").
   const [cola, setCola] = useState<VentaEncolada[]>([]);
   const claveCola = claveLocal(ubicacionId, "cola");
-  const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura">>("boleta");
+  const [tipoComprobante, setTipoComprobante] = useState<Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">>("boleta");
   const [clienteNumDoc, setClienteNumDoc] = useState("");
   const [clienteNombre, setClienteNombre] = useState("");
   const [aviso, setAviso] = useState<string | null>(null);
@@ -361,8 +380,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
 
       const resueltos = new Map<string, VentaEncolada | null>();
       for (const venta of aReintentar) {
-        const { error } = await supabase.rpc("registrar_venta", venta.params);
-        if (!error) resueltos.set(venta.token, null);
+        const { data: ventaSubida, error } = await supabase.rpc("registrar_venta", venta.params);
+        if (!error) {
+          resueltos.set(venta.token, null);
+          if (ventaSubida) enviarVentaASunat(ventaSubida);
+        }
         else if (!esFalloDeRed(error)) resueltos.set(venta.token, { ...venta, rechazo: traducirError(error, "subir la venta guardada sin conexión") });
         // sigue siendo fallo de red: no se toca, se reintenta en el próximo latido
       }
@@ -609,6 +631,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     setCodigoDescuento("");
     setPagos([]);
     setDescuento(DESCUENTO_VACIO);
+    setVendedoraElegida(null);
     setMomento("armar");
   }
   function dejarEnEspera() {
@@ -618,7 +641,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       return;
     }
     capturarFlip();
-    persistirEspera([...enEspera, { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, codigoDescuento }]);
+    persistirEspera([...enEspera, { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, codigoDescuento, vendedoraId: vendedoraElegida }]);
     limpiarTicket();
     buscador.current?.focus();
   }
@@ -627,7 +650,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     if (!ticket) return;
     // Si el ticket actual tiene líneas, se intercambian: el actual ocupa el lugar del retomado.
     const actual: TicketEnEspera | null =
-      carrito.length > 0 ? { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, codigoDescuento } : null;
+      carrito.length > 0 ? { id: crypto.randomUUID(), creadoEn: new Date().toISOString(), carrito, nota, codigoDescuento, vendedoraId: vendedoraElegida } : null;
     persistirEspera(enEspera.map((t) => (t.id === id ? actual : t)).filter((t): t is TicketEnEspera => t !== null));
     // Un ticket guardado antes de que el carrito llevara `codigo` vuelve sin él: se
     // completa acá, la única puerta por la que algo del navegador vuelve al carrito.
@@ -639,6 +662,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     setCarrito(lineas);
     setNota(ticket.nota);
     setCodigoDescuento(ticket.codigoDescuento);
+    setVendedoraElegida(ticket.vendedoraId ?? null);
     setPagos([]);
     setMomento("armar");
     // Lo que la pantalla sabe del stock (refrescado tras cada venta): si algo ya no alcanza,
@@ -688,7 +712,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // porque `cobrar()` también lo necesita — ver `motivoBloqueoCobro`.
   const restante = restanteDePagos(total, pagos);
   const vuelto = pagos.reduce((acc, p) => acc + vueltoDe(p), 0);
-  const motivoBloqueo = motivoBloqueoCobro({ cajaAbierta: !bloqueado, prendas, momento, total, pagos, facturaSinRuc });
+  // Quién atendió: con una sola marcada es ella; con varias, la que se tocó (si sigue en la fila); con ninguna,
+  // nadie (la venta sale a nombre de la sesión, como antes). `vendedoraFalta` frena el cobro solo con 2 o más.
+  const vendedoraId = vendedoraDeLaVenta(vendedoras, vendedoraElegida);
+  const vendedoraFalta = vendedoraPendiente(vendedoras, vendedoraElegida);
+  const motivoBloqueo = motivoBloqueoCobro({ cajaAbierta: !bloqueado, prendas, momento, total, pagos, facturaSinRuc, vendedoraFalta });
 
   // Tocar un medio agrega su fila con lo que falta cubrir; combinar es bajar un monto y
   // tocar otro medio. Una fila por medio: tocar uno que ya está no duplica.
@@ -781,6 +809,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       p_cliente_nombre: clienteNombre || undefined,
       p_codigo_descuento: codigoDescuento.trim() || undefined,
       p_nota: nota.trim() || undefined,
+      // Solo viaja si hay a quién atribuirla: sin ella la clave ni aparece y la base la deja vacía.
+      p_asesora_id: vendedoraId ?? undefined,
     };
 
     const supabase = createClient();
@@ -842,8 +872,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     let recibo: ReciboVenta | null = null;
     let estado: EstadoComprobante | null = null;
     if (ventaId) {
+      // D-60: se declara sola a SUNAT, y de paso se reintenta lo que quedó en la cola de esta sede.
+      enviarVentaASunat(ventaId);
+      void barrerColaSunat(ubicacionId);
       const { data: comp } = await supabase.from("comprobantes").select("tipo, serie, numero, estado, created_at").eq("venta_id", ventaId).maybeSingle();
-      if (comp && (comp.tipo === "boleta" || comp.tipo === "factura")) {
+      if (comp && (comp.tipo === "boleta" || comp.tipo === "factura" || comp.tipo === "nota_venta")) {
         estado = comp.estado as EstadoComprobante;
         // Sale de lo que se acaba de cobrar (mismos ítems, descuentos y pagos que vio la
         // cajera, con el vuelto) más lo que la base asignó: serie, número y fecha.
@@ -860,6 +893,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           })),
           pagos,
           tasaIgv: 0.18,
+          atendio: atendioCorto(vendedoras, vendedoraId),
         });
       }
     }
@@ -882,6 +916,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     setPagos([]);
     setCodigoDescuento("");
     setNota("");
+    setVendedoraElegida(null);
     setMomento("armar");
   }
 
@@ -1041,6 +1076,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           onIrACobrar={() => setMomento("cobrar")}
           onVolverATicket={() => setMomento("armar")}
           motivoBloqueo={motivoBloqueo}
+          vendedoras={vendedoras}
+          vendedoraId={vendedoraId}
+          onVendedora={setVendedoraElegida}
+          vendedorasNoCargaron={vendedorasNoCargaron}
+          vendedorasSinAsistencia={vendedorasSinAsistencia}
         />
       </div>
 

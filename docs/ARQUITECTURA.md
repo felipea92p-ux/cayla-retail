@@ -347,6 +347,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   que emite el comprobante en la misma transacción y, desde ADR-0048, rechaza precios
   distintos a `variantes.precio` y descuentos de Colaboradora sin código válido —
   tabla `codigos_descuento`; guarda `ventas.nota`, que `fn_ventas_del_dia` devuelve).
+  Desde ADR-0163 el ticket lleva la fila «Atendió» (`VendedorasFila.tsx`): la lee el navegador cada
+  minuto (`lib/useVendedorasDeTurno.ts` → `fn_asesoras_de_turno`, la asistencia de Dynamic) y
+  `vendedorasDeTurno` deja solo a las presentes (o a todas las de la sede si nadie marcó hoy). Con 2 o
+  más hay que tocar quién atendió para cobrar (`motivoBloqueoCobro`, `vendedoraDeLaVenta` en
+  `lib/vender-reglas.ts`) y `registrar_venta` recibe `p_asesora_id`.
   El ticket en espera (Park/Resume, ADR-0049) no toca la base: `lib/almacen-local.ts`
   → `localStorage` `cayla:vender:<ubicacionId>:en-espera`, cargado tras montar, vaciado
   al cerrar caja; la cola offline usará el mismo módulo con otro `nombre`. `lib/vender-reglas.ts`:
@@ -529,44 +534,37 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   lectura + edición directa (`PatrimonioEditor`, `HistoricosEditor`).
 - `RegistrarGastoModal.tsx` (accesible desde varias pantallas) → RPC
   `registrar_gasto`.
-- `/vender/facturacion/**` (layout + cuatro vistas por ruta, ADR-0124): `layout.tsx` lee
-  series, tiendas y los contadores de las pestañas y los pasa a `FacturacionShell.tsx`, que
-  dibuja la cabecera (`FacturacionCabecera`: línea viva «actualizado hace…», caja de búsqueda y
-  las dos acciones), las pestañas y —una sola vez— los modales «Emitir comprobante» y «Nueva
-  proforma». El shell guarda además el texto del buscador (`useFacturacionBusqueda`, se borra al
-  cambiar de vista): cada lista lo lee y filtra sus filas con `coincide`
-  (`lib/facturacion-busqueda.ts`). Cada `page.tsx` pide `exigirLider()` primero (lo fija
-  `lib/facturacion-puerta.test.ts`) y monta `MarcaDeCarga`, que le dice a la cabecera cuándo llegó
-  la vista (reloj del navegador, `lib/ultima-carga-facturacion.ts`). Cada vista son cuatro
-  tarjetas de vidrio (`TarjetaKpiVidrio`) y una lista (columnas por ancho de la tarjeta, con
-  container queries `@min-[640px]` y `@min-[900px]`, no por ancho de ventana); lo que decide
-  estados, cuentas, orden y textos vive en `lib/facturacion-*-reglas.ts` (puras y probadas).
-  Vistas: Resumen (`page.tsx`) → `ResumenTarjetas` + `ActividadDeHoy` (el hilo del comprobante,
-  `HiloComprobante`, y *Transmitir* por fila con `useTransmitir`) ← `fn_ventas_del_dia`,
-  `getComprobantesMes`, `getResumenPorEnviar`, `ventas-comparativo.ts` (reglas
-  `facturacion-resumen-reglas`, `-graficos` y `facturacion-actividad`); `proformas/` →
-  `ProformasTarjetas` + `ProformasPanel` ← `getProformasMes` (reglas `facturacion-proformas-reglas`
-  y `resumenProformas`, la misma cuenta que el contador de la pestaña) → RPC
-  `convertir_proforma_a_comprobante`; `descuentos/` → `CodigosTarjetas` + `CodigosDescuentoPanel`
-  (antes `/vender/descuentos`, que redirige; escribe directo a `codigos_descuento`, la RLS exige
-  líder; reglas `facturacion-codigos-reglas`, con «hoy» de `hoyLima`, la misma fecha con la que
-  `registrar_venta` valida el código); `comprobantes/` → `lib/comprobantes.ts` →
-  `ComprobantesTarjetas` + `ComprobantesPanel` (franja de series que faltan por tienda, lista,
-  modales de serie, anular y liberar; reglas `facturacion-comprobantes-reglas`) →
-  RPCs `emitir_comprobante` (reserva serie+correlativo, `for update`) y
-  `registrar_serie_comprobante`. Emitir NO transmite: el envío a SUNAT es el
-  botón "Transmitir" de cada fila → `POST /api/lucode/emitir` (ADR-0005,
-  ADR-0009). El modal de emisión usa `ConsultaDocumento.tsx`, el
-  único componente que llama a una ruta de API propia en vez de a una RPC:
-  `GET /api/padron?tipo=dni|ruc&numero=…` → `lib/padron.ts` → proveedor externo
-  del padrón (RENIEC/SUNAT). Validación de formato y dígito verificador en
-  `packages/shared/src/documento.ts` (pura, corre en los dos lados). ADR-0008.
+- `/vender/comprobantes/**` (se llamó `/vender/facturacion` hasta 2026-09-22, que redirige; ADR-0124 y
+  ADR-0165): `layout.tsx` lee series activas, tiendas, la cola de SUNAT (`fn_comprobantes_cola_reintento`)
+  y los contadores, y los pasa a `FacturacionShell.tsx` (cabecera con la pastilla «Pruebas» si
+  `LUCODE_ENTORNO` no es producción, aviso rojo si algo pasa 1 hora en cola, pestañas, buscador y los
+  modales «Emitir comprobante» y «Nueva proforma»). Monta `BarridoColaSunat`, que al abrir llama a
+  `POST /api/lucode/reintentar`. Cada `page.tsx` pide `exigirPermiso("facturar")` primero (lo fija
+  `lib/facturacion-puerta.test.ts`). Vistas: Series (`page.tsx`) → `SeriesPanel` ← `getSeriesComprobantes`
+  (solo activas) + `getSeriesArchivadas` → RPCs `registrar_serie_comprobante` (ya no reemplaza: exige
+  archivar antes y no reusa nombres) y `archivar_serie_comprobante`; `emitidos/` → `ComprobantesTarjetas`
+  + `ComprobantesPanel` ← `getComprobantesMes` (anular, liberar y «Reintentar»; reglas
+  `facturacion-comprobantes-reglas`); `por-reintentar/` → `ColaSunatPanel` ← `getColaReintento`
+  («Reintentar ahora» con `useTransmitir`); `proformas/` → `ProformasTarjetas` + `ProformasPanel` →
+  `convertir_proforma_a_comprobante`.
+  **Envío a SUNAT (D-60):** nadie lo dispara a mano. Vender (`PuntoDeVenta.tsx`, vía `lib/envio-sunat.ts`)
+  llama a `POST /api/lucode/emitir { venta_id }` al cobrar y a `/api/lucode/reintentar` para su sede. Las
+  dos rutas usan `lib/transmitir-comprobante.ts` (guardas de `lib/transmision-reglas.ts`, ítems de la venta
+  con `itemsParaLucode`) → `lib/lucode.ts` → `actualizar_transmision_comprobante`, o
+  `fn_marcar_reintento_transmision` si Lucode no responde. `/api/lucode/reintentar` toma lo vencido con
+  `fn_tomar_comprobantes_para_reintento` (reserva de 5 min, `for update skip locked`). La numeración sale
+  de `fn_reservar_numero_serie` (solo la serie activa), que llaman `emitir_comprobante`, `emitir_nota` y
+  `aprobar_devolucion`. El modal de emisión usa `ConsultaDocumento.tsx` → `GET /api/padron` →
+  `lib/padron.ts` → padrón externo (RENIEC/SUNAT); formato y dígito verificador en
+  `packages/shared/src/documento.ts`. ADR-0008.
 - `/vender/historial` → `lib/ventas-historial.ts` (lectura; reglas puras en
   `ventas-historial-reglas.ts`) → `HistorialVentasLista.tsx`, `FiltrosHistorialVentas.tsx`
   y `HistorialVentasPulso.tsx` (el trazo del período). Solo lectura, **sin RPC propia**: PostgREST sobre
   `ventas` + `venta_items` + `venta_pagos` + `comprobantes`, con la RLS
   `fn_puede_operar_ubicacion` acotando por tienda (líder: todas). El nombre de quien
-  vendió sale de `fn_nombres_personas`; el filtro por vendedor, de `fn_colaboradores`.
+  vendió sale de `fn_nombres_personas`; el filtro por vendedor, de `fn_colaboradores`. Quien «vendió» es
+  `ventas.asesora_id` y, si no se eligió a nadie (ventas anteriores), `usuario_id` —la sesión que
+  cobró—: `quienVendio` en `ventas-historial-reglas.ts` (ADR-0163).
   Filtros y cursor `(created_at, id)` viven en la URL. Al tocar una fila abre
   `DetalleVentaModal` (`leerVentaDetalle`, en el navegador). No usa `fn_ventas_del_dia`
   (fija a hoy y sin `ventas.estado`). ADR-0147.
@@ -609,7 +607,7 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 - **Apartados** (2026-09-20, ADR-0141): `stock.cantidad_apartada` (segundo contador sobre la misma fila; `disponible = cantidad - cantidad_apartada`) y `apartados` (una fila por reserva: clienta, contacto, fecha límite, quién y qué movimientos la abrieron y cerraron). Sin policy de escritura: solo las RPC.
 - **Sedes/personas**: `sedes`, `personas` (`auth_user_id` único).
 - **Ventas**: `cajas` (una sola caja abierta por sede — índice único
-  parcial), `ventas` (1 fila por checkout).
+  parcial), `ventas` (1 fila por checkout; `usuario_id` = la sesión que cobró, `asesora_id` = quién atendió, ADR-0153/0161).
 - **Clientas** (2026-09-22, ADR-0154, D-76/D-77; **migración `20260922140000`, sin
   pegar en producción**): `clientas` (DNI opcional en un solo campo, único cuando no
   es nulo; `whatsapp_consentimiento_en` — NULL = sin permiso, aparte del teléfono,
@@ -630,7 +628,10 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 - **Finanzas**: `gastos`, `depositos_bancarios`, `ajustes_efectivo`,
   `patrimonio_items`, `activos_fijos`, `ventas_historicas_mensuales`,
   `comprobantes` / `series_comprobantes` (facturación electrónica, parte 1 —
-  ver ADR-0005; `estado` nace en `pendiente`, el envío a SUNAT es aparte).
+  ver ADR-0005; `estado` nace en `pendiente`, el envío a SUNAT es aparte). Desde ADR-0164 hay
+  `tipo = nota_venta` (serie NV01/NV02/NV03 por tienda, IGV 0): nace `interna` y el candado
+  `comprobantes_nota_venta_es_interna` impide que llegue a `pendiente` — nunca se transmite;
+  Facturación no la lista, Vender/Historial/Cambios/Devoluciones sí.
 - **Contabilidad**: `cuentas_contables` (35 cuentas semilla, PCGE/NIIF),
   `asientos` / `asiento_lineas` (libro diario, **inmutable para clientes**:
   sin política INSERT/UPDATE/DELETE, solo entra vía RPC).
@@ -642,7 +643,8 @@ a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 | `registrar_movimiento` → `fn_aplicar_movimiento` | Motor de stock: entrada/salida/ajuste/traslado (y, desde 2026-09-20, `apartado`/`liberacion_apartado`, que solo entran por las RPC de apartar — ADR-0141), con `for update` (lock de fila) contra condición de carrera; valida sede. `salida`/`traslado`/`ajuste` validan contra lo **disponible** (`cantidad - cantidad_apartada`) |
 | `apartar_stock` / `liberar_apartado` / `listar_apartados` / `fn_verificar_apartados` (2026-09-20, ADR-0141; **sin pegar en producción**) | Apartar una prenda para una clienta sin restarla del conteo físico: `apartar_stock` crea la reserva (clienta, contacto, fecha límite) y sube `stock.cantidad_apartada` en una transacción; `liberar_apartado` la cierra (solo quien apartó o una líder); `listar_apartados` es la lectura de la pantalla, con `puede_liberar` ya calculado; `fn_verificar_apartados` (solo SQL Editor) devuelve las filas donde el contador no cuadra con la suma de sus apartados abiertos — debe dar 0 filas |
 | `recibir_lote` | Recepción de mercadería: crea lote + producto/variante si faltan + N movimientos. Ver §6, es la función con historial de drift |
-| `registrar_venta` | Venta + N movimientos de salida; guarda `venta_pagos.recibido` (efectivo entregado) desde 2026-09-19 (ADR-0137, una sola firma de 11 parámetros) |
+| `registrar_venta` | Venta + N movimientos de salida; guarda `venta_pagos.recibido` (efectivo entregado) desde 2026-09-19 (ADR-0137); desde 2026-09-22 recibe `p_asesora_id` y 4 más (16 parámetros, **una sola firma**, ADR-0153) y guarda `ventas.asesora_id` sin validarla contra la sede (la llena la fila «Atendió», ADR-0163) |
+| `fn_asesoras_de_turno` (2026-09-22, ADR-0153) | Quién está de turno hoy en una ubicación según la asistencia de Dynamic (`marcajes`/`jornadas`): `presente`, `en_pausa`, `salio` o `programada`, sin exponer el tipo de pausa. Vacío, nunca error, si la sede no está enlazada o Dynamic no responde. La lee la fila «Atendió» del Punto de venta (ADR-0163) |
 | `reasignar_reparto_compra` / `cerrar_linea_compra` (con `p_ubicacion_id`) (2026-09-19, ADR-0139; **en producción desde el 2026-09-20**) | Reparto de un comprobante entre tiendas: solo un líder mueve, de una tienda a otra, lo que ésta aún no recibió ni cerró (con motivo y rastro en `compra_reasignaciones`); el faltante de una línea repartida se cierra en una tienda concreta. Ambas con `for update` sobre la línea, el mismo orden de candados que `recibir_compras` |
 | `abrir_caja` / `cerrar_caja` | Apertura/cierre con conteo ciego |
 | `registrar_gasto`, `registrar_deposito`, `fijar_stock_minimo`, `recalcular_stock` | Operación de caja y stock; `recalcular_stock` reconstruye `stock` completo desde `movimientos` como red de seguridad |

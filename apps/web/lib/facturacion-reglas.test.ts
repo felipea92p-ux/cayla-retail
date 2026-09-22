@@ -16,6 +16,7 @@ import {
   tiendasOperativas,
   textoDeFrescura,
   ubicacionActualDe,
+  resumenCola,
 } from "./facturacion-reglas";
 import type { EstadoComprobante } from "./comprobantes-reglas";
 import type { ProformaFila } from "./proformas-reglas";
@@ -67,33 +68,32 @@ describe("mes de la URL", () => {
 describe("pestañas", () => {
   const por = (clave: string) => PESTANAS.find((p) => p.clave === clave)!;
 
-  it("son cuatro, en el orden en que se dibujan", () => {
-    expect(PESTANAS.map((p) => p.clave)).toEqual(["resumen", "proformas", "comprobantes", "descuentos"]);
+  it("son cuatro, en el orden en que se dibujan: Series es la base", () => {
+    expect(PESTANAS.map((p) => p.clave)).toEqual(["series", "emitidos", "cola", "proformas"]);
+    expect(pestanaDeRuta("/vender/comprobantes/por-reintentar")).toBe("cola");
   });
 
   it("cada ruta cae en su pestaña, con o sin barra final", () => {
-    expect(pestanaDeRuta("/vender/facturacion")).toBe("resumen");
-    expect(pestanaDeRuta("/vender/facturacion/")).toBe("resumen");
-    expect(pestanaDeRuta("/vender/facturacion/proformas")).toBe("proformas");
-    expect(pestanaDeRuta("/vender/facturacion/comprobantes/")).toBe("comprobantes");
-    expect(pestanaDeRuta("/vender/facturacion/descuentos")).toBe("descuentos");
+    expect(pestanaDeRuta("/vender/comprobantes")).toBe("series");
+    expect(pestanaDeRuta("/vender/comprobantes/")).toBe("series");
+    expect(pestanaDeRuta("/vender/comprobantes/proformas")).toBe("proformas");
+    expect(pestanaDeRuta("/vender/comprobantes/emitidos/")).toBe("emitidos");
   });
 
-  it("una ruta desconocida o que solo comparte el prefijo cae en Resumen", () => {
-    expect(pestanaDeRuta("/vender/facturacion/otra")).toBe("resumen");
-    expect(pestanaDeRuta("/vender/facturacion/proformas-viejas")).toBe("resumen");
+  it("una ruta desconocida o que solo comparte el prefijo cae en Series", () => {
+    expect(pestanaDeRuta("/vender/comprobantes/otra")).toBe("series");
+    expect(pestanaDeRuta("/vender/comprobantes/proformas-viejas")).toBe("series");
   });
 
-  it("solo Proformas y Comprobantes conservan el mes", () => {
-    expect(hrefPestana(por("proformas"), "2026-8")).toBe("/vender/facturacion/proformas?m=2026-8");
-    expect(hrefPestana(por("comprobantes"), "2026-8")).toBe("/vender/facturacion/comprobantes?m=2026-8");
-    expect(hrefPestana(por("resumen"), "2026-8")).toBe("/vender/facturacion");
-    expect(hrefPestana(por("descuentos"), "2026-8")).toBe("/vender/facturacion/descuentos");
+  it("solo Emitidos y Proformas conservan el mes", () => {
+    expect(hrefPestana(por("proformas"), "2026-8")).toBe("/vender/comprobantes/proformas?m=2026-8");
+    expect(hrefPestana(por("emitidos"), "2026-8")).toBe("/vender/comprobantes/emitidos?m=2026-8");
+    expect(hrefPestana(por("series"), "2026-8")).toBe("/vender/comprobantes");
   });
 
   it("sin mes, o con uno inválido, el enlace no lo arrastra", () => {
-    expect(hrefPestana(por("proformas"), null)).toBe("/vender/facturacion/proformas");
-    expect(hrefPestana(por("comprobantes"), "2026-13")).toBe("/vender/facturacion/comprobantes");
+    expect(hrefPestana(por("proformas"), null)).toBe("/vender/comprobantes/proformas");
+    expect(hrefPestana(por("emitidos"), "2026-13")).toBe("/vender/comprobantes/emitidos");
   });
 });
 
@@ -179,11 +179,11 @@ describe("conteosDePestanas", () => {
   });
 
   it("Comprobantes en ámbar cuando hay algo por enviar", () => {
-    expect(conteosDePestanas(cola(3, 0), null).comprobantes).toEqual({ valor: 3, tono: "ambar", texto: "por enviar a SUNAT" });
+    expect(conteosDePestanas(cola(3, 0), null).emitidos).toEqual({ valor: 3, tono: "ambar", texto: "por enviar a SUNAT" });
   });
 
   it("Comprobantes en rojo si SUNAT rechazó alguno", () => {
-    expect(conteosDePestanas(cola(3, 1), null).comprobantes).toEqual({ valor: 3, tono: "rojo", texto: "por enviar a SUNAT, con rechazados" });
+    expect(conteosDePestanas(cola(3, 1), null).emitidos).toEqual({ valor: 3, tono: "rojo", texto: "por enviar a SUNAT, con rechazados" });
   });
 
   it("Proformas en neutro, contando solo las vigentes que aún valen", () => {
@@ -234,5 +234,22 @@ describe("textoDeFrescura", () => {
 
   it("un reloj que va hacia atrás no da una edad negativa", () => {
     expect(textoDeFrescura(-30)).toBe("actualizado ahora");
+  });
+});
+
+describe("la cola de reintento (D-60)", () => {
+  it("resumenCola cuenta el total y los que pasan de 1 hora (sin dato = recién entrado)", () => {
+    expect(resumenCola([{ horas_esperando: 0.2 }, { horas_esperando: 1 }, { horas_esperando: 5.5 }, { horas_esperando: null }])).toEqual({ total: 4, masDeUnaHora: 2 });
+  });
+
+  it("el contador de «Por reintentar»: ámbar si todo es reciente, rojo si alguno pasa de 1 hora, nada si está vacía", () => {
+    expect(conteosDePestanas(null, null, { total: 2, masDeUnaHora: 0 }).cola).toEqual({ valor: 2, tono: "ambar", texto: "en cola, se reintentan solos" });
+    expect(conteosDePestanas(null, null, { total: 2, masDeUnaHora: 1 }).cola?.tono).toBe("rojo");
+    expect(conteosDePestanas(null, null, { total: 0, masDeUnaHora: 0 }).cola).toBeUndefined();
+    expect(conteosDePestanas(null, null, null).cola).toBeUndefined();
+  });
+
+  it("«por enviar» cuenta también lo que está en la cola", () => {
+    expect(resumenPorEnviar([{ estado: "pendiente_reintento", created_at: "2026-09-22T10:00:00Z" }]).porEnviar).toBe(1);
   });
 });

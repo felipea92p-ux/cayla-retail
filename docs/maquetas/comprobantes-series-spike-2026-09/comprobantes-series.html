@@ -1,0 +1,475 @@
+<title>Comprobantes CAYLA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@500;600&display=swap">
+<style>
+/* Tokens del sistema Atelier (apps/web/app/globals.css) — misma paleta que la app. */
+:root{
+  --crema:#f5f0e8; --papel:#fbf6ec; --tinta:#1a1a18; --tinta-60:#6b675f; --tinta-40:#9a958b;
+  --sand:#e8e0d0; --taupe:#a47865; --rojo:#b8412d; --rojo-p:#8b2a1f;
+  --verde:#556e49; --verde-p:#44583a; --ambar:#8c631f; --ambar-p:#734f15; --violeta:#6d3fa3;
+  --ease:cubic-bezier(.32,.72,.24,1);
+  --serif:"EB Garamond",ui-serif,Georgia,serif; --sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;
+  --sombra:0 8px 24px -8px rgb(26 26 24/.11);
+}
+*{box-sizing:border-box}
+body{background:var(--crema);color:var(--tinta);font:15px/1.55 var(--sans);margin:0}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:var(--serif);font-weight:500;text-wrap:balance;margin:0}
+
+/* ---- marco: lateral + contenido ---- */
+.app{display:grid;grid-template-columns:15rem 1fr;min-height:100vh}
+aside{background:var(--papel);border-right:1px solid var(--sand);padding:20px 14px;display:flex;flex-direction:column;gap:18px}
+.marca{font:600 20px var(--serif);letter-spacing:.14em;padding-left:10px}
+.grupo{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--tinta-40);padding:0 10px;margin-bottom:4px}
+nav a{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:8px;color:var(--tinta-60);text-decoration:none;font-size:14px}
+nav a.act{background:var(--tinta);color:var(--crema)}
+nav a .chip-mini{font-size:11px;background:var(--ambar);color:#fff;border-radius:99px;padding:0 7px}
+.antes{font-size:11px;color:var(--tinta-40);text-decoration:line-through;margin-left:6px}
+main{padding-block:28px 60px;padding-inline:clamp(16px,3vw,40px);min-width:0}
+.banda-maqueta{font-size:12px;color:var(--ambar-p);background:#8c631f14;border:1px dashed #8c631f55;border-radius:8px;padding:6px 12px;margin-bottom:18px}
+
+header.pant{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+header.pant h1{font-size:40px;line-height:1}
+header.pant p{margin:6px 0 0;color:var(--tinta-60);max-width:60ch}
+.salud{display:flex;align-items:center;gap:10px;background:var(--papel);border:1px solid var(--sand);border-radius:99px;padding:6px 14px 6px 10px;font-size:13px}
+.punto{width:9px;height:9px;border-radius:50%;background:var(--verde);box-shadow:0 0 0 4px #556e4922}
+.salud.caida .punto{background:var(--rojo);box-shadow:0 0 0 4px #b8412d22;animation:late 1.6s var(--ease) infinite}
+@keyframes late{50%{box-shadow:0 0 0 7px #b8412d10}}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--sand);margin-bottom:22px;overflow-x:auto}
+.tabs button{background:none;border:0;padding:10px 14px;color:var(--tinta-60);border-bottom:2px solid transparent;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--tinta);border-color:var(--tinta);font-weight:500}
+.tabs .c{font-size:11px;border-radius:99px;padding:1px 7px;margin-left:6px;background:var(--sand)}
+.tabs .c.ambar{background:#8c631f22;color:var(--ambar-p)}
+
+.cuerpo{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;align-items:start}
+
+/* ---- series ---- */
+.tienda{margin-bottom:26px}
+.tienda-cab{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.tienda-cab h2{font-size:24px}
+.tienda-cab span{color:var(--tinta-40);font-size:13px}
+.rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.serie{background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;position:relative;transition:box-shadow .3s var(--ease),transform .3s var(--ease)}
+.serie.pulso{box-shadow:var(--sombra);transform:translateY(-2px)}
+.serie .tipo{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--tinta-60);display:flex;justify-content:space-between;gap:6px}
+.serie .cod{font:500 28px/1 var(--serif);letter-spacing:.03em}
+.serie .va{font-size:13px;color:var(--tinta-60)}
+.serie .va b{font-weight:600;color:var(--tinta);font-size:15px}
+.serie .pie{display:flex;justify-content:space-between;font-size:12px;color:var(--tinta-40);border-top:1px solid var(--sand);padding-top:8px}
+.serie.interna{background:repeating-linear-gradient(135deg,var(--papel) 0 10px,#6d3fa308 10px 11px)}
+.serie.falta{border-style:dashed;background:transparent;justify-content:center;color:var(--tinta-60);font-size:13px}
+.serie.falta button{align-self:flex-start;background:none;border:1px solid var(--tinta);border-radius:8px;padding:5px 10px;font-size:13px}
+.pill{font-size:11px;border-radius:99px;padding:1px 8px;white-space:nowrap;letter-spacing:0;text-transform:none}
+.p-verde{background:#556e491f;color:var(--verde-p)} .p-ambar{background:#8c631f1f;color:var(--ambar-p)}
+.p-rojo{background:#b8412d1a;color:var(--rojo-p)} .p-neutro{background:var(--sand);color:var(--tinta-60)}
+.p-violeta{background:#6d3fa31a;color:var(--violeta)}
+.aviso-serie{font-size:12px;color:var(--rojo-p);background:#b8412d0d;border-radius:6px;padding:4px 8px}
+.btn-nueva{background:var(--tinta);color:var(--crema);border:0;border-radius:8px;padding:9px 16px}
+.nota-lim{font-size:13px;color:var(--tinta-60);border:1px dashed var(--sand);border-radius:12px;padding:12px 16px}
+
+/* ---- alerta real ---- */
+.alerta{display:flex;gap:14px;align-items:flex-start;background:#fff8ef;border:1px solid #8c631f44;border-radius:12px;padding:14px 16px;margin-bottom:22px}
+.alerta b{font-weight:600}
+.alerta .ico{font:600 20px var(--serif);color:var(--ambar);line-height:1}
+.alerta p{margin:2px 0 0;font-size:13px;color:var(--tinta-60)}
+
+/* ---- simulador ---- */
+.sim{position:sticky;top:20px;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--sombra)}
+.sim h3{font-size:20px}
+.sim .sub{font-size:12px;color:var(--tinta-60);margin-top:-8px}
+.campo{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--tinta-60)}
+.campo select,.campo input{background:var(--crema);border:1px solid var(--sand);border-radius:8px;padding:8px 10px;font-size:14px;color:var(--tinta)}
+.segm{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--crema);border:1px solid var(--sand);border-radius:10px;padding:3px}
+.segm button{border:0;background:none;border-radius:7px;padding:6px 4px;font-size:13px;color:var(--tinta-60)}
+.segm button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.cobrar{background:var(--rojo);color:#fff;border:0;border-radius:10px;padding:12px;font-weight:600;font-size:15px}
+.cobrar:disabled{opacity:.5;cursor:not-allowed}
+.interruptor{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;border-top:1px solid var(--sand);padding-top:12px}
+.interruptor input{accent-color:var(--rojo);width:18px;height:18px}
+.recibo{border:1px solid var(--sand);border-radius:10px;padding:10px 12px;background:var(--crema);font-size:13px}
+.pasos{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.pasos li{display:flex;gap:8px;align-items:center;color:var(--tinta-40);transition:color .3s var(--ease)}
+.pasos li::before{content:"";width:10px;height:10px;border-radius:50%;border:1.5px solid currentColor;flex:none}
+.pasos li.ok{color:var(--verde-p)} .pasos li.ok::before{background:currentColor}
+.pasos li.en{color:var(--ambar-p)} .pasos li.en::before{border-top-color:transparent;animation:gira .8s linear infinite}
+.pasos li.mal{color:var(--rojo-p)} .pasos li.mal::before{background:currentColor}
+@keyframes gira{to{transform:rotate(360deg)}}
+
+/* ---- tabla de emitidos ---- */
+.tabla-caja{overflow-x:auto;background:var(--papel);border:1px solid var(--sand);border-radius:12px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:500;font-size:12px;color:var(--tinta-60);padding:10px 14px;border-bottom:1px solid var(--sand);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--sand);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tr.nueva td{animation:entra .5s var(--ease)}
+@keyframes entra{from{background:#8c631f18}}
+.vacio{padding:24px;text-align:center;color:var(--tinta-60)}
+.cola-cab{display:flex;justify-content:space-between;align-items:center;margin:0 0 10px;gap:10px;flex-wrap:wrap}
+.cola-cab h2{font-size:22px}
+.enlace{background:none;border:0;color:var(--rojo-p);text-decoration:underline;padding:0;font-size:13px}
+
+/* ---- ideas ---- */
+.ideas{margin-top:48px;border-top:1px solid var(--sand);padding-top:28px}
+.ideas>h2{font-size:30px;margin-bottom:6px}
+.ideas>p{color:var(--tinta-60);margin:0 0 20px;max-width:70ch}
+.col-ideas{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
+.col-ideas h3{font-size:19px;margin-bottom:8px;display:flex;gap:8px;align-items:center}
+.col-ideas ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.col-ideas li b{font-weight:600}
+.col-ideas li span{color:var(--tinta-60)}
+.mudanza{margin-top:24px;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:16px 18px;font-size:14px}
+.mudanza h3{font-size:19px;margin-bottom:8px}
+.mudanza ul{margin:0;padding-left:18px}
+
+/* ---- modal (mismo efecto que <Modal>: velo con desenfoque, hoja que sube, cascada) ---- */
+.velo{position:fixed;inset:0;background:rgb(26 26 24/.28);backdrop-filter:blur(6px);display:grid;place-items:center;padding:16px;z-index:10;animation:velo .25s var(--ease)}
+@keyframes velo{from{opacity:0}}
+.hoja{background:var(--papel);border-radius:16px;box-shadow:0 30px 64px -22px rgb(26 26 24/.3);width:min(440px,100%);padding:22px;display:flex;flex-direction:column;gap:14px;animation:hoja .42s var(--ease)}
+@keyframes hoja{from{opacity:0;transform:translateY(18px) scale(.97)}}
+.hoja>*{animation:casc .4s var(--ease) both}
+.hoja>*:nth-child(2){animation-delay:55ms}.hoja>*:nth-child(3){animation-delay:110ms}.hoja>*:nth-child(4){animation-delay:165ms}.hoja>*:nth-child(5){animation-delay:220ms}.hoja>*:nth-child(6){animation-delay:275ms}
+@keyframes casc{from{opacity:0;transform:translateY(6px)}}
+.hoja h2{font-size:26px}
+.hoja .fila{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hoja .ayuda{font-size:12px;color:var(--tinta-60);margin:0}
+.hoja .error{font-size:12px;color:var(--rojo-p);margin:0;min-height:1em}
+.hoja .acciones{display:flex;justify-content:flex-end;gap:8px}
+.hoja .sec{background:none;border:1px solid var(--sand);border-radius:8px;padding:9px 14px}
+.previa{font:500 22px var(--serif);background:var(--crema);border-radius:8px;padding:8px 12px;text-align:center;letter-spacing:.04em}
+
+.toast{position:fixed;top:18px;right:18px;background:var(--tinta);color:var(--crema);border-radius:10px;padding:10px 14px;font-size:14px;z-index:20;animation:hoja .35s var(--ease);max-width:calc(100vw - 36px)}
+
+@media (max-width:1100px){.cuerpo{grid-template-columns:1fr}.sim{position:static}}
+@media (max-width:760px){.app{grid-template-columns:1fr}aside{display:none}header.pant h1{font-size:32px}}
+@media (prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
+</style>
+
+<div class="app">
+  <aside>
+    <div class="marca">CAYLA</div>
+    <nav>
+      <div class="grupo">Venta</div>
+      <a href="#">Vender</a>
+      <a href="#">Historial de ventas</a>
+      <a href="#">Caja</a>
+      <a href="#" class="act">Comprobantes <span class="antes">Facturación</span></a>
+    </nav>
+    <nav>
+      <div class="grupo">Inventario</div>
+      <a href="#">Productos</a><a href="#">Movimientos</a><a href="#">Recibir</a>
+    </nav>
+    <nav>
+      <div class="grupo">Taller</div>
+      <a href="#">Producción</a><a href="#">Compras</a>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="banda-maqueta">Maqueta desechable · las series, números y la alerta son de producción (22-sep); lo que simules abajo no toca la base.</div>
+
+    <header class="pant">
+      <div>
+        <h1>Comprobantes</h1>
+        <p>Tus series y en qué número va cada una. Cada venta se declara a SUNAT sola al cobrar; acá solo miras que todo llegó.</p>
+      </div>
+      <div class="salud" id="salud"><span class="punto"></span><span id="saludTxt">Sandbox de SUNAT responde · último envío hace 2 min</span><span class="pill p-ambar">pruebas</span></div>
+    </header>
+
+    <div class="alerta" id="alertaReal">
+      <span class="ico">!</span>
+      <div>
+        <b>Modo pruebas: todo se envía al sandbox de SUNAT, nunca a la SUNAT real.</b>
+        <p>Las 20 boletas de prueba que quedaron pendientes (14–22 sep) no se envían: quedan fuera de la cola automática. El paso a la SUNAT real lo hace el líder, una sola vez, cuando el sistema salga de desarrollo.</p>
+      </div>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="series">Series</button>
+      <button role="tab" aria-selected="false" data-tab="emitidos">Emitidos <span class="c num" id="cEmit">0</span></button>
+      <button role="tab" aria-selected="false" data-tab="cola">Por reintentar <span class="c ambar num" id="cCola">0</span></button>
+    </div>
+
+    <div class="cuerpo">
+      <section>
+        <div id="vSeries">
+          <div class="cola-cab">
+            <h2>Series registradas</h2>
+            <button class="btn-nueva" id="abrirNueva">+ Nueva serie</button>
+          </div>
+          <div id="listaSeries"></div>
+          <div class="nota-lim">Tienda LIM no tiene series: hoy no emite comprobantes. Si algún día vende, se le registran aquí.</div>
+        </div>
+
+        <div id="vEmitidos" hidden>
+          <div class="cola-cab"><h2>Emitidos en esta sesión</h2></div>
+          <div class="tabla-caja"><table>
+            <thead><tr><th>Comprobante</th><th>Tienda</th><th>Clienta</th><th class="num">Total</th><th>SUNAT</th><th>Hora</th></tr></thead>
+            <tbody id="tbEmit"></tbody>
+          </table><div class="vacio" id="vacioEmit">Cobra una venta en el simulador y aparece aquí, con su camino hasta SUNAT.</div></div>
+        </div>
+
+        <div id="vCola" hidden>
+          <div class="cola-cab">
+            <h2>Por reintentar</h2>
+            <span style="font-size:13px;color:var(--tinta-60)">Se reintenta solo cada 2 min · si pasa 1 h, avisa al líder</span>
+          </div>
+          <div class="tabla-caja"><table>
+            <thead><tr><th>Comprobante</th><th>Tienda</th><th class="num">Total</th><th class="num">Intentos</th><th>Último error</th><th></th></tr></thead>
+            <tbody id="tbCola"></tbody>
+          </table><div class="vacio" id="vacioCola">Nada en espera. Enciende «Lucode caído» en el simulador para ver cómo se degrada.</div></div>
+        </div>
+      </section>
+
+      <aside class="sim" aria-label="Simulador de venta">
+        <h3>Simular una venta</h3>
+        <div class="sub">Lo que pasaría al presionar «Cobrar» en Vender.</div>
+        <label class="campo">Tienda
+          <select id="sTienda"><option value="TRU">TRU</option><option value="AQP">AQP</option></select>
+        </label>
+        <div class="campo">Documento
+          <div class="segm" id="sDoc">
+            <button aria-pressed="true" data-v="boleta">Boleta</button>
+            <button aria-pressed="false" data-v="factura">Factura</button>
+            <button aria-pressed="false" data-v="nota_venta">Nota de venta</button>
+          </div>
+        </div>
+        <label class="campo" id="lDoc">DNI (opcional)
+          <input id="sCli" inputmode="numeric" placeholder="Sin documento">
+        </label>
+        <label class="campo">Total S/
+          <input id="sTotal" class="num" value="189.90" inputmode="decimal">
+        </label>
+        <button class="cobrar" id="cobrar">Cobrar S/ 189,90</button>
+        <div id="recibo"></div>
+        <label class="interruptor">Lucode caído (simular)
+          <input type="checkbox" id="caido">
+        </label>
+      </aside>
+    </div>
+
+    <section class="ideas">
+      <h2>Qué más podría tener</h2>
+      <p>Ordenado por lo que más protege a CAYLA ante SUNAT primero. Lo marcado <span class="pill p-verde">ya existe</span> tiene base en el repo; el resto es propuesta.</p>
+      <div class="col-ideas">
+        <div>
+          <h3>Que nada quede sin declarar</h3>
+          <ul>
+            <li><b>Envío automático al cobrar</b> <span class="pill p-verde">esquema listo</span> <span>— D-60; falta conectar el disparo y el cron que reintenta.</span></li>
+            <li><b>Cola «Por reintentar» con aviso</b> <span>— si Lucode no responde, el comprobante no se pierde ni cambia de número; tras 1 h le llega un aviso al líder.</span></li>
+            <li><b>Semáforo de SUNAT arriba a la derecha</b> <span>— último envío aceptado y hace cuánto; rojo si falla.</span></li>
+            <li><b>Correlativo sin huecos</b> <span>— hoy B004-00000001 no existe en la base. La tarjeta lo dice y explica si fue una prueba.</span></li>
+            <li><b>Serie de contingencia</b> <span>— para cuando se va el internet de una tienda: boletas manuales que después se regularizan.</span></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Nota de venta</h3>
+          <ul>
+            <li><b>Serie propia, interna</b> <span>— rayada en violeta para que nadie la confunda: no va a SUNAT, no tiene IGV declarado.</span></li>
+            <li><b>Canjear por boleta o factura</b> <span>— la clienta vuelve con su RUC: se emite el comprobante oficial ligado a la nota, sin volver a vender.</span></li>
+            <li><b>Contador de notas sin canjear</b> <span>— cuánto se vendió «fuera de SUNAT» este mes, por tienda, para que el contador lo vea.</span></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Para el día a día</h3>
+          <ul>
+            <li><b>Buscar un comprobante</b> <span>— por número, DNI o RUC, y reenviarle el PDF a la clienta.</span></li>
+            <li><b>Archivar serie</b> <span>— nunca borrarla: una serie usada queda con su historial y deja de ofrecerse al vender.</span></li>
+            <li><b>Serie de nota de crédito que falta</b> <span>— la tarjeta punteada avisa: sin ella, una devolución no puede emitir su NC.</span></li>
+            <li><b>Registro de ventas del mes</b> <span>— el archivo que pide el contador, generado desde aquí.</span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="mudanza">
+        <h3>Qué sale de esta pantalla y a dónde va</h3>
+        <ul>
+          <li><b>Resumen del día</b> → se va: ya lo cuentan Caja e Historial de ventas.</li>
+          <li><b>Proformas</b> → a Vender (son cotizaciones, no comprobantes).</li>
+          <li><b>Códigos de descuento</b> → a Vender, como ajuste del líder.</li>
+          <li><b>Botón «Transmitir»</b> → desaparece. Queda solo «Reintentar ahora» dentro de la cola.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+// Series reales de producción (retail.series_comprobantes, 22-sep-2026) + una nota de venta de ejemplo.
+const series = [
+  {tienda:"TRU", tipo:"boleta", serie:"B004", sig:24, usados:22, ultimo:"hoy", hueco:[1]},
+  {tienda:"TRU", tipo:"factura", serie:"F004", sig:1, usados:0, ultimo:null},
+  {tienda:"TRU", tipo:"nota_venta", serie:"NV04", sig:1, usados:0, ultimo:null, ejemplo:true},
+  {tienda:"AQP", tipo:"boleta", serie:"B005", sig:1, usados:0, ultimo:null},
+  {tienda:"AQP", tipo:"factura", serie:"F005", sig:1, usados:0, ultimo:null},
+];
+const NOMBRE = {boleta:"Boleta", factura:"Factura", nota_credito:"Nota de crédito", nota_venta:"Nota de venta"};
+const $ = s => document.querySelector(s);
+const soles = n => "S/ " + n.toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2});
+const correl = (s,n) => `${s}-${String(n).padStart(8,"0")}`;
+const hora = () => new Date().toLocaleTimeString("es-PE",{hour:"2-digit",minute:"2-digit"});
+let emitidos = [], cola = [], docSel = "boleta";
+
+function toast(t){ const d=document.createElement("div"); d.className="toast"; d.textContent=t; document.body.append(d); setTimeout(()=>d.remove(),2600); }
+
+function pintarSeries(pulsar){
+  const html = ["TRU","AQP"].map(t=>{
+    const propias = series.filter(s=>s.tienda===t);
+    const tarjetas = propias.map(s=>{
+      const interna = s.tipo==="nota_venta";
+      const estado = interna ? `<span class="pill p-violeta">no va a SUNAT</span>`
+        : s.usados ? `<span class="pill p-verde">en uso</span>` : `<span class="pill p-neutro">sin estrenar</span>`;
+      const aviso = s.hueco ? `<div class="aviso-serie">Falta ${correl(s.serie,s.hueco[0])} en la base</div>` : "";
+      return `<div class="serie${interna?" interna":""}" data-serie="${s.serie}">
+        <div class="tipo"><span>${NOMBRE[s.tipo]}</span>${estado}</div>
+        <div class="cod">${s.serie}</div>
+        <div class="va">Próximo: <b class="num">${correl(s.serie,s.sig)}</b></div>
+        ${aviso}
+        <div class="pie"><span class="num">${s.usados} emitid${s.usados===1?"o":"os"}</span><span>${s.ultimo?"último: "+s.ultimo:"—"}${s.ejemplo?" · ejemplo":""}</span></div>
+      </div>`;
+    }).join("");
+    const falta = propias.some(s=>s.tipo==="nota_credito") ? "" :
+      `<div class="serie falta">Sin serie de nota de crédito: las devoluciones de ${t} no pueden emitir su NC.<button data-registrar="${t}">Registrar</button></div>`;
+    return `<div class="tienda"><div class="tienda-cab"><h2>Tienda ${t}</h2><span>${propias.length} series</span></div><div class="rejilla">${tarjetas}${falta}</div></div>`;
+  }).join("");
+  $("#listaSeries").innerHTML = html;
+  if(pulsar){ const el=document.querySelector(`[data-serie="${pulsar}"]`); if(el){el.classList.add("pulso"); setTimeout(()=>el.classList.remove("pulso"),900);} }
+}
+
+function pintarTablas(){
+  const chip = e => ({aceptado:'<span class="pill p-verde">aceptado</span>', enviando:'<span class="pill p-ambar">enviando…</span>',
+    reintento:'<span class="pill p-ambar">en cola</span>', interna:'<span class="pill p-violeta">interna</span>'}[e]);
+  $("#tbEmit").innerHTML = emitidos.map((c,i)=>`<tr class="${i===0&&c.nuevo?"nueva":""}"><td class="num">${c.cod}</td><td>${c.tienda}</td><td>${c.cli||"—"}</td><td class="num">${soles(c.total)}</td><td>${chip(c.estado)}</td><td class="num">${c.hora}</td></tr>`).join("");
+  $("#vacioEmit").hidden = emitidos.length>0;
+  $("#tbCola").innerHTML = cola.map(c=>`<tr><td class="num">${c.cod}</td><td>${c.tienda}</td><td class="num">${soles(c.total)}</td><td class="num">${c.intentos}</td><td>Lucode no respondió (tiempo agotado)</td><td><button class="enlace" data-reintentar="${c.cod}">Reintentar ahora</button></td></tr>`).join("");
+  $("#vacioCola").hidden = cola.length>0;
+  $("#cEmit").textContent = emitidos.length; $("#cCola").textContent = cola.length;
+  emitidos.forEach(c=>c.nuevo=false);
+}
+
+function pasos(lista){ $("#recibo").innerHTML = `<div class="recibo">${lista.titulo}<ul class="pasos">${lista.p.map(([t,e])=>`<li class="${e}">${t}</li>`).join("")}</ul></div>`; }
+
+const espera = ms => new Promise(r=>setTimeout(r,ms));
+
+async function cobrar(){
+  const tienda=$("#sTienda").value, total=parseFloat($("#sTotal").value.replace(",","."));
+  const cli=$("#sCli").value.trim();
+  if(!(total>0)) return toast("Escribe un total mayor a cero.");
+  if(docSel==="factura" && !/^\d{11}$/.test(cli)) return toast("Una factura necesita un RUC de 11 dígitos.");
+  const s = series.find(x=>x.tienda===tienda && x.tipo===docSel);
+  if(!s) return toast(`${tienda} no tiene serie de ${NOMBRE[docSel].toLowerCase()}. Regístrala en Series.`);
+  $("#cobrar").disabled = true;
+  const cod = correl(s.serie,s.sig); s.sig++; s.usados++; s.ultimo="hace un momento";
+  pintarSeries(s.serie);
+  const fila = {cod,tienda,cli,total,hora:hora(),estado:"enviando",nuevo:true,intentos:0};
+  const t = `<b class="num">${cod}</b> · ${soles(total)}`;
+  if(docSel==="nota_venta"){
+    fila.estado="interna"; emitidos.unshift(fila); pintarTablas();
+    pasos({titulo:t,p:[["Venta registrada","ok"],["Número reservado","ok"],["Nota interna: no se declara a SUNAT","ok"]]});
+    toast(`Nota de venta ${cod} lista`);
+  } else {
+    emitidos.unshift(fila); pintarTablas();
+    pasos({titulo:t,p:[["Venta registrada","ok"],["Número reservado","ok"],["Enviando a SUNAT…","en"]]});
+    await espera(1300);
+    if($("#caido").checked){
+      fila.estado="reintento"; fila.intentos=1; cola.unshift(fila);
+      pasos({titulo:t,p:[["Venta registrada","ok"],["Número reservado","ok"],["Lucode no respondió · quedó en la cola, se reintenta solo","mal"]]});
+      toast("Venta cobrada. El comprobante espera en la cola.");
+    } else {
+      fila.estado="aceptado";
+      pasos({titulo:t,p:[["Venta registrada","ok"],["Número reservado","ok"],["Aceptado por el sandbox de SUNAT (prueba)","ok"]]});
+      toast(`${cod} aceptado por SUNAT`);
+    }
+    pintarTablas();
+  }
+  $("#cobrar").disabled = false;
+}
+
+// Reintento periódico simulado: cada 6 s (en la app serían ~2 min por cron).
+setInterval(()=>{
+  if(!cola.length) return;
+  if($("#caido").checked){ cola.forEach(c=>c.intentos++); pintarTablas(); return; }
+  const c = cola.shift(); c.estado="aceptado"; pintarTablas(); toast(`${c.cod} aceptado en el reintento`);
+},6000);
+
+function actualizarSalud(){
+  const caido=$("#caido").checked;
+  $("#salud").classList.toggle("caida",caido);
+  $("#saludTxt").textContent = caido ? "Lucode no responde · lo pendiente espera en la cola" : "Sandbox de SUNAT responde · último envío hace 2 min";
+}
+
+function actualizarBoton(){
+  const v=parseFloat($("#sTotal").value.replace(",","."));
+  $("#cobrar").textContent = "Cobrar " + (v>0?soles(v):"");
+}
+
+// ---- modal «Nueva serie» ----
+function abrirModal(tiendaPref, tipoPref){
+  const v=document.createElement("div"); v.className="velo";
+  v.innerHTML=`<form class="hoja" id="fSerie" novalidate>
+    <h2>Nueva serie</h2>
+    <p class="ayuda">Boletas empiezan con B, facturas con F, notas de crédito con la letra del comprobante que corrigen. La nota de venta es interna y usa NV.</p>
+    <div class="fila">
+      <label class="campo">Tienda<select id="nTienda"><option>TRU</option><option>AQP</option><option>LIM</option></select></label>
+      <label class="campo">Tipo<select id="nTipo"><option value="boleta">Boleta</option><option value="factura">Factura</option><option value="nota_credito">Nota de crédito</option><option value="nota_venta">Nota de venta</option></select></label>
+    </div>
+    <div class="fila">
+      <label class="campo">Serie<input id="nSerie" maxlength="4" autocomplete="off"></label>
+      <label class="campo">Empieza en<input id="nDesde" class="num" value="1" inputmode="numeric"></label>
+    </div>
+    <div><div class="previa num" id="nPrevia">—</div><p class="error" id="nError"></p></div>
+    <div class="acciones"><button type="button" class="sec" id="nCancelar">Cancelar</button><button class="btn-nueva">Registrar serie</button></div>
+  </form>`;
+  document.body.append(v);
+  const f=v.querySelector("form");
+  if(tiendaPref) f.nTienda.value=tiendaPref;
+  if(tipoPref) f.nTipo.value=tipoPref;
+  const sugerir=()=>{ const t=f.nTipo.value; const n={TRU:"4",AQP:"5",LIM:"6"}[f.nTienda.value];
+    f.nSerie.value = t==="boleta"?`B00${n}`:t==="factura"?`F00${n}`:t==="nota_credito"?`BC0${n}`:`NV0${n}`; validar(); };
+  const validar=()=>{
+    const s=f.nSerie.value.toUpperCase(); f.nSerie.value=s; const t=f.nTipo.value; const d=parseInt(f.nDesde.value,10);
+    let err="";
+    if(t==="boleta"&&!/^B[A-Z0-9]{3}$/.test(s)) err="Una serie de boleta es B + 3 caracteres (ej. B004).";
+    else if(t==="factura"&&!/^F[A-Z0-9]{3}$/.test(s)) err="Una serie de factura es F + 3 caracteres (ej. F004).";
+    else if(t==="nota_credito"&&!/^[BF][A-Z0-9]{3}$/.test(s)) err="Empieza con B (corrige boletas) o F (corrige facturas).";
+    else if(t==="nota_venta"&&!/^NV[A-Z0-9]{2}$/.test(s)) err="Una nota de venta interna es NV + 2 caracteres.";
+    else if(series.some(x=>x.serie===s&&x.tipo===t)) err=`${s} ya está registrada.`;
+    else if(series.some(x=>x.tienda===f.nTienda.value&&x.tipo===t)) err=`${f.nTienda.value} ya tiene una serie de ${NOMBRE[t].toLowerCase()}.`;
+    else if(!(d>0)) err="Empieza en 1 o más.";
+    v.querySelector("#nError").textContent=err;
+    v.querySelector("#nPrevia").textContent = err? "—" : `Primer comprobante: ${correl(s,d)}`;
+    return !err;
+  };
+  f.nTienda.onchange=sugerir; f.nTipo.onchange=sugerir; f.nSerie.oninput=validar; f.nDesde.oninput=validar;
+  const cerrar=()=>v.remove();
+  v.querySelector("#nCancelar").onclick=cerrar;
+  v.addEventListener("click",e=>{if(e.target===v)cerrar();});
+  document.addEventListener("keydown",function esc(e){if(e.key==="Escape"){cerrar();document.removeEventListener("keydown",esc);}});
+  f.onsubmit=e=>{ e.preventDefault(); if(!validar())return;
+    const s={tienda:f.nTienda.value,tipo:f.nTipo.value,serie:f.nSerie.value,sig:parseInt(f.nDesde.value,10),usados:0,ultimo:null};
+    if(s.tienda==="LIM"){ toast("Serie registrada. LIM empezaría a emitir (en la maqueta solo se ven TRU y AQP)."); cerrar(); return; }
+    series.push(s); pintarSeries(s.serie); cerrar(); toast(`Serie ${s.serie} registrada`); };
+  sugerir(); f.nSerie.focus();
+}
+
+// ---- cableado ----
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
+  $("#vSeries").hidden=b.dataset.tab!=="series"; $("#vEmitidos").hidden=b.dataset.tab!=="emitidos"; $("#vCola").hidden=b.dataset.tab!=="cola";
+});
+$("#sDoc").onclick=e=>{ const b=e.target.closest("button"); if(!b)return; docSel=b.dataset.v;
+  $("#sDoc").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));
+  $("#lDoc").firstChild.textContent = docSel==="factura"?"RUC (obligatorio)":"DNI (opcional)"; };
+$("#cobrar").onclick=cobrar;
+$("#sTotal").oninput=actualizarBoton;
+$("#caido").onchange=actualizarSalud;
+$("#abrirNueva").onclick=()=>abrirModal();
+$("#listaSeries").onclick=e=>{ const t=e.target.closest("[data-registrar]"); if(t) abrirModal(t.dataset.registrar,"nota_credito"); };
+$("#tbCola").onclick=e=>{ const b=e.target.closest("[data-reintentar]"); if(!b)return;
+  if($("#caido").checked){ const c=cola.find(x=>x.cod===b.dataset.reintentar); c.intentos++; pintarTablas(); return toast("Lucode sigue sin responder."); }
+  const i=cola.findIndex(x=>x.cod===b.dataset.reintentar); const c=cola.splice(i,1)[0]; c.estado="aceptado"; pintarTablas(); toast(`${c.cod} aceptado por SUNAT`); };
+
+pintarSeries(); pintarTablas();
+</script>

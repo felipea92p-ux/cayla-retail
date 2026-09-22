@@ -64,11 +64,15 @@ const nextConfig: NextConfig = {
       { source: "/productos/tejidos", destination: "/productos/atributos?tipo=tejidos", permanent: false },
       { source: "/productos/patrones", destination: "/productos/atributos?tipo=patrones", permanent: false },
       { source: "/productos/etiquetas", destination: "/productos/atributos?tipo=etiquetas", permanent: false },
-      // Facturación en cuatro vistas (ADR-0124, 2026-09): los códigos de descuento pasaron a
-      // ser la cuarta pestaña de Facturación. `permanent: false` por la misma razón que los
-      // otros alias: un redirect permanente queda cacheado en cada navegador y no hay forma
-      // de limpiarlo del lado del cliente.
-      { source: "/vender/descuentos", destination: "/vender/facturacion/descuentos", permanent: false },
+      // Facturación pasó a llamarse Comprobantes (2026-09-22, D-60): el envío a SUNAT es automático y
+      // la pantalla es de series. Los enlaces viejos siguen llegando: la lista del mes es «Emitidos»,
+      // y el Resumen y los códigos de descuento (que ya no se muestran) caen en Series.
+      // `permanent: false` por la misma razón que los otros alias: un redirect permanente queda
+      // cacheado en cada navegador y no hay forma de limpiarlo del lado del cliente.
+      { source: "/vender/facturacion/comprobantes", destination: "/vender/comprobantes/emitidos", permanent: false },
+      { source: "/vender/facturacion/proformas", destination: "/vender/comprobantes/proformas", permanent: false },
+      { source: "/vender/facturacion/:resto*", destination: "/vender/comprobantes", permanent: false },
+      { source: "/vender/descuentos", destination: "/vender/comprobantes", permanent: false },
     ];
   },
 };

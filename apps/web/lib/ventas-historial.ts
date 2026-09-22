@@ -5,6 +5,7 @@ import {
   TAMANO_PAGINA,
   TOPE_TOTALES,
   aFila,
+  quienVendio,
   diaDeLima,
   limitesUTC,
   mezclaDePagos,
@@ -40,7 +41,7 @@ export * from "@/lib/ventas-historial-reglas";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
-const CAMPOS_LISTA = "id, created_at, estado, nota, usuario_id";
+const CAMPOS_LISTA = "id, created_at, estado, nota, usuario_id, asesora_id";
 const EMBEBIDOS_LISTA = `ubicacion:ubicaciones ( id, nombre ),
   cliente:clientas ( nombre ),
   venta_items ( cantidad, precio_unitario, descuento_unitario, subtotal,
@@ -84,14 +85,16 @@ function consulta(supabase: Supabase, select: string, f: FiltrosHistorial, conPr
   if (desdeISO) q = q.gte("created_at", desdeISO);
   if (hastaISO) q = q.lt("created_at", hastaISO);
   if (f.sedeId) q = q.eq("ubicacion_id", f.sedeId);
-  if (f.vendedorId) q = q.eq("usuario_id", f.vendedorId);
+  // «Vendedor X» = las que atendió X y, de las anteriores a la fila «Atendió» (sin vendedora), las que cobró su sesión.
+  // `vendedorId` ya pasó por `esUuid` en `filtrosDesdeParams`, así que no trae nada que rompa el filtro.
+  if (f.vendedorId) q = q.or(`asesora_id.eq.${f.vendedorId},and(asesora_id.is.null,usuario_id.eq.${f.vendedorId})`);
   if (f.estado !== "todas") q = q.eq("estado", f.estado);
   // D-54 (ADR-0159): dato ficticio de prueba, fuera de la vista por defecto — el toggle «Ver
   // datos de prueba» lo trae de vuelta.
   if (conPrueba && !f.incluirPrueba) q = q.eq("es_prueba", false);
   if (f.pago) q = q.eq("pago_filtro.metodo", f.pago);
-  // Una nota de crédito corrige un comprobante, no ampara la venta: solo boleta y factura cuentan.
-  if (f.comprobante !== "todos") q = q.in("comp_filtro.tipo", ["boleta", "factura"]);
+  // Una nota de crédito corrige un comprobante, no ampara la venta: cuentan boleta, factura y nota de venta (ADR-0164).
+  if (f.comprobante !== "todos") q = q.in("comp_filtro.tipo", ["boleta", "factura", "nota_venta"]);
   if (f.comprobante === "sin") q = q.is("comp_filtro", null);
   return q;
 }
@@ -132,7 +135,7 @@ export async function listarVentasHistorial(
 
   const hayMas = crudas.length > limite;
   const pagina = hayMas ? crudas.slice(0, limite) : crudas;
-  const nombres = await nombresDe(supabase, pagina.map((v) => v.usuario_id));
+  const nombres = await nombresDe(supabase, pagina.map(quienVendio));
   const ultima = pagina[pagina.length - 1];
   return {
     filas: pagina.map((v) => aFila(v, nombres)),
