@@ -3,9 +3,9 @@ import { hijosMenuCompras, hijosMenuProduccion, puedeVerCompras, puedeVerProducc
 
 const TIPOS = ["tienda", "almacen", "taller"] as const;
 
-describe("hijosMenuProduccion (ADR-0133, D-A revertida el 2026-09-20)", () => {
-  it("parado en el Taller, el líder ve además el Resumen, los Proveedores, Comprobantes y Por pagar de Producción", () => {
-    expect(hijosMenuProduccion({ esLider: true, ubicacionTipo: "taller" })).toEqual(["resumenProduccion", "ordenes", "insumos", "proveedoresProduccion", "comprobantesProduccion", "recibirProduccion", "porPagarProduccion"]);
+describe("hijosMenuProduccion (ADR-0133, D-A revertida el 2026-09-20; regrupado D-84/ADR-0155 el 2026-09-21)", () => {
+  it("parado en el Taller, el líder ve además el Resumen y, agrupadas, Proveedores/Comprobantes/Recibir/Por pagar bajo «abastecimiento»", () => {
+    expect(hijosMenuProduccion({ esLider: true, ubicacionTipo: "taller" })).toEqual(["resumenProduccion", "ordenes", "insumos", "abastecimiento"]);
   });
 
   it("parado en el Taller, quien trabaja ahí ve las pantallas de fabricación y Recibir, pero no Resumen, Proveedores, Comprobantes ni Por pagar (datos bancarios y montos)", () => {
