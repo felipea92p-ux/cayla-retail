@@ -107,7 +107,7 @@ Relevancia = (2·4 + 2 + 9 + 3) / 5 = **4.4** → Comodidad. Con #5–#6 sube a 
 - **DESCARTÉ:** una vista materializada de «ventas del día», porque con 3 tiendas y pocas decenas de ventas por hora no hay volumen que la justifique y añade otro estado que sincronizar.
 - **SE ROMPE SI:** Caja e Inicio calculan el «hoy» con zonas horarias distintas y una venta de las 23:50 en Lima aparece en el día equivocado en una de las dos.
 
-### #6 · [Reconstruir] Bandeja «Por atender» que se esconde si no hay nada
+### #6 · [Reconstruir] Bandeja «Por atender» que se esconde si no hay nada — ✅ PRIMERA ENTREGA 2026-09-21: traslados por atender (todos) y devoluciones por aprobar (solo líder). FALTA «bajo stock_minimo» (necesita E1 y decidir el umbral); sin commitear, sin ver en navegador
 - **Dónde:** `page.tsx` (bloque nuevo); `lib/traslados.ts:222` (`getTrasladosPorAtender`, ya calculado en el layout), devoluciones por aprobar, `productos.stock_minimo`.
 - **Por qué en este puesto:** convierte Inicio en lista de trabajo; el dato del badge «2» ya existe y hoy solo se ve como un puntito.
 - **Cómo lo verificas tú:** con un traslado `en_transito` hacia TRU, la bandeja lo muestra con enlace; sin pendientes, desaparece; con la consulta caída, dice «esta bandeja está incompleta».
@@ -146,7 +146,7 @@ Relevancia = (2·4 + 2 + 9 + 3) / 5 = **4.4** → Comodidad. Con #5–#6 sube a 
 - **Cómo lo verificas tú:** `pnpm test` incluye pruebas de los conteos (centinela excluida, apartado restado); el comentario obsoleto ya no está.
 - **Esfuerzo / dependencias:** M · mejor junto con #1–#3.
 
-### #12 · [Replantear] ¿Un mismo Inicio para todos?
+### #12 · [Replantear] ¿Un mismo Inicio para todos? — ✅ DECIDIDA 2026-09-21 por Felipe: opción A, Inicio mejorado y único para todos (los bloques nuevos se esconden según rol; el Inicio por rol se reabre cuando exista el menú del mostrador)
 - **Dónde:** `page.tsx` completa; `persona.rol`, `ubicacionTipo === 'taller'` (`persona-actual.ts`).
 - **Por qué en este puesto:** es la decisión de fondo; el resto mejora la pantalla actual. Decide Felipe (sección 8).
 - **Cómo lo verificas tú:** con una líder, un integrante y un usuario del Taller, cada uno aterriza en lo que hace.
@@ -158,7 +158,7 @@ Relevancia = (2·4 + 2 + 9 + 3) / 5 = **4.4** → Comodidad. Con #5–#6 sube a 
 ## 8 · Estrategia alternativa
 **A · Inicio actual mejorado (#1–#11).** Ganas: bajo riesgo, un diseño para todos, entrega en pasos verificables. Pagas: el integrante sigue dando un paso extra para vender.
 **B · Inicio por rol, o aterrizar en la tarea principal.** Integrante entra directo a `/vender`; líder a «Hoy» con «Por atender»; Taller a Producción. Ganas: cada persona empieza donde trabaja; menos que mantener. Pagas: hay que decidir qué ve cada rol (D-13/D-14 no lo cubren) y más pruebas por rol.
-Mi recomendación: A ahora (#1–#3, #7–#9), B cuando se decida el menú del mostrador. **Decide Felipe.**
+Mi recomendación: A ahora (#1–#3, #7–#9), B cuando se decida el menú del mostrador. **Decidió Felipe el 2026-09-21: A.** B se reabre con el menú del mostrador.
 
 ## 9 · Referentes de ERP y futuro
 Filtro: ¿le sirve a 3 tiendas y 1 taller hoy? *(De memoria, no verificado.)*

@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { tolerar } from "@/lib/resultado";
 import { listarMovimientos, type Movimiento } from "@/lib/movimientos-v2";
 import { ID_CARGO_ESPECIAL, ID_PRODUCTO_CARGO_ESPECIAL } from "@/lib/cargo-especial";
-import { primerAviso, sumarUnidades } from "@/lib/inicio-reglas";
+import { getTrasladosPorAtender } from "@/lib/traslados";
+import { armarPendientes, primerAviso, sumarUnidades, type PendienteInicio } from "@/lib/inicio-reglas";
 
 /** Contrato: dada una sede, devuelve las tres cifras de catálogo y la actividad reciente.
  *  NUNCA lanza: cada bloque falla por su cuenta. Una cifra que no se pudo leer llega como
@@ -61,4 +62,27 @@ export async function getResumenInicio(ubicacionId: string): Promise<ResumenInic
     aviso: primerAviso([totalProductos.fallo, totalVariantes.fallo, filasStock.fallo]),
     actividad,
   };
+}
+
+/** Contrato: la bandeja «Por atender» de una sede. NUNCA lanza; si una lectura cae, devuelve
+ *  `incompleta: true` en vez de esconderla (ver `armarPendientes`). Solo lectura. */
+export async function getPendientesInicio(ubicacionId: string, esLider: boolean): Promise<{ items: PendienteInicio[]; incompleta: boolean }> {
+  const supabase = await createClient();
+  const [traslados, devoluciones] = await Promise.all([
+    // Ya nunca lanza: devuelve null si falla (es también el número del menú).
+    getTrasladosPorAtender(ubicacionId, esLider),
+    // Solo la líder aprueba devoluciones: a una integrante no le aplica.
+    esLider
+      ? supabase
+          .from("devoluciones")
+          .select("id", { count: "exact", head: true })
+          .eq("ubicacion_id", ubicacionId)
+          .eq("estado", "pendiente")
+          .then(
+            (r) => (r.error ? null : (r.count ?? 0)),
+            () => null
+          )
+      : Promise.resolve(undefined),
+  ]);
+  return armarPendientes({ traslados, devoluciones });
 }

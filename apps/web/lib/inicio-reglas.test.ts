@@ -31,3 +31,30 @@ describe("primerAviso", () => {
     expect(primerAviso([null, null])).toBeNull();
   });
 });
+
+import { armarPendientes } from "./inicio-reglas";
+
+describe("armarPendientes (la bandeja «Por atender»)", () => {
+  it("sin nada pendiente y todo leído: vacía y completa (la bandeja se esconde)", () => {
+    expect(armarPendientes({ traslados: 0, devoluciones: 0 })).toEqual({ items: [], incompleta: false });
+  });
+  it("lista solo lo que espera, con su enlace y singular/plural", () => {
+    const r = armarPendientes({ traslados: 1, devoluciones: 3 });
+    expect(r.items.map((i) => i.clave)).toEqual(["traslados", "devoluciones"]);
+    expect(r.items[0].texto).toBe("1 traslado espera tu acción");
+    expect(r.items[1].texto).toBe("3 devoluciones por aprobar");
+    expect(r.items[1].href).toBe("/devoluciones");
+  });
+  it("una lectura caída NO esconde la bandeja: la marca incompleta", () => {
+    expect(armarPendientes({ traslados: null, devoluciones: 0 })).toEqual({ items: [], incompleta: true });
+  });
+  it("aunque una falle, lo que sí se leyó se muestra", () => {
+    const r = armarPendientes({ traslados: null, devoluciones: 2 });
+    expect(r.items.map((i) => i.clave)).toEqual(["devoluciones"]);
+    expect(r.incompleta).toBe(true);
+  });
+  it("a quien no aprueba devoluciones (undefined) no se le muestran ni cuentan como falla", () => {
+    expect(armarPendientes({ traslados: 2, devoluciones: undefined }).incompleta).toBe(false);
+    expect(armarPendientes({ traslados: 2, devoluciones: undefined }).items.map((i) => i.clave)).toEqual(["traslados"]);
+  });
+});

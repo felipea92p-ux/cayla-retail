@@ -2,14 +2,17 @@ import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { etiquetaActividad, fechaCorta, textoDelta } from "@/lib/movimientos-v2";
-import { getResumenInicio } from "@/lib/inicio";
+import { getPendientesInicio, getResumenInicio } from "@/lib/inicio";
 import { textoCifra } from "@/lib/inicio-reglas";
 
 // Inicio: qué hay hoy en la sede y a un toque de lo que se va a hacer. Las lecturas y sus
 // reglas viven en `lib/inicio.ts` / `lib/inicio-reglas.ts`; esta página solo las dibuja.
 export default async function InicioPage() {
   const persona = await requirePersonaActualV2();
-  const { productosActivos, variantesActivas, unidadesEnSede, aviso, actividad } = await getResumenInicio(persona.ubicacionId);
+  const [{ productosActivos, variantesActivas, unidadesEnSede, aviso, actividad }, pendientes] = await Promise.all([
+    getResumenInicio(persona.ubicacionId),
+    getPendientesInicio(persona.ubicacionId, persona.rol === "lider"),
+  ]);
   const movimientosRecientes = actividad.filas;
 
   return (
@@ -26,6 +29,23 @@ export default async function InicioPage() {
         <TarjetaSimple etiqueta="Unidades en tu sede" valor={textoCifra(unidadesEnSede)} />
       </div>
       {aviso && <p className="-mt-6 text-xs text-tinta/70">{aviso}</p>}
+
+      {(pendientes.items.length > 0 || pendientes.incompleta) && (
+        <div>
+          <p className="label-cayla mb-3 text-[11px] text-tinta/65">Por atender</p>
+          <div className="card-cayla divide-y divide-tinta/10">
+            {pendientes.items.map((p) => (
+              <Link key={p.clave} href={p.href} className="flex items-center justify-between px-5 py-3 text-sm text-tinta transition-colors hover:bg-papel hover:text-rojo">
+                <span>{p.texto}</span>
+                <span aria-hidden className="text-tinta/45">›</span>
+              </Link>
+            ))}
+            {pendientes.incompleta && (
+              <p className="px-5 py-3 text-sm text-tinta/70">Esta bandeja está incompleta: no se pudo leer parte de lo pendiente.</p>
+            )}
+          </div>
+        </div>
+      )}
 
       <div>
         <p className="label-cayla mb-3 text-[11px] text-tinta/65">Acciones</p>
