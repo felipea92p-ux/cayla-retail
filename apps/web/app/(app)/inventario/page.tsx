@@ -56,7 +56,8 @@ export default async function InventarioPage({
     getPrendasDanadasPendientes(ubicacionActivaId),
     vende ? getCoberturaPorVariante(ubicacionActivaId) : Promise.resolve(null),
     // Reservas para clientas (ADR-0141): solo donde se vende. Taller no aparta.
-    vende ? getApartadosAbiertos(ubicacionActivaId) : Promise.resolve([]),
+    // Una terminal libera cualquier apartado (Felipe, 2026-09-22, ADR-0162): `persona.terminal` lo dice.
+    vende ? getApartadosAbiertos(ubicacionActivaId, { esTerminal: persona.terminal !== null }) : Promise.resolve([]),
     // Rediseño 2026-09-22: costo/precio/categoría y el delta de 7 días para «Disponible total»,
     // «Ritmo de venta (7D)» de la tabla y el overlay de categorías — misma RPC que ya usaba la cobertura.
     getFilasSemanaDeSede(ubicacionActivaId),

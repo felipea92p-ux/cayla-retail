@@ -7,6 +7,9 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { campoEtiqueta, campoTexto, campoSelect, botonPrimario } from "@/components/ui/Modal";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Fase UI 1.1 (2026-09-12): sobre la RPC `transferir` de V2
 // (`supabase/migrations/0003_funciones.sql:286`), pedida por Felipe tras ver
@@ -81,6 +84,9 @@ export function MoverMercaderiaFormV2({
   ]);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<{ unidades: number; destino: string } | null>(null);
+  // Enviar un traslado saca stock del origen: pide Responsable (ADR-0161). La lista es la de turno en el ORIGEN,
+  // que es donde está parada quien envía.
+  const responsable = useResponsable({ ubicacionId: origenId, etiqueta: origenEtiqueta });
 
   function stockDe(varianteId: string): number {
     return variantes.find((v) => v.varianteId === varianteId)?.cantidad ?? 0;
@@ -140,6 +146,7 @@ export function MoverMercaderiaFormV2({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!responsable.listo) return;
     if (!destinoId) {
       avisar.error("Elige a qué ubicación se mueve la mercadería.", { enfocar: "mover-destino" });
       return;
@@ -158,15 +165,16 @@ export function MoverMercaderiaFormV2({
     setLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.rpc("iniciar_traslado", {
+    const { error } = await firmar(supabase.rpc("iniciar_traslado", {
       p_ubicacion_origen_id: origenId,
       p_ubicacion_destino_id: destinoId,
       p_items: validas.map((l) => ({ variante_id: l.varianteId, cantidad: l.cantidadNum })),
       p_fecha_estimada_llegada: new Date(etaLocal).toISOString(),
       p_nota: nota || undefined,
-    });
+    }), responsable.firma());
 
     setLoading(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "iniciar el traslado"));
       return;
@@ -302,8 +310,8 @@ export function MoverMercaderiaFormV2({
         </button>
       </div>
 
-
-      <button type="submit" disabled={loading} className={botonPrimario}>
+      <ComboResponsable control={responsable} deshabilitado={loading} />
+      <button type="submit" disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
         {loading ? "Moviendo…" : `Mover hacia ${destinos.find((d) => d.id === destinoId)?.nombre ?? "…"}`}
       </button>
     </form>

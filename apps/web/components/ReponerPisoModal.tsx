@@ -7,6 +7,9 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 /** Lo que el modal necesita de una prenda: sirve tanto a la fila de Existencias
  *  como a la de Resumen, que no comparten el resto de sus campos. */
 export type FilaParaReponer = {
@@ -47,9 +50,12 @@ export function ReponerPisoModal({
   const [cantidad, setCantidad] = useState(cantidadInicial && cantidadInicial > 0 ? String(Math.min(cantidadInicial, fila.almacen ?? cantidadInicial)) : "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Reponer mueve stock (almacén → piso): pide Responsable como toda acción que guarda en la tienda (ADR-0161).
+  const responsable = useResponsable();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!responsable.listo) return;
     const n = Number(cantidad);
     if (!Number.isInteger(n) || n <= 0) {
       setError("La cantidad debe ser un número entero mayor que cero.");
@@ -62,14 +68,15 @@ export function ReponerPisoModal({
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const { error: errorRpc } = await supabase.rpc("mover_interno", {
+    const { error: errorRpc } = await firmar(supabase.rpc("mover_interno", {
       p_ubicacion_id: ubicacionId,
       p_variante_id: fila.varianteId,
       p_cantidad: n,
       p_sububicacion_origen_id: sububicacionAlmacenId,
       p_sububicacion_destino_id: sububicacionPisoId,
-    });
+    }), responsable.firma());
     setLoading(false);
+    responsable.despues(errorRpc);
     if (errorRpc) {
       setError(traducirError(errorRpc, "reponer el piso"));
       return;
@@ -114,11 +121,20 @@ export function ReponerPisoModal({
             autoFocus
           />
 
+          <ComboResponsable control={responsable} deshabilitado={loading} />
+
           <div className="flex gap-2 pt-1">
             <Boton type="button" onClick={cerrar} className="flex-1">
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={loading} disabled={disponible === 0} className="flex-1">
+            <Boton
+              type="submit"
+              peso="primario"
+              cargando={loading}
+              disabled={disponible === 0 || !responsable.listo}
+              title={responsable.motivo ?? undefined}
+              className="flex-1"
+            >
               Confirmar
             </Boton>
           </div>
