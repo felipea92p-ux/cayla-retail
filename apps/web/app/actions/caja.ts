@@ -29,7 +29,7 @@ export async function getDetalleCierre(cajaId: string): Promise<EventoCaja[]> {
   const supabase = await createClient();
 
   const [ventasRes, movimientos, devolucionesRes, cambiosRes] = await Promise.all([
-    supabase.from("ventas").select("id, created_at, estado, usuario_id, vendedora_id").eq("caja_id", cajaId),
+    supabase.from("ventas").select("id, created_at, estado, usuario_id, asesora_id").eq("caja_id", cajaId),
     getMovimientosCaja(cajaId),
     supabase.from("devoluciones").select("id, aprobado_en, reembolso_monto, reembolso_metodo").eq("caja_id", cajaId),
     supabase.from("cambios").select("id, created_at, diferencia, metodo_pago_diferencia").eq("caja_id", cajaId),
@@ -41,7 +41,7 @@ export async function getDetalleCierre(cajaId: string): Promise<EventoCaja[]> {
   // getCajaAbierta()/getHistorialCierres() (personas vive en public, Dynamic;
   // PostgREST no embebe entre schemas). Un solo lote para las dos fuentes.
   const idsColaboradores = Array.from(
-    new Set([...filasVentas.map((v) => v.vendedora_id ?? v.usuario_id), ...movimientos.map((m) => m.usuarioId)].filter((v): v is string => v !== null))
+    new Set([...filasVentas.map((v) => v.asesora_id ?? v.usuario_id), ...movimientos.map((m) => m.usuarioId)].filter((v): v is string => v !== null))
   );
   const nombresColaboradores =
     idsColaboradores.length === 0
@@ -73,7 +73,7 @@ export async function getDetalleCierre(cajaId: string): Promise<EventoCaja[]> {
       unidades: items.reduce((a, i) => a + i.cantidad, 0),
       metodos: [...new Set(pagos.map((p) => p.metodo))],
       anulada: v.estado === "anulada",
-      colaboradorNombre: nombreColaborador.get(v.vendedora_id ?? v.usuario_id ?? "") ?? null,
+      colaboradorNombre: nombreColaborador.get(v.asesora_id ?? v.usuario_id ?? "") ?? null,
     });
   }
 

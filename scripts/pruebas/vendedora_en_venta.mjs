@@ -2,10 +2,10 @@
 /**
  * Pruebas de «quién vendió» contra el Postgres local — CAYLA V2.
  *
- * QUÉ PRUEBA. Que `registrar_venta` guarde a la vendedora (`ventas.vendedora_id`) SIN perder a la
- * sesión que cobró (`usuario_id`), que la valide contra la sede, y que las tres funciones nuevas
- * (`fn_vendedoras_de_sede`, `fn_candidatas_vendedora_de_sede`, `marcar_atiende_en_caja`) respeten
- * quién puede leer y escribir qué. Spec: docs/superpowers/specs/2026-09-21-vendedora-en-el-ticket-design.md.
+ * QUÉ PRUEBA. Que la venta guarde a quien atendió (`ventas.asesora_id`, parámetro `p_asesora_id` de
+ * `registrar_venta`, desde 20260922150000) SIN perder a la sesión que cobró (`usuario_id`), que «Ventas de
+ * hoy» la firme con quien atendió (20260922213700), que quede UNA sola versión de `registrar_venta`, y que
+ * la lectura de turno (`fn_asesoras_de_turno`) no rompa nada donde no hay asistencia de Dynamic. ADR-0161.
  *
  * CÓMO. Mismo patrón que `registrar_venta.mjs` (léelo primero si algo no se entiende): cada escenario
  * corre en su propia transacción con ROLLBACK, hablando con Postgres por `docker exec … psql`, y simula
@@ -50,14 +50,11 @@ ${sqlDespues}
 `;
 }
 
-/** Ids que casi todos los escenarios usan, y un estado limpio: este Postgres lo comparten varios
- *  worktrees y alguien pudo dejar marcas puestas a mano; dentro de la transacción no cuentan. */
+/** Ids que casi todos los escenarios usan. */
 const PERSONAS = `
 select id as p_felipe from public.personas where auth_user_id = '${FELIPE}' \\gset
 select id as p_mica from public.personas where auth_user_id = '${MICAELA}' \\gset
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
-select id as lima from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
-update retail.colaboradores set atiende_en_caja = false;
 `;
 
 /** Sede con piso/almacén, caja propia abierta y stock de sobra de BLU-EMMA-NEG-M (mismo fixture que
@@ -83,13 +80,13 @@ select retail.fn_aplicar_movimiento(:'mov1') as _d1 \\gset
 `;
 }
 
-/** Una venta de 1 prenda en `:'ubic'`; `vendedora` es una expresión psql (`:'p_mica'`) o null. Deja `:'venta_id'`. */
-function venta(vendedora) {
+/** Una venta de 1 prenda en `:'ubic'`; `asesora` es una expresión psql (`:'p_mica'`) o null. Deja `:'venta_id'`. */
+function venta(asesora) {
   return `select retail.registrar_venta(
   p_ubicacion_id => :'ubic',
   p_items => jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 0)),
   p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', (:'v1_precio')::numeric)),
-  p_token => gen_random_uuid()${vendedora ? `,\n  p_vendedora_id => ${vendedora}` : ""}
+  p_token => gen_random_uuid()${asesora ? `,\n  p_asesora_id => ${asesora}` : ""}
 ) as venta_id \\gset`;
 }
 
@@ -98,69 +95,7 @@ const exito = (nombre, sql, verificar) => CASOS.push({ nombre, tipo: "exito", sq
 const error = (nombre, sql, contiene) => CASOS.push({ nombre, tipo: "error", sql, contiene });
 
 // ---------------------------------------------------------------------------
-// El interruptor: quién lo cambia y a quién se le puede poner
-// ---------------------------------------------------------------------------
-
-error(
-  "una colaboradora no puede elegir quiénes atienden en caja (solo un líder)",
-  comoPersona(MICAELA, `${PERSONAS}select retail.marcar_atiende_en_caja(:'p_mica', true);\nrollback;\n`),
-  "Solo un líder puede elegir quiénes atienden en caja"
-);
-
-error(
-  "a un líder no se le puede marcar: solo a una colaboradora con sede",
-  comoPersona(FELIPE, `${PERSONAS}select retail.marcar_atiende_en_caja(:'p_felipe', true);\nrollback;\n`),
-  "Solo una colaboradora con acceso activo y sede asignada"
-);
-
-exito(
-  "una sede sin marcadas devuelve la fila vacía; al marcar a Micaela, aparece ella",
-  comoPersona(
-    FELIPE,
-    `${PERSONAS}select count(*) as antes from retail.fn_vendedoras_de_sede(:'tru') \\gset
-select retail.marcar_atiende_en_caja(:'p_mica', true) as _m \\gset
-select :'antes',
-  (select count(*) from retail.fn_vendedoras_de_sede(:'tru')),
-  (select persona_id::text from retail.fn_vendedoras_de_sede(:'tru') limit 1) = :'p_mica';
-rollback;
-`
-  ),
-  ([antes, despues, esElla]) => Number(antes) === 0 && Number(despues) === 1 && esElla === "t"
-);
-
-exito(
-  "la fila la lee una colaboradora (la RLS de colaboradores no la deja leer la tabla, la función sí) y no ve otras sedes",
-  comoPersona(
-    FELIPE,
-    `${PERSONAS}select retail.marcar_atiende_en_caja(:'p_mica', true) as _m \\gset
-select atiende_en_caja as candidata_para_lider from retail.fn_candidatas_vendedora_de_sede(:'tru') where persona_id = :'p_mica' \\gset
-set local request.jwt.claim.sub = '${MICAELA}';
-select :'candidata_para_lider',
-  (select count(*) from retail.fn_candidatas_vendedora_de_sede(:'tru')),
-  (select count(*) from retail.fn_vendedoras_de_sede(:'tru')),
-  (select count(*) from retail.fn_vendedoras_de_sede(:'lima'));
-rollback;
-`
-  ),
-  ([paraLider, candidatasParaColab, suSede, otraSede]) =>
-    paraLider === "t" && Number(candidatasParaColab) === 0 && Number(suSede) === 1 && Number(otraSede) === 0
-);
-
-exito(
-  "cambiarla de sede apaga la marca (no aparece sola en la otra tienda)",
-  comoPersona(
-    FELIPE,
-    `${PERSONAS}select retail.marcar_atiende_en_caja(:'p_mica', true) as _m \\gset
-select retail.cambiar_ubicacion_colaborador(:'p_mica', :'lima') as _c \\gset
-select atiende_en_caja from retail.colaboradores where persona_id = :'p_mica';
-rollback;
-`
-  ),
-  ([marca]) => marca === "f"
-);
-
-// ---------------------------------------------------------------------------
-// registrar_venta: guarda a la vendedora Y a la sesión, y la valida
+// registrar_venta: guarda a quien atendió Y a la sesión
 // ---------------------------------------------------------------------------
 
 exito(
@@ -169,11 +104,11 @@ exito(
     FELIPE,
     `${PERSONAS}${fixture()}
 ${venta(":'p_mica'")}
-select vendedora_id = :'p_mica', usuario_id = :'p_felipe' from retail.ventas where id = :'venta_id';
+select asesora_id = :'p_mica', usuario_id = :'p_felipe' from retail.ventas where id = :'venta_id';
 rollback;
 `
   ),
-  ([vendedora, sesion]) => vendedora === "t" && sesion === "t"
+  ([asesora, sesion]) => asesora === "t" && sesion === "t"
 );
 
 exito(
@@ -183,36 +118,24 @@ exito(
     `${PERSONAS}${fixture()}
 set local request.jwt.claim.sub = '${MICAELA}';
 ${venta(":'p_mica'")}
-select vendedora_id = :'p_mica', usuario_id = :'p_mica' from retail.ventas where id = :'venta_id';
+select asesora_id = :'p_mica', usuario_id = :'p_mica' from retail.ventas where id = :'venta_id';
 rollback;
 `
   ),
-  ([vendedora, sesion]) => vendedora === "t" && sesion === "t"
+  ([asesora, sesion]) => asesora === "t" && sesion === "t"
 );
 
 exito(
-  "sin vendedora la venta sigue igual: equipos sin recargar y cola offline vieja mandan null",
+  "sin quien atendió la venta sigue igual: la fila vacía y la cola offline vieja no la mandan",
   comoPersona(
     FELIPE,
     `${PERSONAS}${fixture()}
 ${venta(null)}
-select vendedora_id is null, usuario_id = :'p_felipe' from retail.ventas where id = :'venta_id';
+select asesora_id is null, usuario_id = :'p_felipe' from retail.ventas where id = :'venta_id';
 rollback;
 `
   ),
-  ([sinVendedora, sesion]) => sinVendedora === "t" && sesion === "t"
-);
-
-error(
-  "una vendedora de otra sede se rechaza (Micaela es de Trujillo, la venta es en Lima)",
-  comoPersona(FELIPE, `${PERSONAS}${fixture({ ubicacionNombre: "Tienda Lima" })}\n${venta(":'p_mica'")}\nrollback;\n`),
-  "venta_vendedora_no_es_de_la_sede"
-);
-
-error(
-  "un líder no puede figurar como vendedora (no tiene sede asignada)",
-  comoPersona(FELIPE, `${PERSONAS}${fixture()}\n${venta(":'p_felipe'")}\nrollback;\n`),
-  "venta_vendedora_no_es_de_la_sede"
+  ([sinAsesora, sesion]) => sinAsesora === "t" && sesion === "t"
 );
 
 exito(
@@ -222,7 +145,7 @@ exito(
     `${PERSONAS}${fixture()}
 select retail.suspender_colaborador(:'p_mica') as _s \\gset
 ${venta(":'p_mica'")}
-select vendedora_id = :'p_mica' from retail.ventas where id = :'venta_id';
+select asesora_id = :'p_mica' from retail.ventas where id = :'venta_id';
 rollback;
 `
   ),
@@ -256,6 +179,14 @@ where n.nspname = 'retail' and p.proname = 'registrar_venta';
 rollback;
 `,
   ([cuantas, permisosIguales]) => Number(cuantas) === 1 && permisosIguales === "t"
+);
+
+exito(
+  "la lectura de turno no rompe donde no hay asistencia de Dynamic (local: tabla vacía, sin error)",
+  comoPersona(FELIPE, `${PERSONAS}select count(*) from retail.fn_asesoras_de_turno(:'tru');
+rollback;
+`),
+  ([filas]) => Number(filas) >= 0
 );
 
 // ---------------------------------------------------------------------------

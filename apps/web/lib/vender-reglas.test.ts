@@ -25,6 +25,7 @@ import {
   vueltoDe,
   vendedoraDeLaVenta,
   vendedoraPendiente,
+  vendedorasDeTurno,
   type CampanaLinea,
   type DetalleDescuento,
   type PagoAplicado,
@@ -614,8 +615,7 @@ describe("pasoDelCobro — cuál es el siguiente paso que la pantalla resalta", 
 
 // «¿Quién atendió a la clienta?» — la fila de chips del ticket. Con UN solo equipo de caja en la tienda, la
 // sesión no dice quién vendió; la fila lo pregunta, y estas reglas deciden a quién se atribuye la venta y
-// cuándo frenan el cobro. Con ninguna marcada en la sede NO se frena nada: si no, el día del despliegue
-// nadie podría cobrar hasta que un líder marque a las colaboradoras.
+// cuándo frenan el cobro. Con nadie en la fila NO se frena nada: la venta sale a nombre de la sesión.
 
 const MARIA: Vendedora = { personaId: "p-maria", nombre: "María Pérez Soto" };
 const ROSA: Vendedora = { personaId: "p-rosa", nombre: "Rosa Díaz Luna" };
@@ -681,5 +681,36 @@ describe("motivoBloqueoCobro — quién atendió", () => {
   it("con la vendedora elegida (o sin la regla) no bloquea", () => {
     expect(motivoBloqueoCobro({ ...listo, vendedoraFalta: false })).toBeNull();
     expect(motivoBloqueoCobro(listo)).toBeNull();
+  });
+});
+
+describe("vendedorasDeTurno — quién sale en la fila según la asistencia de Dynamic", () => {
+  const fila = (id: string, estado: string, deEstaSede = true) => ({ persona_id: id, nombre_corto: id, estado_ahora: estado, es_de_esta_sede: deEstaSede });
+  const ids = (r: { vendedoras: Vendedora[] }) => r.vendedoras.map((v) => v.personaId);
+
+  it("solo las presentes: en pausa y las que ya salieron no atienden ahora", () => {
+    const r = vendedorasDeTurno([fila("ana", "presente"), fila("bea", "en_pausa"), fila("cata", "salio"), fila("dora", "programada")]);
+    expect(ids(r)).toEqual(["ana"]);
+    expect(r.sinAsistencia).toBe(false);
+  });
+
+  it("una de otra sede que marcó entrada aquí también atiende", () => {
+    expect(ids(vendedorasDeTurno([fila("ana", "presente"), fila("eva", "presente", false)]))).toEqual(["ana", "eva"]);
+  });
+
+  it("si nadie marcó nada hoy, salen todas las de la sede con aviso (un olvido no frena la atribución)", () => {
+    const r = vendedorasDeTurno([fila("ana", "programada"), fila("bea", "programada"), fila("eva", "programada", false)]);
+    expect(ids(r)).toEqual(["ana", "bea"]);
+    expect(r.sinAsistencia).toBe(true);
+  });
+
+  it("si alguien marcó pero ahora no hay nadie presente, la fila queda vacía y sin aviso", () => {
+    const r = vendedorasDeTurno([fila("ana", "en_pausa"), fila("bea", "programada")]);
+    expect(r.vendedoras).toEqual([]);
+    expect(r.sinAsistencia).toBe(false);
+  });
+
+  it("sin filas (Dynamic no respondió o la sede no está enlazada) no hay a quién ofrecer", () => {
+    expect(vendedorasDeTurno([])).toEqual({ vendedoras: [], sinAsistencia: false });
   });
 });

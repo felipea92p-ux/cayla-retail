@@ -285,7 +285,7 @@ export async function getVentasRecientes(
       .from("venta_items")
       .select(
         `id, venta_id, variante_id, cantidad, precio_unitario, descuento_unitario,
-         venta:ventas!inner ( ubicacion_id, created_at, usuario_id, vendedora_id, estado, ubicacion:ubicaciones ( nombre ) ),
+         venta:ventas!inner ( ubicacion_id, created_at, usuario_id, asesora_id, estado, ubicacion:ubicaciones ( nombre ) ),
          variante:variantes ( sku, codigo, color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex ),
            producto:productos ( id, referencia, producto_fotos ( url, color_codigo ) ) )`
       )
@@ -301,7 +301,7 @@ export async function getVentasRecientes(
     );
 
   // Quién vendió: quien atendió y, si no se eligió a nadie, la sesión que cobró.
-  const quienVendio = (v: { vendedora_id: string | null; usuario_id: string | null } | null) => v?.vendedora_id ?? v?.usuario_id ?? null;
+  const quienVendio = (v: { asesora_id: string | null; usuario_id: string | null } | null) => v?.asesora_id ?? v?.usuario_id ?? null;
   const ids = filas.map((f) => f.id);
   const idsVendedores = Array.from(new Set(filas.map((f) => quienVendio(f.venta)).filter((v): v is string => !!v)));
   const [cambiosRes, devolucionesRes, comprobantesRes, nombresRes] = await Promise.all([

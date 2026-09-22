@@ -41,7 +41,7 @@ export * from "@/lib/ventas-historial-reglas";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
-const CAMPOS_LISTA = "id, created_at, estado, nota, usuario_id, vendedora_id";
+const CAMPOS_LISTA = "id, created_at, estado, nota, usuario_id, asesora_id";
 const EMBEBIDOS_LISTA = `ubicacion:ubicaciones ( id, nombre ),
   cliente:clientas ( nombre ),
   venta_items ( cantidad, precio_unitario, descuento_unitario, subtotal,
@@ -87,7 +87,7 @@ function consulta(supabase: Supabase, select: string, f: FiltrosHistorial, conPr
   if (f.sedeId) q = q.eq("ubicacion_id", f.sedeId);
   // «Vendedor X» = las que atendió X y, de las anteriores a la fila «Atendió» (sin vendedora), las que cobró su sesión.
   // `vendedorId` ya pasó por `esUuid` en `filtrosDesdeParams`, así que no trae nada que rompa el filtro.
-  if (f.vendedorId) q = q.or(`vendedora_id.eq.${f.vendedorId},and(vendedora_id.is.null,usuario_id.eq.${f.vendedorId})`);
+  if (f.vendedorId) q = q.or(`asesora_id.eq.${f.vendedorId},and(asesora_id.is.null,usuario_id.eq.${f.vendedorId})`);
   if (f.estado !== "todas") q = q.eq("estado", f.estado);
   // D-54 (ADR-0159): dato ficticio de prueba, fuera de la vista por defecto — el toggle «Ver
   // datos de prueba» lo trae de vuelta.

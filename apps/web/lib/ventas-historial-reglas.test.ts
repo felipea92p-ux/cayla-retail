@@ -245,8 +245,8 @@ describe("aFila", () => {
       [VENDEDORA, "Micaela Ríos"],
       [ATENDIO, "Rosa Díaz"],
     ]);
-    expect(aFila(venta({ vendedora_id: ATENDIO }), nombres).vendedor).toBe("Rosa Díaz");
-    expect(aFila(venta({ vendedora_id: null }), nombres).vendedor).toBe("Micaela Ríos");
+    expect(aFila(venta({ asesora_id: ATENDIO }), nombres).vendedor).toBe("Rosa Díaz");
+    expect(aFila(venta({ asesora_id: null }), nombres).vendedor).toBe("Micaela Ríos");
     expect(aFila(venta(), nombres).vendedor).toBe("Micaela Ríos");
   });
 

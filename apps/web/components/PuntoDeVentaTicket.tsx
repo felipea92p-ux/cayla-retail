@@ -190,8 +190,8 @@ type Props = {
   vendedoraId: string | null;
   onVendedora: (personaId: string) => void;
   vendedorasNoCargaron: boolean;
-  /** Solo un líder la recibe: abre el modal «¿Quiénes atienden en caja?». */
-  onElegirQuienes?: () => void;
+  /** Nadie marcó asistencia hoy en la tienda: la fila ofrece a todas las de la sede y lo dice. */
+  vendedorasSinAsistencia: boolean;
   // Pago mixto — una fila por medio; `restante` y `vuelto` ya derivados en el padre
   pagos: PagoAplicado[];
   restante: number;
@@ -261,7 +261,7 @@ export function PuntoDeVentaTicket({
   vendedoraId,
   onVendedora,
   vendedorasNoCargaron,
-  onElegirQuienes,
+  vendedorasSinAsistencia,
   pagos,
   restante,
   vuelto,
@@ -457,7 +457,7 @@ export function PuntoDeVentaTicket({
           onElegir={onVendedora}
           noCargaron={vendedorasNoCargaron}
           deshabilitada={bloqueado}
-          onElegirQuienes={onElegirQuienes}
+          sinAsistencia={vendedorasSinAsistencia}
         />
       )}
 

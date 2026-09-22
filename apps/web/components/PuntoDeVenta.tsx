@@ -36,8 +36,6 @@ import {
   type DetalleDescuento,
   type MomentoTicket,
   type PagoAplicado,
-  type CandidataVendedora,
-  type Vendedora,
 } from "@/lib/vender-reglas";
 import { borrar, claveLocal, guardar, leer } from "@/lib/almacen-local";
 import { carritoPasaElUmbral, conStockComprometidoDescontado, type ParamsRegistrarVenta, type VentaEncolada } from "@/lib/ventas-offline";
@@ -53,7 +51,7 @@ import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { armarRecibo, textoNumeroRecibo, type ReciboVenta } from "@/lib/recibo-reglas";
 import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
-import { ElegirVendedorasModal } from "@/components/ElegirVendedorasModal";
+import { useVendedorasDeTurno } from "@/lib/useVendedorasDeTurno";
 
 /**
  * "Cargo especial" (migración `..._cargo_especial_pos.sql`): variante centinela para
@@ -192,17 +190,10 @@ type Props = {
   /** Las campañas de hoy no se pudieron leer: se vende igual, pero una prenda en campaña
    *  se rechazaría al cobrar — hay que avisarlo antes, no descubrirlo con la clienta. */
   campanasNoCargaron?: boolean;
-  /** Las colaboradoras que atienden en caja en esta sede (`fn_vendedoras_de_sede`). Ninguna = la sede aún no eligió
-   *  quiénes: se vende como antes, a nombre de la sesión. Una sola = es ella, sin tocar nada. */
-  vendedoras: Vendedora[];
-  /** La lectura de arriba falló (no es «la función aún no existe»): se vende igual, pero a nombre de la sesión. */
-  vendedorasNoCargaron?: boolean;
-  /** Todas las colaboradoras de la sede con su interruptor; solo llega llena si quien mira es líder. */
-  candidatas: CandidataVendedora[];
   ventasHoyNode: ReactNode;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, variantes, campanasNoCargaron = false, vendedoras, vendedorasNoCargaron = false, candidatas, ventasHoyNode }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, variantes, campanasNoCargaron = false, ventasHoyNode }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -245,7 +236,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // Quién atendió a la clienta (la fila de chips del ticket). `null` = todavía no se tocó ninguna.
   const [vendedoraElegida, setVendedoraElegida] = useState<string | null>(null);
   // El modal «¿Quiénes atienden en caja?» (solo un líder llega a abrirlo).
-  const [eligiendoQuienes, setEligiendoQuienes] = useState(false);
+  // Quién atendió: las que marcaron entrada hoy en Dynamic, releídas cada minuto (ADR-0161). Ninguna = se vende
+  // como antes, a nombre de la sesión; una sola = es ella, sin tocar nada.
+  const { vendedoras, sinAsistencia: vendedorasSinAsistencia, noCargaron: vendedorasNoCargaron } = useVendedorasDeTurno(ubicacionId);
   // Tickets en espera de ESTA sede. Arranca vacío a propósito y se carga después de
   // montar (efecto más abajo): el servidor no tiene localStorage, y leerlo durante el
   // render dejaría el HTML del servidor distinto del primero del navegador (hidratación).
@@ -316,7 +309,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const modalCerrarVisible = modalCaja === "cerrar" && cajaId !== null;
   // Los dos efectos de foco de abajo se apagan con un modal abierto: el modal es dueño
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`).
-  const hayModal = manualAbierto || modalAbrirVisible || modalCerrarVisible || ok !== null || eligiendoQuienes;
+  const hayModal = manualAbierto || modalAbrirVisible || modalCerrarVisible || ok !== null;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -813,7 +806,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       p_codigo_descuento: codigoDescuento.trim() || undefined,
       p_nota: nota.trim() || undefined,
       // Solo viaja si hay a quién atribuirla: sin ella la clave ni aparece y la base la deja vacía.
-      p_vendedora_id: vendedoraId ?? undefined,
+      p_asesora_id: vendedoraId ?? undefined,
     };
 
     const supabase = createClient();
@@ -1080,7 +1073,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           vendedoraId={vendedoraId}
           onVendedora={setVendedoraElegida}
           vendedorasNoCargaron={vendedorasNoCargaron}
-          onElegirQuienes={esLider ? () => setEligiendoQuienes(true) : undefined}
+          vendedorasSinAsistencia={vendedorasSinAsistencia}
         />
       </div>
 
@@ -1159,14 +1152,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       )}
 
       {ok && <VentaRegistradaModal ok={ok} ubicacionEtiqueta={ubicacionEtiqueta} onClose={cerrarVentaRegistrada} alCerrarEnfocar={buscador} />}
-      {eligiendoQuienes && (
-        <ElegirVendedorasModal
-          candidatas={candidatas}
-          ubicacionEtiqueta={ubicacionEtiqueta}
-          onClose={() => setEligiendoQuienes(false)}
-          alCerrarEnfocar={buscador}
-        />
-      )}
     </div>
   );
 }

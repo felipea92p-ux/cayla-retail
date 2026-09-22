@@ -9,20 +9,22 @@ type Props = {
   /** La lectura falló: la venta saldrá a nombre de la sesión y hay que decirlo. */
   noCargaron: boolean;
   deshabilitada: boolean;
-  /** Solo un líder la recibe: abre el modal para elegir quiénes atienden. */
-  onElegirQuienes?: () => void;
+  /** Nadie marcó asistencia hoy en la tienda: la fila trae a todas las de la sede, y se dice. */
+  sinAsistencia: boolean;
 };
 
 /**
  * «¿Quién atendió a la clienta?» — la fila de chips arriba del ticket. Un toque, sin desplegable: en una
  * tienda con varias colaboradoras y UN equipo de caja, la sesión no dice quién vendió. Sin estado ni hooks:
- * la elección vive en `PuntoDeVenta`, que la manda a `registrar_venta`.
+ * la elección vive en `PuntoDeVenta`, que la manda a `registrar_venta` (`p_asesora_id`). Quiénes salen lo decide
+ * la asistencia de Dynamic (`vendedorasDeTurno`, ADR-0161).
  *
- *  · 2 o más marcadas: los chips, SIN ninguna preseleccionada (el silencio no atribuye la venta a nadie).
- *  · Ninguna o una: sin chips. Solo el líder ve el enlace para elegir quiénes atienden.
+ *  · 2 o más de turno: los chips, SIN ninguna preseleccionada (el silencio no atribuye la venta a nadie).
+ *  · Una: «Atiende X», sin chips. Ninguna: nada que mostrar, la venta sale a nombre de la sesión.
+ *  · Nadie marcó asistencia hoy: salen todas las de la sede, con el aviso.
  *  · La lectura falló: se dice, porque esa venta saldrá a nombre de la sesión.
  */
-export function VendedorasFila({ vendedoras, elegidaId, onElegir, noCargaron, deshabilitada, onElegirQuienes }: Props) {
+export function VendedorasFila({ vendedoras, elegidaId, onElegir, noCargaron, deshabilitada, sinAsistencia }: Props) {
   if (noCargaron) {
     return (
       <p role="status" className="border-b border-sand bg-ambar/10 px-5 py-2 text-[11px] text-ambar-profundo">
@@ -30,27 +32,16 @@ export function VendedorasFila({ vendedoras, elegidaId, onElegir, noCargaron, de
       </p>
     );
   }
+  if (vendedoras.length === 0) return null;
   const conChips = vendedoras.length >= 2;
-  if (!conChips && !onElegirQuienes) return null;
 
   const cortos = nombresCortos(vendedoras.map((v) => v.nombre));
   return (
     <div className="border-b border-sand px-5 py-3">
-      <div className="flex items-center justify-between gap-3">
-        <p className="label-cayla text-[11px] text-tinta/60">
-          {conChips ? "Atendió" : vendedoras.length === 1 ? `Atiende ${cortos.get(vendedoras[0].nombre) ?? ""}` : "Nadie marcada para atender en caja"}
-        </p>
-        {onElegirQuienes && (
-          <button
-            type="button"
-            onClick={onElegirQuienes}
-            disabled={deshabilitada}
-            className="label-cayla text-[11px] text-tinta/70 underline-offset-2 transition-colors hover:text-rojo hover:underline"
-          >
-            {vendedoras.length === 0 ? "Elegir quiénes atienden" : "Cambiar quiénes atienden"}
-          </button>
-        )}
-      </div>
+      <p className="label-cayla text-[11px] text-tinta/60">
+        {conChips ? "Atendió" : `Atiende ${cortos.get(vendedoras[0].nombre) ?? ""}`}
+      </p>
+      {sinAsistencia && <p className="mt-1 text-[11px] text-ambar-profundo">Nadie marcó asistencia hoy: se muestran todas las de la sede.</p>}
       {conChips && (
         <div role="group" aria-label="¿Quién atendió a la clienta?" className="mt-2 flex flex-wrap gap-1.5">
           {vendedoras.map((v) => {
@@ -73,7 +64,6 @@ export function VendedorasFila({ vendedoras, elegidaId, onElegir, noCargaron, de
           })}
         </div>
       )}
-      {vendedoras.length === 0 && <p className="mt-1 text-[11px] text-tinta/60">Mientras tanto, las ventas salen a nombre de esta sesión.</p>}
     </div>
   );
 }
