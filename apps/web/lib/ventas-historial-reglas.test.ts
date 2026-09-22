@@ -3,13 +3,16 @@ import {
   aFila,
   agruparPorDia,
   diaDeLima,
+  diasEntre,
   elegirComprobante,
   filtrosDesdeParams,
   limitesUTC,
   agruparEnSemanas,
   mediaMovil,
   mezclaDePagos,
+  nombreDeProducto,
   pulsoDeVentas,
+  textoPendiente,
   ventanaDeSuavizado,
   piezasDeVenta,
   resumir,
@@ -174,7 +177,7 @@ describe("elegirComprobante", () => {
   });
 
   it("da el número con el formato de siempre", () => {
-    expect(elegirComprobante([c({})])).toEqual({ tipo: "boleta", numero: "B001-000010", estado: "aceptado" });
+    expect(elegirComprobante([c({})])).toEqual({ tipo: "boleta", numero: "B001-000010", estado: "aceptado", creadoEn: "2026-09-19T17:06:00+00:00" });
   });
 
   it("una nota de crédito no ampara la venta: no cuenta como comprobante", () => {
@@ -341,7 +344,7 @@ describe("piezasDeVenta — lo que hace falta para dibujar cada prenda", () => {
 
   it("toma la foto del COLOR vendido, no la de otro color del mismo producto", () => {
     expect(piezasDeVenta([item({ variante: conFotos("NEG") })])).toEqual([
-      { referencia: "Blusa Emma", detalle: "M · Negro", cantidad: 1, fotoUrl: "https://x/negro.jpg", colorHex: "#111111" },
+      { referencia: "Blusa Emma", nombre: "Blusa Emma", detalle: "M · Negro", cantidad: 1, fotoUrl: "https://x/negro.jpg", colorHex: "#111111" },
     ]);
   });
 
@@ -352,12 +355,12 @@ describe("piezasDeVenta — lo que hace falta para dibujar cada prenda", () => {
   });
 
   it("una línea sin variante no rompe", () => {
-    expect(piezasDeVenta([item({ variante: null })])).toEqual([{ referencia: "Prenda", detalle: "", cantidad: 1, fotoUrl: null, colorHex: null }]);
+    expect(piezasDeVenta([item({ variante: null })])).toEqual([{ referencia: "Prenda", nombre: "Prenda", detalle: "", cantidad: 1, fotoUrl: null, colorHex: null }]);
   });
 });
 
 describe("títulos de una venta", () => {
-  const pz = (referencia: string, detalle = "M · Negro", cantidad = 1) => ({ referencia, detalle, cantidad, fotoUrl: null, colorHex: null });
+  const pz = (referencia: string, detalle = "M · Negro", cantidad = 1) => ({ referencia, nombre: referencia, detalle, cantidad, fotoUrl: null, colorHex: null });
 
   it("el título son solo los nombres; más de dos se resumen", () => {
     expect(titulosDePrendas([pz("Blusa Emma")])).toBe("Blusa Emma");
@@ -429,5 +432,65 @@ describe("agruparEnSemanas", () => {
       { fecha: "2026-09-14", ventas: 3, total: 15.5 },
       { fecha: "2026-09-21", ventas: 1, total: 7 },
     ]);
+  });
+});
+
+describe("nombreDeProducto — la descripción manda, la referencia es el respaldo", () => {
+  it("usa la descripción cuando existe", () => {
+    expect(nombreDeProducto({ referencia: "BLU-001", descripcion: "Blusa Emma" })).toBe("Blusa Emma");
+  });
+
+  it("sin descripción (o vacía) cae a la referencia", () => {
+    expect(nombreDeProducto({ referencia: "CHO-001", descripcion: null })).toBe("CHO-001");
+    expect(nombreDeProducto({ referencia: "CHO-001", descripcion: "  " })).toBe("CHO-001");
+  });
+
+  it("sin producto no rompe", () => {
+    expect(nombreDeProducto(null)).toBe("Prenda");
+  });
+
+  it("el título de la venta usa el nombre, no el código", () => {
+    const [p] = piezasDeVenta([item({ variante: { talla: null, color: null, producto: { referencia: "BLU-001", descripcion: "Blusa Emma" } } })]);
+    expect(p.nombre).toBe("Blusa Emma");
+    expect(p.referencia).toBe("BLU-001");
+  });
+});
+
+describe("textoPendiente — cuánto lleva un comprobante sin transmitirse", () => {
+  const pendiente = { estado: "pendiente" as const, creadoEn: "2026-09-14T21:34:00+00:00" };
+
+  it("dice los días desde el día de Lima en que se emitió", () => {
+    expect(textoPendiente(pendiente, "2026-09-21")).toBe("Pendiente hace 7 días");
+    expect(textoPendiente(pendiente, "2026-09-15")).toBe("Pendiente hace 1 día");
+  });
+
+  it("del mismo día no dice nada: queda el rótulo de siempre", () => {
+    expect(textoPendiente(pendiente, "2026-09-14")).toBeNull();
+  });
+
+  it("solo el pendiente lleva antigüedad, no el aceptado ni el enviado", () => {
+    expect(textoPendiente({ ...pendiente, estado: "aceptado" }, "2026-09-21")).toBeNull();
+    expect(textoPendiente({ ...pendiente, estado: "enviado" }, "2026-09-21")).toBeNull();
+  });
+
+  it("una venta de las 9 p. m. de Lima cuenta como ese día, no como el siguiente en UTC", () => {
+    expect(textoPendiente({ estado: "pendiente", creadoEn: "2026-09-15T02:30:00+00:00" }, "2026-09-14")).toBeNull();
+    expect(textoPendiente({ estado: "pendiente", creadoEn: "2026-09-15T02:30:00+00:00" }, "2026-09-15")).toBe("Pendiente hace 1 día");
+  });
+});
+
+describe("diasEntre", () => {
+  it("cuenta días de calendario y nunca da negativo", () => {
+    expect(diasEntre("2026-09-14", "2026-09-21")).toBe(7);
+    expect(diasEntre("2026-08-30", "2026-09-02")).toBe(3);
+    expect(diasEntre("2026-09-21", "2026-09-14")).toBe(0);
+  });
+});
+
+describe("filtrosDesdeParams — comprobante pendiente", () => {
+  it("acepta comp=pendiente y descarta lo demás", () => {
+    const ctx = { esLider: true, sedesIds: [] as string[], hoy: "2026-09-21" };
+    expect(filtrosDesdeParams({ comp: "pendiente" }, ctx).comprobante).toBe("pendiente");
+    expect(filtrosDesdeParams({ comp: "cualquier cosa" }, ctx).comprobante).toBe("todos");
   });
 });
