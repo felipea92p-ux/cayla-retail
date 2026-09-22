@@ -1,7 +1,7 @@
 # ADR-0151 — Compras: cada tienda compra, ve y paga lo suyo (compradores por tienda)
 
 **Fecha:** 2026-09-21
-**Estado:** **Aceptado el 2026-09-21** (seis rondas). Se construye por fases: F1 y F2 hechas en local, F3 en curso. Nada de esto está en producción todavía.
+**Estado:** **Aceptado el 2026-09-21** (seis rondas). Se construye por fases: F1, F2 y F3 hechas en local. Nada de esto está en producción todavía.
 **Decide:** Felipe, el 2026-09-21 (respuestas en «Lo que dijo el negocio»). Arquitectura: este documento.
 **Numeración:** se escribió como 0145, pero `origin/main` ya tenía un 0145 (colaboradores). Se renumeró a 0150 y ese número también lo tomó `docs/adr/0150-roles-y-permisos-a-medida.md` en `main`; queda **0151**. Los commits `7b232583`, `db93cdab` y `0d908ea2` (rama `claude/aviso-cambio-de-sede`) lo nombran 0145. Renumerar de nuevo al subir si otro toma el 0150 (ver ADR-0139, «Historia del número»).
 **Refina** ADR-0075 (lectura por sede), ADR-0126 (el dinero de Compras es solo del líder) y ADR-0139 (un comprobante se reparte entre tiendas).
@@ -123,6 +123,14 @@ otra verá el estado de recepción de esa otra según lo que su sede alcanza a v
 - **Qué puede hacer cada uno sobre una factura:** el comprador de la tienda **gestora** la edita, anula, adjunta escaneos y registra sus notas de crédito. El comprador de **otra** tienda con parte en ella ve solo
   **sus líneas y su monto** y **paga su parte**; no la edita ni la anula.
 
+**F3, construida — `compras.ubicacion_gestion_id` y quién gestiona:**
+- **La gestora es el parámetro que ya existía** (`p_ubicacion_destino_id` de `registrar_compra`), reusado en vez de agregar uno nuevo: una lista de parámetros distinta crea una sobrecarga (la lección del 2026-09-19, ver `[[reescribir-funcion-de-produccion-desde-su-definicion-real]]`). Antes de F3 ese parámetro solo era el destino de respaldo de una línea sin reparto explícito y no se guardaba en ningún lado (ADR-0139 quitó `compras.ubicacion_destino_id`); con F3 pasa a ser **la gestora** y sí se guarda.
+- **Un comprador registra con SU tienda como gestora, y esa tienda tiene que tener parte en el reparto** — igual para el líder: es un candado de esquema (`compras_gestora_obligatoria` + un disparador diferido que también protege contra escribir el reparto directo), no solo de la RPC. Dejar que cualquiera eligiera una gestora sin parte habría permitido un estado sin sentido: una tienda «responsable del papel» que no recibe nada.
+- **Un comprador registra SIN pago** (pagar es F4); el líder sigue registrando con o sin pago, como siempre.
+- **La gestora ve la factura ENTERA** (F1 se amplía: antes solo veía una factura si iba completa a sus tiendas). El comprador de otra tienda con parte, pero que no gestiona, sigue sin ver nada — esa es la F3-b pendiente (la vista de «solo mi parte»).
+- **`cambiar_tienda_gestora_compra`**: solo el líder, y la nueva tienda tiene que tener parte.
+- **Costo real, no supuesto:** repurpasar `p_ubicacion_destino_id` rompió 3 suites de pruebas que ya existían (`compras_reparto`, `pagos_compras_endurecimiento`, `compras_indicadores`), porque usaban ese parámetro como un valor sin relación con el reparto real (antes no importaba). Se corrigieron los 3 (dos ajustes de datos de prueba, uno que reinstala a propósito una versión histórica de `registrar_compra` y ahora también relaja el candado nuevo solo dentro de esa simulación). `pnpm pruebas:compras-tienda-gestora` → 24/24.
+
 ### D3 — El pago es de una tienda: `compra_pagos.ubicacion_id`
 
 Cada pago dice **qué tienda lo hizo**. `saldo(compra, tienda) = parte de la tienda − pagos de esa tienda − nota de crédito de esa tienda`. `compras.saldo` sigue siendo la deuda con el proveedor y es la **suma**
@@ -167,7 +175,7 @@ F7 empieza leyéndolo, no asumiendo.
 | **F0** | Cerrada la decisión (ronda 4). Queda cargar la lista de compradores al aplicar F1 | Una lista firmada: «quién es comprador de qué tienda» |
 | **F1 — Permiso y lectura** | Tabla `compradores_de_tienda`; `fn_compras_ubicaciones()`; las políticas de `compras`, `compra_items`, `compra_pagos`, `compra_adjuntos`, `compra_notas_credito` y el bucket, las funciones de indicadores y `listar_*` filtran por ella (el líder no se filtra); `resumen_recepciones` gana la tienda. **Solo agrega permiso: ningún líder pierde nada** | Con un ensayo revertido en SQL: el comprador de Arequipa ve solo lo de Arequipa; el líder ve todo; un integrante sin fila ve cero dinero |
 | **F2 — Partir el dinero** | Vista `compra_parte_por_tienda` + prueba de la invariante «la suma de partes = total» con redondeos feos (3 tiendas, IGV) | Una factura repartida entre 3 tiendas muestra tres partes que suman el total al centavo |
-| **F3 — Registrar y gestionar** | `compras.ubicacion_gestion_id`; `registrar_compra` exige gestora = tienda del comprador y presente en el reparto (el líder elige); la pantalla Registrar ofrece el reparto a otras tiendas; edición y anulación solo de la gestora | Como comprador de Arequipa registro una factura repartida con Trujillo; el comprador de Trujillo la ve solo en su parte y no puede anularla |
+| **F3 — Registrar y gestionar (hecho en local, sin aplicar)** | `compras.ubicacion_gestion_id` + candado de esquema (gestora con parte); `registrar_compra` exige gestora = tienda del comprador y presente en el reparto (el líder también); un comprador registra sin pago; anular y adjuntar: líder o comprador de la gestora; `cambiar_tienda_gestora_compra` (solo líder) | `pnpm pruebas:compras-tienda-gestora` → 24/24. **Falta con clics** (F5): registrar una factura repartida como comprador y ver que el de la otra tienda no la anule |
 | **F4 — Pagar por tienda** | `compra_pagos.ubicacion_id`, saldo por tienda, tope por tienda; «Pagar juntos» y Por pagar por tienda | Pago de Arequipa baja solo el saldo de Arequipa; uno mayor a su parte se rechaza |
 | **F5 — Pantallas** | El layout de `/compras` deja pasar a líder o comprador (hoy redirige a quien no es líder); Comprobantes, Por pagar y Proveedores acotados; «parte nueva»; los textos «aquí ves todas las tiendas» solo para el líder | En el navegador con un comprador de una tienda y con un líder |
 | **F6 — Notas de crédito por tienda** | D5 | La nota de un faltante de Trujillo baja el saldo de Trujillo y no el de Lima |

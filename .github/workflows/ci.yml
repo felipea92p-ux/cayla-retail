@@ -318,6 +318,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:compras-parte-por-tienda
 
+      # La tienda gestora de una factura (ADR-0151, F3): un comprador registra con SU tienda gestora (que tiene que tener
+      # parte en el reparto, también para el líder) y sin pago; anular y adjuntar: líder o comprador de la gestora; la
+      # gestora ve la factura entera; cambiar_tienda_gestora_compra solo líder; el candado también protege escribir el
+      # reparto directo. Carga las cuatro migraciones DENTRO de cada caso, que termina en ROLLBACK.
+      - name: pruebas:compras-tienda-gestora
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:compras-tienda-gestora
+
       # Módulo Notas de crédito: el tablero trae notas y pendientes con sus montos (incluido el
       # monto_esperado del faltante cerrado y el a_favor de la nota que superó la deuda), registrar con
       # destino «a_favor» deja el mismo estado que la RPC de antes, con «reembolso» nacen nota y

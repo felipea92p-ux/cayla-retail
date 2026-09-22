@@ -94,6 +94,12 @@ const CABECERA_DE_ANTES = `do $c$ begin
   if not exists (select 1 from information_schema.columns where table_schema = 'retail' and table_name = 'compras' and column_name = 'ubicacion_destino_id') then
     alter table retail.compras add column ubicacion_destino_id uuid;
   end if;
+  -- ADR-0151 (F3, migración 20260922160000) agrega ubicacion_gestion_id con un CHECK que la exige en toda factura
+  -- vigente. Esta función CRUDA es de ANTES de esa migración y no la escribe: se relaja solo aquí (misma lógica que
+  -- la columna de arriba), dentro de la transacción que termina sin COMMIT.
+  if exists (select 1 from pg_constraint where conname = 'compras_gestora_obligatoria') then
+    alter table retail.compras drop constraint compras_gestora_obligatoria;
+  end if;
 end $c$;
 `;
 

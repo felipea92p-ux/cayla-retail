@@ -457,6 +457,11 @@ con las mismas pestañas: Existencias · Movimientos · Traslados · Conteo · R
   **F2 (migración `20260922150000`, solo en local):** la vista `compra_parte_por_tienda (compra_id, ubicacion_id, unidades, subtotal, igv, total)`
   parte el dinero de una factura entre las tiendas de su reparto. Se calcula, no se guarda; reparte la CABECERA (no las líneas: con costos de
   3 decimales suman distinto) por el método del mayor resto, y la suma de las partes es siempre `compras.total`. Es `security_invoker`.
+  **F3 (migración `20260922160000`, solo en local):** `compras.ubicacion_gestion_id` — la tienda que gestiona la factura (donde queda el papel;
+  edita, anula, adjunta). Reusa el parámetro `p_ubicacion_destino_id` de `registrar_compra` (antes un simple respaldo de destino de línea, ya no
+  guardado desde ADR-0139) en vez de agregar uno nuevo, para no crear una sobrecarga. Candado de esquema: la gestora tiene que tener parte en el
+  reparto (también para el líder), con un disparador diferido que protege incluso escribir el reparto directo. Un comprador registra sin pago
+  (pagar es F4); `fn_compra_es_de_mis_tiendas` se amplía para que la gestora vea la factura entera. `cambiar_tienda_gestora_compra`: solo líder.
 - **Un comprobante se reparte entre tiendas y cada tienda recibe lo suyo** (2026-09-19, ADR-0139; migraciones `20260919172000`
   + `20260919173000`, **en producción desde el 2026-09-20**). La factura ya no tiene un destino (`compras.ubicacion_destino_id` se
   elimina): tiene un **reparto por línea y tienda**, `compra_item_destinos` (siempre existe, aunque sea de una sola tienda; su
