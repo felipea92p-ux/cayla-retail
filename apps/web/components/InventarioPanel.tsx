@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { AlertTriangle, Boxes, ChevronRight, PackagePlus, SlidersHorizontal, Truck } from "lucide-react";
 import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial } from "@/lib/filtro-busqueda-especial";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { CampoTexto, CampoSelect } from "@/components/ui/campos";
@@ -11,6 +12,8 @@ import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
 import { ApartarModal } from "@/components/ApartarModal";
 import { ApartadosModal } from "@/components/ApartadosModal";
+import { DisponibleTotalOverlay } from "@/components/DisponibleTotalOverlay";
+import { AnalisisCoberturaOverlay } from "@/components/AnalisisCoberturaOverlay";
 import { hoyLima, resumirApartados, type Apartado } from "@/lib/apartados-reglas";
 import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 import { resumenRed } from "@/lib/stock-por-sede";
@@ -24,7 +27,7 @@ import {
   type EstadoStock,
 } from "@/lib/inventario-reglas";
 import { textoCobertura } from "@/lib/resumen-formato";
-import { bandaDeCobertura, type Cobertura } from "@/lib/resumen-reglas";
+import { bandaDeCobertura, calcularVelocidad, type Cobertura, type FilaResumen } from "@/lib/resumen-reglas";
 import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/inventario-v2";
 import type { Sububicacion } from "@/lib/sububicaciones";
 
@@ -58,33 +61,98 @@ function fechaHora(iso: string) {
   return new Date(iso).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
 }
 
-/** La segunda línea de «Disponible»: cuánto dura este stock al ritmo de venta de los últimos días. Es la
- *  MISMA cobertura del análisis (stock utilizable ÷ ritmo), aquí como dato secundario y compacto. Nunca
- *  muestra NaN ni vacío: lo que no se puede calcular dice «N/D». Rojo/ámbar con los mismos cortes de siempre
- *  (≤ 3 y ≤ 7 días); el resto, apagado, para no competir con el número del stock. */
-function LineaCobertura({ c }: { c: Cobertura | null | undefined }) {
+/** La celda de cobertura (columna propia, rediseño 2026-09-22 — antes era la segunda línea de
+ *  «Disponible»): cuánto dura el stock al ritmo de venta de los últimos días. Nunca NaN ni vacío: lo
+ *  que no se puede calcular dice «N/D». Rojo/ámbar con los mismos cortes de siempre. */
+function CeldaCobertura({ c }: { c: Cobertura | null | undefined }) {
   const ayuda = `Con el ritmo de venta de los últimos ${DIAS_RITMO_RECIENTE} días`;
   if (!c || c.tipo === "sin_historial") {
     return (
-      <span className="block text-[10px] font-normal leading-3 text-tinta/40" title={`${ayuda}: todavía no hay historial para calcularlo`}>
-        Cobertura N/D
+      <span className="text-xs text-tinta/40" title={`${ayuda}: todavía no hay historial para calcularlo`}>
+        N/D
       </span>
     );
   }
   if (c.tipo === "sin_ventas") {
     return (
-      <span className="block text-[10px] font-normal leading-3 text-tinta/50" title={`No se vendió nada en los últimos ${DIAS_RITMO_RECIENTE} días: no hay ritmo con que medir cuánto dura`}>
+      <span className="text-xs text-tinta/50" title={`No se vendió nada en los últimos ${DIAS_RITMO_RECIENTE} días: no hay ritmo con que medir cuánto dura`}>
         Sin ventas
       </span>
     );
   }
   const banda = bandaDeCobertura(c);
-  const tono = banda === "critica" ? "text-rojo-profundo" : banda === "atencion" ? "text-ambar-profundo" : banda === "agotado" ? "text-tinta/40" : "text-tinta/55";
+  const tono = banda === "critica" ? "text-rojo-profundo" : banda === "atencion" ? "text-ambar-profundo" : banda === "agotado" ? "text-tinta/40" : "text-tinta/70";
   return (
-    <span className={`block text-[10px] font-normal leading-3 ${tono}`} title={`${ayuda}, este stock dura aproximadamente ${textoCobertura(c)}`}>
-      Cubre {textoCobertura(c)}
+    <span className={`text-xs font-medium tabular-nums ${tono}`} title={`${ayuda}, este stock dura aproximadamente ${textoCobertura(c)}`}>
+      {textoCobertura(c)}
     </span>
   );
+}
+
+/** Una de las 4 tarjetas de «Prioridades de hoy» (rediseño 2026-09-22). `urgente` es el acento rojo de
+ *  la que más pide algo — mismo criterio que el borde izquierdo de siempre, ahora también con un fondo
+ *  y un ícono, y una flecha si es la que abre algo (clic o enlace). */
+function TarjetaPrioridad({
+  icono: Icono,
+  etiqueta,
+  valor,
+  unidad,
+  urgente = false,
+  activa = false,
+  href,
+  onClick,
+  children,
+}: {
+  icono: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  etiqueta: string;
+  valor: number;
+  unidad: string;
+  urgente?: boolean;
+  activa?: boolean;
+  href?: string;
+  onClick?: () => void;
+  children: React.ReactNode;
+}) {
+  const clickeable = Boolean(href || onClick);
+  const clase = `card-cayla group relative block p-5 text-left transition-all duration-200 ${
+    urgente ? "border-rojo/25 bg-rojo/[0.045]" : ""
+  } ${clickeable ? "hover:-translate-y-0.5 hover:shadow-md" : ""} ${activa ? "bg-sand/40" : ""}`;
+  const contenido = (
+    <>
+      <div className="flex items-start justify-between">
+        <span
+          aria-hidden
+          className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
+            urgente ? "bg-rojo/10 text-rojo-profundo" : "bg-sand/60 text-tinta/65"
+          }`}
+        >
+          <Icono className="h-4 w-4" strokeWidth={1.5} />
+        </span>
+        {clickeable && <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/30 transition-transform group-hover:translate-x-0.5" />}
+      </div>
+      <p className="label-cayla mt-3 text-[11px] text-tinta/65">{etiqueta}</p>
+      <p className="mt-1 flex items-baseline gap-2">
+        <span className="font-display text-3xl tabular-nums text-tinta">{valor.toLocaleString("es-PE")}</span>
+        <span className="text-sm text-tinta/55">{unidad}</span>
+      </p>
+      <p className="mt-1 text-xs text-tinta/65">{children}</p>
+    </>
+  );
+  if (href) {
+    return (
+      <Link href={href} className={clase}>
+        {contenido}
+      </Link>
+    );
+  }
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={`${clase} w-full`} aria-pressed={activa}>
+        {contenido}
+      </button>
+    );
+  }
+  return <div className={clase}>{contenido}</div>;
 }
 
 // Piso de venta / almacén de tienda (Felipe, 2026-09-14): la pantalla no
@@ -93,11 +161,11 @@ function LineaCobertura({ c }: { c: Cobertura | null | undefined }) {
 // nunca por el nombre ("Taller" vs. "Tienda X"). Taller sigue viendo una
 // tabla más corta: sin piso/almacén ni semáforo, pero con tránsito y red.
 //
-// Existencias (Felipe, 2026-09-16): tres tarjetas arriba, una fila por prenda
-// con su estado, lo que viene en camino y dónde más hay, y la leyenda del
-// semáforo abajo. Las acciones viven en la fila: «Reponer» (bajar del
-// almacén, modal que ya existía) y «Ajustar» (el modal de ajuste que hasta
-// hoy solo se abría desde Productos).
+// Existencias (rediseño 2026-09-22, boceto de Felipe): de tabla de stock a pantalla de acción diaria.
+// «Prioridades de hoy» (4 tarjetas) reemplaza las cifras sueltas de antes; la franja de distribución
+// (piso/almacén/apartado) abre el análisis de cobertura; «Disponible total» abre el desglose por
+// categoría con costo/margen (solo líder) y el delta de 7 días. La tabla suma Cobertura y Ritmo de
+// venta (7D) como columnas propias — antes la cobertura vivía como segunda línea de «Disponible».
 export function InventarioPanel({
   ubicacionId,
   stock,
@@ -110,6 +178,8 @@ export function InventarioPanel({
   apartados,
   esLider,
   coberturaFallo = null,
+  filasSemana,
+  deltaSede,
 }: {
   ubicacionId: string;
   stock: FilaExistencias[];
@@ -129,6 +199,11 @@ export function InventarioPanel({
   esLider: boolean;
   /** Si la cobertura no se pudo calcular: el aviso (las filas quedan en «N/D»); null = todo bien. */
   coberturaFallo?: string | null;
+  /** Los últimos 7 días de la sede (`getFilasSemanaDeSede`): ritmo de venta, costo/precio/categoría y
+   *  el delta vs. hace 7 días — alimenta la columna «Ritmo de venta (7D)» y el overlay de «Disponible total». */
+  filasSemana: FilaResumen[];
+  /** El delta de disponible de TODA la sede en los últimos 7 días, para la tarjeta «Disponible total». */
+  deltaSede: { hoy: number; hace7d: number; pct: number | null };
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [categoria, setCategoria] = useState(TODAS);
@@ -140,6 +215,8 @@ export function InventarioPanel({
   const [viendoDanados, setViendoDanados] = useState(false);
   const [apartando, setApartando] = useState<FilaExistencias | null>(null);
   const [viendoApartados, setViendoApartados] = useState(false);
+  const [viendoDisponible, setViendoDisponible] = useState(false);
+  const [viendoCobertura, setViendoCobertura] = useState(false);
 
   const categorias = useMemo(
     () => Array.from(new Set(stock.map((f) => f.categoria).filter((c): c is string => !!c))).sort((a, b) => a.localeCompare(b, "es")),
@@ -150,6 +227,13 @@ export function InventarioPanel({
     () => Array.from(new Set(stock.map((f) => f.color).filter((c): c is string => !!c))).sort((a, b) => a.localeCompare(b, "es")),
     [stock]
   );
+  // Ritmo de venta (7D) por variante — misma fórmula que Análisis (`calcularVelocidad`), acá compacta
+  // en un mapa para no recorrer `filasSemana` en cada fila de la tabla.
+  const ritmoPorVariante = useMemo(() => {
+    const m = new Map<string, number | null>();
+    for (const f of filasSemana) m.set(f.varianteId, calcularVelocidad(f).unidadesDia);
+    return m;
+  }, [filasSemana]);
 
   // Filtro de búsqueda especial (`lib/filtro-busqueda-especial.ts`): lo escrito se parte en términos —nombre,
   // SKU, código, color y talla, en cualquier orden— y todos deben cumplirse. Si el texto dice una talla o un
@@ -173,12 +257,31 @@ export function InventarioPanel({
     [indiceBusqueda, busqueda, talla, color, categoria, estado]
   );
 
+  const hayFiltrosActivos = busqueda !== "" || categoria !== TODAS || talla !== TODAS || color !== TODAS || estado !== TODAS;
+  function limpiarFiltros() {
+    setBusqueda("");
+    setCategoria(TODAS);
+    setTalla(TODAS);
+    setColor(TODAS);
+    setEstado(TODAS);
+  }
+
   const puedeReponer = Boolean(resumen.separaPisoAlmacen && sububicacionPiso && sububicacionAlmacen);
   // Apartar necesita saber DE DÓNDE (piso o almacén): solo donde la ubicación separa las dos.
   const puedeApartar = puedeReponer;
   const resumenApartados = useMemo(() => resumirApartados(apartados, hoyLima()), [apartados]);
   const separa = resumen.separaPisoAlmacen;
   const porcentajePiso = resumen.total > 0 && resumen.piso !== null ? Math.round((resumen.piso / resumen.total) * 100) : null;
+  const porcentajeAlmacen = resumen.total > 0 && resumen.almacen !== null ? Math.round((resumen.almacen / resumen.total) * 100) : null;
+  const porcentajeApartado = resumen.total > 0 ? Math.round((resumen.apartado / resumen.total) * 100) : null;
+
+  // «Reponer a piso hoy» (tarjeta A): variantes que ya cuenta `resumen.requierenReposicion`, y las
+  // unidades que se podrían bajar del almacén — el mismo `almacenDisponible` que usa el modal de
+  // reposición (neto de apartados: lo apartado no se puede mover).
+  const unidadesReponer = useMemo(
+    () => stock.reduce((acc, f) => (f.pisoDisponible !== null && f.almacenDisponible !== null && necesitaReponerPiso(f.pisoDisponible, f.almacenDisponible) ? acc + f.almacenDisponible : acc), 0),
+    [stock]
+  );
 
   // Exporta lo que la colaboradora está viendo, no todo el inventario: usa
   // `filtradas` (mismo array que pinta la tabla), así que si ya filtró por
@@ -205,70 +308,120 @@ export function InventarioPanel({
     descargarCsv(`existencias_${new Date().toISOString().slice(0, 10)}.csv`, encabezados, filas);
   }
 
-  // `minmax(13.5rem,1.4fr)`, no `1fr` a secas: con columnas fijas + `truncate`
-  // (que habilita min-width automático 0 en la pista), una ventana angosta
-  // dejaba "Producto" en 0px — invisible, no acortado. El piso de 13.5rem es
-  // la miniatura (36px) más «Casaca Ximena» y su SKU debajo antes de que la
-  // Tabla entre a scroll horizontal (ver `ui/Tabla.tsx`). "En la red" subió
-  // a 10.5rem: ahora son dos líneas («Disponible en 3 sedes: 36 uds» y el
-  // detalle por sede), no una.
+  // `minmax(13.5rem,1.3fr)`, no `1fr` a secas: con columnas fijas + `truncate` (que habilita min-width
+  // automático 0 en la pista), una ventana angosta dejaba "Producto" en 0px. El piso de 13.5rem es la
+  // miniatura (36px) más «Casaca Ximena» y su SKU debajo antes de que la Tabla entre a scroll
+  // horizontal (`ui/Tabla.tsx`) — con Cobertura y Ritmo como columnas propias (antes la cobertura era
+  // la segunda línea de «Disponible»), 9 columnas piden más ancho que 1400px: se desplaza, no encima.
   const plantilla = separa
-    ? "sm:grid-cols-[minmax(13.5rem,1.4fr)_7.5rem_5rem_11rem_5.5rem_minmax(10.5rem,1.2fr)_4.5rem]"
-    : "sm:grid-cols-[minmax(13.5rem,1.4fr)_5rem_5.5rem_minmax(10.5rem,1.2fr)_4.5rem]";
+    ? "sm:grid-cols-[minmax(13.5rem,1.3fr)_6.5rem_4.5rem_6rem_7rem_9rem_5rem_minmax(9rem,1fr)_8rem]"
+    : "sm:grid-cols-[minmax(13.5rem,1.4fr)_5rem_6rem_5rem_minmax(9rem,1fr)_4.5rem]";
 
   return (
     <div className="space-y-6">
-      {/* Tres cifras, de la más tranquila a la que más pide (diseño de
-          Felipe): cuánto hay, cuántas prendas dañadas esperan resolución,
-          cuánto viene. La del medio abre la cola de resolución. */}
-      <div className={`grid gap-3 ${separa ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2"}`}>
-        <Tarjeta etiqueta="Prendas disponibles" valor={resumen.disponible} unidad="unidades">
-          {(separa && porcentajePiso !== null
-            ? `${porcentajePiso}% en el piso de venta · ${resumen.piso} piso · ${resumen.almacen} almacén`
-            : `${stock.length} ${stock.length === 1 ? "prenda distinta" : "prendas distintas"}`) +
-            (resumen.apartado > 0 ? ` · ${resumen.apartado} ${resumen.apartado === 1 ? "apartada" : "apartadas"}` : "")}
-        </Tarjeta>
-        {separa && (
-          <Tarjeta
-            etiqueta="Dañado"
-            valor={danadosPendientes.length}
-            unidad={danadosPendientes.length === 1 ? "prenda" : "prendas"}
-            tono={danadosPendientes.length > 0 ? "text-rojo" : undefined}
-            acento={danadosPendientes.length > 0}
-            onClick={() => setViendoDanados(true)}
-            activa={viendoDanados}
+      {/* Prioridades de hoy (rediseño 2026-09-22): las 4 cifras que antes eran sueltas, ahora con un
+          propósito de acción cada una. A es la más urgente (acento rojo); B abre el desglose por
+          categoría; C y D se comportaban igual antes, solo con más presencia visual. */}
+      <div>
+        <p className="font-display text-lg text-tinta">Prioridades de hoy</p>
+        <p className="mt-0.5 text-xs text-tinta/60">Acciones sugeridas para impulsar tus ventas en tienda.</p>
+        <div className={`mt-3 grid gap-3 ${separa ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-3"}`}>
+          {separa && (
+            <TarjetaPrioridad
+              icono={PackagePlus}
+              etiqueta="Reponer a piso hoy"
+              valor={resumen.requierenReposicion}
+              unidad={resumen.requierenReposicion === 1 ? "variante" : "variantes"}
+              urgente={resumen.requierenReposicion > 0}
+              activa={estado === "reponer_piso"}
+              onClick={() => setEstado((e) => (e === "reponer_piso" ? TODAS : "reponer_piso"))}
+            >
+              {resumen.requierenReposicion === 0 ? "Nada pendiente de bajar al piso" : `${unidadesReponer.toLocaleString("es-PE")} uds disponibles en almacén — con demanda`}
+            </TarjetaPrioridad>
+          )}
+          <TarjetaPrioridad
+            icono={Boxes}
+            etiqueta="Disponible total"
+            valor={resumen.disponible}
+            unidad="unidades"
+            activa={viendoDisponible}
+            onClick={() => setViendoDisponible(true)}
           >
-            {danadosPendientes.length === 0
-              ? "Ninguna prenda dañada pendiente"
-              : "En cuarentena — liquidar, botar o donar"}
-          </Tarjeta>
-        )}
-        {/* Reservas para clientas (ADR-0141): lo vencido no se libera solo — pide que alguien decida. */}
-        {separa && (
-          <Tarjeta
-            etiqueta="Apartados"
-            valor={resumenApartados.abiertos}
-            unidad={resumenApartados.abiertos === 1 ? "apartado" : "apartados"}
-            tono={resumenApartados.vencidos > 0 ? "text-rojo" : undefined}
-            acento={resumenApartados.vencidos > 0}
-            onClick={() => setViendoApartados(true)}
-            activa={viendoApartados}
-          >
-            {resumenApartados.abiertos === 0
-              ? "Ninguna prenda apartada"
-              : `${resumenApartados.unidades} ${resumenApartados.unidades === 1 ? "prenda" : "prendas"} para clientas${
-                  resumenApartados.vencidos > 0 ? ` · ${resumenApartados.vencidos} ${resumenApartados.vencidos === 1 ? "vencido" : "vencidos"}` : ""
-                }`}
-          </Tarjeta>
-        )}
-        <Tarjeta etiqueta="En camino hacia acá" valor={resumen.enTransito} unidad="unidades" href="/inventario/traslados">
-          {enCamino.traslados === 0
-            ? "Ningún traslado en camino"
-            : `${enCamino.traslados} ${enCamino.traslados === 1 ? "traslado" : "traslados"}${
-                enCamino.proximaLlegada ? ` · el próximo llega ${fechaHora(enCamino.proximaLlegada)}` : ""
-              }${enCamino.atrasados > 0 ? ` · ${enCamino.atrasados} ${enCamino.atrasados === 1 ? "atrasado" : "atrasados"}` : ""}`}
-        </Tarjeta>
+            {deltaSede.pct === null ? "Sin base de hace 7 días para comparar" : `${deltaSede.pct >= 0 ? "+" : ""}${Math.round(deltaSede.pct)}% vs. semana anterior`}
+          </TarjetaPrioridad>
+          <TarjetaPrioridad icono={Truck} etiqueta="En camino hacia acá" valor={resumen.enTransito} unidad="unidades" href="/inventario/traslados">
+            {enCamino.traslados === 0
+              ? "Ningún traslado en camino"
+              : `${enCamino.traslados} ${enCamino.traslados === 1 ? "traslado" : "traslados"}${
+                  enCamino.proximaLlegada ? ` · el próximo llega ${fechaHora(enCamino.proximaLlegada)}` : ""
+                }${enCamino.atrasados > 0 ? ` · ${enCamino.atrasados} ${enCamino.atrasados === 1 ? "atrasado" : "atrasados"}` : ""}`}
+          </TarjetaPrioridad>
+          {separa && (
+            <TarjetaPrioridad
+              icono={AlertTriangle}
+              etiqueta="Dañado / Cuarentena"
+              valor={danadosPendientes.length}
+              unidad={danadosPendientes.length === 1 ? "prenda" : "prendas"}
+              urgente={danadosPendientes.length > 0}
+              activa={viendoDanados}
+              onClick={() => setViendoDanados(true)}
+            >
+              {danadosPendientes.length === 0 ? "Ninguna prenda dañada pendiente" : "En revisión — liquidar, botar o donar"}
+            </TarjetaPrioridad>
+          )}
+        </div>
       </div>
+
+      {/* Distribución de stock (rediseño 2026-09-22): dónde está lo disponible — piso, almacén y lo
+          apartado para clientas, en una sola barra. El botón abre el análisis de cobertura en un
+          overlay, no navega. Solo donde la ubicación separa piso/almacén: en Taller no aplica. */}
+      {separa && resumen.total > 0 && (
+        <div className="card-cayla flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <p className="label-cayla text-[11px] text-tinta/65">Distribución de stock en esta tienda</p>
+            <div className="mt-3 flex h-2.5 w-full overflow-hidden rounded-full bg-sand/50">
+              <span className="h-full bg-verde transition-all" style={{ width: `${porcentajePiso ?? 0}%` }} title={`${porcentajePiso ?? 0}% en piso`} />
+              <span className="h-full bg-ambar/70 transition-all" style={{ width: `${porcentajeAlmacen ?? 0}%` }} title={`${porcentajeAlmacen ?? 0}% en almacén`} />
+              {porcentajeApartado !== null && porcentajeApartado > 0 && (
+                <button
+                  type="button"
+                  onClick={() => apartados.length > 0 && setViendoApartados(true)}
+                  className="h-full bg-tinta/25 transition-all hover:bg-tinta/40"
+                  style={{ width: `${porcentajeApartado}%` }}
+                  title={`${porcentajeApartado}% apartado para clientas — clic para ver`}
+                />
+              )}
+            </div>
+            <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1 text-xs text-tinta/70">
+              <span className="inline-flex items-center gap-1.5">
+                <span aria-hidden className="h-2 w-2 rounded-full bg-verde" />
+                {porcentajePiso ?? 0}% en piso · {resumen.piso ?? 0} uds
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span aria-hidden className="h-2 w-2 rounded-full bg-ambar/70" />
+                {porcentajeAlmacen ?? 0}% en almacén · {resumen.almacen ?? 0} uds
+              </span>
+              {resumen.apartado > 0 && (
+                <button type="button" onClick={() => setViendoApartados(true)} className={`inline-flex items-center gap-1.5 hover:text-rojo ${resumenApartados.vencidos > 0 ? "text-rojo-profundo" : ""}`}>
+                  <span aria-hidden className={`h-2 w-2 rounded-full ${resumenApartados.vencidos > 0 ? "bg-rojo" : "bg-tinta/25"}`} />
+                  {porcentajeApartado ?? 0}% apartado · {resumen.apartado} uds
+                  {resumenApartados.vencidos > 0 && ` · ${resumenApartados.vencidos} vencido${resumenApartados.vencidos === 1 ? "" : "s"}`}
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-3 sm:max-w-xs">
+            <p className="hidden text-xs leading-snug text-tinta/60 sm:block">Enfócate en tener los productos clave en piso. Más disponibilidad = más ventas.</p>
+            <button
+              type="button"
+              onClick={() => setViendoCobertura(true)}
+              className="label-cayla shrink-0 rounded-md border border-tinta/25 px-3.5 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+            >
+              Ver análisis de cobertura
+            </button>
+          </div>
+        </div>
+      )}
 
       {stock.length > 0 && (
         <div className={`card-cayla grid gap-4 p-5 ${separa ? "sm:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]" : "sm:grid-cols-[1.4fr_1fr_1fr_1fr]"}`}>
@@ -309,6 +462,14 @@ export function InventarioPanel({
               ]}
             />
           )}
+          {hayFiltrosActivos && (
+            <div className="flex items-center gap-1.5 pt-1 sm:col-span-full sm:justify-end sm:pt-0">
+              <SlidersHorizontal aria-hidden className="h-3.5 w-3.5 text-tinta/40" />
+              <button type="button" onClick={limpiarFiltros} className="label-cayla text-[11px] text-tinta/65 underline-offset-2 hover:text-rojo hover:underline">
+                Limpiar filtros
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -330,7 +491,9 @@ export function InventarioPanel({
                     { titulo: "Producto / variante" },
                     { titulo: "Piso · Almacén", alinear: "centro" },
                     { titulo: "Disponible", alinear: "centro" },
-                    { titulo: "Estado", alinear: "centro" },
+                    { titulo: "Cobertura", alinear: "centro" },
+                    { titulo: "Ritmo de venta (7D)", alinear: "centro" },
+                    { titulo: "Prioridad / Estado", alinear: "centro" },
                     { titulo: "En camino", alinear: "centro" },
                     { titulo: "En la red", alinear: "centro" },
                     { titulo: "", alinear: "centro" },
@@ -338,6 +501,7 @@ export function InventarioPanel({
                 : [
                     { titulo: "Producto / variante" },
                     { titulo: "Disponible", alinear: "centro" },
+                    { titulo: "Ritmo de venta (7D)", alinear: "centro" },
                     { titulo: "En camino", alinear: "centro" },
                     { titulo: "En la red", alinear: "centro" },
                     { titulo: "", alinear: "centro" },
@@ -346,8 +510,9 @@ export function InventarioPanel({
           />
           {filtradas.map((f) => {
             const red = resumenRed(f.enRed);
+            const ritmo = ritmoPorVariante.get(f.varianteId) ?? null;
             return (
-              <div key={f.varianteId} className={fila(plantilla)}>
+              <div key={f.varianteId} className={fila(plantilla, "transition-colors hover:bg-sand/25")}>
                 {/* La misma celda que dibuja Conteo (`ui/PrendaCelda.tsx`). */}
                 <ProductoVarianteCelda referencia={f.referencia} sku={f.sku} talla={f.talla} color={f.color} colorHex={f.colorHex} fotoUrl={f.fotoUrl} />
                 {separa && (
@@ -366,8 +531,16 @@ export function InventarioPanel({
                       {f.apartado} {f.apartado === 1 ? "apartada" : "apartadas"}
                     </span>
                   )}
-                  {/* Sin stock no hay cuánto dure: el chip «Sin stock» ya lo dice. */}
-                  {separa && f.disponible > 0 && <LineaCobertura c={f.cobertura} />}
+                </span>
+                {separa && (
+                  <span className={celda("centro")}>
+                    <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Cobertura</span>
+                    <CeldaCobertura c={f.cobertura} />
+                  </span>
+                )}
+                <span className={celda("centro", "text-sm tabular-nums text-tinta/80")}>
+                  <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Ritmo (7D)</span>
+                  {ritmo === null ? <span className="text-tinta/40">N/D</span> : `${ritmo.toFixed(1)} uds/día`}
                 </span>
                 {separa && (
                   <span className={celda("centro", "overflow-visible")}>
@@ -520,58 +693,10 @@ export function InventarioPanel({
       )}
 
       {viendoApartados && <ApartadosModal apartados={apartados} onClose={() => setViendoApartados(false)} />}
+
+      {viendoDisponible && <DisponibleTotalOverlay filas={filasSemana} esLider={esLider} onClose={() => setViendoDisponible(false)} />}
+
+      {viendoCobertura && <AnalisisCoberturaOverlay stock={stock} onClose={() => setViendoCobertura(false)} />}
     </div>
   );
-}
-
-function Tarjeta({
-  etiqueta,
-  valor,
-  unidad,
-  tono,
-  acento = false,
-  activa = false,
-  href,
-  onClick,
-  children,
-}: {
-  etiqueta: string;
-  valor: number;
-  unidad: string;
-  tono?: string;
-  /** Borde izquierdo en rojo: la tarjeta que pide algo (diseño de Felipe). */
-  acento?: boolean;
-  activa?: boolean;
-  href?: string;
-  onClick?: () => void;
-  children: React.ReactNode;
-}) {
-  const clase = `card-cayla block p-5 text-left transition-colors ${acento ? "border-l-2 border-l-rojo" : ""} ${
-    onClick || href ? "hover:bg-sand/30" : ""
-  } ${activa ? "bg-sand/40" : ""}`;
-  const contenido = (
-    <>
-      <p className="label-cayla text-[11px] text-tinta/65">{etiqueta}</p>
-      <p className="mt-1 flex items-baseline gap-2">
-        <span className={`font-display text-3xl tabular-nums ${tono ?? "text-tinta"}`}>{valor.toLocaleString("es-PE")}</span>
-        <span className="text-sm text-tinta/55">{unidad}</span>
-      </p>
-      <p className="mt-1 text-xs text-tinta/65">{children}</p>
-    </>
-  );
-  if (href) {
-    return (
-      <Link href={href} className={clase}>
-        {contenido}
-      </Link>
-    );
-  }
-  if (onClick) {
-    return (
-      <button type="button" onClick={onClick} className={`${clase} w-full`} aria-pressed={activa}>
-        {contenido}
-      </button>
-    );
-  }
-  return <div className={clase}>{contenido}</div>;
 }

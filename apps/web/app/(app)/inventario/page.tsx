@@ -4,11 +4,13 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
 import { getTrasladosEnCurso } from "@/lib/traslados";
-import { getCoberturaPorVariante } from "@/lib/resumen-inventario";
+import { getCoberturaPorVariante, getFilasSemanaDeSede } from "@/lib/resumen-inventario";
+import { deltaDisponibleSede } from "@/lib/existencias-categorias";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { estaAtrasado } from "@/lib/traslados-reglas";
 import { SelectorUbicacion } from "@/components/SelectorUbicacion";
 import { InventarioPanel } from "@/components/InventarioPanel";
+import { ExistenciasHero } from "@/components/ExistenciasHero";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
 // (20260914210000_inventario_piso_almacen.sql). Sigue siendo UNA tabla
@@ -47,7 +49,7 @@ export default async function InventarioPage({
 
   // La cobertura («cuánto dura este stock al ritmo reciente») solo tiene sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
-  const [stockBase, sububicaciones, traslados, danadosPendientes, cobertura, apartados] = await Promise.all([
+  const [stockBase, sububicaciones, traslados, danadosPendientes, cobertura, apartados, filasSemana] = await Promise.all([
     getExistencias(ubicacionActivaId, ubicaciones, { incluirPrueba }),
     getSububicaciones(ubicacionActivaId),
     getTrasladosEnCurso(ubicacionActivaId),
@@ -55,6 +57,9 @@ export default async function InventarioPage({
     vende ? getCoberturaPorVariante(ubicacionActivaId) : Promise.resolve(null),
     // Reservas para clientas (ADR-0141): solo donde se vende. Taller no aparta.
     vende ? getApartadosAbiertos(ubicacionActivaId) : Promise.resolve([]),
+    // Rediseño 2026-09-22: costo/precio/categoría y el delta de 7 días para «Disponible total»,
+    // «Ritmo de venta (7D)» de la tabla y el overlay de categorías — misma RPC que ya usaba la cobertura.
+    getFilasSemanaDeSede(ubicacionActivaId),
   ]);
   // Dato secundario: si su cálculo falló, cada fila queda en «N/D» y se avisa; el stock no se cae.
   const stock = cobertura?.datos ? stockBase.map((f) => ({ ...f, cobertura: cobertura.datos?.[f.varianteId] ?? null })) : stockBase;
@@ -78,36 +83,46 @@ export default async function InventarioPage({
   // plano, y decir «actualizado hace 2 min» prometería algo que no pasa.
   const horaCarga = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
 
+  const deltaSede = deltaDisponibleSede(filasSemana);
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Inventario · Existencias</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">{ubicacionActiva?.nombre ?? "—"}</h1>
-          <p className="mt-1 text-sm text-tinta/65">
-            Qué hay en piso y almacén, qué viene en camino y dónde más hay. Vista cargada a las {horaCarga} — recarga para ver lo último.
-          </p>
+      {/* Encabezado (rediseño 2026-09-22): mismo contenido de siempre —breadcrumb, título, subtítulo,
+          selector de sede, «+ Nuevo traslado»— con más aire y el ropero decorativo a la derecha
+          (`ExistenciasHero`, sutil, nunca compite con el texto). */}
+      <div className="card-cayla anim-sube grid grid-cols-1 items-center gap-6 overflow-hidden p-6 sm:p-8 md:grid-cols-[1fr_auto]">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="label-cayla text-[11px] text-tinta/65">Inventario · Existencias</p>
+            <h1 className="font-display mt-1 text-3xl text-tinta">{ubicacionActiva?.nombre ?? "—"}</h1>
+            <p className="mt-1.5 max-w-md text-sm text-tinta/65">Qué hay en piso y almacén, qué viene en camino y qué deberías reponer hoy.</p>
+            <p className="mt-1 text-xs text-tinta/45">Vista cargada a las {horaCarga} — recarga para ver lo último.</p>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {persona.rol === "lider" && <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} />}
-          {/* D-54 (ADR-0159): apagado por defecto — los productos archivados como dato de prueba
-              (nunca borrados) quedan afuera de «Existencias» salvo que se pida verlos. */}
-          <Link
-            href={hrefPrueba}
-            aria-pressed={incluirPrueba}
-            className={`label-cayla rounded-md border px-3 py-2.5 text-[11px] transition-colors ${
-              incluirPrueba ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo"
-            }`}
-          >
-            Con datos de prueba
-          </Link>
-          <Link
-            href="/inventario/mover"
-            className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-          >
-            + Nuevo traslado
-          </Link>
+        <div className="hidden h-28 w-56 shrink-0 md:block">
+          <ExistenciasHero />
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        {persona.rol === "lider" && <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} />}
+        {/* D-54 (ADR-0159): apagado por defecto — los productos archivados como dato de prueba
+            (nunca borrados) quedan afuera de «Existencias» salvo que se pida verlos. */}
+        <Link
+          href={hrefPrueba}
+          aria-pressed={incluirPrueba}
+          className={`label-cayla rounded-md border px-3 py-2.5 text-[11px] transition-colors ${
+            incluirPrueba ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo"
+          }`}
+        >
+          Con datos de prueba
+        </Link>
+        <Link
+          href="/inventario/mover"
+          className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
+        >
+          + Nuevo traslado
+        </Link>
       </div>
 
       <InventarioPanel
@@ -122,6 +137,8 @@ export default async function InventarioPage({
         apartados={apartados}
         esLider={persona.rol === "lider"}
         coberturaFallo={cobertura?.fallo ?? null}
+        filasSemana={filasSemana}
+        deltaSede={deltaSede}
       />
     </div>
   );
