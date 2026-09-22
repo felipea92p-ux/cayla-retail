@@ -190,7 +190,20 @@ demo: `docs/maquetas/separaciones-2026-09/demo.html`.
 - [x] Demo de interfaz con el lenguaje visual del ERP (`docs/maquetas/separaciones-2026-09/interfaz.html`, 2026-09-22): lateral con «Separaciones» bajo Ventas, Separar / Entregar / Todas, modales ADR-0136. Falta que Felipe la revise.
 - [ ] Confirmar con Lucode (apisunat.pe) la emisión de anticipo + regularización, y con el contador el tratamiento (pasivo 122 + IGV al cobrar).
 - [ ] Requisito: pegar ADR-0141 (`20260920160000_apartar_stock.sql`) en producción.
-- [ ] Construir: migración `separaciones` + `separacion_pagos` + 3 RPC (separar, entregar consumiendo el apartado, liberar/devolver) con pruebas SQL; pantallas Separar, Entregar, Bandeja; `cerrar_caja` cuenta el efectivo de adelantos; ADR propio.
+- [x] **Base de datos (2026-09-23, ADR-0166):** `20260923090000_separaciones.sql` — `separaciones`, `separacion_items`, `separacion_pagos`,
+      `separacion_correlativos`; 9 funciones (`separar_prendas`, `entregar_separacion`, `extender_separacion`, `liberar_separacion`,
+      `registrar_devolucion_separacion`, `fn_vencer_separaciones`, `buscar_separaciones`, `resumen_separaciones`, `fn_verificar_separaciones`).
+      46 pruebas SQL (`pnpm pruebas:separaciones`, en CI), 4 mutaciones detectadas, regresión en verde. `cerrar_caja` no se tocó: el efectivo del
+      adelanto entra como ingreso de caja. **No está en producción.**
+- [ ] **Pegar `20260923090000_separaciones.sql` en producción** (con OK de Felipe), DESPUÉS de ADR-0141. Pasos en el ADR-0166.
+- [ ] **Transmitir anticipos a SUNAT:** hoy `motivoParaNoTransmitir` los frena (boleta de anticipo y la final que lo deduce). Falta armar el payload
+      de anticipo/regularización en `lib/lucode.ts` y probarlo en el sandbox; confirmar con el contador el caso del adelanto del 100% (no se emite
+      segundo comprobante).
+- [ ] **D5 por confirmar:** extender/liberar/devolver hoy exigen `fn_puede_gestionar_caja()` (líder o terminal de ventas).
+- [ ] **Pantallas** (siguiente paso): Separar, Entregar, Todas (con `fn_vencer_separaciones` al abrir), y en Caja la tarjeta «En custodia»; sumar
+      `anticipo` a `METODOS_PAGO`/`NOMBRE_METODO` (hoy `fn_ventas_del_dia` lo lista como «anticipo + efectivo»); `buscar_`/`resumen_` ya están en
+      la lista de lectura de `espera-reglas.ts`; `fn_vencer_separaciones` empieza con `fn_` (no bloquea la pantalla).
+- [ ] Al pegar en producción: regenerar el diccionario (`pnpm datos:generar:produccion`) para que entren las 4 tablas nuevas.
 
 ## 🎯 Apartar stock — Fase 1: reserva física con clienta y fecha límite (2026-09-20, ADR-0141) — hecho en local, falta pegar en producción
 

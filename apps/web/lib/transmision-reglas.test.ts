@@ -118,4 +118,15 @@ describe("motivoParaNoTransmitir — la nota de venta nunca va a SUNAT (ADR-0164
   it("una boleta pendiente sigue pudiéndose transmitir", () => {
     expect(motivoParaNoTransmitir({ tipo: "boleta", estado: "pendiente", venta_id: null, venta: null })).toBeNull();
   });
+
+  it("separaciones (ADR-0166): ni el anticipo ni el comprobante que lo deduce se transmiten todavía", () => {
+    expect(motivoParaNoTransmitir(comprobante({ venta_id: null, venta: null, es_anticipo: true }))?.status).toBe(409);
+    expect(motivoParaNoTransmitir(comprobante({ anticipo_deducido: "50.00" }))?.error).toMatch(/separación/);
+    expect(motivoParaNoTransmitir(comprobante({ anticipo_deducido: 50 }))?.status).toBe(409);
+  });
+
+  it("sin las columnas de separaciones (web antes que la migración) todo sigue como hoy", () => {
+    expect(motivoParaNoTransmitir(comprobante({ es_anticipo: false, anticipo_deducido: "0.00" }))).toBeNull();
+    expect(motivoParaNoTransmitir(comprobante({ anticipo_deducido: null }))).toBeNull();
+  });
 });

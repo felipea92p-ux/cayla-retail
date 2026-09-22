@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-23 (Separaciones: la base de datos — ADR-0166)
+Se construyó la base de Separaciones sobre el candado de ADR-0141: separar deja la prenda apartada, el adelanto en custodia (el efectivo como ingreso de caja, que el cierre ya suma) y la boleta de anticipo; entregar crea en una sola transacción la venta por el total con el precio congelado, cierra el apartado y emite el comprobante que deduce el anticipo; al vencer, la prenda vuelve sola tras 2 días de gracia y la devolución queda pendiente hasta registrarse. 46 pruebas contra Postgres real, 4 mutaciones detectadas y toda la regresión de ventas, caja y comprobantes en verde.
+Felipe se lleva: (1) **el adelanto no se reutiliza como venta**: la venta nace el día que la clienta recoge, y el adelanto entra como un pago más («anticipo»), así el ingreso cae el día correcto y el cajón no lo cuenta dos veces; (2) **no se reutilizó `registrar_venta`** porque exige el precio de hoy, y la clienta ya tiene el suyo congelado: reutilizar está bien hasta que la pieza reutilizada contradice la regla del negocio; (3) la devolución **no espera** a la nota de crédito: el dinero vuelve a la clienta aunque el trámite SUNAT quede pendiente.
+Sin resolver: pegar en producción (después de ADR-0141, con OK de Felipe), transmitir anticipos a SUNAT (frenado a propósito hasta probarlo con Lucode), D5 y las pantallas.
+
 ## 2026-09-22 (Separaciones: demo de interfaz con el lenguaje del ERP)
 Después de validar las funciones, Felipe pidió verlo como interfaz. Se armó `interfaz.html` calcando Punto de Venta: el mismo lateral y la misma hoja, el panel derecho que pasa de ticket a formulario con la barra de 3 tramos, la grilla de medios F1–F5, y el modal «Separación registrada» con la forma de «Venta registrada» y el movimiento de ADR-0136.
 Felipe se lleva: (1) **una pantalla nueva no inventa su propio lenguaje**: reutiliza el ticket, el cobro y el modal que las colaboradoras ya saben usar, y solo agrega lo que es propio de separar (fecha límite, «en custodia», devolución); (2) la demo encontró un bug que el código no mostraba: redibujar el formulario al salir de un campo borraba lo escrito en el siguiente.
