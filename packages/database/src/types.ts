@@ -5950,7 +5950,12 @@ export type Database = {
       }
       archivar_rol: { Args: { p_rol_id: string }; Returns: undefined }
       asignar_rol: {
-        Args: { p_persona_id?: string; p_rol_id: string; p_terminal_id?: string }
+        Args: {
+          p_persona_id?: string
+          p_rol_id: string
+          p_terminal_id?: string
+          p_ubicacion_id?: string
+        }
         Returns: undefined
       }
       crear_rol: {

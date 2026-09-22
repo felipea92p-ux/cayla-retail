@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (Cambiar el rol entre líderes — actualización del ADR-0161)
+Felipe pidió que el rol se pueda cambiar entre líderes: hasta hoy a un líder no se le cambiaba y «Líder de equipo» no se daba desde la app. `asignar_rol` ahora sube a Líder y baja a un líder; la fila de un líder en Colaboradores tiene «Cambiar rol» y el rol Líder, «Asignar a una persona». Probado en Postgres local dentro de una transacción revertida.
+Felipe se lleva: (1) **el candado que evita quedarse sin líder es «nadie se cambia su propio rol»**: quien cambia ya es líder y no puede bajarse, así que siempre queda uno, sin contar nada; (2) **bajar a un líder obliga a elegirle sede**, porque un líder opera todas y no tiene una, y cualquier otro rol trabaja en una — los 9 líderes de producción están así.
+Sin resolver: pegar la migración en producción (OK de Felipe) y verlo con clics.
+
 ## 2026-09-22 (Roles y accesos: el buscador de «Asignar rol» — listas recortadas en modales)
 Felipe reportó que el campo Cuenta de «Asignar rol» no funcionaba. Se reprodujo en el navegador: la lista sí se abría, pero la hoja del modal tiene scroll propio y la recortaba (5 filas visibles, título y botones empujados fuera). Arreglo de raíz: `Desplegable` y `ComboBuscable` dibujan su lista en `fixed` medida contra el control (`usePosicionLista`, se abre hacia arriba si no cabe), la entrada del modal pasa a `animation-fill-mode: backwards` (con `both` Chrome seguía tratando la hoja como contenedor de los `fixed`), y Cuenta pasa a ser un buscador que filtra por nombre, sede o «terminal». Probado con clic y teclado, en escritorio y celular, y en «Rol de …» (desplegable Nuevo rol).
 Felipe se lleva: **una lista que se abre pero no se ve se siente igual que una rota**; el defecto no era del modal de roles sino de todo desplegable cerca del pie de cualquier modal, por eso se arregló en el control y no en la pantalla.
