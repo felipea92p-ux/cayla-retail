@@ -315,8 +315,19 @@ function main() {
     process.exit(1);
   }
 
+  // F1 paso 2 (20260922130000) abre la puerta de lectura a «líder o comprador»: una vez aplicada al local compartido,
+  // ya no se puede probar en aislamiento que F1 paso 1 SOLA la deja cerrada (esta suite solo carga esa migración).
+  const HAY_LECTURA_POR_TIENDA = psql("select to_regprocedure('retail.fn_compra_es_de_mis_tiendas(uuid)') is not null;").trim() === "t";
+  const SOLO_ANTES_DE_LA_LECTURA = ["con fila de comprador, Micaela NO ve dinero de Compras todavía"];
+  let saltadas = 0;
+
   let fallos = 0;
   for (const caso of CASOS) {
+    if (HAY_LECTURA_POR_TIENDA && SOLO_ANTES_DE_LA_LECTURA.some((p) => caso.nombre.startsWith(p))) {
+      saltadas++;
+      console.log(`↷ (se salta: F1 paso 2 ya está aplicada en esta base y abre la puerta que esta prueba esperaba cerrada) ${caso.nombre}`);
+      continue;
+    }
     const resultado = correr(caso.sql);
     if (caso.tipo === "error") {
       if (resultado.ok) {
@@ -345,7 +356,8 @@ function main() {
     }
   }
 
-  console.log(`\n${CASOS.length - fallos}/${CASOS.length} pruebas en verde.`);
+  const corridas = CASOS.length - saltadas;
+  console.log(`\n${corridas - fallos}/${corridas} pruebas en verde${saltadas ? ` (${saltadas} se saltan: solo aplica antes de F1 paso 2).` : "."}`);
   process.exit(fallos > 0 ? 1 : 0);
 }
 

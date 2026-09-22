@@ -402,8 +402,19 @@ function main() {
     process.exit(1);
   }
 
+  // F3 (20260922160000) abre registrar_compra al comprador de la tienda gestora: una vez aplicada al local compartido,
+  // ya no se puede probar en aislamiento que F1/F2 SOLAS lo dejan cerrado (esta suite no carga F3).
+  const HAY_TIENDA_GESTORA = psql("select to_regprocedure('retail.cambiar_tienda_gestora_compra(uuid,uuid)') is not null;").trim() === "t";
+  const SOLO_ANTES_DE_LA_GESTORA = ["un comprador NO registra una factura (hasta F3)"];
+  let saltadas = 0;
+
   let fallos = 0;
   for (const caso of CASOS) {
+    if (HAY_TIENDA_GESTORA && SOLO_ANTES_DE_LA_GESTORA.some((p) => caso.nombre.startsWith(p))) {
+      saltadas++;
+      console.log(`↷ (se salta: F3 ya está aplicada en esta base y abre registrar_compra al comprador gestor) ${caso.nombre}`);
+      continue;
+    }
     const resultado = correr(caso.sql);
     if (caso.tipo === "error") {
       if (resultado.ok) {
@@ -443,7 +454,8 @@ function main() {
     }
   }
 
-  console.log(`\n${CASOS.length - fallos}/${CASOS.length} pruebas en verde.`);
+  const corridas = CASOS.length - saltadas;
+  console.log(`\n${corridas - fallos}/${corridas} pruebas en verde${saltadas ? ` (${saltadas} se saltan: solo aplica antes de F3).` : "."}`);
   process.exit(fallos > 0 ? 1 : 0);
 }
 
