@@ -143,3 +143,10 @@ responsable, y la trazabilidad dependería de que nadie la esquive.
 
 ADR-0150 (roles a medida, retomado), ADR-0160 (cuentas terminal), ADR-0153 (`asesora_id`, `fn_asesoras_de_turno`),
 D-62 en `docs/datos/DECISIONES-2026-09-21-menu-comercial.md`, ADR-0026 (firmas que cambian dejan sobrecargas).
+
+## Regla permanente: módulos nuevos (Felipe, 2026-09-22, tras fusionar el PR #285)
+
+Todo módulo nuevo que se desarrolle **aparece en Roles y accesos y nace disponible solo para el líder**; el líder decide
+después a qué rol dárselo. Se da de alta con su propia migración en `retail.modulos` (sin tocar `rol_modulos`), en
+`lib/modulos.ts` y con `modulo` en su nodo de `lib/menu.ts` + `exigirModulo` en su ruta. La regla operativa completa está en
+`CLAUDE.md` («Módulos y roles») y la vigilan `lib/modulos.test.ts` y `pnpm pruebas:roles`.
