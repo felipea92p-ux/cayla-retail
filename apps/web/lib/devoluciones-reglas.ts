@@ -138,54 +138,6 @@ export function estadoPrendaDevolucion(
   return { ...estadoPlazoDevolucion(linea.creadoEn, ahora), devolvible: true };
 }
 
-// ============================================================================
-// Resumen de una venta completa para "Actividad reciente" (2026-09-22): una tarjeta por
-// venta, no una fila por prenda (`docs/pantallas/devoluciones.md` tarea #8). El detalle
-// por prenda sigue viviendo en el paso "Prendas" del flujo — acá solo lo que responde
-// "¿qué venta reviso?": cuánto sumó, y si ya tuvo actividad previa.
-// ============================================================================
-
-/** Cuántas prendas en total y cuánto pagó la clienta por toda la venta — lo que la
- *  tarjeta resume en vez de repetir precio por precio. */
-export function totalesVenta(lineas: readonly { cantidad: number; precioUnitario: number; descuentoUnitario: number }[]): {
-  prendas: number;
-  importe: number;
-} {
-  return lineas.reduce(
-    (acc, l) => ({ prendas: acc.prendas + l.cantidad, importe: Math.round((acc.importe + valorPagado(l, l.cantidad)) * 100) / 100 }),
-    { prendas: 0, importe: 0 }
-  );
-}
-
-/** Si esta venta ya tuvo un cambio o una devolución, dicho una sola vez para toda la
- *  tarjeta (hoy vive repetido debajo de cada prenda, vía `devolucionesHechas`/
- *  `cambiosHechos`). Una devolución pendiente manda: todavía no se sabe si se aprueba, y
- *  eso es lo más urgente de saber de un vistazo. `null` = sin ninguna actividad, la venta
- *  ordinaria del ejemplo (nada que decir). */
-export function actividadPreviaVenta(
-  lineas: readonly { devolucionesHechas: readonly { cantidad: number; estado: "pendiente" | "aprobada" }[]; cambiosHechos: readonly { cantidad: number }[] }[]
-): EstadoVisual | null {
-  let pendientes = 0;
-  let devueltas = 0;
-  let cambiadas = 0;
-  for (const l of lineas) {
-    for (const d of l.devolucionesHechas) {
-      if (d.estado === "pendiente") pendientes += d.cantidad;
-      else devueltas += d.cantidad;
-    }
-    for (const c of l.cambiosHechos) cambiadas += c.cantidad;
-  }
-  if (pendientes === 0 && devueltas === 0 && cambiadas === 0) return null;
-  if (pendientes > 0) {
-    return { clave: "con_pendiente", texto: pendientes === 1 ? "1 devolución pendiente" : `${pendientes} devoluciones pendientes`, tono: "ambar", icono: "reloj" };
-  }
-  const partes = [
-    cambiadas > 0 && (cambiadas === 1 ? "1 cambiada" : `${cambiadas} cambiadas`),
-    devueltas > 0 && (devueltas === 1 ? "1 devuelta" : `${devueltas} devueltas`),
-  ].filter((p): p is string => !!p);
-  return { clave: "con_actividad_previa", texto: partes.join(" · "), tono: "neutro", icono: "check" };
-}
-
 /** Lo que la clienta pagó de verdad por `cantidad` unidades: precio menos el descuento que
  *  se le hizo al venderla. A 2 decimales, como los montos de la base. */
 export function valorPagado(linea: { precioUnitario: number; descuentoUnitario: number }, cantidad: number): number {
