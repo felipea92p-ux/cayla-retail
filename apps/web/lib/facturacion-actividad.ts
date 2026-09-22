@@ -70,6 +70,8 @@ export function etapasDelHilo(estado: EstadoDeFila, entorno: EntornoTransmision)
       return { nodos: ["apagado", "apagado", "apagado", "apagado"], tramos: ["apagado", "apagado", "apagado"], descripcion: "Comprobante anulado" };
     case "no_emitido":
       return { nodos: ["apagado", "apagado", "apagado", "apagado"], tramos: ["apagado", "apagado", "apagado"], descripcion: "Comprobante liberado sin emitir" };
+    case "interna":
+      return { nodos: ["hecho", "hecho", "apagado", "apagado"], tramos: ["lleno", "apagado", "apagado"], descripcion: "Nota de venta: documento interno, no va a SUNAT" };
   }
 }
 
@@ -91,6 +93,7 @@ const TONO_DEL_ESTADO: Record<EstadoComprobante, ChipDeFila["tono"]> = {
   rechazado: "rojo",
   anulado: "apagado",
   no_emitido: "apagado",
+  interna: "apagado",
 };
 
 /** El chip de estado de un comprobante, el mismo en el Resumen y en la vista Comprobantes. Uno

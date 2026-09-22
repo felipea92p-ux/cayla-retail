@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260922203100_series_archivar.sql — CAYLA V2
+-- 20260922234100_series_archivar.sql — CAYLA V2
 --
 -- D-60 paso 4 (`docs/superpowers/specs/2026-09-22-comprobantes-series-y-envio-automatico-design.md`):
 -- archivar una serie en vez de reemplazarla.
@@ -22,6 +22,10 @@
 --   · `archivar_serie_comprobante(uuid, text)`: nueva, solo líder, con motivo.
 --   · `fn_reservar_numero_serie`: toma solo la serie activa y actualiza por `id`. MISMA firma: la llaman
 --     `emitir_comprobante`, `emitir_nota` y `aprobar_devolucion`, que no se tocan.
+--
+-- ORDEN (importa). Va DESPUÉS de `20260922224300_nota_de_venta.sql` a propósito: esa migración siembra
+-- las series NV con `on conflict (ubicacion_id, tipo) do nothing`, que necesita el índice único COMPLETO
+-- que esta reemplaza por uno parcial. Si esta corriera antes, una base armada desde cero fallaría ahí.
 --
 -- LO QUE ESTO NO RESUELVE (a propósito). SUNAT pide que una nota de crédito lleve la letra del documento
 -- que corrige (B… para boletas, F… para facturas). Con una sola NC activa por tienda, una tienda que corrija

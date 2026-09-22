@@ -4095,9 +4095,15 @@ export type Database = {
         Row: {
           anulado_en: string | null
           anulado_por: string | null
+          asesora_id: string | null
+          boleta_alegra_numero: string | null
           caja_id: string | null
           cliente_id: string | null
           created_at: string
+          descuento_autorizado_por: string | null
+          descuento_motivo: string | null
+          descuento_pct: number
+          emisor: string
           es_prueba: boolean
           estado: string
           id: string
@@ -4110,9 +4116,15 @@ export type Database = {
         Insert: {
           anulado_en?: string | null
           anulado_por?: string | null
+          asesora_id?: string | null
+          boleta_alegra_numero?: string | null
           caja_id?: string | null
           cliente_id?: string | null
           created_at?: string
+          descuento_autorizado_por?: string | null
+          descuento_motivo?: string | null
+          descuento_pct?: number
+          emisor?: string
           es_prueba?: boolean
           estado?: string
           id?: string
@@ -4125,9 +4137,15 @@ export type Database = {
         Update: {
           anulado_en?: string | null
           anulado_por?: string | null
+          asesora_id?: string | null
+          boleta_alegra_numero?: string | null
           caja_id?: string | null
           cliente_id?: string | null
           created_at?: string
+          descuento_autorizado_por?: string | null
+          descuento_motivo?: string | null
+          descuento_pct?: number
+          emisor?: string
           es_prueba?: boolean
           estado?: string
           id?: string
@@ -4816,6 +4834,15 @@ export type Database = {
       fn_aprobar_alta_colaborador: {
         Args: { p_persona_id: string }
         Returns: undefined
+      }
+      fn_asesoras_de_turno: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          es_de_esta_sede: boolean
+          estado_ahora: string
+          nombre_corto: string
+          persona_id: string
+        }[]
       }
       fn_asignar_codigo_producto: {
         Args: { p_producto_id: string }
@@ -6353,12 +6380,17 @@ export type Database = {
       }
       registrar_venta: {
         Args: {
+          p_asesora_id?: string
+          p_autorizado_por?: string
           p_cliente_id?: string
           p_cliente_nombre?: string
           p_cliente_num_doc?: string
           p_cliente_tipo_doc?: string
           p_codigo_descuento?: string
+          p_descuento_pct?: number
+          p_emisor?: string
           p_items: Json
+          p_motivo_descuento?: string
           p_nota?: string
           p_pagos: Json
           p_tipo_comprobante?: string

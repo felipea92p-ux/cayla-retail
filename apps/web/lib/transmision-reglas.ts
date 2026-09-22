@@ -3,6 +3,8 @@
 // que todo lo que pueda frenarlo se decide ANTES de llamar a Lucode, acá.
 
 export type ComprobanteParaTransmitir = {
+  /** `nota_venta` nunca se transmite (ADR-0164). Ausente = se decide solo por el estado. */
+  tipo?: string;
   estado: string;
   /** La venta de la que salió; `null` en un comprobante manual o una nota (no nacen de una venta). */
   venta_id: string | null;
@@ -22,6 +24,11 @@ export type NoSePuedeTransmitir = { error: string; status: 409 | 503 };
  *  el `select` perdió el embebido, o PostgREST cambió su forma—, se niega y se pide reintentar: ante la
  *  duda no se declara nada (falla cerrada; `undefined` o un arreglo no pasan por «venta viva»). */
 export function motivoParaNoTransmitir(c: ComprobanteParaTransmitir): NoSePuedeTransmitir | null {
+  // La nota de venta es un documento interno: la base ya la hace nacer «interna» (nunca pendiente), y esto
+  // la frena otra vez por tipo por si algún día cambia su estado.
+  if (c.tipo === "nota_venta") {
+    return { error: "Una nota de venta es un documento interno: no se transmite a SUNAT.", status: 409 };
+  }
   if (c.estado !== "pendiente" && c.estado !== "pendiente_reintento" && c.estado !== "rechazado") {
     return { error: `Este comprobante ya está en estado "${c.estado}" — no se vuelve a transmitir.`, status: 409 };
   }

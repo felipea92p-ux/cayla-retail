@@ -239,6 +239,17 @@ describe("aFila", () => {
     });
   });
 
+  it("el vendedor es quien atendió; si no se eligió a nadie, la sesión que cobró (ventas anteriores)", () => {
+    const ATENDIO = "44444444-4444-4444-4444-444444444444";
+    const nombres = new Map([
+      [VENDEDORA, "Micaela Ríos"],
+      [ATENDIO, "Rosa Díaz"],
+    ]);
+    expect(aFila(venta({ asesora_id: ATENDIO }), nombres).vendedor).toBe("Rosa Díaz");
+    expect(aFila(venta({ asesora_id: null }), nombres).vendedor).toBe("Micaela Ríos");
+    expect(aFila(venta(), nombres).vendedor).toBe("Micaela Ríos");
+  });
+
   it("una venta anulada se marca; sin nombre de vendedor conocido queda en null (no se inventa)", () => {
     const f = aFila(venta({ estado: "anulada" }), new Map());
     expect(f.anulada).toBe(true);
@@ -429,5 +440,12 @@ describe("agruparEnSemanas", () => {
       { fecha: "2026-09-14", ventas: 3, total: 15.5 },
       { fecha: "2026-09-21", ventas: 1, total: 7 },
     ]);
+  });
+});
+
+describe("elegirComprobante — la nota de venta (ADR-0164)", () => {
+  it("una venta con nota de venta la muestra, no «sin comprobante»", () => {
+    const nv = { tipo: "nota_venta", serie: "NV01", numero: 3, estado: "interna", created_at: "2026-09-22T17:06:00+00:00" };
+    expect(elegirComprobante([nv])).toEqual({ tipo: "nota_venta", numero: "NV01-000003", estado: "interna" });
   });
 });
