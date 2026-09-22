@@ -144,6 +144,26 @@ Solo cambia de dónde sacan su respuesta `fn_es_terminal(tipo)` y `fn_mi_termina
 - **Operaciones de varios pasos** (conteo, recepción de traslado): el combo se vacía al cerrar la operación completa,
   no después de cada prenda.
 
+## Actualización 2026-09-22 — sin tipo, y se crean desde la pantalla (Felipe)
+
+Esto **reemplaza** dos cosas de arriba: el `tipo` de «Las piezas» (punto 1) y «Por qué se crea con un script».
+
+- **Ya no hay tipo.** Lo que ve una terminal lo decide su **rol** (ADR-0161 B), igual que a una persona. Una terminal es
+  **tienda + nombre + rol**, y puede haber varias por tienda. `retail.terminales.tipo` queda como legado (admite vacío, no
+  se borra); el candado «una activa por tipo y tienda» pasa a **«un nombre por tienda entre las activas»**. El disparador
+  exige rol (o, en una fila vieja, lo saca del tipo), tienda activa y un rol que no sea Líder ni esté archivado.
+  Migración: `20260923040000_terminales_sin_tipo.sql`.
+- **Se crean desde Colaboradores ▸ Terminales**, solo un líder: «+ Nueva terminal» (tienda, nombre, rol) y «Cambiar
+  clave». La clave se ve **una sola vez**, en el segundo paso del mismo modal. El riesgo que motivó el script (la llave de
+  servicio en la web) se acota así: la Server Action (`app/actions/terminales.ts`) pregunta primero `fn_es_lider()` **con
+  la sesión de quien llama**; si no es líder (o la pregunta falla), rechaza y la llave **ni se abre**. La llave vive solo en
+  el servidor (`SUPABASE_SERVICE_ROLE_KEY`, sin `NEXT_PUBLIC_`, en `lib/supabase-admin.ts` con `server-only`). Si la fila
+  no entra, se borra la cuenta de Auth recién creada. La regla está probada con dobles en `lib/terminales-alta.test.ts`.
+- **El script `pnpm terminales:crear` queda de respaldo**, con las mismas reglas (`lib/terminales-reglas.ts`): tienda +
+  nombre + `--rol`.
+- **La web:** una terminal ve el menú de sus módulos (sin módulos, solo Inicio). Ve Inicio solo si no ve el Punto de
+  venta; si lo ve, aterriza en `/vender` (`aterrizajeDe` en `lib/menu.ts`). El menú de las personas no cambia.
+
 ## Abierto
 
 1. ~~Ventas sin conexión~~ **Decidido (Felipe, 2026-09-22):** se valida contra la **hora de la venta** (como
