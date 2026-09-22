@@ -44,7 +44,10 @@ ADR-0150 (roles a medida), que se había abandonado esta misma mañana en la fas
 | B2d | **Consecuencia que Felipe debe confirmar:** encender un módulo da todo lo que hay en él. Hoy un integrante ve Existencias, Productos y Caja, pero no puede ajustar stock, editar precios ni cerrar caja (ADR-0143). Con esta regla, si su rol ve esos módulos, podrá. |
 | B3 | «Pide Responsable» **no** es configurable (A7). |
 | B4 | **Facturación sí se delega en parte:** emitir y reenviar a SUNAT. Anular y las series siguen siendo solo del líder. La decisión 4 del ADR-0150 ya la había cambiado el ADR-0160, que dio Facturación a la terminal de ventas; aquí queda escrito. |
-| B5 | Las demás decisiones del ADR-0150 siguen: solo el líder administra roles, un rol por persona, catálogos de Dynamic y retail separados, acceso explícito con ubicación. |
+| B5 | Las demás decisiones del ADR-0150 siguen: solo el líder administra roles, un rol por persona, catálogos de Dynamic y retail separados, acceso explícito con ubicación. *(Cambiado por B6/B7: los roles también los administra quien tenga el módulo Roles y accesos.)* |
+| B6 | **(Felipe, 2026-09-22, después del spike) Se abren los 5 módulos «Solo líder por ahora»:** Etiquetas, Facturas de compra, Por pagar, Notas de crédito y Análisis se asignan a cualquier rol, y quien los tiene los usa completos. **Montos de Compras:** los ve quien tenga Facturas de compra, Por pagar o Notas de crédito (sin montos, Notas de crédito no sirve); «Ver costos, márgenes y montos de Compras» sale de B2b (cambia el ADR-0126). **Etiquetas:** con el módulo se crean, editan, aprueban y archivan etiquetas SIN descuento y se ponen en prendas; lo que lleva descuento (crearla, editarla, ponerla o quitarla de una prenda) sigue siendo del líder. **Análisis:** el rol analiza SU sede, con costo y stock de la red. Migración `20260923110000_abrir_modulos_a_los_roles.sql`. |
+| B7 | **(Felipe, 2026-09-22, cambio de alcance) Colaboradores, y Roles y accesos, también se asignan a cualquier rol** (dejan de ser `solo_lider`): dar, quitar, suspender y reactivar accesos, cambiar ubicación, aprobar altas, terminales (ver, crear, cambiar clave, desactivar, reactivar), y crear, editar, duplicar, renombrar, archivar, restaurar y asignar roles. Quien tiene Roles y accesos puede editar SUS propios módulos (queda en `roles_historial`). Migración `20260923111000_colaboradores_y_roles_delegables.sql`. |
+| B8 | **Tres protecciones mínimas — decisión de arquitectura, revisable (Felipe puede vetarlas):** (1) el rol «Líder de equipo» sigue fijo: nadie lo edita ni lo archiva; (2) a un líder solo lo toca un líder: quien no es líder no puede quitar, suspender ni reactivar a un líder, y el rol Líder no se asigna desde ninguna pantalla (`asignar_rol` lo rechaza llame quien llame, como antes; ser líder se da por SQL); (3) nunca se quita ni se suspende al último líder activo (`fn_exigir_puede_tocar_colaborador`). Con B6-B8, B2b queda así: anular venta o comprobante y series SUNAT, descuento sobre el tope, aprobar/rechazar devoluciones, etiquetas con descuento y las tres protecciones. |
 
 ### C. Cómo se trabaja
 
@@ -150,3 +153,42 @@ Todo módulo nuevo que se desarrolle **aparece en Roles y accesos y nace disponi
 después a qué rol dárselo. Se da de alta con su propia migración en `retail.modulos` (sin tocar `rol_modulos`), en
 `lib/modulos.ts` y con `modulo` en su nodo de `lib/menu.ts` + `exigirModulo` en su ruta. La regla operativa completa está en
 `CLAUDE.md` («Módulos y roles») y la vigilan `lib/modulos.test.ts` y `pnpm pruebas:roles`.
+
+## B6-B8 construidos (2026-09-22, rama `claude/abrir-modulos-a-los-roles`) — NO pegado en producción
+
+**Dos migraciones, en este orden:** `20260923110000_abrir_modulos_a_los_roles.sql` (los 5 módulos) y
+`20260923111000_colaboradores_y_roles_delegables.sql` (Colaboradores y Roles). Las dos cambian cada función desde su
+definición VIVA con conteo exacto de ocurrencias (inventario hecho contra producción el 2026-09-22; si algo cambió, abortan
+sin dejar nada a medias) y abren el módulo (`delegable`) solo al FINAL, así que un aborto deja todo «solo del líder».
+Cada una trae en su cabecera la clasificación de cada `fn_es_lider()` que se cambió y de los que no, con el porqué.
+
+**Capacidades nuevas** (mismo molde que las de C3): `fn_puede_editar_etiquetas`, `fn_puede_tocar_etiqueta(etiqueta,
+descuento)`, `fn_puede_analizar`, `fn_puede_gestionar_colaboradores`, `fn_puede_administrar_roles`; y
+`fn_puede_registrar_compras` / `fn_puede_ver_dinero_de_compras` pasan a «líder o capacidad(Facturas de compra, Por pagar,
+Notas de crédito)». En la web, los permisos `verDineroCompras`, `editarEtiquetas` y `analizar` salen de esos módulos
+(`permisosDeModulos`); `verDinero` queda para el dinero del Taller y el Resumen de Producción, solo del líder.
+
+**Lo que NO se abrió, a propósito** (no es de estos módulos): `fn_deuda_consolidada` y `fn_igv_credito_fiscal` (suman el
+Taller; las lee Producción ▸ Por pagar), la ficha de un proveedor (mezcla insumos del Taller), `registrar_gasto` (solo en
+producción, sin pantalla: se fija en `fn_es_lider()` para que abrir Compras no abra gastos), lo que el `es_lider` decide en
+Recibir (qué sede se mira), y las escrituras de Proveedores (módulo aparte).
+
+**Pruebas:** `pnpm pruebas:roles` 49/49 (en una copia de la base local con las migraciones, y también `--en-seco`), con
+casos de Por pagar (ve montos y paga), Facturas/Notas, Etiquetas (sí sin descuento, no con descuento), Análisis (su sede
+sí, otra no), Roles (asigna Integrante o un rol a medida, no Líder; edita sus módulos con historial), Colaboradores (da
+acceso, aprueba, ve listas y terminales) y las protecciones 2 y 3.
+
+**Preguntas abiertas para Felipe** (no se decidieron):
+1. **Registrar vs. ver montos.** La capacidad de registrar es UNA para los tres módulos de Compras: un rol con solo Por
+   pagar puede, por la API, registrar o anular una factura (la pantalla no se lo ofrece). ¿Se separa por módulo?
+2. **Recibir mercadería no muestra montos** a quien los ve en Compras (la pantalla sigue mirando «¿es líder?»). ¿Se los
+   muestra?
+3. **La ficha de un proveedor** y editar proveedores siguen siendo del líder (mezclan el Taller; y las escrituras de
+   Proveedores exigen `fn_es_lider()` aunque ese módulo ya se podía delegar).
+4. **Etiquetas desde la ficha de la prenda:** crear una prenda deja ponerle etiquetas sin descuento con solo Productos, pero
+   cambiarlas después desde su ficha pide el módulo Etiquetas. ¿Productos también debería poder?
+5. **Análisis muestra el costo y el stock de la red** también en Existencias a quien tenga ese módulo (sale de la misma
+   función). ¿Está bien?
+6. **Una terminal con Colaboradores** podría gestionar accesos; lo que hace queda firmado a nombre de nadie en
+   `colaboradores_historial` y en `desactivada_por` (esas dos firmas miran la persona de la sesión). Además, una terminal no
+   abre «Mi perfil», así que solo llega a Colaboradores por la URL.

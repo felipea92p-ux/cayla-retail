@@ -6,6 +6,15 @@
 - **Cierra** el hallazgo H4 de las pruebas SQL de Compras (PR #165) y el hueco que ADR-0113 (D5) solo *evitaba*.
 - **Migraciones:** `20260919160000_dinero_de_compras_lectura_operativa.sql` (A) y
   `20260919161000_dinero_de_compras_tablas_solo_lider.sql` (B).
+- **⚠️ La regla «solo el líder» CAMBIÓ el 2026-09-22 (Felipe, ADR-0161 B6).** Con los roles por módulo, los montos de
+  Compras los ve el líder **o un rol que tenga Facturas de compra, Por pagar o Notas de crédito**; quien no tiene ninguno
+  de esos tres módulos sigue sin ver un monto, exactamente como describe este ADR. El mecanismo de aquí NO cambia —y fue lo
+  que permitió cambiar la regla tocando una sola función, como preveía D1—: `fn_puede_ver_dinero_de_compras()` pasa a
+  «líder o `fn_capacidad_por_modulos(['facturas_compra','por_pagar','notas_credito'])`», las 5 tablas, el bucket y las 5
+  funciones la siguen usando, y el mensaje de `fn_exige_dinero_de_compras` dice ahora «Solo un líder o un rol con Facturas
+  de compra, Por pagar o Notas de crédito puede ver …». También `fn_puede_ver_compra` (todas las sedes para quien ve el
+  dinero) y los montos por proveedor (`fn_proveedores` y afines). Migración `20260923110000_abrir_modulos_a_los_roles.sql`
+  (sin pegar en producción al escribir esto). El título de este ADR describe la regla de 2026-09-19.
 
 ## Contexto — el problema
 
