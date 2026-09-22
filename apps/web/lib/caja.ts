@@ -199,7 +199,15 @@ export type CierreCaja = {
   cerradaEn: string;
   cerradaPorNombre: string | null;
   nota: string | null;
+  /** Dato ficticio de prueba (D-54, ADR-0152): solo llega con `incluirPrueba`. */
+  esPrueba: boolean;
 };
+
+// `42703` = undefined_column: la migración de `es_prueba` (D-54, ADR-0152) es aditiva y puede
+// tardar en pegarse en producción — mismo reintento que `ventas-historial.ts` y
+// `getStockPorUbicacion` (`inventario-v2.ts`), para que desplegar la web antes que la migración
+// no tumbe todo el historial de cierres, solo el filtro nuevo.
+const COLUMNA_INEXISTENTE = "42703";
 
 /**
  * Historial de cajas ya cerradas, más recientes primero. Sin filtro de ubicación a
@@ -208,20 +216,36 @@ export type CierreCaja = {
  * operar cualquier sede y `cajas_select` ya deja ver todas; filtrar acá sería una
  * frontera que la base no hace cumplir. Cada fila lleva el nombre de la sede para
  * que se lea igual de claro.
+ *
+ * `incluirPrueba` (D-54, ADR-0152): apagado por defecto, las cajas `es_prueba` no se piden.
  */
-export async function getHistorialCierres(limite = 60): Promise<CierreCaja[]> {
+export async function getHistorialCierres(limite = 60, incluirPrueba = false): Promise<CierreCaja[]> {
   const supabase = await createClient();
-  const filas = exigir(
-    await supabase
+  const CAMPOS = "id, ubicacion_id, monto_apertura, abierta_en, abierta_por, monto_cierre_sistema, monto_cierre_real, diferencia, cerrada_en, cerrada_por, nota";
+  const pedir = (conPrueba: boolean) => {
+    let q = supabase
       .from("cajas")
-      .select(
-        "id, ubicacion_id, monto_apertura, abierta_en, abierta_por, monto_cierre_sistema, monto_cierre_real, diferencia, cerrada_en, cerrada_por, nota"
-      )
-      .eq("estado", "cerrada")
-      .order("cerrada_en", { ascending: false })
-      .limit(limite),
-    "el historial de cierres de caja"
-  );
+      .select(conPrueba ? `${CAMPOS}, es_prueba` : CAMPOS)
+      .eq("estado", "cerrada");
+    if (conPrueba && !incluirPrueba) q = q.eq("es_prueba", false);
+    return q.order("cerrada_en", { ascending: false }).limit(limite);
+  };
+  let res = await pedir(true);
+  if (res.error?.code === COLUMNA_INEXISTENTE) res = await pedir(false);
+  const filas = exigir(res, "el historial de cierres de caja") as unknown as {
+    id: string;
+    ubicacion_id: string;
+    monto_apertura: number;
+    abierta_en: string;
+    abierta_por: string | null;
+    monto_cierre_sistema: number;
+    monto_cierre_real: number;
+    diferencia: number;
+    cerrada_en: string | null;
+    cerrada_por: string | null;
+    nota: string | null;
+    es_prueba?: boolean;
+  }[];
 
   const ubicaciones = await getUbicaciones();
   const nombreUbicacion = new Map(ubicaciones.map((u) => [u.id, u.nombre]));
@@ -250,6 +274,7 @@ export async function getHistorialCierres(limite = 60): Promise<CierreCaja[]> {
     cerradaEn: f.cerrada_en ?? "",
     cerradaPorNombre: f.cerrada_por ? (nombrePersona.get(f.cerrada_por) ?? null) : null,
     nota: f.nota,
+    esPrueba: f.es_prueba === true,
   }));
 }
 

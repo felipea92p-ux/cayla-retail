@@ -110,6 +110,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
             hoy={hoy}
             ayer={ayer}
             pendientesComprobante={totales.pendientesComprobante}
+            incluirPrueba={filtros.incluirPrueba}
           />
 
           {filas.length === 0 && !cursor ? (

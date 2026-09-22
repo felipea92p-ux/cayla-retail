@@ -192,10 +192,18 @@ externa**. Nada inventado, todo automático, la consolidación es una suma.
 Descartado explícitamente: el precio de transferencia interno (lo fija Felipe, así
 que el resultado también lo fijaría Felipe).
 
-> **Enmienda (2026-09-22, Felipe):** la segunda mitad —medir contra una cotización real de
-> maquila externa— **se descarta**: no se registra ninguna cotización. El Taller se mide por
-> lo que cuesta cada prenda terminada (materiales + conversión), período a período. Ver
-> `docs/PLAN-PRODUCCION.md` F7.
+> **Enmienda (2026-09-21, Felipe, sesión de Producción F7):** la segunda mitad —medir contra
+> una cotización real de maquila externa— se descarta: no se registra ninguna cotización. El
+> Taller se mide por lo que cuesta cada prenda terminada (materiales + conversión), período a
+> período. Ver `docs/PLAN-PRODUCCION.md` F7.
+>
+> **Segunda enmienda (2026-09-21, Felipe, misma tarde, sesión de la ronda de 60 preguntas):**
+> revive la cotización — D-31 vuelve a su forma original de arriba. Dos sesiones distintas le
+> preguntaron lo mismo el mismo día y Felipe respondió distinto; esta es la más reciente de
+> las dos y la que queda vigente. Construida (sin conectar a F7 todavía) en
+> `docs/datos/DECISIONES-2026-09-21-menu-comercial.md`, D-82, PR #269. **Pendiente:** que la
+> pantalla de Eficiencia del Taller (F7) llame `fn_cotizacion_maquila_vigente` y muestre las
+> dos comparaciones —contra sí mismo y contra el mercado—, no solo la primera.
 
 **D-32 · Gastos que no son de ninguna sede** (sueldo de Felipe, contador, servidores,
 software) → **van a la sede corporativa `CCO`**.

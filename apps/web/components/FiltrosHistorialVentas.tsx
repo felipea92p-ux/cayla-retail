@@ -54,6 +54,7 @@ export function FiltrosHistorialVentas({
   hoy,
   ayer,
   pendientesComprobante,
+  incluirPrueba,
 }: {
   /** Solo para un líder: las tiendas entre las que puede elegir. Sin esta prop no hay selector. */
   tiendas?: Opcion[];
@@ -75,6 +76,8 @@ export function FiltrosHistorialVentas({
   ayer: string;
   /** Cuántas ventas del rango actual están «pendiente de enviar» — la cifra del atajo. */
   pendientesComprobante: number;
+  /** D-54 (ADR-0152): con el toggle apagado (el default) las ventas `es_prueba` ni siquiera llegan de la base. */
+  incluirPrueba: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -193,6 +196,12 @@ export function FiltrosHistorialVentas({
           ))}
           <Pastilla activa={mostrarFechas} onClick={() => setPersonalizadoAbierto(true)}>
             Personalizado
+          </Pastilla>
+          {/* D-54 (ADR-0152): apagado por defecto — las ventas de prueba (archivadas, nunca borradas) ni
+              siquiera se piden a la base. Aparte de las demás píldoras porque no es un filtro del día a
+              día, es una excepción puntual («¿dónde quedó esa venta de prueba de antes de salir en vivo?»). */}
+          <Pastilla activa={incluirPrueba} onClick={() => aplicar({ prueba: incluirPrueba ? "" : "1" })}>
+            Con datos de prueba
           </Pastilla>
         </div>
         {/* `BotonFiltros` trae su `mt-1.5` para alinearse con un campo con etiqueta; acá no hay etiqueta. */}
