@@ -82,7 +82,9 @@ export function ApartarVista({
   hoy: string;
   cajaAbierta: boolean;
   prendas: PrendaApartable[];
-  irAEntregar: () => void;
+  /** «Buscar apartado» junto al escáner. Sin esta prop no se dibuja: en el tablero (2026-09-22) la búsqueda vive
+   *  fuera de esta hoja y se vuelve con «Volver a Apartados». */
+  irAEntregar?: () => void;
 }) {
   const router = useRouter();
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
@@ -327,9 +329,11 @@ export function ApartarVista({
               </ul>
             )}
           </div>
-          <button type="button" onClick={irAEntregar} className="label-cayla h-12 rounded-xl border border-sand bg-papel px-4 text-[11px] text-tinta hover:border-taupe sm:h-14">
-            Buscar apartado
-          </button>
+          {irAEntregar && (
+            <button type="button" onClick={irAEntregar} className="label-cayla h-12 rounded-xl border border-sand bg-papel px-4 text-[11px] text-tinta hover:border-taupe sm:h-14">
+              Buscar apartado
+            </button>
+          )}
         </div>
         {mensaje && (
           <p role="status" className={`text-[13px] ${mensaje.tono === "error" ? "text-rojo-profundo" : mensaje.tono === "ok" ? "text-verde-profundo" : "text-tinta/70"}`}>

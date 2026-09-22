@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { EMISOR } from "@/lib/emisor";
 import { fotoOptimizable } from "@/lib/foto-prenda-reglas";
 import { money } from "@/components/PuntoDeVenta";
+import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado } from "@/lib/separaciones-reglas";
 
 /** Las iniciales de la prenda cuando su color aún no tiene foto — mismo plan B que el catálogo del Punto de venta. */
@@ -54,21 +55,21 @@ export function FotoPrenda({
   );
 }
 
-const TONO_ESTADO: Record<ClaveEstado, string> = {
-  vigente: "text-verde-profundo",
-  porvencer: "text-ambar-profundo",
-  vencida: "text-rojo-profundo",
-  devolver: "text-rojo-profundo",
-  cerrada: "text-tinta/55",
+// La insignia oficial (ADR-0169): pizarra = en plazo (informativo, no semáforo), ámbar = vence pronto, rojo = pide
+// acción hoy. Solo el punto de «vencido» late (señal, no adorno — ADR-0136).
+const TONO_ESTADO: Record<ClaveEstado, TonoChip> = {
+  vigente: "pizarra",
+  porvencer: "ambar",
+  vencida: "rojo",
+  devolver: "rojo",
+  cerrada: "neutro",
 };
 
-/** El estado con su punto de color. El punto de «vencido» late: es una señal que pide acción (ADR-0136). */
 export function EstadoChip({ clave, texto }: { clave: ClaveEstado; texto: string }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap text-[11.5px] font-semibold ${TONO_ESTADO[clave]}`}>
-      <span aria-hidden className={`h-1.5 w-1.5 rounded-full bg-current ${clave === "vencida" ? "animate-pulse motion-reduce:animate-none" : ""}`} />
+    <Chip tono={TONO_ESTADO[clave]} vivo={clave === "vencida"}>
       {texto}
-    </span>
+    </Chip>
   );
 }
 
