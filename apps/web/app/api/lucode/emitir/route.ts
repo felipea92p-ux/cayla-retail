@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { firmaDeEncabezados, mensajeErrorResponsable } from "@/lib/responsable-reglas";
 import { emitirDocumentoLucode, entornoLucode, type DatosComprobante, type ItemComprobante, type TipoDocumentoLucode } from "@/lib/lucode";
 import { motivoParaNoTransmitir } from "@/lib/transmision-reglas";
 
@@ -71,11 +72,24 @@ export async function POST(request: Request) {
     return Response.json({ error: "Falta comprobante_id" }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  // La firma del combo «Responsable» (ADR-0161) que mandó la pantalla viaja en cada consulta de este cliente.
+  const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "No autorizado" }, { status: 401 });
+
+  // El responsable se valida ANTES de llamar a Lucode: lo que llega a SUNAT no se deshace, y si la base rechazara
+  // al responsable recién en `actualizar_transmision_comprobante`, el documento quedaría enviado sin registro.
+  // `fn_actor_persona_id` es la misma función que usan las escrituras (20260923010000). Si todavía no existe en esta
+  // base (migración sin pegar), no se frena nada: el candado se degrada al de antes, nunca bloquea por su ausencia.
+  const rpcLibre = supabase.rpc.bind(supabase) as unknown as (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => PromiseLike<{ error: { code?: string; hint?: string; message: string } | null }>;
+  const { error: errResponsable } = await rpcLibre("fn_actor_persona_id", { p_de_tienda: true });
+  const porResponsable = mensajeErrorResponsable(errResponsable);
+  if (porResponsable) return Response.json({ error: porResponsable }, { status: 403 });
 
   const { data: comprobante, error: errLectura } = await supabase
     .from("comprobantes")

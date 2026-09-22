@@ -151,7 +151,7 @@ export function ComprobantesPanel({
 
   // Transmisión a Lucode (Fase 1, ADR-0009), por fila: la misma implementación que usa la
   // fila de «Actividad de hoy» del Resumen (`lib/useTransmitir.ts`).
-  const { transmitiendoId, transmitir: onTransmitir } = useTransmitir();
+  const { transmitiendoId, transmitir: onTransmitir, confirmacion: confirmacionTransmitir } = useTransmitir();
 
   // Anulación (paso c, ADR-0016). Solo líder — la pantalla entera ya lo es,
   // pero `anular_comprobante` lo vuelve a exigir en la base.
@@ -337,6 +337,8 @@ export function ComprobantesPanel({
 
   return (
     <div className="space-y-6">
+      {/* La confirmación con el combo «Responsable» antes de transmitir (ADR-0161). */}
+      {confirmacionTransmitir}
       {/* Series registradas: una franja que dice si falta alguna y, aparte, el detalle. */}
       <section className="card-cayla anim-sube px-5 py-4" style={{ "--i": 6 } as CSSProperties} aria-labelledby="series-titulo">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">

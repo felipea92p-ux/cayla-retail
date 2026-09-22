@@ -55,12 +55,14 @@ function lineasDeProductos(v: VentaDelDia): string[] {
 const COLUMNAS = "@min-[640px]:grid @min-[640px]:grid-cols-[62px_minmax(0,1fr)_84px_minmax(0,1.3fr)] @min-[900px]:grid-cols-[72px_minmax(0,1.15fr)_104px_96px_minmax(0,1.95fr)]";
 
 export function ActividadDeHoy({ filas, ahora }: { filas: FilaDeActividad[]; ahora: Date }) {
-  const { transmitiendoId, transmitir } = useTransmitir();
+  const { transmitiendoId, transmitir, confirmacion: confirmacionTransmitir } = useTransmitir();
   const { texto: busqueda } = useFacturacionBusqueda();
   const visibles = filas.filter((f) => coincide(camposDeBusquedaDeLaFila(f), busqueda));
 
   return (
     <div className="card-cayla anim-sube @container overflow-hidden" style={{ "--i": 7 } as CSSProperties}>
+      {/* La confirmación con el combo «Responsable» antes de transmitir (ADR-0161). */}
+      {confirmacionTransmitir}
       <div className="flex items-end justify-between gap-3 px-5 pt-[18px] pb-3.5">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Ventas de hoy</p>
