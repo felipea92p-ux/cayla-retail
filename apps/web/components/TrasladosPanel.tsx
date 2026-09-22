@@ -39,6 +39,7 @@ export function TrasladosPanel({
   ahoraIso,
   horaCarga,
   cerradosAcotados,
+  vacios,
 }: {
   traslados: TrasladoResumen[];
   miUbicacionId: string;
@@ -46,6 +47,8 @@ export function TrasladosPanel({
   ahoraIso: string;
   horaCarga: string;
   cerradosAcotados: boolean;
+  /** Traslados sin prendas que no se muestran (ver `separarVacios`); 0 si quien mira no necesita saberlo. */
+  vacios: number;
 }) {
   const router = useRouter();
   const [refrescando, iniciarRefresco] = useTransition();
@@ -138,10 +141,13 @@ export function TrasladosPanel({
 
   if (traslados.length === 0) {
     return (
-      <div className="card-cayla space-y-3 p-6 text-sm text-taupe">
-        <p>Todavía no hay traslados desde ni hacia esta sede.</p>
-        <Link href="/inventario/mover" className="btn-cayla btn-primario">
-          Crear el primero →
+      <div className="card-cayla flex flex-col items-center gap-2 px-6 py-11 text-center">
+        <h2 className="font-display text-[22px] text-tinta">Tu sede todavía no ha enviado ni recibido traslados</h2>
+        <p className="max-w-md text-sm leading-relaxed text-taupe">
+          Cuando el Taller u otra tienda te envíe prendas, aparecerán aquí para que confirmes lo que llegó. Para mover stock, empieza con «Nuevo traslado».
+        </p>
+        <Link href="/inventario/mover" className="btn-cayla btn-secundario mt-2">
+          Crear el primer traslado
         </Link>
       </div>
     );
@@ -187,6 +193,7 @@ export function TrasladosPanel({
         horaCarga={horaCarga}
         hayFiltros={hayFiltros}
         cerradosAcotados={cerradosAcotados}
+        vacios={vacios}
         onLimpiar={limpiarTodo}
         onMostrarMas={mostrarMas}
         siguientePagina={Math.min(POR_PAGINA, filtradas.length - visibles.length)}
