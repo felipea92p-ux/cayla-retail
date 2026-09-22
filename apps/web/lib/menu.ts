@@ -85,7 +85,7 @@ export function permisosDe(rol: RolMenu, terminal: TipoTerminal | null = null): 
 
 /** Claves de los íconos. Los trazos viven en `AppShell.tsx` (`IC`); acá solo se nombra cuál lleva cada nodo. */
 export type ClaveIcono =
-  | "inicio" | "vender" | "caja" | "historial" | "productos" | "inventario" | "movimientos" | "traslados" | "conteo" | "resumen"
+  | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "movimientos" | "traslados" | "conteo" | "resumen"
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "cambios" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito";
 
@@ -249,11 +249,21 @@ export const ARBOL: readonly Nodo[] = [
     id: "venta", etiqueta: "Ventas", estado: "viva", icono: "venta", raiz: "/vender", pajaro: "07 Colibrí", terminales: ["ventas"],
     hijos: [
       { id: "venta.puntoDeVenta", etiqueta: "Punto de Venta", estado: "viva", ruta: "/vender", icono: "vender", pajaro: "07 Colibrí" },
+      // Apartados (ADR-0166): la clienta aparta con un adelanto y recoge pagando el saldo. Junto al Punto de venta: es la misma caja.
+      { id: "venta.apartados", etiqueta: "Apartados", estado: "viva", ruta: "/vender/apartados", icono: "apartados", pajaro: "07 Colibrí" },
       { id: "venta.caja", etiqueta: "Caja", estado: "viva", ruta: "/caja", icono: "caja", pajaro: "07 Colibrí" },
       // Historial de ventas (ADR-0147): el libro de todas las ventas; se lee tras cobrar y cuadrar y de ahí se pasa a corregir.
       { id: "venta.historial", etiqueta: "Historial", estado: "viva", ruta: "/vender/historial", icono: "historial", pajaro: "07 Colibrí" },
-      { id: "venta.cambios", etiqueta: "Cambios", estado: "viva", ruta: "/cambios", icono: "cambios", pajaro: "07 Colibrí" },
-      { id: "venta.devoluciones", etiqueta: "Devoluciones", estado: "viva", ruta: "/devoluciones", icono: "devoluciones", pajaro: "07 Colibrí" },
+      // Posventa (D-84, ADR-0166): al entrar Apartados, Ventas pasaba el tope de 6 hijas. Cambios y Devoluciones son lo que pasa
+      // DESPUÉS de una venta y se usan mucho menos que el mostrador y la caja: se agrupan en vez de subir el tope (ADR-0144).
+      // `raiz` reutiliza la de su primera hija, como Abastecimiento.
+      {
+        id: "venta.posventa", etiqueta: "Posventa", estado: "viva", icono: "cambios", raiz: "/cambios", pajaro: "07 Colibrí",
+        hijos: [
+          { id: "venta.cambios", etiqueta: "Cambios", estado: "viva", ruta: "/cambios", icono: "cambios", pajaro: "07 Colibrí" },
+          { id: "venta.devoluciones", etiqueta: "Devoluciones", estado: "viva", ruta: "/devoluciones", icono: "devoluciones", pajaro: "07 Colibrí" },
+        ],
+      },
       { id: "venta.facturacion", etiqueta: "Comprobantes", estado: "viva", ruta: "/vender/comprobantes", icono: "facturacion", pajaro: "08 Cuervo", exige: "facturar" },
     ],
   },

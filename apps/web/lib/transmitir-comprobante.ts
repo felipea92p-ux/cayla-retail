@@ -39,6 +39,9 @@ type FilaComprobante = {
   /** La venta de la que salió el comprobante y su estado: una venta anulada no se transmite (ver `motivoParaNoTransmitir`). */
   venta_id: string | null;
   venta: { estado: string } | null;
+  /** Separaciones (ADR-0166): se leen aparte, ver abajo. */
+  es_anticipo?: boolean;
+  anticipo_deducido?: number | string | null;
 };
 
 export async function transmitirComprobante(supabase: Cliente, destino: Destino): Promise<Respuesta> {
@@ -59,6 +62,19 @@ export async function transmitirComprobante(supabase: Cliente, destino: Destino)
     return { status: 404, body: { error: "Comprobante no encontrado o sin permiso para verlo" } };
   }
   const fila = comprobante as FilaComprobante;
+
+  // Separaciones (ADR-0166): un anticipo, o el comprobante que lo deduce, no se transmite todavía. Consulta
+  // aparte y TOLERANTE: si la web sale antes que la migración, la columna no existe (42703) y se lee como
+  // «no es anticipo» — las boletas de siempre se siguen transmitiendo. Cualquier otro fallo, falla cerrada.
+  const { data: anticipo, error: errAnticipo } = await supabase
+    .from("comprobantes")
+    .select("es_anticipo, anticipo_deducido")
+    .eq("id", fila.id)
+    .maybeSingle();
+  if (errAnticipo && errAnticipo.code !== "42703") {
+    return { status: 503, body: { error: "No se pudo comprobar si el comprobante es de una separación. Reintenta." } };
+  }
+  if (anticipo) Object.assign(fila, anticipo);
 
   // Lo que llega a SUNAT no se deshace: todo lo que puede frenarlo se decide antes de llamar a Lucode
   // (estado del comprobante y estado de su venta, ver `lib/transmision-reglas.ts`).

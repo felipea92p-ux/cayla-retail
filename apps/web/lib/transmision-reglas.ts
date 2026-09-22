@@ -10,6 +10,10 @@ export type ComprobanteParaTransmitir = {
   venta_id: string | null;
   /** Lo que se pudo leer de esa venta; `null` si no se pudo leer (RLS o un fallo). */
   venta: { estado: string } | null;
+  /** Separaciones (ADR-0166): el comprobante es el ANTICIPO de una separación… */
+  es_anticipo?: boolean;
+  /** …o el final que DEDUCE un anticipo (monto > 0). PostgREST puede mandar el numeric como texto. */
+  anticipo_deducido?: number | string | null;
 };
 
 export type NoSePuedeTransmitir = { error: string; status: 409 | 503 };
@@ -28,6 +32,16 @@ export function motivoParaNoTransmitir(c: ComprobanteParaTransmitir): NoSePuedeT
   // la frena otra vez por tipo por si algún día cambia su estado.
   if (c.tipo === "nota_venta") {
     return { error: "Una nota de venta es un documento interno: no se transmite a SUNAT.", status: 409 };
+  }
+  // Un anticipo y el comprobante que lo deduce llevan campos propios en SUNAT (tipo de operación y la
+  // deducción con referencia al anticipo) que `lib/lucode.ts` todavía no arma: mandados como una boleta
+  // común, el final llegaría con líneas que suman el total y un importe que es solo el saldo. Se frenan
+  // hasta probarlos en el sandbox de Lucode (ADR-0166). La venta y la boleta ya quedaron registradas.
+  if (c.es_anticipo === true || Number(c.anticipo_deducido ?? 0) > 0) {
+    return {
+      error: "Este comprobante es de un apartado (anticipo): su envío a SUNAT se activa cuando se pruebe con Lucode. Queda registrado y pendiente.",
+      status: 409,
+    };
   }
   if (c.estado !== "pendiente" && c.estado !== "pendiente_reintento" && c.estado !== "rechazado") {
     return { error: `Este comprobante ya está en estado "${c.estado}" — no se vuelve a transmitir.`, status: 409 };

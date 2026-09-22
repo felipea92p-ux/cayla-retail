@@ -78,7 +78,11 @@ no «Agotada» (pendiente ya anotado en el BACKLOG de ADR-0141).
 | Medio de devolución | Sí (Yape/Plin por defecto al mismo celular) | D4: devolver sin que la clienta vuelva. |
 | CCI | Solo si elige transferencia como medio de devolución | Dato bancario: lo ven solo quienes operan esa tienda y la líder; nunca se imprime completo. |
 
-## 6. Modelo de datos propuesto (a validar antes de escribir SQL)
+## 6. Modelo de datos
+
+> **Implementado el 2026-09-23 (ADR-0166, `supabase/migrations/20260923090000_separaciones.sql`).** Lo que cambió respecto de esta propuesta
+> está en el ADR (p. ej. la venta de la entrega no pasa por `registrar_venta`, y la devolución no espera a la nota de crédito). Lo de abajo es
+> la propuesta original.
 
 - **`separaciones`** (el documento): `id`, `codigo` (`SEP-TRU-0007`, correlativo por tienda), `ubicacion_id`, `clienta_id → clientas`,
   `asesora_id → personas`, `total`, `adelanto`, `vence_el`, `extensiones`, `estado` (`abierta` | `entregada` | `liberada` | `devuelta`),

@@ -189,10 +189,27 @@ demo: `docs/maquetas/separaciones-2026-09/demo.html`.
 - [ ] **Felipe valida las funciones en la demo** y decide D5 (quién libera y registra la devolución).
 - [x] Demo de interfaz con el lenguaje visual del ERP (`docs/maquetas/separaciones-2026-09/interfaz.html`, 2026-09-22): lateral con «Separaciones» bajo Ventas, Separar / Entregar / Todas, modales ADR-0136. Falta que Felipe la revise.
 - [ ] Confirmar con Lucode (apisunat.pe) la emisión de anticipo + regularización, y con el contador el tratamiento (pasivo 122 + IGV al cobrar).
-- [ ] Requisito: pegar ADR-0141 (`20260920160000_apartar_stock.sql`) en producción.
-- [ ] Construir: migración `separaciones` + `separacion_pagos` + 3 RPC (separar, entregar consumiendo el apartado, liberar/devolver) con pruebas SQL; pantallas Separar, Entregar, Bandeja; `cerrar_caja` cuenta el efectivo de adelantos; ADR propio.
+- [x] Requisito: ADR-0141 (`20260920160000_apartar_stock.sql`) **aplicada en producción el 2026-09-22** (con OK de Felipe; Claude, vía SQL en una transacción): cuerpos de función idénticos al repo por md5, verificador en 0 filas, stock intacto (153 filas).
+- [x] **Base de datos (2026-09-23, ADR-0166):** `20260923090000_separaciones.sql` — `separaciones`, `separacion_items`, `separacion_pagos`,
+      `separacion_correlativos`; 9 funciones (`separar_prendas`, `entregar_separacion`, `extender_separacion`, `liberar_separacion`,
+      `registrar_devolucion_separacion`, `fn_vencer_separaciones`, `buscar_separaciones`, `resumen_separaciones`, `fn_verificar_separaciones`).
+      46 pruebas SQL (`pnpm pruebas:separaciones`, en CI), 4 mutaciones detectadas, regresión en verde. `cerrar_caja` no se tocó: el efectivo del
+      adelanto entra como ingreso de caja. **Aplicada en producción el 2026-09-22** (con OK de Felipe; Claude, vía SQL en una transacción): cuerpos de función idénticos al repo por md5, verificador en 0 filas, stock intacto (153 filas).
+- [x] **`20260923090000_separaciones.sql` pegada en producción** (2026-09-22, después de ADR-0141): 10 funciones con md5 idéntico, `fn_verificar_separaciones` en 0, `venta_pagos` acepta `anticipo`.
+- [ ] **Series faltantes en producción:** Lima (LIM) solo tiene `NV03`: un apartado en Lima falla al emitir la boleta de anticipo hasta que se registre su serie de boleta/factura. Ninguna tienda tiene serie de nota de crédito: la devolución se registra igual, con el aviso «La nota de crédito queda pendiente».
+- [ ] **Transmitir anticipos a SUNAT:** hoy `motivoParaNoTransmitir` los frena (boleta de anticipo y la final que lo deduce). Falta armar el payload
+      de anticipo/regularización en `lib/lucode.ts` y probarlo en el sandbox; confirmar con el contador el caso del adelanto del 100% (no se emite
+      segundo comprobante).
+- [ ] **D5 por confirmar:** extender/liberar/devolver hoy exigen `fn_puede_gestionar_caja()` (líder o terminal de ventas).
+- [x] **Pantallas (2026-09-23):** `/vender/apartados` con Apartar, Entregar y Todos; en pantalla se llama **Apartados** (código APT-, boleta
+      «Anticipo por apartado»). Probado en el navegador contra Postgres real. Menú: Cambios y Devoluciones pasan al subgrupo «Posventa».
+- [x] **Felipe aprobó el subgrupo «Posventa»** (2026-09-22) en el menú (el golden se cambió a propósito; si no lo quiere, la alternativa es sacar
+      Apartados del lateral y dejarlo como pestaña del Punto de venta).
+- [ ] **En Caja**, la tarjeta «En custodia» (hoy vive en Apartados → Todos) y `anticipo` en `NOMBRE_METODO`/historial de ventas.
+- [ ] **Existencias** sigue ofreciendo «Apartar» de ADR-0141 (sin adelanto): decidir si se quita o se deja como reserva rápida.
+- [ ] Ya en producción: refrescar el volcado y regenerar el diccionario (`pnpm datos:generar:produccion`) para que entren las 4 tablas nuevas.
 
-## 🎯 Apartar stock — Fase 1: reserva física con clienta y fecha límite (2026-09-20, ADR-0141) — hecho en local, falta pegar en producción
+## 🎯 Apartar stock — Fase 1: reserva física con clienta y fecha límite (2026-09-20, ADR-0141) — en producción desde el 2026-09-22
 
 Una prenda apartada para una clienta ya **no se puede vender**: sigue contando en el conteo físico, pero deja de estar *disponible*. Existencias tiene la
 tarjeta «Apartados» (lo vencido en rojo; **no se libera solo**), la acción «Apartar» por fila y «Liberar» (solo quien apartó, o una líder). Detalle,
@@ -201,7 +218,7 @@ decisiones, lo que se descartó y la verificación en [docs/adr/0141-apartar-sto
 - [x] **Motor, tabla y RPC** (`20260920160000_apartar_stock.sql`): `stock.cantidad_apartada`, `apartados`, `apartar_stock`, `liberar_apartado`,
       `listar_apartados`, `fn_verificar_apartados`; `fn_aplicar_movimiento` (venta, traslado y ajuste miran lo disponible) y `recalcular_stock`.
       Verificado con 41 pruebas SQL + 54 de regresión + carreras con COMMIT (hasta 120 conexiones) + prueba de mutación.
-- [ ] **Pegar `20260920160000_apartar_stock.sql` en producción, ANTES de desplegar la web** (Existencias lee la columna nueva). Entera, en el SQL Editor de
+- [x] **`20260920160000_apartar_stock.sql` pegada en producción el 2026-09-22, antes de desplegar la web** — los 6 cuerpos con md5 idéntico al repo, `fn_verificar_apartados` en 0. (Existencias lee la columna nueva). Entera, en el SQL Editor de
       cayla-dynamic; es re-ejecutable. Pasos y verificación en el ADR («Cómo se pega en producción»).
 - [ ] **Probarlo en el navegador con datos reales, como colaboradora y como líder.** Esta sesión no tenía base de datos: se vieron los componentes reales
       con datos de ejemplo (formulario, errores, vencidos, caída de red), pero no el ciclo completo apartar → ver → liberar contra Postgres.
@@ -393,7 +410,7 @@ La base local se dejó idéntica a producción el 2026-09-21 (huella por objeto:
 
 - [ ] **Permisos de producción sin migración.** Default global `postgres:f:global:{postgres=X/postgres}` (`alter default privileges for role postgres revoke execute on functions from public`); `revoke execute on all functions in schema retail from public` (en producción `anon` ejecuta 0 funciones; local llegó a tener 96); `stock`, `transferencias` y `transferencia_items` solo SELECT para `authenticated`; `stock` y `movimientos` solo lectura para `service_role`; `fn_aplicar_movimiento` y `recalcular_stock` sin EXECUTE para `service_role`. Falta una migración idempotente que lo escriba.
 - [ ] **`retail.gastos` y `registrar_gasto` (11 parámetros) están en producción y no en la cadena de `main`.** Vienen de las migraciones tempranas de `claude/garza-caja-modulo-7aad0f` (`20260916171500_gastos_operativos` y `20260916174750_gastos_idempotente`, sin fusionar); las posteriores (`20260918193000_gastos`, ADR-0117) NO están en producción. Sin ellas Eficiencia (Taller), que lee `gastos`, falla en una base local reconstruida. Decidir: fusionar las dos tempranas o escribir la migración desde la definición viva de producción.
-- [ ] **Apartar stock (ADR-0141, `20260920160000`) está en `main` y NO en producción**, y el front ya llama a `apartar_stock`, `liberar_apartado` y `listar_apartados`: esas pantallas fallan en producción. Se retiró de la base local para que calce con producción. Pegar en producción (necesita el OK de Felipe) y reaplicar en local con `psql` registrando la versión.
+- [x] **(Resuelto 2026-09-22: aplicada en producción.)** Apartar stock (ADR-0141, `20260920160000`) estaba en `main` y NO en producción, y el front ya llama a `apartar_stock`, `liberar_apartado` y `listar_apartados`: esas pantallas fallan en producción. Se retiró de la base local para que calce con producción. Pegar en producción (necesita el OK de Felipe) y reaplicar en local con `psql` registrando la versión.
 - [ ] **Refrescar `docs/datos/generado/funciones-produccion.txt`** (199 firmas contra 217 en producción): `pnpm datos:comparar` marca como rotas 5 pantallas que sí existen en producción.
 
 Aparte: `pnpm pruebas:colaboradores-endurecimiento` falla en local con `no rows returned for \gset` porque su montaje busca una persona activa que aún no sea colaboradora y la base ya no tiene ninguna (no es de la sincronización).
