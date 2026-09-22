@@ -4,17 +4,15 @@ import { BuscadorDebounced } from "@/components/ui/BuscadorDebounced";
 import { SelectNativo } from "@/components/ui/campos";
 import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 import { Encabezado, fila, TABLA } from "@/components/ui/Tabla";
+import { LecturaCelda } from "@/components/ResumenCifras";
 import type { CambiosUrl } from "@/components/useResumenUrl";
+import { lecturaComparacion } from "@/lib/resumen-lectura";
 import { FILAS_POR_PAGINA } from "@/lib/resumen-filtros";
 import { AYUDA_ROTACION, TEXTO_MOTIVO_ROTACION } from "@/lib/rotacion";
 import { formatoDeltaPp, formatoRotacion, formatoSellThrough, formatoVariacion, formatoVelocidad } from "@/lib/resumen-formato";
 import {
-  cambioMostrado,
-  detalleCambio,
   FILTROS_CAMBIO,
   OPCIONES_ORDEN_COMPARACION,
-  SENTIDO_CAMBIO,
-  textoCambio,
   type AnalisisComparacion,
   type ComparacionParaPantalla,
   type FiltroCambio,
@@ -23,14 +21,15 @@ import {
 } from "@/lib/resumen-comparacion";
 
 // Detalle por producto: «¿qué productos explican lo que cambió?». Una fila por variante con lo vendido
-// (y su ritmo), el stock AL CIERRE de cada período, el sell-through, la rotación y el cambio más
-// relevante de esa variante — no una lista de banderas: el más importante de todos los que aplican
-// (`cambioMostrado`, ADR-0138). La tabla es ancha a propósito: se desplaza dentro de su tarjeta y nunca
+// (y su ritmo), el stock AL CIERRE de cada período, el sell-through, la rotación y el cambio relevante de
+// esa variante: una frase por reglas (`lib/resumen-lectura.ts`, 2026-09-22) que dice qué hacer — se agotó,
+// sin ventas con stock, aceleró… —, no una lista de banderas. Vive debajo de las cifras y los gráficos (ya
+// no es una vista aparte) y la dona de arriba la filtra. La tabla es ancha a propósito: se desplaza dentro de su tarjeta y nunca
 // ensancha la página.
 
 // Mínimo ≈ 58 rem (la prenda con el mismo piso que en Existencias, 13.5rem): cabe en una ventana de
 // 1440 px sin desplazar la tabla; más angosto, se desplaza dentro de su tarjeta (nunca la página entera).
-const PLANTILLA = "grid-cols-[minmax(13.5rem,1.4fr)_8rem_6.5rem_7rem_6.5rem_minmax(9rem,1fr)]";
+const PLANTILLA = "grid-cols-[minmax(13.5rem,1.4fr)_8rem_6.5rem_7rem_6.5rem_minmax(13rem,1.2fr)]";
 
 const PRINCIPAL = "block whitespace-nowrap text-sm text-tinta tabular-nums";
 const SECUNDARIO = "block truncate text-xs leading-4 text-tinta/65 tabular-nums";
@@ -85,25 +84,7 @@ function RotacionCelda({ x }: { x: AnalisisComparacion }) {
   );
 }
 
-/** El cambio más relevante de la fila. Uno solo —nunca una hilera de chips— y en texto, para no llenar
- *  la tabla de insignias: el color y la flecha ya dicen si es una buena o una mala noticia. */
-function CambioCelda({ x, filtro }: { x: AnalisisComparacion; filtro: FiltroCambio }) {
-  const c = cambioMostrado(x, filtro);
-  if (c === null) return (
-    <span role="cell" className="min-w-0 text-center text-sm text-tinta/35" title="No hay suficiente historial para medir un cambio">
-      —
-    </span>
-  );
-  if (c === "sin_cambio") return <span role="cell" className="min-w-0 truncate text-center text-sm text-tinta/50">Sin cambio relevante</span>;
-  const sube = SENTIDO_CAMBIO[c] === "sube";
-  return (
-    <span role="cell" className={`min-w-0 truncate text-center text-sm font-medium ${sube ? "text-verde-profundo" : "text-ambar-profundo"}`} title={detalleCambio(x, c)}>
-      {sube ? "↑" : "↓"} {textoCambio(x, c)}
-    </span>
-  );
-}
-
-function Fila({ x, filtro }: { x: AnalisisComparacion; filtro: FiltroCambio }) {
+function Fila({ x, filtro, diasB }: { x: AnalisisComparacion; filtro: FiltroCambio; diasB: number }) {
   const f = x.fila;
   return (
     <div role="row" className={fila(PLANTILLA)}>
@@ -129,22 +110,16 @@ function Fila({ x, filtro }: { x: AnalisisComparacion; filtro: FiltroCambio }) {
       <StockCierre a={x.a} b={x.b} />
       <SellThroughCelda x={x} />
       <RotacionCelda x={x} />
-      <CambioCelda x={x} filtro={filtro} />
+      <LecturaCelda lectura={lecturaComparacion(x, diasB, filtro)} />
     </div>
   );
 }
 
+/** Un filtro de la tabla: la píldora de la guía oficial, con su cuenta. La elegida va en tinta. */
 function FiltroChip({ activo, n, onClick, children }: { activo: boolean; n: number; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button
-      type="button"
-      aria-pressed={activo}
-      onClick={onClick}
-      className={`label-cayla rounded-md border px-3 py-2 text-[11px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-tinta/40 ${
-        activo ? "border-tinta bg-tinta text-crema" : "border-tinta/20 bg-papel text-tinta/80 hover:border-tinta/45"
-      }`}
-    >
-      {children} <span className={`tabular-nums ${activo ? "text-crema/80" : "text-tinta/55"}`}>({n})</span>
+    <button type="button" aria-pressed={activo} onClick={onClick} className="pildora-cayla focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60">
+      {children} <span className="tabular-nums opacity-70">· {n}</span>
     </button>
   );
 }
@@ -158,11 +133,11 @@ export function ResumenComparacionDetalle({ datos, actualizar }: { datos: Compar
   return (
     <section className="card-cayla overflow-x-auto" aria-labelledby="detalle-titulo">
       <div className="px-5 pb-2 pt-5">
-        <h2 id="detalle-titulo" className="font-display text-[1.35rem] leading-tight text-tinta">
+        <h2 id="detalle-titulo" className="scroll-mt-24 font-display text-[1.35rem] leading-tight text-tinta">
           Detalle por producto
         </h2>
         <p className="mt-0.5 max-w-3xl text-xs text-tinta/65">
-          Qué pasó con cada variante entre {periodoA.etiqueta} (A) y {periodoB.etiquetaCorta} (B); el stock es el de cierre de cada período y el cambio, el más relevante de cada una.
+          Qué pasó con cada variante entre {periodoA.etiqueta} (A) y {periodoB.etiquetaCorta} (B); el stock es el de cierre de cada período y el cambio relevante, una lectura por reglas de qué hacer con cada una.
         </p>
       </div>
 
@@ -203,7 +178,7 @@ export function ResumenComparacionDetalle({ datos, actualizar }: { datos: Compar
           )}
         </div>
       ) : (
-        <div role="table" aria-label="Detalle por producto" className="min-w-[58rem] divide-y divide-tinta/10 border-t border-tinta/10">
+        <div role="table" aria-label="Detalle por producto" className="min-w-[62rem] divide-y divide-tinta/10 border-t border-tinta/10">
           <Encabezado
             siempre
             plantilla={PLANTILLA}
@@ -213,12 +188,12 @@ export function ResumenComparacionDetalle({ datos, actualizar }: { datos: Compar
               { titulo: "Stock A → B", subtitulo: "al cierre", alinear: "centro", ayuda: "Unidades utilizables al cierre de cada período. NO son las ventas: también pueden llegar recepciones, devoluciones, traslados o ajustes." },
               { titulo: "Sell-through", subtitulo: "A → B", alinear: "centro", ayuda: "Ventas netas ÷ (stock al inicio del período + entradas), en A y en B" },
               { titulo: "Rotación", subtitulo: "A → B", alinear: "centro", ayuda: `Veces que rotó el inventario. ${AYUDA_ROTACION}` },
-              { titulo: "Cambio relevante", alinear: "centro", ayuda: "El más importante de los cambios de esta variante entre A y B" },
+              { titulo: "Cambio relevante", ayuda: "Qué hacer con estas cifras: una frase por reglas fijas, en orden (estimadas, agotada en B, sin ventas, el cambio más importante de A a B, vendió casi todo)" },
             ]}
           />
           <div role="rowgroup" className="divide-y divide-tinta/10">
             {tabla.filas.map((x) => (
-              <Fila key={x.fila.varianteId} x={x} filtro={cambio} />
+              <Fila key={x.fila.varianteId} x={x} filtro={cambio} diasB={periodoB.dias} />
             ))}
           </div>
         </div>

@@ -295,3 +295,39 @@ export function ColumnasComparadas({ grupos, etiquetaA, etiquetaB }: { grupos: G
     </div>
   );
 }
+
+export type Columna = { clave: string; etiqueta: string; valor: number };
+
+/** Columnas de UNA serie (Desempeño, 2026-09-22): la hermana de `ColumnasComparadas` para un solo período, con
+ *  la misma escala, el mismo alto y el mismo color que la B de allá (lo analizado). El número va escrito sobre
+ *  cada columna: el gráfico se lee sin depender de la altura. */
+export function Columnas({ columnas }: { columnas: Columna[] }) {
+  const max = Math.max(...columnas.map((c) => c.valor), 0);
+  const alto = (v: number) => (max > 0 && v > 0 ? Math.max(Math.round((v / max) * ALTO_COLUMNAS), 3) : 0);
+  return (
+    <div>
+      <div aria-hidden className="flex items-end gap-2 border-b border-tinta/15 sm:gap-4">
+        {columnas.map((c, i) => (
+          <div key={c.clave} className="flex min-w-0 flex-1 flex-col items-center justify-end">
+            <span className="mb-1 text-xs tabular-nums text-tinta">{c.valor}</span>
+            <span className="anim-crece-y block w-full max-w-[3.25rem] origin-bottom rounded-t-sm bg-tinta/80" style={{ height: alto(c.valor), "--i": i } as CSSProperties} />
+          </div>
+        ))}
+      </div>
+      <div aria-hidden className="mt-2 flex gap-2 sm:gap-4">
+        {columnas.map((c) => (
+          <span key={c.clave} className="min-w-0 flex-1 text-center text-xs leading-4 text-tinta/75">
+            {c.etiqueta}
+          </span>
+        ))}
+      </div>
+      <ul className="sr-only">
+        {columnas.map((c) => (
+          <li key={c.clave}>
+            {c.etiqueta}: {c.valor}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

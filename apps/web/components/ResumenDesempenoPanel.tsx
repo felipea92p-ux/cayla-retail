@@ -4,9 +4,12 @@ import { ItemAyuda } from "@/components/ResumenActualizado";
 import { ResumenCabecera } from "@/components/ResumenCabecera";
 import { ResumenComportamiento } from "@/components/ResumenComportamiento";
 import { ResumenControles } from "@/components/ResumenControles";
+import { ResumenDesempenoGeneral } from "@/components/ResumenDesempenoGeneral";
+import { ResumenVacio, type SedeParaVer } from "@/components/ResumenVacio";
 import { useResumenUrl } from "@/components/useResumenUrl";
 import { TENDENCIA_MIN_UNIDADES, TENDENCIA_UMBRAL_PCT } from "@/lib/inventario-reglas";
 import { pluralizar } from "@/lib/resumen-formato";
+import { etiquetaRango } from "@/lib/resumen-periodo";
 import { AYUDA_ROTACION, TEXTO_VALORACION_ROTACION } from "@/lib/rotacion";
 import type { DesempenoParaPantalla } from "@/lib/resumen-desempeno";
 
@@ -14,8 +17,11 @@ import type { DesempenoParaPantalla } from "@/lib/resumen-desempeno";
 // seleccionado?». Es la mirada HISTÓRICA: no mezcla el stock de hoy —qué hay ahora y cuánto dura, con
 // sus acciones, vive en Existencias— ni compara dos períodos —eso es la otra pestaña—. El estado
 // (período, categoría, sell-through, búsqueda, orden y página) vive en la URL, como en todo el análisis.
+//
+// Rediseño 2026-09-22 (opción A de Felipe): la misma anatomía que Comparar — cuatro cifras, tres gráficos y la
+// tabla —, y si la sede no tiene nada que analizar, un vacío con salidas en vez de una línea de texto.
 
-export function ResumenDesempenoPanel({ datos }: { datos: DesempenoParaPantalla }) {
+export function ResumenDesempenoPanel({ datos, otrasTiendas }: { datos: DesempenoParaPantalla; otrasTiendas: SedeParaVer[] }) {
   const { actualizar, pendiente } = useResumenUrl();
   const { periodo, ubicacion } = datos;
 
@@ -42,18 +48,19 @@ export function ResumenDesempenoPanel({ datos }: { datos: DesempenoParaPantalla 
       </ResumenCabecera>
       {periodo.advertencia && <p className="text-[11px] text-ambar-profundo">{periodo.advertencia}</p>}
 
-      <ResumenControles modo="desempeno" periodo={periodo} alcance={datos.alcance} categorias={datos.categorias} sellThrough={datos.sellThrough} actualizar={actualizar} />
-
-      {ubicacion.tipo !== "tienda" ? (
-        <p className="card-cayla px-5 py-10 text-sm text-taupe">
-          {ubicacion.nombre} no vende a clientas: no hay ventas, ritmo ni rotación que analizar. Elige una tienda en el selector de sede de arriba.
-        </p>
-      ) : datos.tabla.totalSede === 0 ? (
-        <p className="card-cayla px-5 py-10 text-sm text-taupe">
-          {ubicacion.nombre} no tuvo stock ni ventas en este período. Cuando reciba mercadería o venda, aparecerá acá.
-        </p>
+      {ubicacion.tipo !== "tienda" || datos.tabla.totalSede === 0 ? (
+        <>
+          {ubicacion.tipo === "tienda" && <ResumenControles modo="desempeno" periodo={periodo} alcance={datos.alcance} categorias={datos.categorias} actualizar={actualizar} />}
+          <ResumenVacio ubicacion={ubicacion} modo="desempeno" puedeAmpliar={periodo.dias < 90} rango={etiquetaRango(periodo)} otrasTiendas={otrasTiendas} actualizar={actualizar} />
+        </>
       ) : (
-        <ResumenComportamiento datos={datos} actualizar={actualizar} />
+        <>
+          <ResumenControles modo="desempeno" periodo={periodo} alcance={datos.alcance} categorias={datos.categorias} actualizar={actualizar} />
+          {/* La entrada (cifras, dona, barras) se reproduce cuando cambia QUÉ se mira —período o alcance—, nunca al
+              tocar la banda de sell-through o el orden de la tabla, que no mueven estos números. */}
+          <ResumenDesempenoGeneral key={`${periodo.desde}_${periodo.hasta}_${datos.alcance.categoriaId ?? ""}_${datos.alcance.q}`} datos={datos} actualizar={actualizar} />
+          <ResumenComportamiento datos={datos} actualizar={actualizar} />
+        </>
       )}
     </div>
   );

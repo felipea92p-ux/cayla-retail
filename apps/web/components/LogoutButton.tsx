@@ -8,7 +8,9 @@ export function LogoutButton() {
   return (
     <button
       onClick={async () => {
-        await createClient().auth.signOut();
+        // «local»: cierra solo este equipo. El valor por defecto («global») revoca la sesión de la cuenta en TODOS
+        // los equipos, y las cuentas de caja se comparten entre la tienda y otros dispositivos.
+        await createClient().auth.signOut({ scope: "local" });
         router.push("/login");
         router.refresh();
       }}

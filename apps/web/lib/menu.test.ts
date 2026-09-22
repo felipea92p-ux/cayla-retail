@@ -266,9 +266,10 @@ describe.each(PERFILES.map((p) => [nombreDe(p), p] as const))("forma del menú d
     }
   });
 
-  it("«Recibir mercadería» vive como MÁXIMO en un grupo: Compras si ve el dinero, Inventario si no, y ninguno si ve el dinero parado en el Taller", () => {
+  it("«Recibir mercadería» vive como MÁXIMO en un grupo: Compras si ve el dinero de Compras, Inventario si no, y ninguno si lo ve parado en el Taller", () => {
     const dueños = menu.riel.filter(esGrupoMenu).filter((g) => hojasDe(g).some((h) => h.href === "/recibir")).map((g) => g.id);
-    const veDinero = perfil.permisos.includes("verDinero");
+    // Desde 20260923130000 el dinero de Compras es su propio permiso (`verDineroCompras`); `verDinero` quedó para el Taller.
+    const veDinero = perfil.permisos.includes("verDineroCompras");
     expect(dueños.length).toBeLessThanOrEqual(1);
     // El único perfil sin grupo es el del hecho de producto que documenta la sección 3 (PR #219, Felipe 2026-09-21).
     expect(dueños.length === 0).toBe(veDinero && perfil.ubicacionTipo === "taller");
@@ -335,17 +336,15 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
     expect(hijosDeGrupo({ permisos: ["administrar"], ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
   });
 
-  it("`analizar` abre el Resumen (y solo eso); sin `verDinero`, Abastecimiento se disuelve en «Recibir», su única hija visible", () => {
-    expect(hijosDeGrupo({ permisos: ["analizar"], ubicacionTipo: "taller" }, "produccion")).toEqual([
-      "produccion.resumenProduccion",
-      "produccion.ordenes",
-      "produccion.insumos",
-      "produccion.recibirProduccion",
-    ]);
+  it("`analizar` (el módulo Análisis, 20260923130000) y `verDineroCompras` NO abren nada del Taller: Abastecimiento se disuelve en «Recibir»", () => {
+    const operativas = ["produccion.ordenes", "produccion.insumos", "produccion.recibirProduccion"];
+    expect(hijosDeGrupo({ permisos: ["analizar"], ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
+    expect(hijosDeGrupo({ permisos: ["verDineroCompras"], ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
   });
 
-  it("`verDinero` abre Abastecimiento como subgrupo — Proveedores, Comprobantes, Recibir y Por pagar — y no el Resumen (falta `analizar`)", () => {
+  it("`verDinero` (solo el líder) abre el Resumen —ventas de la red y dinero— y Abastecimiento como subgrupo: Proveedores, Comprobantes, Recibir y Por pagar", () => {
     expect(hijosDeGrupo({ permisos: ["verDinero"], ubicacionTipo: "taller" }, "produccion")).toEqual([
+      "produccion.resumenProduccion",
       "produccion.ordenes",
       "produccion.insumos",
       "produccion.abastecimiento",
@@ -375,7 +374,7 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
 });
 
 describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21, PR #219)", () => {
-  it("con `verDinero` ve las cinco pantallas desde una tienda o un almacén, en el orden proveedor → factura → recepción → pago → notas de crédito", () => {
+  it("con `verDineroCompras` y los cinco módulos ve las cinco pantallas desde una tienda o un almacén, en el orden proveedor → factura → recepción → pago → notas de crédito", () => {
     for (const ubicacionTipo of ["tienda", "almacen"] as const) {
       expect(hijosDeGrupo({ permisos: LIDER, ubicacionTipo }, "compras")).toEqual([
         "compras.proveedores",
@@ -429,7 +428,7 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
     expect(notas && !esGrupoMenu(notas) ? notas.contador : undefined).toBeUndefined();
   });
 
-  it("sin `verDinero` no ve Compras, esté donde esté", () => {
+  it("sin `verDineroCompras` no ve Compras, esté donde esté", () => {
     for (const ubicacionTipo of TIPOS_UBICACION) {
       expect(menuPara({ permisos: INTEGRANTE, ubicacionTipo }).riel.some((f) => f.id === "compras")).toBe(false);
     }
@@ -617,12 +616,12 @@ describe("el menú de una terminal con el rol «Terminal administrativa»", () =
     expect(hijasDe(riel, "Catálogo")).toEqual(["Productos", "Categorías", "Atributos"]);
   });
 
-  it("hoy NO ve Compras: sin `verDinero` no le queda ninguna pantalla del grupo", () => {
+  it("hoy NO ve Compras: sin `verDineroCompras` no le queda ninguna pantalla del grupo", () => {
     expect(etiquetasDe(riel)).not.toContain("Compras");
   });
 
-  it("si algún día recibe `verDinero`, Compras aparece con lo que su rol ve, SIN tocar el árbol", () => {
-    const conDinero = menuPara(perfilTerminal("administrativa", "tienda", ["verDinero"])).riel;
+  it("si algún día recibe `verDineroCompras` (su rol suma Facturas de compra, Por pagar o Notas de crédito), Compras aparece con lo que su rol ve, SIN tocar el árbol", () => {
+    const conDinero = menuPara(perfilTerminal("administrativa", "tienda", ["verDineroCompras"])).riel;
     expect(hijasDe(conDinero, "Compras")).toEqual(["Proveedores", "Recibir mercadería"]);
     // ...y en Compras pierde el duplicado: «Recibir mercadería» vive en UN solo grupo (ADR-0113).
     expect(hijasDe(conDinero, "Inventario")).not.toContain("Recibir mercadería");
