@@ -1,34 +1,34 @@
 "use client";
 
 import { ItemAyuda } from "@/components/ResumenActualizado";
-import { Pestanas, ResumenCabecera } from "@/components/ResumenCabecera";
+import { ResumenCabecera } from "@/components/ResumenCabecera";
 import { ResumenComparacionDetalle } from "@/components/ResumenComparacionDetalle";
 import { ResumenComparacionGeneral } from "@/components/ResumenComparacionGeneral";
 import { ResumenControles } from "@/components/ResumenControles";
+import { ResumenVacio, type SedeParaVer } from "@/components/ResumenVacio";
 import { useResumenUrl } from "@/components/useResumenUrl";
 import { AYUDA_ROTACION, TEXTO_LIMITACION_PROMEDIO, TEXTO_VALORACION_ROTACION } from "@/lib/rotacion";
 import { pluralizar } from "@/lib/resumen-formato";
 import { textoInstanteLima } from "@/lib/resumen-periodo";
-import type { ComparacionParaPantalla, VistaComparacion } from "@/lib/resumen-comparacion";
+import type { ComparacionParaPantalla } from "@/lib/resumen-comparacion";
 
 // Comparación de dos períodos, A contra B (ADR-0138; rediseño 2026-09-19). Responde UNA pregunta —
-// «¿qué cambió en el desempeño del inventario entre A y B?»— en dos vistas sobre el MISMO cálculo:
-// la general da el veredicto (cuatro cifras, cómo evolucionó el ritmo, quién más rotó, cómo se
-// repartió el sell-through) y el detalle dice en qué productos y por qué. Tocar una categoría de la
-// dona no recalcula ninguna cifra de arriba: solo abre el detalle con ese filtro puesto. El estado
-// (períodos, vista, filtro de cambio, orden, página) vive en la URL, como en todo el análisis.
+// «¿qué cambió en el desempeño del inventario entre A y B?»— sobre UN cálculo: arriba el veredicto
+// (cuatro cifras, cómo evolucionó el ritmo, quién más rotó, cómo se repartió el sell-through) y debajo
+// el detalle, en qué productos y por qué. Tocar una categoría de la dona no recalcula ninguna cifra de
+// arriba: solo filtra la tabla de abajo. El estado (períodos, filtro de cambio, orden, página) vive en
+// la URL, como en todo el análisis.
 //
 // A siempre antes que B, en todas partes: el contexto de período (compacto, en `ResumenControles`),
 // los KPI, los gráficos, la tabla y sus tooltips. Es el eje de lectura de toda la pantalla.
 
-const VISTAS: readonly { valor: VistaComparacion; texto: string }[] = [
-  { valor: "general", texto: "Vista general" },
-  { valor: "detalle", texto: "Detalle por producto" },
-];
+// Rediseño 2026-09-22 (guía oficial): ya no hay «Vista general / Detalle por producto». Es una sola lectura de
+// arriba abajo —cifras, gráficos y la tabla debajo—, y la dona y «Ver ranking» filtran u ordenan esa tabla en vez
+// de mandar a otra vista. Sin nada que comparar, un vacío con salidas.
 
-export function ResumenComparacionPanel({ datos }: { datos: ComparacionParaPantalla }) {
+export function ResumenComparacionPanel({ datos, otrasTiendas }: { datos: ComparacionParaPantalla; otrasTiendas: SedeParaVer[] }) {
   const { actualizar, pendiente } = useResumenUrl();
-  const { periodoA, periodoB, vista, ubicacion, avisos } = datos;
+  const { periodoA, periodoB, ubicacion, avisos } = datos;
 
   return (
     <div className={`space-y-4 transition-opacity duration-200 ${pendiente ? "opacity-60" : ""}`} aria-busy={pendiente}>
@@ -60,31 +60,14 @@ export function ResumenComparacionPanel({ datos }: { datos: ComparacionParaPanta
         </p>
       ))}
 
-      {ubicacion.tipo !== "tienda" ? (
-        <p className="card-cayla px-5 py-10 text-sm text-taupe">
-          {ubicacion.nombre} no vende a clientas: no hay ventas ni rotación que comparar. Elige una tienda en el selector de sede de arriba.
-        </p>
+      {ubicacion.tipo !== "tienda" || datos.tabla.totalSede === 0 ? (
+        <ResumenVacio ubicacion={ubicacion} modo="comparar" puedeAmpliar={false} otrasTiendas={otrasTiendas} actualizar={actualizar} />
       ) : (
         <>
-          <Pestanas
-            etiqueta="Vista de la comparación"
-            valor={vista}
-            opciones={VISTAS}
-            // Al cambiar de vista se parte de los valores iniciales: el filtro y el orden son del detalle.
-            onValor={(v) => actualizar({ vista: v === "detalle" ? "detalle" : null, cambio: null, orden: null })}
-          />
-          {datos.tabla.totalSede === 0 ? (
-            <p className="card-cayla px-5 py-10 text-sm text-taupe">
-              {ubicacion.nombre} no tuvo stock ni ventas en estos dos períodos. Cuando reciba mercadería o venda, aparecerá acá.
-            </p>
-          ) : vista === "general" ? (
-            // La entrada (KPI, dona, barras) se reproduce de nuevo cuando cambia QUÉ se mira —el
-            // período o el alcance (categoría, búsqueda)—, nunca al tocar el filtro de la dona (que no
-            // mueve estos agregados) ni por un simple repintado del servidor.
-            <ResumenComparacionGeneral key={`${periodoA.rango.desde}_${periodoA.rango.hasta}_${periodoB.desde}_${periodoB.hasta}_${datos.alcance.categoriaId ?? ""}_${datos.alcance.q}`} datos={datos} actualizar={actualizar} />
-          ) : (
-            <ResumenComparacionDetalle datos={datos} actualizar={actualizar} />
-          )}
+          {/* La entrada (cifras, dona, barras) se reproduce cuando cambia QUÉ se mira —el período o el alcance
+              (categoría, búsqueda)—, nunca al tocar el filtro de la dona (que no mueve estos agregados). */}
+          <ResumenComparacionGeneral key={`${periodoA.rango.desde}_${periodoA.rango.hasta}_${periodoB.desde}_${periodoB.hasta}_${datos.alcance.categoriaId ?? ""}_${datos.alcance.q}`} datos={datos} actualizar={actualizar} />
+          <ResumenComparacionDetalle datos={datos} actualizar={actualizar} />
         </>
       )}
     </div>

@@ -1,7 +1,8 @@
-import { TENDENCIA_MIN_UNIDADES } from "./inventario-reglas";
+import { RANGOS_SELL_THROUGH_PCT, TENDENCIA_MIN_UNIDADES } from "./inventario-reglas";
 import { calcularSellThrough, calcularTendencia, evaluarExactitud, listarCategorias, type EstadoExactitud, type Ubicacion, type Velocidad } from "./resumen-reglas";
 import { aplicarAlcance, bandaSellThrough, FILAS_POR_PAGINA, leerFiltros, paginar, type AlcanceResumen, type FiltroSellThrough } from "./resumen-filtros";
-import { conNullAlFinal, metricasDePeriodo, type DatosPeriodo, type FilaComparacion, type MetricasPeriodo } from "./resumen-comparacion";
+import { conNullAlFinal, metricasDePeriodo, rangoDeSellThrough, textoRangoSellThrough, variacionPct, type DatosPeriodo, type FilaComparacion, type MetricasPeriodo } from "./resumen-comparacion";
+import { costoEsVerificable, rotacionAgregada, type RotacionAgregada } from "./rotacion";
 import { diasDelRango, sumarDias, type PeriodoResuelto, type Rango } from "./resumen-periodo";
 import { rangosDelResumen, type ParametrosResumen } from "./resumen-armado";
 
@@ -123,6 +124,102 @@ export function analizarDesempeno(f: FilaComparacion, m: Mitades): AnalisisDesem
 }
 
 // ---------------------------------------------------------------------------
+// Las cifras y los gráficos del período (rediseño 2026-09-22, opción A de Felipe)
+// ---------------------------------------------------------------------------
+//
+// Desempeño tiene la MISMA anatomía que Comparar períodos: cuatro cifras, tres gráficos y la tabla. Las
+// cifras usan las mismas reglas que las de Comparar sobre UN período —ventas netas, rotación del conjunto
+// (`rotacionAgregada`), sell-through del conjunto (la fórmula de cada variante sobre las sumas) y capital al
+// costo con la regla `costoEsVerificable`—; ninguna es nueva. Salen de todo el ALCANCE (categoría y
+// búsqueda): la banda de sell-through solo recorta la tabla, como el filtro de cambio en Comparar, así que
+// elegir «Alto» no mueve ninguna cifra de arriba.
+
+export type KpisDesempeno = {
+  /** Lo cobrado neto del período y el de cada mitad; `cambioMitadPct` compara lo cobrado POR DÍA de la 2.ª contra la 1.ª. */
+  ventas: { importe: number; unidades: number; primeraMitad: number; segundaMitad: number; cambioMitadPct: number | null };
+  rotacion: RotacionAgregada;
+  /** Sell-through del conjunto: Σ ventas netas ÷ Σ (stock al inicio + entradas) de las variantes calculables. */
+  sellThrough: { pct: number | null; vendidas: number; disponibles: number; variantes: number; excluidas: number };
+  /** `verificado = false`: hay stock sin costo confiable; la tarjeta muestra unidades. */
+  capital: { verificado: boolean; inicio: number; cierre: number; unidadesInicio: number; unidadesCierre: number; sinCosto: number; alterado: number };
+};
+
+export type TendenciasDesempeno = { total: number; alza: number; estable: number; baja: number; sinDato: number };
+
+export type DistribucionDesempeno = { rangos: { clave: string; texto: string; n: number }[]; sinDato: number };
+
+const TOP_ROTACION = 5;
+
+export function calcularKpisDesempeno(analisis: AnalisisDesempeno[], mitades: Mitades): KpisDesempeno {
+  const suma = (f: (x: AnalisisDesempeno) => number) => analisis.reduce((t, x) => t + f(x), 0);
+  const importe = suma((x) => x.periodo.importe);
+  // Con un período de un día no hay dos mitades: las dos son el período entero y no se afirma un cambio. El
+  // cambio se mide por DÍA (con 7 días, la 2.ª mitad tiene 4 y la 1.ª 3: comparar totales la favorecería).
+  const primeraMitad = mitades.dividido ? suma((x) => x.fila.a.importe) : importe;
+  const segundaMitad = mitades.dividido ? suma((x) => x.fila.b.importe) : importe;
+
+  const calculables = analisis.filter((x) => x.sellThrough !== null);
+  const vendidas = calculables.reduce((t, x) => t + x.periodo.ventasNetas, 0);
+  const stockInicial = calculables.reduce((t, x) => t + x.periodo.stockInicio, 0);
+  const entradas = calculables.reduce((t, x) => t + x.periodo.entradas, 0);
+
+  const conStock = analisis.filter((x) => x.periodo.stockInicio + x.periodo.stockCierre > 0);
+  const problemas = conStock.filter((x) => !costoEsVerificable(x.fila.costo, x.fila.estadoCosto));
+  const alterado = problemas.filter((x) => x.fila.estadoCosto === "alterado").length;
+  const costo = (x: AnalisisDesempeno) => x.fila.costo ?? 0;
+
+  return {
+    ventas: { importe, unidades: suma((x) => x.periodo.ventasNetas), primeraMitad, segundaMitad, cambioMitadPct: mitades.dividido ? variacionPct(primeraMitad / mitades.diasPrimera, segundaMitad / mitades.diasSegunda) : null },
+    rotacion: rotacionAgregada(analisis.map((x) => x.periodo.baseRotacion)),
+    sellThrough: {
+      pct: calculables.length > 0 ? calcularSellThrough({ ventasNetas: vendidas, stockInicial, entradas, ledgerConsistente: true }) : null,
+      vendidas,
+      disponibles: stockInicial + entradas,
+      variantes: calculables.length,
+      excluidas: analisis.length - calculables.length,
+    },
+    capital: {
+      verificado: problemas.length === 0,
+      inicio: suma((x) => x.periodo.stockInicio * costo(x)),
+      cierre: suma((x) => x.periodo.stockCierre * costo(x)),
+      unidadesInicio: suma((x) => x.periodo.stockInicio),
+      unidadesCierre: suma((x) => x.periodo.stockCierre),
+      sinCosto: problemas.length - alterado,
+      alterado,
+    },
+  };
+}
+
+/** La dona: cuántas variantes aceleraron, siguieron estables o desaceleraron dentro del período. */
+export function contarTendencias(analisis: AnalisisDesempeno[]): TendenciasDesempeno {
+  const cuenta = (d: DireccionTendencia) => analisis.filter((x) => x.tendencia?.direccion === d).length;
+  const alza = cuenta("alza");
+  const estable = cuenta("estable");
+  const baja = cuenta("baja");
+  const total = alza + estable + baja;
+  return { total, alza, estable, baja, sinDato: analisis.length - total };
+}
+
+/** Las que más rotaron en el período (solo rotación calculable y mayor que cero: un N/D no «rotó cero»). */
+export function rankingRotacionDesempeno(analisis: AnalisisDesempeno[], max = TOP_ROTACION): AnalisisDesempeno[] {
+  return analisis
+    .filter((x) => x.periodo.rotacion !== null && x.periodo.rotacion > 0)
+    .sort((x, y) => y.periodo.rotacion! - x.periodo.rotacion! || y.periodo.ventasNetas - x.periodo.ventasNetas)
+    .slice(0, max);
+}
+
+/** Variantes por rango de sell-through (los mismos rangos que Comparar: `RANGOS_SELL_THROUGH_PCT`). */
+export function distribucionDesempeno(analisis: AnalisisDesempeno[]): DistribucionDesempeno {
+  const rangos = RANGOS_SELL_THROUGH_PCT.map((_, i) => ({ clave: `r${i}`, texto: textoRangoSellThrough(i), n: 0 }));
+  let sinDato = 0;
+  for (const x of analisis) {
+    if (x.sellThrough === null) sinDato += 1;
+    else rangos[rangoDeSellThrough(x.sellThrough)]!.n += 1;
+  }
+  return { rangos, sinDato };
+}
+
+// ---------------------------------------------------------------------------
 // Orden, filtros y la URL
 // ---------------------------------------------------------------------------
 
@@ -191,6 +288,11 @@ export type DesempenoParaPantalla = {
   orden: OrdenDesempeno;
   /** Todas las categorías de la sede (no las del alcance) para el selector. */
   categorias: { id: string; nombre: string; variantes: number }[];
+  /** Las cifras y los gráficos: de todo el alcance (categoría y búsqueda), nunca del filtro de sell-through. */
+  kpis: KpisDesempeno;
+  tendencias: TendenciasDesempeno;
+  ranking: AnalisisDesempeno[];
+  distribucion: DistribucionDesempeno;
   tabla: { filas: AnalisisDesempeno[]; pagina: number; paginas: number; total: number; totalAlcance: number; totalSede: number };
   exactitud: EstadoExactitud;
   /** Variantes cuyo historial no cuadra con el stock de hoy (cifras estimadas). */
@@ -227,6 +329,10 @@ export function armarDesempeno(e: {
     sellThrough,
     orden,
     categorias: listarCategorias(todas),
+    kpis: calcularKpisDesempeno(enAlcance, mitades),
+    tendencias: contarTendencias(enAlcance),
+    ranking: rankingRotacionDesempeno(enAlcance),
+    distribucion: distribucionDesempeno(enAlcance),
     tabla: { filas: p.items, pagina: p.pagina, paginas: p.paginas, total: p.total, totalAlcance: enAlcance.length, totalSede: todas.length },
     exactitud: evaluarExactitud(e.conteos, e.ahora),
     estimadas: enAlcance.filter((x) => !x.fila.ledgerConsistente).length,
