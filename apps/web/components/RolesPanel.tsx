@@ -84,6 +84,15 @@ export function RolesPanel({
   const conCambios = !!rol && hayCambios(rol.modulos, borrador);
   const rolEnVista = rol ? { ...rol, modulos: borrador } : undefined;
   const menuTienda = rolEnVista ? etiquetasDelMenu(menuDelRol(rolEnVista, "tienda")) : [];
+  // Lo que el borrador suma al menú guardado: son las filas que «aparecen» en la vista previa al encender un interruptor.
+  const menuGuardado = rol ? etiquetasDelMenu(menuDelRol(rol, "tienda")) : [];
+  const recienAparecidas = new Set(
+    menuTienda.flatMap((f) => {
+      const antes = menuGuardado.find((g) => g.etiqueta === f.etiqueta);
+      if (!antes) return [f.etiqueta];
+      return f.hijas.filter((h) => !antes.hijas.includes(h)).map((h) => `${f.etiqueta}/${h}`);
+    }),
+  );
   const menuTaller = rolEnVista ? etiquetasDelMenu(menuDelRol(rolEnVista, "taller")).find((f) => f.etiqueta === "Producción") : undefined;
   const cuentasDe = (id: string) => (cuentas ? cuentasDelRol(cuentas, id) : []);
 
@@ -112,13 +121,16 @@ export function RolesPanel({
   const motivoArchivo = motivoParaNoArchivar(rol, cuentasDelElegido.length);
 
   return (
-    <div className="space-y-6">
+    <div className="@container space-y-6">
       <p className="max-w-3xl text-sm leading-relaxed text-tinta/70">
         Qué módulos ve cada cuenta, persona o terminal. Quien ve un módulo hace todo lo que hay en él, salvo lo que es siempre solo del líder. Solo un líder de
         equipo cambia esto; el rol de cada cuenta se cambia desde su fila en Activos o Terminales.
       </p>
 
-      <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
+      {/* Tres columnas por el ancho del CONTENEDOR, no de la ventana (con el lateral plegado o no, cuenta el espacio real):
+          desde 600 px, roles + el rol elegido y el efecto debajo; desde 1000 px, el efecto pasa a la derecha y queda pegado
+          al desplazar, para ver el menú cambiar al tocar un interruptor sin bajar. */}
+      <div className="grid gap-5 @[600px]:grid-cols-[220px_minmax(0,1fr)] @[1000px]:grid-cols-[220px_minmax(0,1fr)_300px]">
         <nav aria-label="Roles" className="space-y-2">
           {vigentes.map((r) => {
             const n = cuentasDe(r.id).length;
@@ -250,7 +262,7 @@ export function RolesPanel({
             <thead>
               <tr className="text-left text-tinta/65">
                 <th className="label-cayla px-5 py-2 text-[11px] font-normal">Módulo</th>
-                <th className="label-cayla w-48 px-5 py-2 text-[11px] font-normal">Lo ve</th>
+                <th className="label-cayla w-28 px-5 py-2 text-[11px] font-normal">Lo ve</th>
               </tr>
             </thead>
             <tbody>
@@ -283,40 +295,9 @@ export function RolesPanel({
             </div>
           )}
 
-          <div className="border-t border-tinta/10 px-5 py-4">
-            <p className="label-cayla text-[11px] text-taupe-profundo">Siempre solo del líder, aunque el rol vea el módulo</p>
-            <ul className="mt-2 space-y-1.5">
-              {SIEMPRE_SOLO_LIDER.map((x) => (
-                <li key={x.que} className="flex items-start gap-2 text-[13px] text-tinta/80">
-                  <Lock aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-tinta/55" />
-                  <span className="flex-1">{x.que}</span>
-                  <span className="shrink-0 text-[11px] text-tinta/55">{x.origen}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="border-t border-tinta/10 px-5 py-4">
-            <p className="label-cayla text-[11px] text-taupe-profundo">Así queda su menú {rol.fijo ? "" : "(parado en una tienda)"}</p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {menuTienda.length === 0 ? (
-                <span className="text-sm italic text-tinta/65">Sin módulos: solo Inicio.</span>
-              ) : (
-                menuTienda.map((f) => (
-                  <span key={f.etiqueta} className="rounded-md border border-tinta/15 px-2.5 py-1 text-xs text-tinta" title={f.hijas.join(", ")}>
-                    {f.etiqueta}
-                    {f.hijas.length > 0 && <span className="text-tinta/55"> · {f.hijas.join(", ")}</span>}
-                  </span>
-                ))
-              )}
-            </div>
-            {menuTaller && (
-              <p className="mt-2 text-xs text-tinta/65">
-                Parado en el Taller, además: Producción · {menuTaller.hijas.join(", ") || "Órdenes"}.
-              </p>
-            )}
-          </div>
         </section>
+
+        <EfectoDelRol fijo={rol.fijo} menuTienda={menuTienda} menuTaller={menuTaller} recienAparecidas={recienAparecidas} />
       </div>
 
       {modal?.tipo === "nuevo" && (
@@ -423,3 +404,78 @@ function GrupoFilas({
     </>
   );
 }
+
+type FilaDeMenu = { etiqueta: string; hijas: string[] };
+
+/** Tercera columna: lo que el rol NO puede aunque vea el módulo, y cómo queda su menú con el borrador de ahora. */
+function EfectoDelRol({
+  fijo,
+  menuTienda,
+  menuTaller,
+  recienAparecidas,
+}: {
+  fijo: boolean;
+  menuTienda: FilaDeMenu[];
+  menuTaller?: FilaDeMenu;
+  recienAparecidas: ReadonlySet<string>;
+}) {
+  // Lo que aparece en la vista previa al encender un interruptor entra con `anim-revelar` (240 ms, --ease-cayla, sin rebote;
+  // se colapsa con prefers-reduced-motion). Lo que ya está guardado no entra: sería movimiento decorativo.
+  const entra = (clave: string) => (recienAparecidas.has(clave) ? "anim-revelar" : "");
+
+  return (
+    <aside
+      aria-label="Efecto del rol"
+      className="grid gap-5 self-start @[600px]:col-span-2 @[600px]:grid-cols-2 @[1000px]:sticky @[1000px]:top-20 @[1000px]:col-span-1 @[1000px]:max-h-[calc(100vh-6rem)] @[1000px]:grid-cols-1 @[1000px]:overflow-y-auto"
+    >
+      <section className="card-cayla px-5 py-4">
+        <h3 className="font-display text-lg text-tinta">Así queda su menú</h3>
+        <p className="mt-0.5 text-xs text-tinta/60">{fijo ? "Ve todo el menú." : "Parado en una tienda. Cambia al encender o apagar un módulo."}</p>
+        {menuTienda.length === 0 ? (
+          <p className="mt-3 text-sm italic text-tinta/65">Sin módulos: solo Inicio.</p>
+        ) : (
+          <ul className="mt-3 space-y-2.5">
+            {menuTienda.map((f) => (
+              <li key={f.etiqueta} className={entra(f.etiqueta)}>
+                <span className="block text-sm font-semibold text-tinta">{f.etiqueta}</span>
+                {f.hijas.length > 0 && (
+                  <ul className="mt-1 space-y-0.5 border-l border-tinta/10 pl-3">
+                    {f.hijas.map((h) => (
+                      <li key={h} className={`text-[13px] text-tinta/70 ${entra(`${f.etiqueta}/${h}`)}`}>
+                        {h}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {menuTaller && (
+          <div className="mt-4 border-t border-tinta/10 pt-3">
+            <p className="text-xs text-tinta/60">Parado en el Taller, además:</p>
+            <p className="mt-1 text-sm font-semibold text-tinta">Producción</p>
+            <p className="text-[13px] text-tinta/70">{menuTaller.hijas.join(" · ") || "Órdenes"}</p>
+          </div>
+        )}
+      </section>
+
+      <section className="card-cayla px-5 py-4">
+        <h3 className="font-display text-lg text-tinta">Siempre solo del líder</h3>
+        <p className="mt-0.5 text-xs text-tinta/60">Aunque el rol vea el módulo, esto no lo hace.</p>
+        <ul className="mt-3 space-y-2.5">
+          {SIEMPRE_SOLO_LIDER.map((x) => (
+            <li key={x.que} className="flex items-start gap-2">
+              <Lock aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-tinta/45" />
+              <span className="min-w-0">
+                <span className="block text-[13px] leading-snug text-tinta/85">{x.que}</span>
+                <span className="block text-[11px] text-tinta/45">{x.origen}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </aside>
+  );
+}
+
