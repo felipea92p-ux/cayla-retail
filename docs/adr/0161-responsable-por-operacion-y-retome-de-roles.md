@@ -38,9 +38,10 @@ ADR-0150 (roles a medida), que se había abandonado esta misma mañana en la fas
 | # | Decisión |
 |---|---|
 | B1 | **Se retoma el ADR-0150** para todas las cuentas. Las terminales son una cuenta más con su rol: «Terminal de ventas», «Terminal administrativa». |
-| B2 | **En cada rol se configura, módulo por módulo, Ver · Crear · Editar · Eliminar, más las acciones propias del módulo** (cerrar caja, recibir traslado, cambiar precio, ver costo…). En cada módulo, cada verbo dice lo que significa ahí: en Punto de venta, «Crear» es registrar una venta y «Eliminar» es anularla. Donde un verbo no existe se muestra «—». **Cambia la decisión 2 del ADR-0150** («ve o no ve», sin separar ver de operar). |
-| B2b | **«Eliminar» nunca borra: archiva o anula**, y el registro queda con su historial (regla del repo: nunca `DELETE` en catálogos con historial ni en `movimientos`). La casilla se llama «Eliminar» porque así se entiende; la ayuda de cada módulo dice qué hace de verdad. |
-| B2c | **Solo el rol Líder es fijo.** **Integrante se edita** como cualquier otro rol; lo único que no se puede es archivarlo, porque es el que recibe una persona nueva. **Cambia al ADR-0150**, que dejaba fijos los dos roles de sistema. El Líder queda fijo para que nunca falte alguien que administre los accesos. |
+| B2 | **Un rol decide solo «ve / no ve» por módulo** (Felipe, 2026-09-22: «no hay que complicarnos»). Se probó una matriz Ver/Crear/Editar/Eliminar con acciones internas y se descartó ese mismo día. **Quien ve un módulo hace todo lo que hay en él**; en el editor, cada módulo dice qué incluye. Esto es la decisión 2 del ADR-0150, pero por **módulo** en vez de por pantalla. |
+| B2b | **Excepción fija: siempre solo del líder**, aunque el rol vea el módulo. Todas son decisiones ya tomadas antes: anular una venta o un comprobante y las series de SUNAT (ADR-0150, 4); autorizar un descuento sobre el tope (D-67); aprobar devoluciones y poner etiquetas con descuento (ADR-0160); ver costos, márgenes y montos de Compras (ADR-0126); y Colaboradores, y Roles y accesos (ADR-0150, 3). |
+| B2c | **Solo el rol Líder es fijo.** **Integrante se edita** como cualquier otro rol; lo único que no se puede es archivarlo, porque es el que recibe una persona nueva. **Cambia al ADR-0150**, que dejaba fijos los dos roles de sistema. |
+| B2d | **Consecuencia que Felipe debe confirmar:** encender un módulo da todo lo que hay en él. Hoy un integrante ve Existencias, Productos y Caja, pero no puede ajustar stock, editar precios ni cerrar caja (ADR-0143). Con esta regla, si su rol ve esos módulos, podrá. |
 | B3 | «Pide Responsable» **no** es configurable (A7). |
 | B4 | **Facturación sí se delega en parte:** emitir y reenviar a SUNAT. Anular y las series siguen siendo solo del líder. La decisión 4 del ADR-0150 ya la había cambiado el ADR-0160, que dio Facturación a la terminal de ventas; aquí queda escrito. |
 | B5 | Las demás decisiones del ADR-0150 siguen: solo el líder administra roles, un rol por persona, catálogos de Dynamic y retail separados, acceso explícito con ubicación. |
@@ -73,12 +74,11 @@ La inyección en las funciones sigue el patrón del ADR-0160: leer la definició
 el número exacto de ocurrencias. **El equipo de construcción debe probarlo antes de comprometerse:** que PostgREST pase
 el encabezado dentro de las RPC de Supabase, y cómo se comporta en las ventas offline que se sincronizan después.
 
-**2b. Cada casilla es una llave que la base revisa.** Cada casilla del editor es una clave del catálogo `retail.permisos`
-(`vender.crear`, `caja.cerrar`, `productos.eliminar`…) que la función correspondiente comprueba con
-`fn_tiene_permiso(clave)`. Si solo se escondiera el botón, cualquier persona podría hacerlo igual por la API. El
-spike tiene unas 23 filas y unas 60 casillas: esa es la cantidad de candados que hay que conectar, módulo por
-módulo, con las fases del ADR-0150. Una casilla que todavía no tiene su candado en la base sale como «Solo líder por
-ahora» (la regla `delegable` del ADR-0150), para que la pantalla nunca prometa algo que la base rechaza.
+**2b. Un módulo es una llave que la base revisa.** Cada módulo es una clave de `retail.permisos` (`caja`, `productos`,
+`traslados`…) que sus funciones comprueban con `fn_tiene_permiso('caja')`. Si solo se escondiera la fila del menú, la
+API seguiría abierta. Son unas 21 llaves, no 60: la simplificación también reduce la construcción. Lo de B2b sigue
+llamando a `fn_es_lider()`. Un módulo cuyas funciones todavía no revisan su llave sale como «Solo líder por ahora»
+(regla `delegable` del ADR-0150).
 
 **3. Ventas ya tiene la mitad hecha.** `ventas.asesora_id` y `fn_asesoras_de_turno` están en producción (ADR-0153).
 `asesora_id` pasa a ser el responsable de la venta; no se crea una segunda columna para lo mismo.
