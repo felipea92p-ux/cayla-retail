@@ -113,8 +113,11 @@ export function DevolucionesPanel({
     navegar(parametros);
   }
 
-  function iniciar(linea: LineaVentaReciente) {
-    setFlujo({ venta: lineas.filter((l) => l.ventaId === linea.ventaId), lineaId: linea.ventaItemId });
+  /** `preseleccionar=false` desde la tarjeta-resumen de Actividad reciente: entra a la
+   *  venta sin ninguna prenda marcada — se elige recién en el paso "Prendas". Desde una
+   *  fila puntual de la búsqueda sigue entrando con esa prenda ya marcada. */
+  function iniciar(linea: LineaVentaReciente, preseleccionar: boolean) {
+    setFlujo({ venta: lineas.filter((l) => l.ventaId === linea.ventaId), lineaId: preseleccionar ? linea.ventaItemId : null });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -163,8 +166,8 @@ export function DevolucionesPanel({
   const lineasVisibles = lineas.filter((l) => ventasVisibles.has(l.ventaId));
   const comprasEncontradas = new Set(lineas.map((l) => l.ventaId)).size;
 
-  const lista = (ls: LineaVentaReciente[]) => (
-    <DevolucionesVentas lineas={ls} ahora={ahora} esLider={esLider} onIniciar={iniciar} onAnular={setAnulando} />
+  const lista = (ls: LineaVentaReciente[], resumen = false) => (
+    <DevolucionesVentas lineas={ls} ahora={ahora} esLider={esLider} resumen={resumen} onIniciar={iniciar} onAnular={setAnulando} />
   );
 
   return (
@@ -232,7 +235,7 @@ export function DevolucionesPanel({
             </div>
 
             {lineasVisibles.length > 0 ? (
-              lista(lineasVisibles)
+              lista(lineasVisibles, true)
             ) : (
               <EstadoVacio
                 titulo={

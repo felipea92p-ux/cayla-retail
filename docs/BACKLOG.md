@@ -707,6 +707,18 @@ solo pantalla y lectura. Detalle, decisiones tomadas por él y descartes en ADR-
       propio vocabulario (talla_chica/talla_grande/otro_color/defecto/otro), más granular para lo que
       el Taller necesita de Cambios, y unificarlo con el de arriba es una decisión de Felipe que
       queda abierta (ver ADR-0158, sección "por qué cambios.motivo no se toca").
+- [x] **"Actividad reciente" en una tarjeta por venta, no una fila por prenda — CERRADO
+      2026-09-22** (`docs/pantallas/devoluciones.md`, tarea #8: "un chip y una acción por
+      boleta, no por línea"). La lista repetía la misma pregunta dos veces: la tarjeta mostraba
+      cada prenda de la venta y el paso "Prendas" del flujo la volvía a mostrar. Ahora la tarjeta
+      resume la venta (prendas · importe, un chip de plazo, y si ya tuvo un cambio o devolución) y
+      un solo botón "Iniciar devolución" que entra al paso "Prendas" sin nada preseleccionado — ahí
+      se elige qué prenda, con la misma elegibilidad de siempre (una ya procesada no bloquea el
+      resto de la venta). Los resultados de "Iniciar una devolución" (buscar/escanear) NO
+      cambiaron: ahí sigue una fila por prenda, porque la colaboradora ya apunta a una puntual.
+      `ComprasAgrupadas` ahora acepta `renderCompra` además de `renderFila` (unión discriminada,
+      Cambios no se tocó); nuevas `estadoPlazoDevolucion`, `totalesVenta` y `actividadPreviaVenta`
+      en `devoluciones-reglas.ts`, con 8 pruebas nuevas. Sin migración: solo pantalla y lectura.
 - [ ] **Token de idempotencia en `crear_devolucion`** (como `registrar_cambio`, ADR-0032): sin él,
       una red que se corta después del commit deja un reintento que sale con «ya se devolvieron…».
 - [ ] **La nota de crédito usa `precio_unitario` sin restarle `descuento_unitario`**
