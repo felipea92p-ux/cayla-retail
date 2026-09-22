@@ -37,6 +37,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { getProveedor } from "@/lib/proveedores";
 import { datosPagoDe, type DatosPagoProveedor } from "@/lib/proveedores-reglas";
 import { getSaldosFavor } from "@/lib/saldo-favor";
+import { requirePersonaActualV2 } from "@/lib/persona-actual";
 
 // Detalle de una factura (ADR-0035): qué se compró, qué llegó y qué se pagó,
 // todo calculado desde movimientos y pagos. Desde acá se registra un pago
@@ -162,7 +163,7 @@ export function DatosComprobante({ compra, destino }: Pick<DetalleCompra, "compr
   );
 }
 
-export function CompraDetalle({
+export async function CompraDetalle({
   detalle: { compra, lineas, pagos, recepciones, adjuntos, notasCredito, datosPago, reparto, ubicaciones },
   adjuntosFallidos = [],
   acciones = true,
@@ -173,6 +174,10 @@ export function CompraDetalle({
   /** `false` cuando el marco ya dibuja los botones en otro sitio (el modal los pone en su pie). En la página completa, el pie va al final del cuerpo. */
   acciones?: boolean;
 }) {
+  // ADR-0151 (F4-F5): las tiendas del comprador, para que «Registrar pago» sepa con cuál paga. `requirePersonaActualV2`
+  // va con `cache()`: la página que llama a esta función ya la pidió, así que esto no repite la consulta.
+  const persona = await requirePersonaActualV2();
+  const misTiendas = persona.rol === "lider" ? undefined : persona.tiendasCompra;
   const anulada = compra.estado === "anulada";
   const hoy = hoyLima();
   // Todo lo que sigue se calcula AQUÍ (Server Component) con funciones puras de `lib/` y baja a los componentes
@@ -359,7 +364,7 @@ export function CompraDetalle({
           (en el modal lo dibuja `ModalRuta`, con `acciones={false}` acá). */}
       {acciones && !anulada && (
         <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-4">
-          <CompraAcciones compra={compra} tieneRecepciones={recepciones.length > 0} datosPago={datosPago} />
+          <CompraAcciones compra={compra} tieneRecepciones={recepciones.length > 0} datosPago={datosPago} misTiendas={misTiendas} />
         </div>
       )}
     </>

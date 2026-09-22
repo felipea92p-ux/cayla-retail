@@ -9,7 +9,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { Confirmacion, DatosDelProveedor, MediosDePago, PILDORA, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
 import { lineaPagoVacia, lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
 import { ETIQUETA_METODO, METODO_SALDO_A_FAVOR, soles, type CompraResumen } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -28,7 +28,19 @@ import { etiquetaVence, tramoDe } from "@/lib/por-pagar-reglas";
 // esto llevaba a Por pagar con `?pagar=<id>` y el detalle se perdía; ese camino (`PagoDesdeUrl`) sigue existiendo
 // para quien llega a Por pagar con el enlace. `datosPago` (cuenta, CCI, Yape/Plin, titular, saldo a favor) lo
 // carga `cargarDetalleCompra`; sin él el modal funciona igual, solo sin la tarjeta «Paga por».
-export function CompraAcciones({ compra, tieneRecepciones, datosPago }: { compra: CompraResumen; tieneRecepciones: boolean; datosPago?: DatosPagoProveedor }) {
+export function CompraAcciones({
+  compra,
+  tieneRecepciones,
+  datosPago,
+  misTiendas,
+}: {
+  compra: CompraResumen;
+  tieneRecepciones: boolean;
+  datosPago?: DatosPagoProveedor;
+  /** ADR-0151 (F4-F5): solo para un comprador de tienda — sus tiendas, para elegir con cuál paga (`p_ubicacion_id`).
+   *  `undefined` = líder, sin atarse a ninguna (como siempre). Con una sola, se usa sin preguntar. */
+  misTiendas?: { id: string; nombre: string }[];
+}) {
   const router = useRouter();
   const [anulando, setAnulando] = useState(false);
   const [pagando, setPagando] = useState(false);
@@ -85,7 +97,7 @@ export function CompraAcciones({ compra, tieneRecepciones, datosPago }: { compra
         </div>
       </div>
       {anulando && <AnularCompraModal compra={compra} onClose={() => setAnulando(false)} />}
-      {pagando && <RegistrarPagoModal compra={compra} saldoFavor={datosPago?.saldoFavor ?? 0} datos={datosPago} onClose={() => setPagando(false)} />}
+      {pagando && <RegistrarPagoModal compra={compra} saldoFavor={datosPago?.saldoFavor ?? 0} datos={datosPago} misTiendas={misTiendas} onClose={() => setPagando(false)} />}
     </>
   );
 }
@@ -94,7 +106,17 @@ export function CompraAcciones({ compra, tieneRecepciones, datosPago }: { compra
 // La página ya verificó que la factura existe, está vigente y tiene saldo.
 // Al cerrar se quita solo `pagar` de la URL (con `replace`, para que "atrás"
 // no vuelva a abrirlo) y se conservan los filtros que hubiera.
-export function PagoDesdeUrl({ compra, saldoFavor = 0, datos }: { compra: CompraResumen; saldoFavor?: number; datos?: DatosPagoProveedor }) {
+export function PagoDesdeUrl({
+  compra,
+  saldoFavor = 0,
+  datos,
+  misTiendas,
+}: {
+  compra: CompraResumen;
+  saldoFavor?: number;
+  datos?: DatosPagoProveedor;
+  misTiendas?: { id: string; nombre: string }[];
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -103,7 +125,7 @@ export function PagoDesdeUrl({ compra, saldoFavor = 0, datos }: { compra: Compra
     p.delete("pagar");
     router.replace(p.size ? `${pathname}?${p}` : pathname);
   }
-  return <RegistrarPagoModal compra={compra} saldoFavor={saldoFavor} datos={datos} onClose={cerrar} />;
+  return <RegistrarPagoModal compra={compra} saldoFavor={saldoFavor} datos={datos} misTiendas={misTiendas} onClose={cerrar} />;
 }
 
 // Desde "Por pagar" se paga sin entrar al detalle: el botón de la fila abre
@@ -124,6 +146,7 @@ export function BotonPagar({
   onPagado,
   etiqueta,
   conIcono = false,
+  misTiendas,
 }: {
   compra: CompraResumen;
   compacto?: boolean;
@@ -134,6 +157,7 @@ export function BotonPagar({
   etiqueta?: string;
   /** Un billete a la izquierda del texto (el botón del cajón, como en el spike). */
   conIcono?: boolean;
+  misTiendas?: { id: string; nombre: string }[];
 }) {
   const [abierto, setAbierto] = useState(false);
   if (compra.estado !== "vigente" || compra.saldo <= 0) return null;
@@ -155,7 +179,7 @@ export function BotonPagar({
           (etiqueta ?? `Registrar pago · saldo ${soles(compra.saldo)}`)
         )}
       </Boton>
-      {abierto && <RegistrarPagoModal compra={compra} saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} onClose={() => setAbierto(false)} />}
+      {abierto && <RegistrarPagoModal compra={compra} saldoFavor={saldoFavor} datos={datos} misTiendas={misTiendas} onPagado={onPagado} onClose={() => setAbierto(false)} />}
     </>
   );
 }
@@ -172,12 +196,17 @@ export function RegistrarPagoModal({
   compra,
   saldoFavor = 0,
   datos,
+  misTiendas,
   onClose,
   onPagado,
 }: {
   compra: CompraResumen;
   saldoFavor?: number;
   datos?: DatosPagoProveedor;
+  /** ADR-0151 (F4-F5): solo para un comprador de tienda. `undefined` o vacío = líder, el pago no se ata a ninguna
+   *  tienda (como siempre). Con una sola, se usa directo; con varias, se elige con cuál se paga — la base exige que
+   *  esa tienda tenga parte en ESTA factura y no deje su saldo en negativo; si no la tiene, el error lo dice. */
+  misTiendas?: { id: string; nombre: string }[];
   onClose: () => void;
   /** Se llama al CERRAR la confirmación de un pago registrado. Sin esto el modal pide el refresh por su cuenta (el detalle). */
   onPagado?: (r: ResultadoPago) => void;
@@ -186,6 +215,7 @@ export function RegistrarPagoModal({
   // Un pago puede repartirse en varios medios (20260914200000_compras_multipago): la RPC escribe todas las líneas o ninguna.
   const [lineas, setLineas] = useState<LineaPago[]>(() => [{ ...lineaPagoVacia(compra.saldo.toFixed(2)), metodo: datos?.formaPagoPreferida && datos.formaPagoPreferida in ETIQUETA_METODO ? datos.formaPagoPreferida : "transferencia" }]);
   const [fecha, setFecha] = useState(hoyLima());
+  const [ubicacionPago, setUbicacionPago] = useState(misTiendas?.[0]?.id ?? "");
   const [loading, setLoading] = useState(false);
   // Identifica ESTE intento de pago (ADR-0135): si la conexión se corta después de que la base guardó y la persona
   // vuelve a intentar, la base reconoce el token y no duplica el pago. Se conserva mientras el intento falle.
@@ -225,6 +255,7 @@ export function RegistrarPagoModal({
     if (compra.fechaEmision && fecha < compra.fechaEmision) return void avisar.error("La fecha del pago no puede ser anterior a la emisión del comprobante.");
     if (excede) return void avisar.error(`El pago supera el saldo pendiente (${soles(compra.saldo)}).`, { enfocar: "pago-monto-0" });
     if (favorExcedido) return void avisar.error(`Usas ${soles(favorUsado)} de saldo a favor y solo tienes ${soles(saldoFavor)}.`, { enfocar: "pago-monto-0" });
+    if (misTiendas && misTiendas.length > 0 && !ubicacionPago) return void avisar.error("Elige con qué tienda pagas.");
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.rpc("registrar_pagos_compra", {
@@ -232,6 +263,8 @@ export function RegistrarPagoModal({
       p_pagos: pagos,
       p_fecha: fecha,
       p_token: token.current,
+      // ADR-0151 (F4): sin tiendas propias (líder) el pago no se ata a ninguna, como siempre.
+      ...(ubicacionPago ? { p_ubicacion_id: ubicacionPago } : {}),
     });
     setLoading(false);
     if (error) {
@@ -374,6 +407,18 @@ export function RegistrarPagoModal({
                 </div>
               )}
             </section>
+
+            {/* ADR-0151 (F4-F5): con una sola tienda propia se paga con ella sin preguntar; con varias, se elige —
+                la base exige que esa tienda tenga parte en ESTA factura y valida que no supere su saldo. */}
+            {misTiendas && misTiendas.length > 1 && (
+              <CampoSelectNativo etiqueta="Pagas desde" value={ubicacionPago} onChange={(e) => setUbicacionPago(e.target.value)}>
+                {misTiendas.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.nombre}
+                  </option>
+                ))}
+              </CampoSelectNativo>
+            )}
 
             <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} />
 

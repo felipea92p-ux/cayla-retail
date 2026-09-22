@@ -38,7 +38,9 @@ import type { DatosPagoProveedor } from "@/components/PagoJuntosModal";
 // y sus piezas conversan — apuntar a un tramo, una semana de caja o un proveedor enciende las filas que le
 // corresponden (`PorPagarContexto`). Todo eso es presentación: las cifras y los filtros son los de siempre.
 export default async function PorPagarPage({ searchParams }: { searchParams: Promise<ParamsCompras & { agrupar?: string; marcar?: string }> }) {
-  await requirePersonaActualV2();
+  const persona = await requirePersonaActualV2();
+  // ADR-0151 (F4-F5): las tiendas del comprador, para que «Pagar» sepa con cuál paga.
+  const misTiendas = persona.rol === "lider" ? undefined : persona.tiendasCompra;
   // `pagar` y `marcar` son órdenes de una sola vez («abre el modal de este comprobante» / «llega con los de este
   // proveedor marcados»), no filtros: no deben viajar en los enlaces de paginación ni en los filtros. `agrupar` sí
   // viaja, pero solo si se eligió (la vista por defecto no ensucia la URL).
@@ -230,12 +232,13 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
             pagos={pagos}
             seleccionInicial={seleccionInicial}
             indice={10}
+            misTiendas={misTiendas}
           />
         )}
 
         <Paginacion mostradas={compras.length} siguiente={siguiente} hayCursor={!!cursor} params={paramsPaginacion} pathname="/compras/por-pagar" />
 
-        {abrirPago && <PagoDesdeUrl compra={abrirPago} saldoFavor={proveedorAPagar?.saldo_favor ?? 0} datos={proveedorAPagar ? datosPago(proveedorAPagar) : undefined} />}
+        {abrirPago && <PagoDesdeUrl compra={abrirPago} saldoFavor={proveedorAPagar?.saldo_favor ?? 0} datos={proveedorAPagar ? datosPago(proveedorAPagar) : undefined} misTiendas={misTiendas} />}
       </div>
     </PorPagarProvider>
   );

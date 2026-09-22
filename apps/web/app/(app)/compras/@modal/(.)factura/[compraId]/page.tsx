@@ -22,7 +22,9 @@ export default async function CompraDetalleModal({
   params: Promise<{ compraId: string }>;
   searchParams: Promise<{ adjuntos_fallidos?: string; desde?: string }>;
 }) {
-  await requirePersonaActualV2();
+  const persona = await requirePersonaActualV2();
+  // ADR-0151 (F4-F5): las tiendas del comprador, para que «Registrar pago» sepa con cuál paga.
+  const misTiendas = persona.rol === "lider" ? undefined : persona.tiendasCompra;
   const { compraId } = await params;
   const { adjuntos_fallidos, desde } = await searchParams;
   const adjuntosFallidos = adjuntos_fallidos ? adjuntos_fallidos.split("|").filter(Boolean) : [];
@@ -53,7 +55,7 @@ export default async function CompraDetalleModal({
       ancho="max-w-2xl"
       cierre="equis"
       alCerrar={alCerrar}
-      acciones={anulada ? undefined : <CompraAcciones compra={compra} tieneRecepciones={detalle.recepciones.length > 0} datosPago={detalle.datosPago} />}
+      acciones={anulada ? undefined : <CompraAcciones compra={compra} tieneRecepciones={detalle.recepciones.length > 0} datosPago={detalle.datosPago} misTiendas={misTiendas} />}
     >
       <CompraDetalle detalle={detalle} adjuntosFallidos={adjuntosFallidos} acciones={false} />
     </ModalRuta>
