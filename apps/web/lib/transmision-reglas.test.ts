@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { motivoParaNoTransmitir, vaALaColaDeReintento, type ComprobanteParaTransmitir } from "./transmision-reglas";
+import { itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar, type ComprobanteParaTransmitir } from "./transmision-reglas";
 
 function comprobante(extra: Partial<ComprobanteParaTransmitir> = {}): ComprobanteParaTransmitir {
   return { estado: "pendiente", venta_id: "v1", venta: { estado: "completada" }, ...extra };
@@ -56,5 +56,41 @@ describe("vaALaColaDeReintento", () => {
     expect(vaALaColaDeReintento("pendiente")).toBe(true);
     expect(vaALaColaDeReintento("pendiente_reintento")).toBe(true);
     for (const estado of ["rechazado", "enviado", "aceptado", "anulado", "no_emitido"]) expect(vaALaColaDeReintento(estado)).toBe(false);
+  });
+});
+
+describe("itemsParaLucode", () => {
+  const nombres = new Map([["v1", "Blusa Emma · CMS-0001-BEI-M"], ["v2", "Falda Lía · FAL-0002-NEG-S"]]);
+
+  it("un comprobante manual pasa tal cual (su precio ya viene sin IGV)", () => {
+    const raw = [{ descripcion: "Venta de mercadería", cantidad: 1, precio_unitario: 67.71 }];
+    expect(itemsParaLucode(raw, new Map())).toEqual(raw);
+  });
+
+  it("una línea de venta toma el nombre de la variante y su precio sin IGV, con el descuento restado", () => {
+    const raw = [{ variante_id: "v1", cantidad: 1, precio_unitario: 79.9, descuento_unitario: 10 }];
+    expect(itemsParaLucode(raw, nombres)).toEqual([{ descripcion: "Blusa Emma · CMS-0001-BEI-M", cantidad: 1, precio_unitario: 59.237288 }]);
+  });
+
+  it("la suma con IGV vuelve al total cobrado, al céntimo", () => {
+    const raw = [
+      { variante_id: "v1", cantidad: 3, precio_unitario: 79.9, descuento_unitario: 0 },
+      { variante_id: "v2", cantidad: 2, precio_unitario: 129.9, descuento_unitario: 13 },
+    ];
+    const total = 79.9 * 3 + (129.9 - 13) * 2;
+    const items = itemsParaLucode(raw, nombres)!;
+    const declarado = items.reduce((s, it) => s + it.precio_unitario * 1.18 * it.cantidad, 0);
+    expect(Math.round(declarado * 100) / 100).toBe(Math.round(total * 100) / 100);
+  });
+
+  it("sin nombre para una variante, o con datos rotos, no se transmite", () => {
+    expect(itemsParaLucode([{ variante_id: "otra", cantidad: 1, precio_unitario: 10 }], nombres)).toBeNull();
+    expect(itemsParaLucode([{ variante_id: "v1", cantidad: "1", precio_unitario: 10 }], nombres)).toBeNull();
+    expect(itemsParaLucode([], nombres)).toBeNull();
+    expect(itemsParaLucode(null, nombres)).toBeNull();
+  });
+
+  it("variantesPorNombrar lista solo las líneas sin descripción", () => {
+    expect(variantesPorNombrar([{ variante_id: "v1" }, { descripcion: "x", variante_id: "v9" }, { variante_id: "v2" }])).toEqual(["v1", "v2"]);
   });
 });

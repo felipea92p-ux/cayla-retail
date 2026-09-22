@@ -40,3 +40,38 @@ export function motivoParaNoTransmitir(c: ComprobanteParaTransmitir): NoSePuedeT
 export function vaALaColaDeReintento(estado: string): boolean {
   return estado === "pendiente" || estado === "pendiente_reintento";
 }
+
+export type ItemLucode = { descripcion: string; cantidad: number; precio_unitario: number };
+
+const esNumero = (x: unknown): x is number => typeof x === "number" && Number.isFinite(x);
+
+/** Los `variante_id` que hay que nombrar para transmitir: los ítems de una venta no traen descripción. */
+export function variantesPorNombrar(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((it) => (typeof it?.descripcion !== "string" && typeof it?.variante_id === "string" ? [it.variante_id] : []));
+}
+
+/** Los ítems de `comprobantes.items` en la forma que Lucode espera, o `null` si alguno no sirve.
+ *  Llegan de dos formas: el comprobante manual trae `{descripcion, cantidad, precio_unitario}` con el
+ *  precio YA sin IGV (ADR-0009); el de una venta (`registrar_venta`) trae
+ *  `{variante_id, cantidad, precio_unitario, descuento_unitario}` con el precio de etiqueta CON IGV y el
+ *  descuento aparte. Para ese, la descripción sale de `nombres` y el valor unitario es
+ *  (precio − descuento) / 1,18 con 6 decimales: así Σ valor × 1,18 × cantidad vuelve al total cobrado,
+ *  que es el que `registrar_venta` calculó y el que se declara. Sin nombre para una variante → `null`:
+ *  no se declara a SUNAT una línea que no se sabe qué es. */
+export function itemsParaLucode(raw: unknown, nombres: ReadonlyMap<string, string>): ItemLucode[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const items: ItemLucode[] = [];
+  for (const it of raw) {
+    if (typeof it !== "object" || it === null || !esNumero(it.cantidad) || !esNumero(it.precio_unitario)) return null;
+    if (typeof it.descripcion === "string") {
+      items.push({ descripcion: it.descripcion, cantidad: it.cantidad, precio_unitario: it.precio_unitario });
+      continue;
+    }
+    const nombre = typeof it.variante_id === "string" ? nombres.get(it.variante_id) : undefined;
+    const descuento = it.descuento_unitario === undefined ? 0 : it.descuento_unitario;
+    if (!nombre || !esNumero(descuento)) return null;
+    items.push({ descripcion: nombre, cantidad: it.cantidad, precio_unitario: Math.round(((it.precio_unitario - descuento) / 1.18) * 1e6) / 1e6 });
+  }
+  return items;
+}

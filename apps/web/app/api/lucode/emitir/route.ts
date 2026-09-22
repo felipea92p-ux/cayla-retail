@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { emitirDocumentoLucode, entornoLucode, type DatosComprobante, type ItemComprobante, type TipoDocumentoLucode } from "@/lib/lucode";
-import { motivoParaNoTransmitir, vaALaColaDeReintento } from "@/lib/transmision-reglas";
+import { emitirDocumentoLucode, entornoLucode, type DatosComprobante, type TipoDocumentoLucode } from "@/lib/lucode";
+import { itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar } from "@/lib/transmision-reglas";
 
 // POST /api/lucode/emitir  { comprobante_id: string } | { venta_id: string }
 //
@@ -44,25 +44,6 @@ type FilaComprobante = {
   venta: { estado: string } | null;
 };
 
-function itemsValidos(raw: unknown): ItemComprobante[] | null {
-  if (!Array.isArray(raw) || raw.length === 0) return null;
-  const items: ItemComprobante[] = [];
-  for (const it of raw) {
-    if (
-      typeof it !== "object" ||
-      it === null ||
-      typeof (it as Record<string, unknown>).descripcion !== "string" ||
-      typeof (it as Record<string, unknown>).cantidad !== "number" ||
-      typeof (it as Record<string, unknown>).precio_unitario !== "number"
-    ) {
-      return null;
-    }
-    const o = it as Record<string, unknown>;
-    items.push({ descripcion: o.descripcion as string, cantidad: o.cantidad as number, precio_unitario: o.precio_unitario as number });
-  }
-  return items;
-}
-
 export async function POST(request: Request) {
   let body: { comprobante_id?: string; venta_id?: string };
   try {
@@ -102,12 +83,23 @@ export async function POST(request: Request) {
   const noSePuede = motivoParaNoTransmitir(fila);
   if (noSePuede) return Response.json({ error: noSePuede.error }, { status: noSePuede.status });
 
-  const items = itemsValidos(fila.items);
+  // Las líneas de una venta no traen descripción (solo `variante_id`): se nombra cada prenda con su
+  // referencia y su SKU (color y talla), que es lo que la clienta reconoce en la boleta.
+  const porNombrar = variantesPorNombrar(fila.items);
+  const nombres = new Map<string, string>();
+  if (porNombrar.length > 0) {
+    const { data: variantes, error: errVariantes } = await supabase.from("variantes").select("id, sku, producto:productos(referencia)").in("id", porNombrar);
+    if (errVariantes) {
+      return Response.json({ error: "No se pudieron leer las prendas del comprobante. Reintenta." }, { status: 503 });
+    }
+    for (const v of variantes ?? []) {
+      const referencia = (v.producto as { referencia?: string } | null)?.referencia;
+      if (referencia) nombres.set(v.id, v.sku ? `${referencia} · ${v.sku}` : referencia);
+    }
+  }
+  const items = itemsParaLucode(fila.items, nombres);
   if (!items) {
-    return Response.json(
-      { error: "El comprobante no tiene ítems válidos. Esto no debería pasar — emitir_comprobante siempre asigna al menos uno (ADR-0009)." },
-      { status: 500 }
-    );
+    return Response.json({ error: "El comprobante tiene líneas que no se pueden declarar (sin prenda reconocible o datos incompletos)." }, { status: 500 });
   }
 
   const datos: DatosComprobante = {
