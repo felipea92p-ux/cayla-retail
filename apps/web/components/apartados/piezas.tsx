@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { EMISOR } from "@/lib/emisor";
+import { fotoOptimizable } from "@/lib/foto-prenda-reglas";
 import { money } from "@/components/PuntoDeVenta";
 import { tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado } from "@/lib/separaciones-reglas";
 
@@ -11,13 +13,40 @@ function iniciales(referencia: string) {
   return referencia.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 }
 
-export function FotoPrenda({ fotoUrl, referencia, className = "" }: { fotoUrl: string | null | undefined; referencia: string; className?: string }) {
+/**
+ * La foto de la prenda, servida al tamaño en que se VE. `ancho` es el ancho en pantalla (px CSS): el optimizador de
+ * Next entrega un WebP de ese ancho (y el doble en pantallas retina), no el original. Medido el 2026-09-22 en
+ * producción: 31 fotos, promedio 90 KB y la mayor 199 KB; una miniatura de 44 px pesa unos 5 KB. Sin esto, la lista
+ * del buscador bajaba ~0,7 MB por búsqueda. Si la foto no carga (404, host no permitido), quedan las iniciales:
+ * nunca una imagen rota. Una foto de otro host se muestra sin optimizar (`fotoOptimizable`): el optimizador la
+ * rechazaría tumbando la pantalla.
+ */
+export function FotoPrenda({
+  fotoUrl,
+  referencia,
+  ancho,
+  className = "",
+}: {
+  fotoUrl: string | null | undefined;
+  referencia: string;
+  ancho: number;
+  className?: string;
+}) {
+  const [rota, setRota] = useState(false);
   return (
     <div className={`relative aspect-[4/5] shrink-0 overflow-hidden rounded-lg bg-sand/40 ${className}`}>
-      {fotoUrl ? (
-        <Image src={fotoUrl} alt={referencia} fill sizes="120px" className="object-cover" unoptimized />
+      {fotoUrl && !rota ? (
+        <Image
+          src={fotoUrl}
+          alt={referencia}
+          fill
+          sizes={`${ancho}px`}
+          unoptimized={!fotoOptimizable(fotoUrl, process.env.NEXT_PUBLIC_SUPABASE_URL)}
+          className="object-cover"
+          onError={() => setRota(true)}
+        />
       ) : (
-        <span aria-hidden className="font-display absolute inset-0 flex items-center justify-center text-lg text-tinta/30">
+        <span aria-hidden className={`font-display absolute inset-0 flex items-center justify-center text-tinta/30 ${ancho < 40 ? "text-[11px]" : "text-lg"}`}>
           {iniciales(referencia)}
         </span>
       )}

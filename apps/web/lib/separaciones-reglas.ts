@@ -4,6 +4,7 @@
 // cliente, y se prueban en `separaciones-reglas.test.ts`. La base vuelve a validar todo; esto solo guía a quien atiende.
 
 import type { MetodoPago } from "@cayla-retail/shared";
+import { filtrarPrendasV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 
 /** D3 (Felipe, 2026-09-22): 7 días para recoger, aviso cuando faltan 2, 2 días para decidir tras vencer. */
 export const PLAZO_DIAS = 7;
@@ -108,6 +109,34 @@ export function coincide(a: Apartado, texto: string): boolean {
 // ---------------------------------------------------------------------------
 // El formulario de «Apartar»
 // ---------------------------------------------------------------------------
+
+// ---------- Buscador de prendas (ADR-0168) ----------
+
+/** Cuántas prendas muestra la lista del buscador: las que caben sin bajar, más un margen. */
+export const MAX_RESULTADOS_BUSCADOR = 12;
+
+/**
+ * Lo que muestra la lista mientras se escribe: primero lo que se puede apartar AQUÍ, después —atenuado y sin poder
+ * elegirse— lo que no tiene disponible, para que la colaboradora sepa que la prenda existe y dónde más hay
+ * (decisión de Felipe, 2026-09-22). Mismo criterio de coincidencia que el Punto de venta (`filtrarPrendasV2`).
+ * Las agotadas solo ocupan el lugar que dejan las disponibles: nunca empujan fuera una que sí se puede apartar.
+ */
+export function resultadosDelBuscador<T extends PrendaBuscableV2 & { stockAqui: number }>(
+  texto: string,
+  prendas: readonly T[],
+  max = MAX_RESULTADOS_BUSCADOR,
+): { disponibles: T[]; agotadas: T[] } {
+  const todas = filtrarPrendasV2(texto, prendas as T[], prendas.length);
+  const disponibles = todas.filter((p) => p.stockAqui > 0).slice(0, max);
+  const agotadas = todas.filter((p) => p.stockAqui <= 0).slice(0, max - disponibles.length);
+  return { disponibles, agotadas };
+}
+
+/** Flechas ↑/↓ del buscador: se mueven solo entre las que se pueden elegir y no dan la vuelta (igual que el Punto de venta). */
+export function moverActivo(actual: number, paso: 1 | -1, cantidad: number): number {
+  if (cantidad <= 0) return 0;
+  return Math.min(cantidad - 1, Math.max(0, actual + paso));
+}
 
 export type PagoAdelanto = { metodo: MetodoPago; monto: number; recibido?: number };
 
