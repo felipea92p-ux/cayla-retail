@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
+import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Proforma } from "@/lib/proformas";
@@ -9,8 +10,10 @@ import { tipoDocumentoDeCliente } from "@/lib/comprobantes-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { coincide } from "@/lib/facturacion-busqueda";
-import { camposDeBusquedaDeLaProforma, chipDeLaProforma, confirmacionDeConversion, detalleDeLaProforma, ordenarProformas } from "@/lib/facturacion-proformas-reglas";
+import { camposDeBusquedaDeLaProforma, chipDeLaProforma, confirmacionDeConversion, detalleDeLaProforma, montosDeProforma, ordenarProformas, textoWhatsAppDeLaProforma, venceDentroDe } from "@/lib/facturacion-proformas-reglas";
+import { enlaceWhatsApp } from "@/lib/facturacion-comprobantes-reglas";
 import { useFacturacionBusqueda } from "@/lib/useFacturacionBusqueda";
+import { useFacturacionAcciones } from "@/lib/useFacturacionAcciones";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Ayuda } from "@/components/Ayuda";
 import { SinCoincidencias } from "@/components/SinCoincidencias";
@@ -34,10 +37,47 @@ const COLUMNAS = "@min-[640px]:grid @min-[640px]:grid-cols-[72px_minmax(0,1.2fr)
 // Excepciones primero (hallazgo Oracle, Ronda 2): las que vencen antes se muestran arriba de las
 // demás, no detrás de un filtro que haya que recordar aplicar — es la clienta que puede volver
 // hoy a comprar, la que más importa ver primero. El orden, el chip y la línea de detalle de cada
-// fila salen de `lib/facturacion-proformas-reglas.ts`; «Nueva proforma» vive en la cabecera de
-// Facturación (`FacturacionCabecera`) y las tarjetas de arriba las dibuja `ProformasTarjetas`.
-export function ProformasPanel({ proformas, periodo, ahora }: { proformas: Proforma[]; periodo: string; ahora: Date }) {
+// fila salen de `lib/facturacion-proformas-reglas.ts`; «Nueva proforma» vive en el encabezado de
+// esta lista (el modal lo dibuja el shell) y las tarjetas de arriba las dibuja `ProformasTarjetas`.
+export function ProformasPanel({
+  proformas,
+  periodo,
+  ahora,
+  conversion,
+}: {
+  proformas: Proforma[];
+  periodo: string;
+  ahora: Date;
+  /** Cuántas de las creadas en el mes terminaron en venta (`conversionDelMes`). */
+  conversion: { convertidas: number; creadas: number; porcentaje: number | null };
+}) {
   const router = useRouter();
+  const { abrirProforma } = useFacturacionAcciones();
+  const [duplicandoId, setDuplicandoId] = useState<string | null>(null);
+
+  // «Duplicar»: la misma cotización (tienda, clienta y total) con 7 días nuevos. Es también la forma de
+  // renovarle el precio a una clienta cuya proforma venció: la vieja queda como estaba (historial).
+  async function onDuplicar(p: Proforma) {
+    setDuplicandoId(p.id);
+    const { subtotal, igv, total } = montosDeProforma(Number(p.total));
+    const { error } = await createClient().rpc("crear_proforma", {
+      p_ubicacion_id: p.ubicacion_id,
+      p_items: [{ descripcion: "Venta", cantidad: 1, precio_unitario: total }],
+      p_subtotal: subtotal,
+      p_igv: igv,
+      p_total: total,
+      p_cliente_nombre: p.cliente_nombre ?? undefined,
+      p_cliente_num_doc: p.cliente_num_doc ?? undefined,
+      p_vence_at: venceDentroDe(7),
+    });
+    setDuplicandoId(null);
+    if (error) {
+      avisar.error(traducirError(error, "duplicar la proforma"));
+      return;
+    }
+    avisar.exito(`Proforma de ${soles(total)} duplicada`, { detalle: "La nueva vence en 7 días." });
+    router.refresh();
+  }
   const [modal, setModal] = useState<{ convertir: Proforma } | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -92,19 +132,33 @@ export function ProformasPanel({ proformas, periodo, ahora }: { proformas: Profo
       {/* `overflow-hidden` solo con filas (ver el mismo comentario en ComprobantesPanel): sin ellas la tarjeta es baja y
           recortaría el globo de ayuda del encabezado. */}
       <div className={`card-cayla anim-sube @container ${proformasOrdenadas.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 6 } as CSSProperties}>
-        <div className="px-5 pt-[18px] pb-3.5">
-          <p className="label-cayla text-[11px] text-tinta/65">
-            Proformas
-            <Ayuda titulo="Proforma / nota de venta">
-              No es un comprobante de pago — no la reconoce SUNAT ni consume un número de serie.
-              Sirve para cotizar o reservar antes de que la clienta decida comprar. Cuando compra
-              de verdad, la conviertes a boleta o factura y ahí nace el comprobante real.
-            </Ayuda>
-          </p>
-          <h2 className="font-display mt-0.5 text-xl leading-tight text-tinta">Todas las proformas</h2>
-          <p className="mt-0.5 text-xs text-tinta/65">
-            Las vigentes de cualquier mes, más las que se hicieron {periodo}. Las que vencen antes van primero.
-          </p>
+        <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-[18px] pb-3.5">
+          <div className="min-w-0">
+            <p className="label-cayla text-[11px] text-tinta/65">
+              Proformas
+              <Ayuda titulo="Proforma / nota de venta">
+                No es un comprobante de pago — no la reconoce SUNAT ni consume un número de serie.
+                Sirve para cotizar o reservar antes de que la clienta decida comprar. Cuando compra
+                de verdad, la conviertes a boleta o factura y ahí nace el comprobante real.
+              </Ayuda>
+            </p>
+            <h2 className="font-display mt-0.5 text-xl leading-tight text-tinta">Todas las proformas</h2>
+            <p className="mt-0.5 text-xs text-tinta/65">
+              Las vigentes de cualquier mes, más las que se hicieron {periodo}. Las que vencen antes van primero.
+            </p>
+            {conversion.porcentaje !== null && (
+              <p className="mt-1.5 text-[13px] text-tinta/75">
+                De las {conversion.creadas} creadas {periodo},{" "}
+                <b className="font-semibold tabular-nums text-tinta">
+                  {conversion.convertidas} terminaron en venta ({conversion.porcentaje} %)
+                </b>
+                .
+              </p>
+            )}
+          </div>
+          <BotonCompacto variante="primario" icono={<Plus aria-hidden strokeWidth={1.75} />} onClick={abrirProforma}>
+            Nueva proforma
+          </BotonCompacto>
         </div>
 
         {proformas.length === 0 ? (
@@ -145,11 +199,34 @@ export function ProformasPanel({ proformas, periodo, ahora }: { proformas: Profo
                         <p className={`mt-1.5 text-[13px] leading-snug ${detalle.urgente ? "font-semibold text-ambar-profundo" : "text-tinta/65"}`}>{detalle.texto}</p>
                       )}
                     </div>
-                    {p.estado === "vigente" && (
-                      <BotonCompacto variante="fila" onClick={() => setModal({ convertir: p })}>
-                        Convertir
-                      </BotonCompacto>
-                    )}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {p.estado === "vigente" && !p.vencida && (
+                        <a
+                          href={enlaceWhatsApp(textoWhatsAppDeLaProforma(p))}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label={`Enviar por WhatsApp la proforma de ${p.cliente_nombre ?? "Cliente varios"}`}
+                          className="rounded-md px-1.5 py-0.5 text-xs text-tinta/65 outline-none transition-colors duration-200 hover:bg-tinta/10 hover:text-tinta focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-rojo/60"
+                        >
+                          WhatsApp
+                        </a>
+                      )}
+                      {p.estado !== "convertida" && (
+                        <BotonCompacto
+                          variante="fila"
+                          cargando={duplicandoId === p.id}
+                          aria-label={`Duplicar la proforma de ${p.cliente_nombre ?? "Cliente varios"}`}
+                          onClick={() => onDuplicar(p)}
+                        >
+                          {p.vencida ? "Renovar" : "Duplicar"}
+                        </BotonCompacto>
+                      )}
+                      {p.estado === "vigente" && (
+                        <BotonCompacto variante="fila" onClick={() => setModal({ convertir: p })}>
+                          Convertir
+                        </BotonCompacto>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

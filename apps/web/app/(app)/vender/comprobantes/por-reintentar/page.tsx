@@ -1,5 +1,5 @@
 import { exigirPermiso } from "@/lib/persona-actual";
-import { getColaReintento } from "@/lib/comprobantes";
+import { getColaReintento, getFechasDeEmision } from "@/lib/comprobantes";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { tiendasOperativas } from "@/lib/facturacion-reglas";
 import { ColaSunatPanel } from "@/components/ColaSunatPanel";
@@ -13,11 +13,12 @@ export default async function PorReintentarPage() {
   const ahora = new Date();
   const [cola, ubicaciones] = await Promise.all([getColaReintento(persona.rol === "lider" ? null : persona.ubicacionId), getUbicaciones()]);
   if (!cola) throw new Error("No se pudo leer la cola de reintento");
+  const emitidos = await getFechasDeEmision(cola.map((f) => f.comprobante_id));
 
   return (
     <div className="space-y-6">
       <MarcaDeCarga en={ahora.getTime()} />
-      <ColaSunatPanel filas={cola} tiendas={tiendasOperativas(ubicaciones).map(({ id, nombre }) => ({ id, nombre }))} />
+      <ColaSunatPanel filas={cola} emitidos={emitidos ?? {}} ahora={ahora} tiendas={tiendasOperativas(ubicaciones).map(({ id, nombre }) => ({ id, nombre }))} />
     </div>
   );
 }

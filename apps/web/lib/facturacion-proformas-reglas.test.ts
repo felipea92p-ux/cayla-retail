@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Proforma } from "./proformas-reglas";
 import { soles } from "./compras-reglas";
-import { camposDeBusquedaDeLaProforma, chipDeLaProforma, confirmacionDeConversion, detalleDeLaProforma, estadoVisible, franjaDeProformas, ordenarProformas } from "./facturacion-proformas-reglas";
+import { conversionDelMes, montosDeProforma, textoWhatsAppDeLaProforma, camposDeBusquedaDeLaProforma, chipDeLaProforma, confirmacionDeConversion, detalleDeLaProforma, estadoVisible, franjaDeProformas, ordenarProformas } from "./facturacion-proformas-reglas";
 
 const AHORA = new Date("2026-09-19T20:00:00Z");
 const enHoras = (h: number) => new Date(AHORA.getTime() + h * 3600 * 1000).toISOString();
@@ -166,5 +166,42 @@ describe("confirmacionDeConversion", () => {
   it("dice «hace 12 min» si venció hace poco, y sin plazo no hay nada que confirmar", () => {
     expect(confirmacionDeConversion(proforma({ vencida: true, vence_at: enHoras(-0.2) }), AHORA)?.titulo).toBe("Esta proforma venció hace 12 min.");
     expect(confirmacionDeConversion(proforma({ vencida: true, vence_at: null }), AHORA)).toBeNull();
+  });
+});
+
+describe("montosDeProforma", () => {
+  it("separa el IGV del total y los dos suman el total", () => {
+    expect(montosDeProforma(118)).toEqual({ subtotal: 100, igv: 18, total: 118 });
+    const r = montosDeProforma(99.9);
+    expect(Math.round((r.subtotal + r.igv) * 100) / 100).toBe(99.9);
+  });
+});
+
+describe("conversionDelMes", () => {
+  const desde = "2026-09-01T05:00:00Z";
+  const hasta = "2026-10-01T05:00:00Z";
+  it("cuenta solo las creadas en el mes, sin anuladas", () => {
+    const lista = [
+      { estado: "convertida" as const, created_at: "2026-09-10T00:00:00Z" },
+      { estado: "vigente" as const, created_at: "2026-09-11T00:00:00+00:00" },
+      { estado: "anulada" as const, created_at: "2026-09-12T00:00:00Z" },
+      { estado: "convertida" as const, created_at: "2026-08-30T00:00:00Z" }, // otro mes
+    ];
+    expect(conversionDelMes(lista, desde, hasta)).toEqual({ convertidas: 1, creadas: 2, porcentaje: 50 });
+  });
+  it("sin proformas no inventa un porcentaje", () => {
+    expect(conversionDelMes([], desde, hasta).porcentaje).toBeNull();
+  });
+});
+
+describe("textoWhatsAppDeLaProforma", () => {
+  it("saluda por nombre, dice el total y hasta cuándo vale (día de Lima)", () => {
+    const texto = textoWhatsAppDeLaProforma({ cliente_nombre: "Ana", total: 150, vence_at: "2026-09-26T03:00:00Z" });
+    expect(texto).toContain("Hola Ana");
+    expect(texto).toContain(soles(150));
+    expect(texto).toContain("25 de setiembre"); // es-PE escribe «setiembre», como en Perú
+  });
+  it("sin nombre ni vencimiento, igual se entiende", () => {
+    expect(textoWhatsAppDeLaProforma({ cliente_nombre: null, total: 10, vence_at: null })).toBe(`Hola, esta es tu proforma de CAYLA por ${soles(10)}.`);
   });
 });

@@ -2,13 +2,14 @@ import { exigirPermiso } from "@/lib/persona-actual";
 import { getProformasMes } from "@/lib/proformas";
 import { mesActualLima, mesLimaUTC } from "@/lib/fecha-lima";
 import { mesDeParametro, periodoDelMes, resumenProformas } from "@/lib/facturacion-reglas";
+import { conversionDelMes } from "@/lib/facturacion-proformas-reglas";
 import { ProformasPanel } from "@/components/ProformasPanel";
 import { MarcaDeCarga } from "@/components/MarcaDeCarga";
 import { ProformasTarjetas } from "@/components/ProformasTarjetas";
 import { SelectorMesFacturacion } from "@/components/SelectorMesFacturacion";
 
-// El modal de «Nueva proforma» ya no vive en el panel sino en el shell (que ya tiene las
-// tiendas): esta vista solo lee las proformas del mes (`getProformasMes` suma además todas
+// El modal de «Nueva proforma» vive en el shell (que ya tiene las tiendas) y lo abre el botón
+// del panel: esta vista solo lee las proformas del mes (`getProformasMes` suma además todas
 // las vigentes, sin filtro de mes, porque son una cola de trabajo).
 export default async function ProformasPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
   await exigirPermiso("facturar");
@@ -26,7 +27,7 @@ export default async function ProformasPage({ searchParams }: { searchParams: Pr
       <MarcaDeCarga en={ahora.getTime()} />
       <SelectorMesFacturacion ruta="/vender/comprobantes/proformas" mes={mes} actual={actual} />
       <ProformasTarjetas resumen={resumenProformas(proformas, ahora.getTime())} />
-      <ProformasPanel proformas={proformas} periodo={periodoDelMes(mes, actual)} ahora={ahora} />
+      <ProformasPanel proformas={proformas} periodo={periodoDelMes(mes, actual)} ahora={ahora} conversion={conversionDelMes(proformas, desde, hasta)} />
     </div>
   );
 }

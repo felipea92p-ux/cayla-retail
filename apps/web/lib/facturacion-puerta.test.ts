@@ -10,11 +10,11 @@ import { describe, expect, it } from "vitest";
 //    `page.tsx` repite su puerta como LO PRIMERO que espera (antes de leer nada). Desde ADR-0160 son
 //    dos puertas: las cuatro vistas y el layout las abre el permiso `facturar` (`exigirPermiso("facturar")`:
 //    el líder y la terminal de ventas) y «Códigos de descuento» sigue siendo SOLO del líder (`exigirLider()`).
-// 2) Los dos modales viven en el shell, una vez cada uno y sin condicional sobre su apertura:
-//    el token de idempotencia de «Emitir» es un `useRef` del modal y tiene que vivir tanto como
-//    el shell. Un `{modal === "emitir" && <EmitirComprobanteModal … />}` —o una segunda instancia
-//    en cualquier otro componente, un panel o una vista nueva— daría un token nuevo por apertura
-//    y quemaría un correlativo si se corta la red entre dos intentos.
+// 2) El modal de «Nueva proforma» vive en el shell, una vez y sin condicional sobre su apertura:
+//    lo último elegido (la tienda) vive en el modal y tiene que durar tanto como el shell. Un
+//    `{abierto && <NuevaProformaModal … />}` —o una segunda instancia en un panel o una vista
+//    nueva— lo perdería en cada apertura. («Emitir comprobante», que también vivía acá, se quitó
+//    el 2026-09-22.)
 
 const RAIZ = join(__dirname, "../app/(app)/vender/comprobantes");
 const COMPONENTES = join(__dirname, "../components");
@@ -85,7 +85,7 @@ describe("Facturación — puerta (líder o terminal de ventas)", () => {
   });
 });
 
-describe("Facturación — los modales viven una sola vez, en el shell", () => {
+describe("Facturación — el modal vive una sola vez, en el shell", () => {
   const archivos = archivosBajo(COMPONENTES, (n) => n.endsWith(".tsx")).map((ruta) => ({
     nombre: ruta.slice(COMPONENTES.length + 1).replace(/\\/g, "/"),
     fuente: readFileSync(ruta, "utf8"),
@@ -97,7 +97,7 @@ describe("Facturación — los modales viven una sola vez, en el shell", () => {
     expect(archivos.length).toBeGreaterThan(20);
   });
 
-  for (const modal of ["EmitirComprobanteModal", "NuevaProformaModal"]) {
+  for (const modal of ["NuevaProformaModal"]) {
     it(`<${modal}> se dibuja en un solo lugar de toda la app: el shell, una vez`, () => {
       const enQueArchivos = archivos.filter((a) => new RegExp(`<${modal}\\b`).test(a.fuente)).map((a) => a.nombre);
       expect(enQueArchivos).toEqual(["FacturacionShell.tsx"]);
@@ -110,7 +110,7 @@ describe("Facturación — los modales viven una sola vez, en el shell", () => {
   }
 
   it("el detector sí ve un modal condicionado a su apertura, en cualquiera de sus formas", () => {
-    const modal = "EmitirComprobanteModal";
+    const modal = "NuevaProformaModal";
     for (const malo of [
       `{modal === "emitir" && <${modal} />}`,
       `{modal && <${modal} />}`,
@@ -119,6 +119,6 @@ describe("Facturación — los modales viven una sola vez, en el shell", () => {
     ]) {
       expect(condicionadoAlEstado(malo, modal)).toBe(true);
     }
-    expect(condicionadoAlEstado(`{series && tiendas && <${modal} abierto={modal === "emitir"} />}`, modal)).toBe(false);
+    expect(condicionadoAlEstado(`{tiendas && <${modal} abierto={proformaAbierta} />}`, modal)).toBe(false);
   });
 });

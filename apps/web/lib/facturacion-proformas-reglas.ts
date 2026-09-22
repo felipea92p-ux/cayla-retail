@@ -112,3 +112,32 @@ export function confirmacionDeConversion(p: Proforma, ahora: Date): Confirmacion
     casilla: "Sí, emitirlo al precio de entonces",
   };
 }
+
+/** Subtotal e IGV de una proforma a partir de su total (precios con IGV, 18 %): lo que pide
+ *  `crear_proforma`. Una sola cuenta para «Nueva proforma» y «Duplicar». */
+export function montosDeProforma(total: number): { subtotal: number; igv: number; total: number } {
+  const igv = Math.round((total - total / 1.18) * 100) / 100;
+  return { subtotal: Math.round((total - igv) * 100) / 100, igv, total };
+}
+
+/** Cuántas de las proformas creadas en el mes terminaron en venta. Las anuladas no cuentan en ningún
+ *  lado (se cotizaron por error); `porcentaje` es `null` sin proformas, nunca un 0 % inventado. */
+export function conversionDelMes(proformas: Pick<Proforma, "estado" | "created_at">[], desde: string, hasta: string) {
+  const enRango = (iso: string) => Date.parse(iso) >= Date.parse(desde) && Date.parse(iso) < Date.parse(hasta);
+  const delMes = proformas.filter((p) => enRango(p.created_at) && p.estado !== "anulada");
+  const convertidas = delMes.filter((p) => p.estado === "convertida").length;
+  return { convertidas, creadas: delMes.length, porcentaje: delMes.length === 0 ? null : Math.round((convertidas / delMes.length) * 100) };
+}
+
+/** El texto para mandarle una proforma a la clienta por WhatsApp. */
+export function textoWhatsAppDeLaProforma(p: Pick<Proforma, "cliente_nombre" | "total" | "vence_at">): string {
+  const vence = p.vence_at
+    ? ` Te guardamos este precio hasta el ${new Date(p.vence_at).toLocaleDateString("es-PE", { day: "numeric", month: "long", timeZone: "America/Lima" })}.`
+    : "";
+  return `Hola${p.cliente_nombre ? ` ${p.cliente_nombre}` : ""}, esta es tu proforma de CAYLA por ${soles(Number(p.total))}.${vence}`;
+}
+
+/** El `vence_at` de una proforma que vale `dias` desde ahora (el reloj entra por parámetro para probarlo). */
+export function venceDentroDe(dias: number, ahoraMs: number = Date.now()): string {
+  return new Date(ahoraMs + dias * 24 * 3600 * 1000).toISOString();
+}

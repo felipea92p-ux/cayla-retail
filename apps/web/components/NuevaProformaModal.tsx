@@ -7,13 +7,13 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { montosDeProforma } from "@/lib/facturacion-proformas-reglas";
 
 type Ubicacion = { id: string; nombre: string };
 
 // Extraído de `ProformasPanel` (ADR-0124) SIN cambiar su lógica. Lo dibuja
-// `FacturacionShell` una sola vez, para que lo abran la cabecera y el botón de la vista
-// Proformas. Igual que `EmitirComprobanteModal`, se dibuja siempre y solo se muestra u
-// oculta: lo último elegido (la tienda) vive acá.
+// `FacturacionShell` una sola vez, para que lo abra el botón de la vista Proformas. Se
+// dibuja siempre y solo se muestra u oculta: lo último elegido (la tienda) vive acá.
 export function NuevaProformaModal({
   abierto,
   onCerrar,
@@ -44,13 +44,11 @@ export function NuevaProformaModal({
     e.preventDefault();
     setLoading(true);
     const supabase = createClient();
-    const igv = Math.round((total - total / 1.18) * 100) / 100;
-    const subtotal = Math.round((total - igv) * 100) / 100;
+    const { subtotal, igv } = montosDeProforma(total);
     const venceAt = new Date(Date.now() + venceEnDias * 24 * 3600 * 1000).toISOString();
     const { error } = await supabase.rpc("crear_proforma", {
       p_ubicacion_id: ubicacionId,
-      // Sin catálogo de ítems en esta pantalla todavía (mismo nivel de detalle
-      // que "Emitir comprobante" hoy: un total, no líneas) — se guarda como un
+      // Sin catálogo de ítems en esta pantalla todavía (un total, no líneas) — se guarda como un
       // solo ítem para no inventar una estructura que nadie lee todavía.
       // `precio_unitario`, no `precio`: es la forma que espera emitir_comprobante()
       // cuando convertir_proforma_a_comprobante() reenvía estos items (0010) — con
