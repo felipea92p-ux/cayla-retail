@@ -2038,7 +2038,9 @@ begin
   if v_n > 0 then raise exception '[check ventas] números de comprobante repetidos'; end if;
   select count(*) into v_n from (
     select serie, numero, numero - lag(numero) over (partition by tipo, serie order by numero) as salto
-    from comprobantes where tipo in ('boleta', 'factura')) x where salto > 1;
+    from comprobantes where tipo in ('boleta', 'factura') and id::text like '5eed%') x where salto > 1;
+  -- (solo los sembrados: producción ya trae saltos reales — B004 tiene los números 2 y 3 y su contador en 28 — que no
+  -- son de esta carga)
   if v_n > 0 then raise exception '[check ventas] % huecos en la numeración de comprobantes', v_n; end if;
 
   -- (5) ninguna venta sembrada con comprobante en Lima (no hay serie: si esto falla, alguien la agregó y hay que revisar)
