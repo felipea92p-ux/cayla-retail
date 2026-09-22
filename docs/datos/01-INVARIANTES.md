@@ -81,6 +81,7 @@ Los nombres de la columna "Nombre exacto" se buscan tal cual:
 | Contar dos veces la misma prenda dentro de un conteo | Regla de tabla | `conteo_lineas_conteo_id_variante_id_key` | **Las dos** | El censo infla el inventario con el doble de lo que hay |
 | Un conteo "cerrado" sin fecha de cierre, o uno abierto con ella | Regla de tabla | `conteos_cierre_coherente` | **Las dos** | Un conteo que no es ni abierto ni cerrado. Nadie sabe si ya se aplicó al stock — **ADR-0027** |
 | Un conteo ambiguo (alcance por categoría **y** por contenedor a la vez) | Regla de tabla | `conteos_alcance_coherente` | **Las dos** | "¿Qué estamos contando?" respondido de dos formas. El cierre ajustaría prendas que nadie miró |
+| Cerrar un conteo sin ninguna prenda contada | Guardia en la función (hint `conteo_vacio`) | `cerrar_conteo` → *"Este conteo no tiene ninguna prenda contada: no se cierra…"* (`20260923120000_conteo_vacio_no_se_cierra.sql`) | **Local** (sin pegar en producción) | Un conteo que no miró nada queda como «cerrado sin diferencias» y se lee como un inventario perfecto — **ADR-0172** |
 
 ### Comprobantes y libro contable
 

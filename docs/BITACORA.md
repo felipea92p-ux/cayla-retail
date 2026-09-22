@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (Conteo físico: rediseño implementado — ADR-0172)
+Felipe eligió la variante A (lista de lo que falta, sin cifras) y pidió implementar. Quedó: abrir en tres pasos, contar con «Suma por escaneo» o «Escribir cantidad», «Faltan por contar» acotado al alcance, sin la diferencia a la vista mientras se cuenta, «Vacío» para los conteos sin prendas y la revisión en el modal del sistema. En la base, `cerrar_conteo` ya no cierra un conteo vacío (migración con prueba en CI, sin pegar en producción). Verificado en navegador con los componentes reales contra un servidor falso: tres lecturas seguidas de la misma blusa guardaron 1, 2 y 3 en orden.
+Felipe se lleva: (1) **cuando la pistola va más rápido que la base, las escrituras se hacen en fila**: cada lectura manda el total y, si salieran a la vez, una respuesta atrasada podía dejar la prenda en 2 cuando iba en 3; (2) **«a ciegas» se rompía en tres sitios, no en uno** (la tarjeta, el historial y el detalle del conteo abierto): una regla de negocio se revisa pantalla por pantalla; (3) la lista de pendientes tuvo que acotarse a la categoría porque la vista previa de la base no conoce el alcance.
+Sin resolver: pegar la migración en producción (OK de Felipe), verlo con clics reales en TRU y confirmar que la pistola manda Enter.
+
 ## 2026-09-22 (Existencias: demo del rediseño con la paleta oficial)
 Sobre la guía «Sala de diseño» se armó `docs/maquetas/existencias-rediseno-2026-09/demo.html`: lateral claro (decidido por Felipe), tabla con piso·almacén, cobertura, ritmo 7D, en camino y en la red, modales con el movimiento de ADR-0136 y el loader único con el aviso después (ADR-0149). Felipe pidió decidir viendo, así que la demo trae 3 variantes de cifras y 2 de acciones por fila, más el estado vacío guiado que eligió.
 Felipe se lleva: (1) **una sede vacía no es una pantalla vacía**: es el momento de decirle a la colaboradora por dónde entra la mercadería; (2) la demo se armó con la captura real de TRU, que mostró 3 traslados «completados» con 0 unidades: por eso el piso sigue vacío, y se señala en el estado vacío.

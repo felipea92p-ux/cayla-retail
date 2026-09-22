@@ -17,7 +17,8 @@ export type ItemConteoAbierto = {
   referencia: string;
   talla: string | null;
   color: string | null;
-  cantidadSistema: number;
+  /** Lo anotado. A propósito SIN la cantidad del sistema: esto viaja al navegador de quien cuenta, y el conteo es a
+   *  ciegas hasta revisar (ADR-0172). La diferencia la calcula `previsualizar_cierre_conteo` al revisar. */
   cantidadContada: number;
 };
 
@@ -55,7 +56,7 @@ export async function getConteoAbierto(ubicacionId: string): Promise<ConteoAbier
     supabase
       .from("conteo_items")
       .select(
-        `id, variante_id, cantidad_sistema, cantidad_contada,
+        `id, variante_id, cantidad_contada,
          variante:variantes ( sku, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) )`
       )
       .eq("conteo_id", conteo.id)
@@ -84,7 +85,6 @@ export async function getConteoAbierto(ubicacionId: string): Promise<ConteoAbier
       referencia: i.variante?.producto?.referencia ?? "",
       talla: i.variante?.talla?.valor ?? null,
       color: i.variante?.color?.nombre ?? null,
-      cantidadSistema: i.cantidad_sistema,
       cantidadContada: i.cantidad_contada,
     })),
   };
@@ -236,6 +236,8 @@ export type LineaConteo = {
   sistema: number;
   contado: number;
   diferencia: number;
+  /** La diferencia al costo actual de la variante (ADR-0172: el detalle la muestra por línea). */
+  soles: number;
 };
 
 export type ConteoDetalle = ConteoResumen & { lineasDetalle: LineaConteo[] };
@@ -281,6 +283,7 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
       sistema: i.cantidad_sistema,
       contado: i.cantidad_contada,
       diferencia: i.cantidad_contada - i.cantidad_sistema,
+      soles: Math.round((i.cantidad_contada - i.cantidad_sistema) * Number(i.variante?.costo ?? 0) * 100) / 100,
     }))
     // Las diferencias primero, las más grandes arriba; después el resto por nombre.
     .sort((a, b) => Math.abs(b.diferencia) - Math.abs(a.diferencia) || a.referencia.localeCompare(b.referencia, "es") || a.sku.localeCompare(b.sku));
