@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 («Colaboradores» vuelve al menú lateral — PR #291)
+Felipe no encontraba el módulo en producción. Se le preguntó a la base antes de tocar código: 25 colaboradores activos, las 6 funciones de la pantalla existen y su cuenta es líder activo, así que el problema no eran los datos ni el permiso. El 21-09 el ítem había salido del menú y quedó solo en «Mi perfil → Administración». Volvió al árbol de `lib/menu.ts`, debajo de Inicio y solo para líder (`exige: "administrar"`); el enlace del perfil se queda. Sin migraciones; menú 5460/5460 y CI en verde, fusionado a main.
+Felipe se lleva: **esconder una pantalla detrás de otra la vuelve invisible aunque siga funcionando**: la decisión de ayer era razonable en papel («es configuración, no trabajo diario»), pero en el uso real nadie la encontró. Y ante un «no veo X» se pregunta primero a la base: así se descarta en minutos que falten datos o permisos.
+Sin resolver: el destino final sigue siendo «configuracion.accesos» (árbol «futura» de `lib/menu.ts`), cuando nazca Configuración.
+
 ## 2026-09-22 (Separaciones: demo de interfaz con el lenguaje del ERP)
 Después de validar las funciones, Felipe pidió verlo como interfaz. Se armó `interfaz.html` calcando Punto de Venta: el mismo lateral y la misma hoja, el panel derecho que pasa de ticket a formulario con la barra de 3 tramos, la grilla de medios F1–F5, y el modal «Separación registrada» con la forma de «Venta registrada» y el movimiento de ADR-0136.
 Felipe se lleva: (1) **una pantalla nueva no inventa su propio lenguaje**: reutiliza el ticket, el cobro y el modal que las colaboradoras ya saben usar, y solo agrega lo que es propio de separar (fecha límite, «en custodia», devolución); (2) la demo encontró un bug que el código no mostraba: redibujar el formulario al salir de un campo borraba lo escrito en el siguiente.
