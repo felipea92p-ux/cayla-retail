@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (Apartados con la guía oficial: tablero + flujo — ADR-0172)
+Felipe pidió rediseñar Apartados con la «Sala de diseño» y decidir viendo. Se armó `docs/maquetas/apartados-rediseno-2026-09/demo.html` con 3 estructuras, 2 listas, 2 formas de cobrar y 3 escenarios; eligió tablero + flujo, lista agrupada por urgencia y entrega en modal, con una condición: el ticket de Apartar y la hoja de cobro del saldo se quedan con su diseño y sus animaciones. Se implementó así: la portada es el tablero (cabecera oficial, franjas, 4 cifras, lista agrupada y nota), «+ Nuevo apartado» abre la hoja de siempre, y Entregar abre en modal la misma hoja de cobro. Typecheck, lint y 8,009 pruebas en verde; visto en el navegador con los componentes reales y datos de muestra, en escritorio y celular.
+Felipe se lleva: (1) **una pantalla de mostrador abre en lo que pide acción**, no en un formulario vacío: con tres pestañas, en una tienda tranquila dos abrían vacías; (2) **cambiar dónde vive una pieza no obliga a rediseñarla**: el ticket y el cobro son los mismos componentes, solo cambió su lugar; (3) había dos buscadores de clientas que encontraban lo mismo: ahora hay uno.
+Sin resolver: verlo con clics reales contra la base (combo «Responsable» incluido).
+
 ## 2026-09-22 (Existencias: demo del rediseño con la paleta oficial)
 Sobre la guía «Sala de diseño» se armó `docs/maquetas/existencias-rediseno-2026-09/demo.html`: lateral claro (decidido por Felipe), tabla con piso·almacén, cobertura, ritmo 7D, en camino y en la red, modales con el movimiento de ADR-0136 y el loader único con el aviso después (ADR-0149). Felipe pidió decidir viendo, así que la demo trae 3 variantes de cifras y 2 de acciones por fila, más el estado vacío guiado que eligió.
 Felipe se lleva: (1) **una sede vacía no es una pantalla vacía**: es el momento de decirle a la colaboradora por dónde entra la mercadería; (2) la demo se armó con la captura real de TRU, que mostró 3 traslados «completados» con 0 unidades: por eso el piso sigue vacío, y se señala en el estado vacío.

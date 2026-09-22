@@ -284,6 +284,8 @@ demo: `docs/maquetas/separaciones-2026-09/demo.html`.
 - [x] **Felipe aprobó el subgrupo «Posventa»** (2026-09-22) en el menú (el golden se cambió a propósito; si no lo quiere, la alternativa es sacar
       Apartados del lateral y dejarlo como pestaña del Punto de venta).
 - [x] **Buscador con foto en Apartar (2026-09-22, ADR-0168):** búsqueda en vivo por nombre como el Punto de venta, con miniatura por fila; agotadas atenuadas al final con «N en el almacén» o dónde más hay. `FotoPrenda` de Apartados sale optimizada (≈5 KB en vez de ≈90 KB por foto). Demo: `docs/maquetas/separaciones-2026-09/buscador.html`.
+- [x] **Apartados con la guía oficial (2026-09-22, ADR-0172):** tablero como portada (cabecera, franjas, 4 cifras, lista agrupada, nota), «+ Nuevo apartado» abre la hoja de Apartar de siempre y Entregar sale en modal desde la fila. Demo: `docs/maquetas/apartados-rediseno-2026-09/demo.html`. Verificado con los componentes reales y datos de muestra (sin base local).
+- [ ] **Ver Apartados rediseñado con clics reales** en producción o con base local: apartar, entregar desde el modal (combo «Responsable» incluido), devolver y liberar.
 - [ ] **Llevar el buscador con foto al Punto de venta** si Felipe lo pide (hoy decidió solo Apartados); la pieza a mover es la de `ApartarVista` + `FotoPrenda`.
 - [ ] **En Caja**, la tarjeta «En custodia» (hoy vive en Apartados → Todos) y `anticipo` en `NOMBRE_METODO`/historial de ventas.
 - [ ] **Existencias** sigue ofreciendo «Apartar» de ADR-0141 (sin adelanto): decidir si se quita o se deja como reserva rápida.
