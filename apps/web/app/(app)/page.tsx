@@ -6,6 +6,7 @@ import { etiquetaMovimiento } from "@/lib/movimientos-reglas";
 import { getTrasladosPorAtender } from "@/lib/traslados";
 import { getHoyDeLaSede, type HoyDeLaSede } from "@/lib/inicio";
 import { accesosInicio, colasInicio, mostrarHoy, resumirHoy } from "@/lib/inicio-reglas";
+import { aterrizajeDe } from "@/lib/menu";
 import { formatoSoles } from "@/lib/resumen-formato";
 
 // Inicio en cuatro capas, de arriba abajo, cada una con su pregunta: «Hoy» (¿cómo voy?), «Por atender» (¿qué me
@@ -22,11 +23,13 @@ import { formatoSoles } from "@/lib/resumen-formato";
 
 export default async function InicioPage() {
   const persona = await requirePersonaActualV2();
-  // La terminal de ventas aterriza en el Punto de Venta (pedido de Felipe, 2026-09-21): su menú no tiene «Inicio», su
-  // casa es el mostrador. Es un aterrizaje, no un candado: la ruta sigue existiendo para quien sí la ve.
-  if (persona.terminal === "ventas") redirect("/vender");
+  // Una terminal cuyo ROL ve el Punto de Venta aterriza ahí (pedido de Felipe, 2026-09-21; sin tipo desde 2026-09-22): su
+  // menú no tiene «Inicio», su casa es el mostrador. Es un aterrizaje, no un candado. La regla vive en `aterrizajeDe`.
+  const modulos = persona.modulos.map((m) => m.clave);
+  const destino = aterrizajeDe({ terminal: persona.terminal, modulos });
+  if (destino !== "/") redirect(destino);
   const esLider = persona.rol === "lider";
-  const perfil = { rol: persona.rol, ubicacionTipo: persona.ubicacionTipo, terminal: persona.terminal };
+  const perfil = { rol: persona.rol, ubicacionTipo: persona.ubicacionTipo, terminal: persona.terminal, modulos };
 
   const [hoy, trasladosPorAtender, actividad] = await Promise.all([
     mostrarHoy(perfil) ? getHoyDeLaSede(persona.ubicacionId, esLider) : Promise.resolve(null),
@@ -47,7 +50,7 @@ export default async function InicioPage() {
   const colas = colasInicio({ traslados: trasladosPorAtender });
   const accesos = accesosInicio(perfil, hoy?.cajaAbierta ?? null);
   // La sede ya la dicen el selector de la cabecera y los textos de abajo: aquí solo el saludo. A un APARATO (ADR-0162, la
-  // terminal administrativa) no se lo saluda por su «primer nombre» —saldría «Hola, Terminal»—: se lo nombra entero.
+  // terminal que no vende) no se lo saluda por su «primer nombre» —saldría «Hola, Terminal»—: se lo nombra entero.
   const primerNombre = persona.nombre.trim().split(/\s+/)[0];
   const saludo = persona.terminal ? persona.nombre : primerNombre ? `Hola, ${primerNombre}` : "Hola";
 

@@ -9,7 +9,7 @@ import { Boton } from "@/components/ui/campos";
 import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
-import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type AccionNuevo, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type TipoTerminal, type Permiso } from "@/lib/menu";
+import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type AccionNuevo, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
 import type { ClaveModulo } from "@/lib/modulos";
 import { PerfilModal } from "@/components/PerfilModal";
 import { IconoAparato } from "@/components/ui/IconoAparato";
@@ -76,7 +76,7 @@ type Persona = {
   /** Si esta sesión es la de una TERMINAL, un aparato SIN persona (ADR-0162). Opcional: quien arma el AppShell sin persona
    *  real (las rutas de prueba) no tiene que saber de terminales; ausente = una persona. Con terminal, el pie del lateral
    *  muestra el aparato (no una persona) y no abre «Mi perfil». */
-  terminal?: TipoTerminal | null;
+  terminal?: boolean;
   /** Lo que su ROL deja ver y hacer (ADR-0161 B2, `fn_mis_modulos()`), ya resuelto en el servidor. Opcional por la misma
    *  razón que `terminal`: sin esto, el menú sale con la regla fija de antes (`permisosDe`). */
   permisos?: readonly Permiso[];
@@ -906,9 +906,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
 
   // El menú de esta persona: filas, barra del celular, «+ Nuevo» y qué grupo contiene cada ruta. Todo sale de `lib/menu.ts`.
   const menu = menuPara({
-    permisos: persona.permisos ?? permisosDe(persona.rol, persona.terminal ?? null),
+    permisos: persona.permisos ?? permisosDe(persona.rol),
     ubicacionTipo: persona.ubicacionTipo,
-    terminal: persona.terminal ?? null,
+    terminal: !!persona.terminal,
     modulos: persona.modulos ?? null,
     contadores: { trasladosPorAtender },
   });
@@ -1185,7 +1185,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
 
       {/* ==================== Pestañas (celular) ==================== */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-tinta/10 bg-crema/90 backdrop-blur-md pb-[env(safe-area-inset-bottom)] sm:hidden">
-        {/* Las columnas salen del menú de esta cuenta: 5 para una persona, menos para una terminal (la de ventas no tiene Inicio ni Inventario). */}
+        {/* Las columnas salen del menú de esta cuenta: 5 para una persona, según su rol para una terminal (la que ve el Punto de venta no tiene Inicio). */}
         <div className="relative grid" style={{ gridTemplateColumns: `repeat(${columnas.length}, minmax(0, 1fr))` }}>
           {/* El mismo riel del lateral, acostado: una sola marca que se desliza
               entre pestañas en vez de cinco que se prenden y se apagan. */}

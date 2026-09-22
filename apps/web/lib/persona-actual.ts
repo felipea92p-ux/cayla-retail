@@ -2,8 +2,16 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { cookies } from "next/headers";
-import { permisosDe, TIPOS_TERMINAL, type Permiso, type TipoTerminal } from "@/lib/menu";
-import { leerModulos, modulosDeHoy, permisosDeModulos, type ClaveModulo, type ModuloDeCuenta } from "@/lib/modulos";
+import type { Permiso } from "@/lib/menu";
+import {
+  leerModulos,
+  modulosDeHoy,
+  permisosDeModulos,
+  TIPOS_TERMINAL_LEGADO,
+  type ClaveModulo,
+  type ModuloDeCuenta,
+  type TipoTerminalLegado,
+} from "@/lib/modulos";
 
 // Integración con Dynamic (2026-09-12): retail ya no tiene su propia
 // tabla `personas` — Dynamic es dueño de esa identidad (rol, estado,
@@ -26,14 +34,13 @@ export type PersonaActualV2 = {
    *  (0012_control_total_temporal.sql) se revierta, esto puede volver a
    *  distinguirse sin tocar el componente. */
   puedeCambiarUbicacion: boolean;
-  /** Si esta sesión es la de una TERMINAL (un aparato) y de qué tipo; `null` = una persona. ES EL DATO que dice «esto es un
-   *  aparato, no alguien»: desde el ADR-0162 una terminal es una cuenta de Auth SIN persona (`retail.terminales`), fija a
-   *  una tienda y nunca líder. Con él, el pie del menú muestra el aparato y no una persona, «Mi perfil» no se ofrece
-   *  (no hay perfil de RRHH que mostrar) y la de ventas aterriza en `/vender`. Tipos: `ventas` (caja, punto de venta,
-   *  Facturación) o `administrativa` (inventario, catálogo y, con ADR-0151, Compras). Lo que hace lo FIRMA el responsable
-   *  elegido (ADR-0161), nunca el aparato. */
-  terminal: TipoTerminal | null;
-  /** Lo que puede hacer además de operar su tienda, resuelto UNA vez desde el rol y la terminal (`permisosDe`).
+  /** ¿Esta sesión es la de una TERMINAL (un aparato)? ES EL DATO que dice «esto es un aparato, no alguien»: desde el
+   *  ADR-0162 una terminal es una cuenta de Auth SIN persona (`retail.terminales`), fija a una tienda y nunca líder. Con
+   *  él, el pie del menú muestra el aparato y no una persona, «Mi perfil» no se ofrece (no hay perfil de RRHH que mostrar)
+   *  y, si su rol ve el Punto de venta, aterriza en `/vender`. Ya NO tiene tipo (20260923040000): lo que ve y hace lo
+   *  decide su ROL (`modulos`), igual que a una persona. Lo que hace lo FIRMA el responsable elegido (ADR-0161). */
+  terminal: boolean;
+  /** Lo que puede hacer además de operar su tienda, resuelto UNA vez desde sus módulos (`permisosDeModulos`).
    *  Las pantallas y los botones preguntan por un permiso (`puede`), no por «¿es líder?». */
   permisos: readonly Permiso[];
   /** Los módulos que ve esta cuenta según su ROL (ADR-0161 B2, `fn_mis_modulos()`): de acá salen el menú, `permisos` y
@@ -57,7 +64,7 @@ function tipoUbicacion(tipo: string | null | undefined): PersonaActualV2["ubicac
  *  todavía — se manda a /login con el mismo mensaje de siempre.
  *
  *  Una TERMINAL (ADR-0162) no tiene persona, pero `fn_persona_actual_resumen()` le devuelve igual su fila (nombre del
- *  aparato, nunca líder, su tienda) y `fn_mi_terminal()` su tipo: por eso entra por el mismo camino, sin rama aparte.
+ *  aparato, nunca líder, su tienda) y `fn_mi_terminal()` su nombre (antes, su tipo): por eso entra por el mismo camino.
  *  Solo cuando NO hay fila se mira si es una terminal desactivada, para decírselo con su propio mensaje. */
 export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> => {
   const supabase = await createClient();
@@ -65,12 +72,11 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
   const { data: claims } = await supabase.auth.getClaims();
   if (!claims?.claims?.sub) redirect("/login");
 
-  // El tipo de terminal se pide EN PARALELO con el resumen: no suma una espera. Falla cerrado: si la RPC aún no existe
-  // en esa base (la web se desplegó antes de pegar la migración 20260922200000) o responde algo raro, es una persona
-  // común — pierde poder, nunca lo gana (principio 9).
+  // «¿Es un aparato?» se pide EN PARALELO con el resumen: no suma una espera. `fn_mi_terminal()` devuelve el nombre del
+  // aparato (una base vieja, su tipo); vacío o error = una persona. Falla cerrado (principio 9).
   // Los módulos del rol también van en paralelo (ADR-0161). Si la función aún no existe (web publicada antes de pegar
   // 20260923030000), la cuenta ve lo de hoy: ni más ni menos (principio 9).
-  const [{ data, error }, { data: tipoTerminal, error: errorTerminal }, { data: filasModulos, error: errorModulos }] = await Promise.all([
+  const [{ data, error }, { data: miTerminal, error: errorTerminal }, { data: filasModulos, error: errorModulos }] = await Promise.all([
     supabase.rpc("fn_persona_actual_resumen").maybeSingle(),
     supabase.rpc("fn_mi_terminal"),
     supabase.rpc("fn_mis_modulos"),
@@ -80,11 +86,13 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     redirect(`/login?error=${await motivoSinAcceso(supabase, claims.claims.sub)}`);
   }
 
-  const terminal: TipoTerminal | null =
-    !errorTerminal && (TIPOS_TERMINAL as readonly string[]).includes(tipoTerminal ?? "") ? (tipoTerminal as TipoTerminal) : null;
+  const textoTerminal = !errorTerminal && typeof miTerminal === "string" ? miTerminal.trim() : "";
+  const terminal = textoTerminal !== "";
   const rol = data.es_lider ? "lider" : "integrante";
   const deLaBase = !errorModulos && Array.isArray(filasModulos);
-  const modulos = deLaBase ? leerModulos(filasModulos) : modulosDeHoy(rol, terminal);
+  // Sin `fn_mis_modulos()` (base anterior a los roles): una terminal ve lo de su tipo viejo, si la base aún lo devuelve.
+  const legado = (TIPOS_TERMINAL_LEGADO as readonly string[]).includes(textoTerminal) ? (textoTerminal as TipoTerminalLegado) : null;
+  const modulos = deLaBase ? leerModulos(filasModulos) : modulosDeHoy(rol, terminal ? { legado } : null);
 
   let ubicacionId = data.ubicacion_id;
   let ubicacionEtiqueta = data.ubicacion_nombre ?? "";
@@ -121,7 +129,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     ubicacionTipo,
     puedeCambiarUbicacion: !!data.es_lider,
     terminal,
-    permisos: deLaBase ? permisosDeModulos(rol, modulos) : permisosDe(rol, terminal),
+    permisos: permisosDeModulos(rol, modulos),
     modulos,
   };
 });

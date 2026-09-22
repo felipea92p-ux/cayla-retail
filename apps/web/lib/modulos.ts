@@ -8,7 +8,7 @@
 // LA REGLA (Felipe, 2026-09-22): un rol decide solo «ve / no ve» por módulo. Quien ve un módulo hace todo lo que hay en
 // él, salvo la lista `SIEMPRE_SOLO_LIDER`, que vive en cada función de la base con `fn_es_lider()`.
 
-import { PERMISOS, type Permiso, type TipoTerminal } from "./menu";
+import { PERMISOS, type Permiso } from "./menu";
 
 export const CLAVES_MODULO = [
   "vender", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas",
@@ -83,11 +83,17 @@ export function esDelegable(m: Modulo): boolean {
  *  `limitado_como_hoy`, ADR-0161 B2d pendiente). */
 export type ModuloDeCuenta = { clave: ClaveModulo; completo: boolean };
 
+/** El «tipo» que tenían las terminales antes de los roles (ADR-0160/0162). Ya no decide nada en la base
+ *  (20260923040000); solo sirve para leer una base VIEJA que todavía lo devuelve en `fn_mi_terminal()`. */
+export type TipoTerminalLegado = "ventas" | "administrativa";
+export const TIPOS_TERMINAL_LEGADO: readonly TipoTerminalLegado[] = ["ventas", "administrativa"];
+
 /**
- * Lo que cada cuenta ve HOY, igual a la siembra de la migración. Se usa solo si la base todavía no tiene
- * `fn_mis_modulos()` (la web se publicó antes de pegar la migración): la cuenta sigue viendo exactamente lo de hoy.
+ * Lo que cada cuenta ve HOY, igual a la siembra de la migración (las claves son las de `retail.roles`, sin el prefijo
+ * `terminal_`). Se usa solo si la base todavía no tiene `fn_mis_modulos()` (la web se publicó antes de pegar la
+ * migración): la cuenta sigue viendo exactamente lo de antes.
  */
-export const MODULOS_DE_HOY: Record<"integrante" | TipoTerminal, readonly ModuloDeCuenta[]> = {
+export const MODULOS_DE_HOY: Record<"integrante" | TipoTerminalLegado, readonly ModuloDeCuenta[]> = {
   integrante: (["vender", "caja", "cambios", "devoluciones", "historial", "clientas", "existencias", "conteos", "traslados", "movimientos", "productos", "atributos", "recibir", "produccion"] as const).map(
     (clave) => ({ clave, completo: false }),
   ),
@@ -98,9 +104,15 @@ export const MODULOS_DE_HOY: Record<"integrante" | TipoTerminal, readonly Modulo
   })),
 };
 
-export function modulosDeHoy(rol: "lider" | "integrante", terminal: TipoTerminal | null): readonly ModuloDeCuenta[] {
+/** Sin `fn_mis_modulos()` en la base. `terminalLegado`: el tipo que devuelve una base VIEJA en `fn_mi_terminal()`; una
+ *  terminal sin tipo reconocible no ve ningún módulo (falla cerrado: pierde poder, nunca lo gana). */
+export function modulosDeHoy(
+  rol: "lider" | "integrante",
+  terminal: { legado: TipoTerminalLegado | null } | null = null,
+): readonly ModuloDeCuenta[] {
   if (rol === "lider") return CLAVES_MODULO.map((clave) => ({ clave, completo: true }));
-  return MODULOS_DE_HOY[terminal ?? "integrante"];
+  if (terminal) return terminal.legado ? MODULOS_DE_HOY[terminal.legado] : [];
+  return MODULOS_DE_HOY.integrante;
 }
 
 /**

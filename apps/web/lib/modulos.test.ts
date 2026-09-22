@@ -4,13 +4,11 @@ import {
   ACCIONES_NUEVO,
   ARBOL,
   PERMISOS,
-  TIPOS_TERMINAL,
   TIPOS_UBICACION,
   menuPara,
   permisosDe,
   type Nodo,
   type PerfilDelMenu,
-  type TipoTerminal,
   type TipoUbicacion,
 } from "./menu";
 import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, esDelegable, leerModulos, modulosDeHoy, permisosDeModulos, type ClaveModulo } from "./modulos";
@@ -18,8 +16,9 @@ import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, esDelegable, leerModulos, modul
 // Roles por módulo (ADR-0161 B, migración 20260923030000_roles_por_modulo.sql). Lo que estas pruebas cuidan:
 //  1. El catálogo de la web y el de la base son el mismo (claves, orden, «solo líder», «solo líder por ahora»), y lo que
 //     la web supone que cada cuenta ve hoy es exactamente la siembra de la migración.
-//  2. EL MENÚ NO CAMBIA: con los módulos de hoy, `menuPara` da, para cada perfil (líder, integrante, las dos terminales)
-//     y en cada ubicación, lo mismo que la regla fija de antes — que es la que prueba `menu-hoy.golden.json`.
+//  2. EL MENÚ NO CAMBIA para las PERSONAS: con los módulos de hoy, `menuPara` da, para el líder y la integrante y en cada
+//     ubicación, lo mismo que la regla fija de antes — que es la que prueba `menu-hoy.golden.json`. Las terminales ya no
+//     tienen regla fija (sin tipo desde 20260923040000): su menú sale solo de su rol y lo prueba `menu.test.ts`.
 //  3. Los permisos que salen de los módulos son los mismos que los fijos de antes, y ninguno nuevo se abre.
 
 const MIGRACION = readFileSync(new URL("../../../supabase/migrations/20260923030000_roles_por_modulo.sql", import.meta.url), "utf8");
@@ -66,7 +65,7 @@ describe("el catálogo de la web es el de la base", () => {
     }
   });
 
-  it("Integrante nace limitado como hoy (B2d pendiente) y las terminales completas", () => {
+  it("sin `fn_mis_modulos` (base anterior a los roles), Integrante se lee limitado como era entonces y las terminales completas", () => {
     expect(MODULOS_DE_HOY.integrante.every((m) => !m.completo)).toBe(true);
     expect([...MODULOS_DE_HOY.ventas, ...MODULOS_DE_HOY.administrativa].every((m) => m.completo)).toBe(true);
   });
@@ -93,11 +92,10 @@ describe("cada pantalla y cada acción del menú pertenece a un módulo", () => 
 
 /* ---------- 2. El menú no cambia ---------- */
 
-type Cuenta = { nombre: string; rol: "lider" | "integrante"; terminal: TipoTerminal | null };
+type Cuenta = { nombre: string; rol: "lider" | "integrante" };
 const CUENTAS_DE_HOY: Cuenta[] = [
-  { nombre: "líder", rol: "lider", terminal: null },
-  { nombre: "integrante", rol: "integrante", terminal: null },
-  ...TIPOS_TERMINAL.map((t) => ({ nombre: `terminal ${t}`, rol: "integrante" as const, terminal: t })),
+  { nombre: "líder", rol: "lider" },
+  { nombre: "integrante", rol: "integrante" },
 ];
 
 const RUTAS = [
@@ -107,13 +105,13 @@ const RUTAS = [
 ];
 
 function antes(c: Cuenta, ubicacionTipo: TipoUbicacion): PerfilDelMenu {
-  return { permisos: permisosDe(c.rol, c.terminal), ubicacionTipo, terminal: c.terminal, contadores: { trasladosPorAtender: 2 } };
+  return { permisos: permisosDe(c.rol), ubicacionTipo, contadores: { trasladosPorAtender: 2 } };
 }
-function ahora(c: Cuenta, ubicacionTipo: TipoUbicacion, modulos = modulosDeHoy(c.rol, c.terminal)): PerfilDelMenu {
+function ahora(c: Cuenta, ubicacionTipo: TipoUbicacion, modulos = modulosDeHoy(c.rol), terminal = false): PerfilDelMenu {
   return {
     permisos: permisosDeModulos(c.rol, modulos),
     ubicacionTipo,
-    terminal: c.terminal,
+    terminal,
     modulos: modulos.map((m) => m.clave),
     contadores: { trasladosPorAtender: 2 },
   };
@@ -123,7 +121,7 @@ const foto = (p: PerfilDelMenu) => {
   return { riel: m.riel, movil: m.movil, nuevo: m.nuevo, grupos: RUTAS.map((r) => m.grupoDe(r)) };
 };
 
-describe("con los módulos de hoy, el menú es idéntico al de antes (líder, integrante y las dos terminales, en cada ubicación)", () => {
+describe("con los módulos de hoy, el menú de las personas es idéntico al de antes (líder e integrante, en cada ubicación)", () => {
   for (const c of CUENTAS_DE_HOY) {
     for (const u of TIPOS_UBICACION) {
       it(`${c.nombre} en ${u}`, () => {
@@ -136,7 +134,7 @@ describe("con los módulos de hoy, el menú es idéntico al de antes (líder, in
 describe("los permisos que salen de los módulos son los fijos de antes", () => {
   for (const c of CUENTAS_DE_HOY) {
     it(c.nombre, () => {
-      expect([...permisosDeModulos(c.rol, modulosDeHoy(c.rol, c.terminal))].sort()).toEqual([...permisosDe(c.rol, c.terminal)].sort());
+      expect([...permisosDeModulos(c.rol, modulosDeHoy(c.rol))].sort()).toEqual([...permisosDe(c.rol)].sort());
     });
   }
 
@@ -164,7 +162,7 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
 
 describe("un rol a medida cambia el menú sin tocar el árbol", () => {
   const almacen = (["existencias", "conteos", "traslados", "movimientos", "recibir"] as const).map((clave) => ({ clave, completo: true }));
-  const perfil = ahora({ nombre: "almacén", rol: "integrante", terminal: null }, "tienda", almacen);
+  const perfil = ahora({ nombre: "almacén", rol: "integrante" }, "tienda", almacen);
 
   it("«Almacén» ve Inicio e Inventario (sin Análisis), y nada de Ventas ni Catálogo", () => {
     const riel = menuPara(perfil).riel;
@@ -174,13 +172,22 @@ describe("un rol a medida cambia el menú sin tocar el árbol", () => {
 
   it("una terminal de ventas a la que se le enciende Existencias ve Inventario (la terminal es una cuenta más con su rol)", () => {
     const tv = [...MODULOS_DE_HOY.ventas, { clave: "existencias" as const, completo: true }];
-    const riel = menuPara(ahora({ nombre: "tv", rol: "integrante", terminal: "ventas" }, "tienda", tv)).riel;
+    const riel = menuPara(ahora({ nombre: "tv", rol: "integrante" }, "tienda", tv, true)).riel;
     expect(riel.map((f) => f.etiqueta)).toEqual(["Ventas", "Inventario"]);
   });
 
   it("sin módulos, una persona solo tiene Inicio", () => {
-    const riel = menuPara(ahora({ nombre: "nadie", rol: "integrante", terminal: null }, "tienda", [])).riel;
+    const riel = menuPara(ahora({ nombre: "nadie", rol: "integrante" }, "tienda", [])).riel;
     expect(riel.map((f) => f.etiqueta)).toEqual(["Inicio"]);
+  });
+});
+
+describe("sin `fn_mis_modulos` (base anterior a los roles): la terminal lee lo de su tipo viejo, o nada", () => {
+  it("con el tipo que devuelve una base vieja, los módulos de ese tipo", () => {
+    expect(modulosDeHoy("integrante", { legado: "ventas" })).toEqual(MODULOS_DE_HOY.ventas);
+  });
+  it("sin tipo reconocible, ninguno (falla cerrado: pierde poder, nunca lo gana)", () => {
+    expect(modulosDeHoy("integrante", { legado: null })).toEqual([]);
   });
 });
 

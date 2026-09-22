@@ -47,8 +47,9 @@ export type Pajaro = (typeof PAJAROS)[number];
  *  - administrar: dar y quitar acceso, configurar (Colaboradores).
  *  - verDinero:   costos, compras, pagos y comprobantes (ADR-0126: `fn_puede_ver_dinero_de_compras`).
  *  - analizar:    lecturas de decisión de una sede (Análisis de inventario).
- * Y los poderes que una cuenta TERMINAL (ADR-0160) recibe sin ser líder. Cada uno espeja una capacidad de la base
- * (`fn_puede_*()` = «líder O terminal de tal tipo»), así que la pantalla y el candado dicen lo mismo:
+ * Y los poderes que una cuenta recibe sin ser líder porque su ROL ve el módulo (ADR-0161 B2, `permisosDeModulos` en
+ * `lib/modulos.ts`). Cada uno espeja una capacidad de la base (`fn_puede_*()` = «líder O su rol ve el módulo»), así que la
+ * pantalla y el candado dicen lo mismo:
  *  - facturar:               Facturación (emitir y ver comprobantes). Las anulaciones siguen siendo del líder.
  *  - gestionarCaja:          cerrar caja y mover caja                          (fn_puede_gestionar_caja)
  *  - ajustarInventario:      ajustar stock, cerrar conteo, cerrar traslado con diferencia (fn_puede_ajustar_inventario)
@@ -64,25 +65,30 @@ export type Permiso = (typeof PERMISOS)[number];
 export type RolMenu = "lider" | "integrante";
 
 /**
- * La cuenta TERMINAL de una tienda: compartida por quien trabaja ahí, una activa de cada tipo por tienda. Desde el
- * ADR-0162 es un APARATO sin persona (`retail.terminales`, leída por `fn_mi_terminal()`); `null` es una persona.
+ * La regla FIJA de antes de los roles: el líder tiene todos los permisos y cualquier otra cuenta ninguno. Solo se usa si la
+ * base todavía no tiene `fn_mis_modulos()` (web publicada antes de la migración de roles) y en las pruebas de la
+ * fotografía; lo normal es `permisosDeModulos` (lo que ve el ROL). Ningún nodo del árbol pregunta por el rol: pregunta por
+ * un permiso.
+ *
+ * Ya no hay «tipo de terminal» (20260923040000, Felipe 2026-09-22): lo que ve y hace una terminal lo decide su rol, igual
+ * que a una persona.
  */
-export type TipoTerminal = "ventas" | "administrativa";
-export const TIPOS_TERMINAL: readonly TipoTerminal[] = ["ventas", "administrativa"];
-
-/** Lo que cada tipo de terminal puede hacer además de lo que ya hace un integrante. Espeja las capacidades de la base. */
-const PERMISOS_DE_TERMINAL: Record<TipoTerminal, readonly Permiso[]> = {
-  ventas: ["facturar", "gestionarCaja"],
-  administrativa: ["ajustarInventario", "editarCatalogo", "editarCuentasProveedor"],
-};
+export function permisosDe(rol: RolMenu): readonly Permiso[] {
+  return rol === "lider" ? PERMISOS : [];
+}
 
 /**
- * El ÚNICO lugar donde el rol (y el tipo de terminal) se traducen a permisos. Ningún nodo del árbol pregunta por el rol:
- * pregunta por un permiso. El líder tiene todos; un integrante ninguno, salvo que sea una terminal.
+ * ¿Una TERMINAL ve «Inicio»? Solo si no ve el Punto de venta: la terminal del mostrador aterriza en `/vender` (pedido de
+ * Felipe, 2026-09-21) y su casa es el mostrador; una terminal que no vende (inventario, almacén) sí tiene su Inicio.
+ * Es la única regla de terminal que no sale directo de un módulo, porque Inicio no es de ningún módulo.
  */
-export function permisosDe(rol: RolMenu, terminal: TipoTerminal | null = null): readonly Permiso[] {
-  if (rol === "lider") return PERMISOS;
-  return terminal ? PERMISOS_DE_TERMINAL[terminal] : [];
+export function terminalVeInicio(modulos: readonly ClaveModulo[]): boolean {
+  return !modulos.includes("vender");
+}
+
+/** A dónde va una cuenta al abrir `/`: una terminal que ve el Punto de venta, a `/vender`; cualquier otra, a su Inicio. */
+export function aterrizajeDe(perfil: { terminal?: boolean; modulos?: readonly ClaveModulo[] | null }): string {
+  return perfil.terminal && !terminalVeInicio(perfil.modulos ?? []) ? "/vender" : "/";
 }
 
 /** Claves de los íconos. Los trazos viven en `AppShell.tsx` (`IC`); acá solo se nombra cuál lleva cada nodo. */
@@ -114,15 +120,10 @@ type Comun = {
   /** Tipos de ubicación donde aplica; sin esto, en todas. */
   ubicaciones?: readonly TipoUbicacion[];
   /**
-   * Qué terminales lo ven. **Sin esto, ninguna terminal lo ve** (falla cerrado: un módulo nuevo no se filtra a una cuenta
-   * compartida por olvido). No afecta a las personas. Las hijas de un grupo heredan el del grupo salvo que declaren el suyo.
-   */
-  terminales?: readonly TipoTerminal[];
-  /**
    * El módulo del rol (ADR-0161 B2, `lib/modulos.ts`) al que pertenece esta pantalla o acción. Cuando el perfil trae sus
-   * `modulos` (leídos de `fn_mis_modulos()`), la fila sale solo si la cuenta ve ese módulo, y eso REEMPLAZA a
-   * `terminales` (una terminal es una cuenta más con su rol). Los grupos no lo declaran: salen si les queda alguna hija.
-   * Una hoja SIN módulo (Inicio) no es de ningún rol: la ven las personas, y de las terminales, las que nombra `terminales`.
+   * `modulos` (leídos de `fn_mis_modulos()`), la fila sale solo si la cuenta ve ese módulo. Una TERMINAL siempre se mira
+   * así (sin módulos, no ve nada: falla cerrado). Los grupos no lo declaran: salen si les queda alguna hija. Una hoja SIN
+   * módulo (Inicio) no es de ningún rol: la ven las personas, y las terminales según `terminalVeInicio`.
    */
   modulo?: ClaveModulo;
 };
@@ -162,7 +163,7 @@ export type Accion = Comun & { estado: "viva"; ruta: string; detalle: string };
 
 export const ARBOL: readonly Nodo[] = [
   // Inicio y Análisis no son dueños de tablas: leen lo de otros. Águila es «Inteligencia y reportes» (lee lo de los demás).
-  { id: "inicio", etiqueta: "Inicio", estado: "viva", ruta: "/", icono: "inicio", pajaro: "13 Águila", terminales: ["administrativa"] },
+  { id: "inicio", etiqueta: "Inicio", estado: "viva", ruta: "/", icono: "inicio", pajaro: "13 Águila" },
 
   // «Colaboradores» (a quién de Dynamic le doy entrada a retail, 0013_colaboradores_autorizados.sql) salió de acá el
   // 2026-09-21 (decisión de Felipe): es configuración de acceso, no trabajo diario, y no debía competir por espacio en
@@ -173,7 +174,7 @@ export const ARBOL: readonly Nodo[] = [
   // Catálogo (2026-09-16/17): qué ES una prenda y el vocabulario del que cuelga. Colores, tallas, tejidos, patrones y
   // etiquetas viven como pestañas de «Atributos».
   {
-    id: "catalogo", etiqueta: "Catálogo", estado: "viva", icono: "catalogo", raiz: "/productos", pajaro: "02 Loro", terminales: ["administrativa"],
+    id: "catalogo", etiqueta: "Catálogo", estado: "viva", icono: "catalogo", raiz: "/productos", pajaro: "02 Loro",
     hijos: [
       { id: "catalogo.productos", modulo: "productos", etiqueta: "Productos", estado: "viva", ruta: "/productos", icono: "productos", pajaro: "02 Loro" },
       { id: "catalogo.categorias", modulo: "atributos", etiqueta: "Categorías", estado: "viva", ruta: "/productos/categorias", icono: "categorias", pajaro: "02 Loro" },
@@ -238,7 +239,7 @@ export const ARBOL: readonly Nodo[] = [
   // conocida: «Recibir mercadería» vivía acá para el líder, así que parado en el Taller solo le queda en «+ Nuevo».
   // Mismo orden que ya tenía: proveedor → factura → recepción → pago → notas de crédito.
   {
-    id: "compras", etiqueta: "Compras", estado: "viva", icono: "compras", raiz: "/compras", pajaro: "09 Pelícano", ubicaciones: ["tienda", "almacen"], terminales: ["administrativa"],
+    id: "compras", etiqueta: "Compras", estado: "viva", icono: "compras", raiz: "/compras", pajaro: "09 Pelícano", ubicaciones: ["tienda", "almacen"],
     hijos: [
       { id: "compras.proveedores", modulo: "proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "verDinero" },
       { id: "compras.comprobantes", modulo: "facturas_compra", etiqueta: "Comprobantes", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDinero" },
@@ -256,7 +257,7 @@ export const ARBOL: readonly Nodo[] = [
   // «Ventas» (ADR-0057): el mostrador + lo legal del cobro. El id sigue siendo «venta» (es la clave con la que la pantalla
   // recuerda qué grupo está abierto). Facturación emite documentos ante SUNAT: es del Cuervo y exige `verDinero`.
   {
-    id: "venta", etiqueta: "Ventas", estado: "viva", icono: "venta", raiz: "/vender", pajaro: "07 Colibrí", terminales: ["ventas"],
+    id: "venta", etiqueta: "Ventas", estado: "viva", icono: "venta", raiz: "/vender", pajaro: "07 Colibrí",
     hijos: [
       { id: "venta.puntoDeVenta", modulo: "vender", etiqueta: "Punto de Venta", estado: "viva", ruta: "/vender", icono: "vender", pajaro: "07 Colibrí" },
       { id: "venta.caja", modulo: "caja", etiqueta: "Caja", estado: "viva", ruta: "/caja", icono: "caja", pajaro: "07 Colibrí" },
@@ -270,7 +271,7 @@ export const ARBOL: readonly Nodo[] = [
 
   // Inventario (ADR-0071): el mundo único del stock físico. Lo ve cualquier integrante: opera stock, recibe y cuenta.
   {
-    id: "inventario", etiqueta: "Inventario", estado: "viva", icono: "inventario", raiz: "/inventario", pajaro: "05 Halcón", terminales: ["administrativa"],
+    id: "inventario", etiqueta: "Inventario", estado: "viva", icono: "inventario", raiz: "/inventario", pajaro: "05 Halcón",
     hijos: [
       { id: "inventario.existencias", modulo: "existencias", etiqueta: "Existencias", estado: "viva", ruta: "/inventario", icono: "inventario", pajaro: "05 Halcón" },
       { id: "inventario.movimientos", modulo: "movimientos", etiqueta: "Movimientos", estado: "viva", ruta: "/inventario/movimientos", icono: "movimientos", pajaro: "05 Halcón" },
@@ -316,12 +317,12 @@ export const ARBOL: readonly Nodo[] = [
  * para recibir. ADR-0113: la misma para todos. «Registrar comprobante» es del líder: es dinero.
  */
 export const ACCIONES_NUEVO: readonly Accion[] = [
-  { id: "nuevo.venta", modulo: "vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta", estado: "viva", ruta: "/vender", pajaro: "07 Colibrí", terminales: ["ventas"] },
-  { id: "nuevo.comprobante", modulo: "facturas_compra", etiqueta: "Registrar comprobante", detalle: "Una compra a proveedor, con su pago si es al contado", estado: "viva", ruta: "/compras/nueva", pajaro: "09 Pelícano", exige: "verDinero", terminales: ["administrativa"] },
-  { id: "nuevo.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó, contra sus comprobantes", estado: "viva", ruta: "/recibir", pajaro: "05 Halcón", terminales: ["administrativa"] },
-  { id: "nuevo.mover", modulo: "traslados", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones", estado: "viva", ruta: "/inventario/mover", pajaro: "05 Halcón", terminales: ["administrativa"] },
-  { id: "nuevo.cambio", modulo: "cambios", etiqueta: "Registrar cambio", detalle: "La clienta cambia una prenda por otra talla o color", estado: "viva", ruta: "/cambios", pajaro: "07 Colibrí", terminales: ["ventas"] },
-  { id: "nuevo.devolucion", modulo: "devoluciones", etiqueta: "Registrar devolución", detalle: "Una clienta devuelve algo que compró", estado: "viva", ruta: "/devoluciones", pajaro: "07 Colibrí", terminales: ["ventas"] },
+  { id: "nuevo.venta", modulo: "vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta", estado: "viva", ruta: "/vender", pajaro: "07 Colibrí" },
+  { id: "nuevo.comprobante", modulo: "facturas_compra", etiqueta: "Registrar comprobante", detalle: "Una compra a proveedor, con su pago si es al contado", estado: "viva", ruta: "/compras/nueva", pajaro: "09 Pelícano", exige: "verDinero" },
+  { id: "nuevo.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó, contra sus comprobantes", estado: "viva", ruta: "/recibir", pajaro: "05 Halcón" },
+  { id: "nuevo.mover", modulo: "traslados", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones", estado: "viva", ruta: "/inventario/mover", pajaro: "05 Halcón" },
+  { id: "nuevo.cambio", modulo: "cambios", etiqueta: "Registrar cambio", detalle: "La clienta cambia una prenda por otra talla o color", estado: "viva", ruta: "/cambios", pajaro: "07 Colibrí" },
+  { id: "nuevo.devolucion", modulo: "devoluciones", etiqueta: "Registrar devolución", detalle: "Una clienta devuelve algo que compró", estado: "viva", ruta: "/devoluciones", pajaro: "07 Colibrí" },
 ];
 
 /**
@@ -355,10 +356,12 @@ export function hojasDe(f: FilaMenu): ItemMenu[] {
 export type PerfilDelMenu = {
   permisos: readonly Permiso[];
   ubicacionTipo: TipoUbicacion;
-  /** Si quien mira es una cuenta terminal, de qué tipo; ausente o `null` = una persona. */
-  terminal?: TipoTerminal | null;
-  /** Los módulos que ve la cuenta (su rol, `fn_mis_modulos()`). Ausente = la regla fija de antes (`terminales`), que es la
-   *  que prueban la fotografía y los invariantes; `menu.test.ts` exige que los módulos de hoy den el mismo menú. */
+  /** ¿Quien mira es una cuenta TERMINAL (un aparato, ADR-0162)? Ausente o `false` = una persona. Lo que ve una terminal
+   *  sale SIEMPRE de sus `modulos` (su rol), nunca de un tipo. */
+  terminal?: boolean;
+  /** Los módulos que ve la cuenta (su rol, `fn_mis_modulos()`). Ausente en una PERSONA = la regla fija de antes, que es la
+   *  que prueban la fotografía y los invariantes; `menu.test.ts` exige que los módulos de hoy den el mismo menú. Ausente en
+   *  una TERMINAL = ningún módulo. */
   modulos?: readonly ClaveModulo[] | null;
   /** Números que salen en las insignias; `null`/ausente/0 = sin insignia. */
   contadores?: Contadores;
@@ -391,20 +394,18 @@ function cumplePermisos(n: Comun, permisos: readonly Permiso[]): boolean {
   return true;
 }
 
-/** `terminalesEfectivos` ya viene resuelto con herencia (el propio de `n`, o el de su grupo si `n` no declara el suyo —
- *  ver `construirFila`): `esVisible` nunca camina el árbol hacia arriba por su cuenta, solo aplica lo que ya le pasaron. */
-function esVisible(n: Comun & { estado: string }, perfil: PerfilDelMenu, terminalesEfectivos?: readonly TipoTerminal[]): boolean {
+function esVisible(n: Comun & { estado: string }, perfil: PerfilDelMenu): boolean {
   if (n.estado !== "viva") return false;
   if (!cumplePermisos(n, perfil.permisos)) return false;
   if (n.ubicaciones && !n.ubicaciones.includes(perfil.ubicacionTipo)) return false;
-  if (perfil.modulos) {
+  // Una terminal se mira SIEMPRE por sus módulos (sin ellos, ninguno: falla cerrado). Una persona, solo si los trae.
+  const modulos = perfil.terminal ? (perfil.modulos ?? []) : perfil.modulos;
+  if (modulos) {
     // Por rol (ADR-0161): la hoja sale si la cuenta ve su módulo; un grupo, si le queda alguna hija (lo resuelve
-    // `construirFila`). Solo una hoja sin módulo (Inicio) sigue la regla de `terminales`.
-    if (n.modulo) return perfil.modulos.includes(n.modulo);
-    if (esHojaOAccion(n) && perfil.terminal && !terminalesEfectivos?.includes(perfil.terminal)) return false;
-    return true;
+    // `construirFila`). Una hoja sin módulo (Inicio): las personas siempre, las terminales según `terminalVeInicio`.
+    if (n.modulo) return modulos.includes(n.modulo);
+    if (esHojaOAccion(n) && perfil.terminal) return terminalVeInicio(modulos);
   }
-  if (perfil.terminal && !terminalesEfectivos?.includes(perfil.terminal)) return false;
   return true;
 }
 
@@ -451,16 +452,10 @@ export function menuPara(perfil: PerfilDelMenu, { arbol, acciones, columnas }: F
   // porque ese nombre («Abastecimiento») es solo una etiqueta de organización para quien ve varias pantallas ahí, no una
   // que valga la pena imponerle a quien ve una sola (quien no ve dinero en el Taller solo tiene «Recibir»: debe seguir
   // leyendo «Recibir», no «Abastecimiento» — es exactamente lo que veía antes de D-84, sin el subgrupo de por medio).
-  // `terminalesHeredados`: lo que ya resolvió el padre en su propia llamada — así una hija sin `terminales` propio hereda
-  // la de su grupo (y esa, la de SU grupo si tampoco la declaró), sin que cada nodo tenga que repetirla. Distinto de
-  // `ubicaciones`, que nunca se hereda (si el candado falla arriba, la recursión ya ni entra a los hijos) — acá hace
-  // falta explícito porque `terminales` es al revés: sin declarar, CIERRA para cualquier terminal (falla cerrado), así
-  // que una hoja bajo un grupo como Inventario necesita heredar la marca de su grupo para no quedar invisible.
-  const construirFila = (n: Nodo, esRaiz: boolean, terminalesHeredados?: readonly TipoTerminal[]): FilaMenu | undefined => {
-    const terminales = n.terminales ?? terminalesHeredados;
-    if (!esVisible(n, perfil, terminales) || n.estado !== "viva") return undefined; // el 2do checkeo es solo para que TS estreche Nodo a Hoja | Grupo.
+  const construirFila = (n: Nodo, esRaiz: boolean): FilaMenu | undefined => {
+    if (!esVisible(n, perfil) || n.estado !== "viva") return undefined; // el 2do checkeo es solo para que TS estreche Nodo a Hoja | Grupo.
     if (!esGrupo(n)) return aItem(n);
-    const hijos = n.hijos.map((h) => construirFila(h, false, terminales)).filter((f): f is FilaMenu => f !== undefined);
+    const hijos = n.hijos.map((h) => construirFila(h, false)).filter((f): f is FilaMenu => f !== undefined);
     // Un grupo sin hijas visibles no agrupa nada; con una sola, se disuelve: sube esa hija (ver la nota de arriba).
     if (hijos.length === 0) return undefined;
     if (hijos.length === 1) return esRaiz ? { ...hijos[0], id: n.id, etiqueta: n.etiqueta } : hijos[0];
@@ -499,8 +494,7 @@ export function menuPara(perfil: PerfilDelMenu, { arbol, acciones, columnas }: F
   }
 
   // ---- «+ Nuevo» ----
-  // Una acción de «+ Nuevo» no cuelga de ningún grupo: usa su propia `terminales`, sin herencia que resolver.
-  const nuevo = acciones.filter((a) => esVisible(a, perfil, a.terminales)).map((a) => ({ id: a.id, etiqueta: a.etiqueta, detalle: a.detalle, href: a.ruta }));
+  const nuevo = acciones.filter((a) => esVisible(a, perfil)).map((a) => ({ id: a.id, etiqueta: a.etiqueta, detalle: a.detalle, href: a.ruta }));
 
   // ---- qué grupo contiene cada ruta ----
   // La puerta del módulo (`raiz`) cubre todo lo que cuelga de ella; las hijas aportan lo que vive fuera de ese prefijo
