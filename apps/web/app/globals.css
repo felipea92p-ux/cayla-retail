@@ -719,12 +719,16 @@ body {
   .lateral-hijos[data-abierto="true"] { grid-template-rows: 1fr; }
   .lateral-hijos > div { min-height: 0; overflow: hidden; }
   .lateral-hijo { opacity: 0; transition: opacity 200ms var(--ease-cayla); }
-  .lateral-hijos[data-abierto="true"] .lateral-hijo {
+  /* `> div >`, no un descendiente cualquiera (D-84): un subgrupo (Abastecimiento) mete OTRO `.lateral-hijos` dentro
+     de una `.lateral-hijo` — sin acotar el selector a SU hija directa, abrir Producción encendía de una la opacidad
+     de las pantallas de Abastecimiento aunque el subgrupo siguiera cerrado (sin cascada propia al abrirlo después,
+     porque ya estaban en opacity:1 desde antes). Acotado así, cada `.lateral-hijos` gobierna solo a SUS hijas. */
+  .lateral-hijos[data-abierto="true"] > div > .lateral-hijo {
     opacity: 1;
     transition-delay: calc(var(--i, 0) * 30ms + 60ms);
   }
   @media (prefers-reduced-motion: reduce) {
-    .lateral-hijos[data-abierto="true"] .lateral-hijo { transition-delay: 0ms; }
+    .lateral-hijos[data-abierto="true"] > div > .lateral-hijo { transition-delay: 0ms; }
   }
 
   .anim-velo { animation: cayla-velo 220ms var(--ease-cayla) both; }
