@@ -193,10 +193,12 @@ flowchart TB
   `fn_movimientos_busqueda`, una sola vez para la lista y las tarjetas; la parte de prenda es
   el Filtro de búsqueda especial escrito en SQL, `fn_movimientos_variantes`, migración `20260921153700`:
   ver su fila en la tabla de RPC y el ADR-0071) →
-  `FiltrosMovimientos.tsx` (buscador, Tipo, Sububicación y Período a la vista, el
-  proceso específico en «Más filtros»; todo en la URL) + `MovimientosLista.tsx`
-  (agrupada por día: Prenda · Hora y dónde · Movimiento · Origen → Destino · Cant. ·
-  Referencia; la referencia —`Traslado N`, `Conteo N`, `Boleta …`, `Factura …`—
+  `FiltrosMovimientos.tsx` (rediseño 2026-09-22: fila 1 buscador + Período; fila 2 Tipo con
+  su cifra y Sububicación segmentada; debajo, los procesos del tipo elegido —
+  `PROCESOS_POR_CATEGORIA`—; todo en la URL; la sede la decide solo el selector de la
+  cabecera) + `MovimientosLista.tsx` (lista de la guía oficial agrupada por día: punto ·
+  prenda con talla, color, hora y dónde · proceso con origen → destino · referencia ·
+  cantidad; en celular, dos líneas; la referencia —`Traslado N`, `Conteo N`, `Boleta …`, `Factura …`—
   enlaza a `/inventario/traslados/[id]` y `/inventario/conteo/[id]`, y Traslados
   cuenta el proceso completo) + `MovimientoDetalle.tsx` (modal por proceso, sin
   segunda consulta; ahí sigue la persona). Sin filtro por persona ni columna
