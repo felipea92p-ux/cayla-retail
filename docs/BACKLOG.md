@@ -70,11 +70,11 @@ Rama `claude/modulo-comprobantes-redesign-3d2ffc`, **sin push**. Diseño: `docs/
 - [ ] Verificar con una terminal de verdad en TRU (aún no se probó con la sesión de un aparato en el navegador; sí con la de un líder).
 - [x] La migración del ADR-0160 **ya está pegada** en producción, con 0 terminales dadas de alta.
 
-## 🎯 Cambiar el rol entre líderes (2026-09-22, actualización del ADR-0161) — CONSTRUIDO, migración sin pegar en producción
-- [x] `asignar_rol` sube a Líder y baja a un líder (con sede si no tiene); nunca a uno mismo ni Líder a una terminal. Probado en Postgres local con rollback (subir, bajar sin sede → error, con sede → ok, a sí mismo → error).
-- [x] Web: «Cambiar rol» también en la fila de un líder; «Asignar a una persona» en el rol Líder; el modal pide la sede al bajar a un líder.
-- [ ] **Pegar en producción** `20260923110000_cambiar_rol_entre_lideres.sql` (con `set search_path to retail, public;`; OK de Felipe). Después: una sola firma de `asignar_rol` y `pnpm datos:generar:produccion` + `pnpm datos:comparar`.
-- [ ] Verlo con clics en producción: subir a alguien a Líder y volver a bajarlo.
+## 🎯 Cambiar rol y ubicación entre líderes (2026-09-22, actualización del ADR-0161) — rol EN PRODUCCIÓN (PR #304); ubicación CONSTRUIDA
+- [x] `asignar_rol` sube a Líder y baja a un líder (con sede si no tiene); nunca a uno mismo ni Líder a una terminal. Pegada en producción el 2026-09-22, **pero la primera versión** (busca la cuenta a mano en vez de `fn_actor_persona_id`): funciona igual; falta volver a pegar `20260923110000` para quedar igual al repo.
+- [x] Ubicación entre líderes: `cambiar_ubicacion_colaborador` acepta líderes; para ellos es la tienda donde arrancan (`fn_ubicacion_de_partida`). Probado en local (`pruebas:roles` 39/39).
+- [ ] **Pegar en producción**, en orden: `20260923110000_cambiar_rol_entre_lideres.sql` (otra vez) y `20260923120000_ubicacion_de_lideres.sql`, cada una con `set search_path to retail, public;`. Después `pnpm datos:generar:produccion` + `pnpm datos:comparar`.
+- [ ] Verlo con clics: poner «Tienda Trujillo» a un líder de Oficina TRU y que entre ahí.
 
 ## 🎯 Responsable en cada operación + roles retomados (2026-09-22, ADR-0161) — combo Responsable CONSTRUIDO (F4b, PR #285); roles en otra rama
 - [ ] **Más adelante (Felipe, 2026-09-22: «no es tan importante por ahora»):** guardar quién crea o cambia marcas (`retail.marcas` no tiene columna de firma) y anotar los cambios de NOMBRE de una prenda en el historial (`fn_registrar_cambio_producto` solo registra categoría, estado, marca, proveedor, precio y costo). Hoy el combo se pide en Catálogo pero esos dos casos no dejan rastro.

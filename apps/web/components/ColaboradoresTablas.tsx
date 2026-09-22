@@ -50,6 +50,16 @@ function Persona({ nombre, correo, tu = false, apagada = false }: { nombre: stri
 }
 
 const cualquiera = <span className="italic text-tinta/65">cualquiera</span>;
+/** Un líder opera todas las sedes; si tiene ubicación, es solo la tienda donde arranca su sesión (20260923120000). */
+function UbicacionDe({ rol, ubicacion }: { rol: string; ubicacion: string | null }) {
+  if (rol !== "lider") return <>{ubicacion ?? "—"}</>;
+  if (!ubicacion) return cualquiera;
+  return (
+    <span title="Arranca aquí; opera en cualquier sede">
+      {ubicacion} <span className="italic text-tinta/65">· arranca aquí</span>
+    </span>
+  );
+}
 
 const ETIQUETA_ACCION: Record<AccionFila, string> = {
   cambiar_rol: "Cambiar rol",
@@ -100,7 +110,7 @@ export function TablaActivos({
                 <ChipRol rol={c.rol} />
                 {c.rol !== "lider" && rolDe?.(c.persona_id) && <div className="mt-1 text-xs text-tinta/65">{rolDe(c.persona_id)}</div>}
               </td>
-              <td className={`${CELDA} whitespace-nowrap text-tinta/85`}>{c.rol === "lider" ? cualquiera : (c.ubicacion_asignada ?? "—")}</td>
+              <td className={`${CELDA} whitespace-nowrap text-tinta/85`}><UbicacionDe rol={c.rol} ubicacion={c.ubicacion_asignada} /></td>
               <td className={`${CELDA} whitespace-nowrap text-tinta/75`}>{c.sede ?? "—"}</td>
               <td className={`${CELDA} whitespace-nowrap tabular-nums text-tinta/75`}>{fechaLima(c.agregado_en)}</td>
               <td className={`${CELDA} whitespace-nowrap tabular-nums text-tinta/75`}>{ultimoAccesoTexto(c.ultimo_acceso)}</td>
@@ -281,7 +291,7 @@ export function TablaSuspendidos({
             <td className={CELDA}>
               <ChipRol rol={c.rol} />
             </td>
-            <td className={`${CELDA} whitespace-nowrap text-tinta/85`}>{c.rol === "lider" ? cualquiera : (c.ubicacion_asignada ?? "—")}</td>
+            <td className={`${CELDA} whitespace-nowrap text-tinta/85`}><UbicacionDe rol={c.rol} ubicacion={c.ubicacion_asignada} /></td>
             <td className={`${CELDA} whitespace-nowrap text-tinta/75`}>
               <div className="tabular-nums">{fechaLima(c.suspendido_en)}</div>
               {c.suspendido_por_nombre && <div className="text-xs text-tinta/65">por {c.suspendido_por_nombre}</div>}
