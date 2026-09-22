@@ -95,6 +95,10 @@ declare
   v_def text;
   v_n integer;
 begin
+  if to_regprocedure(p_firma) is null then
+    raise notice '% no existe en esta base; se omite (al pegar su migración, volver a pegar esta).', p_firma;
+    return;
+  end if;
   v_def := pg_get_functiondef(p_firma::regprocedure);
   v_n := (length(v_def) - length(replace(v_def, p_viejo, ''))) / length(p_viejo);
   if v_n = 0 and position(p_nuevo in v_def) > 0 then
@@ -120,6 +124,7 @@ declare
     'anular_venta', 'crear_proforma', 'emitir_comprobante', 'emitir_nota', 'anular_comprobante',
     'marcar_comprobante_no_emitido', 'registrar_clienta', 'registrar_pedido_no_atendido',
     -- caja
+    'archivar_serie_comprobante', -- solo en producción (Facturación: operación de tienda)
     'abrir_caja', 'cerrar_caja', 'registrar_movimiento_caja',
     -- cambios y devoluciones
     'registrar_cambio', 'crear_devolucion', 'aprobar_devolucion', 'rechazar_devolucion',
@@ -144,6 +149,7 @@ declare
     -- producción, taller e insumos
     'abrir_produccion', 'cerrar_produccion', 'anular_produccion', 'revertir_produccion',
     'registrar_comprobante_produccion', 'recibir_comprobante_produccion', 'registrar_pago_comprobante_produccion',
+    'registrar_gasto', -- solo en producción (gastos: no es operación de tienda)
     'recibir_insumo', 'registrar_consumo_insumo', 'devolver_insumo_de_produccion', 'ajustar_insumo_por_conteo',
     'fn_recalcular_costo_variante',
     -- colaboradores y accesos
@@ -191,6 +197,12 @@ begin
   foreach v_nombre in array v_de_tienda || v_no_de_tienda || v_a_mano loop
     v_bool := case when v_nombre = any (v_no_de_tienda) then 'false' else 'true' end;
     v_ok := false;
+    -- Su migración no se pegó en esta base (p. ej. apartar stock o comprador de tienda en producción): se omite con aviso.
+    -- OJO: cuando se pegue, esa migración crea la función con la búsqueda vieja → volver a pegar ESTA (re-ejecutable).
+    if not exists (select 1 from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.prokind = 'f' and p.proname = v_nombre) then
+      raise notice 'ADR-0162 F3: % no existe en esta base; se omite. Al pegar su migración, volver a pegar esta.', v_nombre;
+      continue;
+    end if;
     for r in select p.oid from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.prokind = 'f' and p.proname = v_nombre loop
       v_def := pg_get_functiondef(r.oid);
       select count(*) into v_n from regexp_matches(v_def, c_patron, 'gi');
