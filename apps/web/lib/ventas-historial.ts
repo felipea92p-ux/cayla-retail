@@ -56,7 +56,7 @@ const SELECT_TOTALES = "id, created_at, estado, venta_items ( cantidad, precio_u
 
 // `42703` = undefined_column: PostgREST lo devuelve cuando el `select`/filtro nombra una columna
 // que la base no tiene todavía. Mismo criterio que `getStockPorUbicacion` con `cantidad_apartada`
-// (`inventario-v2.ts`): la migración de `es_prueba` (D-54, ADR-0152) es aditiva y puede tardar en
+// (`inventario-v2.ts`): la migración de `es_prueba` (D-54, ADR-0159) es aditiva y puede tardar en
 // pegarse en producción — sin este reintento, desplegar la web ANTES que la migración tumbaría
 // todo el historial de ventas, no solo el filtro nuevo.
 const COLUMNA_INEXISTENTE = "42703";
@@ -86,7 +86,7 @@ function consulta(supabase: Supabase, select: string, f: FiltrosHistorial, conPr
   if (f.sedeId) q = q.eq("ubicacion_id", f.sedeId);
   if (f.vendedorId) q = q.eq("usuario_id", f.vendedorId);
   if (f.estado !== "todas") q = q.eq("estado", f.estado);
-  // D-54 (ADR-0152): dato ficticio de prueba, fuera de la vista por defecto — el toggle «Ver
+  // D-54 (ADR-0159): dato ficticio de prueba, fuera de la vista por defecto — el toggle «Ver
   // datos de prueba» lo trae de vuelta.
   if (conPrueba && !f.incluirPrueba) q = q.eq("es_prueba", false);
   if (f.pago) q = q.eq("pago_filtro.metodo", f.pago);

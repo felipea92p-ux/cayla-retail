@@ -27,7 +27,7 @@ const PLANTILLA = "sm:grid-cols-[minmax(8rem,1fr)_7.5rem_6.5rem_5.5rem_5.5rem_5.
 // vigente, se ve todo, con la sede en cada fila.
 export default async function HistorialCierresPage({ searchParams }: { searchParams: Promise<{ prueba?: string }> }) {
   await requirePersonaActualV2();
-  // D-54 (ADR-0152): apagado por defecto — las cajas archivadas como dato de prueba (nunca
+  // D-54 (ADR-0159): apagado por defecto — las cajas archivadas como dato de prueba (nunca
   // borradas) no se piden a la base salvo que se pida verlas.
   const { prueba } = await searchParams;
   const incluirPrueba = prueba === "1";

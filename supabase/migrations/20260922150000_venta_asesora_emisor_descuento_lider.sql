@@ -4,7 +4,7 @@
 -- Amplía el contrato de `retail.registrar_venta` con lo que D-56/D-57/D-62/D-67/D-85/D-86/
 -- D-87 de `docs/datos/DECISIONES-2026-09-21-menu-comercial.md` piden — SOLO backend (esquema +
 -- RPC). El mostrador (`PuntoDeVenta.tsx`) se conecta a esto en una tanda aparte; este archivo
--- no cambia una sola línea de pantalla ni el comportamiento de la venta de hoy. ADR-0152.
+-- no cambia una sola línea de pantalla ni el comportamiento de la venta de hoy. ADR-0153.
 --
 -- QUÉ DECIDE
 --   D-62 — la venta guarda una referencia de quién atendió (`ventas.asesora_id`), y una función

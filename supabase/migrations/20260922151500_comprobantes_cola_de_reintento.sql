@@ -3,7 +3,7 @@
 --
 -- D-60 de `docs/datos/DECISIONES-2026-09-21-menu-comercial.md`: «transmisión a SUNAT de lo
 -- que emite retail automática al cobrar, con reintento si Lucode/SUNAT no responden — cola
--- visible, y si pasan horas sin transmitir, avisa al líder». ADR-0152 (misma pieza que
+-- visible, y si pasan horas sin transmitir, avisa al líder». ADR-0153 (misma pieza que
 -- `20260922150000_venta_asesora_emisor_descuento_lider.sql`).
 --
 -- QUÉ ES ESTA MIGRACIÓN Y QUÉ NO ES. Esto diseña el ESQUEMA y las DOS RPC que una cola de

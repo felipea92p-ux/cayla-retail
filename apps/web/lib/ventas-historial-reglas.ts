@@ -53,7 +53,7 @@ export type FiltrosHistorial = {
   pago?: MetodoPago;
   /** «con» / «sin» boleta o factura. Una nota de crédito no cuenta como comprobante de la venta. */
   comprobante: ComprobanteFiltro;
-  /** Ventas marcadas `es_prueba` (D-54, ADR-0152): fuera por defecto, un toggle las trae de vuelta. */
+  /** Ventas marcadas `es_prueba` (D-54, ADR-0159): fuera por defecto, un toggle las trae de vuelta. */
   incluirPrueba: boolean;
 };
 
@@ -220,7 +220,7 @@ export type FilaHistorial = {
   comprobante: ComprobanteVenta | null;
   anulada: boolean;
   nota: string | null;
-  /** Dato ficticio de prueba (D-54, ADR-0152): solo llega a esta fila con el toggle «Ver datos de prueba». */
+  /** Dato ficticio de prueba (D-54, ADR-0159): solo llega a esta fila con el toggle «Ver datos de prueba». */
   esPrueba: boolean;
 };
 

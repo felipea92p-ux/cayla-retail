@@ -14,6 +14,7 @@ import type { Sububicacion } from "@/lib/sububicaciones";
 import { resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
 import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
 import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
+import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { CampoMonto, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
 
 type VarianteConteo = {
@@ -25,6 +26,9 @@ type VarianteConteo = {
   costo: number;
   codigosBarras: string[];
 };
+
+// Ubicación · último conteo · en riesgo: la prenda manda (mismo piso que Existencias) y las tres cifras son compactas.
+const PLANTILLA_SUGERENCIAS = "sm:grid-cols-[minmax(13.5rem,1.4fr)_minmax(7rem,1fr)_7rem_6rem]";
 
 function money(n: number) {
   return (n >= 0 ? "S/" : "-S/") + Math.abs(n).toFixed(2);
@@ -186,42 +190,50 @@ export function ConteoPanel({
         </div>
 
         {sugerencias.length > 0 && (
-          <div className="card-cayla p-5">
-            <p className="label-cayla mb-3 text-[11px] text-tinta/65">Conviene contar primero (mayor plata en riesgo)</p>
-            <ul className="divide-y divide-tinta/10">
-              {sugerencias.slice(0, 8).map((s) => {
-                // Misma variante, dos filas reales: unidades sin contar en
-                // piso Y en almacén a la vez — nunca una duplicada. Sin esta
-                // etiqueta, las dos se ven idénticas salvo por el monto.
-                const sububicacion = sububicaciones.find((sub) => sub.id === s.sububicacionId);
-                return (
-                  // La prenda a la izquierda y el dato de conteo a la derecha SOLO desde lg (1024px), no
-                  // desde sm: el menú lateral se come 272px, así que a 768px el contenido útil son ~360px
-                  // y el dato de la derecha (~290px) se le encimaba a la prenda (medido, 148px). Por
-                  // debajo, uno debajo del otro — misma razón por la que `Tabla` esconde columnas con lg/xl.
-                  <li
-                    key={`${s.varianteId}-${s.sububicacionId ?? "sin"}`}
-                    className="flex flex-col gap-1 py-2 text-sm lg:flex-row lg:items-center lg:justify-between lg:gap-3"
-                  >
-                    <ProductoVarianteCelda
-                      referencia={s.referencia}
-                      sku={s.sku}
-                      talla={s.talla}
-                      color={s.color}
-                      colorHex={s.apariencia?.colorHex}
-                      fotoUrl={s.apariencia?.fotoUrl ?? null}
-                    />
-                    {/* `pl-[2.875rem]` = la miniatura (36px) + su separación (10px): en celular la línea de
-                        abajo queda alineada con el texto de la prenda, no con la miniatura. */}
-                    <span className="pl-[2.875rem] text-xs text-tinta/55 lg:shrink-0 lg:pl-0">
-                      {sububicacion && `${sububicacion.nombre} · `}
-                      {s.diasSinContar == null ? "nunca contada" : `hace ${s.diasSinContar}d`} · {money(s.valorEnRiesgo)}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          // La misma tabla de Existencias (`ui/Tabla.tsx`): antes una lista con la ubicación, el tiempo y el monto
+          // en una sola frase a la derecha; ahora cada dato tiene su columna. Los datos y el orden son los mismos.
+          <Tabla>
+            <p className="label-cayla px-5 py-3 text-[11px] text-tinta/65">Conviene contar primero (mayor plata en riesgo)</p>
+            <Encabezado
+              plantilla={PLANTILLA_SUGERENCIAS}
+              columnas={[
+                { titulo: "Producto / variante" },
+                { titulo: "Ubicación", alinear: "centro" },
+                { titulo: "Último conteo", alinear: "centro" },
+                { titulo: "En riesgo", alinear: "centro" },
+              ]}
+            />
+            {sugerencias.slice(0, 8).map((s) => {
+              // Misma variante, dos filas reales: unidades sin contar en
+              // piso Y en almacén a la vez — nunca una duplicada. Sin la
+              // columna «Ubicación», las dos se ven idénticas salvo por el monto.
+              const sububicacion = sububicaciones.find((sub) => sub.id === s.sububicacionId);
+              return (
+                <div key={`${s.varianteId}-${s.sububicacionId ?? "sin"}`} className={fila(PLANTILLA_SUGERENCIAS)}>
+                  <ProductoVarianteCelda
+                    referencia={s.referencia}
+                    sku={s.sku}
+                    talla={s.talla}
+                    color={s.color}
+                    colorHex={s.apariencia?.colorHex}
+                    fotoUrl={s.apariencia?.fotoUrl ?? null}
+                  />
+                  <span className={celda("centro", "text-sm")}>
+                    <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Ubicación</span>
+                    {sububicacion?.nombre ?? "—"}
+                  </span>
+                  <span className={celda("centro", "text-sm tabular-nums")}>
+                    <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Último conteo</span>
+                    {s.diasSinContar == null ? "nunca contada" : `hace ${s.diasSinContar}d`}
+                  </span>
+                  <span className={celda("centro", "text-sm font-semibold tabular-nums")}>
+                    <span className="label-cayla mr-1 text-[10px] font-normal text-tinta/45 sm:hidden">En riesgo</span>
+                    {money(s.valorEnRiesgo)}
+                  </span>
+                </div>
+              );
+            })}
+          </Tabla>
         )}
       </div>
     );
