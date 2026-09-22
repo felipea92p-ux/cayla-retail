@@ -11,7 +11,7 @@ import { getApartadosAbiertos } from "@/lib/apartados";
 import { estaAtrasado } from "@/lib/traslados-reglas";
 import { SelectorUbicacion } from "@/components/SelectorUbicacion";
 import { InventarioPanel } from "@/components/InventarioPanel";
-import { ExistenciasHero } from "@/components/ExistenciasHero";
+import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
 // (20260914210000_inventario_piso_almacen.sql). Sigue siendo UNA tabla
@@ -93,43 +93,28 @@ export default async function InventarioPage({
 
   return (
     <div className="space-y-6">
-      {/* Encabezado (rediseño 2026-09-22): mismo contenido de siempre —breadcrumb, título, subtítulo,
-          selector de sede, «+ Nuevo traslado»— con más aire y el ropero decorativo a la derecha
-          (`ExistenciasHero`, sutil, nunca compite con el texto). */}
-      <div className="card-cayla anim-sube grid grid-cols-1 items-center gap-6 overflow-hidden p-6 sm:p-8 md:grid-cols-[1fr_auto]">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="label-cayla text-[11px] text-tinta/65">Inventario · Existencias</p>
-            <h1 className="font-display mt-1 text-3xl text-tinta">{ubicacionActiva?.nombre ?? "—"}</h1>
-            <p className="mt-1.5 max-w-md text-sm text-tinta/65">Qué hay en piso y almacén, qué viene en camino y qué deberías reponer hoy.</p>
-            <p className="mt-1 text-xs text-tinta/45">Vista cargada a las {horaCarga} — recarga para ver lo último.</p>
-          </div>
-        </div>
-        <div className="hidden h-28 w-56 shrink-0 md:block">
-          <ExistenciasHero />
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        {persona.rol === "lider" && <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} />}
-        {/* D-54 (ADR-0159): apagado por defecto — los productos archivados como dato de prueba
-            (nunca borrados) quedan afuera de «Existencias» salvo que se pida verlos. */}
-        <Link
-          href={hrefPrueba}
-          aria-pressed={incluirPrueba}
-          className={`label-cayla rounded-md border px-3 py-2.5 text-[11px] transition-colors ${
-            incluirPrueba ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo"
-          }`}
-        >
-          Con datos de prueba
-        </Link>
-        <Link
-          href="/inventario/mover"
-          className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-        >
-          + Nuevo traslado
-        </Link>
-      </div>
+      {/* Encabezado (guía oficial, 2026-09-22, ADR-0169): sobretítulo, sede y bajada directo sobre el crema;
+          a la derecha el selector de sede, el interruptor de datos de prueba y la acción principal. */}
+      <CabeceraPantalla
+        sobretitulo="Inventario · Existencias"
+        titulo={ubicacionActiva?.nombre ?? "—"}
+        bajada="Qué hay en piso y almacén, qué viene en camino y qué deberías reponer hoy."
+        acciones={
+          <>
+            {persona.rol === "lider" && <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} />}
+            {/* D-54 (ADR-0159): apagado por defecto — los productos archivados como dato de prueba
+                (nunca borrados) quedan afuera de «Existencias» salvo que se pida verlos. */}
+            <Link href={hrefPrueba} aria-pressed={incluirPrueba} className="pildora-cayla">
+              Con datos de prueba
+            </Link>
+            <Link href="/inventario/mover" className="btn-cayla btn-primario">
+              + Nuevo traslado
+            </Link>
+          </>
+        }
+      >
+        <p className="mt-1 text-xs text-taupe">Vista cargada a las {horaCarga} — recarga para ver lo último.</p>
+      </CabeceraPantalla>
 
       <InventarioPanel
         ubicacionId={ubicacionActivaId}

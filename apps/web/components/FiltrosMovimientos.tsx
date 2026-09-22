@@ -31,13 +31,10 @@ import {
 // ve la venta de hace dos meses.
 type Sububicacion = { id: string; tipo: string | null; nombre: string };
 
-const PASTILLA = "label-cayla inline-flex items-center rounded-full border px-3 py-1 text-[10px] transition-colors";
-const PASTILLA_ACTIVA = "border-tinta bg-tinta text-crema";
-const PASTILLA_INACTIVA = "border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo";
-
+// Guía oficial (2026-09-22, ADR-0169): la píldora del sistema (`pildora-cayla`); la activa va en tinta.
 function Pastilla({ activa, onClick, children }: { activa: boolean; onClick: () => void; children: ReactNode }) {
   return (
-    <button type="button" onClick={onClick} aria-pressed={activa} className={`${PASTILLA} ${activa ? PASTILLA_ACTIVA : PASTILLA_INACTIVA}`}>
+    <button type="button" onClick={onClick} aria-pressed={activa} className="pildora-cayla">
       {children}
     </button>
   );
@@ -46,7 +43,7 @@ function Pastilla({ activa, onClick, children }: { activa: boolean; onClick: () 
 function Grupo({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
   return (
     <div role="group" aria-label={etiqueta} className="flex flex-wrap items-center gap-1.5">
-      <span aria-hidden className="label-cayla mr-0.5 text-[10px] text-tinta/50">
+      <span aria-hidden className="label-cayla mr-0.5 text-[10px] font-bold text-taupe">
         {etiqueta}
       </span>
       {children}
@@ -125,7 +122,7 @@ export function FiltrosMovimientos({
       <div className="flex flex-wrap items-center gap-2">
         {/* El botón de limpiar va AL LADO del campo, no dentro de un <label>: al desaparecer la X el
             foco se perdía; ahora vuelve al campo (mismo criterio que Traslados). */}
-        <div className="relative flex h-10 min-w-[16rem] flex-1 items-center">
+        <div className="caja-cayla relative flex h-10 min-w-[16rem] flex-1 items-center">
           <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-tinta/50" />
           <input
             ref={entrada}
@@ -135,7 +132,7 @@ export function FiltrosMovimientos({
             placeholder="Prenda, código, barras o referencia…"
             aria-label="Buscar por prenda, código, código de barras o referencia (por ejemplo Traslado 24)"
             autoComplete="off"
-            className="h-10 w-full rounded-lg border border-tinta/20 bg-transparent pl-9 pr-9 text-sm text-tinta outline-none placeholder:text-tinta/50 focus:border-rojo"
+            className="h-full w-full rounded-lg bg-transparent pl-9 pr-9 text-sm text-tinta outline-none placeholder:text-taupe"
           />
           {busqueda && (
             <button
@@ -145,7 +142,7 @@ export function FiltrosMovimientos({
                 entrada.current?.focus();
               }}
               aria-label="Limpiar búsqueda"
-              className="absolute right-1.5 flex h-7 w-7 items-center justify-center rounded-md text-tinta/60 hover:text-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo"
+              className="absolute right-1.5 flex h-7 w-7 items-center justify-center rounded-md text-taupe hover:text-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo"
             >
               <X aria-hidden strokeWidth={1.5} className="h-4 w-4" />
             </button>
@@ -156,9 +153,7 @@ export function FiltrosMovimientos({
           onClick={() => setMasAbierto((v) => !v)}
           aria-expanded={masAbierto}
           aria-controls="movimientos-mas-filtros"
-          className={`label-cayla inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3.5 text-[11px] transition-colors ${
-            masAbierto || masActivos > 0 ? "border-tinta/30 bg-tinta/[0.04] text-tinta" : "border-tinta/20 text-tinta/70 hover:border-tinta/35 hover:text-tinta"
-          }`}
+          className={`btn-cayla btn-secundario h-10 shrink-0 ${masAbierto || masActivos > 0 ? "bg-sand/50" : ""}`}
         >
           <SlidersHorizontal aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />
           Más filtros{masActivos > 0 ? ` · ${masActivos}` : ""}
@@ -210,7 +205,7 @@ export function FiltrosMovimientos({
               const ubicacion = params.get("ubicacion");
               router.push(ubicacion ? `${pathname}?ubicacion=${ubicacion}` : pathname);
             }}
-            className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline"
+            className="label-cayla text-[10px] text-taupe underline-offset-2 hover:text-rojo hover:underline"
           >
             Limpiar filtros
           </button>
@@ -218,7 +213,7 @@ export function FiltrosMovimientos({
       </div>
 
       {mostrarFechas && (
-        <div className="anim-revelar flex flex-wrap items-end gap-x-4 gap-y-1 rounded-xl bg-sand/50 px-4 py-2.5">
+        <div className="anim-revelar flex flex-wrap items-end gap-x-4 gap-y-1 rounded-xl bg-hueso/70 px-4 py-2.5">
           {/* Con un período rápido vigente, «Desde» muestra la fecha que rige aunque no esté en la URL: el
               control dice la verdad. Tocarlo la vuelve explícita. */}
           <div className="w-44">
@@ -231,7 +226,7 @@ export function FiltrosMovimientos({
             type="button"
             onClick={() => aplicar({ rango: "todo", desde: "", hasta: "" })}
             aria-pressed={periodo === "todo"}
-            className={`label-cayla pb-2 text-[11px] underline-offset-2 hover:text-rojo hover:underline ${periodo === "todo" ? "text-tinta" : "text-tinta/65"}`}
+            className={`label-cayla pb-2 text-[11px] underline-offset-2 hover:text-rojo hover:underline ${periodo === "todo" ? "text-tinta" : "text-taupe"}`}
           >
             Todo el historial
           </button>
@@ -239,7 +234,7 @@ export function FiltrosMovimientos({
       )}
 
       {masAbierto && (
-        <div id="movimientos-mas-filtros" className="anim-revelar flex flex-wrap items-end gap-x-6 gap-y-3 rounded-xl bg-sand/50 px-4 py-2.5">
+        <div id="movimientos-mas-filtros" className="anim-revelar flex flex-wrap items-end gap-x-6 gap-y-3 rounded-xl bg-hueso/70 px-4 py-2.5">
           <div className="w-60">
             <CampoSelectNativo etiqueta="Proceso" value={proc} onChange={(e) => aplicar({ proc: e.target.value })}>
               <option value="">Todos</option>
@@ -251,7 +246,7 @@ export function FiltrosMovimientos({
             </CampoSelectNativo>
           </div>
           {masActivos > 0 && (
-            <button type="button" onClick={() => aplicar({ proc: "" })} className="label-cayla pb-2 text-[11px] text-tinta/65 underline-offset-2 hover:text-rojo hover:underline">
+            <button type="button" onClick={() => aplicar({ proc: "" })} className="label-cayla pb-2 text-[11px] text-taupe underline-offset-2 hover:text-rojo hover:underline">
               Quitar este filtro
             </button>
           )}

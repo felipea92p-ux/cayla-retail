@@ -59,6 +59,7 @@ const PUNTO: Record<TonoChip, string> = {
   ambar: "bg-ambar",
   verde: "bg-verde",
   rojo: "bg-rojo",
+  pizarra: "bg-pizarra",
   apagado: "bg-tinta/15",
 };
 
@@ -100,9 +101,9 @@ export function MovimientosLista({ movimientos, hoyLima, enlaceCompras }: { movi
           comentario de arriba); esto es solo avisar que no apareció, en vez
           de no decir nada. */}
       {abiertoId && !abierto && (
-        <div className="card-cayla mb-4 flex items-center justify-between gap-3 px-4 py-3 text-sm text-tinta/75">
+        <div className="nota-cayla mb-4 flex items-center justify-between gap-3 text-sm">
           <span>Ese movimiento no está en el rango o los filtros actuales — prueba ampliándolos.</span>
-          <button type="button" onClick={cerrar} className="label-cayla shrink-0 text-[11px] text-tinta/55 underline underline-offset-2 hover:text-rojo">
+          <button type="button" onClick={cerrar} className="label-cayla shrink-0 text-[11px] text-taupe underline underline-offset-2 hover:text-rojo">
             Entendido
           </button>
         </div>
@@ -121,10 +122,10 @@ export function MovimientosLista({ movimientos, hoyLima, enlaceCompras }: { movi
           ]}
         />
         {dias.map((dia) => (
-          <div key={dia.fecha} className="divide-y divide-tinta/10">
-            <div className="flex items-baseline justify-between bg-tinta/[0.03] px-5 py-1.5">
-              <span className="label-cayla text-[11px] text-tinta">{etiquetaDia(dia.fecha, hoyLima)}</span>
-              <span className="text-xs text-tinta/55">
+          <div key={dia.fecha} className="divide-y divide-sand">
+            <div className="flex items-baseline justify-between px-5 pb-1.5 pt-4">
+              <span className="label-cayla text-[11px] font-bold text-taupe">{etiquetaDia(dia.fecha, hoyLima)}</span>
+              <span className="text-xs text-taupe">
                 {dia.filas.length} {dia.filas.length === 1 ? "movimiento" : "movimientos"}
               </span>
             </div>
@@ -135,7 +136,7 @@ export function MovimientosLista({ movimientos, hoyLima, enlaceCompras }: { movi
               const referencia = referenciaMovimiento(m, { enlaceCompras });
               const donde = m.sububicacion ? nombreCortoSububicacion(m.sububicacion) : null;
               return (
-                <div key={m.id} className={fila(PLANTILLA, "relative w-full text-left transition-colors hover:bg-tinta/[0.03] focus-within:bg-tinta/[0.03]")}>
+                <div key={m.id} className={fila(PLANTILLA, "relative w-full text-left transition-colors hover:bg-crema/60 focus-within:bg-crema/60")}>
                   <button
                     type="button"
                     onClick={() => abrir(m)}
@@ -151,7 +152,7 @@ export function MovimientosLista({ movimientos, hoyLima, enlaceCompras }: { movi
                       y ahí sigue yendo todo a la izquierda (mismo criterio que `celda()`). */}
                   <span className="min-w-0 sm:text-center">
                     <span className="block text-sm tabular-nums text-tinta">{m.hora}</span>
-                    {donde && <span className="block truncate text-xs text-tinta/55">{donde}</span>}
+                    {donde && <span className="block truncate text-xs text-taupe">{donde}</span>}
                   </span>
 
                   {/* El proceso y la dirección son lo que se viene a leer: si no caben en una línea se
@@ -185,7 +186,7 @@ export function MovimientosLista({ movimientos, hoyLima, enlaceCompras }: { movi
                   <span
                     className={celda(
                       "centro",
-                      `text-sm font-semibold tabular-nums ${m.delta > 0 ? "text-verde-profundo" : m.delta < 0 ? "text-tinta" : "text-tinta/65"}`
+                      `text-sm font-semibold tabular-nums ${m.delta > 0 ? "text-verde-profundo" : m.delta < 0 ? "text-tinta" : "text-taupe"}`
                     )}
                   >
                     {textoDelta(m)}
@@ -226,7 +227,7 @@ function Referencia({ r }: { r: ReferenciaMovimiento }) {
         </span>
       )}
       {r.detalle && (
-        <span className="block truncate text-xs text-tinta/55" title={r.detalle}>
+        <span className="block truncate text-xs text-taupe" title={r.detalle}>
           {r.detalle}
         </span>
       )}

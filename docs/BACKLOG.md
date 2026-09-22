@@ -28,6 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Paleta oficial «CAYLA Dynamic» + rediseño visual de Inventario (2026-09-22, ADR-0169) — hecho, SIN migraciones; falta verlo con clics reales
+- [x] Tokens oficiales en `globals.css` para todo el ERP: papel `#fbf8f2`, taupe `#805c4c`, verde `#48603f`, ámbar `#74501a`, más `hueso` y `pizarra` nuevos, radio flotante de 20 px y serif en 600. Contraste medido: todo ≥ 4.5:1.
+- [x] Piezas del sistema: `eyebrow-cayla`, `btn-cayla` (primario/secundario/peligro/sutil/enlace), `pildora-cayla`, `caja-cayla`, `nota-cayla` y zebra de tabla; `Tabla`, `Chip` (insignia con punto + tono `pizarra`), `TarjetaCifra`, `campos` (variante `caja`) y `CabeceraPantalla` nueva.
+- [x] Existencias, Movimientos, Traslados, Conteo y Análisis en el orden oficial (cabecera → cifras → filtros y tabla en una sola tarjeta → nota). Solo visual: ninguna pantalla cambia su información. Typecheck, lint y 7,868 pruebas en verde; capturas antes/después en 3 anchos sobre una demo temporal con datos de muestra (no había base local: docker bloqueado por la red de la sesión).
+- [ ] **Verlo con clics reales** contra la base local o de producción (líder e integrante): filtros en caja, píldoras, zebra, chips y los modales que abren desde Existencias.
+- [ ] **Ventas a la guía oficial** cuando se fusionen sus ramas en curso (Caja/Punto de Venta/Cambios, Devoluciones, Facturación, Historial #275/#278). Después: Catálogo e Inicio (la guía trae sus maquetas).
+- [ ] Decisiones abiertas de la guía (ADR-0169, «Lo que NO se hizo»): modo oscuro, pasar la caja hueso a todos los formularios, botones de modal sin versalitas y la curva `ease-salida` frente a `--ease-cayla`.
+
 ## 🎯 Proformas con prendas, hoja A4 con fotos y cobro en el Punto de Venta (2026-09-22, ADR-0167) — migración EN PRODUCCIÓN; falta fusionar la web
 Rama `claude/modulo-comprobantes-redesign-3d2ffc`, **sin push**. Diseño: `docs/superpowers/specs/2026-09-22-proformas-con-prendas-design.md` (maqueta C, con foto de cada prenda); plan: `docs/superpowers/plans/2026-09-22-proformas-con-prendas.md`. Decisión en [docs/adr/0167-proformas-con-prendas.md](adr/0167-proformas-con-prendas.md).
 - [x] **Rediseño de Comprobantes** (mismo día, commit `1a470626`): sin botones en la cabecera; «Emitir comprobante» borrado (cada venta se declara sola, D-60); Series a todo el ancho con la sede propia primero y «Último: hace…»; Emitidos con filtros tipo/tienda/estado, totales por tipo y WhatsApp; Por reintentar con «Qué hacer», plazo de SUNAT (3 días) y «Reintentar los N». Verificado en el navegador local contra la base (totales = SQL).
