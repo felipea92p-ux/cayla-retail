@@ -109,14 +109,16 @@ flowchart TB
   `cambiar_ubicacion_colaborador`, `quitar_colaborador`. Reglas puras en `colaboradores-reglas.ts`.
   **Suspender mueve la fila** de `colaboradores` a `colaboradores_suspendidos`; el historial vive en
   `colaboradores_historial` (solo se agrega). `/vender/historial` también lee estas listas para el filtro «vendedor».
-  **Cuentas terminal (ADR-0152):** `colaboradores.terminal` (`ventas` | `administrativa`, una de cada tipo por tienda) se da de alta con
-  la RPC `agregar_terminal` («+ Agregar terminal») y se lee aparte de `fn_colaboradores`. Sus poderes son cinco capacidades
+  **Terminales sin persona (ADR-0162, reemplaza la terminal-persona de ADR-0152/0160):** un aparato por fila en
+  `retail.terminales` (tienda, tipo `ventas` | `administrativa`, cuenta de Auth propia, una activa de cada tipo por tienda).
+  La pestaña «Terminales» lee `fn_terminales()` (`getTerminales` en `lib/colaboradores.ts`, tolerado) y hace
+  `desactivar_terminal` / `reactivar_terminal` (`TablaTerminales`, `AlternarTerminalModal`). **Crear y cambiar la clave no
+  es una RPC:** exige la llave de servicio y lo hace `pnpm terminales:crear` (`scripts/terminales/`). `colaboradores.terminal`
+  quedó retirada (siempre null) y `agregar_terminal` lanza 0A000. Los poderes siguen siendo las cinco capacidades
   (`fn_puede_gestionar_caja`, `fn_puede_ajustar_inventario`, `fn_puede_editar_catalogo`, `fn_puede_editar_cuentas_proveedor` y, solo del
-  líder, `fn_puede_dar_descuento_por_etiqueta`); la web pregunta por permiso (`puede`/`exigirPermiso` en `lib/persona-actual.ts`,
-  `permisosDe(rol, terminal)` y `terminales` por nodo en `lib/menu.ts`). En la pantalla vive en su propia pestaña, «Terminales»,
-  separada de «Activos»: una cuenta compartida por el equipo no es una persona (`ColaboradoresPanel.tsx`, `TablaTerminales`).
-  Exenta a propósito de la aprobación de D-70 (abajo): `agregar_terminal` no pone `estado = 'pendiente_aprobacion'`, hereda el
-  default `'activo'` de la columna — el líder que la crea ya es la aprobación.
+  líder, `fn_puede_dar_descuento_por_etiqueta`); `fn_es_terminal` / `fn_mi_terminal` ahora leen `retail.terminales`. La web
+  pregunta por permiso (`puede`/`exigirPermiso` en `lib/persona-actual.ts`, `permisosDe(rol, terminal)` y `terminales` por nodo
+  en `lib/menu.ts`); `persona.terminal` distinto de null = la sesión es un APARATO (pie del lateral con el aparato, sin «Mi perfil»).
   **D-70 (ADR-0157): el alta de un colaborador (persona) no queda operativa sola.** `colaboradores.estado`
   (`pendiente_aprobacion`/`activo`) gatea `fn_es_lider`, `fn_ubicacion_actual_persona`, `fn_tiene_acceso_retail`, `fn_mi_perfil`,
   `fn_persona_actual_resumen` (el gate de login) y `fn_stock_por_sede` — las seis funciones que leen

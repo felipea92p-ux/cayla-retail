@@ -11,6 +11,7 @@ import { permisosDe, TIPOS_TERMINAL, type Permiso, type TipoTerminal } from "@/l
 // vez de una consulta cruzada de schema: retail no necesita ver las 37
 // columnas de RRHH/planilla de `public.personas`, solo nombre/rol/sede.
 export type PersonaActualV2 = {
+  /** El nombre de la persona o, si la sesión es de una terminal (ADR-0162), el del APARATO («Terminal Ventas TRU»). */
   nombre: string;
   rol: "lider" | "integrante";
   ubicacionId: string;
@@ -24,9 +25,12 @@ export type PersonaActualV2 = {
    *  (0012_control_total_temporal.sql) se revierta, esto puede volver a
    *  distinguirse sin tocar el componente. */
   puedeCambiarUbicacion: boolean;
-  /** Si esta cuenta es una TERMINAL de su tienda (ADR-0160) y de qué tipo; `null` = una persona. Una terminal es un
-   *  integrante fijo a una tienda que comparte quien trabaja ahí: `ventas` (caja, punto de venta, Facturación) o
-   *  `administrativa` (inventario, catálogo y, con ADR-0151, Compras). */
+  /** Si esta sesión es la de una TERMINAL (un aparato) y de qué tipo; `null` = una persona. ES EL DATO que dice «esto es un
+   *  aparato, no alguien»: desde el ADR-0162 una terminal es una cuenta de Auth SIN persona (`retail.terminales`), fija a
+   *  una tienda y nunca líder. Con él, el pie del menú muestra el aparato y no una persona, «Mi perfil» no se ofrece
+   *  (no hay perfil de RRHH que mostrar) y la de ventas aterriza en `/vender`. Tipos: `ventas` (caja, punto de venta,
+   *  Facturación) o `administrativa` (inventario, catálogo y, con ADR-0151, Compras). Lo que hace lo FIRMA el responsable
+   *  elegido (ADR-0161), nunca el aparato. */
   terminal: TipoTerminal | null;
   /** Lo que puede hacer además de operar su tienda, resuelto UNA vez desde el rol y la terminal (`permisosDe`).
    *  Las pantallas y los botones preguntan por un permiso (`puede`), no por «¿es líder?». */
@@ -46,7 +50,11 @@ function tipoUbicacion(tipo: string | null | undefined): PersonaActualV2["ubicac
 
 /** Trae la persona actual, resuelta contra Dynamic. Sin persona activa ahí
  *  (o sin ubicación de retail enlazada a su sede), no puede usar la app
- *  todavía — se manda a /login con el mismo mensaje de siempre. */
+ *  todavía — se manda a /login con el mismo mensaje de siempre.
+ *
+ *  Una TERMINAL (ADR-0162) no tiene persona, pero `fn_persona_actual_resumen()` le devuelve igual su fila (nombre del
+ *  aparato, nunca líder, su tienda) y `fn_mi_terminal()` su tipo: por eso entra por el mismo camino, sin rama aparte.
+ *  Solo cuando NO hay fila se mira si es una terminal desactivada, para decírselo con su propio mensaje. */
 export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> => {
   const supabase = await createClient();
 
@@ -62,7 +70,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
   ]);
 
   if (error || !data || !data.ubicacion_id) {
-    redirect("/login?error=sin_persona");
+    redirect(`/login?error=${await motivoSinAcceso(supabase, claims.claims.sub)}`);
   }
 
   const terminal: TipoTerminal | null =
@@ -107,6 +115,15 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     permisos: permisosDe(rol, terminal),
   };
 });
+
+/** Por qué una cuenta sin fila en `fn_persona_actual_resumen()` no entra. Una terminal desactivada (ADR-0162) se ve a sí
+ *  misma en `retail.terminales` (RLS: `auth_user_id = auth.uid()`, activa o no) y merece un aviso que diga qué pasó —«pide
+ *  a un líder que te dé de alta» no le sirve a un aparato—. Solo corre en el camino del rechazo: no suma nada a la carga
+ *  normal. Si la tabla aún no existe o la lectura falla, cae al mensaje de siempre (falla cerrado: igual no entra). */
+async function motivoSinAcceso(supabase: Awaited<ReturnType<typeof createClient>>, authUserId: string): Promise<"sin_persona" | "terminal_desactivada"> {
+  const { data, error } = await supabase.from("terminales").select("activo").eq("auth_user_id", authUserId).maybeSingle();
+  return !error && data && !data.activo ? "terminal_desactivada" : "sin_persona";
+}
 
 /** ¿Esta cuenta tiene el permiso? Es lo que preguntan las pantallas y los botones en vez de «¿es líder?» (ADR-0160):
  *  así una terminal cierra caja o ajusta stock sin ser líder, y el líder sigue pasando por todo. */

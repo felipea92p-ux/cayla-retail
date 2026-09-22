@@ -62,8 +62,8 @@ export type Permiso = (typeof PERMISOS)[number];
 export type RolMenu = "lider" | "integrante";
 
 /**
- * La cuenta TERMINAL de una tienda (ADR-0160): compartida por quien trabaja ahí, una de cada tipo por tienda. Es un
- * integrante fijo a su tienda (`colaboradores.terminal`); `null` es una persona.
+ * La cuenta TERMINAL de una tienda: compartida por quien trabaja ahí, una activa de cada tipo por tienda. Desde el
+ * ADR-0162 es un APARATO sin persona (`retail.terminales`, leída por `fn_mi_terminal()`); `null` es una persona.
  */
 export type TipoTerminal = "ventas" | "administrativa";
 export const TIPOS_TERMINAL: readonly TipoTerminal[] = ["ventas", "administrativa"];

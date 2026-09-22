@@ -124,7 +124,9 @@ Solo cambia de dónde sacan su respuesta `fn_es_terminal(tipo)` y `fn_mi_termina
 | F2 | Migración base: `retail.terminales`, `fn_terminal_actual`, `fn_actor_persona_id`, `terminal_id`, y el nuevo interior de `fn_es_terminal` / `fn_mi_terminal` / `fn_ubicacion_actual_persona` | `pnpm pruebas:terminales` adaptado: una terminal sin persona abre la caja de su tienda y no la de otra |
 | F3 | Reemplazo mecánico de las ~65 funciones, más las 10 a mano | Prueba nueva: cada una de las 75, llamada como terminal con un responsable presente, firma con ese responsable. Sin responsable o con uno ausente, se rechaza |
 | F4 | Web: la rama de terminal, el pie del menú, Colaboradores ▸ Terminales, el combo Responsable (ADR-0161) mandando el encabezado | Demo en el navegador con una terminal de verdad |
+| | **F4a CONSTRUIDA (rama `claude/adr-0162-f4a-terminales`, sin verificar en navegador):** la sesión de una terminal entra por el mismo `requirePersonaActualV2` (su fila ya viene de `fn_persona_actual_resumen`); `persona.terminal` es el dato de «es un aparato». El pie del lateral muestra el aparato («Terminal Ventas TRU», «APARATO · TIENDA TRU») y no abre «Mi perfil». Inicio no la saluda por «primer nombre». Una terminal desactivada ve su propio aviso en `/login`. Colaboradores ▸ Terminales lee `fn_terminales()` con Desactivar / Reactivar y sin alta desde la pantalla. Se retiró la lectura de `colaboradores.terminal`. El combo Responsable queda fuera: es F4b. | |
 | F5 | `pnpm terminales:crear` (lo corre Felipe), retiro de `agregar_terminal`, diccionario (`datos:generar:produccion`) | Las 6 terminales entran y venden en TRU/AQP |
+| | **Script CONSTRUIDO, sin correr contra ningún entorno:** `scripts/terminales/crear.mjs` (uso en `scripts/terminales/README.md`), con pruebas de sus partes puras en `pnpm terminales:probar`. | |
 
 **Estimación:** 4 a 6 sesiones. F3 es la más larga, pero es mecánica y la cubren las pruebas.
 

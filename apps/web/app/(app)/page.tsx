@@ -46,13 +46,15 @@ export default async function InicioPage() {
 
   const colas = colasInicio({ traslados: trasladosPorAtender });
   const accesos = accesosInicio(perfil, hoy?.cajaAbierta ?? null);
-  // La sede ya la dicen el selector de la cabecera y los textos de abajo: aquí solo el saludo.
+  // La sede ya la dicen el selector de la cabecera y los textos de abajo: aquí solo el saludo. A un APARATO (ADR-0162, la
+  // terminal administrativa) no se lo saluda por su «primer nombre» —saldría «Hola, Terminal»—: se lo nombra entero.
   const primerNombre = persona.nombre.trim().split(/\s+/)[0];
+  const saludo = persona.terminal ? persona.nombre : primerNombre ? `Hola, ${primerNombre}` : "Hola";
 
   return (
     <div className="space-y-7 sm:space-y-10">
       <div>
-        <h1 className="font-display text-2xl text-tinta">{primerNombre ? `Hola, ${primerNombre}` : "Hola"}</h1>
+        <h1 className="font-display text-2xl text-tinta">{saludo}</h1>
         <p className="mt-1 text-sm text-tinta/65">Así va {persona.ubicacionEtiqueta}</p>
       </div>
 
