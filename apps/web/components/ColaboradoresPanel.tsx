@@ -496,6 +496,7 @@ export function ColaboradoresPanel({
       {modal?.tipo === "ubicacion" && (
         <CambiarUbicacionModal
           nombre={modal.persona.nombre}
+          esLider={modal.persona.rol === "lider"}
           ubicacionActualId={modal.persona.ubicacion_id}
           ubicaciones={ubicaciones}
           onClose={() => setModal(null)}
