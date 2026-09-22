@@ -68,6 +68,8 @@ export function ColaboradoresPanel({
   roles = null,
   cuentas = null,
   pestanaInicial = "activos",
+  pestanas,
+  soyLider = true,
   acciones = accionesSupabase,
   accionesRoles = accionesRolesSupabase,
   accionesTerminales,
@@ -87,6 +89,11 @@ export function ColaboradoresPanel({
   roles?: RolVista[] | null;
   cuentas?: CuentaConRol[] | null;
   pestanaInicial?: Pestana;
+  /** Las pestañas que ve esta cuenta (20260923131000): Roles y accesos con su módulo, el resto con Colaboradores. Ausente =
+   *  todas (el líder, y las maquetas). */
+  pestanas?: readonly Pestana[];
+  /** ¿Quien mira es líder? Sin serlo (tiene el módulo), no se le ofrece tocar a un líder ni dar el rol Líder. */
+  soyLider?: boolean;
   acciones?: AccionesColaboradores;
   accionesRoles?: AccionesRoles;
   /** Crear terminal y cambiar su clave. Por defecto, las Server Actions de `app/actions/terminales.ts`. */
@@ -103,6 +110,8 @@ export function ColaboradoresPanel({
   const resumen = useMemo(() => resumirAccesos(colaboradores, suspendidos, disponibles), [colaboradores, suspendidos, disponibles]);
   const filas = useMemo(() => filtrarColaboradores(colaboradores, busqueda, rol), [colaboradores, busqueda, rol]);
   const totalActividad = actividad[0]?.total ?? 0;
+  const ve = (p: Pestana) => !pestanas || pestanas.includes(p);
+  const veAccesos = ve("activos");
 
   async function ejecutar(idOcupado: string | null, verbo: string, llamada: () => Promise<ResultadoAccion>, exito: string, detalle?: string) {
     setOcupadoId(idOcupado);
@@ -149,16 +158,19 @@ export function ColaboradoresPanel({
             qué ubicación queda fijo si entra como Colaborador.
           </p>
         </div>
-        <div className="text-right">
-          <div className="flex flex-wrap justify-end gap-2">
-            <Boton peso="primario" onClick={() => setModal({ tipo: "agregar" })} disabled={disponibles.length === 0}>
-              + Agregar colaboradores
-            </Boton>
+        {veAccesos && (
+          <div className="text-right">
+            <div className="flex flex-wrap justify-end gap-2">
+              <Boton peso="primario" onClick={() => setModal({ tipo: "agregar" })} disabled={disponibles.length === 0}>
+                + Agregar colaboradores
+              </Boton>
+            </div>
+            {disponibles.length === 0 && <p className="mt-1 text-xs text-tinta/65">Todas las cuentas activas de Dynamic ya tienen acceso.</p>}
           </div>
-          {disponibles.length === 0 && <p className="mt-1 text-xs text-tinta/65">Todas las cuentas activas de Dynamic ya tienen acceso.</p>}
-        </div>
+        )}
       </div>
 
+      {veAccesos && (
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <TarjetaCifra compacta punto="verde" etiqueta="Con acceso" valor={resumen.conAcceso} className="anim-entra" style={{ ["--i" as string]: 0 }}>
           de {plural(resumen.cuentasDynamic, "cuenta activa", "cuentas activas")} en Dynamic
@@ -180,6 +192,7 @@ export function ColaboradoresPanel({
           {resumen.suspendidos > 0 ? "sin acceso hasta reactivarlos" : "nadie suspendido"}
         </TarjetaCifra>
       </div>
+      )}
 
       <TabsSubrayado
         etiqueta="Secciones de colaboradores"
@@ -187,15 +200,17 @@ export function ColaboradoresPanel({
         onCambio={(k) => setPestana(k as Pestana)}
         className="border-b border-tinta/10"
         clasePestana="px-1 py-3 text-sm"
-        items={[
-          { clave: "activos", etiqueta: "Activos", conteo: colaboradores.length },
-          { clave: "terminales", etiqueta: "Terminales", conteo: terminales?.filter((t) => t.activo).length ?? 0 },
-          { clave: "roles", etiqueta: "Roles y accesos", conteo: roles?.filter((r) => !r.archivado).length ?? 0 },
-          { clave: "pendientes", etiqueta: "Pendientes", conteo: pendientes.length, tono: pendientes.length > 0 ? "ambar" : undefined },
-          { clave: "suspendidos", etiqueta: "Suspendidos", conteo: suspendidos.length, tono: suspendidos.length > 0 ? "ambar" : undefined },
-          { clave: "inactivas", etiqueta: "Inactivas en Dynamic", conteo: inactivos.length },
-          { clave: "actividad", etiqueta: "Actividad", conteo: totalActividad },
-        ]}
+        items={(
+          [
+            { clave: "activos", etiqueta: "Activos", conteo: colaboradores.length },
+            { clave: "terminales", etiqueta: "Terminales", conteo: terminales?.filter((t) => t.activo).length ?? 0 },
+            { clave: "roles", etiqueta: "Roles y accesos", conteo: roles?.filter((r) => !r.archivado).length ?? 0 },
+            { clave: "pendientes", etiqueta: "Pendientes", conteo: pendientes.length, tono: pendientes.length > 0 ? "ambar" : undefined },
+            { clave: "suspendidos", etiqueta: "Suspendidos", conteo: suspendidos.length, tono: suspendidos.length > 0 ? "ambar" : undefined },
+            { clave: "inactivas", etiqueta: "Inactivas en Dynamic", conteo: inactivos.length },
+            { clave: "actividad", etiqueta: "Actividad", conteo: totalActividad },
+          ] as const
+        ).filter((i) => ve(i.clave))}
       />
 
       {pestana === "activos" && (
@@ -228,7 +243,7 @@ export function ColaboradoresPanel({
               {filas.length === 0 ? (
                 <Vacio>Nadie coincide con lo que buscas.</Vacio>
               ) : (
-                <TablaActivos filas={filas} ocupadoId={ocupadoId} onAccion={alElegirAccion} rolDe={rolDe} />
+                <TablaActivos filas={filas} ocupadoId={ocupadoId} onAccion={alElegirAccion} rolDe={rolDe} soyLider={soyLider} />
               )}
               <p className="text-xs text-tinta/65" role="status">
                 {filas.length === colaboradores.length
@@ -258,7 +273,7 @@ export function ColaboradoresPanel({
           {roles === null ? (
             <Vacio>No se pudieron leer los roles. Lo demás de esta pantalla sí está al día.</Vacio>
           ) : (
-            <RolesPanel roles={roles} cuentas={cuentas} ubicaciones={ubicaciones} yoId={colaboradores.find((c) => c.es_yo)?.persona_id ?? null} acciones={accionesRoles} />
+            <RolesPanel roles={roles} cuentas={cuentas} ubicaciones={ubicaciones} yoId={colaboradores.find((c) => c.es_yo)?.persona_id ?? null} soyLider={soyLider} acciones={accionesRoles} />
           )}
         </section>
       )}
@@ -372,7 +387,7 @@ export function ColaboradoresPanel({
       )}
       {modal?.tipo === "rol" && roles && (
         <AsignarRolModal
-          roles={rolesAsignables(roles)}
+          roles={rolesAsignables(roles, undefined, soyLider)}
           cuentas={[]}
           ubicaciones={ubicaciones}
           cuentaFija={modal.cuenta}

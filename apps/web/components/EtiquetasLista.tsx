@@ -179,6 +179,7 @@ export function EtiquetasLista({
   prendasConCosto,
   variantesManuales,
   puedeEditar,
+  puedeDarDescuento = false,
 }: {
   etiquetasIniciales: Etiqueta[];
   categorias: CategoriaOpcion[];
@@ -186,7 +187,10 @@ export function EtiquetasLista({
   prendasConCosto: PrendaConCosto[];
   /** etiqueta_id → variantes etiquetadas a mano con ella. */
   variantesManuales: Record<string, string[]>;
+  /** Crear, editar, aprobar y archivar etiquetas SIN descuento: el líder o un rol con el módulo Etiquetas. */
   puedeEditar: boolean;
+  /** Tocar una etiqueta CON descuento o ponerle uno: solo el líder (20260923130000; la base lo vuelve a exigir). */
+  puedeDarDescuento?: boolean;
 }) {
   // Cambiar el vocabulario es Catálogo, operación de tienda (ADR-0161): UN combo «Responsable» firma todo lo que se
   // guarda desde esta lista (bajo los filtros; el mismo se repite en cada modal, también en el de campaña) y cada
@@ -472,7 +476,8 @@ export function EtiquetasLista({
               <div className={GRILLA}>
                 {delGrupo.map((e) => (
                   <TarjetaEtiqueta key={e.id} e={e} vigencia={vigenciaEn(e)} prendas={puedeEditar ? (manuales[e.id]?.length ?? 0) : null}>
-                    {puedeEditar &&
+                    {/* Una etiqueta CON descuento cambia el precio en caja: sus acciones son solo del líder. */}
+                    {puedeEditar && (e.descuentoPct === null || puedeDarDescuento) &&
                       (e.estado === "pendiente" ? (
                         <div className="flex gap-2">
                           <Boton peso="primario" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={aprobandoId === e.id} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => aprobar(e)}>
@@ -539,7 +544,7 @@ export function EtiquetasLista({
           <div className={GRILLA}>
             {desactivadasVisibles.map((e) => (
               <TarjetaEtiqueta key={e.id} e={e} vigencia={null} apagada>
-                {puedeEditar && (
+                {puedeEditar && (e.descuentoPct === null || puedeDarDescuento) && (
                   <div className="px-1 pb-1">
                     <Boton peso="discreto" className="w-full px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === e.id} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => reactivar(e)}>
                       Reactivar
@@ -586,6 +591,7 @@ export function EtiquetasLista({
       {configurando && (
         <CampanaModal
           etiqueta={configurando}
+          puedeDarDescuento={puedeDarDescuento}
           responsable={responsable}
           categorias={categorias}
           prendasConCosto={prendasConCosto}
@@ -636,6 +642,7 @@ export function EtiquetasLista({
 // ---------------------------------------------------------------------------
 function CampanaModal({
   etiqueta,
+  puedeDarDescuento,
   responsable,
   categorias,
   prendasConCosto,
@@ -644,6 +651,8 @@ function CampanaModal({
   onGuardado,
 }: {
   etiqueta: Etiqueta;
+  /** Sin esto (un rol con Etiquetas que no es líder), la campaña se configura SIN descuento: fechas y categorías. */
+  puedeDarDescuento: boolean;
   /** El combo de la lista (ADR-0161): uno por pantalla, no uno por modal. */
   responsable: ControlResponsable;
   categorias: CategoriaOpcion[];
@@ -716,7 +725,8 @@ function CampanaModal({
             inputMode="decimal"
             value={descuento}
             onChange={(e) => setDescuento(e.target.value)}
-            placeholder="Ej. 20"
+            disabled={!puedeDarDescuento}
+            placeholder={puedeDarDescuento ? "Ej. 20" : "Solo un líder pone descuento"}
             tono={!pct.ok || bajoCosto.length > 0 ? "error" : undefined}
             className={bajoCosto.length > 0 ? "!text-rojo-profundo" : ""}
             pie={

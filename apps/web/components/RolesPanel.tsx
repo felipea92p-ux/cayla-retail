@@ -30,7 +30,9 @@ import {
 
 // «Roles y accesos» (ADR-0161 B; spike aprobado `docs/maquetas/responsable-y-roles-spike-2026-09/`, pantalla 1). Cada rol
 // decide SOLO qué módulos ve; quien ve un módulo hace todo lo que hay en él, salvo la lista fija «siempre solo del líder».
-// Solo el Líder no se edita (sus módulos), pero sí se asigna y se quita, entre líderes (2026-09-22). Todo lo que se escribe pasa por RPC solo del líder, que además anota `roles_historial`.
+// Solo el Líder no se edita (sus módulos), pero sí se asigna y se quita, entre líderes (2026-09-22). Todo lo que se escribe
+// pasa por RPC (del líder o de quien ve Roles y accesos, 20260923131000), que además anota `roles_historial`; subir a
+// alguien a Líder o cambiarle el rol a un líder sigue siendo solo de un líder.
 
 type Modal =
   | { tipo: "nuevo" }
@@ -66,6 +68,7 @@ export function RolesPanel({
   cuentas,
   ubicaciones,
   yoId,
+  soyLider = true,
   acciones = accionesRolesSupabase,
 }: {
   roles: RolVista[];
@@ -75,6 +78,8 @@ export function RolesPanel({
   ubicaciones: Pick<Ubicacion, "id" | "nombre">[];
   /** La persona de esta sesión: no se ofrece a sí misma (nadie se cambia su propio rol). */
   yoId: string | null;
+  /** ¿Quien mira es líder? Sin serlo (módulo Roles y accesos) no da el rol Líder ni le cambia el rol a un líder. */
+  soyLider?: boolean;
   acciones?: AccionesRoles;
 }) {
   const router = useRouter();
@@ -130,8 +135,8 @@ export function RolesPanel({
   return (
     <div className="@container space-y-6">
       <p className="max-w-3xl text-sm leading-relaxed text-tinta/70">
-        Qué módulos ve cada cuenta, persona o terminal. Quien ve un módulo hace todo lo que hay en él, salvo lo que es siempre solo del líder. Solo un líder de
-        equipo cambia esto; el rol de cada cuenta se cambia desde su fila en Activos o Terminales.
+        Qué módulos ve cada cuenta, persona o terminal. Quien ve un módulo hace todo lo que hay en él, salvo lo que es siempre solo del líder. Lo cambia un
+        líder de equipo o quien tenga Roles y accesos en su rol; el rol de cada cuenta se cambia desde su fila en Activos o Terminales.
       </p>
 
       {/* Tres columnas por el ancho del CONTENEDOR, no de la ventana (con el lateral plegado o no, cuenta el espacio real):
@@ -250,9 +255,11 @@ export function RolesPanel({
             )}
             {rol.fijo && (
               <div className="flex flex-wrap gap-2">
-                <Boton type="button" peso="discreto" className="px-3 py-2" onClick={() => setModal({ tipo: "asignar", rol })} disabled={!cuentas}>
-                  Asignar a una persona
-                </Boton>
+                {soyLider && (
+                  <Boton type="button" peso="discreto" className="px-3 py-2" onClick={() => setModal({ tipo: "asignar", rol })} disabled={!cuentas}>
+                    Asignar a una persona
+                  </Boton>
+                )}
                 <Boton type="button" peso="discreto" className="px-3 py-2" onClick={() => setModal({ tipo: "duplicar", rol })}>
                   Duplicar
                 </Boton>
@@ -362,8 +369,8 @@ export function RolesPanel({
       )}
       {modal?.tipo === "asignar" && cuentas && (
         <AsignarRolModal
-          roles={rolesAsignables(roles)}
-          cuentas={cuentasAsignables(cuentas, modal.rol, yoId)}
+          roles={rolesAsignables(roles, undefined, soyLider)}
+          cuentas={cuentasAsignables(cuentas, modal.rol, yoId, soyLider)}
           ubicaciones={ubicaciones}
           rolFijo={modal.rol}
           onClose={() => setModal(null)}
