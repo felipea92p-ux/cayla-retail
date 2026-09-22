@@ -56,7 +56,7 @@ export function periodoDelMes(mes: Mes, actual: Mes): string {
 
 /* ---------------------------- Las pestañas ---------------------------- */
 
-export type ClavePestana = "series" | "emitidos" | "proformas";
+export type ClavePestana = "series" | "emitidos" | "cola" | "proformas";
 
 export type PestanaFacturacion = { clave: ClavePestana; etiqueta: string; ruta: string; conMes: boolean };
 
@@ -69,6 +69,7 @@ const RUTA = "/vender/comprobantes";
 export const PESTANAS: readonly PestanaFacturacion[] = [
   { clave: "series", etiqueta: "Series", ruta: RUTA, conMes: false },
   { clave: "emitidos", etiqueta: "Emitidos", ruta: `${RUTA}/emitidos`, conMes: true },
+  { clave: "cola", etiqueta: "Por reintentar", ruta: `${RUTA}/por-reintentar`, conMes: false },
   { clave: "proformas", etiqueta: "Proformas", ruta: `${RUTA}/proformas`, conMes: true },
 ];
 
@@ -91,11 +92,11 @@ export function hrefPestana(pestana: PestanaFacturacion, m: string | null | unde
 
 export type ResumenPorEnviar = { porEnviar: number; rechazados: number; masAntiguoAt: string | null };
 
-/** «Por enviar» = `pendiente` + `rechazado`, de cualquier tipo y SIN filtro de mes: es una
- *  cola, no un historial (un `pendiente` de hace tres semanas sigue esperando). `enviado`
- *  no cuenta: ya está en manos de SUNAT y no hay nada que hacer. */
+/** «Por enviar» = `pendiente` + `pendiente_reintento` + `rechazado`, de cualquier tipo y SIN filtro
+ *  de mes: es una cola, no un historial (un `pendiente` de hace tres semanas sigue esperando).
+ *  `enviado` no cuenta: ya está en manos de SUNAT y no hay nada que hacer. */
 export function resumenPorEnviar(filas: { estado: EstadoComprobante; created_at: string }[]): ResumenPorEnviar {
-  const cola = filas.filter((f) => f.estado === "pendiente" || f.estado === "rechazado");
+  const cola = filas.filter((f) => f.estado === "pendiente" || f.estado === "pendiente_reintento" || f.estado === "rechazado");
   // Se comparan instantes, no texto: `10:00-05:00` son las 15:00Z, y como texto ganaría
   // a `14:00Z` aunque sea más nuevo.
   const masAntiguo = cola.reduce<string | null>((min, f) => (min === null || Date.parse(f.created_at) < Date.parse(min) ? f.created_at : min), null);
@@ -119,6 +120,18 @@ export function resumenProformas(filas: ProformaFila[], ahora: number = Date.now
   };
 }
 
+/* ----------------------- La cola de reintento (D-60) ----------------------- */
+
+/** Pasadas estas horas en la cola sin llegar a SUNAT, el líder recibe el aviso: el reintento solo no
+ *  alcanzó (Lucode caído mucho rato, credenciales vencidas) y alguien tiene que mirar. */
+export const HORAS_AVISO_COLA = 1;
+
+export type ResumenCola = { total: number; masDeUnaHora: number };
+
+export function resumenCola(filas: { horas_esperando: number | null }[]): ResumenCola {
+  return { total: filas.length, masDeUnaHora: filas.filter((f) => (f.horas_esperando ?? 0) >= HORAS_AVISO_COLA).length };
+}
+
 /* ------------------------ Contadores de las pestañas ------------------------ */
 
 export type ConteoPestana = { valor: number; tono: "neutro" | "ambar" | "rojo"; texto: string };
@@ -128,8 +141,14 @@ export type ConteosPestanas = Partial<Record<ClavePestana, ConteoPestana>>;
  *  cero no se dibuja nada: un contador que miente es peor que ninguno, y un «0» no le pide
  *  nada a nadie. `texto` es lo que lee un lector de pantalla: el número solo no dice qué
  *  cuenta. */
-export function conteosDePestanas(porEnviar: ResumenPorEnviar | null, proformas: ResumenProformas | null): ConteosPestanas {
+export function conteosDePestanas(porEnviar: ResumenPorEnviar | null, proformas: ResumenProformas | null, cola: ResumenCola | null = null): ConteosPestanas {
   const conteos: ConteosPestanas = {};
+  if (cola && cola.total > 0) {
+    conteos.cola =
+      cola.masDeUnaHora > 0
+        ? { valor: cola.total, tono: "rojo", texto: "en cola, alguno hace más de 1 hora" }
+        : { valor: cola.total, tono: "ambar", texto: "en cola, se reintentan solos" };
+  }
   if (porEnviar && porEnviar.porEnviar > 0) {
     conteos.emitidos =
       porEnviar.rechazados > 0

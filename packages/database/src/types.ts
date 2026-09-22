@@ -5040,6 +5040,21 @@ export type Database = {
         }
         Returns: string
       }
+      fn_comprobantes_cola_reintento: {
+        Args: { p_ubicacion_id?: string }
+        Returns: {
+          comprobante_id: string
+          horas_esperando: number
+          intentos_transmision: number
+          numero: number
+          serie: string
+          tipo: string
+          ubicacion_id: string
+          ultimo_error_transmision: string
+          ultimo_intento_transmision_at: string
+          venta_id: string
+        }[]
+      }
       fn_marcar_reintento_transmision: {
         Args: { p_comprobante_id: string; p_error: string }
         Returns: undefined

@@ -75,3 +75,21 @@ export function itemsParaLucode(raw: unknown, nombres: ReadonlyMap<string, strin
   }
   return items;
 }
+
+const ERROR_LEGIBLE: Record<string, string> = {
+  sin_respuesta: "Lucode no respondió (sin internet o el servicio está caído).",
+  sin_credenciales: "Falta configurar la conexión con Lucode en el servidor.",
+  credenciales_invalidas: "Lucode rechazó la clave de conexión: hay que renovarla.",
+  rechazado_por_lucode: "Lucode no aceptó el envío",
+};
+
+/** El último error de la cola en palabras de tienda. En la base queda crudo (`motivo: detalle`, lo que
+ *  escribe `transmitirComprobante`) para diagnosticar; en pantalla, qué pasó y a quién le toca. Un
+ *  motivo desconocido se muestra tal cual: mejor el texto técnico que ninguno. */
+export function errorDeColaLegible(crudo: string | null): string | null {
+  if (!crudo) return null;
+  const [motivo, ...resto] = crudo.split(": ");
+  const legible = ERROR_LEGIBLE[motivo];
+  if (!legible) return crudo;
+  return motivo === "rechazado_por_lucode" && resto.length > 0 ? `${legible}: ${resto.join(": ")}` : legible;
+}

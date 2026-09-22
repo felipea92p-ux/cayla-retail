@@ -20,6 +20,7 @@ import { useUltimaCarga } from "@/lib/ultima-carga-facturacion";
 const PISTA_DE_BUSQUEDA: Record<ClavePestana, string> = {
   series: "Buscar serie o tienda…",
   emitidos: "Buscar número, cliente o RUC…",
+  cola: "Buscar número o error…",
   proformas: "Buscar cliente…",
 };
 

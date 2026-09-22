@@ -16,6 +16,7 @@ import {
   tiendasOperativas,
   textoDeFrescura,
   ubicacionActualDe,
+  resumenCola,
 } from "./facturacion-reglas";
 import type { EstadoComprobante } from "./comprobantes-reglas";
 import type { ProformaFila } from "./proformas-reglas";
@@ -67,8 +68,9 @@ describe("mes de la URL", () => {
 describe("pestañas", () => {
   const por = (clave: string) => PESTANAS.find((p) => p.clave === clave)!;
 
-  it("son tres, en el orden en que se dibujan: Series es la base", () => {
-    expect(PESTANAS.map((p) => p.clave)).toEqual(["series", "emitidos", "proformas"]);
+  it("son cuatro, en el orden en que se dibujan: Series es la base", () => {
+    expect(PESTANAS.map((p) => p.clave)).toEqual(["series", "emitidos", "cola", "proformas"]);
+    expect(pestanaDeRuta("/vender/comprobantes/por-reintentar")).toBe("cola");
   });
 
   it("cada ruta cae en su pestaña, con o sin barra final", () => {
@@ -232,5 +234,22 @@ describe("textoDeFrescura", () => {
 
   it("un reloj que va hacia atrás no da una edad negativa", () => {
     expect(textoDeFrescura(-30)).toBe("actualizado ahora");
+  });
+});
+
+describe("la cola de reintento (D-60)", () => {
+  it("resumenCola cuenta el total y los que pasan de 1 hora (sin dato = recién entrado)", () => {
+    expect(resumenCola([{ horas_esperando: 0.2 }, { horas_esperando: 1 }, { horas_esperando: 5.5 }, { horas_esperando: null }])).toEqual({ total: 4, masDeUnaHora: 2 });
+  });
+
+  it("el contador de «Por reintentar»: ámbar si todo es reciente, rojo si alguno pasa de 1 hora, nada si está vacía", () => {
+    expect(conteosDePestanas(null, null, { total: 2, masDeUnaHora: 0 }).cola).toEqual({ valor: 2, tono: "ambar", texto: "en cola, se reintentan solos" });
+    expect(conteosDePestanas(null, null, { total: 2, masDeUnaHora: 1 }).cola?.tono).toBe("rojo");
+    expect(conteosDePestanas(null, null, { total: 0, masDeUnaHora: 0 }).cola).toBeUndefined();
+    expect(conteosDePestanas(null, null, null).cola).toBeUndefined();
+  });
+
+  it("«por enviar» cuenta también lo que está en la cola", () => {
+    expect(resumenPorEnviar([{ estado: "pendiente_reintento", created_at: "2026-09-22T10:00:00Z" }]).porEnviar).toBe(1);
   });
 });

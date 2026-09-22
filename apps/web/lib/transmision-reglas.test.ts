@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar, type ComprobanteParaTransmitir } from "./transmision-reglas";
+import { errorDeColaLegible, itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar, type ComprobanteParaTransmitir } from "./transmision-reglas";
 
 function comprobante(extra: Partial<ComprobanteParaTransmitir> = {}): ComprobanteParaTransmitir {
   return { estado: "pendiente", venta_id: "v1", venta: { estado: "completada" }, ...extra };
@@ -92,5 +92,18 @@ describe("itemsParaLucode", () => {
 
   it("variantesPorNombrar lista solo las líneas sin descripción", () => {
     expect(variantesPorNombrar([{ variante_id: "v1" }, { descripcion: "x", variante_id: "v9" }, { variante_id: "v2" }])).toEqual(["v1", "v2"]);
+  });
+});
+
+describe("errorDeColaLegible", () => {
+  it("traduce el motivo a palabras de tienda y deja el detalle solo cuando Lucode dijo algo útil", () => {
+    expect(errorDeColaLegible("sin_credenciales: Falta LUCODE_TOKEN en el entorno")).toBe("Falta configurar la conexión con Lucode en el servidor.");
+    expect(errorDeColaLegible("sin_respuesta: The operation was aborted")).toBe("Lucode no respondió (sin internet o el servicio está caído).");
+    expect(errorDeColaLegible("rechazado_por_lucode: serie inválida")).toBe("Lucode no aceptó el envío: serie inválida");
+  });
+
+  it("un motivo desconocido se muestra tal cual; sin error, nada", () => {
+    expect(errorDeColaLegible("otra cosa")).toBe("otra cosa");
+    expect(errorDeColaLegible(null)).toBeNull();
   });
 });
