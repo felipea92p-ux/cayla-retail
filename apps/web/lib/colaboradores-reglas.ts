@@ -134,15 +134,16 @@ export function porAtender(pendientes: number, inactivas: number): AvisoPorAtend
   return avisos;
 }
 
-/** `cambiar_rol` (ADR-0161 B): el rol decide qué módulos ve. Desde 2026-09-22 también a un líder (se le baja o se sube a
- *  alguien a Líder); nunca a uno mismo. «Cambiar ubicación» sigue siendo solo de quien no es líder: un líder opera todas. */
+/** `cambiar_rol` (ADR-0161 B): el rol decide qué módulos ve. Desde 2026-09-22 todo vale también entre líderes (se le
+ *  baja o se sube a alguien a Líder, y se le cambia la ubicación: para un líder es la tienda donde arranca, no un límite);
+ *  nunca a uno mismo. */
 export type AccionFila = "cambiar_rol" | "cambiar_ubicacion" | "suspender" | "quitar";
 
 export function accionesDeFila(c: Pick<Colaborador, "rol" | "es_yo">, soyLider = true): AccionFila[] {
   if (c.es_yo) return [];
   // A un líder solo lo toca un líder (20260923131000): quien gestiona accesos con el módulo, sin ser líder, no ve acciones.
   if (!soyLider && c.rol === "lider") return [];
-  return c.rol === "colaborador" ? ["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"] : ["cambiar_rol", "suspender", "quitar"];
+  return ["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"];
 }
 
 const dosDigitos = (n: number) => String(n).padStart(2, "0");

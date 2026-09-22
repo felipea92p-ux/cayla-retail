@@ -46,11 +46,11 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] **PR aparte:** construir las 6 decisiones P1-P6 del ADR-0161 (Felipe, 2026-09-22): registrar en Compras por módulo, montos en Recibir, ficha y edición de proveedores con su módulo, etiquetas sin descuento desde la ficha con Productos, Análisis sin costo ni red en Existencias, Colaboradores y Roles solo a personas.
 - Cómo verificas: en Roles y accesos los 7 módulos salen con interruptor; un rol con solo «Por pagar» ve Compras ▸ Por pagar con montos; uno con «Etiquetas» ve la pestaña Etiquetas y no puede poner descuento.
 
-## 🎯 Conteo físico: rediseño con la guía oficial (2026-09-22) — maqueta lista, sin código
+## 🎯 Conteo físico: rediseño con la guía oficial (2026-09-22, ADR-0174) — hecho en código; la migración NO está en producción
 Demo: `docs/maquetas/conteo-rediseno-2026-09/conteo.html` (artifact https://claude.ai/artifact/U6e6UwKXX3rByebdBPDLrD).
-- [ ] **Decisión de Felipe:** pendientes mientras se cuenta — variante A (lista sin cifras) o B (solo el número).
-- [ ] **Base:** `cerrar_conteo` rechaza un conteo sin `conteo_items` (decidido: «Vacío» + no se cierra). Migración propia; OK antes de producción.
-- [ ] **Web:** llevar la maqueta a `conteo/page.tsx`, `ConteoPanel.tsx`, `ConteosLista.tsx` y `[id]/page.tsx` (interruptor suma/escribir, sin «Diferencia hasta ahora» con conteo abierto, «Vacío», revisión en `<Modal>`).
+- [x] Pantalla: abrir en tres pasos; «Suma por escaneo» / «Escribir cantidad» con escrituras en fila; «Faltan por contar» sin cifras (variante A, elegida por Felipe); sin «Diferencia hasta ahora» con conteo abierto; «Vacío» en historial y detalle; revisión en `<Modal>`; detalle con «Con diferencia / Todas» y soles por línea. Tipos, lint y 8031 pruebas en verde; recorrido en navegador con datos de muestra (sin base local).
+- [ ] **Pegar en producción (con OK de Felipe):** `20260923120000_conteo_vacio_no_se_cierra.sql` — `cerrar_conteo` rechaza un conteo sin prendas. Ya trae `retail.`; se puede pegar dos veces. Después: `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
+- [ ] **Verlo con clics reales** en TRU: abrir «Solo Camisas y Blusas» en el piso, contar con la pistola en suma (varias lecturas seguidas de la misma prenda), corregir, revisar y cerrar; y confirmar que la pistola manda Enter al final de cada lectura (si no, en suma no cuenta: hay que configurarla).
 
 ## 🎯 Paleta oficial «CAYLA Dynamic» + rediseño visual de Inventario (2026-09-22, ADR-0169) — hecho, SIN migraciones; falta verlo con clics reales
 - [x] Tokens oficiales en `globals.css` para todo el ERP: papel `#fbf8f2`, taupe `#805c4c`, verde `#48603f`, ámbar `#74501a`, más `hueso` y `pizarra` nuevos, radio flotante de 20 px y serif en 600. Contraste medido: todo ≥ 4.5:1.
@@ -90,11 +90,11 @@ PR [#298](https://github.com/felipea92p-ux/cayla-retail/pull/298), fusionado. Di
 - [ ] Verificar con una terminal de verdad en TRU (aún no se probó con la sesión de un aparato en el navegador; sí con la de un líder).
 - [x] La migración del ADR-0160 **ya está pegada** en producción, con 0 terminales dadas de alta.
 
-## 🎯 Cambiar el rol entre líderes (2026-09-22, actualización del ADR-0161) — CONSTRUIDO, migración sin pegar en producción
-- [x] `asignar_rol` sube a Líder y baja a un líder (con sede si no tiene); nunca a uno mismo ni Líder a una terminal. Probado en Postgres local con rollback (subir, bajar sin sede → error, con sede → ok, a sí mismo → error).
-- [x] Web: «Cambiar rol» también en la fila de un líder; «Asignar a una persona» en el rol Líder; el modal pide la sede al bajar a un líder.
-- [ ] **Pegar en producción** `20260923110000_cambiar_rol_entre_lideres.sql` (con `set search_path to retail, public;`; OK de Felipe). Después: una sola firma de `asignar_rol` y `pnpm datos:generar:produccion` + `pnpm datos:comparar`.
-- [ ] Verlo con clics en producción: subir a alguien a Líder y volver a bajarlo.
+## 🎯 Cambiar rol y ubicación entre líderes (2026-09-22, actualización del ADR-0161) — rol EN PRODUCCIÓN (PR #304); ubicación CONSTRUIDA
+- [x] `asignar_rol` sube a Líder y baja a un líder (con sede si no tiene); nunca a uno mismo ni Líder a una terminal. Pegada en producción el 2026-09-22, **pero la primera versión** (busca la cuenta a mano en vez de `fn_actor_persona_id`): funciona igual; falta volver a pegar `20260923110000` para quedar igual al repo.
+- [x] Ubicación entre líderes: `cambiar_ubicacion_colaborador` acepta líderes; para ellos es la tienda donde arrancan (`fn_ubicacion_de_partida`). Probado en local (`pruebas:roles` 39/39).
+- [ ] **Pegar en producción**, en orden: `20260923110000_cambiar_rol_entre_lideres.sql` (otra vez) y `20260923120000_ubicacion_de_lideres.sql`, cada una con `set search_path to retail, public;`. Después `pnpm datos:generar:produccion` + `pnpm datos:comparar`.
+- [ ] Verlo con clics: poner «Tienda Trujillo» a un líder de Oficina TRU y que entre ahí.
 
 ## 🎯 Responsable en cada operación + roles retomados (2026-09-22, ADR-0161) — combo Responsable CONSTRUIDO (F4b, PR #285); roles en otra rama
 - [ ] **Más adelante (Felipe, 2026-09-22: «no es tan importante por ahora»):** guardar quién crea o cambia marcas (`retail.marcas` no tiene columna de firma) y anotar los cambios de NOMBRE de una prenda en el historial (`fn_registrar_cambio_producto` solo registra categoría, estado, marca, proveedor, precio y costo). Hoy el combo se pide en Catálogo pero esos dos casos no dejan rastro.
