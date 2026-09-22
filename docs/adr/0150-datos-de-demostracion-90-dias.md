@@ -6,11 +6,12 @@
   `git checkout claude/inject-3-month-data-eae360` para retomarla. Está **224 commits detrás de `main`** — normal para una
   rama de trabajo que no se ha fusionado; no hace falta ponerla al día para seguir escribiendo el generador, solo para el
   día en que se abra el PR final.
-- **Estado real (commit `925fec11`):** Fases 1-4 completas, ensayadas y comprometidas. Fase 5 (postventa/gastos/Taller):
-  investigación terminada (7 agentes en paralelo + síntesis, ver abajo) y **2 de 8 piezas ya escritas y probadas**: 5.1
-  (serie de Nota de Crédito) y el parche a la Fase 4 ya comprometida (sección 4.6b, selección de anulaciones). Faltan 6:
-  anulaciones (completar `venta_anulacion_items`), cambios, devoluciones+NC, conteos, cuarentena, gastos+proformas,
-  producción del Taller, y un cierre financiero único de cajas al final de la fase.
+- **Estado real:** Fases 1-4 completas, ensayadas y comprometidas. Fase 5 (postventa/gastos/Taller):
+  investigación terminada (7 agentes en paralelo + síntesis, ver abajo) y **4 de 8 piezas ya escritas y probadas**: 5.1
+  (serie de Nota de Crédito), el parche a la Fase 4 (4.6b, selección de anulaciones), 5.2 (anulaciones completas) y 5.9
+  (cierre financiero único de cajas, al final de la fase: lee las tablas reales, así que cubre las secciones que se
+  escriban antes de él sin tocarlo). Faltan: cambios, devoluciones+NC, conteos, cuarentena, gastos+proformas y producción
+  del Taller — todas se escriben ENTRE 5.2 y 5.9.
 - **Las 7 recetas verificadas NO viven solo en este ADR** (aquí hay un resumen ejecutivo) — el detalle completo, palabra por
   palabra contra producción en vivo, está en dos archivos nuevos que hay que leer ANTES de escribir el resto de la Fase 5:
   - `docs/demo-90-dias/fase-5-recetas-verificadas.md` — las 7 recetas completas (devoluciones+NC, cambios, anulaciones,
@@ -336,10 +337,11 @@ haría la Fase 6). Dos hallazgos:
 
 ## Qué falta (fase 5 en curso, fases 6-7) y lo que se decidirá con Felipe
 
-De la Fase 5 (postventa, gastos y producción del Taller) ya están escritas y ensayadas: 5.1 (serie de NC) y la selección de
-anulaciones (4.6b, parche a la Fase 4). Falta escribir, con las 7 recetas ya verificadas: el resto de anulaciones
-(`venta_anulacion_items` + `ventas.estado`), cambios, devoluciones+NC, conteos, cuarentena, gastos+proformas, producción del
-Taller (infra+órdenes en un solo bloque) y el cierre financiero único de cajas. Luego fase 6 `stock` derivado y cierre · fase 7
+De la Fase 5 (postventa, gastos y producción del Taller) ya están escritas y ensayadas: 5.1 (serie de NC), la selección de
+anulaciones (4.6b, parche a la Fase 4), 5.2 (anulaciones: 54 ventas, 76 líneas, 60 reingresan al piso) y 5.9 (cierre
+financiero único de cajas con la fórmula completa de `cerrar_caja()`, preservando A1). Falta escribir, entre 5.2 y 5.9:
+cambios, devoluciones+NC, conteos, cuarentena, gastos+proformas y producción del Taller (infra+órdenes en un solo bloque).
+Luego fase 6 `stock` derivado y cierre · fase 7
 ensayo completo y prueba de reversibilidad (`verificar-90-dias.sql`, `deshacer-90-dias.sql`, `docs/demo-90-dias/QUE-MIRAR.md`).
 
 **Decidido por Felipe (2026-09-21):** la cantidad (≈ S/ 962 mil) sirve, y la ventana termina el día en que se pegue el `COMMIT`, que

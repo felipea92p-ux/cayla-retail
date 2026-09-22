@@ -52,10 +52,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
   motivo/firmante/instante que usará la anulación real; nuevo chequeo (4b) confirma que coinciden exacto. Fase 5.1 registra
   NC01/NC02. Ensayado en local (Docker): 54 anulaciones elegidas (dentro de 35-65), todos los chequeos de la Fase 4 en verde,
   `ROLLBACK` limpio.
-- [ ] Falta escribir el resto de la Fase 5 (con las 7 recetas ya verificadas): anulaciones (`venta_anulacion_items` + `ventas.estado`),
-  cambios, devoluciones+NC, conteos, cuarentena, gastos+proformas, producción del Taller (infra+órdenes en un solo bloque, por el
-  conflicto de mecanismo que encontró la síntesis), y un cierre financiero único de cajas al final de la fase (gastos/cambios/
-  devoluciones tocan las mismas cajas que la Fase 4 ya cerró). Luego Fase 6 (`stock` derivado) y Fase 7 (ensayo completo + reversibilidad).
+- [x] **Fase 5.2 anulaciones + 5.9 cierre financiero de cajas** (2026-09-22): 54 ventas anuladas, 76 líneas (60 reingresan al
+  piso con `anulacion_venta`, 16 dañadas sin movimiento, igual que `anular_venta()` viva); 5.9 recalcula todas las cajas
+  sembradas con la fórmula completa de `cerrar_caja()` (ventas no anuladas + ingresos − egresos − reembolsos + cambios, en
+  efectivo) leyendo las tablas reales, así cubre solas las secciones que faltan. A1 se preserva. Ensayado en local: 30 cajas
+  con anulación en efectivo recalculadas bien, `ROLLBACK` limpio.
+- [ ] Falta escribir el resto de la Fase 5 (con las recetas ya verificadas): cambios, devoluciones+NC (ambas deben excluir
+  `tmp_venta_anulada` y excluirse entre sí), conteos, cuarentena, gastos+proformas, producción del Taller (infra+órdenes en
+  un solo bloque, por el conflicto de mecanismo que encontró la síntesis). Luego Fase 6 (`stock` derivado) y Fase 7 (ensayo completo + reversibilidad).
 - [ ] Decidido por Felipe (2026-09-21): la ventana termina el día del `COMMIT` (el mismo en que se arme); falta la hora tranquila y confirmar el respaldo del día. **Una fase por turno; Felipe da el OK entre cada una.**
 - [ ] Archivos que faltan: `scripts/demo/verificar-90-dias.sql`, `scripts/demo/deshacer-90-dias.sql` (no se corre sin OK), `docs/demo-90-dias/QUE-MIRAR.md`.
 - [ ] **Decisión de Felipe:** el día en que termina la ventana (el del `COMMIT`) y una ventana tranquila: hay pruebas en producción en vivo. Antes del `COMMIT`, confirmar en Supabase (Database → Backups) una copia de ese día.

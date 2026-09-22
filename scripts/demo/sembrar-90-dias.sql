@@ -2112,6 +2112,95 @@ begin
   if v_n <> 2 then raise exception '[fase 5] % series de nota_credito activas (se esperaban 2: TRU y AQP)', v_n; end if;
 end $$;
 
+-- ---- 5.2 Anulaciones: completa el acto de anular_venta() sobre las ~50 ventas elegidas en 4.6b (su comprobante ya
+-- quedó `no_emitido` en 4.7). Mismo cuerpo que la RPC viva (verificada 2026-09-22): una fila de venta_anulacion_items
+-- por línea; si la prenda vuelve vendible, una entrada `anulacion_venta` al mismo bucket de donde salió; si no, no hay
+-- movimiento (anular_venta no crea prendas_danadas: la prenda dañada sale del stock sin más). No toca `stock` (Fase 6).
+-- Reparto de condición propio (no hay anulaciones reales que muestrear): 85 % vendible, 5 % cada condición dañada.
+create temp table tmp_anulacion_items on commit drop as
+select vi.id as venta_item_id, an.ticket_id, an.anulado_por, an.anulado_en,
+       m.variante_id, m.ubicacion_id, m.sububicacion_id, m.cantidad,
+       case when pg_temp.h('anucond:' || vi.id) < 0.85 then 'vendible'
+            when pg_temp.h('anucond:' || vi.id) < 0.90 then 'danada_reparacion'
+            when pg_temp.h('anucond:' || vi.id) < 0.95 then 'danada_donar'
+            else 'devolver_proveedor' end as condicion
+from tmp_venta_anulada an
+join venta_items vi on vi.venta_id = an.ticket_id
+join movimientos m on m.venta_item_id = vi.id and m.tipo = 'salida' and m.motivo = 'venta';
+
+insert into movimientos (id, variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, venta_item_id, usuario_id, created_at)
+select pg_temp.sid('mov', 'anulventa:' || t.venta_item_id), t.variante_id, t.ubicacion_id, t.sububicacion_id,
+       'entrada', t.cantidad, 'anulacion_venta', t.venta_item_id, t.anulado_por, t.anulado_en
+from tmp_anulacion_items t where t.condicion = 'vendible';
+
+insert into venta_anulacion_items (id, venta_id, venta_item_id, condicion, movimiento_id, created_at)
+select pg_temp.sid('vanu', t.venta_item_id::text), t.ticket_id, t.venta_item_id, t.condicion,
+       case when t.condicion = 'vendible' then pg_temp.sid('mov', 'anulventa:' || t.venta_item_id) end, t.anulado_en
+from tmp_anulacion_items t;
+
+update ventas v set estado = 'anulada', motivo_anulacion = t.motivo_anulacion, anulado_por = t.anulado_por,
+       anulado_en = t.anulado_en
+from tmp_venta_anulada t where v.id = t.ticket_id;
+
+do $$
+declare v_n int;
+begin
+  -- (1) cada venta anulada tiene exactamente una fila de venta_anulacion_items por línea (anular_venta lo exige)
+  select count(*) into v_n from tmp_venta_anulada an
+   where (select count(*) from venta_items vi where vi.venta_id = an.ticket_id)
+      <> (select count(*) from venta_anulacion_items a where a.venta_id = an.ticket_id);
+  if v_n > 0 then raise exception '[check anulaciones] % ventas anuladas sin una fila de anulación por línea', v_n; end if;
+  -- (2) movimiento de reingreso ⇔ condición vendible
+  select count(*) into v_n from venta_anulacion_items where id::text like '5eed%'
+   and (movimiento_id is null) = (condicion = 'vendible');
+  if v_n > 0 then raise exception '[check anulaciones] % líneas donde el reingreso no coincide con la condición', v_n; end if;
+  -- (3) la anulación ocurre después de la venta y con la caja todavía abierta
+  select count(*) into v_n from ventas v join cajas c on c.id = v.caja_id
+   where v.id::text like '5eed%' and v.estado = 'anulada' and not (v.anulado_en > v.created_at and v.anulado_en < c.cerrada_en);
+  if v_n > 0 then raise exception '[check anulaciones] % anulaciones fuera de la ventana venta..cierre de caja', v_n; end if;
+  -- (4) exactamente las ventas de 4.6b quedaron anuladas, y todas con comprobante no_emitido
+  select count(*) into v_n from ventas where id::text like '5eed%' and estado = 'anulada';
+  if v_n <> (select count(*) from tmp_venta_anulada) then
+    raise exception '[check anulaciones] % ventas anuladas, se esperaban %', v_n, (select count(*) from tmp_venta_anulada);
+  end if;
+  raise notice '[check anulaciones] OK — % ventas anuladas, % líneas (% reingresan al piso)', v_n,
+    (select count(*) from tmp_anulacion_items), (select count(*) from tmp_anulacion_items where condicion = 'vendible');
+end $$;
+
+-- ---- 5.9 Cierre financiero de cajas (UNO solo, al final de toda la Fase 5) ----
+-- Las cajas se cerraron en la Fase 4 con apertura + efectivo de ventas. Lo que la Fase 5 agrega (anulaciones, y cuando
+-- existan: devoluciones en efectivo, diferencias de cambio en efectivo, ingresos/egresos de caja) cambia lo que el
+-- sistema espera en el cajón. Se recalcula con la fórmula de cerrar_caja() viva (2026-09-22), leyendo las tablas reales:
+-- así cada sección nueva de la Fase 5 queda cubierta sin tocar este bloque. La diferencia contada se preserva (las dos
+-- cajas A1 siguen con su faltante/sobrante): lo que se mueve es monto_cierre_real junto con el sistema.
+update cajas c set monto_cierre_sistema = x.sistema, monto_cierre_real = x.sistema + c.diferencia
+from (
+  select c2.id,
+         c2.monto_apertura
+         + coalesce((select sum(vp.monto) from venta_pagos vp join ventas v on v.id = vp.venta_id
+                     where v.caja_id = c2.id and vp.metodo = 'efectivo' and v.estado <> 'anulada'), 0)
+         + coalesce((select sum(case when m.tipo = 'ingreso' then m.monto when m.tipo = 'egreso' then -m.monto else 0 end)
+                     from caja_movimientos m where m.caja_id = c2.id), 0)
+         - coalesce((select sum(d.reembolso_monto) from devoluciones d
+                     where d.caja_id = c2.id and d.estado = 'aprobada' and d.reembolso_metodo = 'efectivo'), 0)
+         + coalesce((select sum(k.diferencia) from cambios k
+                     where k.caja_id = c2.id and k.metodo_pago_diferencia = 'efectivo'), 0) as sistema
+  from cajas c2 where c2.id::text like '5eed%'
+) x
+where c.id = x.id and c.monto_cierre_sistema is distinct from x.sistema;
+
+do $$
+declare v_n int;
+begin
+  select count(*) into v_n from cajas where id::text like '5eed%' and diferencia <> 0;
+  if v_n <> 2 then raise exception '[check cierre] % cajas con diferencia tras el cierre financiero (se esperaban 2: A1)', v_n; end if;
+  select count(*) into v_n from cajas where id::text like '5eed%' and round(diferencia, 2) <> round(monto_cierre_real - monto_cierre_sistema, 2);
+  if v_n > 0 then raise exception '[check cierre] % cajas con diferencia mal calculada', v_n; end if;
+  select count(*) into v_n from cajas where id::text like '5eed%' and monto_cierre_real < 0;
+  if v_n > 0 then raise exception '[check cierre] % cajas con monto contado negativo', v_n; end if;
+  raise notice '[check cierre] OK — cajas recalculadas con la fórmula completa de cerrar_caja()';
+end $$;
+
 -- Sincroniza transferencias_numero_seq con el número más alto que quedó sembrado. Un INSERT con `numero` explícito nunca
 -- llama a nextval(): sin esto, el primer «Iniciar traslado» real después del COMMIT pediría un número que una fila
 -- sembrada ya ocupa (transferencias_numero_unique). SOLO corre si `cayla_seed.definitivo = 'true'` (ver el parámetro al
