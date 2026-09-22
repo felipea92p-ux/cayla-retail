@@ -7,11 +7,11 @@
   rama de trabajo que no se ha fusionado; no hace falta ponerla al día para seguir escribiendo el generador, solo para el
   día en que se abra el PR final.
 - **Estado real:** Fases 1-4 completas, ensayadas y comprometidas. Fase 5 (postventa/gastos/Taller):
-  investigación terminada (7 agentes en paralelo + síntesis, ver abajo) y **4 de 8 piezas ya escritas y probadas**: 5.1
-  (serie de Nota de Crédito), el parche a la Fase 4 (4.6b, selección de anulaciones), 5.2 (anulaciones completas) y 5.9
-  (cierre financiero único de cajas, al final de la fase: lee las tablas reales, así que cubre las secciones que se
-  escriban antes de él sin tocarlo). Faltan: cambios, devoluciones+NC, conteos, cuarentena, gastos+proformas y producción
-  del Taller — todas se escriben ENTRE 5.2 y 5.9.
+  investigación terminada (7 agentes en paralelo + síntesis, ver abajo) y **5 de 8 piezas ya escritas y probadas**: 5.1
+  (serie de Nota de Crédito), el parche a la Fase 4 (4.6b, selección de anulaciones), 5.2 (anulaciones completas), 5.3
+  (cambios de talla, 172) y 5.9 (cierre financiero único de cajas, al final de la fase: lee las tablas reales, así que cubre
+  las secciones que se escriban antes de él sin tocarlo). **Fase 6 (stock derivado) también escrita.** Faltan:
+  devoluciones+NC, conteos, cuarentena, gastos+proformas y producción del Taller — todas se escriben ENTRE 5.3 y 5.9.
 - **Las 7 recetas verificadas NO viven solo en este ADR** (aquí hay un resumen ejecutivo) — el detalle completo, palabra por
   palabra contra producción en vivo, está en dos archivos nuevos que hay que leer ANTES de escribir el resto de la Fase 5:
   - `docs/demo-90-dias/fase-5-recetas-verificadas.md` — las 7 recetas completas (devoluciones+NC, cambios, anulaciones,

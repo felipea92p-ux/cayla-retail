@@ -15,12 +15,11 @@
 -- Todo id sembrado empieza en 5eed (overlay de un md5 determinista) — así
 -- se puede filtrar y deshacer sin tocar los 45 productos / 16 ventas reales.
 --
--- Fases 1-3 de 7 — catálogo, demanda, inventario inicial y abastecimiento.
--- (El SKU manual de las variantes queda vacío: el trigger igual les asigna
--- código y código de barras, y ninguna pantalla ni RPC exige SKU.)
--- Hecho: fase 1 (catálogo), 2 (demanda) y 3 (inventario inicial y abastecimiento).
--- Pendiente: 4 (ventas, caja y comprobantes), 5 (postventa, gastos y Taller), 6 (stock
--- derivado y cierre), 7 (ensayo completo y prueba de reversibilidad) — no encadenar.
+-- Hecho: fases 1-4 (catálogo, demanda, abastecimiento, ventas/caja/comprobantes), 5 parcial (serie de NC,
+-- anulaciones, cambios de talla, cierre financiero de cajas) y 6 (stock derivado de movimientos).
+-- NO incluye todavía: devoluciones + nota de crédito, conteos, cuarentena resuelta, gastos/proformas, producción
+-- del Taller, ni deshacer-90-dias.sql (ver ADR-0150).
+-- (El SKU manual de las variantes queda vacío: el trigger igual les asigna código y código de barras.)
 -- ============================================================================
 
 begin;
@@ -2167,6 +2166,139 @@ begin
     (select count(*) from tmp_anulacion_items), (select count(*) from tmp_anulacion_items where condicion = 'vendible');
 end $$;
 
+-- ---- 5.3 Cambios de talla (~200). Mismo cuerpo que registrar_cambio() viva (2026-09-22): entrada de la prenda que
+-- trae la clienta (al piso, o a cuarentena si viene con defecto) y salida de la nueva del piso, las dos con cambio_id y sin
+-- venta_item_id; diferencia = (precio nueva − precio de lista vendido) × cantidad. Nunca sobre una venta anulada.
+-- El 12 % es por defecto (misma variante, la devuelta va a cuarentena → prendas_danadas); el resto, a la talla vecina del
+-- mismo color (65 % más grande). A15: el producto más vendido recibe más cambios, para que «tallas que no calzan» tenga
+-- al menos un par con 3+. La prenda nueva solo sale si el piso la tiene en ese instante Y hasta el final (saldo futuro
+-- mínimo ≥ cantidad), y como mucho un cambio por (variante nueva, tienda): así ninguna venta posterior queda sin stock.
+create temp table tmp_talla_ord on commit drop as
+select v.id as variante_id, v.producto_id, v.color_codigo, v.precio,
+       case t.valor when 'XS' then 1 when 'S' then 2 when 'M' then 3 when 'L' then 4 when 'XL' then 5 when 'XXL' then 6
+         else case when t.valor ~ '^\d+$' then t.valor::int end end as ord
+from variantes v join tallas t on t.id = v.talla_id where v.id::text like '5eed%';
+
+create temp table tmp_top_producto on commit drop as
+select o.producto_id from venta_items vi join tmp_talla_ord o on o.variante_id = vi.variante_id
+where o.ord is not null and vi.id::text like '5eed%' group by 1 order by count(*) desc, 1 limit 1;
+
+-- libro del piso ya con ventas y anulaciones (misma fórmula que fn_aplicar_movimiento / chequeo de la Fase 3)
+create temp table tmp_ev5 on commit drop as
+select m.variante_id, m.ubicacion_id, m.sububicacion_id as sub, m.created_at as ts, m.id as ref,
+       case m.tipo when 'entrada' then m.cantidad when 'ajuste' then m.cantidad else -m.cantidad end as d
+from movimientos m where m.id::text like '5eed%'
+union all
+select m.variante_id, m.ubicacion_destino_id, m.sububicacion_destino_id, m.created_at, m.id, m.cantidad
+from movimientos m where m.id::text like '5eed%' and m.tipo = 'traslado';
+
+create temp table tmp_ev5s on commit drop as
+select variante_id, ubicacion_id, sub, ts, saldo,
+       min(saldo) over (partition by variante_id, ubicacion_id, sub order by ts desc, ord desc rows unbounded preceding) as min_desde_aqui
+from (select *, row_number() over (partition by variante_id, ubicacion_id, sub order by ts, (d < 0)::int, ref) as ord,
+             sum(d) over (partition by variante_id, ubicacion_id, sub order by ts, (d < 0)::int, ref rows unbounded preceding) as saldo
+      from tmp_ev5) x;
+create index on tmp_ev5s (variante_id, ubicacion_id, sub, ts);
+
+create temp table tmp_cambio on commit drop as
+with cand as (
+  select vi.id as venta_item_id, vi.variante_id, vi.cantidad, vi.precio_unitario, cab.ubicacion_id, cab.fecha, o.producto_id,
+         o.color_codigo, o.ord, pg_temp.h('cambiomot:' || vi.id) < 0.12 as defecto
+  from venta_items vi
+  join tmp_venta_cab cab on cab.ticket_id = vi.venta_id
+  join tmp_talla_ord o on o.variante_id = vi.variante_id
+  where o.ord is not null
+    and not exists (select 1 from tmp_venta_anulada a where a.ticket_id = cab.ticket_id)
+    and pg_temp.h('cambio:' || vi.id) < case when o.producto_id in (select producto_id from tmp_top_producto) then 0.25 else 0.06 end
+), con_nueva as (
+  select c.*, coalesce(case when c.defecto then c.variante_id end, n.variante_id) as variante_nueva_id, n.ord as ord_nueva
+  from cand c
+  left join lateral (
+    select o2.variante_id, o2.ord from tmp_talla_ord o2
+    where o2.producto_id = c.producto_id and o2.color_codigo is not distinct from c.color_codigo and o2.ord <> c.ord
+    order by ((o2.ord > c.ord) = (pg_temp.h('cambiodir:' || c.venta_item_id) < 0.65)) desc, abs(o2.ord - c.ord), o2.ord limit 1
+  ) n on not c.defecto
+), con_caja as (
+  select c.*, k.caja_id,
+         k.abierta_en + interval '5 minutes'
+           + pg_temp.h('cambiots:' || c.venta_item_id) * (k.cerrada_en - k.abierta_en - interval '10 minutes') as ts
+  from con_nueva c
+  join tmp_cajas k on k.ubicacion_id = c.ubicacion_id
+   and k.fecha = c.fecha + 1 + floor(pg_temp.h('cambiodia:' || c.venta_item_id) * 10)::int
+   and k.cerrada_en - k.abierta_en > interval '20 minutes'
+  where c.variante_nueva_id is not null
+)
+select c.*, pg_temp.sid('cambio', c.venta_item_id::text) as cambio_id,
+       case when c.defecto then 'defecto' when c.ord_nueva > c.ord then 'talla_chica' else 'talla_grande' end as motivo,
+       (nv.precio - c.precio_unitario) * c.cantidad as diferencia,
+       pg_temp.firmante(c.ubicacion_id, (c.ts at time zone 'America/Lima')::date, false, 'cambio:' || c.venta_item_id) as usuario_id,
+       row_number() over (partition by c.variante_nueva_id, c.ubicacion_id order by c.ts, c.venta_item_id) as n_bucket
+from con_caja c
+join variantes nv on nv.id = c.variante_nueva_id
+join tmp_ubic u on u.ubicacion_id = c.ubicacion_id
+where coalesce((select s.saldo from tmp_ev5s s where s.variante_id = c.variante_nueva_id and s.ubicacion_id = c.ubicacion_id
+                  and s.sub = u.sub_piso and s.ts < c.ts order by s.ts desc limit 1), 0) >= c.cantidad
+  and coalesce((select s.min_desde_aqui from tmp_ev5s s where s.variante_id = c.variante_nueva_id and s.ubicacion_id = c.ubicacion_id
+                  and s.sub = u.sub_piso and s.ts > c.ts order by s.ts limit 1), c.cantidad) >= c.cantidad;
+delete from tmp_cambio where n_bucket > 1;
+
+insert into cambios (id, venta_item_id, ubicacion_id, variante_nueva_id, cantidad, diferencia, metodo_pago_diferencia,
+                     usuario_id, created_at, caja_id, motivo, condicion)
+select c.cambio_id, c.venta_item_id, c.ubicacion_id, c.variante_nueva_id, c.cantidad, c.diferencia,
+       case when c.diferencia <> 0 then pg_temp.metodo_por_umbral(pg_temp.h('cambiopago:' || c.venta_item_id)) end,
+       c.usuario_id, c.ts, c.caja_id, c.motivo, case when c.defecto then 'no_vendible' else 'vendible' end
+from tmp_cambio c;
+
+insert into movimientos (id, variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, cambio_id, usuario_id, created_at)
+select pg_temp.sid('mov', 'cambio-ent:' || c.cambio_id), c.variante_id, c.ubicacion_id,
+       case when c.defecto then (select s.id from sububicaciones s where s.ubicacion_id = c.ubicacion_id and s.tipo = 'cuarentena')
+            else u.sub_piso end,
+       'entrada', c.cantidad, 'cambio', c.cambio_id, c.usuario_id, c.ts
+from tmp_cambio c join tmp_ubic u on u.ubicacion_id = c.ubicacion_id
+union all
+select pg_temp.sid('mov', 'cambio-sal:' || c.cambio_id), c.variante_nueva_id, c.ubicacion_id, u.sub_piso,
+       'salida', c.cantidad, 'cambio', c.cambio_id, c.usuario_id, c.ts
+from tmp_cambio c join tmp_ubic u on u.ubicacion_id = c.ubicacion_id;
+
+insert into prendas_danadas (id, variante_id, ubicacion_id, cantidad, cambio_id, movimiento_entrada_id, created_at)
+select pg_temp.sid('danada', 'cambio:' || c.cambio_id), c.variante_id, c.ubicacion_id, c.cantidad, c.cambio_id,
+       pg_temp.sid('mov', 'cambio-ent:' || c.cambio_id), c.ts
+from tmp_cambio c where c.defecto;
+
+do $$
+declare v_n int;
+begin
+  select count(*) into v_n from cambios where id::text like '5eed%';
+  if v_n < 120 or v_n > 320 then raise exception '[check cambios] % cambios (se esperaban ~200)', v_n; end if;
+  -- (1) cada cambio con sus 2 movimientos y ninguno con venta_item_id
+  select count(*) into v_n from cambios k where k.id::text like '5eed%'
+    and (select count(*) from movimientos m where m.cambio_id = k.id and m.venta_item_id is null) <> 2;
+  if v_n > 0 then raise exception '[check cambios] % cambios sin exactamente 2 movimientos', v_n; end if;
+  -- (2) no_vendible ⇔ una prenda dañada
+  select count(*) into v_n from cambios k where k.id::text like '5eed%'
+    and (k.condicion = 'no_vendible') <> exists (select 1 from prendas_danadas p where p.cambio_id = k.id);
+  if v_n > 0 then raise exception '[check cambios] % cambios donde la prenda dañada no coincide con la condición', v_n; end if;
+  -- (3) ninguno sobre venta anulada, ninguno antes de su venta, ninguno fuera de su caja
+  select count(*) into v_n from cambios k join venta_items vi on vi.id = k.venta_item_id join ventas v on v.id = vi.venta_id
+    join cajas c on c.id = k.caja_id
+    where k.id::text like '5eed%' and (v.estado = 'anulada' or k.created_at <= v.created_at
+                                       or k.created_at not between c.abierta_en and c.cerrada_en);
+  if v_n > 0 then raise exception '[check cambios] % cambios sobre venta anulada, antes de la venta o fuera de su caja', v_n; end if;
+  -- (4) Σ cambiado por línea ≤ lo vendido
+  select count(*) into v_n from (select k.venta_item_id from cambios k join venta_items vi on vi.id = k.venta_item_id
+    group by k.venta_item_id, vi.cantidad having sum(k.cantidad) > vi.cantidad) z;
+  if v_n > 0 then raise exception '[check cambios] % líneas con más cambiado que vendido', v_n; end if;
+  -- (5) A15: al menos un (producto, talla vendida → talla entregada) con 3+ prendas
+  select count(*) into v_n from (
+    select vo.producto_id, vo.talla_id, vn.talla_id from cambios k
+      join venta_items vi on vi.id = k.venta_item_id join variantes vo on vo.id = vi.variante_id
+      join variantes vn on vn.id = k.variante_nueva_id
+    where k.id::text like '5eed%' and vo.talla_id <> vn.talla_id group by 1, 2, 3 having sum(k.cantidad) >= 3) z;
+  if v_n < 1 then raise exception '[check cambios] A15: ningún par de tallas con 3+ cambios'; end if;
+  raise notice '[check cambios] OK — % cambios (% por defecto), % pares de talla con 3+ (A15)',
+    (select count(*) from tmp_cambio), (select count(*) from tmp_cambio where defecto), v_n;
+end $$;
+
 -- ---- 5.9 Cierre financiero de cajas (UNO solo, al final de toda la Fase 5) ----
 -- Las cajas se cerraron en la Fase 4 con apertura + efectivo de ventas. Lo que la Fase 5 agrega (anulaciones, y cuando
 -- existan: devoluciones en efectivo, diferencias de cambio en efectivo, ingresos/egresos de caja) cambia lo que el
@@ -2199,6 +2331,54 @@ begin
   select count(*) into v_n from cajas where id::text like '5eed%' and monto_cierre_real < 0;
   if v_n > 0 then raise exception '[check cierre] % cajas con monto contado negativo', v_n; end if;
   raise notice '[check cierre] OK — cajas recalculadas con la fórmula completa de cerrar_caja()';
+end $$;
+
+-- =============================================================================
+-- FASE 6 — STOCK DERIVADO
+-- `stock` es la foto de `movimientos` (principio 4). Las RPC reales la mantienen con fn_aplicar_movimiento() en cada acto;
+-- el generador inserta movimientos directo, así que aquí se deriva de una vez, con la misma regla por tipo (entrada +,
+-- salida −, ajuste con signo, traslado − en origen y + en destino). Solo variantes sembradas (todas nuevas: ninguna fila
+-- real de stock se toca) y nunca recalcular_stock() global. Antes, el saldo corrido de TODO el libro sembrado: ningún
+-- bucket pudo haber quedado negativo en ningún instante (si pasa, fn_aplicar_movimiento lo habría rechazado en la vida real).
+-- =============================================================================
+do $$
+declare v_n int;
+begin
+  select count(*) into v_n from (
+    select variante_id, ubicacion_id, sub from (
+      select variante_id, ubicacion_id, sub,
+             sum(d) over (partition by variante_id, ubicacion_id, sub order by ts, (d < 0)::int, ref rows unbounded preceding) as saldo
+      from (select m.variante_id, m.ubicacion_id, m.sububicacion_id as sub, m.created_at as ts, m.id as ref,
+                   case m.tipo when 'entrada' then m.cantidad when 'ajuste' then m.cantidad else -m.cantidad end as d
+            from movimientos m where m.id::text like '5eed%'
+            union all
+            select m.variante_id, m.ubicacion_destino_id, m.sububicacion_destino_id, m.created_at, m.id, m.cantidad
+            from movimientos m where m.id::text like '5eed%' and m.tipo = 'traslado') e) x
+    group by 1, 2, 3 having min(saldo) < 0) y;
+  if v_n > 0 then raise exception '[check stock] % buckets con saldo negativo en algún instante (libro completo)', v_n; end if;
+end $$;
+
+insert into stock (variante_id, ubicacion_id, sububicacion_id, cantidad)
+select variante_id, ubicacion_id, sub, sum(d)
+from (select m.variante_id, m.ubicacion_id, m.sububicacion_id as sub,
+             case m.tipo when 'entrada' then m.cantidad when 'ajuste' then m.cantidad else -m.cantidad end as d
+      from movimientos m where m.id::text like '5eed%'
+      union all
+      select m.variante_id, m.ubicacion_destino_id, m.sububicacion_destino_id, m.cantidad
+      from movimientos m where m.id::text like '5eed%' and m.tipo = 'traslado') e
+group by 1, 2, 3;
+
+do $$
+declare v_n int; v_total bigint;
+begin
+  select count(*) into v_n from stock s where s.variante_id::text like '5eed%' and s.cantidad < 0;
+  if v_n > 0 then raise exception '[check stock] % filas de stock negativas', v_n; end if;
+  select count(*) into v_n from stock s where s.variante_id::text not like '5eed%'
+    and exists (select 1 from movimientos m where m.variante_id = s.variante_id and m.id::text like '5eed%');
+  if v_n > 0 then raise exception '[check stock] % movimientos sembrados sobre variantes reales', v_n; end if;
+  select sum(cantidad) into v_total from stock where variante_id::text like '5eed%';
+  raise notice '[check stock] OK — % filas, % prendas en stock sembrado',
+    (select count(*) from stock where variante_id::text like '5eed%'), v_total;
 end $$;
 
 -- Sincroniza transferencias_numero_seq con el número más alto que quedó sembrado. Un INSERT con `numero` explícito nunca

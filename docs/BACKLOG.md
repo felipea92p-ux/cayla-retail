@@ -57,8 +57,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
   sembradas con la fórmula completa de `cerrar_caja()` (ventas no anuladas + ingresos − egresos − reembolsos + cambios, en
   efectivo) leyendo las tablas reales, así cubre solas las secciones que faltan. A1 se preserva. Ensayado en local: 30 cajas
   con anulación en efectivo recalculadas bien, `ROLLBACK` limpio.
-- [ ] Falta escribir el resto de la Fase 5 (con las recetas ya verificadas): cambios, devoluciones+NC (ambas deben excluir
-  `tmp_venta_anulada` y excluirse entre sí), conteos, cuarentena, gastos+proformas, producción del Taller (infra+órdenes en
+- [x] **Fase 5.3 cambios + Fase 6 stock derivado** (2026-09-22): 172 cambios de talla (25 por defecto → cuarentena y
+  `prendas_danadas`), nunca sobre venta anulada, la prenda nueva solo sale si el piso la tiene hasta el final; A15 con 7
+  pares de talla 3+. Fase 6 deriva `stock` de los movimientos sembrados (5.447 filas) tras comprobar el saldo corrido de
+  TODO el libro sin negativos. Ensayado en local, `ROLLBACK` limpio. Archivo: 161 KB.
+- [ ] Falta escribir el resto de la Fase 5 (con las recetas ya verificadas): devoluciones+NC (deben excluir
+  `tmp_venta_anulada` y los ítems con cambio), conteos, cuarentena, gastos+proformas, producción del Taller (infra+órdenes en
   un solo bloque, por el conflicto de mecanismo que encontró la síntesis). Luego Fase 6 (`stock` derivado) y Fase 7 (ensayo completo + reversibilidad).
 - [ ] Decidido por Felipe (2026-09-21): la ventana termina el día del `COMMIT` (el mismo en que se arme); falta la hora tranquila y confirmar el respaldo del día. **Una fase por turno; Felipe da el OK entre cada una.**
 - [ ] Archivos que faltan: `scripts/demo/verificar-90-dias.sql`, `scripts/demo/deshacer-90-dias.sql` (no se corre sin OK), `docs/demo-90-dias/QUE-MIRAR.md`.
