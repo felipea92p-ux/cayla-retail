@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getConteoAbierto, getConteosResumen, getPrevisualizacionCierre, getPrioridadConteo } from "@/lib/conteos";
 import { avanceConteo, exactitudConteos, resumirVarianza, tonoExactitud } from "@/lib/conteo-varianza";
 import { getCatalogo, getEjesPorCategoria } from "@/lib/catalogo-v2";
@@ -128,7 +128,8 @@ export default async function ConteoPage() {
       <div id="contar" className="scroll-mt-6">
         <ConteoPanel
           ubicacionId={persona.ubicacionId}
-          esLider={persona.rol === "lider"}
+          puedeCerrar={puede(persona, "ajustarInventario")}
+          puedeCrearMarcas={puede(persona, "editarCatalogo")}
           conteoAbierto={conteoAbierto}
           avance={avance}
           sububicaciones={sububicaciones}

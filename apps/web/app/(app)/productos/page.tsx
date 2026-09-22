@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { getSububicaciones } from "@/lib/sububicaciones";
@@ -43,7 +43,7 @@ import { mensajeSinResultados } from "@/lib/productos-stock";
 //
 // Fase 2 (2026-09-15): alta de producto con matriz talla×color, en
 // `/productos/nuevo` — RPC `crear_producto_con_variantes`, candado real de
-// Líder ahí; `persona.rol === "lider"` de acá solo decide si el botón se
+// Líder o terminal administrativa ahí (ADR-0160); `puede(persona, "editarCatalogo")` de acá solo decide si el botón se
 // MUESTRA. Editar un producto ya existente sigue en `ProductoForm`
 // (`/productos/[id]/editar`): la matriz es para crear varias variantes de
 // una sola vez, no tiene sentido para una que ya existe.
@@ -75,7 +75,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
     getSububicaciones(persona.ubicacionId),
-    persona.rol === "lider" ? getProductosPendientesAlta() : Promise.resolve([]),
+    puede(persona, "editarCatalogo") ? getProductosPendientesAlta() : Promise.resolve([]),
   ]);
 
   // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal).
@@ -118,7 +118,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
               Tabla
             </Link>
           </div>
-          {persona.rol === "lider" && (
+          {puede(persona, "editarCatalogo") && (
             <Link href="/productos/nuevo" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
               + Nuevo producto
             </Link>
@@ -187,7 +187,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           productos={resultado.productos}
           ubicacionId={persona.ubicacionId}
           sububicaciones={sububicaciones}
-          esLider={persona.rol === "lider"}
+          puedeAjustar={puede(persona, "ajustarInventario")}
           mensajeVacio={mensajeSinResultados(filtros)}
         />
       ) : (
@@ -195,7 +195,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           productos={resultado.productos}
           ubicacionId={persona.ubicacionId}
           sububicaciones={sububicaciones}
-          esLider={persona.rol === "lider"}
+          puedeEditar={puede(persona, "editarCatalogo")}
+          puedeAjustar={puede(persona, "ajustarInventario")}
           mensajeVacio={mensajeSinResultados(filtros)}
         />
       )}

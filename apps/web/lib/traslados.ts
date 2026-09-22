@@ -219,7 +219,7 @@ type FilaContador = {
  * comparte entre los dos layouts que la piden dentro del mismo request; los argumentos son
  * primitivos justamente para que la deduplicación funcione.
  */
-export const getTrasladosPorAtender = cache(async (ubicacionId: string, esLider: boolean): Promise<number | null> => {
+export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCerrarDiferencia: boolean): Promise<number | null> => {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -239,7 +239,7 @@ export const getTrasladosPorAtender = cache(async (ubicacionId: string, esLider:
         fechaEstimadaLlegada: f.fecha_estimada_llegada,
         confirmadoEn: f.confirmado_en,
       })),
-      { miUbicacionId: ubicacionId, esLider, ahoraIso: new Date().toISOString() }
+      { miUbicacionId: ubicacionId, puedeCerrarDiferencia, ahoraIso: new Date().toISOString() }
     );
   } catch (e) {
     console.error("Contador de traslados:", e);

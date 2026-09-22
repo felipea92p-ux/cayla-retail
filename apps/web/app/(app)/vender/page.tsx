@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getCajaAbierta } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -91,6 +91,7 @@ async function Caja() {
       // Solo decide qué se muestra (el campo «Código» del descuento): la regla de quién
       // descuenta la aplica `registrar_venta` (20260914215103_codigos_descuento.sql).
       esLider={persona.rol === "lider"}
+      puedeCerrarCaja={puede(persona, "gestionarCaja")}
       ubicacionEtiqueta={persona.ubicacionEtiqueta}
       cajaId={caja?.id ?? null}
       variantes={variantesParaVenta}

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { redirect } from "next/navigation";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { fechaCorta, listarMovimientos, textoDelta } from "@/lib/movimientos-v2";
 import { etiquetaMovimiento } from "@/lib/movimientos-reglas";
 import { getTrasladosPorAtender } from "@/lib/traslados";
@@ -21,13 +22,16 @@ import { formatoSoles } from "@/lib/resumen-formato";
 
 export default async function InicioPage() {
   const persona = await requirePersonaActualV2();
+  // La terminal de ventas aterriza en el Punto de Venta (pedido de Felipe, 2026-09-21): su menú no tiene «Inicio», su
+  // casa es el mostrador. Es un aterrizaje, no un candado: la ruta sigue existiendo para quien sí la ve.
+  if (persona.terminal === "ventas") redirect("/vender");
   const esLider = persona.rol === "lider";
-  const perfil = { rol: persona.rol, ubicacionTipo: persona.ubicacionTipo };
+  const perfil = { rol: persona.rol, ubicacionTipo: persona.ubicacionTipo, terminal: persona.terminal };
 
   const [hoy, trasladosPorAtender, actividad] = await Promise.all([
     mostrarHoy(perfil) ? getHoyDeLaSede(persona.ubicacionId, esLider) : Promise.resolve(null),
     // Total (nunca lanza): devuelve null si no pudo leer. Es la misma cifra del «2» del menú.
-    getTrasladosPorAtender(persona.ubicacionId, esLider),
+    getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")),
     // Los últimos 8 de todo el historial (sin el recorte de 30 días de la pantalla de Movimientos): en Inicio
     // importa «lo último», no un período. Dato secundario: si falla, el resto sigue y el aviso va en su lugar.
     listarMovimientos(persona.ubicacionId, {}, { limite: 8 }).then(

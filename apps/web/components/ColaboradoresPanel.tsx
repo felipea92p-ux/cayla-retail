@@ -19,13 +19,17 @@ import { Boton } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TabsSubrayado } from "@/components/ui/TabsSubrayado";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { AgregarColaboradoresModal, CambiarUbicacionModal, QuitarAccesoModal, SuspenderModal } from "@/components/ColaboradoresModales";
-import { ListaActividad, TablaActivos, TablaInactivas, TablaPendientes, TablaSuspendidos } from "@/components/ColaboradoresTablas";
+import { AgregarColaboradoresModal, AgregarTerminalModal, CambiarUbicacionModal, QuitarAccesoModal, SuspenderModal } from "@/components/ColaboradoresModales";
+import { ListaActividad, TablaActivos, TablaInactivas, TablaPendientes, TablaSuspendidos, TablaTerminales } from "@/components/ColaboradoresTablas";
 
-type Pestana = "activos" | "pendientes" | "suspendidos" | "inactivas" | "actividad";
+// «Terminales» separada de «Activos» (pedido de Felipe, 2026-09-22): una cuenta terminal no es una persona real y
+// mezclarla en la misma tabla que líderes/colaboradores generaba confusión. Vive en su propia pestaña, entre Activos
+// (a quién le toca primero) y Pendientes (D-70) — mismos datos de `fn_colaboradores()`, solo separados en la pantalla.
+type Pestana = "activos" | "terminales" | "pendientes" | "suspendidos" | "inactivas" | "actividad";
 
 type Modal =
   | { tipo: "agregar" }
+  | { tipo: "terminal" }
   | { tipo: "suspender"; persona: Colaborador }
   | { tipo: "ubicacion"; persona: Colaborador }
   | { tipo: "quitar"; persona: { persona_id: string; nombre: string }; suspendida: boolean; pendiente?: boolean };
@@ -71,8 +75,13 @@ export function ColaboradoresPanel({
   const [modal, setModal] = useState<Modal | null>(null);
   const [ocupadoId, setOcupadoId] = useState<string | null>(null);
 
+  // Separadas UNA vez acá: el resto del panel (KPIs, buscador, pestaña Activos) trabaja solo con personas reales;
+  // «Terminales» es la única pestaña que lee `terminales`. Los datos son los mismos `fn_colaboradores()`, no una
+  // lectura aparte — separar es cosa de la pantalla, no de la base (ver ADR-0160).
+  const colaboradoresReales = useMemo(() => colaboradores.filter((c) => !c.terminal), [colaboradores]);
+  const terminales = useMemo(() => colaboradores.filter((c) => c.terminal), [colaboradores]);
   const resumen = useMemo(() => resumirAccesos(colaboradores, suspendidos, disponibles), [colaboradores, suspendidos, disponibles]);
-  const filas = useMemo(() => filtrarColaboradores(colaboradores, busqueda, rol), [colaboradores, busqueda, rol]);
+  const filas = useMemo(() => filtrarColaboradores(colaboradoresReales, busqueda, rol), [colaboradoresReales, busqueda, rol]);
   const totalActividad = actividad[0]?.total ?? 0;
 
   async function ejecutar(idOcupado: string | null, verbo: string, llamada: () => Promise<ResultadoAccion>, exito: string, detalle?: string) {
@@ -106,9 +115,14 @@ export function ColaboradoresPanel({
           </p>
         </div>
         <div className="text-right">
-          <Boton peso="primario" onClick={() => setModal({ tipo: "agregar" })} disabled={disponibles.length === 0}>
-            + Agregar colaboradores
-          </Boton>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Boton peso="fantasma" onClick={() => setModal({ tipo: "terminal" })} disabled={disponibles.length === 0}>
+              + Agregar terminal
+            </Boton>
+            <Boton peso="primario" onClick={() => setModal({ tipo: "agregar" })} disabled={disponibles.length === 0}>
+              + Agregar colaboradores
+            </Boton>
+          </div>
           {disponibles.length === 0 && <p className="mt-1 text-xs text-tinta/65">Todas las cuentas activas de Dynamic ya tienen acceso.</p>}
         </div>
       </div>
@@ -142,7 +156,8 @@ export function ColaboradoresPanel({
         className="border-b border-tinta/10"
         clasePestana="px-1 py-3 text-sm"
         items={[
-          { clave: "activos", etiqueta: "Activos", conteo: colaboradores.length },
+          { clave: "activos", etiqueta: "Activos", conteo: colaboradoresReales.length },
+          { clave: "terminales", etiqueta: "Terminales", conteo: terminales.length },
           { clave: "pendientes", etiqueta: "Pendientes", conteo: pendientes.length, tono: pendientes.length > 0 ? "ambar" : undefined },
           { clave: "suspendidos", etiqueta: "Suspendidos", conteo: suspendidos.length, tono: suspendidos.length > 0 ? "ambar" : undefined },
           { clave: "inactivas", etiqueta: "Inactivas en Dynamic", conteo: inactivos.length },
@@ -152,7 +167,7 @@ export function ColaboradoresPanel({
 
       {pestana === "activos" && (
         <section aria-label="Colaboradores activos" className="space-y-4">
-          {colaboradores.length === 0 ? (
+          {colaboradoresReales.length === 0 ? (
             <Vacio>Nadie tiene acceso a retail todavía.</Vacio>
           ) : (
             <>
@@ -171,7 +186,7 @@ export function ColaboradoresPanel({
                   valor={rol}
                   onCambio={(k) => setRol(k as FiltroRol)}
                   opciones={[
-                    { clave: "todos", etiqueta: "Todos", conteo: colaboradores.length },
+                    { clave: "todos", etiqueta: "Todos", conteo: colaboradoresReales.length },
                     { clave: "lider", etiqueta: "Líderes", conteo: resumen.lideres },
                     { clave: "colaborador", etiqueta: "Colaboradores", conteo: resumen.colaboradores },
                   ]}
@@ -183,10 +198,26 @@ export function ColaboradoresPanel({
                 <TablaActivos filas={filas} ocupadoId={ocupadoId} onAccion={alElegirAccion} />
               )}
               <p className="text-xs text-tinta/65" role="status">
-                {filas.length === colaboradores.length
+                {filas.length === colaboradoresReales.length
                   ? plural(filas.length, "persona con acceso", "personas con acceso")
-                  : `${filas.length} de ${plural(colaboradores.length, "persona", "personas")}`}
+                  : `${filas.length} de ${plural(colaboradoresReales.length, "persona", "personas")}`}
               </p>
+            </>
+          )}
+        </section>
+      )}
+
+      {pestana === "terminales" && (
+        <section aria-label="Cuentas terminal" className="space-y-3">
+          {terminales.length === 0 ? (
+            <Vacio>Ninguna tienda tiene una terminal todavía.</Vacio>
+          ) : (
+            <>
+              <p className="text-sm text-tinta/70">
+                Cuentas compartidas por el equipo de una tienda (ADR-0160), no personas — por eso viven aparte de Activos. La de ventas cobra, cierra caja y
+                factura; la administrativa ajusta inventario, escribe en el catálogo y edita las cuentas de proveedores.
+              </p>
+              <TablaTerminales filas={terminales} ocupadoId={ocupadoId} onAccion={alElegirAccion} />
             </>
           )}
         </section>
@@ -262,6 +293,17 @@ export function ColaboradoresPanel({
           onClose={() => setModal(null)}
           onConfirmar={(personas, ubicacionId) =>
             ejecutar(null, "agregar a los colaboradores", () => acciones.agregar(personas, ubicacionId), `${plural(personas.length, "persona queda pendiente de aprobación", "personas quedan pendientes de aprobación")} — un líder debe aprobarlas antes de que puedan operar`)
+          }
+        />
+      )}
+      {modal?.tipo === "terminal" && (
+        <AgregarTerminalModal
+          disponibles={disponibles}
+          tiendas={ubicaciones.filter((u) => u.tipo === "tienda" && u.activo)}
+          ocupadas={new Set(terminales.filter((c) => c.ubicacion_id).map((c) => `${c.ubicacion_id}|${c.terminal}`))}
+          onClose={() => setModal(null)}
+          onConfirmar={(personaId, ubicacionId, tipo) =>
+            ejecutar(null, "agregar la terminal", () => acciones.agregarTerminal(personaId, ubicacionId, tipo), "Terminal agregada", `Ya puede entrar a retail como ${tipo === "ventas" ? "terminal de ventas" : "terminal administrativa"}.`)
           }
         />
       )}

@@ -28,6 +28,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Cuentas terminal por tienda (2026-09-21, ADR-0159) — hecho y probado en local; NADA en producción
+- [x] **Base:** `20260922200000_terminales_por_tienda.sql` (columna `terminal`, `agregar_terminal`, 5 capacidades `fn_puede_*` «líder O terminal», candados inyectados desde la definición real en 13 funciones + 5 disparadores + 15 políticas; `suspender_colaborador`/`reactivar_colaborador` conservan el tipo también tras D-70). `pnpm pruebas:terminales` (75 casos, en el CI) y las 20 del ADR-0143 en verde con esta migración encima.
+- [x] **Web:** menú por terminal (`terminales` en `lib/menu.ts`, falla cerrado, con herencia por D-84), `puede()` / `exigirPermiso()`, la terminal de ventas aterriza en `/vender`, y Caja, Existencias, Productos, Conteo, Traslados, Facturación y Catálogo deciden por permiso; pestaña propia **«Terminales»** en `/colaboradores` (separada de Activos, pedido de Felipe) con «+ Agregar terminal». Fusionado con D-70 (alta con aprobación) y D-84 (subgrupos de menú): la terminal queda **exenta** de la cola de aprobación.
+- [ ] **Pegar la migración en producción — cambio de esquema: confirmar con Felipe antes.** Pasos y verificación en el ADR-0159.
+- [ ] **Felipe:** crear las 6 personas en Dynamic (+ 6 usuarios en Supabase Auth) y dar entrada con «+ Agregar terminal». Quien administra Dynamic debe sacarlas de la marcación (`terminal_roster`) y la planilla.
+- [ ] **Probarlas con clics:** nadie ha visto las terminales en el navegador (entrar como terminal exige claves que yo no escribo).
+- [ ] **Compras de la administrativa = ADR-0151** («comprador de tienda»). Esa rama (`claude/adr-0145-compras-permisos`) **no está subida a GitHub**. Conflicto esperado al fusionar: `menu.ts`, `ci.yml`, `package.json`.
+- [ ] El combo «¿quién atiende?» del Punto de Venta (`ventas.vendedor_id`) — otra sesión.
+- [ ] Disparador que impida mover una terminal al Taller llamando `cambiar_ubicacion_colaborador` a mano (la web no lo ofrece; la base no lo impide).
+- [ ] Tras pegar: `pnpm datos:generar:produccion` (la columna `terminal` entra al diccionario).
+
 ## 🎯 Ficha de clienta v1, backend (2026-09-22, ADR-0154, D-76/D-77) — hecho en local, FALTA PEGAR 1 MIGRACIÓN EN PRODUCCIÓN
 Tabla `retail.clientas` + RPC `buscar_clienta`/`registrar_clienta`. La FK de `ventas.cliente_id` se repuntó desde la tabla vieja `retail.clientes`
 (se retira — ~0 filas en producción, pero dos lectores activos que también se actualizaron: `fn_ventas_del_dia` y el embed de Ventas ▸ Historial).
@@ -199,6 +210,21 @@ decisiones, lo que se descartó y la verificación en [docs/adr/0141-apartar-sto
 - [ ] Subir el adjunto de la nota desde el módulo: `compra_adjuntos.nota_credito_id` ya existe y `registrar_adjunto_compra` lo acepta; falta el flujo de archivos en la pantalla.
 - [ ] Decidir si se borran las piezas que quedaron huérfanas: `components/NotaCreditoCierre.tsx` (nadie lo importa) y en `lib/recepciones-reglas.ts` `notaDelBloque`, `disponibilidadNota`, `efectoCierre`, `igvDeMonto`, `montoNotaSugerido`.
 - [ ] «Aplicada» se deduce por FIFO (D3): si algún día se quiere exacta, hay que guardar de qué nota salió cada uso del saldo — toca funciones que mueven dinero, por eso no se hizo.
+
+## 🎯 Caja: tareas de la auditoría `docs/pantallas/caja.md` (2026-09-21)
+- [x] #2 El modal de movimientos recibe el rol y no ofrece «Ajuste» a quien no es líder (reglas puras en `lib/caja-panel-reglas.ts`, `motivosDeMovimiento`). Solo esconde: el candado real es la #1.
+- [x] #3 Franja de aviso cuando la caja lleva 18 h o más abierta (`turnoLargo`, `AvisoTurnoLargo` en `CajaAbiertaPanel.tsx`). **Falta decidir con Felipe:** el umbral (18 h es propuesta) y quién cierra si no hay líder en la tienda.
+- [x] #6 Modal sin valores prellenados, foco en el monto, «S/», sin spinner, «Ingreso» en verde; referencia obligatoria en «Depósito bancario» y «Otro» (solo en el navegador; la base aún no lo exige).
+- [x] #10 Movimientos manuales en hora de Lima (`diaYHoraLima`).
+- [ ] #1 Candado real en `registrar_movimiento_caja` (vocabulario cerrado, `es_ajuste` del servidor, referencia obligatoria; reconciliar D-13 con ADR-0056) — **migración en producción: confirmar con Felipe**. Espera su decisión sobre permisos.
+- [ ] #5 Replantear «Ajuste de caja» (A o B, §8 de la auditoría) — decide Felipe.
+- [ ] #4 Tarjetas, dona, lista y ritmo miden el turno; `getResumenCaja` excluye anuladas — M
+- [ ] #7 El cierre muestra al líder los movimientos manuales del turno con su autor — S
+- [ ] #8 Historial de cierres con la diferencia visible, filtro por sede y paginación — M
+- [ ] #9 Movimientos de caja sin internet y chip de sincronía honesto — M
+- [ ] #11 Piel restante del modal: desplegable propio y tope de 2 rojos en el tablero — S (bajo valor)
+- [ ] #12 Borrar `CajaGraficos.tsx`, `senalCaja`, `tendenciaCierres7Dias` (sin uso) y pruebas de `getResumenCaja` — S (bajo valor)
+- [ ] Verificar en producción si `cajas_update` permite reescribir un cierre ya hecho (D1/D4 de la auditoría, nunca corridas) — S
 
 ## 🎯 Caja: «Ver todo», detalle de venta y reimpresión — ticket y A4 (2026-09-19, ADR-0137)
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
@@ -141,6 +141,7 @@ export default async function InventarioPage({
         danadosPendientes={danadosPendientes}
         apartados={apartados}
         esLider={persona.rol === "lider"}
+        puedeAjustar={puede(persona, "ajustarInventario")}
         coberturaFallo={cobertura?.fallo ?? null}
         filasSemana={filasSemana}
         deltaSede={deltaSede}

@@ -4,12 +4,14 @@ import type { Colaborador, ColaboradorInactivo, ColaboradorPendiente, Colaborado
 import {
   accionesDeFila,
   ETIQUETA_ROL,
+  ETIQUETA_TERMINAL,
   fechaLima,
   fraseEvento,
   plural,
   ultimoAccesoTexto,
   type AccionFila,
 } from "@/lib/colaboradores-reglas";
+import type { TipoTerminal } from "@/lib/menu";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { Chip } from "@/components/ui/Chip";
 import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
@@ -31,7 +33,8 @@ function Caja({ minimo, children }: { minimo: string; children: React.ReactNode 
   );
 }
 
-function ChipRol({ rol }: { rol: RolColaborador }) {
+function ChipRol({ rol, terminal }: { rol: RolColaborador; terminal?: TipoTerminal | null }) {
+  if (terminal) return <Chip tono="verde">{ETIQUETA_TERMINAL[terminal]}</Chip>;
   return <Chip tono="neutro">{ETIQUETA_ROL[rol]}</Chip>;
 }
 
@@ -91,7 +94,7 @@ export function TablaActivos({
                 <Persona nombre={c.nombre} correo={c.correo} tu={c.es_yo} />
               </td>
               <td className={CELDA}>
-                <ChipRol rol={c.rol} />
+                <ChipRol rol={c.rol} terminal={c.terminal} />
               </td>
               <td className={`${CELDA} whitespace-nowrap text-tinta/85`}>{c.rol === "lider" ? cualquiera : (c.ubicacion_asignada ?? "—")}</td>
               <td className={`${CELDA} whitespace-nowrap text-tinta/75`}>{c.sede ?? "—"}</td>
@@ -103,6 +106,61 @@ export function TablaActivos({
                 ) : (
                   <MenuAcciones etiqueta={`Acciones de ${c.nombre}`} items={items} deshabilitado={ocupadoId === c.persona_id} />
                 )}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </Caja>
+  );
+}
+
+// Cuentas terminal (ADR-0160): mismo patrón visual que TablaActivos —de hecho lee las mismas filas de
+// `fn_colaboradores()`, solo el subconjunto con `terminal` puesto— pero en su propia tabla, para que una cuenta
+// compartida por el equipo no se lea como una persona más en Activos. Sin «Sesión activa» (nadie es «tú» acá) ni
+// columna «Sede en Dynamic» (no aporta nada de una cuenta de servicio): en su lugar, el tipo de terminal.
+export function TablaTerminales({
+  filas,
+  ocupadoId,
+  onAccion,
+}: {
+  filas: Colaborador[];
+  ocupadoId: string | null;
+  onAccion: (c: Colaborador, accion: AccionFila) => void;
+}) {
+  return (
+    <Caja minimo="min-w-[760px]">
+      <thead className="border-b border-tinta/10 bg-tinta/[0.03] text-tinta/70">
+        <tr>
+          <th className={CABECERA}>Terminal</th>
+          <th className={CABECERA}>Tipo</th>
+          <th className={CABECERA}>Tienda</th>
+          <th className={CABECERA}>Desde</th>
+          <th className={CABECERA}>Último ingreso</th>
+          <th className={`${CABECERA} text-right`}>Acciones</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-tinta/5">
+        {filas.map((c) => {
+          const items: ItemMenu[] = accionesDeFila(c).map((a) => ({
+            clave: a,
+            etiqueta: ETIQUETA_ACCION[a],
+            peligro: a === "quitar",
+            onSelect: () => onAccion(c, a),
+          }));
+          return (
+            <tr key={c.persona_id} className={`transition-colors duration-150 hover:bg-tinta/[0.025] ${ocupadoId === c.persona_id ? "opacity-50" : ""}`}>
+              <td className={CELDA}>
+                <Persona nombre={c.nombre} correo={c.correo} />
+              </td>
+              <td className={CELDA}>
+                <ChipRol rol={c.rol} terminal={c.terminal} />
+              </td>
+              <td className={`${CELDA} whitespace-nowrap text-tinta/85`}>{c.ubicacion_asignada ?? "—"}</td>
+              <td className={`${CELDA} whitespace-nowrap tabular-nums text-tinta/75`}>{fechaLima(c.agregado_en)}</td>
+              <td className={`${CELDA} whitespace-nowrap tabular-nums text-tinta/75`}>{ultimoAccesoTexto(c.ultimo_acceso)}</td>
+              <td className={`${CELDA} text-right`}>
+                <MenuAcciones etiqueta={`Acciones de ${c.nombre}`} items={items} deshabilitado={ocupadoId === c.persona_id} />
               </td>
             </tr>
           );
