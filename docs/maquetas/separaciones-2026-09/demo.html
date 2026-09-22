@@ -328,7 +328,7 @@
       </article>
     </div>
     <div class="decision">
-      <div class="eyebrow" style="color:var(--rojo-p)">Decisión abierta que cambia la demo</div>
+      <div class="eyebrow" style="color:var(--rojo-p)">Felipe eligió A (2026-09-22) · se deja B para comparar</div>
       <div>¿Qué documento recibe la clienta al dejar el adelanto? Cámbialo aquí y vuelve a «Separar» o «Entregar»:</div>
       <div class="seg" id="modoComprobante" style="max-width:560px">
         <button type="button" data-modo="A" aria-pressed="true">A · Boleta de anticipo</button>
@@ -345,7 +345,9 @@
 <script>
 (() => {
   // ---------- Reglas de negocio (lo que irá a lib/separaciones-reglas.ts) ----------
-  const PLAZO_DIAS = 7, AVISO_DIAS = 2, GRACIA_DIAS = 2, ADELANTO_MIN = 0.30, EXTENSIONES_MAX = 1;
+  // Decidido por Felipe (2026-09-22): monto libre (sin mínimo), una sola extensión, devolución digital preferida.
+  const PLAZO_DIAS = 7, AVISO_DIAS = 2, GRACIA_DIAS = 2, EXTENSIONES_MAX = 1;
+  const DEVOLUCION = [ { id:'yape', nom:'Yape' }, { id:'plin', nom:'Plin' }, { id:'transferencia', nom:'Transferencia' } ];
   const DIA = 86400000;
   const MEDIOS = [
     { id:'efectivo', nom:'Efectivo', color:'var(--efectivo)', k:'F1' },
@@ -365,6 +367,7 @@
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
   const igv = total => { const base = total / 1.18; return { base, igv: total - base }; };
   const nombreMedio = id => MEDIOS.find(m => m.id === id)?.nom ?? id;
+  const devTxt = s => s.dev.medio === 'transferencia' ? 'transferencia (CCI ' + (s.dev.cci ? '…' + s.dev.cci.slice(-4) : 'por pedir') + ')' : nombreMedio(s.dev.medio) + ' al ' + s.dev.numero;
 
   // Estado derivado: nunca se guarda «por vencer» ni «vencida»; se calcula contra la fecha.
   function estadoDe(s, hoy) {
@@ -393,19 +396,19 @@
       seps: [
         { id:'SEP-TRU-0001', clienta:{ nombres:'Rosa', apellidos:'Mendoza Díaz', cel:'987 654 321', dni:'45879632' }, atendio:'Lucía Paredes',
           lineas:[{ cod:'CHO-0004-CRE-M', cant:1 }], total:129, adelanto:60, medio:'yape', creada:dia('2026-09-10'), vence:dia('2026-09-17'),
-          estado:'liberada', comp:'B004-000017', liberadaPor:'sistema', extensiones:0 },
+          estado:'liberada', comp:'B004-000017', liberadaPor:'sistema', extensiones:0, dev:{ medio:'yape', numero:'', cci:'' } },
         { id:'SEP-TRU-0002', clienta:{ nombres:'Karla', apellidos:'Soto Vega', cel:'955 111 204', dni:'' }, atendio:'Camila Rojas',
           lineas:[{ cod:'CAS-0002-BLA-L', cant:1 }], total:179, adelanto:90, medio:'efectivo', creada:dia('2026-09-11'), vence:dia('2026-09-18'),
-          estado:'entregada', comp:'B004-000018', compFinal:'B004-000020', extensiones:0 },
+          estado:'entregada', comp:'B004-000018', compFinal:'B004-000020', extensiones:0, dev:{ medio:'yape', numero:'', cci:'' } },
         { id:'SEP-TRU-0003', clienta:{ nombres:'Mariana', apellidos:'Quispe Luján', cel:'944 820 117', dni:'70124598' }, atendio:'Andrea Vásquez',
           lineas:[{ cod:'CAS-0002-NEG-S', cant:1 }, { cod:'BLU-0001-ROS-L', cant:1 }], total:254, adelanto:80, medio:'efectivo', creada:dia('2026-09-14'), vence:dia('2026-09-21'),
-          estado:'vigente', comp:'B004-000019', extensiones:0 },
+          estado:'vigente', comp:'B004-000019', extensiones:0, dev:{ medio:'yape', numero:'', cci:'' } },
         { id:'SEP-TRU-0005', clienta:{ nombres:'Valeria', apellidos:'Castro Ríos', cel:'912 300 455', dni:'72233411' }, atendio:'Camila Rojas',
           lineas:[{ cod:'CAS-0002-NAR-S', cant:1 }], total:179, adelanto:100, medio:'tarjeta', creada:dia('2026-09-17'), vence:dia('2026-09-24'),
-          estado:'vigente', comp:'B004-000021', extensiones:0 },
+          estado:'vigente', comp:'B004-000021', extensiones:0, dev:{ medio:'yape', numero:'', cci:'' } },
         { id:'SEP-TRU-0006', clienta:{ nombres:'Daniela', apellidos:'Ruiz Paz', cel:'933 402 118', dni:'46655210' }, atendio:'Lucía Paredes',
           lineas:[{ cod:'CAS-0002-NEG-M', cant:1 }], total:179, adelanto:60, medio:'plin', creada:dia('2026-09-20'), vence:dia('2026-09-27'),
-          estado:'vigente', comp:'B004-000023', extensiones:0 },
+          estado:'vigente', comp:'B004-000023', extensiones:0, dev:{ medio:'yape', numero:'', cci:'' } },
       ],
       caja: [], // se arma desde las separaciones al iniciar
     };
@@ -414,6 +417,7 @@
   function reiniciar() {
     S = semilla();
     S.seps.forEach(s => {
+      if (!s.dev.numero) s.dev.numero = s.clienta.cel;
       S.caja.push({ fecha:s.creada, sep:s.id, tipo:'adelanto', medio:s.medio, monto:s.adelanto });
       if (s.estado === 'entregada') {
         S.caja.push({ fecha:dia('2026-09-16'), sep:s.id, tipo:'saldo', medio:'efectivo', monto:s.total - s.adelanto });
@@ -447,7 +451,7 @@
   // ---------- Separar ----------
   let sep, entregaSel, entregaPagos;
   function nuevaSep() {
-    return { lineas:[], clienta:{ nombres:'', apellidos:'', cel:'', dni:'', ruc:'', razon:'' }, comprobante:'boleta', atendio:'', consent:false, pagos:[], nota:'' };
+    return { lineas:[], clienta:{ nombres:'', apellidos:'', cel:'', dni:'', ruc:'', razon:'' }, comprobante:'boleta', atendio:'', consent:false, pagos:[], nota:'', dev:{ medio:'yape', numero:'', cci:'' } };
   }
   const totalSep = () => sep.lineas.reduce((a, l) => a + prenda(l.cod).precio * l.cant, 0);
   const pagadoSep = () => sep.pagos.reduce((a, p) => a + (Number(p.monto) || 0), 0);
@@ -518,9 +522,11 @@
       if (!c.razon.trim()) errs.razon = 'Escribe la razón social.';
     }
     if (!sep.atendio) errs.atendio = 'Elige quién atendió.';
-    const total = totalSep(), pagado = pagadoSep(), min = Math.ceil(total * ADELANTO_MIN);
+    const total = totalSep(), pagado = pagadoSep();
     if (!sep.pagos.length) errs.pago = 'Elige cómo dejó el adelanto.';
-    else if (pagado < min) errs.pago = `El adelanto mínimo es ${soles(min)} (30%).`;
+    else if (pagado <= 0) errs.pago = 'Escribe cuánto deja de adelanto.';
+    if (sep.dev.medio === 'transferencia' && sep.dev.cci.replace(/\D/g,'').length !== 20) errs.dev = 'El CCI tiene 20 dígitos.';
+    if (sep.dev.medio !== 'transferencia' && sep.dev.numero && sep.dev.numero.replace(/\D/g,'').length !== 9) errs.dev = 'El número de ' + nombreMedio(sep.dev.medio) + ' tiene 9 dígitos.';
     else if (pagado > total && !sep.pagos.some(p => p.medio === 'efectivo')) errs.pago = 'El adelanto no puede pasar el total.';
     if (!sep.consent) errs.consent = 'Confirma que la clienta aceptó las condiciones.';
     return errs;
@@ -529,7 +535,7 @@
   let intentoSep = false;
   function renderPanelSep() {
     const el = document.getElementById('panelSep');
-    const total = totalSep(), pagado = pagadoSep(), min = Math.ceil(total * ADELANTO_MIN);
+    const total = totalSep(), pagado = pagadoSep(), min = 0;
     const efectivo = sep.pagos.filter(p => p.medio === 'efectivo').reduce((a, p) => a + (Number(p.monto) || 0), 0);
     const adelanto = Math.min(pagado, total), vuelto = Math.max(0, pagado - total);
     const saldo = Math.max(0, total - adelanto);
@@ -567,19 +573,27 @@
       </div>
 
       <div class="bloque">
-        <div class="eyebrow">3 · Adelanto · mínimo ${soles(min)} (30%)</div>
+        <div class="eyebrow">3 · Adelanto · monto libre</div>
         <div class="medios">${MEDIOS.map(m => `<button type="button" class="medio" data-medio="${m.id}" aria-pressed="${sep.pagos.some(p=>p.medio===m.id)}"><span class="ico" style="background:${m.color}"></span>${m.nom}</button>`).join('')}</div>
         ${sep.pagos.map((p, i) => `<div class="pago"><span><span class="ico" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${MEDIOS.find(m=>m.id===p.medio).color};margin-right:6px"></span>${nombreMedio(p.medio)}</span>
           <input data-monto="${i}" inputmode="decimal" value="${p.monto}" aria-label="Monto en ${nombreMedio(p.medio)}"><button type="button" data-quitar="${i}" aria-label="Quitar medio">✕</button></div>`).join('')}
         <div class="hint">${[0.3, 0.5, 1].map(f => `<button type="button" class="chip" data-atajo="${f}">${f === 1 ? 'Todo' : Math.round(f*100) + '%'} · ${soles(f === 1 ? total : Math.ceil(total*f))}</button>`).join('')}</div>
-        ${total ? `<div class="barra" aria-hidden="true"><i class="${adelanto < min ? 'bajo' : ''}" style="width:${Math.min(100, adelanto/total*100)}%"></i></div>` : ''}
+        ${total ? `<div class="barra" aria-hidden="true"><i class="" style="width:${Math.min(100, adelanto/total*100)}%"></i></div>` : ''}
         ${E('pago')}
         ${vuelto > 0 ? `<div class="ok">Vuelto en efectivo: <b>${soles(vuelto)}</b></div>` : ''}
       </div>
 
       <div class="bloque">
+        <div class="eyebrow">4 · Si no recoge, le devolvemos por</div>
+        <div class="seg" style="grid-template-columns:repeat(3,1fr)">${DEVOLUCION.map(d => `<button type="button" data-dev="${d.id}" aria-pressed="${sep.dev.medio===d.id}">${d.nom}</button>`).join('')}</div>
+        ${sep.dev.medio === 'transferencia' ? `<label>CCI de la clienta<input id="c_cci" inputmode="numeric" placeholder="20 dígitos" value="${esc(sep.dev.cci)}"></label>` : `<label>Número ${nombreMedio(sep.dev.medio)} (vacío = su celular)<input id="c_devnum" inputmode="numeric" placeholder="${esc(sep.clienta.cel || '9 dígitos')}" value="${esc(sep.dev.numero)}"></label>`}
+        ${E('dev')}
+        <div class="muted" style="font-size:12px">Así no tiene que volver a la tienda. Efectivo, solo si viene a recogerlo antes de que se le transfiera.</div>
+      </div>
+
+      <div class="bloque">
         <label class="check"><input type="checkbox" id="c_consent" ${sep.consent?'checked':''}>
-          <span>La clienta aceptó: recoge hasta el <b>${fmtCorta(vence)}</b> con su comprobante o DNI; si no, se le devuelve el 100% del adelanto por el mismo medio y le escribimos por WhatsApp.</span></label>${E('consent')}
+          <span>La clienta aceptó: recoge hasta el <b>${fmtCorta(vence)}</b> con su comprobante o DNI; si no, se le devuelve el 100% del adelanto por ${nombreMedio(sep.dev.medio)} y le escribimos por WhatsApp.</span></label>${E('consent')}
       </div>
 
       <div class="totales">
@@ -594,13 +608,15 @@
     `;
     const bind = (id, k, o = sep.clienta) => { const i = document.getElementById(id); if (i) i.addEventListener('input', () => { o[k] = i.value; if (intentoSep) rerenderSepConservandoFoco(id); }); };
     bind('c_nombres','nombres'); bind('c_apellidos','apellidos'); bind('c_cel','cel'); bind('c_dni','dni'); bind('c_ruc','ruc'); bind('c_razon','razon');
+    el.querySelectorAll('[data-dev]').forEach(b => b.addEventListener('click', () => { sep.dev.medio = b.dataset.dev; render(); }));
+    bind('c_cci','cci', sep.dev); bind('c_devnum','numero', sep.dev);
     document.getElementById('c_atendio').addEventListener('change', e => { sep.atendio = e.target.value; render(); });
     document.getElementById('c_consent').addEventListener('change', e => { sep.consent = e.target.checked; render(); });
     el.querySelectorAll('[data-comp]').forEach(b => b.addEventListener('click', () => { sep.comprobante = b.dataset.comp; render(); }));
     el.querySelectorAll('[data-medio]').forEach(b => b.addEventListener('click', () => {
       const i = sep.pagos.findIndex(p => p.medio === b.dataset.medio);
       if (i >= 0) sep.pagos.splice(i, 1);
-      else sep.pagos.push({ medio:b.dataset.medio, monto: sep.pagos.length ? Math.max(0, Math.ceil(total*ADELANTO_MIN) - pagadoSep()) : Math.ceil(total*ADELANTO_MIN) });
+      else sep.pagos.push({ medio:b.dataset.medio, monto: sep.pagos.length ? 0 : Math.ceil(total*0.5) });
       render();
     }));
     el.querySelectorAll('[data-monto]').forEach(i => i.addEventListener('change', () => { sep.pagos[i.dataset.monto].monto = Number(i.value.replace(',', '.')) || 0; render(); }));
@@ -627,6 +643,7 @@
       clienta: { ...sep.clienta }, atendio: sep.atendio, comprobante: sep.comprobante,
       lineas: sep.lineas.map(l => ({ ...l })), total, adelanto,
       medio: sep.pagos.length === 1 ? sep.pagos[0].medio : 'mixto', pagos: sep.pagos.map(p => ({ ...p })),
+      dev: { medio: sep.dev.medio, numero: sep.dev.numero || sep.clienta.cel, cci: sep.dev.cci },
       creada: S.hoy, vence: S.hoy + PLAZO_DIAS * DIA, estado: 'vigente', extensiones: 0,
       comp: S.modo === 'A' ? (sep.comprobante === 'factura' ? 'F004-' : 'B004-') + String(S.correlativoB++).padStart(6, '0') : null,
     };
@@ -649,7 +666,7 @@
     const tyc = `<hr><div class="tyc"><b>CONDICIONES DE TU SEPARACIÓN</b><br>
       1. Tus prendas quedan guardadas hasta el <b>${fmt(s.vence)}</b>.<br>
       2. Para recogerlas trae este comprobante o tu DNI.<br>
-      3. Si no las recoges a tiempo, vuelven a tienda y te devolvemos el 100% de tu adelanto por el mismo medio. Te escribiremos al ${esc(c.cel)}.<br>
+      3. Si no las recoges a tiempo, vuelven a tienda y te devolvemos el 100% de tu adelanto por ${devTxt(s)}, sin que tengas que venir. Te escribiremos al ${esc(c.cel)}.<br>
       4. El precio queda congelado. Cambios y devoluciones: desde el día que recoges.</div>`;
     if (tipo === 'anticipo') {
       const { base, igv: i } = igv(s.adelanto);
@@ -781,15 +798,16 @@
   }
 
   function abrirDevolucion(s) {
-    let medio = s.medio === 'mixto' ? 'efectivo' : s.medio;
+    let medio = s.dev.medio;
     const pintar = () => {
       const { capa } = abrirModal(`<div><h2>Devolver el adelanto</h2><div class="muted">${s.id} · ${esc(s.clienta.nombres + ' ' + s.clienta.apellidos)} · cel. <span class="num">${esc(s.clienta.cel)}</span></div></div>
-        <div class="kpi" style="background:transparent"><span class="eyebrow">A devolver</span><span class="v">${soles(s.adelanto)}</span><span class="muted">Lo dejó por ${nombreMedio(s.medio)} el ${fmtCorta(s.creada)}. Se devuelve por el mismo medio salvo que ella pida otro.</span></div>
+        <div class="kpi" style="background:transparent"><span class="eyebrow">A devolver</span><span class="v">${soles(s.adelanto)}</span><span class="muted">Lo dejó por ${nombreMedio(s.medio)} el ${fmtCorta(s.creada)} Pidió la devolución por <b>${devTxt(s)}</b>.</span></div>
         <div class="medios">${MEDIOS.map(m => `<button type="button" class="medio" data-dm="${m.id}" aria-pressed="${medio===m.id}"><span class="ico" style="background:${m.color}"></span>${m.nom}</button>`).join('')}</div>
-        ${medio === 'efectivo' ? '<div class="caja-nota">Sale del cajón de la caja abierta como egreso «Devolución de separación».</div>' : ''}
-        ${medio === 'tarjeta' ? '<div class="caja-nota">Se anula o extorna desde el POS del banco; anota el N.º de operación.</div>' : ''}
+        ${medio === 'efectivo' ? '<div class="caja-nota">Solo si la clienta vino a la tienda. Sale del cajón de la caja abierta como egreso «Devolución de separación».</div>' : ''}
+        ${medio === 'tarjeta' ? '<div class="caja-nota">Se extorna desde el POS del banco; anota el N.º de operación.</div>' : ''}
+        ${['yape','plin'].includes(medio) ? `<div class="caja-nota">Enviar a <b class="num">${esc(s.dev.numero)}</b> (${esc(s.clienta.nombres + ' ' + s.clienta.apellidos)}).</div>` : ''}
         ${['yape','plin'].includes(medio) ? `<label>N.º de operación ${nombreMedio(medio)}<input id="opDev" placeholder="Obligatorio"></label>` : ''}
-        ${medio === 'transferencia' ? '<div class="fila2"><label>CCI de la clienta<input id="cciDev" placeholder="20 dígitos"></label><label>N.º de operación<input id="opDev"></label></div>' : ''}
+        ${medio === 'transferencia' ? '<div class="fila2"><label>CCI de la clienta<input id="cciDev" placeholder="20 dígitos" value="${esc(s.dev.cci)}"></label><label>N.º de operación<input id="opDev"></label></div>' : ''}
         ${S.modo === 'A' ? `<div class="muted" style="font-size:12.5px">Se emite una nota de crédito sobre ${s.comp} (motivo: anulación de la operación).</div>` : ''}
         <div id="errDev"></div>
         <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" data-cerrar>Cancelar</button><button class="btn negro" id="okDev">Registrar devolución</button></div>`);
@@ -928,7 +946,7 @@
     const devolver = S.seps.filter(s => s.estado === 'liberada');
     const a = [];
     vencidas.forEach(s => a.push(`<div class="alerta roja"><span class="dot"></span><span><b>${s.id}</b> de ${esc(s.clienta.nombres)} venció el ${fmtCorta(s.vence)} Decide antes del ${fmtCorta(s.vence + (GRACIA_DIAS+1)*DIA)} o se libera sola.</span><button class="btn chico" data-alerta="bandeja">Decidir</button></div>`));
-    devolver.forEach(s => a.push(`<div class="alerta roja"><span class="dot"></span><span>Devolver <b>${soles(s.adelanto)}</b> a ${esc(s.clienta.nombres + ' ' + s.clienta.apellidos)} (${nombreMedio(s.medio)}, cel. ${esc(s.clienta.cel)}) · ${s.id}${s.liberadaPor==='sistema'?' se liberó sola':''}.</span><button class="btn chico" data-alerta="bandeja">Registrar</button></div>`));
+    devolver.forEach(s => a.push(`<div class="alerta roja"><span class="dot"></span><span>Devolver <b>${soles(s.adelanto)}</b> a ${esc(s.clienta.nombres + ' ' + s.clienta.apellidos)} por ${devTxt(s)} · ${s.id}${s.liberadaPor==='sistema'?' se liberó sola':''}.</span><button class="btn chico" data-alerta="bandeja">Registrar</button></div>`));
     if (vencen.length) a.push(`<div class="alerta"><span class="dot"></span><span>${vencen.length} separación${vencen.length>1?'es vencen':' vence'} en 2 días o menos: ${vencen.map(s => esc(s.clienta.nombres) + ' (' + fmtCorta(s.vence) + ')').join(', ')}. Buen momento para escribirles.</span><button class="btn chico" data-alerta="bandeja">Ver</button></div>`);
     document.getElementById('alertas').innerHTML = a.join('');
     document.querySelectorAll('[data-alerta]').forEach(b => b.addEventListener('click', () => { filtro = 'abiertas'; irA('bandeja'); }));
@@ -938,7 +956,7 @@
 
   // ---------- Modo de comprobante ----------
   const EXPLICA = {
-    A: 'A (recomendada): al recibir el adelanto se emite boleta o factura por ese monto con IGV, como pide SUNAT; al entregar, la boleta final deduce el anticipo y solo cobra el saldo; si se devuelve, nota de crédito. Correcto ante SUNAT, pero exige que el PSE (Lucode / apisunat.pe) soporte anticipos — hay que probarlo.',
+    A: 'A (elegida por Felipe): al recibir el adelanto se emite boleta o factura por ese monto con IGV, como pide SUNAT; al entregar, la boleta final deduce el anticipo y solo cobra el saldo; si se devuelve, nota de crédito. Correcto ante SUNAT, pero exige que el PSE (Lucode / apisunat.pe) soporte anticipos — hay que probarlo.',
     B: 'B (lo decidido en ADR-0141): recibo interno sin valor tributario; la boleta sale al entregar por el total. Más simple, pero el IGV del anticipo nace igual al cobrarlo: si pasa de mes, se declara tarde. Riesgo de multa: el contador lo tiene que aprobar.',
   };
   document.querySelectorAll('[data-modo]').forEach(b => b.addEventListener('click', () => {

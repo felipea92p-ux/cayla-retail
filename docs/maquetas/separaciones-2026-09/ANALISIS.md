@@ -75,7 +75,8 @@ no «Agotada» (pendiente ya anotado en el BACKLOG de ADR-0141).
 | Celular (WhatsApp) | Sí | Aviso de vencimiento y devolución. Con consentimiento registrado (`whatsapp_consentimiento_en`, Ley 29733). |
 | DNI | Recomendado; **obligatorio si el total pasa S/700** (boleta con identificación) | Verifica la identidad al recoger si perdió el comprobante. |
 | RUC + razón social | Solo si pide factura | Factura de anticipo. |
-| CCI | **No al separar**: solo al devolver por transferencia | Dato bancario sensible; se pide cuando hace falta. |
+| Medio de devolución | Sí (Yape/Plin por defecto al mismo celular) | D4: devolver sin que la clienta vuelva. |
+| CCI | Solo si elige transferencia como medio de devolución | Dato bancario: lo ven solo quienes operan esa tienda y la líder; nunca se imprime completo. |
 
 ## 6. Modelo de datos propuesto (a validar antes de escribir SQL)
 
@@ -92,20 +93,23 @@ no «Agotada» (pendiente ya anotado en el BACKLOG de ADR-0141).
 - **Vencimiento sin `pg_cron`:** `fn_vencer_separaciones(ubicacion)` se ejecuta al abrir Separaciones, Punto de Venta o la caja; libera
   las vencidas hace más de 2 días. Es idempotente; si nadie abre el sistema, no pasa nada malo (la prenda sigue guardada).
 
-## 7. Decisiones abiertas (Felipe)
+## 7. Decisiones (Felipe, 2026-09-22)
 
-- **D1 · Comprobante del adelanto.** A = boleta/factura de anticipo al cobrar (lo que pide SUNAT) · B = recibo interno, boleta por el
-  total al entregar (lo que decidió ADR-0141). **Recomiendo A**: B declara el IGV tarde cuando la separación cruza de mes. Requiere
-  confirmar que Lucode emite anticipos y regularización, y el visto bueno del contador. La demo muestra las dos («Cómo lo hacen otros»).
-- **D2 · Adelanto mínimo.** Propuesta 30%.
-- **D3 · Plazo y extensión.** 7 días calendario, aviso a 2 días, 2 días de gracia, una sola extensión de +7.
-- **D4 · Devolución.** 100% por el mismo medio, sin penalidad (Indecopi exige cláusula previa para retener).
-- **D5 · Quién libera y devuelve.** Propuesta: cualquier colaboradora entrega; liberar y registrar la devolución, la líder o la terminal
-  de ventas (misma capacidad que gestionar caja).
+- **D1 · Comprobante del adelanto → A: boleta/factura de anticipo** al cobrar; la boleta final deduce el anticipo; si se devuelve,
+  nota de crédito. **Revierte** la línea «sin comprobante» de la Fase 2 de ADR-0141 (el ADR nuevo lo dirá). Falta confirmar que Lucode
+  emite anticipo + regularización, y el visto bueno del contador.
+- **D2 · Adelanto → monto libre** (mayor a cero). La demo sugiere 30/50/100% como atajos, sin exigirlos.
+- **D3 · Plazo → 7 días calendario, aviso a 2 días, 2 días de gracia, una sola extensión de +7** (máximo 16 días).
+- **D4 · Devolución → 100%, preferentemente por Yape, Plin o transferencia**, para que la clienta no tenga que volver. Por eso, **al separar**
+  se registra cómo se le devuelve (Yape/Plin al celular por defecto, o CCI si elige transferencia; esto corrige §5, donde el CCI se
+  pedía solo al devolver). Si la clienta viene a la tienda antes de que se le transfiera, se le puede devolver por cualquier medio,
+  efectivo incluido (egreso de caja).
+- **D5 · Quién libera y devuelve** — sigue abierta. Propuesta: cualquier colaboradora entrega; liberar y registrar la devolución, la líder
+  o la terminal de ventas (misma capacidad que gestionar caja).
 
 ## 8. Ruta
 
-1. **Validar funciones** con la demo (ahora) y cerrar D1–D5.
+1. **Validar funciones** con la demo (ahora). D1–D4 cerradas; falta D5.
 2. **Pegar ADR-0141 en producción** (requisito: hoy el front ya lo llama y falla) y confirmar anticipos con Lucode + contador.
 3. **Construir** en pasos verificables: migración + pruebas SQL → pantalla Separar → Entregar → Bandeja y alertas → Caja. ADR propio.
 4. **Después:** diseño visual fino.
