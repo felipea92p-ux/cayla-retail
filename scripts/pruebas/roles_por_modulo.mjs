@@ -136,7 +136,12 @@ const modulosDe = (clave) =>
   `select string_agg(modulo, ',' order by modulo) from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('${clave}');`;
 
 // ---------------- La siembra ----------------
-caso("hay 23 módulos; Colaboradores y Roles son siempre solo del líder", `select count(*), string_agg(clave, ',' order by clave) filter (where solo_lider) from retail.modulos;`, "23|colaboradores,roles");
+// «Al menos 23»: la regla de CLAUDE.md («Módulos y roles») manda que cada módulo nuevo se sume con su propia migración.
+caso(
+  "hay al menos los 23 módulos de la siembra; Colaboradores y Roles son siempre solo del líder",
+  `select (count(*) >= 23)::text, string_agg(clave, ',' order by clave) filter (where solo_lider) from retail.modulos;`,
+  "true|colaboradores,roles"
+);
 caso(
   "«solo líder por ahora» (la base aún no los deja a nadie más): etiquetas, montos de Compras y Análisis",
   `select string_agg(clave, ',' order by clave) from retail.modulos where not delegable and not solo_lider;`,
@@ -190,6 +195,17 @@ caso(
   "fn_ve_modulo: la integrante ve Caja y Existencias, no Facturación, ni Colaboradores, ni Roles",
   como(MICAELA_AUTH) + `select concat_ws(',', fn_ve_modulo('caja'), fn_ve_modulo('existencias'), fn_ve_modulo('facturacion'), fn_ve_modulo('colaboradores'), fn_ve_modulo('roles'));`,
   "t,t,f,f,f"
+);
+// REGLA (Felipe, 2026-09-22): un módulo NUEVO nace sin rol — solo el líder lo ve hasta que él lo enciende en Roles y accesos.
+caso(
+  "REGLA: un módulo recién creado lo ve solo el líder; ni Integrante ni una terminal, hasta que el líder se lo asigne",
+  `insert into retail.modulos (clave, grupo, nombre, incluye, orden, solo_lider, delegable)
+     values ('zz_modulo_nuevo', 'Gestión', 'Módulo nuevo (prueba)', 'Algo nuevo', 9999, false, true);\n` +
+    como(FELIPE_AUTH) + `select fn_ve_modulo('zz_modulo_nuevo')::text;\n` +
+    como(MICAELA_AUTH) + `select fn_ve_modulo('zz_modulo_nuevo')::text;\n` +
+    como(T_VENTAS_AUTH) + `select fn_ve_modulo('zz_modulo_nuevo')::text;\n` +
+    `select count(*)::text from retail.rol_modulos where modulo = 'zz_modulo_nuevo';`,
+  "true\nfalse\nfalse\n0"
 );
 caso(
   "fn_ve_modulo: la terminal de ventas ve Facturación, no Existencias; la administrativa al revés",
