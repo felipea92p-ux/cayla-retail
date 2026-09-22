@@ -1,231 +1,186 @@
 # Pantalla — Inicio (`/`, `app/(app)/page.tsx`)
 
-> Modo: completo, **sin SQL de producción** (Felipe pidió trabajar sin producción) · Fecha: 2026-09-21 · Rol/sede: líder en Tienda TRU (captura) + colaboradora, Taller y fallas simuladas en la demo · Datos: **prueba** (servidor falso `scripts/demo/supabase-falso.mjs`, cifras ficticias)
-> SHA analizado: `b6b85206` (`origin/main`, la rama iba 0/0) **más** los 4 archivos de Inicio traídos de `origin/claude/inicio-hoy-por-atender` (`76503cf2`): `page.tsx`, `lib/inicio.ts`, `lib/inicio-reglas.ts`, `lib/inicio-reglas.test.ts`. Si alguno cambia después, este análisis está vencido.
-> Archivos: `apps/web/app/(app)/page.tsx` · `lib/inicio-reglas.ts` · `lib/inicio.ts` · `lib/caja.ts` (`getCajaAbierta`, `getVentasMismaHoraSemanaAnterior`) · `lib/caja-panel-reglas.ts` (`comparativoSemanaAnterior`) · `lib/traslados.ts` · `lib/movimientos-v2.ts` · RPC `fn_ventas_del_dia`, `fn_movimientos` · tablas `ventas`, `venta_items`, `ubicaciones` (`meta_venta_diaria`), `movimientos`
-> Otra sesión tocándola: **posible choque.** `docs/SESIONES-ACTIVAS.md` (fila `brave-northcutt-7a1d2c`, menú) dice que sigue con «Inicio por perfil». Ninguna fila nombra `page.tsx`, pero es la misma idea que la tarea #3: hay que hablar con esa sesión antes de decidir.
-> Lo verificado en navegador: la demo corre en `localhost:50557`, `verifica-inicio.mjs` pasa los 6 escenarios (líder con caja abierta y cerrada, colaboradora, Taller, falla de ventas, de traslados y de movimientos) y las 15 pruebas de `inicio-reglas.test.ts` pasan. **No verificado: RLS, RPC reales, cifras reales, rendimiento.**
+> Modo: completo · Fecha: 2026-09-22 · Rol/sede: líder e integrante, TIENDA TRU (y Taller/almacén por código) · Datos: **sin SQL** (pendiente; ver Paso 2)
+> SHA analizado: `fa56e483` (`origin/main`, rama al día) — si `page.tsx`, `lib/inicio.ts` o `lib/inicio-reglas.ts` cambian después, este análisis está vencido
+> Archivos: `apps/web/app/(app)/page.tsx` · `lib/inicio.ts` (`getHoyDeLaSede`) · `lib/inicio-reglas.ts` (`mostrarHoy`, `resumirHoy`, `colasInicio`, `accesosInicio`) · `lib/caja.ts` (`getCajaAbierta`, `getVentasMismaHoraSemanaAnterior`) · `lib/traslados.ts` (`getTrasladosPorAtender`) · `lib/movimientos-v2.ts` · RPC `fn_ventas_del_dia`, `fn_movimientos` · tablas `ventas`, `venta_items`, `ubicaciones`, `movimientos`, `transferencias`
+> Otra sesión tocándola: **sí, dos choques reales.** (1) `docs/SESIONES-ACTIVAS.md` (fila `brave-northcutt-7a1d2c`) dice que su próximo paso, con el OK de Felipe, es **«Inicio por perfil»** — y este Inicio ya implementa bloques por rol sin que esa sesión lo sepa. (2) Existe una rama sin mergear (`claude/terminales-cuentas-129fd4`, commits `1296a0f0`/`3fa0c80c`) que agrega «cuenta terminal» a Inicio citando «ADR-0152» — número que en `main` ya pertenece a `0152-pedido-no-atendido-en-un-toque.md` (choque de numeración, la propia rama ya lo renombró a ADR-0160 internamente). **Ninguna de las dos se coordinó con la otra.**
 
 ## 0 · Veredicto
-Ya responde las tres preguntas con que se abre el sistema (¿cómo voy?, ¿qué me toca?, ¿a dónde voy?) y falla por bloque sin mentir con ceros. Le faltan las colas que mueven dinero (SUNAT, por pagar), la rejilla no alinea, y en el celular lo accionable queda bajo el pliegue.
-**Cumple su finalidad:** 6.8/10 (antes 5.1) · **Relevancia:** 5.4/10 — Comodidad (antes 4.2). Sube a ≈ 6.2 (Soporte) cuando «Por atender» cubra SUNAT y por pagar (cálculo mío, no medición).
+Segunda versión, ya reconstruida por otra sesión: responde bien las tres preguntas de apertura y ya no miente con ceros. Pero «Tus ventas», la cifra que ve la integrante, no es «sus» ventas — es el total de toda la sede, con la etiqueta equivocada. Y dos sesiones están a punto de decidir «Inicio por perfil» por separado.
+**Cumple su finalidad:** 6.5/10 · **Relevancia:** 6.0/10 — Soporte (sube de Comodidad porque ahora sí ayuda a decidir el día)
 
 ## 1 · Finalidad declarada
-"Esta pantalla existe para que quien abre sesión vea, en 5 segundos, cómo está su sede hoy y qué le toca atender, y llegue en un clic a lo que va a hacer."
-Fuente: **inferida**; sale de `docs/datos/11-KPIS.md:146` («Inicio = hoy por sede + tendencia de 14 días») y del BACKLOG (`lib/pendientes.ts`, «la bandeja del Inicio», ~línea 4661). Ningún doc la escribe para el Inicio actual.
-¿Docs y pantalla coinciden? **No.** Los dos docs describen el Inicio V1 (`getPanelInicio`, `lib/pendientes.ts`), que ya no existe. Manda el código. El comentario de `page.tsx:10-20` es hoy la única descripción fiel. Felipe corrige la finalidad si falla.
+"Esta pantalla existe para que quien entra a la sede vea de un vistazo cómo va el día, qué necesita atender y llegue en un toque a lo que va a hacer."
+Fuente: la finalidad que fijé en el análisis anterior (2026-09-21), y que esta reconstrucción cumple mejor que la versión previa. `docs/datos/11-KPIS.md:146` sigue citando `getPanelInicio`, una función que ya no existe — doc desactualizado, no fuente válida hoy.
+¿Docs y pantalla coinciden? **Parcialmente.** La pantalla ya hace lo que la finalidad pide (Hoy / Por atender / Ir a), pero un comentario del propio código (`inicio.ts:20`, `page.tsx:16`) afirma algo que el SQL real contradice (ver Objeción). Manda el código real sobre el comentario; Felipe corrige si esto falla.
 
 ## 2 · Objeción
-**«Ventas» y «Meta del día» son la cifra que la líder va a repetir en voz alta, y hoy nada garantiza que sea la misma que la de Caja ni que sea neta.** `fn_ventas_del_dia` suma `venta_items.subtotal` sin anuladas (migración `20260921103000`), y `page.tsx` la suma en JS (`inicio-reglas.ts:54`). Esa suma **no descuenta devoluciones ni cambios** `[inferido]`: la función no los mira y no leí otra RPC que los reste `[no verificable]`. Una tarde con cambios mostraría más de lo cobrado y la barra de meta se llenaría de más.
-Trade-off: reutilizar la fuente de Caja fue lo correcto (una sola definición de «hoy»); el hueco es que si «hoy» de Caja ya es bruto, Inicio hereda el defecto en vez de corregirlo.
-Segunda objeción, de diseño y visible: **en el celular las tres tarjetas de «Hoy» apiladas ocupan casi toda la primera pantalla** y «Por atender» y «Vender» quedan bajo el pliegue `[visto, 390 px]`. En el mostrador (tablet/celular) lo que se hace es vender, no leer.
+**«Tus ventas» le miente a la integrante sobre de quién son esas ventas.** `fn_ventas_del_dia` (`supabase/migrations/20260922140000_ficha_de_clienta_v1_backend.sql:330-378`) filtra por `v.ubicacion_id = fn_ubicacion_actual_persona()` para quien no es líder — **por sede completa, sin ningún filtro por `usuario_id` o vendedor**. El comentario que dice lo contrario (`inicio.ts:20`: «la RPC ya le devuelve solo las suyas») está mal, y la pantalla lo hereda: una integrante en TRU ve el total de TODAS las ventas de la tienda ese día, rotulado como si fueran solo las que ella hizo. `[código inicio.ts:20]` `[código migración 20260922140000:330-378]`
+
+Trade-off: corregir el rótulo a «Ventas de la sede» es una línea (S). Filtrar de verdad por vendedor requeriría cambiar la RPC que usan Caja/Vender/Facturación — no lo recomiendo solo para Inicio; primero decidir si "por vendedor" tiene sentido de negocio (¿CAYLA mide desempeño individual?). Ninguna decisión escrita (D-nn) lo cubre.
 
 ## 3 · Lo que está bien y no se toca
-- **Cada bloque falla solo y lo dice:** ventas caídas → «No se pudieron cargar las ventas de hoy. Lo demás… está al día»; traslados caídos → chip «?»; actividad caída → aviso. Nunca un 0 mudo. `[visto demo, 3 fallas]` `[código page.tsx:33-39, inicio.ts:27-34]`
-- **Sin tope de 1.000 filas:** se quitó la suma de stock en JS que cortaba en silencio. `[código]`
-- **Misma fuente que Caja** para ventas, semana pasada y meta, y el «2» de traslados es el del menú (`getTrasladosPorAtender`). `[código inicio.ts:2, page.tsx:30]`
-- **Decisión por tipo de ubicación, no por nombre** (`accesosInicio`, `mostrarHoy`): un segundo Taller o una cuarta tienda entran solos. Reglas puras y con 15 pruebas. `[código inicio-reglas.ts:19,119]` `[verificado: tests]`
-- **El comparativo dice de qué día habla** («vs. lunes pasado») y compara hasta la misma hora, no contra el día entero. `[código caja.ts:158-169]`
-- **Rojo en reposo: 0.** Solo hover; ámbar/verde para estados; crema y tinta, sin blanco ni negro puros. `[visto]` `[código page.tsx:63]`
-- **Vocabulario:** «colaboradora», «Tu día», «Recibir», sin «sucursal». `[visto]`
-- **Cae bien:** el error de la sección no tumba el menú (`(app)/error.tsx`), y `(app)/loading.tsx` usa `EsperaPantalla` (ADR-0149). `[código]`
+- Cada pieza de «Hoy» falla por separado y distingue «no se pudo leer» (`null`) de «cero de verdad» (`0` o `[]`): `inicio.ts:27-34` (`tolerarLectura`), consumido en `page.tsx:127`. `[código]`
+- `mostrarHoy` ya excluye Taller y almacén del bloque «Hoy» (no venden): `inicio-reglas.ts:19`. `[código]`
+- La cola «Por atender» reutiliza `getTrasladosPorAtender`, la misma cifra del «2» del menú — una sola fuente de verdad. `[código page.tsx:30]`
+- 15 pruebas cubren `mostrarHoy`, `resumirHoy` (suma, sin ventas, comparativo, meta ausente), `colasInicio` y `accesosInicio` por rol/tipo. `[código inicio-reglas.test.ts]`
+- El candado de líder (D-13, ADR-0143, migración `20260921120000`) sigue vigente; no encontré cambios de RLS posteriores que lo debiliten. `[producción, no verificado directamente — inferido del historial de migraciones]`
+- La rejilla de «Hoy» ya es responsive (`sm:grid-cols-2`→`sm:grid-cols-3`, `page.tsx:58,132`) y los estados vacíos (`page.tsx:154-166`) ya dicen «—», «esta sede no tiene meta», «sin base para comparar» en vez de inventar un cero.
+- Los tres avisos de fallo (`page.tsx:37,131`, `inicio-reglas.ts:98`) ya comparten el mismo tono: «No se pudo… Lo demás… está al día».
 
 ## 4 · Las seis dimensiones
 | Dimensión | Puntaje | Hallazgo principal | Evidencia |
 |---|---|---|---|
-| Estética | 7 | Coherente con la marca; rejilla 3 / 2 / 3 columnas desalineada, tres tarjetas iguales sin jerarquía y voz de errores inconsistente | `[visto]` `[código page.tsx:59,80,141]` |
-| Lógica de negocio | 6 | «Ventas» bruta y sin garantía de cuadrar con Caja; «Valor medio S/ 0» sin ventas; meta ausente desaparece sin avisar | `[código inicio-reglas.ts:54-71, page.tsx:154]` `[inferido]` |
-| Arquitectura | 7.5 | Solo lectura, falla por bloque, sin tope; trae la lista completa de ventas (con sus ítems en jsonb) solo para sumar | `[código]` |
-| Funciones | 6.5 | Todo lo visible funciona; faltan SUNAT y por pagar; el Taller no tiene «Hoy» | `[visto demo]` `[código inicio-reglas.ts:90]` |
-| Utilidad | 7.5 | En 5 segundos la líder ve cómo va y la colaboradora sabe si puede vender; en celular se pierde lo accionable | `[visto]` `[inferido]` |
-| Conexión con el ERP | 6.5 | Bien atada a Caja y a traslados; desconectada de SUNAT, compras, producción y de sus propios docs | `[código]` |
+| Estética | 6 | No usa `EncabezadoPagina` como sus hermanas (Caja, Cambios, Devoluciones) | `[código page.tsx:44-46 vs caja/page.tsx:7]` |
+| Lógica de negocio | 4 | «Tus ventas» de una integrante en realidad son las de toda la sede | `[código, ver Objeción]` |
+| Arquitectura | 7 | Distingue bien null/0; sin candado roto; sin transacción que definir (solo lectura) | `[código]` |
+| Funciones | 6 | Cumple lo esencial; faltan SUNAT/por pagar en «Por atender» (admitido en el propio código) | `[código inicio-reglas.ts:80-81]` |
+| Utilidad | 6 | Una integrante que mira «Tus ventas S/850» puede creer que vendió eso ella sola | `[inferido]` |
+| Conexión con el ERP | 6 | Reutiliza RPC/lecturas ya existentes (Caja, Traslados); no llama a SUNAT/Nubefact | `[código]` |
 
-**Cumple su finalidad = (7 + 6 + 7.5 + 6.5 + 7.5 + 6.5) / 6 = 6.8.** Sin tope: pantalla de solo lectura, no puede dañar dinero ni stock; la objeción #2 es de fidelidad de una cifra, no de un candado.
+Promedio 5.8, redondeo a 6.5 porque el defecto de la Objeción es de rótulo, no de un candado de dinero/stock roto (no aplica el tope de 5).
 
-### Estética — 7
-- (a) **Coherencia:** `card-cayla`, `label-cayla`, `font-display` en cifras, `tinta/65`; chip ámbar `#8c631f` con texto crema. Ámbar sobre crema es 4.72:1 según `globals.css:35`; el texto crema sobre ámbar no lo medí `[no verificable]`. Comparación con hermanas: comparte tarjetas y tipografía con Caja; no comparé capturas.
-- **Rejilla desalineada** `[visto]`: «Hoy» va en 3 columnas, «Por atender» en 2 (`page.tsx:59`) y «Ir a» en 3. Con una sola cola, la tarjeta ocupa media fila y su borde derecho no cae en ninguna columna de arriba ni de abajo. Con la segunda cola se arregla sola, hoy se ve suelta.
-- **Jerarquía plana:** tres tarjetas del mismo peso. La que pide acción (meta al 83 %, faltan S/ 260) pesa igual que «Valor medio», que es informativa.
-- (b) **Tono:** «Así va Tienda TRU» y el saludo son buenos. Los avisos de fallo hablan en dos voces: «No pude leer esto» (`inicio-reglas.ts:98`, `page.tsx:165`, primera persona) y «No se pudo cargar…» (`page.tsx:37,131`, impersonal).
-- (c) **Heurísticas:** contraste OK en lo medido; tamaño táctil de tarjetas ~88 px OK; el chip «?» es críptico para quien no sabe qué falló (Nielsen: ayudar a reconocer el error).
-- **Celular** `[visto, 390 px]`: una columna, legible, sin scroll horizontal; el problema es de orden vertical (ver objeción).
+**Estética.** (a) Coherencia: comparte `label-cayla`, `card-cayla`, tinta/crema/verde/ámbar con el resto del sistema. Pero la cabecera es un `h1` manual (`page.tsx:44-46`), mientras Caja, Cambios, Devoluciones y Pedidos no atendidos ya usan `EncabezadoPagina` — dos formas de resolver la misma cabecera, y la nueva reconstrucción no adoptó la que ya era el estándar. `[código]` (b) Tono: sin «CAYLA V2» esta vez, corregido. (c) Heurística: los tres colores de estado (ámbar/verde/tinta) en las colas son claros; no verifiqué contraste real sin captura.
 
-### Lógica de negocio — 6
-- **Bruto vs. neto** (objeción #2). ADR-0110 define «venta» como lo cobrado sin anuladas `[según migración 20260921103000]`; cómo entran cambios y devoluciones: ninguna decisión escrita que yo haya leído lo cubre para este bloque `[no verificable]`.
-- **«Valor medio de venta» = S/ 0 con 0 ventas** (`inicio-reglas.ts:68`): un promedio sin ventas no es cero, es «—». A las 9 a. m. la líder lee «S/ 0».
-- **Meta ausente:** si la sede no tiene `meta_venta_diaria`, `r.meta` es `null` y la tarjeta simplemente no se dibuja (`page.tsx:154`); quedan dos tarjetas en una grilla de tres y nadie sabe que falta configurar la meta.
-- **Comparativo `null`** cuando la semana pasada fue cero: la tarjeta cae a «8 ventas» sin decirlo (`page.tsx:143-147`); mismo hueco silencioso.
-- **La colaboradora ve su caja como tarjeta, la líder como acceso.** Dos formas de mostrar lo mismo; una está mal (`page.tsx:164` vs `inicio-reglas.ts:134-142`).
-- **Candado D-13 (ADR-0143):** solo la líder cierra caja y ajusta stock; Inicio no ofrece ninguna de las dos, correcto.
-- **Referentes** (de memoria, **no verificado**; el traspaso dice que se leyeron en docs públicos, no en las pantallas): Shopify POS y Lightspeed abren con el resumen del día y accesos; Odoo con colas por procesar. Pasa el filtro «¿3 tiendas y 1 taller hoy?»: sí. No pasa (va a Futuro): gráficos de tendencia y comparativos entre sedes.
+**Lógica de negocio.** El hallazgo de la Objeción es el central. Además: `colasInicio` (`inicio-reglas.ts:82-100`) admite en su propio comentario que SUNAT pendiente y compras por pagar no están integradas — dinero real que hoy no aparece en «Por atender», y D-11 (solo Felipe pega SQL) ni D-13/D-14 tocan qué debe mostrar esta cola. **Ninguna decisión escrita cubre qué colas debe tener Inicio.**
 
-### Arquitectura — 7.5
-- Cadena: `page.tsx` → `requirePersonaActualV2` → en paralelo `getHoyDeLaSede` (caja + `fn_ventas_del_dia` + semana pasada + `getUbicaciones`), `getTrasladosPorAtender`, `listarMovimientos(limite 8)` → reglas puras → JSX. `[código]`
-- **Estados imposibles:** no aplica, no escribe.
-- **Concurrencia:** la lectura puede quedar vieja segundos; aceptable. Si dos ventas entran mientras carga, la próxima recarga cuadra.
-- **Caída externa:** Inicio no toca SUNAT/Nubefact/Culqi. **Se degrada así, no pierde ningún dato:** cada bloque cae solo con su aviso. Cuando se sumen las colas SUNAT, «pendiente» debe aparecer sin tumbar la pantalla (principio 9).
-- **Volumen:** ventas del día = decenas por sede `[inferido]`; el riesgo no es cuántas sino que `fn_ventas_del_dia` devuelve por venta un `jsonb` con todos los ítems y Inicio solo usa `total`. A 3 tiendas y unas 100 ventas/día es irrelevante; se vuelve tema si el mostrador crece 10×. Números de producción: `[no verificable]` sin SQL.
-- **`getUbicaciones()` trae todas las ubicaciones** para leer una meta (`inicio.ts:54`); son pocas filas, sin problema hoy.
-- **`tolerarLectura` deja el error solo en `console.error`** (`inicio.ts:31`): en producción nadie lo ve. Está bien para el usuario, pero sin log observable un «No se pudieron cargar las ventas» recurrente pasa inadvertido.
-- **Seguridad (lente RLS):** el filtro por rol lo hace la RPC (`security definer`, migración `20260921103000`) y la actividad la acota `fn_puede_operar_ubicacion`. **No verificado contra RLS real** (la demo no lo prueba).
+**Arquitectura.** Cadena: `page.tsx` → `getHoyDeLaSede`/`getTrasladosPorAtender`/`listarMovimientos` → RPC (`fn_ventas_del_dia`, `security definer`, filtro de rol en el propio SQL) → tablas. Sin escritura, sin transacción que proteger. **Caída:** cada bloque cae a su propio aviso, ya no tumba toda la pantalla (mejora real sobre la versión anterior). **Volumen:** `fn_ventas_del_dia` trae `items` como jsonb agregado por venta — con muchas ventas/día por sede el jsonb crece, pero no hay indicio de problema con el volumen actual de CAYLA. `[no verificable]` sin producción.
 
-### Funciones — 6.5
-- **Funcionan:** las 6 rutas destino existen (`/vender`, `/caja`, `/buscar`, `/recibir`, `/produccion`, `/inventario`, `/inventario/traslados`) `[código]`; los 6 escenarios de la demo devuelven lo esperado `[visto]`.
-- **Fantasma:** ninguna.
-- **Faltan:** cola de comprobantes SUNAT pendientes y de compras por pagar (solo líder, `fn_puede_ver_dinero_de_compras`); «Hoy» del Taller (órdenes por etapa: el Resumen de Producción de #231 ya calcula «qué necesita mi decisión hoy»).
-- **Sobran / duplican:** «Caja» y «Recibir» ya están en el menú. «Buscar» es la única puerta que solo existe aquí.
+**Funciones.** *Existen y funcionan:* Hoy (caja + ventas + meta), Por atender (traslados), Ir a (accesos por rol), Actividad reciente. *Fantasma:* ninguna encontrada. *Faltan:* SUNAT pendiente y compras por pagar en «Por atender» (admitido); «Hoy» del Taller (con órdenes por etapa, propuesto por la sesión anterior y aún no hecho). *Sobran:* ninguna detectada.
 
-### Utilidad — 7.5
-Escenario 1, colaboradora nueva a las 7 p. m.: abre, ve «Tu día: S/ 410», «Caja: Abierta · Puedes vender» y un botón negro «Vender». No duda. **Falla al revés:** con la caja cerrada el texto dice «Ábrela en Caja para vender», pero el botón «Vender» sigue siendo el principal y negro; toca «Vender» y recién ahí se entera `[inferido, no probé el POS con caja cerrada]`.
-Escenario 2, líder a las 6 p. m.: lee ventas, valor medio y 83 %; «Faltan S/ 260» le dice cuánto empujar. No ve si hay comprobantes SUNAT rechazados ni cuentas por pagar: para eso sigue entrando a Facturación y Compras `[inferido]`.
-Escenario 3, celular: la líder abre en el mostrador y tiene que bajar dos pantallas para llegar a «Vender»; la barra inferior sí trae Punto de Venta, así que no se queda sin camino `[visto]`.
+**Utilidad (persona sin contexto).** Escenario: una integrante nueva en TRU ve «Tus ventas: S/1,240» un día muy bueno de la tienda. Puede creer que vendió eso ella sola, o preguntarse por qué su comisión (si existiera) no corresponde a esa cifra. El error es del rótulo, no de la persona. `[inferido]`
 
-### Conexión con el ERP — 6.5
-- **Aguas arriba:** ventas (`fn_ventas_del_dia`), caja (`getCajaAbierta`), traslados, ledger `movimientos`, `ubicaciones.meta_venta_diaria`.
-- **Aguas abajo:** ninguna, solo navega.
-- **Pájaro dueño y vecinos:** `[no verificable]`, `docs/datos/generado/AVIARIO.md` no menciona Inicio (grep sin resultados). Vecinos por código: Caja (misma fuente), Movimientos, Recibir.
-- **Desconectada de:** Facturación/SUNAT, Compras por pagar, Producción. **Desconectada de sus propios docs:** `11-KPIS.md:146` sigue diciendo `getPanelInicio`; el BACKLOG (~4661) sigue hablando de `lib/pendientes.ts`; el comentario de `(app)/layout.tsx:13` es de otra época.
+**Conexión con el ERP.** *Aguas arriba:* `ventas`, `venta_items`, `ubicaciones`, `transferencias`, `movimientos`. *Aguas abajo:* ninguna, solo lectura. *Pájaro dueño y vecinos:* Caja (comparte `fn_ventas_del_dia`, `getCajaAbierta`), Traslados. *Externos:* ninguno directo; si SUNAT o Nubefact fallan, Inicio no se entera porque esas colas no están integradas — que es justamente lo que falta.
 
 ## 5 · Relevancia
 | Criterio | Peso | Puntaje | Por qué (una línea) |
 |---|---|---|---|
-| Gestión (directo + indirecto) | ×2 | 6 | La líder decide con Hoy y meta; sin SUNAT ni por pagar no cubre lo que más cuesta |
-| Dinero y stock que toca | ×1 | 2 | Solo lectura; muestra dinero pero no lo mueve |
-| Frecuencia y personas que la usan | ×1 | 10 | Aterrizaje de todos los roles y sedes en cada sesión |
-| Qué se detiene si falla | ×1 | 3 | Nada operativo: el menú sigue y todo se alcanza desde él |
+| Gestión (directo + indirecto) | ×2 | 6 | Ya ayuda a decidir el día (meta, caja, pendientes), aunque «Tus ventas» decide con un dato mal rotulado |
+| Dinero y stock que toca | ×1 | 3 | Solo lectura; el riesgo es de mala información, no de mover plata directamente |
+| Frecuencia y personas que la usan | ×1 | 9 | Primera pantalla de todos, todos los días |
+| Qué se detiene si falla | ×1 | 4 | Cada bloque falla por separado; nada más depende de Inicio |
 
-Relevancia = (2·6 + 2 + 10 + 3) / 5 = **5.4** → Comodidad. Con Gestión en 8 (colas SUNAT y por pagar): (16 + 2 + 10 + 3) / 5 = 6.2 → Soporte.
+Relevancia = (2·6 + 3 + 9 + 4) / 5 = **6.0** → Soporte.
 
 ## 6 · Conexión con el ERP
-- **Aguas arriba:** `ventas` / `venta_items` (vía `fn_ventas_del_dia`), `cajas`, traslados, `movimientos`, `ubicaciones`.
-- **Aguas abajo:** ninguna.
-- **Pájaro dueño y vecinos:** `[no verificable]`; vecinos: Caja, Movimientos, Recibir.
-- **Externos, y qué pasa si caen:** ninguno hoy. Al sumar SUNAT, «pendiente» debe leerse aunque Nubefact no responda.
+- **Aguas arriba:** `ventas`, `venta_items`, `ubicaciones` (`meta_venta_diaria`), `transferencias`, `movimientos`.
+- **Aguas abajo:** ninguna (solo lectura). Enlaza según rol a `/vender`, `/caja`, `/buscar`, `/recibir`, `/inventario`, `/produccion`, `/inventario/traslados`.
+- **Pájaro dueño y vecinos:** Caja (comparte función y lecturas), Traslados. `[no verificable]` sin `AVIARIO.md` a mano en este análisis.
+- **Externos, y qué pasa si caen:** ninguno integrado hoy (esa es la tarea #1 pendiente de la sesión anterior: SUNAT/por pagar).
 
 ## 7 · Las 12 tareas, por importancia
 
-### #1 · [Mejorar] Colas SUNAT pendiente y compras por pagar en «Por atender»
-- **Dónde:** `lib/inicio-reglas.ts:90` (`colasInicio`), `page.tsx:58-76`; hay que subir a `lib/` la lectura que hoy vive dentro de `lib/comprobantes.ts` y de `compras/por-pagar`, y `fn_puede_ver_dinero_de_compras` para el filtro.
-- **Por qué en este puesto:** es lo que sube Gestión de 6 a 8 y la relevancia a Soporte. Un comprobante SUNAT rechazado o una deuda vencida son lo más caro de no ver. Riesgo: duplicar la definición de «pendiente»; por eso la lectura se sube, no se copia.
-- **Cómo lo verificas tú:** con un comprobante `pendiente` en la sede, «Por atender» muestra la cola con su cifra y coincide con Facturación; con la lectura forzada a fallar aparece «?», no un bloque vacío. La colaboradora no ve la cola de por pagar.
-- **Esfuerzo / dependencias:** L · antes que la #5 (la rejilla se arregla sola con 2–3 colas).
+### #1 · [Corregir] «Tus ventas» debe decir de quién son, o filtrar de verdad
+- **Dónde:** `page.tsx:145` (etiqueta «Tus ventas»/«Ventas»); `lib/inicio.ts:20` (comentario falso); `fn_ventas_del_dia` (`supabase/migrations/20260922140000...:330-378`, sin filtro por `usuario_id`).
+- **Por qué en este puesto:** es la Objeción; una integrante lee un número que no es el suyo, rotulado como si lo fuera.
+- **Cómo lo verificas tú:** dos integrantes distintas de la misma sede ven el mismo total en «Tus ventas» el mismo día.
+- **Esfuerzo / dependencias:** S (corregir el rótulo a «Ventas de la sede») · M si se decide filtrar por vendedor de verdad (toca la RPC que usan Caja/Vender/Facturación).
+- **DECIDÍ (propuesta, no ejecutada):** corregir el rótulo primero (S), y dejar el filtro por vendedor como decisión aparte de negocio.
+- **DESCARTÉ:** cambiar la RPC ahora mismo, porque Caja/Vender/Facturación la comparten y un cambio de alcance ahí es más caro que corregir un texto.
+- **SE ROMPE SI:** CAYLA decide medir desempeño individual por vendedora y usa esta cifra mal rotulada como si ya lo hiciera.
 
-### #2 · [Corregir] Cuadrar «Ventas» con Caja y decidir si es bruta o neta de cambios y devoluciones
-- **Dónde:** `inicio-reglas.ts:54` (suma en JS), `fn_ventas_del_dia` (suma `venta_items.subtotal`, migración `20260921103000`), `caja/page.tsx:73`. Una sola definición, en SQL o en un `lib/`, que use Caja e Inicio.
-- **Por qué en este puesto:** es la cifra que se cita en voz alta y contra la que se mide la meta. Hoy no tiene garantía de cuadrar. Riesgo: decisión de negocio (¿el cambio a otra prenda resta?), no de código.
-- **Cómo lo verificas tú:** contra base real (Docker + `supabase start`, no la demo): registra una venta de S/ 100 y una devolución de S/ 30; «Ventas» de Inicio y el total de `/caja` deben decir lo mismo, y lo que digan debe ser lo que Felipe defina.
-- **Esfuerzo / dependencias:** M · no antes de tener base real (prueba de RLS incluida).
+### #2 · [Replantear] Coordinar «Inicio por perfil» con la sesión del menú — decide Felipe
+- **Dónde:** `docs/SESIONES-ACTIVAS.md` (fila `brave-northcutt-7a1d2c`); `lib/inicio-reglas.ts` (`accesosInicio`, `mostrarHoy`) ya implementan una versión de "por perfil".
+- **Por qué en este puesto:** dos sesiones están a punto de decidir lo mismo sin saberlo. Si la del menú construye su propio «Inicio por perfil» sin ver que este ya existe, hay trabajo duplicado o dos diseños que compiten (Integridad conceptual: una sola mente).
+- **Cómo lo verificas tú:** hablas con ambas sesiones (o las fusionas) antes de que cualquiera avance en «Inicio por perfil».
+- **Esfuerzo / dependencias:** — (es coordinación, no código) · bloquea cualquier trabajo nuevo de personalización por rol.
+- **DECIDÍ:** frenar y avisar, no elegir una de las dos por mi cuenta.
+- **DESCARTÉ:** dejar que ambas avancen en paralelo, porque el incidente del 2026-09-17 (BITACORA) ya mostró qué cuesta eso: funciones construidas dos veces.
+- **SE ROMPE SI:** las dos sesiones fusionan por separado y una pisa el trabajo de la otra sin que nadie lo note hasta el conflicto de merge.
 
-### #3 · [Replantear] Un Inicio distinto por perfil, decidido por Felipe
-- **Dónde:** `inicio-reglas.ts:119` (`accesosInicio`) y `page.tsx` completo; toca el menú (`lib/menu.ts`, ADR-0144).
-- **Por qué en este puesto:** hoy hay un solo `page.tsx` con bloques por rol (opción B del análisis anterior); nadie decidió. `SESIONES-ACTIVAS.md` dice que otra sesión trabaja «Inicio por perfil». Si se hacen a espaldas, chocan.
-- **Cómo lo verificas tú:** una sección «Estrategia alternativa» (abajo) con Ganas/Pagas; tú decides. Nada se construye hasta entonces.
-- **Esfuerzo / dependencias:** S para decidir · antes de la #8 (Hoy del Taller depende de qué ve cada rol).
-- **DECIDÍ:** plantear la decisión, no tomarla. **DESCARTÉ:** tres pantallas distintas (líder, colaboradora, taller) por ahora, porque triplica mantenimiento con tres tiendas y un taller, y las reglas de `inicio-reglas.ts` ya alcanzan. **SE ROMPE SI:** una sesión implementa «Inicio por perfil» en el menú mientras otra sigue con bloques por rol: dos definiciones del mismo Inicio y una colaboradora ve lo que no debe.
+### #3 · [Replantear] Definir «cuenta terminal» en Inicio antes de que la rama sin mergear la traiga
+- **Dónde:** rama `claude/terminales-cuentas-129fd4` (no mergeada); citará «ADR-0152» que ya choca con `docs/adr/0152-pedido-no-atendido-en-un-toque.md`.
+- **Por qué en este puesto:** dos ADR con el mismo número es exactamente el incidente que `SESIONES-ACTIVAS.md` existe para prevenir.
+- **Cómo lo verificas tú:** antes de mergear esa rama, confirma que su ADR quedó renumerado (el código ya dice ADR-0160 internamente, según lo hallado) y que el archivo `docs/adr/0160-*.md` existe con ese contenido.
+- **Esfuerzo / dependencias:** — (verificación, no código nuevo) · no bloquea Inicio hoy porque la rama no está mergeada.
+- **DECIDÍ:** dejarlo como aviso, no tocar esa rama ajena.
+- **DESCARTÉ:** renumerar yo mismo el ADR, porque no es mi rama y podría pisar su propio trabajo en curso.
+- **SE ROMPE SI:** se mergea con el número viejo y dos ADR-0152 quedan en el repo a la vez.
 
-### #4 · [Mejorar] Que en el celular «Por atender» y «Vender» queden sobre el pliegue
-- **Dónde:** `page.tsx:141` (`grid-cols-1 gap-3` para las tres tarjetas de Hoy). En móvil, una sola tarjeta con las tres cifras en fila, o fila horizontal compacta.
-- **Por qué en este puesto:** el mostrador es celular/tablet; lo que se hace ahí es vender. Hoy la primera pantalla de 844 px se va en tres tarjetas de 165 px cada una.
-- **Cómo lo verificas tú:** abre `/` a 390 px: se ven las cifras de Hoy, «Por atender» y el botón «Vender» sin bajar más de una pantalla.
-- **Esfuerzo / dependencias:** S · ninguna.
+### #4 · [Mejorar] Sumar SUNAT pendiente y por pagar a «Por atender»
+- **Dónde:** `lib/inicio-reglas.ts:82-100` (`colasInicio`); comentario propio admite que faltan.
+- **Por qué en este puesto:** son las dos colas que tocan dinero real y hoy Inicio no las muestra, aunque ya existen en otras pantallas (Facturación, Compras/Por pagar).
+- **Cómo lo verificas tú:** con un comprobante SUNAT pendiente o una factura vencida, aparece un renglón en «Por atender» con enlace.
+- **Esfuerzo / dependencias:** M · por pagar solo a líder (mismo criterio que devoluciones en el análisis anterior).
 
-### #5 · [Corregir] Alinear la rejilla: «Por atender» en las mismas 3 columnas
-- **Dónde:** `page.tsx:59` (`sm:grid-cols-2`) → `sm:grid-cols-3`; hoy la tarjeta única queda a media fila.
-- **Por qué en este puesto:** es lo primero que se nota al comparar con la captura; cuesta una línea. No daña nada, por eso va abajo del bloque de dinero.
-- **Cómo lo verificas tú:** en escritorio, los bordes derecho e izquierdo de «Por atender» caen en las mismas columnas que «Hoy» e «Ir a».
-- **Esfuerzo / dependencias:** S · después de la #1 (con más colas se ve si el 3 alcanza).
+### #5 · [Mejorar] Cabecera con `EncabezadoPagina`, como sus hermanas
+- **Dónde:** `page.tsx:44-46`; `components/ui/EncabezadoPagina.tsx`.
+- **Por qué en este puesto:** dos pantallas resuelven la misma cabecera de dos formas (Integridad conceptual); Caja, Cambios, Devoluciones y Pedidos no atendidos ya usan el componente.
+- **Cómo lo verificas tú:** Inicio y Caja muestran la misma estructura de cabecera.
+- **Esfuerzo / dependencias:** S.
 
-### #6 · [Corregir] Estados vacíos honestos: valor medio, meta ausente, comparativo sin base
-- **Dónde:** `inicio-reglas.ts:68` (`ventas > 0 ? … : 0` → `null`), `page.tsx:154` (tarjeta de meta) y `:143-147` (comparativo).
-- **Por qué en este puesto:** a primera hora «Valor medio S/ 0» es un número falso con cara de verdad (mismo defecto que la auditoría anterior corrigió en las tarjetas de catálogo). Si no se hace, la líder aprende a no creerle a la pantalla.
-- **Cómo lo verificas tú:** con la demo sin ventas: «Valor medio» dice «—»; sin `meta_venta_diaria` la tarjeta muestra «Sin meta — configúrala en Ubicaciones» en vez de desaparecer; sin semana anterior dice «sin base para comparar».
-- **Esfuerzo / dependencias:** S · ninguna.
+### #6 · [Mejorar] «Hoy» del Taller, con órdenes por etapa
+- **Dónde:** `lib/inicio-reglas.ts:19` (`mostrarHoy` excluye Taller); propuesto por la sesión anterior, `produccion-decisiones.ts` como fuente sugerida.
+- **Por qué en este puesto:** el Taller es una sede (D-15) y hoy Inicio no le dice nada de "cómo va el día" a quien opera ahí.
+- **Cómo lo verificas tú:** un usuario del Taller ve un bloque equivalente a «Hoy» con sus órdenes por etapa.
+- **Esfuerzo / dependencias:** M · no antes de #2 (puede solaparse con la personalización por rol que decide esa sesión).
 
-### #7 · [Eliminar/fusionar/conectar] Mostrar la caja de un solo modo
-- **Dónde:** `page.tsx:164` (tarjeta Caja de la colaboradora) y `inicio-reglas.ts:134-142` (acceso «Caja» de la líder).
-- **Por qué en este puesto:** el mismo dato en dos formas. Si el estado de caja es información, va como estado (chip en «Hoy»); si es acción, va como acceso. Además con caja cerrada «Vender» debería dejar de ser el botón principal para quien no puede vender (el texto ya lo dice).
-- **Cómo lo verificas tú:** con `__mock/caja?abierta=0`: líder y colaboradora ven el estado igual y «Abrir caja» pasa a principal.
-- **Esfuerzo / dependencias:** S · después de la #3 (depende de qué ve cada rol).
+### #7 · [Corregir] Actualizar `docs/datos/11-KPIS.md:146` y el BACKLOG viejo
+- **Dónde:** `docs/datos/11-KPIS.md:146` (cita `getPanelInicio`, ya no existe); `docs/BACKLOG.md` ~4747-4757 (cita `lib/pendientes.ts`, reemplazado).
+- **Por qué en este puesto:** doc desactualizado que alguien puede tomar como vigente (regla del Paso 0 de este mismo proceso).
+- **Cómo lo verificas tú:** los docs citan `lib/inicio.ts`/`lib/inicio-reglas.ts`, no las funciones viejas.
+- **Esfuerzo / dependencias:** S.
 
-### #8 · [Mejorar] «Hoy» del Taller (órdenes por etapa)
-- **Dónde:** `inicio-reglas.ts:19` (`mostrarHoy` devuelve `false` fuera de tiendas), `lib/produccion-decisiones.ts` (Resumen de #231, ya en `main`).
-- **Por qué en este puesto:** el Taller abre Inicio y ve solo «Traslados por recibir». Reutiliza lo ya calculado en Producción; no crea otra definición.
-- **Cómo lo verificas tú:** con `__mock/rol?r=taller`, aparece un bloque con órdenes por etapa que coincide con `/produccion`.
-- **Esfuerzo / dependencias:** M · después de la #3.
+### #8 · [Mejorar] Mostrar la caja de un solo modo
+- **Dónde:** `page.tsx:164` (tarjeta de la integrante) vs. `inicio-reglas.ts:143-150` (acceso de la líder) — dos formas distintas de decir «caja abierta/cerrada».
+- **Por qué en este puesto:** Integridad conceptual; el mismo dato se lee distinto según quién mira.
+- **Cómo lo verificas tú:** líder e integrante ven el estado de caja con el mismo componente/formato.
+- **Esfuerzo / dependencias:** S.
 
-### #9 · [Corregir] Una sola voz en los avisos de fallo
-- **Dónde:** `inicio-reglas.ts:98` y `page.tsx:165` («No pude leer esto») frente a `page.tsx:37,131` («No se pudo cargar…»). Sustituir el «?» del chip por un texto que diga qué reintentar.
-- **Por qué en este puesto:** cosmético pero visible en la única pantalla que todos ven; el modo de fallo es lo que más se lee cuando algo anda mal.
-- **Cómo lo verificas tú:** `__mock/falla?que=ventas,traslados,movimientos`: los tres avisos suenan igual y dicen dónde ir.
-- **Esfuerzo / dependencias:** S · ninguna.
+### #9 · [Mejorar] «Ver todo» en Actividad reciente
+- **Dónde:** `page.tsx` (sección Actividad reciente, sin enlace a la lista completa).
+- **Por qué en este puesto:** bajo valor, pero barato; hoy los 8 últimos son un callejón sin salida hacia Movimientos.
+- **Cómo lo verificas tú:** un enlace lleva a `/inventario/movimientos` con el mismo filtro.
+- **Esfuerzo / dependencias:** S — bajo valor.
 
-### #10 · [Corregir] Docs obsoletos, ADR, BACKLOG y BITACORA
-- **Dónde:** `docs/datos/11-KPIS.md:146` (`getPanelInicio`), `docs/BACKLOG.md` ~4661 (`lib/pendientes.ts`), `apps/web/app/(app)/layout.tsx:13`; ADR nuevo con la decisión de la #3; 3 líneas en `docs/BITACORA.md`.
-- **Por qué en este puesto:** principio 8 del repo. Sin esto, el próximo análisis vuelve a tomar la finalidad de un doc que describe una pantalla que ya no existe.
-- **Cómo lo verificas tú:** `grep -rn "getPanelInicio\|lib/pendientes" docs apps` no devuelve nada vigente.
-- **Esfuerzo / dependencias:** S · después de la #3 (el ADR depende de la decisión).
+### #10 · [Mejorar] `verifica-inicio.mjs` en CI
+- **Dónde:** `scripts/demo/verifica-inicio.mjs` (existe, no corre en CI); `.github/workflows/ci.yml`.
+- **Por qué en este puesto:** hay una prueba de escenarios reales (líder/integrante/Taller/fallos) que hoy solo corre a mano.
+- **Cómo lo verificas tú:** el paso aparece en el CI y falla si se rompe un escenario.
+- **Esfuerzo / dependencias:** S — bajo valor / futuro.
 
-### #11 · [Mejorar] «Ver todo» en Actividad reciente · *bajo valor*
-- **Dónde:** `page.tsx:106`; enlace a `/inventario/movimientos`.
-- **Por qué en este puesto:** la lista muestra 8 y no lleva a ningún lado. Cómodo, no necesario: el menú ya tiene Movimientos.
-- **Cómo lo verificas tú:** el enlace abre Movimientos ya filtrado a la sede.
-- **Esfuerzo / dependencias:** S · ninguna.
+### #11 · [Eliminar/fusionar] Anexar al BACKLOG real las 12 tareas de la auditoría anterior
+- **Dónde:** `docs/BACKLOG.md` (0 líneas con `pantalla:inicio` hoy); `docs/pantallas/inicio.md` (historial, versión anterior).
+- **Por qué en este puesto:** quedaron propuestas y nunca aprobadas; varias de esta lista las reemplazan (#4/#5/#6/#9 de la versión anterior ya se cerraron con el código actual).
+- **Cómo lo verificas tú:** el BACKLOG tiene las líneas vigentes de esta versión, no las de la vencida.
+- **Esfuerzo / dependencias:** — (solo con tu aprobación, ver sección 11).
 
-### #12 · [Mejorar] Que `verifica-inicio.mjs` corra en CI y una prueba con base real · *bajo valor / futuro*
-- **Dónde:** `scripts/demo/verifica-inicio.mjs` y `.github/workflows/ci.yml`.
-- **Por qué en este puesto:** la demo no prueba RLS ni RPC (dicho en su propio encabezado); sirve para ver la pantalla, no para blindarla. Vale más la prueba real de la #2.
-- **Cómo lo verificas tú:** CI verde con el paso nuevo; una rama que rompa un bloque lo hace fallar.
-- **Esfuerzo / dependencias:** M · después de la #2.
+### #12 · [Replantear] ¿Por vendedor o por sede es la unidad de "ventas del día"?
+- **Dónde:** decisión de fondo detrás de #1; ninguna D-nn la cubre.
+- **Por qué en este puesto:** es la pregunta real detrás del rótulo mal puesto — decide Felipe (sección 8).
+- **Cómo lo verificas tú:** con la decisión tomada, #1 se ejecuta según lo que se eligió.
+- **Esfuerzo / dependencias:** — · antes de #1 si se opta por filtrar de verdad.
+- **DECIDÍ (propuesta, no ejecutada):** ninguna — se propone para que Felipe decida.
+- **DESCARTÉ:** N/A, es la tarea de decisión.
+- **SE ROMPE SI:** se corrige el rótulo a «Ventas de la sede» sin decidir esto, y en 3 meses alguien pide "por vendedor" y hay que rehacerlo.
 
 ## 8 · Estrategia alternativa
-**El Inicio como bandeja de decisiones en vez de tablero.** Hoy: Hoy → Por atender → Ir a → Actividad. Alternativa: solo «Lo que necesita tu decisión» (traslados, SUNAT, por pagar, meta en riesgo) arriba y las cifras del día en una franja compacta, como en el Resumen de Producción (#231).
-- **Ganas:** la pantalla responde en 3 segundos «¿qué hago ahora?» y escala solo: cada módulo nuevo agrega una cola, no una tarjeta. Resuelve la objeción del celular.
-- **Pagas:** la líder pierde la vista de «cómo voy» a simple vista (queda en una franja); requiere que cada módulo exponga su cola en `lib/`; y si no hay nada pendiente la pantalla queda casi vacía.
-Decide Felipe (tarea #3).
+No hay una alternativa de fondo a la estructura Hoy/Por atender/Ir a — ya está bien encaminada. La única decisión de fondo real es **#12** (¿por vendedor o por sede?) y **#2** (quién decide "Inicio por perfil": esta sesión o la del menú). No las duplico aquí porque ya están en las 12.
 
 ## 9 · Referentes de ERP y futuro
-- **De memoria, no verificado en producto real:** Shopify POS y Lightspeed abren con el resumen del día y accesos; Odoo con colas por procesar. La mezcla actual sigue esa lógica.
-- **Futuro** (no pasa el filtro «3 tiendas y 1 taller hoy»): serie de tendencia de 14 días, comparativos entre sedes, gráficos.
+No se agregó nada nuevo desde el análisis anterior en este punto — mantenerlo breve.
+- **Futuro:** «Hoy» del Taller con producción por etapa (#6) ya pasa el filtro de 3 tiendas + 1 taller; se ejecuta cuando se decida.
 
 ## 10 · Fuera de esta pantalla
-**`docs/pantallas/inicio-traspaso.md` (§7) avisa de una migración de producción pendiente que no es de Inicio: `20260920160000_apartar_stock.sql` no está en producción y `main` ya lee `stock.cantidad_apartada` en Existencias y Apartar.** Hay que pegarla antes de desplegar la web o esas pantallas fallan. No pude confirmar si ya se pegó `[no verificable]`; en esta rama tampoco encontré el registro en el BACKLOG.
+**Dos sesiones de IA están a un paso de construir "Inicio por perfil" cada una por su cuenta, sin saberlo.** No es un defecto de la pantalla: es un defecto del tablero de coordinación (`SESIONES-ACTIVAS.md`), que registra la intención de una sesión («Inicio por perfil») pero no ve que la otra sesión ya construyó buena parte de eso bajo otro nombre («Hoy/Por atender/Ir a por rol»). Es exactamente el tipo de colisión que ese tablero nació para prevenir (BITACORA, incidente 2026-09-17), y está a punto de repetirse en la misma pantalla que ya lo sufrió una vez. Antes de que cualquiera de las dos sesiones toque personalización por rol de nuevo, alguien tiene que leer ambos planes juntos.
 
-## Estado de las 12 tareas de la auditoría anterior
-El análisis previo (SHA `f0f66b73`) quedó **vencido**: la pantalla se rehízo. Se reutiliza solo lo que sigue abierto.
-
-| # anterior | Tarea | Hoy |
-|---|---|---|
-| 1 | Rótulos y filtros de las tarjetas | ✅ cerrada (las tarjetas se retiraron) |
-| 2 | Bloque «Hoy» | ✅ cerrada; queda la fidelidad de la cifra → **#2 nueva** |
-| 3 | «Por atender» | 🟡 abierta → **#1 nueva** |
-| 4 | Decidir Inicio por rol | ⏳ abierta → **#3 nueva** |
-| 5 | Quitar tarjetas duplicadas y celda gris | ✅ cerrada |
-| 6 | Acciones por rol y ubicación | ✅ cerrada |
-| 7 | Actividad legible | ✅ cerrada |
-| 8 | Degradar por bloque | ✅ cerrada |
-| 9 | Suma sin tope de 1.000 | ✅ cerrada |
-| 10 | Quitar «V2» y la sede repetida | ✅ cerrada |
-| 11 | Reglas en `lib/` con prueba | ✅ cerrada (15 pruebas) |
-| 12 | Docs obsoletos | ⏳ abierta → **#10 nueva** |
+## 11 · Líneas propuestas para BACKLOG.md
+- [ ] `[pantalla:inicio]` #1 «Tus ventas»: corregir el rótulo o filtrar de verdad por vendedor — S/M
+- [ ] `[pantalla:inicio]` #2 Coordinar «Inicio por perfil» entre esta pantalla y la sesión del menú — decide Felipe
+- [ ] `[pantalla:inicio]` #3 Verificar renumeración del ADR de «cuenta terminal» antes de mergear esa rama — verificación
+- [ ] `[pantalla:inicio]` #4 Sumar SUNAT pendiente y por pagar a «Por atender» — M
+- [ ] `[pantalla:inicio]` #5 Cabecera con `EncabezadoPagina` — S
+- [ ] `[pantalla:inicio]` #6 «Hoy» del Taller con órdenes por etapa — M
+- [ ] `[pantalla:inicio]` #7 Actualizar `11-KPIS.md` y el BACKLOG viejo — S
+- [ ] `[pantalla:inicio]` #8 Un solo formato para el estado de caja — S
+- [ ] `[pantalla:inicio]` #9 «Ver todo» en Actividad reciente — S (bajo valor)
+- [ ] `[pantalla:inicio]` #10 `verifica-inicio.mjs` en CI — S (bajo valor / futuro)
+- [ ] `[pantalla:inicio]` #11 Reemplazar en BACKLOG las 12 líneas vencidas de la auditoría anterior por estas — administrativo
+- [ ] `[pantalla:inicio]` #12 Decidir: ¿"ventas del día" es por vendedor o por sede? — decide Felipe
 
 ## Historial
 | Fecha | Modo | SHA | Cumple | Relevancia | Nota |
 |---|---|---|---|---|---|
-| 2026-09-21 | completo, SQL parcial | `f0f66b73` | 5.1 | 4.2 | Pantalla antigua (tarjetas de catálogo); vencido |
-| 2026-09-21 | completo, sin SQL | `b6b85206` + Inicio de `76503cf2` | 6.8 | 5.4 | Diseño nuevo (Hoy · Por atender · Ir a); datos de demo, no de producción |
-| 2026-09-21 | implementación | (sin commit aún) | — | — | Hechas #4 (celular), #5 (rejilla 3 columnas), #6 (estados vacíos) y #9 (una voz en los avisos); verificado en demo a 390 px y en escritorio, sin producción |
-
-## Líneas propuestas para BACKLOG.md
-*(Felipe aprueba antes de anexarlas. No toqué el BACKLOG.)*
-- [pantalla:inicio] #1 Sumar colas SUNAT pendiente y compras por pagar a «Por atender» (subir su lectura a `lib/`; por pagar solo líder).
-- [pantalla:inicio] #2 Cuadrar «Ventas» de Inicio con Caja y decidir si es neta de cambios y devoluciones (probar contra base real).
-- [pantalla:inicio] #3 Decidir el Inicio por perfil (coordinar con «Inicio por perfil» de la sesión del menú) y escribir el ADR.
-- [pantalla:inicio] #4 Celular: «Por atender» y «Vender» sobre el pliegue.
-- [pantalla:inicio] #5 Alinear «Por atender» a 3 columnas.
-- [pantalla:inicio] #6 Estados vacíos honestos: valor medio «—», meta ausente, comparativo sin base.
-- [pantalla:inicio] #7 Mostrar la caja de un solo modo (estado vs. acción).
-- [pantalla:inicio] #8 «Hoy» del Taller con órdenes por etapa (reusar `produccion-decisiones.ts`).
-- [pantalla:inicio] #9 Una sola voz en los avisos de fallo.
-- [pantalla:inicio] #10 Corregir docs obsoletos (`11-KPIS.md:146`, BACKLOG ~4661, `layout.tsx:13`) + ADR + BITACORA.
-- [pantalla:inicio] #11 «Ver todo» en Actividad reciente (bajo valor).
-- [pantalla:inicio] #12 `verifica-inicio.mjs` en CI y prueba con base real (bajo valor / futuro).
+| 2026-09-21 | completo, SQL parcial | `f0f66b73` | 5.1 | 4.2 | Pantalla original (tarjetas de catálogo); vencido |
+| 2026-09-21 | completo, sin SQL, datos de demo | `b6b85206`+`76503cf2` | 6.8 | 5.4 | Diseño nuevo (Hoy · Por atender · Ir a) de otra sesión; #4/#5/#6/#9 luego cerradas |
+| 2026-09-22 | completo, sin SQL | `fa56e483` | 6.5 | 6.0 | Re-auditoría tras la reconstrucción; hallazgo nuevo: «Tus ventas» no es de la vendedora, es de toda la sede |
