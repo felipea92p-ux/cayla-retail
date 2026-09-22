@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
+import { usePosicionLista } from "@/components/ui/useAnclaje";
 
 /* ====================================================================
    Campos del sistema CAYLA · v3.1 (2026-09-08)
@@ -500,6 +501,13 @@ export function Desplegable<T extends string>({
   const lista = useRef<HTMLUListElement>(null);
   const tipeo = useRef({ texto: "", reloj: 0 });
 
+  // En `campo` la lista va en `fixed` (usePosicionLista): dentro de un <Modal> una lista `absolute` queda recortada por
+  // el scroll de la hoja. `derecha` (cabecera) sigue en `absolute`: allí nada la recorta y crece con su contenido.
+  const flotante = alineacion === "campo";
+  const posLista = usePosicionLista(contenedor, abierto && flotante, 224);
+  // La lista en `fixed` se pinta recién cuando tiene posición (un render después de abrir).
+  const listaVisible = abierto && (!flotante || !!posLista);
+
   const indiceActual = opciones.findIndex((o) => o.valor === valor);
   const elegida = indiceActual >= 0 ? opciones[indiceActual] : null;
 
@@ -521,14 +529,14 @@ export function Desplegable<T extends string>({
   }
 
   useEffect(() => {
-    if (!abierto) return;
+    if (!listaVisible) return;
     lista.current?.focus();
     const afuera = (e: MouseEvent) => {
       if (contenedor.current && !contenedor.current.contains(e.target as Node)) setAbierto(false);
     };
     document.addEventListener("mousedown", afuera);
     return () => document.removeEventListener("mousedown", afuera);
-  }, [abierto]);
+  }, [listaVisible]);
 
   function alTeclado(e: React.KeyboardEvent) {
     if (!abierto) {
@@ -622,18 +630,19 @@ export function Desplegable<T extends string>({
       </button>
       {!esPastilla && !esCaja && <Hilo activo={abierto} trabajando={trabajando} />}
 
-      {abierto && (
+      {listaVisible && (
         <ul
           id={`${id}-lista`}
           ref={lista}
+          style={flotante ? { position: "fixed", ...posLista } : undefined}
           role="listbox"
           aria-labelledby={idEtiqueta}
           aria-label={idEtiqueta ? undefined : etiquetaAccesible}
           tabIndex={-1}
           aria-activedescendant={`${id}-op-${activo}`}
           onKeyDown={alTeclado}
-          className={`anim-revelar scroll-cayla absolute top-full z-50 mt-1.5 max-h-56 overflow-y-auto rounded-lg border border-sand bg-papel py-1.5 shadow-md outline-none ${
-            alineacion === "derecha" ? "right-0 w-max min-w-full" : "inset-x-0"
+          className={`anim-revelar scroll-cayla z-50 overflow-y-auto rounded-lg border border-sand bg-papel py-1.5 shadow-md outline-none ${
+            flotante ? "" : "absolute right-0 top-full mt-1.5 max-h-56 w-max min-w-full"
           }`}
         >
           {opciones.map((o, i) => (
