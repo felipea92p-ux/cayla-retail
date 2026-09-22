@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar, type Tolerado } from "@/lib/resultado";
-import { TIPOS_TERMINAL, type TipoTerminal } from "@/lib/menu";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Las escrituras pasan por las RPC
 // directo desde el componente cliente (`lib/colaboradores-acciones.ts`).
@@ -23,11 +22,16 @@ export type Colaborador = {
 };
 
 /** Un aparato compartido de una tienda (ADR-0162, `retail.terminales`): cuenta de Auth propia, SIN persona. Ya no es
- *  una fila de `fn_colaboradores()` — la terminal-persona del ADR-0160 se retiró (`colaboradores.terminal` siempre null). */
+ *  una fila de `fn_colaboradores()` — la terminal-persona del ADR-0160 se retiró (`colaboradores.terminal` siempre null).
+ *  Sin tipo desde 20260923040000: se distingue por tienda + nombre, y lo que ve lo decide su ROL. */
 export type Terminal = {
   id: string;
   nombre: string;
-  tipo: TipoTerminal;
+  /** El rol de la cuenta (ADR-0161 B): los módulos que ve. */
+  rol_id: string;
+  rol_nombre: string;
+  /** El correo de su cuenta de Auth (generado, sin datos de nadie): el que se escribe en el aparato para entrar. */
+  correo: string | null;
   ubicacion_id: string;
   ubicacion_nombre: string;
   activo: boolean;
@@ -102,19 +106,15 @@ export async function getColaboradores(): Promise<Colaborador[]> {
 }
 
 /** Las terminales de todas las tiendas (`fn_terminales()`, solo líder). Se TOLERA el fallo: es un listado de apoyo en
- *  una pestaña, no plata ni stock — si la base todavía no tiene la migración del ADR-0162 (la web se publicó antes), el
- *  resto de Colaboradores sigue funcionando y la pestaña dice que no pudo leerlas. Una fila con un tipo desconocido se
- *  descarta en vez de pintarse mal. */
+ *  una pestaña, no plata ni stock — si la base todavía no tiene la migración (la web se publicó antes), el resto de
+ *  Colaboradores sigue funcionando y la pestaña dice que no pudo leerlas. Una base sin 20260923040000 no devuelve el rol:
+ *  se trata como «no se pudieron leer» en vez de pintar filas a medias. */
 export async function getTerminales(): Promise<Tolerado<Terminal[]>> {
   const supabase = await createClient();
   const { datos, fallo } = tolerar(await supabase.rpc("fn_terminales"), "las terminales");
   if (!datos) return { datos: null, fallo };
-  return {
-    datos: datos
-      .filter((t) => (TIPOS_TERMINAL as readonly string[]).includes(t.tipo))
-      .map((t) => ({ ...t, tipo: t.tipo as TipoTerminal })),
-    fallo: null,
-  };
+  if (datos.some((t) => !t.rol_id)) return { datos: null, fallo: "Falta pegar en la base la migración de terminales sin tipo (20260923040000)." };
+  return { datos, fallo: null };
 }
 
 export async function getColaboradoresPendientes(): Promise<ColaboradorPendiente[]> {

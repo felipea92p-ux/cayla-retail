@@ -4,7 +4,6 @@ import type { Colaborador, ColaboradorInactivo, ColaboradorPendiente, Colaborado
 import {
   accionesDeFila,
   ETIQUETA_ROL,
-  ETIQUETA_TIPO_TERMINAL,
   fechaHoraLima,
   fechaLima,
   fraseEvento,
@@ -123,28 +122,29 @@ export function TablaActivos({
 // Terminales (ADR-0162): aparatos con cuenta propia, SIN persona — por eso no usan `Persona` ni el menú «⋯» de las
 // personas: su única acción es Desactivar / Reactivar, a la vista (pantalla 5 del spike aprobado). Una desactivada queda
 // en la lista apagada, nunca desaparece: su historial sigue firmado con `terminal_id`.
+// Sin tipo desde 20260923040000: cada fila es tienda + nombre + ROL (lo que ve). Las acciones son las tres de la pantalla:
+// Cambiar clave (la muestra una vez), Cambiar rol y Desactivar/Reactivar.
 export function TablaTerminales({
   filas,
   ocupadoId,
   onAlternar,
-  rolDe,
+  onCambiarClave,
   onCambiarRol,
 }: {
   filas: Terminal[];
   ocupadoId: string | null;
   onAlternar: (t: Terminal) => void;
-  /** ADR-0161 B1: una terminal es una cuenta más con su rol. Sin esto, la columna «Rol» no sale. */
-  rolDe?: (id: string) => string | null;
+  onCambiarClave?: (t: Terminal) => void;
+  /** ADR-0161 B1: una terminal es una cuenta más con su rol. Sin esto (roles sin leer), no se ofrece cambiarlo. */
   onCambiarRol?: (t: Terminal) => void;
 }) {
   return (
-    <Caja minimo="min-w-[760px]">
+    <Caja minimo="min-w-[880px]">
       <thead className="border-b border-tinta/10 bg-tinta/[0.03] text-tinta/70">
         <tr>
           <th className={CABECERA}>Terminal</th>
           <th className={CABECERA}>Tienda</th>
-          <th className={CABECERA}>Tipo</th>
-          {rolDe && <th className={CABECERA}>Rol</th>}
+          <th className={CABECERA}>Rol</th>
           <th className={CABECERA}>Estado</th>
           <th className={CABECERA}>Última actividad</th>
           <th className={`${CABECERA} text-right`}>
@@ -158,23 +158,29 @@ export function TablaTerminales({
             key={t.id}
             className={`transition-colors duration-150 hover:bg-tinta/[0.025] ${t.activo ? "" : "text-tinta/55"} ${ocupadoId === t.id ? "opacity-50" : ""}`}
           >
-            <td className={CELDA}>
+            <td className={`${CELDA} min-w-[15rem]`}>
               <div className="flex items-center gap-2.5">
                 <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-sand/70 text-tinta">
                   <IconoAparato />
                 </span>
                 <div className="min-w-0">
                   <div className={`font-medium ${t.activo ? "text-tinta" : "text-tinta/60"}`}>{t.nombre}</div>
-                  <div className="text-xs text-tinta/65">Sin persona · cuenta del aparato</div>
+                  <div className="max-w-[16rem] truncate text-xs text-tinta/65" title={t.correo ?? undefined}>
+                    {t.correo ?? "Sin persona · cuenta del aparato"}
+                  </div>
                 </div>
               </div>
             </td>
             <td className={`${CELDA} whitespace-nowrap`}>{t.ubicacion_nombre}</td>
-            <td className={`${CELDA} whitespace-nowrap`}>{ETIQUETA_TIPO_TERMINAL[t.tipo]}</td>
-            {rolDe && <td className={`${CELDA} whitespace-nowrap`}>{rolDe(t.id) ?? "—"}</td>}
+            <td className={`${CELDA} whitespace-nowrap`}>{t.rol_nombre}</td>
             <td className={CELDA}>{t.activo ? <Chip tono="verde">Activa</Chip> : <Chip tono="apagado">Desactivada</Chip>}</td>
             <td className={`${CELDA} whitespace-nowrap tabular-nums`}>{t.ultimo_acceso ? fechaHoraLima(t.ultimo_acceso) : "Nunca"}</td>
             <td className={`${CELDA} whitespace-nowrap text-right`}>
+              {onCambiarClave && (
+                <Boton type="button" peso="discreto" className="mr-2 px-3 py-1.5 text-[11px]" disabled={ocupadoId !== null} onClick={() => onCambiarClave(t)}>
+                  Cambiar clave
+                </Boton>
+              )}
               {onCambiarRol && (
                 <Boton type="button" peso="discreto" className="mr-2 px-3 py-1.5 text-[11px]" disabled={ocupadoId !== null} onClick={() => onCambiarRol(t)}>
                   Cambiar rol

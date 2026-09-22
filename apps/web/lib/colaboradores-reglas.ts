@@ -9,12 +9,8 @@ import type {
   RolColaborador,
   Terminal,
 } from "./colaboradores";
-import type { TipoTerminal } from "./menu";
 
 export const ETIQUETA_ROL: Record<RolColaborador, string> = { lider: "Líder", colaborador: "Colaborador" };
-
-/** La columna «Tipo» de Colaboradores ▸ Terminales (ADR-0162). */
-export const ETIQUETA_TIPO_TERMINAL: Record<TipoTerminal, string> = { ventas: "Ventas", administrativa: "Administrativa" };
 
 /** Lo que dice la confirmación de Desactivar / Reactivar (textos del spike aprobado, pantalla 5). Desactivar corta la
  *  sesión del aparato en el acto: `fn_terminal_actual()` deja de devolverlo y con eso todas sus lecturas y escrituras. */

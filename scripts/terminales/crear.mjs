@@ -1,18 +1,21 @@
 #!/usr/bin/env node
-// `pnpm terminales:crear <TRU|AQP|LIM> <ventas|administrativa> [--cambiar-clave]` — ADR-0162, fase F5.
+// `pnpm terminales:crear <TRU|AQP|LIM> "<nombre>" [--rol "<rol>"] [--cambiar-clave]` — ADR-0162, RESPALDO.
 //
 // EL PROBLEMA PRIMERO. Una terminal es un aparato con su propia cuenta de Auth, SIN persona. Crear un usuario de Auth
-// exige la LLAVE DE SERVICIO, que salta todo candado (RLS); la web de retail no la tiene ni debe tenerla por algo que pasa
-// seis veces en total. Por eso crear y cambiar la clave lo hace este script, que corre un líder en su máquina; la pantalla
-// Colaboradores ▸ Terminales solo ve, desactiva y reactiva. Mismo criterio que Dynamic (`scripts/setup-terminales-prod.mjs`).
+// exige la LLAVE DE SERVICIO, que salta todo candado (RLS). Desde el 2026-09-22 (Felipe) lo normal es crearla desde la
+// pantalla (Colaboradores ▸ Terminales), cuya Server Action comprueba primero que quien la usa es líder. Este script queda
+// como respaldo —si el servidor aún no tiene la llave, o para arreglar algo a mano— y aplica las MISMAS reglas puras
+// (`apps/web/lib/terminales-reglas.ts`).
+//
+// Sin tipo (20260923040000): una terminal es tienda + nombre + ROL. Puede haber varias por tienda; dos activas de la misma
+// tienda no pueden llamarse igual (la base lo exige con un índice único).
 //
 // QUÉ HACE
-//   Crear: resuelve la tienda en retail.ubicaciones, se detiene si ya hay una terminal de ese tipo ahí (activa o
-//   desactivada: a una desactivada se la REACTIVA desde la pantalla, no se duplica), pide confirmación mostrando a qué
-//   proyecto apunta, crea el usuario de Auth (correo terminal-<tipo>-<tienda>@cayla.pe, email_confirm) e inserta la fila en
-//   retail.terminales. Si la fila no entra, borra el usuario recién creado (sin historial todavía): nunca queda una cuenta
-//   huérfana que pueda iniciar sesión sin terminal.
-//   --cambiar-clave: no crea nada; le pone una clave nueva a la terminal existente de esa tienda y tipo.
+//   Crear: resuelve la tienda y el rol, se detiene si ya hay una terminal con ese nombre ahí (activa o desactivada: a una
+//   desactivada se la REACTIVA desde la pantalla, no se duplica), pide confirmación mostrando a qué proyecto apunta, crea el
+//   usuario de Auth (correo terminal-<tienda>-<nombre>-<azar>@cayla.pe, email_confirm) e inserta la fila en
+//   retail.terminales. Si la fila no entra, borra el usuario recién creado: nunca queda una cuenta huérfana.
+//   --cambiar-clave: no crea nada; le pone una clave nueva a la terminal de ese nombre en esa tienda.
 //   En los dos casos la clave se muestra UNA sola vez: no se guarda en ningún lado.
 //
 // Habla con la API REST de Supabase con `fetch` (Node 18+): no necesita instalar nada en la raíz del repo.
@@ -20,7 +23,18 @@
 
 import crypto from "node:crypto";
 import readline from "node:readline/promises";
-import { AYUDA, correoDe, generarClave, leerArgumentos, nombreDe, resolverTienda } from "./reglas.mjs";
+import {
+  AYUDA,
+  codigoDeTienda,
+  correoTerminal,
+  generarClave,
+  leerArgumentos,
+  mensajeErrorAlta,
+  normalizarNombre,
+  resolverRol,
+  resolverTienda,
+  sufijoAzar,
+} from "./reglas.mjs";
 
 function salir(mensaje, codigo = 1) {
   console.error(`\n${mensaje}\n`);
@@ -45,6 +59,7 @@ if (!URL_BASE || !LLAVE) {
 }
 
 const cabeceras = { apikey: LLAVE, Authorization: `Bearer ${LLAVE}`, "Content-Type": "application/json" };
+const azar = (n) => crypto.randomBytes(n);
 
 /** PostgREST sobre el schema `retail` (en producción vive dentro del proyecto de Dynamic). */
 async function rest(ruta, { method = "GET", body, prefer } = {}) {
@@ -59,7 +74,19 @@ async function rest(ruta, { method = "GET", body, prefer } = {}) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const texto = await r.text();
-  if (!r.ok) throw new Error(`La base respondió ${r.status}: ${texto}`);
+  if (!r.ok) {
+    const json = (() => {
+      try {
+        return JSON.parse(texto);
+      } catch {
+        return null;
+      }
+    })();
+    const e = new Error(`La base respondió ${r.status}: ${json?.message ?? texto}`);
+    e.codigo = json?.code;
+    e.mensaje = json?.message;
+    throw e;
+  }
   return texto ? JSON.parse(texto) : null;
 }
 
@@ -96,80 +123,85 @@ function mostrarClave({ nombre, correo, clave, tienda }) {
 Esta clave NO se vuelve a mostrar ni se guarda en ningún lado.
   1. En el aparato de ${tienda}, abre retail e inicia sesión con ese correo y esa clave.
   2. No la anotes en papel junto al aparato ni la mandes por chat.
-  3. Si se pierde: pnpm terminales:crear ${args.tienda} ${args.tipo} --cambiar-clave
+  3. Si se pierde: Colaboradores ▸ Terminales ▸ Cambiar clave (o este script con --cambiar-clave).
   4. Si se pierde el APARATO: Colaboradores ▸ Terminales ▸ Desactivar (corta su sesión en el acto).
 `);
 }
 
 async function main() {
-  const { tienda: codigo, tipo, cambiarClave } = args;
+  const { tienda: codigo, nombre, cambiarClave } = args;
 
   const ubicaciones = await rest("ubicaciones?select=id,nombre,tipo,activo");
   const tienda = resolverTienda(ubicaciones, codigo);
-  const existentes = await rest(
-    `terminales?select=id,nombre,activo,auth_user_id&ubicacion_id=eq.${tienda.id}&tipo=eq.${tipo}&order=activo.desc,creada_at.desc`
-  );
-  const activa = existentes.find((t) => t.activo);
+  const deLaTienda = await rest(`terminales?select=id,nombre,activo,auth_user_id&ubicacion_id=eq.${tienda.id}&order=activo.desc,creada_at.desc`);
+  const mismoNombre = deLaTienda.filter((t) => normalizarNombre(t.nombre).toLowerCase() === nombre.toLowerCase());
+  const activa = mismoNombre.find((t) => t.activo);
 
   console.log(`\nProyecto: ${new URL(URL_BASE).host}`);
   console.log(`Tienda:   ${tienda.nombre}`);
-  console.log(`Tipo:     ${tipo}`);
+  console.log(`Nombre:   ${nombre}`);
 
   if (cambiarClave) {
-    const t = activa ?? existentes[0];
-    if (!t) salir(`${tienda.nombre} no tiene terminal de ${tipo}. Créala sin --cambiar-clave.`);
-    if (!t.auth_user_id) salir(`«${t.nombre}» ya no tiene cuenta de Auth. Créala de nuevo sin --cambiar-clave.`);
-    console.log(`Terminal: ${t.nombre}${t.activo ? "" : " (DESACTIVADA: reactívala en Colaboradores ▸ Terminales para usarla)"}`);
+    const t = activa ?? mismoNombre[0];
+    if (!t) salir(`${tienda.nombre} no tiene una terminal llamada «${nombre}». Créala sin --cambiar-clave.`);
+    if (!t.auth_user_id) salir(`«${t.nombre}» ya no tiene cuenta de Auth. Crea una terminal nueva.`);
+    if (!t.activo) console.log("OJO: está DESACTIVADA. Reactívala en Colaboradores ▸ Terminales para usarla.");
     console.log("\nSe le pondrá una clave NUEVA. La de ahora deja de servir; el aparato tendrá que volver a iniciar sesión.");
     if (!(await confirmar("Escribe SI para continuar: "))) salir("Cancelado. No se cambió nada.", 0);
     const usuario = await authAdmin(`users/${t.auth_user_id}`);
-    const clave = generarClave(crypto.randomBytes);
+    const clave = generarClave(azar);
     await authAdmin(`users/${t.auth_user_id}`, { method: "PUT", body: { password: clave } });
     mostrarClave({ nombre: t.nombre, correo: usuario.email ?? usuario.user?.email ?? "(sin correo)", clave, tienda: tienda.nombre });
     return;
   }
 
   if (activa) {
-    salir(`${tienda.nombre} ya tiene una terminal de ${tipo} activa: «${activa.nombre}». Hay una sola por tienda y tipo.
-Si perdiste la clave: pnpm terminales:crear ${codigo} ${tipo} --cambiar-clave`);
+    salir(`${tienda.nombre} ya tiene una terminal activa llamada «${activa.nombre}». Elige otro nombre.
+Si perdiste su clave: Colaboradores ▸ Terminales ▸ Cambiar clave.`);
   }
-  if (existentes.length > 0) {
-    salir(`${tienda.nombre} tiene la terminal «${existentes[0].nombre}» DESACTIVADA. No se crea otra: reactívala en
-Colaboradores ▸ Terminales, y si no recuerdas la clave: pnpm terminales:crear ${codigo} ${tipo} --cambiar-clave`);
+  if (mismoNombre.length > 0) {
+    salir(`${tienda.nombre} tiene la terminal «${mismoNombre[0].nombre}» DESACTIVADA. No se crea otra con el mismo nombre:
+reactívala en Colaboradores ▸ Terminales, o elige otro nombre.`);
   }
 
-  const correo = correoDe(tipo, codigo);
-  const nombre = nombreDe(tipo, codigo);
-  console.log(`Nombre:   ${nombre}`);
+  const roles = await rest("roles?select=id,nombre,clave,fijo,archivado_at");
+  const rol = resolverRol(roles, args.rol);
+  console.log(`Rol:      ${rol.nombre}`);
+
+  const clave = generarClave(azar);
+  let correo = correoTerminal(codigoDeTienda(tienda.nombre), nombre, sufijoAzar(azar));
   console.log(`Correo:   ${correo}`);
   console.log("\nSe creará una cuenta de Auth SIN persona y su fila en retail.terminales.");
   if (!(await confirmar("Escribe SI para continuar: "))) salir("Cancelado. No se creó nada.", 0);
 
-  const clave = generarClave(crypto.randomBytes);
   let usuario;
-  try {
-    usuario = await authAdmin("users", { method: "POST", body: { email: correo, password: clave, email_confirm: true } });
-  } catch (e) {
-    if (e.estado === 422 || e.codigo === "email_exists") {
-      salir(`Ya existe una cuenta de Auth con el correo ${correo}, pero ninguna terminal de ${tipo} en ${tienda.nombre} la usa.
-Revísala en Supabase ▸ Authentication antes de seguir: no se reutiliza una cuenta sin saber de dónde viene.`);
+  for (let intento = 0; intento < 3 && !usuario; intento++) {
+    try {
+      usuario = await authAdmin("users", { method: "POST", body: { email: correo, password: clave, email_confirm: true } });
+    } catch (e) {
+      // El sufijo al azar chocó con una cuenta existente (casi imposible): otro sufijo.
+      if (e.estado === 422 || e.codigo === "email_exists") {
+        correo = correoTerminal(codigoDeTienda(tienda.nombre), nombre, sufijoAzar(azar));
+        continue;
+      }
+      throw e;
     }
-    throw e;
   }
+  if (!usuario) salir("No se pudo crear la cuenta: el correo ya existía tres veces seguidas. Vuelve a intentarlo.");
   const authUserId = usuario.id ?? usuario.user?.id;
 
   try {
     await rest("terminales", {
       method: "POST",
       prefer: "return=minimal",
-      body: { ubicacion_id: tienda.id, nombre, tipo, auth_user_id: authUserId, activo: true },
+      body: { ubicacion_id: tienda.id, nombre, rol_id: rol.id, auth_user_id: authUserId, activo: true },
     });
   } catch (e) {
     // La cuenta se creó hace un segundo y nunca inició sesión: se deshace para no dejar una cuenta sin terminal.
     await authAdmin(`users/${authUserId}`, { method: "DELETE" }).catch(() => {
       console.error(`OJO: no se pudo deshacer la cuenta ${correo} (${authUserId}). Bórrala a mano en Supabase ▸ Authentication.`);
     });
-    throw e;
+    salir(mensajeErrorAlta({ code: e.codigo, message: e.mensaje ?? e.message }));
   }
 
   mostrarClave({ nombre, correo, clave, tienda: tienda.nombre });

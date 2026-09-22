@@ -1,17 +1,21 @@
-// `pnpm terminales:probar` — las partes puras de `pnpm terminales:crear` (ADR-0162). No tocan red ni base.
+// `pnpm terminales:probar` — las partes puras de `pnpm terminales:crear` (ADR-0162, sin tipo). No tocan red ni base.
+// Las reglas compartidas con la pantalla (clave, correo, tienda) se prueban a fondo en `apps/web/lib/terminales-reglas.test.ts`;
+// aquí se prueba lo propio del script y que las importa bien desde el archivo TypeScript.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
-import { ALFABETO_CLAVE, correoDe, generarClave, leerArgumentos, nombreDe, resolverTienda } from "./reglas.mjs";
+import { ALFABETO_CLAVE, correoTerminal, generarClave, leerArgumentos, resolverRol, resolverTienda } from "./reglas.mjs";
 
-test("argumentos: tienda y tipo, sin importar mayúsculas", () => {
-  assert.deepEqual(leerArgumentos(["tru", "Ventas"]), { ayuda: false, tienda: "TRU", tipo: "ventas", cambiarClave: false });
-  assert.deepEqual(leerArgumentos(["AQP", "administrativa", "--cambiar-clave"]), {
+test("argumentos: tienda y nombre, sin importar mayúsculas de la tienda; el nombre sin espacios de sobra", () => {
+  assert.deepEqual(leerArgumentos(["tru", "  Terminal  Caja TRU "]), { ayuda: false, tienda: "TRU", nombre: "Terminal Caja TRU", rol: null, cambiarClave: false });
+  assert.deepEqual(leerArgumentos(["AQP", "Almacén", "--rol", "Terminal administrativa"]), {
     ayuda: false,
     tienda: "AQP",
-    tipo: "administrativa",
-    cambiarClave: true,
+    nombre: "Almacén",
+    rol: "Terminal administrativa",
+    cambiarClave: false,
   });
+  assert.deepEqual(leerArgumentos(["LIM", "Caja", "--cambiar-clave"]), { ayuda: false, tienda: "LIM", nombre: "Caja", rol: null, cambiarClave: true });
 });
 
 test("argumentos: --help gana a todo, aun con datos incompletos", () => {
@@ -22,58 +26,42 @@ test("argumentos: --help gana a todo, aun con datos incompletos", () => {
 test("argumentos: rechaza lo que no cuadra con un mensaje legible", () => {
   assert.throws(() => leerArgumentos([]), /Faltan datos/);
   assert.throws(() => leerArgumentos(["TRU"]), /Faltan datos/);
-  assert.throws(() => leerArgumentos(["CUS", "ventas"]), /no es una tienda/);
-  assert.throws(() => leerArgumentos(["TRU", "caja"]), /no es un tipo/);
-  assert.throws(() => leerArgumentos(["TRU", "ventas", "--forzar"]), /No conozco la opción --forzar/);
-  assert.throws(() => leerArgumentos(["TRU", "ventas", "extra"]), /Faltan datos/);
+  assert.throws(() => leerArgumentos(["CUS", "Caja"]), /no es una tienda/);
+  assert.throws(() => leerArgumentos(["TRU", "   "]), /no puede ir vacío/);
+  assert.throws(() => leerArgumentos(["TRU", "x".repeat(61)]), /muy largo/);
+  assert.throws(() => leerArgumentos(["TRU", "Caja", "--forzar"]), /No conozco la opción --forzar/);
+  assert.throws(() => leerArgumentos(["TRU", "Caja", "--rol"]), /Falta el nombre del rol/);
+  assert.throws(() => leerArgumentos(["TRU", "Caja", "--rol", "X", "--cambiar-clave"]), /no cambia el rol/);
+  assert.throws(() => leerArgumentos(["TRU", "Caja", "extra"]), /Faltan datos/);
 });
 
-test("correo y nombre de la terminal", () => {
-  assert.equal(correoDe("ventas", "TRU"), "terminal-ventas-tru@cayla.pe");
-  assert.equal(correoDe("administrativa", "AQP"), "terminal-administrativa-aqp@cayla.pe");
-  assert.equal(nombreDe("ventas", "TRU"), "Terminal Ventas TRU");
-  assert.equal(nombreDe("administrativa", "LIM"), "Terminal Administrativa LIM");
-});
-
-const UBICACIONES = [
-  { id: "1", nombre: "Tienda TRU", tipo: "tienda", activo: true },
-  { id: "2", nombre: "Tienda Arequipa", tipo: "tienda", activo: true },
-  { id: "3", nombre: "Taller LIM", tipo: "taller", activo: true },
-  { id: "4", nombre: "Tienda LIM", tipo: "tienda", activo: false },
-  { id: "5", nombre: "Almacén Trujillo", tipo: "almacen", activo: true },
+const ROLES = [
+  { id: "l", nombre: "Líder de equipo", clave: "lider", fijo: true, archivado_at: null },
+  { id: "tv", nombre: "Terminal de ventas", clave: "terminal_ventas", fijo: false, archivado_at: null },
+  { id: "ta", nombre: "Terminal administrativa", clave: "terminal_administrativa", fijo: false, archivado_at: null },
+  { id: "v", nombre: "Viejo", clave: null, fijo: false, archivado_at: "2026-09-01" },
 ];
 
-test("tienda: por código (producción) o por ciudad (local), solo tiendas activas", () => {
-  assert.equal(resolverTienda(UBICACIONES, "TRU").id, "1");
-  assert.equal(resolverTienda(UBICACIONES, "AQP").id, "2");
+test("rol: sin --rol, «Terminal de ventas»; con --rol, por nombre sin importar mayúsculas", () => {
+  assert.equal(resolverRol(ROLES, null).id, "tv");
+  assert.equal(resolverRol(ROLES, "terminal ADMINISTRATIVA").id, "ta");
 });
 
-test("tienda: el Taller y una tienda desactivada no cuentan — se detiene y dice cuáles hay", () => {
-  assert.throws(() => resolverTienda(UBICACIONES, "LIM"), /No encontré una tienda activa para LIM.*«Tienda TRU», «Tienda Arequipa»/);
+test("rol: nunca Líder ni uno archivado; dice cuáles hay", () => {
+  assert.throws(() => resolverRol(ROLES, "Líder de equipo"), /No hay un rol vigente.*«Terminal de ventas», «Terminal administrativa»/);
+  assert.throws(() => resolverRol(ROLES, "Viejo"), /No hay un rol vigente/);
+  assert.throws(() => resolverRol(ROLES.filter((r) => r.id !== "tv"), null), /Elige uno con --rol/);
 });
 
-test("tienda: con dos candidatas se detiene en vez de adivinar", () => {
-  const dobles = [...UBICACIONES, { id: "6", nombre: "Tienda Trujillo Mall", tipo: "tienda", activo: true }];
-  assert.throws(() => resolverTienda(dobles, "TRU"), /más de una tienda/);
-});
-
-test("tienda: «Lima» no se confunde con otra palabra que la contenga", () => {
-  const u = [{ id: "7", nombre: "Tienda Limatambo", tipo: "tienda", activo: true }];
-  assert.throws(() => resolverTienda(u, "LIM"), /No encontré/);
-});
-
-test("clave: 4 grupos de 5, solo del alfabeto sin símbolos confundibles", () => {
-  for (let i = 0; i < 200; i++) {
-    const clave = generarClave(crypto.randomBytes);
-    assert.match(clave, /^[^-]{5}-[^-]{5}-[^-]{5}-[^-]{5}$/);
-    for (const c of clave.replaceAll("-", "")) assert.ok(ALFABETO_CLAVE.includes(c), `símbolo fuera del alfabeto: ${c}`);
-    assert.ok(!/[0O1lI]/.test(clave));
-  }
-});
-
-test("clave: descarta los bytes que sesgarían el reparto", () => {
-  // Un azar que solo devuelve 255 (fuera del tope) y luego ceros: la clave sale solo del primer símbolo, sin colgarse.
-  let llamadas = 0;
-  const azar = (n) => Buffer.alloc(n, llamadas++ === 0 ? 255 : 0);
-  assert.equal(generarClave(azar), "aaaaa-aaaaa-aaaaa-aaaaa");
+test("reglas compartidas con la pantalla: tienda, correo y clave (importadas del archivo TypeScript)", () => {
+  const ubicaciones = [
+    { id: "1", nombre: "Tienda TRU", tipo: "tienda", activo: true },
+    { id: "2", nombre: "Taller LIM", tipo: "taller", activo: true },
+  ];
+  assert.equal(resolverTienda(ubicaciones, "TRU").id, "1");
+  assert.throws(() => resolverTienda(ubicaciones, "LIM"), /No encontré una tienda activa para LIM/);
+  assert.equal(correoTerminal("tru", "Terminal Caja TRU", "k7m2"), "terminal-tru-caja-k7m2@cayla.pe");
+  const clave = generarClave(crypto.randomBytes);
+  assert.match(clave, /^[^-]{5}-[^-]{5}-[^-]{5}-[^-]{5}$/);
+  for (const c of clave.replaceAll("-", "")) assert.ok(ALFABETO_CLAVE.includes(c));
 });

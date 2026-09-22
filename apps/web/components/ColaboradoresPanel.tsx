@@ -25,11 +25,12 @@ import { AsignarRolModal } from "@/components/RolesModales";
 import { accionesRolesSupabase, type AccionesRoles } from "@/lib/roles-acciones";
 import { rolesAsignables, type CuentaConRol, type RolVista } from "@/lib/roles-reglas";
 import { RolesPanel } from "@/components/RolesPanel";
-import { ListaActividad, TablaActivos, TablaInactivas, TablaPendientes, TablaSuspendidos, TablaTerminales } from "@/components/ColaboradoresTablas";
+import { ListaActividad, TablaActivos, TablaInactivas, TablaPendientes, TablaSuspendidos } from "@/components/ColaboradoresTablas";
+import { TerminalesPanel, type AccionesTerminales } from "@/components/TerminalesPanel";
 
 // «Terminales» (ADR-0162): aparatos de cada tienda con cuenta propia y SIN persona — ya no salen de `fn_colaboradores()`
-// sino de `fn_terminales()`. Aquí se ven, se desactivan y se reactivan; crearlas o cambiarles la clave lo hace un líder con
-// `pnpm terminales:crear`, porque exige la llave de servicio que la web no debe tener.
+// sino de `fn_terminales()`. La pestaña entera vive en `TerminalesPanel` (crear, cambiar clave; sin tipo desde el
+// 2026-09-22); aquí quedan Desactivar/Reactivar y Cambiar rol, que comparten modales con el resto de la pantalla.
 // «Roles y accesos» (ADR-0161 B; Felipe, 2026-09-22) es una pestaña más, no una ruta ni una fila del menú lateral:
 // Colaboradores ya es la pantalla del líder para los accesos. `?pestana=roles` abre directo en ella.
 type Pestana = PestanaColaboradores;
@@ -69,6 +70,7 @@ export function ColaboradoresPanel({
   pestanaInicial = "activos",
   acciones = accionesSupabase,
   accionesRoles = accionesRolesSupabase,
+  accionesTerminales,
   alActualizar,
 }: {
   colaboradores: Colaborador[];
@@ -87,6 +89,8 @@ export function ColaboradoresPanel({
   pestanaInicial?: Pestana;
   acciones?: AccionesColaboradores;
   accionesRoles?: AccionesRoles;
+  /** Crear terminal y cambiar su clave. Por defecto, las Server Actions de `app/actions/terminales.ts`. */
+  accionesTerminales?: AccionesTerminales;
   alActualizar?: () => void;
 }) {
   const router = useRouter();
@@ -237,38 +241,16 @@ export function ColaboradoresPanel({
       )}
 
       {pestana === "terminales" && (
-        <section aria-label="Terminales" className="space-y-4">
-          <p className="text-sm text-tinta/70">Aparatos compartidos de cada tienda. No son personas: lo que hacen lo firma quien se elige como responsable.</p>
-          {terminales === null ? (
-            <Vacio>No se pudieron leer las terminales. Lo demás de esta pantalla sí está al día.</Vacio>
-          ) : terminales.length === 0 ? (
-            <Vacio>Ninguna tienda tiene una terminal todavía.</Vacio>
-          ) : (
-            <TablaTerminales
-              filas={terminales}
-              ocupadoId={ocupadoId}
-              onAlternar={(t) => setModal({ tipo: "terminal", terminal: t })}
-              rolDe={rolDe}
-              onCambiarRol={rolDe ? (t) => abrirCambioDeRol("terminal", t.id) : undefined}
-            />
-          )}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="card-cayla px-4 py-3.5 text-[13.5px] leading-relaxed text-tinta/80">
-              <p className="label-cayla text-[11px] text-taupe-profundo">Crear una terminal o cambiarle la clave</p>
-              <p className="mt-1.5">
-                Lo corre un líder: <code className="rounded-md bg-sand/60 px-1.5 py-px text-[12.5px]">pnpm terminales:crear TRU ventas</code>. La clave se muestra{" "}
-                <strong className="font-semibold text-tinta">una sola vez</strong>; se escribe en el aparato y no se guarda en ningún otro lado.
-              </p>
-            </div>
-            <div className="card-cayla px-4 py-3.5 text-[13.5px] leading-relaxed text-tinta/80">
-              <p className="label-cayla text-[11px] text-taupe-profundo">Si alguien deja de trabajar en la tienda</p>
-              <p className="mt-1.5">
-                No hace falta cambiar la clave: la persona no puede firmar si no marca su entrada. Si se pierde el aparato,{" "}
-                <strong className="font-semibold text-tinta">Desactivar</strong> corta su sesión en el acto.
-              </p>
-            </div>
-          </div>
-        </section>
+        <TerminalesPanel
+          terminales={terminales}
+          ubicaciones={ubicaciones}
+          roles={roles}
+          ocupadoId={ocupadoId}
+          onAlternar={(t) => setModal({ tipo: "terminal", terminal: t })}
+          onCambiarRol={roles && cuentas ? (t) => abrirCambioDeRol("terminal", t.id) : undefined}
+          acciones={accionesTerminales}
+          alActualizar={alActualizar}
+        />
       )}
 
       {pestana === "roles" && (

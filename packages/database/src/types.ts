@@ -3731,7 +3731,7 @@ export type Database = {
           id: string
           nombre: string
           rol_id: string
-          tipo: string
+          tipo: string | null
           ubicacion_id: string
         }
         Insert: {
@@ -3744,7 +3744,7 @@ export type Database = {
           id?: string
           nombre: string
           rol_id?: string
-          tipo: string
+          tipo?: string | null
           ubicacion_id: string
         }
         Update: {
@@ -3757,7 +3757,7 @@ export type Database = {
           id?: string
           nombre?: string
           rol_id?: string
-          tipo?: string
+          tipo?: string | null
           ubicacion_id?: string
         }
         Relationships: []
@@ -5156,6 +5156,7 @@ export type Database = {
         }[]
       }
       fn_es_lider: { Args: never; Returns: boolean }
+      fn_actor_persona_id: { Args: { p_de_tienda?: boolean }; Returns: string }
       fn_exige_dinero_de_compras: {
         Args: { p_que?: string }
         Returns: undefined
@@ -5857,11 +5858,13 @@ export type Database = {
         Args: never
         Returns: {
           activo: boolean
+          correo: string | null
           creada_at: string
           desactivada_at: string | null
           id: string
           nombre: string
-          tipo: string
+          rol_id: string
+          rol_nombre: string
           ubicacion_id: string
           ubicacion_nombre: string
           ultimo_acceso: string | null

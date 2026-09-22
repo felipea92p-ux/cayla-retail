@@ -4,7 +4,6 @@ import {
   accionesDeFila,
   avisoTerminal,
   confirmacionTerminal,
-  ETIQUETA_TIPO_TERMINAL,
   fechaHoraLima,
   fechaLima,
   filtrarColaboradores,
@@ -137,9 +136,6 @@ describe("terminales sin persona (ADR-0162)", () => {
   it("el aviso dice el estado NUEVO, a partir del de antes", () => {
     expect(avisoTerminal("Terminal Ventas TRU", true)).toBe("Terminal Ventas TRU desactivada");
     expect(avisoTerminal("Terminal Ventas TRU", false)).toBe("Terminal Ventas TRU reactivada");
-  });
-  it("el tipo se lee corto en la tabla", () => {
-    expect(ETIQUETA_TIPO_TERMINAL).toEqual({ ventas: "Ventas", administrativa: "Administrativa" });
   });
 });
 
