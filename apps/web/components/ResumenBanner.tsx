@@ -52,15 +52,15 @@ export function ResumenBanner({ exactitud, ubicacionId }: { exactitud: EstadoExa
   const { titulo, detalle } = textos(exactitud);
 
   return (
-    <div role="status" className="flex max-w-[34rem] flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-ambar/30 bg-ambar/[0.07] px-4 py-3">
-      <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ambar text-crema">
-        <TriangleAlert strokeWidth={1.5} className="h-[18px] w-[18px]" />
+    <div role="status" className="flex max-w-[34rem] flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-ambar/30 bg-ambar/[0.08] px-4 py-3">
+      <span aria-hidden className="flex shrink-0 items-center text-ambar">
+        <TriangleAlert strokeWidth={1.75} className="h-[18px] w-[18px]" />
       </span>
       <span className="min-w-[12rem] flex-1 basis-[12rem]">
         <span className="block text-sm font-medium text-tinta">{titulo}</span>
-        <span className="block text-xs text-tinta/70">{detalle}</span>
+        <span className="block text-xs text-taupe">{detalle}</span>
       </span>
-      <Link href="/inventario/conteo" className="label-cayla shrink-0 rounded-md border border-tinta/25 bg-papel px-3 py-2 text-[11px] text-tinta transition-colors hover:border-tinta/50">
+      <Link href="/inventario/conteo" className="btn-cayla btn-secundario btn-chico shrink-0 bg-papel">
         Ir a conteo
       </Link>
       <button

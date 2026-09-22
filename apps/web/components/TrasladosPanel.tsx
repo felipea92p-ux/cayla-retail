@@ -138,9 +138,9 @@ export function TrasladosPanel({
 
   if (traslados.length === 0) {
     return (
-      <div className="card-cayla space-y-3 p-6 text-sm text-tinta/75">
+      <div className="card-cayla space-y-3 p-6 text-sm text-taupe">
         <p>Todavía no hay traslados desde ni hacia esta sede.</p>
-        <Link href="/inventario/mover" className="label-cayla inline-block text-[11px] text-rojo underline-offset-2 hover:underline">
+        <Link href="/inventario/mover" className="btn-cayla btn-primario">
           Crear el primero →
         </Link>
       </div>
@@ -156,6 +156,8 @@ export function TrasladosPanel({
       </p>
       <TrasladosAtencion resumen={resumen} masUrgente={urgente ? { id: urgente.id, numero: urgente.numero } : null} />
       <TrasladosResumen resumen={resumen} filtro={filtroEfectivo} onFiltro={alFiltrar(setFiltro)} />
+      {/* Guía oficial (2026-09-22, ADR-0167): buscador, píldoras y tabla en UNA tarjeta. */}
+      <div className="card-cayla space-y-4 p-4 sm:p-5">
       <TrasladosFiltros
         filtro={filtroEfectivo}
         onFiltro={alFiltrar(setFiltro)}
@@ -187,6 +189,7 @@ export function TrasladosPanel({
         onRefrescar={() => iniciarRefresco(() => router.refresh())}
         refrescando={refrescando}
       />
+      </div>
     </div>
   );
 }

@@ -149,7 +149,7 @@ export function ConteoPanel({
           {error && <p className="text-sm text-rojo">{error}</p>}
           {categorias.length > 0 && (
             <div className="mx-auto flex w-fit items-center gap-2 text-left">
-              <label htmlFor="conteo-alcance" className="label-cayla text-[11px] text-tinta/65">
+              <label htmlFor="conteo-alcance" className="label-cayla text-[11px] text-taupe">
                 Qué contar
               </label>
               <select
@@ -197,7 +197,7 @@ export function ConteoPanel({
           // La misma tabla de Existencias (`ui/Tabla.tsx`): antes una lista con la ubicación, el tiempo y el monto
           // en una sola frase a la derecha; ahora cada dato tiene su columna. Los datos y el orden son los mismos.
           <Tabla>
-            <p className="label-cayla px-5 py-3 text-[11px] text-tinta/65">Conviene contar primero (mayor plata en riesgo)</p>
+            <p className="label-cayla px-5 py-3 text-[11px] text-taupe">Conviene contar primero (mayor plata en riesgo)</p>
             <Encabezado
               plantilla={PLANTILLA_SUGERENCIAS}
               columnas={[
@@ -374,7 +374,7 @@ function ConteoEnCurso({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="font-display text-lg text-tinta">Conteo {conteo.numero}</p>
-            <p className="label-cayla mt-0.5 text-[11px] text-tinta/65">
+            <p className="label-cayla mt-0.5 text-[11px] text-taupe">
               {conteo.sububicacionNombre ?? "Toda la ubicación"}
               {conteo.alcance === "categoria" && conteo.alcanceCategoriaNombre ? ` · solo ${conteo.alcanceCategoriaNombre}` : " · todo el catálogo"} ·{" "}
               {conteo.abiertoPorNombre} · {new Date(conteo.creadoEn).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" })}
@@ -389,11 +389,11 @@ function ConteoEnCurso({
               </button>
             ) : (
               <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
-                <span className="text-tinta/65">¿Cancelar? Se pierde lo contado — el stock no se toca.</span>
+                <span className="text-taupe">¿Cancelar? Se pierde lo contado — el stock no se toca.</span>
                 <button type="button" onClick={cancelarConteo} disabled={cancelando} className="font-semibold text-rojo hover:underline disabled:opacity-50">
                   {cancelando ? "Cancelando…" : "Sí, cancelar"}
                 </button>
-                <button type="button" onClick={() => setConfirmarCancelar(false)} className="text-tinta/55 hover:underline">
+                <button type="button" onClick={() => setConfirmarCancelar(false)} className="text-taupe hover:underline">
                   Seguir contando
                 </button>
               </div>
@@ -401,7 +401,7 @@ function ConteoEnCurso({
           </div>
           {avance && (
             <div className="min-w-[12rem] flex-1 sm:max-w-xs">
-              <div className="flex items-baseline justify-between text-xs text-tinta/65">
+              <div className="flex items-baseline justify-between text-xs text-taupe">
                 <span>
                   {avance.contadas} de {avance.total} prendas contadas
                 </span>
@@ -411,7 +411,7 @@ function ConteoEnCurso({
                 <div className="h-full rounded-full bg-tinta transition-[width]" style={{ width: `${avance.porcentaje}%` }} />
               </div>
               {avance.total - avance.contadas > 0 && (
-                <p className="mt-1 text-xs text-tinta/55">
+                <p className="mt-1 text-xs text-taupe">
                   {avance.total - avance.contadas} {avance.total - avance.contadas === 1 ? "prenda pendiente" : "prendas pendientes"} — las que no se cuenten no se tocan al cerrar
                 </p>
               )}
@@ -448,9 +448,9 @@ function ConteoEnCurso({
                     className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-sm hover:bg-sand/50"
                   >
                     <span>
-                      {v.referencia} <span className="text-tinta/65">{[v.talla, v.color].filter(Boolean).join("/")}</span>
+                      {v.referencia} <span className="text-taupe">{[v.talla, v.color].filter(Boolean).join("/")}</span>
                     </span>
-                    <span className="font-mono text-[11px] text-tinta/65">
+                    <span className="font-mono text-[11px] text-taupe">
                       {v.sku} {yaContadas.has(v.varianteId) && "· ya contada"}
                     </span>
                   </button>
@@ -490,8 +490,8 @@ function ConteoEnCurso({
         ) : (
           <form onSubmit={registrarConteo} className="mt-3 space-y-3">
             <p className="text-sm text-tinta">
-              {seleccionada.referencia} <span className="text-tinta/65">{[seleccionada.talla, seleccionada.color].filter(Boolean).join("/")}</span>{" "}
-              <span className="font-mono text-[11px] text-tinta/65">{seleccionada.sku}</span>
+              {seleccionada.referencia} <span className="text-taupe">{[seleccionada.talla, seleccionada.color].filter(Boolean).join("/")}</span>{" "}
+              <span className="font-mono text-[11px] text-taupe">{seleccionada.sku}</span>
             </p>
             <div className="flex items-end gap-3">
               <div className="space-y-1.5">
@@ -526,12 +526,12 @@ function ConteoEnCurso({
       </div>
 
       {conteo.items.length > 0 && (
-        <div className="card-cayla divide-y divide-tinta/10">
+        <div className="card-cayla divide-y divide-sand">
           {conteo.items.map((i) => (
             <div key={i.id} className="flex items-center justify-between px-5 py-2.5">
               <p className="text-sm text-tinta">
-                {i.referencia} <span className="text-tinta/65">{[i.talla, i.color].filter(Boolean).join("/")}</span>{" "}
-                <span className="font-mono text-[11px] text-tinta/65">{i.sku}</span>
+                {i.referencia} <span className="text-taupe">{[i.talla, i.color].filter(Boolean).join("/")}</span>{" "}
+                <span className="font-mono text-[11px] text-taupe">{i.sku}</span>
               </p>
               <p className="text-sm tabular-nums text-tinta/75">× {i.cantidadContada}</p>
             </div>
@@ -621,28 +621,28 @@ function RevisarCierre({
         <h2 className="font-display text-lg text-tinta">Revisar antes de cerrar</h2>
 
         {cargando ? (
-          <p className="mt-4 text-sm text-tinta/65">Calculando…</p>
+          <p className="mt-4 text-sm text-taupe">Calculando…</p>
         ) : varianza ? (
           <div className="mt-4 space-y-4">
             <div className="card-cayla p-4 text-center">
-              <p className="label-cayla text-[11px] text-tinta/65">Diferencia neta</p>
+              <p className="label-cayla text-[11px] text-taupe">Diferencia neta</p>
               <p className={`font-display text-2xl ${varianza.solesNeto === 0 ? "text-tinta" : varianza.solesNeto < 0 ? "text-rojo" : "text-verde"}`}>
                 {money(varianza.solesNeto)}
               </p>
-              <p className="mt-1 text-xs text-tinta/65">
+              <p className="mt-1 text-xs text-taupe">
                 {varianza.unidadesSobrantes} de más · {varianza.unidadesFaltantes} de menos
                 {varianza.lineasSinCosto > 0 && ` · ${varianza.lineasSinCosto} sin costo cargado`}
               </p>
             </div>
 
             {varianza.lineas.filter((l) => l.diferencia !== 0).length > 0 && (
-              <div className="card-cayla divide-y divide-tinta/10">
+              <div className="card-cayla divide-y divide-sand">
                 {varianza.lineas
                   .filter((l) => l.diferencia !== 0)
                   .map((l) => (
                     <div key={l.varianteId} className="flex items-center justify-between px-4 py-2 text-sm">
                       <span>
-                        {l.referencia} <span className="text-tinta/65">{[l.talla, l.color].filter(Boolean).join("/")}</span>
+                        {l.referencia} <span className="text-taupe">{[l.talla, l.color].filter(Boolean).join("/")}</span>
                       </span>
                       <span className={l.diferencia > 0 ? "text-verde" : "text-rojo"}>
                         {l.sistema} → {l.contada} ({l.diferencia > 0 ? "+" : ""}
@@ -654,7 +654,7 @@ function RevisarCierre({
             )}
 
             {noContadas.length > 0 && (
-              <p className="text-xs text-tinta/65">
+              <p className="text-xs text-taupe">
                 ⚠ {noContadas.length} variante{noContadas.length > 1 ? "s" : ""} con stock en esta ubicación nunca se
                 contaron y no se van a tocar al cerrar: {noContadas.map((l) => l.referencia).slice(0, 5).join(", ")}
                 {noContadas.length > 5 && "…"}
@@ -776,7 +776,7 @@ function AltaAlVuelo({
   return (
     <form onSubmit={crear} className="mt-3 space-y-3 rounded-xl border border-tinta/15 p-4">
       <p className="text-sm text-tinta">
-        Dar de alta <span className="font-mono text-[11px] text-tinta/65">{codigoBarras}</span>
+        Dar de alta <span className="font-mono text-[11px] text-taupe">{codigoBarras}</span>
       </p>
       <CampoTexto etiqueta="Referencia (nombre de la prenda)" value={referencia} onChange={(e) => setReferencia(e.target.value)} autoFocus />
       <div className="grid grid-cols-2 gap-3">
@@ -840,7 +840,7 @@ function AltaAlVuelo({
         <CampoMonto etiqueta="Costo (si lo sabes)" value={costo} onChange={(e) => setCosto(e.target.value)} />
         <CampoMonto etiqueta="Precio de venta (si lo sabes)" value={precio} onChange={(e) => setPrecio(e.target.value)} />
       </div>
-      <p className="text-xs text-tinta/55">Un Líder va a revisar esto después — si no sabes el costo o el precio, déjalo en 0 y los completa él.</p>
+      <p className="text-xs text-taupe">Un Líder va a revisar esto después — si no sabes el costo o el precio, déjalo en 0 y los completa él.</p>
       {error && <p className="text-sm text-rojo">{error}</p>}
       <div className="flex gap-2">
         <button type="submit" disabled={guardando} className={botonPrimario}>

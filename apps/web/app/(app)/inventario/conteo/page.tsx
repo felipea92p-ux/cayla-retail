@@ -9,6 +9,8 @@ import { exigir } from "@/lib/resultado";
 import { ConteoPanel } from "@/components/ConteoPanel";
 import { getCatalogoMarcas } from "@/lib/marcas-datos";
 import { ConteosLista } from "@/components/ConteosLista";
+import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 
 function soles(n: number) {
   return `${n < 0 ? "−" : ""}S/ ${Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -59,13 +61,11 @@ export default async function ConteoPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Inventario · Conteo · {persona.ubicacionEtiqueta}</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Conteo físico</h1>
-          <p className="mt-1 text-sm text-tinta/65">Compara lo que dice el sistema contra lo que hay de verdad en la tienda. Se cuenta a ciegas: el sistema no muestra su cifra hasta revisar.</p>
-        </div>
-      </div>
+      <CabeceraPantalla
+        sobretitulo={`Inventario · Conteo · ${persona.ubicacionEtiqueta}`}
+        titulo="Conteo físico"
+        bajada="Compara lo que dice el sistema contra lo que hay de verdad en la tienda. Se cuenta a ciegas: el sistema no muestra su cifra hasta revisar."
+      />
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Tarjeta
@@ -80,7 +80,7 @@ export default async function ConteoPage() {
         <Tarjeta
           etiqueta="Conteo abierto"
           valor={conteoAbierto ? `Conteo ${conteoAbierto.numero}` : "Ninguno"}
-          tono={conteoAbierto ? "text-tinta" : "text-tinta/55"}
+          tono={conteoAbierto ? "text-tinta" : "text-taupe"}
           acento={!!conteoAbierto}
           accion={conteoAbierto ? { href: "#contar", texto: "Seguir contando" } : undefined}
         >
@@ -153,16 +153,16 @@ export default async function ConteoPage() {
       </div>
 
       {conteos.length > 0 && (
-        <div>
-          <p className="label-cayla mb-3 text-[11px] text-tinta/65">Conteos de esta ubicación</p>
+        <section className="card-cayla space-y-3 p-4 sm:p-5">
+          <h2 className="font-display text-lg text-tinta">Conteos de esta ubicación</h2>
           <ConteosLista conteos={conteos} />
-        </div>
+        </section>
       )}
 
-      <p className="card-cayla px-5 py-3 text-xs text-tinta/65">
-        <span className="text-tinta">Cómo se cuenta:</span> se escanea o se escribe el SKU y se anota lo que hay físicamente, sin ver la cifra del sistema. Al
+      <p className="nota-cayla">
+        <b>Cómo se cuenta:</b> se escanea o se escribe el SKU y se anota lo que hay físicamente, sin ver la cifra del sistema. Al
         revisar, se ve la diferencia en unidades y en soles; al cerrar, el stock queda ajustado a lo contado y cada ajuste queda como movimiento.{" "}
-        <Link href="/inventario/movimientos?proc=conteo" className="text-rojo hover:underline">
+        <Link href="/inventario/movimientos?proc=conteo" className="text-tinta underline underline-offset-2 hover:text-taupe">
           Ver ajustes por conteo →
         </Link>
       </p>
@@ -185,20 +185,17 @@ function Tarjeta({
   accion?: { href: string; texto: string };
   children: React.ReactNode;
 }) {
+  // La tarjeta del sistema (`ui/TarjetaCifra`, guía oficial). El enlace de acción sigue siendo un <a>
+  // nativo: es un salto de ancla dentro de la misma página (#contar) — el <Link> de Next no siempre dispara
+  // el scroll nativo para un href de solo-hash en la misma ruta.
   return (
-    <div className={`card-cayla p-5 ${acento ? "border-l-2 border-l-rojo" : ""}`}>
-      <p className="label-cayla text-[11px] text-tinta/65">{etiqueta}</p>
-      <p className={`font-display mt-1 text-3xl tabular-nums ${tono ?? "text-tinta"}`}>{valor}</p>
-      <p className="mt-1 text-xs text-tinta/65">{children}</p>
+    <TarjetaCifra etiqueta={etiqueta} valor={valor} tono={tono} acento={acento}>
+      {children}
       {accion && (
-        // <a> nativo a propósito, no <Link>: es un salto de ancla dentro de
-        // la misma página (#contar) — el <Link> de Next no siempre dispara
-        // el scroll nativo del navegador para un href de solo-hash en la
-        // misma ruta, y con <a> no hay ambigüedad posible.
-        <a href={accion.href} className="label-cayla mt-3 inline-block text-[11px] text-tinta underline underline-offset-2 hover:no-underline">
+        <a href={accion.href} className="label-cayla mt-3 block text-[11px] text-tinta underline underline-offset-2 hover:no-underline">
           {accion.texto} →
         </a>
       )}
-    </div>
+    </TarjetaCifra>
   );
 }

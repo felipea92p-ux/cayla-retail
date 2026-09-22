@@ -55,16 +55,16 @@ const CELDA = {
 };
 
 const FOCO = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo";
-const BOTON = `label-cayla inline-flex items-center justify-center whitespace-nowrap rounded-md px-3.5 py-2.5 text-[11px] transition-colors ${FOCO}`;
-const BOTON_FUERTE = `${BOTON} bg-tinta text-crema hover:bg-rojo`;
-const BOTON_SUAVE = `${BOTON} border border-tinta/25 text-tinta hover:border-rojo hover:text-rojo`;
+// Guía oficial (2026-09-22, ADR-0167): primario y secundario del sistema.
+const BOTON_FUERTE = `btn-cayla btn-primario btn-chico ${FOCO}`;
+const BOTON_SUAVE = `btn-cayla btn-secundario btn-chico ${FOCO}`;
 
 // Solo el que le toca a quien mira lleva fondo: coral suave si es una recepción,
 // ámbar suave si es una diferencia que debe cerrar un líder. El resto es tranquilo.
 function fondo(s: SituacionTraslado): string {
   if (s === "requiere_recepcion") return "bg-rojo/[0.05] hover:bg-rojo/[0.08]";
   if (s === "requiere_revision") return "bg-ambar/[0.06] hover:bg-ambar/[0.09]";
-  return "hover:bg-tinta/[0.03]";
+  return "";
 }
 
 const COLUMNAS: { titulo: string; alinear?: "centro" }[] = [
@@ -119,10 +119,10 @@ export function TrasladosLista({
 
   if (filas.length === 0) {
     return (
-      <div className="card-cayla space-y-3 p-5 text-sm text-tinta/75">
+      <div className="space-y-3 p-1 text-sm text-taupe">
         <p>{hayFiltros ? "Ningún traslado coincide con lo que buscas." : "No hay traslados para mostrar."}</p>
         {hayFiltros && (
-          <button type="button" onClick={onLimpiar} className={`label-cayla rounded-md border border-tinta/25 px-3.5 py-2 text-[11px] text-tinta hover:border-rojo hover:text-rojo ${FOCO}`}>
+          <button type="button" onClick={onLimpiar} className={`btn-cayla btn-secundario btn-chico ${FOCO}`}>
             Quitar filtros
           </button>
         )}
@@ -131,9 +131,9 @@ export function TrasladosLista({
   }
 
   return (
-    <div className="card-cayla overflow-x-auto">
+    <div className="overflow-x-auto rounded-lg">
       <div role="table" aria-label="Traslados">
-        <div role="row" className={`hidden gap-x-3 px-5 py-2 min-[1400px]:grid ${PLANTILLA}`}>
+        <div role="row" className={`encabezado-tabla-cayla hidden gap-x-3 rounded-t-lg px-5 py-2 min-[1400px]:grid ${PLANTILLA}`}>
           {COLUMNAS.map((c) => (
             <span key={c.titulo} role="columnheader" className={`${TABLA.titulo} whitespace-nowrap ${c.alinear === "centro" ? "text-center" : ""}`}>
               {c.titulo}
@@ -141,7 +141,7 @@ export function TrasladosLista({
           ))}
         </div>
 
-        <div role="rowgroup" className="divide-y divide-tinta/10 border-t border-tinta/10">
+        <div role="rowgroup" className="divide-y divide-sand border-t border-sand">
           {filas.map(({ t, s }) => {
             const accion = accionDeTraslado(s);
             const direccion = direccionTraslado(t, miUbicacionId);
@@ -150,13 +150,13 @@ export function TrasladosLista({
                 key={t.id}
                 role="row"
                 onClick={(e) => irAlDetalle(e, t.id)}
-                className={`grid ${BASE} ${PLANTILLA_MEDIA} ${PLANTILLA} cursor-pointer gap-x-3 gap-y-2 px-5 py-3 transition-colors min-[1280px]:items-center min-[1280px]:gap-y-1 ${fondo(s)}`}
+                className={`grid ${BASE} ${PLANTILLA_MEDIA} ${PLANTILLA} fila-cayla cursor-pointer gap-x-3 gap-y-2 px-5 py-3 transition-colors min-[1280px]:items-center min-[1280px]:gap-y-1 ${fondo(s)}`}
               >
                 <div role="cell" className={CELDA.traslado}>
                   <Link id={`traslado-${t.id}`} href={`/inventario/traslados/${t.id}`} className={`block whitespace-nowrap rounded-sm text-sm font-medium text-tinta ${FOCO}`}>
                     Traslado {t.numero}
                   </Link>
-                  <p className="text-xs text-tinta/65">Salió {diaMes(t.creadoEn)}</p>
+                  <p className="text-xs text-taupe">Salió {diaMes(t.creadoEn)}</p>
                 </div>
 
                 <div role="cell" className={CELDA.ruta}>
@@ -164,14 +164,14 @@ export function TrasladosLista({
                   <p className="text-sm text-tinta" title={`${t.ubicacionOrigenNombre} → ${t.ubicacionDestinoNombre}`}>
                     <span className="whitespace-nowrap">{t.ubicacionOrigenNombre}</span>{" "}
                     <span className="whitespace-nowrap">
-                      <span aria-hidden className="text-tinta/55">
+                      <span aria-hidden className="text-taupe">
                         →{" "}
                       </span>
                       <span className="sr-only">hacia </span>
                       {t.ubicacionDestinoNombre}
                     </span>
                   </p>
-                  <p className="truncate text-xs text-tinta/65" title={t.nota ?? undefined}>
+                  <p className="truncate text-xs text-taupe" title={t.nota ?? undefined}>
                     {direccion === "entrante" ? "Entrante" : "Saliente"}
                     {t.nota ? ` · ${t.nota}` : ""}
                   </p>
@@ -182,12 +182,12 @@ export function TrasladosLista({
                     <span className="font-medium tabular-nums">
                       {t.unidadesEnviadas.toLocaleString("es-PE")} {t.unidadesEnviadas === 1 ? "unidad" : "unidades"}
                     </span>
-                    <span className="text-tinta/65">
+                    <span className="text-taupe">
                       {" "}
                       · {t.lineas} {t.lineas === 1 ? "variante" : "variantes"}
                     </span>
                   </p>
-                  <p className="truncate text-xs text-tinta/65" title={t.referencias.join(", ")}>
+                  <p className="truncate text-xs text-taupe" title={t.referencias.join(", ")}>
                     {resumenPrendas(t.referencias)}
                   </p>
                   <TrasladoMiniaturas fotos={t.fotos} />
@@ -213,7 +213,7 @@ export function TrasladosLista({
         </div>
       </div>
 
-      <div className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-tinta/10 ${TABLA.pie}`}>
+      <div className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-sand ${TABLA.pie}`}>
         <p>
           Mostrando {filas.length} de {totalFiltrados} {totalFiltrados === 1 ? "traslado" : "traslados"}
           {hayFiltros && totalFiltrados !== totalTraslados && ` (${totalTraslados} en total)`}
@@ -224,7 +224,7 @@ export function TrasladosLista({
             <button
               type="button"
               onClick={onMostrarMas}
-              className={`label-cayla rounded-md border border-tinta/25 px-3 py-1.5 text-[11px] text-tinta hover:border-rojo hover:text-rojo ${FOCO}`}
+              className={`btn-cayla btn-secundario btn-chico ${FOCO}`}
             >
               Mostrar {siguientePagina} más
             </button>

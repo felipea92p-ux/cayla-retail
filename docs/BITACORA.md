@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+
+## 2026-09-22 (Paleta oficial «CAYLA Dynamic» en todo el ERP e Inventario rediseñado — ADR-0167)
+Felipe pasó su «Sala de Diseño» con la guía oficial y 15 pantallas redibujadas. Se auditó qué estaba libre: Inventario (5 pantallas) sin ninguna sesión encima; Ventas con 4 ramas y 2 PRs en curso. Se aplicó la paleta oficial completa en `globals.css` (papel, taupe, verde, ámbar, más hueso y pizarra) y se pasaron tabla, chip, tarjeta de cifra, campos y una cabecera nueva al sistema oficial. Las cinco pantallas de Inventario quedaron en el orden de la guía, solo visual y sin migraciones. 7,868 pruebas en verde y capturas antes/después.
+Felipe se lleva: (1) **un token cambia todo el ERP de una vez**: por eso el papel que había rechazado el 18-09 vuelve, esta vez por decisión explícita suya y con el contraste medido; (2) **se rediseña primero lo que nadie está tocando**: rediseñar Ventas hoy chocaba con 4 ramas vivas; (3) «solo visual» se cumplió al pie de la letra: lo que la maqueta muestra y la pantalla no tenía (ej. «Exactitud» en Conteo) queda para otra decisión.
+Sin resolver: verlo con clics reales (la sesión no tuvo base local: docker bloqueado por la red), Ventas cuando se fusionen sus ramas, modo oscuro.
+
 ## 2026-09-23 (Apartados: el nombre y las pantallas — ADR-0166)
 Felipe pidió llamar al módulo «Apartados» y verlo en el sistema. Todo lo que lee el equipo dice «apartado» (menú, mensajes, boleta, código APT-TRU-0001); la base conserva `separaciones` porque `apartados` ya es la reserva por prenda. Se construyó `/vender/apartados` con Apartar, Entregar y Todos reutilizando piezas del Punto de venta (buscador de prendas, «Atendió», medios de pago, billetes, modales), y se probó el ciclo completo en la app real contra Postgres.
 Felipe se lleva: (1) **un nombre de pantalla y un nombre de tabla pueden ser distintos**, y conviene cuando la palabra ya está tomada por otro concepto de la base; (2) el menú tiene un tope de 6 filas por grupo: para que entrara Apartados, Cambios y Devoluciones pasan a un subgrupo «Posventa», en vez de subir el tope; (3) probar en el navegador encontró lo que las pruebas no: el campo de escaneo se aplastaba en el celular.

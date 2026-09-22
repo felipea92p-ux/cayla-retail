@@ -6,8 +6,8 @@ import type { SituacionTraslado } from "@/lib/traslados-reglas";
 // un botón — la acción va aparte y con otra forma (ver `TrasladosLista`).
 // El color reparte el énfasis: coral solo para lo que me toca ya; ámbar para
 // lo que no cuadra; neutro para lo que viaja bien; verde para lo terminado.
-// (El sistema no tiene un azul de «info» — el único azul es de métodos de
-// pago y no es de marca — así que «en camino» va en neutro.)
+// «En camino» va en pizarra, el estado informativo de la guía oficial (2026-09-22,
+// ADR-0167): viaja bien, no pide nada, pero tampoco está terminado.
 const ETIQUETA: Record<SituacionTraslado, string> = {
   requiere_recepcion: "Requiere confirmación",
   requiere_revision: "Con diferencia",
@@ -20,8 +20,8 @@ const ETIQUETA: Record<SituacionTraslado, string> = {
 const TONO: Record<SituacionTraslado, TonoChip> = {
   requiere_recepcion: "rojo",
   requiere_revision: "ambar",
-  en_camino_entrante: "neutro",
-  en_camino_saliente: "neutro",
+  en_camino_entrante: "pizarra",
+  en_camino_saliente: "pizarra",
   con_diferencia: "ambar",
   cerrado: "verde",
 };
@@ -29,7 +29,6 @@ const TONO: Record<SituacionTraslado, TonoChip> = {
 export function TrasladoEstado({ situacion }: { situacion: SituacionTraslado }) {
   return (
     <Chip tono={TONO[situacion]}>
-      <span aria-hidden className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-current align-middle" />
       {ETIQUETA[situacion]}
     </Chip>
   );

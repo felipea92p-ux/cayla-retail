@@ -70,6 +70,8 @@ type CampoProps = {
   /** Id de la etiqueta, para controles compuestos (desplegable, segmentado)
       que no son un <input> y por lo tanto no se asocian con htmlFor. */
   idEtiqueta?: string;
+  /** La etiqueta existe (para lectores de pantalla) pero no se ve: la caja ya dice qué es con su marcador. */
+  etiquetaOculta?: boolean;
   children: ReactNode;
 };
 
@@ -80,14 +82,14 @@ const TONO_PIE = {
   ok: "text-verde-profundo",
 } as const;
 
-export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtiqueta, children }: CampoProps) {
+export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtiqueta, etiquetaOculta = false, children }: CampoProps) {
   return (
     <div>
-      <label id={idEtiqueta} htmlFor={htmlFor} className="label-cayla block text-[11px] text-tinta/65">
+      <label id={idEtiqueta} htmlFor={htmlFor} className={etiquetaOculta ? "sr-only" : "label-cayla block text-[11px] text-tinta/65"}>
         {etiqueta}
         {ayuda}
       </label>
-      <div className="mt-1.5">{children}</div>
+      <div className={etiquetaOculta ? "" : "mt-1.5"}>{children}</div>
       <div className={`mt-1 min-h-[0.9rem] text-xs leading-tight ${TONO_PIE[tono]}`}>
         {pie ? <span className="anim-revelar block">{pie}</span> : null}
       </div>
@@ -112,6 +114,8 @@ type CampoTextoProps = InputHTMLAttributes<HTMLInputElement> & {
   trabajando?: boolean;
   /** El valor ya está bien: el hilo de abajo se queda en verde. */
   valido?: boolean;
+  /** Guía oficial: caja hundida en hueso, sin hilo, y la etiqueta solo para lectores de pantalla (barras de filtros). */
+  caja?: boolean;
 };
 
 /* Altura única de todo control de una línea (input, fecha, combo): 36px, que
@@ -130,14 +134,14 @@ const FECHA_COMO_TEXTO =
   "[&::-webkit-datetime-edit-fields-wrapper]:p-0 [&::-webkit-date-and-time-value]:min-h-0 [&::-webkit-date-and-time-value]:text-left " +
   "[&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100";
 
-export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valido, className = "", ...props }: CampoTextoProps) {
+export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valido, caja = false, className = "", ...props }: CampoTextoProps) {
   // Un `id` propio permite enfocarlo desde un aviso (`avisar.error(…, { enfocar: id })`).
   const idPropio = useId();
   const id = props.id ?? idPropio;
   const [enfocado, setEnfocado] = useState(false);
   return (
-    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id}>
-      <div className="relative">
+    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={caja}>
+      <div className={caja ? "caja-cayla relative px-3" : "relative"}>
         <input
           id={id}
           {...props}
@@ -149,11 +153,11 @@ export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valid
             setEnfocado(false);
             props.onBlur?.(e);
           }}
-          className={`w-full bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/55 ${ALTO_CONTROL} ${
+          className={`w-full bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/55 ${caja ? "h-10" : ALTO_CONTROL} ${
             mono ? "font-mono tabular-nums tracking-wider" : ""
           } ${props.type === "date" || props.type === "time" ? FECHA_COMO_TEXTO : ""} ${className}`}
         />
-        <Hilo activo={enfocado} trabajando={trabajando} valido={valido} />
+        {!caja && <Hilo activo={enfocado} trabajando={trabajando} valido={valido} />}
       </div>
     </Campo>
   );
@@ -457,6 +461,8 @@ const FORMA_DESPLEGABLE = {
   campo: "w-full justify-between rounded-t-md px-0.5 py-2 text-sm hover:bg-tinta/[0.03]",
   pastilla:
     "gap-2 rounded-md border bg-papel px-2.5 py-1.5 label-cayla text-[11px] hover:border-rojo",
+  /** Guía oficial (2026-09-22, ADR-0167): la caja hundida en hueso, para las barras de filtros. */
+  caja: "caja-cayla h-10 w-full justify-between gap-3 px-3 text-sm",
 } as const;
 
 export function Desplegable<T extends string>({
@@ -577,6 +583,7 @@ export function Desplegable<T extends string>({
   }
 
   const esPastilla = forma === "pastilla";
+  const esCaja = forma === "caja";
 
   return (
     <div className="relative" ref={contenedor}>
@@ -613,7 +620,7 @@ export function Desplegable<T extends string>({
           </span>
         )}
       </button>
-      {!esPastilla && <Hilo activo={abierto} trabajando={trabajando} />}
+      {!esPastilla && !esCaja && <Hilo activo={abierto} trabajando={trabajando} />}
 
       {abierto && (
         <ul
@@ -673,6 +680,7 @@ export function CampoSelect<T extends string>({
   onValor,
   opciones,
   marcador = "Elegir",
+  caja = false,
 }: {
   etiqueta: ReactNode;
   ayuda?: ReactNode;
@@ -682,11 +690,13 @@ export function CampoSelect<T extends string>({
   onValor: (v: T) => void;
   opciones: readonly Opcion<T>[];
   marcador?: string;
+  /** Guía oficial: caja hundida en hueso y la etiqueta solo para lectores de pantalla (barras de filtros). */
+  caja?: boolean;
 }) {
   const idEtiqueta = useId();
   return (
-    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} idEtiqueta={idEtiqueta}>
-      <Desplegable valor={valor} onValor={onValor} opciones={opciones} marcador={marcador} idEtiqueta={idEtiqueta} />
+    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} idEtiqueta={idEtiqueta} etiquetaOculta={caja}>
+      <Desplegable valor={valor} onValor={onValor} opciones={opciones} marcador={marcador} idEtiqueta={idEtiqueta} forma={caja ? "caja" : "campo"} />
     </Campo>
   );
 }
@@ -699,7 +709,8 @@ export function CampoSelect<T extends string>({
    sistema NO se colgó.
    ------------------------------------------------------------------ */
 const PESO_BOTON = {
-  primario: "bg-tinta text-crema hover:bg-rojo disabled:bg-tinta/30",
+  // Guía oficial (2026-09-22): el hover del primario es rojo PROFUNDO — el rojo de marca no se gasta en un hover.
+  primario: "bg-tinta text-crema hover:bg-rojo-profundo disabled:bg-tinta/30",
   fantasma: "border border-tinta/25 text-tinta hover:border-rojo hover:text-rojo disabled:border-tinta/10 disabled:text-tinta/65",
   discreto: "border border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo disabled:border-tinta/10 disabled:text-tinta/65",
 } as const;
