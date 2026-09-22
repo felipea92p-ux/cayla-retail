@@ -5963,6 +5963,12 @@ export type Database = {
         }[]
       }
       fn_ve_modulo: { Args: { p_clave: string }; Returns: boolean }
+      // 20260923110000 / 20260923111000: capacidades de los módulos abiertos a los roles.
+      fn_puede_editar_etiquetas: { Args: never; Returns: boolean }
+      fn_puede_tocar_etiqueta: { Args: { p_etiqueta_id: string; p_descuento_nuevo?: number }; Returns: boolean }
+      fn_puede_analizar: { Args: never; Returns: boolean }
+      fn_puede_gestionar_colaboradores: { Args: never; Returns: boolean }
+      fn_puede_administrar_roles: { Args: never; Returns: boolean }
       guardar_modulos_rol: {
         Args: { p_modulos: string[]; p_rol_id: string }
         Returns: undefined
