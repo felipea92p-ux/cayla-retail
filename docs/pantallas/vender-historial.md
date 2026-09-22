@@ -1,263 +1,266 @@
 # Pantalla — Historial de ventas (`/vender/historial`)
 
-> Modo: completo con referentes externos · Fecha: 2026-09-21 · Rol/sede: líder, vista «Todas las tiendas» (el encabezado global mostraba «Tienda TRU») · Datos: capturas reales + código; SQL de producción corrido el 2026-09-21 (solo lectura, proyecto cayla-dynamic)
-> SHA analizado: `553c0ff7` (origin/main, 2026-09-21) — si `page.tsx`, `lib/ventas-historial*.ts` o los componentes `HistorialVentas*`/`FiltrosHistorialVentas` cambian después, este análisis está vencido
-> Archivos: `apps/web/app/(app)/vender/historial/page.tsx` · `components/FiltrosHistorialVentas.tsx` · `components/HistorialVentasLista.tsx` · `components/HistorialVentasPulso.tsx` · `components/Paginacion.tsx` (`PaginacionCursor`) · `components/DetalleVentaModal.tsx` · `lib/ventas-historial.ts` · `lib/ventas-historial-reglas.ts` · `lib/comprobantes-reglas.ts` · tablas `ventas`, `venta_items`, `venta_pagos`, `comprobantes`, `productos`, `variantes`, `producto_fotos` · RPC `fn_nombres_personas`
-> Otra sesión tocándola: no como tarea propia. La rama `claude/colaboradores-rediseno` toca una línea de `vender/historial/page.tsx` (el filtro de vendedor). Rediseños vecinos en vuelo: Caja, Facturación (ADR-0124).
+> Modo: completo · Fecha: 2026-09-22 · Rol/sede: líder de equipo, vista «Todas las tiendas» (mostrador/tablet) · Datos: sin SQL nuevo esta vez — se reutiliza como `[producción]` solo lo que `docs/BACKLOG.md`/`docs/BITACORA.md` registran YA VERIFICADO contra producción entre el 2026-09-21 y el 2026-09-22 (fechas citadas en cada hallazgo); lo que necesitaría una consulta nueva de verdad queda en `[no verificable]` y en «SQL pendiente»
+> SHA analizado: `88457700` (origin/main, 2026-09-22) — si `page.tsx`, `lib/ventas-historial*.ts` o los componentes `HistorialVentas*`/`FiltrosHistorialVentas` cambian después, este análisis está vencido. El worktree ya tenía estos 5 archivos idénticos a `origin/main` (`git diff --stat` vacío) aunque va 10 commits detrás en el resto del repo.
+> Archivos: `apps/web/app/(app)/vender/historial/page.tsx` · `components/FiltrosHistorialVentas.tsx` · `components/HistorialVentasLista.tsx` · `components/HistorialVentasPulso.tsx` · `components/Paginacion.tsx` (`PaginacionCursor`) · `components/DetalleVentaModal.tsx` · `lib/venta-detalle.ts` · `lib/venta-detalle-reglas.ts` · `lib/ventas-historial.ts` · `lib/ventas-historial-reglas.ts` · `lib/comprobantes-reglas.ts` · tablas `ventas`, `venta_items`, `venta_pagos`, `comprobantes`, `productos`, `variantes`, `producto_fotos`, `clientas` (nueva) · RPC `fn_nombres_personas`
+> Otra sesión tocándola: no como colisión. `docs/SESIONES-ACTIVAS.md` no lista esta pantalla como propia de nadie hoy. **Dependencia declarada:** la tarea #7 de abajo (enlaces cruzados «Ver historial →») espera a que terminen los rediseños en curso de Caja/Punto de Venta (`ventas-visual-redesign-240e2b`) y de Comprobantes/ex-Facturación (ADR-0165, «envío automático a SUNAT y series», con dos migraciones sin pegar en producción); no es un choque, es que enlazar hacia una pantalla que está cambiando de forma ahora mismo sería enlazar hacia un blanco móvil.
 
-## Cómo continuar este trabajo en otra cuenta
-
-Este archivo es el traspaso. En la otra cuenta: abrir el repo en la rama `claude/auditoria-pantalla-historial-cc906a` y pedir «continúa `/pantalla` sobre `docs/pantallas/vender-historial.md`». Pasos que faltan, en orden:
-
-1. **Felipe corre el SQL de la sección 4 en producción** (SQL Editor del proyecto cayla-dynamic) y pega los resultados. Si prefiere seguir sin datos reales, decir «sin SQL»: se marca todo lo que quede sin verificar.
-2. Clasificar cada resultado como **hueco** o **está bien**, con evidencia.
-3. Puntuar las 6 dimensiones (0–10), calcular «Cumple su finalidad» y «Relevancia».
-4. Escribir las 12 tareas (una debe ser «Replantear», si aplica la estrategia alternativa), con dónde / por qué / cómo se verifica / esfuerzo.
-5. Completar «Líneas propuestas para BACKLOG.md» (Felipe aprueba antes de anexarlas; **no editar `docs/BACKLOG.md` sin su OK**).
-6. Regla madre de la skill: solo analizar y proponer, no tocar código, BACKLOG ni migraciones.
-
-Antes de continuar: `git fetch origin` y comparar los archivos de la pantalla contra `553c0ff7` (`git diff --stat 553c0ff7 origin/main -- apps/web/lib/ventas-historial* apps/web/components/HistorialVentas* apps/web/components/FiltrosHistorialVentas.tsx`) para saber si el análisis venció. Las tres capturas originales no viajan en el repo; las describe la sección 2.
+## 0 · Veredicto
+El «libro» de ventas es sólido por dentro —cursor estable, RLS correcta, defensas reales contra una migración que aún no llegó a producción— pero acaba de sumar una dependencia nueva (`cliente:clientas`) que, a diferencia de todo lo demás en este archivo, no tiene el mismo resguardo si esa migración no está en producción cuando el código se despliegue: podría tumbar la pantalla entera, no solo el nombre de la clienta. Sigue siendo, como en el análisis anterior, un libro que no ayuda a encontrar una venta ni a actuar sobre ella —sin buscador, sin acciones, sin enlaces de entrada ni de salida— y eso es justo lo que la separa de Shopify, Square y Lightspeed.
+**Cumple su finalidad:** 6,0/10 · **Relevancia:** 8,0/10 — Núcleo
 
 ## 1 · Finalidad declarada
 "Esta pantalla existe para ser el libro de todas las ventas registradas —de cualquier fecha y de todas las tiendas— donde se encuentra una venta concreta, se mide el pulso de un período y se llega al detalle; es de solo lectura: una venta se corrige con el proceso (anular, cambio, devolución), nunca tocando la fila."
-Fuente: `docs/adr/0147-historial-de-ventas-en-ventas-sin-funcion-nueva.md` y `docs/BACKLOG.md` (sección «Historial de ventas»), no la captura. Coinciden docs y pantalla en lo esencial. Diferencia: el comentario de cabecera de `page.tsx:22-25` dice que Cambios y Devoluciones «eligen una prenda para actuar», pero desde el historial no hay camino directo a ellos (ver H6).
-Nota: `docs/datos/modulos/07-ventas-y-caja.md` avisa que describe V1 (revisión 2026-09-12); no se cita como vigente. Mandan el código y el volcado de producción.
+Fuente: `docs/adr/0147-historial-de-ventas-en-ventas-sin-funcion-nueva.md` y `docs/BACKLOG.md:128-135` («Historial de ventas»), no la captura ni el análisis anterior. Coinciden docs y pantalla en «libro» y «pulso»; siguen sin coincidir del todo en «donde se encuentra una venta concreta» (sin buscador, §4 Funciones) y en «se llega al detalle» (el detalle no lleva a ningún otro proceso, §4 Funciones).
+Nota: `docs/datos/modulos/07-ventas-y-caja.md` avisa que describe V1; no se cita como vigente. Mandan el código y lo que `BACKLOG`/`BITACORA` registran como verificado en producción.
 
-## 2 · Capturas analizadas (3; sin datos personales en este archivo)
-1. Vista completa arriba: cabecera «Historial», tarjeta S/ 5,487.10 · 17 ventas, chips 7/30/90 días/Personalizado (30 activo), botón Filtros, línea de tiempo (Hoy, Sábado 19…), panel lateral «Ventas por día».
-2. Parte baja: ventas del 14–16 de setiembre con «BLU-001», «CHO-001» como título y cuadros de foto vacíos; pie «Registro transparente»; el panel lateral se queda fijo.
-3. Barra de filtros abierta (Todas las tiendas / Todos los vendedores / Todos los pagos / Todas las ventas / Con o sin comprobante) con el desplegable de comprobante tapando el chip de una fila.
+## 2 · Objeción
+1. **La pantalla acaba de ganar una dependencia sin el resguardo que el resto del archivo sí tiene.** `EMBEBIDOS_LISTA` en `lib/ventas-historial.ts:45-51` embebe `cliente:clientas ( nombre )` a través de la FK `ventas_clienta_fk`, creada por la migración `20260922140000_ficha_de_clienta_v1_backend.sql` `[código]`. Esa migración **no está aplicada en producción** — `docs/BITACORA.md:8812`, «Sin resolver: una migración sin aplicar en producción», 2026-09-22 `[producción, BITACORA 2026-09-22]`. El mismo archivo SÍ sabe protegerse de una migración aditiva que tarda: la columna `es_prueba` tiene un reintento explícito (`COLUMNA_INEXISTENTE = "42703"`, `ventas-historial.ts:63,132-133,161-162`) que quita la columna del `select` y vuelve a pedir. El embed de `clientas` no tiene ese reintento: si la relación no existe todavía, PostgREST no devuelve `42703` (columna inexistente) sino un error de relación no encontrada, y **ni `SELECT_LISTA` ni `SELECT_LISTA_SIN_PRUEBA` lo evitan** porque los dos incluyen `EMBEBIDOS_LISTA` `[código ventas-historial.ts:52-53]`. El propio comentario del archivo (línea 62) explica el patrón correcto y no lo aplicó a esta pieza nueva. Si el código sale a producción antes que la migración, no se pierde solo el nombre de la clienta: **se cae toda la lista y todos los totales**, porque `listarVentasHistorial` y `totalesVentasHistorial` pasan por la misma `consulta()`.
+2. **Sigue siendo un libro que no ayuda a encontrar ni a actuar** — mismo defecto central del análisis anterior, verificado de nuevo hoy contra el código vivo, no heredado: `FiltrosHistorialVentas.tsx` no tiene una sola barra de texto (solo período/tienda/vendedor/pago/estado/comprobante, `:36-226`), y `buscarVentas` sigue siendo una función interna de `lib/ventas-v2.ts:118` que ningún componente de esta pantalla importa `[código, verificado hoy]`. `DetalleVentaModal.tsx:180-201` solo ofrece «Imprimir ticket» e «Imprimir … A4»: ninguna acción lleva a Cambiar, Devolver o ver el comprobante en Comprobantes. Es el mismo trade-off de siempre —una pantalla de solo lectura no debería iniciar un cambio de stock— pero hoy la resuelve desapareciendo la acción en vez de ofrecerla y dejar que el proceso real (Cambios/Devoluciones) la controle.
 
-## 3 · Hallazgos preliminares (sin puntuar todavía)
+## 3 · Lo que está bien y no se toca
+- **El cursor de paginado es estable y barato:** `(created_at, id)` descendente, con una fila de más para saber si hay página siguiente, sin `count()` aparte `[código ventas-historial.ts:126-131]`.
+- **Lista y totales comparten la misma `consulta()`:** un total que no coincide con la lista es peor que ninguno, y acá no puede pasar (mismos filtros, misma fuente) `[código ventas-historial.ts:76-100,124-133,160-162]`.
+- **Días de Lima correctos:** intervalo `[desde, hasta+1)` calculado en `-05:00`, agrupación con `Intl.DateTimeFormat` en `America/Lima` `[código ventas-historial-reglas.ts:90-99,229,233]`.
+- **Defensa real contra una migración aditiva que tarda:** el patrón `COLUMNA_INEXISTENTE`/reintento para `es_prueba` es exactamente lo que D-54 (ADR-0159) pedía — nadie tiene que coordinar el despliegue del código con el de la migración para esa columna `[código ventas-historial.ts:58-63,124-133,160-162]` `[ADR-0159]`.
+- **Una venta anulada no se disfraza:** se ve tachada, sigue en el libro, no suma a lo vendido ni al ticket ni al trazo `[código ventas-historial-reglas.ts:270-285,302-308; HistorialVentasLista.tsx:109,137,154]`.
+- **El comprobante que se muestra es el correcto tras ADR-0164:** `elegirComprobante` cuenta boleta, factura y nota de venta como documento de la venta, y una nota de crédito no la reemplaza `[código ventas-historial-reglas.ts:198-204]`.
+- **«Quién vendió» ya lee la asistencia real, no la sesión que cobró:** `quienVendio` prioriza `asesora_id` sobre `usuario_id` `[código ventas-historial-reglas.ts:236]`, con índice propio `ventas_asesora_id_idx` `[código supabase/migrations/20260922150000_venta_asesora_emisor_descuento_lider.sql:138]` — así el filtro «Vendedor» del líder no hace un escaneo completo.
+- **La corrección de la analista anterior sobre `PaginacionCursor`:** el análisis 2026-09-21 decía que faltaba `<nav>`/`aria-label`; el código ya lo tenía entonces y lo sigue teniendo — `<nav aria-label="Paginación">` `[código Paginacion.tsx:128]`, verificado también contra el SHA `553c0ff7` que citaba ese análisis. Se corrige acá para no repetir un hallazgo que nunca fue cierto.
+- **El total de cada día viene de la serie de TODO el rango, no de la página** — un día partido entre dos páginas muestra el mismo total en las dos `[código HistorialVentasLista.tsx:66-86]`.
+- **RLS coherente con el resto del repo:** `ventas_select` usa `fn_puede_operar_ubicacion` (líder ve todo, integrante solo su tienda) `[código supabase/migrations/0004_rls.sql:103]`, sin política de UPDATE/DELETE en `ventas` — una venta se corrige con el proceso, nunca con un `update` directo.
 
-Etiquetas: `[visto]` captura · `[código archivo:línea]` · `[producción]` · `[inferido]` · `[no verificable]`.
+## 4 · Las seis dimensiones
+| Dimensión | Puntaje | Hallazgo principal | Evidencia |
+|---|---|---|---|
+| Estética | 7,0 | Coherente con Cambios/Devoluciones/Caja (Atelier); persisten chips de 10 px/`py-1` (~24 px) bajo el mínimo táctil, y ninguna pista visual (chevron/ícono) de que la fila abre un detalle | `[código FiltrosHistorialVentas.tsx:21; HistorialVentasLista.tsx:113-119]` |
+| Lógica de negocio | 7,0 | Cursor, días de Lima y ADR-0164 correctos; «Por día» sigue dividiendo entre los días del rango, no entre los días con venta | `[código HistorialVentasPulso.tsx:145]` |
+| Arquitectura | 6,0 | Consulta base compartida sin N+1 y RLS correcta, pero el embed nuevo `cliente:clientas` no tiene el resguardo de despliegue que sí tiene `es_prueba`, y el tope de 1000 sigue sin verificarse en producción | `[código ventas-historial.ts:45-53,58-63]` |
+| Funciones | 5,0 | Sin buscador (la lógica existe y sigue sin exponerse), sin acciones desde el detalle, sin exportar | `[código FiltrosHistorialVentas.tsx; DetalleVentaModal.tsx:180-201; ventas-v2.ts:118]` |
+| Utilidad | 6,0 | Sirve para mirar el libro; una clienta que devuelve a los 8 días obliga a salir y volver a buscar la prenda en otra pantalla | `[inferido del código, mismo escenario del análisis anterior]` |
+| Conexión con el ERP | 5,0 | Ningún enlace de entrada (Caja/Punto de Venta/Comprobantes) ni de salida (Cambios/Devoluciones/Comprobantes); la tarea que lo resolvería está bloqueada, con razón, por tres rediseños en vuelo | `[código, verificado hoy con grep; docs/SESIONES-ACTIVAS.md]` |
 
-### Lo más grave (posible daño a dinero o a la lectura correcta de cifras)
+### Estética (7,0)
+(a) Coherencia CAYLA: hilo taupe por día, hoja de papel (`bg-papel`), esquinas suaves, tipografía serif en el título de la venta — la misma línea que Cambios, Devoluciones y Caja `[código HistorialVentasLista.tsx:63-99,127]`. `--color-rojo` aparece solo en estados `hover`/`focus` (subrayado de «Todo el historial», borde de chip al pasar el mouse, contorno de foco del botón que abre el detalle) `[código FiltrosHistorialVentas.tsx:23,142,204,218; HistorialVentasLista.tsx:118,137]`: no hay dos rojos a la vista al mismo tiempo, pero no se midió con el tablero real `[inferido]`.
+(b) Marca y tono: el racimo de miniaturas de color cuando no hay foto (`Miniatura`, `HistorialVentasLista.tsx:184-188`) es un recurso propio de CAYLA que ningún referente externo tiene (§9).
+(c) Universales: las píldoras de período (`PASTILLA`, `FiltrosHistorialVentas.tsx:21`) miden `px-3 py-1 text-[10px]` (~24 px de alto) y los desplegables del panel `h-9` (36 px, `FiltrosPildora.tsx:85`) — ambos por debajo de los 44 px táctiles recomendados para un mostrador/tablet `[código]`. La fila de una venta no tiene chevron ni ícono que anticipe que se abre un detalle; solo un cambio sutil de fondo al pasar el cursor (`hover:bg-tinta/[0.025]`, línea 113) — en tablet, sin cursor, esa pista no existe `[código]`.
 
-**H1 · El tope de 1000 ventas puede no avisar nunca.** `[código ventas-historial.ts:138,146]` pide `limit(1001)` y marca `parcial = crudas.length > 1000`. `[código supabase/config.toml:21]` fija `max_rows = 1000` en local: PostgREST devolvería como máximo 1000 filas y `parcial` jamás sería verdadero, con lo que los totales saldrían truncados en silencio, justo lo que el comentario de `ventas-historial-reglas.ts:23-24` dice evitar. `[no verificable]` el `max_rows` de producción: lo resuelve la consulta E1. Hoy no molesta (17 ventas) `[visto]`.
+### Lógica de negocio (7,0)
+- El cursor `(created_at, id)` y el intervalo de Lima `[desde, hasta+1)` son correctos y estables ante empates `[código ventas-historial-reglas.ts:90-99]`.
+- `elegirComprobante` sigue ADR-0164 (nota de venta cuenta, nota de crédito no reemplaza) `[código ventas-historial-reglas.ts:198-204]`.
+- **«Por día» sigue siendo el mismo divisor engañoso del análisis anterior**, verificado de nuevo hoy: `HistorialVentasPulso.tsx:145` calcula `resumen.total / Math.max(1, dias.length)`, y `dias` viene de `serieDiaria` (`ventas-historial-reglas.ts:302-324`), que rellena con ceros todo el rango hasta 400 días. Con un ERP joven (ventas desde hace ~1 semana) y un rango de 30 días, el promedio sale bajo y el trazo casi plano — ninguna decisión escrita de Felipe fija cuál divisor es el correcto (`[ninguna decisión escrita cubre esto]`).
+- **D-54/ADR-0159 (datos de prueba) está bien resuelto en el código pero no en producción todavía:** el toggle «Con datos de prueba» (`FiltrosHistorialVentas.tsx:115-120`) y el filtro `es_prueba = false` por defecto (`ventas-historial.ts:94`) existen, pero el script que marca las filas reales de producción **no se aplicó** (`docs/BITACORA.md:8805`, «nada se aplicó», 2026-09-22) `[producción, BITACORA 2026-09-22]`. Las ~14 boletas «pendiente hace más de un día» que el análisis anterior marcó como H2 pueden ser en parte esas mismas ventas de prueba sin archivar — no se puede saber cuánto sin correr E2 de nuevo (§ SQL pendiente).
+- Referentes (de memoria, `[no verificable]`): Shopify, Square y Lightspeed resuelven "por día" con el propio rango elegido por quien mira, no con un relleno de ceros hasta 400 días.
 
-**H2 · El chip «PENDIENTE DE ENVIAR» aparece en las 17 boletas, incluso en las del 14 de setiembre.** `[visto]` Origen: `ESTADO_ETIQUETA.pendiente` `[código comprobantes-reglas.ts:99-106]`: comprobante con serie y número asignados que aún no se transmitió a SUNAT. El proveedor es Lucode/apisunat, no Nubefact `[código lib/lucode.ts:1-25]`. La fila no distingue «recién emitido» de «lleva días sin enviar», y `pendiente` y `enviado` se pintan igual (ámbar, `HistorialVentasLista.tsx:37-38`). Dos lecturas posibles: (a) alarma real —S/ 5,487 sin transmitir a SUNAT—; (b) el envío aún no está conectado y el chip es ruido. `[no verificable]` cuál; la consulta E2 lo dice. Es el punto de mayor consecuencia fiscal de la pantalla.
+### Arquitectura (6,0)
+- **Cadena:** `page.tsx` → `FiltrosHistorialVentas`/`HistorialVentasLista`/`HistorialVentasPulso` (client) → `ventas-historial.ts` (server, PostgREST) → RLS `ventas_select`/`venta_items_select`/`venta_pagos_select`/`comprobantes_select` → tablas. Sin RPC propio salvo `fn_nombres_personas` para resolver nombres cross-schema `[código ventas-historial.ts:104-109]`.
+- **Estado imposible que la base sí impide:** no hay política de UPDATE/DELETE en `ventas`; una fila del historial no se puede editar desde acá, solo desde `anular_venta` u otro proceso `[código 0004_rls.sql:103-105; inferido de la ausencia de política]`.
+- **Estado imposible que el código no impide (nuevo):** desplegar esta versión del front antes que la migración `20260922140000` llegue a producción rompe la pantalla entera, no un campo — ver Objeción #1. **Se degrada así:** hoy, nada — no hay reintento ni mensaje específico; el error genérico de `exigir()` sube tal cual `[código resultado.ts, no leído a fondo esta vuelta; inferido]`.
+- **Transacción:** ninguna — es lectura pura, no hay escritura desde esta pantalla.
+- **Concurrencia:** dos líderes mirando el historial a la vez leen la misma foto sin bloquearse (PostgREST/RLS, sin problema); una venta que se anula mientras alguien mira la lista no se refleja hasta recargar — sin problema porque no es un panel «en vivo» como Caja.
+- **Caída externa:** no aplica un proveedor externo directo (SUNAT la toca indirectamente vía `comprobantes.estado`, que esta pantalla solo lee).
+- **Volumen:** sin cifra nueva verificada hoy (`[no verificable]`); la última cifra citada en `BACKLOG.md:130` es 16-17 ventas en producción (2026-09-21). A ese volumen ningún plan de acceso sufre. El tope de 1000 (`TOPE_TOTALES`, `ventas-historial-reglas.ts:25`) y el `max_rows = 1000` de `supabase/config.toml:21` siguen sin confirmarse en producción — E1 de la consulta SQL pendiente (§ SQL pendiente) es la única forma de saberlo.
+- **Índices:** `ventas_asesora_id_idx` es nuevo (`20260922150000…sql:138`) y ayuda al filtro «Vendedor»; sigue sin existir un índice compuesto `(created_at desc, id desc)` que sostenga el cursor de esta pantalla a volumen — hoy no duele (16-17 filas), en 3 años con 3 tiendas sí (H9 del análisis anterior, sin resolver).
+- **Lentes extra:** **RLS** (correcta, sin cambios) y **datos personales** — el nuevo embed trae `clientas.nombre`, dato personal real; no se ve en este archivo por la regla de enmascarado, y la tabla `clientas` ya separa el consentimiento de WhatsApp del dato transaccional (Ley 29733) según su propia migración `[código 20260922140000…sql:159]`.
 
-**H3 · El título de la venta muestra el código, no el nombre.** `[visto]` «BLU-001», «CHO-001». `[código ventas-historial.ts:44, ventas-historial-reglas.ts:149]` toma `productos.referencia`. La columna `productos.descripcion` (`0002_esquema.sql:38`) no está en el `select`. El comentario de `ventas-historial-reglas.ts:158` promete nombres tipo «Blusa Emma». El modal de detalle tiene el mismo problema (`venta-detalle-reglas.ts:77`). Las ventas nuevas sí muestran «Casaca Emilia» `[visto]`: puede ser que `referencia` sea el nombre en unos productos y el código en otros; E5 lo cuenta.
+### Funciones (5,0)
+- **Existen y funcionan:** filtros por período/tienda/vendedor/pago/estado/comprobante, lista agrupada por día, pulso del período, paginado por cursor, detalle con reimpresión de ticket/A4, toggle de datos de prueba.
+- **Fantasma:** ninguna encontrada esta vuelta (a diferencia de Caja, no hay componentes huérfanos en el mapa de este screen).
+- **Faltan, para cumplir la finalidad declarada:** buscador único (boleta/DNI/clienta/prenda) — la lógica ya existe como `buscarVentas` en `ventas-v2.ts:118` y sigue sin exponerse aquí; acciones desde el detalle (Cambiar/Devolver/Ver comprobante); enlaces de entrada desde Caja, Punto de Venta y Comprobantes.
+- **Sobran:** nada — a diferencia de Caja, esta pantalla no acumuló código muerto.
 
-### Contexto y cifras
+### Utilidad (6,0)
+Escenario: una clienta vuelve a los 8 días con una prenda para devolver, y la colaboradora de turno (nueva, sin capacitación completa) necesita encontrar esa venta.
+1. Abre Historial. El período por defecto es 30 días `[código movimientos-reglas.ts + ventas-historial-reglas.ts:71-87]`, así que la venta de hace 8 días SÍ aparece — bien.
+2. No hay un campo de texto: tiene que reconocer visualmente la fila entre las de esos 8 días, o usar los filtros de píldora (tienda/vendedor/pago/estado/comprobante), ninguno de los cuales busca por clienta ni por prenda.
+3. La encuentra por el título (`titulosDePrendas`, el nombre del producto o su código si falta la descripción) y la abre.
+4. En el detalle ve el total, las líneas, los pagos y el comprobante — y dos botones: «Imprimir ticket» e «Imprimir … A4». **Ninguno dice «Devolver» ni «Cambiar».** Tiene que cerrar el modal, salir de Historial, entrar a Devoluciones, y volver a buscar la misma venta o la misma prenda desde cero.
+Se equivoca de pantalla en el paso 4 por diseño, no por falta de capacitación: el sistema le mostró la venta exacta y no le ofreció el siguiente paso obvio.
 
-**H4 · El encabezado global dice «TIENDA TRU» y la página «TODAS LAS TIENDAS».** `[visto]` `page.tsx:47-51` calcula el alcance por su cuenta y no usa el selector global. Un líder no sabe si mira una sede o todas.
+### Conexión con el ERP (5,0)
+Ver §6.
 
-**H5 · «Por día» divide entre los días del rango, no entre los días con venta.** `[visto + cálculo]` 5,487.10 ÷ 30 = 182.90 (la cifra mostrada); las ventas empiezan el 14 de setiembre (~8 días), así que el promedio por día vendido ronda S/ 686 y el gráfico queda casi plano. `[código HistorialVentasPulso.tsx:145]` `resumen.total / max(1, dias.length)`. Además el divisor cambia sin aviso: pasa a «solo días con venta» si el rango supera 400 días y a semanas por encima de 120 (`ventas-historial-reglas.ts:300`, `Pulso.tsx:54`). Decisión de negocio de Felipe: cuál divisor es el correcto.
+## 5 · Relevancia
+| Criterio | Peso | Puntaje | Por qué (una línea) |
+|---|---|---|---|
+| Gestión (directo + indirecto) | ×2 | 9 | Es el registro de verdad para verificar que una venta ocurrió, reconciliar el día y decidir si un reclamo es legítimo; Cambios/Devoluciones/Caja dependen indirectamente de que este libro sea correcto. |
+| Dinero y stock que toca | ×1 | 9 | Todo el dinero vendido pasa por acá para mostrarse; no escribe, pero un total mal calculado (H1 latente) engaña a quien decide con esa cifra. |
+| Frecuencia y personas que la usan | ×1 | 7 | Se usa siempre que hay que revisar una venta pasada, pero con fricción real (sin buscador) — y es, en palabras de Felipe, la pantalla que menos le gusta del módulo. |
+| Qué se detiene si falla | ×1 | 6 | Las ventas nuevas no se frenan si Historial falla (es de solo lectura); sí se detiene la capacidad de auditar, reconciliar o resolver un reclamo. |
 
-**H6 · No hay camino desde una venta hacia Cambio, Devolución, Facturación o Caja.** `[código DetalleVentaModal.tsx:157-172]` la única acción real es imprimir ticket/A4. Tampoco hay exportar. El escenario «clienta que devuelve a los 8 días» obliga a salir de la pantalla y buscar la prenda otra vez en Cambios/Devoluciones.
+Relevancia = (2·9 + 9 + 7 + 6) / 5 = **8,0** → **Núcleo**.
 
-**H7 · No hay búsqueda** por boleta, clienta o prenda. `[visto]` y el ADR-0147 lo admite (`buscarVentas` existe en `ventas-v2.ts`, hoy interna). Con volumen, la colaboradora recorre día por día.
+## 6 · Conexión con el ERP
+- **Aguas arriba:** `ventas`, `venta_items`, `venta_pagos`, `comprobantes` (escritos por `registrar_venta`, Caja y Comprobantes/ex-Facturación), y ahora `clientas` (escrita desde `/clientas` y, cuando esa pantalla se conecte al mostrador, desde Punto de Venta — `docs/BITACORA.md:8812`).
+- **Aguas abajo:** ninguna — es una hoja terminal. El detalle solo produce una reimpresión (ticket/A4), no un dato que otra pantalla consuma.
+- **Pájaro dueño y vecinos:** COLIBRÍ (Ventas y caja) según `docs/datos/generado/AVIARIO.md:19,110` `[producción, generado]` — el archivo aún lista `clientes`, no `clientas`, coherente con que esa migración no está en producción. Vecinos directos: Caja, Cambios, Devoluciones, Comprobantes (comparten `ventas`/`comprobantes`).
+- **Externos, y qué pasa si caen:** ninguno de forma directa. Indirectamente, el estado del comprobante que esta pantalla muestra depende de que Comprobantes/Lucode-SUNAT respondan; si SUNAT no responde, el chip sigue diciendo «Pendiente de enviar»/«En cola: se reintenta solo» sin que esta pantalla haga nada más — se degrada mostrando el estado tal cual está, nunca lo inventa ni lo oculta.
 
-**H8 · El total de la venta y «Cómo se pagó» salen de tablas distintas.** `[código ventas-historial.ts:49-51]` total de `venta_items.subtotal`, pagos de `venta_pagos.monto`. En las capturas suman exacto (3,059.80 + 1,542.30 + 367.00 + 300.00 + 218.00 = 5,487.10 `[visto]`), pero si el vuelto o un pago se guardaran de otra forma las cifras dejarían de cuadrar. E4 lo verifica.
+## 7 · Las 12 tareas, por importancia
 
-### Rendimiento, seguridad y pruebas
+### #1 · [Corregir] Que el embed nuevo de `clientas` no tumbe la pantalla si la migración no llegó a producción
+- **Dónde:** `apps/web/lib/ventas-historial.ts:45-53` (`EMBEBIDOS_LISTA`), `:58-63,124-133,160-162` (patrón de reintento existente para `es_prueba`, como referencia).
+- **Por qué en este puesto:** es el único hallazgo de hoy que puede tumbar la pantalla entera (lista Y totales), no degradar un campo; y la migración que la habilita (`20260922140000`) sigue sin producción según `docs/BITACORA.md:8812` (2026-09-22). El propio archivo ya resolvió este problema para `es_prueba` — falta aplicar el mismo criterio acá antes de que ambos cambios se desplieguen juntos.
+- **Cómo lo verificas tú:** contra un Postgres local SIN la migración `20260922140000` aplicada, cargar `/vender/historial` como líder → debe mostrar la lista (con «Cliente varios» o similar en vez del nombre), no una pantalla de error.
+- **Esfuerzo / dependencias:** S · antes de fusionar a producción cualquier rama que despliegue este archivo.
 
-**H9 · `ventas` no tiene índices por `created_at`, `ubicacion_id` ni `usuario_id`** `[código migraciones]` (solo `venta_items(venta_id)`, `venta_pagos(venta_id)`, `comprobantes(venta_id, ubicacion_id, estado)`), con RLS que evalúa `fn_puede_operar_ubicacion` por fila. Aceptable a 17 ventas; con volumen habría que indexar. Necesita número: B1/B2 dan el ritmo real y A3 confirma los índices de producción.
+### #2 · [Corregir] Hacer fiable el aviso del tope de 1000 ventas
+- **Dónde:** `lib/ventas-historial-reglas.ts:25` (`TOPE_TOTALES`), `lib/ventas-historial.ts:158-170` (`totalesVentasHistorial`), `supabase/config.toml:21` (`max_rows = 1000`, solo local).
+- **Por qué en este puesto:** si `max_rows` de producción también es 1000 (el valor por defecto del dashboard de Supabase), PostgREST recorta en el mismo punto donde el código espera detectar el «hay más de 1000»: `parcial` jamás sería verdadero y los totales saldrían truncados en silencio, justo lo que el comentario del propio archivo (línea 23-24) dice evitar. Es un defecto latente sobre dinero mostrado (H1 del análisis anterior, sin resolver).
+- **Cómo lo verificas tú:** en el dashboard de Supabase del proyecto `cayla-dynamic` → Settings → API, leer `max_rows`; si es 1000 o ausente, cambiar la detección (pedir `limite+1` real vía RPC de agregados) en vez de confiar en el corte silencioso.
+- **Esfuerzo / dependencias:** M · si toca esquema (una RPC de agregados), confirma Felipe antes de escribirla.
 
-**H10 · Pruebas: solo unitarias** `[código lib/ventas-historial-reglas.test.ts]`, sobre funciones puras. Sin prueba del tope ni del cursor con datos, ni de los componentes, ni e2e. El BACKLOG dice que falta «verlo con clics reales» (líder e integrante, una anulada de verdad).
+### #3 · [Corregir] Distinguir «pendiente hace horas» de «pendiente hace días» en el chip del comprobante
+- **Dónde:** `lib/comprobantes-reglas.ts:93-118` (`ESTADO_ESTILO`, `ESTADO_ETIQUETA`), `components/HistorialVentasLista.tsx:35-44` (`TONO_COMPROBANTE`, pinta `pendiente`/`enviado`/`pendiente_reintento` con el mismo tono ámbar).
+- **Por qué en este puesto:** `ESTADO_ETIQUETA` ya distingue el texto («Pendiente de enviar» / «En cola: se reintenta solo» / «Enviado a SUNAT»), pero el color y la falta de antigüedad siguen sin decir si es un comprobante recién emitido o uno que lleva días sin transmitirse a SUNAT — es dinero fiscal en juego. ADR-0165 (envío automático) apunta a resolver la causa de fondo, pero sus dos migraciones (`20260922193700`, `20260922234100`) siguen sin producción (`docs/BITACORA.md:8845`, 2026-09-22): mientras tanto, esta pantalla sigue siendo el único lugar donde se ve la acumulación.
+- **Cómo lo verificas tú:** una boleta con más de 24 h en `pendiente` se pinta o etiqueta distinto de una recién emitida (por ejemplo, «Pendiente hace 3 días» en vez de solo «Pendiente de enviar»).
+- **Esfuerzo / dependencias:** S · no depende de ADR-0165, pero se vuelve menos urgente en cuanto esas migraciones lleguen a producción.
 
-**H11 · RLS y permisos.** `[código 0004_rls.sql:103, 0003_funciones.sql:54]` `ventas_select` usa `fn_puede_operar_ubicacion` (líder ve todo, integrante solo su tienda). `venta_items`/`venta_pagos` heredan con `exists`. `comprobantes_select` = líder o quien opera la ubicación. No hay política de UPDATE/DELETE en `ventas`; `anular_venta` (RPC) cambia el estado. `[no verificable]` en producción hasta correr D1/D3.
+### #4 · [Mejorar] Barra de búsqueda única (boleta, DNI, clienta, prenda)
+- **Dónde:** `components/FiltrosHistorialVentas.tsx` (agregar el campo), `lib/ventas-v2.ts:118` (`buscarVentas`, hoy interna — exponerla o portar su lógica a `ventas-historial.ts`).
+- **Por qué en este puesto:** es lo que más separa esta pantalla de su finalidad declarada («donde se encuentra una venta concreta») y de los tres referentes externos (§9): los tres resuelven la búsqueda con una sola barra de texto.
+- **Cómo lo verificas tú:** escribir un número de boleta o el nombre de una prenda en el buscador devuelve solo esas ventas y conserva el resto de los filtros y el cursor.
+- **Esfuerzo / dependencias:** M.
 
-### Estética y accesibilidad
-- Chips de período de 10 px con `py-1` (~24 px de alto) y desplegables `h-9` (36 px): por debajo de 44 px táctiles para tablet de mostrador. `[código FiltrosHistorialVentas.tsx:21]`
-- `--color-rojo` aparece en hover y foco de muchas piezas; su comentario dice «máx. 2 por pantalla» (`globals.css:17`). `[inferido]` no medido.
-- Texto de 10–11 px en `tinta/50–60` (pie del gráfico, metadatos, nota «Registro transparente» `page.tsx:126`): contraste probablemente bajo frente a ADR-0012. `[no verificable]` sin medir.
-- El gráfico solo responde a `onPointerMove` (sin teclado) y el bloque del día va `aria-hidden` (`Pulso.tsx:82`); `PaginacionCursor` sin `<nav>`/`aria-label`.
-- Botón invisible `absolute inset-0` cubre la fila: no hay pista visual de que se abre un detalle `[visto: sin chevron]`.
-- Botón «Filtros» esconde la barra un clic más; con filtros activos abre solo (`FiltrosHistorialVentas.tsx:66-67`).
+### #5 · [Replantear] De libro cerrado a punto de partida: acciones desde la venta
+- **Dónde:** `components/DetalleVentaModal.tsx:180-201` (hoy solo «Imprimir ticket» / «Imprimir … A4»).
+- **Por qué en este puesto:** es el hallazgo que más le pesa a Felipe («es la que menos me gusta») y el que más consecuencia tiene sobre el trabajo diario — el escenario de la clienta que devuelve a los 8 días (§4 Utilidad) lo prueba paso a paso. Su único trabajo acá es pedirle a Felipe que decida (ver §8): no se puede dar por resuelto sin su OK, porque cambia el contrato de «esta pantalla nunca escribe».
+- **Cómo lo verificas tú:** Felipe elige A o B en §8; con B, desde una venta de hace 8 días se llega a Devoluciones con la prenda ya elegida.
+- **Esfuerzo / dependencias:** decisión primero; implementación L. No antes de que Cambios/Devoluciones terminen de asentar su propio flujo guiado (ya construido, ADR-0122/0125).
+- **DECIDÍ (propuesta, la confirma Felipe):** el detalle gana botones «Devolver», «Cambiar» y «Ver comprobante» que abren esas pantallas con la venta/prenda ya elegida, sin que Historial ejecute ninguna escritura — solo pasa el `ventaId`.
+- **DESCARTÉ:** *dejarlo como está* — obliga a repetir la búsqueda de la misma venta en otra pantalla, exactamente el defecto que Felipe señaló; *mover Cambios/Devoluciones dentro de Historial* — mezclaría la unidad «venta, de solo lectura» con la unidad «prenda, que se está procesando», rompiendo la regla actual que sí está bien (§3).
+- **SE ROMPE SI:** una colaboradora nueva, con la clienta esperando en el mostrador, encuentra la venta en 10 segundos y luego pierde 2 minutos re-buscando la misma prenda en Devoluciones porque el detalle no le dio el atajo — y la clienta se impacienta por algo que el sistema ya sabía.
 
-### Lo que está bien y no se toca
-- Línea de tiempo por día y hoja de papel por día, coherente con Cambios, Devoluciones y Caja. `[visto]`
-- El total de cada día viene de todo el rango, no de la página. `[ADR-0147 + código Lista.tsx:77-83]`
-- Cursor `(created_at, id)`, estable con empates, sin `count` aparte. `[código ventas-historial.ts:107,109]`
-- Días de Lima: intervalo `[desde, hasta+1)` con `-05:00` y agrupación con `Intl` en `America/Lima`. `[código reglas.ts:89,219-223]`
-- Lista y totales comparten la misma consulta base (`consulta()`); sin N+1: una consulta grande de lista, una de totales y un RPC por lote de vendedores.
-- Solo lectura y «una venta no se borra»; la anulada sigue tachada y no suma. `[ADR-0147 + reglas.ts:256-259]`
-- Filtro por pago con alias `pago_filtro!inner` (no recorta las líneas de pago mostradas) y nota de crédito que no cuenta como comprobante de la venta.
-- Accesibilidad ya resuelta: `aria-pressed` en períodos, `aria-expanded`/`aria-controls` en Filtros, `aria-label` por fila, `role="img"` con resumen en el SVG, foco visible.
+### #6 · [Corregir] Título de la venta con el nombre de la prenda, no el código
+- **Dónde:** `lib/ventas-historial-reglas.ts:166-171` (`titulosDePrendas`), `:179-187` (`textoPrendas`), `lib/venta-detalle-reglas.ts:78` (mismo problema en el detalle) — todos usan `producto.referencia`, no `productos.descripcion`.
+- **Por qué en este puesto:** sin datos nuevos de producción para confirmar cuántas líneas siguen sin `descripcion` hoy (el análisis anterior midió 46 % el 2026-09-21), el código no cambió: sigue siendo un defecto de lectura, aunque una parte sea deuda de catálogo, no de esta pantalla.
+- **Cómo lo verificas tú:** ninguna fila muestra un código tipo «BLU-001» si el producto tiene `descripcion`; la referencia queda solo de respaldo.
+- **Esfuerzo / dependencias:** S + catálogo (completar las descripciones que faltan es tarea de Productos, no de acá).
 
-## 4 · Consulta SQL para producción (solo lectura, sin datos personales)
+### #7 · [Conectar] Enlaces cruzados «Ver historial →» desde Caja, Punto de Venta y Comprobantes
+- **Dónde:** `components/CajaAbiertaPanel.tsx:308` (hoy enlaza a `/caja/historial`, no a `/vender/historial`), Punto de Venta (sin ningún enlace a Historial hoy), Comprobantes (`app/(app)/vender/comprobantes/**`, sin enlace a Historial hoy) — verificado con grep sobre el código actual, ninguno de los tres apunta a esta pantalla.
+- **Por qué en este puesto:** es la otra mitad del hallazgo H6/H7 del análisis anterior (BACKLOG:133) y la razón por la que hoy nadie llega acá desde el flujo normal de venta. Va después de las tareas de dinero (#1-#3) porque su ejecución depende de rediseños en vuelo, no de una decisión propia.
+- **Cómo lo verificas tú:** desde Caja, con una caja abierta, un enlace «Ver todas las ventas →» lleva a `/vender/historial` filtrado por esa tienda y ese turno.
+- **Esfuerzo / dependencias:** S por enlace · **no antes de que terminen** el rediseño de Caja/Punto de Venta (`ventas-visual-redesign-240e2b`) y el de Comprobantes (ADR-0165) — enlazar ahora sería enlazar hacia una pantalla que está cambiando de forma.
 
-Pegar en el SQL Editor del proyecto cayla-dynamic (schema `retail`), un bloque a la vez, y pegar de vuelta el resultado. Si una columna falla, A1 da los nombres reales.
+### #8 · [Corregir] Definir el divisor de «Por día» — decisión de Felipe
+- **Dónde:** `components/HistorialVentasPulso.tsx:145`.
+- **Por qué en este puesto:** mismo hallazgo del análisis anterior (H5), sin resolver, verificado de nuevo hoy contra el código: divide entre los días del rango elegido, no entre los días que de verdad tuvieron venta, y con un ERP de una semana de operación el promedio sale artificialmente bajo.
+- **Cómo lo verificas tú:** la cifra mostrada coincide con la fórmula que Felipe elija (días del rango vs. días con venta).
+- **Esfuerzo / dependencias:** S · espera la decisión.
+
+### #9 · [Corregir] Alinear el alcance de la pantalla con la sede activa del líder
+- **Dónde:** `app/(app)/vender/historial/page.tsx:57` (`alcance` se calcula solo, por `?sede=`), `lib/persona-actual.ts:39` (`COOKIE_UBICACION = "cayla_ubicacion_activa"`, el selector global que otras pantallas sí leen).
+- **Por qué en este puesto:** un líder puede ver «Tienda TRU» en la cabecera global (por la cookie) y «Todas las tiendas» en el título de esta pantalla (porque `alcance` ignora esa cookie salvo que la URL traiga `?sede=`) — el mismo hallazgo del análisis anterior (H4), sin resolver.
+- **Cómo lo verificas tú:** con «Tienda TRU» activa en la cabecera global, entrar a Historial sin tocar el filtro de tienda → el título no dice «Todas las tiendas» sin explicar por qué difiere de la cabecera.
+- **Esfuerzo / dependencias:** S.
+
+### #10 · [Corregir] Índice compuesto en `ventas` para el cursor a volumen
+- **Dónde:** nueva migración con `create index on retail.ventas (created_at desc, id desc)`; opcionalmente `(ubicacion_id, created_at desc)` para el filtro de tienda.
+- **Por qué en este puesto:** sin cifra de producción nueva (§ SQL pendiente, B1), pero el código no cambió: sigue sin existir ese índice (solo se sumó `ventas_asesora_id_idx`, que no cubre el orden del cursor). A 16-17 ventas no duele; con 3 tiendas y 3 años de operación, cualquier estimado razonable (unas 30-50 ventas/día × 3 tiendas × 365 × 3 ≈ 100 000-160 000 filas) sí empieza a notarse en un `order by created_at desc, id desc limit 21`.
+- **Cómo lo verificas tú:** `explain analyze` de la consulta de `listarVentasHistorial` con datos simulados a ese volumen, sin `Seq Scan`.
+- **Esfuerzo / dependencias:** M · migración a producción con prefijo `retail.`, confirma Felipe (regla de CLAUDE.md).
+
+### #11 · [Mejorar] Objetivos táctiles y teclado — *bajo valor hoy*
+- **Dónde:** `FiltrosHistorialVentas.tsx:21` (píldoras de 10 px/`py-1`), `FiltrosPildora.tsx:85` (`h-9`), `HistorialVentasPulso.tsx:64-69,96-97` (el gráfico solo responde a `onPointerMove`, sin equivalente de teclado).
+- **Por qué al final:** no daña dinero ni datos; en un mostrador con dedo (no mouse) las píldoras de 24 px son más difíciles de tocar que el mínimo de 44 px, y el gráfico del pulso es puramente decorativo sin mouse/dedo con precisión.
+- **Cómo lo verificas tú:** en la emulación de tablet (768 px, táctil), las píldoras de período se tocan sin fallar dos veces de cada diez.
+- **Esfuerzo / dependencias:** S.
+
+### #12 · [Mejorar] Pruebas de integración con clics reales — *bajo valor hoy, pendiente propio del BACKLOG*
+- **Dónde:** `lib/ventas-historial-reglas.test.ts` (hoy solo pruebas unitarias sobre funciones puras); falta lo que `docs/BACKLOG.md:132` ya pide: «cambiar filtros con el mouse, paginar, tocar una fila, el hover del pulso y una venta anulada de verdad».
+- **Por qué al final:** ningún dato dice que esto esté rompiéndose hoy; es cobertura preventiva, no un defecto encontrado.
+- **Cómo lo verificas tú:** una prueba e2e o de integración que abra `/vender/historial`, cambie un filtro, pagine y abra el detalle, corriendo en CI.
+- **Esfuerzo / dependencias:** M · depende de tener una venta anulada real en algún entorno de prueba (hoy no hay ninguna, según el mismo BACKLOG).
+
+## 8 · Estrategia alternativa
+
+**De libro cerrado a punto de partida (la misma pregunta que la tarea #5, en Ganas/Pagas).**
+
+| | **A — Historial se queda de solo lectura (hoy)** | **B — El detalle ofrece Devolver/Cambiar/Ver comprobante** |
+|---|---|---|
+| **Ganas** | La regla «una venta no se toca desde acá» es simple y ya está probada; cero riesgo de que Historial termine escribiendo algo. | Una colaboradora resuelve el caso real («la clienta que vuelve a los 8 días») sin salir de la pantalla donde ya encontró la venta; es lo que hacen los tres referentes (§9). |
+| **Pagas** | Cada devolución o cambio empieza con una búsqueda repetida en otra pantalla — el costo que Felipe ya nombró como el motivo de que no le guste esta pantalla. | Historial deja de ser puramente terminal: hay que cuidar que los botones solo *naveguen* (pasen el `ventaId`) y nunca escriban desde acá, o la regla «solo lectura» se vuelve solo de palabra. |
+
+No la doy por decidida: cambia el contrato de la pantalla. **Decide Felipe.**
+
+## 9 · Referentes de ERP y futuro
+`[no verificable]`: lo que sigue viene de memoria de productos externos, no de una fuente citada hoy (el análisis anterior sí citó URLs de ayuda oficial para Shopify/Square/Lightspeed el 2026-09-21; se resume acá sin repetir la tabla completa).
+- Shopify, Square y Lightspeed resuelven la búsqueda con una sola barra de texto sobre boleta/clienta/producto — filtro obligatorio: le sirve a CAYLA hoy (tarea #4, no futuro).
+- Vistas guardadas de un clic («Pendientes de comprobante», «Anuladas») — sirve a 3 tiendas hoy, pero es comodidad, no lo que Felipe señaló como el defecto que más le pesa; queda en BACKLOG como opcional, no entre las 12.
+- Exportar a CSV — todos los referentes lo tienen; útil para contabilidad, pero nadie lo pidió todavía → Futuro.
+- Conteo por denominaciones o doble firma: no aplican a esta pantalla (son de Caja).
+
+## 10 · Fuera de esta pantalla
+**El mismo patrón de «embed nuevo sin resguardo de despliegue» puede repetirse en cualquier otra pantalla que ya use `clientas` antes de que la migración `20260922140000` llegue a producción.** `grep` sobre el repo muestra `clientas` referenciada en `lib/caja.ts`, `lib/inventario-v2.ts`, `lib/cambios-estadisticas.ts`, `lib/resumen-reglas.ts`, `components/ApartadosModal.tsx`, `components/ResumenComparacionPanel.tsx`, `components/ResumenDesempenoPanel.tsx`, además de `ClientasPanel.tsx`/`app/(app)/clientas/page.tsx` (la pantalla dueña). No verifiqué si esos otros archivos también embeben la tabla directamente o solo mencionan la palabra en un comentario — un barrido de 10 minutos antes de fusionar cualquier rama que toque `clientas` evitaría que el mismo error de Historial se repita en 5 pantallas a la vez el día que alguien despliegue sin pegar antes la migración. Es más grave que cualquier otro hallazgo de este archivo porque no se ve desde ninguna pantalla individual: solo se ve mirando todas a la vez, que es exactamente lo que ninguna auditoría de `/pantalla` hace por diseño (analiza una pantalla).
+
+## 11 · Líneas propuestas para BACKLOG.md
+Felipe aprueba antes de anexar (**no editar `docs/BACKLOG.md` sin su OK**).
+
+- [ ] `[pantalla:vender-historial]` #1 Resguardar el embed `cliente:clientas` con el mismo patrón de reintento que `es_prueba`, antes de desplegar — S
+- [ ] `[pantalla:vender-historial]` #2 Verificar `max_rows` de producción y hacer fiable el aviso del tope de 1000 — M
+- [ ] `[pantalla:vender-historial]` #3 Antigüedad visible del comprobante pendiente (independiente de ADR-0165) — S
+- [ ] `[pantalla:vender-historial]` #4 Barra de búsqueda única (boleta, DNI, clienta, prenda) — M
+- [ ] `[pantalla:vender-historial]` #5 Replantear: acciones desde la venta (Devolver/Cambiar/Ver comprobante) — decisión + L
+- [ ] `[pantalla:vender-historial]` #6 Título con nombre de la prenda, no código — S + catálogo
+- [ ] `[pantalla:vender-historial]` #7 Enlaces «Ver historial →» desde Caja/Punto de Venta/Comprobantes — S por enlace, espera rediseños en vuelo
+- [ ] `[pantalla:vender-historial]` #8 «Por día»: decisión de Felipe sobre el divisor — S
+- [ ] `[pantalla:vender-historial]` #9 Alinear el alcance con la sede activa (cookie global) — S
+- [ ] `[pantalla:vender-historial]` #10 Índice compuesto en `ventas` para el cursor — M
+- [ ] `[pantalla:vender-historial]` #11 Objetivos táctiles de 44 px y teclado en el gráfico — S (bajo valor)
+- [ ] `[pantalla:vender-historial]` #12 Pruebas de integración con clics reales — M (bajo valor)
+- [ ] `[pantalla:vender-historial]` Fuera de la pantalla: barrer los demás consumidores de `clientas` antes de desplegar esa migración — S
+
+## SQL pendiente
+No se corrió SQL nuevo esta vuelta (regla del Paso 2: no bloquear el flujo). Lo que `BACKLOG`/`BITACORA` ya tenían verificado se citó como `[producción, fecha]` en cada hallazgo. Lo que sigue sin verificar, con la plantilla de `.claude/skills/pantalla/plantilla-sql.md`:
 
 ```sql
--- A1. Columnas
-select table_name, ordinal_position, column_name, data_type, is_nullable
-from information_schema.columns
-where table_schema = 'retail'
-  and table_name in ('ventas','venta_items','venta_pagos','comprobantes','productos','producto_fotos')
-order by table_name, ordinal_position;
-
--- A3. Índices
-select tablename, indexname, indexdef
-from pg_indexes
-where schemaname = 'retail' and tablename in ('ventas','venta_items','venta_pagos','comprobantes')
-order by 1, 2;
-
--- B1. Volumen y ritmo
-select 'ventas' as tabla, count(*) as filas,
-       count(*) filter (where created_at > now() - interval '30 days') as ultimos_30_dias,
-       min(created_at) as primera, max(created_at) as ultima
-from retail.ventas
-union all select 'comprobantes', count(*), count(*) filter (where created_at > now() - interval '30 days'), min(created_at), max(created_at) from retail.comprobantes;
-
--- B2. Ventas por día (hora de Lima) y sede, últimos 30 días
-select (v.created_at at time zone 'America/Lima')::date as dia, u.nombre as sede, count(*) as ventas
-from retail.ventas v join retail.ubicaciones u on u.id = v.ubicacion_id
-where v.created_at > now() - interval '30 days'
-group by 1, 2 order by 1 desc, 2;
-
--- D1. Políticas RLS
-select tablename, policyname, cmd, qual
-from pg_policies
-where schemaname = 'retail' and tablename in ('ventas','venta_items','venta_pagos','comprobantes')
-order by 1, 2;
-
--- D3. Funciones que toca la pantalla (firma y si son security definer)
-select p.proname, pg_get_function_identity_arguments(p.oid) as firma, p.prosecdef, p.proconfig
-from pg_proc p
-where p.pronamespace = 'retail'::regnamespace
-  and p.proname in ('fn_nombres_personas','fn_puede_operar_ubicacion','fn_es_lider','anular_venta')
-order by 1, 2;
-
--- E1. ¿Cuál es el tope de filas que devuelve la API? (si es 1000, el aviso de "acota el rango" nunca salta)
+-- E1. ¿Cuál es el tope de filas que devuelve la API hoy? (si sigue en 1000, la tarea #2 es urgente)
 select rolname, rolconfig from pg_roles where rolname = 'authenticator';
 
--- E2. Estado real de los comprobantes, y cuántos llevan días "pendiente"
+-- E2. Estado real de los comprobantes y cuántos siguen "pendiente" por más de un día,
+--     separando los que ya deberían estar marcados es_prueba (si la migración D-54 se aplicó)
 select estado, tipo, count(*) as n, min(created_at) as el_mas_viejo,
        count(*) filter (where created_at < now() - interval '1 day') as con_mas_de_1_dia
 from retail.comprobantes
 group by 1, 2 order by 3 desc;
 
--- E3. Ventas sin comprobante, sin vendedor, o anuladas
-select count(*) filter (where not exists (select 1 from retail.comprobantes c where c.venta_id = v.id)) as sin_comprobante,
-       count(*) filter (where v.usuario_id is null) as sin_vendedor,
-       count(*) filter (where v.estado = 'anulada') as anuladas,
-       count(*) as total
-from retail.ventas v;
-
--- E4. ¿El total de la venta coincide con lo pagado? (debería salir vacío)
-select v.id, v.created_at::date as dia,
-       (select coalesce(sum(subtotal),0) from retail.venta_items i where i.venta_id = v.id) as por_items,
-       (select coalesce(sum(monto),0)    from retail.venta_pagos p where p.venta_id = v.id) as por_pagos
-from retail.ventas v
-where (select coalesce(sum(subtotal),0) from retail.venta_items i where i.venta_id = v.id)
-   <> (select coalesce(sum(monto),0)    from retail.venta_pagos p where p.venta_id = v.id)
-order by v.created_at desc limit 20;
-
--- E5. Prendas vendidas: ¿el producto tiene descripción (nombre legible) y foto por color?
+-- E5 (repetida). Prendas vendidas sin descripción legible, para medir si la tarea #6 sigue igual de grande
 select count(*) as lineas_vendidas,
-       count(*) filter (where pr.descripcion is null or pr.descripcion = '') as producto_sin_descripcion,
-       count(*) filter (where not exists (
-         select 1 from retail.producto_fotos f where f.producto_id = pr.id and f.color_codigo = va.color_codigo)) as sin_foto_del_color
+       count(*) filter (where pr.descripcion is null or pr.descripcion = '') as producto_sin_descripcion
 from retail.venta_items vi
 join retail.variantes va on va.id = vi.variante_id
 join retail.productos pr on pr.id = va.producto_id;
+
+-- F1 (nueva). ¿Ya existe la relación ventas_clienta_fk / la tabla clientas en producción?
+select table_name from information_schema.tables where table_schema = 'retail' and table_name = 'clientas';
+select conname from pg_constraint where conname = 'ventas_clienta_fk';
+
+-- F2 (nueva). Volumen actual, para decidir si la tarea #10 (índice) ya urge
+select count(*) as filas, min(created_at) as primera, max(created_at) as ultima from retail.ventas;
 ```
 
-## 5 · Tareas candidatas (borrador, sin ordenar ni puntuar)
-
-No son las 12 finales: solo lo que ya salió del código y las capturas, para no perderlo. Se ordenan y se completan tras el SQL.
-
-- Corregir el título de la venta: usar el nombre del producto (`descripcion`) con `referencia` como respaldo (H3).
-- Corregir/verificar el aviso de tope de 1000 (`max_rows`); si no avisa, cambiar la detección o pasar a una RPC de agregados (H1). Requiere OK de Felipe si toca esquema.
-- Aclarar el chip de comprobante: distinguir «pendiente hace X días» de «recién emitido» y `pendiente` de `enviado` (H2).
-- Alinear el alcance de la pantalla con el selector global de tienda, o quitar la confusión de etiquetas (H4).
-- Definir con Felipe el divisor de «Por día» y mostrar «por día vendido» cuando el ERP es joven (H5).
-- Conectar cada venta con Cambio, Devolución y comprobante desde el detalle (H6).
-- Búsqueda por boleta / clienta / prenda usando `buscarVentas` (H7).
-- Cuadrar total de venta con pagos y decidir qué pasa con el vuelto (H8, según E4).
-- Índices en `ventas` (`created_at, id`; `ubicacion_id`) cuando B1/B2 muestren volumen (H9).
-- Pruebas de integración del tope y del cursor, y recorrido con clics reales (líder e integrante, con una anulada de verdad) (H10).
-- Objetivos táctiles de 44 px, contraste de textos chicos y teclado en el gráfico (estética).
-- Exportar a CSV para líder/contabilidad. `bajo valor / opcional` hasta que se pida.
-
-## 6 · Estrategia alternativa (por evaluar)
-Idea aún sin desarrollar, decide Felipe: en vez de un historial solo de lectura que obliga a salir para actuar, una pantalla de «ventas» con acciones en la fila (buscar → abrir → cambiar / devolver / reimprimir / ver comprobante). Ganas: una colaboradora resuelve una devolución sin cambiar de pantalla. Pagas: la unidad «venta» empieza a mezclarse con Cambios y Devoluciones, y se pierde la regla actual de «solo lectura». Completar con Ganas/Pagas reales tras el SQL.
-
-## 7 · Fuera de esta pantalla (borrador)
-Si H2 resulta real, **hay comprobantes sin transmitir a SUNAT desde el 14 de setiembre**. Es un tema fiscal de Facturación, no de esta pantalla: el historial solo lo deja a la vista.
-
-## 9 · Resultado del SQL de producción (2026-09-21)
-
-| Consulta | Resultado | Veredicto |
-|---|---|---|
-| B1 volumen | 17 ventas (todas de los últimos 30 días; 14-sep → 21-sep), 19 comprobantes | Volumen mínimo: H9 aún no duele |
-| E2 comprobantes | 17 `pendiente` (14 con más de 1 día, el más viejo del 14-sep), 1 `aceptado`, 1 `anulado` | **H2 es hueco real**: casi nada se transmitió a SUNAT |
-| E3 | 0 sin comprobante, 0 sin vendedor, 0 anuladas | Está bien |
-| E4 | 0 ventas donde items ≠ pagos | **H8 está bien** hoy |
-| E5 | 39 líneas vendidas: 18 sin `descripcion` (46 %), 16 sin foto del color (41 %) | **H3 es hueco real** y en parte es dato de catálogo |
-| A3 índices | `ventas` solo tiene `pkey` y `token_cliente` | H9 confirmado, sin urgencia |
-| E1 | `authenticator` sin `max_rows`; `statement_timeout=8s` | **H1 sigue sin verificar**: `max_rows` es ajuste del API (dashboard, por defecto 1000) |
-
-## 10 · Referentes de la pantalla (3 productos)
-
-Se comparó contra tres historiales de ventas de referencia. Fuentes: ayuda oficial de cada producto.
-
-| | Shopify · Orders | Square · Transactions | Lightspeed Retail · Sales history |
-|---|---|---|---|
-| Búsqueda | Una sola barra: texto libre + filtros como chips + vistas guardadas | Búsqueda de transacciones por detalle | Por n.º de recibo, clienta, producto |
-| Filtros | Pago, envío, fecha, etiquetas, canal (chips en la misma barra) | Fecha, método de pago, tipo, estado, sede, fuente, miembro del equipo, tarjeta | Fecha, estado, tienda, caja, vendedor, tipo de pago, **monto**, **producto** |
-| Vistas guardadas | Sí (pestañas «Todos / Sin pagar / …», se actualizan solas) | No | No |
-| Exportar | Sí | CSV desde la propia lista | «Export List» a CSV |
-| Acciones desde la venta | Sí (cumplir, reembolsar, imprimir) | Reembolso desde la transacción | Devolución/ver recibo desde la venta |
-
-Fuentes: [Shopify: filtros y vistas](https://help.shopify.com/en/manual/shopify-admin/productivity-tools/searching-filtering-views) · [Shopify: filtrar pedidos](https://help.shopify.com/en/manual/fulfillment/managing-orders/viewing-orders/filtering-orders) · [Square: buscar transacciones](https://squareup.com/help/us/en/article/5145-transaction-search) · [Lightspeed X-Series: Sales history](https://x-series-support.lightspeedhq.com/hc/en-us/articles/25534095402907-Understanding-and-managing-the-Sales-history-page) · [Lightspeed: exportar](https://x-series-support.lightspeedhq.com/hc/en-us/articles/25534215415963-Exporting-your-Sales-Data-from-Retail-POS-X-Series). Lo de «acciones desde la venta» es lectura general de esos productos, no cita de un artículo concreto: `[inferido]`.
-
-**Lo que los tres hacen igual y CAYLA no:** (1) una sola barra de búsqueda encima de la lista; (2) filtros por monto y por producto; (3) exportar la lista filtrada; (4) el estado accionable (pendiente, sin pagar) es un filtro de un clic, no texto en la fila; (5) desde la venta se puede actuar.
-
-**Lo que CAYLA hace mejor y no se toca:** la línea de tiempo por día con total del día, las miniaturas de color cuando no hay foto, el aviso «registro transparente» y la anulada tachada. Ninguno de los tres muestra el total del día ni un pulso del período junto a la lista. No se debe copiar el aspecto de tabla plana: la hoja de papel por día ya es más legible que sus filas.
-
-## 11 · Puntajes (0–10)
-
-| Dimensión | Nota | Por qué |
-|---|---|---|
-| Estética | 7 | Coherente con Cambios/Devoluciones/Caja; pierde por títulos con código, cuadros de foto vacíos, textos de 10–11 px y sin pista de que la fila se abre. |
-| Lógica | 7 | Cursor estable, días de Lima, totales de todo el rango; pierde por «Por día» engañoso (H5) y el chip que no distingue antigüedad (H2). |
-| Arquitectura | 8 | Una consulta base, sin N+1, RLS correcta, solo lectura. Riesgo abierto: tope de 1000 (H1) y sin índices. |
-| Funciones | 5 | Sin búsqueda, sin filtro de monto/prenda, sin exportar, sin acciones. Es lo que más la separa de los tres referentes. |
-| Utilidad | 6 | Sirve para mirar; no para encontrar una venta concreta, que era su finalidad declarada. |
-| Conexión con el ERP | 5 | Muestra el estado del comprobante pero no lleva a Facturación, Cambios ni Devoluciones. |
-
-**Cumple su finalidad: 6/10.** El «libro» y el «pulso» funcionan; «donde se encuentra una venta concreta» y «se llega al detalle» solo se cumplen a medias.
-**Relevancia: 8/10.** Es el registro de dinero real y hoy es el único lugar donde se ve que 17 boletas no se transmitieron.
-
-## 12 · Las 12 tareas, por importancia
-
-Esfuerzo: S (horas) · M (1 día) · L (varios días).
-
-1. **Mostrar la antigüedad del comprobante pendiente y avisarlo** — *H2, dato real.* Dónde: `comprobantes-reglas.ts:99-106`, `HistorialVentasLista.tsx:37-38,141`. Por qué: 14 de 17 boletas llevan más de un día sin transmitirse y la fila las pinta igual que una recién emitida. Verifica: una boleta del 14-sep dice «pendiente hace 7 días» en tono distinto al de una de hoy. **Antes, Felipe: ¿por qué no se transmiten?** (tema de Facturación). S.
-2. **Barra de búsqueda única (boleta, clienta, prenda)** — *H7; los tres referentes la tienen.* Dónde: `FiltrosHistorialVentas.tsx`, reutilizar `buscarVentas` de `ventas-v2.ts`. Verifica: escribir un n.º de boleta o un nombre devuelve solo esas ventas y conserva el cursor. M.
-3. **Título con el nombre de la prenda y completar las descripciones que faltan** — *H3.* Dónde: `ventas-historial.ts:44`, `ventas-historial-reglas.ts:149`, `venta-detalle-reglas.ts:77`. Por qué: 18 de 39 líneas vendidas (46 %) no tienen `descripcion`. Verifica: ninguna fila muestra «BLU-001» si existe descripción; el resto usa la referencia de respaldo. Parte es carga de datos en catálogo. S + catálogo.
-4. **Hacer fiable el aviso del tope de 1000** — *H1.* Dónde: `ventas-historial.ts:138,146`. Verifica: mirar `max_rows` en Supabase (Settings ▸ API). Si es 1000, cambiar la detección o mover los totales a una RPC de agregados. Si toca esquema, confirma Felipe. M.
-5. **Replantear: de libro a punto de partida (acciones desde la venta)** — *H6; Square y Lightspeed permiten actuar sobre la venta.* Dónde: `DetalleVentaModal.tsx:157-172`. Manteniendo «una venta no se toca», el detalle ofrece «Devolver», «Cambiar», «Ver comprobante» que abren Cambios/Devoluciones/Facturación con la venta ya elegida. Decide Felipe (sección 6). Verifica: desde una venta de hace 8 días se llega a Devoluciones con las prendas precargadas. L.
-6. **Alinear el alcance con el selector global de tienda** — *H4.* Dónde: `page.tsx:47-51,57`. Verifica: con «Tienda TRU» en el encabezado, la página no dice «Todas las tiendas» sin explicarlo. S.
-7. **Corregir «Por día»** — *H5.* Dónde: `HistorialVentasPulso.tsx:145`. **Pendiente de decisión de Felipe:** dividir entre días del rango (hoy S/ 182.90) o entre días con venta (≈ S/ 686). Verifica: la cifra coincide con la elegida. S.
-8. **Exportar la lista filtrada a CSV** — *Square y Lightspeed lo traen; sube desde «bajo valor».* Dónde: nueva ruta de exportación con los mismos filtros. Verifica: el CSV tiene las mismas filas y total que la pantalla. M.
-9. **Atajos de vista de un clic** — *inspirado en las vistas guardadas de Shopify.* «Hoy», «Ayer», «Pendientes de comprobante», «Anuladas», «Sin comprobante», sobre los filtros existentes. Verifica: cada atajo produce la URL con los filtros esperados. S.
-10. **Legibilidad y accesibilidad** — objetivos táctiles de 44 px, texto mínimo 12 px en `tinta/60+`, chevron o hover que diga que la fila se abre, teclado en el gráfico, `<nav aria-label>` en la paginación. Dónde: `FiltrosHistorialVentas.tsx:21`, `HistorialVentasPulso.tsx:82`, `Paginacion.tsx`. Verifica: contraste medido y recorrido con teclado y en tablet. M.
-11. **Filtros por monto y por prenda** — *Lightspeed los tiene.* Dónde: `FiltrosHistorialVentas.tsx`, `ventas-historial.ts` (`consulta()`). Verifica: «más de S/ 300» y «Casaca Emilia» acotan la lista y las cifras de cabecera. M.
-12. **Índices de `ventas` y pruebas de integración/clics** — *H9, H10.* Dónde: nueva migración con `(created_at desc, id desc)` y `(ubicacion_id, created_at)`; prueba del tope y del cursor con datos; recorrido con líder e integrante y una anulada de verdad. Verifica: `explain` sin `Seq Scan` con volumen simulado; prueba en CI. La migración va a producción con prefijo `retail.` y confirma Felipe. M.
-
-## 8 · Líneas propuestas para BACKLOG.md
-Felipe aprueba antes de anexar (**no editar `docs/BACKLOG.md` sin su OK**). Formato: `- [ ] [pantalla:vender-historial] #n Título — esfuerzo`.
-
-- [ ] [pantalla:vender-historial] #1 Antigüedad y aviso del comprobante pendiente — S
-- [ ] [pantalla:vender-historial] #2 Barra de búsqueda única (boleta, clienta, prenda) — M
-- [ ] [pantalla:vender-historial] #3 Título con nombre de la prenda y completar descripciones — S
-- [ ] [pantalla:vender-historial] #4 Aviso fiable del tope de 1000 — M
-- [ ] [pantalla:vender-historial] #5 Replantear: acciones desde la venta (devolver, cambiar, ver comprobante) — L
-- [ ] [pantalla:vender-historial] #6 Alcance alineado con el selector global de tienda — S
-- [ ] [pantalla:vender-historial] #7 «Por día» según decisión de Felipe — S
-- [ ] [pantalla:vender-historial] #8 Exportar a CSV — M
-- [ ] [pantalla:vender-historial] #9 Atajos de vista de un clic — S
-- [ ] [pantalla:vender-historial] #10 Legibilidad y accesibilidad — M
-- [ ] [pantalla:vender-historial] #11 Filtros por monto y por prenda — M
-- [ ] [pantalla:vender-historial] #12 Índices de `ventas` y pruebas — M
+## Inventario de elementos
+| Zona | Elemento | Qué hace | Veredicto (bien / ajustar / sobra / falta) | Evidencia |
+|---|---|---|---|---|
+| Cabecera | Título «Historial» + `ResumenSede` (vendido, ventas) | Cifras del rango completo | bien (se oculta si `parcial`) | `[código page.tsx:65-82]` |
+| Filtros | Píldoras de período (7/30/90/Personalizado/Todo) | Cambian el rango en la URL | bien; táctil bajo el mínimo | `[código FiltrosHistorialVentas.tsx:99-121]` |
+| Filtros | «Con datos de prueba» | Trae de vuelta ventas `es_prueba` | bien, defensivo ante migración pendiente | `[código :115-120; ventas-historial.ts:58-63]` |
+| Filtros | Panel de píldoras (tienda/vendedor/pago/estado/comprobante) | Filtros adicionales | bien | `[código :149-193]` |
+| Filtros | — | Buscador de texto libre | **falta** | `[código, ausente]` |
+| Lista | Fila por día, con total del día | Agrupa y muestra ventas | bien | `[código HistorialVentasLista.tsx:66-99]` |
+| Lista | Racimo de miniaturas | Colores/fotos de las prendas vendidas | bien | `[código :162-188]` |
+| Lista | Título de la venta | Nombre o código de la prenda | ajustar (usa `referencia`, no `descripcion`) | `[código ventas-historial-reglas.ts:166-171]` |
+| Lista | Chip de comprobante | Estado ante SUNAT | ajustar (sin antigüedad, mismo tono para 3 estados) | `[código HistorialVentasLista.tsx:35-44]` |
+| Lista | Botón que abre el detalle | Cubre la fila entera | ajustar (sin pista visual sin hover) | `[código :113-119]` |
+| Lateral | Pulso del período (SVG) | Trazo + mejor día + cómo se pagó | bien; sin teclado | `[código HistorialVentasPulso.tsx]` |
+| Lateral | «Por día» | Promedio del rango | ajustar (divisor engañoso, H5) | `[código :145]` |
+| Paginación | `PaginacionCursor` | Avanza por cursor | bien, con `<nav aria-label>` (el análisis anterior decía que faltaba: no era cierto) | `[código Paginacion.tsx:128]` |
+| Detalle | `DetalleVentaModal` | Líneas, pagos, comprobante, reimpresión | ajustar (sin acciones de proceso) | `[código DetalleVentaModal.tsx:180-201]` |
+| Consulta | `cliente:clientas` embed | Trae el nombre de la clienta | **ajustar — riesgo de romper la pantalla entera sin la migración en producción** | `[código ventas-historial.ts:45-53]` |
 
 ## Historial
 | Fecha | Modo | Cumplimiento | Relevancia | Tareas cerradas de las 12 anteriores |
 |---|---|---|---|---|
 | 2026-09-21 | completo + referentes (Shopify, Square, Lightspeed) | 6/10 | 8/10 | — (primer análisis) |
+| 2026-09-22 | completo (sin SQL nuevo; se reutilizó evidencia de producción ya citada en BACKLOG/BITACORA con su fecha) | 6,0/10 | 8,0/10 | Ninguna de las 12 del análisis anterior se cerró tal cual. **Cerca de cerrarse por trabajo de otras sesiones, no de esta pantalla:** la corrección de «`PaginacionCursor` sin `<nav>`» resultó ser un hallazgo equivocado del análisis anterior (ya existía en el SHA que citaba, `553c0ff7`); «`fn_ventas_del_dia` no filtra `ventas.estado`» (BACKLOG:135, deuda ajena) se corrigió en la migración `20260921103000` aplicada en producción — no afecta a esta pantalla directamente (usa su propia consulta), pero cierra esa nota. Todo lo demás (búsqueda, acciones desde la venta, enlaces cruzados, tope de 1000, título con código, «Por día», índices, pruebas e2e) sigue abierto, y se sumó un hallazgo nuevo (#1, el embed de `clientas`). |
