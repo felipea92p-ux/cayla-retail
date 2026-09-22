@@ -191,6 +191,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:apartar-stock
 
+      # Separaciones (ADR-0166): separar con adelanto en custodia, entregar cobrando el saldo con el precio
+      # congelado, vencer con 2 días de gracia, devolver el 100% y que el arqueo de caja cuadre al céntimo.
+      - name: pruebas:separaciones
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:separaciones
+
       # Devolver insumos (ADR-0133, F3b): lo devuelto vuelve al último lote del que salió la orden, el costo de
       # tela/avíos de la orden queda neto, anular devuelve todo al estante y quien no opera el Taller no puede.
       # Cada caso termina en ROLLBACK.

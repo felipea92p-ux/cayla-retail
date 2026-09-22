@@ -33,10 +33,10 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [x] Plan en `docs/adr/0162-terminales-sin-persona-como-dynamic.md`; spike, pantallas 5 y 6. Aprobado por Felipe.
 - [x] **F1:** el encabezado `x-responsable` llega por PostgREST (local con `curl` y `supabase-js`; en producción, el CORS ya lo acepta).
 - [x] **F2** `20260923010000_terminales_sin_persona.sql`: `retail.terminales`, `fn_terminal_actual`, `fn_persona_presente`, `fn_actor_persona_id`, `fn_exige_responsable` (apagado), `terminal_id` + `trg_sellar_terminal` en 10 tablas, `fn_terminales`/`desactivar_terminal`/`reactivar_terminal`, retiro de `colaboradores.terminal` y `agregar_terminal`. `pnpm pruebas:terminales-sin-persona` 34/34.
-- [x] **F3** `20260923020000_actor_firma_las_operaciones.sql`: 65 funciones firman con `fn_actor_persona_id` (36 de tienda, 29 no), cotejadas contra producción en solo lectura. Terminal sin tope de descuento y libera apartados siempre (Felipe). `pnpm pruebas:actor-firma` 30/30, `pnpm pruebas:terminales` (reescrita) 74/74.
+- [x] **F3** `20260923100000_actor_firma_las_operaciones.sql`: 65 funciones firman con `fn_actor_persona_id` (36 de tienda, 29 no), cotejadas contra producción en solo lectura. Terminal sin tope de descuento y libera apartados siempre (Felipe). `pnpm pruebas:actor-firma` 30/30, `pnpm pruebas:terminales` (reescrita) 74/74.
 - [x] **F4a** web: sesión de terminal por `requirePersonaActualV2`, pie del lateral con el aparato, aviso de terminal desactivada en `/login`, pestaña Colaboradores ▸ Terminales (Desactivar / Reactivar).
 - [x] **F5** script `pnpm terminales:crear` (+ `pnpm terminales:probar`), sin correr contra ningún entorno.
-- [ ] **Pegar en producción, en orden:** F2 `20260923010000` → F3 `20260923020000`, cada una empezando con `set search_path to retail, public, extensions;`. Si después se pegan «apartar stock» o «comprador de tienda», **volver a pegar la F3** (hoy las omite con aviso porque producción no las tiene). Pedir OK a Felipe antes.
+- [ ] **Pegar en producción, en orden:** F2 `20260923010000` → F3 `20260923100000`, cada una empezando con `set search_path to retail, public, extensions;`. Si después se pegan «apartar stock» o «comprador de tienda», **volver a pegar la F3** (hoy las omite con aviso porque producción no las tiene). Pedir OK a Felipe antes.
 - [ ] Publicar la web (fusionar el PR #285; lo fusiona Felipe).
 - [ ] Felipe crea las 6 terminales (ventas y administrativa de TRU/AQP/LIM) con `pnpm terminales:crear`. **No crear personas en Dynamic.**
 - [ ] `pnpm datos:generar:produccion` + `pnpm datos:comparar` después de pegar, para que `terminales` y las funciones nuevas entren al diccionario.
@@ -209,7 +209,38 @@ Análisis completo en [docs/pantallas/colaboradores.md](pantallas/colaboradores.
 - [x] `AjustarInventarioModal.tsx` pedía la columna `variantes.talla`, que la taxonomía cerrada eliminó (ADR-0095, `20260917100500`); la base respondía «column variantes.talla does not exist» y el modal quedaba vacío desde «Ajustar» en Existencias y Productos. Ahora usa `talla:tallas ( valor )` sin cast (si vuelve a pedir una columna inexistente, `tsc` falla — comprobado con una mutación) y arma las filas en `lib/ajuste-reglas.ts` (12 pruebas), con las tallas en orden de curva. Reproducido a nivel de Postgres (esquema real, solo lectura); barrido de `apps/web`: ningún otro select ni filtro pide `talla` a secas sobre `variantes`, y los otros 4 `as unknown as` de selects solo angostan tipos.
 - [ ] Verlo en navegador con datos reales (sin Docker no hay PostgREST local): abrir «Ajustar» en un producto con varias tallas y ver que salgan ordenadas y con su stock. En producción la columna ya estaba borrada desde el 2026-09-17 (ver 🎯 Taxonomía de variante), así que el modal llevaba roto desde entonces — según este BACKLOG, no consultado en vivo.
 
-## 🎯 Apartar stock — Fase 1: reserva física con clienta y fecha límite (2026-09-20, ADR-0141) — hecho en local, falta pegar en producción
+## 🎯 Separaciones (Fase 2 de Apartar stock) — análisis y demo funcional (2026-09-22), sin construir
+
+Separar una prenda con adelanto, entregarla cobrando el saldo, vencer con aviso y liberar sola, con el adelanto «en custodia» fuera de
+los ingresos hasta la entrega. Análisis, referentes y modelo propuesto: [docs/maquetas/separaciones-2026-09/ANALISIS.md](maquetas/separaciones-2026-09/ANALISIS.md);
+demo: `docs/maquetas/separaciones-2026-09/demo.html`.
+
+- [x] Investigación (Lightspeed, Shopify, contabilidad, SUNAT, Indecopi) y demo funcional con reloj simulado.
+- [x] Decisiones D1–D4 (Felipe, 2026-09-22): boleta de anticipo, monto libre, 100% devuelto preferentemente por Yape/Plin/transferencia (se registra al separar), una sola extensión de +7.
+- [ ] **Felipe valida las funciones en la demo** y decide D5 (quién libera y registra la devolución).
+- [x] Demo de interfaz con el lenguaje visual del ERP (`docs/maquetas/separaciones-2026-09/interfaz.html`, 2026-09-22): lateral con «Separaciones» bajo Ventas, Separar / Entregar / Todas, modales ADR-0136. Falta que Felipe la revise.
+- [ ] Confirmar con Lucode (apisunat.pe) la emisión de anticipo + regularización, y con el contador el tratamiento (pasivo 122 + IGV al cobrar).
+- [x] Requisito: ADR-0141 (`20260920160000_apartar_stock.sql`) **aplicada en producción el 2026-09-22** (con OK de Felipe; Claude, vía SQL en una transacción): cuerpos de función idénticos al repo por md5, verificador en 0 filas, stock intacto (153 filas).
+- [x] **Base de datos (2026-09-23, ADR-0166):** `20260923090000_separaciones.sql` — `separaciones`, `separacion_items`, `separacion_pagos`,
+      `separacion_correlativos`; 9 funciones (`separar_prendas`, `entregar_separacion`, `extender_separacion`, `liberar_separacion`,
+      `registrar_devolucion_separacion`, `fn_vencer_separaciones`, `buscar_separaciones`, `resumen_separaciones`, `fn_verificar_separaciones`).
+      46 pruebas SQL (`pnpm pruebas:separaciones`, en CI), 4 mutaciones detectadas, regresión en verde. `cerrar_caja` no se tocó: el efectivo del
+      adelanto entra como ingreso de caja. **Aplicada en producción el 2026-09-22** (con OK de Felipe; Claude, vía SQL en una transacción): cuerpos de función idénticos al repo por md5, verificador en 0 filas, stock intacto (153 filas).
+- [x] **`20260923090000_separaciones.sql` pegada en producción** (2026-09-22, después de ADR-0141): 10 funciones con md5 idéntico, `fn_verificar_separaciones` en 0, `venta_pagos` acepta `anticipo`.
+- [ ] **Series faltantes en producción:** Lima (LIM) solo tiene `NV03`: un apartado en Lima falla al emitir la boleta de anticipo hasta que se registre su serie de boleta/factura. Ninguna tienda tiene serie de nota de crédito: la devolución se registra igual, con el aviso «La nota de crédito queda pendiente».
+- [ ] **Transmitir anticipos a SUNAT:** hoy `motivoParaNoTransmitir` los frena (boleta de anticipo y la final que lo deduce). Falta armar el payload
+      de anticipo/regularización en `lib/lucode.ts` y probarlo en el sandbox; confirmar con el contador el caso del adelanto del 100% (no se emite
+      segundo comprobante).
+- [ ] **D5 por confirmar:** extender/liberar/devolver hoy exigen `fn_puede_gestionar_caja()` (líder o terminal de ventas).
+- [x] **Pantallas (2026-09-23):** `/vender/apartados` con Apartar, Entregar y Todos; en pantalla se llama **Apartados** (código APT-, boleta
+      «Anticipo por apartado»). Probado en el navegador contra Postgres real. Menú: Cambios y Devoluciones pasan al subgrupo «Posventa».
+- [x] **Felipe aprobó el subgrupo «Posventa»** (2026-09-22) en el menú (el golden se cambió a propósito; si no lo quiere, la alternativa es sacar
+      Apartados del lateral y dejarlo como pestaña del Punto de venta).
+- [ ] **En Caja**, la tarjeta «En custodia» (hoy vive en Apartados → Todos) y `anticipo` en `NOMBRE_METODO`/historial de ventas.
+- [ ] **Existencias** sigue ofreciendo «Apartar» de ADR-0141 (sin adelanto): decidir si se quita o se deja como reserva rápida.
+- [ ] Ya en producción: refrescar el volcado y regenerar el diccionario (`pnpm datos:generar:produccion`) para que entren las 4 tablas nuevas.
+
+## 🎯 Apartar stock — Fase 1: reserva física con clienta y fecha límite (2026-09-20, ADR-0141) — en producción desde el 2026-09-22
 
 Una prenda apartada para una clienta ya **no se puede vender**: sigue contando en el conteo físico, pero deja de estar *disponible*. Existencias tiene la
 tarjeta «Apartados» (lo vencido en rojo; **no se libera solo**), la acción «Apartar» por fila y «Liberar» (solo quien apartó, o una líder). Detalle,
@@ -218,7 +249,7 @@ decisiones, lo que se descartó y la verificación en [docs/adr/0141-apartar-sto
 - [x] **Motor, tabla y RPC** (`20260920160000_apartar_stock.sql`): `stock.cantidad_apartada`, `apartados`, `apartar_stock`, `liberar_apartado`,
       `listar_apartados`, `fn_verificar_apartados`; `fn_aplicar_movimiento` (venta, traslado y ajuste miran lo disponible) y `recalcular_stock`.
       Verificado con 41 pruebas SQL + 54 de regresión + carreras con COMMIT (hasta 120 conexiones) + prueba de mutación.
-- [ ] **Pegar `20260920160000_apartar_stock.sql` en producción, ANTES de desplegar la web** (Existencias lee la columna nueva). Entera, en el SQL Editor de
+- [x] **`20260920160000_apartar_stock.sql` pegada en producción el 2026-09-22, antes de desplegar la web** — los 6 cuerpos con md5 idéntico al repo, `fn_verificar_apartados` en 0. (Existencias lee la columna nueva). Entera, en el SQL Editor de
       cayla-dynamic; es re-ejecutable. Pasos y verificación en el ADR («Cómo se pega en producción»).
 - [ ] **Probarlo en el navegador con datos reales, como colaboradora y como líder.** Esta sesión no tenía base de datos: se vieron los componentes reales
       con datos de ejemplo (formulario, errores, vencidos, caída de red), pero no el ciclo completo apartar → ver → liberar contra Postgres.
@@ -410,7 +441,7 @@ La base local se dejó idéntica a producción el 2026-09-21 (huella por objeto:
 
 - [ ] **Permisos de producción sin migración.** Default global `postgres:f:global:{postgres=X/postgres}` (`alter default privileges for role postgres revoke execute on functions from public`); `revoke execute on all functions in schema retail from public` (en producción `anon` ejecuta 0 funciones; local llegó a tener 96); `stock`, `transferencias` y `transferencia_items` solo SELECT para `authenticated`; `stock` y `movimientos` solo lectura para `service_role`; `fn_aplicar_movimiento` y `recalcular_stock` sin EXECUTE para `service_role`. Falta una migración idempotente que lo escriba.
 - [ ] **`retail.gastos` y `registrar_gasto` (11 parámetros) están en producción y no en la cadena de `main`.** Vienen de las migraciones tempranas de `claude/garza-caja-modulo-7aad0f` (`20260916171500_gastos_operativos` y `20260916174750_gastos_idempotente`, sin fusionar); las posteriores (`20260918193000_gastos`, ADR-0117) NO están en producción. Sin ellas Eficiencia (Taller), que lee `gastos`, falla en una base local reconstruida. Decidir: fusionar las dos tempranas o escribir la migración desde la definición viva de producción.
-- [ ] **Apartar stock (ADR-0141, `20260920160000`) está en `main` y NO en producción**, y el front ya llama a `apartar_stock`, `liberar_apartado` y `listar_apartados`: esas pantallas fallan en producción. Se retiró de la base local para que calce con producción. Pegar en producción (necesita el OK de Felipe) y reaplicar en local con `psql` registrando la versión.
+- [x] **(Resuelto 2026-09-22: aplicada en producción.)** Apartar stock (ADR-0141, `20260920160000`) estaba en `main` y NO en producción, y el front ya llama a `apartar_stock`, `liberar_apartado` y `listar_apartados`: esas pantallas fallan en producción. Se retiró de la base local para que calce con producción. Pegar en producción (necesita el OK de Felipe) y reaplicar en local con `psql` registrando la versión.
 - [ ] **Refrescar `docs/datos/generado/funciones-produccion.txt`** (199 firmas contra 217 en producción): `pnpm datos:comparar` marca como rotas 5 pantallas que sí existen en producción.
 
 Aparte: `pnpm pruebas:colaboradores-endurecimiento` falla en local con `no rows returned for \gset` porque su montaje busca una persona activa que aún no sea colaboradora y la base ya no tiene ninguna (no es de la sincronización).
@@ -440,6 +471,24 @@ Rama `claude/billing-design-analysis-ee464b`. Spec aprobado por Felipe el 2026-0
 - [x] **R4 — Códigos de descuento** (2026-09-21): cuatro tarjetas (Vigentes / Por vencer en 7 días / Vencidos / Apagados) y estado de cada código (vigente, por vencer, programado, vencido, apagado) contra `hoyLima`, la misma fecha con la que `registrar_venta` valida al cobrar (`fn_hoy_lima()`).
 
 - [x] **Cabecera y entrada unificadas con Cambios, Devoluciones, Caja e Historial** (2026-09-21, Felipe: «que siga el patrón de diseño de las demás»). `FacturacionCabecera` usa `EncabezadoPagina` (hilo que se dibuja, «Todas las tiendas · fecha y hora de Lima», título serif de 46 px, frase) con las dos acciones bajo la frase (como Caja) y `ResumenSede` a la derecha (por enviar a SUNAT y proformas vigentes, con `CifraAnimada`; un `null` —la lectura falló— no dibuja la cifra, un cero sí). La línea viva («actualizado hace 16 s», punto que late y pasa a ámbar a los 10 min) se conserva dentro de la línea de arriba: `EncabezadoPagina` ganó un `detalle` opcional que no cambia las otras pantallas. La caja de búsqueda bajó a la fila de las pestañas (`CajaDeBusqueda`, exportada). Cascada de entrada: cabecera 0, resumen 1, pestañas 2 y las vistas empiezan en 2 (antes en 0; sus paneles pasaron de 4 y 5 a 6 y 7); `space-y-7` como las demás. Verificado en el navegador a 1440 y 390 px (sin desborde), con las medidas de Cambios (misma letra a 46 px, mismo origen) y cambiando de pestaña (la cabecera no se remonta). Falta decidir si las tarjetas de vidrio (look v8) también pasan a `card-cayla`.
+
+### Comprobantes: envío automático a SUNAT y series (D-60, ADR-0165, 2026-09-22)
+
+Rama `claude/comprobantes-series-auto-emit-4346ee`, fusionada con `main` (nota de venta incluida). Diseño aprobado: `docs/superpowers/specs/2026-09-22-comprobantes-series-y-envio-automatico-design.md`. «Facturación» pasa a ser **Comprobantes** (`/vender/comprobantes`, los enlaces viejos redirigen). Los cuatro pasos construidos y verificados en local contra el sandbox; tipos, 7843 pruebas y lint en verde. **Sin push.**
+
+- [x] **Paso 1 — envío al cobrar.** Vender llama a `/api/lucode/emitir { venta_id }` en segundo plano. Verificado: una venta real cobrada en la pantalla disparó el envío sola.
+- [x] **Las líneas de una venta ya se pueden declarar** (hallado al probar el paso 1): ninguna boleta nacida de una venta se había podido transmitir nunca (ítems sin descripción y con precio con IGV). `itemsParaLucode`: referencia + SKU, `(precio − descuento) / 1,18`. B001-25 aceptada por el sandbox con CDR.
+- [x] **Paso 2 — reintento sin cron** (`fn_tomar_comprobantes_para_reintento`, reserva de 5 min con `skip locked`, `/api/lucode/reintentar`). Verificado: el barrido aceptó 3; con el token apagado quedaron en cola con su error; con el token de vuelta, «Reintentar ahora» los aceptó.
+- [x] **Paso 3 — la pantalla.** Series · Emitidos · Por reintentar · Proformas; sin Resumen, sin Códigos de descuento (el código al cobrar sigue), sin «Transmitir»; aviso rojo si algo pasa 1 hora en cola; pastilla «Pruebas». El Resumen viejo se caía al ver un `pendiente_reintento` (ya no existe).
+- [x] **Paso 4 — archivar series.** `registrar_serie_comprobante` reemplazaba la serie conservando el contador; ahora se archiva con motivo y la nueva empieza en 1. Una activa por tienda y tipo; un nombre no se reusa. Guía de salida a producción en Series.
+- [x] **Las 20 boletas de prueba pendientes de producción** (B004, 14–22 sep, S/ 11 056,10): marcadas `no_emitido` con motivo «Venta de prueba…» (Felipe: «B»), por MCP con guarda de conteo = 20.
+- [x] **`LUCODE_ENTORNO` a `sandbox` en Vercel y redesplegado** (Felipe, 2026-09-22). Estaba en `produccion`: los 2 comprobantes transmitidos el 08 y 09-sep fueron a la SUNAT real. El valor no se pudo leer desde la CLI sin descargar todos los secretos; se confía en el cambio de Felipe.
+- [x] **Pegadas en producción el 2026-09-22** (Felipe: «1 y 2»), cada una en una transacción con bloque de validación final. `20260922193700`: `fn_tomar_comprobantes_para_reintento` con huella `344aa75b…` (igual a local), una firma, `security definer`, EXECUTE solo `authenticated`/`postgres`; humo como líder real: tomó 0 (nada en cola). `20260922234100`: antes `fn_reservar_numero_serie` `a911c8ae…` y `registrar_serie_comprobante` `2b6879d0…` (iguales a local; rollback = sus definiciones de `0010`), después `e04f4e9a…`, `83a3dee0…` y `archivar_serie_comprobante` `43fdebef…` (iguales a local); tres columnas, candado viejo fuera, índice único parcial, `fn_reservar` sigue cerrada (solo `postgres`); las 7 series con sus mismos números (`B004@24 … NV03@1`), ninguna archivada. Humo como líder, deshecho: registrar otra boleta en TRU se frena («archívala primero»), reservar da B004-24, y tras archivar B004 la reserva falla («No hay una serie registrada»); después, series y 23 comprobantes intactos. No se registraron en `supabase_migrations.schema_migrations` de producción (el historial de producción no es fiable, igual que en pegados anteriores).
+- [ ] **PR a `main`** y su fusión (despliega): OK de Felipe.
+- [ ] **Nota de crédito B y F en la misma tienda** (SUNAT exige la letra del documento que corrige). Con una sola NC activa por tienda no se puede; exige que `emitir_nota` y `aprobar_devolucion` le digan a `fn_reservar_numero_serie` qué letra quieren. Disparador: la primera factura que haya que corregir.
+- [ ] `aprobar_devolucion` comprueba que exista una serie de NC sin mirar si está archivada: si solo queda una archivada, falla igual (la reserva aborta la transacción) pero con un mensaje menos claro. Sumar `archivada_at is null` la próxima vez que alguien la toque.
+- [ ] **Cron de respaldo** para la cola, solo si se ve quieta de verdad (hoy la barren los cobros y las aperturas de Comprobantes).
+- [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) cuando las dos migraciones estén en producción.
 
 ### Falta para cerrar Facturación (2026-09-21)
 
@@ -599,6 +648,15 @@ tiene de verdad — detalle y descartes en ADR-0125.
       local por la otra sesión (`20260918163712_devolucion_rechaza_venta_anulada.sql`, rama
       `claude/blissful-mccarthy-3b06e5`, **no está en producción**). Al fusionar, la pantalla
       nueva de Devoluciones ya etiqueta la venta anulada y no deja elegir sus prendas.
+- [x] **"Actividad reciente" en una tarjeta por venta, no una fila por prenda — CERRADO
+      2026-09-22**, mismo patrón que Devoluciones (tarea #8 de `docs/pantallas/devoluciones.md`).
+      La tarjeta resume prendas · importe, un chip de plazo por venta y una nota si ya tuvo
+      actividad previa; el botón "Iniciar cambio" entra al paso "Prenda" sin preseleccionar
+      nada. `totalesVenta` y `actividadPreviaVenta` se comparten con Devoluciones en
+      `cambios-reglas.ts` (eran genéricas, no hablaban de devolución); el plazo vencido sigue
+      bloqueando en Cambios y no en Devoluciones — `estadoPlazoVenta` y `estadoPlazoDevolucion`
+      quedan separadas a propósito, con su propio texto. Sin migración. `ComprasAgrupadas` y
+      `CambiosFlujo` no se tocaron — ya soportaban esto desde Devoluciones.
 
 ## 🎯 Movimientos: qué cambió en el stock y qué proceso lo originó (2026-09-19, ADR-0127)
 
@@ -690,6 +748,18 @@ solo pantalla y lectura. Detalle, decisiones tomadas por él y descartes en ADR-
       propio vocabulario (talla_chica/talla_grande/otro_color/defecto/otro), más granular para lo que
       el Taller necesita de Cambios, y unificarlo con el de arriba es una decisión de Felipe que
       queda abierta (ver ADR-0158, sección "por qué cambios.motivo no se toca").
+- [x] **"Actividad reciente" en una tarjeta por venta, no una fila por prenda — CERRADO
+      2026-09-22** (`docs/pantallas/devoluciones.md`, tarea #8: "un chip y una acción por
+      boleta, no por línea"). La lista repetía la misma pregunta dos veces: la tarjeta mostraba
+      cada prenda de la venta y el paso "Prendas" del flujo la volvía a mostrar. Ahora la tarjeta
+      resume la venta (prendas · importe, un chip de plazo, y si ya tuvo un cambio o devolución) y
+      un solo botón "Iniciar devolución" que entra al paso "Prendas" sin nada preseleccionado — ahí
+      se elige qué prenda, con la misma elegibilidad de siempre (una ya procesada no bloquea el
+      resto de la venta). Los resultados de "Iniciar una devolución" (buscar/escanear) NO
+      cambiaron: ahí sigue una fila por prenda, porque la colaboradora ya apunta a una puntual.
+      `ComprasAgrupadas` ahora acepta `renderCompra` además de `renderFila` (unión discriminada,
+      Cambios no se tocó); nuevas `estadoPlazoDevolucion`, `totalesVenta` y `actividadPreviaVenta`
+      en `devoluciones-reglas.ts`, con 8 pruebas nuevas. Sin migración: solo pantalla y lectura.
 - [ ] **Token de idempotencia en `crear_devolucion`** (como `registrar_cambio`, ADR-0032): sin él,
       una red que se corta después del commit deja un reintento que sale con «ya se devolvieron…».
 - [ ] **La nota de crédito usa `precio_unitario` sin restarle `descuento_unitario`**

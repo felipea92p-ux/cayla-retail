@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas de la fase F3 del ADR-0162 (migración `20260923020000_actor_firma_las_operaciones.sql`) — CAYLA V2.
+ * Pruebas de la fase F3 del ADR-0162 (migración `20260923100000_actor_firma_las_operaciones.sql`) — CAYLA V2.
  *
  * QUÉ PRUEBA.
  *   (a) Estructura: ninguna función de `retail` conserva `select id into … from personas where auth_user_id = auth.uid();`
@@ -37,7 +37,7 @@ const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const i = process.argv.indexOf("--base");
 const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 const EN_SECO = process.argv.includes("--en-seco");
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260923020000_actor_firma_las_operaciones.sql"), "utf8");
+const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260923100000_actor_firma_las_operaciones.sql"), "utf8");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora de Trujillo (seed), tope de descuento 10 %
@@ -187,13 +187,13 @@ caso(
 );
 
 caso(
-  "firman con el actor: 36 de tienda (true) y 29 que no (false), una sola vez cada una",
+  "firman con el actor: 41 de tienda (true; 36 + las 4 de Apartados + archivar_serie_comprobante) y 29 que no (false), una sola vez cada una",
   `select concat_ws(',',
      count(*) filter (where d ~ 'fn_actor_persona_id\\(true\\)'),
      count(*) filter (where d ~ 'fn_actor_persona_id\\(false\\)'),
      count(*) filter (where (length(d) - length(replace(d, 'fn_actor_persona_id(', ''))) / length('fn_actor_persona_id(') > 1))
    from (select pg_get_functiondef(oid) d from pg_proc where pronamespace = 'retail'::regnamespace and proname <> 'fn_actor_persona_id' and ${SIN_ROLES}) x;`,
-  "36,29,0"
+  "41,29,0"
 );
 
 caso(

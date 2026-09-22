@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { MetodoPago } from "@cayla-retail/shared";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
+import { barrerColaSunat, enviarVentaASunat } from "@/lib/envio-sunat";
 import { avisar } from "@/components/ui/Avisos";
 import { filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
@@ -377,9 +378,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
 
       const resueltos = new Map<string, VentaEncolada | null>();
       for (const venta of aReintentar) {
-        // Sube con el responsable que se eligió al cobrar y la HORA DE LA VENTA (`x-momento`), no la de ahora.
-        const { error } = await firmar(supabase.rpc("registrar_venta", venta.params), firmaDeVentaEncolada(venta));
-        if (!error) resueltos.set(venta.token, null);
+        // Sube con el responsable que se eligió al cobrar y la HORA DE LA VENTA (`x-momento`), no la de ahora (ADR-0162),
+        // y después la manda sola a SUNAT (D-60), igual que un cobro en línea.
+        const { data: ventaSubida, error } = await firmar(supabase.rpc("registrar_venta", venta.params), firmaDeVentaEncolada(venta));
+        if (!error) {
+          resueltos.set(venta.token, null);
+          if (ventaSubida) enviarVentaASunat(ventaSubida);
+        }
         else if (!esFalloDeRed(error)) resueltos.set(venta.token, { ...venta, rechazo: traducirError(error, "subir la venta guardada sin conexión") });
         // sigue siendo fallo de red: no se toca, se reintenta en el próximo latido
       }
@@ -869,6 +874,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     let recibo: ReciboVenta | null = null;
     let estado: EstadoComprobante | null = null;
     if (ventaId) {
+      // D-60: se declara sola a SUNAT, y de paso se reintenta lo que quedó en la cola de esta sede.
+      enviarVentaASunat(ventaId);
+      void barrerColaSunat(ubicacionId);
       const { data: comp } = await supabase.from("comprobantes").select("tipo, serie, numero, estado, created_at").eq("venta_id", ventaId).maybeSingle();
       if (comp && (comp.tipo === "boleta" || comp.tipo === "factura" || comp.tipo === "nota_venta")) {
         estado = comp.estado as EstadoComprobante;

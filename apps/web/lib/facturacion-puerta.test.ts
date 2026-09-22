@@ -16,7 +16,7 @@ import { describe, expect, it } from "vitest";
 //    en cualquier otro componente, un panel o una vista nueva— daría un token nuevo por apertura
 //    y quemaría un correlativo si se corta la red entre dos intentos.
 
-const RAIZ = join(__dirname, "../app/(app)/vender/facturacion");
+const RAIZ = join(__dirname, "../app/(app)/vender/comprobantes");
 const COMPONENTES = join(__dirname, "../components");
 
 function archivosBajo(dir: string, coincide: (nombre: string) => boolean): string[] {
@@ -46,14 +46,15 @@ function condicionadoAlEstado(fuente: string, modal: string): boolean {
   return new RegExp(`(\\bmodal\\b|\\babierto\\b)[^{}<]*?(&&|\\?)\\s*<${modal}\\b`).test(fuente);
 }
 
-// Lo único que sigue siendo solo del líder dentro de Facturación. Todo lo demás abre con `facturar`.
-const SOLO_LIDER = ["/descuentos/page.tsx"];
+// Lo que sería solo del líder dentro de Comprobantes. Desde que salió «Códigos de descuento»
+// (2026-09-22) no queda ninguna vista así: todas abren con `facturar`.
+const SOLO_LIDER: string[] = [];
 
 describe("Facturación — puerta (líder o terminal de ventas)", () => {
   const rutas = archivosBajo(RAIZ, (n) => n === "page.tsx" || n === "layout.tsx");
 
-  it("encuentra el layout y las cuatro vistas (que el candado no mire el vacío)", () => {
-    expect(rutas.length).toBeGreaterThanOrEqual(5);
+  it("encuentra el layout y las tres vistas (que el candado no mire el vacío)", () => {
+    expect(rutas.length).toBeGreaterThanOrEqual(4);
   });
 
   for (const ruta of rutas) {

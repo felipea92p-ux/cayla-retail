@@ -271,3 +271,4 @@ Cada tabla que salga y que solo se escriba por RPC es una candidata a `revoke`, 
 | Fecha | Modo | Cumplimiento | Relevancia | Tareas cerradas de las 12 anteriores |
 |---|---|---|---|---|
 | 2026-09-21 | completo | 5/10 | 6.0/10 — Soporte | — (primer análisis) |
+| 2026-09-22 | — (sin re-evaluar; pedido puntual de Felipe, no una nueva pasada completa) | — | — | #8 — un chip y una acción por boleta, no por línea (`docs/BACKLOG.md`, `apps/web/components/DevolucionesVentas.tsx`) |

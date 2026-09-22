@@ -4,8 +4,9 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
 import { getTrasladosEnCurso } from "@/lib/traslados";
-import { getCoberturaPorVariante, getFilasSemanaDeSede } from "@/lib/resumen-inventario";
+import { getCoberturaPorVariante, getFilasRecientesDeSede, getFilasSemanaDeSede } from "@/lib/resumen-inventario";
 import { deltaDisponibleSede } from "@/lib/existencias-categorias";
+import { recomendacionesDeSede } from "@/lib/existencias-recomendaciones";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { estaAtrasado } from "@/lib/traslados-reglas";
 import { SelectorUbicacion } from "@/components/SelectorUbicacion";
@@ -49,7 +50,7 @@ export default async function InventarioPage({
 
   // La cobertura («cuánto dura este stock al ritmo reciente») solo tiene sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
-  const [stockBase, sububicaciones, traslados, danadosPendientes, cobertura, apartados, filasSemana] = await Promise.all([
+  const [stockBase, sububicaciones, traslados, danadosPendientes, cobertura, apartados, filasSemana, filasRecientes] = await Promise.all([
     getExistencias(ubicacionActivaId, ubicaciones, { incluirPrueba }),
     getSububicaciones(ubicacionActivaId),
     getTrasladosEnCurso(ubicacionActivaId),
@@ -61,6 +62,9 @@ export default async function InventarioPage({
     // Rediseño 2026-09-22: costo/precio/categoría y el delta de 7 días para «Disponible total»,
     // «Ritmo de venta (7D)» de la tabla y el overlay de categorías — misma RPC que ya usaba la cobertura.
     getFilasSemanaDeSede(ubicacionActivaId),
+    // «Ver recomendaciones»: el ritmo de `DIAS_RITMO_RECIENTE` (30 días, no 7) — la misma ventana que ya
+    // usa `getCoberturaPorVariante` — es la que espera `planDeReposicion` (el motor de Producción).
+    vende ? getFilasRecientesDeSede(ubicacionActivaId) : Promise.resolve([]),
   ]);
   // Dato secundario: si su cálculo falló, cada fila queda en «N/D» y se avisa; el stock no se cae.
   const stock = cobertura?.datos ? stockBase.map((f) => ({ ...f, cobertura: cobertura.datos?.[f.varianteId] ?? null })) : stockBase;
@@ -85,6 +89,7 @@ export default async function InventarioPage({
   const horaCarga = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
 
   const deltaSede = deltaDisponibleSede(filasSemana);
+  const recomendaciones = ubicacionActiva && vende ? recomendacionesDeSede(filasRecientes, ubicacionActiva) : [];
 
   return (
     <div className="space-y-6">
@@ -141,6 +146,7 @@ export default async function InventarioPage({
         coberturaFallo={cobertura?.fallo ?? null}
         filasSemana={filasSemana}
         deltaSede={deltaSede}
+        recomendaciones={recomendaciones}
       />
     </div>
   );

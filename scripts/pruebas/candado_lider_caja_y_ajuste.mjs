@@ -90,7 +90,11 @@ begin
   end if;
 end $r$;
 `;
-const MICAELA_INTEGRANTE = `update retail.colaboradores set rol_id = retail.fn_rol_por_clave('integrante')
+// Un rol de prueba que VE Caja y Existencias (sin límite): no depende de cómo esté configurado «Integrante» en la base
+// local, que se edita desde la pantalla (así se detectó: un líder le había apagado todos los módulos probando).
+const MICAELA_INTEGRANTE = `insert into retail.roles (id, nombre, descripcion) values ('44444444-4444-4444-8444-000000000002', 'Ve Caja y Existencias (prueba del candado)', 'temporal');
+insert into retail.rol_modulos (rol_id, modulo) values ('44444444-4444-4444-8444-000000000002', 'caja'), ('44444444-4444-4444-8444-000000000002', 'existencias');
+update retail.colaboradores set rol_id = '44444444-4444-4444-8444-000000000002'
   where persona_id = (select id from public.personas where auth_user_id = '${MICAELA}');\n`;
 
 const comoPersona = (authUserId, sql) => `
@@ -442,7 +446,7 @@ rollback;
 
 // ---- Decisión B2d (Felipe, 2026-09-22): con el rol Integrante (ve Caja y Existencias) la colaboradora SÍ puede ----
 exito(
-  "colaboradora con rol Integrante (ve Caja): AHORA cierra la caja de su tienda (B2d)",
+  "colaboradora con un rol que ve Caja: AHORA cierra la caja de su tienda (B2d)",
   comoPersona(
     FELIPE,
     `${CAJA_ABIERTA_POR_MICAELA}${MICAELA_INTEGRANTE}${cambiaA(MICAELA)}select (monto_real is not null) as cerrada from retail.cerrar_caja(:'caja', 100);\n`
@@ -450,7 +454,7 @@ exito(
   ["t"]
 );
 exito(
-  "colaboradora con rol Integrante (ve Existencias): AHORA registra un ajuste en su tienda (B2d)",
+  "colaboradora con un rol que ve Existencias: AHORA registra un ajuste en su tienda (B2d)",
   comoPersona(FELIPE, `${BASE}${MICAELA_INTEGRANTE}${cambiaA(MICAELA)}${MOVER("ajuste", 1)} is not null as ok;\n`),
   ["t"]
 );

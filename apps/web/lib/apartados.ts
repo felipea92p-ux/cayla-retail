@@ -8,7 +8,7 @@ import type { Apartado } from "@/lib/apartados-reglas";
 // fecha límite (lo que vence primero, o ya venció, sale arriba) y resuelve `puede_liberar` — la regla
 // «solo quien apartó o una líder» no se repite en la app.
 //
-// Excepción de la TERMINAL (Felipe, 2026-09-22; `liberar_apartado` en 20260923020000): libera siempre, sea quien sea
+// Excepción de la TERMINAL (Felipe, 2026-09-22; `liberar_apartado` en 20260923100000): libera siempre, sea quien sea
 // que apartó — entregar la prenda o soltar un apartado vencido es operación del mostrador. `listar_apartados` todavía
 // calcula `puede_liberar` con la persona de la sesión (una terminal no tiene), así que aquí se abre para la terminal
 // hasta que la lectura se alinee en la base. La base sigue siendo la que decide al liberar.

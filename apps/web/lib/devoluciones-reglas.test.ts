@@ -3,6 +3,7 @@ import { primerBloqueo } from "./cambios-reglas";
 import {
   condicionDeItem,
   esDevolucionTotal,
+  estadoPlazoDevolucion,
   estadoPrendaDevolucion,
   etiquetaCondicion,
   impactoDevolucion,
@@ -85,6 +86,16 @@ describe("estadoPrendaDevolucion", () => {
 
   it("una venta anulada no se devuelve", () => {
     expect(estadoPrendaDevolucion({ ...base, anulada: true }, ahora)).toMatchObject({ clave: "anulada", devolvible: false });
+  });
+});
+
+describe("estadoPlazoDevolucion (el chip de plazo de la VENTA, sin mirar cada línea)", () => {
+  const ahora = lima(2026, 9, 18);
+
+  it("mismo resultado que el tramo de plazo de estadoPrendaDevolucion — es la misma cuenta, extraída", () => {
+    expect(estadoPlazoDevolucion(lima(2026, 9, 18).toISOString(), ahora)).toMatchObject({ clave: "dentro_del_plazo", tono: "verde" });
+    expect(estadoPlazoDevolucion(lima(2026, 8, 1).toISOString(), ahora)).toMatchObject({ clave: "fuera_de_plazo", tono: "rojo", icono: "alerta" });
+    expect(estadoPlazoDevolucion(lima(2026, 9, 3).toISOString(), ahora).texto).toBe("Último día del plazo");
   });
 });
 

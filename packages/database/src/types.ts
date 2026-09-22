@@ -3429,14 +3429,20 @@ export type Database = {
       }
       series_comprobantes: {
         Row: {
+          archivada_at: string | null
+          archivada_por: string | null
           id: string
+          motivo_archivo: string | null
           serie: string
           siguiente_numero: number
           tipo: string
           ubicacion_id: string
         }
         Insert: {
+          archivada_at?: string | null
+          archivada_por?: string | null
           id?: string
+          motivo_archivo?: string | null
           serie: string
           siguiente_numero?: number
           tipo: string
@@ -4670,6 +4676,91 @@ export type Database = {
         }
         Returns: string
       }
+      // Apartados con adelanto (ADR-0166, 20260923090000_separaciones.sql). Escritos a mano con la forma que da
+      // `supabase gen types` (esta sesión no pudo levantar el stack): regenerar al pegar la migración en producción.
+      buscar_separaciones: {
+        Args: { p_estados?: string[]; p_texto?: string; p_ubicacion_id: string }
+        Returns: {
+          adelanto: number
+          asesora: string | null
+          clienta_apellidos: string
+          clienta_celular: string
+          clienta_dni: string | null
+          clienta_nombres: string
+          codigo: string
+          comprobante_anticipo: string | null
+          comprobante_final: string | null
+          creada_en: string
+          devolucion_cci_final: string | null
+          devolucion_medio: string
+          devolucion_numero: string | null
+          estado: string
+          extensiones: number
+          id: string
+          items: Json
+          liberada_sola: boolean
+          nota_credito: string | null
+          pagos: Json
+          saldo: number
+          total: number
+          vence_el: string
+        }[]
+      }
+      entregar_separacion: {
+        Args: { p_pagos?: Json; p_separacion_id: string; p_token?: string }
+        Returns: string
+      }
+      extender_separacion: {
+        Args: { p_separacion_id: string }
+        Returns: string
+      }
+      fn_vencer_separaciones: {
+        Args: { p_ubicacion_id: string }
+        Returns: number
+      }
+      liberar_separacion: {
+        Args: { p_motivo: string; p_separacion_id: string }
+        Returns: undefined
+      }
+      registrar_devolucion_separacion: {
+        Args: { p_cci?: string; p_medio: string; p_operacion?: string; p_separacion_id: string }
+        Returns: Json
+      }
+      resumen_separaciones: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          en_custodia: number
+          en_custodia_efectivo: number
+          monto_por_devolver: number
+          por_devolver: number
+          por_recoger: number
+          prendas_guardadas: number
+          vencen_pronto: number
+          vencidas: number
+        }[]
+      }
+      separar_prendas: {
+        Args: {
+          p_asesora_id?: string
+          p_cliente_razon_social?: string
+          p_cliente_ruc?: string
+          p_clienta_apellidos: string
+          p_clienta_celular: string
+          p_clienta_dni?: string
+          p_clienta_id?: string
+          p_clienta_nombres: string
+          p_comprobante_tipo?: string
+          p_devolucion_cci?: string
+          p_devolucion_medio: string
+          p_devolucion_numero?: string
+          p_items: Json
+          p_nota?: string
+          p_pagos: Json
+          p_token?: string
+          p_ubicacion_id: string
+        }
+        Returns: string
+      }
       aprobar_devolucion: {
         Args: {
           p_devolucion_id: string
@@ -5214,6 +5305,33 @@ export type Database = {
           p_serie_numero: string
         }
         Returns: string
+      }
+      archivar_serie_comprobante: {
+        Args: { p_motivo: string; p_serie_id: string }
+        Returns: undefined
+      }
+      fn_comprobantes_cola_reintento: {
+        Args: { p_ubicacion_id?: string }
+        Returns: {
+          comprobante_id: string
+          horas_esperando: number
+          intentos_transmision: number
+          numero: number
+          serie: string
+          tipo: string
+          ubicacion_id: string
+          ultimo_error_transmision: string
+          ultimo_intento_transmision_at: string
+          venta_id: string
+        }[]
+      }
+      fn_marcar_reintento_transmision: {
+        Args: { p_comprobante_id: string; p_error: string }
+        Returns: undefined
+      }
+      fn_tomar_comprobantes_para_reintento: {
+        Args: { p_limite?: number; p_ubicacion_id?: string }
+        Returns: string[]
       }
       fn_mi_perfil: {
         Args: never
