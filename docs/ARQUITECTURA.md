@@ -239,11 +239,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
 - `/inventario/conteo` → `lib/conteos.ts` (`getConteoAbierto`, `getConteosResumen` → RPC
   `fn_conteos_resumen`, `getPrevisualizacionCierre`, `getPrioridadConteo` + su `apariencia`: foto principal y
   `colorHex` de `lib/apariencia-variantes.ts`, la regla de Existencias; si falla degrada, no tumba) →
-  `ConteoPanel.tsx` («Conviene contar primero» con `ProductoVarianteCelda`; RPC `abrir_conteo`,
-  `conteo_contar`, `cerrar_conteo`; avance con
-  `avanceConteo`) + `ConteosLista.tsx` (historial) → `/inventario/conteo/[id]`
-  (`getConteoDetalle`, que trae foto y `colorHex` en su misma consulta; solo lectura). Exactitud con `exactitudConteos`
-  (`lib/conteo-varianza.ts`).
+  `ConteoVista.tsx` (dibuja; la página solo lee) → `ConteoPanel.tsx` (abrir en tres pasos; contar con «Suma por
+  escaneo» o «Escribir cantidad», escrituras en fila; «Faltan por contar» sin la cifra del sistema; revisar en
+  `<Modal>`; RPC `abrir_conteo`, `conteo_contar`, `cerrar_conteo`, `anular_conteo`) + `ConteosLista.tsx` (historial,
+  «Vacío») → `/inventario/conteo/[id]` → `ConteoDetalleVista.tsx` (`getConteoDetalle`, que trae foto, `colorHex` y
+  soles por línea en su misma consulta; solo lectura; `?ver=todas`). Reglas puras en `lib/conteo-reglas.ts`
+  (ADR-0174); exactitud con `exactitudConteos` (`lib/conteo-varianza.ts`). `cerrar_conteo` rechaza un conteo sin
+  prendas (hint `conteo_vacio`, `20260923120000`, **no está en producción**).
 - `/inventario/resumen` (**Análisis de inventario**, solo líder; nació como «Resumen» en ADR-0101/0121 y se
   repartió y rediseñó en ADR-0138) → `page.tsx` lee de la URL `preset, desde, hasta, q, cat, st, orden, pag` (+
   `modo=comparar`, `comparar`, `cdesde`, `chasta`, `vista`, `cambio`). La sede es SIEMPRE la del selector global.

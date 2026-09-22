@@ -114,8 +114,8 @@ describe("accionesDeFila", () => {
   it("a un colaborador se le puede cambiar la ubicación, suspender y quitar", () => {
     expect(accionesDeFila({ rol: "colaborador", es_yo: false })).toEqual(["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"]);
   });
-  it("a otro líder se le cambia el rol, pero no tiene ubicación que cambiar", () => {
-    expect(accionesDeFila({ rol: "lider", es_yo: false })).toEqual(["cambiar_rol", "suspender", "quitar"]);
+  it("a otro líder se le cambia el rol y la ubicación (la tienda donde arranca)", () => {
+    expect(accionesDeFila({ rol: "lider", es_yo: false })).toEqual(["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"]);
   });
   it("quien gestiona accesos sin ser líder (módulo Colaboradores) no toca a un líder; a un colaborador, sí", () => {
     expect(accionesDeFila({ rol: "lider", es_yo: false }, false)).toEqual([]);

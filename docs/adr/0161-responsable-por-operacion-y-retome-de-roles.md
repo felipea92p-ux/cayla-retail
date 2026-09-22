@@ -215,6 +215,16 @@ Una terminal sigue sin poder ser líder. Migración `20260923110000_cambiar_rol_
 `fn_colaborador_rol_coherente` deja `rol_id` coherente. Reglas de la web: `rolesAsignables`, `cuentasAsignables` y
 `pideUbicacion` en `lib/roles-reglas.ts`, `accionesDeFila` en `lib/colaboradores-reglas.ts`.
 
+### Y la ubicación, también entre líderes (mismo día)
+
+| # | Regla | Por qué |
+|---|---|---|
+| L4 | **A un líder se le cambia la ubicación** desde Colaboradores («⋯ ▸ Cambiar ubicación»). Para él no es un límite: es **la tienda donde arranca su sesión**; sigue operando todas desde la cabecera. | Ninguna sede de Dynamic de los 9 líderes («Central», «Oficina TRU») está enlazada a una tienda de retail: todos arrancaban en la primera tienda creada. |
+
+Orden para decidir dónde arranca un líder: su ubicación asignada → la tienda de su sede de Dynamic → la primera tienda.
+Vive en `retail.fn_ubicacion_de_partida`, que usan `fn_persona_actual_resumen` y `fn_ubicacion_actual_persona`. Migración
+`20260923120000_ubicacion_de_lideres.sql`.
+
 ## Actualización 2026-09-22 — el combo propone a quien inició sesión (reemplaza A6)
 
 Felipe pidió dos cambios al combo «Responsable»:
@@ -233,4 +243,3 @@ en una terminal falla y queda `null`) — **sin migración**. Viaja por `SedeAct
 `useResponsable(ubicacion, { proponerSesion: false })` lo apaga en las pantallas de `vender`. La regla pura es
 `responsableInicial` en `lib/responsable-reglas.ts`, con pruebas. La base no cambia: sigue validando que el responsable
 esté presente (`fn_persona_presente`), así que proponer a alguien nunca permite firmar con un ausente.
-
