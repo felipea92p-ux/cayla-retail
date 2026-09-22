@@ -2,7 +2,6 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getSububicaciones } from "@/lib/sububicaciones";
 import {
-  DIAS_POR_DEFECTO,
   cursorDesdeParams,
   filtrosDesdeParams,
   getResumenMovimientos,
@@ -14,11 +13,12 @@ import {
   type ParamsMovimientos,
   type ResumenMovimientos,
 } from "@/lib/movimientos-v2";
-import { SelectorUbicacion } from "@/components/SelectorUbicacion";
+import { CATEGORIAS, desdeDeUltimosDias, type CategoriaMovimiento } from "@/lib/movimientos-reglas";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { FiltrosMovimientos } from "@/components/FiltrosMovimientos";
 import { MovimientosLista } from "@/components/MovimientosLista";
+import { MovimientosVacio } from "@/components/MovimientosVacio";
 import { PaginacionCursor } from "@/components/Paginacion";
 
 // Movimientos (2026-09-15): «por qué cambió el stock», con búsqueda, filtros,
@@ -44,11 +44,11 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
   const esLider = persona.rol === "lider";
   const ubicaciones = await getUbicaciones();
 
-  // Mismo criterio que Inventario: una Líder mira cualquier ubicación desde el
-  // selector (`?ubicacion=`); una colaboradora, la suya y nada más. La base lo
-  // vuelve a comprobar (`fn_puede_operar_ubicacion`) — esto solo decide qué se pinta.
-  const ubicacionActivaId =
-    esLider && params.ubicacion && ubicaciones.some((u) => u.id === params.ubicacion) ? params.ubicacion : persona.ubicacionId;
+  // La sede la decide SOLO el selector de la cabecera (`UbicacionSwitcher`, cookie: cambia todo el
+  // ERP). Hasta el 2026-09-22 había un segundo selector en el título (`?ubicacion=`) que podía decir
+  // otra sede que la cabecera; Felipe eligió dejar uno. Un enlace viejo con `?ubicacion=` se ignora.
+  // La base vuelve a comprobar el permiso (`fn_puede_operar_ubicacion`) — esto solo decide qué se pinta.
+  const ubicacionActivaId = persona.ubicacionId;
   const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
 
   // Las sububicaciones van primero: «?sub=piso» se traduce a SU id, que solo se sabe mirando la ubicación.
@@ -56,12 +56,28 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
   const { periodo, sub, ...filtros } = filtrosDesdeParams(params, { sububicaciones });
   const cursor = cursorDesdeParams(params);
 
-  const [{ filas, siguiente }, resumen] = await Promise.all([
+  // Las cifras de las píldoras de tipo cuentan con los demás filtros, pero no con el proceso: con
+  // «Merma» elegida, «Salidas 27» sigue diciendo cuántas salidas hay. Solo en ese caso cuesta una
+  // consulta más (el resumen ya ignora el tipo).
+  const [{ filas, siguiente }, resumen, resumenSinProceso] = await Promise.all([
     listarMovimientos(ubicacionActivaId, filtros, { cursor }),
     getResumenMovimientos(ubicacionActivaId, filtros),
+    filtros.motivo ? getResumenMovimientos(ubicacionActivaId, { ...filtros, motivo: undefined }) : null,
   ]);
+  const conteos = Object.fromEntries(CATEGORIAS.map((c) => [c, (resumenSinProceso ?? resumen)[c].movimientos])) as Record<CategoriaMovimiento, number>;
 
-  const hayFiltros = !!(filtros.busqueda || filtros.categoria || filtros.motivo || filtros.sububicacionId || periodo !== String(DIAS_POR_DEFECTO));
+  // Vacío con un período corto: ¿hay algo si se mira más atrás? Se pregunta una sola vez y solo
+  // cuando la lista salió vacía, para que el vacío ofrezca el siguiente paso con la cifra real.
+  const vacio = filas.length === 0 && !cursor;
+  const periodoCorto = periodo === "7" || periodo === "30";
+  // El resumen agrupa por tipo pero no filtra por él: con un tipo elegido se cuenta solo su fila.
+  const resumen90 = vacio && periodoCorto ? await getResumenMovimientos(ubicacionActivaId, { ...filtros, desde: desdeDeUltimosDias(90), hasta: undefined }) : null;
+  const en90 = !resumen90
+    ? 0
+    : filtros.categoria
+      ? resumen90[filtros.categoria].movimientos
+      : CATEGORIAS.reduce((acc, c) => acc + resumen90[c].movimientos, 0);
+
   const periodoEnPalabras = textoPeriodo(periodo, filtros.desde, filtros.hasta);
 
   return (
@@ -70,17 +86,20 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
         sobretitulo="Inventario · Movimientos"
         titulo={ubicacionActiva?.nombre ?? "—"}
         bajada="Qué cambió en el stock de esta sede, el proceso que lo originó y de dónde a dónde. No se edita ni se borra nunca."
-        acciones={esLider ? <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} /> : undefined}
       />
 
       <Resumen resumen={resumen} periodo={periodoEnPalabras} />
 
-      <FiltrosMovimientos sububicaciones={sububicaciones} sub={sub} periodo={periodo} desde={filtros.desde ?? ""} hasta={filtros.hasta ?? ""} />
+      <FiltrosMovimientos sububicaciones={sububicaciones} sub={sub} periodo={periodo} desde={filtros.desde ?? ""} hasta={filtros.hasta ?? ""} conteos={conteos} />
 
-      {filas.length === 0 && !cursor ? (
-        <p className="card-cayla p-5 text-sm text-taupe">
-          {hayFiltros ? "Ningún movimiento coincide con esos filtros." : "Todavía no hay movimientos en esta ubicación."}
-        </p>
+      {vacio ? (
+        <MovimientosVacio
+          sede={ubicacionActiva?.nombre ?? "esta sede"}
+          periodo={periodo === "todo" ? "todo el historial" : periodo === "personalizado" ? "el período elegido" : `los últimos ${periodo} días`}
+          conFiltros={!!(filtros.busqueda || filtros.categoria || filtros.motivo || filtros.sububicacionId)}
+          en90={en90}
+          params={params}
+        />
       ) : (
         <MovimientosLista movimientos={filas} hoyLima={hoyEnLima()} enlaceCompras={esLider} />
       )}
