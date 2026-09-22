@@ -96,7 +96,7 @@ const filas = (salida) => salida.split("\n").filter(Boolean);
 exito(
   "separar: aparta la prenda, deja el adelanto en custodia, emite la boleta de anticipo y el invariante cuadra",
   `${preparar()}${separar()}
-select s.codigo ~ '^SEP-TRU-[0-9]{4}$', s.estado, s.total = :'precio'::numeric, s.adelanto, s.vence_el = retail.fn_hoy_lima() + 7,
+select s.codigo ~ '^APT-TRU-[0-9]{4}$', s.estado, s.total = :'precio'::numeric, s.adelanto, s.vence_el = retail.fn_hoy_lima() + 7,
        s.devolucion_numero, s.clienta_celular,
        (select cantidad = :cant0 and cantidad_apartada = :apart0 + 1 from retail.stock where variante_id = :'v' and ubicacion_id = :'ubic' and sububicacion_id = :'piso'),
        (select count(*) from retail.caja_movimientos where separacion_id = s.id and tipo = 'ingreso' and monto = 50),

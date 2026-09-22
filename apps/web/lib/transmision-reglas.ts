@@ -39,7 +39,7 @@ export function motivoParaNoTransmitir(c: ComprobanteParaTransmitir): NoSePuedeT
   // hasta probarlos en el sandbox de Lucode (ADR-0166). La venta y la boleta ya quedaron registradas.
   if (c.es_anticipo === true || Number(c.anticipo_deducido ?? 0) > 0) {
     return {
-      error: "Este comprobante es de una separación (anticipo): su envío a SUNAT se activa cuando se pruebe con Lucode. Queda registrado y pendiente.",
+      error: "Este comprobante es de un apartado (anticipo): su envío a SUNAT se activa cuando se pruebe con Lucode. Queda registrado y pendiente.",
       status: 409,
     };
   }

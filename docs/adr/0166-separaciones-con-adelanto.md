@@ -1,14 +1,21 @@
-# ADR-0166 — Separaciones: separar prendas con adelanto, entregarlas con el saldo y devolver si no recogen
+# ADR-0166 — Apartados (en la base, `separaciones`): apartar prendas con adelanto, entregarlas con el saldo y devolver si no recogen
 
 **Fecha:** 2026-09-23
 **Estado:** Aceptado. **Base de datos implementada y probada en local** (`supabase/migrations/20260923090000_separaciones.sql`). **NO aplicada en
 producción**: es un cambio de esquema, se pega con el OK explícito de Felipe y **después** de ADR-0141 (`20260920160000_apartar_stock.sql`), que
-tampoco está en producción y del que depende. Pantallas: no construidas (siguiente paso).
+tampoco está en producción y del que depende. Pantallas: construidas y probadas en local (ver «Pantallas»).
 **Decide:** Felipe, en lo de negocio (D1–D4 del 2026-09-22, `docs/maquetas/separaciones-2026-09/ANALISIS.md` §7; D5 propuesta y pendiente).
 Arquitectura: este documento.
 **Es la Fase 2 de ADR-0141**, y **revierte** una línea de su «Fase 2 — no construida»: allí se decidió «no se emite comprobante al recibir el
 adelanto»; SUNAT exige emitirlo al cobrar (bienes muebles: al entregar o al cobrar, lo que ocurra primero; el IGV nace con el anticipo), y Felipe
 eligió la boleta de anticipo (D1).
+
+## Nombre (Felipe, 2026-09-23)
+
+En pantalla el módulo se llama **Apartados**: menú, botones, mensajes de la base, boleta («Anticipo por apartado») y código **APT-TRU-0001**.
+En la base se conserva `separaciones` (tablas y funciones): `apartados` ya es la reserva **por prenda** de ADR-0141, y un apartado de una
+clienta agrupa varias de esas filas; renombrar chocaría. Regla para leer el código: *apartado de una clienta* = fila de `separaciones`;
+*apartado de una prenda* = fila de `apartados`.
 
 ## El problema primero
 
@@ -94,6 +101,24 @@ de separar; los descuentos manuales no entran en esta versión.
 - **Idempotencia de la migración:** se aplicó dos veces seguidas sin error.
 - **Entorno:** esta sesión no pudo bajar la imagen de Supabase (registro bloqueado); se usó un Postgres 16 nativo con el mismo stub de Dynamic y
   un arranque mínimo de `auth`/`storage`/roles. En el CI corre sobre `npx supabase start`, como las demás pruebas.
+
+## Pantallas (2026-09-23)
+
+- **Ruta** `/vender/apartados` (`app/(app)/vender/apartados/page.tsx`), solo en tiendas. Lee con `lib/separaciones.ts`, que antes llama
+  `fn_vencer_separaciones` (el vencimiento ocurre al abrir la pantalla). Sin la migración (`PGRST202`) muestra «Apartados todavía no está
+  activado» en vez de caerse.
+- **Tres pestañas** en la misma hoja que «Venta en tienda» (`components/apartados/`): **Apartar** (solo lo escaneado; `resolverCodigoV2`;
+  ticket → formulario con la barra de 3 tramos, `VendedorasFila` + `useVendedorasDeTurno` de ADR-0163 para «Atendió», los 5 medios con
+  `ICONO_METODO`, vuelto, devolución preferida), **Entregar** (búsqueda por nombre/DNI/celular/boleta, línea de tiempo, cobro del saldo con
+  `BilleteRapido`) y **Todos** (En custodia, Por devolver, filtros, lista por urgencia; +7 días, Liberar y Devolver solo con `gestionarCaja`).
+  Modales con `<Modal>` (ADR-0136); ticket térmico por `#comprobante-print`, como «Venta registrada».
+- **Reglas puras** en `lib/separaciones-reglas.ts` (15 pruebas): estado visible por fecha, barra de 9 tramos, validación, adelanto, vuelto.
+- **Menú:** «Apartados» junto al Punto de venta. Ventas pasaba el tope de 6 hijas (ADR-0144), así que **Cambios y Devoluciones pasan a un
+  subgrupo «Posventa»** (D-84, como Abastecimiento) en vez de subir el tope. `menu-hoy.golden.json` se actualizó a propósito en el mismo commit:
+  **falta la aprobación de Felipe** de ese reagrupamiento.
+- **Verificado en el navegador** con la app real contra Postgres (PostgREST + un Auth local, sin Docker): apartar dos prendas con efectivo y
+  vuelto → boleta B004 de anticipo y APT-TRU-0001; entregar con billetes → venta por el total, vuelto y boleta final; vencido → liberar →
+  devolver por Yape con N.º de operación; `fn_verificar_separaciones` y `fn_verificar_apartados` en 0 filas. Sin errores de consola.
 
 ## Cómo se pega en producción (con OK de Felipe)
 

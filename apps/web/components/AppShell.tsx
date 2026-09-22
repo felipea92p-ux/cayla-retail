@@ -101,6 +101,7 @@ function Icono({ d, className }: { d: string; className?: string }) {
 const IC: Record<ClaveIcono | "nuevo" | "chevron", string> = {
   inicio: "M3 11l9-8 9 8M5 9.5V21h5v-6h4v6h5V9.5",
   vender: "M6 6h15l-1.5 9h-12L6 6zm0 0L5 3H2m7 18a1 1 0 100-2 1 1 0 000 2zm9 0a1 1 0 100-2 1 1 0 000 2z",
+  apartados: "M6 3h12v18l-6-4-6 4V3zm3.5 6.5L11 11l3.5-3.5",
   caja: "M12 3v18m4-15H10a2.5 2.5 0 000 5h4a2.5 2.5 0 010 5H8",
   historial: "M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8M3 3v5h5M12 7v5l4 2",
   productos: "M20.5 7.3L12 12m0 0L3.5 7.3M12 12v9m8.5-13.7v9.4a1 1 0 01-.5.87l-7.5 4.3a1 1 0 01-1 0l-7.5-4.3a1 1 0 01-.5-.87V7.3a1 1 0 01.5-.87l7.5-4.3a1 1 0 011 0l7.5 4.3a1 1 0 01.5.87z",

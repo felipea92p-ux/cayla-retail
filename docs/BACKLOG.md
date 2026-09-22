@@ -200,9 +200,12 @@ demo: `docs/maquetas/separaciones-2026-09/demo.html`.
       de anticipo/regularización en `lib/lucode.ts` y probarlo en el sandbox; confirmar con el contador el caso del adelanto del 100% (no se emite
       segundo comprobante).
 - [ ] **D5 por confirmar:** extender/liberar/devolver hoy exigen `fn_puede_gestionar_caja()` (líder o terminal de ventas).
-- [ ] **Pantallas** (siguiente paso): Separar, Entregar, Todas (con `fn_vencer_separaciones` al abrir), y en Caja la tarjeta «En custodia»; sumar
-      `anticipo` a `METODOS_PAGO`/`NOMBRE_METODO` (hoy `fn_ventas_del_dia` lo lista como «anticipo + efectivo»); `buscar_`/`resumen_` ya están en
-      la lista de lectura de `espera-reglas.ts`; `fn_vencer_separaciones` empieza con `fn_` (no bloquea la pantalla).
+- [x] **Pantallas (2026-09-23):** `/vender/apartados` con Apartar, Entregar y Todos; en pantalla se llama **Apartados** (código APT-, boleta
+      «Anticipo por apartado»). Probado en el navegador contra Postgres real. Menú: Cambios y Devoluciones pasan al subgrupo «Posventa».
+- [ ] **Felipe aprueba el subgrupo «Posventa»** en el menú (el golden se cambió a propósito; si no lo quiere, la alternativa es sacar
+      Apartados del lateral y dejarlo como pestaña del Punto de venta).
+- [ ] **En Caja**, la tarjeta «En custodia» (hoy vive en Apartados → Todos) y `anticipo` en `NOMBRE_METODO`/historial de ventas.
+- [ ] **Existencias** sigue ofreciendo «Apartar» de ADR-0141 (sin adelanto): decidir si se quita o se deja como reserva rápida.
 - [ ] Al pegar en producción: regenerar el diccionario (`pnpm datos:generar:produccion`) para que entren las 4 tablas nuevas.
 
 ## 🎯 Apartar stock — Fase 1: reserva física con clienta y fecha límite (2026-09-20, ADR-0141) — hecho en local, falta pegar en producción

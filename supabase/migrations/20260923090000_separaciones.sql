@@ -40,6 +40,10 @@
 --
 -- Se pega ENTERA en el SQL Editor de producción (lleva `retail.` en cada objeto), DESPUÉS de
 -- ADR-0141 (`20260920160000_apartar_stock.sql`), de la que depende. Re-ejecutable.
+-- NOMBRE (Felipe, 2026-09-23): en pantalla el módulo se llama «Apartados» y todo lo que lee la
+-- colaboradora o la clienta dice «apartado» (mensajes, boleta, código APT-TRU-0001). En la base se
+-- conserva `separaciones`: `apartados` ya es la reserva POR PRENDA de ADR-0141, y un apartado de una
+-- clienta agrupa varias de esas filas. Dos cosas distintas con el mismo nombre de tabla no caben.
 -- ============================================================================
 
 set search_path to retail, public, extensions;
@@ -48,7 +52,7 @@ set search_path to retail, public, extensions;
 -- 1. Tablas
 -- ---------------------------------------------------------------------------
 
--- Correlativo por tienda: SEP-TRU-0001, SEP-TRU-0002… Una fila por ubicación, bloqueada con
+-- Correlativo por tienda: APT-TRU-0001, APT-TRU-0002… Una fila por ubicación, bloqueada con
 -- `for update` al reservar: dos cajas de la misma tienda nunca sacan el mismo número.
 create table if not exists retail.separacion_correlativos (
   ubicacion_id uuid primary key references retail.ubicaciones (id),
@@ -213,14 +217,14 @@ declare
 begin
   select * into a from apartados where id = p_apartado_id for update;
   if not found or a.estado <> 'abierto' then
-    raise exception 'El apartado % ya no está abierto: la separación quedó inconsistente', p_apartado_id;
+    raise exception 'El apartado % ya no está abierto: el apartado de la clienta quedó inconsistente', p_apartado_id;
   end if;
   insert into movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, usuario_id, nota)
     values (a.variante_id, a.ubicacion_id, a.sububicacion_id, 'liberacion_apartado', a.cantidad, 'liberacion_apartado', p_persona,
-            'Separación de ' || a.clienta_nombre || ': '
+            'Apartado de ' || a.clienta_nombre || ': '
               || case p_motivo when 'entregada' then 'se entrega a la clienta'
                                when 'clienta_no_vino' then 'la clienta no recogió'
-                               when 'error_de_carga' then 'error al separar'
+                               when 'error_de_carga' then 'error al apartar'
                                else 'otro motivo' end)
     returning id into v_mov;
   perform fn_aplicar_movimiento(v_mov);
@@ -289,7 +293,7 @@ declare
   v_igv numeric; v_subtotal numeric; v_comp uuid; v_detalle text;
 begin
   if not fn_puede_operar_ubicacion(p_ubicacion_id) then
-    raise exception 'No tienes permiso para separar prendas en esa ubicación';
+    raise exception 'No tienes permiso para apartar prendas en esa ubicación';
   end if;
   select id into v_persona from personas where auth_user_id = auth.uid();
   if v_persona is null then
@@ -304,11 +308,11 @@ begin
 
   select id into v_caja from cajas where ubicacion_id = p_ubicacion_id and estado = 'abierta';
   if v_caja is null then
-    raise exception 'No hay una caja abierta en esta tienda — ábrela antes de separar';
+    raise exception 'No hay una caja abierta en esta tienda — ábrela antes de apartar';
   end if;
 
   if p_items is null or jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
-    raise exception 'Escanea al menos una prenda para separar';
+    raise exception 'Escanea al menos una prenda para apartar';
   end if;
   if p_pagos is null or jsonb_typeof(p_pagos) <> 'array' or jsonb_array_length(p_pagos) = 0 then
     raise exception 'Falta indicar cómo dejó el adelanto';
@@ -323,7 +327,7 @@ begin
     raise exception 'El DNI tiene 8 dígitos';
   end if;
   if p_comprobante_tipo not in ('boleta', 'factura') then
-    raise exception 'Una separación se documenta con boleta o factura de anticipo (se pidió %)', p_comprobante_tipo;
+    raise exception 'Un apartado se documenta con boleta o factura de anticipo (se pidió %)', p_comprobante_tipo;
   end if;
   if p_comprobante_tipo = 'factura' and (v_ruc is null or v_ruc !~ '^(10|20)[0-9]{9}$' or btrim(coalesce(p_cliente_razon_social, '')) = '') then
     raise exception 'Para factura de anticipo anota el RUC (11 dígitos, empieza en 10 o 20) y la razón social';
@@ -362,10 +366,10 @@ begin
      group by 1
   loop
     if v_item.variante_id = c_cargo_especial then
-      raise exception 'El monto manual no se puede separar: separa la prenda escaneando su etiqueta';
+      raise exception 'El monto manual no se puede apartar: aparta la prenda escaneando su etiqueta';
     end if;
     if v_item.cantidad is null or v_item.cantidad < 1 then
-      raise exception 'La cantidad a separar debe ser al menos 1';
+      raise exception 'La cantidad a apartar debe ser al menos 1';
     end if;
     select v.precio, p.referencia, v.sku into v_precio, v_ref, v_sku
       from variantes v join productos p on p.id = v.producto_id
@@ -396,7 +400,7 @@ begin
   end loop;
 
   if p_comprobante_tipo = 'boleta' and v_total > c_tope_boleta_sin_dni and v_dni is null then
-    raise exception 'La separación pasa de S/% : la boleta lleva el DNI de la clienta', c_tope_boleta_sin_dni;
+    raise exception 'El apartado pasa de S/%: la boleta lleva el DNI de la clienta', c_tope_boleta_sin_dni;
   end if;
 
   for v_pago in select * from jsonb_array_elements(p_pagos) loop
@@ -419,7 +423,7 @@ begin
   insert into separacion_correlativos (ubicacion_id) values (p_ubicacion_id) on conflict (ubicacion_id) do nothing;
   select siguiente into v_n from separacion_correlativos where ubicacion_id = p_ubicacion_id for update;
   update separacion_correlativos set siguiente = v_n + 1 where ubicacion_id = p_ubicacion_id;
-  v_codigo := 'SEP-' || coalesce(v_sede, 'X') || '-' || lpad(v_n::text, 4, '0');
+  v_codigo := 'APT-' || coalesce(v_sede, 'X') || '-' || lpad(v_n::text, 4, '0');
 
   begin
     insert into separaciones (
@@ -447,7 +451,7 @@ begin
   loop
     v_apartado := apartar_stock(v_item.variante_id, p_ubicacion_id, v_item.cantidad,
                                 v_nombres || ' ' || v_apellidos, v_celular, v_vence,
-                                'Separación ' || v_codigo, null::uuid);
+                                'Apartado ' || v_codigo, null::uuid);
     update apartados set separacion_id = v_id where id = v_apartado;
     select v.precio into v_precio from variantes v where v.id = v_item.variante_id;
     v_c_etq := null; v_c_pct := null;
@@ -465,7 +469,7 @@ begin
     v_cm := null;
     if v_pago ->> 'metodo' = 'efectivo' then
       insert into caja_movimientos (caja_id, tipo, monto, motivo, usuario_id, nota, separacion_id)
-        values (v_caja, 'ingreso', (v_pago ->> 'monto')::numeric, 'Adelanto de separación ' || v_codigo, v_persona,
+        values (v_caja, 'ingreso', (v_pago ->> 'monto')::numeric, 'Adelanto de apartado ' || v_codigo, v_persona,
                 'En custodia hasta que la clienta recoja: no es venta', v_id)
         returning id into v_cm;
     end if;
@@ -486,7 +490,7 @@ begin
     case when p_comprobante_tipo = 'factura' then v_ruc else v_dni end,
     case when p_comprobante_tipo = 'factura' then btrim(p_cliente_razon_social) else v_nombres || ' ' || v_apellidos end,
     jsonb_build_array(jsonb_build_object(
-      'descripcion', left('Anticipo por separación ' || v_codigo || ': ' || coalesce(v_detalle, ''), 250),
+      'descripcion', left('Anticipo por apartado ' || v_codigo || ': ' || coalesce(v_detalle, ''), 250),
       'cantidad', 1, 'precio_unitario', v_subtotal))
   );
   update comprobantes set separacion_id = v_id, es_anticipo = true where id = v_comp;
@@ -528,15 +532,15 @@ begin
   -- `for update`: dos cajas entregando la misma separación — la segunda espera y la ve entregada.
   select * into s from separaciones where id = p_separacion_id for update;
   if not found then
-    raise exception 'Esa separación no existe';
+    raise exception 'Ese apartado no existe';
   end if;
   if not fn_puede_operar_ubicacion(s.ubicacion_id) then
-    raise exception 'No tienes permiso para entregar separaciones de esa tienda';
+    raise exception 'No tienes permiso para entregar apartados de esa tienda';
   end if;
   if s.estado = 'entregada' then
-    raise exception 'La separación % ya se entregó', s.codigo;
+    raise exception 'El apartado % ya se entregó', s.codigo;
   elsif s.estado in ('liberada', 'devuelta') then
-    raise exception 'La separación % venció y se liberó: las prendas volvieron a la tienda. Si la clienta aún las quiere, sepáralas de nuevo', s.codigo;
+    raise exception 'El apartado % venció y se liberó: las prendas volvieron a la tienda. Si la clienta aún las quiere, apártalas de nuevo', s.codigo;
   end if;
   select id into v_persona from personas where auth_user_id = auth.uid();
   select id into v_caja from cajas where ubicacion_id = s.ubicacion_id and estado = 'abierta';
@@ -558,12 +562,12 @@ begin
     v_pagado := v_pagado + (v_pago ->> 'monto')::numeric;
   end loop;
   if round(v_pagado, 2) <> v_saldo then
-    raise exception 'Los pagos (S/%) no cuadran con el saldo de la separación (S/%)', round(v_pagado, 2), v_saldo;
+    raise exception 'Los pagos (S/%) no cuadran con el saldo del apartado (S/%)', round(v_pagado, 2), v_saldo;
   end if;
 
   begin
     insert into ventas (ubicacion_id, cliente_id, caja_id, usuario_id, token_cliente, nota, asesora_id, emisor)
-      values (s.ubicacion_id, s.clienta_id, v_caja, v_persona, p_token, 'Entrega de la separación ' || s.codigo, s.asesora_id, 'retail')
+      values (s.ubicacion_id, s.clienta_id, v_caja, v_persona, p_token, 'Entrega del apartado ' || s.codigo, s.asesora_id, 'retail')
       returning id into v_venta;
   exception when unique_violation then
     if p_token is null then raise; end if;
@@ -639,18 +643,18 @@ declare
   v_vence date;
 begin
   if not fn_puede_gestionar_caja() then
-    raise exception 'Solo una líder o la cuenta de ventas de la tienda puede extender una separación' using errcode = '42501';
+    raise exception 'Solo una líder o la cuenta de ventas de la tienda puede extender un apartado' using errcode = '42501';
   end if;
   select * into s from separaciones where id = p_separacion_id for update;
-  if not found then raise exception 'Esa separación no existe'; end if;
+  if not found then raise exception 'Ese apartado no existe'; end if;
   if not fn_puede_operar_ubicacion(s.ubicacion_id) then
-    raise exception 'No tienes permiso sobre las separaciones de esa tienda';
+    raise exception 'No tienes permiso sobre los apartados de esa tienda';
   end if;
   if s.estado <> 'abierta' then
-    raise exception 'Solo se extiende una separación abierta (esta está %)', s.estado;
+    raise exception 'Solo se extiende un apartado abierto (este está %)', s.estado;
   end if;
   if s.extensiones >= 1 then
-    raise exception 'La separación % ya se extendió una vez', s.codigo;
+    raise exception 'El apartado % ya se extendió una vez', s.codigo;
   end if;
   v_vence := greatest(s.vence_el, fn_hoy_lima()) + 7;
   update separaciones set vence_el = v_vence, extensiones = extensiones + 1 where id = s.id;
@@ -674,18 +678,18 @@ declare
   v_ap uuid;
 begin
   if not fn_puede_gestionar_caja() then
-    raise exception 'Solo una líder o la cuenta de ventas de la tienda puede liberar una separación' using errcode = '42501';
+    raise exception 'Solo una líder o la cuenta de ventas de la tienda puede liberar un apartado' using errcode = '42501';
   end if;
   if p_motivo is null or p_motivo not in ('vencio', 'clienta_desistio', 'error_de_carga') then
-    raise exception 'Elige por qué se libera: venció, la clienta desistió o fue un error al separar';
+    raise exception 'Elige por qué se libera: venció, la clienta desistió o fue un error al apartar';
   end if;
   select * into s from separaciones where id = p_separacion_id for update;
-  if not found then raise exception 'Esa separación no existe'; end if;
+  if not found then raise exception 'Ese apartado no existe'; end if;
   if not fn_puede_operar_ubicacion(s.ubicacion_id) then
-    raise exception 'No tienes permiso sobre las separaciones de esa tienda';
+    raise exception 'No tienes permiso sobre los apartados de esa tienda';
   end if;
   if s.estado <> 'abierta' then
-    raise exception 'Solo se libera una separación abierta (esta está %)', s.estado;
+    raise exception 'Solo se libera un apartado abierto (este está %)', s.estado;
   end if;
   select id into v_persona from personas where auth_user_id = auth.uid();
   for v_ap in select apartado_id from separacion_items where separacion_id = s.id loop
@@ -715,7 +719,7 @@ declare
   v_n integer := 0;
 begin
   if not fn_puede_operar_ubicacion(p_ubicacion_id) then
-    raise exception 'No tienes permiso sobre las separaciones de esa tienda';
+    raise exception 'No tienes permiso sobre los apartados de esa tienda';
   end if;
   for s in
     select * from separaciones
@@ -770,14 +774,14 @@ begin
     raise exception 'Elige cómo se devolvió el adelanto';
   end if;
   select * into s from separaciones where id = p_separacion_id for update;
-  if not found then raise exception 'Esa separación no existe'; end if;
+  if not found then raise exception 'Ese apartado no existe'; end if;
   if not fn_puede_operar_ubicacion(s.ubicacion_id) then
-    raise exception 'No tienes permiso sobre las separaciones de esa tienda';
+    raise exception 'No tienes permiso sobre los apartados de esa tienda';
   end if;
   if s.estado = 'abierta' then
-    raise exception 'Primero libera la separación %: las prendas siguen guardadas para la clienta', s.codigo;
+    raise exception 'Primero libera el apartado %: las prendas siguen guardadas para la clienta', s.codigo;
   elsif s.estado <> 'liberada' then
-    raise exception 'La separación % no tiene devolución pendiente (está %)', s.codigo, s.estado;
+    raise exception 'El apartado % no tiene devolución pendiente (está %)', s.codigo, s.estado;
   end if;
   if p_medio <> 'efectivo' and v_op is null then
     raise exception 'Anota el N.º de operación: es la prueba de que se le devolvió';
@@ -796,7 +800,7 @@ begin
       raise exception 'Para devolver en efectivo tiene que haber una caja abierta en la tienda';
     end if;
     insert into caja_movimientos (caja_id, tipo, monto, motivo, usuario_id, nota, separacion_id)
-      values (v_caja, 'egreso', s.adelanto, 'Devolución de separación ' || s.codigo, v_persona,
+      values (v_caja, 'egreso', s.adelanto, 'Devolución de apartado ' || s.codigo, v_persona,
               'Adelanto devuelto a ' || s.clienta_nombres || ' ' || s.clienta_apellidos, s.id)
       returning id into v_cm;
   end if;
@@ -804,7 +808,7 @@ begin
   if s.comprobante_anticipo_id is not null then
     select * into v_ant from comprobantes where id = s.comprobante_anticipo_id;
     begin
-      v_nc := emitir_nota(v_ant.id, 'nota_credito', 'Anulación de la operación: separación ' || s.codigo || ' no recogida',
+      v_nc := emitir_nota(v_ant.id, 'nota_credito', 'Anulación de la operación: apartado ' || s.codigo || ' no recogido',
                           v_ant.subtotal, v_ant.igv, v_ant.total, v_ant.items);
       update comprobantes set separacion_id = s.id where id = v_nc;
     exception when others then
@@ -862,6 +866,7 @@ as $$
      and (p_estados is null or s.estado = any (p_estados))
      and (
        nullif(btrim(coalesce(p_texto, '')), '') is null
+       or s.id::text = btrim(p_texto)
        or s.codigo ilike '%' || btrim(p_texto) || '%'
        or (s.clienta_nombres || ' ' || s.clienta_apellidos) ilike '%' || btrim(p_texto) || '%'
        or s.clienta_dni = regexp_replace(p_texto, '\D', '', 'g')

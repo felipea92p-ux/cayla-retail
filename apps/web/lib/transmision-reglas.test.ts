@@ -121,7 +121,7 @@ describe("motivoParaNoTransmitir — la nota de venta nunca va a SUNAT (ADR-0164
 
   it("separaciones (ADR-0166): ni el anticipo ni el comprobante que lo deduce se transmiten todavía", () => {
     expect(motivoParaNoTransmitir(comprobante({ venta_id: null, venta: null, es_anticipo: true }))?.status).toBe(409);
-    expect(motivoParaNoTransmitir(comprobante({ anticipo_deducido: "50.00" }))?.error).toMatch(/separación/);
+    expect(motivoParaNoTransmitir(comprobante({ anticipo_deducido: "50.00" }))?.error).toMatch(/apartado/);
     expect(motivoParaNoTransmitir(comprobante({ anticipo_deducido: 50 }))?.status).toBe(409);
   });
 
