@@ -285,7 +285,7 @@ export async function getVentasRecientes(
       .from("venta_items")
       .select(
         `id, venta_id, variante_id, cantidad, precio_unitario, descuento_unitario,
-         venta:ventas!inner ( ubicacion_id, created_at, usuario_id, estado, ubicacion:ubicaciones ( nombre ) ),
+         venta:ventas!inner ( ubicacion_id, created_at, usuario_id, asesora_id, estado, ubicacion:ubicaciones ( nombre ) ),
          variante:variantes ( sku, codigo, color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex ),
            producto:productos ( id, referencia, producto_fotos ( url, color_codigo ) ) )`
       )
@@ -300,8 +300,10 @@ export async function getVentasRecientes(
         (a.variante?.producto?.referencia ?? "").localeCompare(b.variante?.producto?.referencia ?? "", "es")
     );
 
+  // Quién vendió: quien atendió y, si no se eligió a nadie, la sesión que cobró.
+  const quienVendio = (v: { asesora_id: string | null; usuario_id: string | null } | null) => v?.asesora_id ?? v?.usuario_id ?? null;
   const ids = filas.map((f) => f.id);
-  const idsVendedores = Array.from(new Set(filas.map((f) => f.venta?.usuario_id).filter((v): v is string => !!v)));
+  const idsVendedores = Array.from(new Set(filas.map((f) => quienVendio(f.venta)).filter((v): v is string => !!v)));
   const [cambiosRes, devolucionesRes, comprobantesRes, nombresRes] = await Promise.all([
     supabase
       .from("cambios")
@@ -323,7 +325,7 @@ export async function getVentasRecientes(
       .from("comprobantes")
       .select("venta_id, tipo, serie, numero, estado, cliente_tipo_doc, cliente_num_doc, cliente_nombre, created_at")
       .in("venta_id", ventaIds)
-      .in("tipo", ["boleta", "factura"])
+      .in("tipo", ["boleta", "factura", "nota_venta"])
       .order("created_at"),
     // Nombres de quién registró cada venta — mismo patrón que `getDetalleCierre()`
     // (personas vive en public/Dynamic, PostgREST no embebe entre schemas).
@@ -398,7 +400,7 @@ export async function getVentasRecientes(
       cambiosHechos,
       yaDevuelto: devolucionesHechas.reduce((suma, d) => suma + d.cantidad, 0),
       devolucionesHechas,
-      vendedorNombre: f.venta?.usuario_id ? (nombreVendedor.get(f.venta.usuario_id) ?? null) : null,
+      vendedorNombre: nombreVendedor.get(quienVendio(f.venta) ?? "") ?? null,
       comprobante: comprobante?.texto ?? null,
       comprobanteAceptado: ventasConComprobanteAceptado.has(f.venta_id),
       clienta: comprobante?.clienta ?? null,

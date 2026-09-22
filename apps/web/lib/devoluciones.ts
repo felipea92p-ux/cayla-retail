@@ -73,7 +73,7 @@ export async function getDevolucionesPendientes(ubicacionId: string): Promise<De
       .from("comprobantes")
       .select("venta_id, tipo, serie, numero, estado, created_at")
       .in("venta_id", ventaIds)
-      .in("tipo", ["boleta", "factura"])
+      .in("tipo", ["boleta", "factura", "nota_venta"])
       .order("created_at"),
     supabase.rpc("fn_nombres_personas", {
       p_ids: [...new Set(devoluciones.map((d) => d.solicitado_por).filter((id): id is string => !!id))],
