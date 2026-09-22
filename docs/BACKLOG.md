@@ -600,6 +600,15 @@ tiene de verdad — detalle y descartes en ADR-0125.
       local por la otra sesión (`20260918163712_devolucion_rechaza_venta_anulada.sql`, rama
       `claude/blissful-mccarthy-3b06e5`, **no está en producción**). Al fusionar, la pantalla
       nueva de Devoluciones ya etiqueta la venta anulada y no deja elegir sus prendas.
+- [x] **"Actividad reciente" en una tarjeta por venta, no una fila por prenda — CERRADO
+      2026-09-22**, mismo patrón que Devoluciones (tarea #8 de `docs/pantallas/devoluciones.md`).
+      La tarjeta resume prendas · importe, un chip de plazo por venta y una nota si ya tuvo
+      actividad previa; el botón "Iniciar cambio" entra al paso "Prenda" sin preseleccionar
+      nada. `totalesVenta` y `actividadPreviaVenta` se comparten con Devoluciones en
+      `cambios-reglas.ts` (eran genéricas, no hablaban de devolución); el plazo vencido sigue
+      bloqueando en Cambios y no en Devoluciones — `estadoPlazoVenta` y `estadoPlazoDevolucion`
+      quedan separadas a propósito, con su propio texto. Sin migración. `ComprasAgrupadas` y
+      `CambiosFlujo` no se tocaron — ya soportaban esto desde Devoluciones.
 
 ## 🎯 Movimientos: qué cambió en el stock y qué proceso lo originó (2026-09-19, ADR-0127)
 
