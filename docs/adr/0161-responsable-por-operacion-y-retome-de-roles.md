@@ -1,6 +1,6 @@
 # ADR-0161 — Responsable en cada operación de tienda, y se retoma el ADR-0150 (roles) con las terminales dentro
 
-**Fecha:** 2026-09-22 · **Estado:** decidido por Felipe; **pendiente de aprobar el spike visual**
+**Fecha:** 2026-09-22 · **Estado:** decidido por Felipe; **spike aprobado el 2026-09-22**
 (`docs/maquetas/responsable-y-roles-spike-2026-09/`). Nada construido ni aplicado todavía ·
 **Origen:** conversación del 2026-09-22 tras fusionar el ADR-0160 (cuentas terminal), cuatro rondas de preguntas.
 
@@ -89,8 +89,7 @@ no a la fila de la prenda.
 
 ## Lo que queda abierto
 
-1. **Quien está «en pausa» (almuerzo): ¿puede firmar?** El spike lo muestra deshabilitado. Felipe dijo «desaparece al
-   marcar salida», pero no habló de la pausa.
+1. ~~En pausa~~ **Decidido (Felipe, 2026-09-22): quien está en pausa no puede firmar ni operar.** Solo firma quien está `presente`.
 2. **Venta offline:** si la venta se sincroniza horas después, ¿se valida la asistencia en el momento de la venta o en
    el de la sincronización? Hay que medirlo al construir.
 3. **El pedido anterior de esconder las 6 terminales en Dynamic** sigue sin respuesta: si quedan visibles en su

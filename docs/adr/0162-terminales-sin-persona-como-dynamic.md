@@ -1,6 +1,6 @@
 # ADR-0162 — Terminales sin persona, como en Dynamic
 
-**Fecha:** 2026-09-22 · **Estado:** plan propuesto; **pendiente de aprobar el spike**
+**Fecha:** 2026-09-22 · **Estado:** **aprobado por Felipe el 2026-09-22** (plan y spike)
 (`docs/maquetas/responsable-y-roles-spike-2026-09/`, pantallas 5 y 6). Nada construido ·
 **Reemplaza** la identidad del ADR-0160 (cada terminal = una persona de Dynamic). **Se apoya** en el ADR-0161
 (el combo Responsable) · **Origen:** pedido de Felipe, 2026-09-22: «replicar lo de Dynamic con las terminales sin persona».
@@ -128,9 +128,8 @@ Solo cambia de dónde sacan su respuesta `fn_es_terminal(tipo)` y `fn_mi_termina
 
 ## Abierto
 
-1. **Ventas sin conexión:** si la venta se sincroniza horas después y la responsable ya marcó su salida, ¿vale? Lo
-   propuesto: se valida contra la hora de la venta (como `timestamp_cliente` en Dynamic), no contra la hora de la
-   sincronización.
+1. ~~Ventas sin conexión~~ **Decidido (Felipe, 2026-09-22):** se valida contra la **hora de la venta** (como
+   `timestamp_cliente` en Dynamic), no contra la de la sincronización.
 2. **Si el encabezado no pasa por PostgREST (F1)**, el plan B es un parámetro `p_responsable` con valor por defecto en
    cada RPC. Tiene más costo (cambian las firmas, ADR-0026), pero es seguro.
 3. **Quién puede desactivar una terminal:** solo el líder, como todo lo de Colaboradores (ADR-0150, decisión 3).
