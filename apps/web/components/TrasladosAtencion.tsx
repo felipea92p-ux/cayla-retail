@@ -25,13 +25,13 @@ export function TrasladosAtencion({ resumen, masUrgente }: { resumen: ResumenTra
     );
   }
 
-  const titulo = n === 1 ? "1 traslado requiere revisión hoy" : `${n} traslados requieren revisión hoy`;
+  const titulo = n === 1 ? "1 traslado necesita tu acción" : `${n} traslados necesitan tu acción`;
   const detalle =
     resumen.porRevisar === 0
       ? "Confirma la recepción para que las prendas entren a tu inventario."
       : resumen.porRecibir === 0
-        ? "Revisa la diferencia y ciérrala para que las prendas recibidas entren a tu inventario."
-        : "Confirma las recepciones y revisa las diferencias para que las prendas entren a tu inventario.";
+        ? "Revisa la diferencia y ciérrala para que lo recibido entre a tu inventario."
+        : `${resumen.porRecibir} ${resumen.porRecibir === 1 ? "espera" : "esperan"} tu confirmación y ${resumen.porRevisar} ${resumen.porRevisar === 1 ? "tiene" : "tienen"} una diferencia por cerrar.`;
 
   return (
     <section aria-labelledby="atencion-hoy" className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-rojo/30 bg-rojo/[0.07] px-5 py-4">
@@ -47,10 +47,10 @@ export function TrasladosAtencion({ resumen, masUrgente }: { resumen: ResumenTra
       </div>
       <Link
         href={`/inventario/traslados/${masUrgente.id}`}
-        aria-label={`Revisar ahora el traslado ${masUrgente.numero}`}
+        aria-label={`Revisar el traslado ${masUrgente.numero}`}
         className="btn-cayla btn-primario shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo"
       >
-        Revisar ahora
+        Revisar el Traslado {masUrgente.numero}
         <ArrowRight aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />
       </Link>
     </section>

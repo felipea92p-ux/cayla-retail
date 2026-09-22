@@ -27,7 +27,7 @@ function adminDoble(sobre: Partial<AdminTerminales> = {}): AdminTerminales {
 function deps(esLider: boolean | null | "lanza", admin = adminDoble()) {
   const abrirAdmin = vi.fn(() => admin);
   const d: Dependencias = {
-    esLider: async () => {
+    puedeGestionar: async () => {
       if (esLider === "lanza") throw new Error("sin red");
       return esLider;
     },
@@ -59,7 +59,7 @@ describe("solo un líder crea: la llave de servicio ni se abre para nadie más",
 
   it("si falta la llave en el servidor, lo dice claro (y no crea nada)", async () => {
     const d: Dependencias = {
-      esLider: async () => true,
+      puedeGestionar: async () => true,
       personaActual: async () => null,
       admin: () => {
         throw new Error("Falta configurar SUPABASE_SERVICE_ROLE_KEY en el servidor");

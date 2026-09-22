@@ -24,7 +24,8 @@ const LIMITE_CERRADOS = 30;
 
 export default async function TrasladosPage() {
   const persona = await requirePersonaActualV2();
-  const { enCurso, cerrados } = await getTrasladosDeLaSede(persona.ubicacionId, LIMITE_CERRADOS);
+  const { enCurso, cerrados, vacios, cerradosLeidos } = await getTrasladosDeLaSede(persona.ubicacionId, LIMITE_CERRADOS);
+  const puedeAjustar = puede(persona, "ajustarInventario");
   // Las dos lecturas corren en paralelo y son dos fotos de la base: un traslado que se cerró entre ellas
   // podría salir en ambas. Gana la de «cerrados», que es la más nueva — y así nunca hay dos filas iguales.
   const porId = new Map<string, TrasladoResumen>();
@@ -52,10 +53,13 @@ export default async function TrasladosPage() {
         key={persona.ubicacionId}
         traslados={Array.from(porId.values())}
         miUbicacionId={persona.ubicacionId}
-        puedeCerrarDiferencia={puede(persona, "ajustarInventario")}
+        puedeCerrarDiferencia={puedeAjustar}
         ahoraIso={ahoraIso}
         horaCarga={horaLima(ahoraIso)}
-        cerradosAcotados={cerrados.length >= LIMITE_CERRADOS}
+        cerradosAcotados={cerradosLeidos >= LIMITE_CERRADOS}
+        // Los traslados sin prendas (cabeceras vacías de la limpieza de datos) no se muestran; se le avisa solo a
+        // quien puede ajustar inventario, que es quien podría hacer algo con ellos.
+        vacios={puedeAjustar ? vacios : 0}
       />
 
       {/* Ayuda operativa, secundaria a propósito. Dice lo que de verdad pasa: con diferencia, NADA entra al
@@ -65,8 +69,8 @@ export default async function TrasladosPage() {
         <div>
           <p className="font-semibold text-tinta">El stock solo ingresa a la tienda cuando confirmas la recepción.</p>
           <p className="mt-0.5">
-            Al recibir, revisa que lo enviado coincida con lo que llegó. Si hay diferencia, regístrala: el traslado queda «con diferencia» y las prendas entran al stock cuando un
-            líder lo cierra.
+            Cuenta lo que llegó: si coincide con lo enviado, entra al instante. Si no, el traslado queda «con diferencia» y nada entra al stock hasta que un líder lo
+            revise y lo cierre.
           </p>
         </div>
       </aside>

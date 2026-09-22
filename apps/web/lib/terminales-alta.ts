@@ -1,10 +1,11 @@
 // Crear una terminal y cambiarle la clave desde la PANTALLA (Felipe, 2026-09-22: ya no solo con el script).
 //
 // EL PROBLEMA PRIMERO. Crear la cuenta de Auth de un aparato exige la llave de servicio, que salta todo candado (RLS).
-// El ADR-0162 la dejó fuera de la web por eso. Traerla a la web solo es aceptable si NADIE que no sea líder puede llegar a
+// El ADR-0162 la dejó fuera de la web por eso. Traerla a la web solo es aceptable si NADIE sin permiso puede llegar a
 // usarla. Por eso el orden de este archivo es la regla:
-//   1. Se pregunta a la base, con la SESIÓN de quien llama (no con la llave), si es líder (`fn_es_lider()`). Si no lo es,
-//      o la pregunta falla, se rechaza y la llave NI SE CREA.
+//   1. Se pregunta a la base, con la SESIÓN de quien llama (no con la llave), si puede gestionar colaboradores
+//      (`fn_puede_gestionar_colaboradores()`: el líder, o un rol con el módulo Colaboradores — Felipe, 2026-09-22,
+//      20260923131000; antes solo `fn_es_lider()`). Si no puede, o la pregunta falla, se rechaza y la llave NI SE CREA.
 //   2. Recién ahí se abre el cliente con la llave (`admin()`), se valida tienda, rol y nombre, y se crea la cuenta.
 //   3. Si la fila de `retail.terminales` no entra, se borra la cuenta recién creada: nunca queda una cuenta que pueda
 //      iniciar sesión sin terminal (misma lógica que `pnpm terminales:crear`).
@@ -29,7 +30,7 @@ export type ResultadoClave =
   | { ok: true; nombre: string; tienda: string; correo: string; clave: string }
   | { ok: false; error: string };
 
-/** Lo que se hace con la llave de servicio. Solo existe DESPUÉS de comprobar que quien llama es líder. */
+/** Lo que se hace con la llave de servicio. Solo existe DESPUÉS de comprobar que quien llama puede gestionar colaboradores. */
 export type AdminTerminales = {
   leerTienda: (id: string) => Promise<{ id: string; nombre: string; tipo: string; activo: boolean } | null>;
   leerRol: (id: string) => Promise<{ id: string; nombre: string; clave: string | null; fijo: boolean; archivado: boolean } | null>;
@@ -49,20 +50,20 @@ export type AdminTerminales = {
 };
 
 export type Dependencias = {
-  /** `fn_es_lider()` con la sesión de quien llama. `null` = no se pudo preguntar (se trata como «no»). */
-  esLider: () => Promise<boolean | null>;
+  /** `fn_puede_gestionar_colaboradores()` con la sesión de quien llama. `null` = no se pudo preguntar (se trata como «no»). */
+  puedeGestionar: () => Promise<boolean | null>;
   /** La persona de quien llama (`fn_actor_persona_id(false)`), para `creada_por`. */
   personaActual: () => Promise<string | null>;
-  /** Abre el cliente con la llave de servicio. Lanza si falta la variable. Se llama SOLO tras confirmar al líder. */
+  /** Abre el cliente con la llave de servicio. Lanza si falta la variable. Se llama SOLO tras confirmar el permiso. */
   admin: () => AdminTerminales;
   azar: Azar;
 };
 
-const SOLO_LIDER = "Solo un líder de equipo puede crear terminales o cambiarles la clave.";
+const SIN_PERMISO = "Solo un líder de equipo, o un rol con el módulo Colaboradores, puede crear terminales o cambiarles la clave.";
 
-async function exigirLider(deps: Dependencias): Promise<string | null> {
-  const lider = await deps.esLider().catch(() => null);
-  return lider === true ? null : SOLO_LIDER;
+async function exigirPermiso(deps: Dependencias): Promise<string | null> {
+  const puede = await deps.puedeGestionar().catch(() => null);
+  return puede === true ? null : SIN_PERMISO;
 }
 
 function abrirAdmin(deps: Dependencias): AdminTerminales | { error: string } {
@@ -75,7 +76,7 @@ function abrirAdmin(deps: Dependencias): AdminTerminales | { error: string } {
 
 export async function crearTerminalCon(deps: Dependencias, entrada: Partial<EntradaTerminal>): Promise<ResultadoClave> {
   // 1. Primero el candado, con la sesión de quien llama. Sin esto no se toca la llave.
-  const rechazo = await exigirLider(deps);
+  const rechazo = await exigirPermiso(deps);
   if (rechazo) return { ok: false, error: rechazo };
 
   const v = validarEntrada(entrada);
@@ -121,7 +122,7 @@ export async function crearTerminalCon(deps: Dependencias, entrada: Partial<Entr
 }
 
 export async function cambiarClaveTerminalCon(deps: Dependencias, entrada: { terminalId?: string } | null | undefined): Promise<ResultadoClave> {
-  const rechazo = await exigirLider(deps);
+  const rechazo = await exigirPermiso(deps);
   if (rechazo) return { ok: false, error: rechazo };
 
   const terminalId = String(entrada?.terminalId ?? "").trim();

@@ -1,14 +1,21 @@
-# Traslados — demo de rediseño (2026-09-22)
+# Traslados — demo del rediseño (2026-09-22)
 
-`demo.html` se abre directo en el navegador. Publicada en https://claude.ai/artifact/Dzx4FUtHBgXAGiBudXBa5W
+`demo.html` se abre directo en el navegador (sin build). Publicada también en
+https://claude.ai/artifact/S7pMSV2j1zN2Nr1iZ93jcG
 
-La lista de Traslados ya seguía la guía oficial desde #295 (ADR-0169); esta demo pone a prueba
-lo que la guía no resuelve. Es navegable: lista → detalle (confirmar recepción con «+/−») →
-nuevo traslado. Datos de ejemplo; no toca la base.
+Base: la guía de estilo oficial «CAYLA Dynamic» de la Sala de Diseño y la maqueta
+`oficial-traslados.png`. Datos de ejemplo con prendas reales del catálogo de producción
+(nombres y colores); las cantidades son inventadas. No toca la base.
 
-| Decisión | Opciones | Recomendación |
-|---|---|---|
-| Alcance | lista + detalle · solo lista · lista + detalle + nuevo traslado | lista + detalle |
-| Cifras (hoy la misma cifra sale 3 veces) | tarjetas que filtran, chips Abiertos/Cerrados/Todos · como la guía | tarjetas que filtran |
-| Filtros | dirección a la vista (segmentado) · todo a la vista · como hoy (Más filtros) | dirección a la vista |
-| Lista | tabla de la guía (2 acomodos) · agrupada por situación | tabla de la guía |
+**Decidido con Felipe (2026-09-22), antes de armarla:**
+
+| Pregunta | Elección |
+|---|---|
+| Alcance | Lista + detalle + filtros |
+| Los 4 traslados vacíos de producción | Ocultarlos en pantalla (no se borran) |
+| Tokens | La paleta oficial completa (ya estaba en `main` por ADR-0169) |
+| Entrega | Demo primero, código tras su visto bueno — aprobada el mismo día |
+
+Lo construido está en ADR-0172. La demo trae además un modo oscuro y una barra de escenario
+(con pendientes / todo al día / sin traslados) y de rol (líder / integrante) que son solo de la
+demo: el ERP no tiene modo oscuro (ADR-0169 lo dejó para después).
