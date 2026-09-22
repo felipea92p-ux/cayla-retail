@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Cursor } from "@/lib/compras";
+import { numerosDePagina } from "@/lib/paginacion";
 
 // Paginación por cursor (keyset). Solo hay "siguiente" y "volver al inicio":
 // un cursor dice "las 50 después de ESTA fila", y eso Postgres lo resuelve
@@ -73,20 +74,6 @@ export function PaginacionCursor({
       </span>
     </div>
   );
-}
-
-/** Los números de página a dibujar: siempre 1 y la última, la actual con un
- *  vecino a cada lado, y `null` donde hay que cortar con "…". Ej. con 36
- *  páginas y la 20 activa: 1 … 19 20 21 … 36. */
-function numerosDePagina(total: number, actual: number): (number | null)[] {
-  const nums = new Set([1, total, actual - 1, actual, actual + 1]);
-  const ordenados = [...nums].filter((n) => n >= 1 && n <= total).sort((a, b) => a - b);
-  const salida: (number | null)[] = [];
-  for (let i = 0; i < ordenados.length; i++) {
-    if (i > 0 && ordenados[i] - ordenados[i - 1] > 1) salida.push(null);
-    salida.push(ordenados[i]);
-  }
-  return salida;
 }
 
 /** Paginación por número de página — "1 2 3…36". A diferencia de
