@@ -1610,6 +1610,7 @@ export type Database = {
           estado: string
           id: string
           motivo: string
+          motivo_codigo: string | null
           nota_credito_id: string | null
           reembolso_metodo: string | null
           reembolso_monto: number | null
@@ -1625,6 +1626,7 @@ export type Database = {
           estado?: string
           id?: string
           motivo: string
+          motivo_codigo?: string | null
           nota_credito_id?: string | null
           reembolso_metodo?: string | null
           reembolso_monto?: number | null
@@ -1640,6 +1642,7 @@ export type Database = {
           estado?: string
           id?: string
           motivo?: string
+          motivo_codigo?: string | null
           nota_credito_id?: string | null
           reembolso_metodo?: string | null
           reembolso_monto?: number | null
@@ -4553,6 +4556,7 @@ export type Database = {
         Args: {
           p_items: Json
           p_motivo: string
+          p_motivo_codigo: string
           p_ubicacion_id: string
           p_venta_id: string
         }

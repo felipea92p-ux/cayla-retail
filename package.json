@@ -43,6 +43,7 @@
     "pruebas:notas-credito": "node scripts/pruebas/notas_credito_modulo.mjs",
     "pruebas:candado-lider": "node scripts/pruebas/candado_lider_caja_y_ajuste.mjs",
     "pruebas:colaboradores-endurecimiento": "node scripts/pruebas/colaboradores_endurecimiento.mjs",
+    "pruebas:crear-devolucion-motivo": "node scripts/pruebas/crear_devolucion_motivo.mjs",
     "caja:verificar": "node scripts/caja/verificar.mjs",
     "datos:generar": "node scripts/datos/generar.mjs",
     "datos:generar:produccion": "node scripts/datos/generar.mjs --volcado",

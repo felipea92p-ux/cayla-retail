@@ -468,7 +468,7 @@ begin
     jsonb_build_array(
       jsonb_build_object('venta_item_id', vi_vestido, 'cantidad', 1, 'condicion', 'vendible'),
       jsonb_build_object('venta_item_id', vi_pantalon, 'cantidad', 1, 'condicion', 'danada_reparacion')
-    ), 'Clienta indicó talla incorrecta; el pantalón llegó con una costura suelta');
+    ), 'Clienta indicó talla incorrecta; el pantalón llegó con una costura suelta', 'talla');
   perform retail.aprobar_devolucion(devolucion1_id, 149.90 - 15.00, 'yape');
 
   -- ---------- conteo con diferencia real, acotado al piso (Lima separa
