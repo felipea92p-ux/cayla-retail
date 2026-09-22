@@ -5,7 +5,7 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { CampoSelectNativo } from "@/components/ui/campos";
 import { campoEtiqueta } from "@/components/ui/Modal";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
-import { repartirEnPartesIguales, textoDelReparto, type RepartoLinea } from "@/lib/reparto-reglas";
+import { puedeQuitarseDelReparto, repartirEnPartesIguales, textoDelReparto, type RepartoLinea } from "@/lib/reparto-reglas";
 
 // Repartir un comprobante entre tiendas al REGISTRARLO (ADR-0139). Un mismo comprobante puede traer mercadería para
 // varias tiendas y cada una recibe lo suyo; aquí se dice cuánto le toca a cada una, línea por línea.
@@ -28,6 +28,7 @@ const TONO_DEL_REPARTO: Record<"ok" | "falta" | "sobra", TonoChip> = { ok: "verd
 /** «Mercadería destinada a»: una tienda (el flujo de siempre) o repartida entre varias, con cuáles participan. */
 export function DestinoDeLaMercaderia({
   ubicaciones,
+  ubicacionesPropia,
   puedeRepartir = true,
   repartir,
   onRepartir,
@@ -37,6 +38,11 @@ export function DestinoDeLaMercaderia({
   onTiendas,
 }: {
   ubicaciones: Tienda[];
+  /** ADR-0151: solo para un comprador de tienda. Con esto, «Mercadería destinada a» (una tienda) ofrece SOLO estas —
+   *  la tienda gestora tiene que ser una de las suyas, la base lo exige — y repartir no permite dejar el reparto sin
+   *  ninguna de ellas (la gestora, sea cual sea, tiene que conservar parte). `undefined` = sin restricción, como hoy
+   *  para el líder: puede elegir cualquiera de `ubicaciones` y el reparto puede quedar sin ella. */
+  ubicacionesPropia?: Tienda[];
   /** `false` cuando la base todavía no tiene el reparto: solo el selector de siempre, sin «Repartir entre tiendas». */
   puedeRepartir?: boolean;
   repartir: boolean;
@@ -48,10 +54,14 @@ export function DestinoDeLaMercaderia({
   tiendas: string[];
   onTiendas: (ids: string[]) => void;
 }) {
+  const propiaIds = ubicacionesPropia?.map((u) => u.id);
+  // La tienda del comprador siempre disponible en el selector de «una tienda», aunque `ubicaciones` (todas) no la
+  // tuviera por algún motivo — no debería pasar, pero mejor no dejarlo sin ninguna opción.
+  const opcionesUna = ubicacionesPropia ?? ubicaciones;
+
   function alternar(id: string) {
     const activa = tiendas.includes(id);
-    // Tiene que quedar al menos una: sin tiendas no hay a quién repartirle nada.
-    if (activa && tiendas.length === 1) return;
+    if (activa && !puedeQuitarseDelReparto(id, tiendas, propiaIds)) return;
     const nuevas = activa ? tiendas.filter((t) => t !== id) : [...tiendas, id];
     onTiendas(ubicaciones.filter((u) => nuevas.includes(u.id)).map((u) => u.id));
   }
@@ -60,7 +70,7 @@ export function DestinoDeLaMercaderia({
   if (!puedeRepartir) {
     return (
       <CampoSelectNativo etiqueta="Mercadería destinada a" value={ubicacionId} onChange={(e) => onUbicacionId(e.target.value)}>
-        {ubicaciones.map((u) => (
+        {opcionesUna.map((u) => (
           <option key={u.id} value={u.id}>
             {u.nombre}
           </option>
@@ -87,13 +97,15 @@ export function DestinoDeLaMercaderia({
           <div role="group" aria-label="Tiendas entre las que se reparte" className="flex flex-wrap gap-1.5">
             {ubicaciones.map((u) => {
               const activa = tiendas.includes(u.id);
+              const bloqueada = activa && !puedeQuitarseDelReparto(u.id, tiendas, propiaIds);
+              const esUltimaPropia = bloqueada && !!propiaIds?.includes(u.id);
               return (
                 <button
                   key={u.id}
                   type="button"
                   aria-pressed={activa}
                   onClick={() => alternar(u.id)}
-                  title={activa && tiendas.length === 1 ? "Tiene que quedar al menos una tienda" : undefined}
+                  title={bloqueada ? (esUltimaPropia ? "Tu tienda tiene que quedar en el reparto: es la que gestiona la factura" : "Tiene que quedar al menos una tienda") : undefined}
                   className={`label-cayla inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] transition-colors ${
                     activa ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo"
                   }`}
@@ -104,12 +116,15 @@ export function DestinoDeLaMercaderia({
               );
             })}
           </div>
-          <p className="text-xs leading-snug text-tinta/55">Marca las tiendas que reciben mercadería de este comprobante. Abajo, en cada línea, dices cuántas unidades le toca a cada una.</p>
+          <p className="text-xs leading-snug text-tinta/55">
+            Marca las tiendas que reciben mercadería de este comprobante. Abajo, en cada línea, dices cuántas unidades le toca a cada una.
+            {propiaIds && " Tu tienda tiene que quedar en el reparto: es la que gestiona la factura."}
+          </p>
         </div>
       ) : (
         <div className="mt-3">
           <CampoSelectNativo etiqueta={<span className="sr-only">Tienda que recibe la mercadería</span>} value={ubicacionId} onChange={(e) => onUbicacionId(e.target.value)}>
-            {ubicaciones.map((u) => (
+            {opcionesUna.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.nombre}
               </option>

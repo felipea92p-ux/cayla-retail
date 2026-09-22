@@ -14,6 +14,7 @@ import {
   nombresDeDestinos,
   otrasTiendasDeJson,
   pendienteDeMiTienda,
+  puedeQuitarseDelReparto,
   repartirEnPartesIguales,
   repartoSoloDe,
   resumenPorTienda,
@@ -22,6 +23,7 @@ import {
   textoDeReasignacion,
   textoOtrasTiendas,
   textoTeToca,
+  tiendaGestora,
   tiendasConPendiente,
   tiendasDelReparto,
   unidadesPorTienda,
@@ -293,5 +295,48 @@ describe("nombre de una línea", () => {
     expect(etiquetaDeLinea({ referencia: "Blusa Emma", varianteId: null, talla: null, color: null })).toBe("Blusa Emma");
     // una línea «sin desglose» no muestra la variante aunque llegue con datos sueltos
     expect(etiquetaDeLinea({ referencia: "Blusa Emma", varianteId: null, talla: "M", color: "Arena" })).toBe("Blusa Emma");
+  });
+});
+
+describe("la tienda gestora al registrar (ADR-0151, F3)", () => {
+  describe("puedeQuitarseDelReparto", () => {
+    it("sin restricción (líder): tiene que quedar al menos una, cualquiera", () => {
+      expect(puedeQuitarseDelReparto("lima", ["lima", "trujillo"])).toBe(true);
+      expect(puedeQuitarseDelReparto("lima", ["lima"])).toBe(false);
+    });
+
+    it("con restricción (comprador): tiene que quedar al menos UNA de sus tiendas, no cualquiera", () => {
+      const misTiendas = ["lima"];
+      // Quitar Trujillo (no es mía): Lima (mía) sigue, se puede.
+      expect(puedeQuitarseDelReparto("trujillo", ["lima", "trujillo"], misTiendas)).toBe(true);
+      // Quitar Lima (mi única tienda) dejando solo Trujillo: no queda ninguna mía, no se puede.
+      expect(puedeQuitarseDelReparto("lima", ["lima", "trujillo"], misTiendas)).toBe(false);
+      // Con DOS tiendas propias, quitar una deja la otra: sí se puede.
+      expect(puedeQuitarseDelReparto("lima", ["lima", "taller", "trujillo"], ["lima", "taller"])).toBe(true);
+    });
+  });
+
+  describe("tiendaGestora", () => {
+    it("sin repartir: la única tienda elegida, con o sin restricción", () => {
+      expect(tiendaGestora(false, [], "lima")).toBe("lima");
+      expect(tiendaGestora(false, [], "lima", ["lima"])).toBe("lima");
+    });
+
+    it("repartiendo sin restricción (líder): la primera del reparto, sea cual sea", () => {
+      expect(tiendaGestora(true, ["taller", "trujillo"], "lima")).toBe("taller");
+      // Vacío (no debería pasar en la práctica): cae a `ubicacionId`.
+      expect(tiendaGestora(true, [], "lima")).toBe("lima");
+    });
+
+    it("repartiendo CON restricción (comprador): nunca la posición 0 a ciegas — la primera tienda del reparto que sea suya", () => {
+      // Lima es la tienda del comprador, pero el reparto la puso SEGUNDA (el orden sigue todas las ubicaciones, no
+      // el orden en que las marcó): sin la corrección, tiendaGestora daría "taller" y la base rechazaría el registro.
+      expect(tiendaGestora(true, ["taller", "lima"], "lima", ["lima"])).toBe("lima");
+      // Si por algún motivo ninguna del reparto es suya (no debería pasar: `puedeQuitarseDelReparto` lo impide en la
+      // UI), cae a `ubicacionId` en vez de mandar una tienda ajena.
+      expect(tiendaGestora(true, ["taller", "trujillo"], "lima", ["lima"])).toBe("lima");
+      // Con dos tiendas propias, usa la primera del reparto que sea suya.
+      expect(tiendaGestora(true, ["trujillo", "taller", "lima"], "lima", ["lima", "taller"])).toBe("taller");
+    });
   });
 });
