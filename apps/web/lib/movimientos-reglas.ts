@@ -122,6 +122,28 @@ export const PROCESOS_FILTRO: { valor: string; etiqueta: string }[] = [
   "cuarentena_donada",
 ].map((valor) => ({ valor, etiqueta: ETIQUETA_PROCESO[valor] }));
 
+/** Qué procesos caben en cada tipo, para el filtro en dos pasos de Movimientos (2026-09-22,
+ *  demo de rediseño): se elige el tipo y DEBAJO aparecen solo sus procesos, en vez de una lista
+ *  de 19. Sale de con qué `tipo` escribe cada RPC cada motivo: «Cambio» vive en dos (la prenda
+ *  devuelta entra, la nueva sale) y por eso está en Entradas y en Salidas. Un proceso que no esté
+ *  acá se sigue filtrando por URL (`?proc=`); solo no tiene botón. */
+export const PROCESOS_POR_CATEGORIA: Record<CategoriaMovimiento, string[]> = {
+  entrada: ["recepcion", "devolucion", "cambio", "anulacion_venta", "produccion", "carga_inicial"],
+  salida: ["venta", "cambio", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada"],
+  interno: ["movimiento_interno", "activacion_piso_almacen"],
+  transferencia: ["traslado_salida", "traslado_entrada"],
+  ajuste: ["conteo", "reposicion", "merma", "conteo_fisico", "otro"],
+};
+
+/** El tipo al que pertenece un proceso, si es uno solo. Sirve para que un enlace con solo
+ *  `?proc=conteo` (el de Conteo) muestre apretado «Ajustes» y, debajo, «Conteo». Null si el
+ *  proceso vive en dos tipos (cambio) o no está en la tabla. */
+export function categoriaDeProceso(motivo: string | null | undefined): CategoriaMovimiento | null {
+  if (!motivo) return null;
+  const tipos = CATEGORIAS.filter((c) => PROCESOS_POR_CATEGORIA[c].includes(motivo));
+  return tipos.length === 1 ? tipos[0] : null;
+}
+
 export function etiquetaProceso(motivo: string | null): string {
   if (!motivo) return "Sin proceso";
   return ETIQUETA_PROCESO[motivo] ?? motivo.replace(/_/g, " ");
