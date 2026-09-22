@@ -21,6 +21,8 @@ export async function getComprobantesMes(desde: string, hasta: string): Promise<
     .select(
       "id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, entorno_transmision, motivo_rechazo, motivo_anulacion, motivo_no_emitido, anulacion_solicitada_at, created_at, ubicacion_id, respuesta_sunat"
     )
+    // Facturación es lo que va (o fue) a SUNAT: la nota de venta es interna (ADR-0164) y vive en Vender e Historial.
+    .neq("tipo", "nota_venta")
     .gte("created_at", desde)
     .lt("created_at", hasta)
     .order("created_at", { ascending: false });

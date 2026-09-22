@@ -28,18 +28,41 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Terminales sin persona, como en Dynamic (2026-09-22, ADR-0162) — plan + spike; ESPERA APROBACIÓN
+## 🎯 Terminales sin persona, como en Dynamic (2026-09-22, ADR-0162) — APROBADO por Felipe (2026-09-22); EN CONSTRUCCIÓN
 - [x] Investigado Dynamic (`public.terminales`, cuenta de Auth sin persona, `fn_sede_actual_terminal`, script de alta, sin PIN) y medido en producción: 75 funciones de retail buscan persona (~65 con un reemplazo mecánico, 10 a mano).
 - [x] Plan en `docs/adr/0162-terminales-sin-persona-como-dynamic.md`; spike, pantallas 5 y 6.
 - [ ] Felipe aprueba → F1 prueba del encabezado `x-responsable` por PostgREST → F2 base → F3 las 75 funciones → F4 web → F5 script `terminales:crear`.
 - [x] La migración del ADR-0160 **ya está pegada** en producción, con 0 terminales dadas de alta. **No crear las 6 personas en Dynamic.**
 
-## 🎯 Responsable en cada operación + roles retomados (2026-09-22, ADR-0161) — decidido; ESPERA APROBAR EL SPIKE
+## 🎯 Responsable en cada operación + roles retomados (2026-09-22, ADR-0161) — spike APROBADO (2026-09-22); en construcción junto con ADR-0162
 - [x] **Decisiones de Felipe** (4 rondas): combo «Responsable» vacío en cada acción que guarda, solo el nombre, solo quien marcó entrada hoy en esa tienda y no salió, bloqueo si no hay nadie (también LIM y también el líder desde casa), en todas las cuentas para la operación de tienda. Se retoma el ADR-0150 con las terminales como un rol más, y cada rol configura módulos **y** acciones.
 - [x] **Spike visual:** `docs/maquetas/responsable-y-roles-spike-2026-09/` (editor de roles, combo en una venta, cierre de caja, nadie de turno).
-- [ ] **Felipe aprueba el spike** (o pide cambios). Pregunta abierta: ¿quien está «en pausa» puede firmar?
+- [x] **Spike aprobado.** En pausa NO firma ni opera; sin conexión vale la hora de la venta.
 - [ ] Construir en **dos sesiones en paralelo**: (a) responsable: `fn_responsable_actual()` lee el encabezado `x-responsable`, primero una prueba de que PostgREST lo pasa y de cómo se comportan las ventas offline; (b) roles: ADR-0150 F1+ con acciones por módulo.
 - [ ] LIM no podrá guardar nada hasta que se cargue su asistencia en Dynamic (decisión A5).
+
+- [ ] **Alinear la fila «Atendió» del ADR-0163 (PR #286) con el ADR-0161:** hoy, con 1 de turno la elige sola y con 0 vende a nombre de la sesión; lo decidido es vacío siempre y bloqueo. Se reutiliza `VendedorasFila`/`useVendedorasDeTurno`.
+
+## 🎯 «Quién vendió» en el ticket del Punto de venta (2026-09-22, ADR-0163) — rehecho sobre la asistencia de Dynamic; migración en producción, falta fusionar la web
+Un solo equipo de caja y varias colaboradoras por tienda. La fila «Atendió» ofrece a quienes marcaron entrada hoy en Dynamic (`fn_asesoras_de_turno`) y la venta se guarda en `ventas.asesora_id` — ambas ya en producción desde la 20260922150000 (ADR-0153). Decisión en [docs/adr/0163-vendedora-en-el-ticket.md](adr/0163-vendedora-en-el-ticket.md).
+- [x] Primera versión con columna propia (`vendedora_id`) e interruptor del líder: verificada en navegador el 2026-09-22, pero chocaba con la 150000 de main (dos columnas, dos `registrar_venta`). **Descartada al fusionar main**: se borró la 20260922143700 (nunca se pegó) y el modal del líder.
+- [x] Rehecha (Felipe: 1A 2A 3A): solo las `presente`; si nadie marcó hoy, todas las de la sede con aviso; sin interruptor. `lib/useVendedorasDeTurno.ts` relee cada minuto. `p_asesora_id` en la venta y en la cola offline; historial, Cambios/Devoluciones y detalle de caja leen `asesora_id`. Pruebas puras en verde (7816) y ensayo de las migraciones 140000 + 150000 + 213700 en una transacción con ROLLBACK contra el Postgres local: 6/6.
+- [x] **`20260922213700` pegada en producción (2026-09-22, OK de Felipe)** por el MCP: huella antes = la de la 140000 sin comentarios, después `39e3070d…` = el repo; una sola sobrecarga, permisos iguales; humo como líder sin escribir: 2 ventas de hoy = 2 filas, ninguna sin vendedor. Hasta que se fusione la web, `asesora_id` llega vacío y la salida es idéntica a la de antes.
+- [x] **Verificado en navegador (local, 2026-09-22)** con asistencia simulada (tabla temporal + `fn_asesoras_de_turno` reemplazada unos minutos, restaurada con la misma huella `c435a1eb…`): 2 presentes y 1 en almuerzo → 2 chips y cobro bloqueado hasta elegir; cobro real → `asesora_id` = Sofía, `usuario_id` = Felipe, «Ventas de hoy» dice «Sofía»; 1 presente → «Atiende Micaela» sin recargar; nadie marcó → las 3 con el aviso.
+- [ ] Fusionar la rama (PR) — pedir OK. Después, mirar en producción la fila con la asistencia real de TRU.
+- [x] Base local sincronizada (OK de Felipe): retirada la versión vieja, 13 migraciones pendientes aplicadas en una transacción (ensayada antes con ROLLBACK) y registradas; se vaciaron las 10 filas de prueba de la tabla vieja `clientes`. `pruebas:vendedora-en-venta` 7/7, `pruebas:ventas-del-dia` 11/11. `pruebas:registrar-venta` da 21/25 por dos cajas abiertas en la base local (Lima desde el 18-sep, Trujillo desde hoy): la prueba las intenta cerrar como colaboradora y el candado de líder lo impide — estado de la base, no de este cambio.
+- [ ] Aparte (lo encontró la primera verificación): Lima y Trujillo comparten código de serie de comprobante con contadores independientes.
+
+## 🎯 Nota de venta en el Punto de venta (2026-09-22, ADR-0164) — migración en producción; falta fusionar la web
+Tercera opción del comprobante: Boleta | Factura | Nota de venta. Documento interno, serie propia por tienda (NV01 TRU, NV02 AQP, NV03 LIM), sin IGV desglosado, nunca va a SUNAT. Felipe: 1A mismo precio · 2A serie por tienda · 3A no se convierte en boleta · 4A cualquier colaboradora.
+- [x] Base: `20260922224300_nota_de_venta.sql` — tipo `nota_venta`, estado `interna` y candado que impide que quede `pendiente`; `registrar_venta`/`emitir_comprobante`/`anular_venta` tocadas sobre su definición viva. Ensayo con ROLLBACK aplicándola dos veces: NV01-1 `interna`, IGV 0, total = precio; boleta igual que antes; la base rechaza nota de venta `pendiente` y boleta `interna`; anular → `no_emitido`; una sola versión de cada función. Aplicada en local.
+- [x] Web: selector de 3 opciones, pie sin IGV, térmico y A4 «NOTA DE VENTA» sin QR ni IGV con «Documento sin valor tributario»; la ruta de Lucode la frena por tipo; Facturación la excluye; Historial, Cambios y Devoluciones la muestran. 7821 pruebas en verde.
+- [x] **Verificado en navegador (local):** cobro con nota de venta en Trujillo → «Nota de venta NV01-000001 · Interna — no va a SUNAT», papel sin IGV ni QR, no aparece en Facturación, sí en Historial.
+- [x] **Pegada en producción (2026-09-22, OK de Felipe)** por el MCP: antes, cada fragmento aparecía 1 vez y una sola versión de cada función; validación dentro de la transacción (sin sobrecargas, cambios presentes, permisos iguales, series NV01 TRU / NV02 AQP / NV03 LIM). `emitir_comprobante` quedó idéntica a local; `registrar_venta` y `anular_venta` difieren solo en comentarios (igual lógica, huella sin comentarios coincide). Humo como líder en un bloque que siempre aborta: NV01-1 `interna`, IGV 0, total = precio; al anular, `no_emitido`; nada quedó guardado (0 notas, contadores en 1).
+- [ ] Fusionar la rama (PR) — pedir OK. Hasta entonces la web publicada no ofrece la nota de venta.
+- [ ] Confirmar con el contador cómo se declaran las ventas con nota de venta (no lo decide el sistema).
+- [x] **Hallazgo del CI (PR #286):** en una base armada desde cero, `registrar_venta`, `fn_asesoras_de_turno` y `fn_es_lider_persona` (recreadas/creadas en la 150000) quedaban ejecutables por `PUBLIC` — Postgres lo da por defecto y la regla que lo quita en producción y local vive FUERA de las migraciones. `20260922231700` lo cierra explícito. **No hace falta pegarla:** producción ya tiene `{postgres, authenticated}` en las tres (verificado); aplicada en local sin cambios.
+- [ ] Aparte: pasar a una migración el `alter default privileges ... revoke execute on functions from public` que producción y local tienen a mano, para que una base nueva nazca igual.
 
 ## 🎯 Cuentas terminal por tienda (2026-09-21, ADR-0160) — fusionado a `main` (PR #281); migración entregada a Felipe para pegar
 - [x] **Base:** `20260922200000_terminales_por_tienda.sql` (columna `terminal`, `agregar_terminal`, 5 capacidades `fn_puede_*` «líder O terminal», candados inyectados desde la definición real en 13 funciones + 5 disparadores + 15 políticas; `suspender_colaborador`/`reactivar_colaborador` conservan el tipo también tras D-70). `pnpm pruebas:terminales` (75 casos, en el CI) y las 20 del ADR-0143 en verde con esta migración encima.

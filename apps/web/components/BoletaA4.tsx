@@ -2,7 +2,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { DIAS_PLAZO_CAMBIO } from "@/lib/cambios-reglas";
 import { EMISOR, type Emisor } from "@/lib/emisor";
 import { lineasA4, numeroA4 } from "@/lib/boleta-a4-reglas";
-import { fechaHoraLima, montoEnLetras, NOMBRE_METODO, textoQrSunat, TITULO_DOCUMENTO, type ReciboVenta } from "@/lib/recibo-reglas";
+import { desglosaIgv, fechaHoraLima, montoEnLetras, NOMBRE_METODO, textoQrSunat, TITULO_DOCUMENTO, type ReciboVenta } from "@/lib/recibo-reglas";
 
 const s = (n: number) => `S/ ${n.toFixed(2)}`;
 // Tinte suave para los encabezados: se imprime con `print-color-adjust: exact` pero, si la
@@ -34,8 +34,10 @@ export function BoletaA4({
   const cli = recibo.cliente;
   const tieneDoc = cli.tipoDoc !== "sin_documento" && !!cli.numDoc;
   const esFactura = recibo.tipo === "factura";
-  const lineas = lineasA4(recibo);
-  const qr = emisor.ruc ? textoQrSunat(recibo, emisor.ruc) : null;
+  // La nota de venta (ADR-0164) no separa IGV: sus líneas van al precio cobrado y el pie no lleva nada de SUNAT.
+  const fiscal = desglosaIgv(recibo.tipo);
+  const lineas = lineasA4(recibo, fiscal ? 0.18 : 0);
+  const qr = fiscal && emisor.ruc ? textoQrSunat(recibo, emisor.ruc) : null;
   const nombreDoc = esFactura ? "factura" : "boleta de venta";
 
   return (
@@ -151,6 +153,7 @@ export function BoletaA4({
               <td className="py-0.5 text-right">Importe de venta</td>
               <td className="w-[26mm] py-0.5 text-right">{s(recibo.total)}</td>
             </tr>
+            {fiscal && (<>
             <tr>
               <td className="py-0.5 text-right">Op. gravada</td>
               <td className="py-0.5 text-right">{s(recibo.subtotal)}</td>
@@ -167,6 +170,7 @@ export function BoletaA4({
               <td className="py-0.5 text-right">IGV (18.00%)</td>
               <td className="py-0.5 text-right">{s(recibo.igv)}</td>
             </tr>
+            </>)}
             <tr className="border-y-[1.4pt] border-black bg-[#f1ece4] text-[11pt] font-bold [print-color-adjust:exact]">
               <td className="px-2 py-1.5 text-right">TOTAL</td>
               <td className="py-1.5 text-right">{s(recibo.total)}</td>
@@ -178,7 +182,7 @@ export function BoletaA4({
       {/* ---------- Notas ---------- */}
       <section className="mt-5 break-inside-avoid text-[8pt] text-black/75">
         <p className="font-semibold uppercase text-black">Notas</p>
-        <p>Cambios dentro de los {DIAS_PLAZO_CAMBIO} días posteriores a la compra, con este comprobante.</p>
+        <p>Cambios dentro de los {DIAS_PLAZO_CAMBIO} días posteriores a la compra, con este {fiscal ? "comprobante" : "documento"}.</p>
         {emisor.web && <p>Visite {emisor.web} para más.</p>}
       </section>
 
@@ -191,8 +195,14 @@ export function BoletaA4({
       )}
 
       <footer className="mt-6 break-inside-avoid text-center text-[8pt]">
-        <p className="font-semibold">Representación impresa de la {nombreDoc} electrónica</p>
-        {emisor.resolucion && <p>Autorizado mediante resolución N° {emisor.resolucion}</p>}
+        {fiscal ? (
+          <>
+            <p className="font-semibold">Representación impresa de la {nombreDoc} electrónica</p>
+            {emisor.resolucion && <p>Autorizado mediante resolución N° {emisor.resolucion}</p>}
+          </>
+        ) : (
+          <p className="font-semibold">Documento sin valor tributario. No es un comprobante de pago.</p>
+        )}
       </footer>
     </div>
   );

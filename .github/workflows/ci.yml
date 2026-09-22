@@ -160,6 +160,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-venta
 
+      # «Quién vendió» (ADR-0163): la venta guarda a quien atendió (asesora_id) Y a la sesión, «Ventas de hoy»
+      # la firma con quien atendió y queda una sola registrar_venta. Cada caso termina en ROLLBACK.
+      - name: pruebas:vendedora-en-venta
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:vendedora-en-venta
+
       # La lista de lo vendido hoy (Caja, Vender, Facturación): una fila por venta aunque tenga dos
       # comprobantes y sin las anuladas (20260921103000). Cada caso termina en ROLLBACK.
       - name: pruebas:ventas-del-dia

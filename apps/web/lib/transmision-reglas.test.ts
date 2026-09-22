@@ -46,3 +46,15 @@ describe("motivoParaNoTransmitir", () => {
     expect(motivoParaNoTransmitir(comprobante({ estado: "aceptado", venta: { estado: "anulada" } }))?.error).toMatch(/ya está en estado "aceptado"/);
   });
 });
+
+describe("motivoParaNoTransmitir — la nota de venta nunca va a SUNAT (ADR-0164)", () => {
+  it("una nota de venta se frena por tipo aunque su estado dijera pendiente", () => {
+    const r = motivoParaNoTransmitir({ tipo: "nota_venta", estado: "pendiente", venta_id: null, venta: null });
+    expect(r?.status).toBe(409);
+    expect(r?.error).toContain("no se transmite a SUNAT");
+  });
+
+  it("una boleta pendiente sigue pudiéndose transmitir", () => {
+    expect(motivoParaNoTransmitir({ tipo: "boleta", estado: "pendiente", venta_id: null, venta: null })).toBeNull();
+  });
+});

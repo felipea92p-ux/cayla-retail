@@ -9,6 +9,7 @@ import type { MetodoPago } from "@cayla-retail/shared";
 import type { EstadoComprobante } from "./comprobantes-reglas";
 import { codigoPrenda } from "./prenda-reglas";
 import { armarRecibo, type PagoRecibo, type ReciboVenta, type TipoDocCliente, type TipoReciboFiscal } from "./recibo-reglas";
+import { nombresCortos } from "./nombre-integrante";
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -84,8 +85,12 @@ export function armarDetalleVenta(filas: FilasVenta, ctx: { sede: string; vended
   });
   const total = redondear2(lineas.reduce((a, l) => a + l.importe, 0));
 
+  // El papel dice el primer nombre de quien atendió (`ctx.vendedor` llega completo, o `null`/«—» si no se sabe).
+  const atendio = ctx.vendedor ? (nombresCortos([ctx.vendedor]).get(ctx.vendedor) ?? null) : null;
+
   const c = filas.comprobante;
-  const esFiscal = c !== null && (c.tipo === "boleta" || c.tipo === "factura");
+  // Imprimible: boleta, factura y la nota de venta (ADR-0164), que sale en el mismo papel sin IGV.
+  const esFiscal = c !== null && (c.tipo === "boleta" || c.tipo === "factura" || c.tipo === "nota_venta");
   const recibo = esFiscal
     ? armarRecibo({
         comprobante: { tipo: c.tipo as TipoReciboFiscal, serie: c.serie, numero: c.numero, created_at: c.created_at },
@@ -101,6 +106,7 @@ export function armarDetalleVenta(filas: FilasVenta, ctx: { sede: string; vended
         })),
         pagos: filas.pagos.map((p) => ({ metodo: p.metodo, monto: p.monto, recibido: p.recibido ?? undefined })),
         tasaIgv: 0.18,
+        atendio,
       })
     : null;
 
@@ -143,5 +149,8 @@ export function puedeImprimir(estado: EstadoComprobante): { ok: true; leyenda: s
       return { ok: false, motivo: "Este comprobante está anulado: no se puede imprimir." };
     case "no_emitido":
       return { ok: false, motivo: "Este comprobante no se emitió: no hay nada que imprimir." };
+    case "interna":
+      // La nota de venta: el papel ya dice «Documento sin valor tributario», no hay validación que esperar.
+      return { ok: true, leyenda: null };
   }
 }
