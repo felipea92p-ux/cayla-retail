@@ -5707,7 +5707,7 @@ export type Database = {
           p_forma_pago_preferida?: string
           p_nombre: string
           p_plazo_credito_dias?: number
-          p_proveedor_id: string | null
+          p_proveedor_id: string
           p_rubro: string
           p_ruc?: string
           p_telefono?: string
