@@ -3,7 +3,7 @@
 --
 -- QUÉ HACE. Agrega la «nota de venta» como tercera opción del comprobante en el Punto de venta
 -- (Boleta | Factura | Nota de venta). Es un documento INTERNO: tiene su propia serie por tienda,
--- no desglosa IGV y NUNCA se envía a SUNAT (Lucode/Nubefact). ADR-0162.
+-- no desglosa IGV y NUNCA se envía a SUNAT (Lucode/Nubefact). ADR-0164.
 --
 -- DECISIONES DE FELIPE (2026-09-22): 1A la clienta paga el mismo precio de la etiqueta, el papel
 -- solo no separa el IGV · 2A una serie por tienda (NV01 Trujillo, NV02 Arequipa, NV03 Lima) ·
@@ -58,7 +58,7 @@ alter table retail.comprobantes drop constraint if exists comprobantes_nota_vent
 alter table retail.comprobantes add constraint comprobantes_nota_venta_es_interna
   check ((tipo = 'nota_venta') = (estado = 'interna') or (tipo = 'nota_venta' and estado = 'no_emitido'));
 comment on constraint comprobantes_nota_venta_es_interna on retail.comprobantes is
-  'ADR-0162: una nota de venta solo está interna o no_emitido (anulada), y solo una nota de venta está interna. Hace imposible que una nota de venta quede pendiente de enviar a SUNAT.';
+  'ADR-0164: una nota de venta solo está interna o no_emitido (anulada), y solo una nota de venta está interna. Hace imposible que una nota de venta quede pendiente de enviar a SUNAT.';
 
 alter table retail.series_comprobantes drop constraint if exists series_comprobantes_tipo_check;
 alter table retail.series_comprobantes add constraint series_comprobantes_tipo_check
