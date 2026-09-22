@@ -8902,3 +8902,7 @@ Sin resolver: pegar F2 y luego F3 en producción (y volver a pegar la F3 si desp
 Fusionado el PR #285 (terminales sin persona, combo Responsable, roles por módulo), Felipe pidió que quede como regla: cada módulo nuevo aparece en Roles y accesos y solo lo ve el líder hasta que él lo asigna. Quedó en `CLAUDE.md` («Módulos y roles») con los tres pasos (migración en `retail.modulos` sin `rol_modulos`, `lib/modulos.ts` + `modulo` en el menú + `exigirModulo`, y firmar con `fn_actor_persona_id`).
 Felipe se lleva: (1) **una regla que solo vive en un documento se olvida; una que vive en una prueba no**: `modulos.test.ts` ahora lee TODAS las migraciones y falla si alguna asigna un módulo a un rol, y `pruebas:roles` comprueba que un módulo recién creado solo lo ve el líder; (2) el catálogo de módulos es uno solo, en la base y en la web, y las pruebas impiden que se separen.
 Sin resolver: nada de esta regla; los pasos a producción del PR #285 siguen pendientes (migraciones en orden, `SUPABASE_SERVICE_ROLE_KEY`, encender `fn_exige_responsable()`).
+
+**2026-09-22 · fix(ui): la lista del buscador sigue al campo mientras el modal entra.** En «Asignar rol» la lista salía
+más angosta, corrida y ~28 px más abajo, tapando los botones: Radix enfoca Cuenta al abrir, el combo se abre y medía el
+campo a mitad de la entrada (hoja al 96,5 % + cascada). `usePosicionLista` ahora mide cuadro a cuadro mientras está abierta.
