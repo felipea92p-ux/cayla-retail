@@ -64,6 +64,12 @@ Rama `claude/modulo-comprobantes-redesign-3d2ffc`, **sin push**. Diseño: `docs/
 - [ ] Verificar con una terminal de verdad en TRU (aún no se probó con la sesión de un aparato en el navegador; sí con la de un líder).
 - [x] La migración del ADR-0160 **ya está pegada** en producción, con 0 terminales dadas de alta.
 
+## 🎯 Cambiar el rol entre líderes (2026-09-22, actualización del ADR-0161) — CONSTRUIDO, migración sin pegar en producción
+- [x] `asignar_rol` sube a Líder y baja a un líder (con sede si no tiene); nunca a uno mismo ni Líder a una terminal. Probado en Postgres local con rollback (subir, bajar sin sede → error, con sede → ok, a sí mismo → error).
+- [x] Web: «Cambiar rol» también en la fila de un líder; «Asignar a una persona» en el rol Líder; el modal pide la sede al bajar a un líder.
+- [ ] **Pegar en producción** `20260923110000_cambiar_rol_entre_lideres.sql` (con `set search_path to retail, public;`; OK de Felipe). Después: una sola firma de `asignar_rol` y `pnpm datos:generar:produccion` + `pnpm datos:comparar`.
+- [ ] Verlo con clics en producción: subir a alguien a Líder y volver a bajarlo.
+
 ## 🎯 Responsable en cada operación + roles retomados (2026-09-22, ADR-0161) — combo Responsable CONSTRUIDO (F4b, PR #285); roles en otra rama
 - [ ] **Más adelante (Felipe, 2026-09-22: «no es tan importante por ahora»):** guardar quién crea o cambia marcas (`retail.marcas` no tiene columna de firma) y anotar los cambios de NOMBRE de una prenda en el historial (`fn_registrar_cambio_producto` solo registra categoría, estado, marca, proveedor, precio y costo). Hoy el combo se pide en Catálogo pero esos dos casos no dejan rastro.
 - [x] **Decisiones de Felipe** (4 rondas): combo «Responsable» vacío en cada acción que guarda, solo el nombre, solo quien marcó entrada hoy en esa tienda y no salió, bloqueo si no hay nadie (también LIM y también el líder desde casa), en todas las cuentas para la operación de tienda. Roles simplificados después a «ve / no ve» por módulo.
