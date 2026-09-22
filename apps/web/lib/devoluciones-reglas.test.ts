@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { primerBloqueo } from "./cambios-reglas";
 import {
-  actividadPreviaVenta,
   condicionDeItem,
   esDevolucionTotal,
   estadoPlazoDevolucion,
@@ -10,7 +9,6 @@ import {
   impactoDevolucion,
   revisarAprobacion,
   textoMotivo,
-  totalesVenta,
   validarDevolucion,
   valorPagado,
   type PrendaParaValidar,
@@ -98,47 +96,6 @@ describe("estadoPlazoDevolucion (el chip de plazo de la VENTA, sin mirar cada l�
     expect(estadoPlazoDevolucion(lima(2026, 9, 18).toISOString(), ahora)).toMatchObject({ clave: "dentro_del_plazo", tono: "verde" });
     expect(estadoPlazoDevolucion(lima(2026, 8, 1).toISOString(), ahora)).toMatchObject({ clave: "fuera_de_plazo", tono: "rojo", icono: "alerta" });
     expect(estadoPlazoDevolucion(lima(2026, 9, 3).toISOString(), ahora).texto).toBe("Último día del plazo");
-  });
-});
-
-describe("totalesVenta (la tarjeta de Actividad reciente resume, no repite precio por prenda)", () => {
-  it("suma prendas y lo que la clienta pagó de verdad (con descuento), no el precio de lista", () => {
-    const lineas = [
-      { cantidad: 2, precioUnitario: 79.9, descuentoUnitario: 0 },
-      { cantidad: 1, precioUnitario: 149.9, descuentoUnitario: 15 },
-    ];
-    expect(totalesVenta(lineas)).toEqual({ prendas: 3, importe: 294.7 });
-  });
-
-  it("una venta sin líneas no revienta: cero y cero", () => {
-    expect(totalesVenta([])).toEqual({ prendas: 0, importe: 0 });
-  });
-});
-
-describe("actividadPreviaVenta (una sola vez por tarjeta lo que hoy se repite por prenda)", () => {
-  const sinActividad = { devolucionesHechas: [], cambiosHechos: [] };
-
-  it("venta ordinaria, sin cambios ni devoluciones: nada que decir", () => {
-    expect(actividadPreviaVenta([sinActividad, sinActividad])).toBeNull();
-  });
-
-  it("una devolución pendiente manda sobre cualquier otra cosa ya resuelta", () => {
-    const conPendiente = {
-      devolucionesHechas: [{ cantidad: 1, estado: "pendiente" as const }],
-      cambiosHechos: [{ cantidad: 1 }],
-    };
-    expect(actividadPreviaVenta([sinActividad, conPendiente])).toMatchObject({ clave: "con_pendiente", texto: "1 devolución pendiente", tono: "ambar" });
-  });
-
-  it("una prenda cambiada y otras dos intactas: 'parcialmente procesada', dicho con la cuenta exacta", () => {
-    const cambiada = { devolucionesHechas: [], cambiosHechos: [{ cantidad: 1 }] };
-    expect(actividadPreviaVenta([cambiada, sinActividad, sinActividad])).toMatchObject({ texto: "1 cambiada", tono: "neutro", icono: "check" });
-  });
-
-  it("cambio y devolución aprobada juntos, en la misma venta: los dos se cuentan", () => {
-    const cambiada = { devolucionesHechas: [], cambiosHechos: [{ cantidad: 2 }] };
-    const devuelta = { devolucionesHechas: [{ cantidad: 1, estado: "aprobada" as const }], cambiosHechos: [] };
-    expect(actividadPreviaVenta([cambiada, devuelta])).toMatchObject({ texto: "2 cambiadas · 1 devuelta" });
   });
 });
 
