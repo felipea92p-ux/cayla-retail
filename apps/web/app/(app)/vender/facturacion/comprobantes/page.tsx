@@ -1,4 +1,4 @@
-import { exigirLider } from "@/lib/persona-actual";
+import { exigirPermiso } from "@/lib/persona-actual";
 import { opcional } from "@/lib/resultado";
 import { getComprobantesMes, getResumenPorEnviar, getSeriesComprobantes } from "@/lib/comprobantes";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -10,7 +10,7 @@ import { MarcaDeCarga } from "@/components/MarcaDeCarga";
 import { SelectorMesFacturacion } from "@/components/SelectorMesFacturacion";
 
 export default async function ComprobantesPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
-  const persona = await exigirLider();
+  const persona = await exigirPermiso("facturar");
   const { m } = await searchParams;
   const ahora = new Date();
   const actual = mesActualLima();
@@ -42,6 +42,7 @@ export default async function ComprobantesPage({ searchParams }: { searchParams:
         ubicaciones={tiendas}
         ubicacionActualId={ubicacionActualDe(tiendas, persona.ubicacionId)}
         periodo={periodo}
+        esLider={persona.rol === "lider"}
       />
     </div>
   );

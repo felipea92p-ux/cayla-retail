@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import { TIPOS_TERMINAL, type TipoTerminal } from "@/lib/menu";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Las escrituras pasan por las RPC
 // directo desde el componente cliente (`lib/colaboradores-acciones.ts`).
@@ -19,6 +20,8 @@ export type Colaborador = {
   /** La persona que está mirando la pantalla: a ella no se le ofrece suspenderse ni quitarse. */
   es_yo: boolean;
   ultimo_acceso: string | null;
+  /** Si es una cuenta TERMINAL de su tienda (ADR-0160) y de qué tipo; `null` o ausente = una persona. */
+  terminal?: TipoTerminal | null;
 };
 
 export type ColaboradorSuspendido = {
@@ -81,8 +84,20 @@ export type DynamicDisponible = {
 
 export async function getColaboradores(): Promise<Colaborador[]> {
   const supabase = await createClient();
-  const res = await supabase.rpc("fn_colaboradores");
-  return exigir(res, "los colaboradores") as unknown as Colaborador[];
+  const [res, resTerminales] = await Promise.all([
+    supabase.rpc("fn_colaboradores"),
+    // El tipo de terminal (ADR-0160) se lee APARTE: `fn_colaboradores()` no lo devuelve y agregárselo exigiría borrarla y
+    // recrearla (cambiar el tipo de retorno no admite `create or replace`). Solo el líder lee `colaboradores` (RLS) y esta
+    // pantalla es de líder. Si la columna aún no existe en esa base (la web se desplegó antes que la migración) el error
+    // se ignora: nadie sale como terminal, que es el lado seguro.
+    supabase.from("colaboradores").select("persona_id, terminal").not("terminal", "is", null),
+  ]);
+  const lista = exigir(res, "los colaboradores") as unknown as Colaborador[];
+  const terminales = new Map<string, TipoTerminal>();
+  for (const f of resTerminales.error ? [] : (resTerminales.data ?? [])) {
+    if ((TIPOS_TERMINAL as readonly string[]).includes(f.terminal ?? "")) terminales.set(f.persona_id, f.terminal as TipoTerminal);
+  }
+  return lista.map((c) => ({ ...c, terminal: terminales.get(c.persona_id) ?? null }));
 }
 
 export async function getColaboradoresPendientes(): Promise<ColaboradorPendiente[]> {

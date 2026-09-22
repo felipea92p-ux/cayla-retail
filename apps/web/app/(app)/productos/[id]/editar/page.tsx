@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { getProducto, getEjesPorCategoria } from "@/lib/catalogo-v2";
@@ -14,7 +14,7 @@ import { RevisarAltaBanner } from "@/components/RevisarAltaBanner";
 export default async function EditarProductoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") redirect("/productos");
+  if (!puede(persona, "editarCatalogo")) redirect("/productos");
 
   const supabase = await createClient();
   const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias] = await Promise.all([

@@ -136,13 +136,13 @@ export function ProductosGrilla({
   productos,
   ubicacionId,
   sububicaciones,
-  esLider,
+  puedeAjustar,
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
 }: {
   productos: ProductoListado[];
   ubicacionId: string;
   sububicaciones: Sububicacion[];
-  esLider: boolean;
+  puedeAjustar: boolean;
   mensajeVacio?: string;
 }) {
   if (productos.length === 0) {
@@ -152,7 +152,7 @@ export function ProductosGrilla({
   return (
     <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
       {productos.map((p) => (
-        <TarjetaProducto key={p.productoId} producto={p} ubicacionId={ubicacionId} sububicaciones={sububicaciones} esLider={esLider} />
+        <TarjetaProducto key={p.productoId} producto={p} ubicacionId={ubicacionId} sububicaciones={sububicaciones} puedeAjustar={puedeAjustar} />
       ))}
     </div>
   );
@@ -162,12 +162,12 @@ function TarjetaProducto({
   producto,
   ubicacionId,
   sububicaciones,
-  esLider,
+  puedeAjustar,
 }: {
   producto: ProductoListado;
   ubicacionId: string;
   sububicaciones: Sububicacion[];
-  esLider: boolean;
+  puedeAjustar: boolean;
 }) {
   const colores = coloresDe(producto.variantes);
   const [colorFijo, setColorFijo] = useState<string | null>(null);
@@ -258,7 +258,7 @@ function TarjetaProducto({
           colores={colores}
           colorInicial={nombreActivo}
           onClose={() => setVistaRapida(false)}
-          esLider={esLider}
+          puedeAjustar={puedeAjustar}
           onAjustarInventario={() => {
             setVistaRapida(false);
             setAjustando(true);
@@ -283,14 +283,14 @@ function VistaRapidaModal({
   colorInicial,
   onClose,
   onAjustarInventario,
-  esLider,
+  puedeAjustar,
 }: {
   producto: ProductoListado;
   colores: ColorDisponible[];
   colorInicial: string | null;
   onClose: () => void;
   onAjustarInventario: () => void;
-  esLider: boolean;
+  puedeAjustar: boolean;
 }) {
   const [colorFijo, setColorFijo] = useState<string | null>(colorInicial);
   const [colorHover, setColorHover] = useState<string | null>(null);
@@ -350,8 +350,8 @@ function VistaRapidaModal({
             <Link href={`/productos/${producto.productoId}/editar`} className={`${botonCancelar} text-center`}>
               Editar
             </Link>
-            {/* D-13: ajustar stock fuera de una venta es del líder (candado real en `registrar_movimiento`, 20260921110000). */}
-            {esLider && (
+            {/* D-13: ajustar stock fuera de una venta es del líder o de la terminal administrativa (candado real en `registrar_movimiento`). */}
+            {puedeAjustar && (
               <button type="button" onClick={onAjustarInventario} className={botonPrimario}>
                 Ajustar inventario
               </button>

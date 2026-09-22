@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { COOKIE_LATERAL, COOKIE_LATERAL_PLEGADO } from "@/lib/lateral-cookie";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getTrasladosPorAtender } from "@/lib/traslados";
 import { AppShell } from "@/components/AppShell";
@@ -16,7 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // dejaría sin pantalla a toda la app por un número.
   const [ubicaciones, trasladosPorAtender] = await Promise.all([
     persona.puedeCambiarUbicacion ? getUbicaciones() : Promise.resolve([]),
-    getTrasladosPorAtender(persona.ubicacionId, persona.rol === "lider"),
+    getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")),
   ]);
 
   // El lateral plegado (2026-09-19) se lee acá y no en el cliente: así la primera pintura ya sale
@@ -32,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         ubicacionEtiqueta: persona.ubicacionEtiqueta,
         ubicacionTipo: persona.ubicacionTipo,
         puedeCambiarUbicacion: persona.puedeCambiarUbicacion,
+        terminal: persona.terminal,
       }}
       ubicaciones={ubicaciones}
       trasladosPorAtender={trasladosPorAtender}

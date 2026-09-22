@@ -322,6 +322,15 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:candado-lider
 
+      # Cuentas TERMINAL por tienda (ADR-0152): la de ventas cierra caja y mueve caja; la administrativa ajusta stock, cierra
+      # conteos y traslados con diferencia, escribe en el Catálogo y edita las cuentas de proveedores; y NADA más se abrió
+      # (etiquetas con descuento, anulaciones, devoluciones y series siguen siendo solo del líder). Alta solo del líder y solo
+      # en una tienda, una de cada tipo por tienda; suspender y reactivar conservan el tipo; la migración se puede pegar dos
+      # veces y con otro search_path. Un escenario por actor. Cada caso termina en ROLLBACK.
+      - name: pruebas:terminales
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:terminales
+
       # Deriva de producción (las migraciones que producción tenía y el repo no): una sola firma de
       # registrar_movimiento, catalogo_actualizar_producto y registrar_compra (con p_token, idempotente por
       # token), el historial de «estado» no se pisa, el TRUNCATE del libro de movimientos se frena, y las

@@ -8,8 +8,12 @@ import type {
   EventoAcceso,
   RolColaborador,
 } from "./colaboradores";
+import type { TipoTerminal } from "./menu";
 
 export const ETIQUETA_ROL: Record<RolColaborador, string> = { lider: "Líder", colaborador: "Colaborador" };
+
+/** Cómo se lee una cuenta terminal en la tabla (ADR-0160). */
+export const ETIQUETA_TERMINAL: Record<TipoTerminal, string> = { ventas: "Terminal de ventas", administrativa: "Terminal administrativa" };
 
 const sinTildes = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
@@ -40,17 +44,21 @@ export type ResumenAccesos = {
   cuentasDynamic: number;
 };
 
-/** Los cuatro números de arriba, todos derivados de las listas reales (nada inventado). */
+/** Los cuatro números de arriba, todos derivados de las listas reales (nada inventado). Recibe TODO `activos` (personas
+ *  y terminales juntas, tal como llega de `fn_colaboradores()`): «con acceso» y «cuentas de Dynamic» cuentan a las dos
+ *  por igual —una terminal sí tiene acceso y sí es una cuenta de Dynamic—, pero «Líderes»/«Colaboradores» son un conteo
+ *  de PERSONAS y una cuenta compartida no es una persona (ADR-0160) — se resta antes de repartir entre las dos. */
 export function resumirAccesos(
   activos: readonly Colaborador[],
   suspendidos: readonly ColaboradorSuspendido[],
   disponibles: readonly DynamicDisponible[]
 ): ResumenAccesos {
-  const lideres = activos.filter((c) => c.rol === "lider").length;
+  const personas = activos.filter((c) => !c.terminal);
+  const lideres = personas.filter((c) => c.rol === "lider").length;
   return {
     conAcceso: activos.length,
     lideres,
-    colaboradores: activos.length - lideres,
+    colaboradores: personas.length - lideres,
     suspendidos: suspendidos.length,
     cuentasDynamic: activos.length + suspendidos.length + disponibles.length,
   };
@@ -68,8 +76,11 @@ export function resumenAlta(cuantas: number, ubicacion: string | null): string {
 /** Lo que puede hacer la fila del menú «⋯», en el orden en que se muestra. */
 export type AccionFila = "cambiar_ubicacion" | "suspender" | "quitar";
 
-export function accionesDeFila(c: Pick<Colaborador, "rol" | "es_yo">): AccionFila[] {
+export function accionesDeFila(c: Pick<Colaborador, "rol" | "es_yo" | "terminal">): AccionFila[] {
   if (c.es_yo) return [];
+  // Una terminal no se muda: está fija a UNA tienda por diseño (ADR-0160) y `agregar_terminal` solo acepta tiendas. Para
+  // moverla se quita y se agrega otra; así nunca queda una terminal en el Taller.
+  if (c.terminal) return ["suspender", "quitar"];
   return c.rol === "colaborador" ? ["cambiar_ubicacion", "suspender", "quitar"] : ["suspender", "quitar"];
 }
 

@@ -167,6 +167,8 @@ type Props = {
   ubicacionEtiqueta: string;
   /** Un Líder descuenta sin código; una Colaboradora necesita uno (la base lo exige). */
   esLider: boolean;
+  /** ¿Puede cerrar la caja? Un líder o la terminal de ventas (ADR-0160). `esLider` queda para lo que sigue siendo del líder (descuentos). */
+  puedeCerrarCaja: boolean;
   /** Null si no hay caja abierta — el catálogo se ve igual, pero queda desactivado
    *  (ver `bloqueado` más abajo). */
   cajaId: string | null;
@@ -179,7 +181,7 @@ type Props = {
   ventasHoyNode: ReactNode;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, variantes, campanasNoCargaron = false, ventasHoyNode }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, variantes, campanasNoCargaron = false, ventasHoyNode }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -913,8 +915,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, cajaId, 
             ))}
           </nav>
           {/* D-13: abrir la caja lo puede cualquiera; CERRARLA solo el líder (candado real en
-              `cerrar_caja`, 20260921110000). Con la caja abierta, un colaborador no ve el botón. */}
-          {(bloqueado || esLider) && (
+              `cerrar_caja`, 20260921110000). Con la caja abierta, un colaborador común no ve el botón; la terminal de
+              ventas sí (ADR-0160: `fn_puede_gestionar_caja`). */}
+          {(bloqueado || puedeCerrarCaja) && (
             <button
               type="button"
               onClick={() => setModalCaja(bloqueado ? "abrir" : "cerrar")}

@@ -7,17 +7,21 @@
 // Estructura tomada de tres referentes públicos (maqueta en docs/maquetas/inicio-referentes-2026-09/).
 
 import { comparativoSemanaAnterior, type Comparativo } from "./caja-panel-reglas";
+import type { TipoTerminal } from "./menu";
 
 export type PerfilInicio = {
   rol: "lider" | "integrante";
   ubicacionTipo: "tienda" | "almacen" | "taller";
+  /** Si quien mira es una cuenta terminal (ADR-0160). La de ventas nunca llega acá (aterriza en el Punto de Venta). */
+  terminal?: TipoTerminal | null;
 };
 
 // ── «Hoy» ────────────────────────────────────────────────────────────────────────────────────────
 
-/** Solo las tiendas venden: en un almacén o en el Taller no hay «ventas de hoy» que mostrar. */
-export function mostrarHoy(perfil: Pick<PerfilInicio, "ubicacionTipo">): boolean {
-  return perfil.ubicacionTipo === "tienda";
+/** Solo las tiendas venden: en un almacén o en el Taller no hay «ventas de hoy» que mostrar. Tampoco la terminal
+ *  administrativa: no vende (su menú no tiene Ventas), así que un «Tu día» de ventas no le dice nada. */
+export function mostrarHoy(perfil: Pick<PerfilInicio, "ubicacionTipo" | "terminal">): boolean {
+  return perfil.ubicacionTipo === "tienda" && perfil.terminal !== "administrativa";
 }
 
 const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"] as const;
@@ -130,6 +134,10 @@ export function accesosInicio(perfil: PerfilInicio, cajaAbierta: boolean | null)
   }
   if (perfil.ubicacionTipo === "almacen") {
     return [{ ...recibir, principal: true }, { href: "/inventario", etiqueta: "Inventario", detalle: "Stock por ubicación", principal: false }, buscar];
+  }
+  // La terminal administrativa no tiene Ventas en el menú: su casa es el inventario, no el mostrador (ADR-0160).
+  if (perfil.terminal === "administrativa") {
+    return [{ href: "/inventario", etiqueta: "Inventario", detalle: "Stock por ubicación", principal: true }, recibir, buscar];
   }
   const vender: Acceso = { href: "/vender", etiqueta: "Vender", detalle: "Punto de venta", principal: true };
   if (perfil.rol === "lider") {

@@ -1,4 +1,4 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { traducirError } from "@/lib/error-escritura";
 
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 // base es quien de verdad lo hace cumplir).
 export async function PATCH(request: Request) {
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") {
+  if (!puede(persona, "editarCatalogo")) {
     return Response.json({ error: "Solo un Líder puede editar el vocabulario de tejidos." }, { status: 403 });
   }
 

@@ -25,14 +25,14 @@ export function TrasladoDetallePanel({
   traslado: t,
   esDestino,
   ahoraIso,
-  esLider,
+  puedeCerrarDiferencia,
   catalogo,
 }: {
   traslado: TrasladoDetalle;
   esDestino: boolean;
   /** El «ahora» fijado por el servidor (mismo criterio que la lista: el HTML del servidor y el del navegador no difieren). */
   ahoraIso: string;
-  esLider: boolean;
+  puedeCerrarDiferencia: boolean;
   catalogo: VarianteBusqueda[];
 }) {
   const router = useRouter();
@@ -49,7 +49,7 @@ export function TrasladoDetallePanel({
   // El estado se dice con las mismas palabras que la lista de Traslados («Requiere confirmación», «En camino»…):
   // la misma cosa con dos nombres, según la pantalla, es lo que hace dudar. Quien mira es el destino o, si no,
   // se lee desde el origen.
-  const situacion = situacionTraslado(t, { miUbicacionId: esDestino ? t.ubicacionDestinoId : t.ubicacionOrigenId, esLider, ahoraIso });
+  const situacion = situacionTraslado(t, { miUbicacionId: esDestino ? t.ubicacionDestinoId : t.ubicacionOrigenId, puedeCerrarDiferencia, ahoraIso });
   const puedeEditar = esDestino && (t.estado === "en_transito" || t.estado === "recibido_con_diferencia");
   const yaEnLineas = new Set(t.lineas.map((l) => l.varianteId));
   const coincidencias = useMemo(() => {
@@ -231,7 +231,7 @@ export function TrasladoDetallePanel({
       )}
 
       {t.estado === "recibido_con_diferencia" && (
-        esLider ? (
+        puedeCerrarDiferencia ? (
           <div className="card-cayla space-y-3 p-5">
             <p className="text-sm text-tinta/75">Lo recibido no coincide con lo enviado — como líder, puedes cerrarlo así.</p>
             <textarea

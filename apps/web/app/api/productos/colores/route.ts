@@ -1,4 +1,4 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { traducirError } from "@/lib/error-escritura";
 
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
 // candado de nombre único ya evita del otro lado (principio 2).
 export async function PATCH(request: Request) {
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") {
+  if (!puede(persona, "editarCatalogo")) {
     return Response.json({ error: "Solo un Líder puede editar el vocabulario de colores." }, { status: 403 });
   }
 
