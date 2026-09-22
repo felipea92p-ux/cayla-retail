@@ -8,6 +8,9 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { NuevaMarcaForm, type MarcaGuardada } from "@/components/alta-producto/NuevaMarcaForm";
 import type { ProveedorOpcion } from "@/lib/marcas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 /**
  * Marcas del catálogo y sus proveedores (ADR-0109, `retail.marcas` +
@@ -23,6 +26,11 @@ import type { ProveedorOpcion } from "@/lib/marcas";
  * Una pareja marca↔proveedor NO se quita desde aquí: la llave compuesta de
  * `productos` la protege mientras haya productos, y quitarla sin productos
  * tampoco ayuda a nadie — nunca se borra en catálogos con historial.
+ *
+ * Responsable (ADR-0161): renombrar y desactivar/reactivar firman con UN combo
+ * de la lista (arriba, junto a «+ Nueva marca»; el mismo se repite dentro del
+ * modal de renombrar). Cada guardado exitoso lo vacía. Crear usa el combo propio
+ * de `NuevaMarcaForm`.
  */
 
 export type MarcaFila = {
@@ -50,6 +58,7 @@ export function MarcasLista({
   const [modo, setModo] = useState<Modo | null>(null);
   const [nombreNuevo, setNombreNuevo] = useState("");
   const [trabajando, setTrabajando] = useState<string | null>(null);
+  const responsable = useResponsable();
 
   const activas = marcas.filter((m) => m.activo);
   const desactivadas = marcas.filter((m) => !m.activo);
@@ -71,9 +80,11 @@ export function MarcasLista({
   async function renombrar(m: MarcaFila) {
     const nombre = nombreNuevo.trim();
     if (!nombre) return avisar.error("Escribe el nombre de la marca.");
+    if (!responsable.listo) return avisar.error(responsable.motivo ?? "Elige quién hace esta operación.");
     setTrabajando(m.id);
-    const { error } = await createClient().from("marcas").update({ nombre }).eq("id", m.id);
+    const { error } = await firmar(createClient().from("marcas").update({ nombre }).eq("id", m.id), responsable.firma());
     setTrabajando(null);
+    responsable.despues(error);
     if (error) return avisar.error(traducirError(error, "renombrar la marca"));
     setMarcas((prev) => prev.map((x) => (x.id === m.id ? { ...x, nombre } : x)).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")));
     avisar.exito(`Marca renombrada a ${nombre}`);
@@ -81,9 +92,11 @@ export function MarcasLista({
   }
 
   async function cambiarEstado(m: MarcaFila) {
+    if (!responsable.listo) return avisar.error(responsable.motivo ?? "Elige quién hace esta operación.");
     setTrabajando(m.id);
-    const { error } = await createClient().from("marcas").update({ activo: !m.activo }).eq("id", m.id);
+    const { error } = await firmar(createClient().from("marcas").update({ activo: !m.activo }).eq("id", m.id), responsable.firma());
     setTrabajando(null);
+    responsable.despues(error);
     if (error) return avisar.error(traducirError(error, m.activo ? "desactivar la marca" : "reactivar la marca"));
     setMarcas((prev) => prev.map((x) => (x.id === m.id ? { ...x, activo: !x.activo } : x)));
     avisar.exito(m.activo ? `${m.nombre} desactivada` : `${m.nombre} reactivada`);
@@ -97,6 +110,9 @@ export function MarcasLista({
         </p>
         {puedeEditar && <Boton onClick={() => setModo({ tipo: "nueva" })}>+ Nueva marca</Boton>}
       </div>
+
+      {/* Firma renombrar y desactivar/reactivar de esta lista (ADR-0161). */}
+      {puedeEditar && marcas.length > 0 && <ComboResponsable control={responsable} deshabilitado={trabajando !== null} className="max-w-sm" />}
 
       {modo?.tipo === "nueva" && (
         <NuevaMarcaForm proveedores={proveedores} nombreExistente={(n) => marcas.find((m) => m.nombre.toLowerCase() === n.toLowerCase())?.nombre} onGuardado={alGuardar} onCancelar={() => setModo(null)} />
@@ -127,7 +143,8 @@ export function MarcasLista({
                   <button
                     type="button"
                     onClick={() => void cambiarEstado(m)}
-                    disabled={trabajando === m.id}
+                    disabled={trabajando === m.id || !responsable.listo}
+                    title={responsable.motivo ?? undefined}
                     className="label-cayla text-[11px] text-tinta/60 underline underline-offset-4 hover:text-rojo disabled:opacity-40"
                   >
                     Desactivar
@@ -183,7 +200,8 @@ export function MarcasLista({
                   <button
                     type="button"
                     onClick={() => void cambiarEstado(m)}
-                    disabled={trabajando === m.id}
+                    disabled={trabajando === m.id || !responsable.listo}
+                    title={responsable.motivo ?? undefined}
                     className="label-cayla text-[10.5px] underline underline-offset-4 hover:text-rojo disabled:opacity-40"
                   >
                     Reactivar
@@ -201,8 +219,9 @@ export function MarcasLista({
             <div className="mt-4 space-y-4">
               <CampoTexto etiqueta="Nombre de la marca" value={nombreNuevo} onChange={(e) => setNombreNuevo(e.target.value)} autoFocus />
               <p className="text-xs text-tinta/60">Cambia en todos los productos de la marca a la vez: ninguno guarda el texto, todos apuntan a la marca.</p>
+              <ComboResponsable control={responsable} deshabilitado={trabajando === modo.marca.id} />
               <div className="flex gap-2">
-                <Boton onClick={() => void renombrar(modo.marca)} disabled={trabajando === modo.marca.id}>
+                <Boton onClick={() => void renombrar(modo.marca)} disabled={trabajando === modo.marca.id || !responsable.listo} title={responsable.motivo ?? undefined}>
                   Guardar
                 </Boton>
                 <button type="button" onClick={cerrar} className="label-cayla text-[11px] text-tinta/60 hover:text-tinta">

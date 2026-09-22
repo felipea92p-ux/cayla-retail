@@ -4,6 +4,8 @@ import { useState, type ReactNode } from "react";
 import { Search, X } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { avisar } from "@/components/ui/Avisos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto, Hilo } from "@/components/ui/campos";
@@ -85,6 +87,9 @@ function TarjetaTalla({ t, apagada = false, children }: { t: Talla; apagada?: bo
 }
 
 export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales: Talla[]; puedeEditar: boolean }) {
+  // Cambiar el vocabulario es Catálogo, operación de tienda (ADR-0161): UN combo «Responsable» firma todo lo que se
+  // guarda desde esta lista (bajo los filtros; el mismo se repite en cada modal) y cada guardado exitoso lo vacía.
+  const responsable = useResponsable();
   const [tallas, setTallas] = useState(() => ordenar(tallasIniciales));
   const [agregando, setAgregando] = useState(false);
   const [valor, setValor] = useState("");
@@ -126,7 +131,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
     try {
       const res = await fetch("/api/productos/tallas", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ valor }),
       });
       const datos = await res.json();
@@ -137,6 +142,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
       setTallas((actual) =>
         ordenar([...actual, { id: datos.talla.id, valor: datos.talla.valor, activo: true, notas: datos.talla.notas, estado: datos.talla.estado }])
       );
+      responsable.despues(null);
       avisar.exito(
         datos.talla.estado === "pendiente" ? `${datos.talla.valor} agregada — ya la puedes usar` : `Talla ${datos.talla.valor} agregada`,
         datos.talla.estado === "pendiente" ? { detalle: "Queda pendiente de que un Líder la apruebe, pero eso no te frena." } : undefined
@@ -158,7 +164,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
     try {
       const res = await fetch("/api/productos/tallas", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ id: t.id, estado: "aprobado", notas: comentarioAprobar.trim() }),
       });
       const datos = await res.json();
@@ -167,6 +173,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
         return;
       }
       setTallas((actual) => ordenar(actual.map((x) => (x.id === t.id ? { ...x, estado: "aprobado" as const, activo: true, notas: datos.talla.notas } : x))));
+      responsable.despues(null);
       avisar.exito(`${t.valor} aprobada`);
       setAprobandoAbierto(null);
       setComentarioAprobar("");
@@ -182,7 +189,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
     try {
       const res = await fetch("/api/productos/tallas", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ id: t.id, estado: "rechazado", ...(motivoRechazo.trim() ? { notas: motivoRechazo.trim() } : {}) }),
       });
       const datos = await res.json();
@@ -191,6 +198,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
         return;
       }
       setTallas((actual) => ordenar(actual.map((x) => (x.id === t.id ? { ...x, activo: false, estado: "rechazado" as const } : x))));
+      responsable.despues(null);
       avisar.exito(`${t.valor} rechazada`, { detalle: "Cae a Desactivadas. Se puede reactivar después si hace falta." });
       setRechazandoAbierto(null);
       setMotivoRechazo("");
@@ -213,7 +221,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
     try {
       const res = await fetch("/api/productos/tallas", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ id: t.id, activo: false }),
       });
       const datos = await res.json();
@@ -222,6 +230,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
         return;
       }
       setTallas((actual) => ordenar(actual.map((x) => (x.id === t.id ? { ...x, activo: false } : x))));
+      responsable.despues(null);
       avisar.exito(`${t.valor} desactivada`, { detalle: "Deja de aparecer al elegir talla en una prenda nueva; el historial se conserva." });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -287,6 +296,9 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
         </div>
       </div>
 
+      {/* Firma «Desactivar» de las tarjetas (ADR-0161); aprobar, rechazar y reactivar lo piden en su modal. */}
+      {puedeEditar && <ComboResponsable control={responsable} deshabilitado={cambiandoId !== null} hacia="abajo" className="max-w-xs" />}
+
       {hayFiltros && activosVisibles.length + desactivadosVisibles.length === 0 && (
         <div className="card-cayla flex flex-col items-center gap-3 px-6 py-12 text-center">
           <p className="text-sm text-tinta/75">
@@ -348,7 +360,8 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
                         <div className="flex items-center justify-end">
                           <button
                             type="button"
-                            disabled={cambiandoId === t.id}
+                            disabled={cambiandoId === t.id || !responsable.listo}
+                            title={responsable.motivo ?? undefined}
                             onClick={() => desactivar(t)}
                             className="label-cayla text-[10px] text-tinta/55 underline-offset-4 opacity-0 transition-[opacity,color] duration-200 hover:text-tinta hover:underline focus:opacity-100 disabled:opacity-50 group-hover/etq:opacity-100 [@media(hover:none)]:opacity-100"
                           >
@@ -389,11 +402,12 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Valor de la talla" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Ej. M, 38, XSS" autoFocus />
+              <ComboResponsable control={responsable} deshabilitado={guardando} />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
                   Cancelar
                 </Boton>
-                <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!valor.trim()}>
+                <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!valor.trim() || !responsable.listo} title={responsable.motivo ?? undefined}>
                   Guardar
                 </Boton>
               </div>
@@ -412,6 +426,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Comentario (obligatorio)" value={comentarioAprobar} onChange={(e) => setComentarioAprobar(e.target.value)} autoFocus />
+              <ComboResponsable control={responsable} deshabilitado={aprobandoId === aprobandoTalla.id} />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={aprobandoId === aprobandoTalla.id}>
                   Cancelar
@@ -420,7 +435,8 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
                   peso="primario"
                   className="flex-1"
                   cargando={aprobandoId === aprobandoTalla.id}
-                  disabled={!comentarioAprobar.trim()}
+                  disabled={!comentarioAprobar.trim() || !responsable.listo}
+                  title={responsable.motivo ?? undefined}
                   onClick={() => aprobar(aprobandoTalla)}
                 >
                   Confirmar aprobación
@@ -436,6 +452,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
+              <ComboResponsable control={responsable} deshabilitado={rechazandoId === rechazandoTalla.id} />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoId === rechazandoTalla.id}>
                   Cancelar
@@ -444,6 +461,8 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
                   peso="primario"
                   className="flex-1"
                   cargando={rechazandoId === rechazandoTalla.id}
+                  disabled={!responsable.listo}
+                  title={responsable.motivo ?? undefined}
                   onClick={() => rechazar(rechazandoTalla)}
                 >
                   Confirmar rechazo

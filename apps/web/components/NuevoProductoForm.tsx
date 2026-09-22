@@ -18,6 +18,9 @@ import { ProponerValor } from "@/components/alta-producto/ProponerValor";
 import { AvisoInline, Bloque, ChipOpcion } from "@/components/alta-producto/piezas";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { useParecidos } from "@/lib/use-parecidos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 import { compararTallas } from "@/lib/tallas";
 import {
   codigoBasePrevisto,
@@ -89,6 +92,9 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   const [overridePrecio, setOverridePrecio] = useState<Record<string, string>>({});
   const [etiquetasElegidas, setEtiquetasElegidas] = useState<string[]>([]);
   const [cargando, setCargando] = useState(false);
+  // Crear una prenda es Catálogo, operación de tienda (ADR-0161): firma quien está de turno. Los guardados que se hacen
+  // A MITAD del formulario (marca nueva, talla nueva, configurar la categoría) llevan su propio combo: son otra operación.
+  const responsable = useResponsable();
   const [creado, setCreado] = useState<ResumenCreado | null>(null);
   /** Nombre del producto del que se copió al elegir «crear otro parecido»: se muestra hasta el próximo guardado. */
   const [copiadoDe, setCopiadoDe] = useState<string | null>(null);
@@ -242,6 +248,10 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
       avisar.error(problemas[0]?.texto ?? "Falta completar el formulario.");
       return;
     }
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     const costo = costoBase.trim() === "" ? 0 : costoNum;
     const variantes = celdasIncluidas.map((c) => {
       const o = overridePrecio[c.clave];
@@ -254,7 +264,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     }
 
     setCargando(true);
-    const { data: productoId, error } = await createClient().rpc("crear_producto_con_variantes", {
+    const { data: productoId, error } = await firmar(createClient().rpc("crear_producto_con_variantes", {
       p_referencia: nombreFinal,
       p_categoria_id: categoriaId,
       p_variantes: variantes,
@@ -266,8 +276,9 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
       p_etiqueta_ids: etiquetasAManda.length > 0 ? etiquetasAManda : undefined,
       p_marca_id: marcaId,
       p_proveedor_id: proveedorId,
-    });
+    }), responsable.firma());
     setCargando(false);
+    responsable.despues(error);
 
     if (error || !productoId) {
       const lectura = leerErrorAlta(error);
@@ -770,13 +781,15 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
           </div>
         )}
 
+        <ComboResponsable control={responsable} deshabilitado={cargando} />
         <div className="flex gap-2 pt-1">
           <button type="button" onClick={() => router.push("/productos")} className={botonCancelar}>
             Cancelar
           </button>
           <button
             type="submit"
-            disabled={!puedeGuardar}
+            disabled={!puedeGuardar || !responsable.listo}
+            title={responsable.motivo ?? undefined}
             className="label-cayla rounded-md flex-1 bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-40"
           >
             {cargando ? "Creando…" : "Crear producto"}

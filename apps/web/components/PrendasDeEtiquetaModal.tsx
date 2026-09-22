@@ -7,6 +7,9 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
 import { prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
 import {
@@ -67,6 +70,9 @@ export function PrendasDeEtiquetaModal({
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
   const [confirmando, setConfirmando] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  // Etiquetar prendas es Catálogo (ADR-0161): el combo va encima del botón que guarda — «Sí, aplicar» si hay
+  // pantalla de confirmación, «Aplicar» si no.
+  const responsable = useResponsable();
 
   const porCategoria = useMemo(() => new Set(etiqueta.categoriaIds), [etiqueta.categoriaIds]);
 
@@ -140,11 +146,16 @@ export function PrendasDeEtiquetaModal({
     : [];
 
   async function aplicar() {
+    if (!responsable.listo) return;
     setGuardando(true);
     try {
-      const { data, error } = await createClient().rpc("etiquetar_variantes", {
-        p_cambios: [{ etiqueta_id: etiqueta.id, agregar: cambio.agregar, quitar: cambio.quitar }],
-      });
+      const { data, error } = await firmar(
+        createClient().rpc("etiquetar_variantes", {
+          p_cambios: [{ etiqueta_id: etiqueta.id, agregar: cambio.agregar, quitar: cambio.quitar }],
+        }),
+        responsable.firma(),
+      );
+      responsable.despues(error);
       if (error) {
         avisar.error(traducirError(error, "etiquetar las prendas"));
         setConfirmando(false);
@@ -186,11 +197,12 @@ export function PrendasDeEtiquetaModal({
               )}
               {cambio.quitar.length > 0 && <p className="mt-2 text-xs text-tinta/65">Además liberarás {cambio.quitar.length} {cambio.quitar.length === 1 ? "prenda" : "prendas"}.</p>}
             </div>
+            <ComboResponsable control={responsable} deshabilitado={guardando} />
             <div className="flex gap-2">
               <Boton peso="fantasma" className="flex-1" onClick={() => setConfirmando(false)} disabled={guardando}>
                 Volver
               </Boton>
-              <Boton peso="primario" className="flex-1" onClick={aplicar} cargando={guardando}>
+              <Boton peso="primario" className="flex-1" onClick={aplicar} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
                 Sí, aplicar
               </Boton>
             </div>
@@ -300,6 +312,7 @@ export function PrendasDeEtiquetaModal({
 
             <div className="space-y-3 border-t border-tinta/10 pt-4">
               <p className="text-sm text-tinta/75" aria-live="polite">{textoCambio(cambio, productos)}</p>
+              {!vista && hayCambio && <ComboResponsable control={responsable} deshabilitado={guardando} />}
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
                   Cancelar
@@ -307,7 +320,8 @@ export function PrendasDeEtiquetaModal({
                 <Boton
                   peso="primario"
                   className="flex-1"
-                  disabled={!hayCambio || carga.estado !== "listo"}
+                  disabled={!hayCambio || carga.estado !== "listo" || (!vista && !responsable.listo)}
+                  title={!vista ? (responsable.motivo ?? undefined) : undefined}
                   cargando={guardando}
                   onClick={() => (vista ? setConfirmando(true) : aplicar())}
                 >

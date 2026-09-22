@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import type { ProveedorOpcion } from "@/lib/marcas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // El formulario de "Nueva marca con su proveedor" (ADR-0109): lo usan el
 // selector de Nuevo producto/censo/edición Y la pantalla Catálogo → Marcas —
@@ -18,6 +21,13 @@ import type { ProveedorOpcion } from "@/lib/marcas";
 // Si la 2 falla tras registrar el proveedor, el proveedor YA existe: el formulario
 // pasa solo a «un proveedor que ya tengo» con ese elegido, así reintentar NO lo
 // registra otra vez (registrar_proveedor no es idempotente: crearía un duplicado).
+//
+// Responsable (ADR-0161): crear una marca es Catálogo (operación de tienda), así
+// que el formulario lleva su propio combo — es un guardado aparte del producto
+// que se está dando de alta. `registrar_proveedor` es de Compras, que firma con la
+// sesión; aquí se firma igual porque es parte del MISMO gesto de Catálogo, y el
+// encabezado solo lo lee la función que lo pide (a las demás no les cambia nada).
+// Si la 2 falla, el combo NO se vacía: el reintento es el mismo gesto.
 
 export type MarcaGuardada = {
   marcaId: string;
@@ -58,9 +68,11 @@ export function NuevaMarcaForm({
   const [provRuc, setProvRuc] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const responsable = useResponsable();
 
   async function guardar() {
     if (guardando) return;
+    if (!responsable.listo) return setError(responsable.motivo);
     const nombre = nombreMarca.trim();
     if (!nombre) return setError("Escribe el nombre de la marca.");
     if (modo === "existente" && !proveedorId) return setError("Elige el proveedor que la trae.");
@@ -73,12 +85,16 @@ export function NuevaMarcaForm({
     let provId = proveedorId;
     const eraNuevo = modo === "nuevo";
     if (eraNuevo) {
-      const { data, error: errProv } = await supabase.rpc("registrar_proveedor", {
-        p_nombre: provNombre.trim(),
-        p_ruc: provRuc.trim() || undefined,
-      });
+      const { data, error: errProv } = await firmar(
+        supabase.rpc("registrar_proveedor", {
+          p_nombre: provNombre.trim(),
+          p_ruc: provRuc.trim() || undefined,
+        }),
+        responsable.firma(),
+      );
       if (errProv || !data) {
         setGuardando(false);
+        responsable.despues(errProv);
         return setError(traducirError(errProv, "registrar el proveedor"));
       }
       provId = data;
@@ -87,8 +103,12 @@ export function NuevaMarcaForm({
       setProveedorId(data);
     }
 
-    const { data: marcaId, error: errMarca } = await supabase.rpc("crear_marca", { p_nombre: nombre, p_proveedor_id: provId });
+    const { data: marcaId, error: errMarca } = await firmar(
+      supabase.rpc("crear_marca", { p_nombre: nombre, p_proveedor_id: provId }),
+      responsable.firma(),
+    );
     setGuardando(false);
+    responsable.despues(errMarca);
     if (errMarca || !marcaId) {
       return setError(
         eraNuevo
@@ -194,11 +214,13 @@ export function NuevaMarcaForm({
           {error}
         </p>
       )}
+      <ComboResponsable control={responsable} deshabilitado={guardando} />
       <div className="flex gap-2">
         <button
           type="button"
           onClick={() => void guardar()}
-          disabled={guardando}
+          disabled={guardando || !responsable.listo}
+          title={responsable.motivo ?? undefined}
           className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-40"
         >
           {guardando ? "Guardando…" : "Guardar y usar"}
