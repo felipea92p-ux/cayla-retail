@@ -58,9 +58,10 @@ p_cliente_num_doc, p_vence_at, p_nota)`. La base:
 - **calcula ella** subtotal, IGV y total: `total = Σ (precio − descuento) × cantidad`,
   `igv = round(total − total/1.18, 2)`, `subtotal = total − igv`. Ya no los manda la pantalla.
 
-Los topes de descuento por rol (20 % / 35 % con argumento / nunca bajo costo) **no** se duplican en la
-proforma: el candado real es `registrar_venta` al cobrar. La pantalla de la proforma aplica los mismos topes
-para no prometer algo que después no se pueda cobrar.
+**Tope de descuento en la proforma: 20 % por línea** (base y pantalla). Es la banda que no pide argumento
+escrito en el Punto de Venta; lo que pase de ahí lo decide un líder al cobrar. Los topes por rol y el
+«nunca bajo costo» los sigue haciendo cumplir `registrar_venta` al cobrar (ajuste del 2026-09-22 al escribir
+el plan: guardar el argumento en la proforma para reusarlo al cobrar saltaría el candado).
 
 **`marcar_proforma_cobrada(p_proforma_id, p_venta_id)`** (nueva): exige proforma `vigente`, venta existente
 no anulada de la misma tienda; deja `estado = 'convertida'`, `venta_id`. Idempotente si ya está convertida
@@ -79,12 +80,14 @@ anterior», sin Cobrar, Duplicar ni Ver/imprimir. Hoy es una sola, de prueba.
 
 ## Pantalla
 
-**Nueva proforma** (`NuevaProformaModal`, más ancha):
+**Nueva proforma** (`NuevaProformaModal`, más ancha). Deja de vivir en `FacturacionShell`: su único botón
+está en la pestaña Proformas y necesita el catálogo, que solo esa pestaña lee. Se va con él el contexto
+`useFacturacionAcciones` y la prueba de `facturacion-puerta.test.ts` pasa a exigir que no quede en el shell.
 
-- buscador del Punto de Venta (`filtrarPrendasV2` / `resolverCodigoV2`: referencia, SKU o escáner) y
-  elección de talla (`ElegirTallaModal`);
+- buscador del Punto de Venta (`filtrarPrendasV2` / `resolverCodigoV2`: referencia, SKU o escáner); cada
+  resultado ya es una talla y un color, sin modal de talla aparte;
 - una fila por prenda: foto, descripción, cantidad (+/−), precio de etiqueta, descuento opcional (motivo de
-  `RAZONES_DESCUENTO`, mismos topes del Punto de Venta), importe, quitar;
+  `RAZONES_DESCUENTO`, hasta 20 %), importe, quitar;
 - clienta (nombre y DNI/RUC con `ConsultaDocumento`), validez en días (7 por defecto), nota;
 - subtotal, IGV y total que se suman solos (`lib/proformas-reglas.ts`, puro y probado).
 - El catálogo sale de la misma lectura de Vender (`getCatalogo`); la tienda es la de la persona (el líder
