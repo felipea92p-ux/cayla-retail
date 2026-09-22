@@ -136,6 +136,9 @@ Solo cambia de dónde sacan su respuesta `fn_es_terminal(tipo)` y `fn_mi_termina
 - **Descuentos desde la terminal: sin tope y sin autorización.** El tope sigue siendo de la CUENTA (una persona con su
   propia cuenta conserva su tope de D-67); la terminal no tiene tope (`NULL`, como un líder). No se toma el tope del
   responsable, porque sin PIN cualquiera podría elegir a quien más tope tiene.
+- **Descuento a mano sobre una prenda (el que usa el Punto de venta): la terminal PIDE CÓDIGO de descuento**, igual
+  que una colaboradora (`venta_descuento_requiere_codigo`). El código lo crea una líder y fija hasta cuánto se rebaja:
+  es el único límite en un aparato que usa cualquiera sin PIN. (Felipe, 2026-09-22, opción a.)
 - **Apartados: la terminal libera siempre** (entregar la prenda o soltar un apartado vencido). Una persona con su
   cuenta sigue con la regla de hoy: quien apartó o una líder.
 - **Operaciones de varios pasos** (conteo, recepción de traslado): el combo se vacía al cerrar la operación completa,

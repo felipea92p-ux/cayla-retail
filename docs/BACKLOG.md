@@ -55,7 +55,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] (b) **Roles «ve / no ve» por módulo:** en construcción en otra rama (`claude/roles-por-modulo`), **no está en el PR #285**.
 - [ ] LIM no podrá guardar nada hasta que se cargue su asistencia en Dynamic (decisión A5). En el Postgres local (sin `marcajes`/`jornadas`) todo queda bloqueado igual: es la regla, no un error.
 - [ ] **Decide Felipe:** ¿«Pedidos no atendidos» es operación de tienda (lleva combo)? Hoy no tiene combo; su función ya firma con `fn_actor_persona_id(true)`.
-- [ ] **Decide Felipe:** la terminal descuenta sin tope, pero como no es líder, un descuento manual por línea le sigue exigiendo un código de descuento válido (`venta_descuento_requiere_codigo`, `registrar_venta`). ¿Se deja así o la terminal queda libre del código también?
+- [x] **Decide Felipe:** la terminal descuenta sin tope, pero como no es líder, un descuento manual por línea le sigue exigiendo un código de descuento válido (`venta_descuento_requiere_codigo`, `registrar_venta`). ¿Se deja así o la terminal queda libre del código también? **Decidido (Felipe, 2026-09-22): la terminal pide código, como una colaboradora.**
 - [ ] **Límite conocido:** un Punto de venta abierto SIN conexión desde el inicio no carga la lista del combo y no puede vender sin conexión hasta que la cargue una vez con red.
 - [x] ~~Alinear la fila «Atendió» del ADR-0163 con el ADR-0161~~: hecho en F4b (el combo la reemplaza; vacío siempre y bloqueo).
 
