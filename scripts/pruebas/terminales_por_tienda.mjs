@@ -8,11 +8,13 @@
  *
  * QUÉ PRUEBA. Que los poderes de cada terminal estén EN LA BASE y no solo en el menú, que NADA MÁS se haya abierto,
  * y que cada operación de la terminal quede firmada por una persona presente:
- *   · terminal de VENTAS ........ cierra caja y mueve caja;
- *   · terminal ADMINISTRATIVA ... ajusta stock, cierra conteos y traslados con diferencia, escribe en el Catálogo y
+ *   · terminal con rol «Terminal de ventas» ........ cierra caja y mueve caja;
+ *   · terminal con rol «Terminal administrativa» ... ajusta stock, cierra conteos y traslados con diferencia, escribe en el Catálogo y
  *                                 edita las cuentas bancarias de proveedores;
  *   · lo demás sigue siendo del líder: anular ventas y comprobantes, devoluciones, series, etiquetas con descuento.
- *     Un colaborador común (Micaela) no gana nada, y el líder (Felipe) sigue pasando por todo.
+ *     El líder (Felipe) sigue pasando por todo. Una integrante (Micaela) hace lo de los módulos que ve su rol (B2d,
+ *     Felipe 2026-09-22, `20260923031000`): cierra caja, conteos y traslados y edita el Catálogo; no Proveedores.
+ *   · Sin tipo (`20260923040000`): cada terminal es tienda + nombre + ROL; lo de arriba sale del rol que tiene.
  *   · FIRMA: con `x-responsable` presente, `usuario_id`/`*_por` = el responsable y `terminal_id` = el aparato; sin él
  *     (o con uno ausente), 42501 y no se escribe nada.
  *   · El alta del ADR-0160 (`agregar_terminal`, `colaboradores.terminal`) quedó retirada.
@@ -101,8 +103,9 @@ select id as persona_felipe from public.personas where auth_user_id = '${FELIPE}
 insert into auth.users (id, aud, role, email) values
   ('${T_VENTAS}', 'authenticated', 'authenticated', 'terminal-ventas-tru@prueba.local'),
   ('${T_ADMIN}', 'authenticated', 'authenticated', 'terminal-admin-tru@prueba.local');
-insert into retail.terminales (ubicacion_id, nombre, tipo, auth_user_id) values (:'trujillo', 'Terminal Ventas TRU', 'ventas', '${T_VENTAS}') returning id as t_ventas \\gset
-insert into retail.terminales (ubicacion_id, nombre, tipo, auth_user_id) values (:'trujillo', 'Terminal Administrativa TRU', 'administrativa', '${T_ADMIN}') returning id as t_admin \\gset
+-- Sin tipo (20260923040000): dos aparatos de la MISMA tienda, cada uno con su rol.
+insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id) values (:'trujillo', 'Terminal Ventas TRU', retail.fn_rol_por_clave('terminal_ventas'), '${T_VENTAS}') returning id as t_ventas \\gset
+insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id) values (:'trujillo', 'Terminal Administrativa TRU', retail.fn_rol_por_clave('terminal_administrativa'), '${T_ADMIN}') returning id as t_admin \\gset
 insert into public.personas (id, nombres, apellidos, estado, sede_base_id) values ('${ROSA}', 'Rosa', 'Prueba', 'activo', :'sede_tru');
 insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id) values ('${ROSA}', 'colaborador', :'trujillo');
 insert into public.marcajes (persona_id, sede_id, tipo, timestamp_marca, fecha_jornada)
@@ -135,8 +138,8 @@ function verificar(nombre, res, esperado, { debeFallar = false } = {}) {
 
 const identidad = (uid) =>
   correr(escena(`${cambiaA(uid)}select retail.fn_es_terminal() || '|' || retail.fn_es_terminal('administrativa') || '|' || retail.fn_es_terminal('ventas') || '|' || retail.fn_es_lider() || '|' || coalesce(retail.fn_mi_terminal(), '-');`));
-verificar("identidad: la terminal administrativa", identidad(T_ADMIN), /^true\|true\|false\|false\|administrativa$/);
-verificar("identidad: la terminal de ventas", identidad(T_VENTAS), /^true\|false\|true\|false\|ventas$/);
+verificar("identidad: la terminal administrativa", identidad(T_ADMIN), /^true\|true\|false\|false\|Terminal Administrativa TRU$/);
+verificar("identidad: la terminal de ventas", identidad(T_VENTAS), /^true\|false\|true\|false\|Terminal Ventas TRU$/);
 verificar("identidad: un colaborador común no es terminal", identidad(MICAELA), /^false\|false\|false\|false\|-$/);
 verificar("identidad: el líder no es terminal", identidad(FELIPE), /^false\|false\|false\|true\|-$/);
 verificar(
@@ -247,13 +250,13 @@ const LLAMADA = (sql) => `select pg_temp.intento($q$${sql}$q$);`;
 
 const PUERTAS = [
   // Lo que SE abrió. `pasan` = quiénes, además del líder, cruzan la puerta.
-  { nombre: "cerrar_conteo", previo: FIXTURE_CONTEO, intento: `select pg_temp.intento(format('select retail.cerrar_conteo(%L)', :'conteo'));`, mensaje: /Solo un líder puede cerrar un conteo/, pasan: ["admin"] },
-  { nombre: "cerrar_traslado_con_diferencia", previo: FIXTURE_TRASLADO, intento: `select pg_temp.intento(format('select retail.cerrar_traslado_con_diferencia(%L, ''x'')', :'traslado'));`, mensaje: /Solo un líder puede cerrar un traslado con diferencias/, pasan: ["admin"] },
-  { nombre: "registrar_movimiento_caja (ajuste de efectivo)", previo: FIXTURE_CAJA, intento: `select pg_temp.intento(format('select retail.registrar_movimiento_caja(%L, ''ingreso'', 10, ''ajuste'', null, true)', :'caja'));`, mensaje: /Solo un líder de equipo puede registrar un ajuste de efectivo/, pasan: ["ventas"] },
+  { nombre: "cerrar_conteo", previo: FIXTURE_CONTEO, intento: `select pg_temp.intento(format('select retail.cerrar_conteo(%L)', :'conteo'));`, mensaje: /Solo un líder puede cerrar un conteo/, pasan: ["admin", "micaela"] },
+  { nombre: "cerrar_traslado_con_diferencia", previo: FIXTURE_TRASLADO, intento: `select pg_temp.intento(format('select retail.cerrar_traslado_con_diferencia(%L, ''x'')', :'traslado'));`, mensaje: /Solo un líder puede cerrar un traslado con diferencias/, pasan: ["admin", "micaela"] },
+  { nombre: "registrar_movimiento_caja (ajuste de efectivo)", previo: FIXTURE_CAJA, intento: `select pg_temp.intento(format('select retail.registrar_movimiento_caja(%L, ''ingreso'', 10, ''ajuste'', null, true)', :'caja'));`, mensaje: /Solo un líder de equipo puede registrar un ajuste de efectivo/, pasan: ["ventas", "micaela"] },
   { nombre: "guardar_cuentas_proveedor", previo: "", intento: LLAMADA(`select retail.guardar_cuentas_proveedor(gen_random_uuid(), null, null, null, null)`), mensaje: /Solo un Líder puede editar las cuentas de un proveedor/, pasan: ["admin"] },
-  { nombre: "crear_marca", previo: "", intento: LLAMADA(`select retail.crear_marca('Marca de prueba', gen_random_uuid())`), mensaje: /Solo un Líder puede agregar marcas/, pasan: ["admin"] },
-  { nombre: "desactivar_categoria", previo: "", intento: LLAMADA(`select retail.desactivar_categoria(gen_random_uuid())`), mensaje: /Solo un Líder puede desactivar una categoría/, pasan: ["admin"] },
-  { nombre: "actualizar_categoria_ejes", previo: "", intento: LLAMADA(`select retail.actualizar_categoria_ejes(gen_random_uuid(), '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[])`), mensaje: /Solo un Líder puede editar qué tallas/, pasan: ["admin"] },
+  { nombre: "crear_marca", previo: "", intento: LLAMADA(`select retail.crear_marca('Marca de prueba', gen_random_uuid())`), mensaje: /Solo un Líder puede agregar marcas/, pasan: ["admin", "micaela"] },
+  { nombre: "desactivar_categoria", previo: "", intento: LLAMADA(`select retail.desactivar_categoria(gen_random_uuid())`), mensaje: /Solo un Líder puede desactivar una categoría/, pasan: ["admin", "micaela"] },
+  { nombre: "actualizar_categoria_ejes", previo: "", intento: LLAMADA(`select retail.actualizar_categoria_ejes(gen_random_uuid(), '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[])`), mensaje: /Solo un Líder puede editar qué tallas/, pasan: ["admin", "micaela"] },
   // Lo que NO se abrió y cuyo candado va primero: solo el líder.
   { nombre: "etiquetar_variantes (descuentos)", previo: "", intento: LLAMADA(`select retail.etiquetar_variantes('[]'::jsonb)`), mensaje: /Solo un Líder puede etiquetar prendas/, pasan: [] },
   { nombre: "actualizar_variantes_etiquetas (descuentos)", previo: "", intento: LLAMADA(`select retail.actualizar_variantes_etiquetas('[]'::jsonb)`), mensaje: /Solo un Líder puede aplicar etiquetas a una variante/, pasan: [] },
@@ -310,12 +313,13 @@ const INSERTAR_COLOR = `insert into retail.colores (codigo, nombre) values ('zz9
 verificar("catálogo (política de fila): la terminal administrativa escribe en `marcas`", comoApi(T_ADMIN, INSERTAR_MARCA), /^MARCA TERMINAL DE PRUEBA$/);
 verificar("catálogo (política de fila): el líder escribe en `marcas`", comoApi(FELIPE, INSERTAR_MARCA), /^MARCA TERMINAL DE PRUEBA$/);
 verificar("catálogo (política de fila): la terminal de ventas NO escribe en `marcas`", comoApi(T_VENTAS, INSERTAR_MARCA), /row-level security/, { debeFallar: true });
-verificar("catálogo (política de fila): un colaborador común NO escribe en `marcas`", comoApi(MICAELA, INSERTAR_MARCA), /row-level security/, { debeFallar: true });
+// B2d (Felipe, 2026-09-22): el Integrante ve Productos y Atributos, así que edita el Catálogo (20260923031000).
+verificar("catálogo (política de fila): una integrante (su rol ve Catálogo) escribe en `marcas`", comoApi(MICAELA, INSERTAR_MARCA), /^MARCA TERMINAL DE PRUEBA$/);
 
 verificar("catálogo (disparador): lo que crea la terminal administrativa queda APROBADO, firmado por Rosa", comoApi(T_ADMIN, INSERTAR_COLOR), new RegExp(`^aprobado\\|${ROSA}$`));
 verificar("catálogo (disparador): lo que crea el líder queda APROBADO", comoApi(FELIPE, INSERTAR_COLOR), /^aprobado\|/);
 verificar("catálogo (disparador): lo que propone la terminal de ventas queda PENDIENTE, propuesto por Rosa", comoApi(T_VENTAS, INSERTAR_COLOR), new RegExp(`^pendiente\\|${ROSA}$`));
-verificar("catálogo (disparador): lo que propone un colaborador común queda PENDIENTE", comoApi(MICAELA, INSERTAR_COLOR), /^pendiente\|/);
+verificar("catálogo (disparador): lo que crea una integrante (su rol ve Catálogo) queda APROBADO", comoApi(MICAELA, INSERTAR_COLOR), /^aprobado\|/);
 verificar(
   "catálogo (disparador): la terminal administrativa SIN responsable no escribe",
   comoApi(T_ADMIN, INSERTAR_COLOR, { sinResponsable: true }),

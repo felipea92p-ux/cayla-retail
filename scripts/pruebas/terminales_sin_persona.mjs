@@ -6,7 +6,8 @@
  *   · nunca firme solo: `fn_actor_persona_id()` exige un `x-responsable` PRESENTE en la tienda de la terminal
  *     (en pausa, con salida, sin marcas, o presente en OTRA tienda → rechazado);
  *   · no herede poderes de quien firma: con una líder como responsable, `fn_es_lider()` sigue siendo falso;
- *   · tenga los poderes de su tipo (ADR-0160) y opere solo su tienda;
+ *   · tenga los poderes de su ROL (ya no hay tipo: 20260923040000) y opere solo su tienda;
+ *   · se identifique por tienda + nombre: dos en la misma tienda con distinto rol, nunca dos activas con el mismo nombre;
  *   · quede anotado en `terminal_id` al insertar.
  * Y que una PERSONA siga firmando a su nombre mientras el interruptor `fn_exige_responsable()` esté apagado.
  * Regresión incluida: sin marcas ni jornada, «presente» es FALSO, no NULL (un NULL dejaba el candado abierto).
@@ -32,7 +33,8 @@ const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const i = process.argv.indexOf("--base");
 const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 const EN_SECO = process.argv.includes("--en-seco");
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260923010000_terminales_sin_persona.sql"), "utf8");
+// En seco se carga la ÚLTIMA pieza (sin tipo): la base ya debe tener 20260923010000 y 20260923030000 aplicadas.
+const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260923040000_terminales_sin_tipo.sql"), "utf8");
 
 // Seed local: Felipe (líder) y Micaela (colaboradora de Trujillo). Sus auth_user_id son estos.
 const FELIPE_AUTH = "22222222-2222-4222-8222-000000000001";
@@ -92,9 +94,10 @@ grant select on ids to authenticated;
 insert into auth.users (id, aud, role, email) values
   ('${T_VENTAS_AUTH}', 'authenticated', 'authenticated', 'terminal-ventas-tru@prueba.local'),
   ('${T_ADMIN_AUTH}', 'authenticated', 'authenticated', 'terminal-admin-tru@prueba.local');
-insert into retail.terminales (ubicacion_id, nombre, tipo, auth_user_id)
-  select tru, 'Terminal Ventas TRU', 'ventas', '${T_VENTAS_AUTH}'::uuid from ids
-  union all select tru, 'Terminal Administrativa TRU', 'administrativa', '${T_ADMIN_AUTH}'::uuid from ids;
+-- Sin tipo (20260923040000): lo que ve cada una lo decide su ROL.
+insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id)
+  select tru, 'Terminal Ventas TRU', retail.fn_rol_por_clave('terminal_ventas'), '${T_VENTAS_AUTH}'::uuid from ids
+  union all select tru, 'Terminal Administrativa TRU', retail.fn_rol_por_clave('terminal_administrativa'), '${T_ADMIN_AUTH}'::uuid from ids;
 -- Rosa: integrante de Trujillo, firma pero no tiene cuenta.
 insert into public.personas (id, nombres, apellidos, estado, sede_base_id) select '${ROSA}', 'Rosa', 'Prueba', 'activo', sede_tru from ids;
 insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id) select '${ROSA}', 'colaborador', tru from ids;
@@ -202,12 +205,12 @@ caso(
 caso(
   "terminal de ventas: caja sí; inventario, catálogo y descuento por etiqueta no",
   como(T_VENTAS_AUTH) + `select concat_ws(',', fn_puede_gestionar_caja(), fn_puede_ajustar_inventario(), fn_puede_editar_catalogo(), fn_puede_dar_descuento_por_etiqueta(), fn_es_terminal('ventas'), fn_mi_terminal());`,
-  "t,f,f,f,t,ventas"
+  "t,f,f,f,t,Terminal Ventas TRU"
 );
 caso(
   "terminal administrativa: inventario, catálogo y cuentas de proveedor sí; caja no",
   como(T_ADMIN_AUTH) + `select concat_ws(',', fn_puede_gestionar_caja(), fn_puede_ajustar_inventario(), fn_puede_editar_catalogo(), fn_puede_editar_cuentas_proveedor(), fn_mi_terminal());`,
-  "f,t,t,t,administrativa"
+  "f,t,t,t,Terminal Administrativa TRU"
 );
 caso(
   "la terminal opera su tienda y ninguna otra",
@@ -278,12 +281,12 @@ caso(
   "false\ntrue"
 );
 caso(
-  "no se reactiva si la tienda ya tiene otra de ese tipo activa",
+  "no se reactiva si otra ACTIVA de la tienda ya usa su nombre",
   `update retail.terminales set activo = false where auth_user_id = '${T_VENTAS_AUTH}';
    insert into auth.users (id, aud, role, email) values ('33333333-3333-4333-8333-0000000000a3', 'authenticated', 'authenticated', 'nueva@prueba.local');
-   insert into retail.terminales (ubicacion_id, nombre, tipo, auth_user_id) select tru, 'Terminal Ventas TRU 2', 'ventas', '33333333-3333-4333-8333-0000000000a3'::uuid from ids;\n` +
+   insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id) select tru, 'terminal ventas tru', retail.fn_rol_por_clave('terminal_ventas'), '33333333-3333-4333-8333-0000000000a3'::uuid from ids;\n` +
     como(FELIPE_AUTH) + `select pg_temp.intento(format('select retail.reactivar_terminal(%L)', id)) from retail.terminales where auth_user_id = '${T_VENTAS_AUTH}';`,
-  (s) => s.includes("ya tiene una terminal de ventas activa")
+  (s) => s.startsWith("23505|") && s.includes("ya tiene otra terminal activa")
 );
 caso(
   "una colaboradora no desactiva",
@@ -301,8 +304,73 @@ caso("colaboradores.terminal queda retirada", `select pg_temp.intento('update re
 caso("agregar_terminal explica el camino nuevo", como(FELIPE_AUTH) + `select pg_temp.intento('select retail.agregar_terminal(null, null, ''ventas'')');`, (s) => s.startsWith("0A000|"));
 caso(
   "candado de Dynamic: no hay terminal activa sin cuenta",
-  `select pg_temp.intento($$insert into retail.terminales (ubicacion_id, nombre, tipo, auth_user_id, activo) select lim, 'X', 'ventas', null, true from ids$$);`,
+  `select pg_temp.intento($$insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id, activo) select lim, 'X', retail.fn_rol_por_clave('terminal_ventas'), null, true from ids$$);`,
   (s) => s.startsWith("23514|")
+);
+
+
+// ---------------- Sin tipo: tienda + nombre + rol (20260923040000) ----------------
+const OTRA_AUTH = "33333333-3333-4333-8333-0000000000a4";
+const otraCuenta = `insert into auth.users (id, aud, role, email) values ('${OTRA_AUTH}', 'authenticated', 'authenticated', 'otra@prueba.local');\n`;
+const alta = (nombre, rol, extra = "") =>
+  `select pg_temp.intento(format($q$insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id${extra ? ", tipo" : ""}) values (%L, %L, %s, %L${extra ? ", " + extra : ""})$q$, tru, ${nombre}, ${rol}, '${OTRA_AUTH}')) from ids;`;
+caso(
+  "dos terminales en la MISMA tienda con distinto rol: las dos activas",
+  otraCuenta + alta(`'Terminal Caja 2 TRU'`, `'retail.fn_rol_por_clave(''terminal_administrativa'')'`) + `\nselect count(*) from retail.terminales where ubicacion_id = (select tru from ids) and activo;`,
+  "SIN_ERROR\n3"
+);
+caso(
+  "nombre repetido entre activas de la misma tienda (sin importar mayúsculas ni espacios) → rechazado",
+  otraCuenta + alta(`'  terminal VENTAS tru '`, `'retail.fn_rol_por_clave(''terminal_ventas'')'`),
+  (s) => s.startsWith("23505|")
+);
+caso(
+  "el mismo nombre en OTRA tienda sí entra",
+  otraCuenta + `select pg_temp.intento(format($q$insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id) values (%L, 'Terminal Ventas TRU', retail.fn_rol_por_clave('terminal_ventas'), '${OTRA_AUTH}')$q$, lim)) from ids;`,
+  "SIN_ERROR"
+);
+caso(
+  "una DESACTIVADA no ocupa el nombre",
+  `update retail.terminales set activo = false where auth_user_id = '${T_VENTAS_AUTH}';\n` + otraCuenta + alta(`'Terminal Ventas TRU'`, `'retail.fn_rol_por_clave(''terminal_ventas'')'`),
+  "SIN_ERROR"
+);
+caso("sin rol ni tipo → rechazada (falla cerrado)", otraCuenta + alta(`'Sin rol'`, `'null'`), (s) => s.startsWith("23502|"));
+caso(
+  "LEGADO: sin rol pero con tipo → el rol de ese tipo, como antes",
+  otraCuenta + alta(`'Legado'`, `'null'`, "'administrativa'") + `\nselect r.clave from retail.terminales t join retail.roles r on r.id = t.rol_id where t.auth_user_id = '${OTRA_AUTH}';`,
+  "SIN_ERROR\nterminal_administrativa"
+);
+caso("el rol Líder no se le da a una terminal", otraCuenta + alta(`'Con líder'`, `'retail.fn_rol_por_clave(''lider'')'`), (s) => s.startsWith("23514|"));
+caso(
+  "un rol ARCHIVADO no se le da a una terminal",
+  `insert into retail.roles (nombre, archivado_at) values ('Rol viejo', now());\n` + otraCuenta +
+    alta(`'Con archivado'`, `'(select id from retail.roles where nombre = ''Rol viejo'')'`),
+  (s) => s.startsWith("23514|") && s.includes("archivado")
+);
+caso(
+  "solo en una tienda ACTIVA: en un almacén se rechaza",
+  otraCuenta + `select pg_temp.intento(format($q$insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id) values (%L, 'En almacén', retail.fn_rol_por_clave('terminal_ventas'), '${OTRA_AUTH}')$q$, (select id from retail.ubicaciones where tipo <> 'tienda' limit 1)));`,
+  (s) => s.startsWith("23514|")
+);
+caso(
+  "PERMISOS POR ROL: una terminal con un rol a medida (Caja + Existencias) cierra caja y ajusta stock, pero no edita el catálogo",
+  `insert into retail.roles (nombre) values ('Caja y stock');
+   insert into retail.rol_modulos (rol_id, modulo) select id, m from retail.roles, unnest(array['caja','existencias']) m where nombre = 'Caja y stock';
+   update retail.terminales set rol_id = (select id from retail.roles where nombre = 'Caja y stock') where auth_user_id = '${T_VENTAS_AUTH}';\n` +
+    como(T_VENTAS_AUTH) +
+    `select concat_ws(',', fn_puede_gestionar_caja(), fn_puede_ajustar_inventario(), fn_puede_editar_catalogo(), fn_ve_modulo('vender'), fn_es_terminal(), fn_es_terminal('ventas'), fn_es_terminal('administrativa'), (select count(*) from fn_mis_modulos()));`,
+  "t,t,f,f,t,f,t,2"
+);
+caso(
+  "fn_terminales(): trae rol y correo, ya no el tipo",
+  como(FELIPE_AUTH) + `select string_agg(nombre || '|' || rol_nombre || '|' || correo, ',' order by nombre) from fn_terminales();`,
+  "Terminal Administrativa TRU|Terminal administrativa|terminal-admin-tru@prueba.local,Terminal Ventas TRU|Terminal de ventas|terminal-ventas-tru@prueba.local"
+);
+caso(
+  "la columna tipo queda como legado: admite vacío y el índice por tipo ya no existe",
+  `select concat_ws(',', (select is_nullable from information_schema.columns where table_schema = 'retail' and table_name = 'terminales' and column_name = 'tipo'),
+     to_regclass('retail.terminales_una_activa_por_tipo_y_tienda') is null, to_regclass('retail.terminales_nombre_unico_activa') is not null);`,
+  "YES,t,t"
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde${fallas ? ` — ${fallas} en rojo` : ""} (base: ${BASE}${EN_SECO ? ", en seco" : ""})`);

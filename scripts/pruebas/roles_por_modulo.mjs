@@ -3,14 +3,16 @@
  * Pruebas de los roles por módulo (ADR-0150 retomado por el ADR-0161 B, migración `20260923030000_roles_por_modulo.sql`).
  *
  * QUÉ PRUEBA
- *   · La siembra: cuatro roles (Líder fijo, Integrante limitado como hoy, las dos terminales) con los módulos de hoy, y
- *     cada cuenta con el rol que le toca.
+ *   · La siembra: cuatro roles (Líder fijo, Integrante, las dos terminales) con los módulos de hoy, y cada cuenta con el
+ *     rol que le toca. Integrante ya NO nace limitado: hace lo de los módulos que ve (B2d, Felipe 2026-09-22, 20260923031000).
  *   · Las reglas: Líder no se edita ni se archiva ni se asigna; Integrante se edita pero no se archiva; un rol con
  *     cuentas no se archiva; solo el líder escribe; los módulos «solo del líder» y «solo líder por ahora» no se delegan;
  *     el historial solo se agrega.
  *   · `fn_ve_modulo` para una persona y para una terminal, y `fn_mis_modulos`.
- *   · EL PUNTO DE ENCHUFE: todas las capacidades `fn_puede_*()` dan HOY exactamente lo mismo que con las definiciones
- *     fijas del ADR-0160 (líder, integrante y las dos terminales). Ninguna capacidad nueva se abre.
+ *   · EL PUNTO DE ENCHUFE: las capacidades `fn_puede_*()` dan al líder y a las dos terminales sembradas lo mismo que las
+ *     definiciones fijas del ADR-0160. La integrante es la ÚNICA que cambia, a propósito (B2d): cierra caja, ajusta stock
+ *     y edita el catálogo porque su rol ve esos módulos; no gana cuentas de proveedor ni etiquetas con descuento.
+ *   · Terminales sin tipo (20260923040000): se crean con tienda + nombre + rol; el tipo es legado.
  *   · Suspender y reactivar conservan el rol.
  *
  * CÓMO. Mismo patrón que `terminales_sin_persona.mjs`: cada escenario en su transacción con ROLLBACK; las terminales y las
@@ -32,7 +34,10 @@ const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const i = process.argv.indexOf("--base");
 const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 const EN_SECO = process.argv.includes("--en-seco");
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260923030000_roles_por_modulo.sql"), "utf8");
+// En seco: la migración de roles y las dos que la ajustan después (B2d y terminales sin tipo), en orden.
+const MIGRACION = ["20260923030000_roles_por_modulo.sql", "20260923031000_integrante_hace_lo_que_ve.sql", "20260923040000_terminales_sin_tipo.sql"]
+  .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
+  .join("\n");
 
 // Seed local: Felipe (líder) y Micaela (colaboradora de Trujillo).
 const FELIPE_AUTH = "22222222-2222-4222-8222-000000000001";
@@ -82,10 +87,10 @@ grant select on ids to authenticated;
 insert into auth.users (id, aud, role, email) values
   ('${T_VENTAS_AUTH}', 'authenticated', 'authenticated', 'terminal-ventas-tru@prueba.local'),
   ('${T_ADMIN_AUTH}', 'authenticated', 'authenticated', 'terminal-admin-tru@prueba.local');
--- Sin rol_id: el disparador les pone el de su tipo (así las crea pnpm terminales:crear).
-insert into retail.terminales (ubicacion_id, nombre, tipo, auth_user_id)
-  select tru, 'Terminal Ventas TRU', 'ventas', '${T_VENTAS_AUTH}'::uuid from ids
-  union all select tru, 'Terminal Administrativa TRU', 'administrativa', '${T_ADMIN_AUTH}'::uuid from ids;
+-- Sin tipo (20260923040000): se crean con su rol, como lo hacen la pantalla y pnpm terminales:crear.
+insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id)
+  select tru, 'Terminal Ventas TRU', r_tv, '${T_VENTAS_AUTH}'::uuid from ids
+  union all select tru, 'Terminal Administrativa TRU', r_ta, '${T_ADMIN_AUTH}'::uuid from ids;
 `;
 
 const como = (auth) => `set local request.jwt.claim.sub = '${auth}';\nset local request.jwt.claims = '{"sub":"${auth}","role":"authenticated"}';\n`;
@@ -122,9 +127,9 @@ caso(
   "analisis,etiquetas,facturas_compra,notas_credito,por_pagar"
 );
 caso(
-  "cuatro roles sembrados: Líder fijo y de sistema, Integrante de sistema y limitado como hoy, las terminales a medida",
+  "cuatro roles sembrados: Líder fijo y de sistema, Integrante de sistema (ya no limitado: B2d), las terminales a medida",
   `select string_agg(concat_ws(':', clave, es_sistema, fijo, limitado_como_hoy), ',' order by clave) from retail.roles where clave is not null;`,
-  "integrante:t:f:t,lider:t:t:f,terminal_administrativa:f:f:f,terminal_ventas:f:f:f"
+  "integrante:t:f:f,lider:t:t:f,terminal_administrativa:f:f:f,terminal_ventas:f:f:f"
 );
 caso("Líder no guarda módulos: ya ve todo", modulosDe("lider"), "");
 caso(
@@ -139,11 +144,11 @@ caso(
   "atributos,conteos,existencias,movimientos,productos,proveedores,recibir,traslados"
 );
 caso(
-  "cada persona tiene el rol de su nivel (líder ⇔ Líder) y cada terminal el de su tipo",
+  "cada persona tiene el rol de su nivel (líder ⇔ Líder) y cada terminal el que se le dio al crearla (sin tipo)",
   `select (select count(*) from retail.colaboradores c where (c.rol = 'lider') <> (c.rol_id = retail.fn_rol_por_clave('lider'))
             or (c.rol = 'colaborador' and c.rol_id is distinct from retail.fn_rol_por_clave('integrante')))
-       || '|' || (select string_agg(t.tipo || ':' || r.clave, ',' order by t.tipo) from retail.terminales t join retail.roles r on r.id = t.rol_id);`,
-  "0|administrativa:terminal_administrativa,ventas:terminal_ventas"
+       || '|' || (select string_agg(coalesce(t.tipo, 'sin tipo') || ':' || r.clave, ',' order by t.nombre) from retail.terminales t join retail.roles r on r.id = t.rol_id);`,
+  "0|sin tipo:terminal_administrativa,sin tipo:terminal_ventas"
 );
 caso(
   "una persona nueva entra como Integrante",
@@ -177,9 +182,9 @@ caso(
   "t,f\nf,t"
 );
 caso(
-  "fn_mis_modulos: 23 completos al líder, 14 limitados a la integrante, 7 y 8 completos a las terminales",
+  "fn_mis_modulos: 23 al líder, 14 a la integrante, 7 y 8 a las terminales; todos completos (B2d)",
   CUENTAS.map(([, a]) => como(a) + `select count(*) || ':' || count(*) filter (where completo) from fn_mis_modulos();`).join("\n"),
-  "23:23\n14:0\n7:7\n8:8"
+  "23:23\n14:14\n7:7\n8:8"
 );
 caso("sin sesión, no ve nada", `select fn_ve_modulo('vender')::text || '|' || (select count(*) from fn_mis_modulos());`, "false|0");
 
@@ -222,12 +227,13 @@ as $$ select fn_es_lider() or fn_es_terminal('administrativa'); $$;
     const filas = r.salida.split("\n");
     const ahora = filas.slice(0, 4);
     antes = filas.slice(4, 8);
-    const distintas = CUENTAS.map(([n], k) => (ahora[k] === antes[k] ? null : `${n}:\n      hoy:     ${antes[k]}\n      ahora:   ${ahora[k]}`)).filter(Boolean);
+    // La integrante se salta A PROPÓSITO: B2d (20260923031000) le da lo de los módulos que ve. Su fila se mira abajo.
+    const distintas = CUENTAS.map(([n], k) => (n === "integrante" || ahora[k] === antes[k] ? null : `${n}:\n      hoy:     ${antes[k]}\n      ahora:   ${ahora[k]}`)).filter(Boolean);
     if (distintas.length) {
       fallas++;
-      console.log(`✗ las capacidades dan lo mismo que con el ADR-0160 para las 4 cuentas\n    ${distintas.join("\n    ")}`);
+      console.log(`✗ las capacidades dan lo mismo que con el ADR-0160 para el líder y las dos terminales\n    ${distintas.join("\n    ")}`);
     } else {
-      console.log(`✓ las capacidades dan lo mismo que con el ADR-0160 para las 4 cuentas (${ahora[0].split(",").length} capacidades)`);
+      console.log(`✓ las capacidades dan lo mismo que con el ADR-0160 para el líder y las dos terminales (${ahora[0].split(",").length} capacidades)`);
     }
   }
 }
@@ -238,11 +244,20 @@ caso(
       como(a) +
       `select concat_ws(',', fn_puede_gestionar_caja(), fn_puede_ajustar_inventario(), fn_puede_editar_catalogo(), fn_puede_editar_cuentas_proveedor(), fn_puede_dar_descuento_por_etiqueta());`
   ).join("\n"),
-  "t,t,t,t,t\nf,f,f,f,f\nt,f,f,f,f\nf,t,t,t,f"
+  "t,t,t,t,t\nt,t,t,f,f\nt,f,f,f,f\nf,t,t,t,f"
 );
 caso(
-  "Integrante limitado: aunque se le encienda Facturación la VE, pero sigue sin cerrar caja ni ajustar stock",
+  "B2d: la integrante hace lo de los módulos que VE — si se le apaga Caja, deja de cerrar caja; con Existencias ajusta stock",
   como(FELIPE_AUTH) +
+    `select guardar_modulos_rol(r_integ, array['vender','existencias']) from ids \\g /dev/null\n` +
+    como(MICAELA_AUTH) +
+    `select concat_ws(',', fn_ve_modulo('caja'), fn_puede_gestionar_caja(), fn_puede_ajustar_inventario(), fn_puede_editar_catalogo());`,
+  "f,f,t,f"
+);
+caso(
+  "un rol `limitado_como_hoy` (queda disponible) VE sus módulos pero no recibe las capacidades de escritura",
+  `update retail.roles set limitado_como_hoy = true where clave = 'integrante';\n` +
+    como(FELIPE_AUTH) +
     `select guardar_modulos_rol(r_integ, array['vender','caja','existencias','facturacion']) from ids \\g /dev/null\n` +
     como(MICAELA_AUTH) +
     `select concat_ws(',', fn_ve_modulo('facturacion'), fn_puede_gestionar_caja(), fn_puede_ajustar_inventario());`,
