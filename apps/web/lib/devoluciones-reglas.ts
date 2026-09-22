@@ -13,17 +13,23 @@ import { DIAS_PLAZO_CAMBIO, estadoPlazoCambio, fechaLimiteCambio, unidadesDispon
 import { soles } from "./compras-reglas";
 
 // ============================================================================
-// Motivo. `crear_devolucion(p_motivo text)` lo guarda como texto libre: no hay columna
-// estructurada (para no chocar con la migración de la otra sesión sobre esa función; queda
-// en BACKLOG). Una lista cerrada que compone el texto ya da "6 de 8 devoluciones fueron
-// por defecto" con un `group by`, que el texto libre nunca dio (R-45: una lista se suma).
+// Motivo (D-79, ADR-0158, 2026-09-22). `crear_devolucion` ahora recibe DOS motivos: el
+// código cerrado (`p_motivo_codigo`, con `check` en la base — el mismo valor de esta lista,
+// sin traducir) y el texto libre de siempre (`p_motivo`, compuesto acá con `textoMotivo`
+// para lo que la clienta cuente de más). El código es lo que hace group-by-able «6 de 8
+// devoluciones fueron por defecto» sin que un detalle distinto rompa el agrupamiento —
+// R-45: una lista se suma, un texto libre no. MISMO vocabulario que D-79 le pidió a Cambios
+// (`cambios.motivo`, 20260919000100) iba a usar, pero esa migración es dos días anterior y
+// ya está en producción con su propio vocabulario (talla_chica/talla_grande/otro_color): no
+// se tocó — ver la cabecera de 20260922180000_devoluciones_motivo_estructurado.sql.
 // ============================================================================
 
 export const MOTIVOS_DEVOLUCION = [
-  { valor: "no_le_queda", etiqueta: "No le queda bien" },
-  { valor: "no_esperaba", etiqueta: "No es lo que esperaba" },
+  { valor: "talla", etiqueta: "No era su talla" },
+  { valor: "calce", etiqueta: "No le calzó bien" },
   { valor: "defecto", etiqueta: "Tiene un defecto" },
-  { valor: "cambio_de_opinion", etiqueta: "Cambió de opinión" },
+  { valor: "no_le_gusto", etiqueta: "No le gustó" },
+  { valor: "regalo", etiqueta: "Era un regalo" },
   { valor: "otro", etiqueta: "Otro motivo" },
 ] as const;
 

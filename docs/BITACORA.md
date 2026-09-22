@@ -8740,7 +8740,6 @@ Felipe pidió que los roles de retail no dupliquen el trabajo de Dynamic. Decisi
 Se ajustó la maqueta `roles-spike-2026-09` (bloqueo «Solo líder por ahora», Archivar/Restaurar rol, historial que solo se agrega, «Dar acceso», modal y movimientos con ADR-0136) y se escribió el ADR-0150 con las 8 decisiones y las fases F1–F7. Sin migraciones ni código de la app.
 Sin resolver: cerrar F1 (cambio de esquema, requiere el OK de Felipe antes de pegar); qué ubicación propone el alta; coordinar con la rama `adr-0145-compras-permisos`.
 
-
 ## 2026-09-22 (Alta de colaborador nuevo requiere aprobación — ADR-0157, D-70)
 D-70 pedía que el alta a retail no sea automática. Investigado primero, no asumido: nunca lo fue
 —no hay ningún trigger sobre `public.personas` que cree una fila de `retail.colaboradores`—, pero sí
@@ -8758,3 +8757,8 @@ producción todavía.
 Sin resolver: pegar la migración en producción; D-69 (líder acotado a su sede) queda como decisión
 aparte; `pnpm datos:generar:produccion` después de pegar, para que la columna y las dos funciones
 nuevas entren al diccionario.
+
+## 2026-09-22 (Devoluciones: motivo estructurado en 1 toque — D-79, ADR-0158)
+D-79 pedía motivo obligatorio (talla, calce, defecto, no le gustó, regalo, otro) al cambiar o devolver. Al investigar, Cambios ya lo tenía desde el 2026-09-19 (`cambios.motivo`, en producción, con su propio vocabulario más granular para el Taller); Devoluciones no — BACKLOG ya lo tenía anotado como pendiente. Se cerró solo la mitad que faltaba: `devoluciones.motivo_codigo` (lista cerrada de D-79, candado en `crear_devolucion` sin default) más chips de un toque en `DevolucionesFlujo.tsx`, verificados de punta a punta en el navegador (sin Docker: servidor propio en un puerto aparte apuntando a esta rama, ruta `/login/zz-harness` ya borrada).
+Felipe se lleva: (1) unificar el vocabulario de Cambios y Devoluciones en uno solo sería más consistente, pero costaría redefinir un `check` ya en producción y perder la distinción talla_chica/talla_grande que hoy ayuda al Taller — se dejó como decisión suya, no se tocó sin que él lo pida; (2) este dato es para revisar el calce con el Taller, nunca para rankear, puntuar ni comparar asesoras — ninguna consulta de este cambio agrupa por colaboradora; (3) `create or replace` no alcanza para agregar un parámetro (crea una sobrecarga en vez de reemplazar, verificado con un Postgres desechable) — hace falta `drop function` primero, y se encontraron tres llamadores más (`seed.sql`, `verificar-cayla-v2.sql`, la prueba de `aprobar_devolucion_caja.mjs`) que también había que actualizar.
+Sin resolver: pegar la migración en producción (espera revisión); construir el reporte de «calce por prenda» (a propósito, D-79 solo pide capturar el dato); decidir si Cambios y Devoluciones comparten vocabulario.
