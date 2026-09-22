@@ -31,8 +31,12 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
+const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const i = process.argv.indexOf("--base");
 const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 
@@ -91,9 +95,25 @@ $f$;
  * La escena: las ubicaciones, las dos terminales de Trujillo (aparatos SIN persona) y Rosa presente en Trujillo
  * (marcó su entrada hace un segundo; la fecha de la jornada va explícita para no depender de la medianoche).
  */
+// La base local la comparten muchas sesiones y la pantalla Roles y accesos EDITA los módulos de los roles sembrados (le
+// encienden Facturación a Integrante, por ejemplo). Cada escenario arranca con los tres roles sembrados tal como los deja
+// la migración 20260923030000 (se leen del archivo, no se copian a mano); el ROLLBACK devuelve lo que había.
+const SIEMBRA_ROLES = (() => {
+  const mig = readFileSync(join(RAIZ, "supabase", "migrations", "20260923030000_roles_por_modulo.sql"), "utf8");
+  return ["integrante", "terminal_ventas", "terminal_administrativa"]
+    .map((clave) => {
+      const bloque = mig.split(`values ('${clave}'`)[1].split("end if;")[0];
+      const modulos = [...bloque.matchAll(/unnest\(array\[([^\]]+)\]/g)].flatMap((m) => [...m[1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]));
+      return `delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('${clave}');
+insert into retail.rol_modulos (rol_id, modulo) select retail.fn_rol_por_clave('${clave}'), m from unnest(array[${modulos.map((m) => `'${m}'`).join(", ")}]) m;`;
+    })
+    .join("\n") + "\nupdate retail.roles set limitado_como_hoy = false where clave = 'integrante';\n";
+})();
+
 const escena = (cuerpo) => `
 begin;
 ${INTENTO}
+${SIEMBRA_ROLES}
 create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo text, timestamp_marca timestamptz,
   fecha_jornada date, anulada_at timestamptz);
 create table if not exists public.jornadas (persona_id uuid, sede_id uuid, fecha date, estado text);

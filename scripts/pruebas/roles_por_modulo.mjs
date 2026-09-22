@@ -61,10 +61,26 @@ function correr(sql) {
   }
 }
 
+// La base local la comparten muchas sesiones y la pantalla Roles y accesos EDITA los módulos de los roles sembrados (le
+// encienden Facturación a Integrante, por ejemplo). Cada escenario arranca con los tres roles sembrados tal como los deja
+// la migración 20260923030000 (se leen del archivo, no se copian a mano); el ROLLBACK devuelve lo que había.
+const SIEMBRA_ROLES = (() => {
+  const mig = readFileSync(join(RAIZ, "supabase", "migrations", "20260923030000_roles_por_modulo.sql"), "utf8");
+  return ["integrante", "terminal_ventas", "terminal_administrativa"]
+    .map((clave) => {
+      const bloque = mig.split(`values ('${clave}'`)[1].split("end if;")[0];
+      const modulos = [...bloque.matchAll(/unnest\(array\[([^\]]+)\]/g)].flatMap((m) => [...m[1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]));
+      return `delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('${clave}');
+insert into retail.rol_modulos (rol_id, modulo) select retail.fn_rol_por_clave('${clave}'), m from unnest(array[${modulos.map((m) => `'${m}'`).join(", ")}]) m;`;
+    })
+    .join("\n") + "\nupdate retail.roles set limitado_como_hoy = false where clave = 'integrante';\n";
+})();
+
 const PRELUDIO = `
 begin;
 ${EN_SECO ? MIGRACION : ""}
 set local search_path = retail, public, extensions;
+${SIEMBRA_ROLES}
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
 declare v_estado text; v_msg text;
 begin
