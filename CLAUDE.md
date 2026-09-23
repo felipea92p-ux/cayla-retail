@@ -6,7 +6,7 @@ CAYLA es retail + manufactura textil peruana (tiendas TRU/AQP/LIM + Taller en Li
 **Nota de arquitectura (decidida con Felipe, 2026-07-16):** el rol de arquitecto que
 sigue fue escrito pensando en NestJS + Prisma + tablas en inglés + `tenant_id`
 explícito. Lo que existe HOY en este repo es **Next.js + Supabase (Postgres + Row
-Level Security)**, con tablas en español (`sedes`, `personas`, `productos`,
+Level Security)**, con tablas en español (`ubicaciones`, `colaboradores`, `productos`,
 `variantes`, `stock`, `movimientos`) y **sin `tenant_id`** — CAYLA es el único tenant,
 y la seguridad la resuelve RLS directamente, no una capa de API separada. Se decidió
 **no migrar** el núcleo ya construido y verificado para calzar con NestJS/Prisma/inglés/
@@ -46,8 +46,10 @@ CAYLA sea el único tenant y el esquema no lo modele explícitamente con `tenant
 8. **Cada decisión estructural se documenta y se justifica** — nunca vive solo en una
    conversación de chat. Este archivo, y `supabase/migrations/*.sql` con comentarios,
    son el lugar.
-9. **Todo puede fallar** — diseña asumiendo que una API externa (SUNAT, Culqi,
-   Shopify, Nubefact) se cae; el sistema se degrada con gracia, nunca pierde datos.
+9. **Todo puede fallar** — diseña asumiendo que una API externa (SUNAT vía Lucode,
+   Dynamic, Alegra, la impresora térmica) se cae; el sistema se degrada con gracia,
+   nunca pierde datos. Ver `docs/plano/05-ACTA-SESION-4.md` (PL-113 a PL-127) para el
+   "si cae X, pasa Y" de cada integración real.
 10. **Ergonomía = potencia** — un colaborador de sede sin formación técnica debe
     operar el sistema sin fricción.
 11. **Velocidad con convención** — usa patrones ya probados del propio repo (Next.js
@@ -62,7 +64,7 @@ CAYLA sea el único tenant y el esquema no lo modele explícitamente con `tenant
 - Ejecuta directo, sin pedir permiso: código, migraciones en desarrollo, componentes,
   refactors dentro de un módulo ya definido.
 - Detente y confirma primero ante: cambios de esquema en producción, integraciones que
-  muevan dinero real (Nubefact/SUNAT, pagos), cualquier borrado de datos, decisiones
+  muevan dinero real (SUNAT vía Lucode, pagos), cualquier borrado de datos, decisiones
   que afecten más de un módulo a la vez (como la de arquitectura de arriba).
 - Nunca borres datos — mueve a estado/columna de archivo, nunca `DELETE` en
   `movimientos` ni en catálogos con historial.
@@ -99,10 +101,10 @@ archivo del repo, para no romper `npx supabase db reset` local.
 
 ## Convenciones de código (adaptadas a este repo)
 
-- Base de datos: tablas en `snake_case`, español, plural donde aplica (`sedes`,
-  `personas`, `productos`, `variantes`, `movimientos`); ya existen y no se renombran.
-  FKs explícitas (`variante_id`, `sede_id`, `sede_destino_id`), nunca abreviadas.
-  Sin `tenant_id` por ahora (ver nota de arquitectura arriba).
+- Base de datos: tablas en `snake_case`, español, plural donde aplica (`ubicaciones`,
+  `colaboradores`, `productos`, `variantes`, `movimientos`); ya existen y no se
+  renombran. FKs explícitas (`variante_id`, `ubicacion_id`, `ubicacion_destino_id`),
+  nunca abreviadas. Sin `tenant_id` por ahora (ver nota de arquitectura arriba).
 - Estructura por dominio dentro de `apps/web`: `lib/` (server-side data + reglas de
   negocio: `catalogo.ts`, `inteligencia.ts`), `components/` (UI), `app/(app)/` (rutas).
   `packages/shared` para enums/Zod compartidos; `packages/database` para tipos
@@ -147,8 +149,13 @@ o se escribe. Tiempos, alternativas y verificación: `docs/adr/0149-loader-gener
 ## Vocabulario obligatorio
 
 Nunca "empleado/jefe/sucursal". Usa: "colaborador/integrante", "líder de equipo/
-encargado de sede", "sede/tienda/boutique", "clienta" (compradora final). El código ya
-sigue esto (`personas.rol` = `lider`/`integrante`, tabla `sedes`).
+encargado de sede", "sede/tienda/boutique", "clienta" (compradora final). En pantalla
+y en negocio, "sede" gana sobre "ubicación" e "integrante" gana sobre "colaborador"
+(glosario completo: `docs/plano/02-ACTA-SESION-1.md`, PL-41 a PL-53). **En la base es
+distinto y a propósito** (glosario de 3 columnas, PL-15): la tabla es `ubicaciones`, y
+`colaboradores.rol` hoy vale `'lider'`/`'colaborador'` — la migración que lo renombra a
+`'integrante'` (PL-43, junto con ~83 archivos de código) sigue pendiente de pegar. No
+asumas que ya corrió sin verificar `docs/datos/generado/DICCIONARIO-RETAIL.md`.
 
 ## Idioma
 
@@ -182,6 +189,19 @@ Conventional Commits. `/docs/ARQUITECTURA.md` es la foto de la arquitectura comp
 (rutas↔lib↔RPC/tablas, modelo de datos, RLS) — actualizarla cuando cambie el modelo
 de datos, una ruta nueva, o un RPC nuevo/renombrado; no es estado vivo día a día
 (eso es BACKLOG/BITACORA), es el mapa para orientarse rápido.
+
+## El plano maestro: `/docs/plano/` (desde 2026-09-21)
+
+Antes de proponer algo estructural, revisar si ya está decidido en `/docs/plano/` — 151
+decisiones (PL-01 a PL-143 + el benchmark) sobre finalidad, gobierno, arquitectura,
+modelo de datos, permisos, pantallas, integraciones y equipo, cada una verificada
+contra el código o producción, no solo razonada. Empieza por `00-ACTA-24-DECISIONES.md`
+(finalidad y jerarquía de fuentes) y `06-REVISION-RAPIDA.md` (las 143 en una línea cada
+una). `09-RECONCILIACION-PERMISOS.md` es la versión al día del bloque de permisos —
+manda sobre `04-ACTA-SESION-3.md` donde difieran. Documento para el equipo (con
+ejemplos y enlaces), publicado como artefacto: pregúntale a Felipe el link si no lo
+tienes. **Esto vive junto a `/docs/datos/`, no lo reemplaza** — `/docs/datos/` es el
+modelo de datos campo por campo; `/docs/plano/` es el porqué y el gobierno.
 
 ## La base de datos: `/docs/datos/` (desde 2026-09-12)
 
