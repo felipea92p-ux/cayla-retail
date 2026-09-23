@@ -67,7 +67,7 @@ insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
   select :'ubic', 'Almacén de tienda', 'almacen_tienda'
   where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'ubic' and tipo = 'almacen_tienda');
 select (select count(*) from (select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'ubic' and estado = 'abierta') x) as _c \\gset
-select retail.abrir_caja(:'ubic', 100.00) as caja \\gset
+select retail.abrir_caja(:'ubic', 100.00, 'prueba automatizada') as caja \\gset
 -- En el seed local Lima y Trujillo comparten la serie B001 (en producción cada tienda tiene la suya):
 -- sin esto el primer comprobante de Trujillo choca con uno de Lima. Solo dentro de esta transacción.
 update retail.series_comprobantes set serie = case tipo when 'boleta' then 'BT99' when 'factura' then 'FT99' else serie end, siguiente_numero = 1

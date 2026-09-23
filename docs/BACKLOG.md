@@ -28,6 +28,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Caja: cierre con traslado y apertura verificada (2026-09-23, ADR-0186) — CONSTRUIDO; migración NO está en producción
+- **Orden obligatorio:** pegar `supabase/migrations/20260923200000_caja_cierre_con_traslado_y_apertura_verificada.sql` en producción (ya trae el prefijo `retail.`; se puede pegar dos veces) y **recién después** fusionar la web. Al revés, «Cerrar caja» falla: la web manda `p_traslado_*` y la base vieja no los conoce.
+- Hecho: esperado visible desde el inicio (`fn_esperado_caja`, mismo cálculo que `cerrar_caja`), conteo por billetes opcional, un traslado (caja fuerte / depósito con voucher / entregado al líder), «queda en el cajón para el próximo turno» calculado, tarjeta «Último cierre» con la caja cerrada, apertura que pide contar el cajón y exige motivo si no coincide, cola «Aperturas de caja con diferencia» en Inicio del líder y sección para marcarlas revisadas en Historial de cierres. Botón «+ Entrada / salida» renombrado a «Registrar movimiento».
+- Pruebas: `pnpm pruebas:caja-cierre-traslado` (18/18). Visto en el navegador (local): paso 1 y 2 del cierre con datos reales y la apertura con un cierre de muestra. **No se completó un cierre con clics**: el combo Responsable exige alguien con entrada marcada en la tienda local.
+- Pendiente: ver un cierre y una apertura reales con clics tras pegar; refrescar el diccionario (`pnpm datos:generar:produccion`). Fuera por decisión: traslado a otra sede/Taller (necesita acuse de recibo) y fondo sugerido por sede.
+- Sin resolver (visto de paso): `getResumenCaja` (KPIs del tablero de Caja) sigue sumando el efectivo de ventas anuladas; el cierre ya no lo usa.
+
 ## 🔍 La página no se encoge bajo el mouse (2026-09-23, ADR-0185) — FUSIONADO (PR #344 y #347); falta verlo con clics reales
 Barrido de todo el ERP: ventanas ancladas arriba, lista del Responsable flotando, regla global `<PaginaEstable />` y hueco estable para los datos de cada medio de pago. Medido con Chrome sin ventana: 0 px.
 - [ ] **Verlo con clics reales**, con sesión de líder: al fondo de Registrar comprobante, desmarcar «Registrar un pago ahora» (la vista no se mueve; queda aire abajo que se va al subir); en Cambios y en Vender (celular), elegir Responsable estando abajo.

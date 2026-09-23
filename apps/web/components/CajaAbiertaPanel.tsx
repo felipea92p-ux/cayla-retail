@@ -196,7 +196,7 @@ export function CajaAbiertaPanel({
             pie={
               <>
                 <Boton peso="discreto" onClick={() => setModal("movimiento")}>
-                  + Entrada / salida
+                  Registrar movimiento
                 </Boton>
                 {/* D-13: solo el líder cierra la caja. El candado real está en `cerrar_caja`
                     (20260921110000); acá solo se decide qué se muestra. A quien no es líder no se le

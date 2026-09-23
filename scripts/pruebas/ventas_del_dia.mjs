@@ -82,7 +82,7 @@ insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
 select (select count(*) from (
   select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'ubic_${s}' and estado = 'abierta'
 ) x) as _cerro_${s} \\gset
-select retail.abrir_caja(:'ubic_${s}', 100.00) as caja_${s} \\gset
+select retail.abrir_caja(:'ubic_${s}', 100.00, 'prueba automatizada') as caja_${s} \\gset
 select retail.fn_sububicacion_por_defecto(:'ubic_${s}', 'venta') as sub_${s} \\gset
 insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
   values (:'v1', :'ubic_${s}', :'sub_${s}', 'entrada', 1000, 'colchón de prueba') returning id as mov_${s} \\gset

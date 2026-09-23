@@ -4,6 +4,7 @@ import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { fechaCorta, listarMovimientos, textoDelta } from "@/lib/movimientos-v2";
 import { etiquetaMovimiento } from "@/lib/movimientos-reglas";
 import { getTrasladosPorAtender } from "@/lib/traslados";
+import { getAperturasPorRevisar } from "@/lib/caja";
 import { getHoyDeLaSede, type HoyDeLaSede } from "@/lib/inicio";
 import { accesosInicio, colasInicio, mostrarHoy, resumirHoy } from "@/lib/inicio-reglas";
 import { aterrizajeDe } from "@/lib/menu";
@@ -32,12 +33,14 @@ export default async function InicioPage() {
   const esLider = persona.rol === "lider";
   const perfil = { rol: persona.rol, ubicacionTipo: persona.ubicacionTipo, terminal: persona.terminal, modulos };
 
-  const [hoy, trasladosPorAtender, prendasVencidas, actividad] = await Promise.all([
+  const [hoy, trasladosPorAtender, prendasVencidas, aperturasPorRevisar, actividad] = await Promise.all([
     mostrarHoy(perfil) ? getHoyDeLaSede(persona.ubicacionId, esLider) : Promise.resolve(null),
     // Total (nunca lanza): devuelve null si no pudo leer. Es la misma cifra del «2» del menú.
     getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")),
     // ADR-0179: el aviso de prendas vendidas sin registrar que almacén no regularizó a tiempo es del líder.
     esLider ? contarVencidas() : Promise.resolve(undefined),
+    // ADR-0186: aperturas de caja que no coincidieron con el último cierre, el aviso al líder. Total (null si falla).
+    esLider ? getAperturasPorRevisar() : Promise.resolve(undefined),
     // Los últimos 8 de todo el historial (sin el recorte de 30 días de la pantalla de Movimientos): en Inicio
     // importa «lo último», no un período. Dato secundario: si falla, el resto sigue y el aviso va en su lugar.
     listarMovimientos(persona.ubicacionId, {}, { limite: 8 }).then(
@@ -50,7 +53,11 @@ export default async function InicioPage() {
   ]);
   const { filas: movimientosRecientes, fallo: falloActividad } = actividad;
 
-  const colas = colasInicio({ traslados: trasladosPorAtender, prendasVencidas });
+  const colas = colasInicio({
+    traslados: trasladosPorAtender,
+    prendasVencidas,
+    aperturas: aperturasPorRevisar === undefined ? undefined : (aperturasPorRevisar?.length ?? null),
+  });
   const accesos = accesosInicio(perfil, hoy?.cajaAbierta ?? null);
   // La sede ya la dicen el selector de la cabecera y los textos de abajo: aquí solo el saludo. A un APARATO (ADR-0162, la
   // terminal que no vende) no se lo saluda por su «primer nombre» —saldría «Hola, Terminal»—: se lo nombra entero.

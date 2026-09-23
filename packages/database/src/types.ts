@@ -240,9 +240,49 @@ export type Database = {
           },
         ]
       }
+      caja_traslados: {
+        Row: {
+          caja_id: string
+          creado_en: string
+          destino: string
+          id: string
+          monto: number
+          referencia: string | null
+          registrado_por: string | null
+        }
+        Insert: {
+          caja_id: string
+          creado_en?: string
+          destino: string
+          id?: string
+          monto: number
+          referencia?: string | null
+          registrado_por?: string | null
+        }
+        Update: {
+          caja_id?: string
+          creado_en?: string
+          destino?: string
+          id?: string
+          monto?: number
+          referencia?: string | null
+          registrado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caja_traslados_caja_id_fkey"
+            columns: ["caja_id"]
+            isOneToOne: false
+            referencedRelation: "cajas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cajas: {
         Row: {
           abierta_en: string
+          apertura_revisada_en: string | null
+          apertura_revisada_por: string | null
           abierta_por: string | null
           cerrada_en: string | null
           cerrada_por: string | null
@@ -251,13 +291,18 @@ export type Database = {
           estado: string
           id: string
           monto_apertura: number
+          monto_apertura_esperado: number | null
           monto_cierre_real: number | null
           monto_cierre_sistema: number | null
+          monto_fondo: number | null
+          motivo_diferencia_apertura: string | null
           nota: string | null
           ubicacion_id: string
         }
         Insert: {
           abierta_en?: string
+          apertura_revisada_en?: string | null
+          apertura_revisada_por?: string | null
           abierta_por?: string | null
           cerrada_en?: string | null
           cerrada_por?: string | null
@@ -266,13 +311,18 @@ export type Database = {
           estado?: string
           id?: string
           monto_apertura: number
+          monto_apertura_esperado?: number | null
           monto_cierre_real?: number | null
           monto_cierre_sistema?: number | null
+          monto_fondo?: number | null
+          motivo_diferencia_apertura?: string | null
           nota?: string | null
           ubicacion_id: string
         }
         Update: {
           abierta_en?: string
+          apertura_revisada_en?: string | null
+          apertura_revisada_por?: string | null
           abierta_por?: string | null
           cerrada_en?: string | null
           cerrada_por?: string | null
@@ -281,8 +331,11 @@ export type Database = {
           estado?: string
           id?: string
           monto_apertura?: number
+          monto_apertura_esperado?: number | null
           monto_cierre_real?: number | null
           monto_cierre_sistema?: number | null
+          monto_fondo?: number | null
+          motivo_diferencia_apertura?: string | null
           nota?: string | null
           ubicacion_id?: string
         }
@@ -4584,7 +4637,11 @@ export type Database = {
     }
     Functions: {
       abrir_caja: {
-        Args: { p_monto_apertura: number; p_ubicacion_id: string }
+        Args: {
+          p_monto_apertura: number
+          p_motivo_diferencia?: string
+          p_ubicacion_id: string
+        }
         Returns: string
       }
       abrir_conteo: {
@@ -4932,11 +4989,19 @@ export type Database = {
         }[]
       }
       cerrar_caja: {
-        Args: { p_caja_id: string; p_monto_real: number }
+        Args: {
+          p_caja_id: string
+          p_monto_real: number
+          p_traslado_destino?: string
+          p_traslado_monto?: number
+          p_traslado_referencia?: string
+        }
         Returns: {
           diferencia: number
+          monto_fondo: number
           monto_real: number
           monto_sistema: number
+          monto_trasladado: number
         }[]
       }
       cerrar_conteo: {
@@ -5302,6 +5367,18 @@ export type Database = {
         }[]
       }
       fn_es_lider: { Args: never; Returns: boolean }
+      fn_esperado_caja: {
+        Args: { p_caja_id: string }
+        Returns: {
+          apertura: number
+          cambios_efectivo: number
+          egresos: number
+          esperado: number
+          ingresos: number
+          reembolsos_efectivo: number
+          ventas_efectivo: number
+        }[]
+      }
       fn_actor_persona_id: { Args: { p_de_tienda?: boolean }; Returns: string }
       fn_exige_dinero_de_compras: {
         Args: { p_que?: string }
@@ -6892,6 +6969,7 @@ export type Database = {
         Args: { p_produccion_id: string }
         Returns: undefined
       }
+      revisar_apertura_caja: { Args: { p_caja_id: string }; Returns: undefined }
       revisar_producto_censo: {
         Args: { p_aprobar: boolean; p_producto_id: string }
         Returns: undefined
