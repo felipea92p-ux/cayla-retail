@@ -105,6 +105,16 @@
   "src_table": "compra_reasignaciones"
  },
  {
+  "conname": "compradores_de_tienda_agregado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compradores_de_tienda"
+ },
+ {
+  "conname": "compradores_de_tienda_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compradores_de_tienda"
+ },
+ {
   "conname": "compras_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "compras"
@@ -233,6 +243,16 @@
   "conname": "prendas_danadas_resuelto_por_fkey",
   "ref_table": "public.personas",
   "src_table": "prendas_danadas"
+ },
+ {
+  "conname": "prendas_por_regularizar_regularizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_vendido_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "prendas_por_regularizar"
  },
  {
   "conname": "producciones_creado_por_fkey",

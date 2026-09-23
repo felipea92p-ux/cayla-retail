@@ -130,6 +130,36 @@
   "tabla": "retail.caja_movimientos"
  },
  {
+  "conname": "caja_traslados_caja_id_fkey",
+  "definicion": "FOREIGN KEY (caja_id) REFERENCES retail.cajas(id)",
+  "tabla": "retail.caja_traslados"
+ },
+ {
+  "conname": "caja_traslados_destino_check",
+  "definicion": "CHECK ((destino = ANY (ARRAY['caja_fuerte'::text, 'banco'::text, 'lider'::text])))",
+  "tabla": "retail.caja_traslados"
+ },
+ {
+  "conname": "caja_traslados_monto_check",
+  "definicion": "CHECK ((monto > (0)::numeric))",
+  "tabla": "retail.caja_traslados"
+ },
+ {
+  "conname": "caja_traslados_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.caja_traslados"
+ },
+ {
+  "conname": "caja_traslados_referencia",
+  "definicion": "CHECK (((destino = 'caja_fuerte'::text) OR (length(btrim(COALESCE(referencia, ''::text))) >= 2)))",
+  "tabla": "retail.caja_traslados"
+ },
+ {
+  "conname": "caja_apertura_explica_diferencia",
+  "definicion": "CHECK (((monto_apertura_esperado IS NULL) OR (abs((monto_apertura - monto_apertura_esperado)) < 0.01) OR (length(btrim(COALESCE(motivo_diferencia_apertura, ''::text))) >= 3)))",
+  "tabla": "retail.cajas"
+ },
+ {
   "conname": "cajas_abierta_por_fkey",
   "definicion": "FOREIGN KEY (abierta_por) REFERENCES personas(id)",
   "tabla": "retail.cajas"
@@ -228,6 +258,16 @@
   "conname": "cambios_venta_item_id_fkey",
   "definicion": "FOREIGN KEY (venta_item_id) REFERENCES retail.venta_items(id)",
   "tabla": "retail.cambios"
+ },
+ {
+  "conname": "catalogo_version_id_check",
+  "definicion": "CHECK ((id = 1))",
+  "tabla": "retail.catalogo_version"
+ },
+ {
+  "conname": "catalogo_version_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.catalogo_version"
  },
  {
   "conname": "categoria_patrones_categoria_id_fkey",
@@ -630,6 +670,11 @@
   "tabla": "retail.compra_item_destinos"
  },
  {
+  "conname": "compra_item_destinos_gestora_con_parte",
+  "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+  "tabla": "retail.compra_item_destinos"
+ },
+ {
   "conname": "compra_item_destinos_pkey",
   "definicion": "PRIMARY KEY (compra_item_id, ubicacion_id)",
   "tabla": "retail.compra_item_destinos"
@@ -755,8 +800,18 @@
   "tabla": "retail.compra_pagos"
  },
  {
+  "conname": "compra_pagos_no_supera_tienda",
+  "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+  "tabla": "retail.compra_pagos"
+ },
+ {
   "conname": "compra_pagos_pkey",
   "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.compra_pagos"
+ },
+ {
+  "conname": "compra_pagos_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
   "tabla": "retail.compra_pagos"
  },
  {
@@ -805,6 +860,26 @@
   "tabla": "retail.compra_reasignaciones"
  },
  {
+  "conname": "compradores_de_tienda_agregado_por_fkey",
+  "definicion": "FOREIGN KEY (agregado_por) REFERENCES personas(id)",
+  "tabla": "retail.compradores_de_tienda"
+ },
+ {
+  "conname": "compradores_de_tienda_persona_id_fkey",
+  "definicion": "FOREIGN KEY (persona_id) REFERENCES personas(id)",
+  "tabla": "retail.compradores_de_tienda"
+ },
+ {
+  "conname": "compradores_de_tienda_pkey",
+  "definicion": "PRIMARY KEY (persona_id, ubicacion_id)",
+  "tabla": "retail.compradores_de_tienda"
+ },
+ {
+  "conname": "compradores_de_tienda_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.compradores_de_tienda"
+ },
+ {
   "conname": "compras_cerrado_cantidad_check",
   "definicion": "CHECK ((cerrado_cantidad >= 0))",
   "tabla": "retail.compras"
@@ -827,6 +902,16 @@
  {
   "conname": "compras_facturado_cantidad_check",
   "definicion": "CHECK ((facturado_cantidad >= 0))",
+  "tabla": "retail.compras"
+ },
+ {
+  "conname": "compras_gestora_con_parte",
+  "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+  "tabla": "retail.compras"
+ },
+ {
+  "conname": "compras_gestora_obligatoria",
+  "definicion": "CHECK (((estado <> 'vigente'::text) OR (ubicacion_gestion_id IS NOT NULL)))",
   "tabla": "retail.compras"
  },
  {
@@ -897,6 +982,11 @@
  {
   "conname": "compras_total_cuadra",
   "definicion": "CHECK ((total = (subtotal + igv)))",
+  "tabla": "retail.compras"
+ },
+ {
+  "conname": "compras_ubicacion_gestion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_gestion_id) REFERENCES retail.ubicaciones(id)",
   "tabla": "retail.compras"
  },
  {
@@ -2113,6 +2203,81 @@
   "conname": "prendas_danadas_variante_id_fkey",
   "definicion": "FOREIGN KEY (variante_id) REFERENCES retail.variantes(id)",
   "tabla": "retail.prendas_danadas"
+ },
+ {
+  "conname": "prendas_por_regularizar_categoria_id_fkey",
+  "definicion": "FOREIGN KEY (categoria_id) REFERENCES retail.categorias(id)",
+  "tabla": "retail.prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_color_codigo_fkey",
+  "definicion": "FOREIGN KEY (color_codigo) REFERENCES retail.colores(codigo)",
+  "tabla": "retail.prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_completa",
+  "definicion": "CHECK (((estado = 'regularizada'::text) = ((variante_id IS NOT NULL) AND (forma IS NOT NULL) AND (precio_oficial IS NOT NULL) AND (diferencia IS NOT NULL) AND (regularizado_en IS NOT NULL))))",
+  "tabla": "retail.prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_descripcion_check",
+  "definicion": "CHECK ((btrim(descripcion) <> ''::text))",
+  "tabla": "retail.prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_estado_check",
+  "definicion": "CHECK ((estado = ANY (ARRAY['pendiente'::text, 'regularizada'::text, 'anulada'::text])))",
+  "tabla": "retail.prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_forma_check",
+  "definicion": "CHECK ((forma = ANY (ARRAY['ya_registrada'::text, 'llego_nueva'::text])))",
+  "tabla": "retail.prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_pkey",
+  "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_precio_cobrado_check",
+  "definicion": "CHECK ((precio_cobrado > (0)::numeric))",
+  "tabla": "retail.prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_regularizado_por_fkey",
+  "definicion": "FOREIGN KEY (regularizado_por) REFERENCES personas(id)",
+  "tabla": "retail.prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_talla_id_fkey",
+  "definicion": "FOREIGN KEY (talla_id) REFERENCES retail.tallas(id)",
+  "tabla": "retail.prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_variante_id_fkey",
+  "definicion": "FOREIGN KEY (variante_id) REFERENCES retail.variantes(id)",
+  "tabla": "retail.prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_vendido_por_fkey",
+  "definicion": "FOREIGN KEY (vendido_por) REFERENCES personas(id)",
+  "tabla": "retail.prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_venta_item_id_fkey",
+  "definicion": "FOREIGN KEY (venta_item_id) REFERENCES retail.venta_items(id)",
+  "tabla": "retail.prendas_por_regularizar"
+ },
+ {
+  "conname": "prendas_por_regularizar_venta_item_id_key",
+  "definicion": "UNIQUE (venta_item_id)",
+  "tabla": "retail.prendas_por_regularizar"
  },
  {
   "conname": "produccion_lineas_cantidad_buenas_check",
