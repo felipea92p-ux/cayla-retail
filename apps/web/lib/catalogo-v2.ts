@@ -458,6 +458,9 @@ export type ProductoDetalle = {
   /** Ya en el orden de la galería (`orden` ascendente). */
   fotos: FotoProducto[];
   variantes: VarianteDetalle[];
+  /** ADR-0193: la versión de la fila al abrir la ficha. Se manda al guardar (`p_version_esperada`): si otra persona
+   *  guardó entre medio, la base rechaza en vez de pisar sus precios. Sube con cada escritura del producto. */
+  version: number;
 };
 
 /** El producto y sus variantes, para `/productos/[id]/editar`. `null` si no existe. */
@@ -467,7 +470,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
     .from("productos")
     .select(
       `id, categoria_id, referencia, descripcion, estado, estado_alta, codigo, stock_minimo, temporada, permitir_venta_sin_stock,
-       tejido_id, patron_id, marca_id, proveedor_id,
+       tejido_id, patron_id, marca_id, proveedor_id, version,
        tejido:tejidos ( nombre ), patron:patrones ( nombre ),
        marca:marcas ( nombre ), proveedor:proveedores ( nombre ),
        variantes ( id, color_codigo, talla_id, sku, precio, activo, codigo,
@@ -520,6 +523,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
       codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),
       etiquetaIds: (v.variante_etiquetas ?? []).map((e) => e.etiqueta_id),
     })),
+    version: data.version,
   };
 }
 

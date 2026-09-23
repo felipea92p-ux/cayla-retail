@@ -397,6 +397,17 @@ export function esFalloDeRed(error: ErrorEscritura): boolean {
   return SIN_RED.some((t) => crudo.includes(t));
 }
 
+/** SQLSTATE propio de «otra persona cambió esto mientras lo editabas» (ADR-0193). PostgREST lo devuelve como 409. */
+export const CODIGO_VERSION_CAMBIADA = "PT409";
+
+/**
+ * ¿La base rechazó el guardado porque otra persona cambió la ficha (producto, rol) después de que esta pantalla la
+ * leyó? (ADR-0193, control optimista de versión). La pantalla no debe cerrar el formulario: ofrece recargar.
+ */
+export function esVersionCambiada(error: ErrorEscritura): boolean {
+  return !!error && (error.code === CODIGO_VERSION_CAMBIADA || error.hint === "version_cambiada");
+}
+
 /**
  * Convierte el error de una escritura en una frase que una Encargada puede leer y usar.
  *
@@ -420,6 +431,9 @@ export function traducirError(error: ErrorEscritura, contexto: string, opciones:
   // su frase dice qué hacer (volver a elegir, marcar entrada) y es la misma en todas las pantallas.
   const porResponsable = mensajeErrorResponsable(error);
   if (porResponsable) return porResponsable;
+
+  // ADR-0193: la base ya lo dice en castellano («Otra persona cambió esta prenda… Recarga para ver sus cambios.»).
+  if (esVersionCambiada(error)) return error.message || "Otra persona cambió esto mientras lo editabas. Recarga para ver sus cambios.";
 
   const crudo = [error.message, error.details, error.hint].filter(Boolean).join(" · ");
   const enMinusculas = crudo.toLowerCase();

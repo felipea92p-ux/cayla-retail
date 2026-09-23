@@ -12,7 +12,7 @@ const CLAVES_SISTEMA = ["lider", "integrante", "terminal_ventas", "terminal_admi
 export async function getRoles(): Promise<RolVista[]> {
   const supabase = await createClient();
   const [roles, modulos] = await Promise.all([
-    supabase.from("roles").select("id, clave, nombre, descripcion, es_sistema, fijo, limitado_como_hoy, archivado_at").order("creado_at"),
+    supabase.from("roles").select("id, clave, nombre, descripcion, es_sistema, fijo, limitado_como_hoy, archivado_at, version").order("creado_at"),
     supabase.from("rol_modulos").select("rol_id, modulo"),
   ]);
   const filas = exigir(roles, "los roles");
@@ -31,6 +31,7 @@ export async function getRoles(): Promise<RolVista[]> {
     limitadoComoHoy: r.limitado_como_hoy,
     archivado: r.archivado_at !== null,
     modulos: porRol.get(r.id) ?? [],
+    version: r.version,
   }));
 }
 

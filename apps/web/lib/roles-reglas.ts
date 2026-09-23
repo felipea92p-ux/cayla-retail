@@ -18,7 +18,26 @@ export type RolVista = {
   limitadoComoHoy: boolean;
   archivado: boolean;
   modulos: ClaveModulo[];
+  /** ADR-0193: versión del rol al leerlo (sube con cada cambio del rol o de sus módulos). Se manda al guardar: si otra
+   *  persona lo cambió entre medio, la base rechaza en vez de pisar sus módulos. */
+  version: number;
 };
+
+/** Lo que esta pantalla guardó de un rol y la versión que devolvió la base (ADR-0193). */
+export type GuardadoLocal = { version: number; modulos: ClaveModulo[] };
+
+/**
+ * Los roles del servidor con lo que esta pantalla acaba de guardar encima, mientras el `router.refresh()` no trae la
+ * versión nueva. Sin esto, un segundo clic seguido en la matriz saldría con la versión (y los módulos) de antes del
+ * primero: la base lo rechazaría como si fuera otra persona. Gana el que tenga la versión MÁS NUEVA: cuando el servidor
+ * ya trae una igual o mayor, lo guardado aquí deja de contar.
+ */
+export function conGuardadosLocales(roles: RolVista[], guardados: Readonly<Record<string, GuardadoLocal>>): RolVista[] {
+  return roles.map((r) => {
+    const g = guardados[r.id];
+    return g && g.version > r.version ? { ...r, version: g.version, modulos: g.modulos } : r;
+  });
+}
 
 /** Una cuenta que puede tener un rol: una persona (con acceso a retail) o una terminal (ADR-0162). */
 export type CuentaConRol = {
