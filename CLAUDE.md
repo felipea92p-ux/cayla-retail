@@ -183,7 +183,9 @@ lee de Dynamic (`public.personas.rol = 'admin'` y Líder activo aquí, `fn_es_ad
 le cambia el rol, la sede o el acceso a un líder; todo lo demás del líder sigue en `fn_es_lider()`. Quien no es líder solo da
 los módulos que él mismo ve (`fn_exigir_rol_dentro_de_lo_mio`, `fn_exigir_modulos_dentro_de_lo_mio`) y no edita su propio rol.
 Una función nueva que toque a un líder llama a `fn_exigir_puede_tocar_colaborador`; una que asigne un rol, a
-`fn_exigir_rol_dentro_de_lo_mio`. El rango laboral de Dynamic (colibrí…archicaylo) **no** da accesos.
+`fn_exigir_rol_dentro_de_lo_mio`. El rango laboral de Dynamic (colibrí…archicaylo) **no** da accesos. Y **solo alcanzas a quien
+está por debajo de ti** (como Dynamic): quien no es líder solo suspende, reactiva, quita, mueve o cambia el rol de una persona
+cuyos módulos ve él y que tiene menos que él (`fn_exigir_alcanzo_a`; entre pares, un líder).
 
 Lo vigilan las pruebas: `lib/modulos.test.ts` (toda pantalla del menú declara un módulo que existe; el catálogo de la web es el
 de TODAS las migraciones; **ninguna migración fuera de la siembra de roles escribe en `rol_modulos`**) y

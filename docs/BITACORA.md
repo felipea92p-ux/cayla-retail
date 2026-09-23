@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-23 (Roles: «solo alcanzas a quien está por debajo de ti» — ADR-0178, actualización)
+Felipe decidió que Daniel y los practicantes siguen como Líder y que rige la regla de Dynamic. En retail «por debajo» se mide en módulos: sus módulos los ves tú y tienes más que ella; estricto, así que entre pares decide un líder. Migración `20260923174500` (en suspender, reactivar, quitar, ubicación y cambio de rol) y la web deja de ofrecer acciones sobre quien no alcanzas; `pruebas:roles` con 2 casos nuevos en una copia local, sin fallas nuevas. Sin pegar en producción.
+Felipe se lleva: **sin números de nivel, el nivel lo dan los módulos**: quien ve más está más arriba, y quien ve lo mismo es un par.
+
 ## 2026-09-23 (Roles y accesos: escalón Admin leído de Dynamic y «solo das lo que tienes» — ADR-0178)
 Análisis con Felipe sobre producción (solo lectura): el rol Integrante quedó con 0 módulos desde el 22-09 (16 personas sin ver nada), 9 líderes iguales entre sí (4 de sistemas) y quien delegaba Roles y accesos delegaba todo. Se construyó la migración `20260923163000`: solo un Admin (admin en Dynamic + Líder aquí) toca a un líder o da el rol Líder, y quien no es líder solo da los módulos que ve y no edita su propio rol; se archiva el rol vacío «Administrador». Web con chip Admin, candados «No lo tienes» y el propio rol bloqueado, vista en el navegador; `pruebas:roles` con 5 casos nuevos en una copia local alineada; typecheck, lint y vitest en verde. Felipe la pegó en producción el mismo día (verificada objeto por objeto); se renumeró a `20260923163000` porque su versión chocaba con la de «responsable obligatorio».
 Felipe se lleva: (1) **el nivel laboral (rango) no da accesos**: es sueldo y cuadro de la Ley 30709, y si un ascenso abriera la caja, nadie lo habría decidido; (2) **el Admin no se copia, se lee**: vive en Dynamic, que ya impide que alguien se nombre admin solo; (3) **delegar sin «solo das lo que tienes» es delegar todo**: con el módulo Roles bastaba encenderse los demás.
