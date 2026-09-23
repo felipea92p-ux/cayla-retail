@@ -1,5 +1,6 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { exigir, type Tolerado } from "@/lib/resultado";
+import { exigir, leerTodas, type Tolerado } from "@/lib/resultado";
 import { getConteosResumen } from "@/lib/conteos";
 import { exactitudConteos } from "@/lib/conteo-varianza";
 import type { Ubicacion as UbicacionApp } from "@/lib/ubicaciones";
@@ -23,43 +24,45 @@ import { calcularCobertura, velocidadDeFila, type Cobertura, type FilaResumen } 
 
 export type { ComparacionParaPantalla, DesempenoParaPantalla, ParametrosResumen };
 
-/** PostgREST corta cualquier respuesta en `max_rows` (1.000 en
- *  supabase/config.toml) SIN error: una sede con más variantes quedaría
- *  analizada a medias en silencio. Se pagina con Range sobre el orden estable
- *  de la RPC (…, variante_id) hasta que una página venga corta. */
-const PAGINA_RPC = 1000;
-
-async function getFilasVariantes(ubicacionId: string, periodo: Rango, comparacion: Rango | null): Promise<FilaResumen[]> {
+/** PostgREST corta cualquier respuesta en `max_rows` (1.000) SIN error: una sede con más variantes
+ *  quedaría analizada a medias en silencio. Se lee con `leerTodas` (páginas en paralelo) sobre el orden
+ *  estable de la RPC (…, variante_id): en serie, TRU (1.269 filas) tardaba dos vueltas de ~1 s.
+ *
+ *  `cache` (React, por pedido) con argumentos PRIMITIVOS: Existencias pide la ventana de 30 días dos
+ *  veces (cobertura y recomendaciones) y ahora la base la calcula una sola (medido 2026-09-23: ~1 s cada una). */
+const getFilasVariantes = cache(async function getFilasVariantes(
+  ubicacionId: string,
+  desde: string,
+  hasta: string,
+  cmpDesde?: string,
+  cmpHasta?: string,
+): Promise<FilaResumen[]> {
   const supabase = await createClient();
-  const filas: FilaResumen[] = [];
-  for (let desde = 0; ; desde += PAGINA_RPC) {
-    // Los parámetros van escritos EN la llamada (no en una variable ni con «...»)
-    // para que `pnpm datos:comparar` pueda contrastarlos con la firma real de
-    // producción. Sin comparación, `undefined` no viaja en el JSON y la función
-    // usa su default (no calcula la ventana comparada).
-    const pagina = exigir(
-      await supabase
+  // Los parámetros van escritos EN la llamada (no en una variable ni con «...») para que
+  // `pnpm datos:comparar` pueda contrastarlos con la firma real de producción. Sin comparación,
+  // `undefined` no viaja en el JSON y la función usa su default (no calcula la ventana comparada).
+  const filas = exigir(
+    await leerTodas((d, h) =>
+      supabase
         .rpc("fn_resumen_variantes", {
           p_ubicacion_id: ubicacionId,
-          p_desde: periodo.desde,
-          p_hasta: periodo.hasta,
-          p_cmp_desde: comparacion?.desde,
-          p_cmp_hasta: comparacion?.hasta,
+          p_desde: desde,
+          p_hasta: hasta,
+          p_cmp_desde: cmpDesde,
+          p_cmp_hasta: cmpHasta,
         })
-        .range(desde, desde + PAGINA_RPC - 1),
-      "el ritmo de venta reciente",
-    );
-    for (const f of pagina) filas.push(mapearFila(f as unknown as FilaCruda));
-    if (pagina.length < PAGINA_RPC) break;
-  }
-  return filas;
-}
+        .range(d, h),
+    ),
+    "el ritmo de venta reciente",
+  );
+  return filas.map((f) => mapearFila(f as unknown as FilaCruda));
+});
 
 /** El ritmo de venta reciente (`DIAS_RITMO_RECIENTE` días) y el stock de HOY de todas las variantes de una sede, tal como las lee Existencias. Lo usa
  *  también «Nueva orden» de Producción (ADR-0133, F5) para sumar la demanda de la red. */
 export async function getFilasRecientesDeSede(ubicacionId: string, ahora: Date = new Date()): Promise<FilaResumen[]> {
   const hoy = hoyEnLima(ahora);
-  return getFilasVariantes(ubicacionId, { desde: sumarDias(hoy, -(DIAS_RITMO_RECIENTE - 1)), hasta: hoy }, null);
+  return getFilasVariantes(ubicacionId, sumarDias(hoy, -(DIAS_RITMO_RECIENTE - 1)), hoy);
 }
 
 /** Los últimos 7 días de una sede (2026-09-22, rediseño de Existencias): mismo dato que
@@ -69,7 +72,7 @@ export async function getFilasRecientesDeSede(ubicacionId: string, ahora: Date =
  *  valorar el stock. */
 export async function getFilasSemanaDeSede(ubicacionId: string, ahora: Date = new Date()): Promise<FilaResumen[]> {
   const hoy = hoyEnLima(ahora);
-  return getFilasVariantes(ubicacionId, { desde: sumarDias(hoy, -6), hasta: hoy }, null);
+  return getFilasVariantes(ubicacionId, sumarDias(hoy, -6), hoy);
 }
 
 /**
@@ -83,8 +86,7 @@ export async function getFilasSemanaDeSede(ubicacionId: string, ahora: Date = ne
  */
 export async function getCoberturaPorVariante(ubicacionId: string, ahora: Date = new Date()): Promise<Tolerado<Record<string, Cobertura>>> {
   try {
-    const hoy = hoyEnLima(ahora);
-    const filas = await getFilasVariantes(ubicacionId, { desde: sumarDias(hoy, -(DIAS_RITMO_RECIENTE - 1)), hasta: hoy }, null);
+    const filas = await getFilasRecientesDeSede(ubicacionId, ahora);
     const porVariante: Record<string, Cobertura> = {};
     for (const f of filas) porVariante[f.varianteId] = calcularCobertura(f.utilizable, velocidadDeFila(f));
     return { datos: porVariante, fallo: null };
@@ -98,10 +100,9 @@ export async function getCoberturaPorVariante(ubicacionId: string, ahora: Date =
 // una variable) por la misma razón que arriba: `pnpm datos:comparar` los contrasta con la firma de producción.
 async function getFilasComparacion(ubicacionId: string, a: Rango, b: Rango): Promise<FilaComparacion[]> {
   const supabase = await createClient();
-  const filas: FilaComparacion[] = [];
-  for (let desde = 0; ; desde += PAGINA_RPC) {
-    const pagina = exigir(
-      await supabase
+  const filas = exigir(
+    await leerTodas((d, h) =>
+      supabase
         .rpc("fn_resumen_comparacion", {
           p_ubicacion_id: ubicacionId,
           p_a_desde: a.desde,
@@ -109,13 +110,11 @@ async function getFilasComparacion(ubicacionId: string, a: Rango, b: Rango): Pro
           p_b_desde: b.desde,
           p_b_hasta: b.hasta,
         })
-        .range(desde, desde + PAGINA_RPC - 1),
-      "el análisis del inventario",
-    );
-    for (const f of pagina) filas.push(mapearFilaComparacion(f as unknown as FilaCrudaComparacion));
-    if (pagina.length < PAGINA_RPC) break;
-  }
-  return filas;
+        .range(d, h),
+    ),
+    "el análisis del inventario",
+  );
+  return filas.map((f) => mapearFilaComparacion(f as unknown as FilaCrudaComparacion));
 }
 
 async function getExactitud(ubicacionId: string) {

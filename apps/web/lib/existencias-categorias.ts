@@ -1,5 +1,25 @@
 import { calcularVelocidad, type FilaResumen } from "@/lib/resumen-reglas";
 
+/** Lo único de `FilaResumen` que usa Existencias con la semana (tabla, overlay de categorías y «Disponible total»).
+ *  Viaja al navegador —1.269 filas en TRU—, así que se recorta en el servidor: la fila entera trae ~45 campos
+ *  y pesaba más de 1 MB de la página (medido 2026-09-23). */
+export type FilaSemana = Pick<
+  FilaResumen,
+  | "varianteId" | "referencia" | "categoriaId" | "categoria" | "sku" | "talla" | "color" | "colorHex" | "fotoUrl"
+  | "precio" | "costo" | "utilizable" | "stockInicial"
+  // Lo que pide `calcularVelocidad` para el ritmo de 7 días.
+  | "ventas" | "devoluciones" | "diasConStock" | "diasObservables" | "ledgerConsistente"
+>;
+
+export function recortarFilaSemana(f: FilaResumen): FilaSemana {
+  return {
+    varianteId: f.varianteId, referencia: f.referencia, categoriaId: f.categoriaId, categoria: f.categoria, sku: f.sku,
+    talla: f.talla, color: f.color, colorHex: f.colorHex, fotoUrl: f.fotoUrl, precio: f.precio, costo: f.costo,
+    utilizable: f.utilizable, stockInicial: f.stockInicial, ventas: f.ventas, devoluciones: f.devoluciones,
+    diasConStock: f.diasConStock, diasObservables: f.diasObservables, ledgerConsistente: f.ledgerConsistente,
+  };
+}
+
 /* ====================================================================
    existencias-categorias · agregados por categoría para Existencias
    (2026-09-22, overlay «Disponible total»)
@@ -55,7 +75,7 @@ function deltaPct(hoy: number, hace7d: number): number | null {
   return ((hoy - hace7d) / hace7d) * 100;
 }
 
-export function agruparPorCategoria(filas: FilaResumen[]): CategoriaResumen[] {
+export function agruparPorCategoria(filas: FilaSemana[]): CategoriaResumen[] {
   const porId = new Map<string, CategoriaResumen>();
   for (const f of filas) {
     if (!f.categoriaId) continue;
@@ -93,7 +113,7 @@ export function agruparPorCategoria(filas: FilaResumen[]): CategoriaResumen[] {
     .sort((a, b) => b.disponible - a.disponible);
 }
 
-export function variantesDeCategoria(filas: FilaResumen[], categoriaId: string): VarianteCategoria[] {
+export function variantesDeCategoria(filas: FilaSemana[], categoriaId: string): VarianteCategoria[] {
   return filas
     .filter((f) => f.categoriaId === categoriaId)
     .map((f) => ({
@@ -115,7 +135,7 @@ export function variantesDeCategoria(filas: FilaResumen[], categoriaId: string):
 }
 
 /** Para la tarjeta «Disponible total»: el delta de TODA la sede (todas las categorías, con o sin `categoriaId`). */
-export function deltaDisponibleSede(filas: FilaResumen[]): { hoy: number; hace7d: number; pct: number | null } {
+export function deltaDisponibleSede(filas: FilaSemana[]): { hoy: number; hace7d: number; pct: number | null } {
   const hoy = filas.reduce((acc, f) => acc + f.utilizable, 0);
   const hace7d = filas.reduce((acc, f) => acc + f.stockInicial, 0);
   return { hoy, hace7d, pct: deltaPct(hoy, hace7d) };
