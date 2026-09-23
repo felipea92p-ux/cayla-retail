@@ -201,13 +201,16 @@ export function ProductoForm({
           sku: skuManual ? v.sku : sugerirSku(producto.referencia, colorCodigo, talla),
           skuManual,
           precio: String(v.precio),
-          costo: String(v.costo),
+          costo: v.costo === null ? "" : String(v.costo),
           activo: v.activo,
           etiquetaIds: v.etiquetaIds,
         };
       });
   });
   const [loading, setLoading] = useState(false);
+  // Quien no ve el dinero recibe el costo vacío (null, 20260923193700): la ficha no muestra el campo y la base no lo toca
+  // al guardar (`catalogo_actualizar_producto`). Un producto sin variantes todavía no dice nada: se muestra el campo.
+  const veCosto = !producto || producto.variantes.length === 0 || producto.variantes.some((v) => v.costo !== null);
   // Editar una prenda es Catálogo, operación de tienda (ADR-0161): quien está de turno firma el guardado (las dos
   // llamadas de «Guardar cambios» van con la misma firma: son un solo gesto).
   const responsable = useResponsable();
@@ -583,18 +586,23 @@ export function ProductoForm({
                 onChange={(e) => actualizarFila(i, { precio: e.target.value })}
                 className={`${NUMERO} text-right`}
               />
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                aria-label="Costo"
-                placeholder="0.00"
-                value={v.costo}
-                onChange={(e) => actualizarFila(i, { costo: e.target.value })}
-                className={`${NUMERO} text-right`}
-              />
+              {veCosto ? (
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  aria-label="Costo"
+                  placeholder="0.00"
+                  value={v.costo}
+                  onChange={(e) => actualizarFila(i, { costo: e.target.value })}
+                  className={`${NUMERO} text-right`}
+                />
+              ) : (
+                <span className="py-2 text-right text-xs text-tinta/45" title="El costo solo lo ve quien tiene permiso de ver el dinero">—</span>
+              )}
               <span className="py-2 text-right text-xs tabular-nums text-tinta/55">
                 {(() => {
+                  if (!veCosto) return "—";
                   const m = margenPorcentaje(v.precio, v.costo);
                   return m === null ? "—" : `${m.toFixed(0)}%`;
                 })()}

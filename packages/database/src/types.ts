@@ -4730,6 +4730,8 @@ export type Database = {
         Args: { p_separacion_id: string }
         Returns: string
       }
+      fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
+      fn_soles_diferencia_conteo: { Args: { p_conteo_id: string }; Returns: number }
       fn_catalogo_version: { Args: never; Returns: number }
       fn_vencer_separaciones: {
         Args: { p_ubicacion_id: string }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { exigirModulo } from "@/lib/persona-actual";
-import { getCatalogo } from "@/lib/catalogo-v2";
+import { getCatalogo, getCostosVariantes } from "@/lib/catalogo-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getResumenCompras } from "@/lib/compras";
 import { getMarcasPorProveedor, getProveedores } from "@/lib/proveedores";
@@ -15,7 +15,8 @@ import { CompraFormV2 } from "@/components/CompraFormV2";
 export default async function NuevaCompraPage({ searchParams }: { searchParams: Promise<{ prov?: string }> }) {
   const persona = await exigirModulo("facturas_compra"); // 20260923130000: registrar es del módulo Facturas de compra
   const { prov } = await searchParams;
-  const [directorio, ubicaciones, catalogo, resumen, hayReparto, marcas] = await Promise.all([getProveedores(), getUbicaciones(), getCatalogo(), getResumenCompras(), repartoDisponible(), getMarcasPorProveedor()]);
+  // El costo ya no viaja en el catálogo compartido (20260923193700): se pide aparte. Este módulo es de quien ve el dinero.
+  const [directorio, ubicaciones, catalogo, costos, resumen, hayReparto, marcas] = await Promise.all([getProveedores(), getUbicaciones(), getCatalogo(), getCostosVariantes(), getResumenCompras(), repartoDisponible(), getMarcasPorProveedor()]);
   // Solo los activos; con su plazo, forma de pago y saldo (lo financiero es de líder, y esta pantalla también) y con
   // cómo se les paga (cuenta, CCI, Yape/Plin, titular: ADR-0134), que sale del mismo directorio, sin otra consulta.
   // Y con sus marcas (ADR-0140): el nombre es la razón social, pero se les busca por la marca; opcional (`null` → sin marcas).
@@ -68,7 +69,7 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
           color: v.color,
           productoId: v.productoId,
           referencia: v.referencia,
-          costo: v.costo,
+          costo: costos?.get(v.varianteId) ?? 0,
         }))}
     />
   );

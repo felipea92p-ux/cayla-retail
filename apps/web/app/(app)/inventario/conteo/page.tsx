@@ -1,7 +1,7 @@
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getConteoAbierto, getConteosResumen, getPrevisualizacionCierre, getPrioridadConteo } from "@/lib/conteos";
 import { pendientesEnAlcance, pendientesSinCifras } from "@/lib/conteo-reglas";
-import { getCatalogo, getEjesPorCategoria } from "@/lib/catalogo-v2";
+import { getCatalogo, getCostosVariantes, getEjesPorCategoria } from "@/lib/catalogo-v2";
 import { getSububicaciones } from "@/lib/sububicaciones";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
@@ -14,7 +14,8 @@ import { ConteoVista } from "@/components/ConteoVista";
 export default async function ConteoPage() {
   const persona = await requirePersonaActualV2();
   const supabase = await createClient();
-  const [conteoAbierto, conteos, catalogo, sububicaciones, categorias, prioridad, colores, ejes, catalogoMarcas] = await Promise.all([
+  // El costo va aparte del catálogo y solo a quien ve el dinero (20260923193700): sin permiso, null y el conteo va en unidades.
+  const [conteoAbierto, conteos, catalogo, sububicaciones, categorias, prioridad, colores, ejes, catalogoMarcas, costos] = await Promise.all([
     getConteoAbierto(persona.ubicacionId),
     getConteosResumen(persona.ubicacionId),
     getCatalogo(),
@@ -24,6 +25,7 @@ export default async function ConteoPage() {
     supabase.from("colores").select("codigo, nombre").eq("activo", true).order("orden"),
     getEjesPorCategoria(),
     getCatalogoMarcas(),
+    getCostosVariantes(),
   ]);
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
   const coloresOpciones = exigir(colores, "los colores").map((c) => ({ codigo: c.codigo, nombre: c.nombre }));
@@ -58,7 +60,7 @@ export default async function ConteoPage() {
           referencia: v.referencia,
           talla: v.talla,
           color: v.color,
-          costo: v.costo,
+          costo: costos ? (costos.get(v.varianteId) ?? 0) : null,
           codigosBarras: v.codigosBarras,
         }))}
     />

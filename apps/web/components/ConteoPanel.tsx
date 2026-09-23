@@ -38,7 +38,8 @@ type VarianteConteo = {
   referencia: string;
   talla: string | null;
   color: string | null;
-  costo: number;
+  /** null = esta cuenta no ve el dinero (20260923193700): el cierre se revisa en unidades, sin soles. */
+  costo: number | null;
   codigosBarras: string[];
 };
 
@@ -1064,7 +1065,7 @@ function RevisarCierre({
 
   useEffect(() => {
     let vigente = true;
-    const costoDe = new Map(catalogo.map((v) => [v.varianteId, v.costo]));
+    const costoDe = new Map(catalogo.map((v) => [v.varianteId, v.costo ?? 0]));
     createClient()
       .rpc("previsualizar_cierre_conteo", { p_conteo_id: conteo.id })
       .then(({ data, error: errCarga }) => {
@@ -1104,6 +1105,9 @@ function RevisarCierre({
   }
 
   const conDiferencia = varianza ? varianza.lineas.filter((l) => l.diferencia !== 0) : [];
+  // Quien no ve el dinero recibe el catálogo sin costos (todos null): revisa el cierre en unidades.
+  const veCosto = catalogo.some((v) => v.costo !== null);
+  const unidadesNeto = varianza ? varianza.unidadesSobrantes - varianza.unidadesFaltantes : 0;
   const alcance = conteo.alcance === "categoria" && conteo.alcanceCategoriaNombre ? `solo ${conteo.alcanceCategoriaNombre}` : "todo el catálogo";
 
   return (
@@ -1123,13 +1127,26 @@ function RevisarCierre({
         ) : varianza ? (
           <div className="space-y-4">
             <div className="rounded-2xl border border-sand bg-crema/60 p-4 text-center">
-              <p className="eyebrow-cayla !text-taupe">Diferencia neta al costo</p>
-              <p className={`font-display mt-1 text-4xl tabular-nums ${varianza.solesNeto < 0 ? "text-rojo-profundo" : varianza.solesNeto > 0 ? "text-verde" : "text-tinta"}`}>
-                {soles(varianza.solesNeto)}
-              </p>
+              {veCosto ? (
+                <>
+                  <p className="eyebrow-cayla !text-taupe">Diferencia neta al costo</p>
+                  <p className={`font-display mt-1 text-4xl tabular-nums ${varianza.solesNeto < 0 ? "text-rojo-profundo" : varianza.solesNeto > 0 ? "text-verde" : "text-tinta"}`}>
+                    {soles(varianza.solesNeto)}
+                  </p>
+                </>
+              ) : (
+                <>
+                  {/* Sin permiso de ver el dinero (20260923193700): la diferencia en unidades, no en soles. */}
+                  <p className="eyebrow-cayla !text-taupe">Diferencia neta</p>
+                  <p className={`font-display mt-1 text-4xl tabular-nums ${unidadesNeto < 0 ? "text-rojo-profundo" : unidadesNeto > 0 ? "text-verde" : "text-tinta"}`}>
+                    {unidadesNeto > 0 ? "+" : ""}
+                    {unidadesNeto} {Math.abs(unidadesNeto) === 1 ? "unidad" : "unidades"}
+                  </p>
+                </>
+              )}
               <p className="mt-1 text-xs text-taupe">
                 {varianza.lineas.length} {varianza.lineas.length === 1 ? "prenda contada" : "prendas contadas"} · {varianza.unidadesFaltantes} de menos · {varianza.unidadesSobrantes} de más
-                {varianza.lineasSinCosto > 0 && ` · ${varianza.lineasSinCosto} sin costo cargado`}
+                {veCosto && varianza.lineasSinCosto > 0 && ` · ${varianza.lineasSinCosto} sin costo cargado`}
               </p>
             </div>
 
@@ -1278,7 +1295,7 @@ function AltaAlVuelo({
       referencia: fila.referencia,
       talla: fila.talla,
       color: fila.color,
-      costo: Number(fila.costo),
+      costo: fila.costo === null ? null : Number(fila.costo),
       codigosBarras: [fila.codigo_barras],
     }, { marcaId, proveedorId });
   }

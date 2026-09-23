@@ -1,6 +1,7 @@
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
+import { getCostosVariantes } from "@/lib/catalogo-v2";
 import { Ayuda } from "@/components/Ayuda";
 import { AtributosHub } from "@/components/AtributosHub";
 
@@ -53,7 +54,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     // qué prendas quedarían por debajo de su costo — el costo no viaja a otros roles.
     tipo === "etiquetas" && puedeDarDescuento
       ? leerTodas((desde, hasta) =>
-          supabase.from("variantes").select("id, sku, precio, costo, producto:productos ( referencia, categoria_id )").eq("activo", true).order("id").range(desde, hasta)
+          supabase.from("variantes").select("id, sku, precio, producto:productos ( referencia, categoria_id )").eq("activo", true).order("id").range(desde, hasta)
         )
       : Promise.resolve({ data: [], error: null }),
     // Cuántas prendas lleva cada etiqueta «a mano»: para quien edita etiquetas (el líder o un rol con el módulo).
@@ -112,11 +113,13 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     descuentoPct: e.descuento_pct,
     categoriaIds: (etiquetaCategorias.get(e.id) ?? []) as string[],
   }));
+  // El costo, por la puerta que revisa el permiso (20260923193700). El líder lo tiene siempre.
+  const costos = puedeDarDescuento ? await getCostosVariantes() : null;
   const prendasConCosto = exigir(resPrendas, "las prendas para el aviso de costo").map((v) => ({
     id: v.id,
     categoriaId: v.producto?.categoria_id ?? null,
     precio: Number(v.precio),
-    costo: Number(v.costo ?? 0),
+    costo: costos?.get(v.id) ?? 0,
     nombre: `${v.producto?.referencia ?? "Prenda"} (${v.sku})`,
   }));
   const variantesManuales: Record<string, string[]> = {};

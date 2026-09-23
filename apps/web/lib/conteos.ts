@@ -3,6 +3,7 @@ import { exigir, exigirOpcional } from "@/lib/resultado";
 import type { FilaPrevisualizacion } from "@/lib/conteo-varianza";
 import { getAparienciaVariantes, type Apariencia } from "@/lib/apariencia-variantes";
 import { fotoPrincipal } from "@/lib/inventario-reglas";
+import { getCostosVariantes } from "@/lib/catalogo-v2";
 
 // Conteos físicos (Felipe, 2026-09-14): abrir_conteo/conteo_contar/cerrar_conteo
 // ya existían y siguen probados intactos — este archivo solo trae lecturas.
@@ -108,8 +109,8 @@ export type ConteoResumen = {
   contado: number;
   /** contado − sistema, en unidades: negativo = faltó. */
   diferencia: number;
-  /** La misma diferencia valorizada al costo actual de cada variante. */
-  solesDiferencia: number;
+  /** La misma diferencia valorizada al costo actual de cada variante. null = esta cuenta no ve el dinero (20260923193700). */
+  solesDiferencia: number | null;
 };
 
 /** Los conteos de una ubicación con su resultado ya sumado — el abierto (si
@@ -143,7 +144,7 @@ export async function getConteosResumen(ubicacionId: string, limite = 20): Promi
     sistema: c.sistema,
     contado: c.contado,
     diferencia: c.diferencia,
-    solesDiferencia: Number(c.soles_diferencia ?? 0),
+    solesDiferencia: c.soles_diferencia === null ? null : Number(c.soles_diferencia),
   }));
 }
 
@@ -236,8 +237,8 @@ export type LineaConteo = {
   sistema: number;
   contado: number;
   diferencia: number;
-  /** La diferencia al costo actual de la variante (ADR-0174: el detalle la muestra por línea). */
-  soles: number;
+  /** La diferencia al costo actual de la variante (ADR-0174: el detalle la muestra por línea). null = sin permiso de ver el dinero. */
+  soles: number | null;
 };
 
 export type ConteoDetalle = ConteoResumen & { lineasDetalle: LineaConteo[] };
@@ -263,12 +264,15 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
       .from("conteo_items")
       .select(
         `variante_id, cantidad_sistema, cantidad_contada,
-         variante:variantes ( sku, talla:tallas ( valor ), costo, color:colores ( nombre, hex ), producto:productos ( referencia, producto_fotos ( url, orden, es_principal ) ) )`
+         variante:variantes ( sku, talla:tallas ( valor ), color:colores ( nombre, hex ), producto:productos ( referencia, producto_fotos ( url, orden, es_principal ) ) )`
       )
       .eq("conteo_id", id),
     ids.length > 0 ? supabase.rpc("fn_nombres_personas", { p_ids: ids }) : Promise.resolve({ data: [], error: null }),
   ]);
   const items = exigir(itemsRes, "las líneas del conteo");
+  // El costo, por la puerta que revisa el permiso (20260923193700): sin permiso, null y el detalle va en unidades.
+  const costos = await getCostosVariantes(items.map((i) => i.variante_id));
+  const costoDe = (varianteId: string) => costos?.get(varianteId) ?? 0;
   const nombrePorId = new Map(exigir(nombresRes, "los nombres de responsables").map((n) => [n.id, n.nombre]));
 
   const lineasDetalle: LineaConteo[] = items
@@ -283,7 +287,7 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
       sistema: i.cantidad_sistema,
       contado: i.cantidad_contada,
       diferencia: i.cantidad_contada - i.cantidad_sistema,
-      soles: Math.round((i.cantidad_contada - i.cantidad_sistema) * Number(i.variante?.costo ?? 0) * 100) / 100,
+      soles: costos ? Math.round((i.cantidad_contada - i.cantidad_sistema) * costoDe(i.variante_id) * 100) / 100 : null,
     }))
     // Las diferencias primero, las más grandes arriba; después el resto por nombre.
     .sort((a, b) => Math.abs(b.diferencia) - Math.abs(a.diferencia) || a.referencia.localeCompare(b.referencia, "es") || a.sku.localeCompare(b.sku));
@@ -291,7 +295,7 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
   // Para UN conteo las líneas ya están en memoria: se suman acá, con el mismo
   // criterio que `fn_conteos_resumen` (diferencia = contado − sistema, soles
   // al costo actual de la variante).
-  const soles = items.reduce((acc, i) => acc + (i.cantidad_contada - i.cantidad_sistema) * Number(i.variante?.costo ?? 0), 0);
+  const soles = items.reduce((acc, i) => acc + (i.cantidad_contada - i.cantidad_sistema) * costoDe(i.variante_id), 0);
 
   return {
     id: cabecera.id,
@@ -310,7 +314,7 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
     sistema: lineasDetalle.reduce((acc, l) => acc + l.sistema, 0),
     contado: lineasDetalle.reduce((acc, l) => acc + l.contado, 0),
     diferencia: lineasDetalle.reduce((acc, l) => acc + l.diferencia, 0),
-    solesDiferencia: Math.round(soles * 100) / 100,
+    solesDiferencia: costos ? Math.round(soles * 100) / 100 : null,
     lineasDetalle,
   };
 }

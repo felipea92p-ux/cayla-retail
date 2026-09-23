@@ -109,6 +109,12 @@ const nn = (v: Num): number | null => (v === null || v === undefined ? null : Nu
 
 const ESTADOS_COSTO: EstadoCosto[] = ["oficial", "declarado", "alterado", "sin_costo"];
 
+/** Sin permiso de ver el dinero la base manda el costo de lo vendido VACÍO (20260923193700). No es «costó 0»: todas las
+ *  unidades cuentan como sin costo, y la rotación y los márgenes salen N/D en vez de inventarse. */
+function sinCostoVisible(costoVentas: Num | undefined): boolean {
+  return costoVentas === null;
+}
+
 export function mapearFilaComparacion(f: FilaCrudaComparacion): FilaComparacion {
   return {
     varianteId: f.variante_id,
@@ -134,7 +140,7 @@ export function mapearFilaComparacion(f: FilaCrudaComparacion): FilaComparacion 
       importe: n(f.a_importe),
       costoVentas: n(f.a_costo_ventas),
       costoDevoluciones: n(f.a_costo_devoluciones),
-      unidadesSinCosto: n(f.a_uds_sin_costo),
+      unidadesSinCosto: sinCostoVisible(f.a_costo_ventas) ? n(f.a_ventas) + n(f.a_devoluciones) : n(f.a_uds_sin_costo),
       entradas: n(f.a_entradas),
       stockInicio: n(f.a_stock_inicio),
       stockCierre: n(f.a_stock_cierre),
@@ -146,7 +152,7 @@ export function mapearFilaComparacion(f: FilaCrudaComparacion): FilaComparacion 
       importe: n(f.b_importe),
       costoVentas: n(f.b_costo_ventas),
       costoDevoluciones: n(f.b_costo_devoluciones),
-      unidadesSinCosto: n(f.b_uds_sin_costo),
+      unidadesSinCosto: sinCostoVisible(f.b_costo_ventas) ? n(f.b_ventas) + n(f.b_devoluciones) : n(f.b_uds_sin_costo),
       entradas: n(f.b_entradas),
       stockInicio: n(f.b_stock_inicio),
       stockCierre: n(f.b_stock_cierre),
