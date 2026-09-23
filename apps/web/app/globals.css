@@ -429,28 +429,240 @@ body {
 }
 
 /* ==================================================================
-   Impresión de etiquetas de código de barras (Brother QL-1110NWB,
-   rollo 62mm). Al imprimir, solo existen las etiquetas: el resto de
-   la app desaparece y cada etiqueta es una página de 62×29mm.
+   Etiqueta de precio (ADR-0180): la que se pega en la cartulina que cuelga de la prenda.
+   Brother QL-1110NWB, rollo DK-22205 (62 mm continuo, adhesivo): cada etiqueta es una
+   página de 62 × 92 mm (la medida es provisional hasta tener la de la cartulina).
+   TODO en milímetros: es una medida física, no una pantalla. Y solo negro sobre blanco —
+   la térmica no imprime otro color—, por eso aquí sí va #000/#fff literal y no los tokens
+   de la guía (misma excepción que el comprobante de 80 mm). Diseño aprobado por Felipe el
+   2026-09-23: «D · Editorial, corregida» (docs/maquetas/etiqueta-precio-2026-09/).
    ================================================================== */
-@media print {
-  body.imprimiendo-etiquetas * {
-    visibility: hidden;
-  }
-  body.imprimiendo-etiquetas #etiquetas-print,
-  body.imprimiendo-etiquetas #etiquetas-print * {
-    visibility: visible;
-  }
-  body.imprimiendo-etiquetas #etiquetas-print {
-    position: absolute;
-    left: 0;
-    top: 0;
-  }
-  body.imprimiendo-etiquetas .etiqueta-impresa {
+@layer components {
+  .etiqueta-precio {
+    box-sizing: border-box;
     width: 62mm;
-    height: 29mm;
-    page-break-after: always;
+    height: 92mm;
+    padding: 4.5mm 4.5mm 4mm;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
+    background: #fff;
+    color: #000;
+    font-family: var(--font-sans);
+    line-height: 1.2;
+    /* Sin esto Chrome no imprime fondos: la talla invertida saldría blanca sobre blanco. */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .etq-cab {
+    display: flex;
+    align-items: center;
+    gap: 1.8mm;
+  }
+  .etq-cab img {
+    width: 8.5mm;
+    height: auto;
+    filter: brightness(0); /* el isotipo es rojo; la térmica lo necesita negro */
+  }
+  .etq-cab b {
+    font-size: 4mm;
+    font-weight: 500;
+    letter-spacing: 0.46em;
+  }
+  .etq-rot {
+    margin: 3mm 0 0.8mm;
+    font-size: 1.9mm;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .etq-tallas {
+    display: flex;
+    border-top: 0.25mm solid #000;
+    border-bottom: 0.25mm solid #000;
+  }
+  /* Cada talla ocupa lo que mide su texto más un respiro, y el sobrante se reparte: con `flex: 1` parejo, 8 tallas
+     (XXS…XXXL) dejaban 6,6 mm por celda y «XXXL» se pegaba a la vecina (visto en el PDF de prueba, 2026-09-23). */
+  .etq-tallas span {
+    flex: 1 0 auto;
+    padding: 1.3mm 0.7mm;
+    text-align: center;
+    font-size: 2.7mm;
+    letter-spacing: 0.06em;
+  }
+  .etq-tallas.etq-muchas span {
+    padding-inline: 0.4mm;
+    font-size: 2.3mm;
+    letter-spacing: 0;
+  }
+  .etq-tallas .etq-si {
+    background: #000;
+    color: #fff;
+    font-weight: 700;
+  }
+  .etq-tallas.etq-unica {
+    border: 0;
+  }
+  .etq-tallas.etq-unica span {
+    flex: none;
+    padding: 1.2mm 3mm;
+    text-transform: uppercase;
+  }
+  .etq-prenda,
+  .etq-color {
+    font-size: 2.6mm;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .etq-prenda {
+    margin-top: 3mm;
+    line-height: 1.3;
+    /* Un nombre largo no empuja el QR fuera de la etiqueta: dos líneas y corta. */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .etq-color {
+    margin-top: 0.5mm;
+    font-weight: 700;
+  }
+  .etq-precio {
+    margin-top: 3.4mm;
+    font-size: 7.6mm;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    line-height: 1;
+  }
+  .etq-precio small {
+    margin-right: 0.8mm;
+    font-size: 3.8mm;
+  }
+  /* Con campaña (paso 2): antes tachado → ahora en negrita con su «−20 %» en bloque negro → el porqué. Es lo que más se
+     ve de la etiqueta a propósito: la crítica del diseño D lo pidió (ADR-0180). */
+  .etq-antes {
+    margin-top: 2.4mm;
+    font-size: 3.2mm;
+    letter-spacing: 0.06em;
+  }
+  .etq-antes s {
+    text-decoration-thickness: 0.3mm;
+  }
+  /* Si el precio y su % no caben en una línea (S/ 1,136.90 con −12.5 %), el % baja a la siguiente en vez de salirse
+     del borde (visto en el PDF de prueba, 2026-09-23). */
+  .etq-ahora {
+    margin-top: 1.2mm;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1mm 2mm;
+  }
+  .etq-ahora .etq-precio {
+    margin-top: 0;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .etq-precio.etq-precio-largo {
+    font-size: 6.4mm;
+  }
+  .etq-pct {
+    padding: 1mm 2.2mm;
+    background: #000;
+    color: #fff;
+    font-size: 5.4mm;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .etq-motivo {
+    margin-top: 2.4mm;
+    padding-top: 1.4mm;
+    border-top: 0.25mm solid #000;
+  }
+  /* El porqué es lo que Felipe pidió que se vea: hasta dos líneas antes de cortar. */
+  .etq-motivo b {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 3mm;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1.25;
+    text-transform: uppercase;
+  }
+  .etq-motivo span {
+    display: block;
+    margin-top: 0.5mm;
+    font-size: 2.3mm;
+    letter-spacing: 0.04em;
+  }
+  .etq-pie {
+    margin-top: auto;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2mm;
+  }
+  .etq-datos {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6mm;
+    min-width: 0;
+  }
+  /* Monoespaciada del sistema (Consolas en Windows, SF Mono/Menlo en Mac): su 0 lleva barra y no se confunde
+     con la O cuando la pistola falla y el código se teclea. */
+  .etq-cod {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 2.5mm;
+    font-weight: 500;
+    font-feature-settings: "zero";
+    white-space: nowrap;
+  }
+  .etq-datos small {
+    font-size: 1.9mm;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  /* 25 mm con su zona muda adentro (lib/qr.ts). El margen negativo solo mete la zona muda —blanca— en el
+     acolchado de la etiqueta: el código visible no se acerca al borde. */
+  .etq-qr {
+    flex: none;
+    margin: 0 -1.5mm -1.5mm 0;
+  }
+}
+
+/* En pantalla la hoja no se ve (la vista previa dibuja una por prenda); al imprimir desaparece TODO lo demás con
+   `display:none` —no `visibility`: lo oculto seguiría ocupando alto y la Brother sacaría etiquetas en blanco— y cada
+   etiqueta es una página NOMBRADA de 62 × 92 mm, sin pisar el `@page` de la térmica de 80 mm. */
+#etiquetas-precio-print {
+  display: none;
+}
+@page etiqueta-precio {
+  size: 62mm 92mm;
+  margin: 0;
+}
+@media print {
+  body:has(#etiquetas-precio-print) > *:not(#etiquetas-precio-print) {
+    display: none !important;
+  }
+  html:has(#etiquetas-precio-print),
+  body:has(#etiquetas-precio-print) {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    margin: 0 !important;
+  }
+  #etiquetas-precio-print {
+    display: block;
+  }
+  #etiquetas-precio-print .etiqueta-precio {
+    page: etiqueta-precio;
+    break-after: page;
+  }
+  #etiquetas-precio-print .etiqueta-precio:last-child {
+    break-after: auto;
   }
 }
 

@@ -160,6 +160,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-venta
 
+      # Precio de campaña bajado al .90 (ADR-0182): la base da lo mismo que la caja, registrar_venta y separar_prendas
+      # aceptan el descuento redondeado y rechazan el de antes, y la migración se puede pegar dos veces. ROLLBACK.
+      - name: pruebas:campana-redondeo
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:campana-redondeo
+
       # «Quién vendió» (ADR-0163): la venta guarda a quien atendió (asesora_id) Y a la sesión, «Ventas de hoy»
       # la firma con quien atendió y queda una sola registrar_venta. Cada caso termina en ROLLBACK.
       - name: pruebas:vendedora-en-venta
