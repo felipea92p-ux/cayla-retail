@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-23 («Recibidas recientemente» no cargaba — timeout en listar_recepciones_compras)
+La pestaña caía en «No se pudo cargar»: `listar_recepciones_compras` tardaba 33 s en producción y la API la corta a los 8. Causa: lo asignado y lo faltante de cada comprobante se calculaban con dos subconsultas por fila, sobre TODA la historia (~320 recepciones) antes de cortar a 30, y cada una volvía a preguntar el permiso de tienda fila por fila. Migración `20260924090000`: permiso una vez por tienda, primero la página y después el reparto; mismo resultado fila por fila (líder y colaboradora, probado en producción en transacción revertida) y 0,8 s. Por pegar en producción.
+Felipe se lleva: (1) **una pantalla que anda con 50 envíos puede caerse con 300**: el costo crecía con la historia, no con lo que se muestra; (2) **primero se corta la página, después se calcula lo caro**; (3) **el permiso se pregunta una vez, no por fila**.
+
 ## 2026-09-23 (El combo «Responsable» en toda operación — ADR-0161, actualización c)
 Felipe no encontraba el combo al recibir mercadería ni al registrar un comprobante: el ADR-0161 (A8) lo dejó solo para la operación de tienda cuando Compras era cosa del líder, y un día después Compras se abrió a las tiendas sin que nadie revisara esa regla. Decidió «en todo», con el mismo candado de asistencia. Migración `20260923230000` (toda firma pasa al responsable; 4 usos quedan en la cuenta porque son permisos) y combo en ~25 pantallas de Compras, Producción, Colaboradores y Roles; pruebas SQL y web en verde, sin pegar en producción.
 Felipe se lleva: (1) **una regla escrita con un supuesto («Compras es del líder») se rompe en silencio cuando el supuesto cambia**: al abrir un módulo a las tiendas hay que releer las reglas que lo excluían; (2) **firmar no es lo mismo que tener permiso**: el responsable firma, pero «no te quites a ti mismo» se sigue comparando con la cuenta; (3) **el orden de publicación importa**: primero la web con el combo, después la base que lo exige.
