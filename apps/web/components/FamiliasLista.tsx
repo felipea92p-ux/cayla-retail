@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
+import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { useResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -41,9 +43,11 @@ export function FamiliasLista({
   familiasIniciales: Familia[];
   puedeEditar: boolean;
 }) {
-  // Cambiar las familias es Catálogo, operación de tienda (ADR-0161): UN combo «Responsable» firma todo lo que se
-  // guarda desde esta lista (arriba; el mismo se repite en el modal) y cada guardado exitoso lo vacía.
+  // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
+  // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
+  // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
   const responsable = useResponsable();
+  const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
   const [familias, setFamilias] = useState(familiasIniciales);
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -107,7 +111,7 @@ export function FamiliasLista({
     <div className="space-y-3">
       {puedeEditar && (
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <ComboResponsable control={responsable} deshabilitado={cambiandoCodigo !== null} hacia="abajo" className="w-full max-w-xs" />
+          <span />
           <button
             type="button"
             onClick={() => setBorrador({ codigo: null, nombre: "" })}
@@ -136,9 +140,7 @@ export function FamiliasLista({
                   peso="discreto"
                   className="px-2.5 py-1.5 text-[10.5px] text-rojo/70 hover:text-rojo"
                   cargando={cambiandoCodigo === f.codigo}
-                  disabled={!responsable.listo}
-                  title={responsable.motivo ?? undefined}
-                  onClick={() => cambiarEstado(f)}
+                  onClick={() => setConfirmando(confirmacionCatalogo("desactivar", f.nombre, () => cambiarEstado(f)))}
                 >
                   Desactivar
                 </Boton>
@@ -207,9 +209,7 @@ export function FamiliasLista({
                     peso="discreto"
                     className="px-2 py-1 text-[10.5px]"
                     cargando={cambiandoCodigo === f.codigo}
-                    disabled={!responsable.listo}
-                    title={responsable.motivo ?? undefined}
-                    onClick={() => cambiarEstado(f)}
+                    onClick={() => setConfirmando(confirmacionCatalogo("reactivar", f.nombre, () => cambiarEstado(f)))}
                   >
                     Reactivar
                   </Boton>
@@ -219,6 +219,8 @@ export function FamiliasLista({
           </div>
         </section>
       )}
+
+      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
     </div>
   );
 }
