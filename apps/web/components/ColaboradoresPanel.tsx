@@ -110,6 +110,7 @@ export function ColaboradoresPanel({
   soyLider = true,
   soyAdmin = soyLider,
   admins = [],
+  fueraDeAlcance = [],
   misModulos = null,
   acciones = accionesSupabase,
   accionesRoles = accionesRolesSupabase,
@@ -140,6 +141,8 @@ export function ColaboradoresPanel({
   soyAdmin?: boolean;
   /** ADR-0178: las personas que son Admin, para marcarlas en la tabla. */
   admins?: readonly string[];
+  /** ADR-0178 «solo alcanzas a quien está por debajo de ti»: personas a las que quien mira no alcanza (sin acciones). */
+  fueraDeAlcance?: readonly string[];
   /** ADR-0178 «solo das lo que tienes»: los módulos que ve quien mira, o `null` si es líder (da todo). */
   misModulos?: readonly ClaveModulo[] | null;
   acciones?: AccionesColaboradores;
@@ -367,7 +370,7 @@ export function ColaboradoresPanel({
                   {filas.length === 0 ? (
                     <Vacio>Nadie coincide con lo que buscas.</Vacio>
                   ) : (
-                    <TablaActivos filas={filas} ocupadoId={ocupadoId} onAccion={alElegirAccion} rolDe={rolDe} onVerRol={verRolDe} soyAdmin={soyAdmin} admins={admins} />
+                    <TablaActivos filas={filas} ocupadoId={ocupadoId} onAccion={alElegirAccion} rolDe={rolDe} onVerRol={verRolDe} soyAdmin={soyAdmin} admins={admins} fueraDeAlcance={fueraDeAlcance} />
                   )}
                   <p className="text-xs text-tinta/65" role="status">
                     {filas.length === colaboradores.length
@@ -415,6 +418,7 @@ export function ColaboradoresPanel({
                       ejecutar(c.persona_id, "reactivar el acceso", () => acciones.reactivar(c.persona_id), `${c.nombre} ya tiene acceso otra vez`)
                     }
                     onQuitar={(c) => setModal({ tipo: "quitar", persona: c, suspendida: true })}
+                    puedeTocar={(c) => !fueraDeAlcance.includes(c.persona_id) && (soyAdmin || c.rol !== "lider")}
                   />
                 </>
               )}
@@ -452,6 +456,7 @@ export function ColaboradoresPanel({
               rolInicialId={rolElegidoId}
               soyAdmin={soyAdmin}
               misModulos={misModulos}
+              fueraDeAlcance={fueraDeAlcance}
               acciones={accionesRoles}
             />
           )}

@@ -1,7 +1,7 @@
 # ADR-0179 — Compras: cada tienda compra, ve y paga lo suyo (compradores por tienda)
 
 **Fecha:** 2026-09-21 (decisión) · 2026-09-23 (reconciliado con ADR-0161 y cerrado F3-b)
-**Estado:** **Aceptado.** Construido y probado en local (F0–F5 + F3-b). **No está en producción:** faltan pegar `20260923180000` … `20260923180400` en orden.
+**Estado:** **Aceptado y en producción** (Felipe pegó `20260923180000` … `180400` el 2026-09-23, verificado en solo lectura). Falta pegar `20260923180500` (arreglo de forma de `agregar_comprador_de_tienda`).
 **Decide:** Felipe, el 2026-09-21 (respuestas en «Lo que dijo el negocio») y el 2026-09-23 («Reconciliación con los roles por módulo», abajo).
 **Número:** nació como 0145, pasó a 0150 y a 0151; los tres los tomaron otros ADR en `main` (colaboradores, roles a medida, alertas de productos). Queda **0179** (2026-09-23). Commits y comentarios anteriores al 2026-09-23 lo llaman ADR-0151 o 0145.
 **Refina** ADR-0075 (lectura por sede), ADR-0126 (el dinero de Compras), ADR-0139 (reparto entre tiendas) y **ADR-0161** (roles por módulo: aquí se le suma la TIENDA).
@@ -32,8 +32,8 @@ corresponde»** → con un módulo de Compras se ve y se paga **solo lo de su ti
   le queda (`fn_saldo_de_tienda` = su parte − lo que pagó ella, sin pasar del saldo real de la factura: si el líder saldó todo sin tienda,
   nadie ve deuda fantasma). Candado de esquema diferido: lo pagado por una tienda nunca supera su parte.
 
-**Migraciones (en este orden; ninguna en producción):** `20260923180000_compras_por_tienda_quien_y_donde`, `…180100_compra_parte_por_tienda`,
-`…180200_compras_tienda_gestora_y_lectura`, `…180300_compras_pagar_por_tienda`, `…180400_compras_mi_parte`. Reemplazan a las cinco
+**Migraciones (en este orden; 180000–180400 en producción desde el 2026-09-23, 180500 por pegar):** `20260923180000_compras_por_tienda_quien_y_donde`, `…180100_compra_parte_por_tienda`,
+`…180200_compras_tienda_gestora_y_lectura`, `…180300_compras_pagar_por_tienda`, `…180400_compras_mi_parte`, `…180500_compras_comprador_firma_con_actor` (la firma de `agregar_comprador_de_tienda` en una variable, para que `20260923100000` pueda volver a pegarse). Reemplazan a las cinco
 `20260922*` de la rama `adr-0145-compras-permisos`, que nunca se pegaron, chocaban en número con cinco migraciones de `main` y parchaban
 textos que ADR-0161 ya había cambiado. Todas parchan la definición VIVA (ancladas en producción al 2026-09-23), son re-pegables y
 abortan sin dejar nada a medias si la base cambió.

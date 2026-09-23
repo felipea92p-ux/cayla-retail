@@ -44,6 +44,7 @@ const MIGRACION = [
   "20260923131000_colaboradores_y_roles_delegables.sql",
   "20260923140000_modulos_seis_decisiones.sql",
   "20260923163000_escalon_admin_desde_dynamic.sql",
+  "20260923174500_alcanzas_solo_a_quien_esta_debajo.sql",
 ]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
@@ -463,6 +464,8 @@ caso(
   conRol("Gestor de roles", ["roles"]) +
     PERSONA_NUEVA +
     `insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id, estado) select :'nueva', 'colaborador', tru, 'activo' from ids;\n` +
+    // Arranca con un rol sin módulos: así está POR DEBAJO de quien solo tiene Roles y accesos (20260923174500).
+    `select asignar_rol(crear_rol('Sin módulos'), :'nueva') \\g /dev/null\n` +
     como(MICAELA_AUTH) +
     `select concat_ws(',', fn_ve_modulo('roles'), fn_puede_administrar_roles(), fn_es_lider());\n` +
     `create temp table rol_nuevo as select crear_rol('Vendedora de prueba') as id;\n` +
@@ -651,6 +654,63 @@ caso(
   "ADR-0178: no queda vigente un rol a medida «Administrador» (el de producción, vacío, se archiva; el escalón es Admin)",
   `select exists (select 1 from retail.roles where nombre = 'Administrador' and archivado_at is null)::text;`,
   "false"
+);
+
+// ---------------- «Solo alcanzas a quien está por debajo de ti» (ADR-0178, 20260923174500) ----------------
+// Micaela gestiona (Colaboradores + Roles + Punto de venta + Caja). Tres personas nuevas: una por debajo (solo Punto de
+// venta), una par (sus mismos 4 módulos) y una con Por pagar (algo que ella no ve).
+const TRES_PERSONAS = (sede) => ["d1", "d2", "d3"].map((k, i) => `insert into public.personas (id, nombres, apellidos, estado, sede_base_id)
+  select '33333333-3333-4333-8333-0000000000d${i + 1}', 'Persona', '${k}', 'activo', sede_dynamic_id from retail.ubicaciones where id = (select ${sede} from ids);
+insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id, estado) select '33333333-3333-4333-8333-0000000000d${i + 1}', 'colaborador', ${sede}, 'activo' from ids;`).join("\n") + "\n";
+const ALCANCE =
+  conRol("Gestora", ["colaboradores", "roles", "vender", "caja"]) +
+  TRES_PERSONAS("tru") +
+  como(FELIPE_AUTH) +
+  `create temp table r_abajo as select crear_rol('Solo vender') as id;\n` +
+  `select guardar_modulos_rol((select id from r_abajo), array['vender']) \\g /dev/null\n` +
+  `create temp table r_pagos as select crear_rol('Con pagos') as id;\n` +
+  `select guardar_modulos_rol((select id from r_pagos), array['vender', 'por_pagar']) \\g /dev/null\n` +
+  `select asignar_rol((select id from r_abajo), '33333333-3333-4333-8333-0000000000d1') \\g /dev/null\n` +
+  `select asignar_rol((select id from retail.roles where nombre = 'Gestora'), '33333333-3333-4333-8333-0000000000d2') \\g /dev/null\n` +
+  `select asignar_rol((select id from r_pagos), '33333333-3333-4333-8333-0000000000d3') \\g /dev/null\n`;
+
+caso(
+  "ADR-0178 alcance: quien gestiona sin ser líder suspende y mueve a quien está POR DEBAJO; no a una par ni a quien ve algo que él no",
+  ALCANCE +
+    como(MICAELA_AUTH) +
+    intento(`select retail.suspender_colaborador('33333333-3333-4333-8333-0000000000d1', 'prueba')`) + "\n" +
+    intento(`select retail.suspender_colaborador('33333333-3333-4333-8333-0000000000d2', 'prueba')`) + "\n" +
+    intento(`select retail.suspender_colaborador('33333333-3333-4333-8333-0000000000d3', 'prueba')`) + "\n" +
+    intento(`select retail.quitar_colaborador('33333333-3333-4333-8333-0000000000d3')`) + "\n" +
+    `select pg_temp.intento(format('select retail.cambiar_ubicacion_colaborador(%L, %L)', '33333333-3333-4333-8333-0000000000d2', (select id from retail.ubicaciones where id <> (select tru from ids) and activo limit 1)));`,
+  (s) => {
+    const l = s.split("\n");
+    const fuera = (x, que) => x.startsWith("42501|") && x.includes("solo alcanzas a quien está por debajo") && x.includes(que);
+    return l[0] === "SIN_ERROR" && fuera(l[1], "mismos módulos") && fuera(l[2], "Por pagar") && fuera(l[3], "Por pagar") && fuera(l[4], "mismos módulos");
+  }
+);
+caso(
+  "ADR-0178 alcance: cambiarle el rol, solo a quien está por debajo; fn_fuera_de_mi_alcance lo dice a la pantalla; el líder alcanza a todos",
+  ALCANCE +
+    como(MICAELA_AUTH) +
+    intento(`select retail.asignar_rol((select id from r_abajo), '33333333-3333-4333-8333-0000000000d2')`) + "\n" +
+    intento(`select retail.asignar_rol((select id from r_abajo), '33333333-3333-4333-8333-0000000000d3')`) + "\n" +
+    `create temp table r_caja as select crear_rol('Solo caja') as id;\n` +
+    `select guardar_modulos_rol((select id from r_caja), array['caja']) \\g /dev/null\n` +
+    intento(`select retail.asignar_rol((select id from r_caja), '33333333-3333-4333-8333-0000000000d1')`) + "\n" +
+    `select string_agg(right(persona_id::text, 2), ',' order by persona_id) filter (where right(persona_id::text, 2) in ('d1', 'd2', 'd3'))
+       || '|' || bool_or(persona_id = (select felipe from ids))::text from retail.fn_fuera_de_mi_alcance();\n` +
+    como(FELIPE_AUTH) +
+    `select count(*) from retail.fn_fuera_de_mi_alcance();\n` +
+    intento(`select retail.suspender_colaborador('33333333-3333-4333-8333-0000000000d3', 'prueba')`),
+  (s) => {
+    const l = s.split("\n");
+    return (
+      l[0].startsWith("42501|") && l[0].includes("mismos módulos") &&
+      l[1].startsWith("42501|") && l[1].includes("Por pagar") &&
+      l[2] === "SIN_ERROR" && l[3] === "d2,d3|true" && l[4] === "0" && l[5] === "SIN_ERROR"
+    );
+  }
 );
 
 caso(

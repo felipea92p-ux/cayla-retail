@@ -6019,6 +6019,8 @@ export type Database = {
       fn_es_admin: { Args: never; Returns: boolean }
       fn_admins: { Args: never; Returns: { persona_id: string }[] }
       fn_rol_dentro_de_lo_mio: { Args: { p_rol_id: string }; Returns: boolean }
+      // 20260923174500: «solo alcanzas a quien está por debajo de ti».
+      fn_fuera_de_mi_alcance: { Args: never; Returns: { persona_id: string }[] }
       // ADR-0179 (Compras por tienda)
       fn_compras_ubicaciones: { Args: never; Returns: string[] }
       fn_puede_comprar_en: { Args: { p_ubicacion_id: string }; Returns: boolean }
