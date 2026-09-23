@@ -43,7 +43,7 @@ const MIGRACION = [
   "20260923130000_abrir_modulos_a_los_roles.sql",
   "20260923131000_colaboradores_y_roles_delegables.sql",
   "20260923140000_modulos_seis_decisiones.sql",
-  "20260923160000_escalon_admin_desde_dynamic.sql",
+  "20260923163000_escalon_admin_desde_dynamic.sql",
 ]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
@@ -589,7 +589,7 @@ caso(
     return l[0] === "1" && ultimo(l[1]) && ultimo(l[2]);
   }
 );
-// ---------------- Escalón Admin, leído de Dynamic (ADR-0178, 20260923160000) ----------------
+// ---------------- Escalón Admin, leído de Dynamic (ADR-0178, 20260923163000) ----------------
 // Un segundo líder que NO es admin en Dynamic. Deja `:l2`.
 const LIDER_NO_ADMIN = `insert into auth.users (id, aud, role, email) values ('33333333-3333-4333-8333-0000000000ba', 'authenticated', 'authenticated', 'l2-no-admin@prueba.local');
 insert into public.personas (id, nombres, apellidos, estado, sede_base_id, auth_user_id, rol)
@@ -602,7 +602,8 @@ caso(
   "ADR-0178: es admin quien es admin en Dynamic Y Líder activo en retail; fn_admins lo lista; una terminal nunca",
   LIDER_NO_ADMIN +
     como(FELIPE_AUTH) + `select concat_ws(',', fn_es_admin(), fn_es_lider(), fn_es_admin_persona(felipe), fn_es_admin_persona(:'l2'), fn_es_admin_persona(micaela)) from ids;\n` +
-    `select string_agg(persona_id::text, ',') = (select felipe::text from ids) from retail.fn_admins();\n` +
+    // Felipe está en la lista y el líder que no es admin, no (el seed puede traer otros admins, p. ej. en el CI).
+    `select bool_or(persona_id = (select felipe from ids)) and not bool_or(persona_id = :'l2') from retail.fn_admins();\n` +
     como(L2_AUTH) + `select concat_ws(',', fn_es_admin(), fn_es_lider());\n` +
     como(T_VENTAS_AUTH) + `select fn_es_admin()::text;\n` +
     como(MICAELA_AUTH) + `select count(*) from retail.fn_admins();`,

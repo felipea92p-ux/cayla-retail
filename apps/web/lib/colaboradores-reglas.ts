@@ -141,7 +141,7 @@ export type AccionFila = "cambiar_rol" | "cambiar_ubicacion" | "suspender" | "qu
 
 export function accionesDeFila(c: Pick<Colaborador, "rol" | "es_yo">, soyAdmin = true): AccionFila[] {
   if (c.es_yo) return [];
-  // A un líder solo lo toca un ADMIN (ADR-0178, 20260923160000; antes, cualquier líder): quien no es admin no ve acciones.
+  // A un líder solo lo toca un ADMIN (ADR-0178, 20260923163000; antes, cualquier líder): quien no es admin no ve acciones.
   if (!soyAdmin && c.rol === "lider") return [];
   return ["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"];
 }

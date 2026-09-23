@@ -1,7 +1,7 @@
 # ADR-0178 — Escalón Admin (leído de Dynamic) y «solo das lo que tienes»
 
 **Fecha:** 2026-09-23 · **Estado:** decidido por Felipe; construido en la rama `claude/escalon-admin-dynamic`; migración
-`20260923160000_escalon_admin_desde_dynamic.sql` **sin pegar en producción** · **Cambia:** ADR-0161 (L1 «un líder sube y baja
+`20260923163000_escalon_admin_desde_dynamic.sql` **sin pegar en producción** · **Cambia:** ADR-0161 (L1 «un líder sube y baja
 líderes», B7 «quien tiene Roles y accesos edita sus propios módulos», B8 protección 2).
 
 ## El problema
@@ -29,7 +29,7 @@ cosa: ya es un rol de **administración del sistema**, por eso sí se usa.
 
 ## Cómo se construye
 
-- **Base** (`20260923160000`): `fn_es_admin()`, `fn_es_admin_persona(persona)`, `fn_admins()` (para marcarlos en pantalla),
+- **Base** (`20260923163000`): `fn_es_admin()`, `fn_es_admin_persona(persona)`, `fn_admins()` (para marcarlos en pantalla),
   `fn_exigir_otro_admin` (nunca quedan cero admins), `fn_modulos_que_no_tengo`, `fn_rol_dentro_de_lo_mio`,
   `fn_exigir_rol_dentro_de_lo_mio` y `fn_exigir_modulos_dentro_de_lo_mio`. Se cambian desde su definición viva, con conteo
   exacto de ocurrencias, `fn_exigir_puede_tocar_colaborador` (la usan cambiar ubicación, suspender, reactivar y quitar),

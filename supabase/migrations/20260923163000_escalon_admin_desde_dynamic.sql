@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260923160000_escalon_admin_desde_dynamic.sql — CAYLA V2 · ADR-0178 (Felipe, 2026-09-23)
+-- 20260923163000_escalon_admin_desde_dynamic.sql — CAYLA V2 · ADR-0178 (Felipe, 2026-09-23)
 --
 -- EL PROBLEMA PRIMERO. Entre líderes no había jerarquía: los 9 líderes de producción podían lo mismo, y por la regla L1
 -- (20260923110000) cualquiera bajaba, suspendía, quitaba o movía de sede a cualquier otro líder — incluidos Felipe y la

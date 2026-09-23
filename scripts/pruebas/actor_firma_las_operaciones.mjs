@@ -170,7 +170,7 @@ caso(
 // caso se pone rojo: hay que decidir si firma (→ lista de la migración) o si es un permiso (→ esta lista).
 const MIRAN_LA_CUENTA = [
   "actualizar_mi_foto_perfil", "desactivar_terminal", "fn_actor_persona_id", "fn_colaboradores", "fn_compras_ubicaciones",
-  "fn_es_lider", "fn_historial_colaborador", "fn_mi_perfil", "fn_persona_actual_resumen", "fn_persona_nueva_resumen",
+  "fn_es_admin", "fn_es_lider", "fn_historial_colaborador", "fn_mi_perfil", "fn_persona_actual_resumen", "fn_persona_nueva_resumen",
   "fn_stock_por_sede", "fn_terminal_actual", "fn_tiene_acceso_retail", "fn_ubicacion_actual_persona",
   "liberar_apartado", "listar_apartados", "registrar_venta",
 ].sort();

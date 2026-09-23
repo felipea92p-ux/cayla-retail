@@ -37,7 +37,7 @@ export async function getRoles(): Promise<RolVista[]> {
 /**
  * ADR-0178: el escalón Admin, que se lee de Dynamic (admin allá + Líder activo aquí). `soyAdmin`: la sesión administra a
  * los líderes; `admins`: quiénes lo son, para marcarlos. Si la base todavía no tiene las funciones (web publicada antes de
- * pegar 20260923160000), administra a los líderes el líder, como antes — la base es la que decide de todos modos.
+ * pegar 20260923163000), administra a los líderes el líder, como antes — la base es la que decide de todos modos.
  */
 export async function getEscalonAdmin(soyLider: boolean): Promise<{ soyAdmin: boolean; admins: string[] }> {
   const supabase = await createClient();

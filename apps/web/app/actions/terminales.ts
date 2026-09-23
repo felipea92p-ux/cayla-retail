@@ -30,7 +30,7 @@ async function dependencias(): Promise<Dependencias> {
     rolDentroDeLoMio: async (rolId) => {
       const { data, error } = await sesion.rpc("fn_rol_dentro_de_lo_mio", { p_rol_id: rolId });
       if (!error) return data === true;
-      // Web publicada antes de pegar 20260923160000: la regla todavía no existe, se crea como antes.
+      // Web publicada antes de pegar 20260923163000: la regla todavía no existe, se crea como antes.
       return esFuncionAusente(error) ? true : null;
     },
     personaActual: async () => {
