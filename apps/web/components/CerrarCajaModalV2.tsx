@@ -357,19 +357,28 @@ export function CerrarCajaModalV2({
                 </div>
                 <details className="mt-3 rounded-lg border border-dashed border-sand px-3 py-2">
                   <summary className="cursor-pointer text-xs font-semibold text-tinta/80">Contar por billetes y monedas</summary>
-                  <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
-                    {DENOMINACIONES.map((d) => (
-                      <label key={d} className="flex items-center gap-1.5 text-xs text-tinta/65">
-                        <b className="w-12 shrink-0 font-semibold text-tinta">{d >= 1 ? `S/ ${d}` : `${Math.round(d * 100)} cts`}</b>×
-                        <input
-                          inputMode="numeric"
-                          value={billetes[d] ?? ""}
-                          onChange={(e) => cambiarBillete(d, e.target.value.replace(/\D/g, ""))}
-                          aria-label={`Cantidad de ${d >= 1 ? `billetes o monedas de ${d} soles` : `monedas de ${Math.round(d * 100)} céntimos`}`}
-                          className="w-full min-w-0 rounded border border-sand bg-white px-1.5 py-0.5 text-right tabular-nums outline-none focus:border-rojo"
-                        />
-                      </label>
-                    ))}
+                  {/* Una fila por billete o moneda: denominación · cantidad · subtotal. En dos columnas el campo quedaba
+                      de pocos píxeles dentro de la tarjeta y el número no se veía. */}
+                  <div className="mt-2 space-y-1">
+                    {DENOMINACIONES.map((d) => {
+                      const cantidad = parseInt(billetes[d] ?? "", 10) || 0;
+                      return (
+                        <label key={d} className="grid grid-cols-[3.25rem_4rem_1fr] items-center gap-2 text-xs text-tinta/65">
+                          <b className="font-semibold text-tinta">{d >= 1 ? `S/ ${d}` : `${Math.round(d * 100)} cts`}</b>
+                          <input
+                            inputMode="numeric"
+                            placeholder="0"
+                            value={billetes[d] ?? ""}
+                            onChange={(e) => cambiarBillete(d, e.target.value.replace(/\D/g, ""))}
+                            aria-label={`Cantidad de ${d >= 1 ? `billetes o monedas de ${d} soles` : `monedas de ${Math.round(d * 100)} céntimos`}`}
+                            className="w-full rounded border border-sand bg-white px-2 py-1 text-right text-sm tabular-nums text-tinta outline-none focus:border-rojo"
+                          />
+                          <span className={`text-right tabular-nums ${cantidad > 0 ? "text-tinta" : "text-tinta/35"}`}>
+                            {money(cantidad * d)}
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </details>
               </section>
