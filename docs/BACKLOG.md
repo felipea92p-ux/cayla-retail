@@ -28,14 +28,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 El combo «Responsable» en TODA operación que guarda (2026-09-23, ADR-0161 act. c) — construido; migración `20260923230000` NO está en producción
+## 🎯 El combo «Responsable» en TODA operación que guarda (2026-09-23, ADR-0161 act. c) — EN PRODUCCIÓN (web fusionada en PR #360 y publicada; Felipe pegó la migración el 2026-09-23; verificado en solo lectura: `(false)` solo en los 4 permisos, 80 funciones firman con el responsable, sin sobrecargas)
 Felipe no encontraba el combo en Recibir ni en Registrar comprobante: la A8 los había dejado fuera («no de tienda»). Decidió
 «en todo», con el mismo candado de asistencia. Migración: toda firma `fn_actor_persona_id(false)` → `(true)`, salvo 4 usos que
 son permiso de la cuenta. Web: combo en Compras (registrar, recibir envío/lote, adjuntos, notas de crédito, pagos, reembolso,
 cierre de faltante, reparto), Producción/Taller/Insumos (abrir, cerrar, anular, revertir, consumo, devolución, ingreso de
 insumo, comprobante, recepción y pago de comprobante), Colaboradores y Roles y accesos, y Aperturas por revisar.
-- [ ] **Orden al publicar: primero la web, después la migración.** Si la migración va antes, toda pantalla sin combo se
-      rechaza (el responsable ya es obligatorio). Pegar con `set search_path to retail, public;` al principio.
+- [x] Publicado en orden: primero la web, después la migración.
 - [ ] Verlo con clics (Recibir en una terminal, Registrar comprobante, Taller) — solo se verificó con typecheck, build,
       24.333 pruebas web y las pruebas SQL (`pruebas:actor-firma` 30/30, `pruebas:roles` 70/70, `pruebas:terminales` 52/52).
 - [ ] Guardan sin firmar a nadie (un combo ahí no dejaría rastro; hace falta columna «quién»): `set_etapa_produccion`,
