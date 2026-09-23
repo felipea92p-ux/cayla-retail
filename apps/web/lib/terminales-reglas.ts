@@ -133,10 +133,17 @@ export function nombreOcupado(activas: readonly { ubicacion_id: string; nombre: 
   return activas.some((t) => t.activo && t.ubicacion_id === ubicacionId && normalizarNombre(t.nombre).toLowerCase() === buscado);
 }
 
-/** Un rol que se le puede dar a una terminal: vigente y que no sea Líder (los permisos son de la cuenta, y una cuenta
- *  compartida no puede ser líder). */
-export function rolesParaTerminal<R extends { archivado: boolean; fijo: boolean; clave: string | null }>(roles: readonly R[]): R[] {
-  return roles.filter((r) => !r.archivado && !r.fijo && r.clave !== "lider");
+/** Los módulos que solo se dan a PERSONAS (ADR-0161 P6, 20260923140000): un aparato compartido no da ni quita accesos. La
+ *  misma lista vive en `lib/modulos.ts` (MODULOS_SOLO_PERSONAS) y en la base (`fn_exigir_rol_de_terminal`); aquí se repite
+ *  porque este archivo no importa nada (lo carga Node tal cual). `terminales-reglas.test.ts` vigila que digan lo mismo. */
+export const MODULOS_SOLO_PERSONAS_TERMINAL: readonly string[] = ["colaboradores", "roles"];
+
+/** Un rol que se le puede dar a una terminal: vigente, que no sea Líder (los permisos son de la cuenta, y una cuenta
+ *  compartida no puede ser líder) y sin Colaboradores ni Roles y accesos (P6). */
+export function rolesParaTerminal<R extends { archivado: boolean; fijo: boolean; clave: string | null; modulos?: readonly string[] }>(roles: readonly R[]): R[] {
+  return roles.filter(
+    (r) => !r.archivado && !r.fijo && r.clave !== "lider" && !(r.modulos ?? []).some((m) => MODULOS_SOLO_PERSONAS_TERMINAL.includes(m)),
+  );
 }
 
 /** El rol que sale elegido al abrir «Nueva terminal»: «Terminal de ventas», o nada si no está disponible. */

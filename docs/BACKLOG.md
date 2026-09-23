@@ -28,7 +28,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Candado de dinero en Caja, Cambios y Devoluciones (2026-09-22/23, ADR-0169 — renumerado desde 0166 por choque con Separaciones) — pegado y verificado en producción; Cambios revertido a pedido de Felipe
+## 🎯 Candado de dinero en Caja, Cambios y Devoluciones (2026-09-22/23, ADR-0177 — renumerado desde 0166 por choque con Separaciones) — pegado y verificado en producción; Cambios revertido a pedido de Felipe
 Del análisis `/pantalla` completo del módulo Ventas: la misma familia de hueco en tres pantallas (dinero se movía sin que la base exigiera líder), cerrada en una sola migración. Detalle en [docs/adr/0169-candado-de-dinero-en-caja-cambios-devoluciones.md](adr/0169-candado-de-dinero-en-caja-cambios-devoluciones.md).
 - [x] `registrar_movimiento_caja`: `es_ajuste` deducido del motivo (vocabulario cerrado), no de lo que manda el navegador; referencia obligatoria en "Depósito bancario"/"Otro".
 - [x] `registrar_cambio`: exige líder cuando la diferencia le devuelve plata a la clienta.
@@ -42,15 +42,82 @@ Del análisis `/pantalla` completo del módulo Ventas: la misma familia de hueco
 - [x] **Verificado tras la fusión del PR #285:** la migración F3 de abajo (`actor_firma_las_operaciones`) lee la definición viva de `registrar_movimiento_caja`/`registrar_cambio`/`aprobar_devolucion` y solo reemplaza la línea que busca a la persona — no pisa este candado (ni su reversión en Cambios) cuando F3 se pegue en producción.
 - [ ] **Pegar `20260923110000_cambios_sin_candado_de_lider.sql` en producción** (con OK de Felipe) — verificada en local, sin aplicar todavía.
 
-## 🎯 Proformas con prendas, hoja A4 con fotos y cobro en el Punto de Venta (2026-09-22, ADR-0167) — migración EN PRODUCCIÓN; falta fusionar la web
-Rama `claude/modulo-comprobantes-redesign-3d2ffc`, **sin push**. Diseño: `docs/superpowers/specs/2026-09-22-proformas-con-prendas-design.md` (maqueta C, con foto de cada prenda); plan: `docs/superpowers/plans/2026-09-22-proformas-con-prendas.md`. Decisión en [docs/adr/0167-proformas-con-prendas.md](adr/0167-proformas-con-prendas.md).
+## 🎯 Las 6 decisiones de los módulos (2026-09-22, ADR-0161 P1–P6) — CONSTRUIDO en la rama `claude/modulos-seis-decisiones`; NO está en producción
+Migración `20260923140000_modulos_seis_decisiones.sql` + web + pruebas. Detalle y clasificación de cada candado en el ADR-0161 («P1–P6 construidas»).
+- [x] **P1 Compras, cada módulo lo suyo:** `fn_puede_registrar_facturas_compra` (registrar, anular, reparto, adjuntos), `fn_puede_pagar_compras` (pagos y reembolsos), `fn_puede_registrar_notas_credito` (notas y el PDF de la nota). `fn_puede_registrar_compras` queda solo para leer lo de los tres. Web: el detalle del comprobante muestra cada botón a su módulo (`accionesDeCompra`).
+- [x] **P2 Recibir con montos** para quien ve el dinero de Compras (`verDineroCompras`), sin cambiar la sede que se mira. Sin cambio en la base (se dejó escrito por qué).
+- [x] **P3 Proveedores:** alta, edición, archivo y ficha con su módulo (`fn_puede_gestionar_proveedores`, política `proveedores_write`); en la ficha, los montos con `verDineroCompras` y los insumos del Taller solo el líder.
+- [x] **P4 Etiquetas sin descuento desde la ficha de la prenda** con Productos o Categorías y atributos; las de descuento no se le ofrecen a quien no es líder.
+- [x] **P5 Existencias:** costo y stock de la red, solo del líder (Análisis ve el costo de SU sede en Análisis).
+- [x] **P6 Colaboradores y Roles y accesos, solo a personas:** candado en los disparadores de `terminales` y `rol_modulos` + capacidades falsas para una terminal; en Roles y accesos se avisa al encenderlos y no se ofrecen esos roles a una terminal.
+- [ ] **Pegar en producción** `20260923140000_modulos_seis_decisiones.sql` (empezar con `set search_path to retail, public, extensions;`). Aborta sola si alguna función cambió o si alguna terminal ya tuviera Colaboradores o Roles. Ensayada en una copia local alineada con producción (y re-ejecutada, y con 130000/131000 re-pegadas después: no se deshace).
+- [ ] **Pregunta para Felipe (P3):** la Terminal Almacén (3 terminales) tiene el módulo Proveedores: con esta migración puede dar de alta, editar y desactivar proveedores. ¿Se queda así o se le apaga el módulo?
+- [ ] **Pregunta para Felipe (P1):** recibir con una nota de crédito por faltante (`recibir_envio` con `p_notas_credito`) ahora pide Notas de crédito, no cualquiera de los tres módulos. Hoy la web no lo usa (el aviso «nota por reclamar» es solo del líder).
+- [ ] Refrescar el volcado y el diccionario cuando se pegue, y `pnpm datos:comparar`.
+- Cómo verificas: un rol con solo «Por pagar» ve el detalle de un comprobante con «Registrar pago» y sin «Anular»; uno con solo «Proveedores» entra a Compras ▸ Proveedores, abre la ficha sin una cifra y puede editar; en Roles y accesos, encender Colaboradores en «Terminal de ventas» avisa y no se enciende.
+
+## 🩹 RLS fila por fila: Historial de ventas caído por timeout (2026-09-22, ADR-0176) — A y B PEGADAS en producción
+Con el sembrado de 90 días (7.001 ventas), `/vender/historial` pasaba los 8 s de `statement_timeout` y mostraba «No se pudo cargar» (digest `575251889`). La causa: la RLS llamaba funciones SECURITY DEFINER una vez por fila.
+- [x] **A:** las 4 políticas de lectura de venta (`ventas`, `venta_items`, `venta_pagos`, `comprobantes`) con `(select …)`, más el índice `ventas (created_at desc, id desc)`. Migración `20260923143700_…`, PEGADA en producción y aplicada en local. Mismas filas visibles, verificado con huellas como líder e integrante. La lista pasó de 12,3 s a 0,5 s.
+- [x] **Verlo con clics:** Felipe abrió `/vender/historial` en producción y cargó (2026-09-22).
+- [x] **B:** `20260923152300_rls_todas_una_vez_por_consulta.sql`, PEGADA en producción y aplicada en local. Reescribió las 92 políticas restantes con `retail.fn_rls_una_vez_por_consulta()`; quedan 0 pendientes. Equivalencia de 121/121 cláusulas con 6 cuentas (líder, integrantes de TRU, AQP y Taller, dos terminales). Movimientos para una integrante: 57 s → 14 ms; Stock: 7,3 s → 3 ms.
+- [ ] **Al pegar migraciones pendientes que crean o cambian políticas** (`…130000_abrir_modulos_a_los_roles`, `…131000_colaboradores_y_roles_delegables`, y cualquier otra de antes del 2026-09-23 15:23 que no esté en producción), correr después `select retail.fn_rls_una_vez_por_consulta();`. Si no, esas políticas vuelven a evaluarse fila por fila. Para comprobar, la consulta del ADR-0176 debe dar 0.
+- [ ] **Base local:** la migración de separaciones (`20260923090000`) no está aplicada en local (`scripts/pruebas/separaciones.mjs` da 0/46 porque falta la tabla); en producción sí está.
+- [ ] **Decisión de Felipe:** las 7.002 ventas en producción tienen `es_prueba = false`, sembradas incluidas. El filtro «Ver datos de prueba» no las esconde y cuentan en los totales. ¿Es a propósito (ADR-0150)?
+- [ ] **Previo, sin relación con esto:** `scripts/pruebas/registrar_venta.mjs` da 21/25 en local. Fallan los 4 casos «colaboradora + código de descuento»; fallan igual con las políticas viejas.
+## 🎯 Combo «Responsable»: propone a quien inició sesión y dice «¿Quién está atendiendo?» (2026-09-22, actualización del ADR-0161) — en `main` (PR #320), SIN migraciones
+
+- [x] Texto del combo vacío: «¿Quién está atendiendo?» en todos los módulos.
+- [x] Con una sesión de persona, el combo viene elegido con ella (si está de turno) y vuelve a ella tras guardar; con una terminal y en el módulo Punto de venta (venta y apartados), vacío. Regla pura `responsableInicial` en `lib/responsable-reglas.ts`, con pruebas.
+- [ ] **Verlo con clics:** con tu cuenta y la entrada marcada, Ajustar stock trae tu nombre; en Punto de venta viene vacío; con una terminal, vacío en todas las pantallas.
+
+## 🎯 Existencias: la tabla pinta 15 prendas por página (2026-09-22) — hecho, SIN migraciones
+- [x] `InventarioPanel.tsx` pinta solo una página de 15 (`FILAS_POR_PAGINA`); las tarjetas, los filtros, el CSV (todas las páginas de lo filtrado) y los overlays siguen viendo todo. Cambiar un filtro vuelve a la página 1; si un guardado achica la lista, cae en la última que existe. Pie: «Mostrando 1–15 de 52 prendas» / «Mostrando 1–15 de 18 (de 52 prendas)».
+- [x] Lógica pura en `lib/paginacion.ts` (`paginar`, `numerosDePagina`, este último movido desde `components/Paginacion.tsx`) + 8 pruebas; paginador en memoria `components/ui/PaginacionLocal.tsx`, mismo dibujo que `PaginacionPaginas`. Probado en navegador sobre una demo temporal con 52 variantes (escritorio y 390 px, sin errores de consola).
+- [ ] **Verlo con clics reales** en TRU contra producción y medir cuánto bajó la carga. Si sigue lenta, lo que queda es el servidor: la página trae TODAS las variantes y 8 consultas (`getExistencias` + cobertura + ritmo 7D/30D + apartados…) antes de pintar; paginar en la base exige mover filtros, tarjetas y recomendaciones a RPC — decidir con la medición en la mano, no antes.
+
+## 🎯 Traslados: rediseño de lista y detalle, conteo por borradores y vacíos ocultos (2026-09-22, ADR-0173) — construido y verificado con datos de muestra; SIN migración
+- [x] Demo aprobada por Felipe (`docs/maquetas/traslados-rediseno-2026-09/`). En producción, los 4 traslados tienen 0 líneas y 0 movimientos (quedaron de la limpieza de datos): se **ocultan** en la lista, en las lecturas de `lib/traslados.ts` y en el contador del menú. No se borran.
+- [x] Lista: estados «Por confirmar / Por revisar / En camino / Completado», los colores de lo que va cuando no hay fotos, «Salió» con hora, píldoras en lugar del `<select>` nativo y el aviso de vacíos para el líder. Detalle: recorrido en 4 pasos (quién envió, quién contó, quién cerró), 3 cifras, conteo con −/+/«Coincide» guardado al confirmar, un solo campo para escanear, `<Modal>` para confirmar, nota obligatoria al cerrar con diferencia y tarjetas en celular. Cierra el pendiente «Traslados › detalle sigue con la celda de texto».
+- [ ] **Verlo con una sesión real** (TRU y AQP): contar y confirmar un traslado de prueba, abrir el modal y cerrar uno con diferencia como líder. En la ruta de muestra el combo Responsable no tenía base y el modal no se abrió.
+- [ ] Endurecer en la base la nota de cierre: hoy solo la pantalla la exige; `cerrar_traslado_con_diferencia` acepta `p_nota` vacía.
+- [x] (ADR-0175) Las tarjetas son el filtro (los chips repetidos pasan a Abiertos · Cerrados · Todos), dirección Entran/Salen a la vista y tabla en dos acomodos (6 columnas desde 1280 px, tarjeta debajo). Capturas a 1280/1440/390 px con el `TrasladosPanel` real y datos de muestra. Falta verlo con clics reales.
+- [ ] Decidir qué hacer con las 4 cabeceras vacías de producción (Traslados 1 al 4): siguen en la base; el 4 está «en tránsito».
+
+## 🎯 Los 7 módulos «del líder» se pueden dar a un rol (2026-09-22, ADR-0161 B6-B8) — EN PRODUCCIÓN (pegadas el 2026-09-22)
+- [x] Pegadas en producción: `20260923130000_abrir_modulos_a_los_roles.sql` y `20260923131000_colaboradores_y_roles_delegables.sql` (verificado el 2026-09-22 leyendo producción: `fn_puede_analizar`, `fn_puede_gestionar_colaboradores` y los 7 módulos `delegable`).
+- [ ] Refrescar el volcado y el diccionario (`generado/COMO-REFRESCAR.md`) y correr `pnpm datos:comparar`.
+- [x] ~~PR aparte: las 6 decisiones P1-P6~~ → sección de arriba.
+- Cómo verificas: en Roles y accesos los 7 módulos salen con interruptor; un rol con solo «Por pagar» ve Compras ▸ Por pagar con montos; uno con «Etiquetas» ve la pestaña Etiquetas y no puede poner descuento.
+
+## 🎯 Conteo físico: rediseño con la guía oficial (2026-09-22, ADR-0174) — hecho; migración en producción desde el 2026-09-22
+Demo: `docs/maquetas/conteo-rediseno-2026-09/conteo.html` (artifact https://claude.ai/artifact/U6e6UwKXX3rByebdBPDLrD).
+- [x] Pantalla: abrir en tres pasos; «Suma por escaneo» / «Escribir cantidad» con escrituras en fila; «Faltan por contar» sin cifras (variante A, elegida por Felipe); sin «Diferencia hasta ahora» con conteo abierto; «Vacío» en historial y detalle; revisión en `<Modal>`; detalle con «Con diferencia / Todas» y soles por línea. Tipos, lint y 8031 pruebas en verde; recorrido en navegador con datos de muestra (sin base local).
+- [x] **Migración en producción** (OK de Felipe, 2026-09-22, por MCP en una transacción): `20260923120000_conteo_vacio_no_se_cierra.sql`. Verificado: candado 1 vez, antes de tocar stock, `security definer`, una firma, mismos permisos; md5 `257e622c…` → `acc166a9…`. No había conteos abiertos. Falta refrescar el volcado (`generado/COMO-REFRESCAR.md`); la firma no cambió.
+- [ ] **Verlo con clics reales** en TRU: abrir «Solo Camisas y Blusas» en el piso, contar con la pistola en suma (varias lecturas seguidas de la misma prenda), corregir, revisar y cerrar; y confirmar que la pistola manda Enter al final de cada lectura (si no, en suma no cuenta: hay que configurarla).
+
+## 🎯 Paleta oficial «CAYLA Dynamic» + rediseño visual de Inventario (2026-09-22, ADR-0169) — hecho, SIN migraciones; falta verlo con clics reales
+- [x] Tokens oficiales en `globals.css` para todo el ERP: papel `#fbf8f2`, taupe `#805c4c`, verde `#48603f`, ámbar `#74501a`, más `hueso` y `pizarra` nuevos, radio flotante de 20 px y serif en 600. Contraste medido: todo ≥ 4.5:1.
+- [x] Piezas del sistema: `eyebrow-cayla`, `btn-cayla` (primario/secundario/peligro/sutil/enlace), `pildora-cayla`, `caja-cayla`, `nota-cayla` y zebra de tabla; `Tabla`, `Chip` (insignia con punto + tono `pizarra`), `TarjetaCifra`, `campos` (variante `caja`) y `CabeceraPantalla` nueva.
+- [x] Existencias, Movimientos, Traslados, Conteo y Análisis en el orden oficial (cabecera → cifras → filtros y tabla en una sola tarjeta → nota). Solo visual: ninguna pantalla cambia su información. Typecheck, lint y 7,868 pruebas en verde; capturas antes/después en 3 anchos sobre una demo temporal con datos de muestra (no había base local: docker bloqueado por la red de la sesión).
+- [x] Movimientos rediseñado con las tres opciones que Felipe eligió en la demo (ADR-0170): una sola sede (la de la cabecera), proceso en dos pasos bajo el tipo, filtros en dos filas como la guía, lista de la guía con hora, vacío que ofrece 90 días con la cifra real. Sin migración. Typecheck, lint y 7,984 pruebas en verde; capturas a 1366/820/390 px sobre una ruta temporal con datos de muestra (sin base local: el proxy bloquea las imágenes de Supabase).
+- [ ] Movimientos: verlo con clics reales contra la base (filtros, `?proc=conteo` desde Conteo, vacío con 90 días, detalle).
+- [ ] Movimientos: cantidades por proceso en el drill-down — pide agrupar `fn_movimientos_resumen` por motivo (cambio de RPC en producción). Solo si el equipo lo pide.
+- [ ] **Verlo con clics reales** contra la base local o de producción (líder e integrante): filtros en caja, píldoras, zebra, chips y los modales que abren desde Existencias.
+- [ ] **Ventas a la guía oficial** cuando se fusionen sus ramas en curso (Caja/Punto de Venta/Cambios, Devoluciones, Facturación, Historial #275/#278). Después: Catálogo e Inicio (la guía trae sus maquetas).
+- [ ] Decisiones abiertas de la guía (ADR-0169, «Lo que NO se hizo»): modo oscuro, pasar la caja hueso a todos los formularios, botones de modal sin versalitas y la curva `ease-salida` frente a `--ease-cayla`.
+
+## 🎯 Proformas con prendas, hoja A4 con fotos y cobro en el Punto de Venta (2026-09-22, ADR-0167) — EN PRODUCCIÓN (base y web)
+PR [#298](https://github.com/felipea92p-ux/cayla-retail/pull/298), fusionado. Diseño: `docs/superpowers/specs/2026-09-22-proformas-con-prendas-design.md` (maqueta C, con foto de cada prenda); plan: `docs/superpowers/plans/2026-09-22-proformas-con-prendas.md`. Decisión en [docs/adr/0167-proformas-con-prendas.md](adr/0167-proformas-con-prendas.md).
 - [x] **Rediseño de Comprobantes** (mismo día, commit `1a470626`): sin botones en la cabecera; «Emitir comprobante» borrado (cada venta se declara sola, D-60); Series a todo el ancho con la sede propia primero y «Último: hace…»; Emitidos con filtros tipo/tienda/estado, totales por tipo y WhatsApp; Por reintentar con «Qué hacer», plazo de SUNAT (3 días) y «Reintentar los N». Verificado en el navegador local contra la base (totales = SQL).
 - [x] **Migración `20260923094700_proformas_con_prendas.sql`**: `numero`, `nota`, `venta_id`; `crear_proforma` v2 (valida y calcula; borra la firma vieja); `marcar_proforma_cobrada`; `convertir_proforma_a_comprobante` sin permiso. Ensayada en una transacción con ROLLBACK (rechazos, una sola firma, idempotencia, otra tienda) y aplicada solo en local.
 - [x] Pantalla: «Nueva proforma» con buscador/escáner, cantidad, descuento hasta 20 % con motivo, clienta, validez y nota; lista con número, detalle con foto, Ver / imprimir, WhatsApp, Duplicar / Renovar y Cobrar. Hoja A4 verificada con un PDF real (una hoja, nada cortado).
 - [x] **Cobro de punta a punta en el navegador local** (PRO-000006, Trujillo): carrito armado, venta completada, piso 4 → 3 con su movimiento, proforma «convertida» y enlazada, nota de venta NV01-000002. Se cobró con nota de venta porque la boleta chocó con el problema de series de abajo.
 - [x] **Pegada en producción el 2026-09-22** (Felipe: «Ok»), por el MCP en una sola transacción con bloque de validación final, ensayada antes en local sobre el estado de producción. Antes: `crear_proforma` vieja `45909742…` (rollback guardado = su definición de `20260918091500`, misma huella), 1 proforma vigente de S/ 7,000, sin disparadores en `proformas`. Después: `crear_proforma` `1cf28322…` y `marcar_proforma_cobrada` `1dbeece0…` (iguales a local), una sola firma, EXECUTE solo `postgres`/`authenticated`, `convertir_proforma_a_comprobante` solo `postgres`; la proforma existente es PRO-000001. Humo como líder real sin escribir: `crear_proforma([])` → «necesita al menos una prenda», `marcar_proforma_cobrada(uuid inexistente)` → «no existe»; después, 1 proforma y último número 1. No se registró en `schema_migrations` de producción (igual que pegados anteriores).
 - [ ] Refrescar el volcado de producción (`docs/datos/generado/COMO-REFRESCAR.md`, seis consultas) y correr `pnpm datos:generar:produccion` y `pnpm datos:comparar`: el volcado ya venía atrasado por otras sesiones, conviene hacerlo en una pasada propia.
-- [ ] PR a `main` y su fusión (despliega): OK aparte.
+- [x] **PR #298 fusionado por Felipe el 2026-09-22 (22:09 UTC)**, CI entero en verde (incluida la piloto de RPC: `pruebas:comprobante-venta-anulada` ahora inserta su proforma con el formato anterior, porque `crear_proforma` solo acepta prendas). Vercel desplegó bien. Al fusionar se integró el Responsable (ADR-0161): «Nueva proforma» firma con el combo y «Reintentar los N» pasa por la misma confirmación que «Reintentar ahora».
+- [x] **Verificado en producción el 2026-09-23** (solo lectura): columnas y candados en su lugar; `marcar_proforma_cobrada` `1dbeece0…`; «Convertir» solo `postgres`; una sola firma de `crear_proforma`, ahora `03e640bd…` porque después se pegó «actor firma» (ADR-0162), que cambió su línea de quién opera por `fn_actor_persona_id(true)` — deshecha esa línea da exactamente `1cf28322…`, lo pegado. Todavía nadie creó una proforma con prendas en producción (solo existe PRO-000001, formato anterior, de prueba).
+- [ ] Primera proforma real en producción: crear una con prendas, imprimirla y cobrarla en una tienda con stock en el piso, y mirar que quede «convertida».
 - [ ] En la base LOCAL, Lima y Trujillo comparten la serie `B001` con contadores independientes: la siguiente boleta de Trujillo (B001-24) choca con la de Lima (`comprobantes_tipo_serie_numero_key`). Producción no lo tiene (B004/B005). Arreglar la base local (una serie por tienda), no el código.
 ## 🎯 Terminales sin persona, como en Dynamic (2026-09-22, ADR-0162) — CONSTRUIDO en la rama `claude/responsable-y-roles-spike` (PR #285); falta pegar en producción y publicar
 - [x] Investigado Dynamic (`public.terminales`, cuenta de Auth sin persona, `fn_sede_actual_terminal`, script de alta, sin PIN) y medido en producción: 75 funciones de retail buscan persona (~65 con un reemplazo mecánico, 10 a mano).
@@ -66,6 +133,13 @@ Rama `claude/modulo-comprobantes-redesign-3d2ffc`, **sin push**. Diseño: `docs/
 - [ ] `pnpm datos:generar:produccion` + `pnpm datos:comparar` después de pegar, para que `terminales` y las funciones nuevas entren al diccionario.
 - [ ] Verificar con una terminal de verdad en TRU (aún no se probó con la sesión de un aparato en el navegador; sí con la de un líder).
 - [x] La migración del ADR-0160 **ya está pegada** en producción, con 0 terminales dadas de alta.
+
+## 🎯 Cambiar rol y ubicación entre líderes (2026-09-22, actualización del ADR-0161) — EN PRODUCCIÓN (PR #304 y #310)
+- [x] `asignar_rol` sube a Líder y baja a un líder (con sede si no tiene); nunca a uno mismo ni Líder a una terminal.
+- [x] Ubicación entre líderes: para un líder es la tienda donde arranca (`fn_ubicacion_de_partida`).
+- [x] `20260923110000` y `20260923120100_ubicacion_de_lideres` (antes `120000`: se renumeró por choque con conteo vacío) pegadas y verificadas en producción el 2026-09-22: versión del repo, una firma cada una, las 25 personas arrancan donde antes. **No volver a pegarlas:** `20260923131000` (roles delegables) se pegó después y les agregó sus candados; re-pegarlas los borra.
+- [ ] Refrescar el volcado y `pnpm datos:generar:produccion` + `pnpm datos:comparar` (entra `fn_ubicacion_de_partida`).
+- [ ] Verlo con clics: poner «Tienda Trujillo» a un líder de Oficina TRU y que entre ahí.
 
 ## 🎯 Responsable en cada operación + roles retomados (2026-09-22, ADR-0161) — combo Responsable CONSTRUIDO (F4b, PR #285); roles en otra rama
 - [ ] **Más adelante (Felipe, 2026-09-22: «no es tan importante por ahora»):** guardar quién crea o cambia marcas (`retail.marcas` no tiene columna de firma) y anotar los cambios de NOMBRE de una prenda en el historial (`fn_registrar_cambio_producto` solo registra categoría, estado, marca, proveedor, precio y costo). Hoy el combo se pide en Catálogo pero esos dos casos no dejan rastro.
@@ -150,6 +224,12 @@ Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió l
 - [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
 - [ ] **Producción SUPERA el tope de 6: 7 hijas** (líder parado en el Taller) desde que #231 (Resumen, F6) entró sin regrupar; queda como deuda explícita con una prueba «DEUDA…» que la vigila. F7 Eficiencia obligará a regrupar (candidato: `produccion.abastecimiento`). **Quien agregue una fila al menú edita `lib/menu.ts`, no `AppShell.tsx`** (cómo, en el ADR-0144).
 
+## 🎯 Colaboradores en dos secciones + editor de roles rediseñado (2026-09-22, ADR-0172) — hecho, sin migraciones
+
+- [x] Spike aprobado (`docs/maquetas/colaboradores-ux-spike-2026-09/`, PR #313) y construido: Cuentas / Roles y accesos, «Por atender», Actividad en modal, `?pestana=` viejos siguen funcionando.
+- [x] Roles: lista agrupada con avisos, grupos plegables + buscador, «Se suma / Se quita», vista previa con cambios, matriz «Comparar roles».
+- [ ] Verlo con clics reales contra la base (solo se probó con datos de ejemplo) · decidir si «Asignar» acepta varias cuentas a la vez (la RPC `asignar_rol` es de a una).
+
 ## 🎯 Colaboradores: el alta nueva no queda operativa sin aprobación (2026-09-22, ADR-0157, D-70) — hecho en local, falta pegar en producción
 Detalle, decisiones y lo descartado en [docs/adr/0157-alta-de-colaborador-requiere-aprobacion.md](adr/0157-alta-de-colaborador-requiere-aprobacion.md).
 - [x] Investigado primero (no asumido): no existe trigger sobre `personas` que cree colaboradores — el alta ya era manual, pero de un solo paso (proponer = dar acceso). La baja automática por Dynamic (`p.estado = 'activo'`) ya existía desde 0006/0009 y no se tocó.
@@ -202,6 +282,18 @@ Análisis completo en [docs/pantallas/colaboradores.md](pantallas/colaboradores.
 - [ ] Decidir dos reglas: (a) los códigos de barras se buscan parcial (antes, exacto); (b) dos tallas o dos colores escritos a la vez se exigen los dos (no hay «M o L»).
 - [ ] La marca (ya se busca en la caja, ADR-0109) no entra en Existencias: `FilaStock` no la trae.
 
+## 🎯 Análisis: rediseño con la guía oficial (2026-09-22, ADR-0171) — construido y verificado con datos de muestra; sin migración
+Demo y decisiones: [docs/maquetas/analisis-rediseno-2026-09/](maquetas/analisis-rediseno-2026-09/README.md).
+- [x] Felipe eligió: Desempeño con la misma anatomía que Comparar (A), aviso de exactitud en franja y sede sin datos con salidas.
+- [x] «Cambio relevante» por reglas: `lib/resumen-lectura.ts` + `resumen-lectura.test.ts` (7 reglas en orden), en las dos tablas.
+- [x] Desempeño: 4 cifras + 3 gráficos (`ResumenDesempenoGeneral`, agregados en `resumen-desempeno.ts`), banda de sell-through en la cabecera de la tabla.
+- [x] Comparar: una sola lectura (sin «Vista general / Detalle»), cifras A → B, 3 gráficos en una fila, la dona filtra la tabla y baja hasta ella.
+- [x] Franja de exactitud (`ResumenBanner`) y vacío con salidas (`ResumenVacio`, también para el Taller).
+- [x] Colores de gráfico `--color-grafico-*` (verde/neutro/ámbar claro), validados como relleno vecino.
+- [ ] **Verlo con clics reales contra la base** (local o producción): en esta sesión no había Docker; se verificó con los componentes reales y datos de muestra.
+- [ ] En el celular, la columna «Lectura» queda a la derecha de la tabla, que se desplaza dentro de su tarjeta. Evaluar si en el celular la lectura debe ir bajo el nombre del producto.
+- [ ] Decisión global aparte: lateral oscuro de la guía vs lateral claro de hoy (afecta a todo el ERP).
+
 ## 🎯 Análisis: un solo selector de fechas (2026-09-21, anexo del ADR-0138) — hecho y verificado en local; en `main`
 - [x] Período A, Período B y «Personalizado» de Desempeño abren el mismo `PopoverRango` (`ResumenControles.tsx`): Desde/Hasta en dd/mm/aaaa ya cargados, foco en «Desde», Tab, Enter o «Aplicar», calendario de ayuda, errores en línea; los atajos de A y B (período anterior / año pasado; 7-30-90 días / este mes) van dentro. `CampoFecha` gana el modo opt-in `estricto` + `revelarError`. Verificado en local (A 09/07→09/08, B 09/05→09/06, Personalizado 01/08→01/09, fechas inválidas, presets, 320–430 px). Sin cambios de base ni de `lib/`.
 - [ ] Autoformato de `CampoFecha` con día o mes de un dígito: «9/7/2026» queda «97/20/26» (solo entiende dd/mm/aaaa con ceros). Completar con 0 al teclear «/» — toca todos los campos de fecha del ERP; decidir con Felipe.
@@ -210,7 +302,7 @@ Análisis completo en [docs/pantallas/colaboradores.md](pantallas/colaboradores.
 
 ## 🎯 Producto / variante: una sola celda en Existencias y Conteo (2026-09-21, anexo del ADR-0071) — hecho y verificado en local; en `main`
 - [x] `ProductoVarianteCelda` (`ui/PrendaCelda.tsx`) en Existencias, «Conviene contar primero» y el detalle de un conteo; encabezado «Producto / variante» en Existencias y en ese detalle. `lib/apariencia-variantes.ts` trae foto principal + `colorHex` con la regla de Existencias (degrada sin tumbar la pantalla); `fotoPrincipal` pasó a `inventario-reglas.ts` (+4 pruebas); `LineaConteo` gana `colorHex` y `fotoUrl`. Sin cambios de base. Verificado en el navegador integrado (320–1920 px, fotos sembradas y retiradas, consulta rota a propósito).
-- [ ] Traslados › detalle sigue con la celda de texto de `PrendaCelda`. (2026-09-21: Movimientos, Desempeño y Detalle por producto ya usan `ProductoVarianteCelda` con el encabezado «Producto / variante»; Movimientos muestra el color en texto y sin foto —su dato no trae `colorHex` ni `fotoUrl`—, y las filas de Análisis tampoco traen foto. Sumarlos a sus consultas si se quiere la cápsula y la miniatura.)
+- [x] ~~Traslados › detalle sigue con la celda de texto de `PrendaCelda`.~~ Cerrado el 2026-09-22 (ADR-0173): usa `ProductoVarianteCelda` con color y foto. (2026-09-21: Movimientos, Desempeño y Detalle por producto ya usan `ProductoVarianteCelda` con el encabezado «Producto / variante»; Movimientos muestra el color en texto y sin foto —su dato no trae `colorHex` ni `fotoUrl`—, y las filas de Análisis tampoco traen foto. Sumarlos a sus consultas si se quiere la cápsula y la miniatura.)
 - [ ] Conteo abierto (buscador, líneas ya contadas y modal «Revisar antes de cerrar») sigue en texto plano: es un flujo de escaneo donde la densidad importa y solo se ve con un conteo abierto (escribe en la base). Es la misma celda si se quiere. Para contar, la foto del COLOR (la prenda que se tiene en la mano) ayudaría más que la principal del producto; hoy Existencias usa la principal.
 - [ ] Las pestañas de Inventario tienen scroll horizontal de página a ≤ 360 px (7 px a 360, 47 a 320), también en Movimientos y Traslados: causa sin identificar, no viene de la celda. (2026-09-21: la franja de pestañas se quitó; falta comprobar a ≤ 360 px si el scroll de página desaparece con ella.)
 

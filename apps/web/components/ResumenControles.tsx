@@ -10,14 +10,15 @@ import { usePosicionAnclada } from "@/components/ui/useAnclaje";
 import type { CambiosUrl } from "@/components/useResumenUrl";
 import type { ModoResumen } from "@/lib/resumen-comparacion";
 import { PRESETS_PERIODO, textoPildoraPeriodo, type ModoComparacion, type PeriodoResuelto, type PresetPeriodo, type Rango } from "@/lib/resumen-periodo";
-import { OPCIONES_SELL_THROUGH, type AlcanceResumen, type FiltroSellThrough } from "@/lib/resumen-filtros";
+import type { AlcanceResumen } from "@/lib/resumen-filtros";
 
 // La franja de mando del Análisis de inventario. Todo cambio va a la URL (`useResumenUrl`) y el
 // servidor recalcula.
 //
 // DESEMPEÑO (`modo = "desempeno"`): «cómo se comportó el inventario en el período». Una sola barra:
-// el período, los dos filtros que hablan del período (categoría y sell-through) y la búsqueda debajo,
-// a todo el ancho. No hay «Comparar con» (para eso está la otra pestaña) ni filtros de cobertura o
+// el período, la categoría y la búsqueda debajo, a todo el ancho: lo que define QUÉ se mira (el alcance de
+// cifras, gráficos y tabla). La banda de sell-through se mudó a la cabecera de la tabla (2026-09-22): solo
+// recorta la tabla. No hay «Comparar con» (para eso está la otra pestaña) ni filtros de cobertura o
 // estado: dependían del stock de hoy, y esta pantalla no lo mira.
 //
 // COMPARAR PERÍODOS (`modo = "comparar"`): CONTEXTO de la página, no otra card protagonista (2026-09-19).
@@ -137,7 +138,7 @@ function PopoverRango({
           <button type="button" onClick={onCancelar} className="label-cayla text-[11px] text-tinta/65 hover:text-tinta">
             Cancelar
           </button>
-          <button type="submit" className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo">
+          <button type="submit" className="btn-cayla btn-primario">
             Aplicar
           </button>
         </div>
@@ -194,7 +195,6 @@ export function ResumenControles({
   alcance,
   categorias,
   actualizar,
-  sellThrough = "todos",
   rangoComparacion = null,
 }: {
   modo?: ModoResumen;
@@ -202,8 +202,6 @@ export function ResumenControles({
   alcance: AlcanceResumen;
   categorias: { id: string; nombre: string; variantes: number }[];
   actualizar: (cambios: CambiosUrl) => void;
-  /** Solo Desempeño: la banda de sell-through elegida. */
-  sellThrough?: FiltroSellThrough;
   /** Solo Comparar: cómo se eligió A (período anterior, mismo período del año pasado, u otro escrito a mano).
    *  `ResumenComparacionPanel.tsx` lo sigue mandando — es lo que decide, en `resumen-periodo.ts`, cuál es el
    *  rango por defecto de A — pero este componente ya no lo usa para dibujar nada (2026-09-22: la píldora A ya
@@ -232,8 +230,9 @@ export function ResumenControles({
   const chipsPeriodo = (
     <div className="max-w-full">
       <span className={ETIQUETA}>Período analizado</span>
-      <div className="mt-1.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div role="radiogroup" aria-label="Período analizado" className="inline-flex overflow-hidden rounded-md border border-tinta/15 bg-papel">
+      <div className="mt-1.5 max-w-full">
+        {/* Guía oficial (ADR-0169): píldoras que se envuelven en el celular, en vez de un segmento que se corta. */}
+        <div role="radiogroup" aria-label="Período analizado" className="flex flex-wrap gap-1.5">
           {PRESETS_PERIODO.map((p) => {
             const activo = periodo.preset === p.valor && !(p.valor === "personalizado" && abierto !== "periodo" && periodo.preset !== "personalizado");
             return (
@@ -246,9 +245,8 @@ export function ResumenControles({
                 role="radio"
                 aria-checked={periodo.preset === p.valor}
                 onClick={() => elegirPreset(p.valor)}
-                className={`label-cayla inline-flex ${ALTO_CONTROL} items-center gap-1.5 whitespace-nowrap px-3 text-[11px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo/60 ${
-                  activo ? "bg-tinta text-crema" : "text-tinta/75 hover:bg-tinta/[0.05]"
-                }`}
+                data-activa={activo}
+                className="pildora-cayla focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
               >
                 {p.valor === "personalizado" && <CalendarDays aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />}
                 {p.texto}
@@ -296,21 +294,7 @@ export function ResumenControles({
       <div className="card-cayla min-w-0 space-y-4 p-4">
         <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
           {chipsPeriodo}
-          {/* En celular los dos filtros se reparten el ancho de la fila; desde `sm` son de 11 rem cada uno. */}
-          <div className="flex w-full min-w-0 flex-wrap items-end gap-x-4 gap-y-3 sm:w-auto">
-            <div className="min-w-0 flex-1 sm:w-44 sm:flex-none">{selectorCategoria}</div>
-            <div className="min-w-0 flex-1 sm:w-44 sm:flex-none">
-              <Filtro etiqueta="Sell-through">
-                <SelectNativo value={sellThrough} onChange={(e) => actualizar({ st: e.target.value === "todos" ? null : (e.target.value as FiltroSellThrough) })}>
-                  {OPCIONES_SELL_THROUGH.map((o) => (
-                    <option key={o.valor} value={o.valor}>
-                      {o.texto}
-                    </option>
-                  ))}
-                </SelectNativo>
-              </Filtro>
-            </div>
-          </div>
+          <div className="w-full min-w-0 sm:w-52">{selectorCategoria}</div>
         </div>
         <BuscadorDebounced valorUrl={alcance.q} onBuscar={(v) => actualizar({ q: v || null })} />
         {popoverPeriodo}

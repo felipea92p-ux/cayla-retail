@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 
 // Compras (ADR-0035): varias pantallas sobre la misma entidad — la factura
 // del proveedor. La sub-navegación que este layout ponía (`ComprasNav.tsx`,
@@ -11,8 +11,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 // resuelve el candado de rol; cada página sigue resolviendo su propia
 // persona y datos.
 //
-// Líder-only (0016_roles_colaborador.sql), igual que Facturación y
-// Colaboradores. Faltaba acá: el menú ya escondía el enlace (`esLider` en
+// Era líder-only (0016_roles_colaborador.sql) hasta el 2026-09-22 (ver abajo). Faltaba acá: el menú ya escondía el enlace (`esLider` en
 // AppShell.tsx), pero ninguna de las 5 pantallas de Compras tenía este
 // redirect — un Colaborador que entrara por URL directa veía la pantalla
 // entera (aunque no pudiera escribir nada, eso sí lo bloqueaban las RPC).
@@ -30,8 +29,12 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 // intentaba abrir el modal con id "por-pagar"). Con el prefijo `factura/`
 // el patrón interceptado ya no se solapa con las pantallas hermanas.
 export default async function ComprasLayout({ children, modal }: { children: React.ReactNode; modal: React.ReactNode }) {
+  // 20260923130000 (Felipe, 2026-09-22): ya no es solo del líder. Entra quien ve los montos de Compras (su rol ve Facturas
+  // de compra, Por pagar o Notas de crédito: `verDineroCompras`); cada pantalla exige además SU módulo (`exigirModulo`).
+  // ADR-0161 P3 (20260923140000): también quien tiene Proveedores, aunque no vea los montos: el directorio y la ficha viven
+  // aquí. Las pantallas de dinero lo siguen pidiendo cada una (su módulo, y el detalle de un comprobante `verDineroCompras`).
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") redirect("/");
+  if (!puede(persona, "verDineroCompras") && !puede(persona, "editarCuentasProveedor")) redirect("/");
 
   return (
     <div className="space-y-6">

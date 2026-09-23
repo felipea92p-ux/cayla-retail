@@ -7,7 +7,7 @@
  *   · `agregar_colaborador` crea la fila en `pendiente_aprobacion`, no en `activo`;
  *   · con la fila en `pendiente_aprobacion`, `fn_puede_operar_ubicacion` da falso para esa
  *     ubicación — la persona nueva NO puede operar;
- *   · `fn_aprobar_alta_colaborador` exige ser líder (42501 si no lo es);
+ *   · `fn_aprobar_alta_colaborador` exige ser líder o tener el módulo Colaboradores (20260923131000; 42501 si no);
  *   · tras aprobar, `fn_puede_operar_ubicacion` da verdadero para su ubicación asignada;
  *   · aprobar una alta que ya está activa, o que no existe, falla con un mensaje claro;
  *   · `suspender_colaborador` rechaza a alguien todavía pendiente (no se puede "pausar" lo
@@ -120,12 +120,12 @@ verificar(
 );
 
 verificar(
-  "fn_aprobar_alta_colaborador exige ser líder",
+  "fn_aprobar_alta_colaborador exige ser líder o tener el módulo Colaboradores (una integrante sin él, rechazada)",
   correr(escena(`
     select retail.agregar_colaborador(:'candidata_id', :'ubi');
     set local request.jwt.claim.sub = :'candidata_auth';
     select pg_temp.intento(format('select retail.fn_aprobar_alta_colaborador(%L)', :'candidata_id'));`)),
-  /Solo un líder puede aprobar/
+  /Solo un líder puede aprobar|Aprobar un alta necesita el módulo Colaboradores/
 );
 
 verificar(

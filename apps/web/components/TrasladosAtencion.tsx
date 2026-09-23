@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CircleAlert, CircleCheck } from "lucide-react";
+import { ArrowRight, CircleCheck } from "lucide-react";
 import type { ResumenTraslados } from "@/lib/traslados-reglas";
 
 // La franja de arriba: responde «¿tengo algo que atender ahora?». Solo se
@@ -15,7 +15,7 @@ export function TrasladosAtencion({ resumen, masUrgente }: { resumen: ResumenTra
   if (n === 0 || !masUrgente) {
     if (resumen.abiertos === 0) return null;
     return (
-      <p className="flex items-center gap-2.5 rounded-xl border border-tinta/10 bg-papel px-4 py-3 text-sm text-tinta/70">
+      <p className="card-cayla flex items-center gap-2.5 px-4 py-3 text-sm text-taupe">
         <CircleCheck aria-hidden strokeWidth={1.5} className="h-5 w-5 shrink-0 text-verde" />
         <span>
           <span className="text-tinta">Nada requiere tu acción por ahora.</span>{" "}
@@ -25,35 +25,32 @@ export function TrasladosAtencion({ resumen, masUrgente }: { resumen: ResumenTra
     );
   }
 
-  const titulo = n === 1 ? "1 traslado requiere revisión hoy" : `${n} traslados requieren revisión hoy`;
+  const titulo = n === 1 ? "1 traslado necesita tu acción" : `${n} traslados necesitan tu acción`;
   const detalle =
     resumen.porRevisar === 0
       ? "Confirma la recepción para que las prendas entren a tu inventario."
       : resumen.porRecibir === 0
-        ? "Revisa la diferencia y ciérrala para que las prendas recibidas entren a tu inventario."
-        : "Confirma las recepciones y revisa las diferencias para que las prendas entren a tu inventario.";
+        ? "Revisa la diferencia y ciérrala para que lo recibido entre a tu inventario."
+        : `${resumen.porRecibir} ${resumen.porRecibir === 1 ? "espera" : "esperan"} tu confirmación y ${resumen.porRevisar} ${resumen.porRevisar === 1 ? "tiene" : "tienen"} una diferencia por cerrar.`;
 
   return (
-    <section aria-labelledby="atencion-hoy" className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border border-rojo/25 bg-rojo/[0.06] px-5 py-4">
-      <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rojo text-crema">
-        <CircleAlert strokeWidth={1.5} className="h-6 w-6" />
-      </span>
+    <section aria-labelledby="atencion-hoy" className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-rojo/30 bg-rojo/[0.07] px-5 py-4">
       <div className="min-w-0 flex-1 basis-64">
-        <p className="label-cayla text-[11px] text-rojo-profundo">Atención hoy</p>
-        <h2 id="atencion-hoy" className="font-display text-xl leading-snug text-tinta">
+        <p className="sr-only">Atención hoy</p>
+        <h2 id="atencion-hoy" className="font-display text-lg leading-snug text-tinta">
           {titulo}
         </h2>
-        <p className="text-sm text-tinta/70">
+        <p className="text-[13px] text-taupe">
           {detalle}
-          {n > 1 && <span className="text-tinta/55"> Empieza por el Traslado {masUrgente.numero}.</span>}
+          {n > 1 && <span className="text-taupe"> Empieza por el Traslado {masUrgente.numero}.</span>}
         </p>
       </div>
       <Link
         href={`/inventario/traslados/${masUrgente.id}`}
-        aria-label={`Revisar ahora el traslado ${masUrgente.numero}`}
-        className="label-cayla inline-flex shrink-0 items-center gap-2 rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo"
+        aria-label={`Revisar el traslado ${masUrgente.numero}`}
+        className="btn-cayla btn-primario shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo"
       >
-        Revisar ahora
+        Revisar el Traslado {masUrgente.numero}
         <ArrowRight aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />
       </Link>
     </section>

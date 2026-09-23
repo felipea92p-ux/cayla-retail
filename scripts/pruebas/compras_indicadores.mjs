@@ -85,6 +85,13 @@ set local request.jwt.claim.sub = '${authUserId}';
 ${sql}
 `;
 const cambiaA = (authUserId) => `set local request.jwt.claim.sub = '${authUserId}';\n`;
+// ADR-0161 P3 (20260923140000): la ficha de un proveedor se abre a quien ve el módulo Proveedores. La base local es
+// compartida y su rol Integrante puede tenerlo encendido: dentro de la transacción se le apaga para probar el «sin módulo».
+const SIN_PROVEEDORES = `do $$ begin
+  if to_regclass('retail.rol_modulos') is not null then
+    delete from retail.rol_modulos where modulo = 'proveedores' and rol_id = (select id from retail.roles where clave = 'integrante');
+  end if;
+end $$;\n`;
 
 /** Proveedores, ubicaciones, la variante y un segundo producto del seed. */
 const BASE = `
@@ -1897,19 +1904,19 @@ rollback;
 error(
   "permisos: la ficha de un proveedor (métricas de compras) es solo de líder — Micaela recibe un error, no cifras",
   comoPersona(FELIPE, `${BASE}${cambiaA(MICAELA)}select * from retail.fn_proveedor_metricas_compras(:'prov1');`),
-  "Solo un líder puede ver las métricas de un proveedor."
+  "Los montos de compras de un proveedor necesitan Facturas de compra, Por pagar o Notas de crédito" // ADR-0161 P3 (20260923140000)
 );
 
 error(
   "permisos: la evolución del costo de un proveedor es solo de líder",
   comoPersona(FELIPE, `${BASE}${cambiaA(MICAELA)}select * from retail.fn_proveedor_costo_evolucion(:'prov1');`),
-  "Solo un líder puede ver la evolución del costo de un proveedor."
+  "La evolución del costo de un proveedor necesita Facturas de compra, Por pagar o Notas de crédito" // ADR-0161 P3 (20260923140000)
 );
 
 error(
-  "permisos: las devoluciones a un proveedor son solo de líder",
-  comoPersona(FELIPE, `${BASE}${cambiaA(MICAELA)}select * from retail.fn_proveedor_devoluciones(:'prov1');`),
-  "Solo un líder puede ver las devoluciones a un proveedor."
+  "permisos: sin el módulo Proveedores, las devoluciones a un proveedor no se ven (P3, 20260923140000: con el módulo, sí)",
+  comoPersona(FELIPE, `${BASE}${SIN_PROVEEDORES}${cambiaA(MICAELA)}select * from retail.fn_proveedor_devoluciones(:'prov1');`),
+  "Ver las devoluciones a un proveedor necesita el módulo Proveedores" // ADR-0161 P3 (20260923140000)
 );
 
 exito(
@@ -2000,7 +2007,7 @@ rollback;
 error(
   "sin sesión: la ficha de un proveedor (métricas) tampoco se entrega — «solo un líder»",
   comoPersona(FELIPE, `${BASE}set local request.jwt.claim.sub = '';\nselect * from retail.fn_proveedor_metricas_compras(:'prov1');`),
-  "Solo un líder puede ver las métricas de un proveedor."
+  "Los montos de compras de un proveedor necesitan Facturas de compra, Por pagar o Notas de crédito" // ADR-0161 P3 (20260923140000)
 );
 
 // ===========================================================================

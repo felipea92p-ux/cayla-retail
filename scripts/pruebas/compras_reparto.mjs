@@ -400,7 +400,7 @@ error(
 ${cambiaA(MICAELA)}select retail.reasignar_reparto_compra(:'c1_l1', :'taller', :'trujillo', 2, 'llego_de_mas');
 `
   ),
-  "No tienes permiso"
+  "necesita el módulo Facturas de compra" // ADR-0161 P1 (20260923140000)
 );
 
 error(
@@ -678,7 +678,7 @@ rollback;
 error(
   "el candado de dinero sigue en pie tras el re-llaveo: un integrante no puede pedir el resumen de Compras",
   comoPersona(FELIPE, `${cambiaA(MICAELA)}select * from retail.resumen_compras();`),
-  "Solo un líder puede ver"
+  "puede ver" // 20260923130000: «Solo un líder o un rol con Facturas de compra, Por pagar o Notas de crédito puede ver …»
 );
 
 exito(
@@ -884,7 +884,7 @@ rollback;
 error(
   "el candado de dinero sigue: un integrante no puede pedir los subtotales de Por pagar ni con la tienda puesta",
   comoPersona(FELIPE, `${BASE}${cambiaA(MICAELA)}select * from retail.por_pagar_tramos(p_ubicacion_id => :'trujillo');`),
-  "Solo un líder puede ver"
+  "puede ver" // 20260923130000: «Solo un líder o un rol con Facturas de compra, Por pagar o Notas de crédito puede ver …»
 );
 
 exito(

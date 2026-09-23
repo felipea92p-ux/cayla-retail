@@ -50,6 +50,16 @@ function Persona({ nombre, correo, tu = false, apagada = false }: { nombre: stri
 }
 
 const cualquiera = <span className="italic text-tinta/65">cualquiera</span>;
+/** Un líder opera todas las sedes; si tiene ubicación, es solo la tienda donde arranca su sesión (20260923120100). */
+function UbicacionDe({ rol, ubicacion }: { rol: string; ubicacion: string | null }) {
+  if (rol !== "lider") return <>{ubicacion ?? "—"}</>;
+  if (!ubicacion) return cualquiera;
+  return (
+    <span title="Arranca aquí; opera en cualquier sede">
+      {ubicacion} <span className="italic text-tinta/65">· arranca aquí</span>
+    </span>
+  );
+}
 
 const ETIQUETA_ACCION: Record<AccionFila, string> = {
   cambiar_rol: "Cambiar rol",
@@ -63,12 +73,18 @@ export function TablaActivos({
   ocupadoId,
   onAccion,
   rolDe,
+  onVerRol,
+  soyLider = true,
 }: {
   filas: Colaborador[];
   ocupadoId: string | null;
   onAccion: (c: Colaborador, accion: AccionFila) => void;
+  /** Quien mira es líder. Sin serlo (módulo Colaboradores), las filas de líderes no ofrecen acciones. */
+  soyLider?: boolean;
   /** El nombre del rol de cada cuenta (ADR-0161 B); sin esto, solo el nivel (Líder / Colaborador). */
   rolDe?: (id: string) => string | null;
+  /** Abre ese rol en «Roles y accesos» (spike colaboradores-ux, 2026-09-22): el rol de la fila es un atajo, no solo texto. */
+  onVerRol?: (id: string) => void;
 }) {
   return (
     <Caja minimo="min-w-[860px]">
@@ -85,7 +101,7 @@ export function TablaActivos({
       </thead>
       <tbody className="divide-y divide-tinta/5">
         {filas.map((c) => {
-          const items: ItemMenu[] = accionesDeFila(c).map((a) => ({
+          const items: ItemMenu[] = accionesDeFila(c, soyLider).map((a) => ({
             clave: a,
             etiqueta: ETIQUETA_ACCION[a],
             peligro: a === "quitar",
@@ -98,9 +114,22 @@ export function TablaActivos({
               </td>
               <td className={CELDA}>
                 <ChipRol rol={c.rol} />
-                {c.rol !== "lider" && rolDe?.(c.persona_id) && <div className="mt-1 text-xs text-tinta/65">{rolDe(c.persona_id)}</div>}
+                {c.rol !== "lider" && rolDe?.(c.persona_id) && (
+                  onVerRol ? (
+                    <button
+                      type="button"
+                      onClick={() => onVerRol(c.persona_id)}
+                      title="Ver qué módulos ve este rol"
+                      className="mt-1 block text-left text-xs text-tinta/65 underline decoration-tinta/20 underline-offset-2 transition-colors hover:text-tinta hover:decoration-tinta/60"
+                    >
+                      {rolDe(c.persona_id)}
+                    </button>
+                  ) : (
+                    <div className="mt-1 text-xs text-tinta/65">{rolDe(c.persona_id)}</div>
+                  )
+                )}
               </td>
-              <td className={`${CELDA} whitespace-nowrap text-tinta/85`}>{c.rol === "lider" ? cualquiera : (c.ubicacion_asignada ?? "—")}</td>
+              <td className={`${CELDA} whitespace-nowrap text-tinta/85`}><UbicacionDe rol={c.rol} ubicacion={c.ubicacion_asignada} /></td>
               <td className={`${CELDA} whitespace-nowrap text-tinta/75`}>{c.sede ?? "—"}</td>
               <td className={`${CELDA} whitespace-nowrap tabular-nums text-tinta/75`}>{fechaLima(c.agregado_en)}</td>
               <td className={`${CELDA} whitespace-nowrap tabular-nums text-tinta/75`}>{ultimoAccesoTexto(c.ultimo_acceso)}</td>
@@ -281,7 +310,7 @@ export function TablaSuspendidos({
             <td className={CELDA}>
               <ChipRol rol={c.rol} />
             </td>
-            <td className={`${CELDA} whitespace-nowrap text-tinta/85`}>{c.rol === "lider" ? cualquiera : (c.ubicacion_asignada ?? "—")}</td>
+            <td className={`${CELDA} whitespace-nowrap text-tinta/85`}><UbicacionDe rol={c.rol} ubicacion={c.ubicacion_asignada} /></td>
             <td className={`${CELDA} whitespace-nowrap text-tinta/75`}>
               <div className="tabular-nums">{fechaLima(c.suspendido_en)}</div>
               {c.suspendido_por_nombre && <div className="text-xs text-tinta/65">por {c.suspendido_por_nombre}</div>}

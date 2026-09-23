@@ -4,10 +4,12 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import type { Permiso } from "@/lib/menu";
 import {
+  accionesDeCompra,
   leerModulos,
   modulosDeHoy,
   permisosDeModulos,
   TIPOS_TERMINAL_LEGADO,
+  type AccionesDeCompra,
   type ClaveModulo,
   type ModuloDeCuenta,
   type TipoTerminalLegado,
@@ -40,6 +42,10 @@ export type PersonaActualV2 = {
    *  y, si su rol ve el Punto de venta, aterriza en `/vender`. Ya NO tiene tipo (20260923040000): lo que ve y hace lo
    *  decide su ROL (`modulos`), igual que a una persona. Lo que hace lo FIRMA el responsable elegido (ADR-0161). */
   terminal: boolean;
+  /** La persona de la sesión (`public.personas.id`), o `null` si es una terminal o la base no la pudo decir. Con ella el
+   *  combo «Responsable» viene ya elegido con quien inició sesión (salvo en el Punto de venta): una terminal no tiene a
+   *  quién proponer y sigue viniendo vacía. Sale de `fn_actor_persona_id(false)`, que para una persona devuelve su id. */
+  personaId: string | null;
   /** Lo que puede hacer además de operar su tienda, resuelto UNA vez desde sus módulos (`permisosDeModulos`).
    *  Las pantallas y los botones preguntan por un permiso (`puede`), no por «¿es líder?». */
   permisos: readonly Permiso[];
@@ -76,11 +82,15 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
   // aparato (una base vieja, su tipo); vacío o error = una persona. Falla cerrado (principio 9).
   // Los módulos del rol también van en paralelo (ADR-0161). Si la función aún no existe (web publicada antes de pegar
   // 20260923030000), la cuenta ve lo de hoy: ni más ni menos (principio 9).
-  const [{ data, error }, { data: miTerminal, error: errorTerminal }, { data: filasModulos, error: errorModulos }] = await Promise.all([
-    supabase.rpc("fn_persona_actual_resumen").maybeSingle(),
-    supabase.rpc("fn_mi_terminal"),
-    supabase.rpc("fn_mis_modulos"),
-  ]);
+  // Quién es la persona de la sesión (para proponerla en el combo «Responsable»): con `p_de_tienda = false`
+  // `fn_actor_persona_id` devuelve el id propio sin mirar encabezados. En una terminal falla (exige responsable): null.
+  const [{ data, error }, { data: miTerminal, error: errorTerminal }, { data: filasModulos, error: errorModulos }, { data: miPersonaId, error: errorPersonaId }] =
+    await Promise.all([
+      supabase.rpc("fn_persona_actual_resumen").maybeSingle(),
+      supabase.rpc("fn_mi_terminal"),
+      supabase.rpc("fn_mis_modulos"),
+      supabase.rpc("fn_actor_persona_id", { p_de_tienda: false }),
+    ]);
 
   if (error || !data || !data.ubicacion_id) {
     redirect(`/login?error=${await motivoSinAcceso(supabase, claims.claims.sub)}`);
@@ -129,6 +139,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     ubicacionTipo,
     puedeCambiarUbicacion: !!data.es_lider,
     terminal,
+    personaId: !terminal && !errorPersonaId && typeof miPersonaId === "string" ? miPersonaId : null,
     permisos: permisosDeModulos(rol, modulos),
     modulos,
   };
@@ -162,12 +173,18 @@ export function veModulo(persona: Pick<PersonaActualV2, "modulos">, clave: Clave
   return persona.modulos.some((m) => m.clave === clave);
 }
 
+/** Qué puede hacer esta cuenta con un comprobante de compra, módulo por módulo (ADR-0161 P1): facturas, pagos, notas. */
+export function accionesDeCompraDe(persona: Pick<PersonaActualV2, "rol" | "modulos">): AccionesDeCompra {
+  return accionesDeCompra(persona.rol, persona.modulos);
+}
+
 /** La puerta de pantalla por MÓDULO (ADR-0161 B2): quien llega por URL directa a un módulo que su rol no ve, cae en
  *  «Sin acceso» en vez de ver una pantalla que después falla al guardar. No reemplaza a `exigirPermiso` (que sigue
  *  valiendo para lo que exige un poder, como Facturación): se suman. Va en el `layout.tsx` del módulo o en su página. */
-export async function exigirModulo(clave: ClaveModulo): Promise<PersonaActualV2> {
+export async function exigirModulo(clave: ClaveModulo, ...alternos: ClaveModulo[]): Promise<PersonaActualV2> {
   const persona = await requirePersonaActualV2();
-  if (!veModulo(persona, clave)) redirect(`/sin-acceso?modulo=${clave}`);
+  // `alternos`: otros módulos que también abren esta pantalla (Atributos se abre con Etiquetas, que vive en una pestaña).
+  if (![clave, ...alternos].some((c) => veModulo(persona, c))) redirect(`/sin-acceso?modulo=${clave}`);
   return persona;
 }
 

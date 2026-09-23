@@ -1,15 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { esMotivoDeAjuste, motivosDeMovimiento, referenciaObligatoria } from "@/lib/caja-panel-reglas";
-import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Desplegable } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+
+// En pantalla se dice «entrada» y «salida» (Felipe, 2026-09-22): es plata que entra o sale del cajón, y así lo dice el
+// mostrador. En la base el tipo sigue siendo 'ingreso' | 'egreso' — solo cambian las palabras, no el dato.
+const TEXTO_TIPO = { ingreso: "Entrada", egreso: "Salida" } as const;
 
 // «Retiro de efectivo» y «Depósito bancario» son un egreso con motivo predefinido — mismo caso que
 // registrar_movimiento_caja() en SQL: un tipo, no una tabla. «Ajuste de caja» además marca es_ajuste=true, que
@@ -24,6 +29,7 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
   const [motivoLibre, setMotivoLibre] = useState("");
   const [nota, setNota] = useState("");
   const [loading, setLoading] = useState(false);
+  const idEtiquetaMotivo = useId();
   // Quién hace el ingreso o egreso (ADR-0161, A12: el cierre de caja lo muestra por movimiento).
   const responsable = useResponsable();
 
@@ -42,7 +48,7 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!tipo) {
-      avisar.error("Elige si es un ingreso o un egreso.");
+      avisar.error("Elige si es una entrada o una salida.");
       return;
     }
     if (!motivo.trim()) {
@@ -76,13 +82,13 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
       avisar.error(traducirError(error, "registrar el movimiento de caja"));
       return;
     }
-    avisar.exito(`${tipo === "ingreso" ? "Ingreso" : "Egreso"} de caja registrado`, { detalle: `S/ ${(Number(monto) || 0).toFixed(2)} · ${motivo}` });
+    avisar.exito(`${TEXTO_TIPO[tipo]} de caja registrada`, { detalle: `S/ ${(Number(monto) || 0).toFixed(2)} · ${motivo}` });
     router.refresh();
     onClose();
   }
 
   return (
-    <Modal titulo="Ingreso o egreso de caja" onClose={onClose}>
+    <Modal titulo="Entrada o salida de caja" onClose={onClose}>
       {(cerrar) => (
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-1.5">
@@ -93,7 +99,7 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
                 key={t}
                 type="button"
                 onClick={() => cambiarTipo(t)}
-                className={`flex-1 rounded-md border px-3 py-2 text-sm capitalize transition-colors ${
+                className={`flex-1 rounded-md border px-3 py-2 text-sm transition-colors ${
                   tipo !== t
                     ? "border-tinta/20 text-tinta/70"
                     : t === "ingreso"
@@ -101,7 +107,7 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
                       : "border-rojo bg-rojo/8 text-rojo"
                 }`}
               >
-                {t}
+                {TEXTO_TIPO[t]}
               </button>
             ))}
           </div>
@@ -132,25 +138,19 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
         </div>
 
         <div className="space-y-1.5">
-          <label className={campoEtiqueta} htmlFor="mov-motivo-rapido">
+          <span id={idEtiquetaMotivo} className={campoEtiqueta}>
             Motivo
-          </label>
-          <select
-            id="mov-motivo-rapido"
-            value={motivoRapido}
-            onChange={(e) => setMotivoRapido(e.target.value)}
-            disabled={!tipo}
-            className={campoSelect}
-          >
-            <option value="" disabled>
-              {tipo ? "Elige un motivo" : "Primero elige el tipo"}
-            </option>
-            {motivosRapidos.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
+          </span>
+          {/* El desplegable del sistema (campos.tsx), no el <select> nativo: la lista del sistema operativo no lleva
+              la paleta ni el hilo, y era el único campo del modal que se veía de otra familia. */}
+          <Desplegable
+            valor={motivoRapido}
+            onValor={setMotivoRapido}
+            opciones={motivosRapidos.map((m) => ({ valor: m, texto: m }))}
+            marcador={tipo ? "Elige un motivo" : "Primero elige entrada o salida"}
+            idEtiqueta={idEtiquetaMotivo}
+            deshabilitado={!tipo}
+          />
           {/* Truco de `grid-template-rows` (0fr↔1fr, igual que el motivo del botón en
               PuntoDeVentaTicket.tsx): el campo libre queda siempre montado, y es la
               altura de su propia fila la que anima — antes el salto al elegir "Otro"

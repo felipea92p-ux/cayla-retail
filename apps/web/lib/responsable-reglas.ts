@@ -9,9 +9,14 @@
  * LAS REGLAS (Felipe, 2026-09-22 — no se cambian aquí):
  *  · Solo se elige entre quienes están `presente` en la sede activa según `fn_asesoras_de_turno`. En pausa se
  *    muestra deshabilitada; `salio` y `programada` no aparecen.
- *  · Viene vacío siempre, en cada operación, aunque haya una sola persona. Solo el nombre, sin PIN.
+ *  · Solo el nombre, sin PIN.
+ *  · Qué trae elegido al abrir (Felipe, 2026-09-22, segunda vuelta — `responsableInicial`):
+ *      – sesión de una PERSONA: ya viene elegida ella misma, si está presente en la sede (si no marcó entrada, vacío);
+ *      – sesión de una TERMINAL: vacío siempre — el aparato no es nadie;
+ *      – Punto de venta: vacío siempre, también para una persona — quien atiende a la clienta puede no ser quien abrió
+ *        la sesión en el mostrador.
  *  · Si no hay nadie presente, la operación se bloquea — sin «Otra persona» —, también para un líder.
- *  · Después de guardar vuelve a vacío.
+ *  · Después de guardar vuelve a como vino al abrir (elegida la persona de la sesión, o vacío).
  *
  * CÓMO VIAJA. En encabezados de la petición (`x-responsable`, `x-ubicacion` y, en la venta sin conexión,
  * `x-momento`), no como un parámetro nuevo en ~40 funciones (ADR-0161 §2: cambiar firmas deja sobrecargas vivas,
@@ -67,6 +72,15 @@ export function responsableVigente(lista: ListaResponsable, elegidoId: string | 
 }
 
 /**
+ * A quién se toma como elegido: lo que la persona tocó en el combo o, si todavía no tocó nada (`undefined`), el
+ * propuesto — quien inició sesión, o `null` en una terminal y en el Punto de venta. Luego `responsableVigente` lo
+ * descarta si no está presente: nunca se propone a alguien que no marcó entrada.
+ */
+export function responsableInicial(tocado: string | null | undefined, propuesto: string | null): string | null {
+  return tocado === undefined ? propuesto : tocado;
+}
+
+/**
  * En qué punto está el combo:
  *  · `cargando`   — todavía no llegó la primera lectura.
  *  · `sin_lectura`— la lectura falló y no hay una lista buena anterior: no se puede elegir a nadie.
@@ -91,7 +105,7 @@ export function motivoSinResponsable(estado: EstadoCombo, sede: string): string 
     case "listo":
       return null;
     case "falta":
-      return "Elige quién hace esta operación.";
+      return "Elige quién está atendiendo.";
     case "nadie":
       return `Nadie de turno en ${sede}: marca tu entrada en el kiosco para poder guardar.`;
     case "sin_lectura":
@@ -170,7 +184,7 @@ export function esErrorDeResponsable(error: ErrorBase): boolean {
 export function mensajeErrorResponsable(error: ErrorBase): string | null {
   switch (hintDe(error)) {
     case "responsable_requerido":
-      return "Falta elegir quién hace esta operación. Elígelo en «Responsable» y vuelve a intentar.";
+      return "Falta elegir quién está atendiendo. Elígelo en «Responsable» y vuelve a intentar.";
     case "responsable_no_presente":
       return "Esa persona ya no figura de turno en esta tienda (marcó su salida o salió a una pausa). Actualiza la lista y elige a quien está presente.";
     case "responsable_sin_acceso":

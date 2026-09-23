@@ -1,4 +1,4 @@
-# ADR-0169 — El candado de dinero de Caja, Cambios y Devoluciones vive en la base, no en el navegador
+# ADR-0177 — El candado de dinero de Caja, Cambios y Devoluciones vive en la base, no en el navegador
 
 **Fecha:** 2026-09-22 · **Estado:** aceptado (Felipe: «ok») y **aplicado en producción el mismo día**, verificado en solo lectura contra `cayla-dynamic` (huellas de las tres funciones antes/después, permisos de tabla confirmados) y con un Postgres 17 desechable sin Docker (209 migraciones + la nueva, dos veces, 64/64 pruebas). Relacionado: D-13 y D-49 (`docs/datos/DECISIONES-2026-09-12.md`), ADR-0056, ADR-0143 (el mismo candado ya cerrado para stock). Origen: análisis `/pantalla` del módulo Ventas, 2026-09-22 (`docs/pantallas/caja.md`, `cambios.md`, `devoluciones.md`).
 

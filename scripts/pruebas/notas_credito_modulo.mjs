@@ -266,13 +266,13 @@ rollback;`
 error(
   "permisos · Micaela (integrante) no puede leer el tablero",
   como(FELIPE, `${BASE}${cambiaA(MICAELA)}${COMO_AUTENTICADO}select * from retail.notas_credito_tablero();`),
-  "Solo un líder puede ver las notas de crédito de proveedores"
+  "puede ver las notas de crédito de proveedores"
 );
 
 error(
   "permisos · Micaela no puede buscar facturas para la nota",
   como(FELIPE, `${BASE}${cambiaA(MICAELA)}${COMO_AUTENTICADO}select * from retail.fn_facturas_para_nota_credito('TST');`),
-  "Solo un líder puede ver las facturas de proveedores"
+  "puede ver las facturas de proveedores"
 );
 
 error(
@@ -282,7 +282,7 @@ error(
     `${BASE}${compra("c1")}${cambiaA(MICAELA)}${COMO_AUTENTICADO}
 select retail.registrar_nota_credito_compra(:'c1', 'FC01-1', ${HOY}, 100.00, 'descuento');`
   ),
-  "No tienes permiso para registrar notas de crédito"
+  "Registrar notas de crédito de proveedores necesita el módulo Notas de crédito" // ADR-0161 P1 (20260923140000)
 );
 
 error(
@@ -292,7 +292,7 @@ error(
     `${BASE}${compra("c1")}${cambiaA(MICAELA)}${COMO_AUTENTICADO}
 select retail.registrar_adjunto_compra(:'c1', :'c1' || '/nota.pdf', 'nota.pdf', 'application/pdf', 1000);`
   ),
-  "No tienes permiso para adjuntar documentos"
+  "Adjuntar documentos necesita el módulo Facturas de compra" // ADR-0161 P1 (20260923140000)
 );
 
 exito(

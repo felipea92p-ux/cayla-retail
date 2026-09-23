@@ -140,19 +140,19 @@ export function TarjetaCifra({
     <span className="flex items-center gap-3">
       {icono}
       <span className="min-w-0 flex-1">
-        <span className="label-cayla block text-[11px] text-tinta/65">{etiqueta}</span>
+        <span className="label-cayla block text-[11px] font-bold text-taupe">{etiqueta}</span>
         <span className="mt-0.5 flex items-baseline gap-1.5">
           <span className={`font-display text-2xl tabular-nums ${tono ?? "text-tinta"}`}>{valor}</span>
           {unidad && <span className="text-sm text-tinta/55">{unidad}</span>}
         </span>
-        {children && <span className="mt-0.5 block text-xs text-tinta/65">{children}</span>}
+        {children && <span className="mt-0.5 block text-xs text-taupe">{children}</span>}
       </span>
       {(onClick || href) && <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 text-tinta/40" />}
     </span>
   ) : (
     <>
       {acentoTrazo && <span aria-hidden className="anim-crece-y absolute bottom-3.5 left-0 top-3.5 w-0.5 origin-top rounded-sm bg-rojo" style={{ ["--i" as string]: 10 }} />}
-      <p className="label-cayla flex items-center gap-[7px] text-[11px] text-tinta/65">
+      <p className="label-cayla flex items-center gap-[7px] text-[11px] font-bold text-taupe">
         {punto && (
           <span aria-hidden className={`relative h-1.5 w-1.5 shrink-0 rounded-full ${PUNTO[punto]} ${vivo ? "punto-vivo" : ""}`}>
             {puntoPulsa && <span className={`anim-vivo-onda pointer-events-none absolute inset-0 rounded-full ${PUNTO[punto]}`} style={{ animationDelay: "1400ms" }} />}
@@ -161,11 +161,11 @@ export function TarjetaCifra({
         {etiqueta}
       </p>
       <p className="mt-1 flex items-baseline gap-2">
-        <span className={`font-display text-3xl tabular-nums ${vacia ? "text-tinta/45" : (tono ?? "text-tinta")}`}>{valor}</span>
+        <span className={`font-display text-[28px] leading-tight tabular-nums ${vacia ? "text-tinta/45" : (tono ?? "text-tinta")}`}>{valor}</span>
         {unidad && <span className="text-sm text-tinta/55">{unidad}</span>}
       </p>
       {/* `div` y no `p`: el contexto puede llevar una barra dentro (Concentración de Por pagar) y un bloque no cabe en un párrafo. */}
-      {children && <div className={`mt-1 text-xs ${detalleTono ?? "text-tinta/65"}`}>{children}</div>}
+      {children && <div className={`mt-1 text-xs ${detalleTono ?? "text-taupe"}`}>{children}</div>}
       {accion &&
         ("href" in accion ? (
           <Link href={accion.href} className="label-cayla mt-3 inline-block text-[11px] text-tinta underline underline-offset-2 hover:no-underline">

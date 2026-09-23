@@ -1,4 +1,4 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { exigirPermiso } from "@/lib/persona-actual";
 import { CompraDetalle, DatosComprobante, TituloComprobante, cargarDetalleCompra } from "@/components/CompraDetalle";
 import { ModalRuta } from "@/components/ui/ModalRuta";
 import { CompraAcciones } from "@/components/CompraDetallePanel";
@@ -22,7 +22,8 @@ export default async function CompraDetalleModal({
   params: Promise<{ compraId: string }>;
   searchParams: Promise<{ adjuntos_fallidos?: string; desde?: string }>;
 }) {
-  await requirePersonaActualV2();
+  // ADR-0161 P3: el layout de /compras también deja entrar a quien solo tiene Proveedores; un comprobante es dinero.
+  await exigirPermiso("verDineroCompras");
   const { compraId } = await params;
   const { adjuntos_fallidos, desde } = await searchParams;
   const adjuntosFallidos = adjuntos_fallidos ? adjuntos_fallidos.split("|").filter(Boolean) : [];
@@ -53,7 +54,7 @@ export default async function CompraDetalleModal({
       ancho="max-w-2xl"
       cierre="equis"
       alCerrar={alCerrar}
-      acciones={anulada ? undefined : <CompraAcciones compra={compra} tieneRecepciones={detalle.recepciones.length > 0} datosPago={detalle.datosPago} />}
+      acciones={anulada ? undefined : <CompraAcciones compra={compra} tieneRecepciones={detalle.recepciones.length > 0} datosPago={detalle.datosPago} permite={detalle.acciones} />}
     >
       <CompraDetalle detalle={detalle} adjuntosFallidos={adjuntosFallidos} acciones={false} />
     </ModalRuta>
