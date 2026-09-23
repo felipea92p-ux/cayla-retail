@@ -1,10 +1,9 @@
 # ADR-0180 — La etiqueta de precio sale sola al ingresar mercadería, leída de los movimientos del ingreso
 
-**Fecha:** 2026-09-23 · **Estado:** los 3 pasos construidos y verificados en local, rama
-`claude/auto-label-generation-discounts-25d6a3` (sin subir, a pedido de Felipe). Los pasos 1 y 2 **no tienen migraciones**.
-El 3 (ADR-0182) trae una que **se pegó en producción el 2026-09-23**. La web todavía no está publicada: hasta publicarla no
-se activa ninguna campaña, o la caja vieja rechazaría esas ventas. · **Falta:** que Felipe imprima una hoja en la Brother real y la escanee, y la medida de la
-cartulina.
+**Fecha:** 2026-09-23 · **Estado:** los 3 pasos **publicados**: Felipe fusionó el PR #351 el 2026-09-23 a las 12:16 (Lima)
+y Vercel los desplegó; la migración del paso 3 (ADR-0182) se había pegado antes ese mismo día. Los pasos 1 y 2 **no tienen
+migraciones**. Lo publicado imprime la etiqueta de 62 × 92 mm; **el formato del cartón (44 × 62 mm, sección «El cartón de
+5 × 8 cm») va en el PR siguiente.** · **Falta:** fusionar ese PR y que Felipe imprima una hoja en la Brother real y la escanee.
 **Número:** 0180 porque el 0179 lo tomó en paralelo «Prendas sin registrar» (rama `untagged-products-pos`).
 
 ## El problema
@@ -22,9 +21,9 @@ pistola Zebra el 2026-09-10, ADR-0025), pero **se perdió en el reemplazo V1→V
 | # | Decisión | Por qué |
 |---|---|---|
 | 1 | **Sale al ingresar mercadería** (Recibir, Ingreso sin comprobante, cierre de una producción del Taller), **una por prenda física**. No al crear el producto. | Recién al ingresar se sabe cuántas prendas hay. Al crear el modelo no existe ninguna todavía. |
-| 2 | **Rollo DK-22205 (62 mm continuo, adhesivo) pegado sobre una cartulina con agujero.** | Es lo que se usa hoy (foto del 2026-09-23). La medida final la manda la cartulina: **62 × 92 mm es provisional**. |
+| 2 | **Rollo DK-22205 (62 mm continuo, adhesivo) pegado sobre un cartón de 5 × 8 cm con agujero.** | Es lo que se usa hoy (foto del 2026-09-23). El cartón manda la medida: la etiqueta es de **44 × 62 mm** (sección «El cartón de 5 × 8 cm»). |
 | 3 | **Se imprime directo desde el ERP** (Chrome + driver Brother). Adiós P-touch Editor. | Nadie vuelve a copiar un precio a mano. |
-| 4 | **Diseño «D · Editorial, corregida»**, elegido entre 3 rondas de maquetas (`docs/maquetas/etiqueta-precio-2026-09/`), con QR de 25 mm. | Inspirado en Zara/H&M. La crítica separó lo que sirve a la clienta de lo que sirve a la colaboradora (ver abajo). |
+| 4 | **Diseño «D · Editorial, corregida»**, elegido entre 3 rondas de maquetas (`docs/maquetas/etiqueta-precio-2026-09/`). En la ronda 4 (el cartón) eligió el arreglo **«QR abajo»** y pidió **el QR lo más grande que entre**: 22 mm, 20 con campaña. | Inspirado en Zara/H&M. La crítica separó lo que sirve a la clienta de lo que sirve a la colaboradora (ver abajo). |
 | 5 | **La etiqueta muestra todas las tallas del modelo, con la de la prenda marcada.** | La clienta sabe hasta qué talla hay sin preguntar. |
 | 6 | **En campaña, el precio se redondea hacia abajo a .90** (S/ 71.92 → S/ 71.90). | Precio «de tienda». **Toca el cobro**: va en el paso 3 (ADR-0182), antes que cualquier etiqueta con descuento (paso 2). |
 | 7 | **La etiqueta dice lo que la caja cobra HOY**: si al ingresar la prenda tiene una campaña vigente, sale con el precio de campaña. | Nunca un precio distinto en el papel y en la caja. Al terminar la campaña se reimprime con «Volver al precio normal». |
@@ -48,7 +47,8 @@ pistola Zebra el 2026-09-10, ADR-0025), pero **se perdió en el reemplazo V1→V
 - **Paso 1 imprime el precio de lista.** Si la prenda está en campaña, la caja cobra menos de lo que dice el papel, nunca
   más. El precio de campaña llega con el paso 2, después del redondeo (paso 3).
 - **Impresión:** una hoja montada con un portal en `<body>` (`#etiquetas-precio-print`, mismo patrón que la boleta A4) y una
-  página nombrada `@page etiqueta-precio { size: 62mm 92mm }`, así no se pisa la regla de la térmica de 80 mm.
+  página nombrada `@page etiqueta-precio { size: 62mm 44mm }`, así no se pisa la regla de la térmica de 80 mm. Cada etiqueta
+  (44 × 62) va girada −90° dentro de su hoja (`.etq-hoja`), con `contain: size layout paint` (ver «El cartón»).
   `print-color-adjust: exact` hace que la talla invertida salga negra aunque «Gráficos de fondo» esté apagado. Todo en mm y
   en #000 puro: la QL-1110NWB no imprime otro color.
 - **Lecturas con `leerTodas()`**: un envío grande pasa las 1.000 filas de PostgREST en las tallas hermanas, y cortada, la
@@ -61,7 +61,9 @@ pistola Zebra el 2026-09-10, ADR-0025), pero **se perdió en el reemplazo V1→V
 - Una tabla que registre cada etiqueta impresa: nadie la pidió (YAGNI). La fecha de impresión va en el papel.
 
 **SE ROMPE SI:**
-1. El driver no tiene un papel de 62 × 92 mm: Chrome escala o parte la etiqueta. Hay que crearlo una vez por computadora (abajo).
+1. El driver no tiene un papel de 62 × 44 mm: Chrome escala o parte la etiqueta. Hay que crearlo una vez por computadora (abajo).
+   Si al imprimir sale corrida o achicada, revisar que el driver no agregue márgenes al corte (el diseño ya deja 3,5 mm a
+   cada lado del corte y 3 mm en los bordes del rollo, por fuera de lo que la Brother no alcanza).
 2. La web (pasos 2 y 3) se publica sin pegar la migración del paso 3, o al revés: la etiqueta y la caja dirían un precio
    que la base rechaza. Salen juntas (ADR-0182).
 3. Se confunde «etiqueta» (campaña) con «etiqueta de precio» en el código.
@@ -71,7 +73,7 @@ pistola Zebra el 2026-09-10, ADR-0025), pero **se perdió en el reemplazo V1→V
 - **Con campaña vigente**, la etiqueta lleva el diseño aprobado:
   - el precio de lista tachado;
   - el precio que cobra la caja (el mismo `descuentoDeCampana`, bajado al .90) con su «−20 %» en bloque negro;
-  - el motivo (el nombre de la campaña, hasta 2 líneas);
+  - el motivo (el nombre de la campaña; en el cartón de 5 × 8, una línea con «…» si es largo);
   - «Precio válido hasta el dd.mm».
 
   Vale para cualquier origen, incluido un ingreso (decisión 7). La campaña de cada prenda la elige
@@ -114,8 +116,8 @@ pistola Zebra el 2026-09-10, ADR-0025), pero **se perdió en el reemplazo V1→V
 **Para la colaboradora:**
 - El código en letra monoespaciada del sistema (su 0 lleva barra, no se confunde con la O al teclearlo).
 - «Impreso dd.mm.aa»: si conviven dos etiquetas de la misma prenda, manda la más nueva.
-- El QR de 25 mm: más grande que los 18 mm verificados con la Zebra, así que más fácil de leer, no más difícil.
-- Con 8 tallas o más, la fila baja un punto de letra (visto en el PDF de prueba: XXXL se pegaba a XXL).
+- El QR lo más grande que entra en 44 × 62 mm: 22 mm (20 con campaña), más que los 18 mm verificados con la Zebra.
+- Con 8 tallas o más, la fila baja un punto de letra. Felipe: «jamás habrá 8 tallas»; la regla queda como red, no como diseño.
 
 ## Cómo se verificó (2026-09-23)
 
@@ -133,20 +135,46 @@ pistola Zebra el 2026-09-10, ADR-0025), pero **se perdió en el reemplazo V1→V
   escribe `produccion_id`. Existen las 15 columnas y las 3 relaciones que lee la pantalla.
 - **Falta:** imprimir en la QL-1110NWB real y escanear con la pistola (Felipe).
 
+## El cartón de 5 × 8 cm (2026-09-23, ronda 4)
+
+Felipe midió el cartón: **5 cm de ancho × 8 cm de largo**, con el agujero arriba. La etiqueta de 62 × 92 mm no entraba.
+
+- **Formato: 44 × 62 mm.** El rollo mide 62 mm y eso no cambia; en un cartón de 50 mm de ancho, los 62 mm solo entran a lo
+  largo (en los 80). Quedan 3 mm de aire a cada lado del cartón, el agujero libre arriba (dibujado centrado a 5 mm del
+  borde) y ~6 mm al pie. La etiqueta empieza ~12 mm por debajo del borde de arriba del cartón.
+- **Sale de lado:** la Brother corta la tira cada 44 mm. La página que recibe es de 62 × 44 mm (el ancho del rollo por el
+  largo del corte) y la etiqueta va girada −90° dentro. Se despega, se gira y se pega.
+- **Arreglo elegido: «QR abajo»** (el orden aprobado de la D), con el QR tan grande como entre (Felipe: «hazlo más grande»):
+  - **22 mm sin campaña**: lo limita el ancho (el código de 16 caracteres va al lado).
+  - **20 mm con campaña**: lo limita el alto (el «−20 %» y el motivo van encima).
+  - Su margen blanco cae sobre el acolchado: abajo es el borde del rollo, donde la Brother no imprime, y a la derecha el
+    corte. Las zonas negras quedan a ~4 mm de cada borde.
+  - Con campaña, el nombre de la prenda baja a 1 línea y el motivo a 1 línea con «…».
+- **Medido en la hoja real (PDF de Chrome, 6 casos):**
+  - 6 páginas de 62 × 44 mm, una etiqueta completa por página.
+  - El caso más justo (blusa con campaña) deja 0,43 mm de aire sobre el QR.
+  - Ningún código se corta.
+  - **Los 6 QR se decodificaron exactos a 300 dpi**, con la hoja girada (8–9 puntos de la Brother por módulo; el mínimo
+    práctico es 4).
+- **Defecto que atrapó el PDF, no la pantalla:** sin la propiedad `contain`, Chrome partía la etiqueta girada en el salto
+  de página. Antes del giro mide 62 mm de alto, más que la hoja de 44. El QR y el pie aparecían encima del precio en todas
+  las hojas menos la última. Con `contain: size layout paint` la etiqueta es una pieza que no se parte.
+
 ## Configurar la Brother (una vez por computadora que imprima)
 
 > Estos pasos no se probaron contra la impresora real: los nombres exactos del driver pueden variar según la versión.
 
 1. Instalar el **driver completo** de la QL-1110NWB desde la página de soporte de Brother (no el genérico de Windows).
-2. En el driver, crear un papel **62 × 92 mm** para el rollo continuo de 62 mm. Brother lo ofrece en la configuración de
+2. En el driver, crear un papel **62 × 44 mm** para el rollo continuo de 62 mm. Brother lo ofrece en la configuración de
    tamaño de papel (en inglés, «Paper Size Setup»). Activar **corte automático cada 1 etiqueta**.
-3. En Chrome, la primera vez: Destino **Brother QL-1110NWB** → Más ajustes → Tamaño del papel **62 × 92 mm** → Márgenes
+3. En Chrome, la primera vez: Destino **Brother QL-1110NWB** → Más ajustes → Tamaño del papel **62 × 44 mm** → Márgenes
    **Ninguno** → Escala **Predeterminada (100 %)** → **sin** «Encabezados y pies de página». Chrome recuerda la elección.
-4. Primera prueba: imprimir 1 etiqueta, escanearla con la pistola en Vender y confirmar que aparece la prenda correcta.
+4. Primera prueba: imprimir 1 etiqueta, escanearla con la pistola en Vender y confirmar que aparece la prenda correcta. Mirar
+   también que salga completa y a tamaño real (44 × 62 mm, de lado en el corte): si sale achicada o corrida, es el paso 2.
 
 ## Lo que sigue
 
 - **Paso 2 — construido** (sección de arriba).
 - **Paso 3 — construido (ADR-0182):** el precio de campaña baja al .90 en la caja y la base lo verifica. Falta pegar su
   migración en producción con OK de Felipe, el mismo día que se publique la web.
-- Ajustar 62 × 92 mm a la medida de la cartulina.
+- ~~Ajustar la medida a la cartulina~~ — hecho: 44 × 62 mm para el cartón de 5 × 8 cm.

@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-23 (La etiqueta de precio en el cartón de 5 × 8 cm — ADR-0180, ronda 4)
+Felipe midió el cartón (5 × 8 cm) y la etiqueta de 62 × 92 mm no entraba. Como el rollo mide 62 mm, esos 62 van a lo largo: la etiqueta pasa a 44 × 62 mm, sale de lado del rollo (cortes cada 44 mm, papel del driver 62 × 44) y la hoja de impresión la gira. En la maqueta eligió el arreglo «QR abajo» y pidió el QR lo más grande posible: 22 mm sin campaña y 20 con campaña, lo que dejan el ancho del código y el alto del «−20 %». El PDF real atrapó un defecto que la pantalla no mostraba (Chrome partía la etiqueta girada en el salto de página y el QR caía sobre el precio); con `contain` sale entera, y los 6 QR se leyeron exactos a 300 dpi.
+Felipe se lleva: (1) **el rollo manda una medida y el cartón la otra**: por eso la etiqueta sale de lado; (2) **lo que se ve en pantalla no es lo que sale en papel**: el salto de página rompía la etiqueta solo al imprimir, y solo el PDF real lo mostró; (3) **el QR crece hasta donde lo deja el contenido**: con campaña manda el alto, sin campaña manda el ancho.
+
 ## 2026-09-23 (Caja: cierre con traslado y apertura verificada — ADR-0186)
 Del spike al código: al cerrar se ve el esperado (con desglose) junto a lo contado, se registra cuánto se traslada y a dónde, y el cajón para el próximo turno se calcula; con la caja cerrada se ve el último cierre, y abrir con otro monto exige motivo y avisa al líder en Inicio. Migración `20260923200000` con 18 pruebas SQL en verde; typecheck, lint y vitest en verde; por pegar en producción antes de fusionar.
 Felipe se lleva: (1) **lo que queda en el cajón se calcula, no se escribe**: dos números escritos a mano siempre terminan contradiciéndose; (2) **un cálculo, un lugar**: la vista previa del cuadre ya se había desviado del cierre real (contaba ventas anuladas), por eso ahora ambos usan la misma función; (3) quitar el conteo ciego tiene un costo (se cuenta «hasta llegar»), decidido a sabiendas.

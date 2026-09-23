@@ -317,8 +317,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   campaña de HOY de cada prenda con `fn_campanas_por_variante`; todo con `leerTodas`; SIN RPC ni tabla nueva) +
   `lib/etiqueta-precio-reglas.ts` (puro: sumar por prenda, tallas del modelo, respaldo de SKU, mejor campaña, fecha de
   alcance, textos de la pantalla, cantidades, URL) → `ImprimirEtiquetasPrecio.tsx` (cantidades, vista previa, `window.print()`; la
-  hoja `#etiquetas-precio-print` va por portal a `<body>`) → `EtiquetaPrecio.tsx` (el diseño, en mm: `.etiqueta-precio` y
-  `@page etiqueta-precio` 62 × 92 mm en `globals.css`; QR con `CodigoQR` a 25 mm). Se llega desde `EnvioRecibido.tsx`
+  hoja `#etiquetas-precio-print` va por portal a `<body>`) → `EtiquetaPrecio.tsx` (el diseño, en mm: `.etiqueta-precio`,
+  una etiqueta de 44 × 62 mm para el cartón de 5 × 8 cm, impresa girada en `@page etiqueta-precio` de 62 × 44 mm (`.etq-hoja`,
+  con `contain`) en `globals.css`; QR con `CodigoQR` a 22 mm, 20 con campaña). Se llega desde `EnvioRecibido.tsx`
   (Recibir: los `lotes` que devuelve `recibir_envio`), `RecepcionFormV2.tsx` (Ingreso sin comprobante: el id que devuelve
   `recibir_lote`), la sección «Siguiente paso» de `OrdenPanel.tsx` (orden del Taller cerrada, no muestra), la tarjeta de
   cada campaña en `EtiquetasLista.tsx` («Imprimir etiquetas de precio» / «Volver al precio normal») y Productos
