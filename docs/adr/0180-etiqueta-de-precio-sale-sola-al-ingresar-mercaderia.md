@@ -1,8 +1,10 @@
 # ADR-0180 — La etiqueta de precio sale sola al ingresar mercadería, leída de los movimientos del ingreso
 
-**Fecha:** 2026-09-23 · **Estado:** paso 1 de 3 construido y verificado en local, rama
-`claude/auto-label-generation-discounts-25d6a3`; **SIN migraciones** (no hay nada que pegar en producción) · **Falta:** que
-Felipe imprima una hoja en la Brother real y la escanee, y la medida de la cartulina.
+**Fecha:** 2026-09-23 · **Estado:** los 3 pasos construidos y verificados en local, rama
+`claude/auto-label-generation-discounts-25d6a3` (sin subir, a pedido de Felipe). Los pasos 1 y 2 **no tienen migraciones**.
+El 3 (ADR-0182) trae una que **no está pegada** y tiene que salir el mismo día que la web: sin ella, toda venta con campaña
+se rechaza en la caja. · **Falta:** que Felipe imprima una hoja en la Brother real y la escanee, y la medida de la
+cartulina.
 **Número:** 0180 porque el 0179 lo tomó en paralelo «Prendas sin registrar» (rama `untagged-products-pos`).
 
 ## El problema
@@ -24,7 +26,8 @@ pistola Zebra el 2026-09-10, ADR-0025), pero **se perdió en el reemplazo V1→V
 | 3 | **Se imprime directo desde el ERP** (Chrome + driver Brother). Adiós P-touch Editor. | Nadie vuelve a copiar un precio a mano. |
 | 4 | **Diseño «D · Editorial, corregida»**, elegido entre 3 rondas de maquetas (`docs/maquetas/etiqueta-precio-2026-09/`), con QR de 25 mm. | Inspirado en Zara/H&M. La crítica separó lo que sirve a la clienta de lo que sirve a la colaboradora (ver abajo). |
 | 5 | **La etiqueta muestra todas las tallas del modelo, con la de la prenda marcada.** | La clienta sabe hasta qué talla hay sin preguntar. |
-| 6 | **En campaña, el precio se redondea hacia abajo a .90** (S/ 71.92 → S/ 71.90). | Precio «de tienda». **Toca el cobro**: va en el paso 3, antes que cualquier etiqueta con descuento (paso 2). |
+| 6 | **En campaña, el precio se redondea hacia abajo a .90** (S/ 71.92 → S/ 71.90). | Precio «de tienda». **Toca el cobro**: va en el paso 3 (ADR-0182), antes que cualquier etiqueta con descuento (paso 2). |
+| 7 | **La etiqueta dice lo que la caja cobra HOY**: si al ingresar la prenda tiene una campaña vigente, sale con el precio de campaña. | Nunca un precio distinto en el papel y en la caja. Al terminar la campaña se reimprime con «Volver al precio normal». |
 
 ## Decisiones técnicas (Claude)
 
@@ -59,8 +62,45 @@ pistola Zebra el 2026-09-10, ADR-0025), pero **se perdió en el reemplazo V1→V
 
 **SE ROMPE SI:**
 1. El driver no tiene un papel de 62 × 92 mm: Chrome escala o parte la etiqueta. Hay que crearlo una vez por computadora (abajo).
-2. Alguien imprime una etiqueta de campaña antes del paso 3: el papel diría un precio que la caja no cobra.
+2. La web (pasos 2 y 3) se publica sin pegar la migración del paso 3, o al revés: la etiqueta y la caja dirían un precio
+   que la base rechaza. Salen juntas (ADR-0182).
 3. Se confunde «etiqueta» (campaña) con «etiqueta de precio» en el código.
+
+## Paso 2 — la etiqueta de campaña y la reimpresión (2026-09-23)
+
+- **Con campaña vigente**, la etiqueta lleva el diseño aprobado:
+  - el precio de lista tachado;
+  - el precio que cobra la caja (el mismo `descuentoDeCampana`, bajado al .90) con su «−20 %» en bloque negro;
+  - el motivo (el nombre de la campaña, hasta 2 líneas);
+  - «Precio válido hasta el dd.mm».
+
+  Vale para cualquier origen, incluido un ingreso (decisión 7). La campaña de cada prenda la elige
+  `mejorCampanaPorVariante` como la caja: la de mayor %.
+- **Dos orígenes nuevos en `/etiquetas-de-precio`**, con cantidad = stock físico de la tienda de la sesión
+  (`stock.cantidad`: lo apartado también está en la tienda):
+  - `?campana=`: las prendas que la campaña alcanza, decidido por `fn_campanas_por_variante`, la misma función de la caja.
+    - **Vigente:** «Etiquetas de campaña».
+    - **Ya terminó:** se mira su último día para saber qué alcanzó, y las mismas prendas salen con el precio de hoy
+      («Volver al precio normal»).
+    - **Todavía no empieza:** no imprime nada. La etiqueta diría el precio de hoy, y se imprime el día que empieza.
+  - `?producto=`: las tallas y colores del modelo que hay en la tienda. Sirve para la ropa que ya está en tienda y para
+    lo que llega del Taller a una tienda que no imprimió.
+- **Botones:**
+  - En la tarjeta de cada campaña (Atributos ▸ Etiquetas): «Imprimir etiquetas de precio» o «Volver al precio normal».
+  - En Productos: el menú «···» de la lista y la ficha en grilla.
+- **Textos de la pantalla:** `encabezadoDeEtiquetas`, puro y probado. Una campaña terminada no se ve como un error: es
+  el momento de volver al precio normal.
+
+**Verificado:**
+- 36 pruebas en `etiqueta-precio-reglas.test.ts`.
+- `?producto=` contra la base local: 48 prendas y 8 filas, igual que el SQL.
+- El camino de campaña en SQL dentro de una transacción revertida, con permisos de colaborador:
+  - vigente: 8 prendas y 48 unidades, lo mismo que contadas por otro camino;
+  - precio: lista 99.90, cobra 79.90;
+  - terminada: las mismas 8 prendas, y hoy no rige;
+  - una colaboradora de Trujillo ve 0 filas del stock de Lima.
+- PDF real de 4 etiquetas de campaña. Dos defectos encontrados y corregidos: un precio de 4 cifras con su % se salía del
+  borde, y un motivo largo se cortaba en una línea. Los 4 QR, decodificados exactos a 300 dpi.
 
 ## La crítica que dio forma al diseño
 
@@ -106,9 +146,7 @@ pistola Zebra el 2026-09-10, ADR-0025), pero **se perdió en el reemplazo V1→V
 
 ## Lo que sigue
 
-- **Paso 2:** reimprimir con el precio de campaña, con el bloque «−20 %», el motivo y «Válido hasta». Imprimir a mano las
-  etiquetas de un producto, para la ropa que ya está en tienda y para la que llega del Taller a una tienda que no imprimió.
-  Al terminar una campaña, listar las prendas que hay que volver a etiquetar.
+- **Paso 2 — construido** (sección de arriba).
 - **Paso 3 — construido (ADR-0182):** el precio de campaña baja al .90 en la caja y la base lo verifica. Falta pegar su
   migración en producción con OK de Felipe, el mismo día que se publique la web.
 - Ajustar 62 × 92 mm a la medida de la cartulina.

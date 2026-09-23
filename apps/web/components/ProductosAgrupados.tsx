@@ -15,6 +15,7 @@ import { alertaDeStock, textoDeStock, EXPLICACION_STOCK_TOTAL, MENSAJE_SIN_RESUL
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 
 /** Rango de costo del modelo a partir de sus variantes — no hay `costo` a nivel
  *  de producto en el esquema (vive por variante, `variantes.costo`), así que se
@@ -385,6 +386,16 @@ function MenuFila({
               onClick={() => setAbierto(false)}
             >
               Ver historial
+            </Link>
+          </li>
+          <li role="none">
+            <Link
+              role="menuitem"
+              href={urlEtiquetasDePrecio({ producto: productoId })}
+              className="block px-3 py-2 text-sm text-tinta/75 hover:bg-rojo/10"
+              onClick={() => setAbierto(false)}
+            >
+              Imprimir etiquetas de precio
             </Link>
           </li>
           <li role="none">

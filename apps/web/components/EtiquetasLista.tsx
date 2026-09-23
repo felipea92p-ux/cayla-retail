@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Link from "next/link";
 import { Search, X } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { avisar } from "@/components/ui/Avisos";
@@ -15,6 +16,7 @@ import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import { objecionVigencia, parsearDescuento, parsearFecha, prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
 import { hoyLima, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
 import { normalizarNombre } from "@/lib/patron-visual";
+import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 
 /**
  * Vocabulario cerrado de etiquetas de catálogo (folksonomy: "Oferta",
@@ -167,6 +169,16 @@ function TarjetaEtiqueta({
           </p>
         )}
         {e.descuentoPct !== null && !DESCUENTO_YA_SE_APLICA && <p className="text-[10.5px] text-tinta/50">Aún no se aplica en Vender</p>}
+        {/* ADR-0180 paso 2: con la campaña vigente se imprimen sus etiquetas (precio rebajado); al terminar, las mismas
+            prendas vuelven al precio normal. Antes de empezar no hay nada que imprimir: la etiqueta diría el precio de hoy. */}
+        {e.descuentoPct !== null && e.estado === "aprobado" && !apagada && vigencia?.estado !== "proxima" && (
+          <Link
+            href={urlEtiquetasDePrecio({ campana: e.id })}
+            className="label-cayla mt-0.5 self-start text-[10px] text-tinta/75 underline underline-offset-4 transition-colors hover:text-tinta"
+          >
+            {vigencia?.estado === "terminada" ? "Volver al precio normal" : "Imprimir etiquetas de precio"}
+          </Link>
+        )}
       </div>
       {children}
     </div>

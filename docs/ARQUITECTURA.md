@@ -311,14 +311,18 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   → RPC `iniciar_traslado`; acepta prellenado por URL desde Resumen, validado en la
   página) siguen vivas como rutas, sin pestaña propia: se llega por
   «+ Nuevo traslado» / «+ Nuevo».
-- `/etiquetas-de-precio?lotes=…|?produccion=…` (ADR-0180; sin módulo propio, la salida de tres pantallas) →
-  `lib/etiquetas-precio.ts` (lee las `movimientos` de entrada del ingreso por `lote_id` o `produccion_id`, con `leerTodas`, y
-  las variantes hermanas; SIN RPC ni tabla nueva) + `lib/etiqueta-precio-reglas.ts` (puro: sumar por prenda, tallas del
-  modelo, respaldo de SKU, cantidades, URL) → `ImprimirEtiquetasPrecio.tsx` (cantidades, vista previa, `window.print()`; la
+- `/etiquetas-de-precio?lotes=…|?produccion=…|?campana=…|?producto=…` (ADR-0180; sin módulo propio, la salida de otras
+  pantallas) → `lib/etiquetas-precio.ts` (`getEtiquetasDePrecio`: las `movimientos` de entrada del ingreso por `lote_id` o
+  `produccion_id`, o el `stock` de la tienda de la sesión para una campaña o un producto; el alcance de una campaña y la
+  campaña de HOY de cada prenda con `fn_campanas_por_variante`; todo con `leerTodas`; SIN RPC ni tabla nueva) +
+  `lib/etiqueta-precio-reglas.ts` (puro: sumar por prenda, tallas del modelo, respaldo de SKU, mejor campaña, fecha de
+  alcance, textos de la pantalla, cantidades, URL) → `ImprimirEtiquetasPrecio.tsx` (cantidades, vista previa, `window.print()`; la
   hoja `#etiquetas-precio-print` va por portal a `<body>`) → `EtiquetaPrecio.tsx` (el diseño, en mm: `.etiqueta-precio` y
   `@page etiqueta-precio` 62 × 92 mm en `globals.css`; QR con `CodigoQR` a 25 mm). Se llega desde `EnvioRecibido.tsx`
   (Recibir: los `lotes` que devuelve `recibir_envio`), `RecepcionFormV2.tsx` (Ingreso sin comprobante: el id que devuelve
-  `recibir_lote`) y la sección «Siguiente paso» de `OrdenPanel.tsx` (orden del Taller cerrada, no muestra).
+  `recibir_lote`), la sección «Siguiente paso» de `OrdenPanel.tsx` (orden del Taller cerrada, no muestra), la tarjeta de
+  cada campaña en `EtiquetasLista.tsx` («Imprimir etiquetas de precio» / «Volver al precio normal») y Productos
+  (`ProductosAgrupados.tsx`, menú «···»; `ProductosGrilla.tsx`, la ficha).
 
 **Productos (catálogo V2, integración final 2026-09-15)**
 - `/productos` → `lib/catalogo-v2.ts` (`listarProductos`/`getResumenProductos`,

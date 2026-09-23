@@ -2,8 +2,12 @@ import { describe, it, expect } from "vitest";
 import {
   armarEtiquetas,
   cantidadDeTexto,
+  encabezadoDeEtiquetas,
   expandir,
+  fechaDeAlcance,
   fechaEtiqueta,
+  fechaVigencia,
+  mejorCampanaPorVariante,
   idsDeParam,
   precioEtiqueta,
   sumarEntradas,
@@ -154,5 +158,92 @@ describe("urlEtiquetasDePrecio", () => {
     expect(url).toBe(`/etiquetas-de-precio?lotes=${A},${B}`);
     expect(idsDeParam(new URL(url, "http://x").searchParams.get("lotes") ?? "")).toEqual([A, B]);
     expect(urlEtiquetasDePrecio({ produccion: A })).toBe(`/etiquetas-de-precio?produccion=${A}`);
+  });
+});
+
+describe("mejorCampanaPorVariante — la misma que elige la caja", () => {
+  const fila = (variante_id: string, etiqueta_id: string, etiqueta_nombre: string, descuento_pct: number) => ({ variante_id, etiqueta_id, etiqueta_nombre, descuento_pct });
+  it("de varias campañas sobre una prenda, la de mayor % (un solo descuento, el mayor)", () => {
+    const m = mejorCampanaPorVariante(
+      [fila("a", "e1", "Aniversario CAYLA", 20), fila("a", "e2", "Liquidación", 40), fila("b", "e1", "Aniversario CAYLA", 20)],
+      new Map([["e1", "2026-09-30"], ["e2", null]]),
+    );
+    expect(m.get("a")).toEqual({ etiquetaId: "e2", nombre: "Liquidación", pct: 40, hasta: null });
+    expect(m.get("b")).toEqual({ etiquetaId: "e1", nombre: "Aniversario CAYLA", pct: 20, hasta: "2026-09-30" });
+  });
+  it("el % llega como texto desde la base (numeric) y se lee como número", () => {
+    const m = mejorCampanaPorVariante([{ variante_id: "a", etiqueta_id: "e1", etiqueta_nombre: "X", descuento_pct: "15.00" as unknown as number }], new Map());
+    expect(m.get("a")?.pct).toBe(15);
+  });
+});
+
+describe("armarEtiquetas con campaña (ADR-0180 paso 2)", () => {
+  const campana = { etiquetaId: "e1", nombre: "Aniversario CAYLA", pct: 20, hasta: "2026-09-30" };
+  it("la etiqueta lleva el descuento de la caja: 79.90 con 20 % se cobra 63.90 (bajado al .90)", () => {
+    const { etiquetas } = armarEtiquetas(new Map([["s", 1]]), [blusa("s", "S", { precio: 79.9 })], [], new Map([["s", campana]]));
+    expect(etiquetas[0].campana).toEqual({ nombre: "Aniversario CAYLA", pct: 20, hasta: "2026-09-30", descuento: 16 });
+  });
+  it("sin campaña vigente la etiqueta sale con el precio de lista", () => {
+    const { etiquetas } = armarEtiquetas(new Map([["s", 1]]), [blusa("s", "S")], [], new Map());
+    expect(etiquetas[0].campana).toBeNull();
+  });
+});
+
+describe("fechaDeAlcance — qué día mirar para saber qué prendas alcanza una campaña", () => {
+  const HOY = "2026-09-23";
+  it("vigente o sin fechas: hoy", () => {
+    expect(fechaDeAlcance("2026-09-01", "2026-09-30", HOY)).toBe(HOY);
+    expect(fechaDeAlcance(null, null, HOY)).toBe(HOY);
+  });
+  it("terminada: su último día (para volver al precio normal lo que alcanzó)", () => {
+    expect(fechaDeAlcance("2026-08-12", "2026-08-26", HOY)).toBe("2026-08-26");
+  });
+  it("próxima: su primer día", () => {
+    expect(fechaDeAlcance("2026-10-01", "2026-10-10", HOY)).toBe("2026-10-01");
+  });
+});
+
+describe("fechaVigencia", () => {
+  it("«válido hasta el 30.09»", () => {
+    expect(fechaVigencia("2026-09-30")).toBe("30.09");
+  });
+});
+
+describe("urlEtiquetasDePrecio — desde una campaña o un producto", () => {
+  const A = "7f1c1e2a-3b4c-4d5e-8f60-718293a4b5c6";
+  it("arma el enlace de cada origen", () => {
+    expect(urlEtiquetasDePrecio({ campana: A })).toBe(`/etiquetas-de-precio?campana=${A}`);
+    expect(urlEtiquetasDePrecio({ producto: A })).toBe(`/etiquetas-de-precio?producto=${A}`);
+  });
+});
+
+describe("encabezadoDeEtiquetas — lo que dice la pantalla según el origen", () => {
+  const n = { unidades: 24, modelos: 3 };
+  it("un ingreso cuenta lo que entró", () => {
+    const e = encabezadoDeEtiquetas({ tipo: "lotes" }, n, "Tienda Lima");
+    expect(e.bajada).toContain("Entraron 24 prendas de 3 modelos");
+    expect(e.columnaCantidad).toBe("Entraron");
+  });
+  it("una campaña vigente dice su % y que sale con el precio rebajado", () => {
+    const e = encabezadoDeEtiquetas({ tipo: "campana", campana: { nombre: "Aniversario CAYLA", pct: 20, vigencia: { estado: "vigente", hasta: "2026-09-30" } } }, n, "Tienda Lima");
+    expect(e.sobretitulo).toBe("Campaña · Aniversario CAYLA");
+    expect(e.bajada).toContain("En Tienda Lima hay 24 prendas de 3 modelos con la campaña (−20 %)");
+  });
+  it("una campaña terminada no es un error: es volver al precio normal", () => {
+    const e = encabezadoDeEtiquetas({ tipo: "campana", campana: { nombre: "Día del Perro", pct: 15, vigencia: { estado: "terminada", hasta: "2026-08-26" } } }, n, "Tienda Lima");
+    expect(e.titulo).toBe("Volver al precio normal");
+    expect(e.bajada).toContain("terminó el 26 ago");
+  });
+  it("una campaña que no empieza no imprime: la etiqueta diría el precio de hoy", () => {
+    const e = encabezadoDeEtiquetas({ tipo: "campana", campana: { nombre: "Navidad", pct: 30, vigencia: { estado: "proxima", desde: "2026-12-01", enDias: 69 } } }, n, "Tienda Lima");
+    expect(e.vacio).toContain("Empieza el 1 dic");
+  });
+  it("una etiqueta sin descuento no es una campaña", () => {
+    expect(encabezadoDeEtiquetas({ tipo: "campana", campana: null }, n, "Tienda Lima").vacio).toContain("no tiene descuento");
+  });
+  it("un producto habla de lo que hay en la tienda", () => {
+    const e = encabezadoDeEtiquetas({ tipo: "producto", nombre: "Blusa Emma" }, { unidades: 1, modelos: 1 }, "Tienda Trujillo");
+    expect(e.sobretitulo).toBe("Productos · Blusa Emma");
+    expect(e.bajada).toContain("En Tienda Trujillo hay 1 prenda de este modelo");
   });
 });

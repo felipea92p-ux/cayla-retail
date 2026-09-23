@@ -9,6 +9,7 @@ import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import type { ProductoListado, VarianteCatalogo } from "@/lib/catalogo-v2";
 import { alertaDeStock, textoDeStock, EXPLICACION_STOCK_TOTAL, MENSAJE_SIN_RESULTADOS } from "@/lib/productos-stock";
+import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 
 /**
  * Catálogo en grilla (ADR-0077) — alternativa visual a `ProductosAgrupados`,
@@ -349,6 +350,9 @@ function VistaRapidaModal({
           <div className="mt-auto flex gap-2 pt-2">
             <Link href={`/productos/${producto.productoId}/editar`} className={`${botonCancelar} text-center`}>
               Editar
+            </Link>
+            <Link href={urlEtiquetasDePrecio({ producto: producto.productoId })} className={`${botonCancelar} text-center`}>
+              Etiquetas
             </Link>
             {/* D-13: ajustar stock fuera de una venta es del líder o de la terminal administrativa (candado real en `registrar_movimiento`). */}
             {puedeAjustar && (

@@ -6,33 +6,33 @@ import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { Encabezado, Tabla, TABLA, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { EtiquetaPrecio } from "@/components/EtiquetaPrecio";
 import { soles } from "@/lib/compras-reglas";
-import { cantidadDeTexto, expandir, MAX_POR_PRENDA, type EtiquetaPrecio as DatosEtiqueta } from "@/lib/etiqueta-precio-reglas";
+import { cantidadDeTexto, expandir, MAX_POR_PRENDA, type Encabezado as TextosPantalla, type EtiquetaPrecio as DatosEtiqueta } from "@/lib/etiqueta-precio-reglas";
 
 // Color y talla van bajo el nombre (no en columnas propias): con cinco columnas fijas, en una pantalla angosta la de la
 // prenda se quedaba en 0 px y el nombre desaparecía.
-const PLANTILLA = "sm:grid-cols-[minmax(0,1fr)_5.5rem_4.5rem_5.5rem]";
-const COLUMNAS: Columna[] = [
+const PLANTILLA = "sm:grid-cols-[minmax(0,1fr)_6.5rem_4.5rem_5.5rem]";
+const columnas = (cantidad: string): Columna[] => [
   { titulo: "Prenda" },
-  { titulo: "Precio", alinear: "der" },
-  { titulo: "Entraron", alinear: "der" },
-  { titulo: "Imprimir", alinear: "der", ayuda: "Cuántas etiquetas de esta prenda. Si alguna ya venía etiquetada, baja el número." },
+  { titulo: "Precio", alinear: "der", ayuda: "Lo que dice la etiqueta: lo que la caja cobra hoy (con la campaña, si hay una)." },
+  { titulo: cantidad, alinear: "der" },
+  { titulo: "Imprimir", alinear: "der", ayuda: "Cuántas etiquetas de esta prenda. Si alguna ya tiene la suya, baja el número." },
 ];
 
 const sinSuscripcion = () => () => {};
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
 /**
- * Etiquetas de precio de un ingreso (ADR-0180): una por prenda que entró, con la cantidad editable, la vista previa
- * y el botón que las manda a la Brother. La hoja de impresión (`#etiquetas-precio-print`) va pegada a <body> con un
+ * Etiquetas de precio (ADR-0180): una fila por prenda con la cantidad editable, la vista previa y el botón que las
+ * manda a la Brother. Los textos (de dónde vienen, qué decir si no hay nada) llegan del servidor (`encabezadoDeEtiquetas`). La hoja de impresión (`#etiquetas-precio-print`) va pegada a <body> con un
  * portal —como la boleta A4—: al imprimir, `globals.css` oculta todo lo demás y cada etiqueta es una página de 62 × 92 mm.
  */
 export function ImprimirEtiquetasPrecio({
-  sobretitulo,
+  encabezado,
   etiquetas,
   sinCodigo,
   impreso,
 }: {
-  sobretitulo: string;
+  encabezado: TextosPantalla;
   etiquetas: DatosEtiqueta[];
   sinCodigo: string[];
   impreso: string;
@@ -44,8 +44,6 @@ export function ImprimirEtiquetasPrecio({
 
   const numeros = useMemo(() => Object.fromEntries(Object.entries(cantidades).map(([id, t]) => [id, cantidadDeTexto(t)])), [cantidades]);
   const hoja = useMemo(() => expandir(etiquetas, numeros), [etiquetas, numeros]);
-  const entraron = etiquetas.reduce((a, e) => a + e.cantidad, 0);
-  const modelos = new Set(etiquetas.map((e) => e.prenda)).size;
   const total = hoja.length;
   const visibles = etiquetas.filter((e) => (numeros[e.varianteId] ?? 0) > 0);
 
@@ -58,7 +56,7 @@ export function ImprimirEtiquetasPrecio({
   if (etiquetas.length === 0) {
     return (
       <div className="space-y-6">
-        <CabeceraPantalla sobretitulo={sobretitulo} titulo="Etiquetas de precio" bajada="Este ingreso no dejó prendas para etiquetar en tu sede." />
+        <CabeceraPantalla sobretitulo={encabezado.sobretitulo} titulo={encabezado.titulo} bajada={encabezado.vacio} />
         {sinCodigo.length > 0 && <AvisoSinCodigo prendas={sinCodigo} />}
       </div>
     );
@@ -66,17 +64,12 @@ export function ImprimirEtiquetasPrecio({
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo={sobretitulo}
-        titulo="Etiquetas de precio"
-        bajada={`Entraron ${plural(entraron, "prenda", "prendas")} de ${plural(modelos, "modelo", "modelos")}. Sale una etiqueta por prenda; si alguna ya venía etiquetada, baja su número.`}
-        acciones={imprimir}
-      />
+      <CabeceraPantalla sobretitulo={encabezado.sobretitulo} titulo={encabezado.titulo} bajada={encabezado.bajada} acciones={imprimir} />
 
       {sinCodigo.length > 0 && <AvisoSinCodigo prendas={sinCodigo} />}
 
       <Tabla>
-        <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
+        <Encabezado columnas={columnas(encabezado.columnaCantidad)} plantilla={PLANTILLA} />
         {etiquetas.map((e) => (
           <div key={e.varianteId} className={fila(PLANTILLA)} role="row">
             <span className={celda()}>
@@ -86,7 +79,18 @@ export function ImprimirEtiquetasPrecio({
                 <span className="ml-2 font-mono">{e.codigo}</span>
               </span>
             </span>
-            <span className={celda("der")}>{soles(e.precio)}</span>
+            <span className={celda("der")}>
+              {e.campana ? (
+                <>
+                  {soles(e.precio - e.campana.descuento)}
+                  <span className="block text-xs text-taupe">
+                    <s>{soles(e.precio)}</s> −{e.campana.pct} %
+                  </span>
+                </>
+              ) : (
+                soles(e.precio)
+              )}
+            </span>
             <span className={celda("der", "text-tinta/70")}>{e.cantidad}</span>
             <span className={celda("der")}>
               <input
@@ -125,8 +129,9 @@ export function ImprimirEtiquetasPrecio({
 
       <p className="nota-cayla">
         <b>La primera vez en esta computadora:</b> en la ventana de impresión elige la <b>Brother QL-1110NWB</b>, papel <b>62 × 92 mm</b>,
-        márgenes «Ninguno», escala 100 % y sin encabezados ni pies de página. Cada etiqueta sale en su propio corte del rollo. La etiqueta lleva el
-        precio de lista: si la prenda está en campaña, la caja cobra el precio rebajado igual.
+        márgenes «Ninguno», escala 100 % y sin encabezados ni pies de página. Cada etiqueta sale en su propio corte del rollo. La etiqueta dice lo
+        que la caja cobra hoy: con una campaña vigente sale el precio rebajado y hasta cuándo vale; cuando termine, reimprímelas desde la campaña
+        con «Volver al precio normal».
       </p>
 
       {montado &&

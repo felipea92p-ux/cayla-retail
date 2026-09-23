@@ -537,6 +537,67 @@ body {
     margin-right: 0.8mm;
     font-size: 3.8mm;
   }
+  /* Con campaña (paso 2): antes tachado → ahora en negrita con su «−20 %» en bloque negro → el porqué. Es lo que más se
+     ve de la etiqueta a propósito: la crítica del diseño D lo pidió (ADR-0180). */
+  .etq-antes {
+    margin-top: 2.4mm;
+    font-size: 3.2mm;
+    letter-spacing: 0.06em;
+  }
+  .etq-antes s {
+    text-decoration-thickness: 0.3mm;
+  }
+  /* Si el precio y su % no caben en una línea (S/ 1,136.90 con −12.5 %), el % baja a la siguiente en vez de salirse
+     del borde (visto en el PDF de prueba, 2026-09-23). */
+  .etq-ahora {
+    margin-top: 1.2mm;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1mm 2mm;
+  }
+  .etq-ahora .etq-precio {
+    margin-top: 0;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .etq-precio.etq-precio-largo {
+    font-size: 6.4mm;
+  }
+  .etq-pct {
+    padding: 1mm 2.2mm;
+    background: #000;
+    color: #fff;
+    font-size: 5.4mm;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .etq-motivo {
+    margin-top: 2.4mm;
+    padding-top: 1.4mm;
+    border-top: 0.25mm solid #000;
+  }
+  /* El porqué es lo que Felipe pidió que se vea: hasta dos líneas antes de cortar. */
+  .etq-motivo b {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 3mm;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1.25;
+    text-transform: uppercase;
+  }
+  .etq-motivo span {
+    display: block;
+    margin-top: 0.5mm;
+    font-size: 2.3mm;
+    letter-spacing: 0.04em;
+  }
   .etq-pie {
     margin-top: auto;
     display: flex;
