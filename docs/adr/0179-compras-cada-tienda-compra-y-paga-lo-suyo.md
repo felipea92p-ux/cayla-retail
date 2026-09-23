@@ -1,12 +1,51 @@
-# ADR-0151 — Compras: cada tienda compra, ve y paga lo suyo (compradores por tienda)
+# ADR-0179 — Compras: cada tienda compra, ve y paga lo suyo (compradores por tienda)
 
-**Fecha:** 2026-09-21
-**Estado:** **Aceptado el 2026-09-21** (seis rondas). Se construye por fases: F1, F2, F3 y F4 hechas en local. Nada de esto está en producción todavía.
-**Decide:** Felipe, el 2026-09-21 (respuestas en «Lo que dijo el negocio»). Arquitectura: este documento.
-**Numeración:** se escribió como 0145, pero `origin/main` ya tenía un 0145 (colaboradores). Se renumeró a 0150 y ese número también lo tomó `docs/adr/0150-roles-y-permisos-a-medida.md` en `main`; queda **0151**. Los commits `7b232583`, `db93cdab` y `0d908ea2` (rama `claude/aviso-cambio-de-sede`) lo nombran 0145. Renumerar de nuevo al subir si otro toma el 0150 (ver ADR-0139, «Historia del número»).
-**Refina** ADR-0075 (lectura por sede), ADR-0126 (el dinero de Compras es solo del líder) y ADR-0139 (un comprobante se reparte entre tiendas).
+**Fecha:** 2026-09-21 (decisión) · 2026-09-23 (reconciliado con ADR-0161 y cerrado F3-b)
+**Estado:** **Aceptado.** Construido y probado en local (F0–F5 + F3-b). **No está en producción:** faltan pegar `20260923180000` … `20260923180400` en orden.
+**Decide:** Felipe, el 2026-09-21 (respuestas en «Lo que dijo el negocio») y el 2026-09-23 («Reconciliación con los roles por módulo», abajo).
+**Número:** nació como 0145, pasó a 0150 y a 0151; los tres los tomaron otros ADR en `main` (colaboradores, roles a medida, alertas de productos). Queda **0179** (2026-09-23). Commits y comentarios anteriores al 2026-09-23 lo llaman ADR-0151 o 0145.
+**Refina** ADR-0075 (lectura por sede), ADR-0126 (el dinero de Compras), ADR-0139 (reparto entre tiendas) y **ADR-0161** (roles por módulo: aquí se le suma la TIENDA).
 **Cambia** dos reglas de `docs/datos/15-COMO-OPERA-CAYLA.md`: R-10 («una persona encargada de Compras») y la lectura de R-12 («los proveedores sirven a todas las tiendas»
 sigue en pie para el catálogo, pero la deuda deja de ser una sola).
+
+## Estado final (2026-09-23) — esto manda sobre las secciones de abajo
+
+Las secciones de abajo se escribieron el 2026-09-21, cuando el dinero de Compras era solo del líder y «comprador» era una fila en
+`compradores_de_tienda`. El 2026-09-22 entró ADR-0161 (en producción): **quién** usa Compras lo decide el ROL, módulo por módulo, y
+`20260923130000` escribió «Compras es de la empresa»: con el módulo se veía **todo, de todas las tiendas**. El 2026-09-23 Felipe decidió:
+**«cada tienda maneja sus entradas y pagos; si otra tienda registró una factura para dos, cada una registra su pago y recibe lo que le
+corresponde»** → con un módulo de Compras se ve y se paga **solo lo de su tienda**; el líder, todo.
+
+**Cómo se componen (dos ejes, cada uno en un solo lugar):**
+- **QUIÉN** = el rol (`fn_capacidad_por_modulos`): Facturas de compra registra/anula/adjunta/reasigna; Por pagar paga; Notas de crédito
+  registra notas (ADR-0161 P1, sin cambios). Sin módulo no se ve nada.
+- **DÓNDE** = `fn_compras_ubicaciones()`: el líder, todas; con módulo, **su tienda** (`fn_ubicacion_actual_persona`, la de todo el ERP;
+  para una terminal, la suya) **más** las que el líder le sume en `compradores_de_tienda` (la persona de Compras multi-tienda, R-10). La
+  tabla nunca da acceso sola.
+- **Ver una factura entera** = ser líder o que la **tienda gestora** (`compras.ubicacion_gestion_id`, donde queda el papel) sea tuya. La
+  gestora siempre tiene parte (candado de esquema), así que «toda la factura va a mis tiendas» queda incluido.
+- **F3-b — la parte de una tienda que NO gestiona:** no se le abre la tabla (una política de fila no esconde columnas: vería `total`,
+  `saldo` y los pagos de la otra tienda por la API). Lee **su** parte con `fn_mis_partes_de_compras()` / `fn_mi_parte_de_compra()`: su
+  monto, su saldo, sus líneas y sus pagos. Pantallas: bloque «Tu parte en comprobantes de otras tiendas» (con «Parte nueva»: registrada
+  hace ≤ 7 días y sin pagos de su tienda) en Comprobantes y en Por pagar (con Pagar), y `/compras/parte/[id]`.
+- **Pagar:** quien no es líder paga siempre desde una de sus tiendas (`p_ubicacion_id`), solo si esa tienda tiene parte y hasta lo que
+  le queda (`fn_saldo_de_tienda` = su parte − lo que pagó ella, sin pasar del saldo real de la factura: si el líder saldó todo sin tienda,
+  nadie ve deuda fantasma). Candado de esquema diferido: lo pagado por una tienda nunca supera su parte.
+
+**Migraciones (en este orden; ninguna en producción):** `20260923180000_compras_por_tienda_quien_y_donde`, `…180100_compra_parte_por_tienda`,
+`…180200_compras_tienda_gestora_y_lectura`, `…180300_compras_pagar_por_tienda`, `…180400_compras_mi_parte`. Reemplazan a las cinco
+`20260922*` de la rama `adr-0145-compras-permisos`, que nunca se pegaron, chocaban en número con cinco migraciones de `main` y parchaban
+textos que ADR-0161 ya había cambiado. Todas parchan la definición VIVA (ancladas en producción al 2026-09-23), son re-pegables y
+abortan sin dejar nada a medias si la base cambió.
+
+**Verificado:** `pnpm pruebas:compras-por-tienda` 34/34 (nueva), `compras-parte-por-tienda` 20/20, `roles` 63/63, `dinero-compras` 30/30,
+`compras-reparto` 57/57, `compras-indicadores` 144/144, `pagos-compras-endurecimiento` 64/64, `candado-dinero-produccion` 20/20; web:
+typecheck, 24.225 tests y `next build`. **Hoy no cambia nada para nadie en producción:** ningún rol fuera del líder tiene Facturas de
+compra, Por pagar ni Notas de crédito; deja la puerta bien puesta antes de repartir esos módulos.
+
+**Queda fuera (siguiente):** F6 notas de crédito por tienda (hoy la nota es de la factura y la registra la gestora); F7 resultado por
+tienda; `proveedor_creditos` (saldo a favor) sigue siendo de la empresa; `registrar_pago_compra` (envoltorio de un medio, sin tienda)
+queda solo para el líder; pantalla para que el líder sume tiendas extra a una persona (hoy por RPC).
 
 ## Lo que dijo el negocio (2026-09-21)
 

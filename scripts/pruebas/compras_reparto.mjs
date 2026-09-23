@@ -782,7 +782,7 @@ rollback;
 //   c1 = 24 u. a S/ 50 repartidas 12 Trujillo + 12 Taller → S/ 1 416.00 con IGV
 //   c2 = 10 u. a S/ 50, todo a Trujillo (proveedor 2)     → S/   590.00
 //   c3 =  5 u. a S/ 50, todo al Taller                    → S/   295.00
-// `destino` es la tienda GESTORA desde ADR-0151 (F3): tiene que tener parte en el reparto de la línea. c1 y c3
+// `destino` es la tienda GESTORA desde ADR-0179 (F3): tiene que tener parte en el reparto de la línea. c1 y c3
 // se quedan con el valor por defecto ("taller", que sí tiene parte en ambas); c2 reparte 100% a Trujillo.
 const TRES_DESTINOS = `${compra("c1", { lineas: [{ cant: 24, dest: { trujillo: 12, taller: 12 } }] })}${compra("c2", { prov: "prov2", lineas: [{ cant: 10, dest: { trujillo: 10 } }], destino: "trujillo" })}${compra("c3", { lineas: [{ cant: 5, dest: { taller: 5 } }] })}`;
 const SOLO_MIOS = `id in (:'c1', :'c2', :'c3')`;

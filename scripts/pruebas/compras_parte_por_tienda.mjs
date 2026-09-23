@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas de «partir el dinero de una factura por tienda» (ADR-0151, F2) contra el Postgres local — CAYLA V2.
+ * Pruebas de «partir el dinero de una factura por tienda» (ADR-0179, F2) contra el Postgres local — CAYLA V2.
  *
  * QUÉ PRUEBA. Que la vista `compra_parte_por_tienda` reparta el dinero de una factura entre las tiendas a las que va su
  * mercadería y que la suma de las partes sea EXACTAMENTE lo facturado, aunque los números sean feos:
@@ -33,7 +33,7 @@ const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualq
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — fija a Tienda Trujillo
 
 const leer = (f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8");
-// La vista ya está aplicada (20260923180100, junto con las demás de ADR-0151); se vuelve a cargar dentro de cada caso para
+// La vista ya está aplicada (20260923180100, junto con las demás de ADR-0179); se vuelve a cargar dentro de cada caso para
 // probar SU texto aunque la base vaya atrás, y porque es re-pegable.
 const M3 = leer("20260923180100_compra_parte_por_tienda.sql");
 const PRELUDIO = M3;
@@ -297,7 +297,7 @@ exito(
 // ===========================================================================
 
 const ESCENA = `${BASE}${compra("c3", { lineas: [{ cant: 24, costo: 50, dest: { lima: 24 } }] })}${compra("c4", { lineas: [{ cant: 24, costo: 50, dest: { lima: 12, trujillo: 12 } }] })}`;
-// ADR-0161 + ADR-0151: QUIÉN = un módulo de Compras en el rol (aquí, «integrante», el de Micaela); DÓNDE = su tienda
+// ADR-0161 + ADR-0179: QUIÉN = un módulo de Compras en el rol (aquí, «integrante», el de Micaela); DÓNDE = su tienda
 // (Trujillo) más las extra de compradores_de_tienda. Una factura se ve entera si la gestiona una tienda suya (la gestora es
 // el destino de la primera línea en \`compra()\`: Lima, para c3 y c4).
 const CON_MODULO = `insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'facturas_compra') on conflict do nothing;\n`;

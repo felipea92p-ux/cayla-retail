@@ -730,7 +730,7 @@ exito(
   comoPersona(
     FELIPE,
     `${BASE}${FOTO_DEUDA}${FOTO_SALIDAS}${fotoPP("b_pp")}${FOTO_RC}
--- ubicacion_gestion_id: ADR-0151 (F3, migración 20260922160000) la exige en toda factura vigente.
+-- ubicacion_gestion_id: ADR-0179 (F3, migración 20260923180200) la exige en toda factura vigente.
 insert into retail.compras (proveedor_id, tipo, serie, numero, fecha_emision, condicion, fecha_vencimiento, subtotal, igv, total, ubicacion_gestion_id)
   values (:'prov1', 'factura', 'TST', 'CI' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 10), retail.fn_hoy_lima(), 'contado', null, 100.00, 18.00, 118.00, :'taller');
 select

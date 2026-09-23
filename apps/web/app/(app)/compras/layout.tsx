@@ -33,7 +33,7 @@ export default async function ComprasLayout({ children, modal }: { children: Rea
   // de compra, Por pagar o Notas de crédito: `verDineroCompras`); cada pantalla exige además SU módulo (`exigirModulo`).
   // ADR-0161 P3 (20260923140000): también quien tiene Proveedores, aunque no vea los montos: el directorio y la ficha viven
   // aquí. Las pantallas de dinero lo siguen pidiendo cada una (su módulo, y el detalle de un comprobante `verDineroCompras`).
-  // ADR-0151: el rol dice QUIÉN entra; de QUÉ TIENDAS ve cada fila lo filtra la base (`fn_compras_ubicaciones`), no este layout.
+  // ADR-0179: el rol dice QUIÉN entra; de QUÉ TIENDAS ve cada fila lo filtra la base (`fn_compras_ubicaciones`), no este layout.
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "verDineroCompras") && !puede(persona, "editarCuentasProveedor")) redirect("/");
 

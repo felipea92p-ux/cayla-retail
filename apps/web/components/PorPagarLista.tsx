@@ -94,7 +94,7 @@ export function PorPagarLista({
   seleccionInicial?: string[];
   /** Posición de la lista en la entrada escalonada de la pantalla. */
   indice?: number;
-  /** ADR-0151 (F4-F5): solo para un comprador de tienda — sus tiendas, para pagar con la que corresponda. */
+  /** ADR-0179 (F4-F5): solo para un comprador de tienda — sus tiendas, para pagar con la que corresponda. */
   misTiendas?: { id: string; nombre: string }[];
 }) {
   const router = useRouter();
@@ -572,7 +572,7 @@ function FilaPorPagar({
   /** Entrada escalonada de la pantalla; `null` cuando la fila aparece después (un filtro que la muestra). */
   entrada: { indice: number } | null;
   posicion: number;
-  /** ADR-0151 (F4-F5): solo para un comprador de tienda — sus tiendas, para pagar con la que corresponda. */
+  /** ADR-0179 (F4-F5): solo para un comprador de tienda — sus tiendas, para pagar con la que corresponda. */
   misTiendas?: { id: string; nombre: string }[];
 }) {
   // Cómo entra esta fila se decide UNA vez, al montarse: con la pantalla (escalonada) o, si aparece después (un filtro que la muestra), con

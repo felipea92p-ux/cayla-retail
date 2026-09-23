@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260923180000_compras_por_tienda_quien_y_donde.sql — CAYLA V2 · ADR-0151 (F0 reescrita sobre ADR-0161)
+-- 20260923180000_compras_por_tienda_quien_y_donde.sql — CAYLA V2 · ADR-0179 (F0 reescrita sobre ADR-0161)
 --
 -- EL PROBLEMA PRIMERO. Desde ADR-0161 (20260923130000/140000, en producción) QUIÉN entra a Compras lo dice el ROL: quien ve
 -- Facturas de compra, Por pagar o Notas de crédito. Pero nada dice DE QUÉ TIENDAS: una cuenta de Trujillo con Por pagar
@@ -42,7 +42,7 @@ create table if not exists retail.compradores_de_tienda (
 );
 
 comment on table retail.compradores_de_tienda is
-  'ADR-0151. Tiendas EXTRA cuyas Compras ve y paga una persona, además de la suya (la persona de Compras que atiende varias, R-10). No da acceso por sí sola: hace falta que su rol vea un módulo de Compras (ADR-0161). Se escribe solo por agregar_/quitar_comprador_de_tienda.';
+  'ADR-0179. Tiendas EXTRA cuyas Compras ve y paga una persona, además de la suya (la persona de Compras que atiende varias, R-10). No da acceso por sí sola: hace falta que su rol vea un módulo de Compras (ADR-0161). Se escribe solo por agregar_/quitar_comprador_de_tienda.';
 comment on column retail.compradores_de_tienda.persona_id is 'La persona. Solo cuenta si es colaboradora activa y su rol ve un módulo de Compras.';
 comment on column retail.compradores_de_tienda.ubicacion_id is 'La tienda extra.';
 comment on column retail.compradores_de_tienda.agregado_por is 'El líder que la sumó.';
@@ -88,7 +88,7 @@ as $$
 $$;
 
 comment on function retail.fn_compras_ubicaciones() is
-  'ADR-0151. Tiendas cuyas Compras ve, registra y paga quien consulta: todas si es líder; si su rol ve Facturas de compra, Por pagar o Notas de crédito, SU tienda (fn_ubicacion_actual_persona) más las extra de compradores_de_tienda; si no, ninguna.';
+  'ADR-0179. Tiendas cuyas Compras ve, registra y paga quien consulta: todas si es líder; si su rol ve Facturas de compra, Por pagar o Notas de crédito, SU tienda (fn_ubicacion_actual_persona) más las extra de compradores_de_tienda; si no, ninguna.';
 
 create or replace function retail.fn_puede_comprar_en(p_ubicacion_id uuid)
 returns boolean
@@ -99,7 +99,7 @@ set search_path = retail, public, extensions
 as $$ select coalesce(p_ubicacion_id = any(retail.fn_compras_ubicaciones()), false); $$;
 
 comment on function retail.fn_puede_comprar_en(uuid) is
-  'ADR-0151. ¿Gestiona quien consulta las Compras de esta tienda? fn_compras_ubicaciones() para una sola. NULL → false.';
+  'ADR-0179. ¿Gestiona quien consulta las Compras de esta tienda? fn_compras_ubicaciones() para una sola. NULL → false.';
 
 -- ==================== 3. sumar y quitar tiendas extra (solo el líder) ====================
 create or replace function retail.agregar_comprador_de_tienda(p_persona_id uuid, p_ubicacion_id uuid)
@@ -147,9 +147,9 @@ end;
 $$;
 
 comment on function retail.agregar_comprador_de_tienda(uuid, uuid) is
-  'ADR-0151. Solo líder. Suma una tienda extra de Compras a una colaboradora activa (R-10). No le da el módulo: eso lo da su rol.';
+  'ADR-0179. Solo líder. Suma una tienda extra de Compras a una colaboradora activa (R-10). No le da el módulo: eso lo da su rol.';
 comment on function retail.quitar_comprador_de_tienda(uuid, uuid) is
-  'ADR-0151. Solo líder. Quita esa tienda extra. Las compras ya hechas siguen siendo de su tienda.';
+  'ADR-0179. Solo líder. Quita esa tienda extra. Las compras ya hechas siguen siendo de su tienda.';
 
 revoke all on function retail.fn_compras_ubicaciones() from public, anon;
 revoke all on function retail.fn_puede_comprar_en(uuid) from public, anon;

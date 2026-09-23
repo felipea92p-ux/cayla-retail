@@ -54,7 +54,7 @@ export function PorPagarVistaRapida({
   onNavegar: (delta: 1 | -1) => void;
   /** El pago que se registra desde el cajón avisa a la lista, que hace reaccionar la pantalla y cierra el cajón. */
   onPagado: (r: ResultadoPago) => void;
-  /** ADR-0151 (F4-F5): solo para un comprador de tienda — sus tiendas, para pagar con la que corresponda. */
+  /** ADR-0179 (F4-F5): solo para un comprador de tienda — sus tiendas, para pagar con la que corresponda. */
   misTiendas?: { id: string; nombre: string }[];
 }) {
   const [cerrando, setCerrando] = useState(false);

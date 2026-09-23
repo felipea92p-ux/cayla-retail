@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { esFuncionAusente } from "@/lib/compras-reglas";
 import { detalleMiParteDeJson, parteDeFila, type DetalleMiParte, type FilaParteDeCompra, type ParteDeCompra } from "@/lib/compras-mi-parte-reglas";
 
-// ADR-0151 (F3-b): lecturas de «mi parte» en comprobantes que gestiona otra tienda. Solo para quien no es líder (el líder los
+// ADR-0179 (F3-b): lecturas de «mi parte» en comprobantes que gestiona otra tienda. Solo para quien no es líder (el líder los
 // ve enteros). Si la base todavía no tiene las funciones (web publicada antes de pegar 20260923180400) no se rompe nada: no hay
 // partes que mostrar (principio 9).
 

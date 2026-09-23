@@ -24,7 +24,7 @@ export default async function CompraDetalleModal({
 }) {
   // ADR-0161 P3: el layout de /compras también deja entrar a quien solo tiene Proveedores; un comprobante es dinero.
   const persona = await exigirPermiso("verDineroCompras");
-  // ADR-0151 (F4-F5): las tiendas de quien paga, para que «Registrar pago» sepa con cuál paga (el líder: ninguna, paga libre).
+  // ADR-0179 (F4-F5): las tiendas de quien paga, para que «Registrar pago» sepa con cuál paga (el líder: ninguna, paga libre).
   const misTiendas = persona.rol === "lider" ? undefined : persona.tiendasCompra;
   const { compraId } = await params;
   const { adjuntos_fallidos, desde } = await searchParams;

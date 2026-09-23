@@ -22,7 +22,7 @@ const FILA: FilaParteDeCompra = {
   parte_nueva: false,
 };
 
-describe("mi parte en un comprobante de otra tienda (ADR-0151, F3-b)", () => {
+describe("mi parte en un comprobante de otra tienda (ADR-0179, F3-b)", () => {
   it("convierte la fila de la base: los montos (que llegan como texto) a número y la gestora con nombre", () => {
     const p = parteDeFila(FILA);
     expect(p).toMatchObject({ total: 708, pagado: 100, saldo: 608, gestoraNombre: "Tienda Lima", ubicacionId: "tru", vigente: true, tipo: "factura" });

@@ -44,7 +44,7 @@ export function CompraAcciones({
   tieneRecepciones: boolean;
   datosPago?: DatosPagoProveedor;
   permite: AccionesDeCompra;
-  /** ADR-0151 (F4-F5): solo para un comprador de tienda — sus tiendas, para elegir con cuál paga (`p_ubicacion_id`).
+  /** ADR-0179 (F4-F5): solo para un comprador de tienda — sus tiendas, para elegir con cuál paga (`p_ubicacion_id`).
    *  `undefined` = líder, sin atarse a ninguna (como siempre). Con una sola, se usa sin preguntar. */
   misTiendas?: { id: string; nombre: string }[];
 }) {
@@ -210,7 +210,7 @@ export function RegistrarPagoModal({
   compra: CompraResumen;
   saldoFavor?: number;
   datos?: DatosPagoProveedor;
-  /** ADR-0151 (F4-F5): solo para un comprador de tienda. `undefined` o vacío = líder, el pago no se ata a ninguna
+  /** ADR-0179 (F4-F5): solo para un comprador de tienda. `undefined` o vacío = líder, el pago no se ata a ninguna
    *  tienda (como siempre). Con una sola, se usa directo; con varias, se elige con cuál se paga — la base exige que
    *  esa tienda tenga parte en ESTA factura y no deje su saldo en negativo; si no la tiene, el error lo dice. */
   misTiendas?: { id: string; nombre: string }[];
@@ -270,7 +270,7 @@ export function RegistrarPagoModal({
       p_pagos: pagos,
       p_fecha: fecha,
       p_token: token.current,
-      // ADR-0151 (F4): sin tiendas propias (líder) el pago no se ata a ninguna, como siempre.
+      // ADR-0179 (F4): sin tiendas propias (líder) el pago no se ata a ninguna, como siempre.
       ...(ubicacionPago ? { p_ubicacion_id: ubicacionPago } : {}),
     });
     setLoading(false);
@@ -415,7 +415,7 @@ export function RegistrarPagoModal({
               )}
             </section>
 
-            {/* ADR-0151 (F4-F5): con una sola tienda propia se paga con ella sin preguntar; con varias, se elige —
+            {/* ADR-0179 (F4-F5): con una sola tienda propia se paga con ella sin preguntar; con varias, se elige —
                 la base exige que esa tienda tenga parte en ESTA factura y valida que no supere su saldo. */}
             {misTiendas && misTiendas.length > 1 && (
               <CampoSelectNativo etiqueta="Pagas desde" value={ubicacionPago} onChange={(e) => setUbicacionPago(e.target.value)}>

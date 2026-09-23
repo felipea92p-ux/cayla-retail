@@ -52,7 +52,7 @@ export type PersonaActualV2 = {
   /** Los módulos que ve esta cuenta según su ROL (ADR-0161 B2, `fn_mis_modulos()`): de acá salen el menú, `permisos` y
    *  la puerta `exigirModulo`. Si la base aún no tiene la función, son los de hoy (`modulosDeHoy`): nada cambia. */
   modulos: readonly ModuloDeCuenta[];
-  /** ADR-0151 (Compras por tienda): las tiendas cuyas Compras ve, registra y paga esta cuenta — `fn_compras_ubicaciones()`:
+  /** ADR-0179 (Compras por tienda): las tiendas cuyas Compras ve, registra y paga esta cuenta — `fn_compras_ubicaciones()`:
    *  su tienda si su rol ve un módulo de Compras, más las que el líder le sumó en `compradores_de_tienda` (la persona de
    *  Compras que atiende varias, R-10). Vacía para el líder (ve todas, no necesita la lista) y para quien no ve Compras. */
   tiendasCompra: { id: string; nombre: string }[];
@@ -135,7 +135,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     }
   }
 
-  // ADR-0151: solo para quien no es líder y su rol ve un módulo de Compras (el líder ve todas; el resto, ninguna): una
+  // ADR-0179: solo para quien no es líder y su rol ve un módulo de Compras (el líder ve todas; el resto, ninguna): una
   // llamada menos en el camino más transitado de la app. Quién entra lo dice el rol; de QUÉ TIENDAS, la base.
   const permisos = permisosDeModulos(rol, modulos);
   let tiendasCompra: PersonaActualV2["tiendasCompra"] = [];

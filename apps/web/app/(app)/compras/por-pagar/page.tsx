@@ -42,7 +42,7 @@ import type { DatosPagoProveedor } from "@/components/PagoJuntosModal";
 // corresponden (`PorPagarContexto`). Todo eso es presentación: las cifras y los filtros son los de siempre.
 export default async function PorPagarPage({ searchParams }: { searchParams: Promise<ParamsCompras & { agrupar?: string; marcar?: string }> }) {
   const persona = await exigirModulo("por_pagar"); // 20260923130000: la puerta del módulo Por pagar
-  // ADR-0151 (F4-F5): las tiendas del comprador, para que «Pagar» sepa con cuál paga.
+  // ADR-0179 (F4-F5): las tiendas del comprador, para que «Pagar» sepa con cuál paga.
   const misTiendas = persona.rol === "lider" ? undefined : persona.tiendasCompra;
   // `pagar` y `marcar` son órdenes de una sola vez («abre el modal de este comprobante» / «llega con los de este
   // proveedor marcados»), no filtros: no deben viajar en los enlaces de paginación ni en los filtros. `agrupar` sí
@@ -72,7 +72,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
     getProveedores(),
     pagar && /^[0-9a-f-]{36}$/i.test(pagar) ? getCompra(pagar) : null,
     getUbicaciones(),
-    // ADR-0151 (F3-b): la parte de mi tienda en comprobantes que gestiona otra (el líder los ve enteros en la lista).
+    // ADR-0179 (F3-b): la parte de mi tienda en comprobantes que gestiona otra (el líder los ve enteros en la lista).
     misTiendas ? getMisPartesDeCompras() : Promise.resolve([]),
   ]);
   // Solo se abre si de verdad hay algo que pagar; un enlace viejo a un comprobante ya saldado o

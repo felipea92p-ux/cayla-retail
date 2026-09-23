@@ -7,7 +7,7 @@ import { BotonPagar } from "@/components/CompraDetallePanel";
 import { fechaCorta, soles } from "@/lib/compras-reglas";
 import { compraParaPagarMiParte, type ParteDeCompra } from "@/lib/compras-mi-parte-reglas";
 
-// ADR-0151 (F3-b): la parte de mi tienda en comprobantes que gestiona OTRA tienda. La tienda que registró tiene el papel; esta
+// ADR-0179 (F3-b): la parte de mi tienda en comprobantes que gestiona OTRA tienda. La tienda que registró tiene el papel; esta
 // tienda recibe su mercadería y paga lo suyo desde aquí. Se muestran SU monto y SU saldo, nunca los del comprobante entero
 // (la base ni siquiera se los da). «Parte nueva» es el aviso a la tienda que no registró: llegó hace poco y todavía no pagó nada.
 export function MisPartesDeCompras({

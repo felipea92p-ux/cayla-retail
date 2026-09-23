@@ -38,7 +38,7 @@ export function DestinoDeLaMercaderia({
   onTiendas,
 }: {
   ubicaciones: Tienda[];
-  /** ADR-0151: solo para un comprador de tienda. Con esto, «Mercadería destinada a» (una tienda) ofrece SOLO estas —
+  /** ADR-0179: solo para un comprador de tienda. Con esto, «Mercadería destinada a» (una tienda) ofrece SOLO estas —
    *  la tienda gestora tiene que ser una de las suyas, la base lo exige — y repartir no permite dejar el reparto sin
    *  ninguna de ellas (la gestora, sea cual sea, tiene que conservar parte). `undefined` = sin restricción, como hoy
    *  para el líder: puede elegir cualquiera de `ubicaciones` y el reparto puede quedar sin ella. */

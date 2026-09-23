@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260923180100_compra_parte_por_tienda.sql — CAYLA V2 · ADR-0151 (F2: partir el dinero por tienda)
+-- 20260923180100_compra_parte_por_tienda.sql — CAYLA V2 · ADR-0179 (F2: partir el dinero por tienda)
 --
 -- REEMPLAZA, sin cambios de fondo, a 20260922150000_compra_parte_por_tienda.sql (nunca pegada en producción; chocaba en número
 -- con 20260922150000_venta_asesora_…). Se renumeró para ir después de ADR-0161.
@@ -115,7 +115,7 @@ select q.compra_id,
 from igv_puestos q;
 
 comment on view retail.compra_parte_por_tienda is
-  'ADR-0151 (F2). Cuánto de una factura le toca a cada tienda (una fila por factura y tienda): unidades, subtotal, IGV y total. Se CALCULA desde compra_items × compra_item_destinos × compras y no se guarda. Reparte la CABECERA (lo que se debe), no las líneas, con el método del mayor resto: la suma de los subtotal, igv y total de las partes es siempre la de compras, al centavo. security_invoker: cada quien la lee con sus permisos.';
+  'ADR-0179 (F2). Cuánto de una factura le toca a cada tienda (una fila por factura y tienda): unidades, subtotal, IGV y total. Se CALCULA desde compra_items × compra_item_destinos × compras y no se guarda. Reparte la CABECERA (lo que se debe), no las líneas, con el método del mayor resto: la suma de los subtotal, igv y total de las partes es siempre la de compras, al centavo. security_invoker: cada quien la lee con sus permisos.';
 
 revoke all on retail.compra_parte_por_tienda from public, anon;
 grant select on retail.compra_parte_por_tienda to authenticated;

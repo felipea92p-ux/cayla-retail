@@ -80,7 +80,7 @@ export type DetalleCompra = {
   /** Qué puede hacer quien mira, módulo por módulo (ADR-0161 P1, 20260923140000): anular, reparto y adjuntos son de Facturas de
    *  compra; pagar, de Por pagar; las notas, de Notas de crédito. Solo esconde lo que la base igual rechazaría. */
   acciones: AccionesDeCompra;
-  /** ADR-0151 (F4-F5): las tiendas con las que paga quien mira, para que «Registrar pago» sepa con cuál (`p_ubicacion_id`).
+  /** ADR-0179 (F4-F5): las tiendas con las que paga quien mira, para que «Registrar pago» sepa con cuál (`p_ubicacion_id`).
    *  `undefined` = líder: paga sin atarse a ninguna, como siempre. */
   misTiendas?: { id: string; nombre: string }[];
 };

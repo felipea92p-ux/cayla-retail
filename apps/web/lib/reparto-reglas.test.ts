@@ -298,7 +298,7 @@ describe("nombre de una línea", () => {
   });
 });
 
-describe("la tienda gestora al registrar (ADR-0151, F3)", () => {
+describe("la tienda gestora al registrar (ADR-0179, F3)", () => {
   describe("puedeQuitarseDelReparto", () => {
     it("sin restricción (líder): tiene que quedar al menos una, cualquiera", () => {
       expect(puedeQuitarseDelReparto("lima", ["lima", "trujillo"])).toBe(true);

@@ -1,10 +1,10 @@
 -- ============================================================================
--- 20260923180200_compras_tienda_gestora_y_lectura.sql — CAYLA V2 · ADR-0151 (F1 + F3 reescritas sobre ADR-0161)
+-- 20260923180200_compras_tienda_gestora_y_lectura.sql — CAYLA V2 · ADR-0179 (F1 + F3 reescritas sobre ADR-0161)
 --
 -- EL PROBLEMA PRIMERO. Hoy (producción, ADR-0161) quien tiene un módulo de Compras ve TODAS las facturas de TODAS las tiendas
 -- y puede anular, adjuntar o reasignar cualquiera: las políticas preguntan «¿tiene el módulo?», nunca «¿de qué tienda?».
 -- Felipe decidió (2026-09-23) que cada tienda ve y maneja solo lo suyo. Y una factura repartida entre tiendas no dice QUIÉN
--- responde por ella: el papel queda en una tienda (ADR-0151, respuesta 12) que no está escrita en ningún lado.
+-- responde por ella: el papel queda en una tienda (ADR-0179, respuesta 12) que no está escrita en ningún lado.
 --
 -- QUÉ HACE
 --   1. `compras.ubicacion_gestion_id` — la TIENDA GESTORA: donde queda el papel, la que registra, anula, adjunta y reasigna.
@@ -87,7 +87,7 @@ $$;
 alter table retail.compras add column if not exists ubicacion_gestion_id uuid references retail.ubicaciones(id);
 
 comment on column retail.compras.ubicacion_gestion_id is
-  'ADR-0151. La tienda que GESTIONA la factura: donde queda el papel y la que la registra, anula, adjunta y reasigna. No es el destino de la mercadería (ese es el reparto por línea). Tiene que tener parte en el reparto. Quien tiene un módulo de Compras ve la factura entera solo si la gestora es una de sus tiendas.';
+  'ADR-0179. La tienda que GESTIONA la factura: donde queda el papel y la que la registra, anula, adjunta y reasigna. No es el destino de la mercadería (ese es el reparto por línea). Tiene que tener parte en el reparto. Quien tiene un módulo de Compras ve la factura entera solo si la gestora es una de sus tiendas.';
 
 -- Lo que ya había: la tienda que más unidades recibe (empate: la de menor id).
 update retail.compras c
@@ -185,7 +185,7 @@ as $$
 $$;
 
 comment on function retail.fn_compras_visibles() is
-  'ADR-0151. Las facturas que quien consulta ve ENTERAS: todas si es líder; las que gestiona una de sus tiendas si su rol ve un módulo de Compras; ninguna si no. Arreglo para que las políticas lo resuelvan una vez por consulta.';
+  'ADR-0179. Las facturas que quien consulta ve ENTERAS: todas si es líder; las que gestiona una de sus tiendas si su rol ve un módulo de Compras; ninguna si no. Arreglo para que las políticas lo resuelvan una vez por consulta.';
 
 create or replace function retail.fn_compra_es_de_mis_tiendas(p_compra_id uuid)
 returns boolean
@@ -204,7 +204,7 @@ as $$
 $$;
 
 comment on function retail.fn_compra_es_de_mis_tiendas(uuid) is
-  'ADR-0151. ¿Ve y gestiona quien consulta esta factura ENTERA? Líder: siempre. Si no: su rol ve un módulo de Compras y la tienda gestora es suya. Es la regla de las lecturas de dinero y de las escrituras sobre una factura existente. NULL → false.';
+  'ADR-0179. ¿Ve y gestiona quien consulta esta factura ENTERA? Líder: siempre. Si no: su rol ve un módulo de Compras y la tienda gestora es suya. Es la regla de las lecturas de dinero y de las escrituras sobre una factura existente. NULL → false.';
 
 revoke all on function retail.fn_compras_visibles() from public, anon;
 revoke all on function retail.fn_compra_es_de_mis_tiendas(uuid) from public, anon;
@@ -346,7 +346,7 @@ begin
   -- ella una sobrecarga) tiene que ser una de mis tiendas…
   perform pg_temp.cambiar('retail.registrar_compra(uuid, text, text, text, uuid, jsonb, text, date, date, numeric, jsonb, text, numeric, uuid, date)',
     c_fact,
-    E'  -- ADR-0151: la tienda que gestiona el comprobante (donde queda el papel) es `p_ubicacion_destino_id`.\n'
+    E'  -- ADR-0179: la tienda que gestiona el comprobante (donde queda el papel) es `p_ubicacion_destino_id`.\n'
     || E'  if p_ubicacion_destino_id is null then\n'
     || E'    raise exception ''Elige la tienda que gestiona el comprobante'';\n'
     || E'  end if;\n'
@@ -404,7 +404,7 @@ end;
 $$;
 
 comment on function retail.cambiar_tienda_gestora_compra(uuid, uuid) is
-  'ADR-0151. Solo líder. Pasa la gestión de un comprobante a otra tienda que tenga parte en su reparto.';
+  'ADR-0179. Solo líder. Pasa la gestión de un comprobante a otra tienda que tenga parte en su reparto.';
 
 revoke all on function retail.cambiar_tienda_gestora_compra(uuid, uuid) from public, anon;
 grant execute on function retail.cambiar_tienda_gestora_compra(uuid, uuid) to authenticated;
@@ -457,7 +457,7 @@ begin
       end if;
     end if;
 
-    -- ADR-0151: «lo que veo por mi sede» → «las facturas de mis tiendas».
+    -- ADR-0179: «lo que veo por mi sede» → «las facturas de mis tiendas».
     v_nuevo := replace(v_nuevo, 'fn_puede_ver_compra(', 'fn_compra_es_de_mis_tiendas(');
 
     if v_nuevo <> v_def then
@@ -470,7 +470,7 @@ end;
 $$;
 
 comment on function retail.fn_aplicar_candado_de_dinero() is
-  'ADR-0126 + ADR-0151. Deja las 5 funciones de indicadores de Compras con (1) el candado fn_exige_dinero_de_compras y (2) el filtro por tienda fn_compra_es_de_mis_tiendas. Idempotente; devuelve las firmas que arregló ({} = todo bien). Correrla después de pegar cualquier migración que recree una de esas cinco.';
+  'ADR-0126 + ADR-0179. Deja las 5 funciones de indicadores de Compras con (1) el candado fn_exige_dinero_de_compras y (2) el filtro por tienda fn_compra_es_de_mis_tiendas. Idempotente; devuelve las firmas que arregló ({} = todo bien). Correrla después de pegar cualquier migración que recree una de esas cinco.';
 
 revoke all on function retail.fn_aplicar_candado_de_dinero() from public, anon, authenticated;
 
