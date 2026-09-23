@@ -195,7 +195,7 @@ verificar(
 
 verificar(
   "caja: la terminal de ventas mueve caja y CIERRA la caja, firmado por Rosa (el movimiento, con terminal_id)",
-  correr(escena(`${CAJA_ABIERTA}${cambiaA(T_VENTAS)}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Ingreso de prueba') as mc \\gset
+  correr(escena(`${CAJA_ABIERTA}${cambiaA(T_VENTAS)}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Otro', 'Ingreso de prueba') as mc \\gset
 select retail.cerrar_caja(:'caja', 130.00) as _r \\gset
 select c.estado || '|' || (c.cerrada_por = :'rosa') || '|' || (m.usuario_id = :'rosa') || '|' || (m.terminal_id = :'t_ventas')
   from retail.cajas c, retail.caja_movimientos m where c.id = :'caja' and m.id = :'mc';`)),
@@ -276,7 +276,8 @@ const PUERTAS = [
   // Lo que SE abrió. `pasan` = quiénes, además del líder, cruzan la puerta.
   { nombre: "cerrar_conteo", previo: FIXTURE_CONTEO, intento: `select pg_temp.intento(format('select retail.cerrar_conteo(%L)', :'conteo'));`, mensaje: /Solo un líder puede cerrar un conteo/, pasan: ["admin", "micaela"] },
   { nombre: "cerrar_traslado_con_diferencia", previo: FIXTURE_TRASLADO, intento: `select pg_temp.intento(format('select retail.cerrar_traslado_con_diferencia(%L, ''x'')', :'traslado'));`, mensaje: /Solo un líder puede cerrar un traslado con diferencias/, pasan: ["admin", "micaela"] },
-  { nombre: "registrar_movimiento_caja (ajuste de efectivo)", previo: FIXTURE_CAJA, intento: `select pg_temp.intento(format('select retail.registrar_movimiento_caja(%L, ''ingreso'', 10, ''ajuste'', null, true)', :'caja'));`, mensaje: /Solo un líder de equipo puede registrar un ajuste de efectivo/, pasan: ["ventas", "micaela"] },
+  // ADR-0166 (20260922235000): el ajuste de efectivo volvió a ser «siempre solo del líder», lo decide el motivo.
+  { nombre: "registrar_movimiento_caja (ajuste de efectivo)", previo: FIXTURE_CAJA, intento: `select pg_temp.intento(format('select retail.registrar_movimiento_caja(%L, ''ingreso'', 10, ''Ajuste de caja (sobrante)'', ''sobrante'', true)', :'caja'));`, mensaje: /Solo un líder de equipo puede registrar un ajuste de efectivo/, pasan: [] },
   { nombre: "guardar_cuentas_proveedor", previo: "", intento: LLAMADA(`select retail.guardar_cuentas_proveedor(gen_random_uuid(), null, null, null, null)`), mensaje: /Solo un Líder puede editar las cuentas de un proveedor/, pasan: ["admin"] },
   { nombre: "crear_marca", previo: "", intento: LLAMADA(`select retail.crear_marca('Marca de prueba', gen_random_uuid())`), mensaje: /Solo un Líder puede agregar marcas/, pasan: ["admin", "micaela"] },
   { nombre: "desactivar_categoria", previo: "", intento: LLAMADA(`select retail.desactivar_categoria(gen_random_uuid())`), mensaje: /Solo un Líder puede desactivar una categoría/, pasan: ["admin", "micaela"] },
@@ -381,9 +382,10 @@ verificar(
 );
 
 verificar(
+  // registrar_movimiento_caja sale de la lista: desde ADR-0166 su ajuste de efectivo es «siempre solo del líder» a propósito.
   "candados: ninguna de las funciones tocadas conserva fn_es_lider() suelto (salvo la de etiquetas con descuento)",
   correr(escena(`select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
-    and p.proname in ('cerrar_caja','registrar_movimiento_caja','registrar_movimiento','cerrar_conteo','cerrar_traslado_con_diferencia','guardar_cuentas_proveedor',
+    and p.proname in ('cerrar_caja','registrar_movimiento','cerrar_conteo','cerrar_traslado_con_diferencia','guardar_cuentas_proveedor',
       'actualizar_categoria','actualizar_categoria_ejes','desactivar_categoria','reactivar_categoria','crear_marca','censo_crear_variante','crear_producto_con_variantes',
       'fn_productos_estado_alta_trigger','fn_colores_estado_trigger','fn_patrones_estado_trigger','fn_tallas_estado_trigger','fn_tejidos_estado_trigger')
     and pg_get_functiondef(p.oid) ~ 'fn_es_lider\\(\\)';`)),

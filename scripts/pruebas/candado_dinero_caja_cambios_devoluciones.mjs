@@ -11,7 +11,7 @@
  *      "Depósito bancario"/"Otro" exigen una referencia. Los motivos normales de siempre
  *      (Retiro de efectivo, Compra de insumos) siguen funcionando igual para una colaboradora.
  *   2. `registrar_cambio`: el candado de líder para una diferencia NEGATIVA se sumó y se
- *      REVIRTIÓ el mismo día (`20260923110000_cambios_sin_candado_de_lider.sql`, decisión de
+ *      REVIRTIÓ el mismo día (`20260923110500_cambios_sin_candado_de_lider.sql`, decisión de
  *      Felipe: "0 trabas, agilidad para la clienta"). Esta prueba confirma que hoy una
  *      colaboradora sola completa el cambio igual con diferencia negativa, positiva, o siendo
  *      líder — las tres dan el mismo resultado. El riesgo que eso acepta queda documentado en
@@ -338,7 +338,7 @@ rollback;
 
 // ===========================================================================
 // 2. registrar_cambio — SIN candado de líder (revertido a propósito, ver
-//    20260923110000_cambios_sin_candado_de_lider.sql: decisión de Felipe,
+//    20260923110500_cambios_sin_candado_de_lider.sql: decisión de Felipe,
 //    2026-09-23, "0 trabas, agilidad para la clienta"). Se prueba que una
 //    colaboradora sola SÍ puede completar un cambio con diferencia negativa,
 //    igual que con diferencia positiva y que un líder — las tres dan lo mismo.

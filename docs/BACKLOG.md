@@ -36,13 +36,13 @@ Del análisis `/pantalla` completo del módulo Ventas: la misma familia de hueco
 - [x] `revoke insert/update/delete/truncate` sobre `devoluciones`/`devolucion_items`/`prendas_danadas`/`cambios` para `authenticated`/`anon` (mismo patrón que `colaboradores` y `apartados`).
 - [x] **Migración `20260922235000` pegada en producción el 2026-09-22** (Felipe) — verificada en solo lectura (huellas de las 3 funciones, permisos de tabla) y con Postgres desechable local (209 migraciones + la nueva, dos veces, 64/64 pruebas, incluida prueba de mutación del `revoke`).
 - [x] De paso, `scripts/pruebas/candado_dinero_caja_cambios_devoluciones.mjs` (nuevo) y 3 arreglos a fixtures que solo se notaron porque el candado ya es real: `supabase/seed.sql` (motivos de caja inventados, una sola líder), `aprobar_devolucion_caja.mjs` y `candado_lider_caja_y_ajuste.mjs` (un motivo con la tilde mal puesta, nunca coincidía con nada).
-- [x] **Decidido por Felipe (2026-09-23): NO al flujo de "pendiente" — se revierte el candado de líder en Cambios.** "0 trabas, queremos agilidad y el mejor servicio hacia nuestros clientes": Devoluciones ya se opera desde el terminal de cada sede con quien lo gestiona marcando su nombre (combo Responsable); exigir una aprobación aparte en Cambios sumaba fricción al mostrador. `20260923110000_cambios_sin_candado_de_lider.sql` quita solo esa pieza — Caja y Devoluciones no se tocaron. Riesgo aceptado explícitamente: una colaboradora sola puede devolverle plata a una clienta en un cambio sin que nadie más lo revise (el caso real de S/100 por Plin puede repetirse).
+- [x] **Decidido por Felipe (2026-09-23): NO al flujo de "pendiente" — se revierte el candado de líder en Cambios.** "0 trabas, queremos agilidad y el mejor servicio hacia nuestros clientes": Devoluciones ya se opera desde el terminal de cada sede con quien lo gestiona marcando su nombre (combo Responsable); exigir una aprobación aparte en Cambios sumaba fricción al mostrador. `20260923110500_cambios_sin_candado_de_lider.sql` quita solo esa pieza — Caja y Devoluciones no se tocaron. Riesgo aceptado explícitamente: una colaboradora sola puede devolverle plata a una clienta en un cambio sin que nadie más lo revise (el caso real de S/100 por Plin puede repetirse).
 - [ ] Pendiente, aparte, con ok explícito de Felipe (toca lo que se reporta a SUNAT): la nota de crédito de una devolución se sigue calculando sobre precio de lista, no sobre lo pagado con descuento (`docs/pantallas/devoluciones.md` §2.3).
 - [ ] Pendiente, ya decidido por Felipe (BACKLOG, más abajo): nota de crédito por diferencia de un cambio (serie B por tienda) — proyecto de SUNAT/Lucode aparte, no se mezcló con este candado.
 - [x] **Verificado tras la fusión del PR #285:** la migración F3 de abajo (`actor_firma_las_operaciones`) lee la definición viva de `registrar_movimiento_caja`/`registrar_cambio`/`aprobar_devolucion` y solo reemplaza la línea que busca a la persona — no pisa este candado (ni su reversión en Cambios) cuando F3 se pegue en producción.
-- [ ] **Pegar `20260923110000_cambios_sin_candado_de_lider.sql` en producción** (con OK de Felipe) — verificada en local, sin aplicar todavía.
+- [x] **`20260923110500_cambios_sin_candado_de_lider.sql` está en producción** (verificado el 2026-09-23: `registrar_cambio` ya no tiene el candado de líder y sigue firmando con `fn_actor_persona_id(true)`; Caja conserva el suyo). Se renombró desde `…110000` porque chocaba con `20260923110000_cambiar_rol_entre_lideres.sql` y dejaba el CI de `main` en rojo; las dos ya estaban pegadas, así que el cambio de número no toca producción.
 
-## 🎯 Las 6 decisiones de los módulos (2026-09-22, ADR-0161 P1–P6) — CONSTRUIDO en la rama `claude/modulos-seis-decisiones`; NO está en producción
+## 🎯 Las 6 decisiones de los módulos (2026-09-22, ADR-0161 P1–P6) — EN PRODUCCIÓN (pegada el 2026-09-23)
 Migración `20260923140000_modulos_seis_decisiones.sql` + web + pruebas. Detalle y clasificación de cada candado en el ADR-0161 («P1–P6 construidas»).
 - [x] **P1 Compras, cada módulo lo suyo:** `fn_puede_registrar_facturas_compra` (registrar, anular, reparto, adjuntos), `fn_puede_pagar_compras` (pagos y reembolsos), `fn_puede_registrar_notas_credito` (notas y el PDF de la nota). `fn_puede_registrar_compras` queda solo para leer lo de los tres. Web: el detalle del comprobante muestra cada botón a su módulo (`accionesDeCompra`).
 - [x] **P2 Recibir con montos** para quien ve el dinero de Compras (`verDineroCompras`), sin cambiar la sede que se mira. Sin cambio en la base (se dejó escrito por qué).
@@ -50,10 +50,10 @@ Migración `20260923140000_modulos_seis_decisiones.sql` + web + pruebas. Detalle
 - [x] **P4 Etiquetas sin descuento desde la ficha de la prenda** con Productos o Categorías y atributos; las de descuento no se le ofrecen a quien no es líder.
 - [x] **P5 Existencias:** costo y stock de la red, solo del líder (Análisis ve el costo de SU sede en Análisis).
 - [x] **P6 Colaboradores y Roles y accesos, solo a personas:** candado en los disparadores de `terminales` y `rol_modulos` + capacidades falsas para una terminal; en Roles y accesos se avisa al encenderlos y no se ofrecen esos roles a una terminal.
-- [ ] **Pegar en producción** `20260923140000_modulos_seis_decisiones.sql` (empezar con `set search_path to retail, public, extensions;`). Aborta sola si alguna función cambió o si alguna terminal ya tuviera Colaboradores o Roles. Ensayada en una copia local alineada con producción (y re-ejecutada, y con 130000/131000 re-pegadas después: no se deshace).
-- [ ] **Pregunta para Felipe (P3):** la Terminal Almacén (3 terminales) tiene el módulo Proveedores: con esta migración puede dar de alta, editar y desactivar proveedores. ¿Se queda así o se le apaga el módulo?
-- [ ] **Pregunta para Felipe (P1):** recibir con una nota de crédito por faltante (`recibir_envio` con `p_notas_credito`) ahora pide Notas de crédito, no cualquiera de los tres módulos. Hoy la web no lo usa (el aviso «nota por reclamar» es solo del líder).
-- [ ] Refrescar el volcado y el diccionario cuando se pegue, y `pnpm datos:comparar`.
+- [x] **Pegada en producción el 2026-09-23** (OK de Felipe) por el MCP: ensayo con ROLLBACK y luego COMMIT, con los 21 candados verificados por la propia migración. Comprobado después: encender Colaboradores en «Terminal Almacén» se rechaza («solo se da a personas»), política `proveedores_write`, `fn_resumen_variantes` solo del líder.
+- [x] **Pregunta para Felipe (P3) — respondida:** la Terminal Almacén **se queda con Proveedores** («normal que una terminal registre proveedores»). Sin cambio.
+- [x] **Pregunta para Felipe (P1) — respondida:** queda como se propuso (recibir con nota de crédito por faltante pide Notas de crédito).
+- [x] Hecho: volcado refrescado el 2026-09-23 (94 tablas, 300 funciones, copia idéntica a producción verificada por huella); `datos:comparar` sin pantallas rotas ni firmas dobles.
 - Cómo verificas: un rol con solo «Por pagar» ve el detalle de un comprobante con «Registrar pago» y sin «Anular»; uno con solo «Proveedores» entra a Compras ▸ Proveedores, abre la ficha sin una cifra y puede editar; en Roles y accesos, encender Colaboradores en «Terminal de ventas» avisa y no se enciende.
 
 ## 🩹 RLS fila por fila: Historial de ventas caído por timeout (2026-09-22, ADR-0176) — A y B PEGADAS en producción
@@ -61,7 +61,7 @@ Con el sembrado de 90 días (7.001 ventas), `/vender/historial` pasaba los 8 s d
 - [x] **A:** las 4 políticas de lectura de venta (`ventas`, `venta_items`, `venta_pagos`, `comprobantes`) con `(select …)`, más el índice `ventas (created_at desc, id desc)`. Migración `20260923143700_…`, PEGADA en producción y aplicada en local. Mismas filas visibles, verificado con huellas como líder e integrante. La lista pasó de 12,3 s a 0,5 s.
 - [x] **Verlo con clics:** Felipe abrió `/vender/historial` en producción y cargó (2026-09-22).
 - [x] **B:** `20260923152300_rls_todas_una_vez_por_consulta.sql`, PEGADA en producción y aplicada en local. Reescribió las 92 políticas restantes con `retail.fn_rls_una_vez_por_consulta()`; quedan 0 pendientes. Equivalencia de 121/121 cláusulas con 6 cuentas (líder, integrantes de TRU, AQP y Taller, dos terminales). Movimientos para una integrante: 57 s → 14 ms; Stock: 7,3 s → 3 ms.
-- [ ] **Al pegar migraciones pendientes que crean o cambian políticas** (`…130000_abrir_modulos_a_los_roles`, `…131000_colaboradores_y_roles_delegables`, y cualquier otra de antes del 2026-09-23 15:23 que no esté en producción), correr después `select retail.fn_rls_una_vez_por_consulta();`. Si no, esas políticas vuelven a evaluarse fila por fila. Para comprobar, la consulta del ADR-0176 debe dar 0.
+- [x] **Políticas pendientes de envolver:** la 140000 corrió `fn_rls_una_vez_por_consulta()` al final; la consulta del ADR-0176 da **0** en producción (2026-09-23).
 - [ ] **Base local:** la migración de separaciones (`20260923090000`) no está aplicada en local (`scripts/pruebas/separaciones.mjs` da 0/46 porque falta la tabla); en producción sí está.
 - [ ] **Decisión de Felipe:** las 7.002 ventas en producción tienen `es_prueba = false`, sembradas incluidas. El filtro «Ver datos de prueba» no las esconde y cuentan en los totales. ¿Es a propósito (ADR-0150)?
 - [ ] **Previo, sin relación con esto:** `scripts/pruebas/registrar_venta.mjs` da 21/25 en local. Fallan los 4 casos «colaboradora + código de descuento»; fallan igual con las políticas viejas.
@@ -86,7 +86,7 @@ Con el sembrado de 90 días (7.001 ventas), `/vender/historial` pasaba los 8 s d
 
 ## 🎯 Los 7 módulos «del líder» se pueden dar a un rol (2026-09-22, ADR-0161 B6-B8) — EN PRODUCCIÓN (pegadas el 2026-09-22)
 - [x] Pegadas en producción: `20260923130000_abrir_modulos_a_los_roles.sql` y `20260923131000_colaboradores_y_roles_delegables.sql` (verificado el 2026-09-22 leyendo producción: `fn_puede_analizar`, `fn_puede_gestionar_colaboradores` y los 7 módulos `delegable`).
-- [ ] Refrescar el volcado y el diccionario (`generado/COMO-REFRESCAR.md`) y correr `pnpm datos:comparar`.
+- [x] Hecho: volcado refrescado el 2026-09-23 (94 tablas, 300 funciones, copia idéntica a producción verificada por huella).
 - [x] ~~PR aparte: las 6 decisiones P1-P6~~ → sección de arriba.
 - Cómo verificas: en Roles y accesos los 7 módulos salen con interruptor; un rol con solo «Por pagar» ve Compras ▸ Por pagar con montos; uno con «Etiquetas» ve la pestaña Etiquetas y no puede poner descuento.
 
@@ -114,7 +114,7 @@ PR [#298](https://github.com/felipea92p-ux/cayla-retail/pull/298), fusionado. Di
 - [x] Pantalla: «Nueva proforma» con buscador/escáner, cantidad, descuento hasta 20 % con motivo, clienta, validez y nota; lista con número, detalle con foto, Ver / imprimir, WhatsApp, Duplicar / Renovar y Cobrar. Hoja A4 verificada con un PDF real (una hoja, nada cortado).
 - [x] **Cobro de punta a punta en el navegador local** (PRO-000006, Trujillo): carrito armado, venta completada, piso 4 → 3 con su movimiento, proforma «convertida» y enlazada, nota de venta NV01-000002. Se cobró con nota de venta porque la boleta chocó con el problema de series de abajo.
 - [x] **Pegada en producción el 2026-09-22** (Felipe: «Ok»), por el MCP en una sola transacción con bloque de validación final, ensayada antes en local sobre el estado de producción. Antes: `crear_proforma` vieja `45909742…` (rollback guardado = su definición de `20260918091500`, misma huella), 1 proforma vigente de S/ 7,000, sin disparadores en `proformas`. Después: `crear_proforma` `1cf28322…` y `marcar_proforma_cobrada` `1dbeece0…` (iguales a local), una sola firma, EXECUTE solo `postgres`/`authenticated`, `convertir_proforma_a_comprobante` solo `postgres`; la proforma existente es PRO-000001. Humo como líder real sin escribir: `crear_proforma([])` → «necesita al menos una prenda», `marcar_proforma_cobrada(uuid inexistente)` → «no existe»; después, 1 proforma y último número 1. No se registró en `schema_migrations` de producción (igual que pegados anteriores).
-- [ ] Refrescar el volcado de producción (`docs/datos/generado/COMO-REFRESCAR.md`, seis consultas) y correr `pnpm datos:generar:produccion` y `pnpm datos:comparar`: el volcado ya venía atrasado por otras sesiones, conviene hacerlo en una pasada propia.
+- [x] Hecho: volcado refrescado el 2026-09-23 (94 tablas, 300 funciones, copia idéntica a producción verificada por huella).
 - [x] **PR #298 fusionado por Felipe el 2026-09-22 (22:09 UTC)**, CI entero en verde (incluida la piloto de RPC: `pruebas:comprobante-venta-anulada` ahora inserta su proforma con el formato anterior, porque `crear_proforma` solo acepta prendas). Vercel desplegó bien. Al fusionar se integró el Responsable (ADR-0161): «Nueva proforma» firma con el combo y «Reintentar los N» pasa por la misma confirmación que «Reintentar ahora».
 - [x] **Verificado en producción el 2026-09-23** (solo lectura): columnas y candados en su lugar; `marcar_proforma_cobrada` `1dbeece0…`; «Convertir» solo `postgres`; una sola firma de `crear_proforma`, ahora `03e640bd…` porque después se pegó «actor firma» (ADR-0162), que cambió su línea de quién opera por `fn_actor_persona_id(true)` — deshecha esa línea da exactamente `1cf28322…`, lo pegado. Todavía nadie creó una proforma con prendas en producción (solo existe PRO-000001, formato anterior, de prueba).
 - [ ] Primera proforma real en producción: crear una con prendas, imprimirla y cobrarla en una tienda con stock en el piso, y mirar que quede «convertida».
@@ -127,10 +127,10 @@ PR [#298](https://github.com/felipea92p-ux/cayla-retail/pull/298), fusionado. Di
 - [x] **F3** `20260923100000_actor_firma_las_operaciones.sql`: 65 funciones firman con `fn_actor_persona_id` (36 de tienda, 29 no), cotejadas contra producción en solo lectura. Terminal sin tope de descuento y libera apartados siempre (Felipe). `pnpm pruebas:actor-firma` 30/30, `pnpm pruebas:terminales` (reescrita) 74/74.
 - [x] **F4a** web: sesión de terminal por `requirePersonaActualV2`, pie del lateral con el aparato, aviso de terminal desactivada en `/login`, pestaña Colaboradores ▸ Terminales (Desactivar / Reactivar).
 - [x] **F5** script `pnpm terminales:crear` (+ `pnpm terminales:probar`), sin correr contra ningún entorno.
-- [ ] **Pegar en producción, en orden:** F2 `20260923010000` → F3 `20260923100000`, cada una empezando con `set search_path to retail, public, extensions;`. Si después se pegan «apartar stock» o «comprador de tienda», **volver a pegar la F3** (hoy las omite con aviso porque producción no las tiene). Pedir OK a Felipe antes.
+- [x] F2 `20260923010000` y F3 `20260923100000` pegadas en producción (2026-09-22/23); `terminales`, `fn_actor_persona_id` y `fn_exige_responsable` están en el volcado del 2026-09-23.
 - [ ] Publicar la web (fusionar el PR #285; lo fusiona Felipe).
 - [ ] Felipe crea las 6 terminales (ventas y administrativa de TRU/AQP/LIM) con `pnpm terminales:crear`. **No crear personas en Dynamic.**
-- [ ] `pnpm datos:generar:produccion` + `pnpm datos:comparar` después de pegar, para que `terminales` y las funciones nuevas entren al diccionario.
+- [x] Hecho: volcado refrescado el 2026-09-23 (94 tablas, 300 funciones, copia idéntica a producción verificada por huella).
 - [ ] Verificar con una terminal de verdad en TRU (aún no se probó con la sesión de un aparato en el navegador; sí con la de un líder).
 - [x] La migración del ADR-0160 **ya está pegada** en producción, con 0 terminales dadas de alta.
 
@@ -187,7 +187,7 @@ Tercera opción del comprobante: Boleta | Factura | Nota de venta. Documento int
 - [ ] **Compras de la administrativa = ADR-0151** («comprador de tienda»). Esa rama (`claude/adr-0145-compras-permisos`) **no está subida a GitHub**. Conflicto esperado al fusionar: `menu.ts`, `ci.yml`, `package.json`.
 - [ ] El combo «¿quién atiende?» pasó a ser el combo **Responsable** de todas las operaciones: ADR-0161.
 - [ ] Disparador que impida mover una terminal al Taller llamando `cambiar_ubicacion_colaborador` a mano (la web no lo ofrece; la base no lo impide).
-- [ ] Tras pegar: `pnpm datos:generar:produccion` (la columna `terminal` entra al diccionario).
+- [x] Hecho: volcado refrescado el 2026-09-23 (94 tablas, 300 funciones, copia idéntica a producción verificada por huella).
 
 ## 🎯 Ficha de clienta v1, backend (2026-09-22, ADR-0154, D-76/D-77) — hecho en local, FALTA PEGAR 1 MIGRACIÓN EN PRODUCCIÓN
 Tabla `retail.clientas` + RPC `buscar_clienta`/`registrar_clienta`. La FK de `ventas.cliente_id` se repuntó desde la tabla vieja `retail.clientes`
@@ -236,8 +236,8 @@ Detalle, decisiones y lo descartado en [docs/adr/0157-alta-de-colaborador-requie
 - [x] `retail.colaboradores` gana `estado` (`pendiente_aprobacion`/`activo`, default `activo` — no desconecta a nadie ya operando). El candado se sumó en las seis funciones que leen `colaboradores` (no solo las tres obvias): `fn_es_lider`, `fn_ubicacion_actual_persona`, `fn_tiene_acceso_retail`, `fn_mi_perfil`, `fn_persona_actual_resumen` (el gate de login), `fn_stock_por_sede`.
 - [x] RPC `fn_aprobar_alta_colaborador` (solo líder, candado primero) y `fn_colaboradores_pendientes`. `suspender_colaborador` rechaza a alguien todavía pendiente (evita que `reactivar_colaborador` lo active sin haber pasado por aprobación).
 - [x] Pantalla: pestaña «Pendientes» en `/colaboradores` con Aprobar y Rechazar. Tipos, lint y pruebas en verde; visto en el navegador con datos de ejemplo. Migración `20260922170000_alta_colaborador_requiere_aprobacion.sql`: 10 escenarios en `scripts/pruebas/colaboradores_alta_requiere_aprobacion.mjs` (Postgres 17 desechable, sin Docker), más regresión en `colaboradores_endurecimiento.mjs` y `candado_lider_caja_y_ajuste.mjs`.
-- [ ] **Pegar `20260922170000` en producción** (con ok de Felipe; entera, es re-ejecutable; no hay orden estricto con el despliegue de la web).
-- [ ] Refrescar el volcado de producción (`generado/COMO-REFRESCAR.md`) para que la columna `estado` y las dos funciones nuevas entren al diccionario.
+- [x] `20260922170000` está en producción: `colaboradores.estado`, `fn_aprobar_alta_colaborador` y `fn_colaboradores_pendientes` aparecen en el volcado del 2026-09-23.
+- [x] Hecho: volcado refrescado el 2026-09-23 (94 tablas, 300 funciones, copia idéntica a producción verificada por huella).
 - [ ] **D-69 queda aparte** (líder acotado a su sede): `fn_aprobar_alta_colaborador` hoy acepta a cualquier líder, el estado real antes de D-69 — según su propia decisión, D-69 se aplica después de la salida en TRU.
 - [ ] Verlo con clics en localhost con datos reales: proponer un alta, confirmar que la persona no puede operar todavía, aprobarla y confirmar que sí puede.
 
@@ -245,9 +245,9 @@ Detalle, decisiones y lo descartado en [docs/adr/0157-alta-de-colaborador-requie
 Sobre la maqueta de Felipe. Detalle, decisiones y lo descartado en [docs/adr/0148-colaboradores-suspender-mueve-la-fila-y-el-historial-solo-se-agrega.md](adr/0148-colaboradores-suspender-mueve-la-fila-y-el-historial-solo-se-agrega.md).
 - [x] Pantalla: 4 tarjetas reales, pestañas Activos / Suspendidos / Inactivas en Dynamic / Actividad, buscador y filtro por rol, «Tú», menú «⋯» (Cambiar ubicación · Suspender · Quitar), alta de varias personas a la vez. Tipos, lint y 2357 pruebas en verde; visto en el navegador con datos de ejemplo.
 - [x] Migración `20260922110000_colaboradores_suspender_y_actividad.sql`: probada con 67 comprobaciones en PGlite (no Docker).
-- [ ] **Pegar `20260922110000` en producción ANTES de fusionar la web** (con ok de Felipe; entera y de una vez, es re-ejecutable). Sin ella `/colaboradores` falla.
+- [x] `20260922110000` está en producción: `colaboradores_suspendidos` y `colaboradores_historial` aparecen en el volcado del 2026-09-23.
 - [ ] Correr la prueba contra el Postgres local con Docker cuando haya (las 67 comprobaciones de PGlite no reemplazan al contenedor).
-- [ ] Refrescar el volcado de producción (`generado/COMO-REFRESCAR.md`) para que `colaboradores_suspendidos` y `colaboradores_historial` entren al diccionario.
+- [x] Hecho: volcado refrescado el 2026-09-23 (94 tablas, 300 funciones, copia idéntica a producción verificada por huella).
 - [ ] Verlo con clics en localhost con datos reales: suspender a una persona de prueba y comprobar que **de verdad** no puede entrar (probar el ingreso con su cuenta).
 - [ ] Decisión abierta: si una persona suspendida tiene una caja abierta a su nombre, hoy no se cierra sola.
 - [ ] Fuera de esta tanda: la decisión de cuáles de los 9 líderes deben serlo (`docs/pantallas/colaboradores.md`, sección 10); hoy solo se cambia entrando a la base.
@@ -356,7 +356,7 @@ demo: `docs/maquetas/separaciones-2026-09/demo.html`.
 - [ ] **Llevar el buscador con foto al Punto de venta** si Felipe lo pide (hoy decidió solo Apartados); la pieza a mover es la de `ApartarVista` + `FotoPrenda`.
 - [ ] **En Caja**, la tarjeta «En custodia» (hoy vive en Apartados → Todos) y `anticipo` en `NOMBRE_METODO`/historial de ventas.
 - [ ] **Existencias** sigue ofreciendo «Apartar» de ADR-0141 (sin adelanto): decidir si se quita o se deja como reserva rápida.
-- [ ] Ya en producción: refrescar el volcado y regenerar el diccionario (`pnpm datos:generar:produccion`) para que entren las 4 tablas nuevas.
+- [x] Hecho: volcado refrescado el 2026-09-23 (94 tablas, 300 funciones, copia idéntica a producción verificada por huella); las 4 tablas de separaciones son de Colibrí en el aviario.
 
 ## 🎯 Apartar stock — Fase 1: reserva física con clienta y fecha límite (2026-09-20, ADR-0141) — en producción desde el 2026-09-22
 
@@ -444,8 +444,7 @@ con reimpresión de la boleta, en ticket y en A4 con el diseño de CAYLA. Spec y
       fusionar #195/#196; verificada el 2026-09-19: columna y candado presentes, una sola `registrar_venta`
       con el cuerpo idéntico al del repo, `EXECUTE` solo para `authenticated`/`postgres`). Para sus ventas
       anteriores `recibido` queda vacío y el ticket sale sin línea de vuelto.
-- [ ] **Refrescar el volcado de producción** para que `docs/datos/generado/` incluya `venta_pagos.recibido`
-      (`generado/COMO-REFRESCAR.md`, luego `pnpm datos:generar:produccion`; nunca `pnpm datos:generar` a secas).
+- [x] Hecho: volcado refrescado el 2026-09-23 (94 tablas, 300 funciones, copia idéntica a producción verificada por huella); `venta_pagos.recibido` ya está en el diccionario.
 - [ ] **Confirmar con la primera venta en efectivo**: que `venta_pagos.recibido` se guarde y el detalle de esa
       venta muestre «Recibió … · Vuelto …» (al 2026-09-19 aún no había ninguna con `recibido`).
 - [ ] **Probar la impresión de verdad**: la térmica y una impresora A4, con el diálogo real. Solo se
