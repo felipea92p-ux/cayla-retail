@@ -7,6 +7,7 @@ import type { Ubicacion } from "@/lib/ubicaciones";
 import type { RolVista } from "@/lib/roles-reglas";
 import type { ResultadoClave } from "@/lib/terminales-alta";
 import type { EntradaTerminal } from "@/lib/terminales-reglas";
+import type { Firma } from "@/lib/responsable-reglas";
 import { cambiarClaveTerminal, crearTerminal } from "@/app/actions/terminales";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
@@ -20,13 +21,14 @@ import { CambiarClaveModal, NuevaTerminalModal } from "@/components/TerminalesMo
 // siguen en `ColaboradoresPanel` (sus modales ya existían) y llegan como `onAlternar` / `onCambiarRol`.
 
 export type AccionesTerminales = {
-  crear: (entrada: EntradaTerminal) => Promise<ResultadoClave>;
-  cambiarClave: (terminalId: string) => Promise<ResultadoClave>;
+  /** `firma`: la del combo «Responsable» del modal (ADR-0161 act. d): queda como quien creó / cambió la clave. */
+  crear: (entrada: EntradaTerminal, firma: Firma | null) => Promise<ResultadoClave>;
+  cambiarClave: (terminalId: string, firma: Firma | null) => Promise<ResultadoClave>;
 };
 
 export const accionesTerminalesServidor: AccionesTerminales = {
-  crear: (entrada) => crearTerminal(entrada),
-  cambiarClave: (terminalId) => cambiarClaveTerminal({ terminalId }),
+  crear: (entrada, firma) => crearTerminal(entrada, firma),
+  cambiarClave: (terminalId, firma) => cambiarClaveTerminal({ terminalId }, firma),
 };
 
 type Modal = { tipo: "nueva" } | { tipo: "clave"; terminal: Terminal };
@@ -126,9 +128,10 @@ export function TerminalesPanel({
         <CambiarClaveModal
           terminal={modal.terminal}
           cambiar={acciones.cambiarClave}
-          onCambiada={(nombre) => {
+          onCambiada={(nombre, aviso) => {
             setRefrescarAlCerrar(true);
             avisar.exito("Clave cambiada", { detalle: `La clave anterior de ${nombre} ya no sirve.` });
+            if (aviso) avisar.aviso("No quedó anotado quién", { detalle: aviso });
           }}
           onClose={cerrar}
         />

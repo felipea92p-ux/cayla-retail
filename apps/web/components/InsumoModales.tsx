@@ -30,6 +30,8 @@ export function NuevoInsumoModal({ onClose }: { onClose: () => void }) {
   const [minimo, setMinimo] = useState("");
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
+  // Responsable (ADR-0161 act. d): el alta queda en `insumos.creado_por` (lo pone un disparador leyendo el combo).
+  const responsable = useResponsable();
 
   function cambiarTipo(t: TipoInsumo) {
     setTipo(t);
@@ -47,19 +49,27 @@ export function NuevoInsumoModal({ onClose }: { onClose: () => void }) {
       avisar.error("La merma va de 0 % a menos de 50 %.");
       return;
     }
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setCargando(true);
-    const { error } = await createClient()
-      .from("insumos")
-      .insert({
-        codigo: codigo.trim().toUpperCase(),
-        nombre: nombre.trim(),
-        tipo,
-        unidad_medida: unidad,
-        merma_pct: mermaPct,
-        stock_minimo: minimo.trim() === "" ? null : Number(minimo),
-        nota: nota.trim() || null,
-      });
+    const { error } = await firmar(
+      createClient()
+        .from("insumos")
+        .insert({
+          codigo: codigo.trim().toUpperCase(),
+          nombre: nombre.trim(),
+          tipo,
+          unidad_medida: unidad,
+          merma_pct: mermaPct,
+          stock_minimo: minimo.trim() === "" ? null : Number(minimo),
+          nota: nota.trim() || null,
+        }),
+      responsable.firma(),
+    );
     setCargando(false);
+    responsable.despues(error);
     if (error) {
       // 23505 = código repetido: la base lo impide con su restricción única.
       avisar.error(error.code === "23505" ? "Ya hay un insumo con ese código." : traducirError(error, "crear el insumo"));
@@ -105,7 +115,8 @@ export function NuevoInsumoModal({ onClose }: { onClose: () => void }) {
           <CampoTexto etiqueta="Merma al cortar (%)" pie="Lo que se pierde de cada corte" inputMode="decimal" placeholder="0" value={merma} onChange={(e) => setMerma(e.target.value)} />
         </div>
         <CampoTexto etiqueta="Nota" placeholder="Ancho, composición, proveedor habitual…" value={nota} onChange={(e) => setNota(e.target.value)} />
-        <Boton peso="primario" type="submit" cargando={cargando} className="w-full">
+        <ComboResponsable control={responsable} deshabilitado={cargando} />
+        <Boton peso="primario" type="submit" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
           {cargando ? "Guardando…" : "Agregar al catálogo"}
         </Boton>
       </form>

@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-23 («Quién» en las acciones que guardaban sin firmar — ADR-0161, actualización d)
+Tras poner el combo en todo, quedaban 8 acciones que guardaban sin anotar a nadie (anular compra o comprobante de producción, etapas de una orden, proveedores de producción, alta de insumos, reactivar, crear y cambiar la clave de una terminal). Felipe pidió el campo «quién»: migración `20260923240000` con columnas `*_por` y una tabla nueva de historial de etapas, y el combo en esas pantallas. 9 pruebas SQL en verde; sin pegar en producción.
+Felipe se lleva: (1) **un historial se guarda en una tabla, no en una columna**: una orden cambia de etapa muchas veces y una columna solo recordaría la última; (2) **lo pasado no se inventa**: las filas viejas quedan con el «quién» vacío; (3) **cuando una acción la ejecuta una llave de servicio** (la clave de una terminal), la base no ve a la persona: hay que anotarla aparte, con la sesión de quien lo pidió.
+
 ## 2026-09-23 («Recibidas recientemente» no cargaba — timeout en listar_recepciones_compras)
 La pestaña caía en «No se pudo cargar»: `listar_recepciones_compras` tardaba 33 s en producción y la API la corta a los 8. Causa: lo asignado y lo faltante de cada comprobante se calculaban con dos subconsultas por fila, sobre TODA la historia (~320 recepciones) antes de cortar a 30, y cada una volvía a preguntar el permiso de tienda fila por fila. Migración `20260924090000`: permiso una vez por tienda, primero la página y después el reparto; mismo resultado fila por fila (líder y colaboradora, probado en producción en transacción revertida) y 0,8 s. Por pegar en producción.
 Felipe se lleva: (1) **una pantalla que anda con 50 envíos puede caerse con 300**: el costo crecía con la historia, no con lo que se muestra; (2) **primero se corta la página, después se calcula lo caro**; (3) **el permiso se pregunta una vez, no por fila**.

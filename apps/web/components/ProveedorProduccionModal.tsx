@@ -7,6 +7,9 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 import { normalizarCci, normalizarCelular } from "@/lib/proveedores-reglas";
 import {
   BANCOS_COMUNES,
@@ -53,6 +56,9 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
   const [titular, setTitular] = useState(cuentasIniciales.titularCuenta);
   const [cargando, setCargando] = useState(false);
   const [archivando, setArchivando] = useState(false);
+  // Responsable (ADR-0161 act. d): crear, editar, archivar y reactivar quedan en `creado_por`/`modificado_por` con quien
+  // se elige en el combo. Uno solo para los dos botones del pie.
+  const responsable = useResponsable();
 
   const errores = validarCuentas({ cci, celularBilletera: celular, billeteras, titularCuenta: titular });
   const rucDigitos = ruc.replace(/\D/g, "");
@@ -71,8 +77,12 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
     const primero = primerErrorCuentas(errores);
     if (errorRuc || errorPlazo || primero) return avisar.error(errorRuc ?? errorPlazo ?? primero?.mensaje ?? "Revisa los datos.");
 
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setCargando(true);
-    const { error } = await createClient().rpc("guardar_proveedor_produccion", {
+    const { error } = await firmar(createClient().rpc("guardar_proveedor_produccion", {
       // p_proveedor_id no tiene DEFAULT en Postgres (hay que pasarlo siempre), pero sí acepta
       // NULL como valor explícito ("id nulo = crear", ver la migración) — el tipo generado no
       // lo refleja porque el generador solo agrega `| null` a parámetros con DEFAULT.
@@ -90,8 +100,9 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
       p_celular_billetera: normalizarCelular(celular) || undefined,
       p_billeteras: billeteras.length > 0 ? billeteras : undefined,
       p_titular_cuenta: titular.trim() || undefined,
-    });
+    }), responsable.firma());
     setCargando(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, esAlta ? "crear el proveedor" : "guardar el proveedor"));
       return;
@@ -103,9 +114,17 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
 
   async function cambiarEstado() {
     if (!proveedor) return;
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setArchivando(true);
-    const { error } = await createClient().rpc("cambiar_estado_proveedor_produccion", { p_proveedor_id: proveedor.id, p_activo: !proveedor.activo });
+    const { error } = await firmar(
+      createClient().rpc("cambiar_estado_proveedor_produccion", { p_proveedor_id: proveedor.id, p_activo: !proveedor.activo }),
+      responsable.firma(),
+    );
     setArchivando(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, proveedor.activo ? "archivar el proveedor" : "reactivar el proveedor"));
       return;
@@ -225,15 +244,17 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
           />
         </div>
 
+        <ComboResponsable control={responsable} deshabilitado={cargando || archivando} />
+
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
           {proveedor ? (
-            <Boton peso="discreto" type="button" cargando={archivando} onClick={cambiarEstado}>
+            <Boton peso="discreto" type="button" cargando={archivando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={cambiarEstado}>
               {proveedor.activo ? "Archivar proveedor" : "Reactivar proveedor"}
             </Boton>
           ) : (
             <span />
           )}
-          <Boton peso="primario" type="submit" cargando={cargando} className="sm:min-w-44">
+          <Boton peso="primario" type="submit" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="sm:min-w-44">
             {cargando ? "Guardando…" : esAlta ? "Agregar al directorio" : "Guardar cambios"}
           </Boton>
         </div>

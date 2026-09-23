@@ -8,11 +8,16 @@ import { codigoDeTienda, NOMBRE_MAX, nombreOcupado, nombrePropuesto, rolesParaTe
 import type { RolVista } from "@/lib/roles-reglas";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { avisar } from "@/components/ui/Avisos";
+import type { Firma } from "@/lib/responsable-reglas";
 
 // Crear una terminal y cambiarle la clave desde Colaboradores ▸ Terminales (Felipe, 2026-09-22). Los dos terminan en el
 // mismo segundo paso: el correo y la clave, UNA sola vez. Solo un líder llega aquí (la página exige el permiso y la
 // Server Action lo vuelve a comprobar con la base antes de tocar la llave de servicio). Movimiento: el de <Modal> y nada
 // más (ADR-0136); el cambio de paso vuelve a entrar en cascada porque el contenido se monta de nuevo.
+// Los dos llevan el combo «Responsable» encima del botón (ADR-0161 act. d): quién creó la terminal o cambió su clave.
 
 type Cerrar = () => void;
 
@@ -73,7 +78,7 @@ export function NuevaTerminalModal({
   /** `null` = no se pudieron leer los roles: no se puede crear (el rol es obligatorio). */
   roles: RolVista[] | null;
   terminales: Terminal[];
-  crear: (entrada: EntradaTerminal) => Promise<ResultadoClave>;
+  crear: (entrada: EntradaTerminal, firma: Firma | null) => Promise<ResultadoClave>;
   onCreada: (nombre: string) => void;
   onClose: () => void;
 }) {
@@ -86,6 +91,7 @@ export function NuevaTerminalModal({
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<Extract<ResultadoClave, { ok: true }> | null>(null);
+  const responsable = useResponsable();
 
   const activas = terminales.filter((t) => t.activo);
   const repetido = ubicacionId !== "" && nombre.trim() !== "" && nombreOcupado(activas, ubicacionId, nombre);
@@ -102,10 +108,15 @@ export function NuevaTerminalModal({
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
     if (enviando || !ubicacionId || !rolId || !nombre.trim() || repetido) return;
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setEnviando(true);
     setError(null);
-    const r = await crear({ ubicacionId, nombre, rolId });
+    const r = await crear({ ubicacionId, nombre, rolId }, responsable.firma());
     setEnviando(false);
+    responsable.despues(r.ok ? null : (r.causa ?? { message: r.error }));
     if (!r.ok) {
       setError(r.error);
       return;
@@ -159,6 +170,7 @@ export function NuevaTerminalModal({
             marcador={roles ? "Elige un rol" : "No se pudieron leer los roles"}
             pie="Decide qué módulos ve. Se cambia cuando quieras con «Cambiar rol»."
           />
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
           {error && (
             <p role="alert" className="text-sm text-rojo">
               {error}
@@ -173,7 +185,8 @@ export function NuevaTerminalModal({
               peso="primario"
               className="flex-1"
               cargando={enviando}
-              disabled={!ubicacionId || !rolId || !nombre.trim() || repetido || !roles}
+              disabled={!ubicacionId || !rolId || !nombre.trim() || repetido || !roles || !responsable.listo}
+              title={responsable.motivo ?? undefined}
             >
               {enviando ? "Creando…" : "Crear terminal"}
             </Boton>
@@ -192,26 +205,33 @@ export function CambiarClaveModal({
   onClose,
 }: {
   terminal: Pick<Terminal, "id" | "nombre" | "activo">;
-  cambiar: (terminalId: string) => Promise<ResultadoClave>;
-  onCambiada: (nombre: string) => void;
+  cambiar: (terminalId: string, firma: Firma | null) => Promise<ResultadoClave>;
+  /** `aviso`: la clave cambió pero no quedó anotado quién (ver `ResultadoClave`). */
+  onCambiada: (nombre: string, aviso?: string) => void;
   onClose: () => void;
 }) {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<Extract<ResultadoClave, { ok: true }> | null>(null);
+  const responsable = useResponsable();
 
   async function confirmar() {
     if (enviando) return;
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setEnviando(true);
     setError(null);
-    const r = await cambiar(terminal.id);
+    const r = await cambiar(terminal.id, responsable.firma());
     setEnviando(false);
+    responsable.despues(r.ok ? null : (r.causa ?? { message: r.error }));
     if (!r.ok) {
       setError(r.error);
       return;
     }
     setResultado(r);
-    onCambiada(r.nombre);
+    onCambiada(r.nombre, r.aviso);
   }
 
   return (
@@ -230,6 +250,7 @@ export function CambiarClaveModal({
             Se le pone una clave nueva y la de ahora deja de servir: el aparato tendrá que volver a iniciar sesión con la nueva.
             {terminal.activo ? "" : " Está desactivada: reactívala para poder usarla."}
           </p>
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
           {error && (
             <p role="alert" className="text-sm text-rojo">
               {error}
@@ -239,7 +260,15 @@ export function CambiarClaveModal({
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton type="button" peso="primario" className="flex-1" cargando={enviando} onClick={confirmar}>
+            <Boton
+              type="button"
+              peso="primario"
+              className="flex-1"
+              cargando={enviando}
+              disabled={!responsable.listo}
+              title={responsable.motivo ?? undefined}
+              onClick={confirmar}
+            >
               {enviando ? "Cambiando…" : "Cambiar clave"}
             </Boton>
           </div>

@@ -17,6 +17,9 @@ import { MatrizOrdenTabla } from "@/components/MatrizOrden";
 import { ChipEntrega, semaforoDeOrden } from "@/components/OrdenTarjeta";
 import { OrdenCierre } from "@/components/OrdenCierre";
 import { OrdenInsumos } from "@/components/OrdenInsumos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import {
   desgloseCosto,
@@ -70,6 +73,9 @@ export function OrdenPanel({
   const [cerrando, setCerrando] = useState(false); // el bloque de cierre por talla está abierto
   const [ocupada, setOcupada] = useState(false);
   const pedirSalida = useCallback(() => setSaliendo(true), []);
+  // Responsable (ADR-0161 act. d): cada cambio de etapa queda en `produccion_etapas_historial` con quien se elige aquí.
+  // Un solo combo para todos los botones de etapa: son clics rápidos y pedir a quién en cada uno sería fricción.
+  const responsable = useResponsable();
   useEffect(() => {
     if (!saliendo) return;
     const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -88,13 +94,23 @@ export function OrdenPanel({
   const sem = semaforoDeOrden(orden);
 
   async function fijarEtapa(clave: string, nuevo: EstadoEtapa, anterior: EstadoEtapa, mensaje: string) {
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
+    // «Deshacer» firma con la misma persona que hizo el cambio: el combo pudo volver a vacío entre tanto.
+    const firma = responsable.firma();
     setOcupada(true);
-    const { error } = await createClient().rpc("set_etapa_produccion", {
-      p_produccion_id: orden.id,
-      p_etapa: clave,
-      p_estado: nuevo,
-    });
+    const { error } = await firmar(
+      createClient().rpc("set_etapa_produccion", {
+        p_produccion_id: orden.id,
+        p_etapa: clave,
+        p_estado: nuevo,
+      }),
+      firma,
+    );
     setOcupada(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "cambiar la etapa"));
       return;
@@ -104,11 +120,14 @@ export function OrdenPanel({
       accion: {
         texto: "Deshacer",
         onClick: async () => {
-          const { error: e2 } = await createClient().rpc("set_etapa_produccion", {
-            p_produccion_id: orden.id,
-            p_etapa: clave,
-            p_estado: anterior,
-          });
+          const { error: e2 } = await firmar(
+            createClient().rpc("set_etapa_produccion", {
+              p_produccion_id: orden.id,
+              p_etapa: clave,
+              p_estado: anterior,
+            }),
+            firma,
+          );
           if (e2) avisar.error(traducirError(e2, "deshacer el cambio de etapa"));
           router.refresh();
         },
@@ -155,6 +174,7 @@ export function OrdenPanel({
             {orden.estado !== "terminada" && (
               <section aria-label="Etapas">
                 <h3 className="label-cayla mb-3 text-[11px] text-tinta/65">Etapas</h3>
+                {abierta && <ComboResponsable control={responsable} deshabilitado={ocupada} className="mb-4" />}
                 <ol className="grid grid-cols-3">
                   {etapas.map((e, i) => {
                     const estado = orden.etapas[e.clave] ?? "pendiente";
@@ -213,7 +233,7 @@ export function OrdenPanel({
                           <div className="mt-2.5 flex flex-col items-center gap-1.5">
                             <Boton
                               peso="primario"
-                              disabled={ocupada}
+                              disabled={ocupada || !responsable.listo}
                               className="!px-3 !py-2"
                               onClick={() => fijarEtapa(e.clave, "hecho", estado, `${e.etiqueta} hecho`)}
                             >
@@ -221,7 +241,7 @@ export function OrdenPanel({
                             </Boton>
                             <Boton
                               peso="discreto"
-                              disabled={ocupada}
+                              disabled={ocupada || !responsable.listo}
                               className="!px-3 !py-2"
                               onClick={() =>
                                 estado === "tercerizado"
@@ -236,7 +256,7 @@ export function OrdenPanel({
                         {abierta && estado === "hecho" && (
                           <button
                             type="button"
-                            disabled={ocupada}
+                            disabled={ocupada || !responsable.listo}
                             onClick={() => fijarEtapa(e.clave, "pendiente", estado, `${e.etiqueta} reabierta`)}
                             className="mt-1.5 text-[11.5px] text-tinta/65 underline underline-offset-2 outline-none hover:text-tinta focus-visible:text-tinta disabled:opacity-50"
                           >
