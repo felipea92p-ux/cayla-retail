@@ -52,8 +52,9 @@ export function EntregarVista({
   const [enviando, setEnviando] = useState(false);
   const [entregado, setEntregado] = useState<{ apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number } | null>(null);
   const token = useRef<string>(crypto.randomUUID());
-  // Entregar guarda en la tienda (cobra el saldo y cierra la venta): pide Responsable (ADR-0161), vacío en cada entrega.
-  const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
+  // Entregar guarda en la tienda (cobra el saldo y cierra la venta): pide Responsable (ADR-0161), vacío en cada entrega
+  // (módulo Punto de venta: no propone a quien inició sesión).
+  const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta }, { proponerSesion: false });
 
   /** Cambiar de clienta es otra operación: el combo vuelve a vacío. */
   function elegir(id: string | null) {

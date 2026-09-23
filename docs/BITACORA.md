@@ -38,6 +38,11 @@ Felipe aprobó el spike de UX y se construyó: las 7 pestañas de Colaboradores 
 Felipe se lleva: (1) **una pestaña con 0 es ruido; un aviso que aparece solo cuando hay algo es una tarea**; (2) **los estados de una lista son filtros, no lugares**: Pendientes y Suspendidos son la misma gente en otro momento; (3) la vista previa usa el mismo cálculo que el menú real, por eso no puede mentir.
 Sin resolver: asignar a varias cuentas de una vez (el spike lo mostraba; la RPC es de a una) y verlo con clics reales contra la base.
 
+## 2026-09-22 (Combo «Responsable»: propone a quien inició sesión — actualización del ADR-0161)
+Felipe pidió un texto más amable y que el combo venga con la persona de la sesión. Queda «¿Quién está atendiendo?» en todos los módulos; con una persona el combo viene elegido con ella (si está de turno) y vuelve a ella después de guardar; en una terminal y en el módulo Punto de venta (venta y apartados) sigue vacío. Sin migración: `fn_actor_persona_id(false)` ya devolvía el id propio (probado en producción, 5 de 5 personas, y la terminal falla como se espera).
+Felipe se lleva: (1) **proponer no es firmar**: la base sigue exigiendo que el responsable esté presente, así que si quien inició sesión no marcó entrada, el combo viene vacío; (2) **en la venta no se propone** porque el elegido queda como asesora de la venta, y quien abrió sesión en el mostrador no siempre es quien atiende.
+Sin resolver: verlo con clics con una cuenta de persona y una terminal.
+
 ## 2026-09-22 (La ubicación también entre líderes)
 Felipe pegó en producción el cambio de rol entre líderes (se verificó con la base: una sola firma de `asignar_rol`, aunque la primera versión) y pidió lo mismo para la ubicación. A un líder se le puede poner ubicación desde Colaboradores; para él es la tienda donde arranca su sesión, no un límite. Probado en local con `pruebas:roles` (39/39).
 Felipe se lleva: **los 9 líderes arrancaban en la misma tienda sin que nadie lo decidiera**: su sede de Dynamic («Central», «Oficina TRU») no está enlazada a ninguna tienda de retail, y el sistema caía en «la primera tienda creada». Poner la ubicación lo vuelve una decisión.

@@ -9,6 +9,7 @@ import {
   listaResponsable,
   mensajeErrorResponsable,
   motivoSinResponsable,
+  responsableInicial,
   responsableVigente,
   type FilaDeTurno,
 } from "./responsable-reglas";
@@ -65,13 +66,21 @@ describe("estadoCombo y su motivo", () => {
     const soloPausa = listaResponsable([fila("bea", "en_pausa")]);
     expect(estadoCombo({ cargo: true, fallo: false, lista: soloPausa, elegidoId: null })).toBe("nadie");
   });
-  it("con una sola presente igual falta elegir: no se preselecciona", () => {
+  it("con una sola presente igual falta elegir: nunca se elige sola por ser la única", () => {
     expect(estadoCombo({ cargo: true, fallo: false, lista: conAna, elegidoId: null })).toBe("falta");
     expect(estadoCombo({ cargo: true, fallo: false, lista: conAna, elegidoId: "ana" })).toBe("listo");
   });
+  it("sin tocar el combo vale el propuesto (la persona de la sesión); tocarlo manda, y en terminal/POS no hay propuesto", () => {
+    expect(responsableInicial(undefined, "ana")).toBe("ana");
+    expect(responsableInicial("bea", "ana")).toBe("bea");
+    expect(responsableInicial(undefined, null)).toBeNull();
+    // Propuesta pero sin marcar entrada: no se firma con ella, falta elegir.
+    expect(responsableVigente(listaResponsable([fila("bea", "presente")]), responsableInicial(undefined, "ana"))).toBeNull();
+    expect(estadoCombo({ cargo: true, fallo: false, lista: conAna, elegidoId: responsableInicial(undefined, "ana") })).toBe("listo");
+  });
   it("solo «listo» deja de bloquear", () => {
     expect(motivoSinResponsable("listo", "Tienda TRU")).toBeNull();
-    expect(motivoSinResponsable("falta", "Tienda TRU")).toBe("Elige quién hace esta operación.");
+    expect(motivoSinResponsable("falta", "Tienda TRU")).toBe("Elige quién está atendiendo.");
     expect(motivoSinResponsable("nadie", "Tienda TRU")).toMatch(/Nadie de turno en Tienda TRU/);
     expect(motivoSinResponsable("sin_lectura", "Tienda TRU")).toMatch(/Actualizar lista/);
     expect(motivoSinResponsable("cargando", "Tienda TRU")).not.toBeNull();
