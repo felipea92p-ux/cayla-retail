@@ -142,6 +142,7 @@ export function RecepcionEnvio({
   ubicacionInicialId,
   compraInicialId,
   esLider,
+  verMontos = esLider,
   comprasConNotaFaltante,
   trasladosPorUbicacion,
   resumen,
@@ -154,6 +155,9 @@ export function RecepcionEnvio({
   ubicacionInicialId: string;
   compraInicialId: string | null;
   esLider: boolean;
+  /** Los montos de cada comprobante (ADR-0161 P2): quien ve el dinero de Compras, no solo el líder. Las DECISIONES sobre lo que
+   *  faltó siguen siendo `esLider`. */
+  verMontos?: boolean;
   /** Comprobantes que ya tienen su nota por faltante (es una sola por comprobante): esos no se avisan. */
   comprasConNotaFaltante: string[];
   /** Traslados en tránsito que vienen hacia cada ubicación (el «envío interno»). */
@@ -937,7 +941,7 @@ export function RecepcionEnvio({
                 </span>
                 <span className="shrink-0 text-right">
                   <Chip tono={llegada.tono}>{llegada.texto}</Chip>
-                  {esLider && (
+                  {verMontos && (
                     <span className="mt-1 block text-[13px] tabular-nums text-tinta">
                       {enMedio ? soles(valorPorLlegar(c)) : soles(c.total)}
                       {enMedio && <small className="block text-[11px] text-tinta/55">por llegar</small>}

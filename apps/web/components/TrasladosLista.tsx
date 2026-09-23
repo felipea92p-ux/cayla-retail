@@ -10,15 +10,14 @@ import { TrasladoMiniaturas } from "@/components/TrasladoMiniaturas";
 import { accionDeTraslado, diaHora, direccionTraslado, resumenPrendas, type SituacionTraslado } from "@/lib/traslados-reglas";
 import type { TrasladoResumen } from "@/lib/traslados";
 
-// La tabla de traslados (rediseño 2026-09-18). Tres acomodos de las MISMAS celdas,
+// La tabla de traslados (rediseño 2026-09-18). Dos acomodos de las MISMAS celdas,
 // por `col-start`/`row-start`, en vez de una tabla que se corta o pide scroll:
-//  · desde 1400 px de ventana: seis columnas (con el lateral quedan ~1040 px de
-//    contenido). Desde el rediseño del 2026-09-22 la insignia y el botón van en minúscula
-//    («Por confirmar», «Confirmar recepción») y caben en 10 rem cada uno; lo que se ganó
-//    va a «Traslado», que ahora dice la hora de salida («Salió 21 sep · 15:30»).
-//  · de 1280 a 1399: dos líneas por fila (los dos cortes son variantes `min-[…px]:` del mismo tipo a propósito:
-//    con `xl:` mezclado el orden de la hoja de estilos hacía ganar al de 1280 también a 1440 px) (Traslado+Ruta · Contenido · Llegada+Estado · Acción).
-//  · por debajo: una tarjeta de cuatro líneas.
+//  · desde 1280 px de ventana: seis columnas, como la tabla de la guía oficial (con el lateral de
+//    17 rem y el relleno quedan ~928 px; las seis piden ~920). La insignia y el botón van en minúscula
+//    («Por confirmar», «Confirmar recepción») y caben en ~9.5 rem cada uno.
+//  · por debajo: una tarjeta de cuatro líneas, con su botón a la mano.
+// Hasta el 2026-09-22 había un tercer acomodo de dos líneas entre 1280 y 1399 px; Felipe eligió la
+// tabla de la guía en la demo (docs/maquetas/traslados-cifras-filtros-2026-09/, ADR-0175) y se fue.
 // Lo que hace cada columna:
 //  · Traslado  el número que se dice por WhatsApp + cuándo salió.
 //  · Ruta      de dónde a dónde, y si es entrante o saliente para esta sede.
@@ -31,27 +30,26 @@ import type { TrasladoResumen } from "@/lib/traslados";
 // notas y prendas recortadas y no dejaba seleccionar el texto de la fila. Para teclado y lectores de
 // pantalla siguen estando el enlace del número y el botón de la acción.
 const BASE = "grid-cols-[minmax(0,1fr)_auto]";
-const PLANTILLA_MEDIA = "min-[1280px]:grid-cols-[minmax(8.5rem,1fr)_minmax(11rem,1.4fr)_12rem_11.75rem]";
-const PLANTILLA = "min-[1400px]:grid-cols-[8.5rem_minmax(8rem,0.9fr)_minmax(12rem,1.3fr)_minmax(10.25rem,1fr)_10rem_10.5rem]";
+const PLANTILLA = "min-[1280px]:grid-cols-[7.5rem_minmax(6rem,0.8fr)_minmax(11rem,1.4fr)_minmax(7.5rem,0.9fr)_9.5rem_9.75rem]";
 
-// Desde 1400 px (seis columnas) todo se centra menos «Traslado», la identidad de la fila — el mismo criterio de
+// Desde 1280 px (seis columnas) todo se centra menos «Traslado», la identidad de la fila — el mismo criterio de
 // Existencias y Movimientos. Cada celda pasa a rejilla con `justify-items-center` para que sus bloques (texto,
-// miniaturas, chip) se centren sin tocar los componentes que los dibujan. Por debajo de 1400 px la fila conserva
-// sus acomodos de dos líneas y de tarjeta, alineados a la izquierda.
+// miniaturas, chip) se centren sin tocar los componentes que los dibujan. Por debajo de 1280 px la fila conserva
+// su acomodo de tarjeta, alineados a la izquierda.
 // `[&>*]:max-w-full`: un renglón de una sola línea con «…» (`truncate`) centrado desborda por los DOS lados si no
 // se le acota el ancho a la celda; con el tope se recorta con «…» como antes.
-const CENTRO = " min-[1400px]:grid min-[1400px]:justify-items-center min-[1400px]:text-center min-[1400px]:[&>*]:max-w-full";
+const CENTRO = " min-[1280px]:grid min-[1280px]:justify-items-center min-[1280px]:text-center min-[1280px]:[&>*]:max-w-full";
 
 const CELDA = {
-  traslado: "col-start-1 row-start-1 min-w-0 min-[1280px]:col-start-1 min-[1280px]:row-start-1 min-[1400px]:col-auto min-[1400px]:row-auto",
+  traslado: "col-start-1 row-start-1 min-w-0 min-[1280px]:col-auto min-[1280px]:row-auto",
   estado:
-    "col-start-2 row-start-1 justify-self-end min-[1280px]:col-start-3 min-[1280px]:row-start-2 min-[1280px]:justify-self-start min-[1400px]:col-auto min-[1400px]:row-auto min-[1400px]:justify-self-auto" + CENTRO,
-  ruta: "col-span-2 row-start-2 min-w-0 min-[1280px]:col-span-1 min-[1280px]:col-start-1 min-[1280px]:row-start-2 min-[1400px]:col-auto min-[1400px]:row-auto" + CENTRO,
+    "col-start-2 row-start-1 justify-self-end min-[1280px]:col-auto min-[1280px]:row-auto min-[1280px]:justify-self-auto" + CENTRO,
+  ruta: "col-span-2 row-start-2 min-w-0 min-[1280px]:col-auto min-[1280px]:row-auto" + CENTRO,
   contenido:
-    "col-span-2 row-start-3 min-w-0 min-[1280px]:col-span-1 min-[1280px]:col-start-2 min-[1280px]:row-span-2 min-[1280px]:row-start-1 min-[1400px]:col-auto min-[1400px]:row-auto" + CENTRO,
-  llegada: "col-start-1 row-start-4 min-w-0 min-[1280px]:col-start-3 min-[1280px]:row-start-1 min-[1400px]:col-auto min-[1400px]:row-auto" + CENTRO,
+    "col-span-2 row-start-3 min-w-0 min-[1280px]:col-auto min-[1280px]:row-auto" + CENTRO,
+  llegada: "col-start-1 row-start-4 min-w-0 min-[1280px]:col-auto min-[1280px]:row-auto" + CENTRO,
   accion:
-    "col-start-2 row-start-4 justify-self-end min-[1280px]:col-start-4 min-[1280px]:row-span-2 min-[1280px]:row-start-1 min-[1280px]:self-center min-[1400px]:col-auto min-[1400px]:row-auto min-[1400px]:justify-self-center",
+    "col-start-2 row-start-4 justify-self-end min-[1280px]:col-auto min-[1280px]:row-auto min-[1280px]:justify-self-center",
 };
 
 const FOCO = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo";
@@ -139,7 +137,7 @@ export function TrasladosLista({
   return (
     <div className="overflow-x-auto">
       <div role="table" aria-label="Traslados">
-        <div role="row" className={`encabezado-tabla-cayla hidden gap-x-3 px-5 py-2 min-[1400px]:grid ${PLANTILLA}`}>
+        <div role="row" className={`encabezado-tabla-cayla hidden gap-x-3 px-5 py-2 min-[1280px]:grid ${PLANTILLA}`}>
           {COLUMNAS.map((c) => (
             <span key={c.titulo} role="columnheader" className={`${TABLA.titulo} whitespace-nowrap ${c.alinear === "centro" ? "text-center" : ""}`}>
               {c.titulo}
@@ -156,7 +154,7 @@ export function TrasladosLista({
                 key={t.id}
                 role="row"
                 onClick={(e) => irAlDetalle(e, t.id)}
-                className={`grid ${BASE} ${PLANTILLA_MEDIA} ${PLANTILLA} fila-cayla cursor-pointer gap-x-3 gap-y-2 px-5 py-3 transition-colors min-[1280px]:items-center min-[1280px]:gap-y-1 ${fondo(s)}`}
+                className={`grid ${BASE} ${PLANTILLA} fila-cayla cursor-pointer gap-x-3 gap-y-2 px-5 py-3 transition-colors min-[1280px]:items-center min-[1280px]:gap-y-1 ${fondo(s)}`}
               >
                 <div role="cell" className={CELDA.traslado}>
                   <Link id={`traslado-${t.id}`} href={`/inventario/traslados/${t.id}`} className={`block whitespace-nowrap rounded-sm text-sm font-medium text-tinta ${FOCO}`}>
@@ -189,10 +187,11 @@ export function TrasladosLista({
                   <div className="flex min-w-0 items-center gap-2.5">
                     <TrasladoMiniaturas fotos={t.fotos} colores={t.colores} />
                     <div className="min-w-0 text-left">
-                      <p className="whitespace-nowrap text-sm text-tinta">
-                        <span className="font-medium tabular-nums">{t.unidadesEnviadas.toLocaleString("es-PE")} u.</span>
-                        <span className="text-taupe">
-                          {" "}
+                      {/* «· N variantes» puede bajar de línea (a 1280 px la columna es angosta); nunca se encima con la de al lado. */}
+                      <p className="text-sm text-tinta">
+                        <span className="whitespace-nowrap font-medium tabular-nums">{t.unidadesEnviadas.toLocaleString("es-PE")} u.</span>
+                        {" "}
+                        <span className="whitespace-nowrap text-taupe">
                           · {t.lineas} {t.lineas === 1 ? "variante" : "variantes"}
                         </span>
                       </p>

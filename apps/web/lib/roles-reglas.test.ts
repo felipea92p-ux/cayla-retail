@@ -15,9 +15,12 @@ import {
   menuDelRol,
   modulosPorGrupo,
   motivoParaNoArchivar,
+  motivoParaNoEncender,
+  motivoParaNoGuardar,
   nombreDeCopia,
   pideUbicacion,
   rolesAsignables,
+  rolSoloParaPersonas,
   veModulo,
   type RolVista,
 } from "./roles-reglas";
@@ -141,6 +144,49 @@ describe("archivar, duplicar y asignar", () => {
     expect(pideUbicacion({ esLider: true, ubicacion: "Tienda Arequipa" }, INTEGRANTE)).toBe(false);
     expect(pideUbicacion({ esLider: true, ubicacion: null }, LIDER)).toBe(false);
     expect(pideUbicacion({ esLider: false, ubicacion: null }, INTEGRANTE)).toBe(false);
+  });
+});
+
+// ADR-0161 P6 (Felipe, 2026-09-22; en la base, `fn_exigir_rol_de_terminal`, 20260923140000): Colaboradores y Roles y accesos
+// solo se dan a PERSONAS. Un aparato compartido de mostrador no da ni quita accesos.
+describe("P6 · Colaboradores y Roles y accesos, solo para personas", () => {
+  const GESTOR = rol({ id: "g", nombre: "Gestor", modulos: ["colaboradores", "existencias"] });
+  const ALMACEN = rol({ id: "a", nombre: "Almacén", modulos: ["existencias"] });
+  const TERMINAL = { tipo: "terminal" as const, id: "t1", nombre: "Caja Trujillo", ubicacion: "Tienda Trujillo", rolId: "a", esLider: false, estado: "activo" };
+  const PERSONA = { tipo: "persona" as const, id: "p1", nombre: "Micaela Ríos", ubicacion: "Tienda Trujillo", rolId: "a", esLider: false, estado: "activo" };
+
+  it("un rol con Colaboradores o Roles y accesos es solo para personas; el Líder no cuenta aquí", () => {
+    expect(rolSoloParaPersonas(GESTOR)).toBe(true);
+    expect(rolSoloParaPersonas(rol({ modulos: ["roles"] }))).toBe(true);
+    expect(rolSoloParaPersonas(ALMACEN)).toBe(false);
+    expect(rolSoloParaPersonas(LIDER)).toBe(false);
+  });
+
+  it("a una terminal no se le ofrece un rol así; a una persona, sí", () => {
+    expect(rolesAsignables([GESTOR, ALMACEN], { tipo: "terminal" }).map((r) => r.id)).toEqual(["a"]);
+    expect(rolesAsignables([GESTOR, ALMACEN], { tipo: "persona" }).map((r) => r.id)).toEqual(["g", "a"]);
+  });
+
+  it("al asignar un rol así, las terminales no salen en la lista de cuentas", () => {
+    expect(cuentasAsignables([TERMINAL, PERSONA], GESTOR, null).map((c) => c.id)).toEqual(["p1"]);
+    expect(cuentasAsignables([TERMINAL, PERSONA], rol({ id: "x", modulos: ["vender"] }), null).map((c) => c.id)).toEqual(["t1", "p1"]);
+  });
+
+  it("encenderlos en un rol que tienen terminales se avisa con sus nombres; apagar, o encender otro módulo, no", () => {
+    const motivo = motivoParaNoEncender("colaboradores", ALMACEN.modulos, [TERMINAL, PERSONA]);
+    expect(motivo).toContain("Colaboradores");
+    expect(motivo).toContain("solo se da a personas");
+    expect(motivo).toContain("Caja Trujillo");
+    expect(motivoParaNoEncender("roles", ALMACEN.modulos, [TERMINAL])).toContain("Roles y accesos");
+    expect(motivoParaNoEncender("colaboradores", ["colaboradores"], [TERMINAL])).toBeNull(); // ya estaba: es apagarlo
+    expect(motivoParaNoEncender("facturacion", ALMACEN.modulos, [TERMINAL])).toBeNull();
+    expect(motivoParaNoEncender("colaboradores", ALMACEN.modulos, [PERSONA])).toBeNull();
+  });
+
+  it("al guardar (módulo a módulo, «Encender todo» o la matriz) se frena el primero que no se puede encender", () => {
+    expect(motivoParaNoGuardar(ALMACEN.modulos, [...ALMACEN.modulos, "vender", "colaboradores"], [TERMINAL])).toContain("Colaboradores");
+    expect(motivoParaNoGuardar(ALMACEN.modulos, [...ALMACEN.modulos, "vender"], [TERMINAL])).toBeNull();
+    expect(motivoParaNoGuardar(["colaboradores"], [], [TERMINAL])).toBeNull(); // apagar, siempre
   });
 });
 

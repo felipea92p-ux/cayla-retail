@@ -283,7 +283,7 @@ const PUERTAS = [
   { nombre: "actualizar_categoria_ejes", previo: "", intento: LLAMADA(`select retail.actualizar_categoria_ejes(gen_random_uuid(), '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[])`), mensaje: /Solo un Líder puede editar qué tallas/, pasan: ["admin", "micaela"] },
   // Etiquetas (20260923130000): se abren a quien ve el módulo Etiquetas; ninguna de estas cuentas lo ve.
   { nombre: "etiquetar_variantes (sin el módulo Etiquetas)", previo: "", intento: LLAMADA(`select retail.etiquetar_variantes('[]'::jsonb)`), mensaje: /Etiquetar prendas necesita el módulo Etiquetas/, pasan: [] },
-  { nombre: "actualizar_variantes_etiquetas (sin el módulo Etiquetas)", previo: "", intento: LLAMADA(`select retail.actualizar_variantes_etiquetas('[]'::jsonb)`), mensaje: /Aplicar etiquetas a una prenda necesita el módulo Etiquetas/, pasan: [] },
+  { nombre: "actualizar_variantes_etiquetas (P4: también con Productos o Categorías y atributos)", previo: "", intento: LLAMADA(`select retail.actualizar_variantes_etiquetas('[]'::jsonb)`), mensaje: /Cambiar las etiquetas de una prenda necesita el módulo Productos/, pasan: ["admin", "micaela"] },
   // Lo que NO se abrió y cuyo candado va primero: solo el líder.
   { nombre: "anular_venta", previo: "", intento: LLAMADA(`select retail.anular_venta(gen_random_uuid(), 'x', '[]'::jsonb)`), mensaje: /Solo un líder puede anular una venta/, pasan: [] },
   { nombre: "registrar_serie_comprobante", previo: "", intento: LLAMADA(`select retail.registrar_serie_comprobante(gen_random_uuid(), 'boleta', 'B001', 1)`), mensaje: /Solo un líder puede registrar una serie de comprobantes/, pasan: [] },

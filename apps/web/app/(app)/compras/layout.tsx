@@ -31,8 +31,10 @@ import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 export default async function ComprasLayout({ children, modal }: { children: React.ReactNode; modal: React.ReactNode }) {
   // 20260923130000 (Felipe, 2026-09-22): ya no es solo del líder. Entra quien ve los montos de Compras (su rol ve Facturas
   // de compra, Por pagar o Notas de crédito: `verDineroCompras`); cada pantalla exige además SU módulo (`exigirModulo`).
+  // ADR-0161 P3 (20260923140000): también quien tiene Proveedores, aunque no vea los montos: el directorio y la ficha viven
+  // aquí. Las pantallas de dinero lo siguen pidiendo cada una (su módulo, y el detalle de un comprobante `verDineroCompras`).
   const persona = await requirePersonaActualV2();
-  if (!puede(persona, "verDineroCompras")) redirect("/");
+  if (!puede(persona, "verDineroCompras") && !puede(persona, "editarCuentasProveedor")) redirect("/");
 
   return (
     <div className="space-y-6">

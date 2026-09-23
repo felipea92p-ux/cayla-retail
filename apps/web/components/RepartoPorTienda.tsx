@@ -23,12 +23,15 @@ export function RepartoPorTienda({
   lineas,
   reparto,
   ubicaciones,
+  puedeReasignar = true,
 }: {
   compra: CompraResumen;
   lineas: LineaCompra[];
   reparto: RepartoDeCompra;
   /** Las tiendas activas, en el orden de la app. */
   ubicaciones: { id: string; nombre: string }[];
+  /** Reasignar es del módulo Facturas de compra (ADR-0161 P1, `fn_puede_registrar_facturas_compra`): sin él, no hay botón. */
+  puedeReasignar?: boolean;
 }) {
   // Un comprobante anulado ya no recibe nada: no hay reparto que mostrar ni mercadería que mover.
   if (compra.estado !== "vigente") return null;
@@ -55,7 +58,7 @@ export function RepartoPorTienda({
   const lineasReasignables: LineaReasignable[] = lineas.map((l) => ({ id: l.id, producto: etiquetaDeLinea(l) }));
   const nombreDeLinea = new Map(lineasReasignables.map((l) => [l.id, l.producto]));
   const reasignar = (lineaInicialId?: string, etiqueta?: string) =>
-    hayPendiente ? <BotonReasignar compra={compra} lineas={lineasReasignables} filas={filas} ubicaciones={ubicaciones} lineaInicialId={lineaInicialId} etiqueta={etiqueta} /> : null;
+    hayPendiente && puedeReasignar ? <BotonReasignar compra={compra} lineas={lineasReasignables} filas={filas} ubicaciones={ubicaciones} lineaInicialId={lineaInicialId} etiqueta={etiqueta} /> : null;
 
   const historial =
     reasignaciones.length > 0 ? (

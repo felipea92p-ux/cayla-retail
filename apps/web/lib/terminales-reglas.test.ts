@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
+import { MODULOS_SOLO_PERSONAS } from "./modulos";
 import {
   ALFABETO_CLAVE,
   codigoDeTienda,
@@ -9,6 +10,7 @@ import {
   nombreOcupado,
   nombrePropuesto,
   normalizarNombre,
+  MODULOS_SOLO_PERSONAS_TERMINAL,
   resolverTienda,
   rolesParaTerminal,
   rolSugerido,
@@ -141,5 +143,21 @@ describe("el formulario", () => {
     expect(mensajeErrorAlta({ code: "23505", message: "duplicate key" })).toMatch(/ya tiene una terminal activa con ese nombre/);
     expect(mensajeErrorAlta({ code: "23514", message: "Una terminal solo se crea en una tienda activa" })).toMatch(/tienda activa/);
     expect(mensajeErrorAlta(null)).toMatch(/No se pudo crear/);
+  });
+});
+
+// ADR-0161 P6 (20260923140000): una terminal nunca recibe Colaboradores ni Roles y accesos. La lista vive repetida aquí
+// porque este archivo no importa nada (lo carga Node tal cual): esta prueba vigila que diga lo mismo que `lib/modulos.ts`.
+describe("P6 · roles para una terminal", () => {
+  it("no se ofrece un rol con Colaboradores o Roles y accesos", () => {
+    const roles = [
+      { id: "tv", clave: "terminal_ventas", archivado: false, fijo: false, modulos: ["vender", "caja"] },
+      { id: "g", clave: null, archivado: false, fijo: false, modulos: ["existencias", "colaboradores"] },
+      { id: "r", clave: null, archivado: false, fijo: false, modulos: ["roles"] },
+    ];
+    expect(rolesParaTerminal(roles).map((r) => r.id)).toEqual(["tv"]);
+  });
+  it("la lista de módulos solo para personas es la misma que la de lib/modulos.ts", () => {
+    expect([...MODULOS_SOLO_PERSONAS_TERMINAL].sort()).toEqual([...MODULOS_SOLO_PERSONAS].sort());
   });
 });

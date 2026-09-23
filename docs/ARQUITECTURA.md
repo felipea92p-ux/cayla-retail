@@ -51,6 +51,13 @@ resolvería `tenant_id`). Esa combinación NestJS/Prisma queda como visión de
 referencia para el día que CAYLA venda el sistema a otra marca — no es una
 tarea pendiente de hoy.
 
+**Cómo se escriben las políticas (ADR-0176, 2026-09-22):** las funciones de permisos
+(`fn_es_lider()`, `fn_puede_editar_catalogo()`, …) van envueltas en `(select …)` y
+`fn_puede_operar_ubicacion(col)` se abre en `(select fn_es_lider()) or col = (select
+fn_ubicacion_actual_persona())`. Así Postgres las evalúa una vez por consulta y no una vez
+por fila: con 24 mil movimientos, eso es la diferencia entre 57 s y 14 ms. Toda migración
+que cree políticas termina con `select retail.fn_rls_una_vez_por_consulta();`.
+
 ---
 
 ## 3. Cómo se conecta todo (el grafo real)
@@ -224,7 +231,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   para la muestra sin foto; los traslados SIN prendas se apartan con `separarVacios` y se cuentan en
   `vacios`, ADR-0172) →
   `TrasladosPanel.tsx` (el único con estado: filtros, buscador, paginación, refresco cada minuto) →
-  `TrasladosAtencion` / `TrasladosResumen` / `TrasladosFiltros` / `TrasladosLista` +
+  `TrasladosAtencion` / `TrasladosResumen` (las tarjetas SON el filtro de por recibir / en camino / con
+  diferencia, ADR-0175) / `TrasladosFiltros` (chips Abiertos · Cerrados · Todos, dirección segmentada a la
+  vista, otra sede en «Más filtros») / `TrasladosLista` (6 columnas desde 1280 px, tarjeta debajo) +
   `TrasladoEstado` / `TrasladoLlegada` / `TrasladoMiniaturas`. Todo lo que se decide (qué requiere
   acción, qué viene en camino, cuántas prendas están en tránsito, el orden por espera) vive en
   `lib/traslados-reglas.ts` (`situacionTraslado`, ADR-0105) y se comparte con el contador «por atender»

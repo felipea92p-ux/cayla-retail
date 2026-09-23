@@ -9,6 +9,7 @@ import {
   categoriaDeProceso,
   desdeDeUltimosDias,
   etiquetaActividad,
+  etiquetaConDireccion,
   etiquetaDia,
   etiquetaMovimiento,
   etiquetaProceso,
@@ -149,6 +150,38 @@ describe("etiquetaMovimiento", () => {
   it("los ajustes sueltos llevan «Ajuste ·»: «Reposición» a secas se confundía con la reposición interna", () => {
     expect(etiquetaMovimiento(movimiento({ motivo: "reposicion", categoria: "ajuste", tipo: "ajuste" }))).toBe("Ajuste · reposición");
     expect(etiquetaMovimiento(movimiento({ motivo: "merma", categoria: "ajuste", tipo: "ajuste", delta: -1 }))).toBe("Ajuste · merma");
+  });
+});
+
+describe("etiquetaConDireccion", () => {
+  // Rediseño de Movimientos (2026-09-22): que se entienda entrada/salida/interno/ajuste sin
+  // interpretar el proceso, sin duplicar la palabra cuando el proceso ya la trae.
+  it("una transferencia se lee como entrada o salida según el signo, no «transferencia»", () => {
+    expect(etiquetaConDireccion(movimiento({ categoria: "transferencia", motivo: "traslado_entrada", delta: 3 }))).toBe("Entrada · Traslado recibido");
+    expect(etiquetaConDireccion(movimiento({ categoria: "transferencia", motivo: "traslado_salida", delta: -3 }))).toBe("Salida · Traslado enviado");
+  });
+
+  it("un interno dice a qué sububicación entró", () => {
+    const m = movimiento({
+      categoria: "interno",
+      motivo: "movimiento_interno",
+      delta: 0,
+      sububicacionDestino: { id: "s2", nombre: "Piso de venta", tipo: "piso_venta" },
+    });
+    expect(etiquetaConDireccion(m)).toBe("Interno · a piso");
+  });
+
+  it("entrada y salida llevan su propio prefijo delante del proceso", () => {
+    expect(etiquetaConDireccion(movimiento({ motivo: "recepcion", categoria: "entrada" }))).toBe("Entrada · Recepción");
+    expect(etiquetaConDireccion(movimiento({ motivo: "venta", categoria: "salida", delta: -1 }))).toBe("Salida · Venta");
+  });
+
+  it("un ajuste que ya trae «Ajuste ·» en su nombre no lo duplica", () => {
+    expect(etiquetaConDireccion(movimiento({ motivo: "merma", categoria: "ajuste", delta: -1 }))).toBe("Ajuste · merma");
+  });
+
+  it("un conteo formal (sin «Ajuste ·» de por sí) lo recibe del prefijo", () => {
+    expect(etiquetaConDireccion(movimiento({ motivo: "conteo", categoria: "ajuste" }))).toBe("Ajuste · Conteo");
   });
 });
 

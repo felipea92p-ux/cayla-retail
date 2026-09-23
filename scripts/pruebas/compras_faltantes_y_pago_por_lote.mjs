@@ -283,7 +283,7 @@ error(
 ${cambiaA(MICAELA)}select retail.registrar_pago_compras(:'prov1', 'transferencia', jsonb_build_array(${aplic("c1", "100")}));
 `
   ),
-  "No tienes permiso para registrar pagos a proveedores"
+  "Registrar pagos a proveedores necesita el módulo Por pagar" // ADR-0161 P1 (20260923140000)
 );
 
 error(
@@ -815,7 +815,7 @@ error(
 ${cambiaA(MICAELA)}select retail.registrar_nota_credito_compra(:'c1', 'FC01-30', retail.fn_hoy_lima(), 236.00, 'descuento');
 `
   ),
-  "No tienes permiso para registrar notas de crédito de proveedores"
+  "Registrar notas de crédito de proveedores necesita el módulo Notas de crédito" // ADR-0161 P1 (20260923140000)
 );
 
 error(
@@ -837,7 +837,7 @@ error(
 ${cambiaA(MICAELA)}select retail.registrar_nota_credito_compra(:'c1', 'FC01-31', retail.fn_hoy_lima(), 10, 'otro');
 `
   ),
-  "No tienes permiso para registrar notas de crédito de proveedores"
+  "Registrar notas de crédito de proveedores necesita el módulo Notas de crédito" // ADR-0161 P1 (20260923140000)
 );
 
 // ===========================================================================
@@ -1303,7 +1303,7 @@ error(
 error(
   "integrante (Micaela) NO puede registrar un reembolso (dinero: solo líder)",
   comoPersona(FELIPE, `${BASE}${CON_SALDO}\n${cambiaA(MICAELA)}select retail.registrar_reembolso_proveedor(:'prov1', 10.00, 'efectivo');`),
-  "No tienes permiso para registrar reembolsos de proveedores"
+  "Registrar reembolsos de proveedores necesita el módulo Por pagar" // ADR-0161 P1 (20260923140000)
 );
 
 error(
@@ -1442,7 +1442,7 @@ ${cambiaA(MICAELA)}select retail.recibir_y_cerrar_compras(:'trujillo',
   jsonb_build_array(jsonb_build_object('compra_id', :'c1', 'serie_numero', 'FC01-93', 'fecha', retail.fn_hoy_lima(), 'monto', 236.00)));
 `
   ),
-  "No tienes permiso para registrar notas de crédito de proveedores"
+  "Registrar notas de crédito de proveedores necesita el módulo Notas de crédito" // ADR-0161 P1 (20260923140000)
 );
 
 // ===========================================================================

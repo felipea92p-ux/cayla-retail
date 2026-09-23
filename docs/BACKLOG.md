@@ -28,6 +28,29 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Las 6 decisiones de los módulos (2026-09-22, ADR-0161 P1–P6) — CONSTRUIDO en la rama `claude/modulos-seis-decisiones`; NO está en producción
+Migración `20260923140000_modulos_seis_decisiones.sql` + web + pruebas. Detalle y clasificación de cada candado en el ADR-0161 («P1–P6 construidas»).
+- [x] **P1 Compras, cada módulo lo suyo:** `fn_puede_registrar_facturas_compra` (registrar, anular, reparto, adjuntos), `fn_puede_pagar_compras` (pagos y reembolsos), `fn_puede_registrar_notas_credito` (notas y el PDF de la nota). `fn_puede_registrar_compras` queda solo para leer lo de los tres. Web: el detalle del comprobante muestra cada botón a su módulo (`accionesDeCompra`).
+- [x] **P2 Recibir con montos** para quien ve el dinero de Compras (`verDineroCompras`), sin cambiar la sede que se mira. Sin cambio en la base (se dejó escrito por qué).
+- [x] **P3 Proveedores:** alta, edición, archivo y ficha con su módulo (`fn_puede_gestionar_proveedores`, política `proveedores_write`); en la ficha, los montos con `verDineroCompras` y los insumos del Taller solo el líder.
+- [x] **P4 Etiquetas sin descuento desde la ficha de la prenda** con Productos o Categorías y atributos; las de descuento no se le ofrecen a quien no es líder.
+- [x] **P5 Existencias:** costo y stock de la red, solo del líder (Análisis ve el costo de SU sede en Análisis).
+- [x] **P6 Colaboradores y Roles y accesos, solo a personas:** candado en los disparadores de `terminales` y `rol_modulos` + capacidades falsas para una terminal; en Roles y accesos se avisa al encenderlos y no se ofrecen esos roles a una terminal.
+- [ ] **Pegar en producción** `20260923140000_modulos_seis_decisiones.sql` (empezar con `set search_path to retail, public, extensions;`). Aborta sola si alguna función cambió o si alguna terminal ya tuviera Colaboradores o Roles. Ensayada en una copia local alineada con producción (y re-ejecutada, y con 130000/131000 re-pegadas después: no se deshace).
+- [ ] **Pregunta para Felipe (P3):** la Terminal Almacén (3 terminales) tiene el módulo Proveedores: con esta migración puede dar de alta, editar y desactivar proveedores. ¿Se queda así o se le apaga el módulo?
+- [ ] **Pregunta para Felipe (P1):** recibir con una nota de crédito por faltante (`recibir_envio` con `p_notas_credito`) ahora pide Notas de crédito, no cualquiera de los tres módulos. Hoy la web no lo usa (el aviso «nota por reclamar» es solo del líder).
+- [ ] Refrescar el volcado y el diccionario cuando se pegue, y `pnpm datos:comparar`.
+- Cómo verificas: un rol con solo «Por pagar» ve el detalle de un comprobante con «Registrar pago» y sin «Anular»; uno con solo «Proveedores» entra a Compras ▸ Proveedores, abre la ficha sin una cifra y puede editar; en Roles y accesos, encender Colaboradores en «Terminal de ventas» avisa y no se enciende.
+
+## 🩹 RLS fila por fila: Historial de ventas caído por timeout (2026-09-22, ADR-0176) — A y B PEGADAS en producción
+Con el sembrado de 90 días (7.001 ventas), `/vender/historial` pasaba los 8 s de `statement_timeout` y mostraba «No se pudo cargar» (digest `575251889`). La causa: la RLS llamaba funciones SECURITY DEFINER una vez por fila.
+- [x] **A:** las 4 políticas de lectura de venta (`ventas`, `venta_items`, `venta_pagos`, `comprobantes`) con `(select …)`, más el índice `ventas (created_at desc, id desc)`. Migración `20260923143700_…`, PEGADA en producción y aplicada en local. Mismas filas visibles, verificado con huellas como líder e integrante. La lista pasó de 12,3 s a 0,5 s.
+- [x] **Verlo con clics:** Felipe abrió `/vender/historial` en producción y cargó (2026-09-22).
+- [x] **B:** `20260923152300_rls_todas_una_vez_por_consulta.sql`, PEGADA en producción y aplicada en local. Reescribió las 92 políticas restantes con `retail.fn_rls_una_vez_por_consulta()`; quedan 0 pendientes. Equivalencia de 121/121 cláusulas con 6 cuentas (líder, integrantes de TRU, AQP y Taller, dos terminales). Movimientos para una integrante: 57 s → 14 ms; Stock: 7,3 s → 3 ms.
+- [ ] **Al pegar migraciones pendientes que crean o cambian políticas** (`…130000_abrir_modulos_a_los_roles`, `…131000_colaboradores_y_roles_delegables`, y cualquier otra de antes del 2026-09-23 15:23 que no esté en producción), correr después `select retail.fn_rls_una_vez_por_consulta();`. Si no, esas políticas vuelven a evaluarse fila por fila. Para comprobar, la consulta del ADR-0176 debe dar 0.
+- [ ] **Base local:** la migración de separaciones (`20260923090000`) no está aplicada en local (`scripts/pruebas/separaciones.mjs` da 0/46 porque falta la tabla); en producción sí está.
+- [ ] **Decisión de Felipe:** las 7.002 ventas en producción tienen `es_prueba = false`, sembradas incluidas. El filtro «Ver datos de prueba» no las esconde y cuentan en los totales. ¿Es a propósito (ADR-0150)?
+- [ ] **Previo, sin relación con esto:** `scripts/pruebas/registrar_venta.mjs` da 21/25 en local. Fallan los 4 casos «colaboradora + código de descuento»; fallan igual con las políticas viejas.
 ## 🎯 Combo «Responsable»: propone a quien inició sesión y dice «¿Quién está atendiendo?» (2026-09-22, actualización del ADR-0161) — en `main` (PR #320), SIN migraciones
 
 - [x] Texto del combo vacío: «¿Quién está atendiendo?» en todos los módulos.
@@ -44,12 +67,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [x] Lista: estados «Por confirmar / Por revisar / En camino / Completado», los colores de lo que va cuando no hay fotos, «Salió» con hora, píldoras en lugar del `<select>` nativo y el aviso de vacíos para el líder. Detalle: recorrido en 4 pasos (quién envió, quién contó, quién cerró), 3 cifras, conteo con −/+/«Coincide» guardado al confirmar, un solo campo para escanear, `<Modal>` para confirmar, nota obligatoria al cerrar con diferencia y tarjetas en celular. Cierra el pendiente «Traslados › detalle sigue con la celda de texto».
 - [ ] **Verlo con una sesión real** (TRU y AQP): contar y confirmar un traslado de prueba, abrir el modal y cerrar uno con diferencia como líder. En la ruta de muestra el combo Responsable no tenía base y el modal no se abrió.
 - [ ] Endurecer en la base la nota de cierre: hoy solo la pantalla la exige; `cerrar_traslado_con_diferencia` acepta `p_nota` vacía.
+- [x] (ADR-0175) Las tarjetas son el filtro (los chips repetidos pasan a Abiertos · Cerrados · Todos), dirección Entran/Salen a la vista y tabla en dos acomodos (6 columnas desde 1280 px, tarjeta debajo). Capturas a 1280/1440/390 px con el `TrasladosPanel` real y datos de muestra. Falta verlo con clics reales.
 - [ ] Decidir qué hacer con las 4 cabeceras vacías de producción (Traslados 1 al 4): siguen en la base; el 4 está «en tránsito».
 
-## 🎯 Los 7 módulos «del líder» se pueden dar a un rol (2026-09-22, ADR-0161 B6-B8) — CONSTRUIDO en la rama `claude/abrir-modulos-a-los-roles`; NO está en producción
-- [ ] Pegar en producción, en orden: `20260923130000_abrir_modulos_a_los_roles.sql` y `20260923131000_colaboradores_y_roles_delegables.sql` (empezar con `set search_path to retail, public, extensions;`). Las dos abortan solas si alguna función cambió.
+## 🎯 Los 7 módulos «del líder» se pueden dar a un rol (2026-09-22, ADR-0161 B6-B8) — EN PRODUCCIÓN (pegadas el 2026-09-22)
+- [x] Pegadas en producción: `20260923130000_abrir_modulos_a_los_roles.sql` y `20260923131000_colaboradores_y_roles_delegables.sql` (verificado el 2026-09-22 leyendo producción: `fn_puede_analizar`, `fn_puede_gestionar_colaboradores` y los 7 módulos `delegable`).
 - [ ] Refrescar el volcado y el diccionario (`generado/COMO-REFRESCAR.md`) y correr `pnpm datos:comparar`.
-- [ ] **PR aparte:** construir las 6 decisiones P1-P6 del ADR-0161 (Felipe, 2026-09-22): registrar en Compras por módulo, montos en Recibir, ficha y edición de proveedores con su módulo, etiquetas sin descuento desde la ficha con Productos, Análisis sin costo ni red en Existencias, Colaboradores y Roles solo a personas.
+- [x] ~~PR aparte: las 6 decisiones P1-P6~~ → sección de arriba.
 - Cómo verificas: en Roles y accesos los 7 módulos salen con interruptor; un rol con solo «Por pagar» ve Compras ▸ Por pagar con montos; uno con «Etiquetas» ve la pestaña Etiquetas y no puede poner descuento.
 
 ## 🎯 Conteo físico: rediseño con la guía oficial (2026-09-22, ADR-0174) — hecho; migración en producción desde el 2026-09-22

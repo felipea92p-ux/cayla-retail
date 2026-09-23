@@ -9,9 +9,8 @@ import { deltaDisponibleSede } from "@/lib/existencias-categorias";
 import { recomendacionesDeSede } from "@/lib/existencias-recomendaciones";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { estaAtrasado } from "@/lib/traslados-reglas";
-import { SelectorUbicacion } from "@/components/SelectorUbicacion";
 import { InventarioPanel } from "@/components/InventarioPanel";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
 // (20260914210000_inventario_piso_almacen.sql). Sigue siendo UNA tabla
@@ -28,13 +27,10 @@ import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 export default async function InventarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ubicacion?: string; prueba?: string }>;
+  searchParams: Promise<{ ubicacion?: string }>;
 }) {
   const persona = await exigirModulo("existencias"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
-  const { ubicacion: ubicacionQuery, prueba } = await searchParams;
-  // D-54 (ADR-0159): apagado por defecto — los productos archivados como dato de prueba
-  // (nunca borrados) no se piden a la base salvo que se pida verlos.
-  const incluirPrueba = prueba === "1";
+  const { ubicacion: ubicacionQuery } = await searchParams;
   const ubicaciones = await getUbicaciones();
 
   const ubicacionActivaId =
@@ -42,16 +38,14 @@ export default async function InventarioPage({
       ? ubicacionQuery
       : persona.ubicacionId;
   const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
-  // Para que el toggle «Con datos de prueba» no le borre a un líder la sede que eligió.
-  const paramsPrueba = new URLSearchParams();
-  if (persona.rol === "lider" && ubicacionQuery) paramsPrueba.set("ubicacion", ubicacionQuery);
-  if (!incluirPrueba) paramsPrueba.set("prueba", "1");
-  const hrefPrueba = paramsPrueba.toString() ? `/inventario?${paramsPrueba}` : "/inventario";
 
   // La cobertura («cuánto dura este stock al ritmo reciente») solo tiene sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
   const [stockBase, sububicaciones, traslados, danadosPendientes, cobertura, apartados, filasSemana, filasRecientes] = await Promise.all([
-    getExistencias(ubicacionActivaId, ubicaciones, { incluirPrueba }),
+    // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
+    // pide siempre el default de la función (apagado) — los productos archivados como dato de
+    // prueba, nunca borrados, quedan afuera.
+    getExistencias(ubicacionActivaId, ubicaciones),
     getSububicaciones(ubicacionActivaId),
     getTrasladosEnCurso(ubicacionActivaId),
     getPrendasDanadasPendientes(ubicacionActivaId),
@@ -92,29 +86,24 @@ export default async function InventarioPage({
   const recomendaciones = ubicacionActiva && vende ? recomendacionesDeSede(filasRecientes, ubicacionActiva) : [];
 
   return (
-    <div className="space-y-6">
-      {/* Encabezado (guía oficial, 2026-09-22, ADR-0169): sobretítulo, sede y bajada directo sobre el crema;
-          a la derecha el selector de sede, el interruptor de datos de prueba y la acción principal. */}
-      <CabeceraPantalla
-        sobretitulo="Inventario · Existencias"
+    <div className="space-y-4">
+      {/* Sin selector de sede propio ni interruptor de «datos de prueba» a propósito (Felipe,
+          2026-09-22): el selector global de la barra superior ya cambia toda la app, y uno
+          segundo acá desacomodaba el layout al abrirse; el de «datos de prueba» se quitó del
+          todo (render, estado y lectura de `?prueba=`), no solo se ocultó. */}
+      <InventarioHero
+        eyebrow="Inventario · Existencias"
         titulo={ubicacionActiva?.nombre ?? "—"}
-        bajada="Qué hay en piso y almacén, qué viene en camino y qué deberías reponer hoy."
-        acciones={
-          <>
-            {persona.rol === "lider" && <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActivaId} />}
-            {/* D-54 (ADR-0159): apagado por defecto — los productos archivados como dato de prueba
-                (nunca borrados) quedan afuera de «Existencias» salvo que se pida verlos. */}
-            <Link href={hrefPrueba} aria-pressed={incluirPrueba} className="pildora-cayla">
-              Con datos de prueba
-            </Link>
-            <Link href="/inventario/mover" className="btn-cayla btn-primario">
-              + Nuevo traslado
-            </Link>
-          </>
+        descripcion="Qué hay en piso y almacén, qué viene en camino y qué deberías reponer hoy."
+        auxiliar={<p className="mt-1 text-xs text-taupe">Vista cargada a las {horaCarga} — recarga para ver lo último.</p>}
+        foto={fotoHeroPorPantalla("existencias")}
+        variante="integrado"
+        accion={
+          <Link href="/inventario/mover" className="btn-cayla btn-primario">
+            + Nuevo traslado
+          </Link>
         }
-      >
-        <p className="mt-1 text-xs text-taupe">Vista cargada a las {horaCarga} — recarga para ver lo último.</p>
-      </CabeceraPantalla>
+      />
 
       <InventarioPanel
         ubicacionId={ubicacionActivaId}

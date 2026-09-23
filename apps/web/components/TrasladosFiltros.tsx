@@ -91,10 +91,10 @@ export function TrasladosFiltros({
           )}
         </div>
 
-        <div className="order-1 flex min-w-0 flex-1 basis-full items-center gap-2 sm:basis-72">
+        <div className="order-1 flex min-w-0 flex-1 basis-full flex-wrap items-center gap-2 sm:basis-72">
           {/* El botón de limpiar va AL LADO del campo, no dentro de un <label>: un <label> con un botón adentro
               mezcla dos controles en uno y, al desaparecer la X, el foco se perdía. Ahora vuelve al campo. */}
-          <div className="caja-cayla relative flex h-10 min-w-0 flex-1 items-center">
+          <div className="caja-cayla relative flex h-10 min-w-0 flex-[1_1_14rem] items-center">
             <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-tinta/50" />
             <input
               ref={entrada}
@@ -120,6 +120,27 @@ export function TrasladosFiltros({
               </button>
             )}
           </div>
+          {/* Entrantes / Salientes a la vista (rediseño 2026-09-22, ADR-0175): es el filtro que más se usa
+              después de la búsqueda, y abrir un panel para él era un toque de más. Mismo control segmentado
+              que la sububicación de Movimientos. «Otra sede» sigue en «Más filtros». */}
+          <div role="group" aria-label="Dirección" className="inline-flex h-10 shrink-0 items-center gap-0.5 rounded-lg bg-hueso p-[3px]">
+            {DIRECCIONES.map((d) => {
+              const activa = direccion === d.valor;
+              return (
+                <button
+                  key={d.valor}
+                  type="button"
+                  onClick={() => onDireccion(d.valor)}
+                  aria-pressed={activa}
+                  className={`h-full whitespace-nowrap rounded-md px-2.5 text-[12.5px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo sm:px-3 ${
+                    activa ? "bg-papel text-tinta shadow-[inset_0_0_0_1px_var(--color-sand)]" : "text-taupe hover:text-tinta"
+                  }`}
+                >
+                  {d.texto}
+                </button>
+              );
+            })}
+          </div>
           <button
             type="button"
             onClick={onToggleMas}
@@ -135,22 +156,6 @@ export function TrasladosFiltros({
 
       {masAbierto && (
         <div id="traslados-mas-filtros" className="anim-revelar flex flex-wrap items-end gap-x-6 gap-y-3 rounded-xl bg-hueso/70 px-4 py-3">
-          <div>
-            <p className="mb-1.5 text-xs text-taupe">Dirección</p>
-            <div role="group" aria-label="Dirección" className="flex flex-wrap gap-1.5">
-              {DIRECCIONES.map((d) => (
-                <button
-                  key={d.valor}
-                  type="button"
-                  onClick={() => onDireccion(d.valor)}
-                  aria-pressed={direccion === d.valor}
-                  className="pildora-cayla aria-[pressed=false]:bg-papel"
-                >
-                  {d.texto}
-                </button>
-              ))}
-            </div>
-          </div>
           <div>
             <p className="mb-1.5 text-xs text-taupe">Otra sede</p>
             <div role="group" aria-label="Otra sede" className="flex flex-wrap gap-1.5">

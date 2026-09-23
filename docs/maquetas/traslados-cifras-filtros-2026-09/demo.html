@@ -1,0 +1,681 @@
+<title>Traslados CAYLA · demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+/* Tokens: guía oficial «CAYLA Dynamic» (ADR-0169). */
+:root{
+  --crema:#f5f0e8; --papel:#fbf8f2; --tinta:#1a1a18; --rojo:#b8412d; --rojo-profundo:#8b2a1f;
+  --sand:#e8e0d0; --taupe:#805c4c; --verde:#48603f; --ambar:#74501a; --hueso:#eae1d2; --pizarra:#4c5d6e;
+  --lateral:#1a1a18; --lateral-txt:#f5f0e8;
+  --r-control:8px; --r-superficie:16px; --r-flotante:20px;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --serif:"EB Garamond", ui-serif, Georgia, serif;
+  --sans:"DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --crema:#1c1a16; --papel:#26221d; --tinta:#ede7db; --rojo:#d4634a; --rojo-profundo:#e8836b;
+    --sand:#332e27; --taupe:#ab9080; --verde:#8fae80; --ambar:#c99a4a; --hueso:#15110d; --pizarra:#9db0c2;
+    --lateral:#120f0c; --lateral-txt:#ede7db;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --crema:#1c1a16; --papel:#26221d; --tinta:#ede7db; --rojo:#d4634a; --rojo-profundo:#e8836b;
+  --sand:#332e27; --taupe:#ab9080; --verde:#8fae80; --ambar:#c99a4a; --hueso:#15110d; --pizarra:#9db0c2;
+  --lateral:#120f0c; --lateral-txt:#ede7db;
+}
+*{box-sizing:border-box}
+body{background:var(--crema); color:var(--tinta); font-family:var(--sans); font-size:14px; margin:0; padding-inline:16px; padding-block:20px 48px; font-variant-numeric:tabular-nums}
+button,input,select,textarea{font-family:inherit; color:inherit}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--rojo); outline-offset:2px}
+.wrap{max-width:1360px; margin:0 auto; display:flex; flex-direction:column; gap:20px}
+.eyebrow{font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--taupe); margin:0}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+
+/* ---------- Mesa de decisión ---------- */
+.mesa{border:1px solid var(--sand); border-radius:var(--r-flotante); background:var(--papel); padding:20px 22px; display:flex; flex-direction:column; gap:16px}
+.mesa-head{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap}
+.mesa h1{font-family:var(--serif); font-weight:600; font-size:28px; margin:4px 0; text-wrap:balance}
+.mesa .bajada{color:var(--taupe); margin:0; max-width:70ch; line-height:1.55}
+.utiles{display:flex; gap:8px; flex-wrap:wrap}
+.decisiones{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px}
+.decision{border:1px solid var(--sand); border-radius:var(--r-superficie); padding:14px; display:flex; flex-direction:column; gap:10px; background:var(--crema)}
+.decision h2{font-size:11.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; margin:0}
+.seg{display:flex; flex-wrap:wrap; gap:3px; background:var(--hueso); border-radius:var(--r-control); padding:3px}
+.seg button{flex:1 1 auto; border:0; background:transparent; border-radius:6px; padding:7px 9px; font-size:12.5px; font-weight:500; cursor:pointer; color:var(--taupe); white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--papel); color:var(--tinta); box-shadow:inset 0 0 0 1px var(--sand)}
+.rec{color:var(--rojo); margin-left:3px}
+.nota{font-size:12.5px; line-height:1.55; color:var(--taupe); margin:0}
+.nota b{color:var(--tinta); font-weight:600}
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; border-radius:var(--r-control); font-size:13px; font-weight:500; padding:8px 14px; cursor:pointer; border:1px solid var(--sand); background:transparent; text-decoration:none; white-space:nowrap; transition:background-color .15s, border-color .15s, color .15s}
+.btn:hover{background:color-mix(in oklab, var(--sand) 50%, transparent)}
+.btn-primario{background:var(--tinta); color:var(--crema); border-color:var(--tinta)}
+.btn-primario:hover{background:var(--rojo-profundo); border-color:var(--rojo-profundo)}
+.btn-chico{padding:5px 11px; font-size:12.5px}
+.btn:disabled{opacity:.5; cursor:not-allowed}
+.enlace{border:0; background:none; padding:0; font-size:12.5px; color:var(--tinta); text-decoration:underline; text-underline-offset:2px; cursor:pointer}
+.enlace:hover{color:var(--rojo)}
+
+/* ---------- Maqueta ---------- */
+.escenario{display:flex; justify-content:center}
+.app{container:app / inline-size; width:100%; border:1px solid var(--sand); border-radius:22px; overflow:hidden; background:var(--papel); display:grid; grid-template-columns:224px minmax(0,1fr); min-height:780px}
+.escenario.celular .app{max-width:392px; grid-template-columns:minmax(0,1fr)}
+.escenario.celular .lateral{display:none}
+.lateral{background:var(--lateral); color:var(--lateral-txt); padding:22px 16px 18px; display:flex; flex-direction:column; gap:18px}
+.marca{font-family:var(--serif); font-size:20px; font-weight:600; letter-spacing:.14em; padding:0 6px; display:flex; gap:10px; align-items:center}
+.marca svg{color:var(--rojo)}
+.nuevo{border-radius:var(--r-control); background:var(--lateral-txt); color:var(--lateral); border:0; padding:10px; font-size:12px; font-weight:700; letter-spacing:.12em}
+.nav{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; font-size:13.5px}
+.nav li{padding:7px 10px; border-radius:var(--r-control); color:color-mix(in oklab, var(--lateral-txt) 72%, transparent)}
+.nav li.grupo{color:var(--lateral-txt); font-weight:600; margin-top:4px}
+.nav li.hijo{padding-left:24px; font-size:13px}
+.nav li.activo{background:color-mix(in oklab, var(--lateral-txt) 12%, transparent); color:var(--lateral-txt); font-weight:600}
+.nav .badge{background:var(--rojo); color:#fbf8f2; border-radius:999px; font-size:10.5px; padding:0 6px; margin-left:6px; font-weight:700}
+.lateral .pie{margin-top:auto; border-top:1px solid color-mix(in oklab, var(--lateral-txt) 16%, transparent); padding-top:14px; font-size:12px}
+.persona{display:flex; gap:10px; align-items:center}
+.avatar{width:30px; height:30px; border-radius:50%; background:var(--rojo); color:#fbf8f2; display:grid; place-items:center; font-size:11px; font-weight:700}
+.persona small{display:block; opacity:.65; letter-spacing:.08em; font-size:10px; text-transform:uppercase}
+.principal{display:flex; flex-direction:column; min-width:0; background:var(--crema)}
+.cabecera{display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 24px; border-bottom:1px solid var(--sand); background:var(--papel)}
+.migas{font-size:12px; color:var(--taupe)}
+.migas button{border:0; background:none; padding:0; cursor:pointer; color:var(--taupe); font-size:12px}
+.migas button:hover{color:var(--rojo)}
+.sede-pill{border:1px solid var(--sand); border-radius:var(--r-control); padding:7px 12px; font-size:11.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase}
+.contenido{padding:24px; display:flex; flex-direction:column; gap:16px}
+.cab{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-start; gap:12px 28px}
+.cab .sobre{font-size:11px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--rojo); margin:0}
+.cab h2{font-family:var(--serif); font-weight:600; font-size:30px; line-height:1.15; margin:6px 0 4px}
+.cab p.baj{margin:0; color:var(--taupe); max-width:62ch; line-height:1.5; font-size:15px}
+.card{background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie)}
+.nota-cayla{background:color-mix(in oklab, var(--hueso) 85%, transparent); border-radius:var(--r-superficie); padding:14px 18px; font-size:13px; line-height:1.6; color:var(--taupe); margin:0}
+.nota-cayla b{color:var(--tinta)}
+@keyframes entra{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+.vista{animation:entra .32s var(--ease) both; display:flex; flex-direction:column; gap:16px}
+
+/* Franja */
+.franja{display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; border:1px solid color-mix(in oklab, var(--rojo) 30%, transparent); background:color-mix(in oklab, var(--rojo) 7%, transparent); border-radius:var(--r-superficie); padding:14px 18px}
+.franja h3{font-family:var(--serif); font-weight:600; font-size:18px; margin:0}
+.franja p{margin:2px 0 0; font-size:13px; color:var(--taupe)}
+.franja .txt{flex:1 1 260px; min-width:0}
+/* Cifras */
+.kpis{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px}
+.kpi{background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie); padding:14px 16px; text-align:left; display:flex; flex-direction:column; gap:3px; font:inherit; color:inherit}
+button.kpi{cursor:pointer; transition:border-color .15s, background-color .15s}
+button.kpi:hover{border-color:color-mix(in oklab, var(--taupe) 45%, transparent)}
+.kpi[aria-pressed="true"]{border-color:var(--tinta); box-shadow:inset 0 0 0 1px var(--tinta)}
+.kpi.acento{border-left:3px solid var(--rojo)}
+.kpi .et{font-size:10.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase}
+.kpi .v{font-family:var(--serif); font-size:28px; font-weight:600; line-height:1.1}
+.kpi .v small{font-family:var(--sans); font-size:12.5px; font-weight:400; color:var(--taupe); margin-left:4px}
+.kpi .v.rojo{color:var(--rojo-profundo)} .kpi .v.ambar{color:var(--ambar)} .kpi .v.cero{color:color-mix(in oklab, var(--tinta) 35%, transparent)}
+.kpi .d{font-size:12px; color:var(--taupe)}
+.kpi .filtra{font-size:11px; color:var(--taupe); margin-top:2px}
+.kpi[aria-pressed="true"] .filtra{color:var(--tinta); font-weight:600}
+/* Filtros */
+.filtros{padding:14px; display:flex; flex-direction:column; gap:12px; border-bottom:1px solid var(--sand)}
+.fila{display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px}
+.busca{position:relative; flex:1 1 240px; min-width:0}
+.busca svg{position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--taupe); pointer-events:none}
+.busca input{width:100%; height:38px; border-radius:var(--r-control); border:1px solid var(--sand); background:var(--hueso); padding:0 12px 0 34px; font-size:13.5px}
+.busca input::placeholder{color:var(--taupe)}
+.busca input:focus{outline:none; border-color:var(--taupe)}
+.mas{height:38px; display:inline-flex; align-items:center; gap:7px; border-radius:var(--r-control); border:1px solid var(--sand); background:transparent; padding:0 13px; font-size:13px; font-weight:500; cursor:pointer}
+.mas[aria-expanded="true"]{background:var(--hueso)}
+.mas .cont{background:var(--rojo); color:var(--crema); border-radius:999px; font-size:10.5px; padding:1px 7px; font-weight:700}
+.grupo{display:flex; flex-wrap:wrap; align-items:center; gap:6px}
+.grupo-et{font-size:10.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--taupe); margin-right:2px}
+.pill{border-radius:999px; border:1px solid var(--sand); background:transparent; padding:6px 13px; font-size:12.5px; font-weight:600; cursor:pointer; color:var(--taupe); display:inline-flex; align-items:center; gap:6px; white-space:nowrap}
+.pill:hover{color:var(--tinta); background:color-mix(in oklab, var(--sand) 40%, transparent)}
+.pill[aria-pressed="true"]{background:var(--tinta); color:var(--crema); border-color:var(--tinta)}
+.pill .n{font-weight:500; font-size:11px; opacity:.75}
+.pill:disabled{opacity:.4; cursor:not-allowed}
+.segmini{display:inline-flex; background:var(--hueso); border-radius:var(--r-control); padding:3px; gap:2px; max-width:100%; overflow-x:auto}
+.segmini button{border:0; background:transparent; border-radius:6px; padding:6px 11px; font-size:12.5px; font-weight:500; cursor:pointer; color:var(--taupe); white-space:nowrap}
+.segmini button[aria-pressed="true"]{background:var(--papel); color:var(--tinta); box-shadow:inset 0 0 0 1px var(--sand)}
+.panel{background:var(--hueso); border-radius:12px; padding:12px 14px; display:flex; flex-wrap:wrap; gap:14px 24px; align-items:flex-end; animation:entra .32s var(--ease) both}
+.campo{display:flex; flex-direction:column; gap:5px; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--taupe)}
+.campo select, .campo input{height:36px; border-radius:var(--r-control); border:1px solid var(--sand); background:var(--papel); padding:0 10px; font-size:13px; font-weight:400; letter-spacing:0; text-transform:none; color:var(--tinta)}
+.activos{font-size:12px; color:var(--taupe); display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+
+/* Tabla A */
+.tabla{width:100%}
+.thead,.tr{display:grid; grid-template-columns:7.5rem minmax(9rem,1fr) minmax(10rem,1.15fr) minmax(9rem,1fr) 11rem 10.5rem; gap:12px; align-items:center; padding:10px 18px}
+.thead{background:color-mix(in oklab, var(--sand) 70%, transparent); font-size:12px; color:var(--taupe); padding-block:8px}
+.tr{border-top:1px solid var(--sand); cursor:pointer; transition:background-color .15s}
+.tr:hover{background:color-mix(in oklab, var(--hueso) 55%, transparent)}
+.tr.urge{background:color-mix(in oklab, var(--rojo) 5%, transparent)}
+.tr.revisa{background:color-mix(in oklab, var(--ambar) 6%, transparent)}
+.tr b{font-weight:600}
+.sub{display:block; font-size:12px; color:var(--taupe); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.chip{display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:12px; white-space:nowrap}
+.chip::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor}
+.chip.rojo{background:color-mix(in oklab, var(--rojo) 10%, transparent); color:var(--rojo-profundo)}
+.chip.ambar{background:color-mix(in oklab, var(--ambar) 15%, transparent); color:var(--ambar)}
+.chip.pizarra{background:color-mix(in oklab, var(--pizarra) 15%, transparent); color:var(--pizarra)}
+.chip.verde{background:color-mix(in oklab, var(--verde) 15%, transparent); color:var(--verde)}
+.chip.taupe{background:var(--sand); color:var(--taupe)}
+.chip.late::before{animation:late 1.6s ease-in-out infinite}
+@keyframes late{50%{opacity:.35}}
+.acc{justify-self:end}
+.mini{display:flex; gap:3px; margin-top:4px}
+.mini i{width:18px; height:22px; border-radius:4px; border:1px solid var(--sand); display:block}
+.pie-tabla{display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px 16px; padding:12px 18px; border-top:1px solid var(--sand); font-size:12.5px; color:var(--taupe)}
+.grupo-sit{padding:14px 18px 4px; display:flex; justify-content:space-between; align-items:baseline; font-size:10.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--taupe); border-top:1px solid var(--sand)}
+.grupo-sit b{color:var(--tinta)}
+.grupo-sit:first-child{border-top:0}
+.vacio{padding:30px 18px; text-align:center; color:var(--taupe)}
+
+@container app (max-width: 1100px){
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .thead{display:none}
+  .tr{grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"num est" "ruta ruta" "cont cont" "lleg acc"; row-gap:6px; padding:14px 16px}
+  .tr .c-num{grid-area:num} .tr .c-est{grid-area:est; justify-self:end} .tr .c-ruta{grid-area:ruta} .tr .c-cont{grid-area:cont} .tr .c-lleg{grid-area:lleg} .tr .c-acc{grid-area:acc}
+}
+@container app (max-width: 640px){
+  .contenido{padding:16px}
+  .cabecera{padding:10px 16px}
+  .cabecera .migas{display:none}
+  .cab h2{font-size:25px}
+  .cab .acciones{width:100%}
+  .cab .acciones .btn{width:100%}
+  .kpi{padding:12px}
+  .kpi .v{font-size:23px}
+  .grupo.desliza{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; max-width:100%}
+  .grupo.desliza .pill{flex:none}
+  .det-grid{grid-template-columns:1fr !important}
+  .linea{grid-template-columns:36px minmax(0,1fr) auto !important; grid-template-areas:"f p p" "f env rec" !important}
+  .linea .l-foto{grid-area:f} .linea .l-pr{grid-area:p} .linea .l-env{grid-area:env} .linea .l-rec{grid-area:rec; justify-self:end}
+  .barra-accion{position:sticky; bottom:0}
+  .nuevo-grid{grid-template-columns:1fr !important}
+  .destinos{grid-template-columns:1fr 1fr !important}
+}
+
+/* Detalle */
+.pasos{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; padding:16px 18px}
+.paso{position:relative; padding-top:18px}
+.paso::before{content:""; position:absolute; top:5px; left:0; right:0; height:2px; background:var(--sand)}
+.paso.hecho::before{background:var(--tinta)}
+.paso .pt{position:absolute; top:0; left:0; width:12px; height:12px; border-radius:50%; background:var(--papel); border:2px solid var(--sand)}
+.paso.hecho .pt{background:var(--tinta); border-color:var(--tinta)}
+.paso.ahora .pt{border-color:var(--rojo); background:var(--rojo)}
+.paso b{display:block; font-size:13px}
+.paso span{font-size:12px; color:var(--taupe)}
+.det-grid{display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:16px; align-items:start}
+.linea{display:grid; grid-template-columns:40px minmax(0,1fr) 70px 150px; grid-template-areas:"f p env rec"; gap:6px 12px; align-items:center; padding:11px 18px; border-top:1px solid var(--sand)}
+.linea.dif{background:color-mix(in oklab, var(--ambar) 7%, transparent)}
+.foto{width:36px; height:44px; border-radius:6px; border:1px solid var(--sand); position:relative; overflow:hidden}
+.foto::after{content:""; position:absolute; right:3px; bottom:3px; width:9px; height:9px; border-radius:50%; background:var(--c); border:1px solid rgba(0,0,0,.15)}
+.stepper{display:inline-flex; align-items:center; border:1px solid var(--sand); border-radius:var(--r-control); background:var(--hueso)}
+.stepper button{width:34px; height:34px; border:0; background:transparent; font-size:16px; cursor:pointer; color:var(--tinta)}
+.stepper span{min-width:34px; text-align:center; font-weight:600}
+.lado{padding:16px 18px; display:flex; flex-direction:column; gap:12px}
+.fila-dato{display:flex; justify-content:space-between; gap:10px; font-size:13px}
+.fila-dato span{color:var(--taupe)}
+.combo{height:38px; border-radius:var(--r-control); border:1px solid var(--sand); background:var(--hueso); padding:0 10px; font-size:13px; width:100%}
+.barra-accion{display:flex; flex-direction:column; gap:8px; background:var(--papel); padding:14px 18px; border-top:1px solid var(--sand)}
+.aviso-ok{font-size:12.5px; color:var(--verde)} .aviso-dif{font-size:12.5px; color:var(--ambar)}
+/* Vista «hoy» (aproximación del código actual) */
+.hoy{font-size:14px}
+.hoy table{width:100%; border-collapse:collapse}
+.hoy th{text-align:left; font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--taupe); padding:10px 18px; border-bottom:1px solid var(--sand)}
+.hoy td{padding:10px 18px; border-top:1px solid var(--sand)}
+.hoy input.num{width:72px; border:1px solid var(--sand); border-radius:8px; padding:4px 6px; text-align:right; background:transparent}
+.hoy .subraya{width:100%; border:0; border-bottom:1px solid color-mix(in oklab, var(--tinta) 20%, transparent); background:transparent; padding:8px 4px}
+.hoy select{width:100%; border:0; border-bottom:1px solid color-mix(in oklab, var(--tinta) 20%, transparent); background:transparent; padding:8px 4px}
+.marca-hoy{font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--pizarra); background:color-mix(in oklab, var(--pizarra) 12%, transparent); padding:3px 10px; border-radius:999px; align-self:flex-start}
+/* Nuevo */
+.nuevo-grid{display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:16px; align-items:start}
+.bloque{padding:16px 18px; display:flex; flex-direction:column; gap:12px}
+.bloque + .bloque{border-top:1px solid var(--sand)}
+.bloque .busca{flex:none}
+.bloque h3{margin:0; font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--taupe)}
+.destinos{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px}
+.destino{border:1px solid var(--sand); border-radius:12px; background:transparent; padding:12px; text-align:left; cursor:pointer; font:inherit; color:inherit}
+.destino b{display:block; font-size:14px}
+.destino span{font-size:12px; color:var(--taupe)}
+.destino[aria-pressed="true"]{border-color:var(--tinta); box-shadow:inset 0 0 0 1px var(--tinta)}
+.sugeridas{display:flex; flex-direction:column; gap:4px}
+.sug{display:flex; justify-content:space-between; gap:10px; padding:8px 10px; border-radius:8px; border:0; background:transparent; text-align:left; cursor:pointer; font:inherit; color:inherit}
+.sug:hover{background:var(--hueso)}
+.sug span{color:var(--taupe); font-size:12.5px}
+.resumen-envio .grande{font-family:var(--serif); font-size:30px; font-weight:600; line-height:1}
+
+@media (max-width: 1080px){ .decisiones{grid-template-columns:1fr 1fr} }
+@media (max-width: 640px){ .decisiones{grid-template-columns:1fr} }
+@media (prefers-reduced-motion: reduce){ *,*::before,*::after{animation:none !important; transition:none !important} }
+</style>
+
+<div class="wrap">
+  <section class="mesa" aria-labelledby="mesa-titulo">
+    <div class="mesa-head">
+      <div>
+        <p class="eyebrow">Inventario · Traslados · demo de rediseño · 2026-09-22</p>
+        <h1 id="mesa-titulo">Traslados: cuatro decisiones, probadas en la pantalla</h1>
+        <p class="bajada">La maqueta de abajo es navegable: toca un traslado para ver su detalle y «+ Nuevo traslado» para el envío. Cada interruptor la rearma al instante. <span style="color:var(--rojo)">●</span> = mi recomendación. Tú eres líder de Tienda TRU.</p>
+      </div>
+      <div class="utiles">
+        <div class="seg" role="group" aria-label="Ancho de la maqueta" id="seg-vista">
+          <button type="button" data-v="escritorio" aria-pressed="true">Escritorio</button>
+          <button type="button" data-v="celular" aria-pressed="false">Celular</button>
+        </div>
+        <button type="button" class="btn" id="btn-tema">Ver en oscuro</button>
+      </div>
+    </div>
+    <div class="decisiones">
+      <div class="decision">
+        <h2>1 · Alcance</h2>
+        <div class="seg" role="group" aria-label="Alcance" id="seg-alcance">
+          <button type="button" data-v="LD" aria-pressed="true">Lista + detalle<span class="rec">●</span></button>
+          <button type="button" data-v="L" aria-pressed="false">Solo lista</button>
+          <button type="button" data-v="LDN" aria-pressed="false">+ Nuevo</button>
+        </div>
+        <p class="nota" id="nota-alcance"></p>
+      </div>
+      <div class="decision">
+        <h2>2 · Cifras</h2>
+        <div class="seg" role="group" aria-label="Cifras" id="seg-cifras">
+          <button type="button" data-v="A" aria-pressed="true">Tarjetas que filtran<span class="rec">●</span></button>
+          <button type="button" data-v="B" aria-pressed="false">Como la guía</button>
+        </div>
+        <p class="nota" id="nota-cifras"></p>
+      </div>
+      <div class="decision">
+        <h2>3 · Filtros</h2>
+        <div class="seg" role="group" aria-label="Filtros" id="seg-filtros">
+          <button type="button" data-v="A" aria-pressed="true">Dirección a la vista<span class="rec">●</span></button>
+          <button type="button" data-v="B" aria-pressed="false">Todo a la vista</button>
+          <button type="button" data-v="C" aria-pressed="false">Como hoy</button>
+        </div>
+        <p class="nota" id="nota-filtros"></p>
+      </div>
+      <div class="decision">
+        <h2>4 · Lista</h2>
+        <div class="seg" role="group" aria-label="Lista" id="seg-lista">
+          <button type="button" data-v="A" aria-pressed="true">Tabla de la guía<span class="rec">●</span></button>
+          <button type="button" data-v="B" aria-pressed="false">Por situación</button>
+        </div>
+        <p class="nota" id="nota-lista"></p>
+      </div>
+    </div>
+  </section>
+
+  <div class="escenario" id="escenario">
+    <div class="app">
+      <aside class="lateral" aria-label="Menú del ERP (maqueta)">
+        <div class="marca"><svg width="26" height="22" viewBox="0 0 26 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4c5 0 9 3 11 8 2-6 6-10 11-11-3 4-4 8-4 12-2 4-6 7-9 7 1-2 1-4 0-6-3-1-6-4-9-10z"/></svg>CAYLA</div>
+        <button type="button" class="nuevo" tabindex="-1">+ NUEVO</button>
+        <ul class="nav">
+          <li>Inicio</li><li>Catálogo</li><li>Compras</li><li>Ventas</li>
+          <li class="grupo">Inventario</li>
+          <li class="hijo">Existencias</li><li class="hijo">Movimientos</li>
+          <li class="hijo activo">Traslados<span class="badge" id="badge-menu">2</span></li>
+          <li class="hijo">Conteo</li><li class="hijo">Análisis</li>
+        </ul>
+        <div class="pie"><div class="persona"><span class="avatar">FA</span><span>Felipe Alvarez<small>Líder · Tienda TRU</small></span></div></div>
+      </aside>
+      <main class="principal">
+        <div class="cabecera">
+          <span class="migas" id="migas"></span>
+          <span class="sede-pill">Tienda TRU</span>
+        </div>
+        <div class="contenido" id="contenido"></div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const n = (v) => v.toLocaleString("es-PE");
+const MI = "Tienda TRU";
+const COLORES = {Negro:"#1a1a18", Marfil:"#efe6d2", Beige:"#d9c3a0", Camel:"#b3834f", Terracota:"#b8573d", Arena:"#d8c7a4", Estampado:"#6d7a5a", Crudo:"#ece3cf", Mostaza:"#c49a2c", Rojo:"#a83a2a"};
+
+// ---------- Datos de ejemplo ----------
+// estado: en_transito | recibido_con_diferencia | recibido
+const T = [
+  {id:24, de:"Tienda LIM", a:MI, salio:"19/09 10:12", eta:"Debió llegar hace 1 h", estado:"en_transito", vencido:true, por:"Rosa Mendoza", nota:"Reposición de temporada",
+   lineas:[["Blusa Emma","S","Negro",30],["Blusa Emma","M","Negro",30],["Casaca Emilia","M","Beige",20]]},
+  {id:21, de:"Tienda AQP", a:MI, salio:"17/09 09:30", eta:"Recibido 18/09 08:10", estado:"recibido_con_diferencia", por:"Lucía Paredes", nota:null,
+   lineas:[["Vestido Solsticio","M","Terracota",24,22],["Kimono Wayra","L","Estampado",20,20]]},
+  {id:26, de:"Taller LIM", a:MI, salio:"22/09 07:40", eta:"Llega hoy 16:15", estado:"en_transito", por:"Diego Torres", nota:"Producción OP-18",
+   lineas:[["Top Killa","S","Rojo",40],["Top Killa","M","Rojo",60],["Top Killa","L","Rojo",40],["Falda Qori","M","Mostaza",36],["Falda Qori","S","Mostaza",20],["Falda Qori","L","Mostaza",20]]},
+  {id:25, de:MI, a:"Tienda LIM", salio:"21/09 17:05", eta:"Llega mañana 11:00", estado:"en_transito", por:"Felipe Alvarez", nota:null,
+   lineas:[["Pantalón Culotte","S","Arena",12],["Pantalón Culotte","M","Arena",12],["Polo Inti","M","Negro",20]]},
+  {id:27, de:"Tienda AQP", a:MI, salio:"22/09 08:20", eta:"Llega mañana 18:00", estado:"en_transito", por:"Lucía Paredes", nota:null,
+   lineas:[["Chaleco Ande","M","Crudo",10],["Chaleco Ande","L","Crudo",8]]},
+  {id:20, de:MI, a:"Tienda AQP", salio:"14/09 11:00", eta:"Completado 16/09", estado:"recibido", por:"Felipe Alvarez", nota:null,
+   lineas:[["Blusa Emma","S","Marfil",15,15],["Blusa Emma","M","Marfil",15,15],["Casaca Emilia","L","Camel",10,10],["Top Killa","M","Rojo",20,20]]},
+  {id:19, de:"Tienda LIM", a:MI, salio:"12/09 15:40", eta:"Completado 13/09", estado:"recibido", por:"Rosa Mendoza", nota:null,
+   lineas:[["Kimono Wayra","M","Estampado",12,12],["Kimono Wayra","S","Estampado",8,8]]},
+  {id:18, de:"Taller LIM", a:MI, salio:"08/09 09:00", eta:"Completado 09/09", estado:"recibido", por:"Diego Torres", nota:null,
+   lineas:[["Vestido Solsticio","S","Negro",25,25],["Vestido Solsticio","M","Negro",25,25]]}
+];
+for (const t of T){
+  t.entrante = t.a === MI;
+  t.unidades = t.lineas.reduce((s, l) => s + l[3], 0);
+  t.prendas = [...new Set(t.lineas.map((l) => l[0]))];
+  t.recibidas = Object.fromEntries(t.lineas.map((l, i) => [i, l[4] ?? l[3]]));
+}
+function situacion(t){
+  if (t.estado === "recibido_con_diferencia") return t.entrante ? "requiere_revision" : "con_diferencia";
+  if (t.estado === "recibido") return "cerrado";
+  if (!t.entrante) return "en_camino_saliente";
+  return t.vencido ? "requiere_recepcion" : "en_camino_entrante";
+}
+const SIT = {
+  requiere_recepcion:{chip:"rojo late", txt:"Requiere confirmación", acc:"Confirmar recepción", fuerte:true, grupo:"atender"},
+  requiere_revision:{chip:"ambar", txt:"Con diferencia", acc:"Revisar diferencia", fuerte:true, grupo:"atender"},
+  en_camino_entrante:{chip:"pizarra", txt:"En camino", acc:"Ver detalle", grupo:"camino"},
+  en_camino_saliente:{chip:"pizarra", txt:"En camino", acc:"Ver detalle", grupo:"camino"},
+  con_diferencia:{chip:"ambar", txt:"Con diferencia", acc:"Ver detalle", grupo:"atender"},
+  cerrado:{chip:"verde", txt:"Completado", acc:"Ver detalle", grupo:"cerrado"}
+};
+const ORDEN = {requiere_recepcion:0, requiere_revision:1, con_diferencia:2, en_camino_entrante:3, en_camino_saliente:4, cerrado:5};
+
+// ---------- Estado ----------
+const S = {vista:"lista", abierto:null, alcance:"LD", cifras:"A", filtros:"A", lista:"A", filtro:"todos", q:"", dir:"todas", sede:"", mas:false,
+  nuevo:{destino:"Tienda AQP", lineas:[["Blusa Emma","S","Negro",6,18],["Casaca Emilia","M","Beige",4,9]], eta:"hoy"}};
+
+const NOTAS = {
+  alcance:{LD:"<b>Ganas:</b> el detalle —donde se confirma lo que llegó— pasa a la guía: pasos del envío, prendas con foto y color, «+/−» en vez de tipear y el botón fijo abajo en celular. <b>Pagas:</b> toca el panel que guarda (`TrasladoDetallePanel`), no solo pintura.",
+           L:"<b>Ganas:</b> el cambio más chico y seguro. <b>Pagas:</b> el detalle sigue con la cabecera vieja y la celda sin foto: al tocar un traslado cambia el estilo.",
+           LDN:"<b>Ganas:</b> el recorrido completo, de enviar a recibir, con el mismo lenguaje; destinos como tarjetas y buscador de prendas en vez de listas desplegables. <b>Pagas:</b> el doble de trabajo y toca el flujo que saca stock del origen."},
+  cifras:{A:"<b>Ganas:</b> cada número aparece una vez; las tarjetas ya eran filtros, ahora se nota (dicen «Toca para filtrar»). <b>Pagas:</b> «Acción hoy» deja de ser chip: lo resuelve la franja con «Revisar ahora».",
+          B:"<b>Ganas:</b> idéntico a la maqueta oficial. <b>Pagas:</b> «2 por atender» se lee en la franja, en una tarjeta y en un chip: tres lugares para la misma cifra."},
+  filtros:{A:"<b>Ganas:</b> entrantes/salientes —lo que más se filtra— a un toque, sin abrir nada. <b>Pagas:</b> la otra sede sigue a un toque más (se usa poco con 3 tiendas y 1 taller).",
+           B:"<b>Ganas:</b> nada escondido. <b>Pagas:</b> una fila más de píldoras que en celular se desliza de lado.",
+           C:"<b>Ganas:</b> no cambia nada para el equipo. <b>Pagas:</b> entrantes/salientes queda escondido y hay que abrir un panel."},
+  lista:{A:"<b>Ganas:</b> igual a la guía; en escritorio se compara columna por columna y en celular cada traslado es una tarjeta con su botón. Pasa de 3 acomodos a 2. <b>Pagas:</b> lo urgente se distingue solo por el fondo de la fila.",
+         B:"<b>Ganas:</b> lo que hay que atender queda arriba y separado de lo que solo viaja. <b>Pagas:</b> con un filtro puesto los grupos casi siempre quedan de uno."}
+};
+
+// ---------- Cálculo ----------
+function filas(){ return T.map((t) => ({t, s:situacion(t)})).sort((a, b) => ORDEN[a.s] - ORDEN[b.s] || b.t.id - a.t.id); }
+function resumen(){
+  const f = filas();
+  const c = (fn) => f.filter(fn).length;
+  return {
+    porRecibir:c((x) => x.s === "requiere_recepcion"),
+    vienen:c((x) => x.s === "en_camino_entrante"),
+    salen:c((x) => x.s === "en_camino_saliente"),
+    conDif:c((x) => x.s === "requiere_revision" || x.s === "con_diferencia"),
+    accion:c((x) => x.s === "requiere_recepcion" || x.s === "requiere_revision"),
+    camino:c((x) => x.s.startsWith("en_camino")),
+    cerrados:c((x) => x.s === "cerrado"),
+    total:f.length,
+    transito:f.filter((x) => x.t.estado === "en_transito").reduce((s, x) => s + x.t.unidades, 0),
+    abiertos:c((x) => x.t.estado === "en_transito")
+  };
+}
+function coincide({t, s}){
+  const F = S.filtro;
+  if (F === "accion" && !(s === "requiere_recepcion" || s === "requiere_revision")) return false;
+  if (F === "por_recibir" && s !== "requiere_recepcion") return false;
+  if (F === "vienen" && s !== "en_camino_entrante") return false;
+  if (F === "en_camino" && !s.startsWith("en_camino")) return false;
+  if (F === "con_diferencia" && !(s === "requiere_revision" || s === "con_diferencia")) return false;
+  if (F === "cerrados" && s !== "cerrado") return false;
+  if (F === "abiertos" && s === "cerrado") return false;
+  if (S.dir === "entrante" && !t.entrante) return false;
+  if (S.dir === "saliente" && t.entrante) return false;
+  const otra = t.entrante ? t.de : t.a;
+  if (S.sede && otra !== S.sede) return false;
+  if (S.q){ const q = S.q.toLowerCase(); if (![`traslado ${t.id}`, t.de, t.a, ...t.prendas].some((x) => x.toLowerCase().includes(q))) return false; }
+  return true;
+}
+
+// ---------- Pintado: lista ----------
+function pill(txt, activa, accion, cuenta, deshab){ return `<button type="button" class="pill" aria-pressed="${activa}" data-a="${accion}"${deshab ? " disabled" : ""}>${esc(txt)}${cuenta !== undefined ? `<span class="n">· ${cuenta}</span>` : ""}</button>`; }
+function franja(r){
+  if (!r.accion) return `<p class="card" style="margin:0;padding:12px 16px;color:var(--taupe);font-size:13.5px"><span style="color:var(--verde)">✓</span> <span style="color:var(--tinta)">Nada requiere tu acción por ahora.</span> Hay ${r.abiertos} traslados abiertos.</p>`;
+  return `<section class="franja" aria-label="Atención hoy"><div class="txt"><h3>${r.accion} traslados requieren revisión hoy</h3><p>${r.porRecibir} esperando confirmación, ${r.conDif} con diferencia registrada. Empieza por el Traslado 24.</p></div><button type="button" class="btn btn-primario" data-abrir="24">Revisar ahora →</button></section>`;
+}
+function kpi(et, v, uni, d, tono, filtro, acento){
+  const cero = v === 0;
+  const click = S.cifras === "A" || filtro;
+  const activa = filtro && S.filtro === filtro;
+  const tag = filtro ? "button" : "div";
+  const attrs = filtro ? ` type="button" data-a="filtro:${activa ? "todos" : filtro}" aria-pressed="${activa}"` : "";
+  return `<${tag} class="kpi${acento && !cero ? " acento" : ""}"${attrs}><span class="et">${et}</span><span class="v ${cero ? "cero" : tono}">${typeof v === "number" ? n(v) : v}<small>${uni}</small></span><span class="d">${d}</span>${filtro && S.cifras === "A" ? `<span class="filtra">${activa ? "Filtrando · toca para quitar" : "Toca para filtrar"}</span>` : ""}</${tag}>`;
+}
+function kpis(r){
+  return `<div class="kpis">
+    ${kpi("Por recibir hoy", r.porRecibir, r.porRecibir === 1 ? "traslado" : "traslados", r.porRecibir ? "Requiere tu confirmación" : "Nada esperando", "rojo", r.porRecibir ? "por_recibir" : null, true)}
+    ${kpi("Vienen en camino", r.vienen, "traslados", `En tránsito a tu sede${r.salen ? ` · ${r.salen} sale de tu sede` : ""}`, "", S.cifras === "A" ? "vienen" : "en_camino")}
+    ${kpi("Con diferencia", r.conDif, r.conDif === 1 ? "caso" : "casos", r.conDif ? "Requiere tu revisión" : "Todo coincide", "ambar", r.conDif ? "con_diferencia" : null)}
+    ${kpi("Prendas en tránsito", r.transito, "u.", `En ${r.abiertos} traslados abiertos`, "", null)}
+  </div>`;
+}
+function filtrosHtml(r){
+  const sedes = ["Tienda AQP", "Tienda LIM", "Taller LIM"];
+  let fila1 = `<div class="fila"><div class="busca"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="text" autocomplete="off" placeholder="Buscar traslado, sede o prenda…" aria-label="Buscar traslado, sede o prenda" value="${esc(S.q)}"></div>`;
+  const dirSeg = `<div class="segmini" role="group" aria-label="Dirección">${[["todas","Todos"],["entrante","Entrantes"],["saliente","Salientes"]].map(([v, e]) => `<button type="button" aria-pressed="${S.dir === v}" data-a="dir:${v}">${e}</button>`).join("")}</div>`;
+  const masActivos = (S.filtros === "C" && S.dir !== "todas" ? 1 : 0) + (S.filtros !== "B" && S.sede ? 1 : 0);
+  const botonMas = `<button type="button" class="mas" aria-expanded="${S.mas}" data-a="mas"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Más filtros${masActivos ? `<span class="cont">${masActivos}</span>` : ""}</button>`;
+  if (S.filtros === "A") fila1 += dirSeg + botonMas;
+  if (S.filtros === "C") fila1 += botonMas;
+  fila1 += `</div>`;
+  let chips;
+  if (S.cifras === "A") chips = `<div class="grupo desliza" role="group" aria-label="Estado">${pill("Abiertos", S.filtro === "abiertos", "filtro:abiertos", r.total - r.cerrados)}${pill("Cerrados", S.filtro === "cerrados", "filtro:cerrados", r.cerrados)}${pill("Todos", S.filtro === "todos", "filtro:todos", r.total)}</div>`;
+  else chips = `<div class="grupo desliza" role="group" aria-label="Vista rápida">${pill("Todos", S.filtro === "todos", "filtro:todos", r.total)}${pill("Acción hoy", S.filtro === "accion", "filtro:accion", r.accion)}${pill("En camino", S.filtro === "en_camino", "filtro:en_camino", r.camino)}${pill("Con diferencia", S.filtro === "con_diferencia", "filtro:con_diferencia", r.conDif)}${pill("Cerrados", S.filtro === "cerrados", "filtro:cerrados", r.cerrados)}${["por_recibir","vienen"].includes(S.filtro) ? pill((S.filtro === "por_recibir" ? "Por recibir hoy" : "Vienen en camino") + " ✕", true, "filtro:todos") : ""}</div>`;
+  let fila2 = `<div class="fila">${chips}`;
+  if (S.filtros === "B") fila2 += `</div><div class="fila"><div class="grupo desliza" role="group" aria-label="Dirección"><span class="grupo-et">Dirección</span>${pill("Todos", S.dir === "todas", "dir:todas")}${pill("Entrantes", S.dir === "entrante", "dir:entrante")}${pill("Salientes", S.dir === "saliente", "dir:saliente")}</div><div class="grupo desliza" role="group" aria-label="Otra sede"><span class="grupo-et">Otra sede</span>${pill("Todas", !S.sede, "sede:")}${sedes.map((s) => pill(s, S.sede === s, "sede:" + s)).join("")}</div>`;
+  fila2 += `</div>`;
+  let panel = "";
+  if (S.mas && S.filtros !== "B"){
+    panel = `<div class="panel">`;
+    if (S.filtros === "C") panel += `<div class="campo">Dirección<div class="grupo">${pill("Todos", S.dir === "todas", "dir:todas")}${pill("Entrantes", S.dir === "entrante", "dir:entrante")}${pill("Salientes", S.dir === "saliente", "dir:saliente")}</div></div>`;
+    panel += `<label class="campo" for="sel-sede">Otra sede<select id="sel-sede"><option value="">Todas</option>${sedes.map((s) => `<option${S.sede === s ? " selected" : ""}>${s}</option>`).join("")}</select></label></div>`;
+  }
+  const hay = S.filtro !== "todos" || S.q || S.dir !== "todas" || S.sede;
+  const activos = hay ? `<div class="activos"><button type="button" class="enlace" data-a="limpiar">Limpiar filtros</button></div>` : "";
+  return `<div class="filtros">${fila1}${fila2}${panel}${activos}</div>`;
+}
+function fila({t, s}){
+  const I = SIT[s];
+  const cls = s === "requiere_recepcion" ? " urge" : s === "requiere_revision" ? " revisa" : "";
+  const mas = t.prendas.length > 1 ? ` + ${t.prendas.length - 1} más` : "";
+  const colores = [...new Set(t.lineas.map((l) => l[2]))].slice(0, 4);
+  return `<div class="tr${cls}" data-abrir="${t.id}" role="row">
+    <div class="c-num" role="cell"><b>Traslado ${t.id}</b><span class="sub">Salió ${t.salio.split(" ")[0]}</span></div>
+    <div class="c-ruta" role="cell">${esc(t.de)} <span style="color:var(--taupe)">→</span> ${esc(t.a)}<span class="sub">${t.entrante ? "Entrante" : "Saliente"}${t.nota ? " · " + esc(t.nota) : ""}</span></div>
+    <div class="c-cont" role="cell"><b>${n(t.unidades)} u.</b> <span style="color:var(--taupe)">· ${t.lineas.length} variantes</span><span class="sub">${esc(t.prendas[0])}${mas}</span><span class="mini" aria-hidden="true">${colores.map((c) => `<i style="background:${COLORES[c]}"></i>`).join("")}</span></div>
+    <div class="c-lleg" role="cell">${esc(t.eta)}</div>
+    <div class="c-est" role="cell"><span class="chip ${I.chip}">${I.txt}</span></div>
+    <div class="c-acc acc" role="cell"><button type="button" class="btn btn-chico${I.fuerte ? " btn-primario" : ""}" data-abrir="${t.id}">${I.acc}</button></div>
+  </div>`;
+}
+function listaHtml(){
+  const f = filas().filter(coincide);
+  if (!f.length) return `<div class="vacio">Ningún traslado coincide con lo que buscas. <button type="button" class="enlace" data-a="limpiar">Quitar filtros</button></div>`;
+  const cab = `<div class="thead" role="row"><span>Traslado</span><span>Ruta</span><span>Contenido</span><span>Llegada estimada</span><span>Estado</span><span style="text-align:right">Acción</span></div>`;
+  let cuerpo;
+  if (S.lista === "A") cuerpo = cab + f.map(fila).join("");
+  else {
+    const G = [["atender","Por atender"],["camino","En camino"],["cerrado","Cerrados · últimos 30 días"]];
+    cuerpo = G.map(([g, e]) => { const gg = f.filter((x) => SIT[x.s].grupo === g); return gg.length ? `<div class="grupo-sit"><b>${e}</b><span>${gg.length}</span></div>${gg.map(fila).join("")}` : ""; }).join("");
+  }
+  return `<div class="tabla" role="table" aria-label="Traslados">${cuerpo}</div><div class="pie-tabla"><span>Mostrando ${f.length} de ${T.length} traslados · los cerrados se acotan a los últimos 30</span><span>Vista de las 14:32 · <button type="button" class="enlace">Actualizar</button></span></div>`;
+}
+function vistaLista(){
+  const r = resumen();
+  return `<div class="vista">
+    <header class="cab"><div><p class="sobre">Inventario · Traslados</p><h2>Traslados entre sedes</h2><p class="baj">Seguimos los traslados de inventario entrantes y salientes hasta que se confirme su recepción.</p></div><div class="acciones"><button type="button" class="btn btn-primario" data-a="nuevo">+ Nuevo traslado</button></div></header>
+    ${franja(r)}
+    ${kpis(r)}
+    <div class="card" style="overflow:hidden">${filtrosHtml(r)}${listaHtml()}</div>
+    <p class="nota-cayla"><b>El stock solo ingresa a la tienda cuando confirmas la recepción.</b> Si hay diferencia, regístrala: el traslado queda «con diferencia» y las prendas entran al stock cuando un líder lo cierra.</p>
+  </div>`;
+}
+
+// ---------- Pintado: detalle ----------
+function vistaDetalle(){
+  const t = T.find((x) => x.id === S.abierto);
+  const s = situacion(t), I = SIT[s];
+  const redisenado = S.alcance !== "L";
+  const editable = t.entrante && t.estado !== "recibido";
+  if (!redisenado){
+    return `<div class="vista hoy"><span class="marca-hoy">Así se ve hoy · no entra en este alcance</span>
+      <div><p class="eyebrow" style="font-weight:600">Traslados · Tienda TRU</p><h2 style="font-family:var(--serif);font-weight:500;font-size:24px;margin:4px 0 0">Traslado ${t.id} <span style="color:var(--taupe)">·</span> ${esc(t.de)} <span style="color:var(--taupe)">→</span> ${esc(t.a)}</h2></div>
+      <div class="card" style="padding:18px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px"><span><span class="chip ${I.chip}">${I.txt}</span> &nbsp;${esc(t.eta)}</span><span style="font-size:12px;color:var(--taupe)">Envió ${esc(t.por)}</span></div>
+      <div class="card" style="overflow:hidden"><table><thead><tr><th>Prenda</th><th style="text-align:right">Enviado</th><th style="text-align:right">Recibido</th></tr></thead><tbody>${t.lineas.map((l, i) => `<tr><td>${esc(l[0])}<div style="font-size:12px;color:var(--taupe)">${l[1]}/${l[2]}</div></td><td style="text-align:right">${l[3]}</td><td style="text-align:right">${editable ? `<input class="num" type="number" value="${t.recibidas[i]}">` : t.recibidas[i]}</td></tr>`).join("")}</tbody></table></div>
+      ${editable ? `<div class="card" style="padding:18px"><p class="eyebrow" style="font-weight:600;margin-bottom:8px">Llegó algo que no estaba en el envío</p><input class="subraya" placeholder="Escanea el código de barras o escribe el SKU…"></div><button class="btn btn-primario" style="width:100%">Confirmar recepción</button>` : ""}
+    </div>`;
+  }
+  const env = t.unidades, rec = Object.values(t.recibidas).reduce((a, b) => a + b, 0), dif = rec - env;
+  const pasos = [
+    ["Salió", `${t.salio} · ${t.por}`, true],
+    ["En camino", t.estado === "en_transito" ? t.eta : "Llegó", t.estado !== "en_transito" || true],
+    [t.estado === "recibido" ? "Recibido" : t.estado === "recibido_con_diferencia" ? "Con diferencia" : "Recibir", t.estado === "recibido" ? t.eta : t.estado === "recibido_con_diferencia" ? "Espera el cierre de un líder" : "Confirma lo que llegó", t.estado === "recibido"]
+  ];
+  const ahora = t.estado === "en_transito" ? (s === "requiere_recepcion" ? 2 : 1) : t.estado === "recibido_con_diferencia" ? 2 : -1;
+  const lineas = t.lineas.map((l, i) => {
+    const r = t.recibidas[i], d = r !== l[3];
+    return `<div class="linea${d ? " dif" : ""}" role="row">
+      <span class="l-foto foto" style="--c:${COLORES[l[2]]};background:color-mix(in oklab, ${COLORES[l[2]]} 22%, var(--hueso))" aria-hidden="true"></span>
+      <span class="l-pr" style="min-width:0"><b style="font-weight:600">${esc(l[0])}</b><span class="sub">${l[1]} · ${l[2]}${d ? ` · <span style="color:var(--ambar)">${r - l[3] > 0 ? "+" : "−"}${Math.abs(r - l[3])} de diferencia</span>` : ""}</span></span>
+      <span class="l-env" style="color:var(--taupe);font-size:13px">Enviado <b style="color:var(--tinta)">${l[3]}</b></span>
+      <span class="l-rec">${editable && t.estado === "en_transito" ? `<span class="stepper" role="group" aria-label="Recibido de ${esc(l[0])} ${l[1]}"><button type="button" data-paso="${i}:-1" aria-label="Uno menos">−</button><span>${r}</span><button type="button" data-paso="${i}:1" aria-label="Uno más">+</button></span>` : `<span style="font-weight:600">${r}</span> <span style="color:var(--taupe);font-size:12px">recibido</span>`}</span>
+    </div>`;
+  }).join("");
+  let accion = "";
+  if (editable && t.estado === "en_transito") accion = `<div class="barra-accion"><span class="${dif ? "aviso-dif" : "aviso-ok"}">${dif ? `Hay ${Math.abs(dif)} ${dif < 0 ? "de menos" : "de más"}: quedará «con diferencia» y un líder lo cierra.` : "✓ Todo coincide: al confirmar, las prendas entran a tu stock."}</span><select class="combo" aria-label="Responsable"><option>Responsable: Felipe Alvarez</option><option>Rosa Mendoza</option></select><button type="button" class="btn btn-primario" data-a="confirmar">Confirmar recepción · ${rec} u.</button></div>`;
+  if (t.estado === "recibido_con_diferencia") accion = `<div class="barra-accion"><span class="aviso-dif">Llegaron ${rec} de ${env}. Como líder puedes cerrarlo así; las ${rec} entran a tu stock.</span><textarea class="combo" style="height:60px;padding:8px" placeholder="Nota (opcional): qué pasó con la diferencia"></textarea><button type="button" class="btn btn-primario" data-a="confirmar">Cerrar con esta diferencia</button></div>`;
+  return `<div class="vista">
+    <header class="cab"><div><p class="sobre">Inventario · Traslados</p><h2>Traslado ${t.id}</h2><p class="baj">${esc(t.de)} → ${esc(t.a)} · ${t.entrante ? "entrante" : "saliente"}${t.nota ? " · " + esc(t.nota) : ""}</p></div><div class="acciones"><span class="chip ${I.chip}">${I.txt}</span></div></header>
+    <div class="card"><div class="pasos" aria-label="Recorrido del traslado">${pasos.map((p, i) => `<div class="paso${p[2] || i < ahora ? " hecho" : ""}${i === ahora ? " ahora" : ""}"><span class="pt"></span><b>${p[0]}</b><span>${esc(p[1])}</span></div>`).join("")}</div></div>
+    <div class="det-grid">
+      <div class="card" style="overflow:hidden">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;padding:14px 18px 10px"><span class="eyebrow">Prendas del envío</span><span style="font-size:12.5px;color:var(--taupe)">${t.lineas.length} variantes</span></div>
+        <div role="table" aria-label="Prendas">${lineas}</div>
+        ${editable && t.estado === "en_transito" ? `<div style="padding:12px 18px;border-top:1px solid var(--sand)"><div class="busca"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7V5h2M18 5h2v2M20 17v2h-2M6 19H4v-2M8 9v6M11 9v6M14 9v6M17 9v6"/></svg><input placeholder="¿Llegó algo que no estaba? Escanea o escribe el SKU…" aria-label="Agregar prenda que no estaba en el envío"></div></div>` : ""}
+        ${accion}
+      </div>
+      <div class="card lado">
+        <span class="eyebrow">Resumen</span>
+        <div class="fila-dato"><span>Enviado</span><b>${env} u.</b></div>
+        <div class="fila-dato"><span>Recibido</span><b>${t.estado === "en_transito" && !editable ? "—" : rec + " u."}</b></div>
+        <div class="fila-dato"><span>Diferencia</span><b style="color:${dif ? "var(--ambar)" : "var(--verde)"}">${t.estado === "en_transito" && !editable ? "—" : dif === 0 ? "0" : (dif > 0 ? "+" : "−") + Math.abs(dif)}</b></div>
+        <div style="border-top:1px solid var(--sand);padding-top:10px" class="fila-dato"><span>Envió</span><b style="font-weight:500">${esc(t.por)}</b></div>
+        <div class="fila-dato"><span>Salió</span><b style="font-weight:500">${t.salio}</b></div>
+        <div class="fila-dato"><span>Movimientos</span><button type="button" class="enlace" data-aviso="Abre Movimientos filtrado por «Traslado ${t.id}».">Ver en Movimientos</button></div>
+      </div>
+    </div>
+    <p class="nota-cayla"><b>Cuenta lo que llegó, no lo que dice la guía.</b> Si todo coincide, al confirmar se cierra solo; si no, queda «con diferencia» y nada entra al stock hasta que un líder lo cierra.</p>
+  </div>`;
+}
+
+// ---------- Pintado: nuevo ----------
+function vistaNuevo(){
+  if (S.alcance !== "LDN"){
+    return `<div class="vista hoy"><span class="marca-hoy">Así se ve hoy · no entra en este alcance</span>
+      <div><p class="eyebrow" style="font-weight:600">Inventario · Tienda TRU</p><h2 style="font-family:var(--serif);font-weight:500;font-size:24px;margin:4px 0">Mover mercadería</h2><p style="margin:0;color:var(--taupe)">Cada traslado queda registrado como movimiento — no se edita el stock a mano.</p></div>
+      <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><label class="campo">Desde<span style="font-weight:400;letter-spacing:0;text-transform:none;color:var(--tinta);padding:8px 4px">Tienda TRU</span></label><label class="campo">Hacia<select><option>Tienda AQP</option><option>Tienda LIM</option><option>Taller LIM</option></select></label></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><label class="campo">Llega aproximadamente<input class="subraya" type="datetime-local"></label><label class="campo">Nota (opcional)<input class="subraya"></label></div>
+        <div class="campo">Prendas a mover<div style="display:flex;gap:8px;align-items:end;text-transform:none;letter-spacing:0;font-weight:400"><select style="flex:1"><option>Blusa Emma · BLU-EMM-NEG-S S/Negro — stock 18</option></select><input class="num" type="number" value="1" style="width:60px;border:0;border-bottom:1px solid var(--sand);background:transparent;text-align:center"><span style="font-size:12px;color:var(--taupe)">de 18</span></div></div>
+        <button class="btn btn-primario">Mover hacia Tienda AQP</button>
+      </div></div>`;
+  }
+  const N = S.nuevo;
+  const total = N.lineas.reduce((s, l) => s + l[3], 0);
+  const sedes = [["Tienda AQP","Arequipa · 1 en camino"],["Tienda LIM","Lima · 1 en camino"],["Taller LIM","Taller · sin envíos"]];
+  const sugeridas = [["Kimono Wayra","M","Estampado",7],["Vestido Solsticio","S","Negro",22],["Top Killa","L","Rojo",14]];
+  return `<div class="vista">
+    <header class="cab"><div><p class="sobre">Inventario · Traslados</p><h2>Nuevo traslado</h2><p class="baj">Sale de Tienda TRU ahora. Queda en camino hasta que la otra sede confirme lo que llegó.</p></div></header>
+    <div class="nuevo-grid">
+      <div class="card" style="overflow:hidden">
+        <div class="bloque"><h3>1 · ¿A dónde va?</h3><div class="destinos">${sedes.map(([s, d]) => `<button type="button" class="destino" aria-pressed="${N.destino === s}" data-dest="${s}"><b>${s}</b><span>${d}</span></button>`).join("")}</div></div>
+        <div class="bloque"><h3>2 · Prendas</h3>
+          <div class="busca"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7V5h2M18 5h2v2M20 17v2h-2M6 19H4v-2M8 9v6M11 9v6M14 9v6M17 9v6"/></svg><input placeholder="Escanea o busca: blusa negro s…" aria-label="Agregar prenda al envío"></div>
+          <div class="sugeridas">${sugeridas.map((p, i) => `<button type="button" class="sug" data-sug="${i}"><b style="font-weight:500">${p[0]} · ${p[1]} · ${p[2]}</b><span>${p[3]} en stock · agregar</span></button>`).join("")}</div>
+          <div role="table" aria-label="Prendas a enviar">${N.lineas.map((l, i) => `<div class="linea" role="row" style="padding-inline:0"><span class="l-foto foto" style="--c:${COLORES[l[2]]};background:color-mix(in oklab, ${COLORES[l[2]]} 22%, var(--hueso))" aria-hidden="true"></span><span class="l-pr" style="min-width:0"><b style="font-weight:600">${l[0]}</b><span class="sub">${l[1]} · ${l[2]}</span></span><span class="l-env" style="font-size:12.5px;color:var(--taupe)">de ${l[4]} en stock</span><span class="l-rec"><span class="stepper"><button type="button" data-np="${i}:-1" aria-label="Uno menos">−</button><span>${l[3]}</span><button type="button" data-np="${i}:1" aria-label="Uno más">+</button></span></span></div>`).join("")}</div>
+        </div>
+        <div class="bloque"><h3>3 · ¿Cuándo llega?</h3><div class="grupo">${[["hoy","Hoy 18:00"],["manana","Mañana 12:00"],["otra","Otra fecha…"]].map(([v, e]) => pill(e, N.eta === v, "eta:" + v)).join("")}</div><input class="combo" placeholder="Nota para quien recibe (opcional)"></div>
+      </div>
+      <div class="card lado resumen-envio" style="position:sticky;top:12px">
+        <span class="eyebrow">Vas a enviar</span>
+        <span class="grande">${total} u.</span>
+        <span style="color:var(--taupe);font-size:13px">${N.lineas.length} variantes · Tienda TRU → ${esc(N.destino)}</span>
+        <select class="combo" aria-label="Responsable"><option>Responsable: Felipe Alvarez</option><option>Rosa Mendoza</option></select>
+        <button type="button" class="btn btn-primario" data-a="enviar"${total ? "" : " disabled"}>Enviar a ${esc(N.destino)}</button>
+        <span style="font-size:12px;color:var(--taupe)">Sale de tu stock al enviar. No se puede editar después: si algo falla, lo corrige quien recibe.</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ---------- Ciclo ----------
+function pintar(){
+  const c = $("contenido");
+  c.innerHTML = S.vista === "detalle" ? vistaDetalle() : S.vista === "nuevo" ? vistaNuevo() : vistaLista();
+  $("migas").innerHTML = S.vista === "lista" ? "Inventario / Traslados" : `<button type="button" data-a="volver">Inventario / Traslados</button> / ${S.vista === "detalle" ? "Traslado " + S.abierto : "Nuevo"}`;
+  $("badge-menu").textContent = resumen().accion;
+  for (const k of ["alcance","cifras","filtros","lista"]) $("nota-" + k).innerHTML = NOTAS[k][S[k]];
+  const q = $("q");
+  if (q){ q.oninput = (e) => { S.q = e.target.value; const pos = e.target.selectionStart; pintar(); const q2 = $("q"); q2.focus(); q2.setSelectionRange(pos, pos); }; }
+  const ss = $("sel-sede"); if (ss) ss.onchange = (e) => { S.sede = e.target.value; pintar(); };
+}
+let avisoT;
+function aviso(txt){
+  let el = $("aviso");
+  if (!el){ el = document.createElement("div"); el.id = "aviso"; el.setAttribute("role", "status"); el.style.cssText = "position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:16px;z-index:60;background:var(--tinta);color:var(--crema);border-radius:12px;padding:10px 14px;font-size:13px;max-width:320px"; document.body.appendChild(el); }
+  el.textContent = txt; el.hidden = false; clearTimeout(avisoT); avisoT = setTimeout(() => { el.hidden = true; }, 2600);
+}
+document.addEventListener("click", (e) => {
+  const av = e.target.closest("[data-aviso]"); if (av){ aviso(av.dataset.aviso); return; }
+  const ab = e.target.closest("[data-abrir]");
+  const a = e.target.closest("[data-a]");
+  if (a){
+    const [k, v] = a.dataset.a.split(":");
+    if (k === "filtro") S.filtro = v;
+    else if (k === "dir") S.dir = v;
+    else if (k === "sede") S.sede = v || "";
+    else if (k === "mas") S.mas = !S.mas;
+    else if (k === "limpiar"){ S.filtro = "todos"; S.q = ""; S.dir = "todas"; S.sede = ""; }
+    else if (k === "nuevo"){ S.vista = "nuevo"; }
+    else if (k === "volver"){ S.vista = "lista"; }
+    else if (k === "eta"){ S.nuevo.eta = v; }
+    else if (k === "confirmar"){ aviso("Recepción confirmada · las prendas entraron a tu stock (demo)."); S.vista = "lista"; }
+    else if (k === "enviar"){ aviso(`Traslado enviado a ${S.nuevo.destino} (demo).`); S.vista = "lista"; }
+    pintar(); return;
+  }
+  if (ab){ S.abierto = Number(ab.dataset.abrir); S.vista = "detalle"; pintar(); $("contenido").scrollIntoView({block:"nearest"}); return; }
+  const p = e.target.closest("[data-paso]");
+  if (p){ const [i, d] = p.dataset.paso.split(":").map(Number); const t = T.find((x) => x.id === S.abierto); t.recibidas[i] = Math.max(0, t.recibidas[i] + d); pintar(); return; }
+  const np = e.target.closest("[data-np]");
+  if (np){ const [i, d] = np.dataset.np.split(":").map(Number); const l = S.nuevo.lineas[i]; l[3] = Math.min(l[4], Math.max(0, l[3] + d)); if (l[3] === 0) S.nuevo.lineas.splice(i, 1); pintar(); return; }
+  const dest = e.target.closest("[data-dest]"); if (dest){ S.nuevo.destino = dest.dataset.dest; pintar(); return; }
+  const sug = e.target.closest("[data-sug]");
+  if (sug){ const p = [["Kimono Wayra","M","Estampado",7],["Vestido Solsticio","S","Negro",22],["Top Killa","L","Rojo",14]][Number(sug.dataset.sug)]; const ya = S.nuevo.lineas.find((l) => l[0] === p[0] && l[1] === p[1]); if (ya) ya[3] = Math.min(ya[4], ya[3] + 1); else S.nuevo.lineas.push([p[0], p[1], p[2], 1, p[3]]); pintar(); }
+});
+function segmento(id, clave, extra){
+  $(id).addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-v]"); if (!b) return;
+    $(id).querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+    S[clave] = b.dataset.v; if (extra) extra(b.dataset.v); pintar();
+  });
+}
+segmento("seg-alcance", "alcance", (v) => { if (v === "LDN") S.vista = "nuevo"; else if (S.vista === "nuevo" && v === "L") S.vista = "lista"; });
+segmento("seg-cifras", "cifras", () => { S.filtro = "todos"; });
+segmento("seg-filtros", "filtros", (v) => { S.mas = false; if (v === "A" && S.dir !== "todas") {} });
+segmento("seg-lista", "lista", () => { S.vista = "lista"; });
+$("seg-vista").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-v]"); if (!b) return;
+  $("seg-vista").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+  $("escenario").classList.toggle("celular", b.dataset.v === "celular");
+});
+function temaActual(){ const t = document.documentElement.dataset.theme; if (t) return t; return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; }
+function rotular(){ $("btn-tema").textContent = temaActual() === "dark" ? "Ver en claro" : "Ver en oscuro"; }
+$("btn-tema").addEventListener("click", () => { document.documentElement.dataset.theme = temaActual() === "dark" ? "light" : "dark"; rotular(); });
+rotular();
+pintar();
+})();
+</script>

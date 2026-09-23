@@ -11,7 +11,7 @@ import {
   type PerfilDelMenu,
   type TipoUbicacion,
 } from "./menu";
-import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, esDelegable, leerModulos, modulosDeHoy, permisosDeModulos, type ClaveModulo } from "./modulos";
+import { CLAVES_MODULO, MODULOS, MODULOS_DE_HOY, accionesDeCompra, esDelegable, leerModulos, modulosDeHoy, permisosDeModulos, usaModulo, type ClaveModulo } from "./modulos";
 
 // Roles por módulo (ADR-0161 B, migración 20260923030000_roles_por_modulo.sql). Lo que estas pruebas cuidan:
 //  1. El catálogo de la web y el de la base son el mismo (claves, orden, «solo líder», «solo líder por ahora»), y lo que
@@ -204,6 +204,29 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     expect(riel.find((f) => f.etiqueta === "Compras")).toMatchObject({ href: "/compras/por-pagar" });
     const soloEtiquetas = ahora({ nombre: "etiquetas", rol: "integrante" }, "tienda", [{ clave: "etiquetas", completo: true }]);
     expect(menuPara(soloEtiquetas).riel.find((f) => f.etiqueta === "Catálogo")).toMatchObject({ href: "/productos/atributos" });
+  });
+
+  // ADR-0161 P1 (20260923140000): en Compras cada módulo escribe solo lo suyo, aunque los tres vean los montos. Espeja
+  // fn_puede_registrar_facturas_compra / fn_puede_pagar_compras / fn_puede_registrar_notas_credito.
+  it("P1 · cada módulo de Compras hace solo lo suyo; los tres ven los montos; el líder, todo", () => {
+    const de = (clave: ClaveModulo, completo = true) => [{ clave, completo }];
+    expect(accionesDeCompra("integrante", de("facturas_compra"))).toEqual({ facturas: true, pagar: false, notas: false });
+    expect(accionesDeCompra("integrante", de("por_pagar"))).toEqual({ facturas: false, pagar: true, notas: false });
+    expect(accionesDeCompra("integrante", de("notas_credito"))).toEqual({ facturas: false, pagar: false, notas: true });
+    expect(accionesDeCompra("integrante", de("por_pagar", false))).toEqual({ facturas: false, pagar: false, notas: false });
+    expect(accionesDeCompra("lider", [])).toEqual({ facturas: true, pagar: true, notas: true });
+    for (const clave of ["facturas_compra", "por_pagar", "notas_credito"] as const) {
+      expect(permisosDeModulos("integrante", de(clave)), clave).toContain("verDineroCompras");
+    }
+    expect(usaModulo("integrante", de("recibir"), "facturas_compra")).toBe(false);
+  });
+
+  // ADR-0161 P3 (20260923140000): Proveedores se ve con su módulo, sin los montos.
+  it("P3 · «Proveedores» solo: Compras sale con Proveedores, sin ver el dinero", () => {
+    const soloProveedores = ahora({ nombre: "proveedores", rol: "integrante" }, "tienda", [{ clave: "proveedores", completo: true }]);
+    expect(soloProveedores.permisos).toEqual(["editarCuentasProveedor"]);
+    const riel = menuPara(soloProveedores).riel;
+    expect(riel.find((f) => f.etiqueta === "Compras")).toMatchObject({ href: "/compras/proveedores" });
   });
 });
 

@@ -429,8 +429,8 @@ error(
 
 error(
   "un integrante (Micaela) no puede registrar pagos a proveedores",
-  comoPersona(MICAELA, `${BASE}${compra("c1")}\nselect retail.registrar_pago_compras_medios(:'prov1', jsonb_build_array(${aplic("c1", "100")}), jsonb_build_array(${medio("efectivo", "100.00")}));`),
-  "No tienes permiso"
+  comoPersona(FELIPE, `${BASE}${compra("c1")}\nset local request.jwt.claim.sub = '${MICAELA}';\nselect retail.registrar_pago_compras_medios(:'prov1', jsonb_build_array(${aplic("c1", "100")}), jsonb_build_array(${medio("efectivo", "100.00")}));`),
+  "necesita el módulo Por pagar" // ADR-0161 P1 (20260923140000)
 );
 
 exito(

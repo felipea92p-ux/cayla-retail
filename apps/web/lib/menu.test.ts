@@ -610,14 +610,17 @@ describe("el menú de una terminal con el rol «Terminal de ventas»", () => {
 describe("el menú de una terminal con el rol «Terminal administrativa»", () => {
   const { riel, nuevo } = menuPara(perfilTerminal("administrativa"));
 
-  it("ve Inicio, Catálogo e Inventario; en Inventario, sin Análisis (es de decisión, del líder) y con Recibir mercadería", () => {
-    expect(etiquetasDe(riel)).toEqual(["Inicio", "Catálogo", "Inventario"]);
+  it("ve Inicio, Catálogo, Compras (solo Proveedores, P3) e Inventario; en Inventario, sin Análisis (es de decisión, del líder) y con Recibir mercadería", () => {
+    expect(etiquetasDe(riel)).toEqual(["Inicio", "Catálogo", "Compras", "Inventario"]);
     expect(hijasDe(riel, "Inventario")).toEqual(["Existencias", "Movimientos", "Traslados", "Conteo", "Recibir mercadería"]);
     expect(hijasDe(riel, "Catálogo")).toEqual(["Productos", "Categorías", "Atributos"]);
   });
 
-  it("hoy NO ve Compras: sin `verDineroCompras` no le queda ninguna pantalla del grupo", () => {
-    expect(etiquetasDe(riel)).not.toContain("Compras");
+  // ADR-0161 P3 (20260923140000): Proveedores se abre con su módulo, sin los montos. Lo demás de Compras sigue pidiendo
+  // `verDineroCompras`, que esta terminal no tiene.
+  it("de Compras ve solo Proveedores (su rol tiene el módulo, P3): sin `verDineroCompras`, nada con dinero", () => {
+    // Un grupo con una sola pantalla se pinta como esa pantalla.
+    expect(riel.find((f) => f.etiqueta === "Compras")).toMatchObject({ href: "/compras/proveedores" });
   });
 
   it("si algún día recibe `verDineroCompras` (su rol suma Facturas de compra, Por pagar o Notas de crédito), Compras aparece con lo que su rol ve, SIN tocar el árbol", () => {

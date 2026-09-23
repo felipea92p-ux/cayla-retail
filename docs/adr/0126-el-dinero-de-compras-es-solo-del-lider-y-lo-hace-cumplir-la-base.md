@@ -132,3 +132,12 @@ Solo lectura, contra la base real, la misma tarde en que Felipe pegó las dos mi
   `compra_adjuntos` ni `compra_notas_credito`, así que el cierre de las TABLAS no se pudo ver «vaciando» filas reales: se
   verificó por la política (arriba) y con datos en `pnpm pruebas:dinero-compras` (32 casos, también en el piloto de CI).
   El cierre quedó puesto antes de la primera factura real.
+
+## Actualización 2026-09-22 — ADR-0161 P1 y P2 (migración `20260923140000_modulos_seis_decisiones.sql`, sin pegar)
+
+La regla del dinero (D1) sigue en UNA función y no cambia: `fn_puede_ver_dinero_de_compras()` = líder o un rol con Facturas
+de compra, Por pagar o Notas de crédito (desde `20260923130000`). Lo que cambia es ESCRIBIR: `fn_puede_registrar_compras()`
+ya no protege ninguna escritura; cada una pregunta la capacidad de su módulo (`fn_puede_registrar_facturas_compra`,
+`fn_puede_pagar_compras`, `fn_puede_registrar_notas_credito`). Ver los montos y mover el dinero son dos llaves distintas.
+Recibir mercadería muestra los montos a quien ve el dinero de Compras (P2): la base ya los entregaba así; lo que miraba
+«¿es líder?» era la pantalla. Detalle en el ADR-0161, «P1–P6 construidas».

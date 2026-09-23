@@ -320,7 +320,7 @@ ${cambiaA(MICAELA)}select retail.recibir_envio(:'trujillo', ${LISTA(ITEM("c1_ite
   p_notas_credito => ${LISTA(`jsonb_build_object('compra_id', :'c1', 'serie_numero', 'FC01-93', 'fecha', retail.fn_hoy_lima(), 'monto', 236.00)`)});
 `
   ),
-  "No tienes permiso para registrar notas de crédito de proveedores"
+  "Registrar notas de crédito de proveedores necesita el módulo Notas de crédito" // ADR-0161 P1 (20260923140000)
 );
 
 exito(
