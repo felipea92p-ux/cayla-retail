@@ -10,6 +10,9 @@
  *   · con al menos una prenda contada, `cerrar_conteo` cierra como siempre y ajusta el stock;
  *   · los rechazos de antes van primero: un conteo ya cerrado sigue diciendo «Ese conteo ya está cerrado»;
  *   · la migración se puede pegar dos veces: el bloque queda UNA sola vez en la función.
+ *   · ADR-0189 (20260924120000): recontar renueva la foto del sistema (`cantidad_sistema`), y una venta entre el conteo
+ *     y el cierre no descuadra el ajuste (contado − foto se aplica sobre el stock actual). Con `--en-seco` también
+ *     prueba que las dos migraciones conviven: el ancla de esta sigue intacta después de ADR-0189.
  *
  * CÓMO. Mismo patrón que `candado_lider_caja_y_ajuste.mjs`: cada escenario corre en su propia transacción con
  * ROLLBACK (nunca se commitea nada), como Felipe (líder) con `set local request.jwt.claim.sub`. Antes de abrir el
@@ -138,6 +141,46 @@ select 1 from retail.cerrar_conteo(:'conteo');
 select pg_temp.intento(format('select * from retail.cerrar_conteo(%L)', :'conteo')) as r \\gset
 select split_part(:'r', '|', 3);`),
   ["Ese conteo ya está cerrado"]
+);
+
+// ---------------------------------------------------------------------------
+// ADR-0189 (20260924120000): recontar renueva la foto del sistema, y el cierre ajusta contado − foto sobre el stock
+// ACTUAL. «Venta» = una salida de stock entre la foto y el cierre (lo mismo que mueve registrar_venta).
+// Deja `:stock0` = stock del piso antes (con colchón de 10 para poder vender 2).
+// ---------------------------------------------------------------------------
+const CON_STOCK = `${CONTEO_VACIO}
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'var', :'trujillo', :'sub_piso', 'entrada', 10, 'colchón de prueba') returning id as mov_colchon \\gset
+select retail.fn_aplicar_movimiento(:'mov_colchon') as _c \\gset
+select coalesce(sum(cantidad), 0) as stock0 from retail.stock where variante_id = :'var' and ubicacion_id = :'trujillo' and sububicacion_id = :'sub_piso' \\gset
+`;
+const VENDER_2 = `
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'var', :'trujillo', :'sub_piso', 'salida', 2, 'prueba: venta entre foto y cierre') returning id as mov_venta \\gset
+select retail.fn_aplicar_movimiento(:'mov_venta') as _v \\gset
+`;
+const STOCK_FINAL = `(select coalesce(sum(cantidad), 0) from retail.stock where variante_id = :'var' and ubicacion_id = :'trujillo' and sububicacion_id = :'sub_piso')`;
+
+exito(
+  "recuento después de una venta: el cierre deja lo recontado, no lo recontado − lo vendido (ADR-0189)",
+  comoFelipe(`${CON_STOCK}
+select retail.conteo_contar(:'conteo', :'var', :stock0);
+${VENDER_2}
+select retail.conteo_contar(:'conteo', :'var', :stock0 - 2);
+select 1 from retail.cerrar_conteo(:'conteo');
+select ${STOCK_FINAL} = :stock0 - 2,
+  (select cantidad_sistema = :stock0 - 2 from retail.conteo_items where conteo_id = :'conteo' and variante_id = :'var');`),
+  ["t", "t"]
+);
+
+exito(
+  "venta entre el conteo y el cierre, sin recontar: el ajuste (contado − foto) se suma a lo que queda (ADR-0189)",
+  comoFelipe(`${CON_STOCK}
+select retail.conteo_contar(:'conteo', :'var', :stock0 + 1);
+${VENDER_2}
+select 1 from retail.cerrar_conteo(:'conteo');
+select ${STOCK_FINAL} = :stock0 - 2 + 1;`),
+  ["t"]
 );
 
 exito(
