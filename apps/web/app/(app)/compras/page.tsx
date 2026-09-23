@@ -108,7 +108,8 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           <p className="mt-1 text-sm text-tinta/65">Cada comprobante registra lo que se compró; la recepción y el pago se anotan contra él.</p>
         </div>
         <div className="flex flex-wrap gap-2.5">
-          {/* El registro de compras del mes que se le manda al contador. */}
+          {/* El registro de compras del mes que se le manda al contador (ADR-0151: con el filtro por tienda de la base,
+              quien no es líder exporta lo de sus tiendas). */}
           <a
             href={`/compras/exportar?mes=${hoy.slice(0, 7)}`}
             className="label-cayla inline-flex items-center gap-2 rounded-md border border-tinta/25 px-4 py-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"

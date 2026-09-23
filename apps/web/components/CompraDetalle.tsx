@@ -80,6 +80,9 @@ export type DetalleCompra = {
   /** Qué puede hacer quien mira, módulo por módulo (ADR-0161 P1, 20260923140000): anular, reparto y adjuntos son de Facturas de
    *  compra; pagar, de Por pagar; las notas, de Notas de crédito. Solo esconde lo que la base igual rechazaría. */
   acciones: AccionesDeCompra;
+  /** ADR-0151 (F4-F5): las tiendas con las que paga quien mira, para que «Registrar pago» sepa con cuál (`p_ubicacion_id`).
+   *  `undefined` = líder: paga sin atarse a ninguna, como siempre. */
+  misTiendas?: { id: string; nombre: string }[];
 };
 
 /** Lo que el modal de pago muestra del proveedor. Es un complemento: si la lectura falla el detalle sigue (principio 9) y el pago funciona igual, solo sin la tarjeta «Paga por» ni el saldo a favor a la vista — la base valida igual. */
@@ -124,6 +127,7 @@ export async function cargarDetalleCompra(compraId: string): Promise<DetalleComp
     ubicaciones: ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre })),
     datosPago,
     acciones: accionesDeCompraDe(persona),
+    misTiendas: persona.rol === "lider" ? undefined : persona.tiendasCompra,
   };
 }
 
@@ -170,7 +174,7 @@ export function DatosComprobante({ compra, destino }: Pick<DetalleCompra, "compr
 }
 
 export function CompraDetalle({
-  detalle: { compra, lineas, pagos, recepciones, adjuntos, notasCredito, datosPago, reparto, ubicaciones, acciones: permite },
+  detalle: { compra, lineas, pagos, recepciones, adjuntos, notasCredito, datosPago, reparto, ubicaciones, acciones: permite, misTiendas },
   adjuntosFallidos = [],
   acciones = true,
 }: {
@@ -365,7 +369,7 @@ export function CompraDetalle({
           (en el modal lo dibuja `ModalRuta`, con `acciones={false}` acá). */}
       {acciones && !anulada && (
         <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-4">
-          <CompraAcciones compra={compra} tieneRecepciones={recepciones.length > 0} datosPago={datosPago} permite={permite} />
+          <CompraAcciones compra={compra} tieneRecepciones={recepciones.length > 0} datosPago={datosPago} permite={permite} misTiendas={misTiendas} />
         </div>
       )}
     </>

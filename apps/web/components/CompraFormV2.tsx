@@ -22,7 +22,7 @@ import { AyudaCostoLinea, BarraProgreso, BotonRegistrar, CifraCompra, ListaPendi
 import { detalleProveedorCombo, type DatosPagoProveedor } from "@/lib/proveedores-reglas";
 import { hoyLima, sumarDias } from "@/lib/fechas-lima";
 import { costoBase, costoParaTipear, ETIQUETA_METODO, fechaCorta, METODO_SALDO_A_FAVOR, soles, totalesCompra } from "@/lib/compras-reglas";
-import { destinosParaRpc, repartirEnPartesIguales, repartoSoloDe, unidadesPorTienda, type RepartoLinea } from "@/lib/reparto-reglas";
+import { destinosParaRpc, repartirEnPartesIguales, repartoSoloDe, tiendaGestora, unidadesPorTienda, type RepartoLinea } from "@/lib/reparto-reglas";
 
 // Registrar una factura de proveedor (ADR-0035). Dos reglas de Felipe que
 // esta pantalla refleja pero NO decide — las decide la RPC `registrar_compra`:
@@ -92,6 +92,7 @@ const sinMovimiento = () => typeof window !== "undefined" && window.matchMedia?.
 export function CompraFormV2({
   proveedores,
   ubicaciones,
+  misTiendas,
   ubicacionInicialId,
   variantes,
   proveedorInicialId = null,
@@ -101,6 +102,11 @@ export function CompraFormV2({
 }: {
   proveedores: Proveedor[];
   ubicaciones: Ubicacion[];
+  /** ADR-0151 (F5): solo para un comprador de tienda — las tiendas donde puede ser gestora (`fn_compras_ubicaciones()`),
+   *  un subconjunto de `ubicaciones`. `undefined` = sin restricción (líder, como siempre): elige cualquiera de
+   *  `ubicaciones` y la gestora sale de `tiendasReparto[0]`. Con esto, la gestora sale de LA tienda del comprador que
+   *  siga en el reparto (nunca de la posición 0, que sigue el orden de `ubicaciones` y podría no ser la suya). */
+  misTiendas?: Ubicacion[];
   ubicacionInicialId: string;
   variantes: Variante[];
   /** `?prov=<uuid>`: llega desde «+ Comprobante» de la lista o la ficha de un proveedor. */
@@ -239,6 +245,9 @@ export function CompraFormV2({
   // Para el resumen «Dónde cae»: cuántas unidades le tocan a cada tienda (solo cuando se reparte).
   const unidadesTienda = unidadesPorTienda(lineas.filter((l) => l.productoId && l.cantidad > 0));
   const porTienda = ubicaciones.filter((u) => (unidadesTienda[u.id] ?? 0) > 0).map((u) => ({ id: u.id, nombre: u.nombre, unidades: unidadesTienda[u.id] }));
+  // La tienda gestora que se manda a la RPC (ADR-0151, F3: `p_ubicacion_destino_id` es la gestora desde esta ADR;
+  // `tiendaGestora`, con sus pruebas, en `lib/reparto-reglas.ts`).
+  const gestora = tiendaGestora(repartir, tiendasReparto, ubicacionId, misTiendas?.map((u) => u.id));
   const documentoNormalizado = `${serie.trim().toUpperCase()}-${numero.trim()}`;
   const documentoRepetido = existentes[`${proveedorId}|${documentoNormalizado}`] === true;
   // Al contado con un solo medio, el monto ES el total: acompaña a las líneas
@@ -341,8 +350,9 @@ export function CompraFormV2({
       p_serie: serie.trim(),
       p_numero: numero.trim(),
       p_condicion: condicion,
-      // Repartido: cada línea trae sus `destinos` y este parámetro solo hace de valor por defecto (la firma no cambió).
-      p_ubicacion_destino_id: repartir ? (tiendasReparto[0] ?? ubicacionId) : ubicacionId,
+      // Repartido: cada línea trae sus `destinos`, y este parámetro pasa a ser la tienda GESTORA (ADR-0151, F3) —
+      // ya no es solo un valor por defecto. Ver `gestora` arriba: para un comprador nunca es una posición ciega.
+      p_ubicacion_destino_id: gestora,
       p_items: validas.map((l) => ({
         producto_id: l.productoId,
         ...(l.varianteId ? { variante_id: l.varianteId } : {}),
@@ -580,6 +590,7 @@ export function CompraFormV2({
             </div>
             <DestinoDeLaMercaderia
               ubicaciones={ubicaciones}
+              ubicacionesPropia={misTiendas}
               puedeRepartir={repartoDisponible}
               repartir={repartir}
               onRepartir={alternarRepartir}

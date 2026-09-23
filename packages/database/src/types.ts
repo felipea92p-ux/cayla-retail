@@ -1027,6 +1027,7 @@ export type Database = {
           monto: number
           pago_grupo_id: string | null
           referencia: string | null
+          ubicacion_id: string | null
           usuario_id: string | null
         }
         Insert: {
@@ -1038,6 +1039,7 @@ export type Database = {
           monto: number
           pago_grupo_id?: string | null
           referencia?: string | null
+          ubicacion_id?: string | null
           usuario_id?: string | null
         }
         Update: {
@@ -1049,6 +1051,7 @@ export type Database = {
           monto?: number
           pago_grupo_id?: string | null
           referencia?: string | null
+          ubicacion_id?: string | null
           usuario_id?: string | null
         }
         Relationships: [
@@ -1160,6 +1163,7 @@ export type Database = {
           subtotal: number
           tipo: string
           token_cliente: string | null
+          ubicacion_gestion_id: string | null
           total: number
           usuario_id: string | null
         }
@@ -1189,6 +1193,7 @@ export type Database = {
           subtotal: number
           tipo?: string
           token_cliente?: string | null
+          ubicacion_gestion_id?: string | null
           total: number
           usuario_id?: string | null
         }
@@ -1218,6 +1223,7 @@ export type Database = {
           subtotal?: number
           tipo?: string
           token_cliente?: string | null
+          ubicacion_gestion_id?: string | null
           total?: number
           usuario_id?: string | null
         }
@@ -5988,6 +5994,14 @@ export type Database = {
       fn_puede_analizar: { Args: never; Returns: boolean }
       fn_puede_gestionar_colaboradores: { Args: never; Returns: boolean }
       fn_puede_administrar_roles: { Args: never; Returns: boolean }
+      // ADR-0151 (Compras por tienda)
+      fn_compras_ubicaciones: { Args: never; Returns: string[] }
+      fn_puede_comprar_en: { Args: { p_ubicacion_id: string }; Returns: boolean }
+      fn_puede_gestionar_compra: { Args: { p_compra_id: string }; Returns: boolean }
+      fn_saldo_de_tienda: { Args: { p_compra_id: string; p_ubicacion_id: string }; Returns: number }
+      agregar_comprador_de_tienda: { Args: { p_persona_id: string; p_ubicacion_id: string }; Returns: undefined }
+      quitar_comprador_de_tienda: { Args: { p_persona_id: string; p_ubicacion_id: string }; Returns: undefined }
+      cambiar_tienda_gestora_compra: { Args: { p_compra_id: string; p_ubicacion_id: string }; Returns: undefined }
       guardar_modulos_rol: {
         Args: { p_modulos: string[]; p_rol_id: string }
         Returns: undefined
@@ -6621,6 +6635,7 @@ export type Database = {
           p_proveedor_id: string
           p_referencia?: string
           p_token?: string
+          p_ubicacion_id?: string
         }
         Returns: string
       }
@@ -6632,6 +6647,7 @@ export type Database = {
           p_medios?: Json
           p_proveedor_id: string
           p_token?: string
+          p_ubicacion_id?: string
         }
         Returns: string
       }
@@ -6641,6 +6657,7 @@ export type Database = {
           p_fecha?: string
           p_pagos: Json
           p_token?: string
+          p_ubicacion_id?: string
         }
         Returns: string[]
       }

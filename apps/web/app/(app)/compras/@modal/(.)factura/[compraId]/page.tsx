@@ -23,7 +23,9 @@ export default async function CompraDetalleModal({
   searchParams: Promise<{ adjuntos_fallidos?: string; desde?: string }>;
 }) {
   // ADR-0161 P3: el layout de /compras también deja entrar a quien solo tiene Proveedores; un comprobante es dinero.
-  await exigirPermiso("verDineroCompras");
+  const persona = await exigirPermiso("verDineroCompras");
+  // ADR-0151 (F4-F5): las tiendas de quien paga, para que «Registrar pago» sepa con cuál paga (el líder: ninguna, paga libre).
+  const misTiendas = persona.rol === "lider" ? undefined : persona.tiendasCompra;
   const { compraId } = await params;
   const { adjuntos_fallidos, desde } = await searchParams;
   const adjuntosFallidos = adjuntos_fallidos ? adjuntos_fallidos.split("|").filter(Boolean) : [];
@@ -54,7 +56,7 @@ export default async function CompraDetalleModal({
       ancho="max-w-2xl"
       cierre="equis"
       alCerrar={alCerrar}
-      acciones={anulada ? undefined : <CompraAcciones compra={compra} tieneRecepciones={detalle.recepciones.length > 0} datosPago={detalle.datosPago} permite={detalle.acciones} />}
+      acciones={anulada ? undefined : <CompraAcciones compra={compra} tieneRecepciones={detalle.recepciones.length > 0} datosPago={detalle.datosPago} permite={detalle.acciones} misTiendas={misTiendas} />}
     >
       <CompraDetalle detalle={detalle} adjuntosFallidos={adjuntosFallidos} acciones={false} />
     </ModalRuta>
