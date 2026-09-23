@@ -9126,3 +9126,8 @@ Sin resolver: nada de este caso; el barrido de todo el ERP quedó en la entrada 
 Tres revisiones en paralelo encontraron ~40 lugares con la misma mecánica, en cuatro causas: datos del medio de pago (también en `PagoPiezas`), el combo Responsable que abría su lista dentro del contenido (~55 pantallas), las ventanas centradas que «bailaban», y clics que cambian un bloque grande del final por otro corto. Felipe eligió las tres recomendaciones: ventanas ancladas arriba, lista del Responsable flotando, y una regla global (`<PaginaEstable />`) que reserva el alto recortado. Medido en Chrome sin ventana por CDP: 0 px en página y en ventana; un scroll pedido por el código se respeta.
 Felipe se lleva: (1) cuando el mismo bug aparece en 40 lugares, el arreglo va en la pieza compartida, no en 40 pantallas; (2) «recorte» y «scroll pedido» se distinguen por una sola señal: tras el recorte la vista queda pegada al nuevo final; (3) el panel oculto del navegador no corre `ResizeObserver`: para medir, Chrome sin ventana.
 Sin resolver: verlo con clics reales en Registrar comprobante, Cambios y Vender (sin sesión en local); `NotaCreditoCierre.tsx` es código muerto con el mismo problema (nadie lo importa).
+
+## 2026-09-23 (Saldos a favor: fuera la lista de «Sin saldo a favor»)
+Felipe vio al pie de Notas de crédito ▸ Saldos a favor un bloque gris con los ~70 proveedores del catálogo pegados con «·». Venía del módulo original (bfe41623), cuando eran pocos. Se quitó: la pestaña muestra solo a quien te debe saldo, y si nadie, su estado vacío «Ningún proveedor te debe saldo».
+Felipe se lleva: una sección con nombre («Saldos a favor») muestra solo lo que cumple ese nombre; el «resto» no es información, es ruido.
+Sin resolver: nada.
