@@ -182,7 +182,7 @@ export function LiberarModal({ apartado, ubicacion, onClose }: { apartado: Apart
   const [enviando, setEnviando] = useState(false);
   const [motivo, setMotivo] = useState<"vencio" | "clienta_desistio" | "error_de_carga" | null>(null);
   // Liberar guarda en la tienda (las prendas vuelven a venderse): pide Responsable (ADR-0161), vacío al abrir.
-  const responsable = useResponsable(ubicacion, { proponerSesion: false }); // módulo Punto de venta: vacío al abrir
+  const responsable = useResponsable(ubicacion, { modo: "atencion" }); // módulo Punto de venta: «¿Quién está atendiendo?», vacío al abrir
   async function liberar(cerrar: () => void) {
     if (!motivo || !responsable.listo) return;
     setEnviando(true);
@@ -247,7 +247,7 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
   const cciMalo = cci !== "" && soloDigitos(cci).length !== 20;
   const sinCaja = medio === "efectivo" && !cajaAbierta;
   // Registrar la devolución mueve dinero de la tienda: pide Responsable (ADR-0161), vacío al abrir.
-  const responsable = useResponsable(ubicacion, { proponerSesion: false }); // módulo Punto de venta: vacío al abrir
+  const responsable = useResponsable(ubicacion, { modo: "atencion" }); // módulo Punto de venta: «¿Quién está atendiendo?», vacío al abrir
 
   async function devolver(cerrar: () => void) {
     setIntento(true);
@@ -335,7 +335,7 @@ export function ExtenderModal({ apartado, ubicacion, onClose }: { apartado: Apar
   const router = useRouter();
   const [enviando, setEnviando] = useState(false);
   // Extender guarda en la tienda (cambia la fecha límite de la clienta): pide Responsable (ADR-0161), vacío al abrir.
-  const responsable = useResponsable(ubicacion, { proponerSesion: false }); // módulo Punto de venta: vacío al abrir
+  const responsable = useResponsable(ubicacion, { modo: "atencion" }); // módulo Punto de venta: «¿Quién está atendiendo?», vacío al abrir
   const agotado = apartado.extensiones >= EXTENSIONES_MAX;
 
   async function extender(cerrar: () => void) {

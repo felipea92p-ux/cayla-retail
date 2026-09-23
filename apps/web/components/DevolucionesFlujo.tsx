@@ -109,7 +109,7 @@ export function DevolucionesFlujo({
   const router = useRouter();
   const compra = venta[0]!;
   // Quién solicita la devolución (ADR-0161). Aprobarla sigue siendo solo del líder (ADR-0160), con su propia sesión.
-  const responsable = useResponsable({ ubicacionId, etiqueta: sede });
+  const responsable = useResponsable({ ubicacionId, etiqueta: sede }, { modo: "atencion" }); // atiende a la clienta: vacío al abrir
   const nombreResponsable = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null;
   const [paso, setPaso] = useState<Paso>(2);
   const [elegidas, setElegidas] = useState<Record<string, ItemElegido>>(() => (lineaInicialId ? { [lineaInicialId]: itemInicial() } : {}));

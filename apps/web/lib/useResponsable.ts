@@ -9,11 +9,14 @@ import {
   estadoCombo,
   listaResponsable,
   motivoSinResponsable,
+  preguntaResponsable,
+  proponeSesion,
   responsableInicial,
   responsableVigente,
   type EstadoCombo,
   type Firma,
   type ListaResponsable,
+  type ModoResponsable,
 } from "@/lib/responsable-reglas";
 
 /**
@@ -21,7 +24,7 @@ import {
  * `<ComboResponsable control={...} />` y, al guardar:
  *
  *     const { error } = await firmar(supabase.rpc("abrir_caja", {...}), resp.firma());
- *     resp.despues(error);   // éxito → vuelve a vacío · rechazo por el responsable → vuelve a vacío y relee la lista
+ *     resp.despues(error);   // éxito → vuelve a como vino · rechazo por el responsable → lo mismo y relee la lista
  *
  * y el botón de guardar se apaga con `!resp.listo` (su porqué, en `resp.motivo`).
  */
@@ -30,6 +33,8 @@ export type ControlResponsable = {
   sede: string;
   lista: ListaResponsable;
   estado: EstadoCombo;
+  /** Lo que dice el combo vacío, según el modo: «¿Quién está atendiendo?» o «¿Quién hace esta operación?». */
+  pregunta: string;
   /** El elegido (o, sin tocar el combo, la persona de la sesión), solo si sigue presente. */
   elegidoId: string | null;
   elegir: (personaId: string) => void;
@@ -51,17 +56,18 @@ export type ControlResponsable = {
 /**
  * @param ubicacion — por defecto la sede activa de la cabecera (A11). Solo se pasa cuando la pantalla ya la recibe
  *   (Punto de venta, Caja), para que la lista sea exactamente la de la operación.
- * @param opciones.proponerSesion — `true` (por defecto): el combo viene elegido con quien inició sesión, si es una
- *   persona presente. El Punto de venta pasa `false`: ahí siempre viene vacío (ver `responsableInicial`).
+ * @param opciones.modo — `"operacion"` (por defecto): «¿Quién hace esta operación?» y viene elegido con quien inició
+ *   sesión, si es una persona presente. Punto de venta (venta y apartados), Cambios y Devoluciones pasan
+ *   `"atencion"`: «¿Quién está atendiendo?» y siempre vacío (ver «Dos modos» en `responsable-reglas.ts`).
  */
 export function useResponsable(
   ubicacion?: { ubicacionId: string; etiqueta: string },
-  { proponerSesion = true }: { proponerSesion?: boolean } = {},
+  { modo = "operacion" }: { modo?: ModoResponsable } = {},
 ): ControlResponsable {
   const activa = useSedeActiva();
   const ubicacionId = ubicacion?.ubicacionId ?? activa?.ubicacionId ?? null;
   const sede = ubicacion?.etiqueta ?? activa?.etiqueta ?? "esta tienda";
-  const propuesto = proponerSesion ? (activa?.personaSesionId ?? null) : null;
+  const propuesto = proponeSesion(modo) ? (activa?.personaSesionId ?? null) : null;
   const deTurno = useDeTurno(ubicacionId);
   // Lo que se tocó en el combo; `undefined` = nadie lo tocó todavía y vale el propuesto.
   const [tocado, setTocado] = useState<string | undefined>(undefined);
@@ -101,13 +107,14 @@ export function useResponsable(
     sede,
     lista,
     estado,
+    pregunta: preguntaResponsable(modo),
     elegidoId,
     elegir: setTocado,
     limpiar,
     recargar,
     recargando: deTurno.recargando,
     listo,
-    motivo: listo ? null : motivoSinResponsable(estado, sede),
+    motivo: listo ? null : motivoSinResponsable(estado, sede, modo),
     firma,
     encabezados: () => {
       const f = firma();
