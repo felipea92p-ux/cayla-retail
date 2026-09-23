@@ -11,6 +11,11 @@
 //      iniciar sesión sin terminal (misma lógica que `pnpm terminales:crear`).
 //   4. La clave vuelve UNA vez a la pantalla y no se guarda ni se escribe en ningún log.
 //
+// QUIÉN (ADR-0161 act. d, 2026-09-23, `20260923240000`). La pantalla manda la firma del combo «Responsable» y la sesión
+// de quien llama viaja firmada. `personaActual` (`fn_actor_persona_id(true)`) se pregunta JUSTO después del permiso: si no
+// hay responsable válido, se corta ahí —antes de abrir la llave y de crear la cuenta de Auth— con el mensaje de la base.
+// Al crear, ese responsable es `creada_por`; al cambiar la clave, `registrar_cambio_clave_terminal` lo anota después.
+//
 // Aquí no hay Supabase ni Next: todo lo que habla con afuera llega por `Dependencias`. Así la verificación de líder se
 // prueba con un doble (`terminales-alta.test.ts`) sin base ni llave. La Server Action (`app/actions/terminales.ts`) le pasa
 // las de verdad (`lib/terminales-admin.ts`, `server-only`).
@@ -26,9 +31,14 @@ import {
   type EntradaTerminal,
 } from "./terminales-reglas";
 
+/** El error de la base tal cual (forma de supabase-js), para que la pantalla lo reconozca como «del responsable». */
+export type ErrorBase = { code?: string | null; hint?: string | null; message?: string | null };
+
 export type ResultadoClave =
-  | { ok: true; nombre: string; tienda: string; correo: string; clave: string }
-  | { ok: false; error: string };
+  /** `aviso`: la clave SÍ cambió, pero no quedó anotado quién (falló `registrar_cambio_clave_terminal`). */
+  | { ok: true; nombre: string; tienda: string; correo: string; clave: string; aviso?: string }
+  /** `causa`: el error de la base cuando el rechazo vino del responsable (para `responsable.despues`). */
+  | { ok: false; error: string; causa?: ErrorBase };
 
 /** Lo que se hace con la llave de servicio. Solo existe DESPUÉS de comprobar que quien llama puede gestionar colaboradores. */
 export type AdminTerminales = {
@@ -56,8 +66,12 @@ export type Dependencias = {
    *  con la llave de servicio, así que la base no ve a quien la crea: esta es la pregunta que lo cubre. `null` = no se pudo
    *  preguntar (se trata como «no»). Ausente = no se pregunta (maquetas y pruebas viejas). */
   rolDentroDeLoMio?: (rolId: string) => Promise<boolean | null>;
-  /** La persona de quien llama (`fn_actor_persona_id(false)`), para `creada_por`. */
-  personaActual: () => Promise<string | null>;
+  /** El responsable del combo (`fn_actor_persona_id(true)` con la sesión FIRMADA), para `creada_por`. Si la base lo
+   *  rechaza (falta elegirlo, no está de turno…) devuelve `{ error }` con su mensaje y nada se crea ni se cambia. */
+  personaActual: () => Promise<{ id: string | null } | { error: string; causa?: ErrorBase }>;
+  /** `registrar_cambio_clave_terminal(p_terminal_id)` con la sesión firmada: anota quién cambió la clave. Devuelve el
+   *  mensaje de error, o `null` si quedó anotado. */
+  registrarCambioClave: (terminalId: string) => Promise<string | null>;
   /** Abre el cliente con la llave de servicio. Lanza si falta la variable. Se llama SOLO tras confirmar el permiso. */
   admin: () => AdminTerminales;
   azar: Azar;
@@ -68,6 +82,15 @@ const SIN_PERMISO = "Solo un líder de equipo, o un rol con el módulo Colaborad
 async function exigirPermiso(deps: Dependencias): Promise<string | null> {
   const puede = await deps.puedeGestionar().catch(() => null);
   return puede === true ? null : SIN_PERMISO;
+}
+
+/** El responsable, preguntado a la base. Si falla o lanza, se corta con su mensaje (falla cerrado). */
+async function exigirResponsable(deps: Dependencias): Promise<{ id: string | null } | { ok: false; error: string; causa?: ErrorBase }> {
+  const r = await deps.personaActual().catch((e: unknown) => ({
+    error: e instanceof Error && e.message ? e.message : "No se pudo confirmar quién hace esta operación. Inténtalo de nuevo.",
+  }));
+  if ("error" in r) return { ok: false, error: r.error, ...("causa" in r && r.causa ? { causa: r.causa } : {}) };
+  return r;
 }
 
 function abrirAdmin(deps: Dependencias): AdminTerminales | { error: string } {
@@ -82,6 +105,9 @@ export async function crearTerminalCon(deps: Dependencias, entrada: Partial<Entr
   // 1. Primero el candado, con la sesión de quien llama. Sin esto no se toca la llave.
   const rechazo = await exigirPermiso(deps);
   if (rechazo) return { ok: false, error: rechazo };
+  // ADR-0161 act. d: quién la crea. Sin responsable válido no se toca la llave ni se crea la cuenta.
+  const responsable = await exigirResponsable(deps);
+  if ("error" in responsable) return responsable;
 
   const v = validarEntrada(entrada);
   if (!v.ok) return v;
@@ -119,8 +145,7 @@ export async function crearTerminalCon(deps: Dependencias, entrada: Partial<Entr
   if (!usuarioId) return { ok: false, error: "No se pudo crear la cuenta de la terminal: el correo ya existe. Inténtalo de nuevo." };
 
   // 4. La fila. Si no entra, se deshace la cuenta: nunca una cuenta que inicie sesión sin terminal.
-  const creadaPor = await deps.personaActual().catch(() => null);
-  const { error } = await admin.insertarTerminal({ ubicacion_id: ubicacionId, nombre, rol_id: rolId, auth_user_id: usuarioId, creada_por: creadaPor });
+  const { error } = await admin.insertarTerminal({ ubicacion_id: ubicacionId, nombre, rol_id: rolId, auth_user_id: usuarioId, creada_por: responsable.id });
   if (error) {
     const deshecha = await admin.borrarUsuario(usuarioId).catch(() => false);
     const aviso = deshecha ? "" : ` OJO: la cuenta ${correo} quedó creada sin terminal; bórrala en Supabase ▸ Authentication.`;
@@ -133,6 +158,8 @@ export async function crearTerminalCon(deps: Dependencias, entrada: Partial<Entr
 export async function cambiarClaveTerminalCon(deps: Dependencias, entrada: { terminalId?: string } | null | undefined): Promise<ResultadoClave> {
   const rechazo = await exigirPermiso(deps);
   if (rechazo) return { ok: false, error: rechazo };
+  const responsable = await exigirResponsable(deps);
+  if ("error" in responsable) return responsable;
 
   const terminalId = String(entrada?.terminalId ?? "").trim();
   if (!terminalId) return { ok: false, error: "Falta la terminal. Actualiza la pantalla." };
@@ -147,5 +174,8 @@ export async function cambiarClaveTerminalCon(deps: Dependencias, entrada: { ter
   const clave = generarClave(deps.azar);
   if (!(await admin.cambiarClave(t.auth_user_id, clave))) return { ok: false, error: "No se pudo cambiar la clave. Inténtalo de nuevo." };
   const correo = (await admin.correoDeUsuario(t.auth_user_id)) ?? "(sin correo)";
-  return { ok: true, nombre: t.nombre, tienda: t.ubicacion_nombre, correo, clave };
+  // La clave ya cambió: si anotar quién falla, igual se devuelve (la de antes ya no sirve), con un aviso.
+  const fallo = await deps.registrarCambioClave(t.id).catch((e: unknown) => (e instanceof Error ? e.message : "error desconocido"));
+  const aviso = fallo ? `La clave cambió, pero no quedó anotado quién la cambió: ${fallo}` : undefined;
+  return { ok: true, nombre: t.nombre, tienda: t.ubicacion_nombre, correo, clave, ...(aviso ? { aviso } : {}) };
 }
