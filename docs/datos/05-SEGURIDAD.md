@@ -519,8 +519,22 @@ nombra el schema completo. Bajo riesgo con seis personas de confianza; es la cla
 cosa que se corrige de una vez y no cuando ya pasó algo. También pendiente de
 re-verificar.
 
-**4 · Una colaboradora dada de baja sigue pudiendo vender.** Este no es un "no
-sabemos": está verificado y es el hueco más humano de todos.
+**4 · ~~Una colaboradora dada de baja sigue pudiendo vender.~~ CERRADO (verificado
+2026-09-23, PL-92).** Los dos candados de los que cuelga vender ya exigen
+`public.personas.estado = 'activo'` **y** `retail.colaboradores.estado = 'activo'`:
+`fn_es_lider()` (`supabase/migrations/20260922170000_alta_colaborador_requiere_aprobacion.sql:137`)
+y `fn_ubicacion_actual_persona()` (`supabase/migrations/20260923120100_ubicacion_de_lideres.sql:109`).
+`fn_puede_operar_ubicacion` es exactamente `fn_es_lider() or p_ubicacion_id =
+fn_ubicacion_actual_persona()` (`0006_colaboradores.sql:55`), y `registrar_venta` la
+pregunta antes que nada (`20260922150000_venta_asesora_emisor_descuento_lider.sql:362`):
+quien está de baja recibe «No tienes permiso para vender en esa ubicación». En una
+terminal, el responsable elegido también tiene que estar activo
+(`20260923010000_terminales_sin_persona.sql:207`). Comparado contra la base: la
+definición de las dos funciones es idéntica en local y en producción (md5 de `prosrc`
+`0321a061…` y `a1ea6265…`). Lo que sigue es la foto del 2026-09-12, se deja como
+historia.
+
+~~Este no es un "no sabemos": está verificado y es el hueco más humano de todos.~~
 
 > `public.personas` en Dynamic tiene `estado` (`activo` \| `inactivo`, con el CHECK
 > `personas_cese_coherente` que exige `fecha_cese` al pasar a inactivo), y la tabla
@@ -551,7 +565,7 @@ sabemos": está verificado y es el hueco más humano de todos.
 | # | Qué falta | Dónde se toca | Tamaño |
 |---|---|---|---|
 | 1 | Cerrar el hueco del NULL en local | `migrations/0012_rpc_valida_sede.sql:15` — `coalesce(..., false)` | Una línea |
-| 2 | Que `estado`/`activo` corte el acceso de quien ya no trabaja acá | `puede_operar_sede` + `lib/persona.ts:74` | Chico |
+| 2 | ~~Que `estado`/`activo` corte el acceso de quien ya no trabaja acá~~ **CERRADO 2026-09-23 (PL-92):** `fn_es_lider()` y `fn_ubicacion_actual_persona()` filtran `estado = 'activo'` (ver punto 4 arriba) | — | — |
 | 3 | Candado de sede en `fn_reservar_numero_serie` (quema correlativos de SUNAT) | `unificacion/17_facturacion_completa.sql:97` | Una línea |
 | 4 | Candado en `previsualizar_cierre_conteo` (lee el conteo de otra sede) | `unificacion/30_conteos.sql:338` | Una línea |
 | 5 | Candado en `registrar_codigo_barras` y en `fn_siguiente_correlativo` | `unificacion/29_codigos.sql:146,188` | Chico |

@@ -228,7 +228,7 @@ export const ARBOL: readonly Nodo[] = [
         id: "produccion.abastecimiento", etiqueta: "Abastecimiento", estado: "viva", icono: "compras", raiz: "/produccion/proveedores", pajaro: "10 Gallito",
         hijos: [
           { id: "produccion.proveedoresProduccion", modulo: "produccion", etiqueta: "Proveedores", estado: "viva", ruta: "/produccion/proveedores", icono: "proveedores", pajaro: "10 Gallito", exige: "verDinero" },
-          { id: "produccion.comprobantesProduccion", modulo: "produccion", etiqueta: "Comprobantes", estado: "viva", ruta: "/produccion/comprobantes", icono: "facturas", pajaro: "10 Gallito", exige: "verDinero" },
+          { id: "produccion.comprobantesProduccion", modulo: "produccion", etiqueta: "Facturas de insumos", estado: "viva", ruta: "/produccion/comprobantes", icono: "facturas", pajaro: "10 Gallito", exige: "verDinero" },
           // OJO, no es «Recibir mercadería»: aquel (`/recibir`, de Compras e Inventario) recibe prendas contra un envío; este
           // recibe tela y avíos contra un comprobante de Producción. Dos pantallas de dos módulos, una etiqueta parecida.
           { id: "produccion.recibirProduccion", modulo: "produccion", etiqueta: "Recibir", estado: "viva", ruta: "/produccion/recibir", icono: "recibir", pajaro: "10 Gallito" },
@@ -251,11 +251,14 @@ export const ARBOL: readonly Nodo[] = [
   // URLs de Compras siguen abriendo (otras pantallas enlazan a ellas) y el candado real es el de cada RPC. Consecuencia
   // conocida: «Recibir mercadería» vivía acá para el líder, así que parado en el Taller solo le queda en «+ Nuevo».
   // Mismo orden que ya tenía: proveedor → factura → recepción → pago → notas de crédito.
+  // PL-50 (Felipe, 2026-09-23): «Comprobantes» y «Notas de crédito» son palabras SOLO de Ventas (lo que CAYLA le emite a la
+  // clienta ante SUNAT). Acá se dice «Facturas de proveedor» y «Notas de crédito de proveedor»; en el Taller, «Facturas de
+  // insumos». Solo cambió el texto visible: ids, rutas y claves de módulo siguen iguales.
   {
     id: "compras", etiqueta: "Compras", estado: "viva", icono: "compras", raiz: "/compras", pajaro: "09 Pelícano", ubicaciones: ["tienda", "almacen"],
     hijos: [
       { id: "compras.proveedores", modulo: "proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "editarCuentasProveedor" },
-      { id: "compras.comprobantes", modulo: "facturas_compra", etiqueta: "Comprobantes", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDineroCompras" },
+      { id: "compras.comprobantes", modulo: "facturas_compra", etiqueta: "Facturas de proveedor", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDineroCompras" },
       // ADR-0111/0113: recibir es una sola puerta (`/recibir`). El dato es del Halcón (envíos y lotes), no del Pelícano.
       { id: "compras.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", exige: "verDineroCompras" },
       { id: "compras.porPagar", modulo: "por_pagar", etiqueta: "Por pagar", estado: "viva", ruta: "/compras/por-pagar", icono: "porPagar", pajaro: "09 Pelícano", exige: "verDineroCompras" },
@@ -263,7 +266,7 @@ export const ARBOL: readonly Nodo[] = [
       // responden a la misma pregunta —cuánto dinero hay entre CAYLA y ese proveedor—, una de cada lado. Sin insignia a
       // propósito: el contador de «por reclamar» saldría de `notas_credito_tablero()`, y pagarlo en CADA pantalla de la app
       // por un número que ya se ve como primera cifra del módulo no vale la pena (principio 5).
-      { id: "compras.notasCredito", modulo: "notas_credito", etiqueta: "Notas de crédito", estado: "viva", ruta: "/compras/notas-credito", icono: "notasCredito", pajaro: "09 Pelícano", exige: "verDineroCompras" },
+      { id: "compras.notasCredito", modulo: "notas_credito", etiqueta: "Notas de crédito de proveedor", estado: "viva", ruta: "/compras/notas-credito", icono: "notasCredito", pajaro: "09 Pelícano", exige: "verDineroCompras" },
     ],
   },
 
@@ -338,12 +341,12 @@ export const ARBOL: readonly Nodo[] = [
 /**
  * El panel «+ Nuevo»: registrar algo, no ir a una pantalla. Fase UI 1 (2026-09-11) lo recortó a las escrituras que V2 ya
  * tiene resueltas de punta a punta; ofrecer otra antes sería un enlace que compila y revienta. ADR-0111: UNA sola puerta
- * para recibir. ADR-0113: la misma para todos. «Registrar comprobante» es del líder: es dinero.
+ * para recibir. ADR-0113: la misma para todos. «Registrar factura de proveedor» es de quien ve el dinero de Compras.
  */
 export const ACCIONES_NUEVO: readonly Accion[] = [
   { id: "nuevo.venta", modulo: "vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta", estado: "viva", ruta: "/vender", pajaro: "07 Colibrí" },
-  { id: "nuevo.comprobante", modulo: "facturas_compra", etiqueta: "Registrar comprobante", detalle: "Una compra a proveedor, con su pago si es al contado", estado: "viva", ruta: "/compras/nueva", pajaro: "09 Pelícano", exige: "verDineroCompras" },
-  { id: "nuevo.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó, contra sus comprobantes", estado: "viva", ruta: "/recibir", pajaro: "05 Halcón" },
+  { id: "nuevo.comprobante", modulo: "facturas_compra", etiqueta: "Registrar factura de proveedor", detalle: "Una compra a proveedor, con su pago si es al contado", estado: "viva", ruta: "/compras/nueva", pajaro: "09 Pelícano", exige: "verDineroCompras" },
+  { id: "nuevo.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó, contra sus facturas de proveedor", estado: "viva", ruta: "/recibir", pajaro: "05 Halcón" },
   { id: "nuevo.mover", modulo: "traslados", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones", estado: "viva", ruta: "/inventario/mover", pajaro: "05 Halcón" },
   { id: "nuevo.cambio", modulo: "cambios", etiqueta: "Registrar cambio", detalle: "La clienta cambia una prenda por otra talla o color", estado: "viva", ruta: "/cambios", pajaro: "07 Colibrí" },
   { id: "nuevo.devolucion", modulo: "devoluciones", etiqueta: "Registrar devolución", detalle: "Una clienta devuelve algo que compró", estado: "viva", ruta: "/devoluciones", pajaro: "07 Colibrí" },
