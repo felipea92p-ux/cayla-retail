@@ -51,7 +51,7 @@ export type ItemRegistrarVenta = {
   argumento_descuento?: string;
   /** La etiqueta de campaña que dio el descuento; solo con `motivo_descuento: "campana"`. */
   descuento_etiqueta_id?: string;
-  /** Solo en una «Prenda sin registrar» (ADR-0178): lo que almacén necesita para regularizarla. */
+  /** Solo en una «Prenda sin registrar» (ADR-0179): lo que almacén necesita para regularizarla. */
   descripcion_libre?: string;
   categoria_id?: string;
   talla_id?: string;

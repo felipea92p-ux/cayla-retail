@@ -61,7 +61,7 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
     // ella y se AVISA (abajo), en vez de tumbar la caja. Mientras la función no exista en
     // producción (PGRST202) no hay campañas que aplicar: sin aviso.
     supabase.rpc("campanas_vigentes"),
-    // Listas cerradas del modal «Prenda sin registrar» (ADR-0178). Si alguna no carga, la caja
+    // Listas cerradas del modal «Prenda sin registrar» (ADR-0179). Si alguna no carga, la caja
     // sigue vendiendo: esa lista sale vacía y el modal no deja agregar la prenda.
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("tallas").select("id, valor").eq("activo", true).eq("estado", "aprobado"),

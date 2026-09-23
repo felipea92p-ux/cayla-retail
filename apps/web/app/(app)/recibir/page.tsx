@@ -96,14 +96,14 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       items={[
         { clave: "pendientes", etiqueta: "Pendientes", href: "/recibir" },
         { clave: "recibidas", etiqueta: "Recibidas recientemente", href: "/recibir?vista=recibidas" },
-        // ADR-0178: prendas que caja vendió antes de estar en el sistema; almacén las une con su prenda real.
+        // ADR-0179: prendas que caja vendió antes de estar en el sistema; almacén las une con su prenda real.
         { clave: "por-regularizar", etiqueta: "Por regularizar", href: "/recibir?vista=por-regularizar" },
       ]}
     />
     </div>
   );
 
-  // ------------------------------------------------------------------ Por regularizar (ADR-0178)
+  // ------------------------------------------------------------------ Por regularizar (ADR-0179)
   if (vista === "por-regularizar") {
     // El líder ve las de todas sus sedes (cada fila dice cuál); una colaboradora, las de la suya (RLS igual lo cuida).
     const [filas, catalogo] = await Promise.all([getPorRegularizar(esLider ? null : persona.ubicacionId), getCatalogo()]);

@@ -1,4 +1,4 @@
-// Reglas de la cola «Por regularizar» (ADR-0178): prendas vendidas en caja antes de estar en el
+// Reglas de la cola «Por regularizar» (ADR-0179): prendas vendidas en caja antes de estar en el
 // sistema, que almacén une después con su prenda real. Lógica pura: la usan la pestaña de Recibir
 // y el aviso del inicio.
 import { hoyLima } from "./fechas-lima";

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260923161700_prendas_por_regularizar.sql — CAYLA V2 (ADR-0178, Felipe 2026-09-23)
+-- 20260923161700_prendas_por_regularizar.sql — CAYLA V2 (ADR-0179, Felipe 2026-09-23)
 --
 -- EL PROBLEMA. En hora punta llegan a piso prendas que almacén todavía no etiquetó ni
 -- registró, y se venden a un precio estimado. El único camino de la caja era «Monto
@@ -19,7 +19,7 @@
 --
 -- QUÉ TOCA. (1) asegura la variante centinela (faltaba en producción); (2) tabla nueva con RLS
 -- de solo lectura; (3) `registrar_venta` y `anular_venta` con la MISMA firma (cuerpo copiado
--- de 20260922150000 y 20260922151500 + los bloques marcados «ADR-0178»); (4) triggers: anular
+-- de 20260922150000 y 20260922151500 + los bloques marcados «ADR-0179»); (4) triggers: anular
 -- la venta saca la prenda de la cola, y un cambio o devolución exige la prenda regularizada.
 --
 -- PRODUCCIÓN: pegar con OK de Felipe; ya lleva `retail.` en todo el DDL.
@@ -31,7 +31,7 @@ set search_path = retail, public, extensions;
 -- Marca CAYLA / proveedor CAYLA SAC: la misma regla que 20260918231000 usó para lo que no tenía.
 insert into retail.productos (id, referencia, descripcion, estado, marca_id, proveedor_id)
 values ('11111111-1111-4111-8111-111111111111', 'Prenda sin registrar',
-        'Variante centinela: una prenda vendida antes de estar en el sistema. Almacén la regulariza (ADR-0178).', 'activo',
+        'Variante centinela: una prenda vendida antes de estar en el sistema. Almacén la regulariza (ADR-0179).', 'activo',
         (select id from retail.marcas where retail.fn_clave_texto(nombre) = 'cayla'),
         (select id from retail.proveedores where retail.fn_clave_texto(nombre) = 'cayla sac'))
 on conflict (id) do update set referencia = excluded.referencia, descripcion = excluded.descripcion;
@@ -66,7 +66,7 @@ create table if not exists retail.prendas_por_regularizar (
   )
 );
 comment on table retail.prendas_por_regularizar is
-  'Prenda vendida en caja antes de estar en el sistema (ADR-0178). Nace pendiente en registrar_venta; almacén la une a su variante real con regularizar_prenda. diferencia = precio_cobrado − precio_oficial: negativa = descuento no planificado, positiva = sobreprecio.';
+  'Prenda vendida en caja antes de estar en el sistema (ADR-0179). Nace pendiente en registrar_venta; almacén la une a su variante real con regularizar_prenda. diferencia = precio_cobrado − precio_oficial: negativa = descuento no planificado, positiva = sobreprecio.';
 create index if not exists prendas_por_regularizar_pendientes_idx
   on retail.prendas_por_regularizar (ubicacion_id, vendido_en) where estado = 'pendiente';
 
@@ -78,7 +78,7 @@ create policy prendas_por_regularizar_select on retail.prendas_por_regularizar f
 revoke all on retail.prendas_por_regularizar from public, anon;
 grant select on retail.prendas_por_regularizar to authenticated;
 
--- ---------- 3a. registrar_venta (misma firma; cuerpo de 20260922150000 + bloques «ADR-0178») ----------
+-- ---------- 3a. registrar_venta (misma firma; cuerpo de 20260922150000 + bloques «ADR-0179») ----------
 
 create or replace function retail.registrar_venta(
   p_ubicacion_id uuid, p_items jsonb, p_pagos jsonb,
@@ -178,7 +178,7 @@ begin
       raise exception 'La variante % no existe', v_item ->> 'variante_id';
     end if;
 
-    -- ADR-0178: una prenda sin registrar sin sus datos no se puede regularizar después.
+    -- ADR-0179: una prenda sin registrar sin sus datos no se puede regularizar después.
     if (v_item ->> 'variante_id')::uuid = c_cargo_especial and (
          btrim(coalesce(v_item ->> 'descripcion_libre', '')) = ''
          or nullif(v_item ->> 'categoria_id', '') is null
@@ -358,7 +358,7 @@ begin
       )
       returning id into v_item_id;
 
-    -- ADR-0178: la prenda sin registrar no mueve stock (no está en el sistema); queda en la cola
+    -- ADR-0179: la prenda sin registrar no mueve stock (no está en el sistema); queda en la cola
     -- y su único movimiento es el real, el que escribe almacén al regularizarla.
     if (v_item ->> 'variante_id')::uuid = c_cargo_especial then
       insert into prendas_por_regularizar (venta_item_id, ubicacion_id, descripcion, categoria_id, talla_id,
@@ -409,7 +409,7 @@ grant execute on function retail.registrar_venta(
   uuid, jsonb, jsonb, uuid, uuid, text, text, text, text, text, text, uuid, text, numeric, uuid, text
 ) to authenticated;
 
--- ---------- 3b. anular_venta (misma firma; cuerpo de 20260922151500 + bloque «ADR-0178») ----------
+-- ---------- 3b. anular_venta (misma firma; cuerpo de 20260922151500 + bloque «ADR-0179») ----------
 
 create or replace function retail.anular_venta(
   p_venta_id uuid, p_motivo text, p_items jsonb
@@ -502,7 +502,7 @@ begin
     v_condicion := v_item ->> 'condicion';
     v_mov_id := null;
 
-    -- ADR-0178: una prenda sin registrar todavía pendiente nunca movió stock — no hay nada que
+    -- ADR-0179: una prenda sin registrar todavía pendiente nunca movió stock — no hay nada que
     -- devolver. (Ya regularizada, su línea apunta a la variante real y tiene su salida `venta`.)
     if v_condicion = 'vendible' and v_venta_item.variante_id = '22222222-2222-4222-8222-222222222222' then
       null;

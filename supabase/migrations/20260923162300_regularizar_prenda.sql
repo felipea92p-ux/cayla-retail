@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260923162300_regularizar_prenda.sql — CAYLA V2 (ADR-0178, Felipe 2026-09-23)
+-- 20260923162300_regularizar_prenda.sql — CAYLA V2 (ADR-0179, Felipe 2026-09-23)
 --
 -- QUÉ HACE. Almacén une una «prenda sin registrar» (vendida en caja antes de estar en el
 -- sistema, 20260923161700) con su variante real. Responde UNA pregunta, porque al registrar
@@ -98,6 +98,6 @@ end;
 $$;
 
 comment on function retail.regularizar_prenda(uuid, uuid, text) is
-  'ADR-0178: une una prenda vendida sin registrar con su variante real. p_forma: ya_registrada (sale 1) o llego_nueva (entra 1 y sale 1). Devuelve la diferencia (cobrado − oficial).';
+  'ADR-0179: une una prenda vendida sin registrar con su variante real. p_forma: ya_registrada (sale 1) o llego_nueva (entra 1 y sale 1). Devuelve la diferencia (cobrado − oficial).';
 revoke all on function retail.regularizar_prenda(uuid, uuid, text) from public, anon;
 grant execute on function retail.regularizar_prenda(uuid, uuid, text) to authenticated;

@@ -30,7 +30,7 @@ type Props = {
   onActivo: (i: number) => void;
   /** El único "avisa hacia arriba" de este panel: se eligió una prenda. */
   onAgregar: (v: VarianteBusqueda) => void;
-  /** Abre el modal de «Prenda sin registrar» (ADR-0178), que vive en el padre. */
+  /** Abre el modal de «Prenda sin registrar» (ADR-0179), que vive en el padre. */
   onPrendaSinRegistrar: () => void;
   // Chips y grilla
   categorias: string[];
@@ -125,7 +125,7 @@ export function PuntoDeVentaCatalogo({
       className="flex min-w-0 flex-col border-b border-sand lg:min-h-0 lg:border-r lg:border-b-0"
     >
       <div className="anim-sube px-4 pt-3 sm:px-6 sm:pt-4">
-        {/* Fila de captura: el campo manda (flex-1); «Prenda sin registrar» (ADR-0178) es la
+        {/* Fila de captura: el campo manda (flex-1); «Prenda sin registrar» (ADR-0179) es la
             tercera vía de captura (la prenda aún no está en el sistema), por eso vive al lado
             del campo y no entre los chips, donde le robaba ancho a las categorías. */}
         <div className="flex items-stretch gap-2">

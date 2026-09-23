@@ -55,7 +55,7 @@ export type ErrorEscritura = {
 type Huella = { marca: string; frase: string | ((detalle: string) => string) };
 
 const HUELLAS: Huella[] = [
-  // Prendas sin registrar (ADR-0178): 20260923161700 y 20260923162300.
+  // Prendas sin registrar (ADR-0179): 20260923161700 y 20260923162300.
   {
     marca: "prenda_sin_registrar_incompleta",
     frase: "A la prenda sin registrar le falta un dato (descripción, categoría, talla, color o precio). Quítala del ticket y vuelve a agregarla.",

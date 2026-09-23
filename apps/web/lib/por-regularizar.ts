@@ -1,4 +1,4 @@
-// Lectura de la cola «Por regularizar» (ADR-0178): prendas vendidas en caja antes de estar en el
+// Lectura de la cola «Por regularizar» (ADR-0179): prendas vendidas en caja antes de estar en el
 // sistema. RLS deja ver solo las sedes que la persona puede operar; el líder, todas.
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
@@ -65,14 +65,14 @@ export async function getPorRegularizar(ubicacionId: string | null): Promise<Fil
   return [...pendientes, ...todas.filter((f) => f.estado !== "pendiente")];
 }
 
-/** Para el aviso del inicio: pendientes que ya pasaron el plazo. Solo lo pide el líder. */
-export async function contarVencidas(): Promise<number> {
+/** Para el aviso del inicio: pendientes que ya pasaron el plazo. Solo lo pide el líder. null = no se pudo leer. */
+export async function contarVencidas(): Promise<number | null> {
   const supabase = await createClient();
   const { count, error } = await supabase
     .from("prendas_por_regularizar")
     .select("id", { count: "exact", head: true })
     .eq("estado", "pendiente")
     .lte("vendido_en", vencidasDesde());
-  // Es un aviso: si no se puede leer, el inicio sigue sin él.
-  return error ? 0 : (count ?? 0);
+  // Nunca lanza: si no se puede leer, el inicio lo dice en la tarjeta en vez de dibujar un 0.
+  return error ? null : (count ?? 0);
 }

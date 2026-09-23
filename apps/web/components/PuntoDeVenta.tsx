@@ -55,7 +55,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { faltaEnPrendaSinRegistrar, type DatosPrendaSinRegistrar } from "@/lib/prenda-sin-registrar-reglas";
 
 /**
- * Variante centinela de la «Prenda sin registrar» (ADR-0178; antes «Monto manual»): una
+ * Variante centinela de la «Prenda sin registrar» (ADR-0179; antes «Monto manual»): una
  * prenda que llegó a piso sin pasar por almacén. `registrar_venta` exige un variante_id por
  * línea; para esta no mueve stock y deja la prenda en la cola «Por regularizar» con lo que
  * anotó caja. Nunca aparece en catálogo ni en búsqueda: se filtra por este id en
@@ -111,7 +111,7 @@ export type ItemCarrito = {
   /** La campaña que rige hoy para esta prenda, o null/ausente. Un ticket en espera
    *  guardado antes de las campañas no lo trae — `retomar()` lo completa. */
   campana?: CampanaLinea | null;
-  /** Solo en una «Prenda sin registrar» (ADR-0178): lo que anotó caja para que almacén la reconozca. */
+  /** Solo en una «Prenda sin registrar» (ADR-0179): lo que anotó caja para que almacén la reconozca. */
   prendaLibre?: Omit<DatosPrendaSinRegistrar, "precio">;
 };
 
@@ -864,7 +864,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
         argumento_descuento: it.argumentoDescuento || undefined,
         // Solo el descuento de campaña dice de qué etiqueta vino; la base lo verifica.
         descuento_etiqueta_id: it.razonDescuento === RAZON_CAMPANA ? it.campana?.etiquetaId : undefined,
-        // «Prenda sin registrar» (ADR-0178): la base exige estos cuatro para dejarla por regularizar.
+        // «Prenda sin registrar» (ADR-0179): la base exige estos cuatro para dejarla por regularizar.
         descripcion_libre: it.prendaLibre?.descripcion,
         categoria_id: it.prendaLibre?.categoriaId,
         talla_id: it.prendaLibre?.tallaId,

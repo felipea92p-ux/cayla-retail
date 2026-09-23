@@ -1,4 +1,4 @@
-// Lo mínimo que caja anota de una prenda que todavía no está en el sistema (ADR-0178): con esto
+// Lo mínimo que caja anota de una prenda que todavía no está en el sistema (ADR-0179): con esto
 // almacén la reconoce después y la regulariza. `registrar_venta` exige lo mismo en la base.
 export type DatosPrendaSinRegistrar = {
   descripcion: string;

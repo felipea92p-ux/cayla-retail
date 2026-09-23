@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas de «Prenda sin registrar» (ADR-0178) contra el Postgres local — CAYLA V2.
+ * Pruebas de «Prenda sin registrar» (ADR-0179) contra el Postgres local — CAYLA V2.
  *
  * Una prenda que llega a piso sin pasar por almacén se vende con la variante centinela
  * «Cargo especial» + descripción, categoría, talla y color. `registrar_venta` deja una fila

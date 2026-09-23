@@ -1,7 +1,9 @@
 // La variante centinela «Cargo especial» (20260912234726_cargo_especial_pos.sql):
-// existe para que la caja cobre un monto manual sin prenda. NO es mercadería —
-// pero vive en `variantes`, tiene 999.999 unidades de stock por ubicación y deja
-// una `salida` en `movimientos` por cada cobro. Toda pantalla que cuente
+// existe para la «Prenda sin registrar» de la caja (ADR-0179; antes «Monto manual»). NO es mercadería —
+// pero vive en `variantes`. Desde ADR-0179 su venta ya NO mueve stock (antes tenía
+// 999.999 unidades ficticias por sede y dejaba una `salida` por cada cobro, que
+// pueden seguir en bases viejas): el único movimiento es el de la prenda real al
+// regularizarla. Toda pantalla que cuente
 // unidades o liste el historial la EXCLUYE por este id, no por
 // `variantes.activo`: las prendas descontinuadas también están en `false` y su
 // historial sí debe verse. (Decisión de Felipe, 2026-09-15: «contamina el

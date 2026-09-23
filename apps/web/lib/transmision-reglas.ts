@@ -91,7 +91,7 @@ export function itemsParaLucode(raw: unknown, nombres: ReadonlyMap<string, strin
       items.push({ descripcion: it.descripcion, cantidad: it.cantidad, precio_unitario: it.precio_unitario });
       continue;
     }
-    // Una «Prenda sin registrar» (ADR-0178) se declara con lo que anotó caja; su precio es de etiqueta, CON IGV.
+    // Una «Prenda sin registrar» (ADR-0179) se declara con lo que anotó caja; su precio es de etiqueta, CON IGV.
     const nombre =
       typeof it.descripcion_libre === "string" && it.descripcion_libre.trim() !== ""
         ? it.descripcion_libre.trim()

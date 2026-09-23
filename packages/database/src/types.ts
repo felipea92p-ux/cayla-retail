@@ -2865,7 +2865,7 @@ export type Database = {
           },
         ]
       }
-      // 20260923161700 (ADR-0178): prendas vendidas en caja antes de estar en el sistema.
+      // 20260923161700 (ADR-0179): prendas vendidas en caja antes de estar en el sistema.
       prendas_por_regularizar: {
         Row: {
           categoria_id: string
@@ -6509,7 +6509,7 @@ export type Database = {
           unidades_cerradas: number
         }[]
       }
-      // 20260923162300 (ADR-0178): almacén une la prenda sin registrar con su variante real.
+      // 20260923162300 (ADR-0179): almacén une la prenda sin registrar con su variante real.
       regularizar_prenda: {
         Args: { p_forma: string; p_id: string; p_variante_id: string }
         Returns: number
