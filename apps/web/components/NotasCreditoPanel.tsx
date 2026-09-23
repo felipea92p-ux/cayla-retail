@@ -174,7 +174,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
       <div {...entra(0)} className="anim-entra flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Notas de crédito</h1>
+          <h1 className="font-display mt-1 text-2xl text-tinta">Notas de crédito de proveedor</h1>
           <p className="mt-1 max-w-[42rem] text-sm text-tinta/65">
             Lo que los proveedores le acreditan a CAYLA por faltantes, devoluciones o descuentos: qué falta reclamar, qué ya llegó y a dónde fue el dinero.
           </p>

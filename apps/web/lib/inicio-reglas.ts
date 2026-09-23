@@ -172,7 +172,7 @@ export type Acceso = { href: string; etiqueta: string; detalle: string; principa
  */
 export function accesosInicio(perfil: PerfilInicio, cajaAbierta: boolean | null): Acceso[] {
   const buscar: Acceso = { href: "/buscar", etiqueta: "Buscar", detalle: "SKU, talla o color", principal: false };
-  const recibir: Acceso = { href: "/recibir", etiqueta: "Recibir", detalle: "Lo que llegó, contra sus comprobantes", principal: false };
+  const recibir: Acceso = { href: "/recibir", etiqueta: "Recibir", detalle: "Lo que llegó, contra sus facturas de proveedor", principal: false };
 
   if (perfil.ubicacionTipo === "taller") {
     return [
