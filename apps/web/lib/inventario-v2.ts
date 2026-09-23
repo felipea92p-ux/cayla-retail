@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
+import { exigir, leerTodas } from "@/lib/resultado";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { calcularEstado, fotoPrincipal, type EstadoStock } from "@/lib/inventario-reglas";
 import { agruparStockPorSede, type SedeConStock } from "@/lib/stock-por-sede";
@@ -76,7 +76,9 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
   // antes que el SQL no puede tumbarlas («nunca perder una venta»). Sin la columna se reintenta sin ella y todo
   // queda como antes (apartado = 0): la base seguiría rechazando lo no disponible. Mismo patrón que Vender con
   // `campanas_vigentes`. Retirar el reintento cuando la migración esté aplicada (BACKLOG).
-  const conColumna = await supabase
+  // Por páginas (`leerTodas`): TRU pasa de 2.300 filas de stock (piso + almacén) y PostgREST corta en 1.000.
+  // `sububicacion_id` desempata: la fila es única por (variante, ubicación, sububicación).
+  const conColumna = await leerTodas((desde, hasta) => supabase
     .from("stock")
     .select(
       `variante_id, cantidad, cantidad_apartada,
@@ -100,12 +102,14 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
     // ajuste manual las llevó a 0 (BACKLOG). `!inner` para que el filtro
     // excluya la fila entera, no solo el embed de `variante`.
     .eq("variante.activo", true)
-    .order("variante_id");
+    .order("variante_id")
+    .order("sububicacion_id")
+    .range(desde, hasta));
 
   const filas =
     conColumna.error?.code === COLUMNA_INEXISTENTE
       ? exigir(
-          await supabase
+          await leerTodas((desde, hasta) => supabase
             .from("stock")
             .select(
               `variante_id, cantidad,
@@ -120,7 +124,9 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
             .eq("ubicacion_id", ubicacionId)
             .neq("variante_id", ID_CARGO_ESPECIAL)
             .eq("variante.activo", true)
-            .order("variante_id"),
+            .order("variante_id")
+            .order("sububicacion_id")
+            .range(desde, hasta)),
           "el inventario de esta ubicación"
         ).map((f) => ({ ...f, cantidad_apartada: 0 }))
       : exigir(conColumna, "el inventario de esta ubicación");
@@ -240,6 +246,14 @@ export type FilaExistencias = FilaStock & {
   esPrueba?: boolean;
 };
 
+/** `fn_stock_por_sede()` entera, por páginas: son ~2.900 filas (variante × sede) y PostgREST corta en 1.000 —
+ *  «¿dónde más hay?» decía «en ninguna otra sede» para las que quedaban fuera (medido 2026-09-23). La usan
+ *  Vender, Apartados, Cambios y Existencias. Devuelve la forma de supabase-js: cada pantalla elige exigir o tolerar. */
+export async function leerStockDeLasSedes() {
+  const supabase = await createClient();
+  return leerTodas((desde, hasta) => supabase.rpc("fn_stock_por_sede").order("variante_id").order("ubicacion_id").range(desde, hasta));
+}
+
 export async function getExistencias(
   ubicacionId: string,
   ubicaciones: { id: string; nombre: string }[],
@@ -248,7 +262,7 @@ export async function getExistencias(
   const supabase = await createClient();
   const [stock, redRes, transitoRes, pruebaRes] = await Promise.all([
     getStockPorUbicacion(ubicacionId),
-    supabase.rpc("fn_stock_por_sede"),
+    leerStockDeLasSedes(),
     // Solo los traslados cuyo destino es ESTA ubicación: lo que sale de acá ya
     // se descontó del stock al enviarse y no es «en camino» para esta pantalla.
     // RLS (transferencia_items_select) es bilateral, así que una integrante

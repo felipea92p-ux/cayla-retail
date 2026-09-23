@@ -1,6 +1,6 @@
 import { contarProductosPorProveedor, type FilaReposicion, type ReposicionProveedor } from "@/lib/marcas";
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
+import { exigir, leerTodas } from "@/lib/resultado";
 
 // Catálogo V2: `productos` + `variantes` + `categorias` + `colores` +
 // `codigos_barras`. No es una edición de `catalogo.ts` (V1) — ese archivo
@@ -39,22 +39,28 @@ export type VarianteCatalogo = {
 export async function getCatalogo(): Promise<VarianteCatalogo[]> {
   const supabase = await createClient();
   const [resVariantes, resMarcas] = await Promise.all([
-    supabase
-      .from("variantes")
-      .select(
-        `id, sku, codigo, color_codigo, precio, costo, activo,
-         talla:tallas ( valor ),
-         producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, color_codigo ) ),
-         color:colores ( nombre, hex ),
-         codigos_barras ( codigo )`
-      )
-      .order("sku"),
+    // Más de 1.000 variantes desde sep-2026: se lee por páginas (`leerTodas`). `id` desempata el
+    // orden — `sku` está vacío en casi todas, y sin desempate las páginas se pisan.
+    leerTodas((desde, hasta) =>
+      supabase
+        .from("variantes")
+        .select(
+          `id, sku, codigo, color_codigo, precio, costo, activo,
+           talla:tallas ( valor ),
+           producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, color_codigo ) ),
+           color:colores ( nombre, hex ),
+           codigos_barras ( codigo )`
+        )
+        .order("sku")
+        .order("id")
+        .range(desde, hasta)
+    ),
     // La marca va en una consulta APARTE y tolerante, no anidada arriba: `getCatalogo()` lo
     // leen la caja, cambios, buscar, compras, recepción, conteo y traslados. Un embed que la
     // base todavía no conoce (el SQL de marcas, 20260918231000, aún sin pegar en producción)
     // haría fallar TODA esa consulta y con ella siete pantallas. Sin la marca, la caja
     // sigue vendiendo: solo deja de encontrar por «adidas» hasta que el SQL entre.
-    supabase.from("productos").select("id, marca:marcas ( nombre )"),
+    leerTodas((desde, hasta) => supabase.from("productos").select("id, marca:marcas ( nombre )").order("id").range(desde, hasta)),
   ]);
   const filas = exigir(resVariantes, "el catálogo");
   const marcaPorProducto = new Map<string, string>();

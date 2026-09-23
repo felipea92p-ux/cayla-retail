@@ -28,6 +28,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🩹 Velocidad: auditoría módulo por módulo y el tope de 1.000 filas (2026-09-23) — paso 1 hecho, SIN migraciones
+Se midieron en producción (Playwright, solo lectura) 44 pantallas: tiempo hasta que se va el loader, peso de la respuesta y consultas más caras (`pg_stat_statements`).
+**Paso 1 (hecho): la caja no veía 295 prendas.** PostgREST corta toda respuesta en 1.000 filas sin error; el catálogo tiene 1.295 variantes y `fn_stock_por_sede` 2.927 filas. La «Chompa Cuello Redondo Lana» roja M (2 en TRU) salía «No encontramos». Nació `leerTodas()` (`lib/resultado.ts`): pide por páginas con orden único, de a 3 en paralelo. Aplicado a `getCatalogo`, `getStockPorUbicacion`, `leerStockDeLasSedes` (Vender, Apartados, Cambios, Existencias) y a Atributos ▸ Etiquetas. Medido contra producción: catálogo 1.295/1.295 en ~680 ms, stock de la red 2.927/2.927 en ~250 ms.
+**Regla desde hoy: una lectura que puede pasar de 1.000 filas va con `leerTodas()` y un `.order()` que no repita.**
+Lo que sigue, en este orden (acordado con Felipe):
+- **Existencias (2,8 s, 2,1 MB):** la consulta de stock con 5 joins promedia 1,1 s (máx. 5,6 s). Una función que devuelva solo lo que pinta la tabla.
+- **Comprobantes ▸ Emitidos:** 16.500 elementos y 2,8 MB de HTML — paginar.
+- **Catálogo de la caja (opción A):** sigue cargándose entero (vende sin internet); adelgazar lo que viaja y no volver a pedirlo en cada visita.
+- **Productos (2,3 s):** `fn_productos_resumen`, marcas y `categoria_tallas` lentas para su tamaño — confirmar con estadísticas limpias (las de hoy mezclan antes del ADR-0176).
+- **Contador de traslados** del layout en cada navegación (piso de ~400 ms por pantalla) y cascadas en Movimientos (4 pasos), Recibir (3), Producción ▸ Órdenes (4).
+
 ## 🎯 Candado de dinero en Caja, Cambios y Devoluciones (2026-09-22/23, ADR-0177 — renumerado desde 0166 por choque con Separaciones, y de 0169 por choque con la Paleta oficial) — pegado y verificado en producción; Cambios revertido a pedido de Felipe
 Del análisis `/pantalla` completo del módulo Ventas: la misma familia de hueco en tres pantallas (dinero se movía sin que la base exigiera líder), cerrada en una sola migración. Detalle en [docs/adr/0177-candado-de-dinero-en-caja-cambios-devoluciones.md](adr/0177-candado-de-dinero-en-caja-cambios-devoluciones.md).
 - [x] `registrar_movimiento_caja`: `es_ajuste` deducido del motivo (vocabulario cerrado), no de lo que manda el navegador; referencia obligatoria en "Depósito bancario"/"Otro".
