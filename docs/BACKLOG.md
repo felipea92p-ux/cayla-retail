@@ -312,11 +312,11 @@ Tercera opción del comprobante: Boleta | Factura | Nota de venta. Documento int
 - [ ] Disparador que impida mover una terminal al Taller llamando `cambiar_ubicacion_colaborador` a mano (la web no lo ofrece; la base no lo impide).
 - [x] Hecho: volcado refrescado el 2026-09-23 (94 tablas, 300 funciones, copia idéntica a producción verificada por huella).
 
-## 🎯 Ficha de clienta v1, backend (2026-09-22, ADR-0154, D-76/D-77) — hecho en local, FALTA PEGAR 1 MIGRACIÓN EN PRODUCCIÓN
+## 🎯 Ficha de clienta v1, backend (2026-09-22, ADR-0154, D-76/D-77) — EN PRODUCCIÓN (verificado 2026-09-23 en solo lectura)
 Tabla `retail.clientas` + RPC `buscar_clienta`/`registrar_clienta`. La FK de `ventas.cliente_id` se repuntó desde la tabla vieja `retail.clientes`
 (se retira — ~0 filas en producción, pero dos lectores activos que también se actualizaron: `fn_ventas_del_dia` y el embed de Ventas ▸ Historial).
 16 pruebas en verde con un Postgres 17 desechable que corrió las 195 migraciones del repo en orden (`pnpm pruebas:clientas`).
-- [ ] **Pegar en producción** la migración `20260922140000_ficha_de_clienta_v1_backend.sql` (agregar el prefijo `retail.` o `set search_path` al
+- [x] **Ya está en producción** (verificado 2026-09-23, solo lectura: FK `ventas_clienta_fk → retail.clientas`, `registrar_clienta` y `buscar_clienta` existen, `retail.clientes` ya no existe; quién la pegó y cuándo no quedó anotado). Era: pegar la migración `20260922140000_ficha_de_clienta_v1_backend.sql` (agregar el prefijo `retail.` o `set search_path` al
       pegar en el SQL Editor — nunca en el archivo del repo) y correr `pnpm datos:generar:produccion` después.
 - [ ] **La pantalla de captura del mostrador (Punto de Venta)** — la construye otra tanda de agentes. `/clientas` (esta tarea) es solo una
       pantalla mínima de verificación (lista + buscador + alta), sin engancharse a `lib/menu.ts` (otra tarea de la misma tanda lo toca).
@@ -549,7 +549,7 @@ decisiones, lo que se descartó y la verificación en [docs/adr/0141-apartar-sto
 - [ ] #9 Movimientos de caja sin internet y chip de sincronía honesto — M
 - [ ] #11 Piel restante del modal: desplegable propio y tope de 2 rojos en el tablero — S (bajo valor)
 - [ ] #12 Borrar `CajaGraficos.tsx`, `senalCaja`, `tendenciaCierres7Dias` (sin uso) y pruebas de `getResumenCaja` — S (bajo valor)
-- [ ] Verificar en producción si `cajas_update` permite reescribir un cierre ya hecho (D1/D4 de la auditoría, nunca corridas) — S
+- [x] ~~Verificar en producción si `cajas_update` permite reescribir un cierre ya hecho~~ — verificado 2026-09-23 (solo lectura): `retail.cajas` tiene una sola política, `cajas_select`; sin política de UPDATE, un `update` por la API no toca ninguna fila. Un cierre no se puede reescribir.
 
 ## 🎯 Caja: «Ver todo», detalle de venta y reimpresión — ticket y A4 (2026-09-19, ADR-0137)
 
