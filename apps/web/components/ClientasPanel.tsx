@@ -6,6 +6,8 @@ import { buscarClienta, registrarClienta, type DatosAlta } from "@/lib/clientas-
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { CampoTexto, Boton, Interruptor } from "@/components/ui/campos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
 
 // Pantalla MÍNIMA de verificación de la ficha de clienta (D-76/D-77) — para poder probar
 // `buscar_clienta`/`registrar_clienta` a mano en el navegador. NO es la pantalla de captura
@@ -20,6 +22,8 @@ export function ClientasPanel({ clientasIniciales }: { clientasIniciales: Client
   const [alta, setAlta] = useState<DatosAlta>(ALTA_VACIA);
   const [guardando, setGuardando] = useState(false);
   const [recientes, setRecientes] = useState(clientasIniciales);
+  // Quién registra a la clienta (ADR-0161): la base firma el alta con el responsable del combo.
+  const responsable = useResponsable();
 
   async function onBuscar(e: React.FormEvent) {
     e.preventDefault();
@@ -43,9 +47,14 @@ export function ClientasPanel({ clientasIniciales }: { clientasIniciales: Client
       avisar.error("Escribe al menos un dato — DNI, nombre o WhatsApp — antes de registrar.");
       return;
     }
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setGuardando(true);
-    const { id, error } = await registrarClienta(alta);
+    const { id, error } = await registrarClienta(alta, responsable.firma());
     setGuardando(false);
+    responsable.despues(error);
     if (error || !id) {
       avisar.error(traducirError(error, "registrar la clienta"));
       return;
@@ -174,7 +183,8 @@ export function ClientasPanel({ clientasIniciales }: { clientasIniciales: Client
             placeholder="1-12"
           />
         </div>
-        <Boton type="submit" peso="primario" cargando={guardando}>
+        <ComboResponsable control={responsable} deshabilitado={guardando} />
+        <Boton type="submit" peso="primario" cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
           Registrar
         </Boton>
       </form>

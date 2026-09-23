@@ -19,6 +19,9 @@ import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 type Tienda = { id: string; nombre: string };
 
@@ -50,7 +53,6 @@ export function SeriesPanel({
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [archivando, setArchivando] = useState<SerieComprobante | null>(null);
-  const [motivoArchivo, setMotivoArchivo] = useState("");
   const [loading, setLoading] = useState(false);
   const [ubicacionId, setUbicacionId] = useState(tiendas[0]?.id ?? "");
   const [tipo, setTipo] = useState<TipoComprobante>("boleta");
@@ -74,22 +76,6 @@ export function SeriesPanel({
     setAbierto(false);
     setTexto("");
     setNumero("");
-  }
-
-  async function onArchivar(e: React.FormEvent) {
-    e.preventDefault();
-    if (!archivando) return;
-    setLoading(true);
-    const { error } = await createClient().rpc("archivar_serie_comprobante", { p_serie_id: archivando.id, p_motivo: motivoArchivo.trim() });
-    setLoading(false);
-    if (error) {
-      avisar.error(traducirError(error, "archivar la serie"));
-      return;
-    }
-    avisar.exito(`Serie ${archivando.serie} archivada`, { detalle: "Ya no reserva números. Registra la nueva para seguir emitiendo." });
-    setArchivando(null);
-    setMotivoArchivo("");
-    router.refresh();
   }
 
   async function onRegistrar(e: React.FormEvent) {
@@ -235,35 +221,7 @@ export function SeriesPanel({
         </section>
       )}
 
-      {archivando && (
-        <Modal titulo="Archivar serie" onClose={() => setArchivando(null)}>
-          {(cerrar) => (
-            <form onSubmit={onArchivar} className="mt-5 space-y-2">
-              <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
-                <b className="font-semibold">{archivando.serie}</b> deja de reservar números: los comprobantes que ya emitió se quedan como están.
-                Después registra la serie nueva de esta tienda, que empieza en 1. Una serie archivada no se vuelve a usar.
-              </p>
-              <CampoTexto
-                id="archivo-motivo"
-                etiqueta="Motivo"
-                required
-                minLength={3}
-                value={motivoArchivo}
-                onChange={(e) => setMotivoArchivo(e.target.value)}
-                placeholder="Serie de pruebas: pasamos a la SUNAT real"
-              />
-              <div className="flex gap-2 pt-3">
-                <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
-                  Cancelar
-                </Boton>
-                <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
-                  {loading ? "Archivando…" : "Archivar"}
-                </Boton>
-              </div>
-            </form>
-          )}
-        </Modal>
-      )}
+      {archivando && <ModalArchivarSerie serie={archivando} onClose={() => setArchivando(null)} />}
 
       {abierto && (
         <Modal titulo="Nueva serie" onClose={cerrarModal}>
@@ -316,5 +274,76 @@ export function SeriesPanel({
         </Modal>
       )}
     </div>
+  );
+}
+
+/**
+ * Archivar una serie (ADR-0161: firma el responsable del combo; el permiso sigue siendo del líder y lo pregunta la
+ * base a la cuenta). Vive aparte para que la lista de quién está de turno se lea solo mientras el modal está abierto.
+ */
+function ModalArchivarSerie({ serie, onClose }: { serie: SerieComprobante; onClose: () => void }) {
+  const router = useRouter();
+  const [motivoArchivo, setMotivoArchivo] = useState("");
+  const [loading, setLoading] = useState(false);
+  const responsable = useResponsable();
+
+  async function onArchivar(e: React.FormEvent) {
+    e.preventDefault();
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
+    setLoading(true);
+    const { error } = await firmar(
+      createClient().rpc("archivar_serie_comprobante", { p_serie_id: serie.id, p_motivo: motivoArchivo.trim() }),
+      responsable.firma(),
+    );
+    setLoading(false);
+    responsable.despues(error);
+    if (error) {
+      avisar.error(traducirError(error, "archivar la serie"));
+      return;
+    }
+    avisar.exito(`Serie ${serie.serie} archivada`, { detalle: "Ya no reserva números. Registra la nueva para seguir emitiendo." });
+    onClose();
+    router.refresh();
+  }
+
+  return (
+    <Modal titulo="Archivar serie" onClose={onClose}>
+      {(cerrar) => (
+        <form onSubmit={onArchivar} className="mt-5 space-y-2">
+          <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
+            <b className="font-semibold">{serie.serie}</b> deja de reservar números: los comprobantes que ya emitió se quedan como están.
+            Después registra la serie nueva de esta tienda, que empieza en 1. Una serie archivada no se vuelve a usar.
+          </p>
+          <CampoTexto
+            id="archivo-motivo"
+            etiqueta="Motivo"
+            required
+            minLength={3}
+            value={motivoArchivo}
+            onChange={(e) => setMotivoArchivo(e.target.value)}
+            placeholder="Serie de pruebas: pasamos a la SUNAT real"
+          />
+          <ComboResponsable control={responsable} deshabilitado={loading} className="pt-2" />
+          <div className="flex gap-2 pt-3">
+            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+              Cancelar
+            </Boton>
+            <Boton
+              type="submit"
+              peso="primario"
+              className="flex-1"
+              cargando={loading}
+              disabled={!responsable.listo}
+              title={responsable.motivo ?? undefined}
+            >
+              {loading ? "Archivando…" : "Archivar"}
+            </Boton>
+          </div>
+        </form>
+      )}
+    </Modal>
   );
 }
