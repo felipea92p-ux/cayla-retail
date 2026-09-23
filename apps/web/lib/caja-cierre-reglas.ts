@@ -9,10 +9,12 @@ export const DESTINOS_TRASLADO: {
   etiqueta: string;
   /** Qué se pide para poder rastrear el efectivo después; `null` si no hace falta. */
   referencia: string | null;
+  /** Si sin esa referencia no se puede cerrar. El n.º de operación del depósito es opcional (Felipe, 2026-09-23). */
+  exigeReferencia: boolean;
 }[] = [
-  { valor: "caja_fuerte", etiqueta: "Caja fuerte de la sede", referencia: null },
-  { valor: "banco", etiqueta: "Depósito bancario", referencia: "N.º de operación del voucher" },
-  { valor: "lider", etiqueta: "Entregado al líder de equipo", referencia: "¿A quién se lo entregaste?" },
+  { valor: "caja_fuerte", etiqueta: "Caja fuerte de la sede", referencia: null, exigeReferencia: false },
+  { valor: "banco", etiqueta: "Depósito bancario", referencia: "N.º de operación del voucher", exigeReferencia: false },
+  { valor: "lider", etiqueta: "Entregado al líder de equipo", referencia: "¿A quién se lo entregaste?", exigeReferencia: true },
 ];
 
 export function etiquetaDestino(destino: string): string {
@@ -48,7 +50,8 @@ export function motivoTrasladoInvalido(p: {
   if (p.trasladado > p.contado + 0.001) return `No puedes trasladar más de lo que contaste (S/ ${p.contado.toFixed(2)}).`;
   if (p.trasladado === 0) return null;
   if (!p.destino) return "Elige a dónde va el efectivo que trasladas.";
-  const pide = DESTINOS_TRASLADO.find((d) => d.valor === p.destino)?.referencia;
+  const elegido = DESTINOS_TRASLADO.find((d) => d.valor === p.destino);
+  const pide = elegido?.exigeReferencia ? elegido.referencia : null;
   if (pide && p.referencia.trim().length < 2) return `Completa «${pide}»: es lo que permite rastrear el dinero después.`;
   return null;
 }
