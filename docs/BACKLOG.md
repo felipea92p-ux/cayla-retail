@@ -137,25 +137,25 @@ Del análisis `/pantalla` completo del módulo Ventas: la misma familia de hueco
 - [x] **Verificado tras la fusión del PR #285:** la migración F3 de abajo (`actor_firma_las_operaciones`) lee la definición viva de `registrar_movimiento_caja`/`registrar_cambio`/`aprobar_devolucion` y solo reemplaza la línea que busca a la persona — no pisa este candado (ni su reversión en Cambios) cuando F3 se pegue en producción.
 - [x] **`20260923110500_cambios_sin_candado_de_lider.sql` está en producción** (verificado el 2026-09-23: `registrar_cambio` ya no tiene el candado de líder y sigue firmando con `fn_actor_persona_id(true)`; Caja conserva el suyo). Se renombró desde `…110000` porque chocaba con `20260923110000_cambiar_rol_entre_lideres.sql` y dejaba el CI de `main` en rojo; las dos ya estaban pegadas, así que el cambio de número no toca producción.
 
-## 🔒 Candado solo-RPC en ventas, clientas, conteos, lotes y traslados (2026-09-23, ADR-0119, PL-61/84/85) — producción YA cerrada; falta fusionar el repo
+## 🔒 Candado solo-RPC en ventas, clientas, conteos, lotes y traslados (2026-09-23, ADR-0119, PL-61/84/85) — EN PRODUCCIÓN y en main (PR #369, `4b84cf7a`)
 Verificado en solo lectura el 2026-09-23: en producción `authenticated` solo tiene SELECT (y `anon` nada) sobre `ventas`, `venta_items`, `venta_anulacion_items`, `clientas`, `conteos`, `lotes`, `transferencias` y `transferencia_items`, pero ninguna migración del repo ni de Dynamic lo hace (la `0217` de la unificación las abrió; quién las cerró, no quedó registrado). En el repo seguían abiertas. La rama «ADR-0166» del plano (commit `520915d0`) ya estaba en main como ADR-0177.
 - [x] Migración `20260923234700_ventas_clientas_conteos_lotes_solo_rpc.sql` (revoke a `authenticated`/`anon`): en producción es un no-op; lleva el candado a la base local, al CI y a toda base nueva. Sus 18 escritoras son `security definer` con dueña `postgres`; la web no escribe directo en ninguna.
 - [x] `pnpm pruebas:candado-ventas` (6/6 en local, con control por el «cómo se deshace» y mutación), agregada al CI.
-- [ ] Fusionar (PR). No hace falta pegar nada en producción; si se pega igual para dejar registro (PL-95), antes de pegarla correr la sonda de `relacl` de las 8 tablas.
+- [x] Fusionado en main con el PR #369 (2026-09-23). En producción no hubo que pegar nada: ya estaba así.
 - [ ] **Decisión de Felipe (causa raíz):** «cerrado por defecto» en `retail`. `alter default privileges` (0005 y la 0217 de Dynamic) abre toda tabla nueva a `authenticated`; 19 tablas de producción dependen solo de RLS (lista en el ADR-0119).
 - [x] De paso, **PL-79 ya estaba hecho:** `clientas_dni_unico` (único sobre `dni` cuando no es nulo) existe en producción y `clientas` es una sola para toda la red.
 
-## 🎯 SUNAT: reintento por cron, aviso al líder y nota de débito (2026-09-23, PL-113/114/117, ADR-0165 act.) — base EN PRODUCCIÓN; web sin fusionar; falta `CRON_SECRET`
+## 🎯 SUNAT: reintento por cron, aviso al líder y nota de débito (2026-09-23, PL-113/114/117, ADR-0165 act.) — EN PRODUCCIÓN y funcionando (PR #369)
 - [x] Cron de Vercel cada 5 min (plan Pro) sobre `GET /api/lucode/reintentar`, con `CRON_SECRET` y SOLO al sandbox (`cronNoTransmite`); la llave de servicio toma la cola de las últimas 4 horas (`HORAS_REINTENTO_AUTOMATICO` = el mismo número de la migración). La excepción de `proxy.ts` vale solo para esa ruta.
 - [x] Aviso «Comprobantes sin llegar a SUNAT» en Inicio ▸ Por atender (el mismo patrón que ADR-0179/0186; la «campanita de campañas» del acta no existe).
 - [x] **`20260924113817_sunat_reintento_por_cron.sql` PEGADA en producción el 2026-09-23** (OK de Dany): antes y después los cuerpos se compararon con el archivo (solo cambian los candados de sede y la ventana de 4 h; ningún parche en vivo se perdió), ACL con `service_role`, `security definer` y `search_path` intactos; humo con rollback: sin sesión «Solo un líder…», como cron tomó 0 (no hay pendientes).
 - [x] PL-117: nota de débito probada en el sandbox — `lucode.ts` le mandaba los campos de la nota de crédito (`Undefined array key "nota_debito_codigo_tipo"`); corregido, BD01-1 aceptada en sandbox. Dos pruebas fijan los campos de cada nota.
 - [x] PL-116: las 2 boletas con número quemado ya no existen en producción (serie B004: solo el 2 y el 3); nada que excluir.
-- [ ] **Dany: crear `CRON_SECRET` en Vercel ▸ Production** (Secret, valor largo al azar). Sin ella el cron responde 401 y no hace nada. Después del despliegue, humo: el cron responde `{"tomados":0,…}`.
+- [x] **`CRON_SECRET` creada por Dany en Vercel ▸ Production y PR #369 desplegado (2026-09-23).** Humo sin usar la clave, en los registros de Vercel: sin clave la ruta da 401 (23:27 UTC) y la pasada del cron de las 23:30:35 UTC dio 200, sin aviso de «no es sandbox» ni errores (no había pendientes: tomó 0). Para mirarlo otra vez: `vercel logs --environment production --since 30m --query reintentar`.
 - [ ] Un `pendiente` atascado solo tiene «Liberar» en la pantalla, no «Reintentar» (el barrido del líder al abrir Comprobantes lo sigue intentando hasta 3 días).
 - [ ] Salir en vivo con el cron = cambiar `cronNoTransmite` a propósito (decisión de Felipe), no una variable.
 
-## ✏️ Nombres, plantilla de PR, plan B y seguridad (2026-09-23, PL-50/105/120/92) — sin fusionar
+## ✏️ Nombres, plantilla de PR, plan B y seguridad (2026-09-23, PL-50/105/120/92) — en main (PR #369)
 - [x] PL-50: menú y cabeceras de Compras y del Taller dicen «Facturas de proveedor», «Notas de crédito de proveedor» y «Facturas de insumos»; Ventas intacta. Nota al inicio de ADR-0111 y ADR-0142.
 - [ ] PL-50, resto: ~100 líneas internas de Compras, Recibir, Por pagar y Producción siguen diciendo «comprobante» (`RecepcionEnvio`, `PagoJuntosModal`, `CompraDetallePanel`, ficha del proveedor, `/recibir`). Roles y accesos dice «Facturas de compra» (`lib/modulos.ts` + `retail.modulos`: necesita migración). Revisar si «Notas de crédito de proveedor» se corta en el lateral.
 - [x] PL-105: `.github/pull_request_template.md` con la prueba a 375 px para Vender/Cambios/Devoluciones, y la regla en CLAUDE.md.
@@ -172,7 +172,7 @@ Verificado en producción (solo lectura): `registrar_venta`, `regularizar_prenda
 - [x] **Pegada en producción el 2026-09-23** (OK de Dany, por el MCP, con bloque de validación en la misma llamada): antes 4 disparadores, 0 salidas y 0 apartados desde Cuarentena; después 5 disparadores, el nuevo activo (`O`), función `{postgres=X/postgres}`; humo con rastro cero: venta desde Cuarentena → rechazada con el mensaje, liquidar → pasa; movimientos 23.898 → 23.898.
 - Cómo verificas: apartar o vender una prenda que está en Cuarentena → «Esa prenda está en Cuarentena…»; liquidar una prenda dañada sigue funcionando.
 
-## 🔒 Anular una venta solo el mismo día de Lima (2026-09-23, PL-29) — EN PRODUCCIÓN (pegada por Dany el 2026-09-23 17:50 Lima); web sin fusionar
+## 🔒 Anular una venta solo el mismo día de Lima (2026-09-23, PL-29) — EN PRODUCCIÓN (pegada por Dany el 2026-09-23 17:50 Lima); web en main (PR #369)
 `anular_venta` solo pedía la caja abierta: una caja que quedaba abierta de un día para otro dejaba anular hoy la venta de ayer (en producción no existía ningún chequeo de fecha; huella viva `15f8f274…`, igual a la local).
 - [x] Migración `20260923235300_anular_venta_mismo_dia.sql`: parcha la definición VIVA (ancla de una línea contada, `pg_temp.reemplazar`) y agrega `(v_venta.created_at at time zone 'America/Lima')::date <> fn_hoy_lima()` → «Esta venta es de un día anterior — solo se anula el mismo día; usa Cambio o Devolución». Se puede pegar dos veces; bloque de validación al final.
 - [x] `pnpm pruebas:anular-venta-mismo-dia` (7/7, en el CI): control con el candado deshecho, ayer y ayer 23:59 de Lima rechazadas, hoy y hoy 00:00 aceptadas, idempotencia e ida y vuelta de la huella. Mutación: comparar en UTC hace caer el caso de las 23:59.
