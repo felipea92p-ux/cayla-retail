@@ -194,7 +194,9 @@ caso(
      count(*) filter (where d ~ 'fn_actor_persona_id\\(true\\)'),
      count(*) filter (where d ~ 'fn_actor_persona_id\\(false\\)' and d !~ 'FUNCTION retail\\.(fn_alcanzo_a|quitar_colaborador|suspender_colaborador)\\('),
      count(*) filter (where (length(d) - length(replace(d, 'fn_actor_persona_id(', ''))) / length('fn_actor_persona_id(') > 1
-                        and d !~ 'FUNCTION retail\\.suspender_colaborador\\(')) -- permiso (cuenta) + firma (responsable)
+                        -- suspender: permiso (cuenta) + firma (responsable). guardar_proveedor_produccion (20260923240000): una
+                        -- firma en el alta y otra en la edición, caminos excluyentes.
+                        and d !~ 'FUNCTION retail\\.(suspender_colaborador|guardar_proveedor_produccion)\\('))
    from (select pg_get_functiondef(oid) d from pg_proc where pronamespace = 'retail'::regnamespace and proname <> 'fn_actor_persona_id' and ${SIN_ROLES}) x;`,
   // Pisos, no números exactos: el total depende de qué migraciones tiene la base (local 41/29 con Apartados y series;
   // CI desde cero 41/28). Que cada función calce con SU lista lo prueban la re-ejecución y la falla cerrada de abajo.

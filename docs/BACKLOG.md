@@ -37,9 +37,10 @@ insumo, comprobante, recepción y pago de comprobante), Colaboradores y Roles y 
 - [x] Publicado en orden: primero la web, después la migración.
 - [ ] Verlo con clics (Recibir en una terminal, Registrar comprobante, Taller) — solo se verificó con typecheck, build,
       24.333 pruebas web y las pruebas SQL (`pruebas:actor-firma` 30/30, `pruebas:roles` 70/70, `pruebas:terminales` 52/52).
-- [ ] Guardan sin firmar a nadie (un combo ahí no dejaría rastro; hace falta columna «quién»): `set_etapa_produccion`,
-      `anular_comprobante_produccion`, `anular_compra`, proveedores de producción, alta de insumos, `reactivar_terminal`, crear
-      terminal y cambiar su clave (`lib/terminales-alta.ts` firma con la cuenta).
+- [x] «Quién» en las que guardaban sin firmar (ADR-0161 act. d, migración `20260923240000`, NO está en producción):
+      `set_etapa_produccion`, `anular_comprobante_produccion`, `anular_compra`, proveedores de producción, alta de insumos,
+      `reactivar_terminal`, crear terminal y cambiar su clave. Publicar igual: **primero la web, después la migración**.
+- [ ] Mostrar el «quién» en pantalla (anulada por, historial de etapas, creado por): hoy queda solo en la base.
 - [ ] Recibir envío/lote toma la lista de turno de la ubicación que recibe (no la de la cabecera): un almacén sin marcas bloquea.
 
 ## 🎯 Caja: cierre con traslado y apertura verificada (2026-09-23, ADR-0186) — EN PRODUCCIÓN (Felipe pegó la migración el 2026-09-23; verificado en solo lectura: una firma por función, tabla, columnas, check, política y permisos; las llamadas de la pantalla resuelven sin ambigüedad) y web fusionada (PR #350)

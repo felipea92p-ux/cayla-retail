@@ -10,6 +10,9 @@ import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 import { estadoVisible, etiquetaMetodo, etiquetaTipo, type ComprobanteProduccion } from "@/lib/comprobantes-produccion-reglas";
 import { cantidadTexto, type UnidadInsumo } from "@/lib/insumos-reglas";
 
@@ -29,6 +32,8 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, tallerId, on
   const [anulando, setAnulando] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [cargando, setCargando] = useState(false);
+  // Responsable (ADR-0161 act. d): la anulación queda en `anulada_por` con quien se elige en el combo.
+  const responsable = useResponsable();
 
   useEffect(() => {
     let vivo = true;
@@ -56,9 +61,17 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, tallerId, on
 
   async function anular() {
     if (!motivo.trim()) return avisar.error("Anular un comprobante necesita un motivo.");
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setCargando(true);
-    const { error } = await createClient().rpc("anular_comprobante_produccion", { p_comprobante_id: c.id, p_motivo: motivo.trim() });
+    const { error } = await firmar(
+      createClient().rpc("anular_comprobante_produccion", { p_comprobante_id: c.id, p_motivo: motivo.trim() }),
+      responsable.firma(),
+    );
     setCargando(false);
+    responsable.despues(error);
     if (error) return avisar.error(traducirError(error, "anular el comprobante"));
     avisar.exito(`${c.serie}-${c.numero} anulado`, { detalle: "Queda registrado con su motivo; no se borra." });
     router.refresh();
@@ -160,11 +173,12 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, tallerId, on
           (anulando ? (
             <div className="anim-entra space-y-2.5 rounded-xl border border-sand bg-crema p-3">
               <CampoTexto etiqueta="Motivo de la anulación" placeholder="Por qué se anula" value={motivo} onChange={(e) => setMotivo(e.target.value)} autoFocus />
+              <ComboResponsable control={responsable} deshabilitado={cargando} />
               <div className="flex gap-2">
                 <Boton peso="discreto" type="button" onClick={() => setAnulando(false)}>
                   Volver
                 </Boton>
-                <Boton peso="primario" type="button" cargando={cargando} disabled={!motivo.trim()} onClick={anular} className="flex-1">
+                <Boton peso="primario" type="button" cargando={cargando} disabled={!motivo.trim() || !responsable.listo} title={responsable.motivo ?? undefined} onClick={anular} className="flex-1">
                   {cargando ? "Anulando…" : "Anular comprobante"}
                 </Boton>
               </div>

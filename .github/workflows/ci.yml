@@ -398,11 +398,17 @@ jobs:
       # auth.uid()` salvo las de permiso/identidad listadas (una nueva obliga a clasificarla); 36 firman con el actor de tienda
       # y 29 con el de no-tienda; la migración se pega dos veces y aborta ante una función sin clasificar. Venta, caja, ajuste,
       # traslado, Catálogo: terminal + responsable presente → firma el responsable y queda `terminal_id`; sin responsable →
-      # 42501; persona sin encabezado → firma ella. Compras firma con la persona de la sesión aunque llegue `x-responsable`.
+      # 42501; persona sin encabezado → firma ella. Desde 20260923230000 Compras también firma con el responsable.
       # El tope de descuento y liberar apartados siguen siendo permisos de la CUENTA. ROLLBACK siempre.
       - name: pruebas:actor-firma
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:actor-firma
+
+      # ADR-0161 act. d: las acciones que guardaban sin firmar anotan al responsable del combo (anular compra y
+      # comprobante de producción, etapas, proveedores de producción, alta de insumo, terminales). ROLLBACK siempre.
+      - name: pruebas:quien-pendientes
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:quien-pendientes
 
       # Deriva de producción (las migraciones que producción tenía y el repo no): una sola firma de
       # registrar_movimiento, catalogo_actualizar_producto y registrar_compra (con p_token, idempotente por

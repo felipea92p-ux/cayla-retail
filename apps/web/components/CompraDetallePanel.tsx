@@ -490,14 +490,21 @@ function AnularCompraModal({ compra, onClose }: { compra: CompraResumen; onClose
   const router = useRouter();
   const [motivo, setMotivo] = useState("");
   const [loading, setLoading] = useState(false);
+  // ADR-0161 act. d (20260923240000): la base anota quién anuló (`compras.anulada_por`) con el responsable del combo.
+  const responsable = useResponsable();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!motivo.trim()) return void avisar.error("Escribe por qué se anula.", { enfocar: "anular-motivo" });
+    if (!responsable.listo) return void (responsable.motivo && avisar.error(responsable.motivo));
     setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.rpc("anular_compra", { p_compra_id: compra.id, p_motivo: motivo.trim() });
+    const { error } = await firmar(
+      supabase.rpc("anular_compra", { p_compra_id: compra.id, p_motivo: motivo.trim() }),
+      responsable.firma(),
+    );
     setLoading(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "anular el comprobante"));
       return;
@@ -515,11 +522,12 @@ function AnularCompraModal({ compra, onClose }: { compra: CompraResumen; onClose
             El comprobante queda como anulado y deja de contar en Por pagar y en Recibir. No se borra: el registro se conserva con el motivo.
           </p>
           <CampoTexto etiqueta="Motivo" id="anular-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Se registró por error, el proveedor la reemplazó…" autoFocus />
+          <ComboResponsable control={responsable} deshabilitado={loading} />
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={cerrar} className={botonCancelar} disabled={loading}>
               Volver
             </button>
-            <button type="submit" className={botonPrimario} disabled={loading}>
+            <button type="submit" className={botonPrimario} disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined}>
               {loading ? "Anulando…" : "Anular"}
             </button>
           </div>
