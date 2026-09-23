@@ -1,81 +1,83 @@
 # Pantalla — Caja (`/caja`)
 
-> Modo: completo · Fecha: 2026-09-21 · Rol/sede: líder de equipo, Tienda TRU (escritorio, 1920 px) · Datos: **sin SQL casi completo** — solo llegó E7 (0 ventas anuladas dentro de cajas). Felipe aclaró que retail aún no opera de verdad y que hay una caja por sede; el resto del bloque A–E quedó sin correr, y todo lo que dependa de él va marcado `[no verificable]`.
-> SHA analizado: `553c0ff7` (origin/main; la rama estaba al día, 0 commits de diferencia) — si esos archivos cambian después, este análisis está vencido
-> Archivos: `apps/web/app/(app)/caja/page.tsx` · `components/CajaAbiertaPanel.tsx` · `components/MovimientoCajaModal.tsx` · `components/CerrarCajaModalV2.tsx` · `components/ui/Graficos.tsx` · `lib/caja.ts` · `lib/caja-panel-reglas.ts` · RPC `registrar_movimiento_caja`, `cerrar_caja`, `abrir_caja`, `fn_ventas_del_dia` · tablas `cajas`, `caja_movimientos`, `venta_pagos`
-> Otra sesión tocándola: no hoy. `docs/SESIONES-ACTIVAS.md` lista dos sesiones que ya tocaron Caja (`ventas-visual-redesign-240e2b`, rediseño 2026-09-18, y `candado-lider-caja-ajuste`, ADR-0143, ya en `main`). Ninguna aparece abierta sobre el modal de movimientos.
+> **Trabajo en vuelo:** `docs/SESIONES-ACTIVAS.md` registra `ventas-visual-redesign-240e2b` (rediseño visual de Caja + Cambios): la parte de Caja ya se ve fusionada con `main` vía PR #120–#122 (sin choques de código, solo en BACKLOG/BITACORA), pero esa misma fila dice que hay un **PR #128 abierto y NO fusionado** con más cambios de Caja/Cambios; Punto de Venta sigue en la misma rama. Si ese PR trae algo distinto de lo que ve este análisis, este archivo queda corto en ese punto — no lo cubre.
+>
+> Modo: completo · Fecha: 2026-09-22 · Rol/sede: líder de equipo e integrante, comparados, Tienda TRU (escritorio, 1920 px) · Datos: **sin SQL nuevo** — se reusa evidencia `[producción]` ya corrida en los últimos 7 días (volcado del 2026-09-21) y el propio checklist de BACKLOG.md; lo que no tiene esa evidencia va `[no verificable]` y las consultas que faltan quedan en «SQL pendiente».
+> SHA analizado: `88457700` (origin/main) — la rama de este worktree estaba 10 commits detrás de `origin/main` en general, pero **los archivos de esta pantalla ya coincidían byte a byte con `origin/main`** (`git diff --stat HEAD origin/main -- apps/web/app/(app)/caja apps/web/components/CajaAbiertaPanel.tsx apps/web/components/MovimientoCajaModal.tsx apps/web/lib/caja-panel-reglas.ts apps/web/lib/caja.ts` → vacío): se analizó tal cual está en el worktree. Si esos archivos cambian después, este análisis está vencido.
+> Archivos: `apps/web/app/(app)/caja/page.tsx` · `components/CajaAbiertaPanel.tsx` · `components/MovimientoCajaModal.tsx` · `components/CerrarCajaModalV2.tsx` · `components/ui/Graficos.tsx` · `app/(app)/caja/historial/page.tsx` · `lib/caja.ts` · `lib/caja-panel-reglas.ts` · `lib/persona-actual.ts` · RPC `registrar_movimiento_caja`, `cerrar_caja`, `abrir_caja`, `fn_ventas_del_dia`, `fn_puede_gestionar_caja` · tablas `cajas`, `caja_movimientos`, `venta_pagos`
 
 ## 0 · Veredicto
-Tablero de Caja bien resuelto de piel y con un cierre ciego correcto, pero el modal de Ingreso/Egreso —la única puerta por donde entra o sale plata que no es una venta— quedó abierta a cualquier colaborador: puede registrar un egreso o un ingreso «Otro» de cualquier monto, y el cierre lo tomará como plata esperada. La pantalla además mezcla «turno» con «hoy» (dona «HOY S/3075» sobre un turno de 73 h con 3 ventas listadas) y no avisa de una caja abierta hace tres días.
-**Cumple su finalidad:** 5,0/10 (promedio 5,75, con tope 5 por el candado abierto) · **Relevancia:** 8,0/10 — Núcleo
+El hueco de dinero que el análisis anterior encontró (2026-09-21) **sigue abierto, sin tocar, byte a byte igual**: la RPC `registrar_movimiento_caja` no cambió una línea desde el 15-sep, así que cualquier colaborador con sesión sigue pudiendo vaciar el cajón con un egreso «Retiro de efectivo» u «Otro» de cualquier monto sin ser líder — el propio `docs/BACKLOG.md:254` lo confirma sin marcar. Alrededor de ese hueco sí se trabajó bien: el modal ahora conoce el rol, no viene precargado, avisa de una caja de días abiertos y el historial de cierres por fin muestra la diferencia en una tabla — pero ninguna de esas piezas toca la RPC, así que el candado sigue siendo decorativo y el puntaje no se mueve.
+**Cumple su finalidad:** 5,0/10 (promedio 6,2, con tope 5 por el candado de dinero seguir roto) · **Relevancia:** 8,0/10 — Núcleo
 
 ## 1 · Finalidad declarada
-"Esta pantalla existe para que quien atiende sepa cuánta plata entró y salió en el turno, registre lo que mueve el efectivo fuera de una venta, y que un líder pueda cerrar el turno contando y viendo si cuadra."
-Fuente: `docs/datos/modulos/07-ventas-y-caja.md` (encabezado, «Para qué existe»; **avisa que describe V1**, por eso solo lo uso para la finalidad, no para estados), `docs/adr/0056-*.md` (V2: `cajas` + `caja_movimientos` + `venta_pagos`, cierre = `apertura + ventas_efectivo + Σingresos − Σegresos …`), D-13 y ADR-0143.
-¿Coinciden docs y pantalla? **No del todo, y es hallazgo:**
-- D-13 (2026-09-12) reserva al líder «registrar gastos y depósitos». ADR-0056 (2026-09-15) decidió aparte que el depósito bancario lo pueda hacer cualquier colaborador. Las dos decisiones están vigentes y se contradicen; la pantalla sigue la segunda.
-- ADR-0143 §2 afirma que `registrar_movimiento_caja` «ya pide líder». **Solo lo pide cuando `p_es_ajuste` es verdadero** `[código supabase/migrations/20260915202040_caja_deposito_y_ajuste.sql:61-63]`. Manda el código.
+"Esta pantalla existe para que quien atiende sepa cuánta plata entró y salió en el turno, registre lo que mueve el efectivo fuera de una venta, y que un líder (o, si se aplica ADR-0160, la terminal de ventas) pueda cerrar el turno contando y viendo si cuadra."
+Fuente: `docs/datos/modulos/07-ventas-y-caja.md` («Para qué existe»: «el dinero entra al cajón, el stock de la sede baja, y queda escrito quién cobró y cuándo» — sin aviso de V1 en este archivo hoy, a diferencia de lo que citaba el análisis anterior), D-13 y D-49 (`docs/datos/DECISIONES-2026-09-12.md:72,293`), ADR-0056, ADR-0143 y ADR-0160 (nuevo desde el análisis anterior).
+¿Coinciden docs y pantalla? **No del todo, y sigue siendo hallazgo:**
+- D-13 reserva al líder «registrar gastos y depósitos». ADR-0056 decidió lo contrario para el depósito. Las dos siguen vigentes y sin reconciliar; la pantalla sigue la segunda.
+- ADR-0160 (2026-09-21, **NO aplicada en producción todavía** — su propio encabezado dice «NADA aplicado en producción: falta pegar la migración... se detiene y se confirma antes de pegar») decide que además del líder, una cuenta compartida "terminal de ventas" pueda cerrar caja y registrar movimientos. El código de `/caja` ya asume esa posibilidad (`CajaAbiertaPanel.tsx:209`: «La caja la cierra un líder de equipo **o la terminal de ventas**»), pero la base de producción, mientras la migración no se pegue, sigue exigiendo `fn_es_lider()` a secas — la frase en pantalla hoy en producción describiría un poder que la base todavía no da (o, si el código ya se desplegó, no rompe nada porque `fn_mi_terminal()` no existe ahí y todo colaborador cae a "persona común", pero el texto del botón queda adelantado a la base).
 
 ## 2 · Objeción
-1. **La puerta del dinero está abierta y el candado de «Ajuste» es decorativo.** Un colaborador ve «+ Ingreso / egreso» `[código CajaAbiertaPanel.tsx:193]` sin filtro de rol, y el modal ni siquiera recibe el rol `[código MovimientoCajaModal.tsx:20]`. La RPC solo exige líder si el propio navegador manda `p_es_ajuste = true` (`…sql:61`); el motivo es texto libre sin lista cerrada (`…sql:73`). Resultado: un colaborador registra un **egreso «Otro» por S/100** o un **ingreso «Otro» por S/100** con `es_ajuste = false`, y hace exactamente lo que el candado dice impedir —mover el esperado sin venta detrás— sin pasar por el candado. El líder cuenta a ciegas, «cuadra», y lo único que queda es el `usuario_id` de una fila que nadie revisa al cerrar. Es el mismo hueco que ADR-0143 cerró para el stock (§1: «inventarse una entrada, salida o ajuste que cuadra un faltante»). Además tampoco hay tope ni chequeo de que el egreso no supere el efectivo disponible (`…sql:58-75`).
-2. **La pantalla mezcla «turno» con «hoy».** La dona dice «HOY S/3075» y «Ventas efectivo S/1806», pero «Ritmo del día» cuenta **3 ventas** y «Movimientos recientes» lista tres ventas por S/894 `[visto]`. Las tarjetas suman todo el turno (`getResumenCaja`, `lib/caja.ts:111-147`); la lista y el ritmo salen de `fn_ventas_del_dia`, que solo trae **hoy** `[código migración 20260921103000…sql:86-87]`. Una caja abierta 3 días muestra dos verdades distintas en la misma pantalla.
-3. **Una caja abierta hace 73 h no avisa nada** `[visto: «Lleva 73 h 09 min»]`. La cinta simplemente se estira `[código caja-panel-reglas.ts:27-31]`. Es un turno que nadie cerró: el cierre de tres días queda como una sola cifra y el «Historial de cierres» pierde el día a día. El BACKLOG ya lo sabe a medias («quién cierra cuando no hay un líder en la tienda», `docs/BACKLOG.md:67`, decisión de Felipe pendiente).
+1. **La puerta del dinero sigue abierta — cero cambios en la RPC desde el 15-sep, confirmado por tres fuentes independientes.** `registrar_movimiento_caja` (`supabase/migrations/20260915202040_caja_deposito_y_ajuste.sql:43-83`) es la ÚNICA definición de esa función en todo `supabase/migrations/` además de su versión anterior de `0008` — ninguna migración posterior la redefine (`grep -rl registrar_movimiento_caja supabase/migrations` solo la encuentra en esos dos archivos) `[código]`. Sigue exigiendo líder únicamente cuando `p_es_ajuste = true` (`…202040.sql:61-63`); `p_tipo`, `p_monto > 0` y `p_motivo` no vacío son las únicas otras reglas (`:67-75`) — sin tope de monto, sin lista cerrada de motivos. El propio checklist de tareas que dejó el análisis anterior, escrito por otra sesión el mismo día en `docs/BACKLOG.md:254`, sigue sin marcar: «#1 Candado real en `registrar_movimiento_caja`... **Espera su decisión sobre permisos**» `[código docs/BACKLOG.md:254]`. Y el modal (`MovimientoCajaModal.tsx:53-60`) sigue mandando `p_es_ajuste: esAjuste` calculado en el navegador a partir del motivo elegido (`esMotivoDeAjuste`, `caja-panel-reglas.ts:280-282`) — quien llame la RPC desde la consola del navegador (no desde el modal) decide el valor de `p_es_ajuste` él mismo. Resultado, sin cambios respecto al 21-sep: un colaborador registra un **egreso "Otro" o "Retiro de efectivo" por cualquier monto** con `es_ajuste = false` y hace exactamente lo que D-13 dice que solo el líder puede hacer — mover el efectivo sin una venta detrás — sin pasar por ningún candado de rol.
+2. **Lo que sí se hizo mejora la pantalla pero no toca la RPC, así que es cortesía sobre el mismo hueco.** `motivosDeMovimiento(tipo, esLider)` (`caja-panel-reglas.ts:286-289`) ya esconde «Ajuste» a quien no es líder — el propio comentario del código lo admite: «Solo esconde lo que la base ya rechaza — el candado real sigue siendo la RPC» (`:284-285`) `[código]`. Es exactamente la alternativa que el análisis anterior ya había descartado como insuficiente («esconder opciones en el modal — cualquier sesión llama la RPC desde la consola»). Los motivos que SÍ pasan para un colaborador sin ningún candado — «Retiro de efectivo», «Depósito bancario», «Compra de insumos» y «Otro» en egreso (`caja-panel-reglas.ts:276`) — son justo los que mueven plata de verdad.
+3. **La contradicción D-13 / ADR-0056 sigue sin resolverse, y ahora se le suma ADR-0160 sin que nadie la haya cruzado con las dos anteriores.** ADR-0160 (2026-09-21) amplía quién puede ejecutar `registrar_movimiento_caja` con `es_ajuste=true` de «solo líder» a «líder o terminal de ventas» (`supabase/migrations/20260922200000_terminales_por_tienda.sql:115-117,311`: `fn_puede_gestionar_caja()` = `fn_es_lider() or fn_es_terminal('ventas')`, e inyectada dentro de `registrar_movimiento_caja` reemplazando `fn_es_lider()`) — **todavía no aplicada en producción** (su propio ADR lo dice). Una «terminal de ventas» es una cuenta que **usa todo el equipo de la tienda** (ADR-0160, «Lo que dijo el negocio», punto 1): el día que se pegue esa migración, un «Ajuste de caja (faltante)» —el movimiento que D-13 quiso reservar a una persona nombrada, para que el descuadre tenga un responsable— podrá quedar a nombre de «Terminal Ventas TRU» sin que se sepa cuál de las colaboradoras de turno lo hizo (el propio ADR lo admite en su sección «Se rompe si»: «cualquiera que sepa la clave de una terminal actúa como ella»). Es una decisión de negocio ya tomada por Felipe (ADR-0160), no un bug — pero nadie la cruzó todavía contra el hueco #1: ampliar QUIÉN puede hacer un ajuste no cierra que la mayoría de los movimientos (los que no son ajuste) sigan sin pedir ningún rol.
 
 ## 3 · Lo que está bien y no se toca
-- **Cierre ciego real:** quien cuenta no ve el esperado; se revela después con la diferencia con signo `[código CerrarCajaModalV2.tsx:108-160; lib/caja.ts:23-29]`. Es el candado que hace útil todo lo demás.
-- **Cierre solo para líder, en tres capas:** botón escondido (`CajaAbiertaPanel.tsx:199`, con el texto «La caja la cierra un líder de equipo» en vez de un hueco mudo), `fn_es_lider()` dentro de `cerrar_caja` (`20260921120000…sql:87-89`) y prueba `pruebas:candado-lider` 20/20 `[código, ADR-0143]`.
-- **Una sola caja abierta por sede:** índice único parcial `cajas_sede_abierta_unique` `[código docs/datos/01-INVARIANTES.md:77]`; coincide con lo que dijo Felipe (1 caja por sede).
-- **`caja_movimientos` solo se escribe por RPC** (solo política SELECT `[producción, DICCIONARIO-RETAIL.md:1252]`) y tiene `monto > 0` y `tipo in (ingreso, egreso)` `[producción, volcado]`. No hay `DELETE`: coherente con «nunca borres».
-- **El esperado del cierre es completo:** apertura + ventas efectivo (sin anuladas) + ingresos − egresos − reembolsos + cambios `[código 20260921120000…sql:129-130]`.
-- **Ventas anuladas dentro de cajas: 0** `[producción, E7]`, así que la diferencia entre tarjetas y cierre (tarea #4) es latente, no activa.
-- **Los movimientos manuales sí aparecen en «Movimientos recientes»** con su motivo, verde/rojo y signo `[código CajaAbiertaPanel.tsx:136-160]`, y el modal usa `<Modal>` (ADR-0136) `[código MovimientoCajaModal.tsx:72]`.
-- **Metáfora del reloj y tablero** (cinta de turno, dona con «Ver como tabla», sparklines): coherente con Cambios/Devoluciones `[visto]`, y la tabla alternativa da accesibilidad a la dona.
-- **Doble apertura, otra sede y monto negativo** ya tienen prueba en SQL `[código scripts/caja/verificar.sql A1-A5]`.
+- **El modal ya conoce el rol y no ofrece lo que la base rechazaría** (tarea #2 del análisis anterior, cerrada): `MovimientoCajaModal` recibe `esLider` (`:15`) y `motivosDeMovimiento` filtra «Ajuste» para quien no es líder (`caja-panel-reglas.ts:286-289`) `[código]`. Confirmado también por `docs/BACKLOG.md:250` («[x] #2»).
+- **Aviso de caja abierta de días anteriores** (tarea #3, cerrada): `turnoLargo`/`HORAS_TURNO_LARGO = 18` (`caja-panel-reglas.ts:266-271`) y el componente `AvisoTurnoLargo` (`CajaAbiertaPanel.tsx:398-409`) pintan una franja roja con «Esta caja lleva N h abierta… avisa a un líder» cuando pasa el umbral `[código]`. Falta aún la decisión de Felipe sobre el umbral exacto y quién cierra sin líder en la tienda (`docs/BACKLOG.md:251`), pero la pieza visible ya existe.
+- **El modal dejó de venir precargado y ya pide lo que hace falta** (tarea #6, cerrada): sin tipo ni motivo elegidos de entrada (`MovimientoCajaModal.tsx:18-21`), foco en el monto (`:112`, `autoFocus`), «S/» y placeholder «0.00» (`:102-113`), «Ingreso» ahora en verde y no en rojo (`:86-89`, coherente con cómo el propio panel pinta un ingreso), y Referencia obligatoria en «Depósito bancario» y «Otro» (`referenciaObligatoria`, `caja-panel-reglas.ts:292-294`; `mov-nota` con `required={pideReferencia}`, `:170`) `[código]`.
+- **Movimientos manuales en hora de Lima** (tarea #10, cerrada): `diaYHoraLima` reemplaza `getHours()` del navegador (`CajaAbiertaPanel.tsx:153`, import `:33`) `[código]`.
+- **`/caja/historial` ya muestra la diferencia en una tabla, no solo el esperado**: columnas Apertura/Esperado/Contado/Diferencia con color por cuadre (`app/(app)/caja/historial/page.tsx:69-106`), más el filtro «Con datos de prueba» (D-54/ADR-0159, `:33,50-58`) que antes no existía `[código]`. Sigue faltando el filtro por sede y una paginación real (sigue en `limite = 60` fijo, `lib/caja.ts:222`) — eso es lo que BACKLOG deja sin marcar en su #8.
+- **Cierre ciego real, sin cambios y sigue correcto**: quien cuenta no ve el esperado hasta después (`CerrarCajaModalV2.tsx:75-93`) `[código]`.
+- **Cierre solo para líder, confirmado sin tocar**: `fn_es_lider()` dentro de `cerrar_caja` sigue siendo la primera línea de la función (`20260921120000_candado_de_lider_caja_y_ajuste.sql:86-89`) — **aplicada en producción el 2026-09-21** según `docs/SESIONES-ACTIVAS.md:21` `[producción, 2026-09-21]`.
+- **`cerrar_caja` excluye las ventas anuladas del efectivo esperado, y esto no cambió**: `v.estado <> 'anulada'` (`20260921120000…sql:107-109`) `[código]`.
+- **`fn_ventas_del_dia` excluye anuladas y no repite venta con dos comprobantes**, y sigue así en su versión más reciente del día de hoy (`20260922213700_ventas_del_dia_firma_con_quien_atendio.sql:85`: `v.estado = 'completada'`) `[código]`.
+- **Volumen sigue siendo el mismo, bajo**: `caja_movimientos` tiene ~3 filas `[producción, volcado 2026-09-21, docs/datos/generado/DICCIONARIO-RETAIL.md:1227]`. Con 3 tiendas activas de verdad, cualquier plan de acceso alcanza.
+- **`CajaGraficos.tsx` sigue existiendo sin que nadie lo importe** — no es una mejora, pero tampoco es nuevo ni se agravó: `grep -rn "CajaGraficos" apps/web` no encuentra referencias fuera del propio archivo `[código]`.
 
 ## 4 · Las seis dimensiones
 | Dimensión | Puntaje | Hallazgo principal | Evidencia |
 |---|---|---|---|
-| Estética | 6,5 | El tablero es coherente y sobrio, pero el modal rompe reglas propias: «Ingreso» seleccionado sale rojo igual que «Egreso», el desplegable es el nativo del sistema, hay spinner nativo y el rojo del tablero pasa de 4 usos fijos | `[visto capturas 2-5]` `[código MovimientoCajaModal.tsx:83-85; Modal.tsx:121-127]` |
-| Lógica de negocio | 4,0 | Movimiento manual sin candado real; ajuste que tapa diferencias antes del cierre; dos decisiones (D-13 / ADR-0056) que se contradicen | `[código …202040.sql:58-75]` `[D-13, ADR-0056]` |
-| Arquitectura | 5,5 | Cadena limpia (RLS + RPC security definer), pero `es_ajuste` viene del cliente, hay lecturas por SELECT directo que no comparten reglas con `cerrar_caja` (anuladas) y no hay offline para movimientos | `[código caja.ts:114 vs …120000.sql:109]` |
-| Funciones | 6,0 | Existe todo lo esencial; sobra código muerto y «Ajuste» es ambiguo; faltan aviso de turno largo y revisión de movimientos al cerrar | `[código CajaGraficos.tsx huérfano]` |
-| Utilidad | 5,5 | Fácil de leer; fácil de equivocarse en el modal (egreso prellenado, motivo prellenado, sin «S/», sin foco en el monto) y confuso el «HOY» del turno | `[visto]` `[código MovimientoCajaModal.tsx:22-24]` |
-| Conexión con el ERP | 7,0 | Bien conectada aguas arriba (ventas, devoluciones, cambios) y aguas abajo (cierre, historial); el flujo de compras/proveedores respeta R-04 (no toca la caja) | `[código ADR-0052, 0053, R-04]` |
+| Estética | 7,0 | Mejoró (verde para ingreso, S/, sin prellenado) pero conserva el `<select>` nativo y `focus:border-rojo` en cualquier campo | `[código MovimientoCajaModal.tsx:86-89; Modal.tsx:122-123]` |
+| Lógica de negocio | 4,0 | Sin cambio: candado decorativo, D-13/ADR-0056 sin reconciliar, y ahora ADR-0160 (sin aplicar) suma una cuenta compartida al ajuste | `[código …202040.sql:61-75; BACKLOG.md:254]` |
+| Arquitectura | 5,5 | Cadena limpia sin cambios; mismos estados imposibles (sin tope de egreso), misma falta de cola offline para movimientos | `[código MovimientoCajaModal.tsx:53]` |
+| Funciones | 6,5 | Mejoró: aviso de turno largo y tabla de diferencia en historial ya existen; sigue faltando revisar movimientos antes de contar y el código muerto | `[código, BACKLOG.md:249-262]` |
+| Utilidad | 7,0 | Mejoró bastante el flujo del modal (foco, sin prellenado, S/, referencia); el escenario de la colaboradora sola ya no se equivoca por el modal, pero sigue pudiendo mover plata sin candado real | `[código MovimientoCajaModal.tsx:112,102-113]` |
+| Conexión con el ERP | 7,0 | Sin cambios de fondo; ADR-0160 (sin aplicar) es la única novedad de conexión, y toca directamente `cerrar_caja`/`registrar_movimiento_caja` | `[código 20260922200000…sql]` |
 
-### Estética (6,5)
-(a) Coherencia CAYLA: crema y tinta bien, serif en el título y cifras, esquinas suaves `[visto]`. Rojo: `MAX_ROJO_POR_PANTALLA = 2` (`design-tokens.ts:73`) **no se hace cumplir en /caja** `[código]`; con caja abierta hay barra de meta (`:230`), borde e icono de Egresos (`:257,658`), enlace «Ver historial completo» (`:299`), un rojo por cada egreso listado (`:157`) y barras rojo-profundo por cada cierre descuadrado (`Graficos.tsx:69`): en la captura se cuentan al menos cuatro grupos `[visto]`.
-(b) Modal: el botón activo del tipo usa `border-rojo bg-rojo/8 text-rojo` para los dos tipos (`MovimientoCajaModal.tsx:84`); en la captura 4 «Ingreso» está en rojo y contradice el verde con que el propio panel pinta un ingreso (`:157`) `[visto + código]`. Además `focus:border-rojo` pinta rojo cualquier campo enfocado (captura 4, «Referencia») `[código Modal.tsx:122]`.
-(c) Universales: el `<select>` nativo (capturas 3 y 5) usa el azul del sistema operativo y el ancho del campo, ajeno a la paleta `[visto]`; el spinner nativo del monto aparece a la vista `[visto captura 2]`; etiquetas de 11 px a `text-tinta/70` (`Modal.tsx:120`) están en el borde del piso de contraste de ADR-0012 `[inferido; no medido]`. El campo Monto no muestra «S/» ni placeholder, y queda vacío sin pista de la unidad `[visto]`.
+### Estética (7,0)
+(a) Coherencia CAYLA: crema/tinta, serif, esquinas suaves sin cambios `[visto histórico, sin nueva captura]`. Rojo: sigue sin hacerse cumplir el tope de 2 (`design-tokens.ts:73`) en `/caja` — barra de meta (`CajaAbiertaPanel.tsx:238`), borde de la KPI «Egresos» (`:265`), «Ver historial completo» (`:307`), icono de cada egreso (`:162`) y barras rojo-profundo de cierres descuadrados (`Graficos.tsx:69`) siguen siendo rojo simultáneo en la misma pantalla `[código]`.
+(b) Modal: mejoró el punto más visible del análisis anterior — «Ingreso» ya no comparte color con «Egreso»: el botón activo usa `border-verde bg-verde/10 text-verde` para ingreso y `border-rojo…` solo para egreso (`MovimientoCajaModal.tsx:86-89`) `[código]`. Pero `focus:border-rojo` sigue pintando de rojo cualquier campo con foco, incluida «Referencia» (`Modal.tsx:122`) `[código]`, y el `<select>` de motivo sigue siendo el nativo del sistema operativo, sin estilo propio (`MovimientoCajaModal.tsx:125-140`, `campoSelect` en `Modal.tsx:123` es solo un wrapper de clases sobre un `<select>` real) `[código]`.
+(c) Universales: ya no hay spinner nativo visible en el monto (`[appearance:textfield]` y ocultar los botones, `MovimientoCajaModal.tsx:116`) — mejora directa sobre el hallazgo anterior `[código]`. Etiquetas de 11 px a `text-tinta/70` (`campoEtiqueta`, `Modal.tsx:120`) siguen igual, en el borde del piso de contraste `[inferido; no medido]`.
 
 ### Lógica de negocio (4,0)
-- **D-13** dice que el líder «registra gastos y depósitos»; **ADR-0056** decidió lo contrario para el depósito; **ADR-0143** dice que `registrar_movimiento_caja` ya pide líder, pero solo lo hace con la marca de ajuste. Ninguna decisión escrita cubre «un colaborador registra un egreso o ingreso “Otro”» `[ninguna decisión escrita cubre esto]`.
-- **Ajuste antes del cierre:** el cierre es ciego; el líder no conoce el esperado, así que un «Ajuste (faltante)» hecho antes del cierre solo tiene sentido si ya sabe la diferencia por fuera (por ejemplo, por otra vía de conteo). Y el efecto es tapar la diferencia: el esperado baja, la diferencia final se acerca a cero y la barra del historial sale verde `[código ADR-0056 §4: cerrar_caja suma por tipo, no por motivo]`. Rompe el principio 4 («una sola fuente de verdad»): el descuadre queda escrito en dos sitios, o en ninguno.
-- **Referentes** (de memoria, `[no verificable]`): en Shopify POS y Lightspeed existen entradas y salidas de efectivo con motivo, y en Odoo POS «cash in/out»; ninguno, hasta donde recuerdo, deja registrar un ajuste que anule una diferencia futura. **Filtro de escala:** el tope de retiro y el buzón (drop-safe) no le sirven a 3 tiendas hoy → Futuro (§9).
-- **Faltante sin dueño:** que 9 líderes tengan alcance global y ningún líder esté fijo a una tienda `[código docs/BACKLOG.md:67]` significa que hoy una caja de sede sin líder presente puede quedar abierta (la de 73 h de la captura, p. ej.).
+- El candado de rol para un movimiento NO marcado como ajuste sigue sin existir en la base. Ninguna decisión escrita cubre «un colaborador registra un egreso o ingreso "Otro"» sin ser líder — la misma conclusión del 21-sep, porque el código que la sostiene no cambió `[ninguna decisión escrita cubre esto]`.
+- ADR-0160 (nueva desde el análisis anterior) decide ampliar el candado de ajuste de «líder» a «líder o terminal de ventas», pero **eso no cierra el hueco de #1** — un ajuste hecho por la terminal compartida sigue siendo más plata movida sin nombre propio que antes (el ADR mismo lo advierte en «Se rompe si»), y los movimientos que no son ajuste (la mayoría de las rutas por las que hoy se puede sacar plata) siguen sin pedir ni líder ni terminal: piden solo sesión con acceso a esa ubicación `[código …200000.sql:311; ADR-0160 §"Se rompe si"]`.
+- **Ajuste antes del cierre sigue tapando la diferencia**, sin cambio respecto al 21-sep: `cerrar_caja` sigue sumando por `tipo`, no por `motivo` (`20260921120000…sql:111-114`), así que un «Ajuste (faltante)» hecho antes de contar sigue acercando a cero la diferencia final que el historial mostraría `[código]`.
+- **«Compra de insumos» como egreso rápido sigue contradiciendo R-04** («El efectivo para pagar sale de reservas bancarias. Nunca del cajón de una tienda», `docs/datos/15-COMO-OPERA-CAYLA.md:43`): el motivo sigue en la lista de egresos de cualquier colaborador (`caja-panel-reglas.ts:276`) `[código]`.
 
 ### Arquitectura (5,5)
-- **Cadena:** `page.tsx` → `CajaAbiertaPanel` → `MovimientoCajaModal` → RPC `registrar_movimiento_caja` (security definer, `search_path` fijo) → `caja_movimientos` → RLS SELECT solo. Es la convención del repo `[código]`.
-- **Estado imposible que la base no impide:** un egreso mayor que el efectivo disponible (no hay tope ni suma); un motivo `ilike 'ajuste%'` con `es_ajuste = false`; ambos entran. **No hay CHECK ni lista cerrada de motivos** `[código …sql:73; producción sin verificar, E3/E4 sin correr]`.
-- **Transacción:** una fila por llamada; sin idempotency key, un doble envío antes de que `setLoading(true)` re-renderice podría duplicar el movimiento (improbable, no imposible) `[código MovimientoCajaModal.tsx:51,164]` `[inferido]`.
-- **Concurrencia:** dos personas registrando a la vez en la misma caja son dos filas independientes: sin problema. Cierre y registro simultáneos: `registrar_movimiento_caja` lee `estado` sin `for update` (`…sql:53-64`), así que un movimiento puede colarse justo mientras se cierra `[inferido; ventana de milisegundos, una caja por sede]`.
-- **Caída externa:** los movimientos no se encolan; con el internet caído el modal falla con un error traducido y el dato **se pierde** (hay que reescribirlo) `[código MovimientoCajaModal.tsx:53]`. D-49 dice que «la caja no se congela nunca». Se degrada así: la venta sí sobrevive offline, el retiro de efectivo no. Con una caja por sede y movimientos raros, el riesgo es bajo, pero el chip «Todo sincronizado» solo cuenta ventas y no se refresca tras montar `[código CajaAbiertaPanel.tsx:98-104,451-470]`.
-- **Volumen:** ~3 filas hoy en `caja_movimientos` `[producción, DICCIONARIO-RETAIL.md:1227]`. Con 3 tiendas y unos 3–5 movimientos por día, unos 4 000 en 3 años: cualquier plan de acceso alcanza; no hay problema de rendimiento.
-- **Lentes extra:** **RLS/rol** (el hallazgo central) y **hora de Lima**: `getSeriesVentasCaja` y los movimientos usan `getHours()` del navegador mientras las ventas llegan en hora de Lima `[código caja.ts:295-301; CajaAbiertaPanel.tsx:150-160]`; un navegador con otra zona ordena mal la lista.
-- **Divergencia latente:** `getResumenCaja` no filtra `ventas.estado` (`lib/caja.ts:114`) y `cerrar_caja` sí (`20260921120000…sql:109`); hoy 0 anuladas `[producción, E7]`, pero el primer anulado mostrará una tarjeta más alta que el esperado.
+- **Cadena sin cambios estructurales:** `page.tsx` → `CajaAbiertaPanel` → `MovimientoCajaModal` → RPC `registrar_movimiento_caja` (security definer, `search_path` fijo) → `caja_movimientos` → RLS SELECT solo `[código]`.
+- **Estado imposible que la base sigue sin impedir:** un egreso mayor que el efectivo disponible; un motivo `ilike 'ajuste%'` con `es_ajuste = false`. Sin CHECK, sin lista cerrada de motivos en la base — el CHECK que existe (`caja_movimientos_monto_check`, `caja_movimientos_tipo_check`, `[producción, DICCIONARIO-RETAIL.md:1243-1244]`) solo exige `monto > 0` y `tipo in (ingreso, egreso)`, nada del resto.
+- **Caída externa sin cambios**: los movimientos manuales todavía no se encolan offline — `MovimientoCajaModal.tsx:53` sigue siendo una llamada directa sin cola, a diferencia de las ventas (`lib/ventas-offline.ts`). Con una caja por sede y movimientos raros, el riesgo sigue siendo bajo, pero D-49 («la caja no se congela nunca») sigue sin cumplirse para este camino. Se degrada así: la venta sobrevive sin internet, el retiro de efectivo se pierde y hay que reescribirlo.
+- **Volumen:** ~3 filas en `caja_movimientos` `[producción, volcado 2026-09-21]`. Con 3 tiendas y unos 3–5 movimientos por día, unos 4 000–5 000 filas en 3 años: ningún índice ni caché adicional se justifica.
+- **Lentes extra:** RLS/rol sigue siendo el hallazgo central. La hora de Lima en movimientos ya se corrigió (`diaYHoraLima`, `CajaAbiertaPanel.tsx:153`), así que ese lente queda cerrado desde la #10.
+- **Novedad de arquitectura (no verificada en producción):** `fn_puede_operar_ubicacion` sigue siendo el único candado de sede dentro de `registrar_movimiento_caja` — ADR-0160 no lo toca. Si la migración de terminales se pega, el candado de rol pasa a `fn_puede_gestionar_caja()`, pero el candado de sede sigue igual `[código …200000.sql:310-311]`.
 
-### Funciones (6,0)
-- **Existen y funcionan:** abrir caja, movimiento manual, cerrar con conteo ciego, ver todos los movimientos, detalle de venta, historial de cierres, dona y tabla.
-- **Fantasma / sin uso:** `CajaGraficos.tsx` completo, `senalCaja` y `tendenciaCierres7Dias` no se usan en el panel `[código, mapa]`.
-- **Faltan:** aviso de turno largo; mostrar al líder, antes de contar, los movimientos manuales del turno con su autor; referencia obligatoria en «Otro» y en depósito.
-- **Sobran / ambiguas:** «Ajuste de caja (faltante/sobrante)» tal como está (ver §8).
+### Funciones (6,5)
+- **Existen y funcionan, sin cambios**: abrir caja, movimiento manual, cerrar con conteo ciego, ver todos los movimientos, detalle de venta, historial de cierres con diferencia visible (mejorado), dona y tabla.
+- **Nuevas desde el 21-sep**: franja de aviso de turno largo (`AvisoTurnoLargo`); modal sin prellenado con foco y referencia obligatoria; tabla de historial con Esperado/Contado/Diferencia y filtro de datos de prueba.
+- **Fantasma / sin uso, sin cambio**: `CajaGraficos.tsx` completo (huérfano), `senalCaja` y `tendenciaCierres7Dias` sin importar fuera de `caja-panel-reglas.ts` `[código; `grep -rn` sin resultados fuera de ese archivo]`.
+- **Faltan, sin cambio**: que el líder vea los movimientos manuales del turno con su autor antes de contar (`CerrarCajaModalV2.tsx` no los lista — confirmado leyendo el archivo completo hoy); candado real de rol/monto en la RPC.
+- **Sobran / ambiguas, sin cambio**: «Ajuste de caja (faltante/sobrante)» tal como está (ver §8, la decisión sigue pendiente — `docs/BACKLOG.md:255`).
 
-### Utilidad (5,5)
-Escenario: una colaboradora nueva, 8 p. m., la líder no está y hay que sacar S/200 para pagar un flete.
-1. Abre «+ Ingreso / egreso»: el tipo ya está en «Egreso» y el motivo en «Retiro de efectivo» (prellenados) `[visto]`.
-2. El foco cae en el botón «Ingreso», no en el monto `[código: sin autoFocus]`.
-3. Escribe 200; no hay «S/» y el giro del spinner lo altera con la rueda del mouse `[visto]`.
-4. Ve «Ajuste de caja (faltante)» entre las opciones. Si lo elige, la base la rechaza con «Solo un líder de equipo puede registrar un ajuste» solo después de enviar `[código]`. Si elige «Otro» y escribe «flete», **pasa sin pedirle voucher ni nota** y cuadra el cierre `[código]`.
-Se equivoca en (2)–(4) por diseño, no por falta de capacitación. Dato del escenario que no se puede saber: si el flete se paga de la caja o de las reservas bancarias (R-04 dice que un pago a proveedor **no** sale de la caja de una tienda); el modal ofrece «Compra de insumos» como egreso rápido y eso contradice R-04 `[código MovimientoCajaModal.tsx:17; R-04]`, o sea una colaboradora puede registrar en caja lo que el negocio decidió no pagar de caja.
+### Utilidad (7,0)
+Mismo escenario que el 21-sep, repetido hoy contra el código actual: una colaboradora nueva, 8 p. m., la líder no está y hay que sacar S/200 para un flete.
+1. Abre «+ Ingreso / egreso»: **ya no hay nada elegido** — tipo y motivo en blanco (`MovimientoCajaModal.tsx:18-21`) `[código]`. Mejora directa: ya no puede confirmar por accidente un egreso que no eligió.
+2. El foco cae en el monto, con «S/» visible (`:112,102-104`) `[código]`. Mejora directa sobre el hallazgo anterior («el foco caía en el botón Ingreso»).
+3. Elige «Retiro de efectivo» (o «Otro»): **la base la deja pasar sin ser líder**, exactamente como el 21-sep — nada del flujo mejorado cambia esto, porque la RPC sigue sin preguntar por el rol salvo que el motivo sea «Ajuste» (`esMotivoDeAjuste`, `caja-panel-reglas.ts:280-282`, y solo si además viene marcado `p_es_ajuste=true`, cosa que el modal ya no le ofrece hacer con "Otro"/"Retiro de efectivo" — pero la RPC en sí no lo exige, así que da igual qué motivo escriba).
+4. Con «Otro» o «Depósito bancario», ahora SÍ le exige una referencia antes de dejarla enviar (`referenciaObligatoria`, `pideReferencia`, `:170`) `[código]`. Mejora directa: antes pasaba sin voucher ni nota.
+Se sigue equivocando en (3) — no por el diseño del modal (que ya mejoró), sino porque **el modal no puede arreglar lo que decide el servidor**: cualquiera con la consola del navegador salta el modal entero y llama la RPC directo, con cualquier motivo. El fallo sigue siendo del diseño de la RPC, no de la colaboradora ni del modal.
 
 ### Conexión con el ERP (7,0)
 Ver §6.
@@ -83,158 +85,187 @@ Ver §6.
 ## 5 · Relevancia
 | Criterio | Peso | Puntaje | Por qué (una línea) |
 |---|---|---|---|
-| Gestión (directo + indirecto) | ×2 | 8 | Es el arqueo del día: la diferencia de cierre alimenta el historial y la decisión de confiar en una sede; sin datos limpios de ingresos y egresos ese número no significa nada. |
-| Dinero y stock que toca | ×1 | 9 | Todo el efectivo de la sede pasa por aquí; no toca stock. |
-| Frecuencia y personas que la usan | ×1 | 8 | Se abre todos los días en cada sede (hoy retail aún no opera de verdad: 3 filas en `caja_movimientos`). |
+| Gestión (directo + indirecto) | ×2 | 8 | Sigue siendo el arqueo del día: la diferencia de cierre alimenta el historial (ahora más visible en tabla) y la confianza en cada sede. |
+| Dinero y stock que toca | ×1 | 9 | Todo el efectivo de la sede sigue pasando por aquí; no toca stock. |
+| Frecuencia y personas que la usan | ×1 | 8 | Se abre todos los días en cada sede; volumen de producción sigue bajo (~3 filas en `caja_movimientos`, `[producción, 2026-09-21]`) porque retail aún no opera a régimen completo. |
 | Qué se detiene si falla | ×1 | 7 | Las ventas no se frenan (D-49), pero sin cierre no hay arqueo ni depósito del día. |
 
-Relevancia = (2·8 + 9 + 8 + 7) / 5 = **8,0** → **Núcleo**.
+Relevancia = (2·8 + 9 + 8 + 7) / 5 = **8,0** → **Núcleo**. Sin cambio respecto al 21-sep: nada de lo que se tocó desde entonces altera cuánta gestión, dinero o frecuencia pasa por esta pantalla.
 
 ## 6 · Conexión con el ERP
-- **Aguas arriba:** `ventas` y `venta_pagos` (efectivo vs otros métodos), devoluciones (`aprobar_devolucion`, reembolso en efectivo — ADR-0052), cambios (ADR-0053), apertura de caja (`abrir_caja`).
-- **Aguas abajo:** `cerrar_caja` (esperado = f(apertura, ventas, ingresos, egresos, reembolsos, cambios)), `/caja/historial`, `getDetalleCierre`. El futuro «adelanto de apartado» (BACKLOG:96, Fase 2 de ADR-0141) será un ingreso de caja: se apoyará en la misma RPC y por eso su candado debe quedar bien antes.
-- **Pájaro dueño y vecinos:** COLIBRÍ (Ventas y caja, `07-ventas-y-caja.md`, «lo lleva: libre»); vecinos: Cambios, Devoluciones, Facturación (comparten `fn_ventas_del_dia`). No verifiqué `AVIARIO.md` `[no verificable]`.
-- **Externos, y qué pasa si caen:** SUNAT/Nubefact no participan en la caja. Sin internet: las ventas se encolan y **los movimientos no** (se degrada así: la venta se salva, el retiro no); el cierre con red bloquea si hay efectivo encolado sin subir (ADR-0092).
+- **Aguas arriba:** `ventas` y `venta_pagos` (efectivo vs otros métodos), devoluciones (`aprobar_devolucion`), cambios (ADR-0053), apertura de caja (`abrir_caja`). Sin cambios.
+- **Aguas abajo:** `cerrar_caja`, `/caja/historial` (ahora con tabla de diferencia), `getDetalleCierre`. El futuro «adelanto de apartado» (`docs/BACKLOG.md:208`, Fase 2 de ADR-0141) seguirá siendo un ingreso de caja apoyado en la misma RPC sin candado real — razón de más para que #1 se cierre antes de que ese ingreso exista.
+- **Pájaro dueño y vecinos:** COLIBRÍ (Ventas y caja) — confirmado en `docs/datos/generado/AVIARIO.md:19,35-36` — «Lo lleva: libre», sin dueño asignado todavía `[código]`. Vecinos: Cambios, Devoluciones, Facturación (comparten `fn_ventas_del_dia`, actualizada hoy mismo por otra sesión sin tocar la exclusión de anuladas, `20260922213700…sql`).
+- **Novedad — Terminales (ADR-0160):** conecta `/caja` con `/colaboradores` (alta de la cuenta compartida, pestaña «Terminales») y con el módulo de menú (`lib/menu.ts`). Es código completo pero **sin aplicar en producción**; el día que se pegue, cambia quién puede cerrar caja y ajustar sin tocar ninguno de los archivos que esta pantalla ya usa hoy.
+- **Externos, y qué pasa si caen:** SUNAT/Nubefact no participan en la caja. Sin internet: las ventas se encolan y los movimientos manuales no (sin cambio) — se degrada así: la venta se salva, el retiro de efectivo se pierde.
 
 ## 7 · Las 12 tareas, por importancia
 
 ### #1 · [Corregir] Que la base decida quién puede mover el efectivo y qué es un ajuste
-- **Dónde:** nueva migración sobre `registrar_movimiento_caja` (`supabase/migrations/20260915202040_caja_deposito_y_ajuste.sql:43-83` como cuerpo de partida); columna `caja_movimientos.motivo` y `es_ajuste`.
-- **Por qué en este puesto:** es dinero. Hoy un colaborador mueve el esperado con «Otro» y el candado de ajuste se esquiva con `p_es_ajuste = false`. Sin esto, el cierre ciego no protege de nada que pase antes de cerrar. Es el mismo hueco que ADR-0143 cerró para stock.
-- **Cómo lo verificas tú:** desde la consola del navegador con sesión de colaborador, llamar `registrar_movimiento_caja` con motivo «Otro» y monto 50 → debe responder error de líder; con «Retiro de efectivo» y sin referencia → debe pedir referencia; con `p_es_ajuste=false` y motivo «Ajuste de caja (faltante)» → debe tratarlo como ajuste y exigir líder. Prueba nueva `scripts/pruebas/` (como `candado_lider_caja_y_ajuste.mjs`): falla sin la migración, pasa con ella.
-- **Esfuerzo / dependencias:** M · **la migración toca producción: confirmar con Felipe antes de pegarla** (regla de CLAUDE.md, cambio de esquema en producción; pegar con prefijo `retail.`). Antes, decidir con Felipe la tabla de permisos de abajo (DECIDÍ) y **reconciliar D-13 con ADR-0056 en un ADR**.
-- **DECIDÍ (propuesta, la confirma Felipe):** vocabulario cerrado de motivos en la RPC (no en el navegador). Para colaborador: «Retiro de efectivo», «Depósito bancario» y «Compra de insumos» **con referencia obligatoria**; «Ajuste» y «Otro» solo líder. `es_ajuste` se deduce del motivo en el servidor (se elimina el parámetro o se ignora).
-- **DESCARTÉ:** *solo esconder opciones en el modal* — cualquier sesión llama la RPC desde la consola (ADR-0143 §5); *todo movimiento solo líder* — una colaboradora sola a las 8 p. m. no podría sacar un depósito del día, y el negocio se frena en el mostrador.
-- **SE ROMPE SI:** un colaborador se lleva S/300 de la caja, registra «Otro» egreso S/300 a las 7:50 p. m., la líder cuenta a ciegas al cerrar, cuadra a cero y el hurto queda como una fila con motivo «flete» que nadie mira.
+- **Dónde:** `supabase/migrations/20260915202040_caja_deposito_y_ajuste.sql:43-83` como cuerpo de partida (sigue siendo la definición vigente); columnas `caja_movimientos.motivo` y `es_ajuste`.
+- **Por qué en este puesto:** idéntico al 21-sep, porque nada lo cambió: es dinero, y hoy un colaborador mueve el esperado con «Otro» o «Retiro de efectivo» sin ningún candado de rol. `docs/BACKLOG.md:254` lo confirma sin marcar, con la nota «espera su decisión sobre permisos» — la decisión de Felipe sigue siendo el bloqueante, no el código.
+- **Cómo lo verificas tú:** desde la consola del navegador con sesión de colaboradora, llamar `registrar_movimiento_caja` con motivo «Otro» y monto 500 → hoy responde éxito (debería responder error de líder para egresos grandes o exigir referencia server-side); con motivo «Ajuste de caja (faltante)» y `p_es_ajuste=false` → debería tratarlo igual como ajuste y exigir líder (hoy no lo hace: el servidor confía en el valor que manda el cliente).
+- **Esfuerzo / dependencias:** M · la migración toca producción: confirmar con Felipe antes de pegarla (regla de CLAUDE.md); prefijo `retail.`. Antes, reconciliar D-13 con ADR-0056 **y ahora también con ADR-0160** en un ADR que las cruce las tres.
+- **DECIDÍ (propuesta, la confirma Felipe):** vocabulario cerrado de motivos en la RPC (no en el navegador). Para colaborador: «Retiro de efectivo», «Depósito bancario» **con referencia obligatoria server-side**; «Compra de insumos» se retira de Caja (contradice R-04, ver Objeción §2 punto 3 de la lógica de negocio); «Ajuste» y «Otro» solo líder (o `fn_puede_gestionar_caja()` si ADR-0160 ya está en producción). `es_ajuste` se deduce del motivo en el servidor, no del parámetro del cliente.
+- **DESCARTÉ:** *solo esconder opciones en el modal* — ya está hecho (tarea #2) y no cierra nada, el mismo hueco sigue accesible por consola; *todo movimiento solo líder/terminal* — una colaboradora sola a las 8 p. m. no podría sacar un depósito del día y el negocio se frena en el mostrador.
+- **SE ROMPE SI:** un colaborador se lleva S/300 de la caja, registra «Retiro de efectivo» S/300 a las 7:50 p. m. sin nota, la líder cuenta a ciegas al cerrar, cuadra a cero y el retiro queda como una fila con `es_ajuste=false` que nadie audita — hoy exactamente igual que hace un mes.
 
-### #2 · [Corregir] El modal debe conocer el rol y mostrar solo lo que la base aceptará
-- **Dónde:** `MovimientoCajaModal.tsx:20` (recibir `personaRol`), listas `MOTIVOS_*` (`:17-18`), llamada desde `CajaAbiertaPanel.tsx:193,333-351`.
-- **Por qué en este puesto:** hoy la colaboradora descubre el rechazo después de enviar. Es rápido y quita el error por diseño; sin #1 solo es escenografía (por eso va después).
-- **Cómo lo verificas tú:** entrar como colaboradora → el desplegable no ofrece «Ajuste» ni «Otro»; como líder → ofrece todo.
-- **Esfuerzo / dependencias:** S · no antes de la #1 (para que el modal refleje las reglas reales).
+### #2 · [Replantear] «Ajuste de caja (faltante/sobrante)»: ¿debe existir dentro de la caja abierta?
+- **Dónde:** `MovimientoCajaModal.tsx:26-28`; `MOTIVO_AJUSTE_INGRESO`/`MOTIVO_AJUSTE_EGRESO` (`caja-panel-reglas.ts:273-274`); `cerrar_caja`.
+- **Por qué en este puesto:** sin cambios desde el 21-sep — sigue siendo la función que más puede "arreglar" un cuadre sin dejar rastro del descuadre, y con ADR-0160 (si se aplica) también podría hacerlo una cuenta compartida sin nombre propio. `docs/BACKLOG.md:255` sigue sin marcar y dice «decide Felipe».
+- **Cómo lo verificas tú:** Felipe elige A o B en §8; con B, cerrar una caja con diferencia real y ver la diferencia visible en `/caja/historial` (esto último ya funciona: la tabla ya muestra Esperado/Contado/Diferencia).
+- **Esfuerzo / dependencias:** decisión primero; implementación M. Se decide junto con la #1.
+- **DECIDÍ (propuesta, sin cambio):** que el descuadre viva solo en el cierre (`cajas.diferencia`), con motivo obligatorio y sin ajuste previo.
+- **DESCARTÉ:** *mantener el ajuste tal como está* — sigue tapando la diferencia, y con ADR-0160 aplicado la puede tapar una cuenta compartida; *quitarlo sin reemplazo* — un sobrante/faltante real necesita quedar explicado.
+- **SE ROMPE SI:** un líder (o, tras ADR-0160, la terminal de ventas con la clave compartida) registra «Ajuste (faltante) S/40» a las 6 p. m. «para dejarla cuadrada», cierra a las 8 p. m. con S/0 de diferencia, y en el historial —ya visible en tabla— la fila sale sin diferencia: nadie se entera de que faltaron S/40 esa semana, y con la terminal, tampoco se sabe quién lo hizo.
 
-### #3 · [Corregir] Avisar de una caja abierta de días anteriores y decidir quién la cierra
-- **Dónde:** `caja-panel-reglas.ts:19-31` (`duracionAbierta`, `escalaTurno`), `CajaAbiertaPanel.tsx:393-444` (`RelojDeCaja`); decisión pendiente `docs/BACKLOG.md:67`.
-- **Por qué en este puesto:** la captura muestra una caja de **73 h** sin una sola alerta `[visto]`. Un turno de tres días hace inútiles la dona, el ritmo y la lista, y un cierre por tres días no dice en qué día apareció la diferencia. Con una caja por sede, cada día sin cerrar es un arqueo perdido.
-- **Cómo lo verificas tú:** abrir una caja con `abierta_en` de hace más de 18 h (local o datos de prueba) → aparece una franja «Esta caja lleva N h abierta: ciérrala con un líder» (a quien no es líder, «avisa a un líder»); el reloj cambia de estado.
-- **Esfuerzo / dependencias:** S (aviso) + una decisión de Felipe: ¿umbral y quién cierra si no hay líder?
-
-### #4 · [Corregir] Que tarjetas, dona, lista y ritmo midan lo mismo: el turno
-- **Dónde:** dona con texto «HOY» (`CajaAbiertaPanel.tsx`, componente de dona), `fn_ventas_del_dia` (`20260921103000…sql:86-87`, solo hoy), `getResumenCaja` (`lib/caja.ts:114`, sin filtro de anuladas) frente a `cerrar_caja` (`20260921120000…sql:109`).
-- **Por qué en este puesto:** en la captura la dona dice S/3075 «HOY» y la lista muestra 3 ventas por S/894 `[visto]`: dos cifras de la misma caja que no cuadran a simple vista. Y el día que se anule una venta, las tarjetas y el esperado del cierre dejarán de coincidir (hoy 0 anuladas, `[producción, E7]`).
-- **Cómo lo verificas tú:** con una caja abierta desde ayer, la dona debe decir «Este turno» y la lista debe incluir las ventas de los dos días (o el texto «Solo hoy» junto al título de la lista); anular una venta de prueba → la tarjeta «Ventas efectivo» baja igual que el esperado.
+### #3 · [Corregir] Que `getResumenCaja` y la lista de ventas midan lo mismo que `cerrar_caja`
+- **Dónde:** `getResumenCaja` (`lib/caja.ts:111-147`, específicamente `:114` sin filtro de `ventas.estado`) frente a `cerrar_caja` (`20260921120000…sql:107-109`, sí excluye anuladas); `fn_ventas_del_dia` (última versión `20260922213700…sql`, solo trae **hoy**, no el turno completo).
+- **Por qué en este puesto:** hoy 0 ventas anuladas en producción según el volcado (`[producción, 2026-09-21, mismo dato que citó el análisis anterior — no se corrió una consulta nueva]`), así que la divergencia sigue latente, no activa; pero es la misma raíz que el 21-sep y nadie la tocó, y el primer anulado dentro de una caja abierta hará que la tarjeta "Ventas efectivo" del tablero no coincida con el esperado del cierre.
+- **Cómo lo verificas tú:** anular una venta de prueba dentro de una caja abierta → la tarjeta "Ventas efectivo" del tablero debe bajar igual que el esperado que calculará `cerrar_caja`; con una caja abierta desde ayer, "Ritmo del día" y la lista de "Movimientos recientes" deben incluir las ventas de ambos días o decir explícitamente que solo muestran hoy.
 - **Esfuerzo / dependencias:** M · toca una consulta de lectura, no un esquema de producción.
 
-### #5 · [Replantear] «Ajuste de caja (faltante/sobrante)»: ¿debe existir dentro de la caja abierta?
-- **Dónde:** `MovimientoCajaModal.tsx:10-11,17-18,36`; `caja_movimientos.es_ajuste`; `cerrar_caja`.
-- **Por qué en este puesto:** es la función que más puede «arreglar» un cuadre sin dejar rastro del descuadre. Su único trabajo aquí es pedirle a Felipe que decida (ver §8).
-- **Cómo lo verificas tú:** Felipe elige A o B en §8; después, con B, cerrar una caja con diferencia y ver la diferencia en el historial (barra roja, con el motivo escrito).
-- **Esfuerzo / dependencias:** decisión primero; implementación M. Se decide junto con la #1.
-- **DECIDÍ (propuesta):** que el descuadre viva **solo** en el cierre (`cajas.diferencia`), con motivo obligatorio y sin ajuste previo.
-- **DESCARTÉ:** *mantener el ajuste tal como está* — sigue tapando la diferencia; *quitarlo sin reemplazo* — un sobrante/faltante real necesita quedar explicado, no invisible.
-- **SE ROMPE SI:** un líder registra «Ajuste (faltante) S/40» a las 6 p. m. «para dejarla cuadrada», cierra a las 8 p. m. con S/0 de diferencia, y en el historial la barra sale verde: nadie se entera de que faltaron S/40 esa semana.
-
-### #6 · [Mejorar] Flujo del modal: sin valores prellenados, foco en el monto, referencia cuando importa
-- **Dónde:** `MovimientoCajaModal.tsx:22-24,47-50,93-107,147-158`.
-- **Por qué en este puesto:** la misma raíz apareció en `docs/pantallas/colaboradores.md` #1 (el alta abre con valores ya elegidos): dos pantallas con «alta que no pregunta»; una tercera lo convertiría en tarea raíz. Aquí el tipo «Egreso» y el motivo «Retiro de efectivo» vienen elegidos, y con solo escribir un monto se registra.
-- **Cómo lo verificas tú:** abrir el modal → el foco está en el monto, hay «S/» y placeholder «0.00», el motivo dice «Elige un motivo» y «Registrar» no se activa hasta elegirlo; con «Depósito bancario» u «Otro», Referencia se vuelve obligatoria.
-- **Esfuerzo / dependencias:** S · junto con #2.
-
-### #7 · [Mejorar] Que el líder vea los movimientos manuales del turno antes de contar
-- **Dónde:** `CerrarCajaModalV2.tsx:165-203` (antes del campo de conteo); datos ya cargados en `CajaAbiertaPanel.tsx` (`todosLosEventos`).
-- **Por qué en este puesto:** el conteo es ciego respecto del esperado, pero **no** tiene por qué serlo respecto de quién retiró qué. Ver «Egreso S/200 · flete · [colaborador]» antes de contar es lo que hace útil el `usuario_id` que hoy nadie mira. No rompe el conteo ciego (no muestra el total esperado).
-- **Cómo lo verificas tú:** cerrar caja como líder con dos movimientos manuales → aparecen listados con motivo, referencia y autor, y el esperado sigue oculto.
+### #4 · [Mejorar] Que el líder vea los movimientos manuales del turno con su autor antes de contar
+- **Dónde:** `CerrarCajaModalV2.tsx` completo (releído hoy: no hay ninguna lista de movimientos antes del campo de conteo, `:190-205`); datos ya disponibles en `CajaAbiertaPanel.tsx` (`todosLosEventos`, `:140-165`).
+- **Por qué en este puesto:** sin cambios desde el 21-sep. El conteo es ciego respecto del esperado, pero no tiene por qué serlo respecto de quién retiró qué — hoy el `usuario_id` de cada movimiento no lo ve nadie antes de cerrar.
+- **Cómo lo verificas tú:** cerrar caja como líder con dos movimientos manuales registrados en el turno → deben aparecer listados con motivo, referencia y autor antes del campo de conteo, sin mostrar el total esperado.
 - **Esfuerzo / dependencias:** S · no antes de la #1.
 
-### #8 · [Mejorar] Historial de cierres: mostrar la diferencia, no solo el esperado
-- **Dónde:** `CajaAbiertaPanel.tsx:284-302,169` (altura = `montoCierreSistema`), `Graficos.tsx:53-69`, `app/(app)/caja/historial/page.tsx:28-60`.
-- **Por qué en este puesto:** la altura de la barra es lo que el sistema esperaba, no lo contado, y el color rojo-profundo es la única señal de descuadre. En la captura hay **dos cierres el miércoles 16** (S/60 y S/0) `[visto]`, pero no se ve cuál cuadró ni por cuánto. `/caja/historial` además trae todas las sedes sin paginar, tope silencioso de 60, y usa un `<h1>` propio en vez de `EncabezadoPagina` (`page.tsx:40`).
-- **Cómo lo verificas tú:** pasar el cursor por una barra muestra «esperado / contado / diferencia»; `/caja/historial` filtra por sede y pagina.
+### #5 · [Mejorar] Historial de cierres: filtro por sede y paginación real
+- **Dónde:** `getHistorialCierres` (`lib/caja.ts:222-232`, `limite = 60` fijo, sin filtro de `ubicacion_id`); `app/(app)/caja/historial/page.tsx`.
+- **Por qué en este puesto:** la mitad de la tarea vieja (#8) ya se cerró sola — la tabla ya muestra Esperado/Contado/Diferencia con color (`historial/page.tsx:69-106`) — pero sigue trayendo todas las sedes mezcladas y con un tope silencioso de 60 filas sin paginar, que con 3 tiendas cerrando caja todos los días se agota en unas semanas.
+- **Cómo lo verificas tú:** `/caja/historial` debe poder filtrarse por sede, y pasar de 60 cierres debe mostrar una página siguiente en vez de cortar en silencio.
 - **Esfuerzo / dependencias:** M.
 
-### #9 · [Conectar] Movimientos sin internet y un chip «Todo sincronizado» que no mienta
-- **Dónde:** `MovimientoCajaModal.tsx:53`, `lib/ventas-offline.ts` (cola de ventas), `CajaAbiertaPanel.tsx:98-104,451-470`.
-- **Por qué en este puesto:** D-49 dice que la caja no se congela nunca; hoy un retiro sin internet se pierde y el chip solo cuenta ventas y no se refresca. Con una caja por sede y movimientos raros es riesgo bajo, pero es una promesa del negocio.
-- **Cómo lo verificas tú:** apagar la red, registrar un retiro → queda pendiente y el chip dice «1 movimiento sin sincronizar»; al volver la red, se sube y el chip vuelve a «Todo sincronizado».
-- **Esfuerzo / dependencias:** M · no antes de la #1 (la cola debe respetar el nuevo candado).
+### #6 · [Conectar] Movimientos de caja sin internet y chip de sincronía honesto
+- **Dónde:** `MovimientoCajaModal.tsx:53` (llamada directa, sin cola); `lib/ventas-offline.ts` (cola de ventas, patrón a reusar); `CajaAbiertaPanel.tsx:98-108,474-493` (`EstadoSync` solo cuenta ventas).
+- **Por qué en este puesto:** sin cambios desde el 21-sep. D-49 dice que la caja no se congela nunca; hoy un retiro sin internet se pierde y el chip «Todo sincronizado» no lo sabe.
+- **Cómo lo verificas tú:** apagar la red, registrar un retiro → debe quedar pendiente y el chip debe decir «1 movimiento sin sincronizar»; al volver la red, debe subir solo.
+- **Esfuerzo / dependencias:** M · no antes de la #1 (la cola debe respetar el candado nuevo, sea cual sea).
 
-### #10 · [Corregir] Hora de Lima en lista y series
-- **Dónde:** `CajaAbiertaPanel.tsx:150-160` (`d.getHours()`), `lib/caja.ts:295-301` (`getSeriesVentasCaja`); hay ayudante `diaYHoraLima` en `fechas-lima.ts`.
-- **Por qué en este puesto:** solo se nota si el navegador no está en Lima; hoy los mostradores sí lo están.
-- **Cómo lo verificas tú:** cambiar la zona horaria del navegador → el orden de «Movimientos recientes» no cambia.
-- **Esfuerzo / dependencias:** S · *bajo valor hoy, útil cuando salga la sede de otro país o el móvil de un líder viajando.*
+### #7 · [Replantear] Cruzar ADR-0160 (terminales) con el candado de dinero antes de pegarlo en producción
+- **Dónde:** `supabase/migrations/20260922200000_terminales_por_tienda.sql:310-311` (reemplaza `fn_es_lider()` por `fn_puede_gestionar_caja()` dentro de `cerrar_caja` y `registrar_movimiento_caja`); `docs/adr/0160-cuentas-terminal-por-tienda.md`.
+- **Por qué en este puesto:** es la única pieza nueva desde el análisis anterior que toca directamente el candado de dinero de esta pantalla, y su propio ADR ya se detiene antes de pegarse — pero nadie documentó todavía si "terminal de ventas puede hacer un ajuste sin nombre propio" es un riesgo que Felipe ya sopesó junto con el hueco #1, o si se decidió por separado sin verlo.
+- **Cómo lo verificas tú:** antes de pegar `20260922200000…sql` en producción, confirmar con Felipe si quiere que un «Ajuste de caja» hecho por la terminal de ventas (sin nombre de colaborador detrás) sea aceptable, o si el ajuste debe seguir exigiendo una persona nombrada aunque el resto de Caja sí lo abra a la terminal.
+- **Esfuerzo / dependencias:** decisión, no código · junto con la #1 y la #2 (las tres tocan quién puede mover plata y cómo queda escrito).
+- **DECIDÍ:** no proponer una alternativa de código — esto es una pregunta a Felipe, no un defecto a corregir.
+- **DESCARTÉ:** *dejar que la migración se pegue sin esta conversación* — el propio ADR-0160 ya se detuvo a propósito; ignorarlo sería saltarse un freno que su autor puso a propósito.
+- **SE ROMPE SI:** se pega la migración, una terminal de ventas hace tres «ajustes» distintos en una semana en la misma tienda, y al revisar nadie puede saber si fue la misma persona las tres veces o tres colaboradoras distintas usando la misma clave.
 
-### #11 · [Mejorar] Piel: tipo del modal, desplegable y rojo del tablero — *bajo valor / opcional*
-- **Dónde:** `MovimientoCajaModal.tsx:83-85` (rojo para ambos tipos); `Modal.tsx:121-127`; `ui/Modal` `campoSelect`; `Graficos.tsx:69`.
-- **Por qué al final:** no daña dinero ni datos; hace que «Ingreso» deje de parecer un error y respeta el tope de 2 rojos. Ingreso en verde (el token ya existe en el panel), Egreso en rojo; un selector propio en vez del nativo; ocultar el spinner del monto.
-- **Cómo lo verificas tú:** captura del modal con Ingreso seleccionado → no sale en rojo; contar rojos en el tablero ≤ 2.
-- **Esfuerzo / dependencias:** S · junto con #6.
+### #8 · [Corregir] «Compra de insumos» sale de la lista de egresos de Caja (contradice R-04)
+- **Dónde:** `caja-panel-reglas.ts:276` (`MOTIVOS_EGRESO`).
+- **Por qué en este puesto:** sin cambios desde el 21-sep — R-04 (`docs/datos/15-COMO-OPERA-CAYLA.md:43`) dice que el efectivo para pagar proveedores sale de reservas bancarias, nunca del cajón de una tienda, y el motivo sigue ofreciéndose a cualquier colaborador.
+- **Cómo lo verificas tú:** el desplegable de motivo en egreso ya no debe ofrecer «Compra de insumos» (o, si Felipe decide que sí aplica en algún caso real, debe quedar documentado en un ADR que reconcilie con R-04).
+- **Esfuerzo / dependencias:** S · junto con la #1.
 
-### #12 · [Eliminar] Código sin uso y agujeros de prueba — *bajo valor / opcional*
-- **Dónde:** `components/CajaGraficos.tsx` (huérfano, 3 componentes), `senalCaja` y `tendenciaCierres7Dias` (`caja-panel-reglas.ts:177,193`); prueba nueva para `getResumenCaja` y `MovimientoCajaModal`.
-- **Por qué al final:** antes de agregar algo, se borra; pero no cambia lo que ve la colaboradora. La cobertura de #1 ya va con esa migración.
-- **Cómo lo verificas tú:** `pnpm lint` y `pnpm typecheck` verdes tras borrar; ninguna pantalla cambia.
-- **Esfuerzo / dependencias:** S · después de #8 (que puede reusar `tendenciaCierres7Dias`).
+### #9 · [Mejorar] Piel restante del modal: desplegable propio, tope de 2 rojos en el tablero
+- **Dónde:** `MovimientoCajaModal.tsx:125-140` (`<select>` nativo); `Modal.tsx:122-123` (`focus:border-rojo` en cualquier campo); recuento de rojo en `CajaAbiertaPanel.tsx:238,265,307,162` y `Graficos.tsx:69`.
+- **Por qué al final:** no daña dinero ni datos; ya se cerró la parte más visible (verde/rojo del tipo, sin spinner). Queda el desplegable nativo y el tope de rojo del tablero completo.
+- **Cómo lo verificas tú:** el campo Motivo usa un componente propio de la paleta CAYLA, no el `<select>` del sistema operativo; contar los usos de `--color-rojo` visibles a la vez en `/caja` con caja abierta ≤ 2.
+- **Esfuerzo / dependencias:** S · bajo valor / opcional.
+
+### #10 · [Eliminar] Código sin uso
+- **Dónde:** `components/CajaGraficos.tsx` (huérfano, confirmado hoy: sin referencias fuera de sí mismo), `senalCaja` y `tendenciaCierres7Dias` (`caja-panel-reglas.ts:257-263,193-222`, sin uso fuera del propio archivo).
+- **Por qué al final:** antes de agregar algo se borra, pero no cambia lo que ve la colaboradora. Sin cambios desde el 21-sep — nadie lo tocó.
+- **Cómo lo verificas tú:** `pnpm lint` y `pnpm typecheck` en verde tras borrar; ninguna pantalla cambia.
+- **Esfuerzo / dependencias:** S · bajo valor / opcional.
+
+### #11 · [Corregir] Verificar en producción si `cajas_update` permite reescribir un cierre ya hecho — *sigue sin correrse*
+- **Dónde:** `docs/datos/01-INVARIANTES.md:171` (documenta, sin fecha de verificación nueva desde el 21-sep, que `cajas_update` en producción permite editar cualquier caja de tu sede, cerrada o no, incluidos `monto_cierre_real` y `diferencia`); ninguna migración desde entonces toca esa política (`grep -rn cajas_update supabase/migrations` → vacío) `[código]`.
+- **Por qué en este puesto:** si sigue abierto, todo el trabajo de cierre ciego, candado de líder y (cuando se aplique) candado de terminal se puede desarmar con un `update` después de contar — es más grave que cualquier otro hallazgo de esta pantalla y, otra vez, nadie corrió la consulta.
+- **Cómo lo verificas tú:** correr D1/D4 de «SQL pendiente» abajo contra producción.
+- **Esfuerzo / dependencias:** S, pero es una consulta, no una migración — puede correr hoy mismo.
+
+### #12 · [Mejorar] Reconciliar D-13, ADR-0056 y ADR-0160 en un solo ADR — *bajo valor táctico, alto valor de claridad; no bloquea nada por sí sola*
+- **Dónde:** `docs/datos/DECISIONES-2026-09-12.md:72` (D-13), `docs/adr/0056-…md`, `docs/adr/0160-…md`.
+- **Por qué al final:** ninguna de las tres decisiones por sí sola bloquea trabajo; lo que hace falta es que quede escrito en un solo lugar «quién puede mover plata sin venta, con o sin terminal» en vez de en tres documentos que se contradicen en parte.
+- **Cómo lo verificas tú:** existe un ADR nuevo que cita las tres y dice explícitamente qué reemplaza o aclara de cada una.
+- **Esfuerzo / dependencias:** S (solo documentar una decisión ya tomada en pedazos) · se apoya en lo que salga de la #1, #2 y #7.
 
 ## 8 · Estrategia alternativa
 
-**Ajuste de caja: dos formas de resolver el mismo problema (el descuadre).**
+**Ajuste de caja: dos formas de resolver el mismo problema (el descuadre), sin cambios desde el 21-sep — decisión todavía pendiente.**
 
 | | **A — Ajuste dentro de la caja abierta (hoy)** | **B — El descuadre vive solo en el cierre** |
 |---|---|---|
-| **Ganas** | El líder puede regularizar un faltante conocido a media jornada; ya construido y con candado de líder (ADR-0056). | Un solo lugar para el descuadre (principio 4); el historial siempre dice cuánto faltó o sobró; no hay forma de «dejar la caja cuadrada» antes de contar. |
-| **Pagas** | Puede tapar diferencias; con cierre ciego solo sirve si el líder ya sabe la diferencia por otra vía; el historial verde puede mentir. | Hay que exigir motivo en el cierre y un espacio para explicar una diferencia (hoy `cajas` no tiene columna de explicación `[producción sin verificar]`); un líder pierde la opción de «arreglar» a media jornada. |
+| **Ganas** | El líder (o, tras ADR-0160, la terminal) puede regularizar un faltante conocido a media jornada. | Un solo lugar para el descuadre (principio 4); el historial —ya en tabla— siempre dice cuánto faltó o sobró; nadie puede «dejar la caja cuadrada» antes de contar. |
+| **Pagas** | Puede tapar diferencias; con cierre ciego solo sirve si ya se sabe la diferencia por otra vía; y desde ADR-0160 puede quedar sin nombre propio si lo hace la terminal. | Hay que exigir motivo en el cierre y un espacio para explicarlo (`cajas` hoy no tiene esa columna, `[producción, DICCIONARIO-RETAIL.md:1225-1244, sin columna de explicación]`); un líder pierde la opción de «arreglar» a media jornada. |
 
-No la doy por decidida: ADR-0056 la decidió Felipe el 2026-09-15 (líder-only). **Decide Felipe.**
+No la doy por decidida: ADR-0056 la decidió Felipe el 2026-09-15 (líder-only). **Decide Felipe** — y ahora con un dato nuevo: ADR-0160 ya la amplió de hecho a «líder o terminal» en el código, sin que conste que esta pregunta se le haya vuelto a hacer con esa ampliación sobre la mesa.
 
 ## 9 · Referentes de ERP y futuro
-`[no verificable]`: lo que sigue viene de memoria, no lo verifiqué.
-- **Tope de retiro por turno y «drop-safe» (buzón):** el efectivo de más se saca de la caja y se registra en una bolsa numerada. No le sirve a 3 tiendas con una caja cada una hoy → Futuro.
-- **Conteo por denominaciones (billetes y monedas):** ayuda a detectar errores de conteo. Filtro de escala: útil cuando el cierre falle seguido; hoy no hay evidencia (E6 sin correr).
-- **Doble firma en cierres con diferencia mayor a un umbral:** relacionado con la #5.
-- **Cierre de dos personas:** requiere más de un líder por sede; hoy 9 líderes con alcance global, ninguno fijo.
+`[no verificable]`: lo que sigue, de memoria, sin verificar — sin cambios respecto al 21-sep.
+- **Tope de retiro por turno y «drop-safe» (buzón):** no le sirve a 3 tiendas con una caja cada una hoy → Futuro.
+- **Conteo por denominaciones:** útil cuando el cierre falle seguido; sin evidencia todavía.
+- **Doble firma en cierres con diferencia mayor a un umbral:** relacionado con la #2.
+- **Cierre de dos personas:** requiere más de un líder por sede; sigue habiendo 9 líderes con alcance global y ninguno fijo (`docs/BACKLOG.md:165`, sin cambio).
 
 ## 10 · Fuera de esta pantalla
-**Verificar si la política `cajas_update` de producción todavía permite reescribir un cierre ya hecho.** `docs/datos/01-INVARIANTES.md:171` dice que permite editar cualquier caja de tu sede, cerrada o no, incluidos el monto contado y la diferencia. Es el tercero de los tres números que Felipe mira primero (D-52). Ninguna de mis consultas D1 y D4 se ejecutó, así que `[no verificable]`; el mapa del código vio solo `select` en local, pero eso es local. Si sigue abierto, todo el trabajo de cierre ciego, candado de líder y ajuste se puede desarmar con un `update` de la API después de contar. Es más grave que cualquier hallazgo de esta pantalla y no se ve desde ella. Segunda pista, más chica: **ADR-0143 §2 afirma algo que el código contradice** (que `registrar_movimiento_caja` ya pide líder) y quedó escrito como verdad.
+**Lo mismo que el 21-sep, y sigue sin verificarse un mes después: si `cajas_update` en producción permite reescribir un cierre ya hecho.** `docs/datos/01-INVARIANTES.md:171` sigue documentando que sí, sin fecha de re-verificación posterior a esa. Ninguna migración desde entonces tocó esa política (`[código, grep vacío]`). Si sigue abierto, todo el trabajo de cierre ciego y candado de líder —e incluso lo que se decida sobre el hueco #1— se puede desarmar con un `update` de la API después de contar. Sigue siendo más grave que cualquier hallazgo de esta pantalla y sigue sin verse desde ella. Un mes de trabajo en Caja (turno largo, modal, historial, terminales) y esta pregunta concreta —una sola consulta de solo lectura— nunca se corrió.
 
 ## 11 · Líneas propuestas para BACKLOG.md
-- [ ] `[pantalla:caja]` #1 Candado real en `registrar_movimiento_caja` (vocabulario cerrado, `es_ajuste` del servidor, referencia obligatoria; reconciliar D-13 con ADR-0056 en un ADR) — M · migración en producción: confirmar con Felipe
-- [ ] `[pantalla:caja]` #2 El modal de movimientos conoce el rol y esconde lo que la base rechazará — S
-- [ ] `[pantalla:caja]` #3 Aviso de caja abierta de días anteriores + decisión de quién la cierra sin líder — S
-- [ ] `[pantalla:caja]` #4 Tarjetas, dona, lista y ritmo miden el turno; `getResumenCaja` excluye anuladas — M
-- [ ] `[pantalla:caja]` #5 Replantear «Ajuste de caja» (decide Felipe, §8) — decisión + M
-- [ ] `[pantalla:caja]` #6 Modal sin valores prellenados, foco en monto, «S/», referencia obligatoria en depósito y «Otro» — S
-- [ ] `[pantalla:caja]` #7 El cierre muestra al líder los movimientos manuales del turno con su autor — S
-- [ ] `[pantalla:caja]` #8 Historial de cierres con la diferencia visible y `/caja/historial` con filtro y paginación — M
-- [ ] `[pantalla:caja]` #9 Movimientos de caja sin internet y chip de sincronía honesto — M
-- [ ] `[pantalla:caja]` #10 Hora de Lima en lista de movimientos y series por hora — S
-- [ ] `[pantalla:caja]` #11 Piel del modal: tipo verde/rojo, desplegable propio, sin spinner; tope de 2 rojos — S (bajo valor)
-- [ ] `[pantalla:caja]` #12 Borrar `CajaGraficos.tsx` y funciones sin uso; pruebas de `getResumenCaja` y del modal — S (bajo valor)
-- [ ] `[pantalla:caja]` Fuera de la pantalla: correr D1/D4 y confirmar en producción que `cajas_update` no permite reescribir un cierre — S
+- [ ] `[pantalla:caja]` #1 (re-confirmado) Candado real en `registrar_movimiento_caja` — sigue sin tocar desde el 15-sep; reconciliar D-13/ADR-0056/ADR-0160 — M · migración en producción: confirmar con Felipe
+- [ ] `[pantalla:caja]` #2 (re-confirmado) Replantear «Ajuste de caja» (decide Felipe, §8, ahora con el dato de ADR-0160) — decisión + M
+- [ ] `[pantalla:caja]` #3 `getResumenCaja`/`fn_ventas_del_dia` miden el turno igual que `cerrar_caja` (excluir anuladas en el resumen; decidir si el turno multi-día se ve completo) — M
+- [ ] `[pantalla:caja]` #4 El cierre muestra al líder los movimientos manuales del turno con su autor antes de contar — S
+- [ ] `[pantalla:caja]` #5 `/caja/historial`: filtro por sede y paginación real (la diferencia ya se ve) — M
+- [ ] `[pantalla:caja]` #6 Movimientos de caja sin internet y chip de sincronía honesto — M
+- [ ] `[pantalla:caja]` #7 Antes de pegar `20260922200000_terminales_por_tienda.sql`: confirmar con Felipe si un ajuste de caja hecho por la terminal de ventas (sin nombre propio) es aceptable — decisión, no código
+- [ ] `[pantalla:caja]` #8 Quitar «Compra de insumos» de los egresos de Caja (contradice R-04) o documentar la excepción — S
+- [ ] `[pantalla:caja]` #9 Piel: desplegable propio del modal, tope de 2 rojos en el tablero — S (bajo valor)
+- [ ] `[pantalla:caja]` #10 Borrar `CajaGraficos.tsx`, `senalCaja`, `tendenciaCierres7Dias` — S (bajo valor)
+- [ ] `[pantalla:caja]` #11 Fuera de la pantalla: correr D1/D4 y confirmar si `cajas_update` permite reescribir un cierre ya hecho — S, un mes pendiente
+- [ ] `[pantalla:caja]` #12 Reconciliar D-13, ADR-0056 y ADR-0160 en un ADR único — S
 
 ## Inventario de elementos
 | Zona | Elemento | Qué hace | Veredicto | Evidencia |
 |---|---|---|---|---|
-| Cabecera | Título, «Turno de [colaborador] · Líder de equipo» | Dice quién tiene el turno y con qué rol | bien | `[visto]` |
-| Cabecera | Reloj «02:23» + «Lleva 73 h 09 min» | Hora y duración del turno | ajustar (sin alerta a 73 h) | `[visto]` `[código caja-panel-reglas.ts:19-31]` |
-| Cabecera | Chip «Todo sincronizado» | Cola de ventas offline | ajustar (no cuenta movimientos, no se refresca) | `[código CajaAbiertaPanel.tsx:98-104,451-470]` |
-| Cabecera | «+ Ingreso / egreso» | Abre el modal | ajustar (visible para cualquier rol) | `[código :193]` |
-| Cabecera | «Cerrar caja» | Cierra con conteo ciego | bien | `[código :199; …120000.sql:87]` |
-| Tarjetas | Apertura, Ingresos, Egresos | Suman `cajas`/`caja_movimientos` | bien | `[código caja.ts:83,133-134]` |
-| Tarjetas | Ventas efectivo / otro método (con sparkline) | Suman `venta_pagos` del turno | ajustar (no excluyen anuladas) | `[código caja.ts:114]` |
-| Dona | «S/3075 HOY» | Distribución por método | ajustar (es el turno, no hoy) | `[visto]` |
-| Dona | «Ver como tabla» | Cambia a tabla accesible | bien | `[código :666-703]` |
-| Ritmo del día | 3 ventas · S/298 · 3 h 41 min | Resume ventas de hoy | ajustar (solo hoy, no el turno) | `[visto]` `[código migración …103000:86-87]` |
-| Movimientos recientes | Lista de 8 + «Ver todo» | Mezcla ventas y movimientos manuales | ajustar (hora local del navegador) | `[código :136-160]` |
-| Historial de cierres | Barras por cierre, «Ver historial completo» | Muestra esperado del sistema | ajustar (falta la diferencia; 2 cierres el mismo día) | `[visto]` `[código :169,294]` |
-| Modal | Tipo (Ingreso / Egreso) | Elige tipo | ajustar (ambos en rojo, prellenado en Egreso) | `[visto capturas 2 y 4]` |
-| Modal | Monto | Numérico | ajustar (sin S/, spinner, sin foco) | `[visto captura 2]` |
-| Modal | Motivo (desplegable) | Lista cerrada + «Otro» | ajustar (nativo; ajuste/otro para colaborador; «Compra de insumos» vs R-04) | `[visto capturas 3 y 5]` |
-| Modal | Referencia (opcional) | Nota | ajustar (obligatoria en depósito y «Otro») | `[código :147-158]` |
-| Código | `CajaGraficos.tsx`, `senalCaja` | — | sobra | `[código, mapa]` |
+| Cabecera | Reloj + «Lleva N h» | Hora y duración del turno | bien (ya avisa a las 18 h) | `[código caja-panel-reglas.ts:266-271; CajaAbiertaPanel.tsx:398-409]` |
+| Cabecera | Chip «Todo sincronizado» | Cola de ventas offline | ajustar (no cuenta movimientos manuales) | `[código CajaAbiertaPanel.tsx:98-108,474-493]` |
+| Cabecera | «+ Ingreso / egreso» | Abre el modal | ajustar (visible para cualquier rol; la base no filtra motivos no-ajuste) | `[código :198-200]` |
+| Cabecera | «Cerrar caja» | Cierra con conteo ciego | bien | `[código :204-211; 20260921120000…sql:87]` |
+| Tarjetas | Apertura, Ingresos, Egresos | Suman `cajas`/`caja_movimientos` | bien | `[código caja.ts:133-134]` |
+| Tarjetas | Ventas efectivo / otro método | Suman `venta_pagos` del turno | ajustar (no excluyen anuladas) | `[código caja.ts:114]` |
+| Dona | Métodos de pago | Distribución de ventas de esta caja | bien (ya no dice «HOY» engañosamente) | `[código CajaAbiertaPanel.tsx:276-284]` |
+| Ritmo del día | Ventas, ticket, última venta | Resume ventas de hoy | ajustar (fuente sigue siendo solo-hoy en una caja multi-día) | `[código fn_ventas_del_dia, filtro de fecha]` |
+| Movimientos recientes | Lista + «Ver todo» | Mezcla ventas y movimientos manuales, hora de Lima | bien | `[código :140-165]` |
+| Historial de cierres (tablero) | Barras por cierre | Altura = esperado, color = cuadre | ajustar (sin cifra de diferencia al no pasar el cursor) | `[código Graficos.tsx:53-69]` |
+| Historial de cierres (`/caja/historial`) | Tabla completa | Apertura/Esperado/Contado/Diferencia + filtro de prueba | bien (mejoró) | `[código historial/page.tsx:69-106]` |
+| Modal | Tipo (Ingreso/Egreso) | Elige tipo | bien (ya no comparten color) | `[código :77-94]` |
+| Modal | Monto | Numérico con S/ | bien | `[código :97-119]` |
+| Modal | Motivo (desplegable) | Lista filtrada por rol + «Otro» | ajustar (nativo; «Compra de insumos» contradice R-04; la base no verifica el rol para no-ajuste) | `[código :121-161; caja-panel-reglas.ts:276-289]` |
+| Modal | Referencia | Nota, obligatoria en Depósito/Otro | bien | `[código :163-175]` |
+| Cierre | Conteo ciego + resultado | Muestra esperado/contado/diferencia recién al cerrar | bien | `[código CerrarCajaModalV2.tsx:108-162]` |
+| Cierre | Movimientos manuales del turno | — | falta | `[código: CerrarCajaModalV2.tsx completo, sin esa lista]` |
+| Código | `CajaGraficos.tsx`, `senalCaja`, `tendenciaCierres7Dias` | — | sobra | `[código, sin referencias]` |
+
+## SQL pendiente
+Nadie corrió estas dos consultas desde el análisis anterior (2026-09-21); siguen siendo las de mayor consecuencia de esta pantalla. Formato de `plantilla-sql.md`.
+
+```sql
+-- D1. Política de UPDATE de `cajas` en producción (¿permite reescribir un cierre ya hecho?)
+select tablename, policyname, cmd, roles, qual, with_check
+from pg_policies
+where schemaname = 'retail' and tablename = 'cajas' and cmd = 'UPDATE';
+
+-- D4 (equivalente). ¿`cajas` tiene un trigger que impida modificar una fila con estado = 'cerrada'?
+select tgname, tgrelid::regclass::text as tabla, pg_get_triggerdef(oid) as definicion
+from pg_trigger
+where tgrelid = 'retail.cajas'::regclass and not tgisinternal;
+
+-- E4. Motivos reales usados en caja_movimientos hasta hoy, por tipo y es_ajuste — para saber si "Otro"/
+-- "Retiro de efectivo" ya se usó para montos grandes sin ser líder
+select tipo, es_ajuste, motivo, count(*) as veces, max(monto) as monto_max
+from retail.caja_movimientos
+group by 1, 2, 3
+order by monto_max desc;
+```
+
+Pega aquí el resultado de D1, D4 y E4 (o dime "sin SQL" y este análisis queda con el mismo hallazgo #11 abierto un mes más).
 
 ## Historial
 | Fecha | Modo | Cumplimiento | Relevancia | Tareas cerradas de las 12 anteriores |
 |---|---|---|---|---|
 | 2026-09-21 | completo (SQL parcial: solo E7) | 5,0 | 8,0 | — (primer análisis) |
-| 2026-09-21 | cierre parcial | — | — | #2, #3, #6, #10 (rama `claude/caja-mejoras-sin-decision`); #11 solo la parte de «Ingreso» en verde y sin spinner |
+| 2026-09-21 | cierre parcial (rama `claude/caja-mejoras-sin-decision`) | — | — | #2, #3, #6, #10 (nota de la sesión: «#11 solo la parte de "Ingreso" en verde y sin spinner») |
+| 2026-09-22 | completo (sin SQL nuevo; reusa `[producción]` del 21-sep y `docs/BACKLOG.md`) | 5,0 (mismo tope: el candado de dinero sigue roto) | 8,0 | Confirmado: #2, #3, #6, #10 siguen cerradas y sin regresión. Nuevas desde entonces: mitad de la vieja #8 (diferencia visible en `/caja/historial`) — la otra mitad (filtro de sede + paginación) sigue abierta como #5 de esta versión. #1, #4, #5(vieja, ajuste), #7(vieja), #9(vieja), #11(vieja, resto), #12(vieja) siguen abiertas, renumeradas arriba. Nuevo hallazgo (no existía el 21-sep): ADR-0160 (terminales) toca directamente el candado de dinero de esta pantalla y aún no está en producción — tarea #7 de esta versión. |
