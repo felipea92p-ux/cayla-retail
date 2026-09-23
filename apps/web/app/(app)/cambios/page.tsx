@@ -2,7 +2,7 @@ import { Banknote, CalendarDays, RefreshCw } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getVentasRecientes } from "@/lib/ventas-v2";
 import { getCatalogo } from "@/lib/catalogo-v2";
-import { getStockPorUbicacion, leerStockDeLasSedes } from "@/lib/inventario-v2";
+import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getCajaAbierta } from "@/lib/caja";
 import { agruparStockPorSede } from "@/lib/stock-por-sede";
@@ -30,7 +30,7 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
   const [lineas, catalogo, stock, resStockSedes, ubicaciones, estadisticas, tallasQueNoCalzan, caja] = await Promise.all([
     getVentasRecientes(persona.ubicacionId, { busqueda: q, todasLasSedes, ventaItemId: item }),
     getCatalogo(),
-    getStockPorUbicacion(persona.ubicacionId),
+    getDisponibleEnSede(persona.ubicacionId),
     leerStockDeLasSedes(),
     getUbicaciones(),
     getEstadisticasCambios(persona.ubicacionId),
@@ -39,7 +39,7 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
   ]);
   // Lo que se entrega a cambio sale del piso y solo puede ser lo DISPONIBLE: lo apartado para otra
   // clienta no se ofrece (ADR-0141).
-  const stockAquiPorVariante = new Map(stock.map((f) => [f.varianteId, f.pisoDisponible ?? f.disponible]));
+  const stockAquiPorVariante = new Map([...stock].map(([id, c]) => [id, c.pisoDisponible ?? c.disponible]));
   const stockPorSede = agruparStockPorSede(exigir(resStockSedes, "el stock de las sedes"), ubicaciones, persona.ubicacionId);
 
   return (

@@ -6,7 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { formatoSolesCompacto } from "@/lib/resumen-formato";
 import { agruparPorCategoria, variantesDeCategoria, type CategoriaResumen } from "@/lib/existencias-categorias";
-import type { FilaResumen } from "@/lib/resumen-reglas";
+import type { FilaSemana } from "@/lib/existencias-categorias";
 
 /* ====================================================================
    DisponibleTotalOverlay · click en «Disponible total» (2026-09-22)
@@ -54,7 +54,7 @@ function FilaCategoria({ c, onClick }: { c: CategoriaResumen; onClick: () => voi
   );
 }
 
-export function DisponibleTotalOverlay({ filas, esLider, onClose }: { filas: FilaResumen[]; esLider: boolean; onClose: () => void }) {
+export function DisponibleTotalOverlay({ filas, esLider, onClose }: { filas: FilaSemana[]; esLider: boolean; onClose: () => void }) {
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
   const categorias = useState(() => agruparPorCategoria(filas))[0];
   const categoria = categorias.find((c) => c.id === categoriaId) ?? null;
