@@ -3,13 +3,13 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { firmaDeConteos, hayNovedad } from "@/lib/caja-en-vivo";
+import { selloDeCaja, hayNovedad } from "@/lib/caja-en-vivo";
 
 /**
- * Mantiene el tablero de Caja al día sin que nadie recargue. Cada `cadaMs` pregunta cuántas ventas y
- * cuántos movimientos tiene la caja —dos consultas de conteo, sin traer filas, con el mismo RLS que ya
- * usa el servidor— y, solo si el número cambió, le pide a Next que vuelva a leer la pantalla
- * (`router.refresh()`). Lo demás (los conteos, las gráficas, el aviso de "nueva venta") lo hacen los
+ * Mantiene el tablero de Caja al día sin que nadie recargue. Cada `cadaMs` le pide a la base el sello de la
+ * caja (`fn_sello_caja`, ADR-0191: cuántas ventas, anuladas, movimientos, devoluciones y cambios tiene) —una
+ * sola consulta, sin traer filas, con la misma regla de lectura que la RLS— y, solo si el sello cambió, le pide
+ * a Next que vuelva a leer la pantalla (`router.refresh()`). Lo demás (los conteos, las gráficas, el aviso de "nueva venta") lo hacen los
  * componentes al recibir los datos nuevos.
  *
  * Por qué sondeo y no Supabase Realtime: Realtime hoy no está activo sobre ninguna tabla (ADR-0018) y
@@ -40,12 +40,9 @@ export function useCajaEnVivo(cajaId: string, cadaMs = 5000) {
       }
       enCurso = true;
       try {
-        const [ventas, movimientos] = await Promise.all([
-          supabase.from("ventas").select("id", { count: "exact", head: true }).eq("caja_id", cajaId),
-          supabase.from("caja_movimientos").select("id", { count: "exact", head: true }).eq("caja_id", cajaId),
-        ]);
+        const res = await supabase.rpc("fn_sello_caja", { p_caja_id: cajaId });
         if (!vivo) return;
-        const actual = firmaDeConteos(ventas, movimientos);
+        const actual = selloDeCaja(res);
         if (actual === null) {
           fallos++;
           saltar = Math.min(2 ** fallos, 12) - 1;

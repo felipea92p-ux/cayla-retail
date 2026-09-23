@@ -311,6 +311,11 @@ export function serieDiaria(
     dia.total = redondear2(dia.total + v.total);
     porFecha.set(v.fecha, dia);
   }
+  return rellenarSerie(porFecha, rango);
+}
+
+/** Los días que vendieron, completados con ceros de `desde` (o el primero que vendió) a `hasta` (o hoy). */
+function rellenarSerie(porFecha: ReadonlyMap<string, DiaResumen>, rango: { desde?: string; hasta?: string; hoy: string }): DiaResumen[] {
   const conVentas = [...porFecha.keys()].sort();
   const inicio = rango.desde ?? conVentas[0];
   if (!inicio) return [];
@@ -333,6 +338,37 @@ export function mezclaDePagos(ventas: { anulada: boolean; pagos: { metodo: strin
     for (const p of v.pagos) porMetodo.set(p.metodo, redondear2((porMetodo.get(p.metodo) ?? 0) + Number(p.monto)));
   }
   return [...porMetodo].filter(([, monto]) => monto > 0).map(([metodo, monto]) => ({ metodo, monto })).sort((a, b) => b.monto - a.monto);
+}
+
+/** Lo que devuelve `fn_totales_historial_ventas` (ADR-0191): las mismas sumas de `resumir`, `serieDiaria` y
+ *  `mezclaDePagos`, hechas en la base sobre TODO el rango (sin el tope de 1.000 filas). Los montos llegan como
+ *  número o texto según cómo los serialice PostgREST. */
+export type TotalesDeLaBase = {
+  ventas: number;
+  anuladas: number;
+  unidades: number;
+  total: Numero;
+  por_dia: { fecha: string; ventas: number; total: Numero }[];
+  por_metodo: { metodo: string; monto: Numero }[];
+};
+
+/** Traduce los totales de la base a lo que dibuja la pantalla, con las MISMAS reglas que el cálculo fila por fila:
+ *  ticket = total ÷ ventas a céntimos, días sin venta rellenados con cero y formas de pago con monto, de mayor a menor. */
+export function totalesDesdeLaBase(
+  t: TotalesDeLaBase,
+  rango: { desde?: string; hasta?: string; hoy: string }
+): { resumen: ResumenHistorial; porDia: DiaResumen[]; porMetodo: MetodoResumen[] } {
+  const total = redondear2(Number(t.total));
+  const ventas = Number(t.ventas);
+  const porFecha = new Map(t.por_dia.map((d) => [d.fecha, { fecha: d.fecha, ventas: Number(d.ventas), total: redondear2(Number(d.total)) }]));
+  return {
+    resumen: { ventas, anuladas: Number(t.anuladas), unidades: Number(t.unidades), total, ticket: ventas ? redondear2(total / ventas) : 0 },
+    porDia: rellenarSerie(porFecha, rango),
+    porMetodo: t.por_metodo
+      .map((m) => ({ metodo: m.metodo, monto: redondear2(Number(m.monto)) }))
+      .filter((m) => m.monto > 0)
+      .sort((a, b) => b.monto - a.monto),
+  };
 }
 
 export type DiaDeVentas = { fecha: string; filas: FilaHistorial[] };

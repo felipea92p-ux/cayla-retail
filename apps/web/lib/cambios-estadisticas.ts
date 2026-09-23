@@ -12,7 +12,7 @@ export type EstadisticasCambios = {
   valorMes: number;
 };
 
-/** Los tres indicadores de la cabecera de Cambios — igual que `getResumenCaja`, se leen
+/** Los tres indicadores de la cabecera de Cambios: se leen
  *  de la tabla real, no hay RPC dedicada para 3 números. Acotado a ESTA sede (no al
  *  alcance "todas las tiendas" del buscador: las cifras describen la sede en la que
  *  está parada la colaboradora). */
