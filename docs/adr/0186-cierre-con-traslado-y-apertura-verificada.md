@@ -51,3 +51,11 @@ no pide motivo, y la tarjeta «Último cierre» dice que ese cierre no anotó cu
 
 `pnpm pruebas:caja-cierre-traslado` (18 casos, cada uno con ROLLBACK). `candado_lider_caja_y_ajuste` se ajustó: su caso
 «pegar dos veces» vuelve primero a la firma que esa migración conocía.
+
+## Actualización 2026-09-23 — el N.º de operación del depósito es opcional
+
+Felipe: al elegir «Depósito bancario» el número de operación **ya no es obligatorio** (el depósito suele hacerse después
+del cierre y el voucher todavía no existe; exigirlo empujaba a inventar un número). El campo sigue a la vista como
+«(opcional)» y se guarda si se escribe. «Entregado al líder» sigue exigiendo a quién. Se aflojan los dos candados en
+`20260923213000_caja_deposito_sin_numero_obligatorio.sql` (check `caja_traslados_referencia` + `cerrar_caja`) y la regla
+de pantalla (`referenciaOpcional` en `DESTINOS_TRASLADO`).

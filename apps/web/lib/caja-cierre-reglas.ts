@@ -9,9 +9,11 @@ export const DESTINOS_TRASLADO: {
   etiqueta: string;
   /** Qué se pide para poder rastrear el efectivo después; `null` si no hace falta. */
   referencia: string | null;
+  /** La referencia se ofrece pero no bloquea el cierre (banco: el voucher a veces llega después). */
+  referenciaOpcional?: boolean;
 }[] = [
   { valor: "caja_fuerte", etiqueta: "Caja fuerte de la sede", referencia: null },
-  { valor: "banco", etiqueta: "Depósito bancario", referencia: "N.º de operación del voucher" },
+  { valor: "banco", etiqueta: "Depósito bancario", referencia: "N.º de operación del voucher", referenciaOpcional: true },
   { valor: "lider", etiqueta: "Entregado al líder de equipo", referencia: "¿A quién se lo entregaste?" },
 ];
 
@@ -48,7 +50,8 @@ export function motivoTrasladoInvalido(p: {
   if (p.trasladado > p.contado + 0.001) return `No puedes trasladar más de lo que contaste (S/ ${p.contado.toFixed(2)}).`;
   if (p.trasladado === 0) return null;
   if (!p.destino) return "Elige a dónde va el efectivo que trasladas.";
-  const pide = DESTINOS_TRASLADO.find((d) => d.valor === p.destino)?.referencia;
+  const elegido = DESTINOS_TRASLADO.find((d) => d.valor === p.destino);
+  const pide = elegido?.referenciaOpcional ? null : elegido?.referencia;
   if (pide && p.referencia.trim().length < 2) return `Completa «${pide}»: es lo que permite rastrear el dinero después.`;
   return null;
 }
