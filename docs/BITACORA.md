@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-23 (Pendientes de Dany publicados — PR #369 y el cron de SUNAT andando)
+Dany creó `CRON_SECRET` en Vercel y fusionó el #369 (`4b84cf7a`): los cuatro carriles quedaron en main y desplegados, con sus cuatro migraciones ya en producción. El cron se comprobó sin tocar la clave, leyendo los registros de Vercel: 401 sin clave y 200 en la pasada de las 23:30 UTC, sin avisos ni errores. Las 9 RPC que llama la web nueva existen en producción con una sola firma.
+Dany se lleva: (1) **un secreto se verifica por su efecto, no mirándolo**: el registro del cron dice si la clave funciona; (2) **después de desplegar se cruzan las RPC de la web con producción**, porque Vercel publica cada push a main; (3) **cerrar es también limpiar**: los worktrees y ramas ya fusionadas se borran para que la próxima sesión no las confunda con trabajo vivo.
+
 ## 2026-09-23 (SUNAT: el cron reintenta solo y el líder ve lo atascado — PL-113/114/117)
 El reintento a SUNAT solo corría con una pantalla abierta; ahora un cron de Vercel cada 5 minutos toma la cola con la llave de servicio (solo lo de las últimas 4 horas y solo hacia el sandbox), y lo que se queda atascado aparece en Inicio para el líder. La migración que deja pasar a la llave de servicio se pegó en producción comparando cada cuerpo con el archivo. Probando la nota de débito en el sandbox apareció un error real: le mandábamos a Lucode los campos de la nota de crédito.
 Dany se lleva: (1) **una función que se copia entera se compara entera con producción antes de pegarla**: acá no se perdía nada, pero es la única forma de saberlo; (2) **un secreto nunca pasa por el chat**: `CRON_SECRET` lo crea quien tiene la cuenta; (3) **probar algo que «no usamos» sirve**: la nota de débito estaba rota y nadie lo sabía.
