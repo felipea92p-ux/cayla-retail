@@ -209,6 +209,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:conteo-vacio
 
+      # Candado solo-RPC (ADR-0119): authenticated y anon no escriben directo en ventas, venta_items,
+      # venta_anulacion_items, clientas, conteos ni lotes; las RPC siguen escribiendo. Cada caso: ROLLBACK.
+      - name: pruebas:candado-ventas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:candado-ventas
+
       # Devolver insumos (ADR-0133, F3b): lo devuelto vuelve al último lote del que salió la orden, el costo de
       # tela/avíos de la orden queda neto, anular devuelve todo al estante y quien no opera el Taller no puede.
       # Cada caso termina en ROLLBACK.

@@ -126,6 +126,14 @@ Del análisis `/pantalla` completo del módulo Ventas: la misma familia de hueco
 - [x] **Verificado tras la fusión del PR #285:** la migración F3 de abajo (`actor_firma_las_operaciones`) lee la definición viva de `registrar_movimiento_caja`/`registrar_cambio`/`aprobar_devolucion` y solo reemplaza la línea que busca a la persona — no pisa este candado (ni su reversión en Cambios) cuando F3 se pegue en producción.
 - [x] **`20260923110500_cambios_sin_candado_de_lider.sql` está en producción** (verificado el 2026-09-23: `registrar_cambio` ya no tiene el candado de líder y sigue firmando con `fn_actor_persona_id(true)`; Caja conserva el suyo). Se renombró desde `…110000` porque chocaba con `20260923110000_cambiar_rol_entre_lideres.sql` y dejaba el CI de `main` en rojo; las dos ya estaban pegadas, así que el cambio de número no toca producción.
 
+## 🔒 Candado solo-RPC en ventas, clientas, conteos, lotes y traslados (2026-09-23, ADR-0119, PL-61/84/85) — producción YA cerrada; falta fusionar el repo
+Verificado en solo lectura el 2026-09-23: en producción `authenticated` solo tiene SELECT (y `anon` nada) sobre `ventas`, `venta_items`, `venta_anulacion_items`, `clientas`, `conteos`, `lotes`, `transferencias` y `transferencia_items`, pero ninguna migración del repo ni de Dynamic lo hace (la `0217` de la unificación las abrió; quién las cerró, no quedó registrado). En el repo seguían abiertas. La rama «ADR-0166» del plano (commit `520915d0`) ya estaba en main como ADR-0177.
+- [x] Migración `20260923234700_ventas_clientas_conteos_lotes_solo_rpc.sql` (revoke a `authenticated`/`anon`): en producción es un no-op; lleva el candado a la base local, al CI y a toda base nueva. Sus 18 escritoras son `security definer` con dueña `postgres`; la web no escribe directo en ninguna.
+- [x] `pnpm pruebas:candado-ventas` (6/6 en local, con control por el «cómo se deshace» y mutación), agregada al CI.
+- [ ] Fusionar (PR). No hace falta pegar nada en producción; si se pega igual para dejar registro (PL-95), antes de pegarla correr la sonda de `relacl` de las 8 tablas.
+- [ ] **Decisión de Felipe (causa raíz):** «cerrado por defecto» en `retail`. `alter default privileges` (0005 y la 0217 de Dynamic) abre toda tabla nueva a `authenticated`; 19 tablas de producción dependen solo de RLS (lista en el ADR-0119).
+- [x] De paso, **PL-79 ya estaba hecho:** `clientas_dni_unico` (único sobre `dni` cuando no es nulo) existe en producción y `clientas` es una sola para toda la red.
+
 ## 🔒 Responsable obligatorio para todos (2026-09-23, Felipe, ADR-0162 actualización) — ENCENDIDO en producción (10:24)
 «Todas obligatorias, un mismo flujo para todos; si nadie marcó asistencia no se podrá vender.» Sin excepción para el líder.
 - [x] Interruptor como dato: `configuracion_empresa.exige_responsable` (migración `20260923160000_responsable_obligatorio.sql`), apagado por defecto; 6 casos nuevos en `pruebas:terminales-sin-persona` (52/52).
@@ -1418,7 +1426,7 @@ Rediseño de `/inventario/traslados` sobre la referencia que dio Felipe; una sol
 migración, en PR.** Hecho: reglas + 61 pruebas, miniaturas reales con regla propia, insignia en lateral/pestañas/celular,
 refresco cada minuto, detalle con el mismo vocabulario que la lista.
 
-- [ ] **Llevar al repo el `REVOKE` de escritura directa sobre `transferencias` (drift repo ≠ producción).** En
+- [x] **Hecho 2026-09-23 en `20260923234700` (ADR-0119).** **Llevar al repo el `REVOKE` de escritura directa sobre `transferencias` (drift repo ≠ producción).** En
       producción `authenticated` solo tiene SELECT (verificado en solo lectura, 2026-09-18); en la base local y en
       cualquier base creada desde las migraciones tiene UPDATE/INSERT/DELETE, y con la policy `transferencias_update`
       un integrante podría marcar un traslado `cerrada` por la API sin crear `movimientos`. Migración
