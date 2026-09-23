@@ -28,6 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Etiqueta de precio que sale sola al ingresar mercadería (2026-09-23, ADR-0180) — paso 1 de 3 CONSTRUIDO y verificado en local, rama `claude/auto-label-generation-discounts-25d6a3`; SIN migraciones
+Felipe pidió dejar P-touch Editor: la etiqueta sale del ERP al ingresar mercadería, y con campaña se reimprime con el precio rebajado y el porqué. Diseño elegido en 3 rondas de maquetas: «D · Editorial, corregida» (`docs/maquetas/etiqueta-precio-2026-09/`).
+- [x] **Paso 1:** `/etiquetas-de-precio`, una etiqueta por prenda que entró (Recibir, Ingreso sin comprobante, orden del Taller cerrada). Lee `movimientos` por lote o producción, no hay RPC nuevo. PDF real revisado y los 6 QR decodificados a 300 dpi. Producción verificada en solo lectura: las columnas y funciones que usa existen, y las 1.295 variantes activas tienen código.
+- [ ] **Felipe:** imprimir 1 etiqueta en la QL-1110NWB real y escanearla en Vender (pasos en ADR-0180 «Configurar la Brother»). Traer la **medida de la cartulina** (ancho × alto) para ajustar los 62 × 92 mm provisionales.
+- [ ] **Paso 3 antes que el 2 (toca dinero):** redondeo a .90 hacia abajo del precio de campaña en la caja (`registrar_venta` lo verifica). Decidido por Felipe; necesita revisión propia y su OK.
+- [ ] **Paso 2:** etiqueta de campaña (tachado, bloque «−20 %», motivo, «Válido hasta»). Imprimir a mano las etiquetas de un producto, para la ropa que ya está en tienda y para lo que llega del Taller a una tienda que no imprimió. Al terminar una campaña, lista de prendas por volver a etiquetar.
+- [ ] Preguntar a Felipe **en qué sede está la impresora**: si no está en el Taller, lo producido se etiqueta al llegar a la tienda, y eso es parte del paso 2.
+
 ## 🎯 Escalón Admin leído de Dynamic + «solo das lo que tienes» (2026-09-23, ADR-0178) — EN PRODUCCIÓN (Felipe la pegó el 2026-09-23; verificado objeto por objeto: `fn_es_admin`, los 4 candados inyectados, «Administrador» archivado, los 5 admins); web fusionada en main (PR #333)
 - La migración se escribió como `20260923160000` y se **renumeró a `20260923163000`** al fusionar (chocaba con `20260923160000_responsable_obligatorio`); contenido idéntico al pegado. Falta refrescar el volcado y `pnpm datos:generar:produccion`.
 - **Integrante con 0 módulos: DECIDIDO (Felipe, 2026-09-23), se queda así.** Es configurable desde Roles y accesos; no es un error ni algo pendiente.
