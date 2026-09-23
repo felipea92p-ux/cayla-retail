@@ -38,9 +38,9 @@ describe("motivoTrasladoInvalido", () => {
   it("con monto hace falta destino", () => {
     expect(motivoTrasladoInvalido({ ...base, trasladado: 100 })).toMatch(/Elige a dónde/);
   });
-  it("caja fuerte no pide referencia; banco y líder sí", () => {
+  it("solo el líder exige referencia; el n.º de operación del depósito es opcional", () => {
     expect(motivoTrasladoInvalido({ ...base, trasladado: 100, destino: "caja_fuerte" })).toBeNull();
-    expect(motivoTrasladoInvalido({ ...base, trasladado: 100, destino: "banco", referencia: " " })).toMatch(/voucher/);
+    expect(motivoTrasladoInvalido({ ...base, trasladado: 100, destino: "banco", referencia: " " })).toBeNull();
     expect(motivoTrasladoInvalido({ ...base, trasladado: 100, destino: "lider", referencia: "" })).toMatch(/A quién/);
     expect(motivoTrasladoInvalido({ ...base, trasladado: 100, destino: "banco", referencia: "OP-1" })).toBeNull();
   });

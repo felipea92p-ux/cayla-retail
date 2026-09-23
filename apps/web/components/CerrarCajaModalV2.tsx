@@ -450,7 +450,9 @@ export function CerrarCajaModalV2({
               />
               {destinoElegido.referencia && (
                 <CampoTexto
-                  etiqueta={destinoElegido.referencia}
+                  etiqueta={
+                    destinoElegido.exigeReferencia ? destinoElegido.referencia : `${destinoElegido.referencia} (opcional)`
+                  }
                   placeholder={destinoElegido.referencia}
                   value={referencia}
                   onChange={(e) => setReferencia(e.target.value)}
