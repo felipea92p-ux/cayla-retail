@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { calcularEstado, fotoPrincipal, sumarCantidades, type Cantidades, type EstadoStock } from "@/lib/inventario-reglas";
-import { agruparStockPorSede, type SedeConStock } from "@/lib/stock-por-sede";
+import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStock } from "@/lib/stock-por-sede";
 
 // Las páginas (server) importan todo desde acá; los componentes cliente
 // importan SOLO `inventario-reglas.ts`.
@@ -218,12 +218,14 @@ export type FilaExistencias = FilaStock & {
   esPrueba?: boolean;
 };
 
-/** `fn_stock_por_sede()` entera, por páginas: son ~2.900 filas (variante × sede) y PostgREST corta en 1.000 —
- *  «¿dónde más hay?» decía «en ninguna otra sede» para las que quedaban fuera (medido 2026-09-23). La usan
- *  Vender, Apartados, Cambios y Existencias. Devuelve la forma de supabase-js: cada pantalla elige exigir o tolerar. */
-export async function leerStockDeLasSedes() {
+/** `fn_stock_por_sede()` entera: ~2.900 filas (variante × sede) y PostgREST corta en 1.000 — «¿dónde más hay?» decía
+ *  «en ninguna otra sede» para las que quedaban fuera (medido 2026-09-23). `fn_stock_por_sede_json` (20260923171700)
+ *  la devuelve en UNA fila jsonb: un solo cálculo, sin páginas. La usan Vender, Apartados, Cambios y Existencias.
+ *  Devuelve la forma de supabase-js: cada pantalla elige exigir o tolerar. */
+export async function leerStockDeLasSedes(): Promise<{ data: FilaStockSede[] | null; error: { message: string } | null }> {
   const supabase = await createClient();
-  return leerTodas((desde, hasta) => supabase.rpc("fn_stock_por_sede").order("variante_id").order("ubicacion_id").range(desde, hasta));
+  const { data, error } = await supabase.rpc("fn_stock_por_sede_json");
+  return { data: error ? null : (data as unknown as FilaStockSede[]), error };
 }
 
 export async function getExistencias(
