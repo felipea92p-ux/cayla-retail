@@ -46,7 +46,7 @@ cosa: ya es un rol de **administración del sistema**, por eso sí se usa.
 ## Límites conocidos
 
 - Si en Dynamic nadie queda como `admin`, retail se queda sin admins y nadie puede tocar a los líderes hasta que Dynamic nombre uno. Es a propósito: el admin se administra en Dynamic.
-- Quien tiene Colaboradores sin ser líder todavía puede suspender o quitar a un colaborador que ve más módulos que él. Dynamic lo frena con «solo alcanzas a quien está por debajo de ti»; aquí queda pendiente de decidir.
+- ~~Quien tiene Colaboradores sin ser líder todavía puede suspender o quitar a un colaborador que ve más módulos que él.~~ Resuelto el mismo día (ver «Actualización» abajo).
 - `fn_exigir_otro_admin` casi nunca se dispara: quien actúa ya es admin y no puede tocarse a sí mismo. Queda como defensa por si cambia la forma de nombrar admins.
 
 ## Verificación
@@ -60,3 +60,23 @@ en verde. Pantalla vista en el navegador con datos de muestra: chip Admin, canda
 
 Cualquier practicante con el rol Líder podía quitarle el acceso a la socia. Y darle Roles y accesos a una encargada
 equivalía a darle Por pagar y Colaboradores, porque podía encendérselos a sí misma.
+
+## Actualización 2026-09-23 — «solo alcanzas a quien está por debajo de ti» (Felipe)
+
+**Decisiones de Felipe:**
+- Daniel y los 3 practicantes **siguen siendo Líder**. Con el escalón Admin ya no pueden tocar a los admins.
+- Se adopta la regla de Dynamic («solo alcanzas a quien está por debajo de ti»).
+
+**Cómo se traduce sin niveles numéricos:** en retail una persona está por debajo de otra cuando esta ve todos sus
+módulos y además tiene más que ella. Es estricto, igual que en Dynamic: a una compañera con exactamente los mismos
+módulos no se la alcanza, y entre pares decide un líder.
+
+- **Qué cubre:** suspender, reactivar, quitar, cambiar de ubicación y cambiar el rol de una persona.
+- **El líder:** alcanza a todos los que no son líder. A un líder lo sigue tocando solo un Admin.
+- **Las terminales:** no entran. Son aparatos; para darles un rol ya rige «solo das lo que tienes».
+- **Base:** migración `20260923174500_alcanzas_solo_a_quien_esta_debajo.sql`. Agrega `fn_alcanzo_a`,
+  `fn_exigir_alcanzo_a`, `fn_modulos_de_persona` y `fn_fuera_de_mi_alcance` (esta última avisa a la pantalla), y se inyecta
+  en `fn_exigir_puede_tocar_colaborador` y en `asignar_rol`.
+- **Web:** las filas de quien no alcanzas no ofrecen acciones; entre los suspendidos dice «Lo gestiona un líder». Al asignar
+  un rol, esas personas no aparecen en la lista.
+- **Pruebas:** `pruebas:roles` suma 2 casos: por debajo sí; par y superior no; cambiar el rol; y la lista para la pantalla.

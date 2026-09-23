@@ -94,6 +94,7 @@ export function RolesPanel({
   rolInicialId = null,
   soyAdmin = true,
   misModulos = null,
+  fueraDeAlcance = [],
   acciones = accionesRolesSupabase,
 }: {
   roles: RolVista[];
@@ -109,6 +110,8 @@ export function RolesPanel({
   soyAdmin?: boolean;
   /** ADR-0178 «solo das lo que tienes»: los módulos que ve quien mira, o `null` si es líder (da todo). */
   misModulos?: readonly ClaveModulo[] | null;
+  /** ADR-0178 «solo alcanzas a quien está por debajo de ti»: a esas personas no se les ofrece cambiar el rol. */
+  fueraDeAlcance?: readonly string[];
   acciones?: AccionesRoles;
 }) {
   const router = useRouter();
@@ -597,7 +600,7 @@ export function RolesPanel({
       {modal?.tipo === "asignar" && cuentas && (
         <AsignarRolModal
           roles={rolesAsignables(roles, undefined, soyAdmin, misModulos)}
-          cuentas={cuentasAsignables(cuentas, modal.rol, yoId, soyAdmin, misModulos)}
+          cuentas={cuentasAsignables(cuentas, modal.rol, yoId, soyAdmin, misModulos, fueraDeAlcance)}
           ubicaciones={ubicaciones}
           rolFijo={modal.rol}
           onClose={() => setModal(null)}

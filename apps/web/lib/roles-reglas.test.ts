@@ -280,4 +280,12 @@ describe("ADR-0178: el escalón Admin y «solo das lo que tienes»", () => {
     expect(cuentasAsignables(cuentas, VENDER, null, true, null).map((c) => c.id)).toEqual(["p1", "p2"]);
     expect(cuentasAsignables(cuentas, VENDER, null, false, GESTOR.modulos)).toEqual([]);
   });
+
+  it("a quien no está por debajo («solo alcanzas…», 20260923174500) no se le ofrece cambiar el rol", () => {
+    const cuentas = [
+      { tipo: "persona" as const, id: "p1", nombre: "Ana", ubicacion: "TRU", rolId: "i", esLider: false, estado: "activo" },
+      { tipo: "persona" as const, id: "p3", nombre: "Par", ubicacion: "TRU", rolId: "g", esLider: false, estado: "activo" },
+    ];
+    expect(cuentasAsignables(cuentas, VENDER, null, false, null, ["p3"]).map((c) => c.id)).toEqual(["p1"]);
+  });
 });

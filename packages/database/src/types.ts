@@ -6013,6 +6013,8 @@ export type Database = {
       fn_es_admin: { Args: never; Returns: boolean }
       fn_admins: { Args: never; Returns: { persona_id: string }[] }
       fn_rol_dentro_de_lo_mio: { Args: { p_rol_id: string }; Returns: boolean }
+      // 20260923174500: «solo alcanzas a quien está por debajo de ti».
+      fn_fuera_de_mi_alcance: { Args: never; Returns: { persona_id: string }[] }
       guardar_modulos_rol: {
         Args: { p_modulos: string[]; p_rol_id: string }
         Returns: undefined
