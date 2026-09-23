@@ -16,6 +16,6 @@ Base: la guía de estilo oficial «CAYLA Dynamic» de la Sala de Diseño y la ma
 | Tokens | La paleta oficial completa (ya estaba en `main` por ADR-0169) |
 | Entrega | Demo primero, código tras su visto bueno — aprobada el mismo día |
 
-Lo construido está en ADR-0172. La demo trae además un modo oscuro y una barra de escenario
+Lo construido está en ADR-0173. La demo trae además un modo oscuro y una barra de escenario
 (con pendientes / todo al día / sin traslados) y de rol (líder / integrante) que son solo de la
 demo: el ERP no tiene modo oscuro (ADR-0169 lo dejó para después).

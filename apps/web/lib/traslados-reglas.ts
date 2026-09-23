@@ -468,7 +468,7 @@ export function coincideBusqueda(t: TrasladoBuscable, consulta: string): boolean
 }
 
 // ===========================================================================
-// Rediseño 2026-09-22 (ADR-0172): traslados vacíos, la insignia de estado, el
+// Rediseño 2026-09-22 (ADR-0173): traslados vacíos, la insignia de estado, el
 // recorrido del detalle y la lectura del conteo. Nada de esto cambia una regla
 // de stock: quién confirma, cuándo entra el stock y quién cierra siguen en las
 // RPC. Esto solo decide qué se dibuja.

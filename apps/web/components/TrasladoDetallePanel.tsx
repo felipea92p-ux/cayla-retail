@@ -33,7 +33,7 @@ type VarianteBusqueda = { varianteId: string; sku: string; referencia: string; t
 // que un líder de destino lo revise (cerrar_traslado_con_diferencia) —
 // mismo patrón que cerrar_conteo.
 //
-// Rediseño 2026-09-22 (ADR-0172), sobre la demo que aprobó Felipe:
+// Rediseño 2026-09-22 (ADR-0173), sobre la demo que aprobó Felipe:
 //  · Arriba, el recorrido en cuatro pasos y tres cifras (enviado, recibido, diferencia).
 //  · Se CUENTA, no se asume: las casillas empiezan vacías (antes venían llenas con lo enviado) y cada
 //    línea tiene «−», «+» y «Coincide». Lo contado queda como borrador en la pantalla; recién al
