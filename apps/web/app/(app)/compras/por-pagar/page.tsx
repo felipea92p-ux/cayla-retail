@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { exigirModulo } from "@/lib/persona-actual";
+import { getMisPartesDeCompras } from "@/lib/compras-mi-parte";
+import { partesPorPagar } from "@/lib/compras-mi-parte-reglas";
+import { MisPartesDeCompras } from "@/components/MisPartesDeCompras";
 import { listarPorPagar, getPagosDeCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, getCompra, type ParamsCompras } from "@/lib/compras";
 import { getDeudaPorVencimiento, getNotasPendientes, getPorPagarTramos, getResumenComprasExtra, getSalidasCaja30d } from "@/lib/compras-indicadores";
 import { getProveedores } from "@/lib/proveedores";
@@ -53,7 +56,7 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
   // Qué comprobantes esperan su nota de crédito por faltante (para no pagar de más lo que el proveedor va a
   // acreditar) depende de los ids de la página: se pide ENCADENADA a la lista, y solo si algún comprobante de
   // la página tiene algo cerrado, sin frenar las demás consultas.
-  const [{ pagina: { filas: compras, siguiente }, notas, pagos }, resumen, extra, vencimiento, salidas, tramos, directorio, proveedores, compraAPagar, ubicaciones] = await Promise.all([
+  const [{ pagina: { filas: compras, siguiente }, notas, pagos }, resumen, extra, vencimiento, salidas, tramos, directorio, proveedores, compraAPagar, ubicaciones, misPartes] = await Promise.all([
     // Notas pendientes y pagos previos dependen de los ids de la página: se piden encadenados y solo de lo que hace falta (los pagos, solo de
     // los comprobantes que ya recibieron alguno), sin frenar las demás consultas.
     listarPorPagar(filtros, cursor).then(async (pagina) => {
@@ -69,6 +72,8 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
     getProveedores(),
     pagar && /^[0-9a-f-]{36}$/i.test(pagar) ? getCompra(pagar) : null,
     getUbicaciones(),
+    // ADR-0151 (F3-b): la parte de mi tienda en comprobantes que gestiona otra (el líder los ve enteros en la lista).
+    misTiendas ? getMisPartesDeCompras() : Promise.resolve([]),
   ]);
   // Solo se abre si de verdad hay algo que pagar; un enlace viejo a un comprobante ya saldado o
   // anulado cae en la lista sin más.
@@ -189,6 +194,8 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
             .map((p) => ({ proveedorId: p.id, nombre: p.nombre, saldoFavor: p.saldo_favor ?? 0, deuda: p.saldo ?? 0 }))
             .sort((a, b) => b.saldoFavor - a.saldoFavor)}
         />
+
+        <MisPartesDeCompras partes={partesPorPagar(misPartes)} pagar indice={5} />
 
         {/* `grid-cols-1` = `minmax(0, 1fr)`: sin él, en celular la columna única crece hasta el contenido más ancho (las etiquetas de las barras) y la tarjeta se sale de la pantalla. */}
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">

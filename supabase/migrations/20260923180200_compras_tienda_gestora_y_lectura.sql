@@ -214,23 +214,23 @@ grant execute on function retail.fn_compra_es_de_mis_tiendas(uuid) to authentica
 -- ==================== 3. las políticas de lectura ====================
 drop policy if exists compras_select on retail.compras;
 create policy compras_select on retail.compras for select
-  using ((select retail.fn_es_lider()) or id = any((select retail.fn_compras_visibles())));
+  using ((select retail.fn_es_lider()) or id = any((select retail.fn_compras_visibles())::uuid[]));
 
 drop policy if exists compra_items_select on retail.compra_items;
 create policy compra_items_select on retail.compra_items for select
-  using ((select retail.fn_es_lider()) or compra_id = any((select retail.fn_compras_visibles())));
+  using ((select retail.fn_es_lider()) or compra_id = any((select retail.fn_compras_visibles())::uuid[]));
 
 drop policy if exists compra_pagos_select on retail.compra_pagos;
 create policy compra_pagos_select on retail.compra_pagos for select
-  using ((select retail.fn_es_lider()) or compra_id = any((select retail.fn_compras_visibles())));
+  using ((select retail.fn_es_lider()) or compra_id = any((select retail.fn_compras_visibles())::uuid[]));
 
 drop policy if exists compra_adjuntos_select on retail.compra_adjuntos;
 create policy compra_adjuntos_select on retail.compra_adjuntos for select
-  using ((select retail.fn_es_lider()) or compra_id = any((select retail.fn_compras_visibles())));
+  using ((select retail.fn_es_lider()) or compra_id = any((select retail.fn_compras_visibles())::uuid[]));
 
 drop policy if exists compra_notas_credito_select on retail.compra_notas_credito;
 create policy compra_notas_credito_select on retail.compra_notas_credito for select
-  using ((select retail.fn_es_lider()) or compra_id = any((select retail.fn_compras_visibles())));
+  using ((select retail.fn_es_lider()) or compra_id = any((select retail.fn_compras_visibles())::uuid[]));
 
 -- El escaneo vive en `<compra_id>/<archivo>`: la carpeta dice de qué factura es.
 drop policy if exists retail_compras_adjuntos_select on storage.objects;
@@ -245,14 +245,14 @@ drop policy if exists compra_item_destinos_select on retail.compra_item_destinos
 create policy compra_item_destinos_select on retail.compra_item_destinos for select
   using (
     retail.fn_puede_operar_ubicacion(ubicacion_id)
-    or exists (select 1 from retail.compra_items i where i.id = compra_item_id and i.compra_id = any((select retail.fn_compras_visibles())))
+    or exists (select 1 from retail.compra_items i where i.id = compra_item_id and i.compra_id = any((select retail.fn_compras_visibles())::uuid[]))
   );
 
 drop policy if exists compra_item_cierres_select on retail.compra_item_cierres;
 create policy compra_item_cierres_select on retail.compra_item_cierres for select
   using (
     retail.fn_puede_operar_ubicacion(ubicacion_id)
-    or exists (select 1 from retail.compra_items i where i.id = compra_item_id and i.compra_id = any((select retail.fn_compras_visibles())))
+    or exists (select 1 from retail.compra_items i where i.id = compra_item_id and i.compra_id = any((select retail.fn_compras_visibles())::uuid[]))
   );
 
 -- ==================== 4. las lecturas de dinero, acotadas a mis tiendas ====================
@@ -290,8 +290,10 @@ begin
     E'where c.estado = ''vigente''\n      and (p_proveedor_id is null',
     E'where c.estado = ''vigente''\n      and retail.fn_compra_es_de_mis_tiendas(c.id)\n      and (p_proveedor_id is null', 1, 'fn_compra_es_de_mis_tiendas(c.id)');
   -- Costo promedio de un ingreso sin comprobante: quien gestiona Compras de ESA tienda.
+  -- (con o sin el prefijo `retail.`: según por dónde pasó la base, la definición viva trae una u otra forma)
   perform pg_temp.cambiar('retail.recepciones_sin_comprobante(uuid, integer)',
-    'case when retail.fn_puede_ver_dinero_de_compras() then',
+    case when position('case when retail.fn_puede_ver_dinero_de_compras() then' in pg_get_functiondef('retail.recepciones_sin_comprobante(uuid, integer)'::regprocedure)) > 0
+         then 'case when retail.fn_puede_ver_dinero_de_compras() then' else 'case when fn_puede_ver_dinero_de_compras() then' end,
     'case when retail.fn_puede_comprar_en(l.ubicacion_id) then', 1, 'fn_puede_comprar_en(l.ubicacion_id)');
 end $$;
 

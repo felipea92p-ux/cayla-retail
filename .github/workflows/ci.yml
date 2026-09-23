@@ -320,21 +320,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:compras-reparto
 
-      # El permiso «comprador de tienda» (ADR-0151, F1): el líder llega a todas las ubicaciones sin fila, un integrante sin fila a ninguna,
-      # un comprador solo a las suyas (una o varias), una fila de alguien que ya no es colaborador o de una tienda inactiva no da nada,
-      # dar y quitar es solo del líder y dice la verdad, la tabla no se escribe directo, y las dos puertas del dinero (ADR-0126) siguen
-      # siendo solo del líder. Carga la migración DENTRO de cada caso, que termina en ROLLBACK. Mismo seed que `dinero-compras`.
-      - name: pruebas:compras-compradores
+      # Compras POR TIENDA (ADR-0151 sobre los roles por módulo de ADR-0161): sin módulo no se llega a ninguna tienda (ni con fila en
+      # compradores_de_tienda); con módulo, a la suya y a las extra; una factura que gestiona otra tienda no se ve (ni cabecera, ni
+      # líneas, ni pagos) y su parte sale por fn_mis_partes_de_compras / fn_mi_parte_de_compra sin el total de la factura; cada tienda
+      # paga desde su tienda y hasta su parte (RPC y candado de esquema); anular/registrar solo sobre la gestora propia; una sola
+      # firma y nada abierto a anon. Cada caso termina en ROLLBACK. Mismo seed que `dinero-compras`.
+      - name: pruebas:compras-por-tienda
         if: ${{ always() && steps.supabase.outcome == 'success' }}
-        run: pnpm pruebas:compras-compradores
-
-      # La LECTURA por tienda del dinero de Compras (ADR-0151, F1 paso 2): un comprador ve la factura de SU tienda y de ninguna otra
-      # (ni la de la sede donde está fijo, ni la repartida con una tienda ajena) en las 5 tablas, el bucket de escaneos, la vista
-      # `compras_resumen` y las 5 funciones de dinero; escribir y las notas de crédito siguen solo del líder; el líder ve lo de siempre;
-      # `fn_aplicar_candado_de_dinero` repone el filtro. Carga las dos migraciones DENTRO de cada caso, que termina en ROLLBACK.
-      - name: pruebas:compras-dinero-por-tienda
-        if: ${{ always() && steps.supabase.outcome == 'success' }}
-        run: pnpm pruebas:compras-dinero-por-tienda
+        run: pnpm pruebas:compras-por-tienda
 
       # El dinero de una factura partido por tienda (ADR-0151, F2): 24 unidades 12/12 = 708.00 y 708.00; costos de 3 decimales, 3 tiendas,
       # IGV del papel, boletas y regalos de costo 0 suman la CABECERA al centavo (aunque las líneas sumen distinto); dos lecturas dan lo
@@ -342,22 +335,6 @@ jobs:
       - name: pruebas:compras-parte-por-tienda
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:compras-parte-por-tienda
-
-      # La tienda gestora de una factura (ADR-0151, F3): un comprador registra con SU tienda gestora (que tiene que tener
-      # parte en el reparto, también para el líder) y sin pago; anular y adjuntar: líder o comprador de la gestora; la
-      # gestora ve la factura entera; cambiar_tienda_gestora_compra solo líder; el candado también protege escribir el
-      # reparto directo. Carga las cuatro migraciones DENTRO de cada caso, que termina en ROLLBACK.
-      - name: pruebas:compras-tienda-gestora
-        if: ${{ always() && steps.supabase.outcome == 'success' }}
-        run: pnpm pruebas:compras-tienda-gestora
-
-      # Pagar por tienda (ADR-0151, F4): un comprador paga solo la parte de SU tienda (también en facturas que gestiona
-      # otra) y no puede superar su saldo (candado de esquema); el líder sigue pagando sin atarse a ninguna tienda;
-      # «pagar juntos» respeta la regla por cada comprobante del lote (todo o nada); las tres RPC de pago no quedan
-      # abiertas a PUBLIC/anon. Carga las cinco migraciones DENTRO de cada caso, que termina en ROLLBACK.
-      - name: pruebas:compras-pagar-por-tienda
-        if: ${{ always() && steps.supabase.outcome == 'success' }}
-        run: pnpm pruebas:compras-pagar-por-tienda
 
       # Módulo Notas de crédito: el tablero trae notas y pendientes con sus montos (incluido el
       # monto_esperado del faltante cerrado y el a_favor de la nota que superó la deuda), registrar con

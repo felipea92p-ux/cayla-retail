@@ -5997,11 +5997,36 @@ export type Database = {
       // ADR-0151 (Compras por tienda)
       fn_compras_ubicaciones: { Args: never; Returns: string[] }
       fn_puede_comprar_en: { Args: { p_ubicacion_id: string }; Returns: boolean }
-      fn_puede_gestionar_compra: { Args: { p_compra_id: string }; Returns: boolean }
       fn_saldo_de_tienda: { Args: { p_compra_id: string; p_ubicacion_id: string }; Returns: number }
       agregar_comprador_de_tienda: { Args: { p_persona_id: string; p_ubicacion_id: string }; Returns: undefined }
       quitar_comprador_de_tienda: { Args: { p_persona_id: string; p_ubicacion_id: string }; Returns: undefined }
       cambiar_tienda_gestora_compra: { Args: { p_compra_id: string; p_ubicacion_id: string }; Returns: undefined }
+      fn_compras_visibles: { Args: never; Returns: string[] }
+      fn_compra_es_de_mis_tiendas: { Args: { p_compra_id: string }; Returns: boolean }
+      fn_mi_parte_de_compra: { Args: { p_compra_id: string }; Returns: Json }
+      fn_mis_partes_de_compras: {
+        Args: never
+        Returns: {
+          compra_id: string
+          documento: string | null
+          tipo: string
+          proveedor_id: string
+          proveedor_nombre: string
+          fecha_emision: string
+          fecha_vencimiento: string | null
+          estado: string
+          gestora_id: string | null
+          gestora_nombre: string | null
+          ubicacion_id: string
+          ubicacion_nombre: string
+          unidades: number
+          total: number
+          pagado: number
+          saldo: number
+          registrada_en: string
+          parte_nueva: boolean
+        }[]
+      }
       guardar_modulos_rol: {
         Args: { p_modulos: string[]; p_rol_id: string }
         Returns: undefined
