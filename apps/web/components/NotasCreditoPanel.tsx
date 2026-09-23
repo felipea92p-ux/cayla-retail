@@ -568,7 +568,6 @@ function Vacia({ busqueda, pestana, banda, onLimpiar }: { busqueda: string; pest
 function SaldosAFavorTablero({ proveedores, movimientos, total, puedeReembolsar }: { proveedores: { id: string; nombre: string; saldoFavor: number; deuda: number }[]; movimientos: MovimientoFavor[]; total: number; puedeReembolsar: boolean }) {
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
   const con = proveedores.filter((p) => p.saldoFavor > 0.004).sort((a, b) => b.saldoFavor - a.saldoFavor);
-  const sin = proveedores.filter((p) => p.saldoFavor <= 0.004);
 
   if (con.length === 0) {
     return (
@@ -682,7 +681,6 @@ function SaldosAFavorTablero({ proveedores, movimientos, total, puedeReembolsar 
         );
       })}
 
-      {sin.length > 0 && <p className="px-1 text-[13px] text-tinta/55">Sin saldo a favor: {sin.map((p) => p.nombre).join(" · ")}</p>}
     </div>
   );
 }
