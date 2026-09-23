@@ -37,9 +37,9 @@ insumo, comprobante, recepción y pago de comprobante), Colaboradores y Roles y 
 - [x] Publicado en orden: primero la web, después la migración.
 - [ ] Verlo con clics (Recibir en una terminal, Registrar comprobante, Taller) — solo se verificó con typecheck, build,
       24.333 pruebas web y las pruebas SQL (`pruebas:actor-firma` 30/30, `pruebas:roles` 70/70, `pruebas:terminales` 52/52).
-- [x] «Quién» en las que guardaban sin firmar (ADR-0161 act. d, migración `20260923240000`, NO está en producción):
+- [x] «Quién» en las que guardaban sin firmar (ADR-0161 act. d, migración `20260923240000`) — EN PRODUCCIÓN (web PR #364 publicada; Felipe pegó la migración el 2026-09-23; verificado en solo lectura: 12 columnas, tabla de etapas con RLS, 8 funciones y el disparador, sin sobrecargas):
       `set_etapa_produccion`, `anular_comprobante_produccion`, `anular_compra`, proveedores de producción, alta de insumos,
-      `reactivar_terminal`, crear terminal y cambiar su clave. Publicar igual: **primero la web, después la migración**.
+      `reactivar_terminal`, crear terminal y cambiar su clave.
 - [ ] Mostrar el «quién» en pantalla (anulada por, historial de etapas, creado por): hoy queda solo en la base.
 - [ ] Recibir envío/lote toma la lista de turno de la ubicación que recibe (no la de la cabecera): un almacén sin marcas bloquea.
 
@@ -80,6 +80,16 @@ Prendas que llegan a piso antes de pasar por almacén (taller, proveedores, acce
 - [x] Probado por Felipe en local (2026-09-23: «está bien») y fusionado a `main` por PR el mismo día (el ADR-0178 lo tomó «escalón admin» mientras tanto: esta rama usa 0179).
 - [ ] Probar con clics en una tienda real: vender una prenda sin registrar y regularizarla desde la cuenta de almacén.
 - [ ] Aparte, sin decidir: las reimpresiones y el historial muestran «Prenda sin registrar» mientras la prenda está pendiente (el comprobante electrónico y el ticket del momento sí dicen la descripción).
+## 🎯 Por pagar muestra la parte de MI tienda (2026-09-23, ADR-0187) — migración `20260924100000` EN PRODUCCIÓN (Felipe la pegó el 2026-09-23; verificada); web en PR #367
+Felipe: «que cada tienda vea su parte». La tienda que registró una factura repartida veía el total en Por pagar. Ahora todas las cifras, la lista y el pago usan `fn_deuda_visible` (el líder, igual que antes).
+- [x] Migración `20260924100000_por_pagar_parte_de_mi_tienda.sql` (5 indicadores reescritos desde su definición viva de producción + `fn_proveedores` con anclas; candado `{}`).
+- [x] Web: filas con «Tu parte · total S/ …», pago lleno con la parte, `porPagarConMiParte` en `lib/compras-mi-parte.ts`.
+- [x] Pruebas: `pruebas:por-pagar-parte-de-mi-tienda` 12/12; las de Compras en verde; vitest 24.338.
+- [x] Pegada en producción y verificada en solo lectura: 7 funciones con una sola firma, nada abierto a anon, candado en las 5 de indicadores y huellas idénticas a las probadas en local.
+- [x] Las 2 facturas cuyas partes suman más que su saldo (FD01-00000003 con un pago sin tienda, FD01-00000004 con una nota de crédito) son **datos de prueba** (Felipe, 2026-09-23): no hay que repartir nada del historial.
+- [ ] Hacia adelante siguen existiendo dos fuentes de «sin tienda»: el pago del líder sin elegir tienda y las notas de crédito (F6). Resolverlo junto con F6, antes de que una tienda use Por pagar con datos reales.
+- [ ] Verlo con clics con una cuenta no líder con Por pagar; sumar la prueba al CI.
+
 ## 🎯 Compras por tienda: cada tienda ve y paga lo suyo (2026-09-23, ADR-0184 — nació como 0145/0150/0151) — EN PRODUCCIÓN las 6 migraciones (Felipe, 2026-09-23; verificadas en solo lectura)
 Decisión de Felipe (2026-09-23): con un módulo de Compras se ve y se paga **solo lo de su tienda**; el líder, todo. El rol dice QUIÉN (ADR-0161); `fn_compras_ubicaciones()` dice DÓNDE (su tienda + extras de `compradores_de_tienda`). Detalle en [docs/adr/0184-compras-cada-tienda-compra-y-paga-lo-suyo.md](adr/0184-compras-cada-tienda-compra-y-paga-lo-suyo.md), «Estado final».
 - [x] Migraciones `20260923180000` … `20260923180400` (quién y dónde · parte por tienda · gestora + lectura + escrituras · pagar por tienda · F3-b «mi parte»), ancladas en las definiciones de producción del 2026-09-23, re-pegables. Reemplazan a las 5 `20260922*` de la rama `adr-0145-compras-permisos` (nunca pegadas; chocaban en número con 5 de main).
@@ -3132,6 +3142,12 @@ mano, confirmó ✗ + exit 1, revertida).
       esta rama (o el merge) para que GitHub Actions lo corra por primera vez. Con 2-3
       corridas verdes reales, sacar el `continue-on-error` de `.github/workflows/ci.yml`
       convierte el piloto en gate real.
+- [x] **Prueba intermitente de `pnpm pruebas:roles` arreglada (2026-09-23, PR #365, fusionado):** «ADR-0178 alcance: cambiarle el rol…»
+      falló en el piloto del PR #363 (run 35927333050) con `d2,d3,d2|true` y pasó al reintentar. Filtraba `fn_fuera_de_mi_alcance()` por los
+      2 últimos caracteres del UUID; el seed del CI crea colaboradores con UUID aleatorio y ~1 de cada 256 termina en «d2». Ahora filtra por los
+      3 UUID completos. Reproducido a propósito (colaborador intruso `…d2`: versión vieja 69/70, nueva 70/70) y suite local 5/5 en 70/70.
+      Sin cambio de regla ni de base. **Para el gate real:** una prueba intermitente en el piloto enseña a ignorar el rojo; antes de sacar el
+      `continue-on-error`, revisar las demás suites por el mismo patrón (comparar ids por un pedazo, `limit 1` sin `order by`).
 
 ---
 

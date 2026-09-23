@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { exigirModulo } from "@/lib/persona-actual";
-import { getMisPartesDeCompras } from "@/lib/compras-mi-parte";
+import { getMisPartesDeCompras, porPagarConMiParte } from "@/lib/compras-mi-parte";
 import { partesPorPagar } from "@/lib/compras-mi-parte-reglas";
 import { MisPartesDeCompras } from "@/components/MisPartesDeCompras";
 import { listarPorPagar, getPagosDeCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, getCompra, type ParamsCompras } from "@/lib/compras";
@@ -59,7 +59,10 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
   const [{ pagina: { filas: compras, siguiente }, notas, pagos }, resumen, extra, vencimiento, salidas, tramos, directorio, proveedores, compraAPagar, ubicaciones, misPartes] = await Promise.all([
     // Notas pendientes y pagos previos dependen de los ids de la página: se piden encadenados y solo de lo que hace falta (los pagos, solo de
     // los comprobantes que ya recibieron alguno), sin frenar las demás consultas.
-    listarPorPagar(filtros, cursor).then(async (pagina) => {
+    // ADR-0187: quien no es líder ve en cada fila SU parte (la factura que gestiona su tienda llega entera). El cursor de la
+    // página siguiente sale de la página sin recortar, así que quitar una fila ya saldada por mi tienda no salta ninguna.
+    listarPorPagar(filtros, cursor).then(async (entera) => {
+      const pagina = misTiendas ? { ...entera, filas: await porPagarConMiParte(entera.filas) } : entera;
       const [notas, pagos] = await Promise.all([getNotasPendientes(idsConFaltanteCerrado(pagina.filas)), getPagosDeCompras(pagina.filas.filter((c) => c.pagado > 0).map((c) => c.id))]);
       return { pagina, notas, pagos };
     }),
@@ -70,7 +73,9 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
     getPorPagarTramos({ proveedorId: filtros.proveedorId, condicion: filtros.condicion, soloVencidas: filtros.soloVencidas, busqueda: filtros.busqueda, tipo: filtros.tipo, desde: filtros.desde, hasta: filtros.hasta, destinoId: filtros.destinoId }),
     getProveedoresActivos(),
     getProveedores(),
-    pagar && /^[0-9a-f-]{36}$/i.test(pagar) ? getCompra(pagar) : null,
+    pagar && /^[0-9a-f-]{36}$/i.test(pagar)
+      ? getCompra(pagar).then(async (c) => (c && misTiendas ? ((await porPagarConMiParte([c]))[0] ?? null) : c))
+      : null,
     getUbicaciones(),
     // ADR-0184 (F3-b): la parte de mi tienda en comprobantes que gestiona otra (el líder los ve enteros en la lista).
     misTiendas ? getMisPartesDeCompras() : Promise.resolve([]),
