@@ -480,6 +480,7 @@ export function Desplegable<T extends string>({
   trabajando = false,
   idEtiqueta,
   etiquetaAccesible,
+  deshabilitado = false,
 }: {
   valor: T;
   onValor: (v: T) => void;
@@ -492,6 +493,8 @@ export function Desplegable<T extends string>({
   idEtiqueta?: string;
   /** Nombre accesible cuando NO hay label visible (cabecera). */
   etiquetaAccesible?: string;
+  /** No se puede abrir todavía (p. ej. el motivo de caja antes de elegir entrada o salida): el marcador dice por qué. */
+  deshabilitado?: boolean;
 }) {
   const id = useId();
   const [abierto, setAbierto] = useState(false);
@@ -605,9 +608,10 @@ export function Desplegable<T extends string>({
         aria-labelledby={idEtiqueta}
         aria-label={idEtiqueta ? undefined : etiquetaAccesible}
         aria-controls={`${id}-lista`}
+        disabled={deshabilitado}
         onClick={() => (abierto ? cerrar(false) : abrir())}
         onKeyDown={alTeclado}
-        className={`flex items-center bg-transparent text-left outline-none transition-colors ${
+        className={`flex items-center bg-transparent text-left outline-none transition-colors disabled:cursor-not-allowed disabled:hover:bg-transparent ${
           FORMA_DESPLEGABLE[forma]
         } ${esPastilla ? (abierto ? "border-rojo" : "border-sand") : ""}`}
       >

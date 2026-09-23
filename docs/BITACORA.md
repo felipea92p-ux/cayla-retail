@@ -18,6 +18,10 @@ Felipe pasó la captura de «No se pudo cargar» (código 575251889). Los logs d
 Felipe se lleva: (1) **el «Código» de la pantalla de error sirve**: con él se encuentra el error exacto en los logs; (2) **la regla de seguridad cuesta según cuántas veces se pregunta**: preguntar «¿quién eres?» una vez por pedido y no una vez por fila es la diferencia entre 2,6 s y 1,6 ms; (3) el volumen de prueba adelantó un problema que igual iba a llegar con las ventas reales.
 Sin resolver: la opción B (92 políticas con el mismo patrón, ya acordada), verlo con clics, y si las ventas sembradas deberían ser `es_prueba`.
 
+## 2026-09-22 (Caja: «entrada / salida» y el motivo con el desplegable del sistema)
+Felipe pidió llamar «Entrada» y «Salida» a lo que la caja decía «Ingreso» y «Egreso», y estandarizar el combo de Motivo. Cambiaron el modal, el botón «+ Entrada / salida» y las tarjetas «Entradas» / «Salidas» del panel; Motivo pasó del `<select>` nativo al `Desplegable` de `campos.tsx`, que ganó `deshabilitado` para el «Primero elige entrada o salida». Verificado en navegador (elegir Salida, abrir la lista, «Otro» abre el campo libre); typecheck y lint en verde.
+Felipe se lleva: **cambiar una palabra en pantalla no obliga a cambiar el dato**: en la base el tipo sigue siendo `ingreso` / `egreso`, y la traducción vive en una sola constante (`TEXTO_TIPO`), sin migración ni riesgo para cierres ya guardados.
+
 ## 2026-09-22 (Cierre de rol y ubicación entre líderes)
 Verificado en producción, objeto por objeto: todas las migraciones del 21 al 23-09 están pegadas, incluidas las de líderes y la de conteo vacío. El ADR de Traslados ya se llamaba 0173 pero su título y referencias seguían en 0172: corregido.
 Felipe se lleva: **dos migraciones con la misma versión no dan error: una de las dos se da por aplicada y no corre nunca** en una base local. Esta vez dos sesiones lo vieron a la vez; la de ubicación de líderes quedó como `20260923120100`.
