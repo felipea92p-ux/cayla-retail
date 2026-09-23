@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { consultarAnulacionLucode, entornoLucode } from "@/lib/lucode";
+import { firmaDeEncabezados, mensajeErrorResponsable } from "@/lib/responsable-reglas";
 
 // POST /api/lucode/consultar-anulacion  { comprobante_id: string }
 //
@@ -25,11 +26,23 @@ export async function POST(request: Request) {
   }
   if (!body.comprobante_id) return Response.json({ error: "Falta comprobante_id" }, { status: 400 });
 
-  const supabase = await createClient();
+  // Si SUNAT confirmó, esta ruta escribe `anular_comprobante`: va firmada con el responsable del combo que mandó la
+  // pantalla (ADR-0161), igual que /api/lucode/anular.
+  const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "No autorizado" }, { status: 401 });
+
+  // El responsable se valida antes de preguntarle a Lucode: si la base lo rechazara recién al guardar, SUNAT ya habría
+  // confirmado y aquí quedaría «en trámite». Si la función todavía no existe en esta base, no frena nada.
+  const rpcLibre = supabase.rpc.bind(supabase) as unknown as (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => PromiseLike<{ error: { code?: string; hint?: string; message: string } | null }>;
+  const { error: errResponsable } = await rpcLibre("fn_actor_persona_id", { p_de_tienda: true });
+  const porResponsable = mensajeErrorResponsable(errResponsable);
+  if (porResponsable) return Response.json({ error: porResponsable, hint: errResponsable?.hint ?? null }, { status: 403 });
 
   const { data: c, error: errC } = await supabase
     .from("comprobantes")
@@ -69,6 +82,7 @@ export async function POST(request: Request) {
     return Response.json({ anulacion: r.anulacion, estadoCrudo: r.estadoCrudo, mensaje: r.mensaje });
   }
 
+  // Firmada con el responsable de los encabezados (el cliente de arriba se creó con esa firma).
   const { error: errGuardar } = await supabase.rpc("anular_comprobante", {
     p_comprobante_id: c.id,
     // El motivo original, no uno nuevo: esta ruta confirma una decisión que ya

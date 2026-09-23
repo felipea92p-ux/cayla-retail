@@ -28,11 +28,22 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Escalón Admin leído de Dynamic + «solo das lo que tienes» (2026-09-23, ADR-0178) — CONSTRUIDO en la rama `claude/escalon-admin-dynamic`; NO está en producción
-- **Pegar en producción** `20260923163000_escalon_admin_desde_dynamic.sql` (ya trae `set search_path to retail, public, extensions;`). Requiere 20260923110000, 131000 y 140000 (en producción existen sus funciones). Luego `pnpm datos:generar:produccion` tras refrescar el volcado.
+## 🎯 Escalón Admin leído de Dynamic + «solo das lo que tienes» (2026-09-23, ADR-0178) — EN PRODUCCIÓN (Felipe la pegó el 2026-09-23; verificado objeto por objeto: `fn_es_admin`, los 4 candados inyectados, «Administrador» archivado, los 5 admins); web en el PR #333
+- La migración se escribió como `20260923160000` y se **renumeró a `20260923163000`** al fusionar (chocaba con `20260923160000_responsable_obligatorio`); contenido idéntico al pegado. Falta refrescar el volcado y `pnpm datos:generar:produccion`.
 - **Urgente, aparte de este cambio:** el rol Integrante tiene 0 módulos en producción desde el 22-09 16:58 (lo vació Felipe; 16 personas no ven nada). Confirmar si fue a propósito y volver a encenderle módulos.
 - **Decidir:** si los 4 líderes de sistemas (Daniel y los 3 practicantes) siguen como Líder; y si quien tiene Colaboradores sin ser líder puede suspender a alguien que ve más módulos que él (Dynamic lo frena con «solo alcanzas a quien está por debajo»).
 - Pendiente de la misma conversación: el rol «Encargada de sede» (aprobar/anular en su tienda), que Felipe todavía no aprobó.
+
+## 🩹 Velocidad: auditoría módulo por módulo y el tope de 1.000 filas (2026-09-23) — paso 1 hecho, SIN migraciones
+Se midieron en producción (Playwright, solo lectura) 44 pantallas: tiempo hasta que se va el loader, peso de la respuesta y consultas más caras (`pg_stat_statements`).
+**Paso 1 (hecho): la caja no veía 295 prendas.** PostgREST corta toda respuesta en 1.000 filas sin error; el catálogo tiene 1.295 variantes y `fn_stock_por_sede` 2.927 filas. La «Chompa Cuello Redondo Lana» roja M (2 en TRU) salía «No encontramos». Nació `leerTodas()` (`lib/resultado.ts`): pide por páginas con orden único, de a 3 en paralelo. Aplicado a `getCatalogo`, `getStockPorUbicacion`, `leerStockDeLasSedes` (Vender, Apartados, Cambios, Existencias) y a Atributos ▸ Etiquetas. Medido contra producción: catálogo 1.295/1.295 en ~680 ms, stock de la red 2.927/2.927 en ~250 ms.
+**Regla desde hoy: una lectura que puede pasar de 1.000 filas va con `leerTodas()` y un `.order()` que no repita.**
+Lo que sigue, en este orden (acordado con Felipe):
+- **Existencias (2,8 s, 2,1 MB):** la consulta de stock con 5 joins promedia 1,1 s (máx. 5,6 s). Una función que devuelva solo lo que pinta la tabla.
+- **Comprobantes ▸ Emitidos:** 16.500 elementos y 2,8 MB de HTML — paginar.
+- **Catálogo de la caja (opción A):** sigue cargándose entero (vende sin internet); adelgazar lo que viaja y no volver a pedirlo en cada visita.
+- **Productos (2,3 s):** `fn_productos_resumen`, marcas y `categoria_tallas` lentas para su tamaño — confirmar con estadísticas limpias (las de hoy mezclan antes del ADR-0176).
+- **Contador de traslados** del layout en cada navegación (piso de ~400 ms por pantalla) y cascadas en Movimientos (4 pasos), Recibir (3), Producción ▸ Órdenes (4).
 
 ## 🎯 Candado de dinero en Caja, Cambios y Devoluciones (2026-09-22/23, ADR-0177 — renumerado desde 0166 por choque con Separaciones, y de 0169 por choque con la Paleta oficial) — pegado y verificado en producción; Cambios revertido a pedido de Felipe
 Del análisis `/pantalla` completo del módulo Ventas: la misma familia de hueco en tres pantallas (dinero se movía sin que la base exigiera líder), cerrada en una sola migración. Detalle en [docs/adr/0177-candado-de-dinero-en-caja-cambios-devoluciones.md](adr/0177-candado-de-dinero-en-caja-cambios-devoluciones.md).
@@ -47,6 +58,16 @@ Del análisis `/pantalla` completo del módulo Ventas: la misma familia de hueco
 - [ ] Pendiente, ya decidido por Felipe (BACKLOG, más abajo): nota de crédito por diferencia de un cambio (serie B por tienda) — proyecto de SUNAT/Lucode aparte, no se mezcló con este candado.
 - [x] **Verificado tras la fusión del PR #285:** la migración F3 de abajo (`actor_firma_las_operaciones`) lee la definición viva de `registrar_movimiento_caja`/`registrar_cambio`/`aprobar_devolucion` y solo reemplaza la línea que busca a la persona — no pisa este candado (ni su reversión en Cambios) cuando F3 se pegue en producción.
 - [x] **`20260923110500_cambios_sin_candado_de_lider.sql` está en producción** (verificado el 2026-09-23: `registrar_cambio` ya no tiene el candado de líder y sigue firmando con `fn_actor_persona_id(true)`; Caja conserva el suyo). Se renombró desde `…110000` porque chocaba con `20260923110000_cambiar_rol_entre_lideres.sql` y dejaba el CI de `main` en rojo; las dos ya estaban pegadas, así que el cambio de número no toca producción.
+
+## 🔒 Responsable obligatorio para todos (2026-09-23, Felipe, ADR-0162 actualización) — EN CURSO
+«Todas obligatorias, un mismo flujo para todos; si nadie marcó asistencia no se podrá vender.» Sin excepción para el líder.
+- [x] Interruptor como dato: `configuracion_empresa.exige_responsable` (migración `20260923160000_responsable_obligatorio.sql`), apagado por defecto; 6 casos nuevos en `pruebas:terminales-sin-persona` (52/52).
+- [ ] Combo en las 7 llamadas que no lo mandaban (anular venta, aprobar/rechazar devolución, anular y liberar comprobante, archivar serie, registrar clienta) y en `/api/lucode/consultar-anulacion` — PR #329, auditoría en 0. Falta verlo con clics.
+- [x] `20260923160000` pegada en producción el 2026-09-23 (ensayo con ROLLBACK y COMMIT): una sola firma, la columna existe y el interruptor quedó APAGADO.
+- [ ] Con la web publicada: `update retail.configuracion_empresa set exige_responsable = true;` en producción.
+- [ ] Emergencia (una tienda trabada): `update retail.configuracion_empresa set exige_responsable = false;` — sin migración.
+- [ ] Lima: cargar su asistencia en Dynamic; hasta entonces, con el interruptor encendido, Lima no puede guardar nada.
+- Cómo verificas: como persona, en una tienda donde nadie marcó entrada, el botón de guardar queda apagado con «Nadie de turno…»; con alguien marcado, se elige y guarda a su nombre.
 
 ## 🎯 Las 6 decisiones de los módulos (2026-09-22, ADR-0161 P1–P6) — EN PRODUCCIÓN (pegada el 2026-09-23)
 Migración `20260923140000_modulos_seis_decisiones.sql` + web + pruebas. Detalle y clasificación de cada candado en el ADR-0161 («P1–P6 construidas»).

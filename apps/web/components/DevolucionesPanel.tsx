@@ -217,7 +217,15 @@ export function DevolucionesPanel({
 
       {!busqueda && (
         <>
-          <DevolucionesPendientes pendientes={pendientes} esLider={esLider} cajaAbierta={cajaAbierta} ahora={ahora} refTitulo={tituloPorAprobar} />
+          <DevolucionesPendientes
+            pendientes={pendientes}
+            esLider={esLider}
+            cajaAbierta={cajaAbierta}
+            ahora={ahora}
+            refTitulo={tituloPorAprobar}
+            ubicacionId={ubicacionId}
+            sede={sede}
+          />
 
           <section aria-labelledby="actividad-reciente" className="space-y-5">
             <div className="flex flex-wrap items-end justify-between gap-3">

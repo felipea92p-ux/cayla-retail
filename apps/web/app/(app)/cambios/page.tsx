@@ -2,12 +2,11 @@ import { Banknote, CalendarDays, RefreshCw } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getVentasRecientes } from "@/lib/ventas-v2";
 import { getCatalogo } from "@/lib/catalogo-v2";
-import { getStockPorUbicacion } from "@/lib/inventario-v2";
+import { getStockPorUbicacion, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getCajaAbierta } from "@/lib/caja";
 import { agruparStockPorSede } from "@/lib/stock-por-sede";
 import { getEstadisticasCambios, getTallasQueNoCalzan } from "@/lib/cambios-estadisticas";
-import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { CambiosPanel } from "@/components/CambiosPanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -25,7 +24,6 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
   // Solo un líder ve otras sedes (RLS de ventas): a una integrante, "todas" no le
   // traería nada y la pantalla mentiría diciendo "no encontramos".
   const todasLasSedes = esLider && todas === "1";
-  const supabase = await createClient();
   // Mismas lecturas de stock que Vender (vender/page.tsx): el piso de ESTA ubicación
   // decide qué se puede entregar (`registrar_cambio` rechaza lo que no está), y
   // `fn_stock_por_sede` dice dónde más hay cuando aquí no queda la talla.
@@ -33,7 +31,7 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
     getVentasRecientes(persona.ubicacionId, { busqueda: q, todasLasSedes, ventaItemId: item }),
     getCatalogo(),
     getStockPorUbicacion(persona.ubicacionId),
-    supabase.rpc("fn_stock_por_sede"),
+    leerStockDeLasSedes(),
     getUbicaciones(),
     getEstadisticasCambios(persona.ubicacionId),
     esLider ? getTallasQueNoCalzan() : Promise.resolve([]),

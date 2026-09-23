@@ -5,7 +5,7 @@ import { getCajaAbierta } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { agruparStockPorSede } from "@/lib/stock-por-sede";
 import { nombresCortos } from "@/lib/nombre-integrante";
-import { getStockPorUbicacion } from "@/lib/inventario-v2";
+import { getStockPorUbicacion, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
 import { PuntoDeVenta, type ProformaEnCobro } from "@/components/PuntoDeVenta";
@@ -52,7 +52,7 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
   const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
-    supabase.rpc("fn_stock_por_sede"),
+    leerStockDeLasSedes(),
     getUbicaciones(),
     getStockPorUbicacion(persona.ubicacionId),
     // La campaña de mayor % que rige HOY (Lima) por prenda — la elige la base y la vuelve
