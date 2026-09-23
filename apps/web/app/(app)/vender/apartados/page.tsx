@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getCajaAbierta } from "@/lib/caja";
-import { getStockPorUbicacion } from "@/lib/inventario-v2";
+import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { agruparStockPorSede } from "@/lib/stock-por-sede";
 import { getApartadosDeTienda } from "@/lib/separaciones";
@@ -39,11 +39,11 @@ async function Apartados() {
     getApartadosDeTienda(persona.ubicacionId),
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
-    getStockPorUbicacion(persona.ubicacionId),
+    getDisponibleEnSede(persona.ubicacionId),
     supabase.rpc("campanas_vigentes"),
     // «¿Dónde más hay?» para lo que aquí no tiene disponible (misma lectura que el Punto de venta). Es secundario:
     // si falla, el buscador sigue funcionando sin esa línea.
-    supabase.rpc("fn_stock_por_sede"),
+    leerStockDeLasSedes(),
     getUbicaciones(),
   ]);
 
@@ -59,8 +59,8 @@ async function Apartados() {
   }
 
   // Lo que se puede apartar es lo DISPONIBLE en el piso (ADR-0141): lo ya apartado para otra clienta no se ofrece.
-  const piso = new Map(stockAqui.map((f) => [f.varianteId, f.pisoDisponible ?? f.disponible]));
-  const almacen = new Map(stockAqui.map((f) => [f.varianteId, f.almacenDisponible ?? 0]));
+  const piso = new Map([...stockAqui].map(([id, c]) => [id, c.pisoDisponible ?? c.disponible]));
+  const almacen = new Map([...stockAqui].map(([id, c]) => [id, c.almacenDisponible ?? 0]));
   const otrasSedes = resStockSedes.error ? new Map() : agruparStockPorSede(resStockSedes.data ?? [], ubicaciones, persona.ubicacionId);
   const campana = new Map((resCampanas.data ?? []).map((c) => [c.variante_id, { etiquetaId: c.etiqueta_id, nombre: c.etiqueta_nombre, pct: Number(c.descuento_pct) }]));
   const prendas: PrendaApartable[] = variantes

@@ -33,7 +33,8 @@ import {
   type EstadoStock,
 } from "@/lib/inventario-reglas";
 import { textoCobertura } from "@/lib/resumen-formato";
-import { bandaDeCobertura, calcularVelocidad, type Cobertura, type FilaResumen } from "@/lib/resumen-reglas";
+import { bandaDeCobertura, calcularVelocidad, type Cobertura } from "@/lib/resumen-reglas";
+import type { FilaSemana } from "@/lib/existencias-categorias";
 import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/inventario-v2";
 import type { Sububicacion } from "@/lib/sububicaciones";
 
@@ -220,7 +221,7 @@ export function InventarioPanel({
   coberturaFallo?: string | null;
   /** Los últimos 7 días de la sede (`getFilasSemanaDeSede`): ritmo de venta, costo/precio/categoría y
    *  el delta vs. hace 7 días — alimenta la columna «Ritmo de venta (7D)» y el overlay de «Disponible total». */
-  filasSemana: FilaResumen[];
+  filasSemana: FilaSemana[];
   /** El delta de disponible de TODA la sede en los últimos 7 días, para la tarjeta «Disponible total». */
   deltaSede: { hoy: number; hace7d: number; pct: number | null };
   /** «Ver recomendaciones» (2026-09-22): el motor de reposición (`planDeReposicion`, ya existía para

@@ -10,11 +10,13 @@
  *  · Solo se elige entre quienes están `presente` en la sede activa según `fn_asesoras_de_turno`. En pausa se
  *    muestra deshabilitada; `salio` y `programada` no aparecen.
  *  · Solo el nombre, sin PIN.
- *  · Qué trae elegido al abrir (Felipe, 2026-09-22, segunda vuelta — `responsableInicial`):
- *      – sesión de una PERSONA: ya viene elegida ella misma, si está presente en la sede (si no marcó entrada, vacío);
- *      – sesión de una TERMINAL: vacío siempre — el aparato no es nadie;
- *      – Punto de venta: vacío siempre, también para una persona — quien atiende a la clienta puede no ser quien abrió
- *        la sesión en el mostrador.
+ *  · Dos modos (`ModoResponsable`, Felipe 2026-09-23 — corrige la segunda vuelta del 2026-09-22):
+ *      – «atencion»: donde se atiende a la clienta — Punto de venta (venta y sus apartados), Cambios y Devoluciones.
+ *        Pregunta «¿Quién está atendiendo?» y viene VACÍO siempre, también para una persona: quien atiende a la
+ *        clienta puede no ser quien abrió la sesión en el mostrador.
+ *      – «operacion»: todo lo demás (Caja, Existencias, Catálogo, Compras…). Pregunta «¿Quién hace esta operación?» y,
+ *        con la sesión de una PERSONA, ya viene elegida ella misma si está presente en la sede (si no marcó entrada,
+ *        vacío). Con una TERMINAL, vacío siempre — el aparato no es nadie.
  *  · Si no hay nadie presente, la operación se bloquea — sin «Otra persona» —, también para un líder.
  *  · Después de guardar vuelve a como vino al abrir (elegida la persona de la sesión, o vacío).
  *
@@ -71,9 +73,23 @@ export function responsableVigente(lista: ListaResponsable, elegidoId: string | 
   return lista.elegibles.some((p) => p.personaId === elegidoId) ? elegidoId : null;
 }
 
+/** Dónde está el combo: atendiendo a una clienta o en cualquier otra operación (ver «Dos modos» arriba). */
+export type ModoResponsable = "atencion" | "operacion";
+
+/** Lo que dice el combo vacío. El aviso de «falta» (`motivoSinResponsable`) dice lo mismo, para que siempre calcen. */
+export function preguntaResponsable(modo: ModoResponsable): string {
+  return modo === "atencion" ? "¿Quién está atendiendo?" : "¿Quién hace esta operación?";
+}
+
+/** ¿Se propone a quien inició sesión? Solo fuera de la atención a la clienta (y solo si es una persona: eso lo decide
+ *  quien pasa el propuesto, que en una terminal es `null`). */
+export function proponeSesion(modo: ModoResponsable): boolean {
+  return modo === "operacion";
+}
+
 /**
  * A quién se toma como elegido: lo que la persona tocó en el combo o, si todavía no tocó nada (`undefined`), el
- * propuesto — quien inició sesión, o `null` en una terminal y en el Punto de venta. Luego `responsableVigente` lo
+ * propuesto — quien inició sesión, o `null` en una terminal y al atender a la clienta (`proponeSesion`). Luego `responsableVigente` lo
  * descarta si no está presente: nunca se propone a alguien que no marcó entrada.
  */
 export function responsableInicial(tocado: string | null | undefined, propuesto: string | null): string | null {
@@ -100,12 +116,12 @@ export function estadoCombo(v: { cargo: boolean; fallo: boolean; lista: ListaRes
  * La frase corta que explica por qué el botón de guardar está apagado (debajo del botón, o en su `title`).
  * `null` cuando el responsable ya no bloquea nada.
  */
-export function motivoSinResponsable(estado: EstadoCombo, sede: string): string | null {
+export function motivoSinResponsable(estado: EstadoCombo, sede: string, modo: ModoResponsable = "operacion"): string | null {
   switch (estado) {
     case "listo":
       return null;
     case "falta":
-      return "Elige quién está atendiendo.";
+      return modo === "atencion" ? "Elige quién está atendiendo." : "Elige quién hace esta operación.";
     case "nadie":
       return `Nadie de turno en ${sede}: marca tu entrada en el kiosco para poder guardar.`;
     case "sin_lectura":
@@ -184,7 +200,8 @@ export function esErrorDeResponsable(error: ErrorBase): boolean {
 export function mensajeErrorResponsable(error: ErrorBase): string | null {
   switch (hintDe(error)) {
     case "responsable_requerido":
-      return "Falta elegir quién está atendiendo. Elígelo en «Responsable» y vuelve a intentar.";
+      // Viene de la base, que no sabe en qué pantalla se está: dicho sin la pregunta de ningún modo.
+      return "Falta elegir al responsable. Elígelo en «Responsable» y vuelve a intentar.";
     case "responsable_no_presente":
       return "Esa persona ya no figura de turno en esta tienda (marcó su salida o salió a una pausa). Actualiza la lista y elige a quien está presente.";
     case "responsable_sin_acceso":

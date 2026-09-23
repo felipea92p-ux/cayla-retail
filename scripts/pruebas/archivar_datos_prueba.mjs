@@ -121,7 +121,7 @@ const CAJA_ABIERTA_POR_MICAELA = `${BASE}${cambiaA(FELIPE)}select (select count(
   select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'trujillo' and estado = 'abierta'
 ) x) as _cerro_previa \\gset
 ${cambiaA(MICAELA)}select retail.abrir_caja(:'trujillo', 100.00) as caja \\gset
-${cambiaA(FELIPE)}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Ingreso vario de prueba') as _i \\gset
+${cambiaA(FELIPE)}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Otro', 'Ingreso vario de prueba') as _i \\gset
 `;
 
 /** Un conteo en el estado pedido (`abierto` o `anulado`) en Trujillo. Deja `:conteo`. */

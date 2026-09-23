@@ -29,6 +29,11 @@ import { execFileSync } from "node:child_process";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001";
+// Segunda líder (seed.sql), usada solo para aprobar — desde
+// 20260922235000_candado_dinero_caja_cambios_devoluciones.sql quien registra una devolución
+// ya no puede aprobarla ella misma, y este archivo prueba OTRO candado (caja/efectivo), no
+// ese: la persona que aprueba tiene que ser distinta de quien la registró.
+const SANDRA = "22222222-2222-4222-8222-000000000005";
 
 function psql(sql) {
   return execFileSync(
@@ -84,7 +89,12 @@ select id as venta_item from retail.venta_items where venta_id = :'venta_id' and
 
 const ITEMS_DEVOLUCION = `jsonb_build_array(jsonb_build_object('venta_item_id', :'venta_item', 'cantidad', 1, 'condicion', 'vendible'))`;
 
-/** La base + una devolución pendiente + la caja cerrada (ninguna abierta en Lima). */
+/**
+ * La base + una devolución pendiente + la caja cerrada (ninguna abierta en Lima). Termina la
+ * sesión en SANDRA (no Felipe, que la registró) — el candado de auto-aprobación de
+ * 20260922235000 no es lo que este archivo prueba, así que se lo saca del camino aquí, una
+ * sola vez, en vez de repetirlo en cada escenario.
+ */
 const FIXTURE_VENTA = `${FIXTURE_BASE}
 select retail.crear_devolucion(:'venta_id', :'ubic', ${ITEMS_DEVOLUCION}, 'prueba automatizada', 'otro') as devolucion_id \\gset
 
@@ -93,6 +103,8 @@ select retail.crear_devolucion(:'venta_id', :'ubic', ${ITEMS_DEVOLUCION}, 'prueb
 select (select count(*) from (
   select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'ubic' and estado = 'abierta'
 ) x) as _cerro_para_probar \\gset
+
+set local request.jwt.claim.sub = '${SANDRA}';
 `;
 
 let fallos = 0;

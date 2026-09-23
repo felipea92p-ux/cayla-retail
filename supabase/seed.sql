@@ -158,6 +158,44 @@ from public.personas p, retail.ubicaciones u
 where p.auth_user_id = '22222222-2222-4222-8222-000000000003' and u.nombre = 'Tienda Trujillo'
 on conflict (persona_id) do nothing;
 
+-- Segunda líder (D-79 / 20260922235000_candado_dinero_caja_cambios_devoluciones.sql): con
+-- solo Felipe de líder, el seed no podía aprobar su propia devolución (candado nuevo:
+-- quien la registra no puede aprobarla) — sandra@cayla.local / cayla-local existe solo
+-- para eso, mismo patrón de credenciales obvias.
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+  created_at, updated_at, raw_app_meta_data, raw_user_meta_data,
+  confirmation_token, recovery_token, email_change_token_new, email_change,
+  email_change_token_current, phone_change, phone_change_token, reauthentication_token
+) values (
+  '00000000-0000-0000-0000-000000000000',
+  '22222222-2222-4222-8222-000000000005',
+  'authenticated', 'authenticated', 'sandra@cayla.local',
+  extensions.crypt('cayla-local', extensions.gen_salt('bf')),
+  now(), now(), now(),
+  '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb,
+  '', '', '', '', '', '', '', ''
+) on conflict (id) do nothing;
+
+insert into auth.identities (
+  id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at
+) values (
+  '22222222-2222-4222-8222-000000000006',
+  '22222222-2222-4222-8222-000000000005',
+  '22222222-2222-4222-8222-000000000005',
+  '{"sub":"22222222-2222-4222-8222-000000000005","email":"sandra@cayla.local","email_verified":true}'::jsonb,
+  'email', now(), now(), now()
+) on conflict (id) do nothing;
+
+insert into public.personas (auth_user_id, nombres, apellidos, rol, sede_base_id)
+select '22222222-2222-4222-8222-000000000005', 'Sandra', 'Quispe', 'admin', id
+from public.sedes where codigo = 'LIM'
+on conflict (auth_user_id) do nothing;
+
+insert into retail.colaboradores (persona_id, rol, tope_descuento_pct)
+select id, 'lider', null from public.personas where auth_user_id = '22222222-2222-4222-8222-000000000005'
+on conflict (persona_id) do nothing;
+
 insert into retail.proveedores (nombre, ruc, contacto) values
   ('Textiles Andina SAC', '20512345678', 'Jorge Ramos'),
   ('Confecciones del Sur EIRL', '20498765432', 'Lucía Paredes');
@@ -457,8 +495,12 @@ begin
     null, gen_random_uuid());
 
   -- ---------- caja: un ingreso, un egreso (retiro), y el cierre de Trujillo ----------
-  perform retail.registrar_movimiento_caja(caja_lima, 'ingreso', 50.00, 'Vuelto adicional traído de casa');
-  perform retail.registrar_movimiento_caja(caja_lima, 'egreso', 20.00, 'Retiro: compra de bolsas para empaque');
+  -- Motivos ajustados al vocabulario cerrado de 20260922235000 (antes texto libre, nunca
+  -- validado en la base — el mismo hueco que esa migración cierra): "ingreso" solo admite
+  -- Ajuste de caja (sobrante)/Otro, así que el vuelto de casa entra como "Otro" con nota; el
+  -- retiro para insumos ya tenía un motivo cerrado real ("Compra de insumos").
+  perform retail.registrar_movimiento_caja(caja_lima, 'ingreso', 50.00, 'Otro', 'Vuelto adicional traído de casa');
+  perform retail.registrar_movimiento_caja(caja_lima, 'egreso', 20.00, 'Compra de insumos', 'Bolsas para empaque');
   perform retail.cerrar_caja(caja_trujillo, 219.90);
   -- 80 apertura + 149.90 tarjeta (no suma al efectivo) = 80.00 esperado en
   -- efectivo; se cuenta 219.90 a propósito para dejar una diferencia real
@@ -477,7 +519,13 @@ begin
       jsonb_build_object('venta_item_id', vi_vestido, 'cantidad', 1, 'condicion', 'vendible'),
       jsonb_build_object('venta_item_id', vi_pantalon, 'cantidad', 1, 'condicion', 'danada_reparacion')
     ), 'Clienta indicó talla incorrecta; el pantalón llegó con una costura suelta', 'talla');
+  -- Nuevo (20260922235000): quien registra una devolución ya no puede aprobarla ella misma —
+  -- Felipe la registró, así que la aprueba Sandra (la segunda líder de este seed). Se vuelve a
+  -- Felipe justo después: todo lo que sigue en este bloque (conteo, cambios, cajas) sigue
+  -- siendo "su" sesión, como antes de este candado.
+  perform set_config('request.jwt.claim.sub', '22222222-2222-4222-8222-000000000005', true);
   perform retail.aprobar_devolucion(devolucion1_id, 149.90 - 15.00, 'yape');
+  perform set_config('request.jwt.claim.sub', '22222222-2222-4222-8222-000000000001', true);
 
   -- ---------- conteo con diferencia real, acotado al piso (Lima separa
   -- piso/almacén desde 20260914210000_inventario_piso_almacen.sql — un

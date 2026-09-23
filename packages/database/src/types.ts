@@ -5994,6 +5994,10 @@ export type Database = {
       fn_puede_analizar: { Args: never; Returns: boolean }
       fn_puede_gestionar_colaboradores: { Args: never; Returns: boolean }
       fn_puede_administrar_roles: { Args: never; Returns: boolean }
+      // 20260923163000 (ADR-0178): el escalón Admin, leído de Dynamic, y «solo das lo que tienes».
+      fn_es_admin: { Args: never; Returns: boolean }
+      fn_admins: { Args: never; Returns: { persona_id: string }[] }
+      fn_rol_dentro_de_lo_mio: { Args: { p_rol_id: string }; Returns: boolean }
       // ADR-0151 (Compras por tienda)
       fn_compras_ubicaciones: { Args: never; Returns: string[] }
       fn_puede_comprar_en: { Args: { p_ubicacion_id: string }; Returns: boolean }

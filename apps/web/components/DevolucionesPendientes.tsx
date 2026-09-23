@@ -15,6 +15,9 @@ import { DIAS_PLAZO_CAMBIO, METODOS_DIFERENCIA, estadoPlazoCambio, etiquetaDia, 
 import { etiquetaCondicion, revisarAprobacion } from "@/lib/devoluciones-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 /**
  * «Por aprobar» (2026-09-18): las devoluciones que una colaboradora registró y un líder
@@ -25,6 +28,10 @@ import { codigoPrenda } from "@/lib/prenda-reglas";
  * tarjeta le pone delante al líder lo que necesita para decidir: qué prendas y en qué estado
  * vuelven, cuánto pagó la clienta, y si la compra ya venció el plazo (que no bloquea: lo
  * decide él). El reembolso es opcional y es la última opción (R-37).
+ *
+ * Aprobar y rechazar firman con el combo «Responsable» (ADR-0161): el permiso sigue siendo del líder (lo pregunta
+ * la base a la cuenta), el combo solo dice quién de turno lo hizo. El combo vive en el panel que se abre al tocar
+ * Aprobar/Rechazar, no en cada tarjeta, para no leer la asistencia una vez por devolución pendiente.
  */
 export function DevolucionesPendientes({
   pendientes,
@@ -32,12 +39,17 @@ export function DevolucionesPendientes({
   cajaAbierta,
   ahora,
   refTitulo,
+  ubicacionId,
+  sede,
 }: {
   pendientes: DevolucionPendiente[];
   esLider: boolean;
   cajaAbierta: boolean;
   ahora: Date;
   refTitulo: RefObject<HTMLHeadingElement | null>;
+  /** La tienda de estas devoluciones: la lista de «De turno» del combo es la de aquí. */
+  ubicacionId: string;
+  sede: string;
 }) {
   if (pendientes.length === 0) return null;
   return (
@@ -52,74 +64,30 @@ export function DevolucionesPendientes({
       </div>
       <div className="space-y-3">
         {pendientes.map((d) => (
-          <TarjetaPendiente key={d.id} devolucion={d} esLider={esLider} cajaAbierta={cajaAbierta} ahora={ahora} />
+          <TarjetaPendiente key={d.id} devolucion={d} esLider={esLider} cajaAbierta={cajaAbierta} ahora={ahora} ubicacion={{ ubicacionId, etiqueta: sede }} />
         ))}
       </div>
     </section>
   );
 }
 
-function TarjetaPendiente({ devolucion: d, esLider, cajaAbierta, ahora }: { devolucion: DevolucionPendiente; esLider: boolean; cajaAbierta: boolean; ahora: Date }) {
-  const router = useRouter();
+type Ubicacion = { ubicacionId: string; etiqueta: string };
+
+function TarjetaPendiente({
+  devolucion: d,
+  esLider,
+  cajaAbierta,
+  ahora,
+  ubicacion,
+}: {
+  devolucion: DevolucionPendiente;
+  esLider: boolean;
+  cajaAbierta: boolean;
+  ahora: Date;
+  ubicacion: Ubicacion;
+}) {
   const [resolviendo, setResolviendo] = useState<"aprobar" | "rechazar" | null>(null);
-  const [monto, setMonto] = useState("");
-  const [metodo, setMetodo] = useState<(typeof METODOS_DIFERENCIA)[number]["valor"]>("efectivo");
-  const [motivoRechazo, setMotivoRechazo] = useState("");
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const plazo = estadoPlazoCambio(d.vendidoEn, ahora);
-  const montoNumero = monto.trim() === "" ? null : Number(monto);
-  const revision = revisarAprobacion({ monto: montoNumero, metodo, cajaAbierta, valorPagado: d.valorPagado });
-
-  async function aprobar() {
-    if (revision.bloqueo) return;
-    setCargando(true);
-    setError(null);
-    const { data, error: fallo } = await createClient().rpc("aprobar_devolucion", {
-      p_devolucion_id: d.id,
-      p_reembolso_monto: montoNumero && montoNumero > 0 ? montoNumero : undefined,
-      p_reembolso_metodo: montoNumero && montoNumero > 0 ? metodo : undefined,
-    });
-    setCargando(false);
-    if (fallo) {
-      setError(traducirError(fallo, "aprobar la devolución"));
-      return;
-    }
-    // Si la venta tenía un comprobante ya aceptado por SUNAT, aprobar_devolucion (ADR-0100)
-    // emite la Nota de Crédito sola — nadie tiene que acordarse de ir a Facturación aparte.
-    // `data` es una tabla vacía cuando no aplicaba.
-    const nota = data?.[0];
-    if (nota?.nota_credito_id) {
-      avisar.exito("Devolución aprobada", {
-        detalle: `Nota de crédito ${nota.nota_credito_serie}-${String(nota.nota_credito_numero).padStart(6, "0")} reservada — transmítela desde Facturación.`,
-      });
-    } else {
-      avisar.exito("Devolución aprobada");
-    }
-    router.refresh();
-  }
-
-  async function rechazar() {
-    if (!motivoRechazo.trim()) {
-      setError("Escribe el motivo del rechazo.");
-      return;
-    }
-    setCargando(true);
-    setError(null);
-    const { error: fallo } = await createClient().rpc("rechazar_devolucion", { p_devolucion_id: d.id, p_motivo: motivoRechazo.trim() });
-    setCargando(false);
-    if (fallo) {
-      setError(traducirError(fallo, "rechazar la devolución"));
-      return;
-    }
-    router.refresh();
-  }
-
-  function cancelar() {
-    setResolviendo(null);
-    setError(null);
-  }
 
   return (
     // `anim-revelar` sin `key` extra: `key={d.id}` del `.map` ya hace que React reutilice la
@@ -195,7 +163,109 @@ function TarjetaPendiente({ devolucion: d, esLider, cajaAbierta, ahora }: { devo
         </footer>
       )}
 
-      {resolviendo === "aprobar" && (
+      {resolviendo && (
+        <PanelResolver key={resolviendo} modo={resolviendo} devolucion={d} cajaAbierta={cajaAbierta} ubicacion={ubicacion} onCancelar={() => setResolviendo(null)} />
+      )}
+    </article>
+  );
+}
+
+/**
+ * Lo que se abre al tocar Aprobar o Rechazar: los datos de la decisión, el combo «Responsable» y el botón que guarda.
+ * Se monta solo mientras está abierto, así que la lista de quién está de turno se lee solo entonces.
+ */
+function PanelResolver({
+  modo,
+  devolucion: d,
+  cajaAbierta,
+  ubicacion,
+  onCancelar,
+}: {
+  modo: "aprobar" | "rechazar";
+  devolucion: DevolucionPendiente;
+  cajaAbierta: boolean;
+  ubicacion: Ubicacion;
+  onCancelar: () => void;
+}) {
+  const router = useRouter();
+  const [monto, setMonto] = useState("");
+  const [metodo, setMetodo] = useState<(typeof METODOS_DIFERENCIA)[number]["valor"]>("efectivo");
+  const [motivoRechazo, setMotivoRechazo] = useState("");
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const responsable = useResponsable(ubicacion);
+
+  const montoNumero = monto.trim() === "" ? null : Number(monto);
+  const revision = revisarAprobacion({ monto: montoNumero, metodo, cajaAbierta, valorPagado: d.valorPagado });
+
+  async function aprobar() {
+    if (revision.bloqueo) return;
+    if (!responsable.listo) {
+      setError(responsable.motivo);
+      return;
+    }
+    setCargando(true);
+    setError(null);
+    const { data, error: fallo } = await firmar(
+      createClient().rpc("aprobar_devolucion", {
+        p_devolucion_id: d.id,
+        p_reembolso_monto: montoNumero && montoNumero > 0 ? montoNumero : undefined,
+        p_reembolso_metodo: montoNumero && montoNumero > 0 ? metodo : undefined,
+      }),
+      responsable.firma(),
+    );
+    setCargando(false);
+    responsable.despues(fallo);
+    if (fallo) {
+      setError(traducirError(fallo, "aprobar la devolución"));
+      return;
+    }
+    // Si la venta tenía un comprobante ya aceptado por SUNAT, aprobar_devolucion (ADR-0100)
+    // emite la Nota de Crédito sola — nadie tiene que acordarse de ir a Facturación aparte.
+    // `data` es una tabla vacía cuando no aplicaba.
+    const nota = data?.[0];
+    if (nota?.nota_credito_id) {
+      avisar.exito("Devolución aprobada", {
+        detalle: `Nota de crédito ${nota.nota_credito_serie}-${String(nota.nota_credito_numero).padStart(6, "0")} reservada — transmítela desde Facturación.`,
+      });
+    } else {
+      avisar.exito("Devolución aprobada");
+    }
+    router.refresh();
+  }
+
+  async function rechazar() {
+    if (!motivoRechazo.trim()) {
+      setError("Escribe el motivo del rechazo.");
+      return;
+    }
+    if (!responsable.listo) {
+      setError(responsable.motivo);
+      return;
+    }
+    setCargando(true);
+    setError(null);
+    const { error: fallo } = await firmar(
+      createClient().rpc("rechazar_devolucion", { p_devolucion_id: d.id, p_motivo: motivoRechazo.trim() }),
+      responsable.firma(),
+    );
+    setCargando(false);
+    responsable.despues(fallo);
+    if (fallo) {
+      setError(traducirError(fallo, "rechazar la devolución"));
+      return;
+    }
+    router.refresh();
+  }
+
+  function cancelar() {
+    setError(null);
+    onCancelar();
+  }
+
+  return (
+    <>
+      {modo === "aprobar" && (
         <div className="anim-revelar space-y-4 border-t border-tinta/[0.07] px-5 py-4">
           <div>
             <h3 className="text-sm font-semibold text-tinta">¿Se le reembolsa algo?</h3>
@@ -270,11 +340,12 @@ function TarjetaPendiente({ devolucion: d, esLider, cajaAbierta, ahora }: { devo
             </p>
           )}
 
+          <ComboResponsable control={responsable} deshabilitado={cargando} className="max-w-sm" />
           <div className="flex flex-wrap items-center justify-end gap-2">
             <BotonSecundario onClick={cancelar} disabled={cargando}>
               Cancelar
             </BotonSecundario>
-            <BotonRojo onClick={aprobar} disabled={cargando || !!revision.bloqueo}>
+            <BotonRojo onClick={aprobar} disabled={cargando || !!revision.bloqueo || !responsable.listo}>
               {cargando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
               {cargando ? "Aprobando…" : "Aprobar devolución"}
             </BotonRojo>
@@ -282,7 +353,7 @@ function TarjetaPendiente({ devolucion: d, esLider, cajaAbierta, ahora }: { devo
         </div>
       )}
 
-      {resolviendo === "rechazar" && (
+      {modo === "rechazar" && (
         <div className="anim-revelar space-y-4 border-t border-tinta/[0.07] px-5 py-4">
           <div>
             <label htmlFor={`rechazo-${d.id}`} className="text-sm font-semibold text-tinta">
@@ -304,17 +375,18 @@ function TarjetaPendiente({ devolucion: d, esLider, cajaAbierta, ahora }: { devo
               {error}
             </p>
           )}
+          <ComboResponsable control={responsable} deshabilitado={cargando} className="max-w-sm" />
           <div className="flex flex-wrap items-center justify-end gap-2">
             <BotonSecundario onClick={cancelar} disabled={cargando}>
               Cancelar
             </BotonSecundario>
-            <BotonPrincipal onClick={rechazar} disabled={cargando}>
+            <BotonPrincipal onClick={rechazar} disabled={cargando || !responsable.listo}>
               {cargando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
               {cargando ? "Rechazando…" : "Rechazar devolución"}
             </BotonPrincipal>
           </div>
         </div>
       )}
-    </article>
+    </>
   );
 }
