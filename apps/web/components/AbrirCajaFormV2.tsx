@@ -53,7 +53,8 @@ export function AbrirCajaFormV2({
       supabase.rpc("abrir_caja", {
         p_ubicacion_id: ubicacionId,
         p_monto_apertura: monto,
-        ...(pideMotivo ? { p_motivo_diferencia: motivo.trim() } : {}),
+        // `undefined` no viaja en el JSON; escrito así para que `pnpm datos:comparar` lo coteje con producción.
+        p_motivo_diferencia: pideMotivo ? motivo.trim() : undefined,
       }),
       responsable.firma(),
     );

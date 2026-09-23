@@ -149,7 +149,10 @@ export function CerrarCajaModalV2({
           p_caja_id: cajaId,
           p_monto_real: contado,
           p_traslado_monto: trasladado,
-          ...(trasladado > 0 ? { p_traslado_destino: destino, p_traslado_referencia: referencia.trim() } : {}),
+          // Sin traslado no se mandan destino ni referencia (`undefined` no viaja en el JSON): los parámetros van escritos
+          // uno por uno para que `pnpm datos:comparar` pueda cotejarlos con producción.
+          p_traslado_destino: trasladado > 0 ? destino : undefined,
+          p_traslado_referencia: trasladado > 0 ? referencia.trim() : undefined,
         })
         .single(),
       responsable.firma(),
