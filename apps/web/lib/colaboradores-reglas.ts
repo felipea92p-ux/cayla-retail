@@ -139,10 +139,12 @@ export function porAtender(pendientes: number, inactivas: number): AvisoPorAtend
  *  nunca a uno mismo. */
 export type AccionFila = "cambiar_rol" | "cambiar_ubicacion" | "suspender" | "quitar";
 
-export function accionesDeFila(c: Pick<Colaborador, "rol" | "es_yo">, soyLider = true): AccionFila[] {
+export function accionesDeFila(c: Pick<Colaborador, "rol" | "es_yo">, soyAdmin = true, alcanzo = true): AccionFila[] {
   if (c.es_yo) return [];
-  // A un líder solo lo toca un líder (20260923131000): quien gestiona accesos con el módulo, sin ser líder, no ve acciones.
-  if (!soyLider && c.rol === "lider") return [];
+  // «Solo alcanzas a quien está por debajo de ti» (ADR-0178, 20260923174500): a quien ve algo que tú no, o lo mismo, nada.
+  if (!alcanzo) return [];
+  // A un líder solo lo toca un ADMIN (ADR-0178, 20260923163000; antes, cualquier líder): quien no es admin no ve acciones.
+  if (!soyAdmin && c.rol === "lider") return [];
   return ["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"];
 }
 

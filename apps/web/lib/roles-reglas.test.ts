@@ -10,7 +10,11 @@ import {
   modulosFiltrados,
   controlDe,
   cuentasAsignables,
+  esMiRolSinSerLider,
   etiquetasDelMenu,
+  fueraDeLoMio,
+  motivoPorLoMio,
+  puedeAsignarRol,
   hayCambios,
   menuDelRol,
   modulosPorGrupo,
@@ -229,5 +233,59 @@ describe("editor rediseñado (spike colaboradores-ux 2026-09-22)", () => {
     expect(cambios.some(([, c]) => c === "suma")).toBe(true);
     expect(cambios.some(([, c]) => c === "quita")).toBe(true);
     expect(menuConCambios(guardado, ["vender"]).every((f) => f.cambio === "igual" && f.hijas.every((h) => h.cambio === "igual"))).toBe(true);
+  });
+});
+
+describe("ADR-0178: el escalón Admin y «solo das lo que tienes»", () => {
+  const VENDER = rol({ id: "v", nombre: "Vendedora", modulos: ["vender", "caja"] });
+  const GESTOR = rol({ id: "g", nombre: "Gestor", modulos: ["roles", "vender"] });
+  const yo = { misModulos: GESTOR.modulos, miRolId: "g" };
+  const lider = { misModulos: null, miRolId: null };
+
+  it("fueraDeLoMio: lo que uno no ve; un líder (null) lo ve todo", () => {
+    expect(fueraDeLoMio(["vender", "caja"], ["roles", "vender"])).toEqual(["caja"]);
+    expect(fueraDeLoMio(["vender", "caja"], null)).toEqual([]);
+  });
+
+  it("el propio rol no se edita sin ser líder; el de otro, sí", () => {
+    expect(esMiRolSinSerLider(GESTOR, yo)).toBe(true);
+    expect(esMiRolSinSerLider(GESTOR, { ...yo, misModulos: null })).toBe(false);
+    expect(controlDe(GESTOR, modulo("vender"), yo, true)).toEqual({ tipo: "interruptor", editable: false });
+    expect(motivoPorLoMio(GESTOR, GESTOR.modulos, ["roles"], yo)).toMatch(/propio rol/);
+  });
+
+  it("lo que uno no tiene sale con candado si está apagado, y se puede apagar si está encendido", () => {
+    expect(controlDe(VENDER, modulo("caja"), yo, false)).toEqual({ tipo: "candado", texto: "No lo tienes" });
+    expect(controlDe(VENDER, modulo("caja"), yo, true)).toEqual({ tipo: "interruptor", editable: true });
+    expect(controlDe(VENDER, modulo("caja"), lider, false)).toEqual({ tipo: "interruptor", editable: true });
+    expect(motivoPorLoMio(VENDER, ["vender"], ["vender", "caja"], yo)).toMatch(/Caja/);
+    expect(motivoPorLoMio(VENDER, ["vender", "caja"], ["vender"], yo)).toBeNull(); // apagar, siempre
+    expect(motivoPorLoMio(VENDER, ["vender"], ["vender", "caja"], lider)).toBeNull();
+  });
+
+  it("solo un Admin da el rol Líder; un rol a medida, quien ve todos sus módulos", () => {
+    expect(puedeAsignarRol(LIDER, true, null)).toBe(true);
+    expect(puedeAsignarRol(LIDER, false, null)).toBe(false); // líder que no es admin
+    expect(puedeAsignarRol(VENDER, false, null)).toBe(true);
+    expect(puedeAsignarRol(VENDER, false, GESTOR.modulos)).toBe(false);
+    expect(rolesAsignables([LIDER, VENDER, GESTOR], { tipo: "persona" }, false, GESTOR.modulos).map((r) => r.id)).toEqual(["g"]);
+  });
+
+  it("sin ser Admin no se ofrece a un líder como cuenta, y un rol fuera de lo mío no va a nadie", () => {
+    const cuentas = [
+      { tipo: "persona" as const, id: "p1", nombre: "Ana", ubicacion: "TRU", rolId: "i", esLider: false, estado: "activo" },
+      { tipo: "persona" as const, id: "p2", nombre: "Líder", ubicacion: null, rolId: "l", esLider: true, estado: "activo" },
+    ];
+    expect(cuentasAsignables(cuentas, VENDER, null, false, null).map((c) => c.id)).toEqual(["p1"]);
+    expect(cuentasAsignables(cuentas, VENDER, null, true, null).map((c) => c.id)).toEqual(["p1", "p2"]);
+    expect(cuentasAsignables(cuentas, VENDER, null, false, GESTOR.modulos)).toEqual([]);
+  });
+
+  it("a quien no está por debajo («solo alcanzas…», 20260923174500) no se le ofrece cambiar el rol", () => {
+    const cuentas = [
+      { tipo: "persona" as const, id: "p1", nombre: "Ana", ubicacion: "TRU", rolId: "i", esLider: false, estado: "activo" },
+      { tipo: "persona" as const, id: "p3", nombre: "Par", ubicacion: "TRU", rolId: "g", esLider: false, estado: "activo" },
+    ];
+    expect(cuentasAsignables(cuentas, VENDER, null, false, null, ["p3"]).map((c) => c.id)).toEqual(["p1"]);
   });
 });

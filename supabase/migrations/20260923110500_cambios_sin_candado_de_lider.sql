@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260923110000_cambios_sin_candado_de_lider.sql — CAYLA V2
+-- 20260923110500_cambios_sin_candado_de_lider.sql — CAYLA V2
 --
 -- REVIERTE una sola pieza de ADR-0177 (20260922235000): el candado que exigía
 -- líder cuando un cambio le devuelve plata a la clienta (diferencia negativa).

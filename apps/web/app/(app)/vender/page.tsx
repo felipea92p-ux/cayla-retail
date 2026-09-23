@@ -5,7 +5,7 @@ import { getCajaAbierta } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { agruparStockPorSede } from "@/lib/stock-por-sede";
 import { nombresCortos } from "@/lib/nombre-integrante";
-import { getStockPorUbicacion } from "@/lib/inventario-v2";
+import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
 import { PuntoDeVenta, type ProformaEnCobro } from "@/components/PuntoDeVenta";
@@ -41,7 +41,7 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
   const persona = await exigirModulo("vender"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   const supabase = await createClient();
   // Dos lecturas de stock con dos preguntas distintas:
-  // · «¿cuánto puedo cobrar AQUÍ ya?» → `getStockPorUbicacion`, la misma regla que la
+  // · «¿cuánto puedo cobrar AQUÍ ya?» → `getDisponibleEnSede`, la misma regla que la
   //   pantalla de Inventario: una venta descuenta el PISO, nunca el almacén en silencio
   //   (`inventario_piso_almacen.sql`), así que el tope que ve la cajera es el piso; en una
   //   ubicación sin piso/almacén (Taller, `piso === null`) sigue siendo el total.
@@ -55,9 +55,9 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
   const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, resCategorias, resTallas, resColores, ejes] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
-    supabase.rpc("fn_stock_por_sede"),
+    leerStockDeLasSedes(),
     getUbicaciones(),
-    getStockPorUbicacion(persona.ubicacionId),
+    getDisponibleEnSede(persona.ubicacionId),
     // La campaña de mayor % que rige HOY (Lima) por prenda — la elige la base y la vuelve
     // a verificar `registrar_venta`. Es un dato secundario: si no carga, se vende sin
     // ella y se AVISA (abajo), en vez de tumbar la caja. Mientras la función no exista en
@@ -79,7 +79,7 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
   const stockPorVariante = agruparStockPorSede(filasStock, ubicaciones, persona.ubicacionId);
   // Lo APARTADO para una clienta sigue en el piso pero no se puede cobrar: el tope es lo DISPONIBLE
   // (ADR-0141). La base lo rechazaría igual (`fn_aplicar_movimiento`); esto evita ofrecerlo.
-  const pisoPorVariante = new Map(stockAqui.map((f) => [f.varianteId, f.pisoDisponible ?? f.disponible]));
+  const pisoPorVariante = new Map([...stockAqui].map(([id, c]) => [id, c.pisoDisponible ?? c.disponible]));
 
   const variantesParaVenta = variantes
     .filter((v) => v.activo)

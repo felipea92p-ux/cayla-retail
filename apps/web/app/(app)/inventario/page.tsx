@@ -5,7 +5,7 @@ import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from 
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
 import { getTrasladosEnCurso } from "@/lib/traslados";
 import { getCoberturaPorVariante, getFilasRecientesDeSede, getFilasSemanaDeSede } from "@/lib/resumen-inventario";
-import { deltaDisponibleSede } from "@/lib/existencias-categorias";
+import { deltaDisponibleSede, recortarFilaSemana } from "@/lib/existencias-categorias";
 import { recomendacionesDeSede } from "@/lib/existencias-recomendaciones";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { estaAtrasado } from "@/lib/traslados-reglas";
@@ -118,7 +118,7 @@ export default async function InventarioPage({
         esLider={persona.rol === "lider"}
         puedeAjustar={puede(persona, "ajustarInventario")}
         coberturaFallo={cobertura?.fallo ?? null}
-        filasSemana={filasSemana}
+        filasSemana={filasSemana.map(recortarFilaSemana)}
         deltaSede={deltaSede}
         recomendaciones={recomendaciones}
       />

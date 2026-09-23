@@ -170,7 +170,7 @@ caso(
 // caso se pone rojo: hay que decidir si firma (→ lista de la migración) o si es un permiso (→ esta lista).
 const MIRAN_LA_CUENTA = [
   "actualizar_mi_foto_perfil", "desactivar_terminal", "fn_actor_persona_id", "fn_colaboradores", "fn_compras_ubicaciones",
-  "fn_es_lider", "fn_historial_colaborador", "fn_mi_perfil", "fn_persona_actual_resumen", "fn_persona_nueva_resumen",
+  "fn_es_admin", "fn_es_lider", "fn_historial_colaborador", "fn_mi_perfil", "fn_persona_actual_resumen", "fn_persona_nueva_resumen",
   "fn_stock_por_sede", "fn_terminal_actual", "fn_tiene_acceso_retail", "fn_ubicacion_actual_persona",
   "liberar_apartado", "listar_apartados", "registrar_venta",
 ].sort();
@@ -263,7 +263,7 @@ select concat_ws(',', abierta_por = :'rosa', terminal_id = :'t_ventas') from ret
 );
 caso(
   "registrar_movimiento_caja y cerrar_caja — terminal de ventas + Rosa: firma Rosa (movimiento con terminal_id)",
-  `${CAJA_TRU}${sesion(T_VENTAS, { resp: "rosa" })}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Ingreso de prueba') as mc \\gset
+  `${CAJA_TRU}${sesion(T_VENTAS, { resp: "rosa" })}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Otro', 'Ingreso de prueba') as mc \\gset
 select retail.cerrar_caja(:'caja', 130) as _r \\gset
 select concat_ws(',', (select usuario_id = :'rosa' and terminal_id = :'t_ventas' from retail.caja_movimientos where id = :'mc'),
   (select cerrada_por = :'rosa' and estado = 'cerrada' from retail.cajas where id = :'caja'));`,
@@ -277,7 +277,7 @@ select :'r' || ';' || (select estado from retail.cajas where id = :'caja');`,
 );
 caso(
   "registrar_movimiento_caja — Felipe (persona) sin encabezado: firma él",
-  `${CAJA_TRU}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Ingreso de prueba') as mc \\gset
+  `${CAJA_TRU}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Otro', 'Ingreso de prueba') as mc \\gset
 select (usuario_id = :'felipe' and terminal_id is null)::text from retail.caja_movimientos where id = :'mc';`,
   "true"
 );

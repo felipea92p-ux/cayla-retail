@@ -178,6 +178,15 @@ Al crear un módulo nuevo (pantalla o grupo de pantallas nuevas), en el mismo PR
    «Responsable» (`useResponsable` + `<ComboResponsable>`). Los permisos se preguntan a la cuenta (`fn_ve_modulo`,
    `fn_es_lider`), no al responsable.
 
+**Escalón Admin y «solo das lo que tienes» (ADR-0178):** por encima de Líder está el **Admin**, que no se marca en retail: se
+lee de Dynamic (`public.personas.rol = 'admin'` y Líder activo aquí, `fn_es_admin()`). Solo un Admin sube a alguien a Líder o
+le cambia el rol, la sede o el acceso a un líder; todo lo demás del líder sigue en `fn_es_lider()`. Quien no es líder solo da
+los módulos que él mismo ve (`fn_exigir_rol_dentro_de_lo_mio`, `fn_exigir_modulos_dentro_de_lo_mio`) y no edita su propio rol.
+Una función nueva que toque a un líder llama a `fn_exigir_puede_tocar_colaborador`; una que asigne un rol, a
+`fn_exigir_rol_dentro_de_lo_mio`. El rango laboral de Dynamic (colibrí…archicaylo) **no** da accesos. Y **solo alcanzas a quien
+está por debajo de ti** (como Dynamic): quien no es líder solo suspende, reactiva, quita, mueve o cambia el rol de una persona
+cuyos módulos ve él y que tiene menos que él (`fn_exigir_alcanzo_a`; entre pares, un líder).
+
 Lo vigilan las pruebas: `lib/modulos.test.ts` (toda pantalla del menú declara un módulo que existe; el catálogo de la web es el
 de TODAS las migraciones; **ninguna migración fuera de la siembra de roles escribe en `rol_modulos`**) y
 `pnpm pruebas:roles` (un módulo recién creado solo lo ve el líder).

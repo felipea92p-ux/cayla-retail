@@ -255,8 +255,8 @@ Vive en `retail.fn_ubicacion_de_partida`, que usan `fn_persona_actual_resumen` y
 
 Felipe pidió dos cambios al combo «Responsable»:
 
-1. **El texto del combo vacío pasa a «¿Quién está atendiendo?»** en todos los módulos (antes «¿Quién hace esta
-   operación?»). El aviso de «falta» se alinea: «Elige quién está atendiendo.».
+1. ~~**El texto del combo vacío pasa a «¿Quién está atendiendo?»** en todos los módulos~~ — **corregido el 2026-09-23**
+   (ver abajo): Felipe lo había pedido solo para la venta; el cambio global fue un malentendido de la sesión.
 2. **A6 deja de ser «vacío siempre»:**
    - Sesión de una **persona**: el combo viene ya elegido con ella misma, **si está presente** en la sede (A3 no cambia:
      si no marcó entrada, viene vacío y la operación se bloquea igual que antes). Después de guardar vuelve a esa persona.
@@ -269,3 +269,31 @@ en una terminal falla y queda `null`) — **sin migración**. Viaja por `SedeAct
 `useResponsable(ubicacion, { proponerSesion: false })` lo apaga en las pantallas de `vender`. La regla pura es
 `responsableInicial` en `lib/responsable-reglas.ts`, con pruebas. La base no cambia: sigue validando que el responsable
 esté presente (`fn_persona_presente`), así que proponer a alguien nunca permite firmar con un ausente.
+
+## Actualización 2026-09-23 — «¿Quién está atendiendo?» solo al atender a la clienta (corrige la del 2026-09-22)
+
+La actualización anterior puso «¿Quién está atendiendo?» en **todos** los módulos. Felipe lo había pedido solo para la
+venta. Queda así, con dos modos (`ModoResponsable` en `lib/responsable-reglas.ts`):
+
+| Modo | Pantallas | Combo vacío / aviso | ¿Viene elegido? |
+|---|---|---|---|
+| `atencion` | Punto de venta (venta y sus apartados: `/vender/apartados`), Cambios, Devoluciones | «¿Quién está atendiendo?» / «Elige quién está atendiendo.» | Nunca: vacío también para una persona |
+| `operacion` (por defecto) | Todo lo demás: Caja, Historial, Facturación, Existencias (también apartar desde ahí), Conteos, Traslados, Catálogo, Compras… | «¿Quién hace esta operación?» / «Elige quién hace esta operación.» | Con la sesión de una persona presente, ella; con una terminal, vacío |
+
+Cambios y Devoluciones **pasan a venir vacíos** (antes traían a la persona de la sesión): también atienden a una clienta
+en el mostrador. `useResponsable(ubicacion, { modo: "atencion" })` reemplaza a `{ proponerSesion: false }`; el combo pinta
+`control.pregunta`. El rechazo `responsable_requerido` de la base no sabe en qué pantalla está, así que dice «Falta elegir
+al responsable» (es casi inalcanzable: la pantalla apaga el botón antes). Una prueba en `lib/responsable-reglas.test.ts`
+fija qué pantallas usan `atencion` y que ninguna otra lo use. Sin migración.
+
+## Actualización 2026-09-23 (b) — en Catálogo el combo no va arriba de la lista
+
+Las 8 listas del Catálogo (Categorías, Familias, Colores, Tallas, Tejidos, Patrones, Etiquetas, Marcas) tenían un combo
+«Responsable» suelto arriba, para firmar los botones que guardan con un clic, y el mismo combo se repetía dentro de cada
+ventana. Con la cuenta de una persona ya trae su nombre, así que arriba solo ocupaba espacio y se veía dos veces.
+Felipe eligió (maqueta `docs/maquetas/catalogo-responsable-confirmacion-2026-09/`): **sin combo arriba**; Aprobar,
+Desactivar y Reactivar abren una confirmación corta con el combo adentro (`components/ConfirmarConResponsable.tsx`,
+textos en `lib/confirmar-catalogo.ts`). Agregar, editar, rechazar y renombrar no cambian: su ventana ya traía el combo.
+La firma no cambia. `lib/confirmar-catalogo.test.ts` vigila que ninguna de las 8 listas vuelva a tener un combo
+flotante ni un botón de tarjeta que guarde sin confirmar. Sin migración.
+

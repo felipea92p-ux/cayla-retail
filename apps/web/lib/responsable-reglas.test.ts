@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   encabezadosResponsable,
@@ -9,6 +10,8 @@ import {
   listaResponsable,
   mensajeErrorResponsable,
   motivoSinResponsable,
+  preguntaResponsable,
+  proponeSesion,
   responsableInicial,
   responsableVigente,
   type FilaDeTurno,
@@ -80,7 +83,8 @@ describe("estadoCombo y su motivo", () => {
   });
   it("solo «listo» deja de bloquear", () => {
     expect(motivoSinResponsable("listo", "Tienda TRU")).toBeNull();
-    expect(motivoSinResponsable("falta", "Tienda TRU")).toBe("Elige quién está atendiendo.");
+    expect(motivoSinResponsable("falta", "Tienda TRU")).toBe("Elige quién hace esta operación.");
+    expect(motivoSinResponsable("falta", "Tienda TRU", "atencion")).toBe("Elige quién está atendiendo.");
     expect(motivoSinResponsable("nadie", "Tienda TRU")).toMatch(/Nadie de turno en Tienda TRU/);
     expect(motivoSinResponsable("sin_lectura", "Tienda TRU")).toMatch(/Actualizar lista/);
     expect(motivoSinResponsable("cargando", "Tienda TRU")).not.toBeNull();
@@ -140,5 +144,48 @@ describe("errores de la base — qué se le dice a la persona", () => {
 
   it("traducirError usa estas frases en todas las pantallas", () => {
     expect(traducirError(e42501("responsable_no_presente"), "cerrar la caja")).toMatch(/ya no figura de turno/);
+  });
+});
+
+describe("dos modos: atender a la clienta u otra operación (Felipe, 2026-09-23)", () => {
+  it("el combo vacío y su aviso dicen lo mismo en cada modo", () => {
+    expect(preguntaResponsable("atencion")).toBe("¿Quién está atendiendo?");
+    expect(preguntaResponsable("operacion")).toBe("¿Quién hace esta operación?");
+    expect(motivoSinResponsable("falta", "Tienda TRU", "atencion")).toBe("Elige quién está atendiendo.");
+    expect(motivoSinResponsable("falta", "Tienda TRU", "operacion")).toBe("Elige quién hace esta operación.");
+  });
+  it("solo fuera de la atención a la clienta se propone a quien inició sesión", () => {
+    expect(proponeSesion("operacion")).toBe(true);
+    expect(proponeSesion("atencion")).toBe(false);
+  });
+
+  // Qué pantallas atienden a la clienta: Punto de venta (venta y sus apartados), Cambios y Devoluciones. El resto
+  // pregunta «¿Quién hace esta operación?». Si alguien agrega el combo a una pantalla nueva de atención, se suma aquí.
+  const COMPONENTES = new URL("../components/", import.meta.url);
+  const ATENCION = [
+    "PuntoDeVenta.tsx",
+    "CambiosFlujo.tsx",
+    "DevolucionesFlujo.tsx",
+    "apartados/ApartarVista.tsx",
+    "apartados/EntregarVista.tsx",
+    "apartados/ModalesApartado.tsx",
+  ];
+  const conCombo = (readdirSync(COMPONENTES, { recursive: true }) as string[])
+    .filter((f) => f.endsWith(".tsx"))
+    .map((f) => ({ archivo: f.split("\\").join("/"), fuente: readFileSync(new URL(f, COMPONENTES), "utf8") }))
+    .filter((c) => /useResponsable\(/.test(c.fuente));
+
+  it("cada pantalla de atención a la clienta usa el modo «atencion» en todos sus combos", () => {
+    for (const archivo of ATENCION) {
+      const c = conCombo.find((x) => x.archivo === archivo);
+      expect(c, archivo).toBeDefined();
+      const usos = c!.fuente.match(/useResponsable\([^;]*\);/g) ?? [];
+      expect(usos.length, archivo).toBeGreaterThan(0);
+      for (const uso of usos) expect(uso, archivo).toContain('modo: "atencion"');
+    }
+  });
+  it("ninguna otra pantalla usa el modo «atencion»", () => {
+    const fuera = conCombo.filter((c) => !ATENCION.includes(c.archivo) && c.fuente.includes('modo: "atencion"')).map((c) => c.archivo);
+    expect(fuera).toEqual([]);
   });
 });

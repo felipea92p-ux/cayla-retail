@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useRef, useState, type CSSProperties } from "react";
+import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
+import { paginar } from "@/lib/paginacion";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Comprobante } from "@/lib/comprobantes-reglas";
@@ -22,6 +24,10 @@ import { Boton, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 import { useTransmitir } from "@/lib/useTransmitir";
 import { avisar } from "@/components/ui/Avisos";
+import { ConfirmarTransmision } from "@/components/ConfirmarTransmision";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Los botones de la fila y el motivo que va bajo su estado. Qué botones le tocan a cada estado lo
 // decide `accionesDelComprobante` (con su prueba); esto solo los dibuja. Los handlers vienen por
@@ -123,6 +129,9 @@ function DocumentosSunat({ c }: { c: Comprobante }) {
 // el menú lateral desplegado una ventana de 768 px deja ~480 px de contenido. Desde 900 px de tarjeta
 // el cliente tiene su columna; entre 640 y 899 px pasa a la línea de abajo del número; por debajo
 // de 640 px cada fila se apila.
+/** Comprobantes por página: la fila es alta (documentos SUNAT, motivo, botones). */
+const COMPROBANTES_POR_PAGINA = 25;
+
 const COLUMNAS = "@min-[640px]:grid @min-[640px]:grid-cols-[72px_minmax(0,1.1fr)_92px_minmax(0,1.4fr)] @min-[900px]:grid-cols-[72px_minmax(0,1.15fr)_minmax(0,1fr)_100px_minmax(0,1.7fr)]";
 
 // Panel de Facturación electrónica: reserva el comprobante con su correlativo
@@ -153,96 +162,37 @@ export function ComprobantesPanel({
   // fila de «Actividad de hoy» del Resumen (`lib/useTransmitir.ts`).
   const { transmitiendoId, transmitir: onTransmitir, confirmacion: confirmacionTransmitir } = useTransmitir();
 
-  // Anulación (paso c, ADR-0016). Solo líder — la pantalla entera ya lo es,
-  // pero `anular_comprobante` lo vuelve a exigir en la base.
+  // Anulación (paso c, ADR-0016) y liberación (ADR-0093): cada una vive en su modal (abajo), que firma con el combo
+  // «Responsable» (ADR-0161). Solo líder — la pantalla entera ya lo es, y la base lo vuelve a exigir a la cuenta.
   const [anulando, setAnulando] = useState<Comprobante | null>(null);
-  const [motivoAnulacion, setMotivoAnulacion] = useState("");
-  const [enviandoAnulacion, setEnviandoAnulacion] = useState(false);
-
-  async function onAnular(e: React.FormEvent) {
-    e.preventDefault();
-    if (!anulando) return;
-    if (!motivoAnulacion.trim()) return void avisar.error("Escribe el motivo de la anulación.", { enfocar: "anulacion-motivo" });
-    setEnviandoAnulacion(true);
-    try {
-      const respuesta = await fetch("/api/lucode/anular", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comprobante_id: anulando.id, motivo: motivoAnulacion }),
-      });
-      const datos = await respuesta.json();
-      if (!respuesta.ok) {
-        avisar.error("No se pudo anular el comprobante", { detalle: datos.error ?? undefined });
-        return;
-      }
-      avisar.exito("Anulación enviada a SUNAT", { detalle: "Queda «en trámite» hasta que SUNAT confirme; consúltala desde la fila." });
-      setModal(null);
-      setAnulando(null);
-      setMotivoAnulacion("");
-      router.refresh();
-    } catch {
-      avisar.error("No se pudo anular el comprobante", { detalle: "No se pudo conectar con el servidor." });
-    } finally {
-      setEnviandoAnulacion(false);
-    }
-  }
+  const [liberando, setLiberando] = useState<Comprobante | null>(null);
 
   function onAnularClick(c: Comprobante) {
     setAnulando(c);
-    setMotivoAnulacion("");
     setModal("anular");
-  }
-
-  // Liberar un "pendiente" que nunca se transmitió (ADR-0093). A diferencia de
-  // anular, esto NUNCA habla con Lucode/SUNAT — el número no se reutiliza, solo
-  // deja de contar como pendiente — así que es una RPC directa desde el cliente
-  // (mismo patrón que `onRegistrarSerie` en este mismo componente, no
-  // el de `onAnular`, que sí necesita el servidor para orquestar la baja real).
-  const [liberando, setLiberando] = useState<Comprobante | null>(null);
-  const [motivoLiberacion, setMotivoLiberacion] = useState("");
-  const [enviandoLiberacion, setEnviandoLiberacion] = useState(false);
-
-  async function onLiberar(e: React.FormEvent) {
-    e.preventDefault();
-    if (!liberando) return;
-    if (!motivoLiberacion.trim()) return void avisar.error("Escribe el motivo para liberar el comprobante.", { enfocar: "liberacion-motivo" });
-    setEnviandoLiberacion(true);
-    const supabase = createClient();
-    const { error } = await supabase.rpc("marcar_comprobante_no_emitido", {
-      p_comprobante_id: liberando.id,
-      p_motivo: motivoLiberacion,
-    });
-    if (error) {
-      avisar.error(traducirError(error, "liberar el comprobante"));
-      setEnviandoLiberacion(false);
-      return;
-    }
-    avisar.exito("Comprobante liberado", {
-      detalle: "Nunca se transmitió a SUNAT, así que no hacía falta avisarle nada. Su número queda sin usar.",
-    });
-    setModal(null);
-    setLiberando(null);
-    setMotivoLiberacion("");
-    setEnviandoLiberacion(false);
-    router.refresh();
   }
 
   function onLiberarClick(c: Comprobante) {
     setLiberando(c);
-    setMotivoLiberacion("");
     setModal("liberar");
   }
 
-  // Consultar una baja en trámite. Va por fila, igual que transmitir.
+  // Consultar una baja en trámite. Va por fila, igual que transmitir: si SUNAT ya la confirmó, la ruta escribe
+  // `anular_comprobante`, así que antes pide el combo «Responsable» (ADR-0161) con la misma confirmación corta.
   const [consultandoId, setConsultandoId] = useState<string | null>(null);
+  const [porConsultarId, setPorConsultarId] = useState<string | null>(null);
 
-  async function onConsultarAnulacion(comprobanteId: string) {
+  function onConsultarAnulacion(comprobanteId: string) {
+    setPorConsultarId(comprobanteId);
+  }
+
+  async function consultarAnulacion(comprobanteId: string, encabezados: Record<string, string>) {
     setConsultandoId(comprobanteId);
     const cerrarProceso = avisar.proceso("Consultando a SUNAT…");
     try {
       const respuesta = await fetch("/api/lucode/consultar-anulacion", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...encabezados },
         body: JSON.stringify({ comprobante_id: comprobanteId }),
       });
       const datos = await respuesta.json();
@@ -292,14 +242,46 @@ export function ComprobantesPanel({
   );
   const totales = totalesPorTipo(visibles);
 
+  // La lista pinta UNA página; filtros, búsqueda, totales y tarjetas siguen viendo el mes entero. Pintar los ~1.400
+  // de un mes eran 16.500 elementos y 2,8 MB de HTML (medido 2026-09-23). Cambiar un filtro o la búsqueda vuelve a la
+  // página 1 (ajuste durante el render, como Existencias); `paginar` acota si la lista se achicó.
+  const [pagina, setPagina] = useState(1);
+  const firmaFiltros = [busqueda, filtroTipo, filtroTienda, filtroEstado].join("\u0000");
+  const [firmaPrevia, setFirmaPrevia] = useState(firmaFiltros);
+  if (firmaFiltros !== firmaPrevia) {
+    setFirmaPrevia(firmaFiltros);
+    setPagina(1);
+  }
+  const paginaActual = paginar(visibles, pagina, COMPROBANTES_POR_PAGINA);
+  const tarjetaListaRef = useRef<HTMLDivElement>(null);
+  function irAPagina(n: number) {
+    setPagina(n);
+    // El paginador está al pie: al cambiar de página, que la lista empiece a leerse desde arriba.
+    const tarjeta = tarjetaListaRef.current;
+    if (tarjeta && tarjeta.getBoundingClientRect().top < 0) tarjeta.scrollIntoView({ block: "start" });
+  }
+
   return (
     <div className="space-y-6">
       {/* La confirmación con el combo «Responsable» antes de transmitir (ADR-0161). */}
       {confirmacionTransmitir}
+      {porConsultarId && (
+        <ConfirmarTransmision
+          titulo="Consultar la anulación"
+          subtitulo="Elige quién consulta. Si SUNAT ya la confirmó, el comprobante queda anulado a su nombre."
+          accion="Consultar"
+          onClose={() => setPorConsultarId(null)}
+          onTransmitir={(encabezados) => {
+            const id = porConsultarId;
+            setPorConsultarId(null);
+            void consultarAnulacion(id, encabezados);
+          }}
+        />
+      )}
       {/* Comprobantes del mes: una sola fila para todos los anchos (ver `COLUMNAS`). */}
       {/* `overflow-hidden` solo con filas: recorta el hover de la última fila contra las esquinas redondas. Sin filas
           (mes vacío o búsqueda sin resultados) la tarjeta es baja y recortaría el globo de ayuda del encabezado. */}
-      <div className={`card-cayla anim-sube @container ${visibles.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 7 } as CSSProperties}>
+      <div ref={tarjetaListaRef} className={`card-cayla anim-sube @container ${visibles.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 7 } as CSSProperties}>
         <div className="px-5 pt-[18px] pb-3.5">
           <p className="label-cayla text-[11px] text-tinta/65">
             Comprobantes
@@ -360,7 +342,7 @@ export function ComprobantesPanel({
               <span>Estado</span>
             </div>
 
-            {visibles.map((c) => {
+            {paginaActual.filas.map((c) => {
               const { botones, motivo, esRechazo } = accionComprobante(c, acciones);
               const { dia, hora } = diaYHoraLima(c.created_at);
               const chip = chipDelComprobante(c);
@@ -402,6 +384,14 @@ export function ComprobantesPanel({
                 </div>
               );
             })}
+            {paginaActual.totalPaginas > 1 && (
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-tinta/10 px-5 py-3 text-xs text-taupe">
+                <span>
+                  Mostrando {paginaActual.desde}–{paginaActual.hasta} de {visibles.length}
+                </span>
+                <PaginacionLocal pagina={paginaActual.pagina} totalPaginas={paginaActual.totalPaginas} onPagina={irAPagina} />
+              </div>
+            )}
             {totales.length > 0 && (
               <p className="flex flex-wrap gap-x-5 gap-y-1 border-t border-tinta/10 bg-tinta/[0.02] px-5 py-3 text-[13px] text-tinta/70">
                 {totales.map((t) => (
@@ -418,107 +408,210 @@ export function ComprobantesPanel({
       </div>
 
       {/* ==================== Modal: anular ==================== */}
-      {modal === "anular" && anulando && (
-        <Modal titulo="Anular comprobante" onClose={cerrarModal}>
-          {(cerrar) => (
-          <form onSubmit={onAnular} className="mt-5 space-y-2">
-            <div className="border-l-2 border-rojo/50 pl-3">
-              <p className="font-display text-base text-tinta">
-                {ETIQUETA_TIPO[anulando.tipo]} {anulando.serie}-{String(anulando.numero).padStart(6, "0")}
-              </p>
-              <p className="text-xs leading-relaxed text-tinta/75">
-                {anulando.cliente_nombre ?? "Cliente varios"} · {soles(Number(anulando.total))}
-              </p>
-            </div>
-
-            <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
-              {anulando.tipo === "boleta"
-                ? "Las boletas se dan de baja por el resumen diario. SUNAT lo procesa después, así que queda en “Anulación en trámite” hasta que confirme — no es un error."
-                : "Se envía la comunicación de baja. SUNAT también la procesa después, así que queda en “Anulación en trámite”. Si ya pasó el plazo la rechaza, y entonces toca una nota de crédito en vez de anular."}
-            </p>
-
-            <CampoTexto
-              id="anulacion-motivo"
-              etiqueta="Motivo"
-              ayuda={
-                <Ayuda titulo="Por qué se pide el motivo">
-                  Queda guardado en el comprobante, con tu nombre y la fecha. Anular es dar de baja
-                  un documento legal: dentro de seis meses, “se anuló” sin razón no le sirve a
-                  nadie. Sé concreto — “se emitió por error, la venta no se hizo” dice más que
-                  “error”.
-                </Ayuda>
-              }
-              required
-              minLength={3}
-              value={motivoAnulacion}
-              onChange={(e) => setMotivoAnulacion(e.target.value)}
-              placeholder="Se emitió por error, la venta no se hizo"
-            />
-
-
-            <div className="flex gap-2 pt-3">
-              <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
-                Cancelar
-              </Boton>
-              <Boton type="submit" peso="primario" className="flex-1" cargando={enviandoAnulacion}>
-                {enviandoAnulacion ? "Anulando…" : "Anular"}
-              </Boton>
-            </div>
-          </form>
-          )}
-        </Modal>
-      )}
+      {modal === "anular" && anulando && <ModalAnular comprobante={anulando} onClose={cerrarModal} />}
 
       {/* ==================== Modal: liberar (ADR-0093) ==================== */}
-      {modal === "liberar" && liberando && (
-        <Modal titulo="Liberar comprobante" onClose={cerrarModal}>
-          {(cerrar) => (
-          <form onSubmit={onLiberar} className="mt-5 space-y-2">
-            <div className="border-l-2 border-tinta/30 pl-3">
-              <p className="font-display text-base text-tinta">
-                {ETIQUETA_TIPO[liberando.tipo]} {liberando.serie}-{String(liberando.numero).padStart(6, "0")}
-              </p>
-              <p className="text-xs leading-relaxed text-tinta/75">
-                {liberando.cliente_nombre ?? "Cliente varios"} · {soles(Number(liberando.total))}
-              </p>
-            </div>
-
-            <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
-              Este comprobante reservó su número pero nunca se transmitió a SUNAT — no hay nada
-              que avisarle. Su número queda sin usar para siempre (un hueco en la numeración es
-              normal y legal); lo único que cambia es que deja de aparecer como pendiente. Esta
-              acción no se puede deshacer.
-            </p>
-
-            <CampoTexto
-              id="liberacion-motivo"
-              etiqueta="Motivo"
-              ayuda={
-                <Ayuda titulo="Por qué se pide el motivo">
-                  Queda guardado en el comprobante, con tu nombre y la fecha — igual que al
-                  anular. Sé concreto: “la clienta se arrepintió antes de pagar” dice más que “no
-                  se usó”.
-                </Ayuda>
-              }
-              required
-              minLength={3}
-              value={motivoLiberacion}
-              onChange={(e) => setMotivoLiberacion(e.target.value)}
-              placeholder="La clienta se arrepintió antes de pagar"
-            />
-
-            <div className="flex gap-2 pt-3">
-              <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
-                Cancelar
-              </Boton>
-              <Boton type="submit" peso="primario" className="flex-1" cargando={enviandoLiberacion}>
-                {enviandoLiberacion ? "Liberando…" : "Liberar sin espera"}
-              </Boton>
-            </div>
-          </form>
-          )}
-        </Modal>
-      )}
+      {modal === "liberar" && liberando && <ModalLiberar comprobante={liberando} onClose={cerrarModal} />}
     </div>
+  );
+}
+
+/**
+ * Anular un comprobante aceptado (paso c, ADR-0016). La baja la orquesta el servidor (`/api/lucode/anular`), que
+ * firma `anular_comprobante` con el responsable que viaja en los encabezados (ADR-0161). Vive aparte para que la lista
+ * de quién está de turno se lea solo mientras el modal está abierto.
+ */
+function ModalAnular({ comprobante, onClose }: { comprobante: Comprobante; onClose: () => void }) {
+  const router = useRouter();
+  const [motivoAnulacion, setMotivoAnulacion] = useState("");
+  const [enviandoAnulacion, setEnviandoAnulacion] = useState(false);
+  const responsable = useResponsable();
+
+  async function onAnular(e: React.FormEvent) {
+    e.preventDefault();
+    if (!motivoAnulacion.trim()) return void avisar.error("Escribe el motivo de la anulación.", { enfocar: "anulacion-motivo" });
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
+    setEnviandoAnulacion(true);
+    try {
+      const respuesta = await fetch("/api/lucode/anular", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+        body: JSON.stringify({ comprobante_id: comprobante.id, motivo: motivoAnulacion }),
+      });
+      const datos = await respuesta.json();
+      if (!respuesta.ok) {
+        // La ruta devuelve el `hint` cuando la base no aceptó al responsable: el combo vuelve a vacío y relee la lista.
+        if (datos.hint) responsable.despues({ code: "42501", hint: datos.hint, message: datos.error ?? null });
+        avisar.error("No se pudo anular el comprobante", { detalle: datos.error ?? undefined });
+        return;
+      }
+      responsable.despues(null);
+      avisar.exito("Anulación enviada a SUNAT", { detalle: "Queda «en trámite» hasta que SUNAT confirme; consúltala desde la fila." });
+      onClose();
+      router.refresh();
+    } catch {
+      avisar.error("No se pudo anular el comprobante", { detalle: "No se pudo conectar con el servidor." });
+    } finally {
+      setEnviandoAnulacion(false);
+    }
+  }
+
+  return (
+    <Modal titulo="Anular comprobante" onClose={onClose}>
+      {(cerrar) => (
+        <form onSubmit={onAnular} className="mt-5 space-y-2">
+          <div className="border-l-2 border-rojo/50 pl-3">
+            <p className="font-display text-base text-tinta">
+              {ETIQUETA_TIPO[comprobante.tipo]} {comprobante.serie}-{String(comprobante.numero).padStart(6, "0")}
+            </p>
+            <p className="text-xs leading-relaxed text-tinta/75">
+              {comprobante.cliente_nombre ?? "Cliente varios"} · {soles(Number(comprobante.total))}
+            </p>
+          </div>
+
+          <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
+            {comprobante.tipo === "boleta"
+              ? "Las boletas se dan de baja por el resumen diario. SUNAT lo procesa después, así que queda en “Anulación en trámite” hasta que confirme — no es un error."
+              : "Se envía la comunicación de baja. SUNAT también la procesa después, así que queda en “Anulación en trámite”. Si ya pasó el plazo la rechaza, y entonces toca una nota de crédito en vez de anular."}
+          </p>
+
+          <CampoTexto
+            id="anulacion-motivo"
+            etiqueta="Motivo"
+            ayuda={
+              <Ayuda titulo="Por qué se pide el motivo">
+                Queda guardado en el comprobante, con el nombre del responsable y la fecha. Anular es dar de baja
+                un documento legal: dentro de seis meses, “se anuló” sin razón no le sirve a
+                nadie. Sé concreto — “se emitió por error, la venta no se hizo” dice más que
+                “error”.
+              </Ayuda>
+            }
+            required
+            minLength={3}
+            value={motivoAnulacion}
+            onChange={(e) => setMotivoAnulacion(e.target.value)}
+            placeholder="Se emitió por error, la venta no se hizo"
+          />
+
+          <ComboResponsable control={responsable} deshabilitado={enviandoAnulacion} className="pt-2" />
+          <div className="flex gap-2 pt-3">
+            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+              Cancelar
+            </Boton>
+            <Boton
+              type="submit"
+              peso="primario"
+              className="flex-1"
+              cargando={enviandoAnulacion}
+              disabled={!responsable.listo}
+              title={responsable.motivo ?? undefined}
+            >
+              {enviandoAnulacion ? "Anulando…" : "Anular"}
+            </Boton>
+          </div>
+        </form>
+      )}
+    </Modal>
+  );
+}
+
+/**
+ * Liberar un «pendiente» que nunca se transmitió (ADR-0093). A diferencia de anular, esto NUNCA habla con
+ * Lucode/SUNAT — el número no se reutiliza, solo deja de contar como pendiente — así que es una RPC directa desde el
+ * cliente, firmada con el combo «Responsable» (ADR-0161).
+ */
+function ModalLiberar({ comprobante, onClose }: { comprobante: Comprobante; onClose: () => void }) {
+  const router = useRouter();
+  const [motivoLiberacion, setMotivoLiberacion] = useState("");
+  const [enviandoLiberacion, setEnviandoLiberacion] = useState(false);
+  const responsable = useResponsable();
+
+  async function onLiberar(e: React.FormEvent) {
+    e.preventDefault();
+    if (!motivoLiberacion.trim()) return void avisar.error("Escribe el motivo para liberar el comprobante.", { enfocar: "liberacion-motivo" });
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
+    setEnviandoLiberacion(true);
+    const { error } = await firmar(
+      createClient().rpc("marcar_comprobante_no_emitido", {
+        p_comprobante_id: comprobante.id,
+        p_motivo: motivoLiberacion,
+      }),
+      responsable.firma(),
+    );
+    setEnviandoLiberacion(false);
+    responsable.despues(error);
+    if (error) {
+      avisar.error(traducirError(error, "liberar el comprobante"));
+      return;
+    }
+    avisar.exito("Comprobante liberado", {
+      detalle: "Nunca se transmitió a SUNAT, así que no hacía falta avisarle nada. Su número queda sin usar.",
+    });
+    onClose();
+    router.refresh();
+  }
+
+  return (
+    <Modal titulo="Liberar comprobante" onClose={onClose}>
+      {(cerrar) => (
+        <form onSubmit={onLiberar} className="mt-5 space-y-2">
+          <div className="border-l-2 border-tinta/30 pl-3">
+            <p className="font-display text-base text-tinta">
+              {ETIQUETA_TIPO[comprobante.tipo]} {comprobante.serie}-{String(comprobante.numero).padStart(6, "0")}
+            </p>
+            <p className="text-xs leading-relaxed text-tinta/75">
+              {comprobante.cliente_nombre ?? "Cliente varios"} · {soles(Number(comprobante.total))}
+            </p>
+          </div>
+
+          <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
+            Este comprobante reservó su número pero nunca se transmitió a SUNAT — no hay nada
+            que avisarle. Su número queda sin usar para siempre (un hueco en la numeración es
+            normal y legal); lo único que cambia es que deja de aparecer como pendiente. Esta
+            acción no se puede deshacer.
+          </p>
+
+          <CampoTexto
+            id="liberacion-motivo"
+            etiqueta="Motivo"
+            ayuda={
+              <Ayuda titulo="Por qué se pide el motivo">
+                Queda guardado en el comprobante, con el nombre del responsable y la fecha — igual que al
+                anular. Sé concreto: “la clienta se arrepintió antes de pagar” dice más que “no
+                se usó”.
+              </Ayuda>
+            }
+            required
+            minLength={3}
+            value={motivoLiberacion}
+            onChange={(e) => setMotivoLiberacion(e.target.value)}
+            placeholder="La clienta se arrepintió antes de pagar"
+          />
+
+          <ComboResponsable control={responsable} deshabilitado={enviandoLiberacion} className="pt-2" />
+          <div className="flex gap-2 pt-3">
+            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+              Cancelar
+            </Boton>
+            <Boton
+              type="submit"
+              peso="primario"
+              className="flex-1"
+              cargando={enviandoLiberacion}
+              disabled={!responsable.listo}
+              title={responsable.motivo ?? undefined}
+            >
+              {enviandoLiberacion ? "Liberando…" : "Liberar sin espera"}
+            </Boton>
+          </div>
+        </form>
+      )}
+    </Modal>
   );
 }

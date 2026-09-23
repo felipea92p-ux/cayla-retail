@@ -164,6 +164,20 @@ Esto **reemplaza** dos cosas de arriba: el `tipo` de «Las piezas» (punto 1) y 
 - **La web:** una terminal ve el menú de sus módulos (sin módulos, solo Inicio). Ve Inicio solo si no ve el Punto de
   venta; si lo ve, aterriza en `/vender` (`aterrizajeDe` en `lib/menu.ts`). El menú de las personas no cambia.
 
+## Actualización 2026-09-23 — el responsable pasa a ser obligatorio para todos (Felipe)
+
+- **Decisión de Felipe:** «Todas obligatorias, un mismo flujo para todos; si nadie marcó asistencia no se podrá
+  vender». Las tres tiendas a la vez y sin excepción para el líder. Se le advirtió el costo con datos de ese
+  momento (9:45: 4 marcados en Trujillo, 0 en Arequipa y en Lima, y Lima sin asistencia cargada en Dynamic) y lo aceptó.
+- **El interruptor pasa a ser un dato**, no código: `configuracion_empresa.exige_responsable` (migración
+  `20260923160000_responsable_obligatorio.sql`), apagado por defecto. Así se apaga en segundos si una tienda queda
+  trabada (`update retail.configuracion_empresa set exige_responsable = false;`), y la base local y la del CI arrancan
+  apagadas, sin romper las pruebas que operan como persona. Probado en `pruebas:terminales-sin-persona` (6 casos).
+- **Orden obligatorio:** primero se publica la web con el combo en TODAS las pantallas que guardan una operación de
+  tienda (al 2026-09-23 faltaban 7 llamadas: anular venta, aprobar y rechazar devolución, anular y liberar comprobante,
+  archivar serie, registrar clienta), y recién después se enciende el dato en producción. Encenderlo antes rompe esas
+  pantallas.
+
 ## Abierto
 
 1. ~~Ventas sin conexión~~ **Decidido (Felipe, 2026-09-22):** se valida contra la **hora de la venta** (como

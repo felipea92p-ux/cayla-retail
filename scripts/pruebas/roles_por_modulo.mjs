@@ -43,6 +43,8 @@ const MIGRACION = [
   "20260923130000_abrir_modulos_a_los_roles.sql",
   "20260923131000_colaboradores_y_roles_delegables.sql",
   "20260923140000_modulos_seis_decisiones.sql",
+  "20260923163000_escalon_admin_desde_dynamic.sql",
+  "20260923174500_alcanzas_solo_a_quien_esta_debajo.sql",
 ]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
@@ -108,6 +110,9 @@ create temp table ids as
          retail.fn_rol_por_clave('terminal_ventas') as r_tv,
          retail.fn_rol_por_clave('terminal_administrativa') as r_ta;
 grant select on ids to authenticated;
+-- ADR-0178: el Admin se lee de Dynamic. Felipe lo es en producción; el seed también, pero se deja explícito.
+update public.personas set rol = 'admin' where auth_user_id = '${FELIPE_AUTH}';
+update public.personas set rol = 'integrante' where auth_user_id = '${MICAELA_AUTH}';
 insert into auth.users (id, aud, role, email) values
   ('${T_VENTAS_AUTH}', 'authenticated', 'authenticated', 'terminal-ventas-tru@prueba.local'),
   ('${T_ADMIN_AUTH}', 'authenticated', 'authenticated', 'terminal-admin-tru@prueba.local');
@@ -455,10 +460,12 @@ const PERSONA_NUEVA = `insert into public.personas (id, nombres, apellidos, esta
 select '33333333-3333-4333-8333-0000000000c2' as nueva \\gset\n`;
 
 caso(
-  "Roles y accesos: un rol con ese módulo asigna Integrante o un rol a medida (persona y terminal), pero NO el rol Líder ni le cambia el rol a un líder",
+  "Roles y accesos: un rol con ese módulo asigna un rol a medida DENTRO de lo suyo (persona y terminal), pero NO Integrante (tiene módulos que él no ve, ADR-0178), NO el rol Líder ni le cambia el rol a un líder",
   conRol("Gestor de roles", ["roles"]) +
     PERSONA_NUEVA +
     `insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id, estado) select :'nueva', 'colaborador', tru, 'activo' from ids;\n` +
+    // Arranca con un rol sin módulos: así está POR DEBAJO de quien solo tiene Roles y accesos (20260923174500).
+    `select asignar_rol(crear_rol('Sin módulos'), :'nueva') \\g /dev/null\n` +
     como(MICAELA_AUTH) +
     `select concat_ws(',', fn_ve_modulo('roles'), fn_puede_administrar_roles(), fn_es_lider());\n` +
     `create temp table rol_nuevo as select crear_rol('Vendedora de prueba') as id;\n` +
@@ -466,16 +473,17 @@ caso(
     `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_integ, :'nueva')) from ids;\n` +
     `select pg_temp.intento(format('select retail.asignar_rol(%L, p_terminal_id => %L)', (select id from rol_nuevo), (select id from retail.terminales where auth_user_id = '${T_VENTAS_AUTH}')));\n` +
     `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_lider, :'nueva')) from ids;\n` +
-    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, felipe, tru)) from ids;\n` +
-    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_integ, micaela)) from ids;\n` +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', (select id from rol_nuevo), felipe, tru)) from ids;\n` +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', (select id from rol_nuevo), micaela)) from ids;\n` +
     `select rol from retail.colaboradores where persona_id = :'nueva';\n` +
     `set local role authenticated;\nselect (count(*) > 0)::text from retail.roles;`,
   (s) => {
     const l = s.split("\n");
     return (
-      l[0] === "t,t,f" && l[1] === "SIN_ERROR" && l[2] === "SIN_ERROR" && l[3] === "SIN_ERROR" &&
+      l[0] === "t,t,f" && l[1] === "SIN_ERROR" && l[3] === "SIN_ERROR" &&
+      l[2].startsWith("42501|") && l[2].includes("solo puedes dar lo que tú ves") && // Integrante trae 14 módulos que no tiene
       l[4].startsWith("42501|") && l[4].includes("subir a alguien a Líder") && // no sube a nadie a Líder
-      l[5].startsWith("42501|") && l[5].includes("otro líder") && // no le cambia el rol a un líder
+      l[5].startsWith("42501|") && l[5].includes("Solo un admin") && // no le cambia el rol a un líder
       l[6].startsWith("42501|") && l[6].includes("propio rol") && // nadie se cambia su propio rol
       l[7] === "colaborador" && l[8] === "true"
     );
@@ -502,22 +510,32 @@ caso(
   conRol("Gestor de accesos", ["colaboradores"]) +
     como(MICAELA_AUTH) +
     `select pg_temp.intento(format('select retail.cambiar_ubicacion_colaborador(%L, %L)', felipe, tru)) from ids;`,
-  (s) => s.startsWith("42501|") && s.includes("otro líder")
+  (s) => s.startsWith("42501|") && s.includes("Solo un admin")
 );
 caso(
-  "Roles y accesos: quien tiene el módulo edita SUS propios módulos (se da Facturación) y queda en roles_historial a su nombre",
-  conRol("Gestor de roles", ["roles"]) +
+  "Roles y accesos sin ser líder (ADR-0178): NO edita su propio rol, NO enciende en otro rol un módulo que no ve, SÍ el que ve (con historial a su nombre), NO duplica un rol con más que lo suyo",
+  conRol("Gestor de roles", ["roles", "vender"]) +
     como(MICAELA_AUTH) +
-    `select guardar_modulos_rol(id, array['roles', 'facturacion']) from retail.roles where nombre = 'Gestor de roles' \\g /dev/null\n` +
-    `select concat_ws(',', fn_ve_modulo('facturacion'), fn_ve_modulo('roles'));\n` +
+    intento(`select retail.guardar_modulos_rol(id, array['roles', 'vender', 'facturacion']) from retail.roles where nombre = 'Gestor de roles'`) + "\n" +
+    `create temp table otro as select crear_rol('Otro de prueba') as id;\n` +
+    `select pg_temp.intento(format('select retail.guardar_modulos_rol(%L, %L::text[])', (select id from otro), array['vender', 'facturacion']));\n` +
+    `select pg_temp.intento(format('select retail.guardar_modulos_rol(%L, %L::text[])', (select id from otro), array['vender']));\n` +
     `select (h.hecho_por = (select micaela from ids))::text || '|' || (h.detalle->'despues')::text
-       from retail.roles_historial h join retail.roles r on r.id = h.rol_id
-      where r.nombre = 'Gestor de roles' and h.accion = 'modulos' order by h.id desc limit 1;\n` +
+       from retail.roles_historial h where h.rol_id = (select id from otro) and h.accion = 'modulos' order by h.id desc limit 1;\n` +
+    intento(`select retail.crear_rol('Copia de Integrante', null, retail.fn_rol_por_clave('integrante'))`) + "\n" +
+    intento(`select retail.crear_rol('Copia del Líder', null, retail.fn_rol_por_clave('lider'))`) + "\n" +
+    intento(`select retail.crear_rol('Copia del mío', null, (select id from retail.roles where nombre = 'Gestor de roles'))`) + "\n" +
     intento(`select retail.guardar_modulos_rol(retail.fn_rol_por_clave('lider'), array['vender'])`) + "\n" +
     intento(`select retail.archivar_rol(retail.fn_rol_por_clave('lider'))`),
   (s) => {
     const l = s.split("\n");
-    return l[0] === "t,t" && l[1] === 'true|["facturacion", "roles"]' && l[2].startsWith("42501|") && l[3].startsWith("42501|");
+    return (
+      l[0].startsWith("42501|") && l[0].includes("propio rol") &&
+      l[1].startsWith("42501|") && l[1].includes("Facturación") &&
+      l[2] === "SIN_ERROR" && l[3] === 'true|["vender"]' &&
+      l[4].startsWith("42501|") && l[5].startsWith("42501|") && l[6] === "SIN_ERROR" &&
+      l[7].startsWith("42501|") && l[8].startsWith("42501|")
+    );
   }
 );
 caso(
@@ -551,24 +569,150 @@ insert into retail.colaboradores (persona_id, rol, estado) values ('33333333-333
   (s) => {
     const l = s.split("\n");
     return (
-      l[0].startsWith("42501|") && l[0].includes("otro líder") &&
-      l[1].startsWith("42501|") && l[1].includes("otro líder") &&
-      l[2].startsWith("42501|") && l[2].includes("otro líder") &&
+      l[0].startsWith("42501|") && l[0].includes("Solo un admin") &&
+      l[1].startsWith("42501|") && l[1].includes("Solo un admin") &&
+      l[2].startsWith("42501|") && l[2].includes("Solo un admin") &&
       l[3] === "SIN_ERROR"
     );
   }
 );
 caso(
-  "protección 3: nunca se quita ni se suspende al ÚLTIMO líder activo (Felipe es el único en el seed)",
+  "protección 3: nunca se quita ni se suspende al ÚLTIMO líder activo (Felipe, con Sandra fuera en esta transacción)",
+  // Desde #317 el seed trae a Sandra como segunda líder (la necesita aprobar_devolucion). Aquí queda pendiente de
+  // aprobación solo dentro de esta transacción, para que Felipe sea el último líder activo; el rollback la devuelve.
+  `update retail.colaboradores set estado = 'pendiente_aprobacion' where rol = 'lider' and persona_id <> (select id from public.personas where auth_user_id = '${FELIPE_AUTH}');\n` +
   como(FELIPE_AUTH) +
     `select count(*) from retail.colaboradores c join public.personas p on p.id = c.persona_id where c.rol = 'lider' and c.estado = 'activo' and p.estado = 'activo';\n` +
     `select pg_temp.intento(format('select retail.quitar_colaborador(%L)', felipe)) from ids;\n` +
     `select pg_temp.intento(format('select retail.suspender_colaborador(%L, %L)', felipe, 'prueba')) from ids;`,
   (s) => {
     const l = s.split("\n");
-    return l[0] === "1" && l[1].startsWith("42501|") && l[1].includes("último líder") && l[2].startsWith("42501|") && l[2].includes("último líder");
+    // Felipe es el único líder y el único admin: lo frena el candado de «último admin» (ADR-0178), antes que el de líder.
+    const ultimo = (x) => x.startsWith("42501|") && (x.includes("último admin") || x.includes("último líder"));
+    return l[0] === "1" && ultimo(l[1]) && ultimo(l[2]);
   }
 );
+// ---------------- Escalón Admin, leído de Dynamic (ADR-0178, 20260923163000) ----------------
+// Un segundo líder que NO es admin en Dynamic. Deja `:l2`.
+const LIDER_NO_ADMIN = `insert into auth.users (id, aud, role, email) values ('33333333-3333-4333-8333-0000000000ba', 'authenticated', 'authenticated', 'l2-no-admin@prueba.local');
+insert into public.personas (id, nombres, apellidos, estado, sede_base_id, auth_user_id, rol)
+  select '33333333-3333-4333-8333-0000000000ca', 'Líder', 'Sin Admin', 'activo', sede_dynamic_id, '33333333-3333-4333-8333-0000000000ba', 'integrante' from retail.ubicaciones where id = (select tru from ids);
+insert into retail.colaboradores (persona_id, rol, estado) values ('33333333-3333-4333-8333-0000000000ca', 'lider', 'activo');
+select '33333333-3333-4333-8333-0000000000ca' as l2 \\gset\n`;
+const L2_AUTH = "33333333-3333-4333-8333-0000000000ba";
+
+caso(
+  "ADR-0178: es admin quien es admin en Dynamic Y Líder activo en retail; fn_admins lo lista; una terminal nunca",
+  LIDER_NO_ADMIN +
+    como(FELIPE_AUTH) + `select concat_ws(',', fn_es_admin(), fn_es_lider(), fn_es_admin_persona(felipe), fn_es_admin_persona(:'l2'), fn_es_admin_persona(micaela)) from ids;\n` +
+    // Felipe está en la lista y el líder que no es admin, no (el seed puede traer otros admins, p. ej. en el CI).
+    `select bool_or(persona_id = (select felipe from ids)) and not bool_or(persona_id = :'l2') from retail.fn_admins();\n` +
+    como(L2_AUTH) + `select concat_ws(',', fn_es_admin(), fn_es_lider());\n` +
+    como(T_VENTAS_AUTH) + `select fn_es_admin()::text;\n` +
+    como(MICAELA_AUTH) + `select count(*) from retail.fn_admins();`,
+  "t,t,t,f,f\nt\nf,t\nfalse\n0"
+);
+caso(
+  "ADR-0178: un líder que NO es admin no sube a Líder ni toca a otro líder (rol, sede, suspender, quitar); sí sigue dando cualquier otro rol",
+  LIDER_NO_ADMIN +
+    PERSONA_NUEVA +
+    `insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id, estado) select :'nueva', 'colaborador', tru, 'activo' from ids;\n` +
+    como(L2_AUTH) +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_lider, :'nueva')) from ids;\n` +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, felipe, tru)) from ids;\n` +
+    `select pg_temp.intento(format('select retail.cambiar_ubicacion_colaborador(%L, %L)', felipe, tru)) from ids;\n` +
+    `select pg_temp.intento(format('select retail.suspender_colaborador(%L, %L)', felipe, 'prueba')) from ids;\n` +
+    `select pg_temp.intento(format('select retail.quitar_colaborador(%L)', felipe)) from ids;\n` +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_tv, :'nueva')) from ids;\n` +
+    `select r.clave from retail.colaboradores c join retail.roles r on r.id = c.rol_id where c.persona_id = :'nueva';`,
+  (s) => {
+    const l = s.split("\n");
+    return l.slice(0, 5).every((x) => x.startsWith("42501|") && x.includes("Solo un admin")) && l[5] === "SIN_ERROR" && l[6] === "terminal_ventas";
+  }
+);
+caso(
+  "ADR-0178: un admin sube y baja a un líder que no es admin, y le cambia la sede",
+  LIDER_NO_ADMIN +
+    como(FELIPE_AUTH) +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, :'l2', tru)) from ids;\n` +
+    `select rol from retail.colaboradores where persona_id = :'l2';\n` +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_lider, :'l2')) from ids;\n` +
+    `select pg_temp.intento(format('select retail.cambiar_ubicacion_colaborador(%L, %L)', :'l2', (select id from retail.ubicaciones where id <> (select tru from ids) and activo limit 1)));`,
+  "SIN_ERROR\ncolaborador\nSIN_ERROR\nSIN_ERROR"
+);
+caso(
+  "ADR-0178: una terminal se crea solo con un rol dentro de lo que tiene quien la crea (fn_rol_dentro_de_lo_mio)",
+  conRol("Gestor de accesos", ["colaboradores", "vender"]) +
+    como(FELIPE_AUTH) + `create temp table solo_vender as select crear_rol('Solo vender') as id;\n` +
+    `select guardar_modulos_rol((select id from solo_vender), array['vender']) \\g /dev/null\n` +
+    como(MICAELA_AUTH) +
+    `select concat_ws(',', fn_rol_dentro_de_lo_mio((select id from solo_vender)), fn_rol_dentro_de_lo_mio(r_tv), fn_rol_dentro_de_lo_mio(r_lider)) from ids;\n` +
+    como(FELIPE_AUTH) + `select concat_ws(',', fn_rol_dentro_de_lo_mio(r_tv), fn_rol_dentro_de_lo_mio(r_integ)) from ids;`,
+  "t,f,t\nt,t"
+);
+caso(
+  "ADR-0178: no queda vigente un rol a medida «Administrador» (el de producción, vacío, se archiva; el escalón es Admin)",
+  `select exists (select 1 from retail.roles where nombre = 'Administrador' and archivado_at is null)::text;`,
+  "false"
+);
+
+// ---------------- «Solo alcanzas a quien está por debajo de ti» (ADR-0178, 20260923174500) ----------------
+// Micaela gestiona (Colaboradores + Roles + Punto de venta + Caja). Tres personas nuevas: una por debajo (solo Punto de
+// venta), una par (sus mismos 4 módulos) y una con Por pagar (algo que ella no ve).
+const TRES_PERSONAS = (sede) => ["d1", "d2", "d3"].map((k, i) => `insert into public.personas (id, nombres, apellidos, estado, sede_base_id)
+  select '33333333-3333-4333-8333-0000000000d${i + 1}', 'Persona', '${k}', 'activo', sede_dynamic_id from retail.ubicaciones where id = (select ${sede} from ids);
+insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id, estado) select '33333333-3333-4333-8333-0000000000d${i + 1}', 'colaborador', ${sede}, 'activo' from ids;`).join("\n") + "\n";
+const ALCANCE =
+  conRol("Gestora", ["colaboradores", "roles", "vender", "caja"]) +
+  TRES_PERSONAS("tru") +
+  como(FELIPE_AUTH) +
+  `create temp table r_abajo as select crear_rol('Solo vender') as id;\n` +
+  `select guardar_modulos_rol((select id from r_abajo), array['vender']) \\g /dev/null\n` +
+  `create temp table r_pagos as select crear_rol('Con pagos') as id;\n` +
+  `select guardar_modulos_rol((select id from r_pagos), array['vender', 'por_pagar']) \\g /dev/null\n` +
+  `select asignar_rol((select id from r_abajo), '33333333-3333-4333-8333-0000000000d1') \\g /dev/null\n` +
+  `select asignar_rol((select id from retail.roles where nombre = 'Gestora'), '33333333-3333-4333-8333-0000000000d2') \\g /dev/null\n` +
+  `select asignar_rol((select id from r_pagos), '33333333-3333-4333-8333-0000000000d3') \\g /dev/null\n`;
+
+caso(
+  "ADR-0178 alcance: quien gestiona sin ser líder suspende y mueve a quien está POR DEBAJO; no a una par ni a quien ve algo que él no",
+  ALCANCE +
+    como(MICAELA_AUTH) +
+    intento(`select retail.suspender_colaborador('33333333-3333-4333-8333-0000000000d1', 'prueba')`) + "\n" +
+    intento(`select retail.suspender_colaborador('33333333-3333-4333-8333-0000000000d2', 'prueba')`) + "\n" +
+    intento(`select retail.suspender_colaborador('33333333-3333-4333-8333-0000000000d3', 'prueba')`) + "\n" +
+    intento(`select retail.quitar_colaborador('33333333-3333-4333-8333-0000000000d3')`) + "\n" +
+    `select pg_temp.intento(format('select retail.cambiar_ubicacion_colaborador(%L, %L)', '33333333-3333-4333-8333-0000000000d2', (select id from retail.ubicaciones where id <> (select tru from ids) and activo limit 1)));`,
+  (s) => {
+    const l = s.split("\n");
+    const fuera = (x, que) => x.startsWith("42501|") && x.includes("solo alcanzas a quien está por debajo") && x.includes(que);
+    return l[0] === "SIN_ERROR" && fuera(l[1], "mismos módulos") && fuera(l[2], "Por pagar") && fuera(l[3], "Por pagar") && fuera(l[4], "mismos módulos");
+  }
+);
+caso(
+  "ADR-0178 alcance: cambiarle el rol, solo a quien está por debajo; fn_fuera_de_mi_alcance lo dice a la pantalla; el líder alcanza a todos",
+  ALCANCE +
+    como(MICAELA_AUTH) +
+    intento(`select retail.asignar_rol((select id from r_abajo), '33333333-3333-4333-8333-0000000000d2')`) + "\n" +
+    intento(`select retail.asignar_rol((select id from r_abajo), '33333333-3333-4333-8333-0000000000d3')`) + "\n" +
+    `create temp table r_caja as select crear_rol('Solo caja') as id;\n` +
+    `select guardar_modulos_rol((select id from r_caja), array['caja']) \\g /dev/null\n` +
+    intento(`select retail.asignar_rol((select id from r_caja), '33333333-3333-4333-8333-0000000000d1')`) + "\n" +
+    `select string_agg(right(persona_id::text, 2), ',' order by persona_id) filter (where right(persona_id::text, 2) in ('d1', 'd2', 'd3'))
+       || '|' || bool_or(persona_id = (select felipe from ids))::text from retail.fn_fuera_de_mi_alcance();\n` +
+    como(FELIPE_AUTH) +
+    `select count(*) from retail.fn_fuera_de_mi_alcance();\n` +
+    intento(`select retail.suspender_colaborador('33333333-3333-4333-8333-0000000000d3', 'prueba')`),
+  (s) => {
+    const l = s.split("\n");
+    return (
+      l[0].startsWith("42501|") && l[0].includes("mismos módulos") &&
+      l[1].startsWith("42501|") && l[1].includes("Por pagar") &&
+      l[2] === "SIN_ERROR" && l[3] === "d2,d3|true" && l[4] === "0" && l[5] === "SIN_ERROR"
+    );
+  }
+);
+
 caso(
   "sin el módulo Colaboradores (Integrante): no da acceso, no ve las listas, no ve terminales",
   PERSONA_NUEVA +

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { opcional } from "./resultado";
+import { FILAS_POR_PAGINA, leerTodas, opcional } from "./resultado";
 
 describe("opcional", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -19,5 +19,35 @@ describe("opcional", () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     await expect(opcional(Promise.resolve(null), "algo")).resolves.toBeNull();
     expect(log).not.toHaveBeenCalled();
+  });
+});
+
+describe("leerTodas", () => {
+  // Una «tabla» de N filas servida como PostgREST: corta cada respuesta en FILAS_POR_PAGINA.
+  const tabla = (n: number) => Array.from({ length: n }, (_, i) => i);
+  const servir = (filas: number[]) => vi.fn(async (desde: number, hasta: number) => ({ data: filas.slice(desde, Math.min(hasta + 1, desde + FILAS_POR_PAGINA)), error: null }));
+
+  it("junta todas las páginas cuando hay más filas que el tope (1.295 variantes, sep-2026)", async () => {
+    const pagina = servir(tabla(1295));
+    const res = await leerTodas(pagina);
+    expect(res.data).toHaveLength(1295);
+    expect(res.data?.at(-1)).toBe(1294);
+    // Una sola tanda de 3 páginas en paralelo: la tercera vuelve vacía y cierra.
+    expect(pagina).toHaveBeenCalledTimes(3);
+  });
+
+  it("pasadas las 3.000 filas pide otra tanda, sin repetir ni saltarse filas", async () => {
+    const pagina = servir(tabla(3500));
+    const res = await leerTodas(pagina);
+    expect(res.data).toEqual(tabla(3500));
+    expect(pagina).toHaveBeenCalledTimes(6);
+  });
+
+  it("una página con error no entrega media lista", async () => {
+    let llamada = 0;
+    const res = await leerTodas(async () =>
+      ++llamada === 1 ? { data: tabla(FILAS_POR_PAGINA), error: null } : { data: null, error: { message: "timeout" } },
+    );
+    expect(res).toEqual({ data: null, error: { message: "timeout" } });
   });
 });

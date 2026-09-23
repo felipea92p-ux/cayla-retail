@@ -114,12 +114,15 @@ describe("accionesDeFila", () => {
   it("a un colaborador se le puede cambiar la ubicación, suspender y quitar", () => {
     expect(accionesDeFila({ rol: "colaborador", es_yo: false })).toEqual(["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"]);
   });
-  it("a otro líder se le cambia el rol y la ubicación (la tienda donde arranca)", () => {
+  it("un ADMIN (ADR-0178) le cambia el rol y la ubicación a otro líder (la tienda donde arranca)", () => {
     expect(accionesDeFila({ rol: "lider", es_yo: false })).toEqual(["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"]);
   });
-  it("quien gestiona accesos sin ser líder (módulo Colaboradores) no toca a un líder; a un colaborador, sí", () => {
+  it("quien no es Admin (un líder cualquiera, o quien tiene el módulo Colaboradores) no toca a un líder; a un colaborador, sí", () => {
     expect(accionesDeFila({ rol: "lider", es_yo: false }, false)).toEqual([]);
     expect(accionesDeFila({ rol: "colaborador", es_yo: false }, false)).toEqual(["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"]);
+  });
+  it("a quien no está por debajo de quien mira (ADR-0178, «solo alcanzas…»), nada", () => {
+    expect(accionesDeFila({ rol: "colaborador", es_yo: false }, false, false)).toEqual([]);
   });
 });
 

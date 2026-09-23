@@ -74,13 +74,19 @@ export function TablaActivos({
   onAccion,
   rolDe,
   onVerRol,
-  soyLider = true,
+  soyAdmin = true,
+  admins = [],
+  fueraDeAlcance = [],
 }: {
   filas: Colaborador[];
   ocupadoId: string | null;
   onAccion: (c: Colaborador, accion: AccionFila) => void;
-  /** Quien mira es líder. Sin serlo (módulo Colaboradores), las filas de líderes no ofrecen acciones. */
-  soyLider?: boolean;
+  /** Quien mira es Admin (ADR-0178). Sin serlo, las filas de líderes no ofrecen acciones. */
+  soyAdmin?: boolean;
+  /** Las personas que son Admin (admin en Dynamic + Líder aquí): llevan el chip «Admin». */
+  admins?: readonly string[];
+  /** A quiénes no alcanza quien mira («solo alcanzas a quien está por debajo de ti»): sus filas no ofrecen acciones. */
+  fueraDeAlcance?: readonly string[];
   /** El nombre del rol de cada cuenta (ADR-0161 B); sin esto, solo el nivel (Líder / Colaborador). */
   rolDe?: (id: string) => string | null;
   /** Abre ese rol en «Roles y accesos» (spike colaboradores-ux, 2026-09-22): el rol de la fila es un atajo, no solo texto. */
@@ -101,7 +107,7 @@ export function TablaActivos({
       </thead>
       <tbody className="divide-y divide-tinta/5">
         {filas.map((c) => {
-          const items: ItemMenu[] = accionesDeFila(c, soyLider).map((a) => ({
+          const items: ItemMenu[] = accionesDeFila(c, soyAdmin, !fueraDeAlcance.includes(c.persona_id)).map((a) => ({
             clave: a,
             etiqueta: ETIQUETA_ACCION[a],
             peligro: a === "quitar",
@@ -113,7 +119,14 @@ export function TablaActivos({
                 <Persona nombre={c.nombre} correo={c.correo} tu={c.es_yo} />
               </td>
               <td className={CELDA}>
-                <ChipRol rol={c.rol} />
+                <span className="inline-flex flex-wrap items-center gap-1.5">
+                  <ChipRol rol={c.rol} />
+                  {admins.includes(c.persona_id) && (
+                    <span title="Admin en Dynamic: administra a los líderes">
+                      <Chip tono="pizarra">Admin</Chip>
+                    </span>
+                  )}
+                </span>
                 {c.rol !== "lider" && rolDe?.(c.persona_id) && (
                   onVerRol ? (
                     <button
@@ -283,11 +296,14 @@ export function TablaSuspendidos({
   ocupadoId,
   onReactivar,
   onQuitar,
+  puedeTocar = () => true,
 }: {
   filas: ColaboradorSuspendido[];
   ocupadoId: string | null;
   onReactivar: (c: ColaboradorSuspendido) => void;
   onQuitar: (c: ColaboradorSuspendido) => void;
+  /** ADR-0178: a un líder solo lo toca un Admin, y a nadie que no esté por debajo de quien mira. Sin esto, todas. */
+  puedeTocar?: (c: ColaboradorSuspendido) => boolean;
 }) {
   return (
     <Caja minimo="min-w-[860px]">
@@ -317,16 +333,20 @@ export function TablaSuspendidos({
             </td>
             <td className={`${CELDA} max-w-[260px] text-tinta/75`}>{c.motivo ?? <span className="text-tinta/65">Sin motivo</span>}</td>
             <td className={CELDA}>
-              <div className="flex items-center justify-end gap-2">
-                <Boton type="button" peso="discreto" className="px-3 py-1.5 text-[11px]" disabled={ocupadoId === c.persona_id} onClick={() => onReactivar(c)}>
-                  Reactivar acceso
-                </Boton>
-                <MenuAcciones
-                  etiqueta={`Más acciones de ${c.nombre}`}
-                  deshabilitado={ocupadoId === c.persona_id}
-                  items={[{ clave: "quitar", etiqueta: "Quitar acceso", peligro: true, onSelect: () => onQuitar(c) }]}
-                />
-              </div>
+              {puedeTocar(c) ? (
+                <div className="flex items-center justify-end gap-2">
+                  <Boton type="button" peso="discreto" className="px-3 py-1.5 text-[11px]" disabled={ocupadoId === c.persona_id} onClick={() => onReactivar(c)}>
+                    Reactivar acceso
+                  </Boton>
+                  <MenuAcciones
+                    etiqueta={`Más acciones de ${c.nombre}`}
+                    deshabilitado={ocupadoId === c.persona_id}
+                    items={[{ clave: "quitar", etiqueta: "Quitar acceso", peligro: true, onSelect: () => onQuitar(c) }]}
+                  />
+                </div>
+              ) : (
+                <p className="text-right text-xs italic text-tinta/65">Lo gestiona un líder</p>
+              )}
             </td>
           </tr>
         ))}

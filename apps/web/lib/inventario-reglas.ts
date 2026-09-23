@@ -214,3 +214,73 @@ export function fotoPrincipal(fotos: FotoCruda[] | null | undefined): string | n
   if (!fotos || fotos.length === 0) return null;
   return (fotos.find((f) => f.es_principal) ?? [...fotos].sort((a, b) => a.orden - b.orden)[0]).url;
 }
+
+/** Las cantidades de una prenda en una sede. */
+export type Cantidades = {
+  total: number;
+  piso: number | null;
+  almacen: number | null;
+  estado: EstadoStock | null;
+  danado: number | null;
+  apartado: number;
+  disponible: number;
+  pisoDisponible: number | null;
+  almacenDisponible: number | null;
+};
+export type FilaCantidadCruda = { variante_id: string; cantidad: number; cantidad_apartada: number; sububicacion: { tipo: string | null } | null };
+
+/**
+ * Las reglas de cantidades en UN solo lugar (cuarentena no suma, lo apartado no se vende, piso vs. almacén): las
+ * usan Existencias (`getStockPorUbicacion`, con el detalle de cada prenda) y la caja (`getDisponibleEnSede`, solo
+ * números). Por variante; las filas de piso y almacén de una misma prenda se suman.
+ */
+export function sumarCantidades(filas: FilaCantidadCruda[]): Map<string, Cantidades> {
+  // Una sola ubicación es piso/almacén o no lo es — nunca "depende de la
+  // variante". Se decide una vez sobre todas las filas, no por fila: una
+  // prenda que todavía no tiene stock en ningún lado de la tienda igual
+  // cuenta como "separa" (para mostrar SIN STOCK, no para desaparecer).
+  const separaPisoAlmacen = filas.some((f) => f.sububicacion?.tipo === "piso_venta" || f.sububicacion?.tipo === "almacen_tienda");
+
+  const acumulado = new Map<string, { total: number; piso: number; almacen: number; danado: number; apartado: number; apartadoPiso: number; apartadoAlmacen: number }>();
+  for (const f of filas) {
+    let a = acumulado.get(f.variante_id);
+    if (!a) {
+      a = { total: 0, piso: 0, almacen: 0, danado: 0, apartado: 0, apartadoPiso: 0, apartadoAlmacen: 0 };
+      acumulado.set(f.variante_id, a);
+    }
+    // Cuarentena (20260917100000) NUNCA suma a `total`: es stock dañado,
+    // no vendible — mezclarlo con piso/almacén inflaría "Prendas
+    // disponibles" con algo que, de hecho, no se puede vender.
+    if (f.sububicacion?.tipo === "cuarentena") {
+      a.danado += f.cantidad;
+      continue;
+    }
+    a.total += f.cantidad;
+    a.apartado += f.cantidad_apartada;
+    if (f.sububicacion?.tipo === "piso_venta") {
+      a.piso += f.cantidad;
+      a.apartadoPiso += f.cantidad_apartada;
+    } else if (f.sububicacion?.tipo === "almacen_tienda") {
+      a.almacen += f.cantidad;
+      a.apartadoAlmacen += f.cantidad_apartada;
+    }
+  }
+
+  const cantidades = new Map<string, Cantidades>();
+  for (const [varianteId, a] of acumulado) {
+    cantidades.set(varianteId, {
+      total: a.total,
+      danado: separaPisoAlmacen ? a.danado : null,
+      piso: separaPisoAlmacen ? a.piso : null,
+      almacen: separaPisoAlmacen ? a.almacen : null,
+      apartado: a.apartado,
+      disponible: a.total - a.apartado,
+      pisoDisponible: separaPisoAlmacen ? a.piso - a.apartadoPiso : null,
+      almacenDisponible: separaPisoAlmacen ? a.almacen - a.apartadoAlmacen : null,
+      // El semáforo mira lo que se puede VENDER: una prenda con todo el piso apartado no tiene piso
+      // que ofrecer aunque físicamente esté ahí (el chip «Apartado» de la fila lo explica).
+      estado: separaPisoAlmacen ? calcularEstado(a.piso - a.apartadoPiso, a.almacen - a.apartadoAlmacen) : null,
+    });
+  }
+  return cantidades;
+}

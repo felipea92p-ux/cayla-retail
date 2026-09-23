@@ -11,16 +11,25 @@
  {
   "cmd": "ALL",
   "policyname": "activos_fijos_write_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_es_lider() AS fn_es_lider)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "activos_fijos",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_es_lider() AS fn_es_lider)"
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "apartados_select",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "apartados",
+  "with_check": null
  },
  {
   "cmd": "SELECT",
   "policyname": "caja_movimientos_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.cajas c\n  WHERE ((c.id = caja_movimientos.caja_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_id))))",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.cajas c\n  WHERE ((c.id = caja_movimientos.caja_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (c.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "caja_movimientos",
@@ -29,7 +38,7 @@
  {
   "cmd": "SELECT",
   "policyname": "cajas_select",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "cajas",
@@ -38,7 +47,7 @@
  {
   "cmd": "SELECT",
   "policyname": "cambios_select",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "cambios",
@@ -56,11 +65,11 @@
  {
   "cmd": "ALL",
   "policyname": "categoria_patrones_write_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "categoria_patrones",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)"
  },
  {
   "cmd": "SELECT",
@@ -74,11 +83,11 @@
  {
   "cmd": "ALL",
   "policyname": "categoria_tallas_write_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "categoria_tallas",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)"
  },
  {
   "cmd": "SELECT",
@@ -92,11 +101,11 @@
  {
   "cmd": "ALL",
   "policyname": "categoria_tejidos_write_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "categoria_tejidos",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)"
  },
  {
   "cmd": "SELECT",
@@ -110,29 +119,20 @@
  {
   "cmd": "ALL",
   "policyname": "categorias_write_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "categorias",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)"
  },
  {
   "cmd": "SELECT",
-  "policyname": "clientes_select",
+  "policyname": "clientas_select",
   "qual": "(auth.role() = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
-  "tablename": "clientes",
+  "tablename": "clientas",
   "with_check": null
- },
- {
-  "cmd": "INSERT",
-  "policyname": "clientes_write_autenticado",
-  "qual": null,
-  "roles": "{public}",
-  "schemaname": "retail",
-  "tablename": "clientes",
-  "with_check": "(auth.role() = 'authenticated'::text)"
  },
  {
   "cmd": "SELECT",
@@ -146,11 +146,11 @@
  {
   "cmd": "ALL",
   "policyname": "codigos_barras_write_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "codigos_barras",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)"
  },
  {
   "cmd": "SELECT",
@@ -168,7 +168,7 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "codigos_descuento",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_es_lider() AS fn_es_lider)"
  },
  {
   "cmd": "SELECT",
@@ -182,19 +182,37 @@
  {
   "cmd": "UPDATE",
   "policyname": "codigos_descuento_update",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_es_lider() AS fn_es_lider)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "codigos_descuento",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_es_lider() AS fn_es_lider)"
  },
  {
   "cmd": "SELECT",
   "policyname": "colaboradores_select",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_puede_gestionar_colaboradores() AS fn_puede_gestionar_colaboradores)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "colaboradores",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "colaboradores_historial_select",
+  "qual": "( SELECT retail.fn_puede_gestionar_colaboradores() AS fn_puede_gestionar_colaboradores)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "colaboradores_historial",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "colaboradores_suspendidos_select",
+  "qual": "( SELECT retail.fn_puede_gestionar_colaboradores() AS fn_puede_gestionar_colaboradores)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "colaboradores_suspendidos",
   "with_check": null
  },
  {
@@ -218,16 +236,16 @@
  {
   "cmd": "UPDATE",
   "policyname": "colores_update_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "colores",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)"
  },
  {
   "cmd": "SELECT",
   "policyname": "compra_adjuntos_select",
-  "qual": "retail.fn_puede_ver_dinero_de_compras()",
+  "qual": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_adjuntos",
@@ -236,7 +254,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_item_cierres_select",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_item_cierres",
@@ -245,7 +263,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_item_destinos_select",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_item_destinos",
@@ -254,7 +272,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_items_select",
-  "qual": "retail.fn_puede_ver_dinero_de_compras()",
+  "qual": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_items",
@@ -263,7 +281,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_notas_credito_select",
-  "qual": "retail.fn_puede_ver_dinero_de_compras()",
+  "qual": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_notas_credito",
@@ -272,7 +290,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_pagos_select",
-  "qual": "retail.fn_puede_ver_dinero_de_compras()",
+  "qual": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_pagos",
@@ -281,7 +299,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_reasignaciones_select",
-  "qual": "(retail.fn_puede_operar_ubicacion(desde_ubicacion_id) OR retail.fn_puede_operar_ubicacion(hacia_ubicacion_id))",
+  "qual": "(COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (desde_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (hacia_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_reasignaciones",
@@ -290,7 +308,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compras_select",
-  "qual": "retail.fn_puede_ver_dinero_de_compras()",
+  "qual": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compras",
@@ -299,7 +317,7 @@
  {
   "cmd": "SELECT",
   "policyname": "comprobantes_select",
-  "qual": "(retail.fn_es_lider() OR retail.fn_puede_operar_ubicacion(ubicacion_id))",
+  "qual": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "comprobantes",
@@ -308,7 +326,7 @@
  {
   "cmd": "SELECT",
   "policyname": "comprobantes_produccion_select_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_es_lider() AS fn_es_lider)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "comprobantes_produccion",
@@ -316,8 +334,17 @@
  },
  {
   "cmd": "SELECT",
+  "policyname": "comprobantes_produccion_cierres_select_lider",
+  "qual": "( SELECT retail.fn_es_lider() AS fn_es_lider)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "comprobantes_produccion_cierres",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
   "policyname": "comprobantes_produccion_items_select_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_es_lider() AS fn_es_lider)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "comprobantes_produccion_items",
@@ -326,10 +353,19 @@
  {
   "cmd": "SELECT",
   "policyname": "comprobantes_produccion_pagos_select_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_es_lider() AS fn_es_lider)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "comprobantes_produccion_pagos",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "comprobantes_produccion_recepciones_select",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "comprobantes_produccion_recepciones",
   "with_check": null
  },
  {
@@ -344,7 +380,7 @@
  {
   "cmd": "SELECT",
   "policyname": "conteo_items_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.conteos c\n  WHERE ((c.id = conteo_items.conteo_id) AND retail.fn_puede_operar_ubicacion(c.ubicacion_id))))",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.conteos c\n  WHERE ((c.id = conteo_items.conteo_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (c.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "conteo_items",
@@ -353,7 +389,7 @@
  {
   "cmd": "SELECT",
   "policyname": "conteos_select",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "conteos",
@@ -362,25 +398,52 @@
  {
   "cmd": "ALL",
   "policyname": "conteos_write",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "conteos",
-  "with_check": "retail.fn_puede_operar_ubicacion(ubicacion_id)"
+  "with_check": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)"
  },
  {
   "cmd": "SELECT",
   "policyname": "costo_historial_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.movimientos m\n  WHERE ((m.id = costo_historial.movimiento_id) AND retail.fn_puede_operar_ubicacion(m.ubicacion_id))))",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.movimientos m\n  WHERE ((m.id = costo_historial.movimiento_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (m.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "costo_historial",
   "with_check": null
  },
  {
+  "cmd": "INSERT",
+  "policyname": "cotizaciones_maquila_insert",
+  "qual": null,
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "cotizaciones_maquila",
+  "with_check": "( SELECT retail.fn_es_lider() AS fn_es_lider)"
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "cotizaciones_maquila_select",
+  "qual": "(auth.role() = 'authenticated'::text)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "cotizaciones_maquila",
+  "with_check": null
+ },
+ {
+  "cmd": "UPDATE",
+  "policyname": "cotizaciones_maquila_update",
+  "qual": "( SELECT retail.fn_es_lider() AS fn_es_lider)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "cotizaciones_maquila",
+  "with_check": "( SELECT retail.fn_es_lider() AS fn_es_lider)"
+ },
+ {
   "cmd": "SELECT",
   "policyname": "devolucion_items_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.devoluciones d\n  WHERE ((d.id = devolucion_items.devolucion_id) AND retail.fn_puede_operar_ubicacion(d.ubicacion_id))))",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.devoluciones d\n  WHERE ((d.id = devolucion_items.devolucion_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (d.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "devolucion_items",
@@ -389,16 +452,16 @@
  {
   "cmd": "ALL",
   "policyname": "devolucion_items_write",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.devoluciones d\n  WHERE ((d.id = devolucion_items.devolucion_id) AND retail.fn_puede_operar_ubicacion(d.ubicacion_id))))",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.devoluciones d\n  WHERE ((d.id = devolucion_items.devolucion_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (d.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "devolucion_items",
-  "with_check": "(EXISTS ( SELECT 1\n   FROM retail.devoluciones d\n  WHERE ((d.id = devolucion_items.devolucion_id) AND retail.fn_puede_operar_ubicacion(d.ubicacion_id))))"
+  "with_check": "(EXISTS ( SELECT 1\n   FROM retail.devoluciones d\n  WHERE ((d.id = devolucion_items.devolucion_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (d.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))"
  },
  {
   "cmd": "SELECT",
   "policyname": "devoluciones_select",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "devoluciones",
@@ -407,16 +470,16 @@
  {
   "cmd": "ALL",
   "policyname": "devoluciones_write",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "devoluciones",
-  "with_check": "retail.fn_puede_operar_ubicacion(ubicacion_id)"
+  "with_check": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)"
  },
  {
   "cmd": "SELECT",
   "policyname": "envio_extras_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.envios e\n  WHERE ((e.id = envio_extras.envio_id) AND retail.fn_puede_operar_ubicacion(e.ubicacion_id))))",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.envios e\n  WHERE ((e.id = envio_extras.envio_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (e.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "envio_extras",
@@ -425,7 +488,7 @@
  {
   "cmd": "SELECT",
   "policyname": "envio_traslados_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.envios e\n  WHERE ((e.id = envio_traslados.envio_id) AND retail.fn_puede_operar_ubicacion(e.ubicacion_id))))",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.envios e\n  WHERE ((e.id = envio_traslados.envio_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (e.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "envio_traslados",
@@ -434,7 +497,7 @@
  {
   "cmd": "SELECT",
   "policyname": "envios_select",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "envios",
@@ -452,11 +515,11 @@
  {
   "cmd": "ALL",
   "policyname": "etiqueta_categorias_write_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_es_lider() AS fn_es_lider)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "etiqueta_categorias",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_es_lider() AS fn_es_lider)"
  },
  {
   "cmd": "INSERT",
@@ -465,7 +528,7 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "etiquetas",
-  "with_check": "((auth.role() = 'authenticated'::text) AND ((descuento_pct IS NULL) OR retail.fn_es_lider()))"
+  "with_check": "((auth.role() = 'authenticated'::text) AND ((descuento_pct IS NULL) OR ( SELECT retail.fn_es_lider() AS fn_es_lider)))"
  },
  {
   "cmd": "SELECT",
@@ -478,12 +541,12 @@
  },
  {
   "cmd": "UPDATE",
-  "policyname": "etiquetas_update_lider",
-  "qual": "retail.fn_es_lider()",
+  "policyname": "etiquetas_update",
+  "qual": "(( SELECT retail.fn_puede_dar_descuento_por_etiqueta() AS fn_puede_dar_descuento_por_etiqueta) OR (( SELECT retail.fn_puede_editar_etiquetas() AS fn_puede_editar_etiquetas) AND (descuento_pct IS NULL)))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "etiquetas",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "(( SELECT retail.fn_puede_dar_descuento_por_etiqueta() AS fn_puede_dar_descuento_por_etiqueta) OR (( SELECT retail.fn_puede_editar_etiquetas() AS fn_puede_editar_etiquetas) AND (descuento_pct IS NULL)))"
  },
  {
   "cmd": "SELECT",
@@ -497,11 +560,11 @@
  {
   "cmd": "ALL",
   "policyname": "familias_write_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "familias",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)"
  },
  {
   "cmd": "SELECT",
@@ -515,7 +578,7 @@
  {
   "cmd": "SELECT",
   "policyname": "insumo_lotes_select",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "insumo_lotes",
@@ -528,7 +591,7 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "insumos",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_es_lider() AS fn_es_lider)"
  },
  {
   "cmd": "SELECT",
@@ -542,7 +605,7 @@
  {
   "cmd": "UPDATE",
   "policyname": "insumos_update_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_es_lider() AS fn_es_lider)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "insumos",
@@ -555,12 +618,12 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "lotes",
-  "with_check": "retail.fn_puede_operar_ubicacion(ubicacion_id)"
+  "with_check": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)"
  },
  {
   "cmd": "SELECT",
   "policyname": "lotes_select",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "lotes",
@@ -578,11 +641,11 @@
  {
   "cmd": "ALL",
   "policyname": "marca_proveedores_write_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "marca_proveedores",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)"
  },
  {
   "cmd": "SELECT",
@@ -596,11 +659,20 @@
  {
   "cmd": "ALL",
   "policyname": "marcas_write_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "marcas",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)"
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "modulos_select",
+  "qual": "true",
+  "roles": "{authenticated}",
+  "schemaname": "retail",
+  "tablename": "modulos",
+  "with_check": null
  },
  {
   "cmd": "INSERT",
@@ -609,12 +681,12 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "movimientos",
-  "with_check": "retail.fn_puede_operar_ubicacion(ubicacion_id)"
+  "with_check": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)"
  },
  {
   "cmd": "SELECT",
   "policyname": "movimientos_select",
-  "qual": "(retail.fn_puede_operar_ubicacion(ubicacion_id) OR retail.fn_puede_operar_ubicacion(ubicacion_destino_id))",
+  "qual": "(COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_destino_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "movimientos",
@@ -623,7 +695,7 @@
  {
   "cmd": "SELECT",
   "policyname": "movimientos_insumo_select",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "movimientos_insumo",
@@ -650,16 +722,25 @@
  {
   "cmd": "UPDATE",
   "policyname": "patrones_update_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "patrones",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)"
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "pedidos_no_atendidos_select",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "pedidos_no_atendidos",
+  "with_check": null
  },
  {
   "cmd": "SELECT",
   "policyname": "prendas_danadas_select",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "prendas_danadas",
@@ -668,7 +749,7 @@
  {
   "cmd": "SELECT",
   "policyname": "produccion_lineas_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.producciones p\n  WHERE ((p.id = produccion_lineas.produccion_id) AND retail.fn_puede_operar_ubicacion(p.ubicacion_id))))",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.producciones p\n  WHERE ((p.id = produccion_lineas.produccion_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (p.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "produccion_lineas",
@@ -677,7 +758,7 @@
  {
   "cmd": "SELECT",
   "policyname": "producciones_select",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "producciones",
@@ -695,11 +776,11 @@
  {
   "cmd": "ALL",
   "policyname": "producto_fotos_write_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "producto_fotos",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)"
  },
  {
   "cmd": "SELECT",
@@ -713,16 +794,16 @@
  {
   "cmd": "ALL",
   "policyname": "productos_write_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "productos",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)"
  },
  {
   "cmd": "SELECT",
   "policyname": "proformas_select",
-  "qual": "(retail.fn_es_lider() OR retail.fn_puede_operar_ubicacion(ubicacion_id))",
+  "qual": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "proformas",
@@ -731,7 +812,7 @@
  {
   "cmd": "SELECT",
   "policyname": "proveedor_creditos_select",
-  "qual": "retail.fn_puede_registrar_compras()",
+  "qual": "( SELECT retail.fn_puede_registrar_compras() AS fn_puede_registrar_compras)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "proveedor_creditos",
@@ -748,17 +829,17 @@
  },
  {
   "cmd": "ALL",
-  "policyname": "proveedores_write_lider",
-  "qual": "retail.fn_es_lider()",
+  "policyname": "proveedores_write",
+  "qual": "( SELECT retail.fn_puede_gestionar_proveedores() AS fn_puede_gestionar_proveedores)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "proveedores",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_puede_gestionar_proveedores() AS fn_puede_gestionar_proveedores)"
  },
  {
   "cmd": "SELECT",
   "policyname": "proveedores_produccion_select_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_es_lider() AS fn_es_lider)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "proveedores_produccion",
@@ -766,8 +847,62 @@
  },
  {
   "cmd": "SELECT",
+  "policyname": "rol_modulos_select",
+  "qual": "( SELECT retail.fn_puede_administrar_roles() AS fn_puede_administrar_roles)",
+  "roles": "{authenticated}",
+  "schemaname": "retail",
+  "tablename": "rol_modulos",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "roles_select",
+  "qual": "( SELECT retail.fn_puede_administrar_roles() AS fn_puede_administrar_roles)",
+  "roles": "{authenticated}",
+  "schemaname": "retail",
+  "tablename": "roles",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "roles_historial_select",
+  "qual": "( SELECT retail.fn_puede_administrar_roles() AS fn_puede_administrar_roles)",
+  "roles": "{authenticated}",
+  "schemaname": "retail",
+  "tablename": "roles_historial",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "separacion_items_select",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.separaciones s\n  WHERE ((s.id = separacion_items.separacion_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (s.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "separacion_items",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "separacion_pagos_select",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.separaciones s\n  WHERE ((s.id = separacion_pagos.separacion_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (s.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "separacion_pagos",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "separaciones_select",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "separaciones",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
   "policyname": "series_comprobantes_select",
-  "qual": "(retail.fn_es_lider() OR retail.fn_puede_operar_ubicacion(ubicacion_id))",
+  "qual": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "series_comprobantes",
@@ -776,7 +911,7 @@
  {
   "cmd": "SELECT",
   "policyname": "stock_select",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "stock",
@@ -794,11 +929,11 @@
  {
   "cmd": "ALL",
   "policyname": "sububicaciones_write_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_es_lider() AS fn_es_lider)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "sububicaciones",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_es_lider() AS fn_es_lider)"
  },
  {
   "cmd": "INSERT",
@@ -821,11 +956,11 @@
  {
   "cmd": "UPDATE",
   "policyname": "tallas_update_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "tallas",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)"
  },
  {
   "cmd": "INSERT",
@@ -848,11 +983,20 @@
  {
   "cmd": "UPDATE",
   "policyname": "tejidos_update_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "tejidos",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)"
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "terminales_select",
+  "qual": "(( SELECT retail.fn_puede_gestionar_colaboradores() AS fn_puede_gestionar_colaboradores) OR (auth_user_id = auth.uid()))",
+  "roles": "{authenticated}",
+  "schemaname": "retail",
+  "tablename": "terminales",
+  "with_check": null
  },
  {
   "cmd": "INSERT",
@@ -861,12 +1005,12 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "transferencia_items",
-  "with_check": "(EXISTS ( SELECT 1\n   FROM retail.transferencias t\n  WHERE ((t.id = transferencia_items.transferencia_id) AND retail.fn_puede_operar_ubicacion(t.ubicacion_origen_id))))"
+  "with_check": "(EXISTS ( SELECT 1\n   FROM retail.transferencias t\n  WHERE ((t.id = transferencia_items.transferencia_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (t.ubicacion_origen_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))"
  },
  {
   "cmd": "SELECT",
   "policyname": "transferencia_items_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.transferencias t\n  WHERE ((t.id = transferencia_items.transferencia_id) AND (retail.fn_puede_operar_ubicacion(t.ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(t.ubicacion_destino_id)))))",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.transferencias t\n  WHERE ((t.id = transferencia_items.transferencia_id) AND (COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (t.ubicacion_origen_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (t.ubicacion_destino_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)))))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "transferencia_items",
@@ -875,7 +1019,7 @@
  {
   "cmd": "SELECT",
   "policyname": "transferencia_recepciones_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.transferencias t\n  WHERE ((t.id = transferencia_recepciones.transferencia_id) AND (retail.fn_puede_operar_ubicacion(t.ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(t.ubicacion_destino_id)))))",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.transferencias t\n  WHERE ((t.id = transferencia_recepciones.transferencia_id) AND (COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (t.ubicacion_origen_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (t.ubicacion_destino_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)))))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "transferencia_recepciones",
@@ -888,12 +1032,12 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "transferencias",
-  "with_check": "retail.fn_puede_operar_ubicacion(ubicacion_origen_id)"
+  "with_check": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_origen_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)"
  },
  {
   "cmd": "SELECT",
   "policyname": "transferencias_select",
-  "qual": "(retail.fn_puede_operar_ubicacion(ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(ubicacion_destino_id))",
+  "qual": "(COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_origen_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_destino_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "transferencias",
@@ -902,11 +1046,11 @@
  {
   "cmd": "UPDATE",
   "policyname": "transferencias_update",
-  "qual": "(retail.fn_puede_operar_ubicacion(ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(ubicacion_destino_id))",
+  "qual": "(COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_origen_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_destino_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "transferencias",
-  "with_check": "(retail.fn_puede_operar_ubicacion(ubicacion_origen_id) OR retail.fn_puede_operar_ubicacion(ubicacion_destino_id))"
+  "with_check": "(COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_origen_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_destino_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))"
  },
  {
   "cmd": "SELECT",
@@ -929,11 +1073,11 @@
  {
   "cmd": "ALL",
   "policyname": "ubicaciones_write_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_es_lider() AS fn_es_lider)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "ubicaciones",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_es_lider() AS fn_es_lider)"
  },
  {
   "cmd": "SELECT",
@@ -947,11 +1091,11 @@
  {
   "cmd": "ALL",
   "policyname": "variante_etiquetas_write_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_es_lider() AS fn_es_lider)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "variante_etiquetas",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_es_lider() AS fn_es_lider)"
  },
  {
   "cmd": "SELECT",
@@ -965,16 +1109,16 @@
  {
   "cmd": "ALL",
   "policyname": "variantes_write_lider",
-  "qual": "retail.fn_es_lider()",
+  "qual": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "variantes",
-  "with_check": "retail.fn_es_lider()"
+  "with_check": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)"
  },
  {
   "cmd": "SELECT",
   "policyname": "venta_anulacion_items_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_anulacion_items.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_anulacion_items.venta_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (v.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "venta_anulacion_items",
@@ -983,11 +1127,11 @@
  {
   "cmd": "ALL",
   "policyname": "venta_anulacion_items_write",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_anulacion_items.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_anulacion_items.venta_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (v.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "venta_anulacion_items",
-  "with_check": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_anulacion_items.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))"
+  "with_check": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_anulacion_items.venta_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (v.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))"
  },
  {
   "cmd": "INSERT",
@@ -996,12 +1140,12 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "venta_items",
-  "with_check": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_items.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))"
+  "with_check": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_items.venta_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (v.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))"
  },
  {
   "cmd": "SELECT",
   "policyname": "venta_items_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_items.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_items.venta_id) AND (( SELECT retail.fn_es_lider() AS fn_es_lider) OR (v.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))))))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "venta_items",
@@ -1010,7 +1154,7 @@
  {
   "cmd": "SELECT",
   "policyname": "venta_pagos_select",
-  "qual": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_pagos.venta_id) AND retail.fn_puede_operar_ubicacion(v.ubicacion_id))))",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.ventas v\n  WHERE ((v.id = venta_pagos.venta_id) AND (( SELECT retail.fn_es_lider() AS fn_es_lider) OR (v.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))))))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "venta_pagos",
@@ -1023,12 +1167,12 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "ventas",
-  "with_check": "retail.fn_puede_operar_ubicacion(ubicacion_id)"
+  "with_check": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)"
  },
  {
   "cmd": "SELECT",
   "policyname": "ventas_select",
-  "qual": "retail.fn_puede_operar_ubicacion(ubicacion_id)",
+  "qual": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "ventas",

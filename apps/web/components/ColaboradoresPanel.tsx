@@ -36,7 +36,8 @@ import { Check, History } from "lucide-react";
 import { AgregarColaboradoresModal, AlternarTerminalModal, CambiarUbicacionModal, QuitarAccesoModal, SuspenderModal } from "@/components/ColaboradoresModales";
 import { AsignarRolModal } from "@/components/RolesModales";
 import { accionesRolesSupabase, type AccionesRoles } from "@/lib/roles-acciones";
-import { avisoDelRol, cuentasDelRol, rolesAsignables, type CuentaConRol, type RolVista } from "@/lib/roles-reglas";
+import { avisoDelRol, cuentasDelRol, fueraDeLoMio, rolesAsignables, type CuentaConRol, type RolVista } from "@/lib/roles-reglas";
+import type { ClaveModulo } from "@/lib/modulos";
 import { RolesPanel } from "@/components/RolesPanel";
 import { ListaActividad, TablaActivos, TablaInactivas, TablaPendientes, TablaSuspendidos } from "@/components/ColaboradoresTablas";
 import { TerminalesPanel, type AccionesTerminales } from "@/components/TerminalesPanel";
@@ -107,6 +108,10 @@ export function ColaboradoresPanel({
   vistaInicial = vistaDe(undefined),
   secciones,
   soyLider = true,
+  soyAdmin = soyLider,
+  admins = [],
+  fueraDeAlcance = [],
+  misModulos = null,
   acciones = accionesSupabase,
   accionesRoles = accionesRolesSupabase,
   accionesTerminales,
@@ -132,6 +137,14 @@ export function ColaboradoresPanel({
   secciones?: readonly SeccionColaboradores[];
   /** ¿Quien mira es líder? Sin serlo (tiene el módulo), no se le ofrece tocar a un líder ni dar el rol Líder. */
   soyLider?: boolean;
+  /** ADR-0178: ¿quien mira es Admin (admin en Dynamic + Líder aquí)? Solo un Admin toca a un líder o da el rol Líder. */
+  soyAdmin?: boolean;
+  /** ADR-0178: las personas que son Admin, para marcarlas en la tabla. */
+  admins?: readonly string[];
+  /** ADR-0178 «solo alcanzas a quien está por debajo de ti»: personas a las que quien mira no alcanza (sin acciones). */
+  fueraDeAlcance?: readonly string[];
+  /** ADR-0178 «solo das lo que tienes»: los módulos que ve quien mira, o `null` si es líder (da todo). */
+  misModulos?: readonly ClaveModulo[] | null;
   acciones?: AccionesColaboradores;
   accionesRoles?: AccionesRoles;
   /** Crear terminal y cambiar su clave. Por defecto, las Server Actions de `app/actions/terminales.ts`. */
@@ -318,7 +331,7 @@ export function ColaboradoresPanel({
             <TerminalesPanel
               terminales={terminales}
               ubicaciones={ubicaciones}
-              roles={roles}
+              roles={roles ? roles.filter((r) => fueraDeLoMio(r.modulos, misModulos).length === 0) : roles}
               ocupadoId={ocupadoId}
               onAlternar={(t) => setModal({ tipo: "terminal", terminal: t })}
               onCambiarRol={roles && cuentas ? (t) => abrirCambioDeRol("terminal", t.id) : undefined}
@@ -357,7 +370,7 @@ export function ColaboradoresPanel({
                   {filas.length === 0 ? (
                     <Vacio>Nadie coincide con lo que buscas.</Vacio>
                   ) : (
-                    <TablaActivos filas={filas} ocupadoId={ocupadoId} onAccion={alElegirAccion} rolDe={rolDe} onVerRol={verRolDe} soyLider={soyLider} />
+                    <TablaActivos filas={filas} ocupadoId={ocupadoId} onAccion={alElegirAccion} rolDe={rolDe} onVerRol={verRolDe} soyAdmin={soyAdmin} admins={admins} fueraDeAlcance={fueraDeAlcance} />
                   )}
                   <p className="text-xs text-tinta/65" role="status">
                     {filas.length === colaboradores.length
@@ -405,6 +418,7 @@ export function ColaboradoresPanel({
                       ejecutar(c.persona_id, "reactivar el acceso", () => acciones.reactivar(c.persona_id), `${c.nombre} ya tiene acceso otra vez`)
                     }
                     onQuitar={(c) => setModal({ tipo: "quitar", persona: c, suspendida: true })}
+                    puedeTocar={(c) => !fueraDeAlcance.includes(c.persona_id) && (soyAdmin || c.rol !== "lider")}
                   />
                 </>
               )}
@@ -440,7 +454,9 @@ export function ColaboradoresPanel({
               ubicaciones={ubicaciones}
               yoId={colaboradores.find((c) => c.es_yo)?.persona_id ?? null}
               rolInicialId={rolElegidoId}
-              soyLider={soyLider}
+              soyAdmin={soyAdmin}
+              misModulos={misModulos}
+              fueraDeAlcance={fueraDeAlcance}
               acciones={accionesRoles}
             />
           )}
@@ -507,7 +523,7 @@ export function ColaboradoresPanel({
       )}
       {modal?.tipo === "rol" && roles && (
         <AsignarRolModal
-          roles={rolesAsignables(roles, undefined, soyLider)}
+          roles={rolesAsignables(roles, undefined, soyAdmin, misModulos)}
           cuentas={[]}
           ubicaciones={ubicaciones}
           cuentaFija={modal.cuenta}
