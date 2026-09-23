@@ -173,8 +173,9 @@ rollback;`,
     tipo: "exito",
     sql: `${PREPARAR}
 insert into retail.proveedores (nombre) values ('Proveedor Compras Prueba') returning id as pc \\gset
-insert into retail.compras (proveedor_id, serie, numero, condicion, fecha_emision, fecha_vencimiento, subtotal, igv, total)
-  values (:'pc', 'F777', '1', 'credito', current_date - 40, current_date - 5, 500, 90, 590);
+-- ubicacion_gestion_id: ADR-0179 la exige en toda factura vigente (compras_gestora_obligatoria).
+insert into retail.compras (proveedor_id, serie, numero, condicion, fecha_emision, fecha_vencimiento, subtotal, igv, total, ubicacion_gestion_id)
+  values (:'pc', 'F777', '1', 'credito', current_date - 40, current_date - 5, 500, 90, 590, (select id from retail.ubicaciones where activo and nombre like 'Tienda%' order by nombre limit 1));
 select retail.registrar_pago_comprobante_produccion(:'cid', '[{"metodo":"transferencia","monto":180}]'::jsonb) as _g \\gset
 select (select saldo from retail.fn_deuda_consolidada() where origen = 'produccion' and proveedor_id = :'prov'),
        (select vencido from retail.fn_deuda_consolidada() where origen = 'produccion' and proveedor_id = :'prov'),
@@ -192,8 +193,8 @@ select retail.guardar_proveedor_produccion(null, 'Textiles Prueba SAC', 'tela') 
 select igv_compras as c0, igv_produccion as p0, igv_notas_credito as n0, igv_neto as neto0 from retail.fn_igv_credito_fiscal() \\gset
 select retail.registrar_comprobante_produccion(:'prov', 'F001', '901', 'credito', '[{"descripcion":"Lino","cantidad":100,"costo_unitario":10}]'::jsonb, p_fecha_vencimiento => current_date + 20) as _cid \\gset
 insert into retail.proveedores (nombre) values ('Proveedor Compras Prueba') returning id as pc \\gset
-insert into retail.compras (proveedor_id, serie, numero, condicion, fecha_emision, fecha_vencimiento, subtotal, igv, total)
-  values (:'pc', 'F778', '1', 'credito', current_date, current_date + 30, 1000, 180, 1180) returning id as cmp \\gset
+insert into retail.compras (proveedor_id, serie, numero, condicion, fecha_emision, fecha_vencimiento, subtotal, igv, total, ubicacion_gestion_id)
+  values (:'pc', 'F778', '1', 'credito', current_date, current_date + 30, 1000, 180, 1180, (select id from retail.ubicaciones where activo and nombre like 'Tienda%' order by nombre limit 1)) returning id as cmp \\gset
 insert into retail.compra_notas_credito (compra_id, serie_numero, fecha, subtotal, igv, monto, motivo, aplicado)
   values (:'cmp', 'FC01-1', current_date, 100, 18, 118, 'devolucion', 0);
 select igv_produccion - :p0, igv_compras - :c0, igv_notas_credito - :n0, igv_neto - :neto0 from retail.fn_igv_credito_fiscal();
