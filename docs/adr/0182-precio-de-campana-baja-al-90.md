@@ -1,9 +1,9 @@
 # ADR-0182 — El precio de campaña se redondea hacia abajo a .90: una sola regla, en la caja y en la base
 
 **Fecha:** 2026-09-23 · **Estado:** migración `20260923174100_campana_redondea_a_90.sql` **PEGADA EN PRODUCCIÓN el
-2026-09-23** con OK de Felipe y verificada (sección «Pegada en producción»). **La web todavía no está publicada**
-(rama `claude/auto-label-generation-discounts-25d6a3`, sin subir): hasta publicarla **no se activa ninguna campaña**
-(ver «Se rompe si»). · **Cambia:** el monto del descuento de campaña
+2026-09-23** con OK de Felipe y verificada (sección «Pegada en producción»). **La web se publicó el mismo día a las 12:16
+(Lima)**, cuando Felipe fusionó el PR #351: base y caja ya calculan igual. Antes de activar la primera campaña, recargar
+Vender (F5) en cada caja: una pestaña abierta desde antes sigue con el código viejo y esa venta se rechazaría. · **Cambia:** el monto del descuento de campaña
 de ADR-0108 (la caja calcula y la base verifica: eso sigue igual). · **Es el paso 3 de** ADR-0180: la etiqueta con descuento
 (paso 2) espera a este cambio.
 
@@ -106,8 +106,8 @@ un % vacío no descuenta. El % se toma con 2 decimales (la columna es `numeric(5
    - Los ejemplos dan 18.00 / 24.90 / 24.00 / 20.10.
    - Siguen 0 campañas vigentes: ninguna venta se afectó.
 5. **Falta:**
-   - Publicar la web. Hasta entonces no se activa ninguna campaña: con la caja vieja, esas ventas se rechazarían.
-   - Refrescar el diccionario de datos con el próximo volcado (`fn_descuento_campana` es nueva).
+   - ~~Publicar la web~~ — hecho el 2026-09-23 a las 12:16 (PR #351).
+   - ~~Refrescar el diccionario~~ — el volcado de producción ya trae `fn_descuento_campana` (`50b944cd`).
 
 ## Para pegar en producción (la lista que se siguió)
 

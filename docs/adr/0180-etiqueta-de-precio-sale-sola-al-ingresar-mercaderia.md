@@ -1,10 +1,9 @@
 # ADR-0180 — La etiqueta de precio sale sola al ingresar mercadería, leída de los movimientos del ingreso
 
-**Fecha:** 2026-09-23 · **Estado:** los 3 pasos construidos y verificados en local, PR #351 (sin fusionar). Los pasos 1 y 2
-**no tienen migraciones**. El 3 (ADR-0182) trae una que **se pegó en producción el 2026-09-23**. La web todavía no está
-publicada: hasta publicarla no se activa ninguna campaña, o la caja vieja rechazaría esas ventas. · **Formato final:**
-44 × 62 mm para el cartón de 5 × 8 cm (sección «El cartón de 5 × 8 cm»). · **Falta:** que Felipe imprima una hoja en la
-Brother real y la escanee.
+**Fecha:** 2026-09-23 · **Estado:** los 3 pasos **publicados**: Felipe fusionó el PR #351 el 2026-09-23 a las 12:16 (Lima)
+y Vercel los desplegó; la migración del paso 3 (ADR-0182) se había pegado antes ese mismo día. Los pasos 1 y 2 **no tienen
+migraciones**. Lo publicado imprime la etiqueta de 62 × 92 mm; **el formato del cartón (44 × 62 mm, sección «El cartón de
+5 × 8 cm») va en el PR siguiente.** · **Falta:** fusionar ese PR y que Felipe imprima una hoja en la Brother real y la escanee.
 **Número:** 0180 porque el 0179 lo tomó en paralelo «Prendas sin registrar» (rama `untagged-products-pos`).
 
 ## El problema
