@@ -446,6 +446,71 @@
    "table_schema": "retail"
   }
  ],
+ "caja_traslados": [
+  {
+   "column_default": "gen_random_uuid()",
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "caja_traslados",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "caja_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "caja_traslados",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "destino",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "caja_traslados",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "monto",
+   "data_type": "numeric",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "caja_traslados",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "referencia",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 5,
+   "table_name": "caja_traslados",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "registrado_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 6,
+   "table_name": "caja_traslados",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "creado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 7,
+   "table_name": "caja_traslados",
+   "table_schema": "retail"
+  }
+ ],
  "cajas": [
   {
    "column_default": "gen_random_uuid()",
@@ -570,6 +635,51 @@
    "data_type": "uuid",
    "is_nullable": "YES",
    "ordinal_position": 14,
+   "table_name": "cajas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "monto_fondo",
+   "data_type": "numeric",
+   "is_nullable": "YES",
+   "ordinal_position": 15,
+   "table_name": "cajas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "monto_apertura_esperado",
+   "data_type": "numeric",
+   "is_nullable": "YES",
+   "ordinal_position": 16,
+   "table_name": "cajas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "motivo_diferencia_apertura",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 17,
+   "table_name": "cajas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "apertura_revisada_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 18,
+   "table_name": "cajas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "apertura_revisada_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 19,
    "table_name": "cajas",
    "table_schema": "retail"
   }
@@ -699,6 +809,35 @@
    "is_nullable": "YES",
    "ordinal_position": 14,
    "table_name": "cambios",
+   "table_schema": "retail"
+  }
+ ],
+ "catalogo_version": [
+  {
+   "column_default": "1",
+   "column_name": "id",
+   "data_type": "smallint",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "catalogo_version",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "0",
+   "column_name": "version",
+   "data_type": "bigint",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "catalogo_version",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "cambiado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "catalogo_version",
    "table_schema": "retail"
   }
  ],
@@ -2135,6 +2274,71 @@
    "ordinal_position": 9,
    "table_name": "compra_pagos",
    "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 10,
+   "table_name": "compra_pagos",
+   "table_schema": "retail"
+  }
+ ],
+ "compra_parte_por_tienda": [
+  {
+   "column_default": null,
+   "column_name": "compra_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 1,
+   "table_name": "compra_parte_por_tienda",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 2,
+   "table_name": "compra_parte_por_tienda",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "unidades",
+   "data_type": "integer",
+   "is_nullable": "YES",
+   "ordinal_position": 3,
+   "table_name": "compra_parte_por_tienda",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "subtotal",
+   "data_type": "numeric",
+   "is_nullable": "YES",
+   "ordinal_position": 4,
+   "table_name": "compra_parte_por_tienda",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "igv",
+   "data_type": "numeric",
+   "is_nullable": "YES",
+   "ordinal_position": 5,
+   "table_name": "compra_parte_por_tienda",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "total",
+   "data_type": "numeric",
+   "is_nullable": "YES",
+   "ordinal_position": 6,
+   "table_name": "compra_parte_por_tienda",
+   "table_schema": "retail"
   }
  ],
  "compra_reasignaciones": [
@@ -2217,6 +2421,44 @@
    "is_nullable": "NO",
    "ordinal_position": 9,
    "table_name": "compra_reasignaciones",
+   "table_schema": "retail"
+  }
+ ],
+ "compradores_de_tienda": [
+  {
+   "column_default": null,
+   "column_name": "persona_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "compradores_de_tienda",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "compradores_de_tienda",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "agregado_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 3,
+   "table_name": "compradores_de_tienda",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "created_at",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "compradores_de_tienda",
    "table_schema": "retail"
   }
  ],
@@ -2461,6 +2703,15 @@
    "data_type": "text",
    "is_nullable": "YES",
    "ordinal_position": 31,
+   "table_name": "compras",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_gestion_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 32,
    "table_name": "compras",
    "table_schema": "retail"
   }
@@ -3647,6 +3898,15 @@
    "data_type": "timestamp with time zone",
    "is_nullable": "NO",
    "ordinal_position": 9,
+   "table_name": "configuracion_empresa",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "false",
+   "column_name": "exige_responsable",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 10,
    "table_name": "configuracion_empresa",
    "table_schema": "retail"
   }
@@ -5905,6 +6165,161 @@
    "is_nullable": "YES",
    "ordinal_position": 14,
    "table_name": "prendas_danadas",
+   "table_schema": "retail"
+  }
+ ],
+ "prendas_por_regularizar": [
+  {
+   "column_default": "gen_random_uuid()",
+   "column_name": "id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "prendas_por_regularizar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "venta_item_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "prendas_por_regularizar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "prendas_por_regularizar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "descripcion",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "prendas_por_regularizar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "categoria_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "prendas_por_regularizar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "talla_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "prendas_por_regularizar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "color_codigo",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 7,
+   "table_name": "prendas_por_regularizar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "precio_cobrado",
+   "data_type": "numeric",
+   "is_nullable": "NO",
+   "ordinal_position": 8,
+   "table_name": "prendas_por_regularizar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "vendido_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 9,
+   "table_name": "prendas_por_regularizar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "vendido_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 10,
+   "table_name": "prendas_por_regularizar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "'pendiente'::text",
+   "column_name": "estado",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 11,
+   "table_name": "prendas_por_regularizar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "variante_id",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 12,
+   "table_name": "prendas_por_regularizar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "forma",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 13,
+   "table_name": "prendas_por_regularizar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "precio_oficial",
+   "data_type": "numeric",
+   "is_nullable": "YES",
+   "ordinal_position": 14,
+   "table_name": "prendas_por_regularizar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "diferencia",
+   "data_type": "numeric",
+   "is_nullable": "YES",
+   "ordinal_position": 15,
+   "table_name": "prendas_por_regularizar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "regularizado_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 16,
+   "table_name": "prendas_por_regularizar",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "regularizado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "YES",
+   "ordinal_position": 17,
+   "table_name": "prendas_por_regularizar",
    "table_schema": "retail"
   }
  ],

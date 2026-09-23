@@ -4,14 +4,11 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { inicioDeDiaLima, diaLima, horaDelDiaLima } from "@/lib/panel-serie";
 
 // Caja/POS V2 (2026-09-12) — ver supabase/migrations/0008_caja_y_pagos.sql.
-// `resumen` se calcula acá con las MISMAS reglas que cerrar_caja() en SQL
-// (apertura + ventas en efectivo + ingresos − egresos): es lo que la
-// Encargada ve ANTES de cerrar, para que el número de cierre no la
-// sorprenda. Si algún día cambia la fórmula del cuadre, cambia en los dos
-// lugares — están separados porque uno es "vista previa" (puede leerse
-// cien veces sin efecto) y el otro es la escritura real que congela el
-// cierre; unificarlos exigiría que la vista previa mutara algo, que es
-// justo lo que no debe hacer.
+// `getResumenCaja` alimenta las cifras del TABLERO de Caja (ventas por método, entradas, salidas). El esperado del
+// cierre ya no sale de aquí: lo calcula la base en `fn_calcular_esperado_caja`, que usan `fn_esperado_caja` (la vista
+// previa del cierre) y `cerrar_caja` (ADR-0186). Las ventas anuladas se excluyen igual que allá (`estado <> 'anulada'`):
+// su dinero volvió a la clienta, así que ni está en el cajón ni es venta del día. Antes se contaban y el tablero
+// mostraba ventas que ya no existían.
 export type CajaAbierta = {
   id: string;
   ubicacionId: string;
@@ -21,11 +18,8 @@ export type CajaAbierta = {
 };
 
 /**
- * Conteo ciego (ADR-0042): a propósito NO trae el total esperado en el cajón.
- * Quien cuenta no debe saber cuánto debería haber — si lo sabe, contar deja de
- * ser una medición y pasa a ser una confirmación, y la diferencia real nunca
- * aparece. El esperado lo calcula `cerrar_caja` en el servidor, en el instante
- * del cierre, y se muestra recién ahí junto a lo contado.
+ * Montos sueltos del tablero de Caja. No trae el total esperado en el cajón: ese número tiene un solo dueño,
+ * `fn_calcular_esperado_caja` en la base (ADR-0186), para que la pantalla y el cierre nunca den cifras distintas.
  */
 export type ResumenCaja = {
   ventasEfectivo: number;
@@ -111,7 +105,7 @@ export async function getCajaAbierta(ubicacionId: string): Promise<CajaAbierta |
 export async function getResumenCaja(cajaId: string): Promise<ResumenCaja> {
   const supabase = await createClient();
   const [ventasRes, movimientos, devolucionesRes, cambiosRes] = await Promise.all([
-    supabase.from("ventas").select("id").eq("caja_id", cajaId),
+    supabase.from("ventas").select("id").eq("caja_id", cajaId).neq("estado", "anulada"),
     supabase.from("caja_movimientos").select("tipo, monto").eq("caja_id", cajaId),
     supabase.from("devoluciones").select("reembolso_monto, reembolso_metodo").eq("caja_id", cajaId).eq("estado", "aprobada"),
     supabase.from("cambios").select("diferencia, metodo_pago_diferencia").eq("caja_id", cajaId).eq("metodo_pago_diferencia", "efectivo"),
@@ -418,7 +412,8 @@ export async function getMovimientosCaja(cajaId: string): Promise<MovimientoCaja
  */
 export async function getSeriesVentasCaja(cajaId: string): Promise<SeriesVentasCaja> {
   const supabase = await createClient();
-  const ventasRes = await supabase.from("ventas").select("id, created_at").eq("caja_id", cajaId);
+  // Sin anuladas, como `getResumenCaja` y `fn_calcular_esperado_caja` (ADR-0186): el gráfico no dibuja ventas que ya no existen.
+  const ventasRes = await supabase.from("ventas").select("id, created_at").eq("caja_id", cajaId).neq("estado", "anulada");
   const filasVentas = exigir(ventasRes, "las ventas de esta caja");
   if (filasVentas.length === 0) return { porMetodo: {}, porHora: [] };
 

@@ -15,6 +15,11 @@
   "tablename": "caja_movimientos"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX caja_traslados_pkey ON retail.caja_traslados USING btree (id)",
+  "indexname": "caja_traslados_pkey",
+  "tablename": "caja_traslados"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX cajas_pkey ON retail.cajas USING btree (id)",
   "indexname": "cajas_pkey",
   "tablename": "cajas"
@@ -33,6 +38,11 @@
   "indexdef": "CREATE UNIQUE INDEX cambios_token_cliente_key ON retail.cambios USING btree (token_cliente) WHERE (token_cliente IS NOT NULL)",
   "indexname": "cambios_token_cliente_key",
   "tablename": "cambios"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX catalogo_version_pkey ON retail.catalogo_version USING btree (id)",
+  "indexname": "catalogo_version_pkey",
+  "tablename": "catalogo_version"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX categoria_patrones_pkey ON retail.categoria_patrones USING btree (categoria_id, patron_id)",
@@ -178,6 +188,11 @@
   "indexdef": "CREATE UNIQUE INDEX compra_reasignaciones_pkey ON retail.compra_reasignaciones USING btree (id)",
   "indexname": "compra_reasignaciones_pkey",
   "tablename": "compra_reasignaciones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX compradores_de_tienda_pkey ON retail.compradores_de_tienda USING btree (persona_id, ubicacion_id)",
+  "indexname": "compradores_de_tienda_pkey",
+  "tablename": "compradores_de_tienda"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX compras_pkey ON retail.compras USING btree (id)",
@@ -453,6 +468,16 @@
   "indexdef": "CREATE UNIQUE INDEX prendas_danadas_pkey ON retail.prendas_danadas USING btree (id)",
   "indexname": "prendas_danadas_pkey",
   "tablename": "prendas_danadas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX prendas_por_regularizar_pkey ON retail.prendas_por_regularizar USING btree (id)",
+  "indexname": "prendas_por_regularizar_pkey",
+  "tablename": "prendas_por_regularizar"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX prendas_por_regularizar_venta_item_id_key ON retail.prendas_por_regularizar USING btree (venta_item_id)",
+  "indexname": "prendas_por_regularizar_venta_item_id_key",
+  "tablename": "prendas_por_regularizar"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX produccion_lineas_pkey ON retail.produccion_lineas USING btree (id)",
