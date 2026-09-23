@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-23 (Prueba intermitente de roles en el CI — PR #365)
+La prueba «ADR-0178 alcance: cambiarle el rol…» de `pruebas:roles` falló en el CI del PR #363 (que no tocaba roles) y pasó al reintentar. Causa: buscaba a sus tres personas de prueba por los dos últimos caracteres del UUID (`d1`, `d2`, `d3`), y el seed del CI crea colaboradores con UUID aleatorio: 1 de cada 256 termina en `d2` y se colaba. Ahora las busca por el UUID completo; se reprodujo el fallo a propósito (69/70 antes, 70/70 después) y la suite pasó 5 de 5 veces en local. La regla de alcance no cambió.
+Felipe se lleva: (1) **una prueba que falla «a veces» no es mala suerte, es una dependencia escondida**: aquí, un dato aleatorio de otra parte del sistema; (2) **en local pasaba siempre porque la base local no tenía ese dato**: que pase en tu máquina no prueba que sea determinista; (3) **una prueba intermitente se arregla, no se reintenta**: si el CI enseña a reintentar hasta el verde, un día se ignora un rojo de verdad.
+
 ## 2026-09-23 («Recibidas recientemente» no cargaba — timeout en listar_recepciones_compras)
 La pestaña caía en «No se pudo cargar»: `listar_recepciones_compras` tardaba 33 s en producción y la API la corta a los 8. Causa: lo asignado y lo faltante de cada comprobante se calculaban con dos subconsultas por fila, sobre TODA la historia (~320 recepciones) antes de cortar a 30, y cada una volvía a preguntar el permiso de tienda fila por fila. Migración `20260924090000`: permiso una vez por tienda, primero la página y después el reparto; mismo resultado fila por fila (líder y colaboradora, probado en producción en transacción revertida) y 0,8 s. Por pegar en producción.
 Felipe se lleva: (1) **una pantalla que anda con 50 envíos puede caerse con 300**: el costo crecía con la historia, no con lo que se muestra; (2) **primero se corta la página, después se calcula lo caro**; (3) **el permiso se pregunta una vez, no por fila**.

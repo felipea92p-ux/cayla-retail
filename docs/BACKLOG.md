@@ -3123,6 +3123,12 @@ mano, confirmó ✗ + exit 1, revertida).
       esta rama (o el merge) para que GitHub Actions lo corra por primera vez. Con 2-3
       corridas verdes reales, sacar el `continue-on-error` de `.github/workflows/ci.yml`
       convierte el piloto en gate real.
+- [x] **Prueba intermitente de `pnpm pruebas:roles` arreglada (2026-09-23, PR #365, fusionado):** «ADR-0178 alcance: cambiarle el rol…»
+      falló en el piloto del PR #363 (run 35927333050) con `d2,d3,d2|true` y pasó al reintentar. Filtraba `fn_fuera_de_mi_alcance()` por los
+      2 últimos caracteres del UUID; el seed del CI crea colaboradores con UUID aleatorio y ~1 de cada 256 termina en «d2». Ahora filtra por los
+      3 UUID completos. Reproducido a propósito (colaborador intruso `…d2`: versión vieja 69/70, nueva 70/70) y suite local 5/5 en 70/70.
+      Sin cambio de regla ni de base. **Para el gate real:** una prueba intermitente en el piloto enseña a ignorar el rojo; antes de sacar el
+      `continue-on-error`, revisar las demás suites por el mismo patrón (comparar ids por un pedazo, `limit 1` sin `order by`).
 
 ---
 
