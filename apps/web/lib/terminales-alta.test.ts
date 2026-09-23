@@ -57,6 +57,15 @@ describe("solo un líder crea: la llave de servicio ni se abre para nadie más",
     expect(await crearTerminalCon(d, { ubicacionId: "", nombre: "", rolId: "" })).toMatchObject({ error: expect.stringMatching(/Solo un líder/) });
   });
 
+  it("ADR-0178: con un rol que tiene módulos que quien crea no ve, se rechaza sin abrir la llave", async () => {
+    const { d, abrirAdmin } = deps(true);
+    for (const respuesta of [false, null] as const) {
+      const r = await crearTerminalCon({ ...d, rolDentroDeLoMio: async () => respuesta }, ENTRADA);
+      expect(r).toEqual({ ok: false, error: expect.stringMatching(/solo puedes dar lo que tú ves/) });
+    }
+    expect(abrirAdmin).not.toHaveBeenCalled();
+  });
+
   it("si falta la llave en el servidor, lo dice claro (y no crea nada)", async () => {
     const d: Dependencias = {
       puedeGestionar: async () => true,

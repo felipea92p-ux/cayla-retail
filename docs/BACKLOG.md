@@ -28,6 +28,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Escalón Admin leído de Dynamic + «solo das lo que tienes» (2026-09-23, ADR-0178) — EN PRODUCCIÓN (Felipe la pegó el 2026-09-23; verificado objeto por objeto: `fn_es_admin`, los 4 candados inyectados, «Administrador» archivado, los 5 admins); web en el PR #333
+- La migración se escribió como `20260923160000` y se **renumeró a `20260923163000`** al fusionar (chocaba con `20260923160000_responsable_obligatorio`); contenido idéntico al pegado. Falta refrescar el volcado y `pnpm datos:generar:produccion`.
+- **Urgente, aparte de este cambio:** el rol Integrante tiene 0 módulos en producción desde el 22-09 16:58 (lo vació Felipe; 16 personas no ven nada). Confirmar si fue a propósito y volver a encenderle módulos.
+- **Decidir:** si los 4 líderes de sistemas (Daniel y los 3 practicantes) siguen como Líder; y si quien tiene Colaboradores sin ser líder puede suspender a alguien que ve más módulos que él (Dynamic lo frena con «solo alcanzas a quien está por debajo»).
+- Pendiente de la misma conversación: el rol «Encargada de sede» (aprobar/anular en su tienda), que Felipe todavía no aprobó.
+
 ## 🩹 Velocidad: auditoría módulo por módulo y el tope de 1.000 filas (2026-09-23) — paso 1 hecho, SIN migraciones
 Se midieron en producción (Playwright, solo lectura) 44 pantallas: tiempo hasta que se va el loader, peso de la respuesta y consultas más caras (`pg_stat_statements`).
 **Paso 1 (hecho): la caja no veía 295 prendas.** PostgREST corta toda respuesta en 1.000 filas sin error; el catálogo tiene 1.295 variantes y `fn_stock_por_sede` 2.927 filas. La «Chompa Cuello Redondo Lana» roja M (2 en TRU) salía «No encontramos». Nació `leerTodas()` (`lib/resultado.ts`): pide por páginas con orden único, de a 3 en paralelo. Aplicado a `getCatalogo`, `getStockPorUbicacion`, `leerStockDeLasSedes` (Vender, Apartados, Cambios, Existencias) y a Atributos ▸ Etiquetas. Medido contra producción: catálogo 1.295/1.295 en ~680 ms, stock de la red 2.927/2.927 en ~250 ms.

@@ -52,6 +52,10 @@ export type AdminTerminales = {
 export type Dependencias = {
   /** `fn_puede_gestionar_colaboradores()` con la sesión de quien llama. `null` = no se pudo preguntar (se trata como «no»). */
   puedeGestionar: () => Promise<boolean | null>;
+  /** ADR-0178 «solo das lo que tienes»: `fn_rol_dentro_de_lo_mio(rol)` con la sesión de quien llama. La terminal se crea
+   *  con la llave de servicio, así que la base no ve a quien la crea: esta es la pregunta que lo cubre. `null` = no se pudo
+   *  preguntar (se trata como «no»). Ausente = no se pregunta (maquetas y pruebas viejas). */
+  rolDentroDeLoMio?: (rolId: string) => Promise<boolean | null>;
   /** La persona de quien llama (`fn_actor_persona_id(false)`), para `creada_por`. */
   personaActual: () => Promise<string | null>;
   /** Abre el cliente con la llave de servicio. Lanza si falta la variable. Se llama SOLO tras confirmar el permiso. */
@@ -82,6 +86,11 @@ export async function crearTerminalCon(deps: Dependencias, entrada: Partial<Entr
   const v = validarEntrada(entrada);
   if (!v.ok) return v;
   const { ubicacionId, nombre, rolId } = v.datos;
+
+  // ADR-0178: quien no es líder solo da a una terminal un rol cuyos módulos ve él mismo.
+  if (deps.rolDentroDeLoMio && (await deps.rolDentroDeLoMio(rolId).catch(() => null)) !== true) {
+    return { ok: false, error: "Ese rol incluye módulos que tú no tienes: solo puedes dar lo que tú ves. Elige otro rol o pídeselo a un líder." };
+  }
 
   const admin = abrirAdmin(deps);
   if ("error" in admin) return { ok: false, error: admin.error };
