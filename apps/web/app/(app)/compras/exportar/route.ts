@@ -1,4 +1,4 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { listarCompras, ETIQUETA_TIPO_DOCUMENTO, type Cursor } from "@/lib/compras";
 import { celdaCsv, rangoDelMes } from "@/lib/comprobantes-lista-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -8,7 +8,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 // total, estado, condición y vencimiento. Las anuladas van MARCADAS, no ocultas: el contador
 // necesita ver que existieron. Sin `mes`, el mes en curso (Lima).
 //
-// Solo líder, igual que todo Compras (el layout de /compras lo exige para las pantallas; una ruta
+// Quien ve los montos y el módulo Facturas de compra (el layout de /compras lo exige para las pantallas; una ruta
 // aparte no hereda ese candado y hay que repetirlo). Se lee con la sesión de la persona: lo que la
 // base no le deja ver no sale en el archivo.
 //
@@ -19,7 +19,10 @@ const MAX_FILAS = 20_000; // tope de seguridad: un mes real de CAYLA son decenas
 
 export async function GET(request: Request) {
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") return Response.json({ error: "Solo un líder puede exportar el registro de compras." }, { status: 403 });
+  // 20260923130000: quien ve los montos y el módulo Facturas de compra (antes, solo el líder).
+  if (!puede(persona, "verDineroCompras") || !veModulo(persona, "facturas_compra")) {
+    return Response.json({ error: "Exportar el registro de compras necesita el módulo Facturas de compra en tu rol." }, { status: 403 });
+  }
 
   const mes = new URL(request.url).searchParams.get("mes") ?? hoyLima().slice(0, 7);
   const rango = rangoDelMes(mes);

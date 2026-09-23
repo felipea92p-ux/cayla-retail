@@ -9,7 +9,8 @@ import {
   filtrarColaboradores,
   filtrarDisponibles,
   fraseEvento,
-  pestanaDe,
+  porAtender,
+  vistaDe,
   resumenAlta,
   resumirAccesos,
   ultimoAccesoTexto,
@@ -113,8 +114,12 @@ describe("accionesDeFila", () => {
   it("a un colaborador se le puede cambiar la ubicación, suspender y quitar", () => {
     expect(accionesDeFila({ rol: "colaborador", es_yo: false })).toEqual(["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"]);
   });
-  it("un líder no tiene ubicación que cambiar", () => {
-    expect(accionesDeFila({ rol: "lider", es_yo: false })).toEqual(["suspender", "quitar"]);
+  it("a otro líder se le cambia el rol y la ubicación (la tienda donde arranca)", () => {
+    expect(accionesDeFila({ rol: "lider", es_yo: false })).toEqual(["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"]);
+  });
+  it("quien gestiona accesos sin ser líder (módulo Colaboradores) no toca a un líder; a un colaborador, sí", () => {
+    expect(accionesDeFila({ rol: "lider", es_yo: false }, false)).toEqual([]);
+    expect(accionesDeFila({ rol: "colaborador", es_yo: false }, false)).toEqual(["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"]);
   });
 });
 
@@ -200,11 +205,30 @@ describe("fraseEvento", () => {
   });
 });
 
-describe("pestanaDe (Roles y accesos es una pestaña de Colaboradores, ADR-0161 B)", () => {
-  it("abre la pestaña pedida por ?pestana= y cae en Activos con cualquier otra cosa", () => {
-    expect(pestanaDe("roles")).toBe("roles");
-    expect(pestanaDe("terminales")).toBe("terminales");
-    expect(pestanaDe("otra")).toBe("activos");
-    expect(pestanaDe(undefined)).toBe("activos");
+describe("vistaDe (dos secciones; los enlaces viejos siguen funcionando)", () => {
+  it("sin nada o con cualquier otra cosa abre Cuentas ▸ Personas ▸ Activas", () => {
+    expect(vistaDe(undefined)).toEqual({ seccion: "cuentas", tipo: "personas", estado: "activas", actividad: false });
+    expect(vistaDe("otra")).toEqual(vistaDe(undefined));
+    expect(vistaDe("activos")).toEqual(vistaDe(undefined));
+  });
+  it("cada pestaña vieja cae en su sección y su filtro", () => {
+    expect(vistaDe("roles").seccion).toBe("roles");
+    expect(vistaDe("terminales")).toMatchObject({ seccion: "cuentas", tipo: "terminales" });
+    expect(vistaDe("pendientes")).toMatchObject({ seccion: "cuentas", estado: "pendientes" });
+    expect(vistaDe("suspendidos").estado).toBe("suspendidas");
+    expect(vistaDe("inactivas").estado).toBe("inactivas");
+    expect(vistaDe("actividad")).toMatchObject({ seccion: "cuentas", actividad: true });
+  });
+});
+
+describe("porAtender", () => {
+  it("con todo en cero no avisa nada", () => {
+    expect(porAtender(0, 0)).toEqual([]);
+  });
+  it("altas primero (ámbar), inactivas después (neutro)", () => {
+    const a = porAtender(2, 1);
+    expect(a.map((x) => [x.estado, x.tono])).toEqual([["pendientes", "ambar"], ["inactivas", "neutro"]]);
+    expect(a[0].titulo).toBe("2 altas esperan tu aprobación.");
+    expect(porAtender(0, 1)[0].titulo).toBe("1 cuenta con acceso está inactiva en Dynamic.");
   });
 });

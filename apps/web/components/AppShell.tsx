@@ -1109,7 +1109,12 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         </div>
       </aside>
 
-      {perfilAbierto && !esAparato && <PerfilModal onClose={() => setPerfilAbierto(false)} />}
+      {perfilAbierto && !esAparato && (
+        <PerfilModal
+          onClose={() => setPerfilAbierto(false)}
+          veAdministracion={esLider || !!persona.modulos?.some((m) => m === "colaboradores" || m === "roles")}
+        />
+      )}
 
       {/* Etiqueta de una fila plegada. Fuera del <aside> a propósito: el aside recorta (`overflow-hidden`)
           y una etiqueta que se corta a mitad de palabra es peor que ninguna. */}

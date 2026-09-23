@@ -12,7 +12,8 @@ export type AccionesRoles = {
   renombrar: (rolId: string, nombre: string, descripcion: string) => Promise<ResultadoRol>;
   archivar: (rolId: string) => Promise<ResultadoRol>;
   restaurar: (rolId: string) => Promise<ResultadoRol>;
-  asignar: (rolId: string, cuenta: { tipo: "persona" | "terminal"; id: string }) => Promise<ResultadoRol>;
+  /** `ubicacionId`: la sede donde queda un líder al que se le baja el rol (la base la exige si no tiene una). */
+  asignar: (rolId: string, cuenta: { tipo: "persona" | "terminal"; id: string }, ubicacionId?: string) => Promise<ResultadoRol>;
 };
 
 export const accionesRolesSupabase: AccionesRoles = {
@@ -36,10 +37,12 @@ export const accionesRolesSupabase: AccionesRoles = {
     const { error } = await createClient().rpc("restaurar_rol", { p_rol_id: rolId });
     return { error };
   },
-  asignar: async (rolId, cuenta) => {
+  asignar: async (rolId, cuenta, ubicacionId) => {
     const { error } = await createClient().rpc(
       "asignar_rol",
-      cuenta.tipo === "persona" ? { p_rol_id: rolId, p_persona_id: cuenta.id } : { p_rol_id: rolId, p_terminal_id: cuenta.id },
+      cuenta.tipo === "persona"
+        ? { p_rol_id: rolId, p_persona_id: cuenta.id, ...(ubicacionId ? { p_ubicacion_id: ubicacionId } : {}) }
+        : { p_rol_id: rolId, p_terminal_id: cuenta.id },
     );
     return { error };
   },

@@ -26,10 +26,12 @@ export type Modulo = {
   nombre: string;
   /** Lo que se da al encenderlo: quien ve el módulo hace todo esto. */
   incluye: string;
-  /** Nunca se delega (ADR-0150, decisión 3): un rol con esa puerta podría darse más poder a sí mismo. */
+  /** Nunca se delega. Lo usaban Colaboradores y Roles y accesos (ADR-0150, decisión 3) hasta el 2026-09-22, cuando Felipe
+   *  los abrió a cualquier rol (20260923131000). Hoy ningún módulo lo usa; queda por si uno nuevo nace así. */
   soloLider?: true;
   /** «Solo líder por ahora»: la base aún exige `fn_es_lider()` en sus funciones; encenderlo abriría una pantalla que
-   *  falla al guardar. La base lo rechaza (`retail.modulos.delegable`). */
+   *  falla al guardar. La base lo rechaza (`retail.modulos.delegable`). Desde 20260923130000 ningún módulo lo usa (los 5
+   *  que lo tenían se abrieron); queda para el próximo módulo que nazca así. */
   noDelegable?: true;
 };
 
@@ -48,26 +50,30 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "movimientos", grupo: "Inventario", nombre: "Movimientos", incluye: "Consultar y exportar" },
   { clave: "productos", grupo: "Catálogo", nombre: "Productos", incluye: "Crear, editar y archivar prendas; precios, fotos y códigos" },
   { clave: "atributos", grupo: "Catálogo", nombre: "Categorías, marcas y atributos", incluye: "Crear, editar, desactivar y aprobar propuestas" },
-  { clave: "etiquetas", grupo: "Catálogo", nombre: "Etiquetas", incluye: "Crear, editar y archivar etiquetas sin descuento", noDelegable: true },
-  { clave: "facturas_compra", grupo: "Compras", nombre: "Facturas de compra", incluye: "Registrar, corregir y anular facturas", noDelegable: true },
+  { clave: "etiquetas", grupo: "Catálogo", nombre: "Etiquetas", incluye: "Crear, editar y archivar etiquetas sin descuento" },
+  { clave: "facturas_compra", grupo: "Compras", nombre: "Facturas de compra", incluye: "Registrar, corregir y anular facturas" },
   { clave: "recibir", grupo: "Compras", nombre: "Recibir mercadería", incluye: "Recibir envíos de proveedores" },
-  { clave: "por_pagar", grupo: "Compras", nombre: "Por pagar", incluye: "Ver lo que se debe y registrar pagos", noDelegable: true },
+  { clave: "por_pagar", grupo: "Compras", nombre: "Por pagar", incluye: "Ver lo que se debe y registrar pagos" },
   { clave: "proveedores", grupo: "Compras", nombre: "Proveedores", incluye: "Crear, editar y archivar; cuentas bancarias, Yape y Plin" },
-  { clave: "notas_credito", grupo: "Compras", nombre: "Notas de crédito", incluye: "Registrar y anular notas", noDelegable: true },
+  { clave: "notas_credito", grupo: "Compras", nombre: "Notas de crédito", incluye: "Registrar y anular notas" },
   { clave: "produccion", grupo: "Producción", nombre: "Órdenes de producción", incluye: "Crear, editar y cancelar órdenes; registrar avance" },
-  { clave: "analisis", grupo: "Gestión", nombre: "Análisis", incluye: "Reportes de ventas e inventario", noDelegable: true },
-  { clave: "colaboradores", grupo: "Gestión", nombre: "Colaboradores", incluye: "Dar y quitar accesos, suspender, cambiar ubicación", soloLider: true },
-  { clave: "roles", grupo: "Gestión", nombre: "Roles y accesos", incluye: "Crear roles y asignarlos", soloLider: true },
+  { clave: "analisis", grupo: "Gestión", nombre: "Análisis", incluye: "Reportes de ventas e inventario" },
+  { clave: "colaboradores", grupo: "Gestión", nombre: "Colaboradores", incluye: "Dar y quitar accesos, suspender, cambiar ubicación" },
+  { clave: "roles", grupo: "Gestión", nombre: "Roles y accesos", incluye: "Crear roles y asignarlos" },
 ];
 
-/** Lo que sigue siendo del líder aunque el rol vea el módulo: decisiones ya tomadas (ADR-0161 B2b), no nuevas. */
+/** Lo que sigue siendo del líder aunque el rol vea el módulo: decisiones ya tomadas (ADR-0161 B2b), no nuevas.
+ *  «Ver costos, márgenes y montos de Compras» (ADR-0126) SALIÓ de esta lista el 2026-09-22 (Felipe): los montos los ve
+ *  quien tenga Facturas de compra, Por pagar o Notas de crédito (migración 20260923130000). */
 export const SIEMPRE_SOLO_LIDER: readonly { que: string; origen: string }[] = [
   { que: "Anular una venta o un comprobante, y las series de SUNAT", origen: "ADR-0150, decisión 4" },
   { que: "Autorizar un descuento por encima del tope (a una persona; la terminal no tiene tope)", origen: "D-67" },
   { que: "Aprobar o rechazar devoluciones", origen: "ADR-0160" },
-  { que: "Ver costos, márgenes y montos de Compras", origen: "ADR-0126" },
   { que: "Poner etiquetas con descuento a una prenda", origen: "ADR-0160" },
-  { que: "Colaboradores, y Roles y accesos", origen: "ADR-0150, decisión 3" },
+  // Colaboradores, y Roles y accesos, SALIERON de esta lista el 2026-09-22 (Felipe, 20260923131000). Lo que queda del
+  // líder dentro de ellos son las protecciones mínimas de esa migración («decisión de arquitectura, revisable»):
+  { que: "Subir a alguien a Líder de equipo; cambiarle el rol o la sede, quitar, suspender o reactivar a un líder", origen: "ADR-0161 (2026-09-22)" },
+  { que: "Siempre queda al menos un líder activo, y nadie se cambia su propio rol", origen: "ADR-0161 (2026-09-22)" },
 ];
 
 export function esClaveModulo(x: string): x is ClaveModulo {
@@ -123,20 +129,26 @@ export function modulosDeHoy(
  *  - ajustarInventario      ← ve Existencias, Conteos o Traslados, completo
  *  - editarCatalogo         ← ve Productos o Categorías/atributos, completo
  *  - editarCuentasProveedor ← ve Proveedores, completo
- *  - analizar               ← ve Análisis (hoy «solo líder por ahora»)
- * `administrar` y `verDinero` siguen siendo del líder: no salen de ningún módulo delegable.
+ *  - verDineroCompras       ← ve Facturas de compra, Por pagar o Notas de crédito, completo
+ *                             (`fn_puede_ver_dinero_de_compras` y `fn_puede_registrar_compras`, 20260923130000)
+ *  - editarEtiquetas        ← ve Etiquetas, completo (`fn_puede_editar_etiquetas`; las etiquetas CON descuento no)
+ *  - analizar               ← ve Análisis, completo (`fn_puede_analizar`)
+ * `administrar` y `verDinero` (el dinero del Taller y el Resumen de Producción) siguen siendo del líder: no salen de
+ * ningún módulo delegable.
  */
 export function permisosDeModulos(rol: "lider" | "integrante", modulos: readonly ModuloDeCuenta[]): readonly Permiso[] {
   if (rol === "lider") return PERMISOS;
   const ve = (c: ClaveModulo) => modulos.some((m) => m.clave === c);
   const completo = (...cs: ClaveModulo[]) => modulos.some((m) => m.completo && cs.includes(m.clave));
   const permisos: Permiso[] = [];
-  if (ve("analisis")) permisos.push("analizar");
+  if (completo("analisis")) permisos.push("analizar");
   if (ve("facturacion")) permisos.push("facturar");
   if (completo("caja")) permisos.push("gestionarCaja");
   if (completo("existencias", "conteos", "traslados")) permisos.push("ajustarInventario");
   if (completo("productos", "atributos")) permisos.push("editarCatalogo");
   if (completo("proveedores")) permisos.push("editarCuentasProveedor");
+  if (completo("facturas_compra", "por_pagar", "notas_credito")) permisos.push("verDineroCompras");
+  if (completo("etiquetas")) permisos.push("editarEtiquetas");
   return permisos;
 }
 

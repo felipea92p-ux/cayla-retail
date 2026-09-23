@@ -131,7 +131,7 @@ flowchart TB
     lista completa y lo que queda fuera a propósito: ADR-0161, sección «F4b».
 - `/colaboradores` (solo líder; ADR-0145, ADR-0148 y ADR-0157) → `lib/colaboradores.ts` (lecturas: `fn_colaboradores`,
   `fn_colaboradores_pendientes`, `fn_colaboradores_suspendidos`, `fn_colaboradores_inactivos`, `fn_colaboradores_actividad`,
-  `fn_dynamic_disponibles`) → `ColaboradoresPanel.tsx` (pestañas, tarjetas, modales) + `ColaboradoresTablas.tsx` +
+  `fn_dynamic_disponibles`) → `ColaboradoresPanel.tsx` (dos secciones —Cuentas y Roles y accesos—, «Por atender», Actividad en modal; ADR-0172) + `ColaboradoresTablas.tsx` +
   `ColaboradoresModales.tsx` + `ui/MenuAcciones.tsx`. Escribe por `lib/colaboradores-acciones.ts` → RPC
   `agregar_colaboradores`, `fn_aprobar_alta_colaborador`, `suspender_colaborador`, `reactivar_colaborador`,
   `cambiar_ubicacion_colaborador`, `quitar_colaborador`. Reglas puras en `colaboradores-reglas.ts`.
@@ -139,7 +139,7 @@ flowchart TB
   `colaboradores_historial` (solo se agrega). `/vender/historial` también lee estas listas para el filtro «vendedor».
   **Terminales sin persona (ADR-0162, reemplaza la terminal-persona de ADR-0152/0160):** un aparato por fila en
   `retail.terminales` (tienda, tipo `ventas` | `administrativa`, cuenta de Auth propia, una activa de cada tipo por tienda).
-  La pestaña «Terminales» lee `fn_terminales()` (`getTerminales` en `lib/colaboradores.ts`, tolerado) y hace
+  Cuentas ▸ Terminales lee `fn_terminales()` (`getTerminales` en `lib/colaboradores.ts`, tolerado) y hace
   `desactivar_terminal` / `reactivar_terminal` (`TablaTerminales`, `AlternarTerminalModal`). **Crear y cambiar la clave no
   es una RPC:** exige la llave de servicio y lo hace `pnpm terminales:crear` (`scripts/terminales/`). `colaboradores.terminal`
   quedó retirada (siempre null) y `agregar_terminal` lanza 0A000. Los poderes siguen siendo las cinco capacidades
@@ -193,10 +193,12 @@ flowchart TB
   `fn_movimientos_busqueda`, una sola vez para la lista y las tarjetas; la parte de prenda es
   el Filtro de búsqueda especial escrito en SQL, `fn_movimientos_variantes`, migración `20260921153700`:
   ver su fila en la tabla de RPC y el ADR-0071) →
-  `FiltrosMovimientos.tsx` (buscador, Tipo, Sububicación y Período a la vista, el
-  proceso específico en «Más filtros»; todo en la URL) + `MovimientosLista.tsx`
-  (agrupada por día: Prenda · Hora y dónde · Movimiento · Origen → Destino · Cant. ·
-  Referencia; la referencia —`Traslado N`, `Conteo N`, `Boleta …`, `Factura …`—
+  `FiltrosMovimientos.tsx` (rediseño 2026-09-22: fila 1 buscador + Período; fila 2 Tipo con
+  su cifra y Sububicación segmentada; debajo, los procesos del tipo elegido —
+  `PROCESOS_POR_CATEGORIA`—; todo en la URL; la sede la decide solo el selector de la
+  cabecera) + `MovimientosLista.tsx` (lista de la guía oficial agrupada por día: punto ·
+  prenda con talla, color, hora y dónde · proceso con origen → destino · referencia ·
+  cantidad; en celular, dos líneas; la referencia —`Traslado N`, `Conteo N`, `Boleta …`, `Factura …`—
   enlaza a `/inventario/traslados/[id]` y `/inventario/conteo/[id]`, y Traslados
   cuenta el proceso completo) + `MovimientoDetalle.tsx` (modal por proceso, sin
   segunda consulta; ahí sigue la persona). Sin filtro por persona ni columna
@@ -218,25 +220,32 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `ProductoVarianteCelda` de `ui/PrendaCelda.tsx`, la misma que dibuja Conteo) → `ReponerPisoModal.tsx` (RPC
   `mover_interno`) y `AjustarInventarioModal.tsx` (RPC `registrar_movimiento`).
 - `/inventario/traslados` → `lib/traslados.ts` (`getTrasladosDeLaSede`: en curso + últimos 30
-  cerrados + miniaturas con UNA consulta de fotos, tolerante a fallo; `numero`) →
+  cerrados + miniaturas con UNA consulta de fotos, tolerante a fallo; `numero`; `colores` de `colores.hex`
+  para la muestra sin foto; los traslados SIN prendas se apartan con `separarVacios` y se cuentan en
+  `vacios`, ADR-0172) →
   `TrasladosPanel.tsx` (el único con estado: filtros, buscador, paginación, refresco cada minuto) →
   `TrasladosAtencion` / `TrasladosResumen` / `TrasladosFiltros` / `TrasladosLista` +
   `TrasladoEstado` / `TrasladoLlegada` / `TrasladoMiniaturas`. Todo lo que se decide (qué requiere
   acción, qué viene en camino, cuántas prendas están en tránsito, el orden por espera) vive en
   `lib/traslados-reglas.ts` (`situacionTraslado`, ADR-0105) y se comparte con el contador «por atender»
-  del menú: `getTrasladosPorAtender` (total, nunca lanza) → `(app)/layout.tsx`
+  del menú: `getTrasladosPorAtender` (total, nunca lanza; `transferencia_items!inner` deja fuera los vacíos) → `(app)/layout.tsx`
   → `AppShell` (`ui/Insignia`). Las fotos se eligen con `lib/producto-fotos-reglas.ts`
   (color exacto o general, nunca de otro color) →
-  `/inventario/traslados/[id]` → `TrasladoDetallePanel.tsx` (RPC `registrar_recepcion_traslado`,
-  `confirmar_traslado`, `cerrar_traslado_con_diferencia`; dice el estado con `TrasladoEstado`).
+  `/inventario/traslados/[id]` → `getTrasladoDetalle` (líneas por `fn_traslado_lineas`; quién envió, contó y
+  cerró por `fn_nombres_personas`; color y foto por `getAparienciaVariantes`) → `TrasladoRecorrido.tsx` (4 pasos,
+  `recorridoTraslado`) + `TrasladoDetallePanel.tsx` (conteo por borradores con `leerRecepcion`; al confirmar,
+  cerrar o guardar el recuento manda cada línea cambiada a `registrar_recepcion_traslado` y después
+  `confirmar_traslado` / `cerrar_traslado_con_diferencia`; confirma con `<Modal>`; ADR-0173).
 - `/inventario/conteo` → `lib/conteos.ts` (`getConteoAbierto`, `getConteosResumen` → RPC
   `fn_conteos_resumen`, `getPrevisualizacionCierre`, `getPrioridadConteo` + su `apariencia`: foto principal y
   `colorHex` de `lib/apariencia-variantes.ts`, la regla de Existencias; si falla degrada, no tumba) →
-  `ConteoPanel.tsx` («Conviene contar primero» con `ProductoVarianteCelda`; RPC `abrir_conteo`,
-  `conteo_contar`, `cerrar_conteo`; avance con
-  `avanceConteo`) + `ConteosLista.tsx` (historial) → `/inventario/conteo/[id]`
-  (`getConteoDetalle`, que trae foto y `colorHex` en su misma consulta; solo lectura). Exactitud con `exactitudConteos`
-  (`lib/conteo-varianza.ts`).
+  `ConteoVista.tsx` (dibuja; la página solo lee) → `ConteoPanel.tsx` (abrir en tres pasos; contar con «Suma por
+  escaneo» o «Escribir cantidad», escrituras en fila; «Faltan por contar» sin la cifra del sistema; revisar en
+  `<Modal>`; RPC `abrir_conteo`, `conteo_contar`, `cerrar_conteo`, `anular_conteo`) + `ConteosLista.tsx` (historial,
+  «Vacío») → `/inventario/conteo/[id]` → `ConteoDetalleVista.tsx` (`getConteoDetalle`, que trae foto, `colorHex` y
+  soles por línea en su misma consulta; solo lectura; `?ver=todas`). Reglas puras en `lib/conteo-reglas.ts`
+  (ADR-0174); exactitud con `exactitudConteos` (`lib/conteo-varianza.ts`). `cerrar_conteo` rechaza un conteo sin
+  prendas (hint `conteo_vacio`, `20260923120000`, en producción desde el 2026-09-22).
 - `/inventario/resumen` (**Análisis de inventario**, solo líder; nació como «Resumen» en ADR-0101/0121 y se
   repartió y rediseñó en ADR-0138) → `page.tsx` lee de la URL `preset, desde, hasta, q, cat, st, orden, pag` (+
   `modo=comparar`, `comparar`, `cdesde`, `chasta`, `vista`, `cambio`). La sede es SIEMPRE la del selector global.
@@ -248,17 +257,24 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `fn_resumen_comparacion` con el período partido en dos mitades (A = 1.ª, B = 2.ª; paginada de a 1000) +
   `getConteosResumen`/`exactitudConteos` → `lib/resumen-desempeno.ts:armarDesempeno` (puro: suma las mitades,
   toma el stock al inicio de A y al cierre de B, y calcula vendido, ritmo, sell-through, rotación y tendencia con
-  `metricasDePeriodo`, `calcularSellThrough` y `calcularTendencia`) → `ResumenDesempenoPanel` con
-  `ResumenControles` (una barra: período · categoría · sell-through, búsqueda debajo) y
-  `ResumenComportamiento` (tabla «Comportamiento del inventario», orden por defecto «Más vendidos», 15 filas).
+  `metricasDePeriodo`, `calcularSellThrough` y `calcularTendencia`; desde el 2026-09-22 también las cifras y los
+  gráficos del período: `calcularKpisDesempeno`, `contarTendencias`, `rankingRotacionDesempeno`,
+  `distribucionDesempeno`, sobre el alcance) → `ResumenDesempenoPanel` con `ResumenControles` (una barra: período ·
+  categoría, búsqueda debajo), `ResumenDesempenoGeneral` (4 cifras + dona de tendencia + top rotación + distribución
+  de sell-through) y `ResumenComportamiento` (tabla «Comportamiento del inventario» con la banda de sell-through en
+  su cabecera y la columna «Lectura del período», orden por defecto «Más vendidos», 15 filas). ADR-0171.
   · **Comparar períodos** (rediseño visual 2026-09-19) → `getComparacionInventario` = la misma RPC con A y B
   elegidos → `lib/resumen-comparacion.ts:armarComparacion` → `ResumenComparacionPanel`: contexto en dos
   píldoras «Período A: desde … hasta …» y «Período B: …» (`ResumenControles`, diseño de Figma 2026-09-21; cada una
   abre el MISMO selector de fechas —`PopoverRango`, el de «Personalizado» de Desempeño, con Desde/Hasta escritos a mano;
-  los atajos de A y B van dentro—; la búsqueda vive solo en Detalle) + `…General` (4 KPI — Ventas, Rotación, Sell-through, Capital —, dona «Evolución del
+  los atajos de A y B van dentro—; la búsqueda vive solo en Detalle) + `…General` (4 KPI A → B — Ventas, Rotación, Sell-through, Capital —, dona «Evolución del
   ritmo» con `evolucionDelRitmo`/`evolucionRitmoTotal` sobre `calcularTendencia`, barras A/B «Top rotación» y
-  «Distribución de sell-through») + `…Detalle` (tabla de 6 columnas con `cambioMostrado`/`textoCambio`: UN
-  cambio relevante por fila, el más importante de `PRIORIDAD_CAMBIO`, no una lista de señales).
+  «Distribución de sell-through», los tres en una fila) + `…Detalle` DEBAJO, en la misma pantalla (desde el 2026-09-22
+  ya no hay «Vista general / Detalle»: la dona filtra la tabla con `?cambio=`). La columna «Cambio relevante» de las
+  dos tablas sale de `lib/resumen-lectura.ts` (`lecturaDesempeno`, `lecturaComparacion`: 7 reglas en orden; en Comparar
+  la regla 4 es `cambioMostrado` con su `PRIORIDAD_CAMBIO`). Sin datos o en el Taller: `ResumenVacio` (ampliar a 90
+  días, ver otra tienda con `cambiarUbicacionActiva`, ir a Recibir). Exactitud: `ResumenBanner` como franja bajo el
+  título. ADR-0171.
   · **Rotación** = `lib/rotacion.ts` (COGS ÷ inventario promedio a costo; fallback de dos puntos, punto de
   sustitución para un promedio diario): la ÚNICA fórmula de las filas, el ranking, los órdenes y los KPI de
   Desempeño y Comparar. Una variante es estricta (sin dato = N/D); un total es `rotacionAgregada` (Σ COGS ÷ Σ
@@ -276,8 +292,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   · **Miniatura + color** (`ui/PrendaCelda.tsx:SinFoto`, `ui/MuestraColor.tsx`, el mismo lenguaje que Existencias)
   en toda fila «Producto/variante» que sea una tabla real: Desempeño, Comparar (Detalle), Movimientos,
   Traslados › detalle y Conteo › detalle. Sin miniatura ni cápsula en Mover/Recibir (son `<select>` nativos: un
-  `<option>` no admite marcado) ni donde el hex de color no viaja hasta la fila (Movimientos y Traslados › detalle
-  muestran el color como texto; Desempeño, Comparar y Conteo › detalle tienen `colorHex` en sus datos, y el último
+  `<option>` no admite marcado) ni donde el hex de color no viaja hasta la fila (Movimientos muestra el color como
+  texto; Traslados › detalle ya usa `ProductoVarianteCelda` con color y foto desde ADR-0173; Desempeño, Comparar y Conteo › detalle tienen `colorHex` en sus datos, y el último
   usa la celda completa de Existencias, `ProductoVarianteCelda`, con la foto principal del producto).
   · **Existencias** (`/inventario`) gana la cobertura: `getCoberturaPorVariante` = `fn_resumen_variantes` con la
   ventana de `DIAS_RITMO_RECIENTE` (30 días) + `calcularCobertura`; segunda línea bajo «Disponible», dato

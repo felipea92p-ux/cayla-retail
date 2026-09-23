@@ -1,0 +1,766 @@
+<title>Análisis de inventario CAYLA</title>
+<meta name="description" content="Demo del rediseño de /inventario/resumen con la guía oficial CAYLA.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   Demo — rediseño de Análisis de inventario (/inventario/resumen)
+   Tokens: los de apps/web/app/globals.css + la guía oficial «CAYLA Dynamic»
+   (Sala de Diseño, 2026-09-22). Sin sombras, sin gradientes: la línea sand
+   es el único adorno. Un solo ease. Radios por función: 8 / 16 / 20 / 999.
+   ===================================================================== */
+:root{
+  color-scheme: light;
+  --crema:#f5f0e8; --papel:#fbf6ec; --tinta:#1a1a18; --tinta-60:#5b544c; --tinta-45:#80786e;
+  --sand:#e8e0d0; --hueso:#eae1d2; --taupe:#805c4c;
+  --rojo:#b8412d; --rojo-profundo:#8b2a1f;
+  --verde:#556e49; --verde-profundo:#44583a; --ambar:#8c631f; --ambar-profundo:#734f15;
+  /* Gráficos: polaridad (aceleró ↔ desaceleró) con punto medio neutro — validado con el
+     validador de paletas (ΔE ≥ 26 entre vecinos, normal y daltonismo). */
+  --g-alza:#4f7042; --g-neutro:#d3c8b4; --g-baja:#a0701c;
+  --g-a:#d3c8b4; --g-b:#805c4c;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --r-control:8px; --r-sup:16px; --r-flot:20px; --r-pil:999px;
+  --serif:"EB Garamond", ui-serif, Georgia, serif;
+  --sans:"DM Sans", ui-sans-serif, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --crema:#1c1a16; --papel:#26221d; --tinta:#ede7db; --tinta-60:#b7ad9f; --tinta-45:#8d8477;
+    --sand:#383229; --hueso:#15110d; --taupe:#ab9080;
+    --rojo:#d4634a; --rojo-profundo:#e8836b;
+    --verde:#8fae80; --verde-profundo:#a3c294; --ambar:#c99a4a; --ambar-profundo:#d9ae62;
+    --g-alza:#8fb57d; --g-neutro:#5a5247; --g-baja:#d49a3c; --g-a:#5a5247; --g-b:#c7a896;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --crema:#1c1a16; --papel:#26221d; --tinta:#ede7db; --tinta-60:#b7ad9f; --tinta-45:#8d8477;
+  --sand:#383229; --hueso:#15110d; --taupe:#ab9080;
+  --rojo:#d4634a; --rojo-profundo:#e8836b;
+  --verde:#8fae80; --verde-profundo:#a3c294; --ambar:#c99a4a; --ambar-profundo:#d9ae62;
+  --g-alza:#8fb57d; --g-neutro:#5a5247; --g-baja:#d49a3c; --g-a:#5a5247; --g-b:#c7a896;
+}
+
+*{box-sizing:border-box}
+body{background:var(--crema); color:var(--tinta); font-family:var(--sans); font-size:14px; margin:0; padding-inline:16px; font-variant-numeric:tabular-nums; -webkit-font-smoothing:antialiased}
+button, select, input{font:inherit; color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--taupe); outline-offset:2px}
+h1,h2,h3{font-family:var(--serif); font-weight:500; margin:0; text-wrap:balance}
+.wrap{max-width:1320px; margin:0 auto; padding-block:24px 56px}
+.eyebrow{font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--taupe); margin:0}
+.muted{color:var(--tinta-60)}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+
+/* ---------------- Encabezado de la demo ---------------- */
+.demo-head{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:18px}
+.demo-head h1{font-size:clamp(26px,3.4vw,34px); margin-top:6px}
+.demo-head p.lede{max-width:62ch; line-height:1.55; margin:8px 0 0; color:var(--tinta-60)}
+.chip-ejemplo{display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:4px 11px; border-radius:var(--r-pil); background:var(--sand); color:var(--taupe); white-space:nowrap}
+
+/* ---------------- Panel de decisiones ---------------- */
+.decisiones{border:1px solid var(--sand); border-radius:var(--r-sup); background:var(--papel); padding:16px 18px; display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px 22px; margin-bottom:22px}
+.decision{display:flex; flex-direction:column; gap:7px; min-width:0}
+.decision .tit{font-size:12px; font-weight:600; color:var(--tinta)}
+.decision .tit span{color:var(--taupe); font-weight:500}
+.decision .d-nota{font-size:11.5px; color:var(--tinta-60); line-height:1.45; margin:0}
+.seg{display:inline-flex; flex-wrap:wrap; border:1px solid var(--sand); border-radius:var(--r-control); background:var(--hueso); padding:2px; gap:2px; align-self:flex-start}
+.seg button{border:0; background:transparent; padding:6px 11px; border-radius:6px; font-size:12.5px; color:var(--tinta-60); transition:background-color .15s, color .15s}
+.seg button[aria-pressed="true"]{background:var(--papel); color:var(--tinta); font-weight:600; box-shadow:inset 0 0 0 1px var(--sand)}
+.seg button .rec{font-size:10px; color:var(--verde-profundo); margin-left:4px; font-weight:600}
+
+/* ---------------- Marco de la app ---------------- */
+.app{border:1px solid var(--sand); border-radius:var(--r-flot); overflow:hidden; background:var(--crema); display:grid; grid-template-columns:232px minmax(0,1fr)}
+.lateral{background:var(--crema); border-right:1px solid var(--sand); padding:20px 14px; display:flex; flex-direction:column; gap:18px}
+.marca{font-family:var(--serif); font-size:20px; letter-spacing:.28em; padding-left:8px}
+.btn-nuevo{background:var(--tinta); color:var(--crema); border:0; border-radius:var(--r-control); padding:10px; font-size:11.5px; font-weight:600; letter-spacing:.12em}
+.nav{display:flex; flex-direction:column; gap:2px; font-size:14px}
+.nav span{padding:8px 10px; border-radius:var(--r-control); color:var(--tinta-60)}
+.nav .sub{padding-left:26px; font-size:13.5px}
+.nav .activo{background:var(--sand); color:var(--tinta); font-weight:600}
+.nav .grupo{color:var(--tinta)}
+.lateral .pie{margin-top:auto; font-size:12px; color:var(--tinta-60); border-top:1px solid var(--sand); padding-top:14px}
+.lateral .pie b{display:block; color:var(--tinta); font-size:13.5px; font-weight:600}
+
+.principal{min-width:0; display:flex; flex-direction:column}
+.barra{display:flex; justify-content:flex-end; align-items:center; gap:10px; padding:12px 24px; border-bottom:1px solid var(--sand)}
+.barra label{font-size:11px; color:var(--tinta-60); letter-spacing:.1em; text-transform:uppercase}
+.sede-sel{appearance:none; border:1px solid var(--sand); background:var(--papel); border-radius:var(--r-control); padding:7px 30px 7px 12px; font-size:11.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%); background-position:calc(100% - 15px) 50%, calc(100% - 10px) 50%; background-size:5px 5px; background-repeat:no-repeat}
+.contenido{padding:26px 28px 34px; display:flex; flex-direction:column; gap:18px; min-width:0}
+
+/* cabecera de la pantalla */
+.cab{display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px 24px; align-items:flex-start}
+.miga{font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--tinta-60); margin:0}
+.miga b{color:var(--rojo); font-weight:600}
+.cab h2{font-size:clamp(26px,3vw,32px); margin-top:6px; line-height:1.1}
+.cab .bajada{margin:6px 0 0; color:var(--tinta-60)}
+
+/* aviso de exactitud: tres formas */
+.aviso-tarjeta{display:flex; align-items:center; gap:12px; max-width:34rem; border:1px solid color-mix(in oklab,var(--ambar) 30%,transparent); background:color-mix(in oklab,var(--ambar) 8%,var(--papel)); border-radius:var(--r-sup); padding:12px 14px}
+.aviso-tarjeta .ico{flex:none; width:34px; height:34px; border-radius:50%; background:var(--ambar); color:var(--crema); display:grid; place-items:center}
+.aviso-tarjeta b{display:block; font-weight:600; font-size:13.5px}
+.aviso-tarjeta small{font-size:12px; color:var(--tinta-60)}
+.aviso-franja{display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; border:1px solid color-mix(in oklab,var(--ambar) 28%,transparent); background:color-mix(in oklab,var(--ambar) 7%,var(--papel)); border-radius:var(--r-control); padding:9px 12px 9px 14px; font-size:13px}
+.aviso-franja .ico{color:var(--ambar); display:inline-flex}
+.aviso-franja b{font-weight:600}
+.aviso-franja .txt{flex:1 1 280px; color:var(--tinta-60)}
+.aviso-franja .txt b{color:var(--tinta)}
+.enlace{background:none; border:0; padding:0; color:var(--tinta); text-decoration:underline; text-underline-offset:3px; font-size:13px; font-weight:500}
+.enlace:hover{color:var(--taupe)}
+.cerrar{background:none; border:0; color:var(--tinta-60); padding:4px; border-radius:6px; display:inline-flex}
+.cerrar:hover{color:var(--tinta); background:var(--sand)}
+.chip-exact{position:relative; display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:3px 10px; border-radius:var(--r-pil); background:color-mix(in oklab,var(--ambar) 15%,transparent); color:var(--ambar-profundo); border:0}
+.chip-exact::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor}
+.chip-exact .pop{position:absolute; right:0; top:calc(100% + 8px); width:280px; text-align:left; background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-control); padding:10px 12px; color:var(--tinta); font-size:12.5px; line-height:1.45; z-index:5; display:none}
+.chip-exact:hover .pop, .chip-exact:focus-visible .pop, .chip-exact:focus .pop{display:block}
+
+/* pestañas subrayadas (guía) */
+.fila-pest{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:8px 16px; border-bottom:1px solid var(--sand)}
+.pestanas{display:flex; gap:4px}
+.pestanas button{border:0; background:none; padding:10px 14px 11px; font-size:14px; font-weight:500; color:var(--tinta-60); border-bottom:2px solid transparent; margin-bottom:-1px; transition:color .15s, border-color .2s var(--ease)}
+.pestanas button[aria-selected="true"]{color:var(--tinta); font-weight:600; border-color:var(--rojo)}
+.pestanas button:hover{color:var(--tinta)}
+.estado-dato{display:flex; align-items:center; gap:10px; padding-bottom:9px; font-size:12px; color:var(--tinta-60)}
+details.calculo{position:relative}
+details.calculo summary{list-style:none; cursor:pointer; font-size:12px; color:var(--tinta-60); text-decoration:underline dotted; text-underline-offset:3px}
+details.calculo summary::-webkit-details-marker{display:none}
+details.calculo[open] summary{color:var(--tinta)}
+details.calculo .cuerpo{position:absolute; right:0; top:calc(100% + 8px); width:min(420px,80vw); background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-flot); padding:14px 16px; z-index:6; font-size:12.5px; line-height:1.5; display:grid; gap:8px}
+details.calculo .cuerpo b{font-weight:600}
+
+/* controles */
+.controles{display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:14px 20px}
+.presets{display:flex; flex-wrap:wrap; gap:6px}
+.pil{border:1px solid var(--sand); background:var(--papel); border-radius:var(--r-pil); padding:6px 13px; font-size:13px; color:var(--tinta-60); display:inline-flex; align-items:center; gap:7px; transition:border-color .15s, background-color .15s, color .15s}
+.pil:hover{border-color:color-mix(in oklab,var(--taupe) 45%,transparent); color:var(--tinta)}
+.pil[aria-pressed="true"]{background:var(--tinta); border-color:var(--tinta); color:var(--crema); font-weight:500}
+.rango{font-size:12px; color:var(--tinta-60); margin:7px 0 0 2px}
+.campos{display:flex; flex-wrap:wrap; gap:10px}
+.campo{display:flex; flex-direction:column; gap:4px; min-width:150px}
+.campo span{font-size:11px; color:var(--taupe); letter-spacing:.06em}
+.campo select, .campo input, .buscar input{border:1px solid var(--sand); background:var(--hueso); border-radius:var(--r-control); padding:8px 11px; font-size:13.5px}
+.buscar{position:relative; flex:1 1 260px; min-width:0}
+.buscar input{width:100%; padding-left:32px}
+.buscar svg{position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--tinta-45)}
+.vs{display:flex; flex-wrap:wrap; align-items:center; gap:8px}
+.vs em{font-style:normal; color:var(--tinta-45); font-size:13px}
+.pil-periodo{cursor:pointer}
+.pil-periodo .letra{font-weight:600; color:var(--tinta)}
+
+/* cifras */
+.kpis{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px}
+.kpi{border:1px solid var(--sand); background:var(--papel); border-radius:var(--r-sup); padding:14px 16px 13px; display:flex; flex-direction:column; gap:3px; min-width:0}
+.kpi .lab{font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--tinta-60)}
+.kpi .cifra{font-family:var(--serif); font-size:28px; line-height:1.15; white-space:nowrap}
+.kpi .cifra .antes{font-size:17px; color:var(--tinta-45)}
+.kpi .cifra .fl{font-size:16px; color:var(--tinta-45); margin:0 4px}
+.kpi .delta{font-size:12.5px}
+.kpi .pie{font-size:11.5px; color:var(--tinta-60); line-height:1.4}
+.t-alza{color:var(--verde-profundo)} .t-baja{color:var(--ambar-profundo)} .t-neutro{color:var(--tinta-60)} .t-rojo{color:var(--rojo-profundo)}
+
+/* gráficos */
+.graficos{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px}
+.bloque{border:1px solid var(--sand); background:var(--papel); border-radius:var(--r-sup); padding:16px 18px; display:flex; flex-direction:column; gap:12px; min-width:0}
+.bloque-cab{display:flex; justify-content:space-between; align-items:flex-start; gap:10px}
+.bloque h3{font-size:18px; line-height:1.2}
+.bloque .sub{font-size:12px; color:var(--tinta-60); margin:2px 0 0}
+.leyenda{display:flex; flex-wrap:wrap; gap:4px 12px; font-size:11.5px; color:var(--tinta-60)}
+.leyenda i{display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; vertical-align:-1px}
+
+.dona{display:flex; align-items:center; gap:16px; flex-wrap:wrap}
+.dona svg{flex:none; width:104px; height:104px}
+.dona li button > span{white-space:nowrap}
+.dona svg .seg-d{transition:opacity .15s}
+.dona svg .seg-d:hover{opacity:.8}
+.dona ul{list-style:none; margin:0; padding:0; flex:1 1 170px; display:flex; flex-direction:column; gap:2px; min-width:0}
+.dona li button{width:100%; display:flex; justify-content:space-between; align-items:center; gap:8px; border:0; background:none; padding:6px 7px; border-radius:6px; text-align:left; font-size:13px}
+.dona li button:hover:not(:disabled){background:color-mix(in oklab,var(--sand) 55%,transparent)}
+.dona li button:disabled{cursor:default}
+.dona li .n{color:var(--tinta-60)}
+.dona li i{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:7px; vertical-align:-1px}
+.dona .nd{font-size:11.5px; color:var(--tinta-60); margin:4px 0 0 7px}
+
+.barras{display:flex; flex-direction:column; gap:11px}
+.barra-f{display:grid; grid-template-columns:minmax(80px,120px) minmax(0,1fr) auto; gap:10px; align-items:center}
+.barra-f .et{font-size:12.5px; line-height:1.25; min-width:0}
+.barra-f .et small{display:block; color:var(--tinta-60); font-size:11px}
+.pista{display:flex; flex-direction:column; gap:3px}
+.pista i{display:block; height:8px; border-radius:0 4px 4px 0; transition:width .45s var(--ease)}
+.pista i.a{height:5px; background:var(--g-a)}
+.pista i.b{background:var(--g-b)}
+.barra-f .val{font-size:12.5px; white-space:nowrap; text-align:right}
+.barra-f .val small{display:block; color:var(--tinta-45); font-size:11px}
+
+.columnas{display:grid; grid-template-columns:repeat(5,1fr); gap:10px; align-items:end; height:128px; border-bottom:1px solid var(--sand); padding-top:16px}
+.col{display:flex; gap:3px; align-items:flex-end; justify-content:center; height:100%; position:relative}
+.col i{display:block; width:min(22px,42%); border-radius:4px 4px 0 0; transition:height .45s var(--ease); position:relative}
+.col i.a{background:var(--g-a)} .col i.b{background:var(--g-b)} .col i.solo{background:var(--g-b); width:min(34px,70%)}
+.col i b{position:absolute; bottom:calc(100% + 2px); left:50%; transform:translateX(-50%); font-size:10.5px; font-weight:500; color:var(--tinta-60)}
+.ejes{display:grid; grid-template-columns:repeat(5,1fr); gap:10px; font-size:11px; color:var(--tinta-60); text-align:center; margin-top:-6px}
+
+/* tabla */
+.tabla-b{border:1px solid var(--sand); background:var(--papel); border-radius:var(--r-sup); overflow:hidden; min-width:0}
+.tabla-cab{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:12px 18px; padding:16px 18px 14px}
+.tabla-cab h3{font-size:20px}
+.tabla-herr{display:flex; flex-wrap:nowrap; align-items:center; gap:8px}
+.tabla-herr .buscar{flex:none; width:230px}
+.tabla-herr select{border:1px solid var(--sand); background:var(--hueso); border-radius:var(--r-control); padding:7px 10px; font-size:13px}
+.filtros-cambio{display:flex; flex-wrap:wrap; gap:6px; padding:0 18px 12px}
+.scroll{overflow-x:auto}
+table{width:100%; border-collapse:collapse; font-size:13px; min-width:860px}
+thead{background:color-mix(in oklab,var(--sand) 70%,transparent)}
+th{text-align:left; font-weight:400; font-size:12px; color:var(--taupe); padding:9px 14px; white-space:nowrap}
+th small{display:block; font-size:10.5px; color:var(--tinta-45)}
+td{padding:10px 14px; border-top:1px solid var(--sand); vertical-align:middle}
+td.c, th.c{text-align:center}
+td.c span{white-space:nowrap}
+tbody tr:nth-child(even){background:color-mix(in oklab,var(--hueso) 50%,transparent)}
+tbody tr{transition:background-color .15s}
+tbody tr:hover{background:color-mix(in oklab,var(--crema) 70%,transparent)}
+.prod{display:flex; align-items:center; gap:10px; min-width:0}
+.perchero{flex:none; width:30px; height:30px; border-radius:6px; background:var(--hueso); display:grid; place-items:center; color:var(--tinta-45)}
+.prod b{font-weight:600}
+.prod small{color:var(--tinta-60); font-size:11.5px; display:inline-flex; align-items:center; gap:5px}
+.prod small i{width:9px; height:9px; border-radius:50%; display:inline-block; border:1px solid color-mix(in oklab,var(--tinta) 15%,transparent)}
+.cero{color:var(--tinta-45)}
+.ab{white-space:nowrap}
+.ab .a{color:var(--tinta-45)}
+.ab .f{color:var(--tinta-45); margin:0 4px}
+.lectura{display:inline-flex; align-items:center; gap:7px; font-size:12.5px; line-height:1.35}
+.lectura::before{content:""; flex:none; width:7px; height:7px; border-radius:50%; background:currentColor}
+.lectura.l-rojo{color:var(--rojo-profundo)} .lectura.l-ambar{color:var(--ambar-profundo)} .lectura.l-verde{color:var(--verde-profundo)} .lectura.l-neutro{color:var(--tinta-60)} .lectura.l-neutro::before{background:var(--g-neutro)}
+.tabla-pie{display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; padding:12px 18px; border-top:1px solid var(--sand); font-size:12px; color:var(--tinta-60)}
+.est{color:var(--ambar-profundo); margin-left:3px; font-weight:600}
+
+/* estados vacíos */
+.vacio{border:1px solid var(--sand); background:var(--papel); border-radius:var(--r-sup); padding:34px 30px; display:grid; grid-template-columns:auto minmax(0,1fr); gap:6px 22px; align-items:start}
+.vacio .ico-v{grid-row:span 3; width:52px; height:52px; border-radius:50%; background:var(--hueso); display:grid; place-items:center; color:var(--taupe)}
+.vacio h3{font-size:22px}
+.vacio p{margin:0; color:var(--tinta-60); max-width:62ch; line-height:1.55}
+.vacio .acciones{display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; align-items:center}
+.btn{border-radius:var(--r-control); font-size:13.5px; font-weight:500; padding:8px 15px; border:1px solid var(--sand); background:transparent; transition:background-color .15s, border-color .15s}
+.btn:hover{border-color:color-mix(in oklab,var(--taupe) 40%,transparent); background:color-mix(in oklab,var(--sand) 50%,transparent)}
+.btn-p{background:var(--tinta); color:var(--crema); border-color:var(--tinta)}
+.btn-p:hover{background:var(--rojo-profundo); border-color:var(--rojo-profundo)}
+.fantasma .cifra{color:var(--tinta-45)}
+.hueco{border:1.5px dashed var(--sand); border-radius:var(--r-control); min-height:118px; display:grid; place-items:center; text-align:center; color:var(--tinta-60); font-size:12.5px; padding:14px}
+
+/* entrada: arranca visible, solo se desliza (nunca parte de opacidad 0) */
+.entra{animation:entra 420ms var(--ease) backwards; animation-delay:calc(var(--i,0) * 55ms)}
+@keyframes entra{from{transform:translateY(8px)} to{transform:none}}
+@media (prefers-reduced-motion: reduce){ .entra{animation:none} .pista i, .col i{transition:none} }
+
+/* tooltip */
+#tip{position:fixed; z-index:50; pointer-events:none; background:var(--tinta); color:var(--crema); font-size:12px; line-height:1.4; padding:7px 10px; border-radius:var(--r-control); max-width:260px; opacity:0; transition:opacity .12s}
+#tip.ver{opacity:1}
+#aviso-demo{position:fixed; right:16px; top:calc(env(safe-area-inset-top,0px) + 16px); z-index:60; background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-control); padding:10px 14px; font-size:13px; max-width:320px}
+
+/* ---------------- Notas bajo la demo ---------------- */
+.notas{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:26px}
+.nota{border:1px solid var(--sand); background:var(--papel); border-radius:var(--r-sup); padding:18px 20px}
+.nota h3{font-size:19px; margin:6px 0 10px}
+.nota ol, .nota ul{margin:0; padding-left:18px; font-size:13px; line-height:1.6; color:var(--tinta-60)}
+.nota li b{color:var(--tinta); font-weight:600}
+.nota code{font-family:ui-monospace,Menlo,monospace; font-size:11.5px; background:var(--hueso); padding:1px 5px; border-radius:4px}
+
+@media (max-width:1100px){
+  .graficos{grid-template-columns:1fr 1fr}
+  .graficos .bloque:last-child{grid-column:1 / -1}
+  .kpis{grid-template-columns:1fr 1fr}
+  .notas{grid-template-columns:1fr}
+}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .lateral{display:none}
+  .contenido{padding:20px 16px 26px}
+  .barra{padding:10px 16px}
+}
+@media (max-width:620px){
+  .graficos, .kpis{grid-template-columns:1fr}
+  .vacio{grid-template-columns:1fr; padding:24px 20px}
+  .vacio .ico-v{grid-row:auto}
+  .campo{min-width:0; flex:1 1 140px}
+  .tabla-herr{flex-wrap:wrap} .tabla-herr .buscar{width:100%}
+}
+</style>
+
+<div class="wrap">
+  <header class="demo-head">
+    <div>
+      <p class="eyebrow">Demo · rediseño con la guía oficial · 2026-09-22</p>
+      <h1>Análisis de inventario</h1>
+      <p class="lede">Ruta <code>/inventario/resumen</code>. Todo es clicable: pestañas, períodos, filtros, la dona y la tabla. Arriba eliges cada decisión abierta para verlas en vivo; con el selector de sede puedes ver una tienda sin datos (TRU) o el Taller.</p>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+      <span class="chip-ejemplo">Datos de ejemplo, no de producción</span>
+      <button class="btn" id="tema" type="button">Ver en oscuro</button>
+    </div>
+  </header>
+
+  <section class="decisiones" aria-label="Decisiones abiertas de la demo">
+    <div class="decision">
+      <span class="tit">Desempeño <span>· qué forma toma</span></span>
+      <div class="seg" data-grupo="forma">
+        <button type="button" data-v="A">A · Misma anatomía<span class="rec">rec.</span></button>
+        <button type="button" data-v="B">B · Solo tabla</button>
+      </div>
+      <p class="d-nota">A: 4 cifras + 3 gráficos + tabla, igual que Comparar. B: la tabla de hoy, con la paleta nueva.</p>
+    </div>
+    <div class="decision">
+      <span class="tit">Aviso de exactitud <span>· cómo se muestra</span></span>
+      <div class="seg" data-grupo="exact">
+        <button type="button" data-v="franja">Franja<span class="rec">rec.</span></button>
+        <button type="button" data-v="chip">Chip</button>
+        <button type="button" data-v="tarjeta">Tarjeta (hoy)</button>
+      </div>
+      <p class="d-nota">Cada sede muestra un caso distinto: LIM conteo antiguo, AQP exactitud baja, TRU sin conteo.</p>
+    </div>
+    <div class="decision">
+      <span class="tit">Sede sin datos <span>· qué se ve (elige Tienda TRU)</span></span>
+      <div class="seg" data-grupo="vacio">
+        <button type="button" data-v="salidas">Con salidas<span class="rec">rec.</span></button>
+        <button type="button" data-v="cero">Estructura en cero</button>
+      </div>
+      <p class="d-nota">Tus capturas de TRU hoy: una sola línea de texto y nada más.</p>
+    </div>
+    <div class="decision">
+      <span class="tit">Ya decidido <span>· «Cambio relevante» por reglas</span></span>
+      <p class="d-nota">Una frase por variante, calculada con reglas fijas (lista abajo). Mismo dato, misma frase, siempre. Sin IA.</p>
+    </div>
+  </section>
+
+  <div class="app">
+    <aside class="lateral" aria-label="Menú (maqueta)">
+      <div class="marca">CAYLA</div>
+      <button class="btn-nuevo" type="button" tabindex="-1">+ NUEVO</button>
+      <nav class="nav">
+        <span>Inicio</span><span>Catálogo</span><span>Compras</span><span>Ventas</span>
+        <span class="grupo">Inventario</span>
+        <span class="sub">Existencias</span><span class="sub">Movimientos</span><span class="sub">Traslados</span><span class="sub">Conteo</span>
+        <span class="sub activo">Análisis</span>
+      </nav>
+      <div class="pie"><b>Felipe Alvarez</b>Líder · <span id="pie-sede">Tienda LIM</span></div>
+    </aside>
+
+    <div class="principal">
+      <div class="barra">
+        <label for="sede">Sede</label>
+        <select id="sede" class="sede-sel">
+          <option value="LIM">Tienda LIM</option>
+          <option value="AQP">Tienda AQP</option>
+          <option value="TRU">Tienda TRU</option>
+          <option value="TALLER">Taller LIM</option>
+        </select>
+      </div>
+      <main class="contenido" id="main"></main>
+    </div>
+  </div>
+
+  <section class="notas" aria-label="Qué cambia">
+    <div class="nota">
+      <p class="eyebrow">Qué cambia frente a hoy</p>
+      <h3>La jerarquía de la guía</h3>
+      <ul>
+        <li><b>Pestañas subrayadas</b> en vez del bloque negro: el negro queda solo para el período elegido.</li>
+        <li><b>Una sola lectura de arriba abajo</b>: 4 cifras → 3 gráficos → tabla. Comparar deja de partirse en «Vista general / Detalle»: la tabla vive debajo y la dona la filtra.</li>
+        <li><b>A siempre antes que B</b>, en chica y apagada; la cifra grande es la de ahora.</li>
+      </ul>
+    </div>
+    <div class="nota">
+      <p class="eyebrow">Cambio relevante · reglas en orden</p>
+      <h3>Gana la primera que se cumple</h3>
+      <ol>
+        <li><b>Cifras estimadas</b>: el historial no cuadra con el stock (≈).</li>
+        <li><b>Se agotó</b>: vendió y cerró en 0 → pendiente reponer.</li>
+        <li><b>Sin ventas con stock</b> → liquidar o trasladar.</li>
+        <li><b>Aceleró / Desaceleró</b> ±25 % o más de ritmo.</li>
+        <li><b>Vendió ≥ 80 %</b> de lo disponible.</li>
+        <li><b>Rota lento</b>: sell-through bajo 15 % con 20 u. o más al cierre (solo Desempeño).</li>
+        <li>Si no se cumple ninguna: <b>sin cambio relevante</b>.</li>
+      </ol>
+    </div>
+    <div class="nota">
+      <p class="eyebrow">Qué NO cambia</p>
+      <h3>Las fórmulas y los datos</h3>
+      <ul>
+        <li>Ritmo, sell-through, rotación y tendencia salen de <code>lib/resumen-desempeno.ts</code> y <code>lib/resumen-comparacion.ts</code> como hoy. <b>Ninguna fórmula nueva.</b></li>
+        <li>Las cifras de Desempeño (1.ª mitad → 2.ª mitad) ya las trae <code>fn_resumen_comparacion</code>: <b>sin migración</b>.</li>
+        <li>Lo único nuevo en lógica: <code>lib/resumen-lectura.ts</code> (las reglas de la izquierda), con sus pruebas.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<div id="tip" role="tooltip"></div>
+<div id="aviso-demo" hidden></div>
+
+<script>
+(function(){
+  // ------------------------------------------------------------------
+  // Datos de ejemplo. A = 25 jul – 23 ago, B = 24 ago – 22 set.
+  // v = unidades netas vendidas, ini = stock al inicio, ent = entradas,
+  // t = cambio de ritmo de la 2.ª mitad frente a la 1.ª dentro de B.
+  // ------------------------------------------------------------------
+  var LIM = [
+    {id:1,  ref:"Blusa Emma",          color:"Negro",       hex:"#1f1d1a", talla:"S",  cat:"Blusas",     costo:38, precio:89,  A:{v:18,ini:150,ent:8},  B:{v:31,ent:0},  t:.38},
+    {id:2,  ref:"Vestido Solsticio",   color:"Terracota",   hex:"#b3553a", talla:"M",  cat:"Vestidos",   costo:72, precio:169, A:{v:9, ini:33, ent:4},  B:{v:28,ent:0},  t:.55},
+    {id:3,  ref:"Capa Andina Paracas", color:"Crudo",       hex:"#e9e0cc", talla:"U",  cat:"Casacas",    costo:95, precio:239, A:{v:0, ini:14, ent:0},  B:{v:2, ent:0},  t:0, est:true},
+    {id:4,  ref:"Casaca Emilia",       color:"Beige",       hex:"#d8c3a0", talla:"M",  cat:"Casacas",    costo:85, precio:219, A:{v:12,ini:40, ent:10}, B:{v:14,ent:20}, t:.05},
+    {id:5,  ref:"Kimono Wayra",        color:"Azul noche",  hex:"#26334d", talla:"U",  cat:"Kimonos",    costo:60, precio:149, A:{v:10,ini:30, ent:0},  B:{v:12,ent:6},  t:.10},
+    {id:6,  ref:"Top Killa",           color:"Blanco",      hex:"#f4f1ea", talla:"M",  cat:"Tops",       costo:22, precio:59,  A:{v:25,ini:60, ent:20}, B:{v:17,ent:10}, t:-.35},
+    {id:7,  ref:"Pantalón Inti",       color:"Camel",       hex:"#b58a57", talla:"28", cat:"Pantalones", costo:55, precio:139, A:{v:6, ini:45, ent:0},  B:{v:0, ent:0},  t:0},
+    {id:8,  ref:"Falda Qori",          color:"Mostaza",     hex:"#c9982e", talla:"S",  cat:"Faldas",     costo:40, precio:99,  A:{v:8, ini:22, ent:0},  B:{v:11,ent:0},  t:.20},
+    {id:9,  ref:"Blusa Mayu",          color:"Rosado",      hex:"#e5a9a6", talla:"L",  cat:"Blusas",     costo:36, precio:85,  A:{v:14,ini:30, ent:10}, B:{v:9, ent:0},  t:-.30},
+    {id:10, ref:"Vestido Nazca",       color:"Verde oliva", hex:"#6b6b3a", talla:"S",  cat:"Vestidos",   costo:70, precio:159, A:{v:5, ini:18, ent:0},  B:{v:9, ent:0},  t:.50},
+    {id:11, ref:"Cárdigan Puna",       color:"Gris perla",  hex:"#c9c6c0", talla:"M",  cat:"Tejidos",    costo:48, precio:129, A:{v:3, ini:26, ent:0},  B:{v:1, ent:0},  t:0},
+    {id:12, ref:"Top Killa",           color:"Negro",       hex:"#1f1d1a", talla:"S",  cat:"Tops",       costo:22, precio:59,  A:{v:20,ini:35, ent:12}, B:{v:24,ent:10}, t:.12}
+  ];
+  // AQP: otra sede, otro comportamiento (derivado para la demo).
+  var kA=[.6,1.1,1,.8,1.4,.7,1,1.5,.5,1.2,2,.9], kB=[.5,.5,1,1.3,1.6,1.2,1,.6,1.4,.4,3,.8], tA=[.1,-.4,0,.3,.28,.02,0,-.3,.4,-.5,.3,.06];
+  var AQP = LIM.filter(function(r){ return r.id!==7; }).map(function(r){
+    var i=r.id-1, iniA=Math.round(r.A.ini*.7)+4;
+    return {id:r.id+100, ref:r.ref, color:r.color, hex:r.hex, talla:r.talla, cat:r.cat, costo:r.costo, precio:r.precio,
+      A:{v:Math.round(r.A.v*kA[i]), ini:iniA, ent:r.A.ent}, B:{v:Math.min(Math.round(r.B.v*kB[i])+1, iniA+r.A.ent-Math.round(r.A.v*kA[i])+r.B.ent), ent:r.B.ent}, t:tA[i], est:r.id===9};
+  });
+
+  var SEDES = {
+    LIM:{nombre:"Tienda LIM", tipo:"tienda", filas:LIM, exact:{t:"El último conteo ya es antiguo", d:"Último conteo el 12 jul (hace 72 días). Los datos pueden haber cambiado."}},
+    AQP:{nombre:"Tienda AQP", tipo:"tienda", filas:AQP, exact:{t:"Exactitud de inventario por mejorar", d:"Último conteo el 2 set: 86 % de las líneas estaban correctas."}},
+    TRU:{nombre:"Tienda TRU", tipo:"tienda", filas:[], exact:{t:"Exactitud de inventario aún no validada", d:"Esta sede aún no tiene un conteo cerrado. Los datos pueden tener diferencias."}},
+    TALLER:{nombre:"Taller LIM", tipo:"taller", filas:[], exact:null}
+  };
+  var PRESETS = [
+    {v:"7",    t:"7 días",        f:.23, dias:7,  rango:"16 – 22 set"},
+    {v:"30",   t:"30 días",       f:1,   dias:30, rango:"24 ago – 22 set"},
+    {v:"90",   t:"90 días",       f:2.6, dias:90, rango:"25 jun – 22 set"},
+    {v:"mes",  t:"Este mes",      f:.73, dias:22, rango:"1 – 22 set"},
+    {v:"pers", t:"Personalizado", f:.5,  dias:15, rango:"1 – 15 set"}
+  ];
+  var A_TXT="25 jul – 23 ago", B_TXT="24 ago – 22 set";
+
+  var S = {sede:"LIM", tab:"desempeno", preset:"30", cat:"todas", st:"todos", q:"", orden:"vendido", cambio:"todos", ordenC:"rotacion", forma:"A", exact:"franja", vacio:"salidas", cerrado:{}};
+  try{ var g = JSON.parse(localStorage.getItem("cayla-analisis-demo")||"{}"); ["forma","exact","vacio"].forEach(function(k){ if(g[k]) S[k]=g[k]; }); }catch(e){}
+  function guardar(){ try{ localStorage.setItem("cayla-analisis-demo", JSON.stringify({forma:S.forma, exact:S.exact, vacio:S.vacio})); }catch(e){} }
+
+  // ---------------- formato ----------------
+  function soles(n){ return "S/ " + Math.round(n).toLocaleString("en-US"); }
+  function pct(n){ return n===null ? "N/D" : Math.round(n) + "%"; }
+  function rot(n){ return n===null ? "N/D" : n.toFixed(1) + "×"; }
+  function vel(n){ return n===null ? "N/D" : (n<1 ? n.toFixed(2) : n.toFixed(1)); }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  function pl(n,a,b){ return n + " " + (n===1 ? a : b); }
+  function flechaPct(p){ if(p===null) return "N/D"; var n=Math.round(p); return n===0 ? "sin cambio" : (n>0?"↑ ":"↓ ") + Math.abs(n) + "%"; }
+  function tono(p){ if(p===null) return "t-neutro"; var n=Math.round(p); return n>0 ? "t-alza" : n<0 ? "t-baja" : "t-neutro"; }
+  var I = {
+    alerta:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
+    lupa:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+    cal:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>',
+    x:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+    percha:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 7a2 2 0 1 1 2-2c0 1-2 1.5-2 3l9 6.5a1 1 0 0 1-.6 1.8H3.6a1 1 0 0 1-.6-1.8L12 8"/></svg>',
+    caja:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>'
+  };
+
+  // ---------------- cálculo (espejo de las fórmulas del repo) ----------------
+  function rotacion(v, ini, cierre){ var prom=(ini+cierre)/2; return prom>0 ? v/prom : null; }
+  function sellThrough(v, ini, ent, est){ if(est) return null; var d=ini+ent; return d>0 ? v/d*100 : null; }
+  function ritmo(v, dias, agotada){ return v/(agotada ? dias*.75 : dias); }
+
+  function desempeno(r, p){
+    var ini = r.A.ini + r.A.ent - r.A.v;          // stock al inicio de B
+    var ent = Math.round(r.B.ent * p.f);
+    var v = Math.min(Math.round(r.B.v * p.f), ini + ent);
+    var cierre = Math.max(0, ini + ent - v);
+    var tend = v >= 3 && p.dias > 1 ? r.t : null;
+    var v1 = v/(2 + (r.t||0)), v2 = v - v1;
+    return {r:r, v:v, ini:ini, ent:ent, cierre:cierre, dias:p.dias, st:sellThrough(v,ini,ent,r.est), rot:r.est?null:rotacion(v,ini,cierre), ritmo:ritmo(v,p.dias,cierre===0&&v>0), tend:tend, v1:v1, v2:v2};
+  }
+  function comparacion(r){
+    var cA = r.A.ini + r.A.ent - r.A.v, iniB = cA, cB = Math.max(0, iniB + r.B.ent - r.B.v);
+    var a = {v:r.A.v, cierre:cA, st:sellThrough(r.A.v, r.A.ini, r.A.ent, r.est), rot:r.est?null:rotacion(r.A.v, r.A.ini, cA)};
+    var b = {v:r.B.v, cierre:cB, st:sellThrough(r.B.v, iniB, r.B.ent, r.est), rot:r.est?null:rotacion(r.B.v, iniB, cB)};
+    var dir = null, cambio = null;
+    if(a.v + b.v >= 3){
+      cambio = a.v>0 ? (b.v - a.v)/a.v : (b.v>0 ? 1 : 0);
+      dir = cambio >= .25 ? "acelero" : cambio <= -.25 ? "desacelero" : "estable";
+    }
+    return {r:r, a:a, b:b, dir:dir, cambio:cambio};
+  }
+
+  // «Cambio relevante»: reglas en orden, gana la primera (futuro lib/resumen-lectura.ts).
+  function lecturaDes(m){
+    if(m.r.est) return {t:"Cifras estimadas — el historial no cuadra con el stock", c:"l-ambar"};
+    if(m.cierre===0 && m.v>0) return {t:"Se agotó en el período — pendiente reponer", c:"l-rojo"};
+    if(m.v===0 && m.cierre>0) return {t:"Sin ventas con " + m.cierre + " u. disponibles — liquidar o trasladar", c:"l-ambar"};
+    if(m.tend!==null && m.tend>=.25) return {t:"Aceleró " + Math.round(m.tend*100) + "% en la 2.ª mitad", c:"l-verde"};
+    if(m.tend!==null && m.tend<=-.25) return {t:"Desaceleró " + Math.round(-m.tend*100) + "% en la 2.ª mitad", c:"l-ambar"};
+    if(m.st!==null && m.st>=80) return {t:"Vendió " + Math.round(m.st) + "% de lo disponible", c:"l-verde"};
+    if(m.st!==null && m.st<15 && m.cierre>=20) return {t:"Rota lento — " + m.cierre + " u. al cierre", c:"l-ambar"};
+    return {t:"Sin cambio relevante", c:"l-neutro"};
+  }
+  function lecturaCmp(m){
+    if(m.r.est) return {t:"Cifras estimadas — el historial no cuadra con el stock", c:"l-ambar"};
+    if(m.b.cierre===0 && m.b.v>0) return {t:"Se agotó en B — pendiente reponer", c:"l-rojo"};
+    if(m.b.v===0 && m.b.cierre>0) return {t:"Sin ventas en B con " + m.b.cierre + " u. — liquidar o trasladar", c:"l-ambar"};
+    if(m.dir==="acelero") return {t:"Aceleró " + Math.round(m.cambio*100) + "% frente a A", c:"l-verde"};
+    if(m.dir==="desacelero") return {t:"Desaceleró " + Math.round(-m.cambio*100) + "% frente a A", c:"l-ambar"};
+    if(m.b.st!==null && m.b.st>=80) return {t:"Vendió " + Math.round(m.b.st) + "% de lo disponible", c:"l-verde"};
+    return {t:"Sin cambio relevante", c:"l-neutro"};
+  }
+
+  function alcance(filas){
+    var q = S.q.trim().toLowerCase();
+    return filas.filter(function(r){
+      if(S.cat!=="todas" && r.cat!==S.cat) return false;
+      if(q && (r.ref+" "+r.color+" "+r.talla+" "+r.cat).toLowerCase().indexOf(q)===-1) return false;
+      return true;
+    });
+  }
+  function bandaST(st){ return st===null ? null : st<30 ? "bajo" : st<=70 ? "medio" : "alto"; }
+  function bins(vals){ var b=[0,0,0,0,0]; vals.forEach(function(s){ if(s!==null) b[Math.min(4,Math.floor(s/20))]++; }); return b; }
+
+  // ---------------- piezas de interfaz ----------------
+  function prodCelda(r){
+    return '<div class="prod"><span class="perchero">'+I.percha+'</span><span><b>'+esc(r.ref)+'</b>'+(r.est?'<span class="est" data-tip="El historial de movimientos no cuadra con el stock de hoy: cifras estimadas">≈</span>':'')+'<br><small><i style="background:'+r.hex+'"></i>'+esc(r.color)+' · '+esc(r.talla)+'</small></span></div>';
+  }
+  function kpi(i, lab, cifra, delta, pie, tip){
+    return '<div class="kpi entra" style="--i:'+i+'"'+(tip?' data-tip="'+esc(tip)+'"':'')+'><span class="lab">'+lab+'</span><span class="cifra">'+cifra+'</span>'+(delta?'<span class="delta">'+delta+'</span>':'')+'<span class="pie">'+pie+'</span></div>';
+  }
+  function kpiAB(i, lab, a, b, delta, clsDelta, pie, tip){
+    return kpi(i, lab, '<span class="antes"><span class="sr">A: </span>'+a+'</span><span class="fl" aria-hidden="true">→</span><span class="sr">B: </span>'+b, '<span class="'+clsDelta+'">'+delta+'</span>', pie, tip);
+  }
+  function dona(conteos, clic){
+    var segs=[["acelero","Aceleraron","var(--g-alza)","↑"],["estable","Estables","var(--g-neutro)","→"],["desacelero","Desaceleraron","var(--g-baja)","↓"]];
+    var total = conteos.acelero + conteos.estable + conteos.desacelero, R=44, C=2*Math.PI*R, off=0, gap= total>1 ? 2.5 : 0;
+    var arcos = segs.map(function(s){
+      var n=conteos[s[0]]; if(!n) return "";
+      var len = n/total*C, dash = Math.max(0, len-gap);
+      var el = '<circle class="seg-d" cx="60" cy="60" r="'+R+'" fill="none" stroke="'+s[2]+'" stroke-width="16" stroke-dasharray="'+dash+' '+(C-dash)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 60 60)" data-tip="'+s[1]+': '+pl(n,"variante","variantes")+' ('+Math.round(n/total*100)+'%)'+(clic?' · clic para filtrar la tabla':'')+'"'+(clic?' data-accion="cambio" data-v="'+s[0]+'" style="cursor:pointer"':'')+'/>';
+      off += len; return el;
+    }).join("");
+    var lista = segs.map(function(s){
+      var n=conteos[s[0]], p= total ? Math.round(n/total*100) : 0;
+      return '<li><button type="button" '+(clic&&n?'data-accion="cambio" data-v="'+s[0]+'"':'disabled')+'><span><i style="background:'+s[2]+'"></i>'+s[3]+' '+s[1]+'</span><span class="n">'+n+' · '+p+'%</span></button></li>';
+    }).join("");
+    return '<div class="dona"><svg width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="'+total+' variantes analizadas">'+arcos+'<text x="60" y="58" text-anchor="middle" font-family="EB Garamond, Georgia, serif" font-size="26" fill="var(--tinta)">'+total+'</text><text x="60" y="76" text-anchor="middle" font-size="9.5" fill="var(--tinta-60)" font-family="DM Sans, system-ui">variantes</text></svg><ul>'+lista+(conteos.nd?'<li class="nd">'+pl(conteos.nd,"variante sin","variantes sin")+' ventas suficientes para medir su ritmo.</li>':'')+'</ul></div>';
+  }
+  function barras(items, par){
+    var max = Math.max.apply(null, items.map(function(x){ return Math.max(x.b, x.a||0); }).concat([0.01]));
+    return '<div class="barras">'+items.map(function(x){
+      return '<div class="barra-f" data-tip="'+esc(x.ref+' '+x.det)+(par?' · A '+rot(x.a)+' → B '+rot(x.b):' · '+rot(x.b))+'"><span class="et">'+esc(x.ref)+'<small>'+esc(x.det)+'</small></span><span class="pista">'+(par?'<i class="a" style="width:'+((x.a||0)/max*100)+'%"></i>':'')+'<i class="b" style="width:'+(x.b/max*100)+'%"></i></span><span class="val">'+rot(x.b)+(par?'<small>antes '+rot(x.a)+'</small>':'')+'</span></div>';
+    }).join("")+'</div>';
+  }
+  function columnas(a, b){
+    var max = Math.max.apply(null, (a||[]).concat(b).concat([1])), et=["0–20%","20–40%","40–60%","60–80%","80–100%"];
+    return '<div class="columnas">'+b.map(function(nb,i){
+      var h = function(n){ return (n/max*84)+"%"; };
+      return '<div class="col" data-tip="Sell-through '+et[i]+': '+(a?'A '+pl(a[i],"variante","variantes")+' · B '+nb:pl(nb,"variante","variantes"))+'">'+(a?'<i class="a" style="height:'+h(a[i])+'"><b>'+a[i]+'</b></i><i class="b" style="height:'+h(nb)+'"><b>'+nb+'</b></i>':'<i class="solo" style="height:'+h(nb)+'"><b>'+nb+'</b></i>')+'</div>';
+    }).join("")+'</div><div class="ejes">'+et.map(function(e){ return "<span>"+e+"</span>"; }).join("")+'</div>';
+  }
+  function bloque(i, tit, sub, cuerpo, enlace, extra){
+    return '<section class="bloque entra" style="--i:'+i+'"><div class="bloque-cab"><div><h3>'+tit+'</h3><p class="sub">'+sub+'</p></div>'+(enlace||"")+'</div>'+(extra||"")+cuerpo+'</section>';
+  }
+
+  // ---------------- cabecera, aviso, pestañas, controles ----------------
+  function avisoTarjeta(sede){
+    return '<div class="aviso-tarjeta" role="status"><span class="ico">'+I.alerta+'</span><span style="flex:1"><b>'+sede.exact.t+'</b><small>'+sede.exact.d+'</small></span><button class="btn" type="button" data-accion="conteo" style="font-size:11.5px;letter-spacing:.1em;text-transform:uppercase">Ir a conteo</button><button class="cerrar" type="button" data-accion="cerrar-aviso" aria-label="Cerrar aviso">'+I.x+'</button></div>';
+  }
+  function avisoFranja(sede){
+    return '<div class="aviso-franja entra" role="status"><span class="ico">'+I.alerta+'</span><span class="txt"><b>'+sede.exact.t+'.</b> '+sede.exact.d+'</span><button class="enlace" type="button" data-accion="conteo">Ir a conteo →</button><button class="cerrar" type="button" data-accion="cerrar-aviso" aria-label="Cerrar aviso">'+I.x+'</button></div>';
+  }
+  function cabecera(sede){
+    var tarjeta = sede.exact && S.exact==="tarjeta" && !S.cerrado[S.sede];
+    return '<div class="cab"><div><p class="miga">Inventario › Análisis › <b>'+sede.nombre+'</b></p><h2>Análisis de inventario</h2><p class="bajada">Cómo se movió y rindió tu inventario a lo largo del tiempo.</p></div>'+(tarjeta?avisoTarjeta(sede):'')+'</div>'+
+      (sede.exact && S.exact==="franja" && !S.cerrado[S.sede] ? avisoFranja(sede) : "");
+  }
+  function filaPestanas(sede){
+    var chip = sede.exact && S.exact==="chip" ? '<button type="button" class="chip-exact" aria-describedby="pop-exact">Sin conteo reciente<span class="pop" id="pop-exact" role="tooltip"><b>'+sede.exact.t+'</b><br>'+sede.exact.d+'<br><u>Ir a conteo →</u></span></button>' : "";
+    return '<div class="fila-pest"><div class="pestanas" role="tablist"><button type="button" role="tab" aria-selected="'+(S.tab==="desempeno")+'" data-accion="tab" data-v="desempeno">Desempeño</button><button type="button" role="tab" aria-selected="'+(S.tab==="comparar")+'" data-accion="tab" data-v="comparar">Comparar períodos</button></div>'+
+      '<div class="estado-dato">'+chip+'<span>Actualizado 17:17</span>'+ayuda()+'</div></div>';
+  }
+  function ayuda(){
+    var cuerpo = S.tab==="desempeno"
+      ? '<span><b>Ritmo de venta:</b> unidades netas ÷ días con stock (los días agotado no castigan).</span><span><b>Sell-through:</b> ventas netas ÷ (stock al inicio + entradas).</span><span><b>Rotación:</b> costo de lo vendido ÷ inventario promedio a costo.</span><span><b>Tendencia:</b> ritmo de la 2.ª mitad del período contra la 1.ª; ±25 % es Aceleró o Desaceleró.</span>'
+      : '<span><b>A siempre antes que B</b> en cifras, gráficos y tabla. Los dos períodos usan los mismos filtros.</span><span><b>Evolución del ritmo:</b> ritmo de B contra A; ±25 % es Aceleró o Desaceleró. Con muy pocas unidades no se afirma nada.</span><span><b>Stock al cierre:</b> reconstruido del historial de movimientos al terminar cada período.</span>';
+    return '<details class="calculo"><summary>Cómo se calcula</summary><div class="cuerpo">'+cuerpo+'</div></details>';
+  }
+  function catsDe(filas){ var c={}; filas.forEach(function(r){ c[r.cat]=1; }); return Object.keys(c).sort(); }
+  function selCat(filas){
+    return '<label class="campo"><span>CATEGORÍA</span><select id="f-cat" data-campo="cat"><option value="todas">Todas</option>'+catsDe(filas).map(function(c){ return '<option'+(S.cat===c?' selected':'')+'>'+c+'</option>'; }).join("")+'</select></label>';
+  }
+  function controlesDes(sede){
+    var p = preset();
+    return '<div class="controles"><div><div class="presets" role="group" aria-label="Período analizado">'+PRESETS.map(function(x){ return '<button type="button" class="pil" aria-pressed="'+(S.preset===x.v)+'" data-accion="preset" data-v="'+x.v+'">'+(x.v==="pers"?I.cal:"")+x.t+'</button>'; }).join("")+'</div><p class="rango">Del '+p.rango+' · '+pl(p.dias,"día","días")+'</p></div>'+
+      '<div class="campos">'+selCat(sede.filas)+'<label class="campo"><span>SELL-THROUGH</span><select id="f-st" data-campo="st"><option value="todos">Todos</option><option value="bajo"'+(S.st==="bajo"?" selected":"")+'>Bajo (menos de 30 %)</option><option value="medio"'+(S.st==="medio"?" selected":"")+'>Medio (30–70 %)</option><option value="alto"'+(S.st==="alto"?" selected":"")+'>Alto (más de 70 %)</option></select></label></div></div>';
+  }
+  function controlesCmp(sede){
+    return '<div class="controles"><div class="vs"><button type="button" class="pil pil-periodo" data-accion="periodo">'+I.cal+'<span class="letra">A</span> '+A_TXT+'</button><em>vs.</em><button type="button" class="pil pil-periodo" data-accion="periodo">'+I.cal+'<span class="letra">B</span> '+B_TXT+'</button></div><div class="campos">'+selCat(sede.filas)+'</div></div>';
+  }
+  function preset(){ return PRESETS.filter(function(x){ return x.v===S.preset; })[0]; }
+
+  // ---------------- vacíos ----------------
+  function vacioSalidas(sede){
+    var p = preset(), comparar = S.tab==="comparar";
+    var titulo = comparar ? sede.nombre+" no tuvo stock ni ventas en estos dos períodos" : sede.nombre+" no tuvo stock ni ventas del "+p.rango;
+    var acc = [];
+    if(!comparar && S.preset!=="90") acc.push('<button class="btn btn-p" type="button" data-accion="preset" data-v="90">Ampliar a 90 días</button>');
+    acc.push('<button class="btn" type="button" data-accion="sede" data-v="LIM">Ver Tienda LIM</button>');
+    acc.push('<button class="enlace" type="button" data-accion="recibir">Ir a Recibir mercadería →</button>');
+    var cuerpo = !comparar && S.preset==="90" ? "Tampoco hubo movimientos en los últimos 90 días. " : "";
+    return '<div class="vacio entra"><span class="ico-v">'+I.caja+'</span><h3>'+titulo+'</h3><p>'+cuerpo+'El análisis aparece solo cuando la sede recibe mercadería o vende. Si esperabas ver datos, revisa que la mercadería se haya recibido en esta sede y no en otra.</p><div class="acciones">'+acc.join("")+'</div></div>';
+  }
+  function vacioCero(sede){
+    var labs = S.tab==="comparar" ? ["Ventas","Rotación","Sell-through","Capital en inventario"] : ["Ventas del período","Rotación","Sell-through","Capital al cierre"];
+    var k = '<div class="kpis fantasma">'+labs.map(function(l,i){ return kpi(i,l,"—","",i===0?"Sin movimientos en el período":"Aparecerá con la primera venta"); }).join("")+'</div>';
+    var titulos = S.tab==="comparar" ? ["Evolución del ritmo de venta","Top rotación","Distribución de sell-through"] : ["Tendencia dentro del período","Top rotación","Distribución de sell-through"];
+    var g = '<div class="graficos">'+titulos.map(function(t,i){ return bloque(i+4,t,"Sin datos en este período",'<div class="hueco">Se dibuja cuando '+sede.nombre+' tenga stock y ventas.</div>'); }).join("")+'</div>';
+    var t = '<section class="tabla-b entra" style="--i:7"><div class="tabla-cab"><h3>'+(S.tab==="comparar"?"Detalle por producto":"Comportamiento por producto")+'</h3></div><div class="tabla-pie" style="border-top:1px solid var(--sand)">Ninguna variante tuvo stock ni ventas. <button class="enlace" type="button" data-accion="recibir">Ir a Recibir mercadería →</button></div></section>';
+    return k + g + t;
+  }
+
+  // ---------------- Desempeño ----------------
+  function vistaDesempeno(sede){
+    var p = preset();
+    var todas = alcance(sede.filas).map(function(r){ return desempeno(r,p); });
+    var filas = todas.filter(function(m){ return S.st==="todos" || bandaST(m.st)===S.st; });
+    var html = "";
+
+    if(S.forma==="A"){
+      var v=0, v1=0, v2=0, disp=0, cogs=0, prom=0, cap=0, capIni=0;
+      filas.forEach(function(m){ var r=m.r; v+=m.v*r.precio; v1+=m.v1*r.precio; v2+=m.v2*r.precio; if(!r.est){ disp+=m.ini+m.ent; cogs+=m.v*r.costo; prom+=(m.ini+m.cierre)/2*r.costo; } cap+=m.cierre*r.costo; capIni+=m.ini*r.costo; });
+      var uds = filas.reduce(function(s,m){ return s+m.v; },0), udsOk = filas.filter(function(m){ return !m.r.est; }).reduce(function(s,m){ return s+m.v; },0);
+      var cambioMitad = v1>0 ? (v2-v1)/v1*100 : null;
+      html += '<div class="kpis">'+
+        kpi(0,"Ventas del período",soles(v),'<span class="'+tono(cambioMitad)+'">2.ª mitad '+flechaPct(cambioMitad)+'</span>',pl(uds,"unidad","unidades")+" · 1.ª mitad "+soles(v1)+" → 2.ª "+soles(v2),"Lo cobrado menos lo devuelto. La 2.ª mitad del período contra la 1.ª.")+
+        kpi(1,"Rotación",rot(prom>0?cogs/prom:null),"","Costo de lo vendido ÷ inventario promedio a costo","Cuántas veces se renovó el inventario en el período.")+
+        kpi(2,"Sell-through",pct(disp>0?udsOk/disp*100:null),"",udsOk+" de "+disp+" u. disponibles se vendieron","Ventas netas ÷ (stock al inicio + entradas).")+
+        kpi(3,"Capital al cierre",soles(cap),'<span class="t-neutro">al inicio '+soles(capIni)+'</span>',"Stock al costo al terminar el período","Stock al cierre valorado al costo de cada prenda.")+
+      '</div>';
+      var cont = {acelero:0, estable:0, desacelero:0, nd:0};
+      filas.forEach(function(m){ if(m.tend===null) cont.nd++; else if(m.tend>=.25) cont.acelero++; else if(m.tend<=-.25) cont.desacelero++; else cont.estable++; });
+      var top = filas.filter(function(m){ return m.rot!==null && m.v>0; }).sort(function(a,b){ return b.rot-a.rot; }).slice(0,4).map(function(m){ return {ref:m.r.ref, det:m.r.color+" · "+m.r.talla, b:m.rot}; });
+      html += '<div class="graficos">'+
+        bloque(4,"Tendencia dentro del período","2.ª mitad frente a la 1.ª, por variante",dona(cont,false))+
+        bloque(5,"Top rotación","Veces que se renovó en "+pl(p.dias,"día","días"), top.length?barras(top,false):'<p class="muted">Ninguna prenda rotó en este período.</p>', top.length?'<button class="enlace" type="button" data-accion="ranking" style="font-size:12px;white-space:nowrap">Ver ranking →</button>':"")+
+        bloque(6,"Distribución de sell-through","Variantes según qué parte de lo disponible vendieron",columnas(null,bins(filas.map(function(m){ return m.st; }))))+
+      '</div>';
+    }
+
+    var orden = {vendido:function(a,b){ return b.v-a.v; }, rotacion:function(a,b){ return (b.rot===null?-1:b.rot)-(a.rot===null?-1:a.rot); }, st:function(a,b){ return (b.st===null?-1:b.st)-(a.st===null?-1:a.st); }, tendencia:function(a,b){ return (b.tend===null?-9:b.tend)-(a.tend===null?-9:a.tend); }}[S.orden];
+    var lista = filas.slice().sort(orden);
+    html += '<section class="tabla-b entra" style="--i:7" id="tabla"><div class="tabla-cab"><div><h3>Comportamiento por producto</h3><p class="sub muted" style="margin:3px 0 0;font-size:12px">Cómo se comportó cada variante durante el período.</p></div><div class="tabla-herr"><label class="buscar"><span class="sr">Buscar</span>'+I.lupa+'<input id="f-q" data-campo="q" type="search" placeholder="Producto, color, talla…" value="'+esc(S.q)+'"></label><label><span class="sr">Ordenar por</span><select id="f-orden" data-campo="orden"><option value="vendido"'+(S.orden==="vendido"?" selected":"")+'>Más vendido</option><option value="rotacion"'+(S.orden==="rotacion"?" selected":"")+'>Mayor rotación</option><option value="st"'+(S.orden==="st"?" selected":"")+'>Mayor sell-through</option><option value="tendencia"'+(S.orden==="tendencia"?" selected":"")+'>Mayor aceleración</option></select></label></div></div>';
+    if(!lista.length){
+      html += '<div class="tabla-pie">Ninguna variante coincide con estos filtros. <button class="enlace" type="button" data-accion="limpiar">Limpiar filtros</button></div></section>';
+      return html;
+    }
+    html += '<div class="scroll"><table><thead><tr><th>Producto / variante</th><th class="c">Vendido<small>en '+p.dias+' d</small></th><th class="c">Ritmo<small>uds/día con stock</small></th><th class="c">Sell-through</th><th class="c">Rotación</th><th class="c">Tendencia<small>2.ª vs 1.ª mitad</small></th><th>Lectura del período</th></tr></thead><tbody>'+
+      lista.map(function(m){
+        var l = lecturaDes(m), td = m.tend===null ? '<span class="cero">N/D</span>' : m.tend>=.25 ? '<span class="t-alza">↑ Aceleró</span>' : m.tend<=-.25 ? '<span class="t-baja">↓ Desaceleró</span>' : '<span class="t-neutro">→ Estable</span>';
+        return '<tr><td>'+prodCelda(m.r)+'</td><td class="c'+(m.v===0?' cero':'')+'"><b style="font-weight:600">'+m.v+'</b></td><td class="c">'+vel(m.ritmo)+'</td><td class="c">'+(m.st===null?'<span class="cero">N/D</span>':pct(m.st))+'</td><td class="c">'+(m.rot===null?'<span class="cero">N/D</span>':rot(m.rot))+'</td><td class="c">'+td+'</td><td><span class="lectura '+l.c+'">'+l.t+'</span></td></tr>';
+      }).join("")+'</tbody></table></div><div class="tabla-pie"><span>'+pl(lista.length,"variante","variantes")+(lista.length!==sede.filas.length?' (de '+sede.filas.length+' en la sede)':'')+'</span><span>Las cifras con ≈ son estimadas.</span></div></section>';
+    return html;
+  }
+
+  // ---------------- Comparar ----------------
+  function vistaComparar(sede){
+    var filas = alcance(sede.filas).map(comparacion);
+    var k = {vA:0,vB:0,uA:0,uB:0,cA:0,cB:0,pA:0,pB:0,dA:0,dB:0,sA:0,sB:0,capA:0,capB:0};
+    filas.forEach(function(m){ var r=m.r, iniB=m.a.cierre;
+      k.vA+=m.a.v*r.precio; k.vB+=m.b.v*r.precio; k.uA+=m.a.v; k.uB+=m.b.v; k.capA+=m.a.cierre*r.costo; k.capB+=m.b.cierre*r.costo;
+      if(!r.est){ k.cA+=m.a.v*r.costo; k.cB+=m.b.v*r.costo; k.pA+=(r.A.ini+m.a.cierre)/2*r.costo; k.pB+=(iniB+m.b.cierre)/2*r.costo; k.dA+=r.A.ini+r.A.ent; k.dB+=iniB+r.B.ent; k.sA+=m.a.v; k.sB+=m.b.v; }
+    });
+    var rA=k.pA>0?k.cA/k.pA:null, rB=k.pB>0?k.cB/k.pB:null, sA=k.dA?k.sA/k.dA*100:null, sB=k.dB?k.sB/k.dB*100:null;
+    var dv = k.vA>0?(k.vB-k.vA)/k.vA*100:null, dr = rA&&rB!==null?(rB-rA)/rA*100:null, ds = sA!==null&&sB!==null?sB-sA:null, dc = k.capB-k.capA;
+    var html = '<div class="kpis">'+
+      kpiAB(0,"Ventas",soles(k.vA),soles(k.vB),flechaPct(dv),tono(dv),k.uA+" → "+k.uB+" unidades","Lo cobrado menos lo devuelto, en A y en B.")+
+      kpiAB(1,"Rotación",rot(rA),rot(rB),flechaPct(dr),tono(dr),"Costo vendido ÷ inventario promedio","Solo variantes con datos válidos en A y en B.")+
+      kpiAB(2,"Sell-through",pct(sA),pct(sB),ds===null?"N/D":(Math.round(ds)===0?"sin cambio":(ds>0?"↑ ":"↓ ")+Math.abs(Math.round(ds))+" pp"),tono(ds),"Ventas netas ÷ (stock inicial + entradas)","Diferencia en puntos porcentuales (pp).")+
+      kpiAB(3,"Capital en inventario",soles(k.capA),soles(k.capB),Math.round(dc)===0?"sin cambio":(dc>0?"↑ ":"↓ ")+soles(Math.abs(dc)),"t-neutro","Al costo, al cierre de cada período","Más capital no es bueno ni malo por sí solo: depende de si rota.")+
+    '</div>';
+    var cont = {acelero:0, estable:0, desacelero:0, nd:0};
+    filas.forEach(function(m){ if(m.dir) cont[m.dir]++; else cont.nd++; });
+    var top = filas.filter(function(m){ return m.b.rot!==null && m.b.v>0; }).sort(function(a,b){ return b.b.rot-a.b.rot; }).slice(0,4).map(function(m){ return {ref:m.r.ref, det:m.r.color+" · "+m.r.talla, a:m.a.rot, b:m.b.rot}; });
+    html += '<div class="graficos">'+
+      bloque(4,"Evolución del ritmo de venta","Cómo cambió el ritmo de cada variante, de A a B · toca para filtrar",dona(cont,true))+
+      bloque(5,"Top rotación","Rotación en B, con A debajo",top.length?barras(top,true):'<p class="muted">Ninguna prenda rotó en B.</p>',top.length?'<button class="enlace" type="button" data-accion="ranking" style="font-size:12px;white-space:nowrap">Ver ranking →</button>':"",'<div class="leyenda"><span><i style="background:var(--g-a)"></i>A · '+A_TXT+'</span><span><i style="background:var(--g-b)"></i>B · '+B_TXT+'</span></div>')+
+      bloque(6,"Distribución de sell-through","Variantes por tramo, misma escala en A y en B",columnas(bins(filas.map(function(m){ return m.a.st; })),bins(filas.map(function(m){ return m.b.st; }))),"",'<div class="leyenda"><span><i style="background:var(--g-a)"></i>A</span><span><i style="background:var(--g-b)"></i>B</span></div>')+
+    '</div>';
+
+    var vis = filas.filter(function(m){ return S.cambio==="todos" || m.dir===S.cambio; });
+    var ord = {rotacion:function(a,b){ return (b.b.rot===null?-1:b.b.rot)-(a.b.rot===null?-1:a.b.rot); }, ventas:function(a,b){ return b.b.v-a.b.v; }, cambio:function(a,b){ return (b.cambio===null?-9:b.cambio)-(a.cambio===null?-9:a.cambio); }}[S.ordenC];
+    vis.sort(ord);
+    var chips = [["todos","Todas"],["acelero","↑ Aceleraron"],["estable","→ Estables"],["desacelero","↓ Desaceleraron"]].map(function(c){ var n = c[0]==="todos"?filas.length:cont[c[0]]; return '<button type="button" class="pil" aria-pressed="'+(S.cambio===c[0])+'" data-accion="cambio" data-v="'+c[0]+'">'+c[1]+' · '+n+'</button>'; }).join("");
+    html += '<section class="tabla-b entra" style="--i:7" id="tabla"><div class="tabla-cab"><div><h3>Detalle por producto</h3><p class="sub muted" style="margin:3px 0 0;font-size:12px">Qué productos explican el cambio, y por qué.</p></div><div class="tabla-herr"><label class="buscar"><span class="sr">Buscar</span>'+I.lupa+'<input id="f-q" data-campo="q" type="search" placeholder="Producto, color, talla…" value="'+esc(S.q)+'"></label><label><span class="sr">Ordenar por</span><select id="f-ordenc" data-campo="ordenC"><option value="rotacion"'+(S.ordenC==="rotacion"?" selected":"")+'>Mayor rotación en B</option><option value="ventas"'+(S.ordenC==="ventas"?" selected":"")+'>Más vendido en B</option><option value="cambio"'+(S.ordenC==="cambio"?" selected":"")+'>Mayor aceleración</option></select></label></div></div><div class="filtros-cambio" role="group" aria-label="Filtrar por evolución del ritmo">'+chips+'</div>';
+    if(!vis.length){ return html + '<div class="tabla-pie">Ninguna variante coincide. <button class="enlace" type="button" data-accion="limpiar">Limpiar filtros</button></div></section>'; }
+    html += '<div class="scroll"><table><thead><tr><th>Producto / variante</th><th class="c">Ventas<small>A → B</small></th><th class="c">Stock al cierre<small>A → B</small></th><th class="c">Sell-through<small>A → B</small></th><th class="c">Rotación<small>A → B</small></th><th>Cambio relevante</th></tr></thead><tbody>'+
+      vis.map(function(m){
+        var l = lecturaCmp(m);
+        function ab(a,b){ return '<span class="ab"><span class="a">'+a+'</span><span class="f">→</span>'+b+'</span>'; }
+        return '<tr><td>'+prodCelda(m.r)+'</td><td class="c">'+ab(m.a.v,'<b style="font-weight:600">'+m.b.v+'</b>')+'</td><td class="c">'+ab(m.a.cierre,m.b.cierre)+'</td><td class="c">'+ab(pct(m.a.st),pct(m.b.st))+'</td><td class="c">'+ab(rot(m.a.rot),rot(m.b.rot))+'</td><td><span class="lectura '+l.c+'">'+l.t+'</span></td></tr>';
+      }).join("")+'</tbody></table></div><div class="tabla-pie"><span>'+pl(vis.length,"variante","variantes")+(vis.length!==sede.filas.length?' (de '+sede.filas.length+' en la sede)':'')+'</span><span>Las cifras con ≈ son estimadas.</span></div></section>';
+    return html;
+  }
+
+  // ---------------- render ----------------
+  var main = document.getElementById("main");
+  function render(foco){
+    var sede = SEDES[S.sede];
+    var html = cabecera(sede) + filaPestanas(sede);
+    if(sede.tipo!=="tienda"){
+      html += '<div class="vacio entra"><span class="ico-v">'+I.caja+'</span><h3>'+sede.nombre+' no vende a clientas</h3><p>No hay ventas, ritmo ni rotación que analizar aquí. El avance del Taller vive en Producción.</p><div class="acciones"><button class="btn btn-p" type="button" data-accion="sede" data-v="LIM">Ver Tienda LIM</button><button class="enlace" type="button" data-accion="produccion">Ir a Producción →</button></div></div>';
+    } else {
+      html += S.tab==="desempeno" ? controlesDes(sede) : controlesCmp(sede);
+      if(!sede.filas.length) html += S.vacio==="salidas" ? vacioSalidas(sede) : vacioCero(sede);
+      else html += S.tab==="desempeno" ? vistaDesempeno(sede) : vistaComparar(sede);
+    }
+    main.innerHTML = html;
+    document.getElementById("pie-sede").textContent = sede.nombre;
+    document.getElementById("sede").value = S.sede;
+    document.querySelectorAll(".seg").forEach(function(g){ var k=g.dataset.grupo; g.querySelectorAll("button").forEach(function(b){ b.setAttribute("aria-pressed", String(S[k]===b.dataset.v)); }); });
+    if(foco){ var el=document.getElementById(foco); if(el){ el.focus(); if(el.setSelectionRange){ var n=el.value.length; el.setSelectionRange(n,n); } } }
+  }
+  function avisoDemo(t){ var a=document.getElementById("aviso-demo"); a.textContent=t; a.hidden=false; clearTimeout(avisoDemo.t); avisoDemo.t=setTimeout(function(){ a.hidden=true; },2600); }
+  function aTabla(){ var t=document.getElementById("tabla"); if(t) t.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start"}); }
+
+  document.addEventListener("click", function(e){
+    var b = e.target.closest("[data-accion]"), seg = e.target.closest(".seg button");
+    if(seg){ S[seg.parentNode.dataset.grupo]=seg.dataset.v; guardar(); render(); return; }
+    if(!b) return;
+    var a=b.dataset.accion, v=b.dataset.v;
+    if(a==="tab"){ S.tab=v; S.cambio="todos"; render(); }
+    else if(a==="preset"){ S.preset=v; render(); }
+    else if(a==="cambio"){ S.cambio=v; render(); aTabla(); }
+    else if(a==="ranking"){ if(S.tab==="desempeno") S.orden="rotacion"; else { S.ordenC="rotacion"; S.cambio="todos"; } render(); aTabla(); }
+    else if(a==="sede"){ S.sede=v; S.cat="todas"; S.q=""; render(); }
+    else if(a==="limpiar"){ S.cat="todas"; S.q=""; S.st="todos"; S.cambio="todos"; render(); }
+    else if(a==="cerrar-aviso"){ S.cerrado[S.sede]=true; render(); }
+    else if(a==="conteo"){ avisoDemo("En el ERP esto abre Inventario › Conteo de "+SEDES[S.sede].nombre+"."); }
+    else if(a==="recibir"){ avisoDemo("En el ERP esto abre Recibir mercadería."); }
+    else if(a==="produccion"){ avisoDemo("En el ERP esto abre Producción."); }
+    else if(a==="periodo"){ avisoDemo("En el ERP abre el selector de rango (ADR-0138). En la demo A y B son fijos."); }
+  });
+  document.addEventListener("change", function(e){
+    var c=e.target.dataset && e.target.dataset.campo;
+    if(e.target.id==="sede"){ S.sede=e.target.value; S.cat="todas"; S.q=""; render(); return; }
+    if(c && c!=="q"){ S[c]=e.target.value; render(); }
+  });
+  document.addEventListener("input", function(e){ if(e.target.dataset && e.target.dataset.campo==="q"){ S.q=e.target.value; render("f-q"); } });
+
+  // tooltip compartido: hover y foco
+  var tip=document.getElementById("tip");
+  function mostrar(el, x, y){ tip.textContent=el.getAttribute("data-tip"); tip.classList.add("ver"); var w=tip.offsetWidth, h=tip.offsetHeight; tip.style.left=Math.max(8,Math.min(innerWidth-w-8,x+12))+"px"; tip.style.top=Math.max(8,(y-h-12))+"px"; }
+  document.addEventListener("mousemove", function(e){ var el=e.target.closest && e.target.closest("[data-tip]"); if(el) mostrar(el,e.clientX,e.clientY); else tip.classList.remove("ver"); });
+  document.addEventListener("focusin", function(e){ var el=e.target.closest && e.target.closest("[data-tip]"); if(el){ var r=el.getBoundingClientRect(); mostrar(el,r.left,r.top); } });
+  document.addEventListener("focusout", function(){ tip.classList.remove("ver"); });
+
+  // tema
+  var btnTema=document.getElementById("tema");
+  function oscuro(){ var t=document.documentElement.getAttribute("data-theme"); return t ? t==="dark" : matchMedia("(prefers-color-scheme: dark)").matches; }
+  function rotular(){ btnTema.textContent = oscuro() ? "Ver en claro" : "Ver en oscuro"; }
+  btnTema.addEventListener("click", function(){ document.documentElement.setAttribute("data-theme", oscuro() ? "light" : "dark"); rotular(); });
+  rotular();
+  render();
+})();
+</script>

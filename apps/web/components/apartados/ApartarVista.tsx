@@ -101,8 +101,9 @@ export function ApartarVista({
   const token = useRef<string>(crypto.randomUUID());
   const escaner = useRef<HTMLInputElement>(null);
   // Apartar guarda en la tienda (cobra un adelanto y deja las prendas no disponibles): pide Responsable (ADR-0161).
-  // Viene vacío en cada apartado; el elegido queda como asesora del apartado (`p_asesora_id`), igual que en la venta.
-  const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
+  // Viene vacío en cada apartado —como todo el módulo Punto de venta, no propone a quien inició sesión—; el elegido
+  // queda como asesora del apartado (`p_asesora_id`), igual que en la venta.
+  const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta }, { proponerSesion: false });
 
   const total = lineas.reduce((a, l) => a + precioFinal(porId.get(l.varianteId)!) * l.cantidad, 0);
   const prendasEnTicket = lineas.reduce((a, l) => a + l.cantidad, 0);

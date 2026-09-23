@@ -10,6 +10,10 @@ import type { EstadoExactitud } from "@/lib/resumen-reglas";
 // conteo cerrado reciente y exacto no aparece (queda solo la línea discreta de
 // «validado»). Es ámbar y no rojo a propósito: el rojo del Resumen es urgencia
 // de inventario, y un inventario sin contar no es una urgencia de hoy.
+//
+// Forma (rediseño 2026-09-22, decisión de Felipe: «franja»): una línea fina a todo el ancho BAJO el título, no una
+// tarjeta al lado del título. Sigue a la vista, pero no le quita jerarquía al análisis: el título manda y el aviso
+// acompaña. Mismo patrón que la franja de atención de Traslados.
 
 const fecha = (iso: string) => new Date(iso).toLocaleDateString("es-PE", { day: "numeric", month: "short", timeZone: "America/Lima" });
 
@@ -52,16 +56,13 @@ export function ResumenBanner({ exactitud, ubicacionId }: { exactitud: EstadoExa
   const { titulo, detalle } = textos(exactitud);
 
   return (
-    <div role="status" className="flex max-w-[34rem] flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-ambar/30 bg-ambar/[0.07] px-4 py-3">
-      <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ambar text-crema">
-        <TriangleAlert strokeWidth={1.5} className="h-[18px] w-[18px]" />
-      </span>
-      <span className="min-w-[12rem] flex-1 basis-[12rem]">
-        <span className="block text-sm font-medium text-tinta">{titulo}</span>
-        <span className="block text-xs text-tinta/70">{detalle}</span>
-      </span>
-      <Link href="/inventario/conteo" className="label-cayla shrink-0 rounded-md border border-tinta/25 bg-papel px-3 py-2 text-[11px] text-tinta transition-colors hover:border-tinta/50">
-        Ir a conteo
+    <div role="status" className="anim-entra flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-md border border-ambar/30 bg-ambar/[0.07] py-2.5 pl-3.5 pr-2 text-[13px]">
+      <TriangleAlert aria-hidden strokeWidth={1.75} className="h-4 w-4 shrink-0 text-ambar" />
+      <p className="min-w-0 flex-1 basis-64 text-taupe">
+        <span className="font-semibold text-tinta">{titulo}.</span> {detalle}
+      </p>
+      <Link href="/inventario/conteo" className="btn-cayla btn-enlace shrink-0 text-[13px]">
+        Ir a conteo →
       </Link>
       <button
         type="button"
