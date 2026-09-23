@@ -30,8 +30,8 @@ type Props = {
   onActivo: (i: number) => void;
   /** El único "avisa hacia arriba" de este panel: se eligió una prenda. */
   onAgregar: (v: VarianteBusqueda) => void;
-  /** Abre el modal de Monto manual, que sigue en el padre. */
-  onMontoManual: () => void;
+  /** Abre el modal de «Prenda sin registrar» (ADR-0178), que vive en el padre. */
+  onPrendaSinRegistrar: () => void;
   // Chips y grilla
   categorias: string[];
   categoria: string;
@@ -101,7 +101,7 @@ export function PuntoDeVentaCatalogo({
   onTeclado,
   onActivo,
   onAgregar,
-  onMontoManual,
+  onPrendaSinRegistrar,
   categorias,
   categoria,
   onCategoria,
@@ -125,9 +125,9 @@ export function PuntoDeVentaCatalogo({
       className="flex min-w-0 flex-col border-b border-sand lg:min-h-0 lg:border-r lg:border-b-0"
     >
       <div className="anim-sube px-4 pt-3 sm:px-6 sm:pt-4">
-        {/* Fila de captura: el campo manda (flex-1); «Monto manual» es la tercera vía de
-            captura (sin etiqueta, prenda dañada), por eso vive al lado del campo y no
-            entre los chips, donde le robaba ancho a las categorías. */}
+        {/* Fila de captura: el campo manda (flex-1); «Prenda sin registrar» (ADR-0178) es la
+            tercera vía de captura (la prenda aún no está en el sistema), por eso vive al lado
+            del campo y no entre los chips, donde le robaba ancho a las categorías. */}
         <div className="flex items-stretch gap-2">
           <div className="relative z-20 min-w-0 flex-1">
             <label className="group flex h-14 items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
@@ -220,11 +220,11 @@ export function PuntoDeVentaCatalogo({
           </div>
           <button
             type="button"
-            onClick={() => onMontoManual()}
+            onClick={() => onPrendaSinRegistrar()}
             disabled={bloqueado}
             className="label-cayla shrink-0 rounded-xl border border-sand bg-papel px-3 text-[11px] text-tinta/75 transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-sand/40 hover:text-tinta active:translate-y-px"
           >
-            Monto manual
+            Prenda sin registrar
           </button>
         </div>
         {aviso && (

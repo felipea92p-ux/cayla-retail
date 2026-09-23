@@ -52,18 +52,17 @@ import { codigoPrenda } from "@/lib/prenda-reglas";
 import { armarRecibo, textoNumeroRecibo, type ReciboVenta } from "@/lib/recibo-reglas";
 import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
 import { useResponsable } from "@/lib/useResponsable";
+import { faltaEnPrendaSinRegistrar, type DatosPrendaSinRegistrar } from "@/lib/prenda-sin-registrar-reglas";
 
 /**
- * "Cargo especial" (migración `..._cargo_especial_pos.sql`): variante centinela para
- * "Monto manual" — una prenda dañada, un cargo sin etiqueta. `registrar_venta` exige un
- * variante_id real por línea, así que esto vende contra una variante real con stock casi
- * infinito en vez de tocar la RPC. Nunca aparece en catálogo ni en búsqueda: se filtra por
- * este id en `variantesVisibles`, más abajo. El id vive en `lib/cargo-especial.ts` desde
- * 2026-09-15 porque Inventario, Inicio y Movimientos también lo excluyen; acá se re-exporta
- * para no tocar a quien ya lo importaba de este archivo (PuntoDeVentaTicket).
+ * Variante centinela de la «Prenda sin registrar» (ADR-0178; antes «Monto manual»): una
+ * prenda que llegó a piso sin pasar por almacén. `registrar_venta` exige un variante_id por
+ * línea; para esta no mueve stock y deja la prenda en la cola «Por regularizar» con lo que
+ * anotó caja. Nunca aparece en catálogo ni en búsqueda: se filtra por este id en
+ * `variantesVisibles`, más abajo. El id vive en `lib/cargo-especial.ts` porque Inventario,
+ * Inicio y Movimientos también lo excluyen; acá se re-exporta para PuntoDeVentaTicket.
  */
 export { ID_CARGO_ESPECIAL };
-const STOCK_CARGO_ESPECIAL = 999_999;
 
 export type VarianteBusqueda = PrendaBuscableV2 & {
   /** Código de etiqueta (`variantes.codigo`) — lo que se le MUESTRA a la colaboradora con
@@ -86,10 +85,10 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
 };
 
 export type ItemCarrito = {
-  /** Identifica la FILA del carrito. Igual al varianteId salvo para "Monto manual": ahí
-   *  cada agregado es un cargo distinto (montos distintos), y agrupar por varianteId como
-   *  hace `agregar()` para una prenda normal fusionaría dos cargos diferentes en uno solo,
-   *  perdiendo el segundo monto en silencio. */
+  /** Identifica la FILA del carrito. Igual al varianteId salvo para una «Prenda sin
+   *  registrar»: ahí cada agregado es una prenda distinta (con su precio), y agrupar por
+   *  varianteId como hace `agregar()` para una prenda normal fusionaría dos en una sola,
+   *  perdiendo la segunda en silencio. */
   claveLinea: string;
   varianteId: string;
   referencia: string;
@@ -112,7 +111,18 @@ export type ItemCarrito = {
   /** La campaña que rige hoy para esta prenda, o null/ausente. Un ticket en espera
    *  guardado antes de las campañas no lo trae — `retomar()` lo completa. */
   campana?: CampanaLinea | null;
+  /** Solo en una «Prenda sin registrar» (ADR-0178): lo que anotó caja para que almacén la reconozca. */
+  prendaLibre?: Omit<DatosPrendaSinRegistrar, "precio">;
 };
+
+/** Las listas cerradas del modal «Prenda sin registrar» (se eligen, no se escriben). */
+export type ListasPrendaLibre = {
+  categorias: { id: string; nombre: string }[];
+  tallas: { id: string; valor: string }[];
+  colores: { codigo: string; nombre: string }[];
+};
+
+const PRENDA_LIBRE_VACIA: Omit<DatosPrendaSinRegistrar, "precio"> = { descripcion: "", categoriaId: "", tallaId: "", colorCodigo: "" };
 
 /** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el modo (% o S/
  *  por unidad), el valor tal cual lo escribe en cada uno, a qué líneas alcanza (`null`
@@ -185,9 +195,10 @@ type Props = {
   /** Null si no hay caja abierta — el catálogo se ve igual, pero queda desactivado
    *  (ver `bloqueado` más abajo). */
   cajaId: string | null;
-  /** Incluye la variante centinela de "Monto manual", que este componente filtra antes
-   *  de mostrar nada. */
+  /** Incluye la variante centinela de la «Prenda sin registrar», que este componente filtra
+   *  antes de mostrar nada. */
   variantes: VarianteBusqueda[];
+  listasPrendaLibre: ListasPrendaLibre;
   /** Las campañas de hoy no se pudieron leer: se vende igual, pero una prenda en campaña
    *  se rechazaría al cobrar — hay que avisarlo antes, no descubrirlo con la clienta. */
   campanasNoCargaron?: boolean;
@@ -211,7 +222,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, variantes, campanasNoCargaron = false, ventasHoyNode, proforma = null, avisoProforma = null }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoyNode, proforma = null, avisoProforma = null }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -279,6 +290,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const [ok, setOk] = useState<VentaOk | null>(null);
   const [manualAbierto, setManualAbierto] = useState(false);
   const [montoManual, setMontoManual] = useState("");
+  const [prendaLibre, setPrendaLibre] = useState(PRENDA_LIBRE_VACIA);
   const [mostrarVentasHoy, setMostrarVentasHoy] = useState(false);
   const [modalCaja, setModalCaja] = useState<"abrir" | "cerrar" | null>(null);
 
@@ -555,23 +567,27 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     buscador.current?.focus();
   }
 
-  function agregarMontoManual() {
-    if (bloqueado) return;
+  const faltaPrendaLibre = faltaEnPrendaSinRegistrar({ ...prendaLibre, precio: Number(montoManual) });
+
+  function agregarPrendaSinRegistrar() {
+    if (bloqueado || faltaPrendaLibre) return;
     const valor = Number(montoManual);
-    if (!valor) return;
     capturarFlip();
     setCarrito((actual) => [
       ...actual,
       {
         claveLinea: `manual-${Date.now()}`,
         varianteId: ID_CARGO_ESPECIAL,
-        referencia: "Cargo especial",
-        sku: "CARGO-ESPECIAL-01",
+        // La descripción de caja es el nombre de la línea en el ticket y en el comprobante.
+        referencia: prendaLibre.descripcion.trim(),
+        sku: "SIN-REGISTRAR",
+        prendaLibre: { ...prendaLibre, descripcion: prendaLibre.descripcion.trim() },
         codigo: null,
         cantidad: 1,
         precioUnitario: valor,
         descuentoUnitario: 0,
-        stockAqui: STOCK_CARGO_ESPECIAL,
+        // Una por línea: cada prenda sin registrar se regulariza por separado (la base exige cantidad 1).
+        stockAqui: 1,
         razonDescuento: "",
         razonDescuentoOtro: "",
         argumentoDescuento: "",
@@ -579,6 +595,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       },
     ]);
     setMontoManual("");
+    setPrendaLibre(PRENDA_LIBRE_VACIA);
     setManualAbierto(false);
   }
 
@@ -847,6 +864,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
         argumento_descuento: it.argumentoDescuento || undefined,
         // Solo el descuento de campaña dice de qué etiqueta vino; la base lo verifica.
         descuento_etiqueta_id: it.razonDescuento === RAZON_CAMPANA ? it.campana?.etiquetaId : undefined,
+        // «Prenda sin registrar» (ADR-0178): la base exige estos cuatro para dejarla por regularizar.
+        descripcion_libre: it.prendaLibre?.descripcion,
+        categoria_id: it.prendaLibre?.categoriaId,
+        talla_id: it.prendaLibre?.tallaId,
+        color_codigo: it.prendaLibre?.colorCodigo,
       })),
       // Solo montos > 0 (`venta_pagos` lo exige; una fila bajada a cero mientras se combinaba no
       // viaja). El `recibido` del efectivo va aparte de `monto`, y solo si lo cubre.
@@ -1097,7 +1119,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           onTeclado={alTeclado}
           onActivo={setActivo}
           onAgregar={agregar}
-          onMontoManual={() => setManualAbierto(true)}
+          onPrendaSinRegistrar={() => setManualAbierto(true)}
           categorias={categorias}
           categoria={categoria}
           // Un chip es un desvío de un toque: elegida la categoría, el foco vuelve al escáner.
@@ -1212,14 +1234,55 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
 
       {manualAbierto && (
         <Modal
-          titulo="Monto manual"
-          subtitulo="Para una prenda sin etiqueta, producto dañado o cargo especial."
+          titulo="Prenda sin registrar"
+          subtitulo="Para una prenda que todavía no tiene etiqueta. Almacén la registra después con estos datos."
           onClose={() => setManualAbierto(false)}
           alCerrarEnfocar={buscador}
         >
           <div className="space-y-3">
-            <div className="card-cayla px-4 py-3 text-right">
-              <span className="font-display text-4xl text-tinta">S/{montoManual || "0.00"}</span>
+            <label className="block">
+              <span className="label-cayla text-[11px] text-tinta/65">Descripción corta</span>
+              <input
+                autoFocus
+                value={prendaLibre.descripcion}
+                onChange={(e) => setPrendaLibre((p) => ({ ...p, descripcion: e.target.value }))}
+                placeholder="Blusa lino beige"
+                maxLength={80}
+                className="caja-cayla mt-1 h-10 w-full px-3 text-sm text-tinta outline-none placeholder:text-taupe"
+              />
+            </label>
+            <div className="grid grid-cols-[1.6fr_1fr_1fr] gap-2">
+              <label className="block">
+                <span className="label-cayla text-[11px] text-tinta/65">Categoría</span>
+                <select value={prendaLibre.categoriaId} onChange={(e) => setPrendaLibre((p) => ({ ...p, categoriaId: e.target.value }))} className="caja-cayla mt-1 h-10 w-full px-3 text-sm text-tinta outline-none placeholder:text-taupe">
+                  <option value="">Elegir…</option>
+                  {listasPrendaLibre.categorias.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="label-cayla text-[11px] text-tinta/65">Talla</span>
+                <select value={prendaLibre.tallaId} onChange={(e) => setPrendaLibre((p) => ({ ...p, tallaId: e.target.value }))} className="caja-cayla mt-1 h-10 w-full px-3 text-sm text-tinta outline-none placeholder:text-taupe">
+                  <option value="">Elegir…</option>
+                  {listasPrendaLibre.tallas.map((t) => (
+                    <option key={t.id} value={t.id}>{t.valor}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="label-cayla text-[11px] text-tinta/65">Color</span>
+                <select value={prendaLibre.colorCodigo} onChange={(e) => setPrendaLibre((p) => ({ ...p, colorCodigo: e.target.value }))} className="caja-cayla mt-1 h-10 w-full px-3 text-sm text-tinta outline-none placeholder:text-taupe">
+                  <option value="">Elegir…</option>
+                  {listasPrendaLibre.colores.map((c) => (
+                    <option key={c.codigo} value={c.codigo}>{c.nombre}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="card-cayla flex items-baseline justify-between px-4 py-2">
+              <span className="label-cayla text-[11px] text-tinta/65">Precio cobrado</span>
+              <span className="font-display text-3xl text-tinta">S/{montoManual || "0.00"}</span>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "←"].map((t) => (
@@ -1227,13 +1290,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
                   key={t}
                   type="button"
                   onClick={() => setMontoManual((v) => (t === "←" ? v.slice(0, -1) : v + t))}
-                  className="h-14 rounded-lg border border-sand bg-papel text-lg text-tinta transition-colors hover:bg-sand/40"
+                  className="h-11 rounded-lg border border-sand bg-papel text-lg text-tinta transition-colors hover:bg-sand/40"
                 >
                   {t}
                 </button>
               ))}
             </div>
-            <button type="button" onClick={agregarMontoManual} disabled={!Number(montoManual)} className={`${botonPrimario} w-full`}>
+            {faltaPrendaLibre && <p className="text-xs text-tinta/60">{faltaPrendaLibre}</p>}
+            <button type="button" onClick={agregarPrendaSinRegistrar} disabled={faltaPrendaLibre !== null} className={`${botonPrimario} w-full`}>
               Agregar al ticket
             </button>
           </div>
