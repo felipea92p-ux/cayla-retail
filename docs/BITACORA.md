@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-23 (Anular una venta solo el mismo día de Lima — PL-29)
+`anular_venta` solo pedía la caja abierta, así que una caja olvidada abierta de un día para otro dejaba anular hoy la venta de ayer. La migración `20260923235300` agrega el candado de fecha sobre la definición viva de producción (no sobre el archivo, porque esta función se parcha en vivo) y la pantalla de Devoluciones deja de ofrecer «Anular venta» en ventas de días anteriores. Prueba 7/7 con los dos bordes de medianoche; falta pegar en producción.
+Dany se lleva: (1) **«hoy» depende del reloj**: la base corre en UTC y de 7 pm a medianoche de Lima ya es mañana, por eso `fn_hoy_lima()` y no `current_date`; (2) **una función parchada en vivo se toca con anclas, no copiando el archivo**: copiarla habría borrado parches que solo existen en producción; (3) **una prueba vale si falla cuando debe**: comparar en UTC la hace caer.
+
 ## 2026-09-23 (Candado solo-RPC en ventas, clientas, conteos, lotes y traslados — ADR-0119)
 El pendiente más urgente de Dany («pegar ADR-0119 esta semana») ya estaba hecho en producción: las 8 tablas tienen solo lectura para `authenticated`, pero nadie dejó archivo ni registro de quién las cerró, y en el repo seguían abiertas. Se escribió la migración `20260923234700`, que es un no-op en producción y cierra el hueco en la base local, el CI y cualquier base nueva, más su prueba (6/6, con control y mutación) en el CI. La otra mitad del pendiente (devoluciones, cambios y prendas dañadas) ya estaba en main como ADR-0177, y PL-79 (clienta única por DNI) ya existía.
 Dany se lleva: (1) **antes de construir, se pregunta a producción**: dos de los pendientes «urgentes» del plano ya estaban hechos; (2) **un cambio pegado sin archivo es deuda**: arregla hoy y deja el repo mintiendo mañana, y por eso PL-95 pide registrar cada SQL; (3) **dos puertas, una llave**: sin permiso de tabla, Postgres ni mira la política.

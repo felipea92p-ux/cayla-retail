@@ -134,6 +134,14 @@ Verificado en solo lectura el 2026-09-23: en producción `authenticated` solo ti
 - [ ] **Decisión de Felipe (causa raíz):** «cerrado por defecto» en `retail`. `alter default privileges` (0005 y la 0217 de Dynamic) abre toda tabla nueva a `authenticated`; 19 tablas de producción dependen solo de RLS (lista en el ADR-0119).
 - [x] De paso, **PL-79 ya estaba hecho:** `clientas_dni_unico` (único sobre `dni` cuando no es nulo) existe en producción y `clientas` es una sola para toda la red.
 
+## 🔒 Anular una venta solo el mismo día de Lima (2026-09-23, PL-29) — construido, SIN pegar en producción
+`anular_venta` solo pedía la caja abierta: una caja que quedaba abierta de un día para otro dejaba anular hoy la venta de ayer (en producción no existía ningún chequeo de fecha; huella viva `15f8f274…`, igual a la local).
+- [x] Migración `20260923235300_anular_venta_mismo_dia.sql`: parcha la definición VIVA (ancla de una línea contada, `pg_temp.reemplazar`) y agrega `(v_venta.created_at at time zone 'America/Lima')::date <> fn_hoy_lima()` → «Esta venta es de un día anterior — solo se anula el mismo día; usa Cambio o Devolución». Se puede pegar dos veces; bloque de validación al final.
+- [x] `pnpm pruebas:anular-venta-mismo-dia` (7/7, en el CI): control con el candado deshecho, ayer y ayer 23:59 de Lima rechazadas, hoy y hoy 00:00 aceptadas, idempotencia e ida y vuelta de la huella. Mutación: comparar en UTC hace caer el caso de las 23:59.
+- [x] Web: «Anular venta» en Devoluciones solo aparece en las ventas de hoy (`hoyLima`), verificado con un render de prueba (hoy 09:00 sí aunque en UTC ya sea el 24, ayer 23:59 no, integrante nunca).
+- [ ] **Pegar en producción** (OK puntual, checklist PL-87: huella antes = `15f8f2744770bc475bb7606c5cff2322`, pegar, huella después = `446bb2bbae9436e13bc9a0ff5342ef6a` (calculada en local con ROLLBACK), ACL `{postgres=X/postgres,authenticated=X/postgres}` intacta, humo con UUID inexistente). La base primero; la web puede ir antes o después sin romper nada.
+- Cómo verificas: como líder, en Devoluciones, una venta de hoy muestra «Anular venta» y una de ayer no; si alguien lo intenta igual por la API, la base responde «Esta venta es de un día anterior…».
+
 ## 🔒 Responsable obligatorio para todos (2026-09-23, Felipe, ADR-0162 actualización) — ENCENDIDO en producción (10:24)
 «Todas obligatorias, un mismo flujo para todos; si nadie marcó asistencia no se podrá vender.» Sin excepción para el líder.
 - [x] Interruptor como dato: `configuracion_empresa.exige_responsable` (migración `20260923160000_responsable_obligatorio.sql`), apagado por defecto; 6 casos nuevos en `pruebas:terminales-sin-persona` (52/52).
