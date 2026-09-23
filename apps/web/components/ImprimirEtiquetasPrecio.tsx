@@ -24,7 +24,8 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
 /**
  * Etiquetas de precio (ADR-0180): una fila por prenda con la cantidad editable, la vista previa y el botón que las
  * manda a la Brother. Los textos (de dónde vienen, qué decir si no hay nada) llegan del servidor (`encabezadoDeEtiquetas`). La hoja de impresión (`#etiquetas-precio-print`) va pegada a <body> con un
- * portal —como la boleta A4—: al imprimir, `globals.css` oculta todo lo demás y cada etiqueta es una página de 62 × 92 mm.
+ * portal —como la boleta A4—: al imprimir, `globals.css` oculta todo lo demás y cada etiqueta (44 × 62 mm) va girada en su
+ * propia página de 62 × 44 mm: el ancho del rollo por el largo de cada corte.
  */
 export function ImprimirEtiquetasPrecio({
   encabezado,
@@ -107,7 +108,7 @@ export function ImprimirEtiquetasPrecio({
           </div>
         ))}
         <p className={TABLA.pie}>
-          Se {total === 1 ? "imprime" : "imprimen"} <b className="font-semibold text-tinta">{plural(total, "etiqueta", "etiquetas")}</b> de 62 × 92 mm.
+          Se {total === 1 ? "imprime" : "imprimen"} <b className="font-semibold text-tinta">{plural(total, "etiqueta", "etiquetas")}</b> de 44 × 62 mm, para el cartón de 5 × 8 cm.
         </p>
       </Tabla>
 
@@ -128,17 +129,20 @@ export function ImprimirEtiquetasPrecio({
       )}
 
       <p className="nota-cayla">
-        <b>La primera vez en esta computadora:</b> en la ventana de impresión elige la <b>Brother QL-1110NWB</b>, papel <b>62 × 92 mm</b>,
-        márgenes «Ninguno», escala 100 % y sin encabezados ni pies de página. Cada etiqueta sale en su propio corte del rollo. La etiqueta dice lo
-        que la caja cobra hoy: con una campaña vigente sale el precio rebajado y hasta cuándo vale; cuando termine, reimprímelas desde la campaña
-        con «Volver al precio normal».
+        <b>La primera vez en esta computadora:</b> en la ventana de impresión elige la <b>Brother QL-1110NWB</b>, papel <b>62 × 44 mm</b>,
+        márgenes «Ninguno», escala 100 % y sin encabezados ni pies de página. Cada etiqueta sale <b>de lado</b> en su propio corte del rollo: se
+        despega, se gira y se pega en el cartón, debajo del agujero. La etiqueta dice lo que la caja cobra hoy: con una campaña vigente sale el
+        precio rebajado y hasta cuándo vale; cuando termine, reimprímelas desde la campaña con «Volver al precio normal».
       </p>
 
       {montado &&
         createPortal(
           <div id="etiquetas-precio-print" aria-hidden>
             {hoja.map((e, i) => (
-              <EtiquetaPrecio key={i} etiqueta={e} impreso={impreso} />
+              // Cada etiqueta en su hoja del ancho del rollo: `globals.css` (.etq-hoja) la gira 90° para que salga de lado.
+              <div key={i} className="etq-hoja">
+                <EtiquetaPrecio etiqueta={e} impreso={impreso} />
+              </div>
             ))}
           </div>,
           document.body,

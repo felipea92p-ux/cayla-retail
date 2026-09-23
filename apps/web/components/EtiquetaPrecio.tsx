@@ -2,13 +2,16 @@ import Image from "next/image";
 import { CodigoQR } from "@/components/CodigoQR";
 import { esTallaUnica, fechaVigencia, precioEtiqueta, type EtiquetaPrecio as DatosEtiqueta } from "@/lib/etiqueta-precio-reglas";
 
-/** 25 mm (Felipe, 2026-09-23). Más grande que los 18 mm verificados con la pistola Zebra el 2026-09-10: un módulo más
- *  grande se lee más fácil, nunca más difícil. El lado incluye la zona muda (`lib/qr.ts`). */
-const LADO_QR_ETIQUETA_MM = 25;
+/** El QR, lo más grande que entra en 44 × 62 mm (Felipe, 2026-09-23: «hazlo más grande»). Sin campaña lo limita el
+ *  ancho (el código de 16 caracteres al lado): 22 mm. Con campaña lo limita el alto (el «−20 %» y el motivo encima):
+ *  20 mm. Los dos superan los 18 mm verificados con la pistola Zebra el 2026-09-10. El lado incluye la zona muda (`lib/qr.ts`).
+ *  Medido en la maqueta `etiquetas-carton.html` y en el PDF de la hoja real (ADR-0180). */
+const LADO_QR_MM = 22;
+const LADO_QR_CON_CAMPANA_MM = 20;
 
 /**
- * La etiqueta de precio impresa, diseño «D · Editorial, corregida» (ADR-0180). Las medidas viven en `globals.css`
- * (`.etiqueta-precio`) y son milímetros: esto es papel, no pantalla.
+ * La etiqueta de precio impresa: 44 × 62 mm, para el cartón de 5 × 8 cm (ADR-0180). Diseño «D · Editorial», arreglo
+ * «QR abajo». Las medidas viven en `globals.css` (`.etiqueta-precio`) y son milímetros: esto es papel, no pantalla.
  *
  * Para la clienta: marca, en qué tallas viene el modelo con la suya marcada, prenda, color y precio. Con una campaña
  * vigente (paso 2), el precio de lista tachado, el que cobra la caja con su «−20 %» en negro, y el porqué: el nombre de
@@ -18,10 +21,10 @@ const LADO_QR_ETIQUETA_MM = 25;
 export function EtiquetaPrecio({ etiqueta: e, impreso }: { etiqueta: DatosEtiqueta; impreso: string }) {
   const unica = e.tallasDelModelo.length === 1 && esTallaUnica(e.tallasDelModelo[0]);
   const cobra = precioEtiqueta(e.campana ? e.precio - e.campana.descuento : e.precio);
-  // «1,136.90» (8 caracteres) con su % no entra a tamaño completo en 53 mm: un punto menos de letra.
+  // «1,136.90» (8 caracteres) con su % no entra a tamaño completo en 37 mm: un punto menos de letra.
   const claseCobra = cobra.length >= 8 ? "etq-precio etq-precio-largo" : "etq-precio";
   return (
-    <article className="etiqueta-precio" aria-label={`Etiqueta de precio de ${e.prenda}`}>
+    <article className={e.campana ? "etiqueta-precio etq-con-campana" : "etiqueta-precio"} aria-label={`Etiqueta de precio de ${e.prenda}`}>
       <header className="etq-cab">
         {/* `unoptimized` + `eager`: el PNG original (la térmica no gana nada con WebP) y cargado aunque la hoja de
             impresión esté oculta — una imagen perezosa dentro de un `display:none` puede no llegar al papel. */}
@@ -81,7 +84,7 @@ export function EtiquetaPrecio({ etiqueta: e, impreso }: { etiqueta: DatosEtique
           <small>cayla.pe</small>
         </div>
         <div className="etq-qr">
-          <CodigoQR texto={e.codigo} ladoMm={LADO_QR_ETIQUETA_MM} />
+          <CodigoQR texto={e.codigo} ladoMm={e.campana ? LADO_QR_CON_CAMPANA_MM : LADO_QR_MM} />
         </div>
       </footer>
     </article>
