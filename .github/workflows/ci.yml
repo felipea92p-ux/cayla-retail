@@ -24,6 +24,15 @@
 # confirma que la mecánica funciona igual que en el Postgres local de cada quien (y
 # `main` hoy no exige ningún check para mergear de todos modos — CONTRIBUTING.md §2). Se
 # saca esa línea cuando haya 2-3 corridas verdes reales.
+#
+# NÚCLEO BLOQUEANTE DESDE 2026-09-23 (benchmark contra los mejores ERPs del mundo,
+# docs/plano/07-BENCHMARK-ERPS.md, hallazgo de prioridad alta: "un PR puede fusionarse
+# con el núcleo en rojo y nadie se entera hasta que el bug aparece en producción semanas
+# después"). `pruebas-nucleo`, abajo, saca del piloto las dos pruebas de RPC que ya
+# llevan semanas estables y prueban justo dinero y stock — fn_aplicar_movimiento.mjs y
+# registrar_venta.mjs — y las corre SIN `continue-on-error`. El resto de scripts/pruebas/
+# sigue en `pruebas-postgres` hasta estabilizarse uno por uno, con el mismo criterio de
+# arriba.
 
 name: CI
 
@@ -113,6 +122,46 @@ jobs:
           node --test scripts/adr/numeros.test.mjs
           node scripts/adr/numeros.mjs
 
+  pruebas-nucleo:
+    name: Pruebas del núcleo — dinero y stock (bloquea)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - id: instalar
+        run: pnpm install --frozen-lockfile
+
+      - name: Stub local de Dynamic
+        if: ${{ always() && steps.instalar.outcome == 'success' }}
+        run: cp supabase/0000_local_stub_dynamic.sql.example supabase/migrations/0000_local_stub_dynamic.sql
+
+      - id: supabase
+        if: ${{ always() && steps.instalar.outcome == 'success' }}
+        run: npx supabase start
+
+      # El libro append-only: aplicar un movimiento nunca deja stock negativo, la
+      # reversión cuadra exacto y dos escrituras a la vez no se pisan. Estable desde
+      # que existe — es el candado que hace cumplir el principio 4 (una sola fuente de
+      # verdad). Cada caso termina en ROLLBACK.
+      - name: pruebas:fn-aplicar-movimiento
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-aplicar-movimiento
+
+      # Registrar una venta: descuenta el stock correcto, no vende lo que no hay, y el
+      # comprobante nace en el estado real. Estable desde 2026-09-21. Cada caso termina
+      # en ROLLBACK.
+      - name: pruebas:registrar-venta
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:registrar-venta
+
   pruebas-postgres:
     name: Pruebas de RPC contra Postgres (piloto, no bloquea)
     runs-on: ubuntu-latest
@@ -156,9 +205,8 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:aprobar-devolucion-caja
 
-      - name: pruebas:registrar-venta
-        if: ${{ always() && steps.supabase.outcome == 'success' }}
-        run: pnpm pruebas:registrar-venta
+      # pruebas:registrar-venta se movió al job `pruebas-nucleo` (bloqueante, arriba) —
+      # no se repite acá.
 
       # La lista de lo vendido hoy (Caja, Vender, Facturación): una fila por venta aunque tenga dos
       # comprobantes y sin las anuladas (20260921103000). Cada caso termina en ROLLBACK.
