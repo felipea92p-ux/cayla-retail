@@ -31,7 +31,12 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 // obvios». Acá solo queda la lista.
 export const AVIARIO = [
   { n: "01", pajaro: "Ganso", modulo: "Identidad y acceso",
-    tablas: ["colaboradores", "ubicaciones"] },
+    tablas: ["colaboradores", "ubicaciones",
+      // Altas, suspensiones y su historia (ADR-0157, D-70).
+      "colaboradores_historial", "colaboradores_suspendidos",
+      // ADR-0161/0162: roles «ve / no ve» por módulo y terminales sin persona. Qué ve cada cuenta es identidad y acceso,
+      // no el módulo que se abre. Asignadas en el refresco del volcado del 2026-09-23.
+      "roles", "modulos", "rol_modulos", "roles_historial", "terminales"] },
   { n: "02", pajaro: "Loro", modulo: "Catálogo y vocabulario",
     tablas: [
       "productos", "variantes", "categorias", "familias", "producto_fotos", "historial_producto_cambios",
@@ -58,7 +63,11 @@ export const AVIARIO = [
   { n: "07", pajaro: "Colibrí", modulo: "Ventas y caja",
     tablas: [
       "ventas", "venta_items", "venta_pagos", "venta_anulacion_items", "cajas", "caja_movimientos",
-      "clientes", "codigos_descuento", "cambios", "devoluciones", "devolucion_items",
+      // `clientes` pasó a llamarse `clientas` (D-48, vocabulario obligatorio); el refresco del 2026-09-23 lo confirmó.
+      "clientas", "codigos_descuento", "cambios", "devoluciones", "devolucion_items",
+      // Separaciones (apartar prendas con adelanto) y lo que la clienta pidió y no había: nacen en el mostrador.
+      "apartados", "separaciones", "separacion_items", "separacion_pagos", "separacion_correlativos",
+      "pedidos_no_atendidos",
     ] },
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",
     tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales"] },
@@ -76,8 +85,13 @@ export const AVIARIO = [
       // ADR-0133 (Producción, D-H): su propio directorio de proveedores y sus comprobantes de tela/avíos/maquila, aparte de los de
       // Compras. Ya están en producción (F4a/F4b); las asignó a Gallito el refresco completo del volcado del 2026-09-21 porque
       // sin pájaro el CI cae en rojo. La sesión de Producción confirma la asignación en el PR de ese refresco.
-      "proveedores_produccion", "comprobantes_produccion", "comprobantes_produccion_items", "comprobantes_produccion_pagos"] },
-  { n: "11", pajaro: "Garza", modulo: "Finanzas operativas", tablas: ["gastos"] },
+      "proveedores_produccion", "comprobantes_produccion", "comprobantes_produccion_items", "comprobantes_produccion_pagos",
+      // ADR-0133 (F5–F6): recepción y cierre de esos comprobantes, y la cotización de maquila por categoría. Asignadas en el
+      // refresco del volcado del 2026-09-23.
+      "comprobantes_produccion_recepciones", "comprobantes_produccion_cierres", "cotizaciones_maquila"] },
+  // `planilla_por_sede` (vista, ADR-0133 F7 / D-33): la planilla YA PAGADA por sede y período, leída de Dynamic. Es costo
+  // operativo de la sede —Producción la usa para costear la mano de obra, pero no es suya—, por eso va con los gastos.
+  { n: "11", pajaro: "Garza", modulo: "Finanzas operativas", tablas: ["gastos", "planilla_por_sede"] },
   { n: "12", pajaro: "Urraca", modulo: "Contabilidad", tablas: ["activos_fijos"] },
   // Águila lee lo de los demás; el día que escriba sus propios resúmenes, nacen acá.
   { n: "13", pajaro: "Águila", modulo: "Inteligencia y reportes", tablas: [] },
