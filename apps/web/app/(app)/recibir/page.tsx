@@ -20,6 +20,9 @@ import { Paginacion, leerCursor } from "@/components/Paginacion";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
+import { getPorRegularizar } from "@/lib/por-regularizar";
+import { PorRegularizarLista } from "@/components/PorRegularizarLista";
+import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 
 // Recibir mercadería POR ENVÍO (ADR-0113). Es la puerta para todo lo que llega: un envío puede traer
 // comprobantes de varios proveedores, prendas fuera de comprobante (de un proveedor, con su regalo) y
@@ -50,7 +53,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   const esLider = persona.rol === "lider";
   const verMontos = puede(persona, "verDineroCompras"); // P2: los montos, a quien ve el dinero de Compras
   const params = await searchParams;
-  const vista = params.vista === "recibidas" ? "recibidas" : "pendientes";
+  const vista = params.vista === "recibidas" || params.vista === "por-regularizar" ? params.vista : "pendientes";
 
   // ADR-0139: Recibir es POR TIENDA. Una factura puede traer mercadería para varias tiendas y cada una recibe lo suyo:
   // se mira desde la tienda donde estás parado, y un líder puede mirar otra con `?ubicacion=` (el selector «Recibiendo
@@ -66,7 +69,9 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       <p className="mt-1 text-sm text-tinta/65">
         {vista === "pendientes"
           ? `Marca los comprobantes que vienen en el envío, cuenta lo que llegó y recibe. Cada prenda entra como movimiento — el stock no se edita a mano. Aquí ves lo que le toca a ${nombreMirada} de cada comprobante; lo de las otras tiendas lo recibe cada una.`
-          : "Lo que ya se recibió contra un comprobante, envío por envío."}
+          : vista === "por-regularizar"
+            ? "Prendas que caja vendió antes de estar en el sistema. Dile al sistema qué prenda era cada una y el stock queda cuadrado."
+            : "Lo que ya se recibió contra un comprobante, envío por envío."}
       </p>
       {esLider && vista === "pendientes" && (
         <div className="mt-2 flex items-center gap-2">
@@ -91,10 +96,29 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       items={[
         { clave: "pendientes", etiqueta: "Pendientes", href: "/recibir" },
         { clave: "recibidas", etiqueta: "Recibidas recientemente", href: "/recibir?vista=recibidas" },
+        // ADR-0178: prendas que caja vendió antes de estar en el sistema; almacén las une con su prenda real.
+        { clave: "por-regularizar", etiqueta: "Por regularizar", href: "/recibir?vista=por-regularizar" },
       ]}
     />
     </div>
   );
+
+  // ------------------------------------------------------------------ Por regularizar (ADR-0178)
+  if (vista === "por-regularizar") {
+    // El líder ve las de todas sus sedes (cada fila dice cuál); una colaboradora, las de la suya (RLS igual lo cuida).
+    const [filas, catalogo] = await Promise.all([getPorRegularizar(esLider ? null : persona.ubicacionId), getCatalogo()]);
+    // Solo lo que almacén necesita para reconocer la prenda: el costo no sale del servidor.
+    const prendas = catalogo
+      .filter((v) => v.activo && v.varianteId !== ID_CARGO_ESPECIAL)
+      .map((v) => ({ id: v.varianteId, nombre: v.referencia, codigo: v.codigo ?? v.sku, talla: v.talla ?? "", color: v.color ?? "", precio: v.precio }));
+    return (
+      <div className="space-y-6">
+        {encabezado}
+        {pestanas}
+        <PorRegularizarLista filas={filas} prendas={prendas} ubicacionEtiqueta={esLider ? "tus tiendas" : persona.ubicacionEtiqueta} variasSedes={esLider} />
+      </div>
+    );
+  }
 
   // ------------------------------------------------------------------ Recibidas
   if (vista === "recibidas") {
