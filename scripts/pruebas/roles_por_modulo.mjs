@@ -698,7 +698,10 @@ caso(
     `create temp table r_caja as select crear_rol('Solo caja') as id;\n` +
     `select guardar_modulos_rol((select id from r_caja), array['caja']) \\g /dev/null\n` +
     intento(`select retail.asignar_rol((select id from r_caja), '33333333-3333-4333-8333-0000000000d1')`) + "\n" +
-    `select string_agg(right(persona_id::text, 2), ',' order by persona_id) filter (where right(persona_id::text, 2) in ('d1', 'd2', 'd3'))
+    // Se filtra por el UUID COMPLETO de las tres personas de la prueba, no por sus dos últimos caracteres: en el CI el seed
+    // crea colaboradores con UUID aleatorio, y 1 de cada 256 termina en «d2» y se colaba en la lista («d2,d3,d2»).
+    `select string_agg(right(persona_id::text, 2), ',' order by persona_id) filter (where persona_id in (
+         '33333333-3333-4333-8333-0000000000d1', '33333333-3333-4333-8333-0000000000d2', '33333333-3333-4333-8333-0000000000d3'))
        || '|' || bool_or(persona_id = (select felipe from ids))::text from retail.fn_fuera_de_mi_alcance();\n` +
     como(FELIPE_AUTH) +
     `select count(*) from retail.fn_fuera_de_mi_alcance();\n` +
