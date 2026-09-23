@@ -59,6 +59,7 @@
     "pruebas:clientas": "node scripts/pruebas/clientas.mjs",
     "pruebas:candado-ventas": "node scripts/pruebas/candado_ventas_clientas_conteos_lotes.mjs",
     "pruebas:anular-venta-mismo-dia": "node scripts/pruebas/anular_venta_mismo_dia.mjs",
+    "pruebas:cuarentena-no-se-vende": "node scripts/pruebas/cuarentena_no_se_vende.mjs",
     "pruebas:venta-contrato-ampliado": "node scripts/pruebas/venta_contrato_ampliado.mjs",
     "pruebas:colaboradores-alta-aprobacion": "node scripts/pruebas/colaboradores_alta_requiere_aprobacion.mjs",
     "pruebas:crear-devolucion-motivo": "node scripts/pruebas/crear_devolucion_motivo.mjs",
