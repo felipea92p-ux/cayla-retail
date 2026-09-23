@@ -4,7 +4,7 @@
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
 ## 2026-09-23 (Roles: «solo alcanzas a quien está por debajo de ti» — ADR-0178, actualización)
-Felipe decidió que Daniel y los practicantes siguen como Líder y que rige la regla de Dynamic. En retail «por debajo» se mide en módulos: sus módulos los ves tú y tienes más que ella; estricto, así que entre pares decide un líder. Migración `20260923174500` (en suspender, reactivar, quitar, ubicación y cambio de rol) y la web deja de ofrecer acciones sobre quien no alcanzas; `pruebas:roles` con 2 casos nuevos en una copia local, sin fallas nuevas. Sin pegar en producción.
+Felipe decidió que Daniel y los practicantes siguen como Líder y que rige la regla de Dynamic. En retail «por debajo» se mide en módulos: sus módulos los ves tú y tienes más que ella; estricto, así que entre pares decide un líder. Migración `20260923174500` (en suspender, reactivar, quitar, ubicación y cambio de rol) y la web deja de ofrecer acciones sobre quien no alcanzas; `pruebas:roles` con 2 casos nuevos en una copia local, sin fallas nuevas. Felipe la pegó el mismo día; verificada en producción simulando sesiones (Daniel no alcanza a un admin).
 Felipe se lleva: **sin números de nivel, el nivel lo dan los módulos**: quien ve más está más arriba, y quien ve lo mismo es un par.
 
 ## 2026-09-23 (Roles y accesos: escalón Admin leído de Dynamic y «solo das lo que tienes» — ADR-0178)
