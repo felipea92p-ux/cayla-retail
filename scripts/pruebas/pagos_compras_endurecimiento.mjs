@@ -94,7 +94,7 @@ const CABECERA_DE_ANTES = `do $c$ begin
   if not exists (select 1 from information_schema.columns where table_schema = 'retail' and table_name = 'compras' and column_name = 'ubicacion_destino_id') then
     alter table retail.compras add column ubicacion_destino_id uuid;
   end if;
-  -- ADR-0179 (F3, migración 20260923180200) agrega ubicacion_gestion_id con un CHECK que la exige en toda factura
+  -- ADR-0184 (F3, migración 20260923180200) agrega ubicacion_gestion_id con un CHECK que la exige en toda factura
   -- vigente. Esta función CRUDA es de ANTES de esa migración y no la escribe: se relaja solo aquí (misma lógica que
   -- la columna de arriba), dentro de la transacción que termina sin COMMIT.
   if exists (select 1 from pg_constraint where conname = 'compras_gestora_obligatoria') then
@@ -564,7 +564,7 @@ exito(
   "seguridad · sin EXECUTE para anon en las tres funciones ni en el helper; authenticated solo en las tres",
   como(
     FELIPE,
-    // registrar_pagos_compra y registrar_pago_compras ganaron un p_ubicacion_id al final (ADR-0179, F4,
+    // registrar_pagos_compra y registrar_pago_compras ganaron un p_ubicacion_id al final (ADR-0184, F4,
     // 20260923180300): la firma real hoy tiene un parámetro más que cuando se escribió esta prueba.
     `select
   has_function_privilege('anon', 'retail.registrar_pagos_compra(uuid, jsonb, date, uuid, uuid)', 'execute'),
@@ -781,7 +781,7 @@ function main() {
 
   if (EN_SECO) console.log("Modo --en-seco: registrar_compra cruda + las dos migraciones se cargan dentro de cada escenario (no se aplican a la base).\n");
 
-  // ADR-0179 (F4, 20260923180300) le agregó un parámetro a registrar_pagos_compra/registrar_pago_compras: este
+  // ADR-0184 (F4, 20260923180300) le agregó un parámetro a registrar_pagos_compra/registrar_pago_compras: este
   // escenario reinstala DELIBERADAMENTE el código de ANTES de esa migración (para probar el parche de ADR-0135
   // sobre la definición histórica) y vuelve a pegar las migraciones 180000/181000, que asumen la firma vieja —
   // una vez F4 está aplicada de verdad, eso deja dos firmas ambiguas. No es un defecto de F4 ni de esta prueba:

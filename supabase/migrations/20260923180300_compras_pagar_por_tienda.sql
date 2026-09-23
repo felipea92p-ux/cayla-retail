@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260923180300_compras_pagar_por_tienda.sql — CAYLA V2 · ADR-0179 (F4 reescrita sobre ADR-0161)
+-- 20260923180300_compras_pagar_por_tienda.sql — CAYLA V2 · ADR-0184 (F4 reescrita sobre ADR-0161)
 --
 -- EL PROBLEMA PRIMERO. Con el módulo Por pagar (ADR-0161) una cuenta paga cualquier comprobante por su saldo TOTAL: una tienda
 -- podría pagar —o dejar sin pagar— la parte de otra. Felipe (2026-09-23): «si otra tienda registró una factura que llega para
@@ -49,7 +49,7 @@ end $$;
 alter table retail.compra_pagos add column if not exists ubicacion_id uuid references retail.ubicaciones(id);
 
 comment on column retail.compra_pagos.ubicacion_id is
-  'ADR-0179. Qué tienda hizo este pago: cuenta contra SU parte de la factura. NULA en pagos de antes y en un pago del líder no atribuido a ninguna tienda.';
+  'ADR-0184. Qué tienda hizo este pago: cuenta contra SU parte de la factura. NULA en pagos de antes y en un pago del líder no atribuido a ninguna tienda.';
 
 create index if not exists compra_pagos_ubicacion_idx on retail.compra_pagos (compra_id, ubicacion_id);
 
@@ -69,7 +69,7 @@ as $$
 $$;
 
 comment on function retail.fn_saldo_de_tienda(uuid, uuid) is
-  'ADR-0179. Cuánto le falta pagar a esta tienda en esta factura: su parte (compra_parte_por_tienda) menos lo que pagó ELLA, sin pasar del saldo real de la factura (que ya resta notas de crédito y pagos sin tienda). 0 si no tiene parte o la factura está anulada.';
+  'ADR-0184. Cuánto le falta pagar a esta tienda en esta factura: su parte (compra_parte_por_tienda) menos lo que pagó ELLA, sin pasar del saldo real de la factura (que ya resta notas de crédito y pagos sin tienda). 0 si no tiene parte o la factura está anulada.';
 
 revoke all on function retail.fn_saldo_de_tienda(uuid, uuid) from public, anon;
 grant execute on function retail.fn_saldo_de_tienda(uuid, uuid) to authenticated;
@@ -101,7 +101,7 @@ end;
 $$;
 
 comment on function retail.fn_pago_no_supera_tienda() is
-  'ADR-0179. Disparador diferido: lo pagado por una tienda en una factura no puede superar su parte (compra_parte_por_tienda). Se salta si el pago no lleva tienda.';
+  'ADR-0184. Disparador diferido: lo pagado por una tienda en una factura no puede superar su parte (compra_parte_por_tienda). Se salta si el pago no lleva tienda.';
 
 revoke all on function retail.fn_pago_no_supera_tienda() from public, anon, authenticated;
 
@@ -132,7 +132,7 @@ create or replace function pg_temp.puerta_tienda()
 returns text
 language sql
 as $$ select
-  E'  -- ADR-0179: quien no es líder paga SIEMPRE desde una de sus tiendas, y solo la parte de esa tienda.\n'
+  E'  -- ADR-0184: quien no es líder paga SIEMPRE desde una de sus tiendas, y solo la parte de esa tienda.\n'
   || E'  if p_ubicacion_id is not null and not retail.fn_puede_comprar_en(p_ubicacion_id) then\n'
   || E'    raise exception ''Solo puedes pagar desde una de tus tiendas'' using errcode = ''42501'';\n'
   || E'  end if;\n'
@@ -147,7 +147,7 @@ create or replace function pg_temp.revisa_tienda(p_sangria text, p_compra text, 
 returns text
 language sql
 as $$ select
-  p_sangria || E'-- ADR-0179: con tienda, esa tienda tiene parte y el monto no pasa de lo que le queda a ella.\n'
+  p_sangria || E'-- ADR-0184: con tienda, esa tienda tiene parte y el monto no pasa de lo que le queda a ella.\n'
   || p_sangria || E'if p_ubicacion_id is not null then\n'
   || p_sangria || format(E'  if not exists (select 1 from retail.compra_parte_por_tienda where compra_id = %s and ubicacion_id = p_ubicacion_id) then\n', p_compra)
   || p_sangria || format(E'    raise exception ''Esa tienda no tiene parte en el comprobante %%'', %s;\n', p_doc)
@@ -249,7 +249,7 @@ begin
   v := pg_temp.exigir(v, E'insert into compra_pagos (compra_id, fecha, monto, metodo, referencia, usuario_id)\n',
     E'insert into compra_pagos (compra_id, fecha, monto, metodo, referencia, usuario_id, ubicacion_id)\n', 1, 'registrar_compra (columnas del pago)');
   v := pg_temp.exigir(v, E'          v_persona\n        )\n        returning id into v_pago_id;',
-    E'          v_persona,\n          case when retail.fn_es_lider() then null else p_ubicacion_destino_id end -- ADR-0179: la gestora\n        )\n        returning id into v_pago_id;',
+    E'          v_persona,\n          case when retail.fn_es_lider() then null else p_ubicacion_destino_id end -- ADR-0184: la gestora\n        )\n        returning id into v_pago_id;',
     1, 'registrar_compra (valores del pago)');
   execute v;
 end $$;

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260923180500_compras_comprador_firma_con_actor.sql — CAYLA V2 · ADR-0179 (arreglo de forma, sin cambio de comportamiento)
+-- 20260923180500_compras_comprador_firma_con_actor.sql — CAYLA V2 · ADR-0184 (arreglo de forma, sin cambio de comportamiento)
 --
 -- EL PROBLEMA. `20260923100000_actor_firma_las_operaciones.sql` (ADR-0162, re-ejecutable) lleva `agregar_comprador_de_tienda`
 -- en su lista y exige que cada función de esa lista FIRME con una asignación: `v_x := retail.fn_actor_persona_id(false);`.
@@ -47,7 +47,7 @@ end;
 $$;
 
 comment on function retail.agregar_comprador_de_tienda(uuid, uuid) is
-  'ADR-0179. Solo líder. Suma una tienda extra de Compras a una colaboradora activa (R-10). No le da el módulo: eso lo da su rol.';
+  'ADR-0184. Solo líder. Suma una tienda extra de Compras a una colaboradora activa (R-10). No le da el módulo: eso lo da su rol.';
 
 revoke all on function retail.agregar_comprador_de_tienda(uuid, uuid) from public, anon;
 grant execute on function retail.agregar_comprador_de_tienda(uuid, uuid) to authenticated;

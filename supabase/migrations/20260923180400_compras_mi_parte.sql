@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260923180400_compras_mi_parte.sql — CAYLA V2 · ADR-0179 (F3-b: la parte de una tienda que NO gestiona la factura)
+-- 20260923180400_compras_mi_parte.sql — CAYLA V2 · ADR-0184 (F3-b: la parte de una tienda que NO gestiona la factura)
 --
 -- EL PROBLEMA PRIMERO. Arequipa registra una factura que trae mercadería para Arequipa y Trujillo. Por la regla de lectura
 -- (20260923180200) Trujillo no ve esa factura: si la viera, vería el total, el saldo y los pagos de Arequipa. Pero Felipe
@@ -91,7 +91,7 @@ as $$
 $$;
 
 comment on function retail.fn_mis_partes_de_compras() is
-  'ADR-0179 (F3-b). Mis partes en facturas que gestiona OTRA tienda: una fila por factura y tienda mía con parte, con MI total, lo que pagó MI tienda y MI saldo; nunca el total ni el saldo de la factura. parte_nueva = vigente, sin pagos de mi tienda y registrada hace 7 días o menos. Vacía para el líder (ve todo entero).';
+  'ADR-0184 (F3-b). Mis partes en facturas que gestiona OTRA tienda: una fila por factura y tienda mía con parte, con MI total, lo que pagó MI tienda y MI saldo; nunca el total ni el saldo de la factura. parte_nueva = vigente, sin pagos de mi tienda y registrada hace 7 días o menos. Vacía para el líder (ve todo entero).';
 
 -- ==================== 2. el detalle de una parte ====================
 create or replace function retail.fn_mi_parte_de_compra(p_compra_id uuid)
@@ -154,7 +154,7 @@ end;
 $$;
 
 comment on function retail.fn_mi_parte_de_compra(uuid) is
-  'ADR-0179 (F3-b). El detalle de MI parte en una factura: cabecera sin montos de la factura, mis partes (total, pagado, saldo), mis líneas con solo mis unidades y los pagos de mis tiendas. Falla si ninguna de mis tiendas tiene parte.';
+  'ADR-0184 (F3-b). El detalle de MI parte en una factura: cabecera sin montos de la factura, mis partes (total, pagado, saldo), mis líneas con solo mis unidades y los pagos de mis tiendas. Falla si ninguna de mis tiendas tiene parte.';
 
 revoke all on function retail.fn_mis_partes_de_compras() from public, anon;
 revoke all on function retail.fn_mi_parte_de_compra(uuid) from public, anon;

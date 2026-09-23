@@ -6050,7 +6050,7 @@ export type Database = {
       fn_puede_analizar: { Args: never; Returns: boolean }
       fn_puede_gestionar_colaboradores: { Args: never; Returns: boolean }
       fn_puede_administrar_roles: { Args: never; Returns: boolean }
-      // ADR-0179 (Compras por tienda)
+      // ADR-0184 (Compras por tienda)
       fn_compras_ubicaciones: { Args: never; Returns: string[] }
       fn_puede_comprar_en: { Args: { p_ubicacion_id: string }; Returns: boolean }
       fn_saldo_de_tienda: { Args: { p_compra_id: string; p_ubicacion_id: string }; Returns: number }

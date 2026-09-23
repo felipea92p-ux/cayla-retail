@@ -69,7 +69,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
     getResumenComprasExtra(),
     getProveedoresActivos(),
     getUbicaciones(),
-    // ADR-0179 (F3-b): la parte de mi tienda en comprobantes que gestiona otra (el líder los ve enteros en la lista).
+    // ADR-0184 (F3-b): la parte de mi tienda en comprobantes que gestiona otra (el líder los ve enteros en la lista).
     persona.rol === "lider" ? Promise.resolve([]) : getMisPartesDeCompras(),
   ]);
   // Para decir a qué tiendas va un comprobante repartido (ADR-0139).
@@ -112,7 +112,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           <p className="mt-1 text-sm text-tinta/65">Cada comprobante registra lo que se compró; la recepción y el pago se anotan contra él.</p>
         </div>
         <div className="flex flex-wrap gap-2.5">
-          {/* El registro de compras del mes que se le manda al contador (ADR-0179: con el filtro por tienda de la base,
+          {/* El registro de compras del mes que se le manda al contador (ADR-0184: con el filtro por tienda de la base,
               quien no es líder exporta lo de sus tiendas). */}
           <a
             href={`/compras/exportar?mes=${hoy.slice(0, 7)}`}

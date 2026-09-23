@@ -258,7 +258,7 @@ rollback;
   const unaSolaFirmaTrasArreglo = migracionUnaFirma
     ? correr(`${FIXTURE_COMPRA}
 alter table retail.compras add column ubicacion_destino_id uuid;
-alter table retail.compras drop constraint if exists compras_gestora_obligatoria; -- ADR-0179 (20260923180200): la migración histórica no escribe la tienda gestora; se relaja solo aquí, en la transacción revertida
+alter table retail.compras drop constraint if exists compras_gestora_obligatoria; -- ADR-0184 (20260923180200): la migración histórica no escribe la tienda gestora; se relaja solo aquí, en la transacción revertida
 create function retail.registrar_compra(p_proveedor_id uuid, p_serie text, p_numero text, p_condicion text, p_ubicacion_destino_id uuid, p_items jsonb, p_tipo text default 'factura', p_fecha_emision date default current_date, p_fecha_vencimiento date default null, p_igv_porcentaje numeric default 18, p_pago jsonb default null, p_nota text default null, p_total numeric default null, p_fecha_estimada_llegada date default null)
   returns uuid language sql as $$ select null::uuid $$;
 select ${firmasCompraSql} as antes \\gset

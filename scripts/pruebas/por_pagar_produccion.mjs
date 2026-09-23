@@ -173,7 +173,7 @@ rollback;`,
     tipo: "exito",
     sql: `${PREPARAR}
 insert into retail.proveedores (nombre) values ('Proveedor Compras Prueba') returning id as pc \\gset
--- ubicacion_gestion_id: ADR-0179 la exige en toda factura vigente (compras_gestora_obligatoria).
+-- ubicacion_gestion_id: ADR-0184 la exige en toda factura vigente (compras_gestora_obligatoria).
 insert into retail.compras (proveedor_id, serie, numero, condicion, fecha_emision, fecha_vencimiento, subtotal, igv, total, ubicacion_gestion_id)
   values (:'pc', 'F777', '1', 'credito', current_date - 40, current_date - 5, 500, 90, 590, (select id from retail.ubicaciones where activo and nombre like 'Tienda%' order by nombre limit 1));
 select retail.registrar_pago_comprobante_produccion(:'cid', '[{"metodo":"transferencia","monto":180}]'::jsonb) as _g \\gset

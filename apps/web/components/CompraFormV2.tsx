@@ -102,7 +102,7 @@ export function CompraFormV2({
 }: {
   proveedores: Proveedor[];
   ubicaciones: Ubicacion[];
-  /** ADR-0179 (F5): solo para un comprador de tienda — las tiendas donde puede ser gestora (`fn_compras_ubicaciones()`),
+  /** ADR-0184 (F5): solo para un comprador de tienda — las tiendas donde puede ser gestora (`fn_compras_ubicaciones()`),
    *  un subconjunto de `ubicaciones`. `undefined` = sin restricción (líder, como siempre): elige cualquiera de
    *  `ubicaciones` y la gestora sale de `tiendasReparto[0]`. Con esto, la gestora sale de LA tienda del comprador que
    *  siga en el reparto (nunca de la posición 0, que sigue el orden de `ubicaciones` y podría no ser la suya). */
@@ -245,7 +245,7 @@ export function CompraFormV2({
   // Para el resumen «Dónde cae»: cuántas unidades le tocan a cada tienda (solo cuando se reparte).
   const unidadesTienda = unidadesPorTienda(lineas.filter((l) => l.productoId && l.cantidad > 0));
   const porTienda = ubicaciones.filter((u) => (unidadesTienda[u.id] ?? 0) > 0).map((u) => ({ id: u.id, nombre: u.nombre, unidades: unidadesTienda[u.id] }));
-  // La tienda gestora que se manda a la RPC (ADR-0179, F3: `p_ubicacion_destino_id` es la gestora desde esta ADR;
+  // La tienda gestora que se manda a la RPC (ADR-0184, F3: `p_ubicacion_destino_id` es la gestora desde esta ADR;
   // `tiendaGestora`, con sus pruebas, en `lib/reparto-reglas.ts`).
   const gestora = tiendaGestora(repartir, tiendasReparto, ubicacionId, misTiendas?.map((u) => u.id));
   const documentoNormalizado = `${serie.trim().toUpperCase()}-${numero.trim()}`;
@@ -350,7 +350,7 @@ export function CompraFormV2({
       p_serie: serie.trim(),
       p_numero: numero.trim(),
       p_condicion: condicion,
-      // Repartido: cada línea trae sus `destinos`, y este parámetro pasa a ser la tienda GESTORA (ADR-0179, F3) —
+      // Repartido: cada línea trae sus `destinos`, y este parámetro pasa a ser la tienda GESTORA (ADR-0184, F3) —
       // ya no es solo un valor por defecto. Ver `gestora` arriba: para un comprador nunca es una posición ciega.
       p_ubicacion_destino_id: gestora,
       p_items: validas.map((l) => ({

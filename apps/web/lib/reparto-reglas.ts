@@ -311,7 +311,7 @@ export function etiquetaDeLinea(l: Pick<LineaCompra, "referencia" | "varianteId"
 }
 
 /**
- * Al registrar (ADR-0179, F3): ¿se puede quitar `id` del reparto de tiendas que participan? Sin restricción (líder,
+ * Al registrar (ADR-0184, F3): ¿se puede quitar `id` del reparto de tiendas que participan? Sin restricción (líder,
  * `misTiendasIds` ausente): tiene que quedar al menos una, sin más — cualquiera puede ser gestora. Con restricción
  * (comprador): además tiene que quedar al menos UNA de sus propias tiendas — la base exige que la gestora tenga
  * parte en el reparto, y la gestora de un comprador solo puede ser una tienda suya.
@@ -323,7 +323,7 @@ export function puedeQuitarseDelReparto(id: string, tiendas: readonly string[], 
 }
 
 /**
- * La tienda GESTORA que se manda a `registrar_compra` como `p_ubicacion_destino_id` (ADR-0179, F3: ese parámetro
+ * La tienda GESTORA que se manda a `registrar_compra` como `p_ubicacion_destino_id` (ADR-0184, F3: ese parámetro
  * dejó de ser solo un valor por defecto). Sin reparto: la única tienda elegida. Repartiendo sin restricción (líder):
  * la primera del reparto — el orden sigue el de todas las ubicaciones, y da igual cuál sea porque el líder puede
  * gestionar cualquiera. Repartiendo CON restricción (comprador, `misTiendasIds`): NUNCA una posición a ciegas —

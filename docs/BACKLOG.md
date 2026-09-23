@@ -50,8 +50,8 @@ Prendas que llegan a piso antes de pasar por almacén (taller, proveedores, acce
 - [x] Probado por Felipe en local (2026-09-23: «está bien») y fusionado a `main` por PR el mismo día (el ADR-0178 lo tomó «escalón admin» mientras tanto: esta rama usa 0179).
 - [ ] Probar con clics en una tienda real: vender una prenda sin registrar y regularizarla desde la cuenta de almacén.
 - [ ] Aparte, sin decidir: las reimpresiones y el historial muestran «Prenda sin registrar» mientras la prenda está pendiente (el comprobante electrónico y el ticket del momento sí dicen la descripción).
-## 🎯 Compras por tienda: cada tienda ve y paga lo suyo (2026-09-23, ADR-0179 — nació como 0145/0150/0151) — EN PRODUCCIÓN las 6 migraciones (Felipe, 2026-09-23; verificadas en solo lectura)
-Decisión de Felipe (2026-09-23): con un módulo de Compras se ve y se paga **solo lo de su tienda**; el líder, todo. El rol dice QUIÉN (ADR-0161); `fn_compras_ubicaciones()` dice DÓNDE (su tienda + extras de `compradores_de_tienda`). Detalle en [docs/adr/0179-compras-cada-tienda-compra-y-paga-lo-suyo.md](adr/0179-compras-cada-tienda-compra-y-paga-lo-suyo.md), «Estado final».
+## 🎯 Compras por tienda: cada tienda ve y paga lo suyo (2026-09-23, ADR-0184 — nació como 0145/0150/0151) — EN PRODUCCIÓN las 6 migraciones (Felipe, 2026-09-23; verificadas en solo lectura)
+Decisión de Felipe (2026-09-23): con un módulo de Compras se ve y se paga **solo lo de su tienda**; el líder, todo. El rol dice QUIÉN (ADR-0161); `fn_compras_ubicaciones()` dice DÓNDE (su tienda + extras de `compradores_de_tienda`). Detalle en [docs/adr/0184-compras-cada-tienda-compra-y-paga-lo-suyo.md](adr/0184-compras-cada-tienda-compra-y-paga-lo-suyo.md), «Estado final».
 - [x] Migraciones `20260923180000` … `20260923180400` (quién y dónde · parte por tienda · gestora + lectura + escrituras · pagar por tienda · F3-b «mi parte»), ancladas en las definiciones de producción del 2026-09-23, re-pegables. Reemplazan a las 5 `20260922*` de la rama `adr-0145-compras-permisos` (nunca pegadas; chocaban en número con 5 de main).
 - [x] Web: `persona.tiendasCompra`, «Pagas desde» en los 6 puntos de pago, gestora al registrar, bloque «Tu parte en comprobantes de otras tiendas» (con «Parte nueva») en Comprobantes y Por pagar, y `/compras/parte/[compraId]`.
 - [x] Pruebas: `pruebas:compras-por-tienda` 34/34 (en el CI; reemplaza las 4 suites del modelo viejo), `compras-parte-por-tienda` 20/20, `roles` 63/63 y las demás de Compras en verde.
@@ -255,7 +255,7 @@ Tercera opción del comprobante: Boleta | Factura | Nota de venta. Documento int
 - [x] **Pegada en producción** (verificado 2026-09-22: columna y `agregar_terminal` existen, 0 terminales). Queda reemplazada en identidad por el ADR-0162. Antes, prueba en seco contra producción, solo lectura: las 23 funciones y las 15 políticas coinciden, así que no debería abortar. Luego verificar en la base y correr `datos:generar:produccion`.
 - [x] ~~Felipe: crear las 6 personas en Dynamic~~ — **ya no**: el ADR-0162 reemplaza la terminal-persona por una terminal sin persona.
 - [ ] **Probarlas con clics:** nadie ha visto las terminales en el navegador (entrar como terminal exige claves que yo no escribo).
-- [x] **Compras de la administrativa = ADR-0179** (antes «ADR-0151», comprador de tienda): reescrito sobre los roles por módulo y subido; ver la sección «Compras por tienda» arriba.
+- [x] **Compras de la administrativa = ADR-0184** (antes «ADR-0151», comprador de tienda): reescrito sobre los roles por módulo y subido; ver la sección «Compras por tienda» arriba.
 - [ ] El combo «¿quién atiende?» pasó a ser el combo **Responsable** de todas las operaciones: ADR-0161.
 - [ ] Disparador que impida mover una terminal al Taller llamando `cambiar_ubicacion_colaborador` a mano (la web no lo ofrece; la base no lo impide).
 - [x] Hecho: volcado refrescado el 2026-09-23 (94 tablas, 300 funciones, copia idéntica a producción verificada por huella).

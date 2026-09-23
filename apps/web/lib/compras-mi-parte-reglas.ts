@@ -1,4 +1,4 @@
-// ADR-0179 (F3-b): la parte de una tienda en un comprobante que gestiona OTRA tienda. Lógica pura: la usan el servidor
+// ADR-0184 (F3-b): la parte de una tienda en un comprobante que gestiona OTRA tienda. Lógica pura: la usan el servidor
 // (lib/compras-mi-parte.ts) y los componentes cliente (el botón de pagar), así que no importa nada de Supabase.
 //
 // La base NO le abre a esa tienda la fila del comprobante (vería el total y los pagos de la otra): le devuelve solo su parte

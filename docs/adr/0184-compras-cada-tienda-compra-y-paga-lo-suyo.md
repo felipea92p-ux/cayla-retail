@@ -1,9 +1,9 @@
-# ADR-0179 — Compras: cada tienda compra, ve y paga lo suyo (compradores por tienda)
+# ADR-0184 — Compras: cada tienda compra, ve y paga lo suyo (compradores por tienda)
 
 **Fecha:** 2026-09-21 (decisión) · 2026-09-23 (reconciliado con ADR-0161 y cerrado F3-b)
 **Estado:** **Aceptado y en producción** (Felipe pegó `20260923180000` … `180500` el 2026-09-23, verificado en solo lectura).
 **Decide:** Felipe, el 2026-09-21 (respuestas en «Lo que dijo el negocio») y el 2026-09-23 («Reconciliación con los roles por módulo», abajo).
-**Número:** nació como 0145, pasó a 0150 y a 0151; los tres los tomaron otros ADR en `main` (colaboradores, roles a medida, alertas de productos). Queda **0179** (2026-09-23). Commits y comentarios anteriores al 2026-09-23 lo llaman ADR-0151 o 0145.
+**Número:** nació como 0145, pasó a 0150 y a 0151; los tres los tomaron otros ADR en `main` (colaboradores, roles a medida, alertas de productos). Pasó a 0179 y también ese lo tomó `main` (prendas sin registrar): queda **0184** (2026-09-23). Commits y comentarios anteriores lo llaman ADR-0145, 0151 o 0179 — **los comentarios de las funciones y tablas ya pegadas en producción dicen «ADR-0179»**: en esas, 0179 quiere decir este ADR, no el de prendas sin registrar.
 **Refina** ADR-0075 (lectura por sede), ADR-0126 (el dinero de Compras), ADR-0139 (reparto entre tiendas) y **ADR-0161** (roles por módulo: aquí se le suma la TIENDA).
 **Cambia** dos reglas de `docs/datos/15-COMO-OPERA-CAYLA.md`: R-10 («una persona encargada de Compras») y la lectura de R-12 («los proveedores sirven a todas las tiendas»
 sigue en pie para el catálogo, pero la deuda deja de ser una sola).

@@ -9,7 +9,7 @@ import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { Chip } from "@/components/ui/Chip";
 import { BotonPagar } from "@/components/CompraDetallePanel";
 
-// ADR-0179 (F3-b): el detalle de la parte de MI tienda en un comprobante que gestiona OTRA tienda. Muestra la cabecera sin los
+// ADR-0184 (F3-b): el detalle de la parte de MI tienda en un comprobante que gestiona OTRA tienda. Muestra la cabecera sin los
 // montos del comprobante entero, lo que le toca a mi tienda (subtotal, IGV, total, pagado, saldo), mis líneas con mis unidades
 // y los pagos de mi tienda — todo sale de `fn_mi_parte_de_compra`, que no devuelve nada de la otra tienda. Quien ve el
 // comprobante entero (líder o tienda gestora) va al detalle de siempre.

@@ -67,7 +67,7 @@ export function PagoJuntosModal({
   onClose: () => void;
   /** Se llama al CERRAR la confirmación de un pago registrado (no antes), con lo que quedó pagado. */
   onPagado: (resultado: ResultadoPago) => void;
-  /** ADR-0179 (F4-F5): solo para un comprador de tienda. `undefined` o vacío = líder, el pago no se ata a ninguna
+  /** ADR-0184 (F4-F5): solo para un comprador de tienda. `undefined` o vacío = líder, el pago no se ata a ninguna
    *  tienda (como siempre). Con una sola, se usa directo; con varias, se elige con cuál se paga — es UNA tienda para
    *  todo el lote (un solo pago), y la base exige que tenga parte en CADA comprobante que reciba algo. */
   misTiendas?: { id: string; nombre: string }[];
@@ -181,7 +181,7 @@ export function PagoJuntosModal({
             p_fecha: fecha,
             p_token: token.current,
             ...(credito > 0 ? { p_credito: credito } : {}),
-            // ADR-0179 (F4): sin tiendas propias (líder) el pago no se ata a ninguna, como siempre.
+            // ADR-0184 (F4): sin tiendas propias (líder) el pago no se ata a ninguna, como siempre.
             ...(ubicacionPago ? { p_ubicacion_id: ubicacionPago } : {}),
           })
         : await supabase.rpc("registrar_pago_compras", {
@@ -373,7 +373,7 @@ export function PagoJuntosModal({
             </div>
           )}
 
-          {/* ADR-0179 (F4-F5): con una sola tienda propia se paga con ella sin preguntar; con varias, se elige —
+          {/* ADR-0184 (F4-F5): con una sola tienda propia se paga con ella sin preguntar; con varias, se elige —
               es UNA tienda para todo el lote, y la base exige que tenga parte en cada comprobante que reciba algo. */}
           {misTiendas && misTiendas.length > 1 && (
             <CampoSelectNativo etiqueta="Pagas desde" value={ubicacionPago} onChange={(e) => setUbicacionPago(e.target.value)}>

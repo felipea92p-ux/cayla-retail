@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas de Compras POR TIENDA (ADR-0179, reescrito sobre los roles por módulo de ADR-0161) contra el Postgres local.
+ * Pruebas de Compras POR TIENDA (ADR-0184, reescrito sobre los roles por módulo de ADR-0161) contra el Postgres local.
  *
  * QUÉ PRUEBA (decisión de Felipe, 2026-09-23: con un módulo de Compras se ve y se paga SOLO lo de su tienda; el líder, todo):
  *   · QUIÉN: sin módulo de Compras no se llega a ninguna tienda, aunque haya fila en `compradores_de_tienda`;
