@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useRef, useState, type CSSProperties } from "react";
+import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
+import { paginar } from "@/lib/paginacion";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Comprobante } from "@/lib/comprobantes-reglas";
@@ -127,6 +129,9 @@ function DocumentosSunat({ c }: { c: Comprobante }) {
 // el menú lateral desplegado una ventana de 768 px deja ~480 px de contenido. Desde 900 px de tarjeta
 // el cliente tiene su columna; entre 640 y 899 px pasa a la línea de abajo del número; por debajo
 // de 640 px cada fila se apila.
+/** Comprobantes por página: la fila es alta (documentos SUNAT, motivo, botones). */
+const COMPROBANTES_POR_PAGINA = 25;
+
 const COLUMNAS = "@min-[640px]:grid @min-[640px]:grid-cols-[72px_minmax(0,1.1fr)_92px_minmax(0,1.4fr)] @min-[900px]:grid-cols-[72px_minmax(0,1.15fr)_minmax(0,1fr)_100px_minmax(0,1.7fr)]";
 
 // Panel de Facturación electrónica: reserva el comprobante con su correlativo
@@ -237,6 +242,25 @@ export function ComprobantesPanel({
   );
   const totales = totalesPorTipo(visibles);
 
+  // La lista pinta UNA página; filtros, búsqueda, totales y tarjetas siguen viendo el mes entero. Pintar los ~1.400
+  // de un mes eran 16.500 elementos y 2,8 MB de HTML (medido 2026-09-23). Cambiar un filtro o la búsqueda vuelve a la
+  // página 1 (ajuste durante el render, como Existencias); `paginar` acota si la lista se achicó.
+  const [pagina, setPagina] = useState(1);
+  const firmaFiltros = [busqueda, filtroTipo, filtroTienda, filtroEstado].join("\u0000");
+  const [firmaPrevia, setFirmaPrevia] = useState(firmaFiltros);
+  if (firmaFiltros !== firmaPrevia) {
+    setFirmaPrevia(firmaFiltros);
+    setPagina(1);
+  }
+  const paginaActual = paginar(visibles, pagina, COMPROBANTES_POR_PAGINA);
+  const tarjetaListaRef = useRef<HTMLDivElement>(null);
+  function irAPagina(n: number) {
+    setPagina(n);
+    // El paginador está al pie: al cambiar de página, que la lista empiece a leerse desde arriba.
+    const tarjeta = tarjetaListaRef.current;
+    if (tarjeta && tarjeta.getBoundingClientRect().top < 0) tarjeta.scrollIntoView({ block: "start" });
+  }
+
   return (
     <div className="space-y-6">
       {/* La confirmación con el combo «Responsable» antes de transmitir (ADR-0161). */}
@@ -257,7 +281,7 @@ export function ComprobantesPanel({
       {/* Comprobantes del mes: una sola fila para todos los anchos (ver `COLUMNAS`). */}
       {/* `overflow-hidden` solo con filas: recorta el hover de la última fila contra las esquinas redondas. Sin filas
           (mes vacío o búsqueda sin resultados) la tarjeta es baja y recortaría el globo de ayuda del encabezado. */}
-      <div className={`card-cayla anim-sube @container ${visibles.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 7 } as CSSProperties}>
+      <div ref={tarjetaListaRef} className={`card-cayla anim-sube @container ${visibles.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 7 } as CSSProperties}>
         <div className="px-5 pt-[18px] pb-3.5">
           <p className="label-cayla text-[11px] text-tinta/65">
             Comprobantes
@@ -318,7 +342,7 @@ export function ComprobantesPanel({
               <span>Estado</span>
             </div>
 
-            {visibles.map((c) => {
+            {paginaActual.filas.map((c) => {
               const { botones, motivo, esRechazo } = accionComprobante(c, acciones);
               const { dia, hora } = diaYHoraLima(c.created_at);
               const chip = chipDelComprobante(c);
@@ -360,6 +384,14 @@ export function ComprobantesPanel({
                 </div>
               );
             })}
+            {paginaActual.totalPaginas > 1 && (
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-tinta/10 px-5 py-3 text-xs text-taupe">
+                <span>
+                  Mostrando {paginaActual.desde}–{paginaActual.hasta} de {visibles.length}
+                </span>
+                <PaginacionLocal pagina={paginaActual.pagina} totalPaginas={paginaActual.totalPaginas} onPagina={irAPagina} />
+              </div>
+            )}
             {totales.length > 0 && (
               <p className="flex flex-wrap gap-x-5 gap-y-1 border-t border-tinta/10 bg-tinta/[0.02] px-5 py-3 text-[13px] text-tinta/70">
                 {totales.map((t) => (
