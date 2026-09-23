@@ -28,6 +28,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Escalón Admin leído de Dynamic + «solo das lo que tienes» (2026-09-23, ADR-0178) — CONSTRUIDO en la rama `claude/escalon-admin-dynamic`; NO está en producción
+- **Pegar en producción** `20260923160000_escalon_admin_desde_dynamic.sql` (ya trae `set search_path to retail, public, extensions;`). Requiere 20260923110000, 131000 y 140000 (en producción existen sus funciones). Luego `pnpm datos:generar:produccion` tras refrescar el volcado.
+- **Urgente, aparte de este cambio:** el rol Integrante tiene 0 módulos en producción desde el 22-09 16:58 (lo vació Felipe; 16 personas no ven nada). Confirmar si fue a propósito y volver a encenderle módulos.
+- **Decidir:** si los 4 líderes de sistemas (Daniel y los 3 practicantes) siguen como Líder; y si quien tiene Colaboradores sin ser líder puede suspender a alguien que ve más módulos que él (Dynamic lo frena con «solo alcanzas a quien está por debajo»).
+- Pendiente de la misma conversación: el rol «Encargada de sede» (aprobar/anular en su tienda), que Felipe todavía no aprobó.
+
 ## 🎯 Candado de dinero en Caja, Cambios y Devoluciones (2026-09-22/23, ADR-0177 — renumerado desde 0166 por choque con Separaciones, y de 0169 por choque con la Paleta oficial) — pegado y verificado en producción; Cambios revertido a pedido de Felipe
 Del análisis `/pantalla` completo del módulo Ventas: la misma familia de hueco en tres pantallas (dinero se movía sin que la base exigiera líder), cerrada en una sola migración. Detalle en [docs/adr/0177-candado-de-dinero-en-caja-cambios-devoluciones.md](adr/0177-candado-de-dinero-en-caja-cambios-devoluciones.md).
 - [x] `registrar_movimiento_caja`: `es_ajuste` deducido del motivo (vocabulario cerrado), no de lo que manda el navegador; referencia obligatoria en "Depósito bancario"/"Otro".

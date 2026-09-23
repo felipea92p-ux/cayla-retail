@@ -27,6 +27,12 @@ async function dependencias(): Promise<Dependencias> {
       const lider = await sesion.rpc("fn_es_lider");
       return lider.error ? null : lider.data === true;
     },
+    rolDentroDeLoMio: async (rolId) => {
+      const { data, error } = await sesion.rpc("fn_rol_dentro_de_lo_mio", { p_rol_id: rolId });
+      if (!error) return data === true;
+      // Web publicada antes de pegar 20260923160000: la regla todavía no existe, se crea como antes.
+      return esFuncionAusente(error) ? true : null;
+    },
     personaActual: async () => {
       const { data, error } = await sesion.rpc("fn_actor_persona_id", { p_de_tienda: false });
       return error ? null : ((data as string | null) ?? null);

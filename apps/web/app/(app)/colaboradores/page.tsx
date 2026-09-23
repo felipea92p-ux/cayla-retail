@@ -12,7 +12,7 @@ import {
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { ColaboradoresPanel } from "@/components/ColaboradoresPanel";
 import { vistaDe, type SeccionColaboradores } from "@/lib/colaboradores-reglas";
-import { getCuentasConRol, getRolesTolerado } from "@/lib/roles";
+import { getCuentasConRol, getEscalonAdmin, getRolesTolerado } from "@/lib/roles";
 
 // Gestión de acceso a retail (0013 + 0016_roles_colaborador.sql + 20260922110000_colaboradores_suspender_y_actividad.sql).
 // Desde 20260923131000 (Felipe, 2026-09-22) no es solo del líder: la abre quien ve el módulo Colaboradores (sección Cuentas
@@ -29,7 +29,8 @@ export default async function ColaboradoresPage({ searchParams }: { searchParams
   const vista = secciones.includes(pedida.seccion) ? pedida : { ...pedida, seccion: secciones[0], actividad: false };
   const nada = <T,>(valor: T) => Promise.resolve(valor);
 
-  const [colaboradores, pendientes, suspendidos, inactivos, actividad, disponibles, ubicaciones, terminales, roles, cuentas] = await Promise.all([
+  const soyLider = persona.rol === "lider";
+  const [colaboradores, pendientes, suspendidos, inactivos, actividad, disponibles, ubicaciones, terminales, roles, cuentas, escalon] = await Promise.all([
     veColaboradores ? getColaboradores() : nada([]),
     veColaboradores ? getColaboradoresPendientes() : nada([]),
     veColaboradores ? getColaboradoresSuspendidos() : nada([]),
@@ -43,6 +44,8 @@ export default async function ColaboradoresPage({ searchParams }: { searchParams
     // módulo Roles y accesos no se leen: la pantalla sale sin la columna del rol ni «Cambiar rol» (es lo que dice `null`).
     veRoles ? getRolesTolerado() : nada(null),
     veRoles ? getCuentasConRol() : nada({ datos: null }),
+    // ADR-0178: quién administra a los líderes (el Admin se lee de Dynamic).
+    getEscalonAdmin(soyLider),
   ]);
 
   return (
@@ -59,7 +62,11 @@ export default async function ColaboradoresPage({ searchParams }: { searchParams
       cuentas={cuentas.datos}
       vistaInicial={vista}
       secciones={secciones}
-      soyLider={persona.rol === "lider"}
+      soyLider={soyLider}
+      soyAdmin={escalon.soyAdmin}
+      admins={escalon.admins}
+      // ADR-0178 «solo das lo que tienes»: quien no es líder da solo los módulos que ve.
+      misModulos={soyLider ? null : persona.modulos.map((m) => m.clave)}
     />
   );
 }

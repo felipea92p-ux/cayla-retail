@@ -34,6 +34,18 @@ export async function getRoles(): Promise<RolVista[]> {
   }));
 }
 
+/**
+ * ADR-0178: el escalón Admin, que se lee de Dynamic (admin allá + Líder activo aquí). `soyAdmin`: la sesión administra a
+ * los líderes; `admins`: quiénes lo son, para marcarlos. Si la base todavía no tiene las funciones (web publicada antes de
+ * pegar 20260923160000), administra a los líderes el líder, como antes — la base es la que decide de todos modos.
+ */
+export async function getEscalonAdmin(soyLider: boolean): Promise<{ soyAdmin: boolean; admins: string[] }> {
+  const supabase = await createClient();
+  const [yo, lista] = await Promise.all([supabase.rpc("fn_es_admin"), supabase.rpc("fn_admins")]);
+  if (yo.error) return { soyAdmin: soyLider, admins: [] };
+  return { soyAdmin: yo.data === true, admins: lista.error ? [] : (lista.data ?? []).map((f) => f.persona_id) };
+}
+
 /** Todas las cuentas con su rol. Tolerado: en Colaboradores, si falla, solo se pierde la columna del rol. */
 export async function getCuentasConRol(): Promise<Tolerado<CuentaConRol[]>> {
   const supabase = await createClient();

@@ -36,14 +36,44 @@ export function veModulo(rol: Pick<RolVista, "fijo" | "modulos">, clave: ClaveMo
   return rol.fijo || rol.modulos.includes(clave);
 }
 
-/** Cómo se muestra el control de un módulo para un rol: interruptor, o candado con su motivo. */
-export type ControlModulo = { tipo: "interruptor"; editable: boolean } | { tipo: "candado"; texto: "Solo líder" | "Solo líder por ahora" };
+/**
+ * Quién edita (ADR-0178, «solo das lo que tienes»). `misModulos` = los módulos que ve la sesión, o `null` si es líder (ve
+ * todos y da todos). `miRolId` = el rol de la sesión: quien no es líder no edita el suyo.
+ */
+export type QuienEdita = { misModulos: readonly ClaveModulo[] | null; miRolId: string | null };
+const LIDER_EDITA: QuienEdita = { misModulos: null, miRolId: null };
 
-export function controlDe(rol: Pick<RolVista, "fijo" | "archivado">, m: Modulo): ControlModulo {
+/** Los módulos de la lista que quien mira NO ve (vacío para un líder). Misma regla que `fn_modulos_que_no_tengo`. */
+export function fueraDeLoMio(modulos: readonly ClaveModulo[], misModulos: readonly ClaveModulo[] | null): ClaveModulo[] {
+  return misModulos ? modulos.filter((c) => !misModulos.includes(c)) : [];
+}
+
+/** ¿Es el rol de quien mira, sin ser líder? Entonces no lo edita (se lo pide a un líder). */
+export function esMiRolSinSerLider(rol: Pick<RolVista, "id">, quien: QuienEdita): boolean {
+  return quien.misModulos !== null && quien.miRolId === rol.id;
+}
+
+/** Cómo se muestra el control de un módulo para un rol: interruptor, o candado con su motivo. */
+export type ControlModulo = { tipo: "interruptor"; editable: boolean } | { tipo: "candado"; texto: "Solo líder" | "Solo líder por ahora" | "No lo tienes" };
+
+/** `encendido`: si el módulo ya está en el rol. Lo que uno no tiene se puede APAGAR, pero no encender (ADR-0178). */
+export function controlDe(rol: Pick<RolVista, "id" | "fijo" | "archivado">, m: Modulo, quien: QuienEdita = LIDER_EDITA, encendido = false): ControlModulo {
   if (rol.fijo) return { tipo: "interruptor", editable: false };
   if (m.soloLider) return { tipo: "candado", texto: "Solo líder" };
   if (m.noDelegable) return { tipo: "candado", texto: "Solo líder por ahora" };
+  if (esMiRolSinSerLider(rol, quien)) return { tipo: "interruptor", editable: false };
+  if (!encendido && fueraDeLoMio([m.clave], quien.misModulos).length > 0) return { tipo: "candado", texto: "No lo tienes" };
   return { tipo: "interruptor", editable: !rol.archivado };
+}
+
+/** Por qué no se puede guardar este cambio por «solo das lo que tienes», o `null`. Misma regla que la base
+ *  (`fn_exigir_modulos_dentro_de_lo_mio`): no se edita el propio rol, y no se ENCIENDE lo que uno no ve. Apagar, siempre. */
+export function motivoPorLoMio(rol: Pick<RolVista, "id">, antes: readonly ClaveModulo[], despues: readonly ClaveModulo[], quien: QuienEdita): string | null {
+  if (esMiRolSinSerLider(rol, quien)) return "No puedes editar los módulos de tu propio rol: pídeselo a un líder.";
+  const faltan = fueraDeLoMio(despues.filter((c) => !antes.includes(c)), quien.misModulos);
+  if (faltan.length === 0) return null;
+  const nombres = faltan.map((c) => MODULOS.find((m) => m.clave === c)?.nombre ?? c).join(", ");
+  return `No puedes encender ${faltan.length === 1 ? "un módulo que tú no tienes" : "módulos que tú no tienes"} (${nombres}): solo puedes dar lo que tú ves.`;
 }
 
 /** Los módulos agrupados como en el spike (Ventas, Inventario, Catálogo, Compras, Producción, Gestión). */
@@ -133,10 +163,20 @@ export function motivoParaNoGuardar(antes: readonly ClaveModulo[], despues: read
 /** Los roles que se le pueden asignar a una cuenta: los vigentes. El Líder, solo a una persona (una terminal nunca es
  *  líder, ADR-0162); sin cuenta elegida todavía, se ofrece igual y la base decide. A una terminal tampoco un rol con
  *  Colaboradores o Roles y accesos (ADR-0161 P6). */
-export function rolesAsignables(roles: readonly RolVista[], cuenta?: Pick<CuentaConRol, "tipo">, soyLider = true): RolVista[] {
-  // Quien administra roles sin ser líder (módulo Roles y accesos, 20260923131000) no sube a nadie a Líder.
+export function rolesAsignables(
+  roles: readonly RolVista[],
+  cuenta?: Pick<CuentaConRol, "tipo">,
+  soyAdmin = true,
+  misModulos: readonly ClaveModulo[] | null = null,
+): RolVista[] {
+  // Solo un Admin sube a alguien a Líder (ADR-0178; antes, cualquier líder). Y quien no es líder solo da roles cuyos
+  // módulos ve él mismo («solo das lo que tienes»).
   return roles.filter(
-    (r) => !r.archivado && (!r.fijo || (soyLider && cuenta?.tipo !== "terminal")) && !(cuenta?.tipo === "terminal" && rolSoloParaPersonas(r)),
+    (r) =>
+      !r.archivado &&
+      (!r.fijo || (soyAdmin && cuenta?.tipo !== "terminal")) &&
+      !(cuenta?.tipo === "terminal" && rolSoloParaPersonas(r)) &&
+      fueraDeLoMio(r.modulos, misModulos).length === 0,
   );
 }
 
@@ -148,11 +188,23 @@ export function cuentasDelRol(cuentas: readonly CuentaConRol[], rolId: string): 
 /** Las cuentas a las que se les puede dar este rol: todas menos uno mismo (nadie se cambia su propio rol: así nunca se
  *  queda la tienda sin líder), las que ya lo tienen y, si es el Líder o incluye Colaboradores o Roles y accesos (P6), las
  *  terminales. Misma regla que `asignar_rol` y el disparador de `retail.terminales`. */
-export function cuentasAsignables(cuentas: readonly CuentaConRol[], rol: Pick<RolVista, "id" | "fijo" | "modulos">, yoId: string | null, soyLider = true): CuentaConRol[] {
-  // Sin ser líder (20260923131000): a un líder no se le cambia el rol, y el rol Líder no se da.
-  if (!soyLider && rol.fijo) return [];
+export function cuentasAsignables(
+  cuentas: readonly CuentaConRol[],
+  rol: Pick<RolVista, "id" | "fijo" | "modulos">,
+  yoId: string | null,
+  soyAdmin = true,
+  misModulos: readonly ClaveModulo[] | null = null,
+): CuentaConRol[] {
+  // Sin ser Admin (ADR-0178; antes, sin ser líder): a un líder no se le cambia el rol, y el rol Líder no se da. Y un rol con
+  // módulos que quien mira no ve, no lo da a nadie («solo das lo que tienes»).
+  if (!puedeAsignarRol(rol, soyAdmin, misModulos)) return [];
   const sinTerminales = rol.fijo || rolSoloParaPersonas(rol);
-  return cuentas.filter((c) => c.id !== yoId && c.rolId !== rol.id && !(sinTerminales && c.tipo === "terminal") && (soyLider || !c.esLider));
+  return cuentas.filter((c) => c.id !== yoId && c.rolId !== rol.id && !(sinTerminales && c.tipo === "terminal") && (soyAdmin || !c.esLider));
+}
+
+/** ¿Quien mira puede dar este rol a alguien? El Líder, solo un Admin; cualquier otro, si todos sus módulos los ve él. */
+export function puedeAsignarRol(rol: Pick<RolVista, "fijo" | "modulos">, soyAdmin: boolean, misModulos: readonly ClaveModulo[] | null): boolean {
+  return rol.fijo ? soyAdmin : fueraDeLoMio(rol.modulos, misModulos).length === 0;
 }
 
 /** ¿Hay que elegirle sede? Solo al bajar a un líder sin ubicación: un líder opera todas, cualquier otro rol trabaja en

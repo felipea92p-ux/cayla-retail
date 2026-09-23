@@ -72,8 +72,10 @@ export const SIEMPRE_SOLO_LIDER: readonly { que: string; origen: string }[] = [
   { que: "Poner etiquetas con descuento a una prenda", origen: "ADR-0160" },
   // Colaboradores, y Roles y accesos, SALIERON de esta lista el 2026-09-22 (Felipe, 20260923131000). Lo que queda del
   // líder dentro de ellos son las protecciones mínimas de esa migración («decisión de arquitectura, revisable»):
-  { que: "Subir a alguien a Líder de equipo; cambiarle el rol o la sede, quitar, suspender o reactivar a un líder", origen: "ADR-0161 (2026-09-22)" },
-  { que: "Siempre queda al menos un líder activo, y nadie se cambia su propio rol", origen: "ADR-0161 (2026-09-22)" },
+  // ADR-0178 (Felipe, 2026-09-23): entre líderes manda el ADMIN, que se lee de Dynamic (admin allá + Líder aquí).
+  { que: "Subir a alguien a Líder de equipo; cambiarle el rol o la sede, quitar, suspender o reactivar a un líder: solo un Admin (admin en Dynamic)", origen: "ADR-0178" },
+  { que: "Siempre queda al menos un líder y un admin activos, y nadie se cambia su propio rol", origen: "ADR-0161 y ADR-0178" },
+  { que: "Sin ser líder, solo se dan los módulos que uno mismo ve, y no se editan los del propio rol", origen: "ADR-0178" },
   // Las 6 decisiones (Felipe, 2026-09-22, migración 20260923140000):
   { que: "Ver el costo y el stock de las otras sedes en Existencias (Análisis analiza solo su sede)", origen: "ADR-0161 P5" },
   { que: "Ver lo comprado por el Taller en la ficha de un proveedor", origen: "ADR-0161 P3" },
