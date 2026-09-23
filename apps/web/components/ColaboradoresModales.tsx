@@ -6,10 +6,15 @@ import type { Ubicacion } from "@/lib/ubicaciones";
 import { confirmacionTerminal, filtrarDisponibles, resumenAlta } from "@/lib/colaboradores-reglas";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, Campo, CampoSelect } from "@/components/ui/campos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import type { ControlResponsable } from "@/lib/useResponsable";
 
 // Los modales de /colaboradores. Ninguno trae nada elegido de antemano en lo que da o quita acceso
 // (auditoría de /colaboradores, tarea #1): quien confirma elige a la persona y la ubicación a propósito.
 // Cada uno recibe `onConfirmar`, que devuelve `true` si la base aceptó; solo entonces se cierra el modal.
+// Y `responsable` (ADR-0161/0162, Felipe 2026-09-23: el combo va en TODA acción que guarda): el combo de la pantalla,
+// compartido. El modal solo lo pinta encima del botón y apaga el botón mientras falte; la firma y el `despues` los pone
+// quien llama (`ejecutar` de `ColaboradoresPanel`).
 
 const entrada = "card-cayla w-full px-3 py-2 text-sm text-tinta outline-none placeholder:text-tinta/55 focus:border-rojo";
 
@@ -20,11 +25,13 @@ export function AgregarColaboradoresModal({
   ubicaciones,
   onConfirmar,
   onClose,
+  responsable,
 }: {
   disponibles: DynamicDisponible[];
   ubicaciones: Ubicacion[];
   onConfirmar: (personas: string[], ubicacionId: string) => Promise<boolean>;
   onClose: () => void;
+  responsable: ControlResponsable;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [elegidas, setElegidas] = useState<ReadonlySet<string>>(new Set());
@@ -57,7 +64,7 @@ export function AgregarColaboradoresModal({
 
   async function enviar(e: React.FormEvent, cerrar: Cerrar) {
     e.preventDefault();
-    if (elegidas.size === 0 || !ubicacionId || enviando) return;
+    if (elegidas.size === 0 || !ubicacionId || enviando || !responsable.listo) return;
     setEnviando(true);
     const ok = await onConfirmar([...elegidas], ubicacionId);
     setEnviando(false);
@@ -138,11 +145,20 @@ export function AgregarColaboradoresModal({
             {resumenAlta(elegidas.size, ubicacion)}
           </p>
 
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
+
           <div className="flex gap-2 pt-1">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" className="flex-1" cargando={enviando} disabled={elegidas.size === 0 || !ubicacionId}>
+            <Boton
+              type="submit"
+              peso="primario"
+              className="flex-1"
+              cargando={enviando}
+              disabled={elegidas.size === 0 || !ubicacionId || !responsable.listo}
+              title={responsable.motivo ?? undefined}
+            >
               {enviando ? "Agregando…" : elegidas.size > 0 ? `Agregar ${elegidas.size}` : "Agregar"}
             </Boton>
           </div>
@@ -152,13 +168,23 @@ export function AgregarColaboradoresModal({
   );
 }
 
-export function SuspenderModal({ nombre, onConfirmar, onClose }: { nombre: string; onConfirmar: (motivo: string) => Promise<boolean>; onClose: () => void }) {
+export function SuspenderModal({
+  nombre,
+  onConfirmar,
+  onClose,
+  responsable,
+}: {
+  nombre: string;
+  onConfirmar: (motivo: string) => Promise<boolean>;
+  onClose: () => void;
+  responsable: ControlResponsable;
+}) {
   const [motivo, setMotivo] = useState("");
   const [enviando, setEnviando] = useState(false);
 
   async function enviar(e: React.FormEvent, cerrar: Cerrar) {
     e.preventDefault();
-    if (enviando) return;
+    if (enviando || !responsable.listo) return;
     setEnviando(true);
     const ok = await onConfirmar(motivo);
     setEnviando(false);
@@ -184,11 +210,12 @@ export function SuspenderModal({ nombre, onConfirmar, onClose }: { nombre: strin
               className={`${entrada} resize-none`}
             />
           </Campo>
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="flex gap-2">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" className="flex-1" cargando={enviando}>
+            <Boton type="submit" peso="primario" className="flex-1" cargando={enviando} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
               {enviando ? "Suspendiendo…" : "Suspender acceso"}
             </Boton>
           </div>
@@ -205,6 +232,7 @@ export function CambiarUbicacionModal({
   ubicaciones,
   onConfirmar,
   onClose,
+  responsable,
 }: {
   nombre: string;
   /** A un líder la ubicación no lo limita: es la tienda donde arranca su sesión (20260923120100). */
@@ -213,6 +241,7 @@ export function CambiarUbicacionModal({
   ubicaciones: Ubicacion[];
   onConfirmar: (ubicacionId: string) => Promise<boolean>;
   onClose: () => void;
+  responsable: ControlResponsable;
 }) {
   // Parte de la ubicación actual (es lo que hay hoy, no una suposición); «Guardar» espera a que cambie.
   const [ubicacionId, setUbicacionId] = useState(ubicacionActualId ?? "");
@@ -220,7 +249,7 @@ export function CambiarUbicacionModal({
 
   async function enviar(e: React.FormEvent, cerrar: Cerrar) {
     e.preventDefault();
-    if (!ubicacionId || ubicacionId === ubicacionActualId || enviando) return;
+    if (!ubicacionId || ubicacionId === ubicacionActualId || enviando || !responsable.listo) return;
     setEnviando(true);
     const ok = await onConfirmar(ubicacionId);
     setEnviando(false);
@@ -250,11 +279,19 @@ export function CambiarUbicacionModal({
             opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))}
             marcador="Elige una ubicación"
           />
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="flex gap-2">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" className="flex-1" cargando={enviando} disabled={!ubicacionId || ubicacionId === ubicacionActualId}>
+            <Boton
+              type="submit"
+              peso="primario"
+              className="flex-1"
+              cargando={enviando}
+              disabled={!ubicacionId || ubicacionId === ubicacionActualId || !responsable.listo}
+              title={responsable.motivo ?? undefined}
+            >
               {enviando ? "Guardando…" : "Guardar"}
             </Boton>
           </div>
@@ -270,6 +307,7 @@ export function QuitarAccesoModal({
   pendiente = false,
   onConfirmar,
   onClose,
+  responsable,
 }: {
   nombre: string;
   suspendida: boolean;
@@ -277,11 +315,12 @@ export function QuitarAccesoModal({
   pendiente?: boolean;
   onConfirmar: () => Promise<boolean>;
   onClose: () => void;
+  responsable: ControlResponsable;
 }) {
   const [enviando, setEnviando] = useState(false);
 
   async function confirmar(cerrar: Cerrar) {
-    if (enviando) return;
+    if (enviando || !responsable.listo) return;
     setEnviando(true);
     const ok = await onConfirmar();
     setEnviando(false);
@@ -306,11 +345,20 @@ export function QuitarAccesoModal({
               </>
             )}
           </p>
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="flex gap-2">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton type="button" peso="primario" className="flex-1 bg-rojo hover:bg-rojo/90" cargando={enviando} onClick={() => confirmar(cerrar)}>
+            <Boton
+              type="button"
+              peso="primario"
+              className="flex-1 bg-rojo hover:bg-rojo/90"
+              cargando={enviando}
+              disabled={!responsable.listo}
+              title={responsable.motivo ?? undefined}
+              onClick={() => confirmar(cerrar)}
+            >
               {enviando ? (pendiente ? "Rechazando…" : "Quitando…") : pendiente ? "Sí, rechazar alta" : "Sí, quitar acceso"}
             </Boton>
           </div>
@@ -328,16 +376,18 @@ export function AlternarTerminalModal({
   terminal,
   onConfirmar,
   onClose,
+  responsable,
 }: {
   terminal: Pick<Terminal, "nombre" | "activo">;
   onConfirmar: () => Promise<boolean>;
   onClose: () => void;
+  responsable: ControlResponsable;
 }) {
   const [enviando, setEnviando] = useState(false);
   const { titulo, texto, boton } = confirmacionTerminal(terminal);
 
   async function confirmar(cerrar: Cerrar) {
-    if (enviando) return;
+    if (enviando || !responsable.listo) return;
     setEnviando(true);
     const ok = await onConfirmar();
     setEnviando(false);
@@ -349,6 +399,7 @@ export function AlternarTerminalModal({
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           <p className="text-sm leading-relaxed text-tinta/85">{texto}</p>
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="flex gap-2">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
               Cancelar
@@ -358,6 +409,8 @@ export function AlternarTerminalModal({
               peso="primario"
               className={`flex-1 ${terminal.activo ? "bg-rojo hover:bg-rojo/90" : ""}`}
               cargando={enviando}
+              disabled={!responsable.listo}
+              title={responsable.motivo ?? undefined}
               onClick={() => confirmar(cerrar)}
             >
               {enviando ? (terminal.activo ? "Desactivando…" : "Reactivando…") : boton}

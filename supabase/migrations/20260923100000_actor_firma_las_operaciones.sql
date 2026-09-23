@@ -222,6 +222,9 @@ begin
       elsif v_def ~ ('\w+\s*:=\s*retail\.fn_actor_persona_id\(' || v_bool || '\)') then
         v_ya := v_ya + 1; -- ya aplicada: re-ejecución
         v_ok := true;
+      elsif v_nombre = any (v_no_de_tienda) and v_def ~ 'retail\.fn_actor_persona_id\(true\)' then
+        v_ya := v_ya + 1; -- 20260923230000 las pasó a (true): el responsable firma todo. Re-pegar esta no las devuelve.
+        v_ok := true;
       elsif v_def ~ '\w+\s*:=\s*retail\.fn_actor_persona_id\((true|false)\)' then
         raise exception '% ya firma con fn_actor_persona_id, pero con el otro booleano (se esperaba %): su clasificación cambió. Decide cuál vale y corrige la lista.',
           r.oid::regprocedure, v_bool;

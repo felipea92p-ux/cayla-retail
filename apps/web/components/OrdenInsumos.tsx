@@ -13,6 +13,9 @@ import { cantidadTexto, previsualizarConsumo, previsualizarDevolucion, UNIDADES_
 import { costoUnitario } from "@/lib/produccion-reglas";
 import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
 import type { OrdenProduccion } from "@/lib/produccion";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Insumos de una orden (ADR-0133, F3): qué tela y qué avíos se descontaron de qué lote, y el formulario para descontar más.
 // Descontar reemplaza el «costo de tela / avíos» que se tecleó al abrir la orden por lo que de verdad salió del estante
@@ -23,6 +26,9 @@ import type { OrdenProduccion } from "@/lib/produccion";
 // cantidad vuelve al último lote del que salió, al mismo costo, y el costo de la orden baja en lo devuelto.
 //
 // Quien no es líder ve cantidades y lotes, no dinero.
+//
+// Responsable (ADR-0161/0162): descontar y devolver firman con quien se elige en el combo. Uno solo para el panel: abrir
+// una devolución cierra el descuento y viceversa, así hay a lo más un formulario abierto y el combo va encima de su botón.
 
 export function OrdenInsumos({
   orden,
@@ -45,6 +51,7 @@ export function OrdenInsumos({
   const [devolviendoId, setDevolviendoId] = useState<string | null>(null);
   const [cantidadDev, setCantidadDev] = useState("");
   const [devolviendo, setDevolviendo] = useState(false);
+  const responsable = useResponsable();
 
   // Lo descontado de la orden, agrupado por insumo: lo que importa es lo NETO (consumo − devolución).
   const grupos = (() => {
@@ -108,12 +115,20 @@ export function OrdenInsumos({
 
   async function descontar() {
     if (!insumo || !prevision?.ok) return;
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setCargando(true);
-    const { error } = await createClient().rpc("registrar_consumo_insumo", {
-      p_produccion_id: orden.id,
-      p_insumo_id: insumo.id,
-      p_cantidad: q,
-    });
+    const { error } = await firmar(
+      createClient().rpc("registrar_consumo_insumo", {
+        p_produccion_id: orden.id,
+        p_insumo_id: insumo.id,
+        p_cantidad: q,
+      }),
+      responsable.firma(),
+    );
+    responsable.despues(error);
     setCargando(false);
     if (error) {
       avisar.error(traducirError(error, "descontar el insumo"));
@@ -130,12 +145,20 @@ export function OrdenInsumos({
 
   async function devolver() {
     if (!grupoDev || !insumoDev || !previsionDev?.ok) return;
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setDevolviendo(true);
-    const { error } = await createClient().rpc("devolver_insumo_de_produccion", {
-      p_produccion_id: orden.id,
-      p_insumo_id: insumoDev.id,
-      p_cantidad: qDev,
-    });
+    const { error } = await firmar(
+      createClient().rpc("devolver_insumo_de_produccion", {
+        p_produccion_id: orden.id,
+        p_insumo_id: insumoDev.id,
+        p_cantidad: qDev,
+      }),
+      responsable.firma(),
+    );
+    responsable.despues(error);
     setDevolviendo(false);
     if (error) {
       avisar.error(traducirError(error, "devolver el insumo"));
@@ -188,6 +211,7 @@ export function OrdenInsumos({
                     onClick={() => {
                       setDevolviendoId(abierto ? null : g.insumoId);
                       setCantidadDev("");
+                      if (!abierto) setInsumoId(null);
                     }}
                     className="mt-1.5 text-xs text-tinta/70 underline underline-offset-2 outline-none hover:text-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60"
                   >
@@ -248,7 +272,8 @@ export function OrdenInsumos({
                         )}
                       </dl>
                     )}
-                    <Boton peso="fantasma" cargando={devolviendo} disabled={!previsionDev?.ok} onClick={devolver} className="w-full">
+                    <ComboResponsable control={responsable} deshabilitado={devolviendo} />
+                    <Boton peso="fantasma" cargando={devolviendo} disabled={!previsionDev?.ok || !responsable.listo} title={responsable.motivo ?? undefined} onClick={devolver} className="w-full">
                       {devolviendo ? "Devolviendo…" : "Devolver al lote"}
                     </Boton>
                   </div>
@@ -284,6 +309,7 @@ export function OrdenInsumos({
                       onClick={() => {
                         setInsumoId(i.id);
                         setCantidad("");
+                        setDevolviendoId(null);
                       }}
                       className="rounded-full border border-tinta/15 px-3 py-1.5 text-[12.5px] text-tinta/80 outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60 aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-tinta/15"
                     >
@@ -350,7 +376,8 @@ export function OrdenInsumos({
                     </dl>
                   )}
 
-                  <Boton peso="primario" cargando={cargando} disabled={!prevision?.ok} onClick={descontar} className="w-full">
+                  <ComboResponsable control={responsable} deshabilitado={cargando} />
+                  <Boton peso="primario" cargando={cargando} disabled={!prevision?.ok || !responsable.listo} title={responsable.motivo ?? undefined} onClick={descontar} className="w-full">
                     {cargando ? "Descontando…" : "Descontar del lote"}
                   </Boton>
                   <p className="text-xs text-tinta/65">Si te equivocas, lo puedes devolver al estante mientras la orden siga en proceso.</p>

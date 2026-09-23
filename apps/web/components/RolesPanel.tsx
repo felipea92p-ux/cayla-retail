@@ -10,6 +10,9 @@ import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { Modal } from "@/components/ui/Modal";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { ArchivarRolModal, AsignarRolModal, NuevoRolModal, RenombrarRolModal } from "@/components/RolesModales";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import type { ControlResponsable } from "@/lib/useResponsable";
+import type { Firma } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
 import type { Ubicacion } from "@/lib/ubicaciones";
 import { MODULOS, SIEMPRE_SOLO_LIDER, esDelegable, type ClaveModulo, type Modulo } from "@/lib/modulos";
@@ -96,6 +99,7 @@ export function RolesPanel({
   misModulos = null,
   fueraDeAlcance = [],
   acciones = accionesRolesSupabase,
+  responsable,
 }: {
   roles: RolVista[];
   /** `null` = no se pudieron leer: la pantalla sigue, sin la lista de cuentas. */
@@ -113,6 +117,9 @@ export function RolesPanel({
   /** ADR-0178 «solo alcanzas a quien está por debajo de ti»: a esas personas no se les ofrece cambiar el rol. */
   fueraDeAlcance?: readonly string[];
   acciones?: AccionesRoles;
+  /** El combo «Responsable» de Colaboradores (ADR-0161/0162, Felipe 2026-09-23: TODA acción que guarda lo pide).
+   *  Uno solo para la pantalla: lo comparten la cabecera de esta sección, sus modales y la barra de guardar. */
+  responsable: ControlResponsable;
 }) {
   const router = useRouter();
   const vigentes = roles.filter((r) => !r.archivado);
@@ -139,8 +146,13 @@ export function RolesPanel({
   const cuentasDe = (id: string) => (cuentas ? cuentasDelRol(cuentas, id) : []);
   const quien: QuienEdita = { misModulos, miRolId: cuentas?.find((c) => c.tipo === "persona" && c.id === yoId)?.rolId ?? null };
 
-  async function ejecutar(verbo: string, llamada: () => Promise<ResultadoRol>, exito: string): Promise<ResultadoRol | null> {
-    const r = await llamada();
+  async function ejecutar(verbo: string, llamada: (firma: Firma | null) => Promise<ResultadoRol>, exito: string): Promise<ResultadoRol | null> {
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return null;
+    }
+    const r = await llamada(responsable.firma());
+    responsable.despues(r.error);
     if (r.error) {
       avisar.error(traducirError(r.error, verbo));
       return null;
@@ -153,13 +165,17 @@ export function RolesPanel({
   async function guardar() {
     if (!rol || !conCambios) return;
     setGuardando(true);
-    const r = await ejecutar("guardar los módulos del rol", () => acciones.guardarModulos(rol.id, borrador), `«${rol.nombre}» quedó guardado`);
+    const r = await ejecutar("guardar los módulos del rol", (f) => acciones.guardarModulos(rol.id, borrador, f), `«${rol.nombre}» quedó guardado`);
     setGuardando(false);
     if (r) setBorradores((b) => sinBorrador(b, rol.id));
   }
 
   /** Matriz: cada clic guarda al instante (es la vista para comparar y retocar, no para armar un rol desde cero). */
   async function alternarEnMatriz(r: RolVista, m: Modulo) {
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     const clave = `${r.id}:${m.clave}`;
     setMatrizOcupada(clave);
     const nuevos = alternarModulo(r.modulos, m.clave);
@@ -172,7 +188,7 @@ export function RolesPanel({
       return;
     }
     const encendido = nuevos.includes(m.clave);
-    await ejecutar("guardar los módulos del rol", () => acciones.guardarModulos(r.id, nuevos), `${r.nombre}: ${m.nombre} ${encendido ? "encendido" : "apagado"}`);
+    await ejecutar("guardar los módulos del rol", (f) => acciones.guardarModulos(r.id, nuevos, f), `${r.nombre}: ${m.nombre} ${encendido ? "encendido" : "apagado"}`);
     setMatrizOcupada(null);
   }
 
@@ -208,7 +224,7 @@ export function RolesPanel({
       ? [{ clave: "archivar", etiqueta: "Archivar", peligro: true, onSelect: () => setModal({ tipo: "archivar", rol }) }]
       : []),
     ...(rol.archivado
-      ? [{ clave: "restaurar", etiqueta: "Restaurar", onSelect: () => ejecutar("restaurar el rol", () => acciones.restaurar(rol.id), `«${rol.nombre}» volvió a estar disponible`) }]
+      ? [{ clave: "restaurar", etiqueta: "Restaurar", onSelect: () => ejecutar("restaurar el rol", (f) => acciones.restaurar(rol.id, f), `«${rol.nombre}» volvió a estar disponible`) }]
       : []),
   ];
 
@@ -241,7 +257,12 @@ export function RolesPanel({
             { clave: "matriz", etiqueta: "Comparar roles" },
           ]}
         />
-        <p className="text-[13px] text-tinta/60">Lo cambia un líder de equipo o quien tenga Roles y accesos en su rol.</p>
+        <div className="w-full max-w-xs space-y-1">
+          {/* UN combo para toda la sección (regla 10 de CLAUDE.md): las casillas de la matriz guardan al instante y no
+              caben un combo por casilla. El mismo control se ve en cada modal y apaga «Guardar cambios» si falta. */}
+          <ComboResponsable control={responsable} deshabilitado={guardando || matrizOcupada !== null} />
+          <p className="text-[12px] text-tinta/60">Lo cambia un líder de equipo o quien tenga Roles y accesos en su rol.</p>
+        </div>
       </div>
 
       {vista === "matriz" ? (
@@ -535,6 +556,7 @@ export function RolesPanel({
           <>
             <strong className="font-semibold text-tinta">{nCambios === 1 ? "1 cambio" : `${nCambios} cambios`}</strong> en «{rol.nombre}»
             {cuentasDelElegido.length > 0 && ` · afecta a ${cuentasDelElegido.length === 1 ? "1 cuenta" : `${cuentasDelElegido.length} cuentas`}`}
+            {responsable.motivo && <span className="block text-[12px] text-rojo-profundo">{responsable.motivo}</span>}
           </>
         }
         acciones={
@@ -542,7 +564,7 @@ export function RolesPanel({
             <Boton type="button" peso="discreto" onClick={() => setBorradores((b) => sinBorrador(b, rol.id))} disabled={guardando}>
               Descartar
             </Boton>
-            <Boton type="button" peso="primario" onClick={guardar} cargando={guardando}>
+            <Boton type="button" peso="primario" onClick={guardar} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
               {guardando ? "Guardando…" : "Guardar cambios"}
             </Boton>
           </>
@@ -551,12 +573,13 @@ export function RolesPanel({
 
       {modal?.tipo === "nuevo" && (
         <NuevoRolModal
+          responsable={responsable}
           titulo="Nuevo rol"
           subtitulo="Nace sin módulos: después enciendes los que debe ver."
           nombreInicial=""
           onClose={() => setModal(null)}
           onConfirmar={async (nombre) => {
-            const r = await ejecutar("crear el rol", () => acciones.crear(nombre), `Rol «${nombre}» creado`);
+            const r = await ejecutar("crear el rol", (f) => acciones.crear(nombre, undefined, f), `Rol «${nombre}» creado`);
             if (r?.id) setElegidoId(r.id);
             return !!r;
           }}
@@ -564,6 +587,7 @@ export function RolesPanel({
       )}
       {modal?.tipo === "duplicar" && (
         <NuevoRolModal
+          responsable={responsable}
           titulo={`Duplicar «${modal.rol.nombre}»`}
           subtitulo={
             modal.rol.fijo
@@ -573,7 +597,7 @@ export function RolesPanel({
           nombreInicial={nombreDeCopia(modal.rol.nombre, vigentes.map((r) => r.nombre))}
           onClose={() => setModal(null)}
           onConfirmar={async (nombre) => {
-            const r = await ejecutar("duplicar el rol", () => acciones.crear(nombre, modal.rol.id), `Rol «${nombre}» creado`);
+            const r = await ejecutar("duplicar el rol", (f) => acciones.crear(nombre, modal.rol.id, f), `Rol «${nombre}» creado`);
             if (r?.id) setElegidoId(r.id);
             return !!r;
           }}
@@ -581,17 +605,19 @@ export function RolesPanel({
       )}
       {modal?.tipo === "renombrar" && (
         <RenombrarRolModal
+          responsable={responsable}
           rol={modal.rol}
           onClose={() => setModal(null)}
-          onConfirmar={async (nombre, descripcion) => !!(await ejecutar("renombrar el rol", () => acciones.renombrar(modal.rol.id, nombre, descripcion), "Rol actualizado"))}
+          onConfirmar={async (nombre, descripcion) => !!(await ejecutar("renombrar el rol", (f) => acciones.renombrar(modal.rol.id, nombre, descripcion, f), "Rol actualizado"))}
         />
       )}
       {modal?.tipo === "archivar" && (
         <ArchivarRolModal
+          responsable={responsable}
           rol={modal.rol}
           onClose={() => setModal(null)}
           onConfirmar={async () => {
-            const ok = !!(await ejecutar("archivar el rol", () => acciones.archivar(modal.rol.id), `«${modal.rol.nombre}» archivado`));
+            const ok = !!(await ejecutar("archivar el rol", (f) => acciones.archivar(modal.rol.id, f), `«${modal.rol.nombre}» archivado`));
             if (ok) setElegidoId(vigentes.find((r) => r.id !== modal.rol.id && r.clave === "integrante")?.id ?? "");
             return ok;
           }}
@@ -599,13 +625,14 @@ export function RolesPanel({
       )}
       {modal?.tipo === "asignar" && cuentas && (
         <AsignarRolModal
+          responsable={responsable}
           roles={rolesAsignables(roles, undefined, soyAdmin, misModulos)}
           cuentas={cuentasAsignables(cuentas, modal.rol, yoId, soyAdmin, misModulos, fueraDeAlcance)}
           ubicaciones={ubicaciones}
           rolFijo={modal.rol}
           onClose={() => setModal(null)}
           onConfirmar={async (rolId, cuenta, ubicacionId) =>
-            !!(await ejecutar("asignar el rol", () => acciones.asignar(rolId, cuenta, ubicacionId), `${cuenta.nombre} ahora tiene «${modal.rol.nombre}»`))
+            !!(await ejecutar("asignar el rol", (f) => acciones.asignar(rolId, cuenta, ubicacionId, f), `${cuenta.nombre} ahora tiene «${modal.rol.nombre}»`))
           }
         />
       )}

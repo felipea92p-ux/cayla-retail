@@ -11,6 +11,9 @@ import { Boton, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
 import { MediosDePago } from "@/components/MediosDePago";
 import { Modal } from "@/components/ui/Modal";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 import {
   TIPOS_COMPROBANTE,
   calcularTotales,
@@ -71,6 +74,8 @@ export function ComprobanteProduccionForm({
   const [medios, setMedios] = useState<MedioForm[]>([medioNuevo()]);
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
+  // Responsable (ADR-0161/0162): el comprobante firma con quien se elige en el combo (lista de la sede activa).
+  const responsable = useResponsable();
 
   const proveedor = proveedores.find((p) => p.id === proveedorId) ?? null;
   const totales = calcularTotales(lineas, tipo);
@@ -103,9 +108,13 @@ export function ComprobanteProduccionForm({
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
     if (error) return avisar.error(error);
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setCargando(true);
     const llenas = lineas.filter((l) => l.insumoId || l.descripcion.trim() || l.cantidad.trim() || l.costo.trim());
-    const { error: err } = await createClient().rpc("registrar_comprobante_produccion", {
+    const { error: err } = await firmar(createClient().rpc("registrar_comprobante_produccion", {
       p_proveedor_id: proveedorId,
       p_serie: serie.trim(),
       p_numero: numero.trim(),
@@ -123,7 +132,8 @@ export function ComprobanteProduccionForm({
       p_pago: condicion === "contado" ? mediosParaRpc(mediosEfectivos, hoy) : undefined,
       p_nota: nota.trim() || undefined,
       p_token: token,
-    });
+    }), responsable.firma());
+    responsable.despues(err);
     setCargando(false);
     if (err) {
       avisar.error(traducirError(err, "registrar el comprobante"));
@@ -308,7 +318,8 @@ export function ComprobanteProduccionForm({
           <p className="min-h-4 text-xs text-tinta/65" role="status">
             {error && (proveedorId || serie || numero || totales.lineasCompletas > 0) ? error : ""}
           </p>
-          <Boton peso="primario" type="submit" cargando={cargando} disabled={!!error} className="w-full">
+          <ComboResponsable control={responsable} deshabilitado={cargando} />
+          <Boton peso="primario" type="submit" cargando={cargando} disabled={!!error || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
             {cargando ? "Guardando…" : condicion === "contado" ? `Registrar y pagar ${soles(totalFinal)}` : "Registrar como por pagar"}
           </Boton>
         </div>

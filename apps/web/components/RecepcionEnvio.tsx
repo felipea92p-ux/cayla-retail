@@ -17,6 +17,8 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { EnvioRecibido, type ResultadoEnvio as Resultado } from "@/components/EnvioRecibido";
 import { ResumenPrevioEnvio } from "@/components/ResumenPrevioEnvio";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { Resaltado } from "@/components/ui/Resaltado";
 import { TabsSubrayado } from "@/components/ui/TabsSubrayado";
@@ -253,6 +255,9 @@ export function RecepcionEnvio({
   );
   const unidadesRecibiendo = totales.contadas + totales.fueraDeComprobante + totales.deOtraSede;
   const ubicacionNombre = ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "";
+  // Quién recibe (ADR-0161/0162): `recibir_envio` firma con esa persona, elegida entre quienes están de turno en la
+  // ubicación a la que ENTRA la mercadería (la que se elige arriba), no en la sede de la cabecera.
+  const responsable = useResponsable(ubicacionId ? { ubicacionId, etiqueta: ubicacionNombre || "esta ubicación" } : undefined);
   const proveedorPorDefecto = proveedoresEnvio[0]?.id ?? proveedores[0]?.id ?? "";
 
   // ---- la lista de la izquierda -------------------------------------------------------------------
@@ -628,14 +633,16 @@ export function RecepcionEnvio({
   async function registrar() {
     if (!pedidoListo || loading) return;
     const { pedido, movimientos } = pedidoListo;
+    if (!responsable.listo) return void (responsable.motivo && avisar.error(responsable.motivo));
     setLoading(true);
     const cerrarProceso = avisar.proceso(unidadesRecibiendo > 0 ? "Recibiendo el envío…" : "Cerrando faltantes…");
     const supabase = createClient();
     // UNA sola llamada, UNA transacción: todos los proveedores, lo fuera de comprobante, lo de otra sede y los
     // cierres se registran juntos o no se registra nada. Con el mismo token, reintentar no duplica.
-    const { data, error } = await supabase.rpc("recibir_envio", pedido);
+    const { data, error } = await firmar(supabase.rpc("recibir_envio", pedido), responsable.firma());
     cerrarProceso();
     setLoading(false);
+    responsable.despues(error);
     if (error) {
       setPedidoListo(null);
       avisar.error(traducirError(error, "registrar el envío"), { detalle: "No se registró nada: tu conteo sigue aquí para corregirlo." });
@@ -1627,6 +1634,7 @@ export function RecepcionEnvio({
           numeroGuia={numeroGuia}
           unidades={unidadesRecibiendo}
           cargando={loading}
+          responsable={responsable}
           onConfirmar={registrar}
           onVolver={() => setPedidoListo(null)}
         />

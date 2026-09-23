@@ -9,6 +9,9 @@ import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "
 import type { OrdenProduccion } from "@/lib/produccion";
 import { cantidadTexto } from "@/lib/insumos-reglas";
 import type { ConsumoDeOrden } from "@/lib/insumos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Anular y revertir una orden (ADR-0133, F2: se conservan tal cual estaban en `OrdenesProduccionV2.tsx`; solo
 // cambió de archivo). Cada una es una RPC; ninguna escribe en las tablas directo. Si la base dice que no, el aviso
@@ -18,11 +21,21 @@ export function AnularOrdenModal({ orden, consumos = [], onClose }: { orden: Ord
   const router = useRouter();
   const [motivo, setMotivo] = useState("");
   const [cargando, setCargando] = useState(false);
+  // Responsable (ADR-0161/0162): anular firma con quien se elige en el combo, no con la cuenta abierta.
+  const responsable = useResponsable();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setCargando(true);
-    const { error } = await createClient().rpc("anular_produccion", { p_produccion_id: orden.id, p_motivo: motivo.trim() || undefined });
+    const { error } = await firmar(
+      createClient().rpc("anular_produccion", { p_produccion_id: orden.id, p_motivo: motivo.trim() || undefined }),
+      responsable.firma(),
+    );
+    responsable.despues(error);
     setCargando(false);
     if (error) {
       avisar.error(traducirError(error, "anular la orden"));
@@ -52,11 +65,12 @@ export function AnularOrdenModal({ orden, consumos = [], onClose }: { orden: Ord
           </label>
           <input id="anular-motivo" type="text" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Por qué se cancela la corrida" className={campoTexto} />
         </div>
+        <ComboResponsable control={responsable} deshabilitado={cargando} />
         <div className="flex gap-2 pt-1">
           <button type="button" onClick={onClose} className={botonCancelar}>
             Volver
           </button>
-          <button type="submit" disabled={cargando} className={botonPrimario}>
+          <button type="submit" disabled={cargando || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
             {cargando ? "Anulando…" : "Anular orden"}
           </button>
         </div>
@@ -68,10 +82,16 @@ export function AnularOrdenModal({ orden, consumos = [], onClose }: { orden: Ord
 export function RevertirOrdenModal({ orden, onClose }: { orden: OrdenProduccion; onClose: () => void }) {
   const router = useRouter();
   const [cargando, setCargando] = useState(false);
+  const responsable = useResponsable();
 
   async function confirmar() {
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setCargando(true);
-    const { error } = await createClient().rpc("revertir_produccion", { p_produccion_id: orden.id });
+    const { error } = await firmar(createClient().rpc("revertir_produccion", { p_produccion_id: orden.id }), responsable.firma());
+    responsable.despues(error);
     setCargando(false);
     if (error) {
       avisar.error(traducirError(error, "revertir el cierre"));
@@ -90,11 +110,12 @@ export function RevertirOrdenModal({ orden, onClose }: { orden: OrdenProduccion;
             ? `Las ${orden.cantidadBuenas} prendas salen del stock del Taller (queda un movimiento de reversión, la entrada original no se borra) y la orden vuelve a "en proceso" para corregir buenas o costos.`
             : "La muestra vuelve a \"en proceso\". No había stock que devolver."}
         </p>
+        <ComboResponsable control={responsable} deshabilitado={cargando} />
         <div className="flex gap-2 pt-1">
           <button type="button" onClick={onClose} className={botonCancelar}>
             Volver
           </button>
-          <button type="button" onClick={confirmar} disabled={cargando} className={botonPrimario}>
+          <button type="button" onClick={confirmar} disabled={cargando || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
             {cargando ? "Revirtiendo…" : "Revertir"}
           </button>
         </div>

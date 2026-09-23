@@ -26,6 +26,9 @@ import {
   type FiltroFacturas,
   type MotivoNota,
 } from "@/lib/notas-credito-reglas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 /* ====================================================================
    Registrar una nota de crédito de compra (2026-09-19)
@@ -97,6 +100,8 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
   const [intento, setIntento] = useState(false);
   const [tocoMonto, setTocoMonto] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  // Quién registra la nota (ADR-0161/0162): `registrar_nota_credito_compra` firma con esa persona.
+  const responsable = useResponsable();
   const [exito, setExito] = useState<{ serie: string; lineas: [string, string][]; titulo: string; frase: string } | null>(null);
 
   const refBuscador = useRef<HTMLInputElement>(null);
@@ -182,11 +187,15 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
       avisar.error(v.errores[primero ?? "motivo"] ?? "Falta corregir un dato de la nota.");
       return;
     }
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
 
     setEnviando(true);
     const supabase = createClient();
     const devuelve = v.destino === "reembolso";
-    const { error } = await supabase.rpc("registrar_nota_credito_compra", {
+    const { error } = await firmar(supabase.rpc("registrar_nota_credito_compra", {
       p_compra_id: factura.id,
       p_serie_numero: borrador.serieNumero.trim().toUpperCase(),
       p_fecha: borrador.fecha,
@@ -203,8 +212,9 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
             ...(borrador.reembolsoReferencia.trim() ? { p_reembolso_referencia: borrador.reembolsoReferencia.trim() } : {}),
           }
         : {}),
-    } as never);
+    } as never), responsable.firma());
     setEnviando(false);
+    responsable.despues(error);
 
     if (error) {
       avisar.error(traducirError(error, "registrar la nota de crédito", { confirmarAntesDeRepetir: true }));
@@ -538,6 +548,8 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
               )}
             </section>
           </fieldset>
+
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
 
           <div className="flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-4">
             <p className="hidden flex-1 text-xs text-tinta/55 sm:block">Queda como un registro nuevo: no se edita ni se borra. El IGV de la nota resta del crédito fiscal del mes.</p>

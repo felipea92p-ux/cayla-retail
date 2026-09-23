@@ -18,6 +18,9 @@ import {
   type FilaReparto,
   type MotivoReasignacion,
 } from "@/lib/reparto-reglas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Mover mercadería de una tienda a otra DENTRO de un comprobante ya registrado (ADR-0139). Solo un líder, y solo lo que
 // aún no se recibió ni se cerró como faltante: lo que ya entró al stock de una tienda no se mueve por aquí (para eso
@@ -101,6 +104,8 @@ function ReasignarRepartoModal({
   const [motivo, setMotivo] = useState<MotivoReasignacion | "">("");
   const [nota, setNota] = useState("");
   const [loading, setLoading] = useState(false);
+  // Quién mueve la mercadería (ADR-0161/0162): `reasignar_reparto_compra` firma con esa persona.
+  const responsable = useResponsable();
 
   const propias = filasDeLinea(filas, lineaId, orden);
   const origenes = tiendasConPendiente(propias);
@@ -136,16 +141,18 @@ function ReasignarRepartoModal({
 
   async function reasignar() {
     if (error) return void avisar.error(error);
+    if (!responsable.listo) return void (responsable.motivo && avisar.error(responsable.motivo));
     setLoading(true);
-    const { error: fallo } = await createClient().rpc("reasignar_reparto_compra", {
+    const { error: fallo } = await firmar(createClient().rpc("reasignar_reparto_compra", {
       p_compra_item_id: lineaId,
       p_desde: desdeId,
       p_hacia: haciaId,
       p_cantidad: n,
       p_motivo: motivo as MotivoReasignacion,
       ...(nota.trim() ? { p_nota: nota.trim() } : {}),
-    });
+    }), responsable.firma());
     setLoading(false);
+    responsable.despues(fallo);
     if (fallo) return void avisar.error(traducirError(fallo, "reasignar la mercadería"));
     avisar.exito(`${n} ${n === 1 ? "unidad reasignada" : "unidades reasignadas"} a ${nombreDe(haciaId)}`, {
       detalle: `Ahora ${nombreDe(haciaId)} puede recibir ${(destino?.asignado ?? 0) + n} de ${linea?.producto ?? "esta línea"}; ${nombreDe(desdeId)} queda con ${(origen?.asignado ?? 0) - n}.`,
@@ -270,6 +277,8 @@ function ReasignarRepartoModal({
             <p className="text-xs leading-relaxed text-tinta/60">
               No se borra nada: queda un registro en el historial del comprobante con quién lo movió, cuánto y por qué. Lo que una tienda ya recibió no se toca.
             </p>
+
+            <ComboResponsable control={responsable} deshabilitado={loading} />
 
             <div className="flex justify-end border-t border-tinta/10 pt-4">
               <button type="submit" className={BTN_PRIMARIO} disabled={loading || error !== null} title={error ?? undefined}>

@@ -5,6 +5,8 @@ import { Boton } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { soles } from "@/lib/compras-reglas";
 import { inicialesProveedor, type FilaResumenComprobante } from "@/lib/envio-reglas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import type { ControlResponsable } from "@/lib/useResponsable";
 
 // «Confirma lo que entra» (spike de Recibir, 2026-09-19): el último vistazo ANTES de escribir en el stock.
 // Recibir deja movimientos que no se editan después (principio 4: `movimientos` es append-only), y hasta ahora un
@@ -25,6 +27,7 @@ export function ResumenPrevioEnvio({
   numeroGuia,
   unidades,
   cargando,
+  responsable,
   onConfirmar,
   onVolver,
 }: {
@@ -39,6 +42,8 @@ export function ResumenPrevioEnvio({
   numeroGuia: string;
   unidades: number;
   cargando: boolean;
+  /** Quién recibe (ADR-0161/0162): el combo va aquí, encima de «Confirmar», que es donde se guarda. */
+  responsable: ControlResponsable;
   onConfirmar: () => void;
   onVolver: () => void;
 }) {
@@ -119,6 +124,7 @@ export function ResumenPrevioEnvio({
           <p className="mt-3 border-l-2 border-taupe pl-3 text-[12.5px] text-tinta/65">
             Cada prenda entra como un movimiento del historial. Después no se edita: si algo estuvo mal, se corrige con un ajuste.
           </p>
+          <ComboResponsable control={responsable} deshabilitado={cargando} className="mt-5" />
           <div className="mt-5 flex flex-wrap justify-end gap-3">
             <Boton peso="discreto" onClick={cerrar} disabled={cargando}>
               Volver a contar

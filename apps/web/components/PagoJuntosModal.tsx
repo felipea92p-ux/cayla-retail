@@ -14,6 +14,9 @@ import { CampoFecha } from "@/components/ui/CampoFecha";
 import { ETIQUETA_METODO, soles, type CompraResumen } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { etiquetaVence, parseMonto, repartirPago, tramoDe } from "@/lib/por-pagar-reglas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Pago juntos (D3, ADR-0111): UNA transferencia que se aplica a varios comprobantes DEL MISMO
 // proveedor. En Gamarra se le paga al proveedor «lo que se le debe», no factura por factura;
@@ -88,6 +91,8 @@ export function PagoJuntosModal({
   const [fecha, setFecha] = useState(hoyLima());
   const [ubicacionPago, setUbicacionPago] = useState(misTiendas?.[0]?.id ?? "");
   const [loading, setLoading] = useState(false);
+  // Quién registra el pago (ADR-0161/0162): las dos funciones de pago firman con esa persona.
+  const responsable = useResponsable();
   // Pago registrado: la confirmación reemplaza al formulario. El resultado se guarda en una ref porque el cierre
   // lo dispara `Modal` (con su animación de salida) y ahí hay que saber si se cerró un pago o se canceló.
   const [hecho, setHecho] = useState<ResultadoPago | null>(null);
@@ -168,13 +173,15 @@ export function PagoJuntosModal({
     if (fecha > hoyLima()) return void avisar.error("La fecha del pago no puede ser futura: es cuándo se pagó, no cuándo se pagará.");
     if (aplicaciones.some((a) => a.monto > 0 && a.c.fechaEmision && fecha < a.c.fechaEmision)) return void avisar.error("La fecha del pago no puede ser anterior a la emisión de alguno de los comprobantes.");
     if (misTiendas && misTiendas.length > 0 && !ubicacionPago) return void avisar.error("Elige con qué tienda pagas.");
+    if (!responsable.listo) return void (responsable.motivo && avisar.error(responsable.motivo));
+    const firma = responsable.firma();
     setLoading(true);
     const cerrarProceso = avisar.proceso("Registrando el pago…");
     const supabase = createClient();
     // Un medio (o todo con saldo a favor): la función de siempre. Dos o más: la que reparte por medio.
     const { error } =
       mediosRpc.length > 1
-        ? await supabase.rpc("registrar_pago_compras_medios", {
+        ? await firmar(supabase.rpc("registrar_pago_compras_medios", {
             p_proveedor_id: proveedorId,
             p_aplicaciones: lote,
             p_medios: mediosRpc,
@@ -183,8 +190,8 @@ export function PagoJuntosModal({
             ...(credito > 0 ? { p_credito: credito } : {}),
             // ADR-0184 (F4): sin tiendas propias (líder) el pago no se ata a ninguna, como siempre.
             ...(ubicacionPago ? { p_ubicacion_id: ubicacionPago } : {}),
-          })
-        : await supabase.rpc("registrar_pago_compras", {
+          }), firma)
+        : await firmar(supabase.rpc("registrar_pago_compras", {
             p_proveedor_id: proveedorId,
             p_metodo: mediosRpc[0]?.metodo ?? formaInicial,
             p_aplicaciones: lote,
@@ -193,9 +200,10 @@ export function PagoJuntosModal({
             p_token: token.current,
             ...(credito > 0 ? { p_credito: credito } : {}),
             ...(ubicacionPago ? { p_ubicacion_id: ubicacionPago } : {}),
-          });
+          }), firma);
     cerrarProceso();
     setLoading(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "registrar el pago", { confirmarAntesDeRepetir: true }));
       return;
@@ -425,6 +433,8 @@ export function PagoJuntosModal({
               )}
             </p>
           </div>
+
+          <ComboResponsable control={responsable} deshabilitado={loading} />
 
           {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. */}
           <div className="-mx-6 -mb-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 px-6 py-4">

@@ -6,6 +6,9 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import type { AperturaPorRevisar } from "@/lib/caja";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 function money(n: number) {
   return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -21,15 +24,24 @@ function cuando(iso: string) {
  * El aviso al líder de ADR-0186: aperturas que no coincidieron con lo que dejó el cierre anterior, con el motivo que
  * escribió quien abrió. «Marcar como revisada» la saca de aquí y de la cola de Inicio (`revisar_apertura_caja`,
  * solo líder). No corrige ningún monto: el efectivo se corrige con un movimiento de caja, como siempre.
+ *
+ * Quién la revisó sale del combo «Responsable» (ADR-0161/0162; Felipe 2026-09-23: TODA acción que guarda lo pide):
+ * uno solo encima de la lista, porque cada fila guarda de un clic. Poder revisar lo sigue decidiendo la cuenta (líder).
  */
 export function AperturasPorRevisar({ aperturas }: { aperturas: AperturaPorRevisar[] }) {
   const router = useRouter();
   const [revisando, setRevisando] = useState<string | null>(null);
+  const responsable = useResponsable();
 
   async function revisar(cajaId: string) {
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setRevisando(cajaId);
-    const { error } = await createClient().rpc("revisar_apertura_caja", { p_caja_id: cajaId });
+    const { error } = await firmar(createClient().rpc("revisar_apertura_caja", { p_caja_id: cajaId }), responsable.firma());
     setRevisando(null);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "marcar la apertura como revisada"));
       return;
@@ -46,6 +58,7 @@ export function AperturasPorRevisar({ aperturas }: { aperturas: AperturaPorRevis
         </h2>
         <p className="text-sm text-tinta/65">Abrieron con un monto distinto del que dejó el cierre anterior de su sede.</p>
       </div>
+      <ComboResponsable control={responsable} deshabilitado={revisando !== null} className="max-w-sm" />
       <ul className="divide-y divide-tinta/[0.07]">
         {aperturas.map((a) => {
           const dif = a.montoApertura - a.esperado;
@@ -67,7 +80,8 @@ export function AperturasPorRevisar({ aperturas }: { aperturas: AperturaPorRevis
               <button
                 type="button"
                 onClick={() => revisar(a.cajaId)}
-                disabled={revisando !== null}
+                disabled={revisando !== null || !responsable.listo}
+                title={responsable.motivo ?? undefined}
                 className="label-cayla shrink-0 rounded-md border border-tinta/25 px-3 py-2 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-50"
               >
                 {revisando === a.cajaId ? "Guardando…" : "Marcar como revisada"}
