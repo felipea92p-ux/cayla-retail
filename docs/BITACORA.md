@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-23 (Historial de ventas: los totales ya no se truncan sin avisar)
+Al verificar la auditoría del Historial (PL-110) salió un defecto sobre dinero mostrado: para saber si había más de 1.000 ventas se pedía la fila 1.001, pero PostgREST corta justo en 1.000 sin error, así que el aviso nunca aparecía y un mes grande mostraba como completos los totales de solo las 1.000 más recientes. El tope pasa a 999, el aviso dice «1,000 ventas o más» y una prueba cuida que el tope no vuelva a chocar con el corte.
+Dany se lleva: (1) **«pedir una fila de más» solo sirve si esa fila puede llegar**; (2) **el corte de 1.000 de PostgREST es silencioso**: no da error, solo devuelve menos; (3) **el arreglo de raíz para rangos grandes es sumar en la base** (RPC de agregados), queda anotado.
+
 ## 2026-09-23 (Anular una venta solo el mismo día de Lima — PL-29)
 `anular_venta` solo pedía la caja abierta, así que una caja olvidada abierta de un día para otro dejaba anular hoy la venta de ayer. La migración `20260923235300` agrega el candado de fecha sobre la definición viva de producción (no sobre el archivo, porque esta función se parcha en vivo) y la pantalla de Devoluciones deja de ofrecer «Anular venta» en ventas de días anteriores. Prueba 7/7 con los dos bordes de medianoche; falta pegar en producción.
 Dany se lleva: (1) **«hoy» depende del reloj**: la base corre en UTC y de 7 pm a medianoche de Lima ya es mañana, por eso `fn_hoy_lima()` y no `current_date`; (2) **una función parchada en vivo se toca con anclas, no copiando el archivo**: copiarla habría borrado parches que solo existen en producción; (3) **una prueba vale si falla cuando debe**: comparar en UTC la hace caer.
