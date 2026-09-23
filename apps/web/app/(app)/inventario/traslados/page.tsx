@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { Info } from "lucide-react";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTrasladosDeLaSede, type TrasladoResumen } from "@/lib/traslados";
 import { horaLima } from "@/lib/traslados-reglas";
 import { TrasladosPanel } from "@/components/TrasladosPanel";
+import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
 
 // Traslados en dos fases (20260916150000): lo que antes era instantáneo
 // (transferir()) ahora tiene un tramo intermedio que alguien tiene que poder
@@ -36,11 +36,13 @@ export default async function TrasladosPage() {
 
   return (
     <div className="space-y-5">
-      <CabeceraPantalla
-        sobretitulo="Inventario · Traslados"
+      <InventarioHero
+        eyebrow="Inventario · Traslados"
         titulo="Traslados entre sedes"
-        bajada="Seguimos los traslados de inventario entrantes y salientes hasta que se confirme su recepción."
-        acciones={
+        descripcion="Seguimos los traslados de inventario entrantes y salientes hasta que se confirme su recepción."
+        foto={fotoHeroPorPantalla("traslados")}
+        variante="integrado"
+        accion={
           <Link href="/inventario/mover" className="btn-cayla btn-primario">
             + Nuevo traslado
           </Link>
