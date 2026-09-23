@@ -42,6 +42,16 @@ Del análisis `/pantalla` completo del módulo Ventas: la misma familia de hueco
 - [x] **Verificado tras la fusión del PR #285:** la migración F3 de abajo (`actor_firma_las_operaciones`) lee la definición viva de `registrar_movimiento_caja`/`registrar_cambio`/`aprobar_devolucion` y solo reemplaza la línea que busca a la persona — no pisa este candado (ni su reversión en Cambios) cuando F3 se pegue en producción.
 - [ ] **Pegar `20260923110000_cambios_sin_candado_de_lider.sql` en producción** (con OK de Felipe) — verificada en local, sin aplicar todavía.
 
+## 🔒 Responsable obligatorio para todos (2026-09-23, Felipe, ADR-0162 actualización) — EN CURSO
+«Todas obligatorias, un mismo flujo para todos; si nadie marcó asistencia no se podrá vender.» Sin excepción para el líder.
+- [x] Interruptor como dato: `configuracion_empresa.exige_responsable` (migración `20260923160000_responsable_obligatorio.sql`), apagado por defecto; 6 casos nuevos en `pruebas:terminales-sin-persona` (52/52).
+- [ ] Combo en las 7 llamadas que no lo mandaban (anular venta, aprobar/rechazar devolución, anular y liberar comprobante, archivar serie, registrar clienta) — PR aparte.
+- [ ] Pegar `20260923160000` en producción (deja el interruptor APAGADO: no cambia nada todavía).
+- [ ] Con la web publicada: `update retail.configuracion_empresa set exige_responsable = true;` en producción.
+- [ ] Emergencia (una tienda trabada): `update retail.configuracion_empresa set exige_responsable = false;` — sin migración.
+- [ ] Lima: cargar su asistencia en Dynamic; hasta entonces, con el interruptor encendido, Lima no puede guardar nada.
+- Cómo verificas: como persona, en una tienda donde nadie marcó entrada, el botón de guardar queda apagado con «Nadie de turno…»; con alguien marcado, se elige y guarda a su nombre.
+
 ## 🎯 Las 6 decisiones de los módulos (2026-09-22, ADR-0161 P1–P6) — CONSTRUIDO en la rama `claude/modulos-seis-decisiones`; NO está en producción
 Migración `20260923140000_modulos_seis_decisiones.sql` + web + pruebas. Detalle y clasificación de cada candado en el ADR-0161 («P1–P6 construidas»).
 - [x] **P1 Compras, cada módulo lo suyo:** `fn_puede_registrar_facturas_compra` (registrar, anular, reparto, adjuntos), `fn_puede_pagar_compras` (pagos y reembolsos), `fn_puede_registrar_notas_credito` (notas y el PDF de la nota). `fn_puede_registrar_compras` queda solo para leer lo de los tres. Web: el detalle del comprobante muestra cada botón a su módulo (`accionesDeCompra`).

@@ -251,6 +251,35 @@ caso(
 caso("operación que NO es de tienda: la persona firma a su nombre aunque mande responsable", como(MICAELA_AUTH) + encabezados({ "x-responsable": ROSA }) + `select (retail.fn_actor_persona_id(false) = micaela)::text from ids;`, "true");
 caso("sin sesión (SQL Editor, scripts) → nadie, igual que antes", actorValor, "NULL");
 
+// ---------------- Sesión de PERSONA con el interruptor ENCENDIDO (20260923160000, decisión de Felipe) ----------------
+// La base de pruebas puede no tener la fila de la empresa (en producción existe): se crea si falta, dentro de la transacción.
+const ENCENDER = `insert into retail.configuracion_empresa (id, ruc, razon_social, exige_responsable) values (true, '20000000001', 'Prueba', true)
+  on conflict (id) do update set exige_responsable = true;\n`;
+caso("interruptor: arranca apagado (valor por defecto de la columna)", `select retail.fn_exige_responsable()::text;`, "false");
+caso("interruptor encendido: persona SIN responsable → rechazada", ENCENDER + como(MICAELA_AUTH) + actor, "42501|responsable_requerido");
+caso(
+  "interruptor encendido: persona con responsable presente → firma el responsable",
+  ENCENDER + marca(`'${ROSA}'::uuid`, "sede_tru", "entrada", HOY("00:01")) + como(MICAELA_AUTH) +
+    `select set_config('request.headers', json_build_object('x-responsable', '${ROSA}', 'x-ubicacion', tru)::text, true) from ids \\g /dev/null\n` +
+    `select (retail.fn_actor_persona_id() = '${ROSA}'::uuid)::text;`,
+  "true"
+);
+caso(
+  "interruptor encendido: el LÍDER tampoco guarda sin responsable (un mismo flujo para todos)",
+  ENCENDER + como(FELIPE_AUTH) + actor,
+  "42501|responsable_requerido"
+);
+caso(
+  "interruptor encendido: nadie marcó entrada en la tienda → rechazada aunque elija a alguien",
+  ENCENDER + como(MICAELA_AUTH) + `select set_config('request.headers', json_build_object('x-responsable', '${ROSA}', 'x-ubicacion', tru)::text, true) from ids \\g /dev/null\n` + actor,
+  "42501|responsable_no_presente"
+);
+caso(
+  "interruptor encendido: lo que NO es de tienda sigue firmando a nombre de la persona",
+  ENCENDER + como(MICAELA_AUTH) + `select (retail.fn_actor_persona_id(false) = micaela)::text from ids;`,
+  "true"
+);
+
 // ---------------- terminal_id ----------------
 caso(
   "el disparador está en las 10 tablas",
