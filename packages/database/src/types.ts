@@ -4781,6 +4781,7 @@ export type Database = {
           p_clienta_nombre: string
           p_nota?: string
           p_sububicacion_id?: string
+          p_token?: string
           p_ubicacion_id: string
           p_variante_id: string
           p_vence_el: string
@@ -6288,6 +6289,7 @@ export type Database = {
           p_fecha_estimada_llegada: string
           p_items: Json
           p_nota?: string
+          p_token?: string
           p_ubicacion_destino_id: string
           p_ubicacion_origen_id: string
         }
@@ -6608,6 +6610,7 @@ export type Database = {
           p_nota?: string
           p_origen?: string
           p_proveedor_id?: string
+          p_token?: string
           p_ubicacion_id: string
         }
         Returns: string
@@ -6618,6 +6621,7 @@ export type Database = {
           p_nota?: string
           p_numero_guia?: string
           p_proveedor_id: string
+          p_token?: string
           p_ubicacion_id: string
         }
         Returns: string
@@ -6773,6 +6777,7 @@ export type Database = {
           p_motivo: string
           p_nota?: string
           p_tipo: string
+          p_token?: string
         }
         Returns: string
       }

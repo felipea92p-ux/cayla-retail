@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -132,6 +132,9 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
   const [codigoLote, setCodigoLote] = useState("");
   const [documento, setDocumento] = useState("");
   const [origen, setOrigen] = useState<"compra" | "saldo_inicial">("compra");
+  // Doble clic (ADR-0190): un token por intento. Si el mismo intento llega dos veces (dos clics, un reintento tras
+  // una red que se cae), la base devuelve lo ya guardado en vez de abrir dos lotes. Uno por cada vez que se abre la ventana.
+  const token = useRef<string>(crypto.randomUUID());
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
   // Responsable (ADR-0161/0162): el ingreso firma con quien se elige en el combo (lista del Taller, la sede activa).
@@ -161,6 +164,7 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
       p_documento: documento.trim() || undefined,
       p_origen: origen,
       p_nota: nota.trim() || undefined,
+      p_token: token.current,
     }), responsable.firma());
     responsable.despues(error);
     setCargando(false);

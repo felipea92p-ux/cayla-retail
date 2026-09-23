@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -84,6 +84,9 @@ export function MoverMercaderiaFormV2({
   ]);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<{ unidades: number; destino: string } | null>(null);
+  // Doble clic (ADR-0190): un token por intento. Si el mismo intento llega dos veces (dos clics, un reintento tras
+  // una red que se cae), la base devuelve lo ya guardado en vez de descontar el stock dos veces. Se renueva solo al guardar bien.
+  const token = useRef<string>(crypto.randomUUID());
   // Enviar un traslado saca stock del origen: pide Responsable (ADR-0161). La lista es la de turno en el ORIGEN,
   // que es donde está parada quien envía.
   const responsable = useResponsable({ ubicacionId: origenId, etiqueta: origenEtiqueta });
@@ -171,6 +174,7 @@ export function MoverMercaderiaFormV2({
       p_items: validas.map((l) => ({ variante_id: l.varianteId, cantidad: l.cantidadNum })),
       p_fecha_estimada_llegada: new Date(etaLocal).toISOString(),
       p_nota: nota || undefined,
+      p_token: token.current,
     }), responsable.firma());
 
     setLoading(false);
@@ -179,6 +183,7 @@ export function MoverMercaderiaFormV2({
       avisar.error(traducirError(error, "iniciar el traslado"));
       return;
     }
+    token.current = crypto.randomUUID();
     const unidades = validas.reduce((acc, l) => acc + l.cantidadNum, 0);
     const destino = destinos.find((d) => d.id === destinoId)?.nombre ?? "";
     avisar.exito(`${unidades} ${unidades === 1 ? "unidad enviada" : "unidades enviadas"} a ${destino}`, {
