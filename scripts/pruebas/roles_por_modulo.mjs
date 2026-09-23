@@ -574,7 +574,10 @@ insert into retail.colaboradores (persona_id, rol, estado) values ('33333333-333
   }
 );
 caso(
-  "protección 3: nunca se quita ni se suspende al ÚLTIMO líder activo (Felipe es el único en el seed)",
+  "protección 3: nunca se quita ni se suspende al ÚLTIMO líder activo (Felipe, con Sandra fuera en esta transacción)",
+  // Desde #317 el seed trae a Sandra como segunda líder (la necesita aprobar_devolucion). Aquí queda pendiente de
+  // aprobación solo dentro de esta transacción, para que Felipe sea el último líder activo; el rollback la devuelve.
+  `update retail.colaboradores set estado = 'pendiente_aprobacion' where rol = 'lider' and persona_id <> (select id from public.personas where auth_user_id = '${FELIPE_AUTH}');\n` +
   como(FELIPE_AUTH) +
     `select count(*) from retail.colaboradores c join public.personas p on p.id = c.persona_id where c.rol = 'lider' and c.estado = 'activo' and p.estado = 'activo';\n` +
     `select pg_temp.intento(format('select retail.quitar_colaborador(%L)', felipe)) from ids;\n` +
