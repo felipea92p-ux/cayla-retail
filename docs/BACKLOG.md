@@ -28,9 +28,9 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Escalón Admin leído de Dynamic + «solo das lo que tienes» (2026-09-23, ADR-0178) — EN PRODUCCIÓN (Felipe la pegó el 2026-09-23; verificado objeto por objeto: `fn_es_admin`, los 4 candados inyectados, «Administrador» archivado, los 5 admins); web en el PR #333
+## 🎯 Escalón Admin leído de Dynamic + «solo das lo que tienes» (2026-09-23, ADR-0178) — EN PRODUCCIÓN (Felipe la pegó el 2026-09-23; verificado objeto por objeto: `fn_es_admin`, los 4 candados inyectados, «Administrador» archivado, los 5 admins); web fusionada en main (PR #333)
 - La migración se escribió como `20260923160000` y se **renumeró a `20260923163000`** al fusionar (chocaba con `20260923160000_responsable_obligatorio`); contenido idéntico al pegado. Falta refrescar el volcado y `pnpm datos:generar:produccion`.
-- **Urgente, aparte de este cambio:** el rol Integrante tiene 0 módulos en producción desde el 22-09 16:58 (lo vació Felipe; 16 personas no ven nada). Confirmar si fue a propósito y volver a encenderle módulos.
+- **Integrante con 0 módulos: DECIDIDO (Felipe, 2026-09-23), se queda así.** Es configurable desde Roles y accesos; no es un error ni algo pendiente.
 - **Decidir:** si los 4 líderes de sistemas (Daniel y los 3 practicantes) siguen como Líder; y si quien tiene Colaboradores sin ser líder puede suspender a alguien que ve más módulos que él (Dynamic lo frena con «solo alcanzas a quien está por debajo»).
 - Pendiente de la misma conversación: el rol «Encargada de sede» (aprobar/anular en su tienda), que Felipe todavía no aprobó.
 
