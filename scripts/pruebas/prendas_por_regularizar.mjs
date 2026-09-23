@@ -161,6 +161,108 @@ rollback;`
 );
 
 // ---------------------------------------------------------------------------
+// Paso 2: almacén la regulariza sin descuadrar el stock
+// ---------------------------------------------------------------------------
+
+const STOCK_V1 = `coalesce((select sum(cantidad) from retail.stock where variante_id = :'v1' and ubicacion_id = :'ubic'), 0)`;
+const regularizar = (forma) =>
+  `select retail.regularizar_prenda(p.id, :'v1', '${forma}') as dif from retail.prendas_por_regularizar p where venta_item_id = :'item_id' \\gset\n`;
+
+exito(
+  "«ya estaba registrada»: baja 1 del stock, la línea pasa a la prenda real y la diferencia es negativa",
+  comoPersona(
+    FELIPE,
+    `${fixture()}select ${STOCK_V1} as antes \\gset
+${venderLibre(50)}${regularizar("ya_registrada")}
+select ${STOCK_V1} - :'antes', (select variante_id = :'v1'::uuid from retail.venta_items where id = :'item_id'),
+       (select costo_unitario > 0 from retail.venta_items where id = :'item_id'),
+       (select estado || '/' || forma || '/' || precio_oficial from retail.prendas_por_regularizar where venta_item_id = :'item_id'),
+       :'dif';
+rollback;`
+  ),
+  ([delta, varianteReal, conCosto, fila, dif]) =>
+    delta === "-1" && varianteReal === "t" && conCosto === "t" && fila === "regularizada/ya_registrada/79.90" && dif === "-29.90"
+);
+
+exito(
+  "«llegó nueva»: el stock no cambia y quedan su entrada y su salida con la línea de venta",
+  comoPersona(
+    FELIPE,
+    `${fixture()}select ${STOCK_V1} as antes \\gset
+${venderLibre(50)}${regularizar("llego_nueva")}
+select ${STOCK_V1} - :'antes',
+       (select string_agg(tipo || ':' || motivo, ',' order by tipo) from retail.movimientos where venta_item_id = :'item_id');
+rollback;`
+  ),
+  ([delta, movs]) => delta === "0" && movs === "entrada:ingreso_regularizado,salida:venta"
+);
+
+exito(
+  "cobrar más que el precio oficial queda como sobreprecio (diferencia positiva)",
+  comoPersona(FELIPE, `${fixture()}${venderLibre(90)}${regularizar("ya_registrada")}
+select :'dif';
+rollback;`),
+  ([dif]) => dif === "10.10"
+);
+
+error(
+  "no se puede regularizar dos veces la misma prenda",
+  comoPersona(FELIPE, `${fixture()}${venderLibre(50)}${regularizar("ya_registrada")}${regularizar("llego_nueva")}
+rollback;`),
+  "prenda_ya_regularizada"
+);
+
+error(
+  "la forma tiene que ser una de las dos respuestas",
+  comoPersona(FELIPE, `${fixture()}${venderLibre(50)}${regularizar("otra")}
+rollback;`),
+  "prenda_forma_invalida"
+);
+
+error(
+  "no se regulariza contra la propia variante centinela",
+  comoPersona(FELIPE, `${fixture()}${venderLibre(50)}
+select retail.regularizar_prenda(p.id, '${CENTINELA}', 'ya_registrada') from retail.prendas_por_regularizar p where venta_item_id = :'item_id';
+rollback;`),
+  "no existe"
+);
+
+error(
+  "«ya estaba registrada» sin stock en la sede pide elegir «llegó nueva»",
+  comoPersona(FELIPE, `${fixture()}${venderLibre(50)}
+select v.id as sin_stock from retail.variantes v
+  where v.id <> '${CENTINELA}' and v.id <> :'v1'
+    and not exists (select 1 from retail.stock s where s.variante_id = v.id and s.ubicacion_id = :'ubic' and s.cantidad > 0)
+  limit 1 \\gset
+select retail.regularizar_prenda(p.id, :'sin_stock', 'ya_registrada') from retail.prendas_por_regularizar p where venta_item_id = :'item_id';
+rollback;`),
+  "prenda_sin_stock_para_descontar"
+);
+
+error(
+  "una colaboradora de otra sede no puede regularizar",
+  comoPersona(FELIPE, `${fixture()}${venderLibre(50)}
+set local request.jwt.claim.sub = '${MICAELA}';
+${regularizar("ya_registrada")}
+rollback;`),
+  "No tienes permiso"
+);
+
+exito(
+  "anular una venta ya regularizada devuelve la prenda real al stock",
+  comoPersona(
+    FELIPE,
+    `${fixture()}select ${STOCK_V1} as antes \\gset
+${venderLibre(50)}${regularizar("ya_registrada")}
+select retail.anular_venta(:'venta_id', 'prueba',
+  jsonb_build_array(jsonb_build_object('venta_item_id', :'item_id', 'condicion', 'vendible'))) as _a \\gset
+select ${STOCK_V1} - :'antes', (select estado from retail.prendas_por_regularizar where venta_item_id = :'item_id');
+rollback;`
+  ),
+  ([delta, estado]) => delta === "0" && estado === "regularizada"
+);
+
+// ---------------------------------------------------------------------------
 
 function main() {
   try {
