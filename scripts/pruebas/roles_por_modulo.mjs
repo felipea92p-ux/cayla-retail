@@ -42,6 +42,7 @@ const MIGRACION = [
   "20260923110000_cambiar_rol_entre_lideres.sql",
   "20260923130000_abrir_modulos_a_los_roles.sql",
   "20260923131000_colaboradores_y_roles_delegables.sql",
+  "20260923140000_modulos_seis_decisiones.sql",
 ]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
@@ -414,7 +415,9 @@ caso(
   }
 );
 caso(
-  "Análisis: el rol analiza SU sede (igual que el líder, con costo), no otra; sin el módulo, nada",
+  // P5 (20260923140000): en Análisis (fn_resumen_comparacion) ve el costo de lo vendido en SU sede; en Existencias
+  // (fn_resumen_variantes) ni el costo ni la red: eso volvió a ser solo del líder.
+  "Análisis: el rol analiza SU sede (con costo de su sede), no otra; en Existencias sin costo ni red (P5); sin el módulo, nada",
   `create temp table rango as select retail.fn_hoy_lima() - 30 as a0, retail.fn_hoy_lima() as a1, retail.fn_hoy_lima() - 61 as b0, retail.fn_hoy_lima() - 31 as b1;
 grant select on rango to authenticated;\n` +
     como(FELIPE_AUTH) +
@@ -424,13 +427,18 @@ grant select on rango to authenticated;\n` +
     `select concat_ws(',', fn_ve_modulo('analisis'), fn_puede_analizar(),
        (select count(*) = :n_lider and :n_lider > 0 from retail.fn_resumen_comparacion((select tru from ids), (select a0 from rango), (select a1 from rango), (select b0 from rango), (select b1 from rango))),
        (select count(*) = 0 from retail.fn_resumen_comparacion((select id from retail.ubicaciones where nombre = 'Tienda Lima'), (select a0 from rango), (select a1 from rango), (select b0 from rango), (select b1 from rango))),
-       (select bool_or(costo is not null) from retail.fn_resumen_variantes((select tru from ids))));\n` +
-    como(FELIPE_AUTH) + `select asignar_rol(r_integ, micaela) from ids \\g /dev/null\n` +
+       coalesce((select bool_or(costo is not null or estado_costo is not null) from retail.fn_resumen_variantes((select tru from ids))), false),
+       (select bool_and(en_red = '[]'::jsonb) from retail.fn_resumen_variantes((select tru from ids))),
+       (select bool_or(costo is not null) from retail.fn_resumen_comparacion((select tru from ids), (select a0 from rango), (select a1 from rango), (select b0 from rango), (select b1 from rango))));\n` +
+    como(FELIPE_AUTH) +
+    `select concat_ws(',', (select bool_or(costo is not null) from retail.fn_resumen_variantes((select tru from ids))),
+       (select bool_or(en_red <> '[]'::jsonb) from retail.fn_resumen_variantes((select tru from ids))));\n` +
+    `select asignar_rol(r_integ, micaela) from ids \\g /dev/null\n` +
     como(MICAELA_AUTH) +
     `select concat_ws(',', fn_ve_modulo('analisis'), fn_puede_analizar(),
        (select count(*) = 0 from retail.fn_resumen_comparacion((select tru from ids), (select a0 from rango), (select a1 from rango), (select b0 from rango), (select b1 from rango))),
        coalesce((select bool_or(costo is not null) from retail.fn_resumen_variantes((select tru from ids))), false));`,
-  "t,t,t,t,t\nf,f,t,f"
+  "t,t,t,t,f,t,t\nt,t\nf,f,t,f"
 );
 caso(
   "con los 5 módulos encendidos sigue sin dar descuento por etiqueta, sin ser líder y sin Colaboradores ni Roles",
@@ -572,6 +580,208 @@ caso(
   (s) => {
     const l = s.split("\n");
     return l[0].startsWith("42501|") && l[1] === "0" && l[2].startsWith("42501|") && l[3] === "0";
+  }
+);
+
+// ---------------- Las 6 decisiones (20260923140000, Felipe 2026-09-22, ADR-0161 P1–P6) ----------------
+const ANULAR = `select pg_temp.intento(format('select retail.anular_compra(%L, %L)', :'compra', 'prueba'));\n`;
+const PAGAR = `select pg_temp.intento(format('select retail.registrar_pago_compra(%L, 10, %L)', :'compra', 'transferencia'));\n`;
+const NOTA = `select pg_temp.intento(format('select retail.registrar_nota_credito_compra(%L, %L, retail.fn_hoy_lima(), 10.00, %L)', :'compra', 'NC-ROL-X', 'descuento'));\n`;
+const ADJUNTO_FACTURA = `select pg_temp.intento(format('select retail.registrar_adjunto_compra(%L, %L, %L, %L, 1000)', :'compra', :'compra' || '/f.pdf', 'f.pdf', 'application/pdf'));\n`;
+
+caso(
+  "P1 · Facturas de compra: registra, adjunta y anula SU factura; NO paga ni registra notas de crédito; ve los montos",
+  conRol("Solo facturas", ["facturas_compra"]) +
+    como(MICAELA_AUTH) +
+    FACTURA +
+    PAGAR + NOTA + ADJUNTO_FACTURA + ANULAR +
+    `select concat_ws(',', fn_puede_registrar_facturas_compra(), fn_puede_pagar_compras(), fn_puede_registrar_notas_credito(), fn_puede_ver_dinero_de_compras(), fn_puede_registrar_compras());\n` +
+    `select estado from retail.compras where id = :'compra';`,
+  (s) => {
+    const l = s.split("\n");
+    return (
+      l[0].startsWith("42501|") && l[0].includes("Por pagar") &&
+      l[1].startsWith("42501|") && l[1].includes("Notas de crédito") &&
+      l[2] === "SIN_ERROR" && l[3] === "SIN_ERROR" &&
+      l[4] === "t,f,f,t,t" && l[5] === "anulada"
+    );
+  }
+);
+caso(
+  "P1 · Por pagar: paga; NO registra, NO anula, NO adjunta a la factura y NO registra notas de crédito",
+  como(FELIPE_AUTH) + FACTURA +
+    conRol("Solo pagos", ["por_pagar"]) +
+    como(MICAELA_AUTH) +
+    `select (retail.registrar_pago_compra(:'compra', 10, 'transferencia') is not null)::text;\n` +
+    ANULAR + NOTA + ADJUNTO_FACTURA +
+    intento(`select retail.registrar_compra((select id from retail.proveedores where nombre = 'Textiles Andina SAC'), 'TST', 'N-ROL-P', 'credito', (select tru from ids), '[{"producto_id": null}]'::jsonb, p_fecha_vencimiento => retail.fn_hoy_lima())`) + "\n" +
+    `select concat_ws(',', fn_puede_registrar_facturas_compra(), fn_puede_pagar_compras(), fn_puede_registrar_notas_credito(), fn_puede_ver_dinero_de_compras());`,
+  (s) => {
+    const l = s.split("\n");
+    return (
+      l[0] === "true" &&
+      l[1].startsWith("42501|") && l[1].includes("Facturas de compra") &&
+      l[2].startsWith("42501|") && l[2].includes("Notas de crédito") &&
+      l[3].startsWith("42501|") && l[3].includes("Facturas de compra") &&
+      l[4].startsWith("42501|") && l[4].includes("Facturas de compra") &&
+      l[5] === "f,t,f,t"
+    );
+  }
+);
+caso(
+  "P1 · Notas de crédito: registra la nota y adjunta SU PDF; NO paga, NO anula y NO adjunta a la factura",
+  como(FELIPE_AUTH) + FACTURA +
+    conRol("Solo notas", ["notas_credito"]) +
+    como(MICAELA_AUTH) +
+    `select retail.registrar_nota_credito_compra(:'compra', 'NC-ROL-1', retail.fn_hoy_lima(), 10.00, 'descuento') as nc \\gset\n` +
+    `select pg_temp.intento(format('select retail.registrar_adjunto_compra(%L, %L, %L, %L, 1000, %L)', :'compra', :'compra' || '/nota.pdf', 'nota.pdf', 'application/pdf', :'nc'));\n` +
+    `select pg_temp.intento(format('select retail.archivar_adjunto_compra(%L)', (select id from retail.compra_adjuntos where nota_credito_id = :'nc')));\n` +
+    ADJUNTO_FACTURA + PAGAR + ANULAR +
+    `select (notas_credito = 10)::text from retail.compras where id = :'compra';`,
+  (s) => {
+    const l = s.split("\n");
+    return (
+      l[0] === "SIN_ERROR" && l[1] === "SIN_ERROR" &&
+      l[2].startsWith("42501|") && l[2].includes("Facturas de compra") &&
+      l[3].startsWith("42501|") && l[3].includes("Por pagar") &&
+      l[4].startsWith("42501|") && l[4].includes("Facturas de compra") &&
+      l[5] === "true"
+    );
+  }
+);
+caso(
+  "P1 · las ESCRITURAS de Compras ya no usan la llave de los tres; la de los tres queda solo para leer (faltantes sin nota, saldo a favor)",
+  `select string_agg(proname, ',' order by proname) from pg_proc
+    where pronamespace = 'retail'::regnamespace and prokind = 'f' and proname <> 'fn_puede_registrar_compras'
+      and pg_get_functiondef(oid) like '%fn_puede_registrar_compras()%';`,
+  "compras_nota_pendiente,fn_proveedor_creditos"
+);
+caso(
+  "P2 · Recibir: quien ve el dinero de Compras lee los montos de lo que recibe; quien solo recibe, no; y ninguno mira otra sede",
+  como(FELIPE_AUTH) + FACTURA +
+    conRol("Recibe con montos", ["recibir", "por_pagar"]) +
+    como(MICAELA_AUTH) +
+    `set local role authenticated;\n` +
+    `select concat_ws(',', coalesce((select total > 0 from retail.compras_resumen where id = :'compra'), false),
+       coalesce((select bool_and(costo_unitario > 0) from retail.compra_items_resumen where compra_id = :'compra'), false),
+       (select count(*) = 1 from retail.listar_compras_operativo(p_ubicacion_id => (select tru from ids)) where id = :'compra'),
+       (select count(*) = 0 from retail.listar_compras_operativo(p_ubicacion_id => (select id from retail.ubicaciones where nombre = 'Tienda Lima'))),
+       coalesce((select bool_and(otras_tiendas is null) from retail.lineas_compra_operativo(array[:'compra']::uuid[])), false));\n` +
+    `reset role;\n` +
+    conRol("Solo recibe", ["recibir"]) +
+    como(MICAELA_AUTH) +
+    `set local role authenticated;\n` +
+    `select concat_ws(',', (select count(*) from retail.compras_resumen where id = :'compra'),
+       (select count(*) = 1 from retail.listar_compras_operativo(p_ubicacion_id => (select tru from ids)) where id = :'compra'));`,
+  "t,t,t,t,t\n0,t"
+);
+caso(
+  "P3 · Proveedores: con el módulo da de alta, edita, archiva, reactiva y ve devoluciones; NO los montos ni lo del Taller; sin el módulo, nada",
+  conRol("Proveedores", ["proveedores"]) +
+    como(MICAELA_AUTH) +
+    `select retail.registrar_proveedor('ZZ Proveedor del rol') as prov \\gset\n` +
+    `select pg_temp.intento(format('select retail.actualizar_proveedor(%L, %L)', :'prov', 'ZZ Proveedor del rol 2'));\n` +
+    `select pg_temp.intento(format('select retail.desactivar_proveedor(%L)', :'prov'));\n` +
+    `select pg_temp.intento(format('select retail.reactivar_proveedor(%L)', :'prov'));\n` +
+    `select (select unidades from retail.fn_proveedor_devoluciones(:'prov'))::text;\n` +
+    `select pg_temp.intento(format('select * from retail.fn_proveedor_metricas_compras(%L)', :'prov'));\n` +
+    `select pg_temp.intento(format('select * from retail.fn_proveedor_metricas_insumos(%L)', :'prov'));\n` +
+    `set local role authenticated;\n` +
+    `with u as (update retail.proveedores set contacto = 'Ana' where id = :'prov' returning 1) select count(*) from u;\n` +
+    `reset role;\n` +
+    como(FELIPE_AUTH) + `select asignar_rol(r_integ, micaela) from ids \\g /dev/null\n` +
+    como(MICAELA_AUTH) +
+    `select pg_temp.intento(format('select retail.desactivar_proveedor(%L)', :'prov'));\n` +
+    `set local role authenticated;\n` +
+    `with u as (update retail.proveedores set contacto = 'Eva' where id = :'prov' returning 1) select count(*) from u;`,
+  (s) => {
+    const l = s.split("\n");
+    return (
+      l[0] === "SIN_ERROR" && l[1] === "SIN_ERROR" && l[2] === "SIN_ERROR" && l[3] === "0" &&
+      l[4].startsWith("42501|") && l[4].includes("Por pagar") && // montos de Compras: no
+      !l[5].startsWith("SIN_ERROR") && l[5].includes("líder") && // insumos del Taller: solo el líder
+      l[6] === "1" &&
+      l[7].startsWith("42501|") && l[7].includes("Proveedores") && l[8] === "0"
+    );
+  }
+);
+// Las etiquetas actuales de la prenda + una más (así no se quita ninguna que ya tenga, con o sin descuento).
+const ETIQUETAS_DE = (extra) =>
+  `select pg_temp.intento(format('select retail.actualizar_variantes_etiquetas(%L)', jsonb_build_array(jsonb_build_object('variante_id', v.id, 'etiqueta_ids',
+     coalesce((select jsonb_agg(ve.etiqueta_id) from retail.variante_etiquetas ve where ve.variante_id = v.id), '[]'::jsonb) || jsonb_build_array(${extra})))))
+     from retail.variantes v where v.sku = 'BLU-EMMA-NEG-M';\n`;
+caso(
+  "P4 · Productos (sin Etiquetas) cambia etiquetas SIN descuento desde la ficha de la prenda; con descuento, no; sin Productos, nada",
+  conRol("Catálogo", ["productos"]) +
+    // Las crea el líder (la sesión que deja `conRol`): así nacen aprobadas, y la de descuento puede tenerlo.
+    `insert into retail.etiquetas (nombre) values ('ZZ P4 sin descuento') returning id as e_sin \\gset\n` +
+    `insert into retail.etiquetas (nombre, descuento_pct) values ('ZZ P4 con descuento', 15) returning id as e_con \\gset\n` +
+    como(MICAELA_AUTH) +
+    `select concat_ws(',', fn_puede_editar_etiquetas(), fn_puede_editar_catalogo());\n` +
+    ETIQUETAS_DE(`:'e_sin'::uuid`) +
+    `select count(*) from retail.variante_etiquetas ve join retail.variantes v on v.id = ve.variante_id where v.sku = 'BLU-EMMA-NEG-M' and ve.etiqueta_id = :'e_sin';\n` +
+    ETIQUETAS_DE(`:'e_con'::uuid`) +
+    conRol("Solo vende", ["vender"]) +
+    como(MICAELA_AUTH) +
+    intento(`select retail.actualizar_variantes_etiquetas('[]'::jsonb)`),
+  (s) => {
+    const l = s.split("\n");
+    return (
+      l[0] === "f,t" && l[1] === "SIN_ERROR" && l[2] === "1" &&
+      l[3].startsWith("42501|") && l[3].includes("descuento") &&
+      l[4].startsWith("42501|") && l[4].includes("Productos")
+    );
+  }
+);
+caso(
+  "P6 · Colaboradores y Roles y accesos no se encienden en un rol que tienen terminales",
+  como(FELIPE_AUTH) +
+    intento(`select retail.guardar_modulos_rol(retail.fn_rol_por_clave('terminal_ventas'), array['vender', 'colaboradores'])`) + "\n" +
+    intento(`select retail.guardar_modulos_rol(retail.fn_rol_por_clave('terminal_administrativa'), array['existencias', 'roles'])`) + "\n" +
+    intento(`insert into retail.rol_modulos values (retail.fn_rol_por_clave('terminal_ventas'), 'roles')`) + "\n" +
+    modulosDe("terminal_ventas"),
+  (s) => {
+    const l = s.split("\n");
+    return (
+      l[0].startsWith("23514|") && l[0].includes("solo se da a personas") && l[0].includes("Terminal Ventas TRU") &&
+      l[1].startsWith("23514|") && l[1].includes("Roles y accesos") &&
+      l[2].startsWith("23514|") &&
+      l[3] === "caja,cambios,clientas,devoluciones,facturacion,historial,vender"
+    );
+  }
+);
+caso(
+  "P6 · un rol con Colaboradores o Roles y accesos no se le da a una terminal (ni con asignar_rol ni al crearla); a una persona, sí",
+  como(FELIPE_AUTH) +
+    `create temp table gestor as select crear_rol('Gestor de accesos') as id;\n` +
+    `select guardar_modulos_rol((select id from gestor), array['colaboradores', 'existencias']) \\g /dev/null\n` +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, p_terminal_id => %L)', (select id from gestor), (select id from retail.terminales where auth_user_id = '${T_VENTAS_AUTH}')));\n` +
+    `insert into auth.users (id, aud, role, email) values ('33333333-3333-4333-8333-0000000000a3', 'authenticated', 'authenticated', 'terminal-p6@prueba.local');\n` +
+    `select pg_temp.intento(format('insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id) values (%L, %L, %L, %L)', tru, 'Terminal P6', (select id from gestor), '33333333-3333-4333-8333-0000000000a3')) from ids;\n` +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', (select id from gestor), micaela)) from ids;`,
+  (s) => {
+    const l = s.split("\n");
+    return (
+      l[0].startsWith("23514|") && l[0].includes("Una terminal no puede tener el rol") && l[0].includes("Colaboradores") &&
+      l[1].startsWith("23514|") &&
+      l[2] === "SIN_ERROR"
+    );
+  }
+);
+caso(
+  "P6 · defensa en profundidad: una sesión de terminal nunca gestiona colaboradores ni administra roles, aunque un dato viejo le diera esos módulos",
+  `alter table retail.rol_modulos disable trigger rol_modulos_coherente;
+insert into retail.rol_modulos values (retail.fn_rol_por_clave('terminal_administrativa'), 'colaboradores'), (retail.fn_rol_por_clave('terminal_administrativa'), 'roles');
+alter table retail.rol_modulos enable trigger rol_modulos_coherente;\n` +
+    como(T_ADMIN_AUTH) +
+    `select concat_ws(',', fn_ve_modulo('colaboradores'), fn_ve_modulo('roles'), fn_puede_gestionar_colaboradores(), fn_puede_administrar_roles());\n` +
+    intento(`select * from retail.fn_terminales()`) + "\n" +
+    intento(`select retail.crear_rol('Desde la terminal')`) + "\n" +
+    como(MICAELA_AUTH) + conRol("Gestor persona", ["colaboradores", "roles"]) + como(MICAELA_AUTH) +
+    `select concat_ws(',', fn_puede_gestionar_colaboradores(), fn_puede_administrar_roles());`,
+  (s) => {
+    const l = s.split("\n");
+    return l[0] === "t,t,f,f" && l[1].startsWith("42501|") && l[2].startsWith("42501|") && l[3] === "t,t";
   }
 );
 
