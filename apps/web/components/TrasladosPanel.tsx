@@ -76,8 +76,9 @@ export function TrasladosPanel({
   // aparece, se vuelve a «Todos» en vez de dejar una lista vacía y un chip apagado.
   const filtroEfectivo: FiltroTraslado = filtro !== "todos" && resumen.porFiltro[filtro] === 0 ? "todos" : filtro;
   const sedeEfectiva = sedes.some((s) => s.id === sede) ? sede : "";
-  const masActivos = (direccion !== "todas" ? 1 : 0) + (sedeEfectiva ? 1 : 0);
-  const hayFiltros = filtroEfectivo !== "todos" || busqueda.trim() !== "" || masActivos > 0;
+  // Dirección está a la vista (ADR-0175): en «Más filtros» solo queda la otra sede.
+  const masActivos = sedeEfectiva ? 1 : 0;
+  const hayFiltros = filtroEfectivo !== "todos" || busqueda.trim() !== "" || direccion !== "todas" || masActivos > 0;
 
   const filtradas = filas.filter(
     ({ t, s }) =>
@@ -134,7 +135,6 @@ export function TrasladosPanel({
     if (primeroNuevo) setTimeout(() => document.getElementById(`traslado-${primeroNuevo}`)?.focus(), 0);
   }
   function limpiarMas() {
-    setDireccion("todas");
     setSede("");
     setLimite(POR_PAGINA);
   }
