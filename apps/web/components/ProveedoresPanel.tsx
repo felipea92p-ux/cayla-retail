@@ -70,19 +70,23 @@ const PLANTILLA_BASE = "sm:grid-cols-[1fr_8rem]";
 // primero y resaltadas). Las marcas llegan aparte de `fn_proveedores()` (tablas `marcas` y `marca_proveedores`) y son
 // opcionales: si su lectura falla llega `null` y la lista se pinta como antes.
 //
-// `esLider` gobierna tres cosas a la vez, no solo «puede editar»: ver lo financiero, abrir el detalle
-// (clic en la fila), y editar/registrar/desactivar. Hoy las tres son la misma condición
-// (rol líder) — un solo prop en vez de tres idénticos, hasta que alguna necesite separarse de verdad.
+// Dos llaves (ADR-0161 P3, 20260923140000 — antes era un solo `esLider`):
+//  · `verMontos` (`verDineroCompras`): lo financiero — las cifras de arriba, las columnas de dinero, la vista rápida.
+//  · `puedeEditar` (el módulo Proveedores, `editarCuentasProveedor` = `fn_puede_gestionar_proveedores`): registrar, abrir la
+//    ficha (datos, cuentas, devoluciones, editar y desactivar) y el aviso «Sin datos de pago».
+// Quien tiene Proveedores sin los montos ve el directorio y entra a la ficha, sin una sola cifra de dinero.
 export function ProveedoresPanel({
   proveedores,
-  esLider,
+  verMontos,
+  puedeEditar,
   resumen,
   series,
   marcas,
 }: {
   proveedores: Proveedor[];
-  esLider: boolean;
-  /** Las cifras de arriba; `null` para quien no es líder. */
+  verMontos: boolean;
+  puedeEditar: boolean;
+  /** Las cifras de arriba; `null` para quien no ve los montos de Compras. */
   resumen: ResumenProveedores | null;
   /** Facturado por mes por proveedor (12 montos); `null` si no hay serie disponible → sin tendencias. */
   series: Record<string, number[]> | null;
@@ -107,8 +111,8 @@ export function ProveedoresPanel({
   // RUC y contacto, sin tildes ni mayúsculas (misma `clave` que el buscador de Vender).
   const k = clave(busqueda);
   const rubros = useMemo(() => rubrosConConteo(proveedores.filter((p) => p.activo)), [proveedores]);
-  // Solo líder: pagar es de líder, y el filtro (y su conteo) no le sirve a quien no puede completar los datos.
-  const faltaPago = (p: Proveedor) => esLider && p.activo && sinDatosDePago(p);
+  // Solo quien edita proveedores: el filtro (y su conteo) no le sirve a quien no puede completar los datos.
+  const faltaPago = (p: Proveedor) => puedeEditar && p.activo && sinDatosDePago(p);
   const nSinPago = proveedores.filter(faltaPago).length;
   // Si al completar los datos ya no queda ninguno, el filtro deja de aplicar (y su botón desaparece): no se queda una lista vacía.
   const filtrarSinPago = soloSinPago && nSinPago > 0;
@@ -192,7 +196,7 @@ export function ProveedoresPanel({
     document.querySelector(`[data-proveedor-id="${sig.id}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 
-  const Fila = esLider ? FilaLider : FilaBase;
+  const Fila = verMontos ? FilaLider : FilaBase;
   const rubrosSugeridos = rubros.map((r) => r.etiqueta);
 
   return (
@@ -203,7 +207,7 @@ export function ProveedoresPanel({
           <h1 className="font-display mt-1 text-2xl text-tinta">Proveedores</h1>
           <p className="mt-1 text-sm text-tinta/65">A quién se le compra. Un proveedor tiene que estar acá antes de poder registrar su comprobante.</p>
         </div>
-        {esLider && (
+        {puedeEditar && (
           <Boton peso="primario" onClick={() => setBorrador(BORRADOR_VACIO)}>
             <span className="flex items-center gap-2">
               <span aria-hidden>+</span> Registrar proveedor
@@ -212,7 +216,7 @@ export function ProveedoresPanel({
         )}
       </div>
 
-      {esLider && resumen && <ProveedoresIndicadores resumen={resumen} reparto={reparto} foco={foco} onFoco={setFoco} onAbrir={setAbiertoId} />}
+      {verMontos && resumen && <ProveedoresIndicadores resumen={resumen} reparto={reparto} foco={foco} onFoco={setFoco} onAbrir={setAbiertoId} />}
 
       {/* Buscador + filtro por rubro con conteo. Una sola línea: el buscador a la izquierda, los rubros
           a la derecha; en celular los rubros bajan y se desplazan en horizontal. */}
@@ -288,7 +292,7 @@ export function ProveedoresPanel({
         <p className="anim-revelar card-cayla p-5 text-sm text-tinta/75">
           Ningún proveedor coincide{busqueda.trim() ? ` con «${busqueda.trim()}»` : " con esos filtros"}.{" "}
           {marcas === null && busqueda.trim() && "Las marcas no se pudieron cargar: esta búsqueda no las incluye. "}
-          {esLider && busqueda.trim() && (
+          {puedeEditar && busqueda.trim() && (
             <button type="button" onClick={() => setBorrador({ ...BORRADOR_VACIO, nombre: busqueda.trim() })} className="text-rojo hover:underline">
               Registrarlo →
             </button>
@@ -298,7 +302,7 @@ export function ProveedoresPanel({
         // `overflow-y-hidden`: mientras las filas se deslizan (FLIP) algunas pasan un instante fuera de la
         // tarjeta; sin esto, `overflow-x-auto` les da a las dos direcciones scroll y parpadea una barra vertical.
         <Tabla className="@container anim-entra overflow-y-hidden" style={{ ["--i" as string]: 7 }}>
-          {esLider ? <EncabezadoOrdenable orden={orden} onOrden={(c) => setOrden((o) => siguienteOrden(o, c))} /> : <Encabezado plantilla={PLANTILLA_BASE} columnas={[{ titulo: "Proveedor" }, { titulo: "RUC" }]} />}
+          {verMontos ? <EncabezadoOrdenable orden={orden} onOrden={(c) => setOrden((o) => siguienteOrden(o, c))} /> : <Encabezado plantilla={PLANTILLA_BASE} columnas={[{ titulo: "Proveedor" }, { titulo: "RUC" }]} />}
           {activos.map((p, indice) => (
             <Fila
               key={p.id}
@@ -314,6 +318,7 @@ export function ProveedoresPanel({
               refFila={refFila(p.id)}
               onAbrir={() => setAbiertoId(p.id)}
               onReactivar={() => onCambiarEstado(p)}
+              abreFicha={puedeEditar}
             />
           ))}
         </Tabla>
@@ -338,13 +343,14 @@ export function ProveedoresPanel({
                 refFila={undefined}
                 onAbrir={() => setAbiertoId(p.id)}
                 onReactivar={() => onCambiarEstado(p)}
+                abreFicha={puedeEditar}
               />
             ))}
           </Tabla>
         </section>
       )}
 
-      {esLider && abierto && (
+      {verMontos && abierto && (
         <ProveedorVistaRapida
           proveedor={abierto}
           marcas={marcasDe(abierto.id)}
@@ -413,6 +419,8 @@ type PropsFila = {
   refFila: ((el: HTMLElement | null) => void) | undefined;
   onAbrir: () => void;
   onReactivar: () => void;
+  /** Sin los montos pero con el módulo Proveedores (P3): la fila lleva a la ficha, donde se edita. */
+  abreFicha?: boolean;
 };
 
 const MONOGRAMA = "font-display grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full bg-sand text-base text-tinta transition-colors duration-300 group-hover:bg-tinta group-hover:text-crema";
@@ -441,7 +449,7 @@ function NombreCelda({
   p: Proveedor;
   busqueda: string;
   marcas: readonly string[];
-  /** Solo líder: es quien puede completar los datos (ADR-0134). */
+  /** Solo quien edita proveedores: es quien puede completar los datos (ADR-0134, P3). */
   marcarSinPago?: boolean;
 }) {
   const sinPago = marcarSinPago && p.activo && sinDatosDePago(p);
@@ -490,14 +498,20 @@ function NombreCelda({
   );
 }
 
-// Directorio puro para quien no es líder: sin clic (no hay detalle que mostrarle) y sin ninguna
-// columna financiera — `fn_proveedores()` ya le manda esos campos en NULL, esto es la segunda capa,
-// no la única (20260917240000_proveedores_lista_indicadores_y_candado_sede.sql).
-function FilaBase({ p, busqueda, marcas }: PropsFila) {
+// Directorio para quien no ve los montos de Compras: sin ninguna columna financiera — `fn_proveedores()` ya le manda esos
+// campos en NULL, esto es la segunda capa, no la única (20260917240000). Con el módulo Proveedores (P3) el nombre lleva a
+// la ficha, donde se edita; sin él, no hay a dónde ir.
+function FilaBase({ p, busqueda, marcas, abreFicha = false }: PropsFila) {
   return (
-    <div className={fila(PLANTILLA_BASE, `group ${p.activo ? "" : "opacity-60"}`)}>
+    <div data-proveedor-id={p.id} className={fila(PLANTILLA_BASE, `group ${p.activo ? "" : "opacity-60"}`)}>
       <span className={celda("izq", "min-w-0")}>
-        <NombreCelda p={p} busqueda={busqueda} marcas={marcas} />
+        {abreFicha ? (
+          <Link href={`/compras/proveedores/${p.id}`} aria-label={`${p.nombre}: abrir ficha`} className="block min-w-0 rounded-md outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60">
+            <NombreCelda p={p} busqueda={busqueda} marcas={marcas} marcarSinPago />
+          </Link>
+        ) : (
+          <NombreCelda p={p} busqueda={busqueda} marcas={marcas} />
+        )}
       </span>
       <span className={celda("izq", "font-mono text-xs tabular-nums text-tinta/75")}>{p.ruc ? <Resaltado texto={p.ruc} busqueda={busqueda} /> : "Sin RUC"}</span>
     </div>

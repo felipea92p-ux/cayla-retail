@@ -83,9 +83,11 @@ type Props = {
   fallaFacturas: string | null;
   falla: string | null;
   hoy: string;
+  /** Registrar un reembolso es de Por pagar (ADR-0161 P1, `fn_puede_pagar_compras`): sin ese módulo, no hay botón. */
+  puedeReembolsar?: boolean;
 };
 
-export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimientos, proveedores, facturas, fallaFacturas, falla, hoy }: Props) {
+export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimientos, proveedores, facturas, fallaFacturas, falla, hoy, puedeReembolsar = true }: Props) {
   const [vista, setVista] = useState<"notas" | "saldos">("notas");
   const [pestana, setPestana] = useState<Pestana>("por_reclamar");
   const [banda, setBanda] = useState<Banda | null>(null);
@@ -381,7 +383,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
           </p>
         </>
       ) : (
-        <SaldosAFavorTablero proveedores={proveedores} movimientos={movimientos} total={cifras.saldoFavorTotal} />
+        <SaldosAFavorTablero proveedores={proveedores} movimientos={movimientos} total={cifras.saldoFavorTotal} puedeReembolsar={puedeReembolsar} />
       )}
 
       {abierta && (
@@ -563,7 +565,7 @@ function Vacia({ busqueda, pestana, banda, onLimpiar }: { busqueda: string; pest
  * CAYLA, de qué notas viene y qué se puede hacer con ella. La regla de Felipe manda y se dice en
  * pantalla: el saldo se SUGIERE al pagar, nunca se descuenta solo.
  */
-function SaldosAFavorTablero({ proveedores, movimientos, total }: { proveedores: { id: string; nombre: string; saldoFavor: number; deuda: number }[]; movimientos: MovimientoFavor[]; total: number }) {
+function SaldosAFavorTablero({ proveedores, movimientos, total, puedeReembolsar }: { proveedores: { id: string; nombre: string; saldoFavor: number; deuda: number }[]; movimientos: MovimientoFavor[]; total: number; puedeReembolsar: boolean }) {
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
   const con = proveedores.filter((p) => p.saldoFavor > 0.004).sort((a, b) => b.saldoFavor - a.saldoFavor);
   const sin = proveedores.filter((p) => p.saldoFavor <= 0.004);
@@ -637,7 +639,7 @@ function SaldosAFavorTablero({ proveedores, movimientos, total }: { proveedores:
                     </Link>
                   )}
                   {/* La misma pieza que la ficha del proveedor: una sola forma de registrar un reembolso. */}
-                  <BotonReembolso proveedorId={p.id} proveedorNombre={p.nombre} saldoFavor={p.saldoFavor} />
+                  {puedeReembolsar && <BotonReembolso proveedorId={p.id} proveedorNombre={p.nombre} saldoFavor={p.saldoFavor} />}
                 </div>
               </div>
             </div>

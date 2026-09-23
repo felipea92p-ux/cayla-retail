@@ -37,6 +37,8 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { getProveedor } from "@/lib/proveedores";
 import { datosPagoDe, type DatosPagoProveedor } from "@/lib/proveedores-reglas";
 import { getSaldosFavor } from "@/lib/saldo-favor";
+import { accionesDeCompraDe, requirePersonaActualV2 } from "@/lib/persona-actual";
+import type { AccionesDeCompra } from "@/lib/modulos";
 
 // Detalle de una factura (ADR-0035): qué se compró, qué llegó y qué se pagó,
 // todo calculado desde movimientos y pagos. Desde acá se registra un pago
@@ -75,6 +77,9 @@ export type DetalleCompra = {
   ubicaciones: { id: string; nombre: string }[];
   /** Cómo se le paga al proveedor (cuenta, CCI, Yape/Plin, titular, saldo a favor) para el modal de pago. Solo si el comprobante se puede pagar y la lectura salió bien. */
   datosPago?: DatosPagoProveedor;
+  /** Qué puede hacer quien mira, módulo por módulo (ADR-0161 P1, 20260923140000): anular, reparto y adjuntos son de Facturas de
+   *  compra; pagar, de Por pagar; las notas, de Notas de crédito. Solo esconde lo que la base igual rechazaría. */
+  acciones: AccionesDeCompra;
 };
 
 /** Lo que el modal de pago muestra del proveedor. Es un complemento: si la lectura falla el detalle sigue (principio 9) y el pago funciona igual, solo sin la tarjeta «Paga por» ni el saldo a favor a la vista — la base valida igual. */
@@ -92,7 +97,7 @@ async function cargarDatosPago(compra: CompraResumen): Promise<DatosPagoProveedo
 export async function cargarDetalleCompra(compraId: string): Promise<DetalleCompra | null> {
   const compra = await getCompra(compraId);
   if (!compra) return null;
-  const [lineas, pagos, recepciones, adjuntos, ubicaciones, notasCredito, cierres, datosPago, reparto] = await Promise.all([
+  const [lineas, pagos, recepciones, adjuntos, ubicaciones, notasCredito, cierres, datosPago, reparto, persona] = await Promise.all([
     getLineasCompra([compra.id]),
     getPagosCompra(compra.id),
     getRecepcionesCompra(compra.id),
@@ -102,6 +107,7 @@ export async function cargarDetalleCompra(compraId: string): Promise<DetalleComp
     getCierresCompra(compra.id),
     cargarDatosPago(compra),
     getRepartoDeCompra(compra.id),
+    requirePersonaActualV2(),
   ]);
   return {
     compra,
@@ -117,6 +123,7 @@ export async function cargarDetalleCompra(compraId: string): Promise<DetalleComp
     reparto,
     ubicaciones: ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre })),
     datosPago,
+    acciones: accionesDeCompraDe(persona),
   };
 }
 
@@ -163,7 +170,7 @@ export function DatosComprobante({ compra, destino }: Pick<DetalleCompra, "compr
 }
 
 export function CompraDetalle({
-  detalle: { compra, lineas, pagos, recepciones, adjuntos, notasCredito, datosPago, reparto, ubicaciones },
+  detalle: { compra, lineas, pagos, recepciones, adjuntos, notasCredito, datosPago, reparto, ubicaciones, acciones: permite },
   adjuntosFallidos = [],
   acciones = true,
 }: {
@@ -308,7 +315,7 @@ export function CompraDetalle({
           </section>
 
           {/* ---------- reparto por tienda (ADR-0139): solo si hay algo que decir o que mover ---------- */}
-          <RepartoPorTienda compra={compra} lineas={lineas} reparto={reparto} ubicaciones={ubicaciones} />
+          <RepartoPorTienda compra={compra} lineas={lineas} reparto={reparto} ubicaciones={ubicaciones} puedeReasignar={permite.facturas} />
 
           {/* ---------- recepciones ---------- */}
           <section className="space-y-2">
@@ -341,10 +348,9 @@ export function CompraDetalle({
 
           <NotasCreditoCompra compra={compra} notas={notasCredito} cerrados={lineas.filter((l) => l.cerrado > 0).map((l) => ({ faltan: l.cerrado, costoUnitario: l.costoUnitario }))} />
 
-          {/* Quién puede adjuntar lo decide `fn_puede_registrar_compras()` en la
-              RPC (hoy: cualquier persona activa, 0012). Acá solo se esconde en
-              una factura anulada, que la RPC también rechaza. */}
-          <AdjuntosDeFactura compraId={compra.id} adjuntos={adjuntos} puedeEditar={!anulada} avisoInicial={adjuntosFallidos} />
+          {/* Quién puede adjuntar lo decide la RPC (`fn_puede_registrar_facturas_compra`, ADR-0161 P1). Acá solo se esconde
+              a quien no tiene Facturas de compra y en una factura anulada, que la RPC también rechaza. */}
+          <AdjuntosDeFactura compraId={compra.id} adjuntos={adjuntos} puedeEditar={!anulada && permite.facturas} avisoInicial={adjuntosFallidos} />
 
           {compra.nota && (
             <p className="text-sm text-tinta/65">
@@ -359,7 +365,7 @@ export function CompraDetalle({
           (en el modal lo dibuja `ModalRuta`, con `acciones={false}` acá). */}
       {acciones && !anulada && (
         <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-4">
-          <CompraAcciones compra={compra} tieneRecepciones={recepciones.length > 0} datosPago={datosPago} />
+          <CompraAcciones compra={compra} tieneRecepciones={recepciones.length > 0} datosPago={datosPago} permite={permite} />
         </div>
       )}
     </>

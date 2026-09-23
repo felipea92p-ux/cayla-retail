@@ -14,6 +14,7 @@ import { lineaPagoVacia, lineasPagoParaRpc, sumaLineasPago, type LineaPago } fro
 import { ETIQUETA_METODO, METODO_SALDO_A_FAVOR, soles, type CompraResumen } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { etiquetaVence, tramoDe } from "@/lib/por-pagar-reglas";
+import type { AccionesDeCompra } from "@/lib/modulos";
 
 // Acciones sobre una factura ya registrada (ADR-0035): registrar un pago
 // contra el saldo, o anularla. La página (server) dibuja el detalle; este
@@ -28,14 +29,28 @@ import { etiquetaVence, tramoDe } from "@/lib/por-pagar-reglas";
 // esto llevaba a Por pagar con `?pagar=<id>` y el detalle se perdía; ese camino (`PagoDesdeUrl`) sigue existiendo
 // para quien llega a Por pagar con el enlace. `datosPago` (cuenta, CCI, Yape/Plin, titular, saldo a favor) lo
 // carga `cargarDetalleCompra`; sin él el modal funciona igual, solo sin la tarjeta «Paga por».
-export function CompraAcciones({ compra, tieneRecepciones, datosPago }: { compra: CompraResumen; tieneRecepciones: boolean; datosPago?: DatosPagoProveedor }) {
+//
+// ADR-0161 P1 (20260923140000): cada botón es de UN módulo — «Anular», de Facturas de compra; «Registrar pago», de Por pagar
+// (`permite`, calculado en el servidor desde los módulos de la cuenta). Quien no lo tiene no ve el botón; la base igual lo
+// rechazaría (`fn_puede_registrar_facturas_compra`, `fn_puede_pagar_compras`).
+export function CompraAcciones({
+  compra,
+  tieneRecepciones,
+  datosPago,
+  permite,
+}: {
+  compra: CompraResumen;
+  tieneRecepciones: boolean;
+  datosPago?: DatosPagoProveedor;
+  permite: AccionesDeCompra;
+}) {
   const router = useRouter();
   const [anulando, setAnulando] = useState(false);
   const [pagando, setPagando] = useState(false);
   const vigente = compra.estado === "vigente";
   const puedeRecibir = vigente && compra.estadoRecepcion !== "recibida";
-  const puedePagar = vigente && compra.saldo > 0;
-  const puedeAnular = vigente && compra.pagado === 0 && !tieneRecepciones;
+  const puedePagar = vigente && compra.saldo > 0 && permite.pagar;
+  const puedeAnular = vigente && compra.pagado === 0 && !tieneRecepciones && permite.facturas;
 
   // Un comprobante anulado ya no tiene acciones. El modal de pago se sigue dibujando aunque el pago recién saldó el
   // comprobante: si no, el refresco lo desmontaría en plena confirmación y se cortaría su animación de cierre.
@@ -75,7 +90,7 @@ export function CompraAcciones({ compra, tieneRecepciones, datosPago }: { compra
               </span>
             </Boton>
           ) : (
-            vigente && (
+            vigente && compra.saldo <= 0 && (
               <button type="button" disabled className="label-cayla inline-flex cursor-default items-center gap-2 rounded-md bg-verde px-4 py-3 text-[11px] text-crema transition-colors duration-500">
                 <Check aria-hidden className="h-4 w-4" />
                 Pagado

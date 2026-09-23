@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, filtrosDesdeParams, getProveedoresActivos, type ParamsCompras } from "@/lib/compras";
@@ -28,8 +28,13 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 //
 // Vive en `/recibir`, NO bajo `/compras`: el layout de Compras es solo de líder (montos, pagos, notas de
 // crédito) y aquí cuenta CUALQUIER colaborador de la sede (Felipe, 2026-09-18, como en Traslados). Quien
-// no es líder recibe la misma pantalla SIN dinero: los montos ni siquiera salen del servidor. `/compras/recibir`
+// no ve el dinero de Compras recibe la misma pantalla SIN dinero: los montos ni siquiera salen del servidor. `/compras/recibir`
 // redirige acá (next.config.ts) para que los enlaces y las maquetas de antes sigan funcionando.
+//
+// ADR-0161 P2 (Felipe, 2026-09-22, 20260923140000): los MONTOS los ve quien ya ve el dinero de Compras (`verDineroCompras`:
+// Facturas de compra, Por pagar o Notas de crédito), no solo el líder — la base ya se los entrega (vistas compras_resumen y
+// compra_items_resumen con fn_puede_ver_dinero_de_compras). Lo demás que decide `esLider` NO cambia: qué sede se mira
+// («Recibiendo en»), las decisiones sobre lo que faltó y el aviso de la nota por reclamar.
 //
 // Los cuatro indicadores (ADR-0111) ya no van arriba: se dibujan DEBAJO de «¿Qué llegó?» —lo que se mira
 // mientras no hay nada marcado— y desaparecen apenas se marca un comprobante, para dejarle toda la pantalla
@@ -43,6 +48,7 @@ type ParamsRecibir = ParamsCompras & { compra?: string; vista?: string; nueva?: 
 export default async function RecibirPage({ searchParams }: { searchParams: Promise<ParamsRecibir> }) {
   const persona = await requirePersonaActualV2();
   const esLider = persona.rol === "lider";
+  const verMontos = puede(persona, "verDineroCompras"); // P2: los montos, a quien ve el dinero de Compras
   const params = await searchParams;
   const vista = params.vista === "recibidas" ? "recibidas" : "pendientes";
 
@@ -166,7 +172,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             limite={LIMITE_RECIBIDAS}
             destacarNueva={params.nueva === "1"}
             resultado={resultadoDesdeParam(params.res)}
-            enlaceAlComprobante={esLider}
+            enlaceAlComprobante={verMontos}
             vacio={hayFiltros ? "Ninguna recepción coincide con esos filtros." : `Todavía no se recibió nada contra un comprobante en ${persona.ubicacionEtiqueta}.`}
           />
         </div>
@@ -181,30 +187,30 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   const hayFiltros = Object.values(filtros).some(Boolean);
 
   const [{ filas: comprasCompletas, siguiente }, catalogo, proveedores] = await Promise.all([
-    // ADR-0126: quien no es líder lee los comprobantes por `listar_compras_operativo`, que no trae un solo monto (las
-    // tablas de dinero quedan cerradas para él en la base). El líder lee `listar_compras`, como siempre.
+    // ADR-0126: quien no ve el dinero lee los comprobantes por `listar_compras_operativo`, que no trae un solo monto (las
+    // tablas de dinero quedan cerradas para él en la base). Quien lo ve (P2) recibe además los montos de `compras_resumen`.
     // ADR-0139: solo los comprobantes que aún le faltan a ESTA tienda, con las cifras de ella.
-    listarPorRecibir(filtros, cursor, { sinMontos: !esLider, ubicacionId: ubicacionMirada }),
+    listarPorRecibir(filtros, cursor, { sinMontos: !verMontos, ubicacionId: ubicacionMirada }),
     getCatalogo(),
     getProveedoresActivos(),
   ]);
-  // Quien cuenta pero no es líder no ve dinero: la base ya no se lo entrega (ADR-0126) y, por si esa lectura cayera al
-  // camino de antes (la app desplegada antes que la migración), aquí se vuelve a tachar: los montos no salen del servidor.
-  const compras = esLider ? comprasCompletas : comprasCompletas.map(comprobanteSinMontos);
+  // Quien cuenta sin ver el dinero de Compras no ve montos: la base ya no se los entrega (ADR-0126) y, por si esa lectura
+  // cayera al camino de antes (la app desplegada antes que la migración), aquí se vuelve a tachar: no salen del servidor.
+  const compras = verMontos ? comprasCompletas : comprasCompletas.map(comprobanteSinMontos);
   // ADR-0139: se recibe en la tienda desde la que se mira (un líder cambia de tienda con «Recibiendo en»): los topes y
   // las cifras de cada línea son de ELLA, así que el formulario no ofrece recibir en otra.
   const ubicacionesPermitidas = [{ id: ubicacionMirada, nombre: nombreMirada }];
 
   // Las líneas se traen solo para los comprobantes de ESTA página (≤ 50).
   const [lineasCompletas, comprasConNotaFaltante, trasladosPorUbicacion] = await Promise.all([
-    getLineasCompra(compras.map((c) => c.id), { sinMontos: !esLider, ubicacionId: ubicacionMirada }),
+    getLineasCompra(compras.map((c) => c.id), { sinMontos: !verMontos, ubicacionId: ubicacionMirada }),
     esLider ? getComprasConNotaFaltante(compras.map((c) => c.id)) : Promise.resolve([] as string[]),
     getTrasladosHaciaAca(ubicacionesPermitidas.map((u) => u.id)),
   ]);
-  const lineas = esLider ? lineasCompletas : lineasCompletas.map(lineaSinCosto);
-  // Los indicadores de abajo son de ESTA tienda: salen de su lista (que ya trae sus cifras) y, para el líder, de lo
-  // que le falta a ella a su costo. Los de toda la empresa siguen en Compras.
-  const kpis = { ...kpisDeLaLista(comprasCompletas), valorPorRecibir: esLider ? valorPorRecibirDeMiTienda(comprasCompletas, lineasCompletas) : (null as number | null) };
+  const lineas = verMontos ? lineasCompletas : lineasCompletas.map(lineaSinCosto);
+  // Los indicadores de abajo son de ESTA tienda: salen de su lista (que ya trae sus cifras) y, para quien ve el dinero, de
+  // lo que le falta a ella a su costo. Los de toda la empresa siguen en Compras.
+  const kpis = { ...kpisDeLaLista(comprasCompletas), valorPorRecibir: verMontos ? valorPorRecibirDeMiTienda(comprasCompletas, lineasCompletas) : (null as number | null) };
 
   return (
     <div className="space-y-6">
@@ -247,6 +253,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           ubicacionInicialId={ubicacionMirada}
           compraInicialId={compra ?? null}
           esLider={esLider}
+          verMontos={verMontos}
           comprasConNotaFaltante={comprasConNotaFaltante}
           trasladosPorUbicacion={trasladosPorUbicacion}
           resumen={

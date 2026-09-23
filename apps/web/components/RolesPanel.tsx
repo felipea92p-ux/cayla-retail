@@ -16,6 +16,7 @@ import {
   controlDe,
   cuentasAsignables,
   cuentasDelRol,
+  motivoParaNoEncender,
   etiquetasDelMenu,
   hayCambios,
   menuDelRol,
@@ -294,7 +295,16 @@ export function RolesPanel({
                     on: veModulo({ fijo: rol.fijo, modulos: borrador }, m.clave),
                     control: controlDe(rol, m),
                   }))}
-                  onAlternar={(clave) => setBorradores((b) => ({ ...b, [rol.id]: alternarModulo(borrador, clave) }))}
+                  onAlternar={(clave) => {
+                    // ADR-0161 P6: Colaboradores y Roles y accesos no se encienden en un rol que tienen terminales (la base
+                    // también lo rechaza al guardar; aquí se avisa en el momento, con los nombres de las terminales).
+                    const motivo = motivoParaNoEncender(clave, borrador, cuentasDe(rol.id));
+                    if (motivo) {
+                      avisar.error(motivo);
+                      return;
+                    }
+                    setBorradores((b) => ({ ...b, [rol.id]: alternarModulo(borrador, clave) }));
+                  }}
                 />
               ))}
             </tbody>

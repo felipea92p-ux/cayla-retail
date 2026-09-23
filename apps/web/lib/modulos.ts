@@ -74,7 +74,15 @@ export const SIEMPRE_SOLO_LIDER: readonly { que: string; origen: string }[] = [
   // líder dentro de ellos son las protecciones mínimas de esa migración («decisión de arquitectura, revisable»):
   { que: "Subir a alguien a Líder de equipo; cambiarle el rol o la sede, quitar, suspender o reactivar a un líder", origen: "ADR-0161 (2026-09-22)" },
   { que: "Siempre queda al menos un líder activo, y nadie se cambia su propio rol", origen: "ADR-0161 (2026-09-22)" },
+  // Las 6 decisiones (Felipe, 2026-09-22, migración 20260923140000):
+  { que: "Ver el costo y el stock de las otras sedes en Existencias (Análisis analiza solo su sede)", origen: "ADR-0161 P5" },
+  { que: "Ver lo comprado por el Taller en la ficha de un proveedor", origen: "ADR-0161 P3" },
+  { que: "Colaboradores, y Roles y accesos, nunca van en el rol de una terminal: solo se dan a personas", origen: "ADR-0161 P6" },
 ];
+
+/** Los módulos que solo se dan a PERSONAS, nunca a una terminal (ADR-0161 P6, Felipe 2026-09-22; en la base,
+ *  `fn_exigir_rol_de_terminal`, migración 20260923140000): un aparato compartido de mostrador no da ni quita accesos. */
+export const MODULOS_SOLO_PERSONAS: readonly ClaveModulo[] = ["colaboradores", "roles"];
 
 export function esClaveModulo(x: string): x is ClaveModulo {
   return (CLAVES_MODULO as readonly string[]).includes(x);
@@ -128,9 +136,11 @@ export function modulosDeHoy(
  *  - gestionarCaja          ← ve Caja, completo
  *  - ajustarInventario      ← ve Existencias, Conteos o Traslados, completo
  *  - editarCatalogo         ← ve Productos o Categorías/atributos, completo
- *  - editarCuentasProveedor ← ve Proveedores, completo
+ *  - editarCuentasProveedor ← ve Proveedores, completo (`fn_puede_editar_cuentas_proveedor`; desde 20260923140000, P3,
+ *                             también dar de alta, editar y archivar proveedores y abrir su ficha: `fn_puede_gestionar_proveedores`)
  *  - verDineroCompras       ← ve Facturas de compra, Por pagar o Notas de crédito, completo
- *                             (`fn_puede_ver_dinero_de_compras` y `fn_puede_registrar_compras`, 20260923130000)
+ *                             (`fn_puede_ver_dinero_de_compras`, 20260923130000). Solo VER: qué ESCRIBE cada uno lo dice
+ *                             `accionesDeCompra` (P1, 20260923140000)
  *  - editarEtiquetas        ← ve Etiquetas, completo (`fn_puede_editar_etiquetas`; las etiquetas CON descuento no)
  *  - analizar               ← ve Análisis, completo (`fn_puede_analizar`)
  * `administrar` y `verDinero` (el dinero del Taller y el Resumen de Producción) siguen siendo del líder: no salen de
@@ -150,6 +160,26 @@ export function permisosDeModulos(rol: "lider" | "integrante", modulos: readonly
   if (completo("facturas_compra", "por_pagar", "notas_credito")) permisos.push("verDineroCompras");
   if (completo("etiquetas")) permisos.push("editarEtiquetas");
   return permisos;
+}
+
+/**
+ * ¿La cuenta USA este módulo? El líder, siempre; cualquier otra, si su rol lo ve COMPLETO (no `limitado_como_hoy`). Espeja
+ * «`fn_es_lider()` o `fn_capacidad_por_modulos(array[clave])`», la forma de las capacidades de UN solo módulo. Existe para
+ * lo que se decide módulo por módulo sin inventar un permiso por acción (ADR-0161 P1, 20260923140000: en Compras cada módulo
+ * hace solo lo suyo —registrar/anular facturas, pagar, registrar notas de crédito— aunque los tres vean los montos).
+ */
+export function usaModulo(rol: "lider" | "integrante", modulos: readonly ModuloDeCuenta[], clave: ClaveModulo): boolean {
+  return rol === "lider" || modulos.some((m) => m.clave === clave && m.completo);
+}
+
+/** Qué hace cada cuenta con un comprobante de compra (ADR-0161 P1): cada acción es de UN módulo. */
+export type AccionesDeCompra = { facturas: boolean; pagar: boolean; notas: boolean };
+export function accionesDeCompra(rol: "lider" | "integrante", modulos: readonly ModuloDeCuenta[]): AccionesDeCompra {
+  return {
+    facturas: usaModulo(rol, modulos, "facturas_compra"), // fn_puede_registrar_facturas_compra: registrar, anular, reparto, adjuntos
+    pagar: usaModulo(rol, modulos, "por_pagar"), // fn_puede_pagar_compras: pagos y reembolsos
+    notas: usaModulo(rol, modulos, "notas_credito"), // fn_puede_registrar_notas_credito
+  };
 }
 
 /** Normaliza lo que devuelve `fn_mis_modulos()`: ignora claves que esta versión de la web no conoce. */
