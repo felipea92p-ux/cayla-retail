@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { MODULOS, MODULOS_DE_HOY } from "./modulos";
+import { MODULOS, MODULOS_DE_HOY, esDelegable } from "./modulos";
 import {
+  alternarGrupo,
   alternarModulo,
+  avisoDelRol,
+  cambiosDelBorrador,
+  familiaDeRol,
+  menuConCambios,
+  modulosFiltrados,
   controlDe,
   cuentasAsignables,
   etiquetasDelMenu,
@@ -10,6 +16,7 @@ import {
   modulosPorGrupo,
   motivoParaNoArchivar,
   motivoParaNoEncender,
+  motivoParaNoGuardar,
   nombreDeCopia,
   pideUbicacion,
   rolesAsignables,
@@ -174,5 +181,53 @@ describe("P6 · Colaboradores y Roles y accesos, solo para personas", () => {
     expect(motivoParaNoEncender("colaboradores", ["colaboradores"], [TERMINAL])).toBeNull(); // ya estaba: es apagarlo
     expect(motivoParaNoEncender("facturacion", ALMACEN.modulos, [TERMINAL])).toBeNull();
     expect(motivoParaNoEncender("colaboradores", ALMACEN.modulos, [PERSONA])).toBeNull();
+  });
+
+  it("al guardar (módulo a módulo, «Encender todo» o la matriz) se frena el primero que no se puede encender", () => {
+    expect(motivoParaNoGuardar(ALMACEN.modulos, [...ALMACEN.modulos, "vender", "colaboradores"], [TERMINAL])).toContain("Colaboradores");
+    expect(motivoParaNoGuardar(ALMACEN.modulos, [...ALMACEN.modulos, "vender"], [TERMINAL])).toBeNull();
+    expect(motivoParaNoGuardar(["colaboradores"], [], [TERMINAL])).toBeNull(); // apagar, siempre
+  });
+});
+
+describe("editor rediseñado (spike colaboradores-ux 2026-09-22)", () => {
+  it("agrupa los roles en sistema, terminal y a medida", () => {
+    expect(familiaDeRol(LIDER)).toBe("sistema");
+    expect(familiaDeRol(INTEGRANTE)).toBe("sistema");
+    expect(familiaDeRol(rol({ clave: "terminal_ventas", esSistema: true }))).toBe("terminal");
+    expect(familiaDeRol(rol())).toBe("a_medida");
+  });
+  it("avisa «Solo Inicio» y «Sin uso», nunca del Líder ni de un archivado", () => {
+    expect(avisoDelRol(rol(), 16)).toBe("solo_inicio");
+    expect(avisoDelRol(rol(), 0)).toBe("sin_uso");
+    expect(avisoDelRol(rol({ modulos: ["vender"] }), 3)).toBeNull();
+    expect(avisoDelRol(LIDER, 0)).toBeNull();
+    expect(avisoDelRol(rol({ archivado: true }), 0)).toBeNull();
+  });
+  it("separa lo que el borrador suma de lo que quita", () => {
+    expect(cambiosDelBorrador(["vender", "caja"], ["caja", "clientas"])).toEqual({ suma: ["clientas"], quita: ["vender"] });
+  });
+  it("«Encender todo» enciende el grupo entero (solo lo que se delega) sin tocar otros grupos", () => {
+    const r = alternarGrupo(["existencias"], "Compras", true);
+    const compras = MODULOS.filter((m) => m.grupo === "Compras" && esDelegable(m)).map((m) => m.clave);
+    expect(compras.length).toBeGreaterThan(0);
+    for (const c of compras) expect(r).toContain(c);
+    expect(r).toContain("existencias");
+    expect(r.filter((c) => !compras.includes(c))).toEqual(["existencias"]);
+    expect(alternarGrupo(r, "Compras", false)).toEqual(["existencias"]);
+  });
+  it("el buscador encuentra por lo que incluye, sin tildes", () => {
+    const g = modulosFiltrados("reimprimir");
+    expect(g.flatMap((x) => x.modulos.map((m) => m.clave))).toEqual(["historial"]);
+    expect(modulosFiltrados("categorias").flatMap((x) => x.modulos.map((m) => m.clave))).toContain("atributos");
+    expect(modulosFiltrados("")).toEqual(modulosPorGrupo());
+  });
+  it("la vista previa marca lo que se suma y lo que se quita", () => {
+    const guardado = rol({ modulos: ["vender"] });
+    const menu = menuConCambios(guardado, ["existencias"]);
+    const cambios = menu.flatMap((f) => [[f.etiqueta, f.cambio], ...f.hijas.map((h) => [`${f.etiqueta}/${h.etiqueta}`, h.cambio])]);
+    expect(cambios.some(([, c]) => c === "suma")).toBe(true);
+    expect(cambios.some(([, c]) => c === "quita")).toBe(true);
+    expect(menuConCambios(guardado, ["vender"]).every((f) => f.cambio === "igual" && f.hijas.every((h) => h.cambio === "igual"))).toBe(true);
   });
 });

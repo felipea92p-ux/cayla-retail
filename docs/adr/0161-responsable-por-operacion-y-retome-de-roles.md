@@ -25,7 +25,7 @@ ADR-0150 (roles a medida), que se había abandonado esta misma mañana en la fas
 | A3 | **Solo aparece quien marcó entrada hoy en esa tienda y no marcó salida** (asistencia de Dynamic) | La lista es «quién está en la tienda ahora». |
 | A4 | **Si no hay nadie, la operación se bloquea**, sin «Otra persona» | Contradice a propósito la D-62 («nunca un filtro duro»). **Riesgo aceptado:** ~3 % de marcas llegan con más de 10 min de retraso. Mientras tanto, esa persona no puede guardar. |
 | A5 | **Tienda LIM se bloquea igual** | Hoy LIM tiene 0 personas, horarios y marcas en Dynamic. **Sus terminales no podrán guardar nada hasta que se cargue su asistencia.** |
-| A6 | **Viene vacío siempre** | Nunca se hereda el nombre de la operación anterior. |
+| A6 | **Viene vacío siempre** — *cambiado el 2026-09-22, ver «Actualización: el combo propone a quien inició sesión» al final* | Nunca se hereda el nombre de la operación anterior. |
 | A7 | **Toda acción que guarda lo pide; mirar no.** Es fijo: no se configura por rol | Una sola regla, sin lista que mantener. |
 | A8 | **Sale en todas las cuentas**, no solo en las terminales, **en la operación de tienda**: Ventas, Caja, Cambios, Devoluciones, Facturación, Inventario, Traslados, Catálogo | Compras, Producción del Taller, Colaboradores y Configuración firman con la persona que inició sesión, como hoy. |
 | A9 | **El líder también se bloquea si no marcó** en esa tienda, incluso trabajando desde casa (Felipe lo confirmó dos veces) | **Consecuencia:** sin marcar asistencia en una tienda, Felipe no puede crear ni editar una prenda, ajustar stock ni tocar la caja. |
@@ -240,3 +240,32 @@ Una terminal sigue sin poder ser líder. Migración `20260923110000_cambiar_rol_
 `p_ubicacion_id` (se suelta la firma vieja para no crear una sobrecarga) y escribe `colaboradores.rol`; el disparador
 `fn_colaborador_rol_coherente` deja `rol_id` coherente. Reglas de la web: `rolesAsignables`, `cuentasAsignables` y
 `pideUbicacion` en `lib/roles-reglas.ts`, `accionesDeFila` en `lib/colaboradores-reglas.ts`.
+
+### Y la ubicación, también entre líderes (mismo día)
+
+| # | Regla | Por qué |
+|---|---|---|
+| L4 | **A un líder se le cambia la ubicación** desde Colaboradores («⋯ ▸ Cambiar ubicación»). Para él no es un límite: es **la tienda donde arranca su sesión**; sigue operando todas desde la cabecera. | Ninguna sede de Dynamic de los 9 líderes («Central», «Oficina TRU») está enlazada a una tienda de retail: todos arrancaban en la primera tienda creada. |
+
+Orden para decidir dónde arranca un líder: su ubicación asignada → la tienda de su sede de Dynamic → la primera tienda.
+Vive en `retail.fn_ubicacion_de_partida`, que usan `fn_persona_actual_resumen` y `fn_ubicacion_actual_persona`. Migración
+`20260923120100_ubicacion_de_lideres.sql`.
+
+## Actualización 2026-09-22 — el combo propone a quien inició sesión (reemplaza A6)
+
+Felipe pidió dos cambios al combo «Responsable»:
+
+1. **El texto del combo vacío pasa a «¿Quién está atendiendo?»** en todos los módulos (antes «¿Quién hace esta
+   operación?»). El aviso de «falta» se alinea: «Elige quién está atendiendo.».
+2. **A6 deja de ser «vacío siempre»:**
+   - Sesión de una **persona**: el combo viene ya elegido con ella misma, **si está presente** en la sede (A3 no cambia:
+     si no marcó entrada, viene vacío y la operación se bloquea igual que antes). Después de guardar vuelve a esa persona.
+   - Sesión de una **terminal**: vacío siempre (el aparato no es nadie; ADR-0162).
+   - **Módulo Punto de venta** (`vender`: Punto de venta y Apartados): vacío siempre, también para una persona — quien
+     atiende a la clienta queda como asesora de la venta y puede no ser quien abrió la sesión en el mostrador.
+
+Cómo: `requirePersonaActualV2` trae `personaId` con `fn_actor_persona_id(false)` (para una persona devuelve su propio id;
+en una terminal falla y queda `null`) — **sin migración**. Viaja por `SedeActivaProveedor` (`personaSesionId`), y
+`useResponsable(ubicacion, { proponerSesion: false })` lo apaga en las pantallas de `vender`. La regla pura es
+`responsableInicial` en `lib/responsable-reglas.ts`, con pruebas. La base no cambia: sigue validando que el responsable
+esté presente (`fn_persona_presente`), así que proponer a alguien nunca permite firmar con un ausente.

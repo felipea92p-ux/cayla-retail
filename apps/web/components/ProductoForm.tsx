@@ -308,7 +308,7 @@ export function ProductoForm({
     if (exigeTejido && !tejidoId) return void avisar.error(`Esta prenda ya tenía tejido y en ${categoriaActual?.nombre ?? "esta categoría"} no se puede dejar sin él. Elige uno.`);
     if (exigePatron && !patronId) return void avisar.error("Esta prenda ya tenía patrón y no se puede dejar sin él (si no tiene diseño, elige Liso).");
     const firma = responsable.firma();
-    if (!responsable.listo || !firma) return void avisar.error(responsable.motivo ?? "Elige quién hace esta operación.");
+    if (!responsable.listo || !firma) return void avisar.error(responsable.motivo ?? "Elige quién está atendiendo.");
 
     setLoading(true);
     const cerrarProceso = avisar.proceso(`Guardando ${referencia.trim()}…`);

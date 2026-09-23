@@ -886,6 +886,16 @@ caso(
   "caja,cambios,clientas,devoluciones,facturacion,historial,vender"
 );
 caso(
+  "entre líderes se cambia la ubicación: es la tienda donde arranca su sesión",
+  como(FELIPE_AUTH) +
+    `select asignar_rol(r_lider, micaela) from ids \\g /dev/null\n` +
+    `update retail.colaboradores set ubicacion_asignada_id = null where persona_id = (select micaela from ids);\n` +
+    `select pg_temp.intento(format('select retail.cambiar_ubicacion_colaborador(%L, %L)', micaela, tru)) from ids;\n` +
+    como(MICAELA_AUTH) +
+    `select r.es_lider, r.ubicacion_id = i.tru, retail.fn_ubicacion_actual_persona() = i.tru from retail.fn_persona_actual_resumen() r, ids i;`,
+  "SIN_ERROR\nt|t|t"
+);
+caso(
   "nadie se cambia su propio rol (así nunca falta un líder)",
   como(FELIPE_AUTH) + `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_integ, felipe)) from ids;`,
   (s) => s.startsWith("42501|")

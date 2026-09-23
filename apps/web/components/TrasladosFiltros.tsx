@@ -2,7 +2,6 @@
 
 import { useRef } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
-import { CampoSelectNativo } from "@/components/ui/campos";
 import { ETIQUETA_FILTRO_TRASLADO, FILTROS_TRASLADO, type FiltroDireccion, type FiltroTraslado } from "@/lib/traslados-reglas";
 
 // La «vista rápida»: chips con contador que filtran de verdad la lista, el
@@ -11,10 +10,12 @@ import { ETIQUETA_FILTRO_TRASLADO, FILTROS_TRASLADO, type FiltroDireccion, type 
 // sola sede — no por completar la fila. Todo se filtra en memoria sobre lo que
 // la página ya trajo (los en curso completos, los últimos 30 cerrados): sin
 // consulta por clic.
+// Rediseño 2026-09-22: la sede se elige con píldoras, no con un <select> nativo (que el sistema operativo
+// pintaba con su propio azul, fuera de la marca). Son pocas sedes; una píldora por sede se lee de un vistazo.
 const DIRECCIONES: { valor: FiltroDireccion; texto: string }[] = [
-  { valor: "todas", texto: "Todos" },
-  { valor: "entrante", texto: "Entrantes" },
-  { valor: "saliente", texto: "Salientes" },
+  { valor: "todas", texto: "Todas" },
+  { valor: "entrante", texto: "Entran a tu sede" },
+  { valor: "saliente", texto: "Salen de tu sede" },
 ];
 
 export function TrasladosFiltros({
@@ -135,34 +136,37 @@ export function TrasladosFiltros({
       {masAbierto && (
         <div id="traslados-mas-filtros" className="anim-revelar flex flex-wrap items-end gap-x-6 gap-y-3 rounded-xl bg-hueso/70 px-4 py-3">
           <div>
-            <p className="label-cayla mb-1.5 text-[11px] text-taupe">Dirección</p>
-            <div role="group" aria-label="Dirección" className="flex gap-1.5">
+            <p className="mb-1.5 text-xs text-taupe">Dirección</p>
+            <div role="group" aria-label="Dirección" className="flex flex-wrap gap-1.5">
               {DIRECCIONES.map((d) => (
                 <button
                   key={d.valor}
                   type="button"
                   onClick={() => onDireccion(d.valor)}
                   aria-pressed={direccion === d.valor}
-                  className="pildora-cayla"
+                  className="pildora-cayla aria-[pressed=false]:bg-papel"
                 >
                   {d.texto}
                 </button>
               ))}
             </div>
           </div>
-          <div className="w-52">
-            <CampoSelectNativo etiqueta="Otra sede" value={sede} onChange={(e) => onSede(e.target.value)}>
-              <option value="">Todas</option>
-              {sedes.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.nombre}
-                </option>
+          <div>
+            <p className="mb-1.5 text-xs text-taupe">Otra sede</p>
+            <div role="group" aria-label="Otra sede" className="flex flex-wrap gap-1.5">
+              <button type="button" onClick={() => onSede("")} aria-pressed={sede === ""} className="pildora-cayla aria-[pressed=false]:bg-papel">
+                Todas
+              </button>
+              {sedes.map((x) => (
+                <button key={x.id} type="button" onClick={() => onSede(x.id)} aria-pressed={sede === x.id} className="pildora-cayla aria-[pressed=false]:bg-papel">
+                  {x.nombre}
+                </button>
               ))}
-            </CampoSelectNativo>
+            </div>
           </div>
           {masActivos > 0 && (
-            <button type="button" onClick={onLimpiarMas} className="label-cayla pb-2 text-[11px] text-taupe underline-offset-2 hover:text-rojo hover:underline">
-              Quitar estos filtros
+            <button type="button" onClick={onLimpiarMas} className="btn-enlace pb-1.5 text-[13px]">
+              Limpiar filtros
             </button>
           )}
         </div>

@@ -23,6 +23,8 @@
 -- (`pg_get_functiondef`), nunca copiando cuerpos del repo. Cada reemplazo EXIGE el número exacto de ocurrencias
 -- (inventario hecho contra producción el 2026-09-22 con `execute_sql` de solo lectura); si una función cambió desde
 -- entonces, la migración aborta con un mensaje claro y no deja nada a medias. Re-ejecutable: lo ya aplicado se salta.
+-- La política nueva nace con `(select …)` y al final se corre `retail.fn_rls_una_vez_por_consulta()` (ADR-0176,
+-- 20260923152300, ya en producción): así ninguna política queda evaluándose fila por fila.
 --
 -- ─────────────────────────────── CLASIFICACIÓN DE CADA CANDADO ───────────────────────────────
 -- P1 · COMPRAS, cada módulo lo suyo. Tres capacidades nuevas, mismo molde que las del ADR-0161 C3 («líder o un rol que
@@ -303,7 +305,10 @@ begin
   select qual, with_check into v_pol from pg_policies
    where schemaname = 'retail' and tablename = 'proveedores' and policyname = 'proveedores_write_lider';
   if found then
-    if coalesce(v_pol.qual, '') !~ '^(retail\.)?fn_es_lider\(\)$' or coalesce(v_pol.with_check, '') !~ '^(retail\.)?fn_es_lider\(\)$' then
+    -- Dos formas válidas: la original y la de 20260923152300 (ADR-0176, «una vez por consulta»):
+    -- `( SELECT retail.fn_es_lider() AS fn_es_lider)`. pg_policies la escribe con o sin `retail.` según el search_path.
+    if coalesce(v_pol.qual, '') !~ '^(\( SELECT )?(retail\.)?fn_es_lider\(\)( AS fn_es_lider\))?$'
+       or coalesce(v_pol.with_check, '') !~ '^(\( SELECT )?(retail\.)?fn_es_lider\(\)( AS fn_es_lider\))?$' then
       raise exception 'La política proveedores_write_lider cambió desde que se escribió esta migración (using: %, with check: %). Revísala a mano.',
         v_pol.qual, v_pol.with_check;
     end if;
@@ -312,9 +317,10 @@ begin
 end $$;
 
 drop policy if exists proveedores_write on retail.proveedores;
+-- Con `(select …)`: la capacidad no depende de la fila, Postgres la calcula UNA vez por consulta (ADR-0176).
 create policy proveedores_write on retail.proveedores for all
-  using (retail.fn_puede_gestionar_proveedores())
-  with check (retail.fn_puede_gestionar_proveedores());
+  using ((select retail.fn_puede_gestionar_proveedores()))
+  with check ((select retail.fn_puede_gestionar_proveedores()));
 
 comment on policy proveedores_write on retail.proveedores is
   'ADR-0161 P3 (20260923140000): el líder o un rol con Proveedores. Reemplaza a proveedores_write_lider.';
@@ -491,5 +497,16 @@ begin
   end if;
   if pg_get_functiondef('retail.fn_puede_dar_descuento_por_etiqueta()'::regprocedure) not like '%fn_es_lider()%' then
     raise exception 'fn_puede_dar_descuento_por_etiqueta dejó de ser solo del líder';
+  end if;
+end $$;
+
+-- ==================== 8. Políticas «una vez por consulta» (ADR-0176) ====================
+-- 20260923152300 pide volver a correr esto al final de toda migración que cree o cambie políticas. Es idempotente: solo
+-- reescribe la FORMA de llamar a las funciones de permisos, nunca qué permite cada política. Una base sin esa migración
+-- (el Postgres local viejo) la salta.
+do $$
+begin
+  if to_regprocedure('retail.fn_rls_una_vez_por_consulta()') is not null then
+    perform retail.fn_rls_una_vez_por_consulta();
   end if;
 end $$;

@@ -259,6 +259,10 @@ const ACTORES = [
 // Fixtures: viven dentro de la transacción del escenario y el ROLLBACK los borra.
 const FIXTURE_CONTEO = `${cambiaA(FELIPE)}update retail.conteos set estado = 'anulado' where ubicacion_id = :'trujillo' and estado = 'abierto';
 insert into retail.conteos (ubicacion_id) values (:'trujillo') returning id as conteo \\gset
+-- Una prenda contada (igual al sistema: no mueve stock). Desde 20260923120000 (ADR-0174) un conteo sin prendas no se
+-- cierra, y esta escena prueba QUIÉN cierra, no un conteo vacío.
+insert into retail.conteo_items (conteo_id, variante_id, cantidad_sistema, cantidad_contada)
+  select :'conteo', id, 0, 0 from retail.variantes where sku = 'BLU-EMMA-NEG-M';
 `;
 const FIXTURE_TRASLADO = `insert into retail.transferencias (ubicacion_origen_id, ubicacion_destino_id, estado)
   values (:'lima', :'trujillo', 'recibido_con_diferencia') returning id as traslado \\gset

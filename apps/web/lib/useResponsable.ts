@@ -9,6 +9,7 @@ import {
   estadoCombo,
   listaResponsable,
   motivoSinResponsable,
+  responsableInicial,
   responsableVigente,
   type EstadoCombo,
   type Firma,
@@ -29,7 +30,7 @@ export type ControlResponsable = {
   sede: string;
   lista: ListaResponsable;
   estado: EstadoCombo;
-  /** El elegido, solo si sigue presente. */
+  /** El elegido (o, sin tocar el combo, la persona de la sesión), solo si sigue presente. */
   elegidoId: string | null;
   elegir: (personaId: string) => void;
   limpiar: () => void;
@@ -43,27 +44,36 @@ export type ControlResponsable = {
   firma: (momento?: string | null) => Firma | null;
   /** Los mismos encabezados para un `fetch` a una ruta `/api/*` (vacío si falta elegir). */
   encabezados: () => Record<string, string>;
-  /** Tras guardar: vuelve a vacío si salió bien; si la base rechazó por el responsable, vacía y relee la lista. */
+  /** Tras guardar: vuelve a como vino si salió bien; si la base rechazó por el responsable, lo mismo y relee la lista. */
   despues: (error: { code?: string | null; hint?: string | null; message?: string | null } | null | undefined) => void;
 };
 
 /**
  * @param ubicacion — por defecto la sede activa de la cabecera (A11). Solo se pasa cuando la pantalla ya la recibe
  *   (Punto de venta, Caja), para que la lista sea exactamente la de la operación.
+ * @param opciones.proponerSesion — `true` (por defecto): el combo viene elegido con quien inició sesión, si es una
+ *   persona presente. El Punto de venta pasa `false`: ahí siempre viene vacío (ver `responsableInicial`).
  */
-export function useResponsable(ubicacion?: { ubicacionId: string; etiqueta: string }): ControlResponsable {
+export function useResponsable(
+  ubicacion?: { ubicacionId: string; etiqueta: string },
+  { proponerSesion = true }: { proponerSesion?: boolean } = {},
+): ControlResponsable {
   const activa = useSedeActiva();
   const ubicacionId = ubicacion?.ubicacionId ?? activa?.ubicacionId ?? null;
   const sede = ubicacion?.etiqueta ?? activa?.etiqueta ?? "esta tienda";
+  const propuesto = proponerSesion ? (activa?.personaSesionId ?? null) : null;
   const deTurno = useDeTurno(ubicacionId);
-  const [elegido, setElegido] = useState<string | null>(null);
+  // Lo que se tocó en el combo; `undefined` = nadie lo tocó todavía y vale el propuesto.
+  const [tocado, setTocado] = useState<string | undefined>(undefined);
+  const elegido = responsableInicial(tocado, propuesto);
 
   const lista = useMemo(() => listaResponsable(deTurno.filas), [deTurno.filas]);
-  const elegidoId = responsableVigente(lista, elegido);
+  const elegidoId = useMemo(() => responsableVigente(lista, elegido), [lista, elegido]);
   const estado = estadoCombo({ cargo: deTurno.cargo, fallo: deTurno.fallo, lista, elegidoId: elegido });
   const listo = estado === "listo" && ubicacionId !== null;
 
-  const limpiar = useCallback(() => setElegido(null), []);
+  // «Limpiar» (venta nueva, cancelar) vuelve a como vino al abrir: la persona de la sesión, o vacío.
+  const limpiar = useCallback(() => setTocado(undefined), []);
   const { recargar } = deTurno;
 
   const firma = useCallback(
@@ -75,11 +85,11 @@ export function useResponsable(ubicacion?: { ubicacionId: string; etiqueta: stri
   const despues = useCallback<ControlResponsable["despues"]>(
     (error) => {
       if (!error) {
-        setElegido(null);
+        setTocado(undefined);
         return;
       }
       if (esErrorDeResponsable(error)) {
-        setElegido(null);
+        setTocado(undefined);
         void recargar();
       }
     },
@@ -92,7 +102,7 @@ export function useResponsable(ubicacion?: { ubicacionId: string; etiqueta: stri
     lista,
     estado,
     elegidoId,
-    elegir: setElegido,
+    elegir: setTocado,
     limpiar,
     recargar,
     recargando: deTurno.recargando,

@@ -120,6 +120,16 @@ export function motivoParaNoEncender(clave: ClaveModulo, borrador: readonly Clav
   return `«${nombre}» solo se da a personas, y este rol lo ${terminales.length === 1 ? "tiene una terminal" : `tienen ${terminales.length} terminales`} (${terminales.join(", ")}). Dales otro rol antes de encenderlo.`;
 }
 
+/** Lo mismo para un cambio entero (un módulo, «Encender todo» o un clic en la matriz): el motivo del primer módulo que se
+ *  SUMA y no se puede encender, o `null`. */
+export function motivoParaNoGuardar(antes: readonly ClaveModulo[], despues: readonly ClaveModulo[], cuentasDelRol: readonly Pick<CuentaConRol, "tipo" | "nombre">[]): string | null {
+  for (const clave of despues) {
+    const motivo = motivoParaNoEncender(clave, antes, cuentasDelRol);
+    if (motivo) return motivo;
+  }
+  return null;
+}
+
 /** Los roles que se le pueden asignar a una cuenta: los vigentes. El Líder, solo a una persona (una terminal nunca es
  *  líder, ADR-0162); sin cuenta elegida todavía, se ofrece igual y la base decide. A una terminal tampoco un rol con
  *  Colaboradores o Roles y accesos (ADR-0161 P6). */
@@ -149,4 +159,77 @@ export function cuentasAsignables(cuentas: readonly CuentaConRol[], rol: Pick<Ro
  *  una (check `rol = 'lider' or ubicacion_asignada_id is not null`). */
 export function pideUbicacion(cuenta: Pick<CuentaConRol, "esLider" | "ubicacion">, destino: Pick<RolVista, "fijo"> | undefined): boolean {
   return !!destino && cuenta.esLider && !destino.fijo && !cuenta.ubicacion;
+}
+
+/* ------------------------------------------------------------------------------------------------------------------
+ * Editor de roles rediseñado (spike `docs/maquetas/colaboradores-ux-spike-2026-09/`, aprobado por Felipe 2026-09-22).
+ * ------------------------------------------------------------------------------------------------------------------ */
+
+/** Cómo se agrupa la lista de roles: los del sistema, los de las terminales y los que armó un líder. */
+export type FamiliaRol = "sistema" | "terminal" | "a_medida";
+
+export function familiaDeRol(rol: Pick<RolVista, "clave" | "fijo" | "esSistema">): FamiliaRol {
+  if (rol.clave === "terminal_ventas" || rol.clave === "terminal_administrativa") return "terminal";
+  if (rol.fijo || rol.esSistema) return "sistema";
+  return "a_medida";
+}
+
+/** El aviso de la lista de roles: «Solo Inicio» si deja cuentas sin ningún módulo, «Sin uso» si nadie lo tiene. */
+export function avisoDelRol(rol: Pick<RolVista, "fijo" | "archivado" | "modulos">, cuentas: number): "solo_inicio" | "sin_uso" | null {
+  if (rol.fijo || rol.archivado) return null;
+  if (cuentas > 0 && rol.modulos.length === 0) return "solo_inicio";
+  if (cuentas === 0) return "sin_uso";
+  return null;
+}
+
+/** Lo que el borrador suma y quita respecto de lo guardado, en el orden del catálogo. */
+export function cambiosDelBorrador(guardados: readonly ClaveModulo[], borrador: readonly ClaveModulo[]): { suma: ClaveModulo[]; quita: ClaveModulo[] } {
+  return {
+    suma: MODULOS.filter((m) => borrador.includes(m.clave) && !guardados.includes(m.clave)).map((m) => m.clave),
+    quita: MODULOS.filter((m) => guardados.includes(m.clave) && !borrador.includes(m.clave)).map((m) => m.clave),
+  };
+}
+
+/** «Encender todo» / «Quitar todo» de un grupo: solo toca los módulos que se pueden delegar. */
+export function alternarGrupo(modulos: readonly ClaveModulo[], grupo: Modulo["grupo"], encender: boolean): ClaveModulo[] {
+  const delGrupo = new Set(MODULOS.filter((m) => m.grupo === grupo && esDelegable(m)).map((m) => m.clave));
+  return MODULOS.filter((m) => (delGrupo.has(m.clave) ? encender : modulos.includes(m.clave))).map((m) => m.clave);
+}
+
+const sinTildes = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+/** Los grupos con los módulos que coinciden con lo buscado (nombre, lo que incluye o el grupo). Vacío = todos. */
+export function modulosFiltrados(texto: string): { grupo: Modulo["grupo"]; modulos: Modulo[] }[] {
+  const q = sinTildes(texto.trim());
+  if (!q) return modulosPorGrupo();
+  return modulosPorGrupo()
+    .map((g) => ({ grupo: g.grupo, modulos: g.modulos.filter((m) => sinTildes(`${m.nombre} ${m.incluye} ${g.grupo}`).includes(q)) }))
+    .filter((g) => g.modulos.length > 0);
+}
+
+export type CambioMenu = "igual" | "suma" | "quita";
+export type FilaMenuConCambios = { etiqueta: string; cambio: CambioMenu; hijas: { etiqueta: string; cambio: CambioMenu }[] };
+
+/**
+ * «Así queda su menú» con el borrador a la vista: lo que se suma y lo que se quita, sobre el mismo `menuDelRol` que arma el
+ * menú real. Se calcula el menú de lo guardado, el del borrador y el de ambos juntos (para conservar el orden del lateral).
+ */
+export function menuConCambios(
+  rol: Pick<RolVista, "fijo" | "modulos" | "limitadoComoHoy">,
+  borrador: readonly ClaveModulo[],
+  ubicacionTipo: TipoUbicacion = "tienda",
+): FilaMenuConCambios[] {
+  const antes = etiquetasDelMenu(menuDelRol(rol, ubicacionTipo));
+  const despues = etiquetasDelMenu(menuDelRol({ ...rol, modulos: [...borrador] }, ubicacionTipo));
+  const juntos = etiquetasDelMenu(menuDelRol({ ...rol, modulos: [...new Set([...rol.modulos, ...borrador])] }, ubicacionTipo));
+  const cambio = (enAntes: boolean, enDespues: boolean): CambioMenu => (enAntes && enDespues ? "igual" : enDespues ? "suma" : "quita");
+  return juntos.map((f) => {
+    const a = antes.find((x) => x.etiqueta === f.etiqueta);
+    const d = despues.find((x) => x.etiqueta === f.etiqueta);
+    return {
+      etiqueta: f.etiqueta,
+      cambio: cambio(!!a, !!d),
+      hijas: f.hijas.map((h) => ({ etiqueta: h, cambio: cambio(!!a?.hijas.includes(h), !!d?.hijas.includes(h)) })),
+    };
+  });
 }
