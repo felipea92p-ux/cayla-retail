@@ -60,6 +60,11 @@ export type CompraResumen = {
   pendienteAqui?: number;
   /** Con una tienda de por medio: las unidades del comprobante ENTERO (todas las tiendas). `facturadoCantidad` es lo de ella. */
   facturadoTotal?: number;
+  /**
+   * ADR-0187, solo en Por pagar de quien no es líder: el comprobante es de varias tiendas y `total`, `pagado` y `saldo` ya son
+   * los de SU parte. Aquí queda el total del papel entero, para decir «tu parte de S/ …». Sin reparto, `undefined`.
+   */
+  totalComprobante?: number;
 };
 
 export type LineaCompra = {

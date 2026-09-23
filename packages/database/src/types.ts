@@ -4824,7 +4824,8 @@ export type Database = {
       extender_separacion: {
         Args: { p_separacion_id: string }
         Returns: string
-      }
+      }
+
       fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
       fn_soles_diferencia_conteo: { Args: { p_conteo_id: string }; Returns: number }
       fn_catalogo_version: { Args: never; Returns: number }
@@ -6137,6 +6138,11 @@ export type Database = {
       fn_compras_visibles: { Args: never; Returns: string[] }
       fn_compra_es_de_mis_tiendas: { Args: { p_compra_id: string }; Returns: boolean }
       fn_mi_parte_de_compra: { Args: { p_compra_id: string }; Returns: Json }
+      // 20260924100000 (ADR-0187): lo que debe quien consulta en cada comprobante (líder: el total; tienda: su parte).
+      fn_deuda_visible: {
+        Args: { p_ids?: string[] }
+        Returns: { compra_id: string; total: number; pagado: number; saldo: number; gestionada: boolean }[]
+      }
       fn_mis_partes_de_compras: {
         Args: never
         Returns: {
