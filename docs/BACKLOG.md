@@ -80,6 +80,14 @@ Prendas que llegan a piso antes de pasar por almacén (taller, proveedores, acce
 - [x] Probado por Felipe en local (2026-09-23: «está bien») y fusionado a `main` por PR el mismo día (el ADR-0178 lo tomó «escalón admin» mientras tanto: esta rama usa 0179).
 - [ ] Probar con clics en una tienda real: vender una prenda sin registrar y regularizarla desde la cuenta de almacén.
 - [ ] Aparte, sin decidir: las reimpresiones y el historial muestran «Prenda sin registrar» mientras la prenda está pendiente (el comprobante electrónico y el ticket del momento sí dicen la descripción).
+## 🎯 Por pagar muestra la parte de MI tienda (2026-09-23, ADR-0187) — construido; migración `20260924100000` POR PEGAR en producción antes de fusionar
+Felipe: «que cada tienda vea su parte». La tienda que registró una factura repartida veía el total en Por pagar. Ahora todas las cifras, la lista y el pago usan `fn_deuda_visible` (el líder, igual que antes).
+- [x] Migración `20260924100000_por_pagar_parte_de_mi_tienda.sql` (5 indicadores reescritos desde su definición viva de producción + `fn_proveedores` con anclas; candado `{}`).
+- [x] Web: filas con «Tu parte · total S/ …», pago lleno con la parte, `porPagarConMiParte` en `lib/compras-mi-parte.ts`.
+- [x] Pruebas: `pruebas:por-pagar-parte-de-mi-tienda` 12/12; las de Compras en verde; vitest 24.338.
+- [ ] Pegar en producción y verificar (una firma por función, `fn_aplicar_candado_de_dinero()` → `{}`); después fusionar.
+- [ ] Verlo con clics con una cuenta no líder con Por pagar; sumar la prueba al CI.
+
 ## 🎯 Compras por tienda: cada tienda ve y paga lo suyo (2026-09-23, ADR-0184 — nació como 0145/0150/0151) — EN PRODUCCIÓN las 6 migraciones (Felipe, 2026-09-23; verificadas en solo lectura)
 Decisión de Felipe (2026-09-23): con un módulo de Compras se ve y se paga **solo lo de su tienda**; el líder, todo. El rol dice QUIÉN (ADR-0161); `fn_compras_ubicaciones()` dice DÓNDE (su tienda + extras de `compradores_de_tienda`). Detalle en [docs/adr/0184-compras-cada-tienda-compra-y-paga-lo-suyo.md](adr/0184-compras-cada-tienda-compra-y-paga-lo-suyo.md), «Estado final».
 - [x] Migraciones `20260923180000` … `20260923180400` (quién y dónde · parte por tienda · gestora + lectura + escrituras · pagar por tienda · F3-b «mi parte»), ancladas en las definiciones de producción del 2026-09-23, re-pegables. Reemplazan a las 5 `20260922*` de la rama `adr-0145-compras-permisos` (nunca pegadas; chocaban en número con 5 de main).

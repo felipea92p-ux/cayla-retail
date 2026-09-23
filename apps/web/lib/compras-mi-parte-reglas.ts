@@ -211,3 +211,37 @@ export function parteDelDetalle(d: DetalleMiParte, i: number): ParteDeCompra {
     parteNueva: false,
   };
 }
+
+// ---------- ADR-0187: Por pagar muestra la parte de MI tienda en los comprobantes que gestiono ----------
+
+/** Una fila de `fn_deuda_visible(p_ids)`: lo que debe quien consulta en ese comprobante (montos como texto o número). */
+export type FilaDeudaVisible = { compra_id: string; total: number | string; pagado: number | string; saldo: number | string; gestionada: boolean };
+
+/**
+ * Las filas de Por pagar con los montos de MI parte (quien no es líder). La factura que gestiona mi tienda llega de la base
+ * entera; aquí `total`, `pagado` y `saldo` pasan a ser los de mis tiendas —el pago se llena y se topa con ESO, que es lo único
+ * que la base me deja pagar— y `totalComprobante` guarda el total del papel para decir «tu parte de…». Un comprobante en el
+ * que mi tienda ya pagó lo suyo (aunque la otra no) sale de la lista: ya no le debo nada.
+ */
+export function conMiParte(filas: readonly CompraResumen[], deuda: readonly FilaDeudaVisible[]): CompraResumen[] {
+  const porId = new Map(deuda.map((d) => [d.compra_id, d]));
+  const salida: CompraResumen[] = [];
+  for (const f of filas) {
+    const d = porId.get(f.id);
+    if (!d) continue;
+    const total = Number(d.total);
+    const pagado = Number(d.pagado);
+    const saldo = Number(d.saldo);
+    // Solo se marca como parte cuando de verdad es una parte: una factura toda para mi tienda se ve como siempre.
+    const esParte = Math.abs(total - f.total) > 0.005;
+    salida.push({
+      ...f,
+      total,
+      pagado,
+      saldo,
+      estadoPago: saldo <= 0 ? "pagada" : pagado > 0 ? "parcial" : "pendiente",
+      ...(esParte ? { totalComprobante: f.total } : {}),
+    });
+  }
+  return salida;
+}

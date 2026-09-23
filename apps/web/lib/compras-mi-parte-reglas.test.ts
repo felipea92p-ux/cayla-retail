@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compraParaPagarMiParte, detalleMiParteDeJson, parteDeFila, parteDelDetalle, partesPorPagar, type FilaParteDeCompra } from "./compras-mi-parte-reglas";
+import { compraParaPagarMiParte, conMiParte, detalleMiParteDeJson, parteDeFila, parteDelDetalle, partesPorPagar, type FilaParteDeCompra } from "./compras-mi-parte-reglas";
 
 const FILA: FilaParteDeCompra = {
   compra_id: "c1",
@@ -60,5 +60,35 @@ describe("mi parte en un comprobante de otra tienda (ADR-0184, F3-b)", () => {
     const p = parteDelDetalle(d, 0);
     expect(p).toMatchObject({ compraId: "c1", ubicacionId: "tru", saldo: 708, gestoraNombre: "Tienda Lima" });
     expect(compraParaPagarMiParte(p).estadoPago).toBe("pendiente");
+  });
+});
+
+describe("Por pagar con la parte de MI tienda (ADR-0187)", () => {
+  const fila = (id: string, total: number, pagado: number, saldo: number) =>
+    ({ ...compraParaPagarMiParte(parteDeFila({ ...FILA, compra_id: id })), documento: id, total, pagado, saldo, estadoPago: "pendiente" as const });
+
+  it("la factura de 10,000 repartida mitad y mitad se ve con MI mitad y dice de cuánto es el comprobante", () => {
+    const [f] = conMiParte([fila("c1", 10000, 0, 10000)], [{ compra_id: "c1", total: "5000.00", pagado: "0.00", saldo: "5000.00", gestionada: true }]);
+    expect(f).toMatchObject({ total: 5000, pagado: 0, saldo: 5000, totalComprobante: 10000, estadoPago: "pendiente" });
+  });
+
+  it("una factura toda para mi tienda se ve como siempre, sin «tu parte»", () => {
+    const [f] = conMiParte([fila("c1", 1416, 0, 1416)], [{ compra_id: "c1", total: 1416, pagado: 0, saldo: 1416, gestionada: true }]);
+    expect(f.totalComprobante).toBeUndefined();
+    expect(f.saldo).toBe(1416);
+  });
+
+  it("si mi tienda ya pagó lo suyo (la otra todavía no), el comprobante sale de MI lista", () => {
+    expect(conMiParte([fila("c1", 10000, 5000, 5000), fila("c2", 300, 0, 300)], [{ compra_id: "c2", total: 300, pagado: 0, saldo: 300, gestionada: true }]).map((f) => f.id)).toEqual(["c2"]);
+  });
+
+  it("un pago parcial de mi tienda deja la fila en «parcial» con lo que le falta a ella", () => {
+    const [f] = conMiParte([fila("c1", 10000, 2000, 8000)], [{ compra_id: "c1", total: 5000, pagado: 2000, saldo: 3000, gestionada: true }]);
+    expect(f).toMatchObject({ pagado: 2000, saldo: 3000, estadoPago: "parcial" });
+  });
+
+  it("conserva el orden de la lista (el de la base: por vencimiento)", () => {
+    const deuda = ["c3", "c1", "c2"].map((id) => ({ compra_id: id, total: 1, pagado: 0, saldo: 1, gestionada: true }));
+    expect(conMiParte([fila("c1", 1, 0, 1), fila("c2", 1, 0, 1), fila("c3", 1, 0, 1)], deuda).map((f) => f.id)).toEqual(["c1", "c2", "c3"]);
   });
 });

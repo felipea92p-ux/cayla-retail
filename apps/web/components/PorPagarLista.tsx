@@ -650,6 +650,8 @@ function FilaPorPagar({
           </Link>
         </span>
         <span className="block text-xs text-tinta/55">Emitida {diaMes(c.fechaEmision)}</span>
+        {/* ADR-0187: el comprobante es de varias tiendas y los montos de la fila son los de la mía. */}
+        {c.totalComprobante !== undefined && <span className="block text-xs tabular-nums text-tinta/55">Tu parte · total <span className="whitespace-nowrap">{soles(c.totalComprobante)}</span></span>}
         <span className={`mt-1 block text-xs @[40rem]:hidden ${colorVence}`}>{vence}</span>
         {/* Lo que el proveedor todavía debe acreditar por un faltante cerrado: parte de este saldo que no
             hay que pagar. Va bajo el proveedor (la columna con sitio). Es su propio enlace al comprobante,

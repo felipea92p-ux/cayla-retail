@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-23 (Por pagar muestra la parte de MI tienda — ADR-0187)
+Felipe preguntó si una factura de 10k repartida entre TRU y AQP se ve 5k y 5k en Por pagar. La respuesta era «a medias»: la tienda que no registró la factura ya veía sus 5k, pero la que la registró veía los 10k en las cifras, en la fila y en el pago (y la base le rechazaba pagar más de 5k). Ahora una sola función, `fn_deuda_visible`, dice cuánto debe cada cuenta, y todas las cifras y la lista la usan; el líder sigue viendo el total. Migración `20260924100000` con 12 pruebas SQL en verde; por pegar en producción antes de fusionar.
+Felipe se lleva: (1) **el candado en la base no basta si la pantalla dice otra cosa**: nadie podía pagar de más, pero la cifra mentía; (2) **«cuánto debo» se responde en un solo lugar**: seis cifras distintas sumaban el saldo cada una por su cuenta; (3) **el papel es uno, la deuda es por tienda**: la factura sigue mostrando su total, Por pagar muestra lo tuyo.
+
 ## 2026-09-23 (Prueba intermitente de roles en el CI — PR #365)
 La prueba «ADR-0178 alcance: cambiarle el rol…» de `pruebas:roles` falló en el CI del PR #363 (que no tocaba roles) y pasó al reintentar. Causa: buscaba a sus tres personas de prueba por los dos últimos caracteres del UUID (`d1`, `d2`, `d3`), y el seed del CI crea colaboradores con UUID aleatorio: 1 de cada 256 termina en `d2` y se colaba. Ahora las busca por el UUID completo; se reprodujo el fallo a propósito (69/70 antes, 70/70 después) y la suite pasó 5 de 5 veces en local. La regla de alcance no cambió.
 Felipe se lleva: (1) **una prueba que falla «a veces» no es mala suerte, es una dependencia escondida**: aquí, un dato aleatorio de otra parte del sistema; (2) **en local pasaba siempre porque la base local no tenía ese dato**: que pase en tu máquina no prueba que sea determinista; (3) **una prueba intermitente se arregla, no se reintenta**: si el CI enseña a reintentar hasta el verde, un día se ignora un rojo de verdad.
