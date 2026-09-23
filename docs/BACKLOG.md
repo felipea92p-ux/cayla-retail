@@ -28,10 +28,24 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Los 7 módulos «del líder» se pueden dar a un rol (2026-09-22, ADR-0161 B6-B8) — CONSTRUIDO en la rama `claude/abrir-modulos-a-los-roles`; NO está en producción
-- [ ] Pegar en producción, en orden: `20260923130000_abrir_modulos_a_los_roles.sql` y `20260923131000_colaboradores_y_roles_delegables.sql` (empezar con `set search_path to retail, public, extensions;`). Las dos abortan solas si alguna función cambió.
+## 🎯 Las 6 decisiones de los módulos (2026-09-22, ADR-0161 P1–P6) — CONSTRUIDO en la rama `claude/modulos-seis-decisiones`; NO está en producción
+Migración `20260923140000_modulos_seis_decisiones.sql` + web + pruebas. Detalle y clasificación de cada candado en el ADR-0161 («P1–P6 construidas»).
+- [x] **P1 Compras, cada módulo lo suyo:** `fn_puede_registrar_facturas_compra` (registrar, anular, reparto, adjuntos), `fn_puede_pagar_compras` (pagos y reembolsos), `fn_puede_registrar_notas_credito` (notas y el PDF de la nota). `fn_puede_registrar_compras` queda solo para leer lo de los tres. Web: el detalle del comprobante muestra cada botón a su módulo (`accionesDeCompra`).
+- [x] **P2 Recibir con montos** para quien ve el dinero de Compras (`verDineroCompras`), sin cambiar la sede que se mira. Sin cambio en la base (se dejó escrito por qué).
+- [x] **P3 Proveedores:** alta, edición, archivo y ficha con su módulo (`fn_puede_gestionar_proveedores`, política `proveedores_write`); en la ficha, los montos con `verDineroCompras` y los insumos del Taller solo el líder.
+- [x] **P4 Etiquetas sin descuento desde la ficha de la prenda** con Productos o Categorías y atributos; las de descuento no se le ofrecen a quien no es líder.
+- [x] **P5 Existencias:** costo y stock de la red, solo del líder (Análisis ve el costo de SU sede en Análisis).
+- [x] **P6 Colaboradores y Roles y accesos, solo a personas:** candado en los disparadores de `terminales` y `rol_modulos` + capacidades falsas para una terminal; en Roles y accesos se avisa al encenderlos y no se ofrecen esos roles a una terminal.
+- [ ] **Pegar en producción** `20260923140000_modulos_seis_decisiones.sql` (empezar con `set search_path to retail, public, extensions;`). Aborta sola si alguna función cambió o si alguna terminal ya tuviera Colaboradores o Roles. Ensayada en una copia local alineada con producción (y re-ejecutada, y con 130000/131000 re-pegadas después: no se deshace).
+- [ ] **Pregunta para Felipe (P3):** la Terminal Almacén (3 terminales) tiene el módulo Proveedores: con esta migración puede dar de alta, editar y desactivar proveedores. ¿Se queda así o se le apaga el módulo?
+- [ ] **Pregunta para Felipe (P1):** recibir con una nota de crédito por faltante (`recibir_envio` con `p_notas_credito`) ahora pide Notas de crédito, no cualquiera de los tres módulos. Hoy la web no lo usa (el aviso «nota por reclamar» es solo del líder).
+- [ ] Refrescar el volcado y el diccionario cuando se pegue, y `pnpm datos:comparar`.
+- Cómo verificas: un rol con solo «Por pagar» ve el detalle de un comprobante con «Registrar pago» y sin «Anular»; uno con solo «Proveedores» entra a Compras ▸ Proveedores, abre la ficha sin una cifra y puede editar; en Roles y accesos, encender Colaboradores en «Terminal de ventas» avisa y no se enciende.
+
+## 🎯 Los 7 módulos «del líder» se pueden dar a un rol (2026-09-22, ADR-0161 B6-B8) — EN PRODUCCIÓN (pegadas el 2026-09-22)
+- [x] Pegadas en producción: `20260923130000_abrir_modulos_a_los_roles.sql` y `20260923131000_colaboradores_y_roles_delegables.sql` (verificado el 2026-09-22 leyendo producción: `fn_puede_analizar`, `fn_puede_gestionar_colaboradores` y los 7 módulos `delegable`).
 - [ ] Refrescar el volcado y el diccionario (`generado/COMO-REFRESCAR.md`) y correr `pnpm datos:comparar`.
-- [ ] **PR aparte:** construir las 6 decisiones P1-P6 del ADR-0161 (Felipe, 2026-09-22): registrar en Compras por módulo, montos en Recibir, ficha y edición de proveedores con su módulo, etiquetas sin descuento desde la ficha con Productos, Análisis sin costo ni red en Existencias, Colaboradores y Roles solo a personas.
+- [x] ~~PR aparte: las 6 decisiones P1-P6~~ → sección de arriba.
 - Cómo verificas: en Roles y accesos los 7 módulos salen con interruptor; un rol con solo «Por pagar» ve Compras ▸ Por pagar con montos; uno con «Etiquetas» ve la pestaña Etiquetas y no puede poner descuento.
 
 ## 🎯 Conteo físico: rediseño con la guía oficial (2026-09-22) — maqueta lista, sin código
