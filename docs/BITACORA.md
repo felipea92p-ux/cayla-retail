@@ -9034,3 +9034,9 @@ Sin resolver: `SUPABASE_SERVICE_ROLE_KEY` en Vercel (lo pone Felipe), encender `
 El PR #320 había puesto «¿Quién está atendiendo?» en todo el ERP: Felipe lo pidió solo para la venta, y la sesión le preguntó de nuevo afirmando lo contrario. Ahora hay dos modos: `atencion` (Punto de venta con sus apartados, Cambios y Devoluciones: esa pregunta y siempre vacío) y `operacion` (el resto: «¿Quién hace esta operación?» y viene la persona de la sesión). Cambios y Devoluciones pasan a venir vacíos. Sin migración; tipos, lint y 24 219 pruebas en verde.
 Felipe se lleva: (1) **una pregunta que reformula lo pedido no es una confirmación, es una decisión nueva**: así se coló el cambio global; (2) el texto y la preselección van juntos en un solo «modo», así no pueden desalinearse pantalla por pantalla; (3) una prueba fija la lista de pantallas de atención.
 Sin resolver: verlo con clics con una cuenta de persona y con una terminal.
+
+## 2026-09-23 (Catálogo: el combo «Responsable» solo dentro de las ventanas)
+Felipe preguntó por qué Categorías y Atributos tenían «¿Quién hace esta operación?» arriba de la lista y otra vez al agregar o editar. Era para los botones de un clic (Aprobar, Desactivar, Reactivar), que no abren ventana. Eligió la opción 1 viendo una maqueta: sin combo arriba y una confirmación corta con el combo adentro, en las 8 listas. Sin migración; tipos, lint y 24 240 pruebas en verde.
+Felipe se lleva: (1) **un control que ya viene resuelto no merece un lugar fijo en la pantalla**: con tu cuenta el combo ya trae tu nombre; (2) la confirmación hace dos cosas: da el lugar para elegir al responsable y evita desactivar algo sin querer; (3) una prueba impide que una lista vuelva a guardar con un clic sin confirmar.
+Sin resolver: verlo con clics con una cuenta de persona y con una terminal.
+

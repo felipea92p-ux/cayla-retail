@@ -4,6 +4,8 @@ import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { useEffect, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
+import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
@@ -143,10 +145,11 @@ function SelectorColor({ hex, onHex }: { hex: string | null; onHex: (hex: string
 }
 
 export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresIniciales: Color[]; puedeEditar: boolean }) {
-  // Cambiar el vocabulario es Catálogo, operación de tienda (ADR-0161): UN combo «Responsable» firma todo lo que se
-  // guarda desde esta lista (arriba; el mismo se repite en cada modal, también en el de edición) y cada guardado
-  // exitoso lo vacía.
+  // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
+  // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
+  // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
   const responsable = useResponsable();
+  const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
   const [colores, setColores] = useState(() => ordenar(coloresIniciales));
   const [agregando, setAgregando] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -315,7 +318,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        {puedeEditar ? <ComboResponsable control={responsable} hacia="abajo" className="w-full max-w-xs" /> : <span />}
+        <span />
         <button
           type="button"
           onClick={abrir}
@@ -350,9 +353,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                         peso="primario"
                         className="flex-1 px-2.5 py-1.5 text-[11px]"
                         cargando={aprobandoCodigo === c.codigo}
-                        disabled={!responsable.listo}
-                        title={responsable.motivo ?? undefined}
-                        onClick={() => aprobar(c)}
+                        onClick={() => setConfirmando(confirmacionCatalogo("aprobar", c.nombre, () => aprobar(c)))}
                       >
                         Aprobar
                       </Boton>
@@ -465,9 +466,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                     peso="discreto"
                     className="px-2.5 py-1.5 text-[11px]"
                     cargando={cambiandoCodigo === c.codigo}
-                    disabled={!responsable.listo}
-                    title={responsable.motivo ?? undefined}
-                    onClick={() => reactivar(c)}
+                    onClick={() => setConfirmando(confirmacionCatalogo("reactivar", c.nombre, () => reactivar(c)))}
                   >
                     {cambiandoCodigo === c.codigo ? "…" : "Reactivar"}
                   </Boton>
@@ -519,6 +518,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
           }}
         />
       )}
+
+      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
     </div>
   );
 }

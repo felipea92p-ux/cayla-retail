@@ -285,3 +285,15 @@ en el mostrador. `useResponsable(ubicacion, { modo: "atencion" })` reemplaza a `
 `control.pregunta`. El rechazo `responsable_requerido` de la base no sabe en qué pantalla está, así que dice «Falta elegir
 al responsable» (es casi inalcanzable: la pantalla apaga el botón antes). Una prueba en `lib/responsable-reglas.test.ts`
 fija qué pantallas usan `atencion` y que ninguna otra lo use. Sin migración.
+
+## Actualización 2026-09-23 (b) — en Catálogo el combo no va arriba de la lista
+
+Las 8 listas del Catálogo (Categorías, Familias, Colores, Tallas, Tejidos, Patrones, Etiquetas, Marcas) tenían un combo
+«Responsable» suelto arriba, para firmar los botones que guardan con un clic, y el mismo combo se repetía dentro de cada
+ventana. Con la cuenta de una persona ya trae su nombre, así que arriba solo ocupaba espacio y se veía dos veces.
+Felipe eligió (maqueta `docs/maquetas/catalogo-responsable-confirmacion-2026-09/`): **sin combo arriba**; Aprobar,
+Desactivar y Reactivar abren una confirmación corta con el combo adentro (`components/ConfirmarConResponsable.tsx`,
+textos en `lib/confirmar-catalogo.ts`). Agregar, editar, rechazar y renombrar no cambian: su ventana ya traía el combo.
+La firma no cambia. `lib/confirmar-catalogo.test.ts` vigila que ninguna de las 8 listas vuelva a tener un combo
+flotante ni un botón de tarjeta que guarde sin confirmar. Sin migración.
+
