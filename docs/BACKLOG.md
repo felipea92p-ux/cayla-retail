@@ -80,12 +80,13 @@ Prendas que llegan a piso antes de pasar por almacén (taller, proveedores, acce
 - [x] Probado por Felipe en local (2026-09-23: «está bien») y fusionado a `main` por PR el mismo día (el ADR-0178 lo tomó «escalón admin» mientras tanto: esta rama usa 0179).
 - [ ] Probar con clics en una tienda real: vender una prenda sin registrar y regularizarla desde la cuenta de almacén.
 - [ ] Aparte, sin decidir: las reimpresiones y el historial muestran «Prenda sin registrar» mientras la prenda está pendiente (el comprobante electrónico y el ticket del momento sí dicen la descripción).
-## 🎯 Por pagar muestra la parte de MI tienda (2026-09-23, ADR-0187) — construido; migración `20260924100000` POR PEGAR en producción antes de fusionar
+## 🎯 Por pagar muestra la parte de MI tienda (2026-09-23, ADR-0187) — migración `20260924100000` EN PRODUCCIÓN (Felipe la pegó el 2026-09-23; verificada); web en PR #367
 Felipe: «que cada tienda vea su parte». La tienda que registró una factura repartida veía el total en Por pagar. Ahora todas las cifras, la lista y el pago usan `fn_deuda_visible` (el líder, igual que antes).
 - [x] Migración `20260924100000_por_pagar_parte_de_mi_tienda.sql` (5 indicadores reescritos desde su definición viva de producción + `fn_proveedores` con anclas; candado `{}`).
 - [x] Web: filas con «Tu parte · total S/ …», pago lleno con la parte, `porPagarConMiParte` en `lib/compras-mi-parte.ts`.
 - [x] Pruebas: `pruebas:por-pagar-parte-de-mi-tienda` 12/12; las de Compras en verde; vitest 24.338.
-- [ ] Pegar en producción y verificar (una firma por función, `fn_aplicar_candado_de_dinero()` → `{}`); después fusionar.
+- [x] Pegada en producción y verificada en solo lectura: 7 funciones con una sola firma, nada abierto a anon, candado en las 5 de indicadores y huellas idénticas a las probadas en local.
+- [ ] **Decidir antes de darle Por pagar a una tienda:** 2 facturas reales cuyas partes suman MÁS que su saldo, porque lo que bajó el saldo no es de ninguna tienda: FD01-00000003 (Artemisa, pago de S/ 4,832.41 del 2026-08-22, anterior a los pagos por tienda) y FD01-00000004 (Ruth Castro, nota de crédito de S/ 411.49; las notas por tienda son F6). Hoy nadie lo ve (ningún rol tiene Por pagar; el líder ve el saldo real).
 - [ ] Verlo con clics con una cuenta no líder con Por pagar; sumar la prueba al CI.
 
 ## 🎯 Compras por tienda: cada tienda ve y paga lo suyo (2026-09-23, ADR-0184 — nació como 0145/0150/0151) — EN PRODUCCIÓN las 6 migraciones (Felipe, 2026-09-23; verificadas en solo lectura)
