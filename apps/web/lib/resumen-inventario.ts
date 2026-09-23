@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { exigir, leerTodas, type Tolerado } from "@/lib/resultado";
+import { exigir, type Tolerado } from "@/lib/resultado";
 import { getConteosResumen } from "@/lib/conteos";
 import { exactitudConteos } from "@/lib/conteo-varianza";
 import type { Ubicacion as UbicacionApp } from "@/lib/ubicaciones";
@@ -24,12 +24,12 @@ import { calcularCobertura, velocidadDeFila, type Cobertura, type FilaResumen } 
 
 export type { ComparacionParaPantalla, DesempenoParaPantalla, ParametrosResumen };
 
-/** PostgREST corta cualquier respuesta en `max_rows` (1.000) SIN error: una sede con más variantes
- *  quedaría analizada a medias en silencio. Se lee con `leerTodas` (páginas en paralelo) sobre el orden
- *  estable de la RPC (…, variante_id): en serie, TRU (1.269 filas) tardaba dos vueltas de ~1 s.
+/** Una sede ya pasa de 1.000 variantes (TRU ~1.200) y PostgREST corta toda tabla en 1.000 filas. Pedirla por
+ *  páginas recalculaba la función ENTERA en cada página (~265 ms de CPU de la base cada vez, medido 2026-09-23):
+ *  `fn_resumen_variantes_json` (20260923171700) devuelve las mismas filas en UN valor jsonb — un solo cálculo.
  *
- *  `cache` (React, por pedido) con argumentos PRIMITIVOS: Existencias pide la ventana de 30 días dos
- *  veces (cobertura y recomendaciones) y ahora la base la calcula una sola (medido 2026-09-23: ~1 s cada una). */
+ *  `cache` (React, por pedido) con argumentos PRIMITIVOS: Existencias pide la ventana de 30 días dos veces
+ *  (cobertura y recomendaciones) y la base la calcula una sola. */
 const getFilasVariantes = cache(async function getFilasVariantes(
   ubicacionId: string,
   desde: string,
@@ -42,20 +42,16 @@ const getFilasVariantes = cache(async function getFilasVariantes(
   // `pnpm datos:comparar` pueda contrastarlos con la firma real de producción. Sin comparación,
   // `undefined` no viaja en el JSON y la función usa su default (no calcula la ventana comparada).
   const filas = exigir(
-    await leerTodas((d, h) =>
-      supabase
-        .rpc("fn_resumen_variantes", {
-          p_ubicacion_id: ubicacionId,
-          p_desde: desde,
-          p_hasta: hasta,
-          p_cmp_desde: cmpDesde,
-          p_cmp_hasta: cmpHasta,
-        })
-        .range(d, h),
-    ),
+    await supabase.rpc("fn_resumen_variantes_json", {
+      p_ubicacion_id: ubicacionId,
+      p_desde: desde,
+      p_hasta: hasta,
+      p_cmp_desde: cmpDesde,
+      p_cmp_hasta: cmpHasta,
+    }),
     "el ritmo de venta reciente",
-  );
-  return filas.map((f) => mapearFila(f as unknown as FilaCruda));
+  ) as unknown as FilaCruda[];
+  return filas.map(mapearFila);
 });
 
 /** El ritmo de venta reciente (`DIAS_RITMO_RECIENTE` días) y el stock de HOY de todas las variantes de una sede, tal como las lee Existencias. Lo usa
@@ -100,21 +96,18 @@ export async function getCoberturaPorVariante(ubicacionId: string, ahora: Date =
 // una variable) por la misma razón que arriba: `pnpm datos:comparar` los contrasta con la firma de producción.
 async function getFilasComparacion(ubicacionId: string, a: Rango, b: Rango): Promise<FilaComparacion[]> {
   const supabase = await createClient();
+  // En una fila jsonb (20260923171700): un solo cálculo, sin el tope de 1.000 filas.
   const filas = exigir(
-    await leerTodas((d, h) =>
-      supabase
-        .rpc("fn_resumen_comparacion", {
-          p_ubicacion_id: ubicacionId,
-          p_a_desde: a.desde,
-          p_a_hasta: a.hasta,
-          p_b_desde: b.desde,
-          p_b_hasta: b.hasta,
-        })
-        .range(d, h),
-    ),
+    await supabase.rpc("fn_resumen_comparacion_json", {
+      p_ubicacion_id: ubicacionId,
+      p_a_desde: a.desde,
+      p_a_hasta: a.hasta,
+      p_b_desde: b.desde,
+      p_b_hasta: b.hasta,
+    }),
     "el análisis del inventario",
-  );
-  return filas.map((f) => mapearFilaComparacion(f as unknown as FilaCrudaComparacion));
+  ) as unknown as FilaCrudaComparacion[];
+  return filas.map(mapearFilaComparacion);
 }
 
 async function getExactitud(ubicacionId: string) {
