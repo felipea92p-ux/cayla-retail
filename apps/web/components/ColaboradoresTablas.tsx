@@ -74,13 +74,16 @@ export function TablaActivos({
   onAccion,
   rolDe,
   onVerRol,
-  soyLider = true,
+  soyAdmin = true,
+  admins = [],
 }: {
   filas: Colaborador[];
   ocupadoId: string | null;
   onAccion: (c: Colaborador, accion: AccionFila) => void;
-  /** Quien mira es líder. Sin serlo (módulo Colaboradores), las filas de líderes no ofrecen acciones. */
-  soyLider?: boolean;
+  /** Quien mira es Admin (ADR-0178). Sin serlo, las filas de líderes no ofrecen acciones. */
+  soyAdmin?: boolean;
+  /** Las personas que son Admin (admin en Dynamic + Líder aquí): llevan el chip «Admin». */
+  admins?: readonly string[];
   /** El nombre del rol de cada cuenta (ADR-0161 B); sin esto, solo el nivel (Líder / Colaborador). */
   rolDe?: (id: string) => string | null;
   /** Abre ese rol en «Roles y accesos» (spike colaboradores-ux, 2026-09-22): el rol de la fila es un atajo, no solo texto. */
@@ -101,7 +104,7 @@ export function TablaActivos({
       </thead>
       <tbody className="divide-y divide-tinta/5">
         {filas.map((c) => {
-          const items: ItemMenu[] = accionesDeFila(c, soyLider).map((a) => ({
+          const items: ItemMenu[] = accionesDeFila(c, soyAdmin).map((a) => ({
             clave: a,
             etiqueta: ETIQUETA_ACCION[a],
             peligro: a === "quitar",
@@ -113,7 +116,14 @@ export function TablaActivos({
                 <Persona nombre={c.nombre} correo={c.correo} tu={c.es_yo} />
               </td>
               <td className={CELDA}>
-                <ChipRol rol={c.rol} />
+                <span className="inline-flex flex-wrap items-center gap-1.5">
+                  <ChipRol rol={c.rol} />
+                  {admins.includes(c.persona_id) && (
+                    <span title="Admin en Dynamic: administra a los líderes">
+                      <Chip tono="pizarra">Admin</Chip>
+                    </span>
+                  )}
+                </span>
                 {c.rol !== "lider" && rolDe?.(c.persona_id) && (
                   onVerRol ? (
                     <button
