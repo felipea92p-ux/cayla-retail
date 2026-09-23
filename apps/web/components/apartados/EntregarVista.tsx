@@ -54,7 +54,7 @@ export function EntregarVista({
   const token = useRef<string>(crypto.randomUUID());
   // Entregar guarda en la tienda (cobra el saldo y cierra la venta): pide Responsable (ADR-0161), vacío en cada entrega
   // (módulo Punto de venta: no propone a quien inició sesión).
-  const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta }, { proponerSesion: false });
+  const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta }, { modo: "atencion" });
 
   /** Cambiar de clienta es otra operación: el combo vuelve a vacío. */
   function elegir(id: string | null) {

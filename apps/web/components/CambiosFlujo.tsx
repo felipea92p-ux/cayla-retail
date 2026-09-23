@@ -107,7 +107,7 @@ export function CambiosFlujo({
   const router = useRouter();
   const compra = venta[0]!;
   // Quién registra el cambio (ADR-0161): se elige al confirmar, entre quienes están de turno en la tienda.
-  const responsable = useResponsable({ ubicacionId, etiqueta: sede });
+  const responsable = useResponsable({ ubicacionId, etiqueta: sede }, { modo: "atencion" }); // atiende a la clienta: vacío al abrir
   const nombreResponsable = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null;
   const [lineaId, setLineaId] = useState<string | null>(lineaInicialId);
   const [paso, setPaso] = useState<Paso>(lineaInicialId ? 3 : 2);

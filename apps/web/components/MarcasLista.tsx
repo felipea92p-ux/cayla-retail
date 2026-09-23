@@ -80,7 +80,7 @@ export function MarcasLista({
   async function renombrar(m: MarcaFila) {
     const nombre = nombreNuevo.trim();
     if (!nombre) return avisar.error("Escribe el nombre de la marca.");
-    if (!responsable.listo) return avisar.error(responsable.motivo ?? "Elige quién está atendiendo.");
+    if (!responsable.listo) return avisar.error(responsable.motivo ?? "Elige quién hace esta operación.");
     setTrabajando(m.id);
     const { error } = await firmar(createClient().from("marcas").update({ nombre }).eq("id", m.id), responsable.firma());
     setTrabajando(null);
@@ -92,7 +92,7 @@ export function MarcasLista({
   }
 
   async function cambiarEstado(m: MarcaFila) {
-    if (!responsable.listo) return avisar.error(responsable.motivo ?? "Elige quién está atendiendo.");
+    if (!responsable.listo) return avisar.error(responsable.motivo ?? "Elige quién hace esta operación.");
     setTrabajando(m.id);
     const { error } = await firmar(createClient().from("marcas").update({ activo: !m.activo }).eq("id", m.id), responsable.firma());
     setTrabajando(null);

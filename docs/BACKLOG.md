@@ -88,9 +88,10 @@ Con el sembrado de 90 días (7.001 ventas), `/vender/historial` pasaba los 8 s d
 - [ ] **Previo, sin relación con esto:** `scripts/pruebas/registrar_venta.mjs` da 21/25 en local. Fallan los 4 casos «colaboradora + código de descuento»; fallan igual con las políticas viejas.
 ## 🎯 Combo «Responsable»: propone a quien inició sesión y dice «¿Quién está atendiendo?» (2026-09-22, actualización del ADR-0161) — en `main` (PR #320), SIN migraciones
 
-- [x] Texto del combo vacío: «¿Quién está atendiendo?» en todos los módulos.
+- [x] ~~Texto del combo vacío: «¿Quién está atendiendo?» en todos los módulos.~~ (corregido abajo)
 - [x] Con una sesión de persona, el combo viene elegido con ella (si está de turno) y vuelve a ella tras guardar; con una terminal y en el módulo Punto de venta (venta y apartados), vacío. Regla pura `responsableInicial` en `lib/responsable-reglas.ts`, con pruebas.
-- [ ] **Verlo con clics:** con tu cuenta y la entrada marcada, Ajustar stock trae tu nombre; en Punto de venta viene vacío; con una terminal, vacío en todas las pantallas.
+- [x] **Corregido 2026-09-23:** «¿Quién está atendiendo?» solo en Punto de venta (venta y apartados), Cambios y Devoluciones, y ahí siempre vacío; el resto vuelve a «¿Quién hace esta operación?» (modo `atencion`/`operacion`, ADR-0161 actualización 2026-09-23). Sin migraciones.
+- [ ] **Verlo con clics:** con tu cuenta y la entrada marcada, Ajustar stock trae tu nombre y dice «¿Quién hace esta operación?» si lo vacías; en Punto de venta, Apartados, Cambios y Devoluciones viene vacío con «¿Quién está atendiendo?»; con una terminal, vacío en todas las pantallas.
 
 ## 🎯 Existencias: la tabla pinta 15 prendas por página (2026-09-22) — hecho, SIN migraciones
 - [x] `InventarioPanel.tsx` pinta solo una página de 15 (`FILAS_POR_PAGINA`); las tarjetas, los filtros, el CSV (todas las páginas de lo filtrado) y los overlays siguen viendo todo. Cambiar un filtro vuelve a la página 1; si un guardado achica la lista, cae en la última que existe. Pie: «Mostrando 1–15 de 52 prendas» / «Mostrando 1–15 de 18 (de 52 prendas)».
