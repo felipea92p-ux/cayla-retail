@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getCajaAbierta } from "@/lib/caja";
-import { getStockPorUbicacion } from "@/lib/inventario-v2";
+import { getStockPorUbicacion, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { agruparStockPorSede } from "@/lib/stock-por-sede";
 import { getApartadosDeTienda } from "@/lib/separaciones";
@@ -43,7 +43,7 @@ async function Apartados() {
     supabase.rpc("campanas_vigentes"),
     // «¿Dónde más hay?» para lo que aquí no tiene disponible (misma lectura que el Punto de venta). Es secundario:
     // si falla, el buscador sigue funcionando sin esa línea.
-    supabase.rpc("fn_stock_por_sede"),
+    leerStockDeLasSedes(),
     getUbicaciones(),
   ]);
 

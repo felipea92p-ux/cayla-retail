@@ -1,6 +1,6 @@
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
+import { exigir, leerTodas } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { AtributosHub } from "@/components/AtributosHub";
 
@@ -52,11 +52,16 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     // Costos y precios SOLO para un Líder, y solo para avisarle al configurar una campaña
     // qué prendas quedarían por debajo de su costo — el costo no viaja a otros roles.
     tipo === "etiquetas" && puedeDarDescuento
-      ? supabase.from("variantes").select("id, sku, precio, costo, producto:productos ( referencia, categoria_id )").eq("activo", true)
+      ? leerTodas((desde, hasta) =>
+          supabase.from("variantes").select("id, sku, precio, costo, producto:productos ( referencia, categoria_id )").eq("activo", true).order("id").range(desde, hasta)
+        )
       : Promise.resolve({ data: [], error: null }),
     // Cuántas prendas lleva cada etiqueta «a mano»: para quien edita etiquetas (el líder o un rol con el módulo).
+    // Las dos por páginas: más de 1.000 variantes desde sep-2026 y PostgREST corta en 1.000 (`leerTodas`).
     tipo === "etiquetas" && puedeEditarEtiquetas
-      ? supabase.from("variante_etiquetas").select("etiqueta_id, variante_id")
+      ? leerTodas((desde, hasta) =>
+          supabase.from("variante_etiquetas").select("etiqueta_id, variante_id").order("variante_id").order("etiqueta_id").range(desde, hasta)
+        )
       : Promise.resolve({ data: [], error: null }),
   ]);
 
