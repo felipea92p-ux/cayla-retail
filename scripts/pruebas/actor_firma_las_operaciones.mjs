@@ -263,7 +263,7 @@ select concat_ws(',', abierta_por = :'rosa', terminal_id = :'t_ventas') from ret
 );
 caso(
   "registrar_movimiento_caja y cerrar_caja — terminal de ventas + Rosa: firma Rosa (movimiento con terminal_id)",
-  `${CAJA_TRU}${sesion(T_VENTAS, { resp: "rosa" })}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Ingreso de prueba') as mc \\gset
+  `${CAJA_TRU}${sesion(T_VENTAS, { resp: "rosa" })}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Otro', 'Ingreso de prueba') as mc \\gset
 select retail.cerrar_caja(:'caja', 130) as _r \\gset
 select concat_ws(',', (select usuario_id = :'rosa' and terminal_id = :'t_ventas' from retail.caja_movimientos where id = :'mc'),
   (select cerrada_por = :'rosa' and estado = 'cerrada' from retail.cajas where id = :'caja'));`,
@@ -277,7 +277,7 @@ select :'r' || ';' || (select estado from retail.cajas where id = :'caja');`,
 );
 caso(
   "registrar_movimiento_caja — Felipe (persona) sin encabezado: firma él",
-  `${CAJA_TRU}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Ingreso de prueba') as mc \\gset
+  `${CAJA_TRU}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Otro', 'Ingreso de prueba') as mc \\gset
 select (usuario_id = :'felipe' and terminal_id is null)::text from retail.caja_movimientos where id = :'mc';`,
   "true"
 );

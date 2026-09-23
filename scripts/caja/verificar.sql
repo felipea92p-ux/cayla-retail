@@ -149,7 +149,8 @@ end $$;
 
 do $$
 begin
-  perform retail.registrar_movimiento_caja(current_setting('pruebas.caja_b')::uuid, 'ingreso', 30, 'Ingreso vario de prueba');
+  -- Desde 20260922235000 (ADR-0166) los motivos son un vocabulario cerrado y «Otro» exige referencia.
+  perform retail.registrar_movimiento_caja(current_setting('pruebas.caja_b')::uuid, 'ingreso', 30, 'Otro', 'Ingreso vario de prueba');
   raise notice 'RESULTADO|%|%|%', 'B2 ingreso libre S/30', true, 'ok';
 exception when others then
   raise notice 'RESULTADO|%|%|%', 'B2 ingreso libre S/30', false, sqlerrm;
@@ -158,7 +159,7 @@ end $$;
 do $$
 begin
   perform retail.registrar_movimiento_caja(
-    current_setting('pruebas.caja_b')::uuid, 'egreso', 40, 'Deposito bancario', 'Voucher-TEST-001', false);
+    current_setting('pruebas.caja_b')::uuid, 'egreso', 40, 'Depósito bancario', 'Voucher-TEST-001', false);
   raise notice 'RESULTADO|%|%|%', 'B3 deposito bancario S/40 (egreso)', true, 'ok';
 exception when others then
   raise notice 'RESULTADO|%|%|%', 'B3 deposito bancario S/40 (egreso)', false, sqlerrm;
