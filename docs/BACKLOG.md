@@ -28,6 +28,21 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 El combo «Responsable» en TODA operación que guarda (2026-09-23, ADR-0161 act. c) — construido; migración `20260923230000` NO está en producción
+Felipe no encontraba el combo en Recibir ni en Registrar comprobante: la A8 los había dejado fuera («no de tienda»). Decidió
+«en todo», con el mismo candado de asistencia. Migración: toda firma `fn_actor_persona_id(false)` → `(true)`, salvo 4 usos que
+son permiso de la cuenta. Web: combo en Compras (registrar, recibir envío/lote, adjuntos, notas de crédito, pagos, reembolso,
+cierre de faltante, reparto), Producción/Taller/Insumos (abrir, cerrar, anular, revertir, consumo, devolución, ingreso de
+insumo, comprobante, recepción y pago de comprobante), Colaboradores y Roles y accesos, y Aperturas por revisar.
+- [ ] **Orden al publicar: primero la web, después la migración.** Si la migración va antes, toda pantalla sin combo se
+      rechaza (el responsable ya es obligatorio). Pegar con `set search_path to retail, public;` al principio.
+- [ ] Verlo con clics (Recibir en una terminal, Registrar comprobante, Taller) — solo se verificó con typecheck, build,
+      24.333 pruebas web y las pruebas SQL (`pruebas:actor-firma` 30/30, `pruebas:roles` 70/70, `pruebas:terminales` 52/52).
+- [ ] Guardan sin firmar a nadie (un combo ahí no dejaría rastro; hace falta columna «quién»): `set_etapa_produccion`,
+      `anular_comprobante_produccion`, `anular_compra`, proveedores de producción, alta de insumos, `reactivar_terminal`, crear
+      terminal y cambiar su clave (`lib/terminales-alta.ts` firma con la cuenta).
+- [ ] Recibir envío/lote toma la lista de turno de la ubicación que recibe (no la de la cabecera): un almacén sin marcas bloquea.
+
 ## 🎯 Caja: cierre con traslado y apertura verificada (2026-09-23, ADR-0186) — EN PRODUCCIÓN (Felipe pegó la migración el 2026-09-23; verificado en solo lectura: una firma por función, tabla, columnas, check, política y permisos; las llamadas de la pantalla resuelven sin ambigüedad) y web fusionada (PR #350)
 - ~~Orden obligatorio~~ (cumplido): pegar `supabase/migrations/20260923200000_caja_cierre_con_traslado_y_apertura_verificada.sql` en producción (ya trae el prefijo `retail.`; se puede pegar dos veces) y **recién después** fusionar la web. Al revés, «Cerrar caja» falla: la web manda `p_traslado_*` y la base vieja no los conoce.
 - Hecho: esperado visible desde el inicio (`fn_esperado_caja`, mismo cálculo que `cerrar_caja`), conteo por billetes opcional, un traslado (caja fuerte / depósito con voucher / entregado al líder), «queda en el cajón para el próximo turno» calculado, tarjeta «Último cierre» con la caja cerrada, apertura que pide contar el cajón y exige motivo si no coincide, cola «Aperturas de caja con diferencia» en Inicio del líder y sección para marcarlas revisadas en Historial de cierres. Botón «+ Entrada / salida» renombrado a «Registrar movimiento».

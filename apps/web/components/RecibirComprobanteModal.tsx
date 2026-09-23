@@ -10,6 +10,9 @@ import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { etiquetaTipo } from "@/lib/comprobantes-produccion-reglas";
 import { UNIDADES_INSUMO, cantidadTexto } from "@/lib/insumos-reglas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 import { MOTIVOS_CIERRE, armarRecepcion, cantidadLlegada, entradaInicial, type ComprobantePorRecibir, type EntradaLinea, type MotivoCierre } from "@/lib/recibir-produccion-reglas";
 
 // Recibir una entrega (ADR-0133, F4d). Por cada línea pendiente: cuánto llegó (en blanco = todo lo pendiente) y, si el resto no va a llegar,
@@ -22,6 +25,8 @@ export function RecibirComprobanteModal({ comprobante: c, tallerId, onClose }: {
   const [entradas, setEntradas] = useState<EntradaLinea[]>(c.pendientes.map(entradaInicial));
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
+  // Responsable (ADR-0161/0162): la recepción firma con quien se elige en el combo (lista del Taller, la sede activa).
+  const responsable = useResponsable();
 
   const cambiar = (itemId: string, cambio: Partial<EntradaLinea>) => setEntradas((es) => es.map((e) => (e.itemId === itemId ? { ...e, ...cambio } : e)));
   const armado = armarRecepcion(c.pendientes, entradas);
@@ -29,15 +34,20 @@ export function RecibirComprobanteModal({ comprobante: c, tallerId, onClose }: {
   async function recibir(e: React.FormEvent) {
     e.preventDefault();
     if (armado.error) return avisar.error(armado.error);
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setCargando(true);
-    const { error } = await createClient().rpc("recibir_comprobante_produccion", {
+    const { error } = await firmar(createClient().rpc("recibir_comprobante_produccion", {
       p_comprobante_id: c.comprobanteId,
       p_ubicacion_id: tallerId,
       p_lineas: armado.lineas,
       p_cierres: armado.cierres,
       p_nota: nota.trim() || undefined,
       p_token: token,
-    });
+    }), responsable.firma());
+    responsable.despues(error);
     setCargando(false);
     if (error) {
       avisar.error(traducirError(error, "registrar la recepción"));
@@ -121,7 +131,8 @@ export function RecibirComprobanteModal({ comprobante: c, tallerId, onClose }: {
           <p className="min-h-4 text-xs text-tinta/65" role="status">
             {armado.error ?? (armado.lotes > 0 ? `Se abrirá${armado.lotes === 1 ? " 1 lote" : `n ${armado.lotes} lotes`}, uno por cada línea que llegó.` : "")}
           </p>
-          <Boton peso="primario" type="submit" cargando={cargando} disabled={!!armado.error} className="w-full">
+          <ComboResponsable control={responsable} deshabilitado={cargando} />
+          <Boton peso="primario" type="submit" cargando={cargando} disabled={!!armado.error || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
             {cargando ? "Registrando…" : "Registrar recepción"}
           </Boton>
         </div>

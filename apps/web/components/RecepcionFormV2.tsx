@@ -8,6 +8,9 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { campoEtiqueta, campoTexto, campoSelect, botonPrimario } from "@/components/ui/Modal";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Fase UI 1 (2026-09-11): pantalla nueva sobre la RPC `recibir_lote` de V2
 // (`supabase/migrations/0003_funciones.sql:179`). No es una adaptación de
@@ -37,6 +40,8 @@ export function RecepcionFormV2({
   const [lineas, setLineas] = useState<Linea[]>([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: 1, costoUnitario: "" }]);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<{ unidades: number; loteId: string | null } | null>(null);
+  // Quién recibe (ADR-0161/0162): `recibir_lote` firma con esa persona, en la tienda que recibe.
+  const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
   // Un token no aplica acá: `recibir_lote` no tiene idempotencia propia (a
   // diferencia de `registrar_venta`) porque un lote repetido es una decisión
   // de negocio distinta a una venta duplicada — el motivo real de reintentar
@@ -66,10 +71,14 @@ export function RecepcionFormV2({
       avisar.error("Elige un proveedor.", { enfocar: "recepcion-proveedor" });
       return;
     }
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setLoading(true);
 
     const supabase = createClient();
-    const { data: loteId, error } = await supabase.rpc("recibir_lote", {
+    const { data: loteId, error } = await firmar(supabase.rpc("recibir_lote", {
       p_ubicacion_id: ubicacionId,
       p_proveedor_id: proveedorId,
       p_items: validas.map((l) => ({
@@ -78,9 +87,10 @@ export function RecepcionFormV2({
         ...(l.costoUnitario ? { costo_unitario: Number(l.costoUnitario) } : {}),
       })),
       p_numero_guia: numeroGuia || undefined,
-    });
+    }), responsable.firma());
 
     setLoading(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "recibir el lote"));
       return;
@@ -204,6 +214,7 @@ export function RecepcionFormV2({
       </div>
 
 
+      <ComboResponsable control={responsable} deshabilitado={loading} />
       <button type="submit" disabled={loading} className={botonPrimario}>
         {loading ? "Registrando…" : `Recibir en ${ubicacionEtiqueta}`}
       </button>

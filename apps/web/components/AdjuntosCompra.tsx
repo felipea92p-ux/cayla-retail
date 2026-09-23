@@ -9,6 +9,9 @@ import { objecionArchivo, subirAdjuntosCompra } from "@/lib/adjuntos-compra";
 import { ADJUNTOS_MAX_POR_FACTURA, fechaCorta, tamanoLegible, type AdjuntoCompra } from "@/lib/compras-reglas";
 import { Boton } from "@/components/ui/campos";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Adjuntos de una factura de proveedor (20260914180000_compras_adjuntos.sql).
 // Dos piezas sobre el mismo <input type=file>:
@@ -149,6 +152,8 @@ export function AdjuntosDeFactura({
   const router = useRouter();
   const [subiendo, setSubiendo] = useState(false);
   const [aQuitar, setAQuitar] = useState<AdjuntoCompra | null>(null);
+  // Subir registra la fila con `registrar_adjunto_compra`, que firma con quien hace la operación (ADR-0161/0162).
+  const responsable = useResponsable();
   // Lo que no subió al registrar viene por la URL; se avisa una sola vez.
   const avisoDado = useRef(false);
   useEffect(() => {
@@ -163,11 +168,18 @@ export function AdjuntosDeFactura({
       avisar.error(`Máximo ${ADJUNTOS_MAX_POR_FACTURA} adjuntos por comprobante.`);
       return;
     }
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
+    const firma = responsable.firma();
     setSubiendo(true);
     const cerrarProceso = avisar.proceso(nuevos.length === 1 ? `Subiendo ${nuevos[0].name}…` : `Subiendo ${nuevos.length} archivos…`);
-    const r = await subirAdjuntosCompra(createClient(), compraId, nuevos);
+    const r = await subirAdjuntosCompra(createClient(), compraId, nuevos, firma);
     cerrarProceso();
     setSubiendo(false);
+    // Salió bien si al menos uno se registró; si ninguno, el primer rechazo decide (p. ej. el responsable ya no está).
+    responsable.despues(r.subidos.length ? null : r.errorRegistro);
     if (r.fallidos.length) avisar.error(r.fallidos.length === 1 ? "Un archivo no subió" : `${r.fallidos.length} archivos no subieron`, { detalle: r.fallidos.map((f) => `${f.nombre}: ${f.motivo}`).join(" · ") });
     if (r.subidos.length) {
       avisar.exito(r.subidos.length === 1 ? "Adjunto subido" : `${r.subidos.length} adjuntos subidos`);
@@ -211,7 +223,8 @@ export function AdjuntosDeFactura({
           </div>
         ))}
         {puedeEditar && (
-          <div className="px-5 py-3">
+          <div className="space-y-3 px-5 py-3">
+            <ComboResponsable control={responsable} deshabilitado={subiendo} />
             <BotonElegir
               onArchivos={agregar}
               disabled={subiendo || adjuntos.length >= ADJUNTOS_MAX_POR_FACTURA}
@@ -236,11 +249,17 @@ export function AdjuntosDeFactura({
 
 function QuitarAdjuntoModal({ adjunto, onClose, onQuitado }: { adjunto: AdjuntoCompra; onClose: () => void; onQuitado: () => void }) {
   const [loading, setLoading] = useState(false);
+  const responsable = useResponsable();
 
   async function confirmar() {
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setLoading(true);
-    const { error } = await createClient().rpc("archivar_adjunto_compra", { p_adjunto_id: adjunto.id });
+    const { error } = await firmar(createClient().rpc("archivar_adjunto_compra", { p_adjunto_id: adjunto.id }), responsable.firma());
     setLoading(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "quitar el adjunto"));
       return;
@@ -254,6 +273,7 @@ function QuitarAdjuntoModal({ adjunto, onClose, onQuitado }: { adjunto: AdjuntoC
       {(cerrar) => (
         <div className="space-y-4">
           <p className="text-sm text-tinta/75">Deja de verse en esta factura. El archivo no se destruye: queda guardado por si hace falta recuperarlo.</p>
+          <ComboResponsable control={responsable} deshabilitado={loading} />
           <div className="flex gap-3">
             <button type="button" onClick={cerrar} className={botonCancelar} disabled={loading}>
               Cancelar

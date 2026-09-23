@@ -12,7 +12,7 @@
  *         · terminal + responsable presente → firma el responsable (`usuario_id`/`*_por`) y queda `terminal_id`;
  *         · terminal sin responsable → 42501 (`responsable_requerido`), nada se escribe;
  *         · persona sin encabezado → firma ella (interruptor `fn_exige_responsable()` apagado), `terminal_id` vacío;
- *         · Compras (`false`): la persona firma a su nombre aunque llegue `x-responsable`.
+ *         · Compras (desde 20260923230000 también `true`): con `x-responsable` firma el responsable, no la cuenta.
  *   (c) Las dos A MANO: el permiso sigue en la CUENTA — una terminal descuenta SIN tope ni autorización (Felipe,
  *       2026-09-22), aunque la responsable sea una integrante con tope 10 %, y una terminal libera apartados siempre; la persona conserva su comportamiento de hoy.
  *
@@ -169,8 +169,8 @@ caso(
 // Todas las que siguen mirando la CUENTA (auth_user_id = auth.uid()), en cualquier forma. Si aparece una nueva, este
 // caso se pone rojo: hay que decidir si firma (→ lista de la migración) o si es un permiso (→ esta lista).
 const MIRAN_LA_CUENTA = [
-  "actualizar_mi_foto_perfil", "desactivar_terminal", "fn_actor_persona_id", "fn_colaboradores", "fn_compras_ubicaciones",
-  "fn_es_admin", "fn_es_lider", "fn_historial_colaborador", "fn_mi_perfil", "fn_persona_actual_resumen", "fn_persona_nueva_resumen",
+  "actualizar_mi_foto_perfil", "fn_actor_persona_id", "fn_colaboradores", "fn_compras_ubicaciones",
+  "fn_es_admin", "fn_es_lider", "fn_mi_perfil", "fn_persona_actual_resumen", "fn_persona_nueva_resumen",
   "fn_stock_por_sede", "fn_terminal_actual", "fn_tiene_acceso_retail", "fn_ubicacion_actual_persona",
   "liberar_apartado", "listar_apartados", "registrar_venta",
 ].sort();
@@ -189,17 +189,18 @@ caso(
 );
 
 caso(
-  "firman con el actor: al menos 36 de tienda (true) y 25 que no (false), y NINGUNA dos veces",
+  "firman con el actor: al menos 60 con el responsable (true); con (false) solo las de PERMISO (20260923230000)",
   `select concat_ws(',',
      count(*) filter (where d ~ 'fn_actor_persona_id\\(true\\)'),
-     count(*) filter (where d ~ 'fn_actor_persona_id\\(false\\)'),
-     count(*) filter (where (length(d) - length(replace(d, 'fn_actor_persona_id(', ''))) / length('fn_actor_persona_id(') > 1))
+     count(*) filter (where d ~ 'fn_actor_persona_id\\(false\\)' and d !~ 'FUNCTION retail\\.(fn_alcanzo_a|quitar_colaborador|suspender_colaborador)\\('),
+     count(*) filter (where (length(d) - length(replace(d, 'fn_actor_persona_id(', ''))) / length('fn_actor_persona_id(') > 1
+                        and d !~ 'FUNCTION retail\\.suspender_colaborador\\(')) -- permiso (cuenta) + firma (responsable)
    from (select pg_get_functiondef(oid) d from pg_proc where pronamespace = 'retail'::regnamespace and proname <> 'fn_actor_persona_id' and ${SIN_ROLES}) x;`,
   // Pisos, no números exactos: el total depende de qué migraciones tiene la base (local 41/29 con Apartados y series;
   // CI desde cero 41/28). Que cada función calce con SU lista lo prueban la re-ejecución y la falla cerrada de abajo.
   (s) => {
     const [t, f, dobles] = s.split(",").map(Number);
-    return t >= 36 && f >= 25 && dobles === 0;
+    return t >= 60 && f === 0 && dobles === 0;
   }
 );
 
@@ -356,15 +357,15 @@ caso(
   (s) => s.includes("ERROR_DE_SCRIPT") && s.includes("Elige quién hace esta operación")
 );
 
-// ---- Compras (no de tienda) ----
+// ---- Compras (desde 20260923230000 también la firma el responsable) ----
 caso(
-  "Compras (registrar_compra, false): Felipe firma a su nombre AUNQUE llegue x-responsable; una de tienda con los mismos encabezados firma Rosa",
+  "Compras (registrar_compra, true desde 20260923230000): Felipe con x-responsable Rosa → la compra la firma Rosa, igual que una de tienda",
   `insert into retail.proveedores (nombre, activo) values ('ZZ Prueba actor ' || substr(md5(random()::text), 1, 8), true) returning id as prov \\gset
 ${sesion(FELIPE, { resp: "rosa", ubicacion: "tru" })}select retail.registrar_compra(:'prov', 'TST', 'N' || substr(md5(random()::text), 1, 10), 'credito', :'tru',
   jsonb_build_array(jsonb_build_object('producto_id', :'prod', 'variante_id', :'v1', 'cantidad', 3, 'costo_unitario', 10)),
   p_tipo => 'factura', p_fecha_emision => retail.fn_hoy_lima(), p_fecha_vencimiento => retail.fn_hoy_lima() + 10, p_igv_porcentaje => 18) as compra \\gset
 select ${AJUSTE} as mov \\gset
-select concat_ws(',', (select usuario_id = :'felipe' from retail.compras where id = :'compra'), (select usuario_id = :'rosa' from retail.movimientos where id = :'mov'));`,
+select concat_ws(',', (select usuario_id = :'rosa' from retail.compras where id = :'compra'), (select usuario_id = :'rosa' from retail.movimientos where id = :'mov'));`,
   "t,t"
 );
 

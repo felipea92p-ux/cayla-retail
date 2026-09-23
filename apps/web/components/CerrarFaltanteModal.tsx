@@ -8,6 +8,9 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { CampoSelectNativo } from "@/components/ui/campos";
 import { ETIQUETA_MOTIVO_CIERRE, type CompraResumen, type LineaCompra, type MotivoCierre } from "@/lib/compras-reglas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Cerrar una línea con faltante DESDE EL DETALLE de un comprobante (D2, ADR-0111): la vía para cerrar solo una
 // PARTE de una línea, o para cerrar después lo que en la guía se dejó como «lo espero». Al recibir mercadería el
@@ -46,6 +49,8 @@ export function CerrarFaltanteModal({
   const [cantidad, setCantidad] = useState(String(tope));
   const [motivo, setMotivo] = useState<MotivoCierre>("no_llego");
   const [loading, setLoading] = useState(false);
+  // Quién cierra (ADR-0161/0162): `cerrar_linea_compra` firma con esa persona.
+  const responsable = useResponsable();
 
   const n = Math.floor(Number(cantidad));
   const cantidadOk = Number.isFinite(n) && n >= 1 && n <= tope;
@@ -54,16 +59,18 @@ export function CerrarFaltanteModal({
 
   async function cerrar() {
     if (!cantidadOk) return void avisar.error(`La cantidad tiene que ser un entero entre 1 y ${tope}${tienda ? ` (lo que aún le falta a ${tienda.nombre})` : ""}.`, { enfocar: "cierre-cantidad" });
+    if (!responsable.listo) return void (responsable.motivo && avisar.error(responsable.motivo));
     setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.rpc("cerrar_linea_compra", {
+    const { error } = await firmar(supabase.rpc("cerrar_linea_compra", {
       p_compra_item_id: linea.id,
       p_cantidad: n,
       p_motivo: motivo,
       // En una línea repartida la base exige saber de qué tienda es el faltante.
       ...(tienda ? { p_ubicacion_id: tienda.ubicacionId } : {}),
-    });
+    }), responsable.firma());
     setLoading(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "cerrar la línea"));
       return;
@@ -157,6 +164,8 @@ export function CerrarFaltanteModal({
             {cubreTodo ? `Con este cierre ${compra.documento} queda resuelto al 100 % (recibido o cerrado). ` : ""}
             No se borra nada: el cierre queda como un registro nuevo en el historial del comprobante. La nota de crédito del proveedor, si emite una, se registra aparte, cuando el comprobante esté resuelto.
           </p>
+
+          <ComboResponsable control={responsable} deshabilitado={loading} />
 
           <div className="flex justify-end border-t border-tinta/10 pt-4">
             <button type="submit" className={BTN_PRIMARIO} disabled={loading}>

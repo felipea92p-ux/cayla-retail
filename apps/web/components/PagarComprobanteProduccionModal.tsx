@@ -11,6 +11,9 @@ import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { MediosDePago } from "@/components/MediosDePago";
 import { etiquetaTipo, type ComprobanteProduccion } from "@/lib/comprobantes-produccion-reglas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 import { medioNuevo, mediosParaRpc, repartoDeMedios, type MedioForm } from "@/lib/medios-pago-reglas";
 
 // Pagar un saldo desde Por pagar (ADR-0133, F4c). Entero o en partes, con uno o varios medios: `registrar_pago_comprobante_produccion` bloquea
@@ -22,6 +25,8 @@ export function PagarComprobanteProduccionModal({ comprobante: c, hoy, onClose }
   const [medios, setMedios] = useState<MedioForm[]>([medioNuevo("transferencia", c.saldo.toFixed(2))]);
   const [fecha, setFecha] = useState(hoy);
   const [cargando, setCargando] = useState(false);
+  // Responsable (ADR-0161/0162): el pago firma con quien se elige en el combo (lista de la sede activa).
+  const responsable = useResponsable();
 
   const reparto = repartoDeMedios(medios, c.saldo, false);
   const errorFecha = fecha > hoy ? "La fecha del pago no puede ser futura." : fecha < c.fechaEmision ? "El pago no puede ser anterior a la emisión del comprobante." : null;
@@ -31,13 +36,18 @@ export function PagarComprobanteProduccionModal({ comprobante: c, hoy, onClose }
   async function pagar(e: React.FormEvent) {
     e.preventDefault();
     if (!listo) return;
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setCargando(true);
-    const { error } = await createClient().rpc("registrar_pago_comprobante_produccion", {
+    const { error } = await firmar(createClient().rpc("registrar_pago_comprobante_produccion", {
       p_comprobante_id: c.id,
       p_pagos: mediosParaRpc(medios),
       p_fecha: fecha,
       p_token: token,
-    });
+    }), responsable.firma());
+    responsable.despues(error);
     setCargando(false);
     if (error) {
       avisar.error(traducirError(error, "registrar el pago"));
@@ -70,7 +80,8 @@ export function PagarComprobanteProduccionModal({ comprobante: c, hoy, onClose }
 
         <CampoTexto etiqueta="Fecha del pago" type="date" value={fecha} min={c.fechaEmision} max={hoy} onChange={(e) => setFecha(e.target.value)} tono={errorFecha ? "error" : "neutro"} pie={errorFecha ?? undefined} />
 
-        <Boton peso="primario" type="submit" cargando={cargando} disabled={!listo} className="w-full">
+        <ComboResponsable control={responsable} deshabilitado={cargando} />
+        <Boton peso="primario" type="submit" cargando={cargando} disabled={!listo || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
           {cargando ? "Registrando…" : reparto.suma > 0 ? (quedaria > 0 ? `Pagar ${soles(reparto.suma)} · quedan ${soles(quedaria)}` : `Pagar ${soles(reparto.suma)} y saldar`) : "Pagar"}
         </Boton>
       </form>

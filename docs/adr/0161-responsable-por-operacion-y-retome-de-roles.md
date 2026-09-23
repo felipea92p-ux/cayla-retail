@@ -27,7 +27,7 @@ ADR-0150 (roles a medida), que se había abandonado esta misma mañana en la fas
 | A5 | **Tienda LIM se bloquea igual** | Hoy LIM tiene 0 personas, horarios y marcas en Dynamic. **Sus terminales no podrán guardar nada hasta que se cargue su asistencia.** |
 | A6 | **Viene vacío siempre** — *cambiado el 2026-09-22, ver «Actualización: el combo propone a quien inició sesión» al final* | Nunca se hereda el nombre de la operación anterior. |
 | A7 | **Toda acción que guarda lo pide; mirar no.** Es fijo: no se configura por rol | Una sola regla, sin lista que mantener. |
-| A8 | **Sale en todas las cuentas**, no solo en las terminales, **en la operación de tienda**: Ventas, Caja, Cambios, Devoluciones, Facturación, Inventario, Traslados, Catálogo | Compras, Producción del Taller, Colaboradores y Configuración firman con la persona que inició sesión, como hoy. |
+| A8 | *Ampliada el 2026-09-23: ahora en TODA operación, ver «Actualización 2026-09-23 (c)» al final.* **Sale en todas las cuentas**, no solo en las terminales, **en la operación de tienda**: Ventas, Caja, Cambios, Devoluciones, Facturación, Inventario, Traslados, Catálogo | Compras, Producción del Taller, Colaboradores y Configuración firman con la persona que inició sesión, como hoy. |
 | A9 | **El líder también se bloquea si no marcó** en esa tienda, incluso trabajando desde casa (Felipe lo confirmó dos veces) | **Consecuencia:** sin marcar asistencia en una tienda, Felipe no puede crear ni editar una prenda, ajustar stock ni tocar la caja. |
 | A10 | **Un líder aparece en la lista** si marcó en esa tienda | Misma regla para todas y todos. |
 | A11 | **La lista sale de la sede activa** de la cabecera | Si el líder cambia de TRU a AQP, la lista cambia. |
@@ -296,4 +296,29 @@ Desactivar y Reactivar abren una confirmación corta con el combo adentro (`comp
 textos en `lib/confirmar-catalogo.ts`). Agregar, editar, rechazar y renombrar no cambian: su ventana ya traía el combo.
 La firma no cambia. `lib/confirmar-catalogo.test.ts` vigila que ninguna de las 8 listas vuelva a tener un combo
 flotante ni un botón de tarjeta que guarde sin confirmar. Sin migración.
+
+## Actualización 2026-09-23 (c) — el combo en TODA operación que guarda (amplía A8)
+
+**Qué pasó.** Felipe no encontraba el combo al recibir mercadería ni al registrar un comprobante. No estaba porque la A8
+dejó fuera a Compras, Producción, Colaboradores y Configuración («firman con la persona que inició sesión»), pensando en
+Compras como trabajo de oficina del líder. Un día después Compras se abrió a las tiendas (ADR-0184) y los módulos a los
+roles: una terminal podía entrar a Recibir, pero sin combo no mandaba responsable y la base la rechazaba («Elige quién
+hace esta operación»); con cuenta de persona firmaba la cuenta aunque el trabajo lo hiciera otra.
+
+**Decisión (Felipe, 2026-09-23): «En todo debe estar el combo», con el mismo candado de asistencia (A9).** Se le mostró
+la consecuencia y la eligió: sin marcar entrada en la sede activa, nadie guarda en ningún módulo —tampoco el líder desde
+casa (pagar un comprobante, dar de alta a una colaboradora, cerrar una orden del Taller)—, y si el Taller no tiene marcas
+en Dynamic, Producción queda bloqueado. Se descartó la variante «combo en todo, oficina sin candado».
+
+**Cómo.** Migración `20260923230000_responsable_en_todas_las_operaciones.sql`: toda función que firmaba con
+`fn_actor_persona_id(false)` pasa a `(true)`, más `fn_historial_colaborador` y `desactivar_terminal`, que firmaban
+buscando la cuenta en línea. `(false)` queda solo donde es PERMISO comparado con la cuenta: `fn_alcanzo_a` y «no te
+quites / suspendas / cambies el rol a ti mismo» (`quitar_colaborador`, `suspender_colaborador`, `asignar_rol`; en las dos
+últimas la firma del historial pasa al responsable). Falla cerrada si queda otro `(false)`. En la web, el combo entra en
+todas las pantallas de Compras, Recibir, Producción/Taller/Insumos, Colaboradores y Roles, y en la revisión de aperturas
+de caja. La F3 (`20260923100000`) acepta volver a pegarse después de esta sin abortar.
+
+**Lo que queda fuera (no firman a nadie en la base, así que un combo ahí no dejaría rastro):** acciones que guardan sin
+registrar quién, p. ej. `set_etapa_produccion`, `anular_comprobante_produccion`, proveedores de producción, alta de
+insumos del catálogo. Para que lleven combo hace falta una columna «quién» en cada tabla: queda en el BACKLOG.
 

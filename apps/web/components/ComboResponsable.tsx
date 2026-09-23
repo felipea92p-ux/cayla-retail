@@ -21,7 +21,7 @@ function iniciales(nombre: string): string {
 
 /**
  * El combo «Responsable» (ADR-0161; diseño aprobado en `docs/maquetas/responsable-y-roles-spike-2026-09/`, pantallas
- * 2, 3 y 4). Va encima del botón que guarda, en TODA acción que guarda de la operación de tienda. Las reglas viven en
+ * 2, 3 y 4). Va encima del botón que guarda, en TODA acción que guarda (desde el 2026-09-23 también Compras, Producción, Colaboradores y Roles). Las reglas viven en
  * `lib/responsable-reglas.ts` y el estado en `useResponsable`; esto solo pinta:
  *
  *  · Vacío, con borde punteado rojo: `control.pregunta` — «¿Quién está atendiendo?» al atender a la clienta (Punto de

@@ -10,6 +10,9 @@ import { Boton, CampoMonto, CampoSelectNativo, CampoTexto } from "@/components/u
 import { Modal } from "@/components/ui/Modal";
 import { TIPOS_INSUMO, UNIDADES_INSUMO, cantidadTexto, type TipoInsumo, type UnidadInsumo } from "@/lib/insumos-reglas";
 import type { InsumoVista } from "@/lib/insumos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Dos formularios de Insumos (ADR-0133, F3). Los dos son solo de líder: uno crea el catálogo, el otro mete dinero
 // (el costo del lote). Con `<Modal>` del sistema (ADR-0136): no se define otra animación ni otro overlay.
@@ -120,6 +123,8 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
   const [origen, setOrigen] = useState<"compra" | "saldo_inicial">("compra");
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
+  // Responsable (ADR-0161/0162): el ingreso firma con quien se elige en el combo (lista del Taller, la sede activa).
+  const responsable = useResponsable();
 
   const insumo = insumos.find((i) => i.id === insumoId);
   const q = Number(cantidad) || 0;
@@ -131,8 +136,12 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
     if (!insumo || !listo) return;
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setCargando(true);
-    const { error } = await createClient().rpc("recibir_insumo", {
+    const { error } = await firmar(createClient().rpc("recibir_insumo", {
       p_insumo_id: insumo.id,
       p_ubicacion_id: tallerId,
       p_cantidad: q,
@@ -141,7 +150,8 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
       p_documento: documento.trim() || undefined,
       p_origen: origen,
       p_nota: nota.trim() || undefined,
-    });
+    }), responsable.firma());
+    responsable.despues(error);
     setCargando(false);
     if (error) {
       avisar.error(traducirError(error, "ingresar el insumo"));
@@ -187,7 +197,8 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
           <span className="text-tinta/70">Valor del lote</span>
           <span className="font-display text-lg tabular-nums text-tinta">{listo ? soles(total) : "—"}</span>
         </div>
-        <Boton peso="primario" type="submit" cargando={cargando} disabled={!listo} className="w-full">
+        <ComboResponsable control={responsable} deshabilitado={cargando} />
+        <Boton peso="primario" type="submit" cargando={cargando} disabled={!listo || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
           {cargando ? "Ingresando…" : "Abrir lote y sumar al saldo"}
         </Boton>
       </form>

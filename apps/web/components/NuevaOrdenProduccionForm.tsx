@@ -15,6 +15,9 @@ import type { Tolerado } from "@/lib/resultado";
 import { compararTallas } from "@/lib/tallas";
 import { cantidadTexto } from "@/lib/insumos-reglas";
 import { ETIQUETA_BANDA } from "@/lib/resumen-reglas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 import { DIAS_OBJETIVO_PRODUCCION, OPCIONES_DIAS_OBJETIVO, analizarInsumos, costoMaterialesPorPrenda, sugerirCurva } from "@/lib/produccion-decision-reglas";
 
 // Abrir una orden (abrir_produccion). Lo que se decide acá: qué modelo, cuántas
@@ -64,6 +67,8 @@ export function NuevaOrdenProduccionForm({
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
+  // Responsable (ADR-0161/0162): la orden la abre quien se elige en el combo (lista del Taller, la sede activa).
+  const responsable = useResponsable();
   const [diasObjetivo, setDiasObjetivo] = useState<number>(DIAS_OBJETIVO_PRODUCCION);
 
   const modelo = useMemo(() => modelos.find((m) => m.productoId === productoId) ?? null, [modelos, productoId]);
@@ -133,8 +138,12 @@ export function NuevaOrdenProduccionForm({
       avisar.error("Indica cuántas prendas de al menos una talla o color.");
       return;
     }
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setCargando(true);
-    const { error } = await createClient().rpc("abrir_produccion", {
+    const { error } = await firmar(createClient().rpc("abrir_produccion", {
       p_ubicacion_id: tallerId,
       p_producto_id: modelo.productoId,
       p_lineas: lineas,
@@ -145,7 +154,8 @@ export function NuevaOrdenProduccionForm({
       p_fecha_entrega: fechaEntrega || undefined,
       p_nota: nota.trim() || undefined,
       p_token: token.current,
-    });
+    }), responsable.firma());
+    responsable.despues(error);
     setCargando(false);
     if (error) {
       avisar.error(traducirError(error, "abrir la orden"));
@@ -397,11 +407,12 @@ export function NuevaOrdenProduccionForm({
           <CampoTexto etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Tela, cliente, urgencia…" />
         </div>
 
+        <ComboResponsable control={responsable} deshabilitado={cargando} />
         <div className="flex gap-2 pt-1">
           <button type="button" onClick={onClose} className={botonCancelar}>
             Cancelar
           </button>
-          <button type="submit" disabled={cargando || !modelo} className={botonPrimario}>
+          <button type="submit" disabled={cargando || !modelo || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
             {cargando ? "Abriendo…" : "Abrir orden"}
           </button>
         </div>

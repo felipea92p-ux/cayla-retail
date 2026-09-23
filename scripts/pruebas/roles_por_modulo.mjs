@@ -1047,15 +1047,16 @@ caso(
 
 // ---------------- Quién firma (convención del ADR-0162 F3, vigilada también en actor_firma_las_operaciones.mjs) ----------------
 caso(
-  "las 6 RPC de roles firman con el actor de no-tienda, una sola vez cada una; de lo nuevo, solo fn_mi_rol_id mira la cuenta",
-  `select string_agg(proname || ':' || ((length(d) - length(replace(d, 'fn_actor_persona_id(false)', ''))) / length('fn_actor_persona_id(false)')), ',' order by proname)
+  "las 6 RPC de roles firman con el responsable (true) una vez; asignar_rol además mira la cuenta (false) para «no tu propio rol»; de lo nuevo, solo fn_mi_rol_id mira la cuenta",
+  `select string_agg(proname || ':' || ((length(d) - length(replace(d, 'fn_actor_persona_id(false)', ''))) / length('fn_actor_persona_id(false)'))
+                     || '/' || ((length(d) - length(replace(d, 'fn_actor_persona_id(true)', ''))) / length('fn_actor_persona_id(true)')), ',' order by proname)
      from (select proname, pg_get_functiondef(oid) d from pg_proc where pronamespace = 'retail'::regnamespace
             and proname in ('crear_rol', 'guardar_modulos_rol', 'renombrar_rol', 'archivar_rol', 'restaurar_rol', 'asignar_rol')) x;
    select string_agg(proname, ',' order by proname) from pg_proc
     where pronamespace = 'retail'::regnamespace and pg_get_functiondef(oid) ~* 'auth_user_id\\s*=\\s*auth\\.uid\\(\\)'
       and proname in ('fn_mi_rol_id', 'fn_ve_modulo', 'fn_capacidad_por_modulos', 'fn_mis_modulos', 'crear_rol', 'guardar_modulos_rol',
                       'renombrar_rol', 'archivar_rol', 'restaurar_rol', 'asignar_rol', 'fn_cuentas_con_rol', 'fn_cuentas_del_rol');`,
-  "archivar_rol:1,asignar_rol:1,crear_rol:1,guardar_modulos_rol:1,renombrar_rol:1,restaurar_rol:1\nfn_mi_rol_id"
+  "archivar_rol:0/1,asignar_rol:1/1,crear_rol:0/1,guardar_modulos_rol:0/1,renombrar_rol:0/1,restaurar_rol:0/1\nfn_mi_rol_id"
 );
 
 // ---------------- Historial ----------------

@@ -15,6 +15,9 @@ import { ETIQUETA_METODO, METODO_SALDO_A_FAVOR, soles, type CompraResumen } from
 import { hoyLima } from "@/lib/fechas-lima";
 import { etiquetaVence, tramoDe } from "@/lib/por-pagar-reglas";
 import type { AccionesDeCompra } from "@/lib/modulos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Acciones sobre una factura ya registrada (ADR-0035): registrar un pago
 // contra el saldo, o anularla. La página (server) dibuja el detalle; este
@@ -224,6 +227,8 @@ export function RegistrarPagoModal({
   const [fecha, setFecha] = useState(hoyLima());
   const [ubicacionPago, setUbicacionPago] = useState(misTiendas?.[0]?.id ?? "");
   const [loading, setLoading] = useState(false);
+  // Quién registra el pago (ADR-0161/0162): `registrar_pagos_compra` firma con esa persona.
+  const responsable = useResponsable();
   // Identifica ESTE intento de pago (ADR-0135): si la conexión se corta después de que la base guardó y la persona
   // vuelve a intentar, la base reconoce el token y no duplica el pago. Se conserva mientras el intento falle.
   const token = useRef(crypto.randomUUID());
@@ -263,17 +268,19 @@ export function RegistrarPagoModal({
     if (excede) return void avisar.error(`El pago supera el saldo pendiente (${soles(compra.saldo)}).`, { enfocar: "pago-monto-0" });
     if (favorExcedido) return void avisar.error(`Usas ${soles(favorUsado)} de saldo a favor y solo tienes ${soles(saldoFavor)}.`, { enfocar: "pago-monto-0" });
     if (misTiendas && misTiendas.length > 0 && !ubicacionPago) return void avisar.error("Elige con qué tienda pagas.");
+    if (!responsable.listo) return void (responsable.motivo && avisar.error(responsable.motivo));
     setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.rpc("registrar_pagos_compra", {
+    const { error } = await firmar(supabase.rpc("registrar_pagos_compra", {
       p_compra_id: compra.id,
       p_pagos: pagos,
       p_fecha: fecha,
       p_token: token.current,
       // ADR-0184 (F4): sin tiendas propias (líder) el pago no se ata a ninguna, como siempre.
       ...(ubicacionPago ? { p_ubicacion_id: ubicacionPago } : {}),
-    });
+    }), responsable.firma());
     setLoading(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "registrar el pago", { confirmarAntesDeRepetir: true }));
       return;
@@ -459,6 +466,8 @@ export function RegistrarPagoModal({
                 )}
               </p>
             </div>
+
+            <ComboResponsable control={responsable} deshabilitado={loading} />
 
             {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. */}
             <div className="-mx-6 -mb-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 px-6 py-4">

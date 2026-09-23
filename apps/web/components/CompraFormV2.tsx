@@ -13,6 +13,9 @@ import { SelectorAdjuntos } from "@/components/AdjuntosCompra";
 import { DestinoDeLaMercaderia, RepartoDeLinea } from "@/components/RepartoEnRegistro";
 import { LineasPago, lineaPagoVacia, lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
 import { subirAdjuntosCompra } from "@/lib/adjuntos-compra";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 import { campoEtiqueta } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
@@ -199,6 +202,9 @@ export function CompraFormV2({
   // como el mismo envío y devuelva la factura que ya existe, en vez del error
   // "ya está registrada". Solo se renueva después de un éxito.
   const token = useRef<string>(crypto.randomUUID());
+  // Quién hace esta operación (ADR-0161/0162): `registrar_compra` y el registro de cada adjunto firman con esa persona;
+  // sin elegirla, la base rechaza el guardado.
+  const responsable = useResponsable();
 
   const estadoRegistro: EstadoRegistro = registrada ? "hecho" : loading ? "cargando" : "reposo";
   const proveedor = proveedores.find((p) => p.id === proveedorId);
@@ -340,12 +346,19 @@ export function CompraFormV2({
     const pendiente = requisitos.find((r) => !r.ok);
     if (pendiente) return void (pendiente.error && avisar.error(pendiente.error.mensaje, { enfocar: pendiente.error.enfocar }));
     const pagosRpc = hayPago ? lineasPagoParaRpc(pagos) : null;
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
+    // La misma firma para el comprobante y sus adjuntos: `despues()` vuelve el combo a como vino apenas responde
+    // `registrar_compra`, y los adjuntos se registran después.
+    const firma = responsable.firma();
 
     setLoading(true);
     const cerrarProceso = avisar.proceso(`Registrando ${TIPOS.find((t) => t.valor === tipo)!.texto.toLowerCase()} ${serie.trim().toUpperCase()}-${numero.trim()}…`);
 
     const supabase = createClient();
-    const { data, error } = await supabase.rpc("registrar_compra", {
+    const { data, error } = await firmar(supabase.rpc("registrar_compra", {
       p_proveedor_id: proveedorId,
       p_serie: serie.trim(),
       p_numero: numero.trim(),
@@ -373,7 +386,8 @@ export function CompraFormV2({
       ...(pagosRpc ? { p_pago: pagosRpc } : {}),
       ...(nota.trim() ? { p_nota: nota.trim() } : {}),
       p_token: token.current,
-    });
+    }), firma);
+    responsable.despues(error);
 
     if (error) {
       cerrarProceso();
@@ -393,7 +407,7 @@ export function CompraFormV2({
     // aviso de cuáles quedaron por subir, y desde ahí se reintenta.
     let fallidos: string[] = [];
     if (adjuntos.length) {
-      const r = await subirAdjuntosCompra(supabase, data, adjuntos);
+      const r = await subirAdjuntosCompra(supabase, data, adjuntos, firma);
       fallidos = r.fallidos.map((f) => f.nombre);
     }
     cerrarProceso();
@@ -848,6 +862,7 @@ export function CompraFormV2({
         {/* Lo que falta, a la vista: el botón se activa recién con los cuatro, y en vez de quedar solo gris, esta
             lista dice qué falta (es una vista de `requisitosDeCompra`, las mismas reglas que valida `onSubmit`). */}
         <ListaPendientes id="compra-pendientes" requisitos={requisitos} />
+        <ComboResponsable control={responsable} deshabilitado={loading || registrada} />
         <div className="flex flex-col gap-2">
           <BotonRegistrar estado={estadoRegistro} habilitado={progreso.completo} describe="compra-pendientes">
             {condicion === "contado" ? `Registrar ${TIPOS.find((t) => t.valor === tipo)!.texto.toLowerCase()} y pago · ${soles(total)}` : `Registrar ${TIPOS.find((t) => t.valor === tipo)!.texto.toLowerCase()}`}

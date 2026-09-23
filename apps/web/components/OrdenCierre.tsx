@@ -10,6 +10,9 @@ import { Boton, CampoMonto } from "@/components/ui/campos";
 import { MatrizOrdenTabla } from "@/components/MatrizOrden";
 import { costoUnitario, segundas, totalBuenas, urlLlevarATiendas, type MatrizOrden } from "@/lib/produccion-reglas";
 import type { OrdenProduccion } from "@/lib/produccion";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Cerrar una orden (ADR-0133, F2): cuántas salieron buenas POR TALLA Y COLOR —así las espera `cerrar_produccion`— y
 // el costo REAL de la corrida. La base recalcula el costo unitario sobre las buenas (la merma se absorbe sola) y, si
@@ -43,6 +46,8 @@ export function OrdenCierre({
   const [avios, setAvios] = useState(String(orden.costoAvios));
   const [maquila, setMaquila] = useState(String(orden.costoMaquila));
   const [cargando, setCargando] = useState(false);
+  // Responsable (ADR-0161/0162): el cierre firma con quien se elige en el combo (la lista sale del Taller, la sede activa).
+  const responsable = useResponsable();
 
   const total = totalBuenas(buenas);
   const perdidas = segundas(orden.cantidadPlan, total);
@@ -54,14 +59,19 @@ export function OrdenCierre({
       avisar.error("No salió ninguna prenda buena — si la corrida se perdió, anula la orden en vez de cerrarla.");
       return;
     }
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setCargando(true);
-    const { error } = await createClient().rpc("cerrar_produccion", {
+    const { error } = await firmar(createClient().rpc("cerrar_produccion", {
       p_produccion_id: orden.id,
       p_buenas: orden.lineas.map((l) => ({ variante_id: l.varianteId, cantidad: Math.max(0, Math.floor(Number(buenas[l.varianteId]) || 0)) })),
       p_costo_tela: esLider ? Number(tela) || 0 : CONSERVAR,
       p_costo_avios: esLider ? Number(avios) || 0 : CONSERVAR,
       p_costo_maquila: esLider ? Number(maquila) || 0 : CONSERVAR,
-    });
+    }), responsable.firma());
+    responsable.despues(error);
     setCargando(false);
     if (error) {
       avisar.error(traducirError(error, "cerrar la orden"));
@@ -120,7 +130,10 @@ export function OrdenCierre({
         </p>
       )}
 
-      <Boton peso="primario" cargando={cargando} className="mt-4 w-full" onClick={confirmar}>
+      <div className="mt-4">
+        <ComboResponsable control={responsable} deshabilitado={cargando} />
+      </div>
+      <Boton peso="primario" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="mt-4 w-full" onClick={confirmar}>
         {cargando ? "Cerrando…" : orden.esMuestra ? "Terminar muestra" : "Confirmar entrada al stock"}
       </Boton>
     </section>

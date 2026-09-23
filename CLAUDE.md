@@ -173,10 +173,12 @@ Al crear un módulo nuevo (pantalla o grupo de pantallas nuevas), en el mismo PR
 2. **Web:** agregarlo a `CLAVES_MODULO` y `MODULOS` en `apps/web/lib/modulos.ts` (mismo `orden` que en la base); su nodo en
    `lib/menu.ts` declara `modulo: "<clave>"`; y su ruta tiene un `layout.tsx` con `await exigirModulo("<clave>")` (URL directa
    sin el módulo → «Sin acceso»).
-3. **Funciones que guardan:** si es operación de tienda, firman con `retail.fn_actor_persona_id(true)` (el responsable del
-   combo, ADR-0162) —nunca con `select id into … from personas where auth_user_id = auth.uid()`— y su pantalla usa el combo
-   «Responsable» (`useResponsable` + `<ComboResponsable>`). Los permisos se preguntan a la cuenta (`fn_ve_modulo`,
-   `fn_es_lider`), no al responsable.
+3. **Funciones que guardan:** TODAS (no solo las de tienda: Compras, Producción, Colaboradores y Roles también, Felipe
+   2026-09-23) firman con `retail.fn_actor_persona_id(true)` (el responsable del combo, ADR-0162) —nunca con `(false)` ni con
+   `select id into … from personas where auth_user_id = auth.uid()`— y su pantalla usa el combo «Responsable»
+   (`useResponsable` + `<ComboResponsable>`), con el mismo candado de asistencia en todas partes. Los permisos se preguntan
+   a la cuenta (`fn_ve_modulo`, `fn_es_lider`), no al responsable; `fn_actor_persona_id(false)` queda SOLO para comparar con
+   la cuenta en un permiso («no te quites a ti mismo», `fn_alcanzo_a`). Detalle: ADR-0161, «Actualización 2026-09-23 (c)».
 
 **Escalón Admin y «solo das lo que tienes» (ADR-0178):** por encima de Líder está el **Admin**, que no se marca en retail: se
 lee de Dynamic (`public.personas.rol = 'admin'` y Líder activo aquí, `fn_es_admin()`). Solo un Admin sube a alguien a Líder o

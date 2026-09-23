@@ -41,6 +41,9 @@ import type { ClaveModulo } from "@/lib/modulos";
 import { RolesPanel } from "@/components/RolesPanel";
 import { ListaActividad, TablaActivos, TablaInactivas, TablaPendientes, TablaSuspendidos } from "@/components/ColaboradoresTablas";
 import { TerminalesPanel, type AccionesTerminales } from "@/components/TerminalesPanel";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import type { Firma } from "@/lib/responsable-reglas";
 
 // «Terminales» (ADR-0162): aparatos de cada tienda con cuenta propia y SIN persona — ya no salen de `fn_colaboradores()`
 // sino de `fn_terminales()`. La pestaña entera vive en `TerminalesPanel` (crear, cambiar clave; sin tipo desde el
@@ -161,14 +164,23 @@ export function ColaboradoresPanel({
   const [rol, setRol] = useState<FiltroRol>("todos");
   const [modal, setModal] = useState<Modal | null>(null);
   const [ocupadoId, setOcupadoId] = useState<string | null>(null);
+  // Quién hace cada cambio (ADR-0161/0162; Felipe 2026-09-23: el combo va en TODA acción que guarda, también aquí).
+  // UNO para toda la pantalla: lo pintan cada modal, las tablas de un clic (aprobar, reactivar) y Roles y accesos. La
+  // base firma el historial con esa persona; quién PUEDE hacer el cambio lo sigue decidiendo la cuenta.
+  const responsable = useResponsable();
 
   const resumen = useMemo(() => resumirAccesos(colaboradores, suspendidos, disponibles), [colaboradores, suspendidos, disponibles]);
   const filas = useMemo(() => filtrarColaboradores(colaboradores, busqueda, rol), [colaboradores, busqueda, rol]);
 
-  async function ejecutar(idOcupado: string | null, verbo: string, llamada: () => Promise<ResultadoAccion>, exito: string, detalle?: string) {
+  async function ejecutar(idOcupado: string | null, verbo: string, llamada: (firma: Firma | null) => Promise<ResultadoAccion>, exito: string, detalle?: string) {
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return false;
+    }
     setOcupadoId(idOcupado);
-    const { error } = await llamada();
+    const { error } = await llamada(responsable.firma());
     setOcupadoId(null);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, verbo));
       return false;
@@ -391,11 +403,13 @@ export function ColaboradoresPanel({
                   <p className="text-sm text-tinta/70">
                     Un líder propuso el alta de estas personas (D-70): todavía no pueden vender, abrir caja ni mover stock hasta que alguien —el mismo líder u otro— la apruebe.
                   </p>
+                  {/* «Aprobar» guarda de un clic: el combo va encima de la tabla, una vez (no uno por fila). */}
+                  <ComboResponsable control={responsable} deshabilitado={ocupadoId !== null} className="max-w-sm" />
                   <TablaPendientes
                     filas={pendientes}
                     ocupadoId={ocupadoId}
                     onAprobar={(c) =>
-                      ejecutar(c.persona_id, "aprobar el alta", () => acciones.aprobar(c.persona_id), `${c.nombre} ya puede entrar a retail`)
+                      ejecutar(c.persona_id, "aprobar el alta", (f) => acciones.aprobar(c.persona_id, f), `${c.nombre} ya puede entrar a retail`)
                     }
                     onRechazar={(c) => setModal({ tipo: "quitar", persona: c, suspendida: false, pendiente: true })}
                   />
@@ -411,11 +425,13 @@ export function ColaboradoresPanel({
               ) : (
                 <>
                   <p className="text-sm text-tinta/70">No pueden entrar a retail ni operar ventas o caja hasta que las reactives. Conservan su ubicación y su historial.</p>
+                  {/* «Reactivar» guarda de un clic: el combo va encima de la tabla, una vez (no uno por fila). */}
+                  <ComboResponsable control={responsable} deshabilitado={ocupadoId !== null} className="max-w-sm" />
                   <TablaSuspendidos
                     filas={suspendidos}
                     ocupadoId={ocupadoId}
                     onReactivar={(c) =>
-                      ejecutar(c.persona_id, "reactivar el acceso", () => acciones.reactivar(c.persona_id), `${c.nombre} ya tiene acceso otra vez`)
+                      ejecutar(c.persona_id, "reactivar el acceso", (f) => acciones.reactivar(c.persona_id, f), `${c.nombre} ya tiene acceso otra vez`)
                     }
                     onQuitar={(c) => setModal({ tipo: "quitar", persona: c, suspendida: true })}
                     puedeTocar={(c) => !fueraDeAlcance.includes(c.persona_id) && (soyAdmin || c.rol !== "lider")}
@@ -458,6 +474,7 @@ export function ColaboradoresPanel({
               misModulos={misModulos}
               fueraDeAlcance={fueraDeAlcance}
               acciones={accionesRoles}
+              responsable={responsable}
             />
           )}
         </section>
@@ -478,23 +495,25 @@ export function ColaboradoresPanel({
 
       {modal?.tipo === "agregar" && (
         <AgregarColaboradoresModal
+          responsable={responsable}
           disponibles={disponibles}
           ubicaciones={ubicaciones}
           onClose={() => setModal(null)}
           onConfirmar={(personas, ubicacionId) =>
-            ejecutar(null, "agregar a los colaboradores", () => acciones.agregar(personas, ubicacionId), `${plural(personas.length, "persona queda pendiente de aprobación", "personas quedan pendientes de aprobación")} — un líder debe aprobarlas antes de que puedan operar`)
+            ejecutar(null, "agregar a los colaboradores", (f) => acciones.agregar(personas, ubicacionId, f), `${plural(personas.length, "persona queda pendiente de aprobación", "personas quedan pendientes de aprobación")} — un líder debe aprobarlas antes de que puedan operar`)
           }
         />
       )}
       {modal?.tipo === "terminal" && (
         <AlternarTerminalModal
+          responsable={responsable}
           terminal={modal.terminal}
           onClose={() => setModal(null)}
           onConfirmar={() =>
             ejecutar(
               modal.terminal.id,
               modal.terminal.activo ? "desactivar la terminal" : "reactivar la terminal",
-              () => (modal.terminal.activo ? acciones.desactivarTerminal(modal.terminal.id) : acciones.reactivarTerminal(modal.terminal.id)),
+              (f) => (modal.terminal.activo ? acciones.desactivarTerminal(modal.terminal.id, f) : acciones.reactivarTerminal(modal.terminal.id, f)),
               avisoTerminal(modal.terminal.nombre, modal.terminal.activo)
             )
           }
@@ -502,39 +521,43 @@ export function ColaboradoresPanel({
       )}
       {modal?.tipo === "suspender" && (
         <SuspenderModal
+          responsable={responsable}
           nombre={modal.persona.nombre}
           onClose={() => setModal(null)}
           onConfirmar={(motivo) =>
-            ejecutar(modal.persona.persona_id, "suspender el acceso", () => acciones.suspender(modal.persona.persona_id, motivo), "Acceso suspendido", `${modal.persona.nombre} pasó a Suspendidos.`)
+            ejecutar(modal.persona.persona_id, "suspender el acceso", (f) => acciones.suspender(modal.persona.persona_id, motivo, f), "Acceso suspendido", `${modal.persona.nombre} pasó a Suspendidos.`)
           }
         />
       )}
       {modal?.tipo === "ubicacion" && (
         <CambiarUbicacionModal
+          responsable={responsable}
           nombre={modal.persona.nombre}
           esLider={modal.persona.rol === "lider"}
           ubicacionActualId={modal.persona.ubicacion_id}
           ubicaciones={ubicaciones}
           onClose={() => setModal(null)}
           onConfirmar={(ubicacionId) =>
-            ejecutar(modal.persona.persona_id, "cambiar la ubicación", () => acciones.cambiarUbicacion(modal.persona.persona_id, ubicacionId), "Ubicación actualizada", `${modal.persona.nombre} quedó en ${ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "la nueva ubicación"}.`)
+            ejecutar(modal.persona.persona_id, "cambiar la ubicación", (f) => acciones.cambiarUbicacion(modal.persona.persona_id, ubicacionId, f), "Ubicación actualizada", `${modal.persona.nombre} quedó en ${ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? "la nueva ubicación"}.`)
           }
         />
       )}
       {modal?.tipo === "rol" && roles && (
         <AsignarRolModal
+          responsable={responsable}
           roles={rolesAsignables(roles, undefined, soyAdmin, misModulos)}
           cuentas={[]}
           ubicaciones={ubicaciones}
           cuentaFija={modal.cuenta}
           onClose={() => setModal(null)}
           onConfirmar={(rolId, cuenta, ubicacionId) =>
-            ejecutar(cuenta.id, "cambiar el rol", () => accionesRoles.asignar(rolId, cuenta, ubicacionId), "Rol actualizado", `${cuenta.nombre} ahora tiene «${nombreDeRol(rolId) ?? "el nuevo rol"}».`)
+            ejecutar(cuenta.id, "cambiar el rol", (f) => accionesRoles.asignar(rolId, cuenta, ubicacionId, f), "Rol actualizado", `${cuenta.nombre} ahora tiene «${nombreDeRol(rolId) ?? "el nuevo rol"}».`)
           }
         />
       )}
       {modal?.tipo === "quitar" && (
         <QuitarAccesoModal
+          responsable={responsable}
           nombre={modal.persona.nombre}
           suspendida={modal.suspendida}
           pendiente={modal.pendiente}
@@ -543,7 +566,7 @@ export function ColaboradoresPanel({
             ejecutar(
               modal.persona.persona_id,
               modal.pendiente ? "rechazar el alta" : "quitar el acceso",
-              () => acciones.quitar(modal.persona.persona_id),
+              (f) => acciones.quitar(modal.persona.persona_id, f),
               modal.pendiente ? "Alta rechazada" : "Acceso quitado",
               modal.pendiente ? "La propuesta de alta se descartó." : "La persona ya no puede entrar al sistema de retail."
             )
