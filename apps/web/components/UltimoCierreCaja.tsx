@@ -17,8 +17,8 @@ function cuando(iso: string) {
 }
 
 /**
- * Con la caja cerrada (ADR-0183): cuánto quedó en el cajón, quién cerró, si cuadró y a dónde se fue el resto. Es el
- * contexto de «Antes de abrir, cuenta el cajón». Los cierres anteriores a ADR-0183 no guardaron el fondo: se muestra
+ * Con la caja cerrada (ADR-0185): cuánto quedó en el cajón, quién cerró, si cuadró y a dónde se fue el resto. Es el
+ * contexto de «Antes de abrir, cuenta el cajón». Los cierres anteriores a ADR-0185 no guardaron el fondo: se muestra
  * lo contado y se dice que no quedó registrado cuánto quedó.
  */
 export function UltimoCierreCaja({ cierre }: { cierre: CierreCaja }) {

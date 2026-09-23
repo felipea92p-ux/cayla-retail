@@ -18,7 +18,7 @@ function cuando(iso: string) {
 }
 
 /**
- * El aviso al líder de ADR-0183: aperturas que no coincidieron con lo que dejó el cierre anterior, con el motivo que
+ * El aviso al líder de ADR-0185: aperturas que no coincidieron con lo que dejó el cierre anterior, con el motivo que
  * escribió quien abrió. «Marcar como revisada» la saca de aquí y de la cola de Inicio (`revisar_apertura_caja`,
  * solo líder). No corrige ningún monto: el efectivo se corrige con un movimiento de caja, como siempre.
  */

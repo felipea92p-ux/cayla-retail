@@ -1081,6 +1081,7 @@ export type Database = {
           pago_grupo_id: string | null
           referencia: string | null
           usuario_id: string | null
+          ubicacion_id: string | null
         }
         Insert: {
           compra_id: string
@@ -1092,6 +1093,7 @@ export type Database = {
           pago_grupo_id?: string | null
           referencia?: string | null
           usuario_id?: string | null
+          ubicacion_id?: string | null
         }
         Update: {
           compra_id?: string
@@ -1103,6 +1105,7 @@ export type Database = {
           pago_grupo_id?: string | null
           referencia?: string | null
           usuario_id?: string | null
+          ubicacion_id?: string | null
         }
         Relationships: [
           {
@@ -1213,6 +1216,7 @@ export type Database = {
           subtotal: number
           tipo: string
           token_cliente: string | null
+          ubicacion_gestion_id: string | null
           total: number
           usuario_id: string | null
         }
@@ -1242,6 +1246,7 @@ export type Database = {
           subtotal: number
           tipo?: string
           token_cliente?: string | null
+          ubicacion_gestion_id?: string | null
           total: number
           usuario_id?: string | null
         }
@@ -1271,6 +1276,7 @@ export type Database = {
           subtotal?: number
           tipo?: string
           token_cliente?: string | null
+          ubicacion_gestion_id?: string | null
           total?: number
           usuario_id?: string | null
         }
@@ -4818,8 +4824,9 @@ export type Database = {
       extender_separacion: {
         Args: { p_separacion_id: string }
         Returns: string
-      }
-
+      }
+      fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
+      fn_soles_diferencia_conteo: { Args: { p_conteo_id: string }; Returns: number }
       fn_catalogo_version: { Args: never; Returns: number }
       fn_vencer_separaciones: {
         Args: { p_ubicacion_id: string }
@@ -6120,6 +6127,39 @@ export type Database = {
       fn_puede_analizar: { Args: never; Returns: boolean }
       fn_puede_gestionar_colaboradores: { Args: never; Returns: boolean }
       fn_puede_administrar_roles: { Args: never; Returns: boolean }
+      // ADR-0184 (Compras por tienda)
+      fn_compras_ubicaciones: { Args: never; Returns: string[] }
+      fn_puede_comprar_en: { Args: { p_ubicacion_id: string }; Returns: boolean }
+      fn_saldo_de_tienda: { Args: { p_compra_id: string; p_ubicacion_id: string }; Returns: number }
+      agregar_comprador_de_tienda: { Args: { p_persona_id: string; p_ubicacion_id: string }; Returns: undefined }
+      quitar_comprador_de_tienda: { Args: { p_persona_id: string; p_ubicacion_id: string }; Returns: undefined }
+      cambiar_tienda_gestora_compra: { Args: { p_compra_id: string; p_ubicacion_id: string }; Returns: undefined }
+      fn_compras_visibles: { Args: never; Returns: string[] }
+      fn_compra_es_de_mis_tiendas: { Args: { p_compra_id: string }; Returns: boolean }
+      fn_mi_parte_de_compra: { Args: { p_compra_id: string }; Returns: Json }
+      fn_mis_partes_de_compras: {
+        Args: never
+        Returns: {
+          compra_id: string
+          documento: string | null
+          tipo: string
+          proveedor_id: string
+          proveedor_nombre: string
+          fecha_emision: string
+          fecha_vencimiento: string | null
+          estado: string
+          gestora_id: string | null
+          gestora_nombre: string | null
+          ubicacion_id: string
+          ubicacion_nombre: string
+          unidades: number
+          total: number
+          pagado: number
+          saldo: number
+          registrada_en: string
+          parte_nueva: boolean
+        }[]
+      }
       // 20260923163000 (ADR-0178): el escalón Admin, leído de Dynamic, y «solo das lo que tienes».
       fn_es_admin: { Args: never; Returns: boolean }
       fn_admins: { Args: never; Returns: { persona_id: string }[] }
@@ -6764,6 +6804,7 @@ export type Database = {
           p_proveedor_id: string
           p_referencia?: string
           p_token?: string
+          p_ubicacion_id?: string
         }
         Returns: string
       }
@@ -6775,6 +6816,7 @@ export type Database = {
           p_medios?: Json
           p_proveedor_id: string
           p_token?: string
+          p_ubicacion_id?: string
         }
         Returns: string
       }
@@ -6784,6 +6826,7 @@ export type Database = {
           p_fecha?: string
           p_pagos: Json
           p_token?: string
+          p_ubicacion_id?: string
         }
         Returns: string[]
       }

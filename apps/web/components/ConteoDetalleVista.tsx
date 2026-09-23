@@ -14,7 +14,9 @@ const PLANTILLA = "sm:grid-cols-[minmax(13.5rem,1.4fr)_5rem_5rem_6rem_7rem]";
 function fechaHora(iso: string) {
   return new Date(iso).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
 }
-function soles(n: number) {
+// null = quien mira no ve el dinero (20260923193700): «—», nunca S/ 0.
+function soles(n: number | null) {
+  if (n === null) return "—";
   return `${n < 0 ? "−" : n > 0 ? "+" : ""}S/ ${Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -101,7 +103,7 @@ export function ConteoDetalleVista({ conteo, ver, ubicacionEtiqueta }: { conteo:
             <TarjetaCifra
               etiqueta="Diferencia en soles"
               valor={soles(conteo.solesDiferencia)}
-              tono={conteo.solesDiferencia < 0 ? "text-rojo-profundo" : conteo.solesDiferencia > 0 ? "text-verde-profundo" : "text-tinta"}
+              tono={(conteo.solesDiferencia ?? 0) < 0 ? "text-rojo-profundo" : (conteo.solesDiferencia ?? 0) > 0 ? "text-verde-profundo" : "text-tinta"}
             >
               Al costo actual de cada prenda · ya ajustado en el stock
             </TarjetaCifra>
@@ -156,7 +158,7 @@ export function ConteoDetalleVista({ conteo, ver, ubicacionEtiqueta }: { conteo:
                     <span className="mr-1 text-[11px] font-normal text-taupe sm:hidden">Diferencia</span>
                     {l.diferencia === 0 ? "=" : `${l.diferencia > 0 ? "+" : ""}${l.diferencia}`}
                   </span>
-                  <span className={celda("der", `text-sm ${l.soles < 0 ? "text-rojo-profundo" : "text-tinta/75"}`)}>
+                  <span className={celda("der", `text-sm ${(l.soles ?? 0) < 0 ? "text-rojo-profundo" : "text-tinta/75"}`)}>
                     <span className="mr-1 text-[11px] text-taupe sm:hidden">En soles</span>
                     {l.diferencia === 0 ? "—" : soles(l.soles)}
                   </span>

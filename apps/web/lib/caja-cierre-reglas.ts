@@ -1,4 +1,4 @@
-// Reglas puras del cierre con traslado y de la apertura verificada (ADR-0183). Sin React ni Supabase: las usan
+// Reglas puras del cierre con traslado y de la apertura verificada (ADR-0185). Sin React ni Supabase: las usan
 // `CerrarCajaModalV2`, `AbrirCajaFormV2`, el historial de cierres y sus pruebas. Los mismos candados viven en la base
 // (`cerrar_caja`, `abrir_caja`, `caja_traslados`); aquí solo se adelantan para que la pantalla explique antes de enviar.
 

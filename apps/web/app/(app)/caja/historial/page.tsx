@@ -34,7 +34,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
   const incluirPrueba = prueba === "1";
   const [cierres, aperturas] = await Promise.all([
     getHistorialCierres(60, incluirPrueba),
-    // ADR-0183: el aviso al líder. Solo el líder las marca como revisadas (`revisar_apertura_caja`).
+    // ADR-0185: el aviso al líder. Solo el líder las marca como revisadas (`revisar_apertura_caja`).
     persona.rol === "lider" ? getAperturasPorRevisar() : Promise.resolve(null),
   ]);
 

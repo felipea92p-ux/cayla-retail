@@ -123,7 +123,7 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
     }
   }
 
-  // Sin caja (ADR-0183): lo que dejó el último cierre, para que el modal «Abrir caja» pida contar el cajón.
+  // Sin caja (ADR-0185): lo que dejó el último cierre, para que el modal «Abrir caja» pida contar el cajón.
   const fondoUltimoCierre = caja ? null : ((await getUltimoCierre(persona.ubicacionId))?.montoFondo ?? null);
   // «Prenda sin registrar» (ADR-0179): listas cerradas del modal. El uso de colores por categoría sale del mismo
   // catálogo que ya carga la caja (sin otra consulta): los usados en esa categoría se ofrecen primero.

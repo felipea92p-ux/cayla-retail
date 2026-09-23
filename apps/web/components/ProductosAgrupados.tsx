@@ -10,19 +10,21 @@ import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { Chip } from "@/components/ui/Chip";
 import { describirRotacion } from "@/lib/reorden-reglas";
 import type { Sububicacion } from "@/lib/sububicaciones";
-import type { ProductoListado, VarianteCatalogo } from "@/lib/catalogo-v2";
+import type { ProductoListado, VarianteListado } from "@/lib/catalogo-v2";
 import { alertaDeStock, textoDeStock, EXPLICACION_STOCK_TOTAL, MENSAJE_SIN_RESULTADOS } from "@/lib/productos-stock";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 
 /** Rango de costo del modelo a partir de sus variantes — no hay `costo` a nivel
  *  de producto en el esquema (vive por variante, `variantes.costo`), así que se
  *  deriva acá en vez de sumar una columna nueva a `fn_productos` para un valor
  *  que ya viaja en la respuesta. */
-function rangoCosto(variantes: VarianteCatalogo[]): string {
-  if (variantes.length === 0) return "—";
-  const costos = variantes.map((v) => v.costo);
+function rangoCosto(variantes: VarianteListado[]): string {
+  // Sin permiso de ver el dinero `fn_productos` manda el costo vacío (20260923193700): «—», nunca S/0.
+  const costos = variantes.flatMap((v) => (v.costo === null ? [] : [v.costo]));
+  if (costos.length === 0) return "—";
   const min = Math.min(...costos);
   const max = Math.max(...costos);
   return min === max ? `S/${min.toFixed(2)}` : `S/${min.toFixed(2)}–${max.toFixed(2)}`;
@@ -271,7 +273,7 @@ export function ProductosAgrupados({
                           )}
                         </td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-tinta">S/{v.precio.toFixed(2)}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-tinta/65">S/{v.costo.toFixed(2)}</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums text-tinta/65">{v.costo === null ? "—" : `S/${v.costo.toFixed(2)}`}</td>
                         <td className="px-5 py-2.5 text-xs text-tinta/65">{v.codigosBarras.join(", ") || "—"}</td>
                       </tr>
                     ))}
@@ -385,6 +387,16 @@ function MenuFila({
               onClick={() => setAbierto(false)}
             >
               Ver historial
+            </Link>
+          </li>
+          <li role="none">
+            <Link
+              role="menuitem"
+              href={urlEtiquetasDePrecio({ producto: productoId })}
+              className="block px-3 py-2 text-sm text-tinta/75 hover:bg-rojo/10"
+              onClick={() => setAbierto(false)}
+            >
+              Imprimir etiquetas de precio
             </Link>
           </li>
           <li role="none">

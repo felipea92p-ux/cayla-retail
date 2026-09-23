@@ -98,7 +98,7 @@ describe("colasInicio", () => {
     expect(vencidas(null).detalle).toMatch(/No se pudo leer/);
     expect(vencidas(1).href).toBe("/recibir?vista=por-regularizar");
   });
-  it("aperturas de caja con diferencia (ADR-0183): solo aparece si se pasa (el líder)", () => {
+  it("aperturas de caja con diferencia (ADR-0185): solo aparece si se pasa (el líder)", () => {
     const aperturas = (n: number | null) => colasInicio({ traslados: 0, aperturas: n }).find((c) => c.clave === "aperturas")!;
     expect(colasInicio({ traslados: 0 }).some((c) => c.clave === "aperturas")).toBe(false);
     expect(aperturas(2).detalle).toBe("2 abrieron con un monto distinto del último cierre.");

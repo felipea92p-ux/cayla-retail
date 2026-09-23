@@ -1,4 +1,4 @@
-# ADR-0183 — El cierre de caja registra a dónde va el efectivo y la apertura se compara con lo que quedó
+# ADR-0185 — El cierre de caja registra a dónde va el efectivo y la apertura se compara con lo que quedó
 
 - **Fecha:** 2026-09-23
 - **Estado:** construido; migración `20260923200000_caja_cierre_con_traslado_y_apertura_verificada.sql` **por pegar en

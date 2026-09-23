@@ -39,7 +39,7 @@ export default async function InicioPage() {
     getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")),
     // ADR-0179: el aviso de prendas vendidas sin registrar que almacén no regularizó a tiempo es del líder.
     esLider ? contarVencidas() : Promise.resolve(undefined),
-    // ADR-0183: aperturas de caja que no coincidieron con el último cierre, el aviso al líder. Total (null si falla).
+    // ADR-0185: aperturas de caja que no coincidieron con el último cierre, el aviso al líder. Total (null si falla).
     esLider ? getAperturasPorRevisar() : Promise.resolve(undefined),
     // Los últimos 8 de todo el historial (sin el recorte de 30 días de la pantalla de Movimientos): en Inicio
     // importa «lo último», no un período. Dato secundario: si falla, el resto sigue y el aviso va en su lugar.

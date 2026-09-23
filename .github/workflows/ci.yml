@@ -160,6 +160,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-venta
 
+      # Precio de campaña bajado al .90 (ADR-0182): la base da lo mismo que la caja, registrar_venta y separar_prendas
+      # aceptan el descuento redondeado y rechazan el de antes, y la migración se puede pegar dos veces. ROLLBACK.
+      - name: pruebas:campana-redondeo
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:campana-redondeo
+
       # «Quién vendió» (ADR-0163): la venta guarda a quien atendió (asesora_id) Y a la sesión, «Ventas de hoy»
       # la firma con quien atendió y queda una sola registrar_venta. Cada caso termina en ROLLBACK.
       - name: pruebas:vendedora-en-venta
@@ -319,6 +325,22 @@ jobs:
       - name: pruebas:compras-reparto
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:compras-reparto
+
+      # Compras POR TIENDA (ADR-0184 sobre los roles por módulo de ADR-0161): sin módulo no se llega a ninguna tienda (ni con fila en
+      # compradores_de_tienda); con módulo, a la suya y a las extra; una factura que gestiona otra tienda no se ve (ni cabecera, ni
+      # líneas, ni pagos) y su parte sale por fn_mis_partes_de_compras / fn_mi_parte_de_compra sin el total de la factura; cada tienda
+      # paga desde su tienda y hasta su parte (RPC y candado de esquema); anular/registrar solo sobre la gestora propia; una sola
+      # firma y nada abierto a anon. Cada caso termina en ROLLBACK. Mismo seed que `dinero-compras`.
+      - name: pruebas:compras-por-tienda
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:compras-por-tienda
+
+      # El dinero de una factura partido por tienda (ADR-0184, F2): 24 unidades 12/12 = 708.00 y 708.00; costos de 3 decimales, 3 tiendas,
+      # IGV del papel, boletas y regalos de costo 0 suman la CABECERA al centavo (aunque las líneas sumen distinto); dos lecturas dan lo
+      # mismo; la vista respeta los permisos de quien la lee. Carga las tres migraciones DENTRO de cada caso, que termina en ROLLBACK.
+      - name: pruebas:compras-parte-por-tienda
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:compras-parte-por-tienda
 
       # Módulo Notas de crédito: el tablero trae notas y pendientes con sus montos (incluido el
       # monto_esperado del faltante cerrado y el a_favor de la nota que superó la deuda), registrar con

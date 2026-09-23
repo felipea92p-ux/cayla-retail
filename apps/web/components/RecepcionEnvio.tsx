@@ -642,10 +642,11 @@ export function RecepcionEnvio({
       return;
     }
 
-    const r = (data ?? {}) as { ya_registrado?: boolean; lotes?: unknown[]; extras?: number; traslados?: { resultado: string }[]; cierres?: number };
+    const r = (data ?? {}) as { ya_registrado?: boolean; lotes?: { lote_id: string }[]; extras?: number; traslados?: { resultado: string }[]; cierres?: number };
     const resultado: Resultado = {
       unidades: unidadesRecibiendo,
       proveedores: r.lotes?.length ?? proveedoresEnvio.length,
+      lotes: (r.lotes ?? []).map((l) => l.lote_id),
       extras: r.extras ?? 0,
       deOtraSede: totales.deOtraSede,
       traslados: r.traslados ?? [],

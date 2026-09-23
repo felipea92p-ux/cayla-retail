@@ -16,7 +16,7 @@ import { CajaAbiertaPanel, type VentaDelDia } from "@/components/CajaAbiertaPane
 export default async function CajaPage() {
   const persona = await requirePersonaActualV2();
   const caja = await getCajaAbierta(persona.ubicacionId);
-  // Sin caja (ADR-0183): el último cierre de la sede da el contexto y el monto que debería estar en el cajón.
+  // Sin caja (ADR-0185): el último cierre de la sede da el contexto y el monto que debería estar en el cajón.
   const ultimoCierre = caja ? null : await getUltimoCierre(persona.ubicacionId);
 
   return (

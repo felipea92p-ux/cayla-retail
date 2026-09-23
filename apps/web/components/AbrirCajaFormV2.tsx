@@ -17,9 +17,9 @@ function money(n: number) {
 }
 
 /**
- * Abrir caja (ADR-0183). Si el último cierre de la sede dejó un monto en el cajón (`esperado`), se pide contar el
+ * Abrir caja (ADR-0185). Si el último cierre de la sede dejó un monto en el cajón (`esperado`), se pide contar el
  * cajón antes de abrir: con un toque si coincide, o escribiendo cuánto hay y por qué no coincide. La diferencia queda
- * guardada y le aparece al líder en Inicio. Sin `esperado` (cierres anteriores a ADR-0183) se escribe el monto como
+ * guardada y le aparece al líder en Inicio. Sin `esperado` (cierres anteriores a ADR-0185) se escribe el monto como
  * siempre. El candado real está en `abrir_caja`: esto solo lo explica antes de enviar.
  */
 export function AbrirCajaFormV2({

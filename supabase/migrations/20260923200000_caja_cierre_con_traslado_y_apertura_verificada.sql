@@ -1,4 +1,4 @@
--- Cierre con traslado y apertura verificada (ADR-0183, 2026-09-23 — spike docs/maquetas/caja-cierre-spike-2026-09/).
+-- Cierre con traslado y apertura verificada (ADR-0185, 2026-09-23 — spike docs/maquetas/caja-cierre-spike-2026-09/).
 --
 -- EL PROBLEMA. Al cerrar caja, el sistema guardaba cuánto se contó, pero no qué se hizo con ese efectivo: si se fue a
 -- la caja fuerte, al banco o se le entregó al líder, y cuánto quedó en el cajón. Al día siguiente, quien abría escribía
@@ -27,9 +27,9 @@ alter table retail.cajas
   add column if not exists apertura_revisada_en timestamptz;
 
 comment on column retail.cajas.monto_fondo is
-  'Efectivo que quedó en el cajón al cerrar: contado − trasladado (ADR-0183). La apertura siguiente de la sede lo usa como «lo que debería haber». NULL en cierres anteriores a ADR-0183.';
+  'Efectivo que quedó en el cajón al cerrar: contado − trasladado (ADR-0185). La apertura siguiente de la sede lo usa como «lo que debería haber». NULL en cierres anteriores a ADR-0185.';
 comment on column retail.cajas.monto_apertura_esperado is
-  'monto_fondo del último cierre de la sede al momento de abrir (ADR-0183). NULL si no había con qué comparar.';
+  'monto_fondo del último cierre de la sede al momento de abrir (ADR-0185). NULL si no había con qué comparar.';
 comment on column retail.cajas.motivo_diferencia_apertura is
   'Por qué se abrió con un monto distinto del esperado. Obligatorio si difieren (candado caja_apertura_explica_diferencia).';
 
@@ -56,7 +56,7 @@ create table if not exists retail.caja_traslados (
 create index if not exists caja_traslados_caja_idx on retail.caja_traslados (caja_id);
 
 comment on table retail.caja_traslados is
-  'A dónde fue el efectivo contado al cerrar una caja (ADR-0183). Solo se escribe desde cerrar_caja; no se edita ni borra.';
+  'A dónde fue el efectivo contado al cerrar una caja (ADR-0185). Solo se escribe desde cerrar_caja; no se edita ni borra.';
 
 alter table retail.caja_traslados enable row level security;
 revoke all on table retail.caja_traslados from public, anon, authenticated;
@@ -119,7 +119,7 @@ end;
 $$;
 revoke all on function retail.fn_calcular_esperado_caja(uuid) from public, anon, authenticated;
 
--- Pública: solo quien puede cerrar esa caja ve cuánto espera el sistema (ADR-0183 lo muestra desde el inicio del cierre).
+-- Pública: solo quien puede cerrar esa caja ve cuánto espera el sistema (ADR-0185 lo muestra desde el inicio del cierre).
 create or replace function retail.fn_esperado_caja(p_caja_id uuid)
 returns table(apertura numeric, ventas_efectivo numeric, ingresos numeric, egresos numeric,
               reembolsos_efectivo numeric, cambios_efectivo numeric, esperado numeric)
@@ -254,7 +254,7 @@ begin
     raise exception 'El monto de apertura no puede ser negativo';
   end if;
 
-  -- Lo que quedó en el cajón en el último cierre real de la sede. Los cierres de antes de ADR-0183 no lo tienen
+  -- Lo que quedó en el cajón en el último cierre real de la sede. Los cierres de antes de ADR-0185 no lo tienen
   -- (NULL): no hay con qué comparar y no se exige motivo.
   select c.monto_fondo into v_esperado
     from cajas c

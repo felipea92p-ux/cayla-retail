@@ -13,7 +13,9 @@ function fecha(iso: string) {
   return new Date(iso).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", timeZone: "America/Lima" });
 }
 
-function soles(n: number) {
+// null = quien mira no ve el dinero (20260923193700): «—», nunca S/ 0.
+function soles(n: number | null) {
+  if (n === null) return "—";
   return `${n < 0 ? "−" : ""}S/ ${Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -129,7 +131,7 @@ export function ConteoVista({
         <Tarjeta
           etiqueta="Último conteo con prendas"
           valor={ultimo ? soles(ultimo.solesDiferencia) : "—"}
-          tono={ultimo ? (ultimo.solesDiferencia < 0 ? "text-rojo-profundo" : "text-tinta") : "text-taupe"}
+          tono={ultimo ? ((ultimo.solesDiferencia ?? 0) < 0 ? "text-rojo-profundo" : "text-tinta") : "text-taupe"}
         >
           {ultimo
             ? `Conteo ${ultimo.numero} · ${ultimo.lineasConDiferencia === 0 ? "todo coincidió" : `${ultimo.lineasConDiferencia} ${ultimo.lineasConDiferencia === 1 ? "prenda" : "prendas"} con diferencia`} · ya ajustado en el stock`

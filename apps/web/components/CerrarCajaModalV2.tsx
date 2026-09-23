@@ -39,7 +39,7 @@ type Esperado = {
 const DENOMINACIONES = [200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1];
 
 /**
- * Cierre en tres pasos (ADR-0183, spike docs/maquetas/caja-cierre-spike-2026-09/): 1) contar, con lo que espera el
+ * Cierre en tres pasos (ADR-0185, spike docs/maquetas/caja-cierre-spike-2026-09/): 1) contar, con lo que espera el
  * sistema a la vista y la diferencia al instante; 2) trasladar, un solo monto y un destino, y lo que queda en el cajón
  * para el próximo turno se calcula; 3) el resultado.
  *

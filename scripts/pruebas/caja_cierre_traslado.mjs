@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de ADR-0183 — cierre con traslado y apertura verificada
+ * Prueba de ADR-0185 — cierre con traslado y apertura verificada
  * (`20260923200000_caja_cierre_con_traslado_y_apertura_verificada.sql`).
  *
  * QUÉ CUBRE
