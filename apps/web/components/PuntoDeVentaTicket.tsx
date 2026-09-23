@@ -968,7 +968,9 @@ export function PuntoDeVentaTicket({
                   líneas tienen que seguir siendo sus hijas directas. */}
               <div ref={listaRef} className="divide-y divide-sand">
                 {carrito.map((it) => {
-                  const pctLinea = porcentajeDeLinea(it);
+                  // Con campaña se muestra SU % (ADR-0182): el precio baja al .90, así que la cuenta monto ÷ precio se corre
+                  // (24.90 de 95.80 es 26 % y la campaña es de 25 %).
+                  const pctLinea = esDescuentoDeCampana(it) && it.campana ? it.campana.pct : porcentajeDeLinea(it);
                   const precioNeto = it.precioUnitario - it.descuentoUnitario;
                   return (
                     <article key={it.claveLinea} className="px-5 py-4">

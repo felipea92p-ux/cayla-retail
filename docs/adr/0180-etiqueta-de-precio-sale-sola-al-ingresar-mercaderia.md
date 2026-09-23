@@ -109,5 +109,6 @@ pistola Zebra el 2026-09-10, ADR-0025), pero **se perdió en el reemplazo V1→V
 - **Paso 2:** reimprimir con el precio de campaña, con el bloque «−20 %», el motivo y «Válido hasta». Imprimir a mano las
   etiquetas de un producto, para la ropa que ya está en tienda y para la que llega del Taller a una tienda que no imprimió.
   Al terminar una campaña, listar las prendas que hay que volver a etiquetar.
-- **Paso 3:** redondeo a .90 en la caja (`registrar_venta` verifica). Toca dinero: revisión propia y OK de Felipe.
+- **Paso 3 — construido (ADR-0182):** el precio de campaña baja al .90 en la caja y la base lo verifica. Falta pegar su
+  migración en producción con OK de Felipe, el mismo día que se publique la web.
 - Ajustar 62 × 92 mm a la medida de la cartulina.

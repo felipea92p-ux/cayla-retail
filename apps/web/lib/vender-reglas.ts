@@ -231,6 +231,32 @@ export const SIN_DETALLE_DESCUENTO: DetalleDescuento = { razon: "", razonOtro: "
 /** El motivo con que viaja el descuento de una campaña: uno más en `venta_items`. */
 export const RAZON_CAMPANA = "campana";
 
+/**
+ * El descuento por unidad de una campaña, con el precio rebajado REDONDEADO HACIA ABAJO a .90 (Felipe, 2026-09-23,
+ * ADR-0182): S/ 89.90 con 20 % da S/ 71.92 y se cobra S/ 71.90 → descuento S/ 18.00. Si el cálculo cae en 71.85, queda
+ * 70.90: siempre el .90 más cercano por debajo, nunca por encima. Un precio rebajado de menos de S/ 0.90 no se redondea
+ * (no existe un .90 por debajo) y 100 % regala la prenda.
+ *
+ * ES LA MISMA REGLA, AL CÉNTIMO, QUE `retail.fn_descuento_campana` (20260923174100): la caja la calcula y
+ * `registrar_venta`/`separar_prendas` la verifican. Si divergen, la venta se rechaza en el mostrador. Por eso va en
+ * enteros (diezmilésimas de céntimo): con coma flotante, un 71.8999… en vez de 71.90 bajaría el precio un sol entero.
+ * Los % tienen como mucho 2 decimales (`parsearDescuento`).
+ */
+export function descuentoDeCampana(precio: number, pct: number): number {
+  if (!Number.isFinite(pct) || pct <= 0) return 0;
+  if (pct >= 100) return precio;
+  const precioC = Math.round(precio * 100);
+  // precio rebajado exacto, en diezmilésimas de céntimo: precio × (100 − pct) / 100, sin redondear. El % con 2
+  // decimales, como `round(p_pct, 2)` en la base.
+  const rebajado = precioC * (10_000 - Math.round(pct * 100));
+  const UN_CENTIMO = 10_000;
+  const finalC =
+    rebajado >= 90 * UN_CENTIMO
+      ? Math.floor((rebajado + 10 * UN_CENTIMO) / (100 * UN_CENTIMO)) * 100 - 10 // el X.90 más alto que no lo pasa
+      : Math.round(rebajado / UN_CENTIMO);
+  return (precioC - finalC) / 100;
+}
+
 /** La campaña que rige hoy para una prenda: la de mayor % (la elige la base). */
 export type CampanaLinea = { etiquetaId: string; nombre: string; pct: number };
 
@@ -259,7 +285,7 @@ export function conDescuentoDeCampana<L extends LineaDescontable>(l: L): L {
   if (!l.campana) return l;
   return {
     ...l,
-    descuentoUnitario: descuentoUnitarioPorPorcentaje(l.precioUnitario, l.campana.pct),
+    descuentoUnitario: descuentoDeCampana(l.precioUnitario, l.campana.pct),
     razonDescuento: RAZON_CAMPANA,
     razonDescuentoOtro: "",
     argumentoDescuento: "",
@@ -272,7 +298,7 @@ export function conDescuentoDeCampana<L extends LineaDescontable>(l: L): L {
  *  campaña por más de un centavo. */
 export function descuentoResultante(l: LineaDescontable, montoNuevo: number): { monto: number; prevaleceCampana: boolean } {
   if (l.campana) {
-    const deCampana = descuentoUnitarioPorPorcentaje(l.precioUnitario, l.campana.pct);
+    const deCampana = descuentoDeCampana(l.precioUnitario, l.campana.pct);
     if (redondear2(montoNuevo - deCampana) <= 0.01) return { monto: deCampana, prevaleceCampana: true };
   }
   return { monto: montoNuevo, prevaleceCampana: false };
@@ -294,7 +320,7 @@ export function conCampanas<L extends LineaDescontable & { varianteId: string }>
     const manualMayor =
       l.descuentoUnitario > 0 &&
       !esDescuentoDeCampana(l) &&
-      redondear2(l.descuentoUnitario - descuentoUnitarioPorPorcentaje(l.precioUnitario, campana.pct)) > 0.01;
+      redondear2(l.descuentoUnitario - descuentoDeCampana(l.precioUnitario, campana.pct)) > 0.01;
     return manualMayor ? conCampana : conDescuentoDeCampana(conCampana);
   });
 }

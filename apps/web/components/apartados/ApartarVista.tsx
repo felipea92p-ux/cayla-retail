@@ -16,6 +16,7 @@ import { codigoPrenda } from "@/lib/prenda-reglas";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { descuentoDeCampana } from "@/lib/vender-reglas";
 import {
   PLAZO_DIAS,
   TEXTO_PASO_APARTADO,
@@ -51,7 +52,8 @@ const BOTON_PRINCIPAL =
 const CAMPO = "w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo";
 
 /** El descuento de la campaña que rige HOY, por prenda (la base lo vuelve a exigir al apartar). */
-const descuentoCampana = (p: VarianteBusqueda) => (p.campana ? Math.round(p.precio * p.campana.pct) / 100 : 0);
+// Misma regla que la caja y que `separar_prendas`: el precio rebajado se redondea hacia abajo a .90 (ADR-0182).
+const descuentoCampana = (p: VarianteBusqueda) => (p.campana ? descuentoDeCampana(p.precio, p.campana.pct) : 0);
 const precioFinal = (p: VarianteBusqueda) => p.precio - descuentoCampana(p);
 
 const FORMULARIO_VACIO = {

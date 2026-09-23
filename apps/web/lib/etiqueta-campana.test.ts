@@ -49,7 +49,7 @@ describe("prendasBajoCosto — el aviso al configurar una campaña", () => {
   it("sin descuento no hay nada que avisar", () => {
     expect(prendasBajoCosto(null, prendas, new Set(["c-jeans", "c-polos"]), new Set())).toEqual([]);
   });
-  it("un 20 % en jeans y polos deja el polo (50 → 40) por debajo de su costo (45)", () => {
+  it("un 20 % en jeans y polos deja el polo (50 → 39.90) por debajo de su costo (45)", () => {
     expect(prendasBajoCosto(20, prendas, new Set(["c-jeans", "c-polos"]), new Set()).map((p) => p.id)).toEqual(["polo"]);
   });
   it("solo cuenta lo que la campaña alcanza: el collar no está en las categorías", () => {
@@ -59,7 +59,12 @@ describe("prendasBajoCosto — el aviso al configurar una campaña", () => {
     expect(prendasBajoCosto(90, prendas, new Set(), new Set(["collar"])).map((p) => p.id)).toEqual(["collar"]);
   });
   it("quedar EXACTO en el costo no es estar por debajo", () => {
-    expect(prendasBajoCosto(10, [prenda("x", "c", 100, 90)], new Set(["c"]), new Set())).toEqual([]);
+    // 99.90 con 10 % = 89.91 → se cobra 89.90, igual al costo.
+    expect(prendasBajoCosto(10, [prenda("x", "c", 99.9, 89.9)], new Set(["c"]), new Set())).toEqual([]);
+  });
+  it("cuenta el precio que de verdad se cobra, ya bajado al .90 (ADR-0182)", () => {
+    // 100 con 10 % = 90.00, pero se cobra 89.90: queda 10 céntimos bajo un costo de 90.
+    expect(prendasBajoCosto(10, [prenda("x", "c", 100, 90)], new Set(["c"]), new Set()).map((p) => p.id)).toEqual(["x"]);
   });
   it("sin categorías ni prendas a mano, el alcance es vacío", () => {
     expect(prendasBajoCosto(99, prendas, new Set(), new Set())).toEqual([]);

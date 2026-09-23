@@ -53,3 +53,6 @@ sería mandar la fecha de la venta (firma nueva de `registrar_venta`).
 lado y no aplican campañas. Un ticket en espera se pone al día al retomarlo (`conCampanas`);
 una campaña que empieza con el ticket ya armado se rechaza al cobrar con la frase «recarga
 Vender» — no se re-evalúa sola en pantalla.
+
+## Actualización 2026-09-23 — el monto baja al .90 (ADR-0182)
+El descuento de campaña ya no es `round(precio × % / 100, 2)`: el precio rebajado se redondea hacia abajo a .90 con una sola regla, `retail.fn_descuento_campana` en la base y `descuentoDeCampana` en la caja, verificadas iguales al céntimo. Lo demás de este ADR (la caja calcula, la base verifica, un solo descuento por prenda, el mayor) no cambia.
