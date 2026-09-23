@@ -5879,6 +5879,16 @@ export type Database = {
           variante_id: string
         }[]
       }
+      fn_resumen_comparacion_json: {
+        Args: {
+          p_a_desde: string
+          p_a_hasta: string
+          p_b_desde: string
+          p_b_hasta: string
+          p_ubicacion_id: string
+        }
+        Returns: Json
+      }
       fn_resumen_variantes: {
         Args: {
           p_cmp_desde?: string
@@ -5937,6 +5947,16 @@ export type Database = {
           ventas_ventana: number
         }[]
       }
+      fn_resumen_variantes_json: {
+        Args: {
+          p_cmp_desde?: string
+          p_cmp_hasta?: string
+          p_desde?: string
+          p_hasta?: string
+          p_ubicacion_id: string
+        }
+        Returns: Json
+      }
       fn_saldo_favor_proveedor: {
         Args: { p_proveedor_id: string }
         Returns: number
@@ -5950,6 +5970,7 @@ export type Database = {
           variante_id: string
         }[]
       }
+      fn_stock_por_sede_json: { Args: never; Returns: Json }
       fn_sububicacion_por_defecto: {
         Args: { p_ubicacion_id: string; p_uso: string }
         Returns: string

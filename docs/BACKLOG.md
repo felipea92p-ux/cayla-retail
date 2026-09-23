@@ -49,7 +49,8 @@ Se midieron en producción (Playwright, solo lectura) 44 pantallas: tiempo hasta
 **Paso 1 (hecho): la caja no veía 295 prendas.** PostgREST corta toda respuesta en 1.000 filas sin error; el catálogo tiene 1.295 variantes y `fn_stock_por_sede` 2.927 filas. La «Chompa Cuello Redondo Lana» roja M (2 en TRU) salía «No encontramos». Nació `leerTodas()` (`lib/resultado.ts`): pide por páginas con orden único, de a 3 en paralelo. Aplicado a `getCatalogo`, `getStockPorUbicacion`, `leerStockDeLasSedes` (Vender, Apartados, Cambios, Existencias) y a Atributos ▸ Etiquetas. Medido contra producción: catálogo 1.295/1.295 en ~680 ms, stock de la red 2.927/2.927 en ~250 ms.
 **Regla desde hoy: una lectura que puede pasar de 1.000 filas va con `leerTodas()` y un `.order()` que no repita.**
 Lo que sigue, en este orden (acordado con Felipe):
-- **Existencias (2,8 s, 2,1 MB):** la consulta de stock con 5 joins promedia 1,1 s (máx. 5,6 s). Una función que devuelva solo lo que pinta la tabla.
+- ~~Existencias y caja, arreglos de código~~ **hecho (PR #335, en producción 2026-09-23):** `fn_resumen_variantes` se pedía 3 veces (la de 30 días repetida) → 2 con `cache`; `filasSemana` recortada a 18 campos (2,1 → 1,3 MB); la caja lee solo cantidades de su sede (`getDisponibleEnSede`, reglas en `sumarCantidades`). Cifras idénticas antes/después (huella de la caja `2a12d636`; Existencias TRU 2.860 / 73 / 12 / 97). Caja: servidor ~1,5–2,0 s → ~1,1 s. **Existencias sigue en ~3 s.**
+- **Existencias: el techo ya no es el código, es la CPU de la base** (medido 2026-09-23): `fn_resumen_variantes` cuesta 265 ms dentro de la base (con derrame a disco temporal) y ~430 ms por llamada; 3 llamadas a la vez tardan 685 ms y 6 tardan 1,3 s. Y pedir por páginas RECALCULA la función entera en cada página. Felipe eligió **(a) jsonb en una fila**: `20260923171700_lecturas_en_una_fila_jsonb.sql` (envolturas `fn_resumen_variantes_json`, `fn_resumen_comparacion_json`, `fn_stock_por_sede_json`; las originales no se tocan) — **PEGADA en producción el 2026-09-23**, ensayada antes con BEGIN/ROLLBACK: mismas filas y mismo orden que las originales (1.172 / 1.172 / 2.927 / 1.150), ACL idéntica, `anon` sin acceso. Las 3 lecturas de Existencias: ~1,85 s → ~1,27 s medido desde Lima. Pendiente: (c) abaratar la función misma (derrame a disco), y regenerar el diccionario (los tipos de estas 3 se agregaron a mano: la base local estaba apagada).
 - **Comprobantes ▸ Emitidos:** 16.500 elementos y 2,8 MB de HTML — paginar.
 - **Catálogo de la caja (opción A):** sigue cargándose entero (vende sin internet); adelgazar lo que viaja y no volver a pedirlo en cada visita.
 - **Productos (2,3 s):** `fn_productos_resumen`, marcas y `categoria_tallas` lentas para su tamaño — confirmar con estadísticas limpias (las de hoy mezclan antes del ADR-0176).
@@ -69,12 +70,13 @@ Del análisis `/pantalla` completo del módulo Ventas: la misma familia de hueco
 - [x] **Verificado tras la fusión del PR #285:** la migración F3 de abajo (`actor_firma_las_operaciones`) lee la definición viva de `registrar_movimiento_caja`/`registrar_cambio`/`aprobar_devolucion` y solo reemplaza la línea que busca a la persona — no pisa este candado (ni su reversión en Cambios) cuando F3 se pegue en producción.
 - [x] **`20260923110500_cambios_sin_candado_de_lider.sql` está en producción** (verificado el 2026-09-23: `registrar_cambio` ya no tiene el candado de líder y sigue firmando con `fn_actor_persona_id(true)`; Caja conserva el suyo). Se renombró desde `…110000` porque chocaba con `20260923110000_cambiar_rol_entre_lideres.sql` y dejaba el CI de `main` en rojo; las dos ya estaban pegadas, así que el cambio de número no toca producción.
 
-## 🔒 Responsable obligatorio para todos (2026-09-23, Felipe, ADR-0162 actualización) — EN CURSO
+## 🔒 Responsable obligatorio para todos (2026-09-23, Felipe, ADR-0162 actualización) — ENCENDIDO en producción (10:24)
 «Todas obligatorias, un mismo flujo para todos; si nadie marcó asistencia no se podrá vender.» Sin excepción para el líder.
 - [x] Interruptor como dato: `configuracion_empresa.exige_responsable` (migración `20260923160000_responsable_obligatorio.sql`), apagado por defecto; 6 casos nuevos en `pruebas:terminales-sin-persona` (52/52).
-- [ ] Combo en las 7 llamadas que no lo mandaban (anular venta, aprobar/rechazar devolución, anular y liberar comprobante, archivar serie, registrar clienta) y en `/api/lucode/consultar-anulacion` — PR #329, auditoría en 0. Falta verlo con clics.
+- [x] Combo en las 7 llamadas que no lo mandaban (anular venta, aprobar/rechazar devolución, anular y liberar comprobante, archivar serie, registrar clienta) y en `/api/lucode/consultar-anulacion` — PR #329 fusionado y publicado (`3a7d4377`), auditoría en 0.
+- [ ] Verlo con clics en cada una de esas pantallas, con alguien marcado.
 - [x] `20260923160000` pegada en producción el 2026-09-23 (ensayo con ROLLBACK y COMMIT): una sola firma, la columna existe y el interruptor quedó APAGADO.
-- [ ] Con la web publicada: `update retail.configuracion_empresa set exige_responsable = true;` en producción.
+- [x] **Encendido en producción el 2026-09-23 a las 10:24** (Felipe: «Encender ahora», sabiendo que Arequipa y Lima tenían 0 marcados). Verificado: un líder sin responsable recibe «Elige quién hace esta operación»; lo que no es de tienda sigue igual.
 - [ ] Emergencia (una tienda trabada): `update retail.configuracion_empresa set exige_responsable = false;` — sin migración.
 - [ ] Lima: cargar su asistencia en Dynamic; hasta entonces, con el interruptor encendido, Lima no puede guardar nada.
 - Cómo verificas: como persona, en una tienda donde nadie marcó entrada, el botón de guardar queda apagado con «Nadie de turno…»; con alguien marcado, se elige y guarda a su nombre.
@@ -102,6 +104,10 @@ Con el sembrado de 90 días (7.001 ventas), `/vender/historial` pasaba los 8 s d
 - [ ] **Base local:** la migración de separaciones (`20260923090000`) no está aplicada en local (`scripts/pruebas/separaciones.mjs` da 0/46 porque falta la tabla); en producción sí está.
 - [ ] **Decisión de Felipe:** las 7.002 ventas en producción tienen `es_prueba = false`, sembradas incluidas. El filtro «Ver datos de prueba» no las esconde y cuentan en los totales. ¿Es a propósito (ADR-0150)?
 - [ ] **Previo, sin relación con esto:** `scripts/pruebas/registrar_venta.mjs` da 21/25 en local. Fallan los 4 casos «colaboradora + código de descuento»; fallan igual con las políticas viejas.
+## 🎯 Catálogo: el combo «Responsable» solo dentro de las ventanas (2026-09-23, ADR-0161 act. b) — construido, SIN migraciones
+- [x] Las 8 listas de Catálogo sin combo arriba; Aprobar, Desactivar y Reactivar abren una confirmación con el combo adentro (`ConfirmarConResponsable`). Maqueta aprobada: `docs/maquetas/catalogo-responsable-confirmacion-2026-09/`. Tipos, lint y 24 240 pruebas en verde.
+- [ ] **Verlo con clics** (no se pudo sin sesión): con tu cuenta, desactivar un tejido abre «¿Desactivar «X»?» con tu nombre ya elegido; con una terminal, viene vacío y el botón se apaga hasta elegir.
+
 ## 🎯 Combo «Responsable»: propone a quien inició sesión y dice «¿Quién está atendiendo?» (2026-09-22, actualización del ADR-0161) — en `main` (PR #320), SIN migraciones
 
 - [x] ~~Texto del combo vacío: «¿Quién está atendiendo?» en todos los módulos.~~ (corregido abajo)
