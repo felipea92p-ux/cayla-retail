@@ -227,6 +227,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:cuarentena-no-se-vende
 
+      # Cron de SUNAT (PL-113): la llave de servicio toma la cola solo de las últimas 4 horas, sin claims el candado
+      # sigue cerrado y las tres funciones de la cola la dejan pasar. Control sin la migración. Cada caso: ROLLBACK.
+      - name: pruebas:sunat-reintento-por-cron
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:sunat-reintento-por-cron
+
       # Devolver insumos (ADR-0133, F3b): lo devuelto vuelve al último lote del que salió la orden, el costo de
       # tela/avíos de la orden queda neto, anular devuelve todo al estante y quien no opera el Taller no puede.
       # Cada caso termina en ROLLBACK.

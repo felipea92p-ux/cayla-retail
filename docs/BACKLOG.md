@@ -145,6 +145,23 @@ Verificado en solo lectura el 2026-09-23: en producción `authenticated` solo ti
 - [ ] **Decisión de Felipe (causa raíz):** «cerrado por defecto» en `retail`. `alter default privileges` (0005 y la 0217 de Dynamic) abre toda tabla nueva a `authenticated`; 19 tablas de producción dependen solo de RLS (lista en el ADR-0119).
 - [x] De paso, **PL-79 ya estaba hecho:** `clientas_dni_unico` (único sobre `dni` cuando no es nulo) existe en producción y `clientas` es una sola para toda la red.
 
+## 🎯 SUNAT: reintento por cron, aviso al líder y nota de débito (2026-09-23, PL-113/114/117, ADR-0165 act.) — base EN PRODUCCIÓN; web sin fusionar; falta `CRON_SECRET`
+- [x] Cron de Vercel cada 5 min (plan Pro) sobre `GET /api/lucode/reintentar`, con `CRON_SECRET` y SOLO al sandbox (`cronNoTransmite`); la llave de servicio toma la cola de las últimas 4 horas (`HORAS_REINTENTO_AUTOMATICO` = el mismo número de la migración). La excepción de `proxy.ts` vale solo para esa ruta.
+- [x] Aviso «Comprobantes sin llegar a SUNAT» en Inicio ▸ Por atender (el mismo patrón que ADR-0179/0186; la «campanita de campañas» del acta no existe).
+- [x] **`20260924113817_sunat_reintento_por_cron.sql` PEGADA en producción el 2026-09-23** (OK de Dany): antes y después los cuerpos se compararon con el archivo (solo cambian los candados de sede y la ventana de 4 h; ningún parche en vivo se perdió), ACL con `service_role`, `security definer` y `search_path` intactos; humo con rollback: sin sesión «Solo un líder…», como cron tomó 0 (no hay pendientes).
+- [x] PL-117: nota de débito probada en el sandbox — `lucode.ts` le mandaba los campos de la nota de crédito (`Undefined array key "nota_debito_codigo_tipo"`); corregido, BD01-1 aceptada en sandbox. Dos pruebas fijan los campos de cada nota.
+- [x] PL-116: las 2 boletas con número quemado ya no existen en producción (serie B004: solo el 2 y el 3); nada que excluir.
+- [ ] **Dany: crear `CRON_SECRET` en Vercel ▸ Production** (Secret, valor largo al azar). Sin ella el cron responde 401 y no hace nada. Después del despliegue, humo: el cron responde `{"tomados":0,…}`.
+- [ ] Un `pendiente` atascado solo tiene «Liberar» en la pantalla, no «Reintentar» (el barrido del líder al abrir Comprobantes lo sigue intentando hasta 3 días).
+- [ ] Salir en vivo con el cron = cambiar `cronNoTransmite` a propósito (decisión de Felipe), no una variable.
+
+## ✏️ Nombres, plantilla de PR, plan B y seguridad (2026-09-23, PL-50/105/120/92) — sin fusionar
+- [x] PL-50: menú y cabeceras de Compras y del Taller dicen «Facturas de proveedor», «Notas de crédito de proveedor» y «Facturas de insumos»; Ventas intacta. Nota al inicio de ADR-0111 y ADR-0142.
+- [ ] PL-50, resto: ~100 líneas internas de Compras, Recibir, Por pagar y Producción siguen diciendo «comprobante» (`RecepcionEnvio`, `PagoJuntosModal`, `CompraDetallePanel`, ficha del proveedor, `/recibir`). Roles y accesos dice «Facturas de compra» (`lib/modulos.ts` + `retail.modulos`: necesita migración). Revisar si «Notas de crédito de proveedor» se corta en el lateral.
+- [x] PL-105: `.github/pull_request_template.md` con la prueba a 375 px para Vender/Cambios/Devoluciones, y la regla en CLAUDE.md.
+- [x] PL-120: `docs/manual/plan-b-venta-sin-sistema.md` (cuándo NO hace falta papel: la cola sin conexión de ADR-0063; `registrar_venta` no acepta fecha pasada). [ ] Imprimirlo y entregarlo a cada líder de sede. [ ] Preguntas para Felipe: comprobante en contingencia, última prenda del piso, efectivo de otro día, «Factura de proveedor» cuando es boleta o recibo por honorarios.
+- [x] PL-92: `05-SEGURIDAD.md` cerrado con evidencia (`fn_es_lider()` y `fn_ubicacion_actual_persona()` exigen persona y colaborador activos).
+
 ## 💬 Tope de descuento (PL-91) — SUPERADO: se mantienen las reglas vigentes (Dany, 2026-09-23)
 PL-91 pedía Integrante 5 %, Líder 15 % y «liquidación» sin tope con motivo. En producción ya rigen reglas más finas (ADR-0162 y decisión de Felipe del 2026-09-22): colaborador con `colaboradores.tope_descuento_pct` = 10 % (16 activos; más con autorización de un líder), líder hasta 35 % por prenda (más de 20 % pide argumento), terminal sin tope, motivos cerrados (`liquidacion_temporada` entre ellos) y nunca bajo el costo. Dany eligió **mantener lo de hoy** y no construir PL-91. Si Felipe quiere retomarlo, la comparación está en la BITÁCORA de este día.
 

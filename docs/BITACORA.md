@@ -3,6 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-23 (SUNAT: el cron reintenta solo y el líder ve lo atascado — PL-113/114/117)
+El reintento a SUNAT solo corría con una pantalla abierta; ahora un cron de Vercel cada 5 minutos toma la cola con la llave de servicio (solo lo de las últimas 4 horas y solo hacia el sandbox), y lo que se queda atascado aparece en Inicio para el líder. La migración que deja pasar a la llave de servicio se pegó en producción comparando cada cuerpo con el archivo. Probando la nota de débito en el sandbox apareció un error real: le mandábamos a Lucode los campos de la nota de crédito.
+Dany se lleva: (1) **una función que se copia entera se compara entera con producción antes de pegarla**: acá no se perdía nada, pero es la única forma de saberlo; (2) **un secreto nunca pasa por el chat**: `CRON_SECRET` lo crea quien tiene la cuenta; (3) **probar algo que «no usamos» sirve**: la nota de débito estaba rota y nadie lo sabía.
+
+## 2026-09-23 (Nombres de Compras, plantilla de PR, plan B en papel — PL-50/105/120/92)
+«Comprobante» y «Nota de crédito» quedan para Ventas; Compras y el Taller hablan de facturas de proveedor y de insumos en el menú y en sus cabeceras. Cada PR que toque Vender, Cambios o Devoluciones tiene su casillero de prueba a 375 px, y cada sede tiene escrito qué hacer si el sistema no responde. `05-SEGURIDAD.md` deja de listar como pendiente algo que ya estaba cerrado.
+Dany se lleva: (1) **una palabra con dos significados confunde a quien opera**: por eso «comprobante» es solo de Ventas; (2) **el plan B dice cuándo NO usarlo**: si solo se cortó internet, la caja ya guarda sola; (3) **un documento de seguridad desactualizado asusta de más**: se corrige con evidencia, no de memoria.
+
 ## 2026-09-23 (Tope de descuento: PL-91 queda superado)
 PL-91 pedía Integrante 5 % y Líder 15 %, pero producción ya tiene reglas más finas y más nuevas: colaborador 10 % (más con autorización de un líder), líder 35 % por prenda con argumento pasado el 20 %, terminal sin tope (Felipe, 22-09), motivos cerrados y nunca bajo el costo. Construirlo tal cual habría bajado los topes de todas las tiendas sin que nadie lo pidiera hoy. Dany eligió mantener lo vigente.
 Dany se lleva: (1) **dos decisiones del mismo dueño pueden chocar**: la del plano y la del 22-09; se elige una y se anota; (2) **antes de construir un tope, mirar el que ya existe**: `colaboradores.tope_descuento_pct` y los límites por prenda de `registrar_venta`; (3) **no construir también es una decisión**, y se documenta igual.
