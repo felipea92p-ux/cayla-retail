@@ -28,6 +28,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔍 La página no se encoge bajo el mouse (2026-09-23, ADR-0185) — FUSIONADO (PR #344 y #347); falta verlo con clics reales
+Barrido de todo el ERP: ventanas ancladas arriba, lista del Responsable flotando, regla global `<PaginaEstable />` y hueco estable para los datos de cada medio de pago. Medido con Chrome sin ventana: 0 px.
+- [ ] **Verlo con clics reales**, con sesión de líder: al fondo de Registrar comprobante, desmarcar «Registrar un pago ahora» (la vista no se mueve; queda aire abajo que se va al subir); en Cambios y en Vender (celular), elegir Responsable estando abajo.
+- [ ] Revisar en celular que una ventana corta con la lista del Responsable abierta no quede tapando el botón de guardar.
+- [ ] `components/NotaCreditoCierre.tsx` es código muerto (nadie lo importa): decidir si se borra.
+
 ## 🎯 Etiqueta de precio que sale sola al ingresar mercadería (2026-09-23, ADR-0180 y ADR-0182) — los 3 pasos CONSTRUIDOS y verificados; la migración del .90 PEGADA en producción; la web SIN publicar (rama `claude/auto-label-generation-discounts-25d6a3`, sin subir). ⚠️ No activar campañas hasta publicarla
 Felipe pidió dejar P-touch Editor: la etiqueta sale del ERP al ingresar mercadería, y con campaña se reimprime con el precio rebajado y el porqué. Diseño elegido en 3 rondas de maquetas: «D · Editorial, corregida» (`docs/maquetas/etiqueta-precio-2026-09/`).
 - [x] **Paso 1:** `/etiquetas-de-precio`, una etiqueta por prenda que entró (Recibir, Ingreso sin comprobante, orden del Taller cerrada). Lee `movimientos` por lote o producción, no hay RPC nuevo. PDF real revisado y los 6 QR decodificados a 300 dpi. Producción verificada en solo lectura: las columnas y funciones que usa existen, y las 1.295 variantes activas tienen código.

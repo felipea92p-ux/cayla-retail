@@ -275,7 +275,7 @@ export function Confirmacion({
  */
 /**
  * `DatosDelMedio` en un hueco de alto fijo: cada medio dibuja algo distinto (la grilla de cuenta y CCI, un aviso, nada)
- * y, si el alto cambiara con la ficha, la ventana se acortaría bajo el mouse y «saltaría» (2026-09-23, ADR-0182; el mismo
+ * y, si el alto cambiara con la ficha, la ventana se acortaría bajo el mouse y «saltaría» (2026-09-23, ADR-0185; el mismo
  * arreglo que `LineasPago`). Los datos de los otros medios se apilan invisibles en la misma celda: el hueco mide lo del
  * más alto. El visible conserva su `key` para entrar con su animación al cambiar de medio.
  */

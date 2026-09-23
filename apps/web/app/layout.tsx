@@ -30,7 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Avisos />
         {/* El loader general (ADR-0149): una vez, acá, para que valga en toda la app y también en /login. */}
         <EsperaGlobal />
-        {/* La página no se encoge bajo el mouse (ADR-0182): una vez, acá, para toda la app y sus ventanas. */}
+        {/* La página no se encoge bajo el mouse (ADR-0185): una vez, acá, para toda la app y sus ventanas. */}
         <PaginaEstable />
       </body>
     </html>

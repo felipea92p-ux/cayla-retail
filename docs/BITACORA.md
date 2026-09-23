@@ -9094,7 +9094,7 @@ Felipe vio que en Registrar comprobante, al tocar un medio de pago, a veces la p
 Felipe se lleva: (1) «a veces» era «solo cuando estás abajo del todo»: la página no se mueve, se ACORTA bajo el mouse; (2) lo que cambia de alto al tocar una opción debe reservar su lugar; (3) «Quitar» una línea todavía acorta la página, pero con el colapso de 240 ms se desliza, no salta.
 Sin resolver: nada de este caso; el barrido de todo el ERP quedó en la entrada siguiente.
 
-## 2026-09-23 (Barrido de todo el ERP: la página no se encoge bajo el mouse — ADR-0182)
+## 2026-09-23 (Barrido de todo el ERP: la página no se encoge bajo el mouse — ADR-0185)
 Tres revisiones en paralelo encontraron ~40 lugares con la misma mecánica, en cuatro causas: datos del medio de pago (también en `PagoPiezas`), el combo Responsable que abría su lista dentro del contenido (~55 pantallas), las ventanas centradas que «bailaban», y clics que cambian un bloque grande del final por otro corto. Felipe eligió las tres recomendaciones: ventanas ancladas arriba, lista del Responsable flotando, y una regla global (`<PaginaEstable />`) que reserva el alto recortado. Medido en Chrome sin ventana por CDP: 0 px en página y en ventana; un scroll pedido por el código se respeta.
 Felipe se lleva: (1) cuando el mismo bug aparece en 40 lugares, el arreglo va en la pieza compartida, no en 40 pantallas; (2) «recorte» y «scroll pedido» se distinguen por una sola señal: tras el recorte la vista queda pegada al nuevo final; (3) el panel oculto del navegador no corre `ResizeObserver`: para medir, Chrome sin ventana.
 Sin resolver: verlo con clics reales en Registrar comprobante, Cambios y Vender (sin sesión en local); `NotaCreditoCierre.tsx` es código muerto con el mismo problema (nadie lo importa).

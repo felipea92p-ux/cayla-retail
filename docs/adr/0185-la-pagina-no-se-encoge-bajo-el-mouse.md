@@ -1,4 +1,6 @@
-# ADR-0182 · La página no se encoge bajo el mouse
+# ADR-0185 · La página no se encoge bajo el mouse
+
+> Numerado 0182 al subirse (PR #347) y renumerado a 0185 el mismo día: otra sesión ya había tomado el 0182 (el precio de campaña baja al .90), citado por una migración en producción.
 
 **Fecha:** 2026-09-23 · **Estado:** aceptado (Felipe eligió las tres recomendaciones) · **Alcance:** todo el ERP
 

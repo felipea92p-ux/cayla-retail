@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { VENTANA_TRAS_CLIC_MS, puedeSoltar, reservaNecesaria, type Medida } from "@/lib/pagina-estable-reglas";
 
 /* ====================================================================
-   PaginaEstable · la página no se encoge bajo el mouse (ADR-0182)
+   PaginaEstable · la página no se encoge bajo el mouse (ADR-0185)
 
    Montado UNA vez en `app/layout.tsx`, como el loader general. Ninguna pantalla tiene que hacer nada: después de
    cada clic (o `change` de un select/casilla) vigila el contenedor que se desplaza —la página o la ventana
