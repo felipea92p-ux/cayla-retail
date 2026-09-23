@@ -86,7 +86,8 @@ Felipe: «que cada tienda vea su parte». La tienda que registró una factura re
 - [x] Web: filas con «Tu parte · total S/ …», pago lleno con la parte, `porPagarConMiParte` en `lib/compras-mi-parte.ts`.
 - [x] Pruebas: `pruebas:por-pagar-parte-de-mi-tienda` 12/12; las de Compras en verde; vitest 24.338.
 - [x] Pegada en producción y verificada en solo lectura: 7 funciones con una sola firma, nada abierto a anon, candado en las 5 de indicadores y huellas idénticas a las probadas en local.
-- [ ] **Decidir antes de darle Por pagar a una tienda:** 2 facturas reales cuyas partes suman MÁS que su saldo, porque lo que bajó el saldo no es de ninguna tienda: FD01-00000003 (Artemisa, pago de S/ 4,832.41 del 2026-08-22, anterior a los pagos por tienda) y FD01-00000004 (Ruth Castro, nota de crédito de S/ 411.49; las notas por tienda son F6). Hoy nadie lo ve (ningún rol tiene Por pagar; el líder ve el saldo real).
+- [x] Las 2 facturas cuyas partes suman más que su saldo (FD01-00000003 con un pago sin tienda, FD01-00000004 con una nota de crédito) son **datos de prueba** (Felipe, 2026-09-23): no hay que repartir nada del historial.
+- [ ] Hacia adelante siguen existiendo dos fuentes de «sin tienda»: el pago del líder sin elegir tienda y las notas de crédito (F6). Resolverlo junto con F6, antes de que una tienda use Por pagar con datos reales.
 - [ ] Verlo con clics con una cuenta no líder con Por pagar; sumar la prueba al CI.
 
 ## 🎯 Compras por tienda: cada tienda ve y paga lo suyo (2026-09-23, ADR-0184 — nació como 0145/0150/0151) — EN PRODUCCIÓN las 6 migraciones (Felipe, 2026-09-23; verificadas en solo lectura)
