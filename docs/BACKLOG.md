@@ -28,6 +28,15 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🩹 RLS fila por fila: Historial de ventas caído por timeout (2026-09-22, ADR-0176) — A y B PEGADAS en producción
+Con el sembrado de 90 días (7.001 ventas), `/vender/historial` pasaba los 8 s de `statement_timeout` y mostraba «No se pudo cargar» (digest `575251889`). La causa: la RLS llamaba funciones SECURITY DEFINER una vez por fila.
+- [x] **A:** las 4 políticas de lectura de venta (`ventas`, `venta_items`, `venta_pagos`, `comprobantes`) con `(select …)`, más el índice `ventas (created_at desc, id desc)`. Migración `20260923143700_…`, PEGADA en producción y aplicada en local. Mismas filas visibles, verificado con huellas como líder e integrante. La lista pasó de 12,3 s a 0,5 s.
+- [x] **Verlo con clics:** Felipe abrió `/vender/historial` en producción y cargó (2026-09-22).
+- [x] **B:** `20260923152300_rls_todas_una_vez_por_consulta.sql`, PEGADA en producción y aplicada en local. Reescribió las 92 políticas restantes con `retail.fn_rls_una_vez_por_consulta()`; quedan 0 pendientes. Equivalencia de 121/121 cláusulas con 6 cuentas (líder, integrantes de TRU, AQP y Taller, dos terminales). Movimientos para una integrante: 57 s → 14 ms; Stock: 7,3 s → 3 ms.
+- [ ] **Al pegar migraciones pendientes que crean o cambian políticas** (`…130000_abrir_modulos_a_los_roles`, `…131000_colaboradores_y_roles_delegables`, y cualquier otra de antes del 2026-09-23 15:23 que no esté en producción), correr después `select retail.fn_rls_una_vez_por_consulta();`. Si no, esas políticas vuelven a evaluarse fila por fila. Para comprobar, la consulta del ADR-0176 debe dar 0.
+- [ ] **Base local:** la migración de separaciones (`20260923090000`) no está aplicada en local (`scripts/pruebas/separaciones.mjs` da 0/46 porque falta la tabla); en producción sí está.
+- [ ] **Decisión de Felipe:** las 7.002 ventas en producción tienen `es_prueba = false`, sembradas incluidas. El filtro «Ver datos de prueba» no las esconde y cuentan en los totales. ¿Es a propósito (ADR-0150)?
+- [ ] **Previo, sin relación con esto:** `scripts/pruebas/registrar_venta.mjs` da 21/25 en local. Fallan los 4 casos «colaboradora + código de descuento»; fallan igual con las políticas viejas.
 ## 🎯 Combo «Responsable»: propone a quien inició sesión y dice «¿Quién está atendiendo?» (2026-09-22, actualización del ADR-0161) — en `main` (PR #320), SIN migraciones
 
 - [x] Texto del combo vacío: «¿Quién está atendiendo?» en todos los módulos.

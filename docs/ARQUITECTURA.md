@@ -51,6 +51,13 @@ resolvería `tenant_id`). Esa combinación NestJS/Prisma queda como visión de
 referencia para el día que CAYLA venda el sistema a otra marca — no es una
 tarea pendiente de hoy.
 
+**Cómo se escriben las políticas (ADR-0176, 2026-09-22):** las funciones de permisos
+(`fn_es_lider()`, `fn_puede_editar_catalogo()`, …) van envueltas en `(select …)` y
+`fn_puede_operar_ubicacion(col)` se abre en `(select fn_es_lider()) or col = (select
+fn_ubicacion_actual_persona())`. Así Postgres las evalúa una vez por consulta y no una vez
+por fila: con 24 mil movimientos, eso es la diferencia entre 57 s y 14 ms. Toda migración
+que cree políticas termina con `select retail.fn_rls_una_vez_por_consulta();`.
+
 ---
 
 ## 3. Cómo se conecta todo (el grafo real)
