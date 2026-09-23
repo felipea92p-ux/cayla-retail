@@ -6523,6 +6523,7 @@ export type Database = {
       quitar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }
       reactivar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }
       reactivar_terminal: { Args: { p_terminal_id: string }; Returns: undefined }
+      registrar_cambio_clave_terminal: { Args: { p_terminal_id: string }; Returns: undefined }
       suspender_colaborador: { Args: { p_motivo?: string; p_persona_id: string }; Returns: undefined }
       reactivar_categoria: {
         Args: { p_categoria_id: string }
