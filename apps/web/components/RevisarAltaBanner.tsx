@@ -52,7 +52,7 @@ export function RevisarAltaBanner({ productoId }: { productoId: string }) {
         </p>
         {error && <p className="mt-1 text-xs text-rojo">{error}</p>}
       </div>
-      <ComboResponsable control={responsable} deshabilitado={procesando !== null} hacia="abajo" className="w-full sm:w-64" />
+      <ComboResponsable control={responsable} deshabilitado={procesando !== null} className="w-full sm:w-64" />
       <div className="flex gap-2">
         <button
           type="button"

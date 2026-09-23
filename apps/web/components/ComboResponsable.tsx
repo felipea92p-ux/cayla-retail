@@ -5,15 +5,10 @@ import { ChevronDown, Clock, RefreshCw, UserRound } from "lucide-react";
 import { nombresCortos } from "@/lib/nombre-integrante";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import type { PersonaDeTurno } from "@/lib/responsable-reglas";
+import { usePosicionLista } from "@/components/ui/useAnclaje";
 
 type Props = {
   control: ControlResponsable;
-  /**
-   * Dónde se despliega la lista. `en-linea` (por defecto) empuja el contenido: es lo seguro dentro de un `<Modal>`,
-   * que tiene scroll propio y recortaría una lista flotante. `arriba`/`abajo` flotan sobre lo demás (Punto de venta,
-   * con el combo pegado al botón Cobrar al pie del ticket).
-   */
-  hacia?: "en-linea" | "arriba" | "abajo";
   /** Mientras se guarda, no se cambia de responsable. */
   deshabilitado?: boolean;
   className?: string;
@@ -37,9 +32,15 @@ function iniciales(nombre: string): string {
  *  · Nadie presente: la operación se bloquea (sin «Otra persona») y se dice qué hacer — marcar entrada en el kiosco
  *    y «Actualizar lista». Igual para un líder, incluso trabajando desde casa (A9).
  */
-export function ComboResponsable({ control, hacia = "en-linea", deshabilitado = false, className = "" }: Props) {
+export function ComboResponsable({ control, deshabilitado = false, className = "" }: Props) {
   const [abierto, setAbierto] = useState(false);
   const raiz = useRef<HTMLDivElement>(null);
+  const boton = useRef<HTMLButtonElement>(null);
+  // La lista FLOTA (`fixed`, medida contra el botón; abre hacia abajo o, si no cabe, hacia arriba), igual que
+  // ComboBuscable. Antes se abría dentro del contenido y empujaba todo 150–250 px; al elegir se cerraba de golpe y,
+  // como el combo suele ser lo penúltimo de un formulario o de una ventana, la vista saltaba (2026-09-23, ADR-0182).
+  // `fixed` tampoco queda recortada por el scroll propio de un `<Modal>`, que era la razón de abrirla en línea.
+  const posLista = usePosicionLista(boton, abierto, 320);
   const idLista = useId();
   const { estado, lista, sede, elegidoId } = control;
 
@@ -117,15 +118,13 @@ export function ComboResponsable({ control, hacia = "en-linea", deshabilitado = 
     botones[siguiente]?.focus();
   }
 
-  const posicion =
-    hacia === "arriba" ? "absolute inset-x-0 bottom-[calc(100%+6px)] z-30" : hacia === "abajo" ? "absolute inset-x-0 top-[calc(100%+6px)] z-30" : "mt-1.5";
-
   return (
     <div ref={raiz} className={`relative ${className}`} onKeyDown={alTeclado}>
       <p className="label-cayla mb-1.5 flex items-center gap-1.5 text-[11px] text-tinta/70">
         Responsable <span className="text-rojo" aria-hidden>*</span>
       </p>
       <button
+        ref={boton}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={abierto}
@@ -148,12 +147,13 @@ export function ComboResponsable({ control, hacia = "en-linea", deshabilitado = 
         <ChevronDown className={`h-4 w-4 flex-none transition-transform duration-200 ${abierto ? "rotate-180" : ""}`} aria-hidden />
       </button>
 
-      {abierto && (
+      {abierto && posLista && (
         <div
           id={idLista}
           role="listbox"
           aria-label={`De turno ahora en ${sede}`}
-          className={`anim-revelar rounded-xl border border-sand bg-papel p-2 shadow-[0_18px_44px_-14px_rgb(26_26_24/0.22)] ${posicion}`}
+          style={{ position: "fixed", ...posLista }}
+          className="anim-revelar z-50 overflow-y-auto rounded-xl border border-sand bg-papel p-2 shadow-[0_18px_44px_-14px_rgb(26_26_24/0.22)]"
         >
           <p className="label-cayla px-2 pb-2 pt-1.5 text-[11px] text-tinta/60">De turno ahora · {sede}</p>
           {opciones.map((p) => (
