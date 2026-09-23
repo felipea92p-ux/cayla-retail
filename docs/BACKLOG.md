@@ -28,12 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Etiqueta de precio que sale sola al ingresar mercadería (2026-09-23, ADR-0180 y ADR-0182) — los 3 pasos CONSTRUIDOS y verificados en local, rama `claude/auto-label-generation-discounts-25d6a3` (sin subir, a pedido de Felipe); el 3 trae 1 migración NO pegada
+## 🎯 Etiqueta de precio que sale sola al ingresar mercadería (2026-09-23, ADR-0180 y ADR-0182) — los 3 pasos CONSTRUIDOS y verificados; la migración del .90 PEGADA en producción; la web SIN publicar (rama `claude/auto-label-generation-discounts-25d6a3`, sin subir). ⚠️ No activar campañas hasta publicarla
 Felipe pidió dejar P-touch Editor: la etiqueta sale del ERP al ingresar mercadería, y con campaña se reimprime con el precio rebajado y el porqué. Diseño elegido en 3 rondas de maquetas: «D · Editorial, corregida» (`docs/maquetas/etiqueta-precio-2026-09/`).
 - [x] **Paso 1:** `/etiquetas-de-precio`, una etiqueta por prenda que entró (Recibir, Ingreso sin comprobante, orden del Taller cerrada). Lee `movimientos` por lote o producción, no hay RPC nuevo. PDF real revisado y los 6 QR decodificados a 300 dpi. Producción verificada en solo lectura: las columnas y funciones que usa existen, y las 1.295 variantes activas tienen código.
 - [ ] **Felipe:** imprimir 1 etiqueta en la QL-1110NWB real y escanearla en Vender (pasos en ADR-0180 «Configurar la Brother»). Traer la **medida de la cartulina** (ancho × alto) para ajustar los 62 × 92 mm provisionales.
 - [x] **Paso 3 (ADR-0182):** el precio de campaña baja al .90. Una sola regla: `retail.fn_descuento_campana` en la base y `descuentoDeCampana` en la caja, iguales al céntimo en 29.187 combinaciones. Parchea `registrar_venta` y `separar_prendas` (las únicas que calculan campaña en producción). `pnpm pruebas:campana-redondeo` 7/7 y 24.265 pruebas web en verde.
-- [ ] **Pegar `20260923174100_campana_redondea_a_90.sql` en producción, con OK de Felipe, Y publicar la web el mismo día.** Por separado, cada venta con campaña se rechaza en el mostrador. Hoy no hay campañas vigentes; la lista para pegar está en ADR-0182.
+- [x] **`20260923174100_campana_redondea_a_90.sql` pegada en producción el 2026-09-23** (OK de Felipe). Ensayo con rollback verificado, huellas antes/después iguales a las locales, permisos intactos, ejemplos 18.00 / 24.90 / 24.00 / 20.10 (ADR-0182, «Pegada en producción»).
+- [ ] **Publicar la web** (subir la rama, PR, fusionar con OK de Felipe). **Hasta entonces no activar ninguna campaña**: la caja vieja manda el descuento sin redondear y la base nueva la rechaza (`venta_campana_omitida`). Hoy hay 0 campañas vigentes.
+- [ ] Refrescar el diccionario de datos con el próximo volcado (`pnpm datos:generar:produccion`): `fn_descuento_campana` es nueva.
 - [x] **Paso 2:** la etiqueta dice lo que la caja cobra hoy (con campaña: tachado, precio .90, «−20 %», motivo, «válido hasta»). Se imprime desde la campaña («Volver al precio normal» cuando termina) y desde un producto, con una etiqueta por unidad en stock de la tienda. Probado con la base local, con SQL en transacciones revertidas (alcance y seguridad) y con PDF real + QR.
 - [ ] Preguntar a Felipe **en qué sede está la impresora**: si no está en el Taller, lo producido se etiqueta al llegar a la tienda, y eso es parte del paso 2.
 

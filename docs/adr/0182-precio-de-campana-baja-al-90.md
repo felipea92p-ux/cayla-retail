@@ -1,8 +1,9 @@
 # ADR-0182 — El precio de campaña se redondea hacia abajo a .90: una sola regla, en la caja y en la base
 
-**Fecha:** 2026-09-23 · **Estado:** construido y verificado en local, rama `claude/auto-label-generation-discounts-25d6a3`.
-Migración `20260923174100_campana_redondea_a_90.sql` **NO está en producción**: se pega solo con OK de Felipe, porque
-cambia lo que cobra la caja, y **junto con la web** (ver «Se rompe si»). · **Cambia:** el monto del descuento de campaña
+**Fecha:** 2026-09-23 · **Estado:** migración `20260923174100_campana_redondea_a_90.sql` **PEGADA EN PRODUCCIÓN el
+2026-09-23** con OK de Felipe y verificada (sección «Pegada en producción»). **La web todavía no está publicada**
+(rama `claude/auto-label-generation-discounts-25d6a3`, sin subir): hasta publicarla **no se activa ninguna campaña**
+(ver «Se rompe si»). · **Cambia:** el monto del descuento de campaña
 de ADR-0108 (la caja calcula y la base verifica: eso sigue igual). · **Es el paso 3 de** ADR-0180: la etiqueta con descuento
 (paso 2) espera a este cambio.
 
@@ -84,7 +85,31 @@ un % vacío no descuenta. El % se toma con 2 decimales (la columna es `numeric(5
     `f508fa222a1ae377a7392569c966ce19`.
   - 0 campañas vigentes y 0 separaciones.
 
-## Para pegar en producción (con OK de Felipe)
+## Pegada en producción (2026-09-23, OK de Felipe: «Pega en producción»)
+
+1. **Antes:**
+   - Huellas iguales a las de arriba, una sola versión de cada función, permisos solo para `authenticated`.
+   - `fn_descuento_campana` no existía.
+   - 0 campañas vigentes y 0 separaciones.
+   - La versión local de las dos funciones era **idéntica** a la de producción (misma huella): las pruebas 7/7 corrieron
+     sobre exactamente lo que se iba a parchear.
+2. **Ensayo en producción:** toda la migración en una transacción que terminaba a propósito con un error.
+   - La validación pasó.
+   - Después, producción seguía intacta (huellas originales, sin la función nueva).
+   - Las huellas que habría dejado coincidían con las de aplicarla en local.
+3. **Pegado** en una sola transacción, con el bloque final que abortaba todo si algo no quedaba bien.
+4. **Después:**
+   - Huellas nuevas: `fn_descuento_campana` `569f5547b94e7edb538df910cf7e1c6f`, `registrar_venta`
+     `0ba0cd4da8108a31cbfc8f6623fc5a25`, `separar_prendas` `32a9fa750248ca2dc8fee6981ac08c9a` (iguales a las locales).
+   - Cada una usa la regla 2 veces, y no queda ninguna fórmula vieja.
+   - Conservan `security definer`, su `search_path` y sus permisos (`authenticated` sí, `anon` no).
+   - Los ejemplos dan 18.00 / 24.90 / 24.00 / 20.10.
+   - Siguen 0 campañas vigentes: ninguna venta se afectó.
+5. **Falta:**
+   - Publicar la web. Hasta entonces no se activa ninguna campaña: con la caja vieja, esas ventas se rechazarían.
+   - Refrescar el diccionario de datos con el próximo volcado (`fn_descuento_campana` es nueva).
+
+## Para pegar en producción (la lista que se siguió)
 
 1. Confirmar que no hay campaña vigente:
    `select count(*) from retail.campanas_vigentes();` (si hay, hacerlo fuera del horario de tienda).

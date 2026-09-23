@@ -2,8 +2,8 @@
 
 **Fecha:** 2026-09-23 · **Estado:** los 3 pasos construidos y verificados en local, rama
 `claude/auto-label-generation-discounts-25d6a3` (sin subir, a pedido de Felipe). Los pasos 1 y 2 **no tienen migraciones**.
-El 3 (ADR-0182) trae una que **no está pegada** y tiene que salir el mismo día que la web: sin ella, toda venta con campaña
-se rechaza en la caja. · **Falta:** que Felipe imprima una hoja en la Brother real y la escanee, y la medida de la
+El 3 (ADR-0182) trae una que **se pegó en producción el 2026-09-23**. La web todavía no está publicada: hasta publicarla no
+se activa ninguna campaña, o la caja vieja rechazaría esas ventas. · **Falta:** que Felipe imprima una hoja en la Brother real y la escanee, y la medida de la
 cartulina.
 **Número:** 0180 porque el 0179 lo tomó en paralelo «Prendas sin registrar» (rama `untagged-products-pos`).
 
