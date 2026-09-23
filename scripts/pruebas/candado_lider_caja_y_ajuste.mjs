@@ -160,7 +160,7 @@ select coalesce(sum(cantidad), 0) as s0 from retail.stock where variante_id = :'
 const CAJA_ABIERTA_POR_MICAELA = `${BASE}${cambiaA(FELIPE)}select (select count(*) from (
   select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'trujillo' and estado = 'abierta'
 ) x) as _cerro_previa \\gset
-${cambiaA(MICAELA)}select retail.abrir_caja(:'trujillo', 100.00) as caja \\gset
+${cambiaA(MICAELA)}select retail.abrir_caja(:'trujillo', 100.00, 'prueba automatizada') as caja \\gset
 ${cambiaA(FELIPE)}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Otro', 'Ingreso vario de prueba') as _i \\gset
 select retail.registrar_movimiento_caja(:'caja', 'egreso', 40, 'Depósito bancario', 'Voucher-TEST-001', false) as _e \\gset
 `;
@@ -435,7 +435,11 @@ exito(
   "la migración se puede pegar DOS veces (el SQL Editor no avisa si ya estaba): la segunda no rompe nada y el candado sigue funcionando",
   comoPersona(
     FELIPE,
-    `${INTENTO}${SQL_MIGRACION}
+    // ADR-0183 (20260923200000) cambió la firma de `cerrar_caja` (suma el traslado). Esta migración es anterior y
+    // recrea la de dos parámetros: pegada sobre la base de hoy dejaría DOS firmas. Lo que se prueba aquí es que ELLA
+    // sola se puede pegar dos veces, así que primero se vuelve a la base que ella conocía (todo dentro del ROLLBACK).
+    `${INTENTO}drop function if exists retail.cerrar_caja(uuid, numeric, numeric, text, text);
+${SQL_MIGRACION}
 ${SQL_MIGRACION}
 ${cambiaA(MICAELA)}select pg_temp.intento(format('select * from retail.cerrar_caja(%L, 0)', gen_random_uuid())) as rm \\gset
 select split_part(:'rm', '|', 1), (select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in ('cerrar_caja', 'registrar_movimiento'));

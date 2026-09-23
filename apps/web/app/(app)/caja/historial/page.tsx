@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getHistorialCierres } from "@/lib/caja";
+import { getAperturasPorRevisar, getHistorialCierres } from "@/lib/caja";
+import { AperturasPorRevisar } from "@/components/AperturasPorRevisar";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { BotonVerDetalleCierre } from "@/components/CierreCajaDetalle";
 
@@ -26,12 +27,16 @@ const PLANTILLA = "sm:grid-cols-[minmax(8rem,1fr)_7.5rem_6.5rem_5.5rem_5.5rem_5.
 // y el mismo criterio de Facturación: mientras "control total temporal" siga
 // vigente, se ve todo, con la sede en cada fila.
 export default async function HistorialCierresPage({ searchParams }: { searchParams: Promise<{ prueba?: string }> }) {
-  await requirePersonaActualV2();
+  const persona = await requirePersonaActualV2();
   // D-54 (ADR-0159): apagado por defecto — las cajas archivadas como dato de prueba (nunca
   // borradas) no se piden a la base salvo que se pida verlas.
   const { prueba } = await searchParams;
   const incluirPrueba = prueba === "1";
-  const cierres = await getHistorialCierres(60, incluirPrueba);
+  const [cierres, aperturas] = await Promise.all([
+    getHistorialCierres(60, incluirPrueba),
+    // ADR-0183: el aviso al líder. Solo el líder las marca como revisadas (`revisar_apertura_caja`).
+    persona.rol === "lider" ? getAperturasPorRevisar() : Promise.resolve(null),
+  ]);
 
   return (
     // `/caja` va a todo el ancho (AppShell), pero esta tabla tiene una columna flexible (la sede) que
@@ -57,6 +62,8 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
           Con datos de prueba
         </Link>
       </div>
+
+      {aperturas && aperturas.length > 0 && <AperturasPorRevisar aperturas={aperturas} />}
 
       {cierres.length > 0 && (
         <Tabla>

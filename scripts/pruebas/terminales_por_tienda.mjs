@@ -184,7 +184,7 @@ verificar(
 /* ------------------------------------------------------------------ */
 
 const CAJA_ABIERTA = `${cambiaA(FELIPE)}select count(*) as _cerro from (select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'trujillo' and estado = 'abierta') x \\gset
-${cambiaA(MICAELA)}select retail.abrir_caja(:'trujillo', 100.00) as caja \\gset
+${cambiaA(MICAELA)}select retail.abrir_caja(:'trujillo', 100.00, 'prueba automatizada') as caja \\gset
 `;
 
 verificar(
@@ -268,7 +268,7 @@ const FIXTURE_TRASLADO = `insert into retail.transferencias (ubicacion_origen_id
   values (:'lima', :'trujillo', 'recibido_con_diferencia') returning id as traslado \\gset
 `;
 const FIXTURE_CAJA = `${cambiaA(FELIPE)}select count(*) as _cerro from (select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'trujillo' and estado = 'abierta') x \\gset
-${cambiaA(MICAELA)}select retail.abrir_caja(:'trujillo', 100.00) as caja \\gset
+${cambiaA(MICAELA)}select retail.abrir_caja(:'trujillo', 100.00, 'prueba automatizada') as caja \\gset
 `;
 const LLAMADA = (sql) => `select pg_temp.intento($q$${sql}$q$);`;
 

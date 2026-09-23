@@ -120,7 +120,7 @@ const VENTA_DE_PRUEBA = `${BASE}insert into retail.ventas (ubicacion_id) values 
 const CAJA_ABIERTA_POR_MICAELA = `${BASE}${cambiaA(FELIPE)}select (select count(*) from (
   select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'trujillo' and estado = 'abierta'
 ) x) as _cerro_previa \\gset
-${cambiaA(MICAELA)}select retail.abrir_caja(:'trujillo', 100.00) as caja \\gset
+${cambiaA(MICAELA)}select retail.abrir_caja(:'trujillo', 100.00, 'prueba automatizada') as caja \\gset
 ${cambiaA(FELIPE)}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Otro', 'Ingreso vario de prueba') as _i \\gset
 `;
 
@@ -220,7 +220,7 @@ exito(
   comoPersona(
     FELIPE,
     `${INTENTO}${CAJA_ABIERTA_POR_MICAELA}select archivar_caja_prueba(:'caja') as _a \\gset
-${cambiaA(MICAELA)}select pg_temp.intento(format('select retail.abrir_caja(%L, 50.00)', :'trujillo')) as r \\gset
+${cambiaA(MICAELA)}select pg_temp.intento(format('select retail.abrir_caja(%L, 50.00, %L)', :'trujillo', 'prueba automatizada')) as r \\gset
 ${cambiaA(FELIPE)}select split_part(:'r', '|', 1), (select count(*) from cajas where ubicacion_id = :'trujillo' and estado = 'abierta');
 rollback;
 `

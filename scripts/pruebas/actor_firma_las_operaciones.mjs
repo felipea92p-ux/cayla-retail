@@ -128,7 +128,7 @@ const COMO_API = `set local role authenticated;\n`;
 
 /** Caja abierta en Trujillo, abierta por Felipe sin encabezado (cierra la que hubiera). */
 const CAJA_TRU = `${sesion(FELIPE)}select count(*) as _c from (select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'tru' and estado = 'abierta') x \\gset
-select retail.abrir_caja(:'tru', 100.00) as caja \\gset
+select retail.abrir_caja(:'tru', 100.00, 'prueba automatizada') as caja \\gset
 `;
 const venta = (extra = "") => `select retail.registrar_venta(:'tru',
   jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 0)),
@@ -257,7 +257,7 @@ ${firmaVenta}`,
 caso(
   "abrir_caja — terminal de ventas + Rosa: la abre Rosa, desde la terminal",
   `${CAJA_TRU}${sesion(FELIPE)}select retail.cerrar_caja(:'caja', 100) as _x \\gset
-${sesion(T_VENTAS, { resp: "rosa" })}select retail.abrir_caja(:'tru', 50) as caja2 \\gset
+${sesion(T_VENTAS, { resp: "rosa" })}select retail.abrir_caja(:'tru', 50, 'prueba automatizada') as caja2 \\gset
 select concat_ws(',', abierta_por = :'rosa', terminal_id = :'t_ventas') from retail.cajas where id = :'caja2';`,
   "t,t"
 );

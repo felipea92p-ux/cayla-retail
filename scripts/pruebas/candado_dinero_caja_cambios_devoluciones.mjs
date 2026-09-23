@@ -135,7 +135,7 @@ select id as trujillo from retail.ubicaciones where nombre = 'Tienda Trujillo' \
 ${cambiaA(FELIPE)}select (select count(*) from (
   select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'trujillo' and estado = 'abierta'
 ) x) as _cerro_previa \\gset
-${cambiaA(MICAELA)}select retail.abrir_caja(:'trujillo', 100.00) as caja \\gset
+${cambiaA(MICAELA)}select retail.abrir_caja(:'trujillo', 100.00, 'prueba automatizada') as caja \\gset
 `;
 
 /**
@@ -164,7 +164,7 @@ insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
 ${cambiaA(FELIPE)}select (select count(*) from (
   select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'ubic' and estado = 'abierta'
 ) x) as _cerro_previa \\gset
-${cambiaA(persona)}select retail.abrir_caja(:'ubic', 100.00) as caja_id \\gset
+${cambiaA(persona)}select retail.abrir_caja(:'ubic', 100.00, 'prueba automatizada') as caja_id \\gset
 
 select id as v_old from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
 select id as v_new, precio as v_new_precio from retail.variantes where sku = 'VES-SOFI-NEG-M' \\gset

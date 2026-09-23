@@ -78,7 +78,7 @@ do $$
 declare v_id uuid; v_ubic uuid;
 begin
   select id into v_ubic from retail.ubicaciones where nombre = 'Tienda Trujillo';
-  v_id := retail.abrir_caja(v_ubic, 50);
+  v_id := retail.abrir_caja(v_ubic, 50, 'prueba automatizada');
   raise notice 'RESULTADO|%|%|%', 'A1 colaboradora abre caja en su propia sede', v_id is not null, 'id=' || v_id;
 exception when others then
   raise notice 'RESULTADO|%|%|%', 'A1 colaboradora abre caja en su propia sede', false, sqlerrm;
@@ -88,7 +88,7 @@ do $$
 declare v_id uuid; v_ubic uuid;
 begin
   select id into v_ubic from retail.ubicaciones where nombre = 'Tienda Trujillo';
-  v_id := retail.abrir_caja(v_ubic, 10);
+  v_id := retail.abrir_caja(v_ubic, 10, 'prueba automatizada');
   raise notice 'RESULTADO|%|%|%', 'A2 doble apertura en la misma sede debe RECHAZAR', false, 'no debio permitir: id=' || v_id;
 exception when others then
   raise notice 'RESULTADO|%|%|%', 'A2 doble apertura en la misma sede debe RECHAZAR',
@@ -99,7 +99,7 @@ do $$
 declare v_id uuid; v_ubic uuid;
 begin
   select id into v_ubic from retail.ubicaciones where nombre = 'Tienda Lima';
-  v_id := retail.abrir_caja(v_ubic, 10);
+  v_id := retail.abrir_caja(v_ubic, 10, 'prueba automatizada');
   raise notice 'RESULTADO|%|%|%', 'A3 colaboradora intenta abrir en otra sede debe RECHAZAR', false, 'no debio permitir: id=' || v_id;
 exception when others then
   raise notice 'RESULTADO|%|%|%', 'A3 colaboradora intenta abrir en otra sede debe RECHAZAR', sqlerrm ilike '%permiso%', sqlerrm;
@@ -111,7 +111,7 @@ do $$
 declare v_id uuid; v_ubic uuid;
 begin
   select id into v_ubic from retail.ubicaciones where nombre = 'Tienda Lima';
-  v_id := retail.abrir_caja(v_ubic, 10);
+  v_id := retail.abrir_caja(v_ubic, 10, 'prueba automatizada');
   raise notice 'RESULTADO|%|%|%', 'A4 lider abre caja en una sede que no es la suya', v_id is not null, 'id=' || v_id;
 exception when others then
   raise notice 'RESULTADO|%|%|%', 'A4 lider abre caja en una sede que no es la suya', false, sqlerrm;
@@ -121,7 +121,7 @@ do $$
 declare v_id uuid; v_ubic uuid;
 begin
   select id into v_ubic from retail.ubicaciones where nombre = 'Taller'; -- sede libre, Lima ya la abrio A4
-  v_id := retail.abrir_caja(v_ubic, -5);
+  v_id := retail.abrir_caja(v_ubic, -5, 'prueba automatizada');
   raise notice 'RESULTADO|%|%|%', 'A5 monto de apertura negativo debe RECHAZAR', false, 'no debio permitir: id=' || v_id;
 exception when others then
   raise notice 'RESULTADO|%|%|%', 'A5 monto de apertura negativo debe RECHAZAR', sqlerrm ilike '%negativ%', sqlerrm;
@@ -140,7 +140,7 @@ do $$
 declare v_id uuid; v_ubic uuid;
 begin
   select id into v_ubic from retail.ubicaciones where nombre = 'Tienda Lima';
-  v_id := retail.abrir_caja(v_ubic, 100);
+  v_id := retail.abrir_caja(v_ubic, 100, 'prueba automatizada');
   perform set_config('pruebas.caja_b', v_id::text, true);
   raise notice 'RESULTADO|%|%|%', 'B1 Felipe abre caja en Lima con apertura 100', v_id is not null, 'id=' || v_id;
 exception when others then
@@ -225,7 +225,7 @@ do $$
 declare v_id uuid; v_ubic uuid;
 begin
   select id into v_ubic from retail.ubicaciones where nombre = 'Tienda Lima';
-  v_id := retail.abrir_caja(v_ubic, 20);
+  v_id := retail.abrir_caja(v_ubic, 20, 'prueba automatizada');
   perform set_config('pruebas.caja_c', v_id::text, true);
   raise notice 'RESULTADO|%|%|%', 'C1 Felipe abre caja en Lima con apertura 20', v_id is not null, 'id=' || v_id;
 exception when others then
