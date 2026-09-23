@@ -12,7 +12,7 @@
 -- revisando la función de adentro (security definer con sus propios candados sobre `auth.uid()`). Por eso la
 -- envoltura es `security invoker`: no suma privilegios.
 
-create or replace function fn_resumen_variantes_json(
+create or replace function retail.fn_resumen_variantes_json(
   p_ubicacion_id uuid,
   p_desde date default null,
   p_hasta date default null,
@@ -26,7 +26,7 @@ security invoker
 set search_path to 'retail', 'public', 'extensions'
 as $$
   select coalesce(jsonb_agg(to_jsonb(r) - 'ordinality' order by r.ordinality), '[]'::jsonb)
-  from fn_resumen_variantes(
+  from retail.fn_resumen_variantes(
     p_ubicacion_id => p_ubicacion_id,
     p_desde => p_desde,
     p_hasta => p_hasta,
@@ -35,7 +35,7 @@ as $$
   ) with ordinality r;
 $$;
 
-create or replace function fn_resumen_comparacion_json(
+create or replace function retail.fn_resumen_comparacion_json(
   p_ubicacion_id uuid,
   p_a_desde date,
   p_a_hasta date,
@@ -49,10 +49,10 @@ security invoker
 set search_path to 'retail', 'public', 'extensions'
 as $$
   select coalesce(jsonb_agg(to_jsonb(r) - 'ordinality' order by r.ordinality), '[]'::jsonb)
-  from fn_resumen_comparacion(p_ubicacion_id, p_a_desde, p_a_hasta, p_b_desde, p_b_hasta) with ordinality r;
+  from retail.fn_resumen_comparacion(p_ubicacion_id, p_a_desde, p_a_hasta, p_b_desde, p_b_hasta) with ordinality r;
 $$;
 
-create or replace function fn_stock_por_sede_json()
+create or replace function retail.fn_stock_por_sede_json()
 returns jsonb
 language sql
 stable
@@ -60,13 +60,13 @@ security invoker
 set search_path to 'retail', 'public', 'extensions'
 as $$
   select coalesce(jsonb_agg(to_jsonb(r) - 'ordinality' order by r.ordinality), '[]'::jsonb)
-  from fn_stock_por_sede() with ordinality r;
+  from retail.fn_stock_por_sede() with ordinality r;
 $$;
 
 -- Mismos permisos que las originales: solo cuentas con sesión (sin `anon`, sin `public`).
-revoke all on function fn_resumen_variantes_json(uuid, date, date, date, date) from public, anon;
-revoke all on function fn_resumen_comparacion_json(uuid, date, date, date, date) from public, anon;
-revoke all on function fn_stock_por_sede_json() from public, anon;
-grant execute on function fn_resumen_variantes_json(uuid, date, date, date, date) to authenticated;
-grant execute on function fn_resumen_comparacion_json(uuid, date, date, date, date) to authenticated;
-grant execute on function fn_stock_por_sede_json() to authenticated;
+revoke all on function retail.fn_resumen_variantes_json(uuid, date, date, date, date) from public, anon;
+revoke all on function retail.fn_resumen_comparacion_json(uuid, date, date, date, date) from public, anon;
+revoke all on function retail.fn_stock_por_sede_json() from public, anon;
+grant execute on function retail.fn_resumen_variantes_json(uuid, date, date, date, date) to authenticated;
+grant execute on function retail.fn_resumen_comparacion_json(uuid, date, date, date, date) to authenticated;
+grant execute on function retail.fn_stock_por_sede_json() to authenticated;
