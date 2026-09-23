@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { apartadoDeFila, type Apartado } from "@/lib/separaciones-reglas";
+import { apartadoDeFila, TOPE_SEPARACIONES, type Apartado } from "@/lib/separaciones-reglas";
 
 // «Apartados» de una tienda (ADR-0166; en la base, `separaciones`). Solo lectura, salvo el vencimiento:
 // antes de leer se llama `fn_vencer_separaciones`, que libera lo vencido hace más de 2 días (D3). Así el
@@ -24,7 +24,7 @@ const RESUMEN_VACIO: ResumenApartados = {
 export type ApartadosDeTienda =
   /** La migración todavía no está en esta base (PGRST202): la pantalla lo dice, no se cae. */
   | { instalado: false }
-  | { instalado: true; apartados: Apartado[]; resumen: ResumenApartados; liberadosAhora: number };
+  | { instalado: true; apartados: Apartado[]; resumen: ResumenApartados; liberadosAhora: number; hayMas: boolean };
 
 export async function getApartadosDeTienda(ubicacionId: string): Promise<ApartadosDeTienda> {
   const supabase = await createClient();
@@ -43,6 +43,7 @@ export async function getApartadosDeTienda(ubicacionId: string): Promise<Apartad
   return {
     instalado: true,
     liberadosAhora,
+    hayMas: filas.length >= TOPE_SEPARACIONES,
     apartados: filas.map((f) => apartadoDeFila(f as unknown as Record<string, unknown>)),
     resumen: r
       ? {

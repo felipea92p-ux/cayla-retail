@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
+import { exigir, leerTodas } from "@/lib/resultado";
 import type { ComprobanteProduccion, CondicionComprobante } from "@/lib/comprobantes-produccion-reglas";
 import type { UnidadInsumo } from "@/lib/insumos-reglas";
 
@@ -7,9 +7,27 @@ import type { UnidadInsumo } from "@/lib/insumos-reglas";
 // `anular_comprobante_produccion`. Lo pagado y el saldo NO son columnas: los DERIVA `fn_comprobantes_produccion`. Solo el líder
 // lee estas tablas (RLS) y la función responde cero filas a quien no lo es; la página además lo redirige antes de llegar acá.
 
+/** Tope que se le pasa a `fn_comprobantes_produccion` (la función exige uno): más de lo que el Taller emitirá nunca. */
+const SIN_TOPE = 1_000_000;
+
 export async function getComprobantesProduccion(): Promise<ComprobanteProduccion[]> {
   const supabase = await createClient();
-  const filas = exigir(await supabase.rpc("fn_comprobantes_produccion", { p_limite: 500 }), "los comprobantes de Producción");
+  // Antes: `p_limite: 500` fijo, y Por pagar sumaba el saldo SOLO de los 500 más recientes — un comprobante viejo sin
+  // pagar desaparecía de la deuda en silencio. La función no tiene «sin tope», así que se le da uno que no se alcanza y
+  // se lee por páginas, en serie (ADR-0192): con menos de 1.000 comprobantes es la misma única llamada de antes.
+  const filas = exigir(
+    await leerTodas(
+      (desde, hasta) =>
+        supabase
+          .rpc("fn_comprobantes_produccion", { p_limite: SIN_TOPE })
+          .order("fecha_emision", { ascending: false })
+          .order("created_at", { ascending: false })
+          .order("id")
+          .range(desde, hasta),
+      { enParalelo: 1 },
+    ),
+    "los comprobantes de Producción",
+  );
   return filas.map((f) => ({
     id: f.id,
     proveedorId: f.proveedor_id,

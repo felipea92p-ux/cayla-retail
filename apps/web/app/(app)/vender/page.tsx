@@ -4,11 +4,12 @@ import { getCatalogo } from "@/lib/catalogo-v2";
 import { getCajaAbierta, getUltimoCierre } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { agruparStockPorSede } from "@/lib/stock-por-sede";
-import { nombresCortos } from "@/lib/nombre-integrante";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
 import { PuntoDeVenta, type ProformaEnCobro } from "@/components/PuntoDeVenta";
+import { VentasDeHoyLista } from "@/components/VentasDeHoy";
+import { cantidadCobrable } from "@/lib/vender-stock-local";
 import { getProformaParaCobrar } from "@/lib/proformas";
 import { numeroDeProforma } from "@/lib/proformas-reglas";
 import { confirmacionDeConversion } from "@/lib/facturacion-proformas-reglas";
@@ -79,7 +80,7 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
   const stockPorVariante = agruparStockPorSede(filasStock, ubicaciones, persona.ubicacionId);
   // Lo APARTADO para una clienta sigue en el piso pero no se puede cobrar: el tope es lo DISPONIBLE
   // (ADR-0141). La base lo rechazaría igual (`fn_aplicar_movimiento`); esto evita ofrecerlo.
-  const pisoPorVariante = new Map([...stockAqui].map(([id, c]) => [id, c.pisoDisponible ?? c.disponible]));
+  const pisoPorVariante = new Map([...stockAqui].map(([id, c]) => [id, cantidadCobrable(c)]));
 
   const variantesParaVenta = variantes
     .filter((v) => v.activo)
@@ -164,63 +165,12 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
 }
 
 /** `fn_ventas_del_dia` (0011_venta_con_comprobante.sql) ya trae ítems, vendedor y
- *  estado del comprobante — reemplaza el `select` a mano contra `ventas` de la
- *  versión V1. Se le pasa la ubicación siempre: aunque un Líder podría ver todas
- *  (parámetro null), en Vender importa lo que se vendió EN ESTA sede, no un
- *  consolidado — para eso está Facturación. */
+ *  estado del comprobante. Se le pasa la ubicación siempre: aunque un Líder podría ver todas
+ *  (parámetro null), en Vender importa lo que se vendió EN ESTA sede, no un consolidado —
+ *  para eso está Facturación. La primera lectura es del servidor; tras cada venta la lista
+ *  se relee sola en el navegador (`VentasDeHoyLista`, ADR-0192), sin recargar la caja. */
 async function VentasDeHoy({ ubicacionId, ubicacionEtiqueta }: { ubicacionId: string; ubicacionEtiqueta: string }) {
   const supabase = await createClient();
-  const { datos: ventasHoy, fallo } = tolerar(
-    await supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: ubicacionId }),
-    "las ventas de hoy"
-  );
-
-  if (fallo) {
-    return <p className="card-cayla border-rojo/30 px-4 py-4 text-center text-xs text-rojo-profundo">{fallo}</p>;
-  }
-
-  const ventas = ventasHoy ?? [];
-  if (ventas.length === 0) {
-    return (
-      <p className="font-display card-cayla py-6 text-center text-sm text-tinta/60 italic">
-        Aún no hay ventas hoy en {ubicacionEtiqueta}.
-      </p>
-    );
-  }
-
-  // Cada venta lleva la firma de la integrante que la hizo (primer nombre; inicial del
-  // apellido solo si dos integrantes del día se llaman igual). `vendedor` vacío o el
-  // relleno «—» de la RPC no es una integrante: no se pinta nada, no se inventa.
-  const integrante = nombresCortos(ventas.map((v) => v.vendedor));
-
-  return (
-    <div className="card-cayla divide-y divide-sand !p-0">
-      {/* `anim-revelar` sin `key` extra: React ya reutiliza el nodo de cada venta que
-          repite `key={v.venta_id}` tras el `router.refresh()` (no vuelve a animarse),
-          y monta uno nuevo —y por lo tanto SÍ anima— solo para la venta que se acaba
-          de registrar. */}
-      {ventas.map((v) => (
-        <div key={v.venta_id} className="anim-revelar flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-          <span className="text-tinta/60">{v.hora}</span>
-          {integrante.has(v.vendedor) && (
-            <span className="shrink-0 text-tinta" title={v.vendedor}>
-              {integrante.get(v.vendedor)}
-            </span>
-          )}
-          <span className="min-w-0 flex-1 truncate text-tinta/60">
-            {v.comprobante_texto ?? "Sin comprobante"} {v.metodos_pago ? `· ${v.metodos_pago}` : ""}
-          </span>
-          {/* La nota de la venta («lo recoge el sábado…»), en la misma fila, truncada;
-              el texto completo queda en `title`. Si la RPC no la trae —o producción aún no
-              tiene la columna— no se pinta nada. */}
-          {v.nota && (
-            <span className="min-w-0 max-w-[16rem] truncate text-tinta/60 italic" title={v.nota}>
-              {v.nota}
-            </span>
-          )}
-          <span className="shrink-0 font-medium text-tinta">S/{Number(v.total).toFixed(2)}</span>
-        </div>
-      ))}
-    </div>
-  );
+  const { datos, fallo } = tolerar(await supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: ubicacionId }), "las ventas de hoy");
+  return <VentasDeHoyLista ubicacionId={ubicacionId} ubicacionEtiqueta={ubicacionEtiqueta} inicial={datos ?? []} fallo={fallo} />;
 }
