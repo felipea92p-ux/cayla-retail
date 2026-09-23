@@ -101,7 +101,7 @@ export function ResumenComportamiento({ datos, actualizar }: { datos: DesempenoP
   const { tabla, periodo, orden, alcance, sellThrough, tendenciaDisponible } = datos;
   const hayFiltros = alcance.q !== "" || alcance.categoriaId !== null || sellThrough !== "todos";
   // El paginador está al pie: la página nueva se lee desde arriba de la tabla (como Inventario). Sin esto, ir a la
-  // última página —más corta— acortaba la pantalla justo bajo el mouse y la vista «se subía sola» (ADR-0182).
+  // última página —más corta— acortaba la pantalla justo bajo el mouse y la vista «se subía sola» (ADR-0185).
   const irA = (pag: number) => {
     actualizar({ pag: pag <= 1 ? null : String(pag) }, { conservarPagina: true });
     const tabla = document.getElementById("comportamiento-titulo")?.closest("section");

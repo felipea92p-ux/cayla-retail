@@ -67,7 +67,7 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             transform (-translate-1/2), la animación lo pisaría y el modal
             saldría corrido. `pointer-events-none` acá + `auto` en el panel deja
             que el clic afuera siga llegando al velo para cerrar.
-            En escritorio la hoja va ANCLADA ARRIBA (8vh), no centrada (2026-09-23, ADR-0182): centrada, cada
+            En escritorio la hoja va ANCLADA ARRIBA (8vh), no centrada (2026-09-23, ADR-0185): centrada, cada
             cambio de alto del contenido (elegir un medio, un motivo, un responsable) movía también su borde de
             arriba y la hoja «bailaba». Anclada, el título no se mueve nunca; solo crece o se acorta el borde de
             abajo. En celular sigue siendo una hoja pegada abajo. */}

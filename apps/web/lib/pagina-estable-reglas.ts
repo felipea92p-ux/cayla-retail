@@ -1,5 +1,5 @@
 /**
- * La página no se encoge bajo el mouse (ADR-0182) — la parte pura, sin DOM, para poder probarla.
+ * La página no se encoge bajo el mouse (ADR-0185) — la parte pura, sin DOM, para poder probarla.
  *
  * EL PROBLEMA. Un clic cambia un bloque del final por otro más corto (Contado → Crédito, una pestaña, «Volver
  * sin cerrar», un medio de pago que no muestra datos). Si la persona estaba abajo del todo, la página o la

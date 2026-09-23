@@ -38,7 +38,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
   const boton = useRef<HTMLButtonElement>(null);
   // La lista FLOTA (`fixed`, medida contra el botón; abre hacia abajo o, si no cabe, hacia arriba), igual que
   // ComboBuscable. Antes se abría dentro del contenido y empujaba todo 150–250 px; al elegir se cerraba de golpe y,
-  // como el combo suele ser lo penúltimo de un formulario o de una ventana, la vista saltaba (2026-09-23, ADR-0182).
+  // como el combo suele ser lo penúltimo de un formulario o de una ventana, la vista saltaba (2026-09-23, ADR-0185).
   // `fixed` tampoco queda recortada por el scroll propio de un `<Modal>`, que era la razón de abrirla en línea.
   const posLista = usePosicionLista(boton, abierto, 320);
   const idLista = useId();
