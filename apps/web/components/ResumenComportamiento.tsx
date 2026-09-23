@@ -100,7 +100,13 @@ function Fila({ x, dias }: { x: AnalisisDesempeno; dias: number }) {
 export function ResumenComportamiento({ datos, actualizar }: { datos: DesempenoParaPantalla; actualizar: (cambios: CambiosUrl, opciones?: { conservarPagina?: boolean }) => void }) {
   const { tabla, periodo, orden, alcance, sellThrough, tendenciaDisponible } = datos;
   const hayFiltros = alcance.q !== "" || alcance.categoriaId !== null || sellThrough !== "todos";
-  const irA = (pag: number) => actualizar({ pag: pag <= 1 ? null : String(pag) }, { conservarPagina: true });
+  // El paginador está al pie: la página nueva se lee desde arriba de la tabla (como Inventario). Sin esto, ir a la
+  // última página —más corta— acortaba la pantalla justo bajo el mouse y la vista «se subía sola» (ADR-0185).
+  const irA = (pag: number) => {
+    actualizar({ pag: pag <= 1 ? null : String(pag) }, { conservarPagina: true });
+    const tabla = document.getElementById("comportamiento-titulo")?.closest("section");
+    if (tabla && tabla.getBoundingClientRect().top < 0) tabla.scrollIntoView({ block: "start" });
+  };
   const limpiar = () => actualizar({ q: null, cat: null, st: null });
 
   return (

@@ -103,7 +103,7 @@ function DetalleCierreModal({
               {money(cierre.diferencia)}
             </span>
           </div>
-          {/* ADR-0185: a dónde fue el efectivo y cuánto quedó en el cajón (solo cierres desde entonces). */}
+          {/* ADR-0186: a dónde fue el efectivo y cuánto quedó en el cajón (solo cierres desde entonces). */}
           {(cierre.traslados.length > 0 || cierre.montoFondo !== null) && (
             <dl className="space-y-1 text-sm">
               {cierre.traslados.map((t, i) => (

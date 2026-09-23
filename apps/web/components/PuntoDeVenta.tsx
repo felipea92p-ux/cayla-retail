@@ -187,7 +187,7 @@ type Props = {
   /** Null si no hay caja abierta — el catálogo se ve igual, pero queda desactivado
    *  (ver `bloqueado` más abajo). */
   cajaId: string | null;
-  /** Lo que dejó en el cajón el último cierre de la sede (ADR-0185), para verificar la apertura. `null` si no se sabe. */
+  /** Lo que dejó en el cajón el último cierre de la sede (ADR-0186), para verificar la apertura. `null` si no se sabe. */
   fondoUltimoCierre?: number | null;
   /** Incluye la variante centinela de la «Prenda sin registrar», que este componente filtra
    *  antes de mostrar nada. */

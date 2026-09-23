@@ -201,22 +201,22 @@ export type CierreCaja = {
   nota: string | null;
   /** Dato ficticio de prueba (D-54, ADR-0159): solo llega con `incluirPrueba`. */
   esPrueba: boolean;
-  /** Lo que quedó en el cajón al cerrar (ADR-0185). `null` en cierres anteriores a ADR-0185. */
+  /** Lo que quedó en el cajón al cerrar (ADR-0186). `null` en cierres anteriores a ADR-0186. */
   montoFondo: number | null;
-  /** A dónde fue el resto del efectivo contado (ADR-0185). Vacío si todo quedó en el cajón. */
+  /** A dónde fue el resto del efectivo contado (ADR-0186). Vacío si todo quedó en el cajón. */
   traslados: TrasladoCaja[];
-  /** Con qué monto debió abrir según el cierre anterior, y por qué abrió con otro (ADR-0185). */
+  /** Con qué monto debió abrir según el cierre anterior, y por qué abrió con otro (ADR-0186). */
   aperturaEsperada: number | null;
   motivoDiferenciaApertura: string | null;
 };
 
 export type TrasladoCaja = { destino: string; monto: number; referencia: string | null };
 
-/** Columnas y tabla de ADR-0185: si la migración aún no está pegada, la pantalla sigue sin ellas. */
+/** Columnas y tabla de ADR-0186: si la migración aún no está pegada, la pantalla sigue sin ellas. */
 const TABLA_INEXISTENTE = "42P01";
 
 /**
- * Lo de ADR-0185 de cada caja (fondo, apertura esperada, motivo y traslados), pedido aparte y tolerante: si la
+ * Lo de ADR-0186 de cada caja (fondo, apertura esperada, motivo y traslados), pedido aparte y tolerante: si la
  * migración todavía no está en la base, el historial y la pantalla de Caja siguen funcionando con lo de siempre.
  */
 async function getExtrasAdr0182(ids: string[]) {
@@ -341,7 +341,7 @@ export type AperturaPorRevisar = {
 };
 
 /**
- * Aperturas que no coincidieron con el último cierre y que ningún líder marcó todavía como revisadas (ADR-0185).
+ * Aperturas que no coincidieron con el último cierre y que ningún líder marcó todavía como revisadas (ADR-0186).
  * `abrir_caja` solo guarda el motivo cuando hay diferencia, así que «tiene motivo» = «tuvo diferencia». Total: si no
  * se pudo leer (o la migración no está pegada) devuelve `null`, y quien la muestra dice que no pudo leerla.
  */

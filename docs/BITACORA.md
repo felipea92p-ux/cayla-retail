@@ -3,7 +3,7 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
-## 2026-09-23 (Caja: cierre con traslado y apertura verificada — ADR-0185)
+## 2026-09-23 (Caja: cierre con traslado y apertura verificada — ADR-0186)
 Del spike al código: al cerrar se ve el esperado (con desglose) junto a lo contado, se registra cuánto se traslada y a dónde, y el cajón para el próximo turno se calcula; con la caja cerrada se ve el último cierre, y abrir con otro monto exige motivo y avisa al líder en Inicio. Migración `20260923200000` con 18 pruebas SQL en verde; typecheck, lint y vitest en verde; por pegar en producción antes de fusionar.
 Felipe se lleva: (1) **lo que queda en el cajón se calcula, no se escribe**: dos números escritos a mano siempre terminan contradiciéndose; (2) **un cálculo, un lugar**: la vista previa del cuadre ya se había desviado del cierre real (contaba ventas anuladas), por eso ahora ambos usan la misma función; (3) quitar el conteo ciego tiene un costo (se cuenta «hasta llegar»), decidido a sabiendas.
 
@@ -9096,4 +9096,9 @@ Sin resolver: verlo con clics en las 8 pantallas nuevas; la asistencia de Lima e
 ## 2026-09-23 (La página «se subía sola» al elegir un medio de pago)
 Felipe vio que en Registrar comprobante, al tocar un medio de pago, a veces la página subía sola. Medido: cada medio dibuja un destino distinto (cajita del banco 32 px, aviso 20 px, nada), y como el pago es lo último del formulario, estando abajo del todo la página se acortaba y el navegador recortaba el scroll (hasta 47 px en celular). Arreglo en `LineasPago`: los destinos de los otros medios se apilan invisibles en la misma celda y el hueco mide lo del más alto; medido en 768/390/320 px: 0 px de salto.
 Felipe se lleva: (1) «a veces» era «solo cuando estás abajo del todo»: la página no se mueve, se ACORTA bajo el mouse; (2) lo que cambia de alto al tocar una opción debe reservar su lugar; (3) «Quitar» una línea todavía acorta la página, pero con el colapso de 240 ms se desliza, no salta.
-Sin resolver: barrer el resto del ERP buscando bloques al final de un formulario que cambian de alto según una selección.
+Sin resolver: nada de este caso; el barrido de todo el ERP quedó en la entrada siguiente.
+
+## 2026-09-23 (Barrido de todo el ERP: la página no se encoge bajo el mouse — ADR-0185)
+Tres revisiones en paralelo encontraron ~40 lugares con la misma mecánica, en cuatro causas: datos del medio de pago (también en `PagoPiezas`), el combo Responsable que abría su lista dentro del contenido (~55 pantallas), las ventanas centradas que «bailaban», y clics que cambian un bloque grande del final por otro corto. Felipe eligió las tres recomendaciones: ventanas ancladas arriba, lista del Responsable flotando, y una regla global (`<PaginaEstable />`) que reserva el alto recortado. Medido en Chrome sin ventana por CDP: 0 px en página y en ventana; un scroll pedido por el código se respeta.
+Felipe se lleva: (1) cuando el mismo bug aparece en 40 lugares, el arreglo va en la pieza compartida, no en 40 pantallas; (2) «recorte» y «scroll pedido» se distinguen por una sola señal: tras el recorte la vista queda pegada al nuevo final; (3) el panel oculto del navegador no corre `ResizeObserver`: para medir, Chrome sin ventana.
+Sin resolver: verlo con clics reales en Registrar comprobante, Cambios y Vender (sin sesión en local); `NotaCreditoCierre.tsx` es código muerto con el mismo problema (nadie lo importa).

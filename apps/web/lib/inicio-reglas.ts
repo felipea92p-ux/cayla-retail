@@ -138,7 +138,7 @@ export function colasInicio(fuentes: {
       href: "/recibir?vista=por-regularizar",
     });
   }
-  // ADR-0185: aperturas de caja que no coincidieron con el último cierre. Solo la recibe quien la pasa (el líder):
+  // ADR-0186: aperturas de caja que no coincidieron con el último cierre. Solo la recibe quien la pasa (el líder):
   // `undefined` = esta cola no es para esta persona; `null` = no se pudo leer.
   if (fuentes.aperturas !== undefined) {
     const n = fuentes.aperturas;

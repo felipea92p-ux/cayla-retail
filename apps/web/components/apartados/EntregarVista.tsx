@@ -298,7 +298,7 @@ export function EntregarVista({
                 </div>
               </div>
               {/* El combo «Responsable» (ADR-0161), justo encima del botón que guarda, como en Cobrar; se abre hacia arriba. */}
-              {cajaAbierta && <ComboResponsable control={responsable} hacia="arriba" deshabilitado={enviando} />}
+              {cajaAbierta && <ComboResponsable control={responsable} deshabilitado={enviando} />}
               <button
                 type="button"
                 disabled={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || (efectivo?.recibido !== undefined && efectivo.recibido < efectivo.monto)}

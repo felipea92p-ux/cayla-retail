@@ -435,7 +435,7 @@ exito(
   "la migración se puede pegar DOS veces (el SQL Editor no avisa si ya estaba): la segunda no rompe nada y el candado sigue funcionando",
   comoPersona(
     FELIPE,
-    // ADR-0185 (20260923200000) cambió la firma de `cerrar_caja` (suma el traslado). Esta migración es anterior y
+    // ADR-0186 (20260923200000) cambió la firma de `cerrar_caja` (suma el traslado). Esta migración es anterior y
     // recrea la de dos parámetros: pegada sobre la base de hoy dejaría DOS firmas. Lo que se prueba aquí es que ELLA
     // sola se puede pegar dos veces, así que primero se vuelve a la base que ella conocía (todo dentro del ROLLBACK).
     `${INTENTO}drop function if exists retail.cerrar_caja(uuid, numeric, numeric, text, text);

@@ -448,7 +448,7 @@ function CambiarEstadoMasivo({
   const apagado = aplicando || !responsable.listo;
   return (
     <div className="flex flex-wrap items-end gap-3 px-1">
-      <ComboResponsable control={responsable} deshabilitado={aplicando} hacia="abajo" className="w-full max-w-xs" />
+      <ComboResponsable control={responsable} deshabilitado={aplicando} className="w-full max-w-xs" />
       <button
         type="button"
         onClick={() => void onAplicar("activo", responsable)}

@@ -273,6 +273,30 @@ export function Confirmacion({
  * Las píldoras de «Medio de pago» del spike: una sola elegida, la elegida en tinta. Con `conFavor` suma «Saldo a favor» (el
  * proveedor le debe algo a CAYLA) al final de las de siempre.
  */
+/**
+ * `DatosDelMedio` en un hueco de alto fijo: cada medio dibuja algo distinto (la grilla de cuenta y CCI, un aviso, nada)
+ * y, si el alto cambiara con la ficha, la ventana se acortaría bajo el mouse y «saltaría» (2026-09-23, ADR-0185; el mismo
+ * arreglo que `LineasPago`). Los datos de los otros medios se apilan invisibles en la misma celda: el hueco mide lo del
+ * más alto. El visible conserva su `key` para entrar con su animación al cambiar de medio.
+ */
+function DatosDelMedioEstable({ medio, conFavor, datos, saldoFavor }: { medio: string; conFavor: boolean; datos?: DatosPagoProveedor; saldoFavor: number }) {
+  const medios = conFavor ? [...Object.keys(ETIQUETA_METODO), METODO_SALDO_A_FAVOR] : Object.keys(ETIQUETA_METODO);
+  return (
+    <div className="grid">
+      {medios.map((m) =>
+        m === medio ? null : (
+          <div key={m} aria-hidden inert className="invisible [grid-area:1/1]">
+            <DatosDelMedio medio={m} datos={datos} saldoFavor={saldoFavor} />
+          </div>
+        ),
+      )}
+      <div className="[grid-area:1/1]">
+        <DatosDelMedio key={medio} medio={medio} datos={datos} saldoFavor={saldoFavor} />
+      </div>
+    </div>
+  );
+}
+
 export function PastillasMedio({ valor, onValor, conFavor = false, etiqueta = "Medio de pago" }: { valor: string; onValor: (m: string) => void; conFavor?: boolean; etiqueta?: string }) {
   const medios = conFavor ? [...Object.keys(ETIQUETA_METODO), METODO_SALDO_A_FAVOR] : Object.keys(ETIQUETA_METODO);
   return (
@@ -386,7 +410,7 @@ export function MediosDePago({
           <CampoTexto etiqueta="Referencia" value={lineas[0].referencia} onChange={(e) => cambiar(0, { referencia: e.target.value })} placeholder="Op. 00871234" autoComplete="off" />
           {fechaCampo}
           <div className="sm:col-span-3">
-            <DatosDelMedio key={lineas[0].metodo} medio={lineas[0].metodo} datos={datos} saldoFavor={saldoFavor} />
+            <DatosDelMedioEstable medio={lineas[0].metodo} conFavor={!exacto && saldoFavor > 0} datos={datos} saldoFavor={saldoFavor} />
           </div>
         </div>
       ) : (
@@ -416,7 +440,7 @@ export function MediosDePago({
                 </div>
                 <CampoTexto etiqueta="Referencia" value={l.referencia} onChange={(e) => cambiar(i, { referencia: e.target.value })} placeholder="Op. 00871234" autoComplete="off" />
                 <div className="sm:col-span-4 sm:row-start-2">
-                  <DatosDelMedio key={l.metodo} medio={l.metodo} datos={datos} saldoFavor={saldoFavor} />
+                  <DatosDelMedioEstable medio={l.metodo} conFavor={!exacto && saldoFavor > 0} datos={datos} saldoFavor={saldoFavor} />
                 </div>
                 <button
                   type="button"

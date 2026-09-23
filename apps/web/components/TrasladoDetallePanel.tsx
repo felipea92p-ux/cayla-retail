@@ -406,7 +406,7 @@ export function TrasladoDetallePanel({
         {editable && (
           <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3 border-t border-sand bg-papel px-4 py-3.5">
             {/* Contar no pide responsable; guardar sí (ADR-0161). Por eso el combo va junto al botón que guarda. */}
-            <ComboResponsable control={responsable} hacia="arriba" deshabilitado={ocupado} />
+            <ComboResponsable control={responsable} deshabilitado={ocupado} />
             <div className="flex flex-wrap items-center gap-3">
               {enTransito ? (
                 <>

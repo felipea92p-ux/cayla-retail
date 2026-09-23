@@ -1,6 +1,6 @@
 # Spike visual · Cierre, traslado y apertura de caja (2026-09-23)
 
-> **Estado (2026-09-23): implementado — ver `docs/adr/0185-cierre-con-traslado-y-apertura-verificada.md`.** Difiere del
+> **Estado (2026-09-23): implementado — ver `docs/adr/0186-cierre-con-traslado-y-apertura-verificada.md`.** Difiere del
 > spike por decisión de Felipe: el esperado se ve desde el inicio (sin conteo ciego), sin fondo sugerido y sin traslado a
 > otra sede o al Taller.
 
