@@ -88,6 +88,16 @@ describe("colasInicio", () => {
     expect(colasInicio({ traslados: 1 })[0]!.detalle).toBe("1 espera tu confirmación.");
     expect(colasInicio({ traslados: 2 })[0]!.detalle).toBe("2 esperan tu confirmación.");
   });
+  it("prendas sin registrar vencidas (ADR-0179): solo aparece si se pasa (el líder), y dice el plazo", () => {
+    expect(colasInicio({ traslados: 0 }).map((c) => c.clave)).toEqual(["traslados"]);
+    const vencidas = (n: number | null) => colasInicio({ traslados: 0, prendasVencidas: n })[1]!;
+    expect(vencidas(0).detalle).toBe("Ninguna lleva más de 2 días sin regularizar.");
+    expect(vencidas(1).detalle).toBe("1 lleva más de 2 días sin regularizar.");
+    expect(vencidas(3).detalle).toBe("3 llevan más de 2 días sin regularizar.");
+    expect(vencidas(null).cantidad).toBeNull();
+    expect(vencidas(null).detalle).toMatch(/No se pudo leer/);
+    expect(vencidas(1).href).toBe("/recibir?vista=por-regularizar");
+  });
 });
 
 describe("accesosInicio", () => {

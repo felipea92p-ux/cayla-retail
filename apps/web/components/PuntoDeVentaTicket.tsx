@@ -1064,7 +1064,7 @@ export function PuntoDeVentaTicket({
                         </div>
                       </div>
                       <p className="mt-2 text-[11px] text-tinta/50">
-                        {it.varianteId === ID_CARGO_ESPECIAL ? "Cargo sin control de stock." : `Máximo disponible en sede: ${it.stockAqui}`}
+                        {it.varianteId === ID_CARGO_ESPECIAL ? "Prenda sin registrar: almacén la regulariza después." : `Máximo disponible en sede: ${it.stockAqui}`}
                       </p>
                     </article>
                   );
