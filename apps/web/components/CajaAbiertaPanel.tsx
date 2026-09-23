@@ -196,7 +196,7 @@ export function CajaAbiertaPanel({
             pie={
               <>
                 <Boton peso="discreto" onClick={() => setModal("movimiento")}>
-                  + Ingreso / egreso
+                  + Entrada / salida
                 </Boton>
                 {/* D-13: solo el líder cierra la caja. El candado real está en `cerrar_caja`
                     (20260921110000); acá solo se decide qué se muestra. A quien no es líder no se le
@@ -261,8 +261,8 @@ export function CajaAbiertaPanel({
             colorBorde="var(--color-taupe)"
             sparkline={series.porHora.map((p) => p.otros)}
           />
-          <TarjetaKpi indice={6} etiqueta="Ingresos" valor={resumen.ingresos} icono={<CirclePlus size={15} aria-hidden />} colorBorde="var(--color-verde)" />
-          <TarjetaKpi indice={7} etiqueta="Egresos" valor={resumen.egresos} icono={<CircleMinus size={15} aria-hidden />} colorBorde="var(--color-rojo)" />
+          <TarjetaKpi indice={6} etiqueta="Entradas" valor={resumen.ingresos} icono={<CirclePlus size={15} aria-hidden />} colorBorde="var(--color-verde)" />
+          <TarjetaKpi indice={7} etiqueta="Salidas" valor={resumen.egresos} icono={<CircleMinus size={15} aria-hidden />} colorBorde="var(--color-rojo)" />
         </div>
 
         {/* ---------- Cuerpo ---------- */}

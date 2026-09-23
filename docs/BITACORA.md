@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-22 (Caja: «entrada / salida» y el motivo con el desplegable del sistema)
+Felipe pidió llamar «Entrada» y «Salida» a lo que la caja decía «Ingreso» y «Egreso», y estandarizar el combo de Motivo. Cambiaron el modal, el botón «+ Entrada / salida» y las tarjetas «Entradas» / «Salidas» del panel; Motivo pasó del `<select>` nativo al `Desplegable` de `campos.tsx`, que ganó `deshabilitado` para el «Primero elige entrada o salida». Verificado en navegador (elegir Salida, abrir la lista, «Otro» abre el campo libre); typecheck y lint en verde.
+Felipe se lleva: **cambiar una palabra en pantalla no obliga a cambiar el dato**: en la base el tipo sigue siendo `ingreso` / `egreso`, y la traducción vive en una sola constante (`TEXTO_TIPO`), sin migración ni riesgo para cierres ya guardados.
+
 ## 2026-09-22 (Cierre de rol y ubicación entre líderes)
 Verificado en producción, objeto por objeto: todas las migraciones del 21 al 23-09 están pegadas, incluidas las de líderes y la de conteo vacío. El ADR de Traslados ya se llamaba 0173 pero su título y referencias seguían en 0172: corregido.
 Felipe se lleva: **dos migraciones con la misma versión no dan error: una de las dos se da por aplicada y no corre nunca** en una base local. Esta vez dos sesiones lo vieron a la vez; la de ubicación de líderes quedó como `20260923120100`.
