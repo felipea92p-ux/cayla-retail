@@ -140,6 +140,7 @@ export function ProductoForm({
   colores,
   ejes,
   etiquetas,
+  avisoEtiquetas,
   marcas,
   producto,
 }: {
@@ -149,6 +150,8 @@ export function ProductoForm({
   ejes: EjesPorCategoria;
   /** Vocabulario de etiquetas aprobado+activo, para aplicar a una variante. */
   etiquetas: ValorVocabulario[];
+  /** Una línea bajo el selector de etiquetas (ADR-0161 P4: a quien no es líder, que las de descuento no se le ofrecen). */
+  avisoEtiquetas?: string;
   /** Marcas, proveedores y parejas registradas (ADR-0109). */
   marcas: CatalogoMarcas;
   /** Presente = modo edición. */
@@ -633,6 +636,7 @@ export function ProductoForm({
                       <p className="text-xs italic text-tinta/55">Todavía no hay etiquetas aprobadas.</p>
                     )}
                     <p className="text-xs text-tinta/55">Se guarda junto con el resto al pulsar &ldquo;Guardar cambios&rdquo;.</p>
+                    {avisoEtiquetas && <p className="text-xs text-tinta/55">{avisoEtiquetas}</p>}
                   </div>
                 )}
               </div>

@@ -400,7 +400,7 @@ error(
 ${cambiaA(MICAELA)}select retail.reasignar_reparto_compra(:'c1_l1', :'taller', :'trujillo', 2, 'llego_de_mas');
 `
   ),
-  "No tienes permiso"
+  "necesita el módulo Facturas de compra" // ADR-0161 P1 (20260923140000)
 );
 
 error(

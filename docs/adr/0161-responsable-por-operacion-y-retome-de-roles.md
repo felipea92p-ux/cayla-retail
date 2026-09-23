@@ -154,7 +154,7 @@ después a qué rol dárselo. Se da de alta con su propia migración en `retail.
 `lib/modulos.ts` y con `modulo` en su nodo de `lib/menu.ts` + `exigirModulo` en su ruta. La regla operativa completa está en
 `CLAUDE.md` («Módulos y roles») y la vigilan `lib/modulos.test.ts` y `pnpm pruebas:roles`.
 
-## B6-B8 construidos (2026-09-22, rama `claude/abrir-modulos-a-los-roles`, PR #308) — NO pegado en producción
+## B6-B8 construidos (2026-09-22, rama `claude/abrir-modulos-a-los-roles`, PR #308) — pegado en producción el 2026-09-22
 
 **Dos migraciones, en este orden:** `20260923130000_abrir_modulos_a_los_roles.sql` (los 5 módulos) y
 `20260923131000_colaboradores_y_roles_delegables.sql` (Colaboradores y Roles). Las dos cambian cada función desde su
@@ -186,8 +186,8 @@ activo. Las migraciones de esta rama se renumeraron a `20260923130000` y `202609
 main y el 120000 la rama `claude/ubicacion-entre-lideres`). Si esa rama se pega DESPUÉS, su `cambiar_ubicacion_colaborador`
 vuelve a «solo el líder» (falla cerrado): volver a pegar `20260923131000`.
 
-**Las 6 preguntas, DECIDIDAS por Felipe el 2026-09-22 («todas como propones»). NO están construidas en este PR: van en
-uno aparte.**
+**Las 6 preguntas, DECIDIDAS por Felipe el 2026-09-22 («todas como propones»). Construidas en la rama
+`claude/modulos-seis-decisiones` (sección «P1–P6 construidas», abajo).**
 
 | # | Decisión | Qué cambia cuando se construya |
 |---|---|---|
@@ -197,6 +197,32 @@ uno aparte.**
 | P4 | **«Productos» también cambia etiquetas SIN descuento desde la ficha de la prenda.** | `actualizar_variantes_etiquetas` pasa a «editar catálogo o módulo Etiquetas»; lo que lleva descuento sigue del líder. |
 | P5 | **Análisis NO ve costo ni stock de otras sedes en Existencias**: solo su sede. | `fn_resumen_variantes` separa lo que ve Existencias (sin costo ni red para quien no es líder) de lo que lee Análisis. |
 | P6 | **Colaboradores y Roles y accesos solo se asignan a PERSONAS, nunca a una terminal.** | `guardar_modulos_rol`/`asignar_rol`: un rol con esos módulos no se asigna a una terminal (y una terminal con un rol así no los recibe). |
+
+## P1–P6 construidas (2026-09-22, rama `claude/modulos-seis-decisiones`) — NO pegado en producción
+
+**Una migración:** `20260923140000_modulos_seis_decisiones.sql`. Mismo patrón que B6-B8: cada función se cambia desde su
+definición VIVA con conteo exacto de ocurrencias (inventario contra producción el 2026-09-22, solo lectura), aborta sin dejar
+nada a medias si algo cambió, y es re-ejecutable. Su cabecera trae la clasificación de cada candado. La web y las pruebas van
+en la misma rama.
+
+| # | Base | Web |
+|---|---|---|
+| P1 | Tres capacidades por módulo: `fn_puede_registrar_facturas_compra` (registrar_compra —con su pago al contado—, anular_compra, reasignar_reparto_compra, adjuntos), `fn_puede_pagar_compras` (registrar_pago_compras, _medios, registrar_pagos_compra y su envoltorio registrar_pago_compra, registrar_reembolso_proveedor), `fn_puede_registrar_notas_credito` (registrar_nota_credito_compra; y el adjunto cuando es el PDF de una nota). `fn_puede_registrar_compras` queda como «cualquiera de los tres» SOLO para leer lo que usan los tres: `compras_nota_pendiente`, `fn_proveedor_creditos` y la política `proveedor_creditos_select` (el libro del saldo a favor). El dinero (`fn_puede_ver_dinero_de_compras`) no cambia. | `accionesDeCompra` / `usaModulo` en `lib/modulos.ts`: el detalle del comprobante muestra «Anular», reparto y adjuntos a Facturas de compra y «Registrar pago» a Por pagar; «Reembolso» (Notas de crédito, ficha) solo a Por pagar. |
+| P2 | Nada que cambiar, a propósito: `listar_compras_operativo`, `lineas_compra_operativo` y `recibir_envio` no devuelven montos; su `fn_es_lider()` decide la SEDE que se mira y eso se queda. Los montos salen de vistas con RLS `fn_puede_ver_dinero_de_compras` y `recepciones_sin_comprobante` ya la pregunta. | `/recibir` e `/inventario/recibir` usan `verDineroCompras` para los montos; las decisiones sobre faltantes y la sede siguen con `esLider`. |
+| P3 | `fn_puede_gestionar_proveedores` (líder o Proveedores): registrar/actualizar/desactivar/reactivar_proveedor, `fn_proveedor_devoluciones`, política `proveedores_write` (reemplaza a `proveedores_write_lider`). `fn_proveedor_metricas_compras` y `fn_proveedor_costo_evolucion` ya pedían el dinero (solo cambia el mensaje). `fn_proveedor_metricas_insumos` sigue del líder. | Compras deja entrar a quien tiene Proveedores; el menú pide `editarCuentasProveedor` (= el módulo) para Proveedores; la lista y la ficha se pintan por partes (montos con `verDineroCompras`, Taller solo líder); el detalle de un comprobante pide `verDineroCompras`. |
+| P4 | `actualizar_variantes_etiquetas`: «Etiquetas o editar catálogo»; lo que lleva descuento sigue del líder. | La ficha de la prenda no ofrece las etiquetas con descuento a quien no es líder (y lo dice). |
+| P5 | **Elección:** en `fn_resumen_variantes` el costo y `en_red` vuelven a ser solo del LÍDER. Esa función no la lee Análisis (la leen Existencias y la «Nueva orden» del líder); Análisis lee `fn_resumen_comparacion`, que ya analiza solo su sede y ahí ve el costo de lo vendido (márgenes). Así «Análisis ve el costo de SU sede» se cumple sin un parámetro que el que llama podría falsear. | Sin cambio (Existencias ya pintaba costo y red solo al líder). |
+| P6 | `fn_exigir_rol_de_terminal(rol, módulo)` en los disparadores de `retail.terminales` y `retail.rol_modulos`: una terminal no queda con un rol que incluya Colaboradores o Roles y accesos, y no se encienden en un rol con terminales (activas o no). Bloquea la fila del rol contra carreras. Además `fn_puede_gestionar_colaboradores` y `fn_puede_administrar_roles` son falsas para una sesión de terminal. Antes de poner el candado verifica que ninguna terminal lo incumpla (producción: ninguna). | Roles y accesos avisa al encender esos módulos en un rol con terminales y no ofrece esos roles a una terminal (asignar y «Nueva terminal»). |
+
+**Pruebas:** `pnpm pruebas:roles` 63/63 (10 casos nuevos, uno por decisión y más) en una copia local alineada con producción, incluida la RLS «una vez por consulta» de ADR-0176
+(las funciones, políticas y restos del ADR-0151 que la base local tenía distintos se dejaron iguales a producción antes de
+probar), también `--en-seco`; las suites de Compras, terminales y actor-firma sin fallas nuevas (las que fallan lo hacen igual
+sin esta migración: datos de la base local). Typecheck, lint y vitest en verde.
+
+**Consecuencias para que Felipe confirme (no decididas aquí):** (1) la Terminal Almacén tiene Proveedores, así que ahora da de
+alta, edita y desactiva proveedores; (2) recibir con una nota de crédito por faltante (`recibir_envio`/`recibir_y_cerrar_compras`
+con notas) pide Notas de crédito, no cualquiera de los tres — la web hoy no lo usa; (3) una factura AL CONTADO se registra con su
+pago dentro de Facturas de compra (es parte de registrarla), aunque ese rol no tenga Por pagar.
 
 ## Actualización 2026-09-22 — el rol se cambia también entre líderes
 

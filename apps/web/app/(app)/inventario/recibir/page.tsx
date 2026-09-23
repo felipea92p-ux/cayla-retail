@@ -1,4 +1,4 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { getCatalogo } from "@/lib/catalogo-v2";
@@ -29,9 +29,10 @@ export default async function RecibirLotePage() {
     listarRecepcionesSinComprobante({ limite: 20 }),
   ]);
   const proveedores = exigir(proveedoresRes, "el directorio de proveedores");
-  // El costo promedio es dinero: la base ya se lo entrega NULL a quien no es líder (ADR-0126), así que para él la lista ni
-  // dibuja la columna de costo (llena de «—» no diría nada).
-  const costos = persona.rol === "lider" ? Object.fromEntries(conCosto.map((r) => [r.loteId, { costo: r.costoUnitarioPromedio, sinCosto: r.sinCosto }])) : undefined;
+  // El costo promedio es dinero: la base se lo entrega NULL a quien no ve el dinero de Compras (ADR-0126;
+  // `recepciones_sin_comprobante` pregunta fn_puede_ver_dinero_de_compras), así que para él la lista ni dibuja la columna de
+  // costo (llena de «—» no diría nada). ADR-0161 P2 (20260923140000): lo mira el permiso, no «¿es líder?».
+  const costos = puede(persona, "verDineroCompras") ? Object.fromEntries(conCosto.map((r) => [r.loteId, { costo: r.costoUnitarioPromedio, sinCosto: r.sinCosto }])) : undefined;
 
   const hoy = hoyLima();
   const ultima = resumen.ultimaRecepcion ? hoyLima(new Date(resumen.ultimaRecepcion)) : null;

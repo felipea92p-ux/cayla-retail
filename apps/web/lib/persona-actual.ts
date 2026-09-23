@@ -4,10 +4,12 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import type { Permiso } from "@/lib/menu";
 import {
+  accionesDeCompra,
   leerModulos,
   modulosDeHoy,
   permisosDeModulos,
   TIPOS_TERMINAL_LEGADO,
+  type AccionesDeCompra,
   type ClaveModulo,
   type ModuloDeCuenta,
   type TipoTerminalLegado,
@@ -169,6 +171,11 @@ export async function exigirPermiso(permiso: Permiso): Promise<PersonaActualV2> 
 /** ¿Esta cuenta ve el módulo? (su rol lo incluye; el líder ve todos). Visibilidad: el candado real sigue en la base. */
 export function veModulo(persona: Pick<PersonaActualV2, "modulos">, clave: ClaveModulo): boolean {
   return persona.modulos.some((m) => m.clave === clave);
+}
+
+/** Qué puede hacer esta cuenta con un comprobante de compra, módulo por módulo (ADR-0161 P1): facturas, pagos, notas. */
+export function accionesDeCompraDe(persona: Pick<PersonaActualV2, "rol" | "modulos">): AccionesDeCompra {
+  return accionesDeCompra(persona.rol, persona.modulos);
 }
 
 /** La puerta de pantalla por MÓDULO (ADR-0161 B2): quien llega por URL directa a un módulo que su rol no ve, cae en

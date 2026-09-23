@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { exigirPermiso } from "@/lib/persona-actual";
 import { CompraDetalle, DatosComprobante, TituloComprobante, cargarDetalleCompra } from "@/components/CompraDetalle";
 
 // Página completa del detalle de una factura. Es lo que se ve al entrar por
@@ -15,7 +15,8 @@ export default async function CompraDetallePage({
   params: Promise<{ compraId: string }>;
   searchParams: Promise<{ adjuntos_fallidos?: string }>;
 }) {
-  await requirePersonaActualV2();
+  // ADR-0161 P3: el layout de /compras también deja entrar a quien solo tiene Proveedores; un comprobante es dinero.
+  await exigirPermiso("verDineroCompras");
   const { compraId } = await params;
   // Nombres de archivos que no se pudieron subir al registrar (los manda
   // CompraFormV2 por la URL, separados por "|").

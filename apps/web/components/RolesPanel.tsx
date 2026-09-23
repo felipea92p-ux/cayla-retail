@@ -27,6 +27,7 @@ import {
   menuConCambios,
   modulosFiltrados,
   motivoParaNoArchivar,
+  motivoParaNoGuardar,
   nombreDeCopia,
   rolesAsignables,
   veModulo,
@@ -150,6 +151,14 @@ export function RolesPanel({
     const clave = `${r.id}:${m.clave}`;
     setMatrizOcupada(clave);
     const nuevos = alternarModulo(r.modulos, m.clave);
+    // ADR-0161 P6: Colaboradores y Roles y accesos no se encienden en un rol que tienen terminales (la base también lo
+    // rechaza; aquí se avisa antes, con los nombres de las terminales).
+    const motivo = motivoParaNoGuardar(r.modulos, nuevos, cuentasDe(r.id));
+    if (motivo) {
+      avisar.error(motivo);
+      setMatrizOcupada(null);
+      return;
+    }
     const encendido = nuevos.includes(m.clave);
     await ejecutar("guardar los módulos del rol", () => acciones.guardarModulos(r.id, nuevos), `${r.nombre}: ${m.nombre} ${encendido ? "encendido" : "apagado"}`);
     setMatrizOcupada(null);
@@ -160,7 +169,16 @@ export function RolesPanel({
     setBusqueda("");
   }
 
-  const ponerBorrador = (modulos: ClaveModulo[]) => rol && setBorradores((b) => (hayCambios(rol.modulos, modulos) ? { ...b, [rol.id]: modulos } : sinBorrador(b, rol.id)));
+  const ponerBorrador = (modulos: ClaveModulo[]) => {
+    if (!rol) return;
+    // ADR-0161 P6 (ver arriba): se frena al encender, no al guardar.
+    const motivo = motivoParaNoGuardar(borrador, modulos, cuentasDe(rol.id));
+    if (motivo) {
+      avisar.error(motivo);
+      return;
+    }
+    setBorradores((b) => (hayCambios(rol.modulos, modulos) ? { ...b, [rol.id]: modulos } : sinBorrador(b, rol.id)));
+  };
 
   if (!rol) return <p className="font-display card-cayla py-8 text-center text-base italic text-tinta/65">Todavía no hay roles.</p>;
 

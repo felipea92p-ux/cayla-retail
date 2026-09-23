@@ -529,19 +529,19 @@ const COMO_MICAELA = (sql) =>
 error(
   "seguridad · el integrante NO puede pagar desde el detalle (ni con token)",
   COMO_MICAELA(`select ${pagar("c1", 10, { token: "gen_random_uuid()" })};`),
-  "No tienes permiso para registrar pagos a proveedores"
+  "Registrar pagos a proveedores necesita el módulo Por pagar" // ADR-0161 P1 (20260923140000)
 );
 error(
   "seguridad · el integrante NO puede pagar por lote",
   COMO_MICAELA(`select ${lote([["c1", 10]], { token: "gen_random_uuid()" })};`),
-  "No tienes permiso para registrar pagos a proveedores"
+  "Registrar pagos a proveedores necesita el módulo Por pagar" // ADR-0161 P1 (20260923140000)
 );
 error(
   "seguridad · el integrante NO puede registrar una compra (con total del papel)",
   COMO_MICAELA(
     `select retail.registrar_compra(:'prov1', 'TST', ${N}, 'credito', :'taller', jsonb_build_array(${ITEM(5, 8.47)}), p_fecha_emision => ${HOY}, p_fecha_vencimiento => ${HOY} + 10, p_total => 50.00);`
   ),
-  "No tienes permiso para registrar compras"
+  "Registrar un comprobante de compra necesita el módulo Facturas de compra" // ADR-0161 P1 (20260923140000)
 );
 exito(
   "seguridad · el líder, como rol authenticated, paga con token y ve el éxito (el permiso de EXECUTE quedó bien)",

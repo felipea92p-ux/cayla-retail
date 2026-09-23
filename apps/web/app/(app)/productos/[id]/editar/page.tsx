@@ -25,7 +25,7 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
     ),
     exigir(await supabase.from("colores").select("codigo, nombre, hex").eq("activo", true).order("orden").order("nombre"), "los colores del vocabulario"),
     getEjesPorCategoria(),
-    supabase.from("etiquetas").select("id, nombre, vigente_desde, vigente_hasta").eq("activo", true).eq("estado", "aprobado").order("nombre"),
+    supabase.from("etiquetas").select("id, nombre, vigente_desde, vigente_hasta, descuento_pct").eq("activo", true).eq("estado", "aprobado").order("nombre"),
     getCatalogoMarcas(),
     supabase.from("familias").select("codigo, exige_tejido_patron"),
   ]);
@@ -36,9 +36,17 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
   // nunca se retira sola de una variante que ya la tenía — eso sería
   // perder un dato sin que nadie lo pidiera.
   const hoy = new Date().toISOString().slice(0, 10);
-  const etiquetas = exigir(resEtiquetas, "las etiquetas del vocabulario")
+  // ADR-0161 P4 (20260923140000): quien edita Productos cambia aquí las etiquetas SIN descuento de la prenda, sin necesitar el
+  // módulo Etiquetas. Poner o quitar una CON descuento cambia el precio en caja y es solo del líder: a los demás no se les
+  // ofrece (la que ya tenga la prenda se conserva tal cual: el selector no la muestra y el guardado no la toca). La base lo
+  // vuelve a exigir en `actualizar_variantes_etiquetas`.
+  const daDescuentos = persona.rol === "lider";
+  const vocabulario = exigir(resEtiquetas, "las etiquetas del vocabulario");
+  const etiquetas = vocabulario
     .filter((e) => (!e.vigente_desde || e.vigente_desde <= hoy) && (!e.vigente_hasta || e.vigente_hasta >= hoy))
+    .filter((e) => daDescuentos || e.descuento_pct == null)
     .map((e) => ({ id: e.id, texto: e.nombre }));
+  const hayConDescuento = !daDescuentos && vocabulario.some((e) => e.descuento_pct != null);
 
   if (!producto) notFound();
 
@@ -64,6 +72,7 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
         colores={colores}
         ejes={ejes}
         etiquetas={etiquetas}
+        avisoEtiquetas={hayConDescuento ? "Las etiquetas con descuento las pone o quita un líder." : undefined}
         marcas={marcas}
         producto={producto}
       />

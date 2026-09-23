@@ -1,4 +1,4 @@
-import { exigirModulo } from "@/lib/persona-actual";
+import { exigirModulo, puede } from "@/lib/persona-actual";
 import { getMarcasPorProveedor, getProveedores, getProveedoresResumen, getProveedoresSerie } from "@/lib/proveedores";
 import { ProveedoresPanel } from "@/components/ProveedoresPanel";
 
@@ -23,12 +23,17 @@ import { ProveedoresPanel } from "@/components/ProveedoresPanel";
 // (tablas `marcas` y `marca_proveedores`, sin migración) para buscar por ellas y verlas en cada fila; es opcional
 // igual que la serie: si falla, la lista se pinta sin marcas.
 export default async function ProveedoresPage() {
-  // La puerta del módulo Proveedores (además de ver los montos, que pide el layout de /compras). Lo financiero, el detalle
-  // y la edición siguen siendo del líder aquí: las RPC de escribir un proveedor todavía exigen fn_es_lider (módulo
-  // Proveedores, fuera del alcance de 20260923130000).
+  // La puerta del módulo Proveedores. ADR-0161 P3 (20260923140000): con el módulo se da de alta, se edita y se archiva
+  // (`fn_puede_gestionar_proveedores` en la base); lo financiero, con los montos de Compras (`verDineroCompras`).
   const persona = await exigirModulo("proveedores");
-  const esLider = persona.rol === "lider";
-  const [proveedores, resumen, series, marcas] = await Promise.all([getProveedores(), esLider ? getProveedoresResumen() : null, esLider ? getProveedoresSerie() : null, getMarcasPorProveedor()]);
+  const verMontos = puede(persona, "verDineroCompras");
+  const puedeEditar = puede(persona, "editarCuentasProveedor");
+  const [proveedores, resumen, series, marcas] = await Promise.all([
+    getProveedores(),
+    verMontos ? getProveedoresResumen() : null,
+    verMontos ? getProveedoresSerie() : null,
+    getMarcasPorProveedor(),
+  ]);
 
-  return <ProveedoresPanel proveedores={proveedores} esLider={esLider} resumen={resumen} series={series} marcas={marcas} />;
+  return <ProveedoresPanel proveedores={proveedores} verMontos={verMontos} puedeEditar={puedeEditar} resumen={resumen} series={series} marcas={marcas} />;
 }
