@@ -27,7 +27,6 @@ export type VarianteCatalogo = {
    *  las iniciales, en Vender) cuando falta, nunca a un ícono de "sin foto". */
   fotoUrl: string | null;
   precio: number;
-  costo: number;
   activo: boolean;
   productoId: string;
   referencia: string;
@@ -48,7 +47,8 @@ export type VarianteCatalogo = {
  *
  *  Es la misma para todas las cuentas: las 8 tablas se leen igual con cualquier sesión (`auth.role() = 'authenticated'`,
  *  verificado 2026-09-23), así que compartirla no muestra nada que la cuenta no pudiera leer. Si esa regla cambia (p. ej.
- *  esconder `costo` a quien no es líder), esta copia deja de poder compartirse. */
+ *  esconder `costo` a quien no es líder), esta copia deja de poder compartirse. Desde 20260923193700 el costo YA
+ *  NO es parte del catálogo: se pide aparte con `getCostosVariantes()`, solo donde se usa y solo a quien lo ve. */
 export async function getCatalogo(): Promise<VarianteCatalogo[]> {
   const supabase = await createClient();
   const [{ data: version, error }, { data: sesion }] = await Promise.all([supabase.rpc("fn_catalogo_version"), supabase.auth.getSession()]);
@@ -61,6 +61,26 @@ export async function getCatalogo(): Promise<VarianteCatalogo[]> {
     // Pasadas ~5.000 variantes ya no entra y se lee en vivo en cada visita: entonces, adelgazar lo que se guarda.
     revalidate: 3600,
   })();
+}
+
+/** Una variante del listado de /productos: la del catálogo más su costo, que `fn_productos` entrega vacío (null) a quien
+ *  no tiene permiso de ver el dinero (20260923193700). */
+export type VarianteListado = VarianteCatalogo & { costo: number | null };
+
+/**
+ * El costo de las prendas, para las pantallas que lo usan (Conteo, Compras ▸ Nueva, la ficha de producto, Etiquetas).
+ * `null` = esta cuenta no ve el dinero (`fn_puede_ver_dinero_de_compras`: líder, o un rol con Facturas de compra, Por
+ * pagar o Notas de crédito) — la pantalla no muestra el costo, nunca un 0. La base ya no deja leer `variantes.costo`
+ * directo (20260923193700): esta es la única puerta. Sin `ids`, todo el catálogo (una fila jsonb, sin tope de 1.000).
+ *
+ * Si la función todavía no existe (web publicada antes que la migración) también da `null`: la pantalla sigue viva
+ * sin costos, en vez de caerse.
+ */
+export async function getCostosVariantes(ids?: string[]): Promise<Map<string, number> | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_costos_variantes_json", { p_ids: ids });
+  if (error || data === null || typeof data !== "object") return null;
+  return new Map(Object.entries(data as Record<string, number | string>).map(([id, costo]) => [id, Number(costo)]));
 }
 
 /** Un cliente sin cookies para usar dentro de la copia guardada, con la sesión de quien la llena. */
@@ -80,7 +100,7 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
       supabase
         .from("variantes")
         .select(
-          `id, sku, codigo, color_codigo, precio, costo, activo,
+          `id, sku, codigo, color_codigo, precio, activo,
            talla:tallas ( valor ),
            producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, color_codigo ) ),
            color:colores ( nombre, hex ),
@@ -115,7 +135,6 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     // bajo `producto`, no como relación directa de `variantes`.
     fotoUrl: v.producto?.producto_fotos.find((f) => f.color_codigo === v.color_codigo)?.url ?? null,
     precio: Number(v.precio),
-    costo: Number(v.costo),
     activo: v.activo,
     productoId: v.producto?.id ?? "",
     referencia: v.producto?.referencia ?? "(sin referencia)",
@@ -221,7 +240,7 @@ export type ProductoListado = {
   puntoReorden: number;
   /** stockTotal <= puntoReorden, demandaDiaria > 0 y la prenda está ACTIVA (una descontinuada no se repone, 20260922120000) — la señal "Pedir a proveedor". */
   reponerDeProveedor: boolean;
-  variantes: VarianteCatalogo[];
+  variantes: VarianteListado[];
 };
 
 export type PaginaProductos = {
@@ -305,7 +324,7 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
       colorHex: f.color_hex,
       fotoUrl: f.foto_url,
       precio: Number(f.precio),
-      costo: Number(f.costo),
+      costo: f.costo === null ? null : Number(f.costo),
       activo: f.activo,
       productoId: f.producto_id,
       referencia: f.referencia,
@@ -388,7 +407,8 @@ export type VarianteDetalle = {
   talla: string | null;
   sku: string;
   precio: number;
-  costo: number;
+  /** null = quien mira no tiene permiso de ver el dinero (20260923193700): la ficha no muestra ni toca el costo. */
+  costo: number | null;
   activo: boolean;
   codigo: string | null;
   codigosBarras: string[];
@@ -450,7 +470,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
        tejido_id, patron_id, marca_id, proveedor_id,
        tejido:tejidos ( nombre ), patron:patrones ( nombre ),
        marca:marcas ( nombre ), proveedor:proveedores ( nombre ),
-       variantes ( id, color_codigo, talla_id, sku, precio, costo, activo, codigo,
+       variantes ( id, color_codigo, talla_id, sku, precio, activo, codigo,
          color:colores ( nombre ),
          talla:tallas ( valor ),
          codigos_barras ( codigo ),
@@ -462,6 +482,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
 
   if (error) throw new Error(`No se pudo cargar el producto: ${error.message}`);
   if (!data) return null;
+  const costos = await getCostosVariantes((data.variantes ?? []).map((v) => v.id));
 
   return {
     id: data.id,
@@ -493,7 +514,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
       talla: v.talla?.valor ?? null,
       sku: v.sku ?? "",
       precio: Number(v.precio),
-      costo: Number(v.costo),
+      costo: costos ? (costos.get(v.id) ?? 0) : null,
       activo: v.activo,
       codigo: v.codigo,
       codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),

@@ -2871,6 +2871,38 @@ export type Database = {
           },
         ]
       }
+      // 20260923161700 (ADR-0179): prendas vendidas en caja antes de estar en el sistema.
+      prendas_por_regularizar: {
+        Row: {
+          categoria_id: string
+          color_codigo: string
+          descripcion: string
+          diferencia: number | null
+          estado: string
+          forma: string | null
+          id: string
+          precio_cobrado: number
+          precio_oficial: number | null
+          regularizado_en: string | null
+          regularizado_por: string | null
+          talla_id: string
+          ubicacion_id: string
+          variante_id: string | null
+          vendido_en: string
+          vendido_por: string | null
+          venta_item_id: string
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          { foreignKeyName: "prendas_por_regularizar_categoria_id_fkey"; columns: ["categoria_id"]; isOneToOne: false; referencedRelation: "categorias"; referencedColumns: ["id"] },
+          { foreignKeyName: "prendas_por_regularizar_color_codigo_fkey"; columns: ["color_codigo"]; isOneToOne: false; referencedRelation: "colores"; referencedColumns: ["codigo"] },
+          { foreignKeyName: "prendas_por_regularizar_talla_id_fkey"; columns: ["talla_id"]; isOneToOne: false; referencedRelation: "tallas"; referencedColumns: ["id"] },
+          { foreignKeyName: "prendas_por_regularizar_ubicacion_id_fkey"; columns: ["ubicacion_id"]; isOneToOne: false; referencedRelation: "ubicaciones"; referencedColumns: ["id"] },
+          { foreignKeyName: "prendas_por_regularizar_variante_id_fkey"; columns: ["variante_id"]; isOneToOne: false; referencedRelation: "variantes"; referencedColumns: ["id"] },
+          { foreignKeyName: "prendas_por_regularizar_venta_item_id_fkey"; columns: ["venta_item_id"]; isOneToOne: true; referencedRelation: "venta_items"; referencedColumns: ["id"] },
+        ]
+      }
       productos: {
         Row: {
           aprobado_en: string | null
@@ -4735,8 +4767,9 @@ export type Database = {
       extender_separacion: {
         Args: { p_separacion_id: string }
         Returns: string
-      }
-
+      }
+      fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
+      fn_soles_diferencia_conteo: { Args: { p_conteo_id: string }; Returns: number }
       fn_catalogo_version: { Args: never; Returns: number }
       fn_vencer_separaciones: {
         Args: { p_ubicacion_id: string }
@@ -6544,6 +6577,11 @@ export type Database = {
           serie_numero: string
           unidades_cerradas: number
         }[]
+      }
+      // 20260923162300 (ADR-0179): almacén une la prenda sin registrar con su variante real.
+      regularizar_prenda: {
+        Args: { p_forma: string; p_id: string; p_variante_id: string }
+        Returns: number
       }
       registrar_adjunto_compra: {
         Args: {

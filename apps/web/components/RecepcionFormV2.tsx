@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { campoEtiqueta, campoTexto, campoSelect, botonPrimario } from "@/components/ui/Modal";
+import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 
 // Fase UI 1 (2026-09-11): pantalla nueva sobre la RPC `recibir_lote` de V2
 // (`supabase/migrations/0003_funciones.sql:179`). No es una adaptación de
@@ -34,7 +36,7 @@ export function RecepcionFormV2({
   const [numeroGuia, setNumeroGuia] = useState("");
   const [lineas, setLineas] = useState<Linea[]>([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: 1, costoUnitario: "" }]);
   const [loading, setLoading] = useState(false);
-  const [ok, setOk] = useState<{ unidades: number } | null>(null);
+  const [ok, setOk] = useState<{ unidades: number; loteId: string | null } | null>(null);
   // Un token no aplica acá: `recibir_lote` no tiene idempotencia propia (a
   // diferencia de `registrar_venta`) porque un lote repetido es una decisión
   // de negocio distinta a una venta duplicada — el motivo real de reintentar
@@ -67,7 +69,7 @@ export function RecepcionFormV2({
     setLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.rpc("recibir_lote", {
+    const { data: loteId, error } = await supabase.rpc("recibir_lote", {
       p_ubicacion_id: ubicacionId,
       p_proveedor_id: proveedorId,
       p_items: validas.map((l) => ({
@@ -85,7 +87,7 @@ export function RecepcionFormV2({
     }
     const unidades = validas.reduce((acc, l) => acc + l.cantidad, 0);
     avisar.exito(`Lote recibido · ${unidades} ${unidades === 1 ? "unidad" : "unidades"}`, { detalle: "Ya suman al stock." });
-    setOk({ unidades });
+    setOk({ unidades, loteId: loteId ?? null });
     router.refresh();
   }
 
@@ -95,6 +97,11 @@ export function RecepcionFormV2({
         <p className="label-cayla text-[11px] text-tinta/65">Lote recibido</p>
         <p className="font-display text-3xl text-tinta">{ok.unidades} unidades</p>
         <p className="text-sm text-tinta/70">Ya suman al stock de {ubicacionEtiqueta}.</p>
+        {ok.loteId && (
+          <Link href={urlEtiquetasDePrecio({ lotes: [ok.loteId] })} className="btn-cayla btn-primario w-full">
+            Imprimir {ok.unidades === 1 ? "la etiqueta" : `${ok.unidades} etiquetas`} de precio
+          </Link>
+        )}
         <button
           type="button"
           onClick={() => {
@@ -102,7 +109,8 @@ export function RecepcionFormV2({
             setLineas([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: 1, costoUnitario: "" }]);
             setNumeroGuia("");
           }}
-          className={`${botonPrimario} w-full`}
+          // Un solo primario por pantalla (ADR-0169): el siguiente paso es etiquetar; recibir otro va en secundario.
+          className={ok.loteId ? "btn-cayla btn-secundario w-full" : `${botonPrimario} w-full`}
         >
           Recibir otro lote
         </button>

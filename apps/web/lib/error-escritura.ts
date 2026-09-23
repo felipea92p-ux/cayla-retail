@@ -55,6 +55,23 @@ export type ErrorEscritura = {
 type Huella = { marca: string; frase: string | ((detalle: string) => string) };
 
 const HUELLAS: Huella[] = [
+  // Prendas sin registrar (ADR-0179): 20260923161700 y 20260923162300.
+  {
+    marca: "prenda_sin_registrar_incompleta",
+    frase: "A la prenda sin registrar le falta un dato (descripción, categoría, talla, color o precio). Quítala del ticket y vuelve a agregarla.",
+  },
+  {
+    marca: "prenda_sin_regularizar",
+    frase: "Esta prenda se vendió sin registrar y almacén todavía no la regulariza. Pide que lo hagan en Recibir ▸ Por regularizar y vuelve a intentarlo.",
+  },
+  {
+    marca: "prenda_ya_regularizada",
+    frase: "Esta prenda ya se regularizó (o su venta se anuló). Recarga la página para ver cómo quedó.",
+  },
+  {
+    marca: "prenda_sin_stock_para_descontar",
+    frase: "Esa prenda no tiene stock en esta tienda. Si llegó en un lote que se contó sin ella, elige «Llegó nueva».",
+  },
   {
     // Toda RPC que llama la web tiene EXECUTE para `authenticated`; si Postgres dice «permission denied for
     // function», la petición llegó como `anon`: el navegador perdió la sesión (típico: alguien salió con la misma

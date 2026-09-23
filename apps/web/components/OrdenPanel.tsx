@@ -17,6 +17,7 @@ import { MatrizOrdenTabla } from "@/components/MatrizOrden";
 import { ChipEntrega, semaforoDeOrden } from "@/components/OrdenTarjeta";
 import { OrdenCierre } from "@/components/OrdenCierre";
 import { OrdenInsumos } from "@/components/OrdenInsumos";
+import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import {
   desgloseCosto,
   estadoEntrega,
@@ -347,11 +348,17 @@ export function OrdenPanel({
             <section aria-label="Siguiente paso" className="mx-5 mb-4 rounded-2xl border border-sand bg-crema p-3.5">
               <p className="label-cayla text-[11px] text-tinta/65">Siguiente paso</p>
               <p className="mt-1 text-[13px] text-tinta/80">
-                Las {orden.cantidadBuenas} prendas buenas están en el stock del Taller. Para venderlas hay que llevarlas a las tiendas: el traslado sale del Taller y cada tienda confirma lo que llegó.
+                Las {orden.cantidadBuenas} prendas buenas están en el stock del Taller. Para venderlas hay que etiquetarlas y llevarlas a las tiendas: el traslado sale del Taller y cada tienda confirma lo que llegó.
               </p>
-              <Link href={llevarUrl} className="label-cayla mt-2.5 inline-block rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo">
-                Llevarlas a las tiendas
-              </Link>
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                <Link href={llevarUrl} className="label-cayla inline-block rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo">
+                  Llevarlas a las tiendas
+                </Link>
+                {/* ADR-0180: una etiqueta de precio por prenda buena; queda aquí para reimprimir mientras la orden siga cerrada. */}
+                <Link href={urlEtiquetasDePrecio({ produccion: orden.id })} className="btn-cayla btn-secundario">
+                  Imprimir etiquetas de precio
+                </Link>
+              </div>
             </section>
           )}
           <footer className="flex gap-2 border-t border-sand px-6 py-4">

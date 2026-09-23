@@ -231,8 +231,26 @@ export function LineasPago({
                     </div>
                   )}
                 </div>
-                {/* A dónde va la plata con este medio, o qué le falta al proveedor. Solo aviso: nunca bloquea el pago. */}
-                <DestinoDelMedio key={l.metodo} destino={destino} enlaceFicha={enlaceFicha} />
+                {/* A dónde va la plata con este medio, o qué le falta al proveedor. Solo aviso: nunca bloquea el pago.
+                    Cada medio dibuja algo distinto —la cajita del banco, un aviso o nada—; si el alto cambiara con la
+                    ficha, la página se acortaría bajo el mouse y, abajo del todo (en Registrar comprobante el pago es
+                    lo último), el navegador recortaría el scroll: la página «se sube sola» (2026-09-23). Por eso los
+                    destinos de los otros medios se apilan invisibles en la misma celda y el hueco mide siempre lo del
+                    más alto, a cualquier ancho. Sin datos del proveedor no hay destino: sin hueco. */}
+                {datosProveedor && (
+                  <div className="grid">
+                    {metodos.map((m) =>
+                      m === l.metodo ? null : (
+                        <div key={m} aria-hidden inert className="invisible [grid-area:1/1]">
+                          <DestinoDelMedio destino={destinoDelMedio(m, datosProveedor)} enlaceFicha={enlaceFicha} />
+                        </div>
+                      ),
+                    )}
+                    <div className="[grid-area:1/1]">
+                      <DestinoDelMedio key={l.metodo} destino={destino} enlaceFicha={enlaceFicha} />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
