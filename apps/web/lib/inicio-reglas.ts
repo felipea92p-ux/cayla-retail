@@ -8,6 +8,7 @@
 
 import { comparativoSemanaAnterior, type Comparativo } from "./caja-panel-reglas";
 import type { ClaveModulo } from "./modulos";
+import { DIAS_PARA_VENCER } from "./por-regularizar-reglas";
 
 export type PerfilInicio = {
   rol: "lider" | "integrante";
@@ -96,8 +97,8 @@ export type Cola = {
  * misma que pinta el «2» del menú). SUNAT pendiente y compras por pagar se suman acá cuando su lectura viva en
  * `lib/` y no dentro de su pantalla (tarea #3 de la auditoría): así no se duplica ninguna definición de «pendiente».
  */
-export function colasInicio(fuentes: { traslados: number | null }): Cola[] {
-  return [
+export function colasInicio(fuentes: { traslados: number | null; prendasVencidas?: number | null }): Cola[] {
+  const colas: Cola[] = [
     {
       clave: "traslados",
       titulo: "Traslados por recibir",
@@ -113,6 +114,27 @@ export function colasInicio(fuentes: { traslados: number | null }): Cola[] {
       href: "/inventario/traslados",
     },
   ];
+  // ADR-0179: prendas vendidas sin registrar que almacén no regularizó a tiempo. Solo la recibe quien la
+  // pasa (el líder): es el aviso de que el stock de esas prendas sigue sin cuadrar.
+  if (fuentes.prendasVencidas !== undefined) {
+    const n = fuentes.prendasVencidas;
+    const plazo = `más de ${DIAS_PARA_VENCER} días sin regularizar.`;
+    colas.push({
+      clave: "prendas-por-regularizar",
+      titulo: "Prendas por regularizar",
+      cantidad: n,
+      detalle:
+        n === null
+          ? "No se pudo leer esta cola. Revisa Recibir → Por regularizar."
+          : n === 0
+            ? `Ninguna lleva ${plazo}`
+            : n === 1
+              ? `1 lleva ${plazo}`
+              : `${n} llevan ${plazo}`,
+      href: "/recibir?vista=por-regularizar",
+    });
+  }
+  return colas;
 }
 
 // ── «Ir a» ───────────────────────────────────────────────────────────────────────────────────────
