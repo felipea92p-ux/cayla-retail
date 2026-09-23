@@ -1189,7 +1189,7 @@ export function PuntoDeVentaTicket({
               y al cobrar — la elección puede hacerse en cualquiera de los dos —; sus botones son `type="button"` y no
               envían el formulario. La lista se abre hacia arriba: debajo solo está el botón. */}
           {(momentoMostrado === "armar" || cobrando) && !bloqueado && (
-            <ComboResponsable control={responsable} hacia="arriba" deshabilitado={loading} className="mb-3" />
+            <ComboResponsable control={responsable} deshabilitado={loading} className="mb-3" />
           )}
 
           {/* El botón apagado dice por qué: el mismo motivo que lo apaga, debajo de él.

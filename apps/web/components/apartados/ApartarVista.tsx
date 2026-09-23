@@ -626,7 +626,7 @@ export function ApartarVista({
               </div>
               {/* El combo «Responsable» (ADR-0161), justo encima del botón que guarda, como en Cobrar. La lista se abre
                   hacia arriba: debajo solo está el botón. Sin caja abierta no se muestra: no hay nada que firmar. */}
-              {cajaAbierta && <ComboResponsable control={responsable} hacia="arriba" deshabilitado={enviando} />}
+              {cajaAbierta && <ComboResponsable control={responsable} deshabilitado={enviando} />}
               <button type="button" disabled={enviando || !cajaAbierta || !responsable.listo} title={cajaAbierta ? (responsable.motivo ?? undefined) : undefined} onClick={confirmar} className={BOTON_PRINCIPAL}>
                 <span className="label-cayla flex items-center gap-2.5 text-[11px]"><Bookmark className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Confirmar apartado"}</span>
                 <span className="font-display text-xl tabular-nums">{money(adelanto)}</span>

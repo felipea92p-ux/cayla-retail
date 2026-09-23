@@ -295,10 +295,11 @@ export function ProveedorModal({
     <Dialog.Root open onOpenChange={(abierto) => !abierto && fase !== "guardando" && pedirCierre()}>
       <Dialog.Portal>
         <Dialog.Overlay className={`fixed inset-0 z-50 bg-tinta/30 backdrop-blur-[2.5px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`} />
-        {/* El centrado vive en este contenedor y no en el panel: la animación de entrada usa `transform`. */}
-        <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
+        {/* La posición vive en este contenedor y no en el panel: la animación de entrada usa `transform`. Anclada arriba
+            en escritorio, como `<Modal>` (ADR-0182): centrada, cada cambio de alto movía el borde de arriba. */}
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center sm:items-start sm:p-6 sm:pt-[8vh]">
           <Dialog.Content
-            className={`pointer-events-auto flex max-h-[92dvh] w-full max-w-[35rem] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel shadow-xl outline-none sm:rounded-2xl ${
+            className={`pointer-events-auto flex max-h-[92dvh] w-full sm:max-h-[calc(100dvh-8vh-1.5rem)] max-w-[35rem] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel shadow-xl outline-none sm:rounded-2xl ${
               cerrando ? "anim-salida" : "anim-entrada"
             }`}
           >

@@ -62,14 +62,18 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
         <Dialog.Overlay
           className={`fixed inset-0 z-50 bg-tinta/35 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`}
         />
-        {/* El centrado vive en este contenedor y NO en el panel: una animación
-            de entrada usa `transform`, y si el centrado también fuera un
+        {/* La posición vive en este contenedor y NO en el panel: una animación
+            de entrada usa `transform`, y si la posición también fuera un
             transform (-translate-1/2), la animación lo pisaría y el modal
             saldría corrido. `pointer-events-none` acá + `auto` en el panel deja
-            que el clic afuera siga llegando al velo para cerrar. */}
-        <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
+            que el clic afuera siga llegando al velo para cerrar.
+            En escritorio la hoja va ANCLADA ARRIBA (8vh), no centrada (2026-09-23, ADR-0182): centrada, cada
+            cambio de alto del contenido (elegir un medio, un motivo, un responsable) movía también su borde de
+            arriba y la hoja «bailaba». Anclada, el título no se mueve nunca; solo crece o se acorta el borde de
+            abajo. En celular sigue siendo una hoja pegada abajo. */}
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center sm:items-start sm:p-6 sm:pt-[8vh]">
           <Dialog.Content
-            className={`scroll-cayla pointer-events-auto relative max-h-[90vh] w-full overflow-y-auto rounded-t-2xl border border-sand p-6 outline-none sm:rounded-2xl ${
+            className={`scroll-cayla pointer-events-auto relative max-h-[90vh] w-full sm:max-h-[calc(100dvh-8vh-1.5rem)] overflow-y-auto rounded-t-2xl border border-sand p-6 outline-none sm:rounded-2xl ${
               variante === "papel" ? "bg-papel" : "bg-crema shadow-xl"
             } ${
               cerrando ? "anim-modal-sale" : "anim-modal-entra"
