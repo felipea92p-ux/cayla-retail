@@ -1,6 +1,6 @@
 # Prendas sin registrar: vender en hora punta sin descuadrar el stock
 
-**Fecha:** 2026-09-23 · **Decidido con:** Felipe (4 rondas de preguntas, esta sesión) · **Estado:** diseño aprobado, sin implementar
+**Fecha:** 2026-09-23 · **Decidido con:** Felipe (4 rondas de preguntas, esta sesión) · **Estado:** implementado y verificado en local (ADR-0179); falta pegar en producción y fusionar
 
 ## El problema
 
@@ -63,8 +63,9 @@ Toma unos 15 segundos y no pide aprobación.
 Una pestaña nueva en `/recibir`, **«Por regularizar»**, para la cuenta de almacén de la sede. Lista las prendas
 pendientes, primero las más antiguas; las que pasan de 2 días llevan el chip «Vencida». Por cada una:
 
-1. **¿Qué prenda es?** Se busca la variante real en el catálogo o, si no existe, se da de alta ahí
-   mismo con su **precio oficial**. El alta queda `estado_alta = 'pendiente'` si no la hace un líder (D6).
+1. **¿Qué prenda es?** Se busca la variante real en el catálogo. Si no existe, se da de alta con su
+   **precio oficial** en la pantalla de alta que ya existe (enlace a Productos ▸ Nuevo; *ajustado al
+   implementar*: menos código y la misma alta que ya conocen) y se vuelve a buscar.
 2. **Una sola pregunta para que el stock cuadre** (porque se cuenta lo físico):
    - **«Ya estaba registrada, solo perdió la etiqueta»** → se descuenta 1 de su stock.
    - **«Llegó nueva y no se contó al registrar el lote»** → se anotan su entrada y su salida juntas; el stock no cambia.

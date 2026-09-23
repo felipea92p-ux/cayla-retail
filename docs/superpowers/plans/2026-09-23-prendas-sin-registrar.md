@@ -65,7 +65,7 @@
 - [ ] **Step 3: Escribir la migración.** Contenido:
 
 ```sql
--- Prendas sin registrar (ADR-0178, Felipe 2026-09-23). Spec: docs/superpowers/specs/2026-09-23-prendas-sin-registrar-design.md
+-- Prendas sin registrar (ADR-0179, Felipe 2026-09-23). Spec: docs/superpowers/specs/2026-09-23-prendas-sin-registrar-design.md
 set search_path = retail, public, extensions;
 
 create table if not exists retail.prendas_por_regularizar (
@@ -296,7 +296,7 @@ describe("faltaEnPrendaSinRegistrar", () => {
 - [ ] **Step 3: Implementar**
 
 ```ts
-// Lo mínimo que caja anota de una prenda que aún no está en el sistema (ADR-0178): con esto almacén la reconoce después.
+// Lo mínimo que caja anota de una prenda que aún no está en el sistema (ADR-0179): con esto almacén la reconoce después.
 export type DatosPrendaSinRegistrar = { descripcion: string; categoriaId: string; tallaId: string; colorCodigo: string; precio: number };
 
 export function faltaEnPrendaSinRegistrar(d: Partial<DatosPrendaSinRegistrar>): string | null {
@@ -375,9 +375,9 @@ describe("cifrasPorRegularizar", () => {
 
 - [ ] **Step 1:** `contarVencidas` = count de `prendas_por_regularizar` con `estado = 'pendiente'` y `vendido_en <= now() - 2 días` (`.lte("vendido_en", new Date(Date.now() - DIAS_PARA_VENCER*86_400_000).toISOString())`, `{ count: "exact", head: true }`).
 - [ ] **Step 2:** En el inicio, solo si `esLider`, y solo si es > 0: una `nota-cayla` con enlace «N prendas vendidas sin registrar llevan más de 2 días sin regularizar → Recibir ▸ Por regularizar».
-- [ ] **Step 3:** ADR-0178 (contexto, decisiones D1–D6 del spec, alternativas descartadas: opción 4 y tope diario), BACKLOG (hecho + «no está en producción: 2 migraciones por pegar con OK de Felipe»), BITACORA (3 líneas), ARQUITECTURA (tabla y RPC nuevas, ruta `/recibir?vista=por-regularizar`).
+- [ ] **Step 3:** ADR-0179 (contexto, decisiones D1–D6 del spec, alternativas descartadas: opción 4 y tope diario), BACKLOG (hecho + «no está en producción: 2 migraciones por pegar con OK de Felipe»), BITACORA (3 líneas), ARQUITECTURA (tabla y RPC nuevas, ruta `/recibir?vista=por-regularizar`).
 - [ ] **Step 4:** `pnpm --filter web lint && pnpm --filter web typecheck && pnpm --filter web exec vitest run && pnpm migraciones:verificar`.
-- [ ] **Step 5: Commit** — `docs(inventario): ADR-0178 prendas sin registrar`
+- [ ] **Step 5: Commit** — `docs(inventario): ADR-0179 prendas sin registrar`
 
 ## Fuera de este plan
 
