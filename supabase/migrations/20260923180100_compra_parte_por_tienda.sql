@@ -1,5 +1,8 @@
 -- ============================================================================
--- 20260922150000_compra_parte_por_tienda.sql — CAYLA V2 · ADR-0151 (F2: partir el dinero por tienda)
+-- 20260923180100_compra_parte_por_tienda.sql — CAYLA V2 · ADR-0151 (F2: partir el dinero por tienda)
+--
+-- REEMPLAZA, sin cambios de fondo, a 20260922150000_compra_parte_por_tienda.sql (nunca pegada en producción; chocaba en número
+-- con 20260922150000_venta_asesora_…). Se renumeró para ir después de ADR-0161.
 --
 -- PROBLEMA. Una factura puede traer mercadería para varias tiendas (ADR-0139: `compra_item_destinos`), pero el dinero
 -- de la factura es uno solo: `compras.subtotal / igv / total`. Para que cada tienda pueda ver y pagar SU parte (D2, D3)
@@ -8,8 +11,9 @@
 --
 -- QUÉ HACE. Una vista, `compra_parte_por_tienda`, calculada desde lo que ya es verdad (`compra_items` ×
 -- `compra_item_destinos` × `compras`): una fila por (factura, tienda) con sus unidades, subtotal, IGV y total.
--- No guarda nada. Es `security_invoker`: cada quien la lee con sus propios permisos (hoy el líder ve todas; un comprador,
--- las facturas que le abre `fn_compra_es_de_mis_tiendas`; F3 le abrirá «su parte» de las repartidas).
+-- No guarda nada. Es `security_invoker`: cada quien la lee con sus propios permisos (el líder, todas; una cuenta con módulo de
+-- Compras, las facturas que gestiona su tienda). La parte de una tienda que NO gestiona la factura no se lee de aquí sino de
+-- `fn_mis_partes_de_compras` (20260923180400), que devuelve solo esa fila.
 --
 -- QUÉ SE REPARTE: LA CABECERA, NO LAS LÍNEAS. `compras.subtotal/igv/total` es lo que se DEBE. Las líneas no siempre suman
 -- la cabecera: `registrar_compra` calcula el subtotal con el costo tal como llegó (33.333), pero `compra_items.costo_unitario`
@@ -34,9 +38,7 @@
 --           from retail.compras c join retail.compra_parte_por_tienda p on p.compra_id = c.id
 --          group by c.id, c.total having sum(p.total) <> c.total;
 --
--- QUÉ NO HACE. No cambia ninguna tabla ni función ni política. No abre a los compradores las facturas repartidas con una
--- tienda ajena (eso es F3: para verlas hace falta poder leer solo «su parte» de las líneas). No parte pagos ni saldos
--- (F4). Una factura sin destinos (ninguna debería haber tras ADR-0139) no tiene filas aquí. No corrige el descuadre de
+-- QUÉ NO HACE. No cambia ninguna tabla ni función ni política. No parte pagos ni saldos (20260923180300). Una factura sin destinos (ninguna debería haber tras ADR-0139) no tiene filas aquí. No corrige el descuadre de
 -- centavos entre líneas y cabecera de `registrar_compra`: queda anotado en el BACKLOG.
 --
 -- VOLVER ATRÁS: `drop view retail.compra_parte_por_tienda`; nada más depende de ella todavía.
