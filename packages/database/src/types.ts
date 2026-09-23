@@ -1027,8 +1027,8 @@ export type Database = {
           monto: number
           pago_grupo_id: string | null
           referencia: string | null
-          ubicacion_id: string | null
           usuario_id: string | null
+          ubicacion_id: string | null
         }
         Insert: {
           compra_id: string
@@ -1039,8 +1039,8 @@ export type Database = {
           monto: number
           pago_grupo_id?: string | null
           referencia?: string | null
-          ubicacion_id?: string | null
           usuario_id?: string | null
+          ubicacion_id?: string | null
         }
         Update: {
           compra_id?: string
@@ -1051,8 +1051,8 @@ export type Database = {
           monto?: number
           pago_grupo_id?: string | null
           referencia?: string | null
-          ubicacion_id?: string | null
           usuario_id?: string | null
+          ubicacion_id?: string | null
         }
         Relationships: [
           {
@@ -4736,6 +4736,8 @@ export type Database = {
         Args: { p_separacion_id: string }
         Returns: string
       }
+
+      fn_catalogo_version: { Args: never; Returns: number }
       fn_vencer_separaciones: {
         Args: { p_ubicacion_id: string }
         Returns: number
@@ -6015,12 +6017,6 @@ export type Database = {
       fn_puede_analizar: { Args: never; Returns: boolean }
       fn_puede_gestionar_colaboradores: { Args: never; Returns: boolean }
       fn_puede_administrar_roles: { Args: never; Returns: boolean }
-      // 20260923163000 (ADR-0178): el escalón Admin, leído de Dynamic, y «solo das lo que tienes».
-      fn_es_admin: { Args: never; Returns: boolean }
-      fn_admins: { Args: never; Returns: { persona_id: string }[] }
-      fn_rol_dentro_de_lo_mio: { Args: { p_rol_id: string }; Returns: boolean }
-      // 20260923174500: «solo alcanzas a quien está por debajo de ti».
-      fn_fuera_de_mi_alcance: { Args: never; Returns: { persona_id: string }[] }
       // ADR-0179 (Compras por tienda)
       fn_compras_ubicaciones: { Args: never; Returns: string[] }
       fn_puede_comprar_en: { Args: { p_ubicacion_id: string }; Returns: boolean }
@@ -6054,6 +6050,12 @@ export type Database = {
           parte_nueva: boolean
         }[]
       }
+      // 20260923163000 (ADR-0178): el escalón Admin, leído de Dynamic, y «solo das lo que tienes».
+      fn_es_admin: { Args: never; Returns: boolean }
+      fn_admins: { Args: never; Returns: { persona_id: string }[] }
+      fn_rol_dentro_de_lo_mio: { Args: { p_rol_id: string }; Returns: boolean }
+      // 20260923174500: «solo alcanzas a quien está por debajo de ti».
+      fn_fuera_de_mi_alcance: { Args: never; Returns: { persona_id: string }[] }
       guardar_modulos_rol: {
         Args: { p_modulos: string[]; p_rol_id: string }
         Returns: undefined
