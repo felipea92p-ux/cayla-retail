@@ -19,6 +19,11 @@ import { NextResponse, type NextRequest } from "next/server";
 // archivo la haya cubierto. Toda escritura real de stock pasa además por RPC con
 // fn_puede_operar_sede (0012), que es la barrera que de verdad protege los datos.
 export async function proxy(request: NextRequest) {
+  // El trabajo programado de Vercel (PL-113) no trae sesión: trae `Bearer $CRON_SECRET`. Pasa sin tocar cookies y
+  // la ruta vuelve a comprobar la clave (esta barrera puede dejar de cubrirla si alguien cambia el matcher).
+  const cron = process.env.CRON_SECRET;
+  if (cron && request.headers.get("authorization") === `Bearer ${cron}`) return NextResponse.next();
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diasParaElPlazo, queHacerConElError, errorDeColaLegible, itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar, type ComprobanteParaTransmitir } from "./transmision-reglas";
+import { cronNoTransmite, diasParaElPlazo, queHacerConElError, errorDeColaLegible, itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar, type ComprobanteParaTransmitir } from "./transmision-reglas";
 
 function comprobante(extra: Partial<ComprobanteParaTransmitir> = {}): ComprobanteParaTransmitir {
   return { estado: "pendiente", venta_id: "v1", venta: { estado: "completada" }, ...extra };
@@ -158,5 +158,24 @@ describe("diasParaElPlazo (3 días calendario de Lima)", () => {
   it("el jueves 24 de Lima queda 0 (vence hoy) y el viernes 25 ya está fuera de plazo", () => {
     expect(diasParaElPlazo(emitido, new Date("2026-09-25T04:59:00Z"))).toBe(0); // jueves 24, 23:59 Lima
     expect(diasParaElPlazo(emitido, new Date("2026-09-25T05:00:00Z"))).toBe(-1); // viernes 25, 00:00 Lima
+  });
+});
+
+describe("cronNoTransmite (PL-113: quién puede correr el cron, y solo al sandbox)", () => {
+  it("sin CRON_SECRET no pasa nadie, tampoco quien manda «Bearer undefined» o «Bearer »", () => {
+    expect(cronNoTransmite("Bearer undefined", undefined, "sandbox")?.status).toBe(401);
+    expect(cronNoTransmite("Bearer ", "", "sandbox")?.status).toBe(401);
+    expect(cronNoTransmite(null, undefined, "sandbox")?.status).toBe(401);
+  });
+  it("con otra clave, o sin encabezado, no pasa", () => {
+    expect(cronNoTransmite("Bearer otra", "clave", "sandbox")?.status).toBe(401);
+    expect(cronNoTransmite(null, "clave", "sandbox")?.status).toBe(401);
+    expect(cronNoTransmite("clave", "clave", "sandbox")?.status).toBe(401);
+  });
+  it("con la clave pero fuera del sandbox no transmite nada (y no cuenta como fallo)", () => {
+    expect(cronNoTransmite("Bearer clave", "clave", "produccion")).toEqual({ status: 200, body: { tomados: 0, omitido: "El cron solo transmite al sandbox de Lucode." } });
+  });
+  it("con la clave y en el sandbox, transmite", () => {
+    expect(cronNoTransmite("Bearer clave", "clave", "sandbox")).toBeNull();
   });
 });
