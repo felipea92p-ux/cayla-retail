@@ -69,7 +69,9 @@ const esNumero = (x: unknown): x is number => typeof x === "number" && Number.is
 /** Los `variante_id` que hay que nombrar para transmitir: los ítems de una venta no traen descripción. */
 export function variantesPorNombrar(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
-  return raw.flatMap((it) => (typeof it?.descripcion !== "string" && typeof it?.variante_id === "string" ? [it.variante_id] : []));
+  return raw.flatMap((it) =>
+    typeof it?.descripcion !== "string" && typeof it?.descripcion_libre !== "string" && typeof it?.variante_id === "string" ? [it.variante_id] : [],
+  );
 }
 
 /** Los ítems de `comprobantes.items` en la forma que Lucode espera, o `null` si alguno no sirve.
@@ -89,7 +91,13 @@ export function itemsParaLucode(raw: unknown, nombres: ReadonlyMap<string, strin
       items.push({ descripcion: it.descripcion, cantidad: it.cantidad, precio_unitario: it.precio_unitario });
       continue;
     }
-    const nombre = typeof it.variante_id === "string" ? nombres.get(it.variante_id) : undefined;
+    // Una «Prenda sin registrar» (ADR-0178) se declara con lo que anotó caja; su precio es de etiqueta, CON IGV.
+    const nombre =
+      typeof it.descripcion_libre === "string" && it.descripcion_libre.trim() !== ""
+        ? it.descripcion_libre.trim()
+        : typeof it.variante_id === "string"
+          ? nombres.get(it.variante_id)
+          : undefined;
     const descuento = it.descuento_unitario === undefined ? 0 : it.descuento_unitario;
     if (!nombre || !esNumero(descuento)) return null;
     items.push({ descripcion: nombre, cantidad: it.cantidad, precio_unitario: Math.round(((it.precio_unitario - descuento) / 1.18) * 1e6) / 1e6 });
