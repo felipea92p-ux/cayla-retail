@@ -3,6 +3,7 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { MoverMercaderiaFormV2 } from "@/components/MoverMercaderiaFormV2";
 import { parsearLineasPrellenadas } from "@/lib/produccion-reglas";
+import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
 
 // Fase UI 1.1 (2026-09-12): pantalla nueva sobre `transferir` (V2). Ver
 // `MoverMercaderiaFormV2.tsx` para el porqué el origen no es un campo del
@@ -71,13 +72,13 @@ export default async function MoverMercaderiaPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Inventario · {origen.nombre}</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Mover mercadería</h1>
-        <p className="mt-1 text-sm text-tinta/65">
-          Cada traslado queda registrado como movimiento — no se edita el stock a mano.
-        </p>
-      </div>
+      <InventarioHero
+        eyebrow={`Inventario · ${origen.nombre}`}
+        titulo="Mover mercadería"
+        descripcion="Cada traslado queda registrado como movimiento — no se edita el stock a mano."
+        foto={fotoHeroPorPantalla("mover")}
+        variante="integrado"
+      />
 
       {destinos.length === 0 ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">

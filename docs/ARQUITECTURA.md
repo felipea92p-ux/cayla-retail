@@ -51,6 +51,13 @@ resolvería `tenant_id`). Esa combinación NestJS/Prisma queda como visión de
 referencia para el día que CAYLA venda el sistema a otra marca — no es una
 tarea pendiente de hoy.
 
+**Cómo se escriben las políticas (ADR-0176, 2026-09-22):** las funciones de permisos
+(`fn_es_lider()`, `fn_puede_editar_catalogo()`, …) van envueltas en `(select …)` y
+`fn_puede_operar_ubicacion(col)` se abre en `(select fn_es_lider()) or col = (select
+fn_ubicacion_actual_persona())`. Así Postgres las evalúa una vez por consulta y no una vez
+por fila: con 24 mil movimientos, eso es la diferencia entre 57 s y 14 ms. Toda migración
+que cree políticas termina con `select retail.fn_rls_una_vez_por_consulta();`.
+
 ---
 
 ## 3. Cómo se conecta todo (el grafo real)
@@ -237,7 +244,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   cerró por `fn_nombres_personas`; color y foto por `getAparienciaVariantes`) → `TrasladoRecorrido.tsx` (4 pasos,
   `recorridoTraslado`) + `TrasladoDetallePanel.tsx` (conteo por borradores con `leerRecepcion`; al confirmar,
   cerrar o guardar el recuento manda cada línea cambiada a `registrar_recepcion_traslado` y después
-  `confirmar_traslado` / `cerrar_traslado_con_diferencia`; confirma con `<Modal>`; ADR-0172).
+  `confirmar_traslado` / `cerrar_traslado_con_diferencia`; confirma con `<Modal>`; ADR-0173).
 - `/inventario/conteo` → `lib/conteos.ts` (`getConteoAbierto`, `getConteosResumen` → RPC
   `fn_conteos_resumen`, `getPrevisualizacionCierre`, `getPrioridadConteo` + su `apariencia`: foto principal y
   `colorHex` de `lib/apariencia-variantes.ts`, la regla de Existencias; si falla degrada, no tumba) →
@@ -247,7 +254,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   «Vacío») → `/inventario/conteo/[id]` → `ConteoDetalleVista.tsx` (`getConteoDetalle`, que trae foto, `colorHex` y
   soles por línea en su misma consulta; solo lectura; `?ver=todas`). Reglas puras en `lib/conteo-reglas.ts`
   (ADR-0174); exactitud con `exactitudConteos` (`lib/conteo-varianza.ts`). `cerrar_conteo` rechaza un conteo sin
-  prendas (hint `conteo_vacio`, `20260923120000`, **no está en producción**).
+  prendas (hint `conteo_vacio`, `20260923120000`, en producción desde el 2026-09-22).
 - `/inventario/resumen` (**Análisis de inventario**, solo líder; nació como «Resumen» en ADR-0101/0121 y se
   repartió y rediseñó en ADR-0138) → `page.tsx` lee de la URL `preset, desde, hasta, q, cat, st, orden, pag` (+
   `modo=comparar`, `comparar`, `cdesde`, `chasta`, `vista`, `cambio`). La sede es SIEMPRE la del selector global.
@@ -295,7 +302,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   en toda fila «Producto/variante» que sea una tabla real: Desempeño, Comparar (Detalle), Movimientos,
   Traslados › detalle y Conteo › detalle. Sin miniatura ni cápsula en Mover/Recibir (son `<select>` nativos: un
   `<option>` no admite marcado) ni donde el hex de color no viaja hasta la fila (Movimientos muestra el color como
-  texto; Traslados › detalle ya usa `ProductoVarianteCelda` con color y foto desde ADR-0172; Desempeño, Comparar y Conteo › detalle tienen `colorHex` en sus datos, y el último
+  texto; Traslados › detalle ya usa `ProductoVarianteCelda` con color y foto desde ADR-0173; Desempeño, Comparar y Conteo › detalle tienen `colorHex` en sus datos, y el último
   usa la celda completa de Existencias, `ProductoVarianteCelda`, con la foto principal del producto).
   · **Existencias** (`/inventario`) gana la cobertura: `getCoberturaPorVariante` = `fn_resumen_variantes` con la
   ventana de `DIAS_RITMO_RECIENTE` (30 días) + `calcularCobertura`; segunda línea bajo «Disponible», dato

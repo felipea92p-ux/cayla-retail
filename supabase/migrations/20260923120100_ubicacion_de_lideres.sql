@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260923120000_ubicacion_de_lideres.sql — ADR-0161 (actualización, Felipe 2026-09-22)
+-- 20260923120100_ubicacion_de_lideres.sql — ADR-0161 (actualización, Felipe 2026-09-22)
 --
 -- Felipe pidió que, igual que el rol, la ubicación también se pueda cambiar entre líderes.
 --
@@ -37,7 +37,7 @@ begin
   if not found then
     raise exception 'Esa persona no tiene acceso activo — actualiza la pantalla';
   end if;
-  -- Un líder también: para él es la tienda donde arranca, no un límite (20260923120000).
+  -- Un líder también: para él es la tienda donde arranca, no un límite (20260923120100).
   if not exists (select 1 from ubicaciones where id = p_ubicacion_id and activo) then
     raise exception 'Esa ubicación no existe o está inactiva';
   end if;

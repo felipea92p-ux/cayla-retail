@@ -21,12 +21,13 @@ import { MuestraColor } from "@/components/ui/MuestraColor";
    habría movido Resumen y las demás listas que sí quieren el texto.
    ==================================================================== */
 
+/** Sin foto: el isotipo de CAYLA, no un ícono genérico (rediseño de Existencias, 2026-09-22) — mismo
+ *  archivo que el logo del lateral (`public/cayla-isotipo.png`), apagado al 30% para que no compita con
+ *  una miniatura real al lado en la misma fila. */
 export function SinFoto({ tamano = "h-9 w-9" }: { tamano?: string }) {
   return (
-    <span aria-hidden className={`flex ${tamano} shrink-0 items-center justify-center rounded-md border border-tinta/10 bg-sand/50 text-tinta/25`}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-        <path d="M4 7l8-4 8 4v10l-8 4-8-4V7zm8 4L4 7m8 4l8-4m-8 4v10" />
-      </svg>
+    <span aria-hidden className={`flex ${tamano} shrink-0 items-center justify-center rounded-md border border-tinta/10 bg-sand/50 p-1.5`}>
+      <Image src="/cayla-isotipo.png" alt="" width={32} height={32} unoptimized className="h-full w-full object-contain opacity-30" />
     </span>
   );
 }

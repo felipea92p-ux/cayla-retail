@@ -50,7 +50,7 @@ function Persona({ nombre, correo, tu = false, apagada = false }: { nombre: stri
 }
 
 const cualquiera = <span className="italic text-tinta/65">cualquiera</span>;
-/** Un líder opera todas las sedes; si tiene ubicación, es solo la tienda donde arranca su sesión (20260923120000). */
+/** Un líder opera todas las sedes; si tiene ubicación, es solo la tienda donde arranca su sesión (20260923120100). */
 function UbicacionDe({ rol, ubicacion }: { rol: string; ubicacion: string | null }) {
   if (rol !== "lider") return <>{ubicacion ?? "—"}</>;
   if (!ubicacion) return cualquiera;

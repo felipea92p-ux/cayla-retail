@@ -29,7 +29,8 @@ function iniciales(nombre: string): string {
  * 2, 3 y 4). Va encima del botón que guarda, en TODA acción que guarda de la operación de tienda. Las reglas viven en
  * `lib/responsable-reglas.ts` y el estado en `useResponsable`; esto solo pinta:
  *
- *  · Vacío, con borde punteado rojo: «¿Quién hace esta operación?». Nunca viene elegido, ni con una sola persona.
+ *  · Vacío, con borde punteado rojo: «¿Quién está atendiendo?». Con la sesión de una persona ya viene elegida ella
+ *    (si está presente); en una terminal y en el Punto de venta viene vacío (`responsableInicial`).
  *  · La lista «De turno ahora · Tienda X»: presentes con punto verde; en pausa, deshabilitadas con punto ámbar; las
  *    que ya salieron solo se cuentan al pie.
  *  · Nadie presente: la operación se bloquea (sin «Otra persona») y se dice qué hacer — marcar entrada en el kiosco
@@ -141,7 +142,7 @@ export function ComboResponsable({ control, hacia = "en-linea", deshabilitado = 
           <UserRound className="h-[18px] w-[18px] flex-none" aria-hidden />
         )}
         <span className="min-w-0 flex-1 truncate text-sm">
-          {cargando ? "Leyendo quién está de turno…" : elegido ? (cortos.get(elegido.nombre) ?? elegido.nombre) : "¿Quién hace esta operación?"}
+          {cargando ? "Leyendo quién está de turno…" : elegido ? (cortos.get(elegido.nombre) ?? elegido.nombre) : "¿Quién está atendiendo?"}
         </span>
         <ChevronDown className={`h-4 w-4 flex-none transition-transform duration-200 ${abierto ? "rotate-180" : ""}`} aria-hidden />
       </button>
@@ -182,7 +183,7 @@ export function ComboResponsable({ control, hacia = "en-linea", deshabilitado = 
         </div>
       )}
 
-      {!elegido && !cargando && <p className="mt-1.5 text-xs text-tinta/60">Obligatorio. Viene vacío en cada operación.</p>}
+      {!elegido && !cargando && <p className="mt-1.5 text-xs text-tinta/60">Obligatorio para guardar.</p>}
     </div>
   );
 }

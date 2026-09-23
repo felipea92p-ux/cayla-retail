@@ -4,6 +4,7 @@ import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTrasladoDetalle } from "@/lib/traslados";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { TrasladoDetallePanel } from "@/components/TrasladoDetallePanel";
+import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
 import { TrasladoEstado } from "@/components/TrasladoEstado";
 import { situacionTraslado } from "@/lib/traslados-reglas";
 
@@ -26,23 +27,31 @@ export default async function TrasladoDetallePage({ params }: { params: Promise<
   const cerradoConDiferencia = traslado.lineas.some((l) => l.cantidadRecibida !== null && l.cantidadRecibida !== (l.cantidadEnviada ?? 0));
 
   return (
-    <div className="space-y-5">
-      <div>
-        <p className="text-[13px] text-taupe">
-          <Link href="/inventario/traslados" className="btn-enlace text-[13px]">
-            ← Traslados
-          </Link>{" "}
-          · {persona.ubicacionEtiqueta}
-        </p>
-        <h1 className="font-display mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[30px] leading-tight text-tinta">
-          Traslado {traslado.numero}
-          {traslado.lineas.length > 0 && <TrasladoEstado situacion={situacion} cerradoConDiferencia={cerradoConDiferencia} />}
-        </h1>
-        <p className="mt-1 text-[15px] text-tinta">
-          {traslado.ubicacionOrigenNombre} <span className="text-taupe">→</span> {traslado.ubicacionDestinoNombre}
-          <span className="text-sm text-taupe"> · {esDestino ? "entra a tu sede" : persona.ubicacionId === traslado.ubicacionOrigenId ? "sale de tu sede" : "entre otras sedes"}</span>
-        </p>
-      </div>
+    <div className="space-y-6">
+      <InventarioHero
+        eyebrow={
+          <>
+            <Link href="/inventario/traslados" className="btn-enlace text-[13px]">
+              ← Traslados
+            </Link>{" "}
+            · {persona.ubicacionEtiqueta}
+          </>
+        }
+        titulo={
+          <>
+            Traslado {traslado.numero}
+            {traslado.lineas.length > 0 && <TrasladoEstado situacion={situacion} cerradoConDiferencia={cerradoConDiferencia} />}
+          </>
+        }
+        descripcion={
+          <>
+            {traslado.ubicacionOrigenNombre} <span className="text-taupe">→</span> {traslado.ubicacionDestinoNombre}
+            <span className="text-taupe"> · {esDestino ? "entra a tu sede" : persona.ubicacionId === traslado.ubicacionOrigenId ? "sale de tu sede" : "entre otras sedes"}</span>
+          </>
+        }
+        foto={fotoHeroPorPantalla("traslados")}
+        variante="integrado"
+      />
       <TrasladoDetallePanel
         traslado={traslado}
         esDestino={esDestino}
