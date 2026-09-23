@@ -50,6 +50,17 @@ Prendas que llegan a piso antes de pasar por almacén (taller, proveedores, acce
 - [x] Probado por Felipe en local (2026-09-23: «está bien») y fusionado a `main` por PR el mismo día (el ADR-0178 lo tomó «escalón admin» mientras tanto: esta rama usa 0179).
 - [ ] Probar con clics en una tienda real: vender una prenda sin registrar y regularizarla desde la cuenta de almacén.
 - [ ] Aparte, sin decidir: las reimpresiones y el historial muestran «Prenda sin registrar» mientras la prenda está pendiente (el comprobante electrónico y el ticket del momento sí dicen la descripción).
+## 🎯 Compras por tienda: cada tienda ve y paga lo suyo (2026-09-23, ADR-0184 — nació como 0145/0150/0151) — EN PRODUCCIÓN las 6 migraciones (Felipe, 2026-09-23; verificadas en solo lectura)
+Decisión de Felipe (2026-09-23): con un módulo de Compras se ve y se paga **solo lo de su tienda**; el líder, todo. El rol dice QUIÉN (ADR-0161); `fn_compras_ubicaciones()` dice DÓNDE (su tienda + extras de `compradores_de_tienda`). Detalle en [docs/adr/0184-compras-cada-tienda-compra-y-paga-lo-suyo.md](adr/0184-compras-cada-tienda-compra-y-paga-lo-suyo.md), «Estado final».
+- [x] Migraciones `20260923180000` … `20260923180400` (quién y dónde · parte por tienda · gestora + lectura + escrituras · pagar por tienda · F3-b «mi parte»), ancladas en las definiciones de producción del 2026-09-23, re-pegables. Reemplazan a las 5 `20260922*` de la rama `adr-0145-compras-permisos` (nunca pegadas; chocaban en número con 5 de main).
+- [x] Web: `persona.tiendasCompra`, «Pagas desde» en los 6 puntos de pago, gestora al registrar, bloque «Tu parte en comprobantes de otras tiendas» (con «Parte nueva») en Comprobantes y Por pagar, y `/compras/parte/[compraId]`.
+- [x] Pruebas: `pruebas:compras-por-tienda` 34/34 (en el CI; reemplaza las 4 suites del modelo viejo), `compras-parte-por-tienda` 20/20, `roles` 63/63 y las demás de Compras en verde.
+- [x] **Pegadas en producción** (Felipe, 2026-09-23) `20260923180000` … `180400`. Verificado en solo lectura: tabla, vista, 2 columnas, 13 funciones con una sola firma, 5 políticas, 3 candados, nada abierto a `anon`, partes que cuadran al centavo, ninguna vigente sin gestora y `fn_aplicar_candado_de_dinero()` → `{}`.
+- [x] **Pegada `20260923180500_compras_comprador_firma_con_actor.sql`** (Felipe, 2026-09-23; verificado: una firma, `v_quien := fn_actor_persona_id(false)`, cerrada a anon).
+- [ ] Refrescar el volcado y `pnpm datos:generar:produccion` (el `types.ts` regenerado en main es anterior: lo de Compras por tienda se agregó a mano en este PR).
+- [ ] Verlo con clics con una cuenta no líder con Por pagar (hoy ningún rol de producción tiene Facturas de compra, Por pagar ni Notas de crédito).
+- [ ] F6 notas de crédito por tienda; F7 resultado por tienda; pantalla para sumar tiendas extra (hoy `agregar_comprador_de_tienda` por RPC).
+- [ ] Postgres local compartido: el 2026-09-23 se deshicieron allí los F0–F4 viejos y se aplicaron las de main hasta `20260923163000` más estas 5 (10 funciones que una migración vieja regresionó se restauraron desde producción, verificadas por huella md5). **Quedan sin aplicar en local** `20260922235000` y `20260923110500` (candado de caja/cambios): son anteriores a otras ya aplicadas y pueden regresionar funciones si se aplican a ciegas.
 
 ## 🎯 Escalón Admin leído de Dynamic + «solo das lo que tienes» (2026-09-23, ADR-0178) — EN PRODUCCIÓN (Felipe la pegó el 2026-09-23; verificado objeto por objeto: `fn_es_admin`, los 4 candados inyectados, «Administrador» archivado, los 5 admins); web fusionada en main (PR #333)
 - La migración se escribió como `20260923160000` y se **renumeró a `20260923163000`** al fusionar (chocaba con `20260923160000_responsable_obligatorio`); contenido idéntico al pegado. Falta refrescar el volcado y `pnpm datos:generar:produccion`.
@@ -244,7 +255,7 @@ Tercera opción del comprobante: Boleta | Factura | Nota de venta. Documento int
 - [x] **Pegada en producción** (verificado 2026-09-22: columna y `agregar_terminal` existen, 0 terminales). Queda reemplazada en identidad por el ADR-0162. Antes, prueba en seco contra producción, solo lectura: las 23 funciones y las 15 políticas coinciden, así que no debería abortar. Luego verificar en la base y correr `datos:generar:produccion`.
 - [x] ~~Felipe: crear las 6 personas en Dynamic~~ — **ya no**: el ADR-0162 reemplaza la terminal-persona por una terminal sin persona.
 - [ ] **Probarlas con clics:** nadie ha visto las terminales en el navegador (entrar como terminal exige claves que yo no escribo).
-- [ ] **Compras de la administrativa = ADR-0151** («comprador de tienda»). Esa rama (`claude/adr-0145-compras-permisos`) **no está subida a GitHub**. Conflicto esperado al fusionar: `menu.ts`, `ci.yml`, `package.json`.
+- [x] **Compras de la administrativa = ADR-0184** (antes «ADR-0151», comprador de tienda): reescrito sobre los roles por módulo y subido; ver la sección «Compras por tienda» arriba.
 - [ ] El combo «¿quién atiende?» pasó a ser el combo **Responsable** de todas las operaciones: ADR-0161.
 - [ ] Disparador que impida mover una terminal al Taller llamando `cambiar_ubicacion_colaborador` a mano (la web no lo ofrece; la base no lo impide).
 - [x] Hecho: volcado refrescado el 2026-09-23 (94 tablas, 300 funciones, copia idéntica a producción verificada por huella).

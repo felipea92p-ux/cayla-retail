@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { Boton } from "@/components/ui/campos";
+import { Boton, CampoSelectNativo } from "@/components/ui/campos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { Confirmacion, DatosDelProveedor, MediosDePago, PILDORA, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
 import { lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
@@ -58,6 +58,7 @@ export function PagoJuntosModal({
   datos,
   onClose,
   onPagado,
+  misTiendas,
 }: {
   proveedorId: string;
   proveedorNombre: string;
@@ -66,6 +67,10 @@ export function PagoJuntosModal({
   onClose: () => void;
   /** Se llama al CERRAR la confirmación de un pago registrado (no antes), con lo que quedó pagado. */
   onPagado: (resultado: ResultadoPago) => void;
+  /** ADR-0184 (F4-F5): solo para un comprador de tienda. `undefined` o vacío = líder, el pago no se ata a ninguna
+   *  tienda (como siempre). Con una sola, se usa directo; con varias, se elige con cuál se paga — es UNA tienda para
+   *  todo el lote (un solo pago), y la base exige que tenga parte en CADA comprobante que reciba algo. */
+  misTiendas?: { id: string; nombre: string }[];
 }) {
   // El orden del modal es el de la aplicación: primero lo más vencido.
   const ordenados = useMemo(
@@ -81,6 +86,7 @@ export function PagoJuntosModal({
   // Los medios con que se paga. Con una sola línea su monto no se escribe: es lo que sale de verdad (`aTransferir`).
   const [lineas, setLineas] = useState<LineaPago[]>([{ monto: "", metodo: formaInicial, referencia: "" }]);
   const [fecha, setFecha] = useState(hoyLima());
+  const [ubicacionPago, setUbicacionPago] = useState(misTiendas?.[0]?.id ?? "");
   const [loading, setLoading] = useState(false);
   // Pago registrado: la confirmación reemplaza al formulario. El resultado se guarda en una ref porque el cierre
   // lo dispara `Modal` (con su animación de salida) y ahí hay que saber si se cerró un pago o se canceló.
@@ -161,6 +167,7 @@ export function PagoJuntosModal({
     if (!mediosRpc) return void avisar.error("Cada medio de pago necesita un monto mayor a cero.");
     if (fecha > hoyLima()) return void avisar.error("La fecha del pago no puede ser futura: es cuándo se pagó, no cuándo se pagará.");
     if (aplicaciones.some((a) => a.monto > 0 && a.c.fechaEmision && fecha < a.c.fechaEmision)) return void avisar.error("La fecha del pago no puede ser anterior a la emisión de alguno de los comprobantes.");
+    if (misTiendas && misTiendas.length > 0 && !ubicacionPago) return void avisar.error("Elige con qué tienda pagas.");
     setLoading(true);
     const cerrarProceso = avisar.proceso("Registrando el pago…");
     const supabase = createClient();
@@ -174,6 +181,8 @@ export function PagoJuntosModal({
             p_fecha: fecha,
             p_token: token.current,
             ...(credito > 0 ? { p_credito: credito } : {}),
+            // ADR-0184 (F4): sin tiendas propias (líder) el pago no se ata a ninguna, como siempre.
+            ...(ubicacionPago ? { p_ubicacion_id: ubicacionPago } : {}),
           })
         : await supabase.rpc("registrar_pago_compras", {
             p_proveedor_id: proveedorId,
@@ -183,6 +192,7 @@ export function PagoJuntosModal({
             p_fecha: fecha,
             p_token: token.current,
             ...(credito > 0 ? { p_credito: credito } : {}),
+            ...(ubicacionPago ? { p_ubicacion_id: ubicacionPago } : {}),
           });
     cerrarProceso();
     setLoading(false);
@@ -361,6 +371,18 @@ export function PagoJuntosModal({
                 </div>
               </div>
             </div>
+          )}
+
+          {/* ADR-0184 (F4-F5): con una sola tienda propia se paga con ella sin preguntar; con varias, se elige —
+              es UNA tienda para todo el lote, y la base exige que tenga parte en cada comprobante que reciba algo. */}
+          {misTiendas && misTiendas.length > 1 && (
+            <CampoSelectNativo etiqueta="Pagas desde" value={ubicacionPago} onChange={(e) => setUbicacionPago(e.target.value)}>
+              {misTiendas.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.nombre}
+                </option>
+              ))}
+            </CampoSelectNativo>
           )}
 
           {todoConFavor ? (

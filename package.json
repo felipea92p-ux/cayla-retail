@@ -42,6 +42,8 @@
     "pruebas:proveedores-cuentas": "node scripts/pruebas/proveedores_cuentas_pago.mjs",
     "pruebas:compras-indicadores": "node scripts/pruebas/compras_indicadores.mjs",
     "pruebas:compras-reparto": "node scripts/pruebas/compras_reparto.mjs",
+    "pruebas:compras-por-tienda": "node scripts/pruebas/compras_por_tienda.mjs",
+    "pruebas:compras-parte-por-tienda": "node scripts/pruebas/compras_parte_por_tienda.mjs",
     "pruebas:pago-por-lote-medios": "node scripts/pruebas/pago_por_lote_medios.mjs",
     "pruebas:pagos-compras-endurecimiento": "node scripts/pruebas/pagos_compras_endurecimiento.mjs",
     "pruebas:notas-credito": "node scripts/pruebas/notas_credito_modulo.mjs",

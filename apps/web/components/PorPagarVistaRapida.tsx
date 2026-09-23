@@ -39,6 +39,7 @@ export function PorPagarVistaRapida({
   onCerrar,
   onNavegar,
   onPagado,
+  misTiendas,
 }: {
   compra: CompraResumen;
   /** Los demás comprobantes con saldo del mismo proveedor (los que la lista tiene a la vista). */
@@ -53,6 +54,8 @@ export function PorPagarVistaRapida({
   onNavegar: (delta: 1 | -1) => void;
   /** El pago que se registra desde el cajón avisa a la lista, que hace reaccionar la pantalla y cierra el cajón. */
   onPagado: (r: ResultadoPago) => void;
+  /** ADR-0184 (F4-F5): solo para un comprador de tienda — sus tiendas, para pagar con la que corresponda. */
+  misTiendas?: { id: string; nombre: string }[];
 }) {
   const [cerrando, setCerrando] = useState(false);
   const pedirCierre = useCallback(() => setCerrando(true), []);
@@ -157,7 +160,7 @@ export function PorPagarVistaRapida({
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5 border-t border-tinta/10 px-6 py-4">
-              <BotonPagar compra={c} saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} etiqueta={`Pagar ${soles(c.saldo)}`} conIcono />
+              <BotonPagar compra={c} saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} etiqueta={`Pagar ${soles(c.saldo)}`} conIcono misTiendas={misTiendas} />
               <Link
                 href={`/compras/factura/${c.id}`}
                 className="label-cayla inline-flex items-center gap-2 rounded-md border border-tinta/25 px-3 py-3 text-[11px] text-tinta/80 transition-colors hover:border-rojo hover:text-rojo"

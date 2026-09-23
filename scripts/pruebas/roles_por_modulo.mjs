@@ -349,7 +349,7 @@ caso(
     FACTURA +
     como(MICAELA_AUTH) +
     `select concat_ws(',', fn_ve_modulo('por_pagar'), fn_puede_ver_dinero_de_compras(), fn_puede_registrar_compras(), (select count(*) = 1 from retail.resumen_compras()));\n` +
-    `select (retail.registrar_pago_compra(:'compra', 10, 'transferencia') is not null)::text;\n` +
+    `select (retail.registrar_pagos_compra(:'compra', '[{"monto": 10, "metodo": "transferencia"}]'::jsonb, null, null, (select tru from ids)) is not null)::text;\n` +
     `select (pagado = 10)::text from retail.compras where id = :'compra';\n` +
     `set local role authenticated;\nselect (count(*) = 1)::text from retail.compras where id = :'compra';`,
   "t,t,t,t\ntrue\ntrue\ntrue"
@@ -756,7 +756,7 @@ caso(
   como(FELIPE_AUTH) + FACTURA +
     conRol("Solo pagos", ["por_pagar"]) +
     como(MICAELA_AUTH) +
-    `select (retail.registrar_pago_compra(:'compra', 10, 'transferencia') is not null)::text;\n` +
+    `select (retail.registrar_pagos_compra(:'compra', '[{"monto": 10, "metodo": "transferencia"}]'::jsonb, null, null, (select tru from ids)) is not null)::text;\n` +
     ANULAR + NOTA + ADJUNTO_FACTURA +
     intento(`select retail.registrar_compra((select id from retail.proveedores where nombre = 'Textiles Andina SAC'), 'TST', 'N-ROL-P', 'credito', (select tru from ids), '[{"producto_id": null}]'::jsonb, p_fecha_vencimiento => retail.fn_hoy_lima())`) + "\n" +
     `select concat_ws(',', fn_puede_registrar_facturas_compra(), fn_puede_pagar_compras(), fn_puede_registrar_notas_credito(), fn_puede_ver_dinero_de_compras());`,
