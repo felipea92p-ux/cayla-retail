@@ -9110,4 +9110,4 @@ Sin resolver: verlo con clics reales en Registrar comprobante, Cambios y Vender 
 ## 2026-09-23 (Cierre de caja: combo «¿A dónde va?» y depósito sin número obligatorio — PR #359)
 «¿A dónde va?» pasó del `<select>` nativo al `CampoSelect` del sistema, y el N.º de operación del depósito bancario dejó de ser obligatorio (pantalla + check de `caja_traslados` + `cerrar_caja`, migración `20260923213000`, cuerpo tomado de producción, misma firma).
 Felipe se lleva: un candado que vive en la pantalla Y en la base se afloja en los dos lugares; si solo se cambia la pantalla, el botón deja pasar y la base rechaza.
-Sin resolver: pegar la migración en producción (hasta entonces un depósito sin número falla al guardar).
+Aplicada en producción el 2026-09-23 (verificado contra la base: check nuevo, una sola firma de `cerrar_caja`, sin la exigencia de banco). Sin resolver: probar un cierre real con depósito sin número.
