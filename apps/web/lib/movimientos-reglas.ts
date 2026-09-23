@@ -94,6 +94,8 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   carga_inicial: "Carga inicial",
   activacion_piso_almacen: "Activación piso/almacén",
   siembra_cargo_especial: "Cargo especial",
+  // ADR-0179: prenda vendida antes de registrarse que llegó en un lote contado sin ella.
+  ingreso_regularizado: "Prenda sin registrar · ingreso",
   cuarentena_liquidada: "Dañado · liquidada",
   cuarentena_se_boto: "Dañado · se botó",
   cuarentena_donada: "Dañado · donada",

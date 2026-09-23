@@ -1,4 +1,7 @@
 import { contarProductosPorProveedor, type FilaReposicion, type ReposicionProveedor } from "@/lib/marcas";
+import { unstable_cache } from "next/cache";
+import { createClient as crearClienteSupabase, type SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@cayla-retail/database";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 
@@ -35,9 +38,41 @@ export type VarianteCatalogo = {
 };
 
 /** Todo el catálogo activo, para la pantalla de Productos y para Vender/Cambios/
- *  Devoluciones/Buscar (todo lo que lista `getCatalogo()`). */
+ *  Devoluciones/Buscar (todo lo que lista `getCatalogo()`).
+ *
+ *  Guardado ENTRE visitas (2026-09-23, opción A de Felipe): ocho pantallas lo leían entero en cada visita (~0,7 s de
+ *  una base limitada por CPU). La copia se identifica por la versión que la BASE sube con cada escritura en las tablas
+ *  del catálogo (`fn_catalogo_version`, 20260923184300): si alguien cambió un precio, una foto o un código —desde donde
+ *  sea—, la versión ya es otra y se lee fresco. Nunca se sirve un catálogo viejo. Y por despliegue: un cambio en la forma
+ *  de `VarianteCatalogo` no se encuentra con una copia armada por el código anterior.
+ *
+ *  Es la misma para todas las cuentas: las 8 tablas se leen igual con cualquier sesión (`auth.role() = 'authenticated'`,
+ *  verificado 2026-09-23), así que compartirla no muestra nada que la cuenta no pudiera leer. Si esa regla cambia (p. ej.
+ *  esconder `costo` a quien no es líder), esta copia deja de poder compartirse. */
 export async function getCatalogo(): Promise<VarianteCatalogo[]> {
   const supabase = await createClient();
+  const [{ data: version, error }, { data: sesion }] = await Promise.all([supabase.rpc("fn_catalogo_version"), supabase.auth.getSession()]);
+  const token = sesion.session?.access_token;
+  // Sin versión (la migración aún no está, o falló la lectura) se lee en vivo: más lento, nunca viejo.
+  if (error || version === null || !token) return leerCatalogo(supabase);
+  // La copia no puede leer cookies: la consulta que la llena usa el token de esta sesión (PostgREST lo valida igual).
+  return unstable_cache(() => leerCatalogo(clienteConToken(token)), ["catalogo-v2", String(version), process.env.VERCEL_GIT_COMMIT_SHA ?? "local"], {
+    // ponytail: la copia vive en la caché de datos de Vercel (tope ~2 MB por entrada; hoy ~0,5 MB con 1.295 variantes).
+    // Pasadas ~5.000 variantes ya no entra y se lee en vivo en cada visita: entonces, adelgazar lo que se guarda.
+    revalidate: 3600,
+  })();
+}
+
+/** Un cliente sin cookies para usar dentro de la copia guardada, con la sesión de quien la llena. */
+function clienteConToken(token: string) {
+  return crearClienteSupabase<Database, "retail">(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, {
+    db: { schema: "retail" },
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promise<VarianteCatalogo[]> {
   const [resVariantes, resMarcas] = await Promise.all([
     // Más de 1.000 variantes desde sep-2026: se lee por páginas (`leerTodas`). `id` desempata el
     // orden — `sku` está vacío en casi todas, y sin desempate las páginas se pisan.

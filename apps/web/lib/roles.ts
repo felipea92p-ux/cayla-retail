@@ -39,11 +39,14 @@ export async function getRoles(): Promise<RolVista[]> {
  * los líderes; `admins`: quiénes lo son, para marcarlos. Si la base todavía no tiene las funciones (web publicada antes de
  * pegar 20260923163000), administra a los líderes el líder, como antes — la base es la que decide de todos modos.
  */
-export async function getEscalonAdmin(soyLider: boolean): Promise<{ soyAdmin: boolean; admins: string[] }> {
+export async function getEscalonAdmin(soyLider: boolean): Promise<{ soyAdmin: boolean; admins: string[]; fueraDeAlcance: string[] }> {
   const supabase = await createClient();
-  const [yo, lista] = await Promise.all([supabase.rpc("fn_es_admin"), supabase.rpc("fn_admins")]);
-  if (yo.error) return { soyAdmin: soyLider, admins: [] };
-  return { soyAdmin: yo.data === true, admins: lista.error ? [] : (lista.data ?? []).map((f) => f.persona_id) };
+  const [yo, lista, fuera] = await Promise.all([supabase.rpc("fn_es_admin"), supabase.rpc("fn_admins"), supabase.rpc("fn_fuera_de_mi_alcance")]);
+  // «Solo alcanzas a quien está por debajo de ti» (20260923174500): a quiénes no se les ofrecen acciones. Si la función aún
+  // no existe o falla, la lista va vacía y decide la base.
+  const fueraDeAlcance = fuera.error ? [] : (fuera.data ?? []).map((f) => f.persona_id);
+  if (yo.error) return { soyAdmin: soyLider, admins: [], fueraDeAlcance };
+  return { soyAdmin: yo.data === true, admins: lista.error ? [] : (lista.data ?? []).map((f) => f.persona_id), fueraDeAlcance };
 }
 
 /** Todas las cuentas con su rol. Tolerado: en Colaboradores, si falla, solo se pierde la columna del rol. */

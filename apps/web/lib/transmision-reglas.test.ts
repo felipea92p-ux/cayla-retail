@@ -83,6 +83,13 @@ describe("itemsParaLucode", () => {
     expect(Math.round(declarado * 100) / 100).toBe(Math.round(total * 100) / 100);
   });
 
+  it("una prenda sin registrar se declara con lo que anotó caja, y su precio igual se trata CON IGV", () => {
+    const raw = [{ variante_id: "centinela", cantidad: 1, precio_unitario: 59, descuento_unitario: 0, descripcion_libre: "Blusa lino beige" }];
+    expect(itemsParaLucode(raw, new Map())).toEqual([{ descripcion: "Blusa lino beige", cantidad: 1, precio_unitario: 50 }]);
+    // No hace falta buscar el nombre de la centinela en la base.
+    expect(variantesPorNombrar(raw)).toEqual([]);
+  });
+
   it("sin nombre para una variante, o con datos rotos, no se transmite", () => {
     expect(itemsParaLucode([{ variante_id: "otra", cantidad: 1, precio_unitario: 10 }], nombres)).toBeNull();
     expect(itemsParaLucode([{ variante_id: "v1", cantidad: "1", precio_unitario: 10 }], nombres)).toBeNull();

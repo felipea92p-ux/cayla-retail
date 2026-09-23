@@ -6,6 +6,8 @@ import { Search, X } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
+import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Chip } from "@/components/ui/Chip";
@@ -204,10 +206,12 @@ export function EtiquetasLista({
   /** Tocar una etiqueta CON descuento o ponerle uno: solo el líder (20260923130000; la base lo vuelve a exigir). */
   puedeDarDescuento?: boolean;
 }) {
-  // Cambiar el vocabulario es Catálogo, operación de tienda (ADR-0161): UN combo «Responsable» firma todo lo que se
-  // guarda desde esta lista (bajo los filtros; el mismo se repite en cada modal, también en el de campaña) y cada
-  // guardado exitoso lo vacía. «Prendas» abre su propio modal con su propio combo (`PrendasDeEtiquetaModal`).
+  // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
+  // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
+  // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
+  // «Prendas» abre su propio modal con su propio combo (`PrendasDeEtiquetaModal`).
   const responsable = useResponsable();
+  const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
   const [etiquetas, setEtiquetas] = useState(() => ordenar(etiquetasIniciales));
   const [agregando, setAgregando] = useState(false);
   const [nombre, setNombre] = useState("");
@@ -459,9 +463,6 @@ export function EtiquetasLista({
         </div>
       </div>
 
-      {/* Firma aprobar, desactivar y reactivar de las tarjetas (ADR-0161). */}
-      {puedeEditar && <ComboResponsable control={responsable} deshabilitado={aprobandoId !== null || cambiandoId !== null} hacia="abajo" className="max-w-xs" />}
-
       {hayFiltros && activasVisibles.length + desactivadasVisibles.length === 0 && (
         <div className="card-cayla flex flex-col items-center gap-3 px-6 py-12 text-center">
           <p className="text-sm text-tinta/75">
@@ -492,7 +493,7 @@ export function EtiquetasLista({
                     {puedeEditar && (e.descuentoPct === null || puedeDarDescuento) &&
                       (e.estado === "pendiente" ? (
                         <div className="flex gap-2">
-                          <Boton peso="primario" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={aprobandoId === e.id} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => aprobar(e)}>
+                          <Boton peso="primario" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={aprobandoId === e.id} onClick={() => setConfirmando(confirmacionCatalogo("aprobar", e.nombre, () => aprobar(e)))}>
                             Aprobar
                           </Boton>
                           <Boton
@@ -530,9 +531,8 @@ export function EtiquetasLista({
                           </span>
                           <button
                             type="button"
-                            disabled={cambiandoId === e.id || !responsable.listo}
-                            title={responsable.motivo ?? undefined}
-                            onClick={() => desactivar(e)}
+                            disabled={cambiandoId === e.id}
+                            onClick={() => setConfirmando(confirmacionCatalogo("desactivar", e.nombre, () => desactivar(e)))}
                             className="label-cayla text-[10px] text-tinta/55 underline-offset-4 opacity-0 transition-[opacity,color] duration-200 hover:text-tinta hover:underline focus:opacity-100 disabled:opacity-50 group-hover/etq:opacity-100 [@media(hover:none)]:opacity-100"
                           >
                             {cambiandoId === e.id ? "Desactivando…" : "Desactivar"}
@@ -558,7 +558,7 @@ export function EtiquetasLista({
               <TarjetaEtiqueta key={e.id} e={e} vigencia={null} apagada>
                 {puedeEditar && (e.descuentoPct === null || puedeDarDescuento) && (
                   <div className="px-1 pb-1">
-                    <Boton peso="discreto" className="w-full px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === e.id} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => reactivar(e)}>
+                    <Boton peso="discreto" className="w-full px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === e.id} onClick={() => setConfirmando(confirmacionCatalogo("reactivar", e.nombre, () => reactivar(e)))}>
                       Reactivar
                     </Boton>
                   </div>
@@ -641,6 +641,8 @@ export function EtiquetasLista({
           )}
         </Modal>
       )}
+
+      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
     </div>
   );
 }

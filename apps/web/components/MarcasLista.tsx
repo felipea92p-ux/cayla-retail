@@ -9,6 +9,8 @@ import { Boton, CampoTexto } from "@/components/ui/campos";
 import { NuevaMarcaForm, type MarcaGuardada } from "@/components/alta-producto/NuevaMarcaForm";
 import type { ProveedorOpcion } from "@/lib/marcas";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
+import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 
@@ -27,10 +29,9 @@ import { firmar } from "@/lib/responsable-reglas";
  * `productos` la protege mientras haya productos, y quitarla sin productos
  * tampoco ayuda a nadie — nunca se borra en catálogos con historial.
  *
- * Responsable (ADR-0161): renombrar y desactivar/reactivar firman con UN combo
- * de la lista (arriba, junto a «+ Nueva marca»; el mismo se repite dentro del
- * modal de renombrar). Cada guardado exitoso lo vacía. Crear usa el combo propio
- * de `NuevaMarcaForm`.
+ * Responsable (ADR-0161): renombrar lo pide en su modal; desactivar y reactivar,
+ * en una confirmación con el combo adentro (`ConfirmarConResponsable`). Crear usa
+ * el combo propio de `NuevaMarcaForm`.
  */
 
 export type MarcaFila = {
@@ -58,7 +59,11 @@ export function MarcasLista({
   const [modo, setModo] = useState<Modo | null>(null);
   const [nombreNuevo, setNombreNuevo] = useState("");
   const [trabajando, setTrabajando] = useState<string | null>(null);
+  // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
+  // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
+  // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
   const responsable = useResponsable();
+  const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
 
   const activas = marcas.filter((m) => m.activo);
   const desactivadas = marcas.filter((m) => !m.activo);
@@ -111,10 +116,6 @@ export function MarcasLista({
         {puedeEditar && <Boton onClick={() => setModo({ tipo: "nueva" })}>+ Nueva marca</Boton>}
       </div>
 
-      {/* Firma renombrar y desactivar/reactivar de esta lista (ADR-0161). Mientras el formulario de alta está abierto, se
-          esconde: ese formulario trae su propio combo y dos «Responsable» a la vez confundían (prueba en navegador 2026-09-22). */}
-      {puedeEditar && marcas.length > 0 && modo?.tipo !== "nueva" && modo?.tipo !== "proveedor" && <ComboResponsable control={responsable} deshabilitado={trabajando !== null} className="max-w-sm" />}
-
       {modo?.tipo === "nueva" && (
         <NuevaMarcaForm proveedores={proveedores} nombreExistente={(n) => marcas.find((m) => m.nombre.toLowerCase() === n.toLowerCase())?.nombre} onGuardado={alGuardar} onCancelar={() => setModo(null)} />
       )}
@@ -143,9 +144,8 @@ export function MarcasLista({
                   </button>
                   <button
                     type="button"
-                    onClick={() => void cambiarEstado(m)}
-                    disabled={trabajando === m.id || !responsable.listo}
-                    title={responsable.motivo ?? undefined}
+                    onClick={() => setConfirmando(confirmacionCatalogo("desactivar", m.nombre, () => cambiarEstado(m)))}
+                    disabled={trabajando === m.id}
                     className="label-cayla text-[11px] text-tinta/60 underline underline-offset-4 hover:text-rojo disabled:opacity-40"
                   >
                     Desactivar
@@ -200,9 +200,8 @@ export function MarcasLista({
                 {puedeEditar && (
                   <button
                     type="button"
-                    onClick={() => void cambiarEstado(m)}
-                    disabled={trabajando === m.id || !responsable.listo}
-                    title={responsable.motivo ?? undefined}
+                    onClick={() => setConfirmando(confirmacionCatalogo("reactivar", m.nombre, () => cambiarEstado(m)))}
+                    disabled={trabajando === m.id}
                     className="label-cayla text-[10.5px] underline underline-offset-4 hover:text-rojo disabled:opacity-40"
                   >
                     Reactivar
@@ -233,6 +232,8 @@ export function MarcasLista({
           )}
         </Modal>
       )}
+
+      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
     </div>
   );
 }

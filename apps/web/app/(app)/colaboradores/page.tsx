@@ -65,6 +65,7 @@ export default async function ColaboradoresPage({ searchParams }: { searchParams
       soyLider={soyLider}
       soyAdmin={escalon.soyAdmin}
       admins={escalon.admins}
+      fueraDeAlcance={escalon.fueraDeAlcance}
       // ADR-0178 «solo das lo que tienes»: quien no es líder da solo los módulos que ve.
       misModulos={soyLider ? null : persona.modulos.map((m) => m.clave)}
     />

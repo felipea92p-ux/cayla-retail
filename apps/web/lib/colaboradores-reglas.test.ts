@@ -121,6 +121,9 @@ describe("accionesDeFila", () => {
     expect(accionesDeFila({ rol: "lider", es_yo: false }, false)).toEqual([]);
     expect(accionesDeFila({ rol: "colaborador", es_yo: false }, false)).toEqual(["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"]);
   });
+  it("a quien no está por debajo de quien mira (ADR-0178, «solo alcanzas…»), nada", () => {
+    expect(accionesDeFila({ rol: "colaborador", es_yo: false }, false, false)).toEqual([]);
+  });
 });
 
 describe("terminales sin persona (ADR-0162)", () => {

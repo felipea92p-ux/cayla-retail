@@ -5,6 +5,8 @@ import { Search, X } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
+import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { useResponsable } from "@/lib/useResponsable";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Modal } from "@/components/ui/Modal";
@@ -87,9 +89,11 @@ function TarjetaTalla({ t, apagada = false, children }: { t: Talla; apagada?: bo
 }
 
 export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales: Talla[]; puedeEditar: boolean }) {
-  // Cambiar el vocabulario es Catálogo, operación de tienda (ADR-0161): UN combo «Responsable» firma todo lo que se
-  // guarda desde esta lista (bajo los filtros; el mismo se repite en cada modal) y cada guardado exitoso lo vacía.
+  // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
+  // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
+  // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
   const responsable = useResponsable();
+  const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
   const [tallas, setTallas] = useState(() => ordenar(tallasIniciales));
   const [agregando, setAgregando] = useState(false);
   const [valor, setValor] = useState("");
@@ -296,9 +300,6 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
         </div>
       </div>
 
-      {/* Firma «Desactivar» de las tarjetas (ADR-0161); aprobar, rechazar y reactivar lo piden en su modal. */}
-      {puedeEditar && <ComboResponsable control={responsable} deshabilitado={cambiandoId !== null} hacia="abajo" className="max-w-xs" />}
-
       {hayFiltros && activosVisibles.length + desactivadosVisibles.length === 0 && (
         <div className="card-cayla flex flex-col items-center gap-3 px-6 py-12 text-center">
           <p className="text-sm text-tinta/75">
@@ -360,9 +361,8 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
                         <div className="flex items-center justify-end">
                           <button
                             type="button"
-                            disabled={cambiandoId === t.id || !responsable.listo}
-                            title={responsable.motivo ?? undefined}
-                            onClick={() => desactivar(t)}
+                            disabled={cambiandoId === t.id}
+                            onClick={() => setConfirmando(confirmacionCatalogo("desactivar", t.valor, () => desactivar(t)))}
                             className="label-cayla text-[10px] text-tinta/55 underline-offset-4 opacity-0 transition-[opacity,color] duration-200 hover:text-tinta hover:underline focus:opacity-100 disabled:opacity-50 group-hover/etq:opacity-100 [@media(hover:none)]:opacity-100"
                           >
                             {cambiandoId === t.id ? "Desactivando…" : "Desactivar"}
@@ -472,6 +472,8 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
           )}
         </Modal>
       )}
+
+      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
     </div>
   );
 }
