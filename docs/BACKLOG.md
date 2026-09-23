@@ -137,6 +137,49 @@ Del análisis `/pantalla` completo del módulo Ventas: la misma familia de hueco
 - [x] **Verificado tras la fusión del PR #285:** la migración F3 de abajo (`actor_firma_las_operaciones`) lee la definición viva de `registrar_movimiento_caja`/`registrar_cambio`/`aprobar_devolucion` y solo reemplaza la línea que busca a la persona — no pisa este candado (ni su reversión en Cambios) cuando F3 se pegue en producción.
 - [x] **`20260923110500_cambios_sin_candado_de_lider.sql` está en producción** (verificado el 2026-09-23: `registrar_cambio` ya no tiene el candado de líder y sigue firmando con `fn_actor_persona_id(true)`; Caja conserva el suyo). Se renombró desde `…110000` porque chocaba con `20260923110000_cambiar_rol_entre_lideres.sql` y dejaba el CI de `main` en rojo; las dos ya estaban pegadas, así que el cambio de número no toca producción.
 
+## 🔒 Candado solo-RPC en ventas, clientas, conteos, lotes y traslados (2026-09-23, ADR-0119, PL-61/84/85) — producción YA cerrada; falta fusionar el repo
+Verificado en solo lectura el 2026-09-23: en producción `authenticated` solo tiene SELECT (y `anon` nada) sobre `ventas`, `venta_items`, `venta_anulacion_items`, `clientas`, `conteos`, `lotes`, `transferencias` y `transferencia_items`, pero ninguna migración del repo ni de Dynamic lo hace (la `0217` de la unificación las abrió; quién las cerró, no quedó registrado). En el repo seguían abiertas. La rama «ADR-0166» del plano (commit `520915d0`) ya estaba en main como ADR-0177.
+- [x] Migración `20260923234700_ventas_clientas_conteos_lotes_solo_rpc.sql` (revoke a `authenticated`/`anon`): en producción es un no-op; lleva el candado a la base local, al CI y a toda base nueva. Sus 18 escritoras son `security definer` con dueña `postgres`; la web no escribe directo en ninguna.
+- [x] `pnpm pruebas:candado-ventas` (6/6 en local, con control por el «cómo se deshace» y mutación), agregada al CI.
+- [ ] Fusionar (PR). No hace falta pegar nada en producción; si se pega igual para dejar registro (PL-95), antes de pegarla correr la sonda de `relacl` de las 8 tablas.
+- [ ] **Decisión de Felipe (causa raíz):** «cerrado por defecto» en `retail`. `alter default privileges` (0005 y la 0217 de Dynamic) abre toda tabla nueva a `authenticated`; 19 tablas de producción dependen solo de RLS (lista en el ADR-0119).
+- [x] De paso, **PL-79 ya estaba hecho:** `clientas_dni_unico` (único sobre `dni` cuando no es nulo) existe en producción y `clientas` es una sola para toda la red.
+
+## 🎯 SUNAT: reintento por cron, aviso al líder y nota de débito (2026-09-23, PL-113/114/117, ADR-0165 act.) — base EN PRODUCCIÓN; web sin fusionar; falta `CRON_SECRET`
+- [x] Cron de Vercel cada 5 min (plan Pro) sobre `GET /api/lucode/reintentar`, con `CRON_SECRET` y SOLO al sandbox (`cronNoTransmite`); la llave de servicio toma la cola de las últimas 4 horas (`HORAS_REINTENTO_AUTOMATICO` = el mismo número de la migración). La excepción de `proxy.ts` vale solo para esa ruta.
+- [x] Aviso «Comprobantes sin llegar a SUNAT» en Inicio ▸ Por atender (el mismo patrón que ADR-0179/0186; la «campanita de campañas» del acta no existe).
+- [x] **`20260924113817_sunat_reintento_por_cron.sql` PEGADA en producción el 2026-09-23** (OK de Dany): antes y después los cuerpos se compararon con el archivo (solo cambian los candados de sede y la ventana de 4 h; ningún parche en vivo se perdió), ACL con `service_role`, `security definer` y `search_path` intactos; humo con rollback: sin sesión «Solo un líder…», como cron tomó 0 (no hay pendientes).
+- [x] PL-117: nota de débito probada en el sandbox — `lucode.ts` le mandaba los campos de la nota de crédito (`Undefined array key "nota_debito_codigo_tipo"`); corregido, BD01-1 aceptada en sandbox. Dos pruebas fijan los campos de cada nota.
+- [x] PL-116: las 2 boletas con número quemado ya no existen en producción (serie B004: solo el 2 y el 3); nada que excluir.
+- [ ] **Dany: crear `CRON_SECRET` en Vercel ▸ Production** (Secret, valor largo al azar). Sin ella el cron responde 401 y no hace nada. Después del despliegue, humo: el cron responde `{"tomados":0,…}`.
+- [ ] Un `pendiente` atascado solo tiene «Liberar» en la pantalla, no «Reintentar» (el barrido del líder al abrir Comprobantes lo sigue intentando hasta 3 días).
+- [ ] Salir en vivo con el cron = cambiar `cronNoTransmite` a propósito (decisión de Felipe), no una variable.
+
+## ✏️ Nombres, plantilla de PR, plan B y seguridad (2026-09-23, PL-50/105/120/92) — sin fusionar
+- [x] PL-50: menú y cabeceras de Compras y del Taller dicen «Facturas de proveedor», «Notas de crédito de proveedor» y «Facturas de insumos»; Ventas intacta. Nota al inicio de ADR-0111 y ADR-0142.
+- [ ] PL-50, resto: ~100 líneas internas de Compras, Recibir, Por pagar y Producción siguen diciendo «comprobante» (`RecepcionEnvio`, `PagoJuntosModal`, `CompraDetallePanel`, ficha del proveedor, `/recibir`). Roles y accesos dice «Facturas de compra» (`lib/modulos.ts` + `retail.modulos`: necesita migración). Revisar si «Notas de crédito de proveedor» se corta en el lateral.
+- [x] PL-105: `.github/pull_request_template.md` con la prueba a 375 px para Vender/Cambios/Devoluciones, y la regla en CLAUDE.md.
+- [x] PL-120: `docs/manual/plan-b-venta-sin-sistema.md` (cuándo NO hace falta papel: la cola sin conexión de ADR-0063; `registrar_venta` no acepta fecha pasada). [ ] Imprimirlo y entregarlo a cada líder de sede. [ ] Preguntas para Felipe: comprobante en contingencia, última prenda del piso, efectivo de otro día, «Factura de proveedor» cuando es boleta o recibo por honorarios.
+- [x] PL-92: `05-SEGURIDAD.md` cerrado con evidencia (`fn_es_lider()` y `fn_ubicacion_actual_persona()` exigen persona y colaborador activos).
+
+## 💬 Tope de descuento (PL-91) — SUPERADO: se mantienen las reglas vigentes (Dany, 2026-09-23)
+PL-91 pedía Integrante 5 %, Líder 15 % y «liquidación» sin tope con motivo. En producción ya rigen reglas más finas (ADR-0162 y decisión de Felipe del 2026-09-22): colaborador con `colaboradores.tope_descuento_pct` = 10 % (16 activos; más con autorización de un líder), líder hasta 35 % por prenda (más de 20 % pide argumento), terminal sin tope, motivos cerrados (`liquidacion_temporada` entre ellos) y nunca bajo el costo. Dany eligió **mantener lo de hoy** y no construir PL-91. Si Felipe quiere retomarlo, la comparación está en la BITÁCORA de este día.
+
+## 🔒 Cuarentena no sale hacia la clienta (2026-09-23, PL-78) — EN PRODUCCIÓN (pegada por Dany el 2026-09-23)
+Verificado en producción (solo lectura): `registrar_venta`, `regularizar_prenda` y `registrar_cambio` sacan del piso (`fn_sububicacion_por_defecto(sede,'venta')`), pero `apartar_stock` aceptaba CUALQUIER sububicación en `p_sububicacion_id` (la pantalla solo ofrece piso/almacén) y `entregar_separacion` vende desde la del apartado: una prenda de Cuarentena, apartada con una llamada directa, terminaba vendida. En todo el historial de producción no salió nada de Cuarentena (solo 17 `entrada/cambio`; hoy hay 17 unidades ahí).
+- [x] Migración `20260924093700_cuarentena_no_se_vende.sql`: disparador BEFORE INSERT en `movimientos` (el único punto por donde pasa toda salida) que rechaza `salida/venta`, `salida/cambio` y `apartado` desde una sububicación `cuarentena`. Liquidar (`cuarentena_liquidada`), resolver (`cuarentena_<destino>`), entrar y mover al piso siguen. Función sin EXECUTE para la API. Idempotente.
+- [x] `pnpm pruebas:cuarentena-no-se-vende` (8/8, en el CI): control con el disparador deshecho (el hueco existía), apartado/venta/cambio desde Cuarentena rechazados, piso y liquidación siguen. Mutación: sin «cambio» en el disparador, la prueba cae.
+- [x] **Pegada en producción el 2026-09-23** (OK de Dany, por el MCP, con bloque de validación en la misma llamada): antes 4 disparadores, 0 salidas y 0 apartados desde Cuarentena; después 5 disparadores, el nuevo activo (`O`), función `{postgres=X/postgres}`; humo con rastro cero: venta desde Cuarentena → rechazada con el mensaje, liquidar → pasa; movimientos 23.898 → 23.898.
+- Cómo verificas: apartar o vender una prenda que está en Cuarentena → «Esa prenda está en Cuarentena…»; liquidar una prenda dañada sigue funcionando.
+
+## 🔒 Anular una venta solo el mismo día de Lima (2026-09-23, PL-29) — EN PRODUCCIÓN (pegada por Dany el 2026-09-23 17:50 Lima); web sin fusionar
+`anular_venta` solo pedía la caja abierta: una caja que quedaba abierta de un día para otro dejaba anular hoy la venta de ayer (en producción no existía ningún chequeo de fecha; huella viva `15f8f274…`, igual a la local).
+- [x] Migración `20260923235300_anular_venta_mismo_dia.sql`: parcha la definición VIVA (ancla de una línea contada, `pg_temp.reemplazar`) y agrega `(v_venta.created_at at time zone 'America/Lima')::date <> fn_hoy_lima()` → «Esta venta es de un día anterior — solo se anula el mismo día; usa Cambio o Devolución». Se puede pegar dos veces; bloque de validación al final.
+- [x] `pnpm pruebas:anular-venta-mismo-dia` (7/7, en el CI): control con el candado deshecho, ayer y ayer 23:59 de Lima rechazadas, hoy y hoy 00:00 aceptadas, idempotencia e ida y vuelta de la huella. Mutación: comparar en UTC hace caer el caso de las 23:59.
+- [x] Web: «Anular venta» en Devoluciones solo aparece en las ventas de hoy (`hoyLima`), verificado con un render de prueba (hoy 09:00 sí aunque en UTC ya sea el 24, ayer 23:59 no, integrante nunca).
+- [x] **Pegada en producción el 2026-09-23 ~17:50 Lima** (OK de Dany, por el MCP): antes `15f8f274…` (1 firma), después `446bb2bb…` = la de local, ACL/definer/`search_path` intactos, el candado una sola vez, anuladas 54 → 54; humo como líder real con UUID inexistente → «La venta … no existe» (compila y corre, sin escribir). Registro: la tabla `sql_aplicado` de PL-95 no existe todavía — queda aquí y en BITÁCORA. Checklist usado (PL-87: huella antes = `15f8f2744770bc475bb7606c5cff2322`, pegar, huella después = `446bb2bbae9436e13bc9a0ff5342ef6a` (calculada en local con ROLLBACK), ACL `{postgres=X/postgres,authenticated=X/postgres}` intacta, humo con UUID inexistente). La base primero; la web puede ir antes o después sin romper nada.
+- Cómo verificas: como líder, en Devoluciones, una venta de hoy muestra «Anular venta» y una de ayer no; si alguien lo intenta igual por la API, la base responde «Esta venta es de un día anterior…».
+
 ## 🔒 Responsable obligatorio para todos (2026-09-23, Felipe, ADR-0162 actualización) — ENCENDIDO en producción (10:24)
 «Todas obligatorias, un mismo flujo para todos; si nadie marcó asistencia no se podrá vender.» Sin excepción para el líder.
 - [x] Interruptor como dato: `configuracion_empresa.exige_responsable` (migración `20260923160000_responsable_obligatorio.sql`), apagado por defecto; 6 casos nuevos en `pruebas:terminales-sin-persona` (52/52).
@@ -300,11 +343,11 @@ Tercera opción del comprobante: Boleta | Factura | Nota de venta. Documento int
 - [ ] Disparador que impida mover una terminal al Taller llamando `cambiar_ubicacion_colaborador` a mano (la web no lo ofrece; la base no lo impide).
 - [x] Hecho: volcado refrescado el 2026-09-23 (94 tablas, 300 funciones, copia idéntica a producción verificada por huella).
 
-## 🎯 Ficha de clienta v1, backend (2026-09-22, ADR-0154, D-76/D-77) — hecho en local, FALTA PEGAR 1 MIGRACIÓN EN PRODUCCIÓN
+## 🎯 Ficha de clienta v1, backend (2026-09-22, ADR-0154, D-76/D-77) — EN PRODUCCIÓN (verificado 2026-09-23 en solo lectura)
 Tabla `retail.clientas` + RPC `buscar_clienta`/`registrar_clienta`. La FK de `ventas.cliente_id` se repuntó desde la tabla vieja `retail.clientes`
 (se retira — ~0 filas en producción, pero dos lectores activos que también se actualizaron: `fn_ventas_del_dia` y el embed de Ventas ▸ Historial).
 16 pruebas en verde con un Postgres 17 desechable que corrió las 195 migraciones del repo en orden (`pnpm pruebas:clientas`).
-- [ ] **Pegar en producción** la migración `20260922140000_ficha_de_clienta_v1_backend.sql` (agregar el prefijo `retail.` o `set search_path` al
+- [x] **Ya está en producción** (verificado 2026-09-23, solo lectura: FK `ventas_clienta_fk → retail.clientas`, `registrar_clienta` y `buscar_clienta` existen, `retail.clientes` ya no existe; quién la pegó y cuándo no quedó anotado). Era: pegar la migración `20260922140000_ficha_de_clienta_v1_backend.sql` (agregar el prefijo `retail.` o `set search_path` al
       pegar en el SQL Editor — nunca en el archivo del repo) y correr `pnpm datos:generar:produccion` después.
 - [ ] **La pantalla de captura del mostrador (Punto de Venta)** — la construye otra tanda de agentes. `/clientas` (esta tarea) es solo una
       pantalla mínima de verificación (lista + buscador + alta), sin engancharse a `lib/menu.ts` (otra tarea de la misma tanda lo toca).
@@ -377,7 +420,8 @@ Análisis completo en [docs/pantallas/colaboradores.md](pantallas/colaboradores.
 - [x] **Look Atelier** (2026-09-21, pedido de Felipe): misma línea que Cambios/Devoluciones/Caja y filtros como Catálogo; el trazo del período dibujado como un hilo, mezcla de pagos, racimo de miniaturas del color de cada prenda y total exacto por día; **el pulso va en un lateral pegajoso (desde 1280 px) para que las ventas sean lo primero** — pedido de Felipe tras ver el primer gráfico de ancho completo. Verificado con la sesión del panel sobre la base LOCAL y una vista previa en 4 anchos. Falta verlo con clics reales y con una venta anulada de verdad (la base local no tiene).
 - [ ] **Verlo con clics reales** (líder e integrante, panel visible): con la sesión del panel sobre la base LOCAL ya se recorrieron filtros, cursor y cifras contra SQL leyendo el HTML del servidor (23 ventas de prueba, S/ 2,936.70; producción tenía 16 y ahí todavía no se ha visto); falta lo que pide hidratación: cambiar filtros con el mouse, paginar, tocar una fila, el hover del pulso y una venta anulada de verdad (no hay ninguna).
 - [ ] Búsqueda por boleta / DNI / clienta / prenda (la lógica existe en `ventas-v2.ts`: `buscarVentas`, hoy interna). Y enlaces «Ver historial →» desde «Ventas de hoy» (Caja, Punto de Venta, Facturación) y desde el detalle de un cierre (`?caja=`) — esperar a que salgan los rediseños en curso de esas pantallas.
-- [ ] Solo si un rango supera 1,000 ventas (hoy no): RPC de agregados + migración (requiere OK). **Decisiones de negocio resueltas el 2026-09-21** (ADR-0147): cada quien ve su tienda y el líder todas; no se incluyen ventas de antes del ERP.
+- [x] **Totales truncados sin aviso, corregido (2026-09-23, `docs/pantallas/vender-historial.md` #2):** `TOPE_TOTALES = 1000` pedía 1.001 filas para detectar «hay más», pero PostgREST corta en 1.000 también en producción (medido el 2026-09-23): `parcial` nunca se encendía y un rango de más de 1.000 ventas (producción ya tiene ~7.000 en 90 días) mostraba como completos los totales de las 1.000 más recientes. Ahora el tope es 999, la pantalla dice «Hay 1,000 ventas o más…» y una prueba falla si el tope vuelve a chocar con el corte. Sin migración.
+- [ ] Rangos de más de 1.000 ventas (producción ya los tiene: un mes ronda 2.300): hoy la pantalla no muestra totales ahí. Arreglo de raíz: RPC de agregados + migración (requiere OK). **Decisiones de negocio resueltas el 2026-09-21** (ADR-0147): cada quien ve su tienda y el líder todas; no se incluyen ventas de antes del ERP.
 - [ ] Deuda ajena que apareció: `fn_ventas_del_dia` no lee `ventas.estado` — una anulada de hoy cuenta completa en «Vendido hoy» (ya en la lista de Facturación).
 
 ## 🎯 Candado de líder: solo el líder cierra la caja y ajusta stock (2026-09-21, ADR-0143) — APLICADO EN PRODUCCIÓN
@@ -536,7 +580,7 @@ decisiones, lo que se descartó y la verificación en [docs/adr/0141-apartar-sto
 - [ ] #9 Movimientos de caja sin internet y chip de sincronía honesto — M
 - [ ] #11 Piel restante del modal: desplegable propio y tope de 2 rojos en el tablero — S (bajo valor)
 - [ ] #12 Borrar `CajaGraficos.tsx`, `senalCaja`, `tendenciaCierres7Dias` (sin uso) y pruebas de `getResumenCaja` — S (bajo valor)
-- [ ] Verificar en producción si `cajas_update` permite reescribir un cierre ya hecho (D1/D4 de la auditoría, nunca corridas) — S
+- [x] ~~Verificar en producción si `cajas_update` permite reescribir un cierre ya hecho~~ — verificado 2026-09-23 (solo lectura): `retail.cajas` tiene una sola política, `cajas_select`; sin política de UPDATE, un `update` por la API no toca ninguna fila. Un cierre no se puede reescribir.
 
 ## 🎯 Caja: «Ver todo», detalle de venta y reimpresión — ticket y A4 (2026-09-19, ADR-0137)
 
@@ -1429,7 +1473,7 @@ Rediseño de `/inventario/traslados` sobre la referencia que dio Felipe; una sol
 migración, en PR.** Hecho: reglas + 61 pruebas, miniaturas reales con regla propia, insignia en lateral/pestañas/celular,
 refresco cada minuto, detalle con el mismo vocabulario que la lista.
 
-- [ ] **Llevar al repo el `REVOKE` de escritura directa sobre `transferencias` (drift repo ≠ producción).** En
+- [x] **Hecho 2026-09-23 en `20260923234700` (ADR-0119).** **Llevar al repo el `REVOKE` de escritura directa sobre `transferencias` (drift repo ≠ producción).** En
       producción `authenticated` solo tiene SELECT (verificado en solo lectura, 2026-09-18); en la base local y en
       cualquier base creada desde las migraciones tiene UPDATE/INSERT/DELETE, y con la policy `transferencias_update`
       un integrante podría marcar un traslado `cerrada` por la API sin crear `movimientos`. Migración

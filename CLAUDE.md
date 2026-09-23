@@ -244,6 +244,10 @@ Conventional Commits. `/docs/ARQUITECTURA.md` es la foto de la arquitectura comp
 de datos, una ruta nueva, o un RPC nuevo/renombrado; no es estado vivo día a día
 (eso es BACKLOG/BITACORA), es el mapa para orientarse rápido.
 
+**Celular obligatorio (PL-105, Felipe 2026-09-23):** todo PR que toque Vender (`/vender`, `/vender/apartados`),
+Cambios (`/cambios`) o Devoluciones (`/devoluciones`) se prueba a **375 px de ancho** (`resize_window` preset `mobile`)
+y lleva captura; lo pide el casillero de `.github/pull_request_template.md`. Caja y Almacén siguen siendo de escritorio.
+
 ## La base de datos: `/docs/datos/` (desde 2026-09-12)
 
 El modelo de datos —los dos sistemas, campo por campo— vive en `/docs/datos/`.

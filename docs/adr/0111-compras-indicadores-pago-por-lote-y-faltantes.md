@@ -1,5 +1,10 @@
 # ADR-0111 — Compras: indicadores para decidir, pago por lote y cierre de faltantes con nota de crédito
 
+> **Nota (2026-09-23, PL-50):** en Compras esto hoy se llama «Facturas de proveedor» (antes «Comprobantes») y «Notas de
+> crédito de proveedor»; en el Taller, «Facturas de insumos». «Comprobante» y «Nota de crédito» quedaron solo para Ventas.
+> Cambió el texto que se ve, no las rutas (`/compras`, `/compras/notas-credito`) ni las tablas. El resto del documento
+> conserva los nombres de su fecha.
+
 - **Fecha:** 2026-09-18
 - **Estado:** Aceptado. **Solo local**: nada de esto está en producción; las migraciones se pegan
   con el prefijo `retail.` y ok explícito de Felipe (CLAUDE.md, «Cómo aplicar SQL a producción»).

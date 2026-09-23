@@ -108,8 +108,8 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
       <div className="anim-entra flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Comprobantes de proveedores</h1>
-          <p className="mt-1 text-sm text-tinta/65">Cada comprobante registra lo que se compró; la recepción y el pago se anotan contra él.</p>
+          <h1 className="font-display mt-1 text-2xl text-tinta">Facturas de proveedor</h1>
+          <p className="mt-1 text-sm text-tinta/65">Cada factura registra lo que se compró; la recepción y el pago se anotan contra ella.</p>
         </div>
         <div className="flex flex-wrap gap-2.5">
           {/* El registro de compras del mes que se le manda al contador (ADR-0184: con el filtro por tienda de la base,
@@ -121,7 +121,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
             <Download aria-hidden className="h-3.5 w-3.5" /> Exportar mes
           </a>
           <Link href="/compras/nueva" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
-            + Registrar comprobante
+            + Registrar factura
           </Link>
         </div>
       </div>
@@ -160,7 +160,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           detalleTono={resumen.porRecibirAtrasadas > 0 ? "text-ambar-profundo" : undefined}
           etiqueta="Por recibir"
           valor={<CifraQueCuenta valor={resumen.porRecibir} alMontar />}
-          unidad={resumen.porRecibir === 1 ? "comprobante" : "comprobantes"}
+          unidad={resumen.porRecibir === 1 ? "factura" : "facturas"}
           href={resumen.porRecibir > 0 ? "/compras/recibir" : undefined}
           reparto={{ fraccion: resumen.porRecibir > 0 ? resumen.porRecibirAtrasadas / resumen.porRecibir : 0, tono: "ambar" }}
         >
@@ -201,7 +201,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
         idIndicador="comprobantes-vistas"
         className="anim-entra"
         style={{ ["--i" as string]: 5 }}
-        etiquetaAccesible="Vistas de comprobantes"
+        etiquetaAccesible="Vistas de facturas"
         activa={vista}
         items={[
           { clave: "todos", etiqueta: "Todos", href: hrefVista("todos"), conteo: resumen.registradas },
@@ -222,7 +222,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
             <SegmentoEnlaces
               deslizante
               idIndicador="comprobantes-orden"
-              etiquetaAccesible="Ordenar comprobantes"
+              etiquetaAccesible="Ordenar facturas"
               activo={orden}
               opciones={[
                 { valor: "emision", etiqueta: "Emisión", href: hrefOrden("emision") },
