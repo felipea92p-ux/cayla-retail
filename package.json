@@ -30,6 +30,7 @@
     "pruebas:ventas-del-dia": "node scripts/pruebas/ventas_del_dia.mjs",
     "pruebas:anular-venta-comprobante": "node scripts/pruebas/anular_venta_comprobante.mjs",
     "pruebas:comprobante-venta-anulada": "node scripts/pruebas/comprobante_venta_anulada.mjs",
+    "pruebas:sunat-reintento-por-cron": "node scripts/pruebas/sunat_reintento_por_cron.mjs",
     "pruebas:insumos-devolucion": "node scripts/pruebas/insumos_devolucion.mjs",
     "pruebas:proveedores-produccion": "node scripts/pruebas/proveedores_produccion.mjs",
     "pruebas:comprobantes-produccion": "node scripts/pruebas/comprobantes_produccion.mjs",
