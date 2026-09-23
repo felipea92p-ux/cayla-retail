@@ -1,4 +1,4 @@
-# ADR-0172 — Traslados: rediseño de lista y detalle, conteo por borradores y traslados vacíos ocultos
+# ADR-0173 — Traslados: rediseño de lista y detalle, conteo por borradores y traslados vacíos ocultos
 
 **Fecha:** 2026-09-22 · **Estado:** aceptado (Felipe aprobó la demo el 2026-09-22) · **Sin migraciones** ·
 **Sobre:** ADR-0105 (lectura operativa de Traslados), ADR-0169 (paleta oficial) · **Demo:** `docs/maquetas/traslados-rediseno-2026-09/`

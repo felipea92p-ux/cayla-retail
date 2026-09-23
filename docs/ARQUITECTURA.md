@@ -235,7 +235,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   cerró por `fn_nombres_personas`; color y foto por `getAparienciaVariantes`) → `TrasladoRecorrido.tsx` (4 pasos,
   `recorridoTraslado`) + `TrasladoDetallePanel.tsx` (conteo por borradores con `leerRecepcion`; al confirmar,
   cerrar o guardar el recuento manda cada línea cambiada a `registrar_recepcion_traslado` y después
-  `confirmar_traslado` / `cerrar_traslado_con_diferencia`; confirma con `<Modal>`; ADR-0172).
+  `confirmar_traslado` / `cerrar_traslado_con_diferencia`; confirma con `<Modal>`; ADR-0173).
 - `/inventario/conteo` → `lib/conteos.ts` (`getConteoAbierto`, `getConteosResumen` → RPC
   `fn_conteos_resumen`, `getPrevisualizacionCierre`, `getPrioridadConteo` + su `apariencia`: foto principal y
   `colorHex` de `lib/apariencia-variantes.ts`, la regla de Existencias; si falla degrada, no tumba) →
@@ -293,7 +293,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   en toda fila «Producto/variante» que sea una tabla real: Desempeño, Comparar (Detalle), Movimientos,
   Traslados › detalle y Conteo › detalle. Sin miniatura ni cápsula en Mover/Recibir (son `<select>` nativos: un
   `<option>` no admite marcado) ni donde el hex de color no viaja hasta la fila (Movimientos muestra el color como
-  texto; Traslados › detalle ya usa `ProductoVarianteCelda` con color y foto desde ADR-0172; Desempeño, Comparar y Conteo › detalle tienen `colorHex` en sus datos, y el último
+  texto; Traslados › detalle ya usa `ProductoVarianteCelda` con color y foto desde ADR-0173; Desempeño, Comparar y Conteo › detalle tienen `colorHex` en sus datos, y el último
   usa la celda completa de Existencias, `ProductoVarianteCelda`, con la foto principal del producto).
   · **Existencias** (`/inventario`) gana la cobertura: `getCoberturaPorVariante` = `fn_resumen_variantes` con la
   ventana de `DIAS_RITMO_RECIENTE` (30 días) + `calcularCobertura`; segunda línea bajo «Disponible», dato
