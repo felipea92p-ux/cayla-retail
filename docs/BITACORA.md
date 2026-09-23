@@ -3,8 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-23 (Tope de descuento: PL-91 queda superado)
+PL-91 pedía Integrante 5 % y Líder 15 %, pero producción ya tiene reglas más finas y más nuevas: colaborador 10 % (más con autorización de un líder), líder 35 % por prenda con argumento pasado el 20 %, terminal sin tope (Felipe, 22-09), motivos cerrados y nunca bajo el costo. Construirlo tal cual habría bajado los topes de todas las tiendas sin que nadie lo pidiera hoy. Dany eligió mantener lo vigente.
+Dany se lleva: (1) **dos decisiones del mismo dueño pueden chocar**: la del plano y la del 22-09; se elige una y se anota; (2) **antes de construir un tope, mirar el que ya existe**: `colaboradores.tope_descuento_pct` y los límites por prenda de `registrar_venta`; (3) **no construir también es una decisión**, y se documenta igual.
+
 ## 2026-09-23 (Cuarentena no sale hacia la clienta — PL-78)
-La venta normal ya sacaba siempre del piso, pero el apartado aceptaba cualquier sububicación y la entrega del apartado vende desde ahí: una prenda de Cuarentena podía terminar vendida con una llamada directa. Un disparador en `movimientos` rechaza venta, cambio y apartado desde Cuarentena, y deja pasar lo propio de ella (entrar, liquidar, resolver, moverla al piso). Prueba 8/8 con control; falta pegar en producción.
+La venta normal ya sacaba siempre del piso, pero el apartado aceptaba cualquier sububicación y la entrega del apartado vende desde ahí: una prenda de Cuarentena podía terminar vendida con una llamada directa. Un disparador en `movimientos` rechaza venta, cambio y apartado desde Cuarentena, y deja pasar lo propio de ella (entrar, liquidar, resolver, moverla al piso). Prueba 8/8 con control. Pegada en producción el mismo día, con validación en la misma llamada y humo sin rastro (venta rechazada, liquidación pasa).
 Dany se lleva: (1) **el hueco no estaba donde decía la tarea**: «la venta» no tocaba Cuarentena, el apartado sí; (2) **el candado va en el punto por donde pasa todo**: un disparador en `movimientos` cubre las funciones de hoy y las que vengan; (3) **bloquear por destino, no por tabla**: Cuarentena tiene salidas legítimas (liquidar, reparar), así que se bloquea solo lo que va hacia la clienta.
 
 ## 2026-09-23 (Historial de ventas: los totales ya no se truncan sin avisar)
