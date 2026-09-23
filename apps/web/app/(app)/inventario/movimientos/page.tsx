@@ -43,17 +43,16 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
   const persona = await requirePersonaActualV2();
   const params = await searchParams;
   const esLider = persona.rol === "lider";
-  const ubicaciones = await getUbicaciones();
-
   // La sede la decide SOLO el selector de la cabecera (`UbicacionSwitcher`, cookie: cambia todo el
   // ERP). Hasta el 2026-09-22 había un segundo selector en el título (`?ubicacion=`) que podía decir
   // otra sede que la cabecera; Felipe eligió dejar uno. Un enlace viejo con `?ubicacion=` se ignora.
   // La base vuelve a comprobar el permiso (`fn_puede_operar_ubicacion`) — esto solo decide qué se pinta.
   const ubicacionActivaId = persona.ubicacionId;
-  const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
 
-  // Las sububicaciones van primero: «?sub=piso» se traduce a SU id, que solo se sabe mirando la ubicación.
-  const sububicaciones = await getSububicaciones(ubicacionActivaId);
+  // Las sububicaciones van antes que la lista: «?sub=piso» se traduce a SU id, que solo se sabe mirando la ubicación.
+  // No dependen de la lista de ubicaciones (la sede sale de la persona): las dos a la vez, una espera menos.
+  const [ubicaciones, sububicaciones] = await Promise.all([getUbicaciones(), getSububicaciones(ubicacionActivaId)]);
+  const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
   const { periodo, sub, ...filtros } = filtrosDesdeParams(params, { sububicaciones });
   const cursor = cursorDesdeParams(params);
 
