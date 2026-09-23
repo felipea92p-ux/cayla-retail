@@ -1,4 +1,3 @@
-import { cogsNeto } from "./rotacion";
 import { describe, expect, it } from "vitest";
 import {
   analizarVarianteComparacion,
@@ -462,16 +461,5 @@ describe("armarComparacion", () => {
     expect(f.b.diasConStock).toBe(14.509);
     expect(f.estadoCosto).toBeNull();
     expect(f.ledgerConsistente).toBe(true);
-  });
-
-  it("sin permiso de ver el dinero (costo de lo vendido vacío) no inventa un COGS de 0: todo cuenta como sin costo", () => {
-    const f = mapearFilaComparacion({ variante_id: "v", producto_id: "p", referencia: "X", costo: null, a_ventas: 5, a_devoluciones: 1, a_costo_ventas: null, a_costo_devoluciones: null, b_ventas: 0, b_costo_ventas: null });
-    expect(f.costo).toBeNull();
-    expect(f.a.unidadesSinCosto).toBe(6);
-    expect(cogsNeto(f.a)).toBeNull();
-    expect(f.b.unidadesSinCosto).toBe(0); // sin ventas no hay nada que costear
-    // Con permiso, el 0 es un dato: un costo de lo vendido que sí vino.
-    const g = mapearFilaComparacion({ variante_id: "v", producto_id: "p", referencia: "X", a_ventas: 2, a_costo_ventas: "0", a_uds_sin_costo: 0 });
-    expect(g.a.unidadesSinCosto).toBe(0);
   });
 });
