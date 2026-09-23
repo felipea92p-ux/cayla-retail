@@ -19,7 +19,9 @@ const PLANTILLA = "sm:grid-cols-[6rem_minmax(9rem,1.2fr)_9rem_minmax(8rem,1fr)_m
 function fecha(iso: string) {
   return new Date(iso).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", timeZone: "America/Lima" });
 }
-function soles(n: number) {
+// null = quien mira no ve el dinero (20260923193700): «—», nunca S/ 0.
+function soles(n: number | null) {
+  if (n === null) return "—";
   return `${n < 0 ? "−" : n > 0 ? "+" : ""}S/ ${Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -80,7 +82,7 @@ export function ConteosLista({ conteos }: { conteos: ConteoResumen[] }) {
                   <span className="block text-sm tabular-nums text-tinta">
                     {c.sistema} <span className="text-tinta/45">→</span> {c.contado}
                   </span>
-                  <span className={`block text-xs tabular-nums ${c.solesDiferencia < 0 ? "text-rojo-profundo" : c.solesDiferencia > 0 ? "text-verde-profundo" : "text-taupe"}`}>
+                  <span className={`block text-xs tabular-nums ${(c.solesDiferencia ?? 0) < 0 ? "text-rojo-profundo" : (c.solesDiferencia ?? 0) > 0 ? "text-verde-profundo" : "text-taupe"}`}>
                     {c.lineasConDiferencia === 0 ? "coinciden" : <span className="whitespace-nowrap">{soles(c.solesDiferencia)}</span>}
                   </span>
                 </>
