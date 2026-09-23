@@ -187,6 +187,8 @@ type Props = {
   /** Null si no hay caja abierta — el catálogo se ve igual, pero queda desactivado
    *  (ver `bloqueado` más abajo). */
   cajaId: string | null;
+  /** Lo que dejó en el cajón el último cierre de la sede (ADR-0186), para verificar la apertura. `null` si no se sabe. */
+  fondoUltimoCierre?: number | null;
   /** Incluye la variante centinela de la «Prenda sin registrar», que este componente filtra
    *  antes de mostrar nada. */
   variantes: VarianteBusqueda[];
@@ -214,7 +216,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoyNode, proforma = null, avisoProforma = null }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoyNode, proforma = null, avisoProforma = null }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -1228,7 +1230,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
 
       {modalAbrirVisible && (
         <Modal titulo="Abrir caja" onClose={() => setModalCaja(null)} alCerrarEnfocar={buscador}>
-          <AbrirCajaFormV2 ubicacionId={ubicacionId} ubicacionEtiqueta={ubicacionEtiqueta} />
+          <AbrirCajaFormV2 ubicacionId={ubicacionId} ubicacionEtiqueta={ubicacionEtiqueta} esperado={fondoUltimoCierre} />
         </Modal>
       )}
       {modalCerrarVisible && cajaId && (

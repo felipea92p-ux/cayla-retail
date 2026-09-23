@@ -46,6 +46,8 @@ export const AVIARIO = [
       // El vocabulario cerrado: los cinco usan el mismo proponer/aprobar/rechazar (ADR-0070, ADR-0095).
       "colores", "tallas", "categoria_tallas", "tejidos", "categoria_tejidos",
       "patrones", "categoria_patrones", "etiquetas", "etiqueta_categorias", "variante_etiquetas",
+      // ADR-0181: la versión del catálogo que suben los disparadores de las tablas de arriba. Refresco del 2026-09-23.
+      "catalogo_version",
     ] },
   // Tucán es la traducción al estándar de Shopify (ADR-0030); sus tablas no existen en V2.
   { n: "03", pajaro: "Tucán", modulo: "Taxonomía universal", tablas: [] },
@@ -68,11 +70,17 @@ export const AVIARIO = [
       // Separaciones (apartar prendas con adelanto) y lo que la clienta pidió y no había: nacen en el mostrador.
       "apartados", "separaciones", "separacion_items", "separacion_pagos", "separacion_correlativos",
       "pedidos_no_atendidos",
+      // Refresco del volcado del 2026-09-23: a dónde fue el efectivo al cerrar (ADR-0186) y las prendas vendidas sin
+      // registrar (ADR-0179) — las dos nacen en la caja; almacén regulariza las segundas, pero el hecho es la venta.
+      "caja_traslados", "prendas_por_regularizar",
     ] },
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",
     tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales"] },
   { n: "09", pajaro: "Pelícano", modulo: "Compras y proveedores",
     tablas: ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen",
+      // ADR-0184 (Compras por tienda): la parte de cada tienda en un comprobante y quién compra por cada tienda.
+      // Asignadas en el refresco del volcado del 2026-09-23.
+      "compra_parte_por_tienda", "compradores_de_tienda",
       // ADR-0111 (Compras): cierres de línea por faltante, notas de crédito del proveedor y su saldo a favor.
       // Ya están en producción (ADR-0111, comprobado en el refresco completo del volcado del 2026-09-21).
       "compra_item_cierres", "compra_notas_credito", "proveedor_creditos",

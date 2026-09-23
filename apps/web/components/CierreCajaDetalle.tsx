@@ -5,6 +5,7 @@ import { Eye } from "lucide-react";
 import { Modal, botonCancelar } from "@/components/ui/Modal";
 import { getDetalleCierre, type EventoCaja } from "@/app/actions/caja";
 import type { CierreCaja } from "@/lib/caja";
+import { etiquetaDestino } from "@/lib/caja-cierre-reglas";
 
 function money(n: number) {
   return (n >= 0 ? "S/" : "-S/") + Math.abs(n).toFixed(2);
@@ -102,6 +103,32 @@ function DetalleCierreModal({
               {money(cierre.diferencia)}
             </span>
           </div>
+          {/* ADR-0186: a dónde fue el efectivo y cuánto quedó en el cajón (solo cierres desde entonces). */}
+          {(cierre.traslados.length > 0 || cierre.montoFondo !== null) && (
+            <dl className="space-y-1 text-sm">
+              {cierre.traslados.map((t, i) => (
+                <div key={i} className="flex justify-between gap-3">
+                  <dt className="text-tinta/65">
+                    Trasladado · {etiquetaDestino(t.destino)}
+                    {t.referencia && <span className="text-tinta/45"> · {t.referencia}</span>}
+                  </dt>
+                  <dd className="whitespace-nowrap tabular-nums">-{money(t.monto)}</dd>
+                </div>
+              ))}
+              {cierre.montoFondo !== null && (
+                <div className="flex justify-between gap-3 font-semibold">
+                  <dt>Quedó en el cajón</dt>
+                  <dd className="whitespace-nowrap tabular-nums">{money(cierre.montoFondo)}</dd>
+                </div>
+              )}
+            </dl>
+          )}
+          {cierre.motivoDiferenciaApertura && cierre.aperturaEsperada !== null && (
+            <p className="rounded-md bg-ambar/10 px-3 py-2 text-xs text-ambar-profundo">
+              Abrió con {money(cierre.montoApertura)} y el cierre anterior había dejado {money(cierre.aperturaEsperada)}:
+              «{cierre.motivoDiferenciaApertura}».
+            </p>
+          )}
           {cierre.nota && <p className="text-xs italic text-tinta/60">{cierre.nota}</p>}
 
           <button type="button" onClick={cerrar} className={botonCancelar}>

@@ -1,5 +1,4 @@
 import { diaMes, diasHastaLima, sumarDias } from "./fechas-lima";
-import { parseMonto } from "./por-pagar-reglas";
 import type { CompraResumen } from "./compras-reglas";
 import type { NotaCreditoCompra } from "./compras-faltantes";
 
@@ -103,63 +102,6 @@ export function tasaIgv(c: { igv: number; subtotal: number }): number {
   return c.subtotal > 0 ? c.igv / c.subtotal : 0;
 }
 
-/** Monto sugerido de la nota: lo que faltó a su costo (`compra_items.costo_unitario` es SIN IGV) más IGV. */
-export function montoNotaSugerido(cantidad: number, costoUnitario: number, tasa: number): number {
-  return centavos(cantidad * costoUnitario * (1 + tasa));
-}
-
-/** La parte de IGV de un monto que ya lo incluye. */
-export function igvDeMonto(monto: number, tasa: number): number {
-  return centavos(monto - monto / (1 + tasa));
-}
-
-export type Efecto = { etiqueta: string; antes: string; despues: string };
-
-/**
- * «Cómo quedan tus cuentas»: qué cambia antes de apretar el botón. Solo lista lo que de verdad
- * cambia. `montoNota` es lo que la nota BAJA de la deuda del comprobante (no el total de la nota:
- * lo que sobra va a `aFavor`, saldo a favor del proveedor).
- */
-export function efectoCierre(p: {
-  documento: string;
-  saldo: number;
-  montoNota: number;
-  igvNota: number;
-  igvMes: number | null;
-  recepcionAntes: string;
-  cubreTodo: boolean;
-  estabaAtrasada: boolean;
-  atrasadasAntes: number | null;
-  formato: (n: number) => string;
-  /** Lo que de la nota no baja ninguna deuda y queda a favor del proveedor. */
-  aFavor?: number;
-  /** Saldo a favor del proveedor antes de esta nota; `null` si no se conoce. */
-  saldoFavorAntes?: number | null;
-  proveedor?: string;
-}): Efecto[] {
-  const filas: Efecto[] = [];
-  if (p.montoNota > 0) {
-    filas.push({ etiqueta: `Lo que se debe de ${p.documento}`, antes: p.formato(p.saldo), despues: p.formato(Math.max(0, centavos(p.saldo - p.montoNota))) });
-  }
-  if ((p.aFavor ?? 0) > 0 && p.saldoFavorAntes != null) {
-    filas.push({
-      etiqueta: `Saldo a favor con ${p.proveedor ?? "el proveedor"}`,
-      antes: p.formato(p.saldoFavorAntes),
-      despues: p.formato(centavos(p.saldoFavorAntes + (p.aFavor ?? 0))),
-    });
-  }
-  if ((p.montoNota > 0 || (p.aFavor ?? 0) > 0) && p.igvMes != null) {
-    filas.push({ etiqueta: "Crédito fiscal (IGV) del mes", antes: p.formato(p.igvMes), despues: p.formato(centavos(p.igvMes - p.igvNota)) });
-  }
-  if (p.cubreTodo) {
-    filas.push({ etiqueta: "Recepción del comprobante", antes: p.recepcionAntes, despues: "Recibida" });
-    if (p.estabaAtrasada && p.atrasadasAntes != null && p.atrasadasAntes > 0) {
-      filas.push({ etiqueta: "Entregas atrasadas", antes: String(p.atrasadasAntes), despues: String(p.atrasadasAntes - 1) });
-    }
-  }
-  return filas;
-}
-
 // ---------------------------------------------------------------------------
 // D2 dentro de la guía — cerrar VARIOS faltantes juntos, al confirmar
 // ---------------------------------------------------------------------------
@@ -250,33 +192,12 @@ export function notasPorReclamar(
   return salida;
 }
 
-/** Lo que se va escribiendo de la nota de crédito de UN comprobante mientras se arma la guía. */
-export type NotaBorrador = { activa: boolean; serie: string; fecha: string; montoTxt: string | null /* null = sigue la sugerencia */ };
-
 /**
- * La nota de crédito de un comprobante, con TODO lo que se cerró de él (en esta guía y en las
- * anteriores). Una sola nota por comprobante, no una por línea: el proveedor emite UN documento que
- * cubre todo lo que no llegó. El monto sugerido es lo cerrado a su costo más IGV; se puede ajustar
- * (redondeos, prorrateos) hasta S/ 1 más, el mismo margen que exige la base. Solo un líder registra
- * dinero, y solo si hay algo cerrado. El tope ya NO es el saldo: si la nota es mayor a lo que se debe
- * (factura pagada), lo que sobra queda como saldo a favor del proveedor.
+ * Una sola nota por faltante por comprobante, que cubre todo lo que se cerró sin llegar: lo cerrado a su costo
+ * más IGV, con hasta S/ 1 de margen para redondeos y prorrateos (el mismo que exige la base). Lo usa el módulo de
+ * notas de crédito (`notas-credito-reglas.ts`).
  */
 export const MARGEN_NOTA = 1;
-
-export function notaDelBloque(p: {
-  tasa: number;
-  cierres: { faltan: number; costoUnitario: number }[];
-  esLider: boolean;
-  borrador: NotaBorrador;
-}): { activa: boolean; sugerido: number; monto: number; tope: number; problema: "serie" | "monto" | null } {
-  const sugerido = montoDeCierres(p.cierres, p.tasa);
-  const tope = centavos(sugerido + MARGEN_NOTA);
-  const activa = p.esLider && p.borrador.activa && p.cierres.length > 0;
-  const monto = parseMonto(p.borrador.montoTxt ?? sugerido.toFixed(2));
-  const montoOk = !Number.isNaN(monto) && monto > 0 && monto <= tope;
-  const problema = !activa ? null : !p.borrador.serie.trim() ? "serie" : !montoOk ? "monto" : null;
-  return { activa, sugerido, monto, tope, problema };
-}
 
 // ---------------------------------------------------------------------------
 // ¿Se puede registrar la nota por faltante YA? (espejo de las reglas de la base)
@@ -329,11 +250,4 @@ export type ReparteNota = { baja: number; aFavor: number; deudaDespues: number }
 export function reparteNota(monto: number, saldo: number): ReparteNota {
   const baja = centavos(Math.min(monto, Math.max(saldo, 0)));
   return { baja, aFavor: centavos(monto - baja), deudaDespues: centavos(Math.max(saldo, 0) - baja) };
-}
-
-/** La explicación en palabras, para quien no es contador. `dinero` formatea un monto («S/ 236.00»). */
-export function textoReparteNota(r: ReparteNota, p: { documento: string; proveedor: string; saldo: number; dinero: (n: number) => string }): string {
-  if (r.aFavor <= 0) return `La nota baja lo que se debe de ${p.documento} de ${p.dinero(p.saldo)} a ${p.dinero(r.deudaDespues)}.`;
-  if (r.baja <= 0) return `${p.documento} ya está pagado: los ${p.dinero(r.aFavor)} de la nota quedan a tu favor con ${p.proveedor}. Podrás descontarlos de tu próximo pago.`;
-  return `La nota baja lo que se debe de ${p.documento} de ${p.dinero(p.saldo)} a ${p.dinero(0)}, y los ${p.dinero(r.aFavor)} restantes quedan a tu favor con ${p.proveedor}.`;
 }

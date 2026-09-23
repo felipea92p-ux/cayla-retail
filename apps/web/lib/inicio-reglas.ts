@@ -97,7 +97,11 @@ export type Cola = {
  * misma que pinta el «2» del menú). SUNAT pendiente y compras por pagar se suman acá cuando su lectura viva en
  * `lib/` y no dentro de su pantalla (tarea #3 de la auditoría): así no se duplica ninguna definición de «pendiente».
  */
-export function colasInicio(fuentes: { traslados: number | null; prendasVencidas?: number | null }): Cola[] {
+export function colasInicio(fuentes: {
+  traslados: number | null;
+  prendasVencidas?: number | null;
+  aperturas?: number | null;
+}): Cola[] {
   const colas: Cola[] = [
     {
       clave: "traslados",
@@ -132,6 +136,25 @@ export function colasInicio(fuentes: { traslados: number | null; prendasVencidas
               ? `1 lleva ${plazo}`
               : `${n} llevan ${plazo}`,
       href: "/recibir?vista=por-regularizar",
+    });
+  }
+  // ADR-0186: aperturas de caja que no coincidieron con el último cierre. Solo la recibe quien la pasa (el líder):
+  // `undefined` = esta cola no es para esta persona; `null` = no se pudo leer.
+  if (fuentes.aperturas !== undefined) {
+    const n = fuentes.aperturas;
+    colas.push({
+      clave: "aperturas",
+      titulo: "Aperturas de caja con diferencia",
+      cantidad: n,
+      detalle:
+        n === null
+          ? "No se pudo leer esta cola. Revisa Caja → Historial de cierres."
+          : n === 0
+            ? "Todas las aperturas coinciden con su cierre."
+            : n === 1
+              ? "1 abrió con un monto distinto del último cierre."
+              : `${n} abrieron con un monto distinto del último cierre.`,
+      href: "/caja/historial",
     });
   }
   return colas;

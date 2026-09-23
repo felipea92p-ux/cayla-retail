@@ -191,6 +191,18 @@ Lo vigilan las pruebas: `lib/modulos.test.ts` (toda pantalla del menú declara u
 de TODAS las migraciones; **ninguna migración fuera de la siembra de roles escribe en `rol_modulos`**) y
 `pnpm pruebas:roles` (un módulo recién creado solo lo ve el líder).
 
+## La página no se encoge bajo el mouse (regla — ADR-0185)
+
+**Un clic nunca debe hacer que la vista «se suba sola».** Pasa cuando algo al final de lo que se desplaza (página o
+ventana) se acorta y el navegador recorta el scroll. Ya está cubierto por piezas del sistema, y una pantalla nueva
+no tiene que hacer nada: `<PaginaEstable />` (montado una vez en `app/layout.tsx`) reserva el alto recortado tras
+cada clic; `<Modal>` va anclado arriba en escritorio; `ComboResponsable` y `ComboBuscable` abren su lista flotando.
+Lo que sí te toca: **un bloque que cambia de alto con cada opción de un mismo control** (los datos de cada medio de
+pago) reserva su propio lugar —apila las variantes invisibles en una celda de grid, como `LineasPago`— para que ni
+siquiera aparezca aire; no abras listas **dentro** del contenido (usa `usePosicionLista`), y una paginación al pie
+lleva la vista al inicio de la tabla (las navegaciones por URL no las cubre la regla global). Detalle:
+`docs/adr/0185-la-pagina-no-se-encoge-bajo-el-mouse.md`.
+
 ## Vocabulario obligatorio
 
 Nunca "empleado/jefe/sucursal". Usa: "colaborador/integrante", "líder de equipo/

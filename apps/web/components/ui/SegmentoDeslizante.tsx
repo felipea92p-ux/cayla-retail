@@ -34,7 +34,13 @@ export function SegmentoDeslizante({
     if (!cont || !activo) return;
     const medir = () => setPulgar({ x: activo.offsetLeft, w: activo.offsetWidth });
     medir();
-    activo.scrollIntoView({ block: "nearest", inline: "nearest" });
+    // Solo el desplazamiento HORIZONTAL de la propia tira (si la opción quedó fuera en celular). Antes era
+    // `scrollIntoView`, que también movía la PÁGINA en vertical: si el cambio de opción acortaba lo de abajo y el
+    // control quedaba fuera de vista, la página saltaba sola (2026-09-23, ADR-0185).
+    const izq = activo.offsetLeft;
+    const der = izq + activo.offsetWidth;
+    if (izq < cont.scrollLeft) cont.scrollLeft = izq;
+    else if (der > cont.scrollLeft + cont.clientWidth) cont.scrollLeft = der - cont.clientWidth;
     const ro = new ResizeObserver(medir);
     ro.observe(activo);
     return () => ro.disconnect();

@@ -240,9 +240,49 @@ export type Database = {
           },
         ]
       }
+      caja_traslados: {
+        Row: {
+          caja_id: string
+          creado_en: string
+          destino: string
+          id: string
+          monto: number
+          referencia: string | null
+          registrado_por: string | null
+        }
+        Insert: {
+          caja_id: string
+          creado_en?: string
+          destino: string
+          id?: string
+          monto: number
+          referencia?: string | null
+          registrado_por?: string | null
+        }
+        Update: {
+          caja_id?: string
+          creado_en?: string
+          destino?: string
+          id?: string
+          monto?: number
+          referencia?: string | null
+          registrado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caja_traslados_caja_id_fkey"
+            columns: ["caja_id"]
+            isOneToOne: false
+            referencedRelation: "cajas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cajas: {
         Row: {
           abierta_en: string
+          apertura_revisada_en: string | null
+          apertura_revisada_por: string | null
           abierta_por: string | null
           cerrada_en: string | null
           cerrada_por: string | null
@@ -251,13 +291,18 @@ export type Database = {
           estado: string
           id: string
           monto_apertura: number
+          monto_apertura_esperado: number | null
           monto_cierre_real: number | null
           monto_cierre_sistema: number | null
+          monto_fondo: number | null
+          motivo_diferencia_apertura: string | null
           nota: string | null
           ubicacion_id: string
         }
         Insert: {
           abierta_en?: string
+          apertura_revisada_en?: string | null
+          apertura_revisada_por?: string | null
           abierta_por?: string | null
           cerrada_en?: string | null
           cerrada_por?: string | null
@@ -266,13 +311,18 @@ export type Database = {
           estado?: string
           id?: string
           monto_apertura: number
+          monto_apertura_esperado?: number | null
           monto_cierre_real?: number | null
           monto_cierre_sistema?: number | null
+          monto_fondo?: number | null
+          motivo_diferencia_apertura?: string | null
           nota?: string | null
           ubicacion_id: string
         }
         Update: {
           abierta_en?: string
+          apertura_revisada_en?: string | null
+          apertura_revisada_por?: string | null
           abierta_por?: string | null
           cerrada_en?: string | null
           cerrada_por?: string | null
@@ -281,8 +331,11 @@ export type Database = {
           estado?: string
           id?: string
           monto_apertura?: number
+          monto_apertura_esperado?: number | null
           monto_cierre_real?: number | null
           monto_cierre_sistema?: number | null
+          monto_fondo?: number | null
+          motivo_diferencia_apertura?: string | null
           nota?: string | null
           ubicacion_id?: string
         }
@@ -1028,6 +1081,7 @@ export type Database = {
           pago_grupo_id: string | null
           referencia: string | null
           usuario_id: string | null
+          ubicacion_id: string | null
         }
         Insert: {
           compra_id: string
@@ -1039,6 +1093,7 @@ export type Database = {
           pago_grupo_id?: string | null
           referencia?: string | null
           usuario_id?: string | null
+          ubicacion_id?: string | null
         }
         Update: {
           compra_id?: string
@@ -1050,6 +1105,7 @@ export type Database = {
           pago_grupo_id?: string | null
           referencia?: string | null
           usuario_id?: string | null
+          ubicacion_id?: string | null
         }
         Relationships: [
           {
@@ -1160,6 +1216,7 @@ export type Database = {
           subtotal: number
           tipo: string
           token_cliente: string | null
+          ubicacion_gestion_id: string | null
           total: number
           usuario_id: string | null
         }
@@ -1189,6 +1246,7 @@ export type Database = {
           subtotal: number
           tipo?: string
           token_cliente?: string | null
+          ubicacion_gestion_id?: string | null
           total: number
           usuario_id?: string | null
         }
@@ -1218,6 +1276,7 @@ export type Database = {
           subtotal?: number
           tipo?: string
           token_cliente?: string | null
+          ubicacion_gestion_id?: string | null
           total?: number
           usuario_id?: string | null
         }
@@ -4578,7 +4637,11 @@ export type Database = {
     }
     Functions: {
       abrir_caja: {
-        Args: { p_monto_apertura: number; p_ubicacion_id: string }
+        Args: {
+          p_monto_apertura: number
+          p_motivo_diferencia?: string
+          p_ubicacion_id: string
+        }
         Returns: string
       }
       abrir_conteo: {
@@ -4926,11 +4989,19 @@ export type Database = {
         }[]
       }
       cerrar_caja: {
-        Args: { p_caja_id: string; p_monto_real: number }
+        Args: {
+          p_caja_id: string
+          p_monto_real: number
+          p_traslado_destino?: string
+          p_traslado_monto?: number
+          p_traslado_referencia?: string
+        }
         Returns: {
           diferencia: number
+          monto_fondo: number
           monto_real: number
           monto_sistema: number
+          monto_trasladado: number
         }[]
       }
       cerrar_conteo: {
@@ -5296,6 +5367,18 @@ export type Database = {
         }[]
       }
       fn_es_lider: { Args: never; Returns: boolean }
+      fn_esperado_caja: {
+        Args: { p_caja_id: string }
+        Returns: {
+          apertura: number
+          cambios_efectivo: number
+          egresos: number
+          esperado: number
+          ingresos: number
+          reembolsos_efectivo: number
+          ventas_efectivo: number
+        }[]
+      }
       fn_actor_persona_id: { Args: { p_de_tienda?: boolean }; Returns: string }
       fn_exige_dinero_de_compras: {
         Args: { p_que?: string }
@@ -6044,6 +6127,39 @@ export type Database = {
       fn_puede_analizar: { Args: never; Returns: boolean }
       fn_puede_gestionar_colaboradores: { Args: never; Returns: boolean }
       fn_puede_administrar_roles: { Args: never; Returns: boolean }
+      // ADR-0184 (Compras por tienda)
+      fn_compras_ubicaciones: { Args: never; Returns: string[] }
+      fn_puede_comprar_en: { Args: { p_ubicacion_id: string }; Returns: boolean }
+      fn_saldo_de_tienda: { Args: { p_compra_id: string; p_ubicacion_id: string }; Returns: number }
+      agregar_comprador_de_tienda: { Args: { p_persona_id: string; p_ubicacion_id: string }; Returns: undefined }
+      quitar_comprador_de_tienda: { Args: { p_persona_id: string; p_ubicacion_id: string }; Returns: undefined }
+      cambiar_tienda_gestora_compra: { Args: { p_compra_id: string; p_ubicacion_id: string }; Returns: undefined }
+      fn_compras_visibles: { Args: never; Returns: string[] }
+      fn_compra_es_de_mis_tiendas: { Args: { p_compra_id: string }; Returns: boolean }
+      fn_mi_parte_de_compra: { Args: { p_compra_id: string }; Returns: Json }
+      fn_mis_partes_de_compras: {
+        Args: never
+        Returns: {
+          compra_id: string
+          documento: string | null
+          tipo: string
+          proveedor_id: string
+          proveedor_nombre: string
+          fecha_emision: string
+          fecha_vencimiento: string | null
+          estado: string
+          gestora_id: string | null
+          gestora_nombre: string | null
+          ubicacion_id: string
+          ubicacion_nombre: string
+          unidades: number
+          total: number
+          pagado: number
+          saldo: number
+          registrada_en: string
+          parte_nueva: boolean
+        }[]
+      }
       // 20260923163000 (ADR-0178): el escalón Admin, leído de Dynamic, y «solo das lo que tienes».
       fn_es_admin: { Args: never; Returns: boolean }
       fn_admins: { Args: never; Returns: { persona_id: string }[] }
@@ -6688,6 +6804,7 @@ export type Database = {
           p_proveedor_id: string
           p_referencia?: string
           p_token?: string
+          p_ubicacion_id?: string
         }
         Returns: string
       }
@@ -6699,6 +6816,7 @@ export type Database = {
           p_medios?: Json
           p_proveedor_id: string
           p_token?: string
+          p_ubicacion_id?: string
         }
         Returns: string
       }
@@ -6708,6 +6826,7 @@ export type Database = {
           p_fecha?: string
           p_pagos: Json
           p_token?: string
+          p_ubicacion_id?: string
         }
         Returns: string[]
       }
@@ -6850,6 +6969,7 @@ export type Database = {
         Args: { p_produccion_id: string }
         Returns: undefined
       }
+      revisar_apertura_caja: { Args: { p_caja_id: string }; Returns: undefined }
       revisar_producto_censo: {
         Args: { p_aprobar: boolean; p_producto_id: string }
         Returns: undefined

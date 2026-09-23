@@ -4,14 +4,11 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { inicioDeDiaLima, diaLima, horaDelDiaLima } from "@/lib/panel-serie";
 
 // Caja/POS V2 (2026-09-12) — ver supabase/migrations/0008_caja_y_pagos.sql.
-// `resumen` se calcula acá con las MISMAS reglas que cerrar_caja() en SQL
-// (apertura + ventas en efectivo + ingresos − egresos): es lo que la
-// Encargada ve ANTES de cerrar, para que el número de cierre no la
-// sorprenda. Si algún día cambia la fórmula del cuadre, cambia en los dos
-// lugares — están separados porque uno es "vista previa" (puede leerse
-// cien veces sin efecto) y el otro es la escritura real que congela el
-// cierre; unificarlos exigiría que la vista previa mutara algo, que es
-// justo lo que no debe hacer.
+// `getResumenCaja` alimenta las cifras del TABLERO de Caja (ventas por método, entradas, salidas). El esperado del
+// cierre ya no sale de aquí: lo calcula la base en `fn_calcular_esperado_caja`, que usan `fn_esperado_caja` (la vista
+// previa del cierre) y `cerrar_caja` (ADR-0186). Las ventas anuladas se excluyen igual que allá (`estado <> 'anulada'`):
+// su dinero volvió a la clienta, así que ni está en el cajón ni es venta del día. Antes se contaban y el tablero
+// mostraba ventas que ya no existían.
 export type CajaAbierta = {
   id: string;
   ubicacionId: string;
@@ -21,11 +18,8 @@ export type CajaAbierta = {
 };
 
 /**
- * Conteo ciego (ADR-0042): a propósito NO trae el total esperado en el cajón.
- * Quien cuenta no debe saber cuánto debería haber — si lo sabe, contar deja de
- * ser una medición y pasa a ser una confirmación, y la diferencia real nunca
- * aparece. El esperado lo calcula `cerrar_caja` en el servidor, en el instante
- * del cierre, y se muestra recién ahí junto a lo contado.
+ * Montos sueltos del tablero de Caja. No trae el total esperado en el cajón: ese número tiene un solo dueño,
+ * `fn_calcular_esperado_caja` en la base (ADR-0186), para que la pantalla y el cierre nunca den cifras distintas.
  */
 export type ResumenCaja = {
   ventasEfectivo: number;
@@ -111,7 +105,7 @@ export async function getCajaAbierta(ubicacionId: string): Promise<CajaAbierta |
 export async function getResumenCaja(cajaId: string): Promise<ResumenCaja> {
   const supabase = await createClient();
   const [ventasRes, movimientos, devolucionesRes, cambiosRes] = await Promise.all([
-    supabase.from("ventas").select("id").eq("caja_id", cajaId),
+    supabase.from("ventas").select("id").eq("caja_id", cajaId).neq("estado", "anulada"),
     supabase.from("caja_movimientos").select("tipo, monto").eq("caja_id", cajaId),
     supabase.from("devoluciones").select("reembolso_monto, reembolso_metodo").eq("caja_id", cajaId).eq("estado", "aprobada"),
     supabase.from("cambios").select("diferencia, metodo_pago_diferencia").eq("caja_id", cajaId).eq("metodo_pago_diferencia", "efectivo"),
@@ -201,7 +195,48 @@ export type CierreCaja = {
   nota: string | null;
   /** Dato ficticio de prueba (D-54, ADR-0159): solo llega con `incluirPrueba`. */
   esPrueba: boolean;
+  /** Lo que quedó en el cajón al cerrar (ADR-0186). `null` en cierres anteriores a ADR-0186. */
+  montoFondo: number | null;
+  /** A dónde fue el resto del efectivo contado (ADR-0186). Vacío si todo quedó en el cajón. */
+  traslados: TrasladoCaja[];
+  /** Con qué monto debió abrir según el cierre anterior, y por qué abrió con otro (ADR-0186). */
+  aperturaEsperada: number | null;
+  motivoDiferenciaApertura: string | null;
 };
+
+export type TrasladoCaja = { destino: string; monto: number; referencia: string | null };
+
+/** Columnas y tabla de ADR-0186: si la migración aún no está pegada, la pantalla sigue sin ellas. */
+const TABLA_INEXISTENTE = "42P01";
+
+/**
+ * Lo de ADR-0186 de cada caja (fondo, apertura esperada, motivo y traslados), pedido aparte y tolerante: si la
+ * migración todavía no está en la base, el historial y la pantalla de Caja siguen funcionando con lo de siempre.
+ */
+async function getExtrasAdr0182(ids: string[]) {
+  const vacio = new Map<string, { fondo: number | null; esperada: number | null; motivo: string | null; traslados: TrasladoCaja[] }>();
+  if (ids.length === 0) return vacio;
+  const supabase = await createClient();
+  const [cajasRes, trasladosRes] = await Promise.all([
+    supabase.from("cajas").select("id, monto_fondo, monto_apertura_esperado, motivo_diferencia_apertura").in("id", ids),
+    supabase.from("caja_traslados").select("caja_id, destino, monto, referencia").in("caja_id", ids).order("creado_en"),
+  ]);
+  const faltaMigracion = (code?: string) => code === COLUMNA_INEXISTENTE || code === TABLA_INEXISTENTE;
+  if (faltaMigracion(cajasRes.error?.code) || faltaMigracion(trasladosRes.error?.code)) return vacio;
+  const filas = exigir(cajasRes, "el fondo de cada cierre");
+  const traslados = exigir(trasladosRes, "los traslados de cada cierre");
+  for (const f of filas) {
+    vacio.set(f.id, {
+      fondo: f.monto_fondo === null ? null : Number(f.monto_fondo),
+      esperada: f.monto_apertura_esperado === null ? null : Number(f.monto_apertura_esperado),
+      motivo: f.motivo_diferencia_apertura,
+      traslados: traslados
+        .filter((t) => t.caja_id === f.id)
+        .map((t) => ({ destino: t.destino, monto: Number(t.monto), referencia: t.referencia })),
+    });
+  }
+  return vacio;
+}
 
 // `42703` = undefined_column: la migración de `es_prueba` (D-54, ADR-0159) es aditiva y puede
 // tardar en pegarse en producción — mismo reintento que `ventas-historial.ts` y
@@ -219,7 +254,7 @@ const COLUMNA_INEXISTENTE = "42703";
  *
  * `incluirPrueba` (D-54, ADR-0159): apagado por defecto, las cajas `es_prueba` no se piden.
  */
-export async function getHistorialCierres(limite = 60, incluirPrueba = false): Promise<CierreCaja[]> {
+export async function getHistorialCierres(limite = 60, incluirPrueba = false, ubicacionId?: string): Promise<CierreCaja[]> {
   const supabase = await createClient();
   const CAMPOS = "id, ubicacion_id, monto_apertura, abierta_en, abierta_por, monto_cierre_sistema, monto_cierre_real, diferencia, cerrada_en, cerrada_por, nota";
   const pedir = (conPrueba: boolean) => {
@@ -227,6 +262,7 @@ export async function getHistorialCierres(limite = 60, incluirPrueba = false): P
       .from("cajas")
       .select(conPrueba ? `${CAMPOS}, es_prueba` : CAMPOS)
       .eq("estado", "cerrada");
+    if (ubicacionId) q = q.eq("ubicacion_id", ubicacionId);
     if (conPrueba && !incluirPrueba) q = q.eq("es_prueba", false);
     return q.order("cerrada_en", { ascending: false }).limit(limite);
   };
@@ -260,6 +296,7 @@ export async function getHistorialCierres(limite = 60, incluirPrueba = false): P
       ? []
       : exigir(await supabase.rpc("fn_nombres_personas", { p_ids: idsPersonas }), "quién abrió o cerró cada caja");
   const nombrePersona = new Map(nombresPersonas.map((n) => [n.id, n.nombre]));
+  const extras = await getExtrasAdr0182(filas.map((f) => f.id));
 
   return filas.map((f) => ({
     id: f.id,
@@ -275,6 +312,62 @@ export async function getHistorialCierres(limite = 60, incluirPrueba = false): P
     cerradaPorNombre: f.cerrada_por ? (nombrePersona.get(f.cerrada_por) ?? null) : null,
     nota: f.nota,
     esPrueba: f.es_prueba === true,
+    montoFondo: extras.get(f.id)?.fondo ?? null,
+    traslados: extras.get(f.id)?.traslados ?? [],
+    aperturaEsperada: extras.get(f.id)?.esperada ?? null,
+    motivoDiferenciaApertura: extras.get(f.id)?.motivo ?? null,
+  }));
+}
+
+/** El último cierre real de la sede (sin datos de prueba), para mostrarlo con la caja cerrada y verificar la apertura. */
+export async function getUltimoCierre(ubicacionId: string): Promise<CierreCaja | null> {
+  return (await getHistorialCierres(1, false, ubicacionId))[0] ?? null;
+}
+
+export type AperturaPorRevisar = {
+  cajaId: string;
+  ubicacionNombre: string;
+  abiertaEn: string;
+  abiertaPorNombre: string | null;
+  esperado: number;
+  montoApertura: number;
+  motivo: string;
+};
+
+/**
+ * Aperturas que no coincidieron con el último cierre y que ningún líder marcó todavía como revisadas (ADR-0186).
+ * `abrir_caja` solo guarda el motivo cuando hay diferencia, así que «tiene motivo» = «tuvo diferencia». Total: si no
+ * se pudo leer (o la migración no está pegada) devuelve `null`, y quien la muestra dice que no pudo leerla.
+ */
+export async function getAperturasPorRevisar(): Promise<AperturaPorRevisar[] | null> {
+  const supabase = await createClient();
+  const res = await supabase
+    .from("cajas")
+    .select("id, ubicacion_id, abierta_en, abierta_por, monto_apertura, monto_apertura_esperado, motivo_diferencia_apertura")
+    .not("motivo_diferencia_apertura", "is", null)
+    .is("apertura_revisada_en", null)
+    .eq("es_prueba", false)
+    .order("abierta_en", { ascending: false })
+    .limit(50);
+  if (res.error) return null;
+  const filas = res.data;
+  if (filas.length === 0) return [];
+  const [ubicaciones, nombres] = await Promise.all([
+    getUbicaciones(),
+    supabase.rpc("fn_nombres_personas", {
+      p_ids: Array.from(new Set(filas.map((f) => f.abierta_por).filter((v): v is string => v !== null))),
+    }),
+  ]);
+  const nombreUbicacion = new Map(ubicaciones.map((u) => [u.id, u.nombre]));
+  const nombrePersona = new Map((nombres.data ?? []).map((n) => [n.id, n.nombre]));
+  return filas.map((f) => ({
+    cajaId: f.id,
+    ubicacionNombre: nombreUbicacion.get(f.ubicacion_id) ?? "—",
+    abiertaEn: f.abierta_en,
+    abiertaPorNombre: f.abierta_por ? (nombrePersona.get(f.abierta_por) ?? null) : null,
+    esperado: Number(f.monto_apertura_esperado),
+    montoApertura: Number(f.monto_apertura),
+    motivo: f.motivo_diferencia_apertura ?? "",
   }));
 }
 
@@ -319,7 +412,8 @@ export async function getMovimientosCaja(cajaId: string): Promise<MovimientoCaja
  */
 export async function getSeriesVentasCaja(cajaId: string): Promise<SeriesVentasCaja> {
   const supabase = await createClient();
-  const ventasRes = await supabase.from("ventas").select("id, created_at").eq("caja_id", cajaId);
+  // Sin anuladas, como `getResumenCaja` y `fn_calcular_esperado_caja` (ADR-0186): el gráfico no dibuja ventas que ya no existen.
+  const ventasRes = await supabase.from("ventas").select("id, created_at").eq("caja_id", cajaId).neq("estado", "anulada");
   const filasVentas = exigir(ventasRes, "las ventas de esta caja");
   if (filasVentas.length === 0) return { porMetodo: {}, porHora: [] };
 

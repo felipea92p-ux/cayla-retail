@@ -1,12 +1,13 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getCajaAbierta, getResumenCaja, getMovimientosCaja, getSeriesVentasCaja, getHistorialCierres } from "@/lib/caja";
+import { getCajaAbierta, getResumenCaja, getMovimientosCaja, getSeriesVentasCaja, getHistorialCierres, getUltimoCierre } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { createClient } from "@/lib/supabase/server";
 import { tolerar } from "@/lib/resultado";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
+import { UltimoCierreCaja } from "@/components/UltimoCierreCaja";
 import { CajaAbiertaPanel, type VentaDelDia } from "@/components/CajaAbiertaPanel";
 
 // Prioridad 1 (2026-09-12): Caja/POS. Sin caja abierta, la única acción
@@ -15,6 +16,8 @@ import { CajaAbiertaPanel, type VentaDelDia } from "@/components/CajaAbiertaPane
 export default async function CajaPage() {
   const persona = await requirePersonaActualV2();
   const caja = await getCajaAbierta(persona.ubicacionId);
+  // Sin caja (ADR-0186): el último cierre de la sede da el contexto y el monto que debería estar en el cajón.
+  const ultimoCierre = caja ? null : await getUltimoCierre(persona.ubicacionId);
 
   return (
     // `/caja` va a todo el ancho (AppShell), pero solo el tablero de la caja abierta: sin caja, lo que hay
@@ -37,8 +40,16 @@ export default async function CajaPage() {
           React ya lo remonta solo — `anim-sube` no necesita `key` para retriggerse,
           entra de nuevo cada vez que este `router.refresh()` cambia de rama. */}
       {!caja ? (
-        <div className="anim-sube" style={{ "--i": 1 } as CSSProperties}>
-          <AbrirCajaFormV2 ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} />
+        <div
+          className={`anim-sube grid items-start gap-4 ${ultimoCierre ? "md:grid-cols-[1.1fr_1fr]" : ""}`}
+          style={{ "--i": 1 } as CSSProperties}
+        >
+          {ultimoCierre && <UltimoCierreCaja cierre={ultimoCierre} />}
+          <AbrirCajaFormV2
+            ubicacionId={persona.ubicacionId}
+            ubicacionEtiqueta={persona.ubicacionEtiqueta}
+            esperado={ultimoCierre?.montoFondo ?? null}
+          />
         </div>
       ) : (
         <CajaConDatos
