@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
+import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { useResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -30,9 +32,11 @@ function ordenar(lista: Tejido[]) {
 }
 
 export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosIniciales: Tejido[]; puedeEditar: boolean }) {
-  // Cambiar el vocabulario es Catálogo, operación de tienda (ADR-0161): UN combo «Responsable» firma todo lo que se
-  // guarda desde esta lista (arriba; el mismo se repite en cada modal) y cada guardado exitoso lo vacía.
+  // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
+  // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
+  // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
   const responsable = useResponsable();
+  const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
   const [tejidos, setTejidos] = useState(() => ordenar(tejidosIniciales));
   const [agregando, setAgregando] = useState(false);
   const [nombre, setNombre] = useState("");
@@ -175,7 +179,7 @@ export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosInicial
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        {puedeEditar ? <ComboResponsable control={responsable} hacia="abajo" className="w-full max-w-xs" /> : <span />}
+        <span />
         <button
           type="button"
           onClick={() => setAgregando(true)}
@@ -201,7 +205,7 @@ export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosInicial
             {puedeEditar && (
               <div className="flex gap-2">
                 {t.estado === "pendiente" && (
-                  <Boton peso="primario" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={aprobandoId === t.id} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => aprobar(t)}>
+                  <Boton peso="primario" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={aprobandoId === t.id} onClick={() => setConfirmando(confirmacionCatalogo("aprobar", t.nombre, () => aprobar(t)))}>
                     Aprobar
                   </Boton>
                 )}
@@ -217,7 +221,7 @@ export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosInicial
                     Rechazar
                   </Boton>
                 ) : (
-                  <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === t.id} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => desactivar(t)}>
+                  <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === t.id} onClick={() => setConfirmando(confirmacionCatalogo("desactivar", t.nombre, () => desactivar(t)))}>
                     Desactivar
                   </Boton>
                 )}
@@ -286,7 +290,7 @@ export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosInicial
                   )}
                 </div>
                 {puedeEditar && (
-                  <Boton peso="discreto" className="px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === t.id} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => reactivar(t)}>
+                  <Boton peso="discreto" className="px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === t.id} onClick={() => setConfirmando(confirmacionCatalogo("reactivar", t.nombre, () => reactivar(t)))}>
                     Reactivar
                   </Boton>
                 )}
@@ -295,6 +299,8 @@ export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosInicial
           </div>
         </section>
       )}
+
+      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
     </div>
   );
 }

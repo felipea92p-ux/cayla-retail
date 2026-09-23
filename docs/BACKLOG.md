@@ -94,6 +94,10 @@ Con el sembrado de 90 días (7.001 ventas), `/vender/historial` pasaba los 8 s d
 - [ ] **Base local:** la migración de separaciones (`20260923090000`) no está aplicada en local (`scripts/pruebas/separaciones.mjs` da 0/46 porque falta la tabla); en producción sí está.
 - [ ] **Decisión de Felipe:** las 7.002 ventas en producción tienen `es_prueba = false`, sembradas incluidas. El filtro «Ver datos de prueba» no las esconde y cuentan en los totales. ¿Es a propósito (ADR-0150)?
 - [ ] **Previo, sin relación con esto:** `scripts/pruebas/registrar_venta.mjs` da 21/25 en local. Fallan los 4 casos «colaboradora + código de descuento»; fallan igual con las políticas viejas.
+## 🎯 Catálogo: el combo «Responsable» solo dentro de las ventanas (2026-09-23, ADR-0161 act. b) — construido, SIN migraciones
+- [x] Las 8 listas de Catálogo sin combo arriba; Aprobar, Desactivar y Reactivar abren una confirmación con el combo adentro (`ConfirmarConResponsable`). Maqueta aprobada: `docs/maquetas/catalogo-responsable-confirmacion-2026-09/`. Tipos, lint y 24 240 pruebas en verde.
+- [ ] **Verlo con clics** (no se pudo sin sesión): con tu cuenta, desactivar un tejido abre «¿Desactivar «X»?» con tu nombre ya elegido; con una terminal, viene vacío y el botón se apaga hasta elegir.
+
 ## 🎯 Combo «Responsable»: propone a quien inició sesión y dice «¿Quién está atendiendo?» (2026-09-22, actualización del ADR-0161) — en `main` (PR #320), SIN migraciones
 
 - [x] ~~Texto del combo vacío: «¿Quién está atendiendo?» en todos los módulos.~~ (corregido abajo)
