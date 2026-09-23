@@ -45,8 +45,8 @@ Del análisis `/pantalla` completo del módulo Ventas: la misma familia de hueco
 ## 🔒 Responsable obligatorio para todos (2026-09-23, Felipe, ADR-0162 actualización) — EN CURSO
 «Todas obligatorias, un mismo flujo para todos; si nadie marcó asistencia no se podrá vender.» Sin excepción para el líder.
 - [x] Interruptor como dato: `configuracion_empresa.exige_responsable` (migración `20260923160000_responsable_obligatorio.sql`), apagado por defecto; 6 casos nuevos en `pruebas:terminales-sin-persona` (52/52).
-- [ ] Combo en las 7 llamadas que no lo mandaban (anular venta, aprobar/rechazar devolución, anular y liberar comprobante, archivar serie, registrar clienta) — PR aparte.
-- [ ] Pegar `20260923160000` en producción (deja el interruptor APAGADO: no cambia nada todavía).
+- [ ] Combo en las 7 llamadas que no lo mandaban (anular venta, aprobar/rechazar devolución, anular y liberar comprobante, archivar serie, registrar clienta) y en `/api/lucode/consultar-anulacion` — PR #329, auditoría en 0.
+- [x] `20260923160000` pegada en producción el 2026-09-23 (ensayo con ROLLBACK y COMMIT): una sola firma, la columna existe y el interruptor quedó APAGADO.
 - [ ] Con la web publicada: `update retail.configuracion_empresa set exige_responsable = true;` en producción.
 - [ ] Emergencia (una tienda trabada): `update retail.configuracion_empresa set exige_responsable = false;` — sin migración.
 - [ ] Lima: cargar su asistencia en Dynamic; hasta entonces, con el interruptor encendido, Lima no puede guardar nada.
