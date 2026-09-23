@@ -101,3 +101,8 @@ comment on function retail.regularizar_prenda(uuid, uuid, text) is
   'ADR-0179: une una prenda vendida sin registrar con su variante real. p_forma: ya_registrada (sale 1) o llego_nueva (entra 1 y sale 1). Devuelve la diferencia (cobrado − oficial).';
 revoke all on function retail.regularizar_prenda(uuid, uuid, text) from public, anon;
 grant execute on function retail.regularizar_prenda(uuid, uuid, text) to authenticated;
+
+-- La cola solo se escribe por `registrar_venta` y esta función (security definer). La RLS ya lo impide
+-- (solo tiene política de lectura), pero el candado también va en el privilegio: los privilegios por
+-- defecto de producción le dieron insert/update/delete a `authenticated` (mismo patrón que ADR-0177).
+revoke insert, update, delete, truncate on retail.prendas_por_regularizar from authenticated, anon;

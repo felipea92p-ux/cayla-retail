@@ -1,6 +1,6 @@
 # ADR-0179 — Una prenda que llega a piso sin registrar se vende con rastro y almacén la regulariza después
 
-**Fecha:** 2026-09-23 · **Estado:** aceptado (Felipe, cuatro rondas de preguntas + «Aprobada, vamos a la implementación»), construido y verificado en la base **local**. **No está en producción:** faltan pegar `20260923161700` y `20260923162300` (con OK de Felipe) y fusionar la rama. Spec: `docs/superpowers/specs/2026-09-23-prendas-sin-registrar-design.md`; plan: `docs/superpowers/plans/2026-09-23-prendas-sin-registrar.md`.
+**Fecha:** 2026-09-23 · **Estado:** aceptado (Felipe, cuatro rondas de preguntas + «Aprobada, vamos a la implementación»), construido y verificado en local; **las dos migraciones están en producción desde el 2026-09-23** (pegadas con OK de Felipe, huellas y humo en el BACKLOG). Falta fusionar la web. Spec: `docs/superpowers/specs/2026-09-23-prendas-sin-registrar-design.md`; plan: `docs/superpowers/plans/2026-09-23-prendas-sin-registrar.md`.
 
 ## Contexto
 
@@ -32,6 +32,7 @@ Candados en la base: `anular_venta` salta la línea pendiente y la tabla pasa a 
 ## Se rompe si
 
 - **Un ítem de venta usa la clave `descripcion`.** `transmision-reglas.ts` trata un ítem con `descripcion` como **comprobante manual**, cuyo precio ya viene sin IGV, y declararía a SUNAT un monto equivocado. Por eso el dato viaja como `descripcion_libre`. El comprobante lo usa como nombre de la línea y sigue tratando el precio con IGV (hay prueba).
+- **Alguien reescribe `registrar_venta` o `anular_venta` copiando un ARCHIVO.** Su versión viva no está en ningún archivo: la nota de venta (20260922224300), la firma del responsable (20260923100000) y esta migración las parchan en vivo con `pg_temp.reemplazar`. La primera versión de esta migración copiaba el archivo y habría quitado la nota de venta de la caja; se detectó comparando huellas con producción antes de pegar. Todo cambio a estas dos funciones va como parche sobre la definición viva.
 - **Se pega en producción una versión vieja de `registrar_venta` o `anular_venta`** encima de esta: la prenda sin registrar volvería a mover stock inexistente, o la anulación fallaría con «se esperaba 1 salida». Antes de pegar, verificar contra `pg_proc` que quede una sola sobrecarga de cada una.
 - **Se vuelve a sembrar stock para la centinela.** Ninguna consulta lo necesita. Si alguien lo siembra, cualquier regla que cuente stock «por variante activa» vuelve a verla.
 
