@@ -1,5 +1,15 @@
 [
  {
+  "conname": "apartados_cerrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "apartados"
+ },
+ {
+  "conname": "apartados_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "apartados"
+ },
+ {
   "conname": "caja_movimientos_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "caja_movimientos"
@@ -20,6 +30,11 @@
   "src_table": "cambios"
  },
  {
+  "conname": "clientas_created_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "clientas"
+ },
+ {
   "conname": "codigos_descuento_creado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "codigos_descuento"
@@ -33,6 +48,21 @@
   "conname": "colaboradores_persona_id_fkey",
   "ref_table": "public.personas",
   "src_table": "colaboradores"
+ },
+ {
+  "conname": "colaboradores_suspendidos_agregado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "colaboradores_suspendidos"
+ },
+ {
+  "conname": "colaboradores_suspendidos_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "colaboradores_suspendidos"
+ },
+ {
+  "conname": "colaboradores_suspendidos_suspendido_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "colaboradores_suspendidos"
  },
  {
   "conname": "colores_aprobado_por_fkey",
@@ -100,9 +130,19 @@
   "src_table": "comprobantes_produccion"
  },
  {
+  "conname": "comprobantes_produccion_cierres_usuario_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "comprobantes_produccion_cierres"
+ },
+ {
   "conname": "comprobantes_produccion_pagos_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "comprobantes_produccion_pagos"
+ },
+ {
+  "conname": "comprobantes_produccion_recepciones_usuario_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "comprobantes_produccion_recepciones"
  },
  {
   "conname": "conteos_abierto_por_fkey",
@@ -118,6 +158,11 @@
   "conname": "costo_historial_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "costo_historial"
+ },
+ {
+  "conname": "cotizaciones_maquila_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "cotizaciones_maquila"
  },
  {
   "conname": "devoluciones_aprobado_por_fkey",
@@ -180,6 +225,11 @@
   "src_table": "patrones"
  },
  {
+  "conname": "pedidos_no_atendidos_atendido_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedidos_no_atendidos"
+ },
+ {
   "conname": "prendas_danadas_resuelto_por_fkey",
   "ref_table": "public.personas",
   "src_table": "prendas_danadas"
@@ -210,6 +260,51 @@
   "src_table": "proveedor_creditos"
  },
  {
+  "conname": "roles_archivado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "roles"
+ },
+ {
+  "conname": "roles_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "roles"
+ },
+ {
+  "conname": "roles_historial_hecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "roles_historial"
+ },
+ {
+  "conname": "separaciones_asesora_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separaciones"
+ },
+ {
+  "conname": "separaciones_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separaciones"
+ },
+ {
+  "conname": "separaciones_devuelta_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separaciones"
+ },
+ {
+  "conname": "separaciones_entregada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separaciones"
+ },
+ {
+  "conname": "separaciones_liberada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separaciones"
+ },
+ {
+  "conname": "series_comprobantes_archivada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "series_comprobantes"
+ },
+ {
   "conname": "tallas_aprobado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "tallas"
@@ -228,6 +323,21 @@
   "conname": "tejidos_propuesto_por_fkey",
   "ref_table": "public.personas",
   "src_table": "tejidos"
+ },
+ {
+  "conname": "terminales_auth_user_id_fkey",
+  "ref_table": "auth.users",
+  "src_table": "terminales"
+ },
+ {
+  "conname": "terminales_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "terminales"
+ },
+ {
+  "conname": "terminales_desactivada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "terminales"
  },
  {
   "conname": "transferencia_recepciones_registrado_por_fkey",
@@ -256,6 +366,16 @@
  },
  {
   "conname": "ventas_anulado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ventas"
+ },
+ {
+  "conname": "ventas_asesora_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ventas"
+ },
+ {
+  "conname": "ventas_descuento_autorizado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "ventas"
  },
