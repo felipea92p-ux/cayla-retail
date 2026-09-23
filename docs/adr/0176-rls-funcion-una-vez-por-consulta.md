@@ -1,4 +1,4 @@
-# ADR-0173 — RLS: la función de permisos se evalúa una vez por consulta, no una vez por fila
+# ADR-0176 — RLS: la función de permisos se evalúa una vez por consulta, no una vez por fila
 
 **Fecha:** 2026-09-22 · **Estado:** aceptado (Felipe, 2026-09-22: «hazlo con la A y luego hacemos B») · **Migraciones:** `20260923143700_rls_ventas_una_vez_por_consulta.sql` (A) y `20260923152300_rls_todas_una_vez_por_consulta.sql` (B) — las dos **PEGADAS en producción** el 2026-09-22
 

@@ -200,12 +200,15 @@ export function SuspenderModal({ nombre, onConfirmar, onClose }: { nombre: strin
 
 export function CambiarUbicacionModal({
   nombre,
+  esLider = false,
   ubicacionActualId,
   ubicaciones,
   onConfirmar,
   onClose,
 }: {
   nombre: string;
+  /** A un líder la ubicación no lo limita: es la tienda donde arranca su sesión (20260923120100). */
+  esLider?: boolean;
   ubicacionActualId: string | null;
   ubicaciones: Ubicacion[];
   onConfirmar: (ubicacionId: string) => Promise<boolean>;
@@ -229,10 +232,19 @@ export function CambiarUbicacionModal({
       {(cerrar) => (
         <form onSubmit={(e) => enviar(e, cerrar)} className="mt-5 space-y-4">
           <p className="text-sm leading-relaxed text-tinta/85">
-            Reasignar la ubicación fija de <strong className="font-semibold text-tinta">{nombre}</strong>. El cambio queda en el historial.
+            {esLider ? (
+              <>
+                Elegir la tienda donde arranca la sesión de <strong className="font-semibold text-tinta">{nombre}</strong>. Como líder sigue
+                operando todas las sedes desde la cabecera. El cambio queda en el historial.
+              </>
+            ) : (
+              <>
+                Reasignar la ubicación fija de <strong className="font-semibold text-tinta">{nombre}</strong>. El cambio queda en el historial.
+              </>
+            )}
           </p>
           <CampoSelect
-            etiqueta="Ubicación asignada"
+            etiqueta={esLider ? "Tienda donde arranca" : "Ubicación asignada"}
             valor={ubicacionId}
             onValor={setUbicacionId}
             opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))}

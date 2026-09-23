@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260923152300_rls_todas_una_vez_por_consulta.sql — ADR-0173, opción B (Felipe 2026-09-22)
+-- 20260923152300_rls_todas_una_vez_por_consulta.sql — ADR-0176, opción B (Felipe 2026-09-22)
 --
 -- La opción A (`20260923143700_…`) arregló a mano las 4 políticas de venta que tumbaban Ventas ▸ Historial. Quedan
 -- 92 políticas en `retail` que siguen llamando funciones de permisos UNA VEZ POR FILA (stock, movimientos, cajas,

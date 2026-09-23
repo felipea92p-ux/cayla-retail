@@ -256,8 +256,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const [nota, setNota] = useState("");
   // El RESPONSABLE de la venta (ADR-0161; reemplaza la fila «Atendió» del ADR-0163): solo quienes están presentes
   // ahora en la tienda, vacío en cada venta, y sin nadie presente no se cobra. Viaja como `p_asesora_id` y como
-  // encabezado `x-responsable` (`firmar`), y es el nombre que sale en el papel del ticket.
-  const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
+  // encabezado `x-responsable` (`firmar`), y es el nombre que sale en el papel del ticket. En el Punto de venta NO se
+  // propone a quien inició sesión (Felipe, 2026-09-22): quien atiende a la clienta se elige siempre a mano.
+  const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta }, { proponerSesion: false });
   // Tickets en espera de ESTA sede. Arranca vacío a propósito y se carga después de
   // montar (efecto más abajo): el servidor no tiene localStorage, y leerlo durante el
   // render dejaría el HTML del servidor distinto del primero del navegador (hidratación).
