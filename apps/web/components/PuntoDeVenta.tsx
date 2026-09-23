@@ -40,7 +40,7 @@ import { borrar, claveLocal, guardar, leer } from "@/lib/almacen-local";
 import { carritoPasaElUmbral, conStockComprometidoDescontado, firmaDeVentaEncolada, type ParamsRegistrarVenta, type VentaEncolada } from "@/lib/ventas-offline";
 import { firmar } from "@/lib/responsable-reglas";
 import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
-import { Modal, botonPrimario } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { AbrirCajaFormV2 } from "@/components/AbrirCajaFormV2";
 import { CerrarCajaModalV2 } from "@/components/CerrarCajaModalV2";
 import { PuntoDeVentaCatalogo } from "@/components/PuntoDeVentaCatalogo";
@@ -52,7 +52,8 @@ import { codigoPrenda } from "@/lib/prenda-reglas";
 import { armarRecibo, textoNumeroRecibo, type ReciboVenta } from "@/lib/recibo-reglas";
 import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
 import { useResponsable } from "@/lib/useResponsable";
-import { faltaEnPrendaSinRegistrar, type DatosPrendaSinRegistrar } from "@/lib/prenda-sin-registrar-reglas";
+import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
+import { PrendaSinRegistrarModal } from "@/components/PrendaSinRegistrarModal";
 
 /**
  * Variante centinela de la «Prenda sin registrar» (ADR-0179; antes «Monto manual»): una
@@ -114,15 +115,6 @@ export type ItemCarrito = {
   /** Solo en una «Prenda sin registrar» (ADR-0179): lo que anotó caja para que almacén la reconozca. */
   prendaLibre?: Omit<DatosPrendaSinRegistrar, "precio">;
 };
-
-/** Las listas cerradas del modal «Prenda sin registrar» (se eligen, no se escriben). */
-export type ListasPrendaLibre = {
-  categorias: { id: string; nombre: string }[];
-  tallas: { id: string; valor: string }[];
-  colores: { codigo: string; nombre: string }[];
-};
-
-const PRENDA_LIBRE_VACIA: Omit<DatosPrendaSinRegistrar, "precio"> = { descripcion: "", categoriaId: "", tallaId: "", colorCodigo: "" };
 
 /** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el modo (% o S/
  *  por unidad), el valor tal cual lo escribe en cada uno, a qué líneas alcanza (`null`
@@ -289,8 +281,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<VentaOk | null>(null);
   const [manualAbierto, setManualAbierto] = useState(false);
-  const [montoManual, setMontoManual] = useState("");
-  const [prendaLibre, setPrendaLibre] = useState(PRENDA_LIBRE_VACIA);
   const [mostrarVentasHoy, setMostrarVentasHoy] = useState(false);
   const [modalCaja, setModalCaja] = useState<"abrir" | "cerrar" | null>(null);
 
@@ -567,11 +557,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     buscador.current?.focus();
   }
 
-  const faltaPrendaLibre = faltaEnPrendaSinRegistrar({ ...prendaLibre, precio: Number(montoManual) });
-
-  function agregarPrendaSinRegistrar() {
-    if (bloqueado || faltaPrendaLibre) return;
-    const valor = Number(montoManual);
+  function agregarPrendaSinRegistrar(d: DatosPrendaSinRegistrar) {
+    if (bloqueado) return;
     capturarFlip();
     setCarrito((actual) => [
       ...actual,
@@ -579,12 +566,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
         claveLinea: `manual-${Date.now()}`,
         varianteId: ID_CARGO_ESPECIAL,
         // La descripción de caja es el nombre de la línea en el ticket y en el comprobante.
-        referencia: prendaLibre.descripcion.trim(),
+        referencia: d.descripcion,
         sku: "SIN-REGISTRAR",
-        prendaLibre: { ...prendaLibre, descripcion: prendaLibre.descripcion.trim() },
+        prendaLibre: { descripcion: d.descripcion, categoriaId: d.categoriaId, tallaId: d.tallaId, colorCodigo: d.colorCodigo },
         codigo: null,
         cantidad: 1,
-        precioUnitario: valor,
+        precioUnitario: d.precio,
         descuentoUnitario: 0,
         // Una por línea: cada prenda sin registrar se regulariza por separado (la base exige cantidad 1).
         stockAqui: 1,
@@ -594,8 +581,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
         campana: null,
       },
     ]);
-    setMontoManual("");
-    setPrendaLibre(PRENDA_LIBRE_VACIA);
     setManualAbierto(false);
   }
 
@@ -1233,75 +1218,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       )}
 
       {manualAbierto && (
-        <Modal
-          titulo="Prenda sin registrar"
-          subtitulo="Para una prenda que todavía no tiene etiqueta. Almacén la registra después con estos datos."
+        <PrendaSinRegistrarModal
+          listas={listasPrendaLibre}
+          onAgregar={agregarPrendaSinRegistrar}
           onClose={() => setManualAbierto(false)}
           alCerrarEnfocar={buscador}
-        >
-          <div className="space-y-3">
-            <label className="block">
-              <span className="label-cayla text-[11px] text-tinta/65">Descripción corta</span>
-              <input
-                autoFocus
-                value={prendaLibre.descripcion}
-                onChange={(e) => setPrendaLibre((p) => ({ ...p, descripcion: e.target.value }))}
-                placeholder="Blusa lino beige"
-                maxLength={80}
-                className="caja-cayla mt-1 h-10 w-full px-3 text-sm text-tinta outline-none placeholder:text-taupe"
-              />
-            </label>
-            <div className="grid grid-cols-[1.6fr_1fr_1fr] gap-2">
-              <label className="block">
-                <span className="label-cayla text-[11px] text-tinta/65">Categoría</span>
-                <select value={prendaLibre.categoriaId} onChange={(e) => setPrendaLibre((p) => ({ ...p, categoriaId: e.target.value }))} className="caja-cayla mt-1 h-10 w-full px-3 text-sm text-tinta outline-none placeholder:text-taupe">
-                  <option value="">Elegir…</option>
-                  {listasPrendaLibre.categorias.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nombre}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                <span className="label-cayla text-[11px] text-tinta/65">Talla</span>
-                <select value={prendaLibre.tallaId} onChange={(e) => setPrendaLibre((p) => ({ ...p, tallaId: e.target.value }))} className="caja-cayla mt-1 h-10 w-full px-3 text-sm text-tinta outline-none placeholder:text-taupe">
-                  <option value="">Elegir…</option>
-                  {listasPrendaLibre.tallas.map((t) => (
-                    <option key={t.id} value={t.id}>{t.valor}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                <span className="label-cayla text-[11px] text-tinta/65">Color</span>
-                <select value={prendaLibre.colorCodigo} onChange={(e) => setPrendaLibre((p) => ({ ...p, colorCodigo: e.target.value }))} className="caja-cayla mt-1 h-10 w-full px-3 text-sm text-tinta outline-none placeholder:text-taupe">
-                  <option value="">Elegir…</option>
-                  {listasPrendaLibre.colores.map((c) => (
-                    <option key={c.codigo} value={c.codigo}>{c.nombre}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div className="card-cayla flex items-baseline justify-between px-4 py-2">
-              <span className="label-cayla text-[11px] text-tinta/65">Precio cobrado</span>
-              <span className="font-display text-3xl text-tinta">S/{montoManual || "0.00"}</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "←"].map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setMontoManual((v) => (t === "←" ? v.slice(0, -1) : v + t))}
-                  className="h-11 rounded-lg border border-sand bg-papel text-lg text-tinta transition-colors hover:bg-sand/40"
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-            {faltaPrendaLibre && <p className="text-xs text-tinta/60">{faltaPrendaLibre}</p>}
-            <button type="button" onClick={agregarPrendaSinRegistrar} disabled={faltaPrendaLibre !== null} className={`${botonPrimario} w-full`}>
-              Agregar al ticket
-            </button>
-          </div>
-        </Modal>
+        />
       )}
 
       {modalAbrirVisible && (

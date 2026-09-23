@@ -110,7 +110,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     // Solo lo que almacén necesita para reconocer la prenda: el costo no sale del servidor.
     const prendas = catalogo
       .filter((v) => v.activo && v.varianteId !== ID_CARGO_ESPECIAL)
-      .map((v) => ({ id: v.varianteId, nombre: v.referencia, codigo: v.codigo ?? v.sku, talla: v.talla ?? "", color: v.color ?? "", precio: v.precio }));
+      .map((v) => ({ id: v.varianteId, nombre: v.referencia, codigo: v.codigo ?? v.sku, categoria: v.categoria ?? "", talla: v.talla ?? "", color: v.color ?? "", precio: v.precio }));
     return (
       <div className="space-y-6">
         {encabezado}

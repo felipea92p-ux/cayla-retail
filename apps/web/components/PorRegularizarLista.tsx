@@ -12,13 +12,15 @@ import { cifrasPorRegularizar, estaVencida, tipoDiferencia, DIAS_PARA_VENCER } f
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
+import { Campo, Desplegable } from "@/components/ui/campos";
+import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Chip } from "@/components/ui/Chip";
 import { Tabla, Encabezado, fila, celda, TABLA } from "@/components/ui/Tabla";
 
 /** Lo mínimo de cada prenda del catálogo para reconocerla (sin costo: esta pantalla la ve almacén). */
-export type PrendaParaRegularizar = { id: string; nombre: string; codigo: string; talla: string; color: string; precio: number };
+export type PrendaParaRegularizar = { id: string; nombre: string; codigo: string; categoria: string; talla: string; color: string; precio: number };
 
 const PLANTILLA = "sm:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_6rem_7.5rem_minmax(0,1.6fr)]";
 const COLUMNAS = [
@@ -80,12 +82,15 @@ export function PorRegularizarLista({
               {f.texto}
             </button>
           ))}
-          <select value={quien} onChange={(e) => setQuien(e.target.value)} aria-label="Quién vendió" className="caja-cayla ml-auto h-9 px-3 text-sm text-tinta outline-none">
-            <option value="">Todas las colaboradoras</option>
-            {vendedoras.map((v) => (
-              <option key={v} value={v}>{v}</option>
-            ))}
-          </select>
+          <div className="ml-auto w-60">
+            <Desplegable
+              valor={quien}
+              onValor={setQuien}
+              opciones={[{ valor: "", texto: "Todas las colaboradoras" }, ...vendedoras.map((v) => ({ valor: v, texto: v }))]}
+              forma="caja"
+              etiquetaAccesible="Quién vendió"
+            />
+          </div>
         </div>
         <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
         {visibles.length === 0 && (
@@ -148,6 +153,12 @@ export function PorRegularizarLista({
   );
 }
 
+/** Lo que anotó caja, sin repetir talla ni color si la descripción ya los dice (la sugerida los trae). */
+function subtituloPrenda(f: FilaPorRegularizar): string {
+  const extra = [f.talla && !f.descripcion.includes(`Talla ${f.talla}`) ? `Talla ${f.talla}` : null, f.color && !f.descripcion.includes(f.color) ? f.color : null];
+  return [f.descripcion, ...extra.filter(Boolean), `cobrada a ${soles(f.precioCobrado)}`].join(" · ");
+}
+
 function textoDiferencia(diferencia: number): string {
   const tipo = tipoDiferencia(diferencia);
   if (tipo === "exacto") return "Se cobró el precio oficial";
@@ -164,17 +175,20 @@ function RegularizarModal({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const [q, setQ] = useState(f.descripcion.split(/\s+/)[0] ?? "");
-  const [elegida, setElegida] = useState<PrendaParaRegularizar | null>(null);
+  const [elegidaId, setElegidaId] = useState("");
   const [forma, setForma] = useState<"ya_registrada" | "llego_nueva" | null>(null);
   const [guardando, setGuardando] = useState(false);
   // Firma quien regulariza en la sede de la prenda (ADR-0161/0162).
   const responsable = useResponsable({ ubicacionId: f.ubicacionId, etiqueta: f.sede });
 
-  const texto = q.trim().toLowerCase();
-  const coincidencias = texto
-    ? prendas.filter((p) => `${p.nombre} ${p.codigo} ${p.talla} ${p.color}`.toLowerCase().includes(texto)).slice(0, 8)
-    : [];
+  const elegida = prendas.find((p) => p.id === elegidaId) ?? null;
+  // Primero las que calzan con lo que anotó caja (categoría, talla y color): así almacén la encuentra sin tipear.
+  const opciones = useMemo(() => {
+    const calce = (p: PrendaParaRegularizar) => Number(p.categoria === f.categoria) + Number(p.talla === f.talla) + Number(p.color === f.color);
+    return [...prendas]
+      .sort((a, b) => calce(b) - calce(a))
+      .map((p) => ({ valor: p.id, texto: p.nombre, detalle: `${p.talla} · ${p.color} · ${p.codigo} · ${soles(p.precio)}` }));
+  }, [prendas, f.categoria, f.talla, f.color]);
 
   async function guardar() {
     if (!elegida || !forma || !responsable.listo) return;
@@ -195,38 +209,19 @@ function RegularizarModal({
   }
 
   return (
-    <Modal titulo="Regularizar prenda" subtitulo={`${f.descripcion} · ${f.talla} · ${f.color} · cobrada a ${soles(f.precioCobrado)}`} onClose={onClose}>
+    <Modal titulo="Regularizar prenda" subtitulo={subtituloPrenda(f)} onClose={onClose}>
       <div className="space-y-4">
         <div>
-          <label className="label-cayla text-[11px] text-tinta/65" htmlFor="regularizar-buscar">
-            ¿Qué prenda es?
-          </label>
-          <input
-            id="regularizar-buscar"
-            autoFocus
-            value={q}
-            onChange={(e) => {
-              setQ(e.target.value);
-              setElegida(null);
-            }}
-            placeholder="Busca por nombre, código, talla o color"
-            className="caja-cayla mt-1 h-10 w-full px-3 text-sm text-tinta outline-none placeholder:text-taupe"
-          />
-          {!elegida && (
-            <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto">
-              {coincidencias.map((p) => (
-                <li key={p.id}>
-                  <button type="button" onClick={() => setElegida(p)} className="flex w-full items-baseline justify-between gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-hueso">
-                    <span className="min-w-0 truncate text-tinta">
-                      {p.nombre} <span className="text-taupe">· {p.talla} · {p.color} · {p.codigo}</span>
-                    </span>
-                    <span className="shrink-0 tabular-nums text-tinta">{soles(p.precio)}</span>
-                  </button>
-                </li>
-              ))}
-              {texto && coincidencias.length === 0 && <li className="px-3 py-2 text-sm text-taupe">No hay prendas con «{q.trim()}».</li>}
-            </ul>
-          )}
+          <Campo etiqueta="¿Qué prenda es?">
+            <ComboBuscable
+              valor={elegidaId}
+              onValor={setElegidaId}
+              opciones={opciones}
+              marcador="Busca por nombre, código, talla o color"
+              etiquetaAccesible="¿Qué prenda es?"
+              autoFocus
+            />
+          </Campo>
           {elegida && (
             <p className="mt-2 rounded-md bg-hueso px-3 py-2 text-sm text-tinta">
               {elegida.nombre} · {elegida.talla} · {elegida.color} · precio oficial {soles(elegida.precio)} ·{" "}
