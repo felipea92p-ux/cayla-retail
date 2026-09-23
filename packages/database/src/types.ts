@@ -4729,7 +4729,8 @@ export type Database = {
       extender_separacion: {
         Args: { p_separacion_id: string }
         Returns: string
-      }
+      }
+      fn_catalogo_version: { Args: never; Returns: number }
       fn_vencer_separaciones: {
         Args: { p_ubicacion_id: string }
         Returns: number
