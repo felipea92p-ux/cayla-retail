@@ -1,7 +1,7 @@
 # ADR-0178 — Escalón Admin (leído de Dynamic) y «solo das lo que tienes»
 
 **Fecha:** 2026-09-23 · **Estado:** decidido por Felipe; construido en la rama `claude/escalon-admin-dynamic`; migración
-`20260923163000_escalon_admin_desde_dynamic.sql` **sin pegar en producción** · **Cambia:** ADR-0161 (L1 «un líder sube y baja
+`20260923163000_escalon_admin_desde_dynamic.sql` **pegada en producción el 2026-09-23** (escrita como `20260923160000`, renumerada al fusionar por choque con `responsable_obligatorio`) · **Cambia:** ADR-0161 (L1 «un líder sube y baja
 líderes», B7 «quien tiene Roles y accesos edita sus propios módulos», B8 protección 2).
 
 ## El problema
