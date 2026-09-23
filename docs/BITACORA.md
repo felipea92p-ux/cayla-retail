@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-23 (Cuarentena no sale hacia la clienta — PL-78)
+La venta normal ya sacaba siempre del piso, pero el apartado aceptaba cualquier sububicación y la entrega del apartado vende desde ahí: una prenda de Cuarentena podía terminar vendida con una llamada directa. Un disparador en `movimientos` rechaza venta, cambio y apartado desde Cuarentena, y deja pasar lo propio de ella (entrar, liquidar, resolver, moverla al piso). Prueba 8/8 con control; falta pegar en producción.
+Dany se lleva: (1) **el hueco no estaba donde decía la tarea**: «la venta» no tocaba Cuarentena, el apartado sí; (2) **el candado va en el punto por donde pasa todo**: un disparador en `movimientos` cubre las funciones de hoy y las que vengan; (3) **bloquear por destino, no por tabla**: Cuarentena tiene salidas legítimas (liquidar, reparar), así que se bloquea solo lo que va hacia la clienta.
+
 ## 2026-09-23 (Historial de ventas: los totales ya no se truncan sin avisar)
 Al verificar la auditoría del Historial (PL-110) salió un defecto sobre dinero mostrado: para saber si había más de 1.000 ventas se pedía la fila 1.001, pero PostgREST corta justo en 1.000 sin error, así que el aviso nunca aparecía y un mes grande mostraba como completos los totales de solo las 1.000 más recientes. El tope pasa a 999, el aviso dice «1,000 ventas o más» y una prueba cuida que el tope no vuelva a chocar con el corte.
 Dany se lleva: (1) **«pedir una fila de más» solo sirve si esa fila puede llegar**; (2) **el corte de 1.000 de PostgREST es silencioso**: no da error, solo devuelve menos; (3) **el arreglo de raíz para rangos grandes es sumar en la base** (RPC de agregados), queda anotado.

@@ -221,6 +221,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:anular-venta-mismo-dia
 
+      # Cuarentena no sale hacia la clienta (PL-78): un disparador en movimientos rechaza venta, cambio y apartado
+      # desde una sububicación Cuarentena; liquidar sigue. Control con el disparador deshecho. Cada caso: ROLLBACK.
+      - name: pruebas:cuarentena-no-se-vende
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cuarentena-no-se-vende
+
       # Devolver insumos (ADR-0133, F3b): lo devuelto vuelve al último lote del que salió la orden, el costo de
       # tela/avíos de la orden queda neto, anular devuelve todo al estante y quien no opera el Taller no puede.
       # Cada caso termina en ROLLBACK.
