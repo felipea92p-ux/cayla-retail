@@ -31,7 +31,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 ## 🎯 Escalón Admin leído de Dynamic + «solo das lo que tienes» (2026-09-23, ADR-0178) — EN PRODUCCIÓN (Felipe la pegó el 2026-09-23; verificado objeto por objeto: `fn_es_admin`, los 4 candados inyectados, «Administrador» archivado, los 5 admins); web fusionada en main (PR #333)
 - La migración se escribió como `20260923160000` y se **renumeró a `20260923163000`** al fusionar (chocaba con `20260923160000_responsable_obligatorio`); contenido idéntico al pegado. Falta refrescar el volcado y `pnpm datos:generar:produccion`.
 - **Integrante con 0 módulos: DECIDIDO (Felipe, 2026-09-23), se queda así.** Es configurable desde Roles y accesos; no es un error ni algo pendiente.
-- **Decidir:** si los 4 líderes de sistemas (Daniel y los 3 practicantes) siguen como Líder; y si quien tiene Colaboradores sin ser líder puede suspender a alguien que ve más módulos que él (Dynamic lo frena con «solo alcanzas a quien está por debajo»).
+- **Decidido (Felipe, 2026-09-23):** Daniel y los 3 practicantes siguen como Líder. Y rige «solo alcanzas a quien está por debajo de ti» (como Dynamic): migración `20260923174500_alcanzas_solo_a_quien_esta_debajo.sql` — **SIN pegar en producción** (requiere 20260923163000, ya pegada). Faltan: refrescar el diccionario de datos.
 - Pendiente de la misma conversación: el rol «Encargada de sede» (aprobar/anular en su tienda), que Felipe todavía no aprobó.
 
 ## 🩹 Velocidad: auditoría módulo por módulo y el tope de 1.000 filas (2026-09-23) — paso 1 hecho, SIN migraciones

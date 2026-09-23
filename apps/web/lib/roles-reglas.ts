@@ -194,12 +194,21 @@ export function cuentasAsignables(
   yoId: string | null,
   soyAdmin = true,
   misModulos: readonly ClaveModulo[] | null = null,
+  fueraDeAlcance: readonly string[] = [],
 ): CuentaConRol[] {
   // Sin ser Admin (ADR-0178; antes, sin ser líder): a un líder no se le cambia el rol, y el rol Líder no se da. Y un rol con
   // módulos que quien mira no ve, no lo da a nadie («solo das lo que tienes»).
   if (!puedeAsignarRol(rol, soyAdmin, misModulos)) return [];
   const sinTerminales = rol.fijo || rolSoloParaPersonas(rol);
-  return cuentas.filter((c) => c.id !== yoId && c.rolId !== rol.id && !(sinTerminales && c.tipo === "terminal") && (soyAdmin || !c.esLider));
+  // «Solo alcanzas a quien está por debajo de ti» (20260923174500): a esas personas no se les cambia el rol.
+  return cuentas.filter(
+    (c) =>
+      c.id !== yoId &&
+      c.rolId !== rol.id &&
+      !(sinTerminales && c.tipo === "terminal") &&
+      (soyAdmin || !c.esLider) &&
+      !(c.tipo === "persona" && fueraDeAlcance.includes(c.id)),
+  );
 }
 
 /** ¿Quien mira puede dar este rol a alguien? El Líder, solo un Admin; cualquier otro, si todos sus módulos los ve él. */
