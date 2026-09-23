@@ -322,3 +322,22 @@ de caja. La F3 (`20260923100000`) acepta volver a pegarse después de esta sin a
 registrar quién, p. ej. `set_etapa_produccion`, `anular_comprobante_produccion`, proveedores de producción, alta de
 insumos del catálogo. Para que lleven combo hace falta una columna «quién» en cada tabla: queda en el BACKLOG.
 
+## Actualización 2026-09-23 (d) — «quién» en las acciones que guardaban sin firmar a nadie
+
+Tras la (c) quedaron acciones que guardan sin anotar quién; Felipe pidió agregarles el campo. Migración
+`20260923240000_quien_en_acciones_pendientes.sql`, siempre con `fn_actor_persona_id(true)` (el responsable del combo):
+
+| Acción | Dónde queda quién |
+|---|---|
+| `anular_compra` | `compras.anulada_por` / `anulada_at` |
+| `anular_comprobante_produccion` | `comprobantes_produccion.anulada_por` / `anulada_at` |
+| `set_etapa_produccion` | tabla NUEVA `produccion_etapas_historial` (append-only: una fila por cambio; una columna solo guardaría el último) |
+| `guardar_proveedor_produccion`, `cambiar_estado_proveedor_produccion` | `proveedores_produccion.creado_por`, `modificado_por` / `modificado_at` (último cambio) |
+| Alta de insumo (va directo por la API, sin RPC) | `insumos.creado_por`, lo pone el disparador `insumos_creado_por` |
+| `reactivar_terminal` | `terminales.reactivada_por` / `reactivada_at` |
+| Crear terminal | `terminales.creada_por` (ya existía): la web lo llena con el responsable, no con la cuenta |
+| Cambiar la clave de una terminal | `terminales.clave_cambiada_por` / `_at`, vía RPC nueva `registrar_cambio_clave_terminal` (la clave la cambia la llave de servicio, que no ve a quien lo pide) |
+
+Las filas anteriores quedan con el «quién» vacío: no se inventa quién fue. En la web, cada una de esas pantallas lleva el
+combo. Pruebas: `pnpm pruebas:quien-pendientes` (9 casos).
+

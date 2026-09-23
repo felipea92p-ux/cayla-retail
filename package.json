@@ -52,6 +52,7 @@
     "pruebas:candado-lider": "node scripts/pruebas/candado_lider_caja_y_ajuste.mjs",
     "pruebas:conteo-vacio": "node scripts/pruebas/conteo_vacio_no_se_cierra.mjs",
     "pruebas:terminales": "node scripts/pruebas/terminales_por_tienda.mjs",
+    "pruebas:quien-pendientes": "node scripts/pruebas/quien_en_acciones_pendientes.mjs",
     "pruebas:terminales-sin-persona": "node scripts/pruebas/terminales_sin_persona.mjs",
     "pruebas:roles": "node scripts/pruebas/roles_por_modulo.mjs",
     "pruebas:actor-firma": "node scripts/pruebas/actor_firma_las_operaciones.mjs",

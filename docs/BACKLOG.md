@@ -37,9 +37,10 @@ insumo, comprobante, recepción y pago de comprobante), Colaboradores y Roles y 
 - [x] Publicado en orden: primero la web, después la migración.
 - [ ] Verlo con clics (Recibir en una terminal, Registrar comprobante, Taller) — solo se verificó con typecheck, build,
       24.333 pruebas web y las pruebas SQL (`pruebas:actor-firma` 30/30, `pruebas:roles` 70/70, `pruebas:terminales` 52/52).
-- [ ] Guardan sin firmar a nadie (un combo ahí no dejaría rastro; hace falta columna «quién»): `set_etapa_produccion`,
-      `anular_comprobante_produccion`, `anular_compra`, proveedores de producción, alta de insumos, `reactivar_terminal`, crear
-      terminal y cambiar su clave (`lib/terminales-alta.ts` firma con la cuenta).
+- [x] «Quién» en las que guardaban sin firmar (ADR-0161 act. d, migración `20260923240000`, NO está en producción):
+      `set_etapa_produccion`, `anular_comprobante_produccion`, `anular_compra`, proveedores de producción, alta de insumos,
+      `reactivar_terminal`, crear terminal y cambiar su clave. Publicar igual: **primero la web, después la migración**.
+- [ ] Mostrar el «quién» en pantalla (anulada por, historial de etapas, creado por): hoy queda solo en la base.
 - [ ] Recibir envío/lote toma la lista de turno de la ubicación que recibe (no la de la cabecera): un almacén sin marcas bloquea.
 
 ## 🎯 Caja: cierre con traslado y apertura verificada (2026-09-23, ADR-0186) — EN PRODUCCIÓN (Felipe pegó la migración el 2026-09-23; verificado en solo lectura: una firma por función, tabla, columnas, check, política y permisos; las llamadas de la pantalla resuelven sin ambigüedad) y web fusionada (PR #350)
@@ -3131,6 +3132,12 @@ mano, confirmó ✗ + exit 1, revertida).
       esta rama (o el merge) para que GitHub Actions lo corra por primera vez. Con 2-3
       corridas verdes reales, sacar el `continue-on-error` de `.github/workflows/ci.yml`
       convierte el piloto en gate real.
+- [x] **Prueba intermitente de `pnpm pruebas:roles` arreglada (2026-09-23, PR #365, fusionado):** «ADR-0178 alcance: cambiarle el rol…»
+      falló en el piloto del PR #363 (run 35927333050) con `d2,d3,d2|true` y pasó al reintentar. Filtraba `fn_fuera_de_mi_alcance()` por los
+      2 últimos caracteres del UUID; el seed del CI crea colaboradores con UUID aleatorio y ~1 de cada 256 termina en «d2». Ahora filtra por los
+      3 UUID completos. Reproducido a propósito (colaborador intruso `…d2`: versión vieja 69/70, nueva 70/70) y suite local 5/5 en 70/70.
+      Sin cambio de regla ni de base. **Para el gate real:** una prueba intermitente en el piloto enseña a ignorar el rojo; antes de sacar el
+      `continue-on-error`, revisar las demás suites por el mismo patrón (comparar ids por un pedazo, `limit 1` sin `order by`).
 
 ---
 
