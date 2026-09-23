@@ -56,6 +56,8 @@ export function etapasDelHilo(estado: EstadoDeFila, entorno: EntornoTransmision)
       return { nodos: ["hecho", "ambar-punteado", "vacio", "vacio"], tramos: ["vacio", "vacio", "vacio"], descripcion: "Venta registrada; todavía sin comprobante" };
     case "pendiente":
       return { nodos: ["hecho", "hecho", "ambar-punteado", "vacio"], tramos: ["lleno", "vacio", "vacio"], descripcion: "Venta registrada y número reservado; pendiente de enviar a SUNAT" };
+    case "pendiente_reintento":
+      return { nodos: ["hecho", "hecho", "ambar-punteado", "vacio"], tramos: ["lleno", "vacio", "vacio"], descripcion: "Venta registrada y número reservado; SUNAT no respondió y se reintenta solo" };
     case "enviado":
       return { nodos: ["hecho", "hecho", "ambar-pulso", "vacio"], tramos: ["lleno", "lleno", "vacio"], descripcion: "Venta registrada y número reservado; enviado a SUNAT, esperando respuesta" };
     case "aceptado":
@@ -68,6 +70,8 @@ export function etapasDelHilo(estado: EstadoDeFila, entorno: EntornoTransmision)
       return { nodos: ["apagado", "apagado", "apagado", "apagado"], tramos: ["apagado", "apagado", "apagado"], descripcion: "Comprobante anulado" };
     case "no_emitido":
       return { nodos: ["apagado", "apagado", "apagado", "apagado"], tramos: ["apagado", "apagado", "apagado"], descripcion: "Comprobante liberado sin emitir" };
+    case "interna":
+      return { nodos: ["hecho", "hecho", "apagado", "apagado"], tramos: ["lleno", "apagado", "apagado"], descripcion: "Nota de venta: documento interno, no va a SUNAT" };
   }
 }
 
@@ -83,11 +87,13 @@ export type ChipDeFila = { tono: "neutro" | "ambar" | "verde" | "rojo" | "apagad
 
 const TONO_DEL_ESTADO: Record<EstadoComprobante, ChipDeFila["tono"]> = {
   pendiente: "ambar",
+  pendiente_reintento: "ambar",
   enviado: "ambar",
   aceptado: "verde",
   rechazado: "rojo",
   anulado: "apagado",
   no_emitido: "apagado",
+  interna: "apagado",
 };
 
 /** El chip de estado de un comprobante, el mismo en el Resumen y en la vista Comprobantes. Uno

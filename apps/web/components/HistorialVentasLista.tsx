@@ -36,9 +36,11 @@ const TONO_COMPROBANTE: Record<EstadoComprobante, TonoChip> = {
   aceptado: "verde",
   enviado: "ambar",
   pendiente: "ambar",
+  pendiente_reintento: "ambar",
   rechazado: "rojo",
   anulado: "apagado",
   no_emitido: "apagado",
+  interna: "apagado",
 };
 
 const ventas = (n: number) => `${n.toLocaleString("es-PE")} ${n === 1 ? "venta" : "ventas"}`;

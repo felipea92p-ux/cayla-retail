@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   aplicarDescuento,
   aplicarDescuentoMonto,
+  atendioCorto,
   conCampanas,
   conCodigoDelCatalogo,
   descuentoResultante,
@@ -25,6 +26,7 @@ import {
   type CampanaLinea,
   type DetalleDescuento,
   type PagoAplicado,
+  type Vendedora,
 } from "./vender-reglas";
 
 // Un solo motivo alimenta tres cosas en el ticket de Vender: el `disabled` del botón
@@ -42,6 +44,11 @@ const listo = {
 } as const;
 
 describe("motivoBloqueoCobro — qué falta para cobrar, en orden", () => {
+  it("una proforma vencida no se cobra sin confirmar que va al precio de entonces (y solo al cobrar)", () => {
+    expect(motivoBloqueoCobro({ ...listo, proformaVencidaSinConfirmar: true })).toBe("Confirma que cobras la proforma vencida al precio de entonces.");
+    expect(motivoBloqueoCobro({ ...listo, momento: "armar", proformaVencidaSinConfirmar: true })).toBeNull();
+  });
+
   it("con la caja cerrada pide abrirla, aunque todo lo demás esté completo", () => {
     expect(motivoBloqueoCobro({ ...listo, cajaAbierta: false })).toBe("Abre la caja para vender.");
   });
@@ -605,5 +612,49 @@ describe("pasoDelCobro — cuál es el siguiente paso que la pantalla resalta", 
   it("con pago mixto el recibido se pide solo si el efectivo cubre algo", () => {
     expect(pasoDelCobro([{ metodo: "plin", monto: 40 }, { metodo: "efectivo", monto: 40 }], 80)).toBe("recibido");
     expect(pasoDelCobro([{ metodo: "plin", monto: 80 }, { metodo: "efectivo", monto: 0 }], 80)).toBe("comprobante");
+  });
+});
+
+// El nombre de quien atendió en el papel del ticket: el responsable de la venta (ADR-0161).
+
+const MARIA: Vendedora = { personaId: "p-maria", nombre: "María Pérez Soto" };
+const ROSA: Vendedora = { personaId: "p-rosa", nombre: "Rosa Díaz Luna" };
+const MARIA_L: Vendedora = { personaId: "p-maria-l", nombre: "María López Vera" };
+
+describe("atendioCorto — el nombre que sale en el papel", () => {
+  it("el primer nombre basta cuando no hay otra igual en la fila", () => {
+    expect(atendioCorto([MARIA, ROSA], "p-maria")).toBe("María");
+  });
+
+  it("dos «María» en la fila se distinguen con la inicial del apellido", () => {
+    expect(atendioCorto([MARIA, MARIA_L], "p-maria")).toBe("María P.");
+    expect(atendioCorto([MARIA, MARIA_L], "p-maria-l")).toBe("María L.");
+  });
+
+  it("sin elegida o con una que no está en la fila no se inventa nadie", () => {
+    expect(atendioCorto([MARIA, ROSA], null)).toBeNull();
+    expect(atendioCorto([MARIA, ROSA], "p-otra")).toBeNull();
+  });
+});
+
+describe("motivoBloqueoCobro — el responsable (ADR-0161)", () => {
+  it("sin responsable frena ya al armar, con la frase del combo", () => {
+    expect(motivoBloqueoCobro({ ...listo, momento: "armar", pagos: [], motivoResponsable: "Elige quién está atendiendo." })).toBe(
+      "Elige quién está atendiendo.",
+    );
+  });
+
+  it("se pide antes que el pago: primero quién hace la venta, después la plata", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: [], motivoResponsable: "Nadie de turno" })).toBe("Nadie de turno");
+  });
+
+  it("la caja cerrada y el ticket vacío mandan sobre él", () => {
+    expect(motivoBloqueoCobro({ ...listo, cajaAbierta: false, motivoResponsable: "x" })).toBe("Abre la caja para vender.");
+    expect(motivoBloqueoCobro({ ...listo, prendas: 0, motivoResponsable: "x" })).toBe("Agrega una prenda para cobrar.");
+  });
+
+  it("con responsable elegido (o sin la regla) no bloquea", () => {
+    expect(motivoBloqueoCobro({ ...listo, motivoResponsable: null })).toBeNull();
+    expect(motivoBloqueoCobro(listo)).toBeNull();
   });
 });

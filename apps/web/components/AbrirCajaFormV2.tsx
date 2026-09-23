@@ -6,21 +6,31 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 export function AbrirCajaFormV2({ ubicacionId, ubicacionEtiqueta }: { ubicacionId: string; ubicacionEtiqueta: string }) {
   const router = useRouter();
   const [monto, setMonto] = useState("");
   const [loading, setLoading] = useState(false);
+  // Abrir caja es una acción que guarda en la tienda: pide Responsable (ADR-0161).
+  const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!responsable.listo) return;
     setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.rpc("abrir_caja", {
-      p_ubicacion_id: ubicacionId,
-      p_monto_apertura: Number(monto) || 0,
-    });
+    const { error } = await firmar(
+      supabase.rpc("abrir_caja", {
+        p_ubicacion_id: ubicacionId,
+        p_monto_apertura: Number(monto) || 0,
+      }),
+      responsable.firma(),
+    );
     setLoading(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "abrir la caja"));
       return;
@@ -47,7 +57,8 @@ export function AbrirCajaFormV2({ ubicacionId, ubicacionEtiqueta }: { ubicacionI
           className={campoTexto}
         />
       </div>
-      <button type="submit" disabled={loading} className={botonPrimario}>
+      <ComboResponsable control={responsable} deshabilitado={loading} />
+      <button type="submit" disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
         {loading ? "Abriendo…" : "Abrir caja"}
       </button>
     </form>

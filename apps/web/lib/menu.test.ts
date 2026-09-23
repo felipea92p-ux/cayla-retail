@@ -8,8 +8,8 @@ import {
   COLUMNAS_MOVIL,
   PAJAROS,
   PERMISOS,
-  TIPOS_TERMINAL,
   TIPOS_UBICACION,
+  aterrizajeDe,
   esGrupo,
   esGrupoMenu,
   hojasDe,
@@ -17,6 +17,7 @@ import {
   permisosDe,
   puedeVerProduccion,
   rutaActiva,
+  terminalVeInicio,
   type Accion,
   type FilaMenu,
   type FuenteMenu,
@@ -25,9 +26,9 @@ import {
   type Nodo,
   type Permiso,
   type PerfilDelMenu,
-  type TipoTerminal,
   type TipoUbicacion,
 } from "./menu";
+import { MODULOS_DE_HOY, permisosDeModulos, type ClaveModulo } from "./modulos";
 
 /* ====================================================================
    1. EQUIVALENCIA — el menú de hoy no cambió (paso 1 de «menú a datos»)
@@ -265,9 +266,10 @@ describe.each(PERFILES.map((p) => [nombreDe(p), p] as const))("forma del menú d
     }
   });
 
-  it("«Recibir mercadería» vive como MÁXIMO en un grupo: Compras si ve el dinero, Inventario si no, y ninguno si ve el dinero parado en el Taller", () => {
+  it("«Recibir mercadería» vive como MÁXIMO en un grupo: Compras si ve el dinero de Compras, Inventario si no, y ninguno si lo ve parado en el Taller", () => {
     const dueños = menu.riel.filter(esGrupoMenu).filter((g) => hojasDe(g).some((h) => h.href === "/recibir")).map((g) => g.id);
-    const veDinero = perfil.permisos.includes("verDinero");
+    // Desde 20260923130000 el dinero de Compras es su propio permiso (`verDineroCompras`); `verDinero` quedó para el Taller.
+    const veDinero = perfil.permisos.includes("verDineroCompras");
     expect(dueños.length).toBeLessThanOrEqual(1);
     // El único perfil sin grupo es el del hecho de producto que documenta la sección 3 (PR #219, Felipe 2026-09-21).
     expect(dueños.length === 0).toBe(veDinero && perfil.ubicacionTipo === "taller");
@@ -334,17 +336,15 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
     expect(hijosDeGrupo({ permisos: ["administrar"], ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
   });
 
-  it("`analizar` abre el Resumen (y solo eso); sin `verDinero`, Abastecimiento se disuelve en «Recibir», su única hija visible", () => {
-    expect(hijosDeGrupo({ permisos: ["analizar"], ubicacionTipo: "taller" }, "produccion")).toEqual([
-      "produccion.resumenProduccion",
-      "produccion.ordenes",
-      "produccion.insumos",
-      "produccion.recibirProduccion",
-    ]);
+  it("`analizar` (el módulo Análisis, 20260923130000) y `verDineroCompras` NO abren nada del Taller: Abastecimiento se disuelve en «Recibir»", () => {
+    const operativas = ["produccion.ordenes", "produccion.insumos", "produccion.recibirProduccion"];
+    expect(hijosDeGrupo({ permisos: ["analizar"], ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
+    expect(hijosDeGrupo({ permisos: ["verDineroCompras"], ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
   });
 
-  it("`verDinero` abre Abastecimiento como subgrupo — Proveedores, Comprobantes, Recibir y Por pagar — y no el Resumen (falta `analizar`)", () => {
+  it("`verDinero` (solo el líder) abre el Resumen —ventas de la red y dinero— y Abastecimiento como subgrupo: Proveedores, Comprobantes, Recibir y Por pagar", () => {
     expect(hijosDeGrupo({ permisos: ["verDinero"], ubicacionTipo: "taller" }, "produccion")).toEqual([
+      "produccion.resumenProduccion",
       "produccion.ordenes",
       "produccion.insumos",
       "produccion.abastecimiento",
@@ -374,7 +374,7 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
 });
 
 describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21, PR #219)", () => {
-  it("con `verDinero` ve las cinco pantallas desde una tienda o un almacén, en el orden proveedor → factura → recepción → pago → notas de crédito", () => {
+  it("con `verDineroCompras` y los cinco módulos ve las cinco pantallas desde una tienda o un almacén, en el orden proveedor → factura → recepción → pago → notas de crédito", () => {
     for (const ubicacionTipo of ["tienda", "almacen"] as const) {
       expect(hijosDeGrupo({ permisos: LIDER, ubicacionTipo }, "compras")).toEqual([
         "compras.proveedores",
@@ -428,7 +428,7 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
     expect(notas && !esGrupoMenu(notas) ? notas.contador : undefined).toBeUndefined();
   });
 
-  it("sin `verDinero` no ve Compras, esté donde esté", () => {
+  it("sin `verDineroCompras` no ve Compras, esté donde esté", () => {
     for (const ubicacionTipo of TIPOS_UBICACION) {
       expect(menuPara({ permisos: INTEGRANTE, ubicacionTipo }).riel.some((f) => f.id === "compras")).toBe(false);
     }
@@ -526,7 +526,7 @@ describe("reglas de menuPara", () => {
   it("rutaActiva: `/` solo coincide consigo misma y un prefijo corta en el límite de un segmento", () => {
     expect(rutaActiva("/", "/")).toBe(true);
     expect(rutaActiva("/vender", "/")).toBe(false);
-    expect(rutaActiva("/vender/facturacion", "/vender")).toBe(true);
+    expect(rutaActiva("/vender/comprobantes", "/vender")).toBe(true);
     expect(rutaActiva("/venderx", "/vender")).toBe(false);
   });
 
@@ -537,9 +537,11 @@ describe("reglas de menuPara", () => {
 });
 
 /* ====================================================================
-   Las cuentas TERMINAL (ADR-0160): dos por tienda, compartidas por quien trabaja ahí. La terminal decide QUÉ MÓDULOS hay
-   (ventas o administrativa); lo que puede HACER dentro lo dice su permiso (`permisosDe`), que espeja una capacidad de la base.
-   El menú de una persona (terminal `null`) no cambia: lo prueban la fotografía de hoy y los invariantes de arriba.
+   Las cuentas TERMINAL (ADR-0162): aparatos de cada tienda, compartidos por quien trabaja ahí. Desde 20260923040000 no
+   tienen TIPO: lo que ven sale de los MÓDULOS de su rol, igual que una persona, y lo que pueden HACER dentro, de los
+   permisos que dan esos módulos (`permisosDeModulos`, que espeja las capacidades de la base). Estas pruebas usan los dos
+   roles sembrados para terminales («Terminal de ventas» y «Terminal administrativa») y roles a medida.
+   El menú de una persona no cambia: lo prueban la fotografía de hoy y los invariantes de arriba.
    ==================================================================== */
 
 const etiquetasDe = (riel: FilaMenu[]) => riel.map((f) => f.etiqueta);
@@ -547,51 +549,53 @@ const hijasDe = (riel: FilaMenu[], etiqueta: string) => {
   const f = riel.find((x) => x.etiqueta === etiqueta);
   return f && esGrupoMenu(f) ? f.hijos.map((h) => h.etiqueta) : [];
 };
-const perfilTerminal = (terminal: TipoTerminal, ubicacionTipo: TipoUbicacion = "tienda", extra: readonly Permiso[] = []): PerfilDelMenu => ({
-  permisos: [...permisosDe("integrante", terminal), ...extra],
-  ubicacionTipo,
-  terminal,
-});
+/** Una terminal con el rol sembrado de ese nombre, o con los módulos que se le pasen (un rol a medida). */
+const perfilTerminal = (
+  rol: "ventas" | "administrativa" | readonly ClaveModulo[],
+  ubicacionTipo: TipoUbicacion = "tienda",
+  extra: readonly Permiso[] = [],
+): PerfilDelMenu => {
+  const modulos = typeof rol === "string" ? MODULOS_DE_HOY[rol] : rol.map((clave) => ({ clave, completo: true }));
+  return {
+    permisos: [...permisosDeModulos("integrante", modulos), ...extra],
+    ubicacionTipo,
+    terminal: true,
+    modulos: modulos.map((m) => m.clave),
+  };
+};
 
-describe("permisos de una terminal", () => {
-  it("la de ventas factura y gestiona la caja; la administrativa ajusta inventario, edita el catálogo y las cuentas de proveedor", () => {
-    expect([...permisosDe("integrante", "ventas")].sort()).toEqual(["facturar", "gestionarCaja"]);
-    expect([...permisosDe("integrante", "administrativa")].sort()).toEqual(["ajustarInventario", "editarCatalogo", "editarCuentasProveedor"]);
+describe("permisos de una terminal: salen de su rol", () => {
+  it("con el rol de ventas factura y gestiona la caja; con el administrativo ajusta inventario, edita el catálogo y las cuentas de proveedor", () => {
+    expect([...permisosDeModulos("integrante", MODULOS_DE_HOY.ventas)].sort()).toEqual(["facturar", "gestionarCaja"]);
+    expect([...permisosDeModulos("integrante", MODULOS_DE_HOY.administrativa)].sort()).toEqual([
+      "ajustarInventario",
+      "editarCatalogo",
+      "editarCuentasProveedor",
+    ]);
   });
 
-  it("ninguna terminal administra, ve dinero de Compras ni analiza: eso sigue siendo del líder", () => {
-    for (const t of TIPOS_TERMINAL) {
-      for (const p of ["administrar", "verDinero", "analizar"] as const) expect(permisosDe("integrante", t), `${t} · ${p}`).not.toContain(p);
+  it("ningún rol de terminal administra, ve dinero de Compras ni analiza: eso sigue siendo del líder", () => {
+    for (const t of ["ventas", "administrativa"] as const) {
+      for (const p of ["administrar", "verDinero", "analizar"] as const) expect(perfilTerminal(t).permisos, `${t} · ${p}`).not.toContain(p);
     }
   });
 
-  it("ninguna terminal recibe el poder del OTRO oficio (las de ventas no ajustan stock ni editan el catálogo, y al revés)", () => {
-    expect(permisosDe("integrante", "ventas")).not.toEqual(expect.arrayContaining(["ajustarInventario"]));
-    expect(permisosDe("integrante", "ventas")).not.toEqual(expect.arrayContaining(["editarCatalogo"]));
-    expect(permisosDe("integrante", "administrativa")).not.toEqual(expect.arrayContaining(["gestionarCaja"]));
-    expect(permisosDe("integrante", "administrativa")).not.toEqual(expect.arrayContaining(["facturar"]));
-  });
-
-  it("el líder sigue teniendo todos, aunque llegara a traer un tipo de terminal", () => {
-    expect([...permisosDe("lider", "ventas")].sort()).toEqual([...PERMISOS].sort());
-  });
-
-  it("una persona (sin terminal) no gana ninguno de los poderes nuevos", () => {
+  it("la regla fija de antes: el líder tiene todos y cualquier otra cuenta ninguno", () => {
+    expect([...permisosDe("lider")].sort()).toEqual([...PERMISOS].sort());
     expect(permisosDe("integrante")).toEqual([]);
-    expect(permisosDe("integrante", null)).toEqual([]);
   });
 });
 
-describe("el menú de la terminal de VENTAS", () => {
+describe("el menú de una terminal con el rol «Terminal de ventas»", () => {
   const { riel, movil, nuevo } = menuPara(perfilTerminal("ventas"));
 
-  it("ve solo Ventas: Punto de Venta, Caja, Historial, Cambios, Devoluciones y Facturación, en ese orden", () => {
+  it("ve solo Ventas: Punto de Venta, Apartados, Caja, Historial, Posventa (Cambios y Devoluciones) y Comprobantes, en ese orden", () => {
     expect(etiquetasDe(riel)).toEqual(["Ventas"]);
-    expect(hijasDe(riel, "Ventas")).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Facturación"]);
+    expect(hijasDe(riel, "Ventas")).toEqual(["Punto de Venta", "Apartados", "Caja", "Historial", "Posventa", "Comprobantes"]);
   });
 
-  it("no tiene Inicio (su casa es el Punto de Venta), ni Inventario, Catálogo, Compras, Colaboradores ni Producción", () => {
-    for (const no of ["Inicio", "Inventario", "Catálogo", "Compras", "Colaboradores", "Producción"]) expect(etiquetasDe(riel)).not.toContain(no);
+  it("no tiene Inicio (ve el Punto de venta: su casa es el mostrador), ni Inventario, Catálogo, Compras ni Producción", () => {
+    for (const no of ["Inicio", "Inventario", "Catálogo", "Compras", "Producción"]) expect(etiquetasDe(riel)).not.toContain(no);
   });
 
   it("la barra del celular queda con lo que tiene: Punto de Venta, el «+» y Caja", () => {
@@ -603,7 +607,7 @@ describe("el menú de la terminal de VENTAS", () => {
   });
 });
 
-describe("el menú de la terminal ADMINISTRATIVA", () => {
+describe("el menú de una terminal con el rol «Terminal administrativa»", () => {
   const { riel, nuevo } = menuPara(perfilTerminal("administrativa"));
 
   it("ve Inicio, Catálogo e Inventario; en Inventario, sin Análisis (es de decisión, del líder) y con Recibir mercadería", () => {
@@ -612,19 +616,19 @@ describe("el menú de la terminal ADMINISTRATIVA", () => {
     expect(hijasDe(riel, "Catálogo")).toEqual(["Productos", "Categorías", "Atributos"]);
   });
 
-  it("hoy NO ve Compras: sin `verDinero` no le queda ninguna pantalla del grupo (llega con ADR-0151, «comprador de tienda»)", () => {
+  it("hoy NO ve Compras: sin `verDineroCompras` no le queda ninguna pantalla del grupo", () => {
     expect(etiquetasDe(riel)).not.toContain("Compras");
   });
 
-  it("cuando ADR-0151 le dé `verDinero` como comprador de su tienda, Compras aparece SIN tocar el árbol (ya la declara para ella)", () => {
-    const conDinero = menuPara(perfilTerminal("administrativa", "tienda", ["verDinero"])).riel;
-    expect(etiquetasDe(conDinero)).toContain("Compras");
+  it("si algún día recibe `verDineroCompras` (su rol suma Facturas de compra, Por pagar o Notas de crédito), Compras aparece con lo que su rol ve, SIN tocar el árbol", () => {
+    const conDinero = menuPara(perfilTerminal("administrativa", "tienda", ["verDineroCompras"])).riel;
+    expect(hijasDe(conDinero, "Compras")).toEqual(["Proveedores", "Recibir mercadería"]);
     // ...y en Compras pierde el duplicado: «Recibir mercadería» vive en UN solo grupo (ADR-0113).
     expect(hijasDe(conDinero, "Inventario")).not.toContain("Recibir mercadería");
   });
 
-  it("no ve Ventas, Colaboradores ni Producción", () => {
-    for (const no of ["Ventas", "Colaboradores", "Producción"]) expect(etiquetasDe(riel)).not.toContain(no);
+  it("no ve Ventas ni Producción", () => {
+    for (const no of ["Ventas", "Producción"]) expect(etiquetasDe(riel)).not.toContain(no);
   });
 
   it("«+ Nuevo» ofrece recibir y mover mercadería; no vender", () => {
@@ -632,34 +636,67 @@ describe("el menú de la terminal ADMINISTRATIVA", () => {
   });
 });
 
-describe("falla cerrado: ninguna terminal ve un nodo que no la declare", () => {
-  const porId = new Map<string, { nodo: Nodo; grupo?: Nodo }>();
-  for (const n of ARBOL) {
-    porId.set(n.id, { nodo: n });
-    if ("hijos" in n && n.hijos) for (const h of n.hijos) porId.set(h.id, { nodo: h, grupo: n });
-  }
-  const declara = (id: string, tipo: TipoTerminal) => {
-    const e = porId.get(id);
-    const t = e?.nodo.terminales ?? e?.grupo?.terminales;
-    return !!t?.includes(tipo);
-  };
+describe("terminales sin tipo: el rol manda", () => {
+  it("dos terminales de la MISMA tienda con distinto rol ven menús distintos", () => {
+    const caja = menuPara(perfilTerminal(["caja", "existencias"])).riel;
+    expect(etiquetasDe(caja)).toEqual(["Inicio", "Ventas", "Inventario"]);
+    // Un grupo con una sola pantalla visible conserva el nombre del módulo (regla de siempre de `menuPara`).
+    expect(caja.map((f) => ("href" in f ? f.href : null))).toEqual(["/", "/caja", "/inventario"]);
+    expect(etiquetasDe(menuPara(perfilTerminal("ventas")).riel)).toEqual(["Ventas"]);
+  });
 
-  it.each(TIPOS_TERMINAL)("con TODOS los permisos y desde cualquier ubicación, la terminal %s solo ve filas que la nombran", (tipo) => {
-    for (const ubicacionTipo of TIPOS_UBICACION) {
-      const { riel } = menuPara({ permisos: PERMISOS, ubicacionTipo, terminal: tipo });
-      for (const fila of riel) {
-        const ids = esGrupoMenu(fila) ? fila.hijos.map((h) => h.id) : [fila.id];
-        for (const id of ids) expect(declara(id, tipo), `${tipo} en ${ubicacionTipo} ve «${id}» sin que el árbol la nombre`).toBe(true);
-      }
+  it("una terminal ve Inicio solo si NO ve el Punto de venta", () => {
+    expect(terminalVeInicio(["caja"])).toBe(true);
+    expect(terminalVeInicio(["vender", "caja"])).toBe(false);
+  });
+
+  it("aterriza en /vender si ve el Punto de venta; si no, en su Inicio. Una persona, siempre en Inicio", () => {
+    expect(aterrizajeDe({ terminal: true, modulos: ["vender", "caja"] })).toBe("/vender");
+    expect(aterrizajeDe({ terminal: true, modulos: ["existencias"] })).toBe("/");
+    expect(aterrizajeDe({ terminal: false, modulos: ["vender"] })).toBe("/");
+    expect(aterrizajeDe({ terminal: true, modulos: null })).toBe("/");
+  });
+});
+
+describe("falla cerrado: una terminal solo ve lo que su rol nombra", () => {
+  // Cada pantalla viva, por su ruta, con el módulo que declara (una ruta puede vivir en dos grupos: «/recibir»).
+  const hojasVivas: Hoja[] = [];
+  const recorrer = (nodos: readonly Nodo[]) => {
+    for (const n of nodos) {
+      if (esGrupo(n)) recorrer(n.hijos);
+      else if (n.estado === "viva") hojasVivas.push(n);
     }
+  };
+  recorrer(ARBOL);
+  const modulosDeRuta = (href: string) => hojasVivas.filter((h) => h.ruta === href).map((h) => h.modulo);
+
+  it.each(["ventas", "administrativa"] as const)(
+    "con TODOS los permisos y desde cualquier ubicación, la terminal con el rol %s solo ve pantallas de sus módulos (o Inicio)",
+    (rol) => {
+      const modulos = MODULOS_DE_HOY[rol].map((m) => m.clave);
+      for (const ubicacionTipo of TIPOS_UBICACION) {
+        const { riel, nuevo } = menuPara({ permisos: PERMISOS, ubicacionTipo, terminal: true, modulos });
+        for (const hoja of riel.flatMap(hojasDe)) {
+          if (hoja.href === "/") continue; // Inicio: no es de ningún módulo (ver `terminalVeInicio`)
+          const claves = modulosDeRuta(hoja.href);
+          expect(claves.some((c) => c && modulos.includes(c)), `${rol} en ${ubicacionTipo} ve «${hoja.id}» (${hoja.href}) sin tener su módulo`).toBe(true);
+        }
+        for (const a of nuevo) {
+          const accion = ACCIONES_NUEVO.find((x) => x.id === a.id);
+          expect(accion?.modulo && modulos.includes(accion.modulo), a.href).toBe(true);
+        }
+      }
+    },
+  );
+
+  it("una terminal sin módulos (su rol vacío, o la base no respondió) solo ve Inicio: nunca más de lo que tiene", () => {
+    const { riel, nuevo } = menuPara({ permisos: PERMISOS, ubicacionTipo: "tienda", terminal: true });
+    expect(etiquetasDe(riel)).toEqual(["Inicio"]);
+    expect(nuevo).toEqual([]);
   });
 
-  it.each(TIPOS_TERMINAL)("y en «+ Nuevo», la terminal %s solo ve acciones que la nombran", (tipo) => {
-    const nombradas = new Set(ACCIONES_NUEVO.filter((a) => a.terminales?.includes(tipo)).map((a) => a.ruta));
-    for (const a of menuPara({ permisos: PERMISOS, ubicacionTipo: "tienda", terminal: tipo }).nuevo) expect(nombradas.has(a.href), a.href).toBe(true);
-  });
-
-  it("Colaboradores y Producción no las declara ninguna terminal: no se les filtran nunca", () => {
-    for (const id of ["colaboradores", "produccion"]) expect(porId.get(id)?.nodo.terminales, id).toBeUndefined();
+  it("toda pantalla viva salvo Inicio, y toda acción de «+ Nuevo», declara su módulo (sin eso una terminal no podría verla)", () => {
+    expect(hojasVivas.filter((h) => !h.modulo).map((h) => h.id)).toEqual(["inicio"]);
+    expect(ACCIONES_NUEVO.filter((a) => !a.modulo)).toEqual([]);
   });
 });

@@ -1,9 +1,8 @@
-import { History, ArrowDownToLine, ArrowUpFromLine, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getSububicaciones } from "@/lib/sububicaciones";
 import {
-  DIAS_POR_DEFECTO,
   cursorDesdeParams,
   filtrosDesdeParams,
   getResumenMovimientos,
@@ -15,10 +14,12 @@ import {
   type ParamsMovimientos,
   type ResumenMovimientos,
 } from "@/lib/movimientos-v2";
+import { CATEGORIAS, desdeDeUltimosDias, type CategoriaMovimiento } from "@/lib/movimientos-reglas";
 import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
-import { TarjetaIndicador } from "@/components/ui/TarjetaIndicador";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { FiltrosMovimientos } from "@/components/FiltrosMovimientos";
 import { MovimientosLista } from "@/components/MovimientosLista";
+import { MovimientosVacio } from "@/components/MovimientosVacio";
 import { PaginacionCursor } from "@/components/Paginacion";
 
 // Movimientos (2026-09-15): «por qué cambió el stock», con búsqueda, filtros,
@@ -44,11 +45,11 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
   const esLider = persona.rol === "lider";
   const ubicaciones = await getUbicaciones();
 
-  // Mismo criterio que Inventario: una Líder mira cualquier ubicación desde el
-  // selector (`?ubicacion=`); una colaboradora, la suya y nada más. La base lo
-  // vuelve a comprobar (`fn_puede_operar_ubicacion`) — esto solo decide qué se pinta.
-  const ubicacionActivaId =
-    esLider && params.ubicacion && ubicaciones.some((u) => u.id === params.ubicacion) ? params.ubicacion : persona.ubicacionId;
+  // La sede la decide SOLO el selector de la cabecera (`UbicacionSwitcher`, cookie: cambia todo el
+  // ERP). Hasta el 2026-09-22 había un segundo selector en el título (`?ubicacion=`) que podía decir
+  // otra sede que la cabecera; Felipe eligió dejar uno. Un enlace viejo con `?ubicacion=` se ignora.
+  // La base vuelve a comprobar el permiso (`fn_puede_operar_ubicacion`) — esto solo decide qué se pinta.
+  const ubicacionActivaId = persona.ubicacionId;
   const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
 
   // Las sububicaciones van primero: «?sub=piso» se traduce a SU id, que solo se sabe mirando la ubicación.
@@ -56,12 +57,28 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
   const { periodo, sub, ...filtros } = filtrosDesdeParams(params, { sububicaciones });
   const cursor = cursorDesdeParams(params);
 
-  const [{ filas, siguiente }, resumen] = await Promise.all([
+  // Las cifras de las píldoras de tipo cuentan con los demás filtros, pero no con el proceso: con
+  // «Merma» elegida, «Salidas 27» sigue diciendo cuántas salidas hay. Solo en ese caso cuesta una
+  // consulta más (el resumen ya ignora el tipo).
+  const [{ filas, siguiente }, resumen, resumenSinProceso] = await Promise.all([
     listarMovimientos(ubicacionActivaId, filtros, { cursor }),
     getResumenMovimientos(ubicacionActivaId, filtros),
+    filtros.motivo ? getResumenMovimientos(ubicacionActivaId, { ...filtros, motivo: undefined }) : null,
   ]);
+  const conteos = Object.fromEntries(CATEGORIAS.map((c) => [c, (resumenSinProceso ?? resumen)[c].movimientos])) as Record<CategoriaMovimiento, number>;
 
-  const hayFiltros = !!(filtros.busqueda || filtros.categoria || filtros.motivo || filtros.sububicacionId || periodo !== String(DIAS_POR_DEFECTO));
+  // Vacío con un período corto: ¿hay algo si se mira más atrás? Se pregunta una sola vez y solo
+  // cuando la lista salió vacía, para que el vacío ofrezca el siguiente paso con la cifra real.
+  const vacio = filas.length === 0 && !cursor;
+  const periodoCorto = periodo === "7" || periodo === "30";
+  // El resumen agrupa por tipo pero no filtra por él: con un tipo elegido se cuenta solo su fila.
+  const resumen90 = vacio && periodoCorto ? await getResumenMovimientos(ubicacionActivaId, { ...filtros, desde: desdeDeUltimosDias(90), hasta: undefined }) : null;
+  const en90 = !resumen90
+    ? 0
+    : filtros.categoria
+      ? resumen90[filtros.categoria].movimientos
+      : CATEGORIAS.reduce((acc, c) => acc + resumen90[c].movimientos, 0);
+
   const periodoEnPalabras = textoPeriodo(periodo, filtros.desde, filtros.hasta);
 
   return (
@@ -69,19 +86,23 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
       <InventarioHero
         eyebrow="Inventario · Movimientos"
         titulo={ubicacionActiva?.nombre ?? "—"}
-        descripcion="Historial de entradas, salidas, traslados y ajustes de esta sede."
+        descripcion="Qué cambió en el stock de esta sede, el proceso que lo originó y de dónde a dónde. No se edita ni se borra nunca."
         foto={fotoHeroPorPantalla("movimientos")}
         variante="integrado"
       />
 
       <Resumen resumen={resumen} periodo={periodoEnPalabras} />
 
-      <FiltrosMovimientos sububicaciones={sububicaciones} sub={sub} periodo={periodo} desde={filtros.desde ?? ""} hasta={filtros.hasta ?? ""} />
+      <FiltrosMovimientos sububicaciones={sububicaciones} sub={sub} periodo={periodo} desde={filtros.desde ?? ""} hasta={filtros.hasta ?? ""} conteos={conteos} />
 
-      {filas.length === 0 && !cursor ? (
-        <p className="card-cayla p-5 text-sm text-tinta/75">
-          {hayFiltros ? "Ningún movimiento coincide con esos filtros." : "Todavía no hay movimientos en esta ubicación."}
-        </p>
+      {vacio ? (
+        <MovimientosVacio
+          sede={ubicacionActiva?.nombre ?? "esta sede"}
+          periodo={periodo === "todo" ? "todo el historial" : periodo === "personalizado" ? "el período elegido" : `los últimos ${periodo} días`}
+          conFiltros={!!(filtros.busqueda || filtros.categoria || filtros.motivo || filtros.sububicacionId)}
+          en90={en90}
+          params={params}
+        />
       ) : (
         <>
           {/* Reemplaza al detalle que antes se abría al hacer clic en cualquier fila (quitado en este
@@ -105,8 +126,8 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
         sustantivo={["movimiento", "movimientos"]}
       />
 
-      <p className="card-cayla px-5 py-3 text-xs text-tinta/65">
-        <span className="text-tinta">Registro transparente:</span> cada movimiento queda con quién lo hizo, a qué hora y contra qué documento (boleta, factura
+      <p className="nota-cayla">
+        <b>Registro transparente:</b> cada movimiento queda con quién lo hizo, a qué hora y contra qué documento (boleta, factura
         del proveedor, traslado, conteo). No se edita ni se borra nunca — se corrige con otro movimiento, y los dos quedan.
       </p>
     </div>
@@ -138,31 +159,33 @@ function Resumen({ resumen, periodo }: { resumen: ResumenMovimientos; periodo: s
 
   return (
     <div className="grid gap-3 sm:grid-cols-3">
-      <TarjetaIndicador tono="neutro" icono={History} etiqueta={`Movimientos · ${periodo}`} valor={total} unidad={total === 1 ? "registro" : "registros"}>
+      <Tarjeta etiqueta={`Movimientos · ${periodo}`} valor={n(total)} unidad={total === 1 ? "registro" : "registros"}>
         {total === 0 ? "Sin movimientos en el período" : desglose.join(" · ")}
-      </TarjetaIndicador>
-      <TarjetaIndicador
-        tono="verde"
-        icono={ArrowDownToLine}
+      </Tarjeta>
+      <Tarjeta
         etiqueta={`${ETIQUETA_CATEGORIA.entrada}s`}
         valor={resumen.entrada.movimientos === 0 ? "—" : `+${n(resumen.entrada.unidades)}`}
         unidad="unidades"
+        tono={resumen.entrada.movimientos > 0 ? "text-verde" : undefined}
       >
         {resumen.entrada.movimientos === 0
           ? "Nada entró en el período"
           : `${plural(resumen.entrada.movimientos, "movimiento", "movimientos")} · recepciones, devoluciones, producción`}
-      </TarjetaIndicador>
+      </Tarjeta>
       {/* «Salida» no es alarma (una venta es lo esperado, no un problema) — mismo criterio de color
           que ya usa la lista (`tonoCategoria`): neutro, no coral. */}
-      <TarjetaIndicador
-        tono="neutro"
-        icono={ArrowUpFromLine}
-        etiqueta={`${ETIQUETA_CATEGORIA.salida}s`}
-        valor={resumen.salida.movimientos === 0 ? "—" : `−${n(resumen.salida.unidades)}`}
-        unidad="unidades"
-      >
+      <Tarjeta etiqueta={`${ETIQUETA_CATEGORIA.salida}s`} valor={resumen.salida.movimientos === 0 ? "—" : `−${n(resumen.salida.unidades)}`} unidad="unidades">
         {resumen.salida.movimientos === 0 ? "Nada salió en el período" : `${plural(resumen.salida.movimientos, "movimiento", "movimientos")} · ventas y cambios`}
-      </TarjetaIndicador>
+      </Tarjeta>
     </div>
+  );
+}
+
+// La tarjeta del sistema (`ui/TarjetaCifra`): antes era una copia local con la misma receta.
+function Tarjeta({ etiqueta, valor, unidad, tono, children }: { etiqueta: string; valor: string; unidad: string; tono?: string; children: React.ReactNode }) {
+  return (
+    <TarjetaCifra etiqueta={etiqueta} valor={valor} unidad={unidad} tono={tono}>
+      {children}
+    </TarjetaCifra>
   );
 }

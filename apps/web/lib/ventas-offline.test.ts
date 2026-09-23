@@ -3,6 +3,7 @@ import { ID_CARGO_ESPECIAL } from "./cargo-especial";
 import {
   carritoPasaElUmbral,
   conStockComprometidoDescontado,
+  firmaDeVentaEncolada,
   pasaElUmbralDeSobra,
   stockComprometido,
   totalEfectivoEncolado,
@@ -153,5 +154,17 @@ describe("totalEfectivoEncolado", () => {
   });
   it("cola vacía suma 0", () => {
     expect(totalEfectivoEncolado([])).toBe(0);
+  });
+});
+
+describe("firmaDeVentaEncolada — el responsable viaja con la venta sin conexión (ADR-0161/0162)", () => {
+  it("sube con el responsable elegido, la tienda de la venta y la HORA DE LA VENTA (x-momento), no la de subida", () => {
+    const v = venta({ items: [], creadoEn: "2026-09-22T15:30:00.000Z" });
+    v.params.p_asesora_id = "p-ana";
+    expect(firmaDeVentaEncolada(v)).toEqual({ responsableId: "p-ana", ubicacionId: "sede-1", momento: "2026-09-22T15:30:00.000Z" });
+  });
+
+  it("una venta encolada antes del combo (sin responsable) sube sin firma, como antes", () => {
+    expect(firmaDeVentaEncolada(venta({ items: [] }))).toBeNull();
   });
 });

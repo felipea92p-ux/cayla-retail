@@ -98,6 +98,22 @@ export function condicionDeItem(item: ItemElegido): CondicionDevolucion | null {
 
 export type EstadoPrendaDevolucion = EstadoVisual & { devolvible: boolean };
 
+/** El chip de plazo puro — solo mira cuánto pasó desde la venta, nada de si la prenda ya
+ *  se cambió o devolvió. `estadoPrendaDevolucion` lo usa para UNA línea; el resumen por
+ *  venta de "Actividad reciente" lo usa una sola vez por tarjeta: el plazo es de la
+ *  boleta, no de la línea (`docs/pantallas/devoluciones.md` tarea #8). */
+export function estadoPlazoDevolucion(creadoEn: string, ahora: Date): EstadoVisual {
+  const { estado, diasRestantes } = estadoPlazoCambio(creadoEn, ahora);
+  // Igual que en Cambios: verde dentro del plazo (también los últimos días), rojo al vencer.
+  // Rojo aquí NO bloquea: solo dice que un líder tiene que decidir.
+  if (estado === "fuera_de_plazo") return { clave: "fuera_de_plazo", texto: "Fuera del plazo", tono: "rojo", icono: "alerta" };
+  if (estado === "por_vencer") {
+    const texto = diasRestantes === 0 ? "Último día del plazo" : `Vence en ${diasRestantes} día${diasRestantes === 1 ? "" : "s"}`;
+    return { clave: "por_vencer", texto, tono: "verde", icono: "reloj" };
+  }
+  return { clave: "dentro_del_plazo", texto: "Dentro del plazo", tono: "verde", icono: "reloj" };
+}
+
 export function estadoPrendaDevolucion(
   linea: {
     cantidad: number;
@@ -119,15 +135,7 @@ export function estadoPrendaDevolucion(
       ? { clave: "devuelta", texto: "Ya devuelta", tono: "verde", icono: "check", devolvible: false }
       : { clave: "cambiada", texto: "Ya cambiada", tono: "neutro", icono: "check", devolvible: false };
   }
-  const { estado, diasRestantes } = estadoPlazoCambio(linea.creadoEn, ahora);
-  // Igual que en Cambios: verde dentro del plazo (también los últimos días), rojo al vencer.
-  // Rojo aquí NO bloquea (`devolvible` sigue en true): solo dice que un líder tiene que decidir.
-  if (estado === "fuera_de_plazo") return { clave: "fuera_de_plazo", texto: "Fuera del plazo", tono: "rojo", icono: "alerta", devolvible: true };
-  if (estado === "por_vencer") {
-    const texto = diasRestantes === 0 ? "Último día del plazo" : `Vence en ${diasRestantes} día${diasRestantes === 1 ? "" : "s"}`;
-    return { clave: "por_vencer", texto, tono: "verde", icono: "reloj", devolvible: true };
-  }
-  return { clave: "dentro_del_plazo", texto: "Dentro del plazo", tono: "verde", icono: "reloj", devolvible: true };
+  return { ...estadoPlazoDevolucion(linea.creadoEn, ahora), devolvible: true };
 }
 
 /** Lo que la clienta pagó de verdad por `cantidad` unidades: precio menos el descuento que

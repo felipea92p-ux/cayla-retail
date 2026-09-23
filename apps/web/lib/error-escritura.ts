@@ -32,6 +32,8 @@
  * A DÓNDE IR EN VEZ DE.
  */
 
+import { mensajeErrorResponsable } from "./responsable-reglas";
+
 /** La forma del error de supabase-js, sin acoplarnos a su tipo. */
 export type ErrorEscritura = {
   message: string;
@@ -53,6 +55,14 @@ export type ErrorEscritura = {
 type Huella = { marca: string; frase: string | ((detalle: string) => string) };
 
 const HUELLAS: Huella[] = [
+  {
+    // Toda RPC que llama la web tiene EXECUTE para `authenticated`; si Postgres dice «permission denied for
+    // function», la petición llegó como `anon`: el navegador perdió la sesión (típico: alguien salió con la misma
+    // cuenta en otro equipo y la cerró en todos). Pasó el 2026-09-22 en el Punto de Venta. Postgres rechaza antes
+    // de ejecutar, así que no se guardó nada.
+    marca: "permission denied for function",
+    frase: "Tu sesión se cerró (quizá alguien salió con esta cuenta en otro equipo). No se guardó nada: recarga la página, vuelve a entrar e inténtalo de nuevo.",
+  },
   {
     // 20260922100000_colaboradores_endurecimiento.sql — un Colaborador siempre queda fijo a una ubicación.
     // `agregar_colaborador` ya lo valida antes; esto es la red si otro camino inserta sin ubicación.
@@ -388,6 +398,11 @@ export function traducirError(error: ErrorEscritura, contexto: string, opciones:
     }
     return `No se pudo ${contexto}: la conexión falló antes de llegar al servidor. No se guardó nada — revisa el internet y vuelve a intentar.`;
   }
+
+  // El combo «Responsable» (ADR-0161/0162): la base rechaza con 42501 y un `hint` estable. Va antes de las huellas:
+  // su frase dice qué hacer (volver a elegir, marcar entrada) y es la misma en todas las pantallas.
+  const porResponsable = mensajeErrorResponsable(error);
+  if (porResponsable) return porResponsable;
 
   const crudo = [error.message, error.details, error.hint].filter(Boolean).join(" · ");
   const enMinusculas = crudo.toLowerCase();

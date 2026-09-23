@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Comprobante } from "./comprobantes-reglas";
-import { accionesDelComprobante, camposDeBusquedaDelComprobante, montosDelMes, motivoDelComprobante, seriesFaltantes, textoDeSeriesFaltantes, errorDeSerie } from "./facturacion-comprobantes-reglas";
+import { accionesDelComprobante, camposDeBusquedaDelComprobante, enlaceWhatsApp, totalesPorTipo, montosDelMes, motivoDelComprobante, nombreDelTipo, numerosUsados, seriesFaltantes, seriesPorTienda, textoDeSeriesFaltantes, errorDeSerie } from "./facturacion-comprobantes-reglas";
 
 const TRU = { id: "u-tru", nombre: "Tienda Trujillo", tipo: "tienda" as const };
 const AQP = { id: "u-aqp", nombre: "Tienda Arequipa", tipo: "tienda" as const };
@@ -226,8 +226,12 @@ describe("camposDeBusquedaDelComprobante", () => {
 });
 
 describe("accionesDelComprobante (qué botones le tocan a cada estado)", () => {
-  it("pendiente: transmitir y liberar sin espera, las dos juntas (ADR-0093)", () => {
-    expect(accionesDelComprobante(c({ estado: "pendiente", entorno_transmision: null }))).toEqual(["transmitir", "liberar"]);
+  it("pendiente: solo liberar sin espera — ya no hay «Transmitir», se envía solo al cobrar (D-60)", () => {
+    expect(accionesDelComprobante(c({ estado: "pendiente", entorno_transmision: null }))).toEqual(["liberar"]);
+  });
+
+  it("en la cola de reintento: reintentar (adelanta el barrido); no se libera, ya se intentó enviar", () => {
+    expect(accionesDelComprobante(c({ estado: "pendiente_reintento" }))).toEqual(["reintentar"]);
   });
 
   it("rechazado: solo reintentar — un rechazado SÍ llegó a SUNAT, nunca se libera", () => {
@@ -272,5 +276,65 @@ describe("errorDeSerie", () => {
     const mensaje = "La serie de una nota de crédito empieza con B si corrige boletas o con F si corrige facturas (por ejemplo BC01).";
     expect(errorDeSerie("nota_credito", "NC01")).toBe(mensaje);
     expect(errorDeSerie("nota_credito", "0C01")).toBe(mensaje);
+  });
+});
+
+describe("seriesPorTienda (la vista Series)", () => {
+  const serie = (ubicacion_id: string, tipo: "boleta" | "factura" | "nota_credito", texto: string, siguiente_numero = 1) => ({ id: texto, ubicacion_id, tipo, serie: texto, siguiente_numero });
+
+  it("agrupa por tienda en el orden dado, ordena boleta → factura → NC y dice qué falta", () => {
+    const grupos = seriesPorTienda([serie("u-tru", "factura", "F004"), serie("u-tru", "boleta", "B004", 24), serie("u-aqp", "boleta", "B005")], [TRU, AQP]);
+    expect(grupos.map((g) => [g.tienda.id, g.series.map((s) => s.serie), g.faltan])).toEqual([
+      ["u-tru", ["B004", "F004"], ["nota_credito"]],
+      ["u-aqp", ["B005"], ["factura", "nota_credito"]],
+    ]);
+  });
+
+  it("una tienda sin series sale igual, con las tres por registrar", () => {
+    expect(seriesPorTienda([], [LIM])[0].faltan).toEqual(["boleta", "factura", "nota_credito"]);
+  });
+
+  it("numerosUsados: los que ya reservó (siguiente − 1), nunca negativo", () => {
+    expect(numerosUsados({ siguiente_numero: 24 })).toBe(23);
+    expect(numerosUsados({ siguiente_numero: 1 })).toBe(0);
+    expect(numerosUsados({ siguiente_numero: 0 })).toBe(0);
+  });
+});
+
+describe("un tipo de serie que este código aún no conoce (la nota de venta de otra rama)", () => {
+  it("se nombra desde su clave y va al final de su tienda", () => {
+    expect(nombreDelTipo("nota_venta")).toBe("Nota de venta");
+    expect(nombreDelTipo("boleta")).toBe("Boleta");
+    const nv = { id: "nv", ubicacion_id: "u-tru", tipo: "nota_venta" as never, serie: "NV01", siguiente_numero: 1 };
+    const b = { id: "b", ubicacion_id: "u-tru", tipo: "boleta" as const, serie: "B004", siguiente_numero: 1 };
+    expect(seriesPorTienda([nv, b], [TRU])[0].series.map((s) => s.serie)).toEqual(["B004", "NV01"]);
+  });
+});
+
+describe("totalesPorTipo (pie de Emitidos)", () => {
+  it("cuenta y suma por tipo en el orden de siempre, sin anulados ni liberados", () => {
+    const lista = [
+      c({ tipo: "factura", total: 200 }),
+      c({ tipo: "boleta", total: 10.1 }),
+      c({ tipo: "boleta", total: 20.2 }),
+      c({ tipo: "boleta", total: 99, estado: "anulado" }),
+      c({ tipo: "boleta", total: 99, estado: "no_emitido" }),
+      c({ tipo: "nota_credito", total: 15 }),
+    ];
+    expect(totalesPorTipo(lista)).toEqual([
+      { tipo: "boleta", cantidad: 2, monto: 30.3 },
+      { tipo: "factura", cantidad: 1, monto: 200 },
+      { tipo: "nota_credito", cantidad: 1, monto: 15 },
+    ]);
+  });
+
+  it("sin comprobantes, sin filas", () => {
+    expect(totalesPorTipo([])).toEqual([]);
+  });
+});
+
+describe("enlaceWhatsApp", () => {
+  it("codifica el texto (espacios, saltos y la URL del PDF)", () => {
+    expect(enlaceWhatsApp("Hola\nhttps://x.pe/a?b=1&c=2")).toBe("https://wa.me/?text=Hola%0Ahttps%3A%2F%2Fx.pe%2Fa%3Fb%3D1%26c%3D2");
   });
 });

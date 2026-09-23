@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 import type { Colaborador, ColaboradorSuspendido, DynamicDisponible } from "./colaboradores";
 import {
   accionesDeFila,
+  avisoTerminal,
+  confirmacionTerminal,
   fechaHoraLima,
   fechaLima,
   filtrarColaboradores,
   filtrarDisponibles,
   fraseEvento,
+  porAtender,
+  vistaDe,
   resumenAlta,
   resumirAccesos,
   ultimoAccesoTexto,
@@ -108,19 +112,36 @@ describe("accionesDeFila", () => {
     expect(accionesDeFila({ rol: "lider", es_yo: true })).toEqual([]);
   });
   it("a un colaborador se le puede cambiar la ubicación, suspender y quitar", () => {
-    expect(accionesDeFila({ rol: "colaborador", es_yo: false })).toEqual(["cambiar_ubicacion", "suspender", "quitar"]);
+    expect(accionesDeFila({ rol: "colaborador", es_yo: false })).toEqual(["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"]);
   });
-  it("un líder no tiene ubicación que cambiar", () => {
-    expect(accionesDeFila({ rol: "lider", es_yo: false })).toEqual(["suspender", "quitar"]);
+  it("a otro líder se le cambia el rol y la ubicación (la tienda donde arranca)", () => {
+    expect(accionesDeFila({ rol: "lider", es_yo: false })).toEqual(["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"]);
   });
+  it("quien gestiona accesos sin ser líder (módulo Colaboradores) no toca a un líder; a un colaborador, sí", () => {
+    expect(accionesDeFila({ rol: "lider", es_yo: false }, false)).toEqual([]);
+    expect(accionesDeFila({ rol: "colaborador", es_yo: false }, false)).toEqual(["cambiar_rol", "cambiar_ubicacion", "suspender", "quitar"]);
+  });
+});
 
-  it("una terminal (ADR-0160) no se muda de tienda: solo se suspende o se quita — así nunca queda una en el Taller", () => {
-    expect(accionesDeFila({ rol: "colaborador", es_yo: false, terminal: "ventas" })).toEqual(["suspender", "quitar"]);
-    expect(accionesDeFila({ rol: "colaborador", es_yo: false, terminal: "administrativa" })).toEqual(["suspender", "quitar"]);
+describe("terminales sin persona (ADR-0162)", () => {
+  it("desactivar avisa que corta la sesión al instante y conserva el historial", () => {
+    const c = confirmacionTerminal({ nombre: "Terminal Ventas TRU", activo: true });
+    expect(c.titulo).toBe("Desactivar Terminal Ventas TRU");
+    expect(c.boton).toBe("Desactivar");
+    expect(c.texto).toMatch(/al instante/);
+    expect(c.texto).toMatch(/historial se conserva/);
   });
-
-  it("una persona con `terminal: null` conserva las tres acciones de siempre", () => {
-    expect(accionesDeFila({ rol: "colaborador", es_yo: false, terminal: null })).toEqual(["cambiar_ubicacion", "suspender", "quitar"]);  });
+  it("reactivar vuelve con la misma clave", () => {
+    expect(confirmacionTerminal({ nombre: "Terminal Ventas LIM", activo: false })).toEqual({
+      titulo: "Reactivar Terminal Ventas LIM",
+      texto: "El aparato vuelve a funcionar con su misma clave.",
+      boton: "Reactivar",
+    });
+  });
+  it("el aviso dice el estado NUEVO, a partir del de antes", () => {
+    expect(avisoTerminal("Terminal Ventas TRU", true)).toBe("Terminal Ventas TRU desactivada");
+    expect(avisoTerminal("Terminal Ventas TRU", false)).toBe("Terminal Ventas TRU reactivada");
+  });
 });
 
 describe("fechas en hora de Lima", () => {
@@ -181,5 +202,33 @@ describe("fraseEvento", () => {
   });
   it("una persona que ya no se puede nombrar no rompe la frase", () => {
     expect(texto(fraseEvento({ ...base, accion: "baja", persona_nombre: null }))).toBe("Felipe quitó el acceso a una persona.");
+  });
+});
+
+describe("vistaDe (dos secciones; los enlaces viejos siguen funcionando)", () => {
+  it("sin nada o con cualquier otra cosa abre Cuentas ▸ Personas ▸ Activas", () => {
+    expect(vistaDe(undefined)).toEqual({ seccion: "cuentas", tipo: "personas", estado: "activas", actividad: false });
+    expect(vistaDe("otra")).toEqual(vistaDe(undefined));
+    expect(vistaDe("activos")).toEqual(vistaDe(undefined));
+  });
+  it("cada pestaña vieja cae en su sección y su filtro", () => {
+    expect(vistaDe("roles").seccion).toBe("roles");
+    expect(vistaDe("terminales")).toMatchObject({ seccion: "cuentas", tipo: "terminales" });
+    expect(vistaDe("pendientes")).toMatchObject({ seccion: "cuentas", estado: "pendientes" });
+    expect(vistaDe("suspendidos").estado).toBe("suspendidas");
+    expect(vistaDe("inactivas").estado).toBe("inactivas");
+    expect(vistaDe("actividad")).toMatchObject({ seccion: "cuentas", actividad: true });
+  });
+});
+
+describe("porAtender", () => {
+  it("con todo en cero no avisa nada", () => {
+    expect(porAtender(0, 0)).toEqual([]);
+  });
+  it("altas primero (ámbar), inactivas después (neutro)", () => {
+    const a = porAtender(2, 1);
+    expect(a.map((x) => [x.estado, x.tono])).toEqual([["pendientes", "ambar"], ["inactivas", "neutro"]]);
+    expect(a[0].titulo).toBe("2 altas esperan tu aprobación.");
+    expect(porAtender(0, 1)[0].titulo).toBe("1 cuenta con acceso está inactiva en Dynamic.");
   });
 });

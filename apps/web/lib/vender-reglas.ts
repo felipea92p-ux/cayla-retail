@@ -4,6 +4,7 @@
 // ningún fetcher server-only pueda arrastrar al navegador.
 
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
+import { nombresCortos } from "./nombre-integrante";
 
 /** Los momentos del ticket (ADR-0044). En «armar» solo se ven las líneas y el total;
  *  «descuento» es el apartado para decidir un descuento (vuelve a «armar»); «espera» es
@@ -120,12 +121,6 @@ export function pasoDelCobro(pagos: readonly PagoAplicado[], total: number): Pas
   return "comprobante";
 }
 
-export const TEXTO_PASO_COBRO: Record<PasoCobro, string> = {
-  medio: "Elige cómo pagó la clienta.",
-  recibido: "Toca los billetes que entregó, o «Exacto» si pagó justo.",
-  comprobante: "Listo. El documento es opcional: ya puedes confirmar el cobro.",
-};
-
 /** Los pagos como viajan a `registrar_venta`. Solo montos > 0 (`venta_pagos` lo exige). El
  *  `recibido` va únicamente en efectivo y solo si cubre lo que corresponde: la base lo
  *  guarda para reimprimir el vuelto y su candado (`venta_pagos_recibido_coherente`) rechaza
@@ -158,10 +153,17 @@ export function motivoBloqueoCobro(v: {
   total: number;
   pagos: readonly PagoAplicado[];
   facturaSinRuc: boolean;
+  /** Por qué el combo «Responsable» todavía no deja guardar (`ControlResponsable.motivo`, ADR-0161); `null`/ausente = ya
+   *  hay responsable. Se pide antes que el pago: primero quién hace la venta, después la plata. */
+  motivoResponsable?: string | null;
+  /** Se cobra una proforma VENCIDA y aún no se confirmó que va al precio de entonces (ADR-0167). Ausente = no aplica. */
+  proformaVencidaSinConfirmar?: boolean;
 }): string | null {
   if (!v.cajaAbierta) return "Abre la caja para vender.";
   if (v.prendas === 0) return "Agrega una prenda para cobrar.";
+  if (v.motivoResponsable) return v.motivoResponsable;
   if (v.momento !== "cobrar") return null;
+  if (v.proformaVencidaSinConfirmar) return "Confirma que cobras la proforma vencida al precio de entonces.";
   if (v.pagos.length === 0) return "Elige cómo pagó la clienta.";
   const restante = restanteDePagos(v.total, v.pagos);
   if (restante > 0) return `Falta cubrir S/${restante.toFixed(2)}.`;
@@ -340,3 +342,17 @@ export function necesitaArgumentoEscrito(esLider: boolean, porcentaje: number): 
   return esLider && porcentaje > 20;
 }
 
+// ---- Quién atendió: el papel del ticket (ADR-0163 → ADR-0161) ------------------------------------------------------
+// Quién atendió ya no es una fila de chips propia: es el RESPONSABLE de la venta, elegido en el combo del ADR-0161
+// (`components/ComboResponsable.tsx`, reglas en `lib/responsable-reglas.ts`), y viaja a `registrar_venta` como
+// `p_asesora_id`. Aquí queda solo cómo se nombra en el papel.
+
+/** Una persona que se puede nombrar en el ticket (`PersonaDeTurno` calza con esta forma). */
+export type Vendedora = { personaId: string; nombre: string };
+
+/** El nombre que sale en el papel: el primer nombre, y la inicial del apellido solo si otra de la fila comparte
+ *  primer nombre (`nombresCortos`, la misma regla de «Ventas de hoy»). `null` si no hay a quién nombrar. */
+export function atendioCorto(vendedoras: readonly Vendedora[], id: string | null): string | null {
+  const v = vendedoras.find((x) => x.personaId === id);
+  return v ? (nombresCortos(vendedoras.map((x) => x.nombre)).get(v.nombre) ?? null) : null;
+}

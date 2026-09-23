@@ -3,8 +3,8 @@
 **Fecha:** 2026-09-20
 **Estado:** Aceptado e **implementado (Fase 1)** en la rama `claude/apartado-stock-reserva-fisica`. Verificado con SQL contra un Postgres 17
 real (46 pruebas nuevas, 54 de regresión del motor y de ventas, y carreras con COMMIT de hasta 120 conexiones), 1645 pruebas unitarias y el
-navegador (los componentes reales con datos de ejemplo). **La migración NO está aplicada en producción**: se pega con ok de Felipe, en el orden
-de «Cómo se pega en producción».
+navegador (los componentes reales con datos de ejemplo). **Aplicada en producción el 2026-09-22** con ok de Felipe (una transacción; los 6 cuerpos
+con md5 idéntico al repo y `fn_verificar_apartados` en 0 filas).
 **Decide:** Felipe, en lo de negocio (24 preguntas del 2026-09-17 y 8 más el 2026-09-20). Arquitectura: este documento.
 **Afecta:** `stock` (columna nueva), `movimientos` (dos tipos nuevos), `fn_aplicar_movimiento` y `recalcular_stock` (reescritas sobre el cuerpo
 de producción), tabla nueva `apartados`, cuatro funciones nuevas, Existencias, lo que ofrecen Vender/Cambios/Traslados, y las etiquetas de Movimientos.

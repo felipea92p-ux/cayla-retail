@@ -118,7 +118,7 @@ export function montosDelMes(comprobantes: Comprobante[]): MontosDelMes {
   };
 }
 
-export type AccionDelComprobante = "transmitir" | "reintentar" | "liberar" | "anular" | "consultar";
+export type AccionDelComprobante = "reintentar" | "liberar" | "anular" | "consultar";
 
 /** Los botones que le tocan a un comprobante, en el orden en que se dibujan. ADR-0093: «liberar» solo
  *  para un `pendiente` —nunca se transmitió, así que soltar el correlativo no le avisa nada a SUNAT—; un
@@ -127,8 +127,10 @@ export type AccionDelComprobante = "transmitir" | "reintentar" | "liberar" | "an
  *  JUNTO a Transmitir). Un aceptado se anula; si su baja ya está en trámite, se consulta. `enviado`,
  *  `anulado` y `no_emitido` no tienen botón: no hay nada que hacer con ellos desde acá. */
 export function accionesDelComprobante(c: Comprobante): AccionDelComprobante[] {
-  if (c.estado === "pendiente") return ["transmitir", "liberar"];
-  if (c.estado === "rechazado") return ["reintentar"];
+  // Sin «Transmitir» desde 2026-09-22 (D-60): un `pendiente` se envía solo al cobrar, y si Lucode no
+  // respondió pasa a la cola (`pendiente_reintento`), donde «Reintentar» lo adelanta sin esperar al barrido.
+  if (c.estado === "pendiente") return ["liberar"];
+  if (c.estado === "rechazado" || c.estado === "pendiente_reintento") return ["reintentar"];
   if (c.estado === "aceptado") return [anulacionEnTramite(c) ? "consultar" : "anular"];
   return [];
 }
@@ -152,4 +154,62 @@ export function camposDeBusquedaDelComprobante(c: Comprobante): (string | null)[
     motivoDelComprobante(c).motivo,
     Number(c.total).toFixed(2),
   ];
+}
+
+export type GrupoSeriesDeTienda = {
+  tienda: { id: string; nombre: string };
+  series: SerieComprobante[];
+  /** Los tipos que a esta tienda le faltan (boleta, factura, nota de crédito): una tarjeta punteada cada uno. */
+  faltan: TipoComprobante[];
+};
+
+/** La vista Series: una fila por tienda, sus series en orden de tipo y lo que le falta. `usados` de una
+ *  serie es `siguiente_numero − 1`: los números que ya reservó (con huecos si alguno se liberó). */
+export function seriesPorTienda(series: SerieComprobante[], tiendas: { id: string; nombre: string }[]): GrupoSeriesDeTienda[] {
+  return tiendas.map((tienda) => {
+    const propias = series.filter((s) => s.ubicacion_id === tienda.id).sort((a, b) => ordenDelTipo(a.tipo) - ordenDelTipo(b.tipo));
+    return { tienda, series: propias, faltan: TIPOS_CON_SERIE.filter((t) => !propias.some((s) => s.tipo === t)) };
+  });
+}
+
+const TIPOS_ORDEN: TipoComprobante[] = ["boleta", "factura", "nota_credito", "nota_debito"];
+/** Un tipo que este código aún no conoce (la nota de venta, que se construye en otra rama) va al final. */
+const ordenDelTipo = (t: string) => (TIPOS_ORDEN.indexOf(t as TipoComprobante) + 1 || TIPOS_ORDEN.length + 1);
+
+/** El nombre de un tipo de serie; uno que este código aún no conoce se nombra desde su clave
+ *  (`nota_venta` → «Nota de venta»), nunca en blanco. */
+export function nombreDelTipo(tipo: string): string {
+  const conocido = ETIQUETA_TIPO[tipo as TipoComprobante];
+  if (conocido) return conocido;
+  const palabras = tipo.split("_");
+  return [palabras[0][0].toUpperCase() + palabras[0].slice(1), ...palabras.slice(1)].join(" ").replace(/^Nota /, "Nota de ");
+}
+
+/** Cuántos números reservó ya una serie. */
+export function numerosUsados(s: Pick<SerieComprobante, "siguiente_numero">): number {
+  return Math.max(0, s.siguiente_numero - 1);
+}
+
+export type TotalDelTipo = { tipo: TipoComprobante; cantidad: number; monto: number };
+
+/** El pie de Emitidos: cuántos comprobantes hay de cada tipo y cuánto suman, en el orden de siempre
+ *  (boleta, factura, notas). Anulados y liberados («no emitido») no cuentan: ya no valen. Las pruebas sí
+ *  cuentan, porque el pie resume lo que se ve en la lista; el monto que vale ante SUNAT es la tarjeta
+ *  «Monto facturado». La nota de crédito se muestra en positivo: el pie dice cuánto se devolvió. */
+export function totalesPorTipo(comprobantes: Comprobante[]): TotalDelTipo[] {
+  const porTipo = new Map<TipoComprobante, TotalDelTipo>();
+  for (const c of comprobantes) {
+    if (c.estado === "anulado" || c.estado === "no_emitido") continue;
+    const t = porTipo.get(c.tipo) ?? { tipo: c.tipo, cantidad: 0, monto: 0 };
+    t.cantidad += 1;
+    t.monto = Math.round((t.monto + Number(c.total)) * 100) / 100;
+    porTipo.set(c.tipo, t);
+  }
+  return [...porTipo.values()].sort((a, b) => ordenDelTipo(a.tipo) - ordenDelTipo(b.tipo));
+}
+
+/** El enlace de WhatsApp para mandarle a la clienta su comprobante: sin número (no se guarda el de la
+ *  clienta en el comprobante), así WhatsApp pregunta a quién. */
+export function enlaceWhatsApp(texto: string): string {
+  return `https://wa.me/?text=${encodeURIComponent(texto)}`;
 }

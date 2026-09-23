@@ -4,6 +4,7 @@ import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getTrasladosPorAtender } from "@/lib/traslados";
 import { AppShell } from "@/components/AppShell";
+import { SedeActivaProveedor } from "@/components/SedeActiva";
 
 // Fase UI 1 (2026-09-11): usa la persona V2 (`ubicacion_id`), no la V1
 // (`sede_id`). Fase 2 (2026-09-13): el selector de ubicación del líder ya
@@ -33,12 +34,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         ubicacionTipo: persona.ubicacionTipo,
         puedeCambiarUbicacion: persona.puedeCambiarUbicacion,
         terminal: persona.terminal,
+        permisos: persona.permisos,
+        modulos: persona.modulos.map((m) => m.clave),
       }}
       ubicaciones={ubicaciones}
       trasladosPorAtender={trasladosPorAtender}
       lateralPlegado={lateralPlegado}
     >
-      {children}
+      {/* La sede activa y quién inició sesión, para el combo «Responsable» (ADR-0161, A11), sin pasarlas por props a cada pantalla. */}
+      <SedeActivaProveedor ubicacionId={persona.ubicacionId} etiqueta={persona.ubicacionEtiqueta} personaSesionId={persona.personaId}>
+        {children}
+      </SedeActivaProveedor>
     </AppShell>
   );
 }

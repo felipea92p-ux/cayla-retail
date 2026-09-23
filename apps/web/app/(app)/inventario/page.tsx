@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
+import { exigirModulo, puede } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
@@ -29,7 +29,7 @@ export default async function InventarioPage({
 }: {
   searchParams: Promise<{ ubicacion?: string }>;
 }) {
-  const persona = await requirePersonaActualV2();
+  const persona = await exigirModulo("existencias"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   const { ubicacion: ubicacionQuery } = await searchParams;
   const ubicaciones = await getUbicaciones();
 
@@ -51,7 +51,8 @@ export default async function InventarioPage({
     getPrendasDanadasPendientes(ubicacionActivaId),
     vende ? getCoberturaPorVariante(ubicacionActivaId) : Promise.resolve(null),
     // Reservas para clientas (ADR-0141): solo donde se vende. Taller no aparta.
-    vende ? getApartadosAbiertos(ubicacionActivaId) : Promise.resolve([]),
+    // Una terminal libera cualquier apartado (Felipe, 2026-09-22, ADR-0162): `persona.terminal` lo dice.
+    vende ? getApartadosAbiertos(ubicacionActivaId, { esTerminal: persona.terminal }) : Promise.resolve([]),
     // Rediseño 2026-09-22: costo/precio/categoría y el delta de 7 días para «Disponible total»,
     // «Ritmo de venta (7D)» de la tabla y el overlay de categorías — misma RPC que ya usaba la cobertura.
     getFilasSemanaDeSede(ubicacionActivaId),
@@ -86,18 +87,19 @@ export default async function InventarioPage({
 
   return (
     <div className="space-y-4">
+      {/* Sin selector de sede propio ni interruptor de «datos de prueba» a propósito (Felipe,
+          2026-09-22): el selector global de la barra superior ya cambia toda la app, y uno
+          segundo acá desacomodaba el layout al abrirse; el de «datos de prueba» se quitó del
+          todo (render, estado y lectura de `?prueba=`), no solo se ocultó. */}
       <InventarioHero
         eyebrow="Inventario · Existencias"
         titulo={ubicacionActiva?.nombre ?? "—"}
         descripcion="Qué hay en piso y almacén, qué viene en camino y qué deberías reponer hoy."
-        auxiliar={<p className="text-[11px] text-tinta/40">Cargado a las {horaCarga}</p>}
+        auxiliar={<p className="mt-1 text-xs text-taupe">Vista cargada a las {horaCarga} — recarga para ver lo último.</p>}
         foto={fotoHeroPorPantalla("existencias")}
         variante="integrado"
         accion={
-          <Link
-            href="/inventario/mover"
-            className="label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema shadow-sm transition-colors hover:bg-rojo"
-          >
+          <Link href="/inventario/mover" className="btn-cayla btn-primario">
             + Nuevo traslado
           </Link>
         }

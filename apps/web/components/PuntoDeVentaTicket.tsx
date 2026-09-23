@@ -38,8 +38,9 @@ import {
 import { Ayuda } from "@/components/Ayuda";
 import { CampoMonto } from "@/components/ui/CampoMonto";
 import { BilleteRapido } from "@/components/BilleteRapido";
-import { PasosCobro } from "@/components/PasosCobro";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import type { ControlResponsable } from "@/lib/useResponsable";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ID_CARGO_ESPECIAL, money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
 
@@ -116,7 +117,7 @@ function IconoPlin({ className }: { className?: string }) {
   );
 }
 
-const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
+export const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
   efectivo: <Banknote className={ICONO} aria-hidden />,
   tarjeta: <CreditCard className={ICONO} aria-hidden />,
   yape: <IconoYape className={ICONO} />,
@@ -184,6 +185,8 @@ type Props = {
   /** Derivado en el padre, una sola vez: por qué el botón principal está apagado
    *  (o null). Apaga el botón y se muestra debajo de él, tal cual. */
   motivoBloqueo: string | null;
+  /** El combo «Responsable» (ADR-0161), justo encima de Cobrar. Su estado vive en el padre (`useResponsable`). */
+  responsable: ControlResponsable;
   // Pago mixto — una fila por medio; `restante` y `vuelto` ya derivados en el padre
   pagos: PagoAplicado[];
   restante: number;
@@ -194,8 +197,8 @@ type Props = {
   /** Lo entregado en efectivo (null = borrar). Solo de pantalla, para el vuelto. */
   onRecibido: (monto: number | null) => void;
   // Comprobante + documento de la clienta
-  tipoComprobante: Extract<TipoComprobante, "boleta" | "factura">;
-  onTipoComprobante: (t: Extract<TipoComprobante, "boleta" | "factura">) => void;
+  tipoComprobante: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">;
+  onTipoComprobante: (t: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">) => void;
   clienteNumDoc: string;
   onClienteNumDoc: (v: string) => void;
   clienteNombre: string;
@@ -249,6 +252,7 @@ export function PuntoDeVentaTicket({
   onIrACobrar,
   onVolverATicket,
   motivoBloqueo,
+  responsable,
   pagos,
   restante,
   vuelto,
@@ -735,7 +739,6 @@ export function PuntoDeVentaTicket({
             </div>
           ) : cobrando ? (
             <div className={saliendo ? "anim-revelar-salida space-y-5 px-5 py-4" : "anim-revelar space-y-5 px-5 py-4"}>
-              <PasosCobro paso={paso} />
               {/* 1 · Cuánto y cómo pagó — antes que el comprobante: el cobro existe
                   aunque la clienta no pida nada. Tocar un medio agrega su fila con lo que
                   falta; combinar («Yape + efectivo», la venta más común de la tienda) es bajar
@@ -920,8 +923,8 @@ export function PuntoDeVentaTicket({
                       {paso === "comprobante" && <PastillaPaso>Opcional</PastillaPaso>}
                     </span>
                   </legend>
-                  <div className="grid grid-cols-2 gap-1 rounded-lg bg-sand/50 p-1">
-                    {(["boleta", "factura"] as const).map((t) => (
+                  <div className="grid grid-cols-3 gap-1 rounded-lg bg-sand/50 p-1">
+                    {(["boleta", "factura", "nota_venta"] as const).map((t) => (
                       <button
                         key={t}
                         type="button"
@@ -932,7 +935,7 @@ export function PuntoDeVentaTicket({
                           tipoComprobante === t ? OPCION_ACTIVA : OPCION_INACTIVA
                         }`}
                       >
-                        {t === "boleta" ? <Receipt className={ICONO_CHICO} aria-hidden /> : <FileText className={ICONO_CHICO} aria-hidden />}
+                        {t === "factura" ? <FileText className={ICONO_CHICO} aria-hidden /> : <Receipt className={ICONO_CHICO} aria-hidden />}
                         {ETIQUETA_TIPO[t]}
                       </button>
                     ))}
@@ -947,6 +950,9 @@ export function PuntoDeVentaTicket({
                       onNombre={onClienteNombre}
                     />
                   </fieldset>
+                  {tipoComprobante === "nota_venta" && (
+                    <p className="text-[11px] text-tinta/60">Documento interno de la tienda: no se envía a SUNAT y no desglosa IGV.</p>
+                  )}
                 </fieldset>
               </div>
             </div>
@@ -1158,12 +1164,15 @@ export function PuntoDeVentaTicket({
                 así que el pie no crece. El precio ya trae el IGV: subtotal + IGV = total. */}
             <div className="text-xs text-tinta/60">
               <p>{etiquetaPrendas}</p>
-              <dl className="grid grid-cols-[auto_auto] justify-start gap-x-3 tabular-nums">
-                <dt>Subtotal</dt>
-                <dd className="text-right">{money(desglose.subtotal)}</dd>
-                <dt>IGV ({(TASA_IGV * 100).toFixed(0)}%)</dt>
-                <dd className="text-right">{money(desglose.igv)}</dd>
-              </dl>
+              {/* La nota de venta no desglosa IGV (ADR-0164): el pie muestra solo el total. */}
+              {tipoComprobante !== "nota_venta" && (
+                <dl className="grid grid-cols-[auto_auto] justify-start gap-x-3 tabular-nums">
+                  <dt>Subtotal</dt>
+                  <dd className="text-right">{money(desglose.subtotal)}</dd>
+                  <dt>IGV ({(TASA_IGV * 100).toFixed(0)}%)</dt>
+                  <dd className="text-right">{money(desglose.igv)}</dd>
+                </dl>
+              )}
             </div>
             <div className="text-right">
               <p className="label-cayla text-[11px] text-tinta/60">Total</p>
@@ -1175,6 +1184,13 @@ export function PuntoDeVentaTicket({
             </div>
           </div>
 
+
+          {/* El combo «Responsable» (ADR-0161; spike, pantalla 2): justo encima de Cobrar, vacío en cada venta. Al armar
+              y al cobrar — la elección puede hacerse en cualquiera de los dos —; sus botones son `type="button"` y no
+              envían el formulario. La lista se abre hacia arriba: debajo solo está el botón. */}
+          {(momentoMostrado === "armar" || cobrando) && !bloqueado && (
+            <ComboResponsable control={responsable} hacia="arriba" deshabilitado={loading} className="mb-3" />
+          )}
 
           {/* El botón apagado dice por qué: el mismo motivo que lo apaga, debajo de él.
               Truco de `grid-template-rows` (0fr↔1fr): el párrafo queda siempre montado y

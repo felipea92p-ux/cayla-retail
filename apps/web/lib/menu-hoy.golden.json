@@ -24,10 +24,18 @@
             "icono": "venta",
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
               { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-              { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              }
             ]
           },
           {
@@ -71,10 +79,18 @@
             "icono": "venta",
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
               { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-              { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              }
             ]
           },
           {
@@ -141,11 +157,19 @@
             "icono": "venta",
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
               { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-              { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" },
-              { "etiqueta": "Facturación", "href": "/vender/facturacion", "icono": "facturacion" }
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
             ]
           },
           {
@@ -201,11 +225,19 @@
             "icono": "venta",
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
               { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-              { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" },
-              { "etiqueta": "Facturación", "href": "/vender/facturacion", "icono": "facturacion" }
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
             ]
           },
           {
@@ -271,10 +303,18 @@
             "icono": "venta",
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
               { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-              { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              }
             ]
           },
           {
@@ -328,10 +368,18 @@
             "icono": "venta",
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
               { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-              { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              }
             ]
           },
           {
@@ -407,11 +455,19 @@
             "icono": "venta",
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
               { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-              { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" },
-              { "etiqueta": "Facturación", "href": "/vender/facturacion", "icono": "facturacion" }
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
             ]
           },
           {
@@ -476,11 +532,19 @@
             "icono": "venta",
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
               { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-              { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" },
-              { "etiqueta": "Facturación", "href": "/vender/facturacion", "icono": "facturacion" }
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
             ]
           },
           {
@@ -536,10 +600,18 @@
             "icono": "venta",
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
               { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-              { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              }
             ]
           },
           {
@@ -583,10 +655,18 @@
             "icono": "venta",
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
               { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-              { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              }
             ]
           },
           {
@@ -653,11 +733,19 @@
             "icono": "venta",
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
               { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-              { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" },
-              { "etiqueta": "Facturación", "href": "/vender/facturacion", "icono": "facturacion" }
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
             ]
           },
           {
@@ -713,11 +801,19 @@
             "icono": "venta",
             "hijos": [
               { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
               { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
               { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-              { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" },
-              { "etiqueta": "Facturación", "href": "/vender/facturacion", "icono": "facturacion" }
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
             ]
           },
           {

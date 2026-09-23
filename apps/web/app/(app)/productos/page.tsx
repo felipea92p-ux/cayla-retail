@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
+import { exigirModulo, puede } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { getSububicaciones } from "@/lib/sububicaciones";
@@ -48,7 +48,7 @@ import { mensajeSinResultados } from "@/lib/productos-stock";
 // (`/productos/[id]/editar`): la matriz es para crear varias variantes de
 // una sola vez, no tiene sentido para una que ya existe.
 export default async function ProductosPage({ searchParams }: { searchParams: Promise<ParamsProductosListado> }) {
-  const persona = await requirePersonaActualV2();
+  const persona = await exigirModulo("productos"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   const params = await searchParams;
   const filtros = filtrosProductosDesdeParams(params);
   const pagina = paginaProductosDesdeParams(params);

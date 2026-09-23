@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AlertTriangle, Boxes, ChevronRight, PackagePlus, Sparkles, SlidersHorizontal, Truck } from "lucide-react";
 import { crearIndiceBusquedaEspecial, filtrarConBusquedaEspecial } from "@/lib/filtro-busqueda-especial";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { CampoTexto, CampoSelect } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { MenuAcciones } from "@/components/ui/MenuAcciones";
+import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
+import { paginar } from "@/lib/paginacion";
 import { ReponerPisoModal } from "@/components/ReponerPisoModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
@@ -52,6 +54,17 @@ const PUNTO_ESTADO: Record<EstadoStock, string> = {
 };
 
 const TODAS = "__todas__";
+/** Filas por página de la tabla (Felipe, 2026-09-22: «que solo se vean 15»). Pintar TODAS las variantes
+ *  de una tienda —cada una con foto, chips, botones y menú— era lo que hacía lenta la pantalla. */
+const FILAS_POR_PAGINA = 15;
+
+/** «Mostrando 1–15 de 120 prendas»; con filtro, «Mostrando 1–15 de 40 (de 120 prendas)». */
+function textoMostrando(p: { desde: number; hasta: number; totalPaginas: number }, filtradas: number, total: number): string {
+  const prendas = total === 1 ? "prenda" : "prendas";
+  if (p.totalPaginas <= 1) return `Mostrando ${filtradas} de ${total} ${prendas}`;
+  const rango = `Mostrando ${p.desde}–${p.hasta} de`;
+  return filtradas === total ? `${rango} ${total} ${prendas}` : `${rango} ${filtradas} (de ${total} ${prendas})`;
+}
 /** Filtro de "Dañado" (2026-09-17): eje aparte del semáforo piso/almacén —
  *  reemplazó al filtro compuesto "Piden atención" (Felipe: "el estado PIDE
  *  ATENCIÓN lo vamos a cambiar por DAÑADO"). Las tres cosas que antes sumaba
@@ -107,7 +120,7 @@ function TarjetaPrioridad({
   onClick,
   children,
 }: {
-  icono: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  icono: React.ComponentType<{ className?: string; strokeWidth?: number; "aria-hidden"?: boolean }>;
   etiqueta: string;
   valor: number;
   unidad: string;
@@ -118,28 +131,25 @@ function TarjetaPrioridad({
   children: React.ReactNode;
 }) {
   const clickeable = Boolean(href || onClick);
-  const clase = `card-cayla group relative block p-5 text-left transition-all duration-200 ${
-    urgente ? "border-rojo/25 bg-rojo/[0.045]" : ""
-  } ${clickeable ? "hover:-translate-y-0.5 hover:shadow-md" : ""} ${activa ? "bg-sand/40" : ""}`;
+  // Guía oficial (2026-09-22, ADR-0169): papel plano con la línea de sand, sin sombra ni fondo tintado. Lo
+  // urgente se dice con la CIFRA en rojo profundo y el borde un punto más cálido, no con una tarjeta rosada.
+  const clase = `card-cayla group relative block p-5 text-left transition-colors ${urgente ? "border-rojo/30" : ""} ${
+    clickeable ? "hover:bg-sand/30" : ""
+  } ${activa ? "bg-sand/40" : ""}`;
   const contenido = (
     <>
-      <div className="flex items-start justify-between">
-        <span
-          aria-hidden
-          className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
-            urgente ? "bg-rojo/10 text-rojo-profundo" : "bg-sand/60 text-tinta/65"
-          }`}
-        >
-          <Icono className="h-4 w-4" strokeWidth={1.5} />
-        </span>
-        {clickeable && <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/30 transition-transform group-hover:translate-x-0.5" />}
+      <div className="flex items-start justify-between gap-3">
+        <p className="label-cayla flex items-center gap-2 text-[11px] font-bold text-taupe">
+          <Icono aria-hidden className={`h-3.5 w-3.5 ${urgente ? "text-rojo-profundo" : "text-taupe/70"}`} strokeWidth={1.75} />
+          {etiqueta}
+        </p>
+        {clickeable && <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-taupe/50 transition-transform group-hover:translate-x-0.5" />}
       </div>
-      <p className="label-cayla mt-3 text-[11px] text-tinta/65">{etiqueta}</p>
-      <p className="mt-1 flex items-baseline gap-2">
-        <span className="font-display text-3xl tabular-nums text-tinta">{valor.toLocaleString("es-PE")}</span>
-        <span className="text-sm text-tinta/55">{unidad}</span>
+      <p className="mt-2 flex items-baseline gap-2">
+        <span className={`font-display text-[28px] leading-tight tabular-nums ${urgente ? "text-rojo-profundo" : "text-tinta"}`}>{valor.toLocaleString("es-PE")}</span>
+        <span className="text-sm text-taupe">{unidad}</span>
       </p>
-      <p className="mt-1 text-xs text-tinta/65">{children}</p>
+      <p className="mt-1 text-xs text-taupe">{children}</p>
     </>
   );
   if (href) {
@@ -271,6 +281,25 @@ export function InventarioPanel({
     [indiceBusqueda, busqueda, talla, color, categoria, estado]
   );
 
+  // La tabla pinta UNA página de `filtradas`; las tarjetas, los filtros y el CSV siguen viendo todas.
+  // Cambiar cualquier filtro vuelve a la página 1 (ajuste durante el render, sin efecto: la firma de
+  // los filtros cambió → se reinicia). `paginar` acota: si un guardado achicó la lista, cae en la última.
+  const [pagina, setPagina] = useState(1);
+  const firmaFiltros = [busqueda, categoria, talla, color, estado].join("\u0000");
+  const [firmaPrevia, setFirmaPrevia] = useState(firmaFiltros);
+  if (firmaFiltros !== firmaPrevia) {
+    setFirmaPrevia(firmaFiltros);
+    setPagina(1);
+  }
+  const paginaActual = paginar(filtradas, pagina, FILAS_POR_PAGINA);
+  const tarjetaTablaRef = useRef<HTMLDivElement>(null);
+  function irAPagina(n: number) {
+    setPagina(n);
+    // El paginador está al pie: al cambiar de página, que la tabla empiece a leerse desde arriba.
+    const tarjeta = tarjetaTablaRef.current;
+    if (tarjeta && tarjeta.getBoundingClientRect().top < 0) tarjeta.scrollIntoView({ block: "start" });
+  }
+
   const hayFiltrosActivos = busqueda !== "" || categoria !== TODAS || talla !== TODAS || color !== TODAS || estado !== TODAS;
   function limpiarFiltros() {
     setBusqueda("");
@@ -298,7 +327,8 @@ export function InventarioPanel({
   );
 
   // Exporta lo que la colaboradora está viendo, no todo el inventario: usa
-  // `filtradas` (mismo array que pinta la tabla), así que si ya filtró por
+  // `filtradas` (lo que pinta la tabla, TODAS sus páginas —no solo la de la
+  // vista—), así que si ya filtró por
   // categoría/talla/color/estado antes de exportar, el CSV trae eso y no de
   // más. Columnas Piso/Almacén/Estado solo si esta ubicación las separa
   // (`separa`) — en Taller siempre son `null` y mostrar tres columnas vacías
@@ -328,7 +358,7 @@ export function InventarioPanel({
   // horizontal (`ui/Tabla.tsx`) — con Cobertura y Ritmo como columnas propias (antes la cobertura era
   // la segunda línea de «Disponible»), 9 columnas piden más ancho que 1400px: se desplaza, no encima.
   const plantilla = separa
-    ? "sm:grid-cols-[minmax(13.5rem,1.3fr)_6.5rem_4.5rem_6rem_7rem_9rem_5rem_minmax(9rem,1fr)_8rem]"
+    ? "sm:grid-cols-[minmax(13.5rem,1.3fr)_6.5rem_4.5rem_6rem_7rem_11rem_5rem_minmax(9rem,1fr)_6rem]"
     : "sm:grid-cols-[minmax(13.5rem,1.4fr)_5rem_6rem_5rem_minmax(9rem,1fr)_4.5rem]";
 
   return (
@@ -339,8 +369,8 @@ export function InventarioPanel({
       <div>
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
           <div>
-            <p className="font-display text-lg text-tinta">Prioridades de hoy</p>
-            <p className="mt-0.5 text-xs text-tinta/60">Acciones sugeridas para impulsar tus ventas en tienda.</p>
+            <h2 className="font-display text-xl text-tinta">Prioridades de hoy</h2>
+            <p className="mt-0.5 text-[13px] text-taupe">Acciones sugeridas para impulsar tus ventas en tienda.</p>
           </div>
           {/* «Ver recomendaciones»: el motor de reposición (`planDeReposicion`) corrido por variante —
               ya existía para Producción, nadie lo mostraba todavía por sede. Solo donde se vende. */}
@@ -357,7 +387,7 @@ export function InventarioPanel({
             </button>
           )}
         </div>
-        <div className={`mt-3 grid gap-3 ${separa ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-3"}`}>
+        <div className={`mt-3 grid gap-3 ${separa ? "sm:grid-cols-2 xl:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-3"}`}>
           {separa && (
             <TarjetaPrioridad
               icono={PackagePlus}
@@ -410,7 +440,7 @@ export function InventarioPanel({
       {separa && resumen.total > 0 && (
         <div className="card-cayla flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 flex-1">
-            <p className="label-cayla text-[11px] text-tinta/65">Distribución de stock en esta tienda</p>
+            <p className="label-cayla text-[11px] font-bold text-taupe">Distribución de stock en esta tienda</p>
             <div className="mt-3 flex h-2.5 w-full overflow-hidden rounded-full bg-sand/50">
               <span className="h-full bg-verde transition-all" style={{ width: `${porcentajePiso ?? 0}%` }} title={`${porcentajePiso ?? 0}% en piso`} />
               <span className="h-full bg-ambar/70 transition-all" style={{ width: `${porcentajeAlmacen ?? 0}%` }} title={`${porcentajeAlmacen ?? 0}% en almacén`} />
@@ -424,7 +454,7 @@ export function InventarioPanel({
                 />
               )}
             </div>
-            <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1 text-xs text-tinta/70">
+            <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1 text-xs text-taupe">
               <span className="inline-flex items-center gap-1.5">
                 <span aria-hidden className="h-2 w-2 rounded-full bg-verde" />
                 {porcentajePiso ?? 0}% en piso · {resumen.piso ?? 0} uds
@@ -443,11 +473,11 @@ export function InventarioPanel({
             </div>
           </div>
           <div className="flex items-center gap-3 sm:max-w-xs">
-            <p className="hidden text-xs leading-snug text-tinta/60 sm:block">Enfócate en tener los productos clave en piso. Más disponibilidad = más ventas.</p>
+            <p className="hidden text-xs leading-snug text-taupe xl:block">Enfócate en tener los productos clave en piso. Más disponibilidad = más ventas.</p>
             <button
               type="button"
               onClick={() => setViendoCobertura(true)}
-              className="label-cayla shrink-0 rounded-md border border-tinta/25 px-3.5 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+              className="btn-cayla btn-secundario shrink-0"
             >
               Ver análisis de cobertura
             </button>
@@ -455,40 +485,47 @@ export function InventarioPanel({
         </div>
       )}
 
+      {/* Guía oficial (2026-09-22, ADR-0169): los filtros y la tabla viven en UNA tarjeta — lo que se filtra
+          y lo filtrado se leen como una sola cosa. Los filtros son cajas hundidas en hueso, sin etiqueta visible. */}
+      <div ref={tarjetaTablaRef} className="card-cayla scroll-mt-4 overflow-hidden">
       {stock.length > 0 && (
-        <div className={`card-cayla grid gap-4 p-5 ${separa ? "sm:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]" : "sm:grid-cols-[1.4fr_1fr_1fr_1fr]"}`}>
-          <CampoTexto etiqueta="Buscar" placeholder="Producto, SKU, color, talla… ej. blusa rosado m" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+        <div className={`grid gap-x-3 gap-y-1 px-4 pt-4 sm:px-5 sm:pt-5 ${separa ? "sm:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]" : "sm:grid-cols-[1.4fr_1fr_1fr_1fr]"}`}>
+          <CampoTexto caja etiqueta="Buscar" placeholder="Producto, SKU, color, talla…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
           <CampoSelect
+            caja
             etiqueta="Categoría"
             valor={categoria}
             onValor={setCategoria}
             marcador="Todas"
-            opciones={[{ valor: TODAS, texto: "Todas" }, ...categorias.map((c) => ({ valor: c, texto: c }))]}
+            opciones={[{ valor: TODAS, texto: "Categoría: todas" }, ...categorias.map((c) => ({ valor: c, texto: c }))]}
           />
           <CampoSelect
+            caja
             etiqueta="Talla"
             valor={talla}
             onValor={setTalla}
             marcador="Todas"
-            opciones={[{ valor: TODAS, texto: "Todas" }, ...tallas.map((t) => ({ valor: t, texto: t }))]}
+            opciones={[{ valor: TODAS, texto: "Talla: todas" }, ...tallas.map((t) => ({ valor: t, texto: t }))]}
             pie={dichoEnLaBusqueda.talla && talla !== TODAS ? "Se usa lo que escribiste" : undefined}
           />
           <CampoSelect
+            caja
             etiqueta="Color"
             valor={color}
             onValor={setColor}
             marcador="Todos"
-            opciones={[{ valor: TODAS, texto: "Todos" }, ...colores.map((c) => ({ valor: c, texto: c }))]}
+            opciones={[{ valor: TODAS, texto: "Color: todos" }, ...colores.map((c) => ({ valor: c, texto: c }))]}
             pie={dichoEnLaBusqueda.color && color !== TODAS ? "Se usa lo que escribiste" : undefined}
           />
           {separa && (
             <CampoSelect
+              caja
               etiqueta="Estado"
               valor={estado}
               onValor={setEstado}
               marcador="Todos"
               opciones={[
-                { valor: TODAS, texto: "Todos" },
+                { valor: TODAS, texto: "Estado: todos" },
                 { valor: DANADO, texto: "Dañado" },
                 ...ESTADOS.map((e) => ({ valor: e, texto: ETIQUETA_ESTADO_STOCK[e] })),
               ]}
@@ -497,7 +534,7 @@ export function InventarioPanel({
           {hayFiltrosActivos && (
             <div className="flex items-center gap-1.5 pt-1 sm:col-span-full sm:justify-end sm:pt-0">
               <SlidersHorizontal aria-hidden className="h-3.5 w-3.5 text-tinta/40" />
-              <button type="button" onClick={limpiarFiltros} className="label-cayla text-[11px] text-tinta/65 underline-offset-2 hover:text-rojo hover:underline">
+              <button type="button" onClick={limpiarFiltros} className="label-cayla text-[11px] text-taupe underline-offset-2 hover:text-rojo hover:underline">
                 Limpiar filtros
               </button>
             </div>
@@ -505,13 +542,13 @@ export function InventarioPanel({
         </div>
       )}
 
-      {separa && coberturaFallo && stock.length > 0 && <p className="-mb-3 text-xs text-ambar-profundo">{coberturaFallo}</p>}
+      {separa && coberturaFallo && stock.length > 0 && <p className="px-4 pb-2 text-xs text-ambar sm:px-5">{coberturaFallo}</p>}
       {stock.length === 0 ? (
-        <p className="card-cayla p-5 text-sm text-tinta/75">Esta ubicación no tiene stock todavía.</p>
+        <p className="p-5 text-sm text-taupe">Esta ubicación no tiene stock todavía.</p>
       ) : filtradas.length === 0 ? (
-        <p className="card-cayla p-5 text-sm text-tinta/75">Ningún producto coincide con la búsqueda.</p>
+        <p className="border-t border-sand p-5 text-sm text-taupe">Ningún producto coincide con la búsqueda.</p>
       ) : (
-        <Tabla>
+        <Tabla className="rounded-none border-0 border-t border-sand bg-transparent">
           {/* Toda la tabla centrada (Felipe, 2026-09-15) salvo la prenda, que
               va a la izquierda como en su diseño: dos líneas (nombre, y SKU ·
               talla · color) se leen mal centradas. */}
@@ -540,11 +577,11 @@ export function InventarioPanel({
                   ]
             }
           />
-          {filtradas.map((f) => {
+          {paginaActual.filas.map((f) => {
             const red = resumenRed(f.enRed);
             const ritmo = ritmoPorVariante.get(f.varianteId) ?? null;
             return (
-              <div key={f.varianteId} className={fila(plantilla, "transition-colors hover:bg-sand/25")}>
+              <div key={f.varianteId} className={fila(plantilla)}>
                 {/* La misma celda que dibuja Conteo (`ui/PrendaCelda.tsx`). */}
                 <ProductoVarianteCelda referencia={f.referencia} sku={f.sku} talla={f.talla} color={f.color} colorHex={f.colorHex} fotoUrl={f.fotoUrl} />
                 {separa && (
@@ -576,9 +613,9 @@ export function InventarioPanel({
                 </span>
                 {separa && (
                   <span className={celda("centro", "overflow-visible")}>
-                    <span className="inline-flex items-center justify-center gap-2">
+                    <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
                       {f.estado === "normal" || f.estado === null ? (
-                        <span className="label-cayla text-[10px] text-tinta/45" title={ACCION_ESTADO_STOCK.normal}>
+                        <span className="text-[13px] text-taupe" title={ACCION_ESTADO_STOCK.normal}>
                           Normal
                         </span>
                       ) : (
@@ -597,7 +634,7 @@ export function InventarioPanel({
                           // Lo apartado para una clienta no se puede bajar del almacén (la base lo rechaza): el modal
                           // ofrece y valida contra lo DISPONIBLE, no contra lo físico (ADR-0141).
                           onClick={() => setReponiendo({ ...f, piso: f.pisoDisponible, almacen: f.almacenDisponible })}
-                          className="label-cayla text-[10px] text-rojo underline underline-offset-2 hover:no-underline"
+                          className="btn-cayla btn-primario px-2 py-0.5 text-xs"
                         >
                           Reponer
                         </button>
@@ -631,7 +668,7 @@ export function InventarioPanel({
                       <span className="block text-tinta">
                         Disponible en {red.sedes} {red.sedes === 1 ? "sede" : "sedes"}: {red.total} {red.total === 1 ? "ud" : "uds"}
                       </span>
-                      <span className="block truncate text-tinta/55">{red.detalle}</span>
+                      <span className="block truncate text-taupe">{red.detalle}</span>
                     </>
                   ) : (
                     <span className="text-tinta/35">—</span>
@@ -644,7 +681,7 @@ export function InventarioPanel({
                         <button
                           type="button"
                           onClick={() => setApartando(f)}
-                          className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline"
+                          className="btn-enlace text-xs"
                         >
                           Apartar
                         </button>
@@ -654,7 +691,7 @@ export function InventarioPanel({
                         <button
                           type="button"
                           onClick={() => setAjustando(f)}
-                          className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline"
+                          className="btn-enlace text-xs"
                         >
                           Ajustar
                         </button>
@@ -673,15 +710,14 @@ export function InventarioPanel({
               </div>
             );
           })}
-          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-2.5 text-xs text-tinta/55">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs text-taupe">
             <span className="flex flex-wrap items-center gap-3">
-              <span>
-                Mostrando {filtradas.length} de {stock.length} {stock.length === 1 ? "prenda" : "prendas"}
-              </span>
+              <span>{textoMostrando(paginaActual, filtradas.length, stock.length)}</span>
+              <PaginacionLocal pagina={paginaActual.pagina} totalPaginas={paginaActual.totalPaginas} onPagina={irAPagina} />
               <button
                 type="button"
                 onClick={exportarCsv}
-                className="label-cayla text-[10px] text-tinta/55 underline-offset-2 hover:text-rojo hover:underline"
+                className="btn-cayla btn-secundario btn-chico"
               >
                 Exportar CSV
               </button>
@@ -691,8 +727,8 @@ export function InventarioPanel({
                 {ESTADOS.map((e) => (
                   <span key={e} className="inline-flex items-center gap-1.5" title={ACCION_ESTADO_STOCK[e]}>
                     <span aria-hidden className={`inline-block h-2 w-2 rounded-full ${PUNTO_ESTADO[e]}`} />
-                    <span className="text-tinta/75">{ETIQUETA_ESTADO_STOCK[e]}</span>
-                    <span className="hidden text-tinta/45 lg:inline">· {ACCION_ESTADO_STOCK[e]}</span>
+                    <span className="text-tinta/80">{ETIQUETA_ESTADO_STOCK[e]}</span>
+                    <span className="hidden text-taupe lg:inline">· {ACCION_ESTADO_STOCK[e]}</span>
                   </span>
                 ))}
               </span>
@@ -700,6 +736,7 @@ export function InventarioPanel({
           </div>
         </Tabla>
       )}
+      </div>
 
       {reponiendo && sububicacionPiso && sububicacionAlmacen && (
         <ReponerPisoModal

@@ -4,6 +4,8 @@ import { useState, type ReactNode } from "react";
 import { Search, X } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { avisar } from "@/components/ui/Avisos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
@@ -177,6 +179,7 @@ export function EtiquetasLista({
   prendasConCosto,
   variantesManuales,
   puedeEditar,
+  puedeDarDescuento = false,
 }: {
   etiquetasIniciales: Etiqueta[];
   categorias: CategoriaOpcion[];
@@ -184,8 +187,15 @@ export function EtiquetasLista({
   prendasConCosto: PrendaConCosto[];
   /** etiqueta_id → variantes etiquetadas a mano con ella. */
   variantesManuales: Record<string, string[]>;
+  /** Crear, editar, aprobar y archivar etiquetas SIN descuento: el líder o un rol con el módulo Etiquetas. */
   puedeEditar: boolean;
+  /** Tocar una etiqueta CON descuento o ponerle uno: solo el líder (20260923130000; la base lo vuelve a exigir). */
+  puedeDarDescuento?: boolean;
 }) {
+  // Cambiar el vocabulario es Catálogo, operación de tienda (ADR-0161): UN combo «Responsable» firma todo lo que se
+  // guarda desde esta lista (bajo los filtros; el mismo se repite en cada modal, también en el de campaña) y cada
+  // guardado exitoso lo vacía. «Prendas» abre su propio modal con su propio combo (`PrendasDeEtiquetaModal`).
+  const responsable = useResponsable();
   const [etiquetas, setEtiquetas] = useState(() => ordenar(etiquetasIniciales));
   const [agregando, setAgregando] = useState(false);
   const [nombre, setNombre] = useState("");
@@ -237,7 +247,7 @@ export function EtiquetasLista({
     try {
       const res = await fetch("/api/productos/etiquetas", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ nombre }),
       });
       const datos = await res.json();
@@ -262,6 +272,7 @@ export function EtiquetasLista({
           },
         ])
       );
+      responsable.despues(null);
       avisar.exito(
         datos.etiqueta.estado === "pendiente" ? `${datos.etiqueta.nombre} agregada — ya la puedes usar` : `Etiqueta ${datos.etiqueta.nombre} agregada`,
         datos.etiqueta.estado === "pendiente" ? { detalle: "Queda pendiente de que un Líder la apruebe, pero eso no te frena." } : undefined
@@ -280,7 +291,7 @@ export function EtiquetasLista({
     try {
       const res = await fetch("/api/productos/etiquetas", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ id: e.id, estado: "aprobado" }),
       });
       const datos = await res.json();
@@ -289,6 +300,7 @@ export function EtiquetasLista({
         return;
       }
       setEtiquetas((actual) => ordenar(actual.map((x) => (x.id === e.id ? { ...x, estado: "aprobado" as const, activo: true } : x))));
+      responsable.despues(null);
       avisar.exito(`${e.nombre} aprobada`);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -302,7 +314,7 @@ export function EtiquetasLista({
     try {
       const res = await fetch("/api/productos/etiquetas", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ id: e.id, estado: "rechazado", ...(motivoRechazo.trim() ? { notas: motivoRechazo.trim() } : {}) }),
       });
       const datos = await res.json();
@@ -311,6 +323,7 @@ export function EtiquetasLista({
         return;
       }
       setEtiquetas((actual) => ordenar(actual.map((x) => (x.id === e.id ? { ...x, activo: false, estado: "rechazado" as const } : x))));
+      responsable.despues(null);
       avisar.exito(`${e.nombre} rechazada`, { detalle: "Cae a Desactivadas. Se puede reactivar después si hace falta." });
       setRechazandoAbierto(null);
       setMotivoRechazo("");
@@ -326,7 +339,7 @@ export function EtiquetasLista({
     try {
       const res = await fetch("/api/productos/etiquetas", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify(e.estado === "rechazado" ? { id: e.id, estado: "aprobado" } : { id: e.id, activo: true }),
       });
       const datos = await res.json();
@@ -335,6 +348,7 @@ export function EtiquetasLista({
         return;
       }
       setEtiquetas((actual) => ordenar(actual.map((x) => (x.id === e.id ? { ...x, activo: true, estado: "aprobado" as const } : x))));
+      responsable.despues(null);
       avisar.exito(`${e.nombre} reactivada`, { detalle: "Vuelve a aparecer al etiquetar una variante." });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -348,7 +362,7 @@ export function EtiquetasLista({
     try {
       const res = await fetch("/api/productos/etiquetas", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ id: e.id, activo: false }),
       });
       const datos = await res.json();
@@ -357,6 +371,7 @@ export function EtiquetasLista({
         return;
       }
       setEtiquetas((actual) => ordenar(actual.map((x) => (x.id === e.id ? { ...x, activo: false } : x))));
+      responsable.despues(null);
       avisar.exito(`${e.nombre} desactivada`, { detalle: "Deja de aparecer al etiquetar una variante nueva; el historial se conserva." });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -432,6 +447,9 @@ export function EtiquetasLista({
         </div>
       </div>
 
+      {/* Firma aprobar, desactivar y reactivar de las tarjetas (ADR-0161). */}
+      {puedeEditar && <ComboResponsable control={responsable} deshabilitado={aprobandoId !== null || cambiandoId !== null} hacia="abajo" className="max-w-xs" />}
+
       {hayFiltros && activasVisibles.length + desactivadasVisibles.length === 0 && (
         <div className="card-cayla flex flex-col items-center gap-3 px-6 py-12 text-center">
           <p className="text-sm text-tinta/75">
@@ -458,10 +476,11 @@ export function EtiquetasLista({
               <div className={GRILLA}>
                 {delGrupo.map((e) => (
                   <TarjetaEtiqueta key={e.id} e={e} vigencia={vigenciaEn(e)} prendas={puedeEditar ? (manuales[e.id]?.length ?? 0) : null}>
-                    {puedeEditar &&
+                    {/* Una etiqueta CON descuento cambia el precio en caja: sus acciones son solo del líder. */}
+                    {puedeEditar && (e.descuentoPct === null || puedeDarDescuento) &&
                       (e.estado === "pendiente" ? (
                         <div className="flex gap-2">
-                          <Boton peso="primario" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={aprobandoId === e.id} onClick={() => aprobar(e)}>
+                          <Boton peso="primario" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={aprobandoId === e.id} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => aprobar(e)}>
                             Aprobar
                           </Boton>
                           <Boton
@@ -499,7 +518,8 @@ export function EtiquetasLista({
                           </span>
                           <button
                             type="button"
-                            disabled={cambiandoId === e.id}
+                            disabled={cambiandoId === e.id || !responsable.listo}
+                            title={responsable.motivo ?? undefined}
                             onClick={() => desactivar(e)}
                             className="label-cayla text-[10px] text-tinta/55 underline-offset-4 opacity-0 transition-[opacity,color] duration-200 hover:text-tinta hover:underline focus:opacity-100 disabled:opacity-50 group-hover/etq:opacity-100 [@media(hover:none)]:opacity-100"
                           >
@@ -524,9 +544,9 @@ export function EtiquetasLista({
           <div className={GRILLA}>
             {desactivadasVisibles.map((e) => (
               <TarjetaEtiqueta key={e.id} e={e} vigencia={null} apagada>
-                {puedeEditar && (
+                {puedeEditar && (e.descuentoPct === null || puedeDarDescuento) && (
                   <div className="px-1 pb-1">
-                    <Boton peso="discreto" className="w-full px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === e.id} onClick={() => reactivar(e)}>
+                    <Boton peso="discreto" className="w-full px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === e.id} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => reactivar(e)}>
                       Reactivar
                     </Boton>
                   </div>
@@ -542,11 +562,12 @@ export function EtiquetasLista({
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Nombre de la etiqueta" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Oferta, Verano 2026" autoFocus />
+              <ComboResponsable control={responsable} deshabilitado={guardando} />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
                   Cancelar
                 </Boton>
-                <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!nombre.trim()}>
+                <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!nombre.trim() || !responsable.listo} title={responsable.motivo ?? undefined}>
                   Guardar etiqueta
                 </Boton>
               </div>
@@ -570,6 +591,8 @@ export function EtiquetasLista({
       {configurando && (
         <CampanaModal
           etiqueta={configurando}
+          puedeDarDescuento={puedeDarDescuento}
+          responsable={responsable}
           categorias={categorias}
           prendasConCosto={prendasConCosto}
           variantesManuales={manuales[configurando.id] ?? []}
@@ -586,6 +609,7 @@ export function EtiquetasLista({
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
+              <ComboResponsable control={responsable} deshabilitado={rechazandoId === rechazandoEtiqueta.id} />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoId === rechazandoEtiqueta.id}>
                   Cancelar
@@ -594,6 +618,8 @@ export function EtiquetasLista({
                   peso="primario"
                   className="flex-1"
                   cargando={rechazandoId === rechazandoEtiqueta.id}
+                  disabled={!responsable.listo}
+                  title={responsable.motivo ?? undefined}
                   onClick={() => rechazar(rechazandoEtiqueta)}
                 >
                   Confirmar rechazo
@@ -616,6 +642,8 @@ export function EtiquetasLista({
 // ---------------------------------------------------------------------------
 function CampanaModal({
   etiqueta,
+  puedeDarDescuento,
+  responsable,
   categorias,
   prendasConCosto,
   variantesManuales,
@@ -623,6 +651,10 @@ function CampanaModal({
   onGuardado,
 }: {
   etiqueta: Etiqueta;
+  /** Sin esto (un rol con Etiquetas que no es líder), la campaña se configura SIN descuento: fechas y categorías. */
+  puedeDarDescuento: boolean;
+  /** El combo de la lista (ADR-0161): uno por pantalla, no uno por modal. */
+  responsable: ControlResponsable;
   categorias: CategoriaOpcion[];
   prendasConCosto: PrendaConCosto[];
   variantesManuales: string[];
@@ -662,7 +694,7 @@ function CampanaModal({
       const categoriaIds = [...elegidas];
       const res = await fetch("/api/productos/etiquetas", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({
           id: etiqueta.id,
           campana: { descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds },
@@ -673,6 +705,7 @@ function CampanaModal({
         avisar.error(datos.error ?? "No se pudo guardar la campaña.");
         return;
       }
+      responsable.despues(null);
       avisar.exito(`${etiqueta.nombre} actualizada`);
       onGuardado({ descuentoPct: pct.valor, vigenteDesde: fDesde.valor, vigenteHasta: fHasta.valor, categoriaIds });
     } catch {
@@ -692,7 +725,8 @@ function CampanaModal({
             inputMode="decimal"
             value={descuento}
             onChange={(e) => setDescuento(e.target.value)}
-            placeholder="Ej. 20"
+            disabled={!puedeDarDescuento}
+            placeholder={puedeDarDescuento ? "Ej. 20" : "Solo un líder pone descuento"}
             tono={!pct.ok || bajoCosto.length > 0 ? "error" : undefined}
             className={bajoCosto.length > 0 ? "!text-rojo-profundo" : ""}
             pie={
@@ -769,11 +803,12 @@ function CampanaModal({
               : "Esto guarda la configuración. Todavía no cambia el precio en Vender."}
           </p>
 
+          <ComboResponsable control={responsable} deshabilitado={guardando} />
           <div className="flex gap-2 pt-1">
             <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!valido}>
+            <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!valido || !responsable.listo} title={responsable.motivo ?? undefined}>
               Guardar
             </Boton>
           </div>

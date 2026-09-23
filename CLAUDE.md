@@ -128,6 +128,16 @@ props serializables; NUNCA llames desde el servidor a una función exportada por
 «Attempted to call X() from the server but X is on the client» y la pantalla se cae). La lógica pura va en `lib/*.ts` y se
 importa desde ambos lados.
 
+## Paleta y orden de pantalla (regla — ADR-0169)
+
+**El ERP usa la guía oficial «CAYLA Dynamic»: los colores salen SOLO de los tokens de `apps/web/app/globals.css`**
+(crema, papel, tinta, rojo, rojo-profundo, sand, taupe, verde, ámbar, hueso, pizarra). Nunca un hex suelto. Pantalla nueva
+o rediseñada: `<CabeceraPantalla>` (`components/ui/CabeceraPantalla.tsx`: sobretítulo rojo → título serif → bajada taupe,
+acción principal a la derecha) → cifras (`TarjetaCifra`) → filtros y tabla en UNA tarjeta (`Tabla`, `caja` en los campos,
+`pildora-cayla`) → nota en hueso (`nota-cayla`). Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
+estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo. Detalle,
+contraste medido y lo que quedó fuera (modo oscuro, formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`.
+
 ## Carga y espera (regla — ADR-0149)
 
 **El ERP tiene UN solo loader a pantalla completa (`apps/web/components/ui/Espera.tsx`, `<EsperaGlobal />` montado una vez en
@@ -148,6 +158,29 @@ Para lo que no pasa por `fetch`: `useEsperando(activo, mensaje?)` (hook), `esper
 RPC de solo lectura llamada desde el navegador, suma su prefijo o nombre a la lista de lectura de `espera-reglas.ts`** (hoy
 `fn_`, `previsualizar_`, `campanas_`, `resumen_`, `buscar_`, `get_`); si no, el loader bloqueará la pantalla mientras se busca
 o se escribe. Tiempos, alternativas y verificación: `docs/adr/0149-loader-general-a-pantalla-completa.md`.
+
+## Módulos y roles (regla — ADR-0161, Felipe 2026-09-22)
+
+**Lo que ve cada cuenta (persona o terminal) lo decide su ROL, módulo por módulo («ve / no ve»), en Colaboradores ▸ Roles y
+accesos.** Quien ve un módulo hace todo lo que hay en él, salvo lo «siempre solo del líder» (que vive en cada función con
+`fn_es_lider()`). Por eso **todo módulo nuevo que se desarrolle tiene que aparecer en Roles y accesos, y nace disponible SOLO
+para el líder**: el líder decide después a qué rol se lo da. Nunca se asigna un módulo a un rol desde el código.
+
+Al crear un módulo nuevo (pantalla o grupo de pantallas nuevas), en el mismo PR:
+1. **Base:** una migración propia con `insert into retail.modulos (clave, grupo, nombre, incluye, orden, solo_lider, delegable)`
+   — `incluye` en palabras del negocio; `delegable = false` si sus funciones todavía exigen `fn_es_lider()` (sale como «Solo
+   líder por ahora»). **Sin** `insert into retail.rol_modulos`: el módulo nace sin rol.
+2. **Web:** agregarlo a `CLAVES_MODULO` y `MODULOS` en `apps/web/lib/modulos.ts` (mismo `orden` que en la base); su nodo en
+   `lib/menu.ts` declara `modulo: "<clave>"`; y su ruta tiene un `layout.tsx` con `await exigirModulo("<clave>")` (URL directa
+   sin el módulo → «Sin acceso»).
+3. **Funciones que guardan:** si es operación de tienda, firman con `retail.fn_actor_persona_id(true)` (el responsable del
+   combo, ADR-0162) —nunca con `select id into … from personas where auth_user_id = auth.uid()`— y su pantalla usa el combo
+   «Responsable» (`useResponsable` + `<ComboResponsable>`). Los permisos se preguntan a la cuenta (`fn_ve_modulo`,
+   `fn_es_lider`), no al responsable.
+
+Lo vigilan las pruebas: `lib/modulos.test.ts` (toda pantalla del menú declara un módulo que existe; el catálogo de la web es el
+de TODAS las migraciones; **ninguna migración fuera de la siembra de roles escribe en `rol_modulos`**) y
+`pnpm pruebas:roles` (un módulo recién creado solo lo ve el líder).
 
 ## Vocabulario obligatorio
 

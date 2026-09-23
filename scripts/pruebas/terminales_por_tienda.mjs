@@ -1,32 +1,33 @@
 #!/usr/bin/env node
 /**
- * Pruebas de las cuentas TERMINAL por tienda (ADR-0160, migración `20260922200000_terminales_por_tienda.sql`)
- * contra el Postgres local — CAYLA V2.
+ * Pruebas de las cuentas TERMINAL por tienda — CAYLA V2. Los PODERES son los del ADR-0160
+ * (`20260922200000_terminales_por_tienda.sql`); la IDENTIDAD es la del ADR-0162: una terminal es un aparato de
+ * `retail.terminales` con su propia cuenta de Auth y SIN persona (`20260923010000_terminales_sin_persona.sql`), y lo
+ * que hace lo firma el responsable elegido en el combo (`20260923100000_actor_firma_las_operaciones.sql`).
+ * Reescrita el 2026-09-22 (ADR-0162 F3): antes creaba la terminal como persona con `agregar_terminal`, que se retiró.
  *
- * QUÉ PRUEBA. Que los poderes de cada terminal estén EN LA BASE y no solo en el menú, y que NADA MÁS se haya
- * abierto. Una terminal es un colaborador fijo a una tienda con una columna `terminal`:
- *   · terminal de VENTAS ........ cierra caja y mueve caja;
- *   · terminal ADMINISTRATIVA ... ajusta stock, cierra conteos y traslados con diferencia, escribe en el
- *                                 Catálogo y edita las cuentas bancarias de proveedores;
- *   · lo demás sigue siendo del líder: anular ventas y comprobantes, devoluciones, series, etiquetas con
- *     descuento. Un colaborador común (Micaela) no gana nada, y el líder (Felipe) sigue pasando por todo.
- * También: el alta (`agregar_terminal`: solo el líder, solo una tienda, una de cada tipo por tienda), el CHECK
- * (un líder no puede ser terminal), que suspender y reactivar conserven el tipo, los grants, y que la
- * migración se pueda pegar dos veces sin duplicar nada.
+ * QUÉ PRUEBA. Que los poderes de cada terminal estén EN LA BASE y no solo en el menú, que NADA MÁS se haya abierto,
+ * y que cada operación de la terminal quede firmada por una persona presente:
+ *   · terminal con rol «Terminal de ventas» ........ cierra caja y mueve caja;
+ *   · terminal con rol «Terminal administrativa» ... ajusta stock, cierra conteos y traslados con diferencia, escribe en el Catálogo y
+ *                                 edita las cuentas bancarias de proveedores;
+ *   · lo demás sigue siendo del líder: anular ventas y comprobantes, devoluciones, series, etiquetas con descuento.
+ *     El líder (Felipe) sigue pasando por todo. Una integrante (Micaela) hace lo de los módulos que ve su rol (B2d,
+ *     Felipe 2026-09-22, `20260923031000`): cierra caja, conteos y traslados y edita el Catálogo; no Proveedores.
+ *   · Sin tipo (`20260923040000`): cada terminal es tienda + nombre + ROL; lo de arriba sale del rol que tiene.
+ *   · FIRMA: con `x-responsable` presente, `usuario_id`/`*_por` = el responsable y `terminal_id` = el aparato; sin él
+ *     (o con uno ausente), 42501 y no se escribe nada.
+ *   · El alta del ADR-0160 (`agregar_terminal`, `colaboradores.terminal`) quedó retirada.
  *
- * CÓMO. Mismo patrón que `candado_lider_caja_y_ajuste.mjs` (léelo primero si esto no tiene sentido): cada
- * escenario corre en su propia transacción con ROLLBACK — nunca se commitea nada, corre seguro contra el
- * Postgres local que comparten ~20 worktrees. Las dos terminales se crean DENTRO de cada escenario como
- * personas de prueba (en local `public.personas` es un stub de Dynamic) y desaparecen con el ROLLBACK.
- * Simula a cada actor con `set local request.jwt.claim.sub`. Para las políticas de fila (que un superusuario
- * se salta) usa `set local role authenticated`, el rol real de la API; ese rol no ve el schema temporal, así
- * que ahí el rechazo se lee del error de psql.
- *
- * `--en-seco`: carga la migración DENTRO de cada escenario, sin aplicarla a la base compartida.
+ * CÓMO. Cada escenario en su propia transacción con ROLLBACK (nunca se commitea nada: la base local la comparten
+ * ~20 sesiones). Las terminales (con su `auth.users`), Rosa (integrante de Trujillo, la responsable) y la asistencia
+ * de Dynamic (`public.marcajes`, que la base local no tiene) se crean DENTRO de cada escenario. Cada actor se simula con
+ * `request.jwt.claim.sub` y el encabezado con `request.headers` (lo que hace PostgREST). Para las políticas de fila (que
+ * un superusuario se salta) usa `set local role authenticated`.
  *
  * USO
- *   pnpm pruebas:terminales            → migración ya aplicada en el local
- *   pnpm pruebas:terminales --en-seco  → la carga en cada escenario, sin aplicarla
+ *   pnpm pruebas:terminales                  → contra la base `postgres` del stack local (la del CI)
+ *   pnpm pruebas:terminales --base cayla_f3  → contra otra base del mismo contenedor
  */
 
 import { execFileSync } from "node:child_process";
@@ -36,20 +37,19 @@ import { fileURLToPath } from "node:url";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
+const i = process.argv.indexOf("--base");
+const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualquier sede
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora — fija a Tienda Trujillo
-const T_VENTAS = "22222222-2222-4222-8222-0000000000a1"; // terminal de ventas de Trujillo (se crea en cada escenario)
-const T_ADMIN = "22222222-2222-4222-8222-0000000000a2"; // terminal administrativa de Trujillo (idem)
-
-const EN_SECO = process.argv.includes("--en-seco");
-const SQL_MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260922200000_terminales_por_tienda.sql"), "utf8");
-const PRELUDIO = EN_SECO ? SQL_MIGRACION : "";
+const T_VENTAS = "33333333-3333-4333-8333-0000000000a1"; // cuenta de la terminal de ventas de Trujillo (se crea en cada escenario)
+const T_ADMIN = "33333333-3333-4333-8333-0000000000a2"; // cuenta de la terminal administrativa de Trujillo (idem)
+const ROSA = "33333333-3333-4333-8333-0000000000b1"; // integrante de Trujillo, sin cuenta: la responsable que elige la terminal
 
 function psql(sql) {
   return execFileSync(
     "docker",
-    ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"],
+    ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", BASE, "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"],
     { input: sql, encoding: "utf8", maxBuffer: 16 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"] }
   );
 }
@@ -63,7 +63,18 @@ function correr(sql) {
   }
 }
 
-const cambiaA = (authUserId) => `set local request.jwt.claim.sub = '${authUserId}';\n`;
+const ES_TERMINAL = new Set([T_VENTAS, T_ADMIN]);
+/**
+ * Cambia de sesión. Una TERMINAL manda siempre a Rosa como responsable (salvo `{ sinResponsable: true }`); una
+ * persona no manda encabezado (el interruptor `fn_exige_responsable()` está apagado: firma ella).
+ */
+const cambiaA = (uid, { sinResponsable = false } = {}) => {
+  const encabezado = ES_TERMINAL.has(uid) && !sinResponsable ? `json_build_object('x-responsable', '${ROSA}')::text` : `'{}'`;
+  return `set local request.jwt.claim.sub = '${uid}';
+set local request.jwt.claims = '{"sub":"${uid}","role":"authenticated"}';
+select set_config('request.headers', ${encabezado}, true) as _h \\gset
+`;
+};
 const COMO_AUTENTICADO = `set local role authenticated;\nset local request.jwt.claim.role = 'authenticated';\n`;
 
 /** `pg_temp.intento(sql)`: «SQLSTATE|mensaje» del error, o «SIN_ERROR». No aborta la transacción del escenario. */
@@ -80,25 +91,48 @@ end;
 $f$;
 `;
 
-/** La escena: las tres ubicaciones y las dos terminales como personas (sin acceso todavía). */
+/**
+ * La escena: las ubicaciones, las dos terminales de Trujillo (aparatos SIN persona) y Rosa presente en Trujillo
+ * (marcó su entrada hace un segundo; la fecha de la jornada va explícita para no depender de la medianoche).
+ */
+// La base local la comparten muchas sesiones y la pantalla Roles y accesos EDITA los módulos de los roles sembrados (le
+// encienden Facturación a Integrante, por ejemplo). Cada escenario arranca con los tres roles sembrados tal como los deja
+// la migración 20260923030000 (se leen del archivo, no se copian a mano); el ROLLBACK devuelve lo que había.
+const SIEMBRA_ROLES = (() => {
+  const mig = readFileSync(join(RAIZ, "supabase", "migrations", "20260923030000_roles_por_modulo.sql"), "utf8");
+  return ["integrante", "terminal_ventas", "terminal_administrativa"]
+    .map((clave) => {
+      const bloque = mig.split(`values ('${clave}'`)[1].split("end if;")[0];
+      const modulos = [...bloque.matchAll(/unnest\(array\[([^\]]+)\]/g)].flatMap((m) => [...m[1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]));
+      return `delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('${clave}');
+insert into retail.rol_modulos (rol_id, modulo) select retail.fn_rol_por_clave('${clave}'), m from unnest(array[${modulos.map((m) => `'${m}'`).join(", ")}]) m;`;
+    })
+    .join("\n") + "\nupdate retail.roles set limitado_como_hoy = false where clave = 'integrante';\n";
+})();
+
 const escena = (cuerpo) => `
 begin;
-${PRELUDIO}
 ${INTENTO}
-select id as sede from public.sedes limit 1 \\gset
-select id as trujillo from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
+${SIEMBRA_ROLES}
+create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo text, timestamp_marca timestamptz,
+  fecha_jornada date, anulada_at timestamptz);
+create table if not exists public.jornadas (persona_id uuid, sede_id uuid, fecha date, estado text);
+select id as trujillo, sede_dynamic_id as sede_tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select id as lima from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
-select id as taller from retail.ubicaciones where tipo = 'taller' limit 1 \\gset
 select id as persona_felipe from public.personas where auth_user_id = '${FELIPE}' \\gset
-insert into public.personas (auth_user_id, nombres, apellidos, sede_base_id) values ('${T_VENTAS}', 'Terminal', 'Ventas TRU', :'sede') returning id as p_ventas \\gset
-insert into public.personas (auth_user_id, nombres, apellidos, sede_base_id) values ('${T_ADMIN}', 'Terminal', 'Administrativa TRU', :'sede') returning id as p_admin \\gset
+insert into auth.users (id, aud, role, email) values
+  ('${T_VENTAS}', 'authenticated', 'authenticated', 'terminal-ventas-tru@prueba.local'),
+  ('${T_ADMIN}', 'authenticated', 'authenticated', 'terminal-admin-tru@prueba.local');
+-- Sin tipo (20260923040000): dos aparatos de la MISMA tienda, cada uno con su rol.
+insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id) values (:'trujillo', 'Terminal Ventas TRU', retail.fn_rol_por_clave('terminal_ventas'), '${T_VENTAS}') returning id as t_ventas \\gset
+insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id) values (:'trujillo', 'Terminal Administrativa TRU', retail.fn_rol_por_clave('terminal_administrativa'), '${T_ADMIN}') returning id as t_admin \\gset
+insert into public.personas (id, nombres, apellidos, estado, sede_base_id) values ('${ROSA}', 'Rosa', 'Prueba', 'activo', :'sede_tru');
+insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id) values ('${ROSA}', 'colaborador', :'trujillo');
+insert into public.marcajes (persona_id, sede_id, tipo, timestamp_marca, fecha_jornada)
+  values ('${ROSA}', :'sede_tru', 'entrada', now() - interval '1 second', (now() at time zone 'America/Lima')::date);
+\\set rosa '${ROSA}'
 ${cuerpo}
 rollback;
-`;
-
-/** El líder da de alta las dos terminales de Trujillo. Termina con la sesión en Felipe. */
-const ALTA = `${cambiaA(FELIPE)}select retail.agregar_terminal(:'p_ventas', :'trujillo', 'ventas') as _a1 \\gset
-select retail.agregar_terminal(:'p_admin', :'trujillo', 'administrativa') as _a2 \\gset
 `;
 
 /** La escena de inventario (misma que la del candado de líder): una variante y el piso de venta de Trujillo. */
@@ -119,61 +153,37 @@ function verificar(nombre, res, esperado, { debeFallar = false } = {}) {
 }
 
 /* ------------------------------------------------------------------ */
-/* 1. El alta y el esquema                                            */
+/* 1. Identidad y retiro del modelo del ADR-0160                       */
 /* ------------------------------------------------------------------ */
 
+const identidad = (uid) =>
+  correr(escena(`${cambiaA(uid)}select retail.fn_es_terminal() || '|' || retail.fn_es_terminal('administrativa') || '|' || retail.fn_es_terminal('ventas') || '|' || retail.fn_es_lider() || '|' || coalesce(retail.fn_mi_terminal(), '-');`));
+verificar("identidad: la terminal administrativa", identidad(T_ADMIN), /^true\|true\|false\|false\|Terminal Administrativa TRU$/);
+verificar("identidad: la terminal de ventas", identidad(T_VENTAS), /^true\|false\|true\|false\|Terminal Ventas TRU$/);
+verificar("identidad: un colaborador común no es terminal", identidad(MICAELA), /^false\|false\|false\|false\|-$/);
+verificar("identidad: el líder no es terminal", identidad(FELIPE), /^false\|false\|false\|true\|-$/);
 verificar(
-  "agregar_terminal: el líder da de alta una de ventas y una administrativa (colaborador, sede fija, con historial)",
-  correr(escena(`${ALTA}select
-    (select count(*) from retail.colaboradores where persona_id = :'p_ventas' and terminal = 'ventas' and rol = 'colaborador' and ubicacion_asignada_id = :'trujillo')
-    || '|' || (select count(*) from retail.colaboradores where persona_id = :'p_admin' and terminal = 'administrativa' and rol = 'colaborador')
-    || '|' || (select count(*) from retail.colaboradores_historial where persona_id = :'p_ventas' and accion = 'alta' and motivo = 'Terminal ventas');`)),
-  /^1\|1\|1$/
+  "identidad: la terminal NO tiene persona (el aparato nunca firma)",
+  correr(escena(`select count(*) from public.personas where auth_user_id in ('${T_VENTAS}', '${T_ADMIN}');`)),
+  /^0$/
 );
 
 verificar(
-  "agregar_terminal: un colaborador común no puede dar de alta una terminal",
-  correr(escena(`${cambiaA(MICAELA)}select pg_temp.intento(format('select retail.agregar_terminal(%L, %L, ''ventas'')', :'p_ventas', :'trujillo'));`)),
-  /Solo un líder puede gestionar colaboradores/
+  "retiro del ADR-0160: agregar_terminal explica el camino nuevo (0A000)",
+  correr(escena(`${cambiaA(FELIPE)}select pg_temp.intento(format('select retail.agregar_terminal(%L, %L, ''ventas'')', :'persona_felipe', :'trujillo'));`)),
+  /^0A000\|/
 );
-
 verificar(
-  "agregar_terminal: no se da de alta en el Taller",
-  correr(escena(`${cambiaA(FELIPE)}select pg_temp.intento(format('select retail.agregar_terminal(%L, %L, ''ventas'')', :'p_ventas', :'taller'));`)),
-  /Una terminal se asigna a una tienda activa/
+  "retiro del ADR-0160: colaboradores.terminal queda siempre vacía (23514)",
+  correr(escena(`select pg_temp.intento('update retail.colaboradores set terminal = ''ventas'' where rol = ''colaborador''');`)),
+  /^23514\|/
 );
-
-verificar(
-  "agregar_terminal: una tienda no tiene dos terminales del mismo tipo",
-  correr(escena(`${ALTA}select pg_temp.intento(format('select retail.agregar_terminal(%L, %L, ''ventas'')', :'p_admin', :'trujillo'));`)),
-  /ya tiene su terminal de ventas/
-);
-
-verificar(
-  "agregar_terminal: el tipo tiene que ser ventas o administrativa",
-  correr(escena(`${cambiaA(FELIPE)}select pg_temp.intento(format('select retail.agregar_terminal(%L, %L, ''otra'')', :'p_ventas', :'trujillo'));`)),
-  /El tipo de terminal debe ser ventas o administrativa/
-);
-
-verificar(
-  "CHECK: un líder no puede ser terminal (23514)",
-  correr(escena(`select pg_temp.intento(format('update retail.colaboradores set terminal = ''ventas'' where persona_id = %L', :'persona_felipe'));`)),
-  /23514\|.*colaboradores_terminal_valida/
-);
-
-const identidad = (quien, uid) =>
-  correr(escena(`${ALTA}${cambiaA(uid)}select retail.fn_es_terminal() || '|' || retail.fn_es_terminal('administrativa') || '|' || retail.fn_es_terminal('ventas') || '|' || retail.fn_es_lider() || '|' || coalesce(retail.fn_mi_terminal(), '-');`));
-verificar("identidad: la terminal administrativa", identidad("admin", T_ADMIN), /^true\|true\|false\|false\|administrativa$/);
-verificar("identidad: la terminal de ventas", identidad("ventas", T_VENTAS), /^true\|false\|true\|false\|ventas$/);
-verificar("identidad: un colaborador común no es terminal", identidad("micaela", MICAELA), /^false\|false\|false\|false\|-$/);
-verificar("identidad: el líder no es terminal", identidad("felipe", FELIPE), /^false\|false\|false\|true\|-$/);
 
 /* ------------------------------------------------------------------ */
 /* 2. Caja: terminal de ventas                                        */
 /* ------------------------------------------------------------------ */
 
-const CAJA_ABIERTA = `${ALTA}
-select count(*) as _cerro from (select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'trujillo' and estado = 'abierta') x \\gset
+const CAJA_ABIERTA = `${cambiaA(FELIPE)}select count(*) as _cerro from (select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'trujillo' and estado = 'abierta') x \\gset
 ${cambiaA(MICAELA)}select retail.abrir_caja(:'trujillo', 100.00) as caja \\gset
 `;
 
@@ -184,11 +194,19 @@ verificar(
 );
 
 verificar(
-  "caja: la terminal de ventas mueve caja y CIERRA la caja",
-  correr(escena(`${CAJA_ABIERTA}${cambiaA(T_VENTAS)}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Ingreso de prueba') as _m \\gset
+  "caja: la terminal de ventas mueve caja y CIERRA la caja, firmado por Rosa (el movimiento, con terminal_id)",
+  correr(escena(`${CAJA_ABIERTA}${cambiaA(T_VENTAS)}select retail.registrar_movimiento_caja(:'caja', 'ingreso', 30, 'Ingreso de prueba') as mc \\gset
 select retail.cerrar_caja(:'caja', 130.00) as _r \\gset
-select estado from retail.cajas where id = :'caja';`)),
-  /^cerrada$/
+select c.estado || '|' || (c.cerrada_por = :'rosa') || '|' || (m.usuario_id = :'rosa') || '|' || (m.terminal_id = :'t_ventas')
+  from retail.cajas c, retail.caja_movimientos m where c.id = :'caja' and m.id = :'mc';`)),
+  /^cerrada\|true\|true\|true$/
+);
+
+verificar(
+  "caja: la terminal de ventas SIN responsable no cierra (42501) y la caja sigue abierta",
+  correr(escena(`${CAJA_ABIERTA}${cambiaA(T_VENTAS, { sinResponsable: true })}select pg_temp.intento(format('select retail.cerrar_caja(%L, 100)', :'caja')) as r \\gset
+select :'r' || '|' || (select estado from retail.cajas where id = :'caja');`)),
+  /^42501\|Elige quién hace esta operación\|abierta$/
 );
 
 /* ------------------------------------------------------------------ */
@@ -197,15 +215,29 @@ select estado from retail.cajas where id = :'caja';`)),
 
 verificar(
   "inventario: la terminal de ventas NO ajusta stock",
-  correr(escena(`${ALTA}${BASE_INVENTARIO}${cambiaA(T_VENTAS)}select pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, ''ajuste'', 1, ''prueba terminales'', ''nota'', %L)', :'var', :'trujillo', :'sub_piso'));`)),
+  correr(escena(`${BASE_INVENTARIO}${cambiaA(T_VENTAS)}select pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, ''ajuste'', 1, ''prueba terminales'', ''nota'', %L)', :'var', :'trujillo', :'sub_piso'));`)),
   /Solo un líder de equipo puede ajustar stock/
 );
 
 verificar(
-  "inventario: la terminal administrativa SÍ ajusta stock (queda el movimiento)",
-  correr(escena(`${ALTA}${BASE_INVENTARIO}${cambiaA(T_ADMIN)}select retail.registrar_movimiento(:'var', :'trujillo', 'ajuste', 1, 'prueba terminales', 'nota', :'sub_piso') as mov \\gset
-select count(*) from retail.movimientos where id = :'mov' and tipo = 'ajuste';`)),
-  /^1$/
+  "inventario: la terminal administrativa SÍ ajusta stock, firmado por Rosa y con su terminal_id",
+  correr(escena(`${BASE_INVENTARIO}${cambiaA(T_ADMIN)}select retail.registrar_movimiento(:'var', :'trujillo', 'ajuste', 1, 'prueba terminales', 'nota', :'sub_piso') as mov \\gset
+select tipo || '|' || (usuario_id = :'rosa') || '|' || (terminal_id = :'t_admin') from retail.movimientos where id = :'mov';`)),
+  /^ajuste\|true\|true$/
+);
+
+verificar(
+  "inventario: la terminal administrativa SIN responsable no ajusta (42501)",
+  correr(escena(`${BASE_INVENTARIO}${cambiaA(T_ADMIN, { sinResponsable: true })}select pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, ''ajuste'', 1, ''x'', ''nota'', %L)', :'var', :'trujillo', :'sub_piso'));`)),
+  /^42501\|Elige quién hace esta operación$/
+);
+
+verificar(
+  "inventario: con un responsable AUSENTE (ya salió) tampoco (42501)",
+  correr(escena(`${BASE_INVENTARIO}insert into public.marcajes (persona_id, sede_id, tipo, timestamp_marca, fecha_jornada)
+  values ('${ROSA}', :'sede_tru', 'salida_final', now(), (now() at time zone 'America/Lima')::date);
+${cambiaA(T_ADMIN)}select pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, ''ajuste'', 1, ''x'', ''nota'', %L)', :'var', :'trujillo', :'sub_piso'));`)),
+  /^42501\|Esa persona no está de turno/
 );
 
 /* ------------------------------------------------------------------ */
@@ -214,7 +246,7 @@ select count(*) from retail.movimientos where id = :'mov' and tipo = 'ajuste';`)
 /*    siguiente) y con objetos reales: varias funciones verifican que  */
 /*    el conteo, el traslado o la caja EXISTAN, y en qué estado están, */
 /*    ANTES del candado — llamarlas con un id inventado no distingue   */
-/*    a nadie (así fallaron la primera vez esas pruebas).              */
+/*    a nadie. Las terminales mandan a Rosa como responsable.          */
 /* ------------------------------------------------------------------ */
 
 const ACTORES = [
@@ -227,6 +259,10 @@ const ACTORES = [
 // Fixtures: viven dentro de la transacción del escenario y el ROLLBACK los borra.
 const FIXTURE_CONTEO = `${cambiaA(FELIPE)}update retail.conteos set estado = 'anulado' where ubicacion_id = :'trujillo' and estado = 'abierto';
 insert into retail.conteos (ubicacion_id) values (:'trujillo') returning id as conteo \\gset
+-- Una prenda contada (igual al sistema: no mueve stock). Desde 20260923120000 (ADR-0174) un conteo sin prendas no se
+-- cierra, y esta escena prueba QUIÉN cierra, no un conteo vacío.
+insert into retail.conteo_items (conteo_id, variante_id, cantidad_sistema, cantidad_contada)
+  select :'conteo', id, 0, 0 from retail.variantes where sku = 'BLU-EMMA-NEG-M';
 `;
 const FIXTURE_TRASLADO = `insert into retail.transferencias (ubicacion_origen_id, ubicacion_destino_id, estado)
   values (:'lima', :'trujillo', 'recibido_con_diferencia') returning id as traslado \\gset
@@ -238,41 +274,59 @@ const LLAMADA = (sql) => `select pg_temp.intento($q$${sql}$q$);`;
 
 const PUERTAS = [
   // Lo que SE abrió. `pasan` = quiénes, además del líder, cruzan la puerta.
-  { nombre: "cerrar_conteo", previo: FIXTURE_CONTEO, intento: `select pg_temp.intento(format('select retail.cerrar_conteo(%L)', :'conteo'));`, mensaje: /Solo un líder puede cerrar un conteo/, pasan: ["admin"] },
-  { nombre: "cerrar_traslado_con_diferencia", previo: FIXTURE_TRASLADO, intento: `select pg_temp.intento(format('select retail.cerrar_traslado_con_diferencia(%L, ''x'')', :'traslado'));`, mensaje: /Solo un líder puede cerrar un traslado con diferencias/, pasan: ["admin"] },
-  { nombre: "registrar_movimiento_caja (ajuste de efectivo)", previo: FIXTURE_CAJA, intento: `select pg_temp.intento(format('select retail.registrar_movimiento_caja(%L, ''ingreso'', 10, ''ajuste'', null, true)', :'caja'));`, mensaje: /Solo un líder de equipo puede registrar un ajuste de efectivo/, pasan: ["ventas"] },
+  { nombre: "cerrar_conteo", previo: FIXTURE_CONTEO, intento: `select pg_temp.intento(format('select retail.cerrar_conteo(%L)', :'conteo'));`, mensaje: /Solo un líder puede cerrar un conteo/, pasan: ["admin", "micaela"] },
+  { nombre: "cerrar_traslado_con_diferencia", previo: FIXTURE_TRASLADO, intento: `select pg_temp.intento(format('select retail.cerrar_traslado_con_diferencia(%L, ''x'')', :'traslado'));`, mensaje: /Solo un líder puede cerrar un traslado con diferencias/, pasan: ["admin", "micaela"] },
+  { nombre: "registrar_movimiento_caja (ajuste de efectivo)", previo: FIXTURE_CAJA, intento: `select pg_temp.intento(format('select retail.registrar_movimiento_caja(%L, ''ingreso'', 10, ''ajuste'', null, true)', :'caja'));`, mensaje: /Solo un líder de equipo puede registrar un ajuste de efectivo/, pasan: ["ventas", "micaela"] },
   { nombre: "guardar_cuentas_proveedor", previo: "", intento: LLAMADA(`select retail.guardar_cuentas_proveedor(gen_random_uuid(), null, null, null, null)`), mensaje: /Solo un Líder puede editar las cuentas de un proveedor/, pasan: ["admin"] },
-  { nombre: "crear_marca", previo: "", intento: LLAMADA(`select retail.crear_marca('Marca de prueba', gen_random_uuid())`), mensaje: /Solo un Líder puede agregar marcas/, pasan: ["admin"] },
-  { nombre: "desactivar_categoria", previo: "", intento: LLAMADA(`select retail.desactivar_categoria(gen_random_uuid())`), mensaje: /Solo un Líder puede desactivar una categoría/, pasan: ["admin"] },
-  { nombre: "actualizar_categoria_ejes", previo: "", intento: LLAMADA(`select retail.actualizar_categoria_ejes(gen_random_uuid(), '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[])`), mensaje: /Solo un Líder puede editar qué tallas/, pasan: ["admin"] },
+  { nombre: "crear_marca", previo: "", intento: LLAMADA(`select retail.crear_marca('Marca de prueba', gen_random_uuid())`), mensaje: /Solo un Líder puede agregar marcas/, pasan: ["admin", "micaela"] },
+  { nombre: "desactivar_categoria", previo: "", intento: LLAMADA(`select retail.desactivar_categoria(gen_random_uuid())`), mensaje: /Solo un Líder puede desactivar una categoría/, pasan: ["admin", "micaela"] },
+  { nombre: "actualizar_categoria_ejes", previo: "", intento: LLAMADA(`select retail.actualizar_categoria_ejes(gen_random_uuid(), '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[])`), mensaje: /Solo un Líder puede editar qué tallas/, pasan: ["admin", "micaela"] },
+  // Etiquetas (20260923130000): se abren a quien ve el módulo Etiquetas; ninguna de estas cuentas lo ve.
+  { nombre: "etiquetar_variantes (sin el módulo Etiquetas)", previo: "", intento: LLAMADA(`select retail.etiquetar_variantes('[]'::jsonb)`), mensaje: /Etiquetar prendas necesita el módulo Etiquetas/, pasan: [] },
+  { nombre: "actualizar_variantes_etiquetas (sin el módulo Etiquetas)", previo: "", intento: LLAMADA(`select retail.actualizar_variantes_etiquetas('[]'::jsonb)`), mensaje: /Aplicar etiquetas a una prenda necesita el módulo Etiquetas/, pasan: [] },
   // Lo que NO se abrió y cuyo candado va primero: solo el líder.
-  { nombre: "etiquetar_variantes (descuentos)", previo: "", intento: LLAMADA(`select retail.etiquetar_variantes('[]'::jsonb)`), mensaje: /Solo un Líder puede etiquetar prendas/, pasan: [] },
-  { nombre: "actualizar_variantes_etiquetas (descuentos)", previo: "", intento: LLAMADA(`select retail.actualizar_variantes_etiquetas('[]'::jsonb)`), mensaje: /Solo un Líder puede aplicar etiquetas a una variante/, pasan: [] },
   { nombre: "anular_venta", previo: "", intento: LLAMADA(`select retail.anular_venta(gen_random_uuid(), 'x', '[]'::jsonb)`), mensaje: /Solo un líder puede anular una venta/, pasan: [] },
   { nombre: "registrar_serie_comprobante", previo: "", intento: LLAMADA(`select retail.registrar_serie_comprobante(gen_random_uuid(), 'boleta', 'B001', 1)`), mensaje: /Solo un líder puede registrar una serie de comprobantes/, pasan: [] },
 ];
 
 for (const { nombre, previo, intento, mensaje, pasan } of PUERTAS) {
   for (const [quien, uid] of ACTORES) {
-    const res = correr(escena(`${ALTA}${previo}${cambiaA(uid)}${intento}`));
+    const res = correr(escena(`${previo}${cambiaA(uid)}${intento}`));
     const texto = res.ok ? res.salida : res.mensaje;
     const debePasar = quien === "felipe" || pasan.includes(quien);
     const rechazado = mensaje.test(texto);
-    const bien = res.ok && (debePasar ? !rechazado : rechazado);
+    // Pasar la puerta NO es lo mismo que «sin error»: una llamada con un id inventado falla después del candado. Lo
+    // que importa es que la terminal no se tope con el candado ni con el del responsable.
+    const bien = res.ok && (debePasar ? !rechazado && !/Elige quién hace esta operación|no está de turno/.test(texto) : rechazado);
     if (!bien) fallos++;
     console.log(`${bien ? "OK  " : "FALLA"} ${nombre}: ${quien} ${debePasar ? "pasa" : "es rechazado"}${bien ? "" : `\n      recibí: ${texto.slice(0, 300)}`}`);
   }
 }
 
+verificar(
+  "firma: la terminal administrativa cierra el conteo y el traslado con diferencia a nombre de Rosa",
+  correr(escena(`${FIXTURE_CONTEO}${FIXTURE_TRASLADO}${cambiaA(T_ADMIN)}select retail.cerrar_conteo(:'conteo') as _c \\gset
+select retail.cerrar_traslado_con_diferencia(:'traslado', 'x') as _t \\gset
+select (select cerrado_por = :'rosa' from retail.conteos where id = :'conteo') || '|' || (select cerrado_por = :'rosa' from retail.transferencias where id = :'traslado');`)),
+  /^true\|true$/
+);
+
 // Las que NO se abrieron y verifican otras cosas antes del candado: se prueban por su definición. Siguen pidiendo
-// líder y NINGUNA menciona una capacidad de terminal.
+// líder y NINGUNA menciona una capacidad de terminal. Las de etiquetas salieron de esta lista (20260923130000): se abren
+// con el módulo Etiquetas y lo que lleva descuento lo cuida `fn_puede_dar_descuento_por_etiqueta` (verificado abajo).
 const SIGUEN_DEL_LIDER = [
   "aprobar_devolucion", "rechazar_devolucion", "anular_venta", "anular_comprobante", "marcar_comprobante_no_emitido",
-  "registrar_serie_comprobante", "etiquetar_variantes", "actualizar_variantes_etiquetas", "actualizar_campana_etiqueta",
-  "liquidar_prenda_danada", "resolver_prenda_danada",
+  "registrar_serie_comprobante", "liquidar_prenda_danada", "resolver_prenda_danada",
 ];
 verificar(
-  `siguen del líder (${SIGUEN_DEL_LIDER.length}): devoluciones, anulaciones, series, etiquetas con descuento, prendas dañadas`,
+  "etiquetas (20260923130000): las 3 funciones que tocan descuentos los dejan al líder (fn_puede_tocar_etiqueta / fn_puede_dar_descuento_por_etiqueta)",
+  correr(escena(`select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
+    and p.proname in ('etiquetar_variantes', 'actualizar_variantes_etiquetas', 'actualizar_campana_etiqueta')
+    and pg_get_functiondef(p.oid) ~ 'fn_puede_(tocar_etiqueta|dar_descuento_por_etiqueta)\\(';`)),
+  /^3$/
+);
+verificar(
+  `siguen del líder (${SIGUEN_DEL_LIDER.length}): devoluciones, anulaciones, series, prendas dañadas`,
   correr(escena(`select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
     and p.proname in (${SIGUEN_DEL_LIDER.map((f) => `'${f}'`).join(", ")})
     and pg_get_functiondef(p.oid) ~ 'fn_es_lider\\(\\)'
@@ -284,35 +338,29 @@ verificar(
 /* 5. Catálogo por la API directa (políticas de fila) y sus disparadores */
 /* ------------------------------------------------------------------ */
 
-const comoApi = (uid, sql) => correr(escena(`${ALTA}${cambiaA(uid)}${COMO_AUTENTICADO}${sql}`));
+const comoApi = (uid, sql, opciones) => correr(escena(`${cambiaA(uid, opciones)}${COMO_AUTENTICADO}${sql}`));
 const INSERTAR_MARCA = `insert into retail.marcas (nombre) values ('MARCA TERMINAL DE PRUEBA') returning nombre;`;
-const INSERTAR_COLOR = `insert into retail.colores (codigo, nombre) values ('zz9', 'Color de prueba') returning estado;`;
+const INSERTAR_COLOR = `insert into retail.colores (codigo, nombre) values ('zz9', 'Color de prueba') returning estado || '|' || coalesce(aprobado_por, propuesto_por)::text;`;
 
 verificar("catálogo (política de fila): la terminal administrativa escribe en `marcas`", comoApi(T_ADMIN, INSERTAR_MARCA), /^MARCA TERMINAL DE PRUEBA$/);
 verificar("catálogo (política de fila): el líder escribe en `marcas`", comoApi(FELIPE, INSERTAR_MARCA), /^MARCA TERMINAL DE PRUEBA$/);
 verificar("catálogo (política de fila): la terminal de ventas NO escribe en `marcas`", comoApi(T_VENTAS, INSERTAR_MARCA), /row-level security/, { debeFallar: true });
-verificar("catálogo (política de fila): un colaborador común NO escribe en `marcas`", comoApi(MICAELA, INSERTAR_MARCA), /row-level security/, { debeFallar: true });
+// B2d (Felipe, 2026-09-22): el Integrante ve Productos y Atributos, así que edita el Catálogo (20260923031000).
+verificar("catálogo (política de fila): una integrante (su rol ve Catálogo) escribe en `marcas`", comoApi(MICAELA, INSERTAR_MARCA), /^MARCA TERMINAL DE PRUEBA$/);
 
-verificar("catálogo (disparador): lo que crea la terminal administrativa queda APROBADO", comoApi(T_ADMIN, INSERTAR_COLOR), /^aprobado$/);
-verificar("catálogo (disparador): lo que crea el líder queda APROBADO", comoApi(FELIPE, INSERTAR_COLOR), /^aprobado$/);
-verificar("catálogo (disparador): lo que propone la terminal de ventas queda PENDIENTE", comoApi(T_VENTAS, INSERTAR_COLOR), /^pendiente$/);
-verificar("catálogo (disparador): lo que propone un colaborador común queda PENDIENTE", comoApi(MICAELA, INSERTAR_COLOR), /^pendiente$/);
-
-/* ------------------------------------------------------------------ */
-/* 6. Suspender y reactivar conservan el tipo de terminal              */
-/* ------------------------------------------------------------------ */
-
+verificar("catálogo (disparador): lo que crea la terminal administrativa queda APROBADO, firmado por Rosa", comoApi(T_ADMIN, INSERTAR_COLOR), new RegExp(`^aprobado\\|${ROSA}$`));
+verificar("catálogo (disparador): lo que crea el líder queda APROBADO", comoApi(FELIPE, INSERTAR_COLOR), /^aprobado\|/);
+verificar("catálogo (disparador): lo que propone la terminal de ventas queda PENDIENTE, propuesto por Rosa", comoApi(T_VENTAS, INSERTAR_COLOR), new RegExp(`^pendiente\\|${ROSA}$`));
+verificar("catálogo (disparador): lo que crea una integrante (su rol ve Catálogo) queda APROBADO", comoApi(MICAELA, INSERTAR_COLOR), /^aprobado\|/);
 verificar(
-  "suspender y reactivar: la terminal conserva su tipo (en la fila suspendida y al volver)",
-  correr(escena(`${ALTA}select retail.suspender_colaborador(:'p_admin', 'prueba') as _s \\gset
-select (select terminal from retail.colaboradores_suspendidos where persona_id = :'p_admin') as t_susp \\gset
-select retail.reactivar_colaborador(:'p_admin') as _r \\gset
-select :'t_susp' || '|' || (select terminal from retail.colaboradores where persona_id = :'p_admin');`)),
-  /^administrativa\|administrativa$/
+  "catálogo (disparador): la terminal administrativa SIN responsable no escribe",
+  comoApi(T_ADMIN, INSERTAR_COLOR, { sinResponsable: true }),
+  /Elige quién hace esta operación/,
+  { debeFallar: true }
 );
 
 /* ------------------------------------------------------------------ */
-/* 7. Lo que la migración deja en el catálogo de la base               */
+/* 6. Lo que las migraciones dejan en el catálogo de la base           */
 /* ------------------------------------------------------------------ */
 
 const POLITICAS_CATALOGO = [
@@ -321,13 +369,15 @@ const POLITICAS_CATALOGO = [
   "patrones_update_lider", "producto_fotos_write_lider", "productos_write_lider", "tallas_update_lider", "tejidos_update_lider", "variantes_write_lider",
 ];
 verificar(
-  "políticas: las 15 de Catálogo piden fn_puede_editar_catalogo; las de etiquetas siguen pidiendo líder",
+  "políticas: las 15 de Catálogo piden fn_puede_editar_catalogo; las de escritura directa de etiquetas siguen pidiendo líder y la de editar etiquetas deja el descuento al líder",
   correr(escena(`select
     (select count(*) from pg_policies where schemaname = 'retail' and policyname in (${POLITICAS_CATALOGO.map((p) => `'${p}'`).join(", ")})
        and (coalesce(qual, '') ~ 'fn_puede_editar_catalogo' or coalesce(with_check, '') ~ 'fn_puede_editar_catalogo'))
-    || '|' || (select count(*) from pg_policies where schemaname = 'retail' and policyname in ('etiquetas_update_lider', 'etiqueta_categorias_write_lider', 'variante_etiquetas_write_lider')
-       and coalesce(qual, '') ~ 'fn_es_lider');`)),
-  /^15\|3$/
+    || '|' || (select count(*) from pg_policies where schemaname = 'retail' and policyname in ('etiqueta_categorias_write_lider', 'variante_etiquetas_write_lider')
+       and coalesce(qual, '') ~ 'fn_es_lider')
+    || '|' || (select count(*) from pg_policies where schemaname = 'retail' and tablename = 'etiquetas' and policyname = 'etiquetas_update'
+       and coalesce(with_check, '') ~ 'fn_puede_dar_descuento_por_etiqueta' and coalesce(with_check, '') ~ 'descuento_pct IS NULL');`)),
+  /^15\|2\|1$/
 );
 
 verificar(
@@ -342,7 +392,7 @@ verificar(
 
 verificar(
   "descuentos: la terminal administrativa no puede dar descuento por etiqueta; el líder sí",
-  correr(escena(`${ALTA}${cambiaA(T_ADMIN)}select retail.fn_puede_dar_descuento_por_etiqueta() as a \\gset
+  correr(escena(`${cambiaA(T_ADMIN)}select retail.fn_puede_dar_descuento_por_etiqueta() as a \\gset
 ${cambiaA(FELIPE)}select retail.fn_puede_dar_descuento_por_etiqueta() as l \\gset
 select :'a' || '|' || :'l';`)),
   /^f\|t$/
@@ -356,39 +406,14 @@ verificar(
 );
 
 verificar(
-  "grants: authenticated ejecuta agregar_terminal y las capacidades; anon no",
+  "grants: authenticated ejecuta las capacidades y fn_actor_persona_id; anon no",
   correr(escena(`select (
-    has_function_privilege('authenticated', 'retail.agregar_terminal(uuid, uuid, text)', 'execute')
-    and has_function_privilege('authenticated', 'retail.fn_puede_gestionar_caja()', 'execute')
+    has_function_privilege('authenticated', 'retail.fn_puede_gestionar_caja()', 'execute')
     and has_function_privilege('authenticated', 'retail.fn_puede_editar_catalogo()', 'execute')
-    and not has_function_privilege('anon', 'retail.agregar_terminal(uuid, uuid, text)', 'execute')
+    and has_function_privilege('authenticated', 'retail.fn_actor_persona_id(boolean)', 'execute')
+    and not has_function_privilege('anon', 'retail.fn_actor_persona_id(boolean)', 'execute')
     and not has_function_privilege('anon', 'retail.fn_es_terminal(text)', 'execute'))::text;`)),
   /^true$/
-);
-
-verificar(
-  "re-ejecutable: pegar la migración otra vez no duplica el guardia ni rompe nada",
-  correr(escena(`${SQL_MIGRACION}
-${ALTA}${BASE_INVENTARIO}${cambiaA(T_ADMIN)}select retail.registrar_movimiento(:'var', :'trujillo', 'ajuste', 1, 'segunda vez', 'nota', :'sub_piso') as mov \\gset
-select (select count(*) from retail.movimientos where id = :'mov')::text
-  || '|' || (select (length(d) - length(replace(d, 'Solo un líder puede asignar una etiqueta con descuento.', ''))) / length('Solo un líder puede asignar una etiqueta con descuento.')
-             from (select pg_get_functiondef('retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, uuid, uuid, boolean, uuid[], uuid, uuid)'::regprocedure) as d) x)::text;`)),
-  /^1\|1$/
-);
-
-// El SQL Editor de producción se puede usar con `set search_path to retail, public;` al inicio (CLAUDE.md). Con
-// ese `search_path`, `pg_policies` muestra `fn_es_lider()` SIN el prefijo `retail.`: la primera versión de la
-// migración solo buscaba la forma con prefijo y abortaba. Este escenario NO usa `escena` (sin preludio): es la
-// PRIMERA carga de la migración, con otro `search_path`.
-verificar(
-  "search_path: la migración se pega también con `set search_path to retail, public;` (las 15 políticas cambian)",
-  correr(`begin;
-set local search_path to retail, public, extensions;
-${SQL_MIGRACION}
-select count(*) from pg_policies where schemaname = 'retail' and policyname in (${POLITICAS_CATALOGO.map((p) => `'${p}'`).join(", ")})
-  and (coalesce(qual, '') ~ 'fn_puede_editar_catalogo' or coalesce(with_check, '') ~ 'fn_puede_editar_catalogo');
-rollback;`),
-  /^15$/
 );
 
 console.log(fallos === 0 ? "\nTodo en verde." : `\n${fallos} fallo(s).`);

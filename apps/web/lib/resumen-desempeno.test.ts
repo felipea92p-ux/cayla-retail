@@ -3,6 +3,10 @@ import { metricasDePeriodo, type DatosPeriodo, type FilaComparacion } from "./re
 import {
   analizarDesempeno,
   armarDesempeno,
+  calcularKpisDesempeno,
+  contarTendencias,
+  distribucionDesempeno,
+  rankingRotacionDesempeno,
   dividirPeriodo,
   filtrarPorSellThrough,
   leerVistaDesempeno,
@@ -328,5 +332,62 @@ describe("armarDesempeno", () => {
     };
     revisar(armar());
     revisar(armar({}, [fila({ id: "vacia" }), fila({ id: "solo-ventas", a: { ventas: 3 } })]));
+  });
+});
+
+describe("cifras y gráficos de Desempeño (rediseño 2026-09-22)", () => {
+  const v1 = fila({ id: "v1", a: { ventas: 3, entradas: 10, stockInicio: 10, stockCierre: 8 }, b: { ventas: 6, stockInicio: 8, stockCierre: 2 } });
+  const v2 = fila({ id: "v2", a: { ventas: 1, stockInicio: 30, stockCierre: 30 }, b: { ventas: 1, stockInicio: 30, stockCierre: 30 } });
+  const v3 = fila({ id: "v3", ledger: false, a: { ventas: 2, stockInicio: 5, stockCierre: 5 }, b: { ventas: 2, stockInicio: 5, stockCierre: 5 } });
+  const todas = [v1, v2, v3].map((f) => analizarDesempeno(f, M30));
+
+  it("ventas: lo cobrado del período y el cambio de la 2.ª mitad POR DÍA", () => {
+    const k = calcularKpisDesempeno([analizarDesempeno(fila({ a: { ventas: 3, importe: 150 }, b: { ventas: 6, importe: 300 } }), M30)], M30);
+    expect(k.ventas).toMatchObject({ importe: 450, unidades: 9, primeraMitad: 150, segundaMitad: 300, cambioMitadPct: 100 });
+    // 7 días: 3 + 4. Lo mismo por día en las dos mitades no es «+33 %».
+    const m7 = dividirPeriodo({ desde: "2026-09-24", hasta: "2026-09-30" });
+    expect(calcularKpisDesempeno([analizarDesempeno(fila({ a: { ventas: 3, importe: 30 }, b: { ventas: 4, importe: 40 } }), m7)], m7).ventas.cambioMitadPct).toBeCloseTo(0);
+    // Un solo día: no hay mitades que comparar.
+    const m1 = dividirPeriodo({ desde: "2026-09-30", hasta: "2026-09-30" });
+    expect(calcularKpisDesempeno([analizarDesempeno(fila({ b: { ventas: 2, importe: 20 } }), m1)], m1).ventas.cambioMitadPct).toBeNull();
+  });
+
+  it("sell-through del conjunto: la fórmula de cada variante sobre las sumas, sin las estimadas", () => {
+    const st = calcularKpisDesempeno(todas, M30).sellThrough;
+    expect(st).toMatchObject({ vendidas: 11, disponibles: 50, variantes: 2, excluidas: 1 }); // 40 al inicio + 10 que entraron
+    expect(st.pct).toBeCloseTo(22, 1);
+  });
+
+  it("capital al costo al inicio y al cierre; con un costo alterado no se afirma en soles", () => {
+    expect(calcularKpisDesempeno(todas, M30).capital).toMatchObject({ verificado: true, inicio: 45 * COSTO, cierre: 37 * COSTO, unidadesInicio: 45, unidadesCierre: 37 });
+    const alterada = analizarDesempeno({ ...v2, estadoCosto: "alterado" }, M30);
+    expect(calcularKpisDesempeno([alterada], M30).capital).toMatchObject({ verificado: false, alterado: 1, sinCosto: 0 });
+  });
+
+  it("la dona cuenta tendencias; lo que no se puede afirmar queda fuera", () => {
+    expect(contarTendencias([todas[0]!, todas[1]!])).toEqual({ total: 1, alza: 1, estable: 0, baja: 0, sinDato: 1 });
+  });
+
+  it("top rotación: solo rotación calculable y mayor que cero, de mayor a menor", () => {
+    const r = rankingRotacionDesempeno(todas);
+    expect(r.map((x) => x.fila.varianteId)).toEqual(["v1", "v2"]);
+    expect(r.every((x) => (x.periodo.rotacion ?? 0) > 0)).toBe(true);
+  });
+
+  it("distribución de sell-through en los rangos de siempre, sin las que no se pueden medir", () => {
+    const d = distribucionDesempeno(todas);
+    expect(d.rangos.map((r) => r.n)).toEqual([1, 1, 0, 0]);
+    expect(d.sinDato).toBe(1);
+  });
+
+  it("la banda de sell-through recorta la tabla, nunca las cifras ni los gráficos", () => {
+    const armar = (extra: Record<string, string>) =>
+      armarDesempeno({ filas: [v1, v2, v3], ubicacion: { id: "u1", nombre: "Tienda Trujillo", tipo: "tienda" }, params: { preset: "personalizado", desde: "2026-09-01", hasta: "2026-09-30", ...extra }, ahora: new Date("2026-10-05T15:00:00Z"), conteos: { exactitud: null, ultimoCerradoEn: null } });
+    const todo = armar({});
+    const bajo = armar({ st: "bajo" });
+    expect(bajo.tabla.total).toBeLessThan(todo.tabla.total);
+    expect(bajo.kpis).toEqual(todo.kpis);
+    expect(bajo.tendencias).toEqual(todo.tendencias);
+    expect(bajo.distribucion).toEqual(todo.distribucion);
   });
 });

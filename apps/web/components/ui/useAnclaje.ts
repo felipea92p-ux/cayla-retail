@@ -51,3 +51,74 @@ export function usePosicionAnclada(control: RefObject<HTMLElement | null>, abier
 
   return pos;
 }
+
+/* ====================================================================
+   usePosicionLista · la lista de un desplegable, fuera de la caja que la
+   contiene (2026-09-22)
+
+   Por qué existe: `Desplegable` y `ComboBuscable` dibujaban su lista en
+   `absolute` debajo del control. Dentro de un `<Modal>` eso no funciona: la
+   hoja tiene `overflow-y-auto` (para que un formulario largo se desplace) y
+   RECORTA todo lo que sobresale. En «Asignar rol» el campo Cuenta está al
+   pie de la hoja: la lista se abría, pero quedaba metida en un scroll
+   interno de cinco filas, con el título y los botones empujados fuera de la
+   vista — se veía como un buscador roto.
+
+   Mismo remedio que `MenuAcciones` y `usePosicionAnclada`: `position: fixed`
+   medido contra el control, que ninguna caja con overflow recorta. A
+   diferencia de aquel, la lista toma el ANCHO del control y, si no cabe
+   abajo, se abre hacia arriba — en un modal el campo suele estar cerca del
+   borde inferior de la ventana. `alto` es el tope de la lista (su
+   `max-h-*`); se achica si no hay tanto espacio en ninguno de los dos lados.
+   Mientras mide por primera vez devuelve `null`: quien lo usa no pinta la
+   lista hasta tener posición, para que no aparezca un cuadro en (0,0).
+
+   Se mide EN CADA CUADRO mientras está abierta, no solo al abrir, al
+   desplazarse o al redimensionar (2026-09-22): al abrir un modal, Radix
+   enfoca el primer campo en el mismo instante en que la hoja empieza a
+   entrar —achicada al 96,5 % y 18 px más abajo, y el campo 10 px más por la
+   cascada—; el combo se abre con ese foco y medía el campo a medio camino.
+   Terminada la entrada el campo quedaba en su lugar y la lista no: más
+   angosta, corrida y ~28 px más abajo, tapando los botones. Una animación
+   no dispara `scroll` ni `resize`, y tampoco un aviso que aparece arriba y
+   empuja el campo. Cuesta un `getBoundingClientRect` por cuadro, solo con
+   la lista a la vista, y el estado cambia solo si la posición cambió.
+   ==================================================================== */
+export type PosicionLista = { left: number; width: number; maxHeight: number } & ({ top: number } | { bottom: number });
+
+export function usePosicionLista(control: RefObject<HTMLElement | null>, abierto: boolean, alto: number, separacion = 6): PosicionLista | null {
+  const [pos, setPos] = useState<PosicionLista | null>(null);
+
+  useLayoutEffect(() => {
+    if (!abierto || !control.current) return;
+    let previa = "";
+    let cuadro = 0;
+    function calcular() {
+      if (!control.current) return;
+      const r = control.current.getBoundingClientRect();
+      const margen = 8;
+      const abajo = window.innerHeight - r.bottom - separacion - margen;
+      const arriba = r.top - separacion - margen;
+      const base = { left: r.left, width: r.width };
+      // Abajo es lo esperado; arriba solo si abajo no alcanza y arriba hay más aire.
+      const nueva: PosicionLista =
+        abajo >= Math.min(alto, 160) || abajo >= arriba
+          ? { ...base, top: r.bottom + separacion, maxHeight: Math.min(alto, Math.max(abajo, 120)) }
+          : { ...base, bottom: window.innerHeight - r.top + separacion, maxHeight: Math.min(alto, arriba) };
+      const clave = JSON.stringify(nueva);
+      if (clave !== previa) {
+        previa = clave;
+        setPos(nueva);
+      }
+    }
+    // Cuadro a cuadro (ver arriba): cubre la entrada del modal, el scroll, el resize y el campo que se mueve solo.
+    function seguir() {
+      calcular();
+      cuadro = requestAnimationFrame(seguir);
+    }
+    seguir();
+    return () => cancelAnimationFrame(cuadro);
+  }, [abierto, control, alto, separacion]);
+
+  return abierto ? pos : null;
+}

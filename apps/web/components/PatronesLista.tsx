@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { MuestraPatron } from "@/components/MuestraPatron";
@@ -28,6 +30,9 @@ function ordenar(lista: Patron[]) {
 }
 
 export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesIniciales: Patron[]; puedeEditar: boolean }) {
+  // Cambiar el vocabulario es Catálogo, operación de tienda (ADR-0161): UN combo «Responsable» firma todo lo que se
+  // guarda desde esta lista (arriba; el mismo se repite en cada modal) y cada guardado exitoso lo vacía.
+  const responsable = useResponsable();
   const [patrones, setPatrones] = useState(() => ordenar(patronesIniciales));
   const [agregando, setAgregando] = useState(false);
   const [nombre, setNombre] = useState("");
@@ -46,7 +51,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
     try {
       const res = await fetch("/api/productos/patrones", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ nombre }),
       });
       const datos = await res.json();
@@ -57,6 +62,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
       setPatrones((actual) =>
         ordenar([...actual, { id: datos.patron.id, nombre: datos.patron.nombre, activo: true, notas: datos.patron.notas, estado: datos.patron.estado }])
       );
+      responsable.despues(null);
       avisar.exito(
         datos.patron.estado === "pendiente" ? `${datos.patron.nombre} agregado — ya lo puedes usar` : `Patrón ${datos.patron.nombre} agregado`,
         datos.patron.estado === "pendiente" ? { detalle: "Queda pendiente de que un Líder lo apruebe, pero eso no te frena." } : undefined
@@ -75,7 +81,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
     try {
       const res = await fetch("/api/productos/patrones", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ id: p.id, estado: "aprobado" }),
       });
       const datos = await res.json();
@@ -84,6 +90,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
         return;
       }
       setPatrones((actual) => ordenar(actual.map((x) => (x.id === p.id ? { ...x, estado: "aprobado" as const, activo: true } : x))));
+      responsable.despues(null);
       avisar.exito(`${p.nombre} aprobado`);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -97,7 +104,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
     try {
       const res = await fetch("/api/productos/patrones", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ id: p.id, estado: "rechazado", ...(motivoRechazo.trim() ? { notas: motivoRechazo.trim() } : {}) }),
       });
       const datos = await res.json();
@@ -106,6 +113,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
         return;
       }
       setPatrones((actual) => ordenar(actual.map((x) => (x.id === p.id ? { ...x, activo: false, estado: "rechazado" as const } : x))));
+      responsable.despues(null);
       avisar.exito(`${p.nombre} rechazado`, { detalle: "Cae a Desactivados. Se puede reactivar después si hace falta." });
       setRechazandoAbierto(null);
       setMotivoRechazo("");
@@ -121,7 +129,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
     try {
       const res = await fetch("/api/productos/patrones", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify(p.estado === "rechazado" ? { id: p.id, estado: "aprobado" } : { id: p.id, activo: true }),
       });
       const datos = await res.json();
@@ -130,6 +138,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
         return;
       }
       setPatrones((actual) => ordenar(actual.map((x) => (x.id === p.id ? { ...x, activo: true, estado: "aprobado" as const } : x))));
+      responsable.despues(null);
       avisar.exito(`${p.nombre} reactivado`, { detalle: "Vuelve a aparecer al elegir patrón en un producto." });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -143,7 +152,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
     try {
       const res = await fetch("/api/productos/patrones", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ id: p.id, activo: false }),
       });
       const datos = await res.json();
@@ -152,6 +161,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
         return;
       }
       setPatrones((actual) => ordenar(actual.map((x) => (x.id === p.id ? { ...x, activo: false } : x))));
+      responsable.despues(null);
       avisar.exito(`${p.nombre} desactivado`, { detalle: "Deja de aparecer al elegir patrón en un producto nuevo; el historial se conserva." });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -164,7 +174,8 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        {puedeEditar ? <ComboResponsable control={responsable} hacia="abajo" className="w-full max-w-xs" /> : <span />}
         <button
           type="button"
           onClick={() => setAgregando(true)}
@@ -190,7 +201,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
             {puedeEditar && (
               <div className="flex gap-2">
                 {p.estado === "pendiente" && (
-                  <Boton peso="primario" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={aprobandoId === p.id} onClick={() => aprobar(p)}>
+                  <Boton peso="primario" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={aprobandoId === p.id} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => aprobar(p)}>
                     Aprobar
                   </Boton>
                 )}
@@ -206,7 +217,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
                     Rechazar
                   </Boton>
                 ) : (
-                  <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === p.id} onClick={() => desactivar(p)}>
+                  <Boton peso="discreto" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === p.id} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => desactivar(p)}>
                     Desactivar
                   </Boton>
                 )}
@@ -221,11 +232,12 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Nombre del patrón" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Rayado" autoFocus />
+              <ComboResponsable control={responsable} deshabilitado={guardando} />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
                   Cancelar
                 </Boton>
-                <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!nombre.trim()}>
+                <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!nombre.trim() || !responsable.listo} title={responsable.motivo ?? undefined}>
                   Guardar
                 </Boton>
               </div>
@@ -239,6 +251,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
+              <ComboResponsable control={responsable} deshabilitado={rechazandoId === rechazandoPatron.id} />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoId === rechazandoPatron.id}>
                   Cancelar
@@ -247,6 +260,8 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
                   peso="primario"
                   className="flex-1"
                   cargando={rechazandoId === rechazandoPatron.id}
+                  disabled={!responsable.listo}
+                  title={responsable.motivo ?? undefined}
                   onClick={() => rechazar(rechazandoPatron)}
                 >
                   Confirmar rechazo
@@ -271,7 +286,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
                   )}
                 </div>
                 {puedeEditar && (
-                  <Boton peso="discreto" className="px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === p.id} onClick={() => reactivar(p)}>
+                  <Boton peso="discreto" className="px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === p.id} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => reactivar(p)}>
                     Reactivar
                   </Boton>
                 )}

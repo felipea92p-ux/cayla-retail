@@ -122,9 +122,9 @@ export function InventarioHero({
         <FotoHero foto={foto} variante={variante} />
         {/* Abajo, no al centro (2026-09-22): centrado tapaba justo la parte de la foto con más
             contenido — acá queda apoyado en el borde inferior, sin competir con ella. */}
-        {accion && <div className="absolute inset-0 flex items-end justify-end p-5">{accion}</div>}
+        {accion && <div className="absolute inset-0 flex items-end justify-end gap-2.5 p-5">{accion}</div>}
       </div>
-      {accion && <div className="flex items-center px-5 pb-4 md:hidden">{accion}</div>}
+      {accion && <div className="flex flex-wrap items-center gap-2.5 px-5 pb-4 md:hidden">{accion}</div>}
     </div>
   );
 }

@@ -1,21 +1,21 @@
 "use client";
 
-import type { Colaborador, ColaboradorInactivo, ColaboradorPendiente, ColaboradorSuspendido, EventoAcceso, RolColaborador } from "@/lib/colaboradores";
+import type { Colaborador, ColaboradorInactivo, ColaboradorPendiente, ColaboradorSuspendido, EventoAcceso, RolColaborador, Terminal } from "@/lib/colaboradores";
 import {
   accionesDeFila,
   ETIQUETA_ROL,
-  ETIQUETA_TERMINAL,
+  fechaHoraLima,
   fechaLima,
   fraseEvento,
   plural,
   ultimoAccesoTexto,
   type AccionFila,
 } from "@/lib/colaboradores-reglas";
-import type { TipoTerminal } from "@/lib/menu";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { Chip } from "@/components/ui/Chip";
 import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { Boton } from "@/components/ui/campos";
+import { IconoAparato } from "@/components/ui/IconoAparato";
 
 // Las tres tablas y el registro de actividad de /colaboradores. Solo dibujan lo que reciben y avisan qué se
 // eligió: las decisiones (modales, llamadas a la base) viven en `ColaboradoresPanel`.
@@ -33,8 +33,7 @@ function Caja({ minimo, children }: { minimo: string; children: React.ReactNode 
   );
 }
 
-function ChipRol({ rol, terminal }: { rol: RolColaborador; terminal?: TipoTerminal | null }) {
-  if (terminal) return <Chip tono="verde">{ETIQUETA_TERMINAL[terminal]}</Chip>;
+function ChipRol({ rol }: { rol: RolColaborador }) {
   return <Chip tono="neutro">{ETIQUETA_ROL[rol]}</Chip>;
 }
 
@@ -51,8 +50,19 @@ function Persona({ nombre, correo, tu = false, apagada = false }: { nombre: stri
 }
 
 const cualquiera = <span className="italic text-tinta/65">cualquiera</span>;
+/** Un líder opera todas las sedes; si tiene ubicación, es solo la tienda donde arranca su sesión (20260923120100). */
+function UbicacionDe({ rol, ubicacion }: { rol: string; ubicacion: string | null }) {
+  if (rol !== "lider") return <>{ubicacion ?? "—"}</>;
+  if (!ubicacion) return cualquiera;
+  return (
+    <span title="Arranca aquí; opera en cualquier sede">
+      {ubicacion} <span className="italic text-tinta/65">· arranca aquí</span>
+    </span>
+  );
+}
 
 const ETIQUETA_ACCION: Record<AccionFila, string> = {
+  cambiar_rol: "Cambiar rol",
   cambiar_ubicacion: "Cambiar ubicación",
   suspender: "Suspender acceso",
   quitar: "Quitar acceso",
@@ -62,10 +72,19 @@ export function TablaActivos({
   filas,
   ocupadoId,
   onAccion,
+  rolDe,
+  onVerRol,
+  soyLider = true,
 }: {
   filas: Colaborador[];
   ocupadoId: string | null;
   onAccion: (c: Colaborador, accion: AccionFila) => void;
+  /** Quien mira es líder. Sin serlo (módulo Colaboradores), las filas de líderes no ofrecen acciones. */
+  soyLider?: boolean;
+  /** El nombre del rol de cada cuenta (ADR-0161 B); sin esto, solo el nivel (Líder / Colaborador). */
+  rolDe?: (id: string) => string | null;
+  /** Abre ese rol en «Roles y accesos» (spike colaboradores-ux, 2026-09-22): el rol de la fila es un atajo, no solo texto. */
+  onVerRol?: (id: string) => void;
 }) {
   return (
     <Caja minimo="min-w-[860px]">
@@ -82,7 +101,7 @@ export function TablaActivos({
       </thead>
       <tbody className="divide-y divide-tinta/5">
         {filas.map((c) => {
-          const items: ItemMenu[] = accionesDeFila(c).map((a) => ({
+          const items: ItemMenu[] = accionesDeFila(c, soyLider).map((a) => ({
             clave: a,
             etiqueta: ETIQUETA_ACCION[a],
             peligro: a === "quitar",
@@ -94,9 +113,23 @@ export function TablaActivos({
                 <Persona nombre={c.nombre} correo={c.correo} tu={c.es_yo} />
               </td>
               <td className={CELDA}>
-                <ChipRol rol={c.rol} terminal={c.terminal} />
+                <ChipRol rol={c.rol} />
+                {c.rol !== "lider" && rolDe?.(c.persona_id) && (
+                  onVerRol ? (
+                    <button
+                      type="button"
+                      onClick={() => onVerRol(c.persona_id)}
+                      title="Ver qué módulos ve este rol"
+                      className="mt-1 block text-left text-xs text-tinta/65 underline decoration-tinta/20 underline-offset-2 transition-colors hover:text-tinta hover:decoration-tinta/60"
+                    >
+                      {rolDe(c.persona_id)}
+                    </button>
+                  ) : (
+                    <div className="mt-1 text-xs text-tinta/65">{rolDe(c.persona_id)}</div>
+                  )
+                )}
               </td>
-              <td className={`${CELDA} whitespace-nowrap text-tinta/85`}>{c.rol === "lider" ? cualquiera : (c.ubicacion_asignada ?? "—")}</td>
+              <td className={`${CELDA} whitespace-nowrap text-tinta/85`}><UbicacionDe rol={c.rol} ubicacion={c.ubicacion_asignada} /></td>
               <td className={`${CELDA} whitespace-nowrap text-tinta/75`}>{c.sede ?? "—"}</td>
               <td className={`${CELDA} whitespace-nowrap tabular-nums text-tinta/75`}>{fechaLima(c.agregado_en)}</td>
               <td className={`${CELDA} whitespace-nowrap tabular-nums text-tinta/75`}>{ultimoAccesoTexto(c.ultimo_acceso)}</td>
@@ -115,56 +148,79 @@ export function TablaActivos({
   );
 }
 
-// Cuentas terminal (ADR-0160): mismo patrón visual que TablaActivos —de hecho lee las mismas filas de
-// `fn_colaboradores()`, solo el subconjunto con `terminal` puesto— pero en su propia tabla, para que una cuenta
-// compartida por el equipo no se lea como una persona más en Activos. Sin «Sesión activa» (nadie es «tú» acá) ni
-// columna «Sede en Dynamic» (no aporta nada de una cuenta de servicio): en su lugar, el tipo de terminal.
+// Terminales (ADR-0162): aparatos con cuenta propia, SIN persona — por eso no usan `Persona` ni el menú «⋯» de las
+// personas: su única acción es Desactivar / Reactivar, a la vista (pantalla 5 del spike aprobado). Una desactivada queda
+// en la lista apagada, nunca desaparece: su historial sigue firmado con `terminal_id`.
+// Sin tipo desde 20260923040000: cada fila es tienda + nombre + ROL (lo que ve). Las acciones son las tres de la pantalla:
+// Cambiar clave (la muestra una vez), Cambiar rol y Desactivar/Reactivar.
 export function TablaTerminales({
   filas,
   ocupadoId,
-  onAccion,
+  onAlternar,
+  onCambiarClave,
+  onCambiarRol,
 }: {
-  filas: Colaborador[];
+  filas: Terminal[];
   ocupadoId: string | null;
-  onAccion: (c: Colaborador, accion: AccionFila) => void;
+  onAlternar: (t: Terminal) => void;
+  onCambiarClave?: (t: Terminal) => void;
+  /** ADR-0161 B1: una terminal es una cuenta más con su rol. Sin esto (roles sin leer), no se ofrece cambiarlo. */
+  onCambiarRol?: (t: Terminal) => void;
 }) {
   return (
-    <Caja minimo="min-w-[760px]">
+    <Caja minimo="min-w-[880px]">
       <thead className="border-b border-tinta/10 bg-tinta/[0.03] text-tinta/70">
         <tr>
           <th className={CABECERA}>Terminal</th>
-          <th className={CABECERA}>Tipo</th>
           <th className={CABECERA}>Tienda</th>
-          <th className={CABECERA}>Desde</th>
-          <th className={CABECERA}>Último ingreso</th>
-          <th className={`${CABECERA} text-right`}>Acciones</th>
+          <th className={CABECERA}>Rol</th>
+          <th className={CABECERA}>Estado</th>
+          <th className={CABECERA}>Última actividad</th>
+          <th className={`${CABECERA} text-right`}>
+            <span className="sr-only">Acciones</span>
+          </th>
         </tr>
       </thead>
       <tbody className="divide-y divide-tinta/5">
-        {filas.map((c) => {
-          const items: ItemMenu[] = accionesDeFila(c).map((a) => ({
-            clave: a,
-            etiqueta: ETIQUETA_ACCION[a],
-            peligro: a === "quitar",
-            onSelect: () => onAccion(c, a),
-          }));
-          return (
-            <tr key={c.persona_id} className={`transition-colors duration-150 hover:bg-tinta/[0.025] ${ocupadoId === c.persona_id ? "opacity-50" : ""}`}>
-              <td className={CELDA}>
-                <Persona nombre={c.nombre} correo={c.correo} />
-              </td>
-              <td className={CELDA}>
-                <ChipRol rol={c.rol} terminal={c.terminal} />
-              </td>
-              <td className={`${CELDA} whitespace-nowrap text-tinta/85`}>{c.ubicacion_asignada ?? "—"}</td>
-              <td className={`${CELDA} whitespace-nowrap tabular-nums text-tinta/75`}>{fechaLima(c.agregado_en)}</td>
-              <td className={`${CELDA} whitespace-nowrap tabular-nums text-tinta/75`}>{ultimoAccesoTexto(c.ultimo_acceso)}</td>
-              <td className={`${CELDA} text-right`}>
-                <MenuAcciones etiqueta={`Acciones de ${c.nombre}`} items={items} deshabilitado={ocupadoId === c.persona_id} />
-              </td>
-            </tr>
-          );
-        })}
+        {filas.map((t) => (
+          <tr
+            key={t.id}
+            className={`transition-colors duration-150 hover:bg-tinta/[0.025] ${t.activo ? "" : "text-tinta/55"} ${ocupadoId === t.id ? "opacity-50" : ""}`}
+          >
+            <td className={`${CELDA} min-w-[15rem]`}>
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-sand/70 text-tinta">
+                  <IconoAparato />
+                </span>
+                <div className="min-w-0">
+                  <div className={`font-medium ${t.activo ? "text-tinta" : "text-tinta/60"}`}>{t.nombre}</div>
+                  <div className="max-w-[16rem] truncate text-xs text-tinta/65" title={t.correo ?? undefined}>
+                    {t.correo ?? "Sin persona · cuenta del aparato"}
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td className={`${CELDA} whitespace-nowrap`}>{t.ubicacion_nombre}</td>
+            <td className={`${CELDA} whitespace-nowrap`}>{t.rol_nombre}</td>
+            <td className={CELDA}>{t.activo ? <Chip tono="verde">Activa</Chip> : <Chip tono="apagado">Desactivada</Chip>}</td>
+            <td className={`${CELDA} whitespace-nowrap tabular-nums`}>{t.ultimo_acceso ? fechaHoraLima(t.ultimo_acceso) : "Nunca"}</td>
+            <td className={`${CELDA} whitespace-nowrap text-right`}>
+              {onCambiarClave && (
+                <Boton type="button" peso="discreto" className="mr-2 px-3 py-1.5 text-[11px]" disabled={ocupadoId !== null} onClick={() => onCambiarClave(t)}>
+                  Cambiar clave
+                </Boton>
+              )}
+              {onCambiarRol && (
+                <Boton type="button" peso="discreto" className="mr-2 px-3 py-1.5 text-[11px]" disabled={ocupadoId !== null} onClick={() => onCambiarRol(t)}>
+                  Cambiar rol
+                </Boton>
+              )}
+              <Boton type="button" peso="discreto" className="px-3 py-1.5 text-[11px]" disabled={ocupadoId !== null} onClick={() => onAlternar(t)}>
+                {t.activo ? "Desactivar" : "Reactivar"}
+              </Boton>
+            </td>
+          </tr>
+        ))}
       </tbody>
     </Caja>
   );
@@ -254,7 +310,7 @@ export function TablaSuspendidos({
             <td className={CELDA}>
               <ChipRol rol={c.rol} />
             </td>
-            <td className={`${CELDA} whitespace-nowrap text-tinta/85`}>{c.rol === "lider" ? cualquiera : (c.ubicacion_asignada ?? "—")}</td>
+            <td className={`${CELDA} whitespace-nowrap text-tinta/85`}><UbicacionDe rol={c.rol} ubicacion={c.ubicacion_asignada} /></td>
             <td className={`${CELDA} whitespace-nowrap text-tinta/75`}>
               <div className="tabular-nums">{fechaLima(c.suspendido_en)}</div>
               {c.suspendido_por_nombre && <div className="text-xs text-tinta/65">por {c.suspendido_por_nombre}</div>}
