@@ -104,9 +104,12 @@ y `costo_unitario`). Es un cambio de «desconocido» a «conocido», se hace **u
 un candado en la base y lo capturado originalmente queda en `prendas_por_regularizar`. Con eso, los
 reportes por producto, rotación y margen la cuentan sin tocarlos.
 
-**Movimientos (append-only):** los de la regularización llevan `venta_item_id` y motivos propios
-(`venta_regularizada`; en el caso «llegó nueva» también `ingreso_regularizado`). El movimiento
-original contra la centinela no se toca.
+**Movimientos (append-only):** *(ajustado al implementar, 2026-09-23)* la venta de una prenda sin
+registrar **no mueve stock**: no hay stock real que bajar, y así desaparece el stock ficticio de
+999 999 de la centinela. El único movimiento es el de la regularización: una `salida` con motivo
+`venta` y el `venta_item_id` de la línea (la cuentan rotación y reportes, y `anular_venta` la
+encuentra), sacada del piso o, si no hay, del almacén de la sede. En el caso «llegó nueva» va
+precedida de una `entrada` `ingreso_regularizado`. `anular_venta` salta la línea mientras está pendiente.
 
 **RPC:**
 - `registrar_venta`: **misma firma**, porque los datos nuevos viajan dentro de cada ítem del jsonb
@@ -120,7 +123,7 @@ original contra la centinela no se toca.
 | Caso | Comportamiento |
 |---|---|
 | Se anula una venta con la prenda **pendiente** | La fila pasa a `anulada`; sale de la cola |
-| Se anula o devuelve una venta con la prenda **ya regularizada** | La prenda real vuelve al stock. `anular_venta` y devoluciones hoy buscan exactamente una salida con motivo `venta` por línea (`20260922151500_comprobantes_cola_de_reintento.sql:295`): hay que ajustarlos para reconocer `venta_regularizada` |
+| Se anula o devuelve una venta con la prenda **ya regularizada** | La prenda real vuelve al stock: su línea ya apunta a la variante real y tiene exactamente una salida `venta`, lo que `anular_venta` espera |
 | Dos colaboradoras regularizan la misma a la vez | La segunda recibe «ya fue regularizada» |
 | La variante elegida es de otra sede o está restringida | Se permite: la venta ya ocurrió en esta sede |
 | Accesorio de internet | Se regulariza contra su producto agrupado («Aretes S/ 15»), igual que la ropa |
