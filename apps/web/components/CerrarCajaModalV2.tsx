@@ -6,8 +6,9 @@ import { CloudOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal, campoEtiqueta, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { totalEfectivoEncolado, type VentaEncolada } from "@/lib/ventas-offline";
+import { CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -437,34 +438,22 @@ export function CerrarCajaModalV2({
             </div>
           </div>
           {trasladado > 0 && (
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <label className={campoEtiqueta} htmlFor="traslado-destino">
-                  ¿A dónde va?
-                </label>
-                <select
-                  id="traslado-destino"
-                  value={destino}
-                  onChange={(e) => {
-                    setDestino(e.target.value as DestinoTraslado);
-                    setReferencia("");
-                  }}
-                  className={campoSelect}
-                >
-                  {DESTINOS_TRASLADO.map((d) => (
-                    <option key={d.valor} value={d.valor}>
-                      {d.etiqueta}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="space-y-1">
+              <CampoSelect
+                etiqueta="¿A dónde va?"
+                valor={destino}
+                onValor={(v) => {
+                  setDestino(v);
+                  setReferencia("");
+                }}
+                opciones={DESTINOS_TRASLADO.map((d) => ({ valor: d.valor, texto: d.etiqueta }))}
+              />
               {destinoElegido.referencia && (
-                <input
-                  aria-label={destinoElegido.referencia}
+                <CampoTexto
+                  etiqueta={destinoElegido.referencia}
                   placeholder={destinoElegido.referencia}
                   value={referencia}
                   onChange={(e) => setReferencia(e.target.value)}
-                  className={campoTexto}
                 />
               )}
             </div>
