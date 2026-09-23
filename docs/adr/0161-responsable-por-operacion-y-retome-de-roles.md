@@ -214,7 +214,7 @@ en la misma rama.
 | P5 | **Elección:** en `fn_resumen_variantes` el costo y `en_red` vuelven a ser solo del LÍDER. Esa función no la lee Análisis (la leen Existencias y la «Nueva orden» del líder); Análisis lee `fn_resumen_comparacion`, que ya analiza solo su sede y ahí ve el costo de lo vendido (márgenes). Así «Análisis ve el costo de SU sede» se cumple sin un parámetro que el que llama podría falsear. | Sin cambio (Existencias ya pintaba costo y red solo al líder). |
 | P6 | `fn_exigir_rol_de_terminal(rol, módulo)` en los disparadores de `retail.terminales` y `retail.rol_modulos`: una terminal no queda con un rol que incluya Colaboradores o Roles y accesos, y no se encienden en un rol con terminales (activas o no). Bloquea la fila del rol contra carreras. Además `fn_puede_gestionar_colaboradores` y `fn_puede_administrar_roles` son falsas para una sesión de terminal. Antes de poner el candado verifica que ninguna terminal lo incumpla (producción: ninguna). | Roles y accesos avisa al encender esos módulos en un rol con terminales y no ofrece esos roles a una terminal (asignar y «Nueva terminal»). |
 
-**Pruebas:** `pnpm pruebas:roles` 62/62 (10 casos nuevos, uno por decisión y más) en una copia local alineada con producción
+**Pruebas:** `pnpm pruebas:roles` 63/63 (10 casos nuevos, uno por decisión y más) en una copia local alineada con producción, incluida la RLS «una vez por consulta» de ADR-0176
 (las funciones, políticas y restos del ADR-0151 que la base local tenía distintos se dejaron iguales a producción antes de
 probar), también `--en-seco`; las suites de Compras, terminales y actor-firma sin fallas nuevas (las que fallan lo hacen igual
 sin esta migración: datos de la base local). Typecheck, lint y vitest en verde.
