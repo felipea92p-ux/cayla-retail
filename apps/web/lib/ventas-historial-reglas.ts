@@ -20,9 +20,12 @@ import { NOMBRE_METODO, textoNumeroRecibo } from "./recibo-reglas";
 /** Cuántas ventas trae cada página: caben sin un scroll eterno y el cursor sigue siendo barato. */
 export const TAMANO_PAGINA = 20;
 
-/** Hasta cuántas ventas se suman para los totales del rango. PostgREST corta en 1000 filas: pasado
- *  ese tope el total sería parcial sin avisar, así que la pantalla lo dice en vez de mostrarlo. */
-export const TOPE_TOTALES = 1000;
+/** Hasta cuántas ventas se suman para los totales del rango. PostgREST corta en 1000 filas SIN error:
+ *  pasado ese tope el total sería parcial sin avisar, así que la pantalla lo dice en vez de mostrarlo.
+ *  Es 999 y no 1000 porque «hay más» se detecta pidiendo UNA fila de más (`limit(TOPE_TOTALES + 1)`), y
+ *  esa fila tiene que caber dentro del corte: con 1000, la 1001 nunca llegaba y un mes de 2.300 ventas
+ *  mostraba como completos los totales de las 1000 más recientes (2026-09-23). */
+export const TOPE_TOTALES = 999;
 
 export type EstadoFiltro = "todas" | "completada" | "anulada";
 export type ComprobanteFiltro = "todos" | "con" | "sin";

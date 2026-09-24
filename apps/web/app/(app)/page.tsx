@@ -10,6 +10,7 @@ import { accesosInicio, colasInicio, mostrarHoy, resumirHoy } from "@/lib/inicio
 import { aterrizajeDe } from "@/lib/menu";
 import { formatoSoles } from "@/lib/resumen-formato";
 import { contarVencidas } from "@/lib/por-regularizar";
+import { contarComprobantesAtascados } from "@/lib/comprobantes";
 
 // Inicio en cuatro capas, de arriba abajo, cada una con su pregunta: «Hoy» (¿cómo voy?), «Por atender» (¿qué me
 // toca?), «Ir a» (¿a dónde voy?) y «Actividad reciente». Estructura tomada de tres referentes públicos (tablero del
@@ -33,7 +34,7 @@ export default async function InicioPage() {
   const esLider = persona.rol === "lider";
   const perfil = { rol: persona.rol, ubicacionTipo: persona.ubicacionTipo, terminal: persona.terminal, modulos };
 
-  const [hoy, trasladosPorAtender, prendasVencidas, aperturasPorRevisar, actividad] = await Promise.all([
+  const [hoy, trasladosPorAtender, prendasVencidas, aperturasPorRevisar, comprobantesAtascados, actividad] = await Promise.all([
     mostrarHoy(perfil) ? getHoyDeLaSede(persona.ubicacionId, esLider) : Promise.resolve(null),
     // Total (nunca lanza): devuelve null si no pudo leer. Es la misma cifra del «2» del menú.
     getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")),
@@ -41,6 +42,8 @@ export default async function InicioPage() {
     esLider ? contarVencidas() : Promise.resolve(undefined),
     // ADR-0186: aperturas de caja que no coincidieron con el último cierre, el aviso al líder. Total (null si falla).
     esLider ? getAperturasPorRevisar() : Promise.resolve(undefined),
+    // PL-114: comprobantes que el reintento automático ya soltó sin llegar a SUNAT, el aviso al líder. Total (null si falla).
+    esLider ? contarComprobantesAtascados() : Promise.resolve(undefined),
     // Los últimos 8 de todo el historial (sin el recorte de 30 días de la pantalla de Movimientos): en Inicio
     // importa «lo último», no un período. Dato secundario: si falla, el resto sigue y el aviso va en su lugar.
     listarMovimientos(persona.ubicacionId, {}, { limite: 8 }).then(
@@ -57,6 +60,7 @@ export default async function InicioPage() {
     traslados: trasladosPorAtender,
     prendasVencidas,
     aperturas: aperturasPorRevisar === undefined ? undefined : (aperturasPorRevisar?.length ?? null),
+    comprobantesAtascados,
   });
   const accesos = accesosInicio(perfil, hoy?.cajaAbierta ?? null);
   // La sede ya la dicen el selector de la cabecera y los textos de abajo: aquí solo el saludo. A un APARATO (ADR-0162, la

@@ -116,7 +116,7 @@
       },
       "nuevo": [
         { "href": "/vender", "etiqueta": "Nueva venta", "detalle": "Registrar la compra de una clienta" },
-        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus comprobantes" },
+        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus facturas de proveedor" },
         { "href": "/inventario/mover", "etiqueta": "Mover mercadería", "detalle": "Trasladar stock entre ubicaciones" },
         { "href": "/cambios", "etiqueta": "Registrar cambio", "detalle": "La clienta cambia una prenda por otra talla o color" },
         { "href": "/devoluciones", "etiqueta": "Registrar devolución", "detalle": "Una clienta devuelve algo que compró" }
@@ -145,10 +145,10 @@
             "icono": "compras",
             "hijos": [
               { "etiqueta": "Proveedores", "href": "/compras/proveedores", "icono": "proveedores" },
-              { "etiqueta": "Comprobantes", "href": "/compras", "icono": "facturas" },
+              { "etiqueta": "Facturas de proveedor", "href": "/compras", "icono": "facturas" },
               { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
               { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
-              { "etiqueta": "Notas de crédito", "href": "/compras/notas-credito", "icono": "notasCredito" }
+              { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
             ]
           },
           {
@@ -213,10 +213,10 @@
             "icono": "compras",
             "hijos": [
               { "etiqueta": "Proveedores", "href": "/compras/proveedores", "icono": "proveedores" },
-              { "etiqueta": "Comprobantes", "href": "/compras", "icono": "facturas" },
+              { "etiqueta": "Facturas de proveedor", "href": "/compras", "icono": "facturas" },
               { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
               { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
-              { "etiqueta": "Notas de crédito", "href": "/compras/notas-credito", "icono": "notasCredito" }
+              { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
             ]
           },
           {
@@ -263,8 +263,8 @@
       },
       "nuevo": [
         { "href": "/vender", "etiqueta": "Nueva venta", "detalle": "Registrar la compra de una clienta" },
-        { "href": "/compras/nueva", "etiqueta": "Registrar comprobante", "detalle": "Una compra a proveedor, con su pago si es al contado" },
-        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus comprobantes" },
+        { "href": "/compras/nueva", "etiqueta": "Registrar factura de proveedor", "detalle": "Una compra a proveedor, con su pago si es al contado" },
+        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus facturas de proveedor" },
         { "href": "/inventario/mover", "etiqueta": "Mover mercadería", "detalle": "Trasladar stock entre ubicaciones" },
         { "href": "/cambios", "etiqueta": "Registrar cambio", "detalle": "La clienta cambia una prenda por otra talla o color" },
         { "href": "/devoluciones", "etiqueta": "Registrar devolución", "detalle": "Una clienta devuelve algo que compró" }
@@ -405,7 +405,7 @@
       },
       "nuevo": [
         { "href": "/vender", "etiqueta": "Nueva venta", "detalle": "Registrar la compra de una clienta" },
-        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus comprobantes" },
+        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus facturas de proveedor" },
         { "href": "/inventario/mover", "etiqueta": "Mover mercadería", "detalle": "Trasladar stock entre ubicaciones" },
         { "href": "/cambios", "etiqueta": "Registrar cambio", "detalle": "La clienta cambia una prenda por otra talla o color" },
         { "href": "/devoluciones", "etiqueta": "Registrar devolución", "detalle": "Una clienta devuelve algo que compró" }
@@ -442,7 +442,7 @@
                 "icono": "compras",
                 "hijos": [
                   { "etiqueta": "Proveedores", "href": "/produccion/proveedores", "icono": "proveedores" },
-                  { "etiqueta": "Comprobantes", "href": "/produccion/comprobantes", "icono": "facturas" },
+                  { "etiqueta": "Facturas de insumos", "href": "/produccion/comprobantes", "icono": "facturas" },
                   { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" },
                   { "etiqueta": "Por pagar", "href": "/produccion/por-pagar", "icono": "porPagar" }
                 ]
@@ -519,7 +519,7 @@
                 "icono": "compras",
                 "hijos": [
                   { "etiqueta": "Proveedores", "href": "/produccion/proveedores", "icono": "proveedores" },
-                  { "etiqueta": "Comprobantes", "href": "/produccion/comprobantes", "icono": "facturas" },
+                  { "etiqueta": "Facturas de insumos", "href": "/produccion/comprobantes", "icono": "facturas" },
                   { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" },
                   { "etiqueta": "Por pagar", "href": "/produccion/por-pagar", "icono": "porPagar" }
                 ]
@@ -570,8 +570,8 @@
       },
       "nuevo": [
         { "href": "/vender", "etiqueta": "Nueva venta", "detalle": "Registrar la compra de una clienta" },
-        { "href": "/compras/nueva", "etiqueta": "Registrar comprobante", "detalle": "Una compra a proveedor, con su pago si es al contado" },
-        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus comprobantes" },
+        { "href": "/compras/nueva", "etiqueta": "Registrar factura de proveedor", "detalle": "Una compra a proveedor, con su pago si es al contado" },
+        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus facturas de proveedor" },
         { "href": "/inventario/mover", "etiqueta": "Mover mercadería", "detalle": "Trasladar stock entre ubicaciones" },
         { "href": "/cambios", "etiqueta": "Registrar cambio", "detalle": "La clienta cambia una prenda por otra talla o color" },
         { "href": "/devoluciones", "etiqueta": "Registrar devolución", "detalle": "Una clienta devuelve algo que compró" }
@@ -692,7 +692,7 @@
       },
       "nuevo": [
         { "href": "/vender", "etiqueta": "Nueva venta", "detalle": "Registrar la compra de una clienta" },
-        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus comprobantes" },
+        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus facturas de proveedor" },
         { "href": "/inventario/mover", "etiqueta": "Mover mercadería", "detalle": "Trasladar stock entre ubicaciones" },
         { "href": "/cambios", "etiqueta": "Registrar cambio", "detalle": "La clienta cambia una prenda por otra talla o color" },
         { "href": "/devoluciones", "etiqueta": "Registrar devolución", "detalle": "Una clienta devuelve algo que compró" }
@@ -721,10 +721,10 @@
             "icono": "compras",
             "hijos": [
               { "etiqueta": "Proveedores", "href": "/compras/proveedores", "icono": "proveedores" },
-              { "etiqueta": "Comprobantes", "href": "/compras", "icono": "facturas" },
+              { "etiqueta": "Facturas de proveedor", "href": "/compras", "icono": "facturas" },
               { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
               { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
-              { "etiqueta": "Notas de crédito", "href": "/compras/notas-credito", "icono": "notasCredito" }
+              { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
             ]
           },
           {
@@ -789,10 +789,10 @@
             "icono": "compras",
             "hijos": [
               { "etiqueta": "Proveedores", "href": "/compras/proveedores", "icono": "proveedores" },
-              { "etiqueta": "Comprobantes", "href": "/compras", "icono": "facturas" },
+              { "etiqueta": "Facturas de proveedor", "href": "/compras", "icono": "facturas" },
               { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
               { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
-              { "etiqueta": "Notas de crédito", "href": "/compras/notas-credito", "icono": "notasCredito" }
+              { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
             ]
           },
           {
@@ -839,8 +839,8 @@
       },
       "nuevo": [
         { "href": "/vender", "etiqueta": "Nueva venta", "detalle": "Registrar la compra de una clienta" },
-        { "href": "/compras/nueva", "etiqueta": "Registrar comprobante", "detalle": "Una compra a proveedor, con su pago si es al contado" },
-        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus comprobantes" },
+        { "href": "/compras/nueva", "etiqueta": "Registrar factura de proveedor", "detalle": "Una compra a proveedor, con su pago si es al contado" },
+        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus facturas de proveedor" },
         { "href": "/inventario/mover", "etiqueta": "Mover mercadería", "detalle": "Trasladar stock entre ubicaciones" },
         { "href": "/cambios", "etiqueta": "Registrar cambio", "detalle": "La clienta cambia una prenda por otra talla o color" },
         { "href": "/devoluciones", "etiqueta": "Registrar devolución", "detalle": "Una clienta devuelve algo que compró" }

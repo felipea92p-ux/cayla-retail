@@ -52,11 +52,11 @@ export function ComprobantesProduccionPanel({
       <div className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Comprobantes</h1>
+          <h1 className="font-display mt-1 text-2xl text-tinta">Facturas de insumos</h1>
           <p className="mt-1 max-w-xl text-sm text-tinta/65">La factura de quien le vende al Taller: qué se compró, a qué precio y cuánto falta pagar. Es un libro aparte del de Compras.</p>
         </div>
         <Boton peso="primario" onClick={() => setNuevo(true)}>
-          + Nuevo comprobante
+          + Nueva factura
         </Boton>
       </div>
 
@@ -70,7 +70,7 @@ export function ComprobantesProduccionPanel({
           vacia={resumen.porPagar === 0}
           valor={resumen.porPagar === 0 ? "—" : <CifraQueCuenta valor={resumen.porPagar} formato="soles" alMontar />}
         >
-          {resumen.conSaldo > 0 ? plural(resumen.conSaldo, "comprobante con saldo", "comprobantes con saldo") : "nada pendiente"}
+          {resumen.conSaldo > 0 ? plural(resumen.conSaldo, "factura con saldo", "facturas con saldo") : "nada pendiente"}
         </TarjetaCifra>
         <TarjetaCifra
           compacta
@@ -82,7 +82,7 @@ export function ComprobantesProduccionPanel({
           valor={resumen.nVencidos === 0 ? "—" : <CifraQueCuenta valor={resumen.vencido} formato="soles" alMontar />}
           detalleTono={resumen.nVencidos > 0 ? "text-rojo-profundo" : "text-verde-profundo"}
         >
-          {resumen.nVencidos > 0 ? `${plural(resumen.nVencidos, "comprobante ya venció", "comprobantes ya vencieron")}` : "nada vencido"}
+          {resumen.nVencidos > 0 ? `${plural(resumen.nVencidos, "factura ya venció", "facturas ya vencieron")}` : "nada vencido"}
         </TarjetaCifra>
         <TarjetaCifra
           compacta
@@ -93,7 +93,7 @@ export function ComprobantesProduccionPanel({
           vacia={resumen.nDelMes === 0}
           valor={resumen.nDelMes === 0 ? "—" : <CifraQueCuenta valor={resumen.delMes} formato="soles" alMontar />}
         >
-          {resumen.nDelMes > 0 ? `${plural(resumen.nDelMes, "comprobante", "comprobantes")}, IGV incluido` : "sin comprobantes este mes"}
+          {resumen.nDelMes > 0 ? `${plural(resumen.nDelMes, "factura", "facturas")}, IGV incluido` : "sin facturas este mes"}
         </TarjetaCifra>
       </div>
 
@@ -103,7 +103,7 @@ export function ComprobantesProduccionPanel({
             Aquí se registra la factura de cada proveedor del Taller: la tela por metro, los avíos, la maquila. De ella salen cuánto se le debe, cuándo vence y a qué precio
             subió la tela.
           </p>
-          {todosLosProveedores.length === 0 ? <p>Primero agrega al proveedor en Proveedores; después registra su comprobante.</p> : <p>Registra el primero con «Nuevo comprobante».</p>}
+          {todosLosProveedores.length === 0 ? <p>Primero agrega al proveedor en Proveedores; después registra su factura.</p> : <p>Registra la primera con «Nueva factura».</p>}
         </div>
       ) : (
         <div className="space-y-3">
@@ -135,13 +135,13 @@ export function ComprobantesProduccionPanel({
             </select>
             <label className="card-cayla ml-auto flex min-w-52 items-center gap-2 px-3 py-1.5">
               <Search size={15} aria-hidden className="text-tinta/45" />
-              <span className="sr-only">Buscar comprobante</span>
+              <span className="sr-only">Buscar factura</span>
               <input type="search" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Proveedor o F001-123" className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45" />
             </label>
           </div>
 
           {visibles.length === 0 ? (
-            <p className="card-cayla p-5 text-sm text-tinta/70">Ningún comprobante coincide con lo que buscas.</p>
+            <p className="card-cayla p-5 text-sm text-tinta/70">Ninguna factura coincide con lo que buscas.</p>
           ) : (
             <div className="card-cayla overflow-hidden">
               <div className="hidden grid-cols-[4rem_minmax(0,1.6fr)_7rem_7rem_11rem] gap-4 border-b border-tinta/10 px-4 py-2.5 sm:grid">
@@ -181,7 +181,7 @@ export function ComprobantesProduccionPanel({
               </ul>
             </div>
           )}
-          <p className="text-xs text-tinta/65">Un comprobante dice qué se compró, no qué llegó: la mercadería se recibe en Recibir, donde cada línea abre su lote. El pago posterior de un crédito se registra en Por pagar.</p>
+          <p className="text-xs text-tinta/65">Una factura dice qué se compró, no qué llegó: la mercadería se recibe en Recibir, donde cada línea abre su lote. El pago posterior de un crédito se registra en Por pagar.</p>
         </div>
       )}
 

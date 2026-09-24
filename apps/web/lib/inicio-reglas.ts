@@ -9,6 +9,7 @@
 import { comparativoSemanaAnterior, type Comparativo } from "./caja-panel-reglas";
 import type { ClaveModulo } from "./modulos";
 import { DIAS_PARA_VENCER } from "./por-regularizar-reglas";
+import { HORAS_REINTENTO_AUTOMATICO } from "./transmision-reglas";
 
 export type PerfilInicio = {
   rol: "lider" | "integrante";
@@ -101,6 +102,7 @@ export function colasInicio(fuentes: {
   traslados: number | null;
   prendasVencidas?: number | null;
   aperturas?: number | null;
+  comprobantesAtascados?: number | null;
 }): Cola[] {
   const colas: Cola[] = [
     {
@@ -157,6 +159,26 @@ export function colasInicio(fuentes: {
       href: "/caja/historial",
     });
   }
+  // PL-114: comprobantes que el reintento automático ya soltó (`HORAS_REINTENTO_AUTOMATICO`) sin llegar a SUNAT. Es
+  // el aviso al líder de PL-113, el mismo camino que las dos colas de arriba: `undefined` = no es para esta persona.
+  if (fuentes.comprobantesAtascados !== undefined) {
+    const n = fuentes.comprobantesAtascados;
+    const plazo = `más de ${HORAS_REINTENTO_AUTOMATICO} horas sin llegar a SUNAT: ya no se reintenta solo.`;
+    colas.push({
+      clave: "comprobantes-atascados",
+      titulo: "Comprobantes sin llegar a SUNAT",
+      cantidad: n,
+      detalle:
+        n === null
+          ? "No se pudo leer esta cola. Revisa Comprobantes → Por reintentar."
+          : n === 0
+            ? "Todos llegaron o se están reintentando solos."
+            : n === 1
+              ? `1 lleva ${plazo}`
+              : `${n} llevan ${plazo}`,
+      href: "/vender/comprobantes/por-reintentar",
+    });
+  }
   return colas;
 }
 
@@ -172,7 +194,7 @@ export type Acceso = { href: string; etiqueta: string; detalle: string; principa
  */
 export function accesosInicio(perfil: PerfilInicio, cajaAbierta: boolean | null): Acceso[] {
   const buscar: Acceso = { href: "/buscar", etiqueta: "Buscar", detalle: "SKU, talla o color", principal: false };
-  const recibir: Acceso = { href: "/recibir", etiqueta: "Recibir", detalle: "Lo que llegó, contra sus comprobantes", principal: false };
+  const recibir: Acceso = { href: "/recibir", etiqueta: "Recibir", detalle: "Lo que llegó, contra sus facturas de proveedor", principal: false };
 
   if (perfil.ubicacionTipo === "taller") {
     return [

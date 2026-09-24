@@ -33,10 +33,12 @@
 //   - nota_credito: PROBADA contra el sandbox real el 2026-09-21 (BC01-1, que
 //     corrige la boleta B001-21 por su total, motivo «06»): SUNAT la aceptó a
 //     la primera, con una serie que nunca se dio de alta en ningún panel.
-//   - nota_debito (mismo nombre de campo `nota_credito_codigo_tipo` reusado):
-//     la documentación lo describe como "estructura similar", no lo confirma
-//     campo por campo. Verificar con una nota_debito real en sandbox antes de
-//     confiar en esto (CAYLA no las emite hoy).
+//   - nota_debito: PROBADA contra el sandbox real el 2026-09-23 (PL-117: BD01-1,
+//     que sube en S/ 11.80 la boleta B001-923001, motivo «02»): SUNAT la aceptó.
+//     La prueba encontró que la documentación mentía: la de débito NO reusa los
+//     campos de la de crédito — lleva `nota_debito_codigo_tipo` y
+//     `nota_debito_motivo` (con los de crédito, Lucode respondía `Undefined array
+//     key "nota_debito_codigo_tipo"`). CAYLA no las emite hoy.
 //   - El catálogo MOTIVO_NC/MOTIVO_ND de abajo solo cubre los motivos que
 //     CAYLA puede llegar a usar en retail — no es el catálogo 09/10 completo.
 //   - Anulación (paso c): PROBADA contra el sandbox real el 2026-09-09, y la
@@ -163,10 +165,12 @@ function payloadDe(c: DatosComprobante): Record<string, unknown> {
       throw new Error(`${c.tipo} requiere comprobante original y código de motivo`);
     }
     const catalogo = c.tipo === "nota_credito" ? MOTIVO_NC : MOTIVO_ND;
+    // Cada nota lleva SUS campos: `nota_credito_*` o `nota_debito_*`. Mandar los de crédito en una de débito
+    // devuelve `Undefined array key "nota_debito_codigo_tipo"` (sandbox real, 2026-09-23, PL-117).
     return {
       ...base,
-      nota_credito_codigo_tipo: c.motivoCodigo,
-      nota_credito_motivo: catalogo[c.motivoCodigo] ?? "Otros",
+      [`${c.tipo}_codigo_tipo`]: c.motivoCodigo,
+      [`${c.tipo}_motivo`]: catalogo[c.motivoCodigo] ?? "Otros",
       documento_afectado: { documento: c.original.tipo, serie: c.original.serie, numero: c.original.numero },
     };
   }
