@@ -6,6 +6,7 @@ import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { actividadPreviaVenta, descripcionEntregada, etiquetaDia, totalesVenta } from "@/lib/cambios-reglas";
 import { estadoPlazoDevolucion, estadoPrendaDevolucion } from "@/lib/devoluciones-reglas";
 import { soles } from "@/lib/compras-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 
 /**
  * Las compras de Devoluciones (2026-09-18), en dos modos (2026-09-22, ver
@@ -18,7 +19,9 @@ import { soles } from "@/lib/compras-reglas";
  *   prenda puntual (por SKU escaneado o nombre) y ese es el punto de partida natural.
  *
  * «Anular venta» es de la compra entera, no de una prenda, y solo de un líder: va en el
- * encabezado de cada compra en los dos modos (lo pinta `ComprasAgrupadas`).
+ * encabezado de cada compra en los dos modos (lo pinta `ComprasAgrupadas`). Solo se ofrece
+ * el mismo día de Lima en que se vendió (PL-29, lo exige `anular_venta`): después, Cambio o
+ * Devolución.
  */
 export function DevolucionesVentas({
   lineas,
@@ -39,7 +42,7 @@ export function DevolucionesVentas({
   onAnular: (linea: LineaVentaReciente) => void;
 }) {
   const accionCompra = (compra: LineaVentaReciente) =>
-    esLider && !compra.anulada ? (
+    esLider && !compra.anulada && hoyLima(new Date(compra.creadoEn)) === hoyLima(ahora) ? (
       <button
         type="button"
         onClick={() => onAnular(compra)}
