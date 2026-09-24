@@ -11,7 +11,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { RegistrarGastoModal, type ProveedorGasto } from "@/components/RegistrarGastoModal";
-import { ActivoDetalleModal, FijosDelMes, GastoFijoModal, TablaActivos } from "@/components/GastosFijosYActivos";
+import { ActivoDetalleModal, FijosDelMes, GastoFijoModal, NoEsFijoModal, TablaActivos } from "@/components/GastosFijosYActivos";
 import { Buscador, CabeceraBloque, CampoFin, GuiaVacia, Herramientas, InputFin, ListaDatos, OpcionesFin, PestanasFin, PieTabla, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -101,6 +101,7 @@ export function GastosPanel({
   const [detalle, setDetalle] = useState<GastoFila | null>(null);
   const [activo, setActivo] = useState<ActivoFila | null>(null);
   const [nuevoFijo, setNuevoFijo] = useState<FijoSugerido | null>(null);
+  const [noEsFijo, setNoEsFijo] = useState<FijoSugerido | null>(null);
   const [clasificar, setClasificar] = useState<EgresoPorClasificar | null>(null);
   const rf = resumenFijos(fijos);
 
@@ -208,6 +209,7 @@ export function GastosPanel({
           esLider={esLider}
           onRegistrar={(f) => setRegistrar({ fijo: f })}
           onMarcarFijo={setNuevoFijo}
+          onNoEsFijo={setNoEsFijo}
         />
       )}
 
@@ -283,6 +285,7 @@ export function GastosPanel({
       {nuevoFijo && (
         <GastoFijoModal inicial={nuevoFijo} categorias={categorias} ubicaciones={ubicaciones} proveedores={proveedores} esLider={esLider} ubicacionInicial={ubicacionParaRegistrar} onCerrar={() => setNuevoFijo(null)} />
       )}
+      {noEsFijo && <NoEsFijoModal sugerido={noEsFijo} onCerrar={() => setNoEsFijo(null)} />}
       {detalle && <GastoDetalleModal gasto={detalle} onCerrar={() => setDetalle(null)} />}
       {clasificar && (
         <ClasificarEgresoModal
