@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import { exigirModulo, puede } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
@@ -18,6 +19,7 @@ import { ProductosGrilla } from "@/components/ProductosGrilla";
 import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
 import { NotaStockTotal } from "@/components/NotaStockTotal";
+import { AQuienPedirle } from "@/components/AQuienPedirle";
 import { mensajeSinResultados } from "@/lib/productos-stock";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
@@ -127,12 +129,16 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       </div>
 
       {pendientesAlta.length > 0 && (
-        <div className="card-cayla space-y-2 border-l-2 border-l-rojo p-4">
-          <p className="text-sm font-semibold text-tinta">
-            {pendientesAlta.length} {pendientesAlta.length === 1 ? "prenda dada de alta" : "prendas dadas de alta"} durante un conteo, pendiente
-            {pendientesAlta.length === 1 ? "" : "s"} de revisar
-          </p>
-          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        // Plegado (2026-09-23): con 10 prendas la lista abierta ocupaba media pantalla; se abre al tocar.
+        <details className="group card-cayla border-l-2 border-l-rojo">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+            <span className="text-sm font-semibold text-tinta">
+              {pendientesAlta.length} {pendientesAlta.length === 1 ? "prenda dada de alta" : "prendas dadas de alta"} durante un conteo, pendiente
+              {pendientesAlta.length === 1 ? "" : "s"} de revisar
+            </span>
+            <ChevronDown aria-hidden className="h-4 w-4 shrink-0 text-tinta/50 transition-transform group-open:rotate-180" />
+          </summary>
+          <ul className="flex flex-wrap gap-x-4 gap-y-1 px-4 pb-4 text-sm">
             {pendientesAlta.map((p) => (
               <li key={p.id}>
                 <Link href={`/productos/${p.id}/editar`} className="text-tinta underline underline-offset-2 hover:no-underline">
@@ -142,36 +148,16 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
               </li>
             ))}
           </ul>
-        </div>
+        </details>
       )}
 
       {vista === "tabla" && <Resumen resumen={resumen} params={params} />}
 
       {reposicion.length > 0 && (
-        <div className="card-cayla p-4">
-          <p className="label-cayla text-[11px] text-tinta/65">A quién pedirle</p>
-          <ul className="mt-2 flex flex-wrap gap-2">
-            {reposicion.map((r) => {
-              const activo = params.proveedor === r.proveedorId && params.stock === "reponer";
-              return (
-                <li key={r.proveedorId}>
-                  <Link
-                    href={`/productos?stock=reponer&proveedor=${r.proveedorId}`}
-                    aria-current={activo ? "true" : undefined}
-                    className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors ${
-                      activo ? "border-tinta bg-tinta/[0.07] text-tinta" : "border-tinta/15 text-tinta/80 hover:border-tinta/40"
-                    }`}
-                  >
-                    {r.proveedor}
-                    <span className="tabular-nums text-ambar-profundo">
-                      {r.productos} {r.productos === 1 ? "producto" : "productos"}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+        <AQuienPedirle
+          reposicion={reposicion}
+          proveedorId={params.stock === "reponer" ? params.proveedor : undefined}
+        />
       )}
 
       <FiltrosProductos

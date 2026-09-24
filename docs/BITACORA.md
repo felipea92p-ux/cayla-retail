@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-23 (Productos: «A quién pedirle» y las prendas pendientes, plegados)
+En `/productos`, los 26 proveedores de «A quién pedirle» eran botones sueltos que llenaban media pantalla: ahora es un desplegable (el mismo de la barra de filtros) con cuántos productos pedirle a cada uno, y elegir uno filtra como antes. El aviso de prendas dadas de alta en un conteo queda plegado en un `<details>`: se ve la cifra y se abre al tocarlo. Sin migración.
+Dany se lleva: (1) **antes de construir un control, buscar el que ya existe**: `DesplegablePildora` ya resolvía la lista flotante y el teclado; (2) **un Server Component no importa constantes de un archivo `"use client"`**: llegan como referencia, no como valor; (3) **para ver un estado que la base local no tiene, una página temporal con datos inventados**, que se borra antes del commit.
+
 ## 2026-09-23 (Varios usuarios a la vez: EN PRODUCCIÓN — ADR-0188 a 0193)
 Felipe pegó las 5 migraciones en orden (110000→160000) y fusionó los 6 PRs (#373, #376–#380). Verificado en la base objeto por objeto: candados de caja, orden fijo de candados, tokens contra doble clic, totales en la base y versión de productos y roles, sin sobrecargas. Falta verlo con clics y refrescar el diccionario.
 Felipe se lleva: (1) **el orden de pegado importa cuando una migración se engancha a otra**: la 130000 buscaba las líneas que dejó la 110000; (2) **una columna nueva en una tabla con permisos por columna nace invisible**: lo atrapó la guardia del candado de dinero en el CI; (3) **cinco agentes en paralelo funcionan si cada uno tiene su número y sus archivos**: la integración salió sin conflictos de código.
