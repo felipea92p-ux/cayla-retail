@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getCajaAbierta, getResumenCaja, getMovimientosCaja, getSeriesVentasCaja, getHistorialCierres, getUltimoCierre } from "@/lib/caja";
+import { getCajaAbierta, getTableroCaja, getMovimientosCaja, getHistorialCierres, getUltimoCierre } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { createClient } from "@/lib/supabase/server";
 import { tolerar } from "@/lib/resultado";
@@ -78,10 +78,9 @@ async function CajaConDatos({
   puedeCerrar: boolean;
 }) {
   const supabase = await createClient();
-  const [resumen, movimientos, series, ubicaciones, historial, resVentasHoy] = await Promise.all([
-    getResumenCaja(caja.id),
+  const [{ resumen, series }, movimientos, ubicaciones, historial, resVentasHoy] = await Promise.all([
+    getTableroCaja(caja.id),
     getMovimientosCaja(caja.id),
-    getSeriesVentasCaja(caja.id),
     getUbicaciones(),
     getHistorialCierres(),
     supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: caja.ubicacionId }),

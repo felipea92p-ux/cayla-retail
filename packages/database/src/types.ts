@@ -6071,6 +6071,22 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_resumen_caja: { Args: { p_caja_id: string }; Returns: Json }
+      fn_sello_caja: { Args: { p_caja_id: string }; Returns: string }
+      fn_totales_historial_ventas: {
+        Args: {
+          p_comprobante?: string
+          p_desde?: string
+          p_estado?: string
+          p_hasta?: string
+          p_ids?: string[]
+          p_incluir_prueba?: boolean
+          p_pago?: string
+          p_sede_id?: string
+          p_vendedor_id?: string
+        }
+        Returns: Json
+      }
       fn_saldo_favor_proveedor: {
         Args: { p_proveedor_id: string }
         Returns: number
