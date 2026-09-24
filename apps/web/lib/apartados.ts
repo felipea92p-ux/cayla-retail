@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
+import { exigir, leerTodas } from "@/lib/resultado";
 import type { Apartado } from "@/lib/apartados-reglas";
 
 // Los apartados ABIERTOS de una ubicación (`retail.listar_apartados`, 20260920160000, ADR-0141).
@@ -14,7 +14,13 @@ import type { Apartado } from "@/lib/apartados-reglas";
 // hasta que la lectura se alinee en la base. La base sigue siendo la que decide al liberar.
 export async function getApartadosAbiertos(ubicacionId: string, opciones: { esTerminal?: boolean } = {}): Promise<Apartado[]> {
   const supabase = await createClient();
-  const respuesta = await supabase.rpc("listar_apartados", { p_ubicacion_id: ubicacionId });
+  // Por páginas, en serie (ADR-0192): PostgREST corta también las RPC en 1.000 filas sin avisar. Mismo orden que la
+  // función (lo que vence primero arriba) más `id`, único.
+  const respuesta = await leerTodas(
+    (desde, hasta) =>
+      supabase.rpc("listar_apartados", { p_ubicacion_id: ubicacionId }).order("vence_el").order("created_at").order("id").range(desde, hasta),
+    { enParalelo: 1 },
+  );
   // PGRST202 = la función todavía no existe (la migración no está pegada en producción): sin apartados, y las
   // demás pantallas siguen. TEMPORAL, mismo criterio que `getStockPorUbicacion` (ADR-0141).
   if (respuesta.error?.code === "PGRST202") return [];

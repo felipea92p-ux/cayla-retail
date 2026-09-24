@@ -12,6 +12,9 @@
  *    otro) la devolución se registra exactamente igual que antes: mismos ítems, mismo
  *    `motivo` de texto libre intacto, y el código queda guardado tal cual en
  *    `devoluciones.motivo_codigo`.
+ * 4. ADR-0189 (20260924120000): lo devuelto se descuenta de lo ya cambiado y de otras
+ *    devoluciones (pendientes o aprobadas; una rechazada libera la prenda). Las dos
+ *    terminales a la vez: `concurrencia_linea_de_venta.mjs`.
  *
  * Mismo mecanismo que `scripts/pruebas/aprobar_devolucion_caja.mjs` (`docker exec ... psql`
  * + `set local request.jwt.claim.sub` + `ROLLBACK` siempre) — ver ese archivo para el
@@ -81,8 +84,10 @@ select id as venta_item from retail.venta_items where venta_id = :'venta_id' and
 const ITEMS = `jsonb_build_array(jsonb_build_object('venta_item_id', :'venta_item', 'cantidad', 1, 'condicion', 'vendible'))`;
 
 let fallos = 0;
+let total = 0;
 
 function esperar(nombre, ok, resultado) {
+  total++;
   console.log(`${ok ? "✓" : "✗"} ${nombre}`);
   if (!ok) {
     fallos++;
@@ -133,7 +138,37 @@ rollback;
     );
   }
 
-  console.log(`\n${8 - fallos}/8 pruebas en verde.`);
+  // ---- 4. ADR-0189: devoluciones y cambios se descuentan entre sí en la base ----
+  const yaCambiada = correr(`${FIXTURE}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_old', 1, null, gen_random_uuid(), 'talla_chica', 'vendible') as _c \\gset
+select retail.crear_devolucion(:'venta_id', :'ubic', ${ITEMS}, 'prueba', 'talla');
+`);
+  esperar(
+    "una prenda ya cambiada no se puede devolver (ADR-0189)",
+    !yaCambiada.ok && yaCambiada.mensaje.includes("ya se cambiaron 1 y se devolvieron 0") && yaCambiada.mensaje.includes("no puedes devolver 1"),
+    yaCambiada
+  );
+
+  const dosVeces = correr(`${FIXTURE}
+select retail.crear_devolucion(:'venta_id', :'ubic', ${ITEMS}, 'prueba', 'talla') as _d1 \\gset
+select retail.crear_devolucion(:'venta_id', :'ubic', ${ITEMS}, 'prueba', 'talla');
+`);
+  esperar(
+    "la misma prenda no se devuelve dos veces: la segunda dice que quedan 0 (ADR-0189)",
+    !dosVeces.ok && dosVeces.mensaje.includes("quedan 0, no puedes devolver 1"),
+    dosVeces
+  );
+
+  const rechazada = correr(`${FIXTURE}
+select retail.crear_devolucion(:'venta_id', :'ubic', ${ITEMS}, 'prueba', 'talla') as d1 \\gset
+update retail.devoluciones set estado = 'rechazada', aprobado_en = now() where id = :'d1';
+select retail.crear_devolucion(:'venta_id', :'ubic', ${ITEMS}, 'prueba', 'talla') as d2 \\gset
+select count(*) from retail.devoluciones where id = :'d2';
+rollback;
+`);
+  esperar("una devolución rechazada libera la prenda para devolverla de nuevo (ADR-0189)", rechazada.ok && rechazada.salida === "1", rechazada);
+
+  console.log(`\n${total - fallos}/${total} pruebas en verde.`);
   process.exit(fallos > 0 ? 1 : 0);
 }
 

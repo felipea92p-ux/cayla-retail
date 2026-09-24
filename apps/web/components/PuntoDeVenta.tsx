@@ -37,7 +37,7 @@ import {
   type PagoAplicado,
 } from "@/lib/vender-reglas";
 import { borrar, claveLocal, guardar, leer } from "@/lib/almacen-local";
-import { carritoPasaElUmbral, conStockComprometidoDescontado, firmaDeVentaEncolada, type ParamsRegistrarVenta, type VentaEncolada } from "@/lib/ventas-offline";
+import { carritoPasaElUmbral, conStockComprometidoDescontado, firmaDeVentaEncolada, stockComprometido, type ParamsRegistrarVenta, type VentaEncolada } from "@/lib/ventas-offline";
 import { firmar } from "@/lib/responsable-reglas";
 import { gsap, Flip, useGSAP } from "@/lib/motion-gsap";
 import { Modal } from "@/components/ui/Modal";
@@ -54,6 +54,9 @@ import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
 import { useResponsable } from "@/lib/useResponsable";
 import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { PrendaSinRegistrarModal } from "@/components/PrendaSinRegistrarModal";
+import { VersionVentasDeHoy } from "@/components/VentasDeHoy";
+import { sumarCantidades } from "@/lib/inventario-reglas";
+import { conStockAjustado, conStockReleido, descontarVendido } from "@/lib/vender-stock-local";
 
 /**
  * Variante centinela de la «Prenda sin registrar» (ADR-0179; antes «Monto manual»): una
@@ -290,7 +293,20 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // todavía se descuenta EN PANTALLA de `stockAqui`, o una segunda venta sin red vería
   // unidades que ya no existen (ADR-0036). Se aplica ACÁ, antes de derivar catálogo,
   // búsqueda y grilla, así toda la pantalla ve el mismo stock — no solo `cobrar()`.
-  const variantesConOverlay = useMemo(() => conStockComprometidoDescontado(variantes, cola), [variantes, cola]);
+  //
+  // Debajo del overlay, el stock que esta pantalla corrigió tras vender (ADR-0192): antes cada venta recargaba la
+  // pantalla entera (`router.refresh()`, ~10 lecturas y ~1 MB); ahora se descuenta lo vendido y se releen SOLO esas
+  // prendas (`trasVender`). Si el servidor manda un catálogo nuevo (abrir/cerrar caja, cambiar de sede), manda él.
+  const [ajustesStock, setAjustesStock] = useState<Map<string, number>>(() => new Map());
+  const [variantesPrevias, setVariantesPrevias] = useState(variantes);
+  if (variantes !== variantesPrevias) {
+    setVariantesPrevias(variantes);
+    setAjustesStock(new Map());
+  }
+  // Sube tras cada venta: «Ventas de hoy» se relee sola (`VentasDeHoyLista`).
+  const [versionVentas, setVersionVentas] = useState(0);
+  const variantesAjustadas = useMemo(() => conStockAjustado(variantes, ajustesStock), [variantes, ajustesStock]);
+  const variantesConOverlay = useMemo(() => conStockComprometidoDescontado(variantesAjustadas, cola), [variantesAjustadas, cola]);
   const variantesVisibles = useMemo(() => variantesConOverlay.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL), [variantesConOverlay]);
 
   const categorias = useMemo(() => {
@@ -384,6 +400,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     setCola(leer<VentaEncolada[]>(claveCola, []));
   }, [claveCola]);
 
+  // La subida de la cola corre en un efecto que no se vuelve a crear en cada render: lee la versión al día por ref.
+  const trasVenderRef = useRef(trasVender);
+  useEffect(() => {
+    trasVenderRef.current = trasVender;
+  });
+
   // Trío de sincronización de la cola offline (ADR-0036 + addendum "por sede"): corre
   // siempre que la pantalla esté montada, tenga o no la sede una caja abierta ahora
   // mismo — al montar, al volver la red (evento `online`) y con un latido de 30 s por si
@@ -403,12 +425,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       if (aReintentar.length === 0) return;
 
       const resueltos = new Map<string, VentaEncolada | null>();
+      const subidas: { varianteId: string; cantidad: number }[] = [];
       for (const venta of aReintentar) {
         // Sube con el responsable que se eligió al cobrar y la HORA DE LA VENTA (`x-momento`), no la de ahora (ADR-0162),
         // y después la manda sola a SUNAT (D-60), igual que un cobro en línea.
         const { data: ventaSubida, error } = await firmar(supabase.rpc("registrar_venta", venta.params), firmaDeVentaEncolada(venta));
         if (!error) {
           resueltos.set(venta.token, null);
+          subidas.push(...venta.items);
           if (ventaSubida) enviarVentaASunat(ventaSubida);
         }
         else if (!esFalloDeRed(error)) resueltos.set(venta.token, { ...venta, rechazo: traducirError(error, "subir la venta guardada sin conexión") });
@@ -424,8 +448,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       });
       guardar(claveCola, final);
       if (!cancelado) {
+        // La venta sale de la cola (el overlay deja de descontarla) y entra al stock de la pantalla: mismo
+        // camino que un cobro en línea, sin recargar la caja entera (ADR-0192).
         setCola(final);
-        router.refresh();
+        if (subidas.length > 0) trasVenderRef.current(subidas);
       }
     }
 
@@ -448,7 +474,33 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       window.removeEventListener("online", intentarSubir);
       clearInterval(latido);
     };
-  }, [claveCola, router]);
+  }, [claveCola]);
+
+  /** Relee de la base lo cobrable AQUÍ de unas prendas (lectura directa de `stock`, la misma de
+   *  `getDisponibleEnSede` pero solo de esas filas; un GET no enciende el loader) y lo deja en pantalla.
+   *  Devuelve lo releído, o null si no se pudo: la pantalla se queda con lo que ya mostraba. */
+  async function releerStock(ids: string[]): Promise<Map<string, number> | null> {
+    const pedidas = [...new Set(ids)].filter((id) => id !== ID_CARGO_ESPECIAL && variantes.some((v) => v.varianteId === id));
+    if (pedidas.length === 0) return new Map();
+    const { data, error } = await createClient()
+      .from("stock")
+      .select("variante_id, cantidad, cantidad_apartada, sububicacion:sububicaciones ( tipo )")
+      .eq("ubicacion_id", ubicacionId)
+      .in("variante_id", pedidas);
+    if (error || !data) return null;
+    const releido = conStockReleido(new Map(), pedidas, sumarCantidades(data));
+    setAjustesStock((prev) => new Map([...prev, ...releido]));
+    return releido;
+  }
+
+  /** Tras una venta que la base aceptó (en línea o al subir la cola): descuenta lo vendido al instante, relee esas
+   *  prendas y la lista de ventas de hoy. Reemplaza al `router.refresh()` de antes (ADR-0192). */
+  function trasVender(vendidas: { varianteId: string; cantidad: number }[]) {
+    const stockServidor = new Map(variantes.map((v) => [v.varianteId, v.stockAqui]));
+    setAjustesStock((prev) => descontarVendido(prev, stockServidor, vendidas));
+    setVersionVentas((n) => n + 1);
+    void releerStock(vendidas.map((v) => v.varianteId));
+  }
 
   function descartarRechazada(token: string) {
     const restante = cola.filter((v) => v.token !== token);
@@ -917,15 +969,25 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       // puede deducir comparando el ticket con lo que sabe del stock (un ticket retomado
       // pudo quedarse sin unidades mientras esperaba). Si no lo encuentra, va el genérico.
       const porStock = /stock insuficiente|stock_cantidad_no_negativa/i.test(`${error.message} ${error.details ?? ""}`);
+      // Otra caja pudo vender la misma prenda (la pantalla ya no se recarga entera tras cada venta, ADR-0192): antes
+      // de decir cuántas quedan se releen las prendas del ticket, y la grilla queda al día de paso. Si la relectura
+      // falla, se usa lo que la pantalla ya sabía.
+      const releido = porStock ? await releerStock(carrito.map((it) => it.varianteId)) : null;
+      const quedan = (id: string) => {
+        const base = releido?.get(id) ?? variantesConOverlay.find((x) => x.varianteId === id)?.stockAqui;
+        if (base === undefined) return undefined;
+        // Lo releído viene de la base, sin la cola sin conexión: se le descuenta igual que el overlay.
+        return releido?.has(id) ? Math.max(0, base - (stockComprometido(cola).get(id) ?? 0)) : base;
+      };
       const cortas = porStock
         ? carrito.filter((it) => {
-            const v = variantesConOverlay.find((x) => x.varianteId === it.varianteId);
-            return it.varianteId !== ID_CARGO_ESPECIAL && v !== undefined && it.cantidad > v.stockAqui;
+            const q = quedan(it.varianteId);
+            return it.varianteId !== ID_CARGO_ESPECIAL && q !== undefined && it.cantidad > q;
           })
         : [];
       avisar.error(
         cortas.length > 0
-          ? `${cortas.map((it) => `${it.referencia} (${codigoPrenda(it)}) — quedan ${variantesConOverlay.find((x) => x.varianteId === it.varianteId)?.stockAqui ?? 0}`).join("; ")} ya no tiene stock suficiente en ${ubicacionEtiqueta}. Ajusta la cantidad o quita la prenda.`
+          ? `${cortas.map((it) => `${it.referencia} (${codigoPrenda(it)}) — quedan ${quedan(it.varianteId) ?? 0}`).join("; ")} ya no tiene stock suficiente en ${ubicacionEtiqueta}. Ajusta la cantidad o quita la prenda.`
           : traducirError(error, "registrar la venta")
       );
       // Si la base rechazó por el responsable (marcó salida entre que se eligió y se cobró), vacía y relee.
@@ -976,6 +1038,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     responsable.despues(null);
     avisar.exito(`Venta de ${money(total)} registrada`, { detalle: recibo ? `${ETIQUETA_TIPO[recibo.tipo]} ${textoNumeroRecibo(recibo)}` : `${prendas} ${prendas === 1 ? "prenda" : "prendas"} · ${ubicacionEtiqueta}` });
     setOk({ total, prendas, recibo, estado, offline: false });
+    const vendidas = carrito.map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
     setCarrito([]);
     limpiarComprobante();
     // Cobrada la proforma, se quita `?proforma=` de la dirección (si no, recargar la volvería a pedir).
@@ -983,7 +1046,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       setProformaActiva(null);
       setConfirmoVencida(false);
       router.replace("/vender");
-    } else router.refresh();
+    } else trasVender(vendidas);
   }
 
   // Al cerrar «Venta registrada» el ticket vuelve a «armar»: la venta siguiente
@@ -1134,7 +1197,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           carrito={carrito}
           mostrarVentasHoy={mostrarVentasHoy}
           onAlternarVentasHoy={() => setMostrarVentasHoy((v) => !v)}
-          ventasHoyNode={ventasHoyNode}
+          ventasHoyNode={<VersionVentasDeHoy.Provider value={versionVentas}>{ventasHoyNode}</VersionVentasDeHoy.Provider>}
         />
 
         <PuntoDeVentaTicket

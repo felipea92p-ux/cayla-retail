@@ -12,6 +12,7 @@ import {
   resumir,
   serieDiaria,
   totalDeVenta,
+  totalesDesdeLaBase,
   unidadesDeVenta,
   type CursorVentas,
   type DiaResumen,
@@ -20,17 +21,18 @@ import {
   type ItemCrudo,
   type MetodoResumen,
   type ResumenHistorial,
+  type TotalesDeLaBase,
   type VentaCruda,
 } from "@/lib/ventas-historial-reglas";
 
 // Las páginas (server) importan todo desde acá; los componentes cliente, SOLO `ventas-historial-reglas.ts`.
 export * from "@/lib/ventas-historial-reglas";
 
-// Historial de ventas (Ventas ▸ Historial, ADR-0147): solo LEE, con PostgREST sobre las tablas que
-// producción ya tiene idénticas a las locales (`ventas`, `venta_items`, `venta_pagos`,
-// `comprobantes`) — sin función nueva en la base, así que nada de esto espera una migración.
-// Quién ve qué lo decide la RLS (`fn_puede_operar_ubicacion`: el líder todas las tiendas, cada
-// quien la suya); aquí no se refuerza nada más.
+// Historial de ventas (Ventas ▸ Historial, ADR-0147): solo LEE. La lista va con PostgREST sobre las tablas
+// (`ventas`, `venta_items`, `venta_pagos`, `comprobantes`); los totales del rango, con
+// `fn_totales_historial_ventas` (ADR-0191), que suma en la base sin el tope de 1.000 filas.
+// Quién ve qué lo decide la RLS (el líder todas las tiendas, cada quien la suya) y la función aplica
+// esa misma regla; aquí no se refuerza nada más.
 //
 // `ventas.created_at` es la única fecha de la venta y el cursor de paginado es
 // (`created_at`, `id`): estable aunque dos ventas caigan en el mismo instante.
@@ -51,9 +53,6 @@ const EMBEBIDOS_LISTA = `ubicacion:ubicaciones ( id, nombre ),
   comprobantes ( tipo, serie, numero, estado, created_at )`;
 const SELECT_LISTA = `${CAMPOS_LISTA}, es_prueba, ${EMBEBIDOS_LISTA}`;
 const SELECT_LISTA_SIN_PRUEBA = `${CAMPOS_LISTA}, ${EMBEBIDOS_LISTA}`;
-
-// Para los totales del rango solo hacen falta los importes, el día y cómo se pagó: sin prendas ni comprobantes.
-const SELECT_TOTALES = "id, created_at, estado, venta_items ( cantidad, precio_unitario, descuento_unitario, subtotal ), venta_pagos ( metodo, monto )";
 
 // `42703` = undefined_column: PostgREST lo devuelve cuando el `select`/filtro nombra una columna
 // que la base no tiene todavía. Mismo criterio que `getStockPorUbicacion` con `cantidad_apartada`
@@ -145,7 +144,8 @@ export async function listarVentasHistorial(
 
 export type TotalesHistorial = {
   resumen: ResumenHistorial;
-  /** Hay más ventas que `TOPE_TOTALES`: los números serían parciales, y la pantalla dice que no los muestra. */
+  /** Solo en el camino de respaldo (la base aún sin `fn_totales_historial_ventas`): había más ventas que
+   *  `TOPE_TOTALES`, los números serían parciales y la pantalla dice que no los muestra. */
   parcial: boolean;
   /** Lo vendido por día de Lima en todo el rango (trazo del período y total de cada día). Vacío si `parcial`. */
   porDia: DiaResumen[];
@@ -153,10 +153,37 @@ export type TotalesHistorial = {
   porMetodo: MetodoResumen[];
 };
 
+// La función todavía no existe en la base (web desplegada antes que la migración): PostgREST responde PGRST202;
+// Postgres, 42883. Solo en ese caso se vuelve al cálculo fila por fila con su tope.
+const FUNCION_INEXISTENTE = new Set(["PGRST202", "42883"]);
+
 /** Los totales de TODO el rango filtrado (no de la página): cuántas ventas, cuánto se vendió, ticket promedio,
- *  más lo vendido por día y por forma de pago. Todo sale de la misma consulta, con el mismo tope. */
+ *  más lo vendido por día y por forma de pago. Los suma la base (`fn_totales_historial_ventas`, ADR-0191) con los
+ *  MISMOS filtros que `consulta()` y la misma regla de lectura que la RLS: sin tope de filas. */
 export async function totalesVentasHistorial(f: FiltrosHistorial): Promise<TotalesHistorial> {
   const supabase = await createClient();
+  const { desdeISO, hastaISO } = limitesUTC(f.desde, f.hasta);
+  const res = await supabase.rpc("fn_totales_historial_ventas", {
+    p_desde: desdeISO,
+    p_hasta: hastaISO,
+    p_sede_id: f.sedeId,
+    p_vendedor_id: f.vendedorId,
+    p_estado: f.estado,
+    p_pago: f.pago,
+    p_comprobante: f.comprobante,
+    p_incluir_prueba: f.incluirPrueba,
+  });
+  if (res.error && FUNCION_INEXISTENTE.has(res.error.code)) return totalesConTope(supabase, f);
+  const t = exigir(res, "los totales del historial de ventas") as unknown as TotalesDeLaBase;
+  return { parcial: false, ...totalesDesdeLaBase(t, { desde: f.desde, hasta: f.hasta, hoy: hoyEnLima() }) };
+}
+
+// Para los totales del rango solo hacen falta los importes, el día y cómo se pagó: sin prendas ni comprobantes.
+const SELECT_TOTALES = "id, created_at, estado, venta_items ( cantidad, precio_unitario, descuento_unitario, subtotal ), venta_pagos ( metodo, monto )";
+
+/** Respaldo mientras la migración 20260924140000 no esté en la base: el cálculo de antes, fila por fila y con el
+ *  tope de PostgREST. Se retira cuando la función esté en producción. */
+async function totalesConTope(supabase: Supabase, f: FiltrosHistorial): Promise<TotalesHistorial> {
   const pedir = (conPrueba: boolean) => consulta(supabase, SELECT_TOTALES, f, conPrueba).order("created_at", { ascending: false }).limit(TOPE_TOTALES + 1);
   let res = await pedir(true);
   if (res.error?.code === COLUMNA_INEXISTENTE) res = await pedir(false);

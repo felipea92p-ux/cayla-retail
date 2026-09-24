@@ -18,7 +18,7 @@ export type EventoCaja =
  * cierre NO viajan acá — `getHistorialCierres()` ya los trae con la fila, y volver a
  * pedirlos sería la misma consulta dos veces.
  *
- * Mismas cuatro fuentes que ya usa `getResumenCaja` (misma regla del cuadre, ver
+ * Mismas cuatro fuentes que suma `fn_calcular_esperado_caja` (misma regla del cuadre, ver
  * `lib/caja.ts:5-13`), pero fila por fila en vez de sumadas: `venta_pagos`/`venta_items`
  * para cada venta, `caja_movimientos` (reusa `getMovimientosCaja`, no se duplica la
  * consulta), `devoluciones` y `cambios`. `caja_id` en devoluciones/cambios solo se fija

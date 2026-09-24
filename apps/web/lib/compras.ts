@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir, exigirOpcional } from "@/lib/resultado";
+import { exigir, exigirOpcional, leerTodas } from "@/lib/resultado";
 import {
   ADJUNTOS_BUCKET,
   comprobanteDeFilaOperativa,
@@ -603,12 +603,19 @@ export async function getRecepcionesRecientes(opciones: { conFactura?: boolean; 
   // ya usan `caja.ts`/`conteos.ts`/`traslados.ts`/`devoluciones.ts`.
   const personaIds = [...new Set(lotes.map((l) => l.recibido_por).filter((id): id is string => !!id))];
   const [movimientosRes, nombresRes] = await Promise.all([
-    supabase
-      .from("movimientos")
-      .select(
-        "lote_id, cantidad, compra_item_id, compra_item:compra_items ( compra_id, compra:compras ( documento ) ), variante:variantes ( sku, talla:tallas ( valor ), producto:productos ( referencia ), color:colores ( nombre ) )"
-      )
-      .in("lote_id", loteIds),
+    // 30 lotes de 60–100 líneas pasan las 1.000 filas y PostgREST corta sin error (el lote más viejo salía con menos
+    // unidades de las que recibió): por páginas con orden único (`leerTodas`, ADR-0192).
+    leerTodas((desde, hasta) =>
+      supabase
+        .from("movimientos")
+        .select(
+          "lote_id, cantidad, compra_item_id, compra_item:compra_items ( compra_id, compra:compras ( documento ) ), variante:variantes ( sku, talla:tallas ( valor ), producto:productos ( referencia ), color:colores ( nombre ) )"
+        )
+        .in("lote_id", loteIds)
+        .order("created_at")
+        .order("id")
+        .range(desde, hasta)
+    ),
     personaIds.length > 0 ? supabase.rpc("fn_nombres_personas", { p_ids: personaIds }) : Promise.resolve({ data: [], error: null }),
   ]);
   const movimientos = exigir(movimientosRes, "las líneas de las recepciones recientes");

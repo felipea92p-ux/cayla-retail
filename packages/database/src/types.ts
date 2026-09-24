@@ -2978,6 +2978,7 @@ export type Database = {
           tejido_id: string | null
           temporada: string | null
           token_cliente: string | null
+          version: number
         }
         Insert: {
           aprobado_en?: string | null
@@ -3000,6 +3001,7 @@ export type Database = {
           tejido_id?: string | null
           temporada?: string | null
           token_cliente?: string | null
+          version?: number
         }
         Update: {
           aprobado_en?: string | null
@@ -3022,6 +3024,7 @@ export type Database = {
           tejido_id?: string | null
           temporada?: string | null
           token_cliente?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -3777,6 +3780,7 @@ export type Database = {
           id: string
           limitado_como_hoy: boolean
           nombre: string
+          version: number
         }
         Insert: {
           archivado_at?: string | null
@@ -3790,6 +3794,7 @@ export type Database = {
           id?: string
           limitado_como_hoy?: boolean
           nombre: string
+          version?: number
         }
         Update: {
           archivado_at?: string | null
@@ -3803,6 +3808,7 @@ export type Database = {
           id?: string
           limitado_como_hoy?: boolean
           nombre?: string
+          version?: number
         }
         Relationships: []
       }
@@ -4781,6 +4787,7 @@ export type Database = {
           p_clienta_nombre: string
           p_nota?: string
           p_sububicacion_id?: string
+          p_token?: string
           p_ubicacion_id: string
           p_variante_id: string
           p_vence_el: string
@@ -4948,8 +4955,9 @@ export type Database = {
           p_tejido_id?: string
           p_temporada?: string
           p_variantes: Json
+          p_version_esperada?: number
         }
-        Returns: undefined
+        Returns: number
       }
       catalogo_crear_producto: {
         Args: {
@@ -6070,6 +6078,22 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_resumen_caja: { Args: { p_caja_id: string }; Returns: Json }
+      fn_sello_caja: { Args: { p_caja_id: string }; Returns: string }
+      fn_totales_historial_ventas: {
+        Args: {
+          p_comprobante?: string
+          p_desde?: string
+          p_estado?: string
+          p_hasta?: string
+          p_ids?: string[]
+          p_incluir_prueba?: boolean
+          p_pago?: string
+          p_sede_id?: string
+          p_vendedor_id?: string
+        }
+        Returns: Json
+      }
       fn_saldo_favor_proveedor: {
         Args: { p_proveedor_id: string }
         Returns: number
@@ -6173,8 +6197,8 @@ export type Database = {
       // 20260923174500: «solo alcanzas a quien está por debajo de ti».
       fn_fuera_de_mi_alcance: { Args: never; Returns: { persona_id: string }[] }
       guardar_modulos_rol: {
-        Args: { p_modulos: string[]; p_rol_id: string }
-        Returns: undefined
+        Args: { p_modulos: string[]; p_rol_id: string; p_version_esperada?: number }
+        Returns: number
       }
       renombrar_rol: {
         Args: { p_descripcion?: string; p_nombre: string; p_rol_id: string }
@@ -6288,6 +6312,7 @@ export type Database = {
           p_fecha_estimada_llegada: string
           p_items: Json
           p_nota?: string
+          p_token?: string
           p_ubicacion_destino_id: string
           p_ubicacion_origen_id: string
         }
@@ -6608,6 +6633,7 @@ export type Database = {
           p_nota?: string
           p_origen?: string
           p_proveedor_id?: string
+          p_token?: string
           p_ubicacion_id: string
         }
         Returns: string
@@ -6618,6 +6644,7 @@ export type Database = {
           p_nota?: string
           p_numero_guia?: string
           p_proveedor_id: string
+          p_token?: string
           p_ubicacion_id: string
         }
         Returns: string
@@ -6773,6 +6800,7 @@ export type Database = {
           p_motivo: string
           p_nota?: string
           p_tipo: string
+          p_token?: string
         }
         Returns: string
       }
