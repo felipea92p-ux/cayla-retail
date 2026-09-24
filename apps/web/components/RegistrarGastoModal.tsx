@@ -81,7 +81,8 @@ export function RegistrarGastoModal({
   const [token] = useState(() => crypto.randomUUID());
   const [documento, setDocumento] = useState("");
   const esActivo = clase === "activo";
-  const [activo, setActivo] = useState({ tipo: "", serie: "", vidaUtilMeses: "" });
+  // Vida útil = la del tipo de bien (spike: un solo campo «10 años · muebles»); el contador confirma la de cada tipo.
+  const [activo, setActivo] = useState({ tipo: "" });
   const [b, setB] = useState<BorradorGasto>(() => ({
     ubicacion: egreso?.ubicacionId ?? (esActivo && ubicacionInicial === "empresa" ? (ubicaciones[0]?.id ?? "") : ubicacionInicial),
     categoria: "",
@@ -136,7 +137,7 @@ export function RegistrarGastoModal({
 
   async function guardar() {
     const conCaja = { ...b, cajaId: b.medio === "efectivo" && !b.egresoId ? (cajaDeLaTienda?.id ?? "") : "" };
-    const v = esActivo ? validarActivo({ ...conCaja, tipo: activo.tipo, nombre: b.descripcion, serie: activo.serie, vidaUtilMeses: activo.vidaUtilMeses || String(tipoActivo?.vidaUtilMeses ?? "") }, hoy) : validarGasto(conCaja, hoy);
+    const v = esActivo ? validarActivo({ ...conCaja, tipo: activo.tipo, nombre: b.descripcion, serie: "", vidaUtilMeses: String(tipoActivo?.vidaUtilMeses ?? "") }, hoy) : validarGasto(conCaja, hoy);
     if (!v.ok) return avisar.error(v.error);
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
@@ -170,74 +171,80 @@ export function RegistrarGastoModal({
         ? `Gasto fijo de ${fijo.ubicacionNombre}: llega cerca del día ${fijo.diaDelMes}${fijo.montoVariable ? ". Escribe el monto del recibo." : "."}`
         : "Lo que se paga para que el negocio funcione. La planilla no va aquí: viene de Dynamic.";
 
+  const bloqueComprobante = (
+    <>
+        <CampoFin etiqueta="¿Tiene comprobante de un proveedor?">
+          <RadiosFin nombre="gasto-comprobante" etiqueta="Comprobante" valor={b.comprobante} onValor={elegirComprobante} opciones={comprobantes.map((t) => ({ valor: t, texto: TEXTO_COMPROBANTE[t] }))} />
+        </CampoFin>
+
+        {conComprobante && (
+          <div data-sin-cascada>
+            <div className="fin-dos-campos">
+              <CampoFin
+                etiqueta="Proveedor"
+                htmlFor="gasto-proveedor"
+                ayuda={
+                  nuevoProveedor ? undefined : (
+                    <button type="button" className="btn-enlace text-[11.5px]" onClick={() => setNuevoProveedor({ nombre: "", ruc: "" })}>
+                      ¿No está? Súmalo
+                    </button>
+                  )
+                }
+              >
+                <SelectFin id="gasto-proveedor" value={b.proveedorId} onChange={(e) => poner("proveedorId", e.target.value)}>
+                  <option value="">Elige…</option>
+                  {proveedores.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                      {p.ruc ? ` · ${p.ruc}` : ""}
+                    </option>
+                  ))}
+                </SelectFin>
+              </CampoFin>
+              <CampoFin etiqueta="Serie y número" htmlFor="gasto-documento" tono={documento && !b.numero ? "aviso" : undefined} ayuda={documento && !b.numero ? "Como está en el comprobante: serie, guion y número (F001-00140)." : undefined}>
+                <InputFin
+                  id="gasto-documento"
+                  placeholder="F001-00140"
+                  value={documento}
+                  onChange={(e) => {
+                    const texto = e.target.value.toUpperCase();
+                    setDocumento(texto);
+                    const partes = partirSerieNumero(texto);
+                    setB((x) => ({ ...x, serie: partes.serie, numero: partes.numero }));
+                  }}
+                />
+              </CampoFin>
+            </div>
+            {nuevoProveedor && (
+              <div className="nota-cayla mb-4">
+                <div className="grid gap-3 sm:grid-cols-[1fr_11rem]">
+                  <CampoFin etiqueta="Nombre del proveedor" htmlFor="nuevo-prov-nombre" className="!mb-0">
+                    <InputFin id="nuevo-prov-nombre" value={nuevoProveedor.nombre} onChange={(e) => setNuevoProveedor((n) => n && { ...n, nombre: e.target.value })} placeholder="Hidrandina" />
+                  </CampoFin>
+                  <CampoFin etiqueta="RUC (opcional)" htmlFor="nuevo-prov-ruc" className="!mb-0">
+                    <InputFin id="nuevo-prov-ruc" inputMode="numeric" value={nuevoProveedor.ruc} onChange={(e) => setNuevoProveedor((n) => n && { ...n, ruc: e.target.value.replace(/\D/g, "").slice(0, 11) })} />
+                  </CampoFin>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={sumarProveedor}>
+                    Sumar proveedor
+                  </button>
+                  <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setNuevoProveedor(null)}>
+                    Cancelar
+                  </button>
+                  <span className="text-[12px]">Queda en el directorio; sus cuentas se completan en Compras ▸ Proveedores.</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+    </>
+  );
+
   return (
     <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={onCerrar} ancho="max-w-[620px]">
-      <CampoFin etiqueta="¿Tiene comprobante de un proveedor?">
-        <RadiosFin nombre="gasto-comprobante" etiqueta="Comprobante" valor={b.comprobante} onValor={elegirComprobante} opciones={comprobantes.map((t) => ({ valor: t, texto: TEXTO_COMPROBANTE[t] }))} />
-      </CampoFin>
-
-      {conComprobante && (
-        <div data-sin-cascada>
-          <div className="fin-dos-campos">
-            <CampoFin
-              etiqueta="Proveedor"
-              htmlFor="gasto-proveedor"
-              ayuda={
-                nuevoProveedor ? undefined : (
-                  <button type="button" className="btn-enlace text-[11.5px]" onClick={() => setNuevoProveedor({ nombre: "", ruc: "" })}>
-                    ¿No está? Súmalo
-                  </button>
-                )
-              }
-            >
-              <SelectFin id="gasto-proveedor" value={b.proveedorId} onChange={(e) => poner("proveedorId", e.target.value)}>
-                <option value="">Elige…</option>
-                {proveedores.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre}
-                    {p.ruc ? ` · ${p.ruc}` : ""}
-                  </option>
-                ))}
-              </SelectFin>
-            </CampoFin>
-            <CampoFin etiqueta="Serie y número" htmlFor="gasto-documento" tono={documento && !b.numero ? "aviso" : undefined} ayuda={documento && !b.numero ? "Como está en el comprobante: serie, guion y número (F001-00140)." : undefined}>
-              <InputFin
-                id="gasto-documento"
-                placeholder="F001-00140"
-                value={documento}
-                onChange={(e) => {
-                  const texto = e.target.value.toUpperCase();
-                  setDocumento(texto);
-                  const partes = partirSerieNumero(texto);
-                  setB((x) => ({ ...x, serie: partes.serie, numero: partes.numero }));
-                }}
-              />
-            </CampoFin>
-          </div>
-          {nuevoProveedor && (
-            <div className="nota-cayla mb-4">
-              <div className="grid gap-3 sm:grid-cols-[1fr_11rem]">
-                <CampoFin etiqueta="Nombre del proveedor" htmlFor="nuevo-prov-nombre" className="!mb-0">
-                  <InputFin id="nuevo-prov-nombre" value={nuevoProveedor.nombre} onChange={(e) => setNuevoProveedor((n) => n && { ...n, nombre: e.target.value })} placeholder="Hidrandina" />
-                </CampoFin>
-                <CampoFin etiqueta="RUC (opcional)" htmlFor="nuevo-prov-ruc" className="!mb-0">
-                  <InputFin id="nuevo-prov-ruc" inputMode="numeric" value={nuevoProveedor.ruc} onChange={(e) => setNuevoProveedor((n) => n && { ...n, ruc: e.target.value.replace(/\D/g, "").slice(0, 11) })} />
-                </CampoFin>
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={sumarProveedor}>
-                  Sumar proveedor
-                </button>
-                <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setNuevoProveedor(null)}>
-                  Cancelar
-                </button>
-                <span className="text-[12px]">Queda en el directorio; sus cuentas se completan en Compras ▸ Proveedores.</span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
+      {/* Orden del spike: un gasto empieza por su comprobante; un activo, por qué es, dónde está y cuánto dura. */}
+      {!esActivo && bloqueComprobante}
       <div className="grid gap-x-3 sm:grid-cols-[1fr_10.5rem]">
         {esActivo ? (
           <CampoFin etiqueta="Qué es" htmlFor="gasto-descripcion">
@@ -253,26 +260,38 @@ export function RegistrarGastoModal({
         </CampoFin>
       </div>
 
-      <div className="fin-dos-campos">
-        {esActivo ? (
-          <CampoFin etiqueta="Tipo de activo" htmlFor="activo-tipo" ayuda={tipoActivo ? `Va a la cuenta ${tipoActivo.cuenta} ${tipoActivo.cuentaNombre}.` : undefined}>
-            <SelectFin
-              id="activo-tipo"
-              value={activo.tipo}
-              onChange={(e) => {
-                const t = tiposActivo.find((x) => x.codigo === e.target.value);
-                setActivo((a) => ({ ...a, tipo: e.target.value, vidaUtilMeses: t ? String(t.vidaUtilMeses) : a.vidaUtilMeses }));
-              }}
-            >
-              <option value="">Elige…</option>
-              {tiposActivo.map((t) => (
-                <option key={t.codigo} value={t.codigo}>
-                  {t.nombre} — {t.ejemplos}
+      {esActivo ? (
+        <div className="fin-dos-campos">
+          <CampoFin etiqueta="Dónde está" htmlFor="gasto-ubicacion">
+            <SelectFin id="gasto-ubicacion" value={b.ubicacion} disabled={!!egreso || opcionesUbicacion.length < 2} onChange={(e) => poner("ubicacion", e.target.value)}>
+              {opcionesUbicacion.map((o) => (
+                <option key={o.valor} value={o.valor}>
+                  {o.texto}
                 </option>
               ))}
             </SelectFin>
           </CampoFin>
-        ) : (
+          <CampoFin
+            etiqueta="Vida útil"
+            htmlFor="activo-tipo"
+            ayuda={
+              tipoActivo
+                ? `Cuenta ${tipoActivo.cuenta}.${monto.ok ? ` Se deprecia ${soles((monto.valor - igv) / Math.max(1, tipoActivo.vidaUtilMeses))} al mes desde el próximo mes${igv ? ", sobre el costo sin IGV" : ""}.` : ""}`
+                : "La sugiere el tipo de bien; el contador la confirma."
+            }
+          >
+            <SelectFin id="activo-tipo" value={activo.tipo} onChange={(e) => setActivo({ tipo: e.target.value })}>
+              <option value="">Elige qué tipo de bien es…</option>
+              {tiposActivo.map((t) => (
+                <option key={t.codigo} value={t.codigo}>
+                  {textoVidaUtil(t.vidaUtilMeses)} · {t.nombre.toLowerCase()}
+                </option>
+              ))}
+            </SelectFin>
+          </CampoFin>
+        </div>
+      ) : (
+        <div className="fin-dos-campos">
           <CampoFin etiqueta="Categoría" htmlFor="gasto-categoria" ayuda={categoria ? `Va a la cuenta ${categoria.cuenta}. Nadie la elige: viene con la categoría.` : "Sin «Otros»: si no calza en ninguna, avisa al líder."}>
             <SelectFin id="gasto-categoria" value={b.categoria} onChange={(e) => poner("categoria", e.target.value)}>
               <option value="">Elige…</option>
@@ -283,43 +302,19 @@ export function RegistrarGastoModal({
               ))}
             </SelectFin>
           </CampoFin>
-        )}
-        <CampoFin etiqueta={esActivo ? "Dónde está" : "A quién se le carga"} htmlFor="gasto-ubicacion">
-          <SelectFin id="gasto-ubicacion" value={b.ubicacion} disabled={!!egreso || !!fijo || opcionesUbicacion.length < 2} onChange={(e) => poner("ubicacion", e.target.value)}>
-            {opcionesUbicacion.map((o) => (
-              <option key={o.valor} value={o.valor}>
-                {o.texto}
-              </option>
-            ))}
-          </SelectFin>
-        </CampoFin>
-      </div>
-
-      {esActivo && (
-        <div className="fin-dos-campos">
-          <CampoFin
-            etiqueta="Vida útil"
-            htmlFor="activo-vida"
-            ayuda={
-              tipoActivo && monto.ok
-                ? `Se deprecia ${soles((monto.valor - igv) / Math.max(1, Number(activo.vidaUtilMeses || tipoActivo.vidaUtilMeses)))} al mes desde el próximo mes${igv ? " (sobre el costo sin IGV)" : ""}.`
-                : "La sugiere el tipo; el contador la confirma."
-            }
-          >
-            <SelectFin id="activo-vida" value={activo.vidaUtilMeses} onChange={(e) => setActivo((a) => ({ ...a, vidaUtilMeses: e.target.value }))}>
-              <option value="">{tipoActivo ? textoVidaUtil(tipoActivo.vidaUtilMeses) : "Elige el tipo primero"}</option>
-              {[12, 24, 36, 48, 60, 84, 120, 180, 240].map((m) => (
-                <option key={m} value={String(m)}>
-                  {textoVidaUtil(m)}
+          <CampoFin etiqueta="A quién se le carga" htmlFor="gasto-ubicacion">
+            <SelectFin id="gasto-ubicacion" value={b.ubicacion} disabled={!!egreso || !!fijo || opcionesUbicacion.length < 2} onChange={(e) => poner("ubicacion", e.target.value)}>
+              {opcionesUbicacion.map((o) => (
+                <option key={o.valor} value={o.valor}>
+                  {o.texto}
                 </option>
               ))}
             </SelectFin>
           </CampoFin>
-          <CampoFin etiqueta="N.° de serie (opcional)" htmlFor="activo-serie">
-            <InputFin id="activo-serie" value={activo.serie} onChange={(e) => setActivo((a) => ({ ...a, serie: e.target.value }))} />
-          </CampoFin>
         </div>
       )}
+
+      {esActivo && bloqueComprobante}
 
       <div className="fin-dos-campos">
         <CampoFin etiqueta={esActivo ? "Costo (con IGV)" : "Total pagado (con IGV)"} htmlFor="gasto-monto" ayuda={egreso ? "Es lo que salió del cajón: no se cambia." : undefined}>

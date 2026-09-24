@@ -320,6 +320,9 @@ contra captura y al mismo ancho, y se rehicieron:
     con las columnas del spike.
   - Los modales usan campos en caja y opciones en tarjeta. Clasificar un egreso guarda el gasto chico ahí mismo con su
     categoría; con factura, o si es un activo, sigue al registro completo.
+  - El de activo sigue el orden del spike: qué es, dónde está, y la vida útil en un solo campo («10 años · muebles»): la
+    vida útil es la del tipo de bien. Se quitó el N.° de serie del formulario; la columna queda para después. Conserva el
+    comprobante, porque un activo también sale del cajón sin factura.
 - **Configuración.** Una sola pantalla «Configuración» con pestañas por URL; solo las que existen: Tiendas y caja, y Gastos
   fijos, donde se mudó el editor de fijos.
   - Las tablas son las del spike: fechas, descuento, «TRU: meta · fondo», y «pasó» atenuado, no tachado.
