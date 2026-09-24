@@ -10,6 +10,9 @@
  *   · solo el líder guarda (`guardar_metas_tienda`, `guardar_efecto_campana`) y cada cambio queda en el historial;
  *   · los candados: metas solo en tiendas, efectos solo en campañas con fechas, nada se escribe por fuera de las RPC;
  *   · al cerrar una caja, el disparador anota el fondo que regía (`cajas.fondo_requerido`) sin cambiar `cerrar_caja`.
+ *     Si esa regla falla, el cierre sigue igual (el dato queda vacío);
+ *   · ni el líder lee las tablas nuevas directo: RLS sin políticas (ver la cabecera de la migración: en Supabase
+ *     `create policy` bloquea auth y storage, y eso causó el deadlock al pegarla el 2026-09-24).
  *
  * CÓMO. Igual que `caja_cierre_traslado.mjs`: cada escenario en su transacción con ROLLBACK (nunca se commitea nada en el
  * Postgres local compartido), sesión simulada con `request.jwt.claim.sub`, `pg_temp.intento` para leer el error.
@@ -158,6 +161,33 @@ select fondo_requerido, monto_fondo < fondo_requerido from retail.cajas where id
   const [fondo, anotado] = r.ok ? r.salida.split("\n") : [];
   esperar("cerrar dejando S/ 20 deja monto_fondo 20", r.ok && Number(fondo) === 20, r);
   esperar("el cierre anota fondo_requerido 300 y se ve que dejó menos (sin bloquear)", r.ok && anotado === "300.00|t", r);
+}
+
+// 7. Si la regla del fondo falla, el cierre sigue: el dato queda vacío (nunca se bloquea una caja por esto).
+{
+  const r = correr(`${ESCENA}
+create or replace function retail.fn_parametros_caja(p_ubicacion_id uuid, p_fecha date)
+returns table (meta numeric, meta_base numeric, meta_pct numeric, fondo numeric, fondo_base numeric, campanas jsonb)
+language plpgsql as $f$ begin raise exception 'regla rota a propósito'; end $f$;
+select (select count(*) from (select retail.cerrar_caja(id, 100) from retail.cajas where ubicacion_id = :'tru' and estado = 'abierta') x) as _previa \\gset
+select retail.abrir_caja(:'tru', 100.00, 'prueba automatizada') as caja \\gset
+select (select count(*) from retail.cerrar_caja(:'caja', 100, 80, 'caja_fuerte')) as _cierre \\gset
+select estado, fondo_requerido is null from retail.cajas where id = :'caja';`);
+  esperar("con la regla rota, la caja se cierra igual y fondo_requerido queda vacío", r.ok && r.salida === "cerrada|t", r);
+}
+
+// 8. Ni el líder lee estas tablas directo: RLS sin políticas y revoke (todo pasa por las funciones). Sin políticas a
+//    propósito: en Supabase `create policy`/`drop policy` bloquean las tablas de auth y storage (el deadlock del 24-sep).
+{
+  const r = correr(`${ESCENA}
+set local role authenticated;
+select pg_temp.intento('select count(*) from retail.ubicacion_metas_dia');
+select pg_temp.intento('select count(*) from retail.campana_efecto_caja');
+select pg_temp.intento('select count(*) from retail.configuracion_historial');
+select meta from retail.fn_parametros_caja(:'tru', '2026-09-24');`);
+  const [metas, efectos, hist, lee] = r.ok ? r.salida.split("\n") : [];
+  esperar("el líder no lee las tablas directo (permiso denegado en las tres)", r.ok && [metas, efectos, hist].every((m) => m.includes("permission denied")), r);
+  esperar("…pero la función sí le da la meta de hoy", r.ok && Number(lee) === 1700, r);
 }
 
 console.log(fallos ? `\n${fallos} caso(s) fallaron` : "\nTodo en orden");

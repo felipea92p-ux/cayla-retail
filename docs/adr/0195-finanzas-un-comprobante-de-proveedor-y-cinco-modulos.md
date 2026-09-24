@@ -153,3 +153,32 @@ Aprobado el paquete (c) y el Balance «lo que es de la tienda» (Felipe, 2026-09
   (11); 24.375 pruebas web; typecheck y lint. Con sesión de líder en local: guardar metas de Trujillo → meta del mes S/ 54,300,
   Caja «te faltan S/ 1,700, lo normal de un jueves», Inicio igual; el cierre con fondo de Fiestas Patrias propone S/ 630 y pide
   confirmar al dejar S/ 230. La base local quedó como estaba.
+
+### Corrección al pegar F1 (2026-09-24): sin políticas y en tres partes
+
+Al pegar la migración entera en el SQL Editor de producción salió `40P01 deadlock detected`, y **no se aplicó nada**:
+el editor corre todo lo pegado en una sola transacción, y todo o nada. Según los registros de Postgres, la otra punta del
+ciclo era el **Asesor de seguridad del panel de Supabase**. Leía `storage.buckets` y esperaba para leer `retail.ubicaciones`.
+La migración tenía `ubicaciones` en exclusiva (por el `alter table`) y esperaba `storage.buckets`.
+
+¿Por qué una migración de retail pedía `storage`? Medido en local: **en Supabase, cada `create policy`, y también
+`drop policy if exists` aunque la política no exista, toma en exclusiva las 21 tablas de `auth` y `storage`** hasta el
+final de la transacción. `enable row level security`, `grant`, `revoke`, `create table` con FK y los disparadores no lo hacen.
+
+Qué cambió:
+- **Sin políticas.** Las tres tablas nuevas quedan con RLS encendido y sin políticas, más `revoke`. Nadie las lee
+  directamente, ni el líder. Todo pasa por las funciones `security definer`, que ya piden lo que corresponde. Es más
+  estricto que antes y la web no lee esas tablas. El Asesor lo mostrará como «RLS sin políticas», un aviso informativo.
+- **Tres partes que se ejecutan por separado:**
+  1. `ubicaciones`, sola.
+  2. `cajas`, sola: columna y disparador.
+  3. Todo lo demás, que sobre tablas en uso solo toma candados compartidos.
+
+  Cada parte tiene `lock_timeout = 3s`: si la tienda está usando esa tabla, falla limpio y se repite. Todo es idempotente.
+  En local y en el CI el archivo corre entero, igual que antes.
+- **El disparador del cierre nunca bloquea una caja.** Si `fn_parametros_caja` falla, `fondo_requerido` queda vacío y el
+  cierre sigue.
+- Pruebas: 23 casos. Se sumaron «con la regla rota la caja se cierra igual» y «ni el líder lee las tablas directo».
+
+**Regla para las fases que siguen:** una migración de producción **no mezcla** un `alter` de una tabla que la tienda usa
+con `create policy`/`drop policy`, y cuando necesita políticas, las pega en una ejecución aparte, sola y al final.

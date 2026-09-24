@@ -28,19 +28,75 @@
 --     puede cambiar la caja: no se sabe cuándo).
 --   · Una fila de efecto «vacía» (sin cambio de meta ni de fondo) — check: para volver a lo normal se borra la fila, y el
 --     historial guarda que se quitó.
---   · Escribir estas tablas por fuera de las RPC — sin políticas de escritura y con revoke.
+--   · Leer o escribir estas tablas por fuera de las funciones — RLS sin políticas y revoke.
 --
 -- LO QUE NO SE TOCA
 --   · `cerrar_caja`, `abrir_caja`, `fn_calcular_esperado_caja`: iguales.
 --   · `ubicaciones.meta_venta_diaria` queda como respaldo: si una tienda no tiene metas por día, `fn_parametros_caja` usa
 --     esa (en producción está vacía en todas). Se quita cuando ninguna pantalla la lea.
 --
--- CÓMO SE PEGA EN PRODUCCIÓN: con `set search_path` (ya está abajo), sin prefijo extra. Es idempotente.
+-- CÓMO SE PEGA EN PRODUCCIÓN — EN TRES EJECUCIONES SEPARADAS (aprendido el 2026-09-24):
+--   Pegada entera de una vez, chocó (deadlock 40P01) con el Asesor de seguridad del panel de Supabase, que revisa la base
+--   en el mismo momento: la migración tenía tomadas `ubicaciones` y `cajas` y además creaba políticas, y en Supabase
+--   CADA `create policy` (y `drop policy`) toma en exclusiva las 21 tablas de `auth` y `storage` (lo que el Asesor lee
+--   primero). Por eso:
+--     · esta migración ya NO crea políticas (las tablas nuevas tienen RLS encendido y sin políticas: nadie las lee
+--       directo; todo pasa por las funciones security definer, que es más estricto);
+--     · está partida en PARTE 1 (ubicaciones), PARTE 2 (cajas: columna y disparador) y PARTE 3 (lo demás, que no toma
+--       en exclusiva ninguna tabla que use la tienda). En el SQL Editor se ejecuta CADA PARTE POR SEPARADO, en orden
+--       (el editor corre todo lo pegado en UNA transacción): así ninguna espera un candado mientras retiene otro;
+--     · cada parte espera como mucho 3 s un candado (`lock_timeout`): si la tienda está usando esa tabla, falla limpio y
+--       se vuelve a ejecutar esa misma parte. Todo es idempotente.
+--   Con `set search_path` (ya está en cada parte), sin prefijo extra. En local y en el CI el archivo corre entero.
 -- SE ROMPE SI: la web nueva se publica antes de pegar esto (Configuración y la barra de meta de Caja llaman funciones
 -- que no existirían). La web de hoy no se rompe si esto se pega primero.
 -- ============================================================================
 
+-- ============================== PARTE 1 · ubicaciones (sola) ==============================
 set search_path = retail, public, extensions;
+set lock_timeout = '3s';
+-- ---------- 3. Fondo normal de caja ----------
+alter table retail.ubicaciones add column if not exists fondo_caja numeric(12,2);
+alter table retail.ubicaciones drop constraint if exists ubicaciones_fondo_caja_no_negativo;
+alter table retail.ubicaciones add constraint ubicaciones_fondo_caja_no_negativo check (fondo_caja is null or fondo_caja >= 0);
+comment on column retail.ubicaciones.fondo_caja is
+  'Lo que debe quedar en el cajón al cerrar, en un día normal. Una campaña puede subirlo (campana_efecto_caja). Null = sin fondo configurado: el cierre no pide nada.';
+reset lock_timeout;
+
+-- ============================== PARTE 2 · cajas (sola) ==============================
+set search_path = retail, public, extensions;
+set lock_timeout = '3s';
+-- ---------- 7a. La columna del fondo que regía al cerrar ----------
+alter table retail.cajas add column if not exists fondo_requerido numeric(12,2);
+comment on column retail.cajas.fondo_requerido is
+  'El fondo que regía el día del cierre (fn_parametros_caja), anotado por un disparador al cerrar. Si monto_fondo < fondo_requerido, se dejó menos de lo pedido: el cierre no se bloqueó (ADR-0195 L) y el líder lo ve en Historial de cierres. Null = sin fondo configurado ese día.';
+
+-- ---------- 7b. El cierre anota el fondo que regía ----------
+-- Va aquí, junto a su columna, para que la PARTE 3 no tome `cajas` en exclusiva. `fn_parametros_caja` se crea en la
+-- PARTE 3: si una caja se cierra entre las dos, el disparador no la encuentra, deja el dato vacío y el cierre sigue.
+create or replace function retail.fn_anotar_fondo_requerido() returns trigger
+language plpgsql security definer set search_path = retail, public, extensions as $$
+begin
+  if new.estado = 'cerrada' and old.estado is distinct from 'cerrada' then
+    begin
+      select p.fondo into new.fondo_requerido
+        from retail.fn_parametros_caja(new.ubicacion_id, (coalesce(new.cerrada_en, now()) at time zone 'America/Lima')::date) p;
+    exception when others then
+      -- El cierre de caja NUNCA se bloquea por esto: si algo falla, el dato queda vacío (sin fondo que comparar).
+      new.fondo_requerido := null;
+    end;
+  end if;
+  return new;
+end $$;
+create or replace trigger trg_anotar_fondo_requerido before update of estado on retail.cajas
+  for each row execute function retail.fn_anotar_fondo_requerido();
+reset lock_timeout;
+
+-- ============================== PARTE 3 · lo demás ==============================
+-- Tablas y funciones nuevas y el módulo. Sobre las tablas que ya usa la tienda (ubicaciones y etiquetas, por las FK)
+-- solo toma candados compartidos, compatibles con quien lee: nada queda esperando detrás.
+set search_path = retail, public, extensions;
+set lock_timeout = '3s';
 
 -- ---------- 1. El módulo ----------
 insert into retail.modulos (clave, grupo, nombre, incluye, orden, solo_lider, delegable) values
@@ -58,13 +114,6 @@ create table if not exists retail.ubicacion_metas_dia (
 );
 comment on table retail.ubicacion_metas_dia is
   'Meta de venta de cada día de la semana por tienda, con IGV (lo que ve la caja). 0 = lunes. Solo tiendas. La escribe guardar_metas_tienda; la lee fn_parametros_caja.';
-
--- ---------- 3. Fondo normal de caja ----------
-alter table retail.ubicaciones add column if not exists fondo_caja numeric(12,2);
-alter table retail.ubicaciones drop constraint if exists ubicaciones_fondo_caja_no_negativo;
-alter table retail.ubicaciones add constraint ubicaciones_fondo_caja_no_negativo check (fondo_caja is null or fondo_caja >= 0);
-comment on column retail.ubicaciones.fondo_caja is
-  'Lo que debe quedar en el cajón al cerrar, en un día normal. Una campaña puede subirlo (campana_efecto_caja). Null = sin fondo configurado: el cierre no pide nada.';
 
 -- ---------- 4. Lo que cambia cada campaña en la caja ----------
 create table if not exists retail.campana_efecto_caja (
@@ -101,11 +150,9 @@ begin
   return new;
 end $$;
 
-drop trigger if exists trg_metas_solo_tienda on retail.ubicacion_metas_dia;
-create trigger trg_metas_solo_tienda before insert or update on retail.ubicacion_metas_dia
+create or replace trigger trg_metas_solo_tienda before insert or update on retail.ubicacion_metas_dia
   for each row execute function retail.fn_exigir_tienda_y_campana();
-drop trigger if exists trg_efecto_caja_valido on retail.campana_efecto_caja;
-create trigger trg_efecto_caja_valido before insert or update on retail.campana_efecto_caja
+create or replace trigger trg_efecto_caja_valido before insert or update on retail.campana_efecto_caja
   for each row execute function retail.fn_exigir_tienda_y_campana();
 
 -- ---------- 8. Historial de configuración (solo se agregan filas) ----------
@@ -159,24 +206,6 @@ returns numeric language sql stable security definer set search_path = retail, p
          lateral retail.fn_parametros_caja(p_ubicacion_id, d::date) p;
 $$;
 comment on function retail.fn_meta_mes(uuid, date) is 'Meta de venta del mes (con IGV): la suma de las metas de cada día, con las campañas. Null si la tienda no tiene metas.';
-
--- ---------- 7. El cierre anota el fondo que regía ----------
-alter table retail.cajas add column if not exists fondo_requerido numeric(12,2);
-comment on column retail.cajas.fondo_requerido is
-  'El fondo que regía el día del cierre (fn_parametros_caja), anotado por un disparador al cerrar. Si monto_fondo < fondo_requerido, se dejó menos de lo pedido: el cierre no se bloqueó (ADR-0195 L) y el líder lo ve en Historial de cierres. Null = sin fondo configurado ese día.';
-
-create or replace function retail.fn_anotar_fondo_requerido() returns trigger
-language plpgsql security definer set search_path = retail, public, extensions as $$
-begin
-  if new.estado = 'cerrada' and old.estado is distinct from 'cerrada' then
-    select p.fondo into new.fondo_requerido
-      from retail.fn_parametros_caja(new.ubicacion_id, (coalesce(new.cerrada_en, now()) at time zone 'America/Lima')::date) p;
-  end if;
-  return new;
-end $$;
-drop trigger if exists trg_anotar_fondo_requerido on retail.cajas;
-create trigger trg_anotar_fondo_requerido before update of estado on retail.cajas
-  for each row execute function retail.fn_anotar_fondo_requerido();
 
 -- ---------- 9. Escritura (solo líder, firma con el responsable) ----------
 -- p_metas: 7 valores, lunes a domingo; null o 0 = sin meta ese día. p_fondo: null = sin fondo.
@@ -268,18 +297,16 @@ begin
   );
 end $$;
 
--- ---------- Permisos: nada se escribe por fuera de las RPC ----------
+-- ---------- Permisos: nada se lee ni se escribe por fuera de las funciones ----------
+-- RLS encendido y SIN políticas: nadie lee estas tablas directo (ni el líder). Todo pasa por las funciones security
+-- definer (fn_configuracion_tiendas, fn_parametros_caja, guardar_*), que ya piden lo que corresponde. No se crean
+-- políticas a propósito: en Supabase cada `create policy` —y también `drop policy if exists`, aunque la política no
+-- exista— toma en exclusiva las 21 tablas de `auth` y `storage` hasta el final de la transacción (medido en local).
+-- El Asesor de seguridad lo marcará como «RLS encendido sin políticas» (aviso informativo, es lo buscado).
 alter table retail.ubicacion_metas_dia enable row level security;
 alter table retail.campana_efecto_caja enable row level security;
 alter table retail.configuracion_historial enable row level security;
-drop policy if exists ubicacion_metas_dia_select on retail.ubicacion_metas_dia;
-create policy ubicacion_metas_dia_select on retail.ubicacion_metas_dia for select to authenticated using ((select retail.fn_es_lider()));
-drop policy if exists campana_efecto_caja_select on retail.campana_efecto_caja;
-create policy campana_efecto_caja_select on retail.campana_efecto_caja for select to authenticated using ((select retail.fn_es_lider()));
-drop policy if exists configuracion_historial_select on retail.configuracion_historial;
-create policy configuracion_historial_select on retail.configuracion_historial for select to authenticated using ((select retail.fn_es_lider()));
-revoke insert, update, delete, truncate on retail.ubicacion_metas_dia, retail.campana_efecto_caja, retail.configuracion_historial from public, anon, authenticated;
-grant select on retail.ubicacion_metas_dia, retail.campana_efecto_caja, retail.configuracion_historial to authenticated;
+revoke all on retail.ubicacion_metas_dia, retail.campana_efecto_caja, retail.configuracion_historial from public, anon, authenticated;
 
 revoke all on function retail.fn_parametros_caja(uuid, date) from public, anon;
 revoke all on function retail.fn_meta_mes(uuid, date) from public, anon;
@@ -293,3 +320,5 @@ grant execute on function retail.fn_meta_mes(uuid, date) to authenticated;
 grant execute on function retail.guardar_metas_tienda(uuid, numeric[], numeric) to authenticated;
 grant execute on function retail.guardar_efecto_campana(uuid, uuid, numeric, numeric) to authenticated;
 grant execute on function retail.fn_configuracion_tiendas(date) to authenticated;
+
+reset lock_timeout;

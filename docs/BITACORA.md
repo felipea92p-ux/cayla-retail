@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-24 (Finanzas F1: el deadlock al pegar y la migración en tres partes — ADR-0195)
+Felipe pegó la migración de F1 y Postgres respondió `deadlock detected`: no se aplicó nada. El otro lado era el Asesor de seguridad del panel de Supabase, que revisaba la base en ese momento. Medido en local: en Supabase, cada `create policy` (y hasta un `drop policy if exists` vacío) toma en exclusiva las 21 tablas de `auth` y `storage`. La migración ya no crea políticas: las tablas nuevas solo se leen por funciones. Queda partida en tres ejecuciones, cada una con 3 s de espera máxima, y el cierre de caja nunca se bloquea por el fondo. 23 casos en verde.
+Felipe se lleva: (1) **un deadlock no deja nada a medias**: la transacción entera vuelve atrás y se puede repetir; (2) **dos procesos se trancan cuando cada uno tiene lo que el otro espera**: la solución es no retener una tabla mientras se pide otra, y por eso las partes van por separado; (3) **menos permisos puede ser más seguro**: sin políticas, ni el líder lee las tablas directo; todo pasa por las funciones, que ya revisan.
+
 ## 2026-09-24 (Etiqueta de precio: sale derecha, en cortes de 62 mm — ADR-0180)
 En la Mac de la tienda, la etiqueta salía derecha pero achicada y corrida a un lado. La causa: la hoja de 62 × 44 mm con la etiqueta girada era más ancha que alta, Chrome la mandaba horizontal y la Mac la volvía a girar. Además, el driver no ofrecía 62 × 44. Felipe eligió que salga derecha: la hoja pasa a 62 × 62 mm con la etiqueta centrada. Se verificó con el PDF de Chrome (dos páginas de 62,1 mm); falta probarla en la impresora.
 Felipe se lleva: (1) **Chrome decide la orientación por la forma de la página**: una hoja más ancha que alta viaja «horizontal»; (2) **dos giros se anulan**: el del CSS y el del sistema devolvían la etiqueta derecha, pero achicada; (3) **la hoja cuadrada no tiene orientación que adivinar**, a cambio de ≈ 40 % más de rollo.
