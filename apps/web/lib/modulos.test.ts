@@ -68,8 +68,10 @@ describe("el catálogo de la web es el de la base", () => {
     }
   });
 
-  it("hoy ningún módulo es «siempre solo del líder» ni «solo líder por ahora» (Felipe, 2026-09-22: 20260923130000 y 20260923131000)", () => {
-    expect(MODULOS.filter((m) => m.soloLider || m.noDelegable).map((m) => m.clave)).toEqual([]);
+  it("hoy el único módulo «solo líder por ahora» es Configuración (ADR-0195 F1); ninguno es «siempre solo del líder»", () => {
+    // 20260923130000 y 20260923131000 abrieron todos los de antes (Felipe, 2026-09-22). Configuración nace así porque sus
+    // funciones exigen fn_es_lider() (20260924210000); cuando se abran, sale de aquí.
+    expect(MODULOS.filter((m) => m.soloLider || m.noDelegable).map((m) => m.clave)).toEqual(["configuracion"]);
   });
 
   const sembrados = (clave: string) => {
