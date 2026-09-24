@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-24 (Facturación: los errores de Lucode quedan en el log)
+La tarea suponía que `capturarError()` ya existía; no estaba en ninguna rama, worktree ni en cayla-dynamic. Se creó mínima (`lib/errores.ts`: una línea JSON en los logs de Vercel, sin dependencias) y se enganchó en los 9 lugares de Lucode donde se perdía información, no en cada ruta. Sin migración y sin cambiar ninguna respuesta; con un `fetch` real, una caída de DNS se lee `ENOTFOUND` y un vencimiento `TimeoutError`, que antes eran el mismo «no respondió a tiempo».
+Se lleva: (1) **antes de reusar algo, se comprueba que existe**: la tarea pedía «reúsala tal cual» sobre una función que nadie había escrito; (2) **el error más caro no estaba en un `catch`**: era «SUNAT lo tiene y la base no», que solo quedaba en el aviso de la pantalla; (3) **un log no es un archivo**: los de Vercel duran poco, y el día que haga falta memoria larga se cambia solo `capturarError`.
+
 ## 2026-09-24 (El Admin no necesita marcar asistencia para guardar — ADR-0161 act.)
 Las cuentas compartidas de cada tienda (caja y almacén) siguen exigiendo a alguien de turno; el Admin ya no: en vez de «Nadie de turno» ve «Eres admin: no necesitas autorización» y lo que guarda queda a su nombre. La excepción vive en la base (`fn_actor_persona_id`, migración `20260924171300`), no solo en la pantalla: producción tiene `exige_responsable` encendido y habría rechazado igual. Pegada y verificada en producción el mismo día: 5/5 Admin firman, 4/4 líderes no Admin y 6/6 terminales siguen bloqueados.
 Dany se lleva: (1) **un candado se abre donde se cierra**: esconder el aviso en la pantalla no basta si la base es la que rechaza; (2) **la excepción es para el Admin, no para el líder**: la cuenta del Admin no se comparte, así que no hay a quién identificar; (3) **una prueba vieja puede depender del seed**: en local Felipe ya es admin, y el caso «el líder también se bloquea» tuvo que fijar un líder que no lo es.
