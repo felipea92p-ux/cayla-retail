@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-24 (El Admin no necesita marcar asistencia para guardar — ADR-0161 act.)
+Las cuentas compartidas de cada tienda (caja y almacén) siguen exigiendo a alguien de turno; el Admin ya no: en vez de «Nadie de turno» ve «Eres admin: no necesitas autorización» y lo que guarda queda a su nombre. La excepción vive en la base (`fn_actor_persona_id`, migración `20260924171300`), no solo en la pantalla: producción tiene `exige_responsable` encendido y habría rechazado igual. Pegada y verificada en producción el mismo día: 5/5 Admin firman, 4/4 líderes no Admin y 6/6 terminales siguen bloqueados.
+Dany se lleva: (1) **un candado se abre donde se cierra**: esconder el aviso en la pantalla no basta si la base es la que rechaza; (2) **la excepción es para el Admin, no para el líder**: la cuenta del Admin no se comparte, así que no hay a quién identificar; (3) **una prueba vieja puede depender del seed**: en local Felipe ya es admin, y el caso «el líder también se bloquea» tuvo que fijar un líder que no lo es.
+Sin resolver: fusionar el PR de la web y verlo con clics con una cuenta Admin.
+
 ## 2026-09-24 (Demo de 90 días retirada de producción)
 El primer intento de `deshacer-90-dias.sql` se detuvo, como debía: había 6 ventas de prueba (B004-4647/4648, NV01-3 a 6), una compra, una nota de crédito de proveedor y una prenda por regularizar hechas sobre prendas demo. Como todo lo real era de prueba, el script ganó el interruptor `cayla_seed.incluir_pruebas`, que se las lleva completas y devuelve también su numeración. Ensayado con ROLLBACK en producción (38 s, sin cambios) y corrido con COMMIT: 0 ventas, 3 productos reales, B004=28, NV01=3, traslados en 4 y candados encendidos.
 Se lleva: (1) **un candado que aborta no es un error**: dijo exactamente qué estaba enganchado, y con eso se decidió; (2) **el interruptor queda apagado por defecto**: cuando haya ventas de verdad, el script vuelve a negarse; (3) **antes de borrar se mapea todo lo que cuelga**: acá eran pagos, comprobantes, movimientos y un crédito al proveedor, nada más.

@@ -82,6 +82,9 @@ select set_config('request.headers', ${conRosa ? `json_build_object('x-responsab
 `;
 const ENCENDER = `insert into retail.configuracion_empresa (id, ruc, razon_social, exige_responsable) values (true, '20000000001', 'Prueba', true)
   on conflict (id) do update set exige_responsable = true;\n`;
+// Desde 20260924171300 el ADMIN firma sin responsable, y en el seed Felipe es admin de Dynamic: los casos «sin
+// encabezado se rechaza» lo bajan a líder que no es admin (dentro de la transacción) para probar la regla del resto.
+const NO_ADMIN = `update public.personas set rol = 'integrante' where auth_user_id = '${FELIPE}';\n`;
 const PROVEEDOR = `select retail.guardar_proveedor_produccion(null, 'ZZ Prov ' || substr(md5(random()::text), 1, 8), 'tela') as prov \\gset\n`;
 
 let fallas = 0;
@@ -116,7 +119,7 @@ caso(
 ${felipe()}select retail.registrar_compra(:'p', 'TST', 'N' || substr(md5(random()::text), 1, 10), 'credito', :'tru',
   jsonb_build_array(jsonb_build_object('producto_id', :'prod', 'variante_id', :'v1', 'cantidad', 1, 'costo_unitario', 10)),
   p_tipo => 'factura', p_fecha_emision => retail.fn_hoy_lima(), p_fecha_vencimiento => retail.fn_hoy_lima() + 10, p_igv_porcentaje => 18) as compra \\gset
-${ENCENDER}${felipe(false)}select pg_temp.intento(format('select retail.anular_compra(%L, ''prueba'')', :'compra'));
+${ENCENDER}${NO_ADMIN}${felipe(false)}select pg_temp.intento(format('select retail.anular_compra(%L, ''prueba'')', :'compra'));
 select estado from retail.compras where id = :'compra';`,
   (s) => s.startsWith("42501|responsable_requerido") && s.trim().endsWith("vigente")
 );
@@ -160,7 +163,7 @@ insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('ZZ' ||
 
 caso(
   "alta de insumo — responsable obligatorio y sin encabezado: 42501, no entra",
-  `${ENCENDER}${felipe(false)}set local role authenticated;
+  `${ENCENDER}${NO_ADMIN}${felipe(false)}set local role authenticated;
 select pg_temp.intento($q$insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('ZZ-NO', 'No entra', 'tela', 'metro')$q$);`,
   (s) => s.startsWith("42501|responsable_requerido")
 );

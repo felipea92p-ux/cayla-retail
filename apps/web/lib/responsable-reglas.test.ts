@@ -81,7 +81,12 @@ describe("estadoCombo y su motivo", () => {
     expect(responsableVigente(listaResponsable([fila("bea", "presente")]), responsableInicial(undefined, "ana"))).toBeNull();
     expect(estadoCombo({ cargo: true, fallo: false, lista: conAna, elegidoId: responsableInicial(undefined, "ana") })).toBe("listo");
   });
-  it("solo «listo» deja de bloquear", () => {
+  it("el Admin no pasa por el candado: ni la lista, ni la lectura, ni la asistencia lo bloquean", () => {
+    expect(estadoCombo({ cargo: true, fallo: false, lista: LISTA_VACIA, elegidoId: null, admin: true })).toBe("admin");
+    expect(estadoCombo({ cargo: false, fallo: true, lista: LISTA_VACIA, elegidoId: null, admin: true })).toBe("admin");
+    expect(motivoSinResponsable("admin", "Tienda TRU")).toBeNull();
+  });
+  it("solo «listo» (o el Admin) deja de bloquear", () => {
     expect(motivoSinResponsable("listo", "Tienda TRU")).toBeNull();
     expect(motivoSinResponsable("falta", "Tienda TRU")).toBe("Elige quién hace esta operación.");
     expect(motivoSinResponsable("falta", "Tienda TRU", "atencion")).toBe("Elige quién está atendiendo.");

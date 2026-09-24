@@ -18,6 +18,9 @@
  *        con la sesión de una PERSONA, ya viene elegida ella misma si está presente en la sede (si no marcó entrada,
  *        vacío). Con una TERMINAL, vacío siempre — el aparato no es nadie.
  *  · Si no hay nadie presente, la operación se bloquea — sin «Otra persona» —, también para un líder.
+ *  · Salvo el ADMIN (ADR-0178; 2026-09-24, `20260924171300`): firma a su nombre sin marcar asistencia y, en vez del
+ *    combo, ve un aviso. El candado es para las cuentas compartidas de cada tienda (caja y almacén) y para quien firma
+ *    por otra persona; la cuenta del Admin es suya.
  *  · Después de guardar vuelve a como vino al abrir (elegida la persona de la sesión, o vacío).
  *
  * CÓMO VIAJA. En encabezados de la petición (`x-responsable`, `x-ubicacion` y, en la venta sin conexión,
@@ -103,10 +106,18 @@ export function responsableInicial(tocado: string | null | undefined, propuesto:
  *  · `nadie`      — se leyó y no hay nadie presente: la operación se bloquea (A4, A5, A9).
  *  · `falta`      — hay a quién elegir y todavía no se eligió.
  *  · `listo`      — hay un responsable vigente.
+ *  · `admin`      — la sesión es de un Admin: firma él, sin lista ni asistencia (se puede guardar).
  */
-export type EstadoCombo = "cargando" | "sin_lectura" | "nadie" | "falta" | "listo";
+export type EstadoCombo = "cargando" | "sin_lectura" | "nadie" | "falta" | "listo" | "admin";
 
-export function estadoCombo(v: { cargo: boolean; fallo: boolean; lista: ListaResponsable; elegidoId: string | null }): EstadoCombo {
+export function estadoCombo(v: {
+  cargo: boolean;
+  fallo: boolean;
+  lista: ListaResponsable;
+  elegidoId: string | null;
+  admin?: boolean;
+}): EstadoCombo {
+  if (v.admin) return "admin";
   if (!v.cargo) return v.fallo ? "sin_lectura" : "cargando";
   if (v.lista.elegibles.length === 0) return "nadie";
   return responsableVigente(v.lista, v.elegidoId) ? "listo" : "falta";
@@ -119,6 +130,7 @@ export function estadoCombo(v: { cargo: boolean; fallo: boolean; lista: ListaRes
 export function motivoSinResponsable(estado: EstadoCombo, sede: string, modo: ModoResponsable = "operacion"): string | null {
   switch (estado) {
     case "listo":
+    case "admin":
       return null;
     case "falta":
       return modo === "atencion" ? "Elige quién está atendiendo." : "Elige quién hace esta operación.";

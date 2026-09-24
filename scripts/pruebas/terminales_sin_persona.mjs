@@ -264,10 +264,33 @@ caso(
     `select (retail.fn_actor_persona_id() = '${ROSA}'::uuid)::text;`,
   "true"
 );
+// ADMIN (20260924171300): firma a su nombre sin marcar asistencia; para el resto el candado no cambia. En el seed Felipe
+// ya es admin de Dynamic: cada caso lo fija explícitamente para probar las dos cosas.
+const ADMIN = `update public.personas set rol = 'admin' where auth_user_id = '${FELIPE_AUTH}';\n`;
+const NO_ADMIN = `update public.personas set rol = 'integrante' where auth_user_id = '${FELIPE_AUTH}';\n`;
 caso(
-  "interruptor encendido: el LÍDER tampoco guarda sin responsable (un mismo flujo para todos)",
-  ENCENDER + como(FELIPE_AUTH) + actor,
+  "interruptor encendido: el LÍDER que no es admin tampoco guarda sin responsable (un mismo flujo para todos)",
+  ENCENDER + NO_ADMIN + como(FELIPE_AUTH) + actor,
   "42501|responsable_requerido"
+);
+caso(
+  "interruptor encendido: el ADMIN guarda sin responsable ni asistencia → firma él",
+  ENCENDER + ADMIN + como(FELIPE_AUTH) + `select (retail.fn_actor_persona_id() = felipe)::text from ids;`,
+  "true"
+);
+caso(
+  "interruptor encendido: el ADMIN que se elige a sí mismo tampoco necesita asistencia",
+  ENCENDER + ADMIN + como(FELIPE_AUTH) +
+    `select set_config('request.headers', json_build_object('x-responsable', felipe, 'x-ubicacion', tru)::text, true) from ids \\g /dev/null\n` +
+    `select (retail.fn_actor_persona_id() = felipe)::text from ids;`,
+  "true"
+);
+caso(
+  "interruptor encendido: si el ADMIN elige a otra persona, esa sí pasa por el candado",
+  ENCENDER + ADMIN + como(FELIPE_AUTH) +
+    `select set_config('request.headers', json_build_object('x-responsable', '${ROSA}', 'x-ubicacion', tru)::text, true) from ids \\g /dev/null\n` +
+    actor,
+  "42501|responsable_no_presente"
 );
 caso(
   "interruptor encendido: nadie marcó entrada en la tienda → rechazada aunque elija a alguien",

@@ -42,7 +42,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       lateralPlegado={lateralPlegado}
     >
       {/* La sede activa y quién inició sesión, para el combo «Responsable» (ADR-0161, A11), sin pasarlas por props a cada pantalla. */}
-      <SedeActivaProveedor ubicacionId={persona.ubicacionId} etiqueta={persona.ubicacionEtiqueta} personaSesionId={persona.personaId}>
+      <SedeActivaProveedor
+        ubicacionId={persona.ubicacionId}
+        etiqueta={persona.ubicacionEtiqueta}
+        personaSesionId={persona.personaId}
+        esAdmin={persona.esAdmin}
+        nombreSesion={persona.nombre}
+      >
         {children}
       </SedeActivaProveedor>
     </AppShell>
