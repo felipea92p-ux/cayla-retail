@@ -190,7 +190,7 @@ export type FinProceso = (() => void) & {
   /** El mismo aviso pasa a éxito (sin parpadeo). */
   exito: (texto: string, opciones?: { detalle?: string; accion?: AccionAviso; duracion?: number }) => void;
   /** El mismo aviso pasa a error. */
-  error: (texto: string, opciones?: { detalle?: string; enfocar?: Enfocable }) => void;
+  error: (texto: string, opciones?: { detalle?: string; enfocar?: Enfocable; accion?: AccionAviso }) => void;
 };
 
 export const avisar = {
@@ -200,7 +200,9 @@ export const avisar = {
    * de 4 s es una trampa; con 7 s se alcanza a leer y a decidir).
    */
   exito: (texto: string, opciones?: { detalle?: string; accion?: AccionAviso; duracion?: number }) => abrir("exito", texto, opciones),
-  error: (texto: string, opciones?: { detalle?: string; enfocar?: Enfocable }) => abrir("error", texto, opciones),
+  /** `accion` en un error: el siguiente paso cuando el error tiene uno claro (ADR-0193: «Recargar» cuando otra persona
+   *  cambió la ficha mientras se editaba). */
+  error: (texto: string, opciones?: { detalle?: string; enfocar?: Enfocable; accion?: AccionAviso }) => abrir("error", texto, opciones),
   aviso: (texto: string, opciones?: { detalle?: string; enfocar?: Enfocable }) => abrir("aviso", texto, opciones),
   /** Devuelve una función que lo cierra; además `.progreso()`, `.exito()` y `.error()` lo transforman. */
   proceso: (texto: string, opciones?: { detalle?: string }): FinProceso => {
@@ -208,7 +210,7 @@ export const avisar = {
     return Object.assign(() => cerrar(id), {
       progreso: (fraccion: number, detalle?: string) => conProgreso(id, fraccion, detalle),
       exito: (t: string, o?: { detalle?: string; accion?: AccionAviso; duracion?: number }) => transformar(id, "exito", t, o),
-      error: (t: string, o?: { detalle?: string; enfocar?: Enfocable }) => transformar(id, "error", t, o),
+      error: (t: string, o?: { detalle?: string; enfocar?: Enfocable; accion?: AccionAviso }) => transformar(id, "error", t, o),
     });
   },
   cerrar,

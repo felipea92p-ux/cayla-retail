@@ -2978,6 +2978,7 @@ export type Database = {
           tejido_id: string | null
           temporada: string | null
           token_cliente: string | null
+          version: number
         }
         Insert: {
           aprobado_en?: string | null
@@ -3000,6 +3001,7 @@ export type Database = {
           tejido_id?: string | null
           temporada?: string | null
           token_cliente?: string | null
+          version?: number
         }
         Update: {
           aprobado_en?: string | null
@@ -3022,6 +3024,7 @@ export type Database = {
           tejido_id?: string | null
           temporada?: string | null
           token_cliente?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -3777,6 +3780,7 @@ export type Database = {
           id: string
           limitado_como_hoy: boolean
           nombre: string
+          version: number
         }
         Insert: {
           archivado_at?: string | null
@@ -3790,6 +3794,7 @@ export type Database = {
           id?: string
           limitado_como_hoy?: boolean
           nombre: string
+          version?: number
         }
         Update: {
           archivado_at?: string | null
@@ -3803,6 +3808,7 @@ export type Database = {
           id?: string
           limitado_como_hoy?: boolean
           nombre?: string
+          version?: number
         }
         Relationships: []
       }
@@ -4949,8 +4955,9 @@ export type Database = {
           p_tejido_id?: string
           p_temporada?: string
           p_variantes: Json
+          p_version_esperada?: number
         }
-        Returns: undefined
+        Returns: number
       }
       catalogo_crear_producto: {
         Args: {
@@ -6190,8 +6197,8 @@ export type Database = {
       // 20260923174500: «solo alcanzas a quien está por debajo de ti».
       fn_fuera_de_mi_alcance: { Args: never; Returns: { persona_id: string }[] }
       guardar_modulos_rol: {
-        Args: { p_modulos: string[]; p_rol_id: string }
-        Returns: undefined
+        Args: { p_modulos: string[]; p_rol_id: string; p_version_esperada?: number }
+        Returns: number
       }
       renombrar_rol: {
         Args: { p_descripcion?: string; p_nombre: string; p_rol_id: string }
