@@ -432,8 +432,9 @@ body {
    Etiqueta de precio (ADR-0180): se pega en el cartón de 5 × 8 cm que cuelga de la prenda.
    Brother QL-1110NWB, rollo DK-22205 (62 mm continuo, adhesivo). El rollo mide 62 mm y el
    cartón 50 mm de ancho, así que los 62 mm van a lo largo: la etiqueta es de 44 × 62 mm, con
-   3 mm de aire a cada lado del cartón y el agujero libre arriba. Sale del rollo DE LADO: cada
-   corte mide 44 mm y la hoja de impresión (abajo) la gira.
+   3 mm de aire a cada lado del cartón y el agujero libre arriba. Sale del rollo DERECHA (Felipe,
+   2026-09-24): cada corte mide 62 mm, la etiqueta va centrada en el ancho del rollo con 9 mm
+   blancos a cada lado, que se recortan al pegarla en el cartón.
    TODO en milímetros: es una medida física, no una pantalla. Y solo negro sobre blanco —
    la térmica no imprime otro color—, por eso aquí sí va #000/#fff literal y no los tokens
    de la guía (misma excepción que el comprobante de 80 mm). Diseño aprobado por Felipe el
@@ -639,8 +640,8 @@ body {
   }
   /* El QR, lo más grande que entra (Felipe, 2026-09-23): 22 mm sin campaña y 20 mm con campaña (el lado lo pone
      `EtiquetaPrecio.tsx`; incluye la zona muda, lib/qr.ts). El margen negativo mete SOLO esa zona blanca en el acolchado:
-     abajo está el borde del rollo, donde la Brother no imprime, y a la derecha el corte. Las zonas negras quedan a ~4 mm
-     de los dos bordes. */
+     abajo está el corte y a la derecha el aire hasta el borde del rollo. Las zonas negras quedan a ~4 mm de los dos
+     bordes de la etiqueta. */
   .etq-qr {
     flex: none;
     margin: 0 -2mm -2mm 0;
@@ -649,13 +650,16 @@ body {
 
 /* En pantalla la hoja no se ve (la vista previa dibuja una por prenda, derecha). Al imprimir desaparece TODO lo demás
    con `display:none` —no `visibility`: lo oculto seguiría ocupando alto y la Brother sacaría etiquetas en blanco— y cada
-   etiqueta va en su propia página NOMBRADA de 62 × 44 mm: el ancho del rollo por el largo de cada corte. La etiqueta
-   (44 × 62) va girada 90° dentro de la página: sale de lado del rollo y se gira al pegarla en el cartón. */
+   etiqueta va en su propia página NOMBRADA de 62 × 62 mm: el ancho del rollo por el largo de cada corte. La etiqueta
+   (44 × 62) va DERECHA y centrada en el ancho: se lee tal como sale del rollo (Felipe, 2026-09-24).
+   Por qué ya no va girada en una hoja de 62 × 44: una página más ancha que alta hace que Chrome la mande «horizontal»,
+   y la Mac (y el driver) la vuelven a girar para calzarla en el rollo; la etiqueta salía derecha pero achicada y
+   corrida a un lado (foto de la tienda, 2026-09-24). La hoja cuadrada no tiene orientación que adivinar. */
 #etiquetas-precio-print {
   display: none;
 }
 @page etiqueta-precio {
-  size: 62mm 44mm;
+  size: 62mm 62mm;
   margin: 0;
 }
 @media print {
@@ -675,7 +679,7 @@ body {
   #etiquetas-precio-print .etq-hoja {
     position: relative;
     width: 62mm;
-    height: 44mm;
+    height: 62mm;
     overflow: hidden;
     page: etiqueta-precio;
     break-after: page;
@@ -683,16 +687,9 @@ body {
   #etiquetas-precio-print .etq-hoja:last-child {
     break-after: auto;
   }
-  /* Centro de la etiqueta (22, 31) sobre el centro de la hoja (31, 22) y giro de −90° alrededor de él.
-     `contain` la vuelve una pieza que no se parte: antes del giro mide 62 mm de alto, más que la hoja de 44, y al paginar
-     Chrome la partía en el salto de página (el QR y el pie aparecían encima del precio en todas menos la última; visto en
-     el PDF de prueba, 2026-09-23). El giro es solo de dibujo; para paginar cuenta la caja sin girar. */
+  /* Centrada en el ancho del rollo: (62 − 44) / 2 = 9 mm a cada lado. */
   #etiquetas-precio-print .etq-hoja .etiqueta-precio {
-    position: absolute;
-    left: 9mm;
-    top: -9mm;
-    transform: rotate(-90deg);
-    contain: size layout paint;
+    margin: 0 auto;
   }
 }
 

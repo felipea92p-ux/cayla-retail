@@ -80,7 +80,10 @@
     "local:donde": "node scripts/local/donde-estoy.mjs",
     "terminales:crear": "node scripts/terminales/crear.mjs",
     "terminales:probar": "node --test scripts/terminales/",
-    "prepare": "git config core.hooksPath .githooks || true"
+    "prepare": "git config core.hooksPath .githooks || true",
+    "pruebas:lecturas-rapidas-y-cambio": "node scripts/pruebas/lecturas_rapidas_y_cambio.mjs",
+    "carga:preparar": "node scripts/carga/carga.mjs preparar",
+    "carga:correr": "node scripts/carga/carga.mjs correr"
   },
   "devDependencies": {
     "turbo": "^2.5.0",
