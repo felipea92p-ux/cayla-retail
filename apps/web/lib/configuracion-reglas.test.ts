@@ -3,6 +3,8 @@ import {
   dejaMenosDelFondo,
   estadoCampana,
   explicarMeta,
+  minutosDeHora,
+  proyeccionAlCierre,
   leerParametrosCaja,
   ordenarCampanas,
   parsearMonto,
@@ -93,5 +95,16 @@ describe("caja: meta de hoy y fondo al cerrar", () => {
     expect(dejaMenosDelFondo(250, 300)).toBe(true);
     expect(dejaMenosDelFondo(300, 300)).toBe(false);
     expect(dejaMenosDelFondo(10, null)).toBe(false);
+  });
+  it("al ritmo de hoy: lo vendido por hora, por las horas que faltan hasta el cierre", () => {
+    // Abrió 9:00, son las 17:40 (8 h 40 min), vendió S/ 1,120 y cierra a las 21:00 (faltan 3 h 20 min).
+    expect(proyeccionAlCierre({ vendido: 1120, abrioMin: 540, ahoraMin: 1060, cierreMin: 1260 })).toBe(1551);
+    expect(proyeccionAlCierre({ vendido: 1120, abrioMin: 540, ahoraMin: 1060, cierreMin: null })).toBeNull();
+    expect(proyeccionAlCierre({ vendido: 80, abrioMin: 540, ahoraMin: 570, cierreMin: 1260 })).toBeNull(); // media hora abierta
+    expect(proyeccionAlCierre({ vendido: 1500, abrioMin: 540, ahoraMin: 1270, cierreMin: 1260 })).toBeNull(); // ya cerró
+    expect(minutosDeHora("21:00")).toBe(1260);
+    expect(minutosDeHora("9:30")).toBe(570);
+    expect(minutosDeHora("25:00")).toBeNull();
+    expect(minutosDeHora(null)).toBeNull();
   });
 });

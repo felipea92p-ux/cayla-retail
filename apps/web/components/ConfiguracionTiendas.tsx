@@ -54,6 +54,30 @@ function Casilla({ valor, etiqueta, ancho, alGuardar, placeholder = "—" }: { v
   );
 }
 
+/** La hora de cierre: se guarda al salir si cambió (vacía = sin hora, Caja no proyecta). */
+function CasillaHora({ valor, etiqueta, alGuardar }: { valor: string; etiqueta: string; alGuardar: (hora: string) => Promise<boolean> }) {
+  const [t, setT] = useState(valor);
+  const [antes, setAntes] = useState(valor);
+  if (valor !== antes) {
+    setAntes(valor);
+    setT(valor);
+  }
+  return (
+    <input
+      type="time"
+      aria-label={etiqueta}
+      value={t}
+      onChange={(e) => setT(e.target.value)}
+      onBlur={async () => {
+        if (t === valor) return;
+        const ok = await alGuardar(t);
+        if (!ok) setT(valor);
+      }}
+      className="fin-control fin-num inline-block w-[7.6rem]"
+    />
+  );
+}
+
 function FilaTienda({ tienda, guardar }: { tienda: TiendaConfig; guardar: Guardar }) {
   const metas = tienda.metas.map(texto);
   const fondo = texto(tienda.fondo);
@@ -87,6 +111,19 @@ function FilaTienda({ tienda, guardar }: { tienda: TiendaConfig; guardar: Guarda
       ))}
       <td className="fin-num" data-l="Fondo de caja">
         <Casilla valor={fondo} etiqueta={`Fondo de caja de ${tienda.nombre}`} ancho="w-[5.2rem]" alGuardar={(n) => guardarCasilla("fondo", n)} />
+      </td>
+      <td className="fin-num" data-l="Cierra">
+        <CasillaHora
+          valor={tienda.horaCierre ?? ""}
+          etiqueta={`Hora de cierre de ${tienda.nombre}`}
+          alGuardar={(hora) =>
+            guardar(
+              () => createClient().rpc("guardar_hora_cierre_tienda" as never, { p_ubicacion_id: tienda.id, p_hora: hora || null } as never),
+              "guardar la hora de cierre",
+              hora ? `${tienda.nombre} cierra a las ${hora}. Caja ya proyecta la venta del día.` : `${tienda.nombre}: sin hora de cierre.`,
+            )
+          }
+        />
       </td>
       <td className="fin-num" data-l="Meta del mes">
         {tienda.metaMes !== null ? (
@@ -201,7 +238,7 @@ export function ConfiguracionTiendas({ datos }: { datos: Datos }) {
       </div>
 
       <Superficie className="anim-sube">
-        <TituloDeTarjeta titulo="Lo normal de cada tienda" bajada="Meta de venta de cada día de la semana (con IGV, lo que ve la caja) y lo que debe quedar en el cajón al cerrar.">
+        <TituloDeTarjeta titulo="Lo normal de cada tienda" bajada="Meta de venta de cada día de la semana (con IGV, lo que ve la caja), lo que debe quedar en el cajón al cerrar y a qué hora cierra.">
           <Chip tono={rigenHoy.length ? "ambar" : "verde"}>Hoy rige: {rigenHoy.length ? rigenHoy.map((c) => c.nombre).join(" y ") : "lo normal"}</Chip>
         </TituloDeTarjeta>
         <div className="fin-tabla-wrap">
@@ -215,6 +252,7 @@ export function ConfiguracionTiendas({ datos }: { datos: Datos }) {
                   </th>
                 ))}
                 <th className="fin-num">Fondo de caja</th>
+                <th className="fin-num">Cierra</th>
                 <th className="fin-num">Meta del mes</th>
               </tr>
             </thead>
