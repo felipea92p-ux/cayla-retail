@@ -1,8 +1,8 @@
 # ADR-0194 — Prueba de carga: 15 a 50 personas a la vez sobre un año de datos
 
 - **Fecha:** 2026-09-24
-- **Estado:** construido y probado en local; migración `20260924180000_varios_usuarios_lecturas_rapidas_y_cambio_en_orden.sql`
-  **por pegar en producción** (sin cambios en la web: se puede pegar en cualquier momento, antes o después de publicar).
+- **Estado:** en producción: Felipe pegó `20260924180000_varios_usuarios_lecturas_rapidas_y_cambio_en_orden.sql` el
+  2026-09-24 y se verificó en solo lectura (firmas, pre-bloqueo, índices, políticas, permisos, llamadas). Sin cambios en la web.
 - **Contexto:** Felipe pidió probar todo el ERP para encontrar bugs y demoras cuando muchas personas lo usan a la vez
   (meta: 15 a 50 a la vez), en el Postgres local y validando antes que el local esté igual a producción. Sigue a la
   auditoría de concurrencia de ADR-0188 a 0193 (candados, doble clic, totales en la base), que no midió volumen.
