@@ -90,7 +90,7 @@ describe("«Así queda su menú»", () => {
     expect(etiquetasDelMenu(menuDelRol(INTEGRANTE))).toEqual([
       { etiqueta: "Inicio", hijas: [] },
       { etiqueta: "Catálogo", hijas: ["Productos", "Categorías", "Atributos"] },
-      { etiqueta: "Ventas", hijas: ["Punto de Venta", "Apartados", "Caja", "Historial", "Posventa"] },
+      { etiqueta: "Ventas", hijas: ["Punto de Venta", "Caja", "Historial", "Posventa"] }, // Apartados: módulo propio sin rol (ADR-0196)
       { etiqueta: "Inventario", hijas: ["Existencias", "Movimientos", "Traslados", "Conteo", "Recibir mercadería"] },
     ]);
   });

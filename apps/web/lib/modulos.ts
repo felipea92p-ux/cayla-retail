@@ -1,6 +1,6 @@
 // Los módulos que un ROL puede ver (ADR-0150 retomado por el ADR-0161 B; migración 20260923030000_roles_por_modulo.sql).
 //
-// PROMETE: el catálogo de los 23 módulos (el mismo de `retail.modulos`, en el mismo orden), la lista fija de lo que es
+// PROMETE: el catálogo de los módulos (el mismo de `retail.modulos`, en el mismo orden), la lista fija de lo que es
 // «siempre solo del líder», lo que cada cuenta ve HOY sin haber leído la base, y la traducción de «qué módulos ve esta
 // cuenta» a los permisos semánticos que ya preguntan las pantallas (`permisosDeModulos`). Lógica pura: se importa desde el
 // servidor y desde el cliente, y se prueba con `modulos.test.ts`.
@@ -11,7 +11,7 @@
 import { PERMISOS, type Permiso } from "./menu";
 
 export const CLAVES_MODULO = [
-  "vender", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas",
+  "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas",
   "existencias", "conteos", "traslados", "movimientos",
   "productos", "atributos", "etiquetas",
   "facturas_compra", "recibir", "por_pagar", "proveedores", "notas_credito",
@@ -39,6 +39,8 @@ export type Modulo = {
 /** Espejo de `retail.modulos`. `modulos.test.ts` compara esta lista con la siembra de la migración. */
 export const MODULOS: readonly Modulo[] = [
   { clave: "vender", grupo: "Ventas", nombre: "Punto de venta", incluye: "Registrar ventas, descuento hasta su tope, dejar en espera, monto manual" },
+  // Apartados (ADR-0196): se separó del Punto de venta a pedido de Felipe (2026-09-24). Nace sin rol: solo lo ve el líder.
+  { clave: "apartados", grupo: "Ventas", nombre: "Apartados", incluye: "Apartar prendas con adelanto, entregar cobrando el saldo, extender, liberar y devolver el adelanto" },
   { clave: "caja", grupo: "Ventas", nombre: "Caja", incluye: "Abrir y cerrar caja, ingresos y egresos, ajustes de caja" },
   { clave: "cambios", grupo: "Ventas", nombre: "Cambios", incluye: "Registrar cambios de prenda" },
   { clave: "devoluciones", grupo: "Ventas", nombre: "Devoluciones", incluye: "Solicitar devoluciones" },
