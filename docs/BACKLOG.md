@@ -28,15 +28,22 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🔒 Varios usuarios a la vez: auditoría de concurrencia y volumen (2026-09-23, ADR-0188 y siguientes) — etapa 1 construida; migración `20260924110000` POR PEGAR en producción
-Auditoría completa (343 funciones, 229 consultas web, estadísticas de producción). Bien protegido: stock (sin negativos ni sobreventa), numeración, una caja abierta por sede, doble clic en ventas/comprobantes/cambios/compras.
-- [x] **Etapa 1 (ADR-0188):** las 7 funciones que cobran leen la caja con `for share` (una venta ya no cae en una caja cerrada), el costo promedio ya no traba ventas (`for no key update`), 14 índices (`ventas` por caja y por sede, `stock` por sede, cambios, devoluciones, comprobantes). Parche con anclas, re-pegable. Probado con dos sesiones reales.
-- [ ] **Pegar `20260924110000` en producción** (no requiere prefijo: trae `set search_path`). No cambia la web.
-- [ ] **Etapa 2:** cambio/devolución doble de la misma línea; conteo que recuenta con foto vieja; orden de prendas al bloquear (bloqueo mutuo); doble clic en traslados, lotes y movimientos de caja.
-- [ ] **Etapa 3:** totales del Historial (hoy se esconden pasando 1.000 ventas) y resumen de Caja en la base.
-- [ ] **Etapa 4:** Vender sin `router.refresh()` completo tras cada venta.
-- [ ] **Etapa 5:** «otra persona cambió esta prenda» al editar productos a la vez.
-- [ ] Previo, ajeno: `pruebas:aprobar-devolucion-caja` da 2/5 en local (falla en «Solo un líder puede aprobar», la cuenta de prueba).
+## 🔒 Varios usuarios a la vez: auditoría de concurrencia y volumen (2026-09-23, ADR-0188 a 0193) — 6 PRs abiertos; 4 migraciones POR PEGAR en producción
+Auditoría completa (343 funciones, 229 consultas web, estadísticas de producción). Ya estaba bien protegido: stock (sin negativos ni sobreventa), numeración, una caja abierta por sede, doble clic en ventas/comprobantes/cambios/compras. Las 5 etapas se hicieron en paralelo; integradas sobre `main` (2026-09-23): se fusionan sin conflictos, tipos/lint limpios, 24.363 pruebas web en verde, y las 5 migraciones corren en fila en el local (re-pegables: la segunda pasada no cambia nada).
+**Orden para pegar en producción (todas traen `set search_path`, sin prefijo `retail.`) y fusionar:**
+1. `20260924110000` (PR #373, ADR-0188) — candado compartido de caja en 7 funciones, costo promedio con `for no key update`, 14 índices. No cambia la web.
+2. `20260924120000` (PR #376, ADR-0189) — cambio/devolución doble de la misma línea (bloqueo de la línea; cambiado + devuelto se restan), conteo que renueva la foto al recontar. No cambia la web.
+3. `20260924130000` (PR #380, ADR-0190) — `fn_bloquear_en_orden` (fin de los bloqueos mutuos [A,B]/[B,A]) y `p_token` en traslado, lote sin factura, movimiento de caja, apartado e insumo. **Necesita la 110000 antes**; pegar ANTES de fusionar la web.
+4. `20260924140000` (PR #378, ADR-0191) — `fn_totales_historial_ventas`, `fn_resumen_caja`, `fn_sello_caja`. **Pegar ANTES de fusionar: sin ella la Caja no carga.**
+5. `20260924160000` (PR #377, ADR-0193) — columna `version` en `productos` y `roles`, «Otra persona cambió esta prenda». Pegar ANTES de fusionar la web.
+6. PR #379 (ADR-0192) — Vender sin `router.refresh()` tras cada venta y 7 lecturas que se cortaban en 1.000 filas. **Sin migración.**
+- [ ] Pegar 1→5 en ese orden, luego fusionar #373, #376, #380, #378, #377, #379.
+- [ ] Verlo con clics tras publicar: cobrar mientras se cierra caja (debe decir «No hay una caja abierta»), historial de 60 días con totales, Vender sin recarga, dos pestañas editando la misma prenda.
+- [ ] Regenerar tipos y diccionario (`pnpm datos:generar:produccion`) tras pegar: las funciones nuevas se agregaron a mano en `packages/database/src/types.ts`.
+- [ ] Pendientes que dejó cada etapa: `registrar_cambio`/`crear_devolucion`/conteo aún sin `fn_bloquear_en_orden`; token en Ajustar inventario (`registrar_movimiento`) y `mover_interno`; `recibir_lote` y `registrar_movimiento_caja` siguen ejecutables por `PUBLIC`; el costo que recalcula una recepción puede pisarse desde una ficha abierta (la ficha debe mandar el costo solo si cambió); versión en etiquetas, marcas, categorías y clientas.
+- [ ] **Decisión de Felipe:** la base ya no deja devolver una prenda que se cambió (la pantalla ya lo impedía). Si CAYLA quiere aceptarlo, necesita su propio flujo.
+- [ ] Previo, ajeno: `pruebas:aprobar-devolucion-caja` 2/5 y `candado_dinero_caja_cambios_devoluciones` 7/21 en local (cuenta de prueba sin líder); `archivar-datos-prueba` busca tablas sin esquema `retail`.
+- [ ] Siguen abiertos de la auditoría (sin etapa aún): 36 políticas con `auth.role()` evaluado por fila (catálogo: `productos`, `variantes`, `colores`…), 192 FK sin índice (las de más uso ya van en la 110000), `fn_vencer_separaciones` escribe al abrir la pantalla, `fn_traslado_lineas` una vez por traslado.
 
 ## 🎯 El combo «Responsable» en TODA operación que guarda (2026-09-23, ADR-0161 act. c) — EN PRODUCCIÓN (web fusionada en PR #360 y publicada; Felipe pegó la migración el 2026-09-23; verificado en solo lectura: `(false)` solo en los 4 permisos, 80 funciones firman con el responsable, sin sobrecargas)
 Felipe no encontraba el combo en Recibir ni en Registrar comprobante: la A8 los había dejado fuera («no de tienda»). Decidió
