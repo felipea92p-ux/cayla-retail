@@ -126,6 +126,22 @@ create unique index if not exists caja_movimientos_token_cliente_key on caja_mov
 create unique index if not exists apartados_token_cliente_key on apartados (token_cliente) where token_cliente is not null;
 create unique index if not exists insumo_lotes_token_cliente_key on insumo_lotes (token_cliente) where token_cliente is not null;
 
+-- Las tablas con candado de dinero (ADR-0126: `insumo_lotes`, entre otras) dan lectura a `authenticated` COLUMNA POR COLUMNA:
+-- una columna nueva nace ilegible. El token no es dinero, así que se abre igual que sus vecinas. Solo donde la tabla usa
+-- permisos por columna (si `authenticated` ya lee la tabla entera, no hace falta nada).
+do $$
+declare t text;
+begin
+  foreach t in array array['transferencias', 'lotes', 'caja_movimientos', 'apartados', 'insumo_lotes'] loop
+    if not has_table_privilege('authenticated', format('retail.%I', t), 'select')
+       and exists (select 1 from information_schema.column_privileges
+                    where table_schema = 'retail' and table_name = t and grantee = 'authenticated' and privilege_type = 'SELECT') then
+      execute format('grant select (token_cliente) on retail.%I to authenticated', t);
+    end if;
+  end loop;
+end;
+$$;
+
 comment on column transferencias.token_cliente is 'ADR-0190: id del intento que mandó la pantalla (uno por formulario). El mismo token devuelve el mismo traslado: un doble clic no descuenta dos veces.';
 comment on column lotes.token_cliente is 'ADR-0190: id del intento de «Recibir sin factura» (recibir_lote). El mismo token devuelve el mismo lote.';
 comment on column caja_movimientos.token_cliente is 'ADR-0190: id del intento de ingreso/egreso de caja. El mismo token devuelve el mismo movimiento: un doble clic no registra dos retiros.';
