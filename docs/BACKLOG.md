@@ -29,7 +29,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 ---
 
 
-## 🎯 Nuevo producto en 4 pasos, y fotos al crear (2026-09-24, ADR-0197) — web en PR #392, SIN migración
+## 🎯 Nuevo producto en 4 pasos, y fotos al crear (2026-09-24, ADR-0197) — web en PR #395, SIN migración
 Tiene 4 pasos en acordeón, proveedor y color con buscador (sin listas enteras de botones), tabla talla × color, la ficha de la prenda a la derecha y fotos por color que se suben después de crear.
 - [ ] Probar en producción un alta con fotos: la subida exitosa no se pudo ver en local, porque no existe el contenedor `supabase_storage_cayla-retail`.
 - [ ] Probarlo con clics con una cuenta de tienda (no Admin), a 375 px.

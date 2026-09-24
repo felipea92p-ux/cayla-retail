@@ -1,6 +1,6 @@
 # Spike visual · Nuevo producto (2026-09-24)
 
-> **Estado (2026-09-24): aprobado e IMPLEMENTADO en el mismo PR (#392), ver `docs/adr/0197-nuevo-producto-en-cuatro-pasos-y-fotos-al-crear.md`.**
+> **Estado (2026-09-24): aprobado e IMPLEMENTADO en el PR #395, ver `docs/adr/0197-nuevo-producto-en-cuatro-pasos-y-fotos-al-crear.md`.**
 > Decisiones: nombre y marca en el mismo paso; «Seguir →» en los pasos 2 y 3; en celular la celda muestra solo ✓. Se sumaron
 > las fotos por color en «Cómo se hace», que se suben al crear.
 
