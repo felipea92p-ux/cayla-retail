@@ -99,11 +99,11 @@ describe("resumenAlta", () => {
     expect(resumenAlta(0, "Taller LIM")).toBe("Elige al menos una persona para continuar");
   });
   it("singular y plural", () => {
-    expect(resumenAlta(1, "Tienda TRU")).toBe("Se agregará 1 persona como Colaborador en Tienda TRU");
-    expect(resumenAlta(2, "Taller LIM")).toBe("Se agregarán 2 personas como Colaborador en Taller LIM");
+    expect(resumenAlta(1, "Tienda TRU")).toBe("Se agregará 1 persona como Integrante en Tienda TRU");
+    expect(resumenAlta(2, "Taller LIM")).toBe("Se agregarán 2 personas como Integrante en Taller LIM");
   });
   it("sin ubicación elegida todavía no inventa una", () => {
-    expect(resumenAlta(2, null)).toBe("Se agregarán 2 personas como Colaborador");
+    expect(resumenAlta(2, null)).toBe("Se agregarán 2 personas como Integrante");
   });
 });
 
@@ -168,7 +168,7 @@ describe("fraseEvento", () => {
     const f = fraseEvento({ ...base, accion: "alta", ubicacion_nueva: "Tienda TRU" });
     expect(f.etiqueta).toBe("Alta");
     expect(f.tono).toBe("verde");
-    expect(texto(f)).toBe("Felipe dio acceso a Angie como Colaborador.");
+    expect(texto(f)).toBe("Felipe dio acceso a Angie como Integrante.");
     expect(f.detalle).toBe("Ubicación fija: Tienda TRU");
     expect(f.partes.filter((p) => p.fuerte).map((p) => p.texto)).toEqual(["Felipe", "Angie"]);
   });
@@ -196,7 +196,7 @@ describe("fraseEvento", () => {
     const f = fraseEvento({ ...base, accion: "aprobacion", ubicacion_nueva: "Tienda TRU" });
     expect(f.etiqueta).toBe("Aprobación");
     expect(f.tono).toBe("verde");
-    expect(texto(f)).toBe("Felipe aprobó el alta de Angie como Colaborador.");
+    expect(texto(f)).toBe("Felipe aprobó el alta de Angie como Integrante.");
     expect(f.detalle).toBe("Ubicación: Tienda TRU");
   });
   it("cambio de ubicación dice de dónde a dónde", () => {

@@ -5,7 +5,10 @@ import { exigir, tolerar, type Tolerado } from "@/lib/resultado";
 // directo desde el componente cliente (`lib/colaboradores-acciones.ts`).
 // Cada persona aparece en UNA sola lista: activos, suspendidos o inactivos en Dynamic
 // (20260922110000_colaboradores_suspender_y_actividad.sql).
-export type RolColaborador = "lider" | "colaborador";
+// "colaborador" es el valor viejo (25 cuentas reales en producción, migración de datos pendiente por separado,
+// PL-87); "integrante" es el nuevo. El tipo acepta ambos mientras conviven — nunca comparar contra "colaborador"
+// para lógica nueva, usar `!== "lider"` (así no importa cuál de los dos valores tenga la fila).
+export type RolColaborador = "lider" | "colaborador" | "integrante";
 
 export type Colaborador = {
   persona_id: string;
