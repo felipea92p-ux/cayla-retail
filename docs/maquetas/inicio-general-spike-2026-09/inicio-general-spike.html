@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inicio general · spike visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Inicio general (2026-09-24)
+   Pregunta: ¿cómo se ve un Inicio que NO lleva a módulos (el menú, ya
+   filtrado por Roles y accesos, es el único camino) y un lateral SIN
+   el botón «+ Nuevo»? El Inicio solo informa: cómo va la ubicación,
+   quién está, qué te toca y qué pasó. Ninguna tarjeta es un enlace.
+   Tokens = los de apps/web/app/globals.css (ADR-0169). Datos inventados.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t30:rgba(26,26,24,.3);--t10:rgba(26,26,24,.10);
+  --ease:cubic-bezier(.32,.72,.24,1);--ancho:17rem;--bar:44px;--cab:56px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.55;min-height:100vh}
+button,select{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:400}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px;color:var(--t65)}
+svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+@keyframes entrada{from{opacity:0;transform:translate3d(0,8px,0)}to{opacity:1;transform:none}}
+
+/* barra del spike (no existe en el ERP) */
+.spk{position:fixed;inset:0 0 auto 0;z-index:80;height:var(--bar);display:flex;align-items:center;gap:14px;padding:0 16px;background:var(--tinta);color:var(--crema);font-size:13px;overflow-x:auto;white-space:nowrap}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.spk label{display:flex;align-items:center;gap:8px;color:rgba(245,240,232,.7)}
+.spk select{height:30px;border-radius:8px;border:1px dashed rgba(245,240,232,.4);background:rgba(245,240,232,.06);color:var(--crema);padding:0 8px;font-size:13px}
+.spk select option{color:var(--tinta);background:var(--crema)}
+
+/* lateral */
+.side{position:fixed;inset:var(--bar) auto 0 0;width:var(--ancho);display:flex;flex-direction:column;background:var(--crema);border-right:1px solid var(--t10);z-index:40}
+.logo{display:flex;align-items:center;gap:12px;padding:28px 0 24px 28px}
+.logo img{height:32px}.logo span{font-size:14px;letter-spacing:.26em;font-weight:600}
+.nuevo{margin:0 12px 16px;height:40px;border-radius:8px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;justify-content:center;gap:10px;font-size:11px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;position:relative}
+.nuevo svg{width:14px;height:14px}
+.nuevo.tachado{opacity:.35}
+.nuevo.tachado::after{content:"";position:absolute;left:8px;right:8px;top:50%;height:2px;background:var(--rojo);transform:rotate(-4deg)}
+nav{flex:1;overflow-y:auto;padding:4px 12px 16px;display:flex;flex-direction:column;gap:8px}
+.fila{display:flex;align-items:center;gap:14px;height:48px;padding:0 12px 0 16px;border-radius:8px;color:var(--t80);white-space:nowrap}
+.fila.act{background:rgba(232,224,208,.7);color:var(--tinta);font-weight:500;position:relative}
+.fila.act::before{content:"";position:absolute;left:0;top:14px;width:2px;height:20px;border-radius:9px;background:var(--rojo)}
+.fila .ic{color:rgba(26,26,24,.6)}.fila .chev{margin-left:auto;width:14px;height:14px;color:var(--t50)}
+.lema{padding:0 28px 18px;font-family:'EB Garamond',serif;font-style:italic;font-size:13px;color:var(--taupe)}
+.yo{border-top:1px solid var(--t10);padding:16px 20px;display:flex;align-items:center;gap:12px}
+.av{width:36px;height:36px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:15px;flex:none}
+.yo p:first-child{font-size:14px}.yo p:last-child{font-size:11px;letter-spacing:.06em;color:var(--taupe);text-transform:uppercase}
+
+/* cabecera fija */
+.top{position:fixed;top:var(--bar);left:var(--ancho);right:0;height:var(--cab);border-bottom:1px solid var(--t10);background:rgba(245,240,232,.85);backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 32px;z-index:30;font-size:13px;color:var(--t65);gap:10px}
+.top .sede{margin-left:auto;display:flex;align-items:center;gap:8px;height:32px;padding:0 12px;border:1px solid var(--sand);border-radius:8px;background:var(--papel);color:var(--tinta)}
+
+/* contenido */
+main{margin-left:var(--ancho);padding:calc(var(--bar) + var(--cab) + 40px) 40px 96px}
+.pag{max-width:1040px;margin:0 auto;animation:entrada 360ms var(--ease) both}
+.sobre{color:var(--rojo)}
+h1{font-family:'EB Garamond',Georgia,serif;font-weight:400;font-size:40px;line-height:1.1;margin-top:6px}
+.bajada{color:var(--taupe);margin-top:6px}
+.sec{margin-top:40px}.sec>.lbl{display:block;margin-bottom:12px}
+.cifras{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:12px}
+.cifra{padding:18px 20px}
+.cifra .v{font-family:'EB Garamond',serif;font-size:32px;line-height:1.1;margin-top:6px}
+.cifra .d{font-size:13px;color:var(--t65);margin-top:4px}
+.bar{height:6px;border-radius:9px;background:var(--t10);margin-top:10px;overflow:hidden}.bar i{display:block;height:100%;background:var(--verde);border-radius:9px}
+.up{color:var(--verde)}.down{color:var(--ambar)}
+.dos{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:24px;align-items:start}
+
+/* avisos: texto, no enlaces */
+.aviso{display:flex;gap:14px;align-items:flex-start;padding:14px 20px}
+.aviso+.aviso{border-top:1px solid var(--t10)}
+.aviso .t{font-size:14.5px;font-weight:500}
+.aviso .d{font-size:13px;color:var(--t65);margin-top:2px}
+.aviso .donde{font-size:12px;color:var(--taupe);margin-top:6px;display:flex;align-items:center;gap:6px}
+.aviso .donde svg{width:13px;height:13px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:99px;font-size:12px;font-weight:500;white-space:nowrap;flex:none;margin-top:1px}
+.chip i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ambar{background:rgba(116,80,26,.10);color:var(--ambar)}
+.chip.verde{background:rgba(72,96,63,.10);color:var(--verde)}
+.chip.pizarra{background:rgba(76,93,110,.10);color:var(--pizarra)}
+.aldia{padding:18px 20px;display:flex;gap:12px;align-items:center;color:var(--t80);font-size:14px}
+
+/* de turno */
+.turno{padding:6px 0}
+.pers{display:flex;align-items:center;gap:12px;padding:10px 20px}
+.pers .n{font-size:14px}.pers .r{font-size:12px;color:var(--t65)}
+.pers .h{margin-left:auto;font-size:12px;color:var(--t65);font-variant-numeric:tabular-nums}
+.pers .av{width:32px;height:32px;font-size:13px}
+.pers .av.fuera{background:transparent;border:1px dashed var(--t30);color:var(--t50)}
+
+/* actividad */
+.act-f{display:flex;align-items:baseline;gap:12px;padding:10px 20px;font-size:14px}
+.act-f+.act-f{border-top:1px solid var(--t10)}
+.act-f .f{width:44px;flex:none;font-size:12px;color:var(--t65);font-variant-numeric:tabular-nums}
+.act-f .q{flex:1;min-width:0}.act-f .q b{font-weight:500}
+.act-f .k{font-size:12px;color:var(--t65);white-space:nowrap}
+
+/* nota hueso */
+.nota{margin-top:40px;background:var(--hueso);border-radius:12px;padding:16px 20px;font-size:14px;color:var(--t80)}
+.nota .pl{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.nota .pl span{height:26px;padding:0 10px;border-radius:99px;border:1px solid var(--t10);background:var(--papel);font-size:12.5px;display:inline-flex;align-items:center}
+
+/* celular */
+.tabs{display:none}
+@media (max-width:767px){
+  .side,.top{display:none}
+  main{margin-left:0;padding:calc(var(--bar) + 24px) 16px 100px}
+  h1{font-size:30px}
+  .cifras{grid-template-columns:1fr 1fr}.cifras .cifra:first-child{grid-column:span 2}
+  .dos{grid-template-columns:1fr}
+  .tabs{display:grid;position:fixed;left:0;right:0;bottom:0;height:64px;background:rgba(245,240,232,.95);backdrop-filter:blur(10px);border-top:1px solid var(--t10);z-index:40}
+  .tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;color:var(--t65);position:relative}
+  .tabs a.act{color:var(--tinta);font-weight:500}
+  .tabs a.mas{color:var(--crema)}.tabs a.mas span.b{width:44px;height:44px;border-radius:50%;background:var(--tinta);display:grid;place-items:center}
+  .tabs a.mas.tachado{opacity:.35}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="spk">
+  <span class="tag">Spike · Inicio general</span>
+  <label>Ver como <select id="perfil"></select></label>
+  <label>Botón «+ Nuevo» <select id="nuevo"><option value="fuera">Quitado (propuesta)</option><option value="tachado">Como hoy (tachado)</option></select></label>
+</div>
+<aside class="side" id="side"></aside>
+<header class="top" id="top"></header>
+<main><div class="pag" id="pag"></div></main>
+<nav class="tabs" id="tabs"></nav>
+
+<script>
+const IC={
+  inicio:"M3 11l9-8 9 8M5 9.5V21h5v-6h4v6h5V9.5",
+  vender:"M6 6h15l-1.5 9h-12L6 6zm0 0L5 3H2m7 18a1 1 0 100-2 1 1 0 000 2zm9 0a1 1 0 100-2 1 1 0 000 2z",
+  inventario:"M4 7l8-4 8 4v10l-8 4-8-4V7zm8 4L4 7m8 4l8-4m-8 4v10",
+  catalogo:"M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
+  compras:"M3 4h2l2.2 11.2a1 1 0 001 .8h9.6a1 1 0 001-.8L20 8H6.5M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z",
+  produccion:"M6 9a3 3 0 100-6 3 3 0 000 6zm0 12a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12",
+  colaboradores:"M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
+  nuevo:"M12 5v14m-7-7h14", chev:"M9 6l6 6-6 6", menu:"M4 7h16M4 12h16M4 17h16", buscar:"M11 18a7 7 0 100-14 7 7 0 000 14zm10 3l-5-5",
+  visto:"M5 12l5 5L20 7", flecha:"M4 7h16M4 12h16M4 17h10"
+};
+const svg=(k,c="ic")=>`<svg class="${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[k]}"/></svg>`;
+
+/* Grupos del menú y qué módulo (ADR-0161) abre cada uno. */
+const GRUPOS=[
+  {et:"Ventas",ic:"vender",mods:["vender","caja","cambios","devoluciones","historial","clientas"]},
+  {et:"Inventario",ic:"inventario",mods:["existencias","traslados","conteos","movimientos"]},
+  {et:"Catálogo",ic:"catalogo",mods:["productos","atributos"]},
+  {et:"Compras",ic:"compras",mods:["facturas_compra","recibir","por_pagar","proveedores"]},
+  {et:"Producción",ic:"produccion",mods:["produccion"]},
+  {et:"Colaboradores",ic:"colaboradores",mods:["colaboradores","roles"]},
+];
+const NOMBRE={vender:"Punto de venta",caja:"Caja",cambios:"Cambios",devoluciones:"Devoluciones",historial:"Historial de ventas",clientas:"Clientas",existencias:"Existencias",traslados:"Traslados",conteos:"Conteos",movimientos:"Movimientos",productos:"Productos",atributos:"Categorías y atributos",facturas_compra:"Facturas de compra",recibir:"Recibir mercadería",por_pagar:"Por pagar",proveedores:"Proveedores",produccion:"Producción",colaboradores:"Colaboradores",roles:"Roles y accesos"};
+const TODOS=Object.keys(NOMBRE);
+
+const PERFILES=[
+  {id:"lider",nombre:"Felipe Alvarez",ini:"FA",rol:"Líder de equipo",lider:true,ub:"Tienda TRU",tipo:"tienda",mods:TODOS},
+  {id:"vend",nombre:"Micaela Ríos",ini:"MR",rol:"Vendedora",ub:"Tienda TRU",tipo:"tienda",mods:["vender","caja","cambios","devoluciones","clientas","existencias"]},
+  {id:"alm",nombre:"Rosa Quispe",ini:"RQ",rol:"Almacén",ub:"Almacén Lima",tipo:"almacen",mods:["existencias","traslados","conteos","movimientos","recibir"]},
+  {id:"tal",nombre:"Julio Mendoza",ini:"JM",rol:"Taller",ub:"Taller Lima",tipo:"taller",mods:["produccion","existencias","recibir"]},
+  {id:"nuevo",nombre:"Ana Torres",ini:"AT",rol:"Sin módulos todavía",ub:"Tienda AQP",tipo:"tienda",mods:[]},
+];
+
+/* Avisos: cada uno pertenece a un módulo; solo le llega a quien lo ve. Nunca es un enlace: dice dónde está. */
+const AVISOS=[
+  {mod:"traslados",n:2,t:"Traslados por recibir",d:"2 envíos de Almacén Lima esperan confirmación.",donde:"Inventario ▸ Traslados",ub:["tienda","almacen"]},
+  {mod:"caja",n:0,t:"Caja",d:"Abierta desde las 9:05 con S/ 200.",ok:"Abierta",ub:["tienda"]},
+  {mod:"recibir",n:1,t:"Prendas por regularizar",d:"1 lleva más de 2 días sin regularizar.",donde:"Compras ▸ Recibir",lider:true},
+  {mod:"facturas_compra",n:3,t:"Facturas de proveedor por vencer",d:"3 vencen esta semana (S/ 4,210).",donde:"Compras ▸ Por pagar",lider:true},
+  {mod:"produccion",n:4,t:"Órdenes en costura",d:"4 órdenes esperan pasar a acabado.",donde:"Producción",ub:["taller"]},
+  {mod:"conteos",n:1,t:"Conteo abierto",d:"Pasillo B, iniciado ayer a las 17:40.",donde:"Inventario ▸ Conteos",ub:["almacen"]},
+  {mod:"vender",n:0,t:"Comprobantes a SUNAT",d:"Todos llegaron o se están reintentando solos.",ok:"Al día",ub:["tienda"]},
+];
+
+const TURNO={
+  tienda:[{n:"Micaela Ríos",r:"Vendedora",h:"9:02",ini:"MR"},{n:"Felipe Alvarez",r:"Líder de equipo",h:"9:10",ini:"FA"},{n:"Lucía Paz",r:"Vendedora",h:"almuerzo",ini:"LP",fuera:true}],
+  almacen:[{n:"Rosa Quispe",r:"Almacén",h:"8:00",ini:"RQ"},{n:"Carlos Díaz",r:"Almacén",h:"8:15",ini:"CD"}],
+  taller:[{n:"Julio Mendoza",r:"Taller",h:"7:50",ini:"JM"},{n:"Nelly Huamán",r:"Costura",h:"8:02",ini:"NH"},{n:"Pedro Soto",r:"Corte",h:"8:05",ini:"PS"}],
+};
+const ACT={
+  tienda:[["11:42","Venta","Polo Básico M/corta · M negro","Micaela"],["11:05","Cambio","Jean Mom · 28 → 30","Micaela"],["10:30","Traslado recibido","12 prendas de Almacén Lima","Felipe"],["09:05","Caja abierta","Fondo S/ 200","Felipe"]],
+  almacen:[["10:50","Recepción","Envío 0048 · 3 proveedores, 84 prendas","Rosa"],["10:12","Traslado enviado","24 prendas a Tienda TRU","Carlos"],["08:30","Conteo","Pasillo B · 60 de 140 contadas","Rosa"]],
+  taller:[["11:20","Avance","OP-0112 Vestido Lino · corte → costura","Pedro"],["09:40","Insumos","Tela lino arena · 40 m","Julio"],["08:10","Orden creada","OP-0115 Blusa Seda · 30 u.","Julio"]],
+};
+
+const sel=document.getElementById("perfil");
+sel.innerHTML=PERFILES.map(p=>`<option value="${p.id}">${p.nombre} · ${p.rol} · ${p.ub}</option>`).join("");
+const selN=document.getElementById("nuevo");
+sel.onchange=selN.onchange=pintar;
+
+function pintar(){
+  const p=PERFILES.find(x=>x.id===sel.value);
+  const ve=m=>p.mods.includes(m);
+  const tach=selN.value==="tachado";
+
+  // ---- lateral: solo lo que su rol ve, sin «+ Nuevo» ----
+  const grupos=GRUPOS.filter(g=>g.mods.some(ve));
+  document.getElementById("side").innerHTML=`
+    <div class="logo"><img src="cayla-isotipo.png" alt=""><span>CAYLA</span></div>
+    ${tach?`<div class="nuevo tachado">${svg("nuevo")}Nuevo</div>`:""}
+    <nav>
+      <div class="fila act">${svg("inicio")}Inicio</div>
+      ${grupos.map(g=>`<div class="fila">${svg(g.ic)}${g.et}${svg("chev","ic chev")}</div>`).join("")}
+    </nav>
+    <p class="lema">Donde el estilo transforma.</p>
+    <div class="yo"><div class="av">${p.ini}</div><div><p>${p.nombre}</p><p>${p.rol} · ${p.ub}</p></div></div>`;
+  document.getElementById("top").innerHTML=`${svg("menu")}<span class="sede">${p.ub}</span>`;
+
+  // ---- barra del celular: 4 pestañas del rol, sin el «+» central ----
+  const tabs=[{et:"Inicio",ic:"inicio",act:true},...grupos.slice(0,3).map(g=>({et:g.et,ic:g.ic})),{et:"Más",ic:"menu"}];
+  if(tach) tabs.splice(2,0,{mas:true});
+  const t=document.getElementById("tabs");
+  t.style.gridTemplateColumns=`repeat(${tabs.length},1fr)`;
+  t.innerHTML=tabs.map(x=>x.mas?`<a class="mas tachado"><span class="b">${svg("nuevo")}</span></a>`:`<a class="${x.act?"act":""}">${svg(x.ic)}${x.et}</a>`).join("");
+
+  // ---- Inicio ----
+  const hoy="jueves 24 de septiembre";
+  const primer=p.nombre.split(" ")[0];
+  const avisos=AVISOS.filter(a=>ve(a.mod)&&(!a.lider||p.lider)&&(!a.ub||a.ub.includes(p.tipo)));
+  const pend=avisos.filter(a=>!a.ok&&a.n>0), bien=avisos.filter(a=>a.ok||a.n===0);
+
+  let cifras="";
+  if(p.tipo==="tienda"&&ve("vender")){
+    cifras=p.lider?`
+      <div class="card cifra"><span class="lbl">Ventas de la tienda</span><div class="v">S/ 1,240</div><div class="d"><span class="up">▲ 18 %</span> vs. el jueves pasado a esta hora</div></div>
+      <div class="card cifra"><span class="lbl">Prendas vendidas</span><div class="v">23</div><div class="d">en 14 ventas · ticket medio S/ 89</div></div>
+      <div class="card cifra"><span class="lbl">Meta del día</span><div class="v">62 %</div><div class="d">Faltan S/ 760 de S/ 2,000</div><div class="bar"><i style="width:62%"></i></div></div>`
+     :`
+      <div class="card cifra"><span class="lbl">Tus ventas</span><div class="v">S/ 540</div><div class="d">6 ventas hoy</div></div>
+      <div class="card cifra"><span class="lbl">Prendas</span><div class="v">9</div><div class="d">que despachaste hoy</div></div>
+      <div class="card cifra"><span class="lbl">Meta de la tienda</span><div class="v">62 %</div><div class="d">Entre todas, hoy</div><div class="bar"><i style="width:62%"></i></div></div>`;
+  }else if(p.tipo==="almacen"){
+    cifras=`
+      <div class="card cifra"><span class="lbl">Prendas en Almacén</span><div class="v">4,812</div><div class="d">en 612 variantes</div></div>
+      <div class="card cifra"><span class="lbl">Entraron hoy</span><div class="v">84</div><div class="d">1 recepción</div></div>
+      <div class="card cifra"><span class="lbl">Salieron hoy</span><div class="v">24</div><div class="d">1 traslado a tiendas</div></div>`;
+  }else if(p.tipo==="taller"){
+    cifras=`
+      <div class="card cifra"><span class="lbl">Órdenes en curso</span><div class="v">7</div><div class="d">312 prendas en proceso</div></div>
+      <div class="card cifra"><span class="lbl">Terminadas esta semana</span><div class="v">3</div><div class="d">96 prendas a Almacén</div></div>
+      <div class="card cifra"><span class="lbl">Atrasadas</span><div class="v">1</div><div class="d"><span class="down">OP-0108 · 2 días</span></div></div>`;
+  }
+
+  const avisoHTML=a=>`<div class="aviso">
+      <span class="chip ${a.ok||a.n===0?"verde":"ambar"}"><i></i>${a.ok||(a.n===0?"Al día":a.n)}</span>
+      <div><p class="t">${a.t}</p><p class="d">${a.d}</p>${a.donde&&a.n>0?`<p class="donde">${svg("flecha")}En el menú: ${a.donde}</p>`:""}</div></div>`;
+
+  document.getElementById("pag").innerHTML=`
+    <span class="lbl sobre">Inicio · ${hoy}</span>
+    <h1>Hola, ${primer}</h1>
+    <p class="bajada">${p.ub} · ${p.rol}</p>
+
+    ${cifras?`<section class="sec"><span class="lbl">Hoy en ${p.ub}</span><div class="cifras">${cifras}</div></section>`:""}
+
+    <div class="sec dos">
+      <section><span class="lbl">Te toca</span>
+        <div class="card">${
+          !p.mods.length?`<div class="aldia">Aún no tienes módulos. Tu líder te los da en Roles y accesos.</div>`
+          :pend.length?pend.map(avisoHTML).join("")+(bien.length?`<div class="aviso" style="padding-top:10px;padding-bottom:12px"><span class="chip verde"><i></i>Al día</span><p class="d" style="margin-top:2px">${bien.map(b=>b.t).join(" · ")}</p></div>`:"")
+          :`<div class="aldia"><span class="chip verde"><i></i>Al día</span>Nada pendiente en lo que ves.</div>`
+        }</div>
+      </section>
+      <section><span class="lbl">De turno ahora</span>
+        <div class="card turno">${TURNO[p.tipo].map(x=>`<div class="pers"><div class="av ${x.fuera?"fuera":""}">${x.ini}</div><div><p class="n">${x.n}</p><p class="r">${x.r}</p></div><span class="h">${x.fuera?"en almuerzo":"desde "+x.h}</span></div>`).join("")}</div>
+      </section>
+    </div>
+
+    <section class="sec"><span class="lbl">Lo último en ${p.ub}</span>
+      <div class="card">${ACT[p.tipo].map(a=>`<div class="act-f"><span class="f">${a[0]}</span><span class="q"><b>${a[1]}</b> · ${a[2]}</span><span class="k">${a[3]}</span></div>`).join("")}</div>
+    </section>
+
+    <div class="nota">${p.mods.length
+      ?`Tu rol <b>${p.rol}</b> te da ${p.mods.length===TODOS.length?"todos los módulos":p.mods.length+" módulos"}. Los abres desde el menú${innerWidth<768?" de abajo":" de la izquierda"}; si te falta alguno, pídeselo a tu líder.
+        ${p.mods.length<TODOS.length?`<div class="pl">${p.mods.map(m=>`<span>${NOMBRE[m]}</span>`).join("")}</div>`:""}`
+      :`Todavía no tienes módulos asignados, por eso el menú solo muestra Inicio. Tu líder te los da en Colaboradores ▸ Roles y accesos.`}</div>`;
+}
+pintar();
+addEventListener("resize",()=>{clearTimeout(window._r);window._r=setTimeout(pintar,150)});
+</script>
+</body>
+</html>
