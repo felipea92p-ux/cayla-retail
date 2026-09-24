@@ -14,6 +14,7 @@ import {
   piezasDeVenta,
   resumir,
   serieDiaria,
+  TOPE_TOTALES,
   subtituloDePrendas,
   titulosDePrendas,
   subtotalDeItem,
@@ -24,6 +25,7 @@ import {
   type ItemCrudo,
   type VentaCruda,
 } from "./ventas-historial-reglas";
+import { FILAS_POR_PAGINA } from "./resultado";
 
 const HOY = "2026-09-21";
 const SEDE_LIMA = "11111111-1111-1111-1111-111111111111";
@@ -51,6 +53,12 @@ const venta = (parcial: Partial<VentaCruda> = {}): VentaCruda => ({
   venta_pagos: [{ metodo: "efectivo", monto: 100 }],
   comprobantes: [],
   ...parcial,
+});
+
+// La fila de más que avisa «hay más ventas» tiene que caber dentro del corte de PostgREST: con el tope
+// en 1000, la 1001 nunca llegaba y los totales de un mes grande salían parciales sin avisar (2026-09-23).
+it("el tope de los totales deja lugar a la fila que detecta «hay más»", () => {
+  expect(TOPE_TOTALES + 1).toBeLessThanOrEqual(FILAS_POR_PAGINA);
 });
 
 describe("limitesUTC — los días son de Lima, la base pide UTC", () => {

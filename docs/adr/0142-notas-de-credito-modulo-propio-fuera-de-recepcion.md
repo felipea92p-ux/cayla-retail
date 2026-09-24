@@ -1,5 +1,10 @@
 # ADR-0142 — Las notas de crédito salen de Recepción y tienen módulo propio
 
+> **Nota (2026-09-23, PL-50):** en Compras esto hoy se llama «Notas de crédito de proveedor» (y los comprobantes de compra,
+> «Facturas de proveedor»). «Nota de crédito» a secas quedó solo para Ventas. La ruta sigue siendo `/compras/notas-credito`
+> y el módulo de roles, `notas_credito` (nombre en Roles y accesos: «Notas de crédito», vive en la base). El resto del
+> documento conserva los nombres de su fecha.
+
 > **Número:** nació como 0140; ese número lo tomó «Carga inicial de proveedores» al llegar a `main` primero, y 0141 es «Apartar stock». Es el mismo documento.
 
 **Fecha:** 2026-09-19 (spike aprobado, implementación y verificación en local)

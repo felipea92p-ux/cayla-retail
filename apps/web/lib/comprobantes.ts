@@ -2,6 +2,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas, tolerar } from "@/lib/resultado";
 import { resumenPorEnviar, type ResumenPorEnviar } from "@/lib/facturacion-reglas";
+import { HORAS_REINTENTO_AUTOMATICO } from "@/lib/transmision-reglas";
 import type { Comprobante, EstadoComprobante, SerieComprobante, VentaDelDia } from "@/lib/comprobantes-reglas";
 
 // Tipos y reglas puras (lo que un componente cliente puede necesitar como
@@ -110,6 +111,20 @@ export async function getVentasDeHoy(ubicacionId?: string): Promise<VentaDelDia[
   const supabase = await createClient();
   const res = await supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: ubicacionId });
   return exigir(res, "las ventas de hoy") as unknown as VentaDelDia[];
+}
+
+/** PL-114: cuántos comprobantes llevan más de `HORAS_REINTENTO_AUTOMATICO` sin llegar a SUNAT — el trabajo
+ *  programado ya los soltó (PL-113) y le toca a una persona leer el error. Es la cifra del aviso del Inicio del
+ *  líder. Nunca lanza: si no se puede leer, el Inicio lo dice en la tarjeta en vez de dibujar un 0. */
+export async function contarComprobantesAtascados(ahora = Date.now()): Promise<number | null> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("comprobantes")
+    .select("id", { count: "exact", head: true })
+    .in("estado", ["pendiente", "pendiente_reintento"])
+    .lt("created_at", new Date(ahora - HORAS_REINTENTO_AUTOMATICO * 3_600_000).toISOString());
+  if (error) console.error("Inicio: no se pudo contar los comprobantes sin llegar a SUNAT:", error.message);
+  return error ? null : (count ?? 0);
 }
 
 /** Cuántos comprobantes esperan un envío a SUNAT ahora mismo, para el contador de la pestaña.
