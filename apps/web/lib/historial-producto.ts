@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
+import { exigir, leerTodas } from "@/lib/resultado";
 
 // Historial de Producto (Sesión A3, 2026-09-15): la mitad de precio/categoría.
 // `productos`/`variantes` no tienen `updated_at` ni ningún log — este archivo
@@ -49,8 +49,19 @@ type FilaRpc = {
  *  precio no cambia todos los días). */
 export async function getCambiosProducto(productoId: string): Promise<CambioProducto[]> {
   const supabase = await createClient();
+  // «Volumen bajo» por producto, pero un cambio de precio masivo escribe una fila POR VARIANTE: un modelo con muchas
+  // tallas y colores pasa las 1.000 filas en pocos cambios y PostgREST cortaría los más viejos sin avisar. Por
+  // páginas, en serie (ADR-0192), más recientes primero como la función, con `id` para que el orden sea único.
   const filas = exigir(
-    await supabase.rpc("fn_historial_producto_cambios", { p_producto_id: productoId }),
+    await leerTodas(
+      (desde, hasta) =>
+        supabase
+          .rpc("fn_historial_producto_cambios", { p_producto_id: productoId })
+          .order("created_at", { ascending: false })
+          .order("id")
+          .range(desde, hasta),
+      { enParalelo: 1 },
+    ),
     "los cambios de precio y categoría del producto"
   );
   return (filas as FilaRpc[]).map((f) => ({

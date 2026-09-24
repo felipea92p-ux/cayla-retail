@@ -89,11 +89,16 @@ const PAGINAS_EN_PARALELO = 3;
  */
 export async function leerTodas<T, E extends { message: string }>(
   pagina: (desde: number, hasta: number) => PromiseLike<{ data: T[] | null; error: E | null }>,
+  /** `enParalelo: 1` para una RPC que casi siempre cabe en una página (ADR-0192): cada página RECALCULA la función
+   *  entera, así que pedir 3 a la vez triplica el costo en la base para traer lo mismo. En serie, la 2.ª página solo se
+   *  pide si la 1.ª vino llena: mismo costo que hoy, y correcta el día que pase de 1.000. */
+  opciones: { enParalelo?: number } = {},
 ): Promise<{ data: T[] | null; error: E | null }> {
+  const enParalelo = Math.max(1, opciones.enParalelo ?? PAGINAS_EN_PARALELO);
   const filas: T[] = [];
-  for (let tanda = 0; ; tanda += PAGINAS_EN_PARALELO) {
+  for (let tanda = 0; ; tanda += enParalelo) {
     const respuestas = await Promise.all(
-      Array.from({ length: PAGINAS_EN_PARALELO }, (_, i) => {
+      Array.from({ length: enParalelo }, (_, i) => {
         const desde = (tanda + i) * FILAS_POR_PAGINA;
         return pagina(desde, desde + FILAS_POR_PAGINA - 1);
       }),

@@ -286,3 +286,9 @@ export function apartadoDeFila(f: Record<string, unknown>): Apartado {
     pagos: pagos.map((p) => ({ metodo: p.metodo as MetodoPago, monto: n(p.monto) })),
   };
 }
+
+
+/** `buscar_separaciones` devuelve como mucho 200 (tope dentro de la función, ordenado: liberados, abiertos, y al final
+ *  lo ya cerrado). No se pagina (ADR-0192): la lista es el trabajo del mostrador, no un archivo; el resumen de arriba
+ *  sale de `resumen_separaciones`, que cuenta todo. Si llegan justo 200 la pantalla AVISA que hay más en vez de callarlo. */
+export const TOPE_SEPARACIONES = 200;

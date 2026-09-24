@@ -43,6 +43,15 @@ describe("leerTodas", () => {
     expect(pagina).toHaveBeenCalledTimes(6);
   });
 
+  it("en serie (RPC que casi siempre cabe): una sola llamada si no llena la página, y sigue si la llena", async () => {
+    const chica = servir(tabla(40));
+    expect((await leerTodas(chica, { enParalelo: 1 })).data).toHaveLength(40);
+    expect(chica).toHaveBeenCalledTimes(1);
+    const grande = servir(tabla(2100));
+    expect((await leerTodas(grande, { enParalelo: 1 })).data).toEqual(tabla(2100));
+    expect(grande).toHaveBeenCalledTimes(3);
+  });
+
   it("una página con error no entrega media lista", async () => {
     let llamada = 0;
     const res = await leerTodas(async () =>

@@ -94,6 +94,7 @@ async function Apartados() {
       apartados={datos.apartados}
       resumen={datos.resumen}
       liberadosAhora={datos.liberadosAhora}
+      hayMas={datos.hayMas}
     />
   );
 }
