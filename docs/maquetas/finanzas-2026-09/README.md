@@ -1,12 +1,31 @@
-# Spike visual · Finanzas (2026-09-24, v2)
+# Spike visual · Finanzas (2026-09-24, v3)
 
 `finanzas-spike.html`: un solo archivo, se abre en el navegador. Datos de ejemplo; nada se guarda.
 Se arma desde `src/` con `python3 src/construir.py` (estilos, datos y una vista por archivo).
-Plan: `docs/PLAN-FINANZAS.md` · Decisiones: `docs/adr/0194-finanzas-un-comprobante-de-proveedor-y-cinco-modulos.md`.
+Plan: `docs/PLAN-FINANZAS.md` · Decisiones: `docs/adr/0195-finanzas-un-comprobante-de-proveedor-y-cinco-modulos.md`.
 
 Paleta oficial «CAYLA Dynamic» (ADR-0169), copiada de `existencias-rediseno-2026-09/demo.html`. Los colores de medio de
 pago son los `--color-metodo-*` de `globals.css`. Ventanas con el movimiento de ADR-0136; un solo loader y el aviso
 después (ADR-0149); combo «Responsable» en cada guardado (ADR-0161/0162).
+
+## v3 (2026-09-24, noche): la plata conectada con todo el ERP
+
+- **Configuración ▸ Tiendas y caja:** meta de cada día de la semana por tienda (con IGV), fondo de caja y temporadas
+  (Fiestas Patrias, Navidad, temporada baja) que suben o bajan la meta y cambian el fondo. No se pueden cruzar. La meta
+  del mes del Presupuesto sale de aquí.
+- **Ventas ▸ Caja (pantalla de ejemplo, no es de Finanzas):** meta de hoy con lo que falta y a qué hora se llega al
+  ritmo actual; a qué cuenta entró cada cobro; y el cierre: «Deja S/ X», traslado propuesto, destino «banco» que pregunta
+  cuál, y la **confirmación que no bloquea** si se deja menos del fondo. «Demo · día» simula un viernes de Navidad.
+- **Cuentas nuevas:** cajas fuertes por tienda, efectivo entregado al líder y tarjeta de crédito de CAYLA (deuda).
+- **Pagar a un proveedor** propone «Sale de» con bancos, cajas fuertes, efectivo por rendir, cajones y la tarjeta.
+- El mapa de las 22 situaciones donde entra, sale o se mueve plata está en `docs/PLAN-FINANZAS.md` §7 bis.
+
+Guion: **Ventas ▸ Caja** → «Demo · día» Navidad → «Cerrar caja» → sube el traslado 200 → «Cerrar caja» → confirmación
+→ «Volver y dejar S/ 500» o «Cerrar igual». **Configuración ▸ Tiendas y caja** → cambia la meta de un sábado: cambia la
+meta del mes y el Presupuesto. «+ Nueva temporada» con fechas que chocan con Navidad → la rechaza.
+
+Verificado con Chrome sin ventana: 16 pasos nuevos + los 20 de la v2, sin errores de JavaScript; sin desborde a 375 px
+en ninguna pantalla, pestaña ni día simulado.
 
 ## v2 (2026-09-24, tarde): la capa para decidir
 
@@ -92,8 +111,8 @@ Verificado con Chrome sin ventana: los 20 pasos del guion v1 + v2, sin errores d
 375 px en ninguna pantalla ni pestaña, con «Todas», con una tienda y con el Taller.
 
 ## Lo que el spike da por supuesto (decisiones o datos pendientes)
-1. **Balance por tienda:** el spike muestra solo el Balance de CAYLA entera; por tienda solo sería lo suyo (cajón,
-   mercadería, muebles). Pendiente de Felipe.
+1. **Balance por tienda:** el spike muestra solo el Balance de CAYLA entera. Las dos opciones («lo que es de la tienda» o
+   «completo, repartiendo») están explicadas en el plan, §10. Pendiente de Felipe.
 2. ~~Retiros y aportes del dueño~~ → resuelto en v2: aporte o préstamo al poner; retiro o devolución al sacar. Cómo se contabiliza cada uno lo confirma el contador (préstamo = cuenta 47, por confirmar).
 3. ~~Mínimo de caja~~ → resuelto en v2: se configura en Gestión ▸ Configuración.
 4. ~~Gastos fijos~~ → resuelto en v2: el sistema los propone, avisa los que faltan y detecta los nuevos.

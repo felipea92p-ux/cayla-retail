@@ -145,8 +145,8 @@ function vistaPresupuesto(){
   const chip = p => p > 1.05 ? `<span class="badge" data-tono="rojo">te pasas ${pct(p-1)}</span>` : p > 1 ? '<span class="badge" data-tono="ambar">al filo</span>' : '<span class="badge" data-tono="verde">dentro del tope</span>';
   const bloques = us.map(u => {
     const filas = [];
-    if (PRESUPUESTO.ventas[u]){ const real = sep.ventas[u], proy = Math.round(real/AVANCE_MES), meta = PRESUPUESTO.ventas[u];
-      filas.push(`<tr class="fila-ventas"><td data-l="Rubro"><b>Ventas</b> <span class="sub">(meta)</span></td><td class="num" data-l="Meta">${S(meta)}</td><td class="num" data-l="A la fecha">${S(real)}</td><td class="num" data-l="Al cierre">${S(proy)}</td>
+    if (TIENDAS_CAJA[u]){ const real = sep.ventas[u], proy = Math.round(real/AVANCE_MES), meta = metaMes(u);
+      filas.push(`<tr class="fila-ventas"><td data-l="Rubro"><b>Ventas</b> <span class="sub">(suma de las metas del día, sin IGV)</span></td><td class="num" data-l="Meta">${S(meta)}</td><td class="num" data-l="A la fecha">${S(real)}</td><td class="num" data-l="Al cierre">${S(proy)}</td>
         <td data-l="Avance"><div class="umbral-barra fina"><i style="width:${Math.min(100,proy/meta*100)}%"></i></div></td><td data-l="Estado">${proy/meta < .95 ? '<span class="badge" data-tono="ambar">bajo la meta</span>' : '<span class="badge" data-tono="verde">en camino</span>'}</td></tr>`); }
     for (const [k, m] of Object.entries(PRESUPUESTO.gastos)){ if (!m[u]) continue;
       const real = sep[k]?.[u] || 0, proy = FIJAS.includes(k) ? real : Math.round(real/AVANCE_MES), p = proy/m[u];

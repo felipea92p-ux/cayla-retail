@@ -2,9 +2,9 @@
 
 > **Estado:** PLAN, sin código ni migraciones. Aprobado por Felipe en lo conceptual (decisiones A y B, 2026-09-24).
 > **F0 hecha (2026-09-24):** spike visual completo en `docs/maquetas/finanzas-2026-09/` (README con el guion de prueba).
-> **v2 del spike (mismo día):** filtro «Ver», capa para decidir, plata del dueño y módulo Configuración (ADR-0194, actualización b).
+> **v2 del spike (mismo día):** filtro «Ver», capa para decidir, plata del dueño y módulo Configuración (ADR-0195, actualización b).
 > Siguiente paso: que Felipe lo recorra y apruebe las pantallas antes de construir F1.
-> ADR asociado: `docs/adr/0194-finanzas-un-comprobante-de-proveedor-y-cinco-modulos.md`.
+> ADR asociado: `docs/adr/0195-finanzas-un-comprobante-de-proveedor-y-cinco-modulos.md`.
 > Se apoya en tres ADR que Felipe ya aprobó y que viven en el PR #170 (sin fusionar, sin pegar en producción):
 > **ADR-0109** (los estados salen de un diario derivado que se congela al cerrar el mes), **ADR-0117** (gastos) y
 > **ADR-0120** (las reglas de posteo en `fn_asientos`). Este plan **no los reemplaza**: los retoma y dice qué cambia.
@@ -82,7 +82,7 @@ Hoy **nadie ve** los gastos, el banco, la utilidad por tienda ni el IGV neto. Es
 - **Plan de cuentas:** ~26 cuentas del manual contable, **una por concepto, no por sede** (la sede es etiqueta del asiento).
 - **D-32 / ADR-0117:** los gastos que no son de ninguna tienda son «de la empresa» y aparecen solo en el consolidado.
 
-### Nuevas de hoy (ADR-0194)
+### Nuevas de hoy (ADR-0195)
 - **A · Un solo «comprobante de proveedor» para mercadería, gasto y activo.** La cabecera de `compras` (proveedor, serie,
   número, IGV, contado/crédito, vencimiento, pagos, saldo) es la misma para los tres; cambia el detalle. La pantalla de
   gastos vive en Finanzas. Ver §5.
@@ -147,7 +147,7 @@ Todos nacen **solo para el líder** (regla de CLAUDE.md, ADR-0161): migración p
 Cuentas y dinero (Cuentas, Efectivo por tienda, Por pagar, Conciliación) · Reportes (Resultados, Flujo, Balance) · Impuestos ·
 Cierre de mes. Las 11 piezas son pestañas dentro de esas 6 entradas (ajuste del spike, 2026-09-24).
 
-## 6 bis. Filtro de tienda y capa para decidir (ADR-0194, actualización b)
+## 6 bis. Filtro de tienda y capa para decidir (ADR-0195, actualización b)
 
 - **Cabecera = dónde trabajas** (una sede). **«Ver» dentro de la pantalla = qué miras**, con «Todas las tiendas».
   Flujo, Balance, Impuestos, Cierre y Conciliación son de CAYLA entera y lo dicen.
@@ -177,6 +177,98 @@ Cierre de mes. Las 11 piezas son pestañas dentro de esas 6 entradas (ajuste del
 - **Conciliación semanal:** se anota el saldo que dice el banco; el sistema muestra la diferencia y los movimientos sin
   pareja. Importar el extracto (CSV) queda para después.
 
+## 7 bis. El dinero conectado: cada situación (ADR-0195, actualización c)
+
+**El problema, medido en producción (2026-09-24):** la plata se mueve en **12 lugares** del sistema, con **5 listas
+distintas de medios de pago** (`venta_pagos` acepta «anticipo»; `compra_pagos`, «depósito», «otro» y «saldo a favor»;
+`gastos`, «tarjeta»…) y **ninguno guarda de qué cuenta de CAYLA salió o a cuál entró**. Hueco concreto: el cierre de
+caja (`fn_calcular_esperado_caja`) cuenta ventas, entradas, salidas, reembolsos y cambios en efectivo, **pero no los
+pagos a proveedores en efectivo**. Ya hay **12 pagos en efectivo a proveedores por S/ 15,661** que no dicen de qué
+cajón o caja fuerte salieron. Si salieron del cajón, esa tienda cerró con un faltante que no existía.
+
+**La regla que lo arregla:** todo lo que mueve plata guarda **dos cosas**. El **medio** (cómo: efectivo, Yape,
+transferencia…) y la **cuenta** (dónde: cajón de TRU, BCP, caja fuerte de AQP…). La cuenta se **sella al guardar**,
+como el costo en cada venta: si mañana cambias a qué banco cae el Yape de LIM, lo pasado no se mueve.
+
+**Tipos de cuenta** (tabla `cuentas_dinero`, se administran en Configuración):
+
+| Tipo | Ejemplos | Cuenta contable | Cómo nace |
+|---|---|---|---|
+| Cajón de tienda | Cajón TRU, Fondo fijo del Taller | 101 | Solo, con cada sede |
+| Caja fuerte | Caja fuerte TRU | 101 | Solo, con cada sede (el cierre ya la usa como destino) |
+| Efectivo por rendir | Efectivo entregado al líder | 101 | Una; el cierre ya permite «entregado al líder» |
+| Banco | BCP, Interbank | 104 | En Configuración |
+| Por abonar | Niubiz (tarjeta) | 105 | En Configuración |
+| Tarjeta de crédito de CAYLA | Visa BCP empresa | pasivo (lo que se debe) | En Configuración; hoy `gastos` ya acepta «tarjeta» |
+
+### Entra plata
+
+| # | Situación | Dónde se registra | Qué guarda hoy | Qué cuenta toca | Cómo se elige | Qué cambia en la pantalla |
+|---|---|---|---|---|---|---|
+| 1 | Venta en efectivo, Yape, Plin, tarjeta o transferencia | Vender | `venta_pagos.metodo` | Cajón / banco del medio / Niubiz | **Sola**, por «A qué cuenta entra cada cobro» de esa tienda | Nada. Si la tienda tiene dos cuentas para transferencias, pregunta cuál |
+| 2 | Venta pagada con el adelanto de una separación | Vender | `venta_pagos` «anticipo» | Ninguna: la plata entró al abonar | — | Nada |
+| 3 | Abono de separación o adelanto de apartado | Vender ▸ Apartados | `separacion_pagos.metodo`, `apartados.adelanto_medio` | Igual que la venta | Sola | Nada |
+| 4 | Cambio en que la clienta paga una diferencia | Cambios | `cambios.metodo_pago_diferencia` | Igual que la venta | Sola | Nada |
+| 5 | Proforma que se cobra | Vender | Pasa por la venta | Igual que la venta | Sola | Nada |
+| 6 | El proveedor devuelve plata (reembolso de nota de crédito) | Compras ▸ Notas de crédito | `proveedor_creditos` «reembolso» | Banco o cajón | Combo **«Entra a»** | Se agrega el combo |
+| 7 | Aporte o préstamo del dueño | Finanzas ▸ Cuentas y dinero | — (nuevo) | La que elijas | Combo | Nueva (spike v2) |
+| 8 | El banco abona lo cobrado con tarjeta | Finanzas ▸ Cuentas y dinero | — (nuevo) | Niubiz → banco; la comisión, gasto 639 | Conciliación lo propone | Nueva |
+
+### Sale plata
+
+| # | Situación | Dónde se registra | Qué guarda hoy | Qué cuenta toca | Cómo se elige | Qué cambia en la pantalla |
+|---|---|---|---|---|---|---|
+| 9 | Devolución de plata a una clienta | Devoluciones | `devoluciones.reembolso_metodo` | Efectivo: cajón (ya resta del cierre). Yape o transferencia: un banco | Efectivo: solo. Otro medio: combo **«Sale de»**, propone el de la tienda | Se agrega el combo cuando no es efectivo |
+| 10 | Devolución del adelanto de una separación | Vender ▸ Apartados | `separaciones.devolucion_medio_real` | Igual que la 9 | Igual | Igual |
+| 11 | Pago a un proveedor de mercadería | Compras (contado) y Por pagar | `compra_pagos.metodo`, `referencia` | La que se elija | Combo **«Sale de»**: bancos, cajones, cajas fuertes, efectivo por rendir | Si sale de un **cajón**, crea su salida de caja en la misma operación y resta del cierre (arregla el hueco de arriba) |
+| 12 | Pago a un proveedor del Taller | Producción | `comprobantes_produccion_pagos` | Igual que la 11 | Igual | Igual |
+| 13 | Gasto | Finanzas ▸ Gastos | `gastos.metodo_pago` | Igual; con tarjeta de crédito, la deuda sube en la tarjeta | Combo **«Salió de»** | Ya en el spike |
+| 14 | Pagar la tarjeta de crédito de CAYLA | Finanzas ▸ Cuentas y dinero | — (nuevo) | Banco → tarjeta (baja la deuda) | Combo | Nueva |
+| 15 | Planilla | La paga Dynamic | Retail solo lee el costo | Un banco | Finanzas propone «Pago de planilla de septiembre, S/ 29,800» con lo que dice Dynamic; se confirma la cuenta | Nueva. **Toca Dynamic: decisión de Felipe** |
+| 16 | IGV y renta a SUNAT | Finanzas ▸ Impuestos | — (nuevo) | Un banco; baja lo que se debe a SUNAT | Combo | Botón «Registrar pago a SUNAT» |
+| 17 | Retiro de utilidades o devolución de préstamo al dueño | Finanzas ▸ Cuentas y dinero | — (nuevo) | La que elijas | Combo | Nueva (spike v2) |
+| 18 | Salida de caja chica (movilidad, útiles) | Caja ▸ Registrar movimiento | `caja_movimientos` | Cajón | Sola | Nada; Finanzas la clasifica (ADR-0117) |
+
+### La plata cambia de lugar (no entra ni sale de CAYLA)
+
+| # | Situación | Dónde se registra | Qué guarda hoy | Qué cuenta toca | Qué cambia |
+|---|---|---|---|---|---|
+| 19 | Cierre de caja: traslado a caja fuerte, banco o líder | Caja ▸ Cerrar | `caja_traslados.destino` («banco», sin decir cuál) | Cajón → caja fuerte / **el banco elegido** / efectivo por rendir | Si el destino es «banco», pide **cuál** |
+| 20 | Llevar al banco lo de la caja fuerte o lo que tiene el líder | Finanzas ▸ Cuentas y dinero | — (nuevo) | Caja fuerte o por rendir → banco | Nueva |
+| 21 | Pasar plata entre bancos | Finanzas ▸ Cuentas y dinero | — (nuevo) | Banco → banco | Nueva |
+| 22 | Llevar efectivo de una tienda a otra | Fuera por ahora (ADR-0186: necesita acuse de recibo) | — | Cajón → cajón | Pendiente |
+
+**Lo que no cambia:** nadie en el mostrador elige una cuenta al cobrar (1–5). La cuenta aparece solo donde una persona
+decide de dónde sale la plata (6, 9–17, 19–21), y siempre viene propuesta.
+
+**Una sola lista de medios de pago:** `efectivo, yape, plin, tarjeta, transferencia, deposito, otro`, más dos
+especiales que no mueven plata (`anticipo`, `saldo_a_favor`). Vive en `packages/shared` y en un dominio de la base, y
+reemplaza los 5 `check` distintos de hoy.
+
+## 7 ter. Meta del día y fondo de caja, por temporada (ADR-0195, actualización c)
+
+**Lo que ya existe:** `ubicaciones.meta_venta_diaria` (migración `20260918100000`) y la barra «de S/ X» en Caja y en
+Inicio. En producción **ninguna tienda tiene meta cargada**, así que la barra no aparece; hoy se carga a mano en la base.
+
+**Lo nuevo, en Configuración ▸ Tiendas y caja:**
+- **Lo normal, por tienda:** la meta de cada día de la semana (el sábado no vende como el martes) y el **fondo de caja**
+  (lo que debe quedar en el cajón para el próximo turno).
+- **Temporadas:** un nombre y unas fechas (Campaña de Navidad, del 1 al 31 de diciembre). Por tienda: cuánto sube o baja
+  la meta (+40 %) y cuánto fondo dejar (S/ 500). Dos temporadas no pueden cruzarse: lo impide la base.
+- **Una sola función** decide lo que rige cada día (`fn_parametros_caja(sede, fecha)`). La leen Caja, Inicio y Finanzas.
+
+**En Caja:** «Meta de hoy (viernes, Campaña de Navidad): S/ 2,520 · llevas S/ 1,640 · te faltan S/ 880». Y al ritmo de
+la hora: «a este paso cierras en S/ 2,300».
+
+**Al cerrar la caja:** «Para el próximo turno deja **S/ 500** (Campaña de Navidad)». El traslado viene propuesto
+(contado − fondo). Si va a quedar menos, sale una **confirmación que no bloquea**: «Vas a dejar S/ 320 y esta temporada
+pide S/ 500. El próximo turno puede quedarse sin sencillo. ¿Cerrar igual?». Si cierra igual, queda anotado en el cierre
+y el líder lo ve en Historial de cierres. **Cambia el punto 3 del ADR-0186** («sin fondo sugerido»): ahora el fondo lo
+pone el líder por temporada, y el sistema solo avisa cuando falta.
+
+**Una sola meta, no dos:** la meta de ventas del mes en Presupuesto **es la suma de las metas diarias**, no se escribe
+aparte. Si fueran dos números, un día dirían cosas distintas.
+
 ## 8. De qué dato sale cada pantalla
 
 | Pieza | Lee | Escribe |
@@ -198,9 +290,9 @@ Cierre de mes. Las 11 piezas son pestañas dentro de esas 6 entradas (ajuste del
 | Fase | Qué | Cómo lo verificas tú |
 |---|---|---|
 | **F0 · Spike visual** ✅ 2026-09-24 | Las 11 piezas en HTML navegable con la paleta oficial y datos de muestra; `docs/maquetas/finanzas-2026-09/` | Abres el spike y recorres cada pantalla |
-| **F1 · Cimientos** | Rescatar del PR #170 `cuentas`, `parametros_tributarios`, `categorias_gasto`; los 5 módulos; grupo «Finanzas» en el menú | Roles y accesos muestra los 5 módulos «solo líder» |
+| **F1 · Cimientos** | Rescatar del PR #170 `cuentas`, `parametros_tributarios`, `categorias_gasto`; los 5 módulos + Configuración; grupo «Finanzas» en el menú; **Tiendas y caja: meta por día y temporada, fondo de caja, aviso al cerrar** (§7 ter) | Roles y accesos muestra los 5 módulos «solo líder» |
 | **F2 · Gastos y activos** | ADR-0117 adaptado + `naturaleza` en `compras` + recibo por honorarios + alta de activo | Registras la luz a crédito y aparece en Por pagar; un mototaxi del cajón |
-| **F3 · Cuentas y dinero** | `cuentas_dinero`, `medios_de_cobro`, `movimientos_dinero`, conciliación | Depósito de TRU baja el cajón y sube el BCP; el saldo coincide con el banco |
+| **F3 · Cuentas y dinero** | `cuentas_dinero` (con caja fuerte, por rendir y tarjeta de crédito), `medios_de_cobro`, `movimientos_dinero`, conciliación; **la cuenta sellada en las 22 situaciones** (§7 bis), una sola lista de medios, y el pago en efectivo a proveedores resta del cierre | Depósito de TRU baja el cajón y sube el BCP; el saldo coincide con el banco |
 | **F4 · Por pagar consolidado** | Una vista con mercadería, gastos, activos e insumos; calendario | Ves lo que debe CAYLA esta semana, sumado |
 | **F5 · Diario y resultados** | `fn_asientos` (ADR-0120) + reglas nuevas + Estado de resultados por unidad y consolidado con planilla | El resultado de TRU de agosto cuadra con tus números |
 | **F6 · Flujo de caja** | Real y proyectado a 4–8 semanas | Ves si alcanza para los pagos del mes |
@@ -215,8 +307,14 @@ Cierre de mes. Las 11 piezas son pestañas dentro de esas 6 entradas (ajuste del
 ## 10. Lo que queda abierto
 
 **Decisiones de Felipe (negocio):**
-1. **Balance por tienda:** ¿basta con lo atribuible a la tienda (su caja, su inventario, sus activos), o esperas uno completo
-   repartiendo banco y capital? (ADR-0109, sin confirmar.)
+1. **Balance por tienda** (ADR-0109, sin confirmar). Dos opciones:
+   - **«Lo que es de la tienda»:** su cajón y caja fuerte, su mercadería, sus muebles y **sus facturas por pagar** (el
+     reparto por tienda de Compras, ADR-0139, ya sabe a qué tienda va cada factura: no se inventa). Dice cuánta plata
+     tiene invertida cada tienda y cuánto rinde. No es un Balance completo: el banco y el capital son de CAYLA.
+   - **«Completo, repartiendo»:** le asigna a cada tienda una parte del banco y del capital con una regla (por ejemplo,
+     según lo que vende). Cuadra, pero parte de sus números los pone la regla, no un hecho: si cambias la regla, el
+     Balance de TRU cambia sin que haya pasado nada.
+   - **Recomendado:** la primera, más el indicador «cuánto rinde lo invertido en cada tienda».
 2. **Aportes y retiros del dueño:** ¿Felipe saca o pone plata del negocio? Define si hacen falta en F3.
 3. **Gastos fijos:** ¿quieres que el sistema proponga cada mes los recurrentes (alquiler, internet) para confirmarlos?
 

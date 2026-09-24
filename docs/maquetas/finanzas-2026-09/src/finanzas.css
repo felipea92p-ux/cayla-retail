@@ -223,3 +223,16 @@ table.t tr.hecha td{opacity:.62;}
 }
 .pad .campo{margin-bottom:18px;}
 .pad .campo > label{display:block; font-size:12.5px; color:var(--taupe); margin-bottom:6px;}
+/* v3: Caja */
+.meta-caja .umbral-barra{margin:6px 0 14px;}
+.meta-cifras{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px;}
+.meta-cifras > div{display:flex; flex-direction:column; gap:2px;}
+.meta-cifras b{font-size:28px; font-weight:500; line-height:1.1;}
+.fondo-pide{display:flex; justify-content:space-between; gap:12px; align-items:center; padding:10px 12px; margin:6px 0 16px; border-radius:var(--r-control); background:color-mix(in oklab, var(--pizarra) 10%, transparent); border:1px solid color-mix(in oklab, var(--pizarra) 30%, transparent); font-size:13px;}
+.fondo-pide span{color:var(--pizarra); font-size:12px;}
+.queda{display:flex; justify-content:space-between; align-items:baseline; padding:10px 0; margin-bottom:12px; border-top:1px solid var(--sand); border-bottom:1px solid var(--sand); font-size:13px; color:var(--taupe);}
+.queda b{font-size:24px; font-weight:500; color:var(--tinta);}
+.confirma{padding:12px 14px; margin-bottom:12px; border-radius:var(--r-control); background:color-mix(in oklab, var(--ambar) 10%, transparent); border:1px solid color-mix(in oklab, var(--ambar) 35%, transparent); font-size:13px; animation:cascada 280ms var(--ease-cayla) both;}
+.confirma b{color:var(--ambar);}
+.confirma p{margin:4px 0 0; color:var(--taupe); line-height:1.45;}
+@media (max-width:860px){ .meta-cifras{grid-template-columns:1fr;} }

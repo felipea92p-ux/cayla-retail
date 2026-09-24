@@ -29,10 +29,16 @@ const CUENTAS = [
   {id:'ibk',  n:'Interbank · Cta. corriente',  tipo:'banco',   cta:'104', saldo:12880, conciliado:'2026-08-29', banco:null,
    recibe:'Plin de las 3 tiendas · Yape de LIM · abonos del POS'},
   {id:'pos',  n:'Niubiz · tarjeta por abonar', tipo:'transito',cta:'105', saldo:2310,  recibe:'Cobros con tarjeta hasta que el banco los abona'},
-  {id:'cTRU', n:'Cajón · Tienda TRU',          tipo:'cajon',   cta:'101', saldo:2030, unidad:'TRU'},
-  {id:'cAQP', n:'Cajón · Tienda AQP',          tipo:'cajon',   cta:'101', saldo:1745, unidad:'AQP'},
-  {id:'cLIM', n:'Cajón · Tienda LIM',          tipo:'cajon',   cta:'101', saldo:1495, unidad:'LIM'},
+  {id:'cTRU', n:'Cajón · Tienda TRU',          tipo:'cajon',   cta:'101', saldo:1030, unidad:'TRU'},
+  {id:'cAQP', n:'Cajón · Tienda AQP',          tipo:'cajon',   cta:'101', saldo:745,  unidad:'AQP'},
+  {id:'cLIM', n:'Cajón · Tienda LIM',          tipo:'cajon',   cta:'101', saldo:495,  unidad:'LIM'},
   {id:'cTAL', n:'Fondo fijo · Taller',         tipo:'cajon',   cta:'101', saldo:630,  unidad:'TAL'},
+  // v3: el cierre de caja ya manda plata a la caja fuerte o al líder: son lugares con plata, así que son cuentas.
+  {id:'fTRU', n:'Caja fuerte · Tienda TRU',    tipo:'caja_fuerte', cta:'101', saldo:1800, unidad:'TRU'},
+  {id:'fAQP', n:'Caja fuerte · Tienda AQP',    tipo:'caja_fuerte', cta:'101', saldo:1200, unidad:'AQP'},
+  {id:'fLIM', n:'Caja fuerte · Tienda LIM',    tipo:'caja_fuerte', cta:'101', saldo:900,  unidad:'LIM'},
+  {id:'rend', n:'Efectivo entregado al líder', tipo:'rendir',  cta:'101', saldo:0, recibe:'Lo que un cierre entrega al líder, hasta que lo deposita'},
+  {id:'visa', n:'Visa BCP empresa (tarjeta de crédito)', tipo:'credito', cta:'—', saldo:-1850, recibe:'Lo que debes a la tarjeta. Se paga desde el BCP el día 5'},
 ];
 const cuenta = id => CUENTAS.find(c=>c.id===id);
 
@@ -88,9 +94,9 @@ const EGRESOS = [
 
 // Efectivo por tienda: hoy (caja abierta) — sale de fn_resumen_caja (ADR-0191).
 const EFECTIVO = [
-  {u:'TRU', caja:'abierta', abre:'09:02', por:'Rosa Quispe', apertura:200, ventas:1846, ingresos:0,  egresos:16,  depositos:0, traslados:0},
-  {u:'AQP', caja:'abierta', abre:'09:15', por:'Lucía Mamani', apertura:200, ventas:1569, ingresos:0,  egresos:24,  depositos:0, traslados:0},
-  {u:'LIM', caja:'abierta', abre:'10:04', por:'Carla Ríos',  apertura:150, ventas:1345, ingresos:0,  egresos:0,   depositos:0, traslados:0},
+  {u:'TRU', caja:'abierta', abre:'09:02', por:'Rosa Quispe', apertura:200, ventas:846, ingresos:0,  egresos:16,  depositos:0, traslados:0},
+  {u:'AQP', caja:'abierta', abre:'09:15', por:'Lucía Mamani', apertura:200, ventas:569, ingresos:0,  egresos:24,  depositos:0, traslados:0},
+  {u:'LIM', caja:'abierta', abre:'10:04', por:'Carla Ríos',  apertura:150, ventas:345, ingresos:0,  egresos:0,   depositos:0, traslados:0},
 ];
 
 // Por pagar consolidado: mercadería y gastos/activos (cabecera `compras`) + insumos (comprobantes_produccion, ADR-0133).
@@ -233,3 +239,26 @@ const EXTRACTO_IBK = [
 const PRESTAMOS_DUENO = [
   {f:'2026-07-14', monto:10000, nota:'Para pagar la mercadería de invierno', devuelto:4000},
 ];
+
+// ============ v3: meta del día y fondo de caja, por temporada (Configuración ▸ Tiendas y caja) ============
+// La meta del día es CON IGV: es lo que la caja ve cobrado. El presupuesto del mes la muestra sin IGV.
+const DIAS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const DIAS_L = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+const TIENDAS_CAJA = {
+  TRU: {metas:[1500,1500,1600,1700,2000,2500,2000], fondo:300, cierra:'21:00'},
+  AQP: {metas:[1100,1100,1200,1250,1500,1850,1450], fondo:250, cierra:'21:00'},
+  LIM: {metas:[780,780,850,880,1050,1300,1020],     fondo:200, cierra:'22:00'},
+};
+// Dos temporadas no pueden cruzarse (lo impide la base). pct: cuánto sube o baja la meta; fondo: lo que se deja.
+const TEMPORADAS = [
+  {id:'t1', n:'Fiestas Patrias',     desde:'2026-07-20', hasta:'2026-07-31', ajuste:{TRU:{pct:25, fondo:400}, AQP:{pct:25, fondo:350}, LIM:{pct:20, fondo:300}}},
+  {id:'t2', n:'Campaña de Navidad',  desde:'2026-12-01', hasta:'2026-12-31', ajuste:{TRU:{pct:40, fondo:500}, AQP:{pct:40, fondo:450}, LIM:{pct:35, fondo:400}}},
+  {id:'t3', n:'Temporada baja',      desde:'2027-02-01', hasta:'2027-03-15', ajuste:{TRU:{pct:-15, fondo:200}, AQP:{pct:-15, fondo:200}, LIM:{pct:-20, fondo:150}}},
+];
+// Lo que vendió hoy cada tienda hasta las 17:40, por medio (la caja lo tiene; aquí para el ejemplo de Caja).
+const HOY_CAJA = {
+  hora:'17:40',
+  TRU: {efectivo:846, yape:190, plin:0, tarjeta:84, transferencia:0},
+  AQP: {efectivo:569, yape:260, plin:120, tarjeta:0, transferencia:0},
+  LIM: {efectivo:345, yape:180, plin:90, tarjeta:210, transferencia:0},
+};

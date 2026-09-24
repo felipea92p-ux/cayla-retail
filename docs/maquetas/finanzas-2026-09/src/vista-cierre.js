@@ -95,6 +95,20 @@ const ACCIONES_EXTRA = {
   'pareja-gasto': a => { const x = EXTRACTO_IBK.find(y=>y.id===a.dataset.id);
     guardar('Comisión registrada como gasto de la empresa.', () => { E.parejas[x.id]='gasto'; GASTOS.forEach(g=>g.nuevo=false); GASTOS.unshift({id:Date.now(), f:x.f, u:'EMP', c:'comisiones', d:'Comisión de mantenimiento Interbank', prov:'Interbank', comp:'Sin comprobante', num:'', total:-x.monto, igv:0, medio:'ibk', cond:'contado', estado:'pagado', nuevo:true}); }); },
   'ver-mas': () => { E.verMas = !E.verMas; render(); },
+  'cerrar-caja': a => modalCerrarCaja(a.dataset.id),
+  'nueva-temporada': () => {
+    ventana(`<h3>Nueva temporada</h3><p class="bajada">En esas fechas, la meta del día sube o baja y el fondo de caja cambia. No puede cruzarse con otra.</p>
+      <div class="campo"><label for="tN">Nombre</label><input class="control" id="tN" value="Día de la Madre"></div>
+      <div class="dos-campos"><div class="campo"><label for="tD">Desde</label><input class="control" id="tD" type="date" value="2027-05-01"></div><div class="campo"><label for="tH">Hasta</label><input class="control" id="tH" type="date" value="2027-05-09"></div></div>
+      <div class="dos-campos"><div class="campo"><label for="tP">Meta: cuánto sube (%)</label><input class="control" id="tP" value="30"></div><div class="campo"><label for="tF">Fondo de caja</label><input class="control" id="tF" value="400"></div></div>
+      <p class="sub" style="font-size:12.5px">Igual para las tres tiendas; después se ajusta cada una en la tabla.</p>${comboResponsable()}
+      <div class="botones"><button class="btn btn-secundario" data-cerrar>Cancelar</button><button class="btn btn-primario" id="okT">Crear temporada</button></div>`);
+    $('#okT').onclick = () => { const d = $('#tD').value, h = $('#tH').value;
+      const cruce = TEMPORADAS.find(t => d <= t.hasta && h >= t.desde);
+      if (cruce){ $('#tD').style.borderColor='var(--rojo)'; avisar(`Se cruza con «${cruce.n}». Cambia las fechas.`); return; }
+      const aj = {}; TIENDAS.forEach(u => aj[u] = {pct:+$('#tP').value||0, fondo:+$('#tF').value||0});
+      guardar('Temporada creada.', () => { TEMPORADAS.forEach(t=>t.nuevo=false); TEMPORADAS.push({id:'t'+Date.now(), n:$('#tN').value, desde:d, hasta:h, ajuste:aj, nuevo:true}); TEMPORADAS.sort((a,b)=>a.desde.localeCompare(b.desde)); }); };
+  },
   'esc-reset': () => { E.escenario = {alqLIM:6200, ventasLIM:0, ventasTodas:0, cerrarLIM:false, retrasarNorte:false}; render(); },
   'exportar': () => avisar('En el sistema real se descarga el archivo. En el spike no se genera nada.'),
 };

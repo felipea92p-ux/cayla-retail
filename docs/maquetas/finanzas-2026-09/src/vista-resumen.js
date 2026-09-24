@@ -28,7 +28,25 @@ function equilibrio(u, r=RESULTADOS_AGO){
   const dia = pe ? Math.ceil(pe / (t.ventas / 31)) : null;
   return {pe, ventas:t.ventas, cubre: pe ? t.ventas / pe : 0, dia, pm, fijos};
 }
-const disponible = () => CUENTAS.filter(c=>veUnidad(c.unidad||'EMP')||esLider()).reduce((a,c)=>a+c.saldo, 0);
+// La tarjeta de crédito es deuda, no plata disponible.
+const disponible = () => CUENTAS.filter(c=>c.tipo!=='credito' && (veUnidad(c.unidad||'EMP')||esLider())).reduce((a,c)=>a+c.saldo, 0);
+const sumaTipo = (...ts) => CUENTAS.filter(c=>ts.includes(c.tipo)).reduce((a,c)=>a+c.saldo, 0);
+
+// ---- Meta del día y fondo de caja: lo que rige en una tienda en una fecha (en la base: fn_parametros_caja) ----
+const diaSemana = f => (new Date(f+'T12:00:00').getDay() + 6) % 7;   // 0 = lunes
+const temporadaDe = f => TEMPORADAS.find(t => f >= t.desde && f <= t.hasta) || null;
+function parametrosCaja(u, f){
+  const base = TIENDAS_CAJA[u]; if (!base) return null;
+  const t = temporadaDe(f), aj = t && t.ajuste[u];
+  const metaBase = base.metas[diaSemana(f)];
+  return {meta: Math.round(metaBase * (1 + (aj ? aj.pct : 0)/100)), metaBase, fondo: aj ? aj.fondo : base.fondo, temporada: t, pct: aj ? aj.pct : 0};
+}
+// Meta del mes = suma de las metas de cada día (una sola meta, no dos). Sin IGV para Finanzas.
+function metaMes(u, mes='2026-09'){
+  const [y,m] = mes.split('-').map(Number), n = new Date(y, m, 0).getDate(); let t = 0;
+  for (let d=1; d<=n; d++){ const f = `${mes}-${String(d).padStart(2,'0')}`; const p = parametrosCaja(u, f); if (p) t += p.meta; }
+  return Math.round(t / 1.18);
+}
 const saldoPorPagar = p => p.total - p.pagado;
 const salidasDiarias = () => FLUJO_REAL.salidas.reduce((a,x)=>a+x[1],0) / 24;
 // Proyección semana a semana. Con «retrasar Distribuidora Norte», su pago pasa a la semana siguiente.
@@ -53,9 +71,9 @@ VISTAS.resumen = () => {
   const diasCaja = Math.floor(disponible() / salidasDiarias());
   const eq = equilibrio(u);
   const esTienda = !u || TIENDAS.includes(u);
-  const metaVentas = u ? PRESUPUESTO.ventas[u] : TIENDAS.reduce((a,x)=>a+PRESUPUESTO.ventas[x],0);
+  const metaVentas = u ? metaMes(u) : TIENDAS.reduce((a,x)=>a+metaMes(x),0);
   const proyVentas = Math.round(vendidoSep / AVANCE_MES);
-  const efectivoU = u ? (CUENTAS.find(c=>c.unidad===u)?.saldo || 0) : disponible();
+  const efectivoU = u ? CUENTAS.filter(c=>c.unidad===u).reduce((a,c)=>a+c.saldo,0) : disponible();
 
   // ---- La salud, en frases (lo primero que se lee) ----
   const frases = [];
@@ -97,7 +115,7 @@ VISTAS.resumen = () => {
   <section class="salud anim-sube">${frases.map(f=>`<div class="frase" data-tono="${f.tono}"><b class="serif">${f.n}</b><div><p class="t">${f.t}</p><p class="d">${f.d}</p></div></div>`).join('')}</section>
   <section class="cifras cinco">
     <div class="tile anim-sube"><span class="etq">Vendido en el mes</span><div class="valor">${esTienda?S(vendidoSep):'—'}</div><div class="det">${todas?TIENDAS.map(x=>x+' '+S(sep.ventas[x])).join(' · '):'Sin IGV'}</div>${F('existe','venta_items')}</div>
-    <div class="tile anim-sube"><span class="etq">${todas?'Plata disponible':'Efectivo en su cajón'}</span><div class="valor">${S(efectivoU)}</div><div class="det">${todas?`Bancos ${S(38420+12880)} · cajones ${S(5900)} · tarjeta ${S(2310)}`:'Los bancos son de CAYLA entera'}</div>${F('nuevo','cuentas_dinero + movimientos')}</div>
+    <div class="tile anim-sube"><span class="etq">${todas?'Plata disponible':'Efectivo en la tienda'}</span><div class="valor">${S(efectivoU)}</div><div class="det">${todas?`Bancos ${S(sumaTipo('banco'))} · cajones y cajas fuertes ${S(sumaTipo('cajon','caja_fuerte','rendir'))} · tarjeta por abonar ${S(sumaTipo('transito'))}`:'Cajón y caja fuerte. Los bancos son de CAYLA entera'}</div>${F('nuevo','cuentas_dinero + movimientos')}</div>
     <div class="tile anim-sube"><span class="etq">Debes en ${CONFIG.avisoVenceDias} días</span><div class="valor ${vencidas.length?'rojo':''}">${S(debe7)}</div><div class="det">${todas?'Incluye la planilla del 30. ':''}${vencidas.length} vencida${vencidas.length===1?'':'s'}</div>${F('deriva','compras + comprobantes_produccion')}</div>
     <div class="tile anim-sube"><span class="etq">Utilidad de agosto</span><div class="valor ${tAgo.utilidad<0?'rojo':''}">${S(tAgo.utilidad)}</div><div class="det">${tAgo.ventas?'Margen bruto '+pct(tAgo.margen/tAgo.ventas):'Unidad sin ventas propias'}</div>${F('deriva','fn_estado_resultados')}</div>
     ${todas ? `<div class="tile anim-sube"><span class="etq">IGV estimado de sept.</span><div class="valor">${S(IGV_MESES[5].deb-IGV_MESES[5].cred)}</div><div class="det">Se paga en octubre según tu cronograma</div>${F('deriva','comprobantes − facturas de proveedor')}</div>`

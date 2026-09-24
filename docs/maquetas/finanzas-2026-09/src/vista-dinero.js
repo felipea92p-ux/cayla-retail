@@ -12,17 +12,17 @@ VISTAS.dinero = () => {
 
 function vistaCuentas(){
   const visibles = CUENTAS.filter(c => esLider() ? (c.tipo !== 'cajon' || enVista(c.unidad)) : c.unidad === unidadPropia());
-  const grupos = [['banco','Bancos','104'],['transito','Por abonar','105'],['cajon','Cajones y fondo fijo','101']];
+  const grupos = [['banco','Bancos','104'],['transito','Por abonar','105'],['cajon','Cajones y fondo fijo','101'],['caja_fuerte','Cajas fuertes y efectivo por rendir','101'],['credito','Tarjetas de crédito de CAYLA · lo que se debe','pasivo']];
   const movs = MOV_DINERO.filter(m => esLider() ? (verTodas() || m.u === E.ver) : m.u === unidadPropia());
   const debe = PRESTAMOS_DUENO.reduce((a,p)=>a+p.monto-p.devuelto,0);
   return `
   ${!verTodas()&&esLider()?`<div class="nota-cayla">Los bancos son de CAYLA entera: se ven igual en cualquier tienda. El cajón es el de ${nombreUnidad(E.ver)}.</div>`:''}
-  ${grupos.map(([t,n,cta]) => { const cs = visibles.filter(c=>c.tipo===t); if (!cs.length) return '';
+  ${grupos.map(([t,n,cta]) => { const cs = visibles.filter(c=>c.tipo===t || (t==='caja_fuerte' && c.tipo==='rendir')); if (!cs.length) return '';
     return `<section class="anim-sube"><p class="etq" style="margin:4px 0 10px">${n} · cuenta ${cta} ${t==='banco'?F('nuevo','cuentas_dinero'):t==='cajon'?F('existe','cajas + caja_movimientos'):F('deriva','venta_pagos con tarjeta − abonos')}</p>
       <div class="cuentas">${cs.map(c=>`<article class="cuenta-c">
         <div class="fila-top"><b>${c.n}</b>${c.tipo==='banco'?`<span class="badge" data-tono="${dias(HOY,c.conciliado)>7&&!E.conciliado[c.id]?'ambar':'verde'}">${E.conciliado[c.id]?'conciliada hoy':'conciliada '+fecha(c.conciliado)}</span>`:c.tipo==='transito'?'<span class="badge" data-tono="pizarra">5 días sin abonar</span>':''}</div>
-        <div class="valor">${S(c.saldo)}</div>
-        <p>${c.recibe || (c.unidad==='TAL'?'Para gastos chicos del Taller':'Caja abierta hoy')}</p>
+        <div class="valor" style="${c.saldo<0?'color:var(--rojo-profundo)':''}">${S(c.saldo)}</div>
+        <p>${c.recibe || (c.tipo==='caja_fuerte'?'Lo que los cierres guardan en la tienda':c.unidad==='TAL'?'Para gastos chicos del Taller':'Caja abierta hoy')}</p>
       </article>`).join('')}</div></section>`; }).join('')}
   ${esLider() && verTodas() ? `<section class="superficie pad anim-sube dueno">
     <div class="prioridades-cab"><div><h2>Plata del dueño</h2><p>Cuando pones plata en un mal momento, eliges si es un <b>aporte</b> (se queda en CAYLA) o un <b>préstamo</b> (CAYLA te lo devuelve).</p></div>
@@ -155,7 +155,8 @@ function modalPagar(){
   const tot = sel.reduce((a,p)=>a+saldoPorPagar(p),0);
   ventana(`<h3>Pagar ${sel.length} factura${sel.length>1?'s':''}</h3><p class="bajada">Total ${S(tot)}. Cada pago queda en su factura y descuenta la cuenta de la que sale.</p>
     <ul class="lista-mov">${sel.map(p=>`<li>${esc(p.prov)} · ${p.num}<b>${S(saldoPorPagar(p))}</b></li>`).join('')}</ul>
-    <div class="campo"><label for="pC">Sale de</label><select class="control" id="pC" style="width:100%">${CUENTAS.filter(c=>c.tipo==='banco').map(c=>`<option value="${c.id}">${c.n} · ${S(c.saldo)}</option>`).join('')}</select></div>
+    <div class="campo"><label for="pC">Sale de</label><select class="control" id="pC" style="width:100%">${[['banco','Bancos'],['caja_fuerte','Cajas fuertes'],['rendir','Efectivo por rendir'],['cajon','Cajones (resta del cierre de esa caja)'],['credito','Tarjeta de crédito']].map(([t,n])=>`<optgroup label="${n}">${CUENTAS.filter(c=>c.tipo===t && (esLider()||c.unidad===unidadPropia())).map(c=>`<option value="${c.id}">${c.n} · ${S(c.saldo)}</option>`).join('')}</optgroup>`).join('')}</select>
+      <span class="ayuda">Hoy un pago en efectivo no dice de dónde salió: hay 12 así, por S/ 15,661. Si sale de un cajón, se registra también la salida de esa caja.</span></div>
     ${comboResponsable()}
     <div class="botones"><button class="btn btn-secundario" data-cerrar>Cancelar</button><button class="btn btn-primario" id="okP">Registrar pago</button></div>`);
   $('#okP').onclick = () => guardar(`Pago de ${S(tot)} registrado.`, () => { sel.forEach(p=>{ p.pagado = p.total; }); cuenta($('#pC').value).saldo -= tot; E.seleccion.clear(); });

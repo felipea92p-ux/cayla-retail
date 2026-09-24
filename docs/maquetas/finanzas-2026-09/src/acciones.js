@@ -47,6 +47,10 @@ document.addEventListener('change', e => {
   if (pp){ const r = pp.dataset.ppto.split('|'), v = parseFloat(pp.value.replace(/[^0-9.]/g,'')) || null;
     if (r[0]==='ventas') PRESUPUESTO.ventas[r[1]] = v; else { PRESUPUESTO.gastos[r[1]][r[2]] = v; if (v==null) delete PRESUPUESTO.gastos[r[1]][r[2]]; }
     avisar('Presupuesto guardado.'); return; }
+  const tc = e.target.closest('[data-tc]');
+  if (tc){ const [u,k] = tc.dataset.tc.split('|'), v = parseFloat(tc.value.replace(/[^0-9.]/g,'')); if (isNaN(v)) return;
+    if (k==='fondo') TIENDAS_CAJA[u].fondo = v; else TIENDAS_CAJA[u].metas[+k] = v;
+    render(); avisar(k==='fondo' ? `Fondo de ${nombreUnidad(u)}: ${S(v)}.` : `Meta del ${DIAS_L[+k]} de ${nombreUnidad(u)}: ${S(v)}. La meta del mes se recalculó.`); return; }
   const md = e.target.closest('[data-medio]');
   if (md){ const [u,k] = md.dataset.medio.split('|'); MEDIOS.find(x=>x.u===u)[k] = md.value; avisar(`Desde hoy, ${k} de ${nombreUnidad(u)} entra a ${cuenta(md.value).n}.`); return; }
 });

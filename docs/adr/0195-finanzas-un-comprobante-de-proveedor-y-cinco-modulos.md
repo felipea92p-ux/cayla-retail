@@ -1,6 +1,6 @@
-# ADR-0194 — Finanzas: un solo comprobante de proveedor para mercadería, gasto y activo, y cinco módulos
+# ADR-0195 — Finanzas: un solo comprobante de proveedor para mercadería, gasto y activo, y cinco módulos
 
-**Fecha:** 2026-09-24
+**Fecha:** 2026-09-24 (nació como ADR-0194; renumerado al subir porque `main` ya tenía el 0194 de la prueba de carga)
 **Estado:** **APROBADO por Felipe el 2026-09-24** (decisiones A y B). Sin código ni migración: fija el modelo del plan
 `docs/PLAN-FINANZAS.md`, que se construye por fases después del spike visual.
 **Afecta (cuando se construya):** `compras` (columna `naturaleza`, tipo `recibo_por_honorarios`), `gastos` (ADR-0117,
@@ -91,3 +91,38 @@ mes en que se cubren los costos), punto de equilibrio por tienda (gastos ÷ marg
 proyección al cierre, escenarios («¿y si…?»), avisos de lo raro (contra el promedio de 6 meses), gastos fijos que el
 sistema propone y detecta, y conciliación que propone la pareja de cada línea del banco. Cada número dice de qué dato
 sale. Un resumen escrito con IA puede sumarse encima después, nunca en lugar del cálculo.
+
+## Actualización 2026-09-24 (c) — la cuenta en cada movimiento, y meta y fondo de caja por temporada
+
+**Pedido de Felipe:** meta del día por tienda visible en Caja; fondo de caja que cambia por temporada y que la caja vea
+al cerrar, con una confirmación que no bloquee si deja menos; las cuentas de CAYLA en Compras, Ventas y en todo lugar
+donde se mueva plata, pensando cada situación. Todo pendiente de su OK (es una propuesta; toca Caja, Ventas, Compras,
+Producción, Devoluciones y Separaciones).
+
+**G. Todo movimiento de plata guarda medio Y cuenta, y la cuenta se sella al guardar.** Las 22 situaciones están en
+`docs/PLAN-FINANZAS.md` §7 bis. Al cobrar (Vender, Cambios, Apartados) la cuenta sale sola de «A qué cuenta entra cada
+cobro»: el mostrador no elige nada. Donde una persona decide de dónde sale la plata (pagar a un proveedor, devolver a una
+clienta, un gasto, el destino «banco» del cierre) aparece el combo «Sale de» con una cuenta ya propuesta. Se sella para
+que cambiar la configuración mañana no reescriba el pasado.
+*Por qué no calcularla al leer* (lo que decía la primera versión de este plan): si el Yape de LIM pasa del BCP a
+Interbank, todo el historial de LIM se movería de banco sin que nada hubiera pasado.
+
+**H. Nuevos tipos de cuenta:** caja fuerte por sede y «efectivo entregado al líder» (el cierre ya manda plata ahí, así
+que son lugares con plata), y tarjeta de crédito de CAYLA (deuda; `gastos` ya acepta «tarjeta»).
+
+**I. Un pago en efectivo a un proveedor dice de dónde salió.** Si sale de un cajón, crea su salida de caja en la misma
+operación y resta del cierre. Hoy `fn_calcular_esperado_caja` no los cuenta: hay 12 pagos por S/ 15,661 sin origen.
+
+**J. Una sola lista de medios de pago** en `packages/shared` y en un dominio de la base, en lugar de los 5 `check`
+distintos de hoy.
+
+**K. Meta del día y fondo de caja por temporada.** Lo normal por tienda: una meta por día de la semana (con IGV, lo que
+ve la caja) y un fondo. Temporadas con fechas que no se cruzan (lo impide la base): cuánto sube o baja la meta y qué
+fondo se deja. Una sola función decide qué rige cada día (`fn_parametros_caja`). La meta del mes del Presupuesto es la
+suma de las metas del día, no se escribe aparte. Se apoya en `ubicaciones.meta_venta_diaria`, que ya existe y en
+producción está vacía.
+
+**L. Al cerrar la caja, «Deja S/ X para el próximo turno».** El traslado viene propuesto (contado − fondo). Si queda
+menos, sale una confirmación que no bloquea; si se cierra igual, queda anotado y el líder lo ve en Historial de cierres.
+**Cambia el punto 3 del ADR-0186** («sin fondo sugerido»): ahora el fondo lo fija el líder por temporada, y el sistema
+solo avisa cuando falta, nunca cuando sobra. Y el destino «banco» del cierre pide **a qué banco**.

@@ -68,8 +68,9 @@ const MENU = [
   {r:'impuestos',n:'Impuestos',      mod:'impuestos'},
   {r:'cierre',   n:'Cierre de mes',  mod:'cierre_mes'},
   {r:'config',   n:'Configuración',  mod:'configuracion', grupo:'gestion'},
+  {r:'caja',     n:'Caja',           mod:'caja', grupo:'ventas'},
 ];
-const MODULOS_ENCARGADA = ['gastos','cuentas_dinero'];
+const MODULOS_ENCARGADA = ['gastos','cuentas_dinero','caja'];
 const puedeVer = r => { const m = MENU.find(x=>x.r===r); return esLider() || MODULOS_ENCARGADA.includes(m.mod); };
 ICON.config = '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>';
 
@@ -77,7 +78,8 @@ function pintarLateral(){
   const svg = k => `<svg viewBox="0 0 24 24">${ICON[k]}</svg>`;
   $('#nav').innerHTML = `
     <a href="#"><svg viewBox="0 0 24 24">${ICON.resumen}</svg>Inicio</a>
-    <a href="#"><svg viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7z"/><path d="M9 8a3 3 0 016 0"/></svg>Ventas<span class="flecha">›</span></a>
+    <a href="#"><svg viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7z"/><path d="M9 8a3 3 0 016 0"/></svg>Ventas<span class="flecha">⌄</span></a>
+    <a href="#caja" class="hijo${E.ruta==='caja'?' activo':''}" data-ir="caja"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/></svg>Caja</a>
     <a href="#"><svg viewBox="0 0 24 24"><path d="M3 5h3l2 10h11l2-7H7"/><circle cx="9" cy="19" r="1.3"/><circle cx="18" cy="19" r="1.3"/></svg>Compras<span class="flecha">›</span></a>
     <a href="#"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg>Inventario<span class="flecha">›</span></a>
     <a href="#" class="grupo-activo"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Finanzas<span class="flecha">⌄</span></a>
@@ -129,6 +131,7 @@ function notaDemo(){
     gastos:'En «Fijos del mes» confirma con un clic lo que el sistema propone. <b>Registrar gasto</b> a crédito aparece en Cuentas y dinero ▸ Por pagar. En «Egresos de caja» clasifica el depósito de LIM: destraba el cierre de agosto.',
     dinero:'Prueba «Registrar movimiento ▸ Poner plata del dueño» (aporte o préstamo). En Conciliación el sistema propone la pareja de cada línea del banco: solo confirmas.',
     reportes:'Toca cualquier cifra del estado de resultados para ver de qué filas sale. En «Escenarios» mueve los valores: todo se recalcula.',
+    caja:'Esta pantalla es de Ventas: muestra cómo llega lo de Finanzas a la tienda. Cambia el «Demo · día» a Navidad y prueba «Cerrar caja» dejando menos del fondo: pide confirmar, no bloquea.',
     config:'Todo lo que se ajusta vive aquí: cuentas, a dónde cae cada cobro, mínimo de caja, gastos fijos, presupuesto e impuestos. Cambia el mínimo de caja y mira el Resumen.',
     impuestos:'El IGV sale de los comprobantes emitidos y de las facturas de proveedor (mercadería, gastos, activos e insumos).',
     cierre:'Agosto: TRU y AQP ya cerraron. Resuelve lo pendiente de LIM y cierra; el consolidado se habilita cuando cierran todas.',
