@@ -33,3 +33,14 @@ Lo que se encontró al hacerlo:
 - Alguien vuelve a poner un «Transmitir» que no pase por `transmitirComprobante` o por `motivoParaNoTransmitir`.
 - Se pega en producción el código antes que `20260922193700`: el barrido falla sin ruido (403) y no reintenta nada; el envío al cobrar sí funciona.
 - Una tienda corrige boletas **y** facturas con nota de crédito: con una sola NC activa por tienda, SUNAT rechazaría la que no lleve la letra del documento que corrige. Resolverlo exige que `emitir_nota` y `aprobar_devolucion` digan qué letra quieren (BACKLOG).
+
+## Actualización 2026-09-23 — el cron que el punto 3 dejaba para después (PL-113 y PL-114)
+
+Felipe decidió en el plano maestro (PL-113) que el reintento no puede depender de que alguien abra una pantalla. Se agregó, encima de lo mismo y sin duplicarlo:
+
+- **Trabajo programado de Vercel cada 5 minutos** (`apps/web/vercel.json` → `GET /api/lucode/reintentar`; el plan del equipo es Pro, así que la frecuencia no tiene tope diario). Usa la misma `fn_tomar_comprobantes_para_reintento` y la misma reserva de 5 minutos: el cron y los barridos del navegador nunca mandan el mismo comprobante (ese es el «token de idempotencia» del acta).
+- **Entra con la llave de servicio, protegido por `CRON_SECRET`** (lo exigen la ruta y `proxy.ts`). Las tres funciones que usa (`fn_tomar_…`, `fn_marcar_reintento_transmision`, `actualizar_transmision_comprobante`) aceptan `auth.role() = 'service_role'` en su candado de sede y le dan `execute` (`20260924113817_sunat_reintento_por_cron.sql`). La llave ya saltaba RLS; así escribe por las mismas guardas que la pantalla.
+- **4 horas y suelta** (`HORAS_REINTENTO_AUTOMATICO`, el mismo número en la base): pasado eso el cron deja el comprobante y el **Inicio del líder** lo avisa en «Por atender» (PL-114: «Comprobantes sin llegar a SUNAT», enlace a Por reintentar). La «campanita de campañas» que citaba la pregunta no existe (`lib/etiqueta-campana.ts` son las reglas de las campañas de descuento); el aviso usa el camino que ya usan ADR-0179 y ADR-0186. Los barridos del navegador siguen como estaban (un pendiente, hasta 3 días): el líder que entra por el aviso todavía puede empujarlo.
+- **Solo sandbox.** Mientras toda venta sea de prueba, el cron no transmite si `LUCODE_ENTORNO` no es `sandbox` (`cronNoTransmite`, con su prueba). Salir a producción suma un cuarto paso a los tres de arriba: cambiar esa regla a propósito.
+
+Se rompe si: falta `CRON_SECRET` en Vercel (el cron responde 401 y no hace nada — la cola vuelve a depender de las pantallas); o se sube la web antes de pegar `20260924113817` (el cron falla con `permission denied for function fn_tomar_comprobantes_para_reintento`, sin tocar nada).

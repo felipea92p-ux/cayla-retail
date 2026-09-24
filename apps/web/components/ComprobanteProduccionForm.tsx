@@ -147,7 +147,7 @@ export function ComprobanteProduccionForm({
   }
 
   return (
-    <Modal titulo="Nuevo comprobante" subtitulo="La factura de quien le vende al Taller" onClose={onClose} ancho="max-w-2xl">
+    <Modal titulo="Nueva factura de insumos" subtitulo="La factura de quien le vende al Taller" onClose={onClose} ancho="max-w-2xl">
       <form onSubmit={guardar} className="space-y-5">
         <CampoSelectNativo etiqueta="Proveedor" value={proveedorId} onChange={(e) => elegirProveedor(e.target.value)}>
           <option value="">Elige un proveedor…</option>

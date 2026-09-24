@@ -105,6 +105,14 @@ describe("colasInicio", () => {
     expect(aperturas(null).cantidad).toBeNull();
     expect(aperturas(1).href).toBe("/caja/historial");
   });
+  it("comprobantes sin llegar a SUNAT (PL-114): solo si se pasa (el líder), y dice que ya no se reintenta solo", () => {
+    const atascados = (n: number | null) => colasInicio({ traslados: 0, comprobantesAtascados: n }).find((c) => c.clave === "comprobantes-atascados")!;
+    expect(colasInicio({ traslados: 0 }).some((c) => c.clave === "comprobantes-atascados")).toBe(false);
+    expect(atascados(0).detalle).toBe("Todos llegaron o se están reintentando solos.");
+    expect(atascados(2).detalle).toBe("2 llevan más de 4 horas sin llegar a SUNAT: ya no se reintenta solo.");
+    expect(atascados(null).cantidad).toBeNull();
+    expect(atascados(1).href).toBe("/vender/comprobantes/por-reintentar");
+  });
 });
 
 describe("accesosInicio", () => {

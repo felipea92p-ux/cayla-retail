@@ -142,6 +142,27 @@ export function queHacerConElError(crudo: string | null): string | null {
  *  plazo SUNAT lo rechaza por extemporáneo y la venta queda sin comprobante válido. */
 export const DIAS_PLAZO_SUNAT = 3;
 
+/** Horas desde que se emitió un comprobante durante las que el trabajo programado lo reintenta solo (PL-113).
+ *  Pasado eso lo suelta y el Inicio del líder lo avisa (PL-114): queda tiempo de sobra dentro del plazo de SUNAT
+ *  para que alguien lea el error. El MISMO número vive en `fn_tomar_comprobantes_para_reintento`
+ *  (`20260924113817_sunat_reintento_por_cron.sql`): cambiar los dos juntos. */
+export const HORAS_REINTENTO_AUTOMATICO = 4;
+
+/** PL-113: por qué el trabajo programado (`GET /api/lucode/reintentar`) NO transmite, o `null` si sí. Sin
+ *  `CRON_SECRET` o con otra clave no pasa nadie (401). Fuera del sandbox no transmite: hoy toda venta es de prueba y
+ *  ya se fueron 2 boletas a SUNAT REAL por error (2026-09-22). Responde 200 y no un error para que Vercel no lo cuente
+ *  como una ejecución fallida. Salir en vivo es decisión de Felipe y es cambiar ESTA regla a propósito, no una
+ *  variable que alguien toca sin saber que el cron empieza a declarar solo. */
+export function cronNoTransmite(
+  autorizacion: string | null,
+  secreto: string | undefined,
+  entorno: "sandbox" | "produccion",
+): { status: 401 | 200; body: { error: string } | { tomados: 0; omitido: string } } | null {
+  if (!secreto || autorizacion !== `Bearer ${secreto}`) return { status: 401, body: { error: "No autorizado" } };
+  if (entorno !== "sandbox") return { status: 200, body: { tomados: 0, omitido: "El cron solo transmite al sandbox de Lucode." } };
+  return null;
+}
+
 /** Cuántos días le quedan a un comprobante para llegar a SUNAT, contando días de calendario de Lima
  *  (Perú no tiene horario de verano: UTC−5 fijo). 0 = vence hoy a medianoche; negativo = fuera de plazo. */
 export function diasParaElPlazo(creadoIso: string, ahora: Date): number {
