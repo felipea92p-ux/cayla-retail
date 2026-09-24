@@ -18,7 +18,7 @@ export const CLAVES_MODULO = [
   "produccion",
   "analisis", "colaboradores", "roles",
   "configuracion",
-  "gastos",
+  "gastos", "cuentas_dinero", "reportes_financieros", "impuestos", "cierre_mes",
 ] as const;
 export type ClaveModulo = (typeof CLAVES_MODULO)[number];
 
@@ -69,6 +69,12 @@ export const MODULOS: readonly Modulo[] = [
   // ADR-0195 F2 (20260924235100): nace sin rol; delegable (sus funciones preguntan por el módulo, no por el líder).
   // Con el módulo, una cuenta ve y registra los gastos de SU tienda; el líder, los de todas y los «de la empresa».
   { clave: "gastos", grupo: "Finanzas", nombre: "Gastos", incluye: "Registrar y anular los gastos de su tienda (luz, alquiler, movilidad) con o sin factura, sus gastos fijos del mes y sus activos fijos, y decir qué fue cada salida de plata del cajón" },
+  // ADR-0195 (20260925100000): los que faltan de Finanzas, dados de alta juntos antes de construir F3–F10. Nacen sin rol.
+  // Cuentas y dinero y Reportes son delegables (con el módulo, su tienda); Impuestos y Cierre de mes, del líder.
+  { clave: "cuentas_dinero", grupo: "Finanzas", nombre: "Cuentas y dinero", incluye: "Ver las cuentas y el efectivo de su tienda; registrar depósitos del cajón al banco, abonos de tarjeta y movimientos entre cuentas; ver lo que se debe y cuándo vence" },
+  { clave: "reportes_financieros", grupo: "Finanzas", nombre: "Reportes financieros", incluye: "Ver el resumen, el estado de resultados, el flujo de caja y el balance de su tienda; cómo rindieron las campañas" },
+  { clave: "impuestos", grupo: "Finanzas", nombre: "Impuestos", incluye: "Ver el IGV del mes (ventas contra compras), la alerta del límite de ventas del régimen y bajar el reporte para el contador", noDelegable: true },
+  { clave: "cierre_mes", grupo: "Finanzas", nombre: "Cierre de mes", incluye: "Cerrar el mes de cada tienda y de la empresa, y reabrirlo con motivo", noDelegable: true },
 ];
 
 /** Lo que sigue siendo del líder aunque el rol vea el módulo: decisiones ya tomadas (ADR-0161 B2b), no nuevas.
@@ -155,6 +161,9 @@ export function modulosDeHoy(
  *  - editarEtiquetas        ← ve Etiquetas, completo (`fn_puede_editar_etiquetas`; las etiquetas CON descuento no)
  *  - analizar               ← ve Análisis, completo (`fn_puede_analizar`)
  *  - registrarGastos        ← ve Gastos, completo (`fn_gastos_ubicaciones`, ADR-0195 F2): los de SU tienda
+ *  - verCuentasDinero       ← ve Cuentas y dinero, completo (ADR-0195 F3): las cuentas y el efectivo de SU tienda
+ *  - verReportesFinancieros ← ve Reportes financieros, completo (ADR-0195 F5): los reportes de SU tienda
+ *  - verImpuestos / cerrarMes: del líder (módulos no delegables)
  * `administrar` y `verDinero` (el dinero del Taller y el Resumen de Producción) siguen siendo del líder: no salen de
  * ningún módulo delegable.
  */
@@ -172,6 +181,8 @@ export function permisosDeModulos(rol: "lider" | "integrante", modulos: readonly
   if (completo("facturas_compra", "por_pagar", "notas_credito")) permisos.push("verDineroCompras");
   if (completo("etiquetas")) permisos.push("editarEtiquetas");
   if (completo("gastos")) permisos.push("registrarGastos");
+  if (completo("cuentas_dinero")) permisos.push("verCuentasDinero");
+  if (completo("reportes_financieros")) permisos.push("verReportesFinancieros");
   return permisos;
 }
 

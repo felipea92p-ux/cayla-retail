@@ -128,9 +128,13 @@ describe("el menú de hoy sigue igual (línea base capturada del AppShell real)"
 function subconjuntos(permisos: readonly Permiso[]): Permiso[][] {
   return permisos.reduce<Permiso[][]>((acc, p) => [...acc, ...acc.map((s) => [...s, p])], [[]]);
 }
-const PERFILES: PerfilDelMenu[] = subconjuntos(PERMISOS).flatMap((permisos) =>
-  TIPOS_UBICACION.map((ubicacionTipo) => ({ permisos, ubicacionTipo, contadores: { trasladosPorAtender: 2 } })),
-);
+// Los cuatro permisos de Finanzas F3–F10 (ADR-0195) abren cada uno UNA hija del mismo grupo y no se cruzan con ningún otro:
+// se prueban juntos (ninguno o los cuatro) y no en sus 16 combinaciones, que multiplicaban por 16 los perfiles (688 mil
+// pruebas: el proceso de la prueba se caía). Gastos sigue variando solo, como los demás.
+const FINANZAS_JUNTOS: readonly Permiso[] = ["verCuentasDinero", "verReportesFinancieros", "verImpuestos", "cerrarMes"];
+const PERFILES: PerfilDelMenu[] = subconjuntos(PERMISOS.filter((p) => !FINANZAS_JUNTOS.includes(p)))
+  .flatMap((base) => [base, [...base, ...FINANZAS_JUNTOS]])
+  .flatMap((permisos) => TIPOS_UBICACION.map((ubicacionTipo) => ({ permisos, ubicacionTipo, contadores: { trasladosPorAtender: 2 } })));
 const nombreDe = (p: PerfilDelMenu) => `[${p.permisos.join(", ") || "sin permisos"}] en ${p.ubicacionTipo}`;
 
 function recorrer(nodos: readonly Nodo[]): Nodo[] {
@@ -185,10 +189,11 @@ describe("los nodos futuros: en el árbol para que el aviario quede a la vista, 
     expect(Object.fromEntries(futuros)).toEqual({
       "produccion.eficiencia": "10 Gallito",
       // Finanzas y Gastos nacieron el 2026-09-24 (ADR-0195 F2); el resto de Finanzas sigue esperando su fase.
-      "finanzas.resultados": "12 Urraca",
-      "finanzas.balance": "12 Urraca",
+      "finanzas.resumen": "12 Urraca",
+      "finanzas.dinero": "12 Urraca",
+      "finanzas.reportes": "12 Urraca",
+      "finanzas.impuestos": "12 Urraca",
       "finanzas.cierreDeMes": "12 Urraca",
-      "finanzas.activos": "12 Urraca",
       clientas: "07 Colibrí",
       configuracion: "01 Ganso",
       "configuracion.accesos": "01 Ganso",
