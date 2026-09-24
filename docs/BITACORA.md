@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-24 (Demo de 90 días retirada de producción)
+El primer intento de `deshacer-90-dias.sql` se detuvo, como debía: había 6 ventas de prueba (B004-4647/4648, NV01-3 a 6), una compra, una nota de crédito de proveedor y una prenda por regularizar hechas sobre prendas demo. Como todo lo real era de prueba, el script ganó el interruptor `cayla_seed.incluir_pruebas`, que se las lleva completas y devuelve también su numeración. Ensayado con ROLLBACK en producción (38 s, sin cambios) y corrido con COMMIT: 0 ventas, 3 productos reales, B004=28, NV01=3, traslados en 4 y candados encendidos.
+Se lleva: (1) **un candado que aborta no es un error**: dijo exactamente qué estaba enganchado, y con eso se decidió; (2) **el interruptor queda apagado por defecto**: cuando haya ventas de verdad, el script vuelve a negarse; (3) **antes de borrar se mapea todo lo que cuelga**: acá eran pagos, comprobantes, movimientos y un crédito al proveedor, nada más.
+
 ## 2026-09-23 (Productos: «A quién pedirle» y las prendas pendientes, plegados)
 En `/productos`, los 26 proveedores de «A quién pedirle» eran botones sueltos que llenaban media pantalla: ahora es un desplegable (el mismo de la barra de filtros) con cuántos productos pedirle a cada uno, y elegir uno filtra como antes. El aviso de prendas dadas de alta en un conteo queda plegado en un `<details>`: se ve la cifra y se abre al tocarlo. Sin migración.
 Dany se lleva: (1) **antes de construir un control, buscar el que ya existe**: `DesplegablePildora` ya resolvía la lista flotante y el teclado; (2) **un Server Component no importa constantes de un archivo `"use client"`**: llegan como referencia, no como valor; (3) **para ver un estado que la base local no tiene, una página temporal con datos inventados**, que se borra antes del commit.
