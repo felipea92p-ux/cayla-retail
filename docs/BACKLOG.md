@@ -28,6 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 📐 Finanzas: el módulo que reemplaza a Alegra (2026-09-24, ADR-0194) — PLAN aprobado, sin código
+Plan completo en `docs/PLAN-FINANZAS.md`: 11 piezas (Gastos, Cuentas y dinero, Activos fijos, Resumen, Efectivo por tienda, Por pagar, Estado de resultados, Flujo de caja, Balance, Impuestos, Cierre de mes), 5 módulos para Roles y accesos y fases F0–F10. Retoma ADR-0109/0117/0120 del PR #170 (aprobados, sin fusionar ni pegar) y dice qué cambian las decisiones A (un solo comprobante de proveedor para mercadería, gasto y activo) y B (cinco módulos; con el módulo se ve solo la tienda propia).
+- [ ] **F0 · Spike visual completo** (las 11 piezas) en `docs/maquetas/finanzas-2026-09/`.
+- [ ] Decisiones de Felipe: Balance por tienda (parcial o repartido), aportes/retiros del dueño, gastos fijos propuestos cada mes.
+- [ ] Datos de Felipe: cuentas bancarias y billeteras de CAYLA y a cuál entra cada medio por tienda; saldos de arranque.
+- [ ] Contador: confirmar las ~26 cuentas y la de cada categoría, régimen/UIT/umbral, formato de registros, retención de honorarios.
+- [ ] PR #170: rebasar sobre `main` en F1/F2/F5 y adaptarlo (roles ADR-0161, menú ADR-0144, decisión A); no descartarlo.
+
 ## 🔒 Varios usuarios a la vez: auditoría de concurrencia y volumen (2026-09-23, ADR-0188 a 0193) — EN PRODUCCIÓN: las 5 migraciones pegadas por Felipe y verificadas objeto por objeto (2026-09-23) y los 6 PRs fusionados
 Auditoría completa (343 funciones, 229 consultas web, estadísticas de producción). Ya estaba bien protegido: stock (sin negativos ni sobreventa), numeración, una caja abierta por sede, doble clic en ventas/comprobantes/cambios/compras. Las 5 etapas se hicieron en paralelo; integradas sobre `main` (2026-09-23): se fusionan sin conflictos, tipos/lint limpios, 24.363 pruebas web en verde, y las 5 migraciones corren en fila en el local (re-pegables: la segunda pasada no cambia nada).
 **Orden para pegar en producción (todas traen `set search_path`, sin prefijo `retail.`) y fusionar:**
