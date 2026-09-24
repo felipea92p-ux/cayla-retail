@@ -63,7 +63,7 @@ button{background:none;border:0;cursor:pointer}
 .grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
 
 /* ---------- pasos (acordeón) ---------- */
-.paso{background:var(--papel);border:1px solid var(--sand);border-radius:14px;margin-bottom:10px;overflow:hidden}
+.paso{background:var(--papel);border:1px solid var(--sand);border-radius:14px;margin-bottom:10px}
 .paso.futuro{background:transparent;border-style:dashed}
 .paso-cab{display:flex;align-items:center;gap:12px;padding:14px 18px;width:100%;text-align:left}
 .num{flex:none;width:24px;height:24px;border-radius:50%;border:1px solid var(--t25);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--t75)}
@@ -132,6 +132,36 @@ button{background:none;border:0;cursor:pointer}
 .pat[aria-pressed=true]{border-color:var(--tinta);background:var(--t07);color:var(--tinta)}
 .pat span{display:block;padding:4px 2px 0}
 .mas-colores{margin-top:10px}
+/* buscador con lista flotante (ComboBuscable): la lista NO empuja el contenido (ADR-0185) */
+.combo{position:relative}
+.lista{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:20;background:var(--papel);border:1px solid var(--sand);border-radius:10px;max-height:272px;overflow:auto;padding:4px;box-shadow:0 10px 28px rgba(26,26,24,.10)}
+.lista .enc{font-size:11px;color:var(--taupe);padding:6px 10px 4px}
+.opcion{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:7px 10px;border-radius:7px;font-size:13.5px}
+.opcion:hover,.opcion.activa{background:var(--hueso)}
+.opcion small{margin-left:auto;color:var(--taupe);font-size:11.5px;white-space:nowrap}
+.opcion.crear{border-top:1px solid var(--sand);border-radius:0 0 7px 7px;margin-top:4px;padding-top:9px;font-weight:600}
+.opcion mark{background:none;color:inherit;font-weight:700}
+.en-linea{position:relative;z-index:6;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.en-linea .combo{flex:1;min-width:200px}
+.panel-nuevo{position:relative;z-index:6;margin-top:12px;border:1px solid var(--sand);border-radius:12px;padding:14px;background:var(--crema)}
+.panel-nuevo .acc{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.elegido-prov{display:flex;align-items:center;gap:8px;background:var(--hueso);border-radius:8px;padding:9px 12px;font-size:14px}
+.elegido-prov button{margin-left:auto}
+/* paleta compacta: un renglón por familia, círculos de 26 px; el nombre sale al pasar el mouse y en «Elegidos» */
+.paleta{margin-top:10px;border:1px solid var(--sand);border-radius:12px;padding:6px 12px;background:var(--crema)}
+.paleta .fam-c{display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--sand)}
+.paleta .fam-c:first-child{border-top:0}
+.paleta .fam-c p{font-size:11.5px;color:var(--taupe)}
+.muestras{display:flex;flex-wrap:wrap;gap:6px}
+.muestra{width:26px;height:26px;border-radius:50%;border:1px solid var(--t25);position:relative;display:grid;place-items:center;font-size:11px;font-weight:700;transition:transform 150ms var(--ease)}
+.muestra:hover{transform:scale(1.12)}
+.muestra[aria-pressed=true]{box-shadow:0 0 0 2px var(--papel),0 0 0 3.5px var(--tinta)}
+.muestra[aria-pressed=true]::after{content:"✓"}
+.muestra.claro{color:var(--tinta)}.muestra.oscuro{color:#fff}
+.elegidos{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center}
+.quitable{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--tinta);background:var(--t07);border-radius:999px;padding:3px 6px 3px 9px;font-size:12.5px}
+.quitable button{width:18px;height:18px;border-radius:50%;font-size:12px;line-height:1;color:var(--t60)}
+.quitable button:hover{background:var(--t07);color:var(--tinta)}
 .grupo-color{margin-top:10px}
 .grupo-color p{font-size:11.5px;color:var(--taupe);margin-bottom:5px}
 
@@ -225,6 +255,8 @@ table.matriz{border-collapse:collapse;width:100%;font-size:13px}
   <button data-preset="medio">A medio llenar</button>
   <button data-preset="listo">Listo para crear</button>
   <button data-preset="repetido">Nombre repetido</button>
+  <button data-preset="marca">Nueva marca</button>
+  <button data-preset="colores">Todos los colores</button>
   <span style="flex:1"></span>
   <button id="btn-celular" aria-pressed="false">Ver a 375 px</button>
 </div></div>
@@ -255,7 +287,8 @@ table.matriz{border-collapse:collapse;width:100%;font-size:13px}
       <li><b>Un solo paso abierto a la vez.</b> Lo terminado se pliega en una línea con «Cambiar»; lo que viene es una línea punteada, no una tarjeta gris con texto.</li>
       <li><b>Las variantes son una tabla talla × color</b>, no una fila de casillas. Clic en una celda la quita; clic en el nombre del color o de la talla quita la fila o la columna.</li>
       <li><b>El resumen pasa a ser la prenda misma</b>: código, nombre, colores y precio como se van a ver. En vez de la lista «Falta» completa, una sola frase: el siguiente paso.</li>
-      <li><b>Los colores menos usados se esconden</b> detrás de «Más colores»; a la vista quedan los frecuentes de la categoría.</li>
+      <li><b>Nunca una lista entera de botones.</b> Proveedores (~60) y marcas se eligen con un buscador cuya lista flota sobre la pantalla y muestra 6–7 resultados; «+ Registrar como nuevo» es la última opción de esa lista, no un modo aparte.</li>
+      <li><b>Colores:</b> a la vista, los 5 más usados de la categoría y un buscador. «Ver los 40 colores» abre una paleta de círculos, un renglón por familia (ocupa lo que hoy ocupan dos familias). Lo que elijas fuera de los frecuentes queda en «También elegiste», con ×.</li>
       <li><b>Celular:</b> la ficha baja a una barra fija con el botón Crear y el siguiente paso.</li>
     </ul>
   </div>
@@ -274,27 +307,55 @@ const FAMILIAS = [
 const TALLAS_IND = ["XS","S","M","L","XL"], HABITUALES = ["S","M","L"];
 const TEJIDOS = ["Algodón","Lino","Viscosa","Crepé","Chifón"];
 const PATRONES = ["Liso","Rayas","Floral","Cuadros","Lunares"];
-const COLORES = {
-  NEG:["Negro","#1f1f1d"], HUE:["Blanco hueso","#f1ebdf"], BEI:["Beige","#d8c3a2"], TER:["Terracota","#b35d3f"], MAR:["Azul marino","#26344d"],
-  CAM:["Camel","#b8874f"], CHO:["Chocolate","#5a3a28"], CEL:["Celeste","#a9c3d8"], OLI:["Verde olivo","#6b6b3a"], SAL:["Verde salvia","#9aa88c"],
-  ROS:["Rosa palo","#dcb3ab"], VIN:["Vino","#6e2230"], GRI:["Gris perla","#c9c6bf"], MOS:["Mostaza","#c99a2e"],
-};
-const FRECUENTES = ["NEG","HUE","BEI","TER","MAR"];
-const GRUPOS = [["Neutros",["GRI"]],["Tierras",["CAM","CHO","MOS"]],["Azules",["CEL"]],["Verdes",["OLI","SAL"]],["Rojos y rosas",["ROS","VIN"]]];
+/* Colores: ~40, como el catálogo real. Código = 3 letras del nombre (en el ERP lo da la base). */
+const FAM_COLOR = [
+  ["Neutros", [["Negro","#1f1f1d"],["Blanco","#fbfbf8"],["Blanco hueso","#f1ebdf"],["Crudo","#e9dfc8"],["Gris perla","#c9c6bf"],["Gris oxford","#55575a"],["Plomo","#8a8b8c"]]],
+  ["Tierras", [["Beige","#d8c3a2"],["Arena","#cdb592"],["Camel","#b8874f"],["Chocolate","#5a3a28"],["Marrón","#7a4e33"],["Terracota","#b35d3f"],["Óxido","#9c4a26"],["Mostaza","#c99a2e"],["Ocre","#b6862c"]]],
+  ["Azules", [["Azul marino","#26344d"],["Celeste","#a9c3d8"],["Jean","#4f6d8f"],["Azul eléctrico","#2f55c8"],["Petróleo","#1f4f5a"],["Turquesa","#3aa6a0"]]],
+  ["Verdes", [["Verde olivo","#6b6b3a"],["Verde salvia","#9aa88c"],["Militar","#4b5234"],["Esmeralda","#1f7a55"],["Menta","#a8d5bf"],["Botella","#1d3d2c"]]],
+  ["Rojos y rosas", [["Rojo","#b3262b"],["Vino","#6e2230"],["Guinda","#5a1a26"],["Rosa palo","#dcb3ab"],["Fucsia","#c2327a"],["Coral","#e0735d"],["Salmón","#e9a38d"]]],
+  ["Otros", [["Lila","#b9a2c9"],["Morado","#5b3a78"],["Lavanda","#cfc3e3"],["Amarillo","#e8c83a"],["Naranja","#dc7b2c"]]],
+];
+const COLORES = {};
+const sinT0 = x => x.normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase();
+for (const [f, cs] of FAM_COLOR) for (const [n, h] of cs) {
+  const partes = sinT0(n).split(" ");
+  let cod = partes.length > 1 ? partes[0].slice(0,2) + partes[1][0] : partes[0].slice(0,3);
+  while (COLORES[cod]) cod = cod.slice(0,2) + String.fromCharCode(cod.charCodeAt(2) + 1);
+  COLORES[cod] = [n, h, f];
+}
+const codColor = n => Object.keys(COLORES).find(k => COLORES[k][0] === n);
+const FRECUENTES = ["Negro","Blanco hueso","Beige","Terracota","Azul marino"].map(codColor);
+const claroColor = h => { const r=parseInt(h.slice(1,3),16), g=parseInt(h.slice(3,5),16), b=parseInt(h.slice(5,7),16); return (r*299+g*587+b*114)/1000 > 150; };
+
+/* Proveedores y marcas inventados, en la cantidad real (~60 proveedores). */
+const PROVEEDORES = ["Taller Lima","Confecciones Andina","Gamarra Textil","Textiles del Sur SAC","Hilados Arequipa","Moda Norte EIRL","Tejidos Chimú SAC","Creaciones Wayra","Industrias Qori SAC","Punto y Trama EIRL",
+  "Algodones del Valle","Atelier Miraflores","Bordados Cusco","Boutique Mayorista SAC","Casa Lanar","Confecciones Rímac","Corporación Tika SAC","Diseños Pampa EIRL","Distribuidora Kusi","Estampados Lúcuma",
+  "Fibras Nativas SAC","Grupo Alondra SAC","Hilandería Central","Importaciones Sol de Mayo","Inversiones Brisa EIRL","Jacquard Andino SAC","Lanas del Altiplano","Manufacturas Chan Chan","Mercería Trujillo","Modas Huanchaco",
+  "Moda Viva EIRL","Novedades Chiclayo","Nuevo Estilo SAC","Pacífico Textil","Paracas Clothing SAC","Pima Selecto SAC","Prendas Libertad","Punto Fino EIRL","Qhapaq Diseño","Retazos Victoria",
+  "Sastrería Moderna","Sedas del Norte","Taller Arequipa","Taller Moche","Telas Continental","Textil Inca SAC","Textilería Colonial","Trama Urbana EIRL","Urpi Confecciones","Vicuña Real SAC",
+  "Vilca Importaciones","Wari Textil","Yanapay Moda","Zafiro Accesorios","Ana Lucía Paredes Ríos","Carmen Rosa Tello Vega","José Luis Huamán Quispe","María Elena Soto Castro"];
+const MARCAS = [["CAYLA",["Taller Lima","Confecciones Andina","Taller Arequipa"]],["Mía Studio",["Gamarra Textil"]],["Alondra",["Grupo Alondra SAC"]],["Brisa Andina",["Inversiones Brisa EIRL","Fibras Nativas SAC"]],
+  ["Kusi",["Distribuidora Kusi"]],["Lúcuma",["Estampados Lúcuma"]],["Nativa",["Fibras Nativas SAC"]],["Pampa",["Diseños Pampa EIRL"]],["Qori",["Industrias Qori SAC"]],["Sol de Mayo",["Importaciones Sol de Mayo"]],
+  ["Tika",["Corporación Tika SAC"]],["Wayra",["Creaciones Wayra"]],["Urpi",["Urpi Confecciones"]],["Vicuña",["Vicuña Real SAC"]]];
+/* Parejas marca·proveedor. Las 3 primeras son las más usadas en la categoría (el ERP las saca de `parejasPorCategoria`). */
 const PAREJAS = [["CAYLA","Taller Lima","12 blusas"],["CAYLA","Confecciones Andina","5 blusas"],["Mía Studio","Gamarra Textil","3 blusas"]];
+for (const [m, ps] of MARCAS) for (const p of ps) if (!PAREJAS.some(x => x[0]===m && x[1]===p)) PAREJAS.push([m, p, ""]);
 const ETIQUETAS = [["Nueva colección",null],["Primavera 26",null],["Cyber CAYLA","20 %"]];
 const EXISTENTES = [["Blusa Aurora","BL-0098"],["Blusa Aurora Manga Larga","BL-0121"]];
 
 /* ---------------- estado ---------------- */
 let s;
 function vacio(){ return {abierto:1, familia:null, cat:null, busca:"", nombre:"", desc:"", pareja:null, tallas:[], tejido:null, patron:null,
-  colores:[], masColores:false, precio:"", costo:"", fuera:[], distinto:false, precios:{}, verEtiquetas:false, etiquetas:[], barra:false}; }
+  colores:[], paleta:false, nuevaMarca:false, nm:"", prov:null, provNuevo:false, provTexto:"", ruc:"", lista:null, q:{mp:"",prov:"",color:""}, precio:"", costo:"", fuera:[], distinto:false, precios:{}, verEtiquetas:false, etiquetas:[], barra:false}; }
 const PRESETS = {
   vacio: () => vacio(),
   medio: () => ({...vacio(), abierto:3, familia:"indumentaria", cat:"blusas", nombre:"blusa lirio", pareja:0, tallas:[...HABITUALES]}),
   listo: () => ({...vacio(), abierto:4, familia:"indumentaria", cat:"blusas", nombre:"blusa lirio", desc:"Manga globo, botones forrados", pareja:0,
-    tallas:[...HABITUALES,"XL"], tejido:"Lino", patron:"Liso", colores:["HUE","TER","MAR"], precio:"89.90", costo:"38.50", fuera:["MAR|XL"], precios:{"HUE|XL":"94.90"}}),
+    tallas:[...HABITUALES,"XL"], tejido:"Lino", patron:"Liso", colores:["Blanco hueso","Terracota","Azul marino"].map(codColor), precio:"89.90", costo:"38.50", fuera:[codColor("Azul marino")+"|XL"], precios:{[codColor("Blanco hueso")+"|XL"]:"94.90"}}),
   repetido: () => ({...vacio(), abierto:2, familia:"indumentaria", cat:"blusas", nombre:"blusa  aurora", pareja:0}),
+  marca: () => ({...vacio(), abierto:2, familia:"indumentaria", cat:"blusas", nombre:"blusa lirio", nuevaMarca:true, nm:"Kantu", lista:"prov", q:{mp:"",prov:"tex",color:""}}),
+  colores: () => ({...PRESETS.medio(), tejido:"Lino", patron:"Liso", colores:[codColor("Blanco hueso"), codColor("Petróleo"), codColor("Coral")], paleta:true}),
 };
 
 /* ---------------- reglas (en el ERP viven en lib/alta-producto.ts) ---------------- */
@@ -394,9 +455,9 @@ function cuerpo(n){
       <div class="fila"><div class="et">Descripción<small>Opcional</small></div>
         <div class="campo"><input class="caja" id="in-desc" placeholder="Tela, corte, detalle…" value="${esc(s.desc)}"></div></div>
       <div class="fila"><div class="et">Marca y proveedor<small>Quién la hace y quién la trae</small></div>
-        <div><p class="ayuda" style="margin:0 0 6px">Los más usados en ${cat()[1]}:</p>
-          <div class="chips">${PAREJAS.map((p,i) => `<button class="chip pareja" data-pareja="${i}" aria-pressed="${s.pareja===i}"><span>${s.pareja===i?"✓ ":""}<b style="font-weight:600">${p[0]}</b> · ${p[1]}</span><small>${p[2]}</small></button>`).join("")}</div>
-          <p class="ayuda"><button class="btn-enlace">Buscar otra marca o proveedor</button> · <button class="btn-enlace">+ Nueva marca</button></p></div></div>
+        <div>${s.nuevaMarca ? panelNuevaMarca() : `<p class="ayuda" style="margin:0 0 6px">Los más usados en ${cat()[1]}:</p>
+          <div class="chips">${PAREJAS.slice(0,3).concat(s.pareja>2 ? [PAREJAS[s.pareja]] : []).map(p => { const i = PAREJAS.indexOf(p); return `<button class="chip pareja" data-pareja="${i}" aria-pressed="${s.pareja===i}"><span>${s.pareja===i?"✓ ":""}<b style="font-weight:600">${p[0]}</b> · ${p[1]}</span><small>${p[2] || "elegida en la búsqueda"}</small></button>`; }).join("")}</div>
+          <div class="en-linea">${combo("mp","Busca otra marca o proveedor…")}<button class="btn btn-secundario" id="nueva-marca">+ Nueva marca</button></div>`}</div></div>
       ${pie(2,"Seguir")}`;
   }
   if (n===3){
@@ -417,8 +478,10 @@ function cuerpo(n){
         <div class="chips">${PATRONES.map(p => `<button class="pat" data-patron="${p}" aria-pressed="${s.patron===p}"><svg viewBox="0 0 120 36">${pat(p)}</svg><span>${s.patron===p?"✓ ":""}${p}</span></button>`).join("")}</div></div>` : ""}
       <div class="fila"><div class="et">Colores<small>${s.colores.length ? s.colores.length+" elegido"+(s.colores.length===1?"":"s") : "Sin colores = una variante sin color"}</small></div>
         <div><p class="ayuda" style="margin:0 0 6px">Los más usados en ${cat()[1]}</p><div class="chips">${FRECUENTES.map(chipColor).join("")}</div>
-          ${s.masColores ? `<div class="revela">${GRUPOS.map(([g,cs]) => `<div class="grupo-color"><p>${g}</p><div class="chips">${cs.map(chipColor).join("")}</div></div>`).join("")}</div>`
-          : `<button class="btn-enlace mas-colores" id="mas-colores">Más colores (${GRUPOS.reduce((a,g)=>a+g[1].length,0)})</button>`}</div></div>
+          <div class="en-linea">${combo("color","Busca otro color: petróleo, coral…")}<button class="btn btn-secundario" id="ver-paleta" aria-expanded="${s.paleta}">${s.paleta ? "Ocultar paleta" : "Ver los "+Object.keys(COLORES).length+" colores"}</button></div>
+          ${s.paleta ? `<div class="paleta revela">${FAM_COLOR.map(([f]) => `<div class="fam-c"><p>${f}</p><div class="muestras">${Object.keys(COLORES).filter(c => COLORES[c][2]===f).map(c => `<button class="muestra ${claroColor(COLORES[c][1])?"claro":"oscuro"}" data-color="${c}" aria-pressed="${s.colores.includes(c)}" title="${COLORES[c][0]}" aria-label="${COLORES[c][0]}" style="background:${COLORES[c][1]}"></button>`).join("")}</div></div>`).join("")}</div>` : ""}
+          ${s.colores.some(c => !FRECUENTES.includes(c)) ? `<div class="elegidos"><span class="ayuda" style="margin:0">También elegiste:</span>${s.colores.filter(c => !FRECUENTES.includes(c)).map(c => `<span class="quitable"><span class="punto" style="background:${COLORES[c][1]}"></span>${COLORES[c][0]}<button data-color="${c}" aria-label="Quitar ${COLORES[c][0]}">×</button></span>`).join("")}</div>` : ""}
+        </div></div>
       ${pie(3,"Seguir al precio")}`;
   }
   if (n===4){
@@ -440,6 +503,53 @@ function cuerpo(n){
   }
 }
 
+/* ---------- buscador con lista flotante (en el ERP: ComboBuscable) ---------- */
+function combo(id, ph){
+  return `<div class="combo"><input class="caja" id="in-${id}" data-combo="${id}" placeholder="${ph}" value="${esc(s.q[id])}" autocomplete="off" role="combobox" aria-expanded="${s.lista===id}">
+    <div class="lista" id="lista-${id}" ${s.lista===id ? "" : "hidden"}>${s.lista===id ? opciones(id) : ""}</div></div>`;
+}
+const resaltar = (texto, q) => { const i = sinT(texto).indexOf(sinT(q)); return "<span>" + (!q || i < 0 ? esc(texto) : esc(texto.slice(0,i)) + "<mark>" + esc(texto.slice(i, i+q.trim().length)) + "</mark>" + esc(texto.slice(i+q.trim().length))) + "</span>"; };
+function opciones(id){
+  const q = s.q[id], k = sinT(q);
+  if (id === "mp"){
+    const hits = PAREJAS.map((p,i)=>[p,i]).filter(([p]) => !k || sinT(p[0]+" "+p[1]).includes(k));
+    return `<p class="enc">${k ? hits.length+" resultado"+(hits.length===1?"":"s") : PAREJAS.length+" parejas · escribe para filtrar"}</p>`
+      + hits.slice(0,7).map(([p,i]) => `<button class="opcion" data-opt="mp:${i}"><span><b style="font-weight:600">${resaltar(p[0],q)}</b> · ${resaltar(p[1],q)}</span></button>`).join("")
+      + (hits.length > 7 ? `<p class="enc">+${hits.length-7} más: sigue escribiendo</p>` : "")
+      + `<button class="opcion crear" data-opt="mp:nueva">+ Crear la marca${q.trim() ? ` «${esc(titulo(q))}»` : ""}</button>`;
+  }
+  if (id === "prov"){
+    const hits = PROVEEDORES.filter(p => !k || sinT(p).includes(k));
+    const exacto = PROVEEDORES.some(p => sinT(p) === k);
+    return `<p class="enc">${k ? hits.length+" de "+PROVEEDORES.length+" proveedores" : "Los que más traes · "+PROVEEDORES.length+" en total"}</p>`
+      + hits.slice(0,6).map(p => `<button class="opcion" data-opt="prov:${esc(p)}">${resaltar(p,q)}</button>`).join("")
+      + (hits.length > 6 ? `<p class="enc">+${hits.length-6} más: sigue escribiendo</p>` : "")
+      + (exacto ? "" : `<button class="opcion crear" data-opt="prov:+nuevo">+ Registrar ${q.trim() ? `«${esc(titulo(q))}»` : "un proveedor"} como nuevo</button>`);
+  }
+  if (id === "color"){
+    const hits = Object.keys(COLORES).filter(c => !k || sinT(COLORES[c][0]).includes(k) || sinT(COLORES[c][2]).includes(k));
+    return (hits.length ? "" : `<p class="enc">Ningún color con «${esc(q)}».</p>`)
+      + hits.slice(0,8).map(c => `<button class="opcion" data-opt="color:${c}"><span class="punto" style="background:${COLORES[c][1]}"></span>${resaltar(COLORES[c][0],q)}<small>${s.colores.includes(c) ? "✓ elegido" : COLORES[c][2]}</small></button>`).join("")
+      + (hits.length > 8 ? `<p class="enc">+${hits.length-8} más: sigue escribiendo</p>` : "");
+  }
+}
+function panelNuevaMarca(){
+  return `<div class="panel-nuevo revela">
+    <p class="lbl" style="margin-bottom:10px">Nueva marca</p>
+    <div class="dos">
+      <div class="campo"><label for="in-nm">Nombre de la marca</label><input class="caja" id="in-nm" placeholder="Kantu" value="${esc(s.nm)}" autocomplete="off"></div>
+      <div class="campo"><label for="in-prov">¿Quién la trae?</label>
+        ${s.prov && !s.provNuevo ? `<div class="elegido-prov">✓ ${esc(s.prov)}<button class="btn-enlace" id="cambiar-prov">Cambiar</button></div>`
+          : s.provNuevo ? `<div class="elegido-prov">Proveedor nuevo<button class="btn-enlace" id="cambiar-prov">Elegir uno que ya tengo</button></div>`
+          : combo("prov","Busca entre "+PROVEEDORES.length+" proveedores…")}</div>
+    </div>
+    ${s.provNuevo ? `<div class="dos revela" style="margin-top:12px">
+      <div class="campo"><label for="in-provtexto">Razón social o nombre</label><input class="caja" id="in-provtexto" value="${esc(s.provTexto)}" placeholder="Textil Kantu SAC"></div>
+      <div class="campo"><label for="in-ruc">RUC <span class="m45" style="font-weight:400">· opcional</span></label><input class="caja tab" id="in-ruc" inputmode="numeric" maxlength="11" value="${esc(s.ruc)}" placeholder="20…"><div class="pie">Contacto, banco y plazo se completan después en Compras.</div></div>
+    </div>` : ""}
+    <div class="acc"><button class="btn btn-secundario" id="cancelar-marca">Cancelar</button><button class="btn btn-primario" id="guardar-marca" ${s.nm.trim() && (s.prov || (s.provNuevo && s.provTexto.trim())) ? "" : "disabled"}>Guardar marca</button></div>
+  </div>`;
+}
 function pieNombre(){ const f = titulo(s.nombre); return f && f !== s.nombre.trim() ? `Se guardará como <b>${esc(f)}</b>` : ""; }
 function avisoParecidos(){
   const {identico, suaves} = parecidos();
@@ -509,9 +619,10 @@ function refrescarVivo(){
 
 /* ---------------- eventos ---------------- */
 document.addEventListener("click", e => {
+  if (s.lista && !e.target.closest(".combo")){ const l = $("lista-"+s.lista); if (l) l.hidden = true; s.lista = null; }
   const t = e.target.closest("button,[data-fila],[data-col]"); if (!t) return;
   const d = t.dataset;
-  if (d.preset){ s = PRESETS[d.preset](); document.querySelectorAll("[data-preset]").forEach(b => b.setAttribute("aria-pressed", b===t)); pintar(); return; }
+  if (d.preset){ s = PRESETS[d.preset](); document.querySelectorAll("[data-preset]").forEach(b => b.setAttribute("aria-pressed", b===t)); pintar(); e.stopPropagation(); return; }
   if (t.id==="btn-celular"){ const on = !document.body.classList.contains("celular"); document.body.classList.toggle("celular", on); t.setAttribute("aria-pressed", on); return; }
   if (d.abrir){ s.abierto = Number(d.abrir); pintar(); return; }
   if (d.fam){ s.familia = d.fam; s.cat = null; pintar(); return; }
@@ -523,7 +634,17 @@ document.addEventListener("click", e => {
   if (d.tejido){ s.tejido = s.tejido===d.tejido ? null : d.tejido; pintar(); return; }
   if (d.patron){ s.patron = s.patron===d.patron ? null : d.patron; pintar(); return; }
   if (d.color){ s.colores = s.colores.includes(d.color) ? s.colores.filter(x=>x!==d.color) : [...s.colores,d.color]; pintar(); return; }
-  if (t.id==="mas-colores"){ s.masColores = true; pintar(); return; }
+  if (t.id==="ver-paleta"){ s.paleta = !s.paleta; pintar(); return; }
+  if (t.id==="nueva-marca"){ s.nuevaMarca = true; s.nm = titulo(s.q.mp); s.lista = null; pintar(); $("in-nm")?.focus(); return; }
+  if (t.id==="cancelar-marca"){ s.nuevaMarca = false; s.nm=""; s.prov=null; s.provNuevo=false; s.provTexto=""; s.ruc=""; pintar(); return; }
+  if (t.id==="cambiar-prov"){ s.prov = null; s.provNuevo = false; s.q.prov = ""; pintar(); $("in-prov")?.focus(); return; }
+  if (t.id==="guardar-marca"){ const prov = s.provNuevo ? titulo(s.provTexto) : s.prov; if (s.provNuevo) PROVEEDORES.push(prov);
+    PAREJAS.push([titulo(s.nm), prov, "recién creada"]); s.pareja = PAREJAS.length-1; s.nuevaMarca=false; s.nm=""; s.prov=null; s.provNuevo=false; s.provTexto=""; s.ruc=""; pintar(); return; }
+  if (d.opt){ const [id, v] = [d.opt.slice(0, d.opt.indexOf(":")), d.opt.slice(d.opt.indexOf(":")+1)]; s.lista = null;
+    if (id==="mp"){ if (v==="nueva"){ s.nuevaMarca = true; s.nm = titulo(s.q.mp); } else s.pareja = Number(v); s.q.mp = ""; }
+    if (id==="prov"){ if (v==="+nuevo"){ s.provNuevo = true; s.provTexto = titulo(s.q.prov); } else s.prov = v; s.q.prov = ""; }
+    if (id==="color"){ if (!s.colores.includes(v)) s.colores = [...s.colores, v]; s.q.color = ""; }
+    pintar(); return; }
   if (d.celda){ s.fuera = s.fuera.includes(d.celda) ? s.fuera.filter(x=>x!==d.celda) : [...s.fuera,d.celda]; $("matriz").innerHTML = pintaMatriz(); refrescarVivo(); $("n-var").textContent = celdasDentro().length; return; }
   if (d.fila||d.col){
     const ks = celdas().filter(x => d.fila ? (x.c??"—")===d.fila : x.t===d.col).map(x=>x.k);
@@ -536,8 +657,17 @@ document.addEventListener("click", e => {
   if (d.etiqueta){ s.etiquetas = s.etiquetas.includes(d.etiqueta) ? s.etiquetas.filter(x=>x!==d.etiqueta) : [...s.etiquetas,d.etiqueta]; pintar(); return; }
   if (t.id==="ver-barra"){ s.barra = !s.barra; pintarFicha(); return; }
 });
+document.addEventListener("focusin", e => {
+  const id = e.target.dataset?.combo; if (!id || s.lista === id) return;
+  if (s.lista){ const l = $("lista-"+s.lista); if (l) l.hidden = true; }
+  s.lista = id; const l = $("lista-"+id); l.innerHTML = opciones(id); l.hidden = false;
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && s.lista){ $("lista-"+s.lista).hidden = true; s.lista = null; } });
 document.addEventListener("input", e => {
   const t = e.target;
+  if (t.dataset.combo){ const id = t.dataset.combo; s.q[id] = t.value; s.lista = id; const l = $("lista-"+id); l.innerHTML = opciones(id); l.hidden = false; return; }
+  if (t.id==="in-nm"||t.id==="in-provtexto"||t.id==="in-ruc"){ s[{"in-nm":"nm","in-provtexto":"provTexto","in-ruc":"ruc"}[t.id]] = t.value;
+    const b = $("guardar-marca"); if (b) b.disabled = !(s.nm.trim() && (s.prov || (s.provNuevo && s.provTexto.trim()))); return; }
   if (t.id==="in-busca"){ s.busca = t.value; const pos = t.selectionStart; pintarPasos(); const i=$("in-busca"); i.focus(); i.setSelectionRange(pos,pos); return; }
   if (t.id==="in-nombre"){ s.nombre = t.value; $("pie-nombre").innerHTML = pieNombre(); $("parecidos").innerHTML = avisoParecidos(); refrescarVivo(); return; }
   if (t.id==="in-desc"){ s.desc = t.value; return; }
