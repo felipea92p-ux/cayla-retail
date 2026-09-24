@@ -28,12 +28,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 El Admin firma sin marcar asistencia (2026-09-24, ADR-0161 act. 2026-09-24) — construido, NO pegado en producción
+## 🎯 El Admin firma sin marcar asistencia (2026-09-24, ADR-0161 act. 2026-09-24) — base EN PRODUCCIÓN (pegada y verificada 2026-09-24); web en PR
 Pedido de Dany: las cuentas de caja y almacén de cada tienda siguen pidiendo a alguien de turno; el Admin (ADR-0178) no, solo ve «Eres admin: no necesitas autorización».
 - [x] Migración `20260924171300_admin_firma_sin_asistencia.sql`: `fn_actor_persona_id` deja firmar al Admin a su nombre sin asistencia (sin responsable o eligiéndose a sí mismo). Definición de producción comparada antes (md5 `cad473a6…`, igual a `20260923010000`).
 - [x] Web: `esAdmin` en `requirePersonaActualV2` → `SedeActivaProveedor` → `useResponsable` (estado `admin`) → aviso en `ComboResponsable`. Probado a 375 px con una página temporal (borrada).
 - [x] Pruebas: 4 casos nuevos en `pruebas:terminales-sin-persona` (54/55 en seco; el rojo «RLS… permission denied for function intento» ya fallaba sin este cambio) y `estadoCombo` en vitest.
-- [ ] **Pegar en producción** (con OK explícito): la migración va con `retail.` y exige `fn_es_admin` (ya está en producción). Sin ella, la web muestra el aviso pero la base rechaza al Admin sin asistencia: **pegar la migración ANTES de publicar la web.**
+- [x] **Pegada en producción el 2026-09-24** (OK de Dany), por el MCP: ensayo antes/después abortado a propósito, luego COMMIT con validación final. Huella `cad473a6…` → `9f7cf714…` (la ensayada en local), permisos iguales, una sola sobrecarga. Humo sin escribir: firman sin responsable 5/5 Admin; siguen bloqueados 4/4 líderes no Admin y 6/6 terminales. No se registra en `supabase_migrations` (producción no lleva ese historial desde el 2026-09-22).
+- [ ] Fusionar el PR de la web (hasta entonces el Admin sigue viendo el combo, pero ya puede elegirse a sí mismo sin asistencia).
 - [ ] Verlo con clics en `/vender` con la cuenta de un Admin, sin marcar entrada.
 - Cómo verificas: entra con una cuenta Admin a Vender en una tienda donde nadie marcó: en vez de «Nadie de turno» sale el aviso y la venta se guarda a tu nombre. Con la terminal de caja de esa tienda, sigue «Nadie de turno».
 
