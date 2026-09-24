@@ -15,7 +15,8 @@ Datos inventados. **No es una implementación**: no toca `app/(app)/page.tsx`, `
 | Bloque | Pregunta | Cambia respecto de hoy |
 |---|---|---|
 | Cabecera (`CabeceraPantalla`) | ¿dónde estoy? | Sobretítulo con la fecha; bajada con ubicación y rol |
-| **Hoy en {ubicación}** | ¿cómo va? | Tienda: ventas/prendas/meta (líder = tienda; resto = «tus ventas»). Almacén y Taller ahora tienen sus propias cifras en vez de nada |
+| **Hoy en {ubicación}** / **Tu día** | ¿cómo va? | Líder: ventas, prendas y meta de la tienda. Almacén y Taller: sus propias cifras (hoy no ven nada) |
+| **Tu día + Tu semana** (vendedora) | ¿cómo me va a mí? | Felipe, 2026-09-24: **solo lo suyo**, nunca la tienda ni sus compañeras. Hoy: sus ventas vs. su mismo día de la semana pasada, ticket medio y prendas por venta, cambios y devoluciones de sus ventas. Semana: barras por día, total vs. su semana pasada, su mejor día habitual |
 | **Te toca** | ¿qué me espera? | Reemplaza «Por atender». Solo avisos de módulos que el rol ve. **No son enlaces**: dicen «En el menú: Inventario ▸ Traslados». Lo que está en cero se junta en una línea «Al día» |
 | **De turno ahora** | ¿quién está? | Nuevo. Sale de `fn_asesoras_de_turno` (la misma del combo Responsable) |
 | Nota hueso | ¿qué puedo hacer? | Nuevo. «Tu rol X te da N módulos, están en el menú» + pastillas no clicables |
@@ -31,7 +32,7 @@ Datos inventados. **No es una implementación**: no toca `app/(app)/page.tsx`, `
 
 ## Decisiones abiertas antes de construir
 
-- ¿La vendedora ve la **meta de la tienda** (entre todas) o solo lo suyo? El spike la muestra.
+- Las cifras de la vendedora necesitan una lectura nueva por persona (semana, ticket, cambios de sus ventas): hoy `fn_ventas_del_dia` solo da el día. ¿Hace falta una **meta individual**? Hoy solo existe la de la sede.
 - ¿«De turno ahora» se muestra a todos o solo al líder?
 - Cifras de Almacén/Taller: necesitan una lectura nueva (`resumen_` de ubicación) si se aprueban.
 - La terminal que ve el Punto de venta sigue aterrizando en `/vender` (`aterrizajeDe`), sin cambio.

@@ -74,6 +74,16 @@ h1{font-family:'EB Garamond',Georgia,serif;font-weight:400;font-size:40px;line-h
 .up{color:var(--verde)}.down{color:var(--ambar)}
 .dos{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:24px;align-items:start}
 
+/* tu semana (solo vendedora) */
+.semana{padding:18px 20px}
+.sem-cab{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline}
+.sem-v{font-size:26px}.semana .d{font-size:13px;color:var(--t65)}
+.barras{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;align-items:end;height:130px;margin-top:14px}
+.col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:100%;font-size:12px;color:var(--t65)}
+.col i{width:100%;max-width:44px;border-radius:6px 6px 2px 2px;background:var(--sand)}
+.col.hoy i{background:var(--tinta)}.col.hoy{color:var(--tinta);font-weight:500}
+.col .mon{font-size:11px;font-variant-numeric:tabular-nums}
+
 /* avisos: texto, no enlaces */
 .aviso{display:flex;gap:14px;align-items:flex-start;padding:14px 20px}
 .aviso+.aviso{border-top:1px solid var(--t10)}
@@ -216,16 +226,22 @@ function pintar(){
   const avisos=AVISOS.filter(a=>ve(a.mod)&&(!a.lider||p.lider)&&(!a.ub||a.ub.includes(p.tipo)));
   const pend=avisos.filter(a=>!a.ok&&a.n>0), bien=avisos.filter(a=>a.ok||a.n===0);
 
-  let cifras="";
+  let cifras="",semana="";
   if(p.tipo==="tienda"&&ve("vender")){
     cifras=p.lider?`
       <div class="card cifra"><span class="lbl">Ventas de la tienda</span><div class="v">S/ 1,240</div><div class="d"><span class="up">▲ 18 %</span> vs. el jueves pasado a esta hora</div></div>
       <div class="card cifra"><span class="lbl">Prendas vendidas</span><div class="v">23</div><div class="d">en 14 ventas · ticket medio S/ 89</div></div>
       <div class="card cifra"><span class="lbl">Meta del día</span><div class="v">62 %</div><div class="d">Faltan S/ 760 de S/ 2,000</div><div class="bar"><i style="width:62%"></i></div></div>`
      :`
-      <div class="card cifra"><span class="lbl">Tus ventas</span><div class="v">S/ 540</div><div class="d">6 ventas hoy</div></div>
-      <div class="card cifra"><span class="lbl">Prendas</span><div class="v">9</div><div class="d">que despachaste hoy</div></div>
-      <div class="card cifra"><span class="lbl">Meta de la tienda</span><div class="v">62 %</div><div class="d">Entre todas, hoy</div><div class="bar"><i style="width:62%"></i></div></div>`;
+      <div class="card cifra"><span class="lbl">Tus ventas hoy</span><div class="v">S/ 540</div><div class="d"><span class="up">▲ 12 %</span> vs. tu jueves pasado</div></div>
+      <div class="card cifra"><span class="lbl">Tu ticket medio</span><div class="v">S/ 90</div><div class="d">6 ventas · 1.5 prendas por venta</div></div>
+      <div class="card cifra"><span class="lbl">Cambios y devoluciones</span><div class="v">1</div><div class="d">de tus ventas de la semana</div></div>`;
+    semana=`<section class="sec"><span class="lbl">Tu semana</span>
+      <div class="card semana">
+        <div class="sem-cab"><div><span class="serif sem-v">S/ 2,870</span><span class="d"> esta semana · 31 ventas</span></div><span class="d"><span class="up">▲ 9 %</span> vs. tu semana pasada · tu mejor día suele ser el sábado</span></div>
+        <div class="barras">${[["L",410],["M",380],["M",520],["J",540,1],["V",0],["S",0],["D",0]].map(([d,v,h])=>`<div class="col ${h?"hoy":""}"><span class="mon">${v?"S/ "+v:""}</span><i style="height:${v?Math.round(v/6):2}px"></i><span>${d}</span></div>`).join("")}</div>
+        <p class="d" style="margin-top:10px">La semana pasada: S/ 2,630 en 28 ventas. Solo tus ventas: nadie más ve estas cifras, y tú no ves las de tus compañeras.</p>
+      </div></section>`;
   }else if(p.tipo==="almacen"){
     cifras=`
       <div class="card cifra"><span class="lbl">Prendas en Almacén</span><div class="v">4,812</div><div class="d">en 612 variantes</div></div>
@@ -247,7 +263,8 @@ function pintar(){
     <h1>Hola, ${primer}</h1>
     <p class="bajada">${p.ub} · ${p.rol}</p>
 
-    ${cifras?`<section class="sec"><span class="lbl">Hoy en ${p.ub}</span><div class="cifras">${cifras}</div></section>`:""}
+    ${cifras?`<section class="sec"><span class="lbl">${p.tipo==="tienda"&&!p.lider?"Tu día":"Hoy en "+p.ub}</span><div class="cifras">${cifras}</div></section>`:""}
+    ${semana}
 
     <div class="sec dos">
       <section><span class="lbl">Te toca</span>
