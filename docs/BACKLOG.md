@@ -28,9 +28,10 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 📐 Finanzas: el módulo que reemplaza a Alegra (2026-09-24, ADR-0194) — PLAN aprobado, sin código
+## 📐 Finanzas: el módulo que reemplaza a Alegra (2026-09-24, ADR-0194) — PLAN aprobado y SPIKE visual listo, sin código
 Plan completo en `docs/PLAN-FINANZAS.md`: 11 piezas (Gastos, Cuentas y dinero, Activos fijos, Resumen, Efectivo por tienda, Por pagar, Estado de resultados, Flujo de caja, Balance, Impuestos, Cierre de mes), 5 módulos para Roles y accesos y fases F0–F10. Retoma ADR-0109/0117/0120 del PR #170 (aprobados, sin fusionar ni pegar) y dice qué cambian las decisiones A (un solo comprobante de proveedor para mercadería, gasto y activo) y B (cinco módulos; con el módulo se ve solo la tienda propia).
-- [ ] **F0 · Spike visual completo** (las 11 piezas) en `docs/maquetas/finanzas-2026-09/`.
+- [x] **F0 · Spike visual completo** (2026-09-24): `docs/maquetas/finanzas-2026-09/finanzas-spike.html`, las 11 piezas en 6 entradas de menú, ver como líder o encargada, origen de cada dato, claro/oscuro; guion de 8 pasos probado sin errores y sin desborde a 375 px.
+- [ ] **Felipe recorre el spike y aprueba** (o corrige) las pantallas antes de F1.
 - [ ] Decisiones de Felipe: Balance por tienda (parcial o repartido), aportes/retiros del dueño, gastos fijos propuestos cada mes.
 - [ ] Datos de Felipe: cuentas bancarias y billeteras de CAYLA y a cuál entra cada medio por tienda; saldos de arranque.
 - [ ] Contador: confirmar las ~26 cuentas y la de cada categoría, régimen/UIT/umbral, formato de registros, retención de honorarios.

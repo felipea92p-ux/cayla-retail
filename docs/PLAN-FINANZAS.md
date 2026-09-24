@@ -1,7 +1,8 @@
 # Plan · Finanzas: el módulo que reemplaza a Alegra (2026-09-24)
 
 > **Estado:** PLAN, sin código ni migraciones. Aprobado por Felipe en lo conceptual (decisiones A y B, 2026-09-24).
-> Siguiente paso: **spike visual completo** (F0) para aprobar las pantallas antes de construir.
+> **F0 hecha (2026-09-24):** spike visual completo en `docs/maquetas/finanzas-2026-09/` (README con el guion de prueba).
+> Siguiente paso: que Felipe lo recorra y apruebe las pantallas antes de construir F1.
 > ADR asociado: `docs/adr/0194-finanzas-un-comprobante-de-proveedor-y-cinco-modulos.md`.
 > Se apoya en tres ADR que Felipe ya aprobó y que viven en el PR #170 (sin fusionar, sin pegar en producción):
 > **ADR-0109** (los estados salen de un diario derivado que se congela al cerrar el mes), **ADR-0117** (gastos) y
@@ -133,12 +134,16 @@ Todos nacen **solo para el líder** (regla de CLAUDE.md, ADR-0161): migración p
 | Clave | Nombre | Incluye (palabras del negocio) | Alcance con el módulo |
 |---|---|---|---|
 | `gastos` | Gastos | Registrar y anular gastos y activos fijos; clasificar egresos de caja | Solo su tienda (líder: todas + «de la empresa») |
-| `cuentas_dinero` | Cuentas y dinero | Cuentas bancarias y billeteras, depósitos, abonos de tarjeta, conciliación | Solo su tienda (líder: todas) |
-| `reportes_financieros` | Reportes financieros | Resumen, efectivo por tienda, por pagar, resultados, flujo, balance | Solo su tienda (líder: consolidado) |
+| `cuentas_dinero` | Cuentas y dinero | Cuentas bancarias y billeteras, depósitos, abonos de tarjeta, efectivo por tienda, por pagar y pagos, conciliación | Solo su tienda (líder: todas; conciliación solo líder) |
+| `reportes_financieros` | Reportes financieros | Resumen, estado de resultados, flujo de caja, balance | Solo su tienda (líder: consolidado) |
 | `impuestos` | Impuestos | IGV, alerta de 300 UIT, reporte para el contador | Empresa entera |
 | `cierre_mes` | Cierre de mes | Cerrar y reabrir el mes | **Siempre solo del líder** (`delegable = false`) |
 
 «Quién lo registró» queda guardado solo (responsable del combo); es auditoría, no permiso.
+
+**Menú (6 hijas, el tope de `lib/menu.ts`):** Resumen · Gastos (Gastos, Activos fijos, Egresos de caja por clasificar) ·
+Cuentas y dinero (Cuentas, Efectivo por tienda, Por pagar, Conciliación) · Reportes (Resultados, Flujo, Balance) · Impuestos ·
+Cierre de mes. Las 11 piezas son pestañas dentro de esas 6 entradas (ajuste del spike, 2026-09-24).
 
 ## 7. Cuentas y dinero (lo nuevo que más pesa)
 
@@ -172,7 +177,7 @@ Todos nacen **solo para el líder** (regla de CLAUDE.md, ADR-0161): migración p
 
 | Fase | Qué | Cómo lo verificas tú |
 |---|---|---|
-| **F0 · Spike visual** | Las 11 piezas en HTML navegable con la paleta oficial y datos de muestra; `docs/maquetas/finanzas-2026-09/` | Abres el spike y recorres cada pantalla |
+| **F0 · Spike visual** ✅ 2026-09-24 | Las 11 piezas en HTML navegable con la paleta oficial y datos de muestra; `docs/maquetas/finanzas-2026-09/` | Abres el spike y recorres cada pantalla |
 | **F1 · Cimientos** | Rescatar del PR #170 `cuentas`, `parametros_tributarios`, `categorias_gasto`; los 5 módulos; grupo «Finanzas» en el menú | Roles y accesos muestra los 5 módulos «solo líder» |
 | **F2 · Gastos y activos** | ADR-0117 adaptado + `naturaleza` en `compras` + recibo por honorarios + alta de activo | Registras la luz a crédito y aparece en Por pagar; un mototaxi del cajón |
 | **F3 · Cuentas y dinero** | `cuentas_dinero`, `medios_de_cobro`, `movimientos_dinero`, conciliación | Depósito de TRU baja el cajón y sube el BCP; el saldo coincide con el banco |
