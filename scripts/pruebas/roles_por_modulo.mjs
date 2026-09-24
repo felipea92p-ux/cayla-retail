@@ -156,9 +156,15 @@ caso(
   `select (count(*) >= 23)::text, coalesce(string_agg(clave, ',' order by clave) filter (where solo_lider), '') from retail.modulos;`,
   "true|"
 );
+// Los 5 que abrió 20260923130000 siguen delegables. Un módulo NUEVO sí puede nacer «solo líder por ahora» (la regla de
+// CLAUDE.md: `delegable = false` mientras sus funciones exijan fn_es_lider(), como Configuración, 20260924210000).
 caso(
-  "ya no queda ningún módulo «solo líder por ahora» (20260923130000 abrió Etiquetas, Facturas de compra, Por pagar, Notas de crédito y Análisis)",
-  `select coalesce(string_agg(clave, ',' order by clave), '') from retail.modulos where not delegable and not solo_lider;`,
+  "ninguno de los 23 de la siembra queda «solo líder por ahora» (20260923130000 abrió Etiquetas, Facturas de compra, Por pagar, Notas de crédito y Análisis)",
+  `select coalesce(string_agg(clave, ',' order by clave), '') from retail.modulos
+    where not delegable and not solo_lider
+      and clave in ('vender', 'caja', 'cambios', 'devoluciones', 'historial', 'facturacion', 'clientas', 'existencias',
+                    'conteos', 'traslados', 'movimientos', 'productos', 'atributos', 'etiquetas', 'facturas_compra',
+                    'recibir', 'por_pagar', 'proveedores', 'notas_credito', 'produccion', 'analisis', 'colaboradores', 'roles');`,
   ""
 );
 caso(
@@ -227,10 +233,17 @@ caso(
     como(T_ADMIN_AUTH) + `select concat_ws(',', fn_ve_modulo('facturacion'), fn_ve_modulo('existencias'));`,
   "t,f\nf,t"
 );
+// El líder ve TODOS los módulos (los 23 de la siembra y cada uno nuevo); las demás cuentas, solo los que su rol tiene: un
+// módulo nuevo nace sin rol y no les cambia la cuenta.
 caso(
-  "fn_mis_modulos: 23 al líder, 14 a la integrante, 7 y 8 a las terminales; todos completos (B2d)",
-  CUENTAS.map(([, a]) => como(a) + `select count(*) || ':' || count(*) filter (where completo) from fn_mis_modulos();`).join("\n"),
-  "23:23\n14:14\n7:7\n8:8"
+  "fn_mis_modulos: todos al líder (23 de la siembra + los nuevos), 14 a la integrante, 7 y 8 a las terminales; todos completos (B2d)",
+  CUENTAS.map(([, a]) => como(a) + `select count(*) || ':' || count(*) filter (where completo) from fn_mis_modulos();`).join("\n") +
+    `\nselect count(*) from retail.modulos;`,
+  (s) => {
+    const [lider, ...resto] = s.split("\n");
+    const total = resto.pop();
+    return Number(total) >= 23 && lider === `${total}:${total}` && resto.join("\n") === "14:14\n7:7\n8:8";
+  }
 );
 caso("sin sesión, no ve nada", `select fn_ve_modulo('vender')::text || '|' || (select count(*) from fn_mis_modulos());`, "false|0");
 
@@ -985,7 +998,8 @@ caso(
   como(MICAELA_AUTH) +
     `set local role authenticated;\nselect count(*) from retail.roles;\nselect count(*) from retail.modulos;\n` +
     intento(`insert into retail.rol_modulos values (retail.fn_rol_por_clave('integrante'), 'facturacion')`),
-  (s) => s.startsWith("0\n23\n42501|")
+  // Lee el catálogo de módulos (todos: 23 de la siembra + los nuevos), no los roles.
+  (s) => /^0\n(\d+)\n42501\|/.test(s) && Number(s.split("\n")[1]) >= 23
 );
 caso(
   "no se delega un módulo solo del líder ni uno «solo líder por ahora», ni siquiera a mano",
