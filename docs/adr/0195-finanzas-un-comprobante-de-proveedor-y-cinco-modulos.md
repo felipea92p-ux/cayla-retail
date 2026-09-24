@@ -180,5 +180,7 @@ Qué cambió:
   cierre sigue.
 - Pruebas: 23 casos. Se sumaron «con la regla rota la caja se cierra igual» y «ni el líder lee las tablas directo».
 
+Se pegó así el mismo 2026-09-24, sin errores, y quedó verificado en la base.
+
 **Regla para las fases que siguen:** una migración de producción **no mezcla** un `alter` de una tabla que la tienda usa
 con `create policy`/`drop policy`, y cuando necesita políticas, las pega en una ejecución aparte, sola y al final.
