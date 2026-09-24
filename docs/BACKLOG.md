@@ -28,6 +28,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+
+## 🎯 Apartados, módulo propio en Roles y accesos (2026-09-24, ADR-0196) — migración `20260924220000` POR PEGAR en producción; web en PR
+Encender «Punto de venta» ya no trae Apartados: son dos interruptores. Apartados nace sin rol (solo lo ve el líder).
+- [ ] Pegar `supabase/migrations/20260924220000_apartados_modulo_propio.sql` en el SQL Editor de producción (ya trae `retail.`).
+  Hay que pegarla **antes** de publicar la web: si la web sale primero, Roles y accesos ofrece un módulo que la base no conoce.
+- [ ] Justo después de publicar: encender «Apartados» en los roles que deben seguir usándolo (Integrante, Terminal de ventas, los roles a medida).
+  Sin esto, esas cuentas dejan de ver la pantalla.
+- [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) cuando esté en producción.
+- [ ] Candado en la base: que `registrar_venta` pregunte `fn_ve_modulo('vender')` y las funciones de separaciones `fn_ve_modulo('apartados')` (hoy solo la pantalla revisa el módulo).
+- [ ] `pnpm pruebas:roles` en local: 1 rojo que no viene de este cambio, un módulo `configuracion` que sobró en el Postgres compartido y no está en ninguna migración.
+
 ## 📐 Finanzas: el módulo que reemplaza a Alegra (2026-09-24, ADR-0195) — PLAN aprobado y SPIKE visual listo, sin código
 Plan completo en `docs/PLAN-FINANZAS.md`: 11 piezas (Gastos, Cuentas y dinero, Activos fijos, Resumen, Efectivo por tienda, Por pagar, Estado de resultados, Flujo de caja, Balance, Impuestos, Cierre de mes), 5 módulos para Roles y accesos y fases F0–F10. Retoma ADR-0109/0117/0120 del PR #170 (aprobados, sin fusionar ni pegar) y dice qué cambian las decisiones A (un solo comprobante de proveedor para mercadería, gasto y activo) y B (cinco módulos; con el módulo se ve solo la tienda propia).
 - [x] **F0 · Spike visual completo** (2026-09-24): `docs/maquetas/finanzas-2026-09/finanzas-spike.html`, las 11 piezas en 6 entradas de menú, ver como líder o encargada, origen de cada dato, claro/oscuro; guion de 8 pasos probado sin errores y sin desborde a 375 px.

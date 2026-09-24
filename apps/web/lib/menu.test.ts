@@ -589,9 +589,10 @@ describe("permisos de una terminal: salen de su rol", () => {
 describe("el menú de una terminal con el rol «Terminal de ventas»", () => {
   const { riel, movil, nuevo } = menuPara(perfilTerminal("ventas"));
 
-  it("ve solo Ventas: Punto de Venta, Apartados, Caja, Historial, Posventa (Cambios y Devoluciones) y Comprobantes, en ese orden", () => {
+  // Apartados no: desde el ADR-0196 es un módulo propio y la siembra de la terminal de ventas no lo trae.
+  it("ve solo Ventas: Punto de Venta, Caja, Historial, Posventa (Cambios y Devoluciones) y Comprobantes, en ese orden", () => {
     expect(etiquetasDe(riel)).toEqual(["Ventas"]);
-    expect(hijasDe(riel, "Ventas")).toEqual(["Punto de Venta", "Apartados", "Caja", "Historial", "Posventa", "Comprobantes"]);
+    expect(hijasDe(riel, "Ventas")).toEqual(["Punto de Venta", "Caja", "Historial", "Posventa", "Comprobantes"]);
   });
 
   it("no tiene Inicio (ve el Punto de venta: su casa es el mostrador), ni Inventario, Catálogo, Compras ni Producción", () => {

@@ -228,9 +228,11 @@ caso(
   "t,f\nf,t"
 );
 caso(
-  "fn_mis_modulos: 23 al líder, 14 a la integrante, 7 y 8 a las terminales; todos completos (B2d)",
-  CUENTAS.map(([, a]) => como(a) + `select count(*) || ':' || count(*) filter (where completo) from fn_mis_modulos();`).join("\n"),
-  "23:23\n14:14\n7:7\n8:8"
+  // El líder ve TODO el catálogo: se compara con `retail.modulos` y no con un número fijo, porque cada módulo nuevo lo
+  // agranda (Apartados, ADR-0196, fue el 24). Las demás cuentas ven su siembra, que un módulo nuevo no toca.
+  "fn_mis_modulos: todo el catálogo al líder, 14 a la integrante, 7 y 8 a las terminales; todos completos (B2d)",
+  CUENTAS.map(([, a]) => como(a) + `select case when count(*) filter (where completo) = (select count(*) from retail.modulos) then 'todos' else count(*) || ':' || count(*) filter (where completo) end from fn_mis_modulos();`).join("\n"),
+  "todos\n14:14\n7:7\n8:8"
 );
 caso("sin sesión, no ve nada", `select fn_ve_modulo('vender')::text || '|' || (select count(*) from fn_mis_modulos());`, "false|0");
 
@@ -983,9 +985,9 @@ caso(
 caso(
   "RLS: como rol de la API, una integrante no lee roles ni escribe en ninguna tabla de roles",
   como(MICAELA_AUTH) +
-    `set local role authenticated;\nselect count(*) from retail.roles;\nselect count(*) from retail.modulos;\n` +
+    `set local role authenticated;\nselect count(*) from retail.roles;\nselect count(*) >= 24 from retail.modulos;\n` +
     intento(`insert into retail.rol_modulos values (retail.fn_rol_por_clave('integrante'), 'facturacion')`),
-  (s) => s.startsWith("0\n23\n42501|")
+  (s) => s.startsWith("0\nt\n42501|")
 );
 caso(
   "no se delega un módulo solo del líder ni uno «solo líder por ahora», ni siquiera a mano",

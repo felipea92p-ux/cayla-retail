@@ -145,13 +145,31 @@ const foto = (p: PerfilDelMenu) => {
   return { riel: m.riel, movil: m.movil, nuevo: m.nuevo, grupos: RUTAS.map((r) => m.grupoDe(r)) };
 };
 
+// ÚNICA diferencia buscada con el menú de antes (ADR-0196, 2026-09-24): Apartados se separó del Punto de venta en su
+// propio módulo y nació sin rol, así que el integrante sembrado ya no lo ve hasta que el líder se lo encienda. Con
+// «apartados» sumado, su menú vuelve a ser idéntico al de antes; sin él, lo único que falta es esa pantalla.
+const CON_APARTADOS = (c: Cuenta) =>
+  c.rol === "lider" ? modulosDeHoy(c.rol) : [...modulosDeHoy(c.rol), { clave: "apartados" as const, completo: false }];
+const hrefs = (p: PerfilDelMenu) =>
+  JSON.stringify(menuPara(p).riel).match(/"href":"[^"]+"/g)?.map((h) => h.slice(8, -1)).sort() ?? [];
+
 describe("con los módulos de hoy, el menú de las personas es idéntico al de antes (líder e integrante, en cada ubicación)", () => {
   for (const c of CUENTAS_DE_HOY) {
     for (const u of TIPOS_UBICACION) {
       it(`${c.nombre} en ${u}`, () => {
-        expect(foto(ahora(c, u))).toEqual(foto(antes(c, u)));
+        expect(foto(ahora(c, u, CON_APARTADOS(c)))).toEqual(foto(antes(c, u)));
       });
     }
+  }
+
+  for (const u of TIPOS_UBICACION) {
+    it(`integrante en ${u}: sin el módulo «apartados» (ADR-0196) solo le falta Apartados`, () => {
+      const c = CUENTAS_DE_HOY[1]!;
+      const deAntes = hrefs(antes(c, u));
+      const deAhora = hrefs(ahora(c, u));
+      expect(deAntes.filter((h) => !deAhora.includes(h))).toEqual(deAntes.includes("/vender/apartados") ? ["/vender/apartados"] : []);
+      expect(deAhora.filter((h) => !deAntes.includes(h))).toEqual([]);
+    });
   }
 });
 
