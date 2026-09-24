@@ -1,4 +1,5 @@
-import type { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@cayla-retail/database";
 import { emitirDocumentoLucode, entornoLucode, type DatosComprobante, type TipoDocumentoLucode } from "@/lib/lucode";
 import { itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar } from "@/lib/transmision-reglas";
 
@@ -9,7 +10,8 @@ import { itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variante
 // CONTRATO
 //   PROMETE: transmite un comprobante que `emitir_comprobante`/`emitir_nota` ya reservó, y deja su
 //            `estado` real en la base (enviado/aceptado/rechazado) — nunca inventa un resultado.
-//   ASUME:   el cliente de Supabase trae la sesión de quien pide (RLS decide si puede verlo).
+//   ASUME:   el cliente de Supabase trae la sesión de quien pide (RLS decide si puede verlo), o es la llave
+//            de servicio del trabajo programado (PL-113, `GET /api/lucode/reintentar`).
 //   NO HACE: no reserva número ni serie (eso ya pasó). Si Lucode no responde, el comprobante pasa a
 //            "pendiente_reintento" (la cola visible) con su intento anotado — nunca se pierde ni
 //            cambia de número (principio 9).
@@ -17,7 +19,8 @@ import { itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variante
 // Vive separado de la RPC a propósito: `emitir_comprobante` es Postgres puro (ADR-0007/ADR-0005). Esta
 // es la única pieza que depende de que Lucode responda — si cambia el proveedor, se reemplaza esto.
 
-type Cliente = Awaited<ReturnType<typeof createClient>>;
+/** El de la sesión (`lib/supabase/server.ts`) o el de la llave de servicio (`lib/supabase-admin.ts`). */
+export type Cliente = SupabaseClient<Database, "retail">;
 export type Destino = { comprobanteId: string } | { ventaId: string };
 export type Respuesta = { status: number; body: Record<string, unknown> };
 

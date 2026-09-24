@@ -13,7 +13,7 @@ import { ArchivarRolModal, AsignarRolModal, NuevoRolModal, RenombrarRolModal } f
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import type { Firma } from "@/lib/responsable-reglas";
-import { traducirError } from "@/lib/error-escritura";
+import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import type { Ubicacion } from "@/lib/ubicaciones";
 import { MODULOS, SIEMPRE_SOLO_LIDER, esDelegable, type ClaveModulo, type Modulo } from "@/lib/modulos";
 import { accionesRolesSupabase, type AccionesRoles, type ResultadoRol } from "@/lib/roles-acciones";
@@ -22,6 +22,7 @@ import {
   alternarModulo,
   avisoDelRol,
   cambiosDelBorrador,
+  conGuardadosLocales,
   controlDe,
   esMiRolSinSerLider,
   fueraDeLoMio,
@@ -42,6 +43,7 @@ import {
   type CuentaConRol,
   type FamiliaRol,
   type FilaMenuConCambios,
+  type GuardadoLocal,
   type RolVista,
 } from "@/lib/roles-reglas";
 
@@ -90,7 +92,7 @@ const FAMILIAS: { clave: FamiliaRol; etiqueta: string; cabecera: string }[] = [
 const DELEGABLES = MODULOS.filter(esDelegable).length;
 
 export function RolesPanel({
-  roles,
+  roles: rolesServidor,
   cuentas,
   ubicaciones,
   yoId,
@@ -122,6 +124,10 @@ export function RolesPanel({
   responsable: ControlResponsable;
 }) {
   const router = useRouter();
+  // ADR-0193: lo que esta pantalla guardó (con la versión que devolvió la base) manda hasta que `router.refresh()` traiga
+  // los roles nuevos: así dos clics seguidos en la matriz no chocan consigo mismos ni se pisan entre sí.
+  const [guardados, setGuardados] = useState<Record<string, GuardadoLocal>>({});
+  const roles = conGuardadosLocales(rolesServidor, guardados);
   const vigentes = roles.filter((r) => !r.archivado);
   const archivados = roles.filter((r) => r.archivado);
   const [elegidoId, setElegidoId] = useState(
@@ -154,6 +160,12 @@ export function RolesPanel({
     const r = await llamada(responsable.firma());
     responsable.despues(r.error);
     if (r.error) {
+      // ADR-0193: otra persona cambió el rol mientras se editaba. «Recargar» trae sus cambios sin perder el borrador:
+      // la barra de guardado pasa a comparar contra lo que el rol tiene ahora.
+      if (esVersionCambiada(r.error)) {
+        avisar.error(traducirError(r.error, verbo), { accion: { texto: "Recargar", onClick: () => router.refresh() } });
+        return null;
+      }
       avisar.error(traducirError(r.error, verbo));
       return null;
     }
@@ -165,9 +177,12 @@ export function RolesPanel({
   async function guardar() {
     if (!rol || !conCambios) return;
     setGuardando(true);
-    const r = await ejecutar("guardar los módulos del rol", (f) => acciones.guardarModulos(rol.id, borrador, f), `«${rol.nombre}» quedó guardado`);
+    const r = await ejecutar("guardar los módulos del rol", (f) => acciones.guardarModulos(rol.id, borrador, rol.version, f), `«${rol.nombre}» quedó guardado`);
     setGuardando(false);
-    if (r) setBorradores((b) => sinBorrador(b, rol.id));
+    if (r) {
+      recordarGuardado(rol.id, r.version, borrador);
+      setBorradores((b) => sinBorrador(b, rol.id));
+    }
   }
 
   /** Matriz: cada clic guarda al instante (es la vista para comparar y retocar, no para armar un rol desde cero). */
@@ -188,8 +203,15 @@ export function RolesPanel({
       return;
     }
     const encendido = nuevos.includes(m.clave);
-    await ejecutar("guardar los módulos del rol", (f) => acciones.guardarModulos(r.id, nuevos, f), `${r.nombre}: ${m.nombre} ${encendido ? "encendido" : "apagado"}`);
+    const hecho = await ejecutar("guardar los módulos del rol", (f) => acciones.guardarModulos(r.id, nuevos, r.version, f), `${r.nombre}: ${m.nombre} ${encendido ? "encendido" : "apagado"}`);
+    if (hecho) recordarGuardado(r.id, hecho.version, nuevos);
     setMatrizOcupada(null);
+  }
+
+  function recordarGuardado(rolId: string, version: number | undefined, modulos: ClaveModulo[]) {
+    // Sin versión (base sin ADR-0193) no hay nada que recordar: manda lo que traiga el servidor.
+    if (version === undefined) return;
+    setGuardados((g) => ({ ...g, [rolId]: { version, modulos } }));
   }
 
   function elegir(id: string) {

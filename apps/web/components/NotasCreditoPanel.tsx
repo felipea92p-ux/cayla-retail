@@ -174,7 +174,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
       <div {...entra(0)} className="anim-entra flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Notas de crédito</h1>
+          <h1 className="font-display mt-1 text-2xl text-tinta">Notas de crédito de proveedor</h1>
           <p className="mt-1 max-w-[42rem] text-sm text-tinta/65">
             Lo que los proveedores le acreditan a CAYLA por faltantes, devoluciones o descuentos: qué falta reclamar, qué ya llegó y a dónde fue el dinero.
           </p>
@@ -568,7 +568,6 @@ function Vacia({ busqueda, pestana, banda, onLimpiar }: { busqueda: string; pest
 function SaldosAFavorTablero({ proveedores, movimientos, total, puedeReembolsar }: { proveedores: { id: string; nombre: string; saldoFavor: number; deuda: number }[]; movimientos: MovimientoFavor[]; total: number; puedeReembolsar: boolean }) {
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
   const con = proveedores.filter((p) => p.saldoFavor > 0.004).sort((a, b) => b.saldoFavor - a.saldoFavor);
-  const sin = proveedores.filter((p) => p.saldoFavor <= 0.004);
 
   if (con.length === 0) {
     return (
@@ -682,7 +681,6 @@ function SaldosAFavorTablero({ proveedores, movimientos, total, puedeReembolsar 
         );
       })}
 
-      {sin.length > 0 && <p className="px-1 text-[13px] text-tinta/55">Sin saldo a favor: {sin.map((p) => p.nombre).join(" · ")}</p>}
     </div>
   );
 }

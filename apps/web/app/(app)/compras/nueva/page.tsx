@@ -32,12 +32,12 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
   const cabecera = (
     <div>
       <Link href="/compras" className="label-cayla mb-4 inline-flex items-center gap-1.5 text-[11px] text-tinta/65 transition-[color,transform] duration-300 hover:-translate-x-0.5 hover:text-rojo">
-        <span aria-hidden>←</span> Comprobantes
+        <span aria-hidden>←</span> Facturas de proveedor
       </Link>
       <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
-      <h1 className="font-display mt-1 text-2xl text-tinta">Registrar comprobante</h1>
+      <h1 className="font-display mt-1 text-2xl text-tinta">Registrar factura de proveedor</h1>
       <p className="mt-1 text-sm text-tinta/65">
-        Lo que se compró queda aquí; la recepción y el pago se anotan contra él. Copia el documento tal cual llegó: lo que el proveedor no desglosó por talla y color se reparte al recibir.
+        Lo que se compró queda aquí; la recepción y el pago se anotan contra ella. Copia el documento tal cual llegó: lo que el proveedor no desglosó por talla y color se reparte al recibir.
       </p>
     </div>
   );

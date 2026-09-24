@@ -4,11 +4,10 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { inicioDeDiaLima, diaLima, horaDelDiaLima } from "@/lib/panel-serie";
 
 // Caja/POS V2 (2026-09-12) — ver supabase/migrations/0008_caja_y_pagos.sql.
-// `getResumenCaja` alimenta las cifras del TABLERO de Caja (ventas por método, entradas, salidas). El esperado del
-// cierre ya no sale de aquí: lo calcula la base en `fn_calcular_esperado_caja`, que usan `fn_esperado_caja` (la vista
-// previa del cierre) y `cerrar_caja` (ADR-0186). Las ventas anuladas se excluyen igual que allá (`estado <> 'anulada'`):
-// su dinero volvió a la clienta, así que ni está en el cajón ni es venta del día. Antes se contaban y el tablero
-// mostraba ventas que ya no existían.
+// `getTableroCaja` alimenta las cifras del TABLERO de Caja (ventas por método, entradas, salidas) desde
+// `fn_resumen_caja` (ADR-0191), que toma los montos del cajón de `fn_calcular_esperado_caja` — la misma función de
+// `fn_esperado_caja` (la vista previa del cierre) y `cerrar_caja` (ADR-0186). Las ventas anuladas no cuentan
+// (`estado <> 'anulada'`): su dinero volvió a la clienta, así que ni está en el cajón ni es venta del día.
 export type CajaAbierta = {
   id: string;
   ubicacionId: string;
@@ -37,7 +36,7 @@ export type ResumenCaja = {
   cambiosEfectivo: number;
   /** Desglose de `ventasEfectivo + ventasOtros` por método real (efectivo/tarjeta/
    *  yape/plin/transferencia) — para el gráfico de dona del rediseño de Caja. Sale
-   *  de los mismos `venta_pagos` que ya se piden para el resumen, sin consulta extra. */
+   *  de la misma lectura (`fn_resumen_caja`), sin consulta extra. */
   porMetodo: { metodo: string; monto: number }[];
 };
 
@@ -55,7 +54,7 @@ export type MovimientoCaja = {
 
 /** Una barra del gráfico de ventas por hora / sparkline de un KPI. */
 export type PuntoHora = {
-  /** 0-23, hora local del servidor (la misma que ya usa el resto de Caja). */
+  /** 0-23, hora de Lima (la base la calcula con `America/Lima`, no con el reloj del servidor). */
   hora: number;
   efectivo: number;
   otros: number;
@@ -102,42 +101,45 @@ export async function getCajaAbierta(ubicacionId: string): Promise<CajaAbierta |
   };
 }
 
-export async function getResumenCaja(cajaId: string): Promise<ResumenCaja> {
+/** Lo que devuelve `fn_resumen_caja` (ADR-0191). Los montos llegan como número o texto según PostgREST. */
+type ResumenCajaDeLaBase = {
+  ventas_efectivo: number | string;
+  ventas_otros: number | string;
+  ingresos: number | string;
+  egresos: number | string;
+  reembolsos_efectivo: number | string;
+  cambios_efectivo: number | string;
+  esperado: number | string | null;
+  por_metodo: Record<string, number | string>;
+  por_hora: { hora: number; efectivo: number | string; otros: number | string }[];
+};
+
+/**
+ * Las cifras y las series del tablero de Caja en UNA lectura (`fn_resumen_caja`, ADR-0191). La base toma los montos
+ * del cajón de `fn_calcular_esperado_caja` —la misma fórmula del cierre, así pantalla y cierre no pueden dar cifras
+ * distintas— y suma aparte el reparto por forma de pago y la serie por hora de Lima, sin ventas anuladas. Antes esto
+ * eran dos funciones que traían todas las ventas y sus pagos (`.in("venta_id", [...])` con cada id en la URL) y
+ * rehacían las cuentas en JS.
+ */
+export async function getTableroCaja(cajaId: string): Promise<{ resumen: ResumenCaja; series: SeriesVentasCaja }> {
   const supabase = await createClient();
-  const [ventasRes, movimientos, devolucionesRes, cambiosRes] = await Promise.all([
-    supabase.from("ventas").select("id").eq("caja_id", cajaId).neq("estado", "anulada"),
-    supabase.from("caja_movimientos").select("tipo, monto").eq("caja_id", cajaId),
-    supabase.from("devoluciones").select("reembolso_monto, reembolso_metodo").eq("caja_id", cajaId).eq("estado", "aprobada"),
-    supabase.from("cambios").select("diferencia, metodo_pago_diferencia").eq("caja_id", cajaId).eq("metodo_pago_diferencia", "efectivo"),
-  ]);
-  const ventaIds = exigir(ventasRes, "las ventas de esta caja").map((v) => v.id);
-  const filasPagos =
-    ventaIds.length === 0
-      ? []
-      : exigir(
-          await supabase.from("venta_pagos").select("metodo, monto").in("venta_id", ventaIds),
-          "los pagos de esta caja"
-        );
-  const filasMovs = exigir(movimientos, "los movimientos de esta caja");
-  const filasDevoluciones = exigir(devolucionesRes, "las devoluciones de esta caja");
-  const filasCambios = exigir(cambiosRes, "los cambios de esta caja");
-
-  const ventasEfectivo = filasPagos.filter((p) => p.metodo === "efectivo").reduce((a, p) => a + Number(p.monto), 0);
-  const ventasOtros = filasPagos.filter((p) => p.metodo !== "efectivo").reduce((a, p) => a + Number(p.monto), 0);
-  const ingresos = filasMovs.filter((m) => m.tipo === "ingreso").reduce((a, m) => a + Number(m.monto), 0);
-  const egresos = filasMovs.filter((m) => m.tipo === "egreso").reduce((a, m) => a + Number(m.monto), 0);
-  const reembolsosEfectivo = filasDevoluciones
-    .filter((d) => d.reembolso_metodo === "efectivo")
-    .reduce((a, d) => a + Number(d.reembolso_monto ?? 0), 0);
-  const cambiosEfectivo = filasCambios.reduce((a, c) => a + Number(c.diferencia), 0);
-
-  const montosPorMetodo = new Map<string, number>();
-  for (const p of filasPagos) {
-    montosPorMetodo.set(p.metodo, (montosPorMetodo.get(p.metodo) ?? 0) + Number(p.monto));
-  }
-  const porMetodo = Array.from(montosPorMetodo, ([metodo, monto]) => ({ metodo, monto }));
-
-  return { ventasEfectivo, ventasOtros, ingresos, egresos, reembolsosEfectivo, cambiosEfectivo, porMetodo };
+  const t = exigir(await supabase.rpc("fn_resumen_caja", { p_caja_id: cajaId }), "el resumen de esta caja") as unknown as ResumenCajaDeLaBase;
+  const porMetodo: Partial<Record<string, number>> = Object.fromEntries(Object.entries(t.por_metodo).map(([m, monto]) => [m, Number(monto)]));
+  return {
+    resumen: {
+      ventasEfectivo: Number(t.ventas_efectivo),
+      ventasOtros: Number(t.ventas_otros),
+      ingresos: Number(t.ingresos),
+      egresos: Number(t.egresos),
+      reembolsosEfectivo: Number(t.reembolsos_efectivo),
+      cambiosEfectivo: Number(t.cambios_efectivo),
+      porMetodo: Object.entries(porMetodo).map(([metodo, monto]) => ({ metodo, monto: monto ?? 0 })),
+    },
+    series: {
+      porMetodo,
+      porHora: t.por_hora.map((p) => ({ hora: p.hora, efectivo: Number(p.efectivo), otros: Number(p.otros) })),
+    },
+  };
 }
 
 /**
@@ -145,7 +147,7 @@ export async function getResumenCaja(cajaId: string): Promise<ResumenCaja> {
  * Lima de hace 7 días y la misma hora de ese día — el comparativo "vs. mismo día de
  * la semana pasada" de la barra de meta. Ventana acotada a una hora (`hastaEstaHora`
  * en el caller, vía `horaDelDiaLima`) para no comparar un día completo contra lo que
- * llevamos hoy. Independiente de `getResumenCaja`: mira TODAS las ventas de la sede
+ * llevamos hoy. Independiente de `getTableroCaja`: mira TODAS las ventas de la sede
  * ese día, no solo las de una caja puntual (una sede puede abrir/cerrar caja varias
  * veces en el día).
  */
@@ -155,29 +157,18 @@ export async function getVentasMismaHoraSemanaAnterior(ubicacionId: string, ahor
   const inicioDia = inicioDeDiaLima(diaLima(hoyMs) - 7);
   const finVentana = new Date(inicioDia.getTime() + horaDelDiaLima(hoyMs));
 
-  const ventasRes = exigir(
+  // Los pagos van embebidos en la misma lectura: antes eran dos, la segunda con cada id de venta en la URL.
+  const ventas = exigir(
     await supabase
       .from("ventas")
-      .select("id")
+      .select("venta_pagos ( monto )")
       .eq("ubicacion_id", ubicacionId)
       .eq("estado", "completada")
       .gte("created_at", inicioDia.toISOString())
       .lt("created_at", finVentana.toISOString()),
     "las ventas de la sede la semana pasada"
   );
-  if (ventasRes.length === 0) return 0;
-
-  const pagos = exigir(
-    await supabase
-      .from("venta_pagos")
-      .select("monto")
-      .in(
-        "venta_id",
-        ventasRes.map((v) => v.id)
-      ),
-    "los pagos de esas ventas"
-  );
-  return pagos.reduce((a, p) => a + Number(p.monto), 0);
+  return ventas.reduce((a, v) => a + v.venta_pagos.reduce((b, p) => b + Number(p.monto), 0), 0);
 }
 
 export type CierreCaja = {
@@ -402,50 +393,4 @@ export async function getMovimientosCaja(cajaId: string): Promise<MovimientoCaja
     usuarioId: m.usuario_id,
     registradoPorNombre: m.usuario_id ? (nombrePorId.get(m.usuario_id) ?? null) : null,
   }));
-}
-
-/**
- * Serie horaria de ventas de ESTA caja (para la dona de métodos de pago, las
- * barras "ventas por hora" y los sparkline de los KPI de venta). Reusa las
- * mismas dos tablas que `getResumenCaja` (ventas + venta_pagos) en vez de
- * duplicar la fórmula de "cuánto se vendió" en una tercera función.
- */
-export async function getSeriesVentasCaja(cajaId: string): Promise<SeriesVentasCaja> {
-  const supabase = await createClient();
-  // Sin anuladas, como `getResumenCaja` y `fn_calcular_esperado_caja` (ADR-0186): el gráfico no dibuja ventas que ya no existen.
-  const ventasRes = await supabase.from("ventas").select("id, created_at").eq("caja_id", cajaId).neq("estado", "anulada");
-  const filasVentas = exigir(ventasRes, "las ventas de esta caja");
-  if (filasVentas.length === 0) return { porMetodo: {}, porHora: [] };
-
-  const horaPorVenta = new Map(filasVentas.map((v) => [v.id, new Date(v.created_at).getHours()]));
-  const filasPagos = exigir(
-    await supabase
-      .from("venta_pagos")
-      .select("venta_id, metodo, monto")
-      .in(
-        "venta_id",
-        filasVentas.map((v) => v.id)
-      ),
-    "los pagos de esta caja"
-  );
-
-  const porMetodo: Partial<Record<string, number>> = {};
-  const porHoraMap = new Map<number, { efectivo: number; otros: number }>();
-  for (const p of filasPagos) {
-    const monto = Number(p.monto);
-    porMetodo[p.metodo] = (porMetodo[p.metodo] ?? 0) + monto;
-
-    const hora = horaPorVenta.get(p.venta_id);
-    if (hora === undefined) continue;
-    const punto = porHoraMap.get(hora) ?? { efectivo: 0, otros: 0 };
-    if (p.metodo === "efectivo") punto.efectivo += monto;
-    else punto.otros += monto;
-    porHoraMap.set(hora, punto);
-  }
-
-  const porHora = Array.from(porHoraMap.entries())
-    .map(([hora, v]) => ({ hora, ...v }))
-    .sort((a, b) => a.hora - b.hora);
-
-  return { porMetodo, porHora };
 }

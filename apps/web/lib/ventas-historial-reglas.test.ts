@@ -14,6 +14,7 @@ import {
   piezasDeVenta,
   resumir,
   serieDiaria,
+  TOPE_TOTALES,
   subtituloDePrendas,
   titulosDePrendas,
   subtotalDeItem,
@@ -24,6 +25,7 @@ import {
   type ItemCrudo,
   type VentaCruda,
 } from "./ventas-historial-reglas";
+import { FILAS_POR_PAGINA } from "./resultado";
 
 const HOY = "2026-09-21";
 const SEDE_LIMA = "11111111-1111-1111-1111-111111111111";
@@ -51,6 +53,12 @@ const venta = (parcial: Partial<VentaCruda> = {}): VentaCruda => ({
   venta_pagos: [{ metodo: "efectivo", monto: 100 }],
   comprobantes: [],
   ...parcial,
+});
+
+// La fila de más que avisa «hay más ventas» tiene que caber dentro del corte de PostgREST: con el tope
+// en 1000, la 1001 nunca llegaba y los totales de un mes grande salían parciales sin avisar (2026-09-23).
+it("el tope de los totales deja lugar a la fila que detecta «hay más»", () => {
+  expect(TOPE_TOTALES + 1).toBeLessThanOrEqual(FILAS_POR_PAGINA);
 });
 
 describe("limitesUTC — los días son de Lima, la base pide UTC", () => {
@@ -447,5 +455,53 @@ describe("elegirComprobante — la nota de venta (ADR-0164)", () => {
   it("una venta con nota de venta la muestra, no «sin comprobante»", () => {
     const nv = { tipo: "nota_venta", serie: "NV01", numero: 3, estado: "interna", created_at: "2026-09-22T17:06:00+00:00" };
     expect(elegirComprobante([nv])).toEqual({ tipo: "nota_venta", numero: "NV01-000003", estado: "interna" });
+  });
+});
+
+// ADR-0191: los totales llegan sumados de `fn_totales_historial_ventas`; la traducción tiene que dar lo mismo que
+// `resumir` + `serieDiaria` + `mezclaDePagos` sobre las ventas sueltas (la base local lo comprueba con 3.000 ventas,
+// `pnpm pruebas:totales-caja-historial`).
+describe("totalesDesdeLaBase", () => {
+  it("da lo mismo que el cálculo venta por venta", async () => {
+    const { totalesDesdeLaBase } = await import("./ventas-historial-reglas");
+    const ventas = [
+      { anulada: false, total: 100.1, unidades: 2, fecha: "2026-09-01", pagos: [{ metodo: "efectivo", monto: "60.10" }, { metodo: "yape", monto: 40 }] },
+      { anulada: false, total: 55.55, unidades: 1, fecha: "2026-09-03", pagos: [{ metodo: "yape", monto: "55.55" }] },
+      { anulada: true, total: 999, unidades: 9, fecha: "2026-09-03", pagos: [{ metodo: "tarjeta", monto: 999 }] },
+    ];
+    const rango = { desde: "2026-09-01", hasta: "2026-09-04", hoy: "2026-09-23" };
+    const deLaBase = {
+      ventas: 2,
+      anuladas: 1,
+      unidades: 3,
+      total: "155.65",
+      por_dia: [
+        { fecha: "2026-09-01", ventas: 1, total: "100.10" },
+        { fecha: "2026-09-03", ventas: 1, total: "55.55" },
+      ],
+      por_metodo: [
+        { metodo: "yape", monto: "95.55" },
+        { metodo: "efectivo", monto: "60.10" },
+      ],
+    };
+    expect(totalesDesdeLaBase(deLaBase, rango)).toEqual({
+      resumen: resumir(ventas),
+      porDia: serieDiaria(ventas, rango),
+      porMetodo: mezclaDePagos(ventas),
+    });
+  });
+
+  it("sin ventas: ceros, días rellenados y sin formas de pago", async () => {
+    const { totalesDesdeLaBase } = await import("./ventas-historial-reglas");
+    const r = totalesDesdeLaBase(
+      { ventas: 0, anuladas: 0, unidades: 0, total: 0, por_dia: [], por_metodo: [] },
+      { desde: "2026-09-01", hasta: "2026-09-02", hoy: "2026-09-23" }
+    );
+    expect(r.resumen).toEqual({ ventas: 0, anuladas: 0, unidades: 0, total: 0, ticket: 0 });
+    expect(r.porDia).toEqual([
+      { fecha: "2026-09-01", ventas: 0, total: 0 },
+      { fecha: "2026-09-02", ventas: 0, total: 0 },
+    ]);
+    expect(r.porMetodo).toEqual([]);
   });
 });

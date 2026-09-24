@@ -27,6 +27,7 @@ import {
   rolSoloParaPersonas,
   veModulo,
   type RolVista,
+  conGuardadosLocales,
 } from "./roles-reglas";
 
 const modulo = (clave: string) => MODULOS.find((m) => m.clave === clave)!;
@@ -40,6 +41,7 @@ const rol = (extra: Partial<RolVista> = {}): RolVista => ({
   limitadoComoHoy: false,
   archivado: false,
   modulos: [],
+  version: 1,
   ...extra,
 });
 const LIDER = rol({ id: "l", clave: "lider", nombre: "Líder de equipo", esSistema: true, fijo: true });
@@ -287,5 +289,19 @@ describe("ADR-0178: el escalón Admin y «solo das lo que tienes»", () => {
       { tipo: "persona" as const, id: "p3", nombre: "Par", ubicacion: "TRU", rolId: "g", esLider: false, estado: "activo" },
     ];
     expect(cuentasAsignables(cuentas, VENDER, null, false, null, ["p3"]).map((c) => c.id)).toEqual(["p1"]);
+  });
+});
+
+describe("lo recién guardado manda hasta que el servidor lo alcance (ADR-0193)", () => {
+  it("con una versión local más nueva, el rol usa sus módulos y su versión", () => {
+    const [r] = conGuardadosLocales([rol({ id: "a", modulos: ["vender"], version: 3 })], { a: { version: 5, modulos: ["vender", "caja"] } });
+    expect(r.version).toBe(5);
+    expect(r.modulos).toEqual(["vender", "caja"]);
+  });
+
+  it("cuando el servidor trae la misma versión o una mayor, lo local deja de contar", () => {
+    const servidor = rol({ id: "a", modulos: ["existencias"], version: 7 });
+    expect(conGuardadosLocales([servidor], { a: { version: 5, modulos: ["vender"] } })[0]).toBe(servidor);
+    expect(conGuardadosLocales([servidor], { a: { version: 7, modulos: ["vender"] } })[0]).toBe(servidor);
   });
 });

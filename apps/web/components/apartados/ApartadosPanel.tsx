@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import type { ResumenApartados } from "@/lib/separaciones";
-import { estadoVisible, type Apartado } from "@/lib/separaciones-reglas";
+import { estadoVisible, TOPE_SEPARACIONES, type Apartado } from "@/lib/separaciones-reglas";
 import { ApartarVista } from "@/components/apartados/ApartarVista";
 import { EntregarVista } from "@/components/apartados/EntregarVista";
 import { TodosVista } from "@/components/apartados/TodosVista";
@@ -21,6 +21,8 @@ type Props = {
   apartados: Apartado[];
   resumen: ResumenApartados;
   liberadosAhora: number;
+  /** La lista llegó al tope de `buscar_separaciones` (200): hay apartados ya cerrados que no se muestran. */
+  hayMas?: boolean;
 };
 
 /**
@@ -66,12 +68,17 @@ export function ApartadosPanel(props: Props) {
         </nav>
       </header>
 
-      {(props.liberadosAhora > 0 || !props.cajaAbierta) && (
+      {(props.liberadosAhora > 0 || !props.cajaAbierta || props.hayMas) && (
         <div className="space-y-1 border-b border-sand bg-crema px-6 py-2.5 text-[12.5px]">
           {props.liberadosAhora > 0 && (
             <p className="text-rojo-profundo">
               {props.liberadosAhora === 1 ? "Un apartado venció hace más de 2 días y se liberó solo" : `${props.liberadosAhora} apartados vencieron hace más de 2 días y se liberaron solos`}:
               la prenda volvió al stock y falta devolver el adelanto (ver «Todos»).
+            </p>
+          )}
+          {props.hayMas && (
+            <p className="text-tinta/70">
+              Se muestran los {TOPE_SEPARACIONES} apartados más urgentes (liberados y abiertos primero). Los más antiguos ya cerrados no entran en esta lista; las cifras de «Todos» sí los cuentan.
             </p>
           )}
           {!props.cajaAbierta && <p className="text-ambar-profundo">No hay caja abierta en {props.ubicacionEtiqueta}: para apartar o entregar, primero abre la caja.</p>}

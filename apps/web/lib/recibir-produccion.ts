@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
+import { exigir, leerTodas } from "@/lib/resultado";
 import type { UnidadInsumo } from "@/lib/insumos-reglas";
 import type { LineaPorRecibir } from "@/lib/recibir-produccion-reglas";
 
@@ -9,7 +9,23 @@ import type { LineaPorRecibir } from "@/lib/recibir-produccion-reglas";
 
 export async function getLineasPorRecibir(tallerId: string): Promise<LineaPorRecibir[]> {
   const supabase = await createClient();
-  const filas = exigir(await supabase.rpc("fn_lineas_comprobantes_produccion", { p_ubicacion_id: tallerId }), "las líneas por recibir");
+  // PostgREST corta también las RPC en 1.000 filas sin avisar: por páginas, en serie (casi siempre cabe en una), con
+  // el orden de la función más `item_id`, que es único (ADR-0192).
+  const filas = exigir(
+    await leerTodas(
+      (desde, hasta) =>
+        supabase
+          .rpc("fn_lineas_comprobantes_produccion", { p_ubicacion_id: tallerId })
+          .order("fecha_emision")
+          .order("serie")
+          .order("numero")
+          .order("insumo")
+          .order("item_id")
+          .range(desde, hasta),
+      { enParalelo: 1 },
+    ),
+    "las líneas por recibir",
+  );
   return filas.map((f) => ({
     comprobanteId: f.comprobante_id,
     proveedor: f.proveedor,

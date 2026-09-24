@@ -105,9 +105,9 @@ export type EstadoPrenda = EstadoVisual & { cambiable: boolean };
 
 /** Cuántas unidades de una línea vendida todavía se pueden cambiar o devolver: lo
  *  comprado menos lo ya cambiado y lo ya devuelto (pendiente o aprobado). Cambios y
- *  Devoluciones se descuentan entre sí a propósito: la base solo cruza cada una contra
- *  sí misma, y una prenda cambiada que luego se devuelve —o al revés— vuelve al stock
- *  dos veces (BACKLOG, ADR-0122). */
+ *  Devoluciones se descuentan entre sí a propósito: una prenda cambiada que luego se
+ *  devuelve —o al revés— volvería al stock dos veces (ADR-0122). Es espejo de la regla
+ *  de la base, `fn_exigir_linea_venta_disponible` (ADR-0189), que es la que manda. */
 export function unidadesDisponibles(l: { cantidad: number; yaCambiado: number; yaDevuelto: number }): number {
   return Math.max(0, l.cantidad - l.yaCambiado - l.yaDevuelto);
 }

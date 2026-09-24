@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
+import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { MuestraPatron } from "@/components/MuestraPatron";
 import { Boton, Campo, CampoTexto, Interruptor, Segmentado, SelectorMultiple } from "@/components/ui/campos";
@@ -208,6 +208,11 @@ export function ProductoForm({
       });
   });
   const [loading, setLoading] = useState(false);
+  // ADR-0193 (edición simultánea): la versión de la prenda cuando se abrió la ficha. Viaja en cada guardado; si otra
+  // persona guardó entre medio, la base rechaza (PT409) en vez de pisar sus precios. Tras un guardado bueno se toma la
+  // versión que devuelve la base, para que reintentar solo las etiquetas no choque consigo mismo.
+  const versionRef = useRef<number | null>(producto?.version ?? null);
+  const [versionCambiada, setVersionCambiada] = useState(false);
   // Quien no ve el dinero recibe el costo vacío (null, 20260923193700): la ficha no muestra el campo y la base no lo toca
   // al guardar (`catalogo_actualizar_producto`). Un producto sin variantes todavía no dice nada: se muestra el campo.
   const veCosto = !producto || producto.variantes.length === 0 || producto.variantes.some((v) => v.costo !== null);
@@ -290,6 +295,10 @@ export function ProductoForm({
     setVariantes((a) => a.filter((_, n) => n !== i));
   }
 
+  function recargar() {
+    window.location.reload();
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!referencia.trim()) return void avisar.error("Falta la referencia del producto.", { enfocar: "producto-referencia" });
@@ -334,7 +343,7 @@ export function ProductoForm({
     }));
 
     const supabase = createClient();
-    const { error } = await firmar(supabase.rpc("catalogo_actualizar_producto", {
+    const { data: versionNueva, error } = await firmar(supabase.rpc("catalogo_actualizar_producto", {
       p_producto_id: producto.id,
       p_referencia: referencia.trim(),
       p_estado: estado,
@@ -350,12 +359,20 @@ export function ProductoForm({
       // Marca y proveedor solo si CAMBIARON: si no, un proveedor desactivado más tarde impediría guardar hasta un cambio de precio.
       ...(parejaCambio ? { p_marca_id: marcaId, p_proveedor_id: proveedorId } : {}),
       ...(parecidos.confirmo ? { p_confirmo_distinto: true } : {}),
+      ...(versionRef.current !== null ? { p_version_esperada: versionRef.current } : {}),
     }), firma);
 
     if (error) {
       cerrarProceso();
       setLoading(false);
       responsable.despues(error);
+      if (esVersionCambiada(error)) {
+        // Otra persona guardó esta prenda mientras se editaba: el formulario NO se cierra (lo escrito sigue a la vista
+        // para anotarlo) y se ofrece recargar, que trae sus cambios.
+        setVersionCambiada(true);
+        avisar.error(traducirError(error, "guardar el producto"), { accion: { texto: "Recargar", onClick: recargar } });
+        return;
+      }
       const lectura = leerErrorAlta(error);
       if (lectura.tipo !== "otro") {
         // Otra persona creó ese nombre mientras se editaba: se muestra en pantalla, no solo en un aviso.
@@ -366,6 +383,7 @@ export function ProductoForm({
       avisar.error(traducirError(error, "guardar el producto"));
       return;
     }
+    if (typeof versionNueva === "number") versionRef.current = versionNueva;
 
     // Etiquetas por variante se guardan en la MISMA acción, después del
     // guardado principal — nunca un botón aparte (ver comentario del
@@ -663,6 +681,17 @@ export function ProductoForm({
           El código corto de cada variante (para etiqueta y pistola) se asigna solo al guardar — no hace falta escribirlo.
         </p>
         <ComboResponsable control={responsable} deshabilitado={loading} />
+        {versionCambiada && (
+          <div className="nota-cayla space-y-2" role="alert">
+            <p>
+              Otra persona cambió esta prenda mientras la editabas. Recarga para ver sus cambios; lo que escribiste sigue aquí hasta
+              entonces, por si quieres anotarlo.
+            </p>
+            <Boton type="button" peso="fantasma" onClick={recargar} className="w-full">
+              Recargar la prenda
+            </Boton>
+          </div>
+        )}
         <div className="flex flex-col gap-2">
           <Boton type="submit" peso="primario" cargando={loading} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
             {editando ? "Guardar cambios" : "Crear producto"}

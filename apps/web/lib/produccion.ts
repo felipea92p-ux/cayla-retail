@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir, exigirOpcional } from "@/lib/resultado";
+import { exigir, exigirOpcional, leerTodas } from "@/lib/resultado";
 import { compararTallas } from "@/lib/tallas";
 
 // Producción del Taller (restaurada 2026-09-15 sobre V2). Solo lecturas: toda
@@ -146,14 +146,20 @@ export type ModeloProducible = {
  *  sumarle stock), así que no se lista. */
 export async function getModelosProducibles(): Promise<ModeloProducible[]> {
   const supabase = await createClient();
+  // Por páginas con orden único (ADR-0192): los modelos crecen con el catálogo y PostgREST corta en 1.000 sin avisar —
+  // un modelo fuera de la página no se podría producir. Las variantes embebidas no cuentan para el tope.
   const filas = exigir(
-    await supabase
-      .from("productos")
-      .select(
-        `id, referencia, categoria:categorias ( nombre ),
-         variantes ( id, sku, talla:tallas ( valor ), precio, activo, color:colores ( nombre, hex ) )`
-      )
-      .order("referencia"),
+    await leerTodas((desde, hasta) =>
+      supabase
+        .from("productos")
+        .select(
+          `id, referencia, categoria:categorias ( nombre ),
+           variantes ( id, sku, talla:tallas ( valor ), precio, activo, color:colores ( nombre, hex ) )`
+        )
+        .order("referencia")
+        .order("id")
+        .range(desde, hasta)
+    ),
     "los modelos del catálogo"
   );
 

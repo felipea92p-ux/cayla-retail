@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { traducirError } from "./error-escritura";
+import { esVersionCambiada, traducirError } from "./error-escritura";
 
 // Este traductor solo se ve cuando algo sale mal, o sea justo cuando nadie está mirando el
 // código. Si un día alguien renombra una restricción en una migración y no toca esta lista,
@@ -312,5 +312,24 @@ describe("la nota del ticket", () => {
     );
     expect(salida).not.toContain("ventas_nota_corta");
     expect(salida).toContain("200");
+  });
+});
+
+describe("otra persona cambió la ficha mientras se editaba (ADR-0193)", () => {
+  const conflicto = {
+    code: "PT409",
+    message: "Otra persona cambió esta prenda mientras la editabas. Recarga para ver sus cambios.",
+    details: null,
+    hint: "version_cambiada",
+  };
+
+  it("se reconoce por el código PT409 y pasa el mensaje de la base tal cual", () => {
+    expect(esVersionCambiada(conflicto)).toBe(true);
+    expect(traducirError(conflicto, "guardar el producto")).toBe(conflicto.message);
+  });
+
+  it("un P0001 cualquiera no es un conflicto de versión", () => {
+    expect(esVersionCambiada({ code: "P0001", message: "Falta la referencia del producto." })).toBe(false);
+    expect(esVersionCambiada(null)).toBe(false);
   });
 });

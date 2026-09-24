@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -42,11 +42,10 @@ export function RecepcionFormV2({
   const [ok, setOk] = useState<{ unidades: number; loteId: string | null } | null>(null);
   // Quién recibe (ADR-0161/0162): `recibir_lote` firma con esa persona, en la tienda que recibe.
   const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
-  // Un token no aplica acá: `recibir_lote` no tiene idempotencia propia (a
-  // diferencia de `registrar_venta`) porque un lote repetido es una decisión
-  // de negocio distinta a una venta duplicada — el motivo real de reintentar
-  // es "me olvidé una línea", que se resuelve recibiendo un lote NUEVO, no
-  // reenviando el mismo.
+  // Doble clic (ADR-0190): un token por intento. Si el mismo intento llega dos veces (dos clics, un reintento tras
+  // una red que se cae), la base devuelve lo ya guardado en vez de sumar el lote dos veces. Se renueva solo al guardar bien.
+  // «Me olvidé una línea» sigue siendo un lote NUEVO: después de guardar, el token cambia.
+  const token = useRef<string>(crypto.randomUUID());
 
   function agregarLinea() {
     setLineas((actual) => [...actual, { varianteId: variantes[0]?.varianteId ?? "", cantidad: 1, costoUnitario: "" }]);
@@ -87,6 +86,7 @@ export function RecepcionFormV2({
         ...(l.costoUnitario ? { costo_unitario: Number(l.costoUnitario) } : {}),
       })),
       p_numero_guia: numeroGuia || undefined,
+      p_token: token.current,
     }), responsable.firma());
 
     setLoading(false);
@@ -95,6 +95,7 @@ export function RecepcionFormV2({
       avisar.error(traducirError(error, "recibir el lote"));
       return;
     }
+    token.current = crypto.randomUUID();
     const unidades = validas.reduce((acc, l) => acc + l.cantidad, 0);
     avisar.exito(`Lote recibido · ${unidades} ${unidades === 1 ? "unidad" : "unidades"}`, { detalle: "Ya suman al stock." });
     setOk({ unidades, loteId: loteId ?? null });
