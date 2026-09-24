@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import { exigirModulo, puede } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
@@ -128,12 +129,16 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       </div>
 
       {pendientesAlta.length > 0 && (
-        <div className="card-cayla space-y-2 border-l-2 border-l-rojo p-4">
-          <p className="text-sm font-semibold text-tinta">
-            {pendientesAlta.length} {pendientesAlta.length === 1 ? "prenda dada de alta" : "prendas dadas de alta"} durante un conteo, pendiente
-            {pendientesAlta.length === 1 ? "" : "s"} de revisar
-          </p>
-          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        // Plegado (2026-09-23): con 10 prendas la lista abierta ocupaba media pantalla; se abre al tocar.
+        <details className="group card-cayla border-l-2 border-l-rojo">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+            <span className="text-sm font-semibold text-tinta">
+              {pendientesAlta.length} {pendientesAlta.length === 1 ? "prenda dada de alta" : "prendas dadas de alta"} durante un conteo, pendiente
+              {pendientesAlta.length === 1 ? "" : "s"} de revisar
+            </span>
+            <ChevronDown aria-hidden className="h-4 w-4 shrink-0 text-tinta/50 transition-transform group-open:rotate-180" />
+          </summary>
+          <ul className="flex flex-wrap gap-x-4 gap-y-1 px-4 pb-4 text-sm">
             {pendientesAlta.map((p) => (
               <li key={p.id}>
                 <Link href={`/productos/${p.id}/editar`} className="text-tinta underline underline-offset-2 hover:no-underline">
@@ -143,7 +148,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
               </li>
             ))}
           </ul>
-        </div>
+        </details>
       )}
 
       {vista === "tabla" && <Resumen resumen={resumen} params={params} />}
