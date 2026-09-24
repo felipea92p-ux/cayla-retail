@@ -1,28 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
-import { Tabla, Encabezado, celda, fila } from "@/components/ui/Tabla";
-import { Campo, CampoTexto, SelectNativo, Segmentado, Interruptor } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ProveedorGasto } from "@/components/RegistrarGastoModal";
+import { CabeceraBloque, CampoFin, GuiaVacia, InputFin, ListaDatos, PieTabla, RadiosFin, SelectFin, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { diaMes } from "@/lib/fechas-lima";
 import {
   TEXTO_COMPROBANTE,
   TEXTO_ESTADO_ACTIVO,
-  TEXTO_ESTADO_FIJO,
   TIPOS_COMPROBANTE,
+  fechaCorta,
   puedeAnularActivo,
-  resumenFijos,
-  textoMes,
+  solesRedondo,
   textoVidaUtil,
   totalesActivos,
   validarFijo,
@@ -34,117 +32,247 @@ import {
   type UbicacionGastos,
 } from "@/lib/gastos-reglas";
 
-// Finanzas ▸ Gastos, pestañas «Fijos del mes» y «Activos fijos» (ADR-0195 F2b). Lo que se paga todos los meses (con lo
-// que ya se registró, lo que viene y lo que falta) y lo que sirve varios años (con su depreciación a hoy).
-
-const PLANTILLA_FIJOS = "sm:grid-cols-[4rem_minmax(0,1.8fr)_minmax(0,1fr)_7rem_8rem_minmax(0,11rem)]";
-const PLANTILLA_ACTIVOS = "sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_6rem_7rem_6rem_7rem_7rem]";
+// Finanzas ▸ Gastos, pestañas «Fijos del mes» y «Activos fijos» (ADR-0195 F2b), y la lista de fijos de Configuración,
+// dibujadas como el spike (docs/maquetas/finanzas-2026-09/, `vistaFijos`, `tablaActivos`, `cfgFijos`).
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Fijos del mes
+// Fijos del mes: el sistema propone, el líder confirma.
+
+function FilaFijo({ titulo, detalle, monto, children }: { titulo: ReactNode; detalle: ReactNode; monto: ReactNode; children: ReactNode }) {
+  return (
+    <li className="fin-fijo">
+      <div className="min-w-0">
+        <b>{titulo}</b>
+        <span className="fin-sub">{detalle}</span>
+      </div>
+      <span className="fin-monto">{monto}</span>
+      {children}
+    </li>
+  );
+}
 
 export function FijosDelMes({
   fijos,
   sugeridos,
-  mes,
   verTodas,
+  esLider,
   onRegistrar,
-  onEditar,
-  onNuevoDesdeSugerido,
+  onMarcarFijo,
 }: {
   fijos: GastoFijoMes[];
   sugeridos: FijoSugerido[];
-  mes: string;
   verTodas: boolean;
+  esLider: boolean;
   onRegistrar: (f: GastoFijoMes) => void;
-  onEditar: (f: GastoFijoMes) => void;
-  onNuevoDesdeSugerido: (s: FijoSugerido) => void;
+  onMarcarFijo: (s: FijoSugerido) => void;
 }) {
-  const r = resumenFijos(fijos);
+  const vienen = fijos.filter((f) => f.estado === "por_llegar");
+  const faltan = fijos.filter((f) => f.estado === "falta");
+  const registrados = fijos.filter((f) => f.estado === "registrado");
+  const nombre = (f: { descripcion: string; ubicacionNombre: string }) => (verTodas ? `${f.descripcion} · ${f.ubicacionNombre}` : f.descripcion);
+  const detalle = (f: GastoFijoMes) => `${f.proveedorNombre ?? "Sin proveedor"} · día ${f.diaDelMes}${f.montoVariable ? " · monto variable" : ""}`;
+  const monto = (f: GastoFijoMes) => `${f.montoVariable ? "~" : ""}${solesRedondo(f.monto)}`;
+  const editar = esLider ? (
+    <Link href="/configuracion?tab=fijos" className="btn-cayla btn-sutil btn-chico">
+      Editar fijos
+    </Link>
+  ) : null;
+
+  if (fijos.length === 0 && sugeridos.length === 0) {
+    return (
+      <>
+        <GuiaVacia sobre="Fijos del mes" titulo="Todavía no hay gastos fijos">
+          El alquiler, la luz o el contador: se guardan una vez {esLider ? "en Configuración ▸ Gastos fijos" : "(lo hace el líder)"} y cada mes el sistema dice cuáles llegaron y cuáles faltan.
+          {esLider && (
+            <>
+              {" "}
+              <Link href="/configuracion?tab=fijos" className="btn-enlace">
+                Agregar el primero
+              </Link>
+            </>
+          )}
+        </GuiaVacia>
+        <NotaFijos />
+      </>
+    );
+  }
+
   return (
     <>
-      {sugeridos.length > 0 && (
-        <section className="card-cayla px-5 py-4">
-          <h2 className="text-sm font-semibold text-tinta">Se repiten cada mes: ¿los guardas como fijos?</h2>
-          <p className="mt-0.5 text-[13px] text-taupe">Aparecieron en {sugeridos.length === 1 ? "este caso" : "estos casos"} al menos dos de los últimos tres meses. Guardarlos hace que el sistema te avise cuando falten.</p>
-          <ul className="mt-3 divide-y divide-sand">
-            {sugeridos.map((s) => (
-              <li key={`${s.ubicacionId}-${s.categoria}-${s.proveedorId}`} className="flex flex-wrap items-center justify-between gap-3 py-2.5 text-sm">
-                <span>
-                  <b className="font-semibold text-tinta">{s.descripcion}</b> · {s.ubicacionNombre}
-                  <span className="block text-[12px] text-taupe">
-                    {s.categoriaNombre}
-                    {s.proveedorNombre ? ` · ${s.proveedorNombre}` : ""} · {s.meses} de 3 meses · cerca del día {s.diaDelMes} · ~{soles(s.monto)}
-                  </span>
-                </span>
-                <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => onNuevoDesdeSugerido(s)}>
-                  Guardar como fijo
-                </button>
-              </li>
-            ))}
+      <section className="fin-dos-col">
+        <Superficie pad className="anim-sube">
+          <CabeceraBloque titulo="Para confirmar" bajada="Llegan en los próximos días. «Registrar» abre el gasto lleno con el monto y los datos de siempre." />
+          <ul className="fin-fijos">
+            {vienen.length === 0 ? (
+              <li className="text-[13px] text-taupe">Nada por confirmar.</li>
+            ) : (
+              vienen.map((f) => (
+                <FilaFijo key={f.id} titulo={nombre(f)} detalle={detalle(f)} monto={monto(f)}>
+                  <button type="button" className={`btn-cayla btn-chico ${f.montoVariable ? "btn-secundario" : "btn-primario"}`} onClick={() => onRegistrar(f)}>
+                    {f.montoVariable ? "Registrar monto" : "Registrar"}
+                  </button>
+                </FilaFijo>
+              ))
+            )}
           </ul>
-        </section>
-      )}
-
-      {fijos.length === 0 ? (
-        <div className="card-cayla px-6 py-8 text-center">
-          <p className="font-display text-xl text-tinta">Todavía no hay gastos fijos</p>
-          <p className="mt-1 text-sm text-taupe">El alquiler, la luz o el contador: guárdalos una vez y cada mes el sistema te dice si ya se registraron.</p>
-        </div>
-      ) : (
-        <Tabla>
-          <Encabezado
-            plantilla={PLANTILLA_FIJOS}
-            columnas={[{ titulo: "Día" }, { titulo: "Gasto fijo" }, { titulo: verTodas ? "Tienda" : "Categoría" }, { titulo: "Monto", alinear: "der" }, { titulo: "Estado" }, { titulo: "" }]}
-          />
-          {fijos.map((f) => {
-            const e = TEXTO_ESTADO_FIJO[f.estado];
-            return (
-              <div key={f.id} className={fila(PLANTILLA_FIJOS)}>
-                <span className={celda()}>{diaMes(f.fechaEsperada)}</span>
-                <span className={celda()}>
-                  <b className="font-semibold text-tinta">{f.descripcion}</b>
-                  <span className="block truncate text-[12px] text-taupe">
-                    {f.proveedorNombre ?? "Sin proveedor"} · {TEXTO_COMPROBANTE[f.comprobanteTipo]}
-                  </span>
-                </span>
-                <span className={celda()}>{verTodas ? f.ubicacionNombre : f.categoriaNombre}</span>
-                <span className={celda("der")}>
-                  {f.gastoMonto !== null ? (
-                    <b className="font-semibold text-tinta">{soles(f.gastoMonto)}</b>
-                  ) : (
-                    <span className="text-tinta">
-                      {f.montoVariable ? "~" : ""}
-                      {soles(f.monto)}
-                    </span>
-                  )}
-                </span>
-                <span className={celda()}>
-                  <Chip tono={e.tono}>{e.texto}</Chip>
-                </span>
-                <span className={celda("der")}>
-                  <span className="inline-flex gap-2">
-                    {f.estado !== "registrado" && (
-                      <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => onRegistrar(f)}>
-                        Registrar
-                      </button>
-                    )}
-                    <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => onEditar(f)}>
-                      Editar
-                    </button>
-                  </span>
-                </span>
+          {faltan.length > 0 && (
+            <>
+              <div className="mt-[18px]">
+                <CabeceraBloque titulo="Faltan" bajada="Deberían haber llegado y no están registrados." />
               </div>
-            );
-          })}
-          <p className="px-5 py-2.5 text-xs text-taupe">
-            {textoMes(mes)}: {r.registrados} registrados · {r.vienen} vienen · {r.faltan} faltan · quedan ~{soles(r.montoPendiente)} por registrar
-          </p>
-        </Tabla>
+              <ul className="fin-fijos">
+                {faltan.map((f) => (
+                  <FilaFijo key={f.id} titulo={nombre(f)} detalle={detalle(f)} monto={monto(f)}>
+                    <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => onRegistrar(f)}>
+                      {f.montoVariable ? "Registrar monto" : "Registrar"}
+                    </button>
+                  </FilaFijo>
+                ))}
+              </ul>
+            </>
+          )}
+        </Superficie>
+
+        <div className="fin-columna">
+          {sugeridos.length > 0 && (
+            <Superficie pad className="anim-sube">
+              <CabeceraBloque titulo="Se repiten. ¿Los marco como fijos?" bajada="El sistema los encontró mirando los gastos de los últimos tres meses." />
+              <ul className="fin-fijos">
+                {sugeridos.map((s) => (
+                  <FilaFijo
+                    key={`${s.ubicacionId}-${s.categoria}-${s.proveedorId}`}
+                    titulo={`${s.proveedorNombre ?? s.descripcion} · ${s.ubicacionNombre}`}
+                    detalle={`${s.categoriaNombre} · ${s.meses} de 3 meses, cerca del día ${s.diaDelMes}`}
+                    monto={solesRedondo(s.monto)}
+                  >
+                    <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => onMarcarFijo(s)}>
+                      Marcar fijo
+                    </button>
+                  </FilaFijo>
+                ))}
+              </ul>
+            </Superficie>
+          )}
+          <Superficie pad className="anim-sube">
+            <CabeceraBloque titulo="Ya registrados este mes" bajada={`${registrados.length} de ${fijos.length} fijos.`}>
+              {editar}
+            </CabeceraBloque>
+            <ul className="fin-fijos">
+              {registrados.length === 0 ? (
+                <li className="text-[13px] text-taupe">Ninguno todavía.</li>
+              ) : (
+                registrados.map((f) => (
+                  <FilaFijo key={f.id} titulo={nombre(f)} detalle={detalle(f)} monto={solesRedondo(f.gastoMonto ?? f.monto)}>
+                    <Chip tono="verde">registrado</Chip>
+                  </FilaFijo>
+                ))
+              )}
+            </ul>
+          </Superficie>
+        </div>
+      </section>
+      <NotaFijos />
+    </>
+  );
+}
+
+function NotaFijos() {
+  return (
+    <p className="nota-cayla">
+      Un gasto fijo es un recordatorio, no un gasto: <b>solo cuenta cuando se registra</b> con lo que llegó de verdad. Si su día pasó y no hay gasto, sale en «Faltan».
+    </p>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Configuración ▸ Gastos fijos: la lista de lo que se repite, para agregar, corregir o archivar.
+
+export function TablaGastosFijos({
+  fijos,
+  categorias,
+  ubicaciones,
+  proveedores,
+}: {
+  fijos: GastoFijoMes[];
+  categorias: CategoriaGasto[];
+  ubicaciones: UbicacionGastos[];
+  proveedores: ProveedorGasto[];
+}) {
+  const [editar, setEditar] = useState<{ fijo?: GastoFijoMes } | null>(null);
+  const cuenta = (codigo: string) => categorias.find((c) => c.codigo === codigo)?.cuenta ?? "";
+  const total = fijos.reduce((t, f) => t + f.monto, 0);
+  return (
+    <>
+      <Superficie className="anim-sube">
+        <TituloDeTarjeta titulo="Gastos que se repiten" bajada="El sistema los propone cada mes en Gastos ▸ Fijos del mes. Los variables (luz, agua) piden el monto del recibo.">
+          <button type="button" className="btn-cayla btn-primario btn-chico" onClick={() => setEditar({})}>
+            + Agregar fijo
+          </button>
+        </TituloDeTarjeta>
+        {fijos.length === 0 ? (
+          <p className="px-5 py-8 text-center text-sm text-taupe">Todavía no hay gastos fijos. El alquiler, la luz o el contador: agrégalos una vez.</p>
+        ) : (
+          <div className="fin-tabla-wrap">
+            <table className="fin-tabla">
+              <thead>
+                <tr>
+                  <th>Gasto</th>
+                  <th>Unidad</th>
+                  <th>Proveedor</th>
+                  <th>Llega con</th>
+                  <th className="fin-num">Monto</th>
+                  <th className="fin-num">Día</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {fijos.map((f) => (
+                  <tr key={f.id}>
+                    <td className="fin-ancha" data-l="Gasto">
+                      <b>{f.descripcion}</b>
+                      <span className="fin-sub">
+                        {f.categoriaNombre} · {cuenta(f.categoria)}
+                        {f.montoVariable ? " · variable" : ""}
+                      </span>
+                    </td>
+                    <td data-l="Unidad">{f.ubicacionId ? f.ubicacionNombre : "De la empresa"}</td>
+                    <td data-l="Proveedor">{f.proveedorNombre ?? <span className="fin-tenue">Sin proveedor</span>}</td>
+                    <td data-l="Llega con">{TEXTO_COMPROBANTE[f.comprobanteTipo]}</td>
+                    <td className="fin-num" data-l="Monto">
+                      {f.montoVariable ? "~" : ""}
+                      {solesRedondo(f.monto)}
+                    </td>
+                    <td className="fin-num" data-l="Día">
+                      {f.diaDelMes}
+                    </td>
+                    <td className="fin-num">
+                      <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setEditar({ fijo: f })}>
+                        Editar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <PieTabla>
+          <span>
+            {fijos.length} {fijos.length === 1 ? "fijo" : "fijos"} · suman {solesRedondo(total)} al mes · uno que ya no se paga se archiva, no se borra
+          </span>
+        </PieTabla>
+      </Superficie>
+      {editar && (
+        <GastoFijoModal
+          fijo={editar.fijo}
+          categorias={categorias}
+          ubicaciones={ubicaciones}
+          proveedores={proveedores}
+          esLider
+          ubicacionInicial={ubicaciones[0]?.id ?? "empresa"}
+          onCerrar={() => setEditar(null)}
+        />
       )}
-      <p className="nota-cayla">
-        Un gasto fijo es un recordatorio, no un gasto: <b>solo cuenta cuando se registra</b> con lo que llegó de verdad. Si su día pasó y no hay gasto, sale «Falta registrar».
-      </p>
     </>
   );
 }
@@ -185,6 +313,7 @@ export function GastoFijoModal({
     dia: base ? String(base.diaDelMes) : "",
   }));
   const poner = <K extends keyof BorradorFijo>(k: K, v: BorradorFijo[K]) => setB((x) => ({ ...x, [k]: v }));
+  const cat = categorias.find((c) => c.codigo === b.categoria) ?? null;
 
   async function ejecutar(accion: "guardar" | "archivar") {
     const v = validarFijo(b);
@@ -205,7 +334,7 @@ export function GastoFijoModal({
     responsable.despues(error);
     if (error) return avisar.error(traducirError(error, accion === "archivar" ? "archivar el gasto fijo" : "guardar el gasto fijo"));
     avisar.exito(accion === "archivar" ? "Gasto fijo archivado" : fijo ? "Gasto fijo guardado" : "Gasto fijo creado", {
-      detalle: accion === "archivar" ? "Deja de aparecer desde este mes; sus gastos registrados se quedan." : "Cada mes te dirá si ya se registró.",
+      detalle: accion === "archivar" ? "Deja de aparecer desde este mes; sus gastos registrados se quedan." : "Cada mes Gastos dirá si ya se registró.",
     });
     onCerrar();
     router.refresh();
@@ -213,67 +342,85 @@ export function GastoFijoModal({
 
   const opcionesUbicacion = [...ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre })), ...(esLider ? [{ valor: "empresa", texto: "De la empresa (no es de una tienda)" }] : [])];
   return (
-    <Modal titulo={fijo ? "Editar gasto fijo" : "Nuevo gasto fijo"} subtitulo="Lo que se paga todos los meses. Solo es un recordatorio: cuenta cuando se registra con lo que llegó." onClose={onCerrar} ancho="max-w-xl">
-      <div className="space-y-4">
-        <CampoTexto etiqueta="Qué se paga" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Alquiler del local" />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Campo etiqueta="Categoría" htmlFor="fijo-categoria">
-            <SelectNativo id="fijo-categoria" value={b.categoria} onChange={(e) => poner("categoria", e.target.value)}>
-              <option value="">Elige…</option>
-              {categorias.map((c) => (
-                <option key={c.codigo} value={c.codigo}>
-                  {c.nombre}
-                </option>
-              ))}
-            </SelectNativo>
-          </Campo>
-          <Campo etiqueta="A quién se le carga" htmlFor="fijo-ubicacion">
-            <SelectNativo id="fijo-ubicacion" value={b.ubicacion} disabled={opcionesUbicacion.length < 2} onChange={(e) => poner("ubicacion", e.target.value)}>
-              {opcionesUbicacion.map((o) => (
-                <option key={o.valor} value={o.valor}>
-                  {o.texto}
-                </option>
-              ))}
-            </SelectNativo>
-          </Campo>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Campo etiqueta="Proveedor (opcional)" htmlFor="fijo-proveedor">
-            <SelectNativo id="fijo-proveedor" value={b.proveedorId} onChange={(e) => poner("proveedorId", e.target.value)}>
-              <option value="">Sin proveedor</option>
-              {proveedores.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre}
-                </option>
-              ))}
-            </SelectNativo>
-          </Campo>
-          <Segmentado
-            etiqueta="Llega con"
-            valor={b.comprobante}
-            onValor={(v) => poner("comprobante", v)}
-            opciones={TIPOS_COMPROBANTE.map((t) => ({ valor: t, texto: t === "recibo_por_honorarios" ? "Rec. honorarios" : TEXTO_COMPROBANTE[t] }))}
-          />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <CampoTexto etiqueta="Monto de siempre" inputMode="decimal" value={b.monto} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" />
-          <CampoTexto etiqueta="Día del mes (1 a 28)" inputMode="numeric" value={b.dia} onChange={(e) => poner("dia", e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="10" />
-          <Interruptor activo={b.variable} onActivo={(v) => poner("variable", v)} etiqueta="El monto cambia" pie="La luz o el agua: se muestra «~» y se escribe al registrar." />
-        </div>
-        <ComboResponsable control={responsable} deshabilitado={guardando} />
-        <div className="flex flex-wrap justify-end gap-2">
-          {fijo && (
-            <button type="button" className="btn-cayla btn-sutil mr-auto" disabled={guardando} onClick={() => ejecutar("archivar")}>
-              Archivar
-            </button>
-          )}
-          <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
-            Cancelar
+    <Modal variante="hoja" titulo={fijo ? "Editar gasto fijo" : "Nuevo gasto fijo"} subtitulo="Lo que se paga todos los meses. Es un recordatorio: cuenta cuando se registra con lo que llegó." onClose={onCerrar} ancho="max-w-[600px]">
+      <CampoFin etiqueta="Qué se paga" htmlFor="fijo-descripcion">
+        <InputFin id="fijo-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Alquiler del local" />
+      </CampoFin>
+      <div className="fin-dos-campos">
+        <CampoFin etiqueta="Categoría" htmlFor="fijo-categoria" ayuda={cat ? `Va a la cuenta ${cat.cuenta}.` : undefined}>
+          <SelectFin id="fijo-categoria" value={b.categoria} onChange={(e) => poner("categoria", e.target.value)}>
+            <option value="">Elige…</option>
+            {categorias.map((c) => (
+              <option key={c.codigo} value={c.codigo}>
+                {c.nombre}
+              </option>
+            ))}
+          </SelectFin>
+        </CampoFin>
+        <CampoFin etiqueta="A quién se le carga" htmlFor="fijo-ubicacion">
+          <SelectFin id="fijo-ubicacion" value={b.ubicacion} disabled={opcionesUbicacion.length < 2} onChange={(e) => poner("ubicacion", e.target.value)}>
+            {opcionesUbicacion.map((o) => (
+              <option key={o.valor} value={o.valor}>
+                {o.texto}
+              </option>
+            ))}
+          </SelectFin>
+        </CampoFin>
+      </div>
+      <div className="fin-dos-campos">
+        <CampoFin etiqueta="Proveedor" htmlFor="fijo-proveedor">
+          <SelectFin id="fijo-proveedor" value={b.proveedorId} onChange={(e) => poner("proveedorId", e.target.value)}>
+            <option value="">Sin proveedor</option>
+            {proveedores.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nombre}
+              </option>
+            ))}
+          </SelectFin>
+        </CampoFin>
+        <CampoFin etiqueta="Llega con" htmlFor="fijo-comprobante">
+          <SelectFin id="fijo-comprobante" value={b.comprobante} onChange={(e) => poner("comprobante", e.target.value as BorradorFijo["comprobante"])}>
+            {TIPOS_COMPROBANTE.map((t) => (
+              <option key={t} value={t}>
+                {TEXTO_COMPROBANTE[t]}
+              </option>
+            ))}
+          </SelectFin>
+        </CampoFin>
+      </div>
+      <div className="fin-dos-campos">
+        <CampoFin etiqueta="Monto de siempre (con IGV)" htmlFor="fijo-monto">
+          <InputFin id="fijo-monto" inputMode="decimal" value={b.monto} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" />
+        </CampoFin>
+        <CampoFin etiqueta="Día del mes en que llega" htmlFor="fijo-dia" ayuda="Del 1 al 28.">
+          <InputFin id="fijo-dia" inputMode="numeric" value={b.dia} onChange={(e) => poner("dia", e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="10" />
+        </CampoFin>
+      </div>
+      <CampoFin etiqueta="¿El monto cambia cada mes?" ayuda={b.variable ? "Como la luz o el agua: se muestra con «~» y se escribe el del recibo al registrarlo." : undefined}>
+        <RadiosFin
+          nombre="fijo-variable"
+          etiqueta="El monto cambia"
+          valor={b.variable ? "si" : "no"}
+          onValor={(v) => poner("variable", v === "si")}
+          opciones={[
+            { valor: "no", texto: "Siempre el mismo" },
+            { valor: "si", texto: "Cambia (luz, agua)" },
+          ]}
+        />
+      </CampoFin>
+      <ComboResponsable control={responsable} deshabilitado={guardando} />
+      <div className="fin-botones mt-4">
+        {fijo && (
+          <button type="button" className="btn-cayla btn-sutil mr-auto" disabled={guardando} onClick={() => ejecutar("archivar")}>
+            Ya no se paga: archivar
           </button>
-          <button type="button" className="btn-cayla btn-primario" onClick={() => ejecutar("guardar")} disabled={guardando || !responsable.listo}>
-            {guardando ? "Guardando…" : fijo ? "Guardar" : "Crear gasto fijo"}
-          </button>
-        </div>
+        )}
+        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
+          Cancelar
+        </button>
+        <button type="button" className="btn-cayla btn-primario" onClick={() => ejecutar("guardar")} disabled={guardando || !responsable.listo}>
+          {guardando ? "Guardando…" : fijo ? "Guardar" : "Agregar fijo"}
+        </button>
       </div>
     </Modal>
   );
@@ -287,64 +434,88 @@ export function TablaActivos({ activos, verTodas, onAbrir }: { activos: ActivoFi
   if (activos.length === 0) {
     return (
       <>
-        <div className="card-cayla px-6 py-8 text-center">
-          <p className="font-display text-xl text-tinta">Sin activos fijos registrados</p>
-          <p className="mt-1 text-sm text-taupe">Un mostrador, una laptop, una máquina del Taller: regístralos con «Registrar activo» y el sistema los deprecia cada mes.</p>
-        </div>
+        <GuiaVacia sobre="Activos fijos" titulo="Sin activos fijos registrados">
+          Un mostrador, una laptop, una máquina del Taller: regístralos con «+ Registrar activo» y el sistema los deprecia cada mes.
+        </GuiaVacia>
         <NotaActivos />
       </>
     );
   }
   return (
     <>
-      <Tabla>
-        <Encabezado
-          plantilla={PLANTILLA_ACTIVOS}
-          columnas={[
-            { titulo: "Bien" },
-            { titulo: verTodas ? "Dónde está" : "Tipo" },
-            { titulo: "Comprado" },
-            { titulo: "Costo", alinear: "der", subtitulo: "sin IGV" },
-            { titulo: "Vida útil" },
-            { titulo: "Al mes", alinear: "der", subtitulo: "depreciación" },
-            { titulo: "Vale hoy", alinear: "der" },
-          ]}
-        />
-        {activos.map((a) => {
-          const e = TEXTO_ESTADO_ACTIVO[a.estado];
-          const pct = a.costo > 0 ? Math.max(0, Math.min(100, (a.valorHoy / a.costo) * 100)) : 0;
-          return (
-            <button key={a.id} type="button" onClick={() => onAbrir(a)} className={`${fila(PLANTILLA_ACTIVOS, "w-full text-left hover:bg-hueso/60")} ${a.estado !== "activo" ? "opacity-60" : ""}`}>
-              <span className={celda()}>
-                <b className="font-semibold text-tinta">{a.nombre}</b>
-                <span className="block truncate text-[12px] text-taupe">
-                  {a.proveedorNombre ?? "Sin comprobante"}
-                  {a.comprobante ? ` · ${a.comprobante}` : ""}
-                </span>
-                {a.estado !== "activo" && (
-                  <span className="mt-1 block">
-                    <Chip tono={e.tono}>{e.texto}</Chip>
-                  </span>
-                )}
-              </span>
-              <span className={celda()}>{verTodas ? a.ubicacionNombre : (a.tipoNombre ?? "—")}</span>
-              <span className={celda()}>{diaMes(a.fechaAdquisicion)} {a.fechaAdquisicion.slice(0, 4)}</span>
-              <span className={celda("der")}>{soles(a.costo)}</span>
-              <span className={celda()}>{textoVidaUtil(a.vidaUtilMeses)}</span>
-              <span className={celda("der")}>{a.estado === "activo" && a.mesesDepreciados < a.vidaUtilMeses ? soles(a.depreciacionMensual) : "—"}</span>
-              <span className={celda("der")}>
-                <b className="font-semibold text-tinta">{soles(a.valorHoy)}</b>
-                <span className="mt-1 ml-auto block h-1.5 w-20 overflow-hidden rounded-full bg-sand">
-                  <span className="block h-full rounded-full bg-tinta/70" style={{ width: `${pct}%` }} />
-                </span>
-              </span>
-            </button>
-          );
-        })}
-        <p className="px-5 py-2.5 text-xs text-taupe">
-          {t.enUso} en uso · costaron {soles(t.costo)} · depreciado {soles(t.depreciado)} · valen hoy {soles(t.valorHoy)} · se deprecian {soles(t.alMes)} al mes
-        </p>
-      </Tabla>
+      <Superficie className="anim-sube">
+        <div className="fin-tabla-wrap">
+          <table className="fin-tabla">
+            <thead>
+              <tr>
+                <th>Bien</th>
+                {verTodas && <th>Unidad</th>}
+                <th>Comprado</th>
+                <th>Factura</th>
+                <th className="fin-num">Costo</th>
+                <th>Vida útil</th>
+                <th className="fin-num">Se deprecia al mes</th>
+                <th className="fin-num">Vale hoy</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activos.map((a) => {
+                const e = TEXTO_ESTADO_ACTIVO[a.estado];
+                const pct = a.costo > 0 ? Math.max(0, Math.min(100, (a.valorHoy / a.costo) * 100)) : 0;
+                return (
+                  <tr
+                    key={a.id}
+                    data-clic
+                    tabIndex={0}
+                    className={a.estado !== "activo" ? "fin-suave" : undefined}
+                    onClick={() => onAbrir(a)}
+                    onKeyDown={(ev) => {
+                      if (ev.key === "Enter" || ev.key === " ") {
+                        ev.preventDefault();
+                        onAbrir(a);
+                      }
+                    }}
+                  >
+                    <td className="fin-ancha" data-l="Bien">
+                      <b>{a.nombre}</b>
+                      <span className="fin-sub">{a.proveedorNombre ?? a.tipoNombre ?? "Sin proveedor"}</span>
+                      {a.estado !== "activo" && (
+                        <span className="mt-1 block">
+                          <Chip tono={e.tono}>{e.texto}</Chip>
+                        </span>
+                      )}
+                    </td>
+                    {verTodas && <td data-l="Unidad">{a.ubicacionNombre}</td>}
+                    <td data-l="Comprado">{fechaCorta(a.fechaAdquisicion, true)}</td>
+                    <td data-l="Factura">{a.comprobante ?? <span className="fin-tenue">Sin comprobante</span>}</td>
+                    <td className="fin-num" data-l="Costo">
+                      {solesRedondo(a.costo)}
+                    </td>
+                    <td data-l="Vida útil">{textoVidaUtil(a.vidaUtilMeses)}</td>
+                    <td className="fin-num" data-l="Al mes">
+                      {a.estado === "activo" && a.mesesDepreciados < a.vidaUtilMeses ? soles(a.depreciacionMensual) : "—"}
+                    </td>
+                    <td className="fin-num" data-l="Vale hoy">
+                      <b>{solesRedondo(a.valorHoy)}</b>
+                      <span className="fin-barra" aria-hidden>
+                        <i style={{ width: `${pct}%` }} />
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <PieTabla>
+          <span>
+            Total {solesRedondo(t.costo)} · depreciado {solesRedondo(t.depreciado)} · vale hoy {solesRedondo(t.valorHoy)}
+          </span>
+          <span>
+            {t.enUso} en uso · se deprecian {soles(t.alMes)} al mes
+          </span>
+        </PieTabla>
+      </Superficie>
       <NotaActivos />
     </>
   );
@@ -353,7 +524,7 @@ export function TablaActivos({ activos, verTodas, onAbrir }: { activos: ActivoFi
 function NotaActivos() {
   return (
     <p className="nota-cayla">
-      Un activo no se resta entero del mes en que se compra: se reparte en su vida útil (<b>depreciación</b>), desde el mes siguiente. El IGV de su factura se descuenta aparte. Las vidas útiles las confirma el contador.
+      Un activo no se resta entero del mes en que se compra: se reparte en su vida útil (<b>depreciación</b>), desde el mes siguiente. Así un mes no «pierde» S/ 3,200 por comprar un mostrador que sigue ahí. El IGV de su factura se descuenta aparte; las vidas útiles las confirma el contador.
     </p>
   );
 }
@@ -391,68 +562,81 @@ export function ActivoDetalleModal({ activo: a, hoy, onCerrar }: { activo: Activ
     router.refresh();
   }
 
-  return (
-    <Modal titulo={a.nombre} subtitulo={`${a.ubicacionNombre} · ${a.tipoNombre ?? "Activo"} · cuenta ${a.cuenta ?? "—"}`} onClose={onCerrar} ancho="max-w-lg">
-      <div className="space-y-4">
-        <dl className="divide-y divide-sand rounded-md border border-sand text-sm">
-          {[
-            ["Comprado", `${diaMes(a.fechaAdquisicion)} ${a.fechaAdquisicion.slice(0, 4)}`],
-            ["Costo (sin IGV)", soles(a.costo)],
-            ["Comprobante", a.comprobante ? `${a.comprobante}${a.proveedorNombre ? ` · ${a.proveedorNombre}` : ""}` : "Sin comprobante"],
-            ["Vida útil", textoVidaUtil(a.vidaUtilMeses)],
-            ["Se deprecia al mes", soles(a.depreciacionMensual)],
-            ["Depreciado", `${soles(a.depreciacionAcumulada)} · ${a.mesesDepreciados} de ${a.vidaUtilMeses} meses`],
-            ["Vale hoy", soles(a.valorHoy)],
-            ...(a.saldo !== null && a.saldo > 0 && a.estado === "activo" ? [["Falta pagar", `${soles(a.saldo)} · en Compras ▸ Por pagar`]] : []),
-            ...(a.serie ? [["N.° de serie", a.serie]] : []),
-            ...(a.fechaBaja ? [["Dado de baja", `${diaMes(a.fechaBaja)} · ${a.motivoBaja ?? ""}`]] : []),
-            ...(a.motivoAnulacion ? [["Anulado", a.motivoAnulacion]] : []),
-            ...(a.registradoPor ? [["Lo registró", a.registradoPor]] : []),
-          ].map(([k, v]) => (
-            <div key={k} className="flex justify-between gap-4 px-4 py-2">
-              <dt className="text-taupe">{k}</dt>
-              <dd className="text-right text-tinta">{v}</dd>
-            </div>
-          ))}
-        </dl>
-        <Chip tono={e.tono}>{e.texto}</Chip>
-
-        {accion ? (
-          <div className="space-y-3" data-sin-cascada>
-            {accion === "baja" && <CampoTexto etiqueta="Desde cuándo ya no se usa" type="date" min={a.fechaAdquisicion} max={hoy} value={fecha} onChange={(ev) => setFecha(ev.target.value)} />}
-            <CampoTexto etiqueta={accion === "baja" ? "Por qué (se malogró, se regaló, se botó)" : "Por qué se anula"} value={motivo} onChange={(ev) => setMotivo(ev.target.value)} />
-            <p className="text-[13px] text-taupe">
-              {accion === "baja"
-                ? "No se borra: queda en la lista como dado de baja. Desde ese mes deja de depreciarse."
-                : `No se borra: queda a la vista como anulado.${a.compraId ? " Su comprobante se anula con él." : ""}`}
-            </p>
-            <ComboResponsable control={responsable} deshabilitado={guardando} />
-            <div className="flex justify-end gap-2">
-              <button type="button" className="btn-cayla btn-secundario" onClick={() => setAccion(null)} disabled={guardando}>
-                Volver
-              </button>
-              <button type="button" className="btn-cayla btn-peligro" onClick={confirmar} disabled={guardando || !responsable.listo}>
-                {guardando ? "Guardando…" : accion === "baja" ? "Dar de baja" : "Anular activo"}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-wrap justify-end gap-2">
-            {a.estado === "activo" && puedeAnularActivo(a) && (
-              <button type="button" className="btn-cayla btn-sutil" onClick={() => setAccion("anular")}>
-                Se registró por error…
-              </button>
-            )}
-            {a.estado === "activo" && (
-              <button type="button" className="btn-cayla btn-sutil" onClick={() => setAccion("baja")}>
-                Dar de baja…
-              </button>
-            )}
-            <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar}>
-              Cerrar
-            </button>
-          </div>
+  if (accion) {
+    return (
+      <Modal
+        variante="hoja"
+        titulo={accion === "baja" ? `Dar de baja: ${a.nombre}` : `Anular: ${a.nombre}`}
+        subtitulo={accion === "baja" ? "Dejó de servir (se malogró, se regaló, se botó). No se borra: queda en la lista como dado de baja y desde ese mes deja de depreciarse." : `Se registró por error. No se borra: queda a la vista como anulado.${a.compraId ? " Su comprobante se anula con él." : ""}`}
+        onClose={onCerrar}
+        ancho="max-w-[520px]"
+      >
+        {accion === "baja" && (
+          <CampoFin etiqueta="Desde cuándo ya no se usa" htmlFor="activo-baja-fecha">
+            <InputFin id="activo-baja-fecha" type="date" min={a.fechaAdquisicion} max={hoy} value={fecha} onChange={(ev) => setFecha(ev.target.value)} />
+          </CampoFin>
         )}
+        <CampoFin etiqueta="Motivo" htmlFor="activo-motivo">
+          <InputFin id="activo-motivo" value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder={accion === "baja" ? "Se malogró la pantalla" : "Se registró dos veces"} />
+        </CampoFin>
+        <ComboResponsable control={responsable} deshabilitado={guardando} />
+        <div className="fin-botones mt-4">
+          <button type="button" className="btn-cayla btn-secundario" onClick={() => setAccion(null)} disabled={guardando}>
+            Volver
+          </button>
+          <button type="button" className="btn-cayla btn-primario" onClick={confirmar} disabled={guardando || !responsable.listo}>
+            {guardando ? "Guardando…" : accion === "baja" ? "Dar de baja" : "Anular activo"}
+          </button>
+        </div>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal
+      variante="hoja"
+      titulo={
+        <>
+          <span className="label-cayla mb-1 block font-sans text-[11px] font-semibold text-taupe">
+            {a.tipoNombre ?? "Activo fijo"}
+            {a.cuenta ? ` · cuenta ${a.cuenta}` : ""}
+          </span>
+          {a.nombre}
+        </>
+      }
+      subtitulo={[a.ubicacionNombre, `comprado ${fechaCorta(a.fechaAdquisicion, true)}`, a.comprobante, a.proveedorNombre].filter(Boolean).join(" · ")}
+      onClose={onCerrar}
+      ancho="max-w-[520px]"
+    >
+      <ListaDatos
+        filas={[
+          { dato: "Costo (sin IGV)", valor: soles(a.costo) },
+          { dato: "Vida útil", valor: textoVidaUtil(a.vidaUtilMeses) },
+          { dato: "Se deprecia al mes", valor: soles(a.depreciacionMensual) },
+          { dato: "Depreciado", valor: `${soles(a.depreciacionAcumulada)} · ${a.mesesDepreciados} de ${a.vidaUtilMeses} meses` },
+          { dato: "Vale hoy", valor: soles(a.valorHoy) },
+          ...(a.saldo !== null && a.saldo > 0 && a.estado === "activo" ? [{ dato: "Falta pagar", valor: `${soles(a.saldo)} · en Compras ▸ Por pagar` }] : []),
+          ...(a.serie ? [{ dato: "N.° de serie", valor: a.serie }] : []),
+          { dato: "Estado", valor: <Chip tono={e.tono}>{e.texto}</Chip> },
+          ...(a.fechaBaja ? [{ dato: "Dado de baja", valor: `${fechaCorta(a.fechaBaja, true)} · ${a.motivoBaja ?? ""}`, tenue: true }] : []),
+          ...(a.motivoAnulacion ? [{ dato: "Anulado", valor: a.motivoAnulacion, tenue: true }] : []),
+          ...(a.registradoPor ? [{ dato: "Lo registró", valor: a.registradoPor, tenue: true }] : []),
+        ]}
+      />
+      <div className="fin-botones">
+        {a.estado === "activo" && puedeAnularActivo(a) && (
+          <button type="button" className="btn-cayla btn-sutil" onClick={() => setAccion("anular")}>
+            Se registró por error…
+          </button>
+        )}
+        {a.estado === "activo" && (
+          <button type="button" className="btn-cayla btn-sutil" onClick={() => setAccion("baja")}>
+            Dar de baja…
+          </button>
+        )}
+        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar}>
+          Cerrar
+        </button>
       </div>
     </Modal>
   );

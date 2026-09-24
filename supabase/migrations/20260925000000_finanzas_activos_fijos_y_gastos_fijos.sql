@@ -30,6 +30,7 @@
 --   · `registrar_gasto` gana `p_gasto_fijo_id` (al final, opcional): firma nueva, se quita la anterior.
 --   · Los candados de gastos y de «no es gasto», y las lecturas de egresos por clasificar, miran también los activos.
 --   · El candado de `compras` que obliga a anular desde Finanzas vale también para la factura de un activo.
+--   · `fn_gastos_lista` devuelve el medio de pago también cuando el gasto tiene comprobante (sale de su pago).
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN — TRES EJECUCIONES SEPARADAS, EN ORDEN (CLAUDE.md «Políticas y deadlocks»):
 --   PARTE 1 activos_fijos (vacía y sin uso) · PARTE 2 gastos · PARTE 3 lo nuevo. Cada una espera 3 s un candado: si dice
@@ -934,6 +935,47 @@ begin
   execute regexp_replace(v_def,
     'and not exists \(select 1 from retail\.gastos g where g\.caja_movimiento_id = m\.id and g\.estado = ''vigente''\)\s+and not exists \(select 1 from retail\.egresos_no_gasto e where e\.caja_movimiento_id = m\.id and e\.revertido_en is null\)',
     'and retail.fn_egreso_ya_usado(m.id) is null');
+end $$;
+
+-- ---------- 9. La lista de gastos dice CÓMO se pagó, también con comprobante ----------
+-- Con comprobante al contado el medio vive en su pago (`compra_pagos.metodo`), no en `gastos.medio_pago`: la lista decía
+-- «Pagado» a secas. Ahora devuelve el medio del primer pago. Misma firma y mismas columnas que F2a: los permisos quedan.
+create or replace function retail.fn_gastos_lista(p_desde date, p_hasta date, p_ubicacion_id uuid default null,
+                                                  p_solo_empresa boolean default false, p_limite integer default 300)
+returns table (
+  id uuid, ubicacion_id uuid, ubicacion_nombre text, categoria text, categoria_nombre text, cuenta text,
+  descripcion text, fecha date, monto_total numeric, igv numeric, medio_pago text, caja_movimiento_id uuid,
+  compra_id uuid, comprobante_tipo text, comprobante text, proveedor_nombre text, condicion text,
+  fecha_vencimiento date, saldo numeric, tiene_pagos boolean, estado text, motivo_anulacion text,
+  registrado_por_nombre text, creado_en timestamptz
+)
+language plpgsql stable security definer set search_path = retail, public, extensions as $$
+#variable_conflict use_column
+declare v_ubics uuid[] := retail.fn_gastos_ubicaciones(); v_lider boolean := retail.fn_es_lider();
+begin
+  if not v_lider and coalesce(cardinality(v_ubics), 0) = 0 then
+    raise exception 'Ver los gastos necesita el módulo Gastos en tu rol.' using errcode = '42501';
+  end if;
+  return query
+  select g.id, g.ubicacion_id, u.nombre, g.categoria, k.nombre, k.cuenta_pcge, g.descripcion, g.fecha, g.monto_total,
+         g.igv,
+         coalesce(g.medio_pago, (select x.metodo from retail.compra_pagos x where x.compra_id = g.compra_id
+                                  order by x.fecha, x.created_at limit 1)),
+         g.caja_movimiento_id, g.compra_id, c.tipo, c.documento, p.nombre, c.condicion,
+         c.fecha_vencimiento, c.saldo, exists (select 1 from retail.compra_pagos x where x.compra_id = g.compra_id),
+         g.estado, g.motivo_anulacion, trim(concat_ws(' ', pe.nombres, pe.apellidos)), g.created_at
+    from retail.gastos g
+    join retail.categorias_gasto k on k.codigo = g.categoria
+    left join retail.ubicaciones u on u.id = g.ubicacion_id
+    left join retail.compras c on c.id = g.compra_id
+    left join retail.proveedores p on p.id = c.proveedor_id
+    left join public.personas pe on pe.id = g.registrado_por
+   where g.fecha between p_desde and p_hasta
+     and ((g.ubicacion_id is null and v_lider) or g.ubicacion_id = any (v_ubics))
+     and (p_ubicacion_id is null or g.ubicacion_id = p_ubicacion_id)
+     and (not p_solo_empresa or g.ubicacion_id is null)
+   order by g.fecha desc, g.created_at desc
+   limit greatest(p_limite, 1);
 end $$;
 
 -- ---------- Permisos ----------

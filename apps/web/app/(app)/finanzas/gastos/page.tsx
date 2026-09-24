@@ -14,11 +14,14 @@ import {
   getProveedoresParaGasto,
   getTiposActivo,
 } from "@/lib/gastos";
-import { GastosPanel } from "@/components/GastosPanel";
+import { GastosPanel, type PestanaGastos } from "@/components/GastosPanel";
+
+const PESTANAS: PestanaGastos[] = ["gastos", "fijos", "activos", "egresos"];
 
 // Finanzas ▸ Gastos (ADR-0195 F2). Lee en el servidor y deja a una sola pieza cliente operar. `?mes=2026-09` elige el mes;
-// `?ver=` (solo el líder) elige qué tienda mirar: por defecto la sede donde trabaja, o «todas», o «empresa».
-export default async function GastosPage({ searchParams }: { searchParams: Promise<{ mes?: string; ver?: string }> }) {
+// `?ver=` (solo el líder) elige qué tienda mirar: por defecto la sede donde trabaja, o «todas», o «empresa». `?tab=` abre en una
+// pestaña (fijos, activos, egresos): así llegan los enlaces de Caja y de Configuración.
+export default async function GastosPage({ searchParams }: { searchParams: Promise<{ mes?: string; ver?: string; tab?: string }> }) {
   const persona = await exigirModulo("gastos");
   const sp = await searchParams;
   const hoy = hoyLima();
@@ -56,6 +59,7 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
       ver={ver}
       mes={mes}
       hoy={hoy}
+      pestanaInicial={PESTANAS.find((p) => p === sp.tab) ?? "gastos"}
       fallas={[panel.falla, gastos.falla, egresos.falla, activos.falla, fijos.falla].filter((f): f is string => !!f)}
     />
   );

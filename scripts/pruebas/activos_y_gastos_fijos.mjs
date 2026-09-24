@@ -9,7 +9,8 @@
  *   · un egreso de caja respalda UNA sola cosa: gasto, activo o «no es gasto»;
  *   · anular (sin pagos) y dar de baja; no se edita ni se borra; la factura de un activo no se anula desde Compras;
  *   · gastos fijos: registrado / viene / falta, uno por mes, archivar, y los que el sistema propone;
- *   · decisión B: con el módulo Gastos, solo su tienda; nadie lee las tablas directo.
+ *   · decisión B: con el módulo Gastos, solo su tienda; nadie lee las tablas directo;
+ *   · la lista de gastos dice cómo se pagó también cuando el gasto tiene comprobante.
  *
  * CÓMO. Igual que `gastos.mjs`: cada escenario en su transacción con ROLLBACK, sesión simulada con `request.jwt.claim.sub`.
  *
@@ -235,6 +236,18 @@ select pg_temp.intento('select count(*) from retail.gastos_fijos');`);
   esperar("de otra tienda, no", r.ok && otra.includes("esa tienda"), r);
   esperar("«de la empresa», solo el líder", r.ok && empresa.includes("esa tienda"), r);
   esperar("nadie lee `gastos_fijos` directo", r.ok && directo.includes("permission denied"), r);
+}
+
+// 8. La lista de gastos dice cómo se pagó también con comprobante (el medio sale de su pago).
+{
+  const r = correr(`${ESCENA}
+select retail.registrar_gasto(:'tru', 'servicios_basicos', 'Luz con factura', '2026-09-12', 118, jsonb_build_object('tipo', 'factura', 'proveedor_id', :'prov', 'serie', 'F001', 'numero', '4401', 'condicion', 'contado'), 'transferencia', null, null, 'op 55') as g \\gset
+select retail.registrar_gasto(:'tru', 'suministros', 'Bolsas sin factura', '2026-09-12', 20, null, 'yape') as g2 \\gset
+select medio_pago, compra_id is not null from retail.fn_gastos_lista('2026-09-01', '2026-09-30', :'tru') where id = :'g';
+select medio_pago, compra_id is null from retail.fn_gastos_lista('2026-09-01', '2026-09-30', :'tru') where id = :'g2';`);
+  const [conFactura, sinFactura] = lineas(r);
+  esperar("con factura al contado, la lista dice «transferencia» (antes, nada)", r.ok && conFactura === "transferencia|t", r);
+  esperar("sin comprobante, el medio del gasto", r.ok && sinFactura === "yape|t", r);
 }
 
 console.log(fallos ? `\n${fallos} caso(s) fallaron` : "\nTodo en orden");

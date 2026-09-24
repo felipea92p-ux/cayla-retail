@@ -147,6 +147,15 @@ acción principal a la derecha) → cifras (`TarjetaCifra`) → filtros y tabla 
 estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo. Detalle,
 contraste medido y lo que quedó fuera (modo oscuro, formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`.
 
+## Pantallas de Finanzas (regla — ADR-0195, «Ajuste de diseño al spike», Felipe 2026-09-24)
+
+**Toda pantalla de Finanzas (Gastos, Configuración, y las que vienen: Cuentas y dinero, Reportes, Impuestos, Cierre) se
+dibuja como el spike aprobado (`docs/maquetas/finanzas-2026-09/`) y se arma con sus piezas**: `components/finanzas/kit.tsx`
+(pestañas, tarjeta con herramientas + tabla + pie, campos en caja, opciones en tarjeta) y `app/estilos/finanzas.css`
+(clases `fin-*`), los modales con `<Modal variante="hoja">`. No se reinventa una tabla ni un campo con medidas sueltas.
+**Antes de dar una pantalla por terminada, se captura al mismo ancho que el spike y se comparan las dos imágenes**: si no
+se parecen, no está terminada. Lo que se aparta del spike a propósito queda escrito en el ADR.
+
 ## Carga y espera (regla — ADR-0149)
 
 **El ERP tiene UN solo loader a pantalla completa (`apps/web/components/ui/Espera.tsx`, `<EsperaGlobal />` montado una vez en

@@ -295,3 +295,49 @@ probado en local:
   - el contador confirma tipos, vidas útiles y cuentas;
   - la venta de un activo (el estado `vendido` existe, sin pantalla) queda para F7.
 
+
+## Ajuste de diseño al spike (2026-09-24)
+
+Felipe, al ver F1 y F2 funcionando: «los diseños no se parecen a los propuestos, hay que ajustarlos antes de continuar». La
+estructura estaba bien; el aspecto no. Se comparó cada pantalla con el spike (`docs/maquetas/finanzas-2026-09/`), captura
+contra captura y al mismo ancho, y se rehicieron:
+
+- **Piezas propias de Finanzas.** Lo que el spike dibuja y el ERP no tenía vive en un solo lugar, y las fases que vienen
+  (Cuentas y dinero, Reportes, Impuestos, Cierre) lo usan igual:
+  - `app/estilos/finanzas.css`, con clases `fin-*` y solo tokens;
+  - `components/finanzas/kit.tsx`: pestañas en tinta con el conteo en píldora, la tarjeta con filtros, tabla y pie, la tabla
+    que envuelve el texto en vez de cortarlo, campos en caja hundida, opciones en tarjeta, lista de datos y estado vacío.
+
+  Dos piezas del sistema ganan una opción, sin cambiar a nadie más: `<Modal variante="hoja">` (la hoja del spike: papel,
+  título serif grande, bajada en taupe) y `CabeceraPantalla accionesAbajo` («Ver» y el botón principal al pie de la
+  cabecera, a la derecha).
+- **Finanzas ▸ Gastos.** «Ver» junto al botón principal. Cuatro cifras sin punto de color y sin céntimos. Pestañas del
+  spike: «Por categoría» sale y se mudará a Reportes. El buscador, la categoría y el mes van dentro de la tarjeta de la
+  tabla. Fechas «23 sep». «Cómo se pagó» dice el medio real: «Cajón · Tienda TRU», «Transferencia» o «vence 28 sep».
+  - Para eso, `fn_gastos_lista` devuelve el medio del pago cuando el gasto tiene comprobante. Antes decía solo «Pagado».
+    Va en la PARTE 3 de F2b, que no está en producción; tiene prueba nueva.
+  - Fijos del mes va en dos columnas: «Para confirmar» y «Faltan» | «Se repiten, ¿los marco?» y «Ya registrados». Activos,
+    con las columnas del spike.
+  - Los modales usan campos en caja y opciones en tarjeta. Clasificar un egreso guarda el gasto chico ahí mismo con su
+    categoría; con factura, o si es un activo, sigue al registro completo.
+- **Configuración.** Una sola pantalla «Configuración» con pestañas por URL; solo las que existen: Tiendas y caja, y Gastos
+  fijos, donde se mudó el editor de fijos.
+  - Las tablas son las del spike: fechas, descuento, «TRU: meta · fondo», y «pasó» atenuado, no tachado.
+  - **Cada casilla se guarda sola al salir** de ella si cambió, sin botones «Guardar», firmada con el responsable. El combo
+    Responsable se queda, aunque el spike no lo muestra: es regla (ADR-0161).
+- **Caja.** La «Meta de hoy» es la tarjeta del spike: título serif con el monto, la frase «Lo normal de un jueves en…
+  Hoy no rige ninguna campaña.», la barra en tinta, y Llevas, Te faltan y Avance.
+  - Al lado va **«Al cerrar»**: lo que debería haber en el cajón, lo que se deja y adónde va el resto.
+  - Solo lo ve quien puede cerrar. El monto lo da la base (`fn_esperado_caja`); la pantalla no lo recalcula (ADR-0186: un
+    solo dueño).
+
+**Lo que queda distinto del spike, a propósito:**
+- El título de la pantalla mide 30 px y no 36, y las cifras en serif van en 600: es la guía del ERP (ADR-0169) para todas
+  las pantallas.
+- El combo Responsable, por regla.
+- «Al ritmo de hoy cierras en…» no se puede calcular: la base no tiene la hora de cierre de cada tienda. En su lugar va el
+  avance en %.
+- «Cobrado hoy y a dónde entró» depende de las cuentas de dinero (F3).
+- «No es fijo» en los sugeridos no tiene dónde guardarse todavía.
+- El modal de cierre de caja es el de ADR-0186 (aprobado el 2026-09-23). Solo se tocó su renglón del fondo, que ya decía
+  «Deja S/ … para el próximo turno».

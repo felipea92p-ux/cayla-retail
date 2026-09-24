@@ -69,6 +69,16 @@ export type SeriesVentasCaja = {
   porHora: PuntoHora[];
 };
 
+/** Cuánto debería haber en el cajón ahora (tarjeta «Al cerrar», ADR-0195 F1). Lo dice la base —`fn_esperado_caja`, el
+ *  mismo cálculo que `cerrar_caja`, un solo dueño (ADR-0186)— y solo a quien puede cerrar esa caja; `null` si no. */
+export async function getEsperadoCaja(cajaId: string): Promise<number | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_esperado_caja", { p_caja_id: cajaId });
+  if (error) return null;
+  const fila = (Array.isArray(data) ? data[0] : data) as { esperado?: number | string | null } | undefined;
+  return fila?.esperado === null || fila?.esperado === undefined ? null : Number(fila.esperado);
+}
+
 export async function getCajaAbierta(ubicacionId: string): Promise<CajaAbierta | null> {
   const supabase = await createClient();
   const res = await supabase

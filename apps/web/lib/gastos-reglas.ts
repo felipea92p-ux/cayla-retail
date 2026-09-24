@@ -296,12 +296,29 @@ export function puedeAnular(g: Pick<GastoFila, "estado" | "compraId" | "tienePag
   return g.estado === "vigente" && !(g.compraId && g.tienePagos);
 }
 
-/** Cómo se pagó, en una línea: «Yape», «Efectivo del cajón», «A crédito · vence 12 oct». */
-export function textoPago(g: Pick<GastoFila, "medioPago" | "cajaMovimientoId" | "compraId" | "condicion" | "fechaVencimiento" | "tienePagos">, fecha: (iso: string) => string): string {
-  if (g.compraId && g.condicion === "credito") return g.fechaVencimiento ? `A crédito · vence ${fecha(g.fechaVencimiento)}` : "A crédito";
-  if (g.cajaMovimientoId) return "Efectivo del cajón";
+/** Cómo se pagó, en una línea (spike, tabla de Gastos): «vence 28 sep» si se debe, «Cajón · Tienda TRU» si salió de un
+ *  cajón, el medio si no («Transferencia», «Yape»). */
+export function textoPago(
+  g: Pick<GastoFila, "medioPago" | "cajaMovimientoId" | "compraId" | "condicion" | "fechaVencimiento" | "tienePagos" | "saldo" | "estado" | "ubicacionNombre">,
+  fecha: (iso: string) => string,
+): string {
+  if (g.compraId && g.condicion === "credito" && g.estado === "vigente" && (g.saldo ?? 0) > 0) return g.fechaVencimiento ? `vence ${fecha(g.fechaVencimiento)}` : "a crédito";
+  if (g.cajaMovimientoId) return `Cajón · ${g.ubicacionNombre ?? "tienda"}`;
   if (g.medioPago) return TEXTO_MEDIO[g.medioPago];
   return g.tienePagos ? "Pagado" : "—";
+}
+
+/** «S/ 5,472»: las cifras grandes de una pantalla van sin céntimos (spike); las filas, con ellos (`soles`). */
+export function solesRedondo(n: number): string {
+  return `S/ ${Math.round(n).toLocaleString("es-PE")}`;
+}
+
+const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+/** «23 sep» (con el año si se pide: «23 sep 2026»). */
+export function fechaCorta(iso: string | null, conAnio = false): string {
+  if (!iso) return "—";
+  const [a, m, d] = iso.slice(0, 10).split("-");
+  return `${Number(d)} ${MESES_CORTOS[Number(m) - 1]}${conAnio ? ` ${a}` : ""}`;
 }
 
 // ---- El formulario ----------------------------------------------------------------------------------------------------

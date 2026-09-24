@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { Campo, CampoTexto, SelectNativo, Segmentado } from "@/components/ui/campos";
+import { CampoFin, InputFin, RadiosFin, SalidaFin, SelectFin } from "@/components/finanzas/kit";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -88,7 +88,8 @@ export function RegistrarGastoModal({
     descripcion: egreso?.nota ?? "",
     fecha: egreso ? hoyLima(new Date(egreso.creadoEn)) : hoy,
     monto: egreso ? String(egreso.monto) : "",
-    comprobante: "sin_comprobante",
+    // Lo más común (la luz, el alquiler, el contador) llega con factura; lo que sale del cajón, casi nunca.
+    comprobante: egreso ? "sin_comprobante" : "factura",
     proveedorId: "",
     serie: "",
     numero: "",
@@ -160,33 +161,36 @@ export function RegistrarGastoModal({
     router.refresh();
   }
 
-  return (
-    <Modal
-      titulo={egreso ? (esActivo ? "Es un activo fijo" : "Es un gasto") : esActivo ? "Registrar activo fijo" : fijo ? `Registrar ${fijo.descripcion}` : "Registrar gasto"}
-      subtitulo={
-        egreso
-          ? `${egreso.ubicacionNombre} · ${soles(egreso.monto)} · «${egreso.motivo}${egreso.nota ? ` — ${egreso.nota}` : ""}»`
-          : esActivo
-            ? "Algo que sirve varios años: muebles, equipos, máquinas del Taller, una remodelación. No se resta entero este mes: se reparte en su vida útil."
-            : fijo
-              ? `Gasto fijo de ${fijo.ubicacionNombre}: llega cerca del día ${fijo.diaDelMes}${fijo.montoVariable ? ", con monto que cambia" : ""}.`
-              : "Lo que se paga para que el negocio funcione. La mercadería va por Compras y la planilla viene de Dynamic."
-      }
-      onClose={onCerrar}
-      ancho="max-w-2xl"
-    >
-      <div className="space-y-4">
-        <Segmentado
-          etiqueta="¿Tiene comprobante de un proveedor?"
-          valor={b.comprobante}
-          onValor={elegirComprobante}
-          opciones={comprobantes.map((t) => ({ valor: t, texto: TEXTO_COMPROBANTE[t] }))}
-        />
+  const titulo = egreso ? (esActivo ? "Es un activo fijo" : "Es un gasto") : esActivo ? "Registrar activo fijo" : fijo ? `Registrar ${fijo.descripcion.toLowerCase()}` : "Registrar gasto";
+  const bajada = egreso
+    ? `${egreso.ubicacionNombre} · ${soles(egreso.monto)} que salieron del cajón · «${egreso.motivo}${egreso.nota ? ` — ${egreso.nota}` : ""}»`
+    : esActivo
+      ? "Algo que sirve varios años: muebles, equipos, remodelación, máquinas del Taller."
+      : fijo
+        ? `Gasto fijo de ${fijo.ubicacionNombre}: llega cerca del día ${fijo.diaDelMes}${fijo.montoVariable ? ". Escribe el monto del recibo." : "."}`
+        : "Lo que se paga para que el negocio funcione. La planilla no va aquí: viene de Dynamic.";
 
-        {conComprobante && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Campo etiqueta="Proveedor" htmlFor="gasto-proveedor" pie={nuevoProveedor ? undefined : <button type="button" className="btn-cayla btn-enlace" onClick={() => setNuevoProveedor({ nombre: "", ruc: "" })}>¿No está? Súmalo</button>}>
-              <SelectNativo id="gasto-proveedor" value={b.proveedorId} onChange={(e) => poner("proveedorId", e.target.value)}>
+  return (
+    <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={onCerrar} ancho="max-w-[620px]">
+      <CampoFin etiqueta="¿Tiene comprobante de un proveedor?">
+        <RadiosFin nombre="gasto-comprobante" etiqueta="Comprobante" valor={b.comprobante} onValor={elegirComprobante} opciones={comprobantes.map((t) => ({ valor: t, texto: TEXTO_COMPROBANTE[t] }))} />
+      </CampoFin>
+
+      {conComprobante && (
+        <div data-sin-cascada>
+          <div className="fin-dos-campos">
+            <CampoFin
+              etiqueta="Proveedor"
+              htmlFor="gasto-proveedor"
+              ayuda={
+                nuevoProveedor ? undefined : (
+                  <button type="button" className="btn-enlace text-[11.5px]" onClick={() => setNuevoProveedor({ nombre: "", ruc: "" })}>
+                    ¿No está? Súmalo
+                  </button>
+                )
+              }
+            >
+              <SelectFin id="gasto-proveedor" value={b.proveedorId} onChange={(e) => poner("proveedorId", e.target.value)}>
                 <option value="">Elige…</option>
                 {proveedores.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -194,172 +198,199 @@ export function RegistrarGastoModal({
                     {p.ruc ? ` · ${p.ruc}` : ""}
                   </option>
                 ))}
-              </SelectNativo>
-            </Campo>
-            <CampoTexto
-              etiqueta="Serie y número"
-              placeholder="F001-00140"
-              value={documento}
-              tono={documento && !b.numero ? "aviso" : undefined}
-              pie={documento && !b.numero ? "Como está en el comprobante: serie, guion y número (F001-00140)." : undefined}
-              onChange={(e) => {
-                const texto = e.target.value.toUpperCase();
-                setDocumento(texto);
-                const partes = partirSerieNumero(texto);
-                setB((x) => ({ ...x, serie: partes.serie, numero: partes.numero }));
-              }}
-            />
-            {nuevoProveedor && (
-              <div className="nota-cayla sm:col-span-2" data-sin-cascada>
-                <div className="grid gap-3 sm:grid-cols-[1fr_12rem_auto] sm:items-end">
-                  <CampoTexto etiqueta="Nombre del proveedor" value={nuevoProveedor.nombre} onChange={(e) => setNuevoProveedor((n) => n && { ...n, nombre: e.target.value })} placeholder="Hidrandina" />
-                  <CampoTexto etiqueta="RUC (opcional)" inputMode="numeric" value={nuevoProveedor.ruc} onChange={(e) => setNuevoProveedor((n) => n && { ...n, ruc: e.target.value.replace(/\D/g, "").slice(0, 11) })} />
-                  <div className="flex gap-2">
-                    <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={sumarProveedor}>Sumar</button>
-                    <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setNuevoProveedor(null)}>Cancelar</button>
-                  </div>
-                </div>
-                <p className="mt-2 text-[12.5px]">Queda en el directorio de proveedores; sus cuentas se completan luego en Compras ▸ Proveedores.</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {esActivo ? (
-          <div className="grid gap-4 sm:grid-cols-[1fr_12rem]">
-            <CampoTexto etiqueta="Qué es" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Estante de exhibición en L" />
-            <CampoTexto etiqueta="N.° de serie (opcional)" value={activo.serie} onChange={(e) => setActivo((a) => ({ ...a, serie: e.target.value }))} />
-          </div>
-        ) : (
-          <CampoTexto etiqueta="Qué se pagó" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Luz de septiembre" />
-        )}
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          {esActivo ? (
-            <Campo etiqueta="Tipo de activo" htmlFor="activo-tipo" pie={tipoActivo ? `Va a la cuenta ${tipoActivo.cuenta} ${tipoActivo.cuentaNombre}.` : undefined}>
-              <SelectNativo
-                id="activo-tipo"
-                value={activo.tipo}
+              </SelectFin>
+            </CampoFin>
+            <CampoFin etiqueta="Serie y número" htmlFor="gasto-documento" tono={documento && !b.numero ? "aviso" : undefined} ayuda={documento && !b.numero ? "Como está en el comprobante: serie, guion y número (F001-00140)." : undefined}>
+              <InputFin
+                id="gasto-documento"
+                placeholder="F001-00140"
+                value={documento}
                 onChange={(e) => {
-                  const t = tiposActivo.find((x) => x.codigo === e.target.value);
-                  setActivo((a) => ({ ...a, tipo: e.target.value, vidaUtilMeses: t ? String(t.vidaUtilMeses) : a.vidaUtilMeses }));
+                  const texto = e.target.value.toUpperCase();
+                  setDocumento(texto);
+                  const partes = partirSerieNumero(texto);
+                  setB((x) => ({ ...x, serie: partes.serie, numero: partes.numero }));
                 }}
-              >
-                <option value="">Elige…</option>
-                {tiposActivo.map((t) => (
-                  <option key={t.codigo} value={t.codigo}>
-                    {t.nombre} — {t.ejemplos}
-                  </option>
-                ))}
-              </SelectNativo>
-            </Campo>
-          ) : (
-            <Campo etiqueta="Categoría" htmlFor="gasto-categoria" pie={categoria ? `Va a la cuenta ${categoria.cuenta} ${categoria.cuentaNombre}. Nadie la elige: viene con la categoría.` : "Sin «Otros»: si no calza en ninguna, avisa al líder."}>
-              <SelectNativo id="gasto-categoria" value={b.categoria} onChange={(e) => poner("categoria", e.target.value)}>
-                <option value="">Elige…</option>
-                {categorias.map((c) => (
-                  <option key={c.codigo} value={c.codigo}>
-                    {c.nombre} — {c.ejemplos}
-                  </option>
-                ))}
-              </SelectNativo>
-            </Campo>
+              />
+            </CampoFin>
+          </div>
+          {nuevoProveedor && (
+            <div className="nota-cayla mb-4">
+              <div className="grid gap-3 sm:grid-cols-[1fr_11rem]">
+                <CampoFin etiqueta="Nombre del proveedor" htmlFor="nuevo-prov-nombre" className="!mb-0">
+                  <InputFin id="nuevo-prov-nombre" value={nuevoProveedor.nombre} onChange={(e) => setNuevoProveedor((n) => n && { ...n, nombre: e.target.value })} placeholder="Hidrandina" />
+                </CampoFin>
+                <CampoFin etiqueta="RUC (opcional)" htmlFor="nuevo-prov-ruc" className="!mb-0">
+                  <InputFin id="nuevo-prov-ruc" inputMode="numeric" value={nuevoProveedor.ruc} onChange={(e) => setNuevoProveedor((n) => n && { ...n, ruc: e.target.value.replace(/\D/g, "").slice(0, 11) })} />
+                </CampoFin>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={sumarProveedor}>
+                  Sumar proveedor
+                </button>
+                <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setNuevoProveedor(null)}>
+                  Cancelar
+                </button>
+                <span className="text-[12px]">Queda en el directorio; sus cuentas se completan en Compras ▸ Proveedores.</span>
+              </div>
+            </div>
           )}
-          <Campo etiqueta={esActivo ? "Dónde está" : "A quién se le carga"} htmlFor="gasto-ubicacion">
-            <SelectNativo id="gasto-ubicacion" value={b.ubicacion} disabled={!!egreso || !!fijo || opcionesUbicacion.length < 2} onChange={(e) => poner("ubicacion", e.target.value)}>
-              {opcionesUbicacion.map((o) => (
-                <option key={o.valor} value={o.valor}>
-                  {o.texto}
+        </div>
+      )}
+
+      <div className="grid gap-x-3 sm:grid-cols-[1fr_10.5rem]">
+        {esActivo ? (
+          <CampoFin etiqueta="Qué es" htmlFor="gasto-descripcion">
+            <InputFin id="gasto-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Estante de exhibición en L" />
+          </CampoFin>
+        ) : (
+          <CampoFin etiqueta="Qué se pagó" htmlFor="gasto-descripcion">
+            <InputFin id="gasto-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Luz de septiembre" />
+          </CampoFin>
+        )}
+        <CampoFin etiqueta={conComprobante ? "Fecha del comprobante" : "Fecha"} htmlFor="gasto-fecha">
+          <InputFin id="gasto-fecha" type="date" max={hoy} value={b.fecha} onChange={(e) => poner("fecha", e.target.value)} />
+        </CampoFin>
+      </div>
+
+      <div className="fin-dos-campos">
+        {esActivo ? (
+          <CampoFin etiqueta="Tipo de activo" htmlFor="activo-tipo" ayuda={tipoActivo ? `Va a la cuenta ${tipoActivo.cuenta} ${tipoActivo.cuentaNombre}.` : undefined}>
+            <SelectFin
+              id="activo-tipo"
+              value={activo.tipo}
+              onChange={(e) => {
+                const t = tiposActivo.find((x) => x.codigo === e.target.value);
+                setActivo((a) => ({ ...a, tipo: e.target.value, vidaUtilMeses: t ? String(t.vidaUtilMeses) : a.vidaUtilMeses }));
+              }}
+            >
+              <option value="">Elige…</option>
+              {tiposActivo.map((t) => (
+                <option key={t.codigo} value={t.codigo}>
+                  {t.nombre} — {t.ejemplos}
                 </option>
               ))}
-            </SelectNativo>
-          </Campo>
-        </div>
+            </SelectFin>
+          </CampoFin>
+        ) : (
+          <CampoFin etiqueta="Categoría" htmlFor="gasto-categoria" ayuda={categoria ? `Va a la cuenta ${categoria.cuenta}. Nadie la elige: viene con la categoría.` : "Sin «Otros»: si no calza en ninguna, avisa al líder."}>
+            <SelectFin id="gasto-categoria" value={b.categoria} onChange={(e) => poner("categoria", e.target.value)}>
+              <option value="">Elige…</option>
+              {categorias.map((c) => (
+                <option key={c.codigo} value={c.codigo}>
+                  {c.nombre} — {c.ejemplos}
+                </option>
+              ))}
+            </SelectFin>
+          </CampoFin>
+        )}
+        <CampoFin etiqueta={esActivo ? "Dónde está" : "A quién se le carga"} htmlFor="gasto-ubicacion">
+          <SelectFin id="gasto-ubicacion" value={b.ubicacion} disabled={!!egreso || !!fijo || opcionesUbicacion.length < 2} onChange={(e) => poner("ubicacion", e.target.value)}>
+            {opcionesUbicacion.map((o) => (
+              <option key={o.valor} value={o.valor}>
+                {o.texto}
+              </option>
+            ))}
+          </SelectFin>
+        </CampoFin>
+      </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <CampoTexto etiqueta={conComprobante ? "Fecha del comprobante" : "Fecha"} type="date" max={hoy} value={b.fecha} onChange={(e) => poner("fecha", e.target.value)} />
-          <CampoTexto etiqueta="Total pagado (con IGV)" inputMode="decimal" value={b.monto} readOnly={!!egreso} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" />
-          <Campo etiqueta="IGV">
-            <p className="flex h-9 items-center text-sm tabular-nums text-tinta">{b.comprobante === "factura" ? soles(igv) : "S/ 0.00"}</p>
-            <p className="text-[12px] text-taupe">{b.comprobante === "factura" ? "Descontable: sale del total (18 %)." : "Solo la factura da IGV descontable."}</p>
-          </Campo>
-        </div>
-
-        {esActivo && (
-          <Campo
+      {esActivo && (
+        <div className="fin-dos-campos">
+          <CampoFin
             etiqueta="Vida útil"
             htmlFor="activo-vida"
-            pie={
+            ayuda={
               tipoActivo && monto.ok
                 ? `Se deprecia ${soles((monto.valor - igv) / Math.max(1, Number(activo.vidaUtilMeses || tipoActivo.vidaUtilMeses)))} al mes desde el próximo mes${igv ? " (sobre el costo sin IGV)" : ""}.`
-                : "Cuántos años sirve. La sugiere el tipo; el contador la confirma."
+                : "La sugiere el tipo; el contador la confirma."
             }
           >
-            <SelectNativo id="activo-vida" value={activo.vidaUtilMeses} onChange={(e) => setActivo((a) => ({ ...a, vidaUtilMeses: e.target.value }))}>
+            <SelectFin id="activo-vida" value={activo.vidaUtilMeses} onChange={(e) => setActivo((a) => ({ ...a, vidaUtilMeses: e.target.value }))}>
               <option value="">{tipoActivo ? textoVidaUtil(tipoActivo.vidaUtilMeses) : "Elige el tipo primero"}</option>
               {[12, 24, 36, 48, 60, 84, 120, 180, 240].map((m) => (
                 <option key={m} value={String(m)}>
                   {textoVidaUtil(m)}
                 </option>
               ))}
-            </SelectNativo>
-          </Campo>
-        )}
+            </SelectFin>
+          </CampoFin>
+          <CampoFin etiqueta="N.° de serie (opcional)" htmlFor="activo-serie">
+            <InputFin id="activo-serie" value={activo.serie} onChange={(e) => setActivo((a) => ({ ...a, serie: e.target.value }))} />
+          </CampoFin>
+        </div>
+      )}
 
-        {conComprobante && !egreso && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Segmentado
-              etiqueta="¿Cómo se paga?"
-              valor={b.condicion}
-              onValor={(v) => poner("condicion", v)}
-              opciones={[
-                { valor: "contado", texto: "Ya se pagó" },
-                { valor: "credito", texto: "A crédito" },
-              ]}
-            />
-            {aCredito && <CampoTexto etiqueta="Vence" type="date" min={b.fecha} value={b.vence} onChange={(e) => poner("vence", e.target.value)} />}
-          </div>
-        )}
+      <div className="fin-dos-campos">
+        <CampoFin etiqueta={esActivo ? "Costo (con IGV)" : "Total pagado (con IGV)"} htmlFor="gasto-monto" ayuda={egreso ? "Es lo que salió del cajón: no se cambia." : undefined}>
+          <InputFin id="gasto-monto" inputMode="decimal" value={b.monto} readOnly={!!egreso} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" />
+        </CampoFin>
+        <CampoFin etiqueta="IGV" ayuda={b.comprobante === "factura" ? "Descontable: sale del total (18 %)." : "Solo la factura da IGV descontable."}>
+          <SalidaFin>{b.comprobante === "factura" ? soles(igv) : "S/ 0.00"}</SalidaFin>
+        </CampoFin>
+      </div>
 
-        {!aCredito && !egreso && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Campo
-              etiqueta="Cómo se pagó"
+      {!egreso && (
+        <CampoFin etiqueta="¿Cómo se paga?">
+          <RadiosFin
+            nombre="gasto-condicion"
+            etiqueta="Condición de pago"
+            valor={aCredito ? "credito" : "contado"}
+            onValor={(v) => poner("condicion", v)}
+            opciones={[
+              { valor: "contado", texto: "Ya se pagó" },
+              { valor: "credito", texto: "A crédito", deshabilitada: !conComprobante },
+            ]}
+          />
+        </CampoFin>
+      )}
+
+      {!egreso && (
+        <div className="fin-dos-campos" data-sin-cascada>
+          {aCredito ? (
+            <CampoFin etiqueta="Vence" htmlFor="gasto-vence" ayuda="Queda en Compras ▸ Por pagar hasta ese día.">
+              <InputFin id="gasto-vence" type="date" min={b.fecha} value={b.vence} onChange={(e) => poner("vence", e.target.value)} />
+            </CampoFin>
+          ) : (
+            <CampoFin
+              etiqueta="Salió de"
               htmlFor="gasto-medio"
-              tono={b.medio === "efectivo" && !cajaDeLaTienda ? "aviso" : "neutro"}
-              pie={
+              tono={b.medio === "efectivo" && !cajaDeLaTienda ? "aviso" : undefined}
+              ayuda={
                 b.medio === "efectivo"
                   ? cajaDeLaTienda
                     ? "Sale del cajón abierto de esa tienda: se crea su egreso de caja en la misma operación."
                     : "La caja de esa tienda no está abierta. Si ya salió del cajón, regístralo en Caja y clasifícalo aquí."
-                  : undefined
+                  : "Si sale de un cajón, se crea su egreso de caja en la misma operación."
               }
             >
-              <SelectNativo id="gasto-medio" value={b.medio} onChange={(e) => poner("medio", e.target.value as BorradorGasto["medio"])}>
+              <SelectFin id="gasto-medio" value={b.medio} onChange={(e) => poner("medio", e.target.value as BorradorGasto["medio"])}>
                 <option value="">Elige…</option>
                 {mediosPara(b.comprobante).map((m) => (
                   <option key={m} value={m}>
                     {m === "efectivo" ? "Efectivo del cajón" : TEXTO_MEDIO[m]}
                   </option>
                 ))}
-              </SelectNativo>
-            </Campo>
-            {b.medio && b.medio !== "efectivo" && (
-              <CampoTexto etiqueta="N.° de operación (opcional)" value={b.referencia} onChange={(e) => poner("referencia", e.target.value)} />
-            )}
-          </div>
-        )}
-
-        <ComboResponsable control={responsable} deshabilitado={guardando} />
-
-        <div className="flex flex-wrap justify-end gap-2 pt-1">
-          <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
-            Cancelar
-          </button>
-          <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={guardando || !responsable.listo}>
-            {guardando ? "Guardando…" : egreso ? (esActivo ? "Guardar como activo" : "Guardar como gasto") : esActivo ? "Registrar activo" : "Registrar gasto"}
-          </button>
+              </SelectFin>
+            </CampoFin>
+          )}
+          {!aCredito && b.medio && b.medio !== "efectivo" && (
+            <CampoFin etiqueta="N.° de operación (opcional)" htmlFor="gasto-referencia">
+              <InputFin id="gasto-referencia" value={b.referencia} onChange={(e) => poner("referencia", e.target.value)} />
+            </CampoFin>
+          )}
         </div>
+      )}
+
+      <ComboResponsable control={responsable} deshabilitado={guardando} />
+
+      <div className="fin-botones mt-4">
+        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
+          Cancelar
+        </button>
+        <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={guardando || !responsable.listo}>
+          {guardando ? "Guardando…" : egreso ? (esActivo ? "Guardar como activo" : "Guardar como gasto") : esActivo ? "Registrar activo" : "Registrar gasto"}
+        </button>
       </div>
     </Modal>
   );

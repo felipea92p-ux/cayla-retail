@@ -16,6 +16,8 @@ import {
   sugerenciaParaEgreso,
   textoMes,
   textoPago,
+  solesRedondo,
+  fechaCorta,
   textoVidaUtil,
   totalesActivos,
   validarActivo,
@@ -144,9 +146,16 @@ describe("estado, anular y cómo se pagó", () => {
   });
   it("cómo se pagó, en una línea", () => {
     const f = (iso: string) => iso.slice(5);
-    expect(textoPago({ medioPago: null, cajaMovimientoId: null, compraId: "c", condicion: "credito", fechaVencimiento: "2026-10-12", tienePagos: false }, f)).toBe("A crédito · vence 10-12");
-    expect(textoPago({ medioPago: "efectivo", cajaMovimientoId: "m", compraId: null, condicion: null, fechaVencimiento: null, tienePagos: false }, f)).toBe("Efectivo del cajón");
-    expect(textoPago({ medioPago: "yape", cajaMovimientoId: null, compraId: null, condicion: null, fechaVencimiento: null, tienePagos: false }, f)).toBe("Yape");
+    expect(textoPago({ medioPago: null, cajaMovimientoId: null, compraId: "c", condicion: "credito", fechaVencimiento: "2026-10-12", tienePagos: false, saldo: 100, estado: "vigente", ubicacionNombre: "Tienda TRU" }, f)).toBe("vence 10-12");
+    expect(textoPago({ medioPago: "transferencia", cajaMovimientoId: null, compraId: "c", condicion: "credito", fechaVencimiento: "2026-10-12", tienePagos: true, saldo: 0, estado: "vigente", ubicacionNombre: "Tienda TRU" }, f)).toBe("Transferencia");
+    expect(textoPago({ medioPago: "efectivo", cajaMovimientoId: "m", compraId: null, condicion: null, fechaVencimiento: null, tienePagos: false, saldo: null, estado: "vigente", ubicacionNombre: "Tienda TRU" }, f)).toBe("Cajón · Tienda TRU");
+    expect(textoPago({ medioPago: "yape", cajaMovimientoId: null, compraId: null, condicion: null, fechaVencimiento: null, tienePagos: false, saldo: null, estado: "vigente", ubicacionNombre: null }, f)).toBe("Yape");
+  });
+
+  it("formatos del spike: cifras redondas y «23 sep»", () => {
+    expect(solesRedondo(5472.4)).toBe("S/ 5,472");
+    expect(fechaCorta("2026-09-03")).toBe("3 sep");
+    expect(fechaCorta("2026-09-23", true)).toBe("23 sep 2026");
   });
   it("lo que se propone al clasificar un egreso, según el motivo de la tienda", () => {
     expect(sugerenciaParaEgreso("Depósito bancario")).toBe("deposito");
