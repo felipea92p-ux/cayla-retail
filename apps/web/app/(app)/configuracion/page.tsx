@@ -1,19 +1,23 @@
 import { exigirModulo } from "@/lib/persona-actual";
-import { getConfiguracionTiendas } from "@/lib/configuracion";
+import { getConfiguracionTiendas, getDatosEmpresa, getParametrosFinanzas } from "@/lib/configuracion";
 import { getCategoriasGasto, getContextoGastos, getFijosMes, getProveedoresParaGasto } from "@/lib/gastos";
 import { hoyLima } from "@/lib/fechas-lima";
 import { mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { PestanasFin } from "@/components/finanzas/kit";
 import { ConfiguracionTiendas } from "@/components/ConfiguracionTiendas";
+import { ConfiguracionEmpresa } from "@/components/ConfiguracionEmpresa";
+import { ConfiguracionCajaAvisos } from "@/components/ConfiguracionCajaAvisos";
 import { TablaGastosFijos } from "@/components/GastosFijosYActivos";
 
 // Configuración (ADR-0195, módulo «configuracion», solo líder): lo que se ajusta una vez y todas las pantallas leen. Como
 // en el spike (docs/maquetas/finanzas-2026-09/, `VISTAS.config`), una sola pantalla con pestañas por URL (`?tab=`). Hoy
-// trae las que ya existen —Tiendas y caja (F1) y Gastos fijos (F2b)—; las siguientes fases de Finanzas suman las suyas
-// (Cuentas y cobros, Caja y avisos, Presupuesto, Impuestos) aquí mismo, sin pestañas vacías mientras tanto.
+// trae las que ya existen —Empresa (solo lectura), Tiendas y caja (F1), Caja y avisos y Gastos fijos (F2b)—; las siguientes
+// fases de Finanzas suman las suyas (Cuentas y cobros, Presupuesto, Impuestos) aquí mismo, sin pestañas vacías.
 const PESTANAS = [
+  { clave: "empresa", etiqueta: "Empresa", href: "/configuracion?tab=empresa" },
   { clave: "tiendas", etiqueta: "Tiendas y caja", href: "/configuracion?tab=tiendas" },
+  { clave: "caja", etiqueta: "Caja y avisos", href: "/configuracion?tab=caja" },
   { clave: "fijos", etiqueta: "Gastos fijos", href: "/configuracion?tab=fijos" },
 ] as const;
 
@@ -30,7 +34,15 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
         bajada="Lo que se ajusta una vez y todas las pantallas leen. Cada cambio queda en la historia con quién lo hizo. Solo el líder entra aquí."
       />
       <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...PESTANAS]} />
-      {pestana === "tiendas" ? <SeccionTiendas /> : <SeccionFijos />}
+      {pestana === "empresa" ? (
+        <ConfiguracionEmpresa datos={await getDatosEmpresa()} />
+      ) : pestana === "caja" ? (
+        <ConfiguracionCajaAvisos parametros={await getParametrosFinanzas()} />
+      ) : pestana === "fijos" ? (
+        <SeccionFijos />
+      ) : (
+        <SeccionTiendas />
+      )}
     </div>
   );
 }

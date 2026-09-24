@@ -507,6 +507,20 @@
     gap: 4px;
   }
 
+  /* Un campo con su unidad al lado («S/ [15000]», «[25] %»). */
+  .fin-con-unidad {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .fin-con-unidad .fin-control {
+    max-width: 160px;
+  }
+  .fin-con-unidad span {
+    font-size: 13px;
+    color: var(--color-taupe);
+  }
+
   /* «Ver» junto a la acción principal de la cabecera. */
   .fin-ver {
     display: inline-flex;

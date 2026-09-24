@@ -3,6 +3,8 @@ import {
   dejaMenosDelFondo,
   estadoCampana,
   explicarMeta,
+  leerParametrosFinanzas,
+  validarParametrosFinanzas,
   minutosDeHora,
   proyeccionAlCierre,
   leerParametrosCaja,
@@ -106,5 +108,13 @@ describe("caja: meta de hoy y fondo al cerrar", () => {
     expect(minutosDeHora("9:30")).toBe(570);
     expect(minutosDeHora("25:00")).toBeNull();
     expect(minutosDeHora(null)).toBeNull();
+  });
+  it("Caja y avisos: los mismos límites que la base", () => {
+    expect(validarParametrosFinanzas({ minimoCaja: "15,000", avisoGastoPct: "25", avisoVenceDias: "7" })).toEqual({ ok: true, valor: { minimoCaja: 15000, avisoGastoPct: 25, avisoVenceDias: 7 } });
+    expect(validarParametrosFinanzas({ minimoCaja: "-5", avisoGastoPct: "25", avisoVenceDias: "7" }).ok).toBe(false);
+    expect(validarParametrosFinanzas({ minimoCaja: "0", avisoGastoPct: "0", avisoVenceDias: "7" }).ok).toBe(false);
+    expect(validarParametrosFinanzas({ minimoCaja: "0", avisoGastoPct: "25", avisoVenceDias: "61" }).ok).toBe(false);
+    expect(validarParametrosFinanzas({ minimoCaja: "", avisoGastoPct: "25 %", avisoVenceDias: "3" })).toEqual({ ok: true, valor: { minimoCaja: 0, avisoGastoPct: 25, avisoVenceDias: 3 } });
+    expect(leerParametrosFinanzas({ minimo_caja: "15000.00", aviso_gasto_pct: "25.00", aviso_vence_dias: 7 })).toEqual({ minimoCaja: 15000, avisoGastoPct: 25, avisoVenceDias: 7 });
   });
 });

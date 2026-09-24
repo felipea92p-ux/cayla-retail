@@ -201,3 +201,37 @@ export function leerConfiguracion(data: unknown): ConfiguracionTiendas {
     })),
   };
 }
+
+// ---- Configuración ▸ Caja y avisos (20260925103000) ----------------------------------------------------------------
+
+export type ParametrosFinanzas = { minimoCaja: number; avisoGastoPct: number; avisoVenceDias: number };
+
+export function leerParametrosFinanzas(data: unknown): ParametrosFinanzas | null {
+  const d = data as Record<string, unknown> | null;
+  if (!d) return null;
+  return { minimoCaja: Number(d.minimo_caja ?? 0), avisoGastoPct: Number(d.aviso_gasto_pct ?? 25), avisoVenceDias: Number(d.aviso_vence_dias ?? 7) };
+}
+
+/** Los tres números con los mismos límites que `guardar_parametros_finanzas`, dichos antes de ir a la base. */
+export function validarParametrosFinanzas(b: { minimoCaja: string; avisoGastoPct: string; avisoVenceDias: string }): Resultado<ParametrosFinanzas> {
+  const minimo = parsearMonto(b.minimoCaja);
+  if (!minimo.ok) return { ok: false, error: `Mínimo de caja: ${minimo.error}` };
+  const pct = Number(b.avisoGastoPct.replace(/%|\s/g, "").replace(",", "."));
+  if (!Number.isFinite(pct) || pct <= 0 || pct > 500) return { ok: false, error: "El aviso de gasto va de 1 % a 500 %." };
+  const dias = Number(b.avisoVenceDias.trim());
+  if (!Number.isInteger(dias) || dias < 1 || dias > 60) return { ok: false, error: "Los días de aviso van de 1 a 60." };
+  return { ok: true, valor: { minimoCaja: minimo.valor ?? 0, avisoGastoPct: pct, avisoVenceDias: dias } };
+}
+
+// ---- Configuración ▸ Empresa (de solo lectura) -----------------------------------------------------------------------
+
+export type DatosEmpresa = {
+  ruc: string | null;
+  razonSocial: string | null;
+  nombreComercial: string | null;
+  email: string | null;
+  telefono: string | null;
+  web: string | null;
+  tiendas: { id: string; nombre: string; direccion: string | null; distrito: string | null; series: { tipo: string; serie: string }[] }[];
+};
+

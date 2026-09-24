@@ -190,5 +190,47 @@ select meta from retail.fn_parametros_caja(:'tru', '2026-09-24');`);
   esperar("…pero la función sí le da la meta de hoy", r.ok && Number(lee) === 1700, r);
 }
 
+// Hora de cierre (20260925101000): el líder la pone, Configuración la lee, queda en la historia; nadie más la cambia.
+{
+  const r = correr(`${ESCENA}
+select retail.guardar_hora_cierre_tienda(:'tru', '21:00') as _h \\gset
+select t->>'hora_cierre' from jsonb_array_elements(retail.fn_configuracion_tiendas('2026-09-01')->'tiendas') t where t->>'id' = :'tru';
+select count(*) from retail.configuracion_historial where que = 'hora_cierre_tienda' and detalle->>'ubicacion_id' = :'tru';
+${cambiaA(MICAELA)}
+select pg_temp.intento(format('select retail.guardar_hora_cierre_tienda(%L, ''22:00'')', :'tru'));`);
+  const [hora, historia, otra] = r.ok ? r.salida.split("\n") : [];
+  esperar("el líder pone la hora de cierre y Configuración la lee («21:00»)", r.ok && hora === "21:00", r);
+  esperar("el cambio queda en la historia", r.ok && Number(historia) >= 1, r);
+  esperar("una colaboradora no la cambia", r.ok && otra.includes("Solo el líder"), r);
+}
+
+// Caja y avisos (20260925103000): valores de arranque, límites, historia y quién la lee o la cambia.
+{
+  const r = correr(`${ESCENA}
+select (retail.fn_parametros_finanzas()->>'aviso_vence_dias');
+select pg_temp.intento('select retail.guardar_parametros_finanzas(-1, 25, 7)');
+select pg_temp.intento('select retail.guardar_parametros_finanzas(15000, 0, 7)');
+select pg_temp.intento('select retail.guardar_parametros_finanzas(15000, 25, 90)');
+select retail.guardar_parametros_finanzas(20000, 30, 10) as _p \\gset
+select concat_ws('|', retail.fn_parametros_finanzas()->>'minimo_caja', retail.fn_parametros_finanzas()->>'aviso_gasto_pct', retail.fn_parametros_finanzas()->>'aviso_vence_dias');
+select count(*) from retail.configuracion_historial where que = 'parametros_finanzas';
+${cambiaA(MICAELA)}
+select pg_temp.intento('select retail.fn_parametros_finanzas()');
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'gastos');
+select pg_temp.intento('select retail.fn_parametros_finanzas()');
+select pg_temp.intento('select retail.guardar_parametros_finanzas(1, 25, 7)');
+set local role authenticated;
+select pg_temp.intento('select count(*) from retail.parametros_finanzas');`);
+  const [dias, negativo, cero, noventa, guardado, historia, sinModulo, conModulo, cambiar, directo] = r.ok ? r.salida.split("\n") : [];
+  esperar("de arranque: los vencimientos se avisan con 7 días", r.ok && Number(dias) === 7, r);
+  esperar("el mínimo no puede ser negativo, el aviso no es 0 %, los días no pasan de 60", r.ok && negativo.includes("negativo") && cero.includes("500") && noventa.includes("60"), r);
+  esperar("el líder los cambia y se leen iguales", r.ok && guardado === "20000.00|30.00|10", r);
+  esperar("cada cambio queda en la historia", r.ok && Number(historia) >= 1, r);
+  esperar("sin un módulo de Finanzas no se leen", r.ok && sinModulo.includes("módulo de Finanzas"), r);
+  esperar("con el módulo Gastos sí se leen (las pantallas que avisan los necesitan)", r.ok && conModulo === "SIN_ERROR", r);
+  esperar("pero solo el líder los cambia", r.ok && cambiar.includes("Solo el líder"), r);
+  esperar("nadie lee la tabla directo", r.ok && directo.includes("permission denied"), r);
+}
+
 console.log(fallos ? `\n${fallos} caso(s) fallaron` : "\nTodo en orden");
 process.exit(fallos ? 1 : 0);
