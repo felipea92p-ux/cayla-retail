@@ -133,3 +133,23 @@ y, para las que vienen, cuánto más hay que vender para compensar el descuento 
 menos, sale una confirmación que no bloquea; si se cierra igual, queda anotado y el líder lo ve en Historial de cierres.
 **Cambia el punto 3 del ADR-0186** («sin fondo sugerido»): ahora el fondo lo fija el líder (normal y por campaña), y el sistema
 solo avisa cuando falta, nunca cuando sobra. Y el destino «banco» del cierre pide **a qué banco**.
+
+## Construcción — F1 (2026-09-24): Configuración, meta y fondo de caja
+
+Aprobado el paquete (c) y el Balance «lo que es de la tienda» (Felipe, 2026-09-24). Construido y probado en local:
+
+- **Migración `20260924210000_configuracion_meta_y_fondo_por_campana.sql`** (por pegar en producción ANTES de publicar la web):
+  módulo `configuracion` («solo líder por ahora»), `ubicacion_metas_dia`, `ubicaciones.fondo_caja`, `campana_efecto_caja`,
+  `configuracion_historial`, `fn_parametros_caja`, `fn_meta_mes`, `fn_configuracion_tiendas`, `guardar_metas_tienda`,
+  `guardar_efecto_campana`, y el disparador que anota `cajas.fondo_requerido` al cerrar. **`cerrar_caja` no se toca**: la web
+  de hoy sigue funcionando si la migración se pega antes.
+- **Dónde vive Configuración:** en el **perfil del líder**, junto a Colaboradores, no en el menú lateral (Felipe, 2026-09-22:
+  «Colaboradores va en el perfil»; Configuración es del mismo tipo). Ruta `/configuracion` con `exigirModulo`.
+- **Caja:** la barra «Meta del día» dice cuánto falta y de dónde sale la meta (lo normal o la campaña que la sube); el cierre
+  dice «Deja S/ X para el próximo turno», propone el traslado y, si queda menos, pide confirmar dentro del mismo paso
+  («Volver y dejar S/ X» / «Cerrar igual»). El Historial de cierres muestra «Dejó menos del fondo». **Inicio** usa la misma
+  regla (`fn_parametros_caja`).
+- **Verificación:** `pnpm pruebas:configuracion-caja` (20 casos con ROLLBACK, también en el CI); `lib/configuracion-reglas.test.ts`
+  (11); 24.375 pruebas web; typecheck y lint. Con sesión de líder en local: guardar metas de Trujillo → meta del mes S/ 54,300,
+  Caja «te faltan S/ 1,700, lo normal de un jueves», Inicio igual; el cierre con fondo de Fiestas Patrias propone S/ 630 y pide
+  confirmar al dejar S/ 230. La base local quedó como estaba.

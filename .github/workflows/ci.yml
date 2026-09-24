@@ -148,6 +148,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm caja:verificar
 
+      # Meta del día y fondo de caja unidos a las campañas (ADR-0195 F1): si dos campañas se cruzan gana la mayor, la
+      # meta del mes es la suma de los días, solo el líder guarda y el cierre anota el fondo que regía. ROLLBACK.
+      - name: pruebas:configuracion-caja
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:configuracion-caja
+
       - name: pruebas:registrar-cambio
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-cambio

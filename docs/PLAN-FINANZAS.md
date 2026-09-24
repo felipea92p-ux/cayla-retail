@@ -3,6 +3,7 @@
 > **Estado:** PLAN, sin código ni migraciones. Aprobado por Felipe en lo conceptual (decisiones A y B, 2026-09-24).
 > **F0 hecha (2026-09-24):** spike visual completo en `docs/maquetas/finanzas-2026-09/` (README con el guion de prueba).
 > **v2 del spike (mismo día):** filtro «Ver», capa para decidir, plata del dueño y módulo Configuración (ADR-0195, actualización b).
+> **Construcción (2026-09-24):** Felipe aprobó el paquete (c) y el Balance «lo que es de la tienda». **F1 construida**: Configuración (en el perfil del líder) con meta por día, fondo de caja y efecto de cada campaña; Caja e Inicio ya los usan. Ver ADR-0195 «Construcción — F1».
 > Siguiente paso: que Felipe lo recorra y apruebe las pantallas antes de construir F1.
 > ADR asociado: `docs/adr/0195-finanzas-un-comprobante-de-proveedor-y-cinco-modulos.md`.
 > Se apoya en tres ADR que Felipe ya aprobó y que viven en el PR #170 (sin fusionar, sin pegar en producción):
@@ -311,7 +312,7 @@ fondo). Si va a quedar menos, sale una **confirmación que no bloquea**: «Vas a
 | Fase | Qué | Cómo lo verificas tú |
 |---|---|---|
 | **F0 · Spike visual** ✅ 2026-09-24 | Las 11 piezas en HTML navegable con la paleta oficial y datos de muestra; `docs/maquetas/finanzas-2026-09/` | Abres el spike y recorres cada pantalla |
-| **F1 · Cimientos** | Rescatar del PR #170 `cuentas`, `parametros_tributarios`, `categorias_gasto`; los 5 módulos + Configuración; grupo «Finanzas» en el menú; **Tiendas y caja: meta por día, fondo de caja y efecto de cada campaña; aviso al cerrar; Reportes ▸ Campañas** (§7 ter) | Roles y accesos muestra los 5 módulos «solo líder» |
+| **F1 · Cimientos** 🟡 *Configuración + meta y fondo de caja construidos (2026-09-24, migración 20260924210000 por pegar); el plan de cuentas, IGV/UIT y categorías de gasto van con F2* | Rescatar del PR #170 `cuentas`, `parametros_tributarios`, `categorias_gasto`; los 5 módulos + Configuración; grupo «Finanzas» en el menú; **Tiendas y caja: meta por día, fondo de caja y efecto de cada campaña; aviso al cerrar; Reportes ▸ Campañas** (§7 ter) | Roles y accesos muestra los 5 módulos «solo líder» |
 | **F2 · Gastos y activos** | ADR-0117 adaptado + `naturaleza` en `compras` + recibo por honorarios + alta de activo | Registras la luz a crédito y aparece en Por pagar; un mototaxi del cajón |
 | **F3 · Cuentas y dinero** | `cuentas_dinero` (con caja fuerte, por rendir y tarjeta de crédito), `medios_de_cobro`, `movimientos_dinero`, conciliación; **la cuenta sellada en las 22 situaciones** (§7 bis), una sola lista de medios, y el pago en efectivo a proveedores resta del cierre | Depósito de TRU baja el cajón y sube el BCP; el saldo coincide con el banco |
 | **F4 · Por pagar consolidado** | Una vista con mercadería, gastos, activos e insumos; calendario | Ves lo que debe CAYLA esta semana, sumado |
@@ -335,7 +336,8 @@ fondo). Si va a quedar menos, sale una **confirmación que no bloquea**: «Vas a
    - **«Completo, repartiendo»:** le asigna a cada tienda una parte del banco y del capital con una regla (por ejemplo,
      según lo que vende). Cuadra, pero parte de sus números los pone la regla, no un hecho: si cambias la regla, el
      Balance de TRU cambia sin que haya pasado nada.
-   - **Recomendado:** la primera, más el indicador «cuánto rinde lo invertido en cada tienda».
+   - **Recomendado:** la primera, más el indicador «cuánto rinde lo invertido en cada tienda». **Decidido por Felipe
+     (2026-09-24): «lo que es de la tienda».**
 2. **Aportes y retiros del dueño:** ¿Felipe saca o pone plata del negocio? Define si hacen falta en F3.
 3. **Gastos fijos:** ¿quieres que el sistema proponga cada mes los recurrentes (alquiler, internet) para confirmarlos?
 
