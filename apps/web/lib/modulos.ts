@@ -18,12 +18,13 @@ export const CLAVES_MODULO = [
   "produccion",
   "analisis", "colaboradores", "roles",
   "configuracion",
+  "gastos",
 ] as const;
 export type ClaveModulo = (typeof CLAVES_MODULO)[number];
 
 export type Modulo = {
   clave: ClaveModulo;
-  grupo: "Ventas" | "Inventario" | "Catálogo" | "Compras" | "Producción" | "Gestión";
+  grupo: "Ventas" | "Inventario" | "Catálogo" | "Compras" | "Producción" | "Gestión" | "Finanzas";
   nombre: string;
   /** Lo que se da al encenderlo: quien ve el módulo hace todo esto. */
   incluye: string;
@@ -65,6 +66,9 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "roles", grupo: "Gestión", nombre: "Roles y accesos", incluye: "Crear roles y asignarlos" },
   // ADR-0195 F1 (20260924210000): nace sin rol y «solo líder por ahora»: sus funciones exigen fn_es_lider().
   { clave: "configuracion", grupo: "Gestión", nombre: "Configuración", incluye: "Metas de venta y fondo de caja de cada tienda, y lo que cambia cada campaña en la caja", noDelegable: true },
+  // ADR-0195 F2 (20260924235100): nace sin rol; delegable (sus funciones preguntan por el módulo, no por el líder).
+  // Con el módulo, una cuenta ve y registra los gastos de SU tienda; el líder, los de todas y los «de la empresa».
+  { clave: "gastos", grupo: "Finanzas", nombre: "Gastos", incluye: "Registrar y anular los gastos de su tienda (luz, alquiler, movilidad), con o sin factura, y decir qué fue cada salida de plata del cajón" },
 ];
 
 /** Lo que sigue siendo del líder aunque el rol vea el módulo: decisiones ya tomadas (ADR-0161 B2b), no nuevas.
@@ -150,6 +154,7 @@ export function modulosDeHoy(
  *                             `accionesDeCompra` (P1, 20260923140000)
  *  - editarEtiquetas        ← ve Etiquetas, completo (`fn_puede_editar_etiquetas`; las etiquetas CON descuento no)
  *  - analizar               ← ve Análisis, completo (`fn_puede_analizar`)
+ *  - registrarGastos        ← ve Gastos, completo (`fn_gastos_ubicaciones`, ADR-0195 F2): los de SU tienda
  * `administrar` y `verDinero` (el dinero del Taller y el Resumen de Producción) siguen siendo del líder: no salen de
  * ningún módulo delegable.
  */
@@ -166,6 +171,7 @@ export function permisosDeModulos(rol: "lider" | "integrante", modulos: readonly
   if (completo("proveedores")) permisos.push("editarCuentasProveedor");
   if (completo("facturas_compra", "por_pagar", "notas_credito")) permisos.push("verDineroCompras");
   if (completo("etiquetas")) permisos.push("editarEtiquetas");
+  if (completo("gastos")) permisos.push("registrarGastos");
   return permisos;
 }
 

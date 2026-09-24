@@ -57,7 +57,8 @@ export function CompraAcciones({
   const vigente = compra.estado === "vigente";
   const puedeRecibir = vigente && compra.estadoRecepcion !== "recibida";
   const puedePagar = vigente && compra.saldo > 0 && permite.pagar;
-  const puedeAnular = vigente && compra.pagado === 0 && !tieneRecepciones && permite.facturas;
+  // ADR-0195 F2: la factura de un gasto se anula desde Finanzas ▸ Gastos (con su gasto); la base tampoco la deja sola.
+  const puedeAnular = vigente && compra.pagado === 0 && !tieneRecepciones && permite.facturas && compra.naturaleza !== "gasto";
 
   // Un comprobante anulado ya no tiene acciones. El modal de pago se sigue dibujando aunque el pago recién saldó el
   // comprobante: si no, el refresco lo desmontaría en plena confirmación y se cortaría su animación de cierre.

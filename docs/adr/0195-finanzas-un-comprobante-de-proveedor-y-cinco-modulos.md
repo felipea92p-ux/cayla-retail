@@ -184,3 +184,73 @@ Se pegó así el mismo 2026-09-24, sin errores, y quedó verificado en la base.
 
 **Regla para las fases que siguen:** una migración de producción **no mezcla** un `alter` de una tabla que la tienda usa
 con `create policy`/`drop policy`, y cuando necesita políticas, las pega en una ejecución aparte, sola y al final.
+
+## Construcción — F2a (2026-09-24): Gastos, con o sin factura de proveedor
+
+Felipe pidió seguir con el plan después de F1. F2 se partió en dos PR verificables. **F2a (este): gastos.**
+**F2b (el siguiente): activos fijos y gastos fijos del mes.** Construido y probado en local:
+
+- **Migración `20260924235000`:** plan de cuentas (30, provisional hasta el contador), tasa de IGV con vigencia
+  (`fn_tasa_igv`) y **10 categorías de gasto cerradas**, cada una con su cuenta (`fn_categorias_gasto`). Respecto del
+  PR #170: se quitó «Personal y planilla», porque la planilla se lee de Dynamic y registrarla aquí la contaría dos veces.
+  Se sumaron asesoría y honorarios, gastos bancarios y tributos y licencias.
+- **Migración `20260924235100`** (seis partes, cada una se pega por separado):
+  - **`compras.naturaleza`** (mercadería, gasto, activo): la decisión A. Los checks que la acompañan:
+    - una factura de gasto no tiene unidades;
+    - el recibo por honorarios solo puede ser gasto;
+    - la tienda gestora es obligatoria solo en mercadería (un gasto «de la empresa» no tiene tienda);
+    - la naturaleza no cambia después de registrada.
+
+    Un disparador impide anular la factura de un gasto desde Compras: se anula desde Gastos, junto con el gasto.
+  - **`compra_parte_por_tienda` suma una rama:** la factura de un gasto es entera de su tienda. Con eso funcionan para
+    gastos, sin reescribir ninguna función de pago:
+    - la visibilidad por tienda (ADR-0184);
+    - Por pagar por tienda (ADR-0187);
+    - el tope de pago por tienda.
+  - **`compra_pagos` acepta `tarjeta`**: la tarjeta de crédito de CAYLA paga facturas.
+  - **Compras solo cuenta mercadería donde habla de mercadería**:
+    - `listar_compras` gana `p_naturaleza`; Por pagar pide `'todas'`;
+    - las compras e IGV del mes;
+    - las métricas de proveedores;
+    - el buscador de facturas para notas de crédito.
+
+    Son parches por texto sobre la definición viva, con el ancla verificada. El candado de dinero (ADR-0126) se
+    reaplica y se comprueba.
+  - **`gastos` y `egresos_no_gasto`**, con los tres caminos de ADR-0117:
+    - A: pagado sin cajón;
+    - B: efectivo del cajón abierto, que crea el egreso con la regla de caja de siempre;
+    - C: clasificar un egreso que la tienda ya registró.
+
+    Con comprobante: la cabecera en `compras` y su pago en `compra_pagos`, o a crédito en Por pagar. Nada se edita ni se
+    borra: se anula. **Un gasto cuya factura ya tiene pagos no se anula** (como en Compras).
+  - **Decisión B:** `fn_gastos_ubicaciones`. El líder ve todas las ubicaciones y lo «de la empresa»; con el módulo
+    `gastos`, cada cuenta ve solo su tienda.
+  - Todo firma con el responsable. `registrar_proveedor_de_gasto` deja sumar al proveedor del gasto con nombre y RUC,
+    sin el módulo Proveedores y sin crear fichas repetidas.
+  - La tabla `gastos` que había en producción (sin migración, 0 filas) y su `registrar_gasto` se renombran como
+    legado, no se borran.
+- **Web:** Finanzas ▸ Gastos (`/finanzas/gastos`), en el menú lateral: el grupo Finanzas, con una sola hija por ahora.
+  - Filtro «Ver» y selector de mes.
+  - Cuatro cifras: gastado, IGV descontable, por pagar y egresos por clasificar.
+  - Pestañas: Gastos, Egresos de caja por clasificar (con «no es gasto» y su reversión) y Por categoría.
+  - Un solo modal para registrar: con o sin comprobante, al contado o a crédito, efectivo del cajón o clasificar un
+    egreso.
+
+  En Compras:
+  - Por pagar marca las facturas de gasto con «Gasto» y qué fueron;
+  - el detalle de una factura de gasto no muestra «Recepción» ni deja anularla;
+  - Producción ▸ Eficiencia lee los gastos del Taller por la función nueva.
+
+  Módulo `gastos` en el grupo «Finanzas» de Roles y accesos. Delegable: nace sin rol.
+- **Verificación:**
+  - `pnpm pruebas:gastos`: 53 casos con ROLLBACK, también en el CI.
+  - Las 11 pruebas de Compras, Por pagar, reparto, dinero y roles: iguales.
+  - Las nueve lecturas de Compras dan la misma huella antes y después de migrar.
+  - `lib/gastos-reglas.test.ts` (20) y 45.902 pruebas web.
+  - Cada parte de la migración, medida: toma en exclusiva una sola tabla o vista y nunca `auth` ni `storage`.
+  - Con clics en local: la pantalla, el filtro, el modal con el IGV calculado y el alta rápida de proveedor.
+- **Pendiente para Felipe:**
+  - el contador confirma las cuentas y las categorías;
+  - decidir si hace falta **anular un pago** (hoy ni Compras ni Gastos lo permiten; un gasto al contado mal registrado
+    se corrige con una nota de crédito).
+

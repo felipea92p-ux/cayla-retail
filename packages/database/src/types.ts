@@ -4606,6 +4606,7 @@ export type Database = {
           subtotal: number | null
           tipo: string | null
           total: number | null
+          naturaleza: string | null
           ubicaciones_destino: string[] | null
           vencida: boolean | null
         }
@@ -6385,6 +6386,7 @@ export type Database = {
           p_estado_recepcion?: string
           p_hasta?: string
           p_limite?: number
+          p_naturaleza?: string
           p_orden?: string
           p_por_recibir?: boolean
           p_proveedor_id?: string
@@ -6424,6 +6426,7 @@ export type Database = {
           subtotal: number | null
           tipo: string | null
           total: number | null
+          naturaleza: string | null
           ubicaciones_destino: string[] | null
           vencida: boolean | null
         }[]
