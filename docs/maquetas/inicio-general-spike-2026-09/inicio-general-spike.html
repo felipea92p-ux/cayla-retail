@@ -96,13 +96,6 @@ h1{font-family:'EB Garamond',Georgia,serif;font-weight:400;font-size:40px;line-h
 .pers .av{width:32px;height:32px;font-size:13px}
 .pers .av.fuera{background:transparent;border:1px dashed var(--t30);color:var(--t50)}
 
-/* actividad */
-.act-f{display:flex;align-items:baseline;gap:12px;padding:10px 20px;font-size:14px}
-.act-f+.act-f{border-top:1px solid var(--t10)}
-.act-f .f{width:44px;flex:none;font-size:12px;color:var(--t65);font-variant-numeric:tabular-nums}
-.act-f .q{flex:1;min-width:0}.act-f .q b{font-weight:500}
-.act-f .k{font-size:12px;color:var(--t65);white-space:nowrap}
-
 /* nota hueso */
 .nota{margin-top:40px;background:var(--hueso);border-radius:12px;padding:16px 20px;font-size:14px;color:var(--t80)}
 .nota .pl{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
@@ -185,11 +178,6 @@ const TURNO={
   tienda:[{n:"Micaela Ríos",r:"Vendedora",h:"9:02",ini:"MR"},{n:"Felipe Alvarez",r:"Líder de equipo",h:"9:10",ini:"FA"},{n:"Lucía Paz",r:"Vendedora",h:"almuerzo",ini:"LP",fuera:true}],
   almacen:[{n:"Rosa Quispe",r:"Almacén",h:"8:00",ini:"RQ"},{n:"Carlos Díaz",r:"Almacén",h:"8:15",ini:"CD"}],
   taller:[{n:"Julio Mendoza",r:"Taller",h:"7:50",ini:"JM"},{n:"Nelly Huamán",r:"Costura",h:"8:02",ini:"NH"},{n:"Pedro Soto",r:"Corte",h:"8:05",ini:"PS"}],
-};
-const ACT={
-  tienda:[["11:42","Venta","Polo Básico M/corta · M negro","Micaela"],["11:05","Cambio","Jean Mom · 28 → 30","Micaela"],["10:30","Traslado recibido","12 prendas de Almacén Lima","Felipe"],["09:05","Caja abierta","Fondo S/ 200","Felipe"]],
-  almacen:[["10:50","Recepción","Envío 0048 · 3 proveedores, 84 prendas","Rosa"],["10:12","Traslado enviado","24 prendas a Tienda TRU","Carlos"],["08:30","Conteo","Pasillo B · 60 de 140 contadas","Rosa"]],
-  taller:[["11:20","Avance","OP-0112 Vestido Lino · corte → costura","Pedro"],["09:40","Insumos","Tela lino arena · 40 m","Julio"],["08:10","Orden creada","OP-0115 Blusa Seda · 30 u.","Julio"]],
 };
 
 const sel=document.getElementById("perfil");
@@ -274,9 +262,6 @@ function pintar(){
       </section>
     </div>
 
-    <section class="sec"><span class="lbl">Lo último en ${p.ub}</span>
-      <div class="card">${ACT[p.tipo].map(a=>`<div class="act-f"><span class="f">${a[0]}</span><span class="q"><b>${a[1]}</b> · ${a[2]}</span><span class="k">${a[3]}</span></div>`).join("")}</div>
-    </section>
 
     <div class="nota">${p.mods.length
       ?`Tu rol <b>${p.rol}</b> te da ${p.mods.length===TODOS.length?"todos los módulos":p.mods.length+" módulos"}. Los abres desde el menú${innerWidth<768?" de abajo":" de la izquierda"}; si te falta alguno, pídeselo a tu líder.

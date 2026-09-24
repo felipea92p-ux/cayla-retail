@@ -18,9 +18,9 @@ Datos inventados. **No es una implementación**: no toca `app/(app)/page.tsx`, `
 | **Hoy en {ubicación}** | ¿cómo va? | Tienda: ventas/prendas/meta (líder = tienda; resto = «tus ventas»). Almacén y Taller ahora tienen sus propias cifras en vez de nada |
 | **Te toca** | ¿qué me espera? | Reemplaza «Por atender». Solo avisos de módulos que el rol ve. **No son enlaces**: dicen «En el menú: Inventario ▸ Traslados». Lo que está en cero se junta en una línea «Al día» |
 | **De turno ahora** | ¿quién está? | Nuevo. Sale de `fn_asesoras_de_turno` (la misma del combo Responsable) |
-| **Lo último en {ubicación}** | ¿qué pasó? | Igual que «Actividad reciente», con quién lo hizo |
 | Nota hueso | ¿qué puedo hacer? | Nuevo. «Tu rol X te da N módulos, están en el menú» + pastillas no clicables |
 | ~~Ir a~~ | — | **Se quita** |
+| ~~Actividad reciente~~ | — | **Se quita** (Felipe, 2026-09-24): mezclaba operaciones de módulos que el rol quizá no ve, repetía Movimientos y no pedía ninguna decisión |
 | ~~+ Nuevo~~ (lateral y «+» central del celular) | — | **Se quita**. En celular la barra queda en 5 columnas: Inicio + 3 grupos del rol + Más |
 
 ## Cómo probarlo
