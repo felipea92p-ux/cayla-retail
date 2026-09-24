@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-23 (Varios usuarios a la vez: EN PRODUCCIÓN — ADR-0188 a 0193)
+Felipe pegó las 5 migraciones en orden (110000→160000) y fusionó los 6 PRs (#373, #376–#380). Verificado en la base objeto por objeto: candados de caja, orden fijo de candados, tokens contra doble clic, totales en la base y versión de productos y roles, sin sobrecargas. Falta verlo con clics y refrescar el diccionario.
+Felipe se lleva: (1) **el orden de pegado importa cuando una migración se engancha a otra**: la 130000 buscaba las líneas que dejó la 110000; (2) **una columna nueva en una tabla con permisos por columna nace invisible**: lo atrapó la guardia del candado de dinero en el CI; (3) **cinco agentes en paralelo funcionan si cada uno tiene su número y sus archivos**: la integración salió sin conflictos de código.
+
 ## 2026-09-23 (Varios usuarios a la vez: auditoría y etapa 1 — ADR-0188)
 Felipe pidió revisar si el ERP aguanta varios usuarios a la vez y mucho volumen. La auditoría (funciones, web y producción) confirmó que el stock no se puede ir a negativo ni venderse dos veces, pero encontró que una venta podía guardarse en una caja que se estaba cerrando, que recibir mercadería trababa las ventas de esa prenda y que `ventas` no tenía índice por caja (162 millones de filas leídas con solo 7 mil ventas). Migración `20260924110000`: candado compartido de caja en 7 funciones, `for no key update` en el costo promedio y 14 índices; probado con dos sesiones reales. Por pegar en producción.
 Felipe se lleva: (1) **un candado compartido deja cobrar a todas las cajeras a la vez, pero hace esperar al cierre**: exactamente lo que el arqueo necesita; (2) **«hay caja abierta» y «guardo en esa caja» son dos pasos, y entre ellos otra persona puede cerrarla**: por eso hay que bloquear al leer; (3) **una tabla chica esconde un índice faltante**: con 7 mil filas no se nota, con 700 mil es un timeout.
