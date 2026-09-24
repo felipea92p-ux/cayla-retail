@@ -35,6 +35,15 @@ Plan completo en `docs/PLAN-FINANZAS.md`: 11 piezas (Gastos, Cuentas y dinero, A
 - [ ] Datos de Felipe: cuentas bancarias y billeteras de CAYLA y a cuál entra cada medio por tienda; saldos de arranque.
 - [ ] Contador: confirmar las ~26 cuentas y la de cada categoría, régimen/UIT/umbral, formato de registros, retención de honorarios.
 - [ ] PR #170: rebasar sobre `main` en F1/F2/F5 y adaptarlo (roles ADR-0161, menú ADR-0144, decisión A); no descartarlo.
+## 🎯 El Admin firma sin marcar asistencia (2026-09-24, ADR-0161 act. 2026-09-24) — base EN PRODUCCIÓN (pegada y verificada 2026-09-24); web en PR
+Pedido de Dany: las cuentas de caja y almacén de cada tienda siguen pidiendo a alguien de turno; el Admin (ADR-0178) no, solo ve «Eres admin: no necesitas autorización».
+- [x] Migración `20260924171300_admin_firma_sin_asistencia.sql`: `fn_actor_persona_id` deja firmar al Admin a su nombre sin asistencia (sin responsable o eligiéndose a sí mismo). Definición de producción comparada antes (md5 `cad473a6…`, igual a `20260923010000`).
+- [x] Web: `esAdmin` en `requirePersonaActualV2` → `SedeActivaProveedor` → `useResponsable` (estado `admin`) → aviso en `ComboResponsable`. Probado a 375 px con una página temporal (borrada).
+- [x] Pruebas: 4 casos nuevos en `pruebas:terminales-sin-persona` (54/55 en seco; el rojo «RLS… permission denied for function intento» ya fallaba sin este cambio) y `estadoCombo` en vitest.
+- [x] **Pegada en producción el 2026-09-24** (OK de Dany), por el MCP: ensayo antes/después abortado a propósito, luego COMMIT con validación final. Huella `cad473a6…` → `9f7cf714…` (la ensayada en local), permisos iguales, una sola sobrecarga. Humo sin escribir: firman sin responsable 5/5 Admin; siguen bloqueados 4/4 líderes no Admin y 6/6 terminales. No se registra en `supabase_migrations` (producción no lleva ese historial desde el 2026-09-22).
+- [ ] Fusionar el PR de la web (hasta entonces el Admin sigue viendo el combo, pero ya puede elegirse a sí mismo sin asistencia).
+- [ ] Verlo con clics en `/vender` con la cuenta de un Admin, sin marcar entrada.
+- Cómo verificas: entra con una cuenta Admin a Vender en una tienda donde nadie marcó: en vez de «Nadie de turno» sale el aviso y la venta se guarda a tu nombre. Con la terminal de caja de esa tienda, sigue «Nadie de turno».
 
 ## 🔒 Varios usuarios a la vez: auditoría de concurrencia y volumen (2026-09-23, ADR-0188 a 0193) — EN PRODUCCIÓN: las 5 migraciones pegadas por Felipe y verificadas objeto por objeto (2026-09-23) y los 6 PRs fusionados
 Auditoría completa (343 funciones, 229 consultas web, estadísticas de producción). Ya estaba bien protegido: stock (sin negativos ni sobreventa), numeración, una caja abierta por sede, doble clic en ventas/comprobantes/cambios/compras. Las 5 etapas se hicieron en paralelo; integradas sobre `main` (2026-09-23): se fusionan sin conflictos, tipos/lint limpios, 24.363 pruebas web en verde, y las 5 migraciones corren en fila en el local (re-pegables: la segunda pasada no cambia nada).
