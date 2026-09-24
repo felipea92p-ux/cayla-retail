@@ -198,6 +198,7 @@ export function CompraDetalle({
   });
   const complementoSaldo = complementoDeSaldo({ condicion: compra.condicion, fechaVencimiento: compra.fechaVencimiento, vencida: compra.vencida, hoy });
   const unidadesCerradas = compra.cerradoCantidad;
+  const esGasto = compra.naturaleza === "gasto";
 
   return (
     <>
@@ -207,11 +208,18 @@ export function CompraDetalle({
           `data-sin-cascada`: `<Modal>` no anima este bloque entero; sus piezas entran una a una (`cd-detalle`,
           comprobantes-detalle.css) con el mismo ritmo. Tras un pago el refresco NO repite la entrada. */}
       <div className="cd-detalle space-y-5" data-sin-cascada>
+        {/* ADR-0195 F2: la factura de un GASTO (la luz, el contador) no trae mercadería: no hay nada que recibir. */}
+        {esGasto && (
+          <p className="nota-cayla text-[13px]">
+            Comprobante de <b>gasto</b>{compra.nota ? `: ${compra.nota}` : ""}. No trae mercadería. Su categoría y su tienda viven en{" "}
+            <a href="/finanzas/gastos" className="underline underline-offset-2 hover:text-rojo">Finanzas ▸ Gastos</a>, y se anula desde ahí.
+          </p>
+        )}
         {/* Total en grande y el estado (recepción y pago) en dos chips que cambian con un pop. */}
         <ComprobanteEncabezado
           total={soles(compra.total)}
           chips={[
-            { clave: "recepcion", tono: TONO_ESTADO_RECEPCION[compra.estadoRecepcion], texto: ETIQUETA_ESTADO_RECEPCION[compra.estadoRecepcion] },
+            ...(esGasto ? [] : [{ clave: "recepcion", tono: TONO_ESTADO_RECEPCION[compra.estadoRecepcion], texto: ETIQUETA_ESTADO_RECEPCION[compra.estadoRecepcion] }]),
             { clave: "pago", tono: compra.vencida ? "rojo" : TONO_ESTADO_PAGO[compra.estadoPago], texto: compra.vencida ? "Vencida" : ETIQUETA_ESTADO_PAGO[compra.estadoPago], vivo: compra.vencida },
           ]}
           anulada={anulada ? `Anulada${compra.motivoAnulacion ? `: ${compra.motivoAnulacion}` : ""}.` : undefined}
@@ -223,15 +231,15 @@ export function CompraDetalle({
         {/* Dos tarjetas lado a lado: RECEPCIÓN a la izquierda («210 de 600 u.») y PAGO a la derecha («S/ 2,000.00 de
             S/ 5,923.60»), cada una con su barra que se llena. El «Destino» y la «Condición» que antes vivían acá pasaron
             a la línea gris de la cabecera; el saldo, a la línea de abajo. */}
-        <div className="grid gap-3 sm:grid-cols-2">
-          <TarjetaAvance
+        <div className={`grid gap-3 ${esGasto ? "" : "sm:grid-cols-2"}`}>
+          {!esGasto && <TarjetaAvance
             etiqueta="Recepción"
             valor={anulada ? "—" : compra.recibidoCantidad.toLocaleString("es-PE")}
             de={anulada ? undefined : `de ${compra.facturadoCantidad.toLocaleString("es-PE")} u.`}
             nota={unidadesCerradas > 0 ? `${unidadesCerradas.toLocaleString("es-PE")} ${unidadesCerradas === 1 ? "unidad cerrada" : "unidades cerradas"} por faltante.` : undefined}
             avance={avanceDeRecepcion}
             tono={compra.estadoRecepcion === "parcial" ? "ambar" : compra.estadoRecepcion === "recibida" ? "verde" : "neutro"}
-          />
+          />}
           <TarjetaAvance
             etiqueta="Pago"
             valor={anulada ? "—" : soles(compra.pagado)}

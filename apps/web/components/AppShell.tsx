@@ -157,6 +157,8 @@ const IC: Record<ClaveIcono | "nuevo" | "chevron", string> = {
   porPagar: "M12 22a10 10 0 100-20 10 10 0 000 20z M12 6v6l4 2",
   // Recibo con una flecha que vuelve: el documento por el que el proveedor devuelve dinero.
   notasCredito: "M4 3h13a1 1 0 011 1v15.5a1.5 1.5 0 01-2.4 1.2L14 19l-2.2 1.7a1 1 0 01-1.2 0L8.4 19l-2.2 1.7A1.5 1.5 0 014 19.5V4a1 1 0 011-1z M8 8h6 M8 12h4",
+  // Billetera: la plata que sale para que el negocio funcione (Finanzas ▸ Gastos, ADR-0195 F2).
+  gastos: "M3 7a2 2 0 012-2h13a1 1 0 011 1v2 M3 7v11a2 2 0 002 2h14a1 1 0 001-1v-3 M3 7h16a1 1 0 011 1v3 M20 11h-4a2 2 0 000 4h4v-4z",
   chevron: "M9 6l6 6-6 6",
 };
 

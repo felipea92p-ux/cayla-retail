@@ -60,11 +60,12 @@ export type Pajaro = (typeof PAJAROS)[number];
  *                            2026-09-22 era `verDinero` y solo del líder (ADR-0126).
  *  - editarEtiquetas:        crear, editar y archivar etiquetas SIN descuento  (fn_puede_editar_etiquetas)
  *  - analizar:               Análisis de inventario de su sede                  (fn_puede_analizar)
+ *  - registrarGastos:        ver y registrar los gastos de SU tienda (Finanzas ▸ Gastos, ADR-0195 F2; fn_gastos_ubicaciones)
  */
 export const PERMISOS = [
   "administrar", "verDinero", "analizar",
   "facturar", "gestionarCaja", "ajustarInventario", "editarCatalogo", "editarCuentasProveedor",
-  "verDineroCompras", "editarEtiquetas",
+  "verDineroCompras", "editarEtiquetas", "registrarGastos",
 ] as const;
 export type Permiso = (typeof PERMISOS)[number];
 
@@ -101,7 +102,7 @@ export function aterrizajeDe(perfil: { terminal?: boolean; modulos?: readonly Cl
 export type ClaveIcono =
   | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "movimientos" | "traslados" | "conteo" | "resumen"
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "cambios" | "devoluciones" | "venta"
-  | "catalogo" | "categorias" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito";
+  | "catalogo" | "categorias" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender";
@@ -314,11 +315,13 @@ export const ARBOL: readonly Nodo[] = [
 
   /* ---- Lo que viene: existe en el árbol, `menuPara` no lo emite. Sin ruta ni ícono hasta que nazca. ---- */
 
+  // Finanzas (ADR-0195, plan en docs/PLAN-FINANZAS.md): nace con Gastos (F2). Sin `exige` en el grupo: cada hija pide lo
+  // suyo, y Gastos es de quien tenga el módulo (su tienda) o del líder (todas). Vive en todas las ubicaciones: el Taller
+  // también paga luz y alquiler. Las demás hijas siguen «futuras» hasta su fase.
   {
-    id: "finanzas", etiqueta: "Finanzas", estado: "futura", pajaro: "11 Garza", exige: "verDinero",
-    nota: "Módulo nuevo: lo operativo (Garza) y lo contable (Urraca) en un solo lugar.",
+    id: "finanzas", etiqueta: "Finanzas", estado: "viva", icono: "gastos", raiz: "/finanzas", pajaro: "11 Garza",
     hijos: [
-      { id: "finanzas.gastos", etiqueta: "Gastos", estado: "futura", pajaro: "11 Garza", nota: "`gastos`: hoy sin pantalla en V2." },
+      { id: "finanzas.gastos", modulo: "gastos", etiqueta: "Gastos", estado: "viva", ruta: "/finanzas/gastos", icono: "gastos", pajaro: "11 Garza", exige: "registrarGastos" },
       { id: "finanzas.resultados", etiqueta: "Resultados", estado: "futura", pajaro: "12 Urraca", nota: "Estado de resultados." },
       { id: "finanzas.balance", etiqueta: "Balance", estado: "futura", pajaro: "12 Urraca", nota: "Balance general." },
       { id: "finanzas.cierreDeMes", etiqueta: "Cierre de mes", estado: "futura", pajaro: "12 Urraca", nota: "Cierra el período contable." },

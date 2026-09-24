@@ -184,7 +184,8 @@
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
             ],
             "insignia": 3
-          }
+          },
+          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
@@ -251,7 +252,8 @@
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
             ]
-          }
+          },
+          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
@@ -482,7 +484,8 @@
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
             ],
             "insignia": 3
-          }
+          },
+          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
@@ -558,7 +561,8 @@
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
             ]
-          }
+          },
+          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
@@ -760,7 +764,8 @@
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
             ],
             "insignia": 3
-          }
+          },
+          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
@@ -827,7 +832,8 @@
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
             ]
-          }
+          },
+          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },

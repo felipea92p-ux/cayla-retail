@@ -81,7 +81,8 @@ describe("controles del editor", () => {
   });
 
   it("los módulos se agrupan como en el spike", () => {
-    expect(modulosPorGrupo().map((g) => g.grupo)).toEqual(["Ventas", "Inventario", "Catálogo", "Compras", "Producción", "Gestión"]);
+    // Finanzas nació el 2026-09-24 con Gastos (ADR-0195 F2): va al final, por su `orden` (250).
+    expect(modulosPorGrupo().map((g) => g.grupo)).toEqual(["Ventas", "Inventario", "Catálogo", "Compras", "Producción", "Gestión", "Finanzas"]);
   });
 });
 

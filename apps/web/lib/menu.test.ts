@@ -184,8 +184,7 @@ describe("los nodos futuros: en el árbol para que el aviario quede a la vista, 
   it("existen los que el rediseño ya nombró, cada uno con su pájaro", () => {
     expect(Object.fromEntries(futuros)).toEqual({
       "produccion.eficiencia": "10 Gallito",
-      finanzas: "11 Garza",
-      "finanzas.gastos": "11 Garza",
+      // Finanzas y Gastos nacieron el 2026-09-24 (ADR-0195 F2); el resto de Finanzas sigue esperando su fase.
       "finanzas.resultados": "12 Urraca",
       "finanzas.balance": "12 Urraca",
       "finanzas.cierreDeMes": "12 Urraca",

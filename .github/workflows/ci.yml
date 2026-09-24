@@ -154,6 +154,10 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:configuracion-caja
 
+      - name: pruebas:gastos
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:gastos
+
       - name: pruebas:registrar-cambio
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-cambio
