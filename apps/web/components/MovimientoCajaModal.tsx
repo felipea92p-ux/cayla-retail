@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -30,6 +30,9 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
   const [nota, setNota] = useState("");
   const [loading, setLoading] = useState(false);
   const idEtiquetaMotivo = useId();
+  // Doble clic (ADR-0190): un token por intento. Si el mismo intento llega dos veces (dos clics, un reintento tras
+  // una red que se cae), la base devuelve lo ya guardado en vez de registrar el retiro dos veces. Uno por cada vez que se abre la ventana.
+  const token = useRef<string>(crypto.randomUUID());
   // Quién hace el ingreso o egreso (ADR-0161, A12: el cierre de caja lo muestra por movimiento).
   const responsable = useResponsable();
 
@@ -73,6 +76,7 @@ export function MovimientoCajaModal({ cajaId, esLider, onClose }: { cajaId: stri
         p_motivo: motivo,
         p_nota: nota.trim() || undefined,
         p_es_ajuste: esAjuste,
+        p_token: token.current,
       }),
       responsable.firma(),
     );

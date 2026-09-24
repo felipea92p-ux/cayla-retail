@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -46,6 +46,9 @@ export function ApartarModal({
   const [nota, setNota] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [intento, setIntento] = useState(false);
+  // Doble clic (ADR-0190): un token por intento. Si el mismo intento llega dos veces (dos clics, un reintento tras
+  // una red que se cae), la base devuelve lo ya guardado en vez de apartar la prenda dos veces. Uno por cada vez que se abre la ventana.
+  const token = useRef<string>(crypto.randomUUID());
   // Apartar guarda en la tienda (deja la prenda no disponible): pide Responsable (ADR-0161).
   const responsable = useResponsable();
 
@@ -69,6 +72,7 @@ export function ApartarModal({
       p_vence_el: fecha,
       p_nota: nota.trim() || undefined,
       p_sububicacion_id: (donde === "piso" ? sububicacionPiso : sububicacionAlmacen).id,
+      p_token: token.current,
     }), responsable.firma());
     setEnviando(false);
     responsable.despues(error);

@@ -28,6 +28,16 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔒 Varios usuarios a la vez: auditoría de concurrencia y volumen (2026-09-23, ADR-0188 y siguientes) — etapa 1 construida; migración `20260924110000` POR PEGAR en producción
+Auditoría completa (343 funciones, 229 consultas web, estadísticas de producción). Bien protegido: stock (sin negativos ni sobreventa), numeración, una caja abierta por sede, doble clic en ventas/comprobantes/cambios/compras.
+- [x] **Etapa 1 (ADR-0188):** las 7 funciones que cobran leen la caja con `for share` (una venta ya no cae en una caja cerrada), el costo promedio ya no traba ventas (`for no key update`), 14 índices (`ventas` por caja y por sede, `stock` por sede, cambios, devoluciones, comprobantes). Parche con anclas, re-pegable. Probado con dos sesiones reales.
+- [ ] **Pegar `20260924110000` en producción** (no requiere prefijo: trae `set search_path`). No cambia la web.
+- [ ] **Etapa 2:** cambio/devolución doble de la misma línea; conteo que recuenta con foto vieja; orden de prendas al bloquear (bloqueo mutuo); doble clic en traslados, lotes y movimientos de caja.
+- [ ] **Etapa 3:** totales del Historial (hoy se esconden pasando 1.000 ventas) y resumen de Caja en la base.
+- [ ] **Etapa 4:** Vender sin `router.refresh()` completo tras cada venta.
+- [ ] **Etapa 5:** «otra persona cambió esta prenda» al editar productos a la vez.
+- [ ] Previo, ajeno: `pruebas:aprobar-devolucion-caja` da 2/5 en local (falla en «Solo un líder puede aprobar», la cuenta de prueba).
+
 ## 🎯 El combo «Responsable» en TODA operación que guarda (2026-09-23, ADR-0161 act. c) — EN PRODUCCIÓN (web fusionada en PR #360 y publicada; Felipe pegó la migración el 2026-09-23; verificado en solo lectura: `(false)` solo en los 4 permisos, 80 funciones firman con el responsable, sin sobrecargas)
 Felipe no encontraba el combo en Recibir ni en Registrar comprobante: la A8 los había dejado fuera («no de tienda»). Decidió
 «en todo», con el mismo candado de asistencia. Migración: toda firma `fn_actor_persona_id(false)` → `(true)`, salvo 4 usos que
