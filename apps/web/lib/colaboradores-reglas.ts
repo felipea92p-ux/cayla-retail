@@ -10,7 +10,9 @@ import type {
   Terminal,
 } from "./colaboradores";
 
-export const ETIQUETA_ROL: Record<RolColaborador, string> = { lider: "Líder", colaborador: "Colaborador" };
+// "colaborador" queda para siempre en esta tabla: `colaboradores_historial` es append-only y las filas viejas del
+// historial de accesos van a seguir diciendo "colaborador" aunque la cuenta ya sea "integrante" hoy.
+export const ETIQUETA_ROL: Record<RolColaborador, string> = { lider: "Líder", colaborador: "Integrante", integrante: "Integrante" };
 
 /** Lo que dice la confirmación de Desactivar / Reactivar (textos del spike aprobado, pantalla 5). Desactivar corta la
  *  sesión del aparato en el acto: `fn_terminal_actual()` deja de devolverlo y con eso todas sus lecturas y escrituras. */
@@ -33,14 +35,16 @@ const sinTildes = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLo
 
 export type FiltroRol = "todos" | RolColaborador;
 
-/** Nombre o correo, sin importar tildes ni mayúsculas, más el filtro por rol. */
+/** Nombre o correo, sin importar tildes ni mayúsculas, más el filtro por rol. El filtro «no lider» compara por
+ *  `!== "lider"` en vez del valor exacto: así no le importa si la fila todavía dice "colaborador" o ya "integrante". */
 export function filtrarColaboradores<T extends { nombre: string; correo: string; rol: RolColaborador }>(
   lista: readonly T[],
   texto: string,
   rol: FiltroRol
 ): T[] {
   const q = sinTildes(texto.trim());
-  return lista.filter((c) => (rol === "todos" || c.rol === rol) && (q === "" || sinTildes(c.nombre).includes(q) || sinTildes(c.correo).includes(q)));
+  const coincideRol = (c: T) => rol === "todos" || (rol === "lider" ? c.rol === "lider" : c.rol !== "lider");
+  return lista.filter((c) => coincideRol(c) && (q === "" || sinTildes(c.nombre).includes(q) || sinTildes(c.correo).includes(q)));
 }
 
 /** Para el buscador del modal de alta: nombre o correo. */
@@ -77,11 +81,11 @@ export function resumirAccesos(
 
 export const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
-/** «Se agregarán 2 personas como Colaborador en Taller LIM». */
+/** «Se agregarán 2 personas como Integrante en Taller LIM». */
 export function resumenAlta(cuantas: number, ubicacion: string | null): string {
   if (cuantas === 0) return "Elige al menos una persona para continuar";
   const donde = ubicacion ? ` en ${ubicacion}` : "";
-  return `Se ${cuantas === 1 ? "agregará" : "agregarán"} ${plural(cuantas, "persona", "personas")} como Colaborador${donde}`;
+  return `Se ${cuantas === 1 ? "agregará" : "agregarán"} ${plural(cuantas, "persona", "personas")} como Integrante${donde}`;
 }
 
 /** Lo que puede hacer la fila del menú «⋯», en el orden en que se muestra. */
@@ -176,7 +180,7 @@ export type FraseEvento = {
 };
 
 const R = (texto: string, fuerte = false) => ({ texto, fuerte });
-const como = (rol: RolColaborador | null) => (rol ? ETIQUETA_ROL[rol] : "Colaborador");
+const como = (rol: RolColaborador | null) => (rol ? ETIQUETA_ROL[rol] : "Integrante");
 
 /** La frase de una línea del historial. `por_nombre` nulo solo pasa con las altas sembradas. */
 export function fraseEvento(e: Pick<EventoAcceso, "accion" | "persona_nombre" | "por_nombre" | "rol" | "ubicacion_anterior" | "ubicacion_nueva" | "motivo">): FraseEvento {

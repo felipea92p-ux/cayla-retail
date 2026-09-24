@@ -375,7 +375,7 @@ export function ColaboradoresPanel({
                       opciones={[
                         { clave: "todos", etiqueta: "Todos", conteo: colaboradores.length },
                         { clave: "lider", etiqueta: "Líderes", conteo: resumen.lideres },
-                        { clave: "colaborador", etiqueta: "Colaboradores", conteo: resumen.colaboradores },
+                        { clave: "integrante", etiqueta: "Integrantes", conteo: resumen.colaboradores },
                       ]}
                     />
                   </div>

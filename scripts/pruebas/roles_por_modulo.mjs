@@ -45,6 +45,7 @@ const MIGRACION = [
   "20260923140000_modulos_seis_decisiones.sql",
   "20260923163000_escalon_admin_desde_dynamic.sql",
   "20260923174500_alcanzas_solo_a_quien_esta_debajo.sql",
+  "20260924000000_colaborador_a_integrante_paso1_codigo.sql",
 ]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
@@ -485,7 +486,7 @@ caso(
       l[4].startsWith("42501|") && l[4].includes("subir a alguien a Líder") && // no sube a nadie a Líder
       l[5].startsWith("42501|") && l[5].includes("Solo un admin") && // no le cambia el rol a un líder
       l[6].startsWith("42501|") && l[6].includes("propio rol") && // nadie se cambia su propio rol
-      l[7] === "colaborador" && l[8] === "true"
+      l[7] === "integrante" && l[8] === "true"
     );
   }
 );
@@ -502,7 +503,7 @@ caso(
     `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, felipe, tru)) from ids;`,
   (s) => {
     const l = s.split("\n");
-    return l[0] === "SIN_ERROR" && l[1] === "lider" && l[2] === "SIN_ERROR" && l[3] === "colaborador" && l[4].startsWith("42501|");
+    return l[0] === "SIN_ERROR" && l[1] === "lider" && l[2] === "SIN_ERROR" && l[3] === "integrante" && l[4].startsWith("42501|");
   }
 );
 caso(
@@ -638,7 +639,7 @@ caso(
     `select rol from retail.colaboradores where persona_id = :'l2';\n` +
     `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_lider, :'l2')) from ids;\n` +
     `select pg_temp.intento(format('select retail.cambiar_ubicacion_colaborador(%L, %L)', :'l2', (select id from retail.ubicaciones where id <> (select tru from ids) and activo limit 1)));`,
-  "SIN_ERROR\ncolaborador\nSIN_ERROR\nSIN_ERROR"
+  "SIN_ERROR\nintegrante\nSIN_ERROR\nSIN_ERROR"
 );
 caso(
   "ADR-0178: una terminal se crea solo con un rol dentro de lo que tiene quien la crea (fn_rol_dentro_de_lo_mio)",
@@ -953,7 +954,7 @@ caso(
     `select c.rol, c.rol_id = i.r_integ, c.ubicacion_asignada_id = i.tru from retail.colaboradores c, ids i where c.persona_id = i.micaela;`,
   (s) => {
     const l = s.split("\n");
-    return l.length === 4 && l[0] === "lider|t" && l[1].startsWith("23514|") && l[2] === "SIN_ERROR" && l[3] === "colaborador|t|t";
+    return l.length === 4 && l[0] === "lider|t" && l[1].startsWith("23514|") && l[2] === "SIN_ERROR" && l[3] === "integrante|t|t";
   }
 );
 caso(
