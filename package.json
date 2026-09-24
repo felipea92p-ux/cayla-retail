@@ -12,6 +12,7 @@
     "migraciones:versiones": "node scripts/migraciones/versiones.mjs",
     "adr:numeros": "node scripts/adr/numeros.mjs",
     "pruebas:registrar-cambio": "node scripts/pruebas/registrar_cambio.mjs",
+    "pruebas:concurrencia-linea-venta": "node scripts/pruebas/concurrencia_linea_de_venta.mjs",
     "pruebas:aprobar-devolucion-caja": "node scripts/pruebas/aprobar_devolucion_caja.mjs",
     "pruebas:caja-cierre-traslado": "node scripts/pruebas/caja_cierre_traslado.mjs",
     "pruebas:totales-caja-historial": "node scripts/pruebas/totales_caja_e_historial.mjs",
