@@ -57,7 +57,8 @@ export const TEXTO_ESTADO: Record<EstadoCampana, { texto: string; tono: "ambar" 
   rige: { texto: "rige hoy", tono: "ambar" },
   viene: { texto: "viene", tono: "pizarra" },
   sin_fechas: { texto: "sin fechas", tono: "neutro" },
-  paso: { texto: "pasó", tono: "apagado" },
+  // Sin tachar (spike): una campaña que pasó no se anuló; la fila entera va más tenue.
+  paso: { texto: "pasó", tono: "neutro" },
 };
 
 /** Primero las que rigen y las que vienen (por fecha), luego las sin fechas, al final las que ya pasaron. */
@@ -98,10 +99,11 @@ export function leerParametrosCaja(fila: Record<string, unknown> | null | undefi
   return { meta: num(fila.meta), metaBase: num(fila.meta_base), metaPct: Number(fila.meta_pct ?? 0), fondo: num(fila.fondo), fondoBase: num(fila.fondo_base), campanas };
 }
 
-/** La frase bajo la barra de meta: de dónde sale la meta de hoy. */
-export function explicarMeta(p: ParametrosCaja, dia: string, soles: (n: number) => string): string {
+/** La frase bajo la barra de meta: de dónde sale la meta de hoy. Con `sede` dice dónde, y sin campaña lo dice (spike:
+ *  «Lo normal de un jueves en Tienda TRU. Hoy no rige ninguna campaña.»). */
+export function explicarMeta(p: ParametrosCaja, dia: string, soles: (n: number) => string, sede?: string): string {
   if (p.meta === null || p.metaBase === null) return "";
-  if (!p.campanas.length || !p.metaPct) return `Lo normal de un ${dia.toLowerCase()}.`;
+  if (!p.campanas.length || !p.metaPct) return sede ? `Lo normal de un ${dia.toLowerCase()} en ${sede}.${p.campanas.length ? "" : " Hoy no rige ninguna campaña."}` : `Lo normal de un ${dia.toLowerCase()}.`;
   const manda = p.campanas.find((c) => c.meta_pct === p.metaPct) ?? p.campanas[0]!;
   const base = `Lo normal de un ${dia.toLowerCase()} es ${soles(p.metaBase)}; por ${manda.nombre} ${p.metaPct > 0 ? "sube" : "baja"} ${Math.abs(p.metaPct)} %.`;
   return p.campanas.length > 1 ? `${base} Rigen ${p.campanas.length} campañas: se usa la que más sube.` : base;

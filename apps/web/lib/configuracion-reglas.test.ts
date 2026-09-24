@@ -80,6 +80,9 @@ describe("caja: meta de hoy y fondo al cerrar", () => {
       "Lo normal de un lunes es S/ 1,500; por Fiestas Patrias sube 25 %. Rigen 2 campañas: se usa la que más sube.",
     );
     expect(explicarMeta({ ...leerParametrosCaja(fila)!, campanas: [], metaPct: 0, meta: 1500 }, "Jueves", soles)).toBe("Lo normal de un jueves.");
+    expect(explicarMeta({ ...leerParametrosCaja(fila)!, campanas: [], metaPct: 0, meta: 1500 }, "Jueves", soles, "Tienda TRU")).toBe(
+      "Lo normal de un jueves en Tienda TRU. Hoy no rige ninguna campaña.",
+    );
   });
   it("traslado propuesto = contado − fondo, nunca negativo; sin fondo, nada", () => {
     expect(trasladoParaDejarFondo(1030, 300)).toBe(730);

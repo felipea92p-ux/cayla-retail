@@ -20,6 +20,7 @@ export function CabeceraPantalla({
   titulo,
   bajada,
   acciones,
+  accionesAbajo = false,
   children,
 }: {
   /** «Inventario · Existencias». Va en mayúsculas y en rojo (cuenta en el máximo de 2 rojos). */
@@ -29,12 +30,15 @@ export function CabeceraPantalla({
   bajada?: ReactNode;
   /** A la derecha del título: la acción principal y sus acompañantes. */
   acciones?: ReactNode;
+  /** Las acciones se alinean con el pie de la bajada y no con el título, y el texto se angosta para que quepan al lado
+   *  (Finanzas, spike 2026-09-24: el «Ver» y el botón principal cierran la cabecera por abajo, a la derecha). */
+  accionesAbajo?: boolean;
   /** Bajo la bajada: una línea más de contexto (la hora de carga, un aviso). */
   children?: ReactNode;
 }) {
   return (
-    <header className="anim-sube flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
-      <div className="min-w-0 max-w-2xl">
+    <header className={`anim-sube flex flex-wrap justify-between gap-x-8 gap-y-4 ${accionesAbajo ? "items-end" : "items-start"}`}>
+      <div className={`min-w-0 ${accionesAbajo ? "max-w-[36rem]" : "max-w-2xl"}`}>
         <p className="eyebrow-cayla">{sobretitulo}</p>
         <h1 className="font-display mt-1.5 text-[30px] leading-tight text-tinta">{titulo}</h1>
         {bajada && <p className="mt-1.5 text-[15px] leading-relaxed text-taupe">{bajada}</p>}
