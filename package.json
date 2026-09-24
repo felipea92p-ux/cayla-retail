@@ -18,6 +18,7 @@
     "pruebas:configuracion-caja": "node scripts/pruebas/configuracion_caja_campanas.mjs",
     "pruebas:gastos": "node scripts/pruebas/gastos.mjs",
     "pruebas:activos-y-fijos": "node scripts/pruebas/activos_y_gastos_fijos.mjs",
+    "pruebas:por-pagar-consolidado": "node scripts/pruebas/por_pagar_consolidado.mjs",
     "pruebas:totales-caja-historial": "node scripts/pruebas/totales_caja_e_historial.mjs",
     "pruebas:fn-aplicar-movimiento": "node scripts/pruebas/fn_aplicar_movimiento.mjs",
     "pruebas:apartar-stock": "node scripts/pruebas/apartar_stock.mjs",

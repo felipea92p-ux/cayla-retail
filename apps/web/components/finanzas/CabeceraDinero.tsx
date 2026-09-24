@@ -11,7 +11,7 @@ export type PestanaDinero = "cuentas" | "efectivo" | "porpagar" | "conciliacion"
 const PESTANAS: { clave: PestanaDinero; etiqueta: string; href: string; soloLider?: boolean; lista: boolean }[] = [
   { clave: "cuentas", etiqueta: "Cuentas", href: "/finanzas/dinero", lista: false },
   { clave: "efectivo", etiqueta: "Efectivo por tienda", href: "/finanzas/dinero/efectivo", lista: false },
-  { clave: "porpagar", etiqueta: "Por pagar", href: "/finanzas/dinero/por-pagar", lista: false },
+  { clave: "porpagar", etiqueta: "Por pagar", href: "/finanzas/dinero/por-pagar", lista: true },
   { clave: "conciliacion", etiqueta: "Conciliación", href: "/finanzas/dinero/conciliacion", soloLider: true, lista: false },
 ];
 
