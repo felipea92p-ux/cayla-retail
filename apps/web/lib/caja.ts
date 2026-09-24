@@ -188,6 +188,8 @@ export type CierreCaja = {
   esPrueba: boolean;
   /** Lo que quedó en el cajón al cerrar (ADR-0186). `null` en cierres anteriores a ADR-0186. */
   montoFondo: number | null;
+  /** El fondo que regía ese día (ADR-0195 F1). Si `montoFondo` es menor, se dejó menos: el cierre no se bloqueó. */
+  fondoRequerido: number | null;
   /** A dónde fue el resto del efectivo contado (ADR-0186). Vacío si todo quedó en el cajón. */
   traslados: TrasladoCaja[];
   /** Con qué monto debió abrir según el cierre anterior, y por qué abrió con otro (ADR-0186). */
@@ -205,13 +207,21 @@ const TABLA_INEXISTENTE = "42P01";
  * migración todavía no está en la base, el historial y la pantalla de Caja siguen funcionando con lo de siempre.
  */
 async function getExtrasAdr0182(ids: string[]) {
-  const vacio = new Map<string, { fondo: number | null; esperada: number | null; motivo: string | null; traslados: TrasladoCaja[] }>();
+  const vacio = new Map<string, { fondo: number | null; fondoRequerido: number | null; esperada: number | null; motivo: string | null; traslados: TrasladoCaja[] }>();
   if (ids.length === 0) return vacio;
   const supabase = await createClient();
-  const [cajasRes, trasladosRes] = await Promise.all([
+  const [cajasRes, trasladosRes, requeridoRes] = await Promise.all([
     supabase.from("cajas").select("id, monto_fondo, monto_apertura_esperado, motivo_diferencia_apertura").in("id", ids),
     supabase.from("caja_traslados").select("caja_id, destino, monto, referencia").in("caja_id", ids).order("creado_en"),
+    // El fondo que regía al cerrar (ADR-0195 F1, 20260924210000). Aparte y tolerado: sin esa migración, el historial
+    // sigue igual que antes y solo no dice si se dejó menos del fondo.
+    (supabase.from("cajas") as unknown as { select: (c: string) => { in: (col: string, v: string[]) => PromiseLike<{ data: { id: string; fondo_requerido: number | string | null }[] | null; error: { code?: string } | null }> } })
+      .select("id, fondo_requerido")
+      .in("id", ids),
   ]);
+  const requerido = new Map(
+    requeridoRes.error ? [] : (requeridoRes.data ?? []).map((r) => [r.id, r.fondo_requerido === null ? null : Number(r.fondo_requerido)] as const),
+  );
   const faltaMigracion = (code?: string) => code === COLUMNA_INEXISTENTE || code === TABLA_INEXISTENTE;
   if (faltaMigracion(cajasRes.error?.code) || faltaMigracion(trasladosRes.error?.code)) return vacio;
   const filas = exigir(cajasRes, "el fondo de cada cierre");
@@ -219,6 +229,7 @@ async function getExtrasAdr0182(ids: string[]) {
   for (const f of filas) {
     vacio.set(f.id, {
       fondo: f.monto_fondo === null ? null : Number(f.monto_fondo),
+      fondoRequerido: requerido.get(f.id) ?? null,
       esperada: f.monto_apertura_esperado === null ? null : Number(f.monto_apertura_esperado),
       motivo: f.motivo_diferencia_apertura,
       traslados: traslados
@@ -304,6 +315,7 @@ export async function getHistorialCierres(limite = 60, incluirPrueba = false, ub
     nota: f.nota,
     esPrueba: f.es_prueba === true,
     montoFondo: extras.get(f.id)?.fondo ?? null,
+    fondoRequerido: extras.get(f.id)?.fondoRequerido ?? null,
     traslados: extras.get(f.id)?.traslados ?? [],
     aperturaEsperada: extras.get(f.id)?.esperada ?? null,
     motivoDiferenciaApertura: extras.get(f.id)?.motivo ?? null,

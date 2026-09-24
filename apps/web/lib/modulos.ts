@@ -17,6 +17,7 @@ export const CLAVES_MODULO = [
   "facturas_compra", "recibir", "por_pagar", "proveedores", "notas_credito",
   "produccion",
   "analisis", "colaboradores", "roles",
+  "configuracion",
 ] as const;
 export type ClaveModulo = (typeof CLAVES_MODULO)[number];
 
@@ -60,6 +61,8 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "analisis", grupo: "Gestión", nombre: "Análisis", incluye: "Reportes de ventas e inventario" },
   { clave: "colaboradores", grupo: "Gestión", nombre: "Colaboradores", incluye: "Dar y quitar accesos, suspender, cambiar ubicación" },
   { clave: "roles", grupo: "Gestión", nombre: "Roles y accesos", incluye: "Crear roles y asignarlos" },
+  // ADR-0195 F1 (20260924210000): nace sin rol y «solo líder por ahora»: sus funciones exigen fn_es_lider().
+  { clave: "configuracion", grupo: "Gestión", nombre: "Configuración", incluye: "Metas de venta y fondo de caja de cada tienda, y lo que cambia cada campaña en la caja", noDelegable: true },
 ];
 
 /** Lo que sigue siendo del líder aunque el rol vea el módulo: decisiones ya tomadas (ADR-0161 B2b), no nuevas.

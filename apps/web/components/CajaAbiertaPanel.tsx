@@ -31,6 +31,9 @@ import { claveLocal, leer } from "@/lib/almacen-local";
 import type { VentaEncolada } from "@/lib/ventas-offline";
 import { duracionAbierta, escalaTurno, formatoDuracion, metodosDe, minutosDeHora, ritmoDelDia, turnoLargo, type MetodoRitmo } from "@/lib/caja-panel-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
+import { Chip } from "@/components/ui/Chip";
+import { DIAS_SEMANA, explicarMeta, type ParametrosCaja } from "@/lib/configuracion-reglas";
+import { hoyLima } from "@/lib/etiqueta-vigencia";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -79,6 +82,7 @@ export function CajaAbiertaPanel({
   series,
   ventasHoy,
   metaVentaDiaria,
+  parametros = null,
   cierresRecientes,
 }: {
   ubicacionNombre: string;
@@ -92,6 +96,8 @@ export function CajaAbiertaPanel({
   series: SeriesVentasCaja;
   ventasHoy: VentaDelDia[];
   metaVentaDiaria: number | null;
+  /** Lo que rige hoy (ADR-0195 F1): meta con campañas y fondo de caja. `null` = base sin fn_parametros_caja. */
+  parametros?: ParametrosCaja | null;
   cierresRecientes: CierreCaja[];
 }) {
   const [modal, setModal] = useState<"movimiento" | "cerrar" | "todos" | null>(null);
@@ -125,6 +131,21 @@ export function CajaAbiertaPanel({
 
   const totalVentas = resumen.ventasEfectivo + resumen.ventasOtros;
   const metaPct = metaVentaDiaria ? Math.min(100, Math.round((totalVentas / metaVentaDiaria) * 100)) : null;
+  const faltaMeta = metaVentaDiaria ? Math.max(0, metaVentaDiaria - totalVentas) : 0;
+  // 0 = lunes, igual que la base (isodow − 1).
+  const diaHoy = DIAS_SEMANA[(new Date(`${hoyLima()}T12:00:00`).getDay() + 6) % 7]!;
+  const explicacionMeta = parametros ? explicarMeta(parametros, diaHoy, (n) => money(n).replace(".00", "")) : "";
+  // El fondo que pide el cierre y por qué: la campaña que lo sube, o lo normal de la tienda.
+  const fondoCierre =
+    parametros && parametros.fondo !== null
+      ? {
+          monto: parametros.fondo,
+          motivo:
+            parametros.fondoBase !== null && parametros.fondo > parametros.fondoBase
+              ? `Por ${parametros.campanas.filter((c) => c.fondo === parametros.fondo).map((c) => c.nombre).join(" y ")}`
+              : `Lo normal de ${ubicacionNombre}`,
+        }
+      : null;
 
   const segmentosDona: SegmentoDona[] = Object.entries(series.porMetodo)
     .filter(([metodo]) => metodo !== "yape" && metodo !== "plin")
@@ -233,12 +254,31 @@ export function CajaAbiertaPanel({
                 {money(totalVentas)} <span className="font-normal text-tinta/50">de {money(metaVentaDiaria)}</span>
               </span>
             </div>
+            {parametros && parametros.campanas.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {parametros.campanas.map((c) => (
+                  <Chip key={c.id} tono="ambar">{c.nombre}</Chip>
+                ))}
+              </div>
+            )}
             <div className="h-2.5 overflow-hidden rounded-full bg-sand">
               <div
                 className="h-full rounded-full bg-rojo transition-[width] duration-1000 [transition-timing-function:var(--ease-cayla)]"
                 style={{ width: `${metaPct}%` }}
               />
             </div>
+            <p className="mt-2 text-[13px] text-taupe">
+              {faltaMeta > 0 ? (
+                <>
+                  Te faltan <b className="font-semibold text-tinta">{money(faltaMeta)}</b> para la meta.{" "}
+                </>
+              ) : (
+                <>
+                  <b className="font-semibold text-verde-profundo">Meta cumplida.</b>{" "}
+                </>
+              )}
+              {explicacionMeta}
+            </p>
           </div>
         )}
 
@@ -339,7 +379,7 @@ export function CajaAbiertaPanel({
       </div>
 
       {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} esLider={personaRol === "lider"} onClose={() => setModal(null)} />}
-      {modal === "cerrar" && <CerrarCajaModalV2 cajaId={caja.id} cola={cola} onClose={() => setModal(null)} />}
+      {modal === "cerrar" && <CerrarCajaModalV2 cajaId={caja.id} cola={cola} fondo={fondoCierre} onClose={() => setModal(null)} />}
       {modal === "todos" && (
         <MovimientosCajaModal
           eventos={todosLosEventos}

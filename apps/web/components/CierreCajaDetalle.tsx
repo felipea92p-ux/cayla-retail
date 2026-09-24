@@ -121,6 +121,12 @@ function DetalleCierreModal({
                   <dd className="whitespace-nowrap tabular-nums">{money(cierre.montoFondo)}</dd>
                 </div>
               )}
+              {cierre.montoFondo !== null && cierre.fondoRequerido !== null && cierre.montoFondo + 0.004 < cierre.fondoRequerido && (
+                <div className="flex justify-between gap-3 text-ambar-profundo">
+                  <dt>Dejó menos del fondo</dt>
+                  <dd className="whitespace-nowrap tabular-nums">pedía {money(cierre.fondoRequerido)}</dd>
+                </div>
+              )}
             </dl>
           )}
           {cierre.motivoDiferenciaApertura && cierre.aperturaEsperada !== null && (

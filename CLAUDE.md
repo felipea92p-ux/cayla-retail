@@ -97,6 +97,15 @@ proyecto local es su propio Postgres aislado, ajeno a la unificación). El prefi
 `retail.` se agrega SOLO al pegar en el SQL Editor de producción — nunca en el
 archivo del repo, para no romper `npx supabase db reset` local.
 
+**Políticas y deadlocks (aprendido 2026-09-24, ADR-0195):** el SQL Editor corre todo lo pegado en UNA transacción, y en
+Supabase cada `create policy` —y hasta un `drop policy if exists` vacío— toma en exclusiva las 21 tablas de `auth` y
+`storage` hasta el final. Si la misma transacción ya tiene en exclusiva una tabla que la tienda usa (un `alter table
+ubicaciones`), choca con el Asesor de seguridad del panel: `40P01 deadlock detected`, y no se aplica nada. Regla: una
+migración de producción **no mezcla** `alter` de tablas en uso con políticas. Pártela en PARTES que se pegan por
+separado (cada una con `set lock_timeout = '3s'`, idempotente), con las políticas solas y al final. Si la tabla nueva
+solo se lee por funciones `security definer`, deja RLS encendido sin políticas. Ejemplo:
+`supabase/migrations/20260924210000_configuracion_meta_y_fondo_por_campana.sql`.
+
 ## Convenciones de código (adaptadas a este repo)
 
 - Base de datos: tablas en `snake_case`, español, plural donde aplica (`sedes`,

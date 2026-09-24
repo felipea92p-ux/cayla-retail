@@ -21,6 +21,7 @@ import {
   motivoTrasladoInvalido,
   type DestinoTraslado,
 } from "@/lib/caja-cierre-reglas";
+import { dejaMenosDelFondo, trasladoParaDejarFondo } from "@/lib/configuracion-reglas";
 
 function money(n: number) {
   return (n < 0 ? "-S/ " : "S/ ") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -55,10 +56,14 @@ const DENOMINACIONES = [200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1];
 export function CerrarCajaModalV2({
   cajaId,
   cola,
+  fondo: fondoPedido = null,
   onClose,
 }: {
   cajaId: string;
   cola: VentaEncolada[];
+  /** Lo que debe quedar en el cajón hoy y por qué (ADR-0195 F1: lo normal de la tienda o la campaña que lo sube). Si queda
+   *  menos, se pide confirmar pero NO se bloquea; la base anota el fondo que regía (`cajas.fondo_requerido`). */
+  fondo?: { monto: number; motivo: string } | null;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -71,6 +76,8 @@ export function CerrarCajaModalV2({
   const [destino, setDestino] = useState<DestinoTraslado>("caja_fuerte");
   const [referencia, setReferencia] = useState("");
   const [loading, setLoading] = useState(false);
+  // «Vas a dejar menos del fondo»: la confirmación que no bloquea (ADR-0195 L).
+  const [pideConfirmar, setPideConfirmar] = useState(false);
   // Quién cierra (ADR-0161): el cierre pide Responsable como cualquier acción que guarda.
   const responsable = useResponsable();
   const [resultado, setResultado] = useState<{
@@ -79,6 +86,7 @@ export function CerrarCajaModalV2({
     diferencia: number;
     trasladado: number;
     fondo: number;
+    fondoPedido: number | null;
     destino: DestinoTraslado;
     referencia: string;
     efectivoEncoladoAlCerrar: number;
@@ -134,8 +142,16 @@ export function CerrarCajaModalV2({
     setContadoTexto(total > 0 ? total.toFixed(2) : "");
   }
 
-  async function cerrarCaja(e: React.FormEvent) {
-    e.preventDefault();
+  const dejaMenos = contado !== null && dejaMenosDelFondo(fondo, fondoPedido?.monto ?? null);
+
+  async function cerrarCaja(e: React.FormEvent | null, aunqueFalte = false) {
+    e?.preventDefault();
+    // Menos del fondo: se pregunta una vez, dentro del mismo paso. «Cerrar igual» vuelve a entrar con `aunqueFalte`.
+    if (dejaMenos && !aunqueFalte) {
+      setPideConfirmar(true);
+      return;
+    }
+    setPideConfirmar(false);
     // Refuerza el `disabled` del botón: un Enter con foco en un campo puede disparar el submit del <form>.
     if (bloqueaCierre) {
       avisar.error("Hay ventas offline subiendo al sistema todavía — espera unos segundos y vuelve a intentar.");
@@ -176,6 +192,7 @@ export function CerrarCajaModalV2({
       diferencia: dif,
       trasladado: Number(data.monto_trasladado),
       fondo: Number(data.monto_fondo),
+      fondoPedido: fondoPedido?.monto ?? null,
       destino,
       referencia: referencia.trim(),
       efectivoEncoladoAlCerrar: efectivoEncolado,
@@ -256,6 +273,12 @@ export function CerrarCajaModalV2({
                 <dt>Queda en el cajón para el próximo turno</dt>
                 <dd className="whitespace-nowrap tabular-nums">{money(resultado.fondo)}</dd>
               </div>
+              {resultado.fondoPedido !== null && dejaMenosDelFondo(resultado.fondo, resultado.fondoPedido) && (
+                <div className="flex justify-between gap-3 text-ambar-profundo">
+                  <dt>Dejaste menos del fondo</dt>
+                  <dd className="whitespace-nowrap tabular-nums">pedía {money(resultado.fondoPedido)}</dd>
+                </div>
+              )}
               {resultado.quienCerro && (
                 <div className="flex justify-between gap-3">
                   <dt className="text-tinta/60">Responsable del cierre</dt>
@@ -304,7 +327,13 @@ export function CerrarCajaModalV2({
           <form key="contar"
             onSubmit={(e) => {
               e.preventDefault();
-              if (contado !== null) setPaso("trasladar");
+              if (contado === null) return;
+              // El traslado viene propuesto para dejar justo el fondo de hoy; quien cierra lo puede cambiar.
+              if (fondoPedido && trasladoTexto.trim() === "") {
+                const propuesto = trasladoParaDejarFondo(contado, fondoPedido.monto);
+                if (propuesto > 0) setTrasladoTexto(propuesto.toFixed(2));
+              }
+              setPaso("trasladar");
             }}
             className="space-y-4"
           >
@@ -419,6 +448,12 @@ export function CerrarCajaModalV2({
             <span className={campoEtiqueta}>Contaste</span>
             <span className="font-display text-2xl tabular-nums">{money(contado ?? 0)}</span>
           </div>
+          {fondoPedido && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-pizarra/30 bg-pizarra/10 px-3.5 py-2.5">
+              <span className="text-sm font-semibold text-tinta">Deja {money(fondoPedido.monto)} para el próximo turno</span>
+              <span className="text-xs text-pizarra">{fondoPedido.motivo}</span>
+            </div>
+          )}
           <div className="space-y-1.5">
             <label className={campoEtiqueta} htmlFor="traslado-monto">
               ¿Cuánto vas a trasladar?
@@ -432,7 +467,10 @@ export function CerrarCajaModalV2({
                 autoFocus
                 placeholder="0.00"
                 value={trasladoTexto}
-                onChange={(e) => setTrasladoTexto(e.target.value)}
+                onChange={(e) => {
+                  setTrasladoTexto(e.target.value);
+                  setPideConfirmar(false);
+                }}
                 className="font-display w-full bg-transparent py-1 text-3xl tabular-nums text-tinta outline-none"
               />
             </div>
@@ -466,8 +504,31 @@ export function CerrarCajaModalV2({
               <br />
               para el próximo turno
             </span>
-            <span className={`font-display text-2xl tabular-nums ${fondo < 0 ? "text-rojo" : "text-tinta"}`}>{money(fondo)}</span>
+            <span className={`font-display text-2xl tabular-nums ${fondo < 0 ? "text-rojo" : dejaMenos ? "text-ambar-profundo" : "text-tinta"}`}>{money(fondo)}</span>
           </div>
+          {pideConfirmar && dejaMenos && fondoPedido && (
+            <div role="alert" data-sin-cascada className="space-y-2 rounded-xl border border-ambar/35 bg-ambar/10 px-3.5 py-3 text-sm">
+              <p className="font-semibold text-ambar-profundo">
+                Vas a dejar {money(fondo)} y hoy se pide {money(fondoPedido.monto)}.
+              </p>
+              <p className="text-xs text-tinta/70">El próximo turno puede quedarse sin sencillo. Si cierras igual, queda anotado en el cierre.</p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button
+                  type="button"
+                  className={botonCancelar}
+                  onClick={() => {
+                    setTrasladoTexto(trasladoParaDejarFondo(contado ?? 0, fondoPedido.monto).toFixed(2));
+                    setPideConfirmar(false);
+                  }}
+                >
+                  Volver y dejar {money(fondoPedido.monto)}
+                </button>
+                <button type="button" className={botonPrimario} disabled={loading} onClick={() => cerrarCaja(null, true)}>
+                  Cerrar igual
+                </button>
+              </div>
+            </div>
+          )}
           {invalido && trasladoTexto.trim() !== "" && (
             <p role="alert" className="rounded-lg bg-ambar/10 px-3 py-2 text-xs text-ambar-profundo">
               {invalido}
