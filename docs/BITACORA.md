@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-23 (Productos: «A quién pedirle» y las prendas pendientes, plegados)
+En `/productos`, los 26 proveedores de «A quién pedirle» eran botones sueltos que llenaban media pantalla: ahora es un desplegable (el mismo de la barra de filtros) con cuántos productos pedirle a cada uno, y elegir uno filtra como antes. El aviso de prendas dadas de alta en un conteo queda plegado en un `<details>`: se ve la cifra y se abre al tocarlo. Sin migración.
+Dany se lleva: (1) **antes de construir un control, buscar el que ya existe**: `DesplegablePildora` ya resolvía la lista flotante y el teclado; (2) **un Server Component no importa constantes de un archivo `"use client"`**: llegan como referencia, no como valor; (3) **para ver un estado que la base local no tiene, una página temporal con datos inventados**, que se borra antes del commit.
+
 ## 2026-09-23 (Varios usuarios a la vez: auditoría y etapa 1 — ADR-0188)
 Felipe pidió revisar si el ERP aguanta varios usuarios a la vez y mucho volumen. La auditoría (funciones, web y producción) confirmó que el stock no se puede ir a negativo ni venderse dos veces, pero encontró que una venta podía guardarse en una caja que se estaba cerrando, que recibir mercadería trababa las ventas de esa prenda y que `ventas` no tenía índice por caja (162 millones de filas leídas con solo 7 mil ventas). Migración `20260924110000`: candado compartido de caja en 7 funciones, `for no key update` en el costo promedio y 14 índices; probado con dos sesiones reales. Por pegar en producción.
 Felipe se lleva: (1) **un candado compartido deja cobrar a todas las cajeras a la vez, pero hace esperar al cierre**: exactamente lo que el arqueo necesita; (2) **«hay caja abierta» y «guardo en esa caja» son dos pasos, y entre ellos otra persona puede cerrarla**: por eso hay que bloquear al leer; (3) **una tabla chica esconde un índice faltante**: con 7 mil filas no se nota, con 700 mil es un timeout.
