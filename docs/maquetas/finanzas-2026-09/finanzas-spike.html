@@ -508,6 +508,10 @@ table.t tr.hecha td{opacity:.62;}
 .confirma b{color:var(--ambar);}
 .confirma p{margin:4px 0 0; color:var(--taupe); line-height:1.45;}
 @media (max-width:860px){ .meta-cifras{grid-template-columns:1fr;} }
+.par-inp{display:inline-flex; align-items:center; gap:4px;}
+.par-inp .num-input{display:inline-block; margin:0;}
+table.t tr.anulada-suave td{opacity:.6;}
+.chip-campana{display:inline-block; margin-top:3px; font-size:11px; color:var(--ambar);}
 
 </style>
 </head>
@@ -680,10 +684,11 @@ const FLUJO_REAL = {
   entradas: [['Efectivo',38200],['Yape',19600],['Plin',11100],['Tarjeta',8300],['Transferencia',3400]],
   salidas:  [['Proveedores de mercadería',41300],['Planilla (Dynamic)',29800],['Gastos',18400],['Insumos del Taller',6200],['Retiro del dueño',2500]],
 };
+// Lo que entra sube en las semanas con campaña (su meta la dice cuánto): el flujo lee las campañas.
 const FLUJO_SEMANAS = [
-  {s:'28 sep – 4 oct', entra:22000, sale:58500, que:'Planilla S/ 29,800 · alquileres · Confecciones Andina'},
-  {s:'5 – 11 oct',     entra:22000, sale:18900, que:'Moda Lima · Tejidos del Sur · Distribuidora Norte (parte)'},
-  {s:'12 – 18 oct',    entra:22000, sale:35700, que:'Distribuidora Norte S/ 15,300 · Muebles Roble · luz'},
+  {s:'28 sep – 4 oct', entra:24500, sale:58500, campana:'Aniversario CAYLA desde el 1', que:'Planilla S/ 29,800 · alquileres · Confecciones Andina'},
+  {s:'5 – 11 oct',     entra:26000, sale:18900, campana:'Aniversario CAYLA', que:'Moda Lima · Tejidos del Sur · Distribuidora Norte (parte)'},
+  {s:'12 – 18 oct',    entra:23000, sale:42000, campana:'Aniversario CAYLA hasta el 14', que:'Distribuidora Norte S/ 15,300 · reposición para el Aniversario S/ 6,300 · Muebles Roble · luz'},
   {s:'19 – 25 oct',    entra:22000, sale:9800,  que:'Confecciones Andina (LIM) parte · servicios'},
   {s:'26 oct – 1 nov', entra:22000, sale:31200, que:'Planilla · alquileres'},
   {s:'2 – 8 nov',      entra:22000, sale:14600, que:'Proveedores de temporada'},
@@ -785,7 +790,7 @@ const PRESTAMOS_DUENO = [
   {f:'2026-07-14', monto:10000, nota:'Para pagar la mercadería de invierno', devuelto:4000},
 ];
 
-// ============ v3: meta del día y fondo de caja, por temporada (Configuración ▸ Tiendas y caja) ============
+// ============ v3: meta del día y fondo de caja; cada campaña los cambia (Configuración ▸ Tiendas y caja) ============
 // La meta del día es CON IGV: es lo que la caja ve cobrado. El presupuesto del mes la muestra sin IGV.
 const DIAS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 const DIAS_L = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
@@ -794,12 +799,31 @@ const TIENDAS_CAJA = {
   AQP: {metas:[1100,1100,1200,1250,1500,1850,1450], fondo:250, cierra:'21:00'},
   LIM: {metas:[780,780,850,880,1050,1300,1020],     fondo:200, cierra:'22:00'},
 };
-// Dos temporadas no pueden cruzarse (lo impide la base). pct: cuánto sube o baja la meta; fondo: lo que se deja.
-const TEMPORADAS = [
-  {id:'t1', n:'Fiestas Patrias',     desde:'2026-07-20', hasta:'2026-07-31', ajuste:{TRU:{pct:25, fondo:400}, AQP:{pct:25, fondo:350}, LIM:{pct:20, fondo:300}}},
-  {id:'t2', n:'Campaña de Navidad',  desde:'2026-12-01', hasta:'2026-12-31', ajuste:{TRU:{pct:40, fondo:500}, AQP:{pct:40, fondo:450}, LIM:{pct:35, fondo:400}}},
-  {id:'t3', n:'Temporada baja',      desde:'2027-02-01', hasta:'2027-03-15', ajuste:{TRU:{pct:-15, fondo:200}, AQP:{pct:-15, fondo:200}, LIM:{pct:-20, fondo:150}}},
+// Las CAMPAÑAS son las etiquetas de estilo «campaña» de Catálogo ▸ Etiquetas (las mismas de producción, con sus fechas).
+// Ellas son las dueñas de las fechas. Lo nuevo es su efecto en la caja, por tienda: cuánto sube la meta y qué fondo
+// dejar (null = lo normal). Pueden cruzarse: ese día gana la mayor (igual que el descuento de una prenda).
+const CAMPANAS = [
+  {id:'c01', n:'San Valentín',                desde:'2026-01-31', hasta:'2026-02-14', dcto:null, caja:{TRU:{pct:15, fondo:350}, AQP:{pct:15, fondo:300}, LIM:{pct:10, fondo:250}}},
+  {id:'c02', n:'Día de la Mujer',             desde:'2026-02-22', hasta:'2026-03-08', dcto:null, caja:null},
+  {id:'c03', n:'Día de la Tierra',            desde:'2026-04-08', hasta:'2026-04-22', dcto:null, caja:null},
+  {id:'c04', n:'Día de la Madre',             desde:'2026-04-26', hasta:'2026-05-10', dcto:null, caja:{TRU:{pct:30, fondo:400}, AQP:{pct:30, fondo:350}, LIM:{pct:25, fondo:300}}},
+  {id:'c05', n:'Fiestas Patrias',             desde:'2026-07-14', hasta:'2026-07-29', dcto:null, caja:{TRU:{pct:25, fondo:400}, AQP:{pct:25, fondo:350}, LIM:{pct:20, fondo:300}}},
+  {id:'c06', n:'Día Internacional del Gato',  desde:'2026-07-25', hasta:'2026-08-08', dcto:null, caja:{TRU:{pct:5, fondo:null}, AQP:{pct:5, fondo:null}, LIM:{pct:5, fondo:null}}},
+  {id:'c07', n:'Día Internacional del Perro', desde:'2026-08-12', hasta:'2026-08-26', dcto:null, caja:{TRU:{pct:5, fondo:null}, AQP:{pct:5, fondo:null}, LIM:{pct:5, fondo:null}}},
+  {id:'c08', n:'Aniversario CAYLA',           desde:'2026-10-01', hasta:'2026-10-14', dcto:15,   caja:{TRU:{pct:30, fondo:400}, AQP:{pct:30, fondo:350}, LIM:{pct:30, fondo:300}}},
+  {id:'c09', n:'Halloween',                   desde:'2026-10-17', hasta:'2026-10-31', dcto:null, caja:null},
+  {id:'c10', n:'Black Friday',                desde:'2026-11-09', hasta:'2026-11-30', dcto:30,   caja:{TRU:{pct:50, fondo:500}, AQP:{pct:50, fondo:450}, LIM:{pct:40, fondo:400}}},
+  {id:'c11', n:'Navidad',                     desde:'2026-12-11', hasta:'2026-12-25', dcto:null, caja:{TRU:{pct:40, fondo:500}, AQP:{pct:40, fondo:450}, LIM:{pct:35, fondo:400}}},
+  {id:'c12', n:'CyberWow',                    desde:null,         hasta:null,         dcto:null, caja:null},
 ];
+// Resultado de las campañas que ya pasaron (ventas sin IGV). «normal» = lo que la tienda vende en la misma cantidad
+// de días sin campaña. descuento = lo que se dejó de cobrar por el descuento de la campaña (venta_items.descuento_etiqueta_id).
+const CAMPANA_RESULTADOS = {
+  c04: {ventas:52400, normal:40100, descuento:0,    margenPct:.53, prendas:612},
+  c05: {ventas:48900, normal:37800, descuento:2300, margenPct:.49, prendas:598},
+  c06: {ventas:43200, normal:41600, descuento:1900, margenPct:.47, prendas:520},
+  c07: {ventas:41800, normal:41200, descuento:2600, margenPct:.45, prendas:505},
+};
 // Lo que vendió hoy cada tienda hasta las 17:40, por medio (la caja lo tiene; aquí para el ejemplo de Caja).
 const HOY_CAJA = {
   hora:'17:40',
@@ -941,7 +965,7 @@ function notaDemo(){
     gastos:'En «Fijos del mes» confirma con un clic lo que el sistema propone. <b>Registrar gasto</b> a crédito aparece en Cuentas y dinero ▸ Por pagar. En «Egresos de caja» clasifica el depósito de LIM: destraba el cierre de agosto.',
     dinero:'Prueba «Registrar movimiento ▸ Poner plata del dueño» (aporte o préstamo). En Conciliación el sistema propone la pareja de cada línea del banco: solo confirmas.',
     reportes:'Toca cualquier cifra del estado de resultados para ver de qué filas sale. En «Escenarios» mueve los valores: todo se recalcula.',
-    caja:'Esta pantalla es de Ventas: muestra cómo llega lo de Finanzas a la tienda. Cambia el «Demo · día» a Navidad y prueba «Cerrar caja» dejando menos del fondo: pide confirmar, no bloquea.',
+    caja:'Esta pantalla es de Ventas: muestra cómo llega lo de Finanzas a la tienda. Cambia el «Demo · día» a una campaña (el 27 jul rigen dos: gana la mayor) y prueba «Cerrar caja» dejando menos del fondo: pide confirmar, no bloquea.',
     config:'Todo lo que se ajusta vive aquí: cuentas, a dónde cae cada cobro, mínimo de caja, gastos fijos, presupuesto e impuestos. Cambia el mínimo de caja y mira el Resumen.',
     impuestos:'El IGV sale de los comprobantes emitidos y de las facturas de proveedor (mercadería, gastos, activos e insumos).',
     cierre:'Agosto: TRU y AQP ya cerraron. Resuelve lo pendiente de LIM y cierra; el consolidado se habilita cuando cierran todas.',
@@ -1070,12 +1094,18 @@ const sumaTipo = (...ts) => CUENTAS.filter(c=>ts.includes(c.tipo)).reduce((a,c)=
 
 // ---- Meta del día y fondo de caja: lo que rige en una tienda en una fecha (en la base: fn_parametros_caja) ----
 const diaSemana = f => (new Date(f+'T12:00:00').getDay() + 6) % 7;   // 0 = lunes
-const temporadaDe = f => TEMPORADAS.find(t => f >= t.desde && f <= t.hasta) || null;
+// Las campañas que rigen en una tienda un día (con fechas y con efecto en caja para esa tienda).
+const campanasDe = (u, f) => CAMPANAS.filter(c => c.desde && f >= c.desde && f <= c.hasta && c.caja && c.caja[u]);
+// Si se cruzan varias, gana la mayor: la que más sube la meta y el fondo más alto (como el descuento de una prenda).
 function parametrosCaja(u, f){
   const base = TIENDAS_CAJA[u]; if (!base) return null;
-  const t = temporadaDe(f), aj = t && t.ajuste[u];
+  const cs = campanasDe(u, f);
+  const pct = cs.length ? Math.max(...cs.map(c => c.caja[u].pct)) : 0;
+  const fondos = cs.map(c => c.caja[u].fondo).filter(v => v != null);
+  const fondo = fondos.length ? Math.max(base.fondo, ...fondos) : base.fondo;
   const metaBase = base.metas[diaSemana(f)];
-  return {meta: Math.round(metaBase * (1 + (aj ? aj.pct : 0)/100)), metaBase, fondo: aj ? aj.fondo : base.fondo, temporada: t, pct: aj ? aj.pct : 0};
+  const manda = cs.length ? cs.reduce((a,c) => c.caja[u].pct > a.caja[u].pct ? c : a) : null;   // la que fija la meta
+  return {meta: Math.round(metaBase * (1 + pct/100)), metaBase, fondo, pct, campanas: cs, manda};
 }
 // Meta del mes = suma de las metas de cada día (una sola meta, no dos). Sin IGV para Finanzas.
 function metaMes(u, mes='2026-09'){
@@ -1138,6 +1168,9 @@ VISTAS.resumen = () => {
     ...RAROS.filter(x=>x.u==null ? todas : enVista(x.u)).map(x=>({tono:'pizarra', t:x.t, d:x.d, imp:'', ir:x.ir, b:'Revisar', raro:true})),
     EGRESOS.some(e=>enVista(e.u)) && (n => ({tono:'pizarra', t:`${n} ${n===1?'egreso':'egresos'} de caja sin clasificar`, d:'Mientras no se diga si son gasto, depósito o retiro, no cuentan en ningún número.', imp:'', ir:'gastos:egresos', b:'Clasificar'}))(EGRESOS.filter(e=>enVista(e.u)).length),
     todas && Object.keys(E.parejas).length < EXTRACTO_IBK.length && {tono:'pizarra', t:'Interbank tiene 6 movimientos por confirmar', d:'El sistema ya propuso la pareja de cada uno. Confirmar toma un minuto.', imp:'', ir:'dinero:conciliacion', b:'Conciliar'},
+    todas && (() => { const c = CAMPANAS.filter(x => x.desde && x.desde > HOY).sort((a,b)=>a.desde.localeCompare(b.desde))[0]; if (!c || dias(c.desde, HOY) > 14) return null;
+      const need = c.dcto ? extraNecesario(c.dcto) : 0, sube = c.caja ? Math.max(...Object.values(c.caja).map(a=>a.pct)) : 0;
+      return {tono: c.dcto && need > sube/100 ? 'ambar' : 'pizarra', t:`${c.n} empieza en ${dias(c.desde, HOY)} días`, d: c.dcto ? `Con ${c.dcto} % de descuento, para ganar lo mismo que un día normal hay que vender ${pct(need)} más; la meta sube ${sube} %. ${need > sube/100 ? 'Aunque se cumpla, dejaría menos margen.' : 'Si se cumple, deja más.'}` : `Sin descuento: la meta sube ${sube} % y el fondo de caja también.`, imp:'', ir:'reportes:campanas', b:'Ver campaña'}; })(),
     todas && {tono:'pizarra', t:`Vas al ${pct(VENTAS_12M/(300*UIT))} del límite de 300 UIT`, d:'Al cruzarlo, SUNAT exige libros electrónicos. A este ritmo, a mediados de 2027.', imp:'', ir:'impuestos', b:'Ver'},
   ].filter(Boolean);
 
@@ -1580,15 +1613,16 @@ function modalPagar(){
 // ============ Reportes (piezas 7, 8 y 9) ============
 VISTAS.reportes = () => {
   const tab = tabActual('reportes','resultados');
-  const cuerpo = {resultados:vistaResultados, presupuesto:vistaPresupuesto, escenarios:vistaEscenarios, flujo:vistaFlujo, balance:vistaBalance}[tab]();
+  const cuerpo = {resultados:vistaResultados, presupuesto:vistaPresupuesto, campanas:vistaCampanas, escenarios:vistaEscenarios, flujo:vistaFlujo, balance:vistaBalance}[tab]();
   const alcance = ['resultados','presupuesto'].includes(tab) ? filtroVer() : filtroVer('empresa');
-  return `${cabecera({sobre:'Finanzas · Reportes', titulo:{resultados:'¿Ganamos?', presupuesto:'¿Vamos según lo planeado?', escenarios:'¿Qué pasa si…?', flujo:'¿Por qué vendí bien y no hay plata?', balance:'¿Cuánto vale CAYLA?'}[tab],
+  return `${cabecera({sobre:'Finanzas · Reportes', titulo:{resultados:'¿Ganamos?', presupuesto:'¿Vamos según lo planeado?', campanas:'¿Valen la pena las campañas?', escenarios:'¿Qué pasa si…?', flujo:'¿Por qué vendí bien y no hay plata?', balance:'¿Cuánto vale CAYLA?'}[tab],
     bajada:{resultados:'Salen solos del diario que arma el sistema con cada venta, compra, gasto y movimiento de caja (ADR-0109). Nadie escribe un asiento.',
       presupuesto:'Lo que pusiste como meta y como tope en Configuración, contra lo que va pasando. La proyección supone que el resto del mes sigue al mismo ritmo.',
+      campanas:'Cada campaña contra lo que la tienda vende en días normales: cuánto más vendió, cuánto se descontó y si al final dejó más o menos margen.',
       escenarios:'Mueve los valores y mira qué pasa con la utilidad de cada tienda y con tu caja. No se guarda nada: es para pensar antes de decidir.',
       flujo:'Lo que ya entró y salió, y lo que viene en las próximas semanas.', balance:'Lo que CAYLA tiene, contra lo que debe y lo que es tuyo.'}[tab],
     acciones:`${alcance}<button class="btn btn-secundario" data-accion="exportar">Descargar Excel</button>`})}
-    ${pestanas('reportes', [['resultados','Estado de resultados'],['presupuesto','Presupuesto'],['escenarios','Escenarios'],['flujo','Flujo de caja'],['balance','Balance']])}${cuerpo}`;
+    ${pestanas('reportes', [['resultados','Estado de resultados'],['presupuesto','Presupuesto'],['campanas','Campañas'],['escenarios','Escenarios'],['flujo','Flujo de caja'],['balance','Balance']])}${cuerpo}`;
 };
 
 const FILAS_ER = [
@@ -1682,7 +1716,7 @@ function vistaFlujo(){
       <p class="sub" style="margin:0 0 8px;font-size:13px">Entra lo que vendes en una semana normal; sale lo que vence (facturas, planilla, alquileres, gastos fijos).</p>
       ${barras(proy.map(w=>({n:w.s.split(' – ')[0], v:w.saldo, malo:w.saldo<minimoCaja(), maloTxt:'bajo el mínimo', tip:`<b>${w.s}</b><br>Entra ${S(w.entra)} · Sale ${S(w.sale)}<br>${esc(w.que)}`})), {alto:230, umbral:minimoCaja(), umbralTxt:'tu mínimo de caja: '+S(minimoCaja())+' (se cambia en Configuración)'})}
       <div class="tabla-wrap" style="margin-top:12px"><table class="t" style="min-width:560px"><thead><tr><th>Semana</th><th class="num">Entra</th><th class="num">Sale</th><th class="num">Queda</th><th>Qué vence</th></tr></thead>
-        <tbody>${proy.map(w=>`<tr><td data-l="Semana">${w.s}</td><td class="num" data-l="Entra">${S(w.entra)}</td><td class="num" data-l="Sale">${S(w.sale)}</td><td class="num" data-l="Queda"><b style="${w.saldo<minimoCaja()?'color:var(--rojo-profundo)':''}">${S(w.saldo)}</b></td><td data-l="Qué vence" class="sub" style="font-size:12.5px">${esc(w.que)}</td></tr>`).join('')}</tbody></table></div>
+        <tbody>${proy.map(w=>`<tr><td data-l="Semana">${w.s}${w.campana?`<span class="chip-campana" style="display:block">${esc(w.campana)}</span>`:''}</td><td class="num" data-l="Entra">${S(w.entra)}</td><td class="num" data-l="Sale">${S(w.sale)}</td><td class="num" data-l="Queda"><b style="${w.saldo<minimoCaja()?'color:var(--rojo-profundo)':''}">${S(w.saldo)}</b></td><td data-l="Qué vence" class="sub" style="font-size:12.5px">${esc(w.que)}</td></tr>`).join('')}</tbody></table></div>
       ${F('deriva','vencimientos de compras + comprobantes_produccion')} ${F('nuevo','gastos recurrentes + mínimo de caja')}
     </div>
   </div>`;
@@ -1784,6 +1818,45 @@ function vistaEscenarios(){
     </div>
   </section>
   <div class="nota-cayla">Un escenario no reemplaza la conversación: bajar un alquiler hay que negociarlo y vender 15 % más requiere un plan. Lo que sí hace es decirte <b>cuánto vale</b> cada decisión antes de tomarla. ${F('deriva','mismo cálculo que el estado de resultados')}</div>`;
+}
+
+// ============ Campañas: ¿valió la pena? (y cuánto hay que vender en las que vienen) ============
+const MARGEN_NORMAL = 0.52;   // margen bruto de un día sin campaña (estado de resultados de agosto)
+// Con un descuento d, cada prenda deja (1 − d − costo) en vez de (1 − costo). Cuánto más hay que vender para ganar lo mismo:
+const extraNecesario = d => { const costo = 1 - MARGEN_NORMAL, m = 1 - d/100 - costo; return m > 0 ? MARGEN_NORMAL / m - 1 : Infinity; };
+function vistaCampanas(){
+  const pasadas = CAMPANAS.filter(c => CAMPANA_RESULTADOS[c.id]).map(c => { const r = CAMPANA_RESULTADOS[c.id];
+    const extra = Math.round(r.ventas*r.margenPct - r.normal*MARGEN_NORMAL); return {...c, r, extra, lift: r.ventas/r.normal - 1}; });
+  const vienen = CAMPANAS.filter(c => c.desde && c.desde > HOY);
+  const sumaMeta = (c, conCampana) => { let t = 0; for (let d = new Date(c.desde+'T12:00:00'); d <= new Date(c.hasta+'T12:00:00'); d.setDate(d.getDate()+1)){
+      const f = d.toISOString().slice(0,10); TIENDAS.forEach(u => { const p = parametrosCaja(u, f); t += conCampana ? p.meta : p.metaBase; }); } return Math.round(t/1.18); };
+  const malas = pasadas.filter(x => x.extra < 0);
+  return `
+  <section class="dos-col der">
+    <div class="superficie pad anim-sube">
+      <div class="prioridades-cab"><div><h2>Margen extra de cada campaña</h2><p>Lo que dejó contra lo que habría dejado en días normales.</p></div></div>
+      ${barras(pasadas.map(x=>({n:x.n.replace('Día Internacional del ','Día del '), v:x.extra, malo:x.extra<0, maloTxt:'no se pagó', tip:`<b>${esc(x.n)}</b><br>Vendió ${S(x.r.ventas)} (normal ${S(x.r.normal)})<br>Descuento ${S(x.r.descuento)} · margen ${pct(x.r.margenPct)}`})), {alto:210})}
+      ${malas.length ? `<p class="sub" style="font-size:13px;margin:10px 0 0"><b style="color:var(--tinta)">${malas.map(x=>x.n.replace('Día Internacional del ','Día del ')).join(' y ')}</b> vendieron casi lo mismo que un día normal (${malas.map(x=>(x.lift>=0?'+':'')+pct(x.lift)).join(' y ')}) y se descontaron ${S(malas.reduce((a,x)=>a+x.r.descuento,0))}: dejaron ${S(-malas.reduce((a,x)=>a+x.extra,0))} menos que no hacerlas.</p>` : ''}
+    </div>
+    <div class="superficie anim-sube">
+      <div class="tabla-wrap"><table class="t" style="min-width:600px"><thead><tr><th>Campaña</th><th class="num">Vendió</th><th class="num">vs normal</th><th class="num">Descuento</th><th class="num">Margen extra</th></tr></thead>
+      <tbody>${pasadas.map(x=>`<tr><td class="c-prenda" data-l="Campaña"><b>${esc(x.n)}</b><span class="sub" style="display:block;font-size:12px">${fecha(x.desde)} – ${fecha(x.hasta)} · ${x.r.prendas} prendas</span></td>
+        <td class="num" data-l="Vendió">${S(x.r.ventas)}</td><td class="num" data-l="vs normal">${x.lift>=0?'+':''}${pct(x.lift)}</td><td class="num" data-l="Descuento">${x.r.descuento?S(x.r.descuento):'—'}</td>
+        <td class="num" data-l="Margen extra"><b style="color:${x.extra<0?'var(--rojo-profundo)':'var(--verde)'}">${x.extra>=0?'+':'−'}${S(Math.abs(x.extra))}</b></td></tr>`).join('')}</tbody></table></div>
+      <div class="pie-tabla"><span>«Normal» = lo que vendió la tienda los mismos días sin campaña.</span>${F('existe','venta_items.descuento_etiqueta_id')} ${F('deriva','ventas en fechas de campaña vs días normales')}</div>
+    </div>
+  </section>
+  <div class="superficie anim-sube">
+    <div class="herramientas"><b>Las que vienen</b><span class="sub" style="font-size:12.5px">Antes de lanzarla: con ese descuento, ¿cuánto más hay que vender para ganar lo mismo que un día normal?</span></div>
+    <div class="tabla-wrap"><table class="t" style="min-width:820px"><thead><tr><th>Campaña</th><th class="num">Descuento</th><th class="num">Para ganar lo mismo, vender</th><th class="num">La meta sube</th><th class="num">Meta de la campaña</th><th>Qué dice el sistema</th></tr></thead>
+    <tbody>${vienen.map(c=>{ const need = c.dcto ? extraNecesario(c.dcto) : 0; const sube = c.caja ? Math.max(...Object.values(c.caja).map(a=>a.pct)) : 0; const ok = need <= sube/100 + 1e-9;
+      return `<tr><td class="c-prenda" data-l="Campaña"><b>${esc(c.n)}</b><span class="sub" style="display:block;font-size:12px">${fecha(c.desde)} – ${fecha(c.hasta)} · empieza en ${dias(c.desde, HOY)} días</span></td>
+      <td class="num" data-l="Descuento">${c.dcto?c.dcto+' %':'—'}</td><td class="num" data-l="Vender">${c.dcto?'+'+pct(need)+' más':'lo mismo'}</td><td class="num" data-l="Meta sube">${c.caja?'+'+sube+' %':'<span class="sub">sin efecto en caja</span>'}</td>
+      <td class="num" data-l="Meta">${c.caja?S(sumaMeta(c,true)):'—'}${c.caja?`<span class="sub" style="display:block;font-size:11.5px">normal ${S(sumaMeta(c,false))}</span>`:''}</td>
+      <td data-l="Qué dice">${!c.dcto ? (c.caja?'<span class="badge" data-tono="verde">sin descuento: todo lo extra es ganancia</span>':'<span class="badge" data-tono="taupe">solo etiqueta</span>') : ok ? '<span class="badge" data-tono="verde">si llega a la meta, gana más</span>' : `<span class="badge" data-tono="ambar">aunque llegue a la meta, gana menos</span>`}</td></tr>`; }).join('')}</tbody></table></div>
+    <div class="pie-tabla"><span>Con 15 % de descuento cada prenda deja ${pct(1-(1-.15-(1-MARGEN_NORMAL))/MARGEN_NORMAL)} menos de margen; con 30 %, ${pct(1-(1-.30-(1-MARGEN_NORMAL))/MARGEN_NORMAL)} menos. Por eso una campaña con descuento necesita vender mucho más para valer la pena.</span></div>
+  </div>
+  <div class="nota-cayla">Una campaña también puede valer por otras cosas (clientas nuevas, sacar mercadería que no rota). El sistema no decide por ti: te dice <b>cuánto cuesta</b> en margen, para que la decisión sea a sabiendas. Las fechas, el descuento y las categorías se cambian en Catálogo ▸ Etiquetas; la meta y el fondo, en <button class="btn-enlace" data-ir="config:tiendas">Configuración ▸ Tiendas y caja</button>.</div>`;
 }
 
 // ============ Impuestos (pieza 10) ============
@@ -1922,19 +1995,7 @@ const ACCIONES_EXTRA = {
     guardar('Comisión registrada como gasto de la empresa.', () => { E.parejas[x.id]='gasto'; GASTOS.forEach(g=>g.nuevo=false); GASTOS.unshift({id:Date.now(), f:x.f, u:'EMP', c:'comisiones', d:'Comisión de mantenimiento Interbank', prov:'Interbank', comp:'Sin comprobante', num:'', total:-x.monto, igv:0, medio:'ibk', cond:'contado', estado:'pagado', nuevo:true}); }); },
   'ver-mas': () => { E.verMas = !E.verMas; render(); },
   'cerrar-caja': a => modalCerrarCaja(a.dataset.id),
-  'nueva-temporada': () => {
-    ventana(`<h3>Nueva temporada</h3><p class="bajada">En esas fechas, la meta del día sube o baja y el fondo de caja cambia. No puede cruzarse con otra.</p>
-      <div class="campo"><label for="tN">Nombre</label><input class="control" id="tN" value="Día de la Madre"></div>
-      <div class="dos-campos"><div class="campo"><label for="tD">Desde</label><input class="control" id="tD" type="date" value="2027-05-01"></div><div class="campo"><label for="tH">Hasta</label><input class="control" id="tH" type="date" value="2027-05-09"></div></div>
-      <div class="dos-campos"><div class="campo"><label for="tP">Meta: cuánto sube (%)</label><input class="control" id="tP" value="30"></div><div class="campo"><label for="tF">Fondo de caja</label><input class="control" id="tF" value="400"></div></div>
-      <p class="sub" style="font-size:12.5px">Igual para las tres tiendas; después se ajusta cada una en la tabla.</p>${comboResponsable()}
-      <div class="botones"><button class="btn btn-secundario" data-cerrar>Cancelar</button><button class="btn btn-primario" id="okT">Crear temporada</button></div>`);
-    $('#okT').onclick = () => { const d = $('#tD').value, h = $('#tH').value;
-      const cruce = TEMPORADAS.find(t => d <= t.hasta && h >= t.desde);
-      if (cruce){ $('#tD').style.borderColor='var(--rojo)'; avisar(`Se cruza con «${cruce.n}». Cambia las fechas.`); return; }
-      const aj = {}; TIENDAS.forEach(u => aj[u] = {pct:+$('#tP').value||0, fondo:+$('#tF').value||0});
-      guardar('Temporada creada.', () => { TEMPORADAS.forEach(t=>t.nuevo=false); TEMPORADAS.push({id:'t'+Date.now(), n:$('#tN').value, desde:d, hasta:h, ajuste:aj, nuevo:true}); TEMPORADAS.sort((a,b)=>a.desde.localeCompare(b.desde)); }); };
-  },
+  'ir-campanas': () => avisar('Las campañas se crean en Catálogo ▸ Etiquetas (fechas, descuento, categorías). Aparecen aquí solas para ponerles su efecto en la caja.'),
   'esc-reset': () => { E.escenario = {alqLIM:6200, ventasLIM:0, ventasTodas:0, cerrarLIM:false, retrasarNorte:false}; render(); },
   'exportar': () => avisar('En el sistema real se descarga el archivo. En el spike no se genera nada.'),
 };
@@ -2043,26 +2104,29 @@ function modalCuenta(){
     guardar('Cuenta agregada.', () => { CUENTAS.forEach(c=>c.nuevo=false); CUENTAS.splice(2,0,{id:'c'+Date.now(), n:$('#cN').value, tipo:t, cta:t==='banco'?'104':'105', saldo:+$('#cS').value||0, conciliado:HOY, recibe:'Sin cobros asignados todavía', nuevo:true}); }); };
 }
 
-// ---------- Tiendas y caja: meta del día, fondo y temporadas ----------
+// ---------- Tiendas y caja: meta del día, fondo y lo que cambia cada campaña ----------
+function estadoCampana(c){ if (!c.desde) return ['taupe','sin fechas']; return HOY > c.hasta ? ['taupe','pasó'] : HOY >= c.desde ? ['ambar','rige hoy'] : ['pizarra','viene']; }
 function cfgTiendas(){
-  const hoyT = temporadaDe(HOY);
-  const inp = (ruta, v, ancho) => `<input class="control num-input" style="max-width:${ancho||84}px" inputmode="numeric" value="${v}" data-tc="${ruta}">`;
+  const hoyC = CAMPANAS.filter(c => c.desde && HOY >= c.desde && HOY <= c.hasta);
+  const inp = (ruta, v, ancho) => `<input class="control num-input" style="max-width:${ancho||84}px" inputmode="numeric" value="${v ?? ''}" placeholder="—" data-tc="${ruta}">`;
+  const proximas = CAMPANAS.filter(c => !c.desde || c.hasta >= HOY).concat(CAMPANAS.filter(c => c.desde && c.hasta < HOY));
   return `<div class="superficie anim-sube">
     <div class="herramientas" style="justify-content:space-between"><div><b>Lo normal de cada tienda</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">Meta de venta de cada día de la semana (con IGV, lo que ve la caja) y lo que debe quedar en el cajón al cerrar.</p></div>
-      <span class="badge" data-tono="${hoyT?'ambar':'verde'}">Hoy rige: ${hoyT?esc(hoyT.n):'lo normal'}</span></div>
+      <span class="badge" data-tono="${hoyC.length?'ambar':'verde'}">Hoy rige: ${hoyC.length?hoyC.map(c=>esc(c.n)).join(' y '):'lo normal'}</span></div>
     <div class="tabla-wrap"><table class="t fija" style="min-width:860px"><thead><tr><th>Tienda</th>${DIAS.map(d=>`<th class="num">${d}</th>`).join('')}<th class="num">Fondo de caja</th><th class="num">Meta del mes</th></tr></thead>
     <tbody>${Object.entries(TIENDAS_CAJA).map(([u,t])=>`<tr><td><b>${nombreUnidad(u)}</b></td>${t.metas.map((m,i)=>`<td class="num">${inp(u+'|'+i, m)}</td>`).join('')}<td class="num">${inp(u+'|fondo', t.fondo, 90)}</td><td class="num"><b>${S(Math.round(metaMes(u)*1.18))}</b><span class="sub" style="display:block;font-size:11.5px">${S(metaMes(u))} sin IGV</span></td></tr>`).join('')}</tbody></table></div>
-    <div class="pie-tabla"><span>La meta del mes no se escribe: es la suma de los días. Presupuesto la usa.</span>${F('existe','ubicaciones.meta_venta_diaria')} ${F('nuevo','metas por día + fondo de caja')}</div>
+    <div class="pie-tabla"><span>La meta del mes no se escribe: es la suma de los días, con las campañas incluidas. Presupuesto la usa.</span>${F('existe','ubicaciones.meta_venta_diaria')} ${F('nuevo','metas por día + fondo de caja')}</div>
   </div>
   <div class="superficie anim-sube">
-    <div class="herramientas" style="justify-content:space-between"><div><b>Temporadas</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">En esas fechas, la meta sube o baja y el fondo cambia. Dos temporadas no pueden cruzarse.</p></div>
-      <button class="btn btn-primario btn-sm" data-accion="nueva-temporada">+ Nueva temporada</button></div>
-    <div class="tabla-wrap"><table class="t fija" style="min-width:760px"><thead><tr><th>Temporada</th><th>Fechas</th>${TIENDAS.map(u=>`<th class="num">${nombreUnidad(u).replace('Tienda ','')}: meta · fondo</th>`).join('')}<th>Estado</th></tr></thead>
-    <tbody>${TEMPORADAS.map(t=>{ const est = HOY > t.hasta ? ['taupe','pasó'] : HOY >= t.desde ? ['ambar','rige hoy'] : ['pizarra','viene']; return `<tr class="${t.nuevo?'fila-nueva':''}"><td><b>${esc(t.n)}</b></td><td>${fecha(t.desde)} – ${fecha(t.hasta)} ${t.hasta.slice(0,4)}</td>
-      ${TIENDAS.map(u=>{ const a = t.ajuste[u]; return `<td class="num">${a.pct>0?'+':''}${a.pct} % · ${S(a.fondo)}</td>`; }).join('')}<td><span class="badge" data-tono="${est[0]}">${est[1]}</span></td></tr>`; }).join('')}</tbody></table></div>
-    <div class="pie-tabla"><span>Ejemplo: un viernes de la Campaña de Navidad, TRU tiene meta ${S(parametrosCaja('TRU','2026-12-11').meta)} (lo normal: ${S(parametrosCaja('TRU','2026-12-11').metaBase)}) y deja ${S(parametrosCaja('TRU','2026-12-11').fondo)}.</span>${F('nuevo','temporadas (sin cruces)')}</div>
+    <div class="herramientas" style="justify-content:space-between"><div><b>Campañas: lo que cambian en la caja</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">Las campañas y sus fechas son las de Catálogo ▸ Etiquetas. Aquí se dice, por tienda, cuánto sube la meta y qué fondo dejar. Vacío = lo normal.</p></div>
+      <button class="btn btn-secundario btn-sm" data-accion="ir-campanas">+ Nueva campaña (en Catálogo ▸ Etiquetas)</button></div>
+    <div class="tabla-wrap"><table class="t fija" style="min-width:900px"><thead><tr><th>Campaña</th><th>Fechas</th><th class="num">Descuento</th>${TIENDAS.map(u=>`<th class="num">${nombreUnidad(u).replace('Tienda ','')}: meta · fondo</th>`).join('')}<th>Estado</th></tr></thead>
+    <tbody>${proximas.map(c=>{ const est = estadoCampana(c); return `<tr${est[1]==='pasó'?' class="anulada-suave"':''}><td><b>${esc(c.n)}</b></td><td>${c.desde?`${fecha(c.desde)} – ${fecha(c.hasta)}`:'<span class="sub">sin fechas</span>'}</td><td class="num">${c.dcto?c.dcto+' %':'<span class="sub">—</span>'}</td>
+      ${TIENDAS.map(u=>{ const a = c.caja && c.caja[u]; return `<td class="num">${c.desde ? `<span class="par-inp">${inp(c.id+'|'+u+'|pct', a?a.pct:'', 64)}<span class="sub">%</span>${inp(c.id+'|'+u+'|fondo', a&&a.fondo!=null?a.fondo:'', 74)}</span>` : '<span class="sub">ponle fechas</span>'}</td>`; }).join('')}
+      <td><span class="badge" data-tono="${est[0]}">${est[1]}</span></td></tr>`; }).join('')}</tbody></table></div>
+    <div class="pie-tabla"><span>Si dos campañas se cruzan (Fiestas Patrias y el Día del Gato), gana la que más sube la meta y el fondo más alto: la misma regla que el descuento de una prenda.</span>${F('existe','etiquetas (estilo campaña, vigente_desde/hasta)')} ${F('nuevo','campana_efecto_caja')}</div>
   </div>
-  <div class="nota-cayla">La caja ve la meta de hoy y cuánto le falta; al cerrar, el fondo que tiene que dejar. Si deja menos, <b>se le pide confirmar, no se le bloquea</b>, y el líder lo ve en Historial de cierres. <button class="btn-enlace" data-ir="caja">Ver cómo se ve en Caja</button></div>`;
+  <div class="nota-cayla">Una sola lista de fechas: la de las campañas. La caja ve la meta de hoy y cuánto le falta; al cerrar, el fondo que tiene que dejar. Si deja menos, <b>se le pide confirmar, no se le bloquea</b>, y el líder lo ve en Historial de cierres. <button class="btn-enlace" data-ir="caja">Ver cómo se ve en Caja</button> · <button class="btn-enlace" data-ir="reportes:campanas">¿Valieron la pena las campañas?</button></div>`;
 }
 
 // ============ Ventas ▸ Caja (cómo se ve lo de Finanzas en el módulo de la tienda) ============
@@ -2073,7 +2137,7 @@ const MEDIOS_TXT = {efectivo:'Efectivo', yape:'Yape', plin:'Plin', tarjeta:'Tarj
 function cajaDe(u){
   const f = EFECTIVO.find(x=>x.u===u), hoy = HOY_CAJA[u], p = parametrosCaja(u, E.fechaCaja);
   const navidad = E.fechaCaja !== HOY;
-  const factor = navidad ? 1.5 : 1;                                  // un viernes de diciembre vende más
+  const factor = navidad ? 1 + (p.pct||0)/100 * 1.2 : 1;            // un día de campaña vende más
   const cobros = Object.fromEntries(Object.entries(hoy).map(([k,v])=>[k, Math.round(v*factor)]));
   const vendido = Object.values(cobros).reduce((a,v)=>a+v,0);
   const esperado = f.apertura + cobros.efectivo + f.ingresos - f.egresos;
@@ -2088,22 +2152,24 @@ VISTAS.caja = () => {
   const u = esLider() ? (TIENDAS.includes(E.sedeActiva) ? E.sedeActiva : 'TRU') : 'TRU';
   const c = cajaDe(u), p = c.p, falta = Math.max(0, p.meta - c.vendido), pctMeta = Math.min(100, c.vendido/p.meta*100);
   const medios = MEDIOS.find(m=>m.u===u);
-  const demoFecha = `<label class="ver"><span class="etq">Demo · día</span><select class="control" style="min-width:min(270px, 62vw)" data-cambia="fechaCaja">
+  const demoFecha = `<label class="ver"><span class="etq">Demo · día</span><select class="control" style="min-width:min(360px, 70vw)" data-cambia="fechaCaja">
       <option value="${HOY}"${E.fechaCaja===HOY?' selected':''}>Hoy, jueves 24 sep (lo normal)</option>
-      <option value="2026-12-11"${E.fechaCaja!==HOY?' selected':''}>Viernes 11 dic (Campaña de Navidad)</option></select></label>`;
+      <option value="2026-10-02"${E.fechaCaja==='2026-10-02'?' selected':''}>Viernes 2 oct (Aniversario CAYLA)</option>
+      <option value="2026-07-27"${E.fechaCaja==='2026-07-27'?' selected':''}>Lunes 27 jul (Fiestas Patrias + Día del Gato)</option>
+      <option value="2026-12-11"${E.fechaCaja==='2026-12-11'?' selected':''}>Viernes 11 dic (Navidad)</option></select></label>`;
   return `
   ${cabecera({sobre:'Ventas · Caja', titulo:`Caja de ${nombreUnidad(u)}`, bajada:`Abierta a las ${c.f.abre} por ${c.f.por}. Así llega lo que se configura en Finanzas a la caja de la tienda: la meta, el fondo y a qué cuenta entra cada cobro.`,
     acciones:`${demoFecha}<button class="btn btn-secundario" type="button">Registrar movimiento</button><button class="btn btn-primario" data-accion="cerrar-caja" data-id="${u}">Cerrar caja</button>`})}
   <section class="superficie pad anim-sube meta-caja">
-    <div class="prioridades-cab"><div><h2>Meta de hoy · ${S(p.meta)}</h2><p>${p.temporada?`${esc(p.temporada.n)}: lo normal de un ${DIAS_L[diaSemana(E.fechaCaja)]} es ${S(p.metaBase)}, esta temporada ${p.pct>0?'+':''}${p.pct} %.`:`Lo normal de un ${DIAS_L[diaSemana(E.fechaCaja)]} en ${nombreUnidad(u)}.`}</p></div>
-      ${p.temporada?`<span class="badge" data-tono="ambar">${esc(p.temporada.n)}</span>`:''}</div>
+    <div class="prioridades-cab"><div><h2>Meta de hoy · ${S(p.meta)}</h2><p>${p.manda?`Lo normal de un ${DIAS_L[diaSemana(E.fechaCaja)]} es ${S(p.metaBase)}; por ${esc(p.manda.n)} sube ${p.pct} %.${p.campanas.length>1?` Rigen ${p.campanas.length} campañas (${p.campanas.map(c=>esc(c.n)).join(' y ')}): se usa la que más sube.`:''}`:`Lo normal de un ${DIAS_L[diaSemana(E.fechaCaja)]} en ${nombreUnidad(u)}. Hoy no rige ninguna campaña.`}</p></div>
+      <span style="display:flex;gap:6px;flex-wrap:wrap">${p.campanas.map(c=>`<span class="badge" data-tono="ambar">${esc(c.n)}</span>`).join('')}</span></div>
     <div class="umbral-barra alto" role="img" aria-label="${Math.round(pctMeta)} % de la meta"><i style="width:${pctMeta}%"></i></div>
     <div class="meta-cifras">
       <div><span class="etq">Llevas</span><b class="serif">${S(c.vendido)}</b></div>
       <div><span class="etq">${falta?'Te faltan':'Meta cumplida'}</span><b class="serif" style="${falta?'':'color:var(--verde)'}">${falta?S(falta):'+'+S(c.vendido-p.meta)}</b></div>
       <div><span class="etq">Al ritmo de hoy cierras en</span><b class="serif">${S(c.alCierre)}</b><span class="sub" style="font-size:12px">${c.alCierre>=p.meta?'Llegas a la meta.':`Te quedarían ${S(p.meta-c.alCierre)} por vender. Son las ${HOY_CAJA.hora}; cierras a las ${TIENDAS_CAJA[u].cierra}.`}</span></div>
     </div>
-    ${F('existe','ubicaciones.meta_venta_diaria (barra de hoy)')} ${F('nuevo','fn_parametros_caja: día de la semana + temporada')}
+    ${F('existe','ubicaciones.meta_venta_diaria (barra de hoy)')} ${F('nuevo','fn_parametros_caja: día de la semana + campañas')}
   </section>
   <section class="dos-col par">
     <div class="superficie anim-sube">
@@ -2119,7 +2185,7 @@ VISTAS.caja = () => {
         <li>Deja para el próximo turno <b>${S(p.fondo)}</b></li>
         <li>Lo demás se traslada <span>a la caja fuerte, al banco (eliges cuál) o al líder</span></li>
       </ul>
-      <p class="sub" style="font-size:12.5px;margin:12px 0 0">${p.temporada?`El fondo sube a ${S(p.fondo)} por la ${esc(p.temporada.n)}: hay más ventas en efectivo y se necesita más sencillo.`:'El fondo lo pone el líder en Configuración ▸ Tiendas y caja, y cambia por temporada.'}</p>
+      <p class="sub" style="font-size:12.5px;margin:12px 0 0">${p.fondo>TIENDAS_CAJA[u].fondo?`El fondo sube a ${S(p.fondo)} por ${esc(p.campanas.filter(c=>c.caja[u].fondo===p.fondo).map(c=>c.n).join(' y '))}: hay más ventas en efectivo y se necesita más sencillo.`:'El fondo normal lo pone el líder en Configuración ▸ Tiendas y caja; cada campaña puede subirlo.'}</p>
     </div>
   </section>`;
 };
@@ -2129,7 +2195,7 @@ function modalCerrarCaja(u){
   ventana(`<h3>Cerrar caja de ${nombreUnidad(u)}</h3><p class="bajada">Cuenta el efectivo del cajón. Lo que no se traslada se queda para el próximo turno.</p>
     <div class="dos-campos"><div><span class="etq">Debería haber</span><div class="serif" style="font-size:26px">${S(c.esperado)}</div></div>
       <div class="campo"><label for="ccC">Contaste</label><input class="control" id="ccC" inputmode="decimal" value="${c.esperado}"></div></div>
-    <div class="fondo-pide"><b>Deja ${S(p.fondo)} para el próximo turno</b><span>${p.temporada?esc(p.temporada.n):'Lo normal de '+nombreUnidad(u)}</span></div>
+    <div class="fondo-pide"><b>Deja ${S(p.fondo)} para el próximo turno</b><span>${p.fondo>TIENDAS_CAJA[u].fondo?'Por '+esc(p.campanas.filter(c=>c.caja[u].fondo===p.fondo).map(c=>c.n).join(' y ')):'Lo normal de '+nombreUnidad(u)}</span></div>
     <div class="dos-campos"><div class="campo"><label for="ccT">Trasladas</label><input class="control" id="ccT" inputmode="decimal" value="${Math.max(0, c.esperado - p.fondo)}"><span class="ayuda">Propuesto: lo contado menos el fondo.</span></div>
       <div class="campo"><label for="ccD">¿A dónde va?</label><select class="control" id="ccD" style="width:100%"><option value="fuerte">Caja fuerte de ${nombreUnidad(u).replace('Tienda ','')}</option><option value="banco">Depósito en el banco</option><option value="lider">Entregado al líder</option></select></div></div>
     <div class="campo" id="ccBanco" hidden><label for="ccB">¿A qué banco?</label><select class="control" id="ccB" style="width:100%">${CUENTAS.filter(x=>x.tipo==='banco').map(x=>`<option value="${x.id}">${x.n}</option>`).join('')}</select><span class="ayuda">Antes solo decía «banco». Ahora queda a qué cuenta llegó: la conciliación lo encuentra solo.</span></div>
@@ -2151,7 +2217,7 @@ function modalCerrarCaja(u){
     if (q >= p.fondo) return cerrar(false);
     // Confirmación que NO bloquea: se puede cerrar igual.
     const conf = document.createElement('div'); conf.className = 'confirma';
-    conf.innerHTML = `<b>Vas a dejar ${S(q)} y ${p.temporada?'esta temporada':'lo normal'} pide ${S(p.fondo)}.</b><p>El próximo turno puede quedarse sin sencillo. Si cierras igual, queda anotado en el cierre.</p>
+    conf.innerHTML = `<b>Vas a dejar ${S(q)} y ${p.fondo>TIENDAS_CAJA[u].fondo?'la campaña':'lo normal'} pide ${S(p.fondo)}.</b><p>El próximo turno puede quedarse sin sencillo. Si cierras igual, queda anotado en el cierre.</p>
       <div class="botones" style="margin:10px 0 0"><button class="btn btn-secundario btn-sm" id="ccVolver">Volver y dejar ${S(p.fondo)}</button><button class="btn btn-primario btn-sm" id="ccIgual">Cerrar igual</button></div>`;
     v.querySelector('.confirma')?.remove(); v.querySelector('.botones').before(conf);
     conf.querySelector('#ccIgual').onclick = () => cerrar(true);
@@ -2209,6 +2275,11 @@ document.addEventListener('change', e => {
     if (r[0]==='ventas') PRESUPUESTO.ventas[r[1]] = v; else { PRESUPUESTO.gastos[r[1]][r[2]] = v; if (v==null) delete PRESUPUESTO.gastos[r[1]][r[2]]; }
     avisar('Presupuesto guardado.'); return; }
   const tc = e.target.closest('[data-tc]');
+  if (tc && tc.dataset.tc.split('|').length === 3){   // efecto de una campaña en una tienda
+    const [id,u,k] = tc.dataset.tc.split('|'), c = CAMPANAS.find(x=>x.id===id), raw = tc.value.replace(/[^0-9.\-]/g,''), v = raw==='' ? null : parseFloat(raw);
+    c.caja = c.caja || {}; c.caja[u] = c.caja[u] || {pct:0, fondo:null}; c.caja[u][k] = k==='pct' ? (v ?? 0) : v;
+    if (!c.caja[u].pct && c.caja[u].fondo == null) delete c.caja[u]; if (!Object.keys(c.caja).length) c.caja = null;
+    render(); avisar(`${c.n} en ${nombreUnidad(u)}: ${k==='pct' ? 'meta '+(v>0?'+':'')+(v??0)+' %' : 'fondo '+(v==null?'normal':S(v))}.`); return; }
   if (tc){ const [u,k] = tc.dataset.tc.split('|'), v = parseFloat(tc.value.replace(/[^0-9.]/g,'')); if (isNaN(v)) return;
     if (k==='fondo') TIENDAS_CAJA[u].fondo = v; else TIENDAS_CAJA[u].metas[+k] = v;
     render(); avisar(k==='fondo' ? `Fondo de ${nombreUnidad(u)}: ${S(v)}.` : `Meta del ${DIAS_L[+k]} de ${nombreUnidad(u)}: ${S(v)}. La meta del mes se recalculó.`); return; }

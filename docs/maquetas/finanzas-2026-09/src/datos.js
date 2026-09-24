@@ -135,10 +135,11 @@ const FLUJO_REAL = {
   entradas: [['Efectivo',38200],['Yape',19600],['Plin',11100],['Tarjeta',8300],['Transferencia',3400]],
   salidas:  [['Proveedores de mercadería',41300],['Planilla (Dynamic)',29800],['Gastos',18400],['Insumos del Taller',6200],['Retiro del dueño',2500]],
 };
+// Lo que entra sube en las semanas con campaña (su meta la dice cuánto): el flujo lee las campañas.
 const FLUJO_SEMANAS = [
-  {s:'28 sep – 4 oct', entra:22000, sale:58500, que:'Planilla S/ 29,800 · alquileres · Confecciones Andina'},
-  {s:'5 – 11 oct',     entra:22000, sale:18900, que:'Moda Lima · Tejidos del Sur · Distribuidora Norte (parte)'},
-  {s:'12 – 18 oct',    entra:22000, sale:35700, que:'Distribuidora Norte S/ 15,300 · Muebles Roble · luz'},
+  {s:'28 sep – 4 oct', entra:24500, sale:58500, campana:'Aniversario CAYLA desde el 1', que:'Planilla S/ 29,800 · alquileres · Confecciones Andina'},
+  {s:'5 – 11 oct',     entra:26000, sale:18900, campana:'Aniversario CAYLA', que:'Moda Lima · Tejidos del Sur · Distribuidora Norte (parte)'},
+  {s:'12 – 18 oct',    entra:23000, sale:42000, campana:'Aniversario CAYLA hasta el 14', que:'Distribuidora Norte S/ 15,300 · reposición para el Aniversario S/ 6,300 · Muebles Roble · luz'},
   {s:'19 – 25 oct',    entra:22000, sale:9800,  que:'Confecciones Andina (LIM) parte · servicios'},
   {s:'26 oct – 1 nov', entra:22000, sale:31200, que:'Planilla · alquileres'},
   {s:'2 – 8 nov',      entra:22000, sale:14600, que:'Proveedores de temporada'},
@@ -240,7 +241,7 @@ const PRESTAMOS_DUENO = [
   {f:'2026-07-14', monto:10000, nota:'Para pagar la mercadería de invierno', devuelto:4000},
 ];
 
-// ============ v3: meta del día y fondo de caja, por temporada (Configuración ▸ Tiendas y caja) ============
+// ============ v3: meta del día y fondo de caja; cada campaña los cambia (Configuración ▸ Tiendas y caja) ============
 // La meta del día es CON IGV: es lo que la caja ve cobrado. El presupuesto del mes la muestra sin IGV.
 const DIAS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 const DIAS_L = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
@@ -249,12 +250,31 @@ const TIENDAS_CAJA = {
   AQP: {metas:[1100,1100,1200,1250,1500,1850,1450], fondo:250, cierra:'21:00'},
   LIM: {metas:[780,780,850,880,1050,1300,1020],     fondo:200, cierra:'22:00'},
 };
-// Dos temporadas no pueden cruzarse (lo impide la base). pct: cuánto sube o baja la meta; fondo: lo que se deja.
-const TEMPORADAS = [
-  {id:'t1', n:'Fiestas Patrias',     desde:'2026-07-20', hasta:'2026-07-31', ajuste:{TRU:{pct:25, fondo:400}, AQP:{pct:25, fondo:350}, LIM:{pct:20, fondo:300}}},
-  {id:'t2', n:'Campaña de Navidad',  desde:'2026-12-01', hasta:'2026-12-31', ajuste:{TRU:{pct:40, fondo:500}, AQP:{pct:40, fondo:450}, LIM:{pct:35, fondo:400}}},
-  {id:'t3', n:'Temporada baja',      desde:'2027-02-01', hasta:'2027-03-15', ajuste:{TRU:{pct:-15, fondo:200}, AQP:{pct:-15, fondo:200}, LIM:{pct:-20, fondo:150}}},
+// Las CAMPAÑAS son las etiquetas de estilo «campaña» de Catálogo ▸ Etiquetas (las mismas de producción, con sus fechas).
+// Ellas son las dueñas de las fechas. Lo nuevo es su efecto en la caja, por tienda: cuánto sube la meta y qué fondo
+// dejar (null = lo normal). Pueden cruzarse: ese día gana la mayor (igual que el descuento de una prenda).
+const CAMPANAS = [
+  {id:'c01', n:'San Valentín',                desde:'2026-01-31', hasta:'2026-02-14', dcto:null, caja:{TRU:{pct:15, fondo:350}, AQP:{pct:15, fondo:300}, LIM:{pct:10, fondo:250}}},
+  {id:'c02', n:'Día de la Mujer',             desde:'2026-02-22', hasta:'2026-03-08', dcto:null, caja:null},
+  {id:'c03', n:'Día de la Tierra',            desde:'2026-04-08', hasta:'2026-04-22', dcto:null, caja:null},
+  {id:'c04', n:'Día de la Madre',             desde:'2026-04-26', hasta:'2026-05-10', dcto:null, caja:{TRU:{pct:30, fondo:400}, AQP:{pct:30, fondo:350}, LIM:{pct:25, fondo:300}}},
+  {id:'c05', n:'Fiestas Patrias',             desde:'2026-07-14', hasta:'2026-07-29', dcto:null, caja:{TRU:{pct:25, fondo:400}, AQP:{pct:25, fondo:350}, LIM:{pct:20, fondo:300}}},
+  {id:'c06', n:'Día Internacional del Gato',  desde:'2026-07-25', hasta:'2026-08-08', dcto:null, caja:{TRU:{pct:5, fondo:null}, AQP:{pct:5, fondo:null}, LIM:{pct:5, fondo:null}}},
+  {id:'c07', n:'Día Internacional del Perro', desde:'2026-08-12', hasta:'2026-08-26', dcto:null, caja:{TRU:{pct:5, fondo:null}, AQP:{pct:5, fondo:null}, LIM:{pct:5, fondo:null}}},
+  {id:'c08', n:'Aniversario CAYLA',           desde:'2026-10-01', hasta:'2026-10-14', dcto:15,   caja:{TRU:{pct:30, fondo:400}, AQP:{pct:30, fondo:350}, LIM:{pct:30, fondo:300}}},
+  {id:'c09', n:'Halloween',                   desde:'2026-10-17', hasta:'2026-10-31', dcto:null, caja:null},
+  {id:'c10', n:'Black Friday',                desde:'2026-11-09', hasta:'2026-11-30', dcto:30,   caja:{TRU:{pct:50, fondo:500}, AQP:{pct:50, fondo:450}, LIM:{pct:40, fondo:400}}},
+  {id:'c11', n:'Navidad',                     desde:'2026-12-11', hasta:'2026-12-25', dcto:null, caja:{TRU:{pct:40, fondo:500}, AQP:{pct:40, fondo:450}, LIM:{pct:35, fondo:400}}},
+  {id:'c12', n:'CyberWow',                    desde:null,         hasta:null,         dcto:null, caja:null},
 ];
+// Resultado de las campañas que ya pasaron (ventas sin IGV). «normal» = lo que la tienda vende en la misma cantidad
+// de días sin campaña. descuento = lo que se dejó de cobrar por el descuento de la campaña (venta_items.descuento_etiqueta_id).
+const CAMPANA_RESULTADOS = {
+  c04: {ventas:52400, normal:40100, descuento:0,    margenPct:.53, prendas:612},
+  c05: {ventas:48900, normal:37800, descuento:2300, margenPct:.49, prendas:598},
+  c06: {ventas:43200, normal:41600, descuento:1900, margenPct:.47, prendas:520},
+  c07: {ventas:41800, normal:41200, descuento:2600, margenPct:.45, prendas:505},
+};
 // Lo que vendió hoy cada tienda hasta las 17:40, por medio (la caja lo tiene; aquí para el ejemplo de Caja).
 const HOY_CAJA = {
   hora:'17:40',

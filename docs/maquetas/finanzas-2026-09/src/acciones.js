@@ -48,6 +48,11 @@ document.addEventListener('change', e => {
     if (r[0]==='ventas') PRESUPUESTO.ventas[r[1]] = v; else { PRESUPUESTO.gastos[r[1]][r[2]] = v; if (v==null) delete PRESUPUESTO.gastos[r[1]][r[2]]; }
     avisar('Presupuesto guardado.'); return; }
   const tc = e.target.closest('[data-tc]');
+  if (tc && tc.dataset.tc.split('|').length === 3){   // efecto de una campaña en una tienda
+    const [id,u,k] = tc.dataset.tc.split('|'), c = CAMPANAS.find(x=>x.id===id), raw = tc.value.replace(/[^0-9.\-]/g,''), v = raw==='' ? null : parseFloat(raw);
+    c.caja = c.caja || {}; c.caja[u] = c.caja[u] || {pct:0, fondo:null}; c.caja[u][k] = k==='pct' ? (v ?? 0) : v;
+    if (!c.caja[u].pct && c.caja[u].fondo == null) delete c.caja[u]; if (!Object.keys(c.caja).length) c.caja = null;
+    render(); avisar(`${c.n} en ${nombreUnidad(u)}: ${k==='pct' ? 'meta '+(v>0?'+':'')+(v??0)+' %' : 'fondo '+(v==null?'normal':S(v))}.`); return; }
   if (tc){ const [u,k] = tc.dataset.tc.split('|'), v = parseFloat(tc.value.replace(/[^0-9.]/g,'')); if (isNaN(v)) return;
     if (k==='fondo') TIENDAS_CAJA[u].fondo = v; else TIENDAS_CAJA[u].metas[+k] = v;
     render(); avisar(k==='fondo' ? `Fondo de ${nombreUnidad(u)}: ${S(v)}.` : `Meta del ${DIAS_L[+k]} de ${nombreUnidad(u)}: ${S(v)}. La meta del mes se recalculó.`); return; }

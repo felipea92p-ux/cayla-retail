@@ -10,19 +10,24 @@ después (ADR-0149); combo «Responsable» en cada guardado (ADR-0161/0162).
 
 ## v3 (2026-09-24, noche): la plata conectada con todo el ERP
 
-- **Configuración ▸ Tiendas y caja:** meta de cada día de la semana por tienda (con IGV), fondo de caja y temporadas
-  (Fiestas Patrias, Navidad, temporada baja) que suben o bajan la meta y cambian el fondo. No se pueden cruzar. La meta
-  del mes del Presupuesto sale de aquí.
+- **Configuración ▸ Tiendas y caja:** meta de cada día de la semana por tienda (con IGV) y fondo de caja; debajo, las
+  **campañas** de Catálogo ▸ Etiquetas (las 12 reales, con sus fechas) y, por tienda, cuánto sube la meta y qué fondo
+  dejar. No hay «temporadas» aparte (pedido de Felipe): la campaña es la dueña de las fechas. Si dos se cruzan, gana la
+  mayor. La meta del mes del Presupuesto sale de aquí.
+- **Reportes ▸ Campañas:** margen extra de cada campaña pasada contra días normales (Día del Gato y del Perro no se
+  pagaron), y para las que vienen, cuánto más hay que vender para compensar su descuento.
 - **Ventas ▸ Caja (pantalla de ejemplo, no es de Finanzas):** meta de hoy con lo que falta y a qué hora se llega al
   ritmo actual; a qué cuenta entró cada cobro; y el cierre: «Deja S/ X», traslado propuesto, destino «banco» que pregunta
-  cuál, y la **confirmación que no bloquea** si se deja menos del fondo. «Demo · día» simula un viernes de Navidad.
+  cuál, y la **confirmación que no bloquea** si se deja menos del fondo. «Demo · día» simula el Aniversario, un día con
+  dos campañas cruzadas (27 jul) y Navidad.
 - **Cuentas nuevas:** cajas fuertes por tienda, efectivo entregado al líder y tarjeta de crédito de CAYLA (deuda).
 - **Pagar a un proveedor** propone «Sale de» con bancos, cajas fuertes, efectivo por rendir, cajones y la tarjeta.
 - El mapa de las 22 situaciones donde entra, sale o se mueve plata está en `docs/PLAN-FINANZAS.md` §7 bis.
 
 Guion: **Ventas ▸ Caja** → «Demo · día» Navidad → «Cerrar caja» → sube el traslado 200 → «Cerrar caja» → confirmación
-→ «Volver y dejar S/ 500» o «Cerrar igual». **Configuración ▸ Tiendas y caja** → cambia la meta de un sábado: cambia la
-meta del mes y el Presupuesto. «+ Nueva temporada» con fechas que chocan con Navidad → la rechaza.
+→ «Volver y dejar S/ 500» o «Cerrar igual». «Demo · día» 27 jul: rigen Fiestas Patrias y Día del Gato, gana la mayor.
+**Configuración ▸ Tiendas y caja** → cambia la meta de un sábado o el efecto del Aniversario: cambian la meta del mes, el
+Presupuesto y la Caja de ese día. **Reportes ▸ Campañas** → qué campañas se pagaron y cuáles vienen con riesgo.
 
 Verificado con Chrome sin ventana: 16 pasos nuevos + los 20 de la v2, sin errores de JavaScript; sin desborde a 375 px
 en ninguna pantalla, pestaña ni día simulado.

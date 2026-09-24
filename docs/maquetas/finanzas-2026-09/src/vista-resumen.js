@@ -34,12 +34,18 @@ const sumaTipo = (...ts) => CUENTAS.filter(c=>ts.includes(c.tipo)).reduce((a,c)=
 
 // ---- Meta del día y fondo de caja: lo que rige en una tienda en una fecha (en la base: fn_parametros_caja) ----
 const diaSemana = f => (new Date(f+'T12:00:00').getDay() + 6) % 7;   // 0 = lunes
-const temporadaDe = f => TEMPORADAS.find(t => f >= t.desde && f <= t.hasta) || null;
+// Las campañas que rigen en una tienda un día (con fechas y con efecto en caja para esa tienda).
+const campanasDe = (u, f) => CAMPANAS.filter(c => c.desde && f >= c.desde && f <= c.hasta && c.caja && c.caja[u]);
+// Si se cruzan varias, gana la mayor: la que más sube la meta y el fondo más alto (como el descuento de una prenda).
 function parametrosCaja(u, f){
   const base = TIENDAS_CAJA[u]; if (!base) return null;
-  const t = temporadaDe(f), aj = t && t.ajuste[u];
+  const cs = campanasDe(u, f);
+  const pct = cs.length ? Math.max(...cs.map(c => c.caja[u].pct)) : 0;
+  const fondos = cs.map(c => c.caja[u].fondo).filter(v => v != null);
+  const fondo = fondos.length ? Math.max(base.fondo, ...fondos) : base.fondo;
   const metaBase = base.metas[diaSemana(f)];
-  return {meta: Math.round(metaBase * (1 + (aj ? aj.pct : 0)/100)), metaBase, fondo: aj ? aj.fondo : base.fondo, temporada: t, pct: aj ? aj.pct : 0};
+  const manda = cs.length ? cs.reduce((a,c) => c.caja[u].pct > a.caja[u].pct ? c : a) : null;   // la que fija la meta
+  return {meta: Math.round(metaBase * (1 + pct/100)), metaBase, fondo, pct, campanas: cs, manda};
 }
 // Meta del mes = suma de las metas de cada día (una sola meta, no dos). Sin IGV para Finanzas.
 function metaMes(u, mes='2026-09'){
@@ -102,6 +108,9 @@ VISTAS.resumen = () => {
     ...RAROS.filter(x=>x.u==null ? todas : enVista(x.u)).map(x=>({tono:'pizarra', t:x.t, d:x.d, imp:'', ir:x.ir, b:'Revisar', raro:true})),
     EGRESOS.some(e=>enVista(e.u)) && (n => ({tono:'pizarra', t:`${n} ${n===1?'egreso':'egresos'} de caja sin clasificar`, d:'Mientras no se diga si son gasto, depósito o retiro, no cuentan en ningún número.', imp:'', ir:'gastos:egresos', b:'Clasificar'}))(EGRESOS.filter(e=>enVista(e.u)).length),
     todas && Object.keys(E.parejas).length < EXTRACTO_IBK.length && {tono:'pizarra', t:'Interbank tiene 6 movimientos por confirmar', d:'El sistema ya propuso la pareja de cada uno. Confirmar toma un minuto.', imp:'', ir:'dinero:conciliacion', b:'Conciliar'},
+    todas && (() => { const c = CAMPANAS.filter(x => x.desde && x.desde > HOY).sort((a,b)=>a.desde.localeCompare(b.desde))[0]; if (!c || dias(c.desde, HOY) > 14) return null;
+      const need = c.dcto ? extraNecesario(c.dcto) : 0, sube = c.caja ? Math.max(...Object.values(c.caja).map(a=>a.pct)) : 0;
+      return {tono: c.dcto && need > sube/100 ? 'ambar' : 'pizarra', t:`${c.n} empieza en ${dias(c.desde, HOY)} días`, d: c.dcto ? `Con ${c.dcto} % de descuento, para ganar lo mismo que un día normal hay que vender ${pct(need)} más; la meta sube ${sube} %. ${need > sube/100 ? 'Aunque se cumpla, dejaría menos margen.' : 'Si se cumple, deja más.'}` : `Sin descuento: la meta sube ${sube} % y el fondo de caja también.`, imp:'', ir:'reportes:campanas', b:'Ver campaña'}; })(),
     todas && {tono:'pizarra', t:`Vas al ${pct(VENTAS_12M/(300*UIT))} del límite de 300 UIT`, d:'Al cruzarlo, SUNAT exige libros electrónicos. A este ritmo, a mediados de 2027.', imp:'', ir:'impuestos', b:'Ver'},
   ].filter(Boolean);
 

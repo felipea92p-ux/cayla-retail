@@ -92,7 +92,7 @@ proyección al cierre, escenarios («¿y si…?»), avisos de lo raro (contra el
 sistema propone y detecta, y conciliación que propone la pareja de cada línea del banco. Cada número dice de qué dato
 sale. Un resumen escrito con IA puede sumarse encima después, nunca en lugar del cálculo.
 
-## Actualización 2026-09-24 (c) — la cuenta en cada movimiento, y meta y fondo de caja por temporada
+## Actualización 2026-09-24 (c) — la cuenta en cada movimiento, y meta y fondo de caja unidos a las campañas
 
 **Pedido de Felipe:** meta del día por tienda visible en Caja; fondo de caja que cambia por temporada y que la caja vea
 al cerrar, con una confirmación que no bloquee si deja menos; las cuentas de CAYLA en Compras, Ventas y en todo lugar
@@ -116,13 +116,20 @@ operación y resta del cierre. Hoy `fn_calcular_esperado_caja` no los cuenta: ha
 **J. Una sola lista de medios de pago** en `packages/shared` y en un dominio de la base, en lugar de los 5 `check`
 distintos de hoy.
 
-**K. Meta del día y fondo de caja por temporada.** Lo normal por tienda: una meta por día de la semana (con IGV, lo que
-ve la caja) y un fondo. Temporadas con fechas que no se cruzan (lo impide la base): cuánto sube o baja la meta y qué
-fondo se deja. Una sola función decide qué rige cada día (`fn_parametros_caja`). La meta del mes del Presupuesto es la
-suma de las metas del día, no se escribe aparte. Se apoya en `ubicaciones.meta_venta_diaria`, que ya existe y en
-producción está vacía.
+**K. Meta del día y fondo de caja, unidos a las campañas** (corregido el mismo día a pedido de Felipe: la primera
+versión inventaba «temporadas» aparte y él pidió unirlas a las campañas). Lo normal por tienda: una meta por día de la
+semana (con IGV, lo que ve la caja) y un fondo. Cada **campaña** (etiqueta de estilo «campaña» de Catálogo ▸ Etiquetas,
+dueña única de las fechas) puede decir, por tienda, cuánto sube la meta y qué fondo dejar (`campana_efecto_caja`). Las
+campañas se cruzan (el Día del Gato cae dentro de Fiestas Patrias): **gana la mayor**, la misma regla del descuento de una
+prenda. Una sola función decide qué rige cada día (`fn_parametros_caja`). La meta del mes del Presupuesto es la suma de las
+del día. Se apoya en `ubicaciones.meta_venta_diaria`, que ya existe y en producción está vacía.
+*Descarté:* temporadas propias con fechas que no se cruzan (dos listas de fechas que se desalinean), y sumar los
+porcentajes de dos campañas cruzadas (Fiestas Patrias + Gato daría +30 % por una campaña de peluches).
 
-**L. Al cerrar la caja, «Deja S/ X para el próximo turno».** El traslado viene propuesto (contado − fondo). Si queda
+**K2. Reportes ▸ Campañas:** margen extra de cada campaña pasada contra días normales (`venta_items.descuento_etiqueta_id`)
+y, para las que vienen, cuánto más hay que vender para compensar el descuento contra cuánto sube su meta.
+
+**L. Al cerrar la caja, «Deja S/ X para el próximo turno».** El fondo es el de lo normal o el de la campaña que rige. El traslado viene propuesto (contado − fondo). Si queda
 menos, sale una confirmación que no bloquea; si se cierra igual, queda anotado y el líder lo ve en Historial de cierres.
-**Cambia el punto 3 del ADR-0186** («sin fondo sugerido»): ahora el fondo lo fija el líder por temporada, y el sistema
+**Cambia el punto 3 del ADR-0186** («sin fondo sugerido»): ahora el fondo lo fija el líder (normal y por campaña), y el sistema
 solo avisa cuando falta, nunca cuando sobra. Y el destino «banco» del cierre pide **a qué banco**.

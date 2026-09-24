@@ -102,24 +102,27 @@ function modalCuenta(){
     guardar('Cuenta agregada.', () => { CUENTAS.forEach(c=>c.nuevo=false); CUENTAS.splice(2,0,{id:'c'+Date.now(), n:$('#cN').value, tipo:t, cta:t==='banco'?'104':'105', saldo:+$('#cS').value||0, conciliado:HOY, recibe:'Sin cobros asignados todavía', nuevo:true}); }); };
 }
 
-// ---------- Tiendas y caja: meta del día, fondo y temporadas ----------
+// ---------- Tiendas y caja: meta del día, fondo y lo que cambia cada campaña ----------
+function estadoCampana(c){ if (!c.desde) return ['taupe','sin fechas']; return HOY > c.hasta ? ['taupe','pasó'] : HOY >= c.desde ? ['ambar','rige hoy'] : ['pizarra','viene']; }
 function cfgTiendas(){
-  const hoyT = temporadaDe(HOY);
-  const inp = (ruta, v, ancho) => `<input class="control num-input" style="max-width:${ancho||84}px" inputmode="numeric" value="${v}" data-tc="${ruta}">`;
+  const hoyC = CAMPANAS.filter(c => c.desde && HOY >= c.desde && HOY <= c.hasta);
+  const inp = (ruta, v, ancho) => `<input class="control num-input" style="max-width:${ancho||84}px" inputmode="numeric" value="${v ?? ''}" placeholder="—" data-tc="${ruta}">`;
+  const proximas = CAMPANAS.filter(c => !c.desde || c.hasta >= HOY).concat(CAMPANAS.filter(c => c.desde && c.hasta < HOY));
   return `<div class="superficie anim-sube">
     <div class="herramientas" style="justify-content:space-between"><div><b>Lo normal de cada tienda</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">Meta de venta de cada día de la semana (con IGV, lo que ve la caja) y lo que debe quedar en el cajón al cerrar.</p></div>
-      <span class="badge" data-tono="${hoyT?'ambar':'verde'}">Hoy rige: ${hoyT?esc(hoyT.n):'lo normal'}</span></div>
+      <span class="badge" data-tono="${hoyC.length?'ambar':'verde'}">Hoy rige: ${hoyC.length?hoyC.map(c=>esc(c.n)).join(' y '):'lo normal'}</span></div>
     <div class="tabla-wrap"><table class="t fija" style="min-width:860px"><thead><tr><th>Tienda</th>${DIAS.map(d=>`<th class="num">${d}</th>`).join('')}<th class="num">Fondo de caja</th><th class="num">Meta del mes</th></tr></thead>
     <tbody>${Object.entries(TIENDAS_CAJA).map(([u,t])=>`<tr><td><b>${nombreUnidad(u)}</b></td>${t.metas.map((m,i)=>`<td class="num">${inp(u+'|'+i, m)}</td>`).join('')}<td class="num">${inp(u+'|fondo', t.fondo, 90)}</td><td class="num"><b>${S(Math.round(metaMes(u)*1.18))}</b><span class="sub" style="display:block;font-size:11.5px">${S(metaMes(u))} sin IGV</span></td></tr>`).join('')}</tbody></table></div>
-    <div class="pie-tabla"><span>La meta del mes no se escribe: es la suma de los días. Presupuesto la usa.</span>${F('existe','ubicaciones.meta_venta_diaria')} ${F('nuevo','metas por día + fondo de caja')}</div>
+    <div class="pie-tabla"><span>La meta del mes no se escribe: es la suma de los días, con las campañas incluidas. Presupuesto la usa.</span>${F('existe','ubicaciones.meta_venta_diaria')} ${F('nuevo','metas por día + fondo de caja')}</div>
   </div>
   <div class="superficie anim-sube">
-    <div class="herramientas" style="justify-content:space-between"><div><b>Temporadas</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">En esas fechas, la meta sube o baja y el fondo cambia. Dos temporadas no pueden cruzarse.</p></div>
-      <button class="btn btn-primario btn-sm" data-accion="nueva-temporada">+ Nueva temporada</button></div>
-    <div class="tabla-wrap"><table class="t fija" style="min-width:760px"><thead><tr><th>Temporada</th><th>Fechas</th>${TIENDAS.map(u=>`<th class="num">${nombreUnidad(u).replace('Tienda ','')}: meta · fondo</th>`).join('')}<th>Estado</th></tr></thead>
-    <tbody>${TEMPORADAS.map(t=>{ const est = HOY > t.hasta ? ['taupe','pasó'] : HOY >= t.desde ? ['ambar','rige hoy'] : ['pizarra','viene']; return `<tr class="${t.nuevo?'fila-nueva':''}"><td><b>${esc(t.n)}</b></td><td>${fecha(t.desde)} – ${fecha(t.hasta)} ${t.hasta.slice(0,4)}</td>
-      ${TIENDAS.map(u=>{ const a = t.ajuste[u]; return `<td class="num">${a.pct>0?'+':''}${a.pct} % · ${S(a.fondo)}</td>`; }).join('')}<td><span class="badge" data-tono="${est[0]}">${est[1]}</span></td></tr>`; }).join('')}</tbody></table></div>
-    <div class="pie-tabla"><span>Ejemplo: un viernes de la Campaña de Navidad, TRU tiene meta ${S(parametrosCaja('TRU','2026-12-11').meta)} (lo normal: ${S(parametrosCaja('TRU','2026-12-11').metaBase)}) y deja ${S(parametrosCaja('TRU','2026-12-11').fondo)}.</span>${F('nuevo','temporadas (sin cruces)')}</div>
+    <div class="herramientas" style="justify-content:space-between"><div><b>Campañas: lo que cambian en la caja</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">Las campañas y sus fechas son las de Catálogo ▸ Etiquetas. Aquí se dice, por tienda, cuánto sube la meta y qué fondo dejar. Vacío = lo normal.</p></div>
+      <button class="btn btn-secundario btn-sm" data-accion="ir-campanas">+ Nueva campaña (en Catálogo ▸ Etiquetas)</button></div>
+    <div class="tabla-wrap"><table class="t fija" style="min-width:900px"><thead><tr><th>Campaña</th><th>Fechas</th><th class="num">Descuento</th>${TIENDAS.map(u=>`<th class="num">${nombreUnidad(u).replace('Tienda ','')}: meta · fondo</th>`).join('')}<th>Estado</th></tr></thead>
+    <tbody>${proximas.map(c=>{ const est = estadoCampana(c); return `<tr${est[1]==='pasó'?' class="anulada-suave"':''}><td><b>${esc(c.n)}</b></td><td>${c.desde?`${fecha(c.desde)} – ${fecha(c.hasta)}`:'<span class="sub">sin fechas</span>'}</td><td class="num">${c.dcto?c.dcto+' %':'<span class="sub">—</span>'}</td>
+      ${TIENDAS.map(u=>{ const a = c.caja && c.caja[u]; return `<td class="num">${c.desde ? `<span class="par-inp">${inp(c.id+'|'+u+'|pct', a?a.pct:'', 64)}<span class="sub">%</span>${inp(c.id+'|'+u+'|fondo', a&&a.fondo!=null?a.fondo:'', 74)}</span>` : '<span class="sub">ponle fechas</span>'}</td>`; }).join('')}
+      <td><span class="badge" data-tono="${est[0]}">${est[1]}</span></td></tr>`; }).join('')}</tbody></table></div>
+    <div class="pie-tabla"><span>Si dos campañas se cruzan (Fiestas Patrias y el Día del Gato), gana la que más sube la meta y el fondo más alto: la misma regla que el descuento de una prenda.</span>${F('existe','etiquetas (estilo campaña, vigente_desde/hasta)')} ${F('nuevo','campana_efecto_caja')}</div>
   </div>
-  <div class="nota-cayla">La caja ve la meta de hoy y cuánto le falta; al cerrar, el fondo que tiene que dejar. Si deja menos, <b>se le pide confirmar, no se le bloquea</b>, y el líder lo ve en Historial de cierres. <button class="btn-enlace" data-ir="caja">Ver cómo se ve en Caja</button></div>`;
+  <div class="nota-cayla">Una sola lista de fechas: la de las campañas. La caja ve la meta de hoy y cuánto le falta; al cerrar, el fondo que tiene que dejar. Si deja menos, <b>se le pide confirmar, no se le bloquea</b>, y el líder lo ve en Historial de cierres. <button class="btn-enlace" data-ir="caja">Ver cómo se ve en Caja</button> · <button class="btn-enlace" data-ir="reportes:campanas">¿Valieron la pena las campañas?</button></div>`;
 }

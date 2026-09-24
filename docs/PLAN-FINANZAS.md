@@ -245,29 +245,50 @@ decide de dónde sale la plata (6, 9–17, 19–21), y siempre viene propuesta.
 especiales que no mueven plata (`anticipo`, `saldo_a_favor`). Vive en `packages/shared` y en un dominio de la base, y
 reemplaza los 5 `check` distintos de hoy.
 
-## 7 ter. Meta del día y fondo de caja, por temporada (ADR-0195, actualización c)
+## 7 ter. Meta del día y fondo de caja, unidos a las campañas (ADR-0195, actualización c)
 
-**Lo que ya existe:** `ubicaciones.meta_venta_diaria` (migración `20260918100000`) y la barra «de S/ X» en Caja y en
-Inicio. En producción **ninguna tienda tiene meta cargada**, así que la barra no aparece; hoy se carga a mano en la base.
+**Lo que ya existe:**
+- `ubicaciones.meta_venta_diaria` (migración `20260918100000`) y la barra «de S/ X» en Caja y en Inicio. En producción
+  **ninguna tienda tiene meta cargada**, así que la barra no aparece; hoy se carga a mano en la base.
+- **Las campañas** son las etiquetas de estilo «campaña» de Catálogo ▸ Etiquetas: 12 en producción, 11 con fechas (San
+  Valentín, Día de la Madre, Fiestas Patrias del 14 al 29 de julio, Aniversario CAYLA, Black Friday, Navidad del 11 al
+  25 de diciembre…). Tienen descuento, categorías y tiendas (`sedes_permitidas`), y **se cruzan entre sí**: el Día del
+  Gato cae dentro de Fiestas Patrias.
+- Cada prenda vendida guarda qué campaña le dio el descuento (`venta_items.descuento_etiqueta_id`).
 
-**Lo nuevo, en Configuración ▸ Tiendas y caja:**
+**Decisión de Felipe (2026-09-24): no hay «temporadas» aparte; la campaña es la temporada.** Una sola lista de fechas:
+si hubiera dos, un día Navidad diría «del 11 al 25» en una y «del 1 al 31» en la otra.
+
+**En Configuración ▸ Tiendas y caja:**
 - **Lo normal, por tienda:** la meta de cada día de la semana (el sábado no vende como el martes) y el **fondo de caja**
   (lo que debe quedar en el cajón para el próximo turno).
-- **Temporadas:** un nombre y unas fechas (Campaña de Navidad, del 1 al 31 de diciembre). Por tienda: cuánto sube o baja
-  la meta (+40 %) y cuánto fondo dejar (S/ 500). Dos temporadas no pueden cruzarse: lo impide la base.
-- **Una sola función** decide lo que rige cada día (`fn_parametros_caja(sede, fecha)`). La leen Caja, Inicio y Finanzas.
+- **Lo que cambia cada campaña, por tienda:** cuánto sube (o baja) la meta y qué fondo dejar. Vacío = lo normal. Las
+  campañas y sus fechas se leen de Catálogo ▸ Etiquetas; no se crean aquí. Una campaña sin fechas (CyberWow) no puede
+  tener efecto en la caja hasta que se le pongan.
+- **Si dos campañas rigen el mismo día, gana la mayor:** la que más sube la meta y el fondo más alto. Es la misma regla
+  que ya usa el descuento de una prenda con varias etiquetas.
+- **Una sola función** decide lo que rige cada día (`fn_parametros_caja(sede, fecha)`), y la leen Caja, Inicio, Presupuesto
+  y el Flujo de caja (las semanas con campaña esperan vender más).
+- Tabla nueva `campana_efecto_caja (etiqueta_id, ubicacion_id, meta_pct, fondo)`; solo acepta etiquetas de estilo
+  campaña y con fechas.
 
-**En Caja:** «Meta de hoy (viernes, Campaña de Navidad): S/ 2,520 · llevas S/ 1,640 · te faltan S/ 880». Y al ritmo de
-la hora: «a este paso cierras en S/ 2,300».
+**En Caja:** «Meta de hoy S/ 1,875: lo normal de un lunes es S/ 1,500; por Fiestas Patrias sube 25 %. Rigen 2 campañas
+(Fiestas Patrias y Día del Gato): se usa la que más sube». Y al ritmo de la hora: «a este paso cierras en S/ 2,018».
 
-**Al cerrar la caja:** «Para el próximo turno deja **S/ 500** (Campaña de Navidad)». El traslado viene propuesto
-(contado − fondo). Si va a quedar menos, sale una **confirmación que no bloquea**: «Vas a dejar S/ 320 y esta temporada
-pide S/ 500. El próximo turno puede quedarse sin sencillo. ¿Cerrar igual?». Si cierra igual, queda anotado en el cierre
-y el líder lo ve en Historial de cierres. **Cambia el punto 3 del ADR-0186** («sin fondo sugerido»): ahora el fondo lo
-pone el líder por temporada, y el sistema solo avisa cuando falta.
+**Al cerrar la caja:** «Para el próximo turno deja **S/ 400** (Fiestas Patrias)». El traslado viene propuesto (contado −
+fondo). Si va a quedar menos, sale una **confirmación que no bloquea**: «Vas a dejar S/ 300 y la campaña pide S/ 400.
+¿Cerrar igual?». Si cierra igual, queda anotado en el cierre y el líder lo ve en Historial de cierres. **Cambia el punto
+3 del ADR-0186** («sin fondo sugerido»): ahora el fondo lo pone el líder, y el sistema solo avisa cuando falta.
 
-**Una sola meta, no dos:** la meta de ventas del mes en Presupuesto **es la suma de las metas diarias**, no se escribe
-aparte. Si fueran dos números, un día dirían cosas distintas.
+**Una sola meta, no dos:** la meta de ventas del mes en Presupuesto **es la suma de las metas diarias**, campañas incluidas.
+
+**Para decidir (Reportes ▸ Campañas):**
+- **Las que pasaron:** cuánto más vendió cada campaña contra días normales, cuánto se descontó y el **margen extra**. En el
+  ejemplo, el Día de la Madre dejó +S/ 6,920; el Día del Gato y el del Perro vendieron casi lo mismo, se descontaron
+  S/ 4,500 y dejaron S/ 3,942 menos que no hacerlas.
+- **Las que vienen:** con ese descuento, **cuánto más hay que vender para ganar lo mismo** que un día normal. Con 15 %
+  hay que vender 40 % más; con 30 %, 136 % más. Si la meta de la campaña sube menos que eso, avisa: «aunque llegue a la
+  meta, gana menos». El Resumen avisa dos semanas antes de que empiece una campaña.
 
 ## 8. De qué dato sale cada pantalla
 
@@ -290,7 +311,7 @@ aparte. Si fueran dos números, un día dirían cosas distintas.
 | Fase | Qué | Cómo lo verificas tú |
 |---|---|---|
 | **F0 · Spike visual** ✅ 2026-09-24 | Las 11 piezas en HTML navegable con la paleta oficial y datos de muestra; `docs/maquetas/finanzas-2026-09/` | Abres el spike y recorres cada pantalla |
-| **F1 · Cimientos** | Rescatar del PR #170 `cuentas`, `parametros_tributarios`, `categorias_gasto`; los 5 módulos + Configuración; grupo «Finanzas» en el menú; **Tiendas y caja: meta por día y temporada, fondo de caja, aviso al cerrar** (§7 ter) | Roles y accesos muestra los 5 módulos «solo líder» |
+| **F1 · Cimientos** | Rescatar del PR #170 `cuentas`, `parametros_tributarios`, `categorias_gasto`; los 5 módulos + Configuración; grupo «Finanzas» en el menú; **Tiendas y caja: meta por día, fondo de caja y efecto de cada campaña; aviso al cerrar; Reportes ▸ Campañas** (§7 ter) | Roles y accesos muestra los 5 módulos «solo líder» |
 | **F2 · Gastos y activos** | ADR-0117 adaptado + `naturaleza` en `compras` + recibo por honorarios + alta de activo | Registras la luz a crédito y aparece en Por pagar; un mototaxi del cajón |
 | **F3 · Cuentas y dinero** | `cuentas_dinero` (con caja fuerte, por rendir y tarjeta de crédito), `medios_de_cobro`, `movimientos_dinero`, conciliación; **la cuenta sellada en las 22 situaciones** (§7 bis), una sola lista de medios, y el pago en efectivo a proveedores resta del cierre | Depósito de TRU baja el cajón y sube el BCP; el saldo coincide con el banco |
 | **F4 · Por pagar consolidado** | Una vista con mercadería, gastos, activos e insumos; calendario | Ves lo que debe CAYLA esta semana, sumado |

@@ -1,15 +1,16 @@
 // ============ Reportes (piezas 7, 8 y 9) ============
 VISTAS.reportes = () => {
   const tab = tabActual('reportes','resultados');
-  const cuerpo = {resultados:vistaResultados, presupuesto:vistaPresupuesto, escenarios:vistaEscenarios, flujo:vistaFlujo, balance:vistaBalance}[tab]();
+  const cuerpo = {resultados:vistaResultados, presupuesto:vistaPresupuesto, campanas:vistaCampanas, escenarios:vistaEscenarios, flujo:vistaFlujo, balance:vistaBalance}[tab]();
   const alcance = ['resultados','presupuesto'].includes(tab) ? filtroVer() : filtroVer('empresa');
-  return `${cabecera({sobre:'Finanzas · Reportes', titulo:{resultados:'¿Ganamos?', presupuesto:'¿Vamos según lo planeado?', escenarios:'¿Qué pasa si…?', flujo:'¿Por qué vendí bien y no hay plata?', balance:'¿Cuánto vale CAYLA?'}[tab],
+  return `${cabecera({sobre:'Finanzas · Reportes', titulo:{resultados:'¿Ganamos?', presupuesto:'¿Vamos según lo planeado?', campanas:'¿Valen la pena las campañas?', escenarios:'¿Qué pasa si…?', flujo:'¿Por qué vendí bien y no hay plata?', balance:'¿Cuánto vale CAYLA?'}[tab],
     bajada:{resultados:'Salen solos del diario que arma el sistema con cada venta, compra, gasto y movimiento de caja (ADR-0109). Nadie escribe un asiento.',
       presupuesto:'Lo que pusiste como meta y como tope en Configuración, contra lo que va pasando. La proyección supone que el resto del mes sigue al mismo ritmo.',
+      campanas:'Cada campaña contra lo que la tienda vende en días normales: cuánto más vendió, cuánto se descontó y si al final dejó más o menos margen.',
       escenarios:'Mueve los valores y mira qué pasa con la utilidad de cada tienda y con tu caja. No se guarda nada: es para pensar antes de decidir.',
       flujo:'Lo que ya entró y salió, y lo que viene en las próximas semanas.', balance:'Lo que CAYLA tiene, contra lo que debe y lo que es tuyo.'}[tab],
     acciones:`${alcance}<button class="btn btn-secundario" data-accion="exportar">Descargar Excel</button>`})}
-    ${pestanas('reportes', [['resultados','Estado de resultados'],['presupuesto','Presupuesto'],['escenarios','Escenarios'],['flujo','Flujo de caja'],['balance','Balance']])}${cuerpo}`;
+    ${pestanas('reportes', [['resultados','Estado de resultados'],['presupuesto','Presupuesto'],['campanas','Campañas'],['escenarios','Escenarios'],['flujo','Flujo de caja'],['balance','Balance']])}${cuerpo}`;
 };
 
 const FILAS_ER = [
@@ -103,7 +104,7 @@ function vistaFlujo(){
       <p class="sub" style="margin:0 0 8px;font-size:13px">Entra lo que vendes en una semana normal; sale lo que vence (facturas, planilla, alquileres, gastos fijos).</p>
       ${barras(proy.map(w=>({n:w.s.split(' – ')[0], v:w.saldo, malo:w.saldo<minimoCaja(), maloTxt:'bajo el mínimo', tip:`<b>${w.s}</b><br>Entra ${S(w.entra)} · Sale ${S(w.sale)}<br>${esc(w.que)}`})), {alto:230, umbral:minimoCaja(), umbralTxt:'tu mínimo de caja: '+S(minimoCaja())+' (se cambia en Configuración)'})}
       <div class="tabla-wrap" style="margin-top:12px"><table class="t" style="min-width:560px"><thead><tr><th>Semana</th><th class="num">Entra</th><th class="num">Sale</th><th class="num">Queda</th><th>Qué vence</th></tr></thead>
-        <tbody>${proy.map(w=>`<tr><td data-l="Semana">${w.s}</td><td class="num" data-l="Entra">${S(w.entra)}</td><td class="num" data-l="Sale">${S(w.sale)}</td><td class="num" data-l="Queda"><b style="${w.saldo<minimoCaja()?'color:var(--rojo-profundo)':''}">${S(w.saldo)}</b></td><td data-l="Qué vence" class="sub" style="font-size:12.5px">${esc(w.que)}</td></tr>`).join('')}</tbody></table></div>
+        <tbody>${proy.map(w=>`<tr><td data-l="Semana">${w.s}${w.campana?`<span class="chip-campana" style="display:block">${esc(w.campana)}</span>`:''}</td><td class="num" data-l="Entra">${S(w.entra)}</td><td class="num" data-l="Sale">${S(w.sale)}</td><td class="num" data-l="Queda"><b style="${w.saldo<minimoCaja()?'color:var(--rojo-profundo)':''}">${S(w.saldo)}</b></td><td data-l="Qué vence" class="sub" style="font-size:12.5px">${esc(w.que)}</td></tr>`).join('')}</tbody></table></div>
       ${F('deriva','vencimientos de compras + comprobantes_produccion')} ${F('nuevo','gastos recurrentes + mínimo de caja')}
     </div>
   </div>`;
@@ -205,4 +206,43 @@ function vistaEscenarios(){
     </div>
   </section>
   <div class="nota-cayla">Un escenario no reemplaza la conversación: bajar un alquiler hay que negociarlo y vender 15 % más requiere un plan. Lo que sí hace es decirte <b>cuánto vale</b> cada decisión antes de tomarla. ${F('deriva','mismo cálculo que el estado de resultados')}</div>`;
+}
+
+// ============ Campañas: ¿valió la pena? (y cuánto hay que vender en las que vienen) ============
+const MARGEN_NORMAL = 0.52;   // margen bruto de un día sin campaña (estado de resultados de agosto)
+// Con un descuento d, cada prenda deja (1 − d − costo) en vez de (1 − costo). Cuánto más hay que vender para ganar lo mismo:
+const extraNecesario = d => { const costo = 1 - MARGEN_NORMAL, m = 1 - d/100 - costo; return m > 0 ? MARGEN_NORMAL / m - 1 : Infinity; };
+function vistaCampanas(){
+  const pasadas = CAMPANAS.filter(c => CAMPANA_RESULTADOS[c.id]).map(c => { const r = CAMPANA_RESULTADOS[c.id];
+    const extra = Math.round(r.ventas*r.margenPct - r.normal*MARGEN_NORMAL); return {...c, r, extra, lift: r.ventas/r.normal - 1}; });
+  const vienen = CAMPANAS.filter(c => c.desde && c.desde > HOY);
+  const sumaMeta = (c, conCampana) => { let t = 0; for (let d = new Date(c.desde+'T12:00:00'); d <= new Date(c.hasta+'T12:00:00'); d.setDate(d.getDate()+1)){
+      const f = d.toISOString().slice(0,10); TIENDAS.forEach(u => { const p = parametrosCaja(u, f); t += conCampana ? p.meta : p.metaBase; }); } return Math.round(t/1.18); };
+  const malas = pasadas.filter(x => x.extra < 0);
+  return `
+  <section class="dos-col der">
+    <div class="superficie pad anim-sube">
+      <div class="prioridades-cab"><div><h2>Margen extra de cada campaña</h2><p>Lo que dejó contra lo que habría dejado en días normales.</p></div></div>
+      ${barras(pasadas.map(x=>({n:x.n.replace('Día Internacional del ','Día del '), v:x.extra, malo:x.extra<0, maloTxt:'no se pagó', tip:`<b>${esc(x.n)}</b><br>Vendió ${S(x.r.ventas)} (normal ${S(x.r.normal)})<br>Descuento ${S(x.r.descuento)} · margen ${pct(x.r.margenPct)}`})), {alto:210})}
+      ${malas.length ? `<p class="sub" style="font-size:13px;margin:10px 0 0"><b style="color:var(--tinta)">${malas.map(x=>x.n.replace('Día Internacional del ','Día del ')).join(' y ')}</b> vendieron casi lo mismo que un día normal (${malas.map(x=>(x.lift>=0?'+':'')+pct(x.lift)).join(' y ')}) y se descontaron ${S(malas.reduce((a,x)=>a+x.r.descuento,0))}: dejaron ${S(-malas.reduce((a,x)=>a+x.extra,0))} menos que no hacerlas.</p>` : ''}
+    </div>
+    <div class="superficie anim-sube">
+      <div class="tabla-wrap"><table class="t" style="min-width:600px"><thead><tr><th>Campaña</th><th class="num">Vendió</th><th class="num">vs normal</th><th class="num">Descuento</th><th class="num">Margen extra</th></tr></thead>
+      <tbody>${pasadas.map(x=>`<tr><td class="c-prenda" data-l="Campaña"><b>${esc(x.n)}</b><span class="sub" style="display:block;font-size:12px">${fecha(x.desde)} – ${fecha(x.hasta)} · ${x.r.prendas} prendas</span></td>
+        <td class="num" data-l="Vendió">${S(x.r.ventas)}</td><td class="num" data-l="vs normal">${x.lift>=0?'+':''}${pct(x.lift)}</td><td class="num" data-l="Descuento">${x.r.descuento?S(x.r.descuento):'—'}</td>
+        <td class="num" data-l="Margen extra"><b style="color:${x.extra<0?'var(--rojo-profundo)':'var(--verde)'}">${x.extra>=0?'+':'−'}${S(Math.abs(x.extra))}</b></td></tr>`).join('')}</tbody></table></div>
+      <div class="pie-tabla"><span>«Normal» = lo que vendió la tienda los mismos días sin campaña.</span>${F('existe','venta_items.descuento_etiqueta_id')} ${F('deriva','ventas en fechas de campaña vs días normales')}</div>
+    </div>
+  </section>
+  <div class="superficie anim-sube">
+    <div class="herramientas"><b>Las que vienen</b><span class="sub" style="font-size:12.5px">Antes de lanzarla: con ese descuento, ¿cuánto más hay que vender para ganar lo mismo que un día normal?</span></div>
+    <div class="tabla-wrap"><table class="t" style="min-width:820px"><thead><tr><th>Campaña</th><th class="num">Descuento</th><th class="num">Para ganar lo mismo, vender</th><th class="num">La meta sube</th><th class="num">Meta de la campaña</th><th>Qué dice el sistema</th></tr></thead>
+    <tbody>${vienen.map(c=>{ const need = c.dcto ? extraNecesario(c.dcto) : 0; const sube = c.caja ? Math.max(...Object.values(c.caja).map(a=>a.pct)) : 0; const ok = need <= sube/100 + 1e-9;
+      return `<tr><td class="c-prenda" data-l="Campaña"><b>${esc(c.n)}</b><span class="sub" style="display:block;font-size:12px">${fecha(c.desde)} – ${fecha(c.hasta)} · empieza en ${dias(c.desde, HOY)} días</span></td>
+      <td class="num" data-l="Descuento">${c.dcto?c.dcto+' %':'—'}</td><td class="num" data-l="Vender">${c.dcto?'+'+pct(need)+' más':'lo mismo'}</td><td class="num" data-l="Meta sube">${c.caja?'+'+sube+' %':'<span class="sub">sin efecto en caja</span>'}</td>
+      <td class="num" data-l="Meta">${c.caja?S(sumaMeta(c,true)):'—'}${c.caja?`<span class="sub" style="display:block;font-size:11.5px">normal ${S(sumaMeta(c,false))}</span>`:''}</td>
+      <td data-l="Qué dice">${!c.dcto ? (c.caja?'<span class="badge" data-tono="verde">sin descuento: todo lo extra es ganancia</span>':'<span class="badge" data-tono="taupe">solo etiqueta</span>') : ok ? '<span class="badge" data-tono="verde">si llega a la meta, gana más</span>' : `<span class="badge" data-tono="ambar">aunque llegue a la meta, gana menos</span>`}</td></tr>`; }).join('')}</tbody></table></div>
+    <div class="pie-tabla"><span>Con 15 % de descuento cada prenda deja ${pct(1-(1-.15-(1-MARGEN_NORMAL))/MARGEN_NORMAL)} menos de margen; con 30 %, ${pct(1-(1-.30-(1-MARGEN_NORMAL))/MARGEN_NORMAL)} menos. Por eso una campaña con descuento necesita vender mucho más para valer la pena.</span></div>
+  </div>
+  <div class="nota-cayla">Una campaña también puede valer por otras cosas (clientas nuevas, sacar mercadería que no rota). El sistema no decide por ti: te dice <b>cuánto cuesta</b> en margen, para que la decisión sea a sabiendas. Las fechas, el descuento y las categorías se cambian en Catálogo ▸ Etiquetas; la meta y el fondo, en <button class="btn-enlace" data-ir="config:tiendas">Configuración ▸ Tiendas y caja</button>.</div>`;
 }

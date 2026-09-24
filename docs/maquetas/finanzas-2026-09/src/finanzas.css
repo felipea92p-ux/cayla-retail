@@ -236,3 +236,7 @@ table.t tr.hecha td{opacity:.62;}
 .confirma b{color:var(--ambar);}
 .confirma p{margin:4px 0 0; color:var(--taupe); line-height:1.45;}
 @media (max-width:860px){ .meta-cifras{grid-template-columns:1fr;} }
+.par-inp{display:inline-flex; align-items:center; gap:4px;}
+.par-inp .num-input{display:inline-block; margin:0;}
+table.t tr.anulada-suave td{opacity:.6;}
+.chip-campana{display:inline-block; margin-top:3px; font-size:11px; color:var(--ambar);}

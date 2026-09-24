@@ -131,7 +131,7 @@ function notaDemo(){
     gastos:'En «Fijos del mes» confirma con un clic lo que el sistema propone. <b>Registrar gasto</b> a crédito aparece en Cuentas y dinero ▸ Por pagar. En «Egresos de caja» clasifica el depósito de LIM: destraba el cierre de agosto.',
     dinero:'Prueba «Registrar movimiento ▸ Poner plata del dueño» (aporte o préstamo). En Conciliación el sistema propone la pareja de cada línea del banco: solo confirmas.',
     reportes:'Toca cualquier cifra del estado de resultados para ver de qué filas sale. En «Escenarios» mueve los valores: todo se recalcula.',
-    caja:'Esta pantalla es de Ventas: muestra cómo llega lo de Finanzas a la tienda. Cambia el «Demo · día» a Navidad y prueba «Cerrar caja» dejando menos del fondo: pide confirmar, no bloquea.',
+    caja:'Esta pantalla es de Ventas: muestra cómo llega lo de Finanzas a la tienda. Cambia el «Demo · día» a una campaña (el 27 jul rigen dos: gana la mayor) y prueba «Cerrar caja» dejando menos del fondo: pide confirmar, no bloquea.',
     config:'Todo lo que se ajusta vive aquí: cuentas, a dónde cae cada cobro, mínimo de caja, gastos fijos, presupuesto e impuestos. Cambia el mínimo de caja y mira el Resumen.',
     impuestos:'El IGV sale de los comprobantes emitidos y de las facturas de proveedor (mercadería, gastos, activos e insumos).',
     cierre:'Agosto: TRU y AQP ya cerraron. Resuelve lo pendiente de LIM y cierra; el consolidado se habilita cuando cierran todas.',
