@@ -28,7 +28,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🔒 Varios usuarios a la vez: auditoría de concurrencia y volumen (2026-09-23, ADR-0188 a 0193) — 6 PRs abiertos; 4 migraciones POR PEGAR en producción
+## 🔒 Varios usuarios a la vez: auditoría de concurrencia y volumen (2026-09-23, ADR-0188 a 0193) — EN PRODUCCIÓN: las 5 migraciones pegadas por Felipe y verificadas objeto por objeto (2026-09-23) y los 6 PRs fusionados
 Auditoría completa (343 funciones, 229 consultas web, estadísticas de producción). Ya estaba bien protegido: stock (sin negativos ni sobreventa), numeración, una caja abierta por sede, doble clic en ventas/comprobantes/cambios/compras. Las 5 etapas se hicieron en paralelo; integradas sobre `main` (2026-09-23): se fusionan sin conflictos, tipos/lint limpios, 24.363 pruebas web en verde, y las 5 migraciones corren en fila en el local (re-pegables: la segunda pasada no cambia nada).
 **Orden para pegar en producción (todas traen `set search_path`, sin prefijo `retail.`) y fusionar:**
 1. `20260924110000` (PR #373, ADR-0188) — candado compartido de caja en 7 funciones, costo promedio con `for no key update`, 14 índices. No cambia la web.
@@ -37,7 +37,7 @@ Auditoría completa (343 funciones, 229 consultas web, estadísticas de producci
 4. `20260924140000` (PR #378, ADR-0191) — `fn_totales_historial_ventas`, `fn_resumen_caja`, `fn_sello_caja`. **Pegar ANTES de fusionar: sin ella la Caja no carga.**
 5. `20260924160000` (PR #377, ADR-0193) — columna `version` en `productos` y `roles`, «Otra persona cambió esta prenda». Pegar ANTES de fusionar la web.
 6. PR #379 (ADR-0192) — Vender sin `router.refresh()` tras cada venta y 7 lecturas que se cortaban en 1.000 filas. **Sin migración.**
-- [ ] Pegar 1→5 en ese orden, luego fusionar #373, #376, #380, #378, #377, #379.
+- [x] Pegadas 1→5 y fusionados los 6 PRs (2026-09-23). Verificado en producción: 7/7 funciones de caja con `for share`, costo con `for no key update`, 14/14 índices, `fn_exigir_linea_venta_disponible` en cambio y devolución, `fn_bloquear_en_orden` en 8/8 funciones, `p_token` en 5/5 y `token_cliente` en 5/5 tablas (legible en `insumo_lotes`), 0 sobrecargas, 3/3 funciones de totales sin acceso `anon`, `version` en `productos` y `roles`.
 - [ ] Verlo con clics tras publicar: cobrar mientras se cierra caja (debe decir «No hay una caja abierta»), historial de 60 días con totales, Vender sin recarga, dos pestañas editando la misma prenda.
 - [ ] Regenerar tipos y diccionario (`pnpm datos:generar:produccion`) tras pegar: las funciones nuevas se agregaron a mano en `packages/database/src/types.ts`.
 - [ ] Pendientes que dejó cada etapa: `registrar_cambio`/`crear_devolucion`/conteo aún sin `fn_bloquear_en_orden`; token en Ajustar inventario (`registrar_movimiento`) y `mover_interno`; `recibir_lote` y `registrar_movimiento_caja` siguen ejecutables por `PUBLIC`; el costo que recalcula una recepción puede pisarse desde una ficha abierta (la ficha debe mandar el costo solo si cambió); versión en etiquetas, marcas, categorías y clientas.
