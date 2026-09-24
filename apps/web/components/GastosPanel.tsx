@@ -14,6 +14,7 @@ import { CampoTexto, SelectNativo } from "@/components/ui/campos";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { RegistrarGastoModal, type ProveedorGasto } from "@/components/RegistrarGastoModal";
+import { ActivoDetalleModal, FijosDelMes, GastoFijoModal, TablaActivos } from "@/components/GastosFijosYActivos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -26,14 +27,19 @@ import {
   mesesRecientes,
   nombreVer,
   puedeAnular,
+  resumenFijos,
   sugerenciaParaEgreso,
   textoMes,
   textoPago,
+  type ActivoFila,
   type CategoriaGasto,
   type EgresoPorClasificar,
+  type FijoSugerido,
+  type GastoFijoMes,
   type GastoFila,
   type MarcaNoGasto,
   type PanelGastos,
+  type TipoActivo,
   type TipoNoGasto,
   type UbicacionGastos,
   type Ver,
@@ -43,7 +49,7 @@ import {
 // Cabecera = dónde trabajas; «Ver» = qué miras (el líder: una tienda, todas o lo de la empresa). La pantalla solo lee
 // lo que la base ya filtró por cuenta, y escribe por RPC firmando con el responsable.
 
-type Pestana = "gastos" | "egresos" | "categorias";
+type Pestana = "gastos" | "fijos" | "activos" | "egresos" | "categorias";
 const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 const PLANTILLA_GASTOS = "sm:grid-cols-[4.5rem_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_7rem_7rem]";
 const PLANTILLA_EGRESOS = "sm:grid-cols-[5rem_minmax(0,1fr)_minmax(0,2fr)_7rem_8rem]";
@@ -53,6 +59,10 @@ export function GastosPanel({
   gastos,
   egresos,
   marcas,
+  activos,
+  fijos,
+  sugeridos,
+  tiposActivo,
   categorias,
   ubicaciones,
   proveedores,
@@ -67,6 +77,10 @@ export function GastosPanel({
   gastos: GastoFila[];
   egresos: EgresoPorClasificar[];
   marcas: MarcaNoGasto[];
+  activos: ActivoFila[];
+  fijos: GastoFijoMes[];
+  sugeridos: FijoSugerido[];
+  tiposActivo: TipoActivo[];
   categorias: CategoriaGasto[];
   ubicaciones: UbicacionGastos[];
   proveedores: ProveedorGasto[];
@@ -81,8 +95,11 @@ export function GastosPanel({
   const ruta = usePathname();
   const params = useSearchParams();
   const [pestana, setPestana] = useState<Pestana>("gastos");
-  const [registrar, setRegistrar] = useState<{ egreso?: EgresoPorClasificar } | null>(null);
+  const [registrar, setRegistrar] = useState<{ egreso?: EgresoPorClasificar; fijo?: GastoFijoMes; clase?: "gasto" | "activo" } | null>(null);
   const [detalle, setDetalle] = useState<GastoFila | null>(null);
+  const [activo, setActivo] = useState<ActivoFila | null>(null);
+  const [editarFijo, setEditarFijo] = useState<{ fijo?: GastoFijoMes; inicial?: FijoSugerido } | null>(null);
+  const rf = resumenFijos(fijos);
   const [clasificar, setClasificar] = useState<EgresoPorClasificar | null>(null);
 
   const ir = (cambios: Record<string, string>) => {
@@ -102,9 +119,19 @@ export function GastosPanel({
         titulo={titulo}
         bajada="Lo que se paga para que el negocio funcione y no es mercadería. Si llegó con factura, comparte la cabecera con Compras: un solo Por pagar y un solo IGV."
         acciones={
-          <button type="button" className="btn-cayla btn-primario" onClick={() => setRegistrar({})}>
-            Registrar gasto
-          </button>
+          pestana === "activos" ? (
+            <button type="button" className="btn-cayla btn-primario" onClick={() => setRegistrar({ clase: "activo" })}>
+              Registrar activo
+            </button>
+          ) : pestana === "fijos" ? (
+            <button type="button" className="btn-cayla btn-primario" onClick={() => setEditarFijo({})}>
+              Nuevo gasto fijo
+            </button>
+          ) : (
+            <button type="button" className="btn-cayla btn-primario" onClick={() => setRegistrar({})}>
+              Registrar gasto
+            </button>
+          )
         }
       />
 
@@ -171,6 +198,8 @@ export function GastosPanel({
           onCambio={(v) => setPestana(v as Pestana)}
           items={[
             { clave: "gastos", etiqueta: "Gastos", conteo: vigentes.length || undefined },
+            { clave: "fijos", etiqueta: "Fijos del mes", conteo: rf.faltan || undefined, tono: rf.faltan ? "ambar" : undefined },
+            { clave: "activos", etiqueta: "Activos fijos", conteo: activos.filter((a) => a.estado === "activo").length || undefined },
             { clave: "egresos", etiqueta: "Egresos de caja por clasificar", conteo: egresos.length || undefined, tono: egresos.length ? "ambar" : undefined },
             { clave: "categorias", etiqueta: "Por categoría" },
           ]}
@@ -235,6 +264,20 @@ export function GastosPanel({
         </>
       )}
 
+      {pestana === "fijos" && (
+        <FijosDelMes
+          fijos={fijos}
+          sugeridos={sugeridos}
+          mes={mes}
+          verTodas={verTodas}
+          onRegistrar={(f) => setRegistrar({ fijo: f })}
+          onEditar={(f) => setEditarFijo({ fijo: f })}
+          onNuevoDesdeSugerido={(s) => setEditarFijo({ inicial: s })}
+        />
+      )}
+
+      {pestana === "activos" && <TablaActivos activos={activos} verTodas={verTodas} onAbrir={setActivo} />}
+
       {pestana === "egresos" && (
         <>
           {egresos.length === 0 ? (
@@ -287,8 +330,24 @@ export function GastosPanel({
           esLider={esLider}
           ubicacionInicial={ubicacionParaRegistrar}
           egreso={registrar.egreso}
+          fijo={registrar.fijo}
+          clase={registrar.clase}
+          tiposActivo={tiposActivo}
           hoy={hoy}
           onCerrar={() => setRegistrar(null)}
+        />
+      )}
+      {activo && <ActivoDetalleModal activo={activo} hoy={hoy} onCerrar={() => setActivo(null)} />}
+      {editarFijo && (
+        <GastoFijoModal
+          fijo={editarFijo.fijo}
+          inicial={editarFijo.inicial}
+          categorias={categorias}
+          ubicaciones={ubicaciones}
+          proveedores={proveedores}
+          esLider={esLider}
+          ubicacionInicial={ubicacionParaRegistrar}
+          onCerrar={() => setEditarFijo(null)}
         />
       )}
       {detalle && <GastoDetalleModal gasto={detalle} onCerrar={() => setDetalle(null)} />}
@@ -296,9 +355,9 @@ export function GastosPanel({
         <ClasificarEgresoModal
           egreso={clasificar}
           onCerrar={() => setClasificar(null)}
-          onEsGasto={() => {
+          onEsGasto={(clase) => {
             setClasificar(null);
-            setRegistrar({ egreso: clasificar });
+            setRegistrar({ egreso: clasificar, clase });
           }}
         />
       )}
@@ -416,15 +475,15 @@ function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar:
   );
 }
 
-function ClasificarEgresoModal({ egreso: e, onCerrar, onEsGasto }: { egreso: EgresoPorClasificar; onCerrar: () => void; onEsGasto: () => void }) {
+function ClasificarEgresoModal({ egreso: e, onCerrar, onEsGasto }: { egreso: EgresoPorClasificar; onCerrar: () => void; onEsGasto: (clase: "gasto" | "activo") => void }) {
   const router = useRouter();
   const responsable = useResponsable();
-  const [que, setQue] = useState<"gasto" | TipoNoGasto>(() => sugerenciaParaEgreso(e.motivo));
+  const [que, setQue] = useState<"gasto" | "activo" | TipoNoGasto>(() => sugerenciaParaEgreso(e.motivo));
   const [motivo, setMotivo] = useState("");
   const [guardando, setGuardando] = useState(false);
 
   async function guardar() {
-    if (que === "gasto") return onEsGasto();
+    if (que === "gasto" || que === "activo") return onEsGasto(que);
     if (que === "otro" && !motivo.trim()) return avisar.error("Escribe qué fue.");
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
@@ -443,13 +502,18 @@ function ClasificarEgresoModal({ egreso: e, onCerrar, onEsGasto }: { egreso: Egr
     router.refresh();
   }
 
-  const opciones: ("gasto" | TipoNoGasto)[] = ["gasto", "deposito", "retiro", "ajuste", "otro"];
+  const opciones: ("gasto" | "activo" | TipoNoGasto)[] = ["gasto", "activo", "deposito", "retiro", "ajuste", "otro"];
   return (
     <Modal titulo="¿Qué fue esta salida?" subtitulo={`${e.ubicacionNombre} · ${diaMes(e.creadoEn.slice(0, 10))} · ${soles(e.monto)} · «${e.motivo}${e.nota ? ` — ${e.nota}` : ""}»`} onClose={onCerrar} ancho="max-w-lg">
       <div className="space-y-4">
         <div role="radiogroup" aria-label="Qué fue" className="space-y-2">
           {opciones.map((o) => {
-            const t = o === "gasto" ? { titulo: "Un gasto", detalle: "Se consumió en el negocio: movilidad, útiles, un arreglo." } : TEXTO_NO_GASTO[o];
+            const t =
+              o === "gasto"
+                ? { titulo: "Un gasto", detalle: "Se consumió en el negocio: movilidad, útiles, un arreglo." }
+                : o === "activo"
+                  ? { titulo: "Un activo fijo", detalle: "Algo que sirve varios años: un mueble, un equipo, una máquina." }
+                  : TEXTO_NO_GASTO[o];
             return (
               <label key={o} className={`flex cursor-pointer gap-3 rounded-md border px-4 py-3 text-sm ${que === o ? "border-tinta bg-hueso" : "border-sand hover:border-tinta/40"}`}>
                 <input type="radio" name="que-fue" value={o} checked={que === o} onChange={() => setQue(o)} className="mt-1 accent-[var(--color-tinta)]" />
@@ -461,7 +525,7 @@ function ClasificarEgresoModal({ egreso: e, onCerrar, onEsGasto }: { egreso: Egr
             );
           })}
         </div>
-        {que !== "gasto" && (
+        {que !== "gasto" && que !== "activo" && (
           <div className="space-y-3" data-sin-cascada>
             <CampoTexto etiqueta={que === "otro" ? "Qué fue" : "Nota (opcional)"} value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder={que === "deposito" ? "Depósito BCP, op. 12345" : ""} />
             <ComboResponsable control={responsable} deshabilitado={guardando} />
@@ -471,8 +535,8 @@ function ClasificarEgresoModal({ egreso: e, onCerrar, onEsGasto }: { egreso: Egr
           <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
             Cancelar
           </button>
-          <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={guardando || (que !== "gasto" && !responsable.listo)}>
-            {que === "gasto" ? "Seguir: registrar el gasto" : guardando ? "Guardando…" : "Guardar"}
+          <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={guardando || (que !== "gasto" && que !== "activo" && !responsable.listo)}>
+            {que === "gasto" ? "Seguir: registrar el gasto" : que === "activo" ? "Seguir: registrar el activo" : guardando ? "Guardando…" : "Guardar"}
           </button>
         </div>
       </div>

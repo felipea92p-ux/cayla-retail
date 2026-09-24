@@ -98,7 +98,7 @@ select pg_temp.intento(format('select retail.registrar_gasto(%L, ''transporte'',
   esperar("B: el efectivo del cajón crea su egreso «Otro» con la nota del gasto", r.ok && mov === "Otro|Gasto · Suministros y útiles — Bolsas", r);
   esperar("C: al clasificarlo, ya no queda nada por clasificar (el de B nació clasificado)", r.ok && Number(despues) === 0, r);
   esperar("el panel suma los tres (150 + 40 + 12.50), sin IGV", r.ok && panel === "202.50|3|0.00|0", r);
-  esperar("el mismo egreso no respalda dos gastos", r.ok && doble.includes("ya es un gasto"), r);
+  esperar("el mismo egreso no respalda dos gastos", r.ok && doble.includes("ya se usó"), r);
 }
 
 // 2. «No es gasto»: sale de por clasificar, bloquea el gasto y se revierte.

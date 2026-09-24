@@ -325,6 +325,8 @@ export type BorradorGasto = {
   /** Clasificar un egreso ya registrado (viene fijo desde «Egresos de caja por clasificar»). */
   egresoId: string;
   referencia: string;
+  /** F2b: el gasto fijo del que sale este gasto, si viene de «Fijos del mes». */
+  gastoFijoId?: string;
 };
 
 export type PayloadGasto = {
@@ -345,6 +347,8 @@ export type PayloadGasto = {
   p_caja_id: string | null;
   p_caja_movimiento_id: string | null;
   p_referencia: string | null;
+  /** F2b: el gasto fijo del que sale (uno por mes). */
+  p_gasto_fijo_id?: string | null;
 };
 
 /** "F001-00140", "F001 140", "S120-560233" → serie y número. */
@@ -399,6 +403,277 @@ export function validarGasto(b: BorradorGasto, hoy: string): Resultado<PayloadGa
       p_caja_id: medio === "efectivo" && !b.egresoId ? b.cajaId || null : null,
       p_caja_movimiento_id: b.egresoId || null,
       p_referencia: b.referencia.trim() || null,
+      ...(b.gastoFijoId ? { p_gasto_fijo_id: b.gastoFijoId } : {}),
+    },
+  };
+}
+
+/** Un activo usa el mismo paso «comprobante + pago» que un gasto; cambia qué es y su vida útil. */
+export type BorradorActivo = Omit<BorradorGasto, "categoria" | "descripcion" | "gastoFijoId"> & { tipo: string; nombre: string; serie: string; vidaUtilMeses: string };
+
+export function validarActivo(b: BorradorActivo, hoy: string) {
+  if (!b.ubicacion || b.ubicacion === "empresa") return { ok: false as const, error: "Un activo está en una tienda, el Taller o el almacén: elige dónde." };
+  if (!b.tipo) return { ok: false as const, error: "Elige qué tipo de activo es." };
+  if (!b.nombre.trim()) return { ok: false as const, error: "Escribe qué es." };
+  if (b.comprobante === "recibo_por_honorarios") return { ok: false as const, error: "Un activo no llega con recibo por honorarios: es factura o boleta." };
+  const vida = Number(b.vidaUtilMeses);
+  if (!Number.isInteger(vida) || vida < 12 || vida > 600) return { ok: false as const, error: "La vida útil va de 1 a 50 años." };
+  const base = validarGasto({ ...b, categoria: b.tipo, descripcion: b.nombre }, hoy);
+  if (!base.ok) return base;
+  const v = base.valor;
+  return {
+    ok: true as const,
+    valor: {
+      p_ubicacion_id: v.p_ubicacion_id,
+      p_tipo: b.tipo,
+      p_nombre: b.nombre.trim(),
+      p_fecha: v.p_fecha,
+      p_monto_total: v.p_monto_total,
+      p_comprobante: v.p_comprobante,
+      p_medio_pago: v.p_medio_pago,
+      p_caja_id: v.p_caja_id,
+      p_caja_movimiento_id: v.p_caja_movimiento_id,
+      p_referencia: v.p_referencia,
+      p_vida_util_meses: vida,
+      p_serie: b.serie.trim() || null,
+    },
+  };
+}
+
+// ---- F2b: el gasto fijo del que sale un gasto ------------------------------------------------------------------------
+
+/** El borrador de un gasto que nace de un gasto fijo: ya viene con su tienda, categoría, proveedor y monto de siempre. */
+export function borradorDesdeFijo(f: GastoFijoMes, hoy: string): Partial<BorradorGasto> & { gastoFijoId: string } {
+  return {
+    gastoFijoId: f.id,
+    ubicacion: f.ubicacionId ?? "empresa",
+    categoria: f.categoria,
+    descripcion: f.descripcion,
+    comprobante: f.comprobanteTipo,
+    proveedorId: f.proveedorId ?? "",
+    monto: f.montoVariable ? "" : String(f.monto),
+    fecha: f.fechaEsperada <= hoy ? f.fechaEsperada : hoy,
+  };
+}
+
+// ---- F2b: activos fijos -----------------------------------------------------------------------------------------------
+
+export type TipoActivo = { codigo: string; nombre: string; ejemplos: string; cuenta: string; cuentaNombre: string; vidaUtilMeses: number };
+
+export type ActivoFila = {
+  id: string;
+  ubicacionId: string;
+  ubicacionNombre: string;
+  tipo: string | null;
+  tipoNombre: string | null;
+  cuenta: string | null;
+  nombre: string;
+  serie: string | null;
+  fechaAdquisicion: string;
+  costo: number;
+  vidaUtilMeses: number;
+  depreciacionMensual: number;
+  mesesDepreciados: number;
+  depreciacionAcumulada: number;
+  valorHoy: number;
+  estado: "activo" | "baja" | "vendido" | "anulado";
+  fechaBaja: string | null;
+  motivoBaja: string | null;
+  compraId: string | null;
+  comprobante: string | null;
+  comprobanteTipo: string | null;
+  proveedorNombre: string | null;
+  condicion: "contado" | "credito" | null;
+  saldo: number | null;
+  tienePagos: boolean;
+  medioPago: MedioGasto | null;
+  cajaMovimientoId: string | null;
+  motivoAnulacion: string | null;
+  registradoPor: string | null;
+};
+
+export function leerTipoActivo(t: Fila): TipoActivo {
+  return { codigo: String(t.codigo), nombre: String(t.nombre), ejemplos: String(t.ejemplos ?? ""), cuenta: String(t.cuenta), cuentaNombre: String(t.cuenta_nombre), vidaUtilMeses: num(t.vida_util_meses) };
+}
+
+export function leerActivo(a: Fila): ActivoFila {
+  return {
+    id: String(a.id),
+    ubicacionId: String(a.ubicacion_id),
+    ubicacionNombre: String(a.ubicacion_nombre ?? ""),
+    tipo: txt(a.tipo),
+    tipoNombre: txt(a.tipo_nombre),
+    cuenta: txt(a.cuenta),
+    nombre: String(a.nombre),
+    serie: txt(a.serie),
+    fechaAdquisicion: String(a.fecha_adquisicion),
+    costo: num(a.costo),
+    vidaUtilMeses: num(a.vida_util_meses),
+    depreciacionMensual: num(a.depreciacion_mensual),
+    mesesDepreciados: num(a.meses_depreciados),
+    depreciacionAcumulada: num(a.depreciacion_acumulada),
+    valorHoy: num(a.valor_hoy),
+    estado: (String(a.estado) as ActivoFila["estado"]) ?? "activo",
+    fechaBaja: txt(a.fecha_baja),
+    motivoBaja: txt(a.motivo_baja),
+    compraId: txt(a.compra_id),
+    comprobante: txt(a.comprobante),
+    comprobanteTipo: txt(a.comprobante_tipo),
+    proveedorNombre: txt(a.proveedor_nombre),
+    condicion: (txt(a.condicion) as "contado" | "credito" | null) ?? null,
+    saldo: numONull(a.saldo),
+    tienePagos: !!a.tiene_pagos,
+    medioPago: (txt(a.medio_pago) as MedioGasto | null) ?? null,
+    cajaMovimientoId: txt(a.caja_movimiento_id),
+    motivoAnulacion: txt(a.motivo_anulacion),
+    registradoPor: txt(a.registrado_por_nombre),
+  };
+}
+
+export const TEXTO_ESTADO_ACTIVO: Record<ActivoFila["estado"], { texto: string; tono: "verde" | "ambar" | "apagado" | "neutro" }> = {
+  activo: { texto: "En uso", tono: "verde" },
+  baja: { texto: "Dado de baja", tono: "neutro" },
+  vendido: { texto: "Vendido", tono: "neutro" },
+  anulado: { texto: "Anulado", tono: "apagado" },
+};
+
+/** «10 años», «4 años», «1 año y 6 meses». */
+export function textoVidaUtil(meses: number): string {
+  const a = Math.floor(meses / 12), m = meses % 12;
+  const anios = a ? `${a} ${a === 1 ? "año" : "años"}` : "";
+  const mes = m ? `${m} ${m === 1 ? "mes" : "meses"}` : "";
+  return [anios, mes].filter(Boolean).join(" y ") || "0 meses";
+}
+
+/** Los totales de la lista de activos en uso: lo que costaron, lo depreciado, lo que valen hoy y lo que se deprecia al mes. */
+export function totalesActivos(activos: readonly ActivoFila[]): { costo: number; depreciado: number; valorHoy: number; alMes: number; enUso: number } {
+  const enUso = activos.filter((a) => a.estado === "activo");
+  const suma = (f: (a: ActivoFila) => number) => Math.round(enUso.reduce((t, a) => t + f(a), 0) * 100) / 100;
+  return {
+    costo: suma((a) => a.costo),
+    depreciado: suma((a) => a.depreciacionAcumulada),
+    valorHoy: suma((a) => a.valorHoy),
+    alMes: suma((a) => (a.mesesDepreciados < a.vidaUtilMeses ? a.depreciacionMensual : 0)),
+    enUso: enUso.length,
+  };
+}
+
+/** Anular: solo en uso y sin factura pagada (si no, se da de baja). */
+export function puedeAnularActivo(a: Pick<ActivoFila, "estado" | "compraId" | "tienePagos">): boolean {
+  return a.estado === "activo" && !(a.compraId && a.tienePagos);
+}
+
+// ---- F2b: gastos fijos ------------------------------------------------------------------------------------------------
+
+export type EstadoFijo = "registrado" | "por_llegar" | "falta";
+export const TEXTO_ESTADO_FIJO: Record<EstadoFijo, { texto: string; tono: "verde" | "pizarra" | "ambar" }> = {
+  registrado: { texto: "Registrado", tono: "verde" },
+  por_llegar: { texto: "Viene", tono: "pizarra" },
+  falta: { texto: "Falta registrar", tono: "ambar" },
+};
+
+export type GastoFijoMes = {
+  id: string;
+  ubicacionId: string | null;
+  ubicacionNombre: string;
+  categoria: string;
+  categoriaNombre: string;
+  descripcion: string;
+  proveedorId: string | null;
+  proveedorNombre: string | null;
+  comprobanteTipo: TipoComprobante;
+  monto: number;
+  montoVariable: boolean;
+  diaDelMes: number;
+  fechaEsperada: string;
+  estado: EstadoFijo;
+  gastoId: string | null;
+  gastoMonto: number | null;
+};
+
+export type FijoSugerido = {
+  ubicacionId: string | null;
+  ubicacionNombre: string;
+  categoria: string;
+  categoriaNombre: string;
+  proveedorId: string | null;
+  proveedorNombre: string | null;
+  descripcion: string;
+  comprobanteTipo: TipoComprobante;
+  monto: number;
+  diaDelMes: number;
+  meses: number;
+};
+
+export function leerFijoMes(f: Fila): GastoFijoMes {
+  return {
+    id: String(f.id),
+    ubicacionId: txt(f.ubicacion_id),
+    ubicacionNombre: String(f.ubicacion_nombre ?? ""),
+    categoria: String(f.categoria),
+    categoriaNombre: String(f.categoria_nombre),
+    descripcion: String(f.descripcion),
+    proveedorId: txt(f.proveedor_id),
+    proveedorNombre: txt(f.proveedor_nombre),
+    comprobanteTipo: (String(f.comprobante_tipo) as TipoComprobante) ?? "factura",
+    monto: num(f.monto),
+    montoVariable: !!f.monto_variable,
+    diaDelMes: num(f.dia_del_mes),
+    fechaEsperada: String(f.fecha_esperada),
+    estado: (String(f.estado) as EstadoFijo) ?? "por_llegar",
+    gastoId: txt(f.gasto_id),
+    gastoMonto: numONull(f.gasto_monto),
+  };
+}
+
+export function leerSugerido(f: Fila): FijoSugerido {
+  return {
+    ubicacionId: txt(f.ubicacion_id),
+    ubicacionNombre: String(f.ubicacion_nombre ?? ""),
+    categoria: String(f.categoria),
+    categoriaNombre: String(f.categoria_nombre),
+    proveedorId: txt(f.proveedor_id),
+    proveedorNombre: txt(f.proveedor_nombre),
+    descripcion: String(f.descripcion),
+    comprobanteTipo: (String(f.comprobante_tipo) as TipoComprobante) ?? "factura",
+    monto: num(f.monto),
+    diaDelMes: num(f.dia_del_mes),
+    meses: num(f.meses),
+  };
+}
+
+/** Lo que pide la cifra de la pestaña: cuántos faltan y cuántos vienen este mes. */
+export function resumenFijos(fijos: readonly GastoFijoMes[]): { faltan: number; vienen: number; registrados: number; montoPendiente: number } {
+  const pend = fijos.filter((f) => f.estado !== "registrado");
+  return {
+    faltan: fijos.filter((f) => f.estado === "falta").length,
+    vienen: fijos.filter((f) => f.estado === "por_llegar").length,
+    registrados: fijos.filter((f) => f.estado === "registrado").length,
+    montoPendiente: Math.round(pend.reduce((t, f) => t + f.monto, 0) * 100) / 100,
+  };
+}
+
+export type BorradorFijo = { ubicacion: string; categoria: string; descripcion: string; proveedorId: string; comprobante: TipoComprobante; monto: string; variable: boolean; dia: string };
+
+export function validarFijo(b: BorradorFijo): Resultado<{ p_ubicacion_id: string | null; p_categoria: string; p_descripcion: string; p_proveedor_id: string | null; p_comprobante_tipo: TipoComprobante; p_monto: number; p_monto_variable: boolean; p_dia_del_mes: number }> {
+  if (!b.ubicacion) return { ok: false, error: "Elige a qué tienda se le carga." };
+  if (!b.categoria) return { ok: false, error: "Elige la categoría." };
+  if (!b.descripcion.trim()) return { ok: false, error: "Escribe qué se paga." };
+  const m = parsearMonto(b.monto);
+  if (!m.ok) return m;
+  const dia = Number(b.dia);
+  if (!Number.isInteger(dia) || dia < 1 || dia > 28) return { ok: false, error: "El día va del 1 al 28 (para que exista en todos los meses)." };
+  return {
+    ok: true,
+    valor: {
+      p_ubicacion_id: b.ubicacion === "empresa" ? null : b.ubicacion,
+      p_categoria: b.categoria,
+      p_descripcion: b.descripcion.trim(),
+      p_proveedor_id: b.proveedorId || null,
+      p_comprobante_tipo: b.comprobante,
+      p_monto: m.valor,
+      p_monto_variable: b.variable,
+      p_dia_del_mes: dia,
     },
   };
 }

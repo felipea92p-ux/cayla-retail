@@ -1,11 +1,19 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import {
+  leerActivo,
   leerEgreso,
+  leerFijoMes,
   leerGasto,
   leerMarca,
   leerPanel,
+  leerSugerido,
+  leerTipoActivo,
+  type ActivoFila,
   type CategoriaGasto,
+  type FijoSugerido,
+  type GastoFijoMes,
+  type TipoActivo,
   type EgresoPorClasificar,
   type GastoFila,
   type MarcaNoGasto,
@@ -96,3 +104,39 @@ export async function getGastosDeUbicacion(ubicacionId: string, desde: string, h
   if (error) return [];
   return ((data ?? []) as Record<string, unknown>[]).map(leerGasto).filter((g) => g.estado === "vigente");
 }
+
+// ---- F2b (20260925000000): activos fijos y gastos fijos del mes ---------------------------------------------------------
+
+export async function getTiposActivo(): Promise<TipoActivo[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("fn_tipos_activo" as never);
+  return ((data ?? []) as Record<string, unknown>[]).map(leerTipoActivo);
+}
+
+/** Los activos de lo que se mira, con su depreciación a hoy. La empresa no tiene activos (cada uno está en un lugar). */
+export async function getActivos(ver: Ver): Promise<Lectura<ActivoFila[]>> {
+  if (ver.soloEmpresa) return { datos: [], falla: null };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_activos_lista" as never, { p_ubicacion_id: ver.ubicacionId } as never);
+  if (error) return { datos: [], falla: falla("los activos fijos", error) };
+  return { datos: ((data ?? []) as Record<string, unknown>[]).map(leerActivo), falla: null };
+}
+
+/** Los gastos fijos de un mes: registrado, viene o falta. */
+export async function getFijosMes(desde: string, ver: Ver): Promise<Lectura<GastoFijoMes[]>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_gastos_fijos_mes" as never, { p_mes: desde, p_ubicacion_id: ver.ubicacionId, p_solo_empresa: ver.soloEmpresa } as never);
+  if (error) return { datos: [], falla: falla("los gastos fijos", error) };
+  return { datos: ((data ?? []) as Record<string, unknown>[]).map(leerFijoMes), falla: null };
+}
+
+/** Lo que se repite y todavía no es un fijo (de lo que la cuenta ve), filtrado por lo que se mira. */
+export async function getFijosSugeridos(ver: Ver): Promise<FijoSugerido[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_gastos_fijos_sugeridos" as never);
+  if (error) return [];
+  return ((data ?? []) as Record<string, unknown>[])
+    .map(leerSugerido)
+    .filter((f) => (ver.soloEmpresa ? f.ubicacionId === null : ver.ubicacionId ? f.ubicacionId === ver.ubicacionId : true));
+}
+

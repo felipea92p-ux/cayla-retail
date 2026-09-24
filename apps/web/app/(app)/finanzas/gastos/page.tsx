@@ -2,13 +2,17 @@ import { exigirModulo } from "@/lib/persona-actual";
 import { hoyLima } from "@/lib/fechas-lima";
 import { esMes, leerVer, mesDe, rangoMes } from "@/lib/gastos-reglas";
 import {
+  getActivos,
   getCategoriasGasto,
   getContextoGastos,
   getEgresosPorClasificar,
+  getFijosMes,
+  getFijosSugeridos,
   getGastos,
   getMarcasNoGasto,
   getPanelGastos,
   getProveedoresParaGasto,
+  getTiposActivo,
 } from "@/lib/gastos";
 import { GastosPanel } from "@/components/GastosPanel";
 
@@ -22,9 +26,17 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
   const { desde, hasta } = rangoMes(mes);
   const esLider = persona.rol === "lider";
 
-  const [contexto, categorias, proveedores] = await Promise.all([getContextoGastos(), getCategoriasGasto(), getProveedoresParaGasto()]);
+  const [contexto, categorias, proveedores, tiposActivo] = await Promise.all([getContextoGastos(), getCategoriasGasto(), getProveedoresParaGasto(), getTiposActivo()]);
   const ver = leerVer(sp.ver, contexto.ubicaciones, esLider, persona.ubicacionId);
-  const [panel, gastos, egresos, marcas] = await Promise.all([getPanelGastos(desde, hasta, ver), getGastos(desde, hasta, ver), getEgresosPorClasificar(ver), getMarcasNoGasto(ver)]);
+  const [panel, gastos, egresos, marcas, activos, fijos, sugeridos] = await Promise.all([
+    getPanelGastos(desde, hasta, ver),
+    getGastos(desde, hasta, ver),
+    getEgresosPorClasificar(ver),
+    getMarcasNoGasto(ver),
+    getActivos(ver),
+    getFijosMes(desde, ver),
+    getFijosSugeridos(ver),
+  ]);
 
   return (
     <GastosPanel
@@ -32,6 +44,10 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
       gastos={gastos.datos}
       egresos={egresos.datos}
       marcas={marcas}
+      activos={activos.datos}
+      fijos={fijos.datos}
+      sugeridos={sugeridos}
+      tiposActivo={tiposActivo}
       categorias={categorias}
       ubicaciones={contexto.ubicaciones}
       proveedores={proveedores}
@@ -40,7 +56,7 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
       ver={ver}
       mes={mes}
       hoy={hoy}
-      fallas={[panel.falla, gastos.falla, egresos.falla].filter((f): f is string => !!f)}
+      fallas={[panel.falla, gastos.falla, egresos.falla, activos.falla, fijos.falla].filter((f): f is string => !!f)}
     />
   );
 }

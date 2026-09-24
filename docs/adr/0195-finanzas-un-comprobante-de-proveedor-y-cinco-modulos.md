@@ -254,3 +254,44 @@ Felipe pidió seguir con el plan después de F1. F2 se partió en dos PR verific
   - decidir si hace falta **anular un pago** (hoy ni Compras ni Gastos lo permiten; un gasto al contado mal registrado
     se corrige con una nota de crédito).
 
+## Construcción — F2b (2026-09-24): activos fijos y gastos fijos del mes
+
+F2a quedó en producción el mismo día (las siete ejecuciones, verificadas en la base; web #393 desplegada). F2b, construido y
+probado en local:
+
+- **Migración `20260925000000`** (tres partes, cada una se pega por separado):
+  - **Activos fijos.** La tabla de 2026-09-12 (vacía, sin pantalla) gana su comprobante (`compras.naturaleza = 'activo'`), su
+    pago y sus estados: `baja` con fecha y motivo, y `anulado`. Se agregan 6 **tipos de activo** cerrados, con su cuenta y
+    una vida útil sugerida, y las cuentas 332–334, 391 y 681.
+    - El costo es sin el IGV de la factura (ese IGV se descuenta).
+    - Se deprecia en línea recta desde el mes siguiente a la compra. La depreciación de un mes es lo acumulado a fin de mes
+      menos lo acumulado a fin del mes anterior, así los meses suman exactamente el costo.
+    - No se edita ni se borra; con factura ya pagada no se anula, se da de baja.
+    - Las dos políticas viejas de la tabla no se tocan (tocarlas bloquea `auth` y `storage`): se le quitan los permisos
+      directos y todo se lee por funciones.
+  - **Gastos fijos del mes.** Cada uno tiene día del 1 al 28, monto (que puede variar), proveedor y tipo de comprobante; se
+    archiva, no se borra. `gastos.gasto_fijo_id` permite un solo gasto vigente por fijo y por mes. Cada mes, un fijo está
+    «registrado», «viene» o «falta registrar». El sistema propone como fijo lo que se repite (misma tienda, categoría y
+    proveedor en al menos dos de los últimos tres meses).
+  - **Una sola regla de pago.** `fn_comprobante_y_pago` es el paso compartido de gasto y activo, y `registrar_gasto` se
+    reescribe sobre él (gana `p_gasto_fijo_id`). Un egreso de caja respalda UNA sola cosa: un gasto, un activo o «no es
+    gasto» (`fn_egreso_ya_usado` en los tres candados y en las lecturas). La factura de un activo tampoco se anula desde
+    Compras.
+- **Web:** Finanzas ▸ Gastos suma dos pestañas.
+  - «Fijos del mes»: registrado, viene o falta; «Registrar» abre el gasto ya lleno; editar y archivar; los sugeridos.
+  - «Activos fijos»: costo, vida útil, lo que se deprecia al mes y lo que vale hoy, con su detalle para dar de baja o anular.
+
+  El modal de registrar sirve para gasto y activo, y clasificar un egreso ofrece «Un activo fijo». En Por pagar y en el
+  detalle de Compras, la factura de un activo se muestra como tal.
+- **Verificación:**
+  - `pnpm pruebas:activos-y-fijos`: 46 casos, en el CI.
+  - `pnpm pruebas:gastos`: 53.
+  - Reglas: 29.
+  - Web: 45.914.
+  - Cada parte medida: solo toma en exclusiva sus propias tablas, nunca `auth` ni `storage`.
+  - Con clics en local: registrar un activo, crear un fijo y registrarlo desde su botón, y anular el activo desde su
+    detalle.
+- **Pendiente para Felipe:**
+  - el contador confirma tipos, vidas útiles y cuentas;
+  - la venta de un activo (el estado `vendido` existe, sin pantalla) queda para F7.
+
