@@ -162,6 +162,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:activos-y-fijos
 
+      # Cuentas y dinero (ADR-0195 F3): cada movimiento, que se anula y no se borra, los saldos sumados, un egreso respalda
+      # una sola cosa, con el módulo solo su tienda y la conciliación. ROLLBACK.
+      - name: pruebas:cuentas-dinero
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cuentas-dinero
+
       - name: pruebas:registrar-cambio
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-cambio
