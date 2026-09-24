@@ -4,42 +4,42 @@ const medioTxt = g => g.medio ? cuenta(g.medio).n.replace(' · Cta. corriente','
 
 VISTAS.gastos = () => {
   const tab = tabActual('gastos','gastos');
-  const gastos = GASTOS.filter(g=>veUnidad(g.u));
-  const egresos = EGRESOS.filter(e=>veUnidad(e.u));
-  const activos = ACTIVOS.filter(a=>veUnidad(a.u));
+  const gastos = GASTOS.filter(g=>enVista(g.u)).sort((a,b)=>(b.nuevo?1:0)-(a.nuevo?1:0) || b.f.localeCompare(a.f));
+  const egresos = EGRESOS.filter(e=>enVista(e.u));
+  const activos = ACTIVOS.filter(a=>enVista(a.u));
+  const fijosPend = FIJOS.filter(f=>enVista(f.u) && f.estado!=='registrado').length;
   const vig = gastos.filter(g=>g.estado!=='anulado' && g.f.startsWith('2026-09'));
   const total = vig.reduce((a,g)=>a+g.total,0), igv = vig.reduce((a,g)=>a+g.igv,0);
   const sinIgv = vig.filter(g=>g.comp==='Boleta').length;
-  const acc = tab==='activos'
+  const acc = filtroVer() + (tab==='activos'
     ? `<button class="btn btn-primario" data-accion="nuevo-activo">+ Registrar activo</button>`
-    : `<button class="btn btn-primario" data-accion="nuevo-gasto">+ Registrar gasto</button>`;
+    : `<button class="btn btn-primario" data-accion="nuevo-gasto">+ Registrar gasto</button>`);
   return `
-  ${cabecera({sobre:'Finanzas · Gastos', titulo: esLider()?'Gastos de septiembre':'Gastos de Tienda TRU',
+  ${cabecera({sobre:'Finanzas · Gastos', titulo: verTodas()?'Gastos de septiembre':`Gastos de ${nombreUnidad(E.ver)}`,
     bajada:'Lo que se paga para que el negocio funcione y no es mercadería. Si llegó con comprobante de un proveedor, comparte la factura con Compras: un solo Por pagar y un solo IGV.', acciones:acc})}
   <section class="cifras">
-    <div class="tile anim-sube"><span class="etq">Gastado en el mes</span><div class="valor">${S(total)}</div><div class="det">${vig.length} gastos vigentes${esLider()?' · 5 unidades':''}</div>${F('nuevo','gastos + compras (naturaleza = gasto)')}</div>
+    <div class="tile anim-sube"><span class="etq">Gastado en el mes</span><div class="valor">${S(total)}</div><div class="det">${vig.length} gastos vigentes · ${nombreVer()}</div>${F('nuevo','gastos + compras (naturaleza = gasto)')}</div>
     <div class="tile anim-sube"><span class="etq">IGV que puedes descontar</span><div class="valor">${S(igv)}</div><div class="det">Solo de facturas. ${sinIgv} boleta${sinIgv===1?'':'s'} sin IGV descontable.</div>${F('deriva','compras.igv')}</div>
     <div class="tile anim-sube"><span class="etq">Por pagar de gastos</span><div class="valor ambar">${S(gastos.filter(g=>g.estado==='porpagar').reduce((a,g)=>a+g.total,0))}</div><div class="det">${gastos.filter(g=>g.estado==='porpagar').length} con factura a crédito</div>${F('existe','compras_resumen.saldo')}</div>
     <div class="tile anim-sube"><span class="etq">Egresos de caja sin clasificar</span><div class="valor ${egresos.length?'ambar':''}">${egresos.length}</div><div class="det">${egresos.length?'No cuentan en ningún número hasta clasificarlos':'Todo clasificado'}</div>${F('existe','caja_movimientos')}</div>
   </section>
-  ${pestanas('gastos', [['gastos','Gastos'],['activos','Activos fijos', activos.length],['egresos','Egresos de caja por clasificar', egresos.length||'']])}
-  ${tab==='gastos' ? tablaGastos(gastos) : tab==='activos' ? tablaActivos(activos) : tablaEgresos(egresos)}`;
+  ${pestanas('gastos', [['gastos','Gastos'],['fijos','Fijos del mes', fijosPend||''],['activos','Activos fijos', activos.length],['egresos','Egresos de caja por clasificar', egresos.length||'']])}
+  ${tab==='gastos' ? tablaGastos(gastos) : tab==='fijos' ? vistaFijos() : tab==='activos' ? tablaActivos(activos) : tablaEgresos(egresos)}`;
 };
 
 function tablaGastos(gastos){
   return `<div class="superficie anim-sube">
     <div class="herramientas">
       <div class="buscar"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input class="control" placeholder="Buscar por descripción, proveedor o número"></div>
-      ${esLider()?`<select class="control"><option>Todas las unidades</option>${UNIDADES.map(u=>`<option>${u.n}</option>`).join('')}</select>`:''}
       <select class="control"><option>Todas las categorías</option>${CATEGORIAS.map(c=>`<option>${c.n}</option>`).join('')}</select>
       <select class="control"><option>Septiembre 2026</option><option>Agosto 2026 · cerrado</option></select>
     </div>
-    <div class="tabla-wrap"><table class="t"><thead><tr><th>Fecha</th><th>Gasto</th><th>Categoría · cuenta</th>${esLider()?'<th>Unidad</th>':''}<th>Comprobante</th><th>Cómo se pagó</th><th class="num">Monto</th><th>Estado</th></tr></thead>
+    <div class="tabla-wrap"><table class="t"><thead><tr><th>Fecha</th><th>Gasto</th><th>Categoría · cuenta</th>${verTodas()?'<th>Unidad</th>':''}<th>Comprobante</th><th>Cómo se pagó</th><th class="num">Monto</th><th>Estado</th></tr></thead>
     <tbody>${gastos.map(g=>{ const [t,e]=ESTADO_GASTO[g.estado]; const c=cat(g.c); return `<tr class="${g.nuevo?'fila-nueva':''}${g.estado==='anulado'?' anulada':''}" data-accion="ver-gasto" data-id="${g.id}">
       <td data-l="Fecha">${fecha(g.f)}</td>
-      <td class="c-prenda" data-l="Gasto"><b>${esc(g.d)}</b><span class="sub" style="display:block;font-size:12px">${esc(g.prov||'Sin proveedor')}</span></td>
+      <td class="c-prenda" data-l="Gasto"><b>${esc(g.d)}</b><span class="sub" style="display:block;font-size:12px">${esc(g.prov||'Sin proveedor')}</span>${g.raro?`<span class="badge sin-punto" data-tono="pizarra" title="${esc(g.raro)}" style="margin-top:4px">fuera de lo normal · ${esc(g.raro)}</span>`:''}</td>
       <td data-l="Categoría">${c.n} <span class="sub">· ${c.cta}</span></td>
-      ${esLider()?`<td data-l="Unidad">${nombreUnidad(g.u)}</td>`:''}
+      ${verTodas()?`<td data-l="Unidad">${nombreUnidad(g.u)}</td>`:''}
       <td data-l="Comprobante">${g.comp}${g.num?`<span class="sub" style="display:block;font-size:12px">${g.num}</span>`:''}</td>
       <td data-l="Pago">${g.cond==='credito'&&g.estado==='porpagar'?`<span class="sub">vence ${fecha(g.vence)}</span>`:medioTxt(g)}</td>
       <td class="num" data-l="Monto"><b>${S(g.total,1)}</b>${g.igv?`<span class="sub" style="display:block;font-size:12px">IGV ${S(g.igv,1)}</span>`:''}</td>
@@ -186,4 +186,36 @@ function modalClasificar(id){
   $('#okC').onclick = () => { const q = v.querySelector('[name=q]:checked').value;
     guardar({gasto:'Registrado como gasto.', deposito:'Registrado como depósito: el banco lo verá en la conciliación.', retiro:'Registrado como retiro del dueño.', ajuste:'Registrado como ajuste.'}[q],
       () => { EGRESOS.splice(EGRESOS.indexOf(e), 1); if (q==='deposito') MOV_DINERO.unshift({f:e.f, tipo:'Depósito del cajón', de:'c'+e.u, a:'bcp', monto:e.monto, ref:e.nota, u:e.u, por:responsableDefecto()}); }); };
+}
+
+// ---------- Fijos del mes: el sistema propone, el líder confirma ----------
+function vistaFijos(){
+  const fs = FIJOS.filter(f=>enVista(f.u));
+  const prop = fs.filter(f=>f.estado==='propuesto'), falta = fs.filter(f=>f.estado==='falta'), ok = fs.filter(f=>f.estado==='registrado');
+  const det = DETECTADOS.filter(d=>enVista(d.u));
+  const fila = (f, boton) => `<li class="fijo"><div><b>${f.n} · ${nombreUnidad(f.u)}</b><span class="sub">${esc(f.prov)} · día ${f.dia}${f.variable?' · monto variable':''}</span></div><span class="monto">${f.variable?'~':''}${S(f.monto)}</span>${boton}</li>`;
+  return `
+  <section class="dos-col par">
+    <div class="superficie pad anim-sube">
+      <div class="prioridades-cab"><div><h2>Para confirmar</h2><p>Llegan en los próximos días. Un clic los registra con el monto y la cuenta de siempre.</p></div></div>
+      <ul class="fijos">${prop.map(f=>fila(f, `<button class="btn btn-primario btn-sm" data-accion="confirmar-fijo" data-id="${f.id}">Registrar</button>`)).join('') || '<li class="sub">Nada por confirmar.</li>'}</ul>
+      ${falta.length?`<div class="prioridades-cab" style="margin-top:18px"><div><h2>Faltan</h2><p>Deberían haber llegado y no están registrados.</p></div></div>
+      <ul class="fijos">${falta.map(f=>fila(f, `<button class="btn btn-secundario btn-sm" data-accion="fijo-variable" data-id="${f.id}">Registrar monto</button>`)).join('')}</ul>`:''}
+    </div>
+    <div class="columna">
+      ${det.length?`<div class="superficie pad anim-sube"><div class="prioridades-cab"><div><h2>Se repiten. ¿Los marco como fijos?</h2><p>El sistema los encontró mirando los gastos de los últimos meses.</p></div></div>
+        <ul class="fijos">${det.map(d=>`<li class="fijo"><div><b>${esc(d.prov)} · ${nombreUnidad(d.u)}</b><span class="sub">${cat(d.c).n} · ${esc(d.patron)}</span></div><span class="monto">${S(d.monto)}</span>
+          <span class="dos-botones"><button class="btn btn-secundario btn-sm" data-accion="marcar-fijo" data-id="${d.id}">Marcar fijo</button><button class="btn btn-enlace" data-accion="no-fijo" data-id="${d.id}">No es fijo</button></span></li>`).join('')}</ul></div>`:''}
+      <div class="superficie pad anim-sube"><div class="prioridades-cab"><div><h2>Ya registrados este mes</h2><p>${ok.length} de ${fs.length} fijos.</p></div><button class="btn btn-sutil btn-sm" data-ir="config:fijos">Editar fijos</button></div>
+        <ul class="fijos">${ok.map(f=>fila(f, '<span class="badge" data-tono="verde">registrado</span>')).join('')}</ul></div>
+    </div>
+  </section>
+  <div class="nota-cayla">Los fijos también alimentan el <button class="btn-enlace" data-ir="reportes:flujo">flujo de caja</button>: por eso la proyección sabe que el alquiler sale el día 10. Si un recibo variable (luz, agua) viene muy distinto a su promedio, el sistema lo marca como «fuera de lo normal». ${F('nuevo','gastos_fijos + detección por proveedor, día y monto')}</div>`;
+}
+function confirmarFijo(f, monto){
+  guardar(`${f.n} de ${nombreUnidad(f.u)} registrado: ${S(monto)}.`, () => {
+    f.estado = 'registrado'; GASTOS.forEach(x=>x.nuevo=false);
+    GASTOS.unshift({id:Date.now(), f:HOY, u:f.u, c:f.c, d:`${f.n} de septiembre`, prov:f.prov, comp:'Factura', num:'—', total:monto, igv:Math.round((monto-monto/1.18)*100)/100, medio:f.cuenta, cond:'contado', estado:'pagado', nuevo:true});
+    if (f.cuenta) cuenta(f.cuenta).saldo -= monto;
+  });
 }

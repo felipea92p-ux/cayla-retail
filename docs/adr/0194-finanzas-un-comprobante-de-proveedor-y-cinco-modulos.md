@@ -63,3 +63,31 @@ para el líder; `cierre_mes` no es delegable. Con `gastos`, `cuentas_dinero` o `
   resuelve en la pantalla ofreciendo **vincular** la factura al gasto existente, no crear otro.
 - La retención del recibo por honorarios (8 %) no se modela: el pago al proveedor sería menor que el total. Pendiente
   del contador, anotado en el plan.
+
+## Actualización 2026-09-24 (b) — filtro de tienda, plata del dueño, Configuración y la capa para decidir
+
+Aprobado por Felipe el mismo día, después de ver el spike v1 (pidió que sea «completo, intuitivo y que ayude a decidir»).
+
+**C. Filtro de tienda: la cabecera dice DÓNDE trabajas; «Ver» dentro de la pantalla dice QUÉ miras.** El selector de
+la cabecera sigue siendo una sola sede: de ella salen el combo Responsable y el permiso de cada guardado
+(`x-ubicacion`, ADR-0161/0162). Cada pantalla de Finanzas arranca mostrando esa sede y tiene su filtro «Ver» con
+«Todas las tiendas», igual que Historial de ventas, Compras y Facturación. **Una tienda a la vez:** con «Todas», las
+tablas ponen cada tienda en su columna. *Descarté:* «Todas» en la cabecera (¿quién firma un gasto en «todas»?) y la
+selección múltiple (el total de «TRU + AQP» es ambiguo y compararlas ya lo hace la vista «Todas»).
+
+**D. Plata del dueño.** Al poner plata se elige **aporte** (se queda en CAYLA, patrimonio) o **préstamo** (CAYLA te lo
+devuelve, pasivo, «CAYLA te debe S/ X»). Al sacarla, **retiro de utilidades** o **devolución de préstamo**. Ninguna de
+las cuatro es venta ni gasto: no mueven la utilidad. Las cuentas contables (capital adicional, cuenta 47) las confirma
+el contador.
+
+**E. Configuración es un módulo general del ERP** (`configuracion`, grupo Gestión, solo líder, no delegable), no una
+pestaña de Finanzas. Hoy trae: Empresa · Cuentas y cobros · Caja y avisos (mínimo de caja, umbral de «fuera de lo
+normal», días de aviso de vencimientos) · Gastos fijos · Presupuesto · Impuestos (IGV y UIT con vigencia). Mañana, otras
+secciones del ERP. *Descarté:* pestaña dentro de Finanzas (habría que moverla el día que otro módulo necesite ajustes).
+Toca más de un módulo: por eso se anotó aquí con el OK de Felipe.
+
+**F. La capa para decidir son reglas y cálculos, no inteligencia artificial.** Salud en frases (días de caja, día del
+mes en que se cubren los costos), punto de equilibrio por tienda (gastos ÷ margen %), presupuesto contra real con
+proyección al cierre, escenarios («¿y si…?»), avisos de lo raro (contra el promedio de 6 meses), gastos fijos que el
+sistema propone y detecta, y conciliación que propone la pareja de cada línea del banco. Cada número dice de qué dato
+sale. Un resumen escrito con IA puede sumarse encima después, nunca en lugar del cálculo.

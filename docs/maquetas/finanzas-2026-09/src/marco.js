@@ -7,6 +7,11 @@ const E = {
   mesCierre: '2026-08',
   seleccion: new Set(),
   conciliado: {},        // id cuenta -> saldo del banco escrito
+  // v2
+  sedeActiva: 'TRU',     // la de la cabecera: DÓNDE trabajo (una sola; de ahí sale el combo Responsable)
+  ver: 'TRU',            // el filtro dentro de la pantalla: QUÉ miro («TODAS» o una unidad)
+  escenario: {alqLIM:6200, ventasLIM:0, ventasTodas:0, cerrarLIM:false, retrasarNorte:false},
+  parejas: {},           // id de línea del extracto -> 'ok' | 'gasto'
 };
 
 // ---------- Formato ----------
@@ -30,7 +35,21 @@ const F = (k, txt) => `<span class="fuente" data-k="${k}"><b>${{existe:'Existe',
 const esLider = () => E.rol === 'lider';
 const unidadPropia = () => esLider() ? null : 'TRU';
 const veUnidad = u => esLider() || u === unidadPropia();
+// Lo que se ve según el filtro «Ver» de la pantalla (además del permiso).
+const enVista = u => veUnidad(u) && (E.ver === 'TODAS' || u === E.ver || u == null);
+const verTodas = () => E.ver === 'TODAS';
+// El filtro «Ver» dentro de la pantalla. Arranca en la sede de la cabecera; «Todas» solo para quien ve varias.
+// alcance 'empresa': el reporte es de CAYLA entera (bancos, balance, impuestos): no hay filtro, se dice.
+function filtroVer(alcance){
+  if (alcance === 'empresa') return `<span class="badge sin-punto" data-tono="taupe" title="Los bancos, las deudas y los impuestos son de CAYLA entera">CAYLA entera</span>`;
+  if (!esLider()) return `<span class="badge sin-punto" data-tono="taupe">Tienda TRU</span>`;
+  return `<label class="ver"><span class="etq">Ver</span><select class="control" data-cambia="ver">
+    <option value="TODAS"${verTodas()?' selected':''}>Todas las tiendas</option>
+    ${UNIDADES.map(u=>`<option value="${u.k}"${E.ver===u.k?' selected':''}>${u.n}</option>`).join('')}</select></label>`;
+}
+const nombreVer = () => verTodas() ? 'todas las tiendas' : nombreUnidad(E.ver);
 const responsableDefecto = () => esLider() ? 'Felipe Alvarez' : 'Rosa Quispe';
+const minimoCaja = () => CONFIG.minimoCaja;
 
 // ---------- Menú (6 hijas: cumple el tope de lib/menu.ts) ----------
 const ICON = {
@@ -48,9 +67,11 @@ const MENU = [
   {r:'reportes', n:'Reportes',       mod:'reportes_financieros'},
   {r:'impuestos',n:'Impuestos',      mod:'impuestos'},
   {r:'cierre',   n:'Cierre de mes',  mod:'cierre_mes'},
+  {r:'config',   n:'Configuración',  mod:'configuracion', grupo:'gestion'},
 ];
 const MODULOS_ENCARGADA = ['gastos','cuentas_dinero'];
 const puedeVer = r => { const m = MENU.find(x=>x.r===r); return esLider() || MODULOS_ENCARGADA.includes(m.mod); };
+ICON.config = '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>';
 
 function pintarLateral(){
   const svg = k => `<svg viewBox="0 0 24 24">${ICON[k]}</svg>`;
@@ -60,12 +81,18 @@ function pintarLateral(){
     <a href="#"><svg viewBox="0 0 24 24"><path d="M3 5h3l2 10h11l2-7H7"/><circle cx="9" cy="19" r="1.3"/><circle cx="18" cy="19" r="1.3"/></svg>Compras<span class="flecha">›</span></a>
     <a href="#"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg>Inventario<span class="flecha">›</span></a>
     <a href="#" class="grupo-activo"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Finanzas<span class="flecha">⌄</span></a>
-    ${MENU.filter(m=>puedeVer(m.r)).map(m=>`<a href="#${m.r}" class="hijo${E.ruta===m.r?' activo':''}" data-ir="${m.r}">${svg(m.r)}${m.n}</a>`).join('')}`;
+    ${MENU.filter(m=>!m.grupo && puedeVer(m.r)).map(m=>`<a href="#${m.r}" class="hijo${E.ruta===m.r?' activo':''}" data-ir="${m.r}">${svg(m.r)}${m.n}</a>`).join('')}
+    ${esLider()?`<a href="#"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5M16 11a3 3 0 100-6M21 20c0-2.5-2-4.3-4.5-4.8"/></svg>Gestión<span class="flecha">⌄</span></a>
+    <a href="#" class="hijo"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M6 20c0-3 3-5 6-5s6 2 6 5"/></svg>Colaboradores</a>
+    <a href="#config" class="hijo${E.ruta==='config'?' activo':''}" data-ir="config">${svg('config')}Configuración</a>`:''}`;
   $('#irMovil').innerHTML = MENU.filter(m=>puedeVer(m.r)).map(m=>`<option value="${m.r}"${E.ruta===m.r?' selected':''}>${m.n}</option>`).join('');
   $('#pieNombre').textContent = esLider() ? 'Felipe Alvarez' : 'Rosa Quispe';
   $('#pieRol').textContent = esLider() ? 'Líder · Todas las sedes' : 'Encargada · Tienda TRU';
   $('#pieAvatar').textContent = esLider() ? 'FA' : 'RQ';
-  $('#chipSede').innerHTML = (esLider() ? 'Todas las sedes' : 'Tienda TRU') + ' <span aria-hidden="true">⌄</span>';
+  // La cabecera dice DÓNDE trabajas: siempre una sede (el combo Responsable y el permiso de cada guardado salen de aquí).
+  $('#chipSede').innerHTML = esLider()
+    ? `<span class="etq" style="font-size:9.5px">Trabajando en</span><select data-cambia="sedeActiva" aria-label="Sede donde trabajas">${UNIDADES.filter(u=>u.k!=='EMP').map(u=>`<option value="${u.k}"${E.sedeActiva===u.k?' selected':''}>${u.n}</option>`).join('')}</select>`
+    : 'Tienda TRU';
 }
 
 // ---------- Pantalla ----------
@@ -87,6 +114,7 @@ function sinAcceso(){
 }
 function render(){
   document.body.classList.toggle('ver-fuentes', E.fuentes);
+  if (Object.keys(E.parejas).length === EXTRACTO_IBK.length) E.conciliado.ibk = cuenta('ibk').saldo;
   pintarLateral();
   const v = puedeVer(E.ruta) ? (VISTAS[E.ruta] || (()=>cabecera({sobre:'Finanzas', titulo:'En construcción'})))() : sinAcceso();
   $('#pagina').innerHTML = v;
@@ -97,10 +125,11 @@ function ir(r){ E.ruta = r; location.hash = r; render(); window.scrollTo({top:0}
 
 function notaDemo(){
   const n = {
-    resumen:'Todo lo de esta pantalla sale de otros módulos: <b>nadie tipea un número aquí</b>. Toca un aviso de «Para decidir».',
-    gastos:'Prueba <b>Registrar gasto</b> con factura a crédito: aparece en Cuentas y dinero ▸ Por pagar. En «Egresos de caja» clasifica el depósito de LIM: destraba el cierre de agosto.',
-    dinero:'Yape y Plin no son cuentas: caen al banco que dice «A qué cuenta entra cada cobro». Concilia Interbank para destrabar el cierre.',
-    reportes:'Cambia de mes y toca cualquier cifra del estado de resultados para ver de qué filas sale.',
+    resumen:'La cabecera dice <b>dónde trabajas</b>; el filtro «Ver» de la pantalla dice <b>qué miras</b>. Prueba «Todas las tiendas». Cada aviso lleva a donde se resuelve.',
+    gastos:'En «Fijos del mes» confirma con un clic lo que el sistema propone. <b>Registrar gasto</b> a crédito aparece en Cuentas y dinero ▸ Por pagar. En «Egresos de caja» clasifica el depósito de LIM: destraba el cierre de agosto.',
+    dinero:'Prueba «Registrar movimiento ▸ Poner plata del dueño» (aporte o préstamo). En Conciliación el sistema propone la pareja de cada línea del banco: solo confirmas.',
+    reportes:'Toca cualquier cifra del estado de resultados para ver de qué filas sale. En «Escenarios» mueve los valores: todo se recalcula.',
+    config:'Todo lo que se ajusta vive aquí: cuentas, a dónde cae cada cobro, mínimo de caja, gastos fijos, presupuesto e impuestos. Cambia el mínimo de caja y mira el Resumen.',
     impuestos:'El IGV sale de los comprobantes emitidos y de las facturas de proveedor (mercadería, gastos, activos e insumos).',
     cierre:'Agosto: TRU y AQP ya cerraron. Resuelve lo pendiente de LIM y cierra; el consolidado se habilita cuando cierran todas.',
   }[E.ruta];
@@ -133,9 +162,10 @@ function guardar(texto, hecho){
   esp.innerHTML = `<div><svg width="34" height="30" viewBox="0 0 30 26"><path d="M2 5c5 1 9 4 11 9 2-6 7-10 15-12-4 3-7 7-8 12-1 5-4 9-9 10 2-2 3-5 2-8-3 0-7-3-11-11z" fill="none" stroke="var(--rojo)" stroke-width="1.4" stroke-linejoin="round"/></svg>Guardando…</div>`;
   document.body.appendChild(esp);
   hecho && hecho();   // lee los campos de la ventana ANTES de cerrarla
-  setTimeout(()=>{ esp.remove(); cerrarVentana(); render(); avisar(texto); }, 650);
+  setTimeout(()=>{ esp.remove(); cerrarVentana(); render(); texto && avisar(texto); }, 650);
 }
 function avisar(texto){
+  document.querySelectorAll('.aviso').forEach(x=>x.remove());   // uno a la vez: el nuevo reemplaza al anterior
   const a = document.createElement('div');
   a.className = 'aviso';
   a.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>${texto}</span>`;

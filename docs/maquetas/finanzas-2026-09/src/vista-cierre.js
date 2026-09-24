@@ -15,7 +15,7 @@ function chequeosDe(u){
       {t:'Egresos del fondo fijo clasificados', d:'Todos clasificados', ok:true},
     ],
     empresa: [
-      {t:'Bancos conciliados al fin de mes', d: E.conciliado.ibk!=null ? 'BCP e Interbank coinciden' : 'Interbank sin conciliar desde el 29 ago', ok:E.conciliado.ibk!=null, ir:'dinero:conciliacion'},
+      {t:'Bancos conciliados al fin de mes', d: E.conciliado.ibk!=null ? 'BCP e Interbank coinciden' : 'Interbank: faltan confirmar movimientos del extracto', ok:E.conciliado.ibk!=null, ir:'dinero:conciliacion'},
       {t:'Facturas de proveedor del mes registradas', d:'Revisa que no quede ninguna en el cajón', ok:true},
       {t:'Planilla de agosto leída de Dynamic', d:'Período cerrado en Dynamic el 1 sep', ok:true},
     ],
@@ -30,7 +30,7 @@ VISTAS.cierre = () => {
   const u = E.unidadCierre, ch = chequeosDe(u), listo = ch.every(c=>c.ok), cerrada = est[u]?.c;
   return `
   ${cabecera({sobre:'Finanzas · Cierre de mes', titulo:'Cerrar ' + mesLargo(mes), bajada:'Cerrar un mes lo congela: nadie puede registrar ni cambiar nada con fecha de ese mes, y el diario queda guardado con su huella. Se cierra cada tienda y el Taller; CAYLA entera, cuando cerraron todas (ADR-0109).',
-    acciones:`<select class="control" data-cambia="mesCierre"><option value="2026-07"${mes==='2026-07'?' selected':''}>Julio 2026</option><option value="2026-08"${mes==='2026-08'?' selected':''}>Agosto 2026</option></select>`})}
+    acciones:`${filtroVer('empresa')}<select class="control" data-cambia="mesCierre"><option value="2026-07"${mes==='2026-07'?' selected':''}>Julio 2026</option><option value="2026-08"${mes==='2026-08'?' selected':''}>Agosto 2026</option></select>`})}
   <div class="matriz anim-sube">
     ${UNIDADES.map(x=>{ const s = est[x.k]||{}; return `<button class="unidad-c" data-accion="unidad-cierre" data-id="${x.k}" aria-pressed="${x.k===u}">
       <span class="n">${x.n}</span>${s.c?`<span class="badge" data-tono="verde">cerrado</span><span class="sub" style="font-size:12px">${fecha(s.f)} · ${s.por.split(' ')[0]}</span><span class="h">${s.hash}</span>`
@@ -82,5 +82,19 @@ const ACCIONES_EXTRA = {
     $('#okRe').onclick = () => { if (!$('#fMotR').value.trim()){ $('#fMotR').focus(); $('#fMotR').style.borderColor='var(--rojo)'; return; }
       guardar('Mes reabierto. El motivo quedó en la historia.', () => { CIERRE[E.mesCierre][u] = {c:false}; delete CIERRE[E.mesCierre].CONS; }); }; },
   'origen': a => modalOrigen(a.dataset.id),
+  'confirmar-fijo': a => { const f = FIJOS.find(x=>x.id===a.dataset.id); confirmarFijo(f, f.monto); },
+  'fijo-variable': a => { const f = FIJOS.find(x=>x.id===a.dataset.id);
+    ventana(`<h3>${f.n} de ${nombreUnidad(f.u)}</h3><p class="bajada">${esc(f.prov)}. Es un monto variable: escribe el del recibo. Su promedio es ${S(f.monto)}.</p>
+      <div class="campo"><label for="fvM">Monto del recibo</label><input class="control" id="fvM" value="${f.monto}"></div>${comboResponsable()}
+      <div class="botones"><button class="btn btn-secundario" data-cerrar>Cancelar</button><button class="btn btn-primario" id="okFv">Registrar</button></div>`);
+    $('#okFv').onclick = () => confirmarFijo(f, +$('#fvM').value || f.monto); },
+  'marcar-fijo': a => { const d = DETECTADOS.find(x=>x.id===a.dataset.id); guardar(`${d.prov} quedó como gasto fijo.`, () => { DETECTADOS.splice(DETECTADOS.indexOf(d),1); FIJOS.push({id:'f'+Date.now(), n:cat(d.c).n, u:d.u, c:d.c, prov:d.prov, monto:d.monto, dia:20, cuenta:'bcp', estado:'registrado'}); }); },
+  'no-fijo': a => { const d = DETECTADOS.find(x=>x.id===a.dataset.id); DETECTADOS.splice(DETECTADOS.indexOf(d),1); render(); avisar('Listo: no se volverá a proponer.'); },
+  'pareja': a => { E.parejas[a.dataset.id] = 'ok'; render(); },
+  'parejas-todas': () => { EXTRACTO_IBK.filter(x=>x.pareja).forEach(x=>E.parejas[x.id]='ok'); render(); avisar('Parejas confirmadas.'); },
+  'pareja-gasto': a => { const x = EXTRACTO_IBK.find(y=>y.id===a.dataset.id);
+    guardar('Comisión registrada como gasto de la empresa.', () => { E.parejas[x.id]='gasto'; GASTOS.forEach(g=>g.nuevo=false); GASTOS.unshift({id:Date.now(), f:x.f, u:'EMP', c:'comisiones', d:'Comisión de mantenimiento Interbank', prov:'Interbank', comp:'Sin comprobante', num:'', total:-x.monto, igv:0, medio:'ibk', cond:'contado', estado:'pagado', nuevo:true}); }); },
+  'ver-mas': () => { E.verMas = !E.verMas; render(); },
+  'esc-reset': () => { E.escenario = {alqLIM:6200, ventasLIM:0, ventasTodas:0, cerrarLIM:false, retrasarNorte:false}; render(); },
   'exportar': () => avisar('En el sistema real se descarga el archivo. En el spike no se genera nada.'),
 };

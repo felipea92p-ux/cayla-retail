@@ -66,6 +66,7 @@ const GASTOS = [
   {id:10, f:'2026-09-12', u:'AQP', c:'alquiler',      d:'Alquiler de septiembre',       prov:'Rentas Yanahuara', comp:'Factura', num:'F001-00904', total:3800, igv:580, medio:'bcp', cond:'contado', estado:'pagado'},
   {id:11, f:'2026-09-10', u:'TRU', c:'alquiler',      d:'Alquiler de septiembre',       prov:'Inversiones Primavera', comp:'Factura', num:'F002-00455', total:4500, igv:686, medio:'bcp', cond:'contado', estado:'pagado'},
   {id:12, f:'2026-09-08', u:'LIM', c:'suministros',   d:'Ganchos de exhibición (100)',  prov:'Bazar Central', comp:'Boleta', num:'B003-2210', total:95, igv:0, medio:'cLIM', cond:'contado', estado:'anulado', motivo:'Se registró dos veces'},
+  {id:14, f:'2026-09-21', u:'AQP', c:'servicios',     d:'Luz de agosto',                prov:'SEAL', comp:'Factura', num:'S004-120981', total:662, igv:101, medio:'bcp', cond:'contado', estado:'pagado', raro:'38 % más alta que su promedio (S/ 480)'},
   {id:13, f:'2026-09-05', u:'TAL', c:'servicios',     d:'Luz del Taller (agosto)',      prov:'Luz del Sur', comp:'Factura', num:'S310-77120', total:710, igv:108, medio:'ibk', cond:'contado', estado:'pagado'},
 ];
 
@@ -136,15 +137,14 @@ const FLUJO_SEMANAS = [
   {s:'26 oct – 1 nov', entra:22000, sale:31200, que:'Planilla · alquileres'},
   {s:'2 – 8 nov',      entra:22000, sale:14600, que:'Proveedores de temporada'},
 ];
-const MINIMO_CAJA = 15000;
 
 // Balance al 31-ago (cerrado). Capital es una ENTRADA, nunca el residual (ADR-0109).
 const BALANCE = {
   activo: [['101','Caja (cajones y fondo fijo)',5420],['104','Bancos',47900],['105','Tarjeta por abonar',2310],
            ['201','Mercaderías',186400],['211','Productos terminados del Taller',12600],['24','Insumos del Taller (tela, avíos)',8900],
            ['33','Muebles, equipos y remodelación',28149],['39','Depreciación acumulada',-1778]],
-  pasivo: [['4011','IGV por pagar',6840],['4017','Impuesto a la renta',1900],['421','Facturas por pagar',64300],['41','Remuneraciones por pagar',0]],
-  patrimonio: [['50','Capital',180000],['591','Utilidades acumuladas',33801],['','Utilidad de agosto',3060]],
+  pasivo: [['4011','IGV por pagar',6840],['4017','Impuesto a la renta',1900],['421','Facturas por pagar',64300],['41','Remuneraciones por pagar',0],['47','Préstamo del dueño (por devolver)',6000]],
+  patrimonio: [['50','Capital',180000],['591','Utilidades acumuladas',27801],['','Utilidad de agosto',3060]],
 };
 const CONCILIACION = [
   {cta:'101 Caja', contra:'la suma de las cajas cerradas al 31-ago', a:5420, b:5420},
@@ -169,3 +169,67 @@ const CIERRE = {
               LIM:{c:false}, TAL:{c:false}, EMP:{c:false}},
 };
 const PERSONAS = ['Felipe Alvarez','Rosa Quispe','Lucía Mamani','Carla Ríos'];
+
+// ============ v2: configuración, gastos fijos, presupuesto, avisos, conciliación con parejas ============
+// Lo que el líder ajusta en Gestión ▸ Configuración (se guarda allá, lo leen todas las pantallas).
+const CONFIG = {
+  minimoCaja: 15000,        // aviso del flujo de caja
+  avisoGastoPct: 25,        // «este gasto vino X % más alto que su promedio»
+  avisoVenceDias: 7,        // cuántos días antes avisa un vencimiento
+  empresa: {ruc:'20601234567', razon:'CAYLA MODA S.A.C.', comercial:'CAYLA'},
+  tasas: [{desde:'2011-03-01', igv:18}],
+  uits: [{anio:2026, valor:5500, nota:'por confirmar con el contador'}, {anio:2025, valor:5350}],
+};
+
+// Gastos que se repiten: el sistema los detectó y el líder los confirmó (o los propone para confirmar).
+const FIJOS = [
+  {id:'f1', n:'Alquiler', u:'TRU', c:'alquiler', prov:'Inversiones Primavera', monto:4500, dia:10, cuenta:'bcp', estado:'registrado'},
+  {id:'f2', n:'Alquiler', u:'AQP', c:'alquiler', prov:'Rentas Yanahuara', monto:3800, dia:12, cuenta:'bcp', estado:'registrado'},
+  {id:'f3', n:'Alquiler', u:'LIM', c:'alquiler', prov:'Inmobiliaria San Isidro', monto:6200, dia:30, cuenta:'bcp', estado:'registrado'},
+  {id:'f4', n:'Alquiler', u:'TAL', c:'alquiler', prov:'Sra. Huamán (local del Taller)', monto:1800, dia:25, cuenta:'bcp', estado:'propuesto'},
+  {id:'f5', n:'Luz', u:'TRU', c:'servicios', prov:'Hidrandina', monto:612, dia:19, variable:true, cuenta:null, estado:'registrado'},
+  {id:'f6', n:'Luz', u:'AQP', c:'servicios', prov:'SEAL', monto:480, dia:19, variable:true, cuenta:'bcp', estado:'registrado'},
+  {id:'f10', n:'Luz', u:'LIM', c:'servicios', prov:'Luz del Sur', monto:540, dia:19, variable:true, cuenta:'ibk', estado:'falta'},
+  {id:'f7', n:'Internet', u:'TRU', c:'servicios', prov:'Movistar', monto:129, dia:25, cuenta:'bcp', estado:'propuesto'},
+  {id:'f8', n:'Contabilidad', u:'EMP', c:'personal', prov:'Estudio contable Ríos', monto:1200, dia:21, cuenta:'bcp', estado:'registrado'},
+  {id:'f9', n:'Servidores y software', u:'EMP', c:'servicios', prov:'Vercel / Supabase', monto:480, dia:15, cuenta:'bcp', estado:'registrado'},
+];
+// Lo que se repite pero nadie marcó como fijo todavía.
+const DETECTADOS = [
+  {id:'d1', prov:'Shalom', c:'transporte', u:'AQP', monto:48, patron:'4 meses seguidos, entre el 18 y el 22, entre S/ 42 y S/ 55'},
+  {id:'d2', prov:'Meta Platforms', c:'publicidad', u:'EMP', monto:1600, patron:'6 meses seguidos, cerca del día 18, entre S/ 1,200 y S/ 1,600'},
+];
+
+// Presupuesto de septiembre (lo pone el líder en Configuración). Ventas sin IGV.
+const PRESUPUESTO = {
+  ventas:   {TRU:46000, AQP:34000, LIM:24000},
+  gastos:   { // rubro → unidad → tope del mes
+    alquiler:    {TRU:4500, AQP:3800, LIM:6200, TAL:1800},
+    servicios:   {TRU:650,  AQP:500,  LIM:480,  TAL:720,  EMP:700},
+    publicidad:  {EMP:2500},
+    suministros: {TRU:320,  AQP:320,  LIM:250,  TAL:540,  EMP:100},
+    transporte:  {TRU:150,  AQP:120,  LIM:80,   TAL:150},
+  },
+};
+
+// Avisos de lo raro: los calcula el sistema comparando con el promedio de los últimos 6 meses.
+const RAROS = [
+  {u:'AQP', t:'La luz de AQP vino 38 % más alta que su promedio', d:'S/ 662 este mes contra S/ 480 de promedio en 6 meses. ¿Cambió algo en la tienda o es un error del recibo?', ir:'gastos', dato:'gastos + promedio móvil'},
+  {u:'LIM', t:'LIM pierde el triple de prendas que TRU', d:'Mermas de agosto: 1,1 % de la venta en LIM contra 0,4 % en TRU. Son S/ 130 al mes que se van.', ir:'reportes:resultados', dato:'prendas_danadas / ventas'},
+  {u:null,  t:'Moda Lima EIRL subió 12 % el costo de la blusa Aurora', d:'De S/ 38 a S/ 42.50 en su última factura. Si el precio de venta no cambia, el margen de esa prenda baja de 58 % a 53 %.', ir:'dinero:porpagar', dato:'costo_historial'},
+];
+
+// Extracto de Interbank (lo que dice el banco). El sistema propone la pareja; el líder confirma.
+const EXTRACTO_IBK = [
+  {id:'x1', f:'2026-09-22', d:'ABONO NIUBIZ LIQ 200926',      monto: 4180, pareja:'Abono de tarjeta del 22 sep · S/ 4,180'},
+  {id:'x2', f:'2026-09-22', d:'PLIN LOTE 220926',              monto: 1240, pareja:'Cobros con Plin del 22 sep: TRU S/ 610 · AQP S/ 420 · LIM S/ 210'},
+  {id:'x3', f:'2026-09-22', d:'COM. MANTENIMIENTO CTA',        monto: -25,  pareja:null, sugerir:'Registrar como gasto «Comisiones del POS» (639) de la empresa'},
+  {id:'x4', f:'2026-09-19', d:'TRANSF. A CTA BCP 1942…',       monto:-8000, pareja:'Entre cuentas del 19 sep · S/ 8,000'},
+  {id:'x5', f:'2026-09-05', d:'PAGO SERVICIO LUZ DEL SUR',     monto: -710, pareja:'Gasto «Luz del Taller (agosto)» del 5 sep'},
+  {id:'x6', f:'2026-09-03', d:'YAPE LIM 030926',               monto:  385, pareja:'Cobros con Yape de LIM del 3 sep'},
+];
+
+// Plata del dueño: aporte (se queda en CAYLA) o préstamo (CAYLA te lo devuelve).
+const PRESTAMOS_DUENO = [
+  {f:'2026-07-14', monto:10000, nota:'Para pagar la mercadería de invierno', devuelto:4000},
+];

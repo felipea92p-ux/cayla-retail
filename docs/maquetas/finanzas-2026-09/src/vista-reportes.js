@@ -1,11 +1,15 @@
 // ============ Reportes (piezas 7, 8 y 9) ============
 VISTAS.reportes = () => {
   const tab = tabActual('reportes','resultados');
-  const cuerpo = {resultados:vistaResultados, flujo:vistaFlujo, balance:vistaBalance}[tab]();
-  return `${cabecera({sobre:'Finanzas · Reportes', titulo:{resultados:'¿Ganamos?', flujo:'¿Por qué vendí bien y no hay plata?', balance:'¿Cuánto vale CAYLA?'}[tab],
-    bajada:'Los tres estados salen solos del diario que arma el sistema con cada venta, compra, gasto y movimiento de caja (ADR-0109). Nadie escribe un asiento.',
-    acciones:`<button class="btn btn-secundario" data-accion="exportar">Descargar Excel</button>`})}
-    ${pestanas('reportes', [['resultados','Estado de resultados'],['flujo','Flujo de caja'],['balance','Balance']])}${cuerpo}`;
+  const cuerpo = {resultados:vistaResultados, presupuesto:vistaPresupuesto, escenarios:vistaEscenarios, flujo:vistaFlujo, balance:vistaBalance}[tab]();
+  const alcance = ['resultados','presupuesto'].includes(tab) ? filtroVer() : filtroVer('empresa');
+  return `${cabecera({sobre:'Finanzas · Reportes', titulo:{resultados:'¿Ganamos?', presupuesto:'¿Vamos según lo planeado?', escenarios:'¿Qué pasa si…?', flujo:'¿Por qué vendí bien y no hay plata?', balance:'¿Cuánto vale CAYLA?'}[tab],
+    bajada:{resultados:'Salen solos del diario que arma el sistema con cada venta, compra, gasto y movimiento de caja (ADR-0109). Nadie escribe un asiento.',
+      presupuesto:'Lo que pusiste como meta y como tope en Configuración, contra lo que va pasando. La proyección supone que el resto del mes sigue al mismo ritmo.',
+      escenarios:'Mueve los valores y mira qué pasa con la utilidad de cada tienda y con tu caja. No se guarda nada: es para pensar antes de decidir.',
+      flujo:'Lo que ya entró y salió, y lo que viene en las próximas semanas.', balance:'Lo que CAYLA tiene, contra lo que debe y lo que es tuyo.'}[tab],
+    acciones:`${alcance}<button class="btn btn-secundario" data-accion="exportar">Descargar Excel</button>`})}
+    ${pestanas('reportes', [['resultados','Estado de resultados'],['presupuesto','Presupuesto'],['escenarios','Escenarios'],['flujo','Flujo de caja'],['balance','Balance']])}${cuerpo}`;
 };
 
 const FILAS_ER = [
@@ -21,7 +25,7 @@ const FILAS_ER = [
 
 function vistaResultados(){
   const mes = E.mesResultados, r = resultadosDe(mes), prev = mes==='2026-09' ? RESULTADOS_AGO : null;
-  const cols = [...UNIDADES.map(u=>u.k), 'CONS'];
+  const cols = verTodas() ? [...UNIDADES.map(u=>u.k), 'CONS'] : [E.ver, 'CONS'];
   const val = (fila, u, rr=r) => {
     const us = u==='CONS' ? UNIDADES.map(x=>x.k) : [u];
     if (fila.sub) return us.reduce((a,x)=>a+totalesDe(rr,x).margen,0);
@@ -80,7 +84,7 @@ function modalOrigen(id){
 
 function vistaFlujo(){
   const ent = FLUJO_REAL.entradas.reduce((a,x)=>a+x[1],0), sal = FLUJO_REAL.salidas.reduce((a,x)=>a+x[1],0);
-  let saldo = disponible(); const proy = FLUJO_SEMANAS.map(w => { saldo += w.entra - w.sale; return {...w, saldo}; });
+  const proy = proyeccion();
   const lista = (xs, signo) => xs.map(([n,v])=>`<li>${n}<b>${signo}${S(v)}</b></li>`).join('');
   return `
   <div class="dos-col der">
@@ -97,9 +101,9 @@ function vistaFlujo(){
       <p class="etq">Lo que viene · próximas 6 semanas</p>
       <h3 class="serif" style="font-weight:500;font-size:22px;margin:4px 0 2px">Hoy tienes ${S(disponible())}</h3>
       <p class="sub" style="margin:0 0 8px;font-size:13px">Entra lo que vendes en una semana normal; sale lo que vence (facturas, planilla, alquileres, gastos fijos).</p>
-      ${barras(proy.map(w=>({n:w.s.split(' – ')[0], v:w.saldo, malo:w.saldo<MINIMO_CAJA, maloTxt:'bajo el mínimo', tip:`<b>${w.s}</b><br>Entra ${S(w.entra)} · Sale ${S(w.sale)}<br>${esc(w.que)}`})), {alto:230, umbral:MINIMO_CAJA, umbralTxt:'mínimo de caja '+S(MINIMO_CAJA)+' (lo defines tú)'})}
+      ${barras(proy.map(w=>({n:w.s.split(' – ')[0], v:w.saldo, malo:w.saldo<minimoCaja(), maloTxt:'bajo el mínimo', tip:`<b>${w.s}</b><br>Entra ${S(w.entra)} · Sale ${S(w.sale)}<br>${esc(w.que)}`})), {alto:230, umbral:minimoCaja(), umbralTxt:'tu mínimo de caja: '+S(minimoCaja())+' (se cambia en Configuración)'})}
       <div class="tabla-wrap" style="margin-top:12px"><table class="t" style="min-width:560px"><thead><tr><th>Semana</th><th class="num">Entra</th><th class="num">Sale</th><th class="num">Queda</th><th>Qué vence</th></tr></thead>
-        <tbody>${proy.map(w=>`<tr><td data-l="Semana">${w.s}</td><td class="num" data-l="Entra">${S(w.entra)}</td><td class="num" data-l="Sale">${S(w.sale)}</td><td class="num" data-l="Queda"><b style="${w.saldo<MINIMO_CAJA?'color:var(--rojo-profundo)':''}">${S(w.saldo)}</b></td><td data-l="Qué vence" class="sub" style="font-size:12.5px">${esc(w.que)}</td></tr>`).join('')}</tbody></table></div>
+        <tbody>${proy.map(w=>`<tr><td data-l="Semana">${w.s}</td><td class="num" data-l="Entra">${S(w.entra)}</td><td class="num" data-l="Sale">${S(w.sale)}</td><td class="num" data-l="Queda"><b style="${w.saldo<minimoCaja()?'color:var(--rojo-profundo)':''}">${S(w.saldo)}</b></td><td data-l="Qué vence" class="sub" style="font-size:12.5px">${esc(w.que)}</td></tr>`).join('')}</tbody></table></div>
       ${F('deriva','vencimientos de compras + comprobantes_produccion')} ${F('nuevo','gastos recurrentes + mínimo de caja')}
     </div>
   </div>`;
@@ -132,4 +136,73 @@ function vistaBalance(){
   : `<div class="guia anim-sube"><p class="etq" style="color:var(--rojo)">No cuadra</p><h2>El Balance no se muestra hasta resolver la diferencia</h2>
       <p>La cuenta 421 (facturas por pagar) dice ${S(64300)}, pero la suma de las facturas da ${S(63880)}. Diferencia: <b>${S(420)}</b>.</p>
       <div class="aviso-franja"><div><b>Causa probable:</b> un pago a Moda Lima EIRL (F002-00118) registrado sin la cuenta de la que salió. <button class="btn-enlace" data-ir="dinero:porpagar">Ir a Por pagar</button></div></div></div>`}`;
+}
+
+// ============ Presupuesto (decidir: ¿en qué me estoy pasando?) ============
+function vistaPresupuesto(){
+  const sep = resultadosDe('2026-09');
+  const us = (verTodas() ? UNIDADES.map(u=>u.k) : [E.ver]).filter(veUnidad);
+  const chip = p => p > 1.05 ? `<span class="badge" data-tono="rojo">te pasas ${pct(p-1)}</span>` : p > 1 ? '<span class="badge" data-tono="ambar">al filo</span>' : '<span class="badge" data-tono="verde">dentro del tope</span>';
+  const bloques = us.map(u => {
+    const filas = [];
+    if (PRESUPUESTO.ventas[u]){ const real = sep.ventas[u], proy = Math.round(real/AVANCE_MES), meta = PRESUPUESTO.ventas[u];
+      filas.push(`<tr class="fila-ventas"><td data-l="Rubro"><b>Ventas</b> <span class="sub">(meta)</span></td><td class="num" data-l="Meta">${S(meta)}</td><td class="num" data-l="A la fecha">${S(real)}</td><td class="num" data-l="Al cierre">${S(proy)}</td>
+        <td data-l="Avance"><div class="umbral-barra fina"><i style="width:${Math.min(100,proy/meta*100)}%"></i></div></td><td data-l="Estado">${proy/meta < .95 ? '<span class="badge" data-tono="ambar">bajo la meta</span>' : '<span class="badge" data-tono="verde">en camino</span>'}</td></tr>`); }
+    for (const [k, m] of Object.entries(PRESUPUESTO.gastos)){ if (!m[u]) continue;
+      const real = sep[k]?.[u] || 0, proy = FIJAS.includes(k) ? real : Math.round(real/AVANCE_MES), p = proy/m[u];
+      filas.push(`<tr><td data-l="Rubro">${cat(k)?.n||k} <span class="sub">(tope)</span></td><td class="num" data-l="Tope">${S(m[u])}</td><td class="num" data-l="A la fecha">${S(real)}</td><td class="num" data-l="Al cierre">${S(proy)}</td>
+        <td data-l="Avance"><div class="umbral-barra fina ${p>1.05?'mala':''}"><i style="width:${Math.min(100,p*100)}%"></i></div></td><td data-l="Estado">${chip(p)}</td></tr>`); }
+    return `<tbody><tr class="grupo"><td colspan="6">${nombreUnidad(u)}</td></tr>${filas.join('')}</tbody>`;
+  }).join('');
+  return `<div class="superficie anim-sube">
+    <div class="herramientas" style="justify-content:space-between"><div><b>Septiembre · al día 24 de 30</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">«Al cierre» proyecta lo variable al ritmo de hoy; lo fijo (alquiler, planilla) ya está entero.</p></div>
+      <div style="display:flex;gap:8px;align-items:center">${F('nuevo','presupuestos')}<button class="btn btn-secundario btn-sm" data-ir="config:presupuesto">Cambiar metas y topes</button></div></div>
+    <div class="tabla-wrap"><table class="t ppto"><thead><tr><th>Rubro</th><th class="num">Meta o tope</th><th class="num">A la fecha</th><th class="num">Al cierre</th><th style="width:160px">Avance</th><th>Estado</th></tr></thead>${bloques}</table></div>
+  </div>
+  <div class="nota-cayla">El presupuesto no frena nada: nadie queda bloqueado por pasarse. Sirve para ver <b>a tiempo</b> en qué se va la plata, antes de que el mes cierre.</div>`;
+}
+
+// ============ Escenarios («¿qué pasa si…?») ============
+// Parte de agosto (el último mes cerrado) y le aplica los cambios. Nada se guarda.
+function escenarioResultado(esc){
+  const r = JSON.parse(JSON.stringify(RESULTADOS_AGO));
+  const escala = (u, f) => ['ventas','costo','flete','mermas'].forEach(k => r[k][u] = Math.round(r[k][u] * f));
+  if (esc.ventasTodas) TIENDAS.forEach(u => escala(u, 1 + esc.ventasTodas/100));
+  if (esc.ventasLIM) escala('LIM', 1 + esc.ventasLIM/100);
+  if (esc.alqLIM != null) r.alquiler.LIM = esc.alqLIM;
+  if (esc.cerrarLIM) for (const k in r) if (k !== 'depreciacion') r[k].LIM = 0;   // la remodelación se sigue depreciando
+  const out = {}; UNIDADES.forEach(u => out[u.k] = totalesDe(r, u.k)); out.CONS = totalesDe(r); out.r = r;
+  return out;
+}
+function vistaEscenarios(){
+  const e = E.escenario, base = escenarioResultado({}), nuevo = escenarioResultado(e);
+  const pb = proyeccion(), pn = proyeccion(e);
+  const minB = Math.min(...pb.map(w=>w.saldo)), minN = Math.min(...pn.map(w=>w.saldo));
+  const dif = nuevo.CONS.utilidad - base.CONS.utilidad;
+  const conclusiones = [];
+  conclusiones.push(`CAYLA pasaría de <b>${S(base.CONS.utilidad)}</b> a <b>${S(nuevo.CONS.utilidad)}</b> al mes (${dif>=0?'+':'−'}${S(Math.abs(dif)).replace('S/ ','S/ ')}).`);
+  if (!e.cerrarLIM) conclusiones.push(`LIM ${nuevo.LIM.utilidad>=0?'dejaría':'perdería'} <b>${S(Math.abs(nuevo.LIM.utilidad))}</b> al mes; necesitaría vender ${S(equilibrio('LIM', nuevo.r).pe)}.`);
+  else conclusiones.push(`Cerrar LIM quita <b>${S(RESULTADOS_AGO.ventas.LIM)}</b> de ventas al mes y la remodelación (${S(18500)}) se sigue depreciando sin uso. También hay que ver a dónde va su mercadería y su equipo.`);
+  conclusiones.push(minN < minimoCaja() ? `La caja seguiría bajando del mínimo: lo más bajo sería <b>${S(minN)}</b>.` : `La caja no bajaría de tu mínimo en 6 semanas (lo más bajo: <b>${S(minN)}</b>${minB<minimoCaja()?`; hoy bajaría a ${S(minB)}`:''}).`);
+  const ctrl = (k, n, min, max, paso, fmt) => `<div class="campo-esc"><label for="esc-${k}">${n}<b>${fmt(e[k])}</b></label><input type="range" id="esc-${k}" min="${min}" max="${max}" step="${paso}" value="${e[k]}" data-esc="${k}"></div>`;
+  return `<section class="dos-col izq">
+    <div class="superficie pad anim-sube">
+      <div class="prioridades-cab"><div><h2>Mueve los valores</h2><p>Parte de agosto, el último mes cerrado.</p></div><button class="btn btn-sutil btn-sm" data-accion="esc-reset">Volver a como está</button></div>
+      ${ctrl('alqLIM','Alquiler de LIM', 3000, 7000, 100, v=>S(v))}
+      ${ctrl('ventasLIM','Ventas de LIM', -20, 40, 1, v=>(v>0?'+':'')+v+' %')}
+      ${ctrl('ventasTodas','Ventas de todas las tiendas', -20, 30, 1, v=>(v>0?'+':'')+v+' %')}
+      <label class="opcion-esc"><input type="checkbox" data-esc-check="retrasarNorte" ${e.retrasarNorte?'checked':''}><span><b>Pasar el pago a Distribuidora Norte una semana</b><br><span class="sub">${S(15300)} del 12 al 19 de octubre. Hay que hablarlo con el proveedor.</span></span></label>
+      <label class="opcion-esc"><input type="checkbox" data-esc-check="cerrarLIM" ${e.cerrarLIM?'checked':''}><span><b>Cerrar LIM</b><br><span class="sub">Sin sus ventas ni sus costos; la remodelación se sigue depreciando.</span></span></label>
+    </div>
+    <div class="columna">
+      <div class="superficie pad anim-sube"><div class="prioridades-cab"><div><h2>Qué pasaría</h2><p>Comparado con cómo está hoy.</p></div></div>
+        <ul class="conclusiones">${conclusiones.map(c=>`<li>${c}</li>`).join('')}</ul></div>
+      <div class="superficie anim-sube"><div class="tabla-wrap"><table class="t" style="min-width:420px"><thead><tr><th>Utilidad al mes</th><th class="num">Hoy</th><th class="num">Con el cambio</th><th class="num">Diferencia</th></tr></thead>
+        <tbody>${[...UNIDADES.map(u=>u.k),'CONS'].map(k=>{ const a = base[k].utilidad, b = nuevo[k].utilidad; return `<tr${k==='CONS'?' class="total-t"':''}><td data-l="Unidad">${k==='CONS'?'<b>CAYLA</b>':nombreUnidad(k)}</td><td class="num" data-l="Hoy">${S(a)}</td><td class="num" data-l="Con el cambio"><b>${S(b)}</b></td><td class="num" data-l="Diferencia" style="${b-a<0?'color:var(--rojo-profundo)':b-a>0?'color:var(--verde)':''}">${b===a?'—':(b>a?'+':'−')+S(Math.abs(b-a)).replace('S/ ','S/ ')}</td></tr>`; }).join('')}</tbody></table></div></div>
+      <div class="superficie pad anim-sube"><div class="prioridades-cab"><div><h2>Tu caja con el cambio</h2><p>Próximas 6 semanas.</p></div></div>
+        ${barras(pn.map(w=>({n:w.s.split(' – ')[0], v:w.saldo, malo:w.saldo<minimoCaja(), maloTxt:'bajo el mínimo', tip:`<b>${w.s}</b><br>Entra ${S(w.entra)} · Sale ${S(w.sale)}`})), {alto:190, umbral:minimoCaja(), umbralTxt:'tu mínimo de caja: '+S(minimoCaja())})}
+      </div>
+    </div>
+  </section>
+  <div class="nota-cayla">Un escenario no reemplaza la conversación: bajar un alquiler hay que negociarlo y vender 15 % más requiere un plan. Lo que sí hace es decirte <b>cuánto vale</b> cada decisión antes de tomarla. ${F('deriva','mismo cálculo que el estado de resultados')}</div>`;
 }

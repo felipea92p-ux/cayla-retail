@@ -5,7 +5,7 @@ VISTAS.impuestos = () => {
   const boletas = GASTOS.filter(g=>g.estado!=='anulado'&&g.comp==='Boleta');
   return `
   ${cabecera({sobre:'Finanzas · Impuestos', titulo:'IGV de agosto', bajada:'Lo que cobraste de IGV al vender, menos lo que pagaste de IGV al comprar con factura. Los libros electrónicos los presenta el contador con el reporte de aquí (D-36).',
-    acciones:`<button class="btn btn-secundario" data-accion="exportar">Registro de ventas</button><button class="btn btn-secundario" data-accion="exportar">Registro de compras</button><button class="btn btn-primario" data-accion="exportar">Paquete para el contador</button>`})}
+    acciones:`${filtroVer('empresa')}<button class="btn btn-secundario" data-accion="exportar">Registro de ventas</button><button class="btn btn-secundario" data-accion="exportar">Registro de compras</button><button class="btn btn-primario" data-accion="exportar">Paquete para el contador</button>`})}
   <section class="cifras">
     <div class="tile anim-sube"><span class="etq">IGV cobrado al vender</span><div class="valor">${S(ago.deb)}</div><div class="det">18 % de las ventas del mes, de los comprobantes emitidos</div>${F('existe','comprobantes')}</div>
     <div class="tile anim-sube"><span class="etq">IGV que descuentas</span><div class="valor">${S(ago.cred)}</div><div class="det">Facturas de mercadería, gastos, activos e insumos</div>${F('existe','compras.igv')} ${F('existe','comprobantes_produccion.igv')}</div>

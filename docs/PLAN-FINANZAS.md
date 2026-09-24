@@ -2,6 +2,7 @@
 
 > **Estado:** PLAN, sin código ni migraciones. Aprobado por Felipe en lo conceptual (decisiones A y B, 2026-09-24).
 > **F0 hecha (2026-09-24):** spike visual completo en `docs/maquetas/finanzas-2026-09/` (README con el guion de prueba).
+> **v2 del spike (mismo día):** filtro «Ver», capa para decidir, plata del dueño y módulo Configuración (ADR-0194, actualización b).
 > Siguiente paso: que Felipe lo recorra y apruebe las pantallas antes de construir F1.
 > ADR asociado: `docs/adr/0194-finanzas-un-comprobante-de-proveedor-y-cinco-modulos.md`.
 > Se apoya en tres ADR que Felipe ya aprobó y que viven en el PR #170 (sin fusionar, sin pegar en producción):
@@ -138,12 +139,31 @@ Todos nacen **solo para el líder** (regla de CLAUDE.md, ADR-0161): migración p
 | `reportes_financieros` | Reportes financieros | Resumen, estado de resultados, flujo de caja, balance | Solo su tienda (líder: consolidado) |
 | `impuestos` | Impuestos | IGV, alerta de 300 UIT, reporte para el contador | Empresa entera |
 | `cierre_mes` | Cierre de mes | Cerrar y reabrir el mes | **Siempre solo del líder** (`delegable = false`) |
+| `configuracion` | Configuración (grupo **Gestión**, módulo general del ERP) | Empresa, cuentas y cobros, mínimo de caja y avisos, gastos fijos, presupuesto, IGV y UIT | **Solo del líder** (`delegable = false`) |
 
 «Quién lo registró» queda guardado solo (responsable del combo); es auditoría, no permiso.
 
 **Menú (6 hijas, el tope de `lib/menu.ts`):** Resumen · Gastos (Gastos, Activos fijos, Egresos de caja por clasificar) ·
 Cuentas y dinero (Cuentas, Efectivo por tienda, Por pagar, Conciliación) · Reportes (Resultados, Flujo, Balance) · Impuestos ·
 Cierre de mes. Las 11 piezas son pestañas dentro de esas 6 entradas (ajuste del spike, 2026-09-24).
+
+## 6 bis. Filtro de tienda y capa para decidir (ADR-0194, actualización b)
+
+- **Cabecera = dónde trabajas** (una sede). **«Ver» dentro de la pantalla = qué miras**, con «Todas las tiendas».
+  Flujo, Balance, Impuestos, Cierre y Conciliación son de CAYLA entera y lo dicen.
+- **Capa para decidir** (todo con reglas y cálculos, cada número con su origen):
+
+| Capacidad | Pantalla | Se calcula de | Fase |
+|---|---|---|---|
+| Días de caja | Resumen | saldo de cuentas ÷ salidas diarias promedio | F6 |
+| Punto de equilibrio por tienda y día del mes en que se cubre | Resumen | gastos ÷ margen % (estado de resultados) | F5 |
+| Presupuesto contra real, proyección al cierre | Reportes ▸ Presupuesto | `presupuestos` (nuevo) + estado de resultados | F5 |
+| Escenarios «¿y si…?» | Reportes ▸ Escenarios | el mismo cálculo del estado de resultados y del flujo, sin guardar | F6 |
+| Avisos de lo raro | Resumen, Gastos | gasto contra el promedio de 6 meses del mismo proveedor y tienda; mermas ÷ ventas; `costo_historial` | F10 |
+| Gastos fijos: proponer, avisar faltantes, detectar | Gastos ▸ Fijos del mes | `gastos_fijos` (nuevo) + gastos por proveedor, día y monto | F2 |
+| Conciliación con parejas | Cuentas y dinero ▸ Conciliación | extracto subido + movimientos por monto, fecha y referencia | F3 |
+| Plata del dueño (aporte, préstamo, retiro, devolución) | Cuentas y dinero | `movimientos_dinero` | F3 |
+| Configuración | Gestión ▸ Configuración | `configuracion_empresa` + tablas de Finanzas | F1 |
 
 ## 7. Cuentas y dinero (lo nuevo que más pesa)
 

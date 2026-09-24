@@ -420,6 +420,82 @@ table.t td.num{white-space:nowrap;}
 .lista-mov li b{white-space:nowrap;}
 .unidad-c .badge{align-self:flex-start;}
 
+/* ---------- v2 ---------- */
+/* Cabecera: dónde trabajas */
+.chip-sede select{border:0; background:transparent; font:inherit; font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--tinta); cursor:pointer; padding:0 2px;}
+.chip-sede{gap:8px;}
+/* Filtro «Ver» dentro de la pantalla */
+.ver{display:inline-flex; align-items:center; gap:8px;}
+.ver select{width:auto; min-width:170px;}
+.encabezado .acciones{align-items:center;}
+/* Salud en frases */
+.salud{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px;}
+.frase{display:flex; gap:16px; align-items:flex-start; padding:18px 20px; border-radius:var(--r-superficie); background:var(--papel); border:1px solid var(--sand); border-left:4px solid var(--taupe);}
+.frase[data-tono="verde"]{border-left-color:var(--verde);} .frase[data-tono="ambar"]{border-left-color:var(--ambar);} .frase[data-tono="rojo"]{border-left-color:var(--rojo);} .frase[data-tono="pizarra"]{border-left-color:var(--pizarra);}
+.frase > b{font-size:30px; font-weight:500; line-height:1; white-space:nowrap;}
+.frase .t{margin:0; font-weight:600; font-size:13.5px; line-height:1.35;}
+.frase .d{margin:4px 0 0; font-size:12.5px; color:var(--taupe); line-height:1.45;}
+.decidir .impacto{margin-top:4px; font-size:12px; font-weight:600; color:var(--tinta);}
+.umbral-barra.alto{height:16px;}
+.umbral-barra.fina{height:8px; margin:0;}
+.umbral-barra.fina.mala i{background:var(--rojo);}
+/* Presupuesto */
+table.t tr.grupo td{background:color-mix(in oklab, var(--sand) 45%, transparent); font-weight:600; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--taupe);}
+table.ppto{min-width:760px;} table.ppto-edit{min-width:760px;}
+.num-input{max-width:110px; text-align:right; margin-left:auto; display:block;}
+/* Escenarios */
+.campo-esc{margin-bottom:18px;}
+.campo-esc label{display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;}
+.campo-esc label b{font-family:var(--serif); font-size:18px; font-weight:500;}
+.campo-esc input[type=range]{width:100%; accent-color:var(--tinta);}
+.opcion-esc{display:flex; gap:10px; align-items:flex-start; padding:12px; border:1px solid var(--sand); border-radius:var(--r-control); background:var(--hueso); margin-top:10px; font-size:13px; cursor:pointer; line-height:1.45;}
+.opcion-esc:has(input:checked){border-color:var(--tinta); background:var(--papel);}
+.opcion-esc .sub{font-size:12.5px;}
+.conclusiones{margin:0; padding-left:18px; display:grid; gap:10px; font-size:13.5px; line-height:1.5;}
+table.t tr.total-t td{border-top:2px solid var(--tinta); font-weight:600;}
+/* Fijos */
+.fijos{list-style:none; margin:0; padding:0;}
+.fijo{display:grid; grid-template-columns:1fr auto auto; gap:12px; align-items:center; padding:12px 0; border-top:1px solid var(--sand);}
+.fijos .fijo:first-child{border-top:0;}
+.fijo b{display:block; font-size:13.5px; font-weight:600;}
+.fijo .sub{font-size:12px;}
+.fijo .monto{font-family:var(--serif); font-size:19px; white-space:nowrap;}
+.dos-botones{display:flex; flex-direction:column; gap:6px; align-items:flex-end;}
+/* Dueño */
+.dueno-cifras{display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;}
+.dueno-cifras .valor{font-size:32px; line-height:1.1;}
+/* Conciliación */
+table.conc{min-width:820px;}
+table.t tr.hecha td{opacity:.62;}
+.mono{font-family:ui-monospace, Menlo, monospace; font-size:12px !important; font-weight:500 !important;}
+.pareja{font-size:12.5px;}
+.pareja::before{content:"↔ "; color:var(--verde); font-weight:700;}
+.sin-pareja{font-size:12.5px; color:var(--ambar);}
+.con-unidad{display:flex; align-items:center; gap:8px;} .con-unidad input{max-width:160px;} .con-unidad span{color:var(--taupe); font-size:13px;}
+@media (max-width:860px){
+  .fijo{grid-template-columns:1fr auto;} .fijo > :last-child{grid-column:1 / -1; justify-self:start;}
+  .dos-botones{flex-direction:row; align-items:center;}
+  .ver select{min-width:0;}
+  .frase > b{font-size:24px;}
+}
+@media (max-width:860px){
+  .cabecera{flex-wrap:wrap; justify-content:flex-start;}
+  .chip-sede{max-width:100%;}
+  .chip-sede .etq{display:none;}
+  .ir-movil select{max-width:190px;}
+}
+/* Tablas para editar (presupuesto): en celular se deslizan de lado, no se vuelven fichas */
+@media (max-width:860px){
+  table.t.fija{display:table; min-width:640px;}
+  table.t.fija thead{display:table-header-group;}
+  table.t.fija tbody{display:table-row-group;}
+  table.t.fija tbody tr{display:table-row; padding:0;}
+  table.t.fija td{display:table-cell; width:auto; padding:8px 10px; border-top:1px solid var(--sand);}
+  table.t.fija td.num{text-align:right;}
+}
+.pad .campo{margin-bottom:18px;}
+.pad .campo > label{display:block; font-size:12.5px; color:var(--taupe); margin-bottom:6px;}
+
 </style>
 </head>
 <body>
@@ -522,6 +598,7 @@ const GASTOS = [
   {id:10, f:'2026-09-12', u:'AQP', c:'alquiler',      d:'Alquiler de septiembre',       prov:'Rentas Yanahuara', comp:'Factura', num:'F001-00904', total:3800, igv:580, medio:'bcp', cond:'contado', estado:'pagado'},
   {id:11, f:'2026-09-10', u:'TRU', c:'alquiler',      d:'Alquiler de septiembre',       prov:'Inversiones Primavera', comp:'Factura', num:'F002-00455', total:4500, igv:686, medio:'bcp', cond:'contado', estado:'pagado'},
   {id:12, f:'2026-09-08', u:'LIM', c:'suministros',   d:'Ganchos de exhibición (100)',  prov:'Bazar Central', comp:'Boleta', num:'B003-2210', total:95, igv:0, medio:'cLIM', cond:'contado', estado:'anulado', motivo:'Se registró dos veces'},
+  {id:14, f:'2026-09-21', u:'AQP', c:'servicios',     d:'Luz de agosto',                prov:'SEAL', comp:'Factura', num:'S004-120981', total:662, igv:101, medio:'bcp', cond:'contado', estado:'pagado', raro:'38 % más alta que su promedio (S/ 480)'},
   {id:13, f:'2026-09-05', u:'TAL', c:'servicios',     d:'Luz del Taller (agosto)',      prov:'Luz del Sur', comp:'Factura', num:'S310-77120', total:710, igv:108, medio:'ibk', cond:'contado', estado:'pagado'},
 ];
 
@@ -592,15 +669,14 @@ const FLUJO_SEMANAS = [
   {s:'26 oct – 1 nov', entra:22000, sale:31200, que:'Planilla · alquileres'},
   {s:'2 – 8 nov',      entra:22000, sale:14600, que:'Proveedores de temporada'},
 ];
-const MINIMO_CAJA = 15000;
 
 // Balance al 31-ago (cerrado). Capital es una ENTRADA, nunca el residual (ADR-0109).
 const BALANCE = {
   activo: [['101','Caja (cajones y fondo fijo)',5420],['104','Bancos',47900],['105','Tarjeta por abonar',2310],
            ['201','Mercaderías',186400],['211','Productos terminados del Taller',12600],['24','Insumos del Taller (tela, avíos)',8900],
            ['33','Muebles, equipos y remodelación',28149],['39','Depreciación acumulada',-1778]],
-  pasivo: [['4011','IGV por pagar',6840],['4017','Impuesto a la renta',1900],['421','Facturas por pagar',64300],['41','Remuneraciones por pagar',0]],
-  patrimonio: [['50','Capital',180000],['591','Utilidades acumuladas',33801],['','Utilidad de agosto',3060]],
+  pasivo: [['4011','IGV por pagar',6840],['4017','Impuesto a la renta',1900],['421','Facturas por pagar',64300],['41','Remuneraciones por pagar',0],['47','Préstamo del dueño (por devolver)',6000]],
+  patrimonio: [['50','Capital',180000],['591','Utilidades acumuladas',27801],['','Utilidad de agosto',3060]],
 };
 const CONCILIACION = [
   {cta:'101 Caja', contra:'la suma de las cajas cerradas al 31-ago', a:5420, b:5420},
@@ -626,6 +702,70 @@ const CIERRE = {
 };
 const PERSONAS = ['Felipe Alvarez','Rosa Quispe','Lucía Mamani','Carla Ríos'];
 
+// ============ v2: configuración, gastos fijos, presupuesto, avisos, conciliación con parejas ============
+// Lo que el líder ajusta en Gestión ▸ Configuración (se guarda allá, lo leen todas las pantallas).
+const CONFIG = {
+  minimoCaja: 15000,        // aviso del flujo de caja
+  avisoGastoPct: 25,        // «este gasto vino X % más alto que su promedio»
+  avisoVenceDias: 7,        // cuántos días antes avisa un vencimiento
+  empresa: {ruc:'20601234567', razon:'CAYLA MODA S.A.C.', comercial:'CAYLA'},
+  tasas: [{desde:'2011-03-01', igv:18}],
+  uits: [{anio:2026, valor:5500, nota:'por confirmar con el contador'}, {anio:2025, valor:5350}],
+};
+
+// Gastos que se repiten: el sistema los detectó y el líder los confirmó (o los propone para confirmar).
+const FIJOS = [
+  {id:'f1', n:'Alquiler', u:'TRU', c:'alquiler', prov:'Inversiones Primavera', monto:4500, dia:10, cuenta:'bcp', estado:'registrado'},
+  {id:'f2', n:'Alquiler', u:'AQP', c:'alquiler', prov:'Rentas Yanahuara', monto:3800, dia:12, cuenta:'bcp', estado:'registrado'},
+  {id:'f3', n:'Alquiler', u:'LIM', c:'alquiler', prov:'Inmobiliaria San Isidro', monto:6200, dia:30, cuenta:'bcp', estado:'registrado'},
+  {id:'f4', n:'Alquiler', u:'TAL', c:'alquiler', prov:'Sra. Huamán (local del Taller)', monto:1800, dia:25, cuenta:'bcp', estado:'propuesto'},
+  {id:'f5', n:'Luz', u:'TRU', c:'servicios', prov:'Hidrandina', monto:612, dia:19, variable:true, cuenta:null, estado:'registrado'},
+  {id:'f6', n:'Luz', u:'AQP', c:'servicios', prov:'SEAL', monto:480, dia:19, variable:true, cuenta:'bcp', estado:'registrado'},
+  {id:'f10', n:'Luz', u:'LIM', c:'servicios', prov:'Luz del Sur', monto:540, dia:19, variable:true, cuenta:'ibk', estado:'falta'},
+  {id:'f7', n:'Internet', u:'TRU', c:'servicios', prov:'Movistar', monto:129, dia:25, cuenta:'bcp', estado:'propuesto'},
+  {id:'f8', n:'Contabilidad', u:'EMP', c:'personal', prov:'Estudio contable Ríos', monto:1200, dia:21, cuenta:'bcp', estado:'registrado'},
+  {id:'f9', n:'Servidores y software', u:'EMP', c:'servicios', prov:'Vercel / Supabase', monto:480, dia:15, cuenta:'bcp', estado:'registrado'},
+];
+// Lo que se repite pero nadie marcó como fijo todavía.
+const DETECTADOS = [
+  {id:'d1', prov:'Shalom', c:'transporte', u:'AQP', monto:48, patron:'4 meses seguidos, entre el 18 y el 22, entre S/ 42 y S/ 55'},
+  {id:'d2', prov:'Meta Platforms', c:'publicidad', u:'EMP', monto:1600, patron:'6 meses seguidos, cerca del día 18, entre S/ 1,200 y S/ 1,600'},
+];
+
+// Presupuesto de septiembre (lo pone el líder en Configuración). Ventas sin IGV.
+const PRESUPUESTO = {
+  ventas:   {TRU:46000, AQP:34000, LIM:24000},
+  gastos:   { // rubro → unidad → tope del mes
+    alquiler:    {TRU:4500, AQP:3800, LIM:6200, TAL:1800},
+    servicios:   {TRU:650,  AQP:500,  LIM:480,  TAL:720,  EMP:700},
+    publicidad:  {EMP:2500},
+    suministros: {TRU:320,  AQP:320,  LIM:250,  TAL:540,  EMP:100},
+    transporte:  {TRU:150,  AQP:120,  LIM:80,   TAL:150},
+  },
+};
+
+// Avisos de lo raro: los calcula el sistema comparando con el promedio de los últimos 6 meses.
+const RAROS = [
+  {u:'AQP', t:'La luz de AQP vino 38 % más alta que su promedio', d:'S/ 662 este mes contra S/ 480 de promedio en 6 meses. ¿Cambió algo en la tienda o es un error del recibo?', ir:'gastos', dato:'gastos + promedio móvil'},
+  {u:'LIM', t:'LIM pierde el triple de prendas que TRU', d:'Mermas de agosto: 1,1 % de la venta en LIM contra 0,4 % en TRU. Son S/ 130 al mes que se van.', ir:'reportes:resultados', dato:'prendas_danadas / ventas'},
+  {u:null,  t:'Moda Lima EIRL subió 12 % el costo de la blusa Aurora', d:'De S/ 38 a S/ 42.50 en su última factura. Si el precio de venta no cambia, el margen de esa prenda baja de 58 % a 53 %.', ir:'dinero:porpagar', dato:'costo_historial'},
+];
+
+// Extracto de Interbank (lo que dice el banco). El sistema propone la pareja; el líder confirma.
+const EXTRACTO_IBK = [
+  {id:'x1', f:'2026-09-22', d:'ABONO NIUBIZ LIQ 200926',      monto: 4180, pareja:'Abono de tarjeta del 22 sep · S/ 4,180'},
+  {id:'x2', f:'2026-09-22', d:'PLIN LOTE 220926',              monto: 1240, pareja:'Cobros con Plin del 22 sep: TRU S/ 610 · AQP S/ 420 · LIM S/ 210'},
+  {id:'x3', f:'2026-09-22', d:'COM. MANTENIMIENTO CTA',        monto: -25,  pareja:null, sugerir:'Registrar como gasto «Comisiones del POS» (639) de la empresa'},
+  {id:'x4', f:'2026-09-19', d:'TRANSF. A CTA BCP 1942…',       monto:-8000, pareja:'Entre cuentas del 19 sep · S/ 8,000'},
+  {id:'x5', f:'2026-09-05', d:'PAGO SERVICIO LUZ DEL SUR',     monto: -710, pareja:'Gasto «Luz del Taller (agosto)» del 5 sep'},
+  {id:'x6', f:'2026-09-03', d:'YAPE LIM 030926',               monto:  385, pareja:'Cobros con Yape de LIM del 3 sep'},
+];
+
+// Plata del dueño: aporte (se queda en CAYLA) o préstamo (CAYLA te lo devuelve).
+const PRESTAMOS_DUENO = [
+  {f:'2026-07-14', monto:10000, nota:'Para pagar la mercadería de invierno', devuelto:4000},
+];
+
 // ============ Marco: estado, formato, carcasa, ventanas, loader y avisos ============
 const E = {
   rol: 'lider',          // 'lider' | 'encargada' (Rosa Quispe, TRU, con los módulos Gastos y Cuentas y dinero)
@@ -635,6 +775,11 @@ const E = {
   mesCierre: '2026-08',
   seleccion: new Set(),
   conciliado: {},        // id cuenta -> saldo del banco escrito
+  // v2
+  sedeActiva: 'TRU',     // la de la cabecera: DÓNDE trabajo (una sola; de ahí sale el combo Responsable)
+  ver: 'TRU',            // el filtro dentro de la pantalla: QUÉ miro («TODAS» o una unidad)
+  escenario: {alqLIM:6200, ventasLIM:0, ventasTodas:0, cerrarLIM:false, retrasarNorte:false},
+  parejas: {},           // id de línea del extracto -> 'ok' | 'gasto'
 };
 
 // ---------- Formato ----------
@@ -658,7 +803,21 @@ const F = (k, txt) => `<span class="fuente" data-k="${k}"><b>${{existe:'Existe',
 const esLider = () => E.rol === 'lider';
 const unidadPropia = () => esLider() ? null : 'TRU';
 const veUnidad = u => esLider() || u === unidadPropia();
+// Lo que se ve según el filtro «Ver» de la pantalla (además del permiso).
+const enVista = u => veUnidad(u) && (E.ver === 'TODAS' || u === E.ver || u == null);
+const verTodas = () => E.ver === 'TODAS';
+// El filtro «Ver» dentro de la pantalla. Arranca en la sede de la cabecera; «Todas» solo para quien ve varias.
+// alcance 'empresa': el reporte es de CAYLA entera (bancos, balance, impuestos): no hay filtro, se dice.
+function filtroVer(alcance){
+  if (alcance === 'empresa') return `<span class="badge sin-punto" data-tono="taupe" title="Los bancos, las deudas y los impuestos son de CAYLA entera">CAYLA entera</span>`;
+  if (!esLider()) return `<span class="badge sin-punto" data-tono="taupe">Tienda TRU</span>`;
+  return `<label class="ver"><span class="etq">Ver</span><select class="control" data-cambia="ver">
+    <option value="TODAS"${verTodas()?' selected':''}>Todas las tiendas</option>
+    ${UNIDADES.map(u=>`<option value="${u.k}"${E.ver===u.k?' selected':''}>${u.n}</option>`).join('')}</select></label>`;
+}
+const nombreVer = () => verTodas() ? 'todas las tiendas' : nombreUnidad(E.ver);
 const responsableDefecto = () => esLider() ? 'Felipe Alvarez' : 'Rosa Quispe';
+const minimoCaja = () => CONFIG.minimoCaja;
 
 // ---------- Menú (6 hijas: cumple el tope de lib/menu.ts) ----------
 const ICON = {
@@ -676,9 +835,11 @@ const MENU = [
   {r:'reportes', n:'Reportes',       mod:'reportes_financieros'},
   {r:'impuestos',n:'Impuestos',      mod:'impuestos'},
   {r:'cierre',   n:'Cierre de mes',  mod:'cierre_mes'},
+  {r:'config',   n:'Configuración',  mod:'configuracion', grupo:'gestion'},
 ];
 const MODULOS_ENCARGADA = ['gastos','cuentas_dinero'];
 const puedeVer = r => { const m = MENU.find(x=>x.r===r); return esLider() || MODULOS_ENCARGADA.includes(m.mod); };
+ICON.config = '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>';
 
 function pintarLateral(){
   const svg = k => `<svg viewBox="0 0 24 24">${ICON[k]}</svg>`;
@@ -688,12 +849,18 @@ function pintarLateral(){
     <a href="#"><svg viewBox="0 0 24 24"><path d="M3 5h3l2 10h11l2-7H7"/><circle cx="9" cy="19" r="1.3"/><circle cx="18" cy="19" r="1.3"/></svg>Compras<span class="flecha">›</span></a>
     <a href="#"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg>Inventario<span class="flecha">›</span></a>
     <a href="#" class="grupo-activo"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Finanzas<span class="flecha">⌄</span></a>
-    ${MENU.filter(m=>puedeVer(m.r)).map(m=>`<a href="#${m.r}" class="hijo${E.ruta===m.r?' activo':''}" data-ir="${m.r}">${svg(m.r)}${m.n}</a>`).join('')}`;
+    ${MENU.filter(m=>!m.grupo && puedeVer(m.r)).map(m=>`<a href="#${m.r}" class="hijo${E.ruta===m.r?' activo':''}" data-ir="${m.r}">${svg(m.r)}${m.n}</a>`).join('')}
+    ${esLider()?`<a href="#"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5M16 11a3 3 0 100-6M21 20c0-2.5-2-4.3-4.5-4.8"/></svg>Gestión<span class="flecha">⌄</span></a>
+    <a href="#" class="hijo"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M6 20c0-3 3-5 6-5s6 2 6 5"/></svg>Colaboradores</a>
+    <a href="#config" class="hijo${E.ruta==='config'?' activo':''}" data-ir="config">${svg('config')}Configuración</a>`:''}`;
   $('#irMovil').innerHTML = MENU.filter(m=>puedeVer(m.r)).map(m=>`<option value="${m.r}"${E.ruta===m.r?' selected':''}>${m.n}</option>`).join('');
   $('#pieNombre').textContent = esLider() ? 'Felipe Alvarez' : 'Rosa Quispe';
   $('#pieRol').textContent = esLider() ? 'Líder · Todas las sedes' : 'Encargada · Tienda TRU';
   $('#pieAvatar').textContent = esLider() ? 'FA' : 'RQ';
-  $('#chipSede').innerHTML = (esLider() ? 'Todas las sedes' : 'Tienda TRU') + ' <span aria-hidden="true">⌄</span>';
+  // La cabecera dice DÓNDE trabajas: siempre una sede (el combo Responsable y el permiso de cada guardado salen de aquí).
+  $('#chipSede').innerHTML = esLider()
+    ? `<span class="etq" style="font-size:9.5px">Trabajando en</span><select data-cambia="sedeActiva" aria-label="Sede donde trabajas">${UNIDADES.filter(u=>u.k!=='EMP').map(u=>`<option value="${u.k}"${E.sedeActiva===u.k?' selected':''}>${u.n}</option>`).join('')}</select>`
+    : 'Tienda TRU';
 }
 
 // ---------- Pantalla ----------
@@ -715,6 +882,7 @@ function sinAcceso(){
 }
 function render(){
   document.body.classList.toggle('ver-fuentes', E.fuentes);
+  if (Object.keys(E.parejas).length === EXTRACTO_IBK.length) E.conciliado.ibk = cuenta('ibk').saldo;
   pintarLateral();
   const v = puedeVer(E.ruta) ? (VISTAS[E.ruta] || (()=>cabecera({sobre:'Finanzas', titulo:'En construcción'})))() : sinAcceso();
   $('#pagina').innerHTML = v;
@@ -725,10 +893,11 @@ function ir(r){ E.ruta = r; location.hash = r; render(); window.scrollTo({top:0}
 
 function notaDemo(){
   const n = {
-    resumen:'Todo lo de esta pantalla sale de otros módulos: <b>nadie tipea un número aquí</b>. Toca un aviso de «Para decidir».',
-    gastos:'Prueba <b>Registrar gasto</b> con factura a crédito: aparece en Cuentas y dinero ▸ Por pagar. En «Egresos de caja» clasifica el depósito de LIM: destraba el cierre de agosto.',
-    dinero:'Yape y Plin no son cuentas: caen al banco que dice «A qué cuenta entra cada cobro». Concilia Interbank para destrabar el cierre.',
-    reportes:'Cambia de mes y toca cualquier cifra del estado de resultados para ver de qué filas sale.',
+    resumen:'La cabecera dice <b>dónde trabajas</b>; el filtro «Ver» de la pantalla dice <b>qué miras</b>. Prueba «Todas las tiendas». Cada aviso lleva a donde se resuelve.',
+    gastos:'En «Fijos del mes» confirma con un clic lo que el sistema propone. <b>Registrar gasto</b> a crédito aparece en Cuentas y dinero ▸ Por pagar. En «Egresos de caja» clasifica el depósito de LIM: destraba el cierre de agosto.',
+    dinero:'Prueba «Registrar movimiento ▸ Poner plata del dueño» (aporte o préstamo). En Conciliación el sistema propone la pareja de cada línea del banco: solo confirmas.',
+    reportes:'Toca cualquier cifra del estado de resultados para ver de qué filas sale. En «Escenarios» mueve los valores: todo se recalcula.',
+    config:'Todo lo que se ajusta vive aquí: cuentas, a dónde cae cada cobro, mínimo de caja, gastos fijos, presupuesto e impuestos. Cambia el mínimo de caja y mira el Resumen.',
     impuestos:'El IGV sale de los comprobantes emitidos y de las facturas de proveedor (mercadería, gastos, activos e insumos).',
     cierre:'Agosto: TRU y AQP ya cerraron. Resuelve lo pendiente de LIM y cierra; el consolidado se habilita cuando cierran todas.',
   }[E.ruta];
@@ -761,9 +930,10 @@ function guardar(texto, hecho){
   esp.innerHTML = `<div><svg width="34" height="30" viewBox="0 0 30 26"><path d="M2 5c5 1 9 4 11 9 2-6 7-10 15-12-4 3-7 7-8 12-1 5-4 9-9 10 2-2 3-5 2-8-3 0-7-3-11-11z" fill="none" stroke="var(--rojo)" stroke-width="1.4" stroke-linejoin="round"/></svg>Guardando…</div>`;
   document.body.appendChild(esp);
   hecho && hecho();   // lee los campos de la ventana ANTES de cerrarla
-  setTimeout(()=>{ esp.remove(); cerrarVentana(); render(); avisar(texto); }, 650);
+  setTimeout(()=>{ esp.remove(); cerrarVentana(); render(); texto && avisar(texto); }, 650);
 }
 function avisar(texto){
+  document.querySelectorAll('.aviso').forEach(x=>x.remove());   // uno a la vez: el nuevo reemplaza al anterior
   const a = document.createElement('div');
   a.className = 'aviso';
   a.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>${texto}</span>`;
@@ -821,17 +991,19 @@ document.addEventListener('mouseout', e => { const c = e.target.closest('.grafic
 
 // ============ Cálculos compartidos ============
 // Septiembre «a la fecha» (24 de 30 días): lo variable se escala, lo fijo del mes ya está entero.
+const FIJAS = ['alquiler','planilla','depreciacion','personal'];
+const AVANCE_MES = 24/30;
 function resultadosDe(mes){
   if (mes === '2026-08') return RESULTADOS_AGO;
-  const f = 0.8, r = {};
+  const r = {};
   for (const [k, fila] of Object.entries(RESULTADOS_AGO)){
-    const fijo = ['alquiler','planilla','depreciacion','personal'].includes(k);
-    r[k] = {}; for (const u in fila) r[k][u] = Math.round(fila[u] * (fijo ? 1 : f) * (k==='ventas'&&u==='LIM' ? 1.18 : 1));
+    r[k] = {}; for (const u in fila) r[k][u] = Math.round(fila[u] * (FIJAS.includes(k) ? 1 : AVANCE_MES) * (k==='ventas'&&u==='LIM' ? 1.18 : 1));
   }
   return r;
 }
 const LINEAS_GASTO = [['planilla','Planilla (Dynamic)'],['alquiler','Alquileres'],['servicios','Servicios básicos'],['personal','Honorarios'],
   ['publicidad','Publicidad'],['transporte','Transporte'],['suministros','Suministros'],['mantenimiento','Mantenimiento'],['depreciacion','Depreciación']];
+const TIENDAS = ['TRU','AQP','LIM'];
 function totalesDe(r, u){
   const us = u ? [u] : UNIDADES.map(x=>x.k);
   const s = k => us.reduce((a,x)=>a+(r[k][x]||0), 0);
@@ -839,71 +1011,122 @@ function totalesDe(r, u){
   const gastos = LINEAS_GASTO.reduce((a,[k])=>a+s(k), 0);
   return {ventas:s('ventas'), margen, gastos, absorbido:s('absorbido'), utilidad: margen - gastos + s('absorbido')};
 }
+// Punto de equilibrio: cuánto hay que vender en el mes para cubrir los costos, con el margen que se tiene.
+function equilibrio(u, r=RESULTADOS_AGO){
+  const t = u ? totalesDe(r, u) : totalesDe(r);
+  const fijos = t.gastos - t.absorbido, pm = t.ventas ? t.margen / t.ventas : 0;
+  const pe = pm ? fijos / pm : null;
+  const dia = pe ? Math.ceil(pe / (t.ventas / 31)) : null;
+  return {pe, ventas:t.ventas, cubre: pe ? t.ventas / pe : 0, dia, pm, fijos};
+}
 const disponible = () => CUENTAS.filter(c=>veUnidad(c.unidad||'EMP')||esLider()).reduce((a,c)=>a+c.saldo, 0);
 const saldoPorPagar = p => p.total - p.pagado;
+const salidasDiarias = () => FLUJO_REAL.salidas.reduce((a,x)=>a+x[1],0) / 24;
+// Proyección semana a semana. Con «retrasar Distribuidora Norte», su pago pasa a la semana siguiente.
+function proyeccion(esc = {}){
+  let saldo = disponible();
+  const sem = FLUJO_SEMANAS.map(w=>({...w}));
+  if (esc.retrasarNorte){ sem[2].sale -= 15300; sem[3].sale += 15300; }
+  if (esc.ventasTodas){ sem.forEach(w=> w.entra = Math.round(w.entra * (1 + esc.ventasTodas/100))); }
+  return sem.map(w => { saldo += w.entra - w.sale; return {...w, saldo}; });
+}
 
 // ============ Resumen (pieza 4) ============
 VISTAS.resumen = () => {
-  const ago = totalesDe(RESULTADOS_AGO), sep = totalesDe(resultadosDe('2026-09'));
-  const semana = POR_PAGAR.filter(p=>saldoPorPagar(p)>0 && dias(p.vence, HOY) <= 7);
-  const debe7 = semana.reduce((a,p)=>a+saldoPorPagar(p),0) + 29800;
-  const vencidas = POR_PAGAR.filter(p=>saldoPorPagar(p)>0 && dias(p.vence, HOY) < 0);
-  const igvSep = IGV_MESES[5].deb - IGV_MESES[5].cred;
-  const sinClasificar = EGRESOS.length;
-  const ibk = cuenta('ibk');
-  const avance = VENTAS_12M / (300*UIT);
+  const todas = verTodas(), u = todas ? null : E.ver;
+  const sep = resultadosDe('2026-09'), ago = RESULTADOS_AGO;
+  const tAgo = u ? totalesDe(ago, u) : totalesDe(ago);
+  const vendidoSep = u ? (sep.ventas[u]||0) : totalesDe(sep).ventas;
+  const pp = POR_PAGAR.filter(p=>saldoPorPagar(p)>0 && enVista(p.u));
+  const debe7 = pp.filter(p=>dias(p.vence, HOY) <= CONFIG.avisoVenceDias).reduce((a,p)=>a+saldoPorPagar(p),0) + (todas ? 29800 : 0);
+  const vencidas = pp.filter(p=>dias(p.vence, HOY) < 0);
+  const proy = proyeccion(), riesgo = proy.find(w => w.saldo < minimoCaja());
+  const diasCaja = Math.floor(disponible() / salidasDiarias());
+  const eq = equilibrio(u);
+  const esTienda = !u || TIENDAS.includes(u);
+  const metaVentas = u ? PRESUPUESTO.ventas[u] : TIENDAS.reduce((a,x)=>a+PRESUPUESTO.ventas[x],0);
+  const proyVentas = Math.round(vendidoSep / AVANCE_MES);
+  const efectivoU = u ? (CUENTAS.find(c=>c.unidad===u)?.saldo || 0) : disponible();
 
-  // Proyección del saldo semana a semana
-  let saldo = disponible(); const proy = FLUJO_SEMANAS.map(w => { saldo += w.entra - w.sale; return {...w, saldo}; });
-  const riesgo = proy.find(w => w.saldo < MINIMO_CAJA);
+  // ---- La salud, en frases (lo primero que se lee) ----
+  const frases = [];
+  if (todas){
+    frases.push({n:`${diasCaja} días`, t:'Si mañana no vendieras nada, tu plata alcanza para pagar esto', d:`${S(disponible())} disponibles contra ${S(Math.round(salidasDiarias()))} que salen en un día normal.`, tono: diasCaja < 10 ? 'rojo' : diasCaja < 20 ? 'ambar' : 'verde'});
+    frases.push({n:`día ${eq.dia}`, t:'CAYLA cubre sus costos del mes ese día', d:`Necesita vender ${S(eq.pe)} al mes; en agosto vendió ${S(eq.ventas)}. ${eq.dia >= 31 ? 'No alcanza a cubrirlos en el mes.' : `Lo que vende después ${31-eq.dia===1?'del día '+eq.dia+' (solo 1 día)':'(los últimos '+(31-eq.dia)+' días)'} es la ganancia.`}`, tono: eq.dia > 27 ? 'ambar' : 'verde'});
+  } else if (esTienda){
+    frases.push({n: eq.cubre >= 1 ? `día ${eq.dia}` : `${Math.round(eq.cubre*100)} %`, t: eq.cubre >= 1 ? `${nombreUnidad(u)} cubre sus costos del mes ese día` : `${nombreUnidad(u)} no llega a cubrir sus costos`,
+      d:`Necesita vender ${S(eq.pe)} al mes para no perder; en agosto vendió ${S(eq.ventas)}.`, tono: eq.cubre < 1 ? 'rojo' : eq.dia > 25 ? 'ambar' : 'verde'});
+    const alq = ago.alquiler[u] / ago.ventas[u];
+    frases.push({n:pct(alq), t:'de lo que vende se va en alquiler', d: alq > .15 ? 'Por encima de lo que suele considerarse sano en tiendas de ropa (alrededor de 10–15 %). Es la palanca más grande que tiene.' : 'Dentro de lo que suele considerarse sano en tiendas de ropa (alrededor de 10–15 %).', tono: alq > .2 ? 'rojo' : alq > .15 ? 'ambar' : 'verde'});
+  } else {
+    frases.push({n:S(tAgo.gastos), t: u==='TAL' ? 'costó el Taller en agosto' : 'costó lo de la empresa en agosto', d: u==='TAL' ? `Sus prendas absorbieron ${S(tAgo.absorbido)}: quedaron ${S(tAgo.gastos - tAgo.absorbido)} sin entrar a ninguna prenda.` : 'Contador, publicidad, software y sueldo de oficina. Lo pagan las tiendas con su margen.', tono:'pizarra'});
+  }
+  if (todas) frases.push({n:pct(proyVentas/metaVentas), t:'de la meta de ventas de septiembre, al ritmo de hoy', d:`Meta ${S(metaVentas)}; vas en ${S(vendidoSep)} y al cierre llegarías a ${S(proyVentas)}.`, tono: proyVentas/metaVentas < .9 ? 'ambar' : 'verde'});
 
+  // ---- Para decidir hoy: cada aviso dice cuánto está en juego y a dónde ir ----
+  const lim = equilibrio('LIM');
   const decidir = [
-    vencidas.length && {tono:'rojo', t:`${vencidas.length} factura vencida: ${vencidas.map(p=>p.prov).join(', ')}`, d:`Saldo ${S(vencidas.reduce((a,p)=>a+saldoPorPagar(p),0))}. Venció hace ${dias(HOY, vencidas[0].vence)} días.`, ir:'dinero:porpagar', b:'Ver por pagar'},
-    riesgo && {tono:'ambar', t:`La semana del ${riesgo.s} quedas bajo tu mínimo de caja`, d:`Saldo proyectado ${S(riesgo.saldo)} contra un mínimo de ${S(MINIMO_CAJA)}. Mueve un pago o adelanta un depósito.`, ir:'reportes:flujo', b:'Ver flujo de caja'},
-    {tono:'ambar', t:`LIM perdió ${S(-totalesDe(RESULTADOS_AGO,'LIM').utilidad)} en agosto`, d:`Vendió ${S(RESULTADOS_AGO.ventas.LIM)}, pero su alquiler (${S(RESULTADOS_AGO.alquiler.LIM)}) se come el margen. TRU la sostiene.`, ir:'reportes:resultados', b:'Ver resultados'},
-    sinClasificar && {tono:'pizarra', t:`${sinClasificar} egresos de caja sin clasificar`, d:'Mientras no se diga si son gasto, depósito o retiro, no cuentan en ningún número. Uno traba el cierre de agosto de LIM.', ir:'gastos:egresos', b:'Clasificar'},
-    !E.conciliado.ibk && {tono:'pizarra', t:`Interbank sin conciliar desde el ${fecha(ibk.conciliado)}`, d:'Cuatro semanas sin comparar con el banco. La regla es cada viernes.', ir:'dinero:conciliacion', b:'Conciliar'},
-    {tono:'pizarra', t:`Vas al ${pct(avance)} del límite de 300 UIT`, d:'Al cruzarlo, SUNAT exige llevar libros electrónicos. A este ritmo, a mediados de 2027.', ir:'impuestos', b:'Ver impuestos'},
+    ...vencidas.map(p=>({tono:'rojo', t:`Factura vencida: ${p.prov}`, d:`Saldo ${S(saldoPorPagar(p))}, venció hace ${dias(HOY, p.vence)} días.`, imp:`${S(saldoPorPagar(p))} en juego`, ir:'dinero:porpagar', b:'Pagar'})),
+    todas && riesgo && {tono:'ambar', t:`La semana del ${riesgo.s} quedas bajo tu mínimo de caja`, d:`Quedarías con ${S(riesgo.saldo)} (tu mínimo es ${S(minimoCaja())}). Pasar el pago a Distribuidora Norte una semana lo resuelve.`, imp:`faltan ${S(minimoCaja()-riesgo.saldo)}`, ir:'reportes:escenarios', b:'Probar escenario'},
+    (todas || u==='LIM') && (() => { const e = escenarioResultado({alqLIM:5000, ventasLIM:15}); const antes = totalesDe(ago,'LIM').utilidad, despues = e.LIM.utilidad;
+      return {tono:'ambar', t:`LIM pierde ${S(-antes)} al mes`, d:`Necesita vender ${S(lim.pe)} y vende ${S(lim.ventas)}. Con el alquiler a S/ 5,000 y 15 % más de ventas, ${despues>=0?'dejaría '+S(despues):'perdería '+S(-despues)} al mes.`, imp:`${S(despues-antes)} al mes de diferencia`, ir:'reportes:escenarios', b:'Probar escenario'}; })(),
+    ...FIJOS.filter(f=>f.estado==='falta' && enVista(f.u)).map(f=>({tono:'ambar', t:`No se registró la ${f.n.toLowerCase()} de ${nombreUnidad(f.u)}`, d:`Suele llegar el día ${f.dia} por unos ${S(f.monto)}. Si no está, el resultado del mes sale mejor de lo que es.`, imp:`~${S(f.monto)}`, ir:'gastos:fijos', b:'Ver fijos'})),
+    ...FIJOS.filter(f=>f.estado==='propuesto' && enVista(f.u)).slice(0,1).map(f=>({tono:'pizarra', t:`${FIJOS.filter(x=>x.estado==='propuesto'&&enVista(x.u)).length} gastos fijos listos para confirmar`, d:`Por ejemplo: ${f.n.toLowerCase()} de ${nombreUnidad(f.u)}, ${S(f.monto)}, vence el ${f.dia}. Se confirman con un clic.`, imp:'', ir:'gastos:fijos', b:'Confirmar'})),
+    ...RAROS.filter(x=>x.u==null ? todas : enVista(x.u)).map(x=>({tono:'pizarra', t:x.t, d:x.d, imp:'', ir:x.ir, b:'Revisar', raro:true})),
+    EGRESOS.some(e=>enVista(e.u)) && (n => ({tono:'pizarra', t:`${n} ${n===1?'egreso':'egresos'} de caja sin clasificar`, d:'Mientras no se diga si son gasto, depósito o retiro, no cuentan en ningún número.', imp:'', ir:'gastos:egresos', b:'Clasificar'}))(EGRESOS.filter(e=>enVista(e.u)).length),
+    todas && Object.keys(E.parejas).length < EXTRACTO_IBK.length && {tono:'pizarra', t:'Interbank tiene 6 movimientos por confirmar', d:'El sistema ya propuso la pareja de cada uno. Confirmar toma un minuto.', imp:'', ir:'dinero:conciliacion', b:'Conciliar'},
+    todas && {tono:'pizarra', t:`Vas al ${pct(VENTAS_12M/(300*UIT))} del límite de 300 UIT`, d:'Al cruzarlo, SUNAT exige libros electrónicos. A este ritmo, a mediados de 2027.', imp:'', ir:'impuestos', b:'Ver'},
   ].filter(Boolean);
 
-  const porUnidad = UNIDADES.map(u => { const t = totalesDe(RESULTADOS_AGO, u.k); return {n:u.k==='EMP'?'Empresa':u.n.replace('Tienda ',''), v:t.utilidad, malo:t.utilidad<0, maloTxt:'pierde',
-    tip:`<b>${u.n}</b><br>Ventas ${S(t.ventas)} · Margen ${S(t.margen)}<br>Gastos ${S(t.gastos)}${t.absorbido?` · Absorbido ${S(t.absorbido)}`:''}`}; });
+  const coberturas = TIENDAS.filter(x=>todas).map(x=>{ const e = equilibrio(x); return {n:nombreUnidad(x).replace('Tienda ',''), v:Math.round(e.cubre*100), malo:e.cubre<1, maloTxt:'no cubre',
+    tip:`<b>${nombreUnidad(x)}</b><br>Necesita ${S(e.pe)} · vendió ${S(e.ventas)}<br>${e.cubre>=1?'Cubre sus costos el día '+e.dia:'Le faltan '+S(e.pe-e.ventas)+' al mes'}`}; });
 
   return `
-  ${cabecera({sobre:'Finanzas · Resumen', titulo:'Septiembre, al jueves 24', bajada:'Lo que miras primero cada día. Todo sale de lo que ya registran Ventas, Caja, Compras, Producción y Dynamic.',
-    acciones:`<button class="btn btn-secundario" data-ir="reportes">Ver reportes</button>`})}
+  ${cabecera({sobre:'Finanzas · Resumen', titulo: todas ? 'CAYLA, al jueves 24 de septiembre' : `${nombreUnidad(u)}, al jueves 24`,
+    bajada: todas ? 'Cómo está el negocio y qué conviene decidir hoy. Todo sale de lo que ya registran Ventas, Caja, Compras, Producción y Dynamic.' : `Solo ${nombreUnidad(u)}. Para ver el negocio entero, elige «Todas las tiendas».`,
+    acciones: filtroVer()})}
+  <section class="salud anim-sube">${frases.map(f=>`<div class="frase" data-tono="${f.tono}"><b class="serif">${f.n}</b><div><p class="t">${f.t}</p><p class="d">${f.d}</p></div></div>`).join('')}</section>
   <section class="cifras cinco">
-    <div class="tile anim-sube"><div class="fila-top"><span class="etq">Vendido en el mes</span></div><div class="valor">${S(sep.ventas)}</div>
-      <div class="det">TRU ${S(resultadosDe('2026-09').ventas.TRU)} · AQP ${S(resultadosDe('2026-09').ventas.AQP)} · LIM ${S(resultadosDe('2026-09').ventas.LIM)}. Sin IGV.</div>${F('existe','venta_items')}</div>
-    <div class="tile anim-sube"><div class="fila-top"><span class="etq">Plata disponible</span></div><div class="valor">${S(disponible())}</div>
-      <div class="det">Bancos ${S(38420+12880)} · cajones ${S(5900)} · tarjeta por abonar ${S(2310)}</div>${F('nuevo','cuentas_dinero + movimientos')}</div>
-    <div class="tile anim-sube"><div class="fila-top"><span class="etq">Debes en 7 días</span></div><div class="valor ${debe7>disponible()?'rojo':''}">${S(debe7)}</div>
-      <div class="det">Incluye la planilla del 30 (${S(29800)}) y ${vencidas.length} factura vencida.</div>${F('deriva','compras + comprobantes_produccion + Dynamic')}</div>
-    <div class="tile anim-sube"><div class="fila-top"><span class="etq">Utilidad de agosto</span><span class="badge" data-tono="taupe">parcial</span></div><div class="valor">${S(ago.utilidad)}</div>
-      <div class="det">Margen bruto ${pct(ago.margen/ago.ventas)}. LIM, Taller y Empresa aún sin cerrar.</div>${F('deriva','fn_estado_resultados')}</div>
-    <div class="tile anim-sube"><div class="fila-top"><span class="etq">IGV estimado de sept.</span></div><div class="valor">${S(igvSep)}</div>
-      <div class="det">Se paga en octubre según tu cronograma de SUNAT.</div>${F('deriva','comprobantes − facturas de proveedor')}</div>
+    <div class="tile anim-sube"><span class="etq">Vendido en el mes</span><div class="valor">${esTienda?S(vendidoSep):'—'}</div><div class="det">${todas?TIENDAS.map(x=>x+' '+S(sep.ventas[x])).join(' · '):'Sin IGV'}</div>${F('existe','venta_items')}</div>
+    <div class="tile anim-sube"><span class="etq">${todas?'Plata disponible':'Efectivo en su cajón'}</span><div class="valor">${S(efectivoU)}</div><div class="det">${todas?`Bancos ${S(38420+12880)} · cajones ${S(5900)} · tarjeta ${S(2310)}`:'Los bancos son de CAYLA entera'}</div>${F('nuevo','cuentas_dinero + movimientos')}</div>
+    <div class="tile anim-sube"><span class="etq">Debes en ${CONFIG.avisoVenceDias} días</span><div class="valor ${vencidas.length?'rojo':''}">${S(debe7)}</div><div class="det">${todas?'Incluye la planilla del 30. ':''}${vencidas.length} vencida${vencidas.length===1?'':'s'}</div>${F('deriva','compras + comprobantes_produccion')}</div>
+    <div class="tile anim-sube"><span class="etq">Utilidad de agosto</span><div class="valor ${tAgo.utilidad<0?'rojo':''}">${S(tAgo.utilidad)}</div><div class="det">${tAgo.ventas?'Margen bruto '+pct(tAgo.margen/tAgo.ventas):'Unidad sin ventas propias'}</div>${F('deriva','fn_estado_resultados')}</div>
+    ${todas ? `<div class="tile anim-sube"><span class="etq">IGV estimado de sept.</span><div class="valor">${S(IGV_MESES[5].deb-IGV_MESES[5].cred)}</div><div class="det">Se paga en octubre según tu cronograma</div>${F('deriva','comprobantes − facturas de proveedor')}</div>`
+      : esTienda ? `<div class="tile anim-sube"><span class="etq">Meta de ventas</span><div class="valor">${pct(proyVentas/metaVentas)}</div><div class="det">Proyección al cierre ${S(proyVentas)} de ${S(metaVentas)}</div>${F('nuevo','presupuestos (Configuración)')}</div>`
+      : `<div class="tile anim-sube"><span class="etq">${u==='TAL'?'Sin absorber en prendas':'Gastos de agosto'}</span><div class="valor">${S(u==='TAL'?tAgo.gastos-tAgo.absorbido:tAgo.gastos)}</div><div class="det">${u==='TAL'?'Costo del Taller que no entró a ninguna prenda':'Lo pagan las tiendas con su margen'}</div></div>`}
   </section>
-
   <section class="dos-col">
     <div class="superficie pad anim-sube">
-      <div class="prioridades-cab"><div><h2>Para decidir hoy</h2><p>Ordenado por lo que más cuesta si se deja pasar.</p></div></div>
-      <ul class="decidir">${decidir.map(x=>`<li><span class="punto" data-tono="${x.tono}"></span><div><b>${x.t}</b><p>${x.d}</p></div><button class="btn btn-sutil btn-sm" data-ir="${x.ir}">${x.b}</button></li>`).join('')}</ul>
+      <div class="prioridades-cab"><div><h2>Para decidir hoy</h2><p>Primero lo que más cuesta si se deja pasar. Cada aviso dice cuánto está en juego.</p></div></div>
+      <ul class="decidir">${decidir.slice(0, E.verMas ? 99 : 5).map(x=>`<li><span class="punto" data-tono="${x.tono}"></span><div><b>${x.t}</b>${x.raro?' <span class="badge sin-punto" data-tono="pizarra">fuera de lo normal</span>':''}<p>${x.d}</p>${x.imp?`<p class="impacto">${x.imp}</p>`:''}</div><button class="btn btn-sutil btn-sm" data-ir="${x.ir}">${x.b}</button></li>`).join('') || '<li><span></span><div><b>Nada urgente</b><p>No hay vencidas, faltantes ni nada fuera de lo normal.</p></div></li>'}</ul>
+      ${decidir.length > 5 ? `<button class="btn btn-enlace" data-accion="ver-mas" style="margin-top:8px">${E.verMas ? 'Ver menos' : `Ver ${decidir.length-5} más`}</button>` : ''}
     </div>
     <div class="columna">
-      <div class="superficie pad anim-sube">
-        <div class="prioridades-cab"><div><h2>Utilidad por unidad · agosto</h2><p>Quién sostiene a quién. Pasa el mouse por una barra.</p></div></div>
-        ${barras(porUnidad, {alto:210})}
-        ${F('deriva','fn_estado_resultados por unidad')}
+      ${todas ? `<div class="superficie pad anim-sube">
+        <div class="prioridades-cab"><div><h2>¿Cada tienda cubre sus costos?</h2><p>Agosto: lo que vendió contra lo que necesitaba vender (100 %).</p></div></div>
+        ${barras(coberturas, {alto:190, umbral:100, umbralTxt:'100 % = cubre sus costos justos', etiquetaValor:v=>v+' %'})}
+        ${F('deriva','punto de equilibrio = gastos ÷ margen %')}
       </div>
       <div class="superficie pad anim-sube">
         <div class="prioridades-cab"><div><h2>Saldo de las próximas 6 semanas</h2><p>Lo que hay hoy + lo que entra − lo que vence.</p></div></div>
-        ${barras(proy.map(w=>({n:w.s.split(' – ')[0], v:w.saldo, malo:w.saldo<MINIMO_CAJA, maloTxt:'bajo el mínimo', tip:`<b>${w.s}</b><br>Entra ${S(w.entra)} · Sale ${S(w.sale)}<br>${esc(w.que)}`})), {alto:200, umbral:MINIMO_CAJA, umbralTxt:'mínimo de caja '+S(MINIMO_CAJA)})}
+        ${barras(proy.map(w=>({n:w.s.split(' – ')[0], v:w.saldo, malo:w.saldo<minimoCaja(), maloTxt:'bajo el mínimo', tip:`<b>${w.s}</b><br>Entra ${S(w.entra)} · Sale ${S(w.sale)}<br>${esc(w.que)}`})), {alto:200, umbral:minimoCaja(), umbralTxt:'tu mínimo de caja: '+S(minimoCaja())+' (se cambia en Configuración)'})}
+      </div>` : esTienda ? `<div class="superficie pad anim-sube">
+        <div class="prioridades-cab"><div><h2>Camino al punto de equilibrio</h2><p>Septiembre al día 24 contra lo que necesita vender en el mes.</p></div></div>
+        <div class="umbral-barra alto" role="img" aria-label="${pct(vendidoSep/eq.pe)} del punto de equilibrio"><i style="width:${Math.min(100, vendidoSep/eq.pe*100)}%"></i></div>
+        <div class="marcas"><span>Vendido ${S(vendidoSep)}</span><span>Necesita ${S(eq.pe)}</span></div>
+        <p class="sub" style="font-size:13px;margin:12px 0 0">${vendidoSep >= eq.pe ? `Ya cubrió los costos del mes: desde aquí, cada sol de margen es ganancia.` : `Le faltan ${S(eq.pe - vendidoSep)} en 6 días: unos ${S((eq.pe - vendidoSep)/6)} diarios. Hoy vende ${S(vendidoSep/24)} al día.`}</p>
       </div>
+      <div class="superficie pad anim-sube"><div class="prioridades-cab"><div><h2>Presupuesto del mes</h2><p>Gastado a la fecha contra su tope; el % es la proyección al cierre.</p></div><button class="btn btn-sutil btn-sm" data-ir="reportes:presupuesto">Ver todo</button></div>${miniPresupuesto(u)}</div>`
+      : `<div class="nota-cayla">${u==='TAL'?'El Taller no vende: lo que cuesta se pega a cada prenda (D-31). Se mide por lo que quedó sin absorber y por el costo de cada prenda (Producción ▸ Eficiencia).':'Lo de la empresa no es de ninguna tienda y no se reparte (D-32). Las tiendas lo pagan con su margen: por eso el punto de equilibrio de CAYLA entera es más alto que la suma de las tiendas.'}</div>`}
     </div>
-  </section>
-  <div class="nota-cayla">La utilidad de agosto dice «parcial» porque LIM, el Taller y lo de la empresa aún no cierran el mes: sus números todavía pueden cambiar. TRU y AQP ya están congelados (ver <button class="btn-enlace" data-ir="cierre">Cierre de mes</button>).</div>`;
+  </section>`;
 };
+
+function miniPresupuesto(u){
+  const sep = resultadosDe('2026-09');
+  const filas = Object.entries(PRESUPUESTO.gastos).filter(([k,m])=>m[u]).map(([k,m])=>{ const real = sep[k]?.[u]||0, proy = FIJAS.includes(k) ? real : Math.round(real/AVANCE_MES); return {n:cat(k)?.n||k, meta:m[u], real, p:proy/m[u]}; });
+  return `<ul class="lista-mov" style="margin:0">${filas.map(f=>`<li>${f.n}<span>${S(f.real)} de ${S(f.meta)} · <b style="color:${f.p>1.05?'var(--rojo-profundo)':f.p>1?'var(--ambar)':'var(--verde)'}">${pct(f.p)}</b></span></li>`).join('')}</ul>`;
+}
 
 // ============ Gastos (piezas 1 y 3) ============
 const ESTADO_GASTO = {pagado:['verde','Pagado'], porpagar:['ambar','Por pagar'], anulado:['taupe','Anulado']};
@@ -911,42 +1134,42 @@ const medioTxt = g => g.medio ? cuenta(g.medio).n.replace(' · Cta. corriente','
 
 VISTAS.gastos = () => {
   const tab = tabActual('gastos','gastos');
-  const gastos = GASTOS.filter(g=>veUnidad(g.u));
-  const egresos = EGRESOS.filter(e=>veUnidad(e.u));
-  const activos = ACTIVOS.filter(a=>veUnidad(a.u));
+  const gastos = GASTOS.filter(g=>enVista(g.u)).sort((a,b)=>(b.nuevo?1:0)-(a.nuevo?1:0) || b.f.localeCompare(a.f));
+  const egresos = EGRESOS.filter(e=>enVista(e.u));
+  const activos = ACTIVOS.filter(a=>enVista(a.u));
+  const fijosPend = FIJOS.filter(f=>enVista(f.u) && f.estado!=='registrado').length;
   const vig = gastos.filter(g=>g.estado!=='anulado' && g.f.startsWith('2026-09'));
   const total = vig.reduce((a,g)=>a+g.total,0), igv = vig.reduce((a,g)=>a+g.igv,0);
   const sinIgv = vig.filter(g=>g.comp==='Boleta').length;
-  const acc = tab==='activos'
+  const acc = filtroVer() + (tab==='activos'
     ? `<button class="btn btn-primario" data-accion="nuevo-activo">+ Registrar activo</button>`
-    : `<button class="btn btn-primario" data-accion="nuevo-gasto">+ Registrar gasto</button>`;
+    : `<button class="btn btn-primario" data-accion="nuevo-gasto">+ Registrar gasto</button>`);
   return `
-  ${cabecera({sobre:'Finanzas · Gastos', titulo: esLider()?'Gastos de septiembre':'Gastos de Tienda TRU',
+  ${cabecera({sobre:'Finanzas · Gastos', titulo: verTodas()?'Gastos de septiembre':`Gastos de ${nombreUnidad(E.ver)}`,
     bajada:'Lo que se paga para que el negocio funcione y no es mercadería. Si llegó con comprobante de un proveedor, comparte la factura con Compras: un solo Por pagar y un solo IGV.', acciones:acc})}
   <section class="cifras">
-    <div class="tile anim-sube"><span class="etq">Gastado en el mes</span><div class="valor">${S(total)}</div><div class="det">${vig.length} gastos vigentes${esLider()?' · 5 unidades':''}</div>${F('nuevo','gastos + compras (naturaleza = gasto)')}</div>
+    <div class="tile anim-sube"><span class="etq">Gastado en el mes</span><div class="valor">${S(total)}</div><div class="det">${vig.length} gastos vigentes · ${nombreVer()}</div>${F('nuevo','gastos + compras (naturaleza = gasto)')}</div>
     <div class="tile anim-sube"><span class="etq">IGV que puedes descontar</span><div class="valor">${S(igv)}</div><div class="det">Solo de facturas. ${sinIgv} boleta${sinIgv===1?'':'s'} sin IGV descontable.</div>${F('deriva','compras.igv')}</div>
     <div class="tile anim-sube"><span class="etq">Por pagar de gastos</span><div class="valor ambar">${S(gastos.filter(g=>g.estado==='porpagar').reduce((a,g)=>a+g.total,0))}</div><div class="det">${gastos.filter(g=>g.estado==='porpagar').length} con factura a crédito</div>${F('existe','compras_resumen.saldo')}</div>
     <div class="tile anim-sube"><span class="etq">Egresos de caja sin clasificar</span><div class="valor ${egresos.length?'ambar':''}">${egresos.length}</div><div class="det">${egresos.length?'No cuentan en ningún número hasta clasificarlos':'Todo clasificado'}</div>${F('existe','caja_movimientos')}</div>
   </section>
-  ${pestanas('gastos', [['gastos','Gastos'],['activos','Activos fijos', activos.length],['egresos','Egresos de caja por clasificar', egresos.length||'']])}
-  ${tab==='gastos' ? tablaGastos(gastos) : tab==='activos' ? tablaActivos(activos) : tablaEgresos(egresos)}`;
+  ${pestanas('gastos', [['gastos','Gastos'],['fijos','Fijos del mes', fijosPend||''],['activos','Activos fijos', activos.length],['egresos','Egresos de caja por clasificar', egresos.length||'']])}
+  ${tab==='gastos' ? tablaGastos(gastos) : tab==='fijos' ? vistaFijos() : tab==='activos' ? tablaActivos(activos) : tablaEgresos(egresos)}`;
 };
 
 function tablaGastos(gastos){
   return `<div class="superficie anim-sube">
     <div class="herramientas">
       <div class="buscar"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input class="control" placeholder="Buscar por descripción, proveedor o número"></div>
-      ${esLider()?`<select class="control"><option>Todas las unidades</option>${UNIDADES.map(u=>`<option>${u.n}</option>`).join('')}</select>`:''}
       <select class="control"><option>Todas las categorías</option>${CATEGORIAS.map(c=>`<option>${c.n}</option>`).join('')}</select>
       <select class="control"><option>Septiembre 2026</option><option>Agosto 2026 · cerrado</option></select>
     </div>
-    <div class="tabla-wrap"><table class="t"><thead><tr><th>Fecha</th><th>Gasto</th><th>Categoría · cuenta</th>${esLider()?'<th>Unidad</th>':''}<th>Comprobante</th><th>Cómo se pagó</th><th class="num">Monto</th><th>Estado</th></tr></thead>
+    <div class="tabla-wrap"><table class="t"><thead><tr><th>Fecha</th><th>Gasto</th><th>Categoría · cuenta</th>${verTodas()?'<th>Unidad</th>':''}<th>Comprobante</th><th>Cómo se pagó</th><th class="num">Monto</th><th>Estado</th></tr></thead>
     <tbody>${gastos.map(g=>{ const [t,e]=ESTADO_GASTO[g.estado]; const c=cat(g.c); return `<tr class="${g.nuevo?'fila-nueva':''}${g.estado==='anulado'?' anulada':''}" data-accion="ver-gasto" data-id="${g.id}">
       <td data-l="Fecha">${fecha(g.f)}</td>
-      <td class="c-prenda" data-l="Gasto"><b>${esc(g.d)}</b><span class="sub" style="display:block;font-size:12px">${esc(g.prov||'Sin proveedor')}</span></td>
+      <td class="c-prenda" data-l="Gasto"><b>${esc(g.d)}</b><span class="sub" style="display:block;font-size:12px">${esc(g.prov||'Sin proveedor')}</span>${g.raro?`<span class="badge sin-punto" data-tono="pizarra" title="${esc(g.raro)}" style="margin-top:4px">fuera de lo normal · ${esc(g.raro)}</span>`:''}</td>
       <td data-l="Categoría">${c.n} <span class="sub">· ${c.cta}</span></td>
-      ${esLider()?`<td data-l="Unidad">${nombreUnidad(g.u)}</td>`:''}
+      ${verTodas()?`<td data-l="Unidad">${nombreUnidad(g.u)}</td>`:''}
       <td data-l="Comprobante">${g.comp}${g.num?`<span class="sub" style="display:block;font-size:12px">${g.num}</span>`:''}</td>
       <td data-l="Pago">${g.cond==='credito'&&g.estado==='porpagar'?`<span class="sub">vence ${fecha(g.vence)}</span>`:medioTxt(g)}</td>
       <td class="num" data-l="Monto"><b>${S(g.total,1)}</b>${g.igv?`<span class="sub" style="display:block;font-size:12px">IGV ${S(g.igv,1)}</span>`:''}</td>
@@ -1095,23 +1318,57 @@ function modalClasificar(id){
       () => { EGRESOS.splice(EGRESOS.indexOf(e), 1); if (q==='deposito') MOV_DINERO.unshift({f:e.f, tipo:'Depósito del cajón', de:'c'+e.u, a:'bcp', monto:e.monto, ref:e.nota, u:e.u, por:responsableDefecto()}); }); };
 }
 
+// ---------- Fijos del mes: el sistema propone, el líder confirma ----------
+function vistaFijos(){
+  const fs = FIJOS.filter(f=>enVista(f.u));
+  const prop = fs.filter(f=>f.estado==='propuesto'), falta = fs.filter(f=>f.estado==='falta'), ok = fs.filter(f=>f.estado==='registrado');
+  const det = DETECTADOS.filter(d=>enVista(d.u));
+  const fila = (f, boton) => `<li class="fijo"><div><b>${f.n} · ${nombreUnidad(f.u)}</b><span class="sub">${esc(f.prov)} · día ${f.dia}${f.variable?' · monto variable':''}</span></div><span class="monto">${f.variable?'~':''}${S(f.monto)}</span>${boton}</li>`;
+  return `
+  <section class="dos-col par">
+    <div class="superficie pad anim-sube">
+      <div class="prioridades-cab"><div><h2>Para confirmar</h2><p>Llegan en los próximos días. Un clic los registra con el monto y la cuenta de siempre.</p></div></div>
+      <ul class="fijos">${prop.map(f=>fila(f, `<button class="btn btn-primario btn-sm" data-accion="confirmar-fijo" data-id="${f.id}">Registrar</button>`)).join('') || '<li class="sub">Nada por confirmar.</li>'}</ul>
+      ${falta.length?`<div class="prioridades-cab" style="margin-top:18px"><div><h2>Faltan</h2><p>Deberían haber llegado y no están registrados.</p></div></div>
+      <ul class="fijos">${falta.map(f=>fila(f, `<button class="btn btn-secundario btn-sm" data-accion="fijo-variable" data-id="${f.id}">Registrar monto</button>`)).join('')}</ul>`:''}
+    </div>
+    <div class="columna">
+      ${det.length?`<div class="superficie pad anim-sube"><div class="prioridades-cab"><div><h2>Se repiten. ¿Los marco como fijos?</h2><p>El sistema los encontró mirando los gastos de los últimos meses.</p></div></div>
+        <ul class="fijos">${det.map(d=>`<li class="fijo"><div><b>${esc(d.prov)} · ${nombreUnidad(d.u)}</b><span class="sub">${cat(d.c).n} · ${esc(d.patron)}</span></div><span class="monto">${S(d.monto)}</span>
+          <span class="dos-botones"><button class="btn btn-secundario btn-sm" data-accion="marcar-fijo" data-id="${d.id}">Marcar fijo</button><button class="btn btn-enlace" data-accion="no-fijo" data-id="${d.id}">No es fijo</button></span></li>`).join('')}</ul></div>`:''}
+      <div class="superficie pad anim-sube"><div class="prioridades-cab"><div><h2>Ya registrados este mes</h2><p>${ok.length} de ${fs.length} fijos.</p></div><button class="btn btn-sutil btn-sm" data-ir="config:fijos">Editar fijos</button></div>
+        <ul class="fijos">${ok.map(f=>fila(f, '<span class="badge" data-tono="verde">registrado</span>')).join('')}</ul></div>
+    </div>
+  </section>
+  <div class="nota-cayla">Los fijos también alimentan el <button class="btn-enlace" data-ir="reportes:flujo">flujo de caja</button>: por eso la proyección sabe que el alquiler sale el día 10. Si un recibo variable (luz, agua) viene muy distinto a su promedio, el sistema lo marca como «fuera de lo normal». ${F('nuevo','gastos_fijos + detección por proveedor, día y monto')}</div>`;
+}
+function confirmarFijo(f, monto){
+  guardar(`${f.n} de ${nombreUnidad(f.u)} registrado: ${S(monto)}.`, () => {
+    f.estado = 'registrado'; GASTOS.forEach(x=>x.nuevo=false);
+    GASTOS.unshift({id:Date.now(), f:HOY, u:f.u, c:f.c, d:`${f.n} de septiembre`, prov:f.prov, comp:'Factura', num:'—', total:monto, igv:Math.round((monto-monto/1.18)*100)/100, medio:f.cuenta, cond:'contado', estado:'pagado', nuevo:true});
+    if (f.cuenta) cuenta(f.cuenta).saldo -= monto;
+  });
+}
+
 // ============ Cuentas y dinero (piezas 2, 5 y 6) ============
 VISTAS.dinero = () => {
-  const tabs = [['cuentas','Cuentas'],['efectivo','Efectivo por tienda'],['porpagar','Por pagar', POR_PAGAR.filter(p=>saldoPorPagar(p)>0&&veUnidad(p.u)).length]];
-  if (esLider()) tabs.push(['conciliacion','Conciliación', E.conciliado.ibk?'':'1']);
+  const tabs = [['cuentas','Cuentas'],['efectivo','Efectivo por tienda'],['porpagar','Por pagar', POR_PAGAR.filter(p=>saldoPorPagar(p)>0&&enVista(p.u)).length]];
+  if (esLider()) tabs.push(['conciliacion','Conciliación', EXTRACTO_IBK.length - Object.keys(E.parejas).length || '']);
   const tab = tabActual('dinero','cuentas');
   const cuerpo = {cuentas:vistaCuentas, efectivo:vistaEfectivo, porpagar:vistaPorPagar, conciliacion:vistaConciliacion}[tab]();
   return `${cabecera({sobre:'Finanzas · Cuentas y dinero', titulo:'¿Dónde está la plata?',
     bajada:'Cada lugar donde CAYLA tiene dinero: bancos, tarjeta por abonar y cajones. Un saldo nunca se escribe a mano: se suma de los movimientos.',
-    acciones:`<button class="btn btn-primario" data-accion="nuevo-mov">+ Registrar movimiento</button>`})}
+    acciones:`${tab==='conciliacion'?filtroVer('empresa'):filtroVer()}<button class="btn btn-primario" data-accion="nuevo-mov">+ Registrar movimiento</button>`})}
     ${pestanas('dinero', tabs)}${cuerpo}`;
 };
 
 function vistaCuentas(){
-  const visibles = CUENTAS.filter(c => esLider() || c.unidad === unidadPropia());
+  const visibles = CUENTAS.filter(c => esLider() ? (c.tipo !== 'cajon' || enVista(c.unidad)) : c.unidad === unidadPropia());
   const grupos = [['banco','Bancos','104'],['transito','Por abonar','105'],['cajon','Cajones y fondo fijo','101']];
-  const movs = MOV_DINERO.filter(m => esLider() || m.u === unidadPropia());
+  const movs = MOV_DINERO.filter(m => esLider() ? (verTodas() || m.u === E.ver) : m.u === unidadPropia());
+  const debe = PRESTAMOS_DUENO.reduce((a,p)=>a+p.monto-p.devuelto,0);
   return `
+  ${!verTodas()&&esLider()?`<div class="nota-cayla">Los bancos son de CAYLA entera: se ven igual en cualquier tienda. El cajón es el de ${nombreUnidad(E.ver)}.</div>`:''}
   ${grupos.map(([t,n,cta]) => { const cs = visibles.filter(c=>c.tipo===t); if (!cs.length) return '';
     return `<section class="anim-sube"><p class="etq" style="margin:4px 0 10px">${n} · cuenta ${cta} ${t==='banco'?F('nuevo','cuentas_dinero'):t==='cajon'?F('existe','cajas + caja_movimientos'):F('deriva','venta_pagos con tarjeta − abonos')}</p>
       <div class="cuentas">${cs.map(c=>`<article class="cuenta-c">
@@ -1119,21 +1376,28 @@ function vistaCuentas(){
         <div class="valor">${S(c.saldo)}</div>
         <p>${c.recibe || (c.unidad==='TAL'?'Para gastos chicos del Taller':'Caja abierta hoy')}</p>
       </article>`).join('')}</div></section>`; }).join('')}
-  ${esLider() ? `<section class="superficie anim-sube"><div class="herramientas" style="justify-content:space-between"><div><b>A qué cuenta entra cada cobro</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">Por eso Vender no cambia: el cobro guarda el medio y Finanzas sabe a qué cuenta llegó.</p></div>${F('nuevo','medios_de_cobro')}</div>
+  ${esLider() && verTodas() ? `<section class="superficie pad anim-sube dueno">
+    <div class="prioridades-cab"><div><h2>Plata del dueño</h2><p>Cuando pones plata en un mal momento, eliges si es un <b>aporte</b> (se queda en CAYLA) o un <b>préstamo</b> (CAYLA te lo devuelve).</p></div>
+      <div style="display:flex;gap:8px"><button class="btn btn-secundario btn-sm" data-accion="nuevo-mov" data-id="Poner plata del dueño">Poner plata</button><button class="btn btn-sutil btn-sm" data-accion="nuevo-mov" data-id="Sacar plata del dueño">Sacar plata</button></div></div>
+    <div class="dueno-cifras"><div><span class="etq">CAYLA te debe</span><div class="valor serif">${S(debe)}</div></div>
+      <ul class="lista-mov" style="margin:0;flex:1">${PRESTAMOS_DUENO.map(p=>`<li>${fecha(p.f)} · préstamo · ${esc(p.nota)}<span>${S(p.monto)} · devuelto ${S(p.devuelto)}</span></li>`).join('')}</ul></div>
+    ${F('nuevo','movimientos_dinero (aporte · préstamo · retiro · devolución)')}
+  </section>` : ''}
+  ${esLider() && verTodas() ? `<section class="superficie anim-sube"><div class="herramientas" style="justify-content:space-between"><div><b>A qué cuenta entra cada cobro</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">Por eso Vender no cambia: el cobro guarda el medio y Finanzas sabe a qué cuenta llegó.</p></div><button class="btn btn-sutil btn-sm" data-ir="config:cuentas">Cambiar en Configuración</button></div>
     <div class="tabla-wrap"><table class="t medios"><thead><tr><th>Tienda</th><th>Efectivo</th><th>Yape</th><th>Plin</th><th>Tarjeta</th><th>Transferencia</th></tr></thead>
     <tbody>${MEDIOS.map(m=>`<tr><td data-l="Tienda"><b>${nombreUnidad(m.u)}</b></td>${['efectivo','yape','plin','tarjeta','transferencia'].map(k=>`<td data-l="${k}"><span class="metodo" data-m="${k}"></span>${cuenta(m[k]).n.replace(' · Cta. corriente','').replace('Cajón · ','Cajón ')}</td>`).join('')}</tr>`).join('')}</tbody></table></div></section>` : ''}
   <section class="superficie anim-sube">
     <div class="herramientas"><b>Movimientos entre cuentas</b><span class="sub" style="font-size:12.5px">Depósitos, abonos de tarjeta, transferencias y retiros. No son ventas ni gastos: la plata cambia de lugar.</span></div>
     <div class="tabla-wrap"><table class="t"><thead><tr><th>Fecha</th><th>Qué</th><th>De</th><th>A</th><th class="num">Monto</th><th>Responsable</th></tr></thead>
     <tbody>${movs.map(m=>`<tr class="${m.nuevo?'fila-nueva':''}"><td data-l="Fecha">${fecha(m.f)}</td><td class="c-prenda" data-l="Qué"><b>${m.tipo}</b><span class="sub" style="display:block;font-size:12px">${esc(m.ref)}${m.comision?` · comisión ${S(m.comision,1)} → gasto 639`:''}</span></td>
-      <td data-l="De">${cuenta(m.de).n.replace(' · Cta. corriente','')}</td><td data-l="A">${m.a?cuenta(m.a).n.replace(' · Cta. corriente',''):'<span class="sub">Sale del negocio</span>'}</td>
+      <td data-l="De">${m.de==='dueno'?'<span class="sub">El dueño</span>':cuenta(m.de).n.replace(' · Cta. corriente','')}</td><td data-l="A">${m.a?cuenta(m.a).n.replace(' · Cta. corriente',''):'<span class="sub">Sale del negocio</span>'}</td>
       <td class="num" data-l="Monto">${S(m.monto)}</td><td data-l="Responsable">${m.por}</td></tr>`).join('')}</tbody></table></div>
     <div class="pie-tabla"><span>Solo se agregan filas; un error se anula con motivo.</span>${F('nuevo','movimientos_dinero')}</div>
   </section>`;
 }
 
 function vistaEfectivo(){
-  const filas = EFECTIVO.filter(f=>veUnidad(f.u));
+  const filas = EFECTIVO.filter(f=>enVista(f.u));
   const deberia = f => f.apertura + f.ventas + f.ingresos - f.egresos - f.depositos - f.traslados;
   return `<div class="superficie anim-sube">
     <div class="herramientas" style="justify-content:space-between"><div><b>Hoy, jueves 24</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">Lo que debería haber en cada cajón ahora mismo. El conteo lo hace cada tienda al cerrar su caja.</p></div>${F('existe','fn_resumen_caja (ADR-0191)')}</div>
@@ -1151,7 +1415,7 @@ function vistaEfectivo(){
 }
 
 function vistaPorPagar(){
-  const lista = POR_PAGAR.filter(p=>saldoPorPagar(p)>0 && veUnidad(p.u)).sort((a,b)=>a.vence.localeCompare(b.vence));
+  const lista = POR_PAGAR.filter(p=>saldoPorPagar(p)>0 && enVista(p.u)).sort((a,b)=>a.vence.localeCompare(b.vence));
   const tramo = p => { const d = dias(p.vence, HOY); return d < 0 ? 'Vencidas' : d <= 7 ? 'Esta semana' : d <= 14 ? 'La próxima semana' : 'Más adelante'; };
   const tramos = ['Vencidas','Esta semana','La próxima semana','Más adelante'];
   const suma = t => lista.filter(p=>tramo(p)===t).reduce((a,p)=>a+saldoPorPagar(p),0);
@@ -1160,51 +1424,82 @@ function vistaPorPagar(){
   <section class="cifras">${tramos.map(t=>`<div class="tile anim-sube"><span class="etq">${t}</span><div class="valor ${t==='Vencidas'&&suma(t)?'rojo':''}">${S(suma(t))}</div><div class="det">${lista.filter(p=>tramo(p)===t).length} facturas</div></div>`).join('')}</section>
   <div class="superficie anim-sube">
     <div class="herramientas" style="justify-content:space-between">
-      <div><b>Todo lo que CAYLA debe${esLider()?'':' · la parte de TRU'}</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">Mercadería, gastos, activos e insumos del Taller en una sola lista.</p></div>
+      <div><b>${verTodas()?'Todo lo que CAYLA debe':'Lo que debe '+nombreUnidad(E.ver)}</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">Mercadería, gastos, activos e insumos del Taller en una sola lista.</p></div>
       <div style="display:flex;gap:8px;align-items:center">${F('existe','compras_resumen')} ${F('existe','comprobantes_produccion')} ${F('nuevo','vista consolidada')}
         <button class="btn btn-primario btn-sm" data-accion="pagar" ${sel.length?'':'disabled'}>Pagar ${sel.length?sel.length+' · '+S(sel.reduce((a,p)=>a+saldoPorPagar(p),0)):'seleccionadas'}</button></div>
     </div>
-    <div class="tabla-wrap"><table class="t"><thead><tr><th style="width:36px"></th><th>Vence</th><th>Proveedor · factura</th><th>Tipo</th>${esLider()?'<th>Unidad</th>':''}<th class="num">Total</th><th class="num">Pagado</th><th class="num">Saldo</th></tr></thead>
+    <div class="tabla-wrap"><table class="t"><thead><tr><th style="width:36px"></th><th>Vence</th><th>Proveedor · factura</th><th>Tipo</th>${verTodas()?'<th>Unidad</th>':''}<th class="num">Total</th><th class="num">Pagado</th><th class="num">Saldo</th></tr></thead>
     <tbody>${lista.map(p=>{ const d = dias(p.vence, HOY); return `<tr class="${p.nuevo?'fila-nueva':''}">
       <td data-l=""><input type="checkbox" data-sel="${p.id}" ${E.seleccion.has(p.id)?'checked':''} aria-label="Elegir ${esc(p.prov)}"></td>
       <td data-l="Vence">${fecha(p.vence)}<span class="sub" style="display:block;font-size:12px;${d<0?'color:var(--rojo-profundo)':''}">${d<0?`vencida hace ${-d} días`:d===0?'vence hoy':`en ${d} días`}</span></td>
       <td class="c-prenda" data-l="Proveedor"><b>${esc(p.prov)}</b><span class="sub" style="display:block;font-size:12px">${p.num}</span></td>
       <td data-l="Tipo"><span class="badge sin-punto" data-tono="${{mercaderia:'taupe',gasto:'pizarra',activo:'pizarra',insumo:'taupe'}[p.nat]}">${NATURALEZA[p.nat]}</span></td>
-      ${esLider()?`<td data-l="Unidad">${nombreUnidad(p.u)}</td>`:''}
+      ${verTodas()?`<td data-l="Unidad">${nombreUnidad(p.u)}</td>`:''}
       <td class="num" data-l="Total">${S(p.total)}</td><td class="num" data-l="Pagado">${S(p.pagado)}</td><td class="num" data-l="Saldo"><b>${S(saldoPorPagar(p))}</b></td></tr>`; }).join('')}</tbody></table></div>
   </div>
   <div class="nota-cayla">La planilla del 30 (${S(29800)}) no está en esta lista porque la paga Dynamic, pero sí cuenta en el <button class="btn-enlace" data-ir="reportes:flujo">flujo de caja</button>. Pagar desde aquí usa la misma función que Compras: el pago queda en la factura y en la cuenta de la que salió.</div>`;
 }
 
 function vistaConciliacion(){
-  const bancos = CUENTAS.filter(c=>c.tipo==='banco');
-  return `<div class="superficie pad anim-sube">
-    <h2 class="serif" style="font-weight:500;font-size:22px;margin:0 0 4px">Conciliar es comparar con el banco</h2>
-    <p class="sub" style="margin:0 0 16px;max-width:64ch">Abre tu banca por internet, escribe el saldo que ves y el sistema te dice si coincide. La regla es <b>cada viernes</b>: así el cierre de mes se vuelve un trámite de minutos.</p>
-    <div class="conciliar">${bancos.map(c=>{ const esc_ = E.conciliado[c.id]; const dif = esc_!=null ? esc_ - c.saldo : null; return `<article class="cuenta-c">
-      <div class="fila-top"><b>${c.n}</b><span class="badge" data-tono="${esc_!=null?(dif===0?'verde':'ambar'):(dias(HOY,c.conciliado)>7?'ambar':'verde')}">${esc_!=null?(dif===0?'coincide':'diferencia'):'última: '+fecha(c.conciliado)}</span></div>
-      <div class="dos-campos" style="margin-top:10px"><div><span class="etq">Según el sistema</span><div class="valor" style="font-size:24px">${S(c.saldo)}</div></div>
-      <div><label class="etq" for="b-${c.id}">Según el banco</label><input class="control" id="b-${c.id}" inputmode="decimal" value="${esc_ ?? ''}" placeholder="${c.id==='ibk'?'Ej. 12,880':''}"></div></div>
-      ${dif!=null&&dif!==0?`<p class="sub" style="font-size:12.5px;margin:10px 0 0">Diferencia ${S(dif,1)}. Movimientos sin pareja en el sistema: <b>comisión de mantenimiento S/ 25.00</b> (22-sep).</p>`:''}
-      <div style="margin-top:12px"><button class="btn btn-secundario btn-sm" data-accion="conciliar" data-id="${c.id}">Comparar</button></div>
-    </article>`; }).join('')}</div>
-    <p class="sub" style="font-size:12.5px;margin:16px 0 0">Más adelante: subir el extracto del banco (CSV) y que el sistema empareje solo. ${F('nuevo','conciliaciones')}</p>
-  </div>`;
+  const hechas = Object.keys(E.parejas).length, total = EXTRACTO_IBK.length;
+  const bcp = cuenta('bcp');
+  return `<div class="superficie anim-sube">
+    <div class="herramientas" style="justify-content:space-between">
+      <div><b>Interbank · extracto del 1 al 23 de septiembre</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">Subiste el extracto del banco. Para cada línea, el sistema busca su pareja en lo registrado: tú solo confirmas.</p></div>
+      <div style="display:flex;gap:8px;align-items:center"><span class="badge" data-tono="${hechas===total?'verde':'pizarra'}">${hechas} de ${total} confirmadas</span>
+        ${hechas<total?`<button class="btn btn-primario btn-sm" data-accion="parejas-todas">Confirmar las ${EXTRACTO_IBK.filter(x=>x.pareja&&!E.parejas[x.id]).length} propuestas</button>`:''}</div>
+    </div>
+    <div class="tabla-wrap"><table class="t conc"><thead><tr><th>Fecha</th><th>Lo que dice el banco</th><th class="num">Monto</th><th>Pareja en el sistema</th><th></th></tr></thead>
+    <tbody>${EXTRACTO_IBK.map(x=>{ const est = E.parejas[x.id]; return `<tr class="${est?'hecha':''}">
+      <td data-l="Fecha">${fecha(x.f)}</td><td class="c-prenda" data-l="Banco"><b class="mono">${esc(x.d)}</b></td>
+      <td class="num" data-l="Monto" style="${x.monto<0?'color:var(--rojo-profundo)':''}">${x.monto<0?'−':'+'}${S(Math.abs(x.monto),1).replace('S/ ','S/ ')}</td>
+      <td data-l="Pareja">${x.pareja ? `<span class="pareja">${esc(x.pareja)}</span>` : `<span class="sin-pareja">Sin pareja. Sugerencia: ${esc(x.sugerir)}</span>`}</td>
+      <td class="c-acc"><div class="acc">${est ? '<span class="badge" data-tono="verde">confirmada</span>' : x.pareja ? `<button class="btn btn-secundario btn-sm" data-accion="pareja" data-id="${x.id}">Confirmar</button>` : `<button class="btn btn-secundario btn-sm" data-accion="pareja-gasto" data-id="${x.id}">Registrar gasto</button>`}</div></td></tr>`; }).join('')}</tbody></table></div>
+    <div class="pie-tabla"><span>${hechas===total ? `<b style="color:var(--verde)">Interbank coincide con el banco.</b>` : 'Cuando todas estén confirmadas, el saldo del sistema y el del banco coinciden.'}</span>${F('nuevo','conciliaciones + parejas propuestas por monto, fecha y referencia')}</div>
+  </div>
+  <div class="superficie pad anim-sube"><div class="fila-top" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+    <div><b>BCP · Cta. corriente</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">Conciliada el ${fecha(bcp.conciliado)}. El sistema dice ${S(bcp.saldo)}.</p></div>
+    <button class="btn btn-secundario btn-sm" data-accion="exportar">Subir extracto (Excel o CSV)</button></div></div>
+  <div class="nota-cayla">Si el banco no deja descargar el extracto, se escribe el saldo que muestra la banca por internet y el sistema dice si coincide. Lo ideal es hacerlo <b>cada viernes</b>.</div>`;
 }
 
-function modalMovimiento(){
+function modalMovimiento(a){
   const lider = esLider();
-  const tipos = lider ? ['Depósito del cajón','Abono de tarjeta','Entre cuentas','Retiro del dueño','Aporte del dueño'] : ['Depósito del cajón'];
+  const tipos = lider ? ['Depósito del cajón','Abono de tarjeta','Entre cuentas','Poner plata del dueño','Sacar plata del dueño'] : ['Depósito del cajón'];
+  const inicial = a && a.dataset && a.dataset.id ? a.dataset.id : tipos[0];
+  const debe = PRESTAMOS_DUENO.reduce((x,p)=>x+p.monto-p.devuelto,0);
   const origenes = CUENTAS.filter(c=>lider || c.unidad===unidadPropia());
   ventana(`<h3>Registrar movimiento</h3><p class="bajada">La plata cambia de lugar: no es venta ni gasto. ${lider?'':'Tu rol solo registra depósitos de tu cajón.'}</p>
-    <div class="campo"><label for="mT">Qué pasó</label><select class="control" id="mT" style="width:100%">${tipos.map(t=>`<option>${t}</option>`).join('')}</select></div>
-    <div class="dos-campos"><div class="campo"><label for="mDe">De</label><select class="control" id="mDe" style="width:100%">${origenes.map(c=>`<option value="${c.id}">${c.n}</option>`).join('')}</select></div>
-      <div class="campo"><label for="mA">A</label><select class="control" id="mA" style="width:100%">${CUENTAS.filter(c=>c.tipo==='banco').map(c=>`<option value="${c.id}">${c.n}</option>`).join('')}</select></div></div>
-    <div class="dos-campos"><div class="campo"><label for="mM">Monto</label><input class="control" id="mM" value="1500"></div><div class="campo"><label for="mR">Voucher o referencia</label><input class="control" id="mR" value="Voucher 120441"></div></div>
+    <div class="campo"><label for="mT">Qué pasó</label><select class="control" id="mT" style="width:100%">${tipos.map(t=>`<option${t===inicial?' selected':''}>${t}</option>`).join('')}</select></div>
+    <div class="campo" id="bDueno" hidden><label>¿Cómo entra esta plata?</label>
+      <div class="opciones"><label><input type="radio" name="dn" value="aporte" checked><b>Aporte</b><span>Se queda en CAYLA para siempre. Sube lo que es tuyo en el Balance.</span></label>
+      <label><input type="radio" name="dn" value="prestamo"><b>Préstamo</b><span>CAYLA te lo devuelve después. Aparece como deuda de CAYLA contigo.</span></label></div></div>
+    <div class="campo" id="bSaca" hidden><label>¿Qué es esta salida?</label>
+      <div class="opciones"><label><input type="radio" name="sc" value="devolucion" ${debe?'checked':'disabled'}><b>Devolución de préstamo</b><span>CAYLA te debe ${S(debe)}. Baja esa deuda.</span></label>
+      <label><input type="radio" name="sc" value="retiro" ${debe?'':'checked'}><b>Retiro de utilidades</b><span>Te llevas ganancia del negocio. No es un gasto: no baja la utilidad.</span></label></div></div>
+    <div class="dos-campos"><div class="campo" id="bDe"><label for="mDe">De</label><select class="control" id="mDe" style="width:100%">${origenes.map(c=>`<option value="${c.id}">${c.n}</option>`).join('')}</select></div>
+      <div class="campo" id="bA"><label for="mA">A</label><select class="control" id="mA" style="width:100%">${CUENTAS.filter(c=>c.tipo==='banco').map(c=>`<option value="${c.id}">${c.n}</option>`).join('')}</select></div></div>
+    <div class="dos-campos"><div class="campo"><label for="mM">Monto</label><input class="control" id="mM" value="1500"></div><div class="campo"><label for="mR">Voucher o nota</label><input class="control" id="mR" value="Voucher 120441"></div></div>
     ${comboResponsable()}
-    <div class="botones"><button class="btn btn-secundario" data-cerrar>Cancelar</button><button class="btn btn-primario" id="okM">Registrar</button></div>`, {ancho:560});
-  $('#okM').onclick = () => { const m = {f:HOY, tipo:$('#mT').value, de:$('#mDe').value, a:$('#mA').value, monto:+$('#mM').value||0, ref:$('#mR').value, u:cuenta($('#mDe').value).unidad||null, por:$('#fResp').value, nuevo:true};
-    guardar('Movimiento registrado.', () => { MOV_DINERO.forEach(x=>x.nuevo=false); MOV_DINERO.unshift(m); cuenta(m.de).saldo -= m.monto; if (m.a) cuenta(m.a).saldo += m.monto; }); };
+    <div class="botones"><button class="btn btn-secundario" data-cerrar>Cancelar</button><button class="btn btn-primario" id="okM">Registrar</button></div>`, {ancho:580});
+  const v = $('#velo');
+  const sync = () => { const t = v.querySelector('#mT').value;
+    v.querySelector('#bDueno').hidden = t !== 'Poner plata del dueño'; v.querySelector('#bSaca').hidden = t !== 'Sacar plata del dueño';
+    v.querySelector('#bDe').hidden = t === 'Poner plata del dueño'; v.querySelector('#bA').hidden = t === 'Sacar plata del dueño'; };
+  v.addEventListener('change', sync); sync();
+  $('#okM').onclick = () => {
+    const t = $('#mT').value, monto = +$('#mM').value || 0;
+    const clase = t==='Poner plata del dueño' ? v.querySelector('[name=dn]:checked').value : t==='Sacar plata del dueño' ? v.querySelector('[name=sc]:checked').value : null;
+    const nombre = {aporte:'Aporte del dueño', prestamo:'Préstamo del dueño', devolucion:'Devolución de préstamo al dueño', retiro:'Retiro de utilidades'}[clase] || t;
+    const de = t==='Poner plata del dueño' ? null : $('#mDe').value, aCta = t==='Sacar plata del dueño' ? null : $('#mA').value;
+    guardar(`${nombre} registrado.`, () => {
+      MOV_DINERO.forEach(x=>x.nuevo=false);
+      MOV_DINERO.unshift({f:HOY, tipo:nombre, de: de || 'dueno', a:aCta, monto, ref:$('#mR').value, u: de ? (cuenta(de).unidad||null) : null, por:$('#fResp').value, nuevo:true});
+      if (de) cuenta(de).saldo -= monto; if (aCta) cuenta(aCta).saldo += monto;
+      if (clase==='prestamo') PRESTAMOS_DUENO.unshift({f:HOY, monto, nota:$('#mR').value, devuelto:0});
+      if (clase==='devolucion'){ let r = monto; for (const p of PRESTAMOS_DUENO){ const d = Math.min(r, p.monto-p.devuelto); p.devuelto += d; r -= d; } }
+    });
+  };
 }
 
 function modalPagar(){
@@ -1221,11 +1516,15 @@ function modalPagar(){
 // ============ Reportes (piezas 7, 8 y 9) ============
 VISTAS.reportes = () => {
   const tab = tabActual('reportes','resultados');
-  const cuerpo = {resultados:vistaResultados, flujo:vistaFlujo, balance:vistaBalance}[tab]();
-  return `${cabecera({sobre:'Finanzas · Reportes', titulo:{resultados:'¿Ganamos?', flujo:'¿Por qué vendí bien y no hay plata?', balance:'¿Cuánto vale CAYLA?'}[tab],
-    bajada:'Los tres estados salen solos del diario que arma el sistema con cada venta, compra, gasto y movimiento de caja (ADR-0109). Nadie escribe un asiento.',
-    acciones:`<button class="btn btn-secundario" data-accion="exportar">Descargar Excel</button>`})}
-    ${pestanas('reportes', [['resultados','Estado de resultados'],['flujo','Flujo de caja'],['balance','Balance']])}${cuerpo}`;
+  const cuerpo = {resultados:vistaResultados, presupuesto:vistaPresupuesto, escenarios:vistaEscenarios, flujo:vistaFlujo, balance:vistaBalance}[tab]();
+  const alcance = ['resultados','presupuesto'].includes(tab) ? filtroVer() : filtroVer('empresa');
+  return `${cabecera({sobre:'Finanzas · Reportes', titulo:{resultados:'¿Ganamos?', presupuesto:'¿Vamos según lo planeado?', escenarios:'¿Qué pasa si…?', flujo:'¿Por qué vendí bien y no hay plata?', balance:'¿Cuánto vale CAYLA?'}[tab],
+    bajada:{resultados:'Salen solos del diario que arma el sistema con cada venta, compra, gasto y movimiento de caja (ADR-0109). Nadie escribe un asiento.',
+      presupuesto:'Lo que pusiste como meta y como tope en Configuración, contra lo que va pasando. La proyección supone que el resto del mes sigue al mismo ritmo.',
+      escenarios:'Mueve los valores y mira qué pasa con la utilidad de cada tienda y con tu caja. No se guarda nada: es para pensar antes de decidir.',
+      flujo:'Lo que ya entró y salió, y lo que viene en las próximas semanas.', balance:'Lo que CAYLA tiene, contra lo que debe y lo que es tuyo.'}[tab],
+    acciones:`${alcance}<button class="btn btn-secundario" data-accion="exportar">Descargar Excel</button>`})}
+    ${pestanas('reportes', [['resultados','Estado de resultados'],['presupuesto','Presupuesto'],['escenarios','Escenarios'],['flujo','Flujo de caja'],['balance','Balance']])}${cuerpo}`;
 };
 
 const FILAS_ER = [
@@ -1241,7 +1540,7 @@ const FILAS_ER = [
 
 function vistaResultados(){
   const mes = E.mesResultados, r = resultadosDe(mes), prev = mes==='2026-09' ? RESULTADOS_AGO : null;
-  const cols = [...UNIDADES.map(u=>u.k), 'CONS'];
+  const cols = verTodas() ? [...UNIDADES.map(u=>u.k), 'CONS'] : [E.ver, 'CONS'];
   const val = (fila, u, rr=r) => {
     const us = u==='CONS' ? UNIDADES.map(x=>x.k) : [u];
     if (fila.sub) return us.reduce((a,x)=>a+totalesDe(rr,x).margen,0);
@@ -1300,7 +1599,7 @@ function modalOrigen(id){
 
 function vistaFlujo(){
   const ent = FLUJO_REAL.entradas.reduce((a,x)=>a+x[1],0), sal = FLUJO_REAL.salidas.reduce((a,x)=>a+x[1],0);
-  let saldo = disponible(); const proy = FLUJO_SEMANAS.map(w => { saldo += w.entra - w.sale; return {...w, saldo}; });
+  const proy = proyeccion();
   const lista = (xs, signo) => xs.map(([n,v])=>`<li>${n}<b>${signo}${S(v)}</b></li>`).join('');
   return `
   <div class="dos-col der">
@@ -1317,9 +1616,9 @@ function vistaFlujo(){
       <p class="etq">Lo que viene · próximas 6 semanas</p>
       <h3 class="serif" style="font-weight:500;font-size:22px;margin:4px 0 2px">Hoy tienes ${S(disponible())}</h3>
       <p class="sub" style="margin:0 0 8px;font-size:13px">Entra lo que vendes en una semana normal; sale lo que vence (facturas, planilla, alquileres, gastos fijos).</p>
-      ${barras(proy.map(w=>({n:w.s.split(' – ')[0], v:w.saldo, malo:w.saldo<MINIMO_CAJA, maloTxt:'bajo el mínimo', tip:`<b>${w.s}</b><br>Entra ${S(w.entra)} · Sale ${S(w.sale)}<br>${esc(w.que)}`})), {alto:230, umbral:MINIMO_CAJA, umbralTxt:'mínimo de caja '+S(MINIMO_CAJA)+' (lo defines tú)'})}
+      ${barras(proy.map(w=>({n:w.s.split(' – ')[0], v:w.saldo, malo:w.saldo<minimoCaja(), maloTxt:'bajo el mínimo', tip:`<b>${w.s}</b><br>Entra ${S(w.entra)} · Sale ${S(w.sale)}<br>${esc(w.que)}`})), {alto:230, umbral:minimoCaja(), umbralTxt:'tu mínimo de caja: '+S(minimoCaja())+' (se cambia en Configuración)'})}
       <div class="tabla-wrap" style="margin-top:12px"><table class="t" style="min-width:560px"><thead><tr><th>Semana</th><th class="num">Entra</th><th class="num">Sale</th><th class="num">Queda</th><th>Qué vence</th></tr></thead>
-        <tbody>${proy.map(w=>`<tr><td data-l="Semana">${w.s}</td><td class="num" data-l="Entra">${S(w.entra)}</td><td class="num" data-l="Sale">${S(w.sale)}</td><td class="num" data-l="Queda"><b style="${w.saldo<MINIMO_CAJA?'color:var(--rojo-profundo)':''}">${S(w.saldo)}</b></td><td data-l="Qué vence" class="sub" style="font-size:12.5px">${esc(w.que)}</td></tr>`).join('')}</tbody></table></div>
+        <tbody>${proy.map(w=>`<tr><td data-l="Semana">${w.s}</td><td class="num" data-l="Entra">${S(w.entra)}</td><td class="num" data-l="Sale">${S(w.sale)}</td><td class="num" data-l="Queda"><b style="${w.saldo<minimoCaja()?'color:var(--rojo-profundo)':''}">${S(w.saldo)}</b></td><td data-l="Qué vence" class="sub" style="font-size:12.5px">${esc(w.que)}</td></tr>`).join('')}</tbody></table></div>
       ${F('deriva','vencimientos de compras + comprobantes_produccion')} ${F('nuevo','gastos recurrentes + mínimo de caja')}
     </div>
   </div>`;
@@ -1354,6 +1653,75 @@ function vistaBalance(){
       <div class="aviso-franja"><div><b>Causa probable:</b> un pago a Moda Lima EIRL (F002-00118) registrado sin la cuenta de la que salió. <button class="btn-enlace" data-ir="dinero:porpagar">Ir a Por pagar</button></div></div></div>`}`;
 }
 
+// ============ Presupuesto (decidir: ¿en qué me estoy pasando?) ============
+function vistaPresupuesto(){
+  const sep = resultadosDe('2026-09');
+  const us = (verTodas() ? UNIDADES.map(u=>u.k) : [E.ver]).filter(veUnidad);
+  const chip = p => p > 1.05 ? `<span class="badge" data-tono="rojo">te pasas ${pct(p-1)}</span>` : p > 1 ? '<span class="badge" data-tono="ambar">al filo</span>' : '<span class="badge" data-tono="verde">dentro del tope</span>';
+  const bloques = us.map(u => {
+    const filas = [];
+    if (PRESUPUESTO.ventas[u]){ const real = sep.ventas[u], proy = Math.round(real/AVANCE_MES), meta = PRESUPUESTO.ventas[u];
+      filas.push(`<tr class="fila-ventas"><td data-l="Rubro"><b>Ventas</b> <span class="sub">(meta)</span></td><td class="num" data-l="Meta">${S(meta)}</td><td class="num" data-l="A la fecha">${S(real)}</td><td class="num" data-l="Al cierre">${S(proy)}</td>
+        <td data-l="Avance"><div class="umbral-barra fina"><i style="width:${Math.min(100,proy/meta*100)}%"></i></div></td><td data-l="Estado">${proy/meta < .95 ? '<span class="badge" data-tono="ambar">bajo la meta</span>' : '<span class="badge" data-tono="verde">en camino</span>'}</td></tr>`); }
+    for (const [k, m] of Object.entries(PRESUPUESTO.gastos)){ if (!m[u]) continue;
+      const real = sep[k]?.[u] || 0, proy = FIJAS.includes(k) ? real : Math.round(real/AVANCE_MES), p = proy/m[u];
+      filas.push(`<tr><td data-l="Rubro">${cat(k)?.n||k} <span class="sub">(tope)</span></td><td class="num" data-l="Tope">${S(m[u])}</td><td class="num" data-l="A la fecha">${S(real)}</td><td class="num" data-l="Al cierre">${S(proy)}</td>
+        <td data-l="Avance"><div class="umbral-barra fina ${p>1.05?'mala':''}"><i style="width:${Math.min(100,p*100)}%"></i></div></td><td data-l="Estado">${chip(p)}</td></tr>`); }
+    return `<tbody><tr class="grupo"><td colspan="6">${nombreUnidad(u)}</td></tr>${filas.join('')}</tbody>`;
+  }).join('');
+  return `<div class="superficie anim-sube">
+    <div class="herramientas" style="justify-content:space-between"><div><b>Septiembre · al día 24 de 30</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">«Al cierre» proyecta lo variable al ritmo de hoy; lo fijo (alquiler, planilla) ya está entero.</p></div>
+      <div style="display:flex;gap:8px;align-items:center">${F('nuevo','presupuestos')}<button class="btn btn-secundario btn-sm" data-ir="config:presupuesto">Cambiar metas y topes</button></div></div>
+    <div class="tabla-wrap"><table class="t ppto"><thead><tr><th>Rubro</th><th class="num">Meta o tope</th><th class="num">A la fecha</th><th class="num">Al cierre</th><th style="width:160px">Avance</th><th>Estado</th></tr></thead>${bloques}</table></div>
+  </div>
+  <div class="nota-cayla">El presupuesto no frena nada: nadie queda bloqueado por pasarse. Sirve para ver <b>a tiempo</b> en qué se va la plata, antes de que el mes cierre.</div>`;
+}
+
+// ============ Escenarios («¿qué pasa si…?») ============
+// Parte de agosto (el último mes cerrado) y le aplica los cambios. Nada se guarda.
+function escenarioResultado(esc){
+  const r = JSON.parse(JSON.stringify(RESULTADOS_AGO));
+  const escala = (u, f) => ['ventas','costo','flete','mermas'].forEach(k => r[k][u] = Math.round(r[k][u] * f));
+  if (esc.ventasTodas) TIENDAS.forEach(u => escala(u, 1 + esc.ventasTodas/100));
+  if (esc.ventasLIM) escala('LIM', 1 + esc.ventasLIM/100);
+  if (esc.alqLIM != null) r.alquiler.LIM = esc.alqLIM;
+  if (esc.cerrarLIM) for (const k in r) if (k !== 'depreciacion') r[k].LIM = 0;   // la remodelación se sigue depreciando
+  const out = {}; UNIDADES.forEach(u => out[u.k] = totalesDe(r, u.k)); out.CONS = totalesDe(r); out.r = r;
+  return out;
+}
+function vistaEscenarios(){
+  const e = E.escenario, base = escenarioResultado({}), nuevo = escenarioResultado(e);
+  const pb = proyeccion(), pn = proyeccion(e);
+  const minB = Math.min(...pb.map(w=>w.saldo)), minN = Math.min(...pn.map(w=>w.saldo));
+  const dif = nuevo.CONS.utilidad - base.CONS.utilidad;
+  const conclusiones = [];
+  conclusiones.push(`CAYLA pasaría de <b>${S(base.CONS.utilidad)}</b> a <b>${S(nuevo.CONS.utilidad)}</b> al mes (${dif>=0?'+':'−'}${S(Math.abs(dif)).replace('S/ ','S/ ')}).`);
+  if (!e.cerrarLIM) conclusiones.push(`LIM ${nuevo.LIM.utilidad>=0?'dejaría':'perdería'} <b>${S(Math.abs(nuevo.LIM.utilidad))}</b> al mes; necesitaría vender ${S(equilibrio('LIM', nuevo.r).pe)}.`);
+  else conclusiones.push(`Cerrar LIM quita <b>${S(RESULTADOS_AGO.ventas.LIM)}</b> de ventas al mes y la remodelación (${S(18500)}) se sigue depreciando sin uso. También hay que ver a dónde va su mercadería y su equipo.`);
+  conclusiones.push(minN < minimoCaja() ? `La caja seguiría bajando del mínimo: lo más bajo sería <b>${S(minN)}</b>.` : `La caja no bajaría de tu mínimo en 6 semanas (lo más bajo: <b>${S(minN)}</b>${minB<minimoCaja()?`; hoy bajaría a ${S(minB)}`:''}).`);
+  const ctrl = (k, n, min, max, paso, fmt) => `<div class="campo-esc"><label for="esc-${k}">${n}<b>${fmt(e[k])}</b></label><input type="range" id="esc-${k}" min="${min}" max="${max}" step="${paso}" value="${e[k]}" data-esc="${k}"></div>`;
+  return `<section class="dos-col izq">
+    <div class="superficie pad anim-sube">
+      <div class="prioridades-cab"><div><h2>Mueve los valores</h2><p>Parte de agosto, el último mes cerrado.</p></div><button class="btn btn-sutil btn-sm" data-accion="esc-reset">Volver a como está</button></div>
+      ${ctrl('alqLIM','Alquiler de LIM', 3000, 7000, 100, v=>S(v))}
+      ${ctrl('ventasLIM','Ventas de LIM', -20, 40, 1, v=>(v>0?'+':'')+v+' %')}
+      ${ctrl('ventasTodas','Ventas de todas las tiendas', -20, 30, 1, v=>(v>0?'+':'')+v+' %')}
+      <label class="opcion-esc"><input type="checkbox" data-esc-check="retrasarNorte" ${e.retrasarNorte?'checked':''}><span><b>Pasar el pago a Distribuidora Norte una semana</b><br><span class="sub">${S(15300)} del 12 al 19 de octubre. Hay que hablarlo con el proveedor.</span></span></label>
+      <label class="opcion-esc"><input type="checkbox" data-esc-check="cerrarLIM" ${e.cerrarLIM?'checked':''}><span><b>Cerrar LIM</b><br><span class="sub">Sin sus ventas ni sus costos; la remodelación se sigue depreciando.</span></span></label>
+    </div>
+    <div class="columna">
+      <div class="superficie pad anim-sube"><div class="prioridades-cab"><div><h2>Qué pasaría</h2><p>Comparado con cómo está hoy.</p></div></div>
+        <ul class="conclusiones">${conclusiones.map(c=>`<li>${c}</li>`).join('')}</ul></div>
+      <div class="superficie anim-sube"><div class="tabla-wrap"><table class="t" style="min-width:420px"><thead><tr><th>Utilidad al mes</th><th class="num">Hoy</th><th class="num">Con el cambio</th><th class="num">Diferencia</th></tr></thead>
+        <tbody>${[...UNIDADES.map(u=>u.k),'CONS'].map(k=>{ const a = base[k].utilidad, b = nuevo[k].utilidad; return `<tr${k==='CONS'?' class="total-t"':''}><td data-l="Unidad">${k==='CONS'?'<b>CAYLA</b>':nombreUnidad(k)}</td><td class="num" data-l="Hoy">${S(a)}</td><td class="num" data-l="Con el cambio"><b>${S(b)}</b></td><td class="num" data-l="Diferencia" style="${b-a<0?'color:var(--rojo-profundo)':b-a>0?'color:var(--verde)':''}">${b===a?'—':(b>a?'+':'−')+S(Math.abs(b-a)).replace('S/ ','S/ ')}</td></tr>`; }).join('')}</tbody></table></div></div>
+      <div class="superficie pad anim-sube"><div class="prioridades-cab"><div><h2>Tu caja con el cambio</h2><p>Próximas 6 semanas.</p></div></div>
+        ${barras(pn.map(w=>({n:w.s.split(' – ')[0], v:w.saldo, malo:w.saldo<minimoCaja(), maloTxt:'bajo el mínimo', tip:`<b>${w.s}</b><br>Entra ${S(w.entra)} · Sale ${S(w.sale)}`})), {alto:190, umbral:minimoCaja(), umbralTxt:'tu mínimo de caja: '+S(minimoCaja())})}
+      </div>
+    </div>
+  </section>
+  <div class="nota-cayla">Un escenario no reemplaza la conversación: bajar un alquiler hay que negociarlo y vender 15 % más requiere un plan. Lo que sí hace es decirte <b>cuánto vale</b> cada decisión antes de tomarla. ${F('deriva','mismo cálculo que el estado de resultados')}</div>`;
+}
+
 // ============ Impuestos (pieza 10) ============
 VISTAS.impuestos = () => {
   const ago = IGV_MESES[4], neto = ago.deb - ago.cred;
@@ -1361,7 +1729,7 @@ VISTAS.impuestos = () => {
   const boletas = GASTOS.filter(g=>g.estado!=='anulado'&&g.comp==='Boleta');
   return `
   ${cabecera({sobre:'Finanzas · Impuestos', titulo:'IGV de agosto', bajada:'Lo que cobraste de IGV al vender, menos lo que pagaste de IGV al comprar con factura. Los libros electrónicos los presenta el contador con el reporte de aquí (D-36).',
-    acciones:`<button class="btn btn-secundario" data-accion="exportar">Registro de ventas</button><button class="btn btn-secundario" data-accion="exportar">Registro de compras</button><button class="btn btn-primario" data-accion="exportar">Paquete para el contador</button>`})}
+    acciones:`${filtroVer('empresa')}<button class="btn btn-secundario" data-accion="exportar">Registro de ventas</button><button class="btn btn-secundario" data-accion="exportar">Registro de compras</button><button class="btn btn-primario" data-accion="exportar">Paquete para el contador</button>`})}
   <section class="cifras">
     <div class="tile anim-sube"><span class="etq">IGV cobrado al vender</span><div class="valor">${S(ago.deb)}</div><div class="det">18 % de las ventas del mes, de los comprobantes emitidos</div>${F('existe','comprobantes')}</div>
     <div class="tile anim-sube"><span class="etq">IGV que descuentas</span><div class="valor">${S(ago.cred)}</div><div class="det">Facturas de mercadería, gastos, activos e insumos</div>${F('existe','compras.igv')} ${F('existe','comprobantes_produccion.igv')}</div>
@@ -1409,7 +1777,7 @@ function chequeosDe(u){
       {t:'Egresos del fondo fijo clasificados', d:'Todos clasificados', ok:true},
     ],
     empresa: [
-      {t:'Bancos conciliados al fin de mes', d: E.conciliado.ibk!=null ? 'BCP e Interbank coinciden' : 'Interbank sin conciliar desde el 29 ago', ok:E.conciliado.ibk!=null, ir:'dinero:conciliacion'},
+      {t:'Bancos conciliados al fin de mes', d: E.conciliado.ibk!=null ? 'BCP e Interbank coinciden' : 'Interbank: faltan confirmar movimientos del extracto', ok:E.conciliado.ibk!=null, ir:'dinero:conciliacion'},
       {t:'Facturas de proveedor del mes registradas', d:'Revisa que no quede ninguna en el cajón', ok:true},
       {t:'Planilla de agosto leída de Dynamic', d:'Período cerrado en Dynamic el 1 sep', ok:true},
     ],
@@ -1424,7 +1792,7 @@ VISTAS.cierre = () => {
   const u = E.unidadCierre, ch = chequeosDe(u), listo = ch.every(c=>c.ok), cerrada = est[u]?.c;
   return `
   ${cabecera({sobre:'Finanzas · Cierre de mes', titulo:'Cerrar ' + mesLargo(mes), bajada:'Cerrar un mes lo congela: nadie puede registrar ni cambiar nada con fecha de ese mes, y el diario queda guardado con su huella. Se cierra cada tienda y el Taller; CAYLA entera, cuando cerraron todas (ADR-0109).',
-    acciones:`<select class="control" data-cambia="mesCierre"><option value="2026-07"${mes==='2026-07'?' selected':''}>Julio 2026</option><option value="2026-08"${mes==='2026-08'?' selected':''}>Agosto 2026</option></select>`})}
+    acciones:`${filtroVer('empresa')}<select class="control" data-cambia="mesCierre"><option value="2026-07"${mes==='2026-07'?' selected':''}>Julio 2026</option><option value="2026-08"${mes==='2026-08'?' selected':''}>Agosto 2026</option></select>`})}
   <div class="matriz anim-sube">
     ${UNIDADES.map(x=>{ const s = est[x.k]||{}; return `<button class="unidad-c" data-accion="unidad-cierre" data-id="${x.k}" aria-pressed="${x.k===u}">
       <span class="n">${x.n}</span>${s.c?`<span class="badge" data-tono="verde">cerrado</span><span class="sub" style="font-size:12px">${fecha(s.f)} · ${s.por.split(' ')[0]}</span><span class="h">${s.hash}</span>`
@@ -1476,8 +1844,126 @@ const ACCIONES_EXTRA = {
     $('#okRe').onclick = () => { if (!$('#fMotR').value.trim()){ $('#fMotR').focus(); $('#fMotR').style.borderColor='var(--rojo)'; return; }
       guardar('Mes reabierto. El motivo quedó en la historia.', () => { CIERRE[E.mesCierre][u] = {c:false}; delete CIERRE[E.mesCierre].CONS; }); }; },
   'origen': a => modalOrigen(a.dataset.id),
+  'confirmar-fijo': a => { const f = FIJOS.find(x=>x.id===a.dataset.id); confirmarFijo(f, f.monto); },
+  'fijo-variable': a => { const f = FIJOS.find(x=>x.id===a.dataset.id);
+    ventana(`<h3>${f.n} de ${nombreUnidad(f.u)}</h3><p class="bajada">${esc(f.prov)}. Es un monto variable: escribe el del recibo. Su promedio es ${S(f.monto)}.</p>
+      <div class="campo"><label for="fvM">Monto del recibo</label><input class="control" id="fvM" value="${f.monto}"></div>${comboResponsable()}
+      <div class="botones"><button class="btn btn-secundario" data-cerrar>Cancelar</button><button class="btn btn-primario" id="okFv">Registrar</button></div>`);
+    $('#okFv').onclick = () => confirmarFijo(f, +$('#fvM').value || f.monto); },
+  'marcar-fijo': a => { const d = DETECTADOS.find(x=>x.id===a.dataset.id); guardar(`${d.prov} quedó como gasto fijo.`, () => { DETECTADOS.splice(DETECTADOS.indexOf(d),1); FIJOS.push({id:'f'+Date.now(), n:cat(d.c).n, u:d.u, c:d.c, prov:d.prov, monto:d.monto, dia:20, cuenta:'bcp', estado:'registrado'}); }); },
+  'no-fijo': a => { const d = DETECTADOS.find(x=>x.id===a.dataset.id); DETECTADOS.splice(DETECTADOS.indexOf(d),1); render(); avisar('Listo: no se volverá a proponer.'); },
+  'pareja': a => { E.parejas[a.dataset.id] = 'ok'; render(); },
+  'parejas-todas': () => { EXTRACTO_IBK.filter(x=>x.pareja).forEach(x=>E.parejas[x.id]='ok'); render(); avisar('Parejas confirmadas.'); },
+  'pareja-gasto': a => { const x = EXTRACTO_IBK.find(y=>y.id===a.dataset.id);
+    guardar('Comisión registrada como gasto de la empresa.', () => { E.parejas[x.id]='gasto'; GASTOS.forEach(g=>g.nuevo=false); GASTOS.unshift({id:Date.now(), f:x.f, u:'EMP', c:'comisiones', d:'Comisión de mantenimiento Interbank', prov:'Interbank', comp:'Sin comprobante', num:'', total:-x.monto, igv:0, medio:'ibk', cond:'contado', estado:'pagado', nuevo:true}); }); },
+  'ver-mas': () => { E.verMas = !E.verMas; render(); },
+  'esc-reset': () => { E.escenario = {alqLIM:6200, ventasLIM:0, ventasTodas:0, cerrarLIM:false, retrasarNorte:false}; render(); },
   'exportar': () => avisar('En el sistema real se descarga el archivo. En el spike no se genera nada.'),
 };
+
+// ============ Gestión ▸ Configuración (solo el líder) ============
+// Un módulo general del ERP: hoy trae Empresa y lo de Finanzas; mañana otras secciones.
+VISTAS.config = () => {
+  const tab = tabActual('config','cuentas');
+  const cuerpo = {empresa:cfgEmpresa, cuentas:cfgCuentas, caja:cfgCaja, fijos:cfgFijos, presupuesto:cfgPresupuesto, impuestos:cfgImpuestos}[tab]();
+  return `${cabecera({sobre:'Gestión · Configuración', titulo:'Configuración',
+    bajada:'Lo que se ajusta una vez y todas las pantallas leen. Cada cambio queda en la historia con quién lo hizo. Solo el líder entra aquí.'})}
+    ${pestanas('config', [['empresa','Empresa'],['cuentas','Cuentas y cobros'],['caja','Caja y avisos'],['fijos','Gastos fijos'],['presupuesto','Presupuesto'],['impuestos','Impuestos']])}
+    ${cuerpo}`;
+};
+const guardado = txt => `<p class="sub" style="font-size:12px;margin:10px 0 0">${txt||'Se guarda solo al cambiar un valor.'}</p>`;
+
+function cfgEmpresa(){
+  const e = CONFIG.empresa;
+  return `<section class="dos-col par"><div class="superficie pad anim-sube">
+    <div class="prioridades-cab"><div><h2>Datos de la empresa</h2><p>Salen en boletas, facturas y reportes para el contador.</p></div>${F('existe','configuracion_empresa')}</div>
+    <div class="campo"><label>RUC</label><input class="control" value="${e.ruc}" data-cfg-emp="ruc"></div>
+    <div class="campo"><label>Razón social</label><input class="control" value="${esc(e.razon)}" data-cfg-emp="razon"></div>
+    <div class="campo"><label>Nombre comercial</label><input class="control" value="${esc(e.comercial)}" data-cfg-emp="comercial"></div>${guardado()}
+  </div><div class="superficie pad anim-sube"><div class="prioridades-cab"><div><h2>Datos fiscales por tienda</h2><p>Dirección y serie de cada punto de emisión.</p></div>${F('existe','ubicacion_datos_fiscales')}</div>
+    <ul class="lista-mov" style="margin:0">${TIENDAS.map(u=>`<li>${nombreUnidad(u)}<span>Serie B00${TIENDAS.indexOf(u)+1} · F00${TIENDAS.indexOf(u)+1}</span></li>`).join('')}</ul></div></section>`;
+}
+
+function cfgCuentas(){
+  return `<div class="superficie anim-sube">
+    <div class="herramientas" style="justify-content:space-between"><div><b>Cuentas de CAYLA</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">Cada lugar donde hay plata. Una cuenta con movimientos no se borra: se archiva.</p></div>
+      <button class="btn btn-primario btn-sm" data-accion="cfg-cuenta">+ Agregar cuenta</button></div>
+    <div class="tabla-wrap"><table class="t" style="min-width:640px"><thead><tr><th>Cuenta</th><th>Tipo</th><th>Cuenta contable</th><th class="num">Saldo hoy</th><th>Estado</th></tr></thead>
+    <tbody>${CUENTAS.map(c=>`<tr class="${c.nuevo?'fila-nueva':''}"><td class="c-prenda" data-l="Cuenta"><b>${esc(c.n)}</b>${c.recibe?`<span class="sub" style="display:block;font-size:12px">${esc(c.recibe)}</span>`:''}</td>
+      <td data-l="Tipo">${{banco:'Banco',transito:'Por abonar',cajon:'Cajón o fondo fijo'}[c.tipo]}</td><td data-l="Contable">${c.cta}</td><td class="num" data-l="Saldo">${S(c.saldo)}</td><td data-l="Estado"><span class="badge" data-tono="verde">activa</span></td></tr>`).join('')}</tbody></table></div>
+    <div class="pie-tabla"><span>Los cajones se crean con cada tienda; aquí solo se ven.</span>${F('nuevo','cuentas_dinero')}</div>
+  </div>
+  <div class="superficie anim-sube">
+    <div class="herramientas"><b>A qué cuenta entra cada cobro</b><span class="sub" style="font-size:12.5px">Si cambias el Yape de una tienda a otra cuenta, desde hoy Finanzas lo cuenta ahí. Lo pasado no se mueve.</span></div>
+    <div class="tabla-wrap"><table class="t medios"><thead><tr><th>Tienda</th><th>Yape</th><th>Plin</th><th>Tarjeta</th><th>Transferencia</th></tr></thead>
+    <tbody>${MEDIOS.map(m=>`<tr><td data-l="Tienda"><b>${nombreUnidad(m.u)}</b></td>${['yape','plin','tarjeta','transferencia'].map(k=>`<td data-l="${k}"><select class="control" data-medio="${m.u}|${k}">${CUENTAS.filter(c=>c.tipo!=='cajon').map(c=>`<option value="${c.id}"${m[k]===c.id?' selected':''}>${c.n.replace(' · Cta. corriente','')}</option>`).join('')}</select></td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <div class="pie-tabla"><span>El efectivo siempre cae al cajón de la tienda.</span>${F('nuevo','medios_de_cobro')}</div>
+  </div>`;
+}
+
+function cfgCaja(){
+  const campo = (k, n, ayuda, pre='', suf='') => `<div class="campo"><label for="cfg-${k}">${n}</label><div class="con-unidad">${pre?`<span>${pre}</span>`:''}<input class="control" id="cfg-${k}" inputmode="numeric" value="${CONFIG[k]}" data-cfg="${k}">${suf?`<span>${suf}</span>`:''}</div><span class="ayuda">${ayuda}</span></div>`;
+  return `<section class="dos-col par"><div class="superficie pad anim-sube">
+    <div class="prioridades-cab"><div><h2>Caja</h2><p>El piso que no quieres perforar.</p></div></div>
+    ${campo('minimoCaja','Mínimo de caja','Si la proyección de alguna semana baja de aquí, el Resumen y el Flujo de caja avisan. Cámbialo y mira el Resumen.','S/')}
+    ${guardado()}
+  </div><div class="superficie pad anim-sube">
+    <div class="prioridades-cab"><div><h2>Avisos</h2><p>Cuándo el sistema te llama la atención.</p></div></div>
+    ${campo('avisoGastoPct','Un gasto está «fuera de lo normal» si supera su promedio en','Compara con los últimos 6 meses del mismo proveedor y tienda.','','%')}
+    ${campo('avisoVenceDias','Avisar los vencimientos con','Las facturas que vencen dentro de ese plazo suben al Resumen.','','días')}
+    ${guardado()}
+  </div></section>`;
+}
+
+function cfgFijos(){
+  return `<div class="superficie anim-sube">
+    <div class="herramientas" style="justify-content:space-between"><div><b>Gastos que se repiten</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">El sistema los propone cada mes en Gastos ▸ Fijos del mes. Los variables (luz, agua) piden el monto del recibo.</p></div>
+      <button class="btn btn-primario btn-sm" data-accion="exportar">+ Agregar fijo</button></div>
+    <div class="tabla-wrap"><table class="t" style="min-width:720px"><thead><tr><th>Gasto</th><th>Unidad</th><th>Proveedor</th><th class="num">Monto</th><th class="num">Día</th><th>Sale de</th><th>Activo</th></tr></thead>
+    <tbody>${FIJOS.map(f=>`<tr><td data-l="Gasto"><b>${f.n}</b><span class="sub" style="display:block;font-size:12px">${cat(f.c).n} · ${cat(f.c).cta}${f.variable?' · variable':''}</span></td><td data-l="Unidad">${nombreUnidad(f.u)}</td><td data-l="Proveedor">${esc(f.prov)}</td>
+      <td class="num" data-l="Monto">${f.variable?'~':''}${S(f.monto)}</td><td class="num" data-l="Día">${f.dia}</td><td data-l="Sale de">${f.cuenta?cuenta(f.cuenta).n.replace(' · Cta. corriente',''):'A crédito'}</td>
+      <td data-l="Activo"><input type="checkbox" checked aria-label="Activo"></td></tr>`).join('')}</tbody></table></div>
+    <div class="pie-tabla"><span>${FIJOS.length} fijos · suman ${S(FIJOS.reduce((a,f)=>a+f.monto,0))} al mes</span>${F('nuevo','gastos_fijos')}</div>
+  </div>`;
+}
+
+function cfgPresupuesto(){
+  const inp = (ruta, v) => `<input class="control num-input" inputmode="numeric" value="${v??''}" placeholder="—" data-ppto="${ruta}">`;
+  const us = UNIDADES.map(u=>u.k);
+  return `<div class="superficie anim-sube">
+    <div class="herramientas" style="justify-content:space-between"><div><b>Septiembre 2026</b><p class="sub" style="margin:2px 0 0;font-size:12.5px">Metas de ventas por tienda y topes de gasto por rubro. Vacío = sin tope. Se ven en Reportes ▸ Presupuesto.</p></div>
+      <div style="display:flex;gap:8px"><button class="btn btn-secundario btn-sm" data-accion="exportar">Copiar de agosto</button><button class="btn btn-secundario btn-sm" data-accion="exportar">Sugerir según los últimos 3 meses</button></div></div>
+    <div class="tabla-wrap"><table class="t ppto-edit fija"><thead><tr><th>Rubro</th>${us.map(u=>`<th class="num">${nombreUnidad(u).replace('Tienda ','')}</th>`).join('')}</tr></thead>
+    <tbody><tr class="grupo"><td>Meta de ventas</td>${us.map(u=>`<td class="num">${TIENDAS.includes(u)?inp('ventas|'+u, PRESUPUESTO.ventas[u]):'<span class="sub">—</span>'}</td>`).join('')}</tr>
+    ${Object.entries(PRESUPUESTO.gastos).map(([k,m])=>`<tr><td>${cat(k).n} <span class="sub">(tope)</span></td>${us.map(u=>`<td class="num">${inp('gastos|'+k+'|'+u, m[u])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <div class="pie-tabla"><span>La planilla no lleva tope aquí: la decide Dynamic.</span>${F('nuevo','presupuestos')}</div>
+  </div>`;
+}
+
+function cfgImpuestos(){
+  return `<section class="dos-col par"><div class="superficie pad anim-sube">
+    <div class="prioridades-cab"><div><h2>Tasa de IGV</h2><p>Solo se agregan filas: el pasado no se reescribe.</p></div>${F('nuevo','parametros_tributarios')}</div>
+    <ul class="lista-mov" style="margin:0">${CONFIG.tasas.map(t=>`<li>Desde ${fecha(t.desde)} ${t.desde.slice(0,4)}<b>${t.igv} %</b></li>`).join('')}</ul>
+    <button class="btn btn-sutil btn-sm" data-accion="exportar" style="margin-top:12px">+ Nueva tasa desde una fecha</button>
+  </div><div class="superficie pad anim-sube">
+    <div class="prioridades-cab"><div><h2>Valor de la UIT</h2><p>Para el límite de 300 UIT y la renta.</p></div></div>
+    <ul class="lista-mov" style="margin:0">${CONFIG.uits.map(t=>`<li>${t.anio}${t.nota?` <span>${t.nota}</span>`:''}<b>${S(t.valor)}</b></li>`).join('')}</ul>
+    <button class="btn btn-sutil btn-sm" data-accion="exportar" style="margin-top:12px">+ UIT de un año nuevo</button>
+  </div></section>
+  <div class="nota-cayla">El régimen de renta y la retención del recibo por honorarios los define el contador. Cuando los confirme, se configuran aquí.</div>`;
+}
+
+function modalCuenta(){
+  ventana(`<h3>Agregar cuenta</h3><p class="bajada">Un banco, una billetera que no cae a un banco, o un POS.</p>
+    <div class="campo"><label for="cN">Nombre</label><input class="control" id="cN" value="BBVA · Cta. corriente"></div>
+    <div class="dos-campos"><div class="campo"><label for="cT">Tipo</label><select class="control" id="cT" style="width:100%"><option value="banco">Banco (104)</option><option value="transito">Por abonar (105)</option></select></div>
+    <div class="campo"><label for="cS">Saldo con el que empieza</label><input class="control" id="cS" value="0"></div></div>
+    <p class="sub" style="font-size:12.5px">El saldo inicial se registra una vez; después el saldo solo cambia con movimientos.</p>
+    ${comboResponsable()}
+    <div class="botones"><button class="btn btn-secundario" data-cerrar>Cancelar</button><button class="btn btn-primario" id="okCu">Agregar</button></div>`);
+  $('#okCu').onclick = () => { const t = $('#cT').value;
+    guardar('Cuenta agregada.', () => { CUENTAS.forEach(c=>c.nuevo=false); CUENTAS.splice(2,0,{id:'c'+Date.now(), n:$('#cN').value, tipo:t, cta:t==='banco'?'104':'105', saldo:+$('#cS').value||0, conciliado:HOY, recibe:'Sin cobros asignados todavía', nuevo:true}); }); };
+}
 
 // ============ Acciones: un solo escuchador para toda la demo ============
 document.addEventListener('click', e => {
@@ -1489,7 +1975,7 @@ document.addEventListener('click', e => {
   if (seg){
     const ctl = seg.parentElement.dataset.ctl, v = seg.dataset.v;
     seg.parentElement.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed', b===seg));
-    if (ctl==='rol'){ E.rol = v; E.seleccion.clear(); if (!puedeVer(E.ruta)) E.ruta = 'gastos'; }
+    if (ctl==='rol'){ E.rol = v; E.seleccion.clear(); E.ver = v==='lider' ? E.sedeActiva : 'TRU'; if (!puedeVer(E.ruta)) E.ruta = 'gastos'; }
     if (ctl==='fuentes') E.fuentes = v==='si';
     if (ctl==='tema') document.documentElement.dataset.theme = v;
     render(); return;
@@ -1499,8 +1985,8 @@ document.addEventListener('click', e => {
   if (!a) return;
   const id = a.dataset.id;
   ({
-    'nuevo-gasto': modalGasto, 'nuevo-activo': modalActivo, 'ver-gasto': () => modalVerGasto(id),
-    'clasificar': () => modalClasificar(id), 'nuevo-mov': modalMovimiento, 'pagar': modalPagar,
+    'nuevo-gasto': modalGasto, 'cfg-cuenta': modalCuenta, 'nuevo-activo': modalActivo, 'ver-gasto': () => modalVerGasto(id),
+    'clasificar': () => modalClasificar(id), 'nuevo-mov': a => modalMovimiento(a), 'pagar': modalPagar,
     'conciliar': () => { const v = parseFloat(($('#b-'+id).value||'').replace(/,/g,'')); if (isNaN(v)) return; E.conciliado[id] = v; render(); avisar(v===cuenta(id).saldo?'Coincide con el banco.':'Hay una diferencia: revisa los movimientos sin pareja.'); },
     ...(typeof ACCIONES_EXTRA === 'object' ? ACCIONES_EXTRA : {}),
   }[a.dataset.accion] || (()=>{}))(a);
@@ -1510,8 +1996,31 @@ document.addEventListener('change', e => {
   if (s){ s.checked ? E.seleccion.add(s.dataset.sel) : E.seleccion.delete(s.dataset.sel); render(); return; }
   if (e.target.id === 'irMovil') ir(e.target.value);
   const m = e.target.closest('[data-cambia]');
-  if (m){ E[m.dataset.cambia] = m.type==='checkbox' ? m.checked : m.value; render(); }
+  if (m){
+    const k = m.dataset.cambia; E[k] = m.type==='checkbox' ? m.checked : m.value;
+    // Cambiar la sede de la cabecera = cambiar dónde trabajas: el filtro de la pantalla la sigue (ADR-0149: con loader).
+    if (k === 'sedeActiva'){ E.ver = m.value; guardar(`Ahora trabajas en ${nombreUnidad(m.value)}.`); return; }
+    render(); return;
+  }
+  const esc_ = e.target.closest('[data-esc]');
+  if (esc_){ E.escenario[esc_.dataset.esc] = +esc_.value; render(); return; }
+  const chk = e.target.closest('[data-esc-check]');
+  if (chk){ E.escenario[chk.dataset.escCheck] = chk.checked; render(); return; }
+  const cfg = e.target.closest('[data-cfg]');
+  if (cfg){ const v = parseFloat(cfg.value.replace(/[^0-9.]/g,'')); if (!isNaN(v)){ CONFIG[cfg.dataset.cfg] = v; avisar('Guardado. Todas las pantallas ya usan el valor nuevo.'); } return; }
+  const emp = e.target.closest('[data-cfg-emp]');
+  if (emp){ CONFIG.empresa[emp.dataset.cfgEmp] = emp.value; avisar('Guardado.'); return; }
+  const pp = e.target.closest('[data-ppto]');
+  if (pp){ const r = pp.dataset.ppto.split('|'), v = parseFloat(pp.value.replace(/[^0-9.]/g,'')) || null;
+    if (r[0]==='ventas') PRESUPUESTO.ventas[r[1]] = v; else { PRESUPUESTO.gastos[r[1]][r[2]] = v; if (v==null) delete PRESUPUESTO.gastos[r[1]][r[2]]; }
+    avisar('Presupuesto guardado.'); return; }
+  const md = e.target.closest('[data-medio]');
+  if (md){ const [u,k] = md.dataset.medio.split('|'); MEDIOS.find(x=>x.u===u)[k] = md.value; avisar(`Desde hoy, ${k} de ${nombreUnidad(u)} entra a ${cuenta(md.value).n}.`); return; }
 });
+// Mientras se arrastra un deslizador, solo cambia su número; al soltar, se recalcula todo.
+document.addEventListener('input', e => { const r = e.target.closest('[data-esc]'); if (!r) return;
+  const b = r.previousElementSibling?.querySelector('b'); if (!b) return; const k = r.dataset.esc, v = +r.value;
+  b.textContent = k==='alqLIM' ? S(v) : (v>0?'+':'')+v+' %'; });
 // #ruta o #ruta:pestaña
 function leerHash(){ const [r, t] = location.hash.slice(1).split(':'); if (!MENU.some(m=>m.r===r)) return false; E.ruta = r; if (t) E.tab[r] = t; return true; }
 window.addEventListener('hashchange', () => { if (leerHash()) render(); });
