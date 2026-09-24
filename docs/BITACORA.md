@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-24 (Etiqueta de precio: sale derecha, en cortes de 62 mm — ADR-0180)
+En la Mac de la tienda, la etiqueta salía derecha pero achicada y corrida a un lado. La causa: la hoja de 62 × 44 mm con la etiqueta girada era más ancha que alta, Chrome la mandaba horizontal y la Mac la volvía a girar. Además, el driver no ofrecía 62 × 44. Felipe eligió que salga derecha: la hoja pasa a 62 × 62 mm con la etiqueta centrada. Se verificó con el PDF de Chrome (dos páginas de 62,1 mm); falta probarla en la impresora.
+Felipe se lleva: (1) **Chrome decide la orientación por la forma de la página**: una hoja más ancha que alta viaja «horizontal»; (2) **dos giros se anulan**: el del CSS y el del sistema devolvían la etiqueta derecha, pero achicada; (3) **la hoja cuadrada no tiene orientación que adivinar**, a cambio de ≈ 40 % más de rollo.
+
 ## 2026-09-24 (El Admin no necesita marcar asistencia para guardar — ADR-0161 act.)
 Las cuentas compartidas de cada tienda (caja y almacén) siguen exigiendo a alguien de turno; el Admin ya no: en vez de «Nadie de turno» ve «Eres admin: no necesitas autorización» y lo que guarda queda a su nombre. La excepción vive en la base (`fn_actor_persona_id`, migración `20260924171300`), no solo en la pantalla: producción tiene `exige_responsable` encendido y habría rechazado igual. Pegada y verificada en producción el mismo día: 5/5 Admin firman, 4/4 líderes no Admin y 6/6 terminales siguen bloqueados.
 Dany se lleva: (1) **un candado se abre donde se cierra**: esconder el aviso en la pantalla no basta si la base es la que rechaza; (2) **la excepción es para el Admin, no para el líder**: la cuenta del Admin no se comparte, así que no hay a quién identificar; (3) **una prueba vieja puede depender del seed**: en local Felipe ya es admin, y el caso «el líder también se bloquea» tuvo que fijar un líder que no lo es.

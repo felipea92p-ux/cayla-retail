@@ -160,17 +160,35 @@ Felipe midió el cartón: **5 cm de ancho × 8 cm de largo**, con el agujero arr
   de página. Antes del giro mide 62 mm de alto, más que la hoja de 44. El QR y el pie aparecían encima del precio en todas
   las hojas menos la última. Con `contain: size layout paint` la etiqueta es una pieza que no se parte.
 
+## Actualización 2026-09-24: sale derecha, en cortes de 62 mm
+
+**Qué pasó en la tienda:** en una Mac, la hoja de 62 × 44 mm con la etiqueta girada salió **derecha pero achicada y
+corrida a un lado**, con mucho rollo en blanco. Causa: una página más ancha que alta hace que Chrome la mande en
+orientación horizontal, y la Mac y el driver la vuelven a girar para que calce en el rollo. Los dos giros se anulan y la
+etiqueta termina escalada. Además, el driver de la Mac no ofrece 62 × 44 mm (el tamaño más cercano es 62 × 48).
+
+**Decisión (Felipe):** la etiqueta sale **derecha**, tal como se lee al salir del rollo. La hoja pasa a **62 × 62 mm**
+y la etiqueta de 44 × 62 va centrada en el ancho, con 9 mm blancos a cada lado.
+- **Ganas:** una hoja cuadrada no tiene orientación que adivinar, así que ni Chrome ni el driver la giran. Además no hay
+  que girar nada al pegarla.
+- **Pagas:** cada etiqueta gasta 62 mm de rollo en vez de 44 (≈ 40 % más), y hay que recortar los 9 mm de cada lado para
+  que entre en el cartón de 50 mm.
+
+**Dónde está:** `globals.css` (`@page etiqueta-precio` y `.etq-hoja`). Se verificó con el PDF de Chrome: 2 páginas de
+62,1 × 62,1 mm, con la etiqueta centrada. Todavía no se probó en la impresora. Los pasos de abajo ya dicen **62 × 62 mm**.
+
 ## Configurar la Brother (una vez por computadora que imprima)
 
 > Estos pasos no se probaron contra la impresora real: los nombres exactos del driver pueden variar según la versión.
 
 1. Instalar el **driver completo** de la QL-1110NWB desde la página de soporte de Brother (no el genérico de Windows).
-2. En el driver, crear un papel **62 × 44 mm** para el rollo continuo de 62 mm. Brother lo ofrece en la configuración de
+2. En el driver, crear un papel **62 × 62 mm** para el rollo continuo de 62 mm (en Mac: diálogo del sistema → Tamaño del papel
+   → «Gestionar tamaños personalizados…», con márgenes en 0). Brother lo ofrece en la configuración de
    tamaño de papel (en inglés, «Paper Size Setup»). Activar **corte automático cada 1 etiqueta**.
-3. En Chrome, la primera vez: Destino **Brother QL-1110NWB** → Más ajustes → Tamaño del papel **62 × 44 mm** → Márgenes
+3. En Chrome, la primera vez: Destino **Brother QL-1110NWB** → Más ajustes → Tamaño del papel **62 × 62 mm** → Márgenes
    **Ninguno** → Escala **Predeterminada (100 %)** → **sin** «Encabezados y pies de página». Chrome recuerda la elección.
 4. Primera prueba: imprimir 1 etiqueta, escanearla con la pistola en Vender y confirmar que aparece la prenda correcta. Mirar
-   también que salga completa y a tamaño real (44 × 62 mm, de lado en el corte): si sale achicada o corrida, es el paso 2.
+   también que salga completa y a tamaño real (44 × 62 mm, derecha y centrada en un corte de 62 mm): si sale achicada o corrida, es el paso 2.
 
 ## Lo que sigue
 
