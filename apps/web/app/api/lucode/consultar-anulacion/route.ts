@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { consultarAnulacionLucode, entornoLucode } from "@/lib/lucode";
 import { firmaDeEncabezados, mensajeErrorResponsable } from "@/lib/responsable-reglas";
+import { capturarError } from "@/lib/errores";
 
 // POST /api/lucode/consultar-anulacion  { comprobante_id: string }
 //
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
   // Un fallo de consulta NO es "no encontrado": si se confunden, quien anula concluye que
   // el comprobante no existe y lo vuelve a emitir. 503 dice "reintenta", 404 dice "no está".
   if (errC) {
+    capturarError("lucode/consultar-anulacion: no se pudo leer el comprobante", errC, { comprobante_id: body.comprobante_id });
     return Response.json({ error: "No se pudo leer el comprobante. Reintenta en un momento." }, { status: 503 });
   }
   if (!c) return Response.json({ error: "Comprobante no encontrado o sin permiso para verlo" }, { status: 404 });
@@ -92,6 +94,10 @@ export async function POST(request: Request) {
     p_respuesta: { estado: r.estadoCrudo, mensaje: r.mensaje, consultado_at: new Date().toISOString() },
   });
   if (errGuardar) {
+    capturarError("lucode/consultar-anulacion: SUNAT confirmó pero sin guardar", errGuardar, {
+      comprobante_id: c.id,
+      comprobante: `${c.serie}-${c.numero}`,
+    });
     return Response.json(
       { error: `SUNAT confirmó la baja pero no se pudo guardar: ${errGuardar.message}`, anulacion: "confirmada" },
       { status: 500 }

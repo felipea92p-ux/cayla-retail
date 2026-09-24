@@ -3,6 +3,9 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-24 (Facturación: los errores de Lucode quedan en el log)
+La tarea suponía que `capturarError()` ya existía; no estaba en ninguna rama, worktree ni en cayla-dynamic. Se creó mínima (`lib/errores.ts`: una línea JSON en los logs de Vercel, sin dependencias) y se enganchó en los 9 lugares de Lucode donde se perdía información, no en cada ruta. Sin migración y sin cambiar ninguna respuesta; con un `fetch` real, una caída de DNS se lee `ENOTFOUND` y un vencimiento `TimeoutError`, que antes eran el mismo «no respondió a tiempo».
+Se lleva: (1) **antes de reusar algo, se comprueba que existe**: la tarea pedía «reúsala tal cual» sobre una función que nadie había escrito; (2) **el error más caro no estaba en un `catch`**: era «SUNAT lo tiene y la base no», que solo quedaba en el aviso de la pantalla; (3) **un log no es un archivo**: los de Vercel duran poco, y el día que haga falta memoria larga se cambia solo `capturarError`.
 ## 2026-09-24 (Etiqueta de precio: sale derecha, en cortes de 62 mm — ADR-0180)
 En la Mac de la tienda, la etiqueta salía derecha pero achicada y corrida a un lado. La causa: la hoja de 62 × 44 mm con la etiqueta girada era más ancha que alta, Chrome la mandaba horizontal y la Mac la volvía a girar. Además, el driver no ofrecía 62 × 44. Felipe eligió que salga derecha: la hoja pasa a 62 × 62 mm con la etiqueta centrada. Se verificó con el PDF de Chrome (dos páginas de 62,1 mm); falta probarla en la impresora.
 Felipe se lleva: (1) **Chrome decide la orientación por la forma de la página**: una hoja más ancha que alta viaja «horizontal»; (2) **dos giros se anulan**: el del CSS y el del sistema devolvían la etiqueta derecha, pero achicada; (3) **la hoja cuadrada no tiene orientación que adivinar**, a cambio de ≈ 40 % más de rollo.
